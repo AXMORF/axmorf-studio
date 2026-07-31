@@ -67,6 +67,8 @@ Scene 与转场同时服务 StoryBeat 语义和实测时间，不能只根据台
   两条视频再合成。
 - v1 转场只支持 hard cut 与不改变总时长的 visual-only overlay；双 Scene overlap
   等待明确的 input/output handles 模型。
+- “确定性 TTS”指固定生成、实测和产物封存流程，不承诺模型生成的波形 bit-by-bit
+  可重复；封存音频及其 checksum、fingerprint 才是后续时间权威。
 - 运行时只消费静态源码、合同数据和本地资产，不调用 skill、Agent 或网络。
 - 数据只保存声明和稳定 ID；不承载 JSX、代码或动态模块路径。
 - 新 Scene 只能参考当前输入与已注册共享能力，不能参考旧 Scene 或旧 Composition。
@@ -85,3 +87,6 @@ Scene 与转场同时服务 StoryBeat 语义和实测时间，不能只根据台
 6. 用静态 registry 和确定性 runtime 装配完整 Composition；
 7. 以少量机械检查、批量视觉审核和一次最终预览批准完成交付；
 8. 在用户明确批准后，把被多个真实主题证明的能力提升到共享层。
+
+确定性执行的具体实现边界见
+[DETERMINISTIC_EXECUTION.md](DETERMINISTIC_EXECUTION.md)。

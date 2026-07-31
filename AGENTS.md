@@ -7,6 +7,7 @@
 - 产品最终目标：`docs/FINAL_PRODUCT_GOAL.md`
 - 当前实现状态：`docs/ITERATION_STATUS.md`
 - 系统结构：`docs/ARCHITECTURE.md`
+- 确定性执行：`docs/DETERMINISTIC_EXECUTION.md`
 - 名词边界：`docs/TERMINOLOGY.md`
 
 文档冲突时，先以可执行代码和测试确认当前事实，再同步状态文档；不能把目标设计说成
@@ -19,6 +20,8 @@
 - 所有 `remotion` 与 `@remotion/*` 包保持完全相同的精确版本。
 - 一 Story 对应一个 Composition；一 StoryBeat 对应一个 `meaningId` 和一个 Scene。
 - 实测旁白时间是绝对时间权威；Scene 和转场不得移动、缩短或吞掉 spoken frames。
+- TTS 波形不假定 bit-by-bit 可重复；生成结果必须经实测、checksum 和 fingerprint
+  封存后才能成为后续时间权威。
 - 字幕只由顶层 `CaptionLayer` 渲染；Scene renderer 只输出视觉。
 - JSON/数据文件不得包含 JSX、任意代码、任意动态模块路径或可执行表达式。
 - renderer 必须通过 composition-local 静态 registry 绑定稳定 `rendererId`。

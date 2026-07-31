@@ -13,11 +13,11 @@ flowchart LR
 
 ## 三层检查
 
-| 层级 | 负责人 | 内容 | 是否每次阻塞用户 |
-| --- | --- | --- | --- |
-| AutoCheck | 脚本/运行时 | 合同、连续帧范围、资源、registry、typecheck、lint、build | 否 |
-| SceneVisualCheck | Agent | 语义可读、构图、运动、相邻连续性、字幕避让 | 否，批量汇报 |
-| FinalPreviewApproval | 用户 | 完整音画节奏与最终审美 | 是，默认唯一创意批准 |
+| 层级                 | 负责人      | 内容                                                     | 是否每次阻塞用户     |
+| -------------------- | ----------- | -------------------------------------------------------- | -------------------- |
+| AutoCheck            | 脚本/运行时 | 合同、连续帧范围、资源、registry、typecheck、lint、build | 否                   |
+| SceneVisualCheck     | Agent       | 语义可读、构图、运动、相邻连续性、字幕避让               | 否，批量汇报         |
+| FinalPreviewApproval | 用户        | 完整音画节奏与最终审美                                   | 是，默认唯一创意批准 |
 
 ## 条件检查
 
@@ -30,3 +30,6 @@ flowchart LR
 
 静态布局不重复生成大量相似 still；Scene 默认以 contact sheet 批量查看。相同
 fingerprint 的机械产物无需重复创意审批。
+
+机械检查最终汇总为作品级 `project:check`，而不是在每个节点建立一套独立审批。目标
+检查项见 [DETERMINISTIC_EXECUTION.md](DETERMINISTIC_EXECUTION.md)。

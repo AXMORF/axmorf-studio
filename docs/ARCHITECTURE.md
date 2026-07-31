@@ -20,7 +20,7 @@ flowchart TB
     Story -->|"1:N"| Beat["StoryBeat<br/>meaningId<br/>【创作决策】"]
 
     Beat --> Chunks["ttsChunks<br/>已拆分台词集合<br/>【创作决策】"]
-    Chunks --> TTS["TTS + 实测<br/>【确定性执行】"]
+    Chunks --> TTS["TTS + 实测 + 结果封存<br/>【确定性执行】"]
     TTS --> Timing["绝对 SemanticTiming<br/>【确定性执行】"]
     TTS --> Narration["NarrationUnit<br/>完整音频 + CaptionCue<br/>【确定性执行】"]
     Story --> Core["NarrativeCore<br/>【确定性执行】"]
@@ -146,3 +146,8 @@ z-index 决定；Sequence 数量不等于 Scene 或 Shot 的业务数量。
 
 Assembly 可以校验、定位、查 registry、装配图层和执行已声明 preset；不能选择或重排
 StoryBeat，不能改台词和 timing，也不能自动选择资源、Shot、镜头、renderer 或转场。
+
+确定性执行由合同校验、固定 CLI、静态 registry、通用 Remotion runtime 和 fingerprint
+失效机制共同实现，不由一个万能执行器承担。VoxCPM 结果在生成后通过实测、checksum
+和 fingerprint 封存，再成为后续时间权威。完整设计见
+[DETERMINISTIC_EXECUTION.md](DETERMINISTIC_EXECUTION.md)。
