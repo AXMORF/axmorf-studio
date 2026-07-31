@@ -1,31 +1,58 @@
 {
   "name": "remotion-story-producer",
-  "version": "1.0.0",
-  "description": "My Remotion video",
-  "repository": {},
+  "version": "0.1.0",
+  "description": "Narration-led, story-beat-driven Remotion production system.",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
-    "@remotion/cli": "4.0.502",
+    "@react-three/fiber": "9.6.1",
+    "@remotion/cli": "4.0.489",
+    "@remotion/effects": "4.0.489",
+    "@remotion/gif": "4.0.489",
+    "@remotion/google-fonts": "4.0.489",
+    "@remotion/layout-utils": "4.0.489",
+    "@remotion/light-leaks": "4.0.489",
+    "@remotion/lottie": "4.0.489",
+    "@remotion/media": "4.0.489",
+    "@remotion/motion-blur": "4.0.489",
+    "@remotion/paths": "4.0.489",
+    "@remotion/renderer": "4.0.489",
+    "@remotion/shapes": "4.0.489",
+    "@remotion/tailwind-v4": "4.0.489",
+    "@remotion/three": "4.0.489",
+    "@remotion/transitions": "4.0.489",
+    "lottie-web": "5.13.0",
+    "ogl": "1.0.11",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "remotion": "4.0.502",
-    "@remotion/tailwind-v4": "4.0.502",
-    "tailwindcss": "4.0.0"
+    "remotion": "4.0.489",
+    "three": "0.185.0",
+    "zod": "4.3.6"
   },
   "devDependencies": {
-    "@remotion/eslint-config-flat": "4.0.502",
+    "@eslint/eslintrc": "3.3.5",
+    "@remotion/eslint-config-flat": "4.0.489",
+    "@types/node": "20.12.14",
     "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
     "@types/web": "0.0.166",
     "eslint": "9.19.0",
     "prettier": "3.8.1",
+    "tailwindcss": "4.2.0",
     "typescript": "5.9.3"
   },
   "scripts": {
     "dev": "remotion studio",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
-    "lint": "eslint src && tsc"
+    "typecheck": "tsc --noEmit --pretty false",
+    "lint": "eslint .",
+    "compositions": "remotion compositions src/index.ts",
+    "check": "npm run typecheck && npm run lint && npm run build && npm run compositions"
   },
   "sideEffects": [
     "*.css"
