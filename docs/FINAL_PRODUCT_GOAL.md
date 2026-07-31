@@ -52,6 +52,12 @@ Composition = NarrativeCore + StoryVisualTrack + SoundDesignTrack + GlobalVisual
 Scene 与转场同时服务 StoryBeat 语义和实测时间，不能只根据台词字面生成，也不能反向
 修改旁白与字幕时间。
 
+## 节点责任
+
+系统节点分为 `创作决策`、`制作编排` 和 `确定性执行`。Agent 贯穿前两类工作并调用
+确定性工具，但正式渲染运行时不调用 Agent 或 skill。具体标注见
+[ARCHITECTURE.md](ARCHITECTURE.md)。
+
 ## 不可偷换的边界
 
 - Scene、Shot、TTSChunk 与 Remotion `<Sequence>` 不是同一个概念。
