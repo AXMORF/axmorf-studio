@@ -1,7 +1,14 @@
 # Remotion Story Producer
 
-一个以旁白与字幕为稳定叙事主线、以 `StoryBeat` 驱动独立 `Scene` 视觉任务的
-Remotion 视频生产工程。
+一个先把用户内容稳定转化为 Story、已封存旁白、字幕和绝对时间线，再按需接入视觉、
+声音与全局增强轨的 Remotion 视频生产工程。
+
+当前优先完成 `StorySpec + NarrationSpec + RenderSpec → sealed narration →
+SemanticTiming → NarrativeCore → Narrative Baseline`。这一主链不依赖 Scene，必须能够
+独立检查、预览和渲染。
+
+视觉表达放在后续阶段：目标模型中，每个 StoryBeat 对应一个 Scene；每个 ScenePackage
+对 runtime 只暴露一个 Scene 级 renderer 入口。该接口保留，但不属于当前里程碑。
 
 ## 当前状态
 
@@ -11,9 +18,11 @@ Remotion 视频生产工程。
 - 已迁入 camera、effects、Lottie/媒体、motion、sound、styles、transitions 与
   Remotion primitives；
 - `CapabilityGallery`：只用于验证项目可以启动、构建和列出 Composition；
-- 规范目录和目标设计文档。
+- 规范目录、外部生产流程和目标设计文档。
 
-NarrativeCore、ScenePackage、资源注册表、完整生产链和新 skills 都尚未实现。
+StorySpec、NarrationSpec、RenderSpec、旁白封存、SemanticTiming、NarrativeCore、generated
+static ProjectRegistry、lazy-loaded Story Composition、NarrativeCheck、ScenePackage、资源
+目录、完整生产链和新 skills 都尚未实现。
 完成边界和后续里程碑见
 [最终产品目标](docs/FINAL_PRODUCT_GOAL.md) 与
 [当前实现状态](docs/ITERATION_STATUS.md)。
@@ -50,7 +59,8 @@ npx remotion render src/index.ts CapabilityGallery out/capability-gallery.mp4
 
 ## 文档
 
-从 [docs/README.md](docs/README.md) 开始。仓库内 Agent 执行规则见
+从 [外部生产流程](docs/PRODUCTION_WORKFLOW.md) 和 [docs/README.md](docs/README.md)
+开始。仓库内 Agent 执行规则见
 [AGENTS.md](AGENTS.md)。
 
 ## 目录
@@ -66,5 +76,6 @@ src/remotion/capabilities/      已批准共享能力
 src/remotion/catalog/           预留：统一只读资源目录
 src/remotion/runtime/           预留：NarrativeCore、视觉轨与装配运行时
 src/remotion/compositions/      系统 Composition
-src/projects/<story>/           预留：新作品与 composition-local Scene 源码
+src/projects/project-registry.generated.ts 预留：静态元数据与字面量 lazy imports
+src/projects/<story>/           预留：default-export Story Composition；后续再加入 Scene renderer
 ```

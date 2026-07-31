@@ -6,34 +6,98 @@
 【创作决策】决定表达什么，以及采用什么视觉、声音和审美方案
 【制作编排】把已确定方案落实为资源引用、源码、组件和静态绑定
 【确定性执行】脚本、组件或运行时根据确定输入生成可重复结果
+【外部生成边界】允许调用结果非 bit-by-bit 可重复的服务，输出先作为候选产物
 ```
 
 Agent 贯穿创作与制作过程：参与创作决策、完成制作编排并调用确定性工具，但不作为
 结构节点，也不进入正式渲染运行时。自动化只能检查和执行已确定输入，不能自行选择
 StoryBeat、Scene 方案、Shot、资源、镜头、声音或转场。
 
+## 当前设计顺序
+
+当前先稳定 Scene 外部的叙事生产主链：
+
+```text
+VideoBrief → StorySpec + NarrationSpec → StoryBeat + authored ttsChunks → StoryCheck
+用户本次制作参数 → RenderSpec（结构化与机械校验，不二次确认）
+StoryCheck → VoxCPM generation boundary → sealed narration
+sealed narration + RenderSpec → SemanticTiming + CaptionCue
+→ NarrativeCore
+→ Generated Static ProjectRegistry + lazy-loaded Composition
+→ Narrative Baseline / NarrativeCheck
+```
+
+这条主链必须在不存在 ScenePackage、renderer registry、视觉资源目录、SoundDesignTrack
+和 GlobalVisualLayers 时独立工作。Scene、声音和全局效果是只读消费叙事主链的下游增强
+轨；当前只保留未来接口，不继续设计视觉表达。详细流程见
+[PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
+
+Narrative Baseline 通过 generated static ProjectRegistry 注册为 Story Composition。
+ProjectRegistry 的注册元数据静态可枚举，具体 Composition 代码通过 Remotion
+`lazyComponent` 按需加载。它不读取 ScenePackage，也不导入 Scene renderer；它与后续
+composition-local RendererRegistry 是两个独立装配边界。
+
+### Composition 注册边界
+
+```text
+src/projects/<story>/Composition.tsx（default export）
++ 已校验 Story ID / RenderSpec / SemanticTiming
+        ↓ bundle 前固定生成步骤
+src/projects/project-registry.generated.ts
+（静态元数据 + 字面量 () => import("./<story>/Composition")）
+        ↓
+Root 映射为 <Composition lazyComponent={entry.load} ... />
+        ↓ 选中 / preview / render 时
+Webpack 按需加载该 Story Composition
+```
+
+这里的“动态”只指 Composition 模块按需加载，不指运行时发现项目：
+
+- 生成器只扫描固定一级目录 `src/projects/*/Composition.tsx`，稳定排序并拒绝非法 slug、
+  重复 Composition ID、缺失合同或缺失 timing；
+- ID、fps、width、height、durationInFrames 和小型 JSON-serializable defaultProps 在 registry
+  中预先确定，Remotion 无需加载 Composition 就能列出它；
+- 每个 registry import 都是生成后的字面量路径，模块路径不得来自 JSON、网络或字符串
+  拼接；
+- `Composition.tsx` 必须 default export，以满足 Remotion `lazyComponent` 的 Suspense
+  加载约束；
+- 所有 Story Composition 使用共同的 `StoryCompositionProps`；registry 的 defaultProps
+  只传 `projectId` 等小型稳定标识，完整 Story、timing 和 manifest 留在项目模块内；
+- `registerRoot()` 仍只在独立入口调用一次；Root 只读取 generated registry 并映射
+  `<Composition>`；
+- 正式 render runtime 不扫描文件系统，不生成 registry，也不动态改变 Composition 列表。
+
 ## 总结构
 
 ```mermaid
 flowchart TB
-    Brief["VideoBrief<br/>内容 / 受众 / 时长 / 风格"] --> Story["Story<br/>【创作决策】"]
+    Brief["VideoBrief<br/>内容 / 受众 / 时长 / 风格"] --> Story["StorySpec<br/>【创作决策】"]
+    Brief --> NarrationSpec["NarrationSpec<br/>voice profile / 生成参数<br/>【创作决策】"]
+    RenderInput["用户本次制作参数<br/>无需二次确认"] --> RenderSpec["RenderSpec<br/>fps / 画幅 / 字幕与输出约束<br/>【用户输入】"]
     Story -->|"1:N"| Beat["StoryBeat<br/>meaningId<br/>【创作决策】"]
 
     Beat --> Chunks["ttsChunks<br/>已拆分台词集合<br/>【创作决策】"]
-    Chunks --> TTS["TTS + 实测 + 结果封存<br/>【确定性执行】"]
-    TTS --> Timing["绝对 SemanticTiming<br/>【确定性执行】"]
-    TTS --> Narration["NarrationUnit<br/>完整音频 + CaptionCue<br/>【确定性执行】"]
+    Chunks --> StoryCheck["StoryCheck<br/>【创作决策】"]
+    NarrationSpec --> StoryCheck
+    StoryCheck --> Generate["VoxCPM 候选 chunk 音频<br/>【外部生成边界】"]
+    Generate --> Seal["实测 / checksum / fingerprint / 封存<br/>【确定性执行】"]
+    Seal --> Timing["绝对 SemanticTiming<br/>【确定性执行】"]
+    RenderSpec --> Timing
+    Seal --> Narration["NarrationUnit<br/>完整音频 + CaptionCue<br/>【确定性执行】"]
     Story --> Core["NarrativeCore<br/>【确定性执行】"]
+    RenderSpec --> Core
     Timing --> Core
     Narration --> Core
     Base["BaseCanvas<br/>【确定性执行】"] --> Core
-    Core --> Baseline["Narrative Baseline<br/>【确定性执行】"]
+    Core --> StoryComposition["Story Composition<br/>default export<br/>【确定性执行】"]
+    StoryComposition --> ProjectRegistry["Generated Static ProjectRegistry<br/>literal lazy import<br/>【制作编排】"]
+    ProjectRegistry --> Baseline["Narrative Baseline<br/>lazy-loaded<br/>【确定性执行】"]
 
     Beat --> Plan["SceneVisualPlan<br/>画面 / Shot / 镜头 / 资源<br/>【创作决策】"]
     Timing --> Plan
     Context["StoryContext<br/>风格 / 相邻关系 / 连续性<br/>【创作决策】"] --> Plan
     Catalog["ResourceCatalog<br/>统一只读查询<br/>【确定性执行】"] --> Plan
-    Plan --> Package["ScenePackage<br/>资源 / Renderer / 静态绑定<br/>【制作编排】"]
+    Plan --> Package["ScenePackage<br/>资源 / 1 个 Scene renderer / 静态绑定<br/>【制作编排】"]
     Package --> VisualUnit["SceneVisualTrack<br/>【确定性执行】"]
 
     Beat --> Transition["StoryBeatTransition<br/>语义关系 / 动机 / preset<br/>【创作决策】"]
@@ -46,20 +110,27 @@ flowchart TB
     GlobalPlan --> Global["GlobalVisualLayers<br/>【确定性执行】"]
 
     Core --> Assembly["CompositionAssembly<br/>【确定性执行】"]
-    Visual --> Assembly
-    Sound --> Assembly
-    Global --> Assembly
+    Visual -.->|"可选增强"| Assembly
+    Sound -.->|"可选增强"| Assembly
+    Global -.->|"可选增强"| Assembly
     Assembly --> Composition["Composition<br/>【确定性执行】"]
 
+    classDef input fill:#243247,stroke:#60a5fa,color:#f8fafc;
     classDef creative fill:#2b2142,stroke:#a78bfa,color:#f8fafc;
     classDef orchestration fill:#422b18,stroke:#f59e0b,color:#f8fafc;
     classDef deterministic fill:#12383d,stroke:#22d3ee,color:#f8fafc;
-    class Story,Beat,Chunks,Plan,Context,Transition,SoundPlan,GlobalPlan creative;
-    class Package orchestration;
-    class TTS,Timing,Narration,Core,Base,Baseline,Catalog,VisualUnit,Visual,Sound,Global,Assembly,Composition deterministic;
+    classDef external fill:#3f2730,stroke:#fb7185,color:#f8fafc;
+    class RenderInput,RenderSpec input;
+    class Story,NarrationSpec,Beat,Chunks,StoryCheck,Plan,Context,Transition,SoundPlan,GlobalPlan creative;
+    class Package,ProjectRegistry orchestration;
+    class Generate external;
+    class Seal,Timing,Narration,Core,Base,StoryComposition,Baseline,Catalog,VisualUnit,Visual,Sound,Global,Assembly,Composition deterministic;
 ```
 
-## Scene 内部
+## 后续视觉阶段：Scene 内部
+
+> 当前里程碑不实现本节。本节只保留未来视觉轨接入边界，不能成为 Narrative Baseline
+> 的依赖。
 
 ```mermaid
 flowchart TB
@@ -70,17 +141,17 @@ flowchart TB
 
     subgraph Design["Scene 画面方案"]
       Plan["SceneVisualPlan<br/>主体 / 动作 / 含义 / 主构图<br/>Shot / 镜头 / 调度 / 资源<br/>【创作决策】"]
-      Plan -->|"1:N"| Shot["ShotPlan<br/>局部帧范围 / rendererId / 动机<br/>【创作决策】"]
+      Plan -->|"1:N"| Shot["ShotPlan<br/>局部帧范围 / 动机 / 镜头 / 调度<br/>【创作决策】"]
       Plan --> Refs["SelectedResourceRef[]<br/>【创作决策】"]
     end
 
     subgraph Authoring["Scene 制作"]
       Refs --> Resolve["资源解析与校验<br/>【确定性执行】"]
       Catalog --> Resolve
-      Shot --> Source["composition-local Renderer.tsx<br/>【制作编排】"]
+      Shot --> Source["composition-local Scene Renderer 入口<br/>Renderer.tsx<br/>【制作编排】"]
       Refs --> Source
       Resolve --> Source
-      Source --> Registry["静态 RendererRegistry<br/>rendererId → component<br/>【制作编排】"]
+      Source --> Registry["静态 RendererRegistry<br/>ScenePackage.rendererId → SceneRenderer<br/>【制作编排】"]
     end
 
     subgraph Runtime["确定性运行"]
@@ -102,6 +173,27 @@ flowchart TB
     class Source,Registry orchestration;
     class Timing,Catalog,Resolve,Frame,Renderer,Track,Evidence deterministic;
 ```
+
+## Scene 级 Renderer 边界
+
+```text
+1 StoryBeat = 1 Scene visual responsibility
+1 completed Scene = 1 ScenePackage
+1 ScenePackage = 1 Scene-level rendererId = 1 runtime renderer entry
+1 Scene renderer = N Shot
+```
+
+- `rendererId` 只存在于 ScenePackage，并绑定 Scene 级 renderer 入口；ShotPlan 不保存
+  `rendererId`、组件或模块路径。
+- Narrative Baseline 可以在任何 ScenePackage 产生前独立预览；上面的 ScenePackage
+  一一关系描述完成视觉制作后的可装配结果，不是 Baseline 的前置条件。
+- ShotPlan 只描述 Scene 内部的 `shotId`、局部帧范围、视觉动机、镜头、调度和资源引用。
+- Scene renderer 可以在自己的目录内拆分任意数量的 Shot 组件和辅助文件，也可以调用
+  已批准共享能力；这些内部组件不单独注册到 runtime registry。
+- Scene runtime 每个 Scene 只解析一次 `rendererId`，向该入口提供 Scene timing、局部帧
+  和已校验资源；Shot 的具体 JSX 与连续运动由 Scene renderer 负责。
+- TTSChunk 与 CaptionCue 不决定 Shot 数量或边界。Shot 服务同一个 meaningId，可跨越
+  多个 TTSChunk，也可在一个 TTSChunk 内切换。
 
 ## 图层与音轨
 
@@ -126,14 +218,17 @@ shotFrame = sceneFrame - shotStartFrame
 ```
 
 所有持久化范围统一为左闭右开的 `[startFrame, endFrame)`，并明确使用绝对帧还是局部帧。
+音频边界先在 canonical PCM 的累计整数样本坐标中建立，再统一向上量化到帧；不得逐
+chunk 把浮点秒数转帧后相加。唯一公式见
+[确定性执行：音频样本到帧](DETERMINISTIC_EXECUTION.md#8-音频样本到帧的唯一算法)。
 
 ## Remotion 对应
 
 ```text
 Story                 -> Composition
 StoryBeat             -> 语义数据 + Scene 外层 Sequence
-Scene                 -> 独立视觉任务
-Shot                  -> Scene 内局部 Sequence
+Scene                 -> 独立视觉任务 + 一个 Scene renderer 入口
+Shot                  -> Scene renderer 内部的局部 Sequence 或组件；无 registry 绑定
 NarrationAudioTrack   -> Composition 绝对音轨
 CaptionLayer          -> Composition 顶层透明视觉层
 StoryBeatTransition   -> Scene 边界上的等时长视觉实现

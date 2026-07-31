@@ -1,6 +1,7 @@
 # 统一资源与能力目录
 
-> 当前状态：共享能力源码已迁入；统一 `ResourceCatalog` 尚未实现。
+> 当前状态：共享能力源码已迁入；统一 `ResourceCatalog` 尚未实现，且不属于当前
+> Narrative Baseline 里程碑。
 
 ## 目标
 
@@ -58,4 +59,6 @@ ResourceDescriptor
 ## 新能力
 
 Scene 内新组件默认留在 `src/projects/<story>/`，不会因“看起来可复用”自动进入共享目录。
+Scene renderer 可以调用目录中的共享能力，也可以拆分本地 Shot 组件；目录条目不会因此
+变成 Shot 级 runtime renderer，ShotPlan 也不保存组件或模块路径。
 具体 promotion 合同尚未落地；实现时必须保留“用户明确批准后才可提取”的边界。

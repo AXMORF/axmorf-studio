@@ -8,16 +8,24 @@
 - 宿主机 Node/npm 工作流；
 - 从原项目已提交版本白名单迁入共享 Remotion 能力；
 - `CapabilityGallery` 最小启动 Composition；
-- 规范目录、最终目标、带节点责任标注的结构图、确定性执行设计、名词、审核模型与迁移清单。
+- 规范目录、最终目标、外部生产流程、带节点责任标注的结构图、Scene 级 renderer 边界、
+  确定性执行设计、名词、审核模型与迁移清单。
 
 ## 尚未完成
 
-- `StorySpec`、`ScenePackage`、资源目录和 promotion 合同；
+- `VideoBrief`、`StorySpec`、`NarrationSpec`、`RenderSpec`、封存旁白与 SemanticTiming
+  合同；
 - `NarrativeCore`、顶层 CaptionLayer、BaseCanvas；
-- `StoryVisualTrack`、静态 renderer registry、hard cut 与等时长 overlay；
+- generated static ProjectRegistry、`lazyComponent` 按需加载与不依赖 Scene 的 Story
+  Composition 注册；
+- `StoryCheck`、`NarrativeCheck`、Narrative Baseline preview/render 与主链 fingerprint
+  失效传播；
+- `ScenePackage`、资源目录和 promotion 合同；
+- `StoryVisualTrack`、Scene 级静态 renderer registry、hard cut 与等时长 overlay；
 - 统一资源目录生成与查询；
 - 真实 VoxCPM `ttsChunks → measured audio → CaptionCue → complete audio` 工具链；
-- SceneVisualPlan 独立数据合同、选材查询 CLI 与 composition-local scaffold；
+- SceneVisualPlan/ShotPlan 独立数据合同、选材查询 CLI 与 composition-local Scene
+  renderer scaffold；
 - VisualCoverageMap、fallback 状态与 release gate；
 - Story 级 sound/global layers 完整装配；
 - Scene/Story 分层 fingerprint 与失效传播；
@@ -31,19 +39,28 @@
 
 ## 下一里程碑
 
-先用一个全新真实主题完成：
+先用一个全新真实主题只完成 Scene 外部的叙事主链：
 
 ```text
-StoryBeat/ttsChunks
-→ 实测 NarrativeCore
+VideoBrief
+→ StorySpec + NarrationSpec + RenderSpec
+→ StoryBeat + authored ttsChunks
+→ StoryCheck
+→ 真实 VoxCPM 逐 chunk 生成
+→ 实测、checksum、fingerprint 与封存
+→ SemanticTiming + CaptionCue + complete narration audio
+→ NarrativeCore
+→ Generated Static ProjectRegistry + lazy-loaded Composition
 → Narrative Baseline
-→ composition-local ScenePackage
-→ StoryVisualTrack
-→ 简化审核
-→ 完整 Preview / Render
+→ AutoCheck
+→ NarrativeCheck
+→ Baseline Preview / Render
 ```
 
-在第二个不同主题验证之前，不提取新的共享能力。
+当前里程碑不实现 SceneVisualPlan、ShotPlan、ScenePackage、Scene renderer、
+StoryVisualTrack、视觉资产查询、SoundDesignTrack 或 GlobalVisualLayers。Narrative Baseline
+闭环和失效规则通过真实主题验证后，才开始视觉表达设计；在第二个不同主题验证之前，
+不提取新的共享能力。
 
 ## 已知基础依赖问题
 
