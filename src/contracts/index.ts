@@ -2,6 +2,7 @@ export * from "./brief";
 export * from "./fingerprint";
 export * from "./generation-input";
 export * from "./m1-validation";
+export * from "./narrative-baseline";
 export * from "./narration";
 export * from "./primitives";
 export * from "./project";
