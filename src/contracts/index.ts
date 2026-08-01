@@ -9,3 +9,4 @@ export * from "./render";
 export * from "./sealed-narration";
 export * from "./semantic-timing";
 export * from "./story";
+export * from "./story-check";

@@ -50,7 +50,7 @@
     "dev": "remotion studio",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
-    "test": "node --import tsx --test tests/contracts/*.test.ts",
+    "test": "node --import tsx --test tests/contracts/*.test.ts tests/narration/*.test.ts",
     "typecheck": "tsc --noEmit --pretty false",
     "lint": "eslint .",
     "compositions": "remotion compositions src/index.ts",

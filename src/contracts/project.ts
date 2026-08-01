@@ -11,6 +11,7 @@ export const NARRATIVE_PROJECT_FILES = {
   story: "story.json",
   narration: "narration.json",
   render: "render.json",
+  storyCheck: "reviews/story-check.json",
   sealedNarration: "generated/sealed-narration.generated.json",
   semanticTiming: "generated/semantic-timing.generated.json",
 } as const;
