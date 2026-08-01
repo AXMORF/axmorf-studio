@@ -43,16 +43,18 @@
     "eslint": "9.19.0",
     "prettier": "3.8.1",
     "tailwindcss": "4.2.0",
+    "tsx": "4.23.1",
     "typescript": "5.9.3"
   },
   "scripts": {
     "dev": "remotion studio",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
+    "test": "node --import tsx --test tests/contracts/*.test.ts",
     "typecheck": "tsc --noEmit --pretty false",
     "lint": "eslint .",
     "compositions": "remotion compositions src/index.ts",
-    "check": "npm run typecheck && npm run lint && npm run build && npm run compositions"
+    "check": "npm run test && npm run typecheck && npm run lint && npm run build && npm run compositions"
   },
   "sideEffects": [
     "*.css"
