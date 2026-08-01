@@ -1,6 +1,6 @@
 # Remotion Story Producer Roadmap
 
-> Status：已获用户批准；M0 已完成，当前等待 M1 实施计划
+> Status：已获用户批准；M0、M1 已完成，M2 为下一步
 > 更新日期：2026-08-01
 
 ## 1. 用途
@@ -13,11 +13,10 @@
 
 ## 2. 当前起点
 
-当前代码只完成基础工程、已迁入共享能力和 `CapabilityGallery`。目标架构、Composition
-组合模型和 Narrative Baseline 主链已写入文档，但下列内容均尚未实现：
+当前代码已完成基础工程、已迁入共享能力、`CapabilityGallery` 和 M1 合同内核。目标架构、
+Composition 组合模型和 Narrative Baseline 主链已写入文档，但下列内容仍未实现：
 
-- Story/Narration/Render 数据合同与 fingerprint；
-- 真实 VoxCPM 生成、实测、封存和 SemanticTiming；
+- 真实 VoxCPM 生成、实测、文件封存和作品级 SemanticTiming 产物；
 - NarrativeCore、ProjectRegistry、lazy Story Composition 和 Narrative Baseline；
 - Scene、Sound、Global 增强轨与发布工具。
 
@@ -43,8 +42,8 @@
 
 ```mermaid
 flowchart LR
-    M0["M0 设计收口<br/>已完成"] --> M1["M1 合同与确定性内核<br/>下一步"]
-    M1 --> M2["M2 真实旁白生成与封存"]
+    M0["M0 设计收口<br/>已完成"] --> M1["M1 合同与确定性内核<br/>已完成"]
+    M1 --> M2["M2 真实旁白生成与封存<br/>下一步"]
     M2 --> M3["M3 Narrative Baseline Runtime"]
     M3 --> M4["M4 叙事闭环与失效验证"]
     M4 --> G1{"Gate A<br/>Baseline 真实闭环？"}
@@ -79,6 +78,8 @@ flowchart LR
 
 ### M1：数据合同与确定性内核
 
+**状态：** 已于 2026-08-01 完成并通过 M1 验收。
+
 **目标：** 在不调用 VoxCPM、不渲染视频的情况下，先建立所有下游依赖的可版本化
 合同、纯函数和失效语义。
 
@@ -101,6 +102,8 @@ flowchart LR
 - 测试、typecheck 和 lint 通过，合同文档与代码一致。
 
 ### M2：第一个真实主题的旁白生成与封存
+
+**状态：** 下一步；开始实现前单独编写并审阅实施计划。
 
 **目标：** 用一个全新真实主题打通
 `authored ttsChunks → VoxCPM candidates → measured/sealed narration → SemanticTiming`。
@@ -299,5 +302,5 @@ Composition 注册问题，必须回到 M1–M4 修正，不得用 Scene 代码�
 
 ## 7. 当前唯一下一步
 
-Roadmap 已获得用户批准。当前不直接开始全链实现，而是只编写并审阅 **M1：数据合同与
-确定性内核** 的实施计划。M1 实现和验收完成后，再编写 M2 计划。
+M1 已实现并通过验收。当前只编写并审阅 **M2：第一个真实主题的旁白生成与封存** 的
+实施计划，不在未审阅计划前开始 M2 实现。

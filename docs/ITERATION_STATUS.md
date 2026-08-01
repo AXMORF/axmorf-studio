@@ -11,22 +11,27 @@
 - 规范目录、最终目标、外部生产流程、带节点责任标注的结构图、Scene 级 renderer 边界、
   Composition 的“底层能力组合 + 四个强语义聚合 + 显式装配插槽”边界、确定性
   执行设计、名词、审核模型与迁移清单。
-- 已批准从 M1 合同内核、Narrative Baseline、视觉阶段到发布收口的分阶段 Roadmap；
-  当前下一步是单独编写和审阅 M1 实施计划。
+- `VideoBrief`、`StorySpec`、`NarrationSpec`、`RenderSpec`、`StoryBeat`、authored `ttsChunks`
+  与显式停顿的严格 v1 数据合同；
+- `sha256-canonical-json-v1`、Story/generation/sealed/timing 分层 fingerprint 与失效传播；
+- `SealedNarrationManifest` 元数据合同和聚合 stale-artifact 校验；
+- 基于累计 PCM sample-frame、`BigInt` 与 `pcm-cumulative-ceil-v1` 的 `SemanticTiming`、
+  `CaptionCue` 和 StoryBeat 绝对帧范围；
+- M1 合同、非法输入、权威时间示例与失效矩阵的 Node 单元测试；
+- 已批准从 M1 合同内核、Narrative Baseline、视觉阶段到发布收口的分阶段 Roadmap，M1
+  已完成。
 
 ## 尚未完成
 
-- `VideoBrief`、`StorySpec`、`NarrationSpec`、`RenderSpec`、封存旁白与 SemanticTiming
-  合同；
+- 真实 VoxCPM 生成、PCM 规范化与测量、完整 WAV 拼接和原子封存；
+- `StoryCheck` 报告合同、voice profile adapter 与候选音频续跑；
 - `NarrativeCore`、顶层 CaptionLayer 与透明视觉输出边界；
 - generated static ProjectRegistry、`lazyComponent` 按需加载与不依赖 Scene 的 Story
   Composition 注册；
-- `StoryCheck`、`NarrativeCheck`、Narrative Baseline preview/render 与主链 fingerprint
-  失效传播；
+- `NarrativeCheck`、Narrative Baseline preview/render 与 M1 之后的主链 fingerprint；
 - `ScenePackage`、资源目录和 promotion 合同；
 - `StoryVisualTrack`、Scene 级静态 renderer registry、hard cut 与等时长 overlay；
 - 统一资源目录生成与查询；
-- 真实 VoxCPM `ttsChunks → measured audio → CaptionCue → complete audio` 工具链；
 - SceneVisualPlan/ShotPlan 独立数据合同、选材查询 CLI 与 composition-local Scene
   renderer scaffold；
 - VisualCoverageMap、fallback 状态与 release gate；
@@ -38,32 +43,23 @@
 - 封面与发布工具；
 - 新的 Agent skills。
 
-以上确定性执行相关内容当前均为目标设计，不能表述为已有 CLI 或 runtime 能力。
+以上未完成项仍是目标设计，不能表述为已有 CLI 或 runtime 能力。M1 的 sealed receipt
+只验证元数据，不代表已经生成、测量或封存真实音频。
 
 ## 下一里程碑
 
-先用一个全新真实主题只完成 Scene 外部的叙事主链：
+下一步只编写并审阅 M2 实施计划；M2 将用一个全新真实主题完成真实旁白生成与封存：
 
 ```text
-VideoBrief
-→ StorySpec + NarrationSpec + RenderSpec
-→ StoryBeat + authored ttsChunks
 → StoryCheck
 → 真实 VoxCPM 逐 chunk 生成
 → 实测、checksum、fingerprint 与封存
 → SemanticTiming + CaptionCue + complete narration audio
-→ NarrativeCore
-→ Generated Static ProjectRegistry + lazy-loaded Composition
-→ Narrative Baseline
-→ AutoCheck
-→ NarrativeCheck
-→ Baseline Preview / Render
 ```
 
-当前里程碑不实现 SceneVisualPlan、ShotPlan、ScenePackage、Scene renderer、
-StoryVisualTrack、视觉资产查询、SoundDesignTrack 或 GlobalVisualLayers。Narrative Baseline
-闭环和失效规则通过真实主题验证后，才开始视觉表达设计；在第二个不同主题验证之前，
-不提取新的共享能力。
+M2 不实现 NarrativeCore、ProjectRegistry、SceneVisualPlan、ShotPlan、ScenePackage、
+Scene renderer、StoryVisualTrack、视觉资产查询、SoundDesignTrack 或 GlobalVisualLayers。
+在第二个不同主题验证之前，不提取新的共享能力。
 后续里程碑顺序、阶段排除项和完成门槛见 [ROADMAP.md](ROADMAP.md)。
 
 ## 已知基础依赖问题
