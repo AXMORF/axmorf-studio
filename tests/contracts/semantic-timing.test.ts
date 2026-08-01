@@ -11,6 +11,7 @@ import {
   generateSemanticTiming,
   pauseMsToSampleFrames,
   sampleFrameToFrame,
+  SemanticTimingSchema,
 } from "../../src/contracts/semantic-timing";
 import { StorySpecSchema } from "../../src/contracts/story";
 import {
@@ -249,4 +250,50 @@ test("timing fingerprint ignores RenderSpec non-timing fields", () => {
 
   assert.equal(original.fingerprint, captionLayoutOnly.fingerprint);
   assert.notEqual(original.fingerprint, changedFps.fingerprint);
+});
+
+test("persisted SemanticTiming rejects inconsistent derived relationships", () => {
+  const timing = generateSemanticTiming({
+    story: StorySpecSchema.parse(validStorySpec),
+    narration: NarrationSpecSchema.parse(validNarrationSpec),
+    render: RenderSpecSchema.parse(validRenderSpec),
+    sealedNarration: buildValidSealedNarrationManifest(),
+  });
+
+  assert.throws(() =>
+    SemanticTimingSchema.parse({
+      ...timing,
+      captionCues: timing.captionCues.slice(1),
+    }),
+  );
+  assert.throws(() =>
+    SemanticTimingSchema.parse({
+      ...timing,
+      durationInFrames: timing.durationInFrames + 1,
+    }),
+  );
+  assert.throws(() =>
+    SemanticTimingSchema.parse({
+      ...timing,
+      storyBeats: timing.storyBeats.map((beat, index) =>
+        index === 0 ? { ...beat, endFrame: beat.endFrame - 1 } : beat,
+      ),
+    }),
+  );
+  assert.throws(() =>
+    SemanticTimingSchema.parse({
+      ...timing,
+      segments: timing.segments.map((segment, index) =>
+        index === 1
+          ? {
+              ...segment,
+              sampleRange: {
+                ...segment.sampleRange,
+                startSampleFrame: segment.sampleRange.startSampleFrame + 1,
+              },
+            }
+          : segment,
+      ),
+    }),
+  );
 });

@@ -138,6 +138,131 @@ export const SemanticTimingSchema = z
     storyBeats: z.array(StoryBeatTimingSchema).min(1).readonly(),
   })
   .strict()
+  .superRefine((timing, context) => {
+    const expectedCaptionCues: Array<{
+      readonly chunkId: string;
+      readonly meaningId: string;
+      readonly text: string;
+      readonly startFrame: number;
+      readonly endFrame: number;
+    }> = [];
+    const expectedStoryBeats: Array<{
+      readonly meaningId: string;
+      readonly startFrame: number;
+      endFrame: number;
+    }> = [];
+    const seenMeaningIds = new Set<string>();
+    let previousSampleEnd = 0;
+    let previousFrameEnd = timing.leadInFrames;
+
+    timing.segments.forEach((segment, index) => {
+      if (segment.sampleRange.startSampleFrame !== previousSampleEnd) {
+        context.addIssue({
+          code: "custom",
+          message: "Segment sample ranges must share cumulative boundaries.",
+          path: ["segments", index, "sampleRange", "startSampleFrame"],
+        });
+      }
+      if (segment.frameRange.startFrame !== previousFrameEnd) {
+        context.addIssue({
+          code: "custom",
+          message: "Segment frame ranges must share cumulative boundaries.",
+          path: ["segments", index, "frameRange", "startFrame"],
+        });
+      }
+      previousSampleEnd = segment.sampleRange.endSampleFrame;
+      previousFrameEnd = segment.frameRange.endFrame;
+
+      if (segment.kind === "chunk") {
+        expectedCaptionCues.push({
+          chunkId: segment.chunkId,
+          meaningId: segment.meaningId,
+          text: segment.ttsText,
+          startFrame: segment.frameRange.startFrame,
+          endFrame: segment.frameRange.endFrame,
+        });
+      }
+
+      const currentBeat = expectedStoryBeats.at(-1);
+      if (currentBeat?.meaningId === segment.meaningId) {
+        currentBeat.endFrame = segment.frameRange.endFrame;
+      } else {
+        if (seenMeaningIds.has(segment.meaningId)) {
+          context.addIssue({
+            code: "custom",
+            message: "StoryBeat segments must form one contiguous range.",
+            path: ["segments", index, "meaningId"],
+          });
+        }
+        seenMeaningIds.add(segment.meaningId);
+        expectedStoryBeats.push({
+          meaningId: segment.meaningId,
+          startFrame: segment.frameRange.startFrame,
+          endFrame: segment.frameRange.endFrame,
+        });
+      }
+    });
+
+    if (timing.captionCues.length !== expectedCaptionCues.length) {
+      context.addIssue({
+        code: "custom",
+        message: "CaptionCue must be one-to-one with timed TTSChunk segments.",
+        path: ["captionCues"],
+      });
+    } else {
+      timing.captionCues.forEach((cue, index) => {
+        const expected = expectedCaptionCues[index];
+        if (
+          cue.chunkId !== expected.chunkId ||
+          cue.meaningId !== expected.meaningId ||
+          cue.text !== expected.text ||
+          cue.startFrame !== expected.startFrame ||
+          cue.endFrame !== expected.endFrame
+        ) {
+          context.addIssue({
+            code: "custom",
+            message: "CaptionCue must match its timed TTSChunk segment.",
+            path: ["captionCues", index],
+          });
+        }
+      });
+    }
+
+    if (timing.storyBeats.length !== expectedStoryBeats.length) {
+      context.addIssue({
+        code: "custom",
+        message: "StoryBeat timing must match contiguous segment groups.",
+        path: ["storyBeats"],
+      });
+    } else {
+      timing.storyBeats.forEach((beat, index) => {
+        const expected = expectedStoryBeats[index];
+        if (
+          beat.meaningId !== expected.meaningId ||
+          beat.startFrame !== expected.startFrame ||
+          beat.endFrame !== expected.endFrame
+        ) {
+          context.addIssue({
+            code: "custom",
+            message: "StoryBeat timing must match its segment group.",
+            path: ["storyBeats", index],
+          });
+        }
+      });
+    }
+
+    const expectedDuration = previousFrameEnd + timing.tailFrames;
+    if (
+      !Number.isSafeInteger(expectedDuration) ||
+      timing.durationInFrames !== expectedDuration
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "durationInFrames must include the final boundary and tail.",
+        path: ["durationInFrames"],
+      });
+    }
+  })
   .readonly();
 
 export type SemanticTiming = z.infer<typeof SemanticTimingSchema>;
