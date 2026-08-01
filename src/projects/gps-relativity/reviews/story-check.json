@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "storyId": "gps-relativity",
+  "storyFingerprint": "sha256:8fd18dc4377c8d82e7d041effcf92271d521c31db252b3c04135852a88774e2c",
+  "generationInputFingerprint": "sha256:1b3d1abb5aa14bb8df07d2023a3ab947137a4e9f075234e82ae777a36cb39f96",
+  "voiceProfileId": "science-explainer-young-male",
+  "decision": "proceed",
+  "checks": [
+    {
+      "checkId": "story-beat-order",
+      "status": "pass",
+      "note": "从计时原理进入两种相对论效应，再到净偏差、误差后果和日常结论，推进顺序完整。"
+    },
+    {
+      "checkId": "narrative-completeness",
+      "status": "pass",
+      "note": "旁白独立交代 GPS 测距、七微秒与四十五微秒的相反效应、净快三十八微秒和工程校正意义。"
+    },
+    {
+      "checkId": "authored-tts-chunks",
+      "status": "pass",
+      "note": "十个 chunk 均按语义、语气和朗读节奏创作；标点保留在 chunk 内，不要求工具重新拆分。"
+    },
+    {
+      "checkId": "voice-profile-selection",
+      "status": "pass",
+      "note": "science-explainer-young-male 与中文大众科学解释的冷静、清晰表达目标一致。"
+    },
+    {
+      "checkId": "pronunciation-risks",
+      "status": "warn",
+      "note": "真实生成后需重点听检 GPS、微秒、狭义相对论、广义相对论和精密时间基准的发音与停连。"
+    }
+  ]
+}

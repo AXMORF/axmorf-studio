@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "storyId": "gps-relativity",
+  "title": "为什么 GPS 必须校正相对论",
+  "sourceMaterial": "NIST: https://www.nist.gov/atomic-clocks/a-powerful-tool-for-science/putting-einstein-test ; NASA: https://assets.science.nasa.gov/content/dam/science/astro/programs/physics-of-the-cosmos/documents/brochures-factsheets/jan-2015-aas/GR_Centennial_Brochure-Final.pdf",
+  "audience": "希望理解日常技术背后物理原理的中文大众观众",
+  "targetDurationSeconds": 75,
+  "deliveryConstraints": [
+    "没有视觉画面时，旁白本身必须完整、准确、可理解。",
+    "保留七微秒、四十五微秒和净快三十八微秒的数量关系。",
+    "ttsChunks 只按语义、语气和朗读节奏创作，不按标点二次拆分。"
+  ]
+}
