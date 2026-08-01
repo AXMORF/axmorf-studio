@@ -52,7 +52,7 @@
     "build": "remotion bundle",
     "prebuild": "npm run registry:generate",
     "upgrade": "remotion upgrade",
-    "test": "node --import tsx --test tests/contracts/*.test.ts tests/narration/*.test.ts tests/runtime/*.test.tsx tests/projects/*.test.tsx tests/registry/*.test.ts tests/registry/*.test.tsx",
+    "test": "node --import tsx --test tests/contracts/*.test.ts tests/narration/*.test.ts tests/runtime/*.test.tsx tests/projects/*.test.tsx tests/registry/*.test.ts tests/registry/*.test.tsx tests/baseline/*.test.ts",
     "typecheck": "tsc --noEmit --pretty false",
     "lint": "eslint .",
     "narration:generate": "node --import tsx scripts/narration/cli.ts generate",
@@ -60,6 +60,7 @@
     "narration:check": "node --import tsx scripts/narration/cli.ts check",
     "registry:generate": "node --import tsx scripts/registry/cli.ts generate",
     "registry:check": "node --import tsx scripts/registry/cli.ts check",
+    "baseline:evidence": "node --import tsx scripts/baseline/evidence.ts",
     "compositions": "remotion compositions src/index.ts",
     "precompositions": "npm run registry:generate",
     "check": "npm run test && npm run typecheck && npm run lint && npm run registry:check && npm run build && npm run compositions"
