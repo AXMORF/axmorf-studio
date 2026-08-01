@@ -1,6 +1,7 @@
 # 确定性执行设计
 
-> Status：目标设计；M1 合同、fingerprint 与纯时间内核已实现，M2 及后续 runtime 尚未实现。
+> Status：M1 合同/fingerprint/纯时间内核与 M2 文件-backed 旁白生成、封存和检查已实现；
+> M3 及后续 Remotion runtime 尚未实现。
 
 ## 1. 定义
 
@@ -30,11 +31,17 @@ Remotion runtime 只读取声明和已封存本地产物
 VoxCPM 不保证相同输入一定生成 bit-by-bit 相同波形。因此 TTS 节点的确定性指固定调用、
 实测和封存流程，不是假定模型本身完全可重复。
 
-当前已实现的 M1 边界位于 `src/contracts/`：`brief.ts`、`story.ts`、`narration.ts`、
+已实现的 M1 边界位于 `src/contracts/`：`brief.ts`、`story.ts`、`narration.ts`、
 `render.ts` 和 `project.ts` 定义严格输入合同；`fingerprint.ts` 与 `generation-input.ts`
 实现 `sha256-canonical-json-v1` 分层指纹；`sealed-narration.ts` 只验证封存元数据；
 `semantic-timing.ts` 使用 `BigInt` 和 `pcm-cumulative-ceil-v1` 生成绝对时间；
 `m1-validation.ts` 聚合验证相互匹配的 source、manifest 与 timing。M1 不读取或生成音频文件。
+
+M2 在不修改上述时间权威的前提下实现 `story-check.ts` 和 `scripts/narration/`：严格私有
+配置解析、一个 controllable-clone VoxCPM adapter、candidate/measured resume、host FFmpeg
+规范化、Node canonical WAV 测量、checksum、完整 PCM 拼接、content-addressed 原子封存、
+compare-and-swap supersede、SemanticTiming 写入和真实文件只读检查。只有 `generate` 调用
+provider；`seal` 和 `check` 不需要网络或私有配置。
 
 ## 2. 总体实现
 
@@ -84,13 +91,13 @@ flowchart TB
 ```
 
 主链到 `Narrative Baseline` 不经过视觉 preflight、ResourceCatalog、ScenePackage 或 renderer
-registry。M1 只实现到元数据级 sealed narration 与 SemanticTiming 合同；真实旁白、runtime、
-registry、Baseline、虚线增强输入和视觉分支全部推迟。流程权威见
+registry。M2 已把 M1 的 sealed narration 与 SemanticTiming 合同落成真实文件；runtime、
+registry、Baseline、虚线增强输入和视觉分支仍全部推迟。流程权威见
 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
 
 ## 3. 节点与实现方式
 
-| 设计节点                    | 目标实现                                                     | 固定输出                                      |
+| 设计节点                    | 实现方式                                                     | 固定输出                                      |
 | --------------------------- | ------------------------------------------------------------ | --------------------------------------------- |
 | Narration generation       | 宿主机 Node 脚本调用 VoxCPM，逐 chunk 生成                    | 候选 chunk 音频；不是时间权威                 |
 | Narration seal             | 本地脚本规范化 PCM、计数 sample frame、校验、checksum、拼接和原子封存 | sealed manifest、完整 WAV、整数 sampleFrameCount |
@@ -111,14 +118,14 @@ registry、Baseline、虚线增强输入和视觉分支全部推迟。流程权�
 这个边界。数据文件只保存声明与稳定 ID，不保存 React 组件或底层能力实例。
 
 M1 已落地数据合同、canonical fingerprint、封存 receipt 元数据校验和
-SemanticTiming/CaptionCue 纯函数。真实 TTS/实测/封存属于 M2；NarrativeCore 与 Narrative
-Baseline 属于 M3；ResourceCatalog、SceneVisualTrack、转场、sound/global 与最终增强装配均
-属于后续阶段。
+SemanticTiming/CaptionCue 纯函数。M2 已落地表中前三项的真实 TTS、实测、封存和检查；
+NarrativeCore 与 Narrative Baseline 属于 M3；ResourceCatalog、SceneVisualTrack、转场、
+sound/global 与最终增强装配均属于后续阶段。
 
 不要求每个确定性节点都拥有独立命令。相关检查应合并到少量面向作品的 CLI 中，避免
 产生繁重、重复的阶段审核。
 
-## 4. 目标目录
+## 4. 已实现与目标目录
 
 ```text
 src/contracts/                         数据合同与纯校验
@@ -261,6 +268,10 @@ composition-local renderer-registry.ts
 - 未知 rendererId、重复绑定或缺失组件必须 fail closed。
 
 ## 7. TTS 产物封存
+
+本节的 M2 路径已经由 `scripts/narration/` 和 `gps-relativity` 真实产物实现。固定命令、
+resume、lock、supersede 与隐私恢复步骤见
+[NARRATION_GENERATION.md](NARRATION_GENERATION.md)。
 
 ```mermaid
 flowchart LR
@@ -411,9 +422,9 @@ Story fingerprint
 └── Assembly fingerprint
 ```
 
-M1 只实现到 SemanticTiming 的 fingerprint 分支；ProjectRegistry、Narrative Baseline、
-视觉、声音和全局分支仍是后续目标。视觉、声音和全局层不得进入 sealed narration 或
-SemanticTiming fingerprint。
+M1 定义、M2 实际生成并校验到 SemanticTiming 的 fingerprint 分支；ProjectRegistry、
+Narrative Baseline、视觉、声音和全局分支仍是后续目标。视觉、声音和全局层不得进入
+sealed narration 或 SemanticTiming fingerprint。
 
 | 修改                          | 必须失效                                     | 保持有效       |
 | ----------------------------- | -------------------------------------------- | -------------- |
@@ -431,13 +442,15 @@ SemanticTiming fingerprint。
 
 ## 10. 聚合检查
 
-M1 当前提供聚焦机械检查：
+M1/M2 当前提供聚焦机械检查和一个真实作品的 file-backed 检查：
 
 ```bash
 npm test
+npm run narration:check -- --project gps-relativity
 ```
 
-它覆盖严格合同、canonical fingerprint、sealed receipt 元数据一致性、累计 PCM timing、
+它们覆盖严格合同、StoryCheck、provider adapter、candidate/measured resume、canonical
+fingerprint、真实 WAV/checksum/sample-frame、原子 sealed receipt、累计 PCM timing、
 CaptionCue 一一对应与失效传播。下面的作品级 `project:check` 仍是 M4 目标，当前未实现。
 
 目标提供同一个作品级命令的分级检查：

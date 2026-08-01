@@ -1,5 +1,8 @@
 # 系统结构
 
+> Status：M1 合同内核与 M2 真实旁白生成/封存已实现；NarrativeCore、ProjectRegistry、
+> Composition runtime 和全部 Scene 能力仍未实现。
+
 ## 节点责任
 
 ```text
@@ -15,7 +18,7 @@ StoryBeat、Scene 方案、Shot、资源、镜头、声音或转场。
 
 ## 当前设计顺序
 
-当前先稳定 Scene 外部的叙事生产主链：
+Scene 外部叙事生产主链按以下顺序推进：
 
 ```text
 VideoBrief → StorySpec + NarrationSpec → StoryBeat + authored ttsChunks → StoryCheck
@@ -27,12 +30,16 @@ sealed narration + RenderSpec → SemanticTiming + CaptionCue
 → Narrative Baseline / NarrativeCheck
 ```
 
+当前 M2 已实现到 `sealed narration + RenderSpec → SemanticTiming + CaptionCue`。箭头后续的
+NarrativeCore、ProjectRegistry、Composition、Narrative Baseline 和 NarrativeCheck 仍是
+M3/M4 目标，不是当前 runtime。
+
 这条主链必须在不存在 ScenePackage、renderer registry、视觉资源目录、SoundDesignTrack
 和 GlobalVisualLayers 时独立工作。Scene、声音和全局效果是只读消费叙事主链的下游增强
 轨；当前只保留未来接口，不继续设计视觉表达。详细流程见
 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
 
-Narrative Baseline 通过 generated static ProjectRegistry 注册为 Story Composition。
+目标中的 Narrative Baseline 通过 generated static ProjectRegistry 注册为 Story Composition。
 ProjectRegistry 的注册元数据静态可枚举，具体 Composition 代码通过 Remotion
 `lazyComponent` 按需加载。它不读取 ScenePackage，也不导入 Scene renderer；它与后续
 composition-local RendererRegistry 是两个独立装配边界。
@@ -102,8 +109,29 @@ type CompositionAssemblyProps = {
 ```
 
 这是源码组装边界，不是允许 JSON 保存 React 组件或任意执行表达式的数据合同。
-当前里程碑只实现 `NarrativeCore` 所需的底层能力；不为三个尚未进入实现的增强轨
-提前制造空壳。
+M2 尚未实现 `NarrativeCore` 或 CompositionAssembly，也没有为三个增强轨提前制造空壳。
+这些目标类型从 M3 开始才可按单独审阅的实施计划落地。
+
+### 已实现的 M2 模块
+
+```text
+src/contracts/story-check.ts                     StoryCheck 严格合同与 current-input 校验
+scripts/narration/domain/provider-input.ts       redaction-safe provider/request fingerprints
+scripts/narration/domain/candidate-progress.ts   candidate / measured 状态与续跑规划
+scripts/narration/domain/pcm-wav.ts              canonical PCM、checksum、BigInt 拼接
+scripts/narration/domain/seal.ts                 完整 measured batch → seal 纯领域装配
+scripts/narration/adapters/private-config.ts     仓库外严格私有配置与 profile 解析
+scripts/narration/adapters/voxcpm-client.ts      每 authored chunk 一个直接 VoxCPM 请求
+scripts/narration/adapters/ffmpeg-normalizer.ts  host FFmpeg 规范化
+scripts/narration/adapters/candidate-workspace.ts checksum-verified resume 与原子 progress
+scripts/narration/adapters/atomic-files.ts       lock、immutable promotion 与 atomic receipt
+scripts/narration/{generate-runner,seal-runner,check,cli}.ts
+                                                  生成、封存、只读检查和固定命令
+```
+
+这些模块不 import Remotion，不注册 Composition，也不读取或实现 Scene。候选与 measured
+artifact 只存在于 ignored work tree；content-addressed WAV、active manifest 和
+SemanticTiming 才是 M2 持久产物。
 
 ## 总结构
 

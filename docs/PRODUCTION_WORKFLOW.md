@@ -1,6 +1,7 @@
 # 外部生产流程与解耦边界
 
-> Status：目标设计，当前优先于 Scene 视觉实现落地。
+> Status：M2 已为 `gps-relativity` 实现到真实 sealed narration 与 SemanticTiming；
+> NarrativeCore 及其后续节点仍是目标设计。
 
 ## 1. 文档范围
 
@@ -85,8 +86,9 @@ flowchart TB
     Approval --> Render["Render / Release"]
 ```
 
-虚线表示可选依赖。当前里程碑只要求流程走到 `Narrative Baseline` 和
-`NarrativeCheck`，不要求任何增强轨存在。
+虚线表示可选依赖。当前 M2 实现止于 `SemanticTiming + CaptionCue`；`NarrativeCore`、
+ProjectRegistry、Narrative Baseline 和 NarrativeCheck 从 M3/M4 才开始，也不要求任何
+增强轨存在。
 
 ## 4. 阶段输入与输出
 
@@ -249,7 +251,7 @@ Approval / Render evidence
 
 ## 9. 当前里程碑
 
-当前只实现和验证：
+M2 已为 `gps-relativity` 实现和验证：
 
 ```text
 VideoBrief
@@ -257,30 +259,30 @@ VideoBrief
 → StoryBeat + authored ttsChunks
 → StoryCheck
 → VoxCPM generation boundary
-→ sealed narration
+→ candidate / measured progress + resume
+→ canonical PCM normalization / checksum / atomic sealed narration
 → SemanticTiming + CaptionCue
-→ NarrativeCore
-→ Generated Static ProjectRegistry + lazy-loaded Composition
-→ Narrative Baseline
-→ AutoCheck
-→ NarrativeCheck
-→ Baseline Preview / Render
 ```
 
-当前明确不做：
+M2 明确没有实现：
 
+- NarrativeCore、NarrationAudioTrack、CaptionLayer；
+- generated static ProjectRegistry、Story Composition、preview 或 render；
+- NarrativeCheck；
 - SceneVisualPlan、ShotPlan、ScenePackage 和 Scene renderer；
 - StoryVisualTrack、StoryBeatTransition 和视觉资产查询；
 - SceneVisualCheck、视觉 benchmark 和 promotion；
 - SoundDesignTrack、GlobalVisualLayers、封面与发布自动化。
 
-只有真实新主题完成上述 Narrative Baseline 闭环、合同和失效规则得到验证后，才进入视觉
-表达设计。进入后，视觉层必须以本文定义的 sealed narration、SemanticTiming 和
-StoryBeat 为只读输入。
+M3 将在单独审阅的计划下从 NarrativeCore 和 Story 注册继续；只有后续真实 Narrative
+Baseline 闭环、合同和失效规则得到验证后，才进入视觉表达设计。进入后，视觉层必须以
+本文定义的 sealed narration、SemanticTiming 和 StoryBeat 为只读输入。
 
-## 10. 当前里程碑完成条件
+## 10. M2 完成事实与后续门槛
 
-1. 一个全新真实主题能形成合法 StorySpec、NarrationSpec、StoryBeat 和已创作
+M2 已满足：
+
+1. 一个全新真实主题形成合法 StorySpec、NarrationSpec、StoryBeat 和已创作
    `ttsChunks`；用户本次提供的 RenderSpec 只经结构化和机械校验，不产生二次确认，并在
    调用 VoxCPM 前通过非用户阻塞的 StoryCheck；
 2. 真实 VoxCPM 逐 chunk 生成可中断续跑，未完成批次不会产生 sealed receipt；
@@ -288,10 +290,10 @@ StoryBeat 为只读输入。
 4. CaptionCue、meaningId 和 TTSChunk 一一对应；所有帧边界均由累计
    sampleFrameCount 按 `pcm-cumulative-ceil-v1` 重算得到，完整绝对时间线没有重叠、
    累计漂移或未解释空洞，所有非朗读区间都有显式来源；
-5. 不存在任何 ScenePackage 时，generated static ProjectRegistry 仍能静态列出 Story
-   Composition；项目入口通过字面量 `import()` 和 `lazyComponent` 按需加载，并完成
-   compositions、preview 和 render；
-6. 修改 Story 或旁白输入后，旧 timing、Baseline 和 evidence 被机械判定为失效；
-7. AutoCheck 和 `NarrativeCheck` 能在不查询视觉目录、不加载 Scene renderer 的情况下
-   独立通过；
-8. README、状态、架构、合同和使用说明与实际命令保持一致。
+5. 重复封存字节不变，不同 active seal 必须用精确 `--supersede` compare-and-swap；
+6. 真实文件-backed checker 校验 manifest、WAV checksum/sample-frame 和 byte-equivalent
+   SemanticTiming；
+7. README、状态、架构、合同、恢复指南和真实验收证据与实际命令保持一致。
+
+ProjectRegistry、lazy Story Composition、Baseline preview/render、AutoCheck 聚合与
+NarrativeCheck 是 M3/M4 后续门槛，不属于 M2 完成事实。

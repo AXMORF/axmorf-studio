@@ -35,17 +35,39 @@ values, and hashes a domain-separated `{namespace, value, version}` envelope as 
 
 `SealedNarrationManifestSchema` records the selected normalized chunk artifacts, explicit pause
 segments, canonical PCM format, complete WAV metadata, checksums, generation input fingerprint, and
-sealed narration fingerprint. M1 validates metadata only; M2 performs real file measurement and sealing.
+sealed narration fingerprint. M1 defines the persisted contract. M2 now normalizes real provider bytes,
+measures canonical WAV sample frames, validates selected files and checksums, assembles the complete WAV,
+and publishes the immutable content-addressed directory plus active receipt atomically. The read-only
+checker validates the persisted contract against the actual files.
+
+## StoryCheck and operational work
+
+`StoryCheckReportSchema` binds the current Story fingerprint, generation input fingerprint, voice
+profile selection, ordered required checks, and a `proceed` or `revise` decision. The report is authored
+by the Agent before external generation; warnings do not add a user approval gate, while failed checks
+must revise and block generation.
+
+Candidate progress and the provider-attempt fingerprint are operational M2 work records under the
+ignored `.narration-work/` tree. They identify and verify resumable provider output, but they are neither
+M1 persisted Story source nor sealed timing authority. A raw candidate becomes a measured candidate only
+after canonical PCM, checksum, authored identity, request fingerprint, and positive sample-frame checks.
+Only a complete measured batch can produce the persisted seal.
 
 ## Semantic timing
 
 `pcm-cumulative-ceil-v1` builds one cumulative integer sample timeline and applies
 `ceilDiv(samples × fps, sampleRate)` at shared boundaries with `BigInt`. CaptionCue is one-to-one with
 TTSChunk. Explicit pauses have timing but no CaptionCue. RenderSpec timing fields are `fps`,
-`leadInFrames`, and `tailFrames`.
+`leadInFrames`, and `tailFrames`. M2 uses this unchanged M1 algorithm to generate the real
+`gps-relativity` SemanticTiming artifact directly from sealed sample frames.
 
-## M1 command
+## Implemented checks
 
 ```bash
 npm test
+npm run narration:check -- --project gps-relativity
 ```
+
+The narration checker validates real file bytes, checksums, sample-frame totals, current StoryCheck,
+active seal, and byte-equivalent SemanticTiming. NarrativeCore, ProjectRegistry, preview, render, and
+NarrativeCheck remain later milestones.

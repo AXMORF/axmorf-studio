@@ -18,13 +18,20 @@
 - 基于累计 PCM sample-frame、`BigInt` 与 `pcm-cumulative-ceil-v1` 的 `SemanticTiming`、
   `CaptionCue` 和 StoryBeat 绝对帧范围；
 - M1 合同、非法输入、权威时间示例与失效矩阵的 Node 单元测试；
-- 已批准从 M1 合同内核、Narrative Baseline、视觉阶段到发布收口的分阶段 Roadmap，M1
-  已完成。
+- `StoryCheck` 严格报告合同、一个 `controllable-clone` voice profile adapter，以及仓库外
+  私有 VoxCPM 配置边界；
+- `gps-relativity` 十个 authored chunks 的真实 VoxCPM 逐 chunk 生成、checksum-verified
+  candidate/measured resume 和 fail-closed 部分成功；
+- host FFmpeg 48 kHz/mono/s16le 规范化、Node 整数 sample-frame 测量、300/400 ms 显式
+  停顿、完整 WAV BigInt 拼接和 checksum；
+- content-addressed immutable narration directory、active manifest/timing 原子写入、lock、
+  identical-seal reuse 与精确 `--supersede` compare-and-swap；
+- 真实 file-backed `narration:check`、十个 CaptionCues、恢复指南和脱敏 M2 验收证据；
+- 已批准从 M1 合同内核、Narrative Baseline、视觉阶段到发布收口的分阶段 Roadmap，M1、
+  M2 已完成。
 
 ## 尚未完成
 
-- 真实 VoxCPM 生成、PCM 规范化与测量、完整 WAV 拼接和原子封存；
-- `StoryCheck` 报告合同、voice profile adapter 与候选音频续跑；
 - `NarrativeCore`、顶层 CaptionLayer 与透明视觉输出边界；
 - generated static ProjectRegistry、`lazyComponent` 按需加载与不依赖 Scene 的 Story
   Composition 注册；
@@ -43,22 +50,25 @@
 - 封面与发布工具；
 - 新的 Agent skills。
 
-以上未完成项仍是目标设计，不能表述为已有 CLI 或 runtime 能力。M1 的 sealed receipt
-只验证元数据，不代表已经生成、测量或封存真实音频。
+以上未完成项仍是目标设计，不能表述为已有 CLI 或 runtime 能力。M2 已为
+`gps-relativity` 生成、测量并封存真实音频，但没有因此实现 NarrativeCore、Composition、
+Scene 或任何预览/渲染能力。
 
 ## 下一里程碑
 
-下一步只编写并审阅 M2 实施计划；M2 将用一个全新真实主题完成真实旁白生成与封存：
+下一步只编写并审阅 M3 实施计划；M3 将在不依赖 Scene 的前提下消费 M2 已封存产物：
 
 ```text
-→ StoryCheck
-→ 真实 VoxCPM 逐 chunk 生成
-→ 实测、checksum、fingerprint 与封存
-→ SemanticTiming + CaptionCue + complete narration audio
+M2 sealed narration + SemanticTiming
+→ NarrativeCore + NarrationAudioTrack + CaptionLayer
+→ generated static ProjectRegistry
+→ lazy-loaded Story Composition
+→ Narrative Baseline preview / render
 ```
 
-M2 不实现 NarrativeCore、ProjectRegistry、SceneVisualPlan、ShotPlan、ScenePackage、
-Scene renderer、StoryVisualTrack、视觉资产查询、SoundDesignTrack 或 GlobalVisualLayers。
+M3 开始前必须另行审阅实施计划；当前没有开始 NarrativeCore、ProjectRegistry、
+Composition、SceneVisualPlan、ShotPlan、ScenePackage、Scene renderer、StoryVisualTrack、
+视觉资产查询、SoundDesignTrack 或 GlobalVisualLayers。
 在第二个不同主题验证之前，不提取新的共享能力。
 后续里程碑顺序、阶段排除项和完成门槛见 [ROADMAP.md](ROADMAP.md)。
 

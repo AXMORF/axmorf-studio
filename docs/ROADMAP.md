@@ -1,6 +1,6 @@
 # Remotion Story Producer Roadmap
 
-> Status：已获用户批准；M0、M1 已完成，M2 为下一步
+> Status：已获用户批准；M0、M1、M2 已完成，M3 计划审阅为下一步
 > 更新日期：2026-08-01
 
 ## 1. 用途
@@ -13,10 +13,10 @@
 
 ## 2. 当前起点
 
-当前代码已完成基础工程、已迁入共享能力、`CapabilityGallery` 和 M1 合同内核。目标架构、
-Composition 组合模型和 Narrative Baseline 主链已写入文档，但下列内容仍未实现：
+当前代码已完成基础工程、已迁入共享能力、`CapabilityGallery`、M1 合同内核，以及
+`gps-relativity` 的 M2 真实旁白生成/续跑/测量/封存/时间产物。目标架构、Composition
+组合模型和 Narrative Baseline 主链已写入文档，但下列内容仍未实现：
 
-- 真实 VoxCPM 生成、实测、文件封存和作品级 SemanticTiming 产物；
 - NarrativeCore、ProjectRegistry、lazy Story Composition 和 Narrative Baseline；
 - Scene、Sound、Global 增强轨与发布工具。
 
@@ -43,8 +43,8 @@ Composition 组合模型和 Narrative Baseline 主链已写入文档，但下列
 ```mermaid
 flowchart LR
     M0["M0 设计收口<br/>已完成"] --> M1["M1 合同与确定性内核<br/>已完成"]
-    M1 --> M2["M2 真实旁白生成与封存<br/>下一步"]
-    M2 --> M3["M3 Narrative Baseline Runtime"]
+    M1 --> M2["M2 真实旁白生成与封存<br/>已完成"]
+    M2 --> M3["M3 Narrative Baseline Runtime<br/>下一步：先审阅计划"]
     M3 --> M4["M4 叙事闭环与失效验证"]
     M4 --> G1{"Gate A<br/>Baseline 真实闭环？"}
     G1 -->|"是"| M5["M5 视觉阶段规格"]
@@ -103,7 +103,7 @@ flowchart LR
 
 ### M2：第一个真实主题的旁白生成与封存
 
-**状态：** 下一步；开始实现前单独编写并审阅实施计划。
+**状态：** 已于 2026-08-01 完成并通过真实音频、恢复、封存、隐私和范围验收。
 
 **目标：** 用一个全新真实主题打通
 `authored ttsChunks → VoxCPM candidates → measured/sealed narration → SemanticTiming`。
@@ -126,6 +126,11 @@ flowchart LR
 - 已封存结果不被重试静默覆盖；complete WAV 样本数与所有 segment 之和一致；
 - CaptionCue 与 TTSChunk 一一对应，时间线无累计漂移、重叠或未解释空洞；
 - provider 不可用时，仍匹配当前输入的旧 sealed narration 可继续使用。
+
+真实验收见
+[GPS Relativity M2 Narration Evidence](evidence/2026-08-01-gps-relativity-m2.md)，操作与恢复见
+[Narration Generation and Recovery](NARRATION_GENERATION.md)。M2 没有开始 NarrativeCore、
+ProjectRegistry、Composition、Scene 或 BaseCanvas。
 
 ### M3：Narrative Baseline Runtime 与 Story 注册
 
@@ -302,5 +307,6 @@ Composition 注册问题，必须回到 M1–M4 修正，不得用 Scene 代码�
 
 ## 7. 当前唯一下一步
 
-M1 已实现并通过验收。当前只编写并审阅 **M2：第一个真实主题的旁白生成与封存** 的
-实施计划，不在未审阅计划前开始 M2 实现。
+M1、M2 已实现并通过验收。当前只编写并审阅 **M3：Narrative Baseline Runtime 与 Story
+注册** 的实施计划；没有单独获批计划前，不开始 NarrativeCore、CaptionLayer、
+ProjectRegistry、Composition 或任何 Scene/BaseCanvas 实现。
