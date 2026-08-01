@@ -29,3 +29,35 @@ export const validStorySpec = {
     },
   ],
 } as const;
+
+export const validNarrationSpec = {
+  schemaVersion: 1,
+  voiceProfileId: "primary-voice",
+  mode: "voice-clone",
+  seed: 42,
+} as const;
+
+export const validRenderSpec = {
+  schemaVersion: 1,
+  compositionId: "StoryExample",
+  fps: 30,
+  width: 1920,
+  height: 1080,
+  locale: "zh-CN",
+  leadInFrames: 15,
+  tailFrames: 12,
+  captionSafeAreaPx: { top: 72, right: 96, bottom: 72, left: 96 },
+  output: {
+    container: "mp4",
+    videoCodec: "h264",
+    audioCodec: "aac",
+    audioChannels: 2,
+  },
+} as const;
+
+export const validProjectSource = {
+  brief: validVideoBrief,
+  story: validStorySpec,
+  narration: validNarrationSpec,
+  render: validRenderSpec,
+} as const;

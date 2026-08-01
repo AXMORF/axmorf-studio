@@ -1,0 +1,77 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { NarrationSpecSchema } from "../../src/contracts/narration";
+import {
+  NARRATIVE_PROJECT_FILES,
+  NarrativeProjectSourceSchema,
+  StoryCompositionPropsSchema,
+} from "../../src/contracts/project";
+import { RenderSpecSchema } from "../../src/contracts/render";
+import {
+  validNarrationSpec,
+  validProjectSource,
+  validRenderSpec,
+} from "../fixtures/narrative";
+
+test("NarrationSpec stores only a voice reference and allowed generation controls", () => {
+  assert.deepEqual(
+    NarrationSpecSchema.parse(validNarrationSpec),
+    validNarrationSpec,
+  );
+  assert.throws(() =>
+    NarrationSpecSchema.parse({
+      ...validNarrationSpec,
+      providerUrl: "http://127.0.0.1:9000",
+    }),
+  );
+  assert.throws(() =>
+    NarrationSpecSchema.parse({ ...validNarrationSpec, token: "secret" }),
+  );
+});
+
+test("RenderSpec validates dimensions, safe area, and the fixed v1 output tuple", () => {
+  assert.deepEqual(RenderSpecSchema.parse(validRenderSpec), validRenderSpec);
+  assert.throws(() =>
+    RenderSpecSchema.parse({ ...validRenderSpec, width: 1919 }),
+  );
+  assert.throws(() =>
+    RenderSpecSchema.parse({
+      ...validRenderSpec,
+      captionSafeAreaPx: { ...validRenderSpec.captionSafeAreaPx, left: 1900 },
+    }),
+  );
+  assert.throws(() =>
+    RenderSpecSchema.parse({
+      ...validRenderSpec,
+      output: { ...validRenderSpec.output, audioCodec: "opus" },
+    }),
+  );
+});
+
+test("project source identity and Composition props use the Story slug", () => {
+  assert.equal(
+    NarrativeProjectSourceSchema.parse(validProjectSource).story.storyId,
+    "story-example",
+  );
+  assert.throws(() =>
+    NarrativeProjectSourceSchema.parse({
+      ...validProjectSource,
+      brief: { ...validProjectSource.brief, storyId: "different-story" },
+    }),
+  );
+  assert.deepEqual(
+    StoryCompositionPropsSchema.parse({ projectId: "story-example" }),
+    {
+      projectId: "story-example",
+    },
+  );
+  assert.deepEqual(NARRATIVE_PROJECT_FILES, {
+    brief: "brief.json",
+    story: "story.json",
+    narration: "narration.json",
+    render: "render.json",
+    sealedNarration: "generated/sealed-narration.generated.json",
+    semanticTiming: "generated/semantic-timing.generated.json",
+  });
+});
