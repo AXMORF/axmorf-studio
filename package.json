@@ -53,6 +53,9 @@
     "test": "node --import tsx --test tests/contracts/*.test.ts tests/narration/*.test.ts",
     "typecheck": "tsc --noEmit --pretty false",
     "lint": "eslint .",
+    "narration:generate": "node --import tsx scripts/narration/cli.ts generate",
+    "narration:seal": "node --import tsx scripts/narration/cli.ts seal",
+    "narration:check": "node --import tsx scripts/narration/cli.ts check",
     "compositions": "remotion compositions src/index.ts",
     "check": "npm run test && npm run typecheck && npm run lint && npm run build && npm run compositions"
   },
