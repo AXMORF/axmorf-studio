@@ -1,0 +1,177 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
+import { validateM1ArtifactBundle } from "../../src/contracts/m1-validation";
+import type { NarrativeProjectSource } from "../../src/contracts/project";
+import {
+  SealedNarrationManifestSchema,
+  type SealedNarrationManifest,
+} from "../../src/contracts/sealed-narration";
+import {
+  SemanticTimingSchema,
+  type SemanticTiming,
+} from "../../src/contracts/semantic-timing";
+import {
+  validateStoryCheckReport,
+  type StoryCheckReport,
+} from "../../src/contracts/story-check";
+import {
+  concatenateCanonicalPcm,
+  createExplicitPausePcm,
+  measureCanonicalPcmWav,
+  sha256Bytes,
+} from "./domain/pcm-wav";
+
+export type M2NarrationCheckResult = {
+  readonly storyId: string;
+  readonly generationInputFingerprint: string;
+  readonly sealedNarrationFingerprint: string;
+  readonly semanticTimingFingerprint: string;
+  readonly chunkCount: number;
+  readonly captionCueCount: number;
+  readonly completeAudioChecksum: string;
+  readonly completeAudioSampleFrameCount: number;
+};
+
+const readJson = async (path: string, label: string): Promise<unknown> => {
+  let bytes: Buffer;
+  try {
+    bytes = await readFile(path);
+  } catch (error) {
+    throw new Error(`${label} is missing or unreadable.`, { cause: error });
+  }
+  try {
+    return JSON.parse(bytes.toString("utf8"));
+  } catch (error) {
+    throw new Error(`${label} contains malformed JSON.`, { cause: error });
+  }
+};
+
+const readManifest = async (
+  rootDir: string,
+  storyId: string,
+): Promise<SealedNarrationManifest> =>
+  SealedNarrationManifestSchema.parse(
+    await readJson(
+      join(
+        rootDir,
+        "src/projects",
+        storyId,
+        "generated/sealed-narration.generated.json",
+      ),
+      "sealed-narration.generated.json",
+    ),
+  );
+
+const readTiming = async (
+  rootDir: string,
+  storyId: string,
+): Promise<SemanticTiming> =>
+  SemanticTimingSchema.parse(
+    await readJson(
+      join(
+        rootDir,
+        "src/projects",
+        storyId,
+        "generated/semantic-timing.generated.json",
+      ),
+      "semantic-timing.generated.json",
+    ),
+  );
+
+export const checkM2NarrationArtifacts = async ({
+  rootDir,
+  projectSource,
+  storyCheck,
+}: {
+  readonly rootDir: string;
+  readonly projectSource: NarrativeProjectSource;
+  readonly storyCheck: StoryCheckReport;
+}): Promise<M2NarrationCheckResult> => {
+  const validatedStoryCheck = validateStoryCheckReport({
+    story: projectSource.story,
+    narration: projectSource.narration,
+    report: storyCheck,
+  });
+  if (validatedStoryCheck.decision !== "proceed") {
+    throw new Error("StoryCheck must proceed for an active M2 narration seal.");
+  }
+  const manifest = await readManifest(
+    rootDir,
+    projectSource.story.storyId,
+  );
+  const timing = await readTiming(rootDir, projectSource.story.storyId);
+
+  const reconstructedParts: Buffer[] = [];
+  let chunkCount = 0;
+  for (const segment of manifest.segments) {
+    if (segment.kind === "pause") {
+      const pause = createExplicitPausePcm(segment.pauseMs);
+      if (pause.sampleFrameCount !== segment.sampleFrameCount) {
+        throw new Error("Explicit pause sampleFrameCount is stale.");
+      }
+      reconstructedParts.push(pause.wav);
+      continue;
+    }
+    let wav: Buffer;
+    try {
+      wav = await readFile(join(rootDir, segment.localPath));
+    } catch (error) {
+      throw new Error(`Narration chunk audio is missing: ${segment.chunkId}.`, {
+        cause: error,
+      });
+    }
+    if (sha256Bytes(wav) !== segment.checksum) {
+      throw new Error(`Narration chunk checksum is stale: ${segment.chunkId}.`);
+    }
+    const measured = measureCanonicalPcmWav(wav);
+    if (measured.sampleFrameCount !== segment.sampleFrameCount) {
+      throw new Error(
+        `Narration chunk sampleFrameCount is stale: ${segment.chunkId}.`,
+      );
+    }
+    reconstructedParts.push(wav);
+    chunkCount += 1;
+  }
+
+  const reconstructedComplete = concatenateCanonicalPcm(reconstructedParts);
+  let completeWav: Buffer;
+  try {
+    completeWav = await readFile(
+      join(rootDir, manifest.completeAudio.localPath),
+    );
+  } catch (error) {
+    throw new Error("Complete narration audio is missing.", { cause: error });
+  }
+  if (sha256Bytes(completeWav) !== manifest.completeAudio.checksum) {
+    throw new Error("Complete narration audio checksum is stale.");
+  }
+  if (sha256Bytes(reconstructedComplete) !== sha256Bytes(completeWav)) {
+    throw new Error(
+      "Complete narration audio does not equal the ordered chunk and pause timeline.",
+    );
+  }
+  const completeMeasurement = measureCanonicalPcmWav(completeWav);
+  if (
+    completeMeasurement.sampleFrameCount !==
+    manifest.completeAudio.sampleFrameCount
+  ) {
+    throw new Error("Complete narration audio sampleFrameCount is stale.");
+  }
+
+  validateM1ArtifactBundle({
+    projectSource,
+    sealedNarration: manifest,
+    semanticTiming: timing,
+  });
+  return {
+    storyId: projectSource.story.storyId,
+    generationInputFingerprint: manifest.generationInputFingerprint,
+    sealedNarrationFingerprint: manifest.sealedNarrationFingerprint,
+    semanticTimingFingerprint: timing.fingerprint,
+    chunkCount,
+    captionCueCount: timing.captionCues.length,
+    completeAudioChecksum: manifest.completeAudio.checksum,
+    completeAudioSampleFrameCount: manifest.completeAudio.sampleFrameCount,
+  };
+};
