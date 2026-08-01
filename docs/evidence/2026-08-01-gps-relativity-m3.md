@@ -1,6 +1,7 @@
 # GPS Relativity M3 Narrative Baseline Evidence
 
-> 验收日期：2026-08-02  
+> 验收日期：2026-08-02
+>
 > 范围：M3 Narrative Baseline runtime、静态 Story 注册、透明 PNG 与完整 render 的机械验收。
 
 ## 1. 上游身份

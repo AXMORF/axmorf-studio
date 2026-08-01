@@ -1,7 +1,8 @@
 # 外部生产流程与解耦边界
 
-> Status：M2 已为 `gps-relativity` 实现到真实 sealed narration 与 SemanticTiming；
-> NarrativeCore 及其后续节点仍是目标设计。
+> Status：M3 已为 `gps-relativity` 实现到透明 NarrativeCore、generated static
+> ProjectRegistry、lazy Story Composition 与真实 Narrative Baseline evidence；AutoCheck 聚合
+> 和 NarrativeCheck 仍是 M4 目标。
 
 ## 1. 文档范围
 
@@ -86,30 +87,30 @@ flowchart TB
     Approval --> Render["Render / Release"]
 ```
 
-虚线表示可选依赖。当前 M2 实现止于 `SemanticTiming + CaptionCue`；`NarrativeCore`、
-ProjectRegistry、Narrative Baseline 和 NarrativeCheck 从 M3/M4 才开始，也不要求任何
-增强轨存在。
+虚线表示可选依赖。当前 M3 已实现到 `Narrative Baseline`，并且不要求任何增强轨存在；
+图中的 AutoCheck 聚合和 NarrativeCheck 从 M4 才开始。
 
 ## 4. 阶段输入与输出
 
-| 阶段 | 输入 | 固定输出 | 边界 |
-| --- | --- | --- | --- |
-| Brief | 用户内容、资料、受众、时长与交付约束 | `VideoBrief` | 只描述目标，不包含实现代码 |
-| Story Authoring | `VideoBrief` | `StorySpec`、有序 StoryBeat、已创作 `ttsChunks`、显式叙事停顿意图 | `ttsChunks` 和停顿都由创作决策产生，不按标点自动拆分或推断 |
-| Narration Authoring | `VideoBrief` | `NarrationSpec`、voice profile 引用和允许的生成参数 | 不包含 provider 地址、token 或私有配置 |
-| Render Input | 用户每次制作直接提供的参数 | `RenderSpec` | Agent 原样结构化并应用合同中已经定义的默认值；只做类型、范围和兼容性校验，不形成确认或审批节点 |
-| Contract Check | StorySpec、NarrationSpec 与用户提供的 RenderSpec | 分层校验报告；由有序 ttsChunks + NarrationSpec 得到 generation input fingerprint | 只校验已确定输入，不改写文案、声音选择或输出约束 |
-| Story Check | StorySpec、NarrationSpec 与合同报告 | Agent 叙事计划检查报告 | 在调用外部生成前检查语义顺序、朗读单元和声音选择；不增加用户审批 |
-| Narration Generation | `StorySpec.ttsChunks`、`NarrationSpec` | 候选 chunk 音频 | 可调用 VoxCPM；候选产物不是时间权威 |
-| Seal and Measure | 完整候选 chunk 集合、显式停顿声明 | sealed manifest、chunk checksum、完整音频、实测时长和非朗读区间 | 全部验证成功后原子封存；部分结果不得冒充完成 |
-| Timing | sealed manifest、`RenderSpec.fps` 和显式时间边界 | `SemanticTiming`、`CaptionCue` | 按 `pcm-cumulative-ceil-v1` 从累计 sampleFrameCount 计算；不得逐 chunk 转帧累加 |
-| Narrative Runtime | `StorySpec`、`RenderSpec`、sealed narration、timing | `NarrativeCore` | 不消费 NarrationSpec 的生成参数，不调用 Agent、skill、MCP、VoxCPM 或网络服务 |
-| Composition Registration | NarrativeCore、Story ID、RenderSpec、SemanticTiming、固定项目入口 | generated static ProjectRegistry、lazy-loaded Narrative Baseline Composition | bundle 前固定一级目录发现；元数据静态可枚举，字面量 `import()` 交给 `lazyComponent`；render runtime 不扫描目录 |
-| Baseline AutoCheck | Narrative Baseline 与其 fingerprints | 机械检查报告、baseline evidence | 不要求 ScenePackage、视觉资产或 renderer registry |
-| Narrative Check | Narrative Baseline 与 AutoCheck 报告 | Agent 叙事检查报告 | 检查内容、旁白、字幕和整体节奏，不进行视觉审核 |
-| Enhancement | 已封存叙事主链 | 相互独立的 visual、sound、global tracks | 只能消费上游，不得改写 Story、旁白、字幕或 timing |
-| Final Assembly | NarrativeCore 与已选择增强轨 | Final Preview、assembly fingerprint | 缺失未选择的增强轨不是错误 |
-| Approval and Release | Final Preview | approval receipt、成片和发布物 | 用户批准绑定 assembly fingerprint |
+| 阶段                     | 输入                                                              | 固定输出                                                                         | 边界                                                                                                           |
+| ------------------------ | ----------------------------------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Brief                    | 用户内容、资料、受众、时长与交付约束                              | `VideoBrief`                                                                     | 只描述目标，不包含实现代码                                                                                     |
+| Story Authoring          | `VideoBrief`                                                      | `StorySpec`、有序 StoryBeat、已创作 `ttsChunks`、显式叙事停顿意图                | `ttsChunks` 和停顿都由创作决策产生，不按标点自动拆分或推断                                                     |
+| Narration Authoring      | `VideoBrief`                                                      | `NarrationSpec`、voice profile 引用和允许的生成参数                              | 不包含 provider 地址、token 或私有配置                                                                         |
+| Render Input             | 用户每次制作直接提供的参数                                        | `RenderSpec`                                                                     | Agent 原样结构化并应用合同中已经定义的默认值；只做类型、范围和兼容性校验，不形成确认或审批节点                 |
+| Contract Check           | StorySpec、NarrationSpec 与用户提供的 RenderSpec                  | 分层校验报告；由有序 ttsChunks + NarrationSpec 得到 generation input fingerprint | 只校验已确定输入，不改写文案、声音选择或输出约束                                                               |
+| Story Check              | StorySpec、NarrationSpec 与合同报告                               | Agent 叙事计划检查报告                                                           | 在调用外部生成前检查语义顺序、朗读单元和声音选择；不增加用户审批                                               |
+| Narration Generation     | `StorySpec.ttsChunks`、`NarrationSpec`                            | 候选 chunk 音频                                                                  | 可调用 VoxCPM；候选产物不是时间权威                                                                            |
+| Seal and Measure         | 完整候选 chunk 集合、显式停顿声明                                 | sealed manifest、chunk checksum、完整音频、实测时长和非朗读区间                  | 全部验证成功后原子封存；部分结果不得冒充完成                                                                   |
+| Timing                   | sealed manifest、`RenderSpec.fps` 和显式时间边界                  | `SemanticTiming`、`CaptionCue`                                                   | 按 `pcm-cumulative-ceil-v1` 从累计 sampleFrameCount 计算；不得逐 chunk 转帧累加                                |
+| Narrative Runtime        | `StorySpec`、`RenderSpec`、sealed narration、timing               | `NarrativeCore`                                                                  | 不消费 NarrationSpec 的生成参数，不调用 Agent、skill、MCP、VoxCPM 或网络服务                                   |
+| Composition Registration | NarrativeCore、Story ID、RenderSpec、SemanticTiming、固定项目入口 | generated static ProjectRegistry、lazy-loaded Narrative Baseline Composition     | bundle 前固定一级目录发现；元数据静态可枚举，字面量 `import()` 交给 `lazyComponent`；render runtime 不扫描目录 |
+| Baseline Evidence        | Narrative Baseline 与其 fingerprints                              | M3 透明 still、全长 render、严格 evidence receipt                                | 固定路径和机械媒体事实；不是 AutoCheck 聚合或 NarrativeCheck                                                   |
+| Baseline AutoCheck       | Narrative Baseline 与其 fingerprints                              | M4 机械检查报告和作品级汇总                                                      | 不要求 ScenePackage、视觉资产或 renderer registry                                                              |
+| Narrative Check          | Narrative Baseline 与 AutoCheck 报告                              | Agent 叙事检查报告                                                               | 检查内容、旁白、字幕和整体节奏，不进行视觉审核                                                                 |
+| Enhancement              | 已封存叙事主链                                                    | 相互独立的 visual、sound、global tracks                                          | 只能消费上游，不得改写 Story、旁白、字幕或 timing                                                              |
+| Final Assembly           | NarrativeCore 与已选择增强轨                                      | Final Preview、assembly fingerprint                                              | 缺失未选择的增强轨不是错误                                                                                     |
+| Approval and Release     | Final Preview                                                     | approval receipt、成片和发布物                                                   | 用户批准绑定 assembly fingerprint                                                                              |
 
 ## 5. 权威与所有权
 
@@ -264,7 +265,7 @@ VideoBrief
 → SemanticTiming + CaptionCue
 ```
 
-M2 明确没有实现：
+M2 本身明确没有实现：
 
 - NarrativeCore、NarrationAudioTrack、CaptionLayer；
 - generated static ProjectRegistry、Story Composition、preview 或 render；
@@ -274,11 +275,22 @@ M2 明确没有实现：
 - SceneVisualCheck、视觉 benchmark 和 promotion；
 - SoundDesignTrack、GlobalVisualLayers、封面与发布自动化。
 
-M3 将在单独审阅的计划下从 NarrativeCore 和 Story 注册继续；只有后续真实 Narrative
-Baseline 闭环、合同和失效规则得到验证后，才进入视觉表达设计。进入后，视觉层必须以
-本文定义的 sealed narration、SemanticTiming 和 StoryBeat 为只读输入。
+M3 已在不修改上述 M2 权威的前提下继续实现：
 
-## 10. M2 完成事实与后续门槛
+```text
+sealed narration + SemanticTiming
+→ NarrationAudioTrack + CaptionLayer + transparent NarrativeCore
+→ required-only CompositionAssembly
+→ generated static ProjectRegistry + literal lazy import
+→ GpsRelativity lazy Story Composition
+→ transparent stills + 1731-frame H.264/AAC render + M3 evidence receipt
+```
+
+M3 明确没有实现 `project:check`、AutoCheck 聚合、NarrativeCheck、Scene、BaseCanvas、资源
+目录或可选增强轨。只有 M4 真实叙事闭环、合同和失效规则得到验证后，才允许进入视觉
+表达规格；视觉层仍必须把 sealed narration、SemanticTiming 和 StoryBeat 当作只读输入。
+
+## 10. M2/M3 完成事实与后续门槛
 
 M2 已满足：
 
@@ -295,5 +307,16 @@ M2 已满足：
    SemanticTiming；
 7. README、状态、架构、合同、恢复指南和真实验收证据与实际命令保持一致。
 
-ProjectRegistry、lazy Story Composition、Baseline preview/render、AutoCheck 聚合与
-NarrativeCheck 是 M3/M4 后续门槛，不属于 M2 完成事实。
+M3 另已满足：
+
+1. 完整旁白只挂载一次且 `playbackRate=1`，字幕只消费已生成绝对帧；
+2. NarrativeCore 除 CaptionLayer 外不绘制视觉，frame 0 的真实 PNG 全透明；
+3. fixed first-level ProjectRegistry 生成、default export 检查、稳定排序、literal import、
+   原子写入与 byte drift check 全部 fail closed；
+4. Root 通过 `lazyComponent` 列出 `GpsRelativity` 30 fps、1920×1080、1731 frames；
+5. frame 15 字幕可见且外部/左上透明，完整 render 有 1731 帧、1 路 H.264 与 1 路 AAC；
+6. registry-entry、Narrative Baseline 与 M3 evidence fingerprints 均已生成并进入脱敏证据；
+7. 全部 M1–M3 tests、typecheck、lint、bundle、listing、render 与隐私/保护 gate 通过。
+
+AutoCheck 聚合、`project:check --level narrative`、NarrativeCheck 和上游失效场景闭环是 M4
+门槛，不属于 M3 完成事实。

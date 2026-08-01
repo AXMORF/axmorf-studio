@@ -1,7 +1,8 @@
 # 系统结构
 
-> Status：M1 合同内核与 M2 真实旁白生成/封存已实现；NarrativeCore、ProjectRegistry、
-> Composition runtime 和全部 Scene 能力仍未实现。
+> Status：M1 合同内核、M2 真实旁白生成/封存和 M3 NarrativeCore、ProjectRegistry、
+> lazy Story Composition、Narrative Baseline evidence 已实现；M4 检查闭环和全部 Scene
+> 能力仍未实现。
 
 ## 节点责任
 
@@ -27,19 +28,20 @@ StoryCheck → VoxCPM generation boundary → sealed narration
 sealed narration + RenderSpec → SemanticTiming + CaptionCue
 → NarrativeCore
 → Generated Static ProjectRegistry + lazy-loaded Composition
-→ Narrative Baseline / NarrativeCheck
+→ Narrative Baseline
+→ AutoCheck / NarrativeCheck（M4）
 ```
 
-当前 M2 已实现到 `sealed narration + RenderSpec → SemanticTiming + CaptionCue`。箭头后续的
-NarrativeCore、ProjectRegistry、Composition、Narrative Baseline 和 NarrativeCheck 仍是
-M3/M4 目标，不是当前 runtime。
+当前 M3 已实现到 Narrative Baseline：透明 NarrativeCore、tracked generated registry、
+`GpsRelativity` lazy Composition、透明 still、全长 render 和 evidence receipt 均已落地。
+箭头后续的 AutoCheck 聚合与 NarrativeCheck 仍是 M4 目标。
 
 这条主链必须在不存在 ScenePackage、renderer registry、视觉资源目录、SoundDesignTrack
 和 GlobalVisualLayers 时独立工作。Scene、声音和全局效果是只读消费叙事主链的下游增强
 轨；当前只保留未来接口，不继续设计视觉表达。详细流程见
 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
 
-目标中的 Narrative Baseline 通过 generated static ProjectRegistry 注册为 Story Composition。
+已实现的 Narrative Baseline 通过 generated static ProjectRegistry 注册为 Story Composition。
 ProjectRegistry 的注册元数据静态可枚举，具体 Composition 代码通过 Remotion
 `lazyComponent` 按需加载。它不读取 ScenePackage，也不导入 Scene renderer；它与后续
 composition-local RendererRegistry 是两个独立装配边界。
@@ -97,7 +99,7 @@ Composition
 3. `CompositionAssembly` 通过显式插槽接收四个聚合，再在内部展开为固定顺序的
    视觉层和音轨。
 
-目标类型形状为：
+后续完整装配的目标类型形状为：
 
 ```ts
 type CompositionAssemblyProps = {
@@ -108,9 +110,17 @@ type CompositionAssemblyProps = {
 };
 ```
 
-这是源码组装边界，不是允许 JSON 保存 React 组件或任意执行表达式的数据合同。
-M2 尚未实现 `NarrativeCore` 或 CompositionAssembly，也没有为三个增强轨提前制造空壳。
-这些目标类型从 M3 开始才可按单独审阅的实施计划落地。
+这是源码组装边界，不是允许 JSON 保存 React 组件或任意执行表达式的数据合同。M3 当前
+只实现：
+
+```ts
+type CompositionAssemblyProps = {
+  readonly narrativeCore: ReactNode;
+};
+```
+
+三个可选增强轨没有空壳、`undefined` 字段或通用 track 数组；它们只能在后续获批阶段把
+明确插槽加入上述边界。
 
 ### 已实现的 M2 模块
 
@@ -132,6 +142,23 @@ scripts/narration/{generate-runner,seal-runner,check,cli}.ts
 这些模块不 import Remotion，不注册 Composition，也不读取或实现 Scene。候选与 measured
 artifact 只存在于 ignored work tree；content-addressed WAV、active manifest 和
 SemanticTiming 才是 M2 持久产物。
+
+### 已实现的 M3 模块
+
+```text
+src/contracts/narrative-baseline.ts
+                                              registry/Baseline/evidence schemas 与 fingerprints
+src/remotion/runtime/narrative-core/          single audio、顶层字幕、透明 NarrativeCore
+src/remotion/runtime/composition-assembly/    required narrativeCore slot only
+src/projects/gps-relativity/Composition.tsx   static local data validation + default export
+scripts/registry/                             fixed discovery、AST check、stable atomic generation
+src/projects/project-registry.generated.ts    tracked metadata + literal lazy import
+src/Root.tsx                                  System component + Stories lazyComponent 映射
+scripts/baseline/evidence.ts                  PNG alpha、MP4 streams/frames 与 receipt
+```
+
+M3 runtime 只读取本地静态源码、项目 JSON 和 M2 sealed artifacts；Root 不读取 Story 内容，
+runtime 不扫描目录。`CompositionAssembly` 不包含 Scene、sound 或 global 插槽。
 
 ## 总结构
 

@@ -8,8 +8,10 @@
 - `render.json` → `RenderSpecSchema`
 - `generated/sealed-narration.generated.json` → `SealedNarrationManifestSchema`
 - `generated/semantic-timing.generated.json` → `SemanticTimingSchema`
+- `generated/narrative-baseline-evidence.generated.json` →
+  `M3NarrativeBaselineEvidenceReceiptSchema`
 
-The first four files are authored source; the two `generated/` files are derived artifacts. All
+The first four files are authored source; the three `generated/` files are derived artifacts. All
 objects are strict and use `schemaVersion: 1`.
 
 ## Identity
@@ -30,6 +32,11 @@ sealed narration fingerprint.
 
 `sha256-canonical-json-v1` recursively sorts object keys, preserves array order, rejects non-JSON
 values, and hashes a domain-separated `{namespace, value, version}` envelope as UTF-8 SHA-256.
+
+M3 adds a generated-entry checksum, ProjectRegistry entry fingerprint and Narrative Baseline
+fingerprint. The Baseline identity binds StorySpec, RenderSpec, sealed narration, SemanticTiming,
+registry-entry identity and `narrative-core-v1`. The M3 evidence fingerprint then adds exact transparent
+PNG and full-render checksums without changing the upstream Baseline identity.
 
 ## Sealed narration
 
@@ -66,8 +73,12 @@ TTSChunk. Explicit pauses have timing but no CaptionCue. RenderSpec timing field
 ```bash
 npm test
 npm run narration:check -- --project gps-relativity
+npm run registry:check
+npm run compositions
+npm run baseline:evidence -- --project gps-relativity
 ```
 
 The narration checker validates real file bytes, checksums, sample-frame totals, current StoryCheck,
-active seal, and byte-equivalent SemanticTiming. NarrativeCore, ProjectRegistry, preview, render, and
-NarrativeCheck remain later milestones.
+active seal, and byte-equivalent SemanticTiming. M3 now additionally validates a deterministic tracked
+registry, lazy Composition metadata, transparent PNG facts, a 1731-frame H.264/AAC render and the
+evidence fingerprint. `project:check`, AutoCheck aggregation and NarrativeCheck remain M4 targets.

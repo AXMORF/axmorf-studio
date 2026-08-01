@@ -1,7 +1,9 @@
 # Narration Generation and Recovery
 
 M2 provides a host-only Node.js workflow for turning authored `ttsChunks` into measured canonical
-PCM, an immutable narration seal, and `SemanticTiming`. It does not preview or render video.
+PCM, an immutable narration seal, and `SemanticTiming`. M3 now consumes the current seal read-only for
+Narrative Baseline preview/render; it never calls the provider or seal workflow. See
+[M3 Narrative Baseline evidence](evidence/2026-08-01-gps-relativity-m3.md).
 
 ## Private VoxCPM configuration
 
@@ -192,8 +194,10 @@ Stage only the content-addressed public WAV directory, active manifest, Semantic
 redacted evidence. Never stage the private configuration, reference voice, `.narration-work`, `out`,
 environment files, lock files, temporary staging directories, or provider logs.
 
-## M2 scope boundary
+## M2 scope boundary and M3 consumption
 
-M2 ends at verified sealed narration and generated SemanticTiming/CaptionCue artifacts. It does not
-implement NarrativeCore, NarrationAudioTrack, CaptionLayer, ProjectRegistry, a Story Composition,
-preview, render, NarrativeCheck, Scene, renderer, Shot, BaseCanvas, sound, or global visual layers.
+M2 itself ends at verified sealed narration and generated SemanticTiming/CaptionCue artifacts. M3 now
+reads those exact artifacts to provide NarrativeCore, NarrationAudioTrack, CaptionLayer, generated
+ProjectRegistry, one lazy Story Composition, transparent stills and a full Baseline render. M3 does not
+regenerate or supersede narration. NarrativeCheck, Scene, renderer, Shot, BaseCanvas, sound and global
+visual layers remain unimplemented.

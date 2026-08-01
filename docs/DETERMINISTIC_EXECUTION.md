@@ -1,7 +1,7 @@
 # 确定性执行设计
 
-> Status：M1 合同/fingerprint/纯时间内核与 M2 文件-backed 旁白生成、封存和检查已实现；
-> M3 及后续 Remotion runtime 尚未实现。
+> Status：M1 合同/fingerprint/纯时间内核、M2 文件-backed 旁白封存和 M3 Narrative
+> Baseline runtime/registry/evidence 已实现；M4 聚合检查与后续增强 runtime 尚未实现。
 
 ## 1. 定义
 
@@ -42,6 +42,10 @@ M2 在不修改上述时间权威的前提下实现 `story-check.ts` 和 `script
 规范化、Node canonical WAV 测量、checksum、完整 PCM 拼接、content-addressed 原子封存、
 compare-and-swap supersede、SemanticTiming 写入和真实文件只读检查。只有 `generate` 调用
 provider；`seal` 和 `check` 不需要网络或私有配置。
+
+M3 实现 `narrative-baseline.ts`、透明 NarrativeCore、required-only CompositionAssembly、
+project-local Story Composition、generated static ProjectRegistry、`lazyComponent` Root 注册和
+固定路径 evidence 检查。它只读消费 M2 产物，不读取私有配置或调用 provider。
 
 ## 2. 总体实现
 
@@ -91,26 +95,27 @@ flowchart TB
 ```
 
 主链到 `Narrative Baseline` 不经过视觉 preflight、ResourceCatalog、ScenePackage 或 renderer
-registry。M2 已把 M1 的 sealed narration 与 SemanticTiming 合同落成真实文件；runtime、
-registry、Baseline、虚线增强输入和视觉分支仍全部推迟。流程权威见
+registry。M2 已把 sealed narration 与 SemanticTiming 落成真实文件，M3 已把 runtime、
+registry、Baseline 和 evidence 落地；图中的 AutoCheck/NarrativeCheck、虚线增强输入和视觉
+分支仍全部推迟。流程权威见
 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
 
 ## 3. 节点与实现方式
 
-| 设计节点                    | 实现方式                                                     | 固定输出                                      |
-| --------------------------- | ------------------------------------------------------------ | --------------------------------------------- |
-| Narration generation       | 宿主机 Node 脚本调用 VoxCPM，逐 chunk 生成                    | 候选 chunk 音频；不是时间权威                 |
-| Narration seal             | 本地脚本规范化 PCM、计数 sample frame、校验、checksum、拼接和原子封存 | sealed manifest、完整 WAV、整数 sampleFrameCount |
-| SemanticTiming / CaptionCue | 纯函数把累计样本边界统一量化为绝对帧                         | `semantic-timing.generated.json`              |
-| NarrativeCore               | 通用 Remotion 组件                                           | NarrationAudioTrack、CaptionLayer             |
-| ProjectRegistry             | bundle 前按固定一级目录生成静态元数据和字面量 lazy import    | 可枚举、按需加载的 Story Composition 注册    |
-| ResourceCatalog             | 构建脚本汇总资产 manifest 和 capability exports              | 只读目录与查询结果                            |
-| 资源解析                    | preflight 校验 resourceId、文件、类型、状态和元数据          | 资源校验报告                                  |
-| SceneVisualTrack            | 通用 Scene runtime + 每个 ScenePackage 一个 renderer 入口    | 按 timing 挂载的纯视觉 Scene                  |
-| StoryBeatTransition         | 有限的固定 preset 组件                                       | hard cut 或不改变时长的 overlay               |
-| Sound / Global layers       | 固定组件消费已选择的 preset 和资源 ID                        | BGM、SFX、texture 等轨道                      |
-| CompositionAssembly         | 显式插槽 + 强语义聚合的通用 `StoryComposition` 组件       | 固定图层顺序和最终 Composition                |
-| 审核证据                    | Remotion CLI + Node 脚本                                     | still、contact sheet、必要时 motion strip     |
+| 设计节点                    | 实现方式                                                              | 固定输出                                         |
+| --------------------------- | --------------------------------------------------------------------- | ------------------------------------------------ |
+| Narration generation        | 宿主机 Node 脚本调用 VoxCPM，逐 chunk 生成                            | 候选 chunk 音频；不是时间权威                    |
+| Narration seal              | 本地脚本规范化 PCM、计数 sample frame、校验、checksum、拼接和原子封存 | sealed manifest、完整 WAV、整数 sampleFrameCount |
+| SemanticTiming / CaptionCue | 纯函数把累计样本边界统一量化为绝对帧                                  | `semantic-timing.generated.json`                 |
+| NarrativeCore               | 通用 Remotion 组件                                                    | NarrationAudioTrack、CaptionLayer                |
+| ProjectRegistry             | bundle 前按固定一级目录生成静态元数据和字面量 lazy import             | 可枚举、按需加载的 Story Composition 注册        |
+| ResourceCatalog             | 构建脚本汇总资产 manifest 和 capability exports                       | 只读目录与查询结果                               |
+| 资源解析                    | preflight 校验 resourceId、文件、类型、状态和元数据                   | 资源校验报告                                     |
+| SceneVisualTrack            | 通用 Scene runtime + 每个 ScenePackage 一个 renderer 入口             | 按 timing 挂载的纯视觉 Scene                     |
+| StoryBeatTransition         | 有限的固定 preset 组件                                                | hard cut 或不改变时长的 overlay                  |
+| Sound / Global layers       | 固定组件消费已选择的 preset 和资源 ID                                 | BGM、SFX、texture 等轨道                         |
+| CompositionAssembly         | 显式插槽 + 强语义聚合的通用 `StoryComposition` 组件                   | 固定图层顺序和最终 Composition                   |
+| 审核证据                    | Remotion CLI + Node 脚本                                              | still、contact sheet、必要时 motion strip        |
 
 底层可共享时间线、视觉、音频和 fingerprint 贡献能力，但对外装配合同保留
 `NarrativeCore`、`StoryVisualTrack`、`SoundDesignTrack` 和 `GlobalVisualLayers` 四个显式
@@ -119,8 +124,9 @@ registry、Baseline、虚线增强输入和视觉分支仍全部推迟。流程�
 
 M1 已落地数据合同、canonical fingerprint、封存 receipt 元数据校验和
 SemanticTiming/CaptionCue 纯函数。M2 已落地表中前三项的真实 TTS、实测、封存和检查；
-NarrativeCore 与 Narrative Baseline 属于 M3；ResourceCatalog、SceneVisualTrack、转场、
-sound/global 与最终增强装配均属于后续阶段。
+M3 已落地 NarrativeCore、ProjectRegistry、Narrative Baseline 与窄 evidence。当前
+CompositionAssembly 只有必需 `narrativeCore` 插槽；ResourceCatalog、SceneVisualTrack、
+转场、sound/global 与最终增强装配均属于后续阶段。
 
 不要求每个确定性节点都拥有独立命令。相关检查应合并到少量面向作品的 CLI 中，避免
 产生繁重、重复的阶段审核。
@@ -130,12 +136,13 @@ sound/global 与最终增强装配均属于后续阶段。
 ```text
 src/contracts/                         数据合同与纯校验
 scripts/narration/                     TTS、实测、拼接与封存
-scripts/catalog/                       资源目录构建与查询
-scripts/preflight/                     叙事主链与后续增强轨的分级校验
 scripts/registry/                      ProjectRegistry 生成与漂移检查
+scripts/baseline/                      M3 PNG/MP4 evidence 与 receipt
+scripts/catalog/                       后续：资源目录构建与查询
+scripts/preflight/                     后续：叙事主链与增强轨分级校验
 src/remotion/runtime/narrative-core/   旁白、顶层字幕与绝对时间挂载
+src/remotion/runtime/composition-assembly/ M3 required narrativeCore 装配
 src/remotion/runtime/story-visual/     后续：Scene、Shot 与转场时间装配
-src/remotion/runtime/assembly/         Composition 总装
 
 src/projects/<story>/
 ├── story.json                         Agent 创作声明
@@ -197,7 +204,7 @@ export const projectRegistry = [
     width: 1920,
     height: 1080,
     durationInFrames: 1824,
-    defaultProps: {projectId: "story-example"},
+    defaultProps: { projectId: "story-example" },
     load: () => import("./story-example/Composition"),
   },
 ] as const;
@@ -378,11 +385,11 @@ StoryBeat 最多延后不足 1 帧，但绝不会早于其音频样本边界；�
 
 例如 `R = 48000`、`fps = 30`、`leadInFrames = 15`、`tailFrames = 12`：
 
-| segment | sampleFrameCount | 累计样本范围 | 绝对帧范围 | 字幕 |
-| --- | ---: | --- | --- | --- |
-| TTSChunk A | 52800 | `[0, 52800)` | `[15, 48)` | A 的 ttsText |
-| 显式停顿 | 12000 | `[52800, 64800)` | `[48, 56)` | 无 |
-| TTSChunk B | 45600 | `[64800, 110400)` | `[56, 84)` | B 的 ttsText |
+| segment    | sampleFrameCount | 累计样本范围      | 绝对帧范围 | 字幕         |
+| ---------- | ---------------: | ----------------- | ---------- | ------------ |
+| TTSChunk A |            52800 | `[0, 52800)`      | `[15, 48)` | A 的 ttsText |
+| 显式停顿   |            12000 | `[52800, 64800)`  | `[48, 56)` | 无           |
+| TTSChunk B |            45600 | `[64800, 110400)` | `[56, 84)` | B 的 ttsText |
 
 其中 `Q(64800) = ceil(40.5) = 41`，所以 B 的字幕不会在其音频开始之前出现。Composition
 总帧数是 `15 + Q(110400) + 12 = 96`。
@@ -422,38 +429,43 @@ Story fingerprint
 └── Assembly fingerprint
 ```
 
-M1 定义、M2 实际生成并校验到 SemanticTiming 的 fingerprint 分支；ProjectRegistry、
-Narrative Baseline、视觉、声音和全局分支仍是后续目标。视觉、声音和全局层不得进入
-sealed narration 或 SemanticTiming fingerprint。
+M1 定义、M2 实际生成并校验到 SemanticTiming，M3 已继续生成 ProjectRegistry entry、
+Narrative Baseline 和 evidence fingerprint；视觉、声音和全局分支仍是后续目标。视觉、
+声音和全局层不得进入 sealed narration 或 SemanticTiming fingerprint。
 
-| 修改                          | 必须失效                                     | 保持有效       |
-| ----------------------------- | -------------------------------------------- | -------------- |
-| ttsText、顺序或 NarrationSpec | TTS、sealed narration、timing、Baseline 和所有下游 | Story 主题     |
-| 显式叙事停顿                  | sealed complete audio、timing、Baseline 和所有下游 | 已生成 chunk 候选 |
-| RenderSpec timing 字段（fps、片头或片尾） | timing、registry entry、字幕边界、Baseline 和下游 | sealed narration |
-| RenderSpec 非 timing 字段     | 相关 registry 元数据、字幕布局或输出约束、Baseline 和下游 | sealed narration、timing |
+| 修改                                            | 必须失效                                                   | 保持有效                 |
+| ----------------------------------------------- | ---------------------------------------------------------- | ------------------------ |
+| ttsText、顺序或 NarrationSpec                   | TTS、sealed narration、timing、Baseline 和所有下游         | Story 主题               |
+| 显式叙事停顿                                    | sealed complete audio、timing、Baseline 和所有下游         | 已生成 chunk 候选        |
+| RenderSpec timing 字段（fps、片头或片尾）       | timing、registry entry、字幕边界、Baseline 和下游          | sealed narration         |
+| RenderSpec 非 timing 字段                       | 相关 registry 元数据、字幕布局或输出约束、Baseline 和下游  | sealed narration、timing |
 | Story 入口、Composition ID 或 generator version | ProjectRegistry、Composition listing、Baseline 和 evidence | sealed narration、timing |
-| SceneVisualPlan 或资源选择    | Renderer、Scene 检查、视觉轨、完整 Preview   | 已封存旁白     |
-| Renderer 或资产内容           | Scene 证据、视觉轨、完整 Preview             | Story 与旁白   |
-| transition、声音或全局层      | Assembly、完整 Preview                       | Scene 内部证据 |
-| shared runtime                | 所有依赖该版本的 Composition 证据            | 原始创作声明   |
+| SceneVisualPlan 或资源选择                      | Renderer、Scene 检查、视觉轨、完整 Preview                 | 已封存旁白               |
+| Renderer 或资产内容                             | Scene 证据、视觉轨、完整 Preview                           | Story 与旁白             |
+| transition、声音或全局层                        | Assembly、完整 Preview                                     | Scene 内部证据           |
+| shared runtime                                  | 所有依赖该版本的 Composition 证据                          | 原始创作声明             |
 
 失效传播由 fingerprint 比较和依赖关系完成，不依赖 Agent 记忆。
 
 ## 10. 聚合检查
 
-M1/M2 当前提供聚焦机械检查和一个真实作品的 file-backed 检查：
+M1–M3 当前提供聚焦机械检查、真实 file-backed 检查、registry drift check、listing 与窄
+Baseline evidence：
 
 ```bash
 npm test
 npm run narration:check -- --project gps-relativity
+npm run registry:check
+npm run compositions
+npm run baseline:evidence -- --project gps-relativity
 ```
 
 它们覆盖严格合同、StoryCheck、provider adapter、candidate/measured resume、canonical
 fingerprint、真实 WAV/checksum/sample-frame、原子 sealed receipt、累计 PCM timing、
-CaptionCue 一一对应与失效传播。下面的作品级 `project:check` 仍是 M4 目标，当前未实现。
+CaptionCue 一一对应、透明 NarrativeCore、静态 registry、lazy listing、PNG alpha、完整 render
+媒体事实与 M3 evidence fingerprint。下面的作品级 `project:check` 仍是 M4 目标，当前未实现。
 
-目标提供同一个作品级命令的分级检查：
+M4 目标提供同一个作品级命令的分级检查：
 
 ```bash
 npm run project:check -- --project <slug> --level narrative

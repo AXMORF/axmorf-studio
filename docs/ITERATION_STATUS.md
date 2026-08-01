@@ -1,6 +1,6 @@
 # 当前实现状态
 
-> 更新日期：2026-08-01
+> 更新日期：2026-08-02
 
 ## 已完成
 
@@ -27,15 +27,22 @@
 - content-addressed immutable narration directory、active manifest/timing 原子写入、lock、
   identical-seal reuse 与精确 `--supersede` compare-and-swap；
 - 真实 file-backed `narration:check`、十个 CaptionCues、恢复指南和脱敏 M2 验收证据；
+- 单一 complete WAV、`playbackRate=1` 的 `NarrationAudioTrack`，只消费绝对 CaptionCue 的
+  顶层 `CaptionLayer`，以及不绘制背景的 `NarrativeCore`；
+- 只含必需 `narrativeCore` 插槽的 `CompositionAssembly` 和 project-local default-export
+  `GpsRelativity` Composition；
+- 固定一级目录发现、default-export AST 检查、稳定排序、原子生成和 byte drift check 的
+  tracked ProjectRegistry；Root 通过字面量 loader 和 `lazyComponent` 注册 Story；
+- `CapabilityGallery` 与 `GpsRelativity` 的真实 Composition listing；frame 0 全透明、frame 15
+  字幕可见且外部透明的真实 PNG；1731 帧 H.264/AAC 全长 render；
+- registry-entry、Narrative Baseline 与 evidence fingerprint 合同、receipt、检查命令和脱敏
+  M3 验收证据；
 - 已批准从 M1 合同内核、Narrative Baseline、视觉阶段到发布收口的分阶段 Roadmap，M1、
-  M2 已完成。
+  M2、M3 已完成。
 
 ## 尚未完成
 
-- `NarrativeCore`、顶层 CaptionLayer 与透明视觉输出边界；
-- generated static ProjectRegistry、`lazyComponent` 按需加载与不依赖 Scene 的 Story
-  Composition 注册；
-- `NarrativeCheck`、Narrative Baseline preview/render 与 M1 之后的主链 fingerprint；
+- `project:check`、AutoCheck 聚合、NarrativeCheck 与 M4 失效场景闭环；
 - `ScenePackage`、资源目录和 promotion 合同；
 - `StoryVisualTrack`、Scene 级静态 renderer registry、hard cut 与等时长 overlay；
 - 统一资源目录生成与查询；
@@ -50,24 +57,23 @@
 - 封面与发布工具；
 - 新的 Agent skills。
 
-以上未完成项仍是目标设计，不能表述为已有 CLI 或 runtime 能力。M2 已为
-`gps-relativity` 生成、测量并封存真实音频，但没有因此实现 NarrativeCore、Composition、
-Scene 或任何预览/渲染能力。
+以上未完成项仍是目标设计，不能表述为已有 CLI 或 runtime 能力。M3 已为
+`gps-relativity` 实现 Narrative Baseline，但没有因此实现 M4 检查聚合、Scene、资源目录
+或任何可选增强轨。
 
 ## 下一里程碑
 
-下一步只编写并审阅 M3 实施计划；M3 将在不依赖 Scene 的前提下消费 M2 已封存产物：
+下一步只编写并审阅 M4 实施计划；M4 将复验 M1–M3 主链和失效传播：
 
 ```text
-M2 sealed narration + SemanticTiming
-→ NarrativeCore + NarrationAudioTrack + CaptionLayer
-→ generated static ProjectRegistry
-→ lazy-loaded Story Composition
-→ Narrative Baseline preview / render
+M3 Narrative Baseline + fingerprints + evidence
+→ project:check --level narrative
+→ AutoCheck aggregation
+→ NarrativeCheck + upstream invalidation proof
 ```
 
-M3 开始前必须另行审阅实施计划；当前没有开始 NarrativeCore、ProjectRegistry、
-Composition、SceneVisualPlan、ShotPlan、ScenePackage、Scene renderer、StoryVisualTrack、
+M4 开始前必须另行审阅实施计划；当前没有开始 `project:check`、AutoCheck 聚合、
+NarrativeCheck、SceneVisualPlan、ShotPlan、ScenePackage、Scene renderer、StoryVisualTrack、
 视觉资产查询、SoundDesignTrack 或 GlobalVisualLayers。
 在第二个不同主题验证之前，不提取新的共享能力。
 后续里程碑顺序、阶段排除项和完成门槛见 [ROADMAP.md](ROADMAP.md)。

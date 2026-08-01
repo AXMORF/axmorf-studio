@@ -1,7 +1,7 @@
 # Remotion Story Producer Roadmap
 
-> Status：已获用户批准；M0、M1、M2 已完成，M3 计划审阅为下一步
-> 更新日期：2026-08-01
+> Status：已获用户批准；M0、M1、M2、M3 已完成，M4 计划审阅为下一步
+> 更新日期：2026-08-02
 
 ## 1. 用途
 
@@ -13,11 +13,11 @@
 
 ## 2. 当前起点
 
-当前代码已完成基础工程、已迁入共享能力、`CapabilityGallery`、M1 合同内核，以及
-`gps-relativity` 的 M2 真实旁白生成/续跑/测量/封存/时间产物。目标架构、Composition
-组合模型和 Narrative Baseline 主链已写入文档，但下列内容仍未实现：
+当前代码已完成基础工程、已迁入共享能力、`CapabilityGallery`、M1 合同内核、
+`gps-relativity` 的 M2 真实旁白封存，以及 M3 透明 NarrativeCore、静态 ProjectRegistry、
+lazy Story Composition、真实 Narrative Baseline preview/render 和 evidence。下列内容仍未实现：
 
-- NarrativeCore、ProjectRegistry、lazy Story Composition 和 Narrative Baseline；
+- M4 `project:check`、AutoCheck 聚合、NarrativeCheck 与失效验证闭环；
 - Scene、Sound、Global 增强轨与发布工具。
 
 因此当前不应直接开始 Scene 视觉制作，也不应先实现三个可选增强轨的空壳。
@@ -44,8 +44,8 @@
 flowchart LR
     M0["M0 设计收口<br/>已完成"] --> M1["M1 合同与确定性内核<br/>已完成"]
     M1 --> M2["M2 真实旁白生成与封存<br/>已完成"]
-    M2 --> M3["M3 Narrative Baseline Runtime<br/>下一步：先审阅计划"]
-    M3 --> M4["M4 叙事闭环与失效验证"]
+    M2 --> M3["M3 Narrative Baseline Runtime<br/>已完成"]
+    M3 --> M4["M4 叙事闭环与失效验证<br/>下一步：先审阅计划"]
     M4 --> G1{"Gate A<br/>Baseline 真实闭环？"}
     G1 -->|"是"| M5["M5 视觉阶段规格"]
     G1 -->|"否"| M1
@@ -134,6 +134,9 @@ ProjectRegistry、Composition、Scene 或 BaseCanvas。
 
 ### M3：Narrative Baseline Runtime 与 Story 注册
 
+**状态：** 已于 2026-08-02 完成并通过真实 listing、透明 PNG、全长 render、fingerprint、
+隐私与范围验收。
+
 **目标：** 在完全没有 ScenePackage 和增强轨的情况下，使第一个真实 Story 可列出、
 预览和渲染。
 
@@ -155,6 +158,10 @@ ProjectRegistry、Composition、Scene 或 BaseCanvas。
 - NarrativeCore 除 CaptionLayer 外不绘制任何视觉，其余区域保持透明；
 - 没有任何视觉增强仍能产生可理解的 Baseline Preview 和成片；
 - registry 缺失、漂移、重复 ID 或非字面量 loader 全部 fail closed。
+
+真实验收见
+[GPS Relativity M3 Narrative Baseline Evidence](evidence/2026-08-01-gps-relativity-m3.md)。M3
+没有开始 `project:check`、NarrativeCheck、Scene、BaseCanvas 或任何可选增强轨。
 
 ### M4：Narrative Baseline 真实闭环
 
@@ -307,6 +314,6 @@ Composition 注册问题，必须回到 M1–M4 修正，不得用 Scene 代码�
 
 ## 7. 当前唯一下一步
 
-M1、M2 已实现并通过验收。当前只编写并审阅 **M3：Narrative Baseline Runtime 与 Story
-注册** 的实施计划；没有单独获批计划前，不开始 NarrativeCore、CaptionLayer、
-ProjectRegistry、Composition 或任何 Scene/BaseCanvas 实现。
+M1、M2、M3 已实现并通过验收。当前只编写并审阅 **M4：Narrative Baseline 真实闭环**
+的实施计划；没有单独获批计划前，不开始 `project:check`、AutoCheck 聚合、NarrativeCheck
+或任何 Scene/BaseCanvas/可选增强轨实现。

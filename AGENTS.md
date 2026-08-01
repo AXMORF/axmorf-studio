@@ -40,10 +40,12 @@
 
 ## 当前里程碑边界
 
-- 当前先实现 Scene 之外的叙事生产主链：VideoBrief、StorySpec、NarrationSpec、
-  RenderSpec、StoryBeat、已创作的 `ttsChunks`、StoryCheck、真实 VoxCPM 生成与封存、
-  SemanticTiming、CaptionCue、NarrativeCore、generated static ProjectRegistry、lazy-loaded
-  Story Composition、Narrative Baseline 和 NarrativeCheck。
+- M1–M3 已实现 Scene 之外的叙事生产主链到 Narrative Baseline：VideoBrief、StorySpec、
+  NarrationSpec、RenderSpec、StoryBeat、已创作的 `ttsChunks`、StoryCheck、真实 VoxCPM
+  生成与封存、SemanticTiming、CaptionCue、透明 NarrativeCore、generated static
+  ProjectRegistry、lazy-loaded Story Composition、真实 preview/render 和 M3 evidence。
+- 当前唯一下一步是单独编写并审阅 M4 叙事闭环与失效验证计划；`project:check`、
+  AutoCheck 聚合和 NarrativeCheck 尚未实现。
 - 当前不设计或实现 SceneVisualPlan、ShotPlan、ScenePackage、Scene renderer、视觉资产
   查询、转场、SoundDesignTrack 或 GlobalVisualLayers。
 - 已记录的 Scene 级 renderer 设计只定义未来接入接口。它不得成为 Narrative Baseline
