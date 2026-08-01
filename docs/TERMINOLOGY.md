@@ -22,7 +22,7 @@
 | RendererRegistry | composition-local 静态 renderer 绑定 | 把 ScenePackage.rendererId 映射到 SceneRenderer |
 | Shot | Scene 内连续的镜头区间 | 绑定 meaningId，不绑定字幕、rendererId、组件或模块路径 |
 | StoryBeatTransition | 相邻 StoryBeat 的视觉交接决定 | v1 为 hard cut 或等时长 overlay |
-| NarrativeCore | 最低可播放成片层 | 旁白、字幕、绝对时间与 BaseCanvas |
+| NarrativeCore | 最低可播放成片层 | 旁白、顶层字幕与绝对时间；不绘制背景，其余视觉区域透明 |
 | EnhancementTrack | 对 NarrativeCore 的可选增强 | visual、sound、global 各自独立，只读消费上游 |
 | StoryVisualTrack | 完整视觉增强轨 | SceneVisualTrack 与转场的组合 |
 | Composition | Remotion 最终渲染入口 | NarrativeCore 与各增强轨实时合成 |

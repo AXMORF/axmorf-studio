@@ -3,7 +3,7 @@
 ## 一句话目标
 
 把“内容到完整视频”拆成稳定的叙事主线和可独立替换的 Scene 视觉任务：即使没有视觉
-增强，旁白、字幕和基础画布也能完整讲完故事；视觉质量主要在 Scene 层持续提升。
+增强，旁白和字幕也能完整讲完故事；视觉质量主要在 Scene 层持续提升。
 
 ## 最终结构
 
@@ -20,7 +20,6 @@ flowchart TB
     Audio --> Core["NarrativeCore"]
     Captions --> Core
     Beat --> Core
-    Base["BaseCanvas"] --> Core
     Registry["Generated Static ProjectRegistry<br/>lazyComponent loader"] --> Composition
 
     Beat -->|"1:1"| Scene["Scene<br/>独立视觉任务"]
@@ -96,6 +95,11 @@ Scene 的具体视觉表达最后设计。完整阶段、产物与失效边界�
   ScenePackage。
 - NarrativeCore 是唯一必需轨；视觉、声音设计和全局效果缺失时，Narrative Baseline
   仍必须可检查、预览和渲染。
+- NarrativeCore 不绘制全帧背景；它的唯一视觉输出是顶层 `CaptionLayer`。没有装配
+  StoryVisualTrack 或 GlobalVisualLayers 时，其余视觉区域保持透明。
+- CompositionAssembly 以显式插槽并列装配 `NarrativeCore`、`StoryVisualTrack`、
+  `SoundDesignTrack` 和 `GlobalVisualLayers`；实现抽取小型音频、视觉和时间线能力再
+  组合成四个强语义聚合，不使用充满可选字段的万能 Track 类型。
 - ProjectRegistry 在 bundle 前自动发现固定目录并生成静态注册元数据；Story Composition
   通过 Remotion `lazyComponent` 按需加载。它不依赖后续 Scene 级 RendererRegistry。
 - 每个 ScenePackage 只绑定一个 Scene 级 `rendererId`；ShotPlan 不绑定 `rendererId`、

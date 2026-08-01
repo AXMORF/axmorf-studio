@@ -25,7 +25,8 @@ static ProjectRegistry、lazy-loaded Story Composition、NarrativeCheck、SceneP
 目录、完整生产链和新 skills 都尚未实现。
 完成边界和后续里程碑见
 [最终产品目标](docs/FINAL_PRODUCT_GOAL.md) 与
-[当前实现状态](docs/ITERATION_STATUS.md)。
+[当前实现状态](docs/ITERATION_STATUS.md)；完整实施顺序和阶段门槛见
+[实施路线](docs/ROADMAP.md)。
 
 ## 本地运行
 

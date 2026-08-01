@@ -1,6 +1,6 @@
 # 当前实现状态
 
-> 更新日期：2026-07-31
+> 更新日期：2026-08-01
 
 ## 已完成
 
@@ -9,13 +9,16 @@
 - 从原项目已提交版本白名单迁入共享 Remotion 能力；
 - `CapabilityGallery` 最小启动 Composition；
 - 规范目录、最终目标、外部生产流程、带节点责任标注的结构图、Scene 级 renderer 边界、
-  确定性执行设计、名词、审核模型与迁移清单。
+  Composition 的“底层能力组合 + 四个强语义聚合 + 显式装配插槽”边界、确定性
+  执行设计、名词、审核模型与迁移清单。
+- 已批准从 M1 合同内核、Narrative Baseline、视觉阶段到发布收口的分阶段 Roadmap；
+  当前下一步是单独编写和审阅 M1 实施计划。
 
 ## 尚未完成
 
 - `VideoBrief`、`StorySpec`、`NarrationSpec`、`RenderSpec`、封存旁白与 SemanticTiming
   合同；
-- `NarrativeCore`、顶层 CaptionLayer、BaseCanvas；
+- `NarrativeCore`、顶层 CaptionLayer 与透明视觉输出边界；
 - generated static ProjectRegistry、`lazyComponent` 按需加载与不依赖 Scene 的 Story
   Composition 注册；
 - `StoryCheck`、`NarrativeCheck`、Narrative Baseline preview/render 与主链 fingerprint
@@ -61,6 +64,7 @@ VideoBrief
 StoryVisualTrack、视觉资产查询、SoundDesignTrack 或 GlobalVisualLayers。Narrative Baseline
 闭环和失效规则通过真实主题验证后，才开始视觉表达设计；在第二个不同主题验证之前，
 不提取新的共享能力。
+后续里程碑顺序、阶段排除项和完成门槛见 [ROADMAP.md](ROADMAP.md)。
 
 ## 已知基础依赖问题
 

@@ -67,6 +67,44 @@ Webpack 按需加载该 Story Composition
   `<Composition>`；
 - 正式 render runtime 不扫描文件系统，不生成 registry，也不动态改变 Composition 列表。
 
+### Composition 组合模型
+
+Composition 在语义上由一个必需主干和三个可选增强轨组成：
+
+```text
+Composition
+├── NarrativeCore                  必需
+└── EnhancementTracks              可选集合
+    ├── StoryVisualTrack
+    ├── SoundDesignTrack
+    └── GlobalVisualLayers
+```
+
+在 CompositionAssembly 代码边界中，四者是并列的装配输入；它们不互相包含，但也不
+应被抹平成一个充满可选字段的万能 `Track` 类型。实现采用三层组合边界：
+
+1. 抽取小而稳定的底层能力，例如时间线贡献、视觉贡献、音频贡献和 fingerprint
+   依赖；
+2. 用这些能力组合出 `NarrativeCore`、`StoryVisualTrack`、`SoundDesignTrack` 和
+   `GlobalVisualLayers` 四个强语义聚合，由各自类型保证必需字段和领域约束；
+3. `CompositionAssembly` 通过显式插槽接收四个聚合，再在内部展开为固定顺序的
+   视觉层和音轨。
+
+目标类型形状为：
+
+```ts
+type CompositionAssemblyProps = {
+  readonly narrativeCore: NarrativeCore;
+  readonly storyVisualTrack?: StoryVisualTrack;
+  readonly soundDesignTrack?: SoundDesignTrack;
+  readonly globalVisualLayers?: GlobalVisualLayers;
+};
+```
+
+这是源码组装边界，不是允许 JSON 保存 React 组件或任意执行表达式的数据合同。
+当前里程碑只实现 `NarrativeCore` 所需的底层能力；不为三个尚未进入实现的增强轨
+提前制造空壳。
+
 ## 总结构
 
 ```mermaid
@@ -88,7 +126,6 @@ flowchart TB
     RenderSpec --> Core
     Timing --> Core
     Narration --> Core
-    Base["BaseCanvas<br/>【确定性执行】"] --> Core
     Core --> StoryComposition["Story Composition<br/>default export<br/>【确定性执行】"]
     StoryComposition --> ProjectRegistry["Generated Static ProjectRegistry<br/>literal lazy import<br/>【制作编排】"]
     ProjectRegistry --> Baseline["Narrative Baseline<br/>lazy-loaded<br/>【确定性执行】"]
@@ -124,7 +161,7 @@ flowchart TB
     class Story,NarrationSpec,Beat,Chunks,StoryCheck,Plan,Context,Transition,SoundPlan,GlobalPlan creative;
     class Package,ProjectRegistry orchestration;
     class Generate external;
-    class Seal,Timing,Narration,Core,Base,StoryComposition,Baseline,Catalog,VisualUnit,Visual,Sound,Global,Assembly,Composition deterministic;
+    class Seal,Timing,Narration,Core,StoryComposition,Baseline,Catalog,VisualUnit,Visual,Sound,Global,Assembly,Composition deterministic;
 ```
 
 ## 后续视觉阶段：Scene 内部
@@ -202,12 +239,16 @@ flowchart TB
 CaptionLayer
 GlobalVisualLayers / StoryBeatTransition overlay
 SceneVisualTrack
-BaseCanvas
+透明（无必需背景层）
 
 非视觉音轨
 NarrationAudioTrack
 SoundDesignTrack：BGM / ambience / SFX
 ```
+
+NarrativeCore 不渲染背景或其他全帧视觉，其唯一视觉输出是 CaptionLayer。StoryVisualTrack
+和 GlobalVisualLayers 都缺失时，Composition 的其余视觉区域保持透明；具体容器、预览器
+或输出编码如何呈现透明区域，不是 NarrativeCore 的责任。
 
 ## 时间坐标
 

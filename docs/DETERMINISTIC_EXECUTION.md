@@ -88,15 +88,20 @@ registry。当前只实现这条叙事分支；虚线增强输入和视觉分支
 | Narration generation       | 宿主机 Node 脚本调用 VoxCPM，逐 chunk 生成                    | 候选 chunk 音频；不是时间权威                 |
 | Narration seal             | 本地脚本规范化 PCM、计数 sample frame、校验、checksum、拼接和原子封存 | sealed manifest、完整 WAV、整数 sampleFrameCount |
 | SemanticTiming / CaptionCue | 纯函数把累计样本边界统一量化为绝对帧                         | `semantic-timing.generated.json`              |
-| NarrativeCore               | 通用 Remotion 组件                                           | NarrationAudioTrack、CaptionLayer、BaseCanvas |
+| NarrativeCore               | 通用 Remotion 组件                                           | NarrationAudioTrack、CaptionLayer             |
 | ProjectRegistry             | bundle 前按固定一级目录生成静态元数据和字面量 lazy import    | 可枚举、按需加载的 Story Composition 注册    |
 | ResourceCatalog             | 构建脚本汇总资产 manifest 和 capability exports              | 只读目录与查询结果                            |
 | 资源解析                    | preflight 校验 resourceId、文件、类型、状态和元数据          | 资源校验报告                                  |
 | SceneVisualTrack            | 通用 Scene runtime + 每个 ScenePackage 一个 renderer 入口    | 按 timing 挂载的纯视觉 Scene                  |
 | StoryBeatTransition         | 有限的固定 preset 组件                                       | hard cut 或不改变时长的 overlay               |
 | Sound / Global layers       | 固定组件消费已选择的 preset 和资源 ID                        | BGM、SFX、texture 等轨道                      |
-| CompositionAssembly         | 通用 `StoryComposition` 组件                                 | 固定图层顺序和最终 Composition                |
+| CompositionAssembly         | 显式插槽 + 强语义聚合的通用 `StoryComposition` 组件       | 固定图层顺序和最终 Composition                |
 | 审核证据                    | Remotion CLI + Node 脚本                                     | still、contact sheet、必要时 motion strip     |
+
+底层可共享时间线、视觉、音频和 fingerprint 贡献能力，但对外装配合同保留
+`NarrativeCore`、`StoryVisualTrack`、`SoundDesignTrack` 和 `GlobalVisualLayers` 四个显式
+插槽。`NarrativeCore` 必需，其余三个可选；不接受无约束的通用 track 数组代替
+这个边界。数据文件只保存声明与稳定 ID，不保存 React 组件或底层能力实例。
 
 当前里程碑只落地 TTS/实测、SemanticTiming/CaptionCue、NarrativeCore 和 Narrative
 Baseline evidence。ResourceCatalog、SceneVisualTrack、转场、sound/global 与最终增强装配均
@@ -113,7 +118,7 @@ scripts/narration/                     TTS、实测、拼接与封存
 scripts/catalog/                       资源目录构建与查询
 scripts/preflight/                     叙事主链与后续增强轨的分级校验
 scripts/registry/                      ProjectRegistry 生成与漂移检查
-src/remotion/runtime/narrative-core/   旁白、字幕与 BaseCanvas
+src/remotion/runtime/narrative-core/   旁白、顶层字幕与绝对时间挂载
 src/remotion/runtime/story-visual/     后续：Scene、Shot 与转场时间装配
 src/remotion/runtime/assembly/         Composition 总装
 

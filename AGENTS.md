@@ -7,6 +7,7 @@
 - 产品最终目标：`docs/FINAL_PRODUCT_GOAL.md`
 - 外部生产流程：`docs/PRODUCTION_WORKFLOW.md`
 - 当前实现状态：`docs/ITERATION_STATUS.md`
+- 实施顺序与阶段门槛：`docs/ROADMAP.md`
 - 系统结构：`docs/ARCHITECTURE.md`
 - 确定性执行：`docs/DETERMINISTIC_EXECUTION.md`
 - 名词边界：`docs/TERMINOLOGY.md`
