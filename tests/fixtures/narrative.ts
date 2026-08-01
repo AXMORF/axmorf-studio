@@ -1,3 +1,11 @@
+import { computeGenerationInputFingerprint } from "../../src/contracts/generation-input";
+import { NarrationSpecSchema } from "../../src/contracts/narration";
+import {
+  computeSealedNarrationFingerprint,
+  SealedNarrationManifestSchema,
+} from "../../src/contracts/sealed-narration";
+import { StorySpecSchema } from "../../src/contracts/story";
+
 export const validVideoBrief = {
   schemaVersion: 1,
   storyId: "story-example",
@@ -61,3 +69,67 @@ export const validProjectSource = {
   narration: validNarrationSpec,
   render: validRenderSpec,
 } as const;
+
+export const buildValidSealedNarrationManifest = () => {
+  const story = StorySpecSchema.parse(validStorySpec);
+  const narration = NarrationSpecSchema.parse(validNarrationSpec);
+  const pcm = {
+    sampleRate: 48000,
+    channelLayout: "mono",
+    sampleFormat: "s16le",
+  } as const;
+  const input = {
+    schemaVersion: 1,
+    storyId: "story-example",
+    narrationSpec: validNarrationSpec,
+    generationInputFingerprint: computeGenerationInputFingerprint(
+      story,
+      narration,
+    ),
+    normalizationAlgorithmId: "pcm-s16le-normalize-v1",
+    assemblyAlgorithmId: "ordered-pcm-concat-v1",
+    canonicalPcm: pcm,
+    segments: [
+      {
+        kind: "chunk",
+        chunkId: "opening-01",
+        meaningId: "opening",
+        ttsText: "A",
+        localPath:
+          "public/projects/story-example/narration/chunks/opening-01.wav",
+        checksum: `sha256:${"a".repeat(64)}`,
+        pcm,
+        sampleFrameCount: 52800,
+      },
+      {
+        kind: "pause",
+        afterChunkId: "opening-01",
+        meaningId: "opening",
+        pauseMs: 250,
+        sampleFrameCount: 12000,
+      },
+      {
+        kind: "chunk",
+        chunkId: "conclusion-01",
+        meaningId: "conclusion",
+        ttsText: "B",
+        localPath:
+          "public/projects/story-example/narration/chunks/conclusion-01.wav",
+        checksum: `sha256:${"b".repeat(64)}`,
+        pcm,
+        sampleFrameCount: 45600,
+      },
+    ],
+    completeAudio: {
+      localPath: "public/projects/story-example/narration/complete.wav",
+      checksum: `sha256:${"c".repeat(64)}`,
+      pcm,
+      sampleFrameCount: 110400,
+    },
+  } as const;
+
+  return SealedNarrationManifestSchema.parse({
+    ...input,
+    sealedNarrationFingerprint: computeSealedNarrationFingerprint(input),
+  });
+};
