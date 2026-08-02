@@ -8,6 +8,7 @@ export * from "./narration";
 export * from "./primitives";
 export * from "./project";
 export * from "./render";
+export * from "./resource-catalog";
 export * from "./scene-primitives";
 export * from "./sealed-narration";
 export * from "./semantic-timing";
