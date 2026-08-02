@@ -250,9 +250,9 @@ test("NarrativeCore version changes only Baseline and its downstream fingerprint
   const sealedNarration = SealedNarrationManifestSchema.parse(
     await readJson(fixture.paths.manifest),
   );
-  const semanticTiming = (await import("../../src/contracts")).SemanticTimingSchema.parse(
-    await readJson(fixture.paths.timing),
-  );
+  const semanticTiming = (
+    await import("../../src/contracts")
+  ).SemanticTimingSchema.parse(await readJson(fixture.paths.timing));
   const artifactBundle = validateM1ArtifactBundle({
     projectSource,
     sealedNarration,
@@ -262,7 +262,7 @@ test("NarrativeCore version changes only Baseline and its downstream fingerprint
     artifactBundle,
     projectRegistryEntryFingerprint:
       fixture.initialReport.inputIdentity.projectRegistryEntryFingerprint!,
-    narrativeCoreVersion: "narrative-core-v2" as typeof NARRATIVE_CORE_VERSION,
+    narrativeCoreVersion: "narrative-core-v3" as typeof NARRATIVE_CORE_VERSION,
   });
   assert.notEqual(
     changed,

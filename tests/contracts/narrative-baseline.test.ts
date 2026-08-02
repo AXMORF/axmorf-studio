@@ -32,7 +32,8 @@ const projectSource = parseNarrativeProjectSource({
   narration: narrationJson,
   render: renderJson,
 });
-const sealedNarration = SealedNarrationManifestSchema.parse(sealedNarrationJson);
+const sealedNarration =
+  SealedNarrationManifestSchema.parse(sealedNarrationJson);
 const semanticTiming = SemanticTimingSchema.parse(semanticTimingJson);
 const artifactBundle = validateM1ArtifactBundle({
   projectSource,
@@ -154,7 +155,11 @@ test("registry identity changes do not rewrite M2 authority", () => {
 
 test("NarrativeCore version and each documented upstream layer invalidate downstream", () => {
   const { projectRegistryEntryFingerprint } = getEntryIdentity();
-  const fingerprint = (bundle = artifactBundle, entry = projectRegistryEntryFingerprint, version = NARRATIVE_CORE_VERSION) =>
+  const fingerprint = (
+    bundle = artifactBundle,
+    entry = projectRegistryEntryFingerprint,
+    version = NARRATIVE_CORE_VERSION,
+  ) =>
     computeNarrativeBaselineFingerprint({
       artifactBundle: bundle,
       projectRegistryEntryFingerprint: entry,
@@ -162,7 +167,10 @@ test("NarrativeCore version and each documented upstream layer invalidate downst
     });
   const changedRender = {
     ...projectSource.render,
-    captionSafeAreaPx: { ...projectSource.render.captionSafeAreaPx, bottom: 121 },
+    captionSafeAreaPx: {
+      ...projectSource.render.captionSafeAreaPx,
+      bottom: 121,
+    },
   };
   const renderBundle = validateM1ArtifactBundle({
     ...artifactBundle,
@@ -186,15 +194,12 @@ test("NarrativeCore version and each documented upstream layer invalidate downst
     fingerprint(
       artifactBundle,
       projectRegistryEntryFingerprint,
-      "narrative-core-v2" as typeof NARRATIVE_CORE_VERSION,
+      "narrative-core-v3" as typeof NARRATIVE_CORE_VERSION,
     ),
   );
   assert.notEqual(fingerprint(), fingerprint(renderBundle));
   assert.notEqual(fingerprint(), fingerprint(timingBundle));
-  assert.notEqual(
-    fingerprint(),
-    fingerprint(artifactBundle, digest("e")),
-  );
+  assert.notEqual(fingerprint(), fingerprint(artifactBundle, digest("e")));
 });
 
 test("evidence receipt fingerprint excludes only itself and rejects edits", () => {

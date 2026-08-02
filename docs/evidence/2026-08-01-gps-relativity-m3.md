@@ -21,16 +21,17 @@
 ## 2. Registry 与 Baseline 身份
 
 - generator ID：`project-registry-generator-v1`
+- NarrativeCore version：`narrative-core-v2`（响应式字幕布局）
 - generated registry checksum：
-  `sha256:6b2b697a8b1d56e8179b7dcf254ad62ea0e92385b7e39a9e660baaaf479b472c`
+  `sha256:9de9699e25f17fb7d46ec31520b00da27b37c7b68692b11c0e378d7d1924fb19`
 - generated entry checksum：
   `sha256:d39a9c87446efdc2796402b4154484371c080580cd8d9d79cd82f9e5e5bc46ec`
 - ProjectRegistry entry fingerprint：
   `sha256:25f60e077179d5da6a13dda813a808095eb74c8e4afdfbb4e8f8bbe964ea6f59`
 - Narrative Baseline fingerprint：
-  `sha256:8e55b2c7d31f4b56ee777e9d806744327f90ba76f973e41146e4809fa09458c9`
+  `sha256:ee5a1af1f9dc9017cdb3fa43cb781defad184654fcd93873812122d748650244`
 - M3 evidence fingerprint：
-  `sha256:d265ee5c39b2f1777eea589e9f6b42ea50173944ecaca75904f25207de65c9d9`
+  `sha256:92f66128c1223995d8436db2fcbbbe4bef2fbe5bf81473ea4fa28109220bd605`
 
 `npm run registry:check` 对 tracked generated source 做 byte-for-byte 校验。真实
 Composition listing 为：
@@ -48,17 +49,20 @@ Story entry 使用生成源码中的字面量 `import("./gps-relativity/Composit
 | 产物                                            |  帧 | checksum                                                                  | alpha 事实                                                 |
 | ----------------------------------------------- | --: | ------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `out/gps-relativity/m3-transparent-frame-0.png` |   0 | `sha256:ff4af1a46528ccee81838756b0141504186853f2d2122b930f2328b3ff6a63af` | 全帧 `alphaMin=0`、`alphaMax=0`                            |
-| `out/gps-relativity/m3-caption-frame-15.png`    |  15 | `sha256:4e61d1652e27b869bed3666eeb777d273b17c4887f89ba63b80739c1002aba64` | 全帧 `alphaMin=0`、`alphaMax=255`；左上 64×64 `alphaMax=0` |
+| `out/gps-relativity/m3-caption-frame-15.png`    |  15 | `sha256:871886dd5bda8ceb85cca66137262637ca6e75e7b4d5f6a7fc6b0dc1d00c3170` | 全帧 `alphaMin=0`、`alphaMax=255`；左上 64×64 `alphaMax=0` |
 
 frame 15 的真实 still 可见第一条字幕“手机定位，表面上是在算位置，底层先是在比较时间。”；
 字幕位于下方安全区内，没有裁切，字幕容器以外区域保持透明。该观察只证明机械布局和
 像素边界，不是 M4 NarrativeCheck 或创意质量批准。
 
+字幕字号固定为 40 px；最大字幕宽度按画幅比例计算并受左右安全区约束，四边安全区保留
+RenderSpec 显式值，同时对更大或不同画幅应用按宽高计算的响应式最小 inset。
+
 ## 4. 完整 render 验收
 
 - 本地产物：`out/gps-relativity/m3-narrative-baseline.mp4`（ignored，不进入 Git）
 - checksum：
-  `sha256:475f47e72864f889325d2cd1d451400eb237682fbef45ab09d634eab92a5195f`
+  `sha256:0673835883c7ebd9fdaa046d3a4af22ffd08cc867ee1e7a989e5058b5402bece`
 - video：H.264，30 fps，1920×1080，`1731` decoded frames，`57.700000` 秒；
 - audio：AAC，48 kHz，2 channels，单一 audio stream；
 - stream count：1 video + 1 audio；

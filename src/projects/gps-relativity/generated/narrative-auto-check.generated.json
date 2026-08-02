@@ -77,23 +77,23 @@
       "repositoryPath": "src/projects/gps-relativity/generated/semantic-timing.generated.json"
     },
     {
-      "checksum": "sha256:6b2b697a8b1d56e8179b7dcf254ad62ea0e92385b7e39a9e660baaaf479b472c",
+      "checksum": "sha256:9de9699e25f17fb7d46ec31520b00da27b37c7b68692b11c0e378d7d1924fb19",
       "evidenceId": "project-registry",
       "repositoryPath": "src/projects/project-registry.generated.ts"
     },
     {
-      "checksum": "sha256:2a3ced568dd31c2af9399e182215f8a3d2fbff45943856e999c86ecb82266964",
+      "checksum": "sha256:ba472fbec49a55afed6292e3b60082f7b416dc4b8d387cf742f28aa21e144f05",
       "evidenceId": "m3-receipt",
       "repositoryPath": "src/projects/gps-relativity/generated/narrative-baseline-evidence.generated.json"
     }
   ],
   "inputIdentity": {
     "generatedEntryChecksum": "sha256:d39a9c87446efdc2796402b4154484371c080580cd8d9d79cd82f9e5e5bc46ec",
-    "generatedRegistryChecksum": "sha256:6b2b697a8b1d56e8179b7dcf254ad62ea0e92385b7e39a9e660baaaf479b472c",
+    "generatedRegistryChecksum": "sha256:9de9699e25f17fb7d46ec31520b00da27b37c7b68692b11c0e378d7d1924fb19",
     "generationInputFingerprint": "sha256:1b3d1abb5aa14bb8df07d2023a3ab947137a4e9f075234e82ae777a36cb39f96",
-    "m3EvidenceFingerprint": "sha256:d265ee5c39b2f1777eea589e9f6b42ea50173944ecaca75904f25207de65c9d9",
-    "narrativeBaselineFingerprint": "sha256:8e55b2c7d31f4b56ee777e9d806744327f90ba76f973e41146e4809fa09458c9",
-    "narrativeCoreVersion": "narrative-core-v1",
+    "m3EvidenceFingerprint": "sha256:92f66128c1223995d8436db2fcbbbe4bef2fbe5bf81473ea4fa28109220bd605",
+    "narrativeBaselineFingerprint": "sha256:ee5a1af1f9dc9017cdb3fa43cb781defad184654fcd93873812122d748650244",
+    "narrativeCoreVersion": "narrative-core-v2",
     "projectRegistryEntryFingerprint": "sha256:25f60e077179d5da6a13dda813a808095eb74c8e4afdfbb4e8f8bbe964ea6f59",
     "projectRegistryGeneratorId": "project-registry-generator-v1",
     "renderSpecFingerprint": "sha256:c689556782cb322bc0a92dea8da9b2ff663cc96d13d8a12878f9f5f6ea4cca01",
@@ -103,7 +103,7 @@
     "storyFingerprint": "sha256:8fd18dc4377c8d82e7d041effcf92271d521c31db252b3c04135852a88774e2c"
   },
   "level": "narrative",
-  "reportFingerprint": "sha256:b756df5423a4641043f3d1710548c5fabd0638029a587f62fc444d034144a32b",
+  "reportFingerprint": "sha256:dd1dc79547123cc2a3c69a3f95ce81cdf951f3e569afbbdb94b51345bc52424c",
   "reportVersion": "narrative-auto-check-v1",
   "schemaVersion": 1,
   "storyId": "gps-relativity"

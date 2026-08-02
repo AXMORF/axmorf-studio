@@ -27,8 +27,9 @@
 - content-addressed immutable narration directory、active manifest/timing 原子写入、lock、
   identical-seal reuse 与精确 `--supersede` compare-and-swap；
 - 真实 file-backed `narration:check`、十个 CaptionCues、恢复指南和脱敏 M2 验收证据；
-- 单一 complete WAV、`playbackRate=1` 的 `NarrationAudioTrack`，只消费绝对 CaptionCue 的
-  顶层 `CaptionLayer`，以及不绘制背景的 `NarrativeCore`；
+- 单一 complete WAV、`playbackRate=1` 的 `NarrationAudioTrack`，只消费绝对 CaptionCue、固定
+  40px 字号并响应式解析最大宽度/安全区的顶层 `CaptionLayer`，以及不绘制背景的
+  `NarrativeCore`；
 - 只含必需 `narrativeCore` 插槽的 `CompositionAssembly` 和 project-local default-export
   `GpsRelativity` Composition；
 - 固定一级目录发现、default-export AST 检查、稳定排序、原子生成和 byte drift check 的

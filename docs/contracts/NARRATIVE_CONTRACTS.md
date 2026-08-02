@@ -36,7 +36,7 @@ values, and hashes a domain-separated `{namespace, value, version}` envelope as 
 
 M3 adds a generated-entry checksum, ProjectRegistry entry fingerprint and Narrative Baseline
 fingerprint. The Baseline identity binds StorySpec, RenderSpec, sealed narration, SemanticTiming,
-registry-entry identity and `narrative-core-v1`. The M3 evidence fingerprint then adds exact transparent
+registry-entry identity and `narrative-core-v2`. The M3 evidence fingerprint then adds exact transparent
 PNG and full-render checksums without changing the upstream Baseline identity.
 
 M4 adds `narrative-auto-check-v1`. Its report fingerprint binds the complete strict report body,

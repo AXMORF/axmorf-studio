@@ -315,6 +315,10 @@ NarrativeCore 不渲染背景或其他全帧视觉，其唯一视觉输出是 Ca
 和 GlobalVisualLayers 都缺失时，Composition 的其余视觉区域保持透明；具体容器、预览器
 或输出编码如何呈现透明区域，不是 NarrativeCore 的责任。
 
+CaptionLayer 字号固定为 40 px。它从 Composition 宽高计算横屏、方形和竖屏的最大字幕
+宽度，并把 RenderSpec 显式安全区与按宽高计算的响应式最小 inset 合并；最终宽度永远不
+超过安全区剩余空间。
+
 ## 时间坐标
 
 ```text

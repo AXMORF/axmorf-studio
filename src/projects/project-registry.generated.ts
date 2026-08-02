@@ -34,7 +34,7 @@ export const projectRegistry = [
     projectRegistryEntryFingerprint:
       "sha256:25f60e077179d5da6a13dda813a808095eb74c8e4afdfbb4e8f8bbe964ea6f59",
     narrativeBaselineFingerprint:
-      "sha256:8e55b2c7d31f4b56ee777e9d806744327f90ba76f973e41146e4809fa09458c9",
+      "sha256:ee5a1af1f9dc9017cdb3fa43cb781defad184654fcd93873812122d748650244",
     load: () => import("./gps-relativity/Composition"),
   },
 ] as const satisfies readonly ProjectRegistryEntry[];

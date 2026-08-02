@@ -32,8 +32,9 @@ M4 已把 M1–M3 聚合为固定、只读、fail-closed 的作品级机械 Auto
   content-addressed 原子封存；
 - `gps-relativity` 的十个真实 chunk、完整旁白、active seal、SemanticTiming、CaptionCue
   与脱敏验收证据；
-- `NarrationAudioTrack`、顶层 `CaptionLayer`、不绘制背景的 `NarrativeCore`，以及只含必需
-  `narrativeCore` 插槽的 `CompositionAssembly`；
+- `NarrationAudioTrack`、固定 40px 字号并按分辨率/比例解析最大宽度和安全区的顶层
+  `CaptionLayer`、不绘制背景的 `NarrativeCore`，以及只含必需 `narrativeCore` 插槽的
+  `CompositionAssembly`；
 - `GpsRelativity` project-local default-export Composition、generated static ProjectRegistry、
   literal lazy import、`lazyComponent` Root 注册与 byte drift check；
 - `CapabilityGallery` + `GpsRelativity` 真实 listing、透明 frame 0/字幕 frame 15 PNG、

@@ -18,14 +18,11 @@ import {
   type NarrativeProjectSource,
   type StoryCompositionProps,
 } from "./project";
-import {
-  SemanticTimingSchema,
-  type SemanticTiming,
-} from "./semantic-timing";
+import { SemanticTimingSchema, type SemanticTiming } from "./semantic-timing";
 
 export const PROJECT_REGISTRY_GENERATOR_ID =
   "project-registry-generator-v1" as const;
-export const NARRATIVE_CORE_VERSION = "narrative-core-v1" as const;
+export const NARRATIVE_CORE_VERSION = "narrative-core-v2" as const;
 export const M3_EVIDENCE_SCHEMA_VERSION = 1 as const;
 
 const CompositionModulePathSchema = z
@@ -54,8 +51,7 @@ export const ProjectRegistrationDescriptorSchema = z
       });
     }
     if (
-      descriptor.compositionModulePath !==
-      `./${descriptor.storyId}/Composition`
+      descriptor.compositionModulePath !== `./${descriptor.storyId}/Composition`
     ) {
       context.addIssue({
         code: "custom",
@@ -128,8 +124,7 @@ export const computeProjectRegistryEntryFingerprint = (input: {
     input.generatedEntryChecksum,
   );
   if (
-    generatedEntryChecksum !==
-    computeGeneratedRegistryEntryChecksum(descriptor)
+    generatedEntryChecksum !== computeGeneratedRegistryEntryChecksum(descriptor)
   ) {
     throw new Error("Generated registry entry checksum is stale.");
   }
@@ -241,9 +236,8 @@ const addEvidencePathIssues = (
     render: `${prefix}m3-narrative-baseline.mp4`,
   } as const;
   for (const [artifact, expectedPath] of Object.entries(expectedPaths)) {
-    const actualPath = receipt.artifacts[
-      artifact as keyof typeof expectedPaths
-    ].localPath;
+    const actualPath =
+      receipt.artifacts[artifact as keyof typeof expectedPaths].localPath;
     if (actualPath !== expectedPath) {
       context.addIssue({
         code: "custom",

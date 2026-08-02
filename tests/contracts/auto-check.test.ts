@@ -37,7 +37,7 @@ const evidenceChecksums = {
     "sha256:9a6d9201d44f5926f48c7d017ade48e5d59639bbcb4c5bf4089c620d2ac38d98",
   "semantic-timing": digest("3"),
   "project-registry":
-    "sha256:6b2b697a8b1d56e8179b7dcf254ad62ea0e92385b7e39a9e660baaaf479b472c",
+    "sha256:9de9699e25f17fb7d46ec31520b00da27b37c7b68692b11c0e378d7d1924fb19",
   "m3-receipt": digest("4"),
 } as const;
 
@@ -64,7 +64,7 @@ const passInput = (): NarrativeAutoCheckReportInput => ({
     ),
     projectRegistryGeneratorId: PROJECT_REGISTRY_GENERATOR_ID,
     generatedRegistryChecksum: Sha256DigestSchema.parse(
-      "sha256:6b2b697a8b1d56e8179b7dcf254ad62ea0e92385b7e39a9e660baaaf479b472c",
+      "sha256:9de9699e25f17fb7d46ec31520b00da27b37c7b68692b11c0e378d7d1924fb19",
     ),
     generatedEntryChecksum: Sha256DigestSchema.parse(
       "sha256:d39a9c87446efdc2796402b4154484371c080580cd8d9d79cd82f9e5e5bc46ec",
@@ -74,10 +74,10 @@ const passInput = (): NarrativeAutoCheckReportInput => ({
     ),
     narrativeCoreVersion: NARRATIVE_CORE_VERSION,
     narrativeBaselineFingerprint: Sha256DigestSchema.parse(
-      "sha256:8e55b2c7d31f4b56ee777e9d806744327f90ba76f973e41146e4809fa09458c9",
+      "sha256:ee5a1af1f9dc9017cdb3fa43cb781defad184654fcd93873812122d748650244",
     ),
     m3EvidenceFingerprint: Sha256DigestSchema.parse(
-      "sha256:d265ee5c39b2f1777eea589e9f6b42ea50173944ecaca75904f25207de65c9d9",
+      "sha256:92f66128c1223995d8436db2fcbbbe4bef2fbe5bf81473ea4fa28109220bd605",
     ),
   },
   evidenceRefs: createNarrativeAutoCheckEvidenceRefs({
@@ -138,7 +138,7 @@ test("pass AutoCheck fixes check order evidence order and all current identities
   );
   assert.equal(
     report.inputIdentity.narrativeBaselineFingerprint,
-    "sha256:8e55b2c7d31f4b56ee777e9d806744327f90ba76f973e41146e4809fa09458c9",
+    "sha256:ee5a1af1f9dc9017cdb3fa43cb781defad184654fcd93873812122d748650244",
   );
 });
 
@@ -214,7 +214,10 @@ test("aggregate status pass and failure reason invariants fail closed", () => {
             ...check,
             status: "fail" as const,
             failureReasons: [
-              { code: "media-invalid" as const, message: "M3 media is invalid." },
+              {
+                code: "media-invalid" as const,
+                message: "M3 media is invalid.",
+              },
             ],
           }
         : check,
@@ -300,9 +303,7 @@ test("reports reject private paths provider data stacks and custom out refs", ()
             ? {
                 ...check,
                 status: "fail" as const,
-                failureReasons: [
-                  { code: "unexpected" as const, message },
-                ],
+                failureReasons: [{ code: "unexpected" as const, message }],
               }
             : check,
         ),

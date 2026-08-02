@@ -63,11 +63,11 @@ test("real GPS inputs aggregate every M1-M3 check into one strict in-memory pass
   );
   assert.equal(
     report.inputIdentity.narrativeBaselineFingerprint,
-    "sha256:8e55b2c7d31f4b56ee777e9d806744327f90ba76f973e41146e4809fa09458c9",
+    "sha256:ee5a1af1f9dc9017cdb3fa43cb781defad184654fcd93873812122d748650244",
   );
   assert.equal(
     report.inputIdentity.m3EvidenceFingerprint,
-    "sha256:d265ee5c39b2f1777eea589e9f6b42ea50173944ecaca75904f25207de65c9d9",
+    "sha256:92f66128c1223995d8436db2fcbbbe4bef2fbe5bf81473ea4fa28109220bd605",
   );
   assert.ok(
     report.evidenceRefs.every(

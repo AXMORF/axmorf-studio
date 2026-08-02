@@ -147,8 +147,9 @@ flowchart TB
 
 ### 运行时所有权
 
-- `NarrativeCore` 拥有旁白播放、顶层 CaptionLayer 和绝对时间挂载；它不绘制背景，
-  除 CaptionLayer 外的视觉区域保持透明；
+- `NarrativeCore` 拥有旁白播放、顶层 CaptionLayer 和绝对时间挂载；CaptionLayer 固定 40px
+  字号，并按 Composition 宽高约束最大宽度和响应式安全区；NarrativeCore 不绘制背景，除
+  CaptionLayer 外的视觉区域保持透明；
 - `ProjectRegistry` 把静态可枚举的 Story 注册元数据与字面量 lazy import 绑定；它与未来
   把 rendererId 绑定到 SceneRenderer 的 RendererRegistry 是两个独立 registry；
 - 固定生成步骤只发现 `src/projects/*/Composition.tsx`，稳定排序并生成

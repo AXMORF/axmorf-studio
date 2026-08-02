@@ -4,6 +4,9 @@
 >
 > 范围：M1–M3 Narrative Baseline 的作品级机械 AutoCheck、只读 drift gate 与隔离失效矩阵。
 
+> 维护刷新：2026-08-02 将 CaptionLayer 改为响应式布局并把 NarrativeCore 升至 v2；M2
+> sealed narration 与 SemanticTiming 未变，下面的 M3/M4 下游身份已按新 runtime 重新生成。
+
 ## 1. 入口与保护基线
 
 - M3 入口 HEAD：`6f5dc78f003b5b9fbf140cd4726e69617607d4a0`；M4 从该提交后的
@@ -28,31 +31,32 @@ M4 全程只读消费以上权威；没有调用 VoxCPM、generate、seal 或 su
 ## 2. M3 受保护身份
 
 - generator ID：`project-registry-generator-v1`。
+- NarrativeCore version：`narrative-core-v2`。
 - generated registry checksum：
-  `sha256:6b2b697a8b1d56e8179b7dcf254ad62ea0e92385b7e39a9e660baaaf479b472c`。
+  `sha256:9de9699e25f17fb7d46ec31520b00da27b37c7b68692b11c0e378d7d1924fb19`。
 - generated entry checksum：
   `sha256:d39a9c87446efdc2796402b4154484371c080580cd8d9d79cd82f9e5e5bc46ec`。
 - ProjectRegistry entry fingerprint：
   `sha256:25f60e077179d5da6a13dda813a808095eb74c8e4afdfbb4e8f8bbe964ea6f59`。
 - Narrative Baseline fingerprint：
-  `sha256:8e55b2c7d31f4b56ee777e9d806744327f90ba76f973e41146e4809fa09458c9`。
+  `sha256:ee5a1af1f9dc9017cdb3fa43cb781defad184654fcd93873812122d748650244`。
 - M3 receipt 文件 checksum：
-  `2a3ced568dd31c2af9399e182215f8a3d2fbff45943856e999c86ecb82266964`。
+  `ba472fbec49a55afed6292e3b60082f7b416dc4b8d387cf742f28aa21e144f05`。
 - M3 evidence fingerprint：
-  `sha256:d265ee5c39b2f1777eea589e9f6b42ea50173944ecaca75904f25207de65c9d9`。
+  `sha256:92f66128c1223995d8436db2fcbbbe4bef2fbe5bf81473ea4fa28109220bd605`。
 - frame 0 PNG、frame 15 PNG、MP4 checksum 分别为
   `ff4af1a46528ccee81838756b0141504186853f2d2122b930f2328b3ff6a63af`、
-  `4e61d1652e27b869bed3666eeb777d273b17c4887f89ba63b80739c1002aba64`、
-  `475f47e72864f889325d2cd1d451400eb237682fbef45ab09d634eab92a5195f`。
+  `871886dd5bda8ceb85cca66137262637ca6e75e7b4d5f6a7fc6b0dc1d00c3170`、
+  `0673835883c7ebd9fdaa046d3a4af22ffd08cc867ee1e7a989e5058b5402bece`。
 
 ## 3. AutoCheck 结果
 
 - 命令：`npm run project:check -- --project gps-relativity --level narrative`。
 - 显式写入：在上述参数末尾追加 `--write-auto-check`；只有全部机械检查通过时允许原子写。
 - AutoCheck 文件 checksum：
-  `ea31cf126ac052c8685012e3170f8215d8e40f741a1db896e2f1ba6a119c8486`。
+  `236097631118ba269007f856c0c93039df89d823b166b704e8439ad3f1960220`。
 - AutoCheck report fingerprint：
-  `sha256:b756df5423a4641043f3d1710548c5fabd0638029a587f62fc444d034144a32b`。
+  `sha256:dd1dc79547123cc2a3c69a3f95ce81cdf951f3e569afbbdb94b51345bc52424c`。
 
 | 固定检查           | 结果 |
 | ------------------ | ---- |
