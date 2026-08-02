@@ -60,6 +60,17 @@ npm install
 npm run dev
 ```
 
+同一可信局域网内访问 Studio：
+
+```bash
+npm run dev -- --host=0.0.0.0 --port=3000
+```
+
+然后从其他设备打开 `http://<开发机局域网 IP>:3000`。开发配置关闭 Webpack
+`lazyCompilation`，避免 lazy-loaded Composition 把浏览器连接错误地指向访问设备自身的
+`localhost:<随机端口>`；ProjectRegistry 的字面量动态导入和 Remotion `lazyComponent`
+注册保持不变。
+
 常用验证：
 
 ```bash
