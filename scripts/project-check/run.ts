@@ -145,9 +145,20 @@ export const runNarrativeAutoCheck = async ({
     evidenceChecksums["sealed-manifest"] = await checksumFile(
       paths.sealedNarration,
     );
+    const persistedTimingForPhysicalCheck =
+      await loadProjectCheckSemanticTiming(paths.semanticTiming);
+    const physicalCheckProjectSource = {
+      ...projectSource,
+      render: {
+        ...projectSource.render,
+        fps: persistedTimingForPhysicalCheck.fps,
+        leadInFrames: persistedTimingForPhysicalCheck.leadInFrames,
+        tailFrames: persistedTimingForPhysicalCheck.tailFrames,
+      },
+    };
     const m2 = await checkM2NarrationArtifacts({
       rootDir,
-      projectSource,
+      projectSource: physicalCheckProjectSource,
       storyCheck,
     });
     evidenceChecksums["complete-wav"] = await checksumFile(
