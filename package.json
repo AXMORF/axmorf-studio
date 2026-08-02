@@ -82,6 +82,8 @@
     "m7:gps:author": "node --import tsx scripts/m7-gps/author-scenes.ts",
     "m7:gps:authoring:compositions": "node --import tsx scripts/m7-gps/author-scenes.ts compositions",
     "m7:gps:authoring:stills": "node --import tsx scripts/m7-gps/author-scenes.ts stills",
+    "m7:gps:evidence": "node --import tsx scripts/m7-gps/evidence.ts check",
+    "m7:gps:evidence:write": "node --import tsx scripts/m7-gps/evidence.ts write",
     "baseline:evidence": "node --import tsx scripts/baseline/evidence.ts",
     "project:check": "node --import tsx scripts/project-check/cli.ts",
     "compositions": "remotion compositions src/index.ts",

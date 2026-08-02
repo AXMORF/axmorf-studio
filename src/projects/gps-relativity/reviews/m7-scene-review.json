@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "storyId": "gps-relativity",
+  "status": "pass",
+  "coverageFingerprint": "sha256:7d3c9bce02769cba5906ef4c09d75b8c66d0b0208d88d144e2c85dde3b64b3ad",
+  "registryFingerprint": "sha256:93b7059c9e3de9421e0dbe2a9dfe84b9bd6cdbc465cb6175bdc20f893ea336af",
+  "storyVisualProjectionFingerprint": "sha256:191a8b293e812d366a3005a155c80413978f4fd65352c2951dcf8b7a5be4994e",
+  "soundDesignProjectionFingerprint": "sha256:c62c2ad62cbc75851d8f015bc70e8b5c65a75ccd4c41fcae2696ac217734f7ca",
+  "scenes": [
+    {
+      "meaningId": "position-is-time",
+      "packageFingerprint": "sha256:3c7734121f936d4c66dff73b0ca635b5f1f00615e844a993aada4b71133dc71c",
+      "sceneVisualFingerprint": "sha256:6e72b1f7719bb3c9653709dfbf2c41a48eacbbedc0331ba42dbd86e9d7868543",
+      "sceneSoundFingerprint": "sha256:0bef2fe073bc97812afdd227c952779b754d0d8b9383d0dd8d16f53081b04f87",
+      "visual": {
+        "status": "pass",
+        "semanticObjective": "多颗卫星信号到达同一接收机后形成四路测距，清楚建立定位先测时间再以光速换算距离的因果。",
+        "styleRealization": "深海军蓝技术编辑画风、青色传播线和琥珀锁定状态与项目画风一致。",
+        "composition": "卫星、接收机和地球弧线共享一个坐标场，信息层级明确且没有模板卡片切换。",
+        "motionLegibility": "波前沿固定路径推进并在接收机锁定，正常速度下到达事件和四路距离结果可辨识。",
+        "captionSafeReadability": "关键图形与正文均避开底部 CaptionLayer 安全区，字幕叠加不遮挡因果主链。",
+        "adjacentContinuity": "尾部保留卫星时钟与脉冲语法，能直接进入下一 Scene 的同一卫星钟分析。"
+      },
+      "sound": {
+        "status": "pass",
+        "cueNecessity": "单次信号到达 pulse 强化唯一可见锁定事件，没有装饰性重复。",
+        "audibilityUnderNarration": "保守音量下能感知到到达提示，同时不掩盖完整旁白。",
+        "anchorSync": "cue 与 signal-arrival-lock 同帧起始，声画事件一致。",
+        "volume": "0.28 的局部 cue 保持短促、克制，无峰值抢占旁白。",
+        "beatBoundary": "9 帧 cue 完整位于本 Beat 内，不 clamp、不 spill。"
+      }
+    },
+    {
+      "meaningId": "two-relativistic-effects",
+      "packageFingerprint": "sha256:5d8e9d61759935c244fed76fc045903fe3e7839ebd2193fe67f9dbc080798d1e",
+      "sceneVisualFingerprint": "sha256:2e23cdfd377b007735b9b67035e1ca05a7105c97a14d23cd6aeef52a6ef30032",
+      "sceneSoundFingerprint": "sha256:f67f59c66cf50ab2218cffd4a7c878cda6c1ad08335388df76cda9ca960aa9ad",
+      "visual": {
+        "status": "pass",
+        "semanticObjective": "同一卫星钟同时承载速度变慢与弱引力变快两条相反路径，正负方向和数值清晰。",
+        "styleRealization": "延续同一轨道坐标场，以琥珀负向和薄荷绿正向形成稳定语义编码。",
+        "composition": "两种效应围绕同一卫星钟展开，没有拆成两个无关 panel。",
+        "motionLegibility": "两条弧形路径分向展开，再在下一步组合前汇合，正常速度下方向与数值可读。",
+        "captionSafeReadability": "主体集中在中上区域，底部保持足够留白给顶层字幕。",
+        "adjacentContinuity": "尾部保留 -7 与 +45 两个量和合并入口，能无跳变进入净漂移 Scene。"
+      },
+      "sound": {
+        "status": "pass",
+        "cueNecessity": "短 pulse 标记两种效应汇合前的时钟核心事件。",
+        "audibilityUnderNarration": "0.16 音量仅作轻微提示，旁白始终处于主导。",
+        "anchorSync": "cue 绑定 clock-core-premerge-pulse，发生在路径开始汇合前。",
+        "volume": "短时、低音量设计符合技术解释场景，不产生夸张警报感。",
+        "beatBoundary": "11 帧 cue 在本 Scene 内结束，既有 300ms 叙事停顿未被重排。"
+      }
+    },
+    {
+      "meaningId": "net-drift",
+      "packageFingerprint": "sha256:482fcb399c30c5e544c5e51a0286495f9130ccdf068beab64b6d3ff2e333fe8c",
+      "sceneVisualFingerprint": "sha256:cd606b03fbb00eb778367974fcda56452e19cd883ee1542075288618d0e2d7f3",
+      "sceneSoundFingerprint": "sha256:2f4268519dba42bd898f5737639457de7dc6755e2b15f7313d3a23d7e305c9af",
+      "visual": {
+        "status": "pass",
+        "semanticObjective": "同一数轴先合成 +38 微秒每日净漂移，再把它投影成 11.4 公里每日的距离后果。",
+        "styleRealization": "沿用琥珀负值、薄荷绿正值和青色传播尺度，保持跨 Scene 数值语法一致。",
+        "composition": "净值、投影线和传播尺处在同一连续坐标系，公式与距离不是无关卡片。",
+        "motionLegibility": "净值锁定后投影线向距离尺展开，正常速度下单位换算与因果出口明确。",
+        "captionSafeReadability": "底部字幕与正文之间有稳定间距，代表帧中 CaptionLayer 未遮挡距离结果。",
+        "adjacentContinuity": "尾部的正向累计漂移箭头直接把误差增长方向交给下一 Scene。"
+      },
+      "sound": {
+        "status": "pass",
+        "cueNecessity": "唯一 lock cue 对应 +38 净值确定，帮助区分计算完成时刻。",
+        "audibilityUnderNarration": "0.22 的短 cue 在旁白下可感知但不抢占数字解释。",
+        "anchorSync": "cue 与 net-value-locked 同步，发生在距离投影开始之前。",
+        "volume": "短时保守音量与前后 Scene 的局部提示保持一致。",
+        "beatBoundary": "8 帧 cue 完整处于本 Beat，不跨入误差累计 Scene。"
+      }
+    },
+    {
+      "meaningId": "error-accumulation",
+      "packageFingerprint": "sha256:acda62bf7f1368097c5e982898b9534c874748d2f16dcfb2d985458af6d633d2",
+      "sceneVisualFingerprint": "sha256:29e60c8d945a9071157f7b3c9790872db40b6fbf4fb031d84218bdad35995d13",
+      "sceneSoundFingerprint": "sha256:c38e13f61e7d73721a474569b8987716db93f39c1c453a85066ae21b501b19c8",
+      "visual": {
+        "status": "pass",
+        "semanticObjective": "微小钟差扩成公里级误差圈，再由卫星、地面控制和接收机共享时间基准完成校正。",
+        "styleRealization": "误差使用克制琥珀范围，校正网络恢复薄荷绿与蓝色锁定，符合项目色彩语义。",
+        "composition": "卫星链路、误差圈和地面控制位于同一地球坐标场，因果链连续。",
+        "motionLegibility": "误差阈值扩张、控制接入和接收机校正依次出现，正常速度下每个阶段可辨。",
+        "captionSafeReadability": "公里级结论与网络节点位于字幕上方，400ms 停顿期间画面保持可读。",
+        "adjacentContinuity": "校正后的接收机与共享时间语法自然收束到下一 Scene 的手机蓝点。"
+      },
+      "sound": {
+        "status": "pass",
+        "cueNecessity": "alert 仅在误差跨越公里阈值时出现，服务关键风险节点。",
+        "audibilityUnderNarration": "0.22 音量保留提示性，未把技术说明变成灾难化警报。",
+        "anchorSync": "cue 与 kilometer-threshold 同帧开始，和误差圈跨阈值一致。",
+        "volume": "提示短促且音量克制，旁白清晰度不受影响。",
+        "beatBoundary": "12 帧 cue 在 Scene 内结束，既有 400ms 叙事停顿保持原权威。"
+      }
+    },
+    {
+      "meaningId": "practical-conclusion",
+      "packageFingerprint": "sha256:51e6ecdd4887e7047dc8cec1415b6293824b1883a67ef718210c4f25a10caddb",
+      "sceneVisualFingerprint": "sha256:88912fbe7c8487f86f16fc4f19a955fb0cfb3995a446700fab90c4f1ea8f1233",
+      "sceneSoundFingerprint": "sha256:4bdbae4987605cd1cfdde3a458146481e476b2ae05be14dafa830e227082351e",
+      "visual": {
+        "status": "pass",
+        "semanticObjective": "卫星时钟信号通过相对论时间修正节点，最终稳定为无品牌手机地图蓝点。",
+        "styleRealization": "复用既有时钟、信号与锁定色彩语法，没有引入品牌 UI 或发布 CTA。",
+        "composition": "三路时钟、校正节点和手机蓝点组成单一左到右因果流。",
+        "motionLegibility": "信号汇入、校正确认和蓝点锁定分阶段完成，尾部有充分 settle。",
+        "captionSafeReadability": "手机与校正节点均避开字幕区域，收束文案在正常字幕叠加下清楚。",
+        "adjacentContinuity": "继承上一 Scene 的共享时间网络并完成最终蓝点收束，不增加下一阶段内容。"
+      },
+      "sound": {
+        "status": "pass",
+        "cueNecessity": "blue-dot lock cue 只确认最终定位稳定这一处事件。",
+        "audibilityUnderNarration": "0.18 音量在结尾旁白下轻微可辨，不制造完成提示音主导感。",
+        "anchorSync": "cue 与 blue-dot-stable-lock 同帧开始，和蓝点锁定环一致。",
+        "volume": "五个 Scene 中最低的锁定音量符合结尾克制收束。",
+        "beatBoundary": "9 帧 cue 在 283 帧窗口内结束，尾帧稳定且不 spill 到 tail。"
+      }
+    }
+  ],
+  "continuity": [
+    {
+      "fromMeaningId": "position-is-time",
+      "toMeaningId": "two-relativistic-effects",
+      "fromSceneVisualFingerprint": "sha256:6e72b1f7719bb3c9653709dfbf2c41a48eacbbedc0331ba42dbd86e9d7868543",
+      "toSceneVisualFingerprint": "sha256:2e23cdfd377b007735b9b67035e1ca05a7105c97a14d23cd6aeef52a6ef30032",
+      "status": "pass",
+      "notes": "接收机测时建立的卫星钟语法延续为同一卫星钟的两种相对论效应。"
+    },
+    {
+      "fromMeaningId": "two-relativistic-effects",
+      "toMeaningId": "net-drift",
+      "fromSceneVisualFingerprint": "sha256:2e23cdfd377b007735b9b67035e1ca05a7105c97a14d23cd6aeef52a6ef30032",
+      "toSceneVisualFingerprint": "sha256:cd606b03fbb00eb778367974fcda56452e19cd883ee1542075288618d0e2d7f3",
+      "status": "pass",
+      "notes": "-7 与 +45 的颜色和方向原样进入数轴组合，净值来源无跳变。"
+    },
+    {
+      "fromMeaningId": "net-drift",
+      "toMeaningId": "error-accumulation",
+      "fromSceneVisualFingerprint": "sha256:cd606b03fbb00eb778367974fcda56452e19cd883ee1542075288618d0e2d7f3",
+      "toSceneVisualFingerprint": "sha256:29e60c8d945a9071157f7b3c9790872db40b6fbf4fb031d84218bdad35995d13",
+      "status": "pass",
+      "notes": "正向净漂移和传播距离出口在下一 Scene 继续扩张为公里级误差圈。"
+    },
+    {
+      "fromMeaningId": "error-accumulation",
+      "toMeaningId": "practical-conclusion",
+      "fromSceneVisualFingerprint": "sha256:29e60c8d945a9071157f7b3c9790872db40b6fbf4fb031d84218bdad35995d13",
+      "toSceneVisualFingerprint": "sha256:88912fbe7c8487f86f16fc4f19a955fb0cfb3995a446700fab90c4f1ea8f1233",
+      "status": "pass",
+      "notes": "共享时间基准的校正网络收束到手机定位蓝点，接收机与锁定色彩保持一致。"
+    }
+  ]
+}
