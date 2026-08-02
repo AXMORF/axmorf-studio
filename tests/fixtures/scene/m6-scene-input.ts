@@ -4,10 +4,11 @@ import {
   buildSceneTaskInput,
   buildSceneVisualPlan,
   buildShotPlanSet,
+  Sha256DigestSchema,
 } from "../../../src/contracts";
 
 export const sha = (character: string) =>
-  `sha256:${character.repeat(64)}` as const;
+  Sha256DigestSchema.parse(`sha256:${character.repeat(64)}`);
 
 export const createM6SceneTaskInput = () =>
   buildSceneTaskInput({
