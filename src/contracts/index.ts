@@ -9,6 +9,7 @@ export * from "./narrative-baseline";
 export * from "./narration";
 export * from "./primitives";
 export * from "./project";
+export * from "./reference-fidelity";
 export * from "./render";
 export * from "./resource-catalog";
 export * from "./scene-primitives";
