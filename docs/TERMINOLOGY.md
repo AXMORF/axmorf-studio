@@ -33,8 +33,9 @@
 | NarrativeCore             | 最低可播放成片层                                               | 旁白、顶层字幕与绝对时间；不绘制背景，其余视觉区域透明                                                                    |
 | EnhancementTrack          | 对 NarrativeCore 的可选运行时增强                              | visual、sound、global 只读消费上游；运行时分轨不等于 Scene 局部视听创作分离                                               |
 | StoryVisualTrack          | 完整视觉增强轨                                                 | 从有序 ScenePackage 的视觉贡献与转场确定性汇总                                                                            |
-| SoundDesignTrack          | 非旁白声音运行时轨                                             | M6 只汇总 ScenePackage 局部声音；M8 才增加全局声音计划，不建立第二份 Scene SFX 创作权威                                   |
+| SoundDesignTrack          | 非旁白声音运行时轨                                             | M7 当前汇总五个 ScenePackage 局部声音；M8 才增加全局声音计划，不建立第二份 Scene SFX 创作权威                             |
 | ResourceCatalog           | 统一资源、能力与制作期参考只读查询视图                         | 汇总视觉、音频、style profile、共享能力和 authoring-only recipe/demo/preview；按 allowed use 隔离，不是 runtime loader    |
 | FinalMechanicalCheck      | Scene 分支的固定作品级机械报告                                 | 先绑定 current narrative，再校验 style/catalog/reference/coverage/package/registry/projection/assembly；不作审美判断      |
+| M7SceneProductionEvidence | 正式 Scene 批量审核与真实媒体的 current receipt                | 绑定五个 Scene review、四个连续性边界、15 张 still、contact sheet 和正常速度 review；不是用户最终创意批准                 |
 | Composition               | Remotion 最终渲染入口                                          | NarrativeCore 与各增强轨实时合成                                                                                          |
 | `<Sequence>`              | Remotion 时间容器                                              | 可承载 Scene、Shot 或局部元素，不代表业务概念                                                                             |

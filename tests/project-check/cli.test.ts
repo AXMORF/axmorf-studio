@@ -117,7 +117,7 @@ test("CLI supports only explicit write then default read-only validation", async
   assert.doesNotMatch(report, /\/home\/|\/data\/|token|endpoint|out\//i);
 });
 
-test("CLI accepts only the two exact final forms and GPS fails without writing", async (context) => {
+test("CLI accepts only the two exact final forms and failed GPS final stays byte-stable", async (context) => {
   const rootDir = await createCliRoot(context);
   assert.deepEqual(
     parseProjectCheckArgs(["--project", "gps-relativity", "--level", "final"]),
@@ -133,11 +133,17 @@ test("CLI accepts only the two exact final forms and GPS fails without writing",
     ]),
     { storyId: "gps-relativity", level: "final", write: true },
   );
+  const output: string[] = [];
   const cliContext = {
     rootDir,
     runM3EvidenceProcess: validEvidenceProcess,
-    stdout: () => undefined,
+    stdout: output.push.bind(output),
   };
+  const reportPath = join(
+    rootDir,
+    "src/projects/gps-relativity/generated/final-mechanical-check.generated.json",
+  );
+  const reportBefore = await readFile(reportPath);
   await assert.rejects(() =>
     runProjectCheckCli(
       ["--project", "gps-relativity", "--level", "final"],
@@ -156,14 +162,8 @@ test("CLI accepts only the two exact final forms and GPS fails without writing",
       cliContext,
     ),
   );
-  await assert.rejects(() =>
-    readFile(
-      join(
-        rootDir,
-        "src/projects/gps-relativity/generated/final-mechanical-check.generated.json",
-      ),
-    ),
-  );
+  assert.deepEqual(await readFile(reportPath), reportBefore);
+  assert.equal(output.length, 0);
 });
 
 test("CLI rejects unknown levels reordered duplicate path and mixed writer flags", async (context) => {

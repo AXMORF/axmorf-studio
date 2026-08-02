@@ -1,8 +1,8 @@
 # 最终产品目标
 
-> 当前实现：M1–M4 Narrative Baseline 与 M6 Scene Runtime foundation 已完成；M6 synthetic
-> proof 不属于 `gps-relativity` 正式 Scene。M7 是当前下一步，M8 global sound/global visual、
-> 最终批准与发布仍未实现。
+> 当前实现：M1–M4 Narrative Baseline、M6 Scene Runtime foundation 与 M7 GPS 正式 Scene
+> production 已完成；M6 synthetic proof 仍与正式 Story 隔离。M8 global sound/global visual、
+> 最终批准与发布仍未实现，是当前下一步。
 
 ## 一句话目标
 

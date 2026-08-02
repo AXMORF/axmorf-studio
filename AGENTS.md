@@ -50,9 +50,11 @@
 - M5 ScenePackage 视听制作规格已于 2026-08-02 获用户正式批准。M6 已实现
   VisualStyleSpec、ResourceCatalog、不可变外部参考、本地化/保真 receipt、Scene 视听合同、
   ScenePackage/Coverage、composition-local RendererRegistry、visual/local-sound runtime、
-  final-level 机械基础和独立 synthetic proof。
-- NarrativeCheck 没有实现。当前唯一下一步是 M7：为 `gps-relativity` 制作五个正式
-  ScenePackage；M6 synthetic proof 不是正式 Story Scene，也不满足该作品的 final coverage。
+  final-level 机械基础和独立 synthetic proof。M7 已为 `gps-relativity` 完成五个正式
+  ScenePackage、全 ready coverage/registry/projection、批量 SceneVisual/SceneSound/连续性
+  review、真实 contact sheet/正常速度 preview 和 passing final report。
+- NarrativeCheck 没有实现。当前唯一下一步是 M8；M6 synthetic proof 仍不是正式 Story
+  Scene，M7 正式产物也不包含 GlobalSoundPlan、GlobalVisualLayers 或用户最终创意批准。
 - M6 的 Scene 级 renderer/runtime 不得成为 Narrative Baseline 的前置条件，也不得反向修改
   Story、旁白、字幕或实测时间线。M7 不得提前实现 M8 的 GlobalSoundPlan、全局 BGM、跨
   Scene ambience、ducking、mastering 或 GlobalVisualLayers。
@@ -97,9 +99,10 @@ proposal，并得到用户对范围、API、文件和目标位置的明确批准
 - `StoryCheck`：调用外部旁白生成前，由 Agent 检查 StoryBeat 顺序、`ttsChunks`、叙事完整
   性和 voice profile 选择，不阻塞用户；
 - `NarrativeCheck`：Agent 批量检查 Story 完整性、旁白可懂度、字幕对应和叙事节奏；
-- `SceneVisualCheck`：仅在后续 Scene 阶段批量检查 Scene 语义、构图、运动与连续性；
-- `SceneSoundCheck`：仅在后续 Scene 阶段批量检查 Scene 局部 ambience/SFX、同步、音量与
-  固定 Beat 窗口；
+- `SceneVisualCheck`：在 Scene 阶段批量检查 Scene 语义、构图、运动与连续性；GPS M7 已有
+  current evidence-bound 批量记录；
+- `SceneSoundCheck`：在 Scene 阶段批量检查 Scene 局部 ambience/SFX、同步、音量与固定 Beat
+  窗口；GPS M7 已有 current evidence-bound 批量记录；
 - `FinalPreviewApproval`：默认唯一必须由用户作出的创意批准；
 - Shotcraft fidelity 仅在 Scene 显式选择 Shotcraft recipe 时执行；exact 模式必须证明 immutable
   lineage、准确 demo、最小本地化依赖闭包、真实 Renderer/frame-state binding、配对证据和

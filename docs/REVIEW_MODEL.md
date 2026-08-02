@@ -23,10 +23,10 @@ flowchart LR
 | EnhancementCheck     | Agent       | 仅检查实际存在的 ScenePackage、global sound、global visual；SceneVisualCheck 与 SceneSoundCheck 属于此层 | 否，批量汇报         |
 | FinalPreviewApproval | 用户        | 已选择轨道装配后的完整音画节奏与最终审美                                                                 | 是，默认唯一创意批准 |
 
-当前已实现生成前 StoryCheck、narrative AutoCheck，以及 M6 的 final-level Scene 机械基础；
-NarrativeCheck、SceneVisualCheck、SceneSoundCheck 和 EnhancementCheck 的 Agent 主观审核仍未
-实现。不存在 ScenePackage、renderer registry 或视觉/音频资产时，Narrative Baseline 必须
-继续通过；GPS final 则因 M7 coverage 缺失而 fail closed。Baseline checkpoint 不新增一次
+当前已实现生成前 StoryCheck、narrative AutoCheck、M6 final-level Scene 机械基础，以及 M7
+GPS 的 evidence-bound 批量 SceneVisualCheck、SceneSoundCheck 与四个相邻连续性检查。
+NarrativeCheck 和包含 M8 global tracks 的完整 EnhancementCheck 仍未实现。Narrative Baseline
+继续独立通过；GPS final 当前因五个 Scene 全 ready 而通过。Baseline/M7 checkpoint 都不新增
 强制用户审批。
 
 在调用 VoxCPM 前另有一次 Agent 内部 `StoryCheck`，用于检查 StoryBeat 顺序、已创作的
@@ -50,7 +50,7 @@ RenderSpec 是用户每次制作时直接给 Agent 的输入。Agent 将它结�
 静态布局不重复生成大量相似 still；Scene 默认以 contact sheet 批量查看。相同
 fingerprint 的机械产物无需重复创意审批。
 
-进入 M7 Scene 制作阶段时，一个 ScenePackage 是单一并行交付与失效单位，但内部保留三个
+进入 Scene 制作阶段时，一个 ScenePackage 是单一并行交付与失效单位，但内部保留三个
 聚焦子检查：
 
 - SceneVisualCheck 检查完整 Scene renderer 输出，包括所有 Shot、连续运动、画风一致性和
@@ -65,8 +65,9 @@ fingerprint 的机械产物无需重复创意审批。
 
 M6 synthetic fixture 已机械绑定 exact reference 的 immutable lineage、准确 demo、本地源码、
 真实 Renderer/frame-state binding、配对 evidence 和当前 Agent 正常速度 review record。checker
-只验证该 record 与证据仍 current，不自动判断美感或可辨识度，也不能代替 M7 对正式 Scene 的
-批量审核。
+只验证该 record 与证据仍 current，不自动判断美感或可辨识度。M7 GPS 的五个正式 Scene 均为
+`empty` recipe，因此 exact fidelity 为 not-applicable；它们的批量视觉、局部声音与连续性结论
+由 Agent 明确写入 review record，再由脚本绑定 current package/projection/media fingerprints。
 
 内部 Shot、音效 cue 或子 Agent 任务都不形成额外的用户批准节点。主 Agent 收集全部
 ScenePackage 后批量汇总检查，用户仍默认只在 FinalPreviewApproval 作一次创意批准。

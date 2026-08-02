@@ -1,8 +1,8 @@
 # 外部生产流程与解耦边界
 
 > Status：M4 已为 `gps-relativity` 完成 Narrative Baseline 机械闭环；M6 已实现通用 Scene
-> 合同、Catalog/reference/package/registry、visual/local-sound runtime、final 机械基础和独立
-> synthetic proof。NarrativeCheck、GPS 正式 Scene、M7 主观审核与 M8 全局增强/发布仍未实现。
+> foundation；M7 已完成 GPS 五个正式 Scene、visual/local-sound runtime 装配、批量审核与
+> final 机械闭环。NarrativeCheck 与 M8 全局增强/最终批准/发布仍未实现。
 
 ## 1. 文档范围
 
@@ -18,8 +18,9 @@
 → 把 ScenePackage 投影到运行时增强轨并最终装配
 ```
 
-M6 已完成 Scene 构图/Shot/renderer/局部声音/转场/选材的数据与确定性执行接口，但未创作
-GPS 正式 Scene，也未提升新的共享能力。这些接口不成为叙事主链的前置条件。
+M6 已完成 Scene 构图/Shot/renderer/局部声音/转场/选材的数据与确定性执行接口；M7 已在
+GPS 上用五个 composition-local renderer 和五个 project-authored cue 落地这些接口，且未
+提升新的共享能力。这些接口不成为叙事主链的前置条件。
 
 ## 2. 必需主链与可选增强
 
@@ -387,12 +388,12 @@ VisualStyleSpec + ResourceCatalog + immutable external reference
 → isolated M6SceneRuntimeProof
 ```
 
-M6 没有制作 `gps-relativity` 正式 Scene，没有把 synthetic proof 注册进 ProjectRegistry，也
-没有实现 NarrativeCheck、M7 主观 Scene 审核、M8 global sound/global visual、最终用户批准
-或发布。后续 Scene 制作必须把 sealed narration、SemanticTiming、StoryBeat、项目级
-VisualStyleSpec 和主 Agent 冻结的允许来源当作只读输入。
+M6 没有把 synthetic proof 注册进 ProjectRegistry；M7 随后完成 GPS 五个正式 Scene、全 ready
+coverage、registry/projection、批量 Scene review 与正常速度媒体 evidence。NarrativeCheck、
+M8 global sound/global visual、最终用户批准和发布仍未实现。后续制作仍必须把 sealed
+narration、SemanticTiming、StoryBeat、项目级 VisualStyleSpec 和主 Agent 冻结来源当作只读输入。
 
-## 10. M2–M6 完成事实与后续门槛
+## 10. M2–M7 完成事实与后续门槛
 
 M2 已满足：
 
@@ -428,5 +429,11 @@ M2/M3 受保护文件、fingerprint、listing 和媒体证据保持不变。主�
 M6 另已满足：ResourceCatalog 和所有 receipt/package/registry/evidence writer 都是 pass-only、
 原子、byte-stable，check mode 不修复 drift；冻结 Shotcraft fixture 只本地化两文件最小闭包；
 独立 proof listing/render/evidence 证明纯视觉 renderer 与单路 Scene-local audio；十项 final
-机械报告绑定 current evidence。GPS narrative 继续通过，GPS final 因 M7 Scene coverage 缺失
-而预期 fail closed；`final` 机械门不冒充 NarrativeCheck、Scene 审美或用户批准。
+机械报告绑定 current evidence。
+
+M7 另已满足：GPS 五个 Beat 均为正式 ready ScenePackage；正常 ProjectRegistry listing 仍只有
+`CapabilityGallery` 与 `GpsRelativity`；真实 Story Composition 同时装配 StoryVisualTrack、
+Scene-local SoundDesignTrack 和受保护 NarrativeCore；15 张 still、5×3 contact sheet、完整
+1731 帧 H.264/AAC review 和批量 SceneVisual/SceneSound/连续性 review 均绑定 current
+fingerprint。GPS narrative 与 final 均通过；该机械门和 Agent review 均不冒充 NarrativeCheck、
+M8 全局增强、Scene 审美自动评分或用户批准。

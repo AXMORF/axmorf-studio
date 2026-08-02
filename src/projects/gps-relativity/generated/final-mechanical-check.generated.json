@@ -1,0 +1,86 @@
+{
+  "aggregateStatus": "pass",
+  "checks": [
+    {
+      "checkId": "narrative",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "visual-style",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "resource-catalog",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "external-references",
+      "failureReasons": [],
+      "status": "not-applicable"
+    },
+    {
+      "checkId": "reference-fidelity",
+      "failureReasons": [],
+      "status": "not-applicable"
+    },
+    {
+      "checkId": "scene-coverage",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "scene-packages",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "renderer-registry",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "scene-projections",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "composition-assembly",
+      "failureReasons": [],
+      "status": "pass"
+    }
+  ],
+  "inputIdentity": {
+    "compositionAssemblyChecksum": "sha256:2c1a17ce53ff0a033ebb9d816148aa4edcfb73ef6bda4a3b12026f98fce5fe0b",
+    "externalSnapshotFingerprints": [],
+    "fidelityReceiptFingerprints": [],
+    "narrativeReportFingerprint": "sha256:dd1dc79547123cc2a3c69a3f95ce81cdf951f3e569afbbdb94b51345bc52424c",
+    "referenceModes": [
+      "empty",
+      "empty",
+      "empty",
+      "empty",
+      "empty"
+    ],
+    "rendererRegistryFingerprint": "sha256:93b7059c9e3de9421e0dbe2a9dfe84b9bd6cdbc465cb6175bdc20f893ea336af",
+    "resourceCatalogFingerprint": "sha256:83872a754e05df18d0ec008ecd4f9cb637c0c159481dc59b0368898125188689",
+    "sceneCoverageFingerprint": "sha256:7d3c9bce02769cba5906ef4c09d75b8c66d0b0208d88d144e2c85dde3b64b3ad",
+    "scenePackageFingerprints": [
+      "sha256:3c7734121f936d4c66dff73b0ca635b5f1f00615e844a993aada4b71133dc71c",
+      "sha256:5d8e9d61759935c244fed76fc045903fe3e7839ebd2193fe67f9dbc080798d1e",
+      "sha256:482fcb399c30c5e544c5e51a0286495f9130ccdf068beab64b6d3ff2e333fe8c",
+      "sha256:acda62bf7f1368097c5e982898b9534c874748d2f16dcfb2d985458af6d633d2",
+      "sha256:51e6ecdd4887e7047dc8cec1415b6293824b1883a67ef718210c4f25a10caddb"
+    ],
+    "soundDesignProjectionFingerprint": "sha256:c62c2ad62cbc75851d8f015bc70e8b5c65a75ccd4c41fcae2696ac217734f7ca",
+    "storyVisualProjectionFingerprint": "sha256:191a8b293e812d366a3005a155c80413978f4fd65352c2951dcf8b7a5be4994e",
+    "visualStyleFingerprint": "sha256:fcef69cf598adbd995f381fb4f185c937b503f86b2af02766baa33c381a2a0b8"
+  },
+  "level": "final",
+  "reportFingerprint": "sha256:7bd7b501e559fe79a2f4c96fa7dfbda88bae86ccd202b27326d7a655d99beced",
+  "reportVersion": "final-mechanical-check-v1",
+  "schemaVersion": 1,
+  "storyId": "gps-relativity"
+}

@@ -1,8 +1,8 @@
 # 统一资源与能力目录
 
-> 当前状态：M6 已实现统一 `ResourceCatalog` 合同、17 条当前 asset/style/capability 条目的
-> stable generator/query/check、authoring-reference descriptor 类型与 allowed-use/license gate；
-> Narrative Baseline 不依赖 Catalog，正式 GPS Scene 选择留到 M7。
+> 当前状态：M6 已实现统一 `ResourceCatalog` 合同；M7 将五个 project-authored Scene cue 纳入
+> Catalog，当前共 22 条 asset/style/capability descriptor。Narrative Baseline 不依赖 Catalog；
+> GPS 五个正式 Scene 已完成 current resource selection。
 
 ## 职责
 
@@ -96,6 +96,11 @@ M6 synthetic fixture 只冻结 `draw-svg-trace` 一张 card/style-key，固定�
 demo/preview identity，并仅本地化两个源码文件及 Apache-2.0 license。它证明 resolver、最小
 闭包 guard 和 fidelity receipt，不复制 Gallery、模板集合、全部 demos 或音频库，也不作为
 GPS 正式资源选择。
+
+M7 GPS 五个 Scene 均选择各自唯一的 project-authored PCM cue，并复用 `editorial-tech` style
+profile；VisualPlan/ShotPlan 没有选择额外视觉 asset。五个 ShotRecipeSelection 均为合法
+`empty`，因此没有 external snapshot、本地化闭包或 exact fidelity receipt，不能显示 fake
+exact pass。
 
 ## 新能力
 

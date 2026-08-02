@@ -1,8 +1,8 @@
 # Remotion Story Producer Roadmap
 
-> Status：M0–M6 已完成；M5 ScenePackage 视听制作规格与 M6 详细实施计划均已于
-> 2026-08-02 获用户正式批准并完成落地；M7 是当前唯一下一步
-> 更新日期：2026-08-02
+> Status：M0–M7 已完成；M7 GPS 正式 Scene production 已于 2026-08-03 完成；M8 是当前
+> 唯一下一步
+> 更新日期：2026-08-03
 
 ## 1. 用途
 
@@ -14,15 +14,14 @@
 
 ## 2. 当前起点
 
-当前代码已完成基础工程、已迁入共享能力、`CapabilityGallery`、M1–M4 Narrative Baseline
-闭环，以及 M6 ResourceCatalog、不可变外部参考、Scene 合同/封装/registry/runtime、final
-机械基础和独立 synthetic proof。下列内容仍未实现：
+当前代码已完成基础工程、`CapabilityGallery`、M1–M4 Narrative Baseline、M6 Scene
+foundation，以及 M7 GPS 五个正式 ScenePackage、批量 review/evidence 和 passing final gate。
+下列内容仍未实现：
 
 - NarrativeCheck 和任何主观叙事质量审核；
-- `gps-relativity` 的五个正式 ScenePackage 与 M7 批量 Scene 审核；
 - M8 GlobalSound/GlobalVisual、最终装配/批准与发布工具。
 
-因此当前只应执行 M7 的真实 Scene 制作，不应提前实现 M8 全局增强或发布能力。
+因此当前只应规划并执行 M8，不应把 M7 review preview 误称为用户最终批准或发布物。
 
 ## 3. 全局硬边界
 
@@ -54,7 +53,7 @@ flowchart LR
     G1 -->|"是"| M5["M5 Scene 视听制作规格<br/>已完成"]
     G1 -->|"否"| M1
     M5 --> M6["M6 资源目录与 Scene Runtime<br/>已完成"]
-    M6 --> M7["M7 第一个完整 ScenePackage 证明"]
+    M6 --> M7["M7 第一个完整 ScenePackage 证明<br/>已完成"]
     M7 --> M8["M8 Global Sound / Global Visual / Final Assembly"]
     M8 --> M9["M9 第二主题与泛化"]
     M9 --> M10["M10 发布收口"]
@@ -290,11 +289,14 @@ Shotcraft fixture、完整机械门与 GPS narrative/final 分级行为验收。
 - Narrative Baseline 在 Catalog 或 ScenePackage 缺失时仍可独立通过。
 
 **范围结果：** M6 没有制作 `gps-relativity` 正式 Scene；独立 proof 不进入 ProjectRegistry。
-GPS `narrative` 当前通过，`final` 因 M7 Scene coverage 缺失而按设计 fail closed。M6 没有
+在 M6 closeout 当时，GPS `narrative` 通过而 `final` 因 Scene coverage 缺失按设计 fail closed。M6 没有
 实现 NarrativeCheck、SceneVisualCheck/SceneSoundCheck 的主观审核、M8 global sound/visual
 或发布能力。
 
 ### M7：第一个完整 ScenePackage 集合证明
+
+**状态：** 已于 2026-08-03 完成。五个 Beat 均为 ready ScenePackage；所有 recipe mode 为
+`empty`，因此 Shotcraft exact fidelity 为 not-applicable；没有 fallback。
 
 **目标：** 为 M2–M4 的同一真实 Story 完成所有 Scene，证明每个 Beat 的画面与局部声音可
 作为一个 ScenePackage 并行制作、独立替换和批量审核。
@@ -394,8 +396,7 @@ mastering 或 GlobalVisualLayers 完整装配。
 
 ## 7. 当前唯一下一步
 
-M1–M6 已实现并通过各自机械门。当前唯一下一步是 M7：为 `gps-relativity` 五个 StoryBeat
-制作正式 ScenePackage、建立完整 coverage/registry/projection，并执行批量 SceneVisualCheck、
-命中条件时的 ShotReferenceFidelityCheck 与 SceneSoundCheck。不得把 M6 synthetic proof 当作
-GPS coverage，不得提前开始 M8 GlobalSoundPlan、全局 BGM、跨 Scene ambience、ducking、
-mastering、GlobalVisualLayers、FinalPreviewApproval 或发布。NarrativeCheck 仍未实现。
+M1–M7 已实现并通过各自机械门。当前唯一下一步是 M8：GlobalSoundPlan、全局 BGM、跨 Scene
+ambience、ducking、mastering、GlobalVisualLayers、完整 assembly fingerprint 与
+FinalPreviewApproval。M8 开始前必须单独编写并批准实施计划；NarrativeCheck、发布与共享
+capability promotion 仍未实现。

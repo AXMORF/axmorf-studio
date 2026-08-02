@@ -1,8 +1,7 @@
 # 系统结构
 
-> Status：M1–M4 Narrative Baseline 闭环与 M6 Scene Runtime foundation 已实现；M5/M6
-> 规格与计划已批准。NarrativeCheck、GPS 正式 Scene、M7 主观 Scene 审核和 M8 全局增强
-> 仍未实现。
+> Status：M1–M4 Narrative Baseline、M6 Scene Runtime foundation 与 M7 GPS 正式 Scene
+> production 已实现。NarrativeCheck、M8 全局增强、最终批准与发布仍未实现。
 
 ## 节点责任
 
@@ -50,8 +49,8 @@ M4 的边界位于：
 这条主链必须在不存在 ScenePackage、renderer registry、视觉资源目录、SoundDesignTrack
 和 GlobalVisualLayers 时独立工作。Scene、声音和全局效果是只读消费叙事主链的下游增强
 轨；M6 已把 VisualStyleSpec、ScenePackage、外部镜头参考、本地化/保真、registry 和
-visual/local-sound 投影落成通用基础，并用独立 synthetic proof 验证。它没有为 GPS 创建正式
-Scene；当前下一步是 M7。详细流程见
+visual/local-sound 投影落成通用基础，并用独立 synthetic proof 验证。M7 已为 GPS 创建五个
+正式 Scene，并在真实 Composition 中装配两类投影；当前下一步是 M8。详细流程见
 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
 
 已实现的 Narrative Baseline 通过 generated static ProjectRegistry 注册为 Story Composition。
@@ -269,9 +268,9 @@ flowchart TB
 
 ## M6 Scene 基础与 M7 正式制作：Scene 内部
 
-> M6 已实现本节的数据、生成器、registry 与 runtime 接入边界；正式 Story Scene authoring、
-> 批量 SceneVisualCheck/SceneSoundCheck 和 GPS coverage 属于 M7，不能成为 Narrative Baseline
-> 的依赖。
+> M6 已实现本节的数据、生成器、registry 与 runtime 接入边界；M7 已完成 GPS 正式 Story
+> Scene authoring、全 ready coverage 和批量 SceneVisualCheck/SceneSoundCheck。它们仍是
+> Narrative Baseline 的可选下游，不反向成为叙事主链依赖。
 
 ```mermaid
 flowchart TB

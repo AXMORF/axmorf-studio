@@ -1,9 +1,8 @@
 # 确定性执行设计
 
-> Status：M1–M4 Narrative Baseline 机械闭环与 M6 Scene Runtime foundation 已实现；包括
-> ResourceCatalog、外部镜头 snapshot/localization/fidelity、Scene package/registry、visual/
-> local-sound projection 和 final-level 机械基础。GPS 正式 Scene、M7 主观审核与 M8 全局增强
-> 仍为后续目标。
+> Status：M1–M4 Narrative Baseline、M6 Scene Runtime foundation 与 M7 GPS 正式 Scene
+> production 已实现；包括 Catalog、package/registry、visual/local-sound projection、批量 Agent
+> review 和 passing final report。NarrativeCheck 与 M8 全局增强仍为后续目标。
 
 ## 1. 定义
 
@@ -103,8 +102,9 @@ flowchart TB
 主链到 `Narrative Baseline` 不经过视觉 preflight、ResourceCatalog、ScenePackage 或 renderer
 registry。M2 已把 sealed narration 与 SemanticTiming 落成真实文件，M3 已把 runtime、
 registry、Baseline 和 evidence 落地，M4 已把 AutoCheck 落地；M6 已把 Scene visual/
-local-sound 分支和 final-level 机械基础落地，但 GPS 正式 Scene、GlobalVisualLayers、
-Final Preview/Approval/Release 与 NarrativeCheck 仍未实现。流程权威见
+local-sound 分支和 final-level 机械基础落地；M7 已把 GPS 正式 Scene、StoryVisualTrack 与
+Scene-local SoundDesignTrack 接入真实 Composition。GlobalVisualLayers、M8 global sound、
+最终 Approval/Release 与 NarrativeCheck 仍未实现。流程权威见
 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
 
 ## 3. 节点与实现方式
@@ -503,7 +503,7 @@ package/registry/projection 分支及隔离失效矩阵，M8 global 分支仍是
 
 ## 10. 聚合检查
 
-M1–M6 当前提供聚焦机械检查、真实 file-backed 检查、registry drift check、listing、窄
+M1–M7 当前提供聚焦机械检查、真实 file-backed 检查、registry drift check、listing、窄
 Baseline/M6 proof evidence 与作品级 narrative/final 聚合：
 
 ```bash
@@ -558,9 +558,9 @@ not-applicable。默认只读，只有显式 `--write-final-check` 且 aggregate
 `generated/final-mechanical-check.generated.json`；失败不覆盖最后一份有效报告。
 
 它只能验证已确定输入，不能自动选择或修正 StoryBeat、Scene 方案、Shot、镜头、资源、
-声音、转场或审美结果。GPS 当前没有 M7 Scene artifacts，因此 `narrative` 继续通过而 `final`
-按设计 fail closed。M6 没有实现 NarrativeCheck、SceneVisualCheck、FinalPreviewApproval 或
-发布检查。
+声音、转场或审美结果。GPS 当前五个 M7 ScenePackage 全 ready，因此 `narrative` 与 `final`
+均通过；M7 的独立 evidence receipt 另行绑定 Agent-authored SceneVisual/SceneSound/连续性
+结论和真实媒体。M6/M7 没有实现 NarrativeCheck、FinalPreviewApproval 或发布检查。
 
 ## 11. Skill 边界
 

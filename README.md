@@ -16,12 +16,15 @@ M6 已落地 Scene 制作基础：每个 StoryBeat 对应一个可并行制作�
 ScenePackage 内聚画面、Scene 局部 ambience/SFX 和同步锚点，对 runtime 只暴露一个视觉
 renderer 入口并产生一个固定音频贡献。制作时可以从冻结的 `video-shotcraft` 等上游镜头
 配方选择参考，但必须把准确 demo 的最小依赖闭包本地化到 Scene，并用来源/适配证据和
-保真 receipt 封存；上游仓库、全局 skill 和远程 preview 不进入 runtime。当前真实
-`gps-relativity` 仍没有正式 ScenePackage；M6 只用独立 synthetic proof 验证这条基础链。
+保真 receipt 封存；上游仓库、全局 skill 和远程 preview 不进入 runtime。M7 已在真实
+`gps-relativity` 上完成五个正式 ScenePackage、全 ready coverage、静态 renderer registry、
+真实视觉/局部声音投影、批量 Scene 审核和正常速度 review evidence；五个 Scene 均显式使用
+合法 `empty` recipe，没有伪造 Shotcraft fidelity pass。
 
 ## 当前状态
 
-仓库当前完成基础框架、M1–M4 Narrative Baseline 机械闭环和 M6 Scene Runtime foundation：
+仓库当前完成基础框架、M1–M4 Narrative Baseline 机械闭环、M6 Scene Runtime foundation 和
+M7 第一套正式 Scene production：
 
 - Remotion、React、TypeScript、ESLint 与 Tailwind 基础工程；
 - 已迁入 camera、effects、Lottie/媒体、motion、sound、styles、transitions 与
@@ -49,7 +52,7 @@ renderer 入口并产生一个固定音频贡献。制作时可以从冻结的 `
 - `gps-relativity` 的持久化 AutoCheck、16 类隔离失效矩阵和脱敏 M4 evidence；
 - VisualStyleSpec、Scene/Shot/local-frame、SceneTaskInput/VisualPlan/ShotPlan/SyncAnchor/
   SoundPlan、ScenePackage 与 SceneCoverageMap 严格合同和分层 fingerprint；
-- 17 条当前 descriptor 的 ResourceCatalog、allowed-use/license/checksum/blocked policy、
+- 22 条当前 descriptor 的 ResourceCatalog、allowed-use/license/checksum/blocked policy、
   稳定生成/查询/漂移检查；
 - 一个冻结 `video-shotcraft` recipe 的 immutable snapshot、card/style-key/demo/preview resolver、
   两文件最小本地化闭包和 pass-only ReferenceFidelityReceipt；
@@ -57,13 +60,18 @@ renderer 入口并产生一个固定音频贡献。制作时可以从冻结的 `
   SoundDesignTrack 投影，以及只在真实输入存在时启用的 CompositionAssembly 插槽；
 - `project:check --level final` 的十项机械基础和独立 `M6SceneRuntimeProof` 真实 still/render
   evidence；
+- `gps-relativity` 的项目级 VisualStyleSpec、五个正式 ScenePackage、全 ready
+  SceneCoverageMap、五入口 literal RendererRegistry、StoryVisualTrack 与五个 Scene-local cue；
+- 15 张真实 Composition review still、5×3 contact sheet、1731 帧正常速度 H.264/AAC review、
+  evidence-bound SceneVisualCheck/SceneSoundCheck/连续性记录和 passing final mechanical report；
 - 规范目录、外部生产流程、合同参考和目标设计文档。
 
-NarrativeCheck、`gps-relativity` 的五个正式 ScenePackage、SceneVisualCheck/SceneSoundCheck、
-M8 GlobalSoundPlan/全局 BGM/跨 Scene ambience/ducking/mastering/GlobalVisualLayers、最终创意
-批准、发布流程和新 skills 仍未实现。当前唯一下一步是 M7。M5/M6 已批准文档见
-[M5 ScenePackage 视听制作规格](docs/superpowers/plans/2026-08-02-m5-scene-package-production-specification.md)。
-与 [M6 Scene Runtime 实施计划](docs/superpowers/plans/2026-08-02-m6-scene-runtime-implementation-plan.md)。
+NarrativeCheck、M8 GlobalSoundPlan/全局 BGM/跨 Scene ambience/ducking/mastering/
+GlobalVisualLayers、最终创意批准、发布流程和新 skills 仍未实现。当前唯一下一步是 M8。
+M5–M7 已批准文档见
+[M5 ScenePackage 视听制作规格](docs/superpowers/plans/2026-08-02-m5-scene-package-production-specification.md)、
+[M6 Scene Runtime 实施计划](docs/superpowers/plans/2026-08-02-m6-scene-runtime-implementation-plan.md) 和
+[M7 GPS Scene Production 实施计划](docs/superpowers/plans/2026-08-03-m7-gps-relativity-scene-production-plan.md)。
 完成边界和后续里程碑见
 [最终产品目标](docs/FINAL_PRODUCT_GOAL.md) 与
 [当前实现状态](docs/ITERATION_STATUS.md)；完整实施顺序和阶段门槛见
@@ -108,19 +116,24 @@ npm run compositions
 npm run check
 ```
 
-M4/M6 作品级机械检查：
+M4/M7 作品级机械检查：
 
 ```bash
 npm run project:check -- --project gps-relativity --level narrative
 npm run project:check -- --project gps-relativity --level narrative --write-auto-check
 npm run project:check -- --project gps-relativity --level final
+npm run project:check -- --project gps-relativity --level final --write-final-check
+npm run m7:gps:evidence
 ```
 
 默认命令只读重算并要求持久化 AutoCheck byte-equivalent；只有显式
 `--write-auto-check` 且全部检查通过时才原子写入。失败不会覆盖最后一份有效报告。真实
 验收见 [GPS Relativity M4 Narrative Validation Evidence](docs/evidence/2026-08-02-gps-relativity-m4.md)。
-`final` 会先复验 narrative，再校验 M6 Scene 分支；当前 GPS 因 M7 coverage/ScenePackage 尚未
-产生而按设计 fail closed，失败不会写入 final report。
+`final` 会先复验 narrative，再校验 Scene 分支；当前 GPS 的五个 Scene 全 ready，默认只读
+命令会复验 passing persisted report。只有显式 `--write-final-check` 且十项检查全部通过时才
+原子写入。M7 视觉/声音/连续性记录和媒体 receipt 由 `m7:gps:evidence` 独立复验，不能冒充
+用户最终创意批准。证据见
+[GPS Relativity M7 Scene Production Evidence](docs/evidence/2026-08-03-gps-relativity-m7-scene-production.md)。
 
 M6 独立 proof：
 
@@ -182,9 +195,9 @@ scripts/catalog/                M6 ResourceCatalog 稳定生成、查询与漂�
 scripts/external-references/    M6 snapshot、resolver/localizer 与 fidelity checker
 scripts/renderer-registry/      M6 composition-local RendererRegistry 生成与检查
 scripts/scene-package/          M6 ScenePackage/Coverage pass-only 生成与检查
-scripts/project-check/          M4 narrative 与 M6 final 作品级机械聚合
+scripts/project-check/          M4 narrative 与 M6–M7 final 作品级机械聚合
 scripts/docs/                   tracked Markdown 本地链接只读检查
-src/contracts/                  M1–M6 严格合同、fingerprint 与机械报告
+src/contracts/                  M1–M7 严格合同、fingerprint 与机械报告
 src/remotion/capabilities/      已批准共享能力
 src/remotion/catalog/           M6 tracked 统一只读 ResourceCatalog
 src/remotion/runtime/           NarrativeCore、Scene visual/local-sound 与显式装配

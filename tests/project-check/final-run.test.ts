@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -52,9 +52,14 @@ test("synthetic current Scene branch aggregates with narrative into final pass",
   );
 });
 
-test("GPS final fails closed on missing M7 coverage without writes or narrative drift", async (context) => {
+test("incomplete isolated GPS final fails closed without rewriting current reports", async (context) => {
   const fixture = await createM4ProjectFixture(context);
   const narrativeBefore = await readFile(fixture.paths.autoCheck);
+  const finalReportPath = join(
+    fixture.rootDir,
+    "src/projects/gps-relativity/generated/final-mechanical-check.generated.json",
+  );
+  const finalReportBefore = await readFile(finalReportPath);
   const report = await runFinalMechanicalCheck({
     rootDir: fixture.rootDir,
     projectId: fixture.storyId,
@@ -66,14 +71,7 @@ test("GPS final fails closed on missing M7 coverage without writes or narrative 
     "fail",
   );
   assert.deepEqual(await readFile(fixture.paths.autoCheck), narrativeBefore);
-  await assert.rejects(() =>
-    access(
-      join(
-        fixture.rootDir,
-        "src/projects/gps-relativity/generated/final-mechanical-check.generated.json",
-      ),
-    ),
-  );
+  assert.deepEqual(await readFile(finalReportPath), finalReportBefore);
 });
 
 test("final runner source has no writer generation provider network Git or repair path", async () => {
