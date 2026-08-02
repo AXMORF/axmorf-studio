@@ -50,7 +50,12 @@ export const createM6SceneTaskInput = () =>
     },
   });
 
-export const createM6ScenePlans = () => {
+export const createM6ScenePlans = (
+  recipeDecision:
+    | "empty"
+    | "inspiration-only"
+    | "exact-demo-localized" = "exact-demo-localized",
+) => {
   const task = createM6SceneTaskInput();
   const anchors = buildSceneSyncAnchors({
     taskInputFingerprint: task.taskInputFingerprint,
@@ -96,7 +101,7 @@ export const createM6ScenePlans = () => {
     continuity: "No adjacent Scene; enter and exit on the baseline background.",
     orderedShotIds: ["trace-shot"],
     visualResourceIds: ["asset.proof-shape"],
-    recipeDecision: "exact-demo-localized",
+    recipeDecision,
     fallbackIntent:
       "If exact fidelity is stale, omit the Scene instead of approximating it.",
   });
