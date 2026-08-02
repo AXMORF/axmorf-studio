@@ -126,6 +126,7 @@ const ResourceDescriptorCommonShape = {
     .object({
       kind: z.literal("repository-file"),
       repositoryPath: RepositoryPathSchema,
+      sourceChecksum: Sha256DigestSchema.optional(),
     })
     .strict()
     .readonly(),
@@ -314,6 +315,101 @@ export type ResourceAssetDescriptor = z.infer<
 >;
 export type ResourceDescriptor = z.infer<typeof ResourceDescriptorSchema>;
 
+export const RESOURCE_CATALOG_GENERATOR_ID =
+  "resource-catalog-generator-v1" as const;
+
+export const ResourceCatalogEntrySchema = z
+  .object({
+    descriptor: ResourceDescriptorSchema,
+    descriptorFingerprint: Sha256DigestSchema,
+  })
+  .strict()
+  .superRefine((entry, context) => {
+    if (
+      entry.descriptorFingerprint !==
+      computeResourceDescriptorFingerprint(entry.descriptor)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Resource descriptor fingerprint is stale.",
+        path: ["descriptorFingerprint"],
+      });
+    }
+  })
+  .readonly();
+
+const ResourceCatalogInputShape = {
+  schemaVersion: z.literal(1),
+  generatorId: z.literal(RESOURCE_CATALOG_GENERATOR_ID),
+  entries: z.array(ResourceCatalogEntrySchema).readonly(),
+} as const;
+
+const addCatalogEntryIssues = (
+  catalog: { readonly entries: readonly ResourceCatalogEntry[] },
+  context: z.RefinementCtx,
+) => {
+  const seen = new Set<string>();
+  catalog.entries.forEach((entry, index) => {
+    if (seen.has(entry.descriptor.id)) {
+      context.addIssue({
+        code: "custom",
+        message: "Resource Catalog IDs must be unique.",
+        path: ["entries", index, "descriptor", "id"],
+      });
+    }
+    if (
+      index > 0 &&
+      catalog.entries[index - 1].descriptor.id.localeCompare(
+        entry.descriptor.id,
+      ) >= 0
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Resource Catalog entries must be canonically sorted.",
+        path: ["entries", index, "descriptor", "id"],
+      });
+    }
+    seen.add(entry.descriptor.id);
+  });
+};
+
+const ResourceCatalogInputObject = z
+  .object(ResourceCatalogInputShape)
+  .strict()
+  .superRefine(addCatalogEntryIssues)
+  .readonly();
+
+export const ResourceCatalogInputSchema = ResourceCatalogInputObject;
+
+export const ResourceCatalogSchema = z
+  .object({
+    ...ResourceCatalogInputShape,
+    catalogFingerprint: Sha256DigestSchema,
+  })
+  .strict()
+  .superRefine((catalog, context) => {
+    addCatalogEntryIssues(catalog, context);
+    const input = ResourceCatalogInputSchema.parse({
+      schemaVersion: catalog.schemaVersion,
+      generatorId: catalog.generatorId,
+      entries: catalog.entries,
+    });
+    if (
+      catalog.catalogFingerprint !== computeResourceCatalogFingerprint(input)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Resource Catalog fingerprint is stale.",
+        path: ["catalogFingerprint"],
+      });
+    }
+  })
+  .readonly();
+
+export type ResourceCatalogEntry = z.infer<typeof ResourceCatalogEntrySchema>;
+export type ResourceCatalogInput = z.infer<typeof ResourceCatalogInputSchema>;
+export type ResourceCatalog = z.infer<typeof ResourceCatalogSchema>;
+
 export const SelectedResourceRefSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -344,6 +440,22 @@ export const computeResourceDescriptorFingerprint = (
     value: {
       fingerprintVersion: RESOURCE_DESCRIPTOR_FINGERPRINT_VERSION,
       descriptor,
+    },
+  });
+};
+
+export const computeResourceCatalogFingerprint = (
+  rawCatalogInput: unknown,
+): Sha256Digest => {
+  const catalog = ResourceCatalogInputSchema.parse(rawCatalogInput);
+  return createFingerprint({
+    namespace: "resource-catalog",
+    version: 1,
+    value: {
+      generatorId: catalog.generatorId,
+      orderedDescriptorFingerprints: catalog.entries.map(
+        (entry) => entry.descriptorFingerprint,
+      ),
     },
   });
 };
