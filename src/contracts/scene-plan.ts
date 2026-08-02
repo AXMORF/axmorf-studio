@@ -96,9 +96,25 @@ export const SceneVisualPlanSchema = VisualPlanInputSchema.extend({
 export const buildSceneVisualPlan = (
   rawInput: Omit<z.input<typeof VisualPlanInputSchema>, "schemaVersion"> & {
     readonly schemaVersion?: 1;
+    readonly visualPlanFingerprint?: unknown;
   },
 ) => {
-  const input = VisualPlanInputSchema.parse({ ...rawInput, schemaVersion: 1 });
+  const input = VisualPlanInputSchema.parse({
+    schemaVersion: 1,
+    taskInputFingerprint: rawInput.taskInputFingerprint,
+    meaningId: rawInput.meaningId,
+    semanticObjective: rawInput.semanticObjective,
+    subject: rawInput.subject,
+    primaryAction: rawInput.primaryAction,
+    causalLink: rawInput.causalLink,
+    primaryComposition: rawInput.primaryComposition,
+    styleRealization: rawInput.styleRealization,
+    continuity: rawInput.continuity,
+    orderedShotIds: rawInput.orderedShotIds,
+    visualResourceIds: rawInput.visualResourceIds,
+    recipeDecision: rawInput.recipeDecision,
+    fallbackIntent: rawInput.fallbackIntent,
+  });
   return SceneVisualPlanSchema.parse({
     ...input,
     visualPlanFingerprint: withFingerprint("scene-visual-plan", input),
@@ -166,9 +182,16 @@ export const ShotPlanSetSchema = ShotPlanSetInputSchema.extend({
 export const buildShotPlanSet = (
   rawInput: Omit<z.input<typeof ShotPlanSetInputSchema>, "schemaVersion"> & {
     readonly schemaVersion?: 1;
+    readonly shotPlanFingerprint?: unknown;
   },
 ) => {
-  const input = ShotPlanSetInputSchema.parse({ ...rawInput, schemaVersion: 1 });
+  const input = ShotPlanSetInputSchema.parse({
+    schemaVersion: 1,
+    taskInputFingerprint: rawInput.taskInputFingerprint,
+    meaningId: rawInput.meaningId,
+    sceneDurationInFrames: rawInput.sceneDurationInFrames,
+    shots: rawInput.shots,
+  });
   return ShotPlanSetSchema.parse({
     ...input,
     shotPlanFingerprint: withFingerprint("shot-plan-set", input),
@@ -228,11 +251,15 @@ export const SceneSyncAnchorSetSchema = SyncAnchorSetInputSchema.extend({
 export const buildSceneSyncAnchors = (
   rawInput: Omit<z.input<typeof SyncAnchorSetInputSchema>, "schemaVersion"> & {
     readonly schemaVersion?: 1;
+    readonly syncAnchorFingerprint?: unknown;
   },
 ) => {
   const input = SyncAnchorSetInputSchema.parse({
-    ...rawInput,
     schemaVersion: 1,
+    taskInputFingerprint: rawInput.taskInputFingerprint,
+    meaningId: rawInput.meaningId,
+    sceneDurationInFrames: rawInput.sceneDurationInFrames,
+    anchors: rawInput.anchors,
   });
   return SceneSyncAnchorSetSchema.parse({
     ...input,

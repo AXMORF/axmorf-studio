@@ -39,3 +39,28 @@ test("ScenePackage write is pass-only atomic byte-stable and check is read-only"
     await rm(rootDir, { recursive: true, force: true });
   }
 });
+
+test("failed write keeps the last pass receipt bytes and mtime", async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-package-fail-"));
+  const destination = join(rootDir, "scene-package.generated.json");
+  try {
+    const input = createM6PackageInput();
+    await generateScenePackage({ mode: "write", destination, input });
+    const before = await readFile(destination, "utf8");
+    const beforeMtime = (await stat(destination)).mtimeMs;
+    await assert.rejects(() =>
+      generateScenePackage({
+        mode: "write",
+        destination,
+        input: {
+          ...input,
+          current: { ...input.current, visualRuntimeVersion: "stale" },
+        },
+      }),
+    );
+    assert.equal(await readFile(destination, "utf8"), before);
+    assert.equal((await stat(destination)).mtimeMs, beforeMtime);
+  } finally {
+    await rm(rootDir, { recursive: true, force: true });
+  }
+});
