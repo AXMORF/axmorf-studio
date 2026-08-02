@@ -6,6 +6,8 @@ import ts from "typescript";
 
 import { CompositionAssembly } from "../../src/remotion/runtime/composition-assembly";
 import { NarrativeCore } from "../../src/remotion/runtime/narrative-core";
+import { SoundDesignTrack } from "../../src/remotion/runtime/sound-design";
+import { StoryVisualTrack } from "../../src/remotion/runtime/story-visual";
 import {
   createGpsRelativityNarrativeCoreProps,
   gpsRelativityCompositionMetadata,
@@ -15,11 +17,25 @@ test("gps-relativity has a default-export Composition", async () => {
   const module = await import("../../src/projects/gps-relativity/Composition");
   assert.equal(typeof module.default, "function");
   const element = module.default(gpsRelativityCompositionMetadata.defaultProps);
-  assert.ok(isValidElement<{ narrativeCore: unknown }>(element));
+  assert.ok(
+    isValidElement<{
+      narrativeCore: unknown;
+      storyVisualTrack: unknown;
+      soundDesignTrack: unknown;
+    }>(element),
+  );
   assert.equal(element.type, CompositionAssembly);
-  assert.deepEqual(Object.keys(element.props), ["narrativeCore"]);
+  assert.deepEqual(Object.keys(element.props), [
+    "storyVisualTrack",
+    "narrativeCore",
+    "soundDesignTrack",
+  ]);
+  assert.ok(isValidElement(element.props.storyVisualTrack));
+  assert.equal(element.props.storyVisualTrack.type, StoryVisualTrack);
   assert.ok(isValidElement(element.props.narrativeCore));
   assert.equal(element.props.narrativeCore.type, NarrativeCore);
+  assert.ok(isValidElement(element.props.soundDesignTrack));
+  assert.equal(element.props.soundDesignTrack.type, SoundDesignTrack);
 });
 
 test("project-local metadata is exactly the current absolute authority", () => {
@@ -71,6 +87,6 @@ test("Composition uses only static project data and the complete sealed audio", 
   assert.match(source, /staticFile\(/);
   assert.doesNotMatch(
     source,
-    /chunk.*\.wav|node:fs|readFile|fetch\(|https?:|registry|BaseCanvas|capabilities|Scene|story-check|storyVisualTrack|soundDesignTrack/,
+    /chunk.*\.wav|node:fs|readFile|fetch\(|https?:|BaseCanvas|capabilities|story-check/,
   );
 });

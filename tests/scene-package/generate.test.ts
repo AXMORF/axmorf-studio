@@ -3,9 +3,24 @@ import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { generateScenePackage } from "../../scripts/scene-package/generate";
 import { createM6PackageInput } from "../fixtures/scene/m6-package-input";
+
+test("file-backed package generation fingerprints the complete Renderer source graph", async () => {
+  const source = await readFile(
+    fileURLToPath(
+      new URL("../../scripts/scene-package/generate.ts", import.meta.url),
+    ),
+    "utf8",
+  );
+  assert.match(source, /collectRendererSourceGraph/u);
+  assert.doesNotMatch(
+    source,
+    /readFile\(join\(sceneRoot, "Renderer\.tsx"\)\)/u,
+  );
+});
 
 test("ScenePackage write is pass-only atomic byte-stable and check is read-only", async () => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-package-"));

@@ -14,12 +14,20 @@ import {
   NarrativeCore,
   type NarrativeCoreProps,
 } from "../../remotion/runtime/narrative-core";
+import { SoundDesignTrack } from "../../remotion/runtime/sound-design";
+import { StoryVisualTrack } from "../../remotion/runtime/story-visual";
 import briefJson from "./brief.json";
 import sealedNarrationJson from "./generated/sealed-narration.generated.json";
 import semanticTimingJson from "./generated/semantic-timing.generated.json";
 import narrationJson from "./narration.json";
 import renderJson from "./render.json";
 import storyJson from "./story.json";
+import {
+  gpsRelativityRendererPropsByMeaning,
+  gpsRelativityRendererRegistry,
+  gpsRelativitySoundDesignProjection,
+  gpsRelativityStoryVisualProjection,
+} from "./scene-runtime-data";
 
 const projectSource = parseNarrativeProjectSource({
   brief: briefJson,
@@ -27,9 +35,8 @@ const projectSource = parseNarrativeProjectSource({
   narration: narrationJson,
   render: renderJson,
 });
-const sealedNarration = SealedNarrationManifestSchema.parse(
-  sealedNarrationJson,
-);
+const sealedNarration =
+  SealedNarrationManifestSchema.parse(sealedNarrationJson);
 const semanticTiming = SemanticTimingSchema.parse(semanticTimingJson);
 const artifactBundle = validateM1ArtifactBundle({
   projectSource,
@@ -54,7 +61,9 @@ const completeAudioLocalPath =
   artifactBundle.sealedNarration.completeAudio.localPath;
 const expectedAudioPrefix = `public/projects/${storyId}/narration/`;
 if (!completeAudioLocalPath.startsWith(expectedAudioPrefix)) {
-  throw new Error("Complete narration must stay under the Story narration path.");
+  throw new Error(
+    "Complete narration must stay under the Story narration path.",
+  );
 }
 const completeNarrationSrc = staticFile(
   completeAudioLocalPath.slice("public/".length),
@@ -86,8 +95,18 @@ export const createGpsRelativityNarrativeCoreProps = (
 
 const GpsRelativityComposition: FC<StoryCompositionProps> = (props) => (
   <CompositionAssembly
+    storyVisualTrack={
+      <StoryVisualTrack
+        projection={gpsRelativityStoryVisualProjection}
+        registry={gpsRelativityRendererRegistry}
+        rendererPropsByMeaning={gpsRelativityRendererPropsByMeaning}
+      />
+    }
     narrativeCore={
       <NarrativeCore {...createGpsRelativityNarrativeCoreProps(props)} />
+    }
+    soundDesignTrack={
+      <SoundDesignTrack projection={gpsRelativitySoundDesignProjection} />
     }
   />
 );

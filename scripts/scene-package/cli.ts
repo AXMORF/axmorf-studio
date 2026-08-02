@@ -1,7 +1,10 @@
 import { pathToFileURL } from "node:url";
 
 import { StoryIdSchema } from "../../src/contracts";
-import { generateScenePackageFromProjectFiles } from "./generate";
+import {
+  generateSceneCoverageFromProjectFiles,
+  generateScenePackageFromProjectFiles,
+} from "./generate";
 import type { SceneArtifactMode } from "./project-files";
 
 type PackageRequest = {
@@ -68,12 +71,13 @@ export const runScenePackageCli = async (
       projectId: StoryIdSchema.parse(args[2]),
       mode: parseMode(args[3]),
     };
-    if (!context.generateCoverage) {
-      throw new Error(
-        "Coverage generation requires current project package inputs.",
-      );
-    }
-    const result = await context.generateCoverage(request);
+    const result = context.generateCoverage
+      ? await context.generateCoverage(request)
+      : await generateSceneCoverageFromProjectFiles({
+          rootDir: context.rootDir,
+          projectId: request.projectId,
+          mode: request.mode,
+        });
     context.stdout("SceneCoverageMap is current.");
     return result;
   }

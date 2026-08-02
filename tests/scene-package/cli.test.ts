@@ -81,3 +81,13 @@ test("gps-relativity missing Scene inputs fails without creating files or changi
   );
   assert.deepEqual(await readFile(narrativePath), before);
 });
+
+test("coverage CLI has a real file-backed default implementation", async () => {
+  const result = await runScenePackageCli([
+    "coverage",
+    "--project",
+    "gps-relativity",
+    "--check",
+  ]);
+  assert.ok(result);
+});

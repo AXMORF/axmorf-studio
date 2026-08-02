@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import test from "node:test";
 
 import {
@@ -69,4 +71,27 @@ test("coverage rejects duplicate unknown out-of-order and conflicting claims", (
   ]) {
     assert.throws(() => buildSceneCoverageMap(mutation));
   }
+});
+
+test("gps-relativity file-backed coverage is all-ready in Story order", async () => {
+  const rootDir = join(import.meta.dirname, "../..");
+  const coverage = SceneCoverageMapSchema.parse(
+    JSON.parse(
+      await readFile(
+        join(
+          rootDir,
+          "src/projects/gps-relativity/generated/scene-coverage.generated.json",
+        ),
+        "utf8",
+      ),
+    ),
+  );
+  assert.deepEqual(coverage.storyBeatOrder, [
+    "position-is-time",
+    "two-relativistic-effects",
+    "net-drift",
+    "error-accumulation",
+    "practical-conclusion",
+  ]);
+  assert.ok(coverage.entries.every(({ status }) => status === "ready"));
 });

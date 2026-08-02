@@ -1,15 +1,15 @@
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
   SceneCoverageMapSchema,
   ScenePackageSchema,
-  Sha256DigestSchema,
+  SceneTaskInputSchema,
+  StorySpecSchema,
   buildSceneCoverageMap,
   type SceneCoverageMap,
   type ScenePackage,
 } from "../../src/contracts";
-import { checksumExternalBytes } from "../external-references/project-files";
+import { collectRendererSourceGraph } from "../renderer-registry/domain";
 import { buildScenePackage } from "./domain";
 import {
   readJsonFile,
@@ -80,7 +80,6 @@ export const generateScenePackageFromProjectFiles = async ({
     selection,
     fidelityReceipt,
     selectedResourceInput,
-    rendererBytes,
   ] = await Promise.all([
     readJsonFile(join(sceneRoot, "task-input.generated.json")),
     readJsonFile(join(sceneRoot, "visual-plan.json")),
@@ -92,15 +91,8 @@ export const generateScenePackageFromProjectFiles = async ({
       join(sceneRoot, "generated/reference-fidelity.generated.json"),
     ),
     readJsonFile(join(sceneRoot, "selected-resources.json")),
-    readFile(join(sceneRoot, "Renderer.tsx")),
   ]);
-  const taskRecord = task as {
-    timingBeat: unknown;
-    semanticTimingFingerprint: unknown;
-    visualStyleFingerprint: unknown;
-    resourceCatalogFingerprint: unknown;
-    allowedSnapshots: readonly { readonly snapshotFingerprint: unknown }[];
-  };
+  const taskRecord = SceneTaskInputSchema.parse(task);
   const selectedResources = (
     selectedResourceInput as {
       readonly selectedResources: Parameters<
@@ -108,9 +100,13 @@ export const generateScenePackageFromProjectFiles = async ({
       >[0]["selectedResources"];
     }
   ).selectedResources;
-  const rendererSourceFingerprint = Sha256DigestSchema.parse(
-    checksumExternalBytes(rendererBytes),
-  );
+  const rendererSourceFingerprint = (
+    await collectRendererSourceGraph({
+      rootDir,
+      projectId,
+      rendererPath: `src/projects/${projectId}/scenes/${meaningId}/Renderer.tsx`,
+    })
+  ).sourceGraphFingerprint;
   return generateScenePackage({
     mode,
     destination: join(sceneRoot, "generated/scene-package.generated.json"),
@@ -141,4 +137,49 @@ export const generateScenePackageFromProjectFiles = async ({
       },
     },
   });
+};
+
+export const generateSceneCoverageFromProjectFiles = async ({
+  rootDir,
+  projectId,
+  mode,
+}: {
+  readonly rootDir: string;
+  readonly projectId: string;
+  readonly mode: SceneArtifactMode;
+}) => {
+  const projectRoot = join(rootDir, "src/projects", projectId);
+  const story = StorySpecSchema.parse(
+    await readJsonFile(join(projectRoot, "story.json")),
+  );
+  if (story.storyId !== projectId) {
+    throw new Error("Scene coverage Story belongs to another project.");
+  }
+  const storyBeatOrder = story.beats.map(({ meaningId }) => meaningId);
+  const packages = [];
+  for (const meaningId of storyBeatOrder) {
+    packages.push(
+      await generateScenePackageFromProjectFiles({
+        rootDir,
+        projectId,
+        meaningId,
+        mode: "check",
+      }),
+    );
+  }
+  const coverage = await generateSceneCoverage({
+    mode,
+    destination: join(projectRoot, "generated/scene-coverage.generated.json"),
+    input: {
+      storyId: projectId,
+      storyBeatOrder,
+      packages,
+      fallbacks: [],
+      stalePackages: [],
+    },
+  });
+  if (coverage.entries.some(({ status }) => status !== "ready")) {
+    throw new Error("Formal project coverage must contain only ready Scenes.");
+  }
+  return coverage;
 };
