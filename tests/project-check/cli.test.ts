@@ -54,6 +54,13 @@ const createCliRoot = async (context: TestContext) => {
     join(rootDir, "out/gps-relativity"),
     { recursive: true },
   );
+  await rm(
+    join(
+      rootDir,
+      "src/projects/gps-relativity/generated/narrative-auto-check.generated.json",
+    ),
+    { force: true },
+  );
   await generateProjectRegistry({ rootDir, mode: "write" });
   return rootDir;
 };

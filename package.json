@@ -64,7 +64,7 @@
     "project:check": "node --import tsx scripts/project-check/cli.ts",
     "compositions": "remotion compositions src/index.ts",
     "precompositions": "npm run registry:generate",
-    "check": "npm run test && npm run typecheck && npm run lint && npm run registry:check && npm run build && npm run compositions"
+    "check": "npm run test && npm run typecheck && npm run lint && npm run registry:check && npm run build && npm run compositions && env -u RSP_VOXCPM_PRIVATE_CONFIG npm run project:check -- --project gps-relativity --level narrative"
   },
   "sideEffects": [
     "*.css"
