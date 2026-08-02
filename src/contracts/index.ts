@@ -12,6 +12,7 @@ export * from "./project";
 export * from "./render";
 export * from "./resource-catalog";
 export * from "./scene-primitives";
+export * from "./shot-recipe";
 export * from "./sealed-narration";
 export * from "./semantic-timing";
 export * from "./story";
