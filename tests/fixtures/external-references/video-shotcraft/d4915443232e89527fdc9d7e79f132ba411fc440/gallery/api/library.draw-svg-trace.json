@@ -1,0 +1,22 @@
+{
+  "cards": [
+    {
+      "name": "draw-svg-trace",
+      "summary": "描边生长圈注——一条带笔头的墨线沿元素轮廓跑一圈把它\"画\"出来，闭合瞬间闪黑交棒、内容淡入；同套路可给标题画下划线",
+      "source": "references/shots/ui-entrance/draw-svg-trace.md",
+      "styles": [
+        {
+          "key": "draw-svg-trace",
+          "label": "draw-svg-trace",
+          "description": "描边生长圈注——一条带笔头的墨线沿元素轮廓跑一圈把它\"画\"出来，闭合瞬间闪黑交棒、内容淡入；同套路可给标题画下划线",
+          "media": {
+            "url": "./media/draw-svg-trace.mp4",
+            "type": "mp4"
+          }
+        }
+      ],
+      "category": "ui-entrance",
+      "tags": ["ui-entrance", "typography"]
+    }
+  ]
+}

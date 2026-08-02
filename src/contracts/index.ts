@@ -2,6 +2,7 @@ export * from "./assets";
 export * from "./brief";
 export * from "./auto-check";
 export * from "./fingerprint";
+export * from "./external-reference";
 export * from "./generation-input";
 export * from "./m1-validation";
 export * from "./narrative-baseline";
