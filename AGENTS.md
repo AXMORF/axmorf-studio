@@ -40,12 +40,14 @@
 
 ## 当前里程碑边界
 
-- M1–M3 已实现 Scene 之外的叙事生产主链到 Narrative Baseline：VideoBrief、StorySpec、
+- M1–M4 已实现 Scene 之外的叙事生产主链和机械验证闭环：VideoBrief、StorySpec、
   NarrationSpec、RenderSpec、StoryBeat、已创作的 `ttsChunks`、StoryCheck、真实 VoxCPM
   生成与封存、SemanticTiming、CaptionCue、透明 NarrativeCore、generated static
-  ProjectRegistry、lazy-loaded Story Composition、真实 preview/render 和 M3 evidence。
-- 当前唯一下一步是单独编写并审阅 M4 叙事闭环与失效验证计划；`project:check`、
-  AutoCheck 聚合和 NarrativeCheck 尚未实现。
+  ProjectRegistry、lazy-loaded Story Composition、真实 preview/render、M3 evidence，以及固定
+  `project:check --level narrative`、可持久化 AutoCheck 和隔离失效矩阵。
+- M4 只实现机械 AutoCheck，没有增加主观叙事质量复核或 `proceed/revise`。
+- NarrativeCheck 没有实现。当前唯一下一步是单独编写并审阅 M5 视觉阶段规格，不得提前
+  实现视觉合同或 runtime。
 - 当前不设计或实现 SceneVisualPlan、ShotPlan、ScenePackage、Scene renderer、视觉资产
   查询、转场、SoundDesignTrack 或 GlobalVisualLayers。
 - 已记录的 Scene 级 renderer 设计只定义未来接入接口。它不得成为 Narrative Baseline
@@ -80,8 +82,8 @@ proposal，并得到用户对范围、API、文件和目标位置的明确批准
 
 ## 审核
 
-- `AutoCheck`：合同、帧范围、产物、ProjectRegistry 漂移与 lazy import、fingerprint、
-  typecheck/lint/build 等机械检查；
+- `AutoCheck`：固定聚合 source contracts、StoryCheck identity、sealed narration、
+  SemanticTiming、ProjectRegistry、Narrative Baseline 与 M3 evidence 的机械检查；
 - `StoryCheck`：调用外部旁白生成前，由 Agent 检查 StoryBeat 顺序、`ttsChunks`、叙事完整
   性和 voice profile 选择，不阻塞用户；
 - `NarrativeCheck`：Agent 批量检查 Story 完整性、旁白可懂度、字幕对应和叙事节奏；

@@ -10,8 +10,9 @@
 - `generated/semantic-timing.generated.json` → `SemanticTimingSchema`
 - `generated/narrative-baseline-evidence.generated.json` →
   `M3NarrativeBaselineEvidenceReceiptSchema`
+- `generated/narrative-auto-check.generated.json` → `NarrativeAutoCheckReportSchema`
 
-The first four files are authored source; the three `generated/` files are derived artifacts. All
+The first four files are authored source; the four `generated/` files are derived artifacts. All
 objects are strict and use `schemaVersion: 1`.
 
 ## Identity
@@ -37,6 +38,10 @@ M3 adds a generated-entry checksum, ProjectRegistry entry fingerprint and Narrat
 fingerprint. The Baseline identity binds StorySpec, RenderSpec, sealed narration, SemanticTiming,
 registry-entry identity and `narrative-core-v1`. The M3 evidence fingerprint then adds exact transparent
 PNG and full-render checksums without changing the upstream Baseline identity.
+
+M4 adds `narrative-auto-check-v1`. Its report fingerprint binds the complete strict report body,
+including current M1 source/StoryCheck identities, M2 seal/timing identities, M3 registry/Baseline/evidence
+identities, fixed evidence checksums and the ordered seven-check result. Unknown fields fail closed.
 
 ## Sealed narration
 
@@ -76,9 +81,23 @@ npm run narration:check -- --project gps-relativity
 npm run registry:check
 npm run compositions
 npm run baseline:evidence -- --project gps-relativity
+npm run project:check -- --project gps-relativity --level narrative
 ```
 
 The narration checker validates real file bytes, checksums, sample-frame totals, current StoryCheck,
 active seal, and byte-equivalent SemanticTiming. M3 now additionally validates a deterministic tracked
 registry, lazy Composition metadata, transparent PNG facts, a 1731-frame H.264/AAC render and the
-evidence fingerprint. `project:check`, AutoCheck aggregation and NarrativeCheck remain M4 targets.
+evidence fingerprint.
+
+M4 `project:check` aggregates exactly `source-contracts`, `story-check`, `sealed-narration`,
+`semantic-timing`, `project-registry`, `narrative-baseline` and `m3-evidence`, in that order. Default mode
+recomputes read-only and rejects a missing, malformed or byte-drifted persisted AutoCheck. The optional
+`--write-auto-check` atomically writes only a passing report and skips unchanged bytes so checksum and
+mtime remain stable. Failed checks never overwrite the last valid report. M4 does not implement
+NarrativeCheck or any subjective Story, narration, caption or pacing review.
+
+Invalidation follows the existing dependency chain: source or StoryCheck identity changes invalidate
+their sealed/timing/Baseline descendants; timing RenderSpec changes leave sealed PCM valid but invalidate
+SemanticTiming and downstream identities; non-timing registration or Baseline changes leave sealed PCM
+and timing valid; media loss/corruption invalidates M3 evidence without rewriting upstream identities.
+The checker never repairs any of these artifacts.

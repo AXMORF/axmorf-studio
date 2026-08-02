@@ -1,8 +1,7 @@
 # 系统结构
 
-> Status：M1 合同内核、M2 真实旁白生成/封存和 M3 NarrativeCore、ProjectRegistry、
-> lazy Story Composition、Narrative Baseline evidence 已实现；M4 检查闭环和全部 Scene
-> 能力仍未实现。
+> Status：M1 合同内核、M2 真实旁白生成/封存、M3 Narrative Baseline 与 M4 机械检查闭环
+> 已实现；NarrativeCheck 和全部 Scene 能力仍未实现。
 
 ## 节点责任
 
@@ -29,12 +28,23 @@ sealed narration + RenderSpec → SemanticTiming + CaptionCue
 → NarrativeCore
 → Generated Static ProjectRegistry + lazy-loaded Composition
 → Narrative Baseline
-→ AutoCheck / NarrativeCheck（M4）
+→ fixed project:check + persisted AutoCheck（M4）
 ```
 
-当前 M3 已实现到 Narrative Baseline：透明 NarrativeCore、tracked generated registry、
+当前 M4 已实现到 Narrative Baseline 的机械验证闭环：透明 NarrativeCore、tracked registry、
 `GpsRelativity` lazy Composition、透明 still、全长 render 和 evidence receipt 均已落地。
-箭头后续的 AutoCheck 聚合与 NarrativeCheck 仍是 M4 目标。
+`project:check` 以只读固定顺序聚合 M1–M3 权威并校验 persisted AutoCheck drift。主观叙事
+质量审核和 NarrativeCheck 均未实现。
+
+M4 的边界位于：
+
+- `src/contracts/auto-check.ts`：strict report、固定 check/evidence 顺序和 report fingerprint；
+- `scripts/project-check/`：固定作品发现、只读聚合、pass-only 原子写入和 exact CLI；
+- `scripts/baseline/evidence.ts`：M3 collector 与 persisted receipt 的独立只读复验；
+- `src/projects/gps-relativity/generated/narrative-auto-check.generated.json`：当前通过的持久化
+  AutoCheck。
+
+这些检查代码不进入 Remotion render runtime，也不调用 Agent、skill、MCP、provider 或网络。
 
 这条主链必须在不存在 ScenePackage、renderer registry、视觉资源目录、SoundDesignTrack
 和 GlobalVisualLayers 时独立工作。Scene、声音和全局效果是只读消费叙事主链的下游增强

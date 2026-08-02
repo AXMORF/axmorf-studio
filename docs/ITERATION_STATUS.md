@@ -37,12 +37,17 @@
   字幕可见且外部透明的真实 PNG；1731 帧 H.264/AAC 全长 render；
 - registry-entry、Narrative Baseline 与 evidence fingerprint 合同、receipt、检查命令和脱敏
   M3 验收证据；
-- 已批准从 M1 合同内核、Narrative Baseline、视觉阶段到发布收口的分阶段 Roadmap，M1、
-  M2、M3 已完成。
+- strict `NarrativeAutoCheckReport` 合同，固定七项作品级聚合检查，默认只读 persisted-report
+  drift gate，以及 pass-only、原子、byte-stable 的 `--write-auto-check`；
+- 缺失、malformed、unknown field、identity/checksum/registry/media drift 和未知参数的
+  fail-closed 行为，失败不覆盖最后一份有效 AutoCheck；
+- `gps-relativity` 的真实 AutoCheck 与脱敏 M4 evidence，以及 16 类独立临时副本失效矩阵；
+- 已批准从 M1 合同内核、Narrative Baseline、视觉阶段到发布收口的分阶段 Roadmap，M1–M4
+  已完成。
 
 ## 尚未完成
 
-- `project:check`、AutoCheck 聚合、NarrativeCheck 与 M4 失效场景闭环；
+- NarrativeCheck 和主观 Story、旁白、字幕、整体叙事节奏审核；
 - `ScenePackage`、资源目录和 promotion 合同；
 - `StoryVisualTrack`、Scene 级静态 renderer registry、hard cut 与等时长 overlay；
 - 统一资源目录生成与查询；
@@ -57,24 +62,24 @@
 - 封面与发布工具；
 - 新的 Agent skills。
 
-以上未完成项仍是目标设计，不能表述为已有 CLI 或 runtime 能力。M3 已为
-`gps-relativity` 实现 Narrative Baseline，但没有因此实现 M4 检查聚合、Scene、资源目录
-或任何可选增强轨。
+以上未完成项仍是目标设计，不能表述为已有 CLI 或 runtime 能力。M4 已为
+`gps-relativity` 实现 Narrative Baseline 的纯脚本机械验证闭环，但没有因此实现
+NarrativeCheck、Scene、资源目录或任何可选增强轨。
 
 ## 下一里程碑
 
-下一步只编写并审阅 M4 实施计划；M4 将复验 M1–M3 主链和失效传播：
+M4 已完成并通过 Gate A 的机械条件：
 
 ```text
 M3 Narrative Baseline + fingerprints + evidence
 → project:check --level narrative
-→ AutoCheck aggregation
-→ NarrativeCheck + upstream invalidation proof
+→ strict persisted AutoCheck + read-only drift gate
+→ isolated upstream/artifact invalidation proof
 ```
 
-M4 开始前必须另行审阅实施计划；当前没有开始 `project:check`、AutoCheck 聚合、
-NarrativeCheck、SceneVisualPlan、ShotPlan、ScenePackage、Scene renderer、StoryVisualTrack、
-视觉资产查询、SoundDesignTrack 或 GlobalVisualLayers。
+下一步只单独编写并审阅 M5 视觉阶段规格；当前没有开始 NarrativeCheck、SceneVisualPlan、
+ShotPlan、ScenePackage、Scene renderer、StoryVisualTrack、视觉资产查询、SoundDesignTrack 或
+GlobalVisualLayers，也没有实现 `final` level、FinalPreviewApproval 或发布流程。
 在第二个不同主题验证之前，不提取新的共享能力。
 后续里程碑顺序、阶段排除项和完成门槛见 [ROADMAP.md](ROADMAP.md)。
 

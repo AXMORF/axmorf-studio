@@ -1,7 +1,7 @@
 # 确定性执行设计
 
-> Status：M1 合同/fingerprint/纯时间内核、M2 文件-backed 旁白封存和 M3 Narrative
-> Baseline runtime/registry/evidence 已实现；M4 聚合检查与后续增强 runtime 尚未实现。
+> Status：M1 合同/fingerprint/纯时间内核、M2 文件-backed 旁白封存、M3 Narrative
+> Baseline runtime/registry/evidence 与 M4 机械 AutoCheck 闭环已实现；后续增强 runtime 仍为未来目标。
 
 ## 1. 定义
 
@@ -47,6 +47,11 @@ M3 实现 `narrative-baseline.ts`、透明 NarrativeCore、required-only Composi
 project-local Story Composition、generated static ProjectRegistry、`lazyComponent` Root 注册和
 固定路径 evidence 检查。它只读消费 M2 产物，不读取私有配置或调用 provider。
 
+M4 实现 `auto-check.ts` 与 `scripts/project-check/`，按固定顺序只读聚合 M1–M3 权威、生成
+strict report fingerprint、检查 persisted report byte drift，并只在显式请求且全部通过时原子
+写入 AutoCheck。它不生成 registry/evidence/旁白，不修改 SemanticTiming，也不调用 Agent、
+skill、MCP、provider 或网络。
+
 ## 2. 总体实现
 
 ```mermaid
@@ -70,12 +75,11 @@ flowchart TB
     Narrative --> ProjectRegistry["Generated Static ProjectRegistry<br/>metadata + literal lazy import<br/>【制作编排】"]
     ProjectRegistry --> Baseline["Lazy-loaded Story Composition<br/>Narrative Baseline<br/>【确定性执行】"]
     Baseline --> Auto["AutoCheck<br/>【确定性执行】"]
-    Auto --> NarrativeCheck["NarrativeCheck<br/>【创作决策】"]
 
     VisualSource["SceneVisualPlan / Renderer.tsx<br/>后续制作编排"] --> VisualPreflight["视觉 preflight<br/>后续确定性执行"]
     VisualPreflight --> Visual["StoryVisualTrack<br/>后续可选"]
 
-    NarrativeCheck --> Assembly["CompositionAssembly<br/>【确定性执行】"]
+    Auto --> Assembly["CompositionAssembly<br/>【确定性执行】"]
     Visual -.->|"可选"| Assembly
     Optional["Sound / Global tracks<br/>后续可选"] -.-> Assembly
     Assembly --> Evidence["Preview / evidence<br/>【确定性执行】"]
@@ -88,7 +92,7 @@ flowchart TB
     classDef deterministic fill:#12383d,stroke:#22d3ee,color:#f8fafc;
     classDef external fill:#3f2730,stroke:#fb7185,color:#f8fafc;
     class RenderInput,RenderSpec input;
-    class Story,NarrationSpec,StoryCheck,NarrativeCheck,Review creative;
+    class Story,NarrationSpec,StoryCheck,Review creative;
     class VisualSource,ProjectRegistry orchestration;
     class TTS external;
     class Contract,RenderContract,Seal,Timing,Narrative,Baseline,Auto,VisualPreflight,Visual,Assembly,Optional,Evidence,Render deterministic;
@@ -96,8 +100,8 @@ flowchart TB
 
 主链到 `Narrative Baseline` 不经过视觉 preflight、ResourceCatalog、ScenePackage 或 renderer
 registry。M2 已把 sealed narration 与 SemanticTiming 落成真实文件，M3 已把 runtime、
-registry、Baseline 和 evidence 落地；图中的 AutoCheck/NarrativeCheck、虚线增强输入和视觉
-分支仍全部推迟。流程权威见
+registry、Baseline 和 evidence 落地，M4 已把 AutoCheck 落地；虚线增强输入、视觉分支和
+Final Preview/Approval/Release 仍全部推迟，NarrativeCheck 未实现。流程权威见
 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
 
 ## 3. 节点与实现方式
@@ -109,6 +113,7 @@ registry、Baseline 和 evidence 落地；图中的 AutoCheck/NarrativeCheck、�
 | SemanticTiming / CaptionCue | 纯函数把累计样本边界统一量化为绝对帧                                  | `semantic-timing.generated.json`                 |
 | NarrativeCore               | 通用 Remotion 组件                                                    | NarrationAudioTrack、CaptionLayer                |
 | ProjectRegistry             | bundle 前按固定一级目录生成静态元数据和字面量 lazy import             | 可枚举、按需加载的 Story Composition 注册        |
+| Narrative AutoCheck         | 固定脚本只读聚合 source、seal、timing、registry、Baseline 与 evidence | strict persisted report 与 report fingerprint    |
 | ResourceCatalog             | 构建脚本汇总资产 manifest 和 capability exports                       | 只读目录与查询结果                               |
 | 资源解析                    | preflight 校验 resourceId、文件、类型、状态和元数据                   | 资源校验报告                                     |
 | SceneVisualTrack            | 通用 Scene runtime + 每个 ScenePackage 一个 renderer 入口             | 按 timing 挂载的纯视觉 Scene                     |
@@ -124,7 +129,8 @@ registry、Baseline 和 evidence 落地；图中的 AutoCheck/NarrativeCheck、�
 
 M1 已落地数据合同、canonical fingerprint、封存 receipt 元数据校验和
 SemanticTiming/CaptionCue 纯函数。M2 已落地表中前三项的真实 TTS、实测、封存和检查；
-M3 已落地 NarrativeCore、ProjectRegistry、Narrative Baseline 与窄 evidence。当前
+M3 已落地 NarrativeCore、ProjectRegistry、Narrative Baseline 与窄 evidence，M4 已落地固定
+`project:check` 和 AutoCheck。当前
 CompositionAssembly 只有必需 `narrativeCore` 插槽；ResourceCatalog、SceneVisualTrack、
 转场、sound/global 与最终增强装配均属于后续阶段。
 
@@ -138,6 +144,7 @@ src/contracts/                         数据合同与纯校验
 scripts/narration/                     TTS、实测、拼接与封存
 scripts/registry/                      ProjectRegistry 生成与漂移检查
 scripts/baseline/                      M3 PNG/MP4 evidence 与 receipt
+scripts/project-check/                 M4 只读作品级聚合与 pass-only AutoCheck
 scripts/catalog/                       后续：资源目录构建与查询
 scripts/preflight/                     后续：叙事主链与增强轨分级校验
 src/remotion/runtime/narrative-core/   旁白、顶层字幕与绝对时间挂载
@@ -449,8 +456,8 @@ Narrative Baseline 和 evidence fingerprint；视觉、声音和全局分支仍�
 
 ## 10. 聚合检查
 
-M1–M3 当前提供聚焦机械检查、真实 file-backed 检查、registry drift check、listing 与窄
-Baseline evidence：
+M1–M4 当前提供聚焦机械检查、真实 file-backed 检查、registry drift check、listing、窄
+Baseline evidence 与作品级 AutoCheck：
 
 ```bash
 npm test
@@ -458,51 +465,41 @@ npm run narration:check -- --project gps-relativity
 npm run registry:check
 npm run compositions
 npm run baseline:evidence -- --project gps-relativity
+npm run project:check -- --project gps-relativity --level narrative
 ```
 
 它们覆盖严格合同、StoryCheck、provider adapter、candidate/measured resume、canonical
 fingerprint、真实 WAV/checksum/sample-frame、原子 sealed receipt、累计 PCM timing、
 CaptionCue 一一对应、透明 NarrativeCore、静态 registry、lazy listing、PNG alpha、完整 render
-媒体事实与 M3 evidence fingerprint。下面的作品级 `project:check` 仍是 M4 目标，当前未实现。
-
-M4 目标提供同一个作品级命令的分级检查：
+媒体事实与 M3 evidence fingerprint。M4 作品级命令只有两种 exact forms：
 
 ```bash
-npm run project:check -- --project <slug> --level narrative
-npm run project:check -- --project <slug> --level final
+npm run project:check -- --project gps-relativity --level narrative
+npm run project:check -- --project gps-relativity --level narrative --write-auto-check
 ```
 
-`narrative` 是当前里程碑和所有后续阶段都必须通过的基础级别，只检查：
+`narrative` 是所有后续阶段都必须通过的基础级别。聚合器按以下固定顺序检查：
 
-- 数据合同和 ID 唯一性；
-- NarrationSpec、RenderSpec 和 generation input fingerprint；
-- sealed narration 是否完整、checksum 是否匹配且没有混用部分结果；
-- complete WAV 和各 segment 的 sampleFrameCount 总和一致，sampleRate 与算法 ID 匹配；
-- 所有样本边界经 `pcm-cumulative-ceil-v1` 重算后与帧边界和 Composition 总帧数一致；
-- TTSChunk 与 CaptionCue 一一对应；
-- 所有 `[startFrame, endFrame)` 无重叠；任何间隔都必须是已声明的片头、片尾或叙事
-  停顿，不能存在未解释空洞；
-- NarrativeCore 不依赖 ScenePackage、视觉资产或 renderer registry；
-- ProjectRegistry 只从固定一级目录生成，条目稳定排序且生成结果无漂移；
-- 每个 Story 条目元数据完整、ID 唯一，`lazyComponent` 指向存在且 default-export 的字面量
-  import target；Root 不静态导入 Story Composition，也不导入 Scene renderer；
-- Narrative Baseline 的 Composition listing、preview/render 输入和 evidence fingerprint；
-- typecheck、lint 和 bundle。
+- `source-contracts`；
+- `story-check`；
+- `sealed-narration`；
+- `semantic-timing`；
+- `project-registry`；
+- `narrative-baseline`；
+- `m3-evidence`。
 
-`final` 在 `narrative` 通过后，按实际选择的增强轨追加检查：
-
-- Scene Shot 覆盖、resourceId 和 ScenePackage.rendererId；
-- 每个 ScenePackage 恰好一个 rendererId，且 ShotPlan 不含 renderer 绑定；
-- registry 为静态绑定且不存在未知路径；
-- SceneRenderer 不播放旁白、不渲染字幕；
-- transition 不改变实测语义时间；
-- sound/global 输入和所有最终证据与 assembly fingerprint 一致。
+默认形式从 source 和真实文件重算 report，并要求 persisted AutoCheck strict、fingerprint 和
+canonical bytes 完全一致；它不修复 drift。`--write-auto-check` 仅在七项全部通过且 identity/
+evidence 完整时原子写入；相同 bytes 不改 mtime。缺失、malformed、unknown field、identity
+mismatch、checksum/registry/media drift 和未知参数全部 fail closed，失败不覆盖最后一份有效
+AutoCheck。
 
 视觉增强不存在时，`narrative` 不得因为缺少 SceneVisualPlan、ScenePackage、renderer
 registry 或 ResourceCatalog 而失败。
 
 它只能验证已确定输入，不能自动选择或修正 StoryBeat、Scene 方案、Shot、镜头、资源、
-声音、转场或审美结果。
+声音、转场或审美结果。`final` level 仍是未来目标，当前 CLI 明确拒绝；M4 也没有实现
+NarrativeCheck、SceneVisualCheck、FinalPreviewApproval 或发布检查。
 
 ## 11. Skill 边界
 

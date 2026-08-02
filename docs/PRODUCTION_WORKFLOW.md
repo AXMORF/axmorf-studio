@@ -1,8 +1,7 @@
 # 外部生产流程与解耦边界
 
-> Status：M3 已为 `gps-relativity` 实现到透明 NarrativeCore、generated static
-> ProjectRegistry、lazy Story Composition 与真实 Narrative Baseline evidence；AutoCheck 聚合
-> 和 NarrativeCheck 仍是 M4 目标。
+> Status：M4 已为 `gps-relativity` 完成 Narrative Baseline 的作品级机械 AutoCheck 与失效
+> 验证闭环；NarrativeCheck 和全部视觉/增强/发布能力仍未实现。
 
 ## 1. 文档范围
 
@@ -75,9 +74,8 @@ flowchart TB
     Core --> Register["Generated Static ProjectRegistry<br/>metadata + literal lazy import"]
     Register --> Baseline["Lazy-loaded Story Composition<br/>Narrative Baseline"]
     Baseline --> Auto["AutoCheck<br/>机械检查"]
-    Auto --> NarrativeCheck["NarrativeCheck<br/>Agent 批量叙事检查"]
 
-    NarrativeCheck --> Assembly["CompositionAssembly"]
+    Auto --> Assembly["CompositionAssembly"]
     Visual["StoryVisualTrack<br/>后续可选"] -.-> Assembly
     Sound["SoundDesignTrack<br/>后续可选"] -.-> Assembly
     Global["GlobalVisualLayers<br/>后续可选"] -.-> Assembly
@@ -87,8 +85,8 @@ flowchart TB
     Approval --> Render["Render / Release"]
 ```
 
-虚线表示可选依赖。当前 M3 已实现到 `Narrative Baseline`，并且不要求任何增强轨存在；
-图中的 AutoCheck 聚合和 NarrativeCheck 从 M4 才开始。
+虚线表示可选依赖。当前 M4 已实现到 `Narrative Baseline` 的机械 AutoCheck，并且不要求任何
+增强轨存在。主观 NarrativeCheck 没有进入当前 gate。
 
 ## 4. 阶段输入与输出
 
@@ -105,9 +103,9 @@ flowchart TB
 | Timing                   | sealed manifest、`RenderSpec.fps` 和显式时间边界                  | `SemanticTiming`、`CaptionCue`                                                   | 按 `pcm-cumulative-ceil-v1` 从累计 sampleFrameCount 计算；不得逐 chunk 转帧累加                                |
 | Narrative Runtime        | `StorySpec`、`RenderSpec`、sealed narration、timing               | `NarrativeCore`                                                                  | 不消费 NarrationSpec 的生成参数，不调用 Agent、skill、MCP、VoxCPM 或网络服务                                   |
 | Composition Registration | NarrativeCore、Story ID、RenderSpec、SemanticTiming、固定项目入口 | generated static ProjectRegistry、lazy-loaded Narrative Baseline Composition     | bundle 前固定一级目录发现；元数据静态可枚举，字面量 `import()` 交给 `lazyComponent`；render runtime 不扫描目录 |
-| Baseline Evidence        | Narrative Baseline 与其 fingerprints                              | M3 透明 still、全长 render、严格 evidence receipt                                | 固定路径和机械媒体事实；不是 AutoCheck 聚合或 NarrativeCheck                                                   |
-| Baseline AutoCheck       | Narrative Baseline 与其 fingerprints                              | M4 机械检查报告和作品级汇总                                                      | 不要求 ScenePackage、视觉资产或 renderer registry                                                              |
-| Narrative Check          | Narrative Baseline 与 AutoCheck 报告                              | Agent 叙事检查报告                                                               | 检查内容、旁白、字幕和整体节奏，不进行视觉审核                                                                 |
+| Baseline Evidence        | Narrative Baseline 与其 fingerprints                              | M3 透明 still、全长 render、严格 evidence receipt                                | 固定路径和机械媒体事实                                                                                         |
+| Baseline AutoCheck       | M1–M3 source、封存产物、registry、Baseline 与 evidence            | M4 strict persisted report 和作品级机械汇总                                      | 默认只读 drift gate；不要求 ScenePackage、视觉资产或 renderer registry                                         |
+| Narrative Check          | Narrative Baseline 与机械报告                                     | 未来可能另行设计的 Agent 叙事检查报告                                            | 不属于当前 gate；如未来设计，必须另行批准主观检查边界                                                          |
 | Enhancement              | 已封存叙事主链                                                    | 相互独立的 visual、sound、global tracks                                          | 只能消费上游，不得改写 Story、旁白、字幕或 timing                                                              |
 | Final Assembly           | NarrativeCore 与已选择增强轨                                      | Final Preview、assembly fingerprint                                              | 缺失未选择的增强轨不是错误                                                                                     |
 | Approval and Release     | Final Preview                                                     | approval receipt、成片和发布物                                                   | 用户批准绑定 assembly fingerprint                                                                              |
@@ -286,9 +284,20 @@ sealed narration + SemanticTiming
 → transparent stills + 1731-frame H.264/AAC render + M3 evidence receipt
 ```
 
-M3 明确没有实现 `project:check`、AutoCheck 聚合、NarrativeCheck、Scene、BaseCanvas、资源
-目录或可选增强轨。只有 M4 真实叙事闭环、合同和失效规则得到验证后，才允许进入视觉
-表达规格；视觉层仍必须把 sealed narration、SemanticTiming 和 StoryBeat 当作只读输入。
+M4 已在不修改上述 M2/M3 权威的前提下继续实现：
+
+```text
+M1 contracts + StoryCheck identity + M2 sealed narration + SemanticTiming
++ ProjectRegistry + Narrative Baseline + M3 evidence
+→ fixed project:check --level narrative
+→ strict persisted AutoCheck + read-only drift gate
+→ 16-case isolated invalidation proof
+```
+
+M4 明确只收口机械验证，没有增加主观审核。Scene、BaseCanvas、资源目录、可选增强轨、`final`
+level 和发布流程仍未实现。NarrativeCheck 也没有实现。Gate A 的机械条件已通过，下一步只
+允许单独编写并审阅 M5 视觉表达规格；视觉层
+仍必须把 sealed narration、SemanticTiming 和 StoryBeat 当作只读输入。
 
 ## 10. M2/M3 完成事实与后续门槛
 
@@ -318,5 +327,7 @@ M3 另已满足：
 6. registry-entry、Narrative Baseline 与 M3 evidence fingerprints 均已生成并进入脱敏证据；
 7. 全部 M1–M3 tests、typecheck、lint、bundle、listing、render 与隐私/保护 gate 通过。
 
-AutoCheck 聚合、`project:check --level narrative`、NarrativeCheck 和上游失效场景闭环是 M4
-门槛，不属于 M3 完成事实。
+M4 另已满足：固定七项 AutoCheck 全部通过；默认重算拒绝缺失、malformed 和 byte drift；
+显式写入只保存 pass 且重复执行 checksum/mtime 稳定；16 类隔离 mutation 全部 fail closed；
+M2/M3 受保护文件、fingerprint、listing 和媒体证据保持不变。主观 NarrativeCheck 不属于
+本里程碑完成事实。

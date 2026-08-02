@@ -1,6 +1,6 @@
 # Remotion Story Producer Roadmap
 
-> Status：已获用户批准；M0、M1、M2、M3 已完成，M4 计划审阅为下一步
+> Status：已获用户批准；M0–M4 已完成并通过 Gate A，M5 计划审阅为下一步
 > 更新日期：2026-08-02
 
 ## 1. 用途
@@ -17,7 +17,7 @@
 `gps-relativity` 的 M2 真实旁白封存，以及 M3 透明 NarrativeCore、静态 ProjectRegistry、
 lazy Story Composition、真实 Narrative Baseline preview/render 和 evidence。下列内容仍未实现：
 
-- M4 `project:check`、AutoCheck 聚合、NarrativeCheck 与失效验证闭环；
+- NarrativeCheck 和任何主观叙事质量审核；
 - Scene、Sound、Global 增强轨与发布工具。
 
 因此当前不应直接开始 Scene 视觉制作，也不应先实现三个可选增强轨的空壳。
@@ -45,8 +45,8 @@ flowchart LR
     M0["M0 设计收口<br/>已完成"] --> M1["M1 合同与确定性内核<br/>已完成"]
     M1 --> M2["M2 真实旁白生成与封存<br/>已完成"]
     M2 --> M3["M3 Narrative Baseline Runtime<br/>已完成"]
-    M3 --> M4["M4 叙事闭环与失效验证<br/>下一步：先审阅计划"]
-    M4 --> G1{"Gate A<br/>Baseline 真实闭环？"}
+    M3 --> M4["M4 叙事闭环与失效验证<br/>已完成"]
+    M4 --> G1{"Gate A<br/>已通过"}
     G1 -->|"是"| M5["M5 视觉阶段规格"]
     G1 -->|"否"| M1
     M5 --> M6["M6 资源目录与 Scene Runtime"]
@@ -165,27 +165,38 @@ ProjectRegistry、Composition、Scene 或 BaseCanvas。
 
 ### M4：Narrative Baseline 真实闭环
 
+**状态：** 已于 2026-08-02 完成并通过 Gate A 的机械条件。
+
 **目标：** 把 M1–M3 收口为一个可重复、可检查、可证明失效正确的作品级主链。
 
 **范围：**
 
 - `npm run project:check -- --project <slug> --level narrative`；
-- 已有 StoryCheck 报告的消费，AutoCheck 与 NarrativeCheck 的报告格式和作品级汇总；
+- 已有 StoryCheck identity 的消费、strict AutoCheck 报告和作品级机械汇总；
 - Story、NarrationSpec、停顿、RenderSpec timing/非 timing、registry 变化的失效场景；
 - 真实 Baseline preview/render、证据指纹和使用说明；
 - README、架构、状态、合同和命令的最终对齐。
+
+**明确不做：** NarrativeCheck、`proceed/revise`、Agent 二次审核、主观 Story 质量、旁白
+可懂度、字幕表达或整体叙事节奏检查，以及任何 Scene/visual/final/release 能力。
 
 **完成门槛：**
 
 - `project:check --level narrative`、typecheck、lint、bundle 和 compositions 全部通过；
 - 修改每类上游输入后，旧 timing、registry、Baseline 和 evidence 按设计精确失效；
-- NarrativeCheck 确认 Story 完整、旁白可懂、字幕对应、无截断且整体节奏可接受；
+- 默认检查只读拒绝 persisted AutoCheck drift；显式写入只原子保存 pass，重复写保持
+  checksum 和 mtime 稳定，失败保留最后一份有效报告；
+- 16 类隔离副本失效矩阵证明源合同、封存音频、时间、registry 和 M3 媒体证据 fail closed；
 - 上述检查不查询 ResourceCatalog，不加载 Scene renderer，不要求任何视觉产物。
+
+真实验收见
+[GPS Relativity M4 Narrative Validation Evidence](evidence/2026-08-02-gps-relativity-m4.md)。
 
 ### Gate A：是否允许进入视觉阶段
 
-只有 M4 全部通过后才允许编写 M5 实施规格。如果真实主题暴露了 Story、旁白、时间或
-Composition 注册问题，必须回到 M1–M4 修正，不得用 Scene 代码遮盖。
+M4 已全部通过，因此在当前 AutoCheck、M3 evidence 和受保护 M2/M3 identities 继续有效的
+前提下，允许单独编写并审阅 M5 实施规格；这不等于 M5 已开始。如果真实主题暴露 Story、
+旁白、时间或 Composition 注册问题，必须回到 M1–M4 修正，不得用 Scene 代码遮盖。
 
 ### M5：视觉阶段规格
 
@@ -314,6 +325,7 @@ Composition 注册问题，必须回到 M1–M4 修正，不得用 Scene 代码�
 
 ## 7. 当前唯一下一步
 
-M1、M2、M3 已实现并通过验收。当前只编写并审阅 **M4：Narrative Baseline 真实闭环**
-的实施计划；没有单独获批计划前，不开始 `project:check`、AutoCheck 聚合、NarrativeCheck
-或任何 Scene/BaseCanvas/可选增强轨实现。
+M1–M4 已实现并通过验收。当前只编写并审阅 **M5：视觉阶段规格** 的实施计划；没有单独
+获批计划前，不开始 SceneVisualPlan、ShotPlan、ScenePackage、RendererRegistry、
+ResourceCatalog、BaseCanvas、SceneVisualCheck、`final` level 或任何视觉/声音/全局增强轨实现。
+NarrativeCheck 也不属于已实现事实。

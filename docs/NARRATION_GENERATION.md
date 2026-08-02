@@ -196,8 +196,9 @@ environment files, lock files, temporary staging directories, or provider logs.
 
 ## M2 scope boundary and M3 consumption
 
-M2 itself ends at verified sealed narration and generated SemanticTiming/CaptionCue artifacts. M3 now
-reads those exact artifacts to provide NarrativeCore, NarrationAudioTrack, CaptionLayer, generated
-ProjectRegistry, one lazy Story Composition, transparent stills and a full Baseline render. M3 does not
-regenerate or supersede narration. NarrativeCheck, Scene, renderer, Shot, BaseCanvas, sound and global
-visual layers remain unimplemented.
+M2 itself ends at verified sealed narration and generated SemanticTiming/CaptionCue artifacts. M3 reads
+those exact artifacts to provide NarrativeCore, NarrationAudioTrack, CaptionLayer, generated
+ProjectRegistry, one lazy Story Composition, transparent stills and a full Baseline render. M4 now checks
+the same sealed files read-only as part of `project:check`; it does not regenerate, reseal, supersede or
+rewrite SemanticTiming. NarrativeCheck, Scene, renderer, Shot, BaseCanvas, sound and global visual layers
+remain unimplemented.
