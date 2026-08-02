@@ -12,12 +12,16 @@ import {
   SealedNarrationManifestSchema,
   SemanticTimingSchema,
   Sha256DigestSchema,
+  StoryIdSchema,
   type M3NarrativeBaselineEvidenceReceipt,
   type M3NarrativeBaselineEvidenceReceiptInput,
 } from "../../src/contracts";
-import { projectRegistry } from "../../src/projects/project-registry.generated";
 import { writeJsonAtomic } from "../narration/adapters/atomic-files";
 import { generateProjectRegistry } from "../registry/generate";
+import {
+  discoverProjectEntries,
+  loadProjectRegistrationEntry,
+} from "../registry/project-files";
 
 export type ProcessResult = {
   readonly status: number;
@@ -217,20 +221,50 @@ const sha256Bytes = (bytes: Buffer) =>
       .digest("hex")}`,
   );
 
-export const writeM3NarrativeBaselineEvidence = async ({
+const sortJsonValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(sortJsonValue);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entry]) => [key, sortJsonValue(entry)]),
+    );
+  }
+  return value;
+};
+
+const serializeReceipt = (receipt: M3NarrativeBaselineEvidenceReceipt) =>
+  `${JSON.stringify(sortJsonValue(receipt), null, 2)}\n`;
+
+export const resolveCurrentM3Entry = async (
+  rootDir: string,
+  rawStoryId: string,
+) => {
+  const storyId = StoryIdSchema.parse(rawStoryId);
+  await generateProjectRegistry({ rootDir, mode: "check" });
+  const expectedCompositionPath =
+    `src/projects/${storyId}/Composition.tsx` as const;
+  const compositionPaths = await discoverProjectEntries(rootDir);
+  if (!compositionPaths.includes(expectedCompositionPath)) {
+    throw new Error(`Unknown project: ${storyId}.`);
+  }
+  return loadProjectRegistrationEntry({
+    rootDir,
+    compositionPath: expectedCompositionPath,
+  });
+};
+
+export const collectCurrentM3NarrativeBaselineEvidence = async ({
   rootDir,
-  storyId,
+  storyId: rawStoryId,
   runProcess = defaultProcessRunner,
 }: {
   readonly rootDir: string;
   readonly storyId: string;
   readonly runProcess?: ProcessRunner;
 }): Promise<M3NarrativeBaselineEvidenceReceipt> => {
-  const entry = projectRegistry.find(
-    (candidate) => candidate.defaultProps.projectId === storyId,
-  );
-  if (entry === undefined) throw new Error(`Unknown project: ${storyId}.`);
-  await generateProjectRegistry({ rootDir, mode: "check" });
+  const storyId = StoryIdSchema.parse(rawStoryId);
+  const entry = await resolveCurrentM3Entry(rootDir, storyId);
 
   const paths = {
     registry: "src/projects/project-registry.generated.ts",
@@ -266,11 +300,11 @@ export const writeM3NarrativeBaselineEvidence = async ({
   if (
     sealedNarration.storyId !== storyId ||
     semanticTiming.storyId !== storyId ||
-    entry.id !== "GpsRelativity" ||
-    entry.fps !== 30 ||
-    entry.durationInFrames !== 1731 ||
-    semanticTiming.fps !== entry.fps ||
-    semanticTiming.durationInFrames !== entry.durationInFrames
+    entry.descriptor.id !== "GpsRelativity" ||
+    entry.descriptor.fps !== 30 ||
+    entry.descriptor.durationInFrames !== 1731 ||
+    semanticTiming.fps !== entry.descriptor.fps ||
+    semanticTiming.durationInFrames !== entry.descriptor.durationInFrames
   ) {
     throw new Error("M3 evidence inputs are stale against ProjectRegistry.");
   }
@@ -283,7 +317,7 @@ export const writeM3NarrativeBaselineEvidence = async ({
   const receipt = createM3EvidenceReceipt({
     schemaVersion: 1,
     storyId: sealedNarration.storyId,
-    compositionId: CompositionIdSchema.parse(entry.id),
+    compositionId: CompositionIdSchema.parse(entry.descriptor.id),
     sealedNarrationFingerprint: sealedNarration.sealedNarrationFingerprint,
     semanticTimingFingerprint: semanticTiming.fingerprint,
     generatedRegistryChecksum: sha256Bytes(registryBytes),
@@ -316,8 +350,73 @@ export const writeM3NarrativeBaselineEvidence = async ({
       },
     },
   });
+  return receipt;
+};
+
+export const checkM3NarrativeBaselineEvidence = async ({
+  rootDir,
+  storyId,
+  runProcess = defaultProcessRunner,
+}: {
+  readonly rootDir: string;
+  readonly storyId: string;
+  readonly runProcess?: ProcessRunner;
+}): Promise<M3NarrativeBaselineEvidenceReceipt> => {
+  const current = await collectCurrentM3NarrativeBaselineEvidence({
+    rootDir,
+    storyId,
+    runProcess,
+  });
+  const receiptPath = join(
+    rootDir,
+    `src/projects/${current.storyId}/generated/narrative-baseline-evidence.generated.json`,
+  );
+  let persistedBytes: Buffer;
+  try {
+    persistedBytes = await readFile(receiptPath);
+  } catch (error) {
+    throw new Error("M3 evidence receipt is missing or unreadable.", {
+      cause: error,
+    });
+  }
+  let rawPersisted: unknown;
+  try {
+    rawPersisted = JSON.parse(persistedBytes.toString("utf8"));
+  } catch (error) {
+    throw new Error("M3 evidence receipt contains malformed JSON.", {
+      cause: error,
+    });
+  }
+  const persisted = M3NarrativeBaselineEvidenceReceiptSchema.parse(rawPersisted);
+  if (
+    persistedBytes.toString("utf8") !== serializeReceipt(current) ||
+    serializeReceipt(persisted) !== serializeReceipt(current)
+  ) {
+    throw new Error("M3 evidence receipt drift: persisted bytes are stale.");
+  }
+  return persisted;
+};
+
+export const writeM3NarrativeBaselineEvidence = async ({
+  rootDir,
+  storyId,
+  runProcess = defaultProcessRunner,
+}: {
+  readonly rootDir: string;
+  readonly storyId: string;
+  readonly runProcess?: ProcessRunner;
+}): Promise<M3NarrativeBaselineEvidenceReceipt> => {
+  const receipt = await collectCurrentM3NarrativeBaselineEvidence({
+    rootDir,
+    storyId,
+    runProcess,
+  });
+  const receiptPath = join(
+    rootDir,
+    `src/projects/${receipt.storyId}/generated/narrative-baseline-evidence.generated.json`,
+  );
   await writeJsonAtomic({
-    destination: absolute(paths.receipt),
+    destination: receiptPath,
     value: receipt,
   });
   return receipt;
@@ -343,11 +442,6 @@ export const runBaselineEvidenceCli = async (
     throw new Error("Expected exactly --project <project slug>.");
   }
   const storyId = args[1] ?? "";
-  if (
-    !projectRegistry.some((entry) => entry.defaultProps.projectId === storyId)
-  ) {
-    throw new Error(`Unknown project: ${storyId}.`);
-  }
   const receipt = await writeM3NarrativeBaselineEvidence({
     rootDir: context.rootDir,
     storyId,
