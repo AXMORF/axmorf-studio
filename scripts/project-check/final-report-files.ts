@@ -1,0 +1,101 @@
+import { readFile } from "node:fs/promises";
+
+import {
+  FinalMechanicalCheckReportSchema,
+  type FinalMechanicalCheckReport,
+} from "../../src/contracts";
+import { getProjectCheckPaths } from "./project-files";
+import { writeNarrativeAutoCheckAtomic } from "./report-files";
+
+const sortJsonValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(sortJsonValue);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entry]) => [key, sortJsonValue(entry)]),
+    );
+  }
+  return value;
+};
+
+export const serializeFinalMechanicalCheckReport = (rawReport: unknown) => {
+  const report = FinalMechanicalCheckReportSchema.parse(rawReport);
+  return `${JSON.stringify(sortJsonValue(report), null, 2)}\n`;
+};
+
+export const writeFinalMechanicalCheckIfPassed = async ({
+  rootDir,
+  report: rawReport,
+}: {
+  readonly rootDir: string;
+  readonly report: unknown;
+}): Promise<{ readonly destination: string; readonly written: boolean }> => {
+  const report = FinalMechanicalCheckReportSchema.parse(rawReport);
+  if (report.aggregateStatus !== "pass") {
+    throw new Error("Only a passing final mechanical check may be persisted.");
+  }
+  const destination = getProjectCheckPaths({
+    rootDir,
+    projectId: report.storyId,
+  }).finalCheck;
+  const bytes = serializeFinalMechanicalCheckReport(report);
+  try {
+    if ((await readFile(destination, "utf8")) === bytes) {
+      return { destination, written: false };
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  await writeNarrativeAutoCheckAtomic(destination, bytes);
+  return { destination, written: true };
+};
+
+export const checkPersistedFinalMechanicalCheck = async ({
+  rootDir,
+  expectedReport: rawExpectedReport,
+}: {
+  readonly rootDir: string;
+  readonly expectedReport: unknown;
+}): Promise<FinalMechanicalCheckReport> => {
+  const expectedReport =
+    FinalMechanicalCheckReportSchema.parse(rawExpectedReport);
+  if (expectedReport.aggregateStatus !== "pass") {
+    throw new Error("Current final mechanical check did not pass.");
+  }
+  const destination = getProjectCheckPaths({
+    rootDir,
+    projectId: expectedReport.storyId,
+  }).finalCheck;
+  let persistedBytes: string;
+  try {
+    persistedBytes = await readFile(destination, "utf8");
+  } catch (error) {
+    throw new Error(
+      "Persisted final mechanical check is missing or unreadable.",
+      {
+        cause: error,
+      },
+    );
+  }
+  let rawPersisted: unknown;
+  try {
+    rawPersisted = JSON.parse(persistedBytes);
+  } catch (error) {
+    throw new Error(
+      "Persisted final mechanical check contains malformed JSON.",
+      {
+        cause: error,
+      },
+    );
+  }
+  const persisted = FinalMechanicalCheckReportSchema.parse(rawPersisted);
+  if (
+    persistedBytes !== serializeFinalMechanicalCheckReport(expectedReport) ||
+    serializeFinalMechanicalCheckReport(persisted) !==
+      serializeFinalMechanicalCheckReport(expectedReport)
+  ) {
+    throw new Error("Persisted final mechanical check bytes are stale.");
+  }
+  return persisted;
+};

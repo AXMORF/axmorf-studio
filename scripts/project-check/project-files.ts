@@ -47,6 +47,18 @@ export const getProjectCheckPaths = ({
       projectDirectory,
       "generated/narrative-auto-check.generated.json",
     ),
+    finalCheck: join(
+      projectDirectory,
+      "generated/final-mechanical-check.generated.json",
+    ),
+    visualStyle: join(projectDirectory, "visual-style.json"),
+    sceneCoverage: join(
+      projectDirectory,
+      "generated/scene-coverage.generated.json",
+    ),
+    rendererRegistry: join(projectDirectory, "renderer-registry.generated.ts"),
+    composition: join(projectDirectory, "Composition.tsx"),
+    scenesDirectory: join(projectDirectory, "scenes"),
     registry: join(rootDir, "src/projects/project-registry.generated.ts"),
   } as const;
 };
@@ -62,6 +74,19 @@ const readJson = async (path: string, label: string): Promise<unknown> => {
     return JSON.parse(bytes.toString("utf8"));
   } catch (error) {
     throw new Error(`${label} contains malformed JSON.`, { cause: error });
+  }
+};
+
+export const loadProjectCheckJson = readJson;
+
+export const loadProjectCheckText = async (
+  path: string,
+  label: string,
+): Promise<string> => {
+  try {
+    return await readFile(path, "utf8");
+  } catch (error) {
+    throw new Error(`${label} is missing or unreadable.`, { cause: error });
   }
 };
 

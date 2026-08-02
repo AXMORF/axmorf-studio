@@ -7,6 +7,11 @@ import {
   checkPersistedNarrativeAutoCheck,
   writeNarrativeAutoCheckIfPassed,
 } from "./report-files";
+import {
+  checkPersistedFinalMechanicalCheck,
+  writeFinalMechanicalCheckIfPassed,
+} from "./final-report-files";
+import { runFinalMechanicalCheck } from "./final-run";
 import { runNarrativeAutoCheck } from "./run";
 
 export type ProjectCheckCliContext = {
@@ -20,23 +25,36 @@ const defaultContext = (): ProjectCheckCliContext => ({
   stdout: (line) => process.stdout.write(`${line}\n`),
 });
 
-const parseArgs = (args: readonly string[]) => {
+export const parseProjectCheckArgs = (args: readonly string[]) => {
   const isDefault =
-    args.length === 4 &&
-    args[0] === "--project" &&
-    args[2] === "--level";
-  const isWrite =
+    args.length === 4 && args[0] === "--project" && args[2] === "--level";
+  const isNarrativeWrite =
     args.length === 5 &&
     args[0] === "--project" &&
     args[2] === "--level" &&
     args[4] === "--write-auto-check";
-  if (!isDefault && !isWrite) {
+  const isFinalWrite =
+    args.length === 5 &&
+    args[0] === "--project" &&
+    args[2] === "--level" &&
+    args[3] === "final" &&
+    args[4] === "--write-final-check";
+  if (!isDefault && !isNarrativeWrite && !isFinalWrite) {
     throw new Error(
-      "Expected exactly --project <slug> --level narrative [--write-auto-check].",
+      "Expected an exact narrative or final project check command.",
     );
   }
-  if (args[3] !== "narrative") {
-    throw new Error("Only the narrative project check level is supported.");
+  const level = args[3];
+  if (level !== "narrative" && level !== "final") {
+    throw new Error(
+      "Only narrative and final project check levels are supported.",
+    );
+  }
+  if (
+    (level === "narrative" && isFinalWrite) ||
+    (level === "final" && isNarrativeWrite)
+  ) {
+    throw new Error("Project check writer does not match its level.");
   }
   let storyId;
   try {
@@ -44,16 +62,19 @@ const parseArgs = (args: readonly string[]) => {
   } catch {
     throw new Error("Invalid project slug.");
   }
-  return { storyId, write: isWrite } as const;
+  return {
+    storyId,
+    level,
+    write: isNarrativeWrite || isFinalWrite,
+  } as const;
 };
 
 export const runProjectCheckCli = async (
   args: readonly string[],
   context: ProjectCheckCliContext = defaultContext(),
 ) => {
-  const parsed = parseArgs(args);
-  const expectedCompositionPath =
-    `src/projects/${parsed.storyId}/Composition.tsx`;
+  const parsed = parseProjectCheckArgs(args);
+  const expectedCompositionPath = `src/projects/${parsed.storyId}/Composition.tsx`;
   let discovered: readonly string[];
   try {
     discovered = await discoverProjectEntries(context.rootDir);
@@ -63,21 +84,42 @@ export const runProjectCheckCli = async (
   if (!discovered.includes(expectedCompositionPath)) {
     throw new Error(`Unknown project: ${parsed.storyId}.`);
   }
-  const report = await runNarrativeAutoCheck({
-    rootDir: context.rootDir,
-    projectId: parsed.storyId,
-    runM3EvidenceProcess: context.runM3EvidenceProcess,
-  });
+  const report =
+    parsed.level === "narrative"
+      ? await runNarrativeAutoCheck({
+          rootDir: context.rootDir,
+          projectId: parsed.storyId,
+          runM3EvidenceProcess: context.runM3EvidenceProcess,
+        })
+      : await runFinalMechanicalCheck({
+          rootDir: context.rootDir,
+          projectId: parsed.storyId,
+          runM3EvidenceProcess: context.runM3EvidenceProcess,
+        });
   if (report.aggregateStatus !== "pass") {
-    throw new Error("Narrative project check failed.");
+    throw new Error(
+      parsed.level === "narrative"
+        ? "Narrative project check failed."
+        : "Final project check failed.",
+    );
   }
-  if (parsed.write) {
+  if (parsed.level === "narrative" && parsed.write) {
     await writeNarrativeAutoCheckIfPassed({
       rootDir: context.rootDir,
       report,
     });
-  } else {
+  } else if (parsed.level === "narrative") {
     await checkPersistedNarrativeAutoCheck({
+      rootDir: context.rootDir,
+      expectedReport: report,
+    });
+  } else if (parsed.write) {
+    await writeFinalMechanicalCheckIfPassed({
+      rootDir: context.rootDir,
+      report,
+    });
+  } else {
+    await checkPersistedFinalMechanicalCheck({
       rootDir: context.rootDir,
       expectedReport: report,
     });
@@ -98,7 +140,8 @@ if (
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
   runProjectCheckCli(process.argv.slice(2)).catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : "Project check failed.";
+    const message =
+      error instanceof Error ? error.message : "Project check failed.";
     process.stderr.write(`${message}\n`);
     process.exitCode = 1;
   });

@@ -5,7 +5,10 @@ import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 
 import type { ProcessRunner } from "../../scripts/baseline/evidence";
-import { runProjectCheckCli } from "../../scripts/project-check/cli";
+import {
+  parseProjectCheckArgs,
+  runProjectCheckCli,
+} from "../../scripts/project-check/cli";
 import { generateProjectRegistry } from "../../scripts/registry/generate";
 
 const ok = (stdout: string): Awaited<ReturnType<ProcessRunner>> => ({
@@ -114,7 +117,56 @@ test("CLI supports only explicit write then default read-only validation", async
   assert.doesNotMatch(report, /\/home\/|\/data\/|token|endpoint|out\//i);
 });
 
-test("CLI rejects unknown projects levels reordered duplicate path and extra flags", async (context) => {
+test("CLI accepts only the two exact final forms and GPS fails without writing", async (context) => {
+  const rootDir = await createCliRoot(context);
+  assert.deepEqual(
+    parseProjectCheckArgs(["--project", "gps-relativity", "--level", "final"]),
+    { storyId: "gps-relativity", level: "final", write: false },
+  );
+  assert.deepEqual(
+    parseProjectCheckArgs([
+      "--project",
+      "gps-relativity",
+      "--level",
+      "final",
+      "--write-final-check",
+    ]),
+    { storyId: "gps-relativity", level: "final", write: true },
+  );
+  const cliContext = {
+    rootDir,
+    runM3EvidenceProcess: validEvidenceProcess,
+    stdout: () => undefined,
+  };
+  await assert.rejects(() =>
+    runProjectCheckCli(
+      ["--project", "gps-relativity", "--level", "final"],
+      cliContext,
+    ),
+  );
+  await assert.rejects(() =>
+    runProjectCheckCli(
+      [
+        "--project",
+        "gps-relativity",
+        "--level",
+        "final",
+        "--write-final-check",
+      ],
+      cliContext,
+    ),
+  );
+  await assert.rejects(() =>
+    readFile(
+      join(
+        rootDir,
+        "src/projects/gps-relativity/generated/final-mechanical-check.generated.json",
+      ),
+    ),
+  );
+});
+
+test("CLI rejects unknown levels reordered duplicate path and mixed writer flags", async (context) => {
   const rootDir = await createCliRoot(context);
   const cliContext = {
     rootDir,
@@ -123,12 +175,20 @@ test("CLI rejects unknown projects levels reordered duplicate path and extra fla
   };
   const invalidArgs = [
     ["--project", "unknown", "--level", "narrative"],
-    ["--project", "gps-relativity", "--level", "final"],
+    ["--project", "gps-relativity", "--level", "release"],
     ["--level", "narrative", "--project", "gps-relativity"],
     ["--project", "gps-relativity", "--project", "gps-relativity"],
     ["--project", "gps-relativity", "--level", "narrative", "--output"],
     ["--project", "gps-relativity", "--level", "narrative", "--root"],
     ["--project", "gps-relativity", "--level", "narrative", "--repair"],
+    [
+      "--project",
+      "gps-relativity",
+      "--level",
+      "narrative",
+      "--write-final-check",
+    ],
+    ["--project", "gps-relativity", "--level", "final", "--write-auto-check"],
   ];
   for (const args of invalidArgs) {
     await assert.rejects(() => runProjectCheckCli(args, cliContext));
