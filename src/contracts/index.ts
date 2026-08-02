@@ -1,4 +1,5 @@
 export * from "./brief";
+export * from "./auto-check";
 export * from "./fingerprint";
 export * from "./generation-input";
 export * from "./m1-validation";
