@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { createElement, Fragment, isValidElement } from "react";
+import {
+  Children,
+  createElement,
+  Fragment,
+  isValidElement,
+  type ReactNode,
+} from "react";
 import test from "node:test";
 import ts from "typescript";
 
@@ -9,18 +15,37 @@ import {
   type CompositionAssemblyProps,
 } from "../../src/remotion/runtime/composition-assembly";
 
-test("CompositionAssembly exposes only the required narrativeCore slot", () => {
+test("CompositionAssembly exposes one required and two exact optional semantic slots", () => {
   const props: CompositionAssemblyProps = {
     narrativeCore: createElement("span", null, "narrative"),
   };
   assert.deepEqual(Object.keys(props), ["narrativeCore"]);
   const assembly = CompositionAssembly(props);
-  assert.ok(isValidElement<{ children: unknown }>(assembly));
+  assert.ok(isValidElement<{ children?: ReactNode }>(assembly));
   assert.equal(assembly.type, Fragment);
-  assert.equal(assembly.props.children, props.narrativeCore);
+  const narrativeChildren = Children.toArray(assembly.props.children);
+  assert.equal(narrativeChildren.length, 1);
+  assert.ok(isValidElement<{ children?: ReactNode }>(narrativeChildren[0]));
+  assert.equal(narrativeChildren[0].props.children, "narrative");
+
+  const storyVisualTrack = createElement("span", null, "visual");
+  const soundDesignTrack = createElement("span", null, "sound");
+  const full = CompositionAssembly({
+    narrativeCore: props.narrativeCore,
+    storyVisualTrack,
+    soundDesignTrack,
+  });
+  assert.ok(isValidElement<{ children?: ReactNode }>(full));
+  assert.deepEqual(
+    Children.toArray(full.props.children).map(
+      (child) =>
+        isValidElement<{ children?: ReactNode }>(child) && child.props.children,
+    ),
+    ["visual", "narrative", "sound"],
+  );
 });
 
-test("assembly source has one required prop and no enhancement placeholder", async () => {
+test("assembly source has only the approved M6 slots and no generic or M8 placeholder", async () => {
   const path = new URL(
     "../../src/remotion/runtime/composition-assembly/CompositionAssembly.tsx",
     import.meta.url,
@@ -36,10 +61,10 @@ test("assembly source has one required prop and no enhancement placeholder", asy
   assert.equal(ast.kind, ts.SyntaxKind.SourceFile);
   assert.match(
     source,
-    /type CompositionAssemblyProps = \{\s*readonly narrativeCore: ReactNode;\s*\}/,
+    /readonly narrativeCore: ReactNode;\s*readonly storyVisualTrack\?: ReactNode;\s*readonly soundDesignTrack\?: ReactNode;/,
   );
   assert.doesNotMatch(
     source,
-    /StoryVisualTrack|SoundDesignTrack|GlobalVisualLayers|track\[\]|placeholder|BaseCanvas|Scene/,
+    /GlobalVisualLayers|globalSound|genericTracks|track\[\]|placeholder|BaseCanvas/,
   );
 });

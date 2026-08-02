@@ -12,13 +12,12 @@ import {
 } from "../../src/projects/gps-relativity/Composition";
 
 test("gps-relativity has a default-export Composition", async () => {
-  const module = await import(
-    "../../src/projects/gps-relativity/Composition"
-  );
+  const module = await import("../../src/projects/gps-relativity/Composition");
   assert.equal(typeof module.default, "function");
   const element = module.default(gpsRelativityCompositionMetadata.defaultProps);
   assert.ok(isValidElement<{ narrativeCore: unknown }>(element));
   assert.equal(element.type, CompositionAssembly);
+  assert.deepEqual(Object.keys(element.props), ["narrativeCore"]);
   assert.ok(isValidElement(element.props.narrativeCore));
   assert.equal(element.props.narrativeCore.type, NarrativeCore);
 });
@@ -72,6 +71,6 @@ test("Composition uses only static project data and the complete sealed audio", 
   assert.match(source, /staticFile\(/);
   assert.doesNotMatch(
     source,
-    /chunk.*\.wav|node:fs|readFile|fetch\(|https?:|registry|BaseCanvas|capabilities|Scene|story-check/,
+    /chunk.*\.wav|node:fs|readFile|fetch\(|https?:|registry|BaseCanvas|capabilities|Scene|story-check|storyVisualTrack|soundDesignTrack/,
   );
 });

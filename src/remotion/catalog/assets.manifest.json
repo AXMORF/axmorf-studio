@@ -1,4 +1,70 @@
 {
   "schemaVersion": 1,
-  "assets": []
+  "assets": [
+    {
+      "schemaVersion": 1,
+      "id": "asset.m6-proof-pulse",
+      "kind": "asset",
+      "status": "approved",
+      "title": "M6 proof pulse",
+      "description": "Project-authored mono PCM pulse for the synthetic Scene-local sound proof.",
+      "useCases": ["synthetic scene cue"],
+      "tags": ["m6", "proof", "sfx"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "scene-sfx",
+      "localPath": "public/assets/library/m6-scene-runtime/proof-pulse.wav",
+      "checksum": "sha256:187da07a941e050db15e5fe2e8e7aed327a3f796fda894125ae1b504e210c1a7",
+      "license": {
+        "id": "Project-Authored",
+        "verificationStatus": "verified",
+        "sourceUrl": null,
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-08-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:187da07a941e050db15e5fe2e8e7aed327a3f796fda894125ae1b504e210c1a7"
+      },
+      "media": {
+        "durationInSeconds": 0.18,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.m6-proof-shape",
+      "kind": "asset",
+      "status": "approved",
+      "title": "M6 proof shape",
+      "description": "Project-authored SVG used by the synthetic Scene visual runtime proof.",
+      "useCases": ["synthetic scene visual"],
+      "tags": ["m6", "proof", "svg"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "svg",
+      "mediaRole": "scene-visual",
+      "localPath": "public/assets/library/m6-scene-runtime/proof-shape.svg",
+      "checksum": "sha256:83284733c309b88ffa56e1cda84a2699a7ace251df4831620d3484154745ccbb",
+      "license": {
+        "id": "Project-Authored",
+        "verificationStatus": "verified",
+        "sourceUrl": null,
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-08-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:83284733c309b88ffa56e1cda84a2699a7ace251df4831620d3484154745ccbb"
+      },
+      "media": {
+        "width": 560,
+        "height": 380
+      }
+    }
+  ]
 }

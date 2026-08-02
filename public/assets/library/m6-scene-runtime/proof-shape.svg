@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 380" role="img" aria-label="M6 deterministic proof shape">
+  <rect width="560" height="380" rx="28" fill="#08111f"/>
+  <path d="M112 252 L210 104 L292 202 L360 128 L448 252 Z" fill="#22d3ee" opacity="0.88"/>
+  <circle cx="280" cy="190" r="112" fill="none" stroke="#f8fafc" stroke-width="12"/>
+</svg>
