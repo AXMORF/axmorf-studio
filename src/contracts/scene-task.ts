@@ -119,10 +119,13 @@ export const SceneTaskInputSchema = SceneTaskInputObjectSchema.superRefine(
       });
     }
     const expectedSceneRoot = `src/projects/${task.storyId}/scenes/${task.meaningId}`;
-    const expectedAssetRoot = `public/assets/library/${task.storyId}/${task.meaningId}`;
+    const expectedAssetRoots = [
+      `public/projects/${task.storyId}/scenes/${task.meaningId}`,
+      `public/assets/library/${task.storyId}/${task.meaningId}`,
+    ];
     if (
       task.allowedDirectories.sceneRoot !== expectedSceneRoot ||
-      task.allowedDirectories.publicAssetRoot !== expectedAssetRoot
+      !expectedAssetRoots.includes(task.allowedDirectories.publicAssetRoot)
     ) {
       context.addIssue({
         code: "custom",
