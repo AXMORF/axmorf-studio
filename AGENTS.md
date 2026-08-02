@@ -21,7 +21,8 @@
   容器验证流程。
 - 所有 `remotion` 与 `@remotion/*` 包保持完全相同的精确版本。
 - 一 Story 对应一个 Composition；一 StoryBeat 对应一个 `meaningId` 和一个 Scene；完成
-  视觉制作的 Scene 对应一个 ScenePackage。
+  视听制作的 Scene 对应一个 ScenePackage。ScenePackage 内聚画面与 Scene 局部声音，但不
+  拥有旁白、字幕或全局 BGM。
 - `ttsChunks` 是创作决策已经确定的朗读单元；工具不得按标点自动拆分，额外叙事停顿
   必须显式声明或来自封存音频的实测自然静音。
 - 实测旁白时间是绝对时间权威；Scene 和转场不得移动、缩短或吞掉 spoken frames。
@@ -34,7 +35,7 @@
 - Scene renderer 必须通过 composition-local 静态 registry 绑定；它可以在内部拆分
   本地 Shot 组件并调用已批准共享能力，但这些内部组件不是 runtime registry 入口。
 - render runtime 不调用 Agent、skill、MCP 或网络服务。
-- 所有可见资产必须位于仓库 `public/`，有 manifest 元数据并通过校验。
+- 所有选中视觉与音频资产必须位于仓库 `public/`，有 manifest 元数据并通过校验。
 - 所有 render-critical motion 使用 Remotion frame API；禁止 CSS animation、
   CSS transition 和 Tailwind animation utilities。
 
@@ -46,17 +47,20 @@
   ProjectRegistry、lazy-loaded Story Composition、真实 preview/render、M3 evidence，以及固定
   `project:check --level narrative`、可持久化 AutoCheck 和隔离失效矩阵。
 - M4 只实现机械 AutoCheck，没有增加主观叙事质量复核或 `proceed/revise`。
-- NarrativeCheck 没有实现。当前唯一下一步是单独编写并审阅 M5 视觉阶段规格，不得提前
-  实现视觉合同或 runtime。
-- 当前不设计或实现 SceneVisualPlan、ShotPlan、ScenePackage、Scene renderer、视觉资产
-  查询、转场、SoundDesignTrack 或 GlobalVisualLayers。
-- 已记录的 Scene 级 renderer 设计只定义未来接入接口。它不得成为 Narrative Baseline
-  的前置条件，也不得反向修改 Story、旁白、字幕或实测时间线。
+- M5 ScenePackage 视听制作规格已于 2026-08-02 获用户正式批准。M6 已实现
+  VisualStyleSpec、ResourceCatalog、不可变外部参考、本地化/保真 receipt、Scene 视听合同、
+  ScenePackage/Coverage、composition-local RendererRegistry、visual/local-sound runtime、
+  final-level 机械基础和独立 synthetic proof。
+- NarrativeCheck 没有实现。当前唯一下一步是 M7：为 `gps-relativity` 制作五个正式
+  ScenePackage；M6 synthetic proof 不是正式 Story Scene，也不满足该作品的 final coverage。
+- M6 的 Scene 级 renderer/runtime 不得成为 Narrative Baseline 的前置条件，也不得反向修改
+  Story、旁白、字幕或实测时间线。M7 不得提前实现 M8 的 GlobalSoundPlan、全局 BGM、跨
+  Scene ambience、ducking、mastering 或 GlobalVisualLayers。
 - ProjectRegistry 在 bundle 前按固定一级目录约定生成静态 TypeScript；注册元数据必须
   预先可枚举，Composition 代码通过 Remotion `lazyComponent` 和字面量 `import()` 按需
   加载。`Composition.tsx` 必须 default export。
 - 目录发现只允许发生在固定生成步骤；render runtime 不扫描目录、不读取 JSON 模块路径，
-  也不能为了列出 Narrative Baseline 而加载 Scene renderer。ProjectRegistry 与后续
+  也不能为了列出 Narrative Baseline 而加载 Scene renderer。ProjectRegistry 与
   composition-local RendererRegistry 分离。
 - RenderSpec 是用户每次制作直接给 Agent 的输入；Agent 只结构化并机械校验，不把它
   放进 StoryCheck，也不要求用户二次确认。
@@ -67,9 +71,15 @@
 
 制作新 Scene 只允许参考：
 
-1. 当前 Story、StoryBeat、实测 timing、SceneVisualPlan 与相邻连续性；
-2. 当前 `src/remotion/capabilities/` 中的共享能力；统一 catalog 实现后改用 catalog；
+1. 当前 Story、StoryBeat、实测 timing、VisualStyleSpec、SceneVisualPlan、SceneSoundPlan
+   与相邻连续性；
+2. 当前 ResourceCatalog 中已登记的共享能力与本地资产；
 3. 当前方案显式选择并已本地化的上游来源。
+
+`video-shotcraft` 等来源只能通过冻结的完整 commit、Gallery card/style-key、完整配方、准确
+demo 与最小依赖闭包进入 Scene；不得只凭卡名/参数近似重写，不得直接 import 上游仓库、
+package、远程 URL 或全局 skill。Gallery preview 只用于选型和保真证据。第三方代码与媒体
+资产分别校验 license/attribution；未确认的 bundled audio 不得进入 ScenePackage。
 
 不得搜索、打开、比较、模仿或复制旧生产 Scene、旧 Composition、still、
 contact sheet 或历史布局来制作新 Scene。历史诊断必须与新 Scene authoring 隔离。
@@ -87,10 +97,14 @@ proposal，并得到用户对范围、API、文件和目标位置的明确批准
 - `StoryCheck`：调用外部旁白生成前，由 Agent 检查 StoryBeat 顺序、`ttsChunks`、叙事完整
   性和 voice profile 选择，不阻塞用户；
 - `NarrativeCheck`：Agent 批量检查 Story 完整性、旁白可懂度、字幕对应和叙事节奏；
-- `SceneVisualCheck`：仅在后续视觉阶段批量检查 Scene 语义、构图、运动与连续性；
+- `SceneVisualCheck`：仅在后续 Scene 阶段批量检查 Scene 语义、构图、运动与连续性；
+- `SceneSoundCheck`：仅在后续 Scene 阶段批量检查 Scene 局部 ambience/SFX、同步、音量与
+  固定 Beat 窗口；
 - `FinalPreviewApproval`：默认唯一必须由用户作出的创意批准；
-- Shotcraft fidelity、motion strip、benchmark、封面和 promotion review 仅在命中
-  对应条件时执行。
+- Shotcraft fidelity 仅在 Scene 显式选择 Shotcraft recipe 时执行；exact 模式必须证明 immutable
+  lineage、准确 demo、最小本地化依赖闭包、真实 Renderer/frame-state binding、配对证据和
+  正常速度可辨识度。motion strip、benchmark、封面和 promotion review 仍只在命中对应条件
+  时执行。
 
 不要为每个 Scene、每个 still 或每个脚本步骤反复要求用户审批。
 

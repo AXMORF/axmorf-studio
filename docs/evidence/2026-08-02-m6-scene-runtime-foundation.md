@@ -50,3 +50,30 @@ npm run compositions
 
 The final command remains isolated from the proof and lists only
 `CapabilityGallery` and `GpsRelativity`.
+
+## Mechanical gate boundary
+
+`final-mechanical-check-v1` fixes ten ordered checks: narrative, visual style,
+ResourceCatalog, external references, reference fidelity, Scene coverage,
+ScenePackages, RendererRegistry, Scene projections, and CompositionAssembly.
+The checker is read-only by default. A final report can only be written
+atomically with explicit `--write-final-check` after every required check
+passes; failure preserves the last valid report.
+
+For the current real `gps-relativity` project:
+
+- `project:check --level narrative` remains current with report fingerprint
+  `sha256:dd1dc79547123cc2a3c69a3f95ce81cdf951f3e569afbbdb94b51345bc52424c`;
+- `project:check --level final` fails closed because M7 has not created the five
+  formal ScenePackages, SceneCoverageMap, or composition-local
+  RendererRegistry;
+- the failed final check does not create
+  `src/projects/gps-relativity/generated/final-mechanical-check.generated.json`;
+- no synthetic artifact is registered as GPS coverage or added to the normal
+  Composition listing.
+
+The full M6 gate also runs tests, typecheck, lint, tracked Markdown link checks,
+Catalog/registry drift checks, bundle, normal/proof Composition listings, and
+the real proof still/render evidence. The fidelity recognizability conclusion
+remains an Agent review record bound by the mechanical checker, not an
+automatic aesthetic judgment.

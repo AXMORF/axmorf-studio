@@ -1,6 +1,7 @@
 # Remotion Story Producer Roadmap
 
-> Status：已获用户批准；M0–M4 已完成并通过 Gate A，M5 计划审阅为下一步
+> Status：M0–M6 已完成；M5 ScenePackage 视听制作规格与 M6 详细实施计划均已于
+> 2026-08-02 获用户正式批准并完成落地；M7 是当前唯一下一步
 > 更新日期：2026-08-02
 
 ## 1. 用途
@@ -13,14 +14,15 @@
 
 ## 2. 当前起点
 
-当前代码已完成基础工程、已迁入共享能力、`CapabilityGallery`、M1 合同内核、
-`gps-relativity` 的 M2 真实旁白封存，以及 M3 透明 NarrativeCore、静态 ProjectRegistry、
-lazy Story Composition、真实 Narrative Baseline preview/render 和 evidence。下列内容仍未实现：
+当前代码已完成基础工程、已迁入共享能力、`CapabilityGallery`、M1–M4 Narrative Baseline
+闭环，以及 M6 ResourceCatalog、不可变外部参考、Scene 合同/封装/registry/runtime、final
+机械基础和独立 synthetic proof。下列内容仍未实现：
 
 - NarrativeCheck 和任何主观叙事质量审核；
-- Scene、Sound、Global 增强轨与发布工具。
+- `gps-relativity` 的五个正式 ScenePackage 与 M7 批量 Scene 审核；
+- M8 GlobalSound/GlobalVisual、最终装配/批准与发布工具。
 
-因此当前不应直接开始 Scene 视觉制作，也不应先实现三个可选增强轨的空壳。
+因此当前只应执行 M7 的真实 Scene 制作，不应提前实现 M8 全局增强或发布能力。
 
 ## 3. 全局硬边界
 
@@ -29,7 +31,9 @@ lazy Story Composition、真实 Narrative Baseline preview/render 和 evidence�
 - `ttsChunks` 是已创作的朗读单元，工具不按标点重新切分。
 - 封存 PCM 样本时间线是唯一时间权威；所有帧边界使用
   `pcm-cumulative-ceil-v1`。
-- NarrativeCore 必需；StoryVisualTrack、SoundDesignTrack 和 GlobalVisualLayers 可选。
+- NarrativeCore 必需；StoryVisualTrack、SoundDesignTrack 和 GlobalVisualLayers 是可选运行时
+  聚合。ScenePackage 同时拥有视觉贡献和 Scene 局部声音贡献，运行时分轨不建立第二份 Scene
+  SFX 创作权威。
 - 四个语义聚合由小型底层能力组合，CompositionAssembly 使用显式插槽，不使用
   万能 Track 类型或无约束 track 数组。
 - render runtime 不调用 Agent、skill、MCP、VoxCPM 或网络服务。
@@ -47,11 +51,11 @@ flowchart LR
     M2 --> M3["M3 Narrative Baseline Runtime<br/>已完成"]
     M3 --> M4["M4 叙事闭环与失效验证<br/>已完成"]
     M4 --> G1{"Gate A<br/>已通过"}
-    G1 -->|"是"| M5["M5 视觉阶段规格"]
+    G1 -->|"是"| M5["M5 Scene 视听制作规格<br/>已完成"]
     G1 -->|"否"| M1
-    M5 --> M6["M6 资源目录与 Scene Runtime"]
-    M6 --> M7["M7 第一个完整视觉证明"]
-    M7 --> M8["M8 Sound / Global / Final Assembly"]
+    M5 --> M6["M6 资源目录与 Scene Runtime<br/>已完成"]
+    M6 --> M7["M7 第一个完整 ScenePackage 证明"]
+    M7 --> M8["M8 Global Sound / Global Visual / Final Assembly"]
     M8 --> M9["M9 第二主题与泛化"]
     M9 --> M10["M10 发布收口"]
 ```
@@ -194,88 +198,153 @@ ProjectRegistry、Composition、Scene 或 BaseCanvas。
 
 ### Gate A：是否允许进入视觉阶段
 
-M4 已全部通过，因此在当前 AutoCheck、M3 evidence 和受保护 M2/M3 identities 继续有效的
-前提下，允许单独编写并审阅 M5 实施规格；这不等于 M5 已开始。如果真实主题暴露 Story、
-旁白、时间或 Composition 注册问题，必须回到 M1–M4 修正，不得用 Scene 代码遮盖。
+M4 已全部通过；M5 规格与 M6 计划随后获批并完成落地。如果真实主题暴露 Story、旁白、
+时间或 Composition 注册问题，必须回到 M1–M4 修正，不得用 Scene 代码遮盖。
 
-### M5：视觉阶段规格
+### M5：Scene 视听制作规格
 
-**目标：** 在不实现新 Scene 的情况下，把已保留的视觉接入边界细化为可审阅合同。
+**状态：** 规格已于 2026-08-02 获用户正式批准；M6 已按该边界完成实现。
+
+规格全文见
+[M5 ScenePackage 视听制作规格](superpowers/plans/2026-08-02-m5-scene-package-production-specification.md)。
+
+**目标：** 在不实现新 Scene 的情况下，把全片画风、每 Beat 独立视听制作、并行 Agent
+边界和运行时投影细化为可审阅合同。
 
 **范围：**
 
-- `SceneVisualPlan`、`ShotPlan`、`SelectedResourceRef`、`ScenePackage`；
+- 项目级 `VisualStyleSpec`、profile 引用、项目化 art direction、连续性规则与 fingerprint；
+- `SceneVisualPlan`、`ShotPlan`、`SceneSyncAnchor`、`SceneSoundPlan`、
+  `SelectedResourceRef`、`ScenePackage`；
 - SceneRenderer props、composition-local RendererRegistry 与 scaffold 边界；
-- ResourceCatalog descriptor/query 合同、VisualCoverageMap 和 fallback 状态；
+- ResourceCatalog 的视觉、音频、style profile 与 capability descriptor/query 合同，
+  SceneCoverageMap 和 fallback 状态；
+- ExternalReferenceSnapshot、ShotRecipeSelection、准确 demo 最小本地化闭包、
+  exact-demo-localized/inspiration-only/empty 三态、reference fidelity receipt 与逐资产授权；
 - hard cut 与不改变总时长的 visual-only overlay；
-- Scene/Story 分层 fingerprint、SceneVisualCheck 与 final-level 检查项。
+- 一个 meaningId / 一个独占 Scene 目录 / 一个 Agent 任务 / 一个 ScenePackage 的并行制作与
+  主 Agent 汇总边界；
+- visual、sound、reference、ScenePackage、Story 分层 fingerprint，SceneVisualCheck、
+  ShotReferenceFidelityCheck、SceneSoundCheck 与 final-level 检查项；
+- StoryVisualTrack 与 SoundDesignTrack 是同一批 ScenePackage 的运行时投影；全局 BGM、
+  跨 Scene ambience、ducking 与 mastering 仍留到 M8。
 
-**明确不做：** 通用 Scene DSL、自动布局器、自动导演、双 Scene overlap handles、新共享
-能力提取。
+**明确不做：** 实现任何新合同/runtime/Scene，把 video-shotcraft 安装为 runtime
+package/submodule、复制整个上游仓库或音频库、通用 Scene DSL、自动布局器、自动导演、双
+Scene overlap handles、全局声音装配、新共享能力提取。
 
 **完成门槛：**
 
 - 规格明确数据声明、静态源码和 runtime 的边界；
-- 每个 ScenePackage 恢复为一个 Scene 级 rendererId，ShotPlan 不保存 renderer 或模块路径；
+- 每个 ScenePackage 保持一个 Scene 级 rendererId，ShotPlan 不保存 renderer 或模块路径；
+- 每个 ScenePackage 内聚视觉与 Scene 局部声音，但 SceneRenderer 仍只输出视觉；
+- Scene、Shot、同步锚点和局部声音都被限制在对应 StoryBeatTiming 固定窗口内，不能移动
+  后续 Beat；
+- 子 Agent 只写自己的 meaningId 目录，共享输入与 registry 只读，主 Agent 统一生成 registry
+  并做跨 Scene 检查；
+- 上游镜头来源固定到完整 commit/card/style-key/准确 demo，runtime 只使用本地化源码/资产；
+  exact 模式必须有真实 Renderer/frame-state binding、配对证据和正常速度可辨识 receipt，
+  第三方媒体授权未确认时 fail closed；
 - CaptionLayer 与旁白仍由 NarrativeCore 独占；
-- 用户审阅并批准视觉阶段规格后，才开始 M6。
+- 用户已批准 Scene 视听制作规格；M6 单独实施计划已获批准并完成。
 
 ### M6：资源目录与 Scene Runtime 基础
 
+**状态：** 已于 2026-08-02 按 15 个顺序 Task 完成，并通过独立 synthetic Scene、冻结
+Shotcraft fixture、完整机械门与 GPS narrative/final 分级行为验收。
+
+实施计划与证据见
+[M6 Scene Runtime 实施计划](superpowers/plans/2026-08-02-m6-scene-runtime-implementation-plan.md) 和
+[M6 Scene Runtime Foundation Evidence](evidence/2026-08-02-m6-scene-runtime-foundation.md)。
+
 **目标：** 建立可查询、可校验、静态绑定的 Scene 制作基础，但不在这一里程碑追求
-完整作品的视觉质量。
+完整作品的 Scene 视听质量。
 
 **范围：**
 
-- ResourceCatalog 生成、漂移检查、按 kind/tags/text 查询和资产路径校验；
-- Scene 数据合同、renderer scaffold、静态 RendererRegistry 和未知 ID fail-closed；
-- Scene/shot local frame 计算、StoryVisualTrack 装配、hard cut 与等时长 overlay；
-- `project:check --level final` 所需的视觉合同和 registry 机械检查。
+- ResourceCatalog 生成、漂移检查、按 kind/tags/text 查询、allowed-use/license policy，以及
+  视觉/音频资产路径校验；
+- ExternalReferenceSnapshot generator、immutable commit/index resolver、ShotRecipeSelection、
+  准确 demo 最小闭包本地化规则和无上游 runtime import guard；
+- reference fidelity checker：来源/哈希、真实 import/JSX/frame-state binding、
+  source/adaptation evidence、正常速度可辨识、exact/inspiration/empty 三态和 pass-only receipt；
+- VisualStyleSpec、Scene 视听数据合同、renderer/audio scaffold、静态 RendererRegistry 和
+  未知 ID fail-closed；
+- Scene/shot/sync-anchor local frame 计算，StoryVisualTrack 与 SceneSoundContribution 的
+  确定性投影，hard cut 与等时长 overlay；
+- CompositionAssembly 增加有真实 Scene 输入的 `storyVisualTrack` 与 `soundDesignTrack` 显式
+  插槽；M6 的 SoundDesignTrack 只汇总 Scene 局部声音贡献；
+- `project:check --level final` 所需的 Scene 视听合同、资源和 registry 机械检查。
 
 **完成门槛：**
 
 - Catalog 只是权威源的读取视图，runtime 不通过 Catalog 动态加载组件；
+- authoring sync 可显式访问获准上游并生成不可变快照；Scene 分发、检查、preview 和 render
+  不访问 GitHub、全局 skill、浮动 branch/tag 或远程 preview；
+- 一个冻结 video-shotcraft recipe fixture 证明 resolver/localization/fidelity 链，但不冒充
+  已完成真实 Story Scene；
 - Scene renderer 只输出视觉，局部 Shot 组件不成为 registry 入口；
-- 视觉轨只读消费 StoryBeat 和 SemanticTiming，不修改旁白、字幕或总时长；
+- Scene 音频 runtime 只播放 ScenePackage 已声明的局部 ambience/SFX，不拥有旁白或全局
+  BGM；
+- Scene 视听贡献只读消费 StoryBeat 和 SemanticTiming，不修改旁白、字幕或总时长；
 - Narrative Baseline 在 Catalog 或 ScenePackage 缺失时仍可独立通过。
 
-### M7：第一个完整 StoryVisualTrack 证明
+**范围结果：** M6 没有制作 `gps-relativity` 正式 Scene；独立 proof 不进入 ProjectRegistry。
+GPS `narrative` 当前通过，`final` 因 M7 Scene coverage 缺失而按设计 fail closed。M6 没有
+实现 NarrativeCheck、SceneVisualCheck/SceneSoundCheck 的主观审核、M8 global sound/visual
+或发布能力。
 
-**目标：** 为 M2–M4 的同一真实 Story 完成所有 Scene，证明视觉轨可被独立制作、替换和
-审核。
+### M7：第一个完整 ScenePackage 集合证明
+
+**目标：** 为 M2–M4 的同一真实 Story 完成所有 Scene，证明每个 Beat 的画面与局部声音可
+作为一个 ScenePackage 并行制作、独立替换和批量审核。
 
 **范围：**
 
-- 按 StoryBeat 和实测 timing 创作 SceneVisualPlan/ShotPlan；
-- 查询已注册共享能力和本地资产，新组件默认保留 composition-local；
-- 逐 Scene Renderer 制作、资源准入、VisualCoverageMap 和 fallback；
-- contact sheet、必要时 motion strip、SceneVisualCheck 和连续性检查；
-- StoryVisualTrack 与 NarrativeCore 的实时叠加预览。
+- 主 Agent 冻结 VisualStyleSpec、ResourceCatalog snapshot、允许的 ExternalReferenceSnapshot、
+  跨 Scene 连续性规则和逐 Beat 任务输入；
+- 按 StoryBeat 和实测 timing 并行创作 SceneVisualPlan、ShotPlan、同步锚点和
+  SceneSoundPlan；
+- 查询已注册共享能力、本地视觉/音频资产和制作期镜头参考；按 Scene 需要选择 Shotcraft
+  recipe 或空选择，新组件及本地化 demo 最小闭包默认保留 composition-local；
+- 逐 Scene Renderer 与局部声音制作、资源准入、SceneCoverageMap 和 fallback；
+- contact sheet、必要时 motion strip、SceneVisualCheck、命中 recipe 时的
+  ShotReferenceFidelityCheck、SceneSoundCheck 和连续性检查；
+- StoryVisualTrack、Scene 局部声音投影与 NarrativeCore 的实时叠加预览。
 
-**明确不做：** 参考或复制旧生产 Scene/旧 Composition，自动提取共享能力，Sound/Global
-完整装配。
+**明确不做：** 参考或复制旧生产 Scene/旧 Composition，整仓 vendoring Shotcraft、强迫每个
+Scene 套镜头卡、依据关键词自动导演、自动提取共享能力、全局 BGM、跨 Scene ambience、
+mastering 或 GlobalVisualLayers 完整装配。
 
 **完成门槛：**
 
 - 每个 StoryBeat 都有已校验 ScenePackage 或显式 fallback；
 - SceneVisualCheck 覆盖语义、构图、运动、可读性和相邻 Scene 连续性；
-- 修改 Scene 只使对应视觉证据和下游 Preview 失效，NarrativeCore 保持有效；
+- SceneSoundCheck 覆盖局部 ambience/SFX、同步锚点、音量和边界；
+- 选择 exact Shotcraft recipe 的 Scene 有 current fidelity receipt；只受启发的 Scene 明确
+  标记 inspiration-only，未使用时空选择合法；
+- 修改 Scene 只使对应 visual/sound/package 证据及下游 Preview 精确失效，其他 Beat 与
+  NarrativeCore 保持有效；
 - 没有将 Shot 与 TTSChunk 或 CaptionCue 错误绑定。
 
-### M8：Sound、Global 与最终装配
+### M8：Global Sound、Global Visual 与最终装配
 
-**目标：** 在不改写 NarrativeCore 或 StoryVisualTrack 的前提下，完成可选声音和全局视觉增强。
+**目标：** 在不改写 NarrativeCore 或 ScenePackage 的前提下，把 Scene 局部声音贡献与全局
+声音、全局视觉层完成最终装配。
 
 **范围：**
 
-- SoundDesignPlan/Track：BGM、ambience、SFX、旁白 ducking 和指纹；
+- GlobalSoundPlan：全片 BGM、跨 Scene ambience、旁白 ducking、mastering 和指纹；
+- SoundDesignTrack：确定性汇总有序 ScenePackage 的局部声音贡献与 GlobalSoundPlan，不
+  建立第二份 Scene SFX 创作权威；
 - GlobalVisualPlan/Layers：全局纹理、装饰和统一视觉效果；
-- CompositionAssembly 的三个可选显式插槽、固定图层顺序和 assembly fingerprint；
+- GlobalVisualLayers 显式插槽、四个强语义聚合的固定图层/音轨顺序和 assembly fingerprint；
 - EnhancementCheck、Final Preview 与 FinalPreviewApproval receipt。
 
 **完成门槛：**
 
-- 每个增强轨可独立缺失、替换和失效；
+- 每个运行时增强轨可独立缺失；Scene 局部视听修改通过 ScenePackage 分层 fingerprint 精确
+  失效，全局声音可独立替换；
 - SoundDesignTrack 不拥有旁白，GlobalVisualLayers 不渲染字幕；
 - 最终用户批准绑定完整 assembly fingerprint，任一装配输入变化使旧批准失效；
 - `project:check --level final` 只检查实际选择的增强轨。
@@ -325,7 +394,8 @@ M4 已全部通过，因此在当前 AutoCheck、M3 evidence 和受保护 M2/M3 
 
 ## 7. 当前唯一下一步
 
-M1–M4 已实现并通过验收。当前只编写并审阅 **M5：视觉阶段规格** 的实施计划；没有单独
-获批计划前，不开始 SceneVisualPlan、ShotPlan、ScenePackage、RendererRegistry、
-ResourceCatalog、BaseCanvas、SceneVisualCheck、`final` level 或任何视觉/声音/全局增强轨实现。
-NarrativeCheck 也不属于已实现事实。
+M1–M6 已实现并通过各自机械门。当前唯一下一步是 M7：为 `gps-relativity` 五个 StoryBeat
+制作正式 ScenePackage、建立完整 coverage/registry/projection，并执行批量 SceneVisualCheck、
+命中条件时的 ShotReferenceFidelityCheck 与 SceneSoundCheck。不得把 M6 synthetic proof 当作
+GPS coverage，不得提前开始 M8 GlobalSoundPlan、全局 BGM、跨 Scene ambience、ducking、
+mastering、GlobalVisualLayers、FinalPreviewApproval 或发布。NarrativeCheck 仍未实现。

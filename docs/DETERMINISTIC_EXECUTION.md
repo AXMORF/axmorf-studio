@@ -1,7 +1,9 @@
 # 确定性执行设计
 
-> Status：M1 合同/fingerprint/纯时间内核、M2 文件-backed 旁白封存、M3 Narrative
-> Baseline runtime/registry/evidence 与 M4 机械 AutoCheck 闭环已实现；后续增强 runtime 仍为未来目标。
+> Status：M1–M4 Narrative Baseline 机械闭环与 M6 Scene Runtime foundation 已实现；包括
+> ResourceCatalog、外部镜头 snapshot/localization/fidelity、Scene package/registry、visual/
+> local-sound projection 和 final-level 机械基础。GPS 正式 Scene、M7 主观审核与 M8 全局增强
+> 仍为后续目标。
 
 ## 1. 定义
 
@@ -76,12 +78,12 @@ flowchart TB
     ProjectRegistry --> Baseline["Lazy-loaded Story Composition<br/>Narrative Baseline<br/>【确定性执行】"]
     Baseline --> Auto["AutoCheck<br/>【确定性执行】"]
 
-    VisualSource["SceneVisualPlan / Renderer.tsx<br/>后续制作编排"] --> VisualPreflight["视觉 preflight<br/>后续确定性执行"]
-    VisualPreflight --> Visual["StoryVisualTrack<br/>后续可选"]
+    VisualSource["SceneVisualPlan / Renderer.tsx<br/>M6 合同 / M7 制作编排"] --> VisualPreflight["Scene package / registry<br/>M6 确定性执行"]
+    VisualPreflight --> Visual["StoryVisualTrack<br/>M6 可选"]
 
     Auto --> Assembly["CompositionAssembly<br/>【确定性执行】"]
     Visual -.->|"可选"| Assembly
-    Optional["Sound / Global tracks<br/>后续可选"] -.-> Assembly
+    Optional["Scene-local Sound<br/>M6 可选；Global 留到 M8"] -.-> Assembly
     Assembly --> Evidence["Preview / evidence<br/>【确定性执行】"]
     Evidence --> Review["FinalPreviewApproval<br/>【创作决策】"]
     Review --> Render["Render / quality check<br/>【确定性执行】"]
@@ -100,39 +102,48 @@ flowchart TB
 
 主链到 `Narrative Baseline` 不经过视觉 preflight、ResourceCatalog、ScenePackage 或 renderer
 registry。M2 已把 sealed narration 与 SemanticTiming 落成真实文件，M3 已把 runtime、
-registry、Baseline 和 evidence 落地，M4 已把 AutoCheck 落地；虚线增强输入、视觉分支和
-Final Preview/Approval/Release 仍全部推迟，NarrativeCheck 未实现。流程权威见
+registry、Baseline 和 evidence 落地，M4 已把 AutoCheck 落地；M6 已把 Scene visual/
+local-sound 分支和 final-level 机械基础落地，但 GPS 正式 Scene、GlobalVisualLayers、
+Final Preview/Approval/Release 与 NarrativeCheck 仍未实现。流程权威见
 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
 
 ## 3. 节点与实现方式
 
-| 设计节点                    | 实现方式                                                              | 固定输出                                         |
-| --------------------------- | --------------------------------------------------------------------- | ------------------------------------------------ |
-| Narration generation        | 宿主机 Node 脚本调用 VoxCPM，逐 chunk 生成                            | 候选 chunk 音频；不是时间权威                    |
-| Narration seal              | 本地脚本规范化 PCM、计数 sample frame、校验、checksum、拼接和原子封存 | sealed manifest、完整 WAV、整数 sampleFrameCount |
-| SemanticTiming / CaptionCue | 纯函数把累计样本边界统一量化为绝对帧                                  | `semantic-timing.generated.json`                 |
-| NarrativeCore               | 通用 Remotion 组件                                                    | NarrationAudioTrack、CaptionLayer                |
-| ProjectRegistry             | bundle 前按固定一级目录生成静态元数据和字面量 lazy import             | 可枚举、按需加载的 Story Composition 注册        |
-| Narrative AutoCheck         | 固定脚本只读聚合 source、seal、timing、registry、Baseline 与 evidence | strict persisted report 与 report fingerprint    |
-| ResourceCatalog             | 构建脚本汇总资产 manifest 和 capability exports                       | 只读目录与查询结果                               |
-| 资源解析                    | preflight 校验 resourceId、文件、类型、状态和元数据                   | 资源校验报告                                     |
-| SceneVisualTrack            | 通用 Scene runtime + 每个 ScenePackage 一个 renderer 入口             | 按 timing 挂载的纯视觉 Scene                     |
-| StoryBeatTransition         | 有限的固定 preset 组件                                                | hard cut 或不改变时长的 overlay                  |
-| Sound / Global layers       | 固定组件消费已选择的 preset 和资源 ID                                 | BGM、SFX、texture 等轨道                         |
-| CompositionAssembly         | 显式插槽 + 强语义聚合的通用 `StoryComposition` 组件                   | 固定图层顺序和最终 Composition                   |
-| 审核证据                    | Remotion CLI + Node 脚本                                              | still、contact sheet、必要时 motion strip        |
+| 设计节点                    | 实现方式                                                              | 固定输出                                              |
+| --------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------- |
+| Narration generation        | 宿主机 Node 脚本调用 VoxCPM，逐 chunk 生成                            | 候选 chunk 音频；不是时间权威                         |
+| Narration seal              | 本地脚本规范化 PCM、计数 sample frame、校验、checksum、拼接和原子封存 | sealed manifest、完整 WAV、整数 sampleFrameCount      |
+| SemanticTiming / CaptionCue | 纯函数把累计样本边界统一量化为绝对帧                                  | `semantic-timing.generated.json`                      |
+| NarrativeCore               | 通用 Remotion 组件                                                    | NarrationAudioTrack、CaptionLayer                     |
+| ProjectRegistry             | bundle 前按固定一级目录生成静态元数据和字面量 lazy import             | 可枚举、按需加载的 Story Composition 注册             |
+| Narrative AutoCheck         | 固定脚本只读聚合 source、seal、timing、registry、Baseline 与 evidence | strict persisted report 与 report fingerprint         |
+| VisualStyleSpec             | Agent 在 Scene 分发前结构化并封存项目级画风                           | 全片 style profile、art direction、规则与 fingerprint |
+| ExternalReferenceSnapshot   | 显式 authoring sync 固定上游 repository/commit/index/license metadata | content-addressed 制作期来源快照                      |
+| ResourceCatalog             | 构建脚本汇总资产 manifest、capability exports 和 authoring references | 带 allowed-use 的只读目录与查询结果                   |
+| 资源解析                    | preflight 校验 resourceId、文件、类型、状态、allowed use 和授权       | 资源校验报告                                          |
+| Reference fidelity          | 固定 checker 对照准确 demo、本地源码、真实 binding 和配对证据         | pass-only receipt 或明确 not-applicable               |
+| ScenePackage                | 每 meaningId 独占目录中的视觉、局部声音、资源、参考和源码经机械封装   | visual/sound/reference/package 分层 fingerprint       |
+| SceneVisualTrack            | 通用 Scene runtime + 每个 ScenePackage 一个 renderer 入口             | 按 timing 挂载的纯视觉 Scene                          |
+| SceneSoundContribution      | 固定 audio runtime 消费 ScenePackage.SceneSoundPlan                   | Beat 固定窗口内的 ambience / SFX                      |
+| StoryBeatTransition         | 有限的固定 preset 组件                                                | hard cut 或不改变时长的 overlay                       |
+| SoundDesignTrack            | M6 固定汇总 Scene 局部声音；M8 才增加 GlobalSoundPlan                 | 当前为 Beat 内 ambience/SFX                           |
+| Global layers               | M8 固定组件消费已选择的 preset 和资源 ID                              | texture 等全局视觉轨道                                |
+| CompositionAssembly         | 显式 narrative/visual/sound 插槽；global 插槽留到 M8                  | 固定图层顺序的 Composition                            |
+| 审核证据                    | Remotion CLI + Node 脚本                                              | still、contact sheet、必要时 motion strip             |
 
-底层可共享时间线、视觉、音频和 fingerprint 贡献能力，但对外装配合同保留
+底层可共享时间线、视觉、音频和 fingerprint 贡献能力，但对外运行时装配合同保留
 `NarrativeCore`、`StoryVisualTrack`、`SoundDesignTrack` 和 `GlobalVisualLayers` 四个显式
 插槽。`NarrativeCore` 必需，其余三个可选；不接受无约束的通用 track 数组代替
-这个边界。数据文件只保存声明与稳定 ID，不保存 React 组件或底层能力实例。
+这个边界。ScenePackage 同时拥有 visual 与 Scene-local sound 创作输入，运行时才将它们
+确定性投影到对应轨道；SoundDesignTrack 不维护第二份 Scene SFX 计划。数据文件只保存声明
+与稳定 ID，不保存 React 组件或底层能力实例。
 
 M1 已落地数据合同、canonical fingerprint、封存 receipt 元数据校验和
-SemanticTiming/CaptionCue 纯函数。M2 已落地表中前三项的真实 TTS、实测、封存和检查；
-M3 已落地 NarrativeCore、ProjectRegistry、Narrative Baseline 与窄 evidence，M4 已落地固定
-`project:check` 和 AutoCheck。当前
-CompositionAssembly 只有必需 `narrativeCore` 插槽；ResourceCatalog、SceneVisualTrack、
-转场、sound/global 与最终增强装配均属于后续阶段。
+SemanticTiming/CaptionCue 纯函数。M2 已落地真实 TTS、实测、封存和检查；M3 已落地
+NarrativeCore、ProjectRegistry、Narrative Baseline 与窄 evidence，M4 已落地固定 narrative
+AutoCheck。M6 已落地 ResourceCatalog、ExternalReferenceSnapshot/localization/fidelity、
+ScenePackage/RendererRegistry、StoryVisualTrack、Scene-local SoundDesignTrack 和两个可选
+CompositionAssembly 插槽。M8 global sound/global visual 与最终创意装配仍属后续阶段。
 
 不要求每个确定性节点都拥有独立命令。相关检查应合并到少量面向作品的 CLI 中，避免
 产生繁重、重复的阶段审核。
@@ -144,22 +155,35 @@ src/contracts/                         数据合同与纯校验
 scripts/narration/                     TTS、实测、拼接与封存
 scripts/registry/                      ProjectRegistry 生成与漂移检查
 scripts/baseline/                      M3 PNG/MP4 evidence 与 receipt
-scripts/project-check/                 M4 只读作品级聚合与 pass-only AutoCheck
-scripts/catalog/                       后续：资源目录构建与查询
-scripts/preflight/                     后续：叙事主链与增强轨分级校验
+scripts/project-check/                 M4 narrative + M6 final 作品级聚合与 pass-only reports
+scripts/catalog/                       M6 资源目录构建、查询与漂移检查
+scripts/external-references/           M6 immutable snapshot、resolver/localizer 与 fidelity
+scripts/scene-package/                 M6 ScenePackage/Coverage 生成与检查
+scripts/renderer-registry/             M6 composition-local registry 生成与检查
 src/remotion/runtime/narrative-core/   旁白、顶层字幕与绝对时间挂载
-src/remotion/runtime/composition-assembly/ M3 required narrativeCore 装配
-src/remotion/runtime/story-visual/     后续：Scene、Shot 与转场时间装配
+src/remotion/runtime/composition-assembly/ narrative + M6 visual/sound 显式装配
+src/remotion/runtime/story-visual/     M6 Scene 视觉、Shot 与转场时间装配
+src/remotion/runtime/scene-sound/      M6 ScenePackage 局部声音确定性投影
 
 src/projects/<story>/
 ├── story.json                         Agent 创作声明
 ├── Composition.tsx                    不依赖 Scene 的 Story Composition 入口
 ├── generated/                         timing、manifest、fingerprint 等生成数据
-├── scenes/<meaningId>/                后续视觉阶段
+├── visual-style.json                  M6 合同；正式项目实例由 M7 创建
+├── external-references.generated.json M6 合同/工具；正式项目实例由 M7 选择
+├── scenes/<meaningId>/                M7 Scene 视听制作阶段；单 Agent 独占
 │   ├── visual-plan.json               Agent 画面方案
+│   ├── shot-plan.json                 Scene 内 Shot 与同步锚点声明
+│   ├── sound-plan.json                Scene 局部 ambience / SFX
+│   ├── selected-resources.json        视觉与音频资源选择
+│   ├── shot-recipe-selection.json     上游 recipe 与适配模式选择；允许为空
 │   ├── Renderer.tsx                   Agent 制作的 Scene 级视觉入口
-│   └── shots/                         可选：Scene 内部本地 Shot 组件
-├── renderer-registry.ts               ScenePackage.rendererId → SceneRenderer
+│   ├── shots/                         自定义或最小本地化的 Scene 内 Shot 组件
+│   └── generated/
+│       ├── reference-fidelity.generated.json
+│       └── scene-package.generated.json
+│                                       visual/sound/reference/package fingerprints
+├── renderer-registry.generated.ts     ScenePackage.rendererId → SceneRenderer
 └── assembly-plan.json                 已确定的装配声明
 
 src/projects/project-registry.generated.ts  Story ID → 静态元数据 + 字面量 lazy import
@@ -277,7 +301,16 @@ composition-local renderer-registry.ts
   路径；
 - Scene renderer 可以静态 import 本地 Shot 组件和已批准共享能力，但它们不成为独立
   runtime registry 入口；
-- Scene 视觉源码仍由 Agent 制作；
+- 从 `video-shotcraft` 等上游选择的 Shot 必须先按冻结 commit/card/style-key/准确 demo 把
+  最小依赖闭包本地化到当前 Scene；不得 import 上游 package、全局 skill、远程 URL 或浮动
+  branch/tag；
+- ShotRecipeSelection 只保存 authoring provenance 和适配模式，不提供可执行 loader；checker
+  必须从固定本地目录、静态 import graph、实际 JSX 与 frame-state 使用证明 binding；
+- Scene renderer 只输出视觉；它不播放旁白、字幕、Scene SFX 或任意其他音频；
+- 同一 ScenePackage 的 SceneSoundPlan 由固定 scene-sound runtime 消费，并在对应
+  StoryBeatTiming 固定窗口中产生局部音频贡献；
+- Scene 视听输入仍由 Agent 在独占 meaningId 目录中制作；共享 registry 只由主 Agent 的
+  固定生成步骤写入；
 - registry 属于制作编排，运行时只消费已经存在的静态绑定；
 - 未知 rendererId、重复绑定或缺失组件必须 fail closed。
 
@@ -430,42 +463,60 @@ Story fingerprint
 │       └── SemanticTiming fingerprint
 │           └── ProjectRegistry entry fingerprint
 │               └── Narrative Baseline fingerprint
-├── SceneVisualPlan fingerprint（后续）
-│   └── Renderer source + resource fingerprint（后续）
-│       └── ScenePackage fingerprint（后续）
+├── VisualStyleSpec fingerprint（M6）
+│   └── SceneVisualPlan + renderer + visual resource fingerprint（M6）
+├── ExternalReferenceSnapshot fingerprint（M6 authoring）
+│   └── ShotRecipeSelection + reference fidelity receipt（M6）
+├── Scene sync-anchor fingerprint（M6）
+│   └── SceneSoundPlan + audio resource fingerprint（M6）
+├── ScenePackage fingerprint（visual + sound + binding + reference，M6）
+│   ├── StoryVisualTrack projection fingerprint（M6）
+│   └── SoundDesignTrack scene projection fingerprint（M6）
 └── Assembly fingerprint
 ```
 
 M1 定义、M2 实际生成并校验到 SemanticTiming，M3 已继续生成 ProjectRegistry entry、
-Narrative Baseline 和 evidence fingerprint；视觉、声音和全局分支仍是后续目标。视觉、
-声音和全局层不得进入 sealed narration 或 SemanticTiming fingerprint。
+Narrative Baseline 和 evidence fingerprint；M6 已实现 Scene visual/local-sound/reference/
+package/registry/projection 分支及隔离失效矩阵，M8 global 分支仍是后续目标。视觉、声音和
+全局层不得进入 sealed narration 或 SemanticTiming fingerprint。
 
-| 修改                                            | 必须失效                                                   | 保持有效                 |
-| ----------------------------------------------- | ---------------------------------------------------------- | ------------------------ |
-| ttsText、顺序或 NarrationSpec                   | TTS、sealed narration、timing、Baseline 和所有下游         | Story 主题               |
-| 显式叙事停顿                                    | sealed complete audio、timing、Baseline 和所有下游         | 已生成 chunk 候选        |
-| RenderSpec timing 字段（fps、片头或片尾）       | timing、registry entry、字幕边界、Baseline 和下游          | sealed narration         |
-| RenderSpec 非 timing 字段                       | 相关 registry 元数据、字幕布局或输出约束、Baseline 和下游  | sealed narration、timing |
-| Story 入口、Composition ID 或 generator version | ProjectRegistry、Composition listing、Baseline 和 evidence | sealed narration、timing |
-| SceneVisualPlan 或资源选择                      | Renderer、Scene 检查、视觉轨、完整 Preview                 | 已封存旁白               |
-| Renderer 或资产内容                             | Scene 证据、视觉轨、完整 Preview                           | Story 与旁白             |
-| transition、声音或全局层                        | Assembly、完整 Preview                                     | Scene 内部证据           |
-| shared runtime                                  | 所有依赖该版本的 Composition 证据                          | 原始创作声明             |
+| 修改                                            | 必须失效                                                    | 保持有效                              |
+| ----------------------------------------------- | ----------------------------------------------------------- | ------------------------------------- |
+| ttsText、顺序或 NarrationSpec                   | TTS、sealed narration、timing、Baseline 和所有下游          | Story 主题                            |
+| 显式叙事停顿                                    | sealed complete audio、timing、Baseline 和所有下游          | 已生成 chunk 候选                     |
+| RenderSpec timing 字段（fps、片头或片尾）       | timing、registry entry、字幕边界、Baseline 和下游           | sealed narration                      |
+| RenderSpec 非 timing 字段                       | 相关 registry 元数据、字幕布局或输出约束、Baseline 和下游   | sealed narration、timing              |
+| Story 入口、Composition ID 或 generator version | ProjectRegistry、Composition listing、Baseline 和 evidence  | sealed narration、timing              |
+| VisualStyleSpec                                 | 依赖画风的 Scene visual/package、视觉轨、完整 Preview       | 旁白、timing、独立 sound 输入         |
+| SceneVisualPlan、Renderer 或视觉资源            | 对应 visual/package、SceneVisualCheck、视觉轨、完整 Preview | 旁白、timing、其他 Beat、未漂移 sound |
+| 选中 recipe 的 card/demo/preview/依赖闭包       | 对应 fidelity/visual/package、视觉轨、完整 Preview          | sound、其他 Beat、NarrativeCore       |
+| 本地化 Shot 源码、Renderer binding 或配对证据   | 对应 fidelity/visual/package、完整 Preview                  | 未依赖 anchor 的 sound、其他 Beat     |
+| 上游新 commit，项目未切换 immutable snapshot    | 无自动失效                                                  | 全部已封存 package                    |
+| 主 Agent 用新 snapshot 重发 task/selection      | 使用被替换 reference identity 的 task/fidelity/package      | 未重发且绑定有效旧 snapshot 的 Scene  |
+| 第三方资源 license 变为 blocked                 | 引用它的 resource/sound/package/final gate                  | 未引用该资源的 Scene                  |
+| SceneSyncAnchor                                 | 对应 visual/sound/package、两类 Scene 检查、完整 Preview    | 旁白、timing、其他 Beat               |
+| SceneSoundPlan 或局部音频资源                   | 对应 sound/package、SceneSoundCheck、声音轨、完整 Preview   | visual 证据、其他 Beat                |
+| transition、GlobalSoundPlan 或全局视觉层        | 对应运行时轨、Assembly、完整 Preview                        | Scene 内部分层证据                    |
+| shared runtime                                  | 所有依赖该版本的 Composition 证据                           | 原始创作声明                          |
 
 失效传播由 fingerprint 比较和依赖关系完成，不依赖 Agent 记忆。
 
 ## 10. 聚合检查
 
-M1–M4 当前提供聚焦机械检查、真实 file-backed 检查、registry drift check、listing、窄
-Baseline evidence 与作品级 AutoCheck：
+M1–M6 当前提供聚焦机械检查、真实 file-backed 检查、registry drift check、listing、窄
+Baseline/M6 proof evidence 与作品级 narrative/final 聚合：
 
 ```bash
 npm test
 npm run narration:check -- --project gps-relativity
 npm run registry:check
+npm run catalog:check
 npm run compositions
+npm run m6:proof:compositions
+npm run m6:proof:evidence
 npm run baseline:evidence -- --project gps-relativity
 npm run project:check -- --project gps-relativity --level narrative
+npm run project:check -- --project gps-relativity --level final
 ```
 
 它们覆盖严格合同、StoryCheck、provider adapter、candidate/measured resume、canonical
@@ -494,15 +545,26 @@ evidence 完整时原子写入；相同 bytes 不改 mtime。缺失、malformed�
 mismatch、checksum/registry/media drift 和未知参数全部 fail closed，失败不覆盖最后一份有效
 AutoCheck。
 
-视觉增强不存在时，`narrative` 不得因为缺少 SceneVisualPlan、ScenePackage、renderer
-registry 或 ResourceCatalog 而失败。
+Scene 增强不存在时，`narrative` 不得因为缺少 VisualStyleSpec、SceneVisualPlan、
+SceneSoundPlan、ExternalReferenceSnapshot、ShotRecipeSelection、reference fidelity receipt、
+ScenePackage、renderer registry 或 ResourceCatalog 而失败。
+
+`final-mechanical-check-v1` 固定按以下顺序聚合：`narrative`、`visual-style`、
+`resource-catalog`、`external-references`、`reference-fidelity`、`scene-coverage`、
+`scene-packages`、`renderer-registry`、`scene-projections`、`composition-assembly`。报告绑定
+current narrative、Catalog、reference/fidelity、package/coverage、registry、两类 projection
+和 assembly identity；exact reference 要求 current fidelity，inspiration/empty 按条件标为
+not-applicable。默认只读，只有显式 `--write-final-check` 且 aggregate pass 才原子写入
+`generated/final-mechanical-check.generated.json`；失败不覆盖最后一份有效报告。
 
 它只能验证已确定输入，不能自动选择或修正 StoryBeat、Scene 方案、Shot、镜头、资源、
-声音、转场或审美结果。`final` level 仍是未来目标，当前 CLI 明确拒绝；M4 也没有实现
-NarrativeCheck、SceneVisualCheck、FinalPreviewApproval 或发布检查。
+声音、转场或审美结果。GPS 当前没有 M7 Scene artifacts，因此 `narrative` 继续通过而 `final`
+按设计 fail closed。M6 没有实现 NarrativeCheck、SceneVisualCheck、FinalPreviewApproval 或
+发布检查。
 
 ## 11. Skill 边界
 
 skill 负责引导 Agent 完成 Story/ttsChunks 创作、旁白生成编排，以及后续 Scene 制作和
-工具调用。正式 preview、render 和 quality runtime 只读取静态源码、合同数据、本地资产
-和已封存产物，不调用 skill、Agent、MCP 或网络服务。
+工具调用。显式 authoring sync 可以访问获准的上游来源并生成 immutable snapshot；完成快照
+后，Scene 分发、fidelity 检查、正式 preview、render 和 quality runtime 只读取静态源码、
+合同数据、本地资产和已封存产物，不调用 skill、Agent、MCP 或网络服务。
