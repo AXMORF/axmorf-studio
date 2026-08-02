@@ -13,6 +13,8 @@ export * from "./reference-fidelity";
 export * from "./render";
 export * from "./resource-catalog";
 export * from "./scene-primitives";
+export * from "./scene-plan";
+export * from "./scene-task";
 export * from "./shot-recipe";
 export * from "./sealed-narration";
 export * from "./semantic-timing";

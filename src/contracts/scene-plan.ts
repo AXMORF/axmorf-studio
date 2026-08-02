@@ -1,0 +1,454 @@
+import { z } from "zod";
+
+import { createFingerprint } from "./fingerprint";
+import {
+  MeaningIdSchema,
+  NonNegativeIntegerSchema,
+  PositiveIntegerSchema,
+  Sha256DigestSchema,
+} from "./primitives";
+import {
+  ResourceIdSchema,
+  SelectedResourceRefSchema,
+} from "./resource-catalog";
+import {
+  SceneEventIdSchema,
+  SceneLocalFrameRangeSchema,
+  SceneLocalFrameSchema,
+  ShotIdSchema,
+} from "./scene-primitives";
+
+const NonEmptyPlanTextSchema = z.string().trim().min(1).max(1600);
+const UniqueResourceIdsSchema = z
+  .array(ResourceIdSchema)
+  .max(128)
+  .superRefine((ids, context) => {
+    if (new Set(ids).size !== ids.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Resource IDs must be unique.",
+      });
+    }
+  })
+  .readonly();
+
+const VisualPlanInputSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    taskInputFingerprint: Sha256DigestSchema,
+    meaningId: MeaningIdSchema,
+    semanticObjective: NonEmptyPlanTextSchema,
+    subject: NonEmptyPlanTextSchema,
+    primaryAction: NonEmptyPlanTextSchema,
+    causalLink: NonEmptyPlanTextSchema,
+    primaryComposition: NonEmptyPlanTextSchema,
+    styleRealization: z.array(NonEmptyPlanTextSchema).min(1).max(32).readonly(),
+    continuity: NonEmptyPlanTextSchema,
+    orderedShotIds: z.array(ShotIdSchema).min(1).max(64).readonly(),
+    visualResourceIds: UniqueResourceIdsSchema,
+    recipeDecision: z.enum([
+      "empty",
+      "inspiration-only",
+      "exact-demo-localized",
+    ]),
+    fallbackIntent: NonEmptyPlanTextSchema,
+  })
+  .strict();
+
+const withFingerprint = <Input extends Record<string, unknown>>(
+  namespace: string,
+  input: Input,
+) =>
+  createFingerprint({
+    namespace,
+    version: 1,
+    value: input,
+  });
+
+const omitFingerprint = (
+  value: Record<string, unknown>,
+  field: string,
+): Record<string, unknown> => {
+  const input = { ...value };
+  delete input[field];
+  return input;
+};
+
+export const SceneVisualPlanSchema = VisualPlanInputSchema.extend({
+  visualPlanFingerprint: Sha256DigestSchema,
+})
+  .strict()
+  .superRefine((plan, context) => {
+    const input = omitFingerprint(plan, "visualPlanFingerprint");
+    if (
+      new Set(plan.orderedShotIds).size !== plan.orderedShotIds.length ||
+      plan.visualPlanFingerprint !== withFingerprint("scene-visual-plan", input)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Scene visual plan order or fingerprint is invalid.",
+        path: ["visualPlanFingerprint"],
+      });
+    }
+  })
+  .readonly();
+
+export const buildSceneVisualPlan = (
+  rawInput: Omit<z.input<typeof VisualPlanInputSchema>, "schemaVersion"> & {
+    readonly schemaVersion?: 1;
+  },
+) => {
+  const input = VisualPlanInputSchema.parse({ ...rawInput, schemaVersion: 1 });
+  return SceneVisualPlanSchema.parse({
+    ...input,
+    visualPlanFingerprint: withFingerprint("scene-visual-plan", input),
+  });
+};
+
+const ShotPlanSchema = z
+  .object({
+    shotId: ShotIdSchema,
+    order: NonNegativeIntegerSchema,
+    primaryRange: SceneLocalFrameRangeSchema,
+    purpose: NonEmptyPlanTextSchema,
+    action: NonEmptyPlanTextSchema,
+    visualResourceIds: UniqueResourceIdsSchema,
+    syncAnchorIds: z.array(SceneEventIdSchema).max(32).readonly(),
+  })
+  .strict()
+  .readonly();
+
+const ShotPlanSetInputSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    taskInputFingerprint: Sha256DigestSchema,
+    meaningId: MeaningIdSchema,
+    sceneDurationInFrames: PositiveIntegerSchema,
+    shots: z.array(ShotPlanSchema).min(1).max(64).readonly(),
+  })
+  .strict();
+
+export const ShotPlanSetSchema = ShotPlanSetInputSchema.extend({
+  shotPlanFingerprint: Sha256DigestSchema,
+})
+  .strict()
+  .superRefine((plan, context) => {
+    let previousEnd = 0;
+    const shotIds = new Set<string>();
+    plan.shots.forEach((shot, index) => {
+      if (
+        shot.order !== index ||
+        shot.primaryRange.endFrame > plan.sceneDurationInFrames ||
+        shot.primaryRange.startFrame < previousEnd ||
+        shotIds.has(shot.shotId) ||
+        new Set(shot.syncAnchorIds).size !== shot.syncAnchorIds.length
+      ) {
+        context.addIssue({
+          code: "custom",
+          message: "Shot order identities ranges or anchors are invalid.",
+          path: ["shots", index],
+        });
+      }
+      previousEnd = shot.primaryRange.endFrame;
+      shotIds.add(shot.shotId);
+    });
+    const input = omitFingerprint(plan, "shotPlanFingerprint");
+    if (plan.shotPlanFingerprint !== withFingerprint("shot-plan-set", input)) {
+      context.addIssue({
+        code: "custom",
+        message: "Shot plan fingerprint is stale.",
+        path: ["shotPlanFingerprint"],
+      });
+    }
+  })
+  .readonly();
+
+export const buildShotPlanSet = (
+  rawInput: Omit<z.input<typeof ShotPlanSetInputSchema>, "schemaVersion"> & {
+    readonly schemaVersion?: 1;
+  },
+) => {
+  const input = ShotPlanSetInputSchema.parse({ ...rawInput, schemaVersion: 1 });
+  return ShotPlanSetSchema.parse({
+    ...input,
+    shotPlanFingerprint: withFingerprint("shot-plan-set", input),
+  });
+};
+
+const SyncAnchorSchema = z
+  .object({
+    eventId: SceneEventIdSchema,
+    sceneLocalFrame: SceneLocalFrameSchema,
+    purpose: NonEmptyPlanTextSchema,
+  })
+  .strict()
+  .readonly();
+
+const SyncAnchorSetInputSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    taskInputFingerprint: Sha256DigestSchema,
+    meaningId: MeaningIdSchema,
+    sceneDurationInFrames: PositiveIntegerSchema,
+    anchors: z.array(SyncAnchorSchema).max(64).readonly(),
+  })
+  .strict();
+
+export const SceneSyncAnchorSetSchema = SyncAnchorSetInputSchema.extend({
+  syncAnchorFingerprint: Sha256DigestSchema,
+})
+  .strict()
+  .superRefine((set, context) => {
+    if (
+      new Set(set.anchors.map((anchor) => anchor.eventId)).size !==
+        set.anchors.length ||
+      set.anchors.some(
+        (anchor) => anchor.sceneLocalFrame >= set.sceneDurationInFrames,
+      )
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Scene sync anchors must be unique and within the Scene.",
+        path: ["anchors"],
+      });
+    }
+    const input = omitFingerprint(set, "syncAnchorFingerprint");
+    if (
+      set.syncAnchorFingerprint !== withFingerprint("scene-sync-anchors", input)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Scene sync anchor fingerprint is stale.",
+        path: ["syncAnchorFingerprint"],
+      });
+    }
+  })
+  .readonly();
+
+export const buildSceneSyncAnchors = (
+  rawInput: Omit<z.input<typeof SyncAnchorSetInputSchema>, "schemaVersion"> & {
+    readonly schemaVersion?: 1;
+  },
+) => {
+  const input = SyncAnchorSetInputSchema.parse({
+    ...rawInput,
+    schemaVersion: 1,
+  });
+  return SceneSyncAnchorSetSchema.parse({
+    ...input,
+    syncAnchorFingerprint: withFingerprint("scene-sync-anchors", input),
+  });
+};
+
+const SceneAmbienceRefSchema = SelectedResourceRefSchema.refine(
+  (resource) => resource.kind === "asset" && resource.role === "scene-ambience",
+  "Ambience must use a Scene ambience asset.",
+);
+const SceneSfxRefSchema = SelectedResourceRefSchema.refine(
+  (resource) => resource.kind === "asset" && resource.role === "scene-sfx",
+  "Sound cues must use Scene SFX assets.",
+);
+
+const SoundCueSchema = z
+  .object({
+    cueId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    resource: SceneSfxRefSchema,
+    timing: z.discriminatedUnion("kind", [
+      z
+        .object({
+          kind: z.literal("anchor"),
+          eventId: SceneEventIdSchema,
+          offsetFrames: z.number().int().safe(),
+        })
+        .strict()
+        .readonly(),
+      z
+        .object({
+          kind: z.literal("explicit"),
+          sceneLocalFrame: SceneLocalFrameSchema,
+        })
+        .strict()
+        .readonly(),
+    ]),
+    durationInFrames: PositiveIntegerSchema,
+    volume: z.number().finite().min(0).max(1),
+  })
+  .strict()
+  .readonly();
+
+const SoundPlanInputSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    taskInputFingerprint: Sha256DigestSchema,
+    meaningId: MeaningIdSchema,
+    sceneDurationInFrames: PositiveIntegerSchema,
+    ambience: SceneAmbienceRefSchema.nullable(),
+    cues: z.array(SoundCueSchema).max(128).readonly(),
+  })
+  .strict();
+
+export const SceneSoundPlanSchema = SoundPlanInputSchema.extend({
+  soundPlanFingerprint: Sha256DigestSchema,
+})
+  .strict()
+  .superRefine((plan, context) => {
+    if (new Set(plan.cues.map((cue) => cue.cueId)).size !== plan.cues.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Scene sound cue IDs must be unique.",
+        path: ["cues"],
+      });
+    }
+    const input = omitFingerprint(plan, "soundPlanFingerprint");
+    if (
+      plan.soundPlanFingerprint !== withFingerprint("scene-sound-plan", input)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Scene sound plan fingerprint is stale.",
+        path: ["soundPlanFingerprint"],
+      });
+    }
+  })
+  .readonly();
+
+export const buildSceneSoundPlan = (
+  rawInput: Omit<z.input<typeof SoundPlanInputSchema>, "schemaVersion"> & {
+    readonly schemaVersion?: 1;
+    readonly soundPlanFingerprint?: unknown;
+  },
+) => {
+  const input = SoundPlanInputSchema.parse({
+    schemaVersion: 1,
+    taskInputFingerprint: rawInput.taskInputFingerprint,
+    meaningId: rawInput.meaningId,
+    sceneDurationInFrames: rawInput.sceneDurationInFrames,
+    ambience: rawInput.ambience,
+    cues: rawInput.cues,
+  });
+  return SceneSoundPlanSchema.parse({
+    ...input,
+    soundPlanFingerprint: withFingerprint("scene-sound-plan", input),
+  });
+};
+
+export const resolveSceneSoundCues = ({
+  soundPlan: rawSoundPlan,
+  syncAnchors: rawSyncAnchors,
+}: {
+  readonly soundPlan: unknown;
+  readonly syncAnchors: unknown;
+}) => {
+  const soundPlan = SceneSoundPlanSchema.parse(rawSoundPlan);
+  const syncAnchors = SceneSyncAnchorSetSchema.parse(rawSyncAnchors);
+  if (
+    soundPlan.taskInputFingerprint !== syncAnchors.taskInputFingerprint ||
+    soundPlan.meaningId !== syncAnchors.meaningId ||
+    soundPlan.sceneDurationInFrames !== syncAnchors.sceneDurationInFrames
+  ) {
+    throw new Error("Scene sound and sync anchor identities do not match.");
+  }
+  const anchorFrames = new Map(
+    syncAnchors.anchors.map((anchor) => [
+      anchor.eventId,
+      anchor.sceneLocalFrame,
+    ]),
+  );
+  return soundPlan.cues.map((cue) => {
+    const startFrame =
+      cue.timing.kind === "explicit"
+        ? cue.timing.sceneLocalFrame
+        : (() => {
+            const anchorFrame = anchorFrames.get(cue.timing.eventId);
+            if (anchorFrame === undefined) {
+              throw new Error(
+                `Sound cue anchor is missing: ${cue.timing.eventId}.`,
+              );
+            }
+            return anchorFrame + cue.timing.offsetFrames;
+          })();
+    const endFrame = startFrame + cue.durationInFrames;
+    if (
+      !Number.isSafeInteger(startFrame) ||
+      startFrame < 0 ||
+      endFrame > soundPlan.sceneDurationInFrames
+    ) {
+      throw new Error(`Sound cue exceeds the Scene range: ${cue.cueId}.`);
+    }
+    return { cueId: cue.cueId, startFrame, endFrame };
+  });
+};
+
+export const validateScenePlanBundle = ({
+  taskInputFingerprint,
+  meaningId,
+  sceneDurationInFrames,
+  allowedResourceIds,
+  visualPlan: rawVisualPlan,
+  shotPlan: rawShotPlan,
+  syncAnchors: rawSyncAnchors,
+  soundPlan: rawSoundPlan,
+}: {
+  readonly taskInputFingerprint: unknown;
+  readonly meaningId: unknown;
+  readonly sceneDurationInFrames: unknown;
+  readonly allowedResourceIds: readonly string[];
+  readonly visualPlan: unknown;
+  readonly shotPlan: unknown;
+  readonly syncAnchors: unknown;
+  readonly soundPlan: unknown;
+}) => {
+  const fingerprint = Sha256DigestSchema.parse(taskInputFingerprint);
+  const parsedMeaningId = MeaningIdSchema.parse(meaningId);
+  const duration = PositiveIntegerSchema.parse(sceneDurationInFrames);
+  const visualPlan = SceneVisualPlanSchema.parse(rawVisualPlan);
+  const shotPlan = ShotPlanSetSchema.parse(rawShotPlan);
+  const syncAnchors = SceneSyncAnchorSetSchema.parse(rawSyncAnchors);
+  const soundPlan = SceneSoundPlanSchema.parse(rawSoundPlan);
+  for (const artifact of [visualPlan, shotPlan, syncAnchors, soundPlan]) {
+    if (
+      artifact.taskInputFingerprint !== fingerprint ||
+      artifact.meaningId !== parsedMeaningId
+    ) {
+      throw new Error("Scene plan artifact does not match its frozen task.");
+    }
+  }
+  if (
+    shotPlan.sceneDurationInFrames !== duration ||
+    syncAnchors.sceneDurationInFrames !== duration ||
+    soundPlan.sceneDurationInFrames !== duration ||
+    JSON.stringify(visualPlan.orderedShotIds) !==
+      JSON.stringify(shotPlan.shots.map((shot) => shot.shotId))
+  ) {
+    throw new Error("Scene plan order or fixed duration is inconsistent.");
+  }
+  const allowed = new Set(
+    allowedResourceIds.map((id) => ResourceIdSchema.parse(id)),
+  );
+  const referenced = [
+    ...visualPlan.visualResourceIds,
+    ...shotPlan.shots.flatMap((shot) => shot.visualResourceIds),
+    ...(soundPlan.ambience ? [soundPlan.ambience.resourceId] : []),
+    ...soundPlan.cues.map((cue) => cue.resource.resourceId),
+  ];
+  if (referenced.some((id) => !allowed.has(id))) {
+    throw new Error(
+      "Scene plan references a resource outside its task allowlist.",
+    );
+  }
+  const anchors = new Set(syncAnchors.anchors.map((anchor) => anchor.eventId));
+  if (
+    shotPlan.shots.some((shot) =>
+      shot.syncAnchorIds.some((eventId) => !anchors.has(eventId)),
+    )
+  ) {
+    throw new Error("Shot plan references an undeclared Scene sync anchor.");
+  }
+  resolveSceneSoundCues({ soundPlan, syncAnchors });
+  return { visualPlan, shotPlan, syncAnchors, soundPlan };
+};
+
+export type SceneVisualPlan = z.infer<typeof SceneVisualPlanSchema>;
+export type ShotPlanSet = z.infer<typeof ShotPlanSetSchema>;
+export type SceneSyncAnchorSet = z.infer<typeof SceneSyncAnchorSetSchema>;
+export type SceneSoundPlan = z.infer<typeof SceneSoundPlanSchema>;
