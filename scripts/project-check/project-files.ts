@@ -1,0 +1,94 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
+import {
+  M3NarrativeBaselineEvidenceReceiptSchema,
+  SealedNarrationManifestSchema,
+  SemanticTimingSchema,
+  Sha256DigestSchema,
+  StoryIdSchema,
+  type M3NarrativeBaselineEvidenceReceipt,
+  type SealedNarrationManifest,
+  type SemanticTiming,
+  type Sha256Digest,
+} from "../../src/contracts";
+
+export const getProjectCheckPaths = ({
+  rootDir,
+  projectId,
+}: {
+  readonly rootDir: string;
+  readonly projectId: string;
+}) => {
+  const storyId = StoryIdSchema.parse(projectId);
+  const projectDirectory = join(rootDir, "src/projects", storyId);
+  return {
+    storyId,
+    projectDirectory,
+    brief: join(projectDirectory, "brief.json"),
+    story: join(projectDirectory, "story.json"),
+    narration: join(projectDirectory, "narration.json"),
+    render: join(projectDirectory, "render.json"),
+    storyCheck: join(projectDirectory, "reviews/story-check.json"),
+    sealedNarration: join(
+      projectDirectory,
+      "generated/sealed-narration.generated.json",
+    ),
+    semanticTiming: join(
+      projectDirectory,
+      "generated/semantic-timing.generated.json",
+    ),
+    m3Receipt: join(
+      projectDirectory,
+      "generated/narrative-baseline-evidence.generated.json",
+    ),
+    autoCheck: join(
+      projectDirectory,
+      "generated/narrative-auto-check.generated.json",
+    ),
+    registry: join(rootDir, "src/projects/project-registry.generated.ts"),
+  } as const;
+};
+
+const readJson = async (path: string, label: string): Promise<unknown> => {
+  let bytes: Buffer;
+  try {
+    bytes = await readFile(path);
+  } catch (error) {
+    throw new Error(`${label} is missing or unreadable.`, { cause: error });
+  }
+  try {
+    return JSON.parse(bytes.toString("utf8"));
+  } catch (error) {
+    throw new Error(`${label} contains malformed JSON.`, { cause: error });
+  }
+};
+
+export const checksumFile = async (path: string): Promise<Sha256Digest> =>
+  Sha256DigestSchema.parse(
+    `sha256:${createHash("sha256")
+      .update(Uint8Array.from(await readFile(path)))
+      .digest("hex")}`,
+  );
+
+export const loadProjectCheckSealedNarration = async (
+  path: string,
+): Promise<SealedNarrationManifest> =>
+  SealedNarrationManifestSchema.parse(
+    await readJson(path, "sealed-narration.generated.json"),
+  );
+
+export const loadProjectCheckSemanticTiming = async (
+  path: string,
+): Promise<SemanticTiming> =>
+  SemanticTimingSchema.parse(
+    await readJson(path, "semantic-timing.generated.json"),
+  );
+
+export const loadProjectCheckM3Receipt = async (
+  path: string,
+): Promise<M3NarrativeBaselineEvidenceReceipt> =>
+  M3NarrativeBaselineEvidenceReceiptSchema.parse(
+    await readJson(path, "narrative-baseline-evidence.generated.json"),
+  );
