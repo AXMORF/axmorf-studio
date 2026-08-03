@@ -9,6 +9,10 @@ import {
   validateComicDesignSystem,
   validateProjectResourceOverlay,
 } from "../../scripts/m9-product/comic-design-system";
+import {
+  PRODUCT_COMIC_SCENE_AUDIO_SPECS,
+  validateProductComicSceneAudio,
+} from "../../scripts/m9-product/scene-audio";
 
 const design = () => ({
   schemaVersion: 1,
@@ -141,4 +145,73 @@ test("committed comic system and project authoring Catalog are current", async (
     ).length,
     3,
   );
+});
+
+test("all ten product comic Scenes have one frozen verified 48 kHz mono PCM cue", async () => {
+  assert.equal(PRODUCT_COMIC_SCENE_AUDIO_SPECS.length, 10);
+  const projectRoot = join(
+    repositoryRoot,
+    "src/projects/product-comic-vertical",
+  );
+  const [overlay, catalog] = await Promise.all([
+    readFile(join(projectRoot, "resource-catalog.json"), "utf8"),
+    readFile(join(projectRoot, "generated/resource-catalog.generated.json"), "utf8"),
+  ]);
+  await assert.doesNotReject(() =>
+    validateProductComicSceneAudio({
+      rootDir: repositoryRoot,
+      overlay: JSON.parse(overlay),
+      catalog: JSON.parse(catalog),
+    }),
+  );
+});
+
+test("Scene audio validation rejects missing files, checksum drift and wrong role", async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-m9-scene-audio-"));
+  try {
+    const projectRoot = join(
+      repositoryRoot,
+      "src/projects/product-comic-vertical",
+    );
+    const [overlay, catalog] = await Promise.all([
+      readFile(join(projectRoot, "resource-catalog.json"), "utf8").then(JSON.parse),
+      readFile(
+        join(projectRoot, "generated/resource-catalog.generated.json"),
+        "utf8",
+      ).then(JSON.parse),
+    ]);
+    await assert.rejects(() =>
+      validateProductComicSceneAudio({rootDir, overlay, catalog}),
+    );
+    const sceneIndex = overlay.descriptors.findIndex((descriptor: {id: string}) =>
+      descriptor.id.startsWith("asset.product-comic-vertical.scene."),
+    );
+    const sceneDescriptor = overlay.descriptors[sceneIndex];
+    const wrongRole = structuredClone(overlay);
+    wrongRole.descriptors[sceneIndex] = {
+      ...sceneDescriptor,
+      mediaRole: "global-bgm",
+    };
+    await assert.rejects(() =>
+      validateProductComicSceneAudio({
+        rootDir: repositoryRoot,
+        overlay: wrongRole,
+        catalog,
+      }),
+    );
+    const checksumDrift = structuredClone(overlay);
+    checksumDrift.descriptors[sceneIndex] = {
+      ...sceneDescriptor,
+      checksum: `sha256:${"f".repeat(64)}`,
+    };
+    await assert.rejects(() =>
+      validateProductComicSceneAudio({
+        rootDir: repositoryRoot,
+        overlay: checksumDrift,
+        catalog,
+      }),
+    );
+  } finally {
+    await rm(rootDir, {recursive: true, force: true});
+  }
 });
