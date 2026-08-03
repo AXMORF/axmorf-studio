@@ -174,6 +174,29 @@ export const GlobalVisualProjectionSchema = z
   })
   .readonly();
 
+export const createGlobalVisualProjection = (rawInput: unknown) => {
+  const input = z
+    .object({
+      schemaVersion: z.literal(1),
+      projectionVersion: z.literal(GLOBAL_VISUAL_PROJECTION_VERSION),
+      storyId: StoryIdSchema,
+      compositionId: CompositionIdSchema,
+      durationInFrames: PositiveIntegerSchema,
+      globalVisualPlanFingerprint: Sha256DigestSchema,
+      sourceChecksum: Sha256DigestSchema,
+    })
+    .strict()
+    .parse(rawInput);
+  return GlobalVisualProjectionSchema.parse({
+    ...input,
+    projectionFingerprint: createFingerprint({
+      namespace: "global-visual-projection",
+      version: 1,
+      value: input,
+    }),
+  });
+};
+
 export type GlobalVisualPlan = z.infer<typeof GlobalVisualPlanSchema>;
 export type GlobalVisualProjection = z.infer<
   typeof GlobalVisualProjectionSchema

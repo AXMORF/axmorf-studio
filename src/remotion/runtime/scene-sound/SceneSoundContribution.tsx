@@ -5,7 +5,11 @@ import type { SceneSoundProjection } from "./resolve-scene-sound";
 
 export const SceneSoundContribution: FC<{
   readonly projection: SceneSoundProjection;
-}> = ({ projection }) => {
+  readonly busGain?: number;
+}> = ({ projection, busGain = 1 }) => {
+  if (!Number.isFinite(busGain) || busGain < 0 || busGain > 1) {
+    throw new Error("Scene sound bus gain must be finite and linear.");
+  }
   if (projection.contributions.length === 0) return null;
   return (
     <Fragment>
@@ -17,7 +21,7 @@ export const SceneSoundContribution: FC<{
         >
           <Html5Audio
             src={staticFile(contribution.publicPath.slice("public/".length))}
-            volume={() => contribution.volume}
+            volume={() => contribution.volume * busGain}
           />
         </Sequence>
       ))}

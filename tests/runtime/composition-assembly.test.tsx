@@ -15,7 +15,7 @@ import {
   type CompositionAssemblyProps,
 } from "../../src/remotion/runtime/composition-assembly";
 
-test("CompositionAssembly exposes one required and two exact optional semantic slots", () => {
+test("CompositionAssembly exposes one required and three exact optional semantic slots", () => {
   const props: CompositionAssemblyProps = {
     narrativeCore: createElement("span", null, "narrative"),
   };
@@ -29,10 +29,12 @@ test("CompositionAssembly exposes one required and two exact optional semantic s
   assert.equal(narrativeChildren[0].props.children, "narrative");
 
   const storyVisualTrack = createElement("span", null, "visual");
+  const globalVisualLayers = createElement("span", null, "global");
   const soundDesignTrack = createElement("span", null, "sound");
   const full = CompositionAssembly({
     narrativeCore: props.narrativeCore,
     storyVisualTrack,
+    globalVisualLayers,
     soundDesignTrack,
   });
   assert.ok(isValidElement<{ children?: ReactNode }>(full));
@@ -41,11 +43,11 @@ test("CompositionAssembly exposes one required and two exact optional semantic s
       (child) =>
         isValidElement<{ children?: ReactNode }>(child) && child.props.children,
     ),
-    ["visual", "narrative", "sound"],
+    ["visual", "global", "narrative", "sound"],
   );
 });
 
-test("assembly source has only the approved M6 slots and no generic or M8 placeholder", async () => {
+test("assembly source has four approved semantic slots and no generic track array", async () => {
   const path = new URL(
     "../../src/remotion/runtime/composition-assembly/CompositionAssembly.tsx",
     import.meta.url,
@@ -61,10 +63,10 @@ test("assembly source has only the approved M6 slots and no generic or M8 placeh
   assert.equal(ast.kind, ts.SyntaxKind.SourceFile);
   assert.match(
     source,
-    /readonly narrativeCore: ReactNode;\s*readonly storyVisualTrack\?: ReactNode;\s*readonly soundDesignTrack\?: ReactNode;/,
+    /readonly narrativeCore: ReactNode;\s*readonly storyVisualTrack\?: ReactNode;\s*readonly globalVisualLayers\?: ReactNode;\s*readonly soundDesignTrack\?: ReactNode;/,
   );
   assert.doesNotMatch(
     source,
-    /GlobalVisualLayers|globalSound|genericTracks|track\[\]|placeholder|BaseCanvas/,
+    /globalSound|genericTracks|track\[\]|placeholder|BaseCanvas/,
   );
 });

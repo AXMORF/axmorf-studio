@@ -70,6 +70,15 @@ export const createM4ProjectFixture = async (
     join(rootDir, "public/projects", storyId),
     { recursive: true },
   );
+  await rm(
+    join(
+      rootDir,
+      "src/projects",
+      storyId,
+      "final-assembly-plan.json",
+    ),
+    {force: true},
+  );
   const paths = {
     brief: join(rootDir, `src/projects/${storyId}/brief.json`),
     story: join(rootDir, `src/projects/${storyId}/story.json`),

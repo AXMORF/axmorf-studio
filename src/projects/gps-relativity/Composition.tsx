@@ -15,6 +15,7 @@ import {
   type NarrativeCoreProps,
 } from "../../remotion/runtime/narrative-core";
 import { SoundDesignTrack } from "../../remotion/runtime/sound-design";
+import { GlobalSoundTrack } from "../../remotion/runtime/global-sound";
 import { StoryVisualTrack } from "../../remotion/runtime/story-visual";
 import briefJson from "./brief.json";
 import sealedNarrationJson from "./generated/sealed-narration.generated.json";
@@ -28,6 +29,8 @@ import {
   gpsRelativitySoundDesignProjection,
   gpsRelativityStoryVisualProjection,
 } from "./scene-runtime-data";
+import { gpsRelativityFinalAssemblyData } from "./final-assembly-data";
+import { GlobalVisualLayers } from "./global-visual/GlobalVisualLayers";
 
 const projectSource = parseNarrativeProjectSource({
   brief: briefJson,
@@ -102,11 +105,26 @@ const GpsRelativityComposition: FC<StoryCompositionProps> = (props) => (
         rendererPropsByMeaning={gpsRelativityRendererPropsByMeaning}
       />
     }
+    globalVisualLayers={
+      <GlobalVisualLayers
+        plan={gpsRelativityFinalAssemblyData.globalVisualPlan}
+        projection={gpsRelativityFinalAssemblyData.globalVisualProjection}
+      />
+    }
     narrativeCore={
       <NarrativeCore {...createGpsRelativityNarrativeCoreProps(props)} />
     }
     soundDesignTrack={
-      <SoundDesignTrack projection={gpsRelativitySoundDesignProjection} />
+      <>
+        <SoundDesignTrack
+          projection={gpsRelativitySoundDesignProjection}
+          sceneBusGain={
+            gpsRelativityFinalAssemblyData.finalSound.plan.masteringPolicy
+              .sceneBusGain
+          }
+        />
+        <GlobalSoundTrack resolved={gpsRelativityFinalAssemblyData.finalSound} />
+      </>
     }
   />
 );

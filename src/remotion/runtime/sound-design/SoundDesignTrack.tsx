@@ -138,13 +138,15 @@ export const buildSoundDesignProjection = (rawInput: {
 
 export const SoundDesignTrack: FC<{
   readonly projection: SoundDesignProjection;
-}> = ({ projection }) => (
+  readonly sceneBusGain?: number;
+}> = ({ projection, sceneBusGain = 1 }) => (
   <Fragment>
     {projection.entries.map((entry) =>
       entry.status === "ready" ? (
         <SceneSoundContribution
           key={entry.meaningId}
           projection={entry.sceneSoundProjection}
+          busGain={sceneBusGain}
         />
       ) : null,
     )}

@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "overlayVersion": "gps-m8-resource-overlay-v1",
+  "baseCatalogFingerprint": "sha256:83872a754e05df18d0ec008ecd4f9cb637c0c159481dc59b0368898125188689",
+  "descriptors": [
+    {
+      "schemaVersion": 1,
+      "id": "asset.gps-cross-scene-ambience",
+      "kind": "asset",
+      "status": "approved",
+      "title": "GPS cross-scene orbital ambience",
+      "description": "Project-authored continuous PCM orbital and receiver field spanning the complete M8 Composition without owning Scene-local cues.",
+      "useCases": ["cross-scene continuity ambience"],
+      "tags": ["ambience", "gps", "m8"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/projects/gps-relativity/resource-catalog.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "cross-scene-ambience",
+      "localPath": "public/projects/gps-relativity/global-audio/cross-scene-ambience.wav",
+      "checksum": "sha256:66517c1aef3b560b7cab8191ef759ecef7ceed9d16460a236a1b39b0fa3b8762",
+      "license": {
+        "id": "Project-Authored",
+        "verificationStatus": "verified",
+        "sourceUrl": null,
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-08-03T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:66517c1aef3b560b7cab8191ef759ecef7ceed9d16460a236a1b39b0fa3b8762"
+      },
+      "media": {
+        "durationInSeconds": 57.7,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.gps-global-bgm",
+      "kind": "asset",
+      "status": "approved",
+      "title": "GPS low-density clock bed",
+      "description": "Project-authored low-density PCM clock bed for the complete M8 Composition with deterministic narration ducking.",
+      "useCases": ["narration-led global music bed"],
+      "tags": ["bgm", "gps", "m8"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/projects/gps-relativity/resource-catalog.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "global-bgm",
+      "localPath": "public/projects/gps-relativity/global-audio/global-bgm.wav",
+      "checksum": "sha256:a4da225f7358c06aaff12b0e1e7d3aee43d7e77b851d2d29a655fba1680363d7",
+      "license": {
+        "id": "Project-Authored",
+        "verificationStatus": "verified",
+        "sourceUrl": null,
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-08-03T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:a4da225f7358c06aaff12b0e1e7d3aee43d7e77b851d2d29a655fba1680363d7"
+      },
+      "media": {
+        "durationInSeconds": 57.7,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    }
+  ]
+}

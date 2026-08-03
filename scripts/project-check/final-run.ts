@@ -633,6 +633,24 @@ export const loadCurrentFinalM8Branch = async ({
   let globalVisual: ReturnType<typeof GlobalVisualPlanSchema.parse> | null = null;
   let assembly: ReturnType<typeof FinalAssemblyPlanSchema.parse> | null = null;
   let evidence: ReturnType<typeof FinalPreviewEvidenceSchema.parse> | null = null;
+  let assemblyCatalog: ReturnType<typeof ResourceCatalogSchema.parse> | null =
+    null;
+
+  try {
+    assemblyCatalog = ResourceCatalogSchema.parse(
+      await loadProjectCheckJson(
+        projectM8Path(
+          rootDir,
+          projectId,
+          "generated/resource-catalog.generated.json",
+        ),
+        "resource-catalog.generated.json",
+      ),
+    );
+  } catch (error) {
+    errors["global-sound"] = error;
+    errors["global-visual"] = error;
+  }
 
   try {
     globalSound = GlobalSoundPlanSchema.parse(
@@ -643,7 +661,8 @@ export const loadCurrentFinalM8Branch = async ({
     );
     if (
       globalSound.storyId !== projectId ||
-      globalSound.catalogFingerprint !== sceneBranch.resourceCatalogFingerprint
+      assemblyCatalog === null ||
+      globalSound.catalogFingerprint !== assemblyCatalog.catalogFingerprint
     ) {
       throw new Error("GlobalSoundPlan identity does not match current project.");
     }
@@ -661,7 +680,8 @@ export const loadCurrentFinalM8Branch = async ({
     );
     if (
       globalVisual.storyId !== projectId ||
-      globalVisual.catalogFingerprint !== sceneBranch.resourceCatalogFingerprint
+      assemblyCatalog === null ||
+      globalVisual.catalogFingerprint !== assemblyCatalog.catalogFingerprint
     ) {
       throw new Error("GlobalVisualPlan identity does not match current project.");
     }
@@ -687,8 +707,9 @@ export const loadCurrentFinalM8Branch = async ({
       assembly.storyId !== projectId ||
       assembly.globalSoundPlanFingerprint !== globalSound.planFingerprint ||
       assembly.globalVisualPlanFingerprint !== globalVisual.planFingerprint ||
+      assemblyCatalog === null ||
       assembly.resourceCatalogFingerprint !==
-        sceneBranch.resourceCatalogFingerprint ||
+        assemblyCatalog.catalogFingerprint ||
       assembly.sceneCoverageFingerprint !==
         sceneBranch.sceneCoverageFingerprint ||
       assembly.rendererRegistryFingerprint !==
@@ -723,8 +744,9 @@ export const loadCurrentFinalM8Branch = async ({
       evidence.storyId !== projectId ||
       evidence.finalAssemblyFingerprint !==
         assembly.finalAssemblyFingerprint ||
+      assemblyCatalog === null ||
       evidence.resourceCatalogFingerprint !==
-        sceneBranch.resourceCatalogFingerprint
+        assemblyCatalog.catalogFingerprint
     ) {
       throw new Error("FinalPreviewEvidence identity does not match assembly.");
     }

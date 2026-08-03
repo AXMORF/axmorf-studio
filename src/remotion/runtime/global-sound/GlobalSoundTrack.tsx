@@ -1,6 +1,5 @@
-import {Audio} from "@remotion/media";
 import type {FC} from "react";
-import {staticFile} from "remotion";
+import {Html5Audio, staticFile} from "remotion";
 
 import {evaluateDuckEnvelope} from "./ducking";
 import type {ResolvedGlobalSound} from "./resolve-global-sound";
@@ -15,7 +14,7 @@ export const GlobalSoundTrack: FC<{
           ? resolved.plan.masteringPolicy.bgmGain
           : resolved.plan.masteringPolicy.ambienceGain;
       return (
-        <Audio
+        <Html5Audio
           key={asset.role}
           src={staticFile(asset.publicPath.slice("public/".length))}
           volume={(frame) =>

@@ -7,6 +7,7 @@ import ts from "typescript";
 import { CompositionAssembly } from "../../src/remotion/runtime/composition-assembly";
 import { NarrativeCore } from "../../src/remotion/runtime/narrative-core";
 import { SoundDesignTrack } from "../../src/remotion/runtime/sound-design";
+import { GlobalSoundTrack } from "../../src/remotion/runtime/global-sound";
 import { StoryVisualTrack } from "../../src/remotion/runtime/story-visual";
 import {
   createGpsRelativityNarrativeCoreProps,
@@ -22,11 +23,13 @@ test("gps-relativity has a default-export Composition", async () => {
       narrativeCore: unknown;
       storyVisualTrack: unknown;
       soundDesignTrack: unknown;
+      globalVisualLayers: unknown;
     }>(element),
   );
   assert.equal(element.type, CompositionAssembly);
   assert.deepEqual(Object.keys(element.props), [
     "storyVisualTrack",
+    "globalVisualLayers",
     "narrativeCore",
     "soundDesignTrack",
   ]);
@@ -35,7 +38,12 @@ test("gps-relativity has a default-export Composition", async () => {
   assert.ok(isValidElement(element.props.narrativeCore));
   assert.equal(element.props.narrativeCore.type, NarrativeCore);
   assert.ok(isValidElement(element.props.soundDesignTrack));
-  assert.equal(element.props.soundDesignTrack.type, SoundDesignTrack);
+  const soundTrack = element.props.soundDesignTrack;
+  assert.ok(isValidElement<{children: unknown}>(soundTrack));
+  const soundChildren = soundTrack.props.children;
+  assert.ok(Array.isArray(soundChildren));
+  assert.equal(soundChildren[0].type, SoundDesignTrack);
+  assert.equal(soundChildren[1].type, GlobalSoundTrack);
 });
 
 test("project-local metadata is exactly the current absolute authority", () => {
@@ -82,6 +90,9 @@ test("Composition uses only static project data and the complete sealed audio", 
     "./render.json",
     "./story.json",
   ]);
+  assert.match(source, /final-assembly-data/);
+  assert.match(source, /GlobalVisualLayers/);
+  assert.match(source, /GlobalSoundTrack/);
   assert.match(source, /export default GpsRelativityComposition/);
   assert.match(source, /sealedNarration\.completeAudio\.localPath/);
   assert.match(source, /staticFile\(/);
