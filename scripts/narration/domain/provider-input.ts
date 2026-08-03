@@ -1,26 +1,40 @@
 import { createFingerprint } from "../../../src/contracts/fingerprint";
 
-export type SafeVoxcpmExecutionDescriptor = {
-  readonly adapterId: "voxcpm-controllable-clone-http-v1";
+type SafeVoxcpmDescriptorBase = {
   readonly modelId: string;
-  readonly mode: "controllable-clone";
   readonly cfgValue: number;
   readonly inferenceTimesteps: number;
   readonly normalize: boolean;
   readonly denoise: boolean;
   readonly retryBadcase: boolean;
   readonly voiceProfileId: string;
-  readonly referenceAudioChecksum: string;
-  readonly controlInstruction: string;
 };
+
+export type SafeVoxcpmExecutionDescriptor =
+  | (SafeVoxcpmDescriptorBase & {
+      readonly adapterId: "voxcpm-controllable-clone-http-v1";
+      readonly mode: "controllable-clone";
+      readonly referenceAudioChecksum: string;
+      readonly controlInstruction: string;
+    })
+  | (SafeVoxcpmDescriptorBase & {
+      readonly adapterId: "voxcpm-high-fidelity-clone-http-v1";
+      readonly mode: "high-fidelity-clone";
+      readonly promptSourceChecksum: string;
+      readonly promptTextChecksum: string;
+      readonly promptAudioChecksum: string;
+      readonly referenceAudioChecksum: string;
+    });
 
 export type ResolvedVoxcpmProfile = {
   readonly baseUrl: string;
-  readonly endpointPath: "/clone";
+  readonly endpointPath: "/clone" | "/clone_with_prompt";
   readonly token?: string;
   readonly timeoutMs: number;
   readonly referenceAudioBytes: Buffer;
-  readonly controlInstruction: string;
+  readonly controlInstruction?: string;
+  readonly promptAudioBytes?: Buffer;
+  readonly promptText?: string;
   readonly parameters: {
     readonly cfgValue: number;
     readonly inferenceTimesteps: number;

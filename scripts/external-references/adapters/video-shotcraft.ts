@@ -94,26 +94,24 @@ export const canonicalizeVideoShotcraftCard = ({
     throw new Error("Shotcraft exact preview must be an MP4.");
   }
   if (
-    cardId !== "draw-svg-trace" ||
-    styleKey !== "draw-svg-trace" ||
-    card.category !== "ui-entrance" ||
+    typeof card.category !== "string" ||
     !Array.isArray(card.tags) ||
     !card.tags.every((tag) => typeof tag === "string")
   ) {
-    throw new Error("Shotcraft fixture identity or metadata is invalid.");
+    throw new Error("Shotcraft card metadata is invalid.");
   }
   const demoSourcePath = readExactDemoDeclaration(cardDocument);
   const cardDocumentPath = ExternalRepositoryPathSchema.parse(card.source);
   const previewPath = normalizePreviewPath(style.media.url);
   const common = {
-    cardId: "draw-svg-trace" as const,
-    styleKey: "draw-svg-trace" as const,
+    cardId,
+    styleKey,
     title:
       typeof style.label === "string" && style.label.trim()
         ? style.label
         : cardId,
     summary: String(card.summary ?? style.description ?? cardId),
-    category: "ui-entrance" as const,
+    category: card.category,
     tags: card.tags,
     cardDocumentPath,
     demoSourcePath,

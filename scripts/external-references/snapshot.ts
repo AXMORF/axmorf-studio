@@ -29,15 +29,16 @@ export const loadExternalReferenceSnapshot = async (
   const byPath = new Map(
     snapshot.files.map((file) => [file.fixturePath, file.checksum]),
   );
-  const card = snapshot.index.cards[0];
-  if (
-    byPath.get(card.cardDocumentPath) !== card.cardDocumentChecksum ||
-    byPath.get(card.demoSourcePath) !== card.demoSourceChecksum ||
-    byPath.get(card.previewPath) !== card.previewChecksum
-  ) {
-    throw new Error(
-      "External reference canonical card file identity is stale.",
-    );
+  for (const card of snapshot.index.cards) {
+    if (
+      byPath.get(card.cardDocumentPath) !== card.cardDocumentChecksum ||
+      byPath.get(card.demoSourcePath) !== card.demoSourceChecksum ||
+      byPath.get(card.previewPath) !== card.previewChecksum
+    ) {
+      throw new Error(
+        "External reference canonical card file identity is stale.",
+      );
+    }
   }
   return snapshot;
 };

@@ -95,8 +95,7 @@ const createEvidenceRoot = async (context: TestContext) => {
   }
   await generateProjectRegistry({ rootDir, mode: "write" });
   const mediaPaths = {
-    transparentStill:
-      "out/gps-relativity/m3-transparent-frame-0.png",
+    transparentStill: "out/gps-relativity/m3-transparent-frame-0.png",
     captionStill: "out/gps-relativity/m3-caption-frame-15.png",
     render: "out/gps-relativity/m3-narrative-baseline.mp4",
     receipt:
@@ -159,6 +158,51 @@ test("render metadata must match the registered Composition", async () => {
     videoStreamCount: 1,
     audioStreamCount: 1,
   });
+});
+
+test("render inspection accepts vertical registry metadata instead of GPS fixture constants", async () => {
+  const fakeFfprobe: ProcessRunner = async () =>
+    ok(
+      JSON.stringify({
+        streams: [
+          {
+            codec_type: "video",
+            codec_name: "h264",
+            avg_frame_rate: "30/1",
+            nb_read_frames: "4500",
+          },
+          {
+            codec_type: "audio",
+            codec_name: "aac",
+            sample_rate: "48000",
+            channels: 1,
+          },
+        ],
+        format: { duration: "150.000000" },
+      }),
+    );
+  assert.deepEqual(
+    await inspectBaselineRender("vertical.mp4", fakeFfprobe, {
+      fps: 30,
+      durationInFrames: 4500,
+    }),
+    {
+      fps: 30,
+      durationInFrames: 4500,
+      videoStreamCount: 1,
+      audioStreamCount: 1,
+    },
+  );
+});
+
+test("collector source derives Composition and caption evidence identities", async () => {
+  const source = await readFile(
+    join(process.cwd(), "scripts/baseline/evidence.ts"),
+    "utf8",
+  );
+  assert.doesNotMatch(source, /entry\.descriptor\.id !== "GpsRelativity"/);
+  assert.doesNotMatch(source, /m3-caption-frame-15\.png/);
+  assert.doesNotMatch(source, /durationInFrames !== 1731/);
 });
 
 const digest = (character: string) =>
@@ -339,7 +383,7 @@ test("read-only M3 check rejects missing malformed and valid-shape receipt drift
       runProcess: validEvidenceProcess,
     }),
   );
-  assert.equal((await readFile(receiptPath, "utf8")), "{malformed");
+  assert.equal(await readFile(receiptPath, "utf8"), "{malformed");
 
   const valid = JSON.parse(validBytes.toString("utf8")) as Record<
     string,

@@ -585,7 +585,9 @@ const failureReason = (error: unknown) => {
 };
 
 const failedM8Branch = (): FinalM8BranchResult => {
-  const missing = new Error("Required M8 final mechanical artifact is missing.");
+  const missing = new Error(
+    "Required M8 final mechanical artifact is missing.",
+  );
   return {
     globalSoundPlanFingerprint: null,
     finalSoundProjectionFingerprint: null,
@@ -611,11 +613,45 @@ const failedM8Branch = (): FinalM8BranchResult => {
   };
 };
 
-const projectM8Path = (
+const projectM8Path = (rootDir: string, projectId: string, path: string) =>
+  join(rootDir, "src", "projects", projectId, path);
+
+const pathExists = async (path: string) => {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const resolveFinalPreviewEvidencePath = async (
   rootDir: string,
   projectId: string,
-  path: string,
-) => join(rootDir, "src", "projects", projectId, path);
+): Promise<string> => {
+  const canonical = projectM8Path(
+    rootDir,
+    projectId,
+    "generated/final-preview-evidence.generated.json",
+  );
+  const legacy = projectM8Path(
+    rootDir,
+    projectId,
+    "generated/m8-final-preview-evidence.generated.json",
+  );
+  const [hasCanonical, hasLegacy] = await Promise.all([
+    pathExists(canonical),
+    pathExists(legacy),
+  ]);
+  if (hasCanonical && hasLegacy) {
+    throw new Error(
+      "FinalPreviewEvidence canonical and legacy paths conflict.",
+    );
+  }
+  if (hasCanonical) return canonical;
+  if (projectId === "gps-relativity" && hasLegacy) return legacy;
+  throw new Error("FinalPreviewEvidence is missing.");
+};
 
 export const loadCurrentFinalM8Branch = async ({
   rootDir,
@@ -627,12 +663,14 @@ export const loadCurrentFinalM8Branch = async ({
   readonly sceneBranch: FinalSceneBranchResult;
 }): Promise<FinalM8BranchResult> => {
   const result = failedM8Branch();
-  const statuses = {...result.checkStatuses};
-  const errors = {...result.checkErrors};
+  const statuses = { ...result.checkStatuses };
+  const errors = { ...result.checkErrors };
   let globalSound: ReturnType<typeof GlobalSoundPlanSchema.parse> | null = null;
-  let globalVisual: ReturnType<typeof GlobalVisualPlanSchema.parse> | null = null;
+  let globalVisual: ReturnType<typeof GlobalVisualPlanSchema.parse> | null =
+    null;
   let assembly: ReturnType<typeof FinalAssemblyPlanSchema.parse> | null = null;
-  let evidence: ReturnType<typeof FinalPreviewEvidenceSchema.parse> | null = null;
+  let evidence: ReturnType<typeof FinalPreviewEvidenceSchema.parse> | null =
+    null;
   let assemblyCatalog: ReturnType<typeof ResourceCatalogSchema.parse> | null =
     null;
 
@@ -664,7 +702,9 @@ export const loadCurrentFinalM8Branch = async ({
       assemblyCatalog === null ||
       globalSound.catalogFingerprint !== assemblyCatalog.catalogFingerprint
     ) {
-      throw new Error("GlobalSoundPlan identity does not match current project.");
+      throw new Error(
+        "GlobalSoundPlan identity does not match current project.",
+      );
     }
     statuses["global-sound"] = "pass";
   } catch (error) {
@@ -683,7 +723,9 @@ export const loadCurrentFinalM8Branch = async ({
       assemblyCatalog === null ||
       globalVisual.catalogFingerprint !== assemblyCatalog.catalogFingerprint
     ) {
-      throw new Error("GlobalVisualPlan identity does not match current project.");
+      throw new Error(
+        "GlobalVisualPlan identity does not match current project.",
+      );
     }
     statuses["global-visual"] = "pass";
   } catch (error) {
@@ -719,7 +761,9 @@ export const loadCurrentFinalM8Branch = async ({
       assembly.soundDesignProjectionFingerprint !==
         sceneBranch.soundDesignProjectionFingerprint ||
       assembly.compositionSourceChecksum !==
-        (await checksumFile(projectM8Path(rootDir, projectId, "Composition.tsx")))
+        (await checksumFile(
+          projectM8Path(rootDir, projectId, "Composition.tsx"),
+        ))
     ) {
       throw new Error("FinalAssembly identity does not match current inputs.");
     }
@@ -729,24 +773,24 @@ export const loadCurrentFinalM8Branch = async ({
   }
 
   try {
+    const evidencePath = await resolveFinalPreviewEvidencePath(
+      rootDir,
+      projectId,
+    );
     evidence = FinalPreviewEvidenceSchema.parse(
       await loadProjectCheckJson(
-        projectM8Path(
-          rootDir,
-          projectId,
-          "generated/m8-final-preview-evidence.generated.json",
-        ),
-        "m8-final-preview-evidence.generated.json",
+        evidencePath,
+        evidencePath.endsWith("/m8-final-preview-evidence.generated.json")
+          ? "m8-final-preview-evidence.generated.json"
+          : "final-preview-evidence.generated.json",
       ),
     );
     if (
       assembly === null ||
       evidence.storyId !== projectId ||
-      evidence.finalAssemblyFingerprint !==
-        assembly.finalAssemblyFingerprint ||
+      evidence.finalAssemblyFingerprint !== assembly.finalAssemblyFingerprint ||
       assemblyCatalog === null ||
-      evidence.resourceCatalogFingerprint !==
-        assemblyCatalog.catalogFingerprint
+      evidence.resourceCatalogFingerprint !== assemblyCatalog.catalogFingerprint
     ) {
       throw new Error("FinalPreviewEvidence identity does not match assembly.");
     }
@@ -875,34 +919,34 @@ export const runFinalMechanicalCheck = async ({
   }
   if (!m8Declared) {
     return createFinalMechanicalCheckReport({
-    schemaVersion: 1,
-    reportVersion: "final-mechanical-check-v1",
-    storyId: projectId,
-    level: "final",
-    aggregateStatus,
-    inputIdentity: {
-      narrativeReportFingerprint,
-      visualStyleFingerprint: sceneBranch.visualStyleFingerprint,
-      resourceCatalogFingerprint: sceneBranch.resourceCatalogFingerprint,
-      referenceModes: sceneBranch.referenceModes,
-      externalSnapshotFingerprints: sceneBranch.externalSnapshotFingerprints,
-      fidelityReceiptFingerprints: sceneBranch.fidelityReceiptFingerprints,
-      sceneCoverageFingerprint: sceneBranch.sceneCoverageFingerprint,
-      scenePackageFingerprints: sceneBranch.scenePackageFingerprints,
-      rendererRegistryFingerprint: sceneBranch.rendererRegistryFingerprint,
-      storyVisualProjectionFingerprint:
-        sceneBranch.storyVisualProjectionFingerprint,
-      soundDesignProjectionFingerprint:
-        sceneBranch.soundDesignProjectionFingerprint,
-      compositionAssemblyChecksum: sceneBranch.compositionAssemblyChecksum,
-    },
-    checks,
+      schemaVersion: 1,
+      reportVersion: "final-mechanical-check-v1",
+      storyId: projectId,
+      level: "final",
+      aggregateStatus,
+      inputIdentity: {
+        narrativeReportFingerprint,
+        visualStyleFingerprint: sceneBranch.visualStyleFingerprint,
+        resourceCatalogFingerprint: sceneBranch.resourceCatalogFingerprint,
+        referenceModes: sceneBranch.referenceModes,
+        externalSnapshotFingerprints: sceneBranch.externalSnapshotFingerprints,
+        fidelityReceiptFingerprints: sceneBranch.fidelityReceiptFingerprints,
+        sceneCoverageFingerprint: sceneBranch.sceneCoverageFingerprint,
+        scenePackageFingerprints: sceneBranch.scenePackageFingerprints,
+        rendererRegistryFingerprint: sceneBranch.rendererRegistryFingerprint,
+        storyVisualProjectionFingerprint:
+          sceneBranch.storyVisualProjectionFingerprint,
+        soundDesignProjectionFingerprint:
+          sceneBranch.soundDesignProjectionFingerprint,
+        compositionAssemblyChecksum: sceneBranch.compositionAssemblyChecksum,
+      },
+      checks,
     });
   }
 
   let m8Branch = failedM8Branch();
   try {
-    m8Branch = await loadM8Branch({rootDir, projectId, sceneBranch});
+    m8Branch = await loadM8Branch({ rootDir, projectId, sceneBranch });
   } catch (error) {
     m8Branch = {
       ...m8Branch,
@@ -923,7 +967,10 @@ export const runFinalMechanicalCheck = async ({
         status === "pass" ? [] : [failureReason(m8Branch.checkErrors[checkId])],
     };
   });
-  const v2Checks = [...checks, ...m8Checks] as FinalMechanicalCheckV2ReportInput["checks"];
+  const v2Checks = [
+    ...checks,
+    ...m8Checks,
+  ] as FinalMechanicalCheckV2ReportInput["checks"];
   const v2AggregateStatus = v2Checks.some((check) => check.status === "fail")
     ? "fail"
     : "pass";
@@ -949,16 +996,13 @@ export const runFinalMechanicalCheck = async ({
         sceneBranch.soundDesignProjectionFingerprint,
       compositionAssemblyChecksum: sceneBranch.compositionAssemblyChecksum,
       globalSoundPlanFingerprint: m8Branch.globalSoundPlanFingerprint,
-      finalSoundProjectionFingerprint:
-        m8Branch.finalSoundProjectionFingerprint,
+      finalSoundProjectionFingerprint: m8Branch.finalSoundProjectionFingerprint,
       globalVisualPlanFingerprint: m8Branch.globalVisualPlanFingerprint,
       globalVisualProjectionFingerprint:
         m8Branch.globalVisualProjectionFingerprint,
       finalAssemblyFingerprint: m8Branch.finalAssemblyFingerprint,
-      finalPreviewEvidenceFingerprint:
-        m8Branch.finalPreviewEvidenceFingerprint,
-      finalPreviewApprovalFingerprint:
-        m8Branch.finalPreviewApprovalFingerprint,
+      finalPreviewEvidenceFingerprint: m8Branch.finalPreviewEvidenceFingerprint,
+      finalPreviewApprovalFingerprint: m8Branch.finalPreviewApprovalFingerprint,
     },
     checks: v2Checks,
   });

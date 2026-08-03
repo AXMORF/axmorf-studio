@@ -29,6 +29,20 @@ test("reference CLI accepts only fixed sync and localize positional flags", asyn
   );
   await runExternalReferenceCli(
     [
+      "sync",
+      "--source",
+      "video-shotcraft",
+      "--revision",
+      revision,
+      "--card",
+      "panel-reveal",
+      "--style",
+      "vertical-comic",
+    ],
+    context,
+  );
+  await runExternalReferenceCli(
+    [
       "localize",
       "--source",
       "video-shotcraft",
@@ -45,7 +59,7 @@ test("reference CLI accepts only fixed sync and localize positional flags", asyn
     ],
     context,
   );
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
   for (const args of [
     [],
     ["sync", "--source", "video-shotcraft", "--revision", "main"],

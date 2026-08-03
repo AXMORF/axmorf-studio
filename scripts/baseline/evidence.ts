@@ -149,9 +149,13 @@ const parseFrameRate = (value: unknown): number => {
 export const inspectBaselineRender = async (
   path: string,
   runProcess: ProcessRunner = defaultProcessRunner,
+  expected: { readonly fps: number; readonly durationInFrames: number } = {
+    fps: 30,
+    durationInFrames: 1731,
+  },
 ): Promise<{
-  readonly fps: 30;
-  readonly durationInFrames: 1731;
+  readonly fps: number;
+  readonly durationInFrames: number;
   readonly videoStreamCount: 1;
   readonly audioStreamCount: 1;
 }> => {
@@ -189,16 +193,18 @@ export const inspectBaselineRender = async (
   if (audio.length !== 1) errors.push("one AAC audio stream is required");
   if (video[0]?.codec_name !== "h264") errors.push("video must use H.264");
   if (audio[0]?.codec_name !== "aac") errors.push("audio must use AAC");
-  if (parseFrameRate(video[0]?.avg_frame_rate) !== 30) {
-    errors.push("video must use 30 fps");
+  if (parseFrameRate(video[0]?.avg_frame_rate) !== expected.fps) {
+    errors.push(`video must use ${expected.fps} fps`);
   }
-  if (Number(video[0]?.nb_read_frames) !== 1731) {
-    errors.push("video must contain 1731 decoded frames");
+  if (Number(video[0]?.nb_read_frames) !== expected.durationInFrames) {
+    errors.push(
+      `video must contain ${expected.durationInFrames} decoded frames`,
+    );
   }
   if (errors.length > 0) throw new Error(errors.join("; "));
   return {
-    fps: 30,
-    durationInFrames: 1731,
+    fps: expected.fps,
+    durationInFrames: expected.durationInFrames,
     videoStreamCount: 1,
     audioStreamCount: 1,
   };
@@ -266,12 +272,25 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
   const storyId = StoryIdSchema.parse(rawStoryId);
   const entry = await resolveCurrentM3Entry(rootDir, storyId);
 
+  const timingPath =
+    `src/projects/${storyId}/generated/semantic-timing.generated.json` as const;
+  const semanticTiming = SemanticTimingSchema.parse(
+    JSON.parse(await readFile(join(rootDir, timingPath), "utf8")),
+  );
+  const firstCaption = semanticTiming.captionCues.find(
+    (cue) => cue.text.trim().length > 0 && cue.endFrame > cue.startFrame,
+  );
+  if (firstCaption === undefined) {
+    throw new Error("M3 evidence requires one visible CaptionCue.");
+  }
+  const captionFrame = firstCaption.startFrame;
+
   const paths = {
     registry: "src/projects/project-registry.generated.ts",
     manifest: `src/projects/${storyId}/generated/sealed-narration.generated.json`,
-    timing: `src/projects/${storyId}/generated/semantic-timing.generated.json`,
+    timing: timingPath,
     transparentStill: `out/${storyId}/m3-transparent-frame-0.png`,
-    captionStill: `out/${storyId}/m3-caption-frame-15.png`,
+    captionStill: `out/${storyId}/m3-caption-frame-${captionFrame}.png`,
     render: `out/${storyId}/m3-narrative-baseline.mp4`,
     receipt: `src/projects/${storyId}/generated/narrative-baseline-evidence.generated.json`,
   } as const;
@@ -294,15 +313,13 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
   const sealedNarration = SealedNarrationManifestSchema.parse(
     JSON.parse(manifestBytes.toString("utf8")),
   );
-  const semanticTiming = SemanticTimingSchema.parse(
+  const persistedTiming = SemanticTimingSchema.parse(
     JSON.parse(timingBytes.toString("utf8")),
   );
   if (
     sealedNarration.storyId !== storyId ||
-    semanticTiming.storyId !== storyId ||
-    entry.descriptor.id !== "GpsRelativity" ||
-    entry.descriptor.fps !== 30 ||
-    entry.descriptor.durationInFrames !== 1731 ||
+    persistedTiming.storyId !== storyId ||
+    persistedTiming.fingerprint !== semanticTiming.fingerprint ||
     semanticTiming.fps !== entry.descriptor.fps ||
     semanticTiming.durationInFrames !== entry.descriptor.durationInFrames
   ) {
@@ -311,7 +328,10 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
   const [transparentAlpha, captionAlpha, renderFacts] = await Promise.all([
     inspectAlphaStill(absolute(paths.transparentStill), runProcess),
     inspectAlphaStill(absolute(paths.captionStill), runProcess, true),
-    inspectBaselineRender(absolute(paths.render), runProcess),
+    inspectBaselineRender(absolute(paths.render), runProcess, {
+      fps: entry.descriptor.fps,
+      durationInFrames: entry.descriptor.durationInFrames,
+    }),
   ]);
 
   const receipt = createM3EvidenceReceipt({
@@ -338,7 +358,7 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
       captionStill: {
         localPath: paths.captionStill,
         checksum: sha256Bytes(captionStillBytes),
-        frame: 15,
+        frame: captionFrame,
         alphaMin: captionAlpha.alphaMin as 0,
         alphaMax: captionAlpha.alphaMax,
         topLeftAlphaMax: captionAlpha.topLeftAlphaMax as 0,
@@ -387,7 +407,8 @@ export const checkM3NarrativeBaselineEvidence = async ({
       cause: error,
     });
   }
-  const persisted = M3NarrativeBaselineEvidenceReceiptSchema.parse(rawPersisted);
+  const persisted =
+    M3NarrativeBaselineEvidenceReceiptSchema.parse(rawPersisted);
   if (
     persistedBytes.toString("utf8") !== serializeReceipt(current) ||
     serializeReceipt(persisted) !== serializeReceipt(current)

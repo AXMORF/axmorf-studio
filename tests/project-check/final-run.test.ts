@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
 import { FINAL_MECHANICAL_CHECK_IDS } from "../../src/contracts";
 import {
+  resolveFinalPreviewEvidencePath,
   runFinalMechanicalCheck,
   type FinalM8BranchResult,
   type FinalSceneBranchResult,
@@ -12,6 +14,48 @@ import {
 import { createM4ProjectFixture } from "../fixtures/m4-project";
 
 const sha = (value: string) => `sha256:${value.repeat(64)}`;
+
+test("final preview evidence path is canonical with GPS-only legacy compatibility", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-final-evidence-path-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const generated = join(rootDir, "src/projects/gps-relativity/generated");
+  await mkdir(generated, { recursive: true });
+  await writeFile(
+    join(generated, "m8-final-preview-evidence.generated.json"),
+    "{}\n",
+  );
+  assert.equal(
+    await resolveFinalPreviewEvidencePath(rootDir, "gps-relativity"),
+    join(generated, "m8-final-preview-evidence.generated.json"),
+  );
+  const canonical = join(generated, "final-preview-evidence.generated.json");
+  await writeFile(canonical, "{}\n");
+  await assert.rejects(() =>
+    resolveFinalPreviewEvidencePath(rootDir, "gps-relativity"),
+  );
+
+  const productGenerated = join(
+    rootDir,
+    "src/projects/product-comic-vertical/generated",
+  );
+  await mkdir(productGenerated, { recursive: true });
+  await writeFile(
+    join(productGenerated, "m8-final-preview-evidence.generated.json"),
+    "{}\n",
+  );
+  await assert.rejects(() =>
+    resolveFinalPreviewEvidencePath(rootDir, "product-comic-vertical"),
+  );
+  await writeFile(
+    join(productGenerated, "final-preview-evidence.generated.json"),
+    "{}\n",
+  );
+  await rm(join(productGenerated, "m8-final-preview-evidence.generated.json"));
+  assert.equal(
+    await resolveFinalPreviewEvidencePath(rootDir, "product-comic-vertical"),
+    join(productGenerated, "final-preview-evidence.generated.json"),
+  );
+});
 
 const passingSceneBranch = (): FinalSceneBranchResult => ({
   referenceModes: ["exact-demo-localized"],
@@ -89,7 +133,7 @@ test("final runner source has no writer generation provider network Git or repai
 test("declared M8 project uses v2 and missing approval cannot fall back to v1", async (context) => {
   const fixture = await createM4ProjectFixture(context);
   const projectDir = join(fixture.rootDir, "src/projects", fixture.storyId);
-  await mkdir(projectDir, {recursive: true});
+  await mkdir(projectDir, { recursive: true });
   await writeFile(join(projectDir, "final-assembly-plan.json"), "{}\n", "utf8");
   const m8: FinalM8BranchResult = {
     globalSoundPlanFingerprint: sha("c"),

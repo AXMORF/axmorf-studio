@@ -124,7 +124,13 @@ export const buildShotRecipeSelection = (rawInput: {
 
 const ExactPackageDependencySchema = z
   .object({
-    packageName: z.enum(["react", "remotion"]),
+    packageName: z.enum([
+      "@react-three/fiber",
+      "@remotion/motion-blur",
+      "react",
+      "remotion",
+      "three",
+    ]),
     exactVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
   })
   .strict()
@@ -132,7 +138,7 @@ const ExactPackageDependencySchema = z
 
 const ExactPackageDependenciesSchema = z
   .array(ExactPackageDependencySchema)
-  .max(2)
+  .max(5)
   .readonly();
 
 export const DependencyAllowlistSchema = z

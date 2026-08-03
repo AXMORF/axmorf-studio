@@ -18,6 +18,16 @@ const fixtureRoot = join(
 
 test("exact Shotcraft closure contains only the demo and its used fixture dependency", async () => {
   const allowlist = await readExactDependencyAllowlist(repositoryRoot);
+  assert.deepEqual(
+    allowlist.packages.map((entry) => entry.packageName),
+    [
+      "@react-three/fiber",
+      "@remotion/motion-blur",
+      "react",
+      "remotion",
+      "three",
+    ],
+  );
   const closure = await buildDependencyClosure({
     snapshotRoot: fixtureRoot,
     entryPath: "demos/ui-entrance/draw-svg-trace/DrawSvgTrace.tsx",

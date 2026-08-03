@@ -24,7 +24,13 @@ export const readExactDependencyAllowlist = async (
   const packageJson = JSON.parse(packageBytes.toString("utf8")) as {
     dependencies?: Record<string, unknown>;
   };
-  const packages = ["react", "remotion"].map((packageName) => ({
+  const packages = [
+    "@react-three/fiber",
+    "@remotion/motion-blur",
+    "react",
+    "remotion",
+    "three",
+  ].map((packageName) => ({
     packageName,
     exactVersion: packageJson.dependencies?.[packageName],
   }));

@@ -13,6 +13,8 @@ import type {
   ResolvedVoxcpmProfile,
   SafeVoxcpmExecutionDescriptor,
 } from "../domain/provider-input";
+import { normalizePromptAudio as normalizePromptAudioBytes } from "./prompt-audio-normalizer";
+import { measureCanonicalPcmWav } from "../domain/pcm-wav";
 
 type BinaryFileReader = (path: string) => Promise<Buffer>;
 
@@ -28,7 +30,7 @@ const HttpUrlSchema = z.string().refine(
   { message: "baseUrl must be a valid HTTP URL." },
 );
 
-const VoxcpmVoiceProfileSchema = z
+const ControllableCloneProfileSchema = z
   .object({
     id: VoiceProfileIdSchema,
     mode: z.literal("controllable-clone"),
@@ -37,6 +39,22 @@ const VoxcpmVoiceProfileSchema = z
   })
   .strict()
   .readonly();
+
+const HighFidelityCloneProfileSchema = z
+  .object({
+    id: VoiceProfileIdSchema,
+    mode: z.literal("high-fidelity-clone"),
+    promptAudioPath: z.string().trim().min(1),
+    promptTextPath: z.string().trim().min(1),
+    promptTranscriptConfirmed: z.literal(true),
+  })
+  .strict()
+  .readonly();
+
+const VoxcpmVoiceProfileSchema = z.discriminatedUnion("mode", [
+  ControllableCloneProfileSchema,
+  HighFidelityCloneProfileSchema,
+]);
 
 export const VoxcpmPrivateConfigSchema = z
   .object({
@@ -107,10 +125,15 @@ export const resolveVoxcpmProfile = async ({
   config,
   narration,
   readFile = readFileFromDisk,
+  normalizePromptAudio = ({ sourceBytes }: { readonly sourceBytes: Buffer }) =>
+    normalizePromptAudioBytes({ sourceBytes }),
 }: {
   readonly config: unknown;
   readonly narration: NarrationSpec;
   readonly readFile?: BinaryFileReader;
+  readonly normalizePromptAudio?: (input: {
+    readonly sourceBytes: Buffer;
+  }) => Promise<Buffer>;
 }): Promise<ResolvedVoxcpmProfile> => {
   const parsed = VoxcpmPrivateConfigSchema.parse(config);
   const matches = parsed.voiceProfiles.filter(
@@ -122,6 +145,78 @@ export const resolveVoxcpmProfile = async ({
     );
   }
   const profile = matches[0];
+  const checksum = (bytes: Buffer) =>
+    Sha256DigestSchema.parse(
+      `sha256:${createHash("sha256")
+        .update(Uint8Array.from(bytes))
+        .digest("hex")}`,
+    );
+
+  if (profile.mode === "high-fidelity-clone") {
+    if (
+      !isAbsolute(profile.promptAudioPath) ||
+      ![".m4a", ".wav"].includes(
+        extname(profile.promptAudioPath).toLowerCase(),
+      ) ||
+      !isAbsolute(profile.promptTextPath) ||
+      extname(profile.promptTextPath).toLowerCase() !== ".txt"
+    ) {
+      throw new Error(
+        "VoxCPM high-fidelity prompt inputs must be absolute M4A/WAV and TXT paths.",
+      );
+    }
+    let promptSourceBytes: Buffer;
+    let promptTextBytes: Buffer;
+    try {
+      [promptSourceBytes, promptTextBytes] = await Promise.all([
+        readFile(profile.promptAudioPath),
+        readFile(profile.promptTextPath),
+      ]);
+    } catch (error) {
+      throw new Error("VoxCPM high-fidelity prompt inputs are not readable.", {
+        cause: error,
+      });
+    }
+    if (promptSourceBytes.length === 0 || promptTextBytes.length === 0) {
+      throw new Error("VoxCPM high-fidelity prompt inputs must not be empty.");
+    }
+    const promptText = promptTextBytes.toString("utf8").trim();
+    if (promptText.length === 0 || promptText.includes("\u0000")) {
+      throw new Error("VoxCPM high-fidelity prompt transcript is invalid.");
+    }
+    const promptAudioBytes = await normalizePromptAudio({
+      sourceBytes: promptSourceBytes,
+    });
+    measureCanonicalPcmWav(promptAudioBytes);
+    const promptAudioChecksum = checksum(promptAudioBytes);
+    const safeDescriptor: SafeVoxcpmExecutionDescriptor = {
+      adapterId: "voxcpm-high-fidelity-clone-http-v1",
+      modelId: parsed.modelId,
+      mode: profile.mode,
+      cfgValue: parsed.parameters.cfgValue,
+      inferenceTimesteps: parsed.parameters.inferenceTimesteps,
+      normalize: parsed.parameters.normalize,
+      denoise: parsed.parameters.denoise,
+      retryBadcase: parsed.parameters.retryBadcase,
+      voiceProfileId: profile.id,
+      promptSourceChecksum: checksum(promptSourceBytes),
+      promptTextChecksum: checksum(promptTextBytes),
+      promptAudioChecksum,
+      referenceAudioChecksum: promptAudioChecksum,
+    };
+    return {
+      baseUrl: parsed.baseUrl.replace(/\/+$/, ""),
+      endpointPath: "/clone_with_prompt",
+      ...(parsed.token === undefined ? {} : { token: parsed.token }),
+      timeoutMs: parsed.timeoutMs,
+      referenceAudioBytes: promptAudioBytes,
+      promptAudioBytes,
+      promptText,
+      parameters: parsed.parameters,
+      safeDescriptor,
+    };
+  }
+
   if (
     !isAbsolute(profile.referenceAudioPath) ||
     extname(profile.referenceAudioPath).toLowerCase() !== ".wav"
@@ -133,16 +228,14 @@ export const resolveVoxcpmProfile = async ({
   try {
     referenceAudioBytes = await readFile(profile.referenceAudioPath);
   } catch (error) {
-    throw new Error("VoxCPM reference audio is not readable.", { cause: error });
+    throw new Error("VoxCPM reference audio is not readable.", {
+      cause: error,
+    });
   }
   if (referenceAudioBytes.length === 0) {
     throw new Error("VoxCPM reference audio must not be empty.");
   }
-  const referenceAudioChecksum = Sha256DigestSchema.parse(
-    `sha256:${createHash("sha256")
-      .update(Uint8Array.from(referenceAudioBytes))
-      .digest("hex")}`,
-  );
+  const referenceAudioChecksum = checksum(referenceAudioBytes);
   const safeDescriptor: SafeVoxcpmExecutionDescriptor = {
     adapterId: "voxcpm-controllable-clone-http-v1",
     modelId: parsed.modelId,

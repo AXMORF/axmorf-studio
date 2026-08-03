@@ -15,6 +15,7 @@ import {
   createProjectRegistrationDescriptor,
   generateSemanticTiming,
   M3NarrativeBaselineEvidenceReceiptSchema,
+  M3NarrativeBaselineEvidenceReceiptInputSchema,
   NARRATIVE_CORE_VERSION,
   parseNarrativeProjectSource,
   PROJECT_REGISTRY_GENERATOR_ID,
@@ -220,6 +221,47 @@ test("evidence receipt fingerprint excludes only itself and rejects edits", () =
           ...receipt.artifacts.render,
           checksum: digest("f"),
         },
+      },
+    }),
+  );
+});
+
+test("M3 evidence contract accepts a dynamic vertical duration and caption frame", () => {
+  const input = makeEvidenceInput();
+  const vertical = M3NarrativeBaselineEvidenceReceiptInputSchema.parse({
+    ...input,
+    storyId: "product-comic-vertical",
+    compositionId: "ProductComicVertical",
+    artifacts: {
+      transparentStill: {
+        ...input.artifacts.transparentStill,
+        localPath: "out/product-comic-vertical/m3-transparent-frame-0.png",
+      },
+      captionStill: {
+        ...input.artifacts.captionStill,
+        localPath: "out/product-comic-vertical/m3-caption-frame-27.png",
+        frame: 27,
+      },
+      render: {
+        ...input.artifacts.render,
+        localPath: "out/product-comic-vertical/m3-narrative-baseline.mp4",
+        durationInFrames: 4500,
+      },
+    },
+  });
+  const receipt = {
+    ...vertical,
+    evidenceFingerprint: computeM3EvidenceFingerprint(vertical),
+  };
+  assert.doesNotThrow(() =>
+    M3NarrativeBaselineEvidenceReceiptSchema.parse(receipt),
+  );
+  assert.throws(() =>
+    M3NarrativeBaselineEvidenceReceiptSchema.parse({
+      ...receipt,
+      artifacts: {
+        ...receipt.artifacts,
+        captionStill: { ...receipt.artifacts.captionStill, frame: 4500 },
       },
     }),
   );

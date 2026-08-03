@@ -82,6 +82,50 @@ test("generatedAt and media cache query do not enter immutable production identi
   assert.deepEqual(canonical, original.index.cards[0]);
 });
 
+test("adapter accepts an explicitly mapped non-fixture card and style", async () => {
+  const original = await loadExternalReferenceSnapshot(fixtureRoot);
+  const source = JSON.parse(
+    await readFile(
+      join(fixtureRoot, "gallery/api/library.draw-svg-trace.json"),
+      "utf8",
+    ),
+  ) as Record<string, unknown>;
+  const card = (source.cards as readonly Record<string, unknown>[])[0];
+  const style = (card.styles as readonly Record<string, unknown>[])[0];
+  const generalized = canonicalizeVideoShotcraftCard({
+    library: {
+      ...source,
+      cards: [
+        {
+          ...card,
+          name: "panel-reveal",
+          category: "transition",
+          styles: [
+            {
+              ...style,
+              key: "vertical-comic",
+              media: { url: "./media/vertical-comic.mp4", type: "mp4" },
+            },
+          ],
+        },
+      ],
+    },
+    cardDocument: await readFile(
+      join(fixtureRoot, original.index.cards[0].cardDocumentPath),
+      "utf8",
+    ),
+    cardId: "panel-reveal",
+    styleKey: "vertical-comic",
+    cardDocumentChecksum: original.index.cards[0].cardDocumentChecksum,
+    demoSourceChecksum: original.index.cards[0].demoSourceChecksum,
+    previewChecksum: original.index.cards[0].previewChecksum,
+  });
+  assert.equal(generalized.cardId, "panel-reveal");
+  assert.equal(generalized.styleKey, "vertical-comic");
+  assert.equal(generalized.category, "transition");
+  assert.equal(generalized.previewPath, "gallery/media/vertical-comic.mp4");
+});
+
 test("resolver fails closed on duplicate entry missing preview authorization or inaccurate demo", async () => {
   const snapshot = await loadExternalReferenceSnapshot(fixtureRoot);
   assert.throws(() =>

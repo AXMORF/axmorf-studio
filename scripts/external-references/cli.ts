@@ -5,8 +5,8 @@ import { GitCommitSchema, StoryIdSchema } from "../../src/contracts";
 type BaseInput = {
   readonly source: "video-shotcraft";
   readonly revision: string;
-  readonly cardId: "draw-svg-trace";
-  readonly styleKey: "draw-svg-trace";
+  readonly cardId: string;
+  readonly styleKey: string;
 };
 
 type LocalizeInput = BaseInput & {
@@ -26,27 +26,14 @@ const defaultContext = (): ExternalReferenceCliContext => ({
   stdout: (line) => process.stdout.write(`${line}\n`),
 });
 
-const baseFlags = [
-  "--source",
-  "video-shotcraft",
-  "--revision",
-  "",
-  "--card",
-  "draw-svg-trace",
-  "--style",
-  "draw-svg-trace",
-] as const;
-
 const parseBase = (args: readonly string[]): BaseInput => {
   if (
     args.length < 9 ||
-    args[1] !== baseFlags[0] ||
-    args[2] !== baseFlags[1] ||
-    args[3] !== baseFlags[2] ||
-    args[5] !== baseFlags[4] ||
-    args[6] !== baseFlags[5] ||
-    args[7] !== baseFlags[6] ||
-    args[8] !== baseFlags[7]
+    args[1] !== "--source" ||
+    args[2] !== "video-shotcraft" ||
+    args[3] !== "--revision" ||
+    args[5] !== "--card" ||
+    args[7] !== "--style"
   ) {
     throw new Error(
       "External reference flags are missing, unknown, or reordered.",
@@ -55,8 +42,8 @@ const parseBase = (args: readonly string[]): BaseInput => {
   return {
     source: "video-shotcraft",
     revision: GitCommitSchema.parse(args[4]),
-    cardId: "draw-svg-trace",
-    styleKey: "draw-svg-trace",
+    cardId: StoryIdSchema.parse(args[6]),
+    styleKey: StoryIdSchema.parse(args[8]),
   };
 };
 

@@ -45,11 +45,11 @@ export const ExternalReferenceFileSchema = z
 
 const ExternalReferenceCardObjectSchema = z
   .object({
-    cardId: z.literal("draw-svg-trace"),
-    styleKey: z.literal("draw-svg-trace"),
+    cardId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    styleKey: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     title: z.string().trim().min(1).max(240),
     summary: z.string().trim().min(1).max(2000),
-    category: z.literal("ui-entrance"),
+    category: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     tags: z.array(z.string().trim().min(1)).min(1).readonly(),
     cardDocumentPath: ExternalRepositoryPathSchema,
     demoSourcePath: ExternalRepositoryPathSchema,

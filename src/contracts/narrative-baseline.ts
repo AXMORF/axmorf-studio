@@ -7,6 +7,7 @@ import {
 } from "./m1-validation";
 import {
   CompositionIdSchema,
+  NonNegativeIntegerSchema,
   PositiveIntegerSchema,
   Sha256DigestSchema,
   StoryIdSchema,
@@ -189,7 +190,7 @@ const EvidenceArtifactsSchema = z
       .object({
         localPath: z.string().min(1),
         checksum: Sha256DigestSchema,
-        frame: z.literal(15),
+        frame: NonNegativeIntegerSchema,
         alphaMin: z.literal(0),
         alphaMax: AlphaValueSchema.min(1),
         topLeftAlphaMax: z.literal(0),
@@ -200,8 +201,8 @@ const EvidenceArtifactsSchema = z
       .object({
         localPath: z.string().min(1),
         checksum: Sha256DigestSchema,
-        fps: z.literal(30),
-        durationInFrames: z.literal(1731),
+        fps: PositiveIntegerSchema.max(120),
+        durationInFrames: PositiveIntegerSchema,
         videoStreamCount: z.literal(1),
         audioStreamCount: z.literal(1),
       })
@@ -232,7 +233,7 @@ const addEvidencePathIssues = (
   const prefix = `out/${receipt.storyId}/`;
   const expectedPaths = {
     transparentStill: `${prefix}m3-transparent-frame-0.png`,
-    captionStill: `${prefix}m3-caption-frame-15.png`,
+    captionStill: `${prefix}m3-caption-frame-${receipt.artifacts.captionStill.frame}.png`,
     render: `${prefix}m3-narrative-baseline.mp4`,
   } as const;
   for (const [artifact, expectedPath] of Object.entries(expectedPaths)) {
@@ -245,6 +246,16 @@ const addEvidencePathIssues = (
         path: ["artifacts", artifact, "localPath"],
       });
     }
+  }
+  if (
+    receipt.artifacts.captionStill.frame >=
+    receipt.artifacts.render.durationInFrames
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "captionStill frame must be inside the Baseline render.",
+      path: ["artifacts", "captionStill", "frame"],
+    });
   }
 };
 
