@@ -889,6 +889,7 @@ npm run project:check -- --project product-comic-vertical --level narrative
 
 ```bash
 git add -- \
+  scripts/baseline/evidence.ts \
   src/projects/product-comic-vertical/Composition.tsx \
   src/projects/product-comic-vertical/generated/narrative-baseline-evidence.generated.json \
   src/projects/product-comic-vertical/generated/narrative-auto-check.generated.json \
