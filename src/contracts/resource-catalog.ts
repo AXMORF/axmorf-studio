@@ -151,6 +151,8 @@ export const ResourceMediaRoleSchema = z.enum([
   "scene-sfx",
   "narration",
   "global-bgm",
+  "cross-scene-ambience",
+  "global-visual",
 ]);
 
 const ResourceMediaMetadataSchema = z
@@ -178,7 +180,9 @@ const ResourceAssetDescriptorObject = z
   .strict()
   .superRefine((descriptor, context) => {
     const isAudio = descriptor.assetKind === "audio";
-    const isAudioRole = descriptor.mediaRole !== "scene-visual";
+    const isAudioRole = !["scene-visual", "global-visual"].includes(
+      descriptor.mediaRole,
+    );
     if (isAudio !== isAudioRole) {
       context.addIssue({
         code: "custom",
@@ -419,6 +423,9 @@ export const SelectedResourceRefSchema = z
       "scene-visual",
       "scene-ambience",
       "scene-sfx",
+      "global-bgm",
+      "cross-scene-ambience",
+      "global-visual",
       "style-profile",
       "capability",
     ]),
@@ -464,6 +471,9 @@ export type ResourceUseContext =
   | "scene-visual"
   | "scene-ambience"
   | "scene-sfx"
+  | "global-bgm"
+  | "cross-scene-ambience"
+  | "global-visual"
   | "style-profile"
   | "capability"
   | "localize-code"
@@ -488,7 +498,10 @@ export const assertResourceAllowedForUse = (
     const expectedRole =
       useContext === "scene-visual" ||
       useContext === "scene-ambience" ||
-      useContext === "scene-sfx"
+      useContext === "scene-sfx" ||
+      useContext === "global-bgm" ||
+      useContext === "cross-scene-ambience" ||
+      useContext === "global-visual"
         ? useContext
         : null;
     if (

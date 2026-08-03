@@ -271,3 +271,195 @@ export type FinalMechanicalCheckReport = z.infer<
 export type FinalMechanicalCheckReportInput = z.infer<
   typeof FinalMechanicalCheckReportInputSchema
 >;
+
+export const FINAL_MECHANICAL_CHECK_V2_VERSION =
+  "final-mechanical-check-v2" as const;
+
+export const FINAL_MECHANICAL_CHECK_V2_IDS = [
+  ...FINAL_MECHANICAL_CHECK_IDS,
+  "global-sound",
+  "global-visual",
+  "final-assembly",
+  "final-preview-evidence",
+  "final-preview-approval",
+] as const;
+
+export type FinalMechanicalCheckV2Id =
+  (typeof FINAL_MECHANICAL_CHECK_V2_IDS)[number];
+
+const FinalV2CheckItemSchema = z
+  .object({
+    checkId: z.enum(FINAL_MECHANICAL_CHECK_V2_IDS),
+    status: z.enum(["pass", "fail", "not-applicable"]),
+    failureReasons: z.array(FailureReasonSchema).max(1).readonly(),
+  })
+  .strict()
+  .readonly();
+
+const FinalV2InputIdentitySchema = FinalInputIdentitySchema.unwrap().extend({
+  globalSoundPlanFingerprint: Sha256DigestSchema.nullable(),
+  finalSoundProjectionFingerprint: Sha256DigestSchema.nullable(),
+  globalVisualPlanFingerprint: Sha256DigestSchema.nullable(),
+  globalVisualProjectionFingerprint: Sha256DigestSchema.nullable(),
+  finalAssemblyFingerprint: Sha256DigestSchema.nullable(),
+  finalPreviewEvidenceFingerprint: Sha256DigestSchema.nullable(),
+  finalPreviewApprovalFingerprint: Sha256DigestSchema.nullable(),
+})
+  .strict()
+  .readonly();
+
+const FinalV2ReportInputObject = z
+  .object({
+    schemaVersion: z.literal(2),
+    reportVersion: z.literal(FINAL_MECHANICAL_CHECK_V2_VERSION),
+    storyId: StoryIdSchema,
+    level: z.literal("final"),
+    aggregateStatus: z.enum(["pass", "fail"]),
+    inputIdentity: FinalV2InputIdentitySchema,
+    checks: z
+      .array(FinalV2CheckItemSchema)
+      .length(FINAL_MECHANICAL_CHECK_V2_IDS.length)
+      .readonly(),
+  })
+  .strict();
+
+type FinalV2ReportInput = z.infer<typeof FinalV2ReportInputObject>;
+
+const addFinalV2ReportIssues = (
+  report: FinalV2ReportInput,
+  context: z.RefinementCtx,
+) => {
+  report.checks.forEach((check, index) => {
+    if (check.checkId !== FINAL_MECHANICAL_CHECK_V2_IDS[index]) {
+      context.addIssue({
+        code: "custom",
+        message: "Final v2 mechanical checks must use the fixed order.",
+        path: ["checks", index, "checkId"],
+      });
+    }
+    if ((check.status === "fail") !== (check.failureReasons.length === 1)) {
+      context.addIssue({
+        code: "custom",
+        message: "Only failed final v2 checks carry one safe reason.",
+        path: ["checks", index, "failureReasons"],
+      });
+    }
+  });
+
+  const legacyInput: FinalReportInput = {
+    schemaVersion: 1,
+    reportVersion: FINAL_MECHANICAL_CHECK_VERSION,
+    storyId: report.storyId,
+    level: "final",
+    aggregateStatus: report.aggregateStatus,
+    inputIdentity: {
+      narrativeReportFingerprint:
+        report.inputIdentity.narrativeReportFingerprint,
+      visualStyleFingerprint: report.inputIdentity.visualStyleFingerprint,
+      resourceCatalogFingerprint:
+        report.inputIdentity.resourceCatalogFingerprint,
+      referenceModes: report.inputIdentity.referenceModes,
+      externalSnapshotFingerprints:
+        report.inputIdentity.externalSnapshotFingerprints,
+      fidelityReceiptFingerprints:
+        report.inputIdentity.fidelityReceiptFingerprints,
+      sceneCoverageFingerprint: report.inputIdentity.sceneCoverageFingerprint,
+      scenePackageFingerprints: report.inputIdentity.scenePackageFingerprints,
+      rendererRegistryFingerprint:
+        report.inputIdentity.rendererRegistryFingerprint,
+      storyVisualProjectionFingerprint:
+        report.inputIdentity.storyVisualProjectionFingerprint,
+      soundDesignProjectionFingerprint:
+        report.inputIdentity.soundDesignProjectionFingerprint,
+      compositionAssemblyChecksum:
+        report.inputIdentity.compositionAssemblyChecksum,
+    },
+    checks: report.checks.slice(0, FINAL_MECHANICAL_CHECK_IDS.length) as z.infer<
+      typeof CheckItemSchema
+    >[],
+  };
+  addFinalReportIssues(legacyInput, context);
+
+  if (report.aggregateStatus === "pass") {
+    const m8Identities = [
+      report.inputIdentity.globalSoundPlanFingerprint,
+      report.inputIdentity.finalSoundProjectionFingerprint,
+      report.inputIdentity.globalVisualPlanFingerprint,
+      report.inputIdentity.globalVisualProjectionFingerprint,
+      report.inputIdentity.finalAssemblyFingerprint,
+      report.inputIdentity.finalPreviewEvidenceFingerprint,
+      report.inputIdentity.finalPreviewApprovalFingerprint,
+    ];
+    const m8Checks = report.checks.slice(FINAL_MECHANICAL_CHECK_IDS.length);
+    if (
+      m8Identities.some((identity) => identity === null) ||
+      m8Checks.some((check) => check.status !== "pass")
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Final v2 pass requires current M8 identities and approval.",
+        path: ["aggregateStatus"],
+      });
+    }
+  }
+};
+
+export const FinalMechanicalCheckV2ReportInputSchema =
+  FinalV2ReportInputObject.superRefine(addFinalV2ReportIssues).readonly();
+
+export const computeFinalMechanicalCheckV2ReportFingerprint = (
+  rawInput: unknown,
+) => {
+  const input = FinalMechanicalCheckV2ReportInputSchema.parse(rawInput);
+  return createFingerprint({
+    namespace: "final-mechanical-check-report",
+    version: 2,
+    value: input,
+  });
+};
+
+export const FinalMechanicalCheckV2ReportSchema =
+  FinalV2ReportInputObject.extend({reportFingerprint: Sha256DigestSchema})
+    .strict()
+    .superRefine((report, context) => {
+      addFinalV2ReportIssues(report, context);
+      const {reportFingerprint, ...input} = report;
+      try {
+        if (
+          reportFingerprint !==
+          computeFinalMechanicalCheckV2ReportFingerprint(input)
+        ) {
+          context.addIssue({
+            code: "custom",
+            message: "Final v2 mechanical report fingerprint is stale.",
+            path: ["reportFingerprint"],
+          });
+        }
+      } catch {
+        return;
+      }
+    })
+    .readonly();
+
+export const createFinalMechanicalCheckV2Report = (rawInput: unknown) => {
+  const input = FinalMechanicalCheckV2ReportInputSchema.parse(rawInput);
+  return FinalMechanicalCheckV2ReportSchema.parse({
+    ...input,
+    reportFingerprint: computeFinalMechanicalCheckV2ReportFingerprint(input),
+  });
+};
+
+export const AnyFinalMechanicalCheckReportSchema = z.union([
+  FinalMechanicalCheckReportSchema,
+  FinalMechanicalCheckV2ReportSchema,
+]);
+
+export type FinalMechanicalCheckV2Report = z.infer<
+  typeof FinalMechanicalCheckV2ReportSchema
+>;
+export type FinalMechanicalCheckV2ReportInput = z.infer<
+  typeof FinalMechanicalCheckV2ReportInputSchema
+>;
+export type AnyFinalMechanicalCheckReport = z.infer<
+  typeof AnyFinalMechanicalCheckReportSchema
+>;

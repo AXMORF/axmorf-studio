@@ -3,8 +3,11 @@ import test from "node:test";
 
 import {
   FINAL_MECHANICAL_CHECK_IDS,
+  FINAL_MECHANICAL_CHECK_V2_IDS,
   FinalMechanicalCheckReportSchema,
+  FinalMechanicalCheckV2ReportSchema,
   createFinalMechanicalCheckReport,
+  createFinalMechanicalCheckV2Report,
 } from "../../src/contracts";
 
 const sha = (value: string) => `sha256:${value.repeat(64)}`;
@@ -97,4 +100,33 @@ test("final report rejects unknown fields unsafe failures order drift and fake a
   ]) {
     assert.throws(() => createFinalMechanicalCheckReport(mutation));
   }
+});
+
+test("v2 adds five fixed M8 checks without changing v1 parsing", () => {
+  const v1 = createFinalMechanicalCheckReport(makePassInput());
+  assert.doesNotThrow(() => FinalMechanicalCheckReportSchema.parse(v1));
+  const v2 = createFinalMechanicalCheckV2Report({
+    ...makePassInput(),
+    schemaVersion: 2,
+    reportVersion: "final-mechanical-check-v2",
+    inputIdentity: {
+      ...makePassInput().inputIdentity,
+      globalSoundPlanFingerprint: sha("c"),
+      finalSoundProjectionFingerprint: sha("d"),
+      globalVisualPlanFingerprint: sha("e"),
+      globalVisualProjectionFingerprint: sha("f"),
+      finalAssemblyFingerprint: sha("0"),
+      finalPreviewEvidenceFingerprint: sha("1"),
+      finalPreviewApprovalFingerprint: sha("2"),
+    },
+    checks: FINAL_MECHANICAL_CHECK_V2_IDS.map((checkId) => ({
+      checkId,
+      status: "pass",
+      failureReasons: [],
+    })),
+  });
+  assert.deepEqual(v2.checks.map((check) => check.checkId), FINAL_MECHANICAL_CHECK_V2_IDS);
+  assert.doesNotThrow(() => FinalMechanicalCheckV2ReportSchema.parse(v2));
+  assert.throws(() => FinalMechanicalCheckReportSchema.parse(v2));
+  assert.throws(() => FinalMechanicalCheckV2ReportSchema.parse(v1));
 });

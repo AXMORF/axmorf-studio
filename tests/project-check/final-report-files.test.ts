@@ -6,7 +6,9 @@ import test from "node:test";
 
 import {
   FINAL_MECHANICAL_CHECK_IDS,
+  FINAL_MECHANICAL_CHECK_V2_IDS,
   createFinalMechanicalCheckReport,
+  createFinalMechanicalCheckV2Report,
 } from "../../src/contracts";
 import {
   checkPersistedFinalMechanicalCheck,
@@ -70,4 +72,43 @@ test("final read-only check rejects malformed and byte drift without repair", as
     checkPersistedFinalMechanicalCheck({ rootDir, expectedReport: report }),
   );
   assert.equal(await readFile(written.destination, "utf8"), "{malformed");
+});
+
+test("v2 final writer preserves the same pass-only canonical byte boundary", async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-final-v2-report-"));
+  const v1 = passReport();
+  const report = createFinalMechanicalCheckV2Report({
+    schemaVersion: 2,
+    reportVersion: "final-mechanical-check-v2",
+    storyId: v1.storyId,
+    level: "final",
+    aggregateStatus: "pass",
+    inputIdentity: {
+      ...v1.inputIdentity,
+      globalSoundPlanFingerprint: sha("c"),
+      finalSoundProjectionFingerprint: sha("d"),
+      globalVisualPlanFingerprint: sha("e"),
+      globalVisualProjectionFingerprint: sha("f"),
+      finalAssemblyFingerprint: sha("0"),
+      finalPreviewEvidenceFingerprint: sha("1"),
+      finalPreviewApprovalFingerprint: sha("2"),
+    },
+    checks: FINAL_MECHANICAL_CHECK_V2_IDS.map((checkId) => ({
+      checkId,
+      status: ["external-references", "reference-fidelity"].includes(checkId)
+        ? "not-applicable"
+        : "pass",
+      failureReasons: [],
+    })),
+  });
+  const written = await writeFinalMechanicalCheckIfPassed({rootDir, report});
+  await checkPersistedFinalMechanicalCheck({rootDir, expectedReport: report});
+  const before = await readFile(written.destination, "utf8");
+  await assert.rejects(() =>
+    writeFinalMechanicalCheckIfPassed({
+      rootDir,
+      report: {...report, aggregateStatus: "fail"},
+    }),
+  );
+  assert.equal(await readFile(written.destination, "utf8"), before);
 });

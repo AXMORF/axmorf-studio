@@ -214,3 +214,18 @@ test("SelectedResourceRef binds the exact descriptor and Catalog fingerprints", 
     }),
   );
 });
+
+test("global BGM cross-scene ambience and global visual have exact runtime contexts", () => {
+  const makeAsset = (mediaRole: "global-bgm" | "cross-scene-ambience" | "global-visual", assetKind: "audio" | "texture") => ({
+    ...visualAsset,
+    id: `asset.${mediaRole}`,
+    assetKind,
+    mediaRole,
+    localPath: `public/assets/${mediaRole}.${assetKind === "audio" ? "wav" : "png"}`,
+  });
+  for (const role of ["global-bgm", "cross-scene-ambience", "global-visual"] as const) {
+    const asset = makeAsset(role, role === "global-visual" ? "texture" : "audio");
+    assert.doesNotThrow(() => assertResourceAllowedForUse(asset, role));
+    assert.throws(() => assertResourceAllowedForUse(asset, "scene-sfx"));
+  }
+});

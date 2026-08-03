@@ -1,10 +1,16 @@
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { z } from "zod";
 
 import {
   FINAL_MECHANICAL_CHECK_IDS,
+  FINAL_MECHANICAL_CHECK_V2_IDS,
+  FinalAssemblyPlanSchema,
+  FinalPreviewApprovalSchema,
+  FinalPreviewEvidenceSchema,
+  GlobalSoundPlanSchema,
+  GlobalVisualPlanSchema,
   ReferenceFidelityReceiptSchema,
   ReferenceFidelityReviewSchema,
   ResourceCatalogSchema,
@@ -23,8 +29,11 @@ import {
   VisualStyleSpecSchema,
   computeVisualStyleFingerprint,
   createFinalMechanicalCheckReport,
+  createFinalMechanicalCheckV2Report,
   type FinalMechanicalCheckId,
   type FinalMechanicalCheckReportInput,
+  type FinalMechanicalCheckV2Id,
+  type FinalMechanicalCheckV2ReportInput,
   type Sha256Digest,
 } from "../../src/contracts";
 import {
@@ -53,6 +62,27 @@ import {
 
 type SceneCheckId = Exclude<FinalMechanicalCheckId, "narrative">;
 type FinalStatus = "pass" | "fail" | "not-applicable";
+
+type M8CheckId = Extract<
+  FinalMechanicalCheckV2Id,
+  | "global-sound"
+  | "global-visual"
+  | "final-assembly"
+  | "final-preview-evidence"
+  | "final-preview-approval"
+>;
+
+export type FinalM8BranchResult = Readonly<{
+  globalSoundPlanFingerprint: string | null;
+  finalSoundProjectionFingerprint: string | null;
+  globalVisualPlanFingerprint: string | null;
+  globalVisualProjectionFingerprint: string | null;
+  finalAssemblyFingerprint: string | null;
+  finalPreviewEvidenceFingerprint: string | null;
+  finalPreviewApprovalFingerprint: string | null;
+  checkStatuses: Readonly<Record<M8CheckId, "pass" | "fail">>;
+  checkErrors: Readonly<Record<M8CheckId, unknown>>;
+}>;
 
 export type FinalSceneBranchResult = Readonly<{
   referenceModes: readonly (
@@ -554,11 +584,204 @@ const failureReason = (error: unknown) => {
   return { code, message: SAFE_FAILURE[code] } as const;
 };
 
+const failedM8Branch = (): FinalM8BranchResult => {
+  const missing = new Error("Required M8 final mechanical artifact is missing.");
+  return {
+    globalSoundPlanFingerprint: null,
+    finalSoundProjectionFingerprint: null,
+    globalVisualPlanFingerprint: null,
+    globalVisualProjectionFingerprint: null,
+    finalAssemblyFingerprint: null,
+    finalPreviewEvidenceFingerprint: null,
+    finalPreviewApprovalFingerprint: null,
+    checkStatuses: {
+      "global-sound": "fail",
+      "global-visual": "fail",
+      "final-assembly": "fail",
+      "final-preview-evidence": "fail",
+      "final-preview-approval": "fail",
+    },
+    checkErrors: {
+      "global-sound": missing,
+      "global-visual": missing,
+      "final-assembly": missing,
+      "final-preview-evidence": missing,
+      "final-preview-approval": new Error("FinalPreviewApproval is missing."),
+    },
+  };
+};
+
+const projectM8Path = (
+  rootDir: string,
+  projectId: string,
+  path: string,
+) => join(rootDir, "src", "projects", projectId, path);
+
+export const loadCurrentFinalM8Branch = async ({
+  rootDir,
+  projectId,
+  sceneBranch,
+}: {
+  readonly rootDir: string;
+  readonly projectId: string;
+  readonly sceneBranch: FinalSceneBranchResult;
+}): Promise<FinalM8BranchResult> => {
+  const result = failedM8Branch();
+  const statuses = {...result.checkStatuses};
+  const errors = {...result.checkErrors};
+  let globalSound: ReturnType<typeof GlobalSoundPlanSchema.parse> | null = null;
+  let globalVisual: ReturnType<typeof GlobalVisualPlanSchema.parse> | null = null;
+  let assembly: ReturnType<typeof FinalAssemblyPlanSchema.parse> | null = null;
+  let evidence: ReturnType<typeof FinalPreviewEvidenceSchema.parse> | null = null;
+
+  try {
+    globalSound = GlobalSoundPlanSchema.parse(
+      await loadProjectCheckJson(
+        projectM8Path(rootDir, projectId, "global-sound-plan.json"),
+        "global-sound-plan.json",
+      ),
+    );
+    if (
+      globalSound.storyId !== projectId ||
+      globalSound.catalogFingerprint !== sceneBranch.resourceCatalogFingerprint
+    ) {
+      throw new Error("GlobalSoundPlan identity does not match current project.");
+    }
+    statuses["global-sound"] = "pass";
+  } catch (error) {
+    errors["global-sound"] = error;
+  }
+
+  try {
+    globalVisual = GlobalVisualPlanSchema.parse(
+      await loadProjectCheckJson(
+        projectM8Path(rootDir, projectId, "global-visual-plan.json"),
+        "global-visual-plan.json",
+      ),
+    );
+    if (
+      globalVisual.storyId !== projectId ||
+      globalVisual.catalogFingerprint !== sceneBranch.resourceCatalogFingerprint
+    ) {
+      throw new Error("GlobalVisualPlan identity does not match current project.");
+    }
+    statuses["global-visual"] = "pass";
+  } catch (error) {
+    errors["global-visual"] = error;
+  }
+
+  try {
+    assembly = FinalAssemblyPlanSchema.parse(
+      await loadProjectCheckJson(
+        projectM8Path(
+          rootDir,
+          projectId,
+          "generated/final-assembly.generated.json",
+        ),
+        "final-assembly.generated.json",
+      ),
+    );
+    if (
+      globalSound === null ||
+      globalVisual === null ||
+      assembly.storyId !== projectId ||
+      assembly.globalSoundPlanFingerprint !== globalSound.planFingerprint ||
+      assembly.globalVisualPlanFingerprint !== globalVisual.planFingerprint ||
+      assembly.resourceCatalogFingerprint !==
+        sceneBranch.resourceCatalogFingerprint ||
+      assembly.sceneCoverageFingerprint !==
+        sceneBranch.sceneCoverageFingerprint ||
+      assembly.rendererRegistryFingerprint !==
+        sceneBranch.rendererRegistryFingerprint ||
+      assembly.storyVisualProjectionFingerprint !==
+        sceneBranch.storyVisualProjectionFingerprint ||
+      assembly.soundDesignProjectionFingerprint !==
+        sceneBranch.soundDesignProjectionFingerprint ||
+      assembly.compositionSourceChecksum !==
+        (await checksumFile(projectM8Path(rootDir, projectId, "Composition.tsx")))
+    ) {
+      throw new Error("FinalAssembly identity does not match current inputs.");
+    }
+    statuses["final-assembly"] = "pass";
+  } catch (error) {
+    errors["final-assembly"] = error;
+  }
+
+  try {
+    evidence = FinalPreviewEvidenceSchema.parse(
+      await loadProjectCheckJson(
+        projectM8Path(
+          rootDir,
+          projectId,
+          "generated/m8-final-preview-evidence.generated.json",
+        ),
+        "m8-final-preview-evidence.generated.json",
+      ),
+    );
+    if (
+      assembly === null ||
+      evidence.storyId !== projectId ||
+      evidence.finalAssemblyFingerprint !==
+        assembly.finalAssemblyFingerprint ||
+      evidence.resourceCatalogFingerprint !==
+        sceneBranch.resourceCatalogFingerprint
+    ) {
+      throw new Error("FinalPreviewEvidence identity does not match assembly.");
+    }
+    statuses["final-preview-evidence"] = "pass";
+  } catch (error) {
+    errors["final-preview-evidence"] = error;
+  }
+
+  let approvalFingerprint: string | null = null;
+  try {
+    const approval = FinalPreviewApprovalSchema.parse(
+      await loadProjectCheckJson(
+        projectM8Path(
+          rootDir,
+          projectId,
+          "generated/final-preview-approval.generated.json",
+        ),
+        "final-preview-approval.generated.json",
+      ),
+    );
+    if (
+      evidence === null ||
+      assembly === null ||
+      approval.storyId !== projectId ||
+      approval.previewChecksum !== evidence.media.fullPreview.checksum ||
+      approval.evidenceFingerprint !== evidence.evidenceFingerprint ||
+      approval.finalAssemblyFingerprint !== assembly.finalAssemblyFingerprint
+    ) {
+      throw new Error("FinalPreviewApproval identity does not match preview.");
+    }
+    approvalFingerprint = approval.approvalFingerprint;
+    statuses["final-preview-approval"] = "pass";
+  } catch (error) {
+    errors["final-preview-approval"] = error;
+  }
+
+  return {
+    globalSoundPlanFingerprint: globalSound?.planFingerprint ?? null,
+    finalSoundProjectionFingerprint:
+      assembly?.finalSoundProjectionFingerprint ?? null,
+    globalVisualPlanFingerprint: globalVisual?.planFingerprint ?? null,
+    globalVisualProjectionFingerprint:
+      assembly?.globalVisualProjectionFingerprint ?? null,
+    finalAssemblyFingerprint: assembly?.finalAssemblyFingerprint ?? null,
+    finalPreviewEvidenceFingerprint: evidence?.evidenceFingerprint ?? null,
+    finalPreviewApprovalFingerprint: approvalFingerprint,
+    checkStatuses: statuses,
+    checkErrors: errors,
+  };
+};
+
 export const runFinalMechanicalCheck = async ({
   rootDir,
   projectId,
   runM3EvidenceProcess,
   loadSceneBranch = loadCurrentFinalSceneBranch,
+  loadM8Branch = loadCurrentFinalM8Branch,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
@@ -567,6 +790,11 @@ export const runFinalMechanicalCheck = async ({
     readonly rootDir: string;
     readonly projectId: string;
   }) => Promise<FinalSceneBranchResult>;
+  readonly loadM8Branch?: (input: {
+    readonly rootDir: string;
+    readonly projectId: string;
+    readonly sceneBranch: FinalSceneBranchResult;
+  }) => Promise<FinalM8BranchResult>;
 }) => {
   let narrativeReportFingerprint: Sha256Digest | null = null;
   let narrativeStatus: "pass" | "fail" = "fail";
@@ -616,7 +844,15 @@ export const runFinalMechanicalCheck = async ({
   const aggregateStatus = checks.some((check) => check.status === "fail")
     ? "fail"
     : "pass";
-  return createFinalMechanicalCheckReport({
+  let m8Declared = false;
+  try {
+    await access(projectM8Path(rootDir, projectId, "final-assembly-plan.json"));
+    m8Declared = true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") m8Declared = true;
+  }
+  if (!m8Declared) {
+    return createFinalMechanicalCheckReport({
     schemaVersion: 1,
     reportVersion: "final-mechanical-check-v1",
     storyId: projectId,
@@ -639,5 +875,69 @@ export const runFinalMechanicalCheck = async ({
       compositionAssemblyChecksum: sceneBranch.compositionAssemblyChecksum,
     },
     checks,
+    });
+  }
+
+  let m8Branch = failedM8Branch();
+  try {
+    m8Branch = await loadM8Branch({rootDir, projectId, sceneBranch});
+  } catch (error) {
+    m8Branch = {
+      ...m8Branch,
+      checkErrors: Object.fromEntries(
+        Object.keys(m8Branch.checkErrors).map((checkId) => [checkId, error]),
+      ) as Record<M8CheckId, unknown>,
+    };
+  }
+  const m8CheckIds = FINAL_MECHANICAL_CHECK_V2_IDS.slice(
+    FINAL_MECHANICAL_CHECK_IDS.length,
+  ) as readonly M8CheckId[];
+  const m8Checks = m8CheckIds.map((checkId) => {
+    const status = m8Branch.checkStatuses[checkId];
+    return {
+      checkId,
+      status,
+      failureReasons:
+        status === "pass" ? [] : [failureReason(m8Branch.checkErrors[checkId])],
+    };
+  });
+  const v2Checks = [...checks, ...m8Checks] as FinalMechanicalCheckV2ReportInput["checks"];
+  const v2AggregateStatus = v2Checks.some((check) => check.status === "fail")
+    ? "fail"
+    : "pass";
+  return createFinalMechanicalCheckV2Report({
+    schemaVersion: 2,
+    reportVersion: "final-mechanical-check-v2",
+    storyId: projectId,
+    level: "final",
+    aggregateStatus: v2AggregateStatus,
+    inputIdentity: {
+      narrativeReportFingerprint,
+      visualStyleFingerprint: sceneBranch.visualStyleFingerprint,
+      resourceCatalogFingerprint: sceneBranch.resourceCatalogFingerprint,
+      referenceModes: sceneBranch.referenceModes,
+      externalSnapshotFingerprints: sceneBranch.externalSnapshotFingerprints,
+      fidelityReceiptFingerprints: sceneBranch.fidelityReceiptFingerprints,
+      sceneCoverageFingerprint: sceneBranch.sceneCoverageFingerprint,
+      scenePackageFingerprints: sceneBranch.scenePackageFingerprints,
+      rendererRegistryFingerprint: sceneBranch.rendererRegistryFingerprint,
+      storyVisualProjectionFingerprint:
+        sceneBranch.storyVisualProjectionFingerprint,
+      soundDesignProjectionFingerprint:
+        sceneBranch.soundDesignProjectionFingerprint,
+      compositionAssemblyChecksum: sceneBranch.compositionAssemblyChecksum,
+      globalSoundPlanFingerprint: m8Branch.globalSoundPlanFingerprint,
+      finalSoundProjectionFingerprint:
+        m8Branch.finalSoundProjectionFingerprint,
+      globalVisualPlanFingerprint: m8Branch.globalVisualPlanFingerprint,
+      globalVisualProjectionFingerprint:
+        m8Branch.globalVisualProjectionFingerprint,
+      finalAssemblyFingerprint: m8Branch.finalAssemblyFingerprint,
+      finalPreviewEvidenceFingerprint:
+        m8Branch.finalPreviewEvidenceFingerprint,
+      finalPreviewApprovalFingerprint:
+        m8Branch.finalPreviewApprovalFingerprint,
+    },
+    checks: v2Checks,
   });
 };

@@ -52,7 +52,7 @@
     "build": "remotion bundle",
     "prebuild": "npm run registry:generate",
     "upgrade": "remotion upgrade",
-    "test": "node --import tsx --test tests/contracts/*.test.ts tests/catalog/*.test.ts tests/docs/*.test.ts tests/external-references/*.test.ts tests/scene-package/*.test.ts tests/renderer-registry/*.test.ts tests/narration/*.test.ts tests/runtime/*.test.ts tests/runtime/*.test.tsx tests/projects/*.test.tsx tests/registry/*.test.ts tests/registry/*.test.tsx tests/baseline/*.test.ts tests/project-check/*.test.ts tests/m6-proof/*.test.ts tests/m7-gps/*.test.ts tests/m7-gps/*.test.tsx",
+    "test": "node --import tsx --test tests/contracts/*.test.ts tests/catalog/*.test.ts tests/docs/*.test.ts tests/external-references/*.test.ts tests/scene-package/*.test.ts tests/renderer-registry/*.test.ts tests/narration/*.test.ts tests/runtime/*.test.ts tests/runtime/*.test.tsx tests/projects/*.test.tsx tests/registry/*.test.ts tests/registry/*.test.tsx tests/baseline/*.test.ts tests/project-check/*.test.ts tests/final-assembly/*.test.ts tests/m6-proof/*.test.ts tests/m7-gps/*.test.ts tests/m7-gps/*.test.tsx",
     "typecheck": "tsc --noEmit --pretty false",
     "lint": "eslint .",
     "narration:generate": "node --import tsx scripts/narration/cli.ts generate",
@@ -86,6 +86,7 @@
     "m7:gps:evidence:write": "node --import tsx scripts/m7-gps/evidence.ts write",
     "baseline:evidence": "node --import tsx scripts/baseline/evidence.ts",
     "project:check": "node --import tsx scripts/project-check/cli.ts",
+    "final:assembly": "node --import tsx scripts/final-assembly/cli.ts",
     "compositions": "remotion compositions src/index.ts",
     "precompositions": "npm run registry:generate",
     "check": "npm run test && npm run typecheck && npm run lint && npm run docs:check-links && npm run catalog:check && npm run registry:check && npm run build && npm run compositions && env -u RSP_VOXCPM_PRIVATE_CONFIG npm run project:check -- --project gps-relativity --level narrative"

@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 
 import {
-  FinalMechanicalCheckReportSchema,
-  type FinalMechanicalCheckReport,
+  AnyFinalMechanicalCheckReportSchema,
+  type AnyFinalMechanicalCheckReport,
 } from "../../src/contracts";
 import { getProjectCheckPaths } from "./project-files";
 import { writeNarrativeAutoCheckAtomic } from "./report-files";
@@ -20,7 +20,7 @@ const sortJsonValue = (value: unknown): unknown => {
 };
 
 export const serializeFinalMechanicalCheckReport = (rawReport: unknown) => {
-  const report = FinalMechanicalCheckReportSchema.parse(rawReport);
+  const report = AnyFinalMechanicalCheckReportSchema.parse(rawReport);
   return `${JSON.stringify(sortJsonValue(report), null, 2)}\n`;
 };
 
@@ -31,7 +31,7 @@ export const writeFinalMechanicalCheckIfPassed = async ({
   readonly rootDir: string;
   readonly report: unknown;
 }): Promise<{ readonly destination: string; readonly written: boolean }> => {
-  const report = FinalMechanicalCheckReportSchema.parse(rawReport);
+  const report = AnyFinalMechanicalCheckReportSchema.parse(rawReport);
   if (report.aggregateStatus !== "pass") {
     throw new Error("Only a passing final mechanical check may be persisted.");
   }
@@ -57,9 +57,9 @@ export const checkPersistedFinalMechanicalCheck = async ({
 }: {
   readonly rootDir: string;
   readonly expectedReport: unknown;
-}): Promise<FinalMechanicalCheckReport> => {
+}): Promise<AnyFinalMechanicalCheckReport> => {
   const expectedReport =
-    FinalMechanicalCheckReportSchema.parse(rawExpectedReport);
+    AnyFinalMechanicalCheckReportSchema.parse(rawExpectedReport);
   if (expectedReport.aggregateStatus !== "pass") {
     throw new Error("Current final mechanical check did not pass.");
   }
@@ -89,7 +89,7 @@ export const checkPersistedFinalMechanicalCheck = async ({
       },
     );
   }
-  const persisted = FinalMechanicalCheckReportSchema.parse(rawPersisted);
+  const persisted = AnyFinalMechanicalCheckReportSchema.parse(rawPersisted);
   if (
     persistedBytes !== serializeFinalMechanicalCheckReport(expectedReport) ||
     serializeFinalMechanicalCheckReport(persisted) !==

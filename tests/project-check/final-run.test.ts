@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 
 import { FINAL_MECHANICAL_CHECK_IDS } from "../../src/contracts";
 import {
   runFinalMechanicalCheck,
+  type FinalM8BranchResult,
   type FinalSceneBranchResult,
 } from "../../scripts/project-check/final-run";
 import { createM4ProjectFixture } from "../fixtures/m4-project";
@@ -83,4 +84,66 @@ test("final runner source has no writer generation provider network Git or repai
     source,
     /writeFinal|reference:sync|localizeShot|registry:generate|scene:package|fetch\(|https?:|git\s|provider|RSP_VOXCPM/,
   );
+});
+
+test("declared M8 project uses v2 and missing approval cannot fall back to v1", async (context) => {
+  const fixture = await createM4ProjectFixture(context);
+  const projectDir = join(fixture.rootDir, "src/projects", fixture.storyId);
+  await mkdir(projectDir, {recursive: true});
+  await writeFile(join(projectDir, "final-assembly-plan.json"), "{}\n", "utf8");
+  const m8: FinalM8BranchResult = {
+    globalSoundPlanFingerprint: sha("c"),
+    finalSoundProjectionFingerprint: sha("d"),
+    globalVisualPlanFingerprint: sha("e"),
+    globalVisualProjectionFingerprint: sha("f"),
+    finalAssemblyFingerprint: sha("0"),
+    finalPreviewEvidenceFingerprint: sha("1"),
+    finalPreviewApprovalFingerprint: null,
+    checkStatuses: {
+      "global-sound": "pass",
+      "global-visual": "pass",
+      "final-assembly": "pass",
+      "final-preview-evidence": "pass",
+      "final-preview-approval": "fail",
+    },
+    checkErrors: {
+      "global-sound": null,
+      "global-visual": null,
+      "final-assembly": null,
+      "final-preview-evidence": null,
+      "final-preview-approval": new Error("FinalPreviewApproval is missing."),
+    },
+  };
+  const report = await runFinalMechanicalCheck({
+    rootDir: fixture.rootDir,
+    projectId: fixture.storyId,
+    runM3EvidenceProcess: fixture.runProcess,
+    loadSceneBranch: async () => passingSceneBranch(),
+    loadM8Branch: async () => m8,
+  });
+  assert.equal(report.reportVersion, "final-mechanical-check-v2");
+  assert.equal(report.aggregateStatus, "fail");
+  assert.equal(
+    report.checks.find((check) => check.checkId === "final-preview-approval")
+      ?.status,
+    "fail",
+  );
+});
+
+test("M8 failures are reduced to fixed safe codes without leaking raw errors", async (context) => {
+  const fixture = await createM4ProjectFixture(context);
+  const projectDir = join(fixture.rootDir, "src/projects", fixture.storyId);
+  await writeFile(join(projectDir, "final-assembly-plan.json"), "{}\n", "utf8");
+  const report = await runFinalMechanicalCheck({
+    rootDir: fixture.rootDir,
+    projectId: fixture.storyId,
+    runM3EvidenceProcess: fixture.runProcess,
+    loadSceneBranch: async () => passingSceneBranch(),
+    loadM8Branch: async () => {
+      throw new Error("/data/private token malformed stack");
+    },
+  });
+  const serialized = JSON.stringify(report);
+  assert.doesNotMatch(serialized, /\/data\/private|token|stack/);
+  assert.match(serialized, /Required final mechanical artifact is malformed/);
 });
