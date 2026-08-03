@@ -492,15 +492,17 @@ Scene 不修改 shared contracts、其他 Scene、顶层 caption、GlobalSound �
 
 共享输入（Story、sealed timing、VisualStyle、Catalog、Shotcraft inventory/coverage）由主 Agent
 独占；aggregate coverage、registry、review、final assembly、staging 和 commit 也由主 Agent
-完成。用户已于执行期明确要求十个 Beat 的 ScenePackage 均通过子代理制作，并进一步批准最多
-3 个 Beat 并行执行。因此 6A–6J 每个 Scene 必须各派发一个独立且不跨 Beat 复用的子代理；每个
-子代理只拥有一个 Scene 目录、对应 test 与 `out/` review 产物，必须亲自完成该 Scene 的 Red、
+完成。用户已于执行期明确要求十个 Beat 的 ScenePackage 均通过子代理制作，并进一步批准所有
+剩余 Beat 按无共享写入的合理方式同时 authoring。因此 6A–6J 每个 Scene 必须各派发一个独立且
+不跨 Beat 复用的子代理；每个子代理只拥有一个 Scene 目录、对应 test 与 `out/` review 产物，
+必须亲自完成该 Scene 的 Red、
 Green、正常速度 preview 与证据回报，不得提交、不得修改 shared inputs、其他 Scene 或已封存
-PCM。同一时刻最多运行 3 个未完成的 Beat 子代理；它们不得读取彼此未提交的 Scene 文件，只能
+PCM。所有未完成 Beat 子代理可以同时运行；它们不得读取彼此未提交的 Scene 文件，只能
 读取主 Agent 冻结的 continuity brief、shared Story/VisualStyle/comic/model 权威和已提交前序 Scene。
 主 Agent 独立运行聚焦验证、GPS protection、精确 staging 和本地 commit，并始终按 6A–6J Story
 顺序验收和提交。若并行 Scene 在轮到验收时与已提交前序 Scene 不连续，必须交回原 Scene owner
-子代理做最小修正并重跑证据；主 Agent 不代写 ScenePackage。
+子代理做最小修正并重跑证据；主 Agent 不代写 ScenePackage。Remotion/Chromium/ffmpeg 重型
+媒体命令软限制为同时 3 个，authoring、ScenePackage 生成和聚焦测试不设并发上限。
 
 ## 9. 通用执行纪律
 
@@ -1022,8 +1024,8 @@ ScenePackage 会随下一 Scene 立即失效。
 
 ### 16.1 每个 Scene 共用的 TDD 顺序
 
-每个 Scene 是一个独立 Task 和一个本地 commit。authoring 可按最多 3 个 Beat 的固定 ownership
-并行，但主 Agent 必须严格按 Story 顺序验收和提交。后一个 Scene 只能读取主 Agent 冻结的
+每个 Scene 是一个独立 Task 和一个本地 commit。所有剩余 Beat 可按固定 ownership 并行
+authoring，但主 Agent 必须严格按 Story 顺序验收和提交。后一个 Scene 只能读取主 Agent 冻结的
 continuity brief 与已提交前序 Scene 的 exit state，不得读取其他子代理的未提交目录，也不得修改
 前一个目录；在其提交前必须针对届时已提交的前序 exit state 重新完成 continuity 检查。
 
@@ -1067,6 +1069,14 @@ ffmpeg -nostdin -v error \
   -i out/m9-product-comic-vertical/scenes/<meaningId>/preview.mp4 \
   -f null -
 ```
+
+子代理只运行本 Scene 的 Red/Green、`scene:package --write/--check`、聚焦 test、targeted lint、
+Composition 枚举和一次真实正常速度媒体证据；它不重复运行全仓 typecheck/lint/GPS/voice 检查，
+也不要求主 Agent 重渲染同一 preview。所有并行 Scene Green 后，主 Agent统一运行一次全仓
+typecheck/lint 和 protected-input batch check；每个 Scene 提交前仍独立复跑该 Scene 的聚焦 test、
+package check、媒体 checksum/EOF/ffprobe、continuity 与 GPS protection。只有媒体 identity、证据或
+视觉复核不一致时才重渲染。exact selected Scene 仍额外完成其 lineage、closure、真实 import/frame
+binding、配对证据和正常速度 fidelity review。
 
 ### 16.2 每个 Scene 固定 staging 文件集
 
