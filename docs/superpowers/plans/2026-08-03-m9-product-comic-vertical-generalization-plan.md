@@ -1079,6 +1079,7 @@ src/projects/product-comic-vertical/scenes/<meaningId>/sound-plan.json
 src/projects/product-comic-vertical/scenes/<meaningId>/sync-anchors.json
 src/projects/product-comic-vertical/scenes/<meaningId>/task-input.generated.json
 src/projects/product-comic-vertical/scenes/<meaningId>/visual-plan.json
+src/projects/product-comic-vertical/scenes/<meaningId>/generated/reference-fidelity.generated.json
 src/projects/product-comic-vertical/scenes/<meaningId>/generated/scene-package.generated.json
 src/projects/product-comic-vertical/scenes/<meaningId>/shots/<project-shot>.tsx
 tests/m9-product/<meaningId>.test.tsx
@@ -1089,12 +1090,16 @@ Scene-local PCM 已由 Task 5A 逐文件提交；6A–6J 的 staging 不重复�
 若 Task 5 为该 Scene 选择 exact reference，再追加：
 
 ```text
-src/projects/product-comic-vertical/scenes/<meaningId>/generated/reference-fidelity.generated.json
+src/projects/product-comic-vertical/scenes/<meaningId>/generated/reference-fidelity-review.generated.json
 src/projects/product-comic-vertical/scenes/<meaningId>/shots/video-shotcraft/<style-key>/LICENSE
 src/projects/product-comic-vertical/scenes/<meaningId>/shots/video-shotcraft/<style-key>/localization-manifest.generated.json
 src/projects/product-comic-vertical/scenes/<meaningId>/shots/video-shotcraft/<style-key>/upstream/<each-literal-closure-path>
 src/projects/product-comic-vertical/scenes/<meaningId>/shots/video-shotcraft/<style-key>/AdaptedShot.tsx
 ```
+
+非 exact Scene 的固定 receipt 必须为与 selection 绑定的 `not-applicable`；exact Scene 在同一路径
+写 pass-only receipt，并额外生成 fidelity review/artifacts。通用 `scene:package` 对两类 Scene 都
+读取该固定路径。
 
 `<project-shot>`、`<literal-audio-file>`、`<style-key>` 和 closure paths 必须已由 Task 5/当前 Scene
 staging manifest 展开；不能运行带占位符的命令。out preview 不 staging。
