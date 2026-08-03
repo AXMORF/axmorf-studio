@@ -18,6 +18,7 @@ import {
 } from "../../src/contracts";
 import { writeJsonAtomic } from "../narration/adapters/atomic-files";
 import { generateProjectRegistry } from "../registry/generate";
+import type { ValidatedProjectRegistrationEntry } from "../registry/domain";
 import {
   discoverProjectEntries,
   loadProjectRegistrationEntry,
@@ -260,6 +261,42 @@ export const resolveCurrentM3Entry = async (
   });
 };
 
+export const resolveM3GeneratedRegistryChecksum = async ({
+  rootDir,
+  storyId,
+  entry,
+}: {
+  readonly rootDir: string;
+  readonly storyId: string;
+  readonly entry: ValidatedProjectRegistrationEntry;
+}) => {
+  if (storyId !== "gps-relativity") return entry.generatedEntryChecksum;
+  const legacyReceiptPath = join(
+    rootDir,
+    `src/projects/${storyId}/generated/narrative-baseline-evidence.generated.json`,
+  );
+  try {
+    const legacyReceipt = M3NarrativeBaselineEvidenceReceiptSchema.parse(
+      JSON.parse(await readFile(legacyReceiptPath, "utf8")),
+    );
+    if (
+      legacyReceipt.storyId !== storyId ||
+      legacyReceipt.projectRegistryEntryFingerprint !==
+        entry.projectRegistryEntryFingerprint ||
+      legacyReceipt.narrativeBaselineFingerprint !==
+        entry.narrativeBaselineFingerprint
+    ) {
+      throw new Error(
+        "GPS legacy M3 evidence identity is stale against its registry entry.",
+      );
+    }
+    return legacyReceipt.generatedRegistryChecksum;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    return entry.generatedEntryChecksum;
+  }
+};
+
 export const collectCurrentM3NarrativeBaselineEvidence = async ({
   rootDir,
   storyId: rawStoryId,
@@ -286,7 +323,6 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
   const captionFrame = firstCaption.startFrame;
 
   const paths = {
-    registry: "src/projects/project-registry.generated.ts",
     manifest: `src/projects/${storyId}/generated/sealed-narration.generated.json`,
     timing: timingPath,
     transparentStill: `out/${storyId}/m3-transparent-frame-0.png`,
@@ -296,14 +332,12 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
   } as const;
   const absolute = (path: string) => join(rootDir, path);
   const [
-    registryBytes,
     manifestBytes,
     timingBytes,
     transparentStillBytes,
     captionStillBytes,
     renderBytes,
   ] = await Promise.all([
-    readFile(absolute(paths.registry)),
     readFile(absolute(paths.manifest)),
     readFile(absolute(paths.timing)),
     readFile(absolute(paths.transparentStill)),
@@ -325,6 +359,8 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
   ) {
     throw new Error("M3 evidence inputs are stale against ProjectRegistry.");
   }
+  const generatedRegistryChecksum =
+    await resolveM3GeneratedRegistryChecksum({ rootDir, storyId, entry });
   const [transparentAlpha, captionAlpha, renderFacts] = await Promise.all([
     inspectAlphaStill(absolute(paths.transparentStill), runProcess),
     inspectAlphaStill(absolute(paths.captionStill), runProcess, true),
@@ -340,7 +376,7 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
     compositionId: CompositionIdSchema.parse(entry.descriptor.id),
     sealedNarrationFingerprint: sealedNarration.sealedNarrationFingerprint,
     semanticTimingFingerprint: semanticTiming.fingerprint,
-    generatedRegistryChecksum: sha256Bytes(registryBytes),
+    generatedRegistryChecksum,
     projectRegistryEntryFingerprint: Sha256DigestSchema.parse(
       entry.projectRegistryEntryFingerprint,
     ),

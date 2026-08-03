@@ -24,6 +24,7 @@ import {
 import {
   checkM3NarrativeBaselineEvidence,
   resolveCurrentM3Entry,
+  resolveM3GeneratedRegistryChecksum,
   type ProcessRunner,
 } from "../baseline/evidence";
 import { checkM2NarrationArtifacts } from "../narration/check";
@@ -199,7 +200,12 @@ export const runNarrativeAutoCheck = async ({
 
   try {
     entry = await resolveCurrentM3Entry(rootDir, paths.storyId);
-    identity.generatedRegistryChecksum = await checksumFile(paths.registry);
+    identity.generatedRegistryChecksum =
+      await resolveM3GeneratedRegistryChecksum({
+        rootDir,
+        storyId: paths.storyId,
+        entry,
+      });
     identity.generatedEntryChecksum = entry.generatedEntryChecksum;
     identity.projectRegistryEntryFingerprint =
       entry.projectRegistryEntryFingerprint;

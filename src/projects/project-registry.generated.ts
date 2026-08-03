@@ -37,4 +37,21 @@ export const projectRegistry = [
       "sha256:ee5a1af1f9dc9017cdb3fa43cb781defad184654fcd93873812122d748650244",
     load: () => import("./gps-relativity/Composition"),
   },
+  {
+    id: "ProductComicVertical",
+    fps: 30,
+    width: 1080,
+    height: 1920,
+    durationInFrames: 5116,
+    defaultProps: {
+      projectId: "product-comic-vertical",
+    } as StoryCompositionProps,
+    generatedEntryChecksum:
+      "sha256:523287cbd160f46fb7f93ab25e2a0d8980c09dffe3ad462cb9b67185128f0de0",
+    projectRegistryEntryFingerprint:
+      "sha256:ba25a8a3b1ff21cf7196550f26c64f78846a25a0ab3399f9b3571c0377605196",
+    narrativeBaselineFingerprint:
+      "sha256:476ef4329d80feb33b130b51ad4c643cc4693a0a7035bccd4d429b212b303b13",
+    load: () => import("./product-comic-vertical/Composition"),
+  },
 ] as const satisfies readonly ProjectRegistryEntry[];

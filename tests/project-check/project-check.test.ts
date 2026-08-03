@@ -48,6 +48,10 @@ test("real GPS inputs aggregate every M1-M3 check into one strict in-memory pass
     runM3EvidenceProcess: validEvidenceProcess,
   });
   assert.equal(report.aggregateStatus, "pass");
+  assert.equal(
+    report.reportFingerprint,
+    "sha256:dd1dc79547123cc2a3c69a3f95ce81cdf951f3e569afbbdb94b51345bc52424c",
+  );
   assert.deepEqual(
     report.checks.map((check) => check.checkId),
     NARRATIVE_AUTO_CHECK_IDS,

@@ -1,0 +1,110 @@
+{
+  "aggregateStatus": "pass",
+  "checks": [
+    {
+      "checkId": "source-contracts",
+      "evidenceIds": [],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "story-check",
+      "evidenceIds": [
+        "story-check"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "sealed-narration",
+      "evidenceIds": [
+        "sealed-manifest",
+        "complete-wav"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "semantic-timing",
+      "evidenceIds": [
+        "semantic-timing"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "project-registry",
+      "evidenceIds": [
+        "project-registry"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "narrative-baseline",
+      "evidenceIds": [],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "m3-evidence",
+      "evidenceIds": [
+        "m3-receipt"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    }
+  ],
+  "evidenceRefs": [
+    {
+      "checksum": "sha256:29bfa1cbdb6190087c2a7abaa47acbb816f9f6202c82ce0c873ab35611b7e29f",
+      "evidenceId": "story-check",
+      "repositoryPath": "src/projects/product-comic-vertical/reviews/story-check.json"
+    },
+    {
+      "checksum": "sha256:4c5f3ec45b1478eb7b62af2fa9afd959b0017034ad6d6af6de536e97e00e8b32",
+      "evidenceId": "sealed-manifest",
+      "repositoryPath": "src/projects/product-comic-vertical/generated/sealed-narration.generated.json"
+    },
+    {
+      "checksum": "sha256:a36c8ff99d765095909aecd50ef6908a34450871407a9a4014fbc7e9258810d1",
+      "evidenceId": "complete-wav",
+      "repositoryPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/complete.wav"
+    },
+    {
+      "checksum": "sha256:5dadf45de4a9f78ec771e3eec40fb99ada771bd4a91dc4571a7b7a9605e5a2af",
+      "evidenceId": "semantic-timing",
+      "repositoryPath": "src/projects/product-comic-vertical/generated/semantic-timing.generated.json"
+    },
+    {
+      "checksum": "sha256:523287cbd160f46fb7f93ab25e2a0d8980c09dffe3ad462cb9b67185128f0de0",
+      "evidenceId": "project-registry",
+      "repositoryPath": "src/projects/project-registry.generated.ts"
+    },
+    {
+      "checksum": "sha256:49731add41f924b7f094a8c0d3365d7af4f771af2ed2be4a9611c8823dc2264d",
+      "evidenceId": "m3-receipt",
+      "repositoryPath": "src/projects/product-comic-vertical/generated/narrative-baseline-evidence.generated.json"
+    }
+  ],
+  "inputIdentity": {
+    "generatedEntryChecksum": "sha256:523287cbd160f46fb7f93ab25e2a0d8980c09dffe3ad462cb9b67185128f0de0",
+    "generatedRegistryChecksum": "sha256:523287cbd160f46fb7f93ab25e2a0d8980c09dffe3ad462cb9b67185128f0de0",
+    "generationInputFingerprint": "sha256:b886139c99f6b0e34ff33dafe84740464736ee14fe22cf2585a7864f016f9192",
+    "m3EvidenceFingerprint": "sha256:e5c1295be6759185361637b35c7ee23b47552b9af183cbd9eeef26cf41d9fb0d",
+    "narrativeBaselineFingerprint": "sha256:476ef4329d80feb33b130b51ad4c643cc4693a0a7035bccd4d429b212b303b13",
+    "narrativeCoreVersion": "narrative-core-v2",
+    "projectRegistryEntryFingerprint": "sha256:ba25a8a3b1ff21cf7196550f26c64f78846a25a0ab3399f9b3571c0377605196",
+    "projectRegistryGeneratorId": "project-registry-generator-v1",
+    "renderSpecFingerprint": "sha256:f944ce3c1433e8e1fb87fd20d2eb4035d2cdcffa8bb22e68fbe9f1ccace43bac",
+    "sealedNarrationFingerprint": "sha256:05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8",
+    "semanticTimingFingerprint": "sha256:e486c0c3c339e0cebcd915073ce010183a6ff89764c44e2165a736b9e55e0a13",
+    "storyCheckFingerprint": "sha256:f3c4b63fcfd3c5232641b1b8741d98792b7bc5556ccf7d1b91df5eb01bce5ab2",
+    "storyFingerprint": "sha256:fc0418fe25ee29fbf2690d8a0aa31828fde28a7c3c389a9d94f8917b39429dc9"
+  },
+  "level": "narrative",
+  "reportFingerprint": "sha256:e505b774346797524553faaa830ac654df303acdebf8a9aea248d187a25ff5f2",
+  "reportVersion": "narrative-auto-check-v1",
+  "schemaVersion": 1,
+  "storyId": "product-comic-vertical"
+}
