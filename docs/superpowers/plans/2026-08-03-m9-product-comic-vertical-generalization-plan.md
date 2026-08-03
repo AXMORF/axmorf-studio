@@ -706,8 +706,9 @@ node --import tsx --test \
   tests/projects/product-comic-vertical-source.test.ts \
   tests/projects/product-comic-vertical-story.test.ts \
   tests/narration/story-check.test.ts
-env -u RSP_VOXCPM_PRIVATE_CONFIG npm run narration:check -- \
-  --project product-comic-vertical
+# `narration:check` reads Task 3 sealed narration and SemanticTiming, so Task 2
+# validates the source bundle and current StoryCheck through its project tests.
+# The real read-only `narration:check` remains mandatory in Task 3.
 npm run typecheck
 npm run lint
 ```
