@@ -1148,6 +1148,9 @@ git commit -m "<table-commit-message>"
 
 - 10 Scene story order、missing/stale package、重复 rendererId、动态 import、caption ownership、
   Scene-local audio window、reference receipt、source graph 和 projection fingerprint 测试；
+- 更新现有 `tests/projects/product-comic-vertical-composition.test.tsx` 的 Narrative Baseline-only
+  断言，使其 Red 在顶层 Composition 尚未接入 `CompositionAssembly`、`StoryVisualTrack` 与
+  `SoundDesignTrack`；保留 sealed narration、单一 `NarrativeCore` 和顶层 `CaptionLayer` 权威断言；
 - SceneVisualCheck、SceneSoundCheck、continuity review 必须绑定同一批真实 still/contact sheet/
   normal-speed preview；
 - 任一 Scene 单独 drift，只失效对应 package + aggregate identities；不能重写 sealed timing。
@@ -1198,6 +1201,7 @@ git add -- \
   src/projects/product-comic-vertical/scene-runtime-data.ts \
   src/projects/product-comic-vertical/Composition.tsx \
   src/projects/product-comic-vertical/reviews/scene-review.json \
+  tests/projects/product-comic-vertical-composition.test.tsx \
   tests/m9-product/scene-assembly.test.tsx \
   tests/m9-product/scene-evidence.test.ts
 git diff --cached --name-status
