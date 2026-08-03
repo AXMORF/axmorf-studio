@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "storyId": "product-comic-vertical",
+  "repositoryHead": "14195817e3ba6a89cc21ace243ca1cd1be40f12f",
+  "files": [
+    { "path": "sources/product-source.json", "checksum": "sha256:7aee81d399755e4becd4fa065e35aaa671ac06389674f0cd24428fc7c6df148e" },
+    { "path": "sources/claims.json", "checksum": "sha256:7dfb7f1a6081fb321c1d0abd0085883fe60039f2e934b71c241d691606bf2407" },
+    { "path": "sources/asset-sources.json", "checksum": "sha256:cc7cc0081df8bd34d979a9a4924ca39f0528c827bdc3cf9c289fe51844c4974d" },
+    { "path": "sources/voice-profile.json", "checksum": "sha256:763b7e38b8a7430980630f1b1dbbbb589e486183a79bcf4541eb2aa0e86acdc0" }
+  ],
+  "sourcePacketFingerprint": "sha256:1bc61489508632bab660c2a6f82431ca60b646bdfc21969ce77bf16d5502cbda"
+}

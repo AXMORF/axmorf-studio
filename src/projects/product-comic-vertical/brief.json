@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "storyId": "product-comic-vertical",
+  "title": "Remotion Story Producer：从主题资料到可验证成片",
+  "sourceMaterial": "当前仓库 README、authority docs、M1–M8 实现与 gps-relativity evidence 的 checksum-bound source packet。",
+  "audience": "希望用代码和可审计数据生产完整 Remotion 视频的中文创作者与工程团队",
+  "targetDurationSeconds": 150,
+  "deliveryConstraints": [
+    "只介绍当前仓库已验证功能和 M1–M8 流程，不编造效果、数据或发布能力。",
+    "ttsChunks 按语义、语气和朗读节奏创作，禁止按标点机械拆分。",
+    "声音使用 high-fidelity-clone，不传 emotion、control 或 controlInstruction。",
+    "1080×1920、30 fps，字幕只由顶层 CaptionLayer 渲染。",
+    "封存 PCM 是唯一时间权威，实测总时长必须在 120–180 秒。"
+  ]
+}

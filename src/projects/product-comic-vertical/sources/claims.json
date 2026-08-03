@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "storyId": "product-comic-vertical",
+  "allowedClaims": [
+    {
+      "claimId": "production-friction",
+      "sourceWording": "完整视频生产跨越叙事、旁白、时间线、Scene、声音、装配和审核，权威必须分层。",
+      "allowedParaphrase": "描述这些环节分散时容易产生身份与时间漂移，但不量化效率损失。",
+      "evidencePaths": ["docs/FINAL_PRODUCT_GOAL.md", "docs/PRODUCTION_WORKFLOW.md"],
+      "verificationStatus": "verified-current",
+      "forbiddenExaggerations": ["行业普遍失败", "节省百分比", "零返工"]
+    },
+    {
+      "claimId": "product-positioning",
+      "sourceWording": "Remotion Story Producer 是一条从资料到可审核成片的 Agent 生产链。",
+      "allowedParaphrase": "可以称为代码优先、证据绑定的视频生产系统。",
+      "evidencePaths": ["README.md", "docs/FINAL_PRODUCT_GOAL.md"],
+      "verificationStatus": "verified-current",
+      "forbiddenExaggerations": ["全自主产品", "通用导演", "无需人工"]
+    },
+    {
+      "claimId": "source-contracts",
+      "sourceWording": "VideoBrief、StorySpec、NarrationSpec 和 RenderSpec 是已实现的结构化输入。",
+      "allowedParaphrase": "主题、叙事、声音选择与画幅先写成可校验数据。",
+      "evidencePaths": ["README.md", "docs/PRODUCTION_WORKFLOW.md", "package.json"],
+      "verificationStatus": "verified-current",
+      "forbiddenExaggerations": ["任意输入都能理解", "自动决定全部创意"]
+    },
+    {
+      "claimId": "authored-narration",
+      "sourceWording": "ttsChunks 由 Agent 按语义、语气和朗读节奏预先创作，工具不得按标点拆分。",
+      "allowedParaphrase": "朗读单元是创作决定，不是标点切割结果。",
+      "evidencePaths": ["AGENTS.md", "src/contracts/story.ts"],
+      "verificationStatus": "verified-current",
+      "forbiddenExaggerations": ["词级自动对齐", "模型自行重写旁白"]
+    },
+    {
+      "claimId": "sealed-pcm-timing",
+      "sourceWording": "封存 PCM 的累计整数 sample-frame 边界是旁白、Scene 和字幕的绝对时间权威。",
+      "allowedParaphrase": "先实测声音，再由累计采样边界生成绝对帧。",
+      "evidencePaths": ["docs/DETERMINISTIC_EXECUTION.md", "src/contracts/semantic-timing.ts"],
+      "verificationStatus": "verified-current",
+      "forbiddenExaggerations": ["波形逐次完全一致", "按浮点秒估算即可"]
+    },
+    {
+      "claimId": "static-registry",
+      "sourceWording": "ProjectRegistry 在 bundle 前静态生成，并使用字面量 import 与 lazyComponent。",
+      "allowedParaphrase": "Composition 可枚举、静态绑定并按需加载。",
+      "evidencePaths": ["AGENTS.md", "docs/ARCHITECTURE.md"],
+      "verificationStatus": "verified-current",
+      "forbiddenExaggerations": ["运行时动态扫描", "任意模块执行"]
+    },
+    {
+      "claimId": "scene-package",
+      "sourceWording": "一个 meaningId 对应一个 Scene；ScenePackage 内聚视觉与 Scene 局部声音，字幕由顶层唯一渲染。",
+      "allowedParaphrase": "每段语义有独占 Scene 交付物，旁白和字幕不归 Scene 所有。",
+      "evidencePaths": ["AGENTS.md", "docs/ARCHITECTURE.md", "docs/PRODUCTION_WORKFLOW.md"],
+      "verificationStatus": "verified-current",
+      "forbiddenExaggerations": ["通用 Scene DSL", "Scene 自行改写旁白"]
+    },
+    {
+      "claimId": "reference-catalog-fidelity",
+      "sourceWording": "外部参考需绑定冻结来源、准确 demo、最小依赖闭包、license、Renderer/frame binding 与配对 evidence。",
+      "allowedParaphrase": "引用不是凭外观临摹，而是有 lineage、依赖和正常速度证据。",
+      "evidencePaths": ["AGENTS.md", "docs/DETERMINISTIC_EXECUTION.md"],
+      "verificationStatus": "verified-current",
+      "forbiddenExaggerations": ["所有上游素材都可商用", "只凭卡名即可保真"]
+    },
+    {
+      "claimId": "final-assembly-approval",
+      "sourceWording": "M8 已实现 GlobalSound、GlobalVisual、FinalAssembly、完整预览和用户 FinalPreviewApproval。",
+      "allowedParaphrase": "全局声画装配产生最终预览，创意批准仍由用户明确作出。",
+      "evidencePaths": ["docs/ITERATION_STATUS.md", "docs/evidence/m8-gps-relativity-final-assembly.md", "scripts/project-check/final-run.ts"],
+      "verificationStatus": "verified-current",
+      "forbiddenExaggerations": ["脚本代替用户批准", "自动通过创意审核"]
+    },
+    {
+      "claimId": "gps-m1-m8-proof",
+      "sourceWording": "gps-relativity 已完成 M1–M8，当前 final-mechanical-check-v2 为 pass。",
+      "allowedParaphrase": "GPS 是当前仓库第一条完整、可复核的主题实证。",
+      "evidencePaths": ["docs/ITERATION_STATUS.md", "docs/evidence/m8-gps-relativity-final-assembly.md", "src/projects/gps-relativity/generated/final-mechanical-check.generated.json", "src/projects/gps-relativity/generated/m8-final-preview-evidence.generated.json"],
+      "verificationStatus": "verified-current",
+      "forbiddenExaggerations": ["第二主题已经证明", "生产级商业案例"]
+    },
+    {
+      "claimId": "deterministic-runtime-boundary",
+      "sourceWording": "runtime 不调用 Agent、skill、MCP、Git、网络或目录扫描；校验通过 checksum 和 fingerprint 绑定输入。",
+      "allowedParaphrase": "创作阶段与渲染阶段分离，运行时只消费冻结输入。",
+      "evidencePaths": ["AGENTS.md", "docs/ARCHITECTURE.md", "docs/DETERMINISTIC_EXECUTION.md"],
+      "verificationStatus": "verified-current",
+      "forbiddenExaggerations": ["所有机器 bit-exact 渲染", "任何环境都不会失败"]
+    }
+  ],
+  "storyBindings": [
+    { "meaningId": "problem-hook", "claimIds": ["production-friction"], "chunkBindings": [
+      { "chunkId": "problem-hook-01", "claimIds": ["production-friction"] },
+      { "chunkId": "problem-hook-02", "claimIds": ["production-friction"] }
+    ] },
+    { "meaningId": "problem-friction", "claimIds": ["production-friction", "sealed-pcm-timing", "reference-catalog-fidelity"], "chunkBindings": [
+      { "chunkId": "problem-friction-01", "claimIds": ["production-friction", "sealed-pcm-timing"] },
+      { "chunkId": "problem-friction-02", "claimIds": ["production-friction", "reference-catalog-fidelity"] }
+    ] },
+    { "meaningId": "product-reveal", "claimIds": ["product-positioning"], "chunkBindings": [
+      { "chunkId": "product-reveal-01", "claimIds": ["product-positioning"] }
+    ] },
+    { "meaningId": "core-capabilities", "claimIds": ["source-contracts", "authored-narration", "sealed-pcm-timing"], "chunkBindings": [
+      { "chunkId": "core-capabilities-01", "claimIds": ["source-contracts", "authored-narration"] },
+      { "chunkId": "core-capabilities-02", "claimIds": ["sealed-pcm-timing"] }
+    ] },
+    { "meaningId": "workflow-input", "claimIds": ["source-contracts", "authored-narration"], "chunkBindings": [
+      { "chunkId": "workflow-input-01", "claimIds": ["source-contracts"] },
+      { "chunkId": "workflow-input-02", "claimIds": ["authored-narration", "source-contracts"] }
+    ] },
+    { "meaningId": "workflow-create", "claimIds": ["sealed-pcm-timing", "reference-catalog-fidelity", "static-registry"], "chunkBindings": [
+      { "chunkId": "workflow-create-01", "claimIds": ["sealed-pcm-timing"] },
+      { "chunkId": "workflow-create-02", "claimIds": ["reference-catalog-fidelity"] },
+      { "chunkId": "workflow-create-03", "claimIds": ["static-registry", "scene-package"] }
+    ] },
+    { "meaningId": "workflow-result", "claimIds": ["final-assembly-approval", "gps-m1-m8-proof"], "chunkBindings": [
+      { "chunkId": "workflow-result-01", "claimIds": ["final-assembly-approval"] },
+      { "chunkId": "workflow-result-02", "claimIds": ["gps-m1-m8-proof", "final-assembly-approval"] }
+    ] },
+    { "meaningId": "differentiated-value", "claimIds": ["deterministic-runtime-boundary", "sealed-pcm-timing", "reference-catalog-fidelity"], "chunkBindings": [
+      { "chunkId": "differentiated-value-01", "claimIds": ["deterministic-runtime-boundary"] },
+      { "chunkId": "differentiated-value-02", "claimIds": ["sealed-pcm-timing", "reference-catalog-fidelity"] }
+    ] },
+    { "meaningId": "proof-and-fit", "claimIds": ["gps-m1-m8-proof", "final-assembly-approval", "deterministic-runtime-boundary"], "chunkBindings": [
+      { "chunkId": "proof-and-fit-01", "claimIds": ["gps-m1-m8-proof"] },
+      { "chunkId": "proof-and-fit-02", "claimIds": ["final-assembly-approval", "deterministic-runtime-boundary"] }
+    ] },
+    { "meaningId": "call-to-action", "claimIds": ["product-positioning", "source-contracts"], "chunkBindings": [
+      { "chunkId": "call-to-action-01", "claimIds": ["product-positioning", "source-contracts"] },
+      { "chunkId": "call-to-action-02", "claimIds": ["product-positioning"] }
+    ] }
+  ]
+}
