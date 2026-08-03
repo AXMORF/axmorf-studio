@@ -492,8 +492,12 @@ Scene 不修改 shared contracts、其他 Scene、顶层 caption、GlobalSound �
 
 共享输入（Story、sealed timing、VisualStyle、Catalog、Shotcraft inventory/coverage）由主 Agent
 独占；aggregate coverage、registry、review、final assembly、staging 和 commit 也由主 Agent
-完成。M9 本计划不授权 subagent；未来若用户另行允许并行，每个 worker 仍只能拥有一个 Scene
-目录，且不得提交或修改 shared inputs。
+完成。用户已于执行期明确要求十个 Beat 的 ScenePackage 均通过子代理制作，因此 6A–6J 每个
+Scene 必须各派发一个独立子代理，严格按 Story 顺序执行；每个子代理只拥有一个 Scene 目录和
+对应 test，必须亲自完成该 Scene 的 Red、Green、正常速度 preview 与证据回报，不得提交、不得
+修改 shared inputs、其他 Scene 或已封存 PCM。主 Agent 在每个子代理结束后独立运行聚焦验证、
+GPS protection、精确 staging 和本地 commit，前一个 Scene 提交后才派发后一个，以保留 continuity
+的单向读取边界。
 
 ## 9. 通用执行纪律
 
