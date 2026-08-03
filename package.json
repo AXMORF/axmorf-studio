@@ -52,7 +52,7 @@
     "build": "remotion bundle",
     "prebuild": "npm run registry:generate",
     "upgrade": "remotion upgrade",
-    "test": "node --import tsx --test tests/contracts/*.test.ts tests/catalog/*.test.ts tests/docs/*.test.ts tests/external-references/*.test.ts tests/scene-package/*.test.ts tests/renderer-registry/*.test.ts tests/narration/*.test.ts tests/runtime/*.test.ts tests/runtime/*.test.tsx tests/projects/*.test.tsx tests/registry/*.test.ts tests/registry/*.test.tsx tests/baseline/*.test.ts tests/project-check/*.test.ts tests/final-assembly/*.test.ts tests/m6-proof/*.test.ts tests/m7-gps/*.test.ts tests/m7-gps/*.test.tsx tests/m8-gps/*.test.ts tests/m8-gps/*.test.tsx",
+    "test": "node --import tsx --test tests/contracts/*.test.ts tests/catalog/*.test.ts tests/docs/*.test.ts tests/external-references/*.test.ts tests/scene-package/*.test.ts tests/renderer-registry/*.test.ts tests/narration/*.test.ts tests/runtime/*.test.ts tests/runtime/*.test.tsx tests/projects/*.test.ts tests/projects/*.test.tsx tests/registry/*.test.ts tests/registry/*.test.tsx tests/baseline/*.test.ts tests/project-check/*.test.ts tests/final-assembly/*.test.ts tests/m6-proof/*.test.ts tests/m7-gps/*.test.ts tests/m7-gps/*.test.tsx tests/m8-gps/*.test.ts tests/m8-gps/*.test.tsx tests/m9-product/*.test.ts tests/m9-product/*.test.tsx",
     "typecheck": "tsc --noEmit --pretty false",
     "lint": "eslint .",
     "narration:generate": "node --import tsx scripts/narration/cli.ts generate",
@@ -91,12 +91,18 @@
     "m8:gps:evidence": "node --import tsx scripts/m8-gps/evidence.ts check",
     "m8:gps:approval:write": "node --import tsx scripts/m8-gps/approval.ts write explicit-user-current-preview",
     "m8:gps:approval": "node --import tsx scripts/m8-gps/approval.ts check",
+    "m9:product:scene-audio": "node --import tsx scripts/m9-product/scene-audio.ts",
+    "m9:product:audio": "node --import tsx scripts/m9-product/global-audio.ts",
+    "m9:product:scene-evidence": "node --import tsx scripts/m9-product/scene-evidence.ts check",
+    "m9:product:evidence": "node --import tsx scripts/m9-product/final-evidence.ts check",
+    "m9:product:approval:write": "node --import tsx scripts/m9-product/approval.ts write explicit-user-current-preview",
+    "m9:product:approval": "node --import tsx scripts/m9-product/approval.ts check",
     "baseline:evidence": "node --import tsx scripts/baseline/evidence.ts",
     "project:check": "node --import tsx scripts/project-check/cli.ts",
     "final:assembly": "node --import tsx scripts/final-assembly/cli.ts",
     "compositions": "remotion compositions src/index.ts",
     "precompositions": "npm run registry:generate",
-    "check": "npm run test && npm run typecheck && npm run lint && npm run docs:check-links && npm run catalog:check && npm run registry:check && npm run build && npm run compositions && env -u RSP_VOXCPM_PRIVATE_CONFIG npm run project:check -- --project gps-relativity --level narrative && npm run m7:gps:freeze -- check && npm run m7:gps:evidence && npm run m8:gps:audio -- check && npm run m8:gps:freeze -- check && npm run final:assembly -- --project gps-relativity --check && npm run m8:gps:evidence && npm run m8:gps:approval && npm run project:check -- --project gps-relativity --level final"
+    "check": "npm run test && npm run typecheck && npm run lint && npm run docs:check-links && npm run catalog:check && npm run registry:check && npm run build && npm run compositions && env -u RSP_VOXCPM_PRIVATE_CONFIG npm run project:check -- --project gps-relativity --level narrative && npm run m7:gps:freeze -- check && npm run m7:gps:evidence && npm run m8:gps:audio -- check && npm run m8:gps:freeze -- check && npm run final:assembly -- --project gps-relativity --check && npm run m8:gps:evidence && npm run m8:gps:approval && npm run project:check -- --project gps-relativity --level final && npm run m9:product:scene-audio -- check && npm run m9:product:audio -- check && npm run m9:product:scene-evidence && npm run final:assembly -- --project product-comic-vertical --check && npm run m9:product:evidence && npm run m9:product:approval && npm run project:check -- --project product-comic-vertical --level final"
   },
   "sideEffects": [
     "*.css"

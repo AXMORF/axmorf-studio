@@ -31,6 +31,7 @@ import {
   serializeCanonicalJson,
   validateScenePlanBundle,
 } from "../../src/contracts";
+import {derivePreFinalSceneCatalog} from "../../scripts/project-check/final-run";
 import Renderer from "../../src/projects/product-comic-vertical/scenes/workflow-result/Renderer";
 import {
   validateCoverageDocument,
@@ -140,7 +141,7 @@ test("workflow-result task input binds current Story timing style Catalog Shotcr
     ),
     readJson(
       "src/projects/product-comic-vertical/generated/resource-catalog.generated.json",
-    ).then(ResourceCatalogSchema.parse),
+      ).then(derivePreFinalSceneCatalog),
     readInventory(),
     readCoverage(),
     readUpstreamFingerprint(),

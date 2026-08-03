@@ -33,16 +33,17 @@
 | NarrativeCore             | 最低可播放成片层                                               | 旁白、顶层字幕与绝对时间；不绘制背景，其余视觉区域透明                                                                    |
 | EnhancementTrack          | 对 NarrativeCore 的可选运行时增强                              | visual、sound、global 只读消费上游；运行时分轨不等于 Scene 局部视听创作分离                                               |
 | StoryVisualTrack          | 完整视觉增强轨                                                 | 从有序 ScenePackage 的视觉贡献与转场确定性汇总                                                                            |
-| SoundDesignTrack          | 非旁白声音运行时轨                                             | 汇总 M7 ScenePackage 局部声音，再由 M8 FinalSoundProjection 叠加 GlobalSoundPlan；不建立第二份 Scene SFX 创作权威        |
+| SoundDesignTrack          | 非旁白声音运行时轨                                             | 汇总当前作品 ScenePackage 局部声音，再由 FinalSoundProjection 叠加 GlobalSoundPlan；不建立第二份 Scene SFX 创作权威      |
 | GlobalSoundPlan           | 作品级全局声音创作声明                                         | 只拥有全片 BGM、跨 Scene ambience、ducking/gain-stage/mastering policy；不拥有或复制 Scene-local SFX                    |
-| FinalSoundProjection      | Scene 声音投影与全局声音计划的确定性最终投影                   | 保留 M7 SoundDesignProjection fingerprint，另绑定 GlobalSoundPlan、Catalog、全局资产、duck envelope 和 mastering policy |
-| GlobalVisualLayers        | 作品级全局视觉运行时聚合                                       | GPS M8 为 project-local frame-driven 纹理、frame treatment 与连续性 motif；位于 Scene 上、CaptionLayer 下，不是通用 DSL |
-| FinalAssembly             | 最终 Composition 装配 identity                                 | 绑定 narrative、M7 Scene、M8 global、Composition source、Remotion exact version 和固定 z-order/mix-order                |
-| FinalPreviewEvidence      | exact 最终预览的机械与批量审核凭据                             | 绑定 MP4/contact sheet/stills、技术测量、ducking evidence、Agent review 和 FinalAssembly；状态只到待用户批准             |
+| FinalSoundProjection      | Scene 声音投影与全局声音计划的确定性最终投影                   | 保留当前 SoundDesignProjection fingerprint，另绑定 GlobalSoundPlan、Catalog、全局资产、duck envelope 和 mastering policy |
+| GlobalVisualLayers        | 作品级全局视觉运行时聚合                                       | 每个作品各自实现 project-local frame-driven 纹理、frame treatment 与连续性 motif；位于 Scene 上、CaptionLayer 下，不是通用 DSL |
+| FinalAssembly             | 最终 Composition 装配 identity                                 | 绑定 narrative、Scene、global、Composition source、Remotion exact version 和固定 z-order/mix-order                     |
+| FinalPreviewEvidence      | exact 最终预览的机械与批量审核凭据                             | 绑定 MP4/contact sheet/stills、技术测量、ducking evidence、Agent review 和 FinalAssembly；供用户批准当前完整预览         |
 | FinalPreviewApproval      | 用户对 current exact 最终预览作出的唯一创意批准                | authoring/generated artifact 精确绑定 preview checksum、evidence 与 FinalAssembly；Agent、脚本和 checker 不可代签        |
 | ResourceCatalog           | 统一资源、能力与制作期参考只读查询视图                         | 汇总视觉、音频、style profile、共享能力和 authoring-only recipe/demo/preview；按 allowed use 隔离，不是 runtime loader    |
-| FinalMechanicalCheck      | 作品级固定机械报告                                             | v1 保留十项 Scene 基础；M8 v2 追加 global sound/global visual/final assembly/evidence/approval 五项，不作审美判断          |
+| FinalMechanicalCheck      | 作品级固定机械报告                                             | v1 保留十项 Scene 基础；声明 final assembly 的作品使用 v2，追加 global sound/global visual/final assembly/evidence/approval 五项，不作审美判断 |
 | M7SceneProductionEvidence | 正式 Scene 批量审核与真实媒体的 current receipt                | 绑定五个 Scene review、四个连续性边界、15 张 still、contact sheet 和正常速度 review；不是用户最终创意批准                 |
+| M9GeneralizationReport    | 两个真实主题完成后的机械泛化结论                               | 将结果分为原样复用、fixture 解耦修复、按设计项目本地和 promotion candidate；proposal 不等于迁移授权                      |
 | Composition               | Remotion 最终渲染入口                                          | NarrativeCore 与各增强轨实时合成                                                                                          |
 | `<Sequence>`              | Remotion 时间容器                                              | 可承载 Scene、Shot 或局部元素，不代表业务概念                                                                             |
 

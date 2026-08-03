@@ -31,6 +31,7 @@ import {
   serializeCanonicalJson,
   validateScenePlanBundle,
 } from "../../src/contracts";
+import {derivePreFinalSceneCatalog} from "../../scripts/project-check/final-run";
 import {
   validateCoverageDocument,
   validateInventoryDocument,
@@ -132,7 +133,7 @@ test("problem-friction task input binds current Story timing style Catalog Shotc
       ),
       readJson(
         "src/projects/product-comic-vertical/generated/resource-catalog.generated.json",
-      ).then(ResourceCatalogSchema.parse),
+      ).then(derivePreFinalSceneCatalog),
       readUpstreamFingerprint(),
     ]);
   const storyBeat = story.beats.find(

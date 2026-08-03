@@ -32,6 +32,7 @@ import {
   serializeCanonicalJson,
   validateScenePlanBundle,
 } from "../../src/contracts";
+import {derivePreFinalSceneCatalog} from "../../scripts/project-check/final-run";
 import {
   validateCoverageDocument,
   validateInventoryDocument,
@@ -139,7 +140,7 @@ test("core-capabilities task binds Story timing style Catalog Shotcraft and froz
       ),
       readJson(
         "src/projects/product-comic-vertical/generated/resource-catalog.generated.json",
-      ).then(ResourceCatalogSchema.parse),
+      ).then(derivePreFinalSceneCatalog),
       readUpstreamFingerprint(),
     ]);
   const storyBeat = story.beats.find(

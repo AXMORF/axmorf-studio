@@ -31,6 +31,7 @@ import {
   serializeCanonicalJson,
   validateScenePlanBundle,
 } from "../../src/contracts";
+import {derivePreFinalSceneCatalog} from "../../scripts/project-check/final-run";
 import Renderer from "../../src/projects/product-comic-vertical/scenes/workflow-create/Renderer";
 import {
   validateCoverageDocument,
@@ -133,7 +134,7 @@ test("workflow-create task input binds the frozen Beat window and continuity", a
       ),
       readJson(
         "src/projects/product-comic-vertical/generated/resource-catalog.generated.json",
-      ).then(ResourceCatalogSchema.parse),
+      ).then(derivePreFinalSceneCatalog),
       readUpstreamFingerprint(),
     ]);
   const storyBeat = story.beats.find(

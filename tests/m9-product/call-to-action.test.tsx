@@ -32,6 +32,7 @@ import {
   serializeCanonicalJson,
   validateScenePlanBundle,
 } from "../../src/contracts";
+import {derivePreFinalSceneCatalog} from "../../scripts/project-check/final-run";
 import {
   validateCoverageDocument,
   validateInventoryDocument,
@@ -133,7 +134,7 @@ test("call-to-action task input binds the current sealed timing and final contin
       ),
       readJson(
         "src/projects/product-comic-vertical/generated/resource-catalog.generated.json",
-      ).then(ResourceCatalogSchema.parse),
+      ).then(derivePreFinalSceneCatalog),
       readUpstreamFingerprint(),
     ]);
   const storyBeat = story.beats.find(

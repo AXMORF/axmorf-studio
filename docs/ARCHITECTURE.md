@@ -2,7 +2,8 @@
 
 > Status：M1–M4 Narrative Baseline、M6 Scene Runtime foundation 与 M7 GPS 正式 Scene
 > production 已实现；M8 global sound/global visual/final assembly、真实用户批准与 v2 final
-> gate 已完成。NarrativeCheck、第二主题泛化与发布仍未实现。
+> gate 已完成。M9 第二主题、泛化报告、真实用户批准与第二份 passing v2 已完成；
+> NarrativeCheck、promotion 实施与发布仍未实现。
 
 ## 节点责任
 
@@ -52,7 +53,8 @@ M4 的边界位于：
 轨；M6 已把 VisualStyleSpec、ScenePackage、外部镜头参考、本地化/保真、registry 和
 visual/local-sound 投影落成通用基础，并用独立 synthetic proof 验证。M7 已为 GPS 创建五个
 正式 Scene，并在真实 Composition 中装配两类投影；M8 已在其上增加全局投影与最终装配，
-没有改写 M7 ScenePackage。详细流程见
+没有改写 M7 ScenePackage。M9 使用同一边界完成十 Scene 的竖屏产品漫画，并保持 GPS
+产物零差异。详细流程见
 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
 
 已实现的 Narrative Baseline 通过 generated static ProjectRegistry 注册为 Story Composition。
@@ -181,7 +183,7 @@ scripts/renderer-registry/             composition-local 静态 registry 生成�
 src/remotion/runtime/story-visual/     fixed Beat window 的纯视觉 Scene 投影
 src/remotion/runtime/scene-sound/      fixed Beat window 的 Scene-local 音频投影
 src/remotion/runtime/composition-assembly/ 可选 visual/sound 显式插槽
-scripts/project-check/final-run.ts     v1 十项与 M8 v2 十五项机械聚合
+scripts/project-check/final-run.ts     v1 十项与声明 final assembly 项目的 v2 十五项机械聚合
 src/remotion/proofs/m6-scene-runtime/  与 ProjectRegistry 隔离的 synthetic proof
 ```
 
@@ -205,6 +207,27 @@ ScenePackage/registry/projection + global sound/global visual + Composition sour
 version → FinalAssembly，完整媒体/review → FinalPreviewEvidence，真实用户决定 →
 FinalPreviewApproval → `final-mechanical-check-v2`。任一上游或媒体字节变化只向下游失效，
 checker 不修复或自动重签。
+
+### 已实现的 M9 第二主题模块
+
+```text
+src/projects/product-comic-vertical/      十 Beat/十 ScenePackage 的 9:16 漫画作品
+src/projects/product-comic-vertical/references/video-shotcraft/
+                                           104/161/161 inventory、coverage 与 exact closure
+src/projects/product-comic-vertical/global-visual/
+                                           project-local 漫画连续性层
+scripts/m9-product/                       Scene/global audio、Shotcraft、evidence、approval
+generated/m9-fail-closed-matrix.generated.json
+                                           42-case isolation evidence
+generated/m9-generalization-report.generated.json
+                                           四类两主题泛化结论
+```
+
+M9 复用同一 NarrativeCore、ScenePackage/runtime、CompositionAssembly、FinalPreview 与 v2
+合同；共享修改仅限 Narrative Baseline、Shotcraft closure、high-fidelity voice provider 和
+Scene/Final Catalog 的去夹具耦合。漫画设计、十个 Scene、音频、GlobalVisual 和 evidence
+编排仍为 project-local。三个 promotion candidates 只记录 proposal，不构成 runtime 或共享
+capability 的当前组成。
 
 ## 总结构
 
@@ -432,8 +455,9 @@ ScenePackage，BGM、跨 Scene ambience、ducking 与 mastering 来自 GlobalSou
 
 M8 保留 M7 `SoundDesignProjection` fingerprint 不变，并新增 `FinalSoundProjection` 绑定
 GlobalSoundPlan、current Catalog、两条全局资产 checksum、duck envelope 与 mastering policy。
-GlobalVisualLayers 是 GPS project-local 固定组件，只消费 strict plan/projection 和 Remotion
-frame API；它不进入共享 capability、不渲染字幕，也不解释任意 Scene DSL。
+GlobalVisualLayers 在 GPS 与产品漫画中分别是 project-local 固定组件，只消费各自 strict
+plan/projection 和 Remotion frame API；它们不进入共享 capability、不渲染字幕，也不解释
+任意 Scene DSL。
 
 CaptionLayer 字号固定为 40 px。它从 Composition 宽高计算横屏、方形和竖屏的最大字幕
 宽度，并把 RenderSpec 显式安全区与按宽高计算的响应式最小 inset 合并；最终宽度永远不

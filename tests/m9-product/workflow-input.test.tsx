@@ -8,7 +8,6 @@ import {renderToStaticMarkup} from "react-dom/server";
 
 import {
   ReferenceFidelityReceiptSchema,
-  ResourceCatalogSchema,
   ScenePackageSchema,
   SceneSoundPlanSchema,
   SceneSyncAnchorSetSchema,
@@ -23,6 +22,7 @@ import {
   computeVisualStyleFingerprint,
   createFingerprint,
 } from "../../src/contracts";
+import {derivePreFinalSceneCatalog} from "../../scripts/project-check/final-run";
 import {computeRenderSpecFingerprint} from "../../src/contracts/auto-check";
 import {computeStoryFingerprint} from "../../src/contracts/generation-input";
 import {RenderSpecSchema} from "../../src/contracts/render";
@@ -61,7 +61,7 @@ const loadFrozen = async () => {
   const visualStyle = VisualStyleSpecSchema.parse(
     await readJson("src/projects/product-comic-vertical/visual-style.json"),
   );
-  const catalog = ResourceCatalogSchema.parse(
+  const catalog = derivePreFinalSceneCatalog(
     await readJson(
       "src/projects/product-comic-vertical/generated/resource-catalog.generated.json",
     ),

@@ -50,10 +50,35 @@
       "checkId": "composition-assembly",
       "failureReasons": [],
       "status": "pass"
+    },
+    {
+      "checkId": "global-sound",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "global-visual",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "final-assembly",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "final-preview-evidence",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "final-preview-approval",
+      "failureReasons": [],
+      "status": "pass"
     }
   ],
   "inputIdentity": {
-    "compositionAssemblyChecksum": "sha256:f6ec0dbd82c1656c4f4682903ef9de6e2e71eb2a4a400526dff20a46f03727df",
+    "compositionAssemblyChecksum": "sha256:0c3949f05f7bdc5df18b7baf8828d19f96112eb414876ef97bd3a4ac07feb6fd",
     "externalSnapshotFingerprints": [
       "sha256:a7a8f2b78598929a64990b75f4eec8864aec367aaddc3ec7380f37bec612b1f2",
       "sha256:493a86c9ff384dbc7f7394e1d23fc7bb18531488b848eaefb5712c5a92377909"
@@ -61,6 +86,13 @@
     "fidelityReceiptFingerprints": [
       "sha256:71b8594db85c29080d7f59c4394f9076754cc3e771eb355d13e94aa095c6e3da"
     ],
+    "finalAssemblyFingerprint": "sha256:47401e3499122f89e4eeb69b16b333101e793de223a19e4214540d69e599acb2",
+    "finalPreviewApprovalFingerprint": "sha256:836a7f16ddba659a69a6c28a4a9d591c31b64b0d8cdf4e35708226006661a66b",
+    "finalPreviewEvidenceFingerprint": "sha256:d0e5a1ed1d78e166f9938881c577ad75247d64874b20be72ad17c5223786c514",
+    "finalSoundProjectionFingerprint": "sha256:4d56238114b1454510f90fa2269aee31437d78d213fd25386f83c96ec019a565",
+    "globalSoundPlanFingerprint": "sha256:74124388957bff04b21e9bf0f57b49245a701f589cbf66b30d108f1ed51af895",
+    "globalVisualPlanFingerprint": "sha256:2a6a3ea1a2ff54937e0578322edd03c5f00b475b5c8d88a6ed31c7e5080ea74a",
+    "globalVisualProjectionFingerprint": "sha256:15ddf2b8e05e584cf21d9e15ea75887c1f21b2a7dc3dbdc2e8c7e7eec031dc95",
     "narrativeReportFingerprint": "sha256:e505b774346797524553faaa830ac654df303acdebf8a9aea248d187a25ff5f2",
     "referenceModes": [
       "inspiration-only",
@@ -94,8 +126,8 @@
     "visualStyleFingerprint": "sha256:bb95aa865476174ed1ff2761fc959f43f90c2b6875d0d4ce7a01bb3987db64d8"
   },
   "level": "final",
-  "reportFingerprint": "sha256:4be09808d1c71bff18ebc7a6d7771922c56d7c84cd12ed2899ebc1e59e678880",
-  "reportVersion": "final-mechanical-check-v1",
-  "schemaVersion": 1,
+  "reportFingerprint": "sha256:8a52e146c2edeb422a77136707a35c54fa9e5e787b0bcdd35e95b0650b8d41b2",
+  "reportVersion": "final-mechanical-check-v2",
+  "schemaVersion": 2,
   "storyId": "product-comic-vertical"
 }

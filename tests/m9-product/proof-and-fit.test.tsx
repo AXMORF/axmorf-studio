@@ -31,6 +31,7 @@ import {
   serializeCanonicalJson,
   validateScenePlanBundle,
 } from "../../src/contracts";
+import {derivePreFinalSceneCatalog} from "../../scripts/project-check/final-run";
 import {
   validateCoverageDocument,
   validateInventoryDocument,
@@ -114,7 +115,7 @@ test("proof-and-fit frozen task binds the 491-frame Beat and user-only approval 
       ),
       readJson(
         "src/projects/product-comic-vertical/generated/resource-catalog.generated.json",
-      ).then(ResourceCatalogSchema.parse),
+      ).then(derivePreFinalSceneCatalog),
       readUpstreamFingerprint(),
     ]);
   const storyBeat = story.beats.find(

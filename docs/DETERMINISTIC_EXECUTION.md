@@ -3,8 +3,9 @@
 > Status：M1–M4 Narrative Baseline、M6 Scene Runtime foundation 与 M7 GPS 正式 Scene
 > production 已实现；包括 Catalog、package/registry、visual/local-sound projection、批量 Agent
 > review 和 passing v1 final report。M8 global sound/global visual/final assembly、完整媒体
-> evidence、真实用户批准和 passing v2 final report 已实现。NarrativeCheck、第二主题与发布仍
-> 为后续目标。
+> evidence、真实用户批准和 passing v2 final report 已实现。M9 第二主题、42-case matrix、
+> 泛化报告、用户批准和第二份 passing v2 已实现。NarrativeCheck、promotion 实施与发布仍为
+> 后续目标。
 
 ## 1. 定义
 
@@ -106,8 +107,8 @@ registry。M2 已把 sealed narration 与 SemanticTiming 落成真实文件，M3
 registry、Baseline 和 evidence 落地，M4 已把 AutoCheck 落地；M6 已把 Scene visual/
 local-sound 分支和 final-level 机械基础落地；M7 已把 GPS 正式 Scene、StoryVisualTrack 与
 Scene-local SoundDesignTrack 接入真实 Composition；M8 已增加 GlobalVisualLayers、global
-sound、最终 PreviewEvidence、真实用户 Approval 和 v2 final gate。Release 与 NarrativeCheck
-仍未实现。流程权威见
+sound、最终 PreviewEvidence、真实用户 Approval 和 v2 final gate；M9 已在产品漫画第二主题
+复用同一链并完成泛化验证。Release、promotion 实施与 NarrativeCheck 仍未实现。流程权威见
 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
 
 ## 3. 节点与实现方式
@@ -168,6 +169,7 @@ scripts/scene-package/                 M6 ScenePackage/Coverage 生成与检查
 scripts/renderer-registry/             M6 composition-local registry 生成与检查
 scripts/final-assembly/                M8 FinalAssembly pass-only 生成与检查
 scripts/m8-gps/                        M8 global audio/freeze/media/evidence/approval
+scripts/m9-product/                    M9 Shotcraft/漫画/audio/media/evidence/approval
 src/remotion/runtime/narrative-core/   旁白、顶层字幕与绝对时间挂载
 src/remotion/runtime/composition-assembly/ 四个强语义聚合的显式装配
 src/remotion/runtime/story-visual/     M6 Scene 视觉、Shot 与转场时间装配
@@ -527,8 +529,8 @@ decode、帧数/时长/声道检查和响度/true-peak/sample-peak 分析；阈�
 
 ## 10. 聚合检查
 
-M1–M8 当前提供聚焦机械检查、真实 file-backed 检查、registry drift check、listing、窄
-Baseline/M6 proof evidence、M7/M8 evidence 与作品级 narrative/final 聚合：
+M1–M9 当前提供聚焦机械检查、真实 file-backed 检查、registry drift check、listing、窄
+Baseline/M6 proof evidence、M7/M8/M9 evidence 与作品级 narrative/final 聚合：
 
 ```bash
 npm test
@@ -587,18 +589,20 @@ current narrative、Catalog、reference/fidelity、package/coverage、registry�
 not-applicable。默认只读，只有显式 `--write-final-check` 且 aggregate pass 才原子写入
 `generated/final-mechanical-check.generated.json`；失败不覆盖最后一份有效报告。
 
-声明 M8 的项目使用新增 `final-mechanical-check-v2`，不原地扩张或破坏 v1。v2 保留上述十项
+声明 final assembly 的项目使用 `final-mechanical-check-v2`，不原地扩张或破坏 v1。v2 保留上述十项
 顺序，再固定追加 `global-sound`、`global-visual`、`final-assembly`、
 `final-preview-evidence`、`final-preview-approval`；只有新增五项全部 pass、current identities
-非空且真实 approval 与 exact preview/evidence/assembly 一致时 aggregate 才能 pass。GPS
-persisted report 已原子迁移为 v2；M6/M7 fixtures 与 v1 parser 不迁移。checker 默认只读、
+非空且真实 approval 与 exact preview/evidence/assembly 一致时 aggregate 才能 pass。GPS 与
+ProductComicVertical persisted report 已原子迁移为 v2；M6/M7 fixtures 与 v1 parser 不迁移。
+checker 默认只读、
 byte-exact，不创建 approval、不修复 drift。
 
 它只能验证已确定输入，不能自动选择或修正 StoryBeat、Scene 方案、Shot、镜头、资源、
-声音、转场或审美结果。GPS 当前五个 M7 ScenePackage 全 ready，M8 evidence/approval current，
-因此 `narrative` 与 v2 `final` 均通过；M7 与 M8 的独立 evidence receipts 分别绑定 Scene review
-和最终 GlobalSound/GlobalVisual/连续性/正常速度 review。只有用户 approval artifact 表示最终
-创意批准；NarrativeCheck 与发布检查仍未实现。
+声音、转场或审美结果。GPS 五个 ScenePackage 与 ProductComicVertical 十个 ScenePackage 均
+全 ready，两项目 evidence/approval current，因此各自 `narrative` 与 v2 `final` 均通过；独立
+evidence receipts 分别绑定 Scene review 和最终 GlobalSound/GlobalVisual/连续性/正常速度
+review。只有用户 approval artifact 表示最终创意批准；NarrativeCheck、promotion 实施与发布
+检查仍未实现。
 
 ## 11. Skill 边界
 

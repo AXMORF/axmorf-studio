@@ -1,6 +1,6 @@
 # 当前实现状态
 
-> 更新日期：2026-08-03
+> 更新日期：2026-08-04
 
 ## 已完成
 
@@ -61,7 +61,7 @@
 - 与正常 ProjectRegistry 隔离的 `M6SceneRuntimeProof`，冻结一个 Shotcraft recipe 的两文件
   本地化闭包，真实 1920x1080/30 fps/120-frame H.264 + 单 AAC Scene-local audio evidence；
 - 已批准从 M1 合同内核、Narrative Baseline、Scene foundation 到发布收口的分阶段 Roadmap，
-  M1–M8 已完成；
+  M1–M9 已完成；
 - `gps-relativity` 项目级 VisualStyleSpec、五个 project-authored PCM Scene cue、五份 current
   SceneTaskInput 与五个正式 composition-local Scene renderer；
 - 五个正式 ScenePackage、全 ready SceneCoverageMap、五入口 literal RendererRegistry、两类
@@ -82,23 +82,33 @@
 - passing `final-mechanical-check-v2` 15 项固定报告，report fingerprint
   `sha256:d944a88c2a4038447ba0d28b68d93c822d6ededf84e106427786b64525e42533`，以及完整
   fail-closed matrix、顶层 `npm run check` M7/M8 read-only gates。
+- `product-comic-vertical` 第二主题：9:16 十 Beat/十 ScenePackage 漫画作品、high-fidelity
+  clone 封存旁白、104/161/161 Shotcraft inventory/coverage、一个 exact localized demo、十个
+  Scene-local cue、全片 global sound 与 project-local GlobalVisualLayers；
+- 完整 5116 帧 MP4、45 张 review still、正常速度/移动端/技术 evidence，以及绑定 preview
+  `sha256:c70a25a898abe828e90664b061e2e18840420099bb82bbe33b49357642f05b30`、evidence
+  `sha256:d0e5a1ed1d78e166f9938881c577ad75247d64874b20be72ad17c5223786c514` 和 FinalAssembly
+  `sha256:47401e3499122f89e4eeb69b16b333101e793de223a19e4214540d69e599acb2` 的真实用户批准；
+- M9 passing 15 项 final-v2 report
+  `sha256:8a52e146c2edeb422a77136707a35c54fa9e5e787b0bcdd35e95b0650b8d41b2`、42-case
+  fail-closed matrix、四类泛化报告和三个 `proposal-only` promotion candidates；GPS 受保护
+  路径保持零差异，未执行 promotion。
 
 ## 尚未完成
 
 - NarrativeCheck 和主观 Story、旁白、字幕、整体叙事节奏审核；
-- promotion 合同与任何新的共享 capability 提取；
-- 真实新主题的端到端生产证明；
+- 已提案 capability 的明确授权与实际 promotion；
 - 资源目录的预览图、适用限制、画幅和 render cost 元数据；
 - 双 Scene overlap transition handles 模型；
 - 封面与发布工具；
 - 新的 Agent skills。
 
-以上未完成项仍是目标设计，不能表述为已有产物。M8 已完成 GPS 最终装配与唯一用户批准，
-但没有实现 NarrativeCheck、promotion、第二主题或发布。
+以上未完成项仍是目标设计，不能表述为已有产物。M9 已完成第二主题与泛化证明，但没有
+实现 NarrativeCheck、任何 promotion、发布或 M10。
 
 ## 下一里程碑
 
-M1–M8 已完成；当前正式 GPS 证据链是：
+M1–M9 已完成；GPS 与产品漫画两条正式证据链都已到 passing v2：
 
 ```text
 VisualStyleSpec + 22-entry ResourceCatalog + five frozen SceneTaskInputs
@@ -111,10 +121,10 @@ VisualStyleSpec + 22-entry ResourceCatalog + five frozen SceneTaskInputs
 → passing final-mechanical-check-v2
 ```
 
-M8 的计划/合同/装配/evidence commits 为 `eb1ee2d`、`abe18b8`、`3ee4262`、`102e50c`；
-current approval fingerprint 为
-`sha256:7e9022ddc9634f0d36237be54443c45cdf46b4112b59a108a061173bc65cde22`。Roadmap 中下一项为
-M9 第二主题泛化，但当前尚未开始，必须另行规划和授权；本次 closeout 不自动进入 M9。
+M9 产品漫画链在同一主合同/runtime 上完成十个 Scene、FinalAssembly、current preview
+evidence、用户批准和 final-v2；current approval fingerprint 为
+`sha256:836a7f16ddba659a69a6c28a4a9d591c31b64b0d8cdf4e35708226006661a66b`。Roadmap 中下一项为
+M10 发布收口，但当前尚未开始，必须另行规划和授权；本次 closeout 不自动进入 M10。
 
 批准规格、实施计划和实证分别见
 [M5 ScenePackage 视听制作规格](superpowers/plans/2026-08-02-m5-scene-package-production-specification.md)、
@@ -124,7 +134,10 @@ M9 第二主题泛化，但当前尚未开始，必须另行规划和授权；�
 M8 计划与实证见
 [M8 Final Assembly 实施计划](superpowers/plans/2026-08-03-m8-global-sound-visual-final-assembly-implementation-plan.md) 和
 [GPS Relativity M8 Final Assembly Evidence](evidence/m8-gps-relativity-final-assembly.md)。
-在第二个不同主题验证之前，不提取新的共享能力。
+M9 计划与实证见
+[M9 Product Comic Vertical Generalization Plan](superpowers/plans/2026-08-03-m9-product-comic-vertical-generalization-plan.md) 和
+[M9 Product Comic Vertical Generalization Evidence](evidence/m9-product-comic-vertical-generalization.md)。
+三个 promotion candidates 仍只存在于 proposal；明确批准前不提取共享能力。
 后续里程碑顺序、阶段排除项和完成门槛见 [ROADMAP.md](ROADMAP.md)。
 
 ## 已知基础依赖问题

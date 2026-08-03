@@ -1,8 +1,8 @@
 # Remotion Story Producer Roadmap
 
-> Status：M0–M8 已完成；M8 GPS final assembly 已于 2026-08-03 绑定真实用户批准并通过
-> `final-mechanical-check-v2`；M9 尚未开始
-> 更新日期：2026-08-03
+> Status：M0–M9 已完成；GPS 与 ProductComicVertical 均绑定真实用户批准并通过
+> `final-mechanical-check-v2`；M10 尚未开始
+> 更新日期：2026-08-04
 
 ## 1. 用途
 
@@ -16,15 +16,16 @@
 
 当前代码已完成基础工程、`CapabilityGallery`、M1–M4 Narrative Baseline、M6 Scene
 foundation、M7 GPS 五个正式 ScenePackage，以及 M8 global sound/global visual/final assembly、
-完整 preview evidence、真实用户批准和 passing v2 final gate。
+完整 preview evidence、真实用户批准和 passing v2 final gate；M9 又用十 Scene 的 9:16 产品
+漫画完成第二主题、Shotcraft 全量 coverage、current approval/v2、42-case matrix 和泛化报告。
 下列内容仍未实现：
 
 - NarrativeCheck 和任何主观叙事质量审核；
-- 第二个不同主题的端到端泛化证明；
+- 三个 promotion proposal 的实际迁移；
 - 发布工具。
 
-Roadmap 中下一项是 M9，但当前尚未开始；进入 M9 必须另行规划和授权。M8 的最终批准不等于
-发布，也不授权自动开始后续里程碑。
+Roadmap 中下一项是 M10，但当前尚未开始；进入 M10 必须另行规划和授权。M9 的最终批准不
+等于发布，也不授权实际 promotion 或自动开始后续里程碑。
 
 ## 3. 全局硬边界
 
@@ -40,7 +41,8 @@ Roadmap 中下一项是 M9，但当前尚未开始；进入 M9 必须另行规�
   万能 Track 类型或无约束 track 数组。
 - render runtime 不调用 Agent、skill、MCP、VoxCPM 或网络服务。
 - JSON 和数据文件不保存 JSX、代码、函数或动态模块路径。
-- 当前新能力保持 composition-local；第二个不同主题验证前不提取共享能力。
+- 当前新能力保持 composition/project-local；任何共享能力 promotion 都要求用户对 proposal
+  的范围、API、文件和目标位置明确批准。
 - 每个 Milestone 都必须同步测试、使用文档和 `ITERATION_STATUS.md`，不把目标设计
   写成已实现状态。
 
@@ -58,8 +60,8 @@ flowchart LR
     M5 --> M6["M6 资源目录与 Scene Runtime<br/>已完成"]
     M6 --> M7["M7 第一个完整 ScenePackage 证明<br/>已完成"]
     M7 --> M8["M8 Global Sound / Global Visual / Final Assembly<br/>已完成"]
-    M8 --> M9["M9 第二主题与泛化"]
-    M9 --> M10["M10 发布收口"]
+    M8 --> M9["M9 第二主题与泛化<br/>已完成"]
+    M9 --> M10["M10 发布收口<br/>未开始"]
 ```
 
 ## 5. Milestone 定义
@@ -360,9 +362,13 @@ mastering 或 GlobalVisualLayers 完整装配。
 **完成事实：** GPS 保留 M7 五个 ScenePackage 与 SoundDesignProjection identity；两条
 project-authored 全局 PCM 资产、frame-driven ducking、project-local GlobalVisualLayers、
 FinalAssembly、完整正常速度 MP4/技术 evidence、批量 Agent review 和唯一用户批准均已绑定
-current fingerprints。没有提取共享 capability，也没有启动 M9 或发布。
+current fingerprints。M8 closeout 当时没有提取共享 capability、启动 M9 或发布；M9 后续已按
+独立批准计划完成，且没有反向修改这些 GPS 产物。
 
 ### M9：第二个不同主题与泛化检验
+
+**状态：** 已于 2026-08-04 完成；current exact preview 已获用户批准，15 项
+`final-mechanical-check-v2` 与 42-case fail-closed matrix aggregate pass。
 
 **目标：** 用第二个语义和视觉结构明显不同的真实主题重跑全链，证明系统不是只服务
 第一个样例。
@@ -379,6 +385,13 @@ current fingerprints。没有提取共享 capability，也没有启动 M9 或发
 - 第二主题不修改主线合同也能完成，否则先修正主线再讨论 promotion；
 - 新共享能力只在用户对具体 proposal 明确批准后迁入 `src/remotion/capabilities/`；
 - 不因“看起来可复用”而抽取一个未被两个主题证明的抽象。
+
+**完成事实：** `product-comic-vertical` 使用 high-fidelity clone 封存旁白、十个独立
+ScenePackage、9:16 漫画系统、104/161/161 Shotcraft inventory/coverage、一个 exact localized
+demo、project-local global sound/visual 和完整最终媒体完成第二条真实链。少量共享改动只用于
+Narrative Baseline、Shotcraft closure、voice provider 与 Scene/Final Catalog 的夹具解耦；GPS
+受保护产物保持零差异。泛化报告把结果分为四类并生成三个 promotion proposals，但未移动
+任何 capability；NarrativeCheck、发布和 M10 均未开始。
 
 ### M10：发布收口
 
@@ -407,6 +420,6 @@ current fingerprints。没有提取共享 capability，也没有启动 M9 或发
 
 ## 7. 后续阶段边界
 
-M1–M8 已实现并通过各自机械门。Roadmap 中下一项是 M9 第二主题与泛化检验，但它尚未开始；
-必须先单独编写并批准实施计划。NarrativeCheck、发布与共享 capability promotion 仍未实现，
-不能从 M8 closeout 推导为已授权工作。
+M1–M9 已实现并通过各自机械门。Roadmap 中下一项是 M10 发布收口，但它尚未开始；必须先
+单独编写并批准实施计划。NarrativeCheck、发布与共享 capability promotion 仍未实现，不能
+从 M9 closeout 或三个 proposal 推导为已授权工作。
