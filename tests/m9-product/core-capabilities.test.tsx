@@ -98,7 +98,13 @@ const readUpstreamFingerprint = async () => {
 const readSelectedResourceInput = async () => {
   const raw = await readJson(`${sceneRoot}/selected-resources.json`);
   assert.ok(typeof raw === "object" && raw !== null);
-  const selectedResources = (raw as Record<string, unknown>).selectedResources;
+  const record = raw as Record<string, unknown>;
+  assert.equal(
+    record.schemaVersion,
+    1,
+    "core-capabilities selected resources must declare schemaVersion 1",
+  );
+  const selectedResources = record.selectedResources;
   assert.ok(Array.isArray(selectedResources));
   return selectedResources.map((entry) => {
     assert.ok(typeof entry === "object" && entry !== null);
