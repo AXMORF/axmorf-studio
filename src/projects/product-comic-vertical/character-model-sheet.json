@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "storyId": "product-comic-vertical",
+  "characters": [
+    {
+      "id": "producer",
+      "role": "Represents authoring decisions and owns Story, ttsChunks and Scene creation without impersonating the user.",
+      "silhouette": "Rounded ink figure with a coral pencil tab on the left shoulder.",
+      "palette": ["#171717", "#f7f1df", "#f05b3d"],
+      "invariants": [
+        "Appears only beside an authored input or creative construction step.",
+        "Never signs FinalPreviewApproval.",
+        "Has no facial emotion tags; posture and panel timing carry emphasis."
+      ]
+    },
+    {
+      "id": "checker",
+      "role": "Represents deterministic mechanical checks, fingerprints and invalidation evidence.",
+      "silhouette": "Angular ink figure with one blue square lens and a checksum card.",
+      "palette": ["#171717", "#f7f1df", "#3b78cc"],
+      "invariants": [
+        "Appears only with a concrete input identity or mechanical result.",
+        "Never makes creative approval decisions.",
+        "A passing state is blue; a stale state is coral and visibly crossed out."
+      ]
+    }
+  ],
+  "sharedPoseVocabulary": [
+    "producer-hands-input-to-timeline",
+    "checker-compares-two-identities",
+    "producer-builds-one-scene",
+    "checker-marks-old-evidence-stale"
+  ],
+  "forbidden": [
+    "No mascot branding, customer avatar or testimonial role.",
+    "No photoreal face, copied character design or external character asset.",
+    "No character mouth movement pretending to be the sealed narrator."
+  ]
+}

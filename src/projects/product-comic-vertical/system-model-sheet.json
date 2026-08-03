@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "storyId": "product-comic-vertical",
+  "systemObjects": [
+    {
+      "id": "authority-card",
+      "visualIdentity": "Warm paper card with a black title rail, blue fingerprint footer and one explicit owner tab.",
+      "states": ["authored", "sealed", "current", "stale"],
+      "invariants": ["One owner per card", "Fingerprint always visible when currentness is claimed"]
+    },
+    {
+      "id": "sealed-pcm-ribbon",
+      "visualIdentity": "Blue mono waveform ribbon with cumulative integer sample ticks and fixed frame brackets.",
+      "states": ["candidate", "sealed", "timing-authority"],
+      "invariants": ["No resampling in the visual claim", "Frames derive from cumulative sample boundaries"]
+    },
+    {
+      "id": "scene-package-panel",
+      "visualIdentity": "Ink-bordered portrait panel containing one meaningId badge, one renderer binding and local visual/sound receipts.",
+      "states": ["draft", "ready", "reviewed"],
+      "invariants": ["Exactly one Scene per meaningId", "Does not own narration, captions or global BGM"]
+    },
+    {
+      "id": "evidence-thread",
+      "visualIdentity": "Continuous blue line joining input checksum, generated fingerprint, preview checksum and approval boundary.",
+      "states": ["connected", "broken-by-drift", "recomputed"],
+      "invariants": ["A changed input visibly breaks downstream identity", "No approval state before user decision"]
+    }
+  ],
+  "panelScaleRules": {
+    "primaryObjectMinWidthPx": 560,
+    "evidenceTextMinPx": 36,
+    "maxObjectsPerPanel": 5,
+    "captionExclusionTop": 1470,
+    "captionExclusionBottom": 1830
+  },
+  "runtimeBoundary": [
+    "Only repository-local static imports and public runtime assets.",
+    "No Agent, skill, MCP, Git, network or directory scan during render.",
+    "All movement uses Remotion frame APIs."
+  ]
+}

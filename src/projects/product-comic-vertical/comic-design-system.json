@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "canvas": {
+    "width": 1080,
+    "height": 1920,
+    "safeInset": 72
+  },
+  "palette": {
+    "ink": "#171717",
+    "paper": "#f7f1df",
+    "accent": "#f05b3d",
+    "support": "#3b78cc",
+    "muted": "#c9c0aa"
+  },
+  "typography": {
+    "displayFamily": "system-ui",
+    "bodyFamily": "system-ui",
+    "minimumReadablePx": 36
+  },
+  "panels": {
+    "gutterPx": 24,
+    "borderPx": 6,
+    "radiusPx": 18,
+    "readingOrder": "top-to-bottom"
+  },
+  "motion": {
+    "source": "remotion-frame-api",
+    "allowedPrimitives": [
+      "interpolate",
+      "spring",
+      "Sequence"
+    ],
+    "cssAnimation": false,
+    "cssTransition": false
+  },
+  "captions": {
+    "owner": "CaptionLayer",
+    "band": {
+      "top": 1490,
+      "bottom": 1810
+    },
+    "visualExclusionZone": {
+      "top": 1470,
+      "bottom": 1830
+    }
+  },
+  "grammar": {
+    "devices": [
+      "panel",
+      "gutter",
+      "speed-line",
+      "screentone",
+      "impact-frame",
+      "ink-outline",
+      "evidence-stamp"
+    ],
+    "maxSimultaneousPanels": 3,
+    "automaticLayout": false,
+    "sceneDsl": false,
+    "automaticDirector": false
+  }
+}
