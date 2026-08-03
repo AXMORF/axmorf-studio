@@ -986,6 +986,31 @@ git diff --cached --check
 git commit -m "feat(product): freeze m9 shotcraft coverage and comic system"
 ```
 
+### 15.5 Task 5A：Scene-local PCM 与 Catalog identity 一次性预冻结（执行期最小修订）
+
+Task 6 首次 Red 前确认了一个原计划内部冲突：通用 `scene:package` 要求 `sound-plan` 的每个
+Scene cue 已由 current ResourceCatalog 提供 descriptor identity；但第 16.1 节同时要求各 Scene
+任务才生成音频，而第 16.2 节的固定 staging 又不允许 Scene 任务修改共享 project Catalog。
+若逐 Scene 改 Catalog，已完成 Scene 的 `taskInputFingerprint`、`resourceCatalogFingerprint` 和
+ScenePackage 会随下一 Scene 立即失效。
+
+因此在 6A 前增加一次性、project-local 的 Task 5A：
+
+1. Red：扩展 `comic-design-system.test.ts`，要求十个 meaningId 各有且只有一个 verified、
+   project-authored、48 kHz mono PCM Scene cue descriptor，并证明缺文件、checksum drift、错误 role
+   或 Catalog identity 会失败；
+2. Green：用 `scripts/m9-product/scene-audio.ts` 确定性生成十条短 PCM，文件只进入
+   `public/projects/product-comic-vertical/scene-audio/<meaningId>/`；一次性更新 project overlay 和
+   merged Catalog；不生成 narration、BGM 或 cross-scene ambience；
+3. 运行脚本 `check`、M9 Catalog/设计系统测试、`typecheck`、`lint`、shared `catalog:check` 和 GPS
+   protection check；
+4. 精确 staging：脚本、两个 project Catalog 文件、测试和十个字面量 WAV；单独提交
+   `fix(product): prefreeze m9 scene audio catalog identities`；
+5. 6A–6J 的 Scene 任务只创作并绑定各自已预冻结的 cue，不覆盖 PCM、不再修改共享 Catalog。
+
+该修订不提升共享 capability，不改变 M1–M8/GPS，不改变 Scene ownership；它只把原本必需却
+顺序矛盾的 checksum/Catalog identity 提前到所有 Scene task input 冻结之前。
+
 ## 16. Tasks 6A–6J：十个独占 ScenePackage 的红绿制作
 
 ### 16.1 每个 Scene 共用的 TDD 顺序
@@ -1006,7 +1031,8 @@ git commit -m "feat(product): freeze m9 shotcraft coverage and comic system"
 每个 Scene 的 Green：
 
 1. 显式创作 panel composition、product/character states、local Shot components 和 frame motion；
-2. 写 Scene-local ambience/SFX PCM，钉到 Scene-local frame；不写 narration 或 BGM；
+2. 绑定 Task 5A 已封存的 Scene-local SFX PCM 并钉到 Scene-local frame；不覆盖 PCM，不写
+   narration、BGM 或 cross-scene ambience；
 3. 若 exact selected，真实 import adaptation，生成 source/adaptation phase pairs 和 pass-only receipt；
 4. 生成 ScenePackage；
 5. render 入口/中段/出口 still 和完整正常速度 Scene authoring preview；
@@ -1051,9 +1077,10 @@ src/projects/product-comic-vertical/scenes/<meaningId>/task-input.generated.json
 src/projects/product-comic-vertical/scenes/<meaningId>/visual-plan.json
 src/projects/product-comic-vertical/scenes/<meaningId>/generated/scene-package.generated.json
 src/projects/product-comic-vertical/scenes/<meaningId>/shots/<project-shot>.tsx
-public/projects/product-comic-vertical/scene-audio/<meaningId>/<literal-audio-file>.wav
 tests/m9-product/<meaningId>.test.tsx
 ```
+
+Scene-local PCM 已由 Task 5A 逐文件提交；6A–6J 的 staging 不重复加入这些已跟踪文件。
 
 若 Task 5 为该 Scene 选择 exact reference，再追加：
 
