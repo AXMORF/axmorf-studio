@@ -1,0 +1,101 @@
+{
+  "aggregateStatus": "pass",
+  "checks": [
+    {
+      "checkId": "narrative",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "visual-style",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "resource-catalog",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "external-references",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "reference-fidelity",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "scene-coverage",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "scene-packages",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "renderer-registry",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "scene-projections",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "composition-assembly",
+      "failureReasons": [],
+      "status": "pass"
+    }
+  ],
+  "inputIdentity": {
+    "compositionAssemblyChecksum": "sha256:f6ec0dbd82c1656c4f4682903ef9de6e2e71eb2a4a400526dff20a46f03727df",
+    "externalSnapshotFingerprints": [
+      "sha256:a7a8f2b78598929a64990b75f4eec8864aec367aaddc3ec7380f37bec612b1f2",
+      "sha256:493a86c9ff384dbc7f7394e1d23fc7bb18531488b848eaefb5712c5a92377909"
+    ],
+    "fidelityReceiptFingerprints": [
+      "sha256:71b8594db85c29080d7f59c4394f9076754cc3e771eb355d13e94aa095c6e3da"
+    ],
+    "narrativeReportFingerprint": "sha256:e505b774346797524553faaa830ac654df303acdebf8a9aea248d187a25ff5f2",
+    "referenceModes": [
+      "inspiration-only",
+      "inspiration-only",
+      "exact-demo-localized",
+      "inspiration-only",
+      "inspiration-only",
+      "inspiration-only",
+      "inspiration-only",
+      "inspiration-only",
+      "inspiration-only",
+      "inspiration-only"
+    ],
+    "rendererRegistryFingerprint": "sha256:4aa87328d92c3d7936e984e2a117a00f81db2f5a92e97710eb939577f5806530",
+    "resourceCatalogFingerprint": "sha256:2b234ed551f9dbc93633fbe5f2654369f8c03482ec739127dc8cc002feddfdd1",
+    "sceneCoverageFingerprint": "sha256:45b9cdedb7ec363295730e603908da1dfe59fd35a4f7b14377907fdb00a3b50b",
+    "scenePackageFingerprints": [
+      "sha256:7827883222f9535a96b384f7ae9e175b6298209a9f8f9c36583e7adedadbee50",
+      "sha256:98f5e7c1cb161b3b2a61550be66b294dc9620093d25a2f5d9e911eb10f51b336",
+      "sha256:ee43dab468fca7d8d13b708342976eaf77996b9c77bd6466fccf5c7a83b44175",
+      "sha256:75d7f97d071a67c27dea26356f0e49e9a1bca526542ea8527effe8be952ff088",
+      "sha256:fc585e0f4b9ab3f2ea32576370daea455f559eb98c0687fc26a47e59a67117fb",
+      "sha256:c4409a339461340c1cf67c193854008c741721b81594c06f1a1e116016bd8aa1",
+      "sha256:6d58800359a6b7613fbc697df4bae5593c522e44d8f0f641cc93f21bfa267a5b",
+      "sha256:7b5e79ab81b1f8530ee8a51539a5017ff904e254284a9d23e856bbf0237b5b62",
+      "sha256:9ba2137c1d3ad4141e129f2db8b73e901112885ba42c913b81dfae0fa3783698",
+      "sha256:5050933e3183f5c0e40d85afd01d805e2bd058931e371f4f01e1f001a383ec01"
+    ],
+    "soundDesignProjectionFingerprint": "sha256:13a28250e6621505ed2d87ba8ad015a87ef14721733ed2c24153054f22064ef4",
+    "storyVisualProjectionFingerprint": "sha256:9d75708da18e17cf089e327907e0f1106eefc83d1778a59b1e23090db4405b6b",
+    "visualStyleFingerprint": "sha256:bb95aa865476174ed1ff2761fc959f43f90c2b6875d0d4ce7a01bb3987db64d8"
+  },
+  "level": "final",
+  "reportFingerprint": "sha256:4be09808d1c71bff18ebc7a6d7771922c56d7c84cd12ed2899ebc1e59e678880",
+  "reportVersion": "final-mechanical-check-v1",
+  "schemaVersion": 1,
+  "storyId": "product-comic-vertical"
+}

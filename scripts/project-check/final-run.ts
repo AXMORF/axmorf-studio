@@ -142,6 +142,50 @@ const failedSceneBranch = (): MutableBranch => ({
   ) as Record<SceneCheckId, FinalStatus>,
 });
 
+export const selectCurrentCatalogByFingerprint = <
+  Catalog extends Readonly<{catalogFingerprint: string}>,
+>({
+  catalogs,
+  fingerprint,
+  authority,
+}: {
+  readonly catalogs: readonly Catalog[];
+  readonly fingerprint: string;
+  readonly authority: string;
+}): Catalog => {
+  const matches = catalogs.filter(
+    ({catalogFingerprint}) => catalogFingerprint === fingerprint,
+  );
+  if (matches.length !== 1 || matches[0] === undefined) {
+    throw new Error(
+      `${authority} identity must match exactly one current Catalog.`,
+    );
+  }
+  return matches[0];
+};
+
+export const selectCurrentSceneResourceCatalog = <
+  Catalog extends Readonly<{catalogFingerprint: string}>,
+>({
+  catalogs,
+  taskCatalogFingerprints,
+}: {
+  readonly catalogs: readonly Catalog[];
+  readonly taskCatalogFingerprints: readonly string[];
+}): Catalog => {
+  const taskIdentities = [...new Set(taskCatalogFingerprints)];
+  if (taskIdentities.length !== 1) {
+    throw new Error(
+      "Ready Scene tasks must bind one current ResourceCatalog identity.",
+    );
+  }
+  return selectCurrentCatalogByFingerprint({
+    catalogs,
+    fingerprint: taskIdentities[0]!,
+    authority: "Ready Scene ResourceCatalog",
+  });
+};
+
 const scenePath = (
   rootDir: string,
   storyId: string,
@@ -186,35 +230,9 @@ export const loadCurrentFinalSceneBranch = async ({
   const result = failedSceneBranch();
   const paths = getProjectCheckPaths({ rootDir, projectId });
   await generateResourceCatalog({ rootDir, mode: "check" });
-  const catalog = ResourceCatalogSchema.parse(
+  const baseCatalog = ResourceCatalogSchema.parse(
     await readGeneratedResourceCatalog(rootDir),
   );
-  result.resourceCatalogFingerprint = catalog.catalogFingerprint;
-  result.checkStatuses = {
-    ...result.checkStatuses,
-    "resource-catalog": "pass",
-  };
-  const visualStyle = VisualStyleSpecSchema.parse(
-    await loadProjectCheckJson(paths.visualStyle, "visual-style.json"),
-  );
-  const styleEntry = catalog.entries.find(
-    (entry) =>
-      entry.descriptor.kind === "style-profile" &&
-      entry.descriptor.styleProfileId === visualStyle.styleProfileId,
-  );
-  if (
-    visualStyle.storyId !== paths.storyId ||
-    visualStyle.resourceCatalogFingerprint !== catalog.catalogFingerprint ||
-    styleEntry === undefined
-  ) {
-    throw new Error("VisualStyleSpec identity is stale.");
-  }
-  result.visualStyleFingerprint = computeVisualStyleFingerprint({
-    visualStyle,
-    resolvedStyleDescriptorFingerprint: styleEntry.descriptorFingerprint,
-  });
-  result.checkStatuses = { ...result.checkStatuses, "visual-style": "pass" };
-
   const [{ projectSource }, semanticTiming, coverage] = await Promise.all([
     loadNarrationProjectFiles({ rootDir, projectId: paths.storyId }),
     loadProjectCheckSemanticTiming(paths.semanticTiming),
@@ -238,8 +256,82 @@ export const loadCurrentFinalSceneBranch = async ({
   }
   result.sceneCoverageFingerprint = coverage.coverageFingerprint;
   result.checkStatuses = { ...result.checkStatuses, "scene-coverage": "pass" };
-
   const ready = coverage.entries.filter((entry) => entry.status === "ready");
+  const taskCatalogFingerprints = await Promise.all(
+    ready.map(async ({meaningId}) =>
+      SceneTaskInputSchema.parse(
+        await loadProjectCheckJson(
+          scenePath(
+            rootDir,
+            paths.storyId,
+            meaningId,
+            "task-input.generated.json",
+          ),
+          "task-input.generated.json",
+        ),
+      ).resourceCatalogFingerprint,
+    ),
+  );
+  const catalogCandidates = [baseCatalog];
+  const projectCatalogPath = projectM8Path(
+    rootDir,
+    paths.storyId,
+    "generated/resource-catalog.generated.json",
+  );
+  if (await pathExists(projectCatalogPath)) {
+    catalogCandidates.push(
+      ResourceCatalogSchema.parse(
+        await loadProjectCheckJson(
+          projectCatalogPath,
+          "resource-catalog.generated.json",
+        ),
+      ),
+    );
+  }
+  const catalog =
+    ready.length === 0
+      ? baseCatalog
+      : selectCurrentSceneResourceCatalog({
+          catalogs: catalogCandidates,
+          taskCatalogFingerprints,
+        });
+  result.resourceCatalogFingerprint = catalog.catalogFingerprint;
+  result.checkStatuses = {
+    ...result.checkStatuses,
+    "resource-catalog": "pass",
+  };
+  const visualStyle = VisualStyleSpecSchema.parse(
+    await loadProjectCheckJson(paths.visualStyle, "visual-style.json"),
+  );
+  const visualStyleCatalog = selectCurrentCatalogByFingerprint({
+    catalogs: catalogCandidates,
+    fingerprint: visualStyle.resourceCatalogFingerprint,
+    authority: "VisualStyleSpec",
+  });
+  const styleEntry = visualStyleCatalog.entries.find(
+    (entry) =>
+      entry.descriptor.kind === "style-profile" &&
+      entry.descriptor.styleProfileId === visualStyle.styleProfileId,
+  );
+  const sceneStyleEntry = catalog.entries.find(
+    (entry) =>
+      entry.descriptor.kind === "style-profile" &&
+      entry.descriptor.styleProfileId === visualStyle.styleProfileId,
+  );
+  if (
+    visualStyle.storyId !== paths.storyId ||
+    styleEntry === undefined ||
+    sceneStyleEntry === undefined ||
+    sceneStyleEntry.descriptorFingerprint !== styleEntry.descriptorFingerprint
+  ) {
+    throw new Error("VisualStyleSpec identity is stale.");
+  }
+  result.visualStyleFingerprint = computeVisualStyleFingerprint({
+    visualStyle,
+    resolvedStyleDescriptorFingerprint: styleEntry.descriptorFingerprint,
+  });
+  result.checkStatuses = { ...result.checkStatuses, "visual-style": "pass" };
+
   if (ready.length === 0) {
     result.referenceModes = coverage.entries.map(() => "empty" as const);
     result.checkStatuses = {

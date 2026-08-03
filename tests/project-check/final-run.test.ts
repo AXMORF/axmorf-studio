@@ -8,12 +8,66 @@ import { FINAL_MECHANICAL_CHECK_IDS } from "../../src/contracts";
 import {
   resolveFinalPreviewEvidencePath,
   runFinalMechanicalCheck,
+  selectCurrentCatalogByFingerprint,
+  selectCurrentSceneResourceCatalog,
   type FinalM8BranchResult,
   type FinalSceneBranchResult,
 } from "../../scripts/project-check/final-run";
 import { createM4ProjectFixture } from "../fixtures/m4-project";
 
 const sha = (value: string) => `sha256:${value.repeat(64)}`;
+
+test("Scene branch selects the unique Catalog bound by all ready Scene tasks", () => {
+  const base = {catalogFingerprint: sha("1"), source: "base"};
+  const project = {catalogFingerprint: sha("2"), source: "project"};
+  assert.equal(
+    selectCurrentSceneResourceCatalog({
+      catalogs: [base, project],
+      taskCatalogFingerprints: [sha("2"), sha("2")],
+    }),
+    project,
+  );
+  assert.equal(
+    selectCurrentSceneResourceCatalog({
+      catalogs: [base, project],
+      taskCatalogFingerprints: [sha("1")],
+    }),
+    base,
+  );
+  assert.throws(() =>
+    selectCurrentSceneResourceCatalog({
+      catalogs: [base, project],
+      taskCatalogFingerprints: [sha("1"), sha("2")],
+    }),
+  );
+  assert.throws(() =>
+    selectCurrentSceneResourceCatalog({
+      catalogs: [base],
+      taskCatalogFingerprints: [sha("2")],
+    }),
+  );
+  assert.throws(() =>
+    selectCurrentSceneResourceCatalog({
+      catalogs: [project, {...project}],
+      taskCatalogFingerprints: [sha("2")],
+    }),
+  );
+  assert.equal(
+    selectCurrentCatalogByFingerprint({
+      catalogs: [base, project],
+      fingerprint: sha("1"),
+      authority: "VisualStyleSpec",
+    }),
+    base,
+  );
+  assert.throws(() =>
+    selectCurrentCatalogByFingerprint({
+      catalogs: [project, {...project}],
+      fingerprint: sha("2"),
+      authority: "VisualStyleSpec",
+    }),
+  );
+});
 
 test("final preview evidence path is canonical with GPS-only legacy compatibility", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-final-evidence-path-"));

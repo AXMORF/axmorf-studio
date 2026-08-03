@@ -13,12 +13,21 @@ import {
   NarrativeCore,
   type NarrativeCoreProps,
 } from "../../remotion/runtime/narrative-core";
+import {CompositionAssembly} from "../../remotion/runtime/composition-assembly";
+import {SoundDesignTrack} from "../../remotion/runtime/sound-design";
+import {StoryVisualTrack} from "../../remotion/runtime/story-visual";
 import briefJson from "./brief.json";
 import sealedNarrationJson from "./generated/sealed-narration.generated.json";
 import semanticTimingJson from "./generated/semantic-timing.generated.json";
 import narrationJson from "./narration.json";
 import renderJson from "./render.json";
 import storyJson from "./story.json";
+import {
+  productComicVerticalRendererPropsByMeaning,
+  productComicVerticalRendererRegistry,
+  productComicVerticalSoundDesignProjection,
+  productComicVerticalStoryVisualProjection,
+} from "./scene-runtime-data";
 
 const projectSource = parseNarrativeProjectSource({
   brief: briefJson,
@@ -83,7 +92,21 @@ export const createProductComicVerticalNarrativeCoreProps = (
 };
 
 const ProductComicVerticalComposition: FC<StoryCompositionProps> = (props) => (
-  <NarrativeCore {...createProductComicVerticalNarrativeCoreProps(props)} />
+  <CompositionAssembly
+    storyVisualTrack={
+      <StoryVisualTrack
+        projection={productComicVerticalStoryVisualProjection}
+        registry={productComicVerticalRendererRegistry}
+        rendererPropsByMeaning={productComicVerticalRendererPropsByMeaning}
+      />
+    }
+    narrativeCore={
+      <NarrativeCore {...createProductComicVerticalNarrativeCoreProps(props)} />
+    }
+    soundDesignTrack={
+      <SoundDesignTrack projection={productComicVerticalSoundDesignProjection} />
+    }
+  />
 );
 
 export default ProductComicVerticalComposition;
