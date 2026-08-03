@@ -170,7 +170,7 @@ const synthesizeSample = (spec: AssetSpec, sampleIndex: number) => {
       0.52 * oscillator(37, sampleIndex) +
       0.31 * oscillator(53, sampleIndex, 0.9) +
       0.17 * paperGrain;
-    return fadeEnvelope(sampleIndex) * roomBreath * inkTable * 0.045;
+    return fadeEnvelope(sampleIndex) * roomBreath * inkTable * 0.405;
   }
   const barSeconds = 8;
   const barProgress = (time % barSeconds) / barSeconds;
@@ -188,7 +188,7 @@ const synthesizeSample = (spec: AssetSpec, sampleIndex: number) => {
     (0.3 + 0.7 * pulse) *
     restrainedLift *
     chord *
-    0.085
+    0.765
   );
 };
 
@@ -437,15 +437,15 @@ const buildTask8Inputs = async (rootDir: string) => {
       policyId: "semantic-spoken-min-envelope-v1",
       attackFrames: 9,
       releaseFrames: 15,
-      spokenGain: 0.3,
+      spokenGain: 0.7,
       unspokenGain: 1,
     },
     masteringPolicy: {
       policyId: "deterministic-gain-stage-v1",
       narrationGain: 1,
       sceneBusGain: 0.82,
-      ambienceGain: 0.1,
-      bgmGain: 0.12,
+      ambienceGain: 0.55,
+      bgmGain: 0.9,
       integratedLoudnessMinLufs: -24,
       integratedLoudnessMaxLufs: -16,
       truePeakCeilingDbtp: -1,
