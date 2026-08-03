@@ -641,6 +641,7 @@ npm run project:check -- --project gps-relativity --level final
 ```bash
 git add -- \
   src/contracts/external-reference.ts \
+  src/contracts/narrative-baseline.ts \
   src/contracts/shot-recipe.ts \
   scripts/baseline/evidence.ts \
   scripts/external-references/adapters/video-shotcraft.ts \
@@ -654,6 +655,7 @@ git add -- \
   scripts/narration/domain/provider-input.ts \
   scripts/project-check/final-run.ts \
   tests/baseline/evidence.test.ts \
+  tests/contracts/narrative-baseline.test.ts \
   tests/external-references/cli.test.ts \
   tests/external-references/dependency-closure.test.ts \
   tests/external-references/snapshot.test.ts \
