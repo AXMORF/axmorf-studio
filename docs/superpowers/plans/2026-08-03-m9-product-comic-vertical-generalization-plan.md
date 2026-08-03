@@ -793,7 +793,7 @@ npm run narration:check -- --project product-comic-vertical
 ffprobe -v error -show_streams -show_format -of json \
   public/voice_profile/my_voice.m4a
 ffprobe -v error -show_streams -show_format -of json \
-  public/projects/product-comic-vertical/narration/<sealed-fingerprint>/complete.wav
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/complete.wav
 ffmpeg -nostdin -v error \
   -i public/projects/product-comic-vertical/narration/<sealed-fingerprint>/complete.wav \
   -f null -
@@ -810,6 +810,26 @@ git add -- \
   src/projects/product-comic-vertical/generated/sealed-narration.generated.json \
   src/projects/product-comic-vertical/generated/semantic-timing.generated.json \
   src/projects/product-comic-vertical/generated/task-3-staging.generated.json \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/problem-hook-01.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/problem-hook-02.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/problem-friction-01.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/problem-friction-02.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/product-reveal-01.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/core-capabilities-01.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/core-capabilities-02.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-input-01.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-input-02.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-create-01.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-create-02.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-create-03.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-result-01.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-result-02.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/differentiated-value-01.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/differentiated-value-02.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/proof-and-fit-01.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/proof-and-fit-02.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/call-to-action-01.wav \
+  public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/call-to-action-02.wav \
   public/projects/product-comic-vertical/narration/<sealed-fingerprint>/complete.wav
 git diff --cached --name-status
 git diff --cached --check
