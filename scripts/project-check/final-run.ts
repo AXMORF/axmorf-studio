@@ -45,6 +45,7 @@ import { buildStoryVisualProjection } from "../../src/remotion/runtime/story-vis
 import { checkPersistedNarrativeAutoCheck } from "./report-files";
 import { runNarrativeAutoCheck } from "./run";
 import type { ProcessRunner } from "../baseline/evidence";
+import { buildResourceCatalog } from "../catalog/domain";
 import { generateResourceCatalog } from "../catalog/generate";
 import { readGeneratedResourceCatalog } from "../catalog/project-files";
 import { checksumExternalBytes } from "../external-references/project-files";
@@ -186,6 +187,36 @@ export const selectCurrentSceneResourceCatalog = <
   });
 };
 
+const FINAL_OWNED_MEDIA_ROLES = new Set([
+  "global-bgm",
+  "cross-scene-ambience",
+  "global-visual",
+]);
+
+export const derivePreFinalSceneCatalog = (rawCatalog: unknown) => {
+  const catalog = ResourceCatalogSchema.parse(rawCatalog);
+  return buildResourceCatalog(
+    catalog.entries
+      .map((entry) => entry.descriptor)
+      .filter(
+        (descriptor) =>
+          descriptor.kind !== "asset" ||
+          !FINAL_OWNED_MEDIA_ROLES.has(descriptor.mediaRole),
+      ),
+  );
+};
+
+export const deduplicateCatalogCandidates = <
+  Catalog extends Readonly<{catalogFingerprint: string}>,
+>(catalogs: readonly Catalog[]): readonly Catalog[] =>
+  catalogs.filter(
+    (catalog, index) =>
+      catalogs.findIndex(
+        (candidate) =>
+          candidate.catalogFingerprint === catalog.catalogFingerprint,
+      ) === index,
+  );
+
 const scenePath = (
   rootDir: string,
   storyId: string,
@@ -272,22 +303,25 @@ export const loadCurrentFinalSceneBranch = async ({
       ).resourceCatalogFingerprint,
     ),
   );
-  const catalogCandidates = [baseCatalog];
+  const rawCatalogCandidates = [baseCatalog];
   const projectCatalogPath = projectM8Path(
     rootDir,
     paths.storyId,
     "generated/resource-catalog.generated.json",
   );
   if (await pathExists(projectCatalogPath)) {
-    catalogCandidates.push(
-      ResourceCatalogSchema.parse(
-        await loadProjectCheckJson(
-          projectCatalogPath,
-          "resource-catalog.generated.json",
-        ),
+    const projectCatalog = ResourceCatalogSchema.parse(
+      await loadProjectCheckJson(
+        projectCatalogPath,
+        "resource-catalog.generated.json",
       ),
     );
+    rawCatalogCandidates.push(
+      projectCatalog,
+      derivePreFinalSceneCatalog(projectCatalog),
+    );
   }
+  const catalogCandidates = deduplicateCatalogCandidates(rawCatalogCandidates);
   const catalog =
     ready.length === 0
       ? baseCatalog
