@@ -1293,6 +1293,42 @@ git diff --cached --check
 git commit -m "feat(product): assemble m9 global sound and visual layers"
 ```
 
+### 18.5 Task 8B：Scene Catalog 与 FinalAssembly Catalog 的 checker 分层（执行期最小修订）
+
+Task 9 首次运行 current `project:check --level final` 时确认了一个现场兼容冲突：十个 M9
+Scene task 与 ScenePackage 正确封存 Task 5A 的 Scene Catalog fingerprint；Task 8 又按计划把两条
+final-owned 全局音频加入同一个 project generated Catalog，使其成为 FinalAssembly Catalog。
+`loadCurrentFinalSceneBranch` 原先只把 shared base Catalog 和当前 project FinalAssembly Catalog
+作为候选，因而找不到已封存的 Scene Catalog，导致 Scene 分支整段 fail；GlobalSound、
+GlobalVisual 与 FinalPreviewEvidence 本身均已 current/pass。
+
+在 Task 9 收口前增加一次通用 checker 兼容 slice：
+
+1. Red：扩展 `tests/project-check/final-run.test.ts`，证明 current FinalAssembly Catalog 新增
+   `global-bgm`、`cross-scene-ambience` 或 `global-visual` 后，checker 可以确定性重建 pre-final
+   Scene Catalog candidate；非 final-owned descriptor 仍保留，重复 fingerprint 必须去重，多个
+   task Catalog identity 或无唯一匹配仍 fail closed；
+2. Green：在 `scripts/project-check/final-run.ts` 增加纯函数，从 current project Catalog 只剔除
+   上述三类明确 final-owned asset role，再与 shared base/current project candidates 按 fingerprint
+   去重，供 `selectCurrentSceneResourceCatalog` 唯一选择；FinalAssembly 分支仍绑定完整 current
+   project Catalog；
+3. 运行聚焦 checker tests、M9 current final report、GPS protection、`typecheck` 与 `lint`；M9
+   current report 此时只允许 `final-preview-approval` 以 `missing` 失败；
+4. 精确 staging 并单独提交：
+
+   ```bash
+   git add -- \
+     scripts/project-check/final-run.ts \
+     tests/project-check/final-run.test.ts
+   git diff --cached --name-status
+   git diff --cached --check
+   git commit -m "fix(check): separate scene and final catalog identities"
+   ```
+
+该修订不修改或重做任何 M1–M8/GPS、M9 Scene task、ScenePackage、Scene coverage、registry、
+projection 或媒体；它只让通用 final checker 按既有 ownership role 分离已封存 Scene Catalog 与
+后续 FinalAssembly Catalog。
+
 ## 19. Task 9：完整最终媒体、技术 evidence 与批量 review
 
 ### 19.1 真实媒体生成
