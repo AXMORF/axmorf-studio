@@ -61,50 +61,69 @@
 - 与正常 ProjectRegistry 隔离的 `M6SceneRuntimeProof`，冻结一个 Shotcraft recipe 的两文件
   本地化闭包，真实 1920x1080/30 fps/120-frame H.264 + 单 AAC Scene-local audio evidence；
 - 已批准从 M1 合同内核、Narrative Baseline、Scene foundation 到发布收口的分阶段 Roadmap，
-  M1–M7 已完成；
+  M1–M8 已完成；
 - `gps-relativity` 项目级 VisualStyleSpec、五个 project-authored PCM Scene cue、五份 current
   SceneTaskInput 与五个正式 composition-local Scene renderer；
 - 五个正式 ScenePackage、全 ready SceneCoverageMap、五入口 literal RendererRegistry、两类
   runtime projection，以及 GPS Composition 中视觉、局部声音、旁白和顶层字幕的真实叠加；
 - 15 张真实 Story still、5×3 contact sheet、完整 1731 帧正常速度 H.264/AAC review、批量
   SceneVisualCheck/SceneSoundCheck/连续性记录、M7 evidence receipt 与 passing final report。
+- M8 strict GlobalSound/GlobalVisual/FinalAssembly/FinalPreview contracts、保留 M7
+  SoundDesignProjection identity 的 FinalSoundProjection、两条全长 project-authored PCM 全局
+  音频、固定 frame-driven ducking 和 project-local GlobalVisualLayers；
+- 24-entry project assembly Catalog、四槽位 CompositionAssembly、固定 z-order/mix-order、
+  26 张代表 still、7×4 contact sheet、完整 1731 帧最终 MP4、ffprobe/完整解码/响度/
+  true-peak/声道/ducking evidence 与四组批量 Agent review；
+- 真实用户 FinalPreviewApproval 已绑定 exact preview checksum
+  `sha256:d0473bc9ff74b46898c5988b99ff4690b5412a4dbd1508508d3c4a73c63d7036`、evidence
+  `sha256:2141ce8b0f15622437d27c2921cde8d32236e5bf17de5da2e815a8344ded8667`
+  和 FinalAssembly
+  `sha256:917f1601b9403316f42f58f95a3033720162883d5e77e542390ca8803388655b`；
+- passing `final-mechanical-check-v2` 15 项固定报告，report fingerprint
+  `sha256:d944a88c2a4038447ba0d28b68d93c822d6ededf84e106427786b64525e42533`，以及完整
+  fail-closed matrix、顶层 `npm run check` M7/M8 read-only gates。
 
 ## 尚未完成
 
 - NarrativeCheck 和主观 Story、旁白、字幕、整体叙事节奏审核；
 - promotion 合同与任何新的共享 capability 提取；
-- M8 的 GlobalSoundPlan、全局 BGM、跨 Scene ambience、ducking、mastering、
-  GlobalVisualLayers 和完整 assembly/approval fingerprint；
 - 真实新主题的端到端生产证明；
 - 资源目录的预览图、适用限制、画幅和 render cost 元数据；
 - 双 Scene overlap transition handles 模型；
 - 封面与发布工具；
 - 新的 Agent skills。
 
-以上未完成项仍是目标设计，不能表述为已有产物。M7 已实现 GPS 正式 Scene 和作品级批量
-Scene review，但没有实现 NarrativeCheck、promotion、M8 全局增强或用户最终批准。
+以上未完成项仍是目标设计，不能表述为已有产物。M8 已完成 GPS 最终装配与唯一用户批准，
+但没有实现 NarrativeCheck、promotion、第二主题或发布。
 
 ## 下一里程碑
 
-M1–M7 已完成；当前正式 GPS 证据链是：
+M1–M8 已完成；当前正式 GPS 证据链是：
 
 ```text
 VisualStyleSpec + 22-entry ResourceCatalog + five frozen SceneTaskInputs
 → ScenePackage + SceneCoverageMap + RendererRegistry
 → StoryVisualTrack + Scene-local SoundDesignTrack
 → GPS Composition + batch Scene review + normal-speed evidence
-→ passing final-mechanical-check-v1
+→ GlobalSoundPlan + FinalSoundProjection + GlobalVisualLayers
+→ FinalAssembly + full-speed final preview + technical/review evidence
+→ exact user FinalPreviewApproval
+→ passing final-mechanical-check-v2
 ```
 
-当前唯一下一步是 M8：在不改写 NarrativeCore 或五个 ScenePackage 的前提下设计并实现
-GlobalSoundPlan、全局 BGM/跨 Scene ambience/ducking/mastering、GlobalVisualLayers、完整
-assembly fingerprint 与 FinalPreviewApproval。M7 没有提前创建这些文件，也没有发布。
+M8 的计划/合同/装配/evidence commits 为 `eb1ee2d`、`abe18b8`、`3ee4262`、`102e50c`；
+current approval fingerprint 为
+`sha256:7e9022ddc9634f0d36237be54443c45cdf46b4112b59a108a061173bc65cde22`。Roadmap 中下一项为
+M9 第二主题泛化，但当前尚未开始，必须另行规划和授权；本次 closeout 不自动进入 M9。
 
 批准规格、实施计划和实证分别见
 [M5 ScenePackage 视听制作规格](superpowers/plans/2026-08-02-m5-scene-package-production-specification.md)、
 [M6 Scene Runtime 实施计划](superpowers/plans/2026-08-02-m6-scene-runtime-implementation-plan.md) 和
 [M6 Scene Runtime Foundation Evidence](evidence/2026-08-02-m6-scene-runtime-foundation.md)，以及
 [M7 GPS Scene Production Evidence](evidence/2026-08-03-gps-relativity-m7-scene-production.md)。
+M8 计划与实证见
+[M8 Final Assembly 实施计划](superpowers/plans/2026-08-03-m8-global-sound-visual-final-assembly-implementation-plan.md) 和
+[GPS Relativity M8 Final Assembly Evidence](evidence/m8-gps-relativity-final-assembly.md)。
 在第二个不同主题验证之前，不提取新的共享能力。
 后续里程碑顺序、阶段排除项和完成门槛见 [ROADMAP.md](ROADMAP.md)。
 

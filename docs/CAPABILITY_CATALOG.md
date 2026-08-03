@@ -2,7 +2,8 @@
 
 > 当前状态：M6 已实现统一 `ResourceCatalog` 合同；M7 将五个 project-authored Scene cue 纳入
 > Catalog，当前共 22 条 asset/style/capability descriptor。Narrative Baseline 不依赖 Catalog；
-> GPS 五个正式 Scene 已完成 current resource selection。
+> GPS 五个正式 Scene 已完成 current resource selection。M8 保持该 22-entry M7 Catalog identity
+> 不变，以 project-local overlay 增加两条全局 PCM 资产，形成 24-entry final assembly Catalog。
 
 ## 职责
 
@@ -26,6 +27,8 @@ flowchart LR
     Query --> ScenePlan["SceneVisualPlan"]
     Query --> SceneSound["SceneSoundPlan"]
     Query --> Recipe["ShotRecipeSelection"]
+    Query --> GlobalSound["GlobalSoundPlan"]
+    Query --> GlobalVisual["GlobalVisualPlan"]
 ```
 
 ## 当前已迁入能力
@@ -101,6 +104,12 @@ M7 GPS 五个 Scene 均选择各自唯一的 project-authored PCM cue，并复�
 profile；VisualPlan/ShotPlan 没有选择额外视觉 asset。五个 ShotRecipeSelection 均为合法
 `empty`，因此没有 external snapshot、本地化闭包或 exact fidelity receipt，不能显示 fake
 exact pass。
+
+M8 GPS 新增 `global-bgm.wav` 与 `cross-scene-ambience.wav` 两条 project-authored、全长
+48 kHz/mono/s16le PCM 资产。它们位于 `public/projects/gps-relativity/global-audio/`，由
+project manifest/receipt 绑定 checksum、sample-frame、license/attribution，再与 M7 22-entry
+Catalog 合成为 current 24-entry assembly Catalog。该 overlay 只服务 GPS FinalAssembly；
+project-local GlobalVisualLayers 也没有登记或晋升为共享 capability。
 
 ## 新能力
 

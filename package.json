@@ -89,13 +89,14 @@
     "m8:gps:media": "node --import tsx scripts/m8-gps/evidence.ts render",
     "m8:gps:evidence:write": "node --import tsx scripts/m8-gps/evidence.ts write",
     "m8:gps:evidence": "node --import tsx scripts/m8-gps/evidence.ts check",
+    "m8:gps:approval:write": "node --import tsx scripts/m8-gps/approval.ts write explicit-user-current-preview",
     "m8:gps:approval": "node --import tsx scripts/m8-gps/approval.ts check",
     "baseline:evidence": "node --import tsx scripts/baseline/evidence.ts",
     "project:check": "node --import tsx scripts/project-check/cli.ts",
     "final:assembly": "node --import tsx scripts/final-assembly/cli.ts",
     "compositions": "remotion compositions src/index.ts",
     "precompositions": "npm run registry:generate",
-    "check": "npm run test && npm run typecheck && npm run lint && npm run docs:check-links && npm run catalog:check && npm run registry:check && npm run build && npm run compositions && env -u RSP_VOXCPM_PRIVATE_CONFIG npm run project:check -- --project gps-relativity --level narrative"
+    "check": "npm run test && npm run typecheck && npm run lint && npm run docs:check-links && npm run catalog:check && npm run registry:check && npm run build && npm run compositions && env -u RSP_VOXCPM_PRIVATE_CONFIG npm run project:check -- --project gps-relativity --level narrative && npm run m7:gps:freeze -- check && npm run m7:gps:evidence && npm run m8:gps:audio -- check && npm run m8:gps:freeze -- check && npm run final:assembly -- --project gps-relativity --check && npm run m8:gps:evidence && npm run m8:gps:approval && npm run project:check -- --project gps-relativity --level final"
   },
   "sideEffects": [
     "*.css"

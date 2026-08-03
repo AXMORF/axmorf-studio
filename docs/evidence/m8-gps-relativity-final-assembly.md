@@ -5,11 +5,12 @@ Date: 2026-08-03
 ## Scope and current state
 
 - Story: `gps-relativity`; Composition: `GpsRelativity`.
-- M8 contracts commit: `abe18b8`; GPS final assembly commit: `3ee4262`.
+- M8 plan commit: `eb1ee2d`; contracts commit: `abe18b8`; GPS final assembly
+  commit: `3ee4262`; preview evidence commit: `102e50c`.
 - This record covers the approval-bound final preview, technical measurements and
-  batched Agent review. Current state is **waiting for user FinalPreviewApproval**.
-- No FinalPreviewApproval artifact or `final-mechanical-check-v2` report exists.
-  The M7 v1 final report remains unchanged.
+  batched Agent review. Current state is **user-approved and final v2 pass**.
+- The M7 v1 schema/parser remains supported; the GPS persisted report has been
+  atomically migrated to `final-mechanical-check-v2` after the exact user approval.
 
 ## Bound identities
 
@@ -25,6 +26,10 @@ Date: 2026-08-03
   `sha256:2141ce8b0f15622437d27c2921cde8d32236e5bf17de5da2e815a8344ded8667`.
 - ducking/mix evidence fingerprint:
   `sha256:0a5c3fcc458275adbaadcac792fd9010ee42acee99ed47150e6ea15f7ed0af99`.
+- FinalPreviewApproval fingerprint:
+  `sha256:7e9022ddc9634f0d36237be54443c45cdf46b4112b59a108a061173bc65cde22`.
+- final-mechanical-check-v2 report fingerprint:
+  `sha256:d944a88c2a4038447ba0d28b68d93c822d6ededf84e106427786b64525e42533`.
 
 ## Review media
 
@@ -80,17 +85,33 @@ not copied into or ducked by GlobalSoundPlan.
 
 These are Agent review results, not user approval.
 
+## User FinalPreviewApproval
+
+The user watched the exact full normal-speed preview identified above and explicitly
+approved the current final video on 2026-08-03. The minimal authoring record and
+generated approval bind only the fixed `approved` decision, preview checksum,
+FinalPreviewEvidence fingerprint and FinalAssembly fingerprint. They contain no
+conversation transcript, private data or absolute path. Agent review, evidence and
+checker output cannot create or substitute this decision.
+
 ## Mechanical results
 
 - `m8:gps:evidence:write` produced a canonical
   `ready-for-user-approval` artifact.
 - Two consecutive `m8:gps:evidence` read-only checks returned the same evidence
   fingerprint and preserved bytes/mtime.
-- The invalidation matrix rejects media byte drift, truncation, wrong frame count,
-  missing/wrong audio streams, threshold failures, ducking drift, incomplete or
-  stale review, FinalAssembly/Catalog/M7 identity drift, empty approval and Agent
-  review masquerading as approval. A failed writer leaves the last passing evidence
-  byte-identical.
-- `m8:gps:approval` fails with fixed code `missing-approval`.
-- `project:check --level final` uses v2 and fails only at
-  `final-preview-approval`; it does not write an approval or v2 report.
+- The complete invalidation matrix rejects Story/narrative/timing drift; M7 package,
+  coverage, registry and projection drift; global PCM/Catalog/license drift;
+  duck/gain/mastering or GlobalVisual/source/z-order drift; Composition/Remotion
+  identity drift; media byte drift, truncation, wrong frame count, missing/wrong
+  audio streams and threshold failures; incomplete/stale review; evidence/approval
+  identity drift; empty, malformed, old-media or Agent-authored approval; and
+  single-byte persisted v2 report drift. Failed writers preserve the last passing
+  bytes and read-only checkers never repair artifacts.
+- Two consecutive `m8:gps:approval` checks returned approval fingerprint
+  `sha256:7e9022ddc9634f0d36237be54443c45cdf46b4112b59a108a061173bc65cde22`.
+- `project:check --level final --write-final-check` wrote the passing 15-check v2
+  report through the existing pass-only atomic writer; the subsequent read-only
+  final check returned the same report fingerprint. The two legacy external-reference
+  checks are correctly `not-applicable` for GPS's empty recipe selections; all other
+  checks pass and none fail.

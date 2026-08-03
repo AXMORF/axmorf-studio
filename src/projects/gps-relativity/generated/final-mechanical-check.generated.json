@@ -50,12 +50,44 @@
       "checkId": "composition-assembly",
       "failureReasons": [],
       "status": "pass"
+    },
+    {
+      "checkId": "global-sound",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "global-visual",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "final-assembly",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "final-preview-evidence",
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "final-preview-approval",
+      "failureReasons": [],
+      "status": "pass"
     }
   ],
   "inputIdentity": {
-    "compositionAssemblyChecksum": "sha256:2c1a17ce53ff0a033ebb9d816148aa4edcfb73ef6bda4a3b12026f98fce5fe0b",
+    "compositionAssemblyChecksum": "sha256:e2e446b611fc2320a5d25ac4f5031f1d60886c1f25eaba2fd526ba46f593e0ed",
     "externalSnapshotFingerprints": [],
     "fidelityReceiptFingerprints": [],
+    "finalAssemblyFingerprint": "sha256:917f1601b9403316f42f58f95a3033720162883d5e77e542390ca8803388655b",
+    "finalPreviewApprovalFingerprint": "sha256:7e9022ddc9634f0d36237be54443c45cdf46b4112b59a108a061173bc65cde22",
+    "finalPreviewEvidenceFingerprint": "sha256:2141ce8b0f15622437d27c2921cde8d32236e5bf17de5da2e815a8344ded8667",
+    "finalSoundProjectionFingerprint": "sha256:8e1ecfe5217127862416cb2749ef043a6eeab185b8e5a6ab8e9f7daa0ebea2e2",
+    "globalSoundPlanFingerprint": "sha256:4282f0c36a16d93bb174cf258070c15485b8481f5f196d85de9a8d4e617d024e",
+    "globalVisualPlanFingerprint": "sha256:1eb107fdcc7585c2ca1bcd33c590d7f237a360f164f6765f4dcba50a5daa468d",
+    "globalVisualProjectionFingerprint": "sha256:033bb8736483e67352ea909ca8376441431657bb2ac3268c27043bf9bdc93691",
     "narrativeReportFingerprint": "sha256:dd1dc79547123cc2a3c69a3f95ce81cdf951f3e569afbbdb94b51345bc52424c",
     "referenceModes": [
       "empty",
@@ -79,8 +111,8 @@
     "visualStyleFingerprint": "sha256:fcef69cf598adbd995f381fb4f185c937b503f86b2af02766baa33c381a2a0b8"
   },
   "level": "final",
-  "reportFingerprint": "sha256:7bd7b501e559fe79a2f4c96fa7dfbda88bae86ccd202b27326d7a655d99beced",
-  "reportVersion": "final-mechanical-check-v1",
-  "schemaVersion": 1,
+  "reportFingerprint": "sha256:d944a88c2a4038447ba0d28b68d93c822d6ededf84e106427786b64525e42533",
+  "reportVersion": "final-mechanical-check-v2",
+  "schemaVersion": 2,
   "storyId": "gps-relativity"
 }

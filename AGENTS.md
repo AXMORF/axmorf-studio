@@ -34,7 +34,7 @@
   模块路径。
 - Scene renderer 必须通过 composition-local 静态 registry 绑定；它可以在内部拆分
   本地 Shot 组件并调用已批准共享能力，但这些内部组件不是 runtime registry 入口。
-- render runtime 不调用 Agent、skill、MCP 或网络服务。
+- render runtime 不调用 Agent、skill、MCP、Git、网络服务或目录扫描。
 - 所有选中视觉与音频资产必须位于仓库 `public/`，有 manifest 元数据并通过校验。
 - 所有 render-critical motion 使用 Remotion frame API；禁止 CSS animation、
   CSS transition 和 Tailwind animation utilities。
@@ -53,11 +53,19 @@
   final-level 机械基础和独立 synthetic proof。M7 已为 `gps-relativity` 完成五个正式
   ScenePackage、全 ready coverage/registry/projection、批量 SceneVisual/SceneSound/连续性
   review、真实 contact sheet/正常速度 preview 和 passing final report。
-- NarrativeCheck 没有实现。当前唯一下一步是 M8；M6 synthetic proof 仍不是正式 Story
-  Scene，M7 正式产物也不包含 GlobalSoundPlan、GlobalVisualLayers 或用户最终创意批准。
+- M8 已在不修改 M1–M7 权威的前提下完成 `GlobalSoundPlan`、原创全片 BGM、跨 Scene
+  ambience、确定性 ducking、`FinalSoundProjection`、project-local `GlobalVisualLayers`、
+  `FinalAssembly`、完整正常速度最终预览、用户 `FinalPreviewApproval` 和 passing
+  `final-mechanical-check-v2`。M6 synthetic proof 仍不是正式 Story Scene。
+- NarrativeCheck、第二主题泛化与发布工具没有实现；M9 尚未开始，必须另行规划和授权。
 - M6 的 Scene 级 renderer/runtime 不得成为 Narrative Baseline 的前置条件，也不得反向修改
-  Story、旁白、字幕或实测时间线。M7 不得提前实现 M8 的 GlobalSoundPlan、全局 BGM、跨
-  Scene ambience、ducking、mastering 或 GlobalVisualLayers。
+  Story、旁白、字幕或实测时间线。M8 不得重做五个 M7 ScenePackage；Scene-local
+  ambience/SFX 仍由 ScenePackage 拥有，GlobalSoundPlan 不建立第二份 Scene SFX 权威。
+- `GlobalVisualLayers` 只拥有 project-local 全局纹理、装饰和连续性 motif，不渲染字幕，
+  不得扩张为通用 Track、Scene DSL、自动布局器或自动导演。`CaptionLayer` 仍是唯一顶层
+  字幕权威。
+- `FinalPreviewApproval` 只由用户明确决定产生，必须绑定 current preview checksum、
+  evidence fingerprint 和 FinalAssembly fingerprint；Agent review、脚本或 checker 不得代签。
 - ProjectRegistry 在 bundle 前按固定一级目录约定生成静态 TypeScript；注册元数据必须
   预先可枚举，Composition 代码通过 Remotion `lazyComponent` 和字面量 `import()` 按需
   加载。`Composition.tsx` 必须 default export。
@@ -103,7 +111,8 @@ proposal，并得到用户对范围、API、文件和目标位置的明确批准
   current evidence-bound 批量记录；
 - `SceneSoundCheck`：在 Scene 阶段批量检查 Scene 局部 ambience/SFX、同步、音量与固定 Beat
   窗口；GPS M7 已有 current evidence-bound 批量记录；
-- `FinalPreviewApproval`：默认唯一必须由用户作出的创意批准；
+- `FinalPreviewApproval`：默认唯一必须由用户作出的创意批准；GPS M8 已有 current、
+  checksum-bound 的正式批准，任何装配或媒体 identity 变化都会使其失效；
 - Shotcraft fidelity 仅在 Scene 显式选择 Shotcraft recipe 时执行；exact 模式必须证明 immutable
   lineage、准确 demo、最小本地化依赖闭包、真实 Renderer/frame-state binding、配对证据和
   正常速度可辨识度。motion strip、benchmark、封面和 promotion review 仍只在命中对应条件

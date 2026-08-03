@@ -2,7 +2,9 @@
 
 > Status：M1–M4 Narrative Baseline、M6 Scene Runtime foundation 与 M7 GPS 正式 Scene
 > production 已实现；包括 Catalog、package/registry、visual/local-sound projection、批量 Agent
-> review 和 passing final report。NarrativeCheck 与 M8 全局增强仍为后续目标。
+> review 和 passing v1 final report。M8 global sound/global visual/final assembly、完整媒体
+> evidence、真实用户批准和 passing v2 final report 已实现。NarrativeCheck、第二主题与发布仍
+> 为后续目标。
 
 ## 1. 定义
 
@@ -82,7 +84,7 @@ flowchart TB
 
     Auto --> Assembly["CompositionAssembly<br/>【确定性执行】"]
     Visual -.->|"可选"| Assembly
-    Optional["Scene-local Sound<br/>M6 可选；Global 留到 M8"] -.-> Assembly
+    Optional["Scene-local + Global Sound<br/>M8 已实现"] -.-> Assembly
     Assembly --> Evidence["Preview / evidence<br/>【确定性执行】"]
     Evidence --> Review["FinalPreviewApproval<br/>【创作决策】"]
     Review --> Render["Render / quality check<br/>【确定性执行】"]
@@ -103,8 +105,9 @@ flowchart TB
 registry。M2 已把 sealed narration 与 SemanticTiming 落成真实文件，M3 已把 runtime、
 registry、Baseline 和 evidence 落地，M4 已把 AutoCheck 落地；M6 已把 Scene visual/
 local-sound 分支和 final-level 机械基础落地；M7 已把 GPS 正式 Scene、StoryVisualTrack 与
-Scene-local SoundDesignTrack 接入真实 Composition。GlobalVisualLayers、M8 global sound、
-最终 Approval/Release 与 NarrativeCheck 仍未实现。流程权威见
+Scene-local SoundDesignTrack 接入真实 Composition；M8 已增加 GlobalVisualLayers、global
+sound、最终 PreviewEvidence、真实用户 Approval 和 v2 final gate。Release 与 NarrativeCheck
+仍未实现。流程权威见
 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
 
 ## 3. 节点与实现方式
@@ -126,10 +129,11 @@ Scene-local SoundDesignTrack 接入真实 Composition。GlobalVisualLayers、M8 
 | SceneVisualTrack            | 通用 Scene runtime + 每个 ScenePackage 一个 renderer 入口             | 按 timing 挂载的纯视觉 Scene                          |
 | SceneSoundContribution      | 固定 audio runtime 消费 ScenePackage.SceneSoundPlan                   | Beat 固定窗口内的 ambience / SFX                      |
 | StoryBeatTransition         | 有限的固定 preset 组件                                                | hard cut 或不改变时长的 overlay                       |
-| SoundDesignTrack            | M6 固定汇总 Scene 局部声音；M8 才增加 GlobalSoundPlan                 | 当前为 Beat 内 ambience/SFX                           |
-| Global layers               | M8 固定组件消费已选择的 preset 和资源 ID                              | texture 等全局视觉轨道                                |
-| CompositionAssembly         | 显式 narrative/visual/sound 插槽；global 插槽留到 M8                  | 固定图层顺序的 Composition                            |
-| 审核证据                    | Remotion CLI + Node 脚本                                              | still、contact sheet、必要时 motion strip             |
+| SoundDesignTrack            | 保留 M7 Scene projection；M8 FinalSoundProjection 叠加 GlobalSoundPlan | Scene ambience/SFX + 跨 Scene ambience/BGM            |
+| Global layers               | project-local 固定组件消费 strict plan/projection 与 frame API        | frame treatment 与 GPS continuity motif               |
+| CompositionAssembly         | 显式 narrative/scene/global/sound 四槽位与固定顺序                    | fingerprint-bound 最终 Composition                    |
+| 最终审核证据                | Remotion CLI + ffprobe/FFmpeg + Node 脚本                              | still、contact sheet、完整 MP4、技术与批量 review      |
+| FinalPreviewApproval        | 用户 authoring record → pass-only generated approval                  | exact preview/evidence/assembly identity               |
 
 底层可共享时间线、视觉、音频和 fingerprint 贡献能力，但对外运行时装配合同保留
 `NarrativeCore`、`StoryVisualTrack`、`SoundDesignTrack` 和 `GlobalVisualLayers` 四个显式
@@ -143,7 +147,9 @@ SemanticTiming/CaptionCue 纯函数。M2 已落地真实 TTS、实测、封存�
 NarrativeCore、ProjectRegistry、Narrative Baseline 与窄 evidence，M4 已落地固定 narrative
 AutoCheck。M6 已落地 ResourceCatalog、ExternalReferenceSnapshot/localization/fidelity、
 ScenePackage/RendererRegistry、StoryVisualTrack、Scene-local SoundDesignTrack 和两个可选
-CompositionAssembly 插槽。M8 global sound/global visual 与最终创意装配仍属后续阶段。
+CompositionAssembly 插槽。M8 已补齐 GlobalSoundPlan/FinalSoundProjection、project-local
+GlobalVisualLayers、四槽位 CompositionAssembly、FinalAssembly/PreviewEvidence/Approval 和
+`final-mechanical-check-v2`；没有改变 NarrativeCore 或 M7 ScenePackage ownership。
 
 不要求每个确定性节点都拥有独立命令。相关检查应合并到少量面向作品的 CLI 中，避免
 产生繁重、重复的阶段审核。
@@ -160,9 +166,12 @@ scripts/catalog/                       M6 资源目录构建、查询与漂移�
 scripts/external-references/           M6 immutable snapshot、resolver/localizer 与 fidelity
 scripts/scene-package/                 M6 ScenePackage/Coverage 生成与检查
 scripts/renderer-registry/             M6 composition-local registry 生成与检查
+scripts/final-assembly/                M8 FinalAssembly pass-only 生成与检查
+scripts/m8-gps/                        M8 global audio/freeze/media/evidence/approval
 src/remotion/runtime/narrative-core/   旁白、顶层字幕与绝对时间挂载
-src/remotion/runtime/composition-assembly/ narrative + M6 visual/sound 显式装配
+src/remotion/runtime/composition-assembly/ 四个强语义聚合的显式装配
 src/remotion/runtime/story-visual/     M6 Scene 视觉、Shot 与转场时间装配
+src/remotion/runtime/global-sound/     M8 frame-driven global buses 与 duck envelope
 src/remotion/runtime/scene-sound/      M6 ScenePackage 局部声音确定性投影
 
 src/projects/<story>/
@@ -472,13 +481,21 @@ Story fingerprint
 ├── ScenePackage fingerprint（visual + sound + binding + reference，M6）
 │   ├── StoryVisualTrack projection fingerprint（M6）
 │   └── SoundDesignTrack scene projection fingerprint（M6）
-└── Assembly fingerprint
+├── GlobalSoundPlan fingerprint（M8）
+│   └── FinalSoundProjection fingerprint（保留 M7 scene projection identity）
+├── GlobalVisualPlan + source checksum
+│   └── GlobalVisualProjection fingerprint（M8）
+└── FinalAssembly fingerprint
+    └── FinalPreviewEvidence fingerprint（media + technical + Agent review）
+        └── FinalPreviewApproval fingerprint（真实用户决定）
+            └── final-mechanical-check-v2 report fingerprint
 ```
 
 M1 定义、M2 实际生成并校验到 SemanticTiming，M3 已继续生成 ProjectRegistry entry、
 Narrative Baseline 和 evidence fingerprint；M6 已实现 Scene visual/local-sound/reference/
-package/registry/projection 分支及隔离失效矩阵，M8 global 分支仍是后续目标。视觉、声音和
-全局层不得进入 sealed narration 或 SemanticTiming fingerprint。
+package/registry/projection 分支及隔离失效矩阵；M8 已实现 global sound/global visual、最终
+assembly/evidence/approval 分支。视觉、声音和全局层不得进入 sealed narration 或
+SemanticTiming fingerprint。
 
 | 修改                                            | 必须失效                                                    | 保持有效                              |
 | ----------------------------------------------- | ----------------------------------------------------------- | ------------------------------------- |
@@ -501,10 +518,17 @@ package/registry/projection 分支及隔离失效矩阵，M8 global 分支仍是
 
 失效传播由 fingerprint 比较和依赖关系完成，不依赖 Agent 记忆。
 
+M8 音量与运动同样是帧确定性的：global BGM/ambience 分别使用固定 gain `0.22`/`0.18`，
+Scene bus 使用 `0.9`；旁白 spoken 区间把全局总线 duck 到 `0.32`，unspoken 为 `1`，attack
+9 帧、release 15 帧，全部由 Remotion frame callback 复算。没有运行时响度侦测、adaptive
+mastering、CSS animation 或 transition。媒体 gate 从同一 exact MP4 只读执行 ffprobe、完整
+decode、帧数/时长/声道检查和响度/true-peak/sample-peak 分析；阈值是 `-24..-16 LUFS` 与
+不高于 `-1 dBTP`，分析不会改写音频或自动更新 evidence。
+
 ## 10. 聚合检查
 
-M1–M7 当前提供聚焦机械检查、真实 file-backed 检查、registry drift check、listing、窄
-Baseline/M6 proof evidence 与作品级 narrative/final 聚合：
+M1–M8 当前提供聚焦机械检查、真实 file-backed 检查、registry drift check、listing、窄
+Baseline/M6 proof evidence、M7/M8 evidence 与作品级 narrative/final 聚合：
 
 ```bash
 npm test
@@ -516,6 +540,12 @@ npm run m6:proof:compositions
 npm run m6:proof:evidence
 npm run baseline:evidence -- --project gps-relativity
 npm run project:check -- --project gps-relativity --level narrative
+npm run m7:gps:evidence
+npm run m8:gps:audio -- check
+npm run m8:gps:freeze -- check
+npm run final:assembly -- --project gps-relativity --check
+npm run m8:gps:evidence
+npm run m8:gps:approval
 npm run project:check -- --project gps-relativity --level final
 ```
 
@@ -557,10 +587,18 @@ current narrative、Catalog、reference/fidelity、package/coverage、registry�
 not-applicable。默认只读，只有显式 `--write-final-check` 且 aggregate pass 才原子写入
 `generated/final-mechanical-check.generated.json`；失败不覆盖最后一份有效报告。
 
+声明 M8 的项目使用新增 `final-mechanical-check-v2`，不原地扩张或破坏 v1。v2 保留上述十项
+顺序，再固定追加 `global-sound`、`global-visual`、`final-assembly`、
+`final-preview-evidence`、`final-preview-approval`；只有新增五项全部 pass、current identities
+非空且真实 approval 与 exact preview/evidence/assembly 一致时 aggregate 才能 pass。GPS
+persisted report 已原子迁移为 v2；M6/M7 fixtures 与 v1 parser 不迁移。checker 默认只读、
+byte-exact，不创建 approval、不修复 drift。
+
 它只能验证已确定输入，不能自动选择或修正 StoryBeat、Scene 方案、Shot、镜头、资源、
-声音、转场或审美结果。GPS 当前五个 M7 ScenePackage 全 ready，因此 `narrative` 与 `final`
-均通过；M7 的独立 evidence receipt 另行绑定 Agent-authored SceneVisual/SceneSound/连续性
-结论和真实媒体。M6/M7 没有实现 NarrativeCheck、FinalPreviewApproval 或发布检查。
+声音、转场或审美结果。GPS 当前五个 M7 ScenePackage 全 ready，M8 evidence/approval current，
+因此 `narrative` 与 v2 `final` 均通过；M7 与 M8 的独立 evidence receipts 分别绑定 Scene review
+和最终 GlobalSound/GlobalVisual/连续性/正常速度 review。只有用户 approval artifact 表示最终
+创意批准；NarrativeCheck 与发布检查仍未实现。
 
 ## 11. Skill 边界
 

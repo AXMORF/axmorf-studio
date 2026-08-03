@@ -6,19 +6,19 @@ import {z} from "zod";
 
 import {
   FinalAssemblyPlanSchema,
+  FinalPreviewApprovalInputSchema,
   FinalPreviewApprovalSchema,
-  FinalPreviewEvidenceSchema,
-  Sha256DigestSchema,
   createFinalPreviewApproval,
 } from "../../src/contracts";
 import {writeOrCheckSceneArtifact} from "../scene-package/project-files";
+import {runM8FinalPreviewEvidence} from "./evidence";
 
 const STORY_ID = "gps-relativity";
 const COMPOSITION_ID = "GpsRelativity";
 const APPROVAL_PATH =
   "src/projects/gps-relativity/generated/final-preview-approval.generated.json";
-const EVIDENCE_PATH =
-  "src/projects/gps-relativity/generated/m8-final-preview-evidence.generated.json";
+const APPROVAL_AUTHORING_PATH =
+  "src/projects/gps-relativity/reviews/final-preview-approval.json";
 const ASSEMBLY_PATH =
   "src/projects/gps-relativity/generated/final-assembly.generated.json";
 
@@ -39,9 +39,7 @@ export class M8ApprovalError extends Error {
 
 const loadCurrentInputs = async (rootDir: string) => {
   const [evidence, assembly] = await Promise.all([
-    readFile(join(rootDir, EVIDENCE_PATH), "utf8").then((value) =>
-      FinalPreviewEvidenceSchema.parse(JSON.parse(value)),
-    ),
+    runM8FinalPreviewEvidence({rootDir, mode: "check"}),
     readFile(join(rootDir, ASSEMBLY_PATH), "utf8").then((value) =>
       FinalAssemblyPlanSchema.parse(JSON.parse(value)),
     ),
@@ -56,12 +54,75 @@ const loadCurrentInputs = async (rootDir: string) => {
   return {evidence, assembly};
 };
 
+export const validateM8ApprovalAuthoringRecord = ({
+  rawAuthoring,
+  evidence,
+  assembly,
+}: {
+  readonly rawAuthoring: unknown;
+  readonly evidence: Awaited<ReturnType<typeof runM8FinalPreviewEvidence>>;
+  readonly assembly: ReturnType<typeof FinalAssemblyPlanSchema.parse>;
+}) => {
+  const parsed = FinalPreviewApprovalInputSchema.safeParse(rawAuthoring);
+  if (!parsed.success) {
+    throw new M8ApprovalError("approval-write-not-authorized");
+  }
+  if (
+    parsed.data.storyId !== STORY_ID ||
+    parsed.data.compositionId !== COMPOSITION_ID ||
+    parsed.data.previewChecksum !== evidence.media.fullPreview.checksum ||
+    parsed.data.evidenceFingerprint !== evidence.evidenceFingerprint ||
+    parsed.data.finalAssemblyFingerprint !== assembly.finalAssemblyFingerprint
+  ) {
+    throw new M8ApprovalError("stale-approval");
+  }
+  return parsed.data;
+};
+
+export const persistM8FinalPreviewApprovalArtifact = async ({
+  destination,
+  approval,
+  mode,
+}: {
+  readonly destination: string;
+  readonly approval: unknown;
+  readonly mode: "write" | "check";
+}) => {
+  const parsed = FinalPreviewApprovalSchema.parse(approval);
+  await writeOrCheckSceneArtifact({destination, value: parsed, mode});
+  return parsed;
+};
+
+const loadApprovalAuthoringRecord = async ({
+  rootDir,
+  missingCode,
+}: {
+  readonly rootDir: string;
+  readonly missingCode: "missing-approval" | "approval-write-not-authorized";
+}): Promise<unknown> => {
+  try {
+    return JSON.parse(
+      await readFile(join(rootDir, APPROVAL_AUTHORING_PATH), "utf8"),
+    );
+  } catch {
+    throw new M8ApprovalError(missingCode);
+  }
+};
+
 export const checkM8FinalPreviewApproval = async ({
   rootDir,
 }: {
   readonly rootDir: string;
 }) => {
   const {evidence, assembly} = await loadCurrentInputs(rootDir);
+  const authoring = validateM8ApprovalAuthoringRecord({
+    rawAuthoring: await loadApprovalAuthoringRecord({
+      rootDir,
+      missingCode: "missing-approval",
+    }),
+    evidence,
+    assembly,
+  });
   let raw: unknown;
   try {
     raw = JSON.parse(await readFile(join(rootDir, APPROVAL_PATH), "utf8"));
@@ -86,6 +147,14 @@ export const checkM8FinalPreviewApproval = async ({
   ) {
     throw new M8ApprovalError("stale-approval");
   }
+  const expectedApproval = createFinalPreviewApproval(authoring);
+  await persistM8FinalPreviewApprovalArtifact({
+    destination: join(rootDir, APPROVAL_PATH),
+    approval: expectedApproval,
+    mode: "check",
+  }).catch(() => {
+    throw new M8ApprovalError("stale-approval");
+  });
   return approval;
 };
 
@@ -93,9 +162,6 @@ const ExplicitUserAuthorizationSchema = z
   .object({
     source: z.literal("explicit-user-current-preview"),
     decision: z.literal("approved"),
-    previewChecksum: Sha256DigestSchema,
-    evidenceFingerprint: Sha256DigestSchema,
-    finalAssemblyFingerprint: Sha256DigestSchema,
   })
   .strict();
 
@@ -110,28 +176,20 @@ export const writeM8FinalPreviewApproval = async ({
   if (!parsed.success) {
     throw new M8ApprovalError("approval-write-not-authorized");
   }
-  const {evidence, assembly} = await loadCurrentInputs(rootDir);
-  if (
-    parsed.data.previewChecksum !== evidence.media.fullPreview.checksum ||
-    parsed.data.evidenceFingerprint !== evidence.evidenceFingerprint ||
-    parsed.data.finalAssemblyFingerprint !== assembly.finalAssemblyFingerprint
-  ) {
-    throw new M8ApprovalError("stale-approval");
-  }
-  const approval = createFinalPreviewApproval({
-    schemaVersion: 1,
-    approvalVersion: "final-preview-approval-v1",
-    storyId: STORY_ID,
-    compositionId: COMPOSITION_ID,
-    decision: "approved",
-    previewChecksum: parsed.data.previewChecksum,
-    evidenceFingerprint: parsed.data.evidenceFingerprint,
-    finalAssemblyFingerprint: parsed.data.finalAssemblyFingerprint,
-    approvalReference: "user-approved-current-preview",
+  const rawAuthoring = await loadApprovalAuthoringRecord({
+    rootDir,
+    missingCode: "approval-write-not-authorized",
   });
-  await writeOrCheckSceneArtifact({
+  const {evidence, assembly} = await loadCurrentInputs(rootDir);
+  const authoring = validateM8ApprovalAuthoringRecord({
+    rawAuthoring,
+    evidence,
+    assembly,
+  });
+  const approval = createFinalPreviewApproval(authoring);
+  await persistM8FinalPreviewApprovalArtifact({
     destination: join(rootDir, APPROVAL_PATH),
-    value: approval,
+    approval,
     mode: "write",
   });
   return approval;
@@ -150,7 +208,7 @@ if (
       return {status: "approved", approvalFingerprint: approval.approvalFingerprint};
     }
     if (
-      args.length === 5 &&
+      args.length === 2 &&
       args[0] === "write" &&
       args[1] === "explicit-user-current-preview"
     ) {
@@ -159,9 +217,6 @@ if (
         authorization: {
           source: args[1],
           decision: "approved",
-          previewChecksum: args[2],
-          evidenceFingerprint: args[3],
-          finalAssemblyFingerprint: args[4],
         },
       });
       return {status: "approved", approvalFingerprint: approval.approvalFingerprint};

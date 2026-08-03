@@ -1,7 +1,8 @@
 # 系统结构
 
 > Status：M1–M4 Narrative Baseline、M6 Scene Runtime foundation 与 M7 GPS 正式 Scene
-> production 已实现。NarrativeCheck、M8 全局增强、最终批准与发布仍未实现。
+> production 已实现；M8 global sound/global visual/final assembly、真实用户批准与 v2 final
+> gate 已完成。NarrativeCheck、第二主题泛化与发布仍未实现。
 
 ## 节点责任
 
@@ -50,7 +51,8 @@ M4 的边界位于：
 和 GlobalVisualLayers 时独立工作。Scene、声音和全局效果是只读消费叙事主链的下游增强
 轨；M6 已把 VisualStyleSpec、ScenePackage、外部镜头参考、本地化/保真、registry 和
 visual/local-sound 投影落成通用基础，并用独立 synthetic proof 验证。M7 已为 GPS 创建五个
-正式 Scene，并在真实 Composition 中装配两类投影；当前下一步是 M8。详细流程见
+正式 Scene，并在真实 Composition 中装配两类投影；M8 已在其上增加全局投影与最终装配，
+没有改写 M7 ScenePackage。详细流程见
 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
 
 已实现的 Narrative Baseline 通过 generated static ProjectRegistry 注册为 Story Composition。
@@ -113,30 +115,21 @@ SoundDesignTrack 分别汇总这些贡献。实现采用三层组合边界：
 3. `CompositionAssembly` 通过显式插槽接收四个聚合，再在内部展开为固定顺序的
    视觉层和音轨。
 
-M8 完整装配的目标类型形状为：
-
-```ts
-type CompositionAssemblyProps = {
-  readonly narrativeCore: NarrativeCore;
-  readonly storyVisualTrack?: StoryVisualTrack;
-  readonly soundDesignTrack?: SoundDesignTrack;
-  readonly globalVisualLayers?: GlobalVisualLayers;
-};
-```
-
-这是源码组装边界，不是允许 JSON 保存 React 组件或任意执行表达式的数据合同。M6 当前
-实现：
+M8 已实现的源码装配边界为：
 
 ```ts
 type CompositionAssemblyProps = {
   readonly narrativeCore: ReactNode;
   readonly storyVisualTrack?: ReactNode;
+  readonly globalVisualLayers?: ReactNode;
   readonly soundDesignTrack?: ReactNode;
 };
 ```
 
-两个 Scene 投影插槽只在调用方存在真实 Scene 输入时传入；Narrative Baseline 调用仍只传
-`narrativeCore`。`globalVisualLayers` 留到 M8，不存在万能 track 数组或空壳运行时。
+这是源码组装边界，不是允许 JSON 保存 React 组件或任意执行表达式的数据合同。GPS 调用方
+传入全部四槽位；Narrative Baseline 调用仍可只传 `narrativeCore`。固定视觉顺序为 Scene、
+GlobalVisual、Caption，固定音频顺序为 narration、Scene-local ambience/SFX、跨 Scene
+ambience/BGM；不存在万能 track 数组或空壳运行时。
 
 ### 已实现的 M2 模块
 
@@ -188,12 +181,30 @@ scripts/renderer-registry/             composition-local 静态 registry 生成�
 src/remotion/runtime/story-visual/     fixed Beat window 的纯视觉 Scene 投影
 src/remotion/runtime/scene-sound/      fixed Beat window 的 Scene-local 音频投影
 src/remotion/runtime/composition-assembly/ 可选 visual/sound 显式插槽
-scripts/project-check/final-run.ts     final-mechanical-check-v1 十项机械聚合
+scripts/project-check/final-run.ts     v1 十项与 M8 v2 十五项机械聚合
 src/remotion/proofs/m6-scene-runtime/  与 ProjectRegistry 隔离的 synthetic proof
 ```
 
 所有生成器都是 pass-only、原子、byte-stable；check mode 只读。runtime 只消费静态 registry、
 已校验合同和 `public/` 本地资产，不调用 Agent、skill、MCP、Git、网络或目录扫描。
+
+### 已实现的 M8 模块
+
+```text
+src/contracts/{global-sound,global-visual,final-assembly,final-preview}.ts
+src/remotion/runtime/global-sound/       frame-driven global buses 与 duck envelope
+src/remotion/runtime/composition-assembly/ 四个显式语义插槽
+src/projects/gps-relativity/global-visual/ project-local GlobalVisualLayers
+scripts/final-assembly/                  FinalAssembly pass-only writer/checker
+scripts/m8-gps/                          global audio/freeze/media/evidence/approval
+generated/final-mechanical-check.generated.json final-mechanical-check-v2
+```
+
+identity chain 为 M7 SoundDesignProjection + GlobalSoundPlan → FinalSoundProjection，M7
+ScenePackage/registry/projection + global sound/global visual + Composition source/Remotion exact
+version → FinalAssembly，完整媒体/review → FinalPreviewEvidence，真实用户决定 →
+FinalPreviewApproval → `final-mechanical-check-v2`。任一上游或媒体字节变化只向下游失效，
+checker 不修复或自动重签。
 
 ## 总结构
 
@@ -418,6 +429,11 @@ NarrativeCore 不渲染背景或其他全帧视觉，其唯一视觉输出是 Ca
 SoundDesignTrack 是运行时汇总和混音视图：Scene 局部 ambience/SFX 的创作权威来自有序
 ScenePackage，BGM、跨 Scene ambience、ducking 与 mastering 来自 GlobalSoundPlan。运行时
 可以统一展开这些音频贡献，但不得生成或维护第二份 Scene SFX 计划。
+
+M8 保留 M7 `SoundDesignProjection` fingerprint 不变，并新增 `FinalSoundProjection` 绑定
+GlobalSoundPlan、current Catalog、两条全局资产 checksum、duck envelope 与 mastering policy。
+GlobalVisualLayers 是 GPS project-local 固定组件，只消费 strict plan/projection 和 Remotion
+frame API；它不进入共享 capability、不渲染字幕，也不解释任意 Scene DSL。
 
 CaptionLayer 字号固定为 40 px。它从 Composition 宽高计算横屏、方形和竖屏的最大字幕
 宽度，并把 RenderSpec 显式安全区与按宽高计算的响应式最小 inset 合并；最终宽度永远不

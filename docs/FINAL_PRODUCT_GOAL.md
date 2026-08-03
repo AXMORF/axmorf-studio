@@ -1,8 +1,8 @@
 # 最终产品目标
 
-> 当前实现：M1–M4 Narrative Baseline、M6 Scene Runtime foundation 与 M7 GPS 正式 Scene
-> production 已完成；M6 synthetic proof 仍与正式 Story 隔离。M8 global sound/global visual、
-> 最终批准与发布仍未实现，是当前下一步。
+> 当前实现：M1–M4 Narrative Baseline、M6 Scene Runtime foundation、M7 GPS 正式 Scene
+> production 与 M8 global sound/global visual/final assembly 已完成；M6 synthetic proof 仍与
+> 正式 Story 隔离。第二主题泛化与发布尚未开始。
 
 ## 一句话目标
 
@@ -96,6 +96,12 @@ StoryVisualTrack、SoundDesignTrack 和 GlobalVisualLayers 都是独立下游运
 Scene 局部声音不是另一份独立创作权威，而是与画面一起由对应 ScenePackage 拥有，再投影
 到 SoundDesignTrack。Scene 的具体视听表达最后设计。完整阶段、产物与失效边界见
 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
+
+GPS M8 已兑现这条目标边界：保留 M7 `SoundDesignProjection` identity，以新增
+`FinalSoundProjection` 叠加两条 project-local 全局音频总线；GlobalVisualLayers 使用固定
+frame API 和显式插槽，CaptionLayer 保持最上层唯一字幕权威。最终用户批准只绑定 exact
+preview checksum、evidence fingerprint 与 FinalAssembly fingerprint，不由 Agent review 或
+checker 推导。
 
 其中 RenderSpec 由用户在每次制作时直接提供，Agent 只做结构化和机械校验，不重复请求
 确认。旁白时间用封存 PCM 的整数 sample-frame 数累计后统一量化到帧，不用逐段浮点

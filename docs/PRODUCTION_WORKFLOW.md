@@ -2,7 +2,8 @@
 
 > Status：M4 已为 `gps-relativity` 完成 Narrative Baseline 机械闭环；M6 已实现通用 Scene
 > foundation；M7 已完成 GPS 五个正式 Scene、visual/local-sound runtime 装配、批量审核与
-> final 机械闭环。NarrativeCheck 与 M8 全局增强/最终批准/发布仍未实现。
+> final 机械闭环；M8 已完成 global sound/global visual、最终预览、用户批准和 v2 final
+> 机械闭环。NarrativeCheck、第二主题泛化与发布仍未实现。
 
 ## 1. 文档范围
 
@@ -102,7 +103,7 @@ flowchart TB
     Auto --> Assembly["CompositionAssembly"]
     Visual -.-> Assembly
     Sound -.-> Assembly
-    Global["GlobalVisualLayers<br/>后续可选"] -.-> Assembly
+    Global["GlobalVisualLayers<br/>可选增强"] -.-> Assembly
 
     Assembly --> Preview["Final Preview"]
     Preview --> Approval["FinalPreviewApproval"]
@@ -111,7 +112,8 @@ flowchart TB
 
 虚线表示可选依赖。M4 的 `Narrative Baseline` 机械 AutoCheck 不要求任何增强轨存在；M6
 实现 Scene visual/local-sound 可选投影和 final 机械基础。主观 NarrativeCheck、Scene 审美
-判断和用户最终批准都没有被自动 gate 冒充。
+判断和用户最终批准都没有被自动 gate 冒充。GPS M8 的用户批准已由真实用户对 exact
+checksum-bound 完整预览作出，再由只读 checker 绑定 evidence 和 FinalAssembly identity。
 
 ## 4. 阶段输入与输出
 
@@ -138,8 +140,10 @@ flowchart TB
 | Reference Fidelity       | exact recipe selection、准确 demo、本地源码和证据                           | pass-only fidelity receipt 或明确 not-applicable                                         | exact 必须证明 lineage、最小依赖闭包、真实 Renderer/frame-state binding 和正常速度可辨识；preview 只作证据     |
 | Scene Package            | 已完成并校验的单 Scene 本地输入                                             | 视觉/局部声音贡献、同步锚点、reference receipt 与分层 fingerprint                        | 一个 meaningId 对应一个 ScenePackage；SceneRenderer 仍只输出视觉                                               |
 | Enhancement Projection   | 有序 ScenePackage、GlobalSoundPlan、GlobalVisualPlan                        | StoryVisualTrack、SoundDesignTrack、GlobalVisualLayers                                   | 运行时分轨是确定性投影，不建立第二份 Scene SFX 创作权威                                                        |
-| Final Assembly           | NarrativeCore 与已选择增强轨                                                | Final Preview、assembly fingerprint                                                      | 缺失未选择的增强轨不是错误                                                                                     |
-| Approval and Release     | Final Preview                                                               | approval receipt、成片和发布物                                                           | 用户批准绑定 assembly fingerprint                                                                              |
+| Final Assembly           | NarrativeCore 与已选择增强轨                                                | FinalAssembly、完整正常速度 Preview                                                      | 固定 z-order/mix-order；缺失未选择的增强轨不是错误                                                             |
+| Final Preview Evidence   | FinalAssembly、完整 MP4、contact sheet、still 与批量 review                 | checksum-bound evidence、技术测量和 review fingerprint                                   | 完整解码、帧数、时长、响度、true peak、声道和 ducking 均 fail closed                                           |
+| Final Preview Approval   | current FinalPreviewEvidence                                                | 用户 authoring record 与 generated approval                                              | 仅用户可批准；精确绑定 preview/evidence/assembly，Agent/checker 不得代签                                       |
+| Release                  | 已批准 FinalAssembly                                                        | 未来发布物                                                                               | 尚未实现，不因 M8 批准自动发布                                                                                 |
 
 ## 5. 权威与所有权
 
@@ -199,8 +203,12 @@ recipe、选择原因以及如何服务 StoryBeat，仍由 SceneVisualPlan/ShotR
 - generated registry 必须进入 fingerprint，并由 read-only check mode 做 byte-for-byte
   漂移检查；正式 render runtime 不扫描目录、不生成 registry，也不读取 JSON 模块路径；
 - StoryVisualTrack 和 SoundDesignTrack 分别汇总 ScenePackage 的 visual/local-sound 投影；
-  SoundDesignTrack 再叠加 GlobalSoundPlan。运行时轨不成为第二份 Scene 创作权威；
-- CompositionAssembly 只装配，不进行创作选择，也不重算叙事时间。
+  M8 保留 M7 SoundDesignProjection identity，再由 FinalSoundProjection 叠加
+  GlobalSoundPlan。运行时轨不成为第二份 Scene 创作权威；
+- GlobalVisualLayers 位于 Scene visual 之上、CaptionLayer 之下，只消费固定 project-local
+  plan/projection；
+- CompositionAssembly 只按固定四槽位与 z-order/mix-order 装配，不进行创作选择，也不重算
+  叙事时间。
 
 ## 6. VoxCPM 外部生成边界
 
@@ -235,6 +243,10 @@ Draft
 
 这些名称用于描述生命周期，不建立一个可被手工修改的万能 `status` 字段。当前状态必须
 由合同、产物、receipt 和 fingerprint 是否齐全且相互匹配推导。
+
+GPS M8 当前已到 `Approved`：完整 MP4 与 evidence checksum current，用户批准与
+FinalAssembly identity 一致，`final-mechanical-check-v2` pass；`Rendered` 在这里指后续正式
+发布交付状态，不由这次批准自动推导。
 
 允许返回上游修改，但必须形成新的 fingerprint 并让下游结果失效；不能修改上游后继续
 沿用旧 timing、旧 preview 或旧 approval。
@@ -389,11 +401,12 @@ VisualStyleSpec + ResourceCatalog + immutable external reference
 ```
 
 M6 没有把 synthetic proof 注册进 ProjectRegistry；M7 随后完成 GPS 五个正式 Scene、全 ready
-coverage、registry/projection、批量 Scene review 与正常速度媒体 evidence。NarrativeCheck、
-M8 global sound/global visual、最终用户批准和发布仍未实现。后续制作仍必须把 sealed
+coverage、registry/projection、批量 Scene review 与正常速度媒体 evidence。M8 随后在保持
+M7 ScenePackage 和 projection identity 不变的条件下完成 global sound/global visual、最终
+assembly/evidence、真实用户批准和 v2 final report。NarrativeCheck 与发布仍未实现。后续制作仍必须把 sealed
 narration、SemanticTiming、StoryBeat、项目级 VisualStyleSpec 和主 Agent 冻结来源当作只读输入。
 
-## 10. M2–M7 完成事实与后续门槛
+## 10. M2–M8 完成事实与后续门槛
 
 M2 已满足：
 
@@ -435,5 +448,12 @@ M7 另已满足：GPS 五个 Beat 均为正式 ready ScenePackage；正常 Proje
 `CapabilityGallery` 与 `GpsRelativity`；真实 Story Composition 同时装配 StoryVisualTrack、
 Scene-local SoundDesignTrack 和受保护 NarrativeCore；15 张 still、5×3 contact sheet、完整
 1731 帧 H.264/AAC review 和批量 SceneVisual/SceneSound/连续性 review 均绑定 current
-fingerprint。GPS narrative 与 final 均通过；该机械门和 Agent review 均不冒充 NarrativeCheck、
-M8 全局增强、Scene 审美自动评分或用户批准。
+fingerprint。M7 机械门和 Agent review 均不冒充 NarrativeCheck、M8 全局增强、Scene 审美
+自动评分或用户批准。
+
+M8 另已满足：两条全长 project-authored PCM 全局资产进入 current 24-entry project Catalog；
+GlobalSoundPlan/FinalSoundProjection 保留 M7 Scene-local sound ownership 并用 Remotion frame
+API 驱动固定 duck envelope；project-local GlobalVisualLayers 不渲染字幕或扩张为通用 DSL；
+26 张 still、contact sheet 和 1731 帧正常速度最终 MP4 通过完整解码、响度、true peak、声道、
+帧数、时长和批量 review。真实用户批准绑定 exact preview/evidence/FinalAssembly identity，
+15 项 `final-mechanical-check-v2` aggregate pass。M9 与发布均未开始。

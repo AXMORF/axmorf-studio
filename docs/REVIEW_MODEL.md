@@ -11,7 +11,8 @@ flowchart LR
     Enhanced -->|"是"| Enhancement["EnhancementCheck<br/>按存在的轨道检查"]
     Enhancement --> Preview
     Preview --> User["FinalPreviewApproval<br/>用户最终创意批准"]
-    User --> Render["Render / Release"]
+    User --> Final["final-mechanical-check-v2"]
+    Final --> Render["Approved render / future release"]
 ```
 
 ## 检查层级
@@ -24,10 +25,10 @@ flowchart LR
 | FinalPreviewApproval | 用户        | 已选择轨道装配后的完整音画节奏与最终审美                                                                 | 是，默认唯一创意批准 |
 
 当前已实现生成前 StoryCheck、narrative AutoCheck、M6 final-level Scene 机械基础，以及 M7
-GPS 的 evidence-bound 批量 SceneVisualCheck、SceneSoundCheck 与四个相邻连续性检查。
-NarrativeCheck 和包含 M8 global tracks 的完整 EnhancementCheck 仍未实现。Narrative Baseline
-继续独立通过；GPS final 当前因五个 Scene 全 ready 而通过。Baseline/M7 checkpoint 都不新增
-强制用户审批。
+GPS 的 evidence-bound 批量 SceneVisualCheck、SceneSoundCheck 与四个相邻连续性检查。M8
+又完成 evidence-bound GlobalSoundReview、GlobalVisualReview、FinalContinuityReview 和完整
+1× NormalSpeedReview；NarrativeCheck 仍未实现。Narrative Baseline 继续独立通过，M7/M8
+Agent review 都不新增用户审批或冒充用户决定。
 
 在调用 VoxCPM 前另有一次 Agent 内部 `StoryCheck`，用于检查 StoryBeat 顺序、已创作的
 `ttsChunks` 和 voice profile 选择。它是生成前的成本控制，不是新的用户批准节点。
@@ -71,6 +72,12 @@ M6 synthetic fixture 已机械绑定 exact reference 的 immutable lineage、准
 
 内部 Shot、音效 cue 或子 Agent 任务都不形成额外的用户批准节点。主 Agent 收集全部
 ScenePackage 后批量汇总检查，用户仍默认只在 FinalPreviewApproval 作一次创意批准。
+
+GPS M8 的这一次批准已由用户对 checksum
+`sha256:d0473bc9ff74b46898c5988b99ff4690b5412a4dbd1508508d3c4a73c63d7036` 的完整正常速度
+MP4 明确作出，并绑定 evidence 与 FinalAssembly fingerprints。Agent review 只能把 evidence
+推进到 `ready-for-user-approval`；approval writer 仅消费主 Agent 根据真实用户决定创建的最小
+authoring record，checker 只读复算，二者都不能自行决定 `approved`。
 
 机械检查最终汇总为作品级 `project:check`，而不是在每个节点建立一套独立审批。目标
 检查项见 [DETERMINISTIC_EXECUTION.md](DETERMINISTIC_EXECUTION.md)。

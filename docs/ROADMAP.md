@@ -1,7 +1,7 @@
 # Remotion Story Producer Roadmap
 
-> Status：M0–M7 已完成；M7 GPS 正式 Scene production 已于 2026-08-03 完成；M8 是当前
-> 唯一下一步
+> Status：M0–M8 已完成；M8 GPS final assembly 已于 2026-08-03 绑定真实用户批准并通过
+> `final-mechanical-check-v2`；M9 尚未开始
 > 更新日期：2026-08-03
 
 ## 1. 用途
@@ -15,13 +15,16 @@
 ## 2. 当前起点
 
 当前代码已完成基础工程、`CapabilityGallery`、M1–M4 Narrative Baseline、M6 Scene
-foundation，以及 M7 GPS 五个正式 ScenePackage、批量 review/evidence 和 passing final gate。
+foundation、M7 GPS 五个正式 ScenePackage，以及 M8 global sound/global visual/final assembly、
+完整 preview evidence、真实用户批准和 passing v2 final gate。
 下列内容仍未实现：
 
 - NarrativeCheck 和任何主观叙事质量审核；
-- M8 GlobalSound/GlobalVisual、最终装配/批准与发布工具。
+- 第二个不同主题的端到端泛化证明；
+- 发布工具。
 
-因此当前只应规划并执行 M8，不应把 M7 review preview 误称为用户最终批准或发布物。
+Roadmap 中下一项是 M9，但当前尚未开始；进入 M9 必须另行规划和授权。M8 的最终批准不等于
+发布，也不授权自动开始后续里程碑。
 
 ## 3. 全局硬边界
 
@@ -54,7 +57,7 @@ flowchart LR
     G1 -->|"否"| M1
     M5 --> M6["M6 资源目录与 Scene Runtime<br/>已完成"]
     M6 --> M7["M7 第一个完整 ScenePackage 证明<br/>已完成"]
-    M7 --> M8["M8 Global Sound / Global Visual / Final Assembly"]
+    M7 --> M8["M8 Global Sound / Global Visual / Final Assembly<br/>已完成"]
     M8 --> M9["M9 第二主题与泛化"]
     M9 --> M10["M10 发布收口"]
 ```
@@ -331,6 +334,9 @@ mastering 或 GlobalVisualLayers 完整装配。
 
 ### M8：Global Sound、Global Visual 与最终装配
 
+**状态：** 已于 2026-08-03 完成；exact preview 已获用户批准，15 项
+`final-mechanical-check-v2` aggregate pass。
+
 **目标：** 在不改写 NarrativeCore 或 ScenePackage 的前提下，把 Scene 局部声音贡献与全局
 声音、全局视觉层完成最终装配。
 
@@ -350,6 +356,11 @@ mastering 或 GlobalVisualLayers 完整装配。
 - SoundDesignTrack 不拥有旁白，GlobalVisualLayers 不渲染字幕；
 - 最终用户批准绑定完整 assembly fingerprint，任一装配输入变化使旧批准失效；
 - `project:check --level final` 只检查实际选择的增强轨。
+
+**完成事实：** GPS 保留 M7 五个 ScenePackage 与 SoundDesignProjection identity；两条
+project-authored 全局 PCM 资产、frame-driven ducking、project-local GlobalVisualLayers、
+FinalAssembly、完整正常速度 MP4/技术 evidence、批量 Agent review 和唯一用户批准均已绑定
+current fingerprints。没有提取共享 capability，也没有启动 M9 或发布。
 
 ### M9：第二个不同主题与泛化检验
 
@@ -394,9 +405,8 @@ mastering 或 GlobalVisualLayers 完整装配。
 - 网络发布集成、账号、密钥或权限管理；
 - 任何通用 Scene DSL、自动布局器或自动导演方向。
 
-## 7. 当前唯一下一步
+## 7. 后续阶段边界
 
-M1–M7 已实现并通过各自机械门。当前唯一下一步是 M8：GlobalSoundPlan、全局 BGM、跨 Scene
-ambience、ducking、mastering、GlobalVisualLayers、完整 assembly fingerprint 与
-FinalPreviewApproval。M8 开始前必须单独编写并批准实施计划；NarrativeCheck、发布与共享
-capability promotion 仍未实现。
+M1–M8 已实现并通过各自机械门。Roadmap 中下一项是 M9 第二主题与泛化检验，但它尚未开始；
+必须先单独编写并批准实施计划。NarrativeCheck、发布与共享 capability promotion 仍未实现，
+不能从 M8 closeout 推导为已授权工作。
