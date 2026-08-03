@@ -1,0 +1,373 @@
+{
+  "assemblyAlgorithmId": "ordered-pcm-concat-v1",
+  "canonicalPcm": {
+    "channelLayout": "mono",
+    "sampleFormat": "s16le",
+    "sampleRate": 48000
+  },
+  "completeAudio": {
+    "checksum": "sha256:a36c8ff99d765095909aecd50ef6908a34450871407a9a4014fbc7e9258810d1",
+    "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/complete.wav",
+    "pcm": {
+      "channelLayout": "mono",
+      "sampleFormat": "s16le",
+      "sampleRate": 48000
+    },
+    "sampleFrameCount": 8136960
+  },
+  "generationInputFingerprint": "sha256:b886139c99f6b0e34ff33dafe84740464736ee14fe22cf2585a7864f016f9192",
+  "narrationSpec": {
+    "mode": "voice-clone",
+    "schemaVersion": 1,
+    "voiceProfileId": "m9-project-my-voice"
+  },
+  "normalizationAlgorithmId": "pcm-s16le-normalize-v1",
+  "schemaVersion": 1,
+  "sealedNarrationFingerprint": "sha256:05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8",
+  "segments": [
+    {
+      "checksum": "sha256:be35292ffa20c3444755a0a48c512e6133dae4359d303001d6fee006cefaeb73",
+      "chunkId": "problem-hook-01",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/problem-hook-01.wav",
+      "meaningId": "problem-hook",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 460800,
+      "ttsText": "完整视频不只是画面。故事、旁白、镜头、声音与审核，必须对应。"
+    },
+    {
+      "checksum": "sha256:1da6e0f973f112a65b083e2808c1ae4cf220341e44bcd17929d2f8ccedef45e3",
+      "chunkId": "problem-hook-02",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/problem-hook-02.wav",
+      "meaningId": "problem-hook",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 430080,
+      "ttsText": "输入一变，旧字幕、旧镜头和旧预览就可能失效；难点是守住作品身份。"
+    },
+    {
+      "afterChunkId": "problem-hook-02",
+      "kind": "pause",
+      "meaningId": "problem-hook",
+      "pauseMs": 250,
+      "sampleFrameCount": 12000
+    },
+    {
+      "checksum": "sha256:445f1ab3ffe72bf0f0d75cc6e7304ffd97650d89d4c0ca440dfbce8594a9f338",
+      "chunkId": "problem-friction-01",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/problem-friction-01.wav",
+      "meaningId": "problem-friction",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 499200,
+      "ttsText": "先猜时长，Scene 与字幕就追着波形移动；近似引用，也证明不了准确来源。"
+    },
+    {
+      "checksum": "sha256:d09bf34c581ba6762e2f4276005f6b1d1514f67e25eda94eaef87f406da0f9ea",
+      "chunkId": "problem-friction-02",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/problem-friction-02.wav",
+      "meaningId": "problem-friction",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 291840,
+      "ttsText": "没有 checksum 和审查记录，导出的视频也无法对应输入。"
+    },
+    {
+      "afterChunkId": "problem-friction-02",
+      "kind": "pause",
+      "meaningId": "problem-friction",
+      "pauseMs": 300,
+      "sampleFrameCount": 14400
+    },
+    {
+      "checksum": "sha256:0595fd2577ff4953a77a7f2995124f7a3c7936fa92bd37fb9573885d488c896a",
+      "chunkId": "product-reveal-01",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/product-reveal-01.wav",
+      "meaningId": "product-reveal",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 360960,
+      "ttsText": "Remotion Story Producer，把这些环节连成证据绑定的代码生产链。"
+    },
+    {
+      "afterChunkId": "product-reveal-01",
+      "kind": "pause",
+      "meaningId": "product-reveal",
+      "pauseMs": 250,
+      "sampleFrameCount": 12000
+    },
+    {
+      "checksum": "sha256:c58dddcaaf53eef745b6fef03fa88ed86aeb37d53c8749e1e5235e519ba9023e",
+      "chunkId": "core-capabilities-01",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/core-capabilities-01.wav",
+      "meaningId": "core-capabilities",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 468480,
+      "ttsText": "主题先写成四份规格。朗读单元按语义与节奏创作，不按标点切分。"
+    },
+    {
+      "checksum": "sha256:589f9b38cab1c8efab78f24134162a84f0daff64c61beb8aabf7b17d3afeb865",
+      "chunkId": "core-capabilities-02",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/core-capabilities-02.wav",
+      "meaningId": "core-capabilities",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 314880,
+      "ttsText": "声音生成后封存 PCM，以累计采样边界推导绝对帧。"
+    },
+    {
+      "afterChunkId": "core-capabilities-02",
+      "kind": "pause",
+      "meaningId": "core-capabilities",
+      "pauseMs": 350,
+      "sampleFrameCount": 16800
+    },
+    {
+      "checksum": "sha256:3bdbb48b5150820a98ba6846194f243ae3fae9ae640f771137b489dc7800202d",
+      "chunkId": "workflow-input-01",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-input-01.wav",
+      "meaningId": "workflow-input",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 476160,
+      "ttsText": "流程从主题资料开始，先核对来源、可用事实、观众、时长与画幅。"
+    },
+    {
+      "checksum": "sha256:250cc01e98ae65b8481e41c8045df96c5b153298514676e0f9ab2a2698c72a07",
+      "chunkId": "workflow-input-02",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-input-02.wav",
+      "meaningId": "workflow-input",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 399360,
+      "ttsText": "再创作 StoryBeat 和 ttsChunks，选择声音并完成 StoryCheck。"
+    },
+    {
+      "afterChunkId": "workflow-input-02",
+      "kind": "pause",
+      "meaningId": "workflow-input",
+      "pauseMs": 300,
+      "sampleFrameCount": 14400
+    },
+    {
+      "checksum": "sha256:368bcaaed4f98fbec49e9b3876c85d87240ddd46c98478163d8a4a85d6b88624",
+      "chunkId": "workflow-create-01",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-create-01.wav",
+      "meaningId": "workflow-create",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 483840,
+      "ttsText": "VoxCPM 逐块生成候选。选中的 PCM 连同实测采样数和 checksum 封存。"
+    },
+    {
+      "checksum": "sha256:a052be85f311d2f3914381d16573faee385822b471c9f283eff6a2e080d4c4ad",
+      "chunkId": "workflow-create-02",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-create-02.wav",
+      "meaningId": "workflow-create",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 284160,
+      "ttsText": "外部参考绑定冻结来源、准确 demo、依赖闭包与 license。"
+    },
+    {
+      "checksum": "sha256:8cd9daa251728f84ffd1cc5cf3399e821d89126ee8ad3b332a0eed53b06d9e53",
+      "chunkId": "workflow-create-03",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-create-03.wav",
+      "meaningId": "workflow-create",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 384000,
+      "ttsText": "Renderer 由静态 registry 绑定 Scene，不能改写旁白或吞帧。"
+    },
+    {
+      "afterChunkId": "workflow-create-03",
+      "kind": "pause",
+      "meaningId": "workflow-create",
+      "pauseMs": 350,
+      "sampleFrameCount": 16800
+    },
+    {
+      "checksum": "sha256:022e0ec61803aa045f14fa76dfe498a4e2ef95f1033356fe27186d5c4cfd43e6",
+      "chunkId": "workflow-result-01",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-result-01.wav",
+      "meaningId": "workflow-result",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 353280,
+      "ttsText": "成片之外，还交付媒体参数、完整解码与批量 review 证据。"
+    },
+    {
+      "checksum": "sha256:95081da6c8fe593ef536e35b69ab0786305c4d998c9f94e9a436057241359bb0",
+      "chunkId": "workflow-result-02",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-result-02.wav",
+      "meaningId": "workflow-result",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 506880,
+      "ttsText": "GPS 已走完 M1 到 M8。五个 Scene、全局装配、用户批准与最终检查都可复核。"
+    },
+    {
+      "afterChunkId": "workflow-result-02",
+      "kind": "pause",
+      "meaningId": "workflow-result",
+      "pauseMs": 350,
+      "sampleFrameCount": 16800
+    },
+    {
+      "checksum": "sha256:5663fd34eae5b29a19bc1c59ea5bab3f958eae27687a36ebca720446e694d447",
+      "chunkId": "differentiated-value-01",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/differentiated-value-01.wav",
+      "meaningId": "differentiated-value",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 376320,
+      "ttsText": "每个阶段都声明所有权和依赖；输入变化，旧证据就必须失效。"
+    },
+    {
+      "checksum": "sha256:cee49feb9a09acf440d8702d12aa455dab3f3cb557f6bd3b5ddd1cde9f51751f",
+      "chunkId": "differentiated-value-02",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/differentiated-value-02.wav",
+      "meaningId": "differentiated-value",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 506880,
+      "ttsText": "时间、引用和批准各有身份；渲染不调用 Agent、网络、Git 或目录扫描。"
+    },
+    {
+      "afterChunkId": "differentiated-value-02",
+      "kind": "pause",
+      "meaningId": "differentiated-value",
+      "pauseMs": 300,
+      "sampleFrameCount": 14400
+    },
+    {
+      "checksum": "sha256:c103a4f8bfdede4c8b1e77b8f5b749c0de8d89b58117a2f85f174e2ada86edba",
+      "chunkId": "proof-and-fit-01",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/proof-and-fit-01.wav",
+      "meaningId": "proof-and-fit",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 384000,
+      "ttsText": "它适合把创作、工程和审查证据放进同一仓库的团队。"
+    },
+    {
+      "checksum": "sha256:8b688b087b31f8e784b9fa29fddc818fcc9d142bad1a7219521bfee21383cec4",
+      "chunkId": "proof-and-fit-02",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/proof-and-fit-02.wav",
+      "meaningId": "proof-and-fit",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 384000,
+      "ttsText": "Agent 负责创作与校验，Scene 逐段制作，最终批准只由用户作出。"
+    },
+    {
+      "afterChunkId": "proof-and-fit-02",
+      "kind": "pause",
+      "meaningId": "proof-and-fit",
+      "pauseMs": 350,
+      "sampleFrameCount": 16800
+    },
+    {
+      "checksum": "sha256:a10092d4a2aa852d8710e63755f9c33513f81c5f6c4f2f17ce3dc85490664e48",
+      "chunkId": "call-to-action-01",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/call-to-action-01.wav",
+      "meaningId": "call-to-action",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 291840,
+      "ttsText": "这样，视频不只是一次导出，而是能够继续验证的作品。"
+    },
+    {
+      "checksum": "sha256:647cbc03f0f40e17908fe62c6f87195396599ecb31f1b9108627c76a55bc30c0",
+      "chunkId": "call-to-action-02",
+      "kind": "chunk",
+      "localPath": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/call-to-action-02.wav",
+      "meaningId": "call-to-action",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 345600,
+      "ttsText": "从一份主题资料开始，按这条可验证生产链完成第一支作品。"
+    }
+  ],
+  "storyId": "product-comic-vertical"
+}

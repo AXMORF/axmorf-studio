@@ -1,0 +1,613 @@
+{
+  "algorithmId": "pcm-cumulative-ceil-v1",
+  "captionCues": [
+    {
+      "chunkId": "problem-hook-01",
+      "endFrame": 303,
+      "meaningId": "problem-hook",
+      "startFrame": 15,
+      "text": "完整视频不只是画面。故事、旁白、镜头、声音与审核，必须对应。"
+    },
+    {
+      "chunkId": "problem-hook-02",
+      "endFrame": 572,
+      "meaningId": "problem-hook",
+      "startFrame": 303,
+      "text": "输入一变，旧字幕、旧镜头和旧预览就可能失效；难点是守住作品身份。"
+    },
+    {
+      "chunkId": "problem-friction-01",
+      "endFrame": 892,
+      "meaningId": "problem-friction",
+      "startFrame": 580,
+      "text": "先猜时长，Scene 与字幕就追着波形移动；近似引用，也证明不了准确来源。"
+    },
+    {
+      "chunkId": "problem-friction-02",
+      "endFrame": 1074,
+      "meaningId": "problem-friction",
+      "startFrame": 892,
+      "text": "没有 checksum 和审查记录，导出的视频也无法对应输入。"
+    },
+    {
+      "chunkId": "product-reveal-01",
+      "endFrame": 1309,
+      "meaningId": "product-reveal",
+      "startFrame": 1083,
+      "text": "Remotion Story Producer，把这些环节连成证据绑定的代码生产链。"
+    },
+    {
+      "chunkId": "core-capabilities-01",
+      "endFrame": 1609,
+      "meaningId": "core-capabilities",
+      "startFrame": 1316,
+      "text": "主题先写成四份规格。朗读单元按语义与节奏创作，不按标点切分。"
+    },
+    {
+      "chunkId": "core-capabilities-02",
+      "endFrame": 1806,
+      "meaningId": "core-capabilities",
+      "startFrame": 1609,
+      "text": "声音生成后封存 PCM，以累计采样边界推导绝对帧。"
+    },
+    {
+      "chunkId": "workflow-input-01",
+      "endFrame": 2114,
+      "meaningId": "workflow-input",
+      "startFrame": 1816,
+      "text": "流程从主题资料开始，先核对来源、可用事实、观众、时长与画幅。"
+    },
+    {
+      "chunkId": "workflow-input-02",
+      "endFrame": 2364,
+      "meaningId": "workflow-input",
+      "startFrame": 2114,
+      "text": "再创作 StoryBeat 和 ttsChunks，选择声音并完成 StoryCheck。"
+    },
+    {
+      "chunkId": "workflow-create-01",
+      "endFrame": 2675,
+      "meaningId": "workflow-create",
+      "startFrame": 2373,
+      "text": "VoxCPM 逐块生成候选。选中的 PCM 连同实测采样数和 checksum 封存。"
+    },
+    {
+      "chunkId": "workflow-create-02",
+      "endFrame": 2853,
+      "meaningId": "workflow-create",
+      "startFrame": 2675,
+      "text": "外部参考绑定冻结来源、准确 demo、依赖闭包与 license。"
+    },
+    {
+      "chunkId": "workflow-create-03",
+      "endFrame": 3093,
+      "meaningId": "workflow-create",
+      "startFrame": 2853,
+      "text": "Renderer 由静态 registry 绑定 Scene，不能改写旁白或吞帧。"
+    },
+    {
+      "chunkId": "workflow-result-01",
+      "endFrame": 3324,
+      "meaningId": "workflow-result",
+      "startFrame": 3103,
+      "text": "成片之外，还交付媒体参数、完整解码与批量 review 证据。"
+    },
+    {
+      "chunkId": "workflow-result-02",
+      "endFrame": 3641,
+      "meaningId": "workflow-result",
+      "startFrame": 3324,
+      "text": "GPS 已走完 M1 到 M8。五个 Scene、全局装配、用户批准与最终检查都可复核。"
+    },
+    {
+      "chunkId": "differentiated-value-01",
+      "endFrame": 3886,
+      "meaningId": "differentiated-value",
+      "startFrame": 3651,
+      "text": "每个阶段都声明所有权和依赖；输入变化，旧证据就必须失效。"
+    },
+    {
+      "chunkId": "differentiated-value-02",
+      "endFrame": 4203,
+      "meaningId": "differentiated-value",
+      "startFrame": 3886,
+      "text": "时间、引用和批准各有身份；渲染不调用 Agent、网络、Git 或目录扫描。"
+    },
+    {
+      "chunkId": "proof-and-fit-01",
+      "endFrame": 4452,
+      "meaningId": "proof-and-fit",
+      "startFrame": 4212,
+      "text": "它适合把创作、工程和审查证据放进同一仓库的团队。"
+    },
+    {
+      "chunkId": "proof-and-fit-02",
+      "endFrame": 4692,
+      "meaningId": "proof-and-fit",
+      "startFrame": 4452,
+      "text": "Agent 负责创作与校验，Scene 逐段制作，最终批准只由用户作出。"
+    },
+    {
+      "chunkId": "call-to-action-01",
+      "endFrame": 4885,
+      "meaningId": "call-to-action",
+      "startFrame": 4703,
+      "text": "这样，视频不只是一次导出，而是能够继续验证的作品。"
+    },
+    {
+      "chunkId": "call-to-action-02",
+      "endFrame": 5101,
+      "meaningId": "call-to-action",
+      "startFrame": 4885,
+      "text": "从一份主题资料开始，按这条可验证生产链完成第一支作品。"
+    }
+  ],
+  "durationInFrames": 5116,
+  "fingerprint": "sha256:e486c0c3c339e0cebcd915073ce010183a6ff89764c44e2165a736b9e55e0a13",
+  "fps": 30,
+  "leadInFrames": 15,
+  "sampleRate": 48000,
+  "schemaVersion": 1,
+  "segments": [
+    {
+      "chunkId": "problem-hook-01",
+      "frameRange": {
+        "endFrame": 303,
+        "startFrame": 15
+      },
+      "kind": "chunk",
+      "meaningId": "problem-hook",
+      "sampleRange": {
+        "endSampleFrame": 460800,
+        "startSampleFrame": 0
+      },
+      "ttsText": "完整视频不只是画面。故事、旁白、镜头、声音与审核，必须对应。"
+    },
+    {
+      "chunkId": "problem-hook-02",
+      "frameRange": {
+        "endFrame": 572,
+        "startFrame": 303
+      },
+      "kind": "chunk",
+      "meaningId": "problem-hook",
+      "sampleRange": {
+        "endSampleFrame": 890880,
+        "startSampleFrame": 460800
+      },
+      "ttsText": "输入一变，旧字幕、旧镜头和旧预览就可能失效；难点是守住作品身份。"
+    },
+    {
+      "afterChunkId": "problem-hook-02",
+      "frameRange": {
+        "endFrame": 580,
+        "startFrame": 572
+      },
+      "kind": "pause",
+      "meaningId": "problem-hook",
+      "pauseMs": 250,
+      "sampleRange": {
+        "endSampleFrame": 902880,
+        "startSampleFrame": 890880
+      }
+    },
+    {
+      "chunkId": "problem-friction-01",
+      "frameRange": {
+        "endFrame": 892,
+        "startFrame": 580
+      },
+      "kind": "chunk",
+      "meaningId": "problem-friction",
+      "sampleRange": {
+        "endSampleFrame": 1402080,
+        "startSampleFrame": 902880
+      },
+      "ttsText": "先猜时长，Scene 与字幕就追着波形移动；近似引用，也证明不了准确来源。"
+    },
+    {
+      "chunkId": "problem-friction-02",
+      "frameRange": {
+        "endFrame": 1074,
+        "startFrame": 892
+      },
+      "kind": "chunk",
+      "meaningId": "problem-friction",
+      "sampleRange": {
+        "endSampleFrame": 1693920,
+        "startSampleFrame": 1402080
+      },
+      "ttsText": "没有 checksum 和审查记录，导出的视频也无法对应输入。"
+    },
+    {
+      "afterChunkId": "problem-friction-02",
+      "frameRange": {
+        "endFrame": 1083,
+        "startFrame": 1074
+      },
+      "kind": "pause",
+      "meaningId": "problem-friction",
+      "pauseMs": 300,
+      "sampleRange": {
+        "endSampleFrame": 1708320,
+        "startSampleFrame": 1693920
+      }
+    },
+    {
+      "chunkId": "product-reveal-01",
+      "frameRange": {
+        "endFrame": 1309,
+        "startFrame": 1083
+      },
+      "kind": "chunk",
+      "meaningId": "product-reveal",
+      "sampleRange": {
+        "endSampleFrame": 2069280,
+        "startSampleFrame": 1708320
+      },
+      "ttsText": "Remotion Story Producer，把这些环节连成证据绑定的代码生产链。"
+    },
+    {
+      "afterChunkId": "product-reveal-01",
+      "frameRange": {
+        "endFrame": 1316,
+        "startFrame": 1309
+      },
+      "kind": "pause",
+      "meaningId": "product-reveal",
+      "pauseMs": 250,
+      "sampleRange": {
+        "endSampleFrame": 2081280,
+        "startSampleFrame": 2069280
+      }
+    },
+    {
+      "chunkId": "core-capabilities-01",
+      "frameRange": {
+        "endFrame": 1609,
+        "startFrame": 1316
+      },
+      "kind": "chunk",
+      "meaningId": "core-capabilities",
+      "sampleRange": {
+        "endSampleFrame": 2549760,
+        "startSampleFrame": 2081280
+      },
+      "ttsText": "主题先写成四份规格。朗读单元按语义与节奏创作，不按标点切分。"
+    },
+    {
+      "chunkId": "core-capabilities-02",
+      "frameRange": {
+        "endFrame": 1806,
+        "startFrame": 1609
+      },
+      "kind": "chunk",
+      "meaningId": "core-capabilities",
+      "sampleRange": {
+        "endSampleFrame": 2864640,
+        "startSampleFrame": 2549760
+      },
+      "ttsText": "声音生成后封存 PCM，以累计采样边界推导绝对帧。"
+    },
+    {
+      "afterChunkId": "core-capabilities-02",
+      "frameRange": {
+        "endFrame": 1816,
+        "startFrame": 1806
+      },
+      "kind": "pause",
+      "meaningId": "core-capabilities",
+      "pauseMs": 350,
+      "sampleRange": {
+        "endSampleFrame": 2881440,
+        "startSampleFrame": 2864640
+      }
+    },
+    {
+      "chunkId": "workflow-input-01",
+      "frameRange": {
+        "endFrame": 2114,
+        "startFrame": 1816
+      },
+      "kind": "chunk",
+      "meaningId": "workflow-input",
+      "sampleRange": {
+        "endSampleFrame": 3357600,
+        "startSampleFrame": 2881440
+      },
+      "ttsText": "流程从主题资料开始，先核对来源、可用事实、观众、时长与画幅。"
+    },
+    {
+      "chunkId": "workflow-input-02",
+      "frameRange": {
+        "endFrame": 2364,
+        "startFrame": 2114
+      },
+      "kind": "chunk",
+      "meaningId": "workflow-input",
+      "sampleRange": {
+        "endSampleFrame": 3756960,
+        "startSampleFrame": 3357600
+      },
+      "ttsText": "再创作 StoryBeat 和 ttsChunks，选择声音并完成 StoryCheck。"
+    },
+    {
+      "afterChunkId": "workflow-input-02",
+      "frameRange": {
+        "endFrame": 2373,
+        "startFrame": 2364
+      },
+      "kind": "pause",
+      "meaningId": "workflow-input",
+      "pauseMs": 300,
+      "sampleRange": {
+        "endSampleFrame": 3771360,
+        "startSampleFrame": 3756960
+      }
+    },
+    {
+      "chunkId": "workflow-create-01",
+      "frameRange": {
+        "endFrame": 2675,
+        "startFrame": 2373
+      },
+      "kind": "chunk",
+      "meaningId": "workflow-create",
+      "sampleRange": {
+        "endSampleFrame": 4255200,
+        "startSampleFrame": 3771360
+      },
+      "ttsText": "VoxCPM 逐块生成候选。选中的 PCM 连同实测采样数和 checksum 封存。"
+    },
+    {
+      "chunkId": "workflow-create-02",
+      "frameRange": {
+        "endFrame": 2853,
+        "startFrame": 2675
+      },
+      "kind": "chunk",
+      "meaningId": "workflow-create",
+      "sampleRange": {
+        "endSampleFrame": 4539360,
+        "startSampleFrame": 4255200
+      },
+      "ttsText": "外部参考绑定冻结来源、准确 demo、依赖闭包与 license。"
+    },
+    {
+      "chunkId": "workflow-create-03",
+      "frameRange": {
+        "endFrame": 3093,
+        "startFrame": 2853
+      },
+      "kind": "chunk",
+      "meaningId": "workflow-create",
+      "sampleRange": {
+        "endSampleFrame": 4923360,
+        "startSampleFrame": 4539360
+      },
+      "ttsText": "Renderer 由静态 registry 绑定 Scene，不能改写旁白或吞帧。"
+    },
+    {
+      "afterChunkId": "workflow-create-03",
+      "frameRange": {
+        "endFrame": 3103,
+        "startFrame": 3093
+      },
+      "kind": "pause",
+      "meaningId": "workflow-create",
+      "pauseMs": 350,
+      "sampleRange": {
+        "endSampleFrame": 4940160,
+        "startSampleFrame": 4923360
+      }
+    },
+    {
+      "chunkId": "workflow-result-01",
+      "frameRange": {
+        "endFrame": 3324,
+        "startFrame": 3103
+      },
+      "kind": "chunk",
+      "meaningId": "workflow-result",
+      "sampleRange": {
+        "endSampleFrame": 5293440,
+        "startSampleFrame": 4940160
+      },
+      "ttsText": "成片之外，还交付媒体参数、完整解码与批量 review 证据。"
+    },
+    {
+      "chunkId": "workflow-result-02",
+      "frameRange": {
+        "endFrame": 3641,
+        "startFrame": 3324
+      },
+      "kind": "chunk",
+      "meaningId": "workflow-result",
+      "sampleRange": {
+        "endSampleFrame": 5800320,
+        "startSampleFrame": 5293440
+      },
+      "ttsText": "GPS 已走完 M1 到 M8。五个 Scene、全局装配、用户批准与最终检查都可复核。"
+    },
+    {
+      "afterChunkId": "workflow-result-02",
+      "frameRange": {
+        "endFrame": 3651,
+        "startFrame": 3641
+      },
+      "kind": "pause",
+      "meaningId": "workflow-result",
+      "pauseMs": 350,
+      "sampleRange": {
+        "endSampleFrame": 5817120,
+        "startSampleFrame": 5800320
+      }
+    },
+    {
+      "chunkId": "differentiated-value-01",
+      "frameRange": {
+        "endFrame": 3886,
+        "startFrame": 3651
+      },
+      "kind": "chunk",
+      "meaningId": "differentiated-value",
+      "sampleRange": {
+        "endSampleFrame": 6193440,
+        "startSampleFrame": 5817120
+      },
+      "ttsText": "每个阶段都声明所有权和依赖；输入变化，旧证据就必须失效。"
+    },
+    {
+      "chunkId": "differentiated-value-02",
+      "frameRange": {
+        "endFrame": 4203,
+        "startFrame": 3886
+      },
+      "kind": "chunk",
+      "meaningId": "differentiated-value",
+      "sampleRange": {
+        "endSampleFrame": 6700320,
+        "startSampleFrame": 6193440
+      },
+      "ttsText": "时间、引用和批准各有身份；渲染不调用 Agent、网络、Git 或目录扫描。"
+    },
+    {
+      "afterChunkId": "differentiated-value-02",
+      "frameRange": {
+        "endFrame": 4212,
+        "startFrame": 4203
+      },
+      "kind": "pause",
+      "meaningId": "differentiated-value",
+      "pauseMs": 300,
+      "sampleRange": {
+        "endSampleFrame": 6714720,
+        "startSampleFrame": 6700320
+      }
+    },
+    {
+      "chunkId": "proof-and-fit-01",
+      "frameRange": {
+        "endFrame": 4452,
+        "startFrame": 4212
+      },
+      "kind": "chunk",
+      "meaningId": "proof-and-fit",
+      "sampleRange": {
+        "endSampleFrame": 7098720,
+        "startSampleFrame": 6714720
+      },
+      "ttsText": "它适合把创作、工程和审查证据放进同一仓库的团队。"
+    },
+    {
+      "chunkId": "proof-and-fit-02",
+      "frameRange": {
+        "endFrame": 4692,
+        "startFrame": 4452
+      },
+      "kind": "chunk",
+      "meaningId": "proof-and-fit",
+      "sampleRange": {
+        "endSampleFrame": 7482720,
+        "startSampleFrame": 7098720
+      },
+      "ttsText": "Agent 负责创作与校验，Scene 逐段制作，最终批准只由用户作出。"
+    },
+    {
+      "afterChunkId": "proof-and-fit-02",
+      "frameRange": {
+        "endFrame": 4703,
+        "startFrame": 4692
+      },
+      "kind": "pause",
+      "meaningId": "proof-and-fit",
+      "pauseMs": 350,
+      "sampleRange": {
+        "endSampleFrame": 7499520,
+        "startSampleFrame": 7482720
+      }
+    },
+    {
+      "chunkId": "call-to-action-01",
+      "frameRange": {
+        "endFrame": 4885,
+        "startFrame": 4703
+      },
+      "kind": "chunk",
+      "meaningId": "call-to-action",
+      "sampleRange": {
+        "endSampleFrame": 7791360,
+        "startSampleFrame": 7499520
+      },
+      "ttsText": "这样，视频不只是一次导出，而是能够继续验证的作品。"
+    },
+    {
+      "chunkId": "call-to-action-02",
+      "frameRange": {
+        "endFrame": 5101,
+        "startFrame": 4885
+      },
+      "kind": "chunk",
+      "meaningId": "call-to-action",
+      "sampleRange": {
+        "endSampleFrame": 8136960,
+        "startSampleFrame": 7791360
+      },
+      "ttsText": "从一份主题资料开始，按这条可验证生产链完成第一支作品。"
+    }
+  ],
+  "storyBeats": [
+    {
+      "endFrame": 580,
+      "meaningId": "problem-hook",
+      "startFrame": 15
+    },
+    {
+      "endFrame": 1083,
+      "meaningId": "problem-friction",
+      "startFrame": 580
+    },
+    {
+      "endFrame": 1316,
+      "meaningId": "product-reveal",
+      "startFrame": 1083
+    },
+    {
+      "endFrame": 1816,
+      "meaningId": "core-capabilities",
+      "startFrame": 1316
+    },
+    {
+      "endFrame": 2373,
+      "meaningId": "workflow-input",
+      "startFrame": 1816
+    },
+    {
+      "endFrame": 3103,
+      "meaningId": "workflow-create",
+      "startFrame": 2373
+    },
+    {
+      "endFrame": 3651,
+      "meaningId": "workflow-result",
+      "startFrame": 3103
+    },
+    {
+      "endFrame": 4212,
+      "meaningId": "differentiated-value",
+      "startFrame": 3651
+    },
+    {
+      "endFrame": 4703,
+      "meaningId": "proof-and-fit",
+      "startFrame": 4212
+    },
+    {
+      "endFrame": 5101,
+      "meaningId": "call-to-action",
+      "startFrame": 4703
+    }
+  ],
+  "storyId": "product-comic-vertical",
+  "tailFrames": 15
+}

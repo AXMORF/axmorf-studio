@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "storyId": "product-comic-vertical",
+  "providerAttemptFingerprint": "sha256:71c30c61c0e57cb9aa57fea4029aced9d40a44a31576fdea33f545e08985f0c8",
+  "sealedNarrationFingerprint": "sha256:05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8",
+  "semanticTimingFingerprint": "sha256:e486c0c3c339e0cebcd915073ce010183a6ff89764c44e2165a736b9e55e0a13",
+  "sourceInputChecksums": {
+    "promptAudio": "sha256:1d35f0a39c79850dabac21383e5883a78efc6a161d2be5dd8d1a926e49bd4b6c",
+    "promptTranscript": "sha256:7b6f08f4100f146c649659d0fe2a88386b978cc9368ea0928e17c50d780a655e"
+  },
+  "canonicalPcm": { "sampleRate": 48000, "channelLayout": "mono", "sampleFormat": "s16le" },
+  "completeAudio": {
+    "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/complete.wav",
+    "checksum": "sha256:a36c8ff99d765095909aecd50ef6908a34450871407a9a4014fbc7e9258810d1",
+    "sampleFrameCount": 8136960,
+    "durationSeconds": 169.52,
+    "durationInFrames": 5116
+  },
+  "chunks": [
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/problem-hook-01.wav", "checksum": "sha256:be35292ffa20c3444755a0a48c512e6133dae4359d303001d6fee006cefaeb73", "sampleFrameCount": 460800 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/problem-hook-02.wav", "checksum": "sha256:1da6e0f973f112a65b083e2808c1ae4cf220341e44bcd17929d2f8ccedef45e3", "sampleFrameCount": 430080 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/problem-friction-01.wav", "checksum": "sha256:445f1ab3ffe72bf0f0d75cc6e7304ffd97650d89d4c0ca440dfbce8594a9f338", "sampleFrameCount": 499200 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/problem-friction-02.wav", "checksum": "sha256:d09bf34c581ba6762e2f4276005f6b1d1514f67e25eda94eaef87f406da0f9ea", "sampleFrameCount": 291840 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/product-reveal-01.wav", "checksum": "sha256:0595fd2577ff4953a77a7f2995124f7a3c7936fa92bd37fb9573885d488c896a", "sampleFrameCount": 360960 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/core-capabilities-01.wav", "checksum": "sha256:c58dddcaaf53eef745b6fef03fa88ed86aeb37d53c8749e1e5235e519ba9023e", "sampleFrameCount": 468480 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/core-capabilities-02.wav", "checksum": "sha256:589f9b38cab1c8efab78f24134162a84f0daff64c61beb8aabf7b17d3afeb865", "sampleFrameCount": 314880 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-input-01.wav", "checksum": "sha256:3bdbb48b5150820a98ba6846194f243ae3fae9ae640f771137b489dc7800202d", "sampleFrameCount": 476160 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-input-02.wav", "checksum": "sha256:250cc01e98ae65b8481e41c8045df96c5b153298514676e0f9ab2a2698c72a07", "sampleFrameCount": 399360 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-create-01.wav", "checksum": "sha256:368bcaaed4f98fbec49e9b3876c85d87240ddd46c98478163d8a4a85d6b88624", "sampleFrameCount": 483840 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-create-02.wav", "checksum": "sha256:a052be85f311d2f3914381d16573faee385822b471c9f283eff6a2e080d4c4ad", "sampleFrameCount": 284160 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-create-03.wav", "checksum": "sha256:8cd9daa251728f84ffd1cc5cf3399e821d89126ee8ad3b332a0eed53b06d9e53", "sampleFrameCount": 384000 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-result-01.wav", "checksum": "sha256:022e0ec61803aa045f14fa76dfe498a4e2ef95f1033356fe27186d5c4cfd43e6", "sampleFrameCount": 353280 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/workflow-result-02.wav", "checksum": "sha256:95081da6c8fe593ef536e35b69ab0786305c4d998c9f94e9a436057241359bb0", "sampleFrameCount": 506880 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/differentiated-value-01.wav", "checksum": "sha256:5663fd34eae5b29a19bc1c59ea5bab3f958eae27687a36ebca720446e694d447", "sampleFrameCount": 376320 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/differentiated-value-02.wav", "checksum": "sha256:cee49feb9a09acf440d8702d12aa455dab3f3cb557f6bd3b5ddd1cde9f51751f", "sampleFrameCount": 506880 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/proof-and-fit-01.wav", "checksum": "sha256:c103a4f8bfdede4c8b1e77b8f5b749c0de8d89b58117a2f85f174e2ada86edba", "sampleFrameCount": 384000 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/proof-and-fit-02.wav", "checksum": "sha256:8b688b087b31f8e784b9fa29fddc818fcc9d142bad1a7219521bfee21383cec4", "sampleFrameCount": 384000 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/call-to-action-01.wav", "checksum": "sha256:a10092d4a2aa852d8710e63755f9c33513f81c5f6c4f2f17ce3dc85490664e48", "sampleFrameCount": 291840 },
+    { "path": "public/projects/product-comic-vertical/narration/05c0328669049d453e30baaf9770f513fcbb7cded69826b48e105089ebad61c8/chunks/call-to-action-02.wav", "checksum": "sha256:647cbc03f0f40e17908fe62c6f87195396599ecb31f1b9108627c76a55bc30c0", "sampleFrameCount": 345600 }
+  ],
+  "generatedArtifacts": [
+    { "path": "src/projects/product-comic-vertical/generated/sealed-narration.generated.json", "checksum": "sha256:4c5f3ec45b1478eb7b62af2fa9afd959b0017034ad6d6af6de536e97e00e8b32" },
+    { "path": "src/projects/product-comic-vertical/generated/semantic-timing.generated.json", "checksum": "sha256:5dadf45de4a9f78ec771e3eec40fb99ada771bd4a91dc4571a7b7a9605e5a2af" }
+  ],
+  "protectedUncommittedInputs": [
+    "public/voice_profile/my_voice.m4a",
+    "public/voice_profile/my_voice_text.txt"
+  ]
+}
