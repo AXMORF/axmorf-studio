@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "reviewVersion": "m8-final-assembly-review-v1",
+  "storyId": "gps-relativity",
+  "compositionId": "GpsRelativity",
+  "finalAssemblyFingerprint": "sha256:917f1601b9403316f42f58f95a3033720162883d5e77e542390ca8803388655b",
+  "resourceCatalogFingerprint": "sha256:d6a5ca5456c24cf8691c4a6879b0b3d2690e6aaccd53932003f69bfe50cd0c88",
+  "m7EvidenceFingerprint": "sha256:9690369ab4f3c08872e1e1ecd565fc4bba6aa37cd31b9a202b88d9045df19012",
+  "previewChecksum": "sha256:d0473bc9ff74b46898c5988b99ff4690b5412a4dbd1508508d3c4a73c63d7036",
+  "reviewInputFingerprint": "sha256:7da85cf9213b0cd23c8f59012a75aea10092772e42d4b11cd499f1203a7565b5",
+  "globalSound": {
+    "status": "pass",
+    "narrationClarity": "完整 1x 播放与全片波形、频谱、EBU R128 检查显示旁白始终是主要语义信号；最终 integrated loudness 为 -17.7 LUFS，true peak 为 -2.9 dBTP。",
+    "duckingBehavior": "固定 spoken windows 使用 9 帧 attack、15 帧 release 和 0.32 duck gain；边界、相邻 chunk、短 pause 与末帧复算均连续，没有自适应抽吸或帧外取值。",
+    "ambienceContinuity": "cross-scene ambience 是覆盖 0..1730 的单一连续 PCM bus；全片频谱底层连续，四个 Scene 边界没有出现环境层断带。",
+    "sceneLocalSfx": "M7 SoundDesignProjection 和五个 ScenePackage byte-identical；Scene-local SFX 只经过固定 0.9 scene bus gain，不进入 global duck envelope，也没有被复制到 GlobalSoundPlan。",
+    "boundaryIntegrity": "完整解码到 EOF；全片波形、四个边界探针和尾部衰减没有显示 click、pop、硬截断或重复混音峰值。"
+  },
+  "globalVisual": {
+    "status": "pass",
+    "frameTreatment": "26 帧固定 contact sheet 显示外框与低密度粒子处理从开头到尾帧保持稳定，没有改变 Scene 内部构图。",
+    "gpsMeaning": "四个显式 frame windows 的轨迹弧线、信号点与时钟路径延续 GPS 测距和相对论时间语义，而不是通用装饰轨。",
+    "sceneHierarchy": "GlobalVisual 保持低对比、pointer-events none 和固定 z-order；五个 Scene 的主信息图、数字状态与结论卡仍然是视觉主体。",
+    "captionSafety": "所有固定字幕密集帧和四个 Scene 边界探针中，CaptionLayer 位于 GlobalVisual 之上，字幕背景与文字没有被轨迹、边框或粒子遮挡。",
+    "motionLegibility": "1x 全片执行和 motif 起止帧序列显示运动由 frame API 连续插值，过渡方向清晰，无 CSS animation、抖动或高频闪烁。"
+  },
+  "finalContinuity": {
+    "status": "pass",
+    "sceneFlow": "五个 Scene 从定位原理、两种效应、净漂移、误差累积到工程修正按原 M7 顺序自然推进，全局轨迹与音床只承担连接作用。",
+    "boundaryAlignment": "349/373、684/708、1006/1030、1409/1445 的 motif windows 与 Scene 边界探针保持一致；视觉硬切、连续 ambience 和局部 SFX 没有互相争权。",
+    "spokenFrames": "sealed narration、SemanticTiming 和 CaptionCue 未修改；最终 Composition 仍为 1731 帧，所有 spoken ranges 由原 absolute timing 驱动。",
+    "avSync": "完整 1731 帧视频与 48 kHz 音频解码到 EOF，四个边界前后波形和视觉探针未显示 A/V drift。"
+  },
+  "normalSpeed": {
+    "status": "pass",
+    "playbackRate": 1,
+    "completedFullPlayback": true,
+    "previewChecksum": "sha256:d0473bc9ff74b46898c5988b99ff4690b5412a4dbd1508508d3c4a73c63d7036",
+    "startToEndObservation": "对绑定 checksum 的 57.749333 秒最终 MP4 完成从头到尾 1x 实时时钟播放，并结合完整 contact sheet、固定边界帧、全片波形和频谱检查；未发现需要返回 Task 2 的 revise 项。"
+  },
+  "aggregateStatus": "pass"
+}
