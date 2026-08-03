@@ -1464,6 +1464,13 @@ fingerprint 和 FinalAssembly fingerprint。
 - package scripts 增加 M9 read-only checks，使 `npm run check` 同时保护 GPS 与第二主题，不生成
   媒体、不访问网络、不读取私有 VoxCPM config。
 
+**2026-08-04 现场冲突最小修订：** Task 8 已按 Scene/Final Catalog ownership 将十个冻结
+SceneTaskInput 保留在 pre-final Catalog identity，并把 `Composition.tsx` 接入 project-local
+GlobalSound/GlobalVisual；但这些测试此前不在顶层 `npm test`，仍按 final Catalog 和 pre-global
+Composition 断言。Task 11 首次把完整 M9 suite 纳入 `npm run check` 后准确暴露 11 个 stale
+assertions。允许只修正下列十个既有测试的预期，使其验证 pre-final Scene Catalog 与 current
+四槽位 Composition；不改 SceneTaskInput、ScenePackage、FinalAssembly、媒体或 approval identity。
+
 ### 21.3 验证
 
 ```bash
@@ -1502,8 +1509,18 @@ git add -- \
   docs/PRODUCTION_WORKFLOW.md \
   docs/DETERMINISTIC_EXECUTION.md \
   docs/TERMINOLOGY.md \
+  tests/projects/product-comic-vertical-composition.test.tsx \
   tests/m9-product/approval.test.ts \
-  tests/m9-product/fail-closed-matrix.test.ts
+  tests/m9-product/fail-closed-matrix.test.ts \
+  tests/m9-product/call-to-action.test.tsx \
+  tests/m9-product/core-capabilities.test.tsx \
+  tests/m9-product/differentiated-value.test.tsx \
+  tests/m9-product/problem-friction.test.tsx \
+  tests/m9-product/problem-hook.test.tsx \
+  tests/m9-product/proof-and-fit.test.tsx \
+  tests/m9-product/workflow-create.test.tsx \
+  tests/m9-product/workflow-input.test.tsx \
+  tests/m9-product/workflow-result.test.tsx
 git diff --cached --name-status
 git diff --cached --check
 git commit -m "docs: close m9 product generalization proof"
