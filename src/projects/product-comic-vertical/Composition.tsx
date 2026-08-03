@@ -14,6 +14,7 @@ import {
   type NarrativeCoreProps,
 } from "../../remotion/runtime/narrative-core";
 import {CompositionAssembly} from "../../remotion/runtime/composition-assembly";
+import {GlobalSoundTrack} from "../../remotion/runtime/global-sound";
 import {SoundDesignTrack} from "../../remotion/runtime/sound-design";
 import {StoryVisualTrack} from "../../remotion/runtime/story-visual";
 import briefJson from "./brief.json";
@@ -28,6 +29,8 @@ import {
   productComicVerticalSoundDesignProjection,
   productComicVerticalStoryVisualProjection,
 } from "./scene-runtime-data";
+import {productComicVerticalFinalAssemblyData} from "./final-assembly-data";
+import {GlobalVisualLayers} from "./global-visual/GlobalVisualLayers";
 
 const projectSource = parseNarrativeProjectSource({
   brief: briefJson,
@@ -100,11 +103,30 @@ const ProductComicVerticalComposition: FC<StoryCompositionProps> = (props) => (
         rendererPropsByMeaning={productComicVerticalRendererPropsByMeaning}
       />
     }
+    globalVisualLayers={
+      <GlobalVisualLayers
+        plan={productComicVerticalFinalAssemblyData.globalVisualPlan}
+        projection={
+          productComicVerticalFinalAssemblyData.globalVisualProjection
+        }
+      />
+    }
     narrativeCore={
       <NarrativeCore {...createProductComicVerticalNarrativeCoreProps(props)} />
     }
     soundDesignTrack={
-      <SoundDesignTrack projection={productComicVerticalSoundDesignProjection} />
+      <>
+        <SoundDesignTrack
+          projection={productComicVerticalSoundDesignProjection}
+          sceneBusGain={
+            productComicVerticalFinalAssemblyData.finalSound.plan
+              .masteringPolicy.sceneBusGain
+          }
+        />
+        <GlobalSoundTrack
+          resolved={productComicVerticalFinalAssemblyData.finalSound}
+        />
+      </>
     }
   />
 );
