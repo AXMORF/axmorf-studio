@@ -31,6 +31,14 @@ type WatchScheduler = Readonly<{
   sleep: (milliseconds: number) => Promise<void>;
 }>;
 
+export type ProductionWatchResult = Readonly<{
+  runId: string;
+  status: string;
+  noOp: boolean;
+  acceptedMeaningIds?: readonly string[];
+  [key: string]: unknown;
+}>;
+
 type WatchFailureCode =
   | "SCENE_RESULT_MALFORMED"
   | "STALE_SCENE_RESULT"
@@ -310,7 +318,7 @@ export const runProductionWatch = async ({
     readonly rootDir: string;
     readonly runId: string;
   }) => Promise<unknown>;
-}) => {
+}): Promise<ProductionWatchResult> => {
   const acquiredAt = clock();
   if (Number.isNaN(acquiredAt.getTime())) {
     throw new Error("Production watcher clock is invalid.");
@@ -325,22 +333,26 @@ export const runProductionWatch = async ({
   let outcome:
     | Readonly<{
         runId: string;
-        status: "post-scene-running";
+        status: "post-scene-running" | "preview-ready";
         noOp: boolean;
         acceptedMeaningIds: readonly string[];
       }>
     | undefined;
   try {
     let loaded = await readProductionRunStore({ rootDir, runId });
-    if (loaded.state.state === "post-scene-running") {
+    if (
+      loaded.state.state === "post-scene-running" ||
+      loaded.state.state === "preview-ready"
+    ) {
       outcome = {
         runId,
-        status: "post-scene-running",
+        status: loaded.state.state,
         noOp: true,
         acceptedMeaningIds: loaded.state.acceptedSceneResults.map(
           ({ meaningId }) => meaningId,
         ),
       };
+      shouldRunPostScene = loaded.state.state === "preview-ready";
     } else {
       if (
         loaded.state.state !== "scene-inputs-frozen" &&
@@ -596,6 +608,21 @@ export const runProductionWatch = async ({
   if (outcome === undefined) {
     throw new Error("Production watcher completed without an outcome.");
   }
-  if (shouldRunPostScene) await postScene({ rootDir, runId });
+  if (shouldRunPostScene) {
+    const postSceneResult = await postScene({ rootDir, runId });
+    if (
+      postSceneResult !== null &&
+      typeof postSceneResult === "object" &&
+      "runId" in postSceneResult &&
+      typeof postSceneResult.runId === "string" &&
+      "status" in postSceneResult &&
+      typeof postSceneResult.status === "string" &&
+      "noOp" in postSceneResult &&
+      typeof postSceneResult.noOp === "boolean"
+    ) {
+      return postSceneResult as ProductionWatchResult;
+    }
+    return outcome;
+  }
   return outcome;
 };

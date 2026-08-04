@@ -333,7 +333,7 @@ export const runProductionPostScene = async ({
                 fingerprint: assembly.assemblyFingerprint,
               },
               {
-                artifactId: "project-registry",
+                artifactId: "production-preview-project-registry",
                 repositoryPath: "src/projects/project-registry.generated.ts",
                 fingerprint: registry.registryChecksum,
               },
