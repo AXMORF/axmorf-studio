@@ -17,12 +17,13 @@ export const createExpectedProductionError = (
       description: unknown;
       retryable: unknown;
       remediation: unknown;
+      redactionApplied?: unknown;
     }>,
 ) =>
   createProductionError({
     ...rawInput,
     kind: "expected",
-    redactionApplied: false,
+    redactionApplied: rawInput.redactionApplied ?? false,
   });
 
 export const createUnexpectedProductionError = ({

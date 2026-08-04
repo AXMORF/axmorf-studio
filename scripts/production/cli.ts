@@ -1,11 +1,17 @@
 import { pathToFileURL } from "node:url";
 
-import { ProductionRunIdSchema, StoryIdSchema } from "../../src/contracts";
+import {
+  MeaningIdSchema,
+  ProductionRunIdSchema,
+  StoryIdSchema,
+} from "../../src/contracts";
 import { redactProductionErrorDescription } from "./adapters/error-redaction";
 import { readProductionRunStore } from "./adapters/run-store";
 import { runProductionStart } from "./start";
 import { runProductionNarrative } from "./narrative";
+import { runProductionSceneFail } from "./scene-fail";
 import { runProductionSceneFreeze } from "./scene-freeze";
+import { runProductionSceneSubmit } from "./scene-submit";
 
 type ProductionCliContext = Readonly<{
   rootDir: string;
@@ -25,6 +31,18 @@ type ProductionCliContext = Readonly<{
   sceneFreeze?: (request: {
     readonly rootDir: string;
     readonly runId: string;
+  }) => Promise<unknown>;
+  sceneSubmit?: (request: {
+    readonly rootDir: string;
+    readonly runId: string;
+    readonly meaningId: string;
+  }) => Promise<unknown>;
+  sceneFail?: (request: {
+    readonly rootDir: string;
+    readonly runId: string;
+    readonly meaningId: string;
+    readonly code: string;
+    readonly description: string;
   }) => Promise<unknown>;
 }>;
 
@@ -54,36 +72,83 @@ export const runProductionCli = async (
   args: readonly string[],
   context: ProductionCliContext = defaultContext(),
 ) => {
-  if (args.length !== 3) {
-    throw new Error(
-      "Expected an exact production command with one --project or --run value.",
-    );
-  }
   let result: unknown;
-  if (args[0] === "start" && args[1] === "--project") {
+  if (args.length === 3 && args[0] === "start" && args[1] === "--project") {
     const projectId = StoryIdSchema.parse(args[2]);
     result = context.start
       ? await context.start({ rootDir: context.rootDir, projectId })
       : await runProductionStart({ rootDir: context.rootDir, projectId });
-  } else if (args[0] === "status" && args[1] === "--run") {
+  } else if (args.length === 3 && args[0] === "status" && args[1] === "--run") {
     const runId = ProductionRunIdSchema.parse(args[2]);
     result = context.status
       ? await context.status({ rootDir: context.rootDir, runId })
       : await runStatus({ rootDir: context.rootDir, runId });
-  } else if (args[0] === "narrative" && args[1] === "--run") {
+  } else if (
+    args.length === 3 &&
+    args[0] === "narrative" &&
+    args[1] === "--run"
+  ) {
     const runId = ProductionRunIdSchema.parse(args[2]);
     result = context.narrative
       ? await context.narrative({ rootDir: context.rootDir, runId })
       : await runProductionNarrative({ rootDir: context.rootDir, runId });
-  } else if (args[0] === "scene-freeze" && args[1] === "--run") {
+  } else if (
+    args.length === 3 &&
+    args[0] === "scene-freeze" &&
+    args[1] === "--run"
+  ) {
     const runId = ProductionRunIdSchema.parse(args[2]);
     result = context.sceneFreeze
       ? await context.sceneFreeze({ rootDir: context.rootDir, runId })
       : await runProductionSceneFreeze({ rootDir: context.rootDir, runId });
+  } else if (
+    args.length === 5 &&
+    args[0] === "scene-submit" &&
+    args[1] === "--run" &&
+    args[3] === "--scene"
+  ) {
+    const runId = ProductionRunIdSchema.parse(args[2]);
+    const meaningId = MeaningIdSchema.parse(args[4]);
+    result = context.sceneSubmit
+      ? await context.sceneSubmit({
+          rootDir: context.rootDir,
+          runId,
+          meaningId,
+        })
+      : await runProductionSceneSubmit({
+          rootDir: context.rootDir,
+          runId,
+          meaningId,
+        });
+  } else if (
+    args.length === 9 &&
+    args[0] === "scene-fail" &&
+    args[1] === "--run" &&
+    args[3] === "--scene" &&
+    args[5] === "--code" &&
+    args[7] === "--description"
+  ) {
+    const runId = ProductionRunIdSchema.parse(args[2]);
+    const meaningId = MeaningIdSchema.parse(args[4]);
+    const code = args[6];
+    const description = args[8];
+    result = context.sceneFail
+      ? await context.sceneFail({
+          rootDir: context.rootDir,
+          runId,
+          meaningId,
+          code,
+          description,
+        })
+      : await runProductionSceneFail({
+          rootDir: context.rootDir,
+          runId,
+          meaningId,
+          code,
+          description,
+        });
   } else {
-    throw new Error(
-      "Expected an exact production command with one --project or --run value.",
-    );
+    throw new Error("Expected an exact documented production command form.");
   }
   context.stdout(JSON.stringify(result));
   return result;

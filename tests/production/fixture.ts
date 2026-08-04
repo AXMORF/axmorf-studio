@@ -189,3 +189,64 @@ export const markProductionBaselineReady = async ({
   await appendProductionRunEvent({ rootDir, runId, event: succeeded });
   return { narrativeAutoCheckFingerprint: sha("e") } as const;
 };
+
+export const markProductionSceneInputsFrozen = async ({
+  rootDir,
+  runId,
+  assignmentFingerprint = sha("f"),
+  occurredAt = FIXED_PRODUCTION_NOW.toISOString(),
+}: {
+  readonly rootDir: string;
+  readonly runId: string;
+  readonly assignmentFingerprint?: string;
+  readonly occurredAt?: string;
+}) => {
+  let loaded = await readProductionRunStore({ rootDir, runId });
+  const started = createProductionStageEvent({
+    type: "stage-started",
+    runId: loaded.run.runId,
+    storyId: loaded.run.storyId,
+    sequence: loaded.state.lastSequence + 1,
+    eventId: "scene-freeze-started-test",
+    stageId: "scene-freeze",
+    attempt: 1,
+    occurredAt,
+    commandId: "production-scene-freeze",
+    previousStateFingerprint: loaded.state.stateFingerprint,
+    inputFingerprints: [
+      {
+        artifactId: "requirements",
+        fingerprint: loaded.run.requirementsFingerprint,
+      },
+    ],
+  });
+  await appendProductionRunEvent({ rootDir, runId, event: started });
+  loaded = await readProductionRunStore({ rootDir, runId });
+  const succeeded = createProductionStageEvent({
+    type: "stage-succeeded",
+    runId: loaded.run.runId,
+    storyId: loaded.run.storyId,
+    sequence: loaded.state.lastSequence + 1,
+    eventId: "scene-freeze-succeeded-test",
+    stageId: "scene-freeze",
+    attempt: 1,
+    occurredAt,
+    commandId: "production-scene-freeze",
+    previousStateFingerprint: loaded.state.stateFingerprint,
+    inputFingerprints: [
+      {
+        artifactId: "requirements",
+        fingerprint: loaded.run.requirementsFingerprint,
+      },
+    ],
+    outputArtifacts: [
+      {
+        artifactId: "scene-assignment.opening",
+        repositoryPath:
+          "src/projects/story-example/production/scene-assignments/opening.generated.json",
+        fingerprint: assignmentFingerprint,
+      },
+    ],
+  });
+  await appendProductionRunEvent({ rootDir, runId, event: succeeded });
+};

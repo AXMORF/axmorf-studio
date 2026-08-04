@@ -172,7 +172,8 @@ test("rejects normalized render and voice summaries that disagree with source co
       },
     },
   ]) {
-    const { requirementsFingerprint: _fingerprint, ...input } = freeze;
+    const { requirementsFingerprint, ...input } = freeze;
+    void requirementsFingerprint;
     assert.throws(
       () =>
         resolveCurrentProductionRequirements({
@@ -244,8 +245,8 @@ test("requires explicit absence of global sound and global visual enhancements",
     { ...freeze.enhancementSelection, globalSound: "required" },
     { ...freeze.enhancementSelection, globalVisual: "required" },
     (() => {
-      const { globalSound: _globalSound, ...selection } =
-        freeze.enhancementSelection;
+      const { globalSound, ...selection } = freeze.enhancementSelection;
+      void globalSound;
       return selection;
     })(),
   ]) {

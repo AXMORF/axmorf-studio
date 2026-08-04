@@ -337,6 +337,47 @@ const defaultVerifyNarrativeAutoCheck = async ({
   return report.reportFingerprint;
 };
 
+export const resolveCurrentSceneAssignments = async ({
+  rootDir,
+  runId,
+  verifyNarrativeAutoCheck = defaultVerifyNarrativeAutoCheck,
+}: {
+  readonly rootDir: string;
+  readonly runId: string;
+  readonly verifyNarrativeAutoCheck?: (input: {
+    readonly rootDir: string;
+    readonly storyId: string;
+  }) => Promise<string>;
+}) => {
+  const inputs = await resolveSceneFreezeInputs({
+    rootDir,
+    runId,
+    verifyNarrativeAutoCheck,
+  });
+  const firstPath = assignmentPath(
+    inputs.story.storyId,
+    inputs.story.beats[0].meaningId,
+  );
+  const first = SceneAssignmentSchema.parse(
+    await readRegularJson(join(rootDir, firstPath), "SceneAssignment"),
+  );
+  const assignments = buildAssignments({
+    inputs,
+    deadlineAt: first.deadlineAt,
+  });
+  for (const assignment of assignments) {
+    await writeOrCheckSceneArtifact({
+      destination: join(
+        rootDir,
+        assignmentPath(assignment.storyId, assignment.meaningId),
+      ),
+      value: assignment,
+      mode: "check",
+    });
+  }
+  return { inputs, assignments } as const;
+};
+
 export const runProductionSceneFreeze = async ({
   rootDir,
   runId,

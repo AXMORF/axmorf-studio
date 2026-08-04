@@ -10,7 +10,7 @@ import {
   ProductionRequirementSchema,
   type ProductionRequirementsFreeze,
 } from "./production-requirements";
-import { ProductionRunIdSchema } from "./production-run";
+import { ProductionErrorSchema, ProductionRunIdSchema } from "./production-run";
 import {
   ResourceCatalogSchema,
   ResourceIdSchema,
@@ -23,6 +23,8 @@ export const STORY_RESOURCE_POOL_VERSION = "story-resource-pool-v1" as const;
 export const SCENE_PRODUCTION_BRIEF_VERSION =
   "scene-production-brief-v1" as const;
 export const SCENE_ASSIGNMENT_VERSION = "scene-assignment-v1" as const;
+export const SCENE_PRODUCTION_RESULT_VERSION =
+  "scene-production-result-v1" as const;
 
 const SafeProductionTextSchema = z
   .string()
@@ -515,10 +517,158 @@ export const buildSceneAssignment = (rawInput: unknown) => {
   });
 };
 
+const ResultRepositoryPathSchema = z
+  .string()
+  .min(1)
+  .max(512)
+  .refine(
+    (value) =>
+      !value.startsWith("/") &&
+      !value.includes("\\") &&
+      !value.split("/").includes("..") &&
+      !value.includes("://"),
+    "Scene result paths must be repository-relative.",
+  );
+
+const SceneProductionResultCommonShape = {
+  schemaVersion: z.literal(1),
+  contractVersion: z.literal(SCENE_PRODUCTION_RESULT_VERSION),
+  runId: ProductionRunIdSchema,
+  storyId: StoryIdSchema,
+  meaningId: MeaningIdSchema,
+  assignmentFingerprint: Sha256DigestSchema,
+  taskInputFingerprint: Sha256DigestSchema,
+  requirementsFingerprint: Sha256DigestSchema,
+  sceneBriefFingerprint: Sha256DigestSchema,
+  resourcePoolFingerprint: Sha256DigestSchema,
+  occurredAt: z.string().datetime({ offset: true }),
+} as const;
+
+const SceneProductionSuccessInputObject = z
+  .object({
+    ...SceneProductionResultCommonShape,
+    status: z.literal("success"),
+    scenePackage: z
+      .object({
+        repositoryPath: ResultRepositoryPathSchema,
+        packageFingerprint: Sha256DigestSchema,
+      })
+      .strict()
+      .readonly(),
+    rendererSourceGraphFingerprint: Sha256DigestSchema,
+    selectedResourcesFingerprint: Sha256DigestSchema,
+    fidelityReceiptFingerprint: Sha256DigestSchema,
+    mechanicalCheckFingerprint: Sha256DigestSchema,
+  })
+  .strict();
+
+const SceneProductionFailureInputObject = z
+  .object({
+    ...SceneProductionResultCommonShape,
+    status: z.literal("failure"),
+    error: ProductionErrorSchema,
+  })
+  .strict();
+
+const SceneProductionResultInputUnion = z.discriminatedUnion("status", [
+  SceneProductionSuccessInputObject,
+  SceneProductionFailureInputObject,
+]);
+
+const addSceneProductionResultIssues = (
+  result: z.infer<typeof SceneProductionResultInputUnion>,
+  context: z.RefinementCtx,
+) => {
+  if (result.status === "success") {
+    const expected = `src/projects/${result.storyId}/scenes/${result.meaningId}/generated/scene-package.generated.json`;
+    if (result.scenePackage.repositoryPath !== expected) {
+      context.addIssue({
+        code: "custom",
+        message: "Scene result package path is not meaning-local.",
+        path: ["scenePackage", "repositoryPath"],
+      });
+    }
+  } else if (
+    result.error.stageId !== "scenes" ||
+    result.error.scope !== "scene" ||
+    result.error.meaningId !== result.meaningId
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "Scene failure result error identity does not match.",
+      path: ["error"],
+    });
+  }
+};
+
+export const SceneProductionResultInputSchema =
+  SceneProductionResultInputUnion.superRefine(
+    addSceneProductionResultIssues,
+  ).readonly();
+
+export const computeSceneProductionResultFingerprint = (rawInput: unknown) => {
+  const record = { ...(rawInput as Record<string, unknown>) };
+  delete record.resultFingerprint;
+  const input = SceneProductionResultInputSchema.parse(record);
+  return createFingerprint({
+    namespace: "scene-production-result",
+    version: 1,
+    value: input,
+  });
+};
+
+const withResultFingerprint = <Shape extends z.ZodRawShape>(shape: Shape) =>
+  z.object({ ...shape, resultFingerprint: Sha256DigestSchema }).strict();
+
+const SceneProductionResultUnion = z.discriminatedUnion("status", [
+  withResultFingerprint(SceneProductionSuccessInputObject.shape),
+  withResultFingerprint(SceneProductionFailureInputObject.shape),
+]);
+
+export const SceneProductionResultSchema =
+  SceneProductionResultUnion.superRefine((result, context) => {
+    const { resultFingerprint, ...input } = result;
+    const parsed = SceneProductionResultInputSchema.safeParse(input);
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        context.addIssue({
+          code: "custom",
+          message: issue.message,
+          path: issue.path,
+        });
+      }
+      return;
+    }
+    if (
+      resultFingerprint !== computeSceneProductionResultFingerprint(parsed.data)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Scene production result fingerprint is stale.",
+        path: ["resultFingerprint"],
+      });
+    }
+  }).readonly();
+
+export const buildSceneProductionResult = (rawInput: unknown) => {
+  const record: Record<string, unknown> = {
+    ...(rawInput as Record<string, unknown>),
+    schemaVersion: 1,
+    contractVersion: SCENE_PRODUCTION_RESULT_VERSION,
+  };
+  delete record.resultFingerprint;
+  const input = SceneProductionResultInputSchema.parse(record);
+  return SceneProductionResultSchema.parse({
+    ...input,
+    resultFingerprint: computeSceneProductionResultFingerprint(input),
+  });
+};
+
 export type StoryResourcePool = z.infer<typeof StoryResourcePoolSchema>;
 export type SceneProductionBrief = z.infer<typeof SceneProductionBriefSchema>;
 export type SceneProductionBriefItem = z.infer<
   typeof SceneProductionBriefItemSchema
 >;
 export type SceneAssignment = z.infer<typeof SceneAssignmentSchema>;
+export type SceneProductionResult = z.infer<typeof SceneProductionResultSchema>;
 export type CurrentSceneCatalog = ResourceCatalog;
