@@ -4,6 +4,7 @@ import { ProductionRunIdSchema, StoryIdSchema } from "../../src/contracts";
 import { redactProductionErrorDescription } from "./adapters/error-redaction";
 import { readProductionRunStore } from "./adapters/run-store";
 import { runProductionStart } from "./start";
+import { runProductionNarrative } from "./narrative";
 
 type ProductionCliContext = Readonly<{
   rootDir: string;
@@ -13,6 +14,10 @@ type ProductionCliContext = Readonly<{
     readonly projectId: string;
   }) => Promise<unknown>;
   status?: (request: {
+    readonly rootDir: string;
+    readonly runId: string;
+  }) => Promise<unknown>;
+  narrative?: (request: {
     readonly rootDir: string;
     readonly runId: string;
   }) => Promise<unknown>;
@@ -46,7 +51,7 @@ export const runProductionCli = async (
 ) => {
   if (args.length !== 3) {
     throw new Error(
-      "Expected start --project <storyId> or status --run <runId>.",
+      "Expected start --project <storyId>, status --run <runId>, or narrative --run <runId>.",
     );
   }
   let result: unknown;
@@ -60,9 +65,14 @@ export const runProductionCli = async (
     result = context.status
       ? await context.status({ rootDir: context.rootDir, runId })
       : await runStatus({ rootDir: context.rootDir, runId });
+  } else if (args[0] === "narrative" && args[1] === "--run") {
+    const runId = ProductionRunIdSchema.parse(args[2]);
+    result = context.narrative
+      ? await context.narrative({ rootDir: context.rootDir, runId })
+      : await runProductionNarrative({ rootDir: context.rootDir, runId });
   } else {
     throw new Error(
-      "Expected start --project <storyId> or status --run <runId>.",
+      "Expected start --project <storyId>, status --run <runId>, or narrative --run <runId>.",
     );
   }
   context.stdout(JSON.stringify(result));

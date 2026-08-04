@@ -55,19 +55,12 @@ const defaultRunId = ({
 const toPosixRelative = (rootDir: string, path: string) =>
   relative(rootDir, path).split(sep).join("/");
 
-export const runProductionStart = async ({
+export const loadCurrentProductionInputs = async ({
   rootDir,
   projectId: rawProjectId,
-  clock = () => new Date(),
-  createRunId = defaultRunId,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
-  readonly clock?: () => Date;
-  readonly createRunId?: (input: {
-    readonly storyId: string;
-    readonly now: Date;
-  }) => string;
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
   const projectDir = join(rootDir, "src/projects", projectId);
@@ -88,17 +81,18 @@ export const runProductionStart = async ({
       readJsonArtifact(paths.storyCheck, "reviews/story-check.json"),
       readJsonArtifact(paths.requirements, "production/requirements.json"),
     ]);
+  const source = {
+    brief: brief.raw,
+    story: story.raw,
+    narration: narration.raw,
+    render: render.raw,
+    storyCheck: storyCheck.raw,
+  } as const;
   const requirements = resolveCurrentProductionRequirements({
     requirements: ProductionRequirementsFreezeSchema.parse(
       requirementsArtifact.raw,
     ),
-    source: {
-      brief: brief.raw,
-      story: story.raw,
-      narration: narration.raw,
-      render: render.raw,
-      storyCheck: storyCheck.raw,
-    },
+    source,
     sourceChecksums: {
       videoBrief: brief.checksum,
       storySpec: story.checksum,
@@ -112,6 +106,27 @@ export const runProductionStart = async ({
       "Production requirements do not belong to the requested project.",
     );
   }
+  return { projectId, projectDir, paths, source, requirements } as const;
+};
+
+export const runProductionStart = async ({
+  rootDir,
+  projectId: rawProjectId,
+  clock = () => new Date(),
+  createRunId = defaultRunId,
+}: {
+  readonly rootDir: string;
+  readonly projectId: string;
+  readonly clock?: () => Date;
+  readonly createRunId?: (input: {
+    readonly storyId: string;
+    readonly now: Date;
+  }) => string;
+}) => {
+  const { projectId, requirements } = await loadCurrentProductionInputs({
+    rootDir,
+    projectId: rawProjectId,
+  });
   await ensureProductionProjectScaffold({
     rootDir,
     storyId: projectId,
