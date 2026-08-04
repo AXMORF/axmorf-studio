@@ -1,0 +1,109 @@
+import assert from "node:assert/strict";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import test from "node:test";
+
+import {
+  ensureProductionProjectScaffold,
+  PRODUCTION_PROJECT_SCAFFOLD_MARKER,
+  renderProductionProjectScaffold,
+} from "../../scripts/production/project-scaffold";
+
+test("writes one default-export Narrative scaffold and repeats byte-mtime stable", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-production-scaffold-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+
+  const first = await ensureProductionProjectScaffold({
+    rootDir,
+    storyId: "story-example",
+    mode: "write",
+  });
+  const bytes = await readFile(first.destination, "utf8");
+  const mtime = (await stat(first.destination)).mtimeMs;
+  assert.equal(first.written, true);
+  assert.equal(bytes, renderProductionProjectScaffold("story-example"));
+  assert.match(bytes, new RegExp(PRODUCTION_PROJECT_SCAFFOLD_MARKER));
+  assert.match(bytes, /export default StoryExampleComposition/u);
+  assert.match(bytes, /NarrativeCore/u);
+  assert.match(bytes, /CompositionAssembly/u);
+  assert.match(bytes, /staticFile/u);
+  assert.doesNotMatch(bytes, /GlobalSound|GlobalVisual|BGM|ducking/u);
+
+  const second = await ensureProductionProjectScaffold({
+    rootDir,
+    storyId: "story-example",
+    mode: "write",
+  });
+  assert.equal(second.written, false);
+  assert.equal(await readFile(first.destination, "utf8"), bytes);
+  assert.equal((await stat(first.destination)).mtimeMs, mtime);
+  await ensureProductionProjectScaffold({
+    rootDir,
+    storyId: "story-example",
+    mode: "check",
+  });
+});
+
+test("refuses to overwrite a hand-written or drifted Composition", async (context) => {
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-production-scaffold-protect-"),
+  );
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const projectDir = join(rootDir, "src/projects/gps-relativity");
+  await mkdir(projectDir, { recursive: true });
+  const destination = join(projectDir, "Composition.tsx");
+  const custom = "const Existing = () => null;\nexport default Existing;\n";
+  await writeFile(destination, custom);
+
+  await assert.rejects(
+    () =>
+      ensureProductionProjectScaffold({
+        rootDir,
+        storyId: "gps-relativity",
+        mode: "write",
+      }),
+    /non-template|refuse|hand-written/i,
+  );
+  assert.equal(await readFile(destination, "utf8"), custom);
+
+  await rm(destination);
+  await ensureProductionProjectScaffold({
+    rootDir,
+    storyId: "gps-relativity",
+    mode: "write",
+  });
+  const generated = await readFile(destination, "utf8");
+  await writeFile(destination, `${generated} `);
+  await assert.rejects(
+    () =>
+      ensureProductionProjectScaffold({
+        rootDir,
+        storyId: "gps-relativity",
+        mode: "write",
+      }),
+    /drift/i,
+  );
+  assert.equal(await readFile(destination, "utf8"), `${generated} `);
+});
+
+test("check mode never creates a missing scaffold", async (context) => {
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-production-scaffold-check-"),
+  );
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  await assert.rejects(() =>
+    ensureProductionProjectScaffold({
+      rootDir,
+      storyId: "story-example",
+      mode: "check",
+    }),
+  );
+});

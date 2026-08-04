@@ -1,0 +1,207 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import {
+  access,
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import test, { type TestContext } from "node:test";
+
+import {
+  buildProductionRequirementsFreeze,
+  computeGenerationInputFingerprint,
+  computeStoryFingerprint,
+  NarrationSpecSchema,
+  STORY_CHECK_IDS,
+  StoryCheckReportSchema,
+  StorySpecSchema,
+} from "../../src/contracts";
+import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
+import { runProductionStart } from "../../scripts/production/start";
+import {
+  validNarrationSpec,
+  validProjectSource,
+  validStorySpec,
+} from "../fixtures/narrative";
+
+const fixedNow = new Date("2026-08-04T00:00:00.000Z");
+const fixedRunId = "story-example-run-001";
+
+const checksum = (bytes: string) =>
+  `sha256:${createHash("sha256").update(bytes).digest("hex")}` as const;
+
+const jsonBytes = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
+
+const writeJson = async (path: string, value: unknown) => {
+  await mkdir(dirname(path), { recursive: true });
+  const bytes = jsonBytes(value);
+  await writeFile(path, bytes);
+  return checksum(bytes);
+};
+
+const createStartFixture = async (context: TestContext) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-production-start-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const projectDir = join(rootDir, "src/projects/story-example");
+  const story = StorySpecSchema.parse(validStorySpec);
+  const narration = NarrationSpecSchema.parse(validNarrationSpec);
+  const storyCheck = StoryCheckReportSchema.parse({
+    schemaVersion: 1,
+    storyId: story.storyId,
+    storyFingerprint: computeStoryFingerprint(story),
+    generationInputFingerprint: computeGenerationInputFingerprint(
+      story,
+      narration,
+    ),
+    voiceProfileId: narration.voiceProfileId,
+    decision: "proceed",
+    checks: STORY_CHECK_IDS.map((checkId) => ({
+      checkId,
+      status: "pass",
+      note: `Checked ${checkId}.`,
+    })),
+  });
+  const source = { ...validProjectSource, storyCheck } as const;
+  const sourceChecksums = {
+    videoBrief: await writeJson(join(projectDir, "brief.json"), source.brief),
+    storySpec: await writeJson(join(projectDir, "story.json"), source.story),
+    narrationSpec: await writeJson(
+      join(projectDir, "narration.json"),
+      source.narration,
+    ),
+    renderSpec: await writeJson(join(projectDir, "render.json"), source.render),
+    storyCheck: await writeJson(
+      join(projectDir, "reviews/story-check.json"),
+      source.storyCheck,
+    ),
+  };
+  const requirements = buildProductionRequirementsFreeze({
+    source,
+    sourceChecksums,
+    enhancementSelection: {
+      storyVisual: "required",
+      sceneLocalSound: "allowed",
+      globalSound: "none",
+      globalVisual: "none",
+    },
+    resourcePolicy: {
+      selfAuthoredVisualsAllowed: true,
+      unlistedThirdPartyResources: "deny",
+    },
+    additionalRequirements: [],
+  });
+  await writeJson(
+    join(projectDir, "production/requirements.json"),
+    requirements,
+  );
+  return { rootDir, projectDir, requirements, source };
+};
+
+const start = (rootDir: string) =>
+  runProductionStart({
+    rootDir,
+    projectId: "story-example",
+    clock: () => fixedNow,
+    createRunId: () => fixedRunId,
+  });
+
+test("starts one immutable contract-bound run and records its first event", async (context) => {
+  const fixture = await createStartFixture(context);
+  const result = await start(fixture.rootDir);
+
+  assert.deepEqual(result, {
+    runId: fixedRunId,
+    status: "initialized",
+    statePath: `.producer-runs/${fixedRunId}/state.generated.json`,
+    requirementsFingerprint: fixture.requirements.requirementsFingerprint,
+  });
+  const loaded = await readProductionRunStore({
+    rootDir: fixture.rootDir,
+    runId: fixedRunId,
+  });
+  assert.equal(loaded.events.length, 1);
+  assert.equal(loaded.events[0]?.type, "stage-succeeded");
+  assert.equal(loaded.state.state, "initialized");
+  assert.equal(loaded.state.lastSequence, 1);
+  assert.match(
+    await readFile(join(fixture.projectDir, "Composition.tsx"), "utf8"),
+    /export default/u,
+  );
+});
+
+test("rejects malformed or stale requirements before creating a run or scaffold", async (context) => {
+  const malformed = await createStartFixture(context);
+  const requirementsPath = join(
+    malformed.projectDir,
+    "production/requirements.json",
+  );
+  await writeJson(requirementsPath, {
+    ...malformed.requirements,
+    providerEndpoint: "https://private.example",
+  });
+  await assert.rejects(() => start(malformed.rootDir));
+  await assert.rejects(() =>
+    access(join(malformed.projectDir, "Composition.tsx")),
+  );
+  await assert.rejects(() =>
+    access(join(malformed.rootDir, ".producer-runs", fixedRunId)),
+  );
+
+  const stale = await createStartFixture(context);
+  await writeJson(join(stale.projectDir, "render.json"), {
+    ...stale.source.render,
+    width: stale.source.render.width + 2,
+  });
+  await assert.rejects(
+    () => start(stale.rootDir),
+    /source binding|normalized/i,
+  );
+  await assert.rejects(() => access(join(stale.projectDir, "Composition.tsx")));
+  await assert.rejects(() =>
+    access(join(stale.rootDir, ".producer-runs", fixedRunId)),
+  );
+});
+
+test("runId collision fails closed without changing current run or scaffold", async (context) => {
+  const fixture = await createStartFixture(context);
+  await start(fixture.rootDir);
+  const runPath = join(
+    fixture.rootDir,
+    ".producer-runs",
+    fixedRunId,
+    "run.json",
+  );
+  const scaffoldPath = join(fixture.projectDir, "Composition.tsx");
+  const beforeRun = await readFile(runPath);
+  const beforeScaffold = await readFile(scaffoldPath);
+  const runMtime = (await stat(runPath)).mtimeMs;
+  const scaffoldMtime = (await stat(scaffoldPath)).mtimeMs;
+
+  await assert.rejects(() => start(fixture.rootDir), /collision/i);
+  assert.deepEqual(await readFile(runPath), beforeRun);
+  assert.deepEqual(await readFile(scaffoldPath), beforeScaffold);
+  assert.equal((await stat(runPath)).mtimeMs, runMtime);
+  assert.equal((await stat(scaffoldPath)).mtimeMs, scaffoldMtime);
+});
+
+test("an existing non-template Composition is never overwritten", async (context) => {
+  const fixture = await createStartFixture(context);
+  const compositionPath = join(fixture.projectDir, "Composition.tsx");
+  const custom = "const Custom = () => null;\nexport default Custom;\n";
+  await writeFile(compositionPath, custom);
+
+  await assert.rejects(
+    () => start(fixture.rootDir),
+    /non-template|refuse|hand-written/i,
+  );
+  assert.equal(await readFile(compositionPath, "utf8"), custom);
+  await assert.rejects(() =>
+    access(join(fixture.rootDir, ".producer-runs", fixedRunId)),
+  );
+});
