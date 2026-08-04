@@ -194,11 +194,16 @@ export const markProductionSceneInputsFrozen = async ({
   rootDir,
   runId,
   assignmentFingerprint = sha("f"),
+  assignmentFingerprints,
   occurredAt = FIXED_PRODUCTION_NOW.toISOString(),
 }: {
   readonly rootDir: string;
   readonly runId: string;
   readonly assignmentFingerprint?: string;
+  readonly assignmentFingerprints?: readonly {
+    readonly meaningId: string;
+    readonly fingerprint: string;
+  }[];
   readonly occurredAt?: string;
 }) => {
   let loaded = await readProductionRunStore({ rootDir, runId });
@@ -239,14 +244,15 @@ export const markProductionSceneInputsFrozen = async ({
         fingerprint: loaded.run.requirementsFingerprint,
       },
     ],
-    outputArtifacts: [
-      {
-        artifactId: "scene-assignment.opening",
-        repositoryPath:
-          "src/projects/story-example/production/scene-assignments/opening.generated.json",
-        fingerprint: assignmentFingerprint,
-      },
-    ],
+    outputArtifacts: (
+      assignmentFingerprints ?? [
+        { meaningId: "opening", fingerprint: assignmentFingerprint },
+      ]
+    ).map(({ meaningId, fingerprint }) => ({
+      artifactId: `scene-assignment.${meaningId}`,
+      repositoryPath: `src/projects/story-example/production/scene-assignments/${meaningId}.generated.json`,
+      fingerprint,
+    })),
   });
   await appendProductionRunEvent({ rootDir, runId, event: succeeded });
 };

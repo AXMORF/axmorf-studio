@@ -12,6 +12,7 @@ import { runProductionNarrative } from "./narrative";
 import { runProductionSceneFail } from "./scene-fail";
 import { runProductionSceneFreeze } from "./scene-freeze";
 import { runProductionSceneSubmit } from "./scene-submit";
+import { runProductionWatch } from "./watch";
 
 type ProductionCliContext = Readonly<{
   rootDir: string;
@@ -43,6 +44,10 @@ type ProductionCliContext = Readonly<{
     readonly meaningId: string;
     readonly code: string;
     readonly description: string;
+  }) => Promise<unknown>;
+  watch?: (request: {
+    readonly rootDir: string;
+    readonly runId: string;
   }) => Promise<unknown>;
 }>;
 
@@ -120,6 +125,11 @@ export const runProductionCli = async (
           runId,
           meaningId,
         });
+  } else if (args.length === 3 && args[0] === "watch" && args[1] === "--run") {
+    const runId = ProductionRunIdSchema.parse(args[2]);
+    result = context.watch
+      ? await context.watch({ rootDir: context.rootDir, runId })
+      : await runProductionWatch({ rootDir: context.rootDir, runId });
   } else if (
     args.length === 9 &&
     args[0] === "scene-fail" &&
