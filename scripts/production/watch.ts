@@ -18,6 +18,7 @@ import {
 } from "./adapters/run-store";
 import { createProductionStageEvent } from "./domain/events";
 import { createExpectedProductionError } from "./domain/errors";
+import { runProductionPostScene } from "./post-scene";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
 
 type CurrentAssignments = Readonly<{
@@ -290,7 +291,7 @@ export const runProductionWatch = async ({
   scheduler = defaultScheduler,
   resolveAssignments = defaultResolveAssignments,
   verifySuccess = defaultVerifySuccess,
-  postScene = async () => undefined,
+  postScene = runProductionPostScene,
 }: {
   readonly rootDir: string;
   readonly runId: string;

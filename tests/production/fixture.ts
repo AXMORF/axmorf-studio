@@ -256,3 +256,103 @@ export const markProductionSceneInputsFrozen = async ({
   });
   await appendProductionRunEvent({ rootDir, runId, event: succeeded });
 };
+
+export const markProductionPostSceneRunning = async ({
+  rootDir,
+  runId,
+  sceneResults,
+  occurredAt = FIXED_PRODUCTION_NOW.toISOString(),
+}: {
+  readonly rootDir: string;
+  readonly runId: string;
+  readonly sceneResults: readonly {
+    readonly meaningId: string;
+    readonly assignmentFingerprint: string;
+    readonly resultFingerprint: string;
+  }[];
+  readonly occurredAt?: string;
+}) => {
+  let loaded = await readProductionRunStore({ rootDir, runId });
+  await appendProductionRunEvent({
+    rootDir,
+    runId,
+    event: createProductionStageEvent({
+      type: "stage-started",
+      runId: loaded.run.runId,
+      storyId: loaded.run.storyId,
+      sequence: loaded.state.lastSequence + 1,
+      eventId: "scenes-started-test",
+      stageId: "scenes",
+      attempt: 1,
+      occurredAt,
+      commandId: "production-watch",
+      previousStateFingerprint: loaded.state.stateFingerprint,
+      inputFingerprints: [
+        {
+          artifactId: "requirements",
+          fingerprint: loaded.run.requirementsFingerprint,
+        },
+      ],
+    }),
+  });
+  for (const scene of sceneResults) {
+    loaded = await readProductionRunStore({ rootDir, runId });
+    await appendProductionRunEvent({
+      rootDir,
+      runId,
+      event: createProductionStageEvent({
+        type: "scene-result-accepted",
+        runId: loaded.run.runId,
+        storyId: loaded.run.storyId,
+        sequence: loaded.state.lastSequence + 1,
+        eventId: `scene-${scene.meaningId}-accepted-test`,
+        stageId: "scenes",
+        attempt: 1,
+        occurredAt,
+        commandId: "production-watch",
+        previousStateFingerprint: loaded.state.stateFingerprint,
+        inputFingerprints: [
+          {
+            artifactId: `scene-assignment.${scene.meaningId}`,
+            fingerprint: scene.assignmentFingerprint,
+          },
+        ],
+        meaningId: scene.meaningId,
+        sceneResultFingerprint: scene.resultFingerprint,
+        outputArtifacts: [
+          {
+            artifactId: `scene-result.${scene.meaningId}`,
+            repositoryPath: `.producer-runs/${runId}/scene-results/${scene.meaningId}.json`,
+            fingerprint: scene.resultFingerprint,
+          },
+        ],
+      }),
+    });
+  }
+  loaded = await readProductionRunStore({ rootDir, runId });
+  await appendProductionRunEvent({
+    rootDir,
+    runId,
+    event: createProductionStageEvent({
+      type: "stage-succeeded",
+      runId: loaded.run.runId,
+      storyId: loaded.run.storyId,
+      sequence: loaded.state.lastSequence + 1,
+      eventId: "scenes-succeeded-test",
+      stageId: "scenes",
+      attempt: 1,
+      occurredAt,
+      commandId: "production-watch",
+      previousStateFingerprint: loaded.state.stateFingerprint,
+      inputFingerprints: sceneResults.map((scene) => ({
+        artifactId: `scene-assignment.${scene.meaningId}`,
+        fingerprint: scene.assignmentFingerprint,
+      })),
+      outputArtifacts: sceneResults.map((scene) => ({
+        artifactId: `scene-result.${scene.meaningId}`,
+        repositoryPath: `.producer-runs/${runId}/scene-results/${scene.meaningId}.json`,
+        fingerprint: scene.resultFingerprint,
+      })),
+    }),
+  });
+};

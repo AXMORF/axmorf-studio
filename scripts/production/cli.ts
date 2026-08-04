@@ -9,6 +9,7 @@ import { redactProductionErrorDescription } from "./adapters/error-redaction";
 import { readProductionRunStore } from "./adapters/run-store";
 import { runProductionStart } from "./start";
 import { runProductionNarrative } from "./narrative";
+import { runProductionPostScene } from "./post-scene";
 import { runProductionSceneFail } from "./scene-fail";
 import { runProductionSceneFreeze } from "./scene-freeze";
 import { runProductionSceneSubmit } from "./scene-submit";
@@ -46,6 +47,10 @@ type ProductionCliContext = Readonly<{
     readonly description: string;
   }) => Promise<unknown>;
   watch?: (request: {
+    readonly rootDir: string;
+    readonly runId: string;
+  }) => Promise<unknown>;
+  previewCheck?: (request: {
     readonly rootDir: string;
     readonly runId: string;
   }) => Promise<unknown>;
@@ -130,6 +135,15 @@ export const runProductionCli = async (
     result = context.watch
       ? await context.watch({ rootDir: context.rootDir, runId })
       : await runProductionWatch({ rootDir: context.rootDir, runId });
+  } else if (
+    args.length === 3 &&
+    args[0] === "preview-check" &&
+    args[1] === "--run"
+  ) {
+    const runId = ProductionRunIdSchema.parse(args[2]);
+    result = context.previewCheck
+      ? await context.previewCheck({ rootDir: context.rootDir, runId })
+      : await runProductionPostScene({ rootDir: context.rootDir, runId });
   } else if (
     args.length === 9 &&
     args[0] === "scene-fail" &&
