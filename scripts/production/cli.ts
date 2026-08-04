@@ -5,6 +5,7 @@ import { redactProductionErrorDescription } from "./adapters/error-redaction";
 import { readProductionRunStore } from "./adapters/run-store";
 import { runProductionStart } from "./start";
 import { runProductionNarrative } from "./narrative";
+import { runProductionSceneFreeze } from "./scene-freeze";
 
 type ProductionCliContext = Readonly<{
   rootDir: string;
@@ -18,6 +19,10 @@ type ProductionCliContext = Readonly<{
     readonly runId: string;
   }) => Promise<unknown>;
   narrative?: (request: {
+    readonly rootDir: string;
+    readonly runId: string;
+  }) => Promise<unknown>;
+  sceneFreeze?: (request: {
     readonly rootDir: string;
     readonly runId: string;
   }) => Promise<unknown>;
@@ -51,7 +56,7 @@ export const runProductionCli = async (
 ) => {
   if (args.length !== 3) {
     throw new Error(
-      "Expected start --project <storyId>, status --run <runId>, or narrative --run <runId>.",
+      "Expected an exact production command with one --project or --run value.",
     );
   }
   let result: unknown;
@@ -70,9 +75,14 @@ export const runProductionCli = async (
     result = context.narrative
       ? await context.narrative({ rootDir: context.rootDir, runId })
       : await runProductionNarrative({ rootDir: context.rootDir, runId });
+  } else if (args[0] === "scene-freeze" && args[1] === "--run") {
+    const runId = ProductionRunIdSchema.parse(args[2]);
+    result = context.sceneFreeze
+      ? await context.sceneFreeze({ rootDir: context.rootDir, runId })
+      : await runProductionSceneFreeze({ rootDir: context.rootDir, runId });
   } else {
     throw new Error(
-      "Expected start --project <storyId>, status --run <runId>, or narrative --run <runId>.",
+      "Expected an exact production command with one --project or --run value.",
     );
   }
   context.stdout(JSON.stringify(result));

@@ -15,6 +15,7 @@ export * from "./narration";
 export * from "./primitives";
 export * from "./production-requirements";
 export * from "./production-run";
+export * from "./production-scene-result";
 export * from "./project";
 export * from "./reference-fidelity";
 export * from "./render";

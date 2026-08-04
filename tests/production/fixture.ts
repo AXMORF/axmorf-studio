@@ -8,10 +8,18 @@ import {
   computeGenerationInputFingerprint,
   computeStoryFingerprint,
   NarrationSpecSchema,
+  RenderSpecSchema,
   STORY_CHECK_IDS,
   StoryCheckReportSchema,
   StorySpecSchema,
+  VideoBriefSchema,
+  type ProductionRequirement,
 } from "../../src/contracts";
+import {
+  appendProductionRunEvent,
+  readProductionRunStore,
+} from "../../scripts/production/adapters/run-store";
+import { createProductionStageEvent } from "../../scripts/production/domain/events";
 import { runProductionStart } from "../../scripts/production/start";
 import {
   validNarrationSpec,
@@ -34,6 +42,9 @@ export const writeProductionJson = async (path: string, value: unknown) => {
 export const createProductionFixture = async (
   context: TestContext,
   rootDir: string,
+  options: Readonly<{
+    additionalRequirements?: readonly ProductionRequirement[];
+  }> = {},
 ) => {
   const projectDir = join(rootDir, "src/projects/story-example");
   const story = StorySpecSchema.parse(validStorySpec);
@@ -54,7 +65,13 @@ export const createProductionFixture = async (
       note: `Checked ${checkId}.`,
     })),
   });
-  const source = { ...validProjectSource, storyCheck } as const;
+  const source = {
+    brief: VideoBriefSchema.parse(validProjectSource.brief),
+    story,
+    narration,
+    render: RenderSpecSchema.parse(validProjectSource.render),
+    storyCheck,
+  } as const;
   const sourceChecksums = {
     videoBrief: await writeProductionJson(
       join(projectDir, "brief.json"),
@@ -90,7 +107,7 @@ export const createProductionFixture = async (
       selfAuthoredVisualsAllowed: true,
       unlistedThirdPartyResources: "deny",
     },
-    additionalRequirements: [],
+    additionalRequirements: options.additionalRequirements ?? [],
   });
   await writeProductionJson(
     join(projectDir, "production/requirements.json"),
@@ -110,4 +127,65 @@ export const createProductionFixture = async (
     requirements,
     runId: started.runId,
   } as const;
+};
+
+const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
+
+export const markProductionBaselineReady = async ({
+  rootDir,
+  runId,
+  occurredAt = FIXED_PRODUCTION_NOW.toISOString(),
+}: {
+  readonly rootDir: string;
+  readonly runId: string;
+  readonly occurredAt?: string;
+}) => {
+  let loaded = await readProductionRunStore({ rootDir, runId });
+  const started = createProductionStageEvent({
+    type: "stage-started",
+    runId: loaded.run.runId,
+    storyId: loaded.run.storyId,
+    sequence: loaded.state.lastSequence + 1,
+    eventId: "narrative-started-test",
+    stageId: "narrative",
+    attempt: 1,
+    occurredAt,
+    commandId: "production-narrative",
+    previousStateFingerprint: loaded.state.stateFingerprint,
+    inputFingerprints: [
+      {
+        artifactId: "requirements",
+        fingerprint: loaded.run.requirementsFingerprint,
+      },
+    ],
+  });
+  await appendProductionRunEvent({ rootDir, runId, event: started });
+  loaded = await readProductionRunStore({ rootDir, runId });
+  const succeeded = createProductionStageEvent({
+    type: "stage-succeeded",
+    runId: loaded.run.runId,
+    storyId: loaded.run.storyId,
+    sequence: loaded.state.lastSequence + 1,
+    eventId: "narrative-succeeded-test",
+    stageId: "narrative",
+    attempt: 1,
+    occurredAt,
+    commandId: "production-narrative",
+    previousStateFingerprint: loaded.state.stateFingerprint,
+    inputFingerprints: [
+      {
+        artifactId: "requirements",
+        fingerprint: loaded.run.requirementsFingerprint,
+      },
+    ],
+    outputArtifacts: [
+      {
+        artifactId: "narrative-auto-check",
+        repositoryPath: `src/projects/${loaded.run.storyId}/generated/narrative-auto-check.generated.json`,
+        fingerprint: sha("e"),
+      },
+    ],
+  });
+  await appendProductionRunEvent({ rootDir, runId, event: succeeded });
+  return { narrativeAutoCheckFingerprint: sha("e") } as const;
 };
