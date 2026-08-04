@@ -3,6 +3,7 @@
 > Status：M1–M4 Narrative Baseline、M6 Scene Runtime foundation 与 M7 GPS 正式 Scene
 > production 已实现；M8 global sound/global visual/final assembly、真实用户批准与 v2 final
 > gate 已完成。M9 第二主题、泛化报告、真实用户批准与第二份 passing v2 已完成；
+> M9.5 数据合同驱动生产编排合同、CLI、watcher 与 mechanical Preview 已实现；
 > NarrativeCheck、promotion 实施与发布仍未实现。
 
 ## 节点责任
@@ -18,11 +19,17 @@ Agent 贯穿创作与制作过程：参与创作决策、完成制作编排并�
 结构节点，也不进入正式渲染运行时。自动化只能检查和执行已确定输入，不能自行选择
 StoryBeat、Scene 方案、Shot、资源、镜头、声音或转场。
 
+M9.5 已把 Agent 与固定执行的交界落成合同：主 Agent 写冻结要求和制作简报，Scene
+Agent 只提交自己的 Scene result；append-only event ledger 和 generated state projection 由
+中央脚本单写。这里的 `ProductionRunState` 是制作期投影，不是手工状态，也不进入 Remotion
+runtime。
+
 ## 当前设计顺序
 
 Scene 外部叙事生产主链按以下顺序推进：
 
 ```text
+用户任务 → ProductionRequirementsFreeze（M9.5）
 VideoBrief → StorySpec + NarrationSpec → StoryBeat + authored ttsChunks → StoryCheck
 用户本次制作参数 → RenderSpec（结构化与机械校验，不二次确认）
 StoryCheck → VoxCPM generation boundary → sealed narration
@@ -409,6 +416,27 @@ ExternalReferenceSnapshot、相邻连续性摘要和检查要求；子 Agent 只
   visual/sound 投影，并执行跨 Scene 连续性和最终预览；
 - 子 Agent 找不到资源、时间窗口无法容纳方案或输入自相矛盾时，必须返回显式 fallback 或
   fail 状态，不得扩展 Beat 时长或修改共享输入。
+
+M9.5 第一版已把上述手工汇总边界收紧为以下固定流程：
+
+- 主 Agent 在 TTS 前先冻结 `ProductionRequirementsFreeze`，其中绑定 RenderSpec 的画幅/fps/
+  字幕要求、NarrationSpec 的 voice profile 和所有结构化额外要求；
+- Baseline 后，主 Agent 冻结 `StoryResourcePool` 和 `SceneProductionBrief`。候选池覆盖整个
+  Story 可能使用的批准资源，不替 Scene 做精确选择；
+- 固定 freeze script 为每个 meaningId 生成只读 `SceneAssignment`，绑定 requirements/style/
+  timing/pool fingerprints 和独占路径；
+- Scene Agent 可以精确选择候选池子集或零资源，也可 project-local 自行实现；池外资源和
+  共享输入修改 fail closed；
+- Scene Agent 通过 submit/fail CLI 生成 `SceneProductionResult`，不写 coverage、registry、
+  Composition、中央 events 或 state；
+- watcher 轮询结果；任一 error/timeout/malformed/stale 即停止，全部 success 后由固定脚本
+  生成 coverage、registry、projection、Composition 和机械 Preview；
+- M9.5 不运行 SceneVisualCheck/SceneSoundCheck 的 Agent 审美结论，成功只表示
+  `mechanically-ready`，语义和审美留给用户完整预览。
+
+当前 Codex 主 Agent 在 watcher 和 Scene Agent 工作期间必须保持任务运行，但可以逻辑上只等待。
+repo 内脚本不创建/托管 Agent，也不承诺主任务结束后的 detached lifecycle。完整计划见
+[M9.5 Contract-driven Production Orchestration Plan](superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md)。
 
 ## 外部镜头参考边界
 

@@ -1,20 +1,22 @@
 # 最终产品目标
 
-> 当前实现：M1–M4 Narrative Baseline、M6 Scene Runtime foundation、M7 GPS 正式 Scene
-> production 与 M8 global sound/global visual/final assembly 已完成；M6 synthetic proof 仍与
-> 正式 Story 隔离。第二主题泛化与发布尚未开始。
+> 当前实现：M1–M9.5 已完成；GPS 与 ProductComicVertical 两条正式生产链都已有 current 用户
+> 批准和 passing `final-mechanical-check-v2`。M9.5 数据合同驱动生产编排已实现，但没有创建新
+> 作品、用户批准或发布事实；M10 发布尚未开始。
 
 ## 一句话目标
 
 把“内容到完整视频”拆成稳定的叙事主线和可独立替换的 Scene 视听制作任务：即使没有
 Scene 与其他增强，旁白和字幕也能完整讲完故事；画面与 Scene 局部声音主要在 Scene 层
-按 StoryBeat 持续提升。
+按 StoryBeat 持续提升。重复生产时，Agent 只负责创作与冻结，固定脚本通过严格成功/错误
+合同推进状态、等待 Scene 结果并装配机械可用的完整预览。
 
 ## 最终结构
 
 ```mermaid
 flowchart TB
-    User["用户内容 / 主题 / 资料"] --> Story["Story"]
+    User["用户内容 / 主题 / 资料 / 制作要求"] --> Requirements["ProductionRequirementsFreeze<br/>画幅 / voice profile / 额外要求"]
+    Requirements --> Story["Story"]
     Story -->|"1:N 有序"| Beat["StoryBeat<br/>单一语义 / meaningId"]
 
     Beat -->|"1:1"| Chunks["authored ttsChunks"]
@@ -27,7 +29,7 @@ flowchart TB
     Beat --> Core
     Registry["Generated Static ProjectRegistry<br/>lazyComponent loader"] --> Composition
 
-    User --> Style["VisualStyleSpec<br/>全片画风权威"]
+    Requirements --> Style["VisualStyleSpec<br/>全片画风权威"]
     Catalog --> Style
     Upstream["video-shotcraft / approved upstream"] --> Snapshot["ExternalReferenceSnapshot<br/>immutable commit / index / license"]
     Snapshot --> Catalog
@@ -46,6 +48,11 @@ flowchart TB
     GlobalSound["全局 BGM / 跨 Scene ambience / ducking"] --> Sound
     Sound --> Composition
     Global["全局视觉层"] --> Composition
+    Requirements --> Run["ProductionRun<br/>合同事件与派生状态"]
+    Package --> SceneResult["SceneProductionResult<br/>子 Agent 固定提交"]
+    SceneResult --> Run
+    Run --> AssembleStep["固定制作期装配脚本"]
+    AssembleStep --> Composition
 ```
 
 ```text
@@ -75,6 +82,11 @@ Scene 与转场同时服务 StoryBeat 语义、全片画风和实测时间，不
 ExternalReferenceSnapshot 不是第四个创作权威。它只证明 Scene Agent 参考了哪一个不可变
 上游版本、哪张镜头卡/样片/准确 demo，以及允许怎样本地化；具体是否选择、如何服务当前
 StoryBeat，仍由 SceneVisualPlan 决定。
+
+`ProductionRequirementsFreeze` 也不取代这三个领域权威。它是用户制作要求与当前
+VideoBrief/Story/NarrationSpec/RenderSpec/StoryCheck identities 的冻结外壳，确保画幅、voice
+profile、字幕、资源政策和额外要求不会只留在 Agent 对话记忆里。它的可读摘要必须与所绑定
+源合同一致，不能形成第二份相互矛盾的 authority。
 
 ## 实施顺序与依赖方向
 
@@ -112,6 +124,11 @@ checker 推导。
 系统节点分为 `创作决策`、`制作编排` 和 `确定性执行`。Agent 贯穿前两类工作并调用
 确定性工具，但正式渲染运行时不调用 Agent 或 skill。具体标注见
 [ARCHITECTURE.md](ARCHITECTURE.md)。
+
+M9.5 已把制作编排状态分成 append-only `ProductionStageEvent`、每 Scene 独立
+`SceneProductionResult` 和由它们与 current fingerprints 复算的 `ProductionRunState`。Scene
+Agent 只通过固定 submit/fail CLI 提交自己的结果，中央脚本是状态单写者；主 Agent 分发后
+保持任务运行并等待 watcher。运行时仍不调用 Agent、skill、MCP、Git 或网络。
 
 ## 不可偷换的边界
 
@@ -175,6 +192,11 @@ checker 推导。
    按需加载组件，并在 Scene 阶段用 composition-local RendererRegistry 绑定 Scene renderer；
 7. 以少量机械检查、批量 ScenePackage 视听审核和一次最终预览批准完成交付；
 8. 在用户明确批准后，把被多个真实主题证明的能力提升到共享层。
+
+M9.5 第一版稳定流程把第 7 项收敛为“Scene 只做固定机械检查，整片 MP4 到达
+`preview-ready` 后由用户判断语义和审美”；不自动生成 BGM、跨 Scene ambience、ducking 或
+GlobalVisualLayers，也不把机械 ready 冒充用户批准。历史 GPS/M9 的 Agent review 与
+FinalPreviewApproval 仍保持原有事实，不被新流程反向改写。
 
 确定性执行的具体实现边界见
 [DETERMINISTIC_EXECUTION.md](DETERMINISTIC_EXECUTION.md)。

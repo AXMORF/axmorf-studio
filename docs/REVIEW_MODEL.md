@@ -5,30 +5,36 @@
 ```mermaid
 flowchart LR
     Change["代码 / 数据 / 资产变化"] --> Auto["AutoCheck<br/>机械检查"]
-    Auto --> Narrative["NarrativeCheck<br/>Agent 批量叙事检查"]
-    Narrative --> Enhanced{"存在增强轨？"}
-    Enhanced -->|"否"| Preview["完整 Preview"]
-    Enhanced -->|"是"| Enhancement["EnhancementCheck<br/>按存在的轨道检查"]
-    Enhancement --> Preview
-    Preview --> User["FinalPreviewApproval<br/>用户最终创意批准"]
-    User --> Final["final-mechanical-check-v2"]
-    Final --> Render["Approved render / future release"]
+    Auto --> SceneMechanical["Scene / Assembly / Media<br/>固定机械检查"]
+    SceneMechanical --> Preview["完整 Preview<br/>mechanically-ready"]
+    Preview --> User["用户最终语义与审美判断"]
+    User --> Approval["需要交付/发布时再写<br/>FinalPreviewApproval"]
+    Approval --> Render["Approved render / future release"]
 ```
+
+这是 M9.5 已实现的第一版稳定路径：NarrativeCheck 和 EnhancementCheck 不作为自动生产
+gate；每个 Scene 只提交 strict contract 并通过固定机械检查，完整视频到达
+`preview-ready` 后由用户集中判断。M9.5 只实现到等待用户观看，不代签 Approval。
 
 ## 检查层级
 
-| 层级                 | 负责人      | 内容                                                                                                     | 是否每次阻塞用户     |
-| -------------------- | ----------- | -------------------------------------------------------------------------------------------------------- | -------------------- |
-| AutoCheck            | 脚本/运行时 | 合同、连续帧范围、封存产物、ProjectRegistry 漂移与 lazy import、fingerprint、typecheck、lint、build      | 否                   |
-| NarrativeCheck       | Agent       | Story 完整性、旁白可懂度、字幕对应、无截断和整体叙事节奏                                                 | 否，批量汇报         |
-| EnhancementCheck     | Agent       | 仅检查实际存在的 ScenePackage、global sound、global visual；SceneVisualCheck 与 SceneSoundCheck 属于此层 | 否，批量汇报         |
-| FinalPreviewApproval | 用户        | 已选择轨道装配后的完整音画节奏与最终审美                                                                 | 是，默认唯一创意批准 |
+| 层级                 | 负责人      | 内容                                                                                                   | 是否每次阻塞用户     |
+| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------ | -------------------- |
+| AutoCheck            | 脚本/运行时 | 合同、连续帧范围、封存产物、ProjectRegistry 漂移与 lazy import、fingerprint、typecheck、lint、build    | 否                   |
+| NarrativeCheck       | Agent       | 可选后续能力；Story 完整性、旁白可懂度、字幕对应、无截断和整体叙事节奏；M9.5 不实现、不阻塞            | 否                   |
+| SceneMechanicalCheck | 脚本/运行时 | assignment/package/resource/registry/projection、固定 Beat 边界、媒体画幅/帧数/流/完整解码；不判断美感 | 否                   |
+| EnhancementCheck     | Agent       | 历史 M7–M9 evidence 使用的批量 Agent review；M9.5 第一版不执行                                         | 否，按需批量汇报     |
+| FinalPreviewApproval | 用户        | 已选择轨道装配后的完整音画节奏与最终审美                                                               | 是，默认唯一创意批准 |
 
 当前已实现生成前 StoryCheck、narrative AutoCheck、M6 final-level Scene 机械基础，以及 M7
 GPS 的 evidence-bound 批量 SceneVisualCheck、SceneSoundCheck 与四个相邻连续性检查。M8
 又完成 evidence-bound GlobalSoundReview、GlobalVisualReview、FinalContinuityReview 和完整
 1× NormalSpeedReview；NarrativeCheck 仍未实现。Narrative Baseline 继续独立通过，M7/M8
 Agent review 都不新增用户审批或冒充用户决定。
+
+M9.5 不删除这些历史 review records，也不把它们推广成新作品的前置条件。新稳定流程只生成
+`ProductionPreviewEvidence` 的机械事实；用户发现某个 Scene 语义或审美不合格时，后续单独
+重做该 Scene。定点修改流程不属于 M9.5 第一次正常制作状态机。
 
 在调用 VoxCPM 前另有一次 Agent 内部 `StoryCheck`，用于检查 StoryBeat 顺序、已创作的
 `ttsChunks` 和 voice profile 选择。它是生成前的成本控制，不是新的用户批准节点。

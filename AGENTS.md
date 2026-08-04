@@ -57,7 +57,17 @@
   ambience、确定性 ducking、`FinalSoundProjection`、project-local `GlobalVisualLayers`、
   `FinalAssembly`、完整正常速度最终预览、用户 `FinalPreviewApproval` 和 passing
   `final-mechanical-check-v2`。M6 synthetic proof 仍不是正式 Story Scene。
-- NarrativeCheck、第二主题泛化与发布工具没有实现；M9 尚未开始，必须另行规划和授权。
+- M9 已用 `product-comic-vertical` 完成第二主题、真实用户批准、passing v2、42-case matrix
+  和泛化报告。M9.5 已按
+  `docs/superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md`
+  实现数据合同驱动生产编排：`ProductionRequirementsFreeze`、append-only ProductionRun、
+  固定 `production:*` CLI、Scene result/watcher 和无全局增强的 mechanical Preview 已落地。
+  M10 发布、NarrativeCheck 和 promotion 仍未开始。
+- M9.5 的运行状态只能由 append-only 事件、Scene result 合同和 current fingerprints 复算；
+  子 Agent 不修改中央 state，中央脚本是唯一 writer。主 Agent 分发 Scene 后保持当前任务运行
+  并等待 watcher，但 repo 脚本不创建 Agent，也不承诺主任务结束后的 detached lifecycle。
+- M9.5 第一版不生成全片 BGM、跨 Scene ambience、ducking 或独立 GlobalVisualLayers；不
+  运行 Agent Scene 审美 gate。成功终点只能是等待用户观看的 `preview-ready`，不是批准或发布。
 - M6 的 Scene 级 renderer/runtime 不得成为 Narrative Baseline 的前置条件，也不得反向修改
   Story、旁白、字幕或实测时间线。M8 不得重做五个 M7 ScenePackage；Scene-local
   ambience/SFX 仍由 ScenePackage 拥有，GlobalSoundPlan 不建立第二份 Scene SFX 权威。
@@ -107,10 +117,10 @@ proposal，并得到用户对范围、API、文件和目标位置的明确批准
 - `StoryCheck`：调用外部旁白生成前，由 Agent 检查 StoryBeat 顺序、`ttsChunks`、叙事完整
   性和 voice profile 选择，不阻塞用户；
 - `NarrativeCheck`：Agent 批量检查 Story 完整性、旁白可懂度、字幕对应和叙事节奏；
-- `SceneVisualCheck`：在 Scene 阶段批量检查 Scene 语义、构图、运动与连续性；GPS M7 已有
-  current evidence-bound 批量记录；
-- `SceneSoundCheck`：在 Scene 阶段批量检查 Scene 局部 ambience/SFX、同步、音量与固定 Beat
-  窗口；GPS M7 已有 current evidence-bound 批量记录；
+- `SceneVisualCheck`：历史 M7–M9 在 Scene 阶段使用的批量 Agent 语义、构图、运动与连续性
+  记录；M9.5 第一版不把它作为新作品 gate；
+- `SceneSoundCheck`：历史 M7–M9 使用的 Scene 局部 ambience/SFX、同步、音量与固定 Beat
+  窗口 Agent 记录；M9.5 第一版只做脚本机械检查；
 - `FinalPreviewApproval`：默认唯一必须由用户作出的创意批准；GPS M8 已有 current、
   checksum-bound 的正式批准，任何装配或媒体 identity 变化都会使其失效；
 - Shotcraft fidelity 仅在 Scene 显式选择 Shotcraft recipe 时执行；exact 模式必须证明 immutable

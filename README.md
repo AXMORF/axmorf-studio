@@ -28,6 +28,10 @@ M9 已用 `product-comic-vertical` 完成第二个真实主题：high-fidelity c
 设计系统、十个独立 ScenePackage、Shotcraft 104/161/161 全量 coverage、一个 exact demo、
 完整最终媒体、用户批准、42 类失效矩阵和 passing v2；泛化结论只提出三个 promotion
 proposal，没有提升共享能力。
+M9.5 已把完整制作要求冻结、Narrative Baseline runner、Story 级候选资源池、逐 Scene 结果
+合同、中央 watcher 和无全局增强的机械 Preview 接成固定、可恢复、fail-closed 的流程。运行
+状态由 append-only events、Scene result contracts 和 current fingerprints 复算；中央脚本是
+唯一 writer。成功终点只到 `preview-ready / awaiting-user-preview`，不代表用户批准或发布。
 
 ## 当前状态
 
@@ -87,10 +91,15 @@ M7 第一套正式 Scene production、M8 最终装配闭环和 M9 第二主题�
   用户批准、15 项 passing v2 final report 和 42-case fail-closed matrix；
 - 四类 M9 泛化报告与三个 `proposal-only` promotion 候选；M9 漫画、Scene、GlobalVisual、
   audio 和 evidence orchestration 仍为 project-local；
+- strict `ProductionRequirementsFreeze`、append-only `ProductionStageEvent`、派生
+  `ProductionRunState`、Story 级资源池、逐 meaningId assignment/result 和中央 watcher；
+- 固定 `production:*` CLI、可恢复 narrative runner、无全局 BGM/ambience/ducking/
+  GlobalVisualLayers 的 PreviewAssembly，以及只表示 mechanically-ready 的 Preview evidence；
+- fake provider/process/clock/scheduler 驱动的完整两 Scene 编排 proof、失败矩阵与幂等验证；
 - 规范目录、外部生产流程、合同参考和目标设计文档。
 
-NarrativeCheck、已提案 capability 的实际 promotion、发布流程和新 skills 仍未实现；M10
-尚未开始，也不会因 M9 closeout 自动启动。
+NarrativeCheck、用户预览后的 Scene 修改循环、已提案 capability 的实际 promotion、发布
+流程和新 skills 仍未实现；Roadmap 下一项为 M10，但不会因 M9.5 closeout 自动启动。
 M5–M7 已批准文档见
 [M5 ScenePackage 视听制作规格](docs/superpowers/plans/2026-08-02-m5-scene-package-production-specification.md)、
 [M6 Scene Runtime 实施计划](docs/superpowers/plans/2026-08-02-m6-scene-runtime-implementation-plan.md) 和
@@ -101,6 +110,9 @@ M8 已批准计划与实证见
 M9 已批准计划与实证见
 [M9 Product Comic Vertical Generalization Plan](docs/superpowers/plans/2026-08-03-m9-product-comic-vertical-generalization-plan.md) 和
 [M9 Product Comic Vertical Generalization Evidence](docs/evidence/m9-product-comic-vertical-generalization.md)。
+M9.5 实施计划与操作合同见
+[M9.5 Contract-driven Production Orchestration Plan](docs/superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md) 和
+[Production Orchestration](docs/PRODUCTION_ORCHESTRATION.md)。
 完成边界和后续里程碑见
 [最终产品目标](docs/FINAL_PRODUCT_GOAL.md) 与
 [当前实现状态](docs/ITERATION_STATUS.md)；完整实施顺序和阶段门槛见

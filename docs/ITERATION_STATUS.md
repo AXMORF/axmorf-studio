@@ -1,6 +1,6 @@
 # 当前实现状态
 
-> 更新日期：2026-08-04
+> 更新日期：2026-08-05
 
 ## 已完成
 
@@ -61,7 +61,7 @@
 - 与正常 ProjectRegistry 隔离的 `M6SceneRuntimeProof`，冻结一个 Shotcraft recipe 的两文件
   本地化闭包，真实 1920x1080/30 fps/120-frame H.264 + 单 AAC Scene-local audio evidence；
 - 已批准从 M1 合同内核、Narrative Baseline、Scene foundation 到发布收口的分阶段 Roadmap，
-  M1–M9 已完成；
+  M1–M9.5 已完成；
 - `gps-relativity` 项目级 VisualStyleSpec、五个 project-authored PCM Scene cue、五份 current
   SceneTaskInput 与五个正式 composition-local Scene renderer；
 - 五个正式 ScenePackage、全 ready SceneCoverageMap、五入口 literal RendererRegistry、两类
@@ -93,6 +93,17 @@
   `sha256:8a52e146c2edeb422a77136707a35c54fa9e5e787b0bcdd35e95b0650b8d41b2`、42-case
   fail-closed matrix、四类泛化报告和三个 `proposal-only` promotion candidates；GPS 受保护
   路径保持零差异，未执行 promotion。
+- M9.5 strict `ProductionRequirementsFreeze`、append-only run event ledger、generated state
+  projection、结构化脱敏 ProductionError、固定 `production:start/status/narrative` CLI；
+- StoryResourcePool、SceneProductionBrief、逐 meaningId SceneAssignment、独占路径、deadline、
+  Scene success/failure result contracts 与固定 submit/fail writer；
+- single-writer central watcher 对 waiting/success/expected/unexpected failure、timeout、malformed、
+  stale、unknown result 和共享输入漂移的 fail-closed 处理；
+- 无 BGM、跨 Scene ambience、ducking、GlobalVisualLayers 或 Agent Scene 审美 gate 的
+  PreviewAssembly、MP4/still/contact sheet 机械 evidence、preview checker 与
+  `preview-ready / awaiting-user-preview` 终点；
+- fake provider/process/clock/scheduler 的两 Scene orchestration proof、失败矩阵、bytes/mtime
+  幂等验证，以及 GPS/ProductComicVertical current final artifacts checksum 保护断言。
 
 ## 尚未完成
 
@@ -103,12 +114,13 @@
 - 封面与发布工具；
 - 新的 Agent skills。
 
-以上未完成项仍是目标设计，不能表述为已有产物。M9 已完成第二主题与泛化证明，但没有
-实现 NarrativeCheck、任何 promotion、发布或 M10。
+以上未完成项仍是目标设计，不能表述为已有产物。M9.5 只实现到机械
+`preview-ready / awaiting-user-preview`；没有实现用户预览后的 Scene 修改循环，也没有创建
+新作品 approval。NarrativeCheck、任何 promotion、发布或 M10 都没有实现。
 
 ## 下一里程碑
 
-M1–M9 已完成；GPS 与产品漫画两条正式证据链都已到 passing v2：
+M1–M9.5 已完成；GPS 与产品漫画两条正式证据链保持 passing v2：
 
 ```text
 VisualStyleSpec + 22-entry ResourceCatalog + five frozen SceneTaskInputs
@@ -123,8 +135,9 @@ VisualStyleSpec + 22-entry ResourceCatalog + five frozen SceneTaskInputs
 
 M9 产品漫画链在同一主合同/runtime 上完成十个 Scene、FinalAssembly、current preview
 evidence、用户批准和 final-v2；current approval fingerprint 为
-`sha256:836a7f16ddba659a69a6c28a4a9d591c31b64b0d8cdf4e35708226006661a66b`。Roadmap 中下一项为
-M10 发布收口，但当前尚未开始，必须另行规划和授权；本次 closeout 不自动进入 M10。
+`sha256:836a7f16ddba659a69a6c28a4a9d591c31b64b0d8cdf4e35708226006661a66b`。M9.5 随后完成固定
+生产编排合同、CLI、Scene watcher 和机械 Preview，但没有修改两条正式证据链。Roadmap 下一
+项为 M10 发布收口；M10 不会由本次 closeout 自动开始。
 
 批准规格、实施计划和实证分别见
 [M5 ScenePackage 视听制作规格](superpowers/plans/2026-08-02-m5-scene-package-production-specification.md)、
@@ -137,6 +150,9 @@ M8 计划与实证见
 M9 计划与实证见
 [M9 Product Comic Vertical Generalization Plan](superpowers/plans/2026-08-03-m9-product-comic-vertical-generalization-plan.md) 和
 [M9 Product Comic Vertical Generalization Evidence](evidence/m9-product-comic-vertical-generalization.md)。
+M9.5 实施计划和操作说明见
+[M9.5 Contract-driven Production Orchestration Plan](superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md) 与
+[Production Orchestration](PRODUCTION_ORCHESTRATION.md)。
 三个 promotion candidates 仍只存在于 proposal；明确批准前不提取共享能力。
 后续里程碑顺序、阶段排除项和完成门槛见 [ROADMAP.md](ROADMAP.md)。
 

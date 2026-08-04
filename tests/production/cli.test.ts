@@ -53,7 +53,7 @@ test("production CLI accepts only exact start and status forms", async () => {
   }
 });
 
-test("package scripts expose only the implemented production start/status commands", async () => {
+test("package scripts expose production commands and include production tests by default", async () => {
   const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
     scripts: Record<string, string>;
   };
@@ -65,4 +65,5 @@ test("package scripts expose only the implemented production start/status comman
     packageJson.scripts["production:status"],
     "node --import tsx scripts/production/cli.ts status",
   );
+  assert.match(packageJson.scripts.test, /tests\/production\/\*\.test\.ts/u);
 });

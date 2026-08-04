@@ -4,7 +4,8 @@
 > foundation；M7 已完成 GPS 五个正式 Scene、visual/local-sound runtime 装配、批量审核与
 > final 机械闭环；M8 已完成 global sound/global visual、最终预览、用户批准和 v2 final
 > 机械闭环；M9 已完成产品漫画第二主题、用户批准、第二份 passing v2 与泛化报告。
-> NarrativeCheck、promotion 实施与发布仍未实现。
+> M9.5 数据合同驱动生产编排合同、CLI、watcher 与 mechanical Preview 已实现；NarrativeCheck、
+> promotion 实施与发布仍未实现。
 
 ## 1. 文档范围
 
@@ -14,10 +15,12 @@
 当前设计顺序是：
 
 ```text
-先稳定叙事生产主链
-→ 冻结全片画风与每 Beat 制作输入
+冻结完整制作要求
+→ 稳定叙事生产主链
+→ 冻结全片画风、Story 级候选资源池与每 Beat 制作输入
 → 按 meaningId 并行制作内聚视听 ScenePackage
-→ 把 ScenePackage 投影到运行时增强轨并最终装配
+→ 固定脚本监控结果合同并投影、装配机械完整预览
+→ 用户观看最终预览
 ```
 
 M6 已完成 Scene 构图/Shot/renderer/局部声音/转场/选材的数据与确定性执行接口；M7 已在
@@ -116,6 +119,29 @@ flowchart TB
 判断和用户最终批准都没有被自动 gate 冒充。GPS M8 与产品漫画 M9 的用户批准都由真实用户
 对 exact checksum-bound 完整预览作出，再由只读 checker 绑定各自 evidence 和 FinalAssembly
 identity。
+
+### 3.1 M9.5 已实现稳定路径
+
+M9.5 不把“Agent 正在做什么”当作可监控状态。主 Agent 在入口写并冻结
+`ProductionRequirementsFreeze`，其中绑定 VideoBrief、Story、NarrationSpec、RenderSpec、
+StoryCheck、画幅、voice profile、字幕/安全区、资源政策和额外要求；固定 narrative runner
+随后持续执行到 `baseline-ready`。
+
+Baseline current 后，主 Agent 写 VisualStyleSpec、StoryResourcePool 和
+SceneProductionBrief。StoryResourcePool 只大致选择整个 Story 可能使用的批准资源；每个
+Scene Agent 在 assignment 内精确选择子集或零资源，也可以使用 project-local Remotion 自行
+实现。子 Agent 不改中央状态，只由固定 submit/fail CLI 写 `SceneProductionResult`。
+
+中央 watcher 是唯一状态 writer。它轮询 Scene result 合同并从 append-only events 复算
+`ProductionRunState`：任一 expected/unexpected error、timeout、malformed、stale、共享输入
+漂移或越权资源都会停止；全部 mechanically-ready 后才继续 coverage、RendererRegistry、
+projection、Composition、MP4 和机械 Preview evidence。第一版不生成 BGM、跨 Scene
+ambience、ducking 或 GlobalVisualLayers，不执行 Agent Scene 审美审核，成功终点只能是
+`preview-ready / awaiting-user-preview`。
+
+仓库脚本不负责创建 Codex 子 Agent。主 Agent 使用当前原生 Agent 能力完成分发，然后保持
+当前任务运行、等待 watcher；M9.5 不保证主任务结束后子 Agent 继续存活。完整实施边界见
+[M9.5 数据合同驱动生产编排计划](superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md)。
 
 ## 4. 阶段输入与输出
 
@@ -243,8 +269,13 @@ Draft
 → Rendered
 ```
 
-这些名称用于描述生命周期，不建立一个可被手工修改的万能 `status` 字段。当前状态必须
-由合同、产物、receipt 和 fingerprint 是否齐全且相互匹配推导。
+这些名称用于描述作品生命周期，不建立一个可被手工修改的万能 `status` 字段。当前作品
+状态必须由合同、产物、receipt 和 fingerprint 是否齐全且相互匹配推导。
+
+M9.5 的 `ProductionRunState` 是制作期运行投影，不是新的作品 authority：固定脚本先
+追加 strict `ProductionStageEvent`/`SceneProductionResult`，再从 ledger 与 current artifact
+fingerprints 复算 byte-stable state。任何手改、非法 transition 或旧 previous fingerprint 都
+fail closed；render runtime 不读取 `.producer-runs/`。
 
 GPS M8 与产品漫画 M9 当前均已到 `Approved`：完整 MP4 与 evidence checksum current，用户
 批准与 FinalAssembly identity 一致，`final-mechanical-check-v2` pass；`Rendered` 在这里指
@@ -407,10 +438,12 @@ coverage、registry/projection、批量 Scene review 与正常速度媒体 evide
 M7 ScenePackage 和 projection identity 不变的条件下完成 global sound/global visual、最终
 assembly/evidence、真实用户批准和 v2 final report。M9 又使用同一流程完成十 Scene 的 9:16
 产品漫画、完整 Shotcraft coverage、第二份用户批准/v2 和四类泛化报告，同时保持 GPS 受保护
-产物零差异。NarrativeCheck、promotion 实施与发布仍未实现。后续制作仍必须把 sealed
+产物零差异。M9.5 随后增加了合同驱动 runner/watcher、Scene 结果合同和机械 Preview；没有
+修改两套正式作品权威，也没有生成新的用户批准。NarrativeCheck、promotion 实施与发布仍未
+实现。后续制作仍必须把 sealed
 narration、SemanticTiming、StoryBeat、项目级 VisualStyleSpec 和主 Agent 冻结来源当作只读输入。
 
-## 10. M2–M9 完成事实与后续门槛
+## 10. M2–M9.5 完成事实与后续门槛
 
 M2 已满足：
 
@@ -467,3 +500,10 @@ M9 另已满足：`product-comic-vertical` 的 high-fidelity clone 旁白、十 
 global sound/visual、5116 帧最终 MP4 和 45 张 review still 均绑定 current identities。真实用户
 批准与第二份 15 项 v2 pass；42-case matrix 与四类泛化报告通过。三个 promotion candidates
 仍为 proposal-only，M10 与发布均未开始。
+
+M9.5 已用严格合同和临时两 Scene orchestration proof 证明完整制作要求第一次冻结、Baseline
+后 Scene 输入第二次冻结、Scene 独立结果合同、中央 watcher、无全局增强的机械 Preview
+pipeline、expected/unexpected error、超时、malformed/stale/shared drift 与重复执行幂等语义。
+测试使用 fake provider/process/clock/scheduler，不伪造真实作品 evidence 或用户批准。M9.5 的
+成功终点是等待用户观看的 `preview-ready / awaiting-user-preview`，不是 FinalPreviewApproval
+或发布。

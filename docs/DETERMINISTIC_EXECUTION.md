@@ -4,16 +4,19 @@
 > production 已实现；包括 Catalog、package/registry、visual/local-sound projection、批量 Agent
 > review 和 passing v1 final report。M8 global sound/global visual/final assembly、完整媒体
 > evidence、真实用户批准和 passing v2 final report 已实现。M9 第二主题、42-case matrix、
-> 泛化报告、用户批准和第二份 passing v2 已实现。NarrativeCheck、promotion 实施与发布仍为
-> 后续目标。
+> 泛化报告、用户批准和第二份 passing v2 已实现。M9.5 数据合同驱动生产编排的 strict
+> contracts、CLI、single-writer watcher 与 mechanical Preview pipeline 已实现。NarrativeCheck、
+> promotion 实施与发布仍为后续目标。
 
 ## 1. 定义
 
 确定性执行不是一个万能脚本，也不负责创作选择。它由合同校验、固定 CLI、静态组件
-注册、通用 Remotion runtime 和 fingerprint 失效机制组成。
+注册、通用 Remotion runtime 和 fingerprint 失效机制组成。M9.5 实现的 orchestrator 也
+只按固定图连接这些已有节点；它不能决定 Story、Scene 方案、精确资源或审美结果。
 
 ```text
 Agent 写入 StorySpec、NarrationSpec 和 authored ttsChunks，并结构化用户本次提供的 RenderSpec
+与完整 ProductionRequirementsFreeze
         ↓
 固定脚本校验声明并调用外部生成服务
         ↓
@@ -23,6 +26,11 @@ Remotion runtime 只读取声明和已封存本地产物
         ↓
 固定检查、证据生成与渲染
 ```
+
+M9.5 在制作期增加另一种确定性：固定脚本把 stage success/failure 和 Scene result 写成
+append-only strict events，再复算 `ProductionRunState`。脚本成功不是手工把 status 改成
+success，而是先证明输出 identity current，再提交成功事件；意外异常必须形成脱敏
+`ProductionError`。该运行状态不进入作品 fingerprint 或 Remotion runtime。
 
 系统区分三种“确定性”：
 
@@ -113,28 +121,28 @@ sound、最终 PreviewEvidence、真实用户 Approval 和 v2 final gate；M9 �
 
 ## 3. 节点与实现方式
 
-| 设计节点                    | 实现方式                                                              | 固定输出                                              |
-| --------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------- |
-| Narration generation        | 宿主机 Node 脚本调用 VoxCPM，逐 chunk 生成                            | 候选 chunk 音频；不是时间权威                         |
-| Narration seal              | 本地脚本规范化 PCM、计数 sample frame、校验、checksum、拼接和原子封存 | sealed manifest、完整 WAV、整数 sampleFrameCount      |
-| SemanticTiming / CaptionCue | 纯函数把累计样本边界统一量化为绝对帧                                  | `semantic-timing.generated.json`                      |
-| NarrativeCore               | 通用 Remotion 组件                                                    | NarrationAudioTrack、CaptionLayer                     |
-| ProjectRegistry             | bundle 前按固定一级目录生成静态元数据和字面量 lazy import             | 可枚举、按需加载的 Story Composition 注册             |
-| Narrative AutoCheck         | 固定脚本只读聚合 source、seal、timing、registry、Baseline 与 evidence | strict persisted report 与 report fingerprint         |
-| VisualStyleSpec             | Agent 在 Scene 分发前结构化并封存项目级画风                           | 全片 style profile、art direction、规则与 fingerprint |
-| ExternalReferenceSnapshot   | 显式 authoring sync 固定上游 repository/commit/index/license metadata | content-addressed 制作期来源快照                      |
-| ResourceCatalog             | 构建脚本汇总资产 manifest、capability exports 和 authoring references | 带 allowed-use 的只读目录与查询结果                   |
-| 资源解析                    | preflight 校验 resourceId、文件、类型、状态、allowed use 和授权       | 资源校验报告                                          |
-| Reference fidelity          | 固定 checker 对照准确 demo、本地源码、真实 binding 和配对证据         | pass-only receipt 或明确 not-applicable               |
-| ScenePackage                | 每 meaningId 独占目录中的视觉、局部声音、资源、参考和源码经机械封装   | visual/sound/reference/package 分层 fingerprint       |
-| SceneVisualTrack            | 通用 Scene runtime + 每个 ScenePackage 一个 renderer 入口             | 按 timing 挂载的纯视觉 Scene                          |
-| SceneSoundContribution      | 固定 audio runtime 消费 ScenePackage.SceneSoundPlan                   | Beat 固定窗口内的 ambience / SFX                      |
-| StoryBeatTransition         | 有限的固定 preset 组件                                                | hard cut 或不改变时长的 overlay                       |
+| 设计节点                    | 实现方式                                                               | 固定输出                                              |
+| --------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------- |
+| Narration generation        | 宿主机 Node 脚本调用 VoxCPM，逐 chunk 生成                             | 候选 chunk 音频；不是时间权威                         |
+| Narration seal              | 本地脚本规范化 PCM、计数 sample frame、校验、checksum、拼接和原子封存  | sealed manifest、完整 WAV、整数 sampleFrameCount      |
+| SemanticTiming / CaptionCue | 纯函数把累计样本边界统一量化为绝对帧                                   | `semantic-timing.generated.json`                      |
+| NarrativeCore               | 通用 Remotion 组件                                                     | NarrationAudioTrack、CaptionLayer                     |
+| ProjectRegistry             | bundle 前按固定一级目录生成静态元数据和字面量 lazy import              | 可枚举、按需加载的 Story Composition 注册             |
+| Narrative AutoCheck         | 固定脚本只读聚合 source、seal、timing、registry、Baseline 与 evidence  | strict persisted report 与 report fingerprint         |
+| VisualStyleSpec             | Agent 在 Scene 分发前结构化并封存项目级画风                            | 全片 style profile、art direction、规则与 fingerprint |
+| ExternalReferenceSnapshot   | 显式 authoring sync 固定上游 repository/commit/index/license metadata  | content-addressed 制作期来源快照                      |
+| ResourceCatalog             | 构建脚本汇总资产 manifest、capability exports 和 authoring references  | 带 allowed-use 的只读目录与查询结果                   |
+| 资源解析                    | preflight 校验 resourceId、文件、类型、状态、allowed use 和授权        | 资源校验报告                                          |
+| Reference fidelity          | 固定 checker 对照准确 demo、本地源码、真实 binding 和配对证据          | pass-only receipt 或明确 not-applicable               |
+| ScenePackage                | 每 meaningId 独占目录中的视觉、局部声音、资源、参考和源码经机械封装    | visual/sound/reference/package 分层 fingerprint       |
+| SceneVisualTrack            | 通用 Scene runtime + 每个 ScenePackage 一个 renderer 入口              | 按 timing 挂载的纯视觉 Scene                          |
+| SceneSoundContribution      | 固定 audio runtime 消费 ScenePackage.SceneSoundPlan                    | Beat 固定窗口内的 ambience / SFX                      |
+| StoryBeatTransition         | 有限的固定 preset 组件                                                 | hard cut 或不改变时长的 overlay                       |
 | SoundDesignTrack            | 保留 M7 Scene projection；M8 FinalSoundProjection 叠加 GlobalSoundPlan | Scene ambience/SFX + 跨 Scene ambience/BGM            |
-| Global layers               | project-local 固定组件消费 strict plan/projection 与 frame API        | frame treatment 与 GPS continuity motif               |
-| CompositionAssembly         | 显式 narrative/scene/global/sound 四槽位与固定顺序                    | fingerprint-bound 最终 Composition                    |
-| 最终审核证据                | Remotion CLI + ffprobe/FFmpeg + Node 脚本                              | still、contact sheet、完整 MP4、技术与批量 review      |
-| FinalPreviewApproval        | 用户 authoring record → pass-only generated approval                  | exact preview/evidence/assembly identity               |
+| Global layers               | project-local 固定组件消费 strict plan/projection 与 frame API         | frame treatment 与 GPS continuity motif               |
+| CompositionAssembly         | 显式 narrative/scene/global/sound 四槽位与固定顺序                     | fingerprint-bound 最终 Composition                    |
+| 最终审核证据                | Remotion CLI + ffprobe/FFmpeg + Node 脚本                              | still、contact sheet、完整 MP4、技术与批量 review     |
+| FinalPreviewApproval        | 用户 authoring record → pass-only generated approval                   | exact preview/evidence/assembly identity              |
 
 底层可共享时间线、视觉、音频和 fingerprint 贡献能力，但对外运行时装配合同保留
 `NarrativeCore`、`StoryVisualTrack`、`SoundDesignTrack` 和 `GlobalVisualLayers` 四个显式
@@ -170,6 +178,7 @@ scripts/renderer-registry/             M6 composition-local registry 生成与�
 scripts/final-assembly/                M8 FinalAssembly pass-only 生成与检查
 scripts/m8-gps/                        M8 global audio/freeze/media/evidence/approval
 scripts/m9-product/                    M9 Shotcraft/漫画/audio/media/evidence/approval
+scripts/production/                    M9.5：run ledger、narrative runner、Scene watcher、Preview
 src/remotion/runtime/narrative-core/   旁白、顶层字幕与绝对时间挂载
 src/remotion/runtime/composition-assembly/ 四个强语义聚合的显式装配
 src/remotion/runtime/story-visual/     M6 Scene 视觉、Shot 与转场时间装配
@@ -182,6 +191,7 @@ src/projects/<story>/
 ├── generated/                         timing、manifest、fingerprint 等生成数据
 ├── visual-style.json                  M6 合同；正式项目实例由 M7 创建
 ├── external-references.generated.json M6 合同/工具；正式项目实例由 M7 选择
+├── production/                        M9.5：requirements、resource pool、Scene assignments
 ├── scenes/<meaningId>/                M7 Scene 视听制作阶段；单 Agent 独占
 │   ├── visual-plan.json               Agent 画面方案
 │   ├── shot-plan.json                 Scene 内 Shot 与同步锚点声明
@@ -201,6 +211,8 @@ src/projects/project-registry.generated.ts  Story ID → 静态元数据 + 字�
 
 public/projects/<story>/narration/     已封存的旁白产物
 out/<story>/                           本地预览、证据与成片
+
+.producer-runs/<runId>/                M9.5：ignored 制作期 events/results/state/lock
 ```
 
 物理文件可以按实施计划细化，但必须保持“创作声明、实测产物、生成元数据、React
@@ -610,3 +622,7 @@ skill 负责引导 Agent 完成 Story/ttsChunks 创作、旁白生成编排，�
 工具调用。显式 authoring sync 可以访问获准的上游来源并生成 immutable snapshot；完成快照
 后，Scene 分发、fidelity 检查、正式 preview、render 和 quality runtime 只读取静态源码、
 合同数据、本地资产和已封存产物，不调用 skill、Agent、MCP 或网络服务。
+
+M9.5 的 repo CLI 不调用 skill 或 Agent API。主 Agent 仍通过当前 Codex 原生能力分发 Scene，
+再保持当前任务运行并等待 `production:watch`；watcher 只读取 strict Scene result 合同。主任务
+彻底结束后的 detached Agent lifecycle 需要外部 lifecycle owner，不属于确定性执行或 M9.5。

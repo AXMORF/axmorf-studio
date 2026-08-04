@@ -1,8 +1,9 @@
 # Remotion Story Producer Roadmap
 
-> Status：M0–M9 已完成；GPS 与 ProductComicVertical 均绑定真实用户批准并通过
-> `final-mechanical-check-v2`；M10 尚未开始
-> 更新日期：2026-08-04
+> Status：M0–M9.5 已完成；GPS 与 ProductComicVertical 均绑定真实用户批准并通过
+> `final-mechanical-check-v2`；M9.5 数据合同驱动生产编排已实现并停在
+> `preview-ready / awaiting-user-preview` 边界；M10 尚未开始
+> 更新日期：2026-08-05
 
 ## 1. 用途
 
@@ -22,10 +23,11 @@ foundation、M7 GPS 五个正式 ScenePackage，以及 M8 global sound/global vi
 
 - NarrativeCheck 和任何主观叙事质量审核；
 - 三个 promotion proposal 的实际迁移；
+- 用户预览后的定点 Scene 修改循环；
 - 发布工具。
 
-Roadmap 中下一项是 M10，但当前尚未开始；进入 M10 必须另行规划和授权。M9 的最终批准不
-等于发布，也不授权实际 promotion 或自动开始后续里程碑。
+Roadmap 中下一项为 M10；进入 M10 必须另行规划和授权。M9.5 的机械 Preview 完成不等于
+用户批准，也不等于发布、promotion 或自动开始后续里程碑。
 
 ## 3. 全局硬边界
 
@@ -61,7 +63,8 @@ flowchart LR
     M6 --> M7["M7 第一个完整 ScenePackage 证明<br/>已完成"]
     M7 --> M8["M8 Global Sound / Global Visual / Final Assembly<br/>已完成"]
     M8 --> M9["M9 第二主题与泛化<br/>已完成"]
-    M9 --> M10["M10 发布收口<br/>未开始"]
+    M9 --> M95["M9.5 合同驱动生产编排<br/>已完成"]
+    M95 --> M10["M10 发布收口<br/>未开始"]
 ```
 
 ## 5. Milestone 定义
@@ -393,6 +396,51 @@ Narrative Baseline、Shotcraft closure、voice provider 与 Scene/Final Catalog 
 受保护产物保持零差异。泛化报告把结果分为四类并生成三个 promotion proposals，但未移动
 任何 capability；NarrativeCheck、发布和 M10 均未开始。
 
+### M9.5：数据合同驱动的稳定生产编排
+
+**状态：** 2026-08-05 已按计划实现并通过完成门槛；成功终点为
+`preview-ready / awaiting-user-preview`，没有创建用户批准或发布事实。
+
+实施计划见
+[M9.5 数据合同驱动的稳定生产编排计划](superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md)。
+
+**目标：** 不改变 M1–M9 作品权威，把已经证明的 narrative、Scene 和 Preview 节点连接为
+一个可恢复、可监控、fail-closed 的固定制作流程。Agent 只负责创作和项目级冻结；脚本通过
+严格合同推进状态、保存成功/错误结果、等待所有 Scene，并在全部成功后自动装配机械可用的
+完整预览。
+
+**范围：**
+
+- `ProductionRequirementsFreeze`：在 TTS 前绑定 VideoBrief、Story、NarrationSpec、
+  RenderSpec、StoryCheck、voice profile、画幅、字幕、资源政策和额外要求；
+- `StoryResourcePool`、`SceneProductionBrief` 和逐 meaningId `SceneAssignment`：主 Agent
+  只冻结 Story 级候选池，Scene Agent 精确选择子集或零资源并可 project-local 自行实现；
+- `ProductionRun` append-only events、generated state projection、strict ProductionError、
+  SceneProductionResult 和单写者原子 store；
+- 固定 narrative runner：VoxCPM resume/seal/check、timing、registry、Baseline media、
+  evidence 与 narrative AutoCheck；
+- Scene submit/fail CLI 与中央 watcher：任一错误、超时、malformed、stale 或共享输入漂移
+  立即停止；全部 success 后自动生成 coverage、registry、projection、Composition 和 MP4；
+- 不含 BGM、跨 Scene ambience、ducking、GlobalVisualLayers 或 Agent Scene 审美 gate 的
+  versioned PreviewAssembly、机械 PreviewEvidence 和 `preview-ready` 终点；
+- current Codex 主任务在子 Agent 与 watcher 期间保持运行；repo 脚本不创建 Agent，也不
+  承诺主任务结束后子 Agent 继续存活。
+
+**明确不做：** M10 发布、网络/账号/密钥、用户预览后的 Scene 修订循环、NarrativeCheck、
+自动导演、通用 Scene DSL、promotion、detached Agent lifecycle 和用户批准代签。
+
+**完成门槛：**
+
+- 一次固定 narrative 命令可从 current authored inputs 推进到 `baseline-ready`；
+- 一 Scene 一独占目录、一 assignment、一结果合同，子 Agent 不写中央状态；
+- watcher 只读合同即可区分等待、成功、expected/unexpected failure、超时和漂移；
+- all-success 临时两 Scene proof 推进到 `preview-ready`，失败矩阵均在装配前或机械 evidence
+  前正确停止；
+- `preview-ready` 不冒充 reviewed/approved，最终语义与审美由用户观看完整 MP4；
+- GPS/ProductComicVertical current approval/evidence/report 保持 byte-for-byte current；
+- tests、typecheck、lint、docs links、catalog、registry、build、compositions 与 `npm run check`
+  全部通过。
+
 ### M10：发布收口
 
 **目标：** 在已验证生产主链之上补齐发布产物，不把发布逻辑混入 Story 或 Scene runtime。
@@ -420,6 +468,6 @@ Narrative Baseline、Shotcraft closure、voice provider 与 Scene/Final Catalog 
 
 ## 7. 后续阶段边界
 
-M1–M9 已实现并通过各自机械门。Roadmap 中下一项是 M10 发布收口，但它尚未开始；必须先
-单独编写并批准实施计划。NarrativeCheck、发布与共享 capability promotion 仍未实现，不能
-从 M9 closeout 或三个 proposal 推导为已授权工作。
+M1–M9.5 已实现并通过各自机械门。Roadmap 中下一项是 M10 发布收口，但 M10 仍必须单独
+编写并批准实施计划。NarrativeCheck、用户预览后的 Scene 修改循环、发布与共享 capability
+promotion 仍未实现，不能从 M9.5 closeout 或三个 proposal 推导为已授权工作。
