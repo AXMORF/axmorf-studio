@@ -1,5 +1,6 @@
 import type { FC } from "react";
 import { Sequence, useCurrentFrame } from "remotion";
+import { SceneSafeArea } from "../readability";
 
 import type {
   SceneRendererProps,
@@ -30,6 +31,22 @@ const MountedSceneRenderer: FC<MountedSceneRendererProps> = ({
   const sceneFrame = useCurrentFrame();
   if (sceneFrame < 0 || sceneFrame >= rendererProps.durationInFrames) {
     throw new Error("Scene renderer frame escaped its fixed Beat window.");
+  }
+  if (rendererProps.sceneBoundaryVersion === "scene-composition-boundary-v1") {
+    const {
+      sceneBoundaryVersion: _sceneBoundaryVersion,
+      readabilityPolicy,
+      ...rendererOwnedProps
+    } = rendererProps;
+    void _sceneBoundaryVersion;
+    if (readabilityPolicy === undefined) {
+      throw new Error("V3 Scene mount requires the frozen readability policy.");
+    }
+    return (
+      <SceneSafeArea policy={readabilityPolicy}>
+        <Renderer {...rendererOwnedProps} sceneFrame={sceneFrame} />
+      </SceneSafeArea>
+    );
   }
   return <Renderer {...rendererProps} sceneFrame={sceneFrame} />;
 };

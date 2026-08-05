@@ -633,7 +633,8 @@ export const buildProductionRequirementsFreeze = (
   input: ProductionRequirementsBuildInput,
 ) => {
   const v2 = buildProductionRequirementsFreezeV2(input);
-  const { requirementsFingerprint: _ignored, ...base } = v2;
+  const { requirementsFingerprint, ...base } = v2;
+  void requirementsFingerprint;
   const freezeInput = ProductionRequirementsFreezeV3InputSchema.parse({
     ...base,
     schemaVersion: 3,

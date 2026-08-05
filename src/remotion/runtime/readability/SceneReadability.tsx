@@ -23,6 +23,8 @@ const ReadabilityPolicyContext = createContext<SceneReadabilityPolicy | null>(
   null,
 );
 
+export const SceneReadabilityProvider = ReadabilityPolicyContext.Provider;
+
 const assertReadableFontSize = (
   policy: SceneReadabilityPolicy,
   fontSizePx: number,

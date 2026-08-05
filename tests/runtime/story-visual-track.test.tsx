@@ -137,6 +137,33 @@ test("SceneSlot owns the exact Beat Sequence and resolves one current renderer",
   assert.equal(element.props.durationInFrames, 120);
 });
 
+test("v3 SceneSlot keeps boundary policy internal to the mount", () => {
+  const { projection } = makeProjection();
+  const entry = projection.entries[0];
+  assert.equal(entry.status, "ready");
+  const Renderer = () => <div />;
+  const policy = {
+    ...({} as NonNullable<SceneRendererProps["readabilityPolicy"]>),
+    policyId: "production-readability-v1" as const,
+    policyFingerprint: `sha256:${"d".repeat(64)}`,
+    width: 1080,
+    height: 1920,
+    typographyPolicy: { minFontSizePx: 36 },
+    sceneContentSafeAreaPx: { top: 90, right: 90, bottom: 360, left: 90 },
+  };
+  const element = SceneSlot({
+    entry,
+    registry: { [entry.rendererId]: Renderer },
+    rendererProps: {
+      durationInFrames: 120,
+      sceneBoundaryVersion: "scene-composition-boundary-v1",
+      readabilityPolicy: policy,
+    } as Omit<SceneRendererProps, "sceneFrame">,
+  });
+  assert.ok(isValidElement<ElementProps>(element));
+  assert.equal(Children.count(element.props.children), 1);
+});
+
 test("StoryVisualTrack mounts ready SceneSlot only and sound-only identity changes do not alter projection", () => {
   const fixture = makeProjection();
   const Renderer = () => <div />;

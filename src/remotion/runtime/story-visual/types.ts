@@ -32,6 +32,7 @@ export type SceneRendererProps = Readonly<{
   syncAnchors: SceneSyncAnchorSet;
   visualResources: readonly ResolvedSceneVisualResource[];
   readabilityPolicy?: ProductionReadabilityPolicy;
+  sceneBoundaryVersion?: "scene-composition-boundary-v1";
 }>;
 
 export type SceneRendererComponent = ComponentType<SceneRendererProps>;
