@@ -21,6 +21,12 @@ import { runProjectCheckCli } from "../project-check/cli";
 import { generateProjectRegistry } from "../registry/generate";
 import { runProductionMediaProcess } from "./adapters/process-runner";
 import {
+  buildProductionCompositionsArgs,
+  buildProductionRenderArgs,
+  buildProductionStillArgs,
+  resolveProductionRemotionCommand,
+} from "./adapters/remotion-process";
+import {
   acquireProductionRunLock,
   appendProductionRunEvent,
   readProductionRunStore,
@@ -222,11 +228,10 @@ export const createDefaultNarrativeProductionDependencies = ({
     };
   },
   listCompositions: async ({ rootDir }) => {
-    const result = await runProcess(join(rootDir, "node_modules/.bin/remotion"), [
-      "compositions",
-      "src/index.ts",
-      "--log=error",
-    ]);
+    const result = await runProcess(
+      resolveProductionRemotionCommand(rootDir),
+      buildProductionCompositionsArgs(),
+    );
     assertProcessSucceeded(result, "Remotion compositions");
   },
   renderBaseline: async ({ rootDir, storyId, compositionId }) => {
@@ -255,46 +260,27 @@ export const createDefaultNarrativeProductionDependencies = ({
     const transparentStillPath = `out/${storyId}/m3-transparent-frame-0.png`;
     const captionStillPath = `out/${storyId}/m3-caption-frame-${captionFrame}.png`;
     const renderPath = `out/${storyId}/m3-narrative-baseline.mp4`;
-    const remotion = join(rootDir, "node_modules/.bin/remotion");
+    const remotion = resolveProductionRemotionCommand(rootDir);
     for (const [label, args] of [
       [
         "transparent still",
-        [
-          "still",
-          "src/index.ts",
+        buildProductionStillArgs({
           compositionId,
-          transparentStillPath,
-          "--frame=0",
-          "--image-format=png",
-          "--overwrite",
-          "--log=error",
-        ],
+          outputPath: transparentStillPath,
+          frame: 0,
+        }),
       ],
       [
         "caption still",
-        [
-          "still",
-          "src/index.ts",
+        buildProductionStillArgs({
           compositionId,
-          captionStillPath,
-          `--frame=${captionFrame}`,
-          "--image-format=png",
-          "--overwrite",
-          "--log=error",
-        ],
+          outputPath: captionStillPath,
+          frame: captionFrame,
+        }),
       ],
       [
         "Narrative Baseline render",
-        [
-          "render",
-          "src/index.ts",
-          compositionId,
-          renderPath,
-          "--codec=h264",
-          "--audio-codec=aac",
-          "--overwrite",
-          "--log=error",
-        ],
+        buildProductionRenderArgs({ compositionId, outputPath: renderPath }),
       ],
     ] as const) {
       assertProcessSucceeded(await runProcess(remotion, args), label);

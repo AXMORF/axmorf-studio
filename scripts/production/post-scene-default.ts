@@ -41,6 +41,12 @@ import {
   writeOrCheckSceneArtifact,
 } from "../scene-package/project-files";
 import { runProductionMediaProcess } from "./adapters/process-runner";
+import {
+  buildProductionCompositionsArgs,
+  buildProductionRenderArgs,
+  buildProductionStillArgs,
+  resolveProductionRemotionCommand,
+} from "./adapters/remotion-process";
 import { readProductionRunStore } from "./adapters/run-store";
 import type { PostSceneProductionDependencies } from "./post-scene";
 import {
@@ -363,8 +369,8 @@ export const createDefaultPostSceneProductionDependencies = ({
     },
     listCompositions: async ({ rootDir, compositionId }) => {
       const result = await runProcess(
-        join(rootDir, "node_modules/.bin/remotion"),
-        ["compositions", "src/index.ts"],
+        resolveProductionRemotionCommand(rootDir),
+        buildProductionCompositionsArgs(),
       );
       assertProcessSucceeded(result, "Remotion compositions");
       if (!result.stdout.includes(compositionId)) {
@@ -382,17 +388,11 @@ export const createDefaultPostSceneProductionDependencies = ({
       await mkdir(outputDirectory, { recursive: true });
       const relativePath = `out/${storyId}/production/${runId}/preview.mp4`;
       const result = await runProcess(
-        join(rootDir, "node_modules/.bin/remotion"),
-        [
-          "render",
-          "src/index.ts",
+        resolveProductionRemotionCommand(rootDir),
+        buildProductionRenderArgs({
           compositionId,
-          relativePath,
-          "--codec=h264",
-          "--audio-codec=aac",
-          "--overwrite",
-          "--log=error",
-        ],
+          outputPath: relativePath,
+        }),
       );
       assertProcessSucceeded(result, "Production preview render");
       return {
@@ -417,17 +417,12 @@ export const createDefaultPostSceneProductionDependencies = ({
       for (const frame of frames) {
         const relativePath = `out/${storyId}/production/${runId}/still-${frame}.png`;
         const result = await runProcess(
-          join(rootDir, "node_modules/.bin/remotion"),
-          [
-            "still",
-            "src/index.ts",
+          resolveProductionRemotionCommand(rootDir),
+          buildProductionStillArgs({
             compositionId,
-            relativePath,
-            `--frame=${frame}`,
-            "--image-format=png",
-            "--overwrite",
-            "--log=error",
-          ],
+            outputPath: relativePath,
+            frame,
+          }),
         );
         assertProcessSucceeded(result, "Production representative still");
         representativeStills.push({

@@ -7,6 +7,11 @@ import {
   buildProductionStartPreflightPass,
 } from "../../src/contracts";
 import { preflightVoxcpm } from "../../scripts/production/adapters/voxcpm-preflight";
+import {
+  buildProductionCompositionsArgs,
+  preflightRemotionBrowser,
+  resolveProductionRemotionCommand,
+} from "../../scripts/production/adapters/remotion-process";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
@@ -27,6 +32,42 @@ test("builds bounded transient preflight pass and failure contracts", () => {
   });
   assert.equal(ProductionStartPreflightSchema.parse(failure).status, "failed");
   assert.doesNotMatch(JSON.stringify(failure), /https?:|\/home\/|\/data\/|token/i);
+});
+
+test("uses the production Remotion command and classifies sandbox denial", async () => {
+  assert.equal(
+    resolveProductionRemotionCommand("/repo"),
+    "/repo/node_modules/.bin/remotion",
+  );
+  assert.deepEqual(buildProductionCompositionsArgs(), [
+    "compositions",
+    "src/index.ts",
+    "--log=error",
+  ]);
+  const calls: Array<readonly [string, readonly string[]]> = [];
+  const result = await preflightRemotionBrowser({
+    rootDir: "/repo",
+    requirementsFingerprint: sha("1"),
+    runProcess: async (command, args) => {
+      calls.push([command, args]);
+      return {
+        status: 1,
+        stdout: "",
+        stderr: "sandbox_host_linux.cc: Operation not permitted /data/private",
+      };
+    },
+  });
+  assert.deepEqual(calls, [[
+    "/repo/node_modules/.bin/remotion",
+    ["compositions", "src/index.ts", "--log=error"],
+  ]]);
+  assert.equal(result.status, "failed");
+  if (result.status === "failed") {
+    assert.equal(result.code, "REMOTION_BROWSER_SANDBOX_DENIED");
+    assert.doesNotMatch(JSON.stringify(result), /sandbox_host|\/data\//);
+  }
+  assert.equal(calls[0][1].includes("--no-sandbox"), false);
+  assert.equal(calls[0][1].includes("--disable-web-security"), false);
 });
 
 test("accepts liveness plus resident or cold readiness without TTS", async () => {

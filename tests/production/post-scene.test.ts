@@ -246,9 +246,7 @@ test("default composition listing preserves enumerable Remotion stdout", async (
       calls.push([...args]);
       return {
         status: 0,
-        stdout: args.includes("--log=error")
-          ? ""
-          : "RoundedAirplaneWindows 30 1080x1920 1102",
+        stdout: "RoundedAirplaneWindows 30 1080x1920 1102",
         stderr: "",
       };
     },
@@ -262,5 +260,7 @@ test("default composition listing preserves enumerable Remotion stdout", async (
     compositionId: "RoundedAirplaneWindows",
   });
 
-  assert.deepEqual(calls, [["compositions", "src/index.ts"]]);
+  assert.deepEqual(calls, [
+    ["compositions", "src/index.ts", "--log=error"],
+  ]);
 });
