@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "production-requirements-freeze-v1",
+  "storyId": "rounded-airplane-windows",
+  "sourceBindings": {
+    "videoBrief": {
+      "repositoryPath": "src/projects/rounded-airplane-windows/brief.json",
+      "checksum": "sha256:a951c6c3ed9d7a1f9f3e8357800a4a1d6b61feccddad2d485f63988fb9d8b1cf"
+    },
+    "storySpec": {
+      "repositoryPath": "src/projects/rounded-airplane-windows/story.json",
+      "checksum": "sha256:d1cf3ef2e09737ff7e3641fe54f1b29c0d0e5a616f49994df2cd0aba2bd4680a",
+      "fingerprint": "sha256:caf59c89fef8bb098949e75ccb80e50f959fd0999f3a7dc593adeccb827e8fec"
+    },
+    "narrationSpec": {
+      "repositoryPath": "src/projects/rounded-airplane-windows/narration.json",
+      "checksum": "sha256:88a94006009910fbdde8713f1300712722fcd12bc7e853d0ae58cffe9891cf2f",
+      "fingerprint": "sha256:61863506a0c3d4229e91063ee53a06066abe776b4e3e4b5bd4c4e71bf067941e"
+    },
+    "renderSpec": {
+      "repositoryPath": "src/projects/rounded-airplane-windows/render.json",
+      "checksum": "sha256:c3551eacdaf8f9bfa78ce3bdd1f66db3c2175596f23391da32f86740ffdf8881",
+      "fingerprint": "sha256:661f79ca8e124ea5b592397ab4ad3006d0813c9b31fcfb30e814714d6b7d3ddc"
+    },
+    "storyCheck": {
+      "repositoryPath": "src/projects/rounded-airplane-windows/reviews/story-check.json",
+      "checksum": "sha256:ad93438766428ed684535ba0695c9a258467550e8ac2eaa6d724300d1b11e6ed",
+      "fingerprint": "sha256:adf5e038e42cd46d2b910eddf5665fa5ac79e8e2d9f4097e1f79ffcc6f85fb93"
+    }
+  },
+  "normalizedSummary": {
+    "locale": "zh-CN",
+    "fps": 30,
+    "width": 1080,
+    "height": 1920,
+    "voiceProfileId": "my-voice",
+    "captionSafeArea": {
+      "top": 120,
+      "right": 72,
+      "bottom": 180,
+      "left": 72
+    }
+  },
+  "enhancementSelection": {
+    "storyVisual": "required",
+    "sceneLocalSound": "none",
+    "globalSound": "none",
+    "globalVisual": "none"
+  },
+  "resourcePolicy": {
+    "selfAuthoredVisualsAllowed": true,
+    "unlistedThirdPartyResources": "deny"
+  },
+  "additionalRequirements": [
+    {
+      "requirementId": "editorial-engineering-visuals",
+      "scope": "all-scenes",
+      "targetMeaningIds": [],
+      "category": "visual",
+      "statement": "使用深蓝工程图底、米白结构线、橙红应力流和克制大字完成清晰的结构示意。",
+      "owner": "scene-agent",
+      "verification": "contract",
+      "severity": "error"
+    },
+    {
+      "requirementId": "self-authored-scenes-only",
+      "scope": "all-scenes",
+      "targetMeaningIds": [],
+      "category": "resource",
+      "statement": "只使用项目本地自行实现的 Remotion 视觉，不使用远程素材或未列入候选池的资源。",
+      "owner": "scene-agent",
+      "verification": "contract",
+      "severity": "error"
+    },
+    {
+      "requirementId": "historical-layout-isolation",
+      "scope": "production",
+      "targetMeaningIds": [],
+      "category": "resource",
+      "statement": "新画面不得参考、比较、模仿或复制既有正式作品的场景、构图或历史媒体。",
+      "owner": "main-agent",
+      "verification": "contract",
+      "severity": "error"
+    },
+    {
+      "requirementId": "no-scene-local-sound",
+      "scope": "production",
+      "targetMeaningIds": [],
+      "category": "sound",
+      "statement": "场景局部声音保持显式缺失，机械装配不得生成场景音效或氛围声。",
+      "owner": "script",
+      "verification": "mechanical",
+      "severity": "error"
+    },
+    {
+      "requirementId": "no-global-enhancements",
+      "scope": "production",
+      "targetMeaningIds": [],
+      "category": "sound",
+      "statement": "机械 Preview 不生成全局声音、跨场景氛围、压低包络或全局视觉层。",
+      "owner": "script",
+      "verification": "mechanical",
+      "severity": "error"
+    },
+    {
+      "requirementId": "mechanical-preview-handoff",
+      "scope": "final-preview",
+      "targetMeaningIds": [],
+      "category": "delivery",
+      "statement": "成功终点只到等待用户观看的机械 Preview，语义与审美由用户观看完整视频后决定。",
+      "owner": "user-preview",
+      "verification": "user-preview",
+      "severity": "warning"
+    }
+  ],
+  "requirementsFingerprint": "sha256:350110707cd1b16c4ef694dadde948dad97d8ac39f5cae5700d1f4fbdd12a9d7"
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "storyId": "rounded-airplane-windows",
+  "title": "飞机窗户为什么是圆角的",
+  "sourceMaterial": "面向大众的工程科普：客舱增压循环会反复加载机身开口，方形尖角容易形成应力集中，圆角可让载荷路径更平滑并降低疲劳裂纹风险。",
+  "audience": "对航空工程原理感兴趣、没有结构力学背景的中文观众",
+  "targetDurationSeconds": 38,
+  "deliveryConstraints": [
+    "竖屏 1080×1920，30 fps",
+    "旁白与字幕完整解释因果链",
+    "画面采用克制的工程图解，不使用远程素材",
+    "最终只交付等待用户观看的机械 Preview"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "compositionId": "RoundedAirplaneWindows",
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "locale": "zh-CN",
+  "leadInFrames": 12,
+  "tailFrames": 18,
+  "captionSafeAreaPx": {
+    "top": 120,
+    "right": 72,
+    "bottom": 180,
+    "left": 72
+  },
+  "output": {
+    "container": "mp4",
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "audioChannels": 1
+  }
+}

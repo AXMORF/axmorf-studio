@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "storyId": "rounded-airplane-windows",
+  "title": "飞机窗户为什么是圆角的",
+  "beats": [
+    {
+      "meaningId": "square-corner-stress",
+      "narrativePurpose": "解释高空增压循环与方形尖角的应力集中。",
+      "ttsChunks": [
+        {
+          "chunkId": "stress-cycle",
+          "ttsText": "客舱加压会让机身在每次起降中反复膨胀和收缩，窗框也要承受一轮又一轮的载荷变化。"
+        },
+        {
+          "chunkId": "sharp-corner",
+          "ttsText": "如果窗口保留方形尖角，应力会在角点集中，微小裂纹更容易从那里开始，并在疲劳循环中扩展。"
+        }
+      ],
+      "explicitPauses": [
+        {
+          "afterChunkId": "sharp-corner",
+          "pauseMs": 360
+        }
+      ]
+    },
+    {
+      "meaningId": "rounded-load-path",
+      "narrativePurpose": "解释圆角如何分散载荷并降低疲劳裂纹风险。",
+      "ttsChunks": [
+        {
+          "chunkId": "smooth-load-path",
+          "ttsText": "圆角把载荷沿平滑曲线分散到更大的结构范围，避免力量突然挤在一个尖点上。"
+        },
+        {
+          "chunkId": "durable-window",
+          "ttsText": "所以飞机窗户采用圆润轮廓，不只是为了外观，而是为了降低疲劳裂纹风险，让机身更耐久。"
+        }
+      ],
+      "explicitPauses": []
+    }
+  ]
+}

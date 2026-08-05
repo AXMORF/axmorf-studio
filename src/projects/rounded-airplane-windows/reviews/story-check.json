@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "storyId": "rounded-airplane-windows",
+  "storyFingerprint": "sha256:caf59c89fef8bb098949e75ccb80e50f959fd0999f3a7dc593adeccb827e8fec",
+  "generationInputFingerprint": "sha256:0dfadcd0bb46968f1d337698a3e4ebd4a91ac7e3cf2416b78084675f1eef2fdc",
+  "voiceProfileId": "my-voice",
+  "decision": "proceed",
+  "checks": [
+    {
+      "checkId": "story-beat-order",
+      "status": "pass",
+      "note": "两个 StoryBeat 按载荷问题到结构解法的因果顺序推进。"
+    },
+    {
+      "checkId": "narrative-completeness",
+      "status": "pass",
+      "note": "旁白完整覆盖增压循环、尖角应力集中、圆角载荷分散和疲劳风险结论。"
+    },
+    {
+      "checkId": "authored-tts-chunks",
+      "status": "pass",
+      "note": "四个 ttsChunks 均为按语义、语气和朗读节奏创作的单元，未按标点机械切分。"
+    },
+    {
+      "checkId": "voice-profile-selection",
+      "status": "pass",
+      "note": "选择已通过脱敏预检的 my-voice controllable-clone profile。"
+    },
+    {
+      "checkId": "pronunciation-risks",
+      "status": "warn",
+      "note": "结构术语以常用中文表达，真实生成后仍需由完整 Preview 检查可懂度。"
+    }
+  ]
+}
