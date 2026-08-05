@@ -15,6 +15,7 @@ import test, { type TestContext } from "node:test";
 
 import {
   buildProductionRequirementsFreeze,
+  buildProductionRequirementsFreezeV1,
   computeGenerationInputFingerprint,
   computeStoryFingerprint,
   NarrationSpecSchema,
@@ -100,7 +101,7 @@ const createStartFixture = async (context: TestContext) => {
     join(projectDir, "production/requirements.json"),
     requirements,
   );
-  return { rootDir, projectDir, requirements, source };
+  return { rootDir, projectDir, requirements, source, sourceChecksums };
 };
 
 const start = (rootDir: string) =>
@@ -132,6 +133,30 @@ test("starts one immutable contract-bound run and records its first event", asyn
   assert.match(
     await readFile(join(fixture.projectDir, "Composition.tsx"), "utf8"),
     /export default/u,
+  );
+});
+
+test("refuses to start a new run from a readable legacy v1 freeze", async (context) => {
+  const fixture = await createStartFixture(context);
+  const legacy = buildProductionRequirementsFreezeV1({
+    source: fixture.source,
+    sourceChecksums: fixture.sourceChecksums,
+    enhancementSelection: fixture.requirements.enhancementSelection,
+    resourcePolicy: fixture.requirements.resourcePolicy,
+    additionalRequirements: fixture.requirements.additionalRequirements,
+  });
+  await writeJson(
+    join(fixture.projectDir, "production/requirements.json"),
+    legacy,
+  );
+
+  await assert.rejects(
+    () => start(fixture.rootDir),
+    /freeze-v2.*readability/iu,
+  );
+  await assert.rejects(
+    () => access(join(fixture.rootDir, ".producer-runs", fixedRunId)),
+    /ENOENT/,
   );
 });
 

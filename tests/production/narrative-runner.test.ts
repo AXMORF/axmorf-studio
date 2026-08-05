@@ -23,7 +23,9 @@ const createFixture = async (context: TestContext) => {
   return createProductionFixture(context, rootDir);
 };
 
-const createDependencies = (calls: string[]): NarrativeProductionDependencies => ({
+const createDependencies = (
+  calls: string[],
+): NarrativeProductionDependencies => ({
   generateNarration: async (request) => {
     calls.push("generate");
     assert.equal(request.resume, true);
@@ -143,23 +145,8 @@ test("each failed step records one safe failure and stops all later steps", asyn
       const fixture = await createFixture(child);
       const calls: string[] = [];
       const dependencies = createDependencies(calls);
-      const original = dependencies[
-        {
-          generate: "generateNarration",
-          seal: "sealNarration",
-          "check-narration": "checkNarration",
-          "generate-registry": "generateRegistry",
-          "check-registry": "checkRegistry",
-          compositions: "listCompositions",
-          "render-baseline": "renderBaseline",
-          "write-evidence": "writeEvidence",
-          "check-evidence": "checkEvidence",
-          "write-auto-check": "writeAutoCheck",
-          "check-auto-check": "checkAutoCheck",
-        }[failedStep] as keyof NarrativeProductionDependencies
-      ];
-      Object.assign(dependencies, {
-        [
+      const original =
+        dependencies[
           {
             generate: "generateNarration",
             seal: "sealNarration",
@@ -172,8 +159,22 @@ test("each failed step records one safe failure and stops all later steps", asyn
             "check-evidence": "checkEvidence",
             "write-auto-check": "writeAutoCheck",
             "check-auto-check": "checkAutoCheck",
-          }[failedStep]
-        ]: async (...args: never[]) => {
+          }[failedStep] as keyof NarrativeProductionDependencies
+        ];
+      Object.assign(dependencies, {
+        [{
+          generate: "generateNarration",
+          seal: "sealNarration",
+          "check-narration": "checkNarration",
+          "generate-registry": "generateRegistry",
+          "check-registry": "checkRegistry",
+          compositions: "listCompositions",
+          "render-baseline": "renderBaseline",
+          "write-evidence": "writeEvidence",
+          "check-evidence": "checkEvidence",
+          "write-auto-check": "writeAutoCheck",
+          "check-auto-check": "checkAutoCheck",
+        }[failedStep]]: async (...args: never[]) => {
           await (original as (...input: never[]) => Promise<unknown>)(...args);
           throw new Error("Bearer private-token at /tmp/private/stack.ts");
         },
@@ -187,14 +188,20 @@ test("each failed step records one safe failure and stops all later steps", asyn
           dependencies,
         }),
       );
-      assert.deepEqual(calls, fullOrder.slice(0, fullOrder.indexOf(failedStep) + 1));
+      assert.deepEqual(
+        calls,
+        fullOrder.slice(0, fullOrder.indexOf(failedStep) + 1),
+      );
       const loaded = await readProductionRunStore({
         rootDir: fixture.rootDir,
         runId: fixture.runId,
       });
       assert.equal(loaded.state.state, "failed");
       assert.equal(loaded.events.at(-1)?.type, "stage-failed");
-      assert.doesNotMatch(JSON.stringify(loaded.state.failure), /private-token|\/tmp\/|stack\.ts/u);
+      assert.doesNotMatch(
+        JSON.stringify(loaded.state.failure),
+        /private-token|\/tmp\/|stack\.ts/u,
+      );
     });
   }
 });
@@ -273,4 +280,39 @@ test("stale requirements or StoryCheck fail inside the ledger before provider wo
       assert.equal(loaded.events.at(-1)?.type, "stage-failed");
     });
   }
+});
+
+test("an over-budget chunk fails by chunkId before any provider dependency runs", async (context) => {
+  const fixture = await createFixture(context);
+  const overlongStory = {
+    ...fixture.source.story,
+    beats: fixture.source.story.beats.map((beat, index) =>
+      index === 0
+        ? {
+            ...beat,
+            ttsChunks: beat.ttsChunks.map((chunk) => ({
+              ...chunk,
+              ttsText: "中".repeat(37),
+            })),
+          }
+        : beat,
+    ),
+  };
+  await writeProductionJson(
+    join(fixture.projectDir, "story.json"),
+    overlongStory,
+  );
+  const calls: string[] = [];
+
+  await assert.rejects(
+    () =>
+      runProductionNarrative({
+        rootDir: fixture.rootDir,
+        runId: fixture.runId,
+        clock: () => FIXED_PRODUCTION_NOW,
+        dependencies: createDependencies(calls),
+      }),
+    /opening-01.*74 half-units.*72 half-units/iu,
+  );
+  assert.deepEqual(calls, []);
 });

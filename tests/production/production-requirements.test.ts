@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildProductionRequirementsFreeze,
+  buildProductionRequirementsFreezeV1,
   computeProductionRequirementsFingerprint,
   ProductionRequirementsFreezeSchema,
   resolveCurrentProductionRequirements,
@@ -131,6 +132,12 @@ const withCurrentFingerprint = (value: Record<string, unknown>) => ({
 test("builds and resolves a current production requirements freeze", () => {
   const freeze = buildValidFreeze();
 
+  assert.equal(freeze.schemaVersion, 2);
+  assert.equal(freeze.contractVersion, "production-requirements-freeze-v2");
+  assert.equal(freeze.readabilityPolicy.policyId, "production-readability-v1");
+  assert.equal(freeze.readabilityPolicy.width, render.width);
+  assert.equal(freeze.readabilityPolicy.height, render.height);
+
   assert.deepEqual(freeze.normalizedSummary, {
     locale: render.locale,
     fps: render.fps,
@@ -152,6 +159,42 @@ test("builds and resolves a current production requirements freeze", () => {
     freeze.requirementsFingerprint,
   );
   assert.deepEqual(buildValidFreeze(), freeze);
+});
+
+test("keeps the v1 freeze parser and fingerprint byte-compatible", () => {
+  const legacy = buildProductionRequirementsFreezeV1({
+    source,
+    sourceChecksums,
+    enhancementSelection: {
+      storyVisual: "required",
+      sceneLocalSound: "allowed",
+      globalSound: "none",
+      globalVisual: "none",
+    },
+    resourcePolicy: {
+      selfAuthoredVisualsAllowed: true,
+      unlistedThirdPartyResources: "deny",
+    },
+    additionalRequirements: [],
+  });
+  assert.equal(legacy.schemaVersion, 1);
+  assert.equal(
+    legacy.requirementsFingerprint,
+    "sha256:10c7a9e9a6e46c999c0eee705dd921ce8874abb71d2f05c1ffe5d0afca7055d2",
+  );
+  assert.equal(
+    ProductionRequirementsFreezeSchema.parse(legacy).requirementsFingerprint,
+    legacy.requirementsFingerprint,
+  );
+  assert.equal(
+    resolveCurrentProductionRequirements({
+      requirements: legacy,
+      source,
+      sourceChecksums,
+    }).requirementsFingerprint,
+    legacy.requirementsFingerprint,
+  );
+  assert.equal("readabilityPolicy" in legacy, false);
 });
 
 test("rejects normalized render and voice summaries that disagree with source contracts", () => {
@@ -181,7 +224,7 @@ test("rejects normalized render and voice summaries that disagree with source co
           source,
           sourceChecksums,
         }),
-      /normalized summary/i,
+      /normalized summary|readability policy/i,
     );
   }
 });

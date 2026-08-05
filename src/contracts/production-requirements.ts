@@ -15,6 +15,11 @@ import {
   StoryIdSchema,
   VoiceProfileIdSchema,
 } from "./primitives";
+import {
+  ProductionReadabilityPolicySchema,
+  resolveProductionReadabilityPolicy,
+  validateStoryCaptionReadability,
+} from "./production-readability";
 import { CaptionSafeAreaSchema, RenderSpecSchema } from "./render";
 import {
   StoryCheckReportSchema,
@@ -22,8 +27,10 @@ import {
 } from "./story-check";
 import { StorySpecSchema } from "./story";
 
-export const PRODUCTION_REQUIREMENTS_CONTRACT_VERSION =
+export const PRODUCTION_REQUIREMENTS_CONTRACT_VERSION_V1 =
   "production-requirements-freeze-v1" as const;
+export const PRODUCTION_REQUIREMENTS_CONTRACT_VERSION =
+  "production-requirements-freeze-v2" as const;
 
 const RepositorySourcePathSchema = z
   .string()
@@ -209,10 +216,10 @@ const ResourcePolicySchema = z
   .strict()
   .readonly();
 
-const ProductionRequirementsFreezeInputObject = z
+const ProductionRequirementsFreezeV1InputObject = z
   .object({
     schemaVersion: z.literal(1),
-    contractVersion: z.literal(PRODUCTION_REQUIREMENTS_CONTRACT_VERSION),
+    contractVersion: z.literal(PRODUCTION_REQUIREMENTS_CONTRACT_VERSION_V1),
     storyId: StoryIdSchema,
     sourceBindings: ProductionSourceBindingsSchema,
     normalizedSummary: ProductionNormalizedSummarySchema,
@@ -225,8 +232,19 @@ const ProductionRequirementsFreezeInputObject = z
   })
   .strict();
 
+const ProductionRequirementsFreezeV2InputObject =
+  ProductionRequirementsFreezeV1InputObject.extend({
+    schemaVersion: z.literal(2),
+    contractVersion: z.literal(PRODUCTION_REQUIREMENTS_CONTRACT_VERSION),
+    readabilityPolicy: ProductionReadabilityPolicySchema,
+  }).strict();
+
+type ProductionRequirementsFreezeInput =
+  | z.infer<typeof ProductionRequirementsFreezeV1InputObject>
+  | z.infer<typeof ProductionRequirementsFreezeV2InputObject>;
+
 const addFreezeInputIssues = (
-  freeze: z.infer<typeof ProductionRequirementsFreezeInputObject>,
+  freeze: ProductionRequirementsFreezeInput,
   context: z.RefinementCtx,
 ) => {
   const expectedPaths = {
@@ -259,10 +277,31 @@ const addFreezeInputIssues = (
   }
 };
 
-export const ProductionRequirementsFreezeInputSchema =
-  ProductionRequirementsFreezeInputObject.superRefine(
+const ProductionRequirementsFreezeV1InputSchema =
+  ProductionRequirementsFreezeV1InputObject.superRefine(
     addFreezeInputIssues,
   ).readonly();
+
+const ProductionRequirementsFreezeV2InputSchema =
+  ProductionRequirementsFreezeV2InputObject.superRefine((freeze, context) => {
+    addFreezeInputIssues(freeze, context);
+    if (
+      freeze.readabilityPolicy.width !== freeze.normalizedSummary.width ||
+      freeze.readabilityPolicy.height !== freeze.normalizedSummary.height
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Production readability policy dimensions must match the frozen RenderSpec.",
+        path: ["readabilityPolicy"],
+      });
+    }
+  }).readonly();
+
+export const ProductionRequirementsFreezeInputSchema = z.union([
+  ProductionRequirementsFreezeV1InputSchema,
+  ProductionRequirementsFreezeV2InputSchema,
+]);
 
 export const computeProductionRequirementsFingerprint = (rawInput: unknown) => {
   if (
@@ -277,34 +316,69 @@ export const computeProductionRequirementsFingerprint = (rawInput: unknown) => {
   const input = ProductionRequirementsFreezeInputSchema.parse(inputRecord);
   return createFingerprint({
     namespace: "production-requirements-freeze",
-    version: 1,
+    version: input.schemaVersion,
     value: input,
   });
 };
 
-const ProductionRequirementsFreezeObject =
-  ProductionRequirementsFreezeInputObject.extend({
+const ProductionRequirementsFreezeV1Object =
+  ProductionRequirementsFreezeV1InputObject.extend({
     requirementsFingerprint: Sha256DigestSchema,
   }).strict();
 
-export const ProductionRequirementsFreezeSchema =
-  ProductionRequirementsFreezeObject.superRefine((freeze, context) => {
-    const { requirementsFingerprint, ...input } = freeze;
-    addFreezeInputIssues(input, context);
-    let expectedFingerprint;
-    try {
-      expectedFingerprint = computeProductionRequirementsFingerprint(input);
-    } catch {
-      return;
-    }
-    if (requirementsFingerprint !== expectedFingerprint) {
+const ProductionRequirementsFreezeV2Object =
+  ProductionRequirementsFreezeV2InputObject.extend({
+    requirementsFingerprint: Sha256DigestSchema,
+  }).strict();
+
+const withCurrentFreezeFingerprint = (
+  freeze: ProductionRequirementsFreezeInput & {
+    readonly requirementsFingerprint: string;
+  },
+  context: z.RefinementCtx,
+) => {
+  const { requirementsFingerprint, ...input } = freeze;
+  addFreezeInputIssues(input, context);
+  let expectedFingerprint;
+  try {
+    expectedFingerprint = computeProductionRequirementsFingerprint(input);
+  } catch {
+    return;
+  }
+  if (requirementsFingerprint !== expectedFingerprint) {
+    context.addIssue({
+      code: "custom",
+      message: "Production requirements fingerprint is stale.",
+      path: ["requirementsFingerprint"],
+    });
+  }
+};
+
+const ProductionRequirementsFreezeV1Schema =
+  ProductionRequirementsFreezeV1Object.superRefine(
+    withCurrentFreezeFingerprint,
+  ).readonly();
+
+const ProductionRequirementsFreezeV2Schema =
+  ProductionRequirementsFreezeV2Object.superRefine((freeze, context) => {
+    withCurrentFreezeFingerprint(freeze, context);
+    if (
+      freeze.readabilityPolicy.width !== freeze.normalizedSummary.width ||
+      freeze.readabilityPolicy.height !== freeze.normalizedSummary.height
+    ) {
       context.addIssue({
         code: "custom",
-        message: "Production requirements fingerprint is stale.",
-        path: ["requirementsFingerprint"],
+        message:
+          "Production readability policy dimensions must match the frozen RenderSpec.",
+        path: ["readabilityPolicy"],
       });
     }
   }).readonly();
+
+export const ProductionRequirementsFreezeSchema = z.union([
+  ProductionRequirementsFreezeV1Schema,
+  ProductionRequirementsFreezeV2Schema,
+]);
 
 const ProductionRequirementsSourceSchema = z
   .object({
@@ -380,7 +454,7 @@ const assertCurrentRequirementTargets = ({
   }
 };
 
-export const buildProductionRequirementsFreeze = ({
+const buildProductionRequirementsBase = ({
   source: rawSource,
   sourceChecksums: rawSourceChecksums,
   enhancementSelection,
@@ -407,9 +481,7 @@ export const buildProductionRequirementsFreeze = ({
   });
 
   const storyId = source.story.storyId;
-  const input = ProductionRequirementsFreezeInputSchema.parse({
-    schemaVersion: 1,
-    contractVersion: PRODUCTION_REQUIREMENTS_CONTRACT_VERSION,
+  return {
     storyId,
     sourceBindings: {
       videoBrief: {
@@ -448,10 +520,52 @@ export const buildProductionRequirementsFreeze = ({
     enhancementSelection,
     resourcePolicy,
     additionalRequirements: requirements,
+  } as const;
+};
+
+type ProductionRequirementsBuildInput = Parameters<
+  typeof buildProductionRequirementsBase
+>[0];
+
+export const buildProductionRequirementsFreezeV1 = (
+  input: ProductionRequirementsBuildInput,
+) => {
+  const base = buildProductionRequirementsBase(input);
+  const freezeInput = ProductionRequirementsFreezeV1InputSchema.parse({
+    schemaVersion: 1,
+    contractVersion: PRODUCTION_REQUIREMENTS_CONTRACT_VERSION_V1,
+    ...base,
   });
-  return ProductionRequirementsFreezeSchema.parse({
-    ...input,
-    requirementsFingerprint: computeProductionRequirementsFingerprint(input),
+  return ProductionRequirementsFreezeV1Schema.parse({
+    ...freezeInput,
+    requirementsFingerprint:
+      computeProductionRequirementsFingerprint(freezeInput),
+  });
+};
+
+export const buildProductionRequirementsFreeze = (
+  input: ProductionRequirementsBuildInput,
+) => {
+  const base = buildProductionRequirementsBase(input);
+  const readabilityPolicy = resolveProductionReadabilityPolicy({
+    width: base.normalizedSummary.width,
+    height: base.normalizedSummary.height,
+  });
+  const source = assertCurrentSource(input.source);
+  validateStoryCaptionReadability({
+    story: source.story,
+    policy: readabilityPolicy,
+  });
+  const freezeInput = ProductionRequirementsFreezeV2InputSchema.parse({
+    schemaVersion: 2,
+    contractVersion: PRODUCTION_REQUIREMENTS_CONTRACT_VERSION,
+    ...base,
+    readabilityPolicy,
+  });
+  return ProductionRequirementsFreezeV2Schema.parse({
+    ...freezeInput,
+    requirementsFingerprint:
+      computeProductionRequirementsFingerprint(freezeInput),
   });
 };
 
@@ -467,7 +581,11 @@ export const resolveCurrentProductionRequirements = ({
   const requirements =
     ProductionRequirementsFreezeSchema.parse(rawRequirements);
   const source = assertCurrentSource(rawSource);
-  const current = buildProductionRequirementsFreeze({
+  const current = (
+    requirements.schemaVersion === 1
+      ? buildProductionRequirementsFreezeV1
+      : buildProductionRequirementsFreeze
+  )({
     source,
     sourceChecksums,
     enhancementSelection: requirements.enhancementSelection,
@@ -491,6 +609,12 @@ export const resolveCurrentProductionRequirements = ({
     requirements.requirementsFingerprint !== current.requirementsFingerprint
   ) {
     throw new Error("Production requirements identity is stale.");
+  }
+  if (requirements.schemaVersion === 2) {
+    validateStoryCaptionReadability({
+      story: source.story,
+      policy: requirements.readabilityPolicy,
+    });
   }
   return requirements;
 };

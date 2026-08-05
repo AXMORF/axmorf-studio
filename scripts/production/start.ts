@@ -14,6 +14,10 @@ import {
 } from "./adapters/run-store";
 import { createProductionStageEvent } from "./domain/events";
 import { ensureProductionProjectScaffold } from "./project-scaffold";
+import {
+  requireCurrentProductionReadabilityPolicy,
+  validateProductionReadabilityInputs,
+} from "./readability-validator";
 
 type JsonArtifact = Readonly<{ raw: unknown; checksum: `sha256:${string}` }>;
 
@@ -88,10 +92,15 @@ export const loadCurrentProductionInputs = async ({
     render: render.raw,
     storyCheck: storyCheck.raw,
   } as const;
+  const parsedRequirements = ProductionRequirementsFreezeSchema.parse(
+    requirementsArtifact.raw,
+  );
+  validateProductionReadabilityInputs({
+    requirements: parsedRequirements,
+    story: source.story,
+  });
   const requirements = resolveCurrentProductionRequirements({
-    requirements: ProductionRequirementsFreezeSchema.parse(
-      requirementsArtifact.raw,
-    ),
+    requirements: parsedRequirements,
     source,
     sourceChecksums: {
       videoBrief: brief.checksum,
@@ -127,6 +136,7 @@ export const runProductionStart = async ({
     rootDir,
     projectId: rawProjectId,
   });
+  requireCurrentProductionReadabilityPolicy(requirements);
   await ensureProductionProjectScaffold({
     rootDir,
     storyId: projectId,
