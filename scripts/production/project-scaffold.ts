@@ -148,6 +148,22 @@ export const ensureProductionProjectScaffold = async ({
   if (actual === expected) {
     return { destination, written: false } as const;
   }
+  const isExactPreviewScaffold = [false, true].some(
+    (sceneLocalSoundPresent) =>
+      actual ===
+      renderProductionPreviewProjectScaffold({
+        storyId,
+        sceneLocalSoundPresent,
+      }),
+  );
+  if (isExactPreviewScaffold && mode === "write") {
+    const result = await writeProductionFileAtomic({
+      destination,
+      bytes: expected,
+      mode: "replace",
+    });
+    return { destination, written: result.written } as const;
+  }
   if (actual !== null) {
     if (actual.includes(PRODUCTION_PROJECT_SCAFFOLD_MARKER)) {
       throw new Error(

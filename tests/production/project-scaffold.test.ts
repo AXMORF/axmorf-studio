@@ -14,6 +14,7 @@ import test from "node:test";
 import {
   ensureProductionProjectScaffold,
   PRODUCTION_PROJECT_SCAFFOLD_MARKER,
+  renderProductionPreviewProjectScaffold,
   renderProductionProjectScaffold,
 } from "../../scripts/production/project-scaffold";
 
@@ -105,5 +106,34 @@ test("check mode never creates a missing scaffold", async (context) => {
       storyId: "story-example",
       mode: "check",
     }),
+  );
+});
+
+test("replacement start restores an exact generated Preview scaffold", async (context) => {
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-production-scaffold-replacement-"),
+  );
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const projectDir = join(rootDir, "src/projects/story-example");
+  await mkdir(projectDir, { recursive: true });
+  const destination = join(projectDir, "Composition.tsx");
+  await writeFile(
+    destination,
+    renderProductionPreviewProjectScaffold({
+      storyId: "story-example",
+      sceneLocalSoundPresent: false,
+    }),
+  );
+
+  const restored = await ensureProductionProjectScaffold({
+    rootDir,
+    storyId: "story-example",
+    mode: "write",
+  });
+
+  assert.equal(restored.written, true);
+  assert.equal(
+    await readFile(destination, "utf8"),
+    renderProductionProjectScaffold("story-example"),
   );
 });
