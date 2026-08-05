@@ -59,8 +59,9 @@ npm run production:status -- --run <runId>
 ```
 
 Parse `runId` from stdout; do not construct it. Keep the current task alive while VoxCPM runs. The
-narrative command owns generation, resume, seal, measurement, timing, registry, Baseline media,
-evidence, and AutoCheck. Do not reproduce those steps manually.
+narrative command owns candidate handling, seal, measurement, timing, registry, Baseline media,
+evidence, and AutoCheck. Do not reproduce those steps manually. If this fixed command fails with
+valid current inputs, stop and follow common-flow hardening; do not rerun it as recovery.
 
 Require `baseline-ready`. Verify narration identity, complete WAV checksum, SemanticTiming,
 CaptionCues, Baseline media/evidence, AutoCheck, and a no-op repeat where appropriate. Do not accept
@@ -119,8 +120,14 @@ npm run production:scene:submit -- --run <runId> --scene <meaningId>
 npm run production:scene:fail -- --run <runId> --scene <meaningId> --code <CODE> --description "<safe description>"
 ```
 
+If an Agent-owned Scene output fails validation before an immutable result is accepted, return it to
+the Scene owner, correct it, and resubmit through the same command. If an explicit Scene failure made
+the run terminal, correct the Agent-owned output first and then start a new run. This is Agent rework,
+not fixed-flow recovery.
+
 Never write events, state, coverage, registry, projection, or Composition manually. Continue watching
-until all Scene results are accepted or the run reaches a terminal failure.
+until all Scene results are accepted or the run reaches a terminal failure. If the watcher itself
+fails with valid current inputs, stop it and harden the common workflow; do not restart it as recovery.
 
 ## 6. Reach and verify Preview
 
@@ -154,6 +161,6 @@ Sync only docs whose current facts changed. Hand off:
 - absolute Preview/contact-sheet/still paths;
 - Preview checksum and evidence/mechanical fingerprints;
 - technical media facts and full-decode result;
-- problems, classifications, fixes, replacements, and local commits;
+- Agent rework, common-flow defects/hardening, clean validation runs, and local commits;
 - protected before/after results and remaining worktree changes;
 - known issues and `awaiting explicit user preview decision`.

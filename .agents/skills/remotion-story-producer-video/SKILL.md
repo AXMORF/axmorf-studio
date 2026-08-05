@@ -1,6 +1,6 @@
 ---
 name: remotion-story-producer-video
-description: Directly produce or resume a contract-driven Remotion Story Producer video from complete user content through authored inputs, VoxCPM sealed narration, isolated ScenePackages, the central watcher, and a mechanical preview-ready handoff. Use in this repository when the user asks to make, create, or produce a new video, provides a topic, script, or source material for a video, asks to continue or recover a production run, or explicitly invokes $remotion-story-producer-video; default to inline execution without writing a plan first.
+description: Directly produce a contract-driven Remotion Story Producer video from complete user content through authored inputs, VoxCPM sealed narration, isolated ScenePackages, the central watcher, and a mechanical preview-ready handoff. Use in this repository when the user asks to make, create, or produce a new video, provides a topic, script, or source material, asks to continue Agent-owned authoring work, or explicitly invokes $remotion-story-producer-video; default to inline execution without writing a plan first, rework only Agent-authored outputs, and treat every fixed-workflow failure as a system-hardening defect rather than recovery.
 ---
 
 # Remotion Story Producer Video
@@ -32,11 +32,12 @@ Never launch a watcher, provider call, render, or Scene task and then leave the 
 ## Load only needed details
 
 Read [references/direct-production-workflow.md](references/direct-production-workflow.md) completely
-before starting a new video or resuming an active run.
+before starting a new video or continuing active Agent-owned authoring work.
 
-Read [references/recovery-and-boundaries.md](references/recovery-and-boundaries.md) completely when
-a stage fails, a replacement run is needed, implementation code may need changing, or protected
-artifacts must be audited.
+Read
+[references/agent-rework-and-system-hardening.md](references/agent-rework-and-system-hardening.md)
+completely when Agent output needs rework, a fixed command fails, implementation code may need
+changing, or protected artifacts must be audited.
 
 ## Keep the production model fixed
 
@@ -60,19 +61,23 @@ Use the Git-ignored `voxcpm/voxcpm.private.json` by default. Treat
 print, summarize, stage, or commit private configuration, tokens, endpoints, prompt recordings, or
 protected voice-profile contents. Let the fixed narration command consume the private configuration.
 
-## Handle failures mechanically
+## Separate Agent rework from fixed-flow hardening
 
-Classify every failure before changing code:
+Recover only Agent-owned authoring work: Story/ttsChunks, StoryCheck, visual direction, resource
+selection, Scene plans, Renderer implementation, and other assignment-owned outputs. Return invalid
+work to its Agent owner, correct it, and pass the same fixed validation contract. If the run already
+recorded an immutable Agent failure, start a new run only after the Agent output is corrected.
 
-1. authored input or private provider configuration;
-2. expected production failure;
-3. orchestration defect;
-4. external environment blocker.
+Never recover a failed fixed workflow. A failure in a contract implementation, CLI, ledger, watcher,
+registry/projection generator, renderer invocation, media inspector, Preview evidence writer, or
+checker with valid current inputs is a defect in the common production system. Stop the run; do not
+retry, resume, skip, or manually complete that stage. Preserve a sanitized incident, reproduce Red,
+make the smallest common-flow fix, prove Green, stage exact paths, create a local commit, then start a
+fresh run and replay the fixed workflow to Preview.
 
-For an orchestration defect, preserve a sanitized incident, reproduce Red, make the smallest fix,
-prove Green, stage exact paths, create a local commit, start an immutable replacement run, and
-continue to Preview. Never edit central events or `state.generated.json`; never revive a terminal
-failed run.
+Treat provider unavailability, missing host tools, sandbox denial, and missing authorization as
+external blockers, not recovery. Never edit central events or `state.generated.json`; never revive a
+terminal failed run.
 
 ## Hand off only verified Preview
 
@@ -80,8 +85,9 @@ Require current production status, check-only idempotence, Preview checksum, evi
 mechanical-check fingerprint, ffprobe facts, and complete FFmpeg EOF decode. Run focused checks and
 then the repository-wide gate in proportion to changes. Sync relevant operational/status docs.
 
-Return the absolute Preview, contact-sheet, and still paths, all local commits, failure/recovery
-summary, protection result, and known issues. End with `awaiting explicit user preview decision`.
+Return the absolute Preview, contact-sheet, and still paths, all local commits, Agent-rework/common-
+flow-hardening summary, protection result, and known issues. End with
+`awaiting explicit user preview decision`.
 Do not create `FinalPreviewApproval`, run NarrativeCheck or aesthetic gates, promote capabilities,
 start M10, publish, or push unless the user explicitly requests that separate scope.
 

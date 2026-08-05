@@ -409,9 +409,10 @@ Narrative Baseline、Shotcraft closure、voice provider 与 Scene/Final Catalog 
 [M9.5 Production Trial and Hardening Evidence](evidence/2026-08-05-m9-5-production-trial-and-hardening.md)。
 
 **目标：** 不改变 M1–M9 作品权威，把已经证明的 narrative、Scene 和 Preview 节点连接为
-一个可恢复、可监控、fail-closed 的固定制作流程。Agent 只负责创作和项目级冻结；脚本通过
-严格合同推进状态、保存成功/错误结果、等待所有 Scene，并在全部成功后自动装配机械可用的
-完整预览。
+一个可监控、fail-closed 的固定制作流程。Agent 只负责创作和项目级冻结，Agent-owned 产物可
+返工；脚本通过严格合同推进状态、保存成功/错误结果、等待所有 Scene，并在全部成功后自动
+装配机械可用的完整预览。固定流程自身在 valid input 下失败时必须完善通用实现并由新 Run
+完整重验，不通过 retry/resume 绕过。
 
 **范围：**
 
@@ -421,7 +422,7 @@ Narrative Baseline、Shotcraft closure、voice provider 与 Scene/Final Catalog 
   只冻结 Story 级候选池，Scene Agent 精确选择子集或零资源并可 project-local 自行实现；
 - `ProductionRun` append-only events、generated state projection、strict ProductionError、
   SceneProductionResult 和单写者原子 store；
-- 固定 narrative runner：VoxCPM resume/seal/check、timing、registry、Baseline media、
+- 固定 narrative runner：VoxCPM candidate checkpoint/seal/check、timing、registry、Baseline media、
   evidence 与 narrative AutoCheck；
 - Scene submit/fail CLI 与中央 watcher：任一错误、超时、malformed、stale 或共享输入漂移
   立即停止；全部 success 后自动生成 coverage、registry、projection、Composition 和 MP4；

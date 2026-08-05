@@ -36,7 +36,8 @@ success，而是先证明输出 identity current，再提交成功事件；意�
 首次真实试跑进一步证明：跨阶段使用同一 strict selected-resources envelope parser；需解析的
 外部进程 stdout 不得被日志级别抑制；replacement 只能替换 byte-exact generated scaffold；
 视频时间线由视频 stream duration、fps 和 frame count 共同决定，container/AAC padding 不得
-制造 false drift。每个失败 run 都保持 terminal immutable，以新 run 恢复。
+制造 false drift。每个失败 run 都保持 terminal immutable；Agent-owned 产物可由 Agent 返工，
+固定流程缺陷必须完善通用实现，再由新 run 从头完整重验，不能称为 fixed-flow recovery。
 
 系统区分三种“确定性”：
 
@@ -637,4 +638,5 @@ M9.5 的 repo CLI 不调用 skill 或 Agent API。主 Agent 仍通过当前 Code
 [$remotion-story-producer-video](../.agents/skills/remotion-story-producer-video/SKILL.md) 已把这条
 authoring/orchestration 入口固化为薄 Skill：它引导主 Agent 从完整用户内容直接执行到
 `preview-ready / awaiting-user-preview`，但 Skill 本身不进入 repo CLI、generated identity 或
-Remotion runtime，也不能代签 approval。
+Remotion runtime，也不能代签 approval。Skill 只恢复 Agent-owned 创作工作；固定流程失败
+必须停止并触发 common-flow hardening，不允许 retry/resume 伪装稳定性。

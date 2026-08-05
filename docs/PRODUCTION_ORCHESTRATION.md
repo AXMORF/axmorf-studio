@@ -58,13 +58,17 @@ previous-state fingerprint 和 current artifact identities，再复算状态；�
 都会 fail closed。中央脚本是 events/state 的唯一 writer；重复相同操作保持 bytes/mtime 稳定。
 
 `production:status` 只读取 current run projection。失败会保存结构化、脱敏的
-`ProductionError`，不持久化 raw stack、token、私有 endpoint 或绝对路径。修复已报告的输入
-或 Scene 后，应按状态重新执行对应固定命令；不得手改中央 state 跳过失败。
+`ProductionError`，不持久化 raw stack、token、私有 endpoint 或绝对路径。Agent-owned authored
+input 或 Scene 被固定校验拒绝时，由对应 Agent 返工；若已经形成 terminal event，则返工完成后
+创建新 Run。不得手改中央 state 跳过失败。
 
-真实 replacement 还固定了四条恢复语义：selected-resources envelope 在 submit 与 post-scene
-共用 strict parser；Composition listing 必须保留待解析 stdout；只有 byte-exact generated
-Preview scaffold 可在 replacement start 恢复为 Narrative scaffold；媒体时间线以唯一视频流的
-duration/fps/frame count 为权威，不用包含 AAC tail padding 的 container duration。
+固定 contract/CLI/ledger/watcher/registry/projection/render/media inspection/evidence/check 在 valid
+current input 下失败，属于通用流程缺陷，不允许 resume、retry、跳过或手工补产物。必须停止并
+保存脱敏现场，经 Red → 最小 common-flow fix → Green → local commit 后，从
+`production:start` 创建新 Run 完整重验。首次真实试跑由此固化了四条流程不变量：统一 strict
+selected-resources parser、保留 Composition listing stdout、只替换 byte-exact generated
+scaffold，以及用 video stream duration/fps/frame count 而非 AAC-padded container duration
+验证时间线。
 
 ## Preview 产物与交接
 

@@ -29,11 +29,12 @@ M9 已用 `product-comic-vertical` 完成第二个真实主题：high-fidelity c
 完整最终媒体、用户批准、42 类失效矩阵和 passing v2；泛化结论只提出三个 promotion
 proposal，没有提升共享能力。
 M9.5 已把完整制作要求冻结、Narrative Baseline runner、Story 级候选资源池、逐 Scene 结果
-合同、中央 watcher 和无全局增强的机械 Preview 接成固定、可恢复、fail-closed 的流程。运行
-状态由 append-only events、Scene result contracts 和 current fingerprints 复算；中央脚本是
-唯一 writer。首次真实 `rounded-airplane-windows` 两 Scene 试跑已在四个 Red/Green hardening
-修复和 immutable replacement 后达到 `preview-ready / awaiting-user-preview`；该状态不代表
-用户批准或发布。
+合同、中央 watcher 和无全局增强的机械 Preview 接成固定、fail-closed 的流程。只有
+Agent-owned 创作产物允许返工；固定流程在 valid input 下失败表示通用系统缺陷，必须
+Red/Green 完善后用新 Run 完整重验，不能 resume/retry 绕过。运行状态由 append-only events、
+Scene result contracts 和 current fingerprints 复算；中央脚本是唯一 writer。首次真实
+`rounded-airplane-windows` 两 Scene 试跑已在四个 common-flow hardening 后达到
+`preview-ready / awaiting-user-preview`；该状态不代表用户批准或发布。
 
 ## 当前状态
 
@@ -95,11 +96,12 @@ M7 第一套正式 Scene production、M8 最终装配闭环和 M9 第二主题�
   audio 和 evidence orchestration 仍为 project-local；
 - strict `ProductionRequirementsFreeze`、append-only `ProductionStageEvent`、派生
   `ProductionRunState`、Story 级资源池、逐 meaningId assignment/result 和中央 watcher；
-- 固定 `production:*` CLI、可恢复 narrative runner、无全局 BGM/ambience/ducking/
+- 固定 `production:*` CLI、checkpoint-safe narrative runner、无全局 BGM/ambience/ducking/
   GlobalVisualLayers 的 PreviewAssembly，以及只表示 mechanically-ready 的 Preview evidence；
 - fake provider/process/clock/scheduler 驱动的完整两 Scene 编排 proof、失败矩阵与幂等验证；
 - 项目级 `$remotion-story-producer-video` Skill：在新对话接收完整内容后不先写计划，直接执行
-  authored contracts、默认 VoxCPM、Scene/watcher、故障恢复和机械 Preview handoff；
+  authored contracts、默认 VoxCPM、Scene/watcher、Agent返工/common-flow hardening 和机械
+  Preview handoff；
 - 规范目录、外部生产流程、合同参考和目标设计文档。
 
 NarrativeCheck、用户预览后的 Scene 修改循环、已提案 capability 的实际 promotion、发布

@@ -11,12 +11,12 @@ const skillRoot = path.join(
 const readSkillFile = (relativePath: string) =>
   readFile(path.join(skillRoot, relativePath), "utf8");
 
-test("repository video skill triggers direct preview-ready production", async () => {
-  const [skill, metadata, workflow, recovery] = await Promise.all([
+test("repository video skill separates Agent rework from fixed-flow hardening", async () => {
+  const [skill, metadata, workflow, failurePolicy] = await Promise.all([
     readSkillFile("SKILL.md"),
     readSkillFile("agents/openai.yaml"),
     readSkillFile("references/direct-production-workflow.md"),
-    readSkillFile("references/recovery-and-boundaries.md"),
+    readSkillFile("references/agent-rework-and-system-hardening.md"),
   ]);
 
   assert.match(skill, /^name: remotion-story-producer-video$/m);
@@ -25,10 +25,13 @@ test("repository video skill triggers direct preview-ready production", async ()
     /default to inline execution without writing a plan first/u,
   );
   assert.match(skill, /references\/direct-production-workflow\.md/u);
-  assert.match(skill, /references\/recovery-and-boundaries\.md/u);
+  assert.match(skill, /references\/agent-rework-and-system-hardening\.md/u);
   assert.match(skill, /voxcpm\/voxcpm\.private\.json/u);
   assert.match(skill, /preview-ready \/ awaiting-user-preview/u);
   assert.match(skill, /Never use `git add \.`/u);
+  assert.match(skill, /Recover only Agent-owned authoring work/u);
+  assert.match(skill, /Never recover a failed fixed workflow/u);
+  assert.doesNotMatch(skill, /recover a production run/u);
 
   assert.match(metadata, /\$remotion-story-producer-video/u);
   assert.match(metadata, /不先写计划/u);
@@ -48,16 +51,29 @@ test("repository video skill triggers direct preview-ready production", async ()
   assert.match(workflow, /Do not detach it from the current task/u);
 
   assert.match(
-    recovery,
+    failurePolicy,
+    /Only Agent-owned authoring work is recoverable/u,
+  );
+  assert.match(failurePolicy, /Fixed-flow failure is a system defect/u);
+  assert.match(
+    failurePolicy,
+    /Do not retry, resume, skip, or manually complete the failed fixed stage/u,
+  );
+  assert.match(
+    failurePolicy,
     /Reproduce the defect with the smallest deterministic test/u,
   );
-  assert.match(recovery, /Never.*hand-edit derived state/isu);
+  assert.doesNotMatch(
+    failurePolicy,
+    /Resume only if its state legally supports/u,
+  );
+  assert.match(failurePolicy, /Never.*hand-edit derived state/isu);
   assert.match(
-    recovery,
+    failurePolicy,
     /Do not search, open, compare, imitate, or copy old formal Scene/u,
   );
   assert.match(
-    recovery,
+    failurePolicy,
     /The automatic endpoint is mechanical `preview-ready/u,
   );
 });

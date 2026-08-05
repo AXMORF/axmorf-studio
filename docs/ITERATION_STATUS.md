@@ -108,9 +108,9 @@
   append-only watcher、1080×1920/30 fps/1102-frame H.264/AAC Preview、8/8 mechanical checks，
   最终到达 `preview-ready / awaiting-user-preview`；四个真实编排缺陷均经 Red/Green、独立修复
   commit 和 immutable replacement 收口，正式 GPS/ProductComicVertical 十个保护产物零差异。
-- 项目级 `$remotion-story-producer-video` Skill：薄入口按需加载直接生产与故障恢复参考，在新
-  对话接收完整内容后不写计划，直接使用默认 VoxCPM、固定 production CLI、Scene watcher 和
-  immutable replacement 推进到 `preview-ready / awaiting-user-preview`。
+- 项目级 `$remotion-story-producer-video` Skill：薄入口按需加载直接生产、Agent-owned 创作
+  返工与 common-flow hardening 参考；固定 production CLI/watcher/render/check 失败不恢复，
+  必须完善通用流程并由新 Run 完整重验到 `preview-ready / awaiting-user-preview`。
 
 ## 尚未完成
 
