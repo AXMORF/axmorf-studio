@@ -8,6 +8,7 @@ import {
   StoryIdSchema,
 } from "./primitives";
 import { ProductionReadabilityPolicySchema } from "./production-readability";
+import { SCENE_COMPOSITION_BOUNDARY_VERSION } from "./production-requirements";
 import { ResourceIdSchema } from "./resource-catalog";
 import { StoryBeatSchema } from "./story";
 
@@ -92,6 +93,13 @@ const SceneTaskInputV2Object = SceneTaskInputV1Object.extend({
   schemaVersion: z.literal(2),
   readabilityPolicy: ProductionReadabilityPolicySchema,
 }).strict();
+const SceneTaskInputV3Object = SceneTaskInputV2Object.extend({
+  schemaVersion: z.literal(3),
+  sceneCompositionBoundaryVersion: z.literal(
+    SCENE_COMPOSITION_BOUNDARY_VERSION,
+  ),
+  visualShellSourceGraphFingerprint: Sha256DigestSchema,
+}).strict();
 
 type SceneTaskV1FingerprintInput = Omit<
   z.input<typeof SceneTaskInputV1Object>,
@@ -102,10 +110,15 @@ type SceneTaskV2FingerprintInput = Omit<
   z.input<typeof SceneTaskInputV2Object>,
   "schemaVersion" | "taskInputFingerprint"
 > & { readonly schemaVersion?: 2 };
+type SceneTaskV3FingerprintInput = Omit<
+  z.input<typeof SceneTaskInputV3Object>,
+  "schemaVersion" | "taskInputFingerprint"
+> & { readonly schemaVersion?: 3 };
 
 type SceneTaskFingerprintInput =
   | SceneTaskV1FingerprintInput
-  | SceneTaskV2FingerprintInput;
+  | SceneTaskV2FingerprintInput
+  | SceneTaskV3FingerprintInput;
 
 export const computeSceneTaskInputFingerprint = (
   rawTask: SceneTaskFingerprintInput & {
@@ -116,7 +129,7 @@ export const computeSceneTaskInputFingerprint = (
   delete task.taskInputFingerprint;
   return createFingerprint({
     namespace: "scene-task-input",
-    version: task.schemaVersion === 2 ? 2 : 1,
+    version: task.schemaVersion === 3 ? 3 : task.schemaVersion === 2 ? 2 : 1,
     value: task,
   });
 };
@@ -124,7 +137,8 @@ export const computeSceneTaskInputFingerprint = (
 const addSceneTaskIssues = (
   task:
     | z.infer<typeof SceneTaskInputV1Object>
-    | z.infer<typeof SceneTaskInputV2Object>,
+    | z.infer<typeof SceneTaskInputV2Object>
+    | z.infer<typeof SceneTaskInputV3Object>,
   context: z.RefinementCtx,
 ) => {
   if (
@@ -175,10 +189,13 @@ const SceneTaskInputV1Schema =
   SceneTaskInputV1Object.superRefine(addSceneTaskIssues).readonly();
 const SceneTaskInputV2Schema =
   SceneTaskInputV2Object.superRefine(addSceneTaskIssues).readonly();
+const SceneTaskInputV3Schema =
+  SceneTaskInputV3Object.superRefine(addSceneTaskIssues).readonly();
 
 export const SceneTaskInputSchema = z.union([
   SceneTaskInputV1Schema,
   SceneTaskInputV2Schema,
+  SceneTaskInputV3Schema,
 ]);
 
 export const buildSceneTaskInput = (rawInput: SceneTaskV1FingerprintInput) => {
@@ -199,6 +216,16 @@ export const buildSceneTaskInputV2 = (
     ...rawInput,
     schemaVersion: 2 as const,
   };
+  return SceneTaskInputSchema.parse({
+    ...input,
+    taskInputFingerprint: computeSceneTaskInputFingerprint(input),
+  });
+};
+
+export const buildSceneTaskInputV3 = (
+  rawInput: SceneTaskV3FingerprintInput,
+) => {
+  const input = { ...rawInput, schemaVersion: 3 as const };
   return SceneTaskInputSchema.parse({
     ...input,
     taskInputFingerprint: computeSceneTaskInputFingerprint(input),

@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import type { TestContext } from "node:test";
 
 import {
-  buildProductionRequirementsFreeze,
+  buildProductionRequirementsFreezeV2,
   computeGenerationInputFingerprint,
   computeStoryFingerprint,
   NarrationSpecSchema,
@@ -94,7 +94,7 @@ export const createProductionFixture = async (
       source.storyCheck,
     ),
   };
-  const requirements = buildProductionRequirementsFreeze({
+  const requirements = buildProductionRequirementsFreezeV2({
     source,
     sourceChecksums,
     enhancementSelection: {

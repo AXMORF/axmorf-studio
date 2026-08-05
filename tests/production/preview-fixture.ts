@@ -15,6 +15,8 @@ export const validPreviewAssemblyInput = {
   ],
   rendererRegistryFingerprint: sha("9"),
   storyVisualProjectionFingerprint: sha("a"),
+  visualShellSourceGraphFingerprint: sha("c"),
+  sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
   sceneLocalSound: {
     selection: "none",
     reason: "no-scene-local-audio",
@@ -30,7 +32,12 @@ export const validPreviewAssemblyInput = {
     ducking: "absent",
     globalVisualLayers: "absent",
   },
-  layerOrder: ["story-visual", "narrative-core", "scene-local-sound"],
+  layerOrder: [
+    "visual-shell",
+    "story-visual",
+    "narrative-core",
+    "scene-local-sound",
+  ],
   mixOrder: ["narration", "scene-local-sound"],
   reviewPolicy: "mechanical-only",
 } as const;

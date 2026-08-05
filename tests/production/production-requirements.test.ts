@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   buildProductionRequirementsFreeze,
   buildProductionRequirementsFreezeV1,
+  buildProductionRequirementsFreezeV2,
   computeProductionRequirementsFingerprint,
   ProductionRequirementsFreezeSchema,
   resolveCurrentProductionRequirements,
@@ -132,8 +133,14 @@ const withCurrentFingerprint = (value: Record<string, unknown>) => ({
 test("builds and resolves a current production requirements freeze", () => {
   const freeze = buildValidFreeze();
 
-  assert.equal(freeze.schemaVersion, 2);
-  assert.equal(freeze.contractVersion, "production-requirements-freeze-v2");
+  assert.equal(freeze.schemaVersion, 3);
+  assert.equal(freeze.contractVersion, "production-requirements-freeze-v3");
+  assert.deepEqual(freeze.sceneBoundaryOwnership, {
+    sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
+    sceneSafeAreaOwner: "composition",
+    visualShellOwner: "project",
+    captionOwner: "caption-layer",
+  });
   assert.equal(freeze.readabilityPolicy.policyId, "production-readability-v1");
   assert.equal(freeze.readabilityPolicy.width, render.width);
   assert.equal(freeze.readabilityPolicy.height, render.height);
@@ -159,6 +166,30 @@ test("builds and resolves a current production requirements freeze", () => {
     freeze.requirementsFingerprint,
   );
   assert.deepEqual(buildValidFreeze(), freeze);
+});
+
+test("keeps the v2 freeze parser and fingerprint byte-compatible", () => {
+  const legacy = buildProductionRequirementsFreezeV2({
+    source,
+    sourceChecksums,
+    enhancementSelection: {
+      storyVisual: "required",
+      sceneLocalSound: "allowed",
+      globalSound: "none",
+      globalVisual: "none",
+    },
+    resourcePolicy: {
+      selfAuthoredVisualsAllowed: true,
+      unlistedThirdPartyResources: "deny",
+    },
+    additionalRequirements,
+  });
+  assert.equal(legacy.schemaVersion, 2);
+  assert.equal(legacy.contractVersion, "production-requirements-freeze-v2");
+  assert.equal(
+    ProductionRequirementsFreezeSchema.parse(legacy).requirementsFingerprint,
+    legacy.requirementsFingerprint,
+  );
 });
 
 test("keeps the v1 freeze parser and fingerprint byte-compatible", () => {

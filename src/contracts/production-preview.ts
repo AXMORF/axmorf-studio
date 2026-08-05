@@ -12,6 +12,8 @@ import {
 
 export const PRODUCTION_PREVIEW_ASSEMBLY_VERSION =
   "production-preview-assembly-v1" as const;
+export const PRODUCTION_PREVIEW_ASSEMBLY_VERSION_V2 =
+  "production-preview-assembly-v2" as const;
 export const PRODUCTION_PREVIEW_EVIDENCE_VERSION =
   "production-preview-evidence-v1" as const;
 export const PRODUCTION_PREVIEW_MECHANICAL_CHECK_VERSION =
@@ -112,8 +114,35 @@ const PreviewAssemblyInputObject = z
     }
   });
 
-export const ProductionPreviewAssemblyInputSchema =
-  PreviewAssemblyInputObject.readonly();
+const PreviewAssemblyV2InputObject = z.object({
+  ...PreviewAssemblyInputObject.shape,
+  schemaVersion: z.literal(2),
+  contractVersion: z.literal(PRODUCTION_PREVIEW_ASSEMBLY_VERSION_V2),
+  visualShellSourceGraphFingerprint: Sha256DigestSchema,
+  sceneCompositionBoundaryVersion: z.literal("scene-composition-boundary-v1"),
+  layerOrder: z
+    .tuple([
+      z.literal("visual-shell"),
+      z.literal("story-visual"),
+      z.literal("narrative-core"),
+      z.literal("scene-local-sound"),
+    ])
+    .readonly(),
+}).strict().superRefine((assembly, context) => {
+  const meaningIds = assembly.scenePackages.map(({ meaningId }) => meaningId);
+  if (new Set(meaningIds).size !== meaningIds.length) {
+    context.addIssue({
+      code: "custom",
+      message: "PreviewAssembly ScenePackage identities must be unique.",
+      path: ["scenePackages"],
+    });
+  }
+});
+
+export const ProductionPreviewAssemblyInputSchema = z.union([
+  PreviewAssemblyInputObject.readonly(),
+  PreviewAssemblyV2InputObject.readonly(),
+]);
 
 export const computeProductionPreviewAssemblyFingerprint = (
   rawInput: unknown,
@@ -123,14 +152,20 @@ export const computeProductionPreviewAssemblyFingerprint = (
   const input = ProductionPreviewAssemblyInputSchema.parse(record);
   return createFingerprint({
     namespace: "production-preview-assembly",
-    version: 1,
+    version: input.schemaVersion,
     value: input,
   });
 };
 
-export const ProductionPreviewAssemblySchema =
-  PreviewAssemblyInputObject.extend({ assemblyFingerprint: Sha256DigestSchema })
-    .strict()
+export const ProductionPreviewAssemblySchema = z
+  .union([
+    PreviewAssemblyInputObject.extend({
+      assemblyFingerprint: Sha256DigestSchema,
+    }).strict(),
+    PreviewAssemblyV2InputObject.extend({
+      assemblyFingerprint: Sha256DigestSchema,
+    }).strict(),
+  ])
     .superRefine((assembly, context) => {
       const { assemblyFingerprint, ...input } = assembly;
       if (
@@ -144,13 +179,20 @@ export const ProductionPreviewAssemblySchema =
         });
       }
     })
-    .readonly();
+  .readonly();
 
 export const buildProductionPreviewAssembly = (rawInput: unknown) => {
+  const isV2 =
+    rawInput !== null &&
+    typeof rawInput === "object" &&
+    "visualShellSourceGraphFingerprint" in rawInput;
   const record: Record<string, unknown> = {
     ...(rawInput as Record<string, unknown>),
-    schemaVersion: 1,
-    contractVersion: PRODUCTION_PREVIEW_ASSEMBLY_VERSION,
+    schemaVersion: isV2 ? 2 : 1,
+    contractVersion:
+      isV2
+        ? PRODUCTION_PREVIEW_ASSEMBLY_VERSION_V2
+        : PRODUCTION_PREVIEW_ASSEMBLY_VERSION,
   };
   delete record.assemblyFingerprint;
   const input = ProductionPreviewAssemblyInputSchema.parse(record);

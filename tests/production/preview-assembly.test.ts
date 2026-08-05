@@ -9,6 +9,8 @@ import { validPreviewAssemblyInput } from "./preview-fixture";
 
 test("builds a versioned preview assembly with explicit absent enhancements", () => {
   const assembly = buildProductionPreviewAssembly(validPreviewAssemblyInput);
+  assert.equal(assembly.schemaVersion, 2);
+  assert.equal(assembly.contractVersion, "production-preview-assembly-v2");
   assert.equal(assembly.enhancements.globalSoundPlan, "absent");
   assert.equal(assembly.enhancements.globalVisualLayers, "absent");
   assert.equal(assembly.reviewPolicy, "mechanical-only");
