@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "storyId": "rounded-airplane-windows",
+  "styleProfileId": "editorial-tech",
+  "resourceCatalogFingerprint": "sha256:83872a754e05df18d0ec008ecd4f9cb637c0c159481dc59b0368898125188689",
+  "artDirection": {
+    "medium": "竖屏工程信息图与简化机身剖面示意",
+    "palette": "深蓝底色，米白结构线，橙红应力流与少量青蓝辅助标记",
+    "lighting": "扁平、克制，以结构线亮度和应力区域对比建立层级",
+    "texture": "细密蓝图网格和低对比纸张颗粒，不遮挡主体",
+    "compositionGrammar": "上方短标题、中部单一结构主体、下部留出字幕安全区，因果关系沿纵向推进",
+    "motionLanguage": "只用 frame-driven 描线、载荷脉冲、局部放大和路径流动，运动服务工程因果",
+    "typography": "米白无衬线大字配窄体工程标注，所有文字保持竖屏安全区可读"
+  },
+  "continuityRules": [
+    "两个 Scene 保持同一机身截面比例与窗口中心位置。",
+    "橙红只表示高应力或载荷流，青蓝只表示结构分散后的稳定路径。",
+    "第二个 Scene 从第一个 Scene 的方形轮廓平滑过渡为圆角轮廓。",
+    "所有结构标注保持同一线宽、圆角和字号层级。"
+  ],
+  "forbiddenTreatments": [
+    "禁止写实飞机照片、远程媒体和历史作品布局。",
+    "禁止三维自动旋转、炫光粒子和与语义无关的装饰运动。",
+    "禁止 CSS animation、CSS transition 和 Tailwind animation utilities。",
+    "禁止在 Scene 内渲染正式字幕或播放任何音频。"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "scene-production-brief-v1",
+  "storyId": "rounded-airplane-windows",
+  "requirementsFingerprint": "sha256:350110707cd1b16c4ef694dadde948dad97d8ac39f5cae5700d1f4fbdd12a9d7",
+  "semanticTimingFingerprint": "sha256:296ef0b7a5a38fec7c1869134bd37a5d8e0e8f35c63c5e94da2b954b8156c8d6",
+  "visualStyleFingerprint": "sha256:7d4efd19833a38213af59a27c9347a2658632ace92fc3e26d9993737da3681a7",
+  "resourcePoolFingerprint": "sha256:b240b88dfb65223c1514253fac6a3f2da23a13b67418fe70bd107c1596e1e4c4",
+  "sceneLocalSoundPolicy": "none",
+  "reviewPolicy": "mechanical-only",
+  "scenes": [
+    {
+      "meaningId": "square-corner-stress",
+      "visualIntent": "以简化机身蒙皮和方形窗口为主体，明确表现增压循环把应力推向四个尖角。",
+      "compositionIntent": "窗口居中偏上，完整机身截面作为稳定参照，右上角用局部放大框显示尖角裂纹起点，下部保持字幕安全区。",
+      "motionIntent": "机身载荷环按帧缓慢扩张收缩，橙红应力线向四角汇聚，局部放大框在关键叙事段逐步显现。",
+      "soundIntent": "Scene 局部声音显式为 none，不创建 ambience、SFX 或任何音频资源。",
+      "continuityBrief": "保持窗口中心、机身截面比例、网格和线宽固定；结尾保留方形轮廓与四角应力节点，供下一 Scene 平滑接续。",
+      "candidateResourceIds": [],
+      "allowedSnapshotCards": []
+    },
+    {
+      "meaningId": "rounded-load-path",
+      "visualIntent": "沿用同一机身截面，把方形窗口平滑重构为圆角窗口，并展示载荷沿曲线分散。",
+      "compositionIntent": "窗口继续位于相同中心位置，主画面用连续圆角轮廓承载分散路径，侧边用简短工程标注说明应力峰值降低。",
+      "motionIntent": "四个橙红集中节点沿圆角曲线展开为均匀流线，轮廓按帧完成方到圆的受控变化，结尾稳定在圆角结构。",
+      "soundIntent": "Scene 局部声音显式为 none，不创建 ambience、SFX 或任何音频资源。",
+      "continuityBrief": "从上一 Scene 的方形轮廓和应力节点原位接续；颜色从橙红集中逐步转为青蓝稳定路径，其他视觉尺度保持一致。",
+      "candidateResourceIds": [],
+      "allowedSnapshotCards": []
+    }
+  ],
+  "briefFingerprint": "sha256:7fc62edb201e5a72bdf0f76e9bf6b6504ced563962603c73a1350f56076a26fd"
+}

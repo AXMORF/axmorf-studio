@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "story-resource-pool-v1",
+  "storyId": "rounded-airplane-windows",
+  "requirementsFingerprint": "sha256:350110707cd1b16c4ef694dadde948dad97d8ac39f5cae5700d1f4fbdd12a9d7",
+  "resourceCatalogFingerprint": "sha256:83872a754e05df18d0ec008ecd4f9cb637c0c159481dc59b0368898125188689",
+  "allowedResourceIds": [],
+  "allowedSnapshots": [],
+  "selfAuthoredVisualsAllowed": true,
+  "poolFingerprint": "sha256:b240b88dfb65223c1514253fac6a3f2da23a13b67418fe70bd107c1596e1e4c4"
+}
