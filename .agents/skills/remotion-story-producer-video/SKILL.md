@@ -7,12 +7,11 @@ description: Directly produce a contract-driven Remotion Story Producer video fr
 
 ## Start directly
 
-Use the repository and the user's current request as authority. Inspect branch, HEAD, and
-`git status --short --branch`; preserve unrelated changes. Start inline from usable content without a
-plan or routine confirmation. Infer safe production defaults unless a missing choice would materially
-change the result.
+Use the repository and current request as authority. Inspect branch, HEAD, and status; preserve
+unrelated changes. Start inline without a plan or routine confirmation. Infer safe defaults unless a
+missing choice materially changes the result.
 
-Remain the lifecycle owner through provider calls, Scene work, watcher output, render, and checks until
+Own provider calls, Scene work, watcher, render, and checks until
 `preview-ready / awaiting-user-preview`, a genuine external blocker, or user cancellation. Never
 detach live work from the current task.
 
@@ -24,15 +23,17 @@ new production or active Agent authoring continuation. It contains the normal pa
 
 Read
 [references/agent-rework-and-system-hardening.md](references/agent-rework-and-system-hardening.md)
-only after Agent output fails validation, a fixed command fails, implementation must change, or a
-protected-artifact incident needs classification. Read only the relevant authority-doc section when a
-contract conflict, fixed-flow defect, current-fact dispute, or scope expansion requires it. Use current
-contracts, code, and tests as executable truth; use CodeGraph first for implementation boundaries when
-`.codegraph/` exists.
+only after Agent output fails, a fixed command fails, implementation changes, or a protected-artifact
+incident needs classification. Read only the relevant authority section for a contract conflict,
+fixed-flow defect, fact dispute, or scope expansion. Use current code and tests as executable truth;
+use CodeGraph first when `.codegraph/` exists.
 
 ## Preserve production invariants
 
-- Preserve authored `ttsChunks`; sealed PCM with `pcm-cumulative-ceil-v1` owns timing.
+- Freeze the universal readability policy for every future production; old videos stay untouched.
+- Read chunk budgets, safe areas, and font minima from the frozen assignment, never Skill constants.
+- Author `ttsChunks` by meaning, tone, and reading rhythm; never auto-split by punctuation or characters.
+  Return an over-budget chunk for Agent rework; sealed PCM with `pcm-cumulative-ceil-v1` owns timing.
 - Keep one Story, one Composition, and one exclusive ScenePackage per meaningId/StoryBeat.
 - Keep narration and captions top-level; Scene code is visual-only plus optional Scene-local sound.
 - Bind renderers through the composition-local static registry; keep JSON non-executable.

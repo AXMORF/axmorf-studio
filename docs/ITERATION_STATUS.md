@@ -95,6 +95,11 @@
   路径保持零差异，未执行 promotion。
 - M9.5 strict `ProductionRequirementsFreeze`、append-only run event ledger、generated state
   projection、结构化脱敏 ProductionError、固定 `production:start/status/narrative` CLI；
+- 所有未来 production 使用 `ProductionRequirementsFreeze` v2 冻结画幅无关的
+  `production-readability-v1`：整数 scale/安全区/Scene 与字幕字号、Unicode grapheme
+  `caption-display-unit-v1` provider 前 fail-closed、v2 task/assignment/package/result identity、
+  完整 Renderer source-graph guard、固定 Scene 安全区 primitives、policy-aware CaptionLayer 与
+  watcher/post-Scene 公共复检；已有 v1 Run 和正式视频不迁移、不回填；
 - StoryResourcePool、SceneProductionBrief、逐 meaningId SceneAssignment、独占路径、deadline、
   Scene success/failure result contracts 与固定 submit/fail writer；
 - single-writer central watcher 对 waiting/success/expected/unexpected failure、timeout、malformed、
@@ -123,7 +128,8 @@
 
 以上未完成项仍是目标设计，不能表述为已有产物。M9.5 只实现到机械
 `preview-ready / awaiting-user-preview`；没有实现用户预览后的 Scene 修改循环，也没有创建
-新作品 approval。NarrativeCheck、任何 promotion、发布或 M10 都没有实现。
+新作品 approval。本次通用可读性策略也没有启动 NarrativeCheck、审美 gate、任何 promotion、
+发布或 M10。
 
 ## 下一里程碑
 

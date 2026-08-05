@@ -34,6 +34,9 @@ test("repository video skill separates Agent rework from fixed-flow hardening", 
   assert.match(skill, /Never use `git add \.`/u);
   assert.match(skill, /Recover only Agent-owned authoring work/u);
   assert.match(skill, /Never recover a failed fixed workflow/u);
+  assert.match(skill, /universal readability policy/u);
+  assert.match(skill, /frozen assignment/u);
+  assert.match(skill, /never auto-split by punctuation or characters/u);
   assert.doesNotMatch(skill, /recover a production run/u);
   assert.ok(
     wordCount(skill) <= 520,
@@ -57,6 +60,10 @@ test("repository video skill separates Agent rework from fixed-flow hardening", 
   assert.match(workflow, /Keep polling its real output/u);
   assert.match(workflow, /Do not detach it from the current task/u);
   assert.match(workflow, /Read only the relevant authority section/u);
+  assert.match(workflow, /before any\s+provider call/u);
+  assert.match(workflow, /Existing videos and v1 runs are not migrated/u);
+  assert.match(workflow, /assignment-provided content\/caption safe areas/u);
+  assert.match(workflow, /common-flow defect/u);
   assert.doesNotMatch(
     workflow,
     /Read `AGENTS\.md`, `docs\/FINAL_PRODUCT_GOAL\.md`/u,

@@ -32,6 +32,33 @@ npm run production:preview:check -- --run <runId>
 节点；真实运行可能调用已配置 VoxCPM，但默认测试只使用依赖注入 fake provider，不访问
 网络或私有配置。
 
+## 未来 production 的统一可读性冻结
+
+代码变更之后开始的新 Run 只接受 `ProductionRequirementsFreeze` v2。它把 Composition 的
+width/height 与 `production-readability-v1` 完整解析结果结构化封存并 fingerprint；这是一条
+适用于所有画幅的生产规则，不是 9:16 或 portrait policy。已有 v1 requirements/Run 继续按
+原合同读取和检查，不注入默认字段、不迁移、不重写任何旧作品或 identity。
+
+策略用整数有理数 `scale = max(1080, min(width, height)) / 1080` 计算：90/36/40/180/30/38
+分别按明确的整数 round 解析为 edge inset、Scene 最小字号、字幕字号、字幕 bottom inset、
+caption gap 和 vertical padding；两行字幕盒按 `ceil(2 × font × 135 / 100) + padding`，Scene
+bottom inset 再向上取整到 10 的倍数。1080 short edge 的结果为
+`90/36/40/180/146/360`，更小画幅不低于该基线；同一规则同时生成
+`sceneContentSafeAreaPx` 与 `captionSafeAreaPx`。
+
+`caption-display-unit-v1` 以确定性 Unicode grapheme 计数：ASCII grapheme 为 1 half-unit，
+非 ASCII grapheme 为 2 half-units，推荐/硬上限为 64/72 half-units（32/36 display units）。
+`production:start` 在任何 provider、候选音频或 seal 前联合 Story、Render 和冻结策略检查全部
+chunks；超限只返回可定位到 `chunkId` 的 Agent-owned authoring failure，不自动拆分、改写、
+裁剪或缩小字号。
+
+Scene freeze 将完整策略写入 v2 task/assignment；package/result/mechanical identity 与 watcher、
+post-Scene Preview 复检都绑定同一 policy fingerprint。未来 Renderer 必须使用
+`SceneBackground` 与 `SceneContentFrame`，完整 source graph 中可见 HTML/SVG 文字必须静态
+证明达到字号下限，未知/继承/相对单位/缩小 scale/Scene-owned CaptionLayer 均 fail closed。
+这些 primitive 只约束和裁切安全区，不生成布局、不做 Scene DSL、自动导演或 capability
+promotion。顶层 CaptionLayer 显式读取冻结的字幕策略；旧 Composition 不传 policy 时输出不变。
+
 Narrative 到达 `baseline-ready` 后，主 Agent 写 current `visual-style.json`、
 `production/story-resource-pool.json` 和 `production/scene-production-brief.json`，再运行
 `production:scene:freeze`。每个 meaningId 得到一份只读 assignment。Scene Agent 只拥有该

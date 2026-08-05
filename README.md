@@ -36,6 +36,12 @@ Scene result contracts 和 current fingerprints 复算；中央脚本是唯一 w
 `rounded-airplane-windows` 两 Scene 试跑已在四个 common-flow hardening 后达到
 `preview-ready / awaiting-user-preview`；该状态不代表用户批准或发布。
 
+此后开始的所有 production 由 `ProductionRequirementsFreeze` v2 冻结同一份、与画幅无关的
+`production-readability-v1`：根据 Composition width/height 确定性解析内容/字幕安全区与字号，
+并在 provider 前拒绝超出 `caption-display-unit-v1` 预算的 authored `ttsChunks`。策略继续传播到
+Scene assignment/package/result 和 watcher 复检；已有 v1 Run、正式视频及其 identity 不迁移、
+不回填且仍按原合同读取。
+
 ## 当前状态
 
 仓库当前完成基础框架、M1–M4 Narrative Baseline 机械闭环、M6 Scene Runtime foundation、
@@ -96,6 +102,9 @@ M7 第一套正式 Scene production、M8 最终装配闭环和 M9 第二主题�
   audio 和 evidence orchestration 仍为 project-local；
 - strict `ProductionRequirementsFreeze`、append-only `ProductionStageEvent`、派生
   `ProductionRunState`、Story 级资源池、逐 meaningId assignment/result 和中央 watcher；
+- 面向所有未来画幅的 `production-readability-v1` 与 requirements v2、Unicode grapheme
+  `caption-display-unit-v1`、provider 前 chunk budget gate、assignment identity 传播、完整
+  Renderer source-graph 字号/安全区 guard、受控 Scene primitives 和 policy-aware CaptionLayer；
 - 固定 `production:*` CLI、checkpoint-safe narrative runner、无全局 BGM/ambience/ducking/
   GlobalVisualLayers 的 PreviewAssembly，以及只表示 mechanically-ready 的 Preview evidence；
 - fake provider/process/clock/scheduler 驱动的完整两 Scene 编排 proof、失败矩阵与幂等验证；

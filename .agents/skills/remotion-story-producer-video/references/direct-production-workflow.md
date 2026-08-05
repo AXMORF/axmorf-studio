@@ -22,7 +22,11 @@ src/projects/<storyId>/production/requirements.json
 ```
 
 Preserve every user claim in a causal Story. Give each ordered StoryBeat one stable `meaningId` and
-Agent-authored `ttsChunks` based on meaning, tone, and reading rhythm; never split by punctuation.
+Agent-authored `ttsChunks` based on meaning, tone, and reading rhythm; never split by punctuation or
+character count and never let a script rewrite `ttsText`. Future production freezes the universal
+readability policy from the Composition dimensions. Treat its assignment-provided display budget as
+the authority; an over-budget chunk is Agent-owned authoring failure and must be rewritten before any
+provider call. Existing videos and v1 runs are not migrated.
 Infer safe format defaults and record them in the handoff. Use a safe profile ID through the default
 VoxCPM command without reading private values. Bind current input identities in
 `ProductionRequirementsFreeze`; select no M9.5 global enhancements. Validate and commit only exact
@@ -53,7 +57,8 @@ selected immutable references; an empty resource pool is valid. Then run:
 npm run production:scene:freeze -- --run <runId>
 ```
 
-Require one immutable assignment per meaningId with exclusive source/public paths.
+Require one immutable assignment per meaningId with exclusive source/public paths and the exact
+frozen readability policy.
 
 ## 4. Own watcher and Scene lifecycle
 
@@ -66,7 +71,10 @@ npm run production:watch -- --run <runId>
 Keep polling its real output. Do not detach it from the current task. Author Scenes inline, or delegate
 only when explicitly allowed, while the watcher remains live. Each Scene owner receives one meaningId,
 its exclusive paths, current Beat/sealed timing, style/brief/assignment, adjacent continuity, and only
-approved current resources. Do not inspect historical Scene source or media.
+approved current resources. Use only the assignment-provided content/caption safe areas and font
+minimum; never duplicate their numeric values in authoring guidance. Keep semantic content inside the
+guarded content frame, reserve full bleed for non-semantic backgrounds, and keep captions top-level.
+Do not inspect historical Scene source or media.
 
 Keep work under `src/projects/<storyId>/scenes/<meaningId>/`. Produce assignment-required plans,
 selections, renderer, optional local-sound declarations, and ScenePackage inputs. Submit or record an
@@ -77,7 +85,9 @@ npm run production:scene:submit -- --run <runId> --scene <meaningId>
 npm run production:scene:fail -- --run <runId> --scene <meaningId> --code <CODE> --description "<safe description>"
 ```
 
-Correct rejected Agent-owned output through the same validator. Never write events, state, coverage,
+Correct rejected Agent-owned output, including over-budget chunks or readability-invalid Scene
+source, through the same validator. Validator, propagation, fingerprint, watcher, or checker failure
+is a common-flow defect. Never write events, state, coverage,
 registry, projection, or Composition manually. Continue until all results are accepted or the run is
 terminal. For any fixed-command failure, stop and load the hardening reference; do not retry it.
 
