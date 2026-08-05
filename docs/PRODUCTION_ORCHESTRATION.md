@@ -4,6 +4,9 @@
 > `preview-ready / awaiting-user-preview`；它不表示 reviewed、approved、quality-pass 或
 > released。
 
+首次真实试跑已用 `rounded-airplane-windows` 验证该终点；完整 run/replacement、媒体与保护
+证据见 [M9.5 首次真实生产试跑与 hardening 实证](evidence/2026-08-05-m9-5-production-trial-and-hardening.md)。
+
 ## 固定命令
 
 所有命令只接受下面的 exact form；未知、重复、缺失或额外参数都会非零退出。
@@ -54,6 +57,11 @@ previous-state fingerprint 和 current artifact identities，再复算状态；�
 `production:status` 只读取 current run projection。失败会保存结构化、脱敏的
 `ProductionError`，不持久化 raw stack、token、私有 endpoint 或绝对路径。修复已报告的输入
 或 Scene 后，应按状态重新执行对应固定命令；不得手改中央 state 跳过失败。
+
+真实 replacement 还固定了四条恢复语义：selected-resources envelope 在 submit 与 post-scene
+共用 strict parser；Composition listing 必须保留待解析 stdout；只有 byte-exact generated
+Preview scaffold 可在 replacement start 恢复为 Narrative scaffold；媒体时间线以唯一视频流的
+duration/fps/frame count 为权威，不用包含 AAC tail padding 的 container duration。
 
 ## Preview 产物与交接
 

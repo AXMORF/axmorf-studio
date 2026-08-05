@@ -104,6 +104,10 @@
   `preview-ready / awaiting-user-preview` 终点；
 - fake provider/process/clock/scheduler 的两 Scene orchestration proof、失败矩阵、bytes/mtime
   幂等验证，以及 GPS/ProductComicVertical current final artifacts checksum 保护断言。
+- `rounded-airplane-windows` 首次真实生产试跑：真实 VoxCPM 封存旁白、两个 project-local Scene、
+  append-only watcher、1080×1920/30 fps/1102-frame H.264/AAC Preview、8/8 mechanical checks，
+  最终到达 `preview-ready / awaiting-user-preview`；四个真实编排缺陷均经 Red/Green、独立修复
+  commit 和 immutable replacement 收口，正式 GPS/ProductComicVertical 十个保护产物零差异。
 
 ## 尚未完成
 
@@ -152,7 +156,8 @@ M9 计划与实证见
 [M9 Product Comic Vertical Generalization Evidence](evidence/m9-product-comic-vertical-generalization.md)。
 M9.5 实施计划和操作说明见
 [M9.5 Contract-driven Production Orchestration Plan](superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md) 与
-[Production Orchestration](PRODUCTION_ORCHESTRATION.md)。
+[Production Orchestration](PRODUCTION_ORCHESTRATION.md)；首次真实试跑见
+[M9.5 Production Trial and Hardening Evidence](evidence/2026-08-05-m9-5-production-trial-and-hardening.md)。
 三个 promotion candidates 仍只存在于 proposal；明确批准前不提取共享能力。
 后续里程碑顺序、阶段排除项和完成门槛见 [ROADMAP.md](ROADMAP.md)。
 

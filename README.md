@@ -31,7 +31,9 @@ proposal，没有提升共享能力。
 M9.5 已把完整制作要求冻结、Narrative Baseline runner、Story 级候选资源池、逐 Scene 结果
 合同、中央 watcher 和无全局增强的机械 Preview 接成固定、可恢复、fail-closed 的流程。运行
 状态由 append-only events、Scene result contracts 和 current fingerprints 复算；中央脚本是
-唯一 writer。成功终点只到 `preview-ready / awaiting-user-preview`，不代表用户批准或发布。
+唯一 writer。首次真实 `rounded-airplane-windows` 两 Scene 试跑已在四个 Red/Green hardening
+修复和 immutable replacement 后达到 `preview-ready / awaiting-user-preview`；该状态不代表
+用户批准或发布。
 
 ## 当前状态
 
@@ -112,7 +114,8 @@ M9 已批准计划与实证见
 [M9 Product Comic Vertical Generalization Evidence](docs/evidence/m9-product-comic-vertical-generalization.md)。
 M9.5 实施计划与操作合同见
 [M9.5 Contract-driven Production Orchestration Plan](docs/superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md) 和
-[Production Orchestration](docs/PRODUCTION_ORCHESTRATION.md)。
+[Production Orchestration](docs/PRODUCTION_ORCHESTRATION.md)；首次真实试跑见
+[M9.5 Production Trial and Hardening Evidence](docs/evidence/2026-08-05-m9-5-production-trial-and-hardening.md)。
 完成边界和后续里程碑见
 [最终产品目标](docs/FINAL_PRODUCT_GOAL.md) 与
 [当前实现状态](docs/ITERATION_STATUS.md)；完整实施顺序和阶段门槛见

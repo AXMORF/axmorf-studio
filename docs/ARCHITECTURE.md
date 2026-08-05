@@ -4,7 +4,8 @@
 > production 已实现；M8 global sound/global visual/final assembly、真实用户批准与 v2 final
 > gate 已完成。M9 第二主题、泛化报告、真实用户批准与第二份 passing v2 已完成；
 > M9.5 数据合同驱动生产编排合同、CLI、watcher 与 mechanical Preview 已实现；
-> NarrativeCheck、promotion 实施与发布仍未实现。
+> 首次真实两 Scene 试跑已达到 `preview-ready / awaiting-user-preview`；NarrativeCheck、
+> promotion 实施与发布仍未实现。
 
 ## 节点责任
 
@@ -431,12 +432,17 @@ M9.5 第一版已把上述手工汇总边界收紧为以下固定流程：
   Composition、中央 events 或 state；
 - watcher 轮询结果；任一 error/timeout/malformed/stale 即停止，全部 success 后由固定脚本
   生成 coverage、registry、projection、Composition 和机械 Preview；
+- submit/post-scene 对 selected-resources envelope 使用同一 strict parser；replacement start 只
+  识别 byte-exact generated scaffold，Composition listing 保留 stdout，媒体时间线以视频流而非
+  含 AAC padding 的 container duration 为权威；
 - M9.5 不运行 SceneVisualCheck/SceneSoundCheck 的 Agent 审美结论，成功只表示
   `mechanically-ready`，语义和审美留给用户完整预览。
 
 当前 Codex 主 Agent 在 watcher 和 Scene Agent 工作期间必须保持任务运行，但可以逻辑上只等待。
 repo 内脚本不创建/托管 Agent，也不承诺主任务结束后的 detached lifecycle。完整计划见
 [M9.5 Contract-driven Production Orchestration Plan](superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md)。
+首次真实 lifecycle 与 hardening 证据见
+[M9.5 Production Trial and Hardening Evidence](evidence/2026-08-05-m9-5-production-trial-and-hardening.md)。
 
 ## 外部镜头参考边界
 

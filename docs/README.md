@@ -7,6 +7,7 @@
 | [ARCHITECTURE.md](ARCHITECTURE.md)                                                                                                                                       | 叙事主链、Composition 注册与未来 Scene 接口                                 |
 | [DETERMINISTIC_EXECUTION.md](DETERMINISTIC_EXECUTION.md)                                                                                                                 | 固定 CLI、产物封存、静态 registry、runtime 与失效机制                       |
 | [PRODUCTION_ORCHESTRATION.md](PRODUCTION_ORCHESTRATION.md)                                                                                                               | M9.5 固定 production CLI、运行目录、状态投影与恢复边界                      |
+| [evidence/2026-08-05-m9-5-production-trial-and-hardening.md](evidence/2026-08-05-m9-5-production-trial-and-hardening.md)                                                   | M9.5 首次真实两 Scene 试跑、replacement、hardening 与机械 Preview 证据      |
 | [contracts/NARRATIVE_CONTRACTS.md](contracts/NARRATIVE_CONTRACTS.md)                                                                                                     | 已实现的 M1–M4 叙事、封存、时间、registry、evidence 与 AutoCheck 合同参考   |
 | [NARRATION_GENERATION.md](NARRATION_GENERATION.md)                                                                                                                       | M2 真实旁白生成、续跑、封存与恢复指南                                       |
 | [evidence/2026-08-01-gps-relativity-m2.md](evidence/2026-08-01-gps-relativity-m2.md)                                                                                     | GPS Relativity M2 真实旁白验收证据                                          |
@@ -18,13 +19,15 @@
 | [ITERATION_STATUS.md](ITERATION_STATUS.md)                                                                                                                               | 当前已实现、未实现和下一步                                                  |
 | [ROADMAP.md](ROADMAP.md)                                                                                                                                                 | 从当前基础到 Narrative、Visual、Final 与 Release 的阶段路线                 |
 | [superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md](superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md) | M9.5 完整制作要求、运行状态、Scene 结果 watcher 与机械 Preview 实施计划     |
+| [superpowers/plans/2026-08-05-m9-5-production-trial-and-hardening-plan.md](superpowers/plans/2026-08-05-m9-5-production-trial-and-hardening-plan.md)                         | M9.5 首次真实生产试跑、故障分类、Red/Green hardening 与 Preview handoff 计划 |
 | [BOOTSTRAP_IMPORT_MANIFEST.md](BOOTSTRAP_IMPORT_MANIFEST.md)                                                                                                             | 新仓库初始化与白名单迁移来源                                                |
 
 `src/remotion/runtime/` 已实现 NarrativeCore、Scene/global enhancement runtime 与显式装配；
 ProjectRegistry、两个正式 Story Composition、M4 narrative AutoCheck、M6–M9 final checks、
 evidence 和用户 approval 均已落地。M9.5 的 `ProductionRequirementsFreeze`、ProductionRun、
-通用 `production:*` scripts、Scene watcher 与 mechanical Preview 已实现；NarrativeCheck、
-用户预览后的 Scene 修改循环、promotion、发布与新的 `.agents/skills/` 仍未实现。
+通用 `production:*` scripts、Scene watcher 与 mechanical Preview 已实现；首次真实试跑也已到达
+`preview-ready / awaiting-user-preview`。NarrativeCheck、用户预览后的 Scene 修改循环、
+promotion、发布与新的 `.agents/skills/` 仍未实现。
 
 M4 exact commands：
 

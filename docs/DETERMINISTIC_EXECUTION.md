@@ -6,7 +6,8 @@
 > evidence、真实用户批准和 passing v2 final report 已实现。M9 第二主题、42-case matrix、
 > 泛化报告、用户批准和第二份 passing v2 已实现。M9.5 数据合同驱动生产编排的 strict
 > contracts、CLI、single-writer watcher 与 mechanical Preview pipeline 已实现。NarrativeCheck、
-> promotion 实施与发布仍为后续目标。
+> 首次真实生产试跑已达到 `preview-ready / awaiting-user-preview`；promotion 实施与发布仍为
+> 后续目标。
 
 ## 1. 定义
 
@@ -31,6 +32,11 @@ M9.5 在制作期增加另一种确定性：固定脚本把 stage success/failur
 append-only strict events，再复算 `ProductionRunState`。脚本成功不是手工把 status 改成
 success，而是先证明输出 identity current，再提交成功事件；意外异常必须形成脱敏
 `ProductionError`。该运行状态不进入作品 fingerprint 或 Remotion runtime。
+
+首次真实试跑进一步证明：跨阶段使用同一 strict selected-resources envelope parser；需解析的
+外部进程 stdout 不得被日志级别抑制；replacement 只能替换 byte-exact generated scaffold；
+视频时间线由视频 stream duration、fps 和 frame count 共同决定，container/AAC padding 不得
+制造 false drift。每个失败 run 都保持 terminal immutable，以新 run 恢复。
 
 系统区分三种“确定性”：
 

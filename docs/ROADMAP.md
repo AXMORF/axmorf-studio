@@ -399,10 +399,14 @@ Narrative Baseline、Shotcraft closure、voice provider 与 Scene/Final Catalog 
 ### M9.5：数据合同驱动的稳定生产编排
 
 **状态：** 2026-08-05 已按计划实现并通过完成门槛；成功终点为
-`preview-ready / awaiting-user-preview`，没有创建用户批准或发布事实。
+`preview-ready / awaiting-user-preview`，没有创建用户批准或发布事实。首次真实
+`rounded-airplane-windows` 试跑已在四次 Red/Green 编排 hardening 和 immutable replacement 后
+达到该终点，GPS/ProductComicVertical 正式产物保持零差异。
 
 实施计划见
 [M9.5 数据合同驱动的稳定生产编排计划](superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md)。
+真实试跑记录见
+[M9.5 Production Trial and Hardening Evidence](evidence/2026-08-05-m9-5-production-trial-and-hardening.md)。
 
 **目标：** 不改变 M1–M9 作品权威，把已经证明的 narrative、Scene 和 Preview 节点连接为
 一个可恢复、可监控、fail-closed 的固定制作流程。Agent 只负责创作和项目级冻结；脚本通过
