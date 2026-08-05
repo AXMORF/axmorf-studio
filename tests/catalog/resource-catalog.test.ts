@@ -146,17 +146,26 @@ test("asset files fail closed on missing checksum escape and symlink", async () 
   }
 });
 
-test("generate then check preserves current bytes and check rejects drift", async () => {
-  await generateResourceCatalog({ rootDir: repositoryRoot, mode: "write" });
+test("generate then check preserves isolated bytes and rejects drift", async (context) => {
+  await generateResourceCatalog({ rootDir: repositoryRoot, mode: "check" });
+  const descriptors = await loadCatalogAuthorityDescriptors(repositoryRoot);
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-catalog-generate-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const loadDescriptors = async () => descriptors;
+  await generateResourceCatalog({
+    rootDir,
+    mode: "write",
+    loadDescriptors,
+  });
   const destination = join(
-    repositoryRoot,
+    rootDir,
     "src/remotion/catalog/resource-catalog.generated.json",
   );
   const before = await readFile(destination, "utf8");
-  await generateResourceCatalog({ rootDir: repositoryRoot, mode: "check" });
+  await generateResourceCatalog({ rootDir, mode: "check", loadDescriptors });
   await writeFile(destination, `${before} `, "utf8");
   await assert.rejects(() =>
-    generateResourceCatalog({ rootDir: repositoryRoot, mode: "check" }),
+    generateResourceCatalog({ rootDir, mode: "check", loadDescriptors }),
   );
   await writeFile(destination, before, "utf8");
 });

@@ -59,13 +59,13 @@ const writeAtomic = async (destination: string, contents: string) => {
 export const generateResourceCatalog = async ({
   rootDir,
   mode,
+  loadDescriptors = loadCatalogAuthorityDescriptors,
 }: {
   readonly rootDir: string;
   readonly mode: CatalogGenerationMode;
+  readonly loadDescriptors?: typeof loadCatalogAuthorityDescriptors;
 }): Promise<CatalogGenerationResult> => {
-  const catalog = buildResourceCatalog(
-    await loadCatalogAuthorityDescriptors(rootDir),
-  );
+  const catalog = buildResourceCatalog(await loadDescriptors(rootDir));
   const expected = renderResourceCatalogJson(catalog);
   const destination = join(
     rootDir,
