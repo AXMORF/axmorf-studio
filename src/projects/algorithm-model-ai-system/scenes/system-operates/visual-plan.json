@@ -1,0 +1,22 @@
+{
+  "causalLink": "The model becomes an operating AI system only when governed inputs, tools, permissions, monitoring, and human feedback complete the loop.",
+  "continuity": "Begin from the inherited violet model, expand outward into the amber operating shell, and end with cyan, violet, and amber compressed into a stable three-layer handoff for the conclusion.",
+  "fallbackIntent": "Hold the centered model and five-node amber operating ring as a legible static system map.",
+  "meaningId": "system-operates",
+  "orderedShotIds": ["model-enters-workflow", "operations-complete-loop", "three-layer-handoff"],
+  "primaryAction": "Attach five operational components in causal order, send one request through the model, and return monitored human feedback into the data flow.",
+  "primaryComposition": "Keep the violet model centered inside an amber system orbit, with five labeled operational nodes arranged around it and a visible request-to-feedback route.",
+  "recipeDecision": "empty",
+  "schemaVersion": 1,
+  "semanticObjective": "Define an AI system as the complete operating environment that puts a trained model into a real workflow.",
+  "styleRealization": [
+    "Use a deep ink matte field with a subtle self-authored grid.",
+    "Keep the model violet, operational environment amber, and incoming algorithm/data signal cyan.",
+    "Reveal frame-driven connector strokes and pulses without CSS animation or transitions.",
+    "Use only concise conceptual labels inside the frozen Scene content frame."
+  ],
+  "subject": "A violet trained model surrounded by an amber operating ring of data, tools, permissions, monitoring, and human feedback.",
+  "taskInputFingerprint": "sha256:443ca1ddece1a58ada77823fe827d8a9ef13c16f4762c797428b729e66a9fca3",
+  "visualPlanFingerprint": "sha256:954b080d490bbd952ef3c047cb1805bf2c42db9e4f13bfc48f2ce10cd02d87c2",
+  "visualResourceIds": []
+}

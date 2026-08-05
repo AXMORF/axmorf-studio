@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "scene-production-brief-v1",
+  "storyId": "algorithm-model-ai-system",
+  "requirementsFingerprint": "sha256:f694268af1d95128f6f5d998e46f965d789bda7807cdd72950a16742eb8fa443",
+  "semanticTimingFingerprint": "sha256:51f6d4f63a2c3f904a88ed0d81450b02da07f011b2477a1d7cf6912810e1e0a1",
+  "visualStyleFingerprint": "sha256:777193022de86d3af13d5f69e6cd780e5f132f132576c60de256b8145f352e42",
+  "resourcePoolFingerprint": "sha256:f523a37dcea54ea6bacdd85a7e223b1db768fc806163ca37844bb8930eb46075",
+  "sceneLocalSoundPolicy": "none",
+  "reviewPolicy": "mechanical-only",
+  "scenes": [
+    {
+      "meaningId": "three-layers",
+      "visualIntent": "Reveal three distinct conceptual layers: algorithm, model, and AI system.",
+      "compositionIntent": "Build a vertical stack of three luminous cards with distinct color identities and increasing scope.",
+      "motionIntent": "Introduce the cards separately, then connect them with a single upward causal spine.",
+      "soundIntent": "No Scene-local sound.",
+      "continuityBrief": "Establish the cyan-violet-amber mapping and leave the algorithm layer active for the next Scene.",
+      "candidateResourceIds": [],
+      "allowedSnapshotCards": []
+    },
+    {
+      "meaningId": "algorithm-rules",
+      "visualIntent": "Show an algorithm as an explicit repeatable sequence of operations.",
+      "compositionIntent": "Use a compact flow of compare, decide, and swap nodes while keeping the three-layer context visible.",
+      "motionIntent": "Advance a marker through each rule step with frame-driven connectors and a deterministic loop.",
+      "soundIntent": "No Scene-local sound.",
+      "continuityBrief": "Inherit cyan as the active layer, then pass the resulting ordered data upward toward the model layer.",
+      "candidateResourceIds": [],
+      "allowedSnapshotCards": []
+    },
+    {
+      "meaningId": "model-learns",
+      "visualIntent": "Show a model as a parameter structure shaped by training data rather than a list of rules.",
+      "compositionIntent": "Transform ordered examples into a violet network whose parameter nodes settle into a learned pattern.",
+      "motionIntent": "Pulse examples into the network, adjust parameter nodes, then hold a stable learned state.",
+      "soundIntent": "No Scene-local sound.",
+      "continuityBrief": "Receive data from the algorithm Scene and hand the stable violet model upward into an amber system shell.",
+      "candidateResourceIds": [],
+      "allowedSnapshotCards": []
+    },
+    {
+      "meaningId": "system-operates",
+      "visualIntent": "Show the AI system as the full operating environment around the model.",
+      "compositionIntent": "Place the violet model at the center of an amber ring of data, tools, permissions, monitoring, and human feedback.",
+      "motionIntent": "Attach each operational component in causal order and animate one complete request-to-feedback loop.",
+      "soundIntent": "No Scene-local sound.",
+      "continuityBrief": "Expand the model into the full amber system, then compress all three layers into a unified stack for the conclusion.",
+      "candidateResourceIds": [],
+      "allowedSnapshotCards": []
+    },
+    {
+      "meaningId": "whole-picture",
+      "visualIntent": "Unify the training-method, trained-brain, and operating-organization analogy into one reliable value chain.",
+      "compositionIntent": "Present the three persistent layers as a connected tower ending in a clear reliable-value output.",
+      "motionIntent": "Replay the cyan-to-violet-to-amber handoff, then lock the complete system into a steady final state.",
+      "soundIntent": "No Scene-local sound.",
+      "continuityBrief": "Resolve all prior color and spatial motifs; finish with the full stack stable and visually complete.",
+      "candidateResourceIds": [],
+      "allowedSnapshotCards": []
+    }
+  ],
+  "briefFingerprint": "sha256:9bd78e9d1d3e8cbaafdfa0cf20f4abfb605fad8fbbfb2eefa1f914b4c3b203ee"
+}

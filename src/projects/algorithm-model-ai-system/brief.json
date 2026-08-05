@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "storyId": "algorithm-model-ai-system",
+  "title": "算法、模型和 AI 系统有什么区别？",
+  "sourceMaterial": "解释算法、模型和 AI 系统三者的层级、关系与实际差异。",
+  "audience": "希望快速建立 AI 基础概念的中文观众",
+  "targetDurationSeconds": 48,
+  "deliveryConstraints": [
+    "使用 1080×1920、30fps 的 9:16 竖屏画幅。",
+    "旁白和字幕在没有 Scene 画面的情况下也必须完整、清楚、可理解。",
+    "用同一个因果链解释算法、模型与 AI 系统，避免把三者当作同义词。"
+  ]
+}

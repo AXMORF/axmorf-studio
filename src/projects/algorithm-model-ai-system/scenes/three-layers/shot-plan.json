@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:daf0ebcbd18be93b03ccc271079beb0179d0f888c669c6e86f33649a680ba33c",
+  "meaningId": "three-layers",
+  "sceneDurationInFrames": 241,
+  "shots": [
+    {
+      "shotId": "reveal-algorithm",
+      "order": 0,
+      "primaryRange": { "startFrame": 0, "endFrame": 60 },
+      "purpose": "Introduce algorithm as a distinct cyan rules layer.",
+      "action": "Reveal the algorithm card and its input-to-rules-to-result path.",
+      "visualResourceIds": [],
+      "syncAnchorIds": ["algorithm-visible"]
+    },
+    {
+      "shotId": "reveal-model",
+      "order": 1,
+      "primaryRange": { "startFrame": 60, "endFrame": 115 },
+      "purpose": "Separate model from algorithm with a violet parameter structure.",
+      "action": "Reveal the model card and its data-to-parameters-to-learned-pattern path.",
+      "visualResourceIds": [],
+      "syncAnchorIds": ["model-visible"]
+    },
+    {
+      "shotId": "reveal-system",
+      "order": 2,
+      "primaryRange": { "startFrame": 115, "endFrame": 170 },
+      "purpose": "Expand scope to the amber operating AI system.",
+      "action": "Reveal the system card containing the model, data, tools, and environment.",
+      "visualResourceIds": [],
+      "syncAnchorIds": ["system-visible"]
+    },
+    {
+      "shotId": "connect-layers",
+      "order": 3,
+      "primaryRange": { "startFrame": 170, "endFrame": 241 },
+      "purpose": "Lock the three concepts into one ordered but distinct causal stack.",
+      "action": "Draw the shared causal spine, hold the full stack, then reactivate cyan for the next Scene.",
+      "visualResourceIds": [],
+      "syncAnchorIds": ["spine-connected", "algorithm-handoff"]
+    }
+  ],
+  "shotPlanFingerprint": "sha256:2e4b26d59e83fb2ad0c46879596cb36b080a422ec94ddb8c9c42f165f58b50e0"
+}

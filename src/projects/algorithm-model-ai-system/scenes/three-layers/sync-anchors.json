@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:daf0ebcbd18be93b03ccc271079beb0179d0f888c669c6e86f33649a680ba33c",
+  "meaningId": "three-layers",
+  "sceneDurationInFrames": 241,
+  "anchors": [
+    {
+      "eventId": "algorithm-visible",
+      "sceneLocalFrame": 28,
+      "purpose": "Algorithm layer becomes fully readable."
+    },
+    {
+      "eventId": "model-visible",
+      "sceneLocalFrame": 74,
+      "purpose": "Model layer becomes fully readable."
+    },
+    {
+      "eventId": "system-visible",
+      "sceneLocalFrame": 118,
+      "purpose": "AI system layer becomes fully readable."
+    },
+    {
+      "eventId": "spine-connected",
+      "sceneLocalFrame": 178,
+      "purpose": "One causal spine connects all three layers."
+    },
+    {
+      "eventId": "algorithm-handoff",
+      "sceneLocalFrame": 226,
+      "purpose": "Algorithm layer returns to active cyan focus for continuity."
+    }
+  ],
+  "syncAnchorFingerprint": "sha256:8d8ae4e941585db272899c2ccb93cb87bd310361638a73776d8ddf7c05e284a0"
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:daf0ebcbd18be93b03ccc271079beb0179d0f888c669c6e86f33649a680ba33c",
+  "meaningId": "three-layers",
+  "semanticObjective": "Distinguish algorithm, model, and AI system as three separate conceptual layers before their later causal handoffs.",
+  "subject": "A persistent cyan, violet, and amber three-layer conceptual stack.",
+  "primaryAction": "Reveal each layer independently, connect them with one causal spine, then return focus to the algorithm layer.",
+  "causalLink": "Algorithmic rules shape model learning; the model operates inside the broader AI system.",
+  "primaryComposition": "Three vertically stacked luminous cards increase in conceptual scope from algorithm to model to AI system.",
+  "styleRealization": [
+    "Deep ink matte field with a subtle project-authored grid.",
+    "Electric cyan, violet, and warm amber remain exclusive concept identities.",
+    "Restrained luminous borders and one active focal layer at a time.",
+    "Large concise Chinese concept labels remain inside the frozen content frame."
+  ],
+  "continuity": "End with the cyan algorithm card brightest while the complete three-layer stack remains legible for algorithm-rules.",
+  "orderedShotIds": [
+    "reveal-algorithm",
+    "reveal-model",
+    "reveal-system",
+    "connect-layers"
+  ],
+  "visualResourceIds": [],
+  "recipeDecision": "empty",
+  "fallbackIntent": "Use project-local vector cards and typographic diagrams only; no external visual resource is required.",
+  "visualPlanFingerprint": "sha256:bd10cfe93e489fb397183404d7d56d3106c89df8a6d425181faf9bbdc31d3f8d"
+}

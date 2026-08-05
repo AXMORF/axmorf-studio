@@ -1,0 +1,110 @@
+{
+  "aggregateStatus": "pass",
+  "checks": [
+    {
+      "checkId": "source-contracts",
+      "evidenceIds": [],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "story-check",
+      "evidenceIds": [
+        "story-check"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "sealed-narration",
+      "evidenceIds": [
+        "sealed-manifest",
+        "complete-wav"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "semantic-timing",
+      "evidenceIds": [
+        "semantic-timing"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "project-registry",
+      "evidenceIds": [
+        "project-registry"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "narrative-baseline",
+      "evidenceIds": [],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "m3-evidence",
+      "evidenceIds": [
+        "m3-receipt"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    }
+  ],
+  "evidenceRefs": [
+    {
+      "checksum": "sha256:f10aae28f2c5db7e0bb781e2caaebdaf59819ffc703f9dc4160c9a42e6c38e7a",
+      "evidenceId": "story-check",
+      "repositoryPath": "src/projects/algorithm-model-ai-system/reviews/story-check.json"
+    },
+    {
+      "checksum": "sha256:7df6d1725e501d3c8e3caf4224a0070a26897c253de8dfbae95211a3002d0344",
+      "evidenceId": "sealed-manifest",
+      "repositoryPath": "src/projects/algorithm-model-ai-system/generated/sealed-narration.generated.json"
+    },
+    {
+      "checksum": "sha256:082e0dcea537eeda5d89725407bd760c308a45f7cefc009e43285f0355d65a71",
+      "evidenceId": "complete-wav",
+      "repositoryPath": "public/projects/algorithm-model-ai-system/narration/35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f/complete.wav"
+    },
+    {
+      "checksum": "sha256:63d43405cc620b39ac400efa8fd2fb076cd61a82dc969610227095ded532942c",
+      "evidenceId": "semantic-timing",
+      "repositoryPath": "src/projects/algorithm-model-ai-system/generated/semantic-timing.generated.json"
+    },
+    {
+      "checksum": "sha256:63f03a1b8039591d6303c85b5f4484bccead2d2c4ce9dc108f17356bafd483d4",
+      "evidenceId": "project-registry",
+      "repositoryPath": "src/projects/project-registry.generated.ts"
+    },
+    {
+      "checksum": "sha256:074334da2879c19afc05aec6c65d8223978ea8dabbcca5115bc861834b74ec59",
+      "evidenceId": "m3-receipt",
+      "repositoryPath": "src/projects/algorithm-model-ai-system/generated/narrative-baseline-evidence.generated.json"
+    }
+  ],
+  "inputIdentity": {
+    "generatedEntryChecksum": "sha256:63f03a1b8039591d6303c85b5f4484bccead2d2c4ce9dc108f17356bafd483d4",
+    "generatedRegistryChecksum": "sha256:63f03a1b8039591d6303c85b5f4484bccead2d2c4ce9dc108f17356bafd483d4",
+    "generationInputFingerprint": "sha256:91b674dfec496a5b91eee5b7c0d88756edc2402a9b5ff2cb9094d6efddcd6b1d",
+    "m3EvidenceFingerprint": "sha256:1f979faf99d1adc70545223caf5a2bfaf4e032c62cc179960b21c78e5929ce06",
+    "narrativeBaselineFingerprint": "sha256:c0e2cd3ec3460bd699c9e1d8f243308b121be4d88dfb667b2e64b265bff76347",
+    "narrativeCoreVersion": "narrative-core-v2",
+    "projectRegistryEntryFingerprint": "sha256:d19535eec5b9ba7a406c809b76ab3511400c223d02e219901725768cb382691d",
+    "projectRegistryGeneratorId": "project-registry-generator-v1",
+    "renderSpecFingerprint": "sha256:da6e8734a1829c70f792504fd3812cca26651f39f87b8ea850239fc2492576f8",
+    "sealedNarrationFingerprint": "sha256:35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f",
+    "semanticTimingFingerprint": "sha256:51f6d4f63a2c3f904a88ed0d81450b02da07f011b2477a1d7cf6912810e1e0a1",
+    "storyCheckFingerprint": "sha256:b8cb4547126ad84781c951cedf9e6372ea87a961afce220103409d2e75cd7533",
+    "storyFingerprint": "sha256:18a6234074ea59d4fdba21e5d48c4498ce2421214223ea2100a6332380c30def"
+  },
+  "level": "narrative",
+  "reportFingerprint": "sha256:8021de0e9031f9edf531e23c9e208f61ea3a3fa3304d4a9659f12599cad2af5f",
+  "reportVersion": "narrative-auto-check-v1",
+  "schemaVersion": 1,
+  "storyId": "algorithm-model-ai-system"
+}

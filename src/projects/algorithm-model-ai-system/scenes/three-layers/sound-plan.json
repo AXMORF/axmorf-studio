@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:daf0ebcbd18be93b03ccc271079beb0179d0f888c669c6e86f33649a680ba33c",
+  "meaningId": "three-layers",
+  "sceneDurationInFrames": 241,
+  "ambience": null,
+  "cues": [],
+  "soundPlanFingerprint": "sha256:71e53f90a1052532a84256c167b9096ee14c4658d7b252b4c5b560f8239c9e45"
+}

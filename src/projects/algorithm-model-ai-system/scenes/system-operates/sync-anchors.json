@@ -1,0 +1,17 @@
+{
+  "anchors": [
+    {"eventId": "model-ready", "purpose": "The inherited violet model becomes stable.", "sceneLocalFrame": 18},
+    {"eventId": "request-enters", "purpose": "A cyan request enters the operating shell.", "sceneLocalFrame": 48},
+    {"eventId": "data-attached", "purpose": "The data node joins the causal loop.", "sceneLocalFrame": 84},
+    {"eventId": "tools-attached", "purpose": "The tools node joins the causal loop.", "sceneLocalFrame": 108},
+    {"eventId": "permissions-attached", "purpose": "The permissions node gates execution.", "sceneLocalFrame": 132},
+    {"eventId": "monitoring-attached", "purpose": "Monitoring observes the model output.", "sceneLocalFrame": 158},
+    {"eventId": "feedback-returned", "purpose": "Human feedback returns into the data flow.", "sceneLocalFrame": 190},
+    {"eventId": "stack-lock", "purpose": "The three conceptual layers lock into the conclusion handoff.", "sceneLocalFrame": 232}
+  ],
+  "meaningId": "system-operates",
+  "sceneDurationInFrames": 278,
+  "schemaVersion": 1,
+  "syncAnchorFingerprint": "sha256:9505f94dd7320202dc46a00315faa8f960e807dd0bf87f29b2c0a94fa110adf5",
+  "taskInputFingerprint": "sha256:443ca1ddece1a58ada77823fe827d8a9ef13c16f4762c797428b729e66a9fca3"
+}

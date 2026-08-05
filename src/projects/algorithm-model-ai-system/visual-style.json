@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "storyId": "algorithm-model-ai-system",
+  "styleProfileId": "editorial-tech",
+  "resourceCatalogFingerprint": "sha256:8103b78d1a43aec92abf41631de640f3969ef6e58db20ddc86df01c27254e336",
+  "artDirection": {
+    "medium": "Project-local vector diagrams and typographic system maps.",
+    "palette": "Deep ink background, electric cyan for algorithms, violet for models, warm amber for systems, and soft white labels.",
+    "lighting": "Restrained luminous edges with one active focal layer at a time.",
+    "texture": "Clean matte fields with a subtle project-authored grid; no photographic media.",
+    "compositionGrammar": "A persistent three-layer vertical stack evolves from separate concepts into one connected operating system.",
+    "motionLanguage": "Frame-driven reveals, causal connectors, parameter pulses, and deliberate layer handoffs.",
+    "typography": "Large concise Chinese concept labels; narration captions remain exclusively top-level."
+  },
+  "continuityRules": [
+    "Keep cyan, violet, and amber mapped to algorithm, model, and AI system throughout.",
+    "Preserve the same three-layer spatial order whenever multiple concepts appear together.",
+    "End each Scene with a visual state that the next Scene can inherit without moving spoken frames."
+  ],
+  "forbiddenTreatments": [
+    "No remote assets, directory scanning, CSS animation, CSS transition, or historical Scene imitation.",
+    "Do not render narration captions or duplicate full narration text inside Scene visuals.",
+    "Do not place semantic content outside the assignment-provided guarded content frame."
+  ]
+}

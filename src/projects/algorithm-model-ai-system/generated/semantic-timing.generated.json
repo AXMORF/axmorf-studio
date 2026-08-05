@@ -1,0 +1,301 @@
+{
+  "algorithmId": "pcm-cumulative-ceil-v1",
+  "captionCues": [
+    {
+      "chunkId": "three-layers-01",
+      "endFrame": 156,
+      "meaningId": "three-layers",
+      "startFrame": 12,
+      "text": "算法、模型和 AI 系统，常被混在一起说。"
+    },
+    {
+      "chunkId": "three-layers-02",
+      "endFrame": 253,
+      "meaningId": "three-layers",
+      "startFrame": 162,
+      "text": "但它们其实是三层不同的东西。"
+    },
+    {
+      "chunkId": "algorithm-rules-01",
+      "endFrame": 378,
+      "meaningId": "algorithm-rules",
+      "startFrame": 253,
+      "text": "算法，是一套解决问题的步骤和规则。"
+    },
+    {
+      "chunkId": "algorithm-rules-02",
+      "endFrame": 522,
+      "meaningId": "algorithm-rules",
+      "startFrame": 378,
+      "text": "比如排序算法，规定先比较什么，再交换什么。"
+    },
+    {
+      "chunkId": "model-learns-01",
+      "endFrame": 647,
+      "meaningId": "model-learns",
+      "startFrame": 522,
+      "text": "模型，是从数据中学到的参数结构。"
+    },
+    {
+      "chunkId": "model-learns-02",
+      "endFrame": 786,
+      "meaningId": "model-learns",
+      "startFrame": 647,
+      "text": "算法负责怎么学，模型保存学到了什么。"
+    },
+    {
+      "chunkId": "system-operates-01",
+      "endFrame": 901,
+      "meaningId": "system-operates",
+      "startFrame": 786,
+      "text": "AI 系统，则把模型放进真实流程。"
+    },
+    {
+      "chunkId": "system-operates-02",
+      "endFrame": 1064,
+      "meaningId": "system-operates",
+      "startFrame": 901,
+      "text": "它还包含数据、工具、权限、监控和人类反馈。"
+    },
+    {
+      "chunkId": "whole-picture-01",
+      "endFrame": 1203,
+      "meaningId": "whole-picture",
+      "startFrame": 1064,
+      "text": "把算法看成训练方法，模型看成训练后的大脑。"
+    },
+    {
+      "chunkId": "whole-picture-02",
+      "endFrame": 1328,
+      "meaningId": "whole-picture",
+      "startFrame": 1203,
+      "text": "AI 系统，就是让它真正工作的整套组织。"
+    },
+    {
+      "chunkId": "whole-picture-03",
+      "endFrame": 1492,
+      "meaningId": "whole-picture",
+      "startFrame": 1334,
+      "text": "模型提供智能核心，系统决定它能否可靠地产生价值。"
+    }
+  ],
+  "durationInFrames": 1510,
+  "fingerprint": "sha256:51f6d4f63a2c3f904a88ed0d81450b02da07f011b2477a1d7cf6912810e1e0a1",
+  "fps": 30,
+  "leadInFrames": 12,
+  "sampleRate": 48000,
+  "schemaVersion": 1,
+  "segments": [
+    {
+      "chunkId": "three-layers-01",
+      "frameRange": {
+        "endFrame": 156,
+        "startFrame": 12
+      },
+      "kind": "chunk",
+      "meaningId": "three-layers",
+      "sampleRange": {
+        "endSampleFrame": 230400,
+        "startSampleFrame": 0
+      },
+      "ttsText": "算法、模型和 AI 系统，常被混在一起说。"
+    },
+    {
+      "afterChunkId": "three-layers-01",
+      "frameRange": {
+        "endFrame": 162,
+        "startFrame": 156
+      },
+      "kind": "pause",
+      "meaningId": "three-layers",
+      "pauseMs": 180,
+      "sampleRange": {
+        "endSampleFrame": 239040,
+        "startSampleFrame": 230400
+      }
+    },
+    {
+      "chunkId": "three-layers-02",
+      "frameRange": {
+        "endFrame": 253,
+        "startFrame": 162
+      },
+      "kind": "chunk",
+      "meaningId": "three-layers",
+      "sampleRange": {
+        "endSampleFrame": 384960,
+        "startSampleFrame": 239040
+      },
+      "ttsText": "但它们其实是三层不同的东西。"
+    },
+    {
+      "chunkId": "algorithm-rules-01",
+      "frameRange": {
+        "endFrame": 378,
+        "startFrame": 253
+      },
+      "kind": "chunk",
+      "meaningId": "algorithm-rules",
+      "sampleRange": {
+        "endSampleFrame": 584640,
+        "startSampleFrame": 384960
+      },
+      "ttsText": "算法，是一套解决问题的步骤和规则。"
+    },
+    {
+      "chunkId": "algorithm-rules-02",
+      "frameRange": {
+        "endFrame": 522,
+        "startFrame": 378
+      },
+      "kind": "chunk",
+      "meaningId": "algorithm-rules",
+      "sampleRange": {
+        "endSampleFrame": 815040,
+        "startSampleFrame": 584640
+      },
+      "ttsText": "比如排序算法，规定先比较什么，再交换什么。"
+    },
+    {
+      "chunkId": "model-learns-01",
+      "frameRange": {
+        "endFrame": 647,
+        "startFrame": 522
+      },
+      "kind": "chunk",
+      "meaningId": "model-learns",
+      "sampleRange": {
+        "endSampleFrame": 1014720,
+        "startSampleFrame": 815040
+      },
+      "ttsText": "模型，是从数据中学到的参数结构。"
+    },
+    {
+      "chunkId": "model-learns-02",
+      "frameRange": {
+        "endFrame": 786,
+        "startFrame": 647
+      },
+      "kind": "chunk",
+      "meaningId": "model-learns",
+      "sampleRange": {
+        "endSampleFrame": 1237440,
+        "startSampleFrame": 1014720
+      },
+      "ttsText": "算法负责怎么学，模型保存学到了什么。"
+    },
+    {
+      "chunkId": "system-operates-01",
+      "frameRange": {
+        "endFrame": 901,
+        "startFrame": 786
+      },
+      "kind": "chunk",
+      "meaningId": "system-operates",
+      "sampleRange": {
+        "endSampleFrame": 1421760,
+        "startSampleFrame": 1237440
+      },
+      "ttsText": "AI 系统，则把模型放进真实流程。"
+    },
+    {
+      "chunkId": "system-operates-02",
+      "frameRange": {
+        "endFrame": 1064,
+        "startFrame": 901
+      },
+      "kind": "chunk",
+      "meaningId": "system-operates",
+      "sampleRange": {
+        "endSampleFrame": 1682880,
+        "startSampleFrame": 1421760
+      },
+      "ttsText": "它还包含数据、工具、权限、监控和人类反馈。"
+    },
+    {
+      "chunkId": "whole-picture-01",
+      "frameRange": {
+        "endFrame": 1203,
+        "startFrame": 1064
+      },
+      "kind": "chunk",
+      "meaningId": "whole-picture",
+      "sampleRange": {
+        "endSampleFrame": 1905600,
+        "startSampleFrame": 1682880
+      },
+      "ttsText": "把算法看成训练方法，模型看成训练后的大脑。"
+    },
+    {
+      "chunkId": "whole-picture-02",
+      "frameRange": {
+        "endFrame": 1328,
+        "startFrame": 1203
+      },
+      "kind": "chunk",
+      "meaningId": "whole-picture",
+      "sampleRange": {
+        "endSampleFrame": 2105280,
+        "startSampleFrame": 1905600
+      },
+      "ttsText": "AI 系统，就是让它真正工作的整套组织。"
+    },
+    {
+      "afterChunkId": "whole-picture-02",
+      "frameRange": {
+        "endFrame": 1334,
+        "startFrame": 1328
+      },
+      "kind": "pause",
+      "meaningId": "whole-picture",
+      "pauseMs": 180,
+      "sampleRange": {
+        "endSampleFrame": 2113920,
+        "startSampleFrame": 2105280
+      }
+    },
+    {
+      "chunkId": "whole-picture-03",
+      "frameRange": {
+        "endFrame": 1492,
+        "startFrame": 1334
+      },
+      "kind": "chunk",
+      "meaningId": "whole-picture",
+      "sampleRange": {
+        "endSampleFrame": 2367360,
+        "startSampleFrame": 2113920
+      },
+      "ttsText": "模型提供智能核心，系统决定它能否可靠地产生价值。"
+    }
+  ],
+  "storyBeats": [
+    {
+      "endFrame": 253,
+      "meaningId": "three-layers",
+      "startFrame": 12
+    },
+    {
+      "endFrame": 522,
+      "meaningId": "algorithm-rules",
+      "startFrame": 253
+    },
+    {
+      "endFrame": 786,
+      "meaningId": "model-learns",
+      "startFrame": 522
+    },
+    {
+      "endFrame": 1064,
+      "meaningId": "system-operates",
+      "startFrame": 786
+    },
+    {
+      "endFrame": 1492,
+      "meaningId": "whole-picture",
+      "startFrame": 1064
+    }
+  ],
+  "storyId": "algorithm-model-ai-system",
+  "tailFrames": 18
+}

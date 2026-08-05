@@ -23,6 +23,23 @@ export const projectRegistryGeneratorId =
 
 export const projectRegistry = [
   {
+    id: "AlgorithmModelAiSystem",
+    fps: 30,
+    width: 1080,
+    height: 1920,
+    durationInFrames: 1510,
+    defaultProps: {
+      projectId: "algorithm-model-ai-system",
+    } as StoryCompositionProps,
+    generatedEntryChecksum:
+      "sha256:63f03a1b8039591d6303c85b5f4484bccead2d2c4ce9dc108f17356bafd483d4",
+    projectRegistryEntryFingerprint:
+      "sha256:d19535eec5b9ba7a406c809b76ab3511400c223d02e219901725768cb382691d",
+    narrativeBaselineFingerprint:
+      "sha256:c0e2cd3ec3460bd699c9e1d8f243308b121be4d88dfb667b2e64b265bff76347",
+    load: () => import("./algorithm-model-ai-system/Composition"),
+  },
+  {
     id: "GpsRelativity",
     fps: 30,
     width: 1920,

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "generatorId": "resource-catalog-generator-v1",
+  "entries": [
+    {
+      "descriptor": {
+        "schemaVersion": 1,
+        "id": "style.editorial-tech",
+        "status": "approved",
+        "title": "Editorial tech",
+        "description": "Technical arguments need strong typography, diagrams, and restrained evidence media.",
+        "useCases": [
+          "Technical arguments need strong typography, diagrams, and restrained evidence media."
+        ],
+        "tags": [
+          "editorial-tech",
+          "style-profile"
+        ],
+        "authority": {
+          "kind": "repository-file",
+          "repositoryPath": "src/remotion/capabilities/styles/profiles.ts"
+        },
+        "allowedUse": "runtime-approved",
+        "exportName": "producerStyleProfiles",
+        "sourceFile": "src/remotion/capabilities/styles/profiles.ts",
+        "kind": "style-profile",
+        "styleProfileId": "editorial-tech"
+      },
+      "descriptorFingerprint": "sha256:bf77a3f71157a4191f3de073c623a6e6493c8769f3b15eac46dee5d45d811693"
+    }
+  ],
+  "catalogFingerprint": "sha256:8103b78d1a43aec92abf41631de640f3969ef6e58db20ddc86df01c27254e336"
+}

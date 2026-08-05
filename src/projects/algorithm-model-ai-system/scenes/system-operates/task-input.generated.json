@@ -1,0 +1,62 @@
+{
+  "allowedDirectories": {
+    "publicAssetRoot": "public/projects/algorithm-model-ai-system/scenes/system-operates",
+    "sceneRoot": "src/projects/algorithm-model-ai-system/scenes/system-operates"
+  },
+  "allowedResourceIds": [],
+  "allowedSnapshots": [],
+  "continuity": {
+    "continuityBrief": "Expand the model into the full amber system, then compress all three layers into a unified stack for the conclusion.",
+    "nextMeaningId": "whole-picture",
+    "nextSummary": "用类比串联三层，并落到可靠价值的结论。",
+    "previousMeaningId": "model-learns",
+    "previousSummary": "定义模型是训练后承载所学规律的参数结构。"
+  },
+  "meaningId": "system-operates",
+  "readabilityPolicy": {
+    "captionPolicy": {
+      "captionBottomInsetPx": 180,
+      "captionBoxHeightPx": 146,
+      "captionFontSizePx": 40,
+      "captionGapPx": 30,
+      "captionVerticalPaddingPx": 38,
+      "displayUnitAlgorithmId": "caption-display-unit-v1",
+      "lineHeight": {"denominator": 100, "numerator": 135},
+      "maxCaptionLines": 2,
+      "maxDisplayHalfUnits": 72,
+      "maxDisplayUnitsPerChunk": 36,
+      "recommendedDisplayHalfUnits": 64,
+      "recommendedDisplayUnitsPerChunk": 32
+    },
+    "captionSafeAreaPx": {"bottom": 180, "left": 90, "right": 90, "top": 90},
+    "edgeInsetPx": 90,
+    "height": 1920,
+    "policyFingerprint": "sha256:5ce5655efa4b5219f25958a8fd0efba30921d52277e89e8cddbcedffbe5f826b",
+    "policyId": "production-readability-v1",
+    "policyVersion": 1,
+    "scale": {"denominator": 1080, "numerator": 1080},
+    "sceneBottomInsetPx": 360,
+    "sceneContentSafeAreaPx": {"bottom": 360, "left": 90, "right": 90, "top": 90},
+    "schemaVersion": 1,
+    "typographyPolicy": {"minFontSizePx": 36},
+    "width": 1080
+  },
+  "renderFingerprint": "sha256:da6e8734a1829c70f792504fd3812cca26651f39f87b8ea850239fc2492576f8",
+  "resourceCatalogFingerprint": "sha256:8103b78d1a43aec92abf41631de640f3969ef6e58db20ddc86df01c27254e336",
+  "schemaVersion": 2,
+  "semanticTimingFingerprint": "sha256:51f6d4f63a2c3f904a88ed0d81450b02da07f011b2477a1d7cf6912810e1e0a1",
+  "storyBeat": {
+    "explicitPauses": [],
+    "meaningId": "system-operates",
+    "narrativePurpose": "定义 AI 系统是让模型在真实流程中工作的完整组合。",
+    "ttsChunks": [
+      {"chunkId": "system-operates-01", "ttsText": "AI 系统，则把模型放进真实流程。"},
+      {"chunkId": "system-operates-02", "ttsText": "它还包含数据、工具、权限、监控和人类反馈。"}
+    ]
+  },
+  "storyFingerprint": "sha256:18a6234074ea59d4fdba21e5d48c4498ce2421214223ea2100a6332380c30def",
+  "storyId": "algorithm-model-ai-system",
+  "taskInputFingerprint": "sha256:443ca1ddece1a58ada77823fe827d8a9ef13c16f4762c797428b729e66a9fca3",
+  "timingBeat": {"endFrame": 1064, "meaningId": "system-operates", "startFrame": 786},
+  "visualStyleFingerprint": "sha256:777193022de86d3af13d5f69e6cd780e5f132f132576c60de256b8145f352e42"
+}

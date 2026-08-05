@@ -1,0 +1,199 @@
+{
+  "assemblyAlgorithmId": "ordered-pcm-concat-v1",
+  "canonicalPcm": {
+    "channelLayout": "mono",
+    "sampleFormat": "s16le",
+    "sampleRate": 48000
+  },
+  "completeAudio": {
+    "checksum": "sha256:082e0dcea537eeda5d89725407bd760c308a45f7cefc009e43285f0355d65a71",
+    "localPath": "public/projects/algorithm-model-ai-system/narration/35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f/complete.wav",
+    "pcm": {
+      "channelLayout": "mono",
+      "sampleFormat": "s16le",
+      "sampleRate": 48000
+    },
+    "sampleFrameCount": 2367360
+  },
+  "generationInputFingerprint": "sha256:91b674dfec496a5b91eee5b7c0d88756edc2402a9b5ff2cb9094d6efddcd6b1d",
+  "narrationSpec": {
+    "mode": "voice-clone",
+    "schemaVersion": 1,
+    "seed": 20260805,
+    "voiceProfileId": "my-voice"
+  },
+  "normalizationAlgorithmId": "pcm-s16le-normalize-v1",
+  "schemaVersion": 1,
+  "sealedNarrationFingerprint": "sha256:35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f",
+  "segments": [
+    {
+      "checksum": "sha256:78ba72a385183b9a662c5b568b8576359ac2653a05e50efb67fbfc13e9997bd3",
+      "chunkId": "three-layers-01",
+      "kind": "chunk",
+      "localPath": "public/projects/algorithm-model-ai-system/narration/35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f/chunks/three-layers-01.wav",
+      "meaningId": "three-layers",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 230400,
+      "ttsText": "算法、模型和 AI 系统，常被混在一起说。"
+    },
+    {
+      "afterChunkId": "three-layers-01",
+      "kind": "pause",
+      "meaningId": "three-layers",
+      "pauseMs": 180,
+      "sampleFrameCount": 8640
+    },
+    {
+      "checksum": "sha256:6f8b8318191169b5106d2799c991cf308850556ed5b80fc8fdfb9b30b8a32b46",
+      "chunkId": "three-layers-02",
+      "kind": "chunk",
+      "localPath": "public/projects/algorithm-model-ai-system/narration/35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f/chunks/three-layers-02.wav",
+      "meaningId": "three-layers",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 145920,
+      "ttsText": "但它们其实是三层不同的东西。"
+    },
+    {
+      "checksum": "sha256:ec74c88d142ee88539a5c86a0312895c9ae03b5400d5bbc670411aa60ccc70de",
+      "chunkId": "algorithm-rules-01",
+      "kind": "chunk",
+      "localPath": "public/projects/algorithm-model-ai-system/narration/35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f/chunks/algorithm-rules-01.wav",
+      "meaningId": "algorithm-rules",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 199680,
+      "ttsText": "算法，是一套解决问题的步骤和规则。"
+    },
+    {
+      "checksum": "sha256:93433b1fa49b25d6c85c7ea3b01a71f3d458b02fbf152334a3e2a4a5e5cc6d7e",
+      "chunkId": "algorithm-rules-02",
+      "kind": "chunk",
+      "localPath": "public/projects/algorithm-model-ai-system/narration/35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f/chunks/algorithm-rules-02.wav",
+      "meaningId": "algorithm-rules",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 230400,
+      "ttsText": "比如排序算法，规定先比较什么，再交换什么。"
+    },
+    {
+      "checksum": "sha256:2cc7465f138c9db00f296a36aa049753a45a97bbbab47e830d16901f10e37af4",
+      "chunkId": "model-learns-01",
+      "kind": "chunk",
+      "localPath": "public/projects/algorithm-model-ai-system/narration/35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f/chunks/model-learns-01.wav",
+      "meaningId": "model-learns",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 199680,
+      "ttsText": "模型，是从数据中学到的参数结构。"
+    },
+    {
+      "checksum": "sha256:ebd4849c6ebef074d5cb3f42aa70edd11d8f657430f510847a17ec1c525533f5",
+      "chunkId": "model-learns-02",
+      "kind": "chunk",
+      "localPath": "public/projects/algorithm-model-ai-system/narration/35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f/chunks/model-learns-02.wav",
+      "meaningId": "model-learns",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 222720,
+      "ttsText": "算法负责怎么学，模型保存学到了什么。"
+    },
+    {
+      "checksum": "sha256:13cff78a7be8e7b5a40ef66d395a8a1757e0a1483b335acf2a2113dd575d6063",
+      "chunkId": "system-operates-01",
+      "kind": "chunk",
+      "localPath": "public/projects/algorithm-model-ai-system/narration/35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f/chunks/system-operates-01.wav",
+      "meaningId": "system-operates",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 184320,
+      "ttsText": "AI 系统，则把模型放进真实流程。"
+    },
+    {
+      "checksum": "sha256:746ef75fda1f46887ed94f86c4e8a294e279b61f9f0c29a27630f51a885ae7ce",
+      "chunkId": "system-operates-02",
+      "kind": "chunk",
+      "localPath": "public/projects/algorithm-model-ai-system/narration/35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f/chunks/system-operates-02.wav",
+      "meaningId": "system-operates",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 261120,
+      "ttsText": "它还包含数据、工具、权限、监控和人类反馈。"
+    },
+    {
+      "checksum": "sha256:207a49e5e4620cc0d87aecce75b162726de692f07795bd7f43fdd41d304ef612",
+      "chunkId": "whole-picture-01",
+      "kind": "chunk",
+      "localPath": "public/projects/algorithm-model-ai-system/narration/35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f/chunks/whole-picture-01.wav",
+      "meaningId": "whole-picture",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 222720,
+      "ttsText": "把算法看成训练方法，模型看成训练后的大脑。"
+    },
+    {
+      "checksum": "sha256:66416b49cbc4c9242b9a9a38a3f25fc4e92c24948d08abc1314a04507299cb09",
+      "chunkId": "whole-picture-02",
+      "kind": "chunk",
+      "localPath": "public/projects/algorithm-model-ai-system/narration/35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f/chunks/whole-picture-02.wav",
+      "meaningId": "whole-picture",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 199680,
+      "ttsText": "AI 系统，就是让它真正工作的整套组织。"
+    },
+    {
+      "afterChunkId": "whole-picture-02",
+      "kind": "pause",
+      "meaningId": "whole-picture",
+      "pauseMs": 180,
+      "sampleFrameCount": 8640
+    },
+    {
+      "checksum": "sha256:11a117fa112811f5dcc6773038e9b93d2a77abab61ea7569e821706402a3829f",
+      "chunkId": "whole-picture-03",
+      "kind": "chunk",
+      "localPath": "public/projects/algorithm-model-ai-system/narration/35dd1b2b5a5782b33fa278035f5c63f55abf6983a76c378b70da2d46d452a07f/chunks/whole-picture-03.wav",
+      "meaningId": "whole-picture",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 253440,
+      "ttsText": "模型提供智能核心，系统决定它能否可靠地产生价值。"
+    }
+  ],
+  "storyId": "algorithm-model-ai-system"
+}
