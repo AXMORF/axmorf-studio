@@ -148,7 +148,7 @@ scripts/narration/domain/provider-input.ts       redaction-safe provider/request
 scripts/narration/domain/candidate-progress.ts   candidate / measured 状态与续跑规划
 scripts/narration/domain/pcm-wav.ts              canonical PCM、checksum、BigInt 拼接
 scripts/narration/domain/seal.ts                 完整 measured batch → seal 纯领域装配
-scripts/narration/adapters/private-config.ts     仓库外严格私有配置与 profile 解析
+scripts/narration/adapters/private-config.ts     Git-ignored 默认/外部覆盖私有配置与 profile 解析
 scripts/narration/adapters/voxcpm-client.ts      每 authored chunk 一个直接 VoxCPM 请求
 scripts/narration/adapters/ffmpeg-normalizer.ts  host FFmpeg 规范化
 scripts/narration/adapters/candidate-workspace.ts checksum-verified resume 与原子 progress

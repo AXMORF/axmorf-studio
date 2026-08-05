@@ -9,6 +9,8 @@ build
 .reference-workspaces/
 .producer-runs/
 private/
+voxcpm/voxcpm.private.json
+voxcpm/voice_profile/
 .codegraph/
 
 # Ignore the output video from Git but not videos you import into src/.

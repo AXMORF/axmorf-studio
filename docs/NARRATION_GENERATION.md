@@ -7,13 +7,20 @@ Narrative Baseline preview/render; it never calls the provider or seal workflow.
 
 ## Private VoxCPM configuration
 
-`generate` reads one absolute operator-owned file path from:
+`generate` defaults to the following Git-ignored repository-local file:
+
+```text
+voxcpm/voxcpm.private.json
+```
+
+Operators may override that default with an absolute path:
 
 ```bash
 export RSP_VOXCPM_PRIVATE_CONFIG=/absolute/operator-owned/path/voxcpm.private.json
 ```
 
-The referenced JSON stays outside the repository and has this strict shape:
+The default file must remain ignored and untracked. The override may remain outside the repository.
+Either way, the referenced JSON has this strict shape:
 
 ```json
 {
@@ -44,7 +51,10 @@ An optional non-empty `token` may be added at the top level when the private dep
 bearer-scheme authentication. Unknown keys, duplicate profiles, relative references, non-WAV references,
 unsupported modes, and missing files fail closed. Provider connection details, credentials, model
 configuration, control text, private paths, and reference bytes must not enter Story source, progress
-summaries, sealed manifests, evidence, logs, or Git.
+summaries, sealed manifests, evidence, logs, or Git. The exact default config path is protected by
+`.gitignore`; environment overrides remain available for alternate operators and deployments.
+Repository-local private reference inputs belong under the likewise ignored
+`voxcpm/voice_profile/` directory, never under tracked project assets.
 
 Only `generate` reads this file or calls the network. `seal` and `check` operate from local measured or
 sealed artifacts and must work when the provider and private file are unavailable.

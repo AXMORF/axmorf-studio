@@ -45,38 +45,67 @@ const createContext = ({
   provider,
   stdout = [],
   configPath = "/srv/private/voxcpm.private.json",
+  resolvedConfigPaths = [],
 }: {
   readonly rootDir: string;
   readonly provider: ChunkAudioGenerator;
   readonly stdout?: string[];
   readonly configPath?: string;
+  readonly resolvedConfigPaths?: string[];
 }): NarrationCliContext => ({
   rootDir,
   env: { RSP_VOXCPM_PRIVATE_CONFIG: configPath },
   stdout: (line) => stdout.push(line),
   stderr: () => undefined,
-  createGenerationDependencies: async () => ({
-    providerAttemptFingerprint: attemptFingerprint,
-    generateChunk: provider,
-    normalizePcm: async (sourceBytes) =>
-      encodeCanonicalPcmWav(
-        Buffer.alloc(Math.max(4_800 * 2, sourceBytes.length * 2), 1),
-      ),
-  }),
+  createGenerationDependencies: async ({ configPath: resolvedConfigPath }) => {
+    resolvedConfigPaths.push(resolvedConfigPath);
+    return {
+      providerAttemptFingerprint: attemptFingerprint,
+      generateChunk: provider,
+      normalizePcm: async (sourceBytes) =>
+        encodeCanonicalPcmWav(
+          Buffer.alloc(Math.max(4_800 * 2, sourceBytes.length * 2), 1),
+        ),
+    };
+  },
 });
 
-test("generate requires current StoryCheck and external private config", async (context) => {
+test("generate uses the repository-local private config by default and keeps the environment override", async (context) => {
   const rootDir = await createProjectRoot(context);
   const provider: ChunkAudioGenerator = async (request) =>
     Buffer.from(request.chunkId);
-  await assert.rejects(
-    () =>
-      runCli(["generate", "--project", "gps-relativity"], {
-        ...createContext({ rootDir, provider }),
-        env: {},
-      }),
-    /RSP_VOXCPM_PRIVATE_CONFIG/,
+  const defaultConfigPaths: string[] = [];
+  await runCli(["generate", "--project", "gps-relativity"], {
+    ...createContext({
+      rootDir,
+      provider,
+      resolvedConfigPaths: defaultConfigPaths,
+    }),
+    env: {},
+  });
+  assert.deepEqual(defaultConfigPaths, [
+    join(rootDir, "voxcpm/voxcpm.private.json"),
+  ]);
+
+  const overrideConfigPaths: string[] = [];
+  await runCli(
+    ["generate", "--project", "gps-relativity"],
+    createContext({
+      rootDir,
+      provider,
+      configPath: "/operator/override/voxcpm.private.json",
+      resolvedConfigPaths: overrideConfigPaths,
+    }),
   );
+  assert.deepEqual(overrideConfigPaths, [
+    "/operator/override/voxcpm.private.json",
+  ]);
+});
+
+test("generate still requires a current StoryCheck with the default private config", async (context) => {
+  const rootDir = await createProjectRoot(context);
+  const provider: ChunkAudioGenerator = async (request) =>
+    Buffer.from(request.chunkId);
 
   await writeJson(
     join(
@@ -89,7 +118,10 @@ test("generate requires current StoryCheck and external private config", async (
     () =>
       runCli(
         ["generate", "--project", "gps-relativity"],
-        createContext({ rootDir, provider }),
+        {
+          ...createContext({ rootDir, provider }),
+          env: {},
+        },
       ),
     /StoryCheck/i,
   );

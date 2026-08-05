@@ -46,8 +46,8 @@ M7 第一套正式 Scene production、M8 最终装配闭环和 M9 第二主题�
 - canonical serialization、分层 SHA-256 fingerprint、`SealedNarrationManifest` 元数据合同；
 - 基于累计整数 sample-frame 和 `BigInt` 的 `SemanticTiming`、1:1 `CaptionCue` 与失效校验；
 - Agent-authored、非用户阻塞的 `StoryCheck` 报告合同；
-- 仓库外私有 VoxCPM 配置、一个 `controllable-clone` profile adapter、逐 authored chunk
-  生成和 checksum/measurement 验证续跑；
+- Git-ignored `voxcpm/voxcpm.private.json` 默认私有配置、可选环境变量覆盖、一个
+  `controllable-clone` profile adapter、逐 authored chunk 生成和 checksum/measurement 验证续跑；
 - FFmpeg 规范化到 48 kHz/mono/s16le、Node sample-frame 测量、完整 WAV 拼接和
   content-addressed 原子封存；
 - `gps-relativity` 的十个真实 chunk、完整旁白、active seal、SemanticTiming、CaptionCue
@@ -210,8 +210,8 @@ npm run narration:seal -- --project gps-relativity --attempt <provider-attempt-f
 npm run narration:check -- --project gps-relativity
 ```
 
-只有 `generate` 读取仓库外 `RSP_VOXCPM_PRIVATE_CONFIG` 并调用 VoxCPM；续跑、封存、
-恢复、supersede 与隐私边界见
+只有 `generate` 读取 Git-ignored `voxcpm/voxcpm.private.json`（或可选的
+`RSP_VOXCPM_PRIVATE_CONFIG` 覆盖）并调用 VoxCPM；续跑、封存、恢复、supersede 与隐私边界见
 [旁白生成与恢复](docs/NARRATION_GENERATION.md)。真实 M2 验收见
 [GPS Relativity M2 Narration Evidence](docs/evidence/2026-08-01-gps-relativity-m2.md)。
 
@@ -256,6 +256,7 @@ scripts/m9-product/             M9 漫画/音频/Shotcraft/evidence/approval 项
 scripts/final-assembly/         M8 FinalAssembly pass-only 生成与只读检查
 scripts/project-check/          M4 narrative 与 M6–M9 final 作品级机械聚合
 scripts/docs/                   tracked Markdown 本地链接只读检查
+voxcpm/                        Git-ignored 默认 VoxCPM 私有配置与 voice profile；不进入提交
 src/contracts/                  M1–M9 严格合同、fingerprint 与机械报告
 src/remotion/capabilities/      已批准共享能力
 src/remotion/catalog/           M6 tracked 统一只读 ResourceCatalog

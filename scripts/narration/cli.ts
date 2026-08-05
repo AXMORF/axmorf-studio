@@ -25,6 +25,9 @@ import { loadNarrationProjectFiles } from "./project-files";
 import { runNarrationSeal } from "./seal-runner";
 import type { M2NarrationCheckResult } from "./check";
 
+export const DEFAULT_VOXCPM_PRIVATE_CONFIG_REPOSITORY_PATH =
+  "voxcpm/voxcpm.private.json";
+
 type GenerationDependencies = {
   readonly providerAttemptFingerprint: string;
   readonly generateChunk: ChunkAudioGenerator;
@@ -119,10 +122,14 @@ export const runCli = async (
       rootDir: context.rootDir,
       projectId,
     });
-    const configPath = context.env.RSP_VOXCPM_PRIVATE_CONFIG;
-    if (configPath === undefined || configPath.trim() === "") {
-      throw new Error("RSP_VOXCPM_PRIVATE_CONFIG is required for generate.");
-    }
+    const configuredPath = context.env.RSP_VOXCPM_PRIVATE_CONFIG;
+    const configPath =
+      configuredPath === undefined || configuredPath.trim() === ""
+        ? join(
+            context.rootDir,
+            DEFAULT_VOXCPM_PRIVATE_CONFIG_REPOSITORY_PATH,
+          )
+        : configuredPath;
     const dependencies = await context.createGenerationDependencies({
       configPath,
       narration: projectSource.narration,

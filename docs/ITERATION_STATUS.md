@@ -18,8 +18,8 @@
 - 基于累计 PCM sample-frame、`BigInt` 与 `pcm-cumulative-ceil-v1` 的 `SemanticTiming`、
   `CaptionCue` 和 StoryBeat 绝对帧范围；
 - M1 合同、非法输入、权威时间示例与失效矩阵的 Node 单元测试；
-- `StoryCheck` 严格报告合同、一个 `controllable-clone` voice profile adapter，以及仓库外
-  私有 VoxCPM 配置边界；
+- `StoryCheck` 严格报告合同、一个 `controllable-clone` voice profile adapter，以及默认
+  Git-ignored `voxcpm/voxcpm.private.json`、可选环境变量覆盖的私有 VoxCPM 配置边界；
 - `gps-relativity` 十个 authored chunks 的真实 VoxCPM 逐 chunk 生成、checksum-verified
   candidate/measured resume 和 fail-closed 部分成功；
 - host FFmpeg 48 kHz/mono/s16le 规范化、Node 整数 sample-frame 测量、300/400 ms 显式
