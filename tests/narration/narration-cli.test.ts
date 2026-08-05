@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 
 import {
+  resolveVoxcpmPrivateConfigPath,
   runCli,
   type NarrationCliContext,
 } from "../../scripts/narration/cli";
@@ -17,6 +18,20 @@ import storyCheckJson from "../../src/projects/gps-relativity/reviews/story-chec
 import storyJson from "../../src/projects/gps-relativity/story.json";
 
 const attemptFingerprint = `sha256:${"5".repeat(64)}`;
+
+test("shares exact private config default and override resolution", () => {
+  assert.equal(
+    resolveVoxcpmPrivateConfigPath({ rootDir: "/repo", env: {} }),
+    "/repo/voxcpm/voxcpm.private.json",
+  );
+  assert.equal(
+    resolveVoxcpmPrivateConfigPath({
+      rootDir: "/repo",
+      env: { RSP_VOXCPM_PRIVATE_CONFIG: "/operator/private.json" },
+    }),
+    "/operator/private.json",
+  );
+});
 
 const writeJson = async (path: string, value: unknown) => {
   await mkdir(join(path, ".."), { recursive: true });

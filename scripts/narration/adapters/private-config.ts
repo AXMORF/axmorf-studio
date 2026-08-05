@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
-import { readFile as readFileFromDisk } from "node:fs/promises";
-import { extname, isAbsolute } from "node:path";
+import {
+  access as accessFromDisk,
+  readFile as readFileFromDisk,
+} from "node:fs/promises";
+import { extname, isAbsolute, relative, resolve } from "node:path";
 
 import { z } from "zod";
 
@@ -93,6 +96,65 @@ export const VoxcpmPrivateConfigSchema = z
   .readonly();
 
 export type VoxcpmPrivateConfig = z.infer<typeof VoxcpmPrivateConfigSchema>;
+
+export type VoxcpmProfileMetadata = Readonly<{
+  baseUrl: string;
+  token?: string;
+  timeoutMs: number;
+  mode: "controllable-clone" | "high-fidelity-clone";
+  profileMatched: true;
+}>;
+
+const isInside = (parent: string, candidate: string) => {
+  const path = relative(resolve(parent), resolve(candidate));
+  return path === "" || (!path.startsWith("..") && !isAbsolute(path));
+};
+
+export const resolveVoxcpmProfileMetadata = async ({
+  config: rawConfig,
+  narration,
+  rootDir,
+  access = accessFromDisk,
+}: {
+  readonly config: unknown;
+  readonly narration: NarrationSpec;
+  readonly rootDir: string;
+  readonly access?: (path: string) => Promise<unknown>;
+}): Promise<VoxcpmProfileMetadata> => {
+  const config = VoxcpmPrivateConfigSchema.parse(rawConfig);
+  const matches = config.voiceProfiles.filter(
+    ({ id }) => id === narration.voiceProfileId,
+  );
+  if (matches.length !== 1) {
+    throw new Error("The selected VoxCPM profile is unavailable.");
+  }
+  const profile = matches[0];
+  const paths =
+    profile.mode === "controllable-clone"
+      ? [profile.referenceAudioPath]
+      : [profile.promptAudioPath, profile.promptTextPath];
+  if (paths.some((path) => !isAbsolute(path))) {
+    throw new Error("VoxCPM profile metadata contains an invalid source path.");
+  }
+  const protectedRoot = resolve(rootDir, "public/voice_profile");
+  if (paths.some((path) => isInside(protectedRoot, path))) {
+    throw new Error("The selected VoxCPM profile uses a protected source.");
+  }
+  try {
+    for (const path of paths) await access(path);
+  } catch (error) {
+    throw new Error("The selected VoxCPM profile source is unavailable.", {
+      cause: error,
+    });
+  }
+  return {
+    baseUrl: config.baseUrl.replace(/\/+$/, ""),
+    ...(config.token === undefined ? {} : { token: config.token }),
+    timeoutMs: config.timeoutMs,
+    mode: profile.mode,
+    profileMatched: true,
+  };
+};
 
 export const readVoxcpmPrivateConfig = async ({
   configPath,

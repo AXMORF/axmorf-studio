@@ -70,6 +70,9 @@ export const ProductionStartPreflightSchema = z.union([
   ProductionStartPreflightPassSchema,
   ProductionStartPreflightFailureSchema,
 ]);
+export type ProductionStartPreflight = z.infer<
+  typeof ProductionStartPreflightSchema
+>;
 
 export const buildProductionStartPreflightPass = (raw: {
   readonly requirementsFingerprint: unknown;

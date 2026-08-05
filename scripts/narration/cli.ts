@@ -28,6 +28,19 @@ import type { M2NarrationCheckResult } from "./check";
 export const DEFAULT_VOXCPM_PRIVATE_CONFIG_REPOSITORY_PATH =
   "voxcpm/voxcpm.private.json";
 
+export const resolveVoxcpmPrivateConfigPath = ({
+  rootDir,
+  env,
+}: {
+  readonly rootDir: string;
+  readonly env: Readonly<Record<string, string | undefined>>;
+}) => {
+  const configuredPath = env.RSP_VOXCPM_PRIVATE_CONFIG;
+  return configuredPath === undefined || configuredPath.trim() === ""
+    ? join(rootDir, DEFAULT_VOXCPM_PRIVATE_CONFIG_REPOSITORY_PATH)
+    : configuredPath;
+};
+
 type GenerationDependencies = {
   readonly providerAttemptFingerprint: string;
   readonly generateChunk: ChunkAudioGenerator;
@@ -122,14 +135,7 @@ export const runCli = async (
       rootDir: context.rootDir,
       projectId,
     });
-    const configuredPath = context.env.RSP_VOXCPM_PRIVATE_CONFIG;
-    const configPath =
-      configuredPath === undefined || configuredPath.trim() === ""
-        ? join(
-            context.rootDir,
-            DEFAULT_VOXCPM_PRIVATE_CONFIG_REPOSITORY_PATH,
-          )
-        : configuredPath;
+    const configPath = resolveVoxcpmPrivateConfigPath(context);
     const dependencies = await context.createGenerationDependencies({
       configPath,
       narration: projectSource.narration,

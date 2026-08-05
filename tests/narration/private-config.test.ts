@@ -7,6 +7,7 @@ import {
 } from "../../scripts/narration/domain/provider-input";
 import {
   readVoxcpmPrivateConfig,
+  resolveVoxcpmProfileMetadata,
   resolveVoxcpmProfile,
 } from "../../scripts/narration/adapters/private-config";
 import { NarrationSpecSchema } from "../../src/contracts/narration";
@@ -22,6 +23,37 @@ const referenceBytes = Buffer.from("fixture reference wav");
 const narration = NarrationSpecSchema.parse({
   ...validNarrationSpec,
   voiceProfileId: "science-explainer-young-male",
+});
+
+test("metadata-only profile resolution never opens protected voice content", async () => {
+  let accessCount = 0;
+  await assert.rejects(
+    () =>
+      resolveVoxcpmProfileMetadata({
+        config: {
+          ...fixturePrivateConfig,
+          voiceProfiles: [{
+            ...fixturePrivateConfig.voiceProfiles[0],
+            referenceAudioPath: "/repo/public/voice_profile/private.wav",
+          }],
+        },
+        narration,
+        rootDir: "/repo",
+        access: async () => { accessCount += 1; },
+      }),
+    /protected/i,
+  );
+  assert.equal(accessCount, 0);
+
+  const metadata = await resolveVoxcpmProfileMetadata({
+    config: fixturePrivateConfig,
+    narration,
+    rootDir: "/repo",
+    access: async () => { accessCount += 1; },
+  });
+  assert.equal(metadata.mode, "controllable-clone");
+  assert.equal(metadata.baseUrl, "http://127.0.0.1:9880");
+  assert.equal(accessCount, 1);
 });
 const story = StorySpecSchema.parse(validStorySpec);
 const fixturePrivateConfig = {
