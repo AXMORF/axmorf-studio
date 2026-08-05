@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import type { TestContext } from "node:test";
 
 import {
-  buildProductionRequirementsFreezeV2,
+  buildProductionRequirementsFreeze,
   computeGenerationInputFingerprint,
   computeStoryFingerprint,
   NarrationSpecSchema,
@@ -94,7 +94,7 @@ export const createProductionFixture = async (
       source.storyCheck,
     ),
   };
-  const requirements = buildProductionRequirementsFreezeV2({
+  const requirements = buildProductionRequirementsFreeze({
     source,
     sourceChecksums,
     enhancementSelection: {
@@ -118,6 +118,15 @@ export const createProductionFixture = async (
     projectId: story.storyId,
     clock: () => FIXED_PRODUCTION_NOW,
     createRunId: () => FIXED_PRODUCTION_RUN_ID,
+    preflightDependencies: {
+      voxcpm: async () => ({
+        status: "pass",
+        domain: "voxcpm",
+        serviceState: "resident-ready",
+        profileMode: "controllable-clone",
+      }),
+      browser: async () => ({ status: "pass", domain: "remotion-browser" }),
+    },
   });
   void context;
   return {

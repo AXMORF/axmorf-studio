@@ -110,6 +110,15 @@ const start = (rootDir: string) =>
     projectId: "story-example",
     clock: () => fixedNow,
     createRunId: () => fixedRunId,
+    preflightDependencies: {
+      voxcpm: async () => ({
+        status: "pass",
+        domain: "voxcpm",
+        serviceState: "resident-ready",
+        profileMode: "controllable-clone",
+      }),
+      browser: async () => ({ status: "pass", domain: "remotion-browser" }),
+    },
   });
 
 test("starts one immutable contract-bound run and records its first event", async (context) => {
@@ -152,12 +161,48 @@ test("refuses to start a new run from a readable legacy v1 freeze", async (conte
 
   await assert.rejects(
     () => start(fixture.rootDir),
-    /freeze-v2.*readability/iu,
+    /freeze-v3/iu,
   );
   await assert.rejects(
     () => access(join(fixture.rootDir, ".producer-runs", fixedRunId)),
     /ENOENT/,
   );
+});
+
+test("preflight failure occurs before scaffold run store or clock", async (context) => {
+  const fixture = await createStartFixture(context);
+  let clockCalls = 0;
+  await assert.rejects(() =>
+    runProductionStart({
+      rootDir: fixture.rootDir,
+      projectId: "story-example",
+      clock: () => {
+        clockCalls += 1;
+        return fixedNow;
+      },
+      preflightDependencies: {
+        voxcpm: async () => ({
+          schemaVersion: 1,
+          contractVersion: "production-start-preflight-v1",
+          status: "failed",
+          domain: "voxcpm",
+          kind: "external-blocker",
+          code: "VOXCPM_SERVICE_UNREACHABLE",
+          summary: "The local speech service is unreachable.",
+          remediation: "Restore local speech service access before starting production.",
+          requirementsFingerprint: fixture.requirements.requirementsFingerprint,
+          redactionApplied: true,
+        }),
+        browser: async () => {
+          throw new Error("browser must not run");
+        },
+      },
+    }),
+  );
+  assert.equal(clockCalls, 0);
+  await assert.rejects(() => access(join(fixture.projectDir, "Composition.tsx")));
+  await assert.rejects(() => access(join(fixture.rootDir, ".producer-runs")));
+  await assert.rejects(() => access(join(fixture.rootDir, ".narration-work")));
 });
 
 test("rejects malformed or stale requirements before creating a run or scaffold", async (context) => {

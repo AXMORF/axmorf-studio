@@ -100,6 +100,7 @@
     "baseline:evidence": "node --import tsx scripts/baseline/evidence.ts",
     "project:check": "node --import tsx scripts/project-check/cli.ts",
     "final:assembly": "node --import tsx scripts/final-assembly/cli.ts",
+    "production:preflight": "node --import tsx scripts/production/cli.ts preflight",
     "production:start": "node --import tsx scripts/production/cli.ts start",
     "production:status": "node --import tsx scripts/production/cli.ts status",
     "production:narrative": "node --import tsx scripts/production/cli.ts narrative",

@@ -14,10 +14,15 @@ import { runProductionSceneFail } from "./scene-fail";
 import { runProductionSceneFreeze } from "./scene-freeze";
 import { runProductionSceneSubmit } from "./scene-submit";
 import { runProductionWatch } from "./watch";
+import { runProductionPreflight } from "./preflight";
 
 type ProductionCliContext = Readonly<{
   rootDir: string;
   stdout: (line: string) => void;
+  preflight?: (request: {
+    readonly rootDir: string;
+    readonly projectId: string;
+  }) => Promise<unknown>;
   start?: (request: {
     readonly rootDir: string;
     readonly projectId: string;
@@ -83,7 +88,19 @@ export const runProductionCli = async (
   context: ProductionCliContext = defaultContext(),
 ) => {
   let result: unknown;
-  if (args.length === 3 && args[0] === "start" && args[1] === "--project") {
+  if (args.length === 3 && args[0] === "preflight" && args[1] === "--project") {
+    const projectId = StoryIdSchema.parse(args[2]);
+    result = context.preflight
+      ? await context.preflight({ rootDir: context.rootDir, projectId })
+      : await runProductionPreflight({ rootDir: context.rootDir, projectId });
+    if (
+      result !== null &&
+      typeof result === "object" &&
+      (result as { status?: unknown }).status === "failed"
+    ) {
+      throw new Error(JSON.stringify(result));
+    }
+  } else if (args.length === 3 && args[0] === "start" && args[1] === "--project") {
     const projectId = StoryIdSchema.parse(args[2]);
     result = context.start
       ? await context.start({ rootDir: context.rootDir, projectId })

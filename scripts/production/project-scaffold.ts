@@ -156,7 +156,7 @@ export const renderReadabilityAwareProductionProjectScaffold = (
   source = replaceRequired(
     source,
     "const projectSource = parseNarrativeProjectSource({\n",
-    'const productionRequirements = ProductionRequirementsFreezeSchema.parse(requirementsJson);\nif (productionRequirements.schemaVersion !== 2) throw new Error("Production Composition requires readability-aware requirements.");\nconst readabilityPolicy = productionRequirements.readabilityPolicy;\nconst projectSource = parseNarrativeProjectSource({\n',
+    'const productionRequirements = ProductionRequirementsFreezeSchema.parse(requirementsJson);\nif (productionRequirements.schemaVersion === 1) throw new Error("Production Composition requires readability-aware requirements.");\nconst readabilityPolicy = productionRequirements.readabilityPolicy;\nconst projectSource = parseNarrativeProjectSource({\n',
   );
   source = replaceRequired(
     source,

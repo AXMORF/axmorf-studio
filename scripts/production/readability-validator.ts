@@ -32,9 +32,9 @@ export const validateProductionReadabilityInputs = ({
 export const requireCurrentProductionReadabilityPolicy = (
   requirements: ProductionRequirementsFreeze,
 ) => {
-  if (requirements.schemaVersion !== 2) {
+  if (requirements.schemaVersion === 1) {
     throw new Error(
-      "New production runs require production-requirements-freeze-v2 with a frozen readability policy.",
+      "New production runs require a frozen readability policy.",
     );
   }
   return requirements.readabilityPolicy;

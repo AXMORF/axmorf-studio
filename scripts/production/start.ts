@@ -18,6 +18,10 @@ import {
   requireCurrentProductionReadabilityPolicy,
   validateProductionReadabilityInputs,
 } from "./readability-validator";
+import {
+  runProductionPreflightForInputs,
+  type ProductionPreflightDependencies,
+} from "./preflight";
 
 type JsonArtifact = Readonly<{ raw: unknown; checksum: `sha256:${string}` }>;
 
@@ -123,6 +127,7 @@ export const runProductionStart = async ({
   projectId: rawProjectId,
   clock = () => new Date(),
   createRunId = defaultRunId,
+  preflightDependencies,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
@@ -131,12 +136,27 @@ export const runProductionStart = async ({
     readonly storyId: string;
     readonly now: Date;
   }) => string;
+  readonly preflightDependencies?: ProductionPreflightDependencies;
 }) => {
-  const { projectId, requirements } = await loadCurrentProductionInputs({
+  const inputs = await loadCurrentProductionInputs({
     rootDir,
     projectId: rawProjectId,
   });
+  const { projectId, requirements } = inputs;
+  if (requirements.schemaVersion !== 3) {
+    throw new Error(
+      "New production runs require production-requirements-freeze-v3.",
+    );
+  }
   requireCurrentProductionReadabilityPolicy(requirements);
+  const preflight = await runProductionPreflightForInputs({
+    rootDir,
+    inputs,
+    ...(preflightDependencies === undefined ? {} : { dependencies: preflightDependencies }),
+  });
+  if (preflight.status === "failed") {
+    throw new Error(JSON.stringify(preflight));
+  }
   await ensureProductionProjectScaffold({
     rootDir,
     storyId: projectId,

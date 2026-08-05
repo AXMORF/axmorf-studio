@@ -14,10 +14,15 @@ const startResult = {
 test("production CLI accepts only exact start and status forms", async () => {
   const output: string[] = [];
   const starts: string[] = [];
+  const preflights: string[] = [];
   const statuses: string[] = [];
   const context = {
     rootDir: process.cwd(),
     stdout: output.push.bind(output),
+    preflight: async ({ projectId }: { readonly projectId: string }) => {
+      preflights.push(projectId);
+      return { status: "pass", projectId };
+    },
     start: async ({ projectId }: { readonly projectId: string }) => {
       starts.push(projectId);
       return startResult;
@@ -28,13 +33,15 @@ test("production CLI accepts only exact start and status forms", async () => {
     },
   };
 
+  await runProductionCli(["preflight", "--project", "story-example"], context);
   await runProductionCli(["start", "--project", "story-example"], context);
   await runProductionCli(["status", "--run", "story-example-run-001"], context);
   assert.deepEqual(starts, ["story-example"]);
+  assert.deepEqual(preflights, ["story-example"]);
   assert.deepEqual(statuses, ["story-example-run-001"]);
   assert.deepEqual(
     output.map((line) => JSON.parse(line)),
-    [startResult, { ...startResult, lastSequence: 1 }],
+    [{ status: "pass", projectId: "story-example" }, startResult, { ...startResult, lastSequence: 1 }],
   );
 
   for (const args of [
@@ -57,6 +64,10 @@ test("package scripts expose production commands and include production tests by
   const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
     scripts: Record<string, string>;
   };
+  assert.equal(
+    packageJson.scripts["production:preflight"],
+    "node --import tsx scripts/production/cli.ts preflight",
+  );
   assert.equal(
     packageJson.scripts["production:start"],
     "node --import tsx scripts/production/cli.ts start",
