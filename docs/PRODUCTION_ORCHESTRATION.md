@@ -8,7 +8,8 @@
 证据见 [M9.5 首次真实生产试跑与 hardening 实证](evidence/2026-08-05-m9-5-production-trial-and-hardening.md)。
 新对话可显式调用
 [$remotion-story-producer-video](../.agents/skills/remotion-story-producer-video/SKILL.md)，粘贴完整
-内容后直接执行本流程，不先编写计划。
+内容后直接执行本流程，不先编写计划。正常路径只加载 Skill 入口、精简直接流程和当前项目
+输入；故障参考与权威文档仅在对应失败、合同冲突或范围变化时按需读取。
 
 ## 固定命令
 

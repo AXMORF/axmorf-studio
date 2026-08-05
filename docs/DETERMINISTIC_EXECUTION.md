@@ -638,5 +638,6 @@ M9.5 的 repo CLI 不调用 skill 或 Agent API。主 Agent 仍通过当前 Code
 [$remotion-story-producer-video](../.agents/skills/remotion-story-producer-video/SKILL.md) 已把这条
 authoring/orchestration 入口固化为薄 Skill：它引导主 Agent 从完整用户内容直接执行到
 `preview-ready / awaiting-user-preview`，但 Skill 本身不进入 repo CLI、generated identity 或
-Remotion runtime，也不能代签 approval。Skill 只恢复 Agent-owned 创作工作；固定流程失败
-必须停止并触发 common-flow hardening，不允许 retry/resume 伪装稳定性。
+Remotion runtime，也不能代签 approval。正常制作不预加载整套权威文档，只读取精简直接流程
+与当前项目输入；失败或边界冲突时才加载对应参考或相关权威片段。Skill 只恢复 Agent-owned
+创作工作；固定流程失败必须停止并触发 common-flow hardening，不允许 retry/resume 伪装稳定性。

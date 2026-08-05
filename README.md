@@ -99,9 +99,9 @@ M7 第一套正式 Scene production、M8 最终装配闭环和 M9 第二主题�
 - 固定 `production:*` CLI、checkpoint-safe narrative runner、无全局 BGM/ambience/ducking/
   GlobalVisualLayers 的 PreviewAssembly，以及只表示 mechanically-ready 的 Preview evidence；
 - fake provider/process/clock/scheduler 驱动的完整两 Scene 编排 proof、失败矩阵与幂等验证；
-- 项目级 `$remotion-story-producer-video` Skill：在新对话接收完整内容后不先写计划，直接执行
-  authored contracts、默认 VoxCPM、Scene/watcher、Agent返工/common-flow hardening 和机械
-  Preview handoff；
+- 项目级 `$remotion-story-producer-video` Skill：在新对话接收完整内容后不先写计划，默认只加载
+  薄入口与直接流程，按需读取故障/权威边界，再执行 authored contracts、默认 VoxCPM、
+  Scene/watcher、Agent返工/common-flow hardening 和机械 Preview handoff；
 - 规范目录、外部生产流程、合同参考和目标设计文档。
 
 NarrativeCheck、用户预览后的 Scene 修改循环、已提案 capability 的实际 promotion、发布
@@ -137,8 +137,9 @@ M9.5 实施计划与操作合同见
 <粘贴完整内容、脚本或资料>
 ```
 
-Skill 会使用 Git-ignored `voxcpm/voxcpm.private.json`，不要求每次设置环境变量；它不会代签
-用户批准、自动开始 M10、发布或 push。
+Skill 会使用 Git-ignored `voxcpm/voxcpm.private.json`，不要求每次设置环境变量。正常制作只
+加载 Skill 入口、直接流程和当前项目输入；仅在失败或合同/范围冲突时读取对应参考或权威文档
+片段。它不会代签用户批准、自动开始 M10、发布或 push。
 
 ## 本地运行
 

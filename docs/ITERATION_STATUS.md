@@ -108,9 +108,10 @@
   append-only watcher、1080×1920/30 fps/1102-frame H.264/AAC Preview、8/8 mechanical checks，
   最终到达 `preview-ready / awaiting-user-preview`；四个真实编排缺陷均经 Red/Green、独立修复
   commit 和 immutable replacement 收口，正式 GPS/ProductComicVertical 十个保护产物零差异。
-- 项目级 `$remotion-story-producer-video` Skill：薄入口按需加载直接生产、Agent-owned 创作
-  返工与 common-flow hardening 参考；固定 production CLI/watcher/render/check 失败不恢复，
-  必须完善通用流程并由新 Run 完整重验到 `preview-ready / awaiting-user-preview`。
+- 项目级 `$remotion-story-producer-video` Skill：薄入口默认只加载精简直接流程与当前项目输入，
+  失败时才加载 Agent-owned 返工/common-flow hardening 参考，合同冲突时才读取相关权威文档
+  片段；固定 production CLI/watcher/render/check 失败不恢复，必须完善通用流程并由新 Run
+  完整重验到 `preview-ready / awaiting-user-preview`。
 
 ## 尚未完成
 

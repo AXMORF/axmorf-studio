@@ -1,25 +1,16 @@
-# 直接生产工作流
+# Direct production workflow
 
-## 1. Preflight
+This file owns the normal path. Do not load the failure/hardening reference unless a failure occurs.
 
-1. Read `AGENTS.md`, `docs/FINAL_PRODUCT_GOAL.md`, `docs/PRODUCTION_WORKFLOW.md`,
-   `docs/ITERATION_STATUS.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`,
-   `docs/DETERMINISTIC_EXECUTION.md`, `docs/TERMINOLOGY.md`, and
-   `docs/PRODUCTION_ORCHESTRATION.md`.
-2. Inspect the current branch, HEAD, `git status --short --branch`, package scripts, current tests,
-   and toolchain. Preserve every unrelated tracked or untracked change.
-3. Do not use `git status --untracked-files=all` when a protected untracked directory exists. Do not
-   read or glob protected private directories.
-4. Record explicit checksums for existing formal media, assembly, approval, evidence, and final
-   reports that the new production must not change. Use explicit paths rather than broad globs.
-5. Confirm only the safe VoxCPM facts needed for production: the default private config is ignored,
-   the selected safe profile ID is resolvable by the fixed command, and no secret is emitted.
+## 1. Preflight and inputs
 
-Do not write a plan. Proceed directly after preflight unless a genuine blocker exists.
+Inspect branch, HEAD, `git status --short --branch`, and current project inputs. Preserve unrelated
+tracked and untracked changes. Do not enumerate protected untracked directories or open private
+configuration. Do not preload the authority set: Read only the relevant authority section when a
+contract ambiguity, scope boundary, current-fact conflict, or implementation defect makes it
+necessary. Prefer the current contract, source, and focused test for exact shapes.
 
-## 2. Author current project inputs
-
-Create a new normalized slug and a Remotion-safe Composition ID. Author only the current project:
+Create a normalized `<storyId>` and Remotion-safe Composition ID, then author only:
 
 ```text
 src/projects/<storyId>/brief.json
@@ -30,27 +21,16 @@ src/projects/<storyId>/reviews/story-check.json
 src/projects/<storyId>/production/requirements.json
 ```
 
-Use current contracts and tests as shape authority. Do not copy old production Story content, Scene
-layout, Composition, stills, contact sheets, or media.
+Preserve every user claim in a causal Story. Give each ordered StoryBeat one stable `meaningId` and
+Agent-authored `ttsChunks` based on meaning, tone, and reading rhythm; never split by punctuation.
+Infer safe format defaults and record them in the handoff. Use a safe profile ID through the default
+VoxCPM command without reading private values. Bind current input identities in
+`ProductionRequirementsFreeze`; select no M9.5 global enhancements. Validate and commit only exact
+current-project input paths when a checkpoint is needed.
 
-Convert the user's complete material into a causal Story without dropping claims. Author StoryBeats
-in presentation order. Give every Beat one stable `meaningId` and one or more `ttsChunks` selected by
-meaning, tone, and reading rhythm. Do not split by punctuation. Keep pauses explicit.
+## 2. Narrative Baseline
 
-Make `RenderSpec` reflect the requested format. If unspecified, choose a reasonable delivery format
-from the content and state the assumption in the handoff; do not ask merely to choose between common
-defaults. Keep captions inside the declared safe area.
-
-Use a safe profile ID from the default VoxCPM configuration. Never copy private values into authored
-JSON. Bind every source checksum/fingerprint through `ProductionRequirementsFreeze`. Select no M9.5
-global enhancements. Make the StoryCheck current before provider work.
-
-Run focused contract validation, inspect the exact diff, stage only current-project inputs, and make
-a clear local commit when repository policy calls for a checkpoint.
-
-## 3. Start and seal Narrative Baseline
-
-Run the exact CLI:
+Run:
 
 ```bash
 npm run production:start -- --project <storyId>
@@ -58,83 +38,52 @@ npm run production:narrative -- --run <runId>
 npm run production:status -- --run <runId>
 ```
 
-Parse `runId` from stdout; do not construct it. Keep the current task alive while VoxCPM runs. The
-narrative command owns candidate handling, seal, measurement, timing, registry, Baseline media,
-evidence, and AutoCheck. Do not reproduce those steps manually. If this fixed command fails with
-valid current inputs, stop and follow common-flow hardening; do not rerun it as recovery.
+Parse `runId` from stdout. Keep the current task alive during VoxCPM. The fixed narrative command owns
+candidate handling, sealing, measurement, timing, registry, Baseline media/evidence, and AutoCheck;
+do not reproduce its stages manually. Require `baseline-ready`, sealed narration identity,
+SemanticTiming, CaptionCues, Baseline evidence, AutoCheck, and any applicable no-op recheck.
 
-Require `baseline-ready`. Verify narration identity, complete WAV checksum, SemanticTiming,
-CaptionCues, Baseline media/evidence, AutoCheck, and a no-op repeat where appropriate. Do not accept
-partial candidates as timing authority.
+## 3. Freeze Scene work
 
-## 4. Freeze Scene production
-
-After `baseline-ready`, author current project files:
-
-```text
-src/projects/<storyId>/visual-style.json
-src/projects/<storyId>/production/story-resource-pool.json
-src/projects/<storyId>/production/scene-production-brief.json
-```
-
-Query only the current ResourceCatalog and approved immutable authoring references. An empty resource
-pool is valid when project-local visuals are sufficient. Do not put a resource into the pool unless
-its current descriptor, checksum, allowed use, and license are valid.
-
-Run:
+Author current-project `visual-style.json`, `production/story-resource-pool.json`, and
+`production/scene-production-brief.json`. Use only current ResourceCatalog entries and explicitly
+selected immutable references; an empty resource pool is valid. Then run:
 
 ```bash
 npm run production:scene:freeze -- --run <runId>
 ```
 
-Require exactly one immutable assignment for every meaningId. Confirm exclusive source/public output
-paths and deadlines before authoring Scenes.
+Require one immutable assignment per meaningId with exclusive source/public paths.
 
-## 5. Own watcher and Scene lifecycle
+## 4. Own watcher and Scene lifecycle
 
-Start the central watcher in a live execution session:
+Start a live session:
 
 ```bash
 npm run production:watch -- --run <runId>
 ```
 
-Keep polling its real output. Do not detach it from the current task. If Agent delegation is available
-and allowed, assign exactly one meaningId and its exclusive paths per Scene task. Otherwise author
-Scenes inline while the watcher remains alive.
+Keep polling its real output. Do not detach it from the current task. Author Scenes inline, or delegate
+only when explicitly allowed, while the watcher remains live. Each Scene owner receives one meaningId,
+its exclusive paths, current Beat/sealed timing, style/brief/assignment, adjacent continuity, and only
+approved current resources. Do not inspect historical Scene source or media.
 
-For each Scene, read only:
-
-- the current Story/Beat and sealed timing;
-- current VisualStyleSpec, SceneProductionBrief, assignment, and adjacent continuity summary;
-- current ResourceCatalog entries and explicitly selected immutable references.
-
-Never inspect or imitate historical production Scenes or media. Keep implementation under
-`src/projects/<storyId>/scenes/<meaningId>/`. Produce the current plans, selections, renderer source,
-optional Scene-local sound declarations, and ScenePackage inputs required by the assignment. Use zero
-selected resources when appropriate; the selected-resources envelope must remain strict and current.
-
-Submit or fail only through the exact CLI:
+Keep work under `src/projects/<storyId>/scenes/<meaningId>/`. Produce assignment-required plans,
+selections, renderer, optional local-sound declarations, and ScenePackage inputs. Submit or record an
+Agent failure only through:
 
 ```bash
 npm run production:scene:submit -- --run <runId> --scene <meaningId>
 npm run production:scene:fail -- --run <runId> --scene <meaningId> --code <CODE> --description "<safe description>"
 ```
 
-If an Agent-owned Scene output fails validation before an immutable result is accepted, return it to
-the Scene owner, correct it, and resubmit through the same command. If an explicit Scene failure made
-the run terminal, correct the Agent-owned output first and then start a new run. This is Agent rework,
-not fixed-flow recovery.
+Correct rejected Agent-owned output through the same validator. Never write events, state, coverage,
+registry, projection, or Composition manually. Continue until all results are accepted or the run is
+terminal. For any fixed-command failure, stop and load the hardening reference; do not retry it.
 
-Never write events, state, coverage, registry, projection, or Composition manually. Continue watching
-until all Scene results are accepted or the run reaches a terminal failure. If the watcher itself
-fails with valid current inputs, stop it and harden the common workflow; do not restart it as recovery.
+## 5. Verify Preview
 
-## 6. Reach and verify Preview
-
-On all-success, let the watcher run the fixed post-Scene pipeline and real Remotion/FFmpeg render.
-Require `preview-ready`; do not synthesize evidence or repair generated state.
-
-Run:
+Let the watcher own the post-Scene pipeline and real render. Require `preview-ready`, then run:
 
 ```bash
 npm run production:status -- --run <runId>
@@ -143,24 +92,15 @@ ffmpeg -v error -xerror -i out/<storyId>/production/<runId>/preview.mp4 -f null 
 npm run compositions
 ```
 
-Require `noOp: true` on repeated Preview checks, unchanged event sequence, current assembly/evidence/
-mechanical fingerprints, exact dimensions/fps/frame count/stream counts, and complete decode.
+Require Preview recheck `noOp: true`, unchanged event sequence, current assembly/evidence/mechanical
+fingerprints, exact dimensions/fps/frame count/streams, and complete decode. Run focused checks for
+changed workflow code and `npm run check` when source, contracts, registry, runtime, or authority docs
+changed. Sync only docs whose facts changed.
 
-Run focused production tests after workflow changes. Run `npm run check` before completion when source,
-contracts, registry, runtime, or authority docs changed. Recompute every protected artifact checksum.
+## 6. Commit and hand off
 
-## 7. Commit and hand off
-
-Use exact-path staging and small local commits. Never stage private configuration, protected voice
-profiles, ignored run state, diagnostic media, unrelated changes, or old formal project artifacts.
-Never use `git add .`; never push unless explicitly requested.
-
-Sync only docs whose current facts changed. Hand off:
-
-- final run ID and exact status;
-- absolute Preview/contact-sheet/still paths;
-- Preview checksum and evidence/mechanical fingerprints;
-- technical media facts and full-decode result;
-- Agent rework, common-flow defects/hardening, clean validation runs, and local commits;
-- protected before/after results and remaining worktree changes;
-- known issues and `awaiting explicit user preview decision`.
+Stage exact paths only. Never stage private config, protected voice profiles, ignored run state,
+diagnostic media, unrelated changes, or old formal artifacts; never push. Report run/status, absolute
+Preview/contact-sheet/still paths, Preview checksum, evidence/mechanical fingerprints, media facts,
+Agent rework or common-flow hardening, local commits, protection results, remaining worktree changes,
+known issues, and `awaiting explicit user preview decision`.
