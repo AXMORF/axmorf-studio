@@ -10,8 +10,8 @@ import {
   StoryResourcePoolSchema,
   StorySpecSchema,
   VisualStyleSpecSchema,
-  buildSceneAssignmentV2,
-  buildSceneTaskInputV2,
+  buildSceneAssignmentV3,
+  buildSceneTaskInputV3,
   computeRenderSpecFingerprint,
   computeStoryFingerprint,
   computeVisualStyleFingerprint,
@@ -29,6 +29,7 @@ import {
 import { createProductionStageEvent } from "./domain/events";
 import { createUnexpectedProductionError } from "./domain/errors";
 import { loadCurrentProductionInputs } from "./start";
+import { validateVisualShellSourceGraph } from "./visual-shell-source-validator";
 
 const readRegularJson = async (path: string, label: string) => {
   let metadata;
@@ -139,7 +140,7 @@ const resolveSceneFreezeInputs = async ({
     throw new Error("Production run requirements are stale.");
   }
   const projectDir = join(rootDir, "src/projects", loaded.run.storyId);
-  const [story, timing, catalog, visualStyle, rawPool, rawBrief] =
+  const [story, timing, catalog, visualStyle, rawPool, rawBrief, visualShell] =
     await Promise.all([
       readRegularJson(join(projectDir, "story.json"), "StorySpec").then(
         StorySpecSchema.parse,
@@ -161,6 +162,10 @@ const resolveSceneFreezeInputs = async ({
         join(projectDir, "production/scene-production-brief.json"),
         "SceneProductionBrief",
       ),
+      validateVisualShellSourceGraph({
+        rootDir,
+        storyId: loaded.run.storyId,
+      }),
     ]);
   if (
     story.storyId !== loaded.run.storyId ||
@@ -226,6 +231,7 @@ const resolveSceneFreezeInputs = async ({
     pool,
     brief,
     autoCheckFingerprint,
+    visualShell,
   } as const;
 };
 
@@ -277,12 +283,12 @@ const buildAssignments = ({
         };
       },
     );
-    if (current.requirements.schemaVersion !== 2) {
+    if (current.requirements.schemaVersion !== 3) {
       throw new Error(
-        "New Scene assignments require readability-aware requirements.",
+        "New Scene assignments require v3 shared-boundary requirements.",
       );
     }
-    const taskInput = buildSceneTaskInputV2({
+    const taskInput = buildSceneTaskInputV3({
       storyId: story.storyId,
       meaningId: storyBeat.meaningId,
       storyBeat,
@@ -306,8 +312,13 @@ const buildAssignments = ({
         publicAssetRoot: `public/projects/${story.storyId}/scenes/${storyBeat.meaningId}`,
       },
       readabilityPolicy: current.requirements.readabilityPolicy,
+      sceneCompositionBoundaryVersion:
+        current.requirements.sceneBoundaryOwnership
+          .sceneCompositionBoundaryVersion,
+      visualShellSourceGraphFingerprint:
+        inputs.visualShell.visualShellSourceGraphFingerprint,
     });
-    return buildSceneAssignmentV2({
+    return buildSceneAssignmentV3({
       runId: loaded.run.runId,
       storyId: story.storyId,
       meaningId: storyBeat.meaningId,
@@ -316,6 +327,11 @@ const buildAssignments = ({
       resourcePoolFingerprint: pool.poolFingerprint,
       taskInput,
       readabilityPolicy: current.requirements.readabilityPolicy,
+      sceneCompositionBoundaryVersion:
+        current.requirements.sceneBoundaryOwnership
+          .sceneCompositionBoundaryVersion,
+      visualShellSourceGraphFingerprint:
+        inputs.visualShell.visualShellSourceGraphFingerprint,
       sceneBrief,
       additionalRequirements: relevantSceneRequirements(
         current.requirements,

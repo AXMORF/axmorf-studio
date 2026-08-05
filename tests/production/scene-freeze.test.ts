@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
@@ -153,6 +153,12 @@ const createFixture = async (context: TestContext) => {
     join(fixture.projectDir, "production/scene-production-brief.json"),
     brief,
   );
+  const shellDir = join(fixture.projectDir, "visual-shell");
+  await mkdir(shellDir, { recursive: true });
+  await writeFile(
+    join(shellDir, "VisualShell.tsx"),
+    'import type {PropsWithChildren} from "react";\nimport {AbsoluteFill} from "remotion";\nexport default function VisualShell({children}: PropsWithChildren) { return <AbsoluteFill style={{backgroundColor: "#001122"}}>{children}</AbsoluteFill>; }\n',
+  );
   return {
     ...fixture,
     ...baseline,
@@ -184,8 +190,19 @@ test("freezes one assignment per StoryBeat in order and projects Scene requireme
       ),
     ),
   );
-  assert.equal(assignments[0].schemaVersion, 2);
-  assert.equal(assignments[0].taskInput.schemaVersion, 2);
+  assert.equal(assignments[0].schemaVersion, 3);
+  assert.equal(assignments[0].taskInput.schemaVersion, 3);
+  if (assignments[0].schemaVersion !== 3 || assignments[0].taskInput.schemaVersion !== 3) {
+    assert.fail("Expected v3 Scene assignment and task input.");
+  }
+  assert.equal(
+    assignments[0].sceneCompositionBoundaryVersion,
+    "scene-composition-boundary-v1",
+  );
+  assert.equal(
+    assignments[0].visualShellSourceGraphFingerprint,
+    assignments[0].taskInput.visualShellSourceGraphFingerprint,
+  );
   assert.deepEqual(
     assignments[0].readabilityPolicy,
     fixture.requirements.readabilityPolicy,

@@ -17,6 +17,7 @@ import {
   renderProductionPreviewProjectScaffold,
   renderProductionProjectScaffold,
   renderReadabilityAwareProductionProjectScaffold,
+  renderV3ProductionPreviewProjectScaffold,
   renderReadabilityAwareProductionSceneRuntime,
 } from "../../scripts/production/project-scaffold";
 
@@ -41,7 +42,25 @@ test("future production scaffolds bind frozen readability into captions and Scen
     storyId: "future-story",
     meaningIds: ["opening"],
   });
-  assert.match(runtime, /readabilityPolicy: scene\.task\.schemaVersion === 2/u);
+  assert.match(runtime, /readabilityPolicy: scene\.task\.schemaVersion >= 2/u);
+});
+
+test("v3 Preview imports one project-local VisualShell around StoryVisualTrack", () => {
+  const source = renderV3ProductionPreviewProjectScaffold({
+    storyId: "future-story",
+    sceneLocalSoundPresent: false,
+  });
+  assert.equal(
+    source.match(/from "\.\/visual-shell\/VisualShell"/gu)?.length,
+    1,
+  );
+  assert.equal(source.match(/<VisualShell>/gu)?.length, 1);
+  assert.equal(source.match(/<StoryVisualTrack /gu)?.length, 1);
+  assert.match(
+    source,
+    /storyVisualTrack=\{<VisualShell><StoryVisualTrack [^>]+ \/><\/VisualShell>\}/u,
+  );
+  assert.doesNotMatch(source, /globalVisualLayers|GlobalVisualLayers/u);
 });
 
 test("writes one default-export Narrative scaffold and repeats byte-mtime stable", async (context) => {

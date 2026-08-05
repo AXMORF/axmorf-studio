@@ -13,6 +13,14 @@ test("builds a versioned preview assembly with explicit absent enhancements", ()
   assert.equal(assembly.contractVersion, "production-preview-assembly-v2");
   assert.equal(assembly.enhancements.globalSoundPlan, "absent");
   assert.equal(assembly.enhancements.globalVisualLayers, "absent");
+  assert.equal(
+    assembly.sceneCompositionBoundaryVersion,
+    "scene-composition-boundary-v1",
+  );
+  assert.equal(
+    assembly.layerOrder[0],
+    "visual-shell",
+  );
   assert.equal(assembly.reviewPolicy, "mechanical-only");
   assert.equal(
     ProductionPreviewAssemblySchema.parse(assembly).assemblyFingerprint,

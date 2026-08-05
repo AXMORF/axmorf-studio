@@ -209,6 +209,10 @@ export const ensureProductionProjectScaffold = async ({
         storyId,
         sceneLocalSoundPresent,
       }),
+      renderV3ProductionPreviewProjectScaffold({
+        storyId,
+        sceneLocalSoundPresent,
+      }),
     ].includes(actual ?? ""),
   );
   if (isExactPreviewScaffold && mode === "write") {
@@ -425,7 +429,7 @@ export const renderReadabilityAwareProductionSceneRuntime = (input: {
   return replaceRequired(
     source,
     "    visualResources: scene.resources.filter",
-    '    readabilityPolicy: scene.task.schemaVersion === 2 ? scene.task.readabilityPolicy : (() => { throw new Error("Production Scene runtime requires readability-aware task input."); })(),\n    visualResources: scene.resources.filter',
+    '    readabilityPolicy: scene.task.schemaVersion >= 2 ? scene.task.readabilityPolicy : (() => { throw new Error("Production Scene runtime requires readability-aware task input."); })(),\n    sceneBoundaryVersion: scene.task.schemaVersion === 3 ? scene.task.sceneCompositionBoundaryVersion : undefined,\n    visualResources: scene.resources.filter',
   );
 };
 
@@ -552,6 +556,28 @@ export const renderReadabilityAwareProductionPreviewProjectScaffold = (input: {
   );
 };
 
+export const renderV3ProductionPreviewProjectScaffold = (input: {
+  readonly storyId: string;
+  readonly sceneLocalSoundPresent: boolean;
+}) => {
+  let source = renderReadabilityAwareProductionPreviewProjectScaffold(input);
+  source = replaceRequired(
+    source,
+    'import storyJson from "./story.json";\n',
+    'import storyJson from "./story.json";\nimport VisualShell from "./visual-shell/VisualShell";\n',
+  );
+  source = replaceRequired(
+    source,
+    'if (productionRequirements.schemaVersion !== 2) throw new Error("Production Preview requires readability-aware requirements.");',
+    'if (productionRequirements.schemaVersion !== 3) throw new Error("Production Preview requires v3 shared-boundary requirements.");',
+  );
+  return replaceRequired(
+    source,
+    "storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning} />}",
+    "storyVisualTrack={<VisualShell><StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning} /></VisualShell>}",
+  );
+};
+
 export const ensureProductionPreviewScaffold = async ({
   rootDir,
   storyId,
@@ -559,6 +585,7 @@ export const ensureProductionPreviewScaffold = async ({
   sceneLocalSoundPresent,
   mode,
   readabilityPolicyAware = false,
+  sceneCompositionBoundaryAware = false,
 }: {
   readonly rootDir: string;
   readonly storyId: string;
@@ -566,6 +593,7 @@ export const ensureProductionPreviewScaffold = async ({
   readonly sceneLocalSoundPresent: boolean;
   readonly mode: "write" | "check";
   readonly readabilityPolicyAware?: boolean;
+  readonly sceneCompositionBoundaryAware?: boolean;
 }) => {
   const projectRoot = join(
     rootDir,
@@ -576,7 +604,7 @@ export const ensureProductionPreviewScaffold = async ({
     projectRoot,
     "production-scene-runtime.generated.ts",
   );
-  const runtimeSource = readabilityPolicyAware
+  const runtimeSource = readabilityPolicyAware || sceneCompositionBoundaryAware
     ? renderReadabilityAwareProductionSceneRuntime({ storyId, meaningIds })
     : renderProductionSceneRuntime({ storyId, meaningIds });
   await writeOrCheckRendererRegistry({
@@ -585,8 +613,13 @@ export const ensureProductionPreviewScaffold = async ({
     mode,
   });
   const destination = join(projectRoot, "Composition.tsx");
-  const expected = readabilityPolicyAware
-    ? renderReadabilityAwareProductionPreviewProjectScaffold({
+  const expected = sceneCompositionBoundaryAware
+    ? renderV3ProductionPreviewProjectScaffold({
+        storyId,
+        sceneLocalSoundPresent,
+      })
+    : readabilityPolicyAware
+      ? renderReadabilityAwareProductionPreviewProjectScaffold({
         storyId,
         sceneLocalSoundPresent,
       })
@@ -601,7 +634,7 @@ export const ensureProductionPreviewScaffold = async ({
     return { destination, runtimeDestination, source: expected } as const;
   }
   const current = await readFile(destination, "utf8");
-  const narrativeScaffold = readabilityPolicyAware
+  const narrativeScaffold = readabilityPolicyAware || sceneCompositionBoundaryAware
     ? renderReadabilityAwareProductionProjectScaffold(storyId)
     : renderProductionProjectScaffold(storyId);
   if (current !== expected && current !== narrativeScaffold) {

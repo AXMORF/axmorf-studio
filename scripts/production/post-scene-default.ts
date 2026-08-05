@@ -53,6 +53,7 @@ import {
   ensureProductionPreviewScaffold,
   renderReadabilityAwareProductionPreviewProjectScaffold,
   renderProductionPreviewProjectScaffold,
+  renderV3ProductionPreviewProjectScaffold,
 } from "./project-scaffold";
 import {
   inspectProductionPreviewMedia,
@@ -61,6 +62,7 @@ import {
 } from "./preview-evidence";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
 import { validateSceneReadability } from "./readability-validator";
+import { validateVisualShellSourceGraph } from "./visual-shell-source-validator";
 
 const checksumFile = async (path: string) =>
   Sha256DigestSchema.parse(
@@ -121,6 +123,24 @@ const preparePreview = async ({
     resolved.inputs.story.storyId !== storyId
   ) {
     throw new Error("Production Preview requirements are stale.");
+  }
+  const requirements = resolved.inputs.current.requirements;
+  const visualShell =
+    requirements.schemaVersion === 3
+      ? await validateVisualShellSourceGraph({ rootDir, storyId })
+      : null;
+  if (
+    requirements.schemaVersion === 3 &&
+    resolved.assignments.some(
+      (assignment) =>
+        assignment.schemaVersion !== 3 ||
+        assignment.sceneCompositionBoundaryVersion !==
+          requirements.sceneBoundaryOwnership.sceneCompositionBoundaryVersion ||
+        assignment.visualShellSourceGraphFingerprint !==
+          visualShell?.visualShellSourceGraphFingerprint,
+    )
+  ) {
+    throw new Error("Production Preview VisualShell identity is stale.");
   }
   const coverage = SceneCoverageMapSchema.parse(
     await generateSceneCoverageFromProjectFiles({
@@ -242,9 +262,16 @@ const preparePreview = async ({
     mode,
     readabilityPolicyAware:
       resolved.inputs.current.requirements.schemaVersion === 2,
+    sceneCompositionBoundaryAware:
+      resolved.inputs.current.requirements.schemaVersion === 3,
   });
   const compositionSource =
-    resolved.inputs.current.requirements.schemaVersion === 2
+    resolved.inputs.current.requirements.schemaVersion === 3
+      ? renderV3ProductionPreviewProjectScaffold({
+          storyId,
+          sceneLocalSoundPresent,
+        })
+      : resolved.inputs.current.requirements.schemaVersion === 2
       ? renderReadabilityAwareProductionPreviewProjectScaffold({
           storyId,
           sceneLocalSoundPresent,
@@ -273,6 +300,14 @@ const preparePreview = async ({
     })),
     rendererRegistryFingerprint: registry.registryFingerprint,
     storyVisualProjectionFingerprint: visualProjection.projectionFingerprint,
+    ...(requirements.schemaVersion === 3 && visualShell !== null
+      ? {
+          visualShellSourceGraphFingerprint:
+            visualShell.visualShellSourceGraphFingerprint,
+          sceneCompositionBoundaryVersion:
+            requirements.sceneBoundaryOwnership.sceneCompositionBoundaryVersion,
+        }
+      : {}),
     sceneLocalSound: sceneLocalSoundPresent
       ? {
           selection: "present",
@@ -291,7 +326,15 @@ const preparePreview = async ({
       ducking: "absent",
       globalVisualLayers: "absent",
     },
-    layerOrder: ["story-visual", "narrative-core", "scene-local-sound"],
+    layerOrder:
+      requirements.schemaVersion === 3
+        ? [
+            "visual-shell",
+            "story-visual",
+            "narrative-core",
+            "scene-local-sound",
+          ]
+        : ["story-visual", "narrative-core", "scene-local-sound"],
     mixOrder: ["narration", "scene-local-sound"],
     reviewPolicy: "mechanical-only",
   });
