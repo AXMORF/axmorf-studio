@@ -17,6 +17,7 @@ import {
 } from "../../src/contracts";
 import { validatePolicyAwareRendererSourceGraph } from "../../scripts/production/readability-source-validator";
 import { validateSceneReadability } from "../../scripts/production/readability-validator";
+import { validateVisualShellSourceGraph } from "../../scripts/production/visual-shell-source-validator";
 import type { SceneAssignment } from "../../src/contracts";
 import { collectRendererSourceGraph } from "../../scripts/renderer-registry/domain";
 
@@ -45,6 +46,13 @@ const Renderer = ({readabilityPolicy}: {readabilityPolicy: unknown}) => (
     <SceneBackground><svg><rect width="1080" height="1920" /></svg></SceneBackground>
     <SceneContentFrame policy={readabilityPolicy}>${content}</SceneContentFrame>
   </>
+);
+export default Renderer;
+`;
+
+const semanticRenderer = (content: string) => `
+const Renderer = () => (
+  <div style={{position: "absolute", inset: 0}}>${content}</div>
 );
 export default Renderer;
 `;
@@ -207,6 +215,90 @@ test("the shared submit watcher checker is check-only and byte-mtime stable", as
   assert.equal((await stat(destination)).mtimeMs, before.mtime);
 });
 
+test("v3 accepts semantic-only Renderer and binds the shared boundary identities", async (context) => {
+  const fixture = await createFixture(context);
+  await fixture.write(
+    fixture.rendererPath,
+    semanticRenderer(`<div style={{fontSize: 36}}>Shared boundary</div>`),
+  );
+  await fixture.write(
+    "src/projects/future-story/visual-shell/VisualShell.tsx",
+    'import type {PropsWithChildren} from "react"; export default function VisualShell({children}: PropsWithChildren) { return <div>{children}</div>; }',
+  );
+  const graph = await collectRendererSourceGraph({
+    rootDir: fixture.rootDir,
+    projectId: "future-story",
+    rendererPath: fixture.rendererPath,
+  });
+  const assignment = {
+    schemaVersion: 3,
+    storyId: "future-story",
+    readabilityPolicy: fixture.policy,
+    sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
+    visualShellSourceGraphFingerprint: createFingerprint({
+      namespace: "placeholder",
+      version: 1,
+      value: "replaced below",
+    }),
+    taskInput: {
+      schemaVersion: 3,
+      sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
+    },
+  } as SceneAssignment;
+  const shell = await validateVisualShellSourceGraph({
+    rootDir: fixture.rootDir,
+    storyId: "future-story",
+  });
+  const result = await validateSceneReadability({
+    rootDir: fixture.rootDir,
+    assignment: {
+      ...assignment,
+      visualShellSourceGraphFingerprint:
+        shell.visualShellSourceGraphFingerprint,
+      taskInput: {
+        ...assignment.taskInput,
+        visualShellSourceGraphFingerprint:
+          shell.visualShellSourceGraphFingerprint,
+      },
+    } as SceneAssignment,
+    graph,
+  });
+  assert.equal(result.policyFingerprint, fixture.policy.policyFingerprint);
+  assert.equal(result.legacy, false);
+  assert.ok("sceneCompositionBoundaryVersion" in result);
+  assert.equal(
+    result.sceneCompositionBoundaryVersion,
+    "scene-composition-boundary-v1",
+  );
+  assert.equal(
+    result.visualShellSourceGraphFingerprint,
+    shell.visualShellSourceGraphFingerprint,
+  );
+});
+
+test("v3 rejects Renderer-owned boundary shell caption audio and raw policy", async (context) => {
+  for (const [label, source] of [
+    ["safe area", semanticRenderer("<SceneSafeArea />")],
+    ["background", semanticRenderer("<SceneBackground />")],
+    ["shell", semanticRenderer("<VisualShell />")],
+    ["caption", semanticRenderer("<CaptionLayer />")],
+    ["audio", semanticRenderer("<Audio />")],
+    ["raw policy", "const Renderer = ({readabilityPolicy}: any) => <div />; export default Renderer;"],
+  ] as const) {
+    await context.test(label, async (child) => {
+      const fixture = await createFixture(child);
+      await fixture.write(fixture.rendererPath, source);
+      await assert.rejects(() =>
+        validatePolicyAwareRendererSourceGraph({
+          ...fixture,
+          sourcePaths: [fixture.rendererPath],
+          boundaryMode: "shared-v3",
+        }),
+      );
+    });
+  }
+});
+
 test("the Renderer source graph admits only the fixed readability runtime boundary", async (context) => {
   const fixture = await createFixture(context);
   await fixture.write(
@@ -216,6 +308,7 @@ test("the Renderer source graph admits only the fixed readability runtime bounda
   for (const path of [
     "src/remotion/runtime/readability/index.ts",
     "src/remotion/runtime/readability/SceneReadability.tsx",
+    "src/remotion/runtime/readability/SceneSafeArea.tsx",
   ]) {
     await fixture.write(
       path,
@@ -233,6 +326,7 @@ test("the Renderer source graph admits only the fixed readability runtime bounda
       fixture.rendererPath,
       "src/remotion/runtime/readability/index.ts",
       "src/remotion/runtime/readability/SceneReadability.tsx",
+      "src/remotion/runtime/readability/SceneSafeArea.tsx",
     ],
   );
 });

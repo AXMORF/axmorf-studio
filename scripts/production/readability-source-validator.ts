@@ -353,6 +353,54 @@ const assertSafeRendererRoot = (sourceFile: ts.SourceFile) => {
   }
 };
 
+const assertSharedBoundaryRendererRoot = (sourceFile: ts.SourceFile) => {
+  const root = resolveRendererRoot(sourceFile);
+  if (
+    !ts.isJsxElement(root) &&
+    !ts.isJsxSelfClosingElement(root) &&
+    !ts.isJsxFragment(root)
+  ) {
+    throw new Error("v3 Renderer must expose one statically inspectable semantic JSX root.");
+  }
+};
+
+const assertNoSharedBoundaryOwnership = (
+  sourceFiles: readonly ts.SourceFile[],
+) => {
+  const forbidden = new Set([
+    "SceneSafeArea",
+    "SceneContentFrame",
+    "SceneBackground",
+    "VisualShell",
+    "CaptionLayer",
+    "GlobalVisualLayers",
+    "Audio",
+    "Html5Audio",
+    "readabilityPolicy",
+    "sceneContentSafeAreaPx",
+    "safeAreaPx",
+  ]);
+  for (const sourceFile of sourceFiles) {
+    const visit = (node: ts.Node) => {
+      if (ts.isIdentifier(node) && forbidden.has(node.text)) {
+        throw new Error(
+          `v3 Renderer source graph must not own ${node.text}.`,
+        );
+      }
+      if (
+        (ts.isPropertyAssignment(node) || ts.isPropertyDeclaration(node)) &&
+        node.name !== undefined &&
+        (node.name.getText() === "animation" ||
+          node.name.getText() === "transition")
+      ) {
+        throw new Error("v3 Renderer source graph must not use CSS animation or transition.");
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+  }
+};
+
 const assertTextSizes = ({
   sourceFiles,
   values,
@@ -434,11 +482,13 @@ export const validatePolicyAwareRendererSourceGraph = async ({
   rendererPath,
   sourcePaths,
   policy: rawPolicy,
+  boundaryMode = "scene-owned-v2",
 }: {
   readonly rootDir: string;
   readonly rendererPath: string;
   readonly sourcePaths: readonly string[];
   readonly policy: ProductionReadabilityPolicy | unknown;
+  readonly boundaryMode?: "scene-owned-v2" | "shared-v3";
 }) => {
   const policy = ProductionReadabilityPolicySchema.parse(rawPolicy);
   const sortedPaths = [...sourcePaths].sort((left, right) =>
@@ -461,7 +511,17 @@ export const validatePolicyAwareRendererSourceGraph = async ({
   if (rendererSource === undefined) {
     throw new Error("Renderer source graph is missing its entry file.");
   }
-  assertSafeRendererRoot(rendererSource);
+  if (boundaryMode === "shared-v3") {
+    assertSharedBoundaryRendererRoot(rendererSource);
+    assertNoSharedBoundaryOwnership(
+      sourceFiles.filter(
+        ({ fileName }) =>
+          !fileName.startsWith("src/remotion/runtime/readability/"),
+      ),
+    );
+  } else {
+    assertSafeRendererRoot(rendererSource);
+  }
   const values = collectStaticValues(sourceFiles);
   assertNoUnreadableScale(sourceFiles, values);
   assertTextSizes({

@@ -9,6 +9,7 @@ import {
   SceneProductionResultSchema,
   buildSceneProductionResult,
   buildSceneProductionResultV2,
+  buildSceneProductionResultV3,
   createFingerprint,
   serializeCanonicalJson,
   type SceneAssignment,
@@ -179,9 +180,10 @@ const validateSceneFromProjectFiles: SceneValidator = async ({
   ) {
     throw new Error("Renderer source graph is stale against ScenePackage.");
   }
-  if (assignment.schemaVersion === 2) {
-    await validateSceneReadability({ rootDir, assignment, graph });
-  }
+  const readability =
+    assignment.schemaVersion !== 1
+      ? await validateSceneReadability({ rootDir, assignment, graph })
+      : null;
   assertFocusedCompile({
     rootDir,
     sourcePaths: graph.files.map(({ sourcePath }) => sourcePath),
@@ -197,10 +199,18 @@ const validateSceneFromProjectFiles: SceneValidator = async ({
         assignmentFingerprint: assignment.assignmentFingerprint,
         packageFingerprint: scenePackage.packageFingerprint,
         rendererSourceGraphFingerprint: graph.sourceGraphFingerprint,
-        ...(assignment.schemaVersion === 2
+        ...(assignment.schemaVersion !== 1
           ? {
               readabilityPolicyFingerprint:
                 assignment.readabilityPolicy.policyFingerprint,
+            }
+          : {}),
+        ...(assignment.schemaVersion === 3 && readability !== null
+          ? {
+              sceneCompositionBoundaryVersion:
+                assignment.sceneCompositionBoundaryVersion,
+              visualShellSourceGraphFingerprint:
+                assignment.visualShellSourceGraphFingerprint,
             }
           : {}),
       },
@@ -263,11 +273,19 @@ const commonResultInput = (assignment: SceneAssignment, occurredAt: string) => {
     resourcePoolFingerprint: assignment.resourcePoolFingerprint,
     occurredAt,
   };
-  return assignment.schemaVersion === 2
+  return assignment.schemaVersion !== 1
     ? {
         ...common,
         readabilityPolicyFingerprint:
           assignment.readabilityPolicy.policyFingerprint,
+        ...(assignment.schemaVersion === 3
+          ? {
+              sceneCompositionBoundaryVersion:
+                assignment.sceneCompositionBoundaryVersion,
+              visualShellSourceGraphFingerprint:
+                assignment.visualShellSourceGraphFingerprint,
+            }
+          : {}),
       }
     : common;
 };
@@ -276,9 +294,11 @@ const buildResultForAssignment = (
   assignment: SceneAssignment,
   input: Record<string, unknown>,
 ) =>
-  assignment.schemaVersion === 2
-    ? buildSceneProductionResultV2(input)
-    : buildSceneProductionResult(input);
+  assignment.schemaVersion === 3
+    ? buildSceneProductionResultV3(input)
+    : assignment.schemaVersion === 2
+      ? buildSceneProductionResultV2(input)
+      : buildSceneProductionResult(input);
 
 export const createSceneFailureResult = ({
   assignment,

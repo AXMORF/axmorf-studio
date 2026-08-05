@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
@@ -14,6 +14,7 @@ import {
   buildSceneProductionBrief,
   buildSceneProductionResult,
   buildSceneProductionResultV2,
+  buildSceneProductionResultV3,
   buildStoryResourcePool,
   computeGenerationInputFingerprint,
   computeVisualStyleFingerprint,
@@ -219,6 +220,12 @@ const createE2eFixture = async (context: TestContext) => {
     join(fixture.projectDir, "production/scene-production-brief.json"),
     brief,
   );
+  const shellDir = join(fixture.projectDir, "visual-shell");
+  await mkdir(shellDir, { recursive: true });
+  await writeFile(
+    join(shellDir, "VisualShell.tsx"),
+    'import type {PropsWithChildren} from "react"; export default function VisualShell({children}: PropsWithChildren) { return <div>{children}</div>; }\n',
+  );
   const frozen = await runProductionSceneFreeze({
     rootDir,
     runId: fixture.runId,
@@ -236,9 +243,11 @@ const createE2eFixture = async (context: TestContext) => {
 };
 
 const successResult = (assignment: SceneAssignment, index: number) =>
-  (assignment.schemaVersion === 2
-    ? buildSceneProductionResultV2
-    : buildSceneProductionResult)({
+  (assignment.schemaVersion === 3
+    ? buildSceneProductionResultV3
+    : assignment.schemaVersion === 2
+      ? buildSceneProductionResultV2
+      : buildSceneProductionResult)({
     runId: assignment.runId,
     storyId: assignment.storyId,
     meaningId: assignment.meaningId,
@@ -257,10 +266,18 @@ const successResult = (assignment: SceneAssignment, index: number) =>
     selectedResourcesFingerprint: sha("6"),
     fidelityReceiptFingerprint: sha("7"),
     mechanicalCheckFingerprint: sha("8"),
-    ...(assignment.schemaVersion === 2
+    ...(assignment.schemaVersion !== 1
       ? {
           readabilityPolicyFingerprint:
             assignment.readabilityPolicy.policyFingerprint,
+        }
+      : {}),
+    ...(assignment.schemaVersion === 3
+      ? {
+          sceneCompositionBoundaryVersion:
+            assignment.sceneCompositionBoundaryVersion,
+          visualShellSourceGraphFingerprint:
+            assignment.visualShellSourceGraphFingerprint,
         }
       : {}),
   }) as Extract<SceneProductionResult, { status: "success" }>;
@@ -495,7 +512,7 @@ test("missing malformed and stale Scene results fail closed", async (context) =>
     const fixture = await createE2eFixture(child);
     await writeSceneProductionResult({
       rootDir: fixture.rootDir,
-      result: buildSceneProductionResultV2({
+      result: buildSceneProductionResultV3({
         ...successResult(fixture.assignments[0], 0),
         assignmentFingerprint: sha("f"),
       }),

@@ -9,10 +9,10 @@ import {
   ScenePackageSchema,
   SceneProductionResultSchema,
   buildNotApplicableFidelityReceipt,
-  buildSceneAssignmentV2,
+  buildSceneAssignmentV3,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
-  buildSceneTaskInputV2,
+  buildSceneTaskInputV3,
   buildSceneVisualPlan,
   buildShotPlanSet,
   buildShotRecipeSelection,
@@ -39,7 +39,7 @@ const createAssignment = (
   requirementsFingerprint: string,
   readabilityPolicy: ProductionReadabilityPolicy,
 ) => {
-  const taskInput = buildSceneTaskInputV2({
+  const taskInput = buildSceneTaskInputV3({
     storyId: "story-example",
     meaningId: "opening",
     storyBeat: {
@@ -68,8 +68,10 @@ const createAssignment = (
       publicAssetRoot: "public/projects/story-example/scenes/opening",
     },
     readabilityPolicy,
+    sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
+    visualShellSourceGraphFingerprint: sha("0"),
   });
-  return buildSceneAssignmentV2({
+  return buildSceneAssignmentV3({
     runId,
     storyId: "story-example",
     meaningId: "opening",
@@ -78,6 +80,8 @@ const createAssignment = (
     resourcePoolFingerprint: sha("7"),
     taskInput,
     readabilityPolicy,
+    sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
+    visualShellSourceGraphFingerprint: sha("0"),
     sceneBrief: {
       meaningId: "opening",
       visualIntent: "Show the cumulative timing boundary.",
@@ -171,7 +175,7 @@ const createPackage = (assignment: ReturnType<typeof createAssignment>) => {
       resourceCatalogFingerprint: task.resourceCatalogFingerprint,
       snapshotFingerprints: [],
       rendererSourceFingerprint: sha("8"),
-      visualRuntimeVersion: "story-visual-runtime-v1",
+      visualRuntimeVersion: "story-visual-runtime-v2",
       sceneAudioRuntimeVersion: "scene-audio-runtime-v1",
     },
   });
@@ -217,6 +221,7 @@ test("submit creates one success result without changing central state", async (
     }),
   });
   assert.equal(result.result.status, "success");
+  assert.equal(result.result.schemaVersion, 3);
   assert.equal(result.written, true);
   assert.deepEqual(await readFile(statePath), beforeState);
   assert.equal((await stat(statePath)).mtimeMs, beforeMtime);

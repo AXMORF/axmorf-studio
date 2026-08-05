@@ -3,6 +3,7 @@ import {
   ResourceDescriptorSchema,
   SCENE_AUDIO_RUNTIME_VERSION,
   STORY_VISUAL_RUNTIME_VERSION,
+  STORY_VISUAL_RUNTIME_VERSION_V2,
   ScenePackageSchema,
   SceneRendererBindingSchema,
   SceneSoundPlanSchema,
@@ -87,7 +88,10 @@ export const buildScenePackage = (rawInput: {
       ) ||
     rawInput.current.rendererSourceFingerprint !==
       rendererBinding.rendererSourceFingerprint ||
-    rawInput.current.visualRuntimeVersion !== STORY_VISUAL_RUNTIME_VERSION ||
+    rawInput.current.visualRuntimeVersion !==
+      (task.schemaVersion === 3
+        ? STORY_VISUAL_RUNTIME_VERSION_V2
+        : STORY_VISUAL_RUNTIME_VERSION) ||
     rawInput.current.sceneAudioRuntimeVersion !== SCENE_AUDIO_RUNTIME_VERSION
   ) {
     throw new Error("Scene package current authority inputs are stale.");
@@ -176,18 +180,38 @@ export const buildScenePackage = (rawInput: {
     soundPlanFingerprint: sound.soundPlanFingerprint,
     rendererBinding,
     selectedResources,
-    visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION,
+    visualRuntimeVersion:
+      task.schemaVersion === 3
+        ? STORY_VISUAL_RUNTIME_VERSION_V2
+        : STORY_VISUAL_RUNTIME_VERSION,
     sceneAudioRuntimeVersion: SCENE_AUDIO_RUNTIME_VERSION,
   };
   const base =
-    task.schemaVersion === 2
+    task.schemaVersion === 3
+      ? {
+          schemaVersion: 3 as const,
+          ...commonBase,
+          visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION_V2,
+          readabilityPolicyFingerprint:
+            task.readabilityPolicy.policyFingerprint,
+          sceneCompositionBoundaryVersion:
+            task.sceneCompositionBoundaryVersion,
+          visualShellSourceGraphFingerprint:
+            task.visualShellSourceGraphFingerprint,
+        }
+      : task.schemaVersion === 2
       ? {
           schemaVersion: 2 as const,
           ...commonBase,
+          visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION,
           readabilityPolicyFingerprint:
             task.readabilityPolicy.policyFingerprint,
         }
-      : { schemaVersion: 1 as const, ...commonBase };
+      : {
+          schemaVersion: 1 as const,
+          ...commonBase,
+          visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION,
+        };
   const visualInput = {
     taskInputFingerprint: base.taskInputFingerprint,
     visualStyleFingerprint: base.visualStyleFingerprint,

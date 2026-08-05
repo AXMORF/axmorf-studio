@@ -99,6 +99,28 @@ const defaultVerifySuccess = async ({
       await readFile(join(rootDir, result.scenePackage.repositoryPath), "utf8"),
     ),
   );
+  const readabilityIdentityStale =
+    assignment.schemaVersion !== 1 &&
+    (scenePackage.schemaVersion !== assignment.schemaVersion ||
+      result.schemaVersion !== assignment.schemaVersion ||
+      !("readabilityPolicyFingerprint" in scenePackage) ||
+      !("readabilityPolicyFingerprint" in result) ||
+      scenePackage.readabilityPolicyFingerprint !==
+        assignment.readabilityPolicy.policyFingerprint ||
+      result.readabilityPolicyFingerprint !==
+        assignment.readabilityPolicy.policyFingerprint);
+  const sharedBoundaryIdentityStale =
+    assignment.schemaVersion === 3 &&
+    (scenePackage.schemaVersion !== 3 ||
+      result.schemaVersion !== 3 ||
+      scenePackage.sceneCompositionBoundaryVersion !==
+        assignment.sceneCompositionBoundaryVersion ||
+      result.sceneCompositionBoundaryVersion !==
+        assignment.sceneCompositionBoundaryVersion ||
+      scenePackage.visualShellSourceGraphFingerprint !==
+        assignment.visualShellSourceGraphFingerprint ||
+      result.visualShellSourceGraphFingerprint !==
+        assignment.visualShellSourceGraphFingerprint);
   if (
     scenePackage.storyId !== assignment.storyId ||
     scenePackage.meaningId !== assignment.meaningId ||
@@ -108,13 +130,8 @@ const defaultVerifySuccess = async ({
       result.scenePackage.packageFingerprint ||
     scenePackage.fidelityReceiptFingerprint !==
       result.fidelityReceiptFingerprint ||
-    (assignment.schemaVersion === 2 &&
-      (scenePackage.schemaVersion !== 2 ||
-        result.schemaVersion !== 2 ||
-        scenePackage.readabilityPolicyFingerprint !==
-          assignment.readabilityPolicy.policyFingerprint ||
-        result.readabilityPolicyFingerprint !==
-          assignment.readabilityPolicy.policyFingerprint)) ||
+    readabilityIdentityStale ||
+    sharedBoundaryIdentityStale ||
     createFingerprint({
       namespace: "production-scene-selected-resources",
       version: 1,
@@ -135,7 +152,7 @@ const defaultVerifySuccess = async ({
   ) {
     throw new Error("Scene result renderer source graph is stale.");
   }
-  if (assignment.schemaVersion === 2) {
+  if (assignment.schemaVersion !== 1) {
     await validateSceneReadability({ rootDir, assignment, graph });
   }
   const mechanicalCheckFingerprint = createFingerprint({
@@ -145,10 +162,18 @@ const defaultVerifySuccess = async ({
       assignmentFingerprint: assignment.assignmentFingerprint,
       packageFingerprint: scenePackage.packageFingerprint,
       rendererSourceGraphFingerprint: graph.sourceGraphFingerprint,
-      ...(assignment.schemaVersion === 2
+      ...(assignment.schemaVersion !== 1
         ? {
             readabilityPolicyFingerprint:
               assignment.readabilityPolicy.policyFingerprint,
+          }
+        : {}),
+      ...(assignment.schemaVersion === 3
+        ? {
+            sceneCompositionBoundaryVersion:
+              assignment.sceneCompositionBoundaryVersion,
+            visualShellSourceGraphFingerprint:
+              assignment.visualShellSourceGraphFingerprint,
           }
         : {}),
     },
@@ -227,6 +252,19 @@ const assertResultMatchesAssignment = ({
   readonly result: SceneProductionResult;
   readonly assignment: SceneAssignment;
 }) => {
+  const readabilityIdentityStale =
+    assignment.schemaVersion !== 1 &&
+    (result.schemaVersion !== assignment.schemaVersion ||
+      !("readabilityPolicyFingerprint" in result) ||
+      result.readabilityPolicyFingerprint !==
+        assignment.readabilityPolicy.policyFingerprint);
+  const sharedBoundaryIdentityStale =
+    assignment.schemaVersion === 3 &&
+    (result.schemaVersion !== 3 ||
+      result.sceneCompositionBoundaryVersion !==
+        assignment.sceneCompositionBoundaryVersion ||
+      result.visualShellSourceGraphFingerprint !==
+        assignment.visualShellSourceGraphFingerprint);
   if (
     result.runId !== assignment.runId ||
     result.storyId !== assignment.storyId ||
@@ -236,10 +274,8 @@ const assertResultMatchesAssignment = ({
     result.requirementsFingerprint !== assignment.requirementsFingerprint ||
     result.sceneBriefFingerprint !== assignment.sceneBriefFingerprint ||
     result.resourcePoolFingerprint !== assignment.resourcePoolFingerprint ||
-    (assignment.schemaVersion === 2 &&
-      (result.schemaVersion !== 2 ||
-        result.readabilityPolicyFingerprint !==
-          assignment.readabilityPolicy.policyFingerprint))
+    readabilityIdentityStale ||
+    sharedBoundaryIdentityStale
   ) {
     throw new WatchFailure({
       code: "STALE_SCENE_RESULT",

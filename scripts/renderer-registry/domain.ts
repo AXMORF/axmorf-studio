@@ -154,7 +154,7 @@ export const collectRendererSourceGraph = async ({
       relativeRoot: sourcePath.startsWith(projectRoot)
         ? "src"
         : sourcePath.startsWith("src/remotion/runtime/readability/")
-          ? "src/remotion/runtime/readability"
+          ? "src"
           : "src/remotion/capabilities",
     });
     if (sourcePath === rendererPath && countDefaultExports(sourceFile) !== 1) {
@@ -162,6 +162,13 @@ export const collectRendererSourceGraph = async ({
     }
     files.set(sourcePath, bytes);
     for (const relativeImport of guarded.relativeImports) {
+      if (
+        sourcePath.startsWith("src/remotion/runtime/readability/") &&
+        (relativeImport === "src/contracts" ||
+          relativeImport.startsWith("src/contracts/"))
+      ) {
+        continue;
+      }
       const specifier = posix.relative(dirname(sourcePath), relativeImport);
       const dependencyPath = await resolveSourceFile(
         rootDir,
