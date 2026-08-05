@@ -14,6 +14,7 @@ import {
   runProductionPostScene,
   type PostSceneProductionDependencies,
 } from "../../scripts/production/post-scene";
+import { createDefaultPostSceneProductionDependencies } from "../../scripts/production/post-scene-default";
 import {
   FIXED_PRODUCTION_NOW,
   createProductionFixture,
@@ -236,4 +237,30 @@ test("post-scene failure records central failure and stops later steps", async (
   assert.equal(state.state, "failed");
   assert.equal(state.failure?.stageId, "post-scene");
   assert.deepEqual(calls, ["freeze-check", "preview-write"]);
+});
+
+test("default composition listing preserves enumerable Remotion stdout", async () => {
+  const calls: string[][] = [];
+  const dependencies = createDefaultPostSceneProductionDependencies({
+    runProcess: async (_command, args) => {
+      calls.push([...args]);
+      return {
+        status: 0,
+        stdout: args.includes("--log=error")
+          ? ""
+          : "RoundedAirplaneWindows 30 1080x1920 1102",
+        stderr: "",
+      };
+    },
+  });
+
+  await dependencies.listCompositions({
+    rootDir: "/repo",
+    runId: "run-example",
+    storyId: "rounded-airplane-windows",
+    requirementsFingerprint: sha("a"),
+    compositionId: "RoundedAirplaneWindows",
+  });
+
+  assert.deepEqual(calls, [["compositions", "src/index.ts"]]);
 });

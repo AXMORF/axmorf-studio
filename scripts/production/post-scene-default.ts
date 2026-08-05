@@ -345,7 +345,7 @@ export const createDefaultPostSceneProductionDependencies = ({
     listCompositions: async ({ rootDir, compositionId }) => {
       const result = await runProcess(
         join(rootDir, "node_modules/.bin/remotion"),
-        ["compositions", "src/index.ts", "--log=error"],
+        ["compositions", "src/index.ts"],
       );
       assertProcessSucceeded(result, "Remotion compositions");
       if (!result.stdout.includes(compositionId)) {
