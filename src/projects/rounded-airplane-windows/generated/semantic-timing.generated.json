@@ -1,0 +1,125 @@
+{
+  "algorithmId": "pcm-cumulative-ceil-v1",
+  "captionCues": [
+    {
+      "chunkId": "stress-cycle",
+      "endFrame": 257,
+      "meaningId": "square-corner-stress",
+      "startFrame": 12,
+      "text": "客舱加压会让机身在每次起降中反复膨胀和收缩，窗框也要承受一轮又一轮的载荷变化。"
+    },
+    {
+      "chunkId": "sharp-corner",
+      "endFrame": 569,
+      "meaningId": "square-corner-stress",
+      "startFrame": 257,
+      "text": "如果窗口保留方形尖角，应力会在角点集中，微小裂纹更容易从那里开始，并在疲劳循环中扩展。"
+    },
+    {
+      "chunkId": "smooth-load-path",
+      "endFrame": 834,
+      "meaningId": "rounded-load-path",
+      "startFrame": 580,
+      "text": "圆角把载荷沿平滑曲线分散到更大的结构范围，避免力量突然挤在一个尖点上。"
+    },
+    {
+      "chunkId": "durable-window",
+      "endFrame": 1084,
+      "meaningId": "rounded-load-path",
+      "startFrame": 834,
+      "text": "所以飞机窗户采用圆润轮廓，不只是为了外观，而是为了降低疲劳裂纹风险，让机身更耐久。"
+    }
+  ],
+  "durationInFrames": 1102,
+  "fingerprint": "sha256:296ef0b7a5a38fec7c1869134bd37a5d8e0e8f35c63c5e94da2b954b8156c8d6",
+  "fps": 30,
+  "leadInFrames": 12,
+  "sampleRate": 48000,
+  "schemaVersion": 1,
+  "segments": [
+    {
+      "chunkId": "stress-cycle",
+      "frameRange": {
+        "endFrame": 257,
+        "startFrame": 12
+      },
+      "kind": "chunk",
+      "meaningId": "square-corner-stress",
+      "sampleRange": {
+        "endSampleFrame": 391680,
+        "startSampleFrame": 0
+      },
+      "ttsText": "客舱加压会让机身在每次起降中反复膨胀和收缩，窗框也要承受一轮又一轮的载荷变化。"
+    },
+    {
+      "chunkId": "sharp-corner",
+      "frameRange": {
+        "endFrame": 569,
+        "startFrame": 257
+      },
+      "kind": "chunk",
+      "meaningId": "square-corner-stress",
+      "sampleRange": {
+        "endSampleFrame": 890880,
+        "startSampleFrame": 391680
+      },
+      "ttsText": "如果窗口保留方形尖角，应力会在角点集中，微小裂纹更容易从那里开始，并在疲劳循环中扩展。"
+    },
+    {
+      "afterChunkId": "sharp-corner",
+      "frameRange": {
+        "endFrame": 580,
+        "startFrame": 569
+      },
+      "kind": "pause",
+      "meaningId": "square-corner-stress",
+      "pauseMs": 360,
+      "sampleRange": {
+        "endSampleFrame": 908160,
+        "startSampleFrame": 890880
+      }
+    },
+    {
+      "chunkId": "smooth-load-path",
+      "frameRange": {
+        "endFrame": 834,
+        "startFrame": 580
+      },
+      "kind": "chunk",
+      "meaningId": "rounded-load-path",
+      "sampleRange": {
+        "endSampleFrame": 1315200,
+        "startSampleFrame": 908160
+      },
+      "ttsText": "圆角把载荷沿平滑曲线分散到更大的结构范围，避免力量突然挤在一个尖点上。"
+    },
+    {
+      "chunkId": "durable-window",
+      "frameRange": {
+        "endFrame": 1084,
+        "startFrame": 834
+      },
+      "kind": "chunk",
+      "meaningId": "rounded-load-path",
+      "sampleRange": {
+        "endSampleFrame": 1714560,
+        "startSampleFrame": 1315200
+      },
+      "ttsText": "所以飞机窗户采用圆润轮廓，不只是为了外观，而是为了降低疲劳裂纹风险，让机身更耐久。"
+    }
+  ],
+  "storyBeats": [
+    {
+      "endFrame": 580,
+      "meaningId": "square-corner-stress",
+      "startFrame": 12
+    },
+    {
+      "endFrame": 1084,
+      "meaningId": "rounded-load-path",
+      "startFrame": 580
+    }
+  ],
+  "storyId": "rounded-airplane-windows",
+  "tailFrames": 18
+}

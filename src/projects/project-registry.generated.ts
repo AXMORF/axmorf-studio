@@ -54,4 +54,21 @@ export const projectRegistry = [
       "sha256:476ef4329d80feb33b130b51ad4c643cc4693a0a7035bccd4d429b212b303b13",
     load: () => import("./product-comic-vertical/Composition"),
   },
+  {
+    id: "RoundedAirplaneWindows",
+    fps: 30,
+    width: 1080,
+    height: 1920,
+    durationInFrames: 1102,
+    defaultProps: {
+      projectId: "rounded-airplane-windows",
+    } as StoryCompositionProps,
+    generatedEntryChecksum:
+      "sha256:2484cff421cb6e97f3462c9a605e4b376054f557c9a08280bf411795c3aeabdd",
+    projectRegistryEntryFingerprint:
+      "sha256:e47191f0a0b142a4f82f83a36f180f933b235ca8a852ed65943113307d59c611",
+    narrativeBaselineFingerprint:
+      "sha256:1a3ffb7ce3827a90312e1c0d681130a0ca755c5747c0b48e6bf3d59f597afbf0",
+    load: () => import("./rounded-airplane-windows/Composition"),
+  },
 ] as const satisfies readonly ProjectRegistryEntry[];
