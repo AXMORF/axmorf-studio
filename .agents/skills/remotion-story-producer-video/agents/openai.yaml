@@ -1,0 +1,4 @@
+interface:
+  display_name: "Remotion Story 视频制作"
+  short_description: "从完整内容直接制作合同驱动的 Remotion Story 视频"
+  default_prompt: "使用 $remotion-story-producer-video，把我提供的完整内容直接制作到 preview-ready，不先写计划。"

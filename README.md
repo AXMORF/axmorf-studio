@@ -98,10 +98,12 @@ M7 第一套正式 Scene production、M8 最终装配闭环和 M9 第二主题�
 - 固定 `production:*` CLI、可恢复 narrative runner、无全局 BGM/ambience/ducking/
   GlobalVisualLayers 的 PreviewAssembly，以及只表示 mechanically-ready 的 Preview evidence；
 - fake provider/process/clock/scheduler 驱动的完整两 Scene 编排 proof、失败矩阵与幂等验证；
+- 项目级 `$remotion-story-producer-video` Skill：在新对话接收完整内容后不先写计划，直接执行
+  authored contracts、默认 VoxCPM、Scene/watcher、故障恢复和机械 Preview handoff；
 - 规范目录、外部生产流程、合同参考和目标设计文档。
 
 NarrativeCheck、用户预览后的 Scene 修改循环、已提案 capability 的实际 promotion、发布
-流程和新 skills 仍未实现；Roadmap 下一项为 M10，但不会因 M9.5 closeout 自动启动。
+流程仍未实现；Roadmap 下一项为 M10，但不会因 M9.5 closeout 自动启动。
 M5–M7 已批准文档见
 [M5 ScenePackage 视听制作规格](docs/superpowers/plans/2026-08-02-m5-scene-package-production-specification.md)、
 [M6 Scene Runtime 实施计划](docs/superpowers/plans/2026-08-02-m6-scene-runtime-implementation-plan.md) 和
@@ -120,6 +122,21 @@ M9.5 实施计划与操作合同见
 [最终产品目标](docs/FINAL_PRODUCT_GOAL.md) 与
 [当前实现状态](docs/ITERATION_STATUS.md)；完整实施顺序和阶段门槛见
 [实施路线](docs/ROADMAP.md)。
+
+## 直接制作新视频
+
+在本仓库开启新对话，显式调用
+[$remotion-story-producer-video](.agents/skills/remotion-story-producer-video/SKILL.md)，并粘贴完整
+内容即可。Skill 默认不写计划，直接持续执行到等待用户观看的机械 Preview：
+
+```text
+使用 $remotion-story-producer-video，把下面的完整内容直接制作成视频，不先写计划：
+
+<粘贴完整内容、脚本或资料>
+```
+
+Skill 会使用 Git-ignored `voxcpm/voxcpm.private.json`，不要求每次设置环境变量；它不会代签
+用户批准、自动开始 M10、发布或 push。
 
 ## 本地运行
 
@@ -243,7 +260,7 @@ NarrativeCore 背景。真实 M3 验收见
 ## 目录
 
 ```text
-.agents/skills/                 Agent 创作与维护入口
+.agents/skills/remotion-story-producer-video/  直接制作到机械 Preview 的项目 Skill
 docs/                           产品、架构、合同与状态
 public/assets/library/          经准入的共享本地资产
 public/projects/<story>/        单个作品的本地资产

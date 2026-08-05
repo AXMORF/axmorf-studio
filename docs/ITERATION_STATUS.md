@@ -108,6 +108,9 @@
   append-only watcher、1080×1920/30 fps/1102-frame H.264/AAC Preview、8/8 mechanical checks，
   最终到达 `preview-ready / awaiting-user-preview`；四个真实编排缺陷均经 Red/Green、独立修复
   commit 和 immutable replacement 收口，正式 GPS/ProductComicVertical 十个保护产物零差异。
+- 项目级 `$remotion-story-producer-video` Skill：薄入口按需加载直接生产与故障恢复参考，在新
+  对话接收完整内容后不写计划，直接使用默认 VoxCPM、固定 production CLI、Scene watcher 和
+  immutable replacement 推进到 `preview-ready / awaiting-user-preview`。
 
 ## 尚未完成
 
@@ -115,8 +118,7 @@
 - 已提案 capability 的明确授权与实际 promotion；
 - 资源目录的预览图、适用限制、画幅和 render cost 元数据；
 - 双 Scene overlap transition handles 模型；
-- 封面与发布工具；
-- 新的 Agent skills。
+- 封面与发布工具。
 
 以上未完成项仍是目标设计，不能表述为已有产物。M9.5 只实现到机械
 `preview-ready / awaiting-user-preview`；没有实现用户预览后的 Scene 修改循环，也没有创建

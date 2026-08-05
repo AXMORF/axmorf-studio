@@ -6,6 +6,9 @@
 
 首次真实试跑已用 `rounded-airplane-windows` 验证该终点；完整 run/replacement、媒体与保护
 证据见 [M9.5 首次真实生产试跑与 hardening 实证](evidence/2026-08-05-m9-5-production-trial-and-hardening.md)。
+新对话可显式调用
+[$remotion-story-producer-video](../.agents/skills/remotion-story-producer-video/SKILL.md)，粘贴完整
+内容后直接执行本流程，不先编写计划。
 
 ## 固定命令
 

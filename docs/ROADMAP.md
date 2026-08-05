@@ -381,7 +381,7 @@ current fingerprints。M8 closeout 当时没有提取共享 capability、启动 
 - 第二 Story 的旁白、Baseline、Scene、增强轨、检查和预览；
 - 对比两个 Story 中真正稳定的合同、runtime 和制作能力；
 - 为可证明复用的能力准备带 fingerprint、API、文件范围和目标位置的 promotion proposal；
-- 工作流稳定后再固化 Agent skills。
+- 工作流稳定后再固化 Agent skills（项目级直接生产 Skill 已于 M9.5 真实试跑后落地）。
 
 **完成门槛：**
 

@@ -632,3 +632,9 @@ skill 负责引导 Agent 完成 Story/ttsChunks 创作、旁白生成编排，�
 M9.5 的 repo CLI 不调用 skill 或 Agent API。主 Agent 仍通过当前 Codex 原生能力分发 Scene，
 再保持当前任务运行并等待 `production:watch`；watcher 只读取 strict Scene result 合同。主任务
 彻底结束后的 detached Agent lifecycle 需要外部 lifecycle owner，不属于确定性执行或 M9.5。
+
+项目级
+[$remotion-story-producer-video](../.agents/skills/remotion-story-producer-video/SKILL.md) 已把这条
+authoring/orchestration 入口固化为薄 Skill：它引导主 Agent 从完整用户内容直接执行到
+`preview-ready / awaiting-user-preview`，但 Skill 本身不进入 repo CLI、generated identity 或
+Remotion runtime，也不能代签 approval。
