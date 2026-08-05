@@ -66,10 +66,11 @@ test("inspects exact streams frames duration and complete decode with a fake run
                   height: 1080,
                   avg_frame_rate: "30/1",
                   nb_read_frames: "300",
+                  duration: "10.000000",
                 },
                 { codec_type: "audio", codec_name: "aac" },
               ],
-              format: { duration: "10.000000" },
+              format: { duration: "10.045000" },
             }),
           }
         : { status: 0, stdout: "", stderr: "" };

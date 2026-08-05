@@ -21,6 +21,7 @@ type ProbeStream = Readonly<{
   height?: unknown;
   avg_frame_rate?: unknown;
   nb_read_frames?: unknown;
+  duration?: unknown;
 }>;
 
 const checksumFile = async (path: string) =>
@@ -87,9 +88,7 @@ export const inspectProductionPreviewMedia = async ({
     "error",
     "-count_frames",
     "-show_entries",
-    "stream=codec_type,codec_name,width,height,avg_frame_rate,nb_read_frames",
-    "-show_entries",
-    "format=duration",
+    "stream=codec_type,codec_name,width,height,avg_frame_rate,nb_read_frames,duration",
     "-of",
     "json",
     absolutePath,
@@ -97,7 +96,7 @@ export const inspectProductionPreviewMedia = async ({
   if (probe.status !== 0) {
     throw new Error("ffprobe could not inspect the production preview.");
   }
-  let parsed: { streams?: unknown; format?: unknown };
+  let parsed: { streams?: unknown };
   try {
     parsed = JSON.parse(probe.stdout) as typeof parsed;
   } catch (error) {
@@ -128,9 +127,7 @@ export const inspectProductionPreviewMedia = async ({
     video[0].nb_read_frames,
     "frame count",
   );
-  const durationSeconds = Number(
-    (parsed.format as { duration?: unknown } | undefined)?.duration,
-  );
+  const durationSeconds = Number(video[0].duration);
   if (
     width !== expected.width ||
     height !== expected.height ||
