@@ -13,7 +13,10 @@ import {
   NarrationAudioTrack,
   resolveCaptionLayout,
 } from "../../src/remotion/runtime/narrative-core";
-import { SemanticTimingSchema } from "../../src/contracts";
+import {
+  SemanticTimingSchema,
+  resolveProductionReadabilityPolicy,
+} from "../../src/contracts";
 
 const timing = SemanticTimingSchema.parse(timingJson);
 const runtimeDirectory = new URL(
@@ -100,6 +103,29 @@ test("CaptionLayer resolves safe areas and maximum width across output shapes", 
   );
 });
 
+test("CaptionLayer uses an explicit frozen readability policy for future production", () => {
+  const readabilityPolicy = resolveProductionReadabilityPolicy({
+    width: 1080,
+    height: 1920,
+  });
+  assert.deepEqual(
+    resolveCaptionLayout({
+      width: 1080,
+      height: 1920,
+      safeAreaPx: { top: 0, right: 0, bottom: 0, left: 0 },
+      readabilityPolicy,
+    }),
+    {
+      safeAreaPx: { top: 90, right: 90, bottom: 180, left: 90 },
+      maxCaptionWidth: 900,
+      fontSize: 40,
+      maxCaptionLines: 2,
+      padding: "19px 30px",
+      lineHeight: 1.35,
+    },
+  );
+});
+
 test("NarrativeCore has one audio track and one CaptionLayer with no canvas", () => {
   const core = NarrativeCore({
     src: "resolved-complete.wav",
@@ -130,7 +156,7 @@ test("runtime source makes forbidden timing and visual behavior absent", async (
   assert.doesNotMatch(audio.source, /trimBefore|trimAfter|\bloop\b|\.map\(/);
   assert.doesNotMatch(
     caption.source,
-    /\bfps\b|sampleRate|sample-frame|pcm|ttsChunks|Html5Audio|\bAudio\b/,
+    /\bfps\b|sampleRate|sample-frame|pcm|ttsChunks|Html5Audio|\bAudio\b|lineClamp|textOverflow|ellipsis/,
   );
   assert.match(caption.source, /useCurrentFrame\(\)/);
   assert.match(caption.source, /<AbsoluteFill style=\{fullFrameStyle\}>/);

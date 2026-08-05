@@ -28,6 +28,7 @@ import {
 } from "../baseline/evidence";
 import { generateProjectRegistry } from "../registry/generate";
 import { generateRendererRegistryFromProjectFiles } from "../renderer-registry/generate";
+import { collectRendererSourceGraph } from "../renderer-registry/domain";
 import { resolveSceneSound } from "../../src/remotion/runtime/scene-sound";
 import { buildSoundDesignProjection } from "../../src/remotion/runtime/sound-design";
 import { buildStoryVisualProjection } from "../../src/remotion/runtime/story-visual";
@@ -44,6 +45,7 @@ import { readProductionRunStore } from "./adapters/run-store";
 import type { PostSceneProductionDependencies } from "./post-scene";
 import {
   ensureProductionPreviewScaffold,
+  renderReadabilityAwareProductionPreviewProjectScaffold,
   renderProductionPreviewProjectScaffold,
 } from "./project-scaffold";
 import {
@@ -52,6 +54,7 @@ import {
   writeOrCheckProductionPreviewMechanicalCheck,
 } from "./preview-evidence";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
+import { validateSceneReadability } from "./readability-validator";
 
 const checksumFile = async (path: string) =>
   Sha256DigestSchema.parse(
@@ -144,6 +147,14 @@ const preparePreview = async ({
   if (registry === null) {
     throw new Error("Production Preview requires a RendererRegistry.");
   }
+  for (const assignment of resolved.assignments) {
+    const graph = await collectRendererSourceGraph({
+      rootDir,
+      projectId: assignment.storyId,
+      rendererPath: `src/projects/${assignment.storyId}/scenes/${assignment.meaningId}/Renderer.tsx`,
+    });
+    await validateSceneReadability({ rootDir, assignment, graph });
+  }
   const sources = await loadPreviewSources(rootDir, storyId);
   const transitions = sources.timing.storyBeats.slice(1).map((beat, index) => ({
     fromMeaningId: sources.timing.storyBeats[index]?.meaningId,
@@ -223,11 +234,19 @@ const preparePreview = async ({
     meaningIds: resolved.assignments.map(({ meaningId }) => meaningId),
     sceneLocalSoundPresent,
     mode,
+    readabilityPolicyAware:
+      resolved.inputs.current.requirements.schemaVersion === 2,
   });
-  const compositionSource = renderProductionPreviewProjectScaffold({
-    storyId,
-    sceneLocalSoundPresent,
-  });
+  const compositionSource =
+    resolved.inputs.current.requirements.schemaVersion === 2
+      ? renderReadabilityAwareProductionPreviewProjectScaffold({
+          storyId,
+          sceneLocalSoundPresent,
+        })
+      : renderProductionPreviewProjectScaffold({
+          storyId,
+          sceneLocalSoundPresent,
+        });
   const assembly = buildProductionPreviewAssembly({
     storyId,
     compositionId: sources.render.compositionId,

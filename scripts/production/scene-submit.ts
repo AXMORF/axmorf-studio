@@ -8,6 +8,7 @@ import {
   ScenePackageSchema,
   SceneProductionResultSchema,
   buildSceneProductionResult,
+  buildSceneProductionResultV2,
   createFingerprint,
   serializeCanonicalJson,
   type SceneAssignment,
@@ -18,6 +19,7 @@ import { collectRendererSourceGraph } from "../renderer-registry/domain";
 import { generateScenePackageFromProjectFiles } from "../scene-package/generate";
 import { readJsonFile } from "../scene-package/project-files";
 import { redactProductionErrorDescription } from "./adapters/error-redaction";
+import { validateSceneReadability } from "./readability-validator";
 import {
   getProductionRunPaths,
   readProductionRunStore,
@@ -165,7 +167,8 @@ const validateSceneFromProjectFiles: SceneValidator = async ({
   for (const file of graph.files) {
     if (
       !file.sourcePath.startsWith(scenePrefix) &&
-      !file.sourcePath.startsWith("src/remotion/capabilities/")
+      !file.sourcePath.startsWith("src/remotion/capabilities/") &&
+      !file.sourcePath.startsWith("src/remotion/runtime/readability/")
     ) {
       throw new Error("Renderer crosses another Scene directory.");
     }
@@ -175,6 +178,9 @@ const validateSceneFromProjectFiles: SceneValidator = async ({
     scenePackage.rendererBinding.rendererSourceFingerprint
   ) {
     throw new Error("Renderer source graph is stale against ScenePackage.");
+  }
+  if (assignment.schemaVersion === 2) {
+    await validateSceneReadability({ rootDir, assignment, graph });
   }
   assertFocusedCompile({
     rootDir,
@@ -191,6 +197,12 @@ const validateSceneFromProjectFiles: SceneValidator = async ({
         assignmentFingerprint: assignment.assignmentFingerprint,
         packageFingerprint: scenePackage.packageFingerprint,
         rendererSourceGraphFingerprint: graph.sourceGraphFingerprint,
+        ...(assignment.schemaVersion === 2
+          ? {
+              readabilityPolicyFingerprint:
+                assignment.readabilityPolicy.policyFingerprint,
+            }
+          : {}),
       },
     }),
   };
@@ -239,20 +251,34 @@ export const writeSceneProductionResult = async ({
   return { result, resultPath, written: write.written } as const;
 };
 
-const commonResultInput = (
+const commonResultInput = (assignment: SceneAssignment, occurredAt: string) => {
+  const common = {
+    runId: assignment.runId,
+    storyId: assignment.storyId,
+    meaningId: assignment.meaningId,
+    assignmentFingerprint: assignment.assignmentFingerprint,
+    taskInputFingerprint: assignment.taskInput.taskInputFingerprint,
+    requirementsFingerprint: assignment.requirementsFingerprint,
+    sceneBriefFingerprint: assignment.sceneBriefFingerprint,
+    resourcePoolFingerprint: assignment.resourcePoolFingerprint,
+    occurredAt,
+  };
+  return assignment.schemaVersion === 2
+    ? {
+        ...common,
+        readabilityPolicyFingerprint:
+          assignment.readabilityPolicy.policyFingerprint,
+      }
+    : common;
+};
+
+const buildResultForAssignment = (
   assignment: SceneAssignment,
-  occurredAt: string,
-) => ({
-  runId: assignment.runId,
-  storyId: assignment.storyId,
-  meaningId: assignment.meaningId,
-  assignmentFingerprint: assignment.assignmentFingerprint,
-  taskInputFingerprint: assignment.taskInput.taskInputFingerprint,
-  requirementsFingerprint: assignment.requirementsFingerprint,
-  sceneBriefFingerprint: assignment.sceneBriefFingerprint,
-  resourcePoolFingerprint: assignment.resourcePoolFingerprint,
-  occurredAt,
-});
+  input: Record<string, unknown>,
+) =>
+  assignment.schemaVersion === 2
+    ? buildSceneProductionResultV2(input)
+    : buildSceneProductionResult(input);
 
 export const createSceneFailureResult = ({
   assignment,
@@ -269,7 +295,7 @@ export const createSceneFailureResult = ({
   readonly occurredAt: string;
   readonly commandId: "production-scene-submit" | "production-scene-fail";
 }) =>
-  buildSceneProductionResult({
+  buildResultForAssignment(assignment, {
     ...commonResultInput(assignment, occurredAt),
     status: "failure",
     error: createExpectedProductionError({
@@ -330,7 +356,7 @@ export const runProductionSceneSubmit = async ({
   try {
     const validated = await validateScene({ rootDir, assignment });
     const current = existing?.occurredAt ?? clock().toISOString();
-    const success = buildSceneProductionResult({
+    const success = buildResultForAssignment(assignment, {
       ...commonResultInput(assignment, current),
       status: "success",
       scenePackage: {

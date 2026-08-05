@@ -13,6 +13,7 @@ import {
   buildProductionPreviewMechanicalCheck,
   buildSceneProductionBrief,
   buildSceneProductionResult,
+  buildSceneProductionResultV2,
   buildStoryResourcePool,
   computeGenerationInputFingerprint,
   computeVisualStyleFingerprint,
@@ -235,7 +236,9 @@ const createE2eFixture = async (context: TestContext) => {
 };
 
 const successResult = (assignment: SceneAssignment, index: number) =>
-  buildSceneProductionResult({
+  (assignment.schemaVersion === 2
+    ? buildSceneProductionResultV2
+    : buildSceneProductionResult)({
     runId: assignment.runId,
     storyId: assignment.storyId,
     meaningId: assignment.meaningId,
@@ -254,6 +257,12 @@ const successResult = (assignment: SceneAssignment, index: number) =>
     selectedResourcesFingerprint: sha("6"),
     fidelityReceiptFingerprint: sha("7"),
     mechanicalCheckFingerprint: sha("8"),
+    ...(assignment.schemaVersion === 2
+      ? {
+          readabilityPolicyFingerprint:
+            assignment.readabilityPolicy.policyFingerprint,
+        }
+      : {}),
   }) as Extract<SceneProductionResult, { status: "success" }>;
 
 const fakePostSceneDependencies = ({
@@ -486,7 +495,7 @@ test("missing malformed and stale Scene results fail closed", async (context) =>
     const fixture = await createE2eFixture(child);
     await writeSceneProductionResult({
       rootDir: fixture.rootDir,
-      result: buildSceneProductionResult({
+      result: buildSceneProductionResultV2({
         ...successResult(fixture.assignments[0], 0),
         assignmentFingerprint: sha("f"),
       }),

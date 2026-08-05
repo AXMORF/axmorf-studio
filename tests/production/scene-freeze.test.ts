@@ -184,6 +184,24 @@ test("freezes one assignment per StoryBeat in order and projects Scene requireme
       ),
     ),
   );
+  assert.equal(assignments[0].schemaVersion, 2);
+  assert.equal(assignments[0].taskInput.schemaVersion, 2);
+  assert.deepEqual(
+    assignments[0].readabilityPolicy,
+    fixture.requirements.readabilityPolicy,
+  );
+  assert.deepEqual(
+    assignments[0].taskInput.readabilityPolicy,
+    fixture.requirements.readabilityPolicy,
+  );
+  assert.equal(
+    assignments[0].readabilityPolicy.captionPolicy.maxDisplayUnitsPerChunk,
+    36,
+  );
+  assert.equal(
+    assignments[0].readabilityPolicy.typographyPolicy.minFontSizePx,
+    36,
+  );
   assert.deepEqual(assignments[0].taskInput.allowedResourceIds, []);
   assert.deepEqual(
     assignments[0].additionalRequirements.map(

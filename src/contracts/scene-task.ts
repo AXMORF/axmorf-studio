@@ -7,6 +7,7 @@ import {
   Sha256DigestSchema,
   StoryIdSchema,
 } from "./primitives";
+import { ProductionReadabilityPolicySchema } from "./production-readability";
 import { ResourceIdSchema } from "./resource-catalog";
 import { StoryBeatSchema } from "./story";
 
@@ -67,7 +68,7 @@ const SceneAllowedDirectoriesSchema = z
   .strict()
   .readonly();
 
-const SceneTaskInputObjectSchema = z
+const SceneTaskInputV1Object = z
   .object({
     schemaVersion: z.literal(1),
     storyId: StoryIdSchema,
@@ -87,10 +88,24 @@ const SceneTaskInputObjectSchema = z
   })
   .strict();
 
-type SceneTaskFingerprintInput = Omit<
-  z.input<typeof SceneTaskInputObjectSchema>,
+const SceneTaskInputV2Object = SceneTaskInputV1Object.extend({
+  schemaVersion: z.literal(2),
+  readabilityPolicy: ProductionReadabilityPolicySchema,
+}).strict();
+
+type SceneTaskV1FingerprintInput = Omit<
+  z.input<typeof SceneTaskInputV1Object>,
   "schemaVersion" | "taskInputFingerprint"
 > & { readonly schemaVersion?: 1 };
+
+type SceneTaskV2FingerprintInput = Omit<
+  z.input<typeof SceneTaskInputV2Object>,
+  "schemaVersion" | "taskInputFingerprint"
+> & { readonly schemaVersion?: 2 };
+
+type SceneTaskFingerprintInput =
+  | SceneTaskV1FingerprintInput
+  | SceneTaskV2FingerprintInput;
 
 export const computeSceneTaskInputFingerprint = (
   rawTask: SceneTaskFingerprintInput & {
@@ -101,64 +116,88 @@ export const computeSceneTaskInputFingerprint = (
   delete task.taskInputFingerprint;
   return createFingerprint({
     namespace: "scene-task-input",
-    version: 1,
+    version: task.schemaVersion === 2 ? 2 : 1,
     value: task,
   });
 };
 
-export const SceneTaskInputSchema = SceneTaskInputObjectSchema.superRefine(
-  (task, context) => {
-    if (
-      task.storyBeat.meaningId !== task.meaningId ||
-      task.timingBeat.meaningId !== task.meaningId
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "Scene task StoryBeat and timing must own the same meaningId.",
-        path: ["meaningId"],
-      });
-    }
-    const expectedSceneRoot = `src/projects/${task.storyId}/scenes/${task.meaningId}`;
-    const expectedAssetRoots = [
-      `public/projects/${task.storyId}/scenes/${task.meaningId}`,
-      `public/assets/library/${task.storyId}/${task.meaningId}`,
-    ];
-    if (
-      task.allowedDirectories.sceneRoot !== expectedSceneRoot ||
-      !expectedAssetRoots.includes(task.allowedDirectories.publicAssetRoot)
-    ) {
-      context.addIssue({
-        code: "custom",
-        message:
-          "Scene task output directories must be exact and meaning-local.",
-        path: ["allowedDirectories"],
-      });
-    }
-    if (
-      new Set(task.allowedResourceIds).size !==
-        task.allowedResourceIds.length ||
-      new Set(task.allowedSnapshots.map((snapshot) => snapshot.sourceId))
-        .size !== task.allowedSnapshots.length
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "Scene task allowlists must contain unique identities.",
-      });
-    }
-    if (task.taskInputFingerprint !== computeSceneTaskInputFingerprint(task)) {
-      context.addIssue({
-        code: "custom",
-        message: "Scene task input fingerprint is stale.",
-        path: ["taskInputFingerprint"],
-      });
-    }
-  },
-).readonly();
+const addSceneTaskIssues = (
+  task:
+    | z.infer<typeof SceneTaskInputV1Object>
+    | z.infer<typeof SceneTaskInputV2Object>,
+  context: z.RefinementCtx,
+) => {
+  if (
+    task.storyBeat.meaningId !== task.meaningId ||
+    task.timingBeat.meaningId !== task.meaningId
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "Scene task StoryBeat and timing must own the same meaningId.",
+      path: ["meaningId"],
+    });
+  }
+  const expectedSceneRoot = `src/projects/${task.storyId}/scenes/${task.meaningId}`;
+  const expectedAssetRoots = [
+    `public/projects/${task.storyId}/scenes/${task.meaningId}`,
+    `public/assets/library/${task.storyId}/${task.meaningId}`,
+  ];
+  if (
+    task.allowedDirectories.sceneRoot !== expectedSceneRoot ||
+    !expectedAssetRoots.includes(task.allowedDirectories.publicAssetRoot)
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "Scene task output directories must be exact and meaning-local.",
+      path: ["allowedDirectories"],
+    });
+  }
+  if (
+    new Set(task.allowedResourceIds).size !== task.allowedResourceIds.length ||
+    new Set(task.allowedSnapshots.map((snapshot) => snapshot.sourceId)).size !==
+      task.allowedSnapshots.length
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "Scene task allowlists must contain unique identities.",
+    });
+  }
+  if (task.taskInputFingerprint !== computeSceneTaskInputFingerprint(task)) {
+    context.addIssue({
+      code: "custom",
+      message: "Scene task input fingerprint is stale.",
+      path: ["taskInputFingerprint"],
+    });
+  }
+};
 
-export const buildSceneTaskInput = (rawInput: SceneTaskFingerprintInput) => {
+const SceneTaskInputV1Schema =
+  SceneTaskInputV1Object.superRefine(addSceneTaskIssues).readonly();
+const SceneTaskInputV2Schema =
+  SceneTaskInputV2Object.superRefine(addSceneTaskIssues).readonly();
+
+export const SceneTaskInputSchema = z.union([
+  SceneTaskInputV1Schema,
+  SceneTaskInputV2Schema,
+]);
+
+export const buildSceneTaskInput = (rawInput: SceneTaskV1FingerprintInput) => {
   const input = {
     ...rawInput,
     schemaVersion: 1 as const,
+  };
+  return SceneTaskInputSchema.parse({
+    ...input,
+    taskInputFingerprint: computeSceneTaskInputFingerprint(input),
+  });
+};
+
+export const buildSceneTaskInputV2 = (
+  rawInput: SceneTaskV2FingerprintInput,
+) => {
+  const input = {
+    ...rawInput,
+    schemaVersion: 2 as const,
   };
   return SceneTaskInputSchema.parse({
     ...input,

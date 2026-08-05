@@ -1,13 +1,19 @@
 import type { CSSProperties, FC } from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 
-import type { CaptionSafeArea, SemanticTiming } from "../../../contracts";
+import {
+  ProductionReadabilityPolicySchema,
+  type CaptionSafeArea,
+  type ProductionReadabilityPolicy,
+  type SemanticTiming,
+} from "../../../contracts";
 
 export type CaptionCue = SemanticTiming["captionCues"][number];
 
 export type CaptionLayerProps = {
   readonly captionCues: SemanticTiming["captionCues"];
   readonly safeAreaPx: CaptionSafeArea;
+  readonly readabilityPolicy?: ProductionReadabilityPolicy;
 };
 
 export const findActiveCaptionCue = (
@@ -49,11 +55,45 @@ export const resolveCaptionLayout = ({
   width,
   height,
   safeAreaPx,
+  readabilityPolicy: rawReadabilityPolicy,
 }: {
   readonly width: number;
   readonly height: number;
   readonly safeAreaPx: CaptionSafeArea;
+  readonly readabilityPolicy?: ProductionReadabilityPolicy;
 }) => {
+  if (rawReadabilityPolicy !== undefined) {
+    const readabilityPolicy =
+      ProductionReadabilityPolicySchema.parse(rawReadabilityPolicy);
+    if (
+      readabilityPolicy.width !== width ||
+      readabilityPolicy.height !== height
+    ) {
+      throw new Error(
+        "CaptionLayer readability policy does not match the Composition dimensions.",
+      );
+    }
+    const policy = readabilityPolicy.captionPolicy;
+    const availableWidth = Math.max(
+      1,
+      width -
+        readabilityPolicy.captionSafeAreaPx.left -
+        readabilityPolicy.captionSafeAreaPx.right,
+    );
+    const verticalTop = Math.floor(policy.captionVerticalPaddingPx / 2);
+    const verticalBottom = policy.captionVerticalPaddingPx - verticalTop;
+    return {
+      safeAreaPx: readabilityPolicy.captionSafeAreaPx,
+      maxCaptionWidth: availableWidth,
+      fontSize: policy.captionFontSizePx,
+      maxCaptionLines: policy.maxCaptionLines,
+      padding:
+        verticalTop === verticalBottom
+          ? `${verticalTop}px ${policy.captionGapPx}px`
+          : `${verticalTop}px ${policy.captionGapPx}px ${verticalBottom}px`,
+      lineHeight: policy.lineHeight.numerator / policy.lineHeight.denominator,
+    } as const;
+  }
   const horizontal = resolveInsets({
     size: width,
     start: safeAreaPx.left,
@@ -102,10 +142,11 @@ const safeAreaStyle = (safeAreaPx: CaptionSafeArea): CSSProperties => ({
 const captionStyle = ({
   maxCaptionWidth,
   fontSize,
+  ...layout
 }: ReturnType<typeof resolveCaptionLayout>): CSSProperties => ({
   boxSizing: "border-box",
   maxWidth: maxCaptionWidth,
-  padding: "18px 30px 20px",
+  padding: "padding" in layout ? layout.padding : "18px 30px 20px",
   borderRadius: 16,
   backgroundColor: "rgba(15, 23, 42, 0.84)",
   color: "#f8fafc",
@@ -113,7 +154,7 @@ const captionStyle = ({
     'Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
   fontSize,
   fontWeight: 650,
-  lineHeight: 1.35,
+  lineHeight: "lineHeight" in layout ? layout.lineHeight : 1.35,
   letterSpacing: "0.01em",
   textAlign: "center",
   textShadow: "0 2px 8px rgba(0, 0, 0, 0.55)",
@@ -124,17 +165,30 @@ const captionStyle = ({
 export const CaptionLayer: FC<CaptionLayerProps> = ({
   captionCues,
   safeAreaPx,
+  readabilityPolicy,
 }) => {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const activeCue = findActiveCaptionCue(captionCues, frame);
   if (!activeCue) return null;
-  const layout = resolveCaptionLayout({ width, height, safeAreaPx });
+  const layout = resolveCaptionLayout({
+    width,
+    height,
+    safeAreaPx,
+    readabilityPolicy,
+  });
 
   return (
     <AbsoluteFill style={fullFrameStyle}>
       <div style={safeAreaStyle(layout.safeAreaPx)}>
-        <div style={captionStyle(layout)}>{activeCue.text}</div>
+        <div
+          data-caption-max-lines={
+            "maxCaptionLines" in layout ? layout.maxCaptionLines : undefined
+          }
+          style={captionStyle(layout)}
+        >
+          {activeCue.text}
+        </div>
       </div>
     </AbsoluteFill>
   );

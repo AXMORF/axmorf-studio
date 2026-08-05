@@ -10,6 +10,7 @@ import {
   ProductionRequirementSchema,
   type ProductionRequirementsFreeze,
 } from "./production-requirements";
+import { ProductionReadabilityPolicySchema } from "./production-readability";
 import { ProductionErrorSchema, ProductionRunIdSchema } from "./production-run";
 import {
   ResourceCatalogSchema,
@@ -23,8 +24,11 @@ export const STORY_RESOURCE_POOL_VERSION = "story-resource-pool-v1" as const;
 export const SCENE_PRODUCTION_BRIEF_VERSION =
   "scene-production-brief-v1" as const;
 export const SCENE_ASSIGNMENT_VERSION = "scene-assignment-v1" as const;
+export const CURRENT_SCENE_ASSIGNMENT_VERSION = "scene-assignment-v2" as const;
 export const SCENE_PRODUCTION_RESULT_VERSION =
   "scene-production-result-v1" as const;
+export const CURRENT_SCENE_PRODUCTION_RESULT_VERSION =
+  "scene-production-result-v2" as const;
 
 const SafeProductionTextSchema = z
   .string()
@@ -403,7 +407,7 @@ export const validateSceneProductionBrief = ({
   return brief;
 };
 
-const SceneAssignmentInputObject = z
+const SceneAssignmentV1InputObject = z
   .object({
     schemaVersion: z.literal(1),
     contractVersion: z.literal(SCENE_ASSIGNMENT_VERSION),
@@ -421,47 +425,83 @@ const SceneAssignmentInputObject = z
       .readonly(),
     deadlineAt: z.string().datetime({ offset: true }),
   })
-  .strict()
-  .superRefine((assignment, context) => {
+  .strict();
+
+const SceneAssignmentV2InputObject = SceneAssignmentV1InputObject.extend({
+  schemaVersion: z.literal(2),
+  contractVersion: z.literal(CURRENT_SCENE_ASSIGNMENT_VERSION),
+  readabilityPolicy: ProductionReadabilityPolicySchema,
+}).strict();
+
+type SceneAssignmentInput =
+  | z.infer<typeof SceneAssignmentV1InputObject>
+  | z.infer<typeof SceneAssignmentV2InputObject>;
+
+const addSceneAssignmentIssues = (
+  assignment: SceneAssignmentInput,
+  context: z.RefinementCtx,
+) => {
+  if (
+    assignment.taskInput.storyId !== assignment.storyId ||
+    assignment.taskInput.meaningId !== assignment.meaningId ||
+    assignment.sceneBrief.meaningId !== assignment.meaningId
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "Scene assignment identities do not match.",
+      path: ["meaningId"],
+    });
+  }
+  const requirementIds = assignment.additionalRequirements.map(
+    ({ requirementId }) => requirementId,
+  );
+  if (new Set(requirementIds).size !== requirementIds.length) {
+    context.addIssue({
+      code: "custom",
+      message: "Scene assignment requirements must be unique.",
+      path: ["additionalRequirements"],
+    });
+  }
+  for (const requirement of assignment.additionalRequirements) {
     if (
-      assignment.taskInput.storyId !== assignment.storyId ||
-      assignment.taskInput.meaningId !== assignment.meaningId ||
-      assignment.sceneBrief.meaningId !== assignment.meaningId
+      requirement.scope !== "all-scenes" &&
+      !(
+        requirement.scope === "scene" &&
+        requirement.targetMeaningIds.includes(assignment.meaningId)
+      )
     ) {
       context.addIssue({
         code: "custom",
-        message: "Scene assignment identities do not match.",
-        path: ["meaningId"],
-      });
-    }
-    const requirementIds = assignment.additionalRequirements.map(
-      ({ requirementId }) => requirementId,
-    );
-    if (new Set(requirementIds).size !== requirementIds.length) {
-      context.addIssue({
-        code: "custom",
-        message: "Scene assignment requirements must be unique.",
+        message: "Scene assignment contains an unrelated requirement.",
         path: ["additionalRequirements"],
       });
     }
-    for (const requirement of assignment.additionalRequirements) {
-      if (
-        requirement.scope !== "all-scenes" &&
-        !(
-          requirement.scope === "scene" &&
-          requirement.targetMeaningIds.includes(assignment.meaningId)
-        )
-      ) {
-        context.addIssue({
-          code: "custom",
-          message: "Scene assignment contains an unrelated requirement.",
-          path: ["additionalRequirements"],
-        });
-      }
-    }
-  });
+  }
+  if (
+    assignment.schemaVersion === 2 &&
+    (assignment.taskInput.schemaVersion !== 2 ||
+      assignment.taskInput.readabilityPolicy.policyFingerprint !==
+        assignment.readabilityPolicy.policyFingerprint)
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "Scene assignment readability policy is stale.",
+      path: ["readabilityPolicy"],
+    });
+  }
+};
 
-export const SceneAssignmentInputSchema = SceneAssignmentInputObject.readonly();
+const SceneAssignmentV1InputSchema = SceneAssignmentV1InputObject.superRefine(
+  addSceneAssignmentIssues,
+).readonly();
+const SceneAssignmentV2InputSchema = SceneAssignmentV2InputObject.superRefine(
+  addSceneAssignmentIssues,
+).readonly();
+
+export const SceneAssignmentInputSchema = z.union([
+  SceneAssignmentV1InputSchema,
+  SceneAssignmentV2InputSchema,
+]);
 
 export const computeSceneAssignmentFingerprint = (rawInput: unknown) => {
   const record = { ...(rawInput as Record<string, unknown>) };
@@ -469,39 +509,56 @@ export const computeSceneAssignmentFingerprint = (rawInput: unknown) => {
   const input = SceneAssignmentInputSchema.parse(record);
   return createFingerprint({
     namespace: "scene-assignment",
-    version: 1,
+    version: input.schemaVersion,
     value: input,
   });
 };
 
-export const SceneAssignmentSchema = SceneAssignmentInputObject.extend({
+const addSceneAssignmentFingerprintIssues = (
+  assignment: SceneAssignmentInput & { readonly assignmentFingerprint: string },
+  context: z.RefinementCtx,
+) => {
+  const { assignmentFingerprint, ...input } = assignment;
+  const parsed = SceneAssignmentInputSchema.safeParse(input);
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      context.addIssue({
+        code: "custom",
+        message: issue.message,
+        path: issue.path,
+      });
+    }
+    return;
+  }
+  if (
+    assignmentFingerprint !== computeSceneAssignmentFingerprint(parsed.data)
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "Scene assignment fingerprint is stale.",
+      path: ["assignmentFingerprint"],
+    });
+  }
+};
+
+const SceneAssignmentV1Schema = SceneAssignmentV1InputObject.extend({
   assignmentFingerprint: Sha256DigestSchema,
 })
   .strict()
-  .superRefine((assignment, context) => {
-    const { assignmentFingerprint, ...input } = assignment;
-    const parsed = SceneAssignmentInputSchema.safeParse(input);
-    if (!parsed.success) {
-      for (const issue of parsed.error.issues) {
-        context.addIssue({
-          code: "custom",
-          message: issue.message,
-          path: issue.path,
-        });
-      }
-      return;
-    }
-    if (
-      assignmentFingerprint !== computeSceneAssignmentFingerprint(parsed.data)
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "Scene assignment fingerprint is stale.",
-        path: ["assignmentFingerprint"],
-      });
-    }
-  })
+  .superRefine(addSceneAssignmentFingerprintIssues)
   .readonly();
+
+const SceneAssignmentV2Schema = SceneAssignmentV2InputObject.extend({
+  assignmentFingerprint: Sha256DigestSchema,
+})
+  .strict()
+  .superRefine(addSceneAssignmentFingerprintIssues)
+  .readonly();
+
+export const SceneAssignmentSchema = z.union([
+  SceneAssignmentV1Schema,
+  SceneAssignmentV2Schema,
+]);
 
 export const buildSceneAssignment = (rawInput: unknown) => {
   const record: Record<string, unknown> = {
@@ -512,6 +569,20 @@ export const buildSceneAssignment = (rawInput: unknown) => {
   delete record.assignmentFingerprint;
   const input = SceneAssignmentInputSchema.parse(record);
   return SceneAssignmentSchema.parse({
+    ...input,
+    assignmentFingerprint: computeSceneAssignmentFingerprint(input),
+  });
+};
+
+export const buildSceneAssignmentV2 = (rawInput: unknown) => {
+  const record: Record<string, unknown> = {
+    ...(rawInput as Record<string, unknown>),
+    schemaVersion: 2,
+    contractVersion: CURRENT_SCENE_ASSIGNMENT_VERSION,
+  };
+  delete record.assignmentFingerprint;
+  const input = SceneAssignmentV2InputSchema.parse(record);
+  return SceneAssignmentV2Schema.parse({
     ...input,
     assignmentFingerprint: computeSceneAssignmentFingerprint(input),
   });
@@ -544,6 +615,13 @@ const SceneProductionResultCommonShape = {
   occurredAt: z.string().datetime({ offset: true }),
 } as const;
 
+const SceneProductionResultV2CommonShape = {
+  ...SceneProductionResultCommonShape,
+  schemaVersion: z.literal(2),
+  contractVersion: z.literal(CURRENT_SCENE_PRODUCTION_RESULT_VERSION),
+  readabilityPolicyFingerprint: Sha256DigestSchema,
+} as const;
+
 const SceneProductionSuccessInputObject = z
   .object({
     ...SceneProductionResultCommonShape,
@@ -570,9 +648,37 @@ const SceneProductionFailureInputObject = z
   })
   .strict();
 
-const SceneProductionResultInputUnion = z.discriminatedUnion("status", [
+const SceneProductionV2SuccessInputObject = z
+  .object({
+    ...SceneProductionResultV2CommonShape,
+    ...SceneProductionSuccessInputObject.shape,
+    schemaVersion: z.literal(2),
+    contractVersion: z.literal(CURRENT_SCENE_PRODUCTION_RESULT_VERSION),
+    readabilityPolicyFingerprint: Sha256DigestSchema,
+  })
+  .strict();
+
+const SceneProductionV2FailureInputObject = z
+  .object({
+    ...SceneProductionResultV2CommonShape,
+    ...SceneProductionFailureInputObject.shape,
+    schemaVersion: z.literal(2),
+    contractVersion: z.literal(CURRENT_SCENE_PRODUCTION_RESULT_VERSION),
+    readabilityPolicyFingerprint: Sha256DigestSchema,
+  })
+  .strict();
+
+const SceneProductionResultV1InputUnion = z.discriminatedUnion("status", [
   SceneProductionSuccessInputObject,
   SceneProductionFailureInputObject,
+]);
+const SceneProductionResultV2InputUnion = z.discriminatedUnion("status", [
+  SceneProductionV2SuccessInputObject,
+  SceneProductionV2FailureInputObject,
+]);
+const SceneProductionResultInputUnion = z.union([
+  SceneProductionResultV1InputUnion,
+  SceneProductionResultV2InputUnion,
 ]);
 
 const addSceneProductionResultIssues = (
@@ -612,7 +718,7 @@ export const computeSceneProductionResultFingerprint = (rawInput: unknown) => {
   const input = SceneProductionResultInputSchema.parse(record);
   return createFingerprint({
     namespace: "scene-production-result",
-    version: 1,
+    version: input.schemaVersion,
     value: input,
   });
 };
@@ -620,9 +726,17 @@ export const computeSceneProductionResultFingerprint = (rawInput: unknown) => {
 const withResultFingerprint = <Shape extends z.ZodRawShape>(shape: Shape) =>
   z.object({ ...shape, resultFingerprint: Sha256DigestSchema }).strict();
 
-const SceneProductionResultUnion = z.discriminatedUnion("status", [
+const SceneProductionResultV1Union = z.discriminatedUnion("status", [
   withResultFingerprint(SceneProductionSuccessInputObject.shape),
   withResultFingerprint(SceneProductionFailureInputObject.shape),
+]);
+const SceneProductionResultV2Union = z.discriminatedUnion("status", [
+  withResultFingerprint(SceneProductionV2SuccessInputObject.shape),
+  withResultFingerprint(SceneProductionV2FailureInputObject.shape),
+]);
+const SceneProductionResultUnion = z.union([
+  SceneProductionResultV1Union,
+  SceneProductionResultV2Union,
 ]);
 
 export const SceneProductionResultSchema =
@@ -658,6 +772,23 @@ export const buildSceneProductionResult = (rawInput: unknown) => {
   };
   delete record.resultFingerprint;
   const input = SceneProductionResultInputSchema.parse(record);
+  return SceneProductionResultSchema.parse({
+    ...input,
+    resultFingerprint: computeSceneProductionResultFingerprint(input),
+  });
+};
+
+export const buildSceneProductionResultV2 = (rawInput: unknown) => {
+  const record: Record<string, unknown> = {
+    ...(rawInput as Record<string, unknown>),
+    schemaVersion: 2,
+    contractVersion: CURRENT_SCENE_PRODUCTION_RESULT_VERSION,
+  };
+  delete record.resultFingerprint;
+  const input = SceneProductionResultInputSchema.parse(record);
+  if (input.schemaVersion !== 2) {
+    throw new Error("Scene production result v2 input is required.");
+  }
   return SceneProductionResultSchema.parse({
     ...input,
     resultFingerprint: computeSceneProductionResultFingerprint(input),

@@ -141,6 +141,7 @@ export const runProductionStart = async ({
     rootDir,
     storyId: projectId,
     mode: "write",
+    readabilityPolicyAware: true,
   });
 
   const now = clock();

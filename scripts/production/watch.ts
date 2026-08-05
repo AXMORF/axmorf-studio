@@ -20,6 +20,7 @@ import { createProductionStageEvent } from "./domain/events";
 import { createExpectedProductionError } from "./domain/errors";
 import { runProductionPostScene } from "./post-scene";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
+import { validateSceneReadability } from "./readability-validator";
 
 type CurrentAssignments = Readonly<{
   assignments: readonly SceneAssignment[];
@@ -107,6 +108,13 @@ const defaultVerifySuccess = async ({
       result.scenePackage.packageFingerprint ||
     scenePackage.fidelityReceiptFingerprint !==
       result.fidelityReceiptFingerprint ||
+    (assignment.schemaVersion === 2 &&
+      (scenePackage.schemaVersion !== 2 ||
+        result.schemaVersion !== 2 ||
+        scenePackage.readabilityPolicyFingerprint !==
+          assignment.readabilityPolicy.policyFingerprint ||
+        result.readabilityPolicyFingerprint !==
+          assignment.readabilityPolicy.policyFingerprint)) ||
     createFingerprint({
       namespace: "production-scene-selected-resources",
       version: 1,
@@ -127,6 +135,9 @@ const defaultVerifySuccess = async ({
   ) {
     throw new Error("Scene result renderer source graph is stale.");
   }
+  if (assignment.schemaVersion === 2) {
+    await validateSceneReadability({ rootDir, assignment, graph });
+  }
   const mechanicalCheckFingerprint = createFingerprint({
     namespace: "production-scene-mechanical-check",
     version: 1,
@@ -134,6 +145,12 @@ const defaultVerifySuccess = async ({
       assignmentFingerprint: assignment.assignmentFingerprint,
       packageFingerprint: scenePackage.packageFingerprint,
       rendererSourceGraphFingerprint: graph.sourceGraphFingerprint,
+      ...(assignment.schemaVersion === 2
+        ? {
+            readabilityPolicyFingerprint:
+              assignment.readabilityPolicy.policyFingerprint,
+          }
+        : {}),
     },
   });
   if (mechanicalCheckFingerprint !== result.mechanicalCheckFingerprint) {
@@ -218,7 +235,11 @@ const assertResultMatchesAssignment = ({
     result.taskInputFingerprint !== assignment.taskInput.taskInputFingerprint ||
     result.requirementsFingerprint !== assignment.requirementsFingerprint ||
     result.sceneBriefFingerprint !== assignment.sceneBriefFingerprint ||
-    result.resourcePoolFingerprint !== assignment.resourcePoolFingerprint
+    result.resourcePoolFingerprint !== assignment.resourcePoolFingerprint ||
+    (assignment.schemaVersion === 2 &&
+      (result.schemaVersion !== 2 ||
+        result.readabilityPolicyFingerprint !==
+          assignment.readabilityPolicy.policyFingerprint))
   ) {
     throw new WatchFailure({
       code: "STALE_SCENE_RESULT",

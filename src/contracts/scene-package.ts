@@ -34,7 +34,7 @@ const AbsoluteBeatFrameRangeSchema = z
   })
   .readonly();
 
-const ScenePackageInputSchema = z
+const ScenePackageV1InputObject = z
   .object({
     schemaVersion: z.literal(1),
     storyId: StoryIdSchema,
@@ -60,7 +60,14 @@ const ScenePackageInputSchema = z
   })
   .strict();
 
-export type ScenePackageInput = z.infer<typeof ScenePackageInputSchema>;
+const ScenePackageV2InputObject = ScenePackageV1InputObject.extend({
+  schemaVersion: z.literal(2),
+  readabilityPolicyFingerprint: Sha256DigestSchema,
+}).strict();
+
+export type ScenePackageInput =
+  | z.infer<typeof ScenePackageV1InputObject>
+  | z.infer<typeof ScenePackageV2InputObject>;
 
 export const computeSceneVisualFingerprint = (
   input: Pick<
@@ -109,33 +116,49 @@ export const computeScenePackageFingerprint = (
   delete input.packageFingerprint;
   return createFingerprint({
     namespace: "scene-package",
-    version: 1,
+    version: rawPackage.schemaVersion,
     value: input,
   });
 };
 
-export const ScenePackageSchema = ScenePackageInputSchema.extend({
+const addScenePackageIssues = (
+  scenePackage: ScenePackageInput & { readonly packageFingerprint: string },
+  context: z.RefinementCtx,
+) => {
+  if (
+    new Set(
+      scenePackage.selectedResources.map((resource) => resource.resourceId),
+    ).size !== scenePackage.selectedResources.length ||
+    new Set(scenePackage.externalSnapshotFingerprints).size !==
+      scenePackage.externalSnapshotFingerprints.length ||
+    scenePackage.packageFingerprint !==
+      computeScenePackageFingerprint(scenePackage)
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "Scene package identities or fingerprint are invalid.",
+      path: ["packageFingerprint"],
+    });
+  }
+};
+
+const ScenePackageV1Schema = ScenePackageV1InputObject.extend({
   packageFingerprint: Sha256DigestSchema,
 })
   .strict()
-  .superRefine((scenePackage, context) => {
-    if (
-      new Set(
-        scenePackage.selectedResources.map((resource) => resource.resourceId),
-      ).size !== scenePackage.selectedResources.length ||
-      new Set(scenePackage.externalSnapshotFingerprints).size !==
-        scenePackage.externalSnapshotFingerprints.length ||
-      scenePackage.packageFingerprint !==
-        computeScenePackageFingerprint(scenePackage)
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "Scene package identities or fingerprint are invalid.",
-        path: ["packageFingerprint"],
-      });
-    }
-  })
+  .superRefine(addScenePackageIssues)
   .readonly();
+const ScenePackageV2Schema = ScenePackageV2InputObject.extend({
+  packageFingerprint: Sha256DigestSchema,
+})
+  .strict()
+  .superRefine(addScenePackageIssues)
+  .readonly();
+
+export const ScenePackageSchema = z.union([
+  ScenePackageV1Schema,
+  ScenePackageV2Schema,
+]);
 
 const SceneFallbackInputSchema = z
   .object({

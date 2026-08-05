@@ -9,6 +9,8 @@ export const PRODUCTION_PROJECT_SCAFFOLD_MARKER =
   "@generated-by production-project-scaffold-v1" as const;
 export const PRODUCTION_PREVIEW_SCAFFOLD_MARKER =
   "@generated-by production-preview-scaffold-v1" as const;
+export const PRODUCTION_READABILITY_SCAFFOLD_MARKER =
+  "@generated-by production-readability-scaffold-v2" as const;
 
 const componentNameFor = (storyId: string) =>
   `${storyId
@@ -123,18 +125,67 @@ export default ${componentName};
 `;
 };
 
+const replaceRequired = (
+  source: string,
+  search: string,
+  replacement: string,
+) => {
+  if (!source.includes(search)) {
+    throw new Error("Production readability scaffold template is stale.");
+  }
+  return source.replace(search, replacement);
+};
+
+export const renderReadabilityAwareProductionProjectScaffold = (
+  storyId: string,
+) => {
+  let source = renderProductionProjectScaffold(storyId).replace(
+    PRODUCTION_PROJECT_SCAFFOLD_MARKER,
+    PRODUCTION_READABILITY_SCAFFOLD_MARKER,
+  );
+  source = replaceRequired(
+    source,
+    "  parseNarrativeProjectSource,\n",
+    "  parseNarrativeProjectSource,\n  ProductionRequirementsFreezeSchema,\n",
+  );
+  source = replaceRequired(
+    source,
+    'import renderJson from "./render.json";\n',
+    'import renderJson from "./render.json";\nimport requirementsJson from "./production/requirements.json";\n',
+  );
+  source = replaceRequired(
+    source,
+    "const projectSource = parseNarrativeProjectSource({\n",
+    'const productionRequirements = ProductionRequirementsFreezeSchema.parse(requirementsJson);\nif (productionRequirements.schemaVersion !== 2) throw new Error("Production Composition requires readability-aware requirements.");\nconst readabilityPolicy = productionRequirements.readabilityPolicy;\nconst projectSource = parseNarrativeProjectSource({\n',
+  );
+  source = replaceRequired(
+    source,
+    "if (render.fps !== timing.fps) {\n",
+    'if (readabilityPolicy.width !== render.width || readabilityPolicy.height !== render.height) {\n  throw new Error("Production readability policy dimensions are stale.");\n}\nif (render.fps !== timing.fps) {\n',
+  );
+  return replaceRequired(
+    source,
+    "    safeAreaPx: render.captionSafeAreaPx,\n",
+    "    safeAreaPx: readabilityPolicy.captionSafeAreaPx,\n    readabilityPolicy,\n",
+  );
+};
+
 export const ensureProductionProjectScaffold = async ({
   rootDir,
   storyId: rawStoryId,
   mode,
+  readabilityPolicyAware = false,
 }: {
   readonly rootDir: string;
   readonly storyId: string;
   readonly mode: "write" | "check";
+  readonly readabilityPolicyAware?: boolean;
 }) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
   const destination = join(rootDir, "src/projects", storyId, "Composition.tsx");
-  const expected = renderProductionProjectScaffold(storyId);
+  const expected = readabilityPolicyAware
+    ? renderReadabilityAwareProductionProjectScaffold(storyId)
+    : renderProductionProjectScaffold(storyId);
   let actual: string | null = null;
   try {
     const entry = await lstat(destination);
@@ -148,13 +199,17 @@ export const ensureProductionProjectScaffold = async ({
   if (actual === expected) {
     return { destination, written: false } as const;
   }
-  const isExactPreviewScaffold = [false, true].some(
-    (sceneLocalSoundPresent) =>
-      actual ===
+  const isExactPreviewScaffold = [false, true].some((sceneLocalSoundPresent) =>
+    [
       renderProductionPreviewProjectScaffold({
         storyId,
         sceneLocalSoundPresent,
       }),
+      renderReadabilityAwareProductionPreviewProjectScaffold({
+        storyId,
+        sceneLocalSoundPresent,
+      }),
+    ].includes(actual ?? ""),
   );
   if (isExactPreviewScaffold && mode === "write") {
     const result = await writeProductionFileAtomic({
@@ -359,6 +414,21 @@ export {currentRegistry as productionRendererRegistry};
 `;
 };
 
+export const renderReadabilityAwareProductionSceneRuntime = (input: {
+  readonly storyId: string;
+  readonly meaningIds: readonly string[];
+}) => {
+  const source = renderProductionSceneRuntime(input).replace(
+    PRODUCTION_PREVIEW_SCAFFOLD_MARKER,
+    PRODUCTION_READABILITY_SCAFFOLD_MARKER,
+  );
+  return replaceRequired(
+    source,
+    "    visualResources: scene.resources.filter",
+    '    readabilityPolicy: scene.task.schemaVersion === 2 ? scene.task.readabilityPolicy : (() => { throw new Error("Production Scene runtime requires readability-aware task input."); })(),\n    visualResources: scene.resources.filter',
+  );
+};
+
 export const renderProductionPreviewProjectScaffold = ({
   storyId: rawStoryId,
   sceneLocalSoundPresent,
@@ -436,6 +506,7 @@ export const createProductionNarrativeCoreProps = (input: unknown): NarrativeCor
   if (props.projectId !== storyId) throw new Error("Production Composition only accepts its own projectId.");
   return {src: completeNarrationSrc, leadInFrames: render.leadInFrames, captionCues: timing.captionCues, safeAreaPx: render.captionSafeAreaPx};
 };
+
 const ${componentName}: FC<StoryCompositionProps> = (props) => (
   <CompositionAssembly
     storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning} />}
@@ -446,18 +517,55 @@ export default ${componentName};
 `;
 };
 
+export const renderReadabilityAwareProductionPreviewProjectScaffold = (input: {
+  readonly storyId: string;
+  readonly sceneLocalSoundPresent: boolean;
+}) => {
+  let source = renderProductionPreviewProjectScaffold(input).replace(
+    PRODUCTION_PREVIEW_SCAFFOLD_MARKER,
+    PRODUCTION_READABILITY_SCAFFOLD_MARKER,
+  );
+  source = replaceRequired(
+    source,
+    "  parseNarrativeProjectSource,\n",
+    "  parseNarrativeProjectSource,\n  ProductionRequirementsFreezeSchema,\n",
+  );
+  source = replaceRequired(
+    source,
+    'import renderJson from "./render.json";\n',
+    'import renderJson from "./render.json";\nimport requirementsJson from "./production/requirements.json";\n',
+  );
+  source = replaceRequired(
+    source,
+    "const projectSource = parseNarrativeProjectSource",
+    'const productionRequirements = ProductionRequirementsFreezeSchema.parse(requirementsJson);\nif (productionRequirements.schemaVersion !== 2) throw new Error("Production Preview requires readability-aware requirements.");\nconst readabilityPolicy = productionRequirements.readabilityPolicy;\nconst projectSource = parseNarrativeProjectSource',
+  );
+  source = replaceRequired(
+    source,
+    "if (storyId !== expectedStoryId || previewAssembly.storyId !== storyId || render.fps !== timing.fps",
+    "if (readabilityPolicy.width !== render.width || readabilityPolicy.height !== render.height || storyId !== expectedStoryId || previewAssembly.storyId !== storyId || render.fps !== timing.fps",
+  );
+  return replaceRequired(
+    source,
+    "safeAreaPx: render.captionSafeAreaPx};",
+    "safeAreaPx: readabilityPolicy.captionSafeAreaPx, readabilityPolicy};",
+  );
+};
+
 export const ensureProductionPreviewScaffold = async ({
   rootDir,
   storyId,
   meaningIds,
   sceneLocalSoundPresent,
   mode,
+  readabilityPolicyAware = false,
 }: {
   readonly rootDir: string;
   readonly storyId: string;
   readonly meaningIds: readonly string[];
   readonly sceneLocalSoundPresent: boolean;
   readonly mode: "write" | "check";
+  readonly readabilityPolicyAware?: boolean;
 }) => {
   const projectRoot = join(
     rootDir,
@@ -468,17 +576,24 @@ export const ensureProductionPreviewScaffold = async ({
     projectRoot,
     "production-scene-runtime.generated.ts",
   );
-  const runtimeSource = renderProductionSceneRuntime({ storyId, meaningIds });
+  const runtimeSource = readabilityPolicyAware
+    ? renderReadabilityAwareProductionSceneRuntime({ storyId, meaningIds })
+    : renderProductionSceneRuntime({ storyId, meaningIds });
   await writeOrCheckRendererRegistry({
     destination: runtimeDestination,
     source: runtimeSource,
     mode,
   });
   const destination = join(projectRoot, "Composition.tsx");
-  const expected = renderProductionPreviewProjectScaffold({
-    storyId,
-    sceneLocalSoundPresent,
-  });
+  const expected = readabilityPolicyAware
+    ? renderReadabilityAwareProductionPreviewProjectScaffold({
+        storyId,
+        sceneLocalSoundPresent,
+      })
+    : renderProductionPreviewProjectScaffold({
+        storyId,
+        sceneLocalSoundPresent,
+      });
   if (mode === "check") {
     if ((await readFile(destination, "utf8")) !== expected) {
       throw new Error("Production Preview Composition bytes are stale.");
@@ -486,7 +601,9 @@ export const ensureProductionPreviewScaffold = async ({
     return { destination, runtimeDestination, source: expected } as const;
   }
   const current = await readFile(destination, "utf8");
-  const narrativeScaffold = renderProductionProjectScaffold(storyId);
+  const narrativeScaffold = readabilityPolicyAware
+    ? renderReadabilityAwareProductionProjectScaffold(storyId)
+    : renderProductionProjectScaffold(storyId);
   if (current !== expected && current !== narrativeScaffold) {
     throw new Error("Refusing to overwrite a drifted Production Composition.");
   }

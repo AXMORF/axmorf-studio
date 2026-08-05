@@ -7,6 +7,7 @@ import type {
   ShotPlanSet,
   StoryBeat,
   VisualStyleSpec,
+  ProductionReadabilityPolicy,
 } from "../../../contracts";
 
 export type ResolvedSceneVisualResource = Readonly<{
@@ -30,6 +31,7 @@ export type SceneRendererProps = Readonly<{
   shots: ShotPlanSet;
   syncAnchors: SceneSyncAnchorSet;
   visualResources: readonly ResolvedSceneVisualResource[];
+  readabilityPolicy?: ProductionReadabilityPolicy;
 }>;
 
 export type SceneRendererComponent = ComponentType<SceneRendererProps>;
@@ -54,9 +56,7 @@ export type StoryVisualFallbackEntry = Readonly<{
   fallbackFingerprint: Sha256Digest;
 }>;
 
-export type StoryVisualEntry =
-  | StoryVisualReadyEntry
-  | StoryVisualFallbackEntry;
+export type StoryVisualEntry = StoryVisualReadyEntry | StoryVisualFallbackEntry;
 
 export type StoryBeatVisualTransition = Readonly<{
   fromMeaningId: string;

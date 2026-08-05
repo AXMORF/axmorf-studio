@@ -2,7 +2,10 @@ import {
   ProductionRequirementsFreezeSchema,
   validateStoryCaptionReadability,
   type ProductionRequirementsFreeze,
+  type SceneAssignment,
 } from "../../src/contracts";
+import type { RendererSourceGraph } from "../renderer-registry/domain";
+import { validatePolicyAwareRendererSourceGraph } from "./readability-source-validator";
 
 export const validateProductionReadabilityInputs = ({
   requirements: rawRequirements,
@@ -35,4 +38,25 @@ export const requireCurrentProductionReadabilityPolicy = (
     );
   }
   return requirements.readabilityPolicy;
+};
+
+export const validateSceneReadability = async ({
+  rootDir,
+  assignment,
+  graph,
+}: {
+  readonly rootDir: string;
+  readonly assignment: SceneAssignment;
+  readonly graph: RendererSourceGraph;
+}) => {
+  if (assignment.schemaVersion === 1) {
+    return { policyFingerprint: null, legacy: true } as const;
+  }
+  const validated = await validatePolicyAwareRendererSourceGraph({
+    rootDir,
+    rendererPath: graph.rendererPath,
+    sourcePaths: graph.files.map(({ sourcePath }) => sourcePath),
+    policy: assignment.readabilityPolicy,
+  });
+  return { ...validated, legacy: false } as const;
 };

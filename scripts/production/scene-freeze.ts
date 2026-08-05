@@ -10,8 +10,8 @@ import {
   StoryResourcePoolSchema,
   StorySpecSchema,
   VisualStyleSpecSchema,
-  buildSceneAssignment,
-  buildSceneTaskInput,
+  buildSceneAssignmentV2,
+  buildSceneTaskInputV2,
   computeRenderSpecFingerprint,
   computeStoryFingerprint,
   computeVisualStyleFingerprint,
@@ -277,7 +277,12 @@ const buildAssignments = ({
         };
       },
     );
-    const taskInput = buildSceneTaskInput({
+    if (current.requirements.schemaVersion !== 2) {
+      throw new Error(
+        "New Scene assignments require readability-aware requirements.",
+      );
+    }
+    const taskInput = buildSceneTaskInputV2({
       storyId: story.storyId,
       meaningId: storyBeat.meaningId,
       storyBeat,
@@ -300,8 +305,9 @@ const buildAssignments = ({
         sceneRoot: `src/projects/${story.storyId}/scenes/${storyBeat.meaningId}`,
         publicAssetRoot: `public/projects/${story.storyId}/scenes/${storyBeat.meaningId}`,
       },
+      readabilityPolicy: current.requirements.readabilityPolicy,
     });
-    return buildSceneAssignment({
+    return buildSceneAssignmentV2({
       runId: loaded.run.runId,
       storyId: story.storyId,
       meaningId: storyBeat.meaningId,
@@ -309,6 +315,7 @@ const buildAssignments = ({
       sceneBriefFingerprint: brief.briefFingerprint,
       resourcePoolFingerprint: pool.poolFingerprint,
       taskInput,
+      readabilityPolicy: current.requirements.readabilityPolicy,
       sceneBrief,
       additionalRequirements: relevantSceneRequirements(
         current.requirements,

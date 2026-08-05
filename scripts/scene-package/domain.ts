@@ -156,8 +156,7 @@ export const buildScenePackage = (rawInput: {
       "Scene package selected resources do not exactly cover authored plans.",
     );
   }
-  const base = {
-    schemaVersion: 1 as const,
+  const commonBase = {
     storyId: task.storyId,
     meaningId: task.meaningId,
     beatFrameRange: {
@@ -180,6 +179,15 @@ export const buildScenePackage = (rawInput: {
     visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION,
     sceneAudioRuntimeVersion: SCENE_AUDIO_RUNTIME_VERSION,
   };
+  const base =
+    task.schemaVersion === 2
+      ? {
+          schemaVersion: 2 as const,
+          ...commonBase,
+          readabilityPolicyFingerprint:
+            task.readabilityPolicy.policyFingerprint,
+        }
+      : { schemaVersion: 1 as const, ...commonBase };
   const visualInput = {
     taskInputFingerprint: base.taskInputFingerprint,
     visualStyleFingerprint: base.visualStyleFingerprint,

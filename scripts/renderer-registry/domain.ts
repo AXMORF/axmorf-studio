@@ -51,6 +51,8 @@ const resolveSourceFile = async (
     `${base}/index.tsx`,
   ]) {
     try {
+      const candidateStat = await lstat(`${rootDir}/${candidate}`);
+      if (candidateStat.isDirectory()) continue;
       await readExternalRegularFile(rootDir, candidate);
       return candidate;
     } catch (error) {
@@ -150,8 +152,10 @@ export const collectRendererSourceGraph = async ({
         ["remotion", "4.0.489"],
       ]),
       relativeRoot: sourcePath.startsWith(projectRoot)
-        ? projectRoot
-        : "src/remotion/capabilities",
+        ? "src"
+        : sourcePath.startsWith("src/remotion/runtime/readability/")
+          ? "src/remotion/runtime/readability"
+          : "src/remotion/capabilities",
     });
     if (sourcePath === rendererPath && countDefaultExports(sourceFile) !== 1) {
       throw new Error("Scene Renderer must have exactly one default export.");
@@ -166,7 +170,8 @@ export const collectRendererSourceGraph = async ({
       );
       if (
         !dependencyPath.startsWith(`${projectRoot}/`) &&
-        !dependencyPath.startsWith("src/remotion/capabilities/")
+        !dependencyPath.startsWith("src/remotion/capabilities/") &&
+        !dependencyPath.startsWith("src/remotion/runtime/readability/")
       ) {
         throw new Error(
           "Renderer import escapes project-local or approved capability source.",

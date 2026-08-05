@@ -16,7 +16,33 @@ import {
   PRODUCTION_PROJECT_SCAFFOLD_MARKER,
   renderProductionPreviewProjectScaffold,
   renderProductionProjectScaffold,
+  renderReadabilityAwareProductionProjectScaffold,
+  renderReadabilityAwareProductionSceneRuntime,
 } from "../../scripts/production/project-scaffold";
+
+test("future production scaffolds bind frozen readability into captions and Scene props", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-readability-scaffold-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const result = await ensureProductionProjectScaffold({
+    rootDir,
+    storyId: "future-story",
+    readabilityPolicyAware: true,
+    mode: "write",
+  });
+  const source = await readFile(result.destination, "utf8");
+  assert.equal(
+    source,
+    renderReadabilityAwareProductionProjectScaffold("future-story"),
+  );
+  assert.match(source, /ProductionRequirementsFreezeSchema/u);
+  assert.match(source, /requirementsJson/u);
+  assert.match(source, /readabilityPolicy/u);
+  const runtime = renderReadabilityAwareProductionSceneRuntime({
+    storyId: "future-story",
+    meaningIds: ["opening"],
+  });
+  assert.match(runtime, /readabilityPolicy: scene\.task\.schemaVersion === 2/u);
+});
 
 test("writes one default-export Narrative scaffold and repeats byte-mtime stable", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-production-scaffold-"));

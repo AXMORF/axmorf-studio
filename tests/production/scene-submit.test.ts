@@ -5,16 +5,20 @@ import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 
 import {
+  SceneAssignmentSchema,
+  ScenePackageSchema,
   SceneProductionResultSchema,
   buildNotApplicableFidelityReceipt,
-  buildSceneAssignment,
+  buildSceneAssignmentV2,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
-  buildSceneTaskInput,
+  buildSceneTaskInputV2,
   buildSceneVisualPlan,
   buildShotPlanSet,
   buildShotRecipeSelection,
   computeSceneTaskInputFingerprint,
+  resolveProductionReadabilityPolicy,
+  type ProductionReadabilityPolicy,
 } from "../../src/contracts";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
 import { parseSceneSelectedResourcesFile } from "../../scripts/scene-package/generate";
@@ -30,8 +34,12 @@ import {
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
-const createAssignment = (runId: string, requirementsFingerprint: string) => {
-  const taskInput = buildSceneTaskInput({
+const createAssignment = (
+  runId: string,
+  requirementsFingerprint: string,
+  readabilityPolicy: ProductionReadabilityPolicy,
+) => {
+  const taskInput = buildSceneTaskInputV2({
     storyId: "story-example",
     meaningId: "opening",
     storyBeat: {
@@ -59,8 +67,9 @@ const createAssignment = (runId: string, requirementsFingerprint: string) => {
       sceneRoot: "src/projects/story-example/scenes/opening",
       publicAssetRoot: "public/projects/story-example/scenes/opening",
     },
+    readabilityPolicy,
   });
-  return buildSceneAssignment({
+  return buildSceneAssignmentV2({
     runId,
     storyId: "story-example",
     meaningId: "opening",
@@ -68,6 +77,7 @@ const createAssignment = (runId: string, requirementsFingerprint: string) => {
     sceneBriefFingerprint: sha("6"),
     resourcePoolFingerprint: sha("7"),
     taskInput,
+    readabilityPolicy,
     sceneBrief: {
       meaningId: "opening",
       visualIntent: "Show the cumulative timing boundary.",
@@ -175,6 +185,7 @@ const createFixture = async (context: TestContext) => {
   const assignment = createAssignment(
     fixture.runId,
     fixture.requirements.requirementsFingerprint,
+    fixture.requirements.readabilityPolicy,
   );
   await markProductionSceneInputsFrozen({
     ...fixture,
@@ -229,6 +240,45 @@ test("submit creates one success result without changing central state", async (
     }),
   });
   assert.equal(repeated.written, false);
+});
+
+test("readability policy drift invalidates assignment package and result identities", async (context) => {
+  const fixture = await createFixture(context);
+  const driftedPolicy = resolveProductionReadabilityPolicy({
+    width: 2160,
+    height: 3840,
+  });
+  assert.throws(() =>
+    SceneAssignmentSchema.parse({
+      ...fixture.assignment,
+      readabilityPolicy: driftedPolicy,
+    }),
+  );
+  assert.throws(() =>
+    ScenePackageSchema.parse({
+      ...fixture.scenePackage,
+      readabilityPolicyFingerprint: driftedPolicy.policyFingerprint,
+    }),
+  );
+
+  const submitted = await runProductionSceneSubmit({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    meaningId: "opening",
+    clock: () => FIXED_PRODUCTION_NOW,
+    resolveAssignment: async () => fixture.assignment,
+    validateScene: async () => ({
+      scenePackage: fixture.scenePackage,
+      rendererSourceGraphFingerprint: sha("8"),
+      mechanicalCheckFingerprint: sha("9"),
+    }),
+  });
+  assert.throws(() =>
+    SceneProductionResultSchema.parse({
+      ...submitted.result,
+      readabilityPolicyFingerprint: driftedPolicy.policyFingerprint,
+    }),
+  );
 });
 
 test("validation failures become atomic failure results and stop success", async (context) => {
@@ -308,7 +358,10 @@ test("Scene submit fails closed on a malformed selected-resources envelope", () 
     /schemaVersion/,
   );
   assert.deepEqual(
-    parseSceneSelectedResourcesFile({ schemaVersion: 1, selectedResources: [] }),
+    parseSceneSelectedResourcesFile({
+      schemaVersion: 1,
+      selectedResources: [],
+    }),
     { schemaVersion: 1, selectedResources: [] },
   );
 });
