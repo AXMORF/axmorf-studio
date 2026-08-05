@@ -145,6 +145,41 @@ test("starts one immutable contract-bound run and records its first event", asyn
   );
 });
 
+test("runs both preflight probes before scaffold clock and Run creation", async (context) => {
+  const fixture = await createStartFixture(context);
+  const calls: string[] = [];
+  await runProductionStart({
+    rootDir: fixture.rootDir,
+    projectId: "story-example",
+    clock: () => {
+      calls.push("clock");
+      return fixedNow;
+    },
+    createRunId: () => {
+      calls.push("run-id");
+      return fixedRunId;
+    },
+    preflightDependencies: {
+      voxcpm: async () => {
+        calls.push("voxcpm");
+        await assert.rejects(() => access(join(fixture.projectDir, "Composition.tsx")));
+        return {
+          status: "pass",
+          domain: "voxcpm",
+          serviceState: "cold-auto-load-on-first-tts",
+          profileMode: "controllable-clone",
+        };
+      },
+      browser: async () => {
+        calls.push("browser");
+        await assert.rejects(() => access(join(fixture.projectDir, "Composition.tsx")));
+        return { status: "pass", domain: "remotion-browser" };
+      },
+    },
+  });
+  assert.deepEqual(calls, ["voxcpm", "browser", "clock", "run-id"]);
+});
+
 test("refuses to start a new run from a readable legacy v1 freeze", async (context) => {
   const fixture = await createStartFixture(context);
   const legacy = buildProductionRequirementsFreezeV1({

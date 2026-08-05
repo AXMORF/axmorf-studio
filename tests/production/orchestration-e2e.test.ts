@@ -368,7 +368,18 @@ const checksumProtectedArtifacts = async () =>
 test("fake provider plus two Scene successes reaches preview-ready byte-stably", async (context) => {
   const protectedBefore = await checksumProtectedArtifacts();
   const fixture = await createE2eFixture(context);
+  assert.ok(fixture.assignments.every(({ schemaVersion }) => schemaVersion === 3));
+  assert.ok(
+    fixture.assignments.every(
+      (assignment) =>
+        assignment.schemaVersion === 3 &&
+        assignment.taskInput.schemaVersion === 3 &&
+        assignment.visualShellSourceGraphFingerprint ===
+          assignment.taskInput.visualShellSourceGraphFingerprint,
+    ),
+  );
   const results = fixture.assignments.map(successResult);
+  assert.ok(results.every(({ schemaVersion }) => schemaVersion === 3));
   for (const result of results.slice().reverse()) {
     await writeSceneProductionResult({ rootDir: fixture.rootDir, result });
   }

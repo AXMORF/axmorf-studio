@@ -37,6 +37,18 @@ test("accepts a project-local static decorative VisualShell graph", async (conte
       "src/projects/story-example/visual-shell/VisualShell.tsx",
     ],
   );
+  await writeFile(
+    join(shellDir, "motif.tsx"),
+    'import {AbsoluteFill} from "remotion";\nexport const Motif = () => <AbsoluteFill style={{opacity: 0.3}} />;\n',
+  );
+  const drifted = await validateVisualShellSourceGraph({
+    rootDir,
+    storyId: "story-example",
+  });
+  assert.notEqual(
+    drifted.visualShellSourceGraphFingerprint,
+    result.visualShellSourceGraphFingerprint,
+  );
 });
 
 test("rejects missing symlinked cross-boundary or executable VisualShell sources", async (context) => {

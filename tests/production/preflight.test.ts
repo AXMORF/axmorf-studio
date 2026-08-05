@@ -93,6 +93,7 @@ test("accepts liveness plus resident or cold readiness without TTS", async () =>
       },
     });
     assert.deepEqual(routes, ["/health", "/ready"]);
+    assert.equal(routes.some((route) => /tts|generate|warm/iu.test(route)), false);
     assert.equal(result.status, "pass");
   }
 });
