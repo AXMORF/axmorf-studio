@@ -1,9 +1,12 @@
 import { join } from "node:path";
+import { z } from "zod";
 
 import {
+  ResourceDescriptorSchema,
   SceneCoverageMapSchema,
   ScenePackageSchema,
   SceneTaskInputSchema,
+  SelectedResourceRefSchema,
   StorySpecSchema,
   buildSceneCoverageMap,
   type SceneCoverageMap,
@@ -16,6 +19,26 @@ import {
   writeOrCheckSceneArtifact,
   type SceneArtifactMode,
 } from "./project-files";
+
+export const SceneSelectedResourcesFileSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    selectedResources: z
+      .array(
+        z
+          .object({
+            selected: SelectedResourceRefSchema,
+            descriptor: ResourceDescriptorSchema,
+          })
+          .strict(),
+      )
+      .readonly(),
+  })
+  .strict()
+  .readonly();
+
+export const parseSceneSelectedResourcesFile = (value: unknown) =>
+  SceneSelectedResourcesFileSchema.parse(value);
 
 export const generateScenePackage = async ({
   mode,
@@ -93,12 +116,8 @@ export const generateScenePackageFromProjectFiles = async ({
     readJsonFile(join(sceneRoot, "selected-resources.json")),
   ]);
   const taskRecord = SceneTaskInputSchema.parse(task);
-  const selectedResources = (
-    selectedResourceInput as {
-      readonly selectedResources: Parameters<
-        typeof buildScenePackage
-      >[0]["selectedResources"];
-    }
+  const selectedResources = parseSceneSelectedResourcesFile(
+    selectedResourceInput,
   ).selectedResources;
   const rendererSourceFingerprint = (
     await collectRendererSourceGraph({

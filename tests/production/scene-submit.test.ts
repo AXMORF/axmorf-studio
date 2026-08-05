@@ -17,6 +17,7 @@ import {
   computeSceneTaskInputFingerprint,
 } from "../../src/contracts";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
+import { parseSceneSelectedResourcesFile } from "../../scripts/scene-package/generate";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
 import { runProductionSceneFail } from "../../scripts/production/scene-fail";
 import { runProductionSceneSubmit } from "../../scripts/production/scene-submit";
@@ -298,5 +299,16 @@ test("success and failure results conflict instead of overwriting", async (conte
       clock: () => FIXED_PRODUCTION_NOW,
       resolveAssignment: async () => fixture.assignment,
     }),
+  );
+});
+
+test("Scene submit fails closed on a malformed selected-resources envelope", () => {
+  assert.throws(
+    () => parseSceneSelectedResourcesFile({ selectedResources: [] }),
+    /schemaVersion/,
+  );
+  assert.deepEqual(
+    parseSceneSelectedResourcesFile({ schemaVersion: 1, selectedResources: [] }),
+    { schemaVersion: 1, selectedResources: [] },
   );
 });

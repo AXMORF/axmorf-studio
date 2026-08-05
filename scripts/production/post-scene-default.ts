@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { z } from "zod";
 
 import {
   NarrativeAutoCheckReportSchema,
@@ -9,14 +8,12 @@ import {
   ProductionPreviewEvidenceSchema,
   ProductionPreviewMechanicalCheckSchema,
   RenderSpecSchema,
-  ResourceDescriptorSchema,
   SceneCoverageMapSchema,
   ScenePackageSchema,
   SceneProductionResultSchema,
   SceneSoundPlanSchema,
   SceneSyncAnchorSetSchema,
   SealedNarrationManifestSchema,
-  SelectedResourceRefSchema,
   SemanticTimingSchema,
   Sha256DigestSchema,
   buildProductionPreviewAssembly,
@@ -34,7 +31,10 @@ import { generateRendererRegistryFromProjectFiles } from "../renderer-registry/g
 import { resolveSceneSound } from "../../src/remotion/runtime/scene-sound";
 import { buildSoundDesignProjection } from "../../src/remotion/runtime/sound-design";
 import { buildStoryVisualProjection } from "../../src/remotion/runtime/story-visual";
-import { generateSceneCoverageFromProjectFiles } from "../scene-package/generate";
+import {
+  generateSceneCoverageFromProjectFiles,
+  parseSceneSelectedResourcesFile,
+} from "../scene-package/generate";
 import {
   readJsonFile,
   writeOrCheckSceneArtifact,
@@ -52,22 +52,6 @@ import {
   writeOrCheckProductionPreviewMechanicalCheck,
 } from "./preview-evidence";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
-
-const SelectedResourcesFileSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    selectedResources: z
-      .array(
-        z
-          .object({
-            selected: SelectedResourceRefSchema,
-            descriptor: ResourceDescriptorSchema,
-          })
-          .strict(),
-      )
-      .readonly(),
-  })
-  .strict();
 
 const checksumFile = async (path: string) =>
   Sha256DigestSchema.parse(
@@ -196,7 +180,7 @@ const preparePreview = async ({
         SceneSyncAnchorSetSchema.parse,
       ),
       readJsonFile(join(sceneRoot, "selected-resources.json")).then(
-        SelectedResourcesFileSchema.parse,
+        parseSceneSelectedResourcesFile,
       ),
     ]);
     const scenePackage = packages.find(
