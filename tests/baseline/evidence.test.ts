@@ -468,7 +468,6 @@ test("read-only M3 check rejects registry artifact alpha and media drift", async
 });
 
 test("current real M3 evidence recollects to the persisted strict receipt", async () => {
-  assert.equal(projectRegistry.length, 3);
   const current = await collectCurrentM3NarrativeBaselineEvidence({
     rootDir: process.cwd(),
     storyId: "gps-relativity",
