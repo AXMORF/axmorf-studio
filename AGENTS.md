@@ -135,6 +135,9 @@ proposal，并得到用户对范围、API、文件和目标位置的明确批准
 - 保护用户现有未提交修改；不重置、不覆盖、不顺手整理无关内容。
 - 删除、覆盖、强推、生产发布、密钥或权限变更必须有明确授权。
 - 修改后先跑聚焦检查，再按风险运行 `npm run check`。
+- 真实 production preflight 必须直接以宿主权限运行；沙箱内失败只能作为环境诊断，不能据此
+  判定 VoxCPM 不可用。不得为了通过检查而预热、发送测试 TTS、fallback 或降低 Chromium
+  sandbox 安全设置。
 - 新 Composition 至少通过 `npm run compositions`，高风险视觉改动补真实 still 或短片。
 - 完成代码或配置任务后检查 README、状态、架构和合同是否需要同步。
 - 不 push，除非用户明确要求。

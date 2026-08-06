@@ -38,17 +38,21 @@ width/height 解析并冻结 `production-readability-v1`；整数有理 scale、
 字号和两行字幕预算都进入 policy fingerprint。`caption-display-unit-v1` 以 Unicode grapheme
 和整数 half-unit 在 provider 前拒绝超限 authored `ttsChunks`，不按标点或字符自动拆分，也不
 改变 sealed PCM/`pcm-cumulative-ceil-v1` 时间权威。完整策略、
-`scene-composition-boundary-v1` 与 VisualShell source graph 进入 v3 SceneTaskInput、
-SceneAssignment、ScenePackage、result/mechanical identity，并由 submit、watcher 与 post-Scene
-Preview 调用公共 validator 复检。SceneSafeArea 由 Composition exactly once 提供相同 policy
-context；Renderer 不复制背景/安全框，也不得 import VisualShell、CaptionLayer、audio 或读取 raw
-policy。已有 v1/v2 artifacts 保持原字节与解析路径，不迁移、不注入默认策略。
+`scene-composition-boundary-v1` 进入 v3 SceneTaskInput、SceneAssignment、ScenePackage、
+result/mechanical identity，并由 submit、watcher 与 post-Scene Preview 调用公共 validator 复检。
+SceneSafeArea 由 Composition exactly once 提供相同 policy context；Renderer 不复制安全框，也
+不得 import CaptionLayer、GlobalVisualLayers、audio 或读取 raw policy。当前不建立临时项目级
+全局视觉层；已有 v1/v2 artifacts 保持原字节与解析路径，不迁移、不注入默认策略。
 
 `npm run production:preflight -- --project <storyId>` 是确定性的 Run-before-write 环境门：固定
 `/health` liveness、`/ready` resident/cold diagnosis 和正式 Chromium compositions launch。
 `503/loading` 作为 cold pass 且零 TTS payload；service/model/browser sandbox failure 输出脱敏
 external blocker。preflight 不进入 ledger、state 或作品 authority，不能通过 retry、fallback、
 预热或降低 Chromium sandbox 来制造成功。
+
+真实 production preflight 必须直接以宿主权限运行。沙箱内失败只能作为环境诊断，不能据此判定
+VoxCPM 不可用；复检仍使用同一固定命令，不发送测试 TTS，也不 fallback 或降低 Chromium
+sandbox 安全设置。
 
 Agent 创作的 chunk 或 Scene 未满足冻结预算属于 Agent-owned authoring failure；validator、
 传播、fingerprint、watcher 或 checker 在 valid input 下失败属于 common-flow defect。后者仍按

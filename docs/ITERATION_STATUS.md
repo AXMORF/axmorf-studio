@@ -98,14 +98,15 @@
 - 所有新 production 使用 `ProductionRequirementsFreeze` v3 冻结画幅无关的
   `production-readability-v1`：整数 scale/安全区/Scene 与字幕字号、Unicode grapheme
   `caption-display-unit-v1` provider 前 fail-closed、v3 task/assignment/package/result identity、
-  `scene-composition-boundary-v1`、Composition-owned SceneSafeArea、project-local VisualShell、
+  `scene-composition-boundary-v1`、Composition-owned SceneSafeArea、无临时 project-global wrapper、
   semantic-only Renderer、policy-aware CaptionLayer 与 watcher/post-Scene 公共复检；已有 v1/v2
   Run 和正式视频不迁移、不回填；
 - `production:preflight -- --project <storyId>` 已实现并由 `production:start` 在任何写入前
   强制复用：`/health` 检查 liveness，`/ready` 只诊断 resident/cold/loading；cold 不预热，
   Chromium sandbox/permission 与 VoxCPM service/model failure 均作为脱敏 external blocker；
-- VisualShell 不是 GlobalVisualLayers，不产生第二套 safe-area inset、global plan/projection、
-  enhancement、Track、Scene DSL、自动布局器或自动导演；
+- `GlobalVisualLayers` 尚未进入 M9.5 production，当前不以临时 wrapper 补位；未来只由该既有
+  enhancement 拥有项目级全局背景、纹理、装饰与连续性 motif，不产生第二套 global visual
+  authority、safe-area inset、Track、Scene DSL、自动布局器或自动导演；
 - StoryResourcePool、SceneProductionBrief、逐 meaningId SceneAssignment、独占路径、deadline、
   Scene success/failure result contracts 与固定 submit/fail writer；
 - single-writer central watcher 对 waiting/success/expected/unexpected failure、timeout、malformed、

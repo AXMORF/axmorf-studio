@@ -133,10 +133,10 @@ Agent 只通过固定 submit/fail CLI 提交自己的结果，中央脚本是状
 
 新建 production 使用 `production-requirements-freeze-v3`：冻结的 readability policy 是 Scene
 安全区唯一权威，Composition 的 `SceneSafeArea` exactly once 包裹 v3 Renderer，Renderer 只
-拥有语义画面，顶层 `CaptionLayer` 仍唯一拥有字幕。project-local `VisualShell` 只负责全屏
-背景、纹理、非语义装饰和连续性 motif，并与 `StoryVisualTrack` 组合在现有视觉槽内；
-VisualShell 不是 GlobalVisualLayers，不形成新的 enhancement、Track、DSL 或自动导演。
-v1/v2 项目和 Run 保持原合同，不迁移、不重写。
+拥有语义画面，顶层 `CaptionLayer` 仍唯一拥有字幕。v3 不建立临时 project-global visual
+wrapper；全局背景、纹理、非语义装饰和连续性 motif 只允许由未来正式进入生产流程的
+`GlobalVisualLayers` 拥有。当前流程保持该 enhancement absent，不形成第二套全局视觉权威、
+Track、DSL 或自动导演。v1/v2 项目和 Run 保持原合同，不迁移、不重写。
 
 ## 不可偷换的边界
 

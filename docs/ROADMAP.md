@@ -430,9 +430,9 @@ Narrative Baseline、Shotcraft closure、voice provider 与 Scene/Final Catalog 
 - Scene submit/fail CLI 与中央 watcher：任一错误、超时、malformed、stale 或共享输入漂移
   立即停止；全部 success 后自动生成 coverage、registry、projection、Composition 和 MP4；
 - `production-requirements-freeze-v3` 与 `scene-composition-boundary-v1`：Composition-owned
-  SceneSafeArea、project-local VisualShell、semantic-only Renderer、顶层 CaptionLayer 分权；
-  VisualShell 不是 GlobalVisualLayers，PreviewAssembly v2 绑定 shell/boundary identity；v1/v2
-  路径及既有正式项目不迁移；
+  SceneSafeArea、semantic-only Renderer、顶层 CaptionLayer 分权；不建立临时 project-global
+  wrapper，PreviewAssembly v2 只绑定 shared boundary identity，未来 `GlobalVisualLayers` 正式
+  接入后作为唯一项目级全局视觉权威；v1/v2 路径及既有正式项目不迁移；
 - 不含 BGM、跨 Scene ambience、ducking、GlobalVisualLayers 或 Agent Scene 审美 gate 的
   versioned PreviewAssembly、机械 PreviewEvidence 和 `preview-ready` 终点；
 - current Codex 主任务在子 Agent 与 watcher 期间保持运行；repo 脚本不创建 Agent，也不

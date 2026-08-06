@@ -454,12 +454,12 @@ compositions executable、entry 与参数，browser sandbox/permission denial �
 作品 fingerprint。
 
 `production-requirements-freeze-v3` 冻结 `scene-composition-boundary-v1` ownership：
-Composition 的 `SceneSafeArea` exactly once 使用完整 readability policy；project-local
-`VisualShell` 提供非语义背景/装饰并包住 StoryVisualTrack；Scene Renderer 只持有 Beat 语义
-内容且不接收 raw policy；NarrativeCore 的 CaptionLayer 仍是唯一字幕 owner。VisualShell 没有
-独立 plan/projection，不占用 `GlobalVisualLayers` enhancement。静态 literal imports 进入生成
-scaffold，source graph 发现只发生在制作期检查，render runtime 不扫描目录。v1/v2 runtime 与
-现有正式项目保持原样。
+Composition 的 `SceneSafeArea` exactly once 使用完整 readability policy；Scene Renderer 只持有
+Beat 语义内容且不接收 raw policy；NarrativeCore 的 CaptionLayer 仍是唯一字幕 owner。v3
+scaffold 直接挂载 StoryVisualTrack，不建立第二个 project-global visual wrapper；当前
+`GlobalVisualLayers` enhancement 保持 absent，未来正式接入时独占全局背景、纹理、装饰和连续性
+motif。静态 literal imports 进入生成 scaffold，source graph 发现只发生在制作期检查，render
+runtime 不扫描目录。v1/v2 runtime 与现有正式项目保持原样。
 
 ## 外部镜头参考边界
 

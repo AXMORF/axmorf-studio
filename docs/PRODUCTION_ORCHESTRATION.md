@@ -40,6 +40,9 @@ external model blocker。随后使用与正式 compositions 相同的 Remotion e
 args 启动 Chromium；sandbox/permission denial 是 external blocker，不使用 fallback 或降低
 sandbox。preflight 不进入 ProductionRun ledger，不写 event/state/scaffold/narration work，也不
 成为作品 authority。`production:start` 在任何写入和 clock/runId 生成前强制复用同一逻辑。
+真实 production preflight 必须直接以宿主权限运行；沙箱内失败只能作为环境诊断，不能据此判定
+VoxCPM 不可用。复检仍使用同一固定命令，不发送测试 TTS，也不 fallback 或降低 Chromium
+sandbox 安全设置。
 
 ## 未来 production 的统一可读性冻结
 
@@ -61,18 +64,17 @@ bottom inset 再向上取整到 10 的倍数。1080 short edge 的结果为
 chunks；超限只返回可定位到 `chunkId` 的 Agent-owned authoring failure，不自动拆分、改写、
 裁剪或缩小字号。
 
-Scene freeze 将完整策略、`scene-composition-boundary-v1` 和 current VisualShell source-graph
-fingerprint 写入 v3 task/assignment；package/result/mechanical identity、watcher 与 post-Scene
-Preview 都复检同一组 identity。Composition 的 `SceneSafeArea` exactly once 直接消费 frozen
-policy 并提供 SceneText context；v3 Renderer 只输出 semantic content，不接收 raw policy，也不
-拥有背景、安全框、VisualShell、CaptionLayer 或 audio。完整 source graph 中可见 HTML/SVG
+Scene freeze 将完整策略和 `scene-composition-boundary-v1` 写入 v3 task/assignment；
+package/result/mechanical identity、watcher 与 post-Scene Preview 都复检同一组 identity。
+Composition 的 `SceneSafeArea` exactly once 直接消费 frozen policy 并提供 SceneText context；v3
+Renderer 只输出 semantic content，不接收 raw policy，也不拥有安全框、CaptionLayer、
+GlobalVisualLayers 或 audio。完整 source graph 中可见 HTML/SVG
 文字仍必须静态证明达到字号下限，未知/继承/相对单位/缩小 scale 均 fail closed。
 
-每个 v3 project 在 freeze 前由主 Agent 写静态 literal-imported
-`visual-shell/VisualShell.tsx`。它只拥有全屏背景、纹理、非语义装饰与连续性 motif，并在已有
-`storyVisualTrack` node 内 exactly once 包住 StoryVisualTrack。VisualShell 不是
-GlobalVisualLayers：没有独立 global plan/projection/enhancement，也不扩张为 Track、Scene DSL、
-自动布局器或自动导演。顶层 CaptionLayer 仍由 NarrativeCore 唯一渲染。v1/v2 scaffold、
+v3 scaffold 直接把 StoryVisualTrack 挂入已有视觉 node，不建立临时 project-global wrapper。
+`GlobalVisualLayers` 在正式进入 production 前保持 absent；未来只由该既有 enhancement 拥有全屏
+背景、纹理、非语义装饰与连续性 motif，不建立第二套 global visual authority、Track、Scene
+DSL、自动布局器或自动导演。顶层 CaptionLayer 仍由 NarrativeCore 唯一渲染。v1/v2 scaffold、
 Renderer、package/result/check path 与所有现有正式项目保持原样，不回填、不迁移。
 
 Narrative 到达 `baseline-ready` 后，主 Agent 写 current `visual-style.json`、
@@ -131,7 +133,7 @@ src/projects/<storyId>/generated/production-preview-mechanical-check.generated.j
 ```
 
 机械检查绑定画幅、fps、帧数、音视频流、完整解码、coverage、registry、projection、assembly
-和媒体 checksum。v3 PreviewAssembly v2 额外绑定 VisualShell source graph 与 shared boundary，
+和媒体 checksum。v3 PreviewAssembly v2 额外绑定 shared boundary，
 同时仍显式禁止 GlobalSoundPlan、BGM、跨 Scene ambience、ducking 和 GlobalVisualLayers；
 Scene-local ambience/SFX 仍归 ScenePackage 所有。它不执行 NarrativeCheck
 或 Scene Agent 审美审核。
