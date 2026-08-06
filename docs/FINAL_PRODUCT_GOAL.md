@@ -2,7 +2,8 @@
 
 > 当前实现：M1–M9.5 已完成；GPS 与 ProductComicVertical 两条正式生产链都已有 current 用户
 > 批准和 passing `final-mechanical-check-v2`。M9.5 数据合同驱动生产编排已实现，但没有创建新
-> 作品、用户批准或发布事实；M10 发布尚未开始。
+> 作品、用户批准或发布事实。后续 production 已升级为 v3 shared Scene boundary，并在创建
+> Run 前执行只读 VoxCPM/Chromium preflight；M10 发布尚未开始。
 
 ## 一句话目标
 
@@ -129,6 +130,13 @@ M9.5 已把制作编排状态分成 append-only `ProductionStageEvent`、每 Sce
 `SceneProductionResult` 和由它们与 current fingerprints 复算的 `ProductionRunState`。Scene
 Agent 只通过固定 submit/fail CLI 提交自己的结果，中央脚本是状态单写者；主 Agent 分发后
 保持任务运行并等待 watcher。运行时仍不调用 Agent、skill、MCP、Git 或网络。
+
+新建 production 使用 `production-requirements-freeze-v3`：冻结的 readability policy 是 Scene
+安全区唯一权威，Composition 的 `SceneSafeArea` exactly once 包裹 v3 Renderer，Renderer 只
+拥有语义画面，顶层 `CaptionLayer` 仍唯一拥有字幕。project-local `VisualShell` 只负责全屏
+背景、纹理、非语义装饰和连续性 motif，并与 `StoryVisualTrack` 组合在现有视觉槽内；
+VisualShell 不是 GlobalVisualLayers，不形成新的 enhancement、Track、DSL 或自动导演。
+v1/v2 项目和 Run 保持原合同，不迁移、不重写。
 
 ## 不可偷换的边界
 

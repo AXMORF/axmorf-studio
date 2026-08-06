@@ -444,6 +444,23 @@ repo 内脚本不创建/托管 Agent，也不承诺主任务结束后的 detache
 首次真实 lifecycle 与 hardening 证据见
 [M9.5 Production Trial and Hardening Evidence](evidence/2026-08-05-m9-5-production-trial-and-hardening.md)。
 
+#### v3 production boundary
+
+新 Run 在创建任何 scaffold/ledger/narration work 前执行同一 `production:preflight`。VoxCPM
+adapter 固定 GET `/health` 与 `/ready`：前者证明服务存活，后者只区分 resident、允许自动装载的
+cold/loading 和 external model failure；它不调用 clone/TTS route。Remotion adapter 使用正式
+compositions executable、entry 与参数，browser sandbox/permission denial 不归因给 Scene，
+也不会触发 `--no-sandbox` 或 fallback。preflight 是 transient 诊断，不写 event/state，不进入
+作品 fingerprint。
+
+`production-requirements-freeze-v3` 冻结 `scene-composition-boundary-v1` ownership：
+Composition 的 `SceneSafeArea` exactly once 使用完整 readability policy；project-local
+`VisualShell` 提供非语义背景/装饰并包住 StoryVisualTrack；Scene Renderer 只持有 Beat 语义
+内容且不接收 raw policy；NarrativeCore 的 CaptionLayer 仍是唯一字幕 owner。VisualShell 没有
+独立 plan/projection，不占用 `GlobalVisualLayers` enhancement。静态 literal imports 进入生成
+scaffold，source graph 发现只发生在制作期检查，render runtime 不扫描目录。v1/v2 runtime 与
+现有正式项目保持原样。
+
 ## 外部镜头参考边界
 
 `video-shotcraft` 等上游来源只进入 authoring path：显式 sync 固定完整 commit、解析

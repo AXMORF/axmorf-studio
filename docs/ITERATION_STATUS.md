@@ -95,11 +95,17 @@
   路径保持零差异，未执行 promotion。
 - M9.5 strict `ProductionRequirementsFreeze`、append-only run event ledger、generated state
   projection、结构化脱敏 ProductionError、固定 `production:start/status/narrative` CLI；
-- 所有未来 production 使用 `ProductionRequirementsFreeze` v2 冻结画幅无关的
+- 所有新 production 使用 `ProductionRequirementsFreeze` v3 冻结画幅无关的
   `production-readability-v1`：整数 scale/安全区/Scene 与字幕字号、Unicode grapheme
-  `caption-display-unit-v1` provider 前 fail-closed、v2 task/assignment/package/result identity、
-  完整 Renderer source-graph guard、固定 Scene 安全区 primitives、policy-aware CaptionLayer 与
-  watcher/post-Scene 公共复检；已有 v1 Run 和正式视频不迁移、不回填；
+  `caption-display-unit-v1` provider 前 fail-closed、v3 task/assignment/package/result identity、
+  `scene-composition-boundary-v1`、Composition-owned SceneSafeArea、project-local VisualShell、
+  semantic-only Renderer、policy-aware CaptionLayer 与 watcher/post-Scene 公共复检；已有 v1/v2
+  Run 和正式视频不迁移、不回填；
+- `production:preflight -- --project <storyId>` 已实现并由 `production:start` 在任何写入前
+  强制复用：`/health` 检查 liveness，`/ready` 只诊断 resident/cold/loading；cold 不预热，
+  Chromium sandbox/permission 与 VoxCPM service/model failure 均作为脱敏 external blocker；
+- VisualShell 不是 GlobalVisualLayers，不产生第二套 safe-area inset、global plan/projection、
+  enhancement、Track、Scene DSL、自动布局器或自动导演；
 - StoryResourcePool、SceneProductionBrief、逐 meaningId SceneAssignment、独占路径、deadline、
   Scene success/failure result contracts 与固定 submit/fail writer；
 - single-writer central watcher 对 waiting/success/expected/unexpected failure、timeout、malformed、

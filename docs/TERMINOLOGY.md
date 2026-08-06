@@ -8,6 +8,7 @@
 | NarrationSpec                | 本次旁白生成声明                                               | 包含 voice profile 引用和允许的生成参数，不包含密钥或 provider 地址                                                                                   |
 | RenderSpec                   | 用户每次制作直接提供的 Composition 与交付声明                  | 包含画幅、fps、locale、字幕安全区、音频输出与显式片头片尾范围；Agent 只结构化和机械校验，不重复确认                                                   |
 | ProductionRequirementsFreeze | M9.5 完整制作要求冻结外壳                                      | 绑定 VideoBrief、Story、NarrationSpec、RenderSpec、StoryCheck identities，并结构化画幅、voice profile、资源政策和额外要求；摘要不得成为第二 authority |
+| ProductionStartPreflight      | 新 Run 前只读环境诊断合同                                      | 固定检查 VoxCPM liveness/cold readiness 与正式 Chromium launch；不预热、不发送 TTS、不写 Run ledger 或作品 authority                                |
 | Story                        | 一条完整叙事                                                   | 对应一个 Composition                                                                                                                                  |
 | StoryBeat                    | Story 中一个单一核心语义                                       | 对应一个 meaningId、NarrationUnit 和 Scene                                                                                                            |
 | meaningId                    | 语义关联键                                                     | 连接 StoryBeat、旁白、字幕、Scene 与审核                                                                                                              |
@@ -21,7 +22,9 @@
 | ProjectRegistry              | bundle 前自动发现并生成的 Story Composition 静态注册表         | 元数据静态可枚举，组件通过 `lazyComponent` 和字面量 `import()` 按需加载；runtime 不扫描目录，也不依赖 RendererRegistry                                |
 | Scene                        | StoryBeat 的独立视听制作任务                                   | 完成后对应一个 ScenePackage；内含视觉、Shot 与 Scene 局部声音，不拥有字幕、旁白或全局 BGM                                                             |
 | ScenePackage                 | 一个 Scene 的可装配视听制作结果                                | 绑定一个 Scene 级 rendererId、SceneSoundPlan、资源引用、同步锚点与分层 fingerprint                                                                    |
-| SceneRenderer                | Scene 对 runtime 暴露的单一视觉入口                            | 可内含多个本地 Shot 组件，只输出视觉                                                                                                                  |
+| SceneRenderer                | Scene 对 runtime 暴露的单一视觉入口                            | v3 只拥有 Beat 语义视觉，由外层 SceneSafeArea/VisualShell 提供边界；可内含多个本地 Shot 组件，不拥有字幕或音频                                         |
+| SceneSafeArea                | v3 Composition-owned Scene 安全区 wrapper                      | exactly once 直接消费 frozen readability policy，并为 SceneText 提供同一 context；不推导第二套 inset                                                  |
+| VisualShell                  | v3 project-local 非语义视觉外壳                                | 只拥有全屏背景、纹理、装饰与连续性 motif；包住 StoryVisualTrack，但不是 GlobalVisualLayers、Track、DSL 或自动导演                                      |
 | RendererRegistry             | composition-local 静态 renderer 绑定                           | 把 ScenePackage.rendererId 映射到 SceneRenderer                                                                                                       |
 | Shot                         | Scene 内连续的镜头区间                                         | 绑定 meaningId，不绑定字幕、rendererId、组件或模块路径                                                                                                |
 | SceneSyncAnchor              | Scene 内稳定的视听同步事件                                     | 由稳定 eventId 与局部帧定义；SceneSoundCue 可引用它，缺失或漂移时 fail closed                                                                         |
@@ -31,7 +34,7 @@
 | ReferenceFidelityReceipt     | 上游镜头本地化后的 pass-only 保真凭据                          | exact 模式绑定来源、依赖闭包、本地源码、真实 Renderer/frame-state binding、配对证据和正常速度可辨识结果                                               |
 | SceneCoverageMap             | Story 中全部 meaningId 的 ScenePackage 覆盖状态                | 按 StoryBeat 顺序记录 ready、fallback、missing 或 stale；只影响 Scene/final gate，不阻断 Narrative Baseline                                           |
 | StoryResourcePool            | M9.5 Story 级宽候选资源池                                      | 主 Agent 冻结整个 Story 可能使用的批准资源/参考；Scene Agent 精确选子集或零资源，不能自行扩池                                                         |
-| SceneAssignment              | M9.5 单 Scene 冻结任务信封                                     | 绑定 requirements、StoryBeat、timing、style、resource pool、相邻摘要、独占路径与 deadline；一 meaningId 一份                                          |
+| SceneAssignment              | M9.5 单 Scene 冻结任务信封                                     | v3 另绑定 frozen policy、scene-composition-boundary-v1 与 VisualShell source graph；一 meaningId 一份，v1/v2 保持兼容                                  |
 | SceneProductionResult        | M9.5 单 Scene 成功或失败结果合同                               | 只能由固定 submit/fail writer 创建；Scene Agent 不写中央 state，success 绑定 current ScenePackage，failure 绑定 ProductionError                       |
 | StoryBeatTransition          | 相邻 StoryBeat 的视觉交接决定                                  | v1 为 hard cut 或等时长 overlay                                                                                                                       |
 | NarrativeCore                | 最低可播放成片层                                               | 旁白、顶层字幕与绝对时间；不绘制背景，其余视觉区域透明                                                                                                |

@@ -143,6 +143,24 @@ ambience、ducking 或 GlobalVisualLayers，不执行 Agent Scene 审美审核�
 当前任务运行、等待 watcher；M9.5 不保证主任务结束后子 Agent 继续存活。完整实施边界见
 [M9.5 数据合同驱动生产编排计划](superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md)。
 
+### 3.2 v3 Run-before-write preflight 与 Scene ownership
+
+新 Run 只接受 `production-requirements-freeze-v3`。`production:start` 在 scaffold、clock、run
+manifest、event/state 或 narration work 写入前复用同一只读 preflight：VoxCPM `/health`
+只检查 liveness，`/ready` 只诊断模型状态；`503/loading` 作为
+`cold-auto-load-on-first-tts` 通过，不预热、不发送测试 TTS，`500` 安全归类为 external model
+blocker。Chromium 使用与正式 compositions 完全相同的 executable、entry 和参数；sandbox/
+permission failure 属于外部环境，不降级 sandbox、不 fallback。preflight 不进入 ProductionRun ledger，
+也不成为作品 authority，append-only event/state 的 single-writer 边界不变。
+
+v3 Scene freeze 前必须存在静态 project-local `visual-shell/VisualShell.tsx`。freeze 把 frozen
+readability policy、`scene-composition-boundary-v1` 和 VisualShell source-graph fingerprint
+绑定进 task/assignment；package、result、watcher 和 PreviewAssembly 复检同一组 identity。
+Composition 的 `SceneSafeArea` 持有安全区和文字 context，Scene Renderer 只输出语义视觉，
+`CaptionLayer` 仍由 NarrativeCore 顶层唯一渲染。VisualShell 不是 GlobalVisualLayers：它没有
+独立 plan/projection/enhancement，只与 StoryVisualTrack 组合在已有视觉 node 内。v1/v2
+scaffold、Renderer、package/result/check path 保持兼容，现有正式项目不迁移。
+
 ## 4. 阶段输入与输出
 
 | 阶段                     | 输入                                                                        | 固定输出                                                                                 | 边界                                                                                                           |

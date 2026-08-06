@@ -424,8 +424,15 @@ Narrative Baseline、Shotcraft closure、voice provider 与 Scene/Final Catalog 
   SceneProductionResult 和单写者原子 store；
 - 固定 narrative runner：VoxCPM candidate checkpoint/seal/check、timing、registry、Baseline media、
   evidence 与 narrative AutoCheck；
+- Run-before-write `production:preflight`：`/health` liveness、允许 cold auto-load 的 `/ready`
+  diagnosis 与正式 Chromium compositions launch；零测试 TTS、零 warm-up、零 sandbox 降级，
+  transient 结果不进入 ledger；
 - Scene submit/fail CLI 与中央 watcher：任一错误、超时、malformed、stale 或共享输入漂移
   立即停止；全部 success 后自动生成 coverage、registry、projection、Composition 和 MP4；
+- `production-requirements-freeze-v3` 与 `scene-composition-boundary-v1`：Composition-owned
+  SceneSafeArea、project-local VisualShell、semantic-only Renderer、顶层 CaptionLayer 分权；
+  VisualShell 不是 GlobalVisualLayers，PreviewAssembly v2 绑定 shell/boundary identity；v1/v2
+  路径及既有正式项目不迁移；
 - 不含 BGM、跨 Scene ambience、ducking、GlobalVisualLayers 或 Agent Scene 审美 gate 的
   versioned PreviewAssembly、机械 PreviewEvidence 和 `preview-ready` 终点；
 - current Codex 主任务在子 Agent 与 watcher 期间保持运行；repo 脚本不创建 Agent，也不

@@ -16,6 +16,7 @@
 所有命令只接受下面的 exact form；未知、重复、缺失或额外参数都会非零退出。
 
 ```bash
+npm run production:preflight -- --project <storyId>
 npm run production:start -- --project <storyId>
 npm run production:narrative -- --run <runId>
 npm run production:status -- --run <runId>
@@ -32,11 +33,19 @@ npm run production:preview:check -- --run <runId>
 节点；真实运行可能调用已配置 VoxCPM，但默认测试只使用依赖注入 fake provider，不访问
 网络或私有配置。
 
+`production:preflight` 是 transient、read-only 的 Run-before-write 诊断。它固定调用 VoxCPM
+`/health` 检查 liveness，再用 `/ready` 区分 resident 与允许自动装载的
+`cold-auto-load-on-first-tts`；`503/loading` 通过且不预热、不发送测试 TTS，`500` 归类为脱敏
+external model blocker。随后使用与正式 compositions 相同的 Remotion executable、entry 和
+args 启动 Chromium；sandbox/permission denial 是 external blocker，不使用 fallback 或降低
+sandbox。preflight 不进入 ProductionRun ledger，不写 event/state/scaffold/narration work，也不
+成为作品 authority。`production:start` 在任何写入和 clock/runId 生成前强制复用同一逻辑。
+
 ## 未来 production 的统一可读性冻结
 
-代码变更之后开始的新 Run 只接受 `ProductionRequirementsFreeze` v2。它把 Composition 的
+代码变更之后开始的新 Run 只接受 `production-requirements-freeze-v3`。它把 Composition 的
 width/height 与 `production-readability-v1` 完整解析结果结构化封存并 fingerprint；这是一条
-适用于所有画幅的生产规则，不是 9:16 或 portrait policy。已有 v1 requirements/Run 继续按
+适用于所有画幅的生产规则，不是 9:16 或 portrait policy。已有 v1/v2 requirements/Run 继续按
 原合同读取和检查，不注入默认字段、不迁移、不重写任何旧作品或 identity。
 
 策略用整数有理数 `scale = max(1080, min(width, height)) / 1080` 计算：90/36/40/180/30/38
@@ -52,12 +61,19 @@ bottom inset 再向上取整到 10 的倍数。1080 short edge 的结果为
 chunks；超限只返回可定位到 `chunkId` 的 Agent-owned authoring failure，不自动拆分、改写、
 裁剪或缩小字号。
 
-Scene freeze 将完整策略写入 v2 task/assignment；package/result/mechanical identity 与 watcher、
-post-Scene Preview 复检都绑定同一 policy fingerprint。未来 Renderer 必须使用
-`SceneBackground` 与 `SceneContentFrame`，完整 source graph 中可见 HTML/SVG 文字必须静态
-证明达到字号下限，未知/继承/相对单位/缩小 scale/Scene-owned CaptionLayer 均 fail closed。
-这些 primitive 只约束和裁切安全区，不生成布局、不做 Scene DSL、自动导演或 capability
-promotion。顶层 CaptionLayer 显式读取冻结的字幕策略；旧 Composition 不传 policy 时输出不变。
+Scene freeze 将完整策略、`scene-composition-boundary-v1` 和 current VisualShell source-graph
+fingerprint 写入 v3 task/assignment；package/result/mechanical identity、watcher 与 post-Scene
+Preview 都复检同一组 identity。Composition 的 `SceneSafeArea` exactly once 直接消费 frozen
+policy 并提供 SceneText context；v3 Renderer 只输出 semantic content，不接收 raw policy，也不
+拥有背景、安全框、VisualShell、CaptionLayer 或 audio。完整 source graph 中可见 HTML/SVG
+文字仍必须静态证明达到字号下限，未知/继承/相对单位/缩小 scale 均 fail closed。
+
+每个 v3 project 在 freeze 前由主 Agent 写静态 literal-imported
+`visual-shell/VisualShell.tsx`。它只拥有全屏背景、纹理、非语义装饰与连续性 motif，并在已有
+`storyVisualTrack` node 内 exactly once 包住 StoryVisualTrack。VisualShell 不是
+GlobalVisualLayers：没有独立 global plan/projection/enhancement，也不扩张为 Track、Scene DSL、
+自动布局器或自动导演。顶层 CaptionLayer 仍由 NarrativeCore 唯一渲染。v1/v2 scaffold、
+Renderer、package/result/check path 与所有现有正式项目保持原样，不回填、不迁移。
 
 Narrative 到达 `baseline-ready` 后，主 Agent 写 current `visual-style.json`、
 `production/story-resource-pool.json` 和 `production/scene-production-brief.json`，再运行
@@ -115,8 +131,9 @@ src/projects/<storyId>/generated/production-preview-mechanical-check.generated.j
 ```
 
 机械检查绑定画幅、fps、帧数、音视频流、完整解码、coverage、registry、projection、assembly
-和媒体 checksum。M9.5 Preview 显式禁止 GlobalSoundPlan、BGM、跨 Scene ambience、ducking 和
-GlobalVisualLayers；Scene-local ambience/SFX 仍归 ScenePackage 所有。它不执行 NarrativeCheck
+和媒体 checksum。v3 PreviewAssembly v2 额外绑定 VisualShell source graph 与 shared boundary，
+同时仍显式禁止 GlobalSoundPlan、BGM、跨 Scene ambience、ducking 和 GlobalVisualLayers；
+Scene-local ambience/SFX 仍归 ScenePackage 所有。它不执行 NarrativeCheck
 或 Scene Agent 审美审核。
 
 成功 stdout 返回 `runId`、`status: preview-ready`、MP4 relative path/checksum、evidence
