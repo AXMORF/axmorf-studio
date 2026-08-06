@@ -429,3 +429,46 @@ export const runProductionSceneSubmit = async ({
     throw error;
   }
 };
+
+export const runProductionSceneCheck = async ({
+  rootDir,
+  runId,
+  meaningId: rawMeaningId,
+  resolveAssignment = resolveCurrentSceneAssignment,
+  validateScene = validateSceneFromProjectFiles,
+}: {
+  readonly rootDir: string;
+  readonly runId: string;
+  readonly meaningId: string;
+  readonly resolveAssignment?: SceneAssignmentResolver;
+  readonly validateScene?: SceneValidator;
+}) => {
+  const meaningId = MeaningIdSchema.parse(rawMeaningId);
+  const loaded = await readProductionRunStore({ rootDir, runId });
+  assertSceneResultState(loaded.state.state);
+  const assignment = SceneAssignmentSchema.parse(
+    await resolveAssignment({ rootDir, runId, meaningId }),
+  );
+  if (
+    assignment.runId !== loaded.run.runId ||
+    assignment.storyId !== loaded.run.storyId ||
+    assignment.meaningId !== meaningId
+  ) {
+    throw new Error("SceneAssignment identity does not match the run.");
+  }
+  const existing = await readExistingSceneResult({ rootDir, runId, meaningId });
+  if (existing !== null) {
+    throw new Error("Scene check requires no existing production result.");
+  }
+  const validated = await validateScene({ rootDir, assignment });
+  return {
+    runId,
+    storyId: assignment.storyId,
+    meaningId,
+    status: "ready-to-submit" as const,
+    assignmentFingerprint: assignment.assignmentFingerprint,
+    scenePackageFingerprint: validated.scenePackage.packageFingerprint,
+    rendererSourceGraphFingerprint: validated.rendererSourceGraphFingerprint,
+    mechanicalCheckFingerprint: validated.mechanicalCheckFingerprint,
+  } as const;
+};

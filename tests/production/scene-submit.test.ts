@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
@@ -24,7 +24,10 @@ import { buildScenePackage } from "../../scripts/scene-package/domain";
 import { parseSceneSelectedResourcesFile } from "../../scripts/scene-package/generate";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
 import { runProductionSceneFail } from "../../scripts/production/scene-fail";
-import { runProductionSceneSubmit } from "../../scripts/production/scene-submit";
+import {
+  runProductionSceneCheck,
+  runProductionSceneSubmit,
+} from "../../scripts/production/scene-submit";
 import {
   FIXED_PRODUCTION_NOW,
   createProductionFixture,
@@ -195,6 +198,87 @@ const createFixture = async (context: TestContext) => {
   });
   return { ...fixture, assignment, scenePackage: createPackage(assignment) };
 };
+
+test("check validates a Scene without creating an immutable result", async (context) => {
+  const fixture = await createFixture(context);
+  const statePath = join(
+    fixture.rootDir,
+    ".producer-runs",
+    fixture.runId,
+    "state.generated.json",
+  );
+  const resultPath = join(
+    fixture.rootDir,
+    ".producer-runs",
+    fixture.runId,
+    "scene-results/opening.json",
+  );
+  const beforeState = await readFile(statePath);
+  const beforeMtime = (await stat(statePath)).mtimeMs;
+  const eventsPath = join(
+    fixture.rootDir,
+    ".producer-runs",
+    fixture.runId,
+    "events",
+  );
+  const beforeEvents = await readdir(eventsPath);
+
+  const result = await runProductionSceneCheck({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    meaningId: "opening",
+    resolveAssignment: async () => fixture.assignment,
+    validateScene: async () => ({
+      scenePackage: fixture.scenePackage,
+      rendererSourceGraphFingerprint: sha("8"),
+      mechanicalCheckFingerprint: sha("9"),
+    }),
+  });
+
+  assert.deepEqual(result, {
+    runId: fixture.runId,
+    storyId: "story-example",
+    meaningId: "opening",
+    status: "ready-to-submit",
+    assignmentFingerprint: fixture.assignment.assignmentFingerprint,
+    scenePackageFingerprint: fixture.scenePackage.packageFingerprint,
+    rendererSourceGraphFingerprint: sha("8"),
+    mechanicalCheckFingerprint: sha("9"),
+  });
+  await assert.rejects(() => stat(resultPath), { code: "ENOENT" });
+  assert.deepEqual(await readFile(statePath), beforeState);
+  assert.equal((await stat(statePath)).mtimeMs, beforeMtime);
+  assert.deepEqual(await readdir(eventsPath), beforeEvents);
+});
+
+test("check rejects invalid Agent output without terminalizing the run", async (context) => {
+  const fixture = await createFixture(context);
+  const resultPath = join(
+    fixture.rootDir,
+    ".producer-runs",
+    fixture.runId,
+    "scene-results/opening.json",
+  );
+
+  await assert.rejects(() =>
+    runProductionSceneCheck({
+      rootDir: fixture.rootDir,
+      runId: fixture.runId,
+      meaningId: "opening",
+      resolveAssignment: async () => fixture.assignment,
+      validateScene: async () => {
+        throw new Error("Renderer crosses another Scene directory.");
+      },
+    }),
+  );
+
+  await assert.rejects(() => stat(resultPath), { code: "ENOENT" });
+  const state = await readProductionRunStore({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+  });
+  assert.equal(state.state.state, "scene-inputs-frozen");
+});
 
 test("submit creates one success result without changing central state", async (context) => {
   const fixture = await createFixture(context);

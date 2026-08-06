@@ -12,7 +12,10 @@ import { runProductionNarrative } from "./narrative";
 import { runProductionPostScene } from "./post-scene";
 import { runProductionSceneFail } from "./scene-fail";
 import { runProductionSceneFreeze } from "./scene-freeze";
-import { runProductionSceneSubmit } from "./scene-submit";
+import {
+  runProductionSceneCheck,
+  runProductionSceneSubmit,
+} from "./scene-submit";
 import { runProductionWatch } from "./watch";
 import { runProductionPreflight } from "./preflight";
 
@@ -40,6 +43,11 @@ type ProductionCliContext = Readonly<{
     readonly runId: string;
   }) => Promise<unknown>;
   sceneSubmit?: (request: {
+    readonly rootDir: string;
+    readonly runId: string;
+    readonly meaningId: string;
+  }) => Promise<unknown>;
+  sceneCheck?: (request: {
     readonly rootDir: string;
     readonly runId: string;
     readonly meaningId: string;
@@ -128,6 +136,25 @@ export const runProductionCli = async (
     result = context.sceneFreeze
       ? await context.sceneFreeze({ rootDir: context.rootDir, runId })
       : await runProductionSceneFreeze({ rootDir: context.rootDir, runId });
+  } else if (
+    args.length === 5 &&
+    args[0] === "scene-check" &&
+    args[1] === "--run" &&
+    args[3] === "--scene"
+  ) {
+    const runId = ProductionRunIdSchema.parse(args[2]);
+    const meaningId = MeaningIdSchema.parse(args[4]);
+    result = context.sceneCheck
+      ? await context.sceneCheck({
+          rootDir: context.rootDir,
+          runId,
+          meaningId,
+        })
+      : await runProductionSceneCheck({
+          rootDir: context.rootDir,
+          runId,
+          meaningId,
+        });
   } else if (
     args.length === 5 &&
     args[0] === "scene-submit" &&

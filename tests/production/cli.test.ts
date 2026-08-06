@@ -16,6 +16,7 @@ test("production CLI accepts only exact start and status forms", async () => {
   const starts: string[] = [];
   const preflights: string[] = [];
   const statuses: string[] = [];
+  const sceneChecks: string[] = [];
   const context = {
     rootDir: process.cwd(),
     stdout: output.push.bind(output),
@@ -31,17 +32,47 @@ test("production CLI accepts only exact start and status forms", async () => {
       statuses.push(runId);
       return { ...startResult, runId, lastSequence: 1 };
     },
+    sceneCheck: async ({
+      runId,
+      meaningId,
+    }: {
+      readonly runId: string;
+      readonly meaningId: string;
+    }) => {
+      sceneChecks.push(`${runId}:${meaningId}`);
+      return { runId, meaningId, status: "ready-to-submit" };
+    },
   };
 
   await runProductionCli(["preflight", "--project", "story-example"], context);
   await runProductionCli(["start", "--project", "story-example"], context);
   await runProductionCli(["status", "--run", "story-example-run-001"], context);
+  await runProductionCli(
+    [
+      "scene-check",
+      "--run",
+      "story-example-run-001",
+      "--scene",
+      "opening",
+    ],
+    context,
+  );
   assert.deepEqual(starts, ["story-example"]);
   assert.deepEqual(preflights, ["story-example"]);
   assert.deepEqual(statuses, ["story-example-run-001"]);
+  assert.deepEqual(sceneChecks, ["story-example-run-001:opening"]);
   assert.deepEqual(
     output.map((line) => JSON.parse(line)),
-    [{ status: "pass", projectId: "story-example" }, startResult, { ...startResult, lastSequence: 1 }],
+    [
+      { status: "pass", projectId: "story-example" },
+      startResult,
+      { ...startResult, lastSequence: 1 },
+      {
+        runId: "story-example-run-001",
+        meaningId: "opening",
+        status: "ready-to-submit",
+      },
+    ],
   );
 
   for (const args of [
@@ -54,6 +85,8 @@ test("production CLI accepts only exact start and status forms", async () => {
     ["start", "--run", "story-example"],
     ["status", "--project", "story-example"],
     ["status", "--run", "Bad_Run"],
+    ["scene-check", "--run", "story-example-run-001"],
+    ["scene-check", "--run", "story-example-run-001", "--scene", "Bad_ID"],
     ["unknown", "--project", "story-example"],
   ]) {
     await assert.rejects(() => runProductionCli(args, context));
@@ -75,6 +108,10 @@ test("package scripts expose production commands and include production tests by
   assert.equal(
     packageJson.scripts["production:status"],
     "node --import tsx scripts/production/cli.ts status",
+  );
+  assert.equal(
+    packageJson.scripts["production:scene:check"],
+    "node --import tsx scripts/production/cli.ts scene-check",
   );
   assert.match(packageJson.scripts.test, /tests\/production\/\*\.test\.ts/u);
 });

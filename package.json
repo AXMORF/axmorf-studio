@@ -105,6 +105,7 @@
     "production:status": "node --import tsx scripts/production/cli.ts status",
     "production:narrative": "node --import tsx scripts/production/cli.ts narrative",
     "production:scene:freeze": "node --import tsx scripts/production/cli.ts scene-freeze",
+    "production:scene:check": "node --import tsx scripts/production/cli.ts scene-check",
     "production:scene:submit": "node --import tsx scripts/production/cli.ts scene-submit",
     "production:scene:fail": "node --import tsx scripts/production/cli.ts scene-fail",
     "production:watch": "node --import tsx scripts/production/cli.ts watch",
