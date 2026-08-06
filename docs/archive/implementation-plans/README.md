@@ -6,3 +6,8 @@
 2026-08-06 的工程结构治理计划完成了 milestone 脚本目录收口、正式作品静态验证 profile、
 兼容层隔离、scaffold/边界硬编码治理与文档同步；计划快照见
 `2026-08-06-engineering-structure-hardening-plan.md`。
+
+2026-08-07 的 GlobalVisual contract production 计划完成了 future-only v4 requirements、N 个
+Scene owner 与一个 GlobalVisual owner 的并行 assignment/result 汇合、static Preview 装配、
+兼容矩阵和 Skill/authority closeout；计划快照见
+`2026-08-07-agent-authored-global-visual-contract-production-plan.md`。
