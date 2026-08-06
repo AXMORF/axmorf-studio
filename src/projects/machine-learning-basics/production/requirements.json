@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 3,
+  "contractVersion": "production-requirements-freeze-v3",
+  "storyId": "machine-learning-basics",
+  "sourceBindings": {
+    "videoBrief": {
+      "repositoryPath": "src/projects/machine-learning-basics/brief.json",
+      "checksum": "sha256:1eb8c015c418511584a2f5288d0b15d282e6b933f776b18719e5b41ce7adefec"
+    },
+    "storySpec": {
+      "repositoryPath": "src/projects/machine-learning-basics/story.json",
+      "checksum": "sha256:c306c96474def667b4fa1f69325f807cb5ffa90d9eb130a1d99d90346d10c37a",
+      "fingerprint": "sha256:4f36ad8f94d261e78339f581d43e9fb798eeae5b947ab772e5c96c14114a902e"
+    },
+    "narrationSpec": {
+      "repositoryPath": "src/projects/machine-learning-basics/narration.json",
+      "checksum": "sha256:bfd63ad7466227d8c8d9246022e7cd3cb25826bc8d87031d0eb22b6f1839407a",
+      "fingerprint": "sha256:44527a5c0ce6fbd8ff838752ce5d30c0c193c83ff8627e998e9c9b7101a35f13"
+    },
+    "renderSpec": {
+      "repositoryPath": "src/projects/machine-learning-basics/render.json",
+      "checksum": "sha256:997cc2ba3dd8722ce3081bca7efb3d81343ca4f37c30fc02b879c2ad1f2f456a",
+      "fingerprint": "sha256:387e7b15dec3f594a290e1adfa851216cafcc30c329c07bcb508a374f47f6b89"
+    },
+    "storyCheck": {
+      "repositoryPath": "src/projects/machine-learning-basics/reviews/story-check.json",
+      "checksum": "sha256:4d9bb24c8a04cab3534c05f5d03662f6b08ad1422d8babb0afe64054cf6327a2",
+      "fingerprint": "sha256:aaa4a20a02ad117d5031d7a1546f31608f82ca564ba2b3028366449e699bcfe8"
+    }
+  },
+  "normalizedSummary": {
+    "locale": "zh-CN",
+    "fps": 30,
+    "width": 1080,
+    "height": 1920,
+    "voiceProfileId": "my-voice",
+    "captionSafeArea": {
+      "top": 90,
+      "right": 90,
+      "bottom": 180,
+      "left": 90
+    }
+  },
+  "enhancementSelection": {
+    "storyVisual": "required",
+    "sceneLocalSound": "allowed",
+    "globalSound": "none",
+    "globalVisual": "none"
+  },
+  "resourcePolicy": {
+    "selfAuthoredVisualsAllowed": true,
+    "unlistedThirdPartyResources": "deny"
+  },
+  "additionalRequirements": [
+    {
+      "requirementId": "plain-chinese-explanation",
+      "scope": "production",
+      "targetMeaningIds": [],
+      "category": "content",
+      "statement": "Explain machine learning in plain Simplified Chinese for viewers with no prior knowledge.",
+      "owner": "main-agent",
+      "verification": "contract",
+      "severity": "error"
+    },
+    {
+      "requirementId": "visual-single-focus",
+      "scope": "all-scenes",
+      "targetMeaningIds": [],
+      "category": "visual",
+      "statement": "Keep one primary visual focus and make every essential label readable within the frozen Scene content frame.",
+      "owner": "scene-agent",
+      "verification": "contract",
+      "severity": "error"
+    },
+    {
+      "requirementId": "caption-readability",
+      "scope": "narrative",
+      "targetMeaningIds": [],
+      "category": "caption",
+      "statement": "Every authored narration chunk must remain within the frozen caption display budget.",
+      "owner": "script",
+      "verification": "mechanical",
+      "severity": "error"
+    },
+    {
+      "requirementId": "final-preview-decision",
+      "scope": "final-preview",
+      "targetMeaningIds": [],
+      "category": "delivery",
+      "statement": "The user decides whether the complete preview explains the topic clearly.",
+      "owner": "user-preview",
+      "verification": "user-preview",
+      "severity": "warning"
+    }
+  ],
+  "readabilityPolicy": {
+    "schemaVersion": 1,
+    "policyId": "production-readability-v1",
+    "policyVersion": 1,
+    "width": 1080,
+    "height": 1920,
+    "scale": {
+      "numerator": 1080,
+      "denominator": 1080
+    },
+    "edgeInsetPx": 90,
+    "sceneBottomInsetPx": 360,
+    "typographyPolicy": {
+      "minFontSizePx": 36
+    },
+    "captionPolicy": {
+      "displayUnitAlgorithmId": "caption-display-unit-v1",
+      "recommendedDisplayUnitsPerChunk": 32,
+      "maxDisplayUnitsPerChunk": 36,
+      "recommendedDisplayHalfUnits": 64,
+      "maxDisplayHalfUnits": 72,
+      "maxCaptionLines": 2,
+      "captionFontSizePx": 40,
+      "captionBottomInsetPx": 180,
+      "captionGapPx": 30,
+      "captionVerticalPaddingPx": 38,
+      "captionBoxHeightPx": 146,
+      "lineHeight": {
+        "numerator": 135,
+        "denominator": 100
+      }
+    },
+    "sceneContentSafeAreaPx": {
+      "top": 90,
+      "right": 90,
+      "bottom": 360,
+      "left": 90
+    },
+    "captionSafeAreaPx": {
+      "top": 90,
+      "right": 90,
+      "bottom": 180,
+      "left": 90
+    },
+    "policyFingerprint": "sha256:5ce5655efa4b5219f25958a8fd0efba30921d52277e89e8cddbcedffbe5f826b"
+  },
+  "sceneBoundaryOwnership": {
+    "sceneCompositionBoundaryVersion": "scene-composition-boundary-v1",
+    "sceneSafeAreaOwner": "composition",
+    "captionOwner": "caption-layer"
+  },
+  "requirementsFingerprint": "sha256:ba5e83c83020e4ca10228fea9a316ac5816938948318f0bd387f4792df4357b6"
+}

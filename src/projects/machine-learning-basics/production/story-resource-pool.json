@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "story-resource-pool-v1",
+  "storyId": "machine-learning-basics",
+  "requirementsFingerprint": "sha256:ba5e83c83020e4ca10228fea9a316ac5816938948318f0bd387f4792df4357b6",
+  "resourceCatalogFingerprint": "sha256:83872a754e05df18d0ec008ecd4f9cb637c0c159481dc59b0368898125188689",
+  "allowedResourceIds": [],
+  "allowedSnapshots": [],
+  "selfAuthoredVisualsAllowed": true,
+  "poolFingerprint": "sha256:a3ecddd1179e07faada231e16ac8032e3132396c22458f6fdeb566ea8a245842"
+}

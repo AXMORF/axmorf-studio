@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:c4695aa1227669d893ba57985bc6d092069883866b036612097fbfeda490bfe2",
+  "meaningId": "one-sentence-summary",
+  "semanticObjective": "Leave one memorable definition of machine learning.",
+  "subject": "Four large connected nodes for data, training, model, and prediction.",
+  "primaryAction": "The four nodes assemble and one new input travels through the completed pathway.",
+  "causalLink": "Data enables training, training produces a model, and the model predicts new situations.",
+  "primaryComposition": "One centered vertical pathway with four large high-contrast nodes.",
+  "styleRealization": [
+    "Reuse cyan data, coral adjustment, lime model, and ivory prediction.",
+    "Hold a clean final summary frame."
+  ],
+  "continuity": "Complete the established pathway and end without introducing a new visual concept.",
+  "orderedShotIds": [
+    "pipeline-assembles",
+    "new-case-flows"
+  ],
+  "visualResourceIds": [],
+  "recipeDecision": "empty",
+  "fallbackIntent": "Hold the four-step data-to-prediction pathway.",
+  "visualPlanFingerprint": "sha256:cbeb66d9420256d5fa7b364ad2bb094a9510cca379c0c00f4e1629d830e10b87"
+}

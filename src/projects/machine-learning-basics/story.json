@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "storyId": "machine-learning-basics",
+  "title": "什么是机器学习？",
+  "beats": [
+    {
+      "meaningId": "not-human-thinking",
+      "narrativePurpose": "用反直觉开场消除机器学习等于电脑思考的误解。",
+      "ttsChunks": [
+        {
+          "chunkId": "not-human-thinking-01",
+          "ttsText": "机器学习，不是让电脑真的学会思考。"
+        },
+        {
+          "chunkId": "not-human-thinking-02",
+          "ttsText": "它更像是让电脑从许多例子中，自己找出规律。"
+        }
+      ],
+      "explicitPauses": []
+    },
+    {
+      "meaningId": "rules-versus-examples",
+      "narrativePurpose": "对比传统编程与机器学习的输入方式。",
+      "ttsChunks": [
+        {
+          "chunkId": "rules-versus-examples-01",
+          "ttsText": "传统程序，是人先写好规则，再让电脑照着执行。"
+        },
+        {
+          "chunkId": "rules-versus-examples-02",
+          "ttsText": "机器学习则是给电脑数据和答案，让它归纳规则。"
+        }
+      ],
+      "explicitPauses": []
+    },
+    {
+      "meaningId": "learn-with-cat-examples",
+      "narrativePurpose": "用识别猫的例子解释数据和特征。",
+      "ttsChunks": [
+        {
+          "chunkId": "learn-with-cat-examples-01",
+          "ttsText": "比如识别猫，我们先给电脑看许多标好答案的图片。"
+        },
+        {
+          "chunkId": "learn-with-cat-examples-02",
+          "ttsText": "它会逐渐抓住耳朵、轮廓和纹理等共同特征。"
+        }
+      ],
+      "explicitPauses": []
+    },
+    {
+      "meaningId": "training-model-prediction",
+      "narrativePurpose": "建立训练、模型和预测三个核心概念的因果关系。",
+      "ttsChunks": [
+        {
+          "chunkId": "training-model-prediction-01",
+          "ttsText": "反复看例子、调整参数、纠正错误，这个过程叫训练。"
+        },
+        {
+          "chunkId": "training-model-prediction-02",
+          "ttsText": "训练得到的规则集合，叫模型。"
+        },
+        {
+          "chunkId": "training-model-prediction-03",
+          "ttsText": "模型判断一张新图像像不像猫，这就叫预测。"
+        }
+      ],
+      "explicitPauses": []
+    },
+    {
+      "meaningId": "patterns-have-limits",
+      "narrativePurpose": "说明模型能力边界与数据偏差风险。",
+      "ttsChunks": [
+        {
+          "chunkId": "patterns-have-limits-01",
+          "ttsText": "但模型只会寻找数据里的模式，不会自动理解世界。"
+        },
+        {
+          "chunkId": "patterns-have-limits-02",
+          "ttsText": "如果数据有偏差，预测结果也可能有偏差。"
+        },
+        {
+          "chunkId": "patterns-have-limits-03",
+          "ttsText": "所以好数据、合适目标和持续验证，都很重要。"
+        }
+      ],
+      "explicitPauses": []
+    },
+    {
+      "meaningId": "one-sentence-summary",
+      "narrativePurpose": "用一句话闭环定义机器学习。",
+      "ttsChunks": [
+        {
+          "chunkId": "one-sentence-summary-01",
+          "ttsText": "一句话，机器学习就是用数据训练模型，让电脑对新情况做出预测。"
+        }
+      ],
+      "explicitPauses": []
+    }
+  ]
+}

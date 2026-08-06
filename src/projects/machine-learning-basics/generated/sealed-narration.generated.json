@@ -1,0 +1,213 @@
+{
+  "assemblyAlgorithmId": "ordered-pcm-concat-v1",
+  "canonicalPcm": {
+    "channelLayout": "mono",
+    "sampleFormat": "s16le",
+    "sampleRate": 48000
+  },
+  "completeAudio": {
+    "checksum": "sha256:8abb607667de87651b1608acea7351e55bde7a980fa0f071eb33e0af0062e6a2",
+    "localPath": "public/projects/machine-learning-basics/narration/ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f/complete.wav",
+    "pcm": {
+      "channelLayout": "mono",
+      "sampleFormat": "s16le",
+      "sampleRate": 48000
+    },
+    "sampleFrameCount": 3110400
+  },
+  "generationInputFingerprint": "sha256:1bfce454d62aa2b49b27edcdfd2de756f398ca62eba5907d27c455d069b182c9",
+  "narrationSpec": {
+    "mode": "voice-clone",
+    "schemaVersion": 1,
+    "seed": 42,
+    "voiceProfileId": "my-voice"
+  },
+  "normalizationAlgorithmId": "pcm-s16le-normalize-v1",
+  "schemaVersion": 1,
+  "sealedNarrationFingerprint": "sha256:ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f",
+  "segments": [
+    {
+      "checksum": "sha256:3f159f8e549650282b788cfe4bbb01fff93930f165c4e012a7f8a328a5652870",
+      "chunkId": "not-human-thinking-01",
+      "kind": "chunk",
+      "localPath": "public/projects/machine-learning-basics/narration/ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f/chunks/not-human-thinking-01.wav",
+      "meaningId": "not-human-thinking",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 153600,
+      "ttsText": "机器学习，不是让电脑真的学会思考。"
+    },
+    {
+      "checksum": "sha256:2665150a50d68ffa696f20da0d7270f57890d50fa61b870e818f375cd2d701c5",
+      "chunkId": "not-human-thinking-02",
+      "kind": "chunk",
+      "localPath": "public/projects/machine-learning-basics/narration/ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f/chunks/not-human-thinking-02.wav",
+      "meaningId": "not-human-thinking",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 230400,
+      "ttsText": "它更像是让电脑从许多例子中，自己找出规律。"
+    },
+    {
+      "checksum": "sha256:582a284940626241267d865c4f617a88ccad88de6abc14f93ff5f2d014ee664e",
+      "chunkId": "rules-versus-examples-01",
+      "kind": "chunk",
+      "localPath": "public/projects/machine-learning-basics/narration/ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f/chunks/rules-versus-examples-01.wav",
+      "meaningId": "rules-versus-examples",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 245760,
+      "ttsText": "传统程序，是人先写好规则，再让电脑照着执行。"
+    },
+    {
+      "checksum": "sha256:7ca081faf12824989902e873619c82868ef671239ab58b2a6a3af013e79a8731",
+      "chunkId": "rules-versus-examples-02",
+      "kind": "chunk",
+      "localPath": "public/projects/machine-learning-basics/narration/ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f/chunks/rules-versus-examples-02.wav",
+      "meaningId": "rules-versus-examples",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 245760,
+      "ttsText": "机器学习则是给电脑数据和答案，让它归纳规则。"
+    },
+    {
+      "checksum": "sha256:ce48c16f89face0b8b9f78c2238d10f34b9b4f5fa7f7bedca3a805562df918e4",
+      "chunkId": "learn-with-cat-examples-01",
+      "kind": "chunk",
+      "localPath": "public/projects/machine-learning-basics/narration/ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f/chunks/learn-with-cat-examples-01.wav",
+      "meaningId": "learn-with-cat-examples",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 199680,
+      "ttsText": "比如识别猫，我们先给电脑看许多标好答案的图片。"
+    },
+    {
+      "checksum": "sha256:80ef263244570a50939dbf75b211f5d9c029e7728bf503e1a00d893d50ec02d8",
+      "chunkId": "learn-with-cat-examples-02",
+      "kind": "chunk",
+      "localPath": "public/projects/machine-learning-basics/narration/ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f/chunks/learn-with-cat-examples-02.wav",
+      "meaningId": "learn-with-cat-examples",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 245760,
+      "ttsText": "它会逐渐抓住耳朵、轮廓和纹理等共同特征。"
+    },
+    {
+      "checksum": "sha256:6d8070adc7c828131c3515a4f5b63e4cfb89a572c26c267c9daf900f3e09d2e0",
+      "chunkId": "training-model-prediction-01",
+      "kind": "chunk",
+      "localPath": "public/projects/machine-learning-basics/narration/ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f/chunks/training-model-prediction-01.wav",
+      "meaningId": "training-model-prediction",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 307200,
+      "ttsText": "反复看例子、调整参数、纠正错误，这个过程叫训练。"
+    },
+    {
+      "checksum": "sha256:88f530cd23dbf3c035676ffcf4a1a7775259dfce14c5002c7782c5595e19ff16",
+      "chunkId": "training-model-prediction-02",
+      "kind": "chunk",
+      "localPath": "public/projects/machine-learning-basics/narration/ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f/chunks/training-model-prediction-02.wav",
+      "meaningId": "training-model-prediction",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 207360,
+      "ttsText": "训练得到的规则集合，叫模型。"
+    },
+    {
+      "checksum": "sha256:d80b3df4963369fc03cb44b288614cd2b3d76a93df65cd955f5a0c9faef5706a",
+      "chunkId": "training-model-prediction-03",
+      "kind": "chunk",
+      "localPath": "public/projects/machine-learning-basics/narration/ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f/chunks/training-model-prediction-03.wav",
+      "meaningId": "training-model-prediction",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 222720,
+      "ttsText": "模型判断一张新图像像不像猫，这就叫预测。"
+    },
+    {
+      "checksum": "sha256:72a6a50482125455c7d4143a4ec68e28c9098ee9d922b097ccd18953948fb4e8",
+      "chunkId": "patterns-have-limits-01",
+      "kind": "chunk",
+      "localPath": "public/projects/machine-learning-basics/narration/ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f/chunks/patterns-have-limits-01.wav",
+      "meaningId": "patterns-have-limits",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 230400,
+      "ttsText": "但模型只会寻找数据里的模式，不会自动理解世界。"
+    },
+    {
+      "checksum": "sha256:e7dc55a2c936f576fc3c6ad73b17106e23a1b8cde3cfcd4bfdc561f03d3f02eb",
+      "chunkId": "patterns-have-limits-02",
+      "kind": "chunk",
+      "localPath": "public/projects/machine-learning-basics/narration/ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f/chunks/patterns-have-limits-02.wav",
+      "meaningId": "patterns-have-limits",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 238080,
+      "ttsText": "如果数据有偏差，预测结果也可能有偏差。"
+    },
+    {
+      "checksum": "sha256:dc9d9f053e811fb2566c16ceba2a968ddf52612f92279f83a090f147d31c37fd",
+      "chunkId": "patterns-have-limits-03",
+      "kind": "chunk",
+      "localPath": "public/projects/machine-learning-basics/narration/ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f/chunks/patterns-have-limits-03.wav",
+      "meaningId": "patterns-have-limits",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 261120,
+      "ttsText": "所以好数据、合适目标和持续验证，都很重要。"
+    },
+    {
+      "checksum": "sha256:a0eb00734f7d4bf3fff27b5f19eb9f11971a5f70c62a0ce8364c376d648af697",
+      "chunkId": "one-sentence-summary-01",
+      "kind": "chunk",
+      "localPath": "public/projects/machine-learning-basics/narration/ff51ba31b3507cc6b120d37d89f8ad6b85400fdf9316ca7cf15feec4fece531f/chunks/one-sentence-summary-01.wav",
+      "meaningId": "one-sentence-summary",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 322560,
+      "ttsText": "一句话，机器学习就是用数据训练模型，让电脑对新情况做出预测。"
+    }
+  ],
+  "storyId": "machine-learning-basics"
+}

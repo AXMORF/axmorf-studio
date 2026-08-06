@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:ce8c1620b7e6215688c13b0b95daa75274debfa44b3a7ee21d5b7916165c39ba",
+  "meaningId": "training-model-prediction",
+  "sceneDurationInFrames": 461,
+  "anchors": [],
+  "syncAnchorFingerprint": "sha256:574e37939c594238fe2e6ad3b0f571f432d78467ee16affe87d15f82a243058f"
+}

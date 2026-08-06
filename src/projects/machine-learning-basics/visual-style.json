@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "storyId": "machine-learning-basics",
+  "styleProfileId": "hand-drawn-explainer",
+  "resourceCatalogFingerprint": "sha256:83872a754e05df18d0ec008ecd4f9cb637c0c159481dc59b0368898125188689",
+  "artDirection": {
+    "medium": "Project-local vector shapes arranged like a friendly hand-drawn classroom explainer.",
+    "palette": "Deep navy background, warm ivory surfaces, cyan data marks, coral corrections, and lime success accents.",
+    "lighting": "Flat graphic lighting with soft local glows only around the active concept.",
+    "texture": "Subtle procedural paper grain and imperfect vector strokes; no external textures.",
+    "compositionGrammar": "One large central concept per Scene, with a persistent left-to-right data-to-prediction pathway and generous vertical spacing.",
+    "motionLanguage": "Frame-driven drawing reveals, flowing dots, parameter adjustments, and gentle spring emphasis tied to the causal explanation.",
+    "typography": "Large rounded Simplified Chinese labels with short phrases, high contrast, and no duplication of top-level captions."
+  },
+  "continuityRules": [
+    "Carry the same cyan data dots and lime model node through the complete explanation.",
+    "Build the data-to-training-to-model-to-prediction pathway progressively across Scenes.",
+    "Keep semantic labels inside the frozen Scene content frame and leave the top-level caption band unobstructed.",
+    "Use coral only for errors, corrections, or bias warnings; use lime only for learned output or verified prediction."
+  ],
+  "forbiddenTreatments": [
+    "No photorealistic robots, glowing brains, or imagery that implies human-like machine consciousness.",
+    "No dense dashboards, code listings, equations, or tiny technical annotations.",
+    "No remote media, historical project assets, CSS animation, CSS transitions, or animation utility classes.",
+    "No Scene-rendered narration captions or text inside the reserved caption band."
+  ]
+}

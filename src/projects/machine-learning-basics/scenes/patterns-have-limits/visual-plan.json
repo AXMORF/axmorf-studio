@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:e7817c9748d4ac37a4a392101fa76d73772263e3f2ea481612233a121809117e",
+  "meaningId": "patterns-have-limits",
+  "semanticObjective": "Show that learned patterns inherit data bias and do not equal understanding.",
+  "subject": "An imbalanced data stack, the same model, a tilted output scale, and three safeguards.",
+  "primaryAction": "Uneven data tilts the prediction before safeguards restore a balanced review frame.",
+  "causalLink": "A model follows its data, so biased examples can produce biased predictions unless people validate the system.",
+  "primaryComposition": "One causal row from uneven data through model to skewed output, followed by three large safeguards.",
+  "styleRealization": [
+    "Coral warning accents against the established palette.",
+    "Ivory safeguard cards with cyan and lime confirmation."
+  ],
+  "continuity": "Carry the safeguarded model into the final four-step definition.",
+  "orderedShotIds": [
+    "bias-propagates",
+    "human-safeguards"
+  ],
+  "visualResourceIds": [],
+  "recipeDecision": "empty",
+  "fallbackIntent": "Hold an imbalanced input, skewed result, and three readable safeguard cards.",
+  "visualPlanFingerprint": "sha256:4bfaf15cfc77bda98dfdaaaf8b28f463ede4b23fceb3b93760d9025c4abb0e65"
+}

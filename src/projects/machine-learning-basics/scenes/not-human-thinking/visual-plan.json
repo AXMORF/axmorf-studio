@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:eee40118ad28f1f25f57fd5e88a5372e643dcbab8c35a9284a8fe9c15d2e93bf",
+  "meaningId": "not-human-thinking",
+  "semanticObjective": "Clarify that machine learning finds patterns in examples rather than thinking like a person.",
+  "subject": "A simple computer card, a fading thought symbol, and a field of cyan examples.",
+  "primaryAction": "Examples arrive and resolve into one stable visible pattern.",
+  "causalLink": "More labeled examples make the inferred pattern visible without implying consciousness.",
+  "primaryComposition": "One centered computer with examples below and the discovered path above.",
+  "styleRealization": [
+    "Hand-drawn ivory strokes on deep navy.",
+    "Cyan examples and a lime learned path."
+  ],
+  "continuity": "Introduce cyan data dots and a lime learned rule for reuse in the next Scene.",
+  "orderedShotIds": [
+    "myth-clears",
+    "pattern-emerges"
+  ],
+  "visualResourceIds": [],
+  "recipeDecision": "empty",
+  "fallbackIntent": "Hold a readable computer, example dots, and one emerging rule path.",
+  "visualPlanFingerprint": "sha256:7a994bd461c0785b7cc398d175da1f60fe59819de1495a40071104eb29a8599f"
+}

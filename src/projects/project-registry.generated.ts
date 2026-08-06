@@ -55,6 +55,23 @@ export const projectRegistry = [
     load: () => import("./gps-relativity/Composition"),
   },
   {
+    id: "MachineLearningBasics",
+    fps: 30,
+    width: 1080,
+    height: 1920,
+    durationInFrames: 1974,
+    defaultProps: {
+      projectId: "machine-learning-basics",
+    } as StoryCompositionProps,
+    generatedEntryChecksum:
+      "sha256:505e4c19f19b1d9acc7012c8f25982d56f694f39ff45e85d262128ef3fbd609a",
+    projectRegistryEntryFingerprint:
+      "sha256:ac336aab2a110369e230f7c61b0bb7b6b834ce085fb2bb17b663762092561c95",
+    narrativeBaselineFingerprint:
+      "sha256:26ec73b76ce276e8202236aad612b3190ddbecb62f4f6acbb4a870866f56f10c",
+    load: () => import("./machine-learning-basics/Composition"),
+  },
+  {
     id: "ProductComicVertical",
     fps: 30,
     width: 1080,

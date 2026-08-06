@@ -1,0 +1,95 @@
+{
+  "allowedDirectories": {
+    "publicAssetRoot": "public/projects/machine-learning-basics/scenes/patterns-have-limits",
+    "sceneRoot": "src/projects/machine-learning-basics/scenes/patterns-have-limits"
+  },
+  "allowedResourceIds": [],
+  "allowedSnapshots": [],
+  "continuity": {
+    "continuityBrief": "Resolve the coral warning by carrying the safeguarded model into the final full pipeline.",
+    "nextMeaningId": "one-sentence-summary",
+    "nextSummary": "用一句话闭环定义机器学习。",
+    "previousMeaningId": "training-model-prediction",
+    "previousSummary": "建立训练、模型和预测三个核心概念的因果关系。"
+  },
+  "meaningId": "patterns-have-limits",
+  "readabilityPolicy": {
+    "captionPolicy": {
+      "captionBottomInsetPx": 180,
+      "captionBoxHeightPx": 146,
+      "captionFontSizePx": 40,
+      "captionGapPx": 30,
+      "captionVerticalPaddingPx": 38,
+      "displayUnitAlgorithmId": "caption-display-unit-v1",
+      "lineHeight": {
+        "denominator": 100,
+        "numerator": 135
+      },
+      "maxCaptionLines": 2,
+      "maxDisplayHalfUnits": 72,
+      "maxDisplayUnitsPerChunk": 36,
+      "recommendedDisplayHalfUnits": 64,
+      "recommendedDisplayUnitsPerChunk": 32
+    },
+    "captionSafeAreaPx": {
+      "bottom": 180,
+      "left": 90,
+      "right": 90,
+      "top": 90
+    },
+    "edgeInsetPx": 90,
+    "height": 1920,
+    "policyFingerprint": "sha256:5ce5655efa4b5219f25958a8fd0efba30921d52277e89e8cddbcedffbe5f826b",
+    "policyId": "production-readability-v1",
+    "policyVersion": 1,
+    "scale": {
+      "denominator": 1080,
+      "numerator": 1080
+    },
+    "sceneBottomInsetPx": 360,
+    "sceneContentSafeAreaPx": {
+      "bottom": 360,
+      "left": 90,
+      "right": 90,
+      "top": 90
+    },
+    "schemaVersion": 1,
+    "typographyPolicy": {
+      "minFontSizePx": 36
+    },
+    "width": 1080
+  },
+  "renderFingerprint": "sha256:387e7b15dec3f594a290e1adfa851216cafcc30c329c07bcb508a374f47f6b89",
+  "resourceCatalogFingerprint": "sha256:83872a754e05df18d0ec008ecd4f9cb637c0c159481dc59b0368898125188689",
+  "sceneCompositionBoundaryVersion": "scene-composition-boundary-v1",
+  "schemaVersion": 3,
+  "semanticTimingFingerprint": "sha256:da165379da1057e588e53811365dcd57c84c0419520e88a264bacf32e4f3cd75",
+  "storyBeat": {
+    "explicitPauses": [],
+    "meaningId": "patterns-have-limits",
+    "narrativePurpose": "说明模型能力边界与数据偏差风险。",
+    "ttsChunks": [
+      {
+        "chunkId": "patterns-have-limits-01",
+        "ttsText": "但模型只会寻找数据里的模式，不会自动理解世界。"
+      },
+      {
+        "chunkId": "patterns-have-limits-02",
+        "ttsText": "如果数据有偏差，预测结果也可能有偏差。"
+      },
+      {
+        "chunkId": "patterns-have-limits-03",
+        "ttsText": "所以好数据、合适目标和持续验证，都很重要。"
+      }
+    ]
+  },
+  "storyFingerprint": "sha256:4f36ad8f94d261e78339f581d43e9fb798eeae5b947ab772e5c96c14114a902e",
+  "storyId": "machine-learning-basics",
+  "taskInputFingerprint": "sha256:e7817c9748d4ac37a4a392101fa76d73772263e3f2ea481612233a121809117e",
+  "timingBeat": {
+    "endFrame": 1758,
+    "meaningId": "patterns-have-limits",
+    "startFrame": 1302
+  },
+  "visualStyleFingerprint": "sha256:03644df4f25d1e3955774a94828044000827fdd865ac86cd3a4c5f7fbdd95d7c"
+}
