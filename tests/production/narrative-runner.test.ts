@@ -8,7 +8,7 @@ import { readProductionRunStore } from "../../scripts/production/adapters/run-st
 import {
   runProductionNarrative,
   type NarrativeProductionDependencies,
-} from "../../scripts/production/narrative";
+} from "../../scripts/production/application/narrative";
 import {
   createProductionFixture,
   FIXED_PRODUCTION_NOW,

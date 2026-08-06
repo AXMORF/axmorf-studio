@@ -6,6 +6,9 @@ import { pathToFileURL } from "node:url";
 
 const execFileAsync = promisify(execFile);
 
+export const isActiveDocumentationPath = (repositoryPath: string) =>
+  !repositoryPath.startsWith("docs/archive/");
+
 export type MarkdownLinkCheckOptions = {
   readonly rootDir: string;
   readonly markdownPaths?: readonly string[];
@@ -112,6 +115,7 @@ const trackedMarkdownPaths = async (rootDir: string) => {
   return stdout
     .split(/\r?\n/u)
     .filter((entry) => entry.length > 0)
+    .filter(isActiveDocumentationPath)
     .sort();
 };
 

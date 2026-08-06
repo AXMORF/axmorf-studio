@@ -8,7 +8,7 @@ import {
   ProductionPreviewEvidenceSchema,
   buildProductionPreviewEvidence,
 } from "../../src/contracts";
-import { inspectProductionPreviewMedia } from "../../scripts/production/preview-evidence";
+import { inspectProductionPreviewMedia } from "../../scripts/production/application/preview-evidence";
 import { validPreviewEvidenceInput } from "./preview-fixture";
 
 test("accepts only mechanically-ready current preview evidence", () => {

@@ -1,11 +1,10 @@
 # 外部生产流程与解耦边界
 
-> Status：M4 已为 `gps-relativity` 完成 Narrative Baseline 机械闭环；M6 已实现通用 Scene
-> foundation；M7 已完成 GPS 五个正式 Scene、visual/local-sound runtime 装配、批量审核与
-> final 机械闭环；M8 已完成 global sound/global visual、最终预览、用户批准和 v2 final
-> 机械闭环；M9 已完成产品漫画第二主题、用户批准、第二份 passing v2 与泛化报告。
-> M9.5 数据合同驱动生产编排合同、CLI、watcher 与 mechanical Preview 已实现；NarrativeCheck、
-> promotion 实施与发布仍未实现。
+> 文档类型：生产阶段、输入输出与所有权权威
+>
+> 最后复核：2026-08-06
+>
+> 当前完成状态只在 [ITERATION_STATUS.md](ITERATION_STATUS.md) 维护。
 
 ## 1. 文档范围
 
@@ -144,7 +143,7 @@ ambience、ducking 或 GlobalVisualLayers，不执行 Agent Scene 审美审核�
 仓库脚本不负责创建 Codex 子 Agent。主 Agent 使用当前原生 Agent 能力按 meaningId 创建独立
 owner，然后保持当前任务运行、以宿主权限等待 watcher；不可用时在 Scene authoring 前报告
 blocker，不允许静默 inline。M9.5 不保证主任务结束后子 Agent 继续存活。完整实施边界见
-[M9.5 数据合同驱动生产编排计划](superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md)。
+[M9.5 历史实施计划](archive/implementation-plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md)。
 
 ### 3.2 v3 Run-before-write preflight 与 Scene ownership
 
@@ -161,8 +160,9 @@ task/assignment；package、result、watcher 和 PreviewAssembly 复检同一组
 Composition 的 `SceneSafeArea` 持有安全区和文字 context，Scene Renderer 只输出语义视觉，
 `CaptionLayer` 仍由 NarrativeCore 顶层唯一渲染。当前流程不生成 project-global visual wrapper；
 `GlobalVisualLayers` 在正式接入前保持 absent，未来作为全局背景、纹理、装饰和连续性 motif 的
-唯一项目级视觉权威。v1/v2 scaffold、Renderer、package/result/check path 保持兼容，现有正式
-项目不迁移。
+唯一项目级视觉权威。Scene Renderer 根节点必须透明，只渲染当前 Beat 的语义内容；不得自行
+补安全区底板、全帧底色、纹理或装饰背景。`GlobalVisualLayers` 缺失时，未使用区域保持透明。
+v1/v2 scaffold、Renderer、package/result/check path 保持兼容，现有正式项目不迁移。
 
 ## 4. 阶段输入与输出
 

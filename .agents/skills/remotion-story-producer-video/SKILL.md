@@ -43,7 +43,8 @@ use CodeGraph first when `.codegraph/` exists.
 - Author `ttsChunks` by meaning, tone, and reading rhythm; never auto-split by punctuation or characters.
   Return an over-budget chunk for Agent rework; sealed PCM with `pcm-cumulative-ceil-v1` owns timing.
 - Keep one Story, one Composition, and one exclusive ScenePackage per meaningId/StoryBeat.
-- Keep narration and captions top-level; Scene code is visual-only plus optional Scene-local sound.
+- Keep captions/narration top-level; every Scene root transparent; render only Beat-semantic content
+  plus local sound, never Scene-local backgrounds.
 - Bind renderers through the composition-local static registry; keep JSON non-executable.
 - Use manifest-verified repository-local assets and Remotion frame APIs only.
 - Keep runtime free of Agent, Skill, MCP, Git, provider, network, and directory scanning.

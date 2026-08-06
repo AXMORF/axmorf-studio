@@ -11,6 +11,7 @@ build
 private/
 voxcpm/voxcpm.private.json
 voxcpm/voice_profile/
+public/voice_profile/
 .codegraph/
 
 # Ignore the output video from Git but not videos you import into src/.

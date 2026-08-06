@@ -13,8 +13,8 @@ import { readProductionRunStore } from "../../scripts/production/adapters/run-st
 import {
   runProductionPostScene,
   type PostSceneProductionDependencies,
-} from "../../scripts/production/post-scene";
-import { createDefaultPostSceneProductionDependencies } from "../../scripts/production/post-scene-default";
+} from "../../scripts/production/application/post-scene";
+import { createDefaultPostSceneProductionDependencies } from "../../scripts/production/application/post-scene-default";
 import {
   FIXED_PRODUCTION_NOW,
   createProductionFixture,
@@ -262,7 +262,5 @@ test("default composition listing does not suppress enumerable Remotion stdout",
     compositionId: "RoundedAirplaneWindows",
   });
 
-  assert.deepEqual(calls, [
-    ["compositions", "src/index.ts"],
-  ]);
+  assert.deepEqual(calls, [["compositions", "src/index.ts"]]);
 });

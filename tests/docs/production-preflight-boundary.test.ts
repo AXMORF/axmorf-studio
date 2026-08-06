@@ -6,7 +6,10 @@ test("real production preflight requires host permissions and sandbox failures s
   const [agentGuide, orchestration, workflow, packageJsonText] = await Promise.all([
     readFile(new URL("../../AGENTS.md", import.meta.url), "utf8"),
     readFile(
-      new URL("../../docs/PRODUCTION_ORCHESTRATION.md", import.meta.url),
+      new URL(
+        "../../docs/guides/PRODUCTION_ORCHESTRATION.md",
+        import.meta.url,
+      ),
       "utf8",
     ),
     readFile(

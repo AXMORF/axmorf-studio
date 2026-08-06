@@ -13,7 +13,7 @@ import {
 import { SceneSlot } from "./SceneSlot";
 import { StoryBeatTransitionOverlay } from "./StoryBeatTransitionOverlay";
 import type {
-  SceneRendererProps,
+  SceneRendererMountProps,
   SceneRendererRegistry,
   StoryBeatVisualTransition,
   StoryVisualEntry,
@@ -208,7 +208,7 @@ export type StoryVisualTrackProps = Readonly<{
   projection: StoryVisualProjection;
   registry: SceneRendererRegistry;
   rendererPropsByMeaning: Readonly<
-    Record<string, Omit<SceneRendererProps, "sceneFrame">>
+    Record<string, SceneRendererMountProps>
   >;
 }>;
 

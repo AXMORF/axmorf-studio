@@ -1,5 +1,9 @@
 # 最小名词表
 
+> 文档类型：名词权威
+>
+> 最后复核：2026-08-06
+
 | 名词                         | 本项目含义                                                     | 与其他节点关系                                                                                                                                        |
 | ---------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | VideoBrief                   | 用户内容、受众、时长和交付约束                                 | Story 创作的输入，不包含实现代码                                                                                                                      |
@@ -8,7 +12,7 @@
 | NarrationSpec                | 本次旁白生成声明                                               | 包含 voice profile 引用和允许的生成参数，不包含密钥或 provider 地址                                                                                   |
 | RenderSpec                   | 用户每次制作直接提供的 Composition 与交付声明                  | 包含画幅、fps、locale、字幕安全区、音频输出与显式片头片尾范围；Agent 只结构化和机械校验，不重复确认                                                   |
 | ProductionRequirementsFreeze | M9.5 完整制作要求冻结外壳                                      | 绑定 VideoBrief、Story、NarrationSpec、RenderSpec、StoryCheck identities，并结构化画幅、voice profile、资源政策和额外要求；摘要不得成为第二 authority |
-| ProductionStartPreflight      | 新 Run 前只读环境诊断合同                                      | 固定检查 VoxCPM liveness/cold readiness 与正式 Chromium launch；不预热、不发送 TTS、不写 Run ledger 或作品 authority                                |
+| ProductionStartPreflight     | 新 Run 前只读环境诊断合同                                      | 固定检查 VoxCPM liveness/cold readiness 与正式 Chromium launch；不预热、不发送 TTS、不写 Run ledger 或作品 authority                                  |
 | Story                        | 一条完整叙事                                                   | 对应一个 Composition                                                                                                                                  |
 | StoryBeat                    | Story 中一个单一核心语义                                       | 对应一个 meaningId、NarrationUnit 和 Scene                                                                                                            |
 | meaningId                    | 语义关联键                                                     | 连接 StoryBeat、旁白、字幕、Scene 与审核                                                                                                              |
@@ -22,7 +26,7 @@
 | ProjectRegistry              | bundle 前自动发现并生成的 Story Composition 静态注册表         | 元数据静态可枚举，组件通过 `lazyComponent` 和字面量 `import()` 按需加载；runtime 不扫描目录，也不依赖 RendererRegistry                                |
 | Scene                        | StoryBeat 的独立视听制作任务                                   | 完成后对应一个 ScenePackage；内含视觉、Shot 与 Scene 局部声音，不拥有字幕、旁白或全局 BGM                                                             |
 | ScenePackage                 | 一个 Scene 的可装配视听制作结果                                | 绑定一个 Scene 级 rendererId、SceneSoundPlan、资源引用、同步锚点与分层 fingerprint                                                                    |
-| SceneRenderer                | Scene 对 runtime 暴露的单一视觉入口                            | v3 只拥有 Beat 语义视觉，由外层 SceneSafeArea 提供边界；可内含多个本地 Shot 组件，不拥有字幕、音频或 GlobalVisualLayers                                   |
+| SceneRenderer                | Scene 对 runtime 暴露的单一视觉入口                            | v3 只拥有 Beat 语义视觉，由外层 SceneSafeArea 提供边界；可内含多个本地 Shot 组件，不拥有字幕、音频或 GlobalVisualLayers                               |
 | SceneSafeArea                | v3 Composition-owned Scene 安全区 wrapper                      | exactly once 直接消费 frozen readability policy，并为 SceneText 提供同一 context；不推导第二套 inset                                                  |
 | RendererRegistry             | composition-local 静态 renderer 绑定                           | 把 ScenePackage.rendererId 映射到 SceneRenderer                                                                                                       |
 | Shot                         | Scene 内连续的镜头区间                                         | 绑定 meaningId，不绑定字幕、rendererId、组件或模块路径                                                                                                |

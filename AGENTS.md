@@ -58,8 +58,8 @@
   `FinalAssembly`、完整正常速度最终预览、用户 `FinalPreviewApproval` 和 passing
   `final-mechanical-check-v2`。M6 synthetic proof 仍不是正式 Story Scene。
 - M9 已用 `product-comic-vertical` 完成第二主题、真实用户批准、passing v2、42-case matrix
-  和泛化报告。M9.5 已按
-  `docs/superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md`
+  和泛化报告。M9.5 已按归档的历史实施计划
+  `docs/archive/implementation-plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md`
   实现数据合同驱动生产编排：`ProductionRequirementsFreeze`、append-only ProductionRun、
   固定 `production:*` CLI、Scene result/watcher 和无全局增强的 mechanical Preview 已落地。
   M10 发布、NarrativeCheck 和 promotion 仍未开始。
@@ -68,6 +68,10 @@
   并等待 watcher，但 repo 脚本不创建 Agent，也不承诺主任务结束后的 detached lifecycle。
 - M9.5 第一版不生成全片 BGM、跨 Scene ambience、ducking 或独立 GlobalVisualLayers；不
   运行 Agent Scene 审美 gate。成功终点只能是等待用户观看的 `preview-ready`，不是批准或发布。
+- 后续 production hardening 已实现 `ProductionRequirementsFreeze` v3、Run-before-write
+  VoxCPM/Chromium preflight 与 `scene-composition-boundary-v1`。Composition exactly once
+  提供 `SceneSafeArea`；Scene Renderer 根节点透明，只拥有当前 Beat 的语义视觉，不绘制
+  Scene-local 背景、安全区底板、全帧纹理或装饰。已有 v1/v2 Run 与正式作品不迁移、不回填。
 - M6 的 Scene 级 renderer/runtime 不得成为 Narrative Baseline 的前置条件，也不得反向修改
   Story、旁白、字幕或实测时间线。M8 不得重做五个 M7 ScenePackage；Scene-local
   ambience/SFX 仍由 ScenePackage 拥有，GlobalSoundPlan 不建立第二份 Scene SFX 权威。
@@ -136,6 +140,8 @@ proposal，并得到用户对范围、API、文件和目标位置的明确批准
 - 删除、覆盖、强推、生产发布、密钥或权限变更必须有明确授权。
 - 修改后先跑聚焦检查，再按风险运行 `npm run check`。`npm run check:static` 是不启动
   Chromium 的沙箱安全子集；`npm run check:host` 是需要宿主权限的浏览器/真实作品门禁。
+- `scripts/production/` 只保留 CLI 入口；用例编排、纯领域规则和外部 I/O 分别位于
+  `application/`、`domain/` 和 `adapters/`，新增代码不得重新平铺到根目录。
 - `npm run check` 与 `npm run compositions` 首次执行必须直接使用宿主权限，因为两者都会
   直接或间接启动 Remotion Chromium。所有 `remotion compositions`、`remotion still`、
   `remotion render` 及会调用它们的 production 命令同样不得先在受限沙箱试跑。

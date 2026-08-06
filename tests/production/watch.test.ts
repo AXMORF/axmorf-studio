@@ -14,8 +14,8 @@ import { readProductionRunStore } from "../../scripts/production/adapters/run-st
 import {
   createSceneFailureResult,
   writeSceneProductionResult,
-} from "../../scripts/production/scene-submit";
-import { runProductionWatch } from "../../scripts/production/watch";
+} from "../../scripts/production/application/scene-submit";
+import { runProductionWatch } from "../../scripts/production/application/watch";
 import {
   FIXED_PRODUCTION_NOW,
   createProductionFixture,

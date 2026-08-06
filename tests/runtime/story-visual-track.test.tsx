@@ -10,8 +10,10 @@ import {
   buildSceneCoverageMap,
   buildSceneFallbackDeclaration,
   computeScenePackageFingerprint,
+  resolveProductionReadabilityPolicy,
 } from "../../src/contracts";
 import {
+  renderSceneRendererMount,
   SceneSlot,
   resolveSceneRenderer,
 } from "../../src/remotion/runtime/story-visual/SceneSlot";
@@ -19,7 +21,11 @@ import {
   StoryVisualTrack,
   buildStoryVisualProjection,
 } from "../../src/remotion/runtime/story-visual/StoryVisualTrack";
-import type { SceneRendererProps } from "../../src/remotion/runtime/story-visual/types";
+import { SceneSafeArea } from "../../src/remotion/runtime/readability";
+import type {
+  SceneRendererMountProps,
+  SceneRendererProps,
+} from "../../src/remotion/runtime/story-visual/types";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
 import { createM6PackageInput } from "../fixtures/scene/m6-package-input";
 
@@ -28,6 +34,16 @@ type ElementProps = {
   readonly durationInFrames?: number;
   readonly children?: ReactNode;
 };
+
+type AssertFalse<Value extends false> = Value;
+type AssertTrue<Value extends true> = Value;
+
+const rendererBoundaryIsExcluded: AssertFalse<
+  "sceneBoundaryVersion" extends keyof SceneRendererProps ? true : false
+> = false;
+const mountBoundaryIsIncluded: AssertTrue<
+  "sceneBoundaryVersion" extends keyof SceneRendererMountProps ? true : false
+> = true;
 
 const makeProjection = () => {
   const scenePackage = buildScenePackage(createM6PackageInput());
@@ -142,15 +158,10 @@ test("v3 SceneSlot keeps boundary policy internal to the mount", () => {
   const entry = projection.entries[0];
   assert.equal(entry.status, "ready");
   const Renderer = () => <div />;
-  const policy = {
-    ...({} as NonNullable<SceneRendererProps["readabilityPolicy"]>),
-    policyId: "production-readability-v1" as const,
-    policyFingerprint: `sha256:${"d".repeat(64)}`,
+  const policy = resolveProductionReadabilityPolicy({
     width: 1080,
     height: 1920,
-    typographyPolicy: { minFontSizePx: 36 },
-    sceneContentSafeAreaPx: { top: 90, right: 90, bottom: 360, left: 90 },
-  };
+  });
   const element = SceneSlot({
     entry,
     registry: { [entry.rendererId]: Renderer },
@@ -158,10 +169,77 @@ test("v3 SceneSlot keeps boundary policy internal to the mount", () => {
       durationInFrames: 120,
       sceneBoundaryVersion: "scene-composition-boundary-v1",
       readabilityPolicy: policy,
-    } as Omit<SceneRendererProps, "sceneFrame">,
+    } as SceneRendererMountProps,
   });
   assert.ok(isValidElement<ElementProps>(element));
   assert.equal(Children.count(element.props.children), 1);
+});
+
+test("Scene renderer and mount props keep v1 v2 and v3 ownership boundaries", () => {
+  assert.equal(rendererBoundaryIsExcluded, false);
+  assert.equal(mountBoundaryIsIncluded, true);
+  const Renderer = () => <div />;
+  const baseProps = {
+    durationInFrames: 120,
+  } as SceneRendererMountProps;
+  const policy = resolveProductionReadabilityPolicy({
+    width: 1080,
+    height: 1920,
+  });
+
+  const v1 = renderSceneRendererMount(Renderer, baseProps, 4);
+  assert.ok(isValidElement<SceneRendererProps>(v1));
+  assert.equal(v1.type, Renderer);
+  assert.equal(v1.props.readabilityPolicy, undefined);
+
+  const v2 = renderSceneRendererMount(
+    Renderer,
+    { ...baseProps, readabilityPolicy: policy },
+    5,
+  );
+  assert.ok(isValidElement<SceneRendererProps>(v2));
+  assert.equal(v2.type, Renderer);
+  assert.equal(v2.props.readabilityPolicy, policy);
+
+  const v3 = renderSceneRendererMount(
+    Renderer,
+    {
+      ...baseProps,
+      sceneBoundaryVersion: "scene-composition-boundary-v1",
+      readabilityPolicy: policy,
+    },
+    6,
+  );
+  assert.ok(
+    isValidElement<{
+      readonly policy: typeof policy;
+      readonly children: ReactNode;
+    }>(v3),
+  );
+  assert.equal(v3.type, SceneSafeArea);
+  assert.equal(v3.props.policy, policy);
+  assert.ok(isValidElement<SceneRendererProps>(v3.props.children));
+  assert.equal(v3.props.children.type, Renderer);
+  assert.equal(v3.props.children.props.sceneFrame, 6);
+  assert.equal(v3.props.children.props.readabilityPolicy, undefined);
+  assert.equal(
+    (v3.props.children.props as Readonly<Record<string, unknown>>)
+      .sceneBoundaryVersion,
+    undefined,
+  );
+
+  assert.throws(
+    () =>
+      renderSceneRendererMount(
+        Renderer,
+        {
+          ...baseProps,
+          sceneBoundaryVersion: "scene-composition-boundary-v1",
+        },
+        7,
+      ),
+    /requires the frozen readability policy/u,
+  );
 });
 
 test("StoryVisualTrack mounts ready SceneSlot only and sound-only identity changes do not alter projection", () => {

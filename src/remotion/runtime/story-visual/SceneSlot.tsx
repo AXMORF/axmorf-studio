@@ -1,9 +1,9 @@
 import type { FC } from "react";
 import { Sequence, useCurrentFrame } from "remotion";
 import { SceneSafeArea } from "../readability";
-
 import type {
-  SceneRendererProps,
+  SceneRendererComponent,
+  SceneRendererMountProps,
   SceneRendererRegistry,
   StoryVisualReadyEntry,
 } from "./types";
@@ -21,24 +21,19 @@ export const resolveSceneRenderer = (
 
 type MountedSceneRendererProps = Readonly<{
   Renderer: SceneRendererRegistry[string];
-  rendererProps: Omit<SceneRendererProps, "sceneFrame">;
+  rendererProps: SceneRendererMountProps;
 }>;
 
-const MountedSceneRenderer: FC<MountedSceneRendererProps> = ({
-  Renderer,
-  rendererProps,
-}) => {
-  const sceneFrame = useCurrentFrame();
-  if (sceneFrame < 0 || sceneFrame >= rendererProps.durationInFrames) {
-    throw new Error("Scene renderer frame escaped its fixed Beat window.");
-  }
-  if (rendererProps.sceneBoundaryVersion === "scene-composition-boundary-v1") {
-    const {
-      sceneBoundaryVersion: _sceneBoundaryVersion,
-      readabilityPolicy,
-      ...rendererOwnedProps
-    } = rendererProps;
-    void _sceneBoundaryVersion;
+export const renderSceneRendererMount = (
+  Renderer: SceneRendererComponent,
+  rendererProps: SceneRendererMountProps,
+  sceneFrame: number,
+) => {
+  const { sceneBoundaryVersion, ...rendererPropsWithoutBoundary } =
+    rendererProps;
+  if (sceneBoundaryVersion === "scene-composition-boundary-v1") {
+    const { readabilityPolicy, ...rendererOwnedProps } =
+      rendererPropsWithoutBoundary;
     if (readabilityPolicy === undefined) {
       throw new Error("V3 Scene mount requires the frozen readability policy.");
     }
@@ -48,13 +43,24 @@ const MountedSceneRenderer: FC<MountedSceneRendererProps> = ({
       </SceneSafeArea>
     );
   }
-  return <Renderer {...rendererProps} sceneFrame={sceneFrame} />;
+  return <Renderer {...rendererPropsWithoutBoundary} sceneFrame={sceneFrame} />;
+};
+
+const MountedSceneRenderer: FC<MountedSceneRendererProps> = ({
+  Renderer,
+  rendererProps,
+}) => {
+  const sceneFrame = useCurrentFrame();
+  if (sceneFrame < 0 || sceneFrame >= rendererProps.durationInFrames) {
+    throw new Error("Scene renderer frame escaped its fixed Beat window.");
+  }
+  return renderSceneRendererMount(Renderer, rendererProps, sceneFrame);
 };
 
 export type SceneSlotProps = Readonly<{
   entry: StoryVisualReadyEntry;
   registry: SceneRendererRegistry;
-  rendererProps: Omit<SceneRendererProps, "sceneFrame">;
+  rendererProps: SceneRendererMountProps;
 }>;
 
 export const SceneSlot: FC<SceneSlotProps> = ({
@@ -69,7 +75,9 @@ export const SceneSlot: FC<SceneSlotProps> = ({
     (rendererProps.durationInFrames !== undefined &&
       rendererProps.durationInFrames !== durationInFrames)
   ) {
-    throw new Error("Scene renderer duration must equal its fixed Beat window.");
+    throw new Error(
+      "Scene renderer duration must equal its fixed Beat window.",
+    );
   }
   return (
     <Sequence from={entry.startFrame} durationInFrames={durationInFrames}>

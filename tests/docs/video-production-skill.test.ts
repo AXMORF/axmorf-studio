@@ -37,6 +37,8 @@ test("repository video skill separates isolated Scene work from fixed-flow harde
   assert.match(skill, /Never recover a failed fixed workflow/u);
   assert.match(skill, /universal readability policy/u);
   assert.match(skill, /frozen assignment/u);
+  assert.match(skill, /every Scene root transparent/u);
+  assert.match(skill, /never Scene-local backgrounds/u);
   assert.match(skill, /never auto-split by punctuation or characters/u);
   assert.doesNotMatch(skill, /recover a production run/u);
   assert.ok(
@@ -73,6 +75,10 @@ test("repository video skill separates isolated Scene work from fixed-flow harde
   assert.match(workflow, /production:start.*same host permissions/su);
   assert.match(workflow, /Existing videos and v1 runs are not migrated/u);
   assert.match(sceneWorkflow, /assignment-provided safe areas/u);
+  assert.match(sceneWorkflow, /Renderer root transparent/u);
+  assert.match(sceneWorkflow, /Never paint a Scene-local background/u);
+  assert.match(sceneWorkflow, /leave all unused\s+pixels transparent/u);
+  assert.doesNotMatch(sceneWorkflow, /use full bleed\s+only for non-semantic backgrounds/u);
   assert.match(failurePolicy, /common-flow defect/u);
   assert.match(sceneWorkflow, /one distinct child Agent for every frozen assignment/u);
   assert.match(sceneWorkflow, /writes no Scene result, event,\s+or derived run state/u);

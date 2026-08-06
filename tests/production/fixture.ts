@@ -20,7 +20,7 @@ import {
   readProductionRunStore,
 } from "../../scripts/production/adapters/run-store";
 import { createProductionStageEvent } from "../../scripts/production/domain/events";
-import { runProductionStart } from "../../scripts/production/start";
+import { runProductionStart } from "../../scripts/production/application/start";
 import {
   validNarrationSpec,
   validProjectSource,

@@ -24,7 +24,7 @@ import {
   StorySpecSchema,
 } from "../../src/contracts";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
-import { runProductionStart } from "../../scripts/production/start";
+import { runProductionStart } from "../../scripts/production/application/start";
 import {
   validNarrationSpec,
   validProjectSource,
@@ -162,7 +162,9 @@ test("runs both preflight probes before scaffold clock and Run creation", async 
     preflightDependencies: {
       voxcpm: async () => {
         calls.push("voxcpm");
-        await assert.rejects(() => access(join(fixture.projectDir, "Composition.tsx")));
+        await assert.rejects(() =>
+          access(join(fixture.projectDir, "Composition.tsx")),
+        );
         return {
           status: "pass",
           domain: "voxcpm",
@@ -172,7 +174,9 @@ test("runs both preflight probes before scaffold clock and Run creation", async 
       },
       browser: async () => {
         calls.push("browser");
-        await assert.rejects(() => access(join(fixture.projectDir, "Composition.tsx")));
+        await assert.rejects(() =>
+          access(join(fixture.projectDir, "Composition.tsx")),
+        );
         return { status: "pass", domain: "remotion-browser" };
       },
     },
@@ -194,10 +198,7 @@ test("refuses to start a new run from a readable legacy v1 freeze", async (conte
     legacy,
   );
 
-  await assert.rejects(
-    () => start(fixture.rootDir),
-    /freeze-v3/iu,
-  );
+  await assert.rejects(() => start(fixture.rootDir), /freeze-v3/iu);
   await assert.rejects(
     () => access(join(fixture.rootDir, ".producer-runs", fixedRunId)),
     /ENOENT/,
@@ -224,7 +225,8 @@ test("preflight failure occurs before scaffold run store or clock", async (conte
           kind: "external-blocker",
           code: "VOXCPM_SERVICE_UNREACHABLE",
           summary: "The local speech service is unreachable.",
-          remediation: "Restore local speech service access before starting production.",
+          remediation:
+            "Restore local speech service access before starting production.",
           requirementsFingerprint: fixture.requirements.requirementsFingerprint,
           redactionApplied: true,
         }),
@@ -235,7 +237,9 @@ test("preflight failure occurs before scaffold run store or clock", async (conte
     }),
   );
   assert.equal(clockCalls, 0);
-  await assert.rejects(() => access(join(fixture.projectDir, "Composition.tsx")));
+  await assert.rejects(() =>
+    access(join(fixture.projectDir, "Composition.tsx")),
+  );
   await assert.rejects(() => access(join(fixture.rootDir, ".producer-runs")));
   await assert.rejects(() => access(join(fixture.rootDir, ".narration-work")));
 });

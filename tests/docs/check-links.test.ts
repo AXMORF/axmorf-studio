@@ -4,7 +4,19 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { checkMarkdownLinks } from "../../scripts/docs/check-links";
+import {
+  checkMarkdownLinks,
+  isActiveDocumentationPath,
+} from "../../scripts/docs/check-links";
+
+test("default documentation scope excludes historical archive snapshots", () => {
+  assert.equal(isActiveDocumentationPath("docs/README.md"), true);
+  assert.equal(isActiveDocumentationPath("docs/guides/REVIEW_MODEL.md"), true);
+  assert.equal(
+    isActiveDocumentationPath("docs/archive/implementation-plans/old.md"),
+    false,
+  );
+});
 
 const withFixture = async (
   files: Readonly<Record<string, string>>,

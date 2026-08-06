@@ -27,8 +27,10 @@ Tell every child that other Agents share the worktree and require it to:
 - avoid staging, commits, result-writing commands, and nested Agents.
 
 Each child produces the assignment-required plans, selections, Renderer, optional local-sound
-declarations, and ScenePackage inputs. Keep semantic content inside the guarded frame; use full bleed
-only for non-semantic backgrounds.
+declarations, and ScenePackage inputs. Keep the Renderer root transparent and put only Beat-semantic
+content inside the guarded frame. Never paint a Scene-local background, safe-area panel, full-frame
+color wash, texture, or decorative backdrop. If `GlobalVisualLayers` is absent, leave all unused
+pixels transparent; a Scene Agent must not compensate by inventing its own background.
 
 ## Check before immutable submission
 

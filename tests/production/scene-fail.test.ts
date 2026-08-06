@@ -6,7 +6,7 @@ import test, { type TestContext } from "node:test";
 
 import { buildSceneAssignment, buildSceneTaskInput } from "../../src/contracts";
 import { runProductionCli } from "../../scripts/production/cli";
-import { runProductionSceneFail } from "../../scripts/production/scene-fail";
+import { runProductionSceneFail } from "../../scripts/production/application/scene-fail";
 import {
   FIXED_PRODUCTION_NOW,
   createProductionFixture,

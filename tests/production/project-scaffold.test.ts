@@ -19,7 +19,7 @@ import {
   renderReadabilityAwareProductionProjectScaffold,
   renderV3ProductionPreviewProjectScaffold,
   renderReadabilityAwareProductionSceneRuntime,
-} from "../../scripts/production/project-scaffold";
+} from "../../scripts/production/application/project-scaffold";
 
 test("future production scaffolds bind frozen readability into captions and Scene props", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-readability-scaffold-"));
@@ -45,6 +45,13 @@ test("future production scaffolds bind frozen readability into captions and Scen
   assert.match(runtime, /const task = scene\.task;/u);
   assert.match(runtime, /if \(task\.schemaVersion === 1\)/u);
   assert.match(runtime, /readabilityPolicy: task\.readabilityPolicy/u);
+  assert.match(runtime, /type SceneRendererMountProps/u);
+  assert.match(runtime, /Record<string, SceneRendererMountProps>/u);
+  assert.match(
+    runtime,
+    /task\.schemaVersion === 3 \? \{sceneBoundaryVersion: task\.sceneCompositionBoundaryVersion\} : \{\}/u,
+  );
+  assert.doesNotMatch(runtime, /Omit<SceneRendererProps, "sceneFrame">/u);
   assert.doesNotMatch(runtime, /scene\.task\.schemaVersion >= 2/u);
 });
 
@@ -55,10 +62,7 @@ test("v3 Preview mounts StoryVisualTrack directly without a second global visual
   });
   assert.doesNotMatch(source, /VisualShell|visual-shell/u);
   assert.equal(source.match(/<StoryVisualTrack /gu)?.length, 1);
-  assert.match(
-    source,
-    /storyVisualTrack=\{<StoryVisualTrack [^>]+ \/>\}/u,
-  );
+  assert.match(source, /storyVisualTrack=\{<StoryVisualTrack [^>]+ \/>\}/u);
   assert.doesNotMatch(source, /globalVisualLayers|GlobalVisualLayers/u);
 });
 

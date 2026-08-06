@@ -15,8 +15,8 @@ import {
   createFingerprint,
   resolveProductionReadabilityPolicy,
 } from "../../src/contracts";
-import { validatePolicyAwareRendererSourceGraph } from "../../scripts/production/readability-source-validator";
-import { validateSceneReadability } from "../../scripts/production/readability-validator";
+import { validatePolicyAwareRendererSourceGraph } from "../../scripts/production/application/readability-source-validator";
+import { validateSceneReadability } from "../../scripts/production/application/readability-validator";
 import type { SceneAssignment } from "../../src/contracts";
 import { collectRendererSourceGraph } from "../../scripts/renderer-registry/domain";
 
@@ -255,8 +255,14 @@ test("v3 rejects Renderer-owned boundary shell caption audio and raw policy", as
     ["background", semanticRenderer("<SceneBackground />")],
     ["caption", semanticRenderer("<CaptionLayer />")],
     ["audio", semanticRenderer("<Audio />")],
-    ["raw policy", "const Renderer = ({readabilityPolicy}: any) => <div />; export default Renderer;"],
-    ["boundary version", "const Renderer = ({sceneBoundaryVersion}: any) => <div />; export default Renderer;"],
+    [
+      "raw policy",
+      "const Renderer = ({readabilityPolicy}: any) => <div />; export default Renderer;",
+    ],
+    [
+      "boundary version",
+      "const Renderer = ({sceneBoundaryVersion}: any) => <div />; export default Renderer;",
+    ],
   ] as const) {
     await context.test(label, async (child) => {
       const fixture = await createFixture(child);

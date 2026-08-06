@@ -1,13 +1,10 @@
 # 确定性执行设计
 
-> Status：M1–M4 Narrative Baseline、M6 Scene Runtime foundation 与 M7 GPS 正式 Scene
-> production 已实现；包括 Catalog、package/registry、visual/local-sound projection、批量 Agent
-> review 和 passing v1 final report。M8 global sound/global visual/final assembly、完整媒体
-> evidence、真实用户批准和 passing v2 final report 已实现。M9 第二主题、42-case matrix、
-> 泛化报告、用户批准和第二份 passing v2 已实现。M9.5 数据合同驱动生产编排的 strict
-> contracts、CLI、single-writer watcher 与 mechanical Preview pipeline 已实现。NarrativeCheck、
-> 首次真实生产试跑已达到 `preview-ready / awaiting-user-preview`；promotion 实施与发布仍为
-> 后续目标。
+> 文档类型：确定性、时间、指纹与失效权威
+>
+> 最后复核：2026-08-06
+>
+> 当前完成状态只在 [ITERATION_STATUS.md](ITERATION_STATUS.md) 维护。
 
 ## 1. 定义
 
@@ -41,8 +38,10 @@ width/height 解析并冻结 `production-readability-v1`；整数有理 scale、
 `scene-composition-boundary-v1` 进入 v3 SceneTaskInput、SceneAssignment、ScenePackage、
 result/mechanical identity，并由 submit、watcher 与 post-Scene Preview 调用公共 validator 复检。
 SceneSafeArea 由 Composition exactly once 提供相同 policy context；Renderer 不复制安全框，也
-不得 import CaptionLayer、GlobalVisualLayers、audio 或读取 raw policy。当前不建立临时项目级
-全局视觉层；已有 v1/v2 artifacts 保持原字节与解析路径，不迁移、不注入默认策略。
+不得 import CaptionLayer、GlobalVisualLayers、audio 或读取 raw policy。Renderer 根节点保持透明，
+不得补 Scene-local 安全区底板、全帧底色、纹理或装饰背景；没有 GlobalVisualLayers 时，未使用
+像素继续透明。当前不建立临时项目级全局视觉层；已有 v1/v2 artifacts 保持原字节与解析路径，
+不迁移、不注入默认策略。
 
 `npm run production:preflight -- --project <storyId>` 是确定性的 Run-before-write 环境门：固定
 `/health` liveness、`/ready` resident/cold diagnosis 和正式 Chromium compositions launch。
@@ -212,7 +211,10 @@ scripts/renderer-registry/             M6 composition-local registry 生成与�
 scripts/final-assembly/                M8 FinalAssembly pass-only 生成与检查
 scripts/m8-gps/                        M8 global audio/freeze/media/evidence/approval
 scripts/m9-product/                    M9 Shotcraft/漫画/audio/media/evidence/approval
-scripts/production/                    M9.5：run ledger、narrative runner、Scene watcher、Preview
+scripts/production/                    production CLI 与分层入口
+├── application/                      用例编排、Scene lifecycle、Preview 与 validators
+├── domain/                           事件、状态转换、投影和错误语义
+└── adapters/                         run store、process、Remotion 与 VoxCPM 端口
 src/remotion/runtime/narrative-core/   旁白、顶层字幕与绝对时间挂载
 src/remotion/runtime/composition-assembly/ 四个强语义聚合的显式装配
 src/remotion/runtime/story-visual/     M6 Scene 视觉、Shot 与转场时间装配
@@ -375,7 +377,7 @@ composition-local renderer-registry.ts
 
 本节的 M2 路径已经由 `scripts/narration/` 和 `gps-relativity` 真实产物实现。固定命令、
 resume、lock、supersede 与隐私恢复步骤见
-[NARRATION_GENERATION.md](NARRATION_GENERATION.md)。
+[旁白生成与恢复指南](guides/NARRATION_GENERATION.md)。
 
 ```mermaid
 flowchart LR

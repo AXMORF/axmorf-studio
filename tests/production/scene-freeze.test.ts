@@ -20,7 +20,7 @@ import { readProductionRunStore } from "../../scripts/production/adapters/run-st
 import {
   assertSceneAssignmentIsolation,
   runProductionSceneFreeze,
-} from "../../scripts/production/scene-freeze";
+} from "../../scripts/production/application/scene-freeze";
 import { buildValidSealedNarrationManifest } from "../fixtures/narrative";
 import {
   FIXED_PRODUCTION_NOW,
@@ -186,7 +186,10 @@ test("freezes one assignment per StoryBeat in order and projects Scene requireme
   );
   assert.equal(assignments[0].schemaVersion, 3);
   assert.equal(assignments[0].taskInput.schemaVersion, 3);
-  if (assignments[0].schemaVersion !== 3 || assignments[0].taskInput.schemaVersion !== 3) {
+  if (
+    assignments[0].schemaVersion !== 3 ||
+    assignments[0].taskInput.schemaVersion !== 3
+  ) {
     assert.fail("Expected v3 Scene assignment and task input.");
   }
   assert.equal(

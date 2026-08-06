@@ -1,9 +1,10 @@
 # 最终产品目标
 
-> 当前实现：M1–M9.5 已完成；GPS 与 ProductComicVertical 两条正式生产链都已有 current 用户
-> 批准和 passing `final-mechanical-check-v2`。M9.5 数据合同驱动生产编排已实现，但没有创建新
-> 作品、用户批准或发布事实。后续 production 已升级为 v3 shared Scene boundary，并在创建
-> Run 前执行只读 VoxCPM/Chromium preflight；M10 发布尚未开始。
+> 文档类型：产品目标与硬边界权威
+>
+> 最后复核：2026-08-06
+>
+> 当前完成状态只在 [ITERATION_STATUS.md](ITERATION_STATUS.md) 维护。
 
 ## 一句话目标
 

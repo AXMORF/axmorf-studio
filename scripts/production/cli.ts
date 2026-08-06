@@ -7,17 +7,17 @@ import {
 } from "../../src/contracts";
 import { redactProductionErrorDescription } from "./adapters/error-redaction";
 import { readProductionRunStore } from "./adapters/run-store";
-import { runProductionStart } from "./start";
-import { runProductionNarrative } from "./narrative";
-import { runProductionPostScene } from "./post-scene";
-import { runProductionSceneFail } from "./scene-fail";
-import { runProductionSceneFreeze } from "./scene-freeze";
 import {
+  runProductionNarrative,
+  runProductionPostScene,
+  runProductionPreflight,
+  runProductionSceneFail,
+  runProductionSceneFreeze,
   runProductionSceneCheck,
   runProductionSceneSubmit,
-} from "./scene-submit";
-import { runProductionWatch } from "./watch";
-import { runProductionPreflight } from "./preflight";
+  runProductionStart,
+  runProductionWatch,
+} from "./application";
 
 type ProductionCliContext = Readonly<{
   rootDir: string;
@@ -108,7 +108,11 @@ export const runProductionCli = async (
     ) {
       throw new Error(JSON.stringify(result));
     }
-  } else if (args.length === 3 && args[0] === "start" && args[1] === "--project") {
+  } else if (
+    args.length === 3 &&
+    args[0] === "start" &&
+    args[1] === "--project"
+  ) {
     const projectId = StoryIdSchema.parse(args[2]);
     result = context.start
       ? await context.start({ rootDir: context.rootDir, projectId })

@@ -1,5 +1,7 @@
 # Narrative Contracts v1
 
+> 文档类型：合同参考。可执行 schema 与 fingerprint 逻辑以 `src/contracts/` 为准。
+
 ## Persisted source files
 
 - `brief.json` → `VideoBriefSchema`

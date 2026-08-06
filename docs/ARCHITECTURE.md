@@ -1,11 +1,10 @@
 # 系统结构
 
-> Status：M1–M4 Narrative Baseline、M6 Scene Runtime foundation 与 M7 GPS 正式 Scene
-> production 已实现；M8 global sound/global visual/final assembly、真实用户批准与 v2 final
-> gate 已完成。M9 第二主题、泛化报告、真实用户批准与第二份 passing v2 已完成；
-> M9.5 数据合同驱动生产编排合同、CLI、watcher 与 mechanical Preview 已实现；
-> 首次真实两 Scene 试跑已达到 `preview-ready / awaiting-user-preview`；NarrativeCheck、
-> promotion 实施与发布仍未实现。
+> 文档类型：架构与依赖权威
+>
+> 最后复核：2026-08-06
+>
+> 当前完成状态只在 [ITERATION_STATUS.md](ITERATION_STATUS.md) 维护。
 
 ## 节点责任
 
@@ -441,7 +440,7 @@ M9.5 第一版已把上述手工汇总边界收紧为以下固定流程：
 
 当前 Codex 主 Agent 在 watcher 和 Scene Agent 工作期间必须保持任务运行，但可以逻辑上只等待。
 repo 内脚本不创建/托管 Agent，也不承诺主任务结束后的 detached lifecycle。完整计划见
-[M9.5 Contract-driven Production Orchestration Plan](superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md)。
+[M9.5 历史实施计划](archive/implementation-plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md)。
 首次真实 lifecycle 与 hardening 证据见
 [M9.5 Production Trial and Hardening Evidence](evidence/2026-08-05-m9-5-production-trial-and-hardening.md)。
 
@@ -456,8 +455,9 @@ compositions executable、entry 与参数，browser sandbox/permission denial �
 
 `production-requirements-freeze-v3` 冻结 `scene-composition-boundary-v1` ownership：
 Composition 的 `SceneSafeArea` exactly once 使用完整 readability policy；Scene Renderer 只持有
-Beat 语义内容且不接收 raw policy；NarrativeCore 的 CaptionLayer 仍是唯一字幕 owner。v3
-scaffold 直接挂载 StoryVisualTrack，不建立第二个 project-global visual wrapper；当前
+Beat 语义内容且不接收 raw policy。Renderer 根节点保持透明，不得绘制 Scene-local 安全区底板、
+全帧底色、纹理或装饰背景；未使用像素保持透明。NarrativeCore 的 CaptionLayer 仍是唯一字幕
+owner。v3 scaffold 直接挂载 StoryVisualTrack，不建立第二个 project-global visual wrapper；当前
 `GlobalVisualLayers` enhancement 保持 absent，未来正式接入时独占全局背景、纹理、装饰和连续性
 motif。静态 literal imports 进入生成 scaffold，source graph 发现只发生在制作期检查，render
 runtime 不扫描目录。v1/v2 runtime 与现有正式项目保持原样。

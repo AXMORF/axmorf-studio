@@ -29,17 +29,17 @@ import { readProductionRunStore } from "../../scripts/production/adapters/run-st
 import {
   runProductionNarrative,
   type NarrativeProductionDependencies,
-} from "../../scripts/production/narrative";
+} from "../../scripts/production/application/narrative";
 import {
   runProductionPostScene,
   type PostSceneProductionDependencies,
-} from "../../scripts/production/post-scene";
-import { runProductionSceneFreeze } from "../../scripts/production/scene-freeze";
+} from "../../scripts/production/application/post-scene";
+import { runProductionSceneFreeze } from "../../scripts/production/application/scene-freeze";
 import {
   createSceneFailureResult,
   writeSceneProductionResult,
-} from "../../scripts/production/scene-submit";
-import { runProductionWatch } from "../../scripts/production/watch";
+} from "../../scripts/production/application/scene-submit";
+import { runProductionWatch } from "../../scripts/production/application/watch";
 import { buildValidSealedNarrationManifest } from "../fixtures/narrative";
 import {
   FIXED_PRODUCTION_NOW,
@@ -360,7 +360,9 @@ const checksumProtectedArtifacts = async () =>
 test("fake provider plus two Scene successes reaches preview-ready byte-stably", async (context) => {
   const protectedBefore = await checksumProtectedArtifacts();
   const fixture = await createE2eFixture(context);
-  assert.ok(fixture.assignments.every(({ schemaVersion }) => schemaVersion === 3));
+  assert.ok(
+    fixture.assignments.every(({ schemaVersion }) => schemaVersion === 3),
+  );
   assert.ok(
     fixture.assignments.every(
       (assignment) =>

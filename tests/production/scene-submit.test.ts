@@ -23,11 +23,11 @@ import {
 import { buildScenePackage } from "../../scripts/scene-package/domain";
 import { parseSceneSelectedResourcesFile } from "../../scripts/scene-package/generate";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
-import { runProductionSceneFail } from "../../scripts/production/scene-fail";
+import { runProductionSceneFail } from "../../scripts/production/application/scene-fail";
 import {
   runProductionSceneCheck,
   runProductionSceneSubmit,
-} from "../../scripts/production/scene-submit";
+} from "../../scripts/production/application/scene-submit";
 import {
   FIXED_PRODUCTION_NOW,
   createProductionFixture,

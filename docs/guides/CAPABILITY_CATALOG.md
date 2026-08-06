@@ -1,0 +1,138 @@
+# 统一资源与能力目录
+
+> 文档类型：维护指南
+>
+> 最后复核：2026-08-06
+>
+> 系统结构与当前状态分别以 [ARCHITECTURE.md](../ARCHITECTURE.md) 和
+> [ITERATION_STATUS.md](../ITERATION_STATUS.md) 为准。
+
+## 职责
+
+Scene 设计只通过一个只读目录发现可用视觉、音频、style profile、共享制作能力和制作期镜头
+参考，但每类资源仍由自己的源码、资产 manifest 或冻结外部来源快照维护。目录是查询视图，
+不是第二份实现真相，也不是运行时动态加载器。
+
+```mermaid
+flowchart LR
+    Assets["本地资产 manifest"] --> Build["buildResourceCatalog"]
+    Primitives["primitives"] --> Code["capabilityCatalog"]
+    Camera["camera"] --> Code
+    Effects["effects / motion"] --> Code
+    Media["Lottie / GIF / video"] --> Code
+    Sound["sound / styles / transitions"] --> Code
+    Upstream["ExternalReferenceSnapshot<br/>recipe / demo / preview"] --> Build
+    Code --> Build
+    Build --> Catalog["ResourceCatalog"]
+    Catalog --> Query["按 kind / tags / text 查询"]
+    Query --> Style["VisualStyleSpec"]
+    Query --> ScenePlan["SceneVisualPlan"]
+    Query --> SceneSound["SceneSoundPlan"]
+    Query --> Recipe["ShotRecipeSelection"]
+    Query --> GlobalSound["GlobalSoundPlan"]
+    Query --> GlobalVisual["GlobalVisualPlan"]
+```
+
+## 当前已迁入能力
+
+- Remotion core、media、Lottie、GIF、effects、transitions、light-leaks；
+- Three.js、motion blur、layout utils、paths、shapes、Google Fonts、renderer、Tailwind v4；
+- camera 2D/3D、focus pull、layered stage；
+- code effects、motion treatments、soundtrack/ducking/SFX、style profiles；
+- backgrounds、charts、cinematic、elements、layouts、logos、media、scene、text 与 transition
+  primitives。
+
+当前权威与生成入口：
+
+- `src/remotion/capabilities/`：各领域权威；
+- `src/remotion/catalog/assets.manifest.json`：本地 asset descriptor 权威；
+- `src/remotion/catalog/style-descriptors.ts` 与 `capability-descriptors.ts`：静态 export
+  descriptor 声明；
+- `src/remotion/catalog/resource-catalog.generated.json`：tracked canonical 读取视图；
+- `src/contracts/resource-catalog.ts`：四类 descriptor、选择引用和准入合同；
+- `scripts/catalog/`：稳定生成、byte drift check 和只读查询。
+
+```bash
+npm run catalog:generate
+npm run catalog:check
+npm run catalog:query -- --kind capability --tag motion
+npm run catalog:query -- --kind asset --text proof
+```
+
+生成器按 ID 稳定排序，校验 authority file/source export、asset regular-file/checksum、style
+profile identity、重复 ID 和 descriptor fingerprint；write 只在完整通过后原子替换，check/query
+不写文件。
+
+## 资源条目
+
+```text
+ResourceDescriptor
+├── id / kind / status
+├── title / description
+├── useCases / tags
+├── authority
+├── allowedUse（runtime-approved / localize-code / localize-asset / reference-only / blocked）
+├── license / attribution / verification status（按资源需要）
+├── mediaRole / visualRole / soundRole（按 kind）
+└── exportName（代码能力可选）
+```
+
+后续可为高价值能力逐步补充 `avoidWhen`、画幅、renderCost、代表帧和 motion strip；
+这属于目录元数据增强，不改变其实现权威。
+
+## 外部镜头参考
+
+`video-shotcraft` 等上游库通过 `ExternalReferenceSnapshot` 进入制作期查询面，而不是直接
+安装为 Composition 依赖。主 Agent 在显式 authoring sync 中固定 repository 和完整 commit，
+再生成 card/style-key、完整配方、准确 demo、preview 与最小依赖闭包的 content-addressed
+descriptor。浮动 branch/tag、远程 `latest` 或全局 skill 安装路径不能成为生产 identity。
+
+目录必须把不同用途分开：
+
+- shot recipe、demo source、preview 和 sequence pattern 是 authoring-only reference；
+- 选中的最小源码闭包必须复制到对应 Scene 的 `shots/`，由静态 import/AST 检查证明实际
+  Renderer binding；runtime 不从 Catalog 或上游仓库加载它；
+- preview 只用于选型和 source/adaptation 对照，不能当作最终 Scene 素材；
+- 第三方代码许可证与 bundled audio/image/font 逐资产授权分别验证；来源不明、未确认或
+  不允许当前用途的条目一律 `blocked`，不能因仓库顶层许可证而默认放行；
+- 未使用外部 recipe 的 Scene 使用空 ShotRecipeSelection，不能被目录强迫套卡。
+
+M6 synthetic fixture 只冻结 `draw-svg-trace` 一张 card/style-key，固定完整 commit、准确
+demo/preview identity，并仅本地化两个源码文件及 Apache-2.0 license。它证明 resolver、最小
+闭包 guard 和 fidelity receipt，不复制 Gallery、模板集合、全部 demos 或音频库，也不作为
+GPS 正式资源选择。
+
+M7 GPS 五个 Scene 均选择各自唯一的 project-authored PCM cue，并复用 `editorial-tech` style
+profile；VisualPlan/ShotPlan 没有选择额外视觉 asset。五个 ShotRecipeSelection 均为合法
+`empty`，因此没有 external snapshot、本地化闭包或 exact fidelity receipt，不能显示 fake
+exact pass。
+
+M8 GPS 新增 `global-bgm.wav` 与 `cross-scene-ambience.wav` 两条 project-authored、全长
+48 kHz/mono/s16le PCM 资产。它们位于 `public/projects/gps-relativity/global-audio/`，由
+project manifest/receipt 绑定 checksum、sample-frame、license/attribution，再与 M7 22-entry
+Catalog 合成为 current 24-entry assembly Catalog。该 overlay 只服务 GPS FinalAssembly；
+project-local GlobalVisualLayers 也没有登记或晋升为共享 capability。
+
+## 新能力
+
+Scene 内新组件默认留在 `src/projects/<story>/`，不会因“看起来可复用”自动进入共享目录。
+Scene renderer 可以调用目录中的共享能力，也可以拆分本地 Shot 组件；目录条目不会因此
+变成 Shot 级 runtime renderer，ShotPlan 也不保存组件或模块路径。
+具体 promotion 合同尚未落地；后续实现时必须保留“用户明确批准后才可提取”的边界。
+
+## Scene 并行查询边界
+
+主 Agent 在分发 Scene 任务前冻结同一份 ResourceCatalog snapshot 和允许的
+ExternalReferenceSnapshot。每个 meaningId 子 Agent 只读查询这些快照，把最终视觉/音频
+选择写入自己的 `selected-resources.json`，把 recipe 选择写入
+`shot-recipe-selection.json`；子 Agent 不得修改 Catalog、共享 capability exports、上游
+revision 或其他 Scene 的资源/recipe 选择。
+
+`VisualStyleSpec.styleProfileId` 必须解析到 Catalog 中唯一、已批准的 style profile；
+SceneVisualPlan 的视觉资源与 SceneSoundPlan 的 ambience/SFX 也必须解析到相应 kind/role。
+缺失、重复、类型不匹配、路径越界或 snapshot fingerprint 漂移全部 fail closed。
+exact recipe 还必须唯一解析到 cardId/style-key、准确 demo 与 preview identities，并由独立
+reference fidelity receipt 证明最小本地化闭包、真实 Renderer/frame-state binding、配对
+证据和正常速度可辨识度；card-name-only、metadata-only 或未使用的孤儿源码不能通过。
+通过校验的视觉与音频选择最终共同进入对应 `ScenePackage`；Catalog 只负责发现、解析和
+校验资源，不拥有 ScenePackage，也不成为第二份 Scene 创作权威。
