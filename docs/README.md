@@ -27,8 +27,9 @@
 ProjectRegistry、两个正式 Story Composition、M4 narrative AutoCheck、M6–M9 final checks、
 evidence 和用户 approval 均已落地。M9.5 的 `ProductionRequirementsFreeze`、ProductionRun、
 通用 `production:*` scripts、Scene watcher 与 mechanical Preview 已实现；首次真实试跑也已到达
-`preview-ready / awaiting-user-preview`。NarrativeCheck、用户预览后的 Scene 修改循环、
-promotion 与发布仍未实现；直接生产入口已由 `$remotion-story-producer-video` Skill 固化。
+`preview-ready / awaiting-user-preview`。直接生产 Skill 默认按 meaningId 创建独立 Scene 子
+Agent，并用 non-terminal `production:scene:check` 在 submit 前返工 Agent 输出。NarrativeCheck、
+用户预览后的 Scene 修改循环、promotion 与发布仍未实现。
 
 M4 exact commands：
 

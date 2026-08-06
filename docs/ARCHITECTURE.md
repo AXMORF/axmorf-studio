@@ -20,9 +20,10 @@ Agent 贯穿创作与制作过程：参与创作决策、完成制作编排并�
 结构节点，也不进入正式渲染运行时。自动化只能检查和执行已确定输入，不能自行选择
 StoryBeat、Scene 方案、Shot、资源、镜头、声音或转场。
 
-M9.5 已把 Agent 与固定执行的交界落成合同：主 Agent 写冻结要求和制作简报，Scene
-Agent 只提交自己的 Scene result；append-only event ledger 和 generated state projection 由
-中央脚本单写。这里的 `ProductionRunState` 是制作期投影，不是手工状态，也不进入 Remotion
+M9.5 已把 Agent 与固定执行的交界落成合同：主 Agent 写冻结要求和制作简报，为每个
+meaningId 创建一个独立 Scene 子 Agent；子 Agent 只写自己的目录并先运行非终态 Scene check，
+主 Agent 复检后串行提交 Scene result。append-only event ledger 和 generated state projection
+由中央脚本单写。这里的 `ProductionRunState` 是制作期投影，不是手工状态，也不进入 Remotion
 runtime。
 
 ## 当前设计顺序

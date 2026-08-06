@@ -159,6 +159,11 @@ evidence、用户批准和 final-v2；current approval fingerprint 为
 生产编排合同、CLI、Scene watcher 和机械 Preview，但没有修改两条正式证据链。Roadmap 下一
 项为 M10 发布收口；M10 不会由本次 closeout 自动开始。
 
+后续 production skill 默认按 `1 meaningId = 1 owning 子 Agent` 分发 Scene；子 Agent 在独占
+目录内通过 `production:scene:check` 后，由主 Agent 复检并串行 submit。check 复用 submit
+validator，但不写 immutable Scene result、event 或 derived state；子 Agent 不可用时流程在
+Scene authoring 前报告 blocker，不退回主 Agent inline 制作。
+
 批准规格、实施计划和实证分别见
 [M5 ScenePackage 视听制作规格](superpowers/plans/2026-08-02-m5-scene-package-production-specification.md)、
 [M6 Scene Runtime 实施计划](superpowers/plans/2026-08-02-m6-scene-runtime-implementation-plan.md) 和

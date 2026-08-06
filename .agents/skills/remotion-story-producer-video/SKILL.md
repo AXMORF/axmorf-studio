@@ -1,25 +1,33 @@
 ---
 name: remotion-story-producer-video
-description: Directly produce a contract-driven Remotion Story Producer video from complete user content through authored inputs, VoxCPM sealed narration, isolated ScenePackages, the central watcher, and a mechanical preview-ready handoff. Use in this repository when the user asks to make, create, or produce a new video, provides a topic, script, or source material, asks to continue Agent-owned authoring work, or explicitly invokes $remotion-story-producer-video; default to inline execution without writing a plan first, rework only Agent-authored outputs, and treat every fixed-workflow failure as a system-hardening defect rather than recovery.
+description: Produce a contract-driven Remotion Story Producer video through authored inputs, sealed narration, isolated Scene Agents, the central watcher, and mechanical preview-ready handoff. Use for new or continued video authoring or explicit $remotion-story-producer-video invocation; start directly, isolate each Scene in one child Agent, keep shared state single-writer, and harden fixed-flow failures.
 ---
 
 # Remotion Story Producer Video
 
 ## Start directly
 
-Use the repository and current request as authority. Inspect branch, HEAD, and status; preserve
-unrelated changes. Start inline without a plan or routine confirmation. Infer safe defaults unless a
-missing choice materially changes the result.
+Use the repository and request as authority. Inspect branch, HEAD, and status; preserve unrelated
+changes. Start without a plan or routine confirmation. Infer defaults unless a missing choice changes
+the result. Never ask the user to restate Skill rules.
 
-Own provider calls, Scene work, watcher, render, and checks until
+Own production until
 `preview-ready / awaiting-user-preview`, a genuine external blocker, or user cancellation. Never
 detach live work from the current task.
+
+## Require isolated Scene Agents
+
+After Scene freeze, read
+[references/scene-agent-orchestration.md](references/scene-agent-orchestration.md) completely and
+follow it. Create one distinct child Agent per meaningId; never author Scenes in the root task or
+silently fall back to inline work. Stop before authoring when child-Agent execution is unavailable or
+forbidden.
 
 ## Keep context bounded
 
 Do not preload authority docs. Read
-[references/direct-production-workflow.md](references/direct-production-workflow.md) completely for a
-new production or active Agent authoring continuation. It contains the normal path.
+[references/direct-production-workflow.md](references/direct-production-workflow.md) completely for
+new production or active authoring.
 
 Read
 [references/agent-rework-and-system-hardening.md](references/agent-rework-and-system-hardening.md)

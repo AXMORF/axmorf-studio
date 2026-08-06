@@ -427,8 +427,9 @@ Narrative Baseline、Shotcraft closure、voice provider 与 Scene/Final Catalog 
 - Run-before-write `production:preflight`：`/health` liveness、允许 cold auto-load 的 `/ready`
   diagnosis 与正式 Chromium compositions launch；零测试 TTS、零 warm-up、零 sandbox 降级，
   transient 结果不进入 ledger；
-- Scene submit/fail CLI 与中央 watcher：任一错误、超时、malformed、stale 或共享输入漂移
-  立即停止；全部 success 后自动生成 coverage、registry、projection、Composition 和 MP4；
+- Scene check/submit/fail CLI 与中央 watcher：每个 meaningId 由独立 owning 子 Agent 先做不写
+  result 的 check，主 Agent 复检并串行 submit；任一错误、超时、malformed、stale 或共享输入
+  漂移立即停止，全部 success 后自动生成 coverage、registry、projection、Composition 和 MP4；
 - `production-requirements-freeze-v3` 与 `scene-composition-boundary-v1`：Composition-owned
   SceneSafeArea、semantic-only Renderer、顶层 CaptionLayer 分权；不建立临时 project-global
   wrapper，PreviewAssembly v2 只绑定 shared boundary identity，未来 `GlobalVisualLayers` 正式
@@ -436,7 +437,7 @@ Narrative Baseline、Shotcraft closure、voice provider 与 Scene/Final Catalog 
 - 不含 BGM、跨 Scene ambience、ducking、GlobalVisualLayers 或 Agent Scene 审美 gate 的
   versioned PreviewAssembly、机械 PreviewEvidence 和 `preview-ready` 终点；
 - current Codex 主任务在子 Agent 与 watcher 期间保持运行；repo 脚本不创建 Agent，也不
-  承诺主任务结束后子 Agent 继续存活。
+  承诺主任务结束后子 Agent 继续存活；子 Agent 能力不可用时不静默退回 inline Scene 制作。
 
 **明确不做：** M10 发布、网络/账号/密钥、用户预览后的 Scene 修订循环、NarrativeCheck、
 自动导演、通用 Scene DSL、promotion、detached Agent lifecycle 和用户批准代签。

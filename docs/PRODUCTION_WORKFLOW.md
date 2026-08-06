@@ -130,7 +130,9 @@ StoryCheck、画幅、voice profile、字幕/安全区、资源政策和额外�
 Baseline current 后，主 Agent 写 VisualStyleSpec、StoryResourcePool 和
 SceneProductionBrief。StoryResourcePool 只大致选择整个 Story 可能使用的批准资源；每个
 Scene Agent 在 assignment 内精确选择子集或零资源，也可以使用 project-local Remotion 自行
-实现。子 Agent 不改中央状态，只由固定 submit/fail CLI 写 `SceneProductionResult`。
+实现。每个 meaningId 必须由一个独立 owning 子 Agent 完成，并先通过不写不可变结果的固定
+`production:scene:check`；主 Agent 复检后串行调用 submit/fail CLI 写
+`SceneProductionResult`。子 Agent 不改中央状态、共享生成物或另一个 Scene。
 
 中央 watcher 是唯一状态 writer。它轮询 Scene result 合同并从 append-only events 复算
 `ProductionRunState`：任一 expected/unexpected error、timeout、malformed、stale、共享输入
@@ -139,8 +141,9 @@ projection、Composition、MP4 和机械 Preview evidence。第一版不生成 B
 ambience、ducking 或 GlobalVisualLayers，不执行 Agent Scene 审美审核，成功终点只能是
 `preview-ready / awaiting-user-preview`。
 
-仓库脚本不负责创建 Codex 子 Agent。主 Agent 使用当前原生 Agent 能力完成分发，然后保持
-当前任务运行、等待 watcher；M9.5 不保证主任务结束后子 Agent 继续存活。完整实施边界见
+仓库脚本不负责创建 Codex 子 Agent。主 Agent 使用当前原生 Agent 能力按 meaningId 创建独立
+owner，然后保持当前任务运行、以宿主权限等待 watcher；不可用时在 Scene authoring 前报告
+blocker，不允许静默 inline。M9.5 不保证主任务结束后子 Agent 继续存活。完整实施边界见
 [M9.5 数据合同驱动生产编排计划](superpowers/plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md)。
 
 ### 3.2 v3 Run-before-write preflight 与 Scene ownership

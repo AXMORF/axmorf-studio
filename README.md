@@ -36,6 +36,10 @@ Scene result contracts 和 current fingerprints 复算；中央脚本是唯一 w
 `rounded-airplane-windows` 两 Scene 试跑已在四个 common-flow hardening 后达到
 `preview-ready / awaiting-user-preview`；该状态不代表用户批准或发布。
 
+直接生产 skill 默认给每个 meaningId 创建一个独立 owning 子 Agent；子 Agent 先通过不写
+immutable result 的 `production:scene:check`，主 Agent 再复检并串行 submit。子 Agent 能力
+不可用时在 Scene authoring 前报告 blocker，不静默退回 inline 制作。
+
 此后开始的所有 production 由 `ProductionRequirementsFreeze` v2 冻结同一份、与画幅无关的
 `production-readability-v1`：根据 Composition width/height 确定性解析内容/字幕安全区与字号，
 并在 provider 前拒绝超出 `caption-display-unit-v1` 预算的 authored `ttsChunks`。策略继续传播到

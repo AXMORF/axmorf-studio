@@ -13,19 +13,20 @@ const readSkillFile = (relativePath: string) =>
 
 const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 
-test("repository video skill separates Agent rework from fixed-flow hardening", async () => {
-  const [skill, metadata, workflow, failurePolicy] = await Promise.all([
+test("repository video skill separates isolated Scene work from fixed-flow hardening", async () => {
+  const [skill, metadata, workflow, sceneWorkflow, failurePolicy] =
+    await Promise.all([
     readSkillFile("SKILL.md"),
     readSkillFile("agents/openai.yaml"),
     readSkillFile("references/direct-production-workflow.md"),
+    readSkillFile("references/scene-agent-orchestration.md"),
     readSkillFile("references/agent-rework-and-system-hardening.md"),
   ]);
 
   assert.match(skill, /^name: remotion-story-producer-video$/m);
-  assert.match(
-    skill,
-    /default to inline execution without writing a plan first/u,
-  );
+  assert.match(skill, /one distinct child Agent per meaningId/u);
+  assert.match(skill, /never author Scenes in the\s+root task/u);
+  assert.match(skill, /silently fall back to inline work/u);
   assert.match(skill, /references\/direct-production-workflow\.md/u);
   assert.match(skill, /references\/agent-rework-and-system-hardening\.md/u);
   assert.match(skill, /Do not preload authority docs/u);
@@ -46,16 +47,18 @@ test("repository video skill separates Agent rework from fixed-flow hardening", 
   assert.match(metadata, /\$remotion-story-producer-video/u);
   assert.match(metadata, /不先写计划/u);
 
+  const executableWorkflow = `${workflow}\n${sceneWorkflow}`;
   for (const command of [
     "production:start",
     "production:narrative",
     "production:scene:freeze",
     "production:watch",
+    "production:scene:check",
     "production:scene:submit",
     "production:scene:fail",
     "production:preview:check",
   ]) {
-    assert.match(workflow, new RegExp(`npm run ${command}`));
+    assert.match(executableWorkflow, new RegExp(`npm run ${command}`));
   }
   assert.match(workflow, /Keep polling its real output/u);
   assert.match(workflow, /Do not detach it from the current task/u);
@@ -69,8 +72,12 @@ test("repository video skill separates Agent rework from fixed-flow hardening", 
   assert.match(workflow, /cannot prove that VoxCPM is unavailable/u);
   assert.match(workflow, /production:start.*same host permissions/su);
   assert.match(workflow, /Existing videos and v1 runs are not migrated/u);
-  assert.match(workflow, /assignment-provided content\/caption safe areas/u);
-  assert.match(workflow, /common-flow defect/u);
+  assert.match(sceneWorkflow, /assignment-provided safe areas/u);
+  assert.match(failurePolicy, /common-flow defect/u);
+  assert.match(sceneWorkflow, /one distinct child Agent for every frozen assignment/u);
+  assert.match(sceneWorkflow, /writes no Scene result, event,\s+or derived run state/u);
+  assert.match(sceneWorkflow, /root\s+Agent then serially invokes/u);
+  assert.match(sceneWorkflow, /meaningId-to-child-task mapping/u);
   assert.doesNotMatch(
     workflow,
     /Read `AGENTS\.md`, `docs\/FINAL_PRODUCT_GOAL\.md`/u,
@@ -82,6 +89,10 @@ test("repository video skill separates Agent rework from fixed-flow hardening", 
   assert.ok(
     wordCount(skill) + wordCount(workflow) <= 1300,
     "normal production context must stay within the entrypoint budget",
+  );
+  assert.ok(
+    wordCount(sceneWorkflow) <= 500,
+    `Scene orchestration reference must stay concise (received ${wordCount(sceneWorkflow)} words)`,
   );
 
   assert.match(

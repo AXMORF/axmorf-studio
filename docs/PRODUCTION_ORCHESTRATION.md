@@ -21,6 +21,7 @@ npm run production:start -- --project <storyId>
 npm run production:narrative -- --run <runId>
 npm run production:status -- --run <runId>
 npm run production:scene:freeze -- --run <runId>
+npm run production:scene:check -- --run <runId> --scene <meaningId>
 npm run production:scene:submit -- --run <runId> --scene <meaningId>
 npm run production:scene:fail -- --run <runId> --scene <meaningId> --code <CODE> --description "<safe description>"
 npm run production:watch -- --run <runId>
@@ -79,12 +80,15 @@ Renderer、package/result/check path 与所有现有正式项目保持原样，�
 
 Narrative 到达 `baseline-ready` 后，主 Agent 写 current `visual-style.json`、
 `production/story-resource-pool.json` 和 `production/scene-production-brief.json`，再运行
-`production:scene:freeze`。每个 meaningId 得到一份只读 assignment。Scene Agent 只拥有该
-assignment 声明的 Scene/source/public 输出路径；完成后运行 submit，无法完成时运行 fail。
-Scene Agent 不写中央 events、state、coverage、registry 或 Composition。
+`production:scene:freeze`。每个 meaningId 得到一份只读 assignment，并由主 Agent 启动一个
+独立 Scene 子 Agent。子 Agent 只拥有 assignment 声明的 Scene/source/public 输出路径；完成后
+运行不写 Scene result/event/state 的 `production:scene:check`。检查失败只退回同一 owning 子
+Agent 返工。检查通过后，主 Agent 复检写入范围并串行运行 submit；只有真正无法完成时才运行
+fail。子 Agent 不写中央 events、state、result、coverage、registry 或 Composition。
 
-主 Agent 分发 Scene 后保持当前任务运行，并由 `production:watch` 等待结果。repo CLI 不创建
-或托管 Agent，也不承诺主任务结束后的 detached lifecycle。
+主 Agent 分发 Scene 后保持当前任务运行，并以宿主权限由 `production:watch` 等待结果。repo
+CLI 不创建或托管 Agent，也不承诺主任务结束后的 detached lifecycle；若当前环境不能创建
+独立子 Agent，生产在 Scene authoring 前报告 blocker，不静默退回主 Agent inline 制作。
 
 ## 状态与单写者
 

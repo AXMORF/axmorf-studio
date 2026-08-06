@@ -19,6 +19,11 @@ When fixed validation rejects one of these outputs, return the finding to the ow
 only that owned artifact, rerun the same fixed validator, and preserve shared inputs and other Scene
 ownership. Do not weaken the validator to make bad Agent output pass.
 
+Always run `production:scene:check` before result submission. A check failure must not create an
+immutable Scene result or change event/state; return it to the same owning child Agent. The root Agent
+reruns the passing check and is the only Agent that invokes `production:scene:submit` or
+`production:scene:fail`.
+
 If no immutable Scene result or terminal event exists, submit the corrected Agent output normally. If
 an explicit Agent failure already made the run terminal, keep that run immutable, correct the Agent
 output, and start a new run from current authored inputs. The new run is required by the fixed state
@@ -26,7 +31,8 @@ contract; it does not mean the fixed workflow was recovered.
 
 ## Fixed-flow failure requires system hardening
 
-The fixed flow includes contract implementations, production CLI parsing and dispatch, append-only
+The fixed flow includes contract implementations, production CLI parsing and dispatch, non-terminal
+Scene check, append-only
 ledger/state projection, locks, watcher behavior, Scene result ingestion, package/coverage/registry/
 projection generation, Composition scaffolding/listing, Remotion/FFmpeg process invocation, media
 inspection, Preview assembly/evidence/check writing, and check-only idempotence.
@@ -67,6 +73,8 @@ Treat these as regression requirements:
 
 - Validate the entire selected-resources envelope at Scene submit and post-Scene boundaries with one
   strict parser.
+- Keep Scene check and submit on the same validator; check failure writes no immutable result, event,
+  or derived state, while submit repeats validation before its atomic result write.
 - Preserve Remotion Composition listing stdout when it is parsed; a zero exit with suppressed stdout
   is not proof that the Composition is absent.
 - Replace a Composition scaffold only when it byte-matches a recognized generated Narrative or Preview

@@ -39,7 +39,10 @@ npm run production:preflight -- --project <storyId>
 
 A restricted-sandbox failure cannot prove that VoxCPM is unavailable. Do not warm or test TTS,
 weaken Chromium sandboxing, or fallback. Run `production:start` with the same host permissions; it
-repeats the gate.
+repeats the gate. Run the production regression suite and typecheck before the first real Run whenever
+shared production code has changed since its last verified commit. All provider, Chromium, Remotion,
+watcher-render, and final media commands use host permissions on their first attempt; never use a
+restricted-sandbox attempt as the normal production path.
 
 ## 2. Narrative Baseline
 
@@ -71,34 +74,18 @@ frozen readability policy.
 
 ## 4. Own watcher and Scene lifecycle
 
-Start a live session:
+After freeze, read
+[scene-agent-orchestration.md](scene-agent-orchestration.md) completely. Start the live watcher with
+host permissions:
 
 ```bash
 npm run production:watch -- --run <runId>
 ```
 
-Keep polling its real output. Do not detach it from the current task. Author Scenes inline, or delegate
-only when explicitly allowed, while the watcher remains live. Each Scene owner receives one meaningId,
-its exclusive paths, current Beat/sealed timing, style/brief/assignment, adjacent continuity, and only
-approved current resources. Use only the assignment-provided content/caption safe areas and font
-minimum; never duplicate their numeric values in authoring guidance. Keep semantic content inside the
-guarded content frame, reserve full bleed for non-semantic backgrounds, and keep captions top-level.
-Do not inspect historical Scene source or media.
-
-Keep work under `src/projects/<storyId>/scenes/<meaningId>/`. Produce assignment-required plans,
-selections, renderer, optional local-sound declarations, and ScenePackage inputs. Submit or record an
-Agent failure only through:
-
-```bash
-npm run production:scene:submit -- --run <runId> --scene <meaningId>
-npm run production:scene:fail -- --run <runId> --scene <meaningId> --code <CODE> --description "<safe description>"
-```
-
-Correct rejected Agent-owned output, including over-budget chunks or readability-invalid Scene
-source, through the same validator. Validator, propagation, fingerprint, watcher, or checker failure
-is a common-flow defect. Never write events, state, coverage,
-registry, projection, or Composition manually. Continue until all results are accepted or the run is
-terminal. For any fixed-command failure, stop and load the hardening reference; do not retry it.
+Keep polling its real output and execute the referenced ownership, check, rework, and root-only submit
+protocol. Do not detach it from the current task, inline a Scene, or manually write events, state,
+coverage, registry, projection, or Composition. For any fixed-command failure, stop and load the
+hardening reference; do not retry it.
 
 ## 5. Verify Preview
 
@@ -121,5 +108,6 @@ changed. Sync only docs whose facts changed.
 Stage exact paths only. Never stage private config, protected voice profiles, ignored run state,
 diagnostic media, unrelated changes, or old formal artifacts; never push. Report run/status, absolute
 Preview/contact-sheet/still paths, Preview checksum, evidence/mechanical fingerprints, media facts,
-Agent rework or common-flow hardening, local commits, protection results, remaining worktree changes,
-known issues, and `awaiting explicit user preview decision`.
+one meaningId-to-child-task mapping with each final check result, Agent rework or common-flow
+hardening, local commits, protection results, remaining worktree changes, known issues, and
+`awaiting explicit user preview decision`.

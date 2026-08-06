@@ -50,7 +50,8 @@ flowchart TB
     Sound --> Composition
     Global["全局视觉层"] --> Composition
     Requirements --> Run["ProductionRun<br/>合同事件与派生状态"]
-    Package --> SceneResult["SceneProductionResult<br/>子 Agent 固定提交"]
+    Package --> SceneCheck["Scene check<br/>子 Agent 非终态验证"]
+    SceneCheck --> SceneResult["SceneProductionResult<br/>主 Agent 固定提交"]
     SceneResult --> Run
     Run --> AssembleStep["固定制作期装配脚本"]
     AssembleStep --> Composition
