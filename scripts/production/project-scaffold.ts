@@ -560,21 +560,11 @@ export const renderV3ProductionPreviewProjectScaffold = (input: {
   readonly storyId: string;
   readonly sceneLocalSoundPresent: boolean;
 }) => {
-  let source = renderReadabilityAwareProductionPreviewProjectScaffold(input);
-  source = replaceRequired(
-    source,
-    'import storyJson from "./story.json";\n',
-    'import storyJson from "./story.json";\nimport VisualShell from "./visual-shell/VisualShell";\n',
-  );
-  source = replaceRequired(
+  const source = renderReadabilityAwareProductionPreviewProjectScaffold(input);
+  return replaceRequired(
     source,
     'if (productionRequirements.schemaVersion !== 2) throw new Error("Production Preview requires readability-aware requirements.");',
     'if (productionRequirements.schemaVersion !== 3) throw new Error("Production Preview requires v3 shared-boundary requirements.");',
-  );
-  return replaceRequired(
-    source,
-    "storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning} />}",
-    "storyVisualTrack={<VisualShell><StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning} /></VisualShell>}",
   );
 };
 

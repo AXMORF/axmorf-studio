@@ -17,7 +17,6 @@ import {
 } from "../../src/contracts";
 import { validatePolicyAwareRendererSourceGraph } from "../../scripts/production/readability-source-validator";
 import { validateSceneReadability } from "../../scripts/production/readability-validator";
-import { validateVisualShellSourceGraph } from "../../scripts/production/visual-shell-source-validator";
 import type { SceneAssignment } from "../../src/contracts";
 import { collectRendererSourceGraph } from "../../scripts/renderer-registry/domain";
 
@@ -221,10 +220,6 @@ test("v3 accepts semantic-only Renderer and binds the shared boundary identities
     fixture.rendererPath,
     semanticRenderer(`<div style={{fontSize: 36}}>Shared boundary</div>`),
   );
-  await fixture.write(
-    "src/projects/future-story/visual-shell/VisualShell.tsx",
-    'import type {PropsWithChildren} from "react"; export default function VisualShell({children}: PropsWithChildren) { return <div>{children}</div>; }',
-  );
   const graph = await collectRendererSourceGraph({
     rootDir: fixture.rootDir,
     projectId: "future-story",
@@ -235,32 +230,14 @@ test("v3 accepts semantic-only Renderer and binds the shared boundary identities
     storyId: "future-story",
     readabilityPolicy: fixture.policy,
     sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
-    visualShellSourceGraphFingerprint: createFingerprint({
-      namespace: "placeholder",
-      version: 1,
-      value: "replaced below",
-    }),
     taskInput: {
       schemaVersion: 3,
       sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
     },
   } as SceneAssignment;
-  const shell = await validateVisualShellSourceGraph({
-    rootDir: fixture.rootDir,
-    storyId: "future-story",
-  });
   const result = await validateSceneReadability({
     rootDir: fixture.rootDir,
-    assignment: {
-      ...assignment,
-      visualShellSourceGraphFingerprint:
-        shell.visualShellSourceGraphFingerprint,
-      taskInput: {
-        ...assignment.taskInput,
-        visualShellSourceGraphFingerprint:
-          shell.visualShellSourceGraphFingerprint,
-      },
-    } as SceneAssignment,
+    assignment,
     graph,
   });
   assert.equal(result.policyFingerprint, fixture.policy.policyFingerprint);
@@ -270,17 +247,12 @@ test("v3 accepts semantic-only Renderer and binds the shared boundary identities
     result.sceneCompositionBoundaryVersion,
     "scene-composition-boundary-v1",
   );
-  assert.equal(
-    result.visualShellSourceGraphFingerprint,
-    shell.visualShellSourceGraphFingerprint,
-  );
 });
 
 test("v3 rejects Renderer-owned boundary shell caption audio and raw policy", async (context) => {
   for (const [label, source] of [
     ["safe area", semanticRenderer("<SceneSafeArea />")],
     ["background", semanticRenderer("<SceneBackground />")],
-    ["shell", semanticRenderer("<VisualShell />")],
     ["caption", semanticRenderer("<CaptionLayer />")],
     ["audio", semanticRenderer("<Audio />")],
     ["raw policy", "const Renderer = ({readabilityPolicy}: any) => <div />; export default Renderer;"],

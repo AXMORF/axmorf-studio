@@ -98,6 +98,29 @@ test("accepts liveness plus resident or cold readiness without TTS", async () =>
   }
 });
 
+test("distinguishes host permission denial from a real VoxCPM outage", async () => {
+  const permissionError = Object.assign(new Error("fetch failed"), {
+    cause: Object.assign(new Error("Operation not permitted"), { code: "EPERM" }),
+  });
+  const result = await preflightVoxcpm({
+    requirementsFingerprint: sha("1"),
+    metadata: {
+      baseUrl: "http://127.0.0.1:9880",
+      timeoutMs: 1000,
+      mode: "controllable-clone",
+      profileMatched: true,
+    },
+    probe: async () => {
+      throw permissionError;
+    },
+  });
+  assert.equal(result.status, "failed");
+  if (result.status === "failed") {
+    assert.equal(result.code, "VOXCPM_ENVIRONMENT_PERMISSION_DENIED");
+    assert.doesNotMatch(JSON.stringify(result), /EPERM|Operation not permitted/u);
+  }
+});
+
 test("classifies readiness 500 without exposing response body", async () => {
   const result = await preflightVoxcpm({
     requirementsFingerprint: sha("1"),

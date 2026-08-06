@@ -439,7 +439,6 @@ const SceneAssignmentV3InputObject = SceneAssignmentV2InputObject.extend({
   schemaVersion: z.literal(3),
   contractVersion: z.literal(SCENE_ASSIGNMENT_VERSION_V3),
   sceneCompositionBoundaryVersion: z.literal("scene-composition-boundary-v1"),
-  visualShellSourceGraphFingerprint: Sha256DigestSchema,
 }).strict();
 
 type SceneAssignmentInput =
@@ -662,7 +661,6 @@ const SceneProductionResultV3CommonShape = {
   contractVersion: z.literal(SCENE_PRODUCTION_RESULT_VERSION_V3),
   readabilityPolicyFingerprint: Sha256DigestSchema,
   sceneCompositionBoundaryVersion: z.literal("scene-composition-boundary-v1"),
-  visualShellSourceGraphFingerprint: Sha256DigestSchema,
 } as const;
 
 const SceneProductionSuccessInputObject = z

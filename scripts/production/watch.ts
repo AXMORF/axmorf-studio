@@ -116,11 +116,7 @@ const defaultVerifySuccess = async ({
       scenePackage.sceneCompositionBoundaryVersion !==
         assignment.sceneCompositionBoundaryVersion ||
       result.sceneCompositionBoundaryVersion !==
-        assignment.sceneCompositionBoundaryVersion ||
-      scenePackage.visualShellSourceGraphFingerprint !==
-        assignment.visualShellSourceGraphFingerprint ||
-      result.visualShellSourceGraphFingerprint !==
-        assignment.visualShellSourceGraphFingerprint);
+        assignment.sceneCompositionBoundaryVersion);
   if (
     scenePackage.storyId !== assignment.storyId ||
     scenePackage.meaningId !== assignment.meaningId ||
@@ -172,8 +168,6 @@ const defaultVerifySuccess = async ({
         ? {
             sceneCompositionBoundaryVersion:
               assignment.sceneCompositionBoundaryVersion,
-            visualShellSourceGraphFingerprint:
-              assignment.visualShellSourceGraphFingerprint,
           }
         : {}),
     },
@@ -262,9 +256,7 @@ const assertResultMatchesAssignment = ({
     assignment.schemaVersion === 3 &&
     (result.schemaVersion !== 3 ||
       result.sceneCompositionBoundaryVersion !==
-        assignment.sceneCompositionBoundaryVersion ||
-      result.visualShellSourceGraphFingerprint !==
-        assignment.visualShellSourceGraphFingerprint);
+        assignment.sceneCompositionBoundaryVersion);
   if (
     result.runId !== assignment.runId ||
     result.storyId !== assignment.storyId ||

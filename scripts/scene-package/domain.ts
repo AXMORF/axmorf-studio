@@ -196,8 +196,6 @@ export const buildScenePackage = (rawInput: {
             task.readabilityPolicy.policyFingerprint,
           sceneCompositionBoundaryVersion:
             task.sceneCompositionBoundaryVersion,
-          visualShellSourceGraphFingerprint:
-            task.visualShellSourceGraphFingerprint,
         }
       : task.schemaVersion === 2
       ? {

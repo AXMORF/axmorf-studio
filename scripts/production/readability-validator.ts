@@ -10,7 +10,6 @@ import {
 } from "../../src/contracts";
 import type { RendererSourceGraph } from "../renderer-registry/domain";
 import { validatePolicyAwareRendererSourceGraph } from "./readability-source-validator";
-import { validateVisualShellSourceGraph } from "./visual-shell-source-validator";
 
 const assertCurrentSharedSceneBoundary = async () => {
   const rootDir = process.cwd();
@@ -30,7 +29,6 @@ const assertCurrentSharedSceneBoundary = async () => {
     !sceneSlot.includes("<SceneSafeArea") ||
     !sceneSafeArea.includes("policy.sceneContentSafeAreaPx") ||
     !sceneSafeArea.includes("SceneReadabilityProvider") ||
-    !scaffold.includes('import VisualShell from "./visual-shell/VisualShell"') ||
     !scaffold.includes("sceneBoundaryVersion: scene.task.schemaVersion === 3")
   ) {
     throw new Error("Shared Scene boundary runtime or scaffold marker is stale.");
@@ -88,7 +86,7 @@ export const validateSceneReadability = async ({
     return { policyFingerprint: null, legacy: true } as const;
   }
   if (assignment.schemaVersion === 3) {
-    const [validated, shell, boundarySourceFingerprint] = await Promise.all([
+    const [validated, boundarySourceFingerprint] = await Promise.all([
       validatePolicyAwareRendererSourceGraph({
         rootDir,
         rendererPath: graph.rendererPath,
@@ -96,20 +94,12 @@ export const validateSceneReadability = async ({
         policy: assignment.readabilityPolicy,
         boundaryMode: "shared-v3",
       }),
-      validateVisualShellSourceGraph({
-        rootDir,
-        storyId: assignment.storyId,
-      }),
       assertCurrentSharedSceneBoundary(),
     ]);
     if (
       assignment.taskInput.schemaVersion !== 3 ||
       assignment.sceneCompositionBoundaryVersion !==
-        assignment.taskInput.sceneCompositionBoundaryVersion ||
-      assignment.visualShellSourceGraphFingerprint !==
-        assignment.taskInput.visualShellSourceGraphFingerprint ||
-      assignment.visualShellSourceGraphFingerprint !==
-        shell.visualShellSourceGraphFingerprint
+        assignment.taskInput.sceneCompositionBoundaryVersion
     ) {
       throw new Error("v3 Scene shared boundary identity is stale.");
     }
@@ -118,8 +108,6 @@ export const validateSceneReadability = async ({
       legacy: false,
       sceneCompositionBoundaryVersion:
         assignment.sceneCompositionBoundaryVersion,
-      visualShellSourceGraphFingerprint:
-        shell.visualShellSourceGraphFingerprint,
       boundarySourceFingerprint,
     } as const;
   }

@@ -69,7 +69,6 @@ const ScenePackageV2InputObject = ScenePackageV1InputObject.extend({
 const ScenePackageV3InputObject = ScenePackageV2InputObject.extend({
   schemaVersion: z.literal(3),
   sceneCompositionBoundaryVersion: z.literal("scene-composition-boundary-v1"),
-  visualShellSourceGraphFingerprint: Sha256DigestSchema,
   visualRuntimeVersion: z.literal(STORY_VISUAL_RUNTIME_VERSION_V2),
 }).strict();
 

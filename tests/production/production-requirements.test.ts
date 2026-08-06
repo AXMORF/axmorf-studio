@@ -138,7 +138,6 @@ test("builds and resolves a current production requirements freeze", () => {
   assert.deepEqual(freeze.sceneBoundaryOwnership, {
     sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
     sceneSafeAreaOwner: "composition",
-    visualShellOwner: "project",
     captionOwner: "caption-layer",
   });
   assert.equal(freeze.readabilityPolicy.policyId, "production-readability-v1");

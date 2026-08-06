@@ -29,7 +29,6 @@ import {
 import { createProductionStageEvent } from "./domain/events";
 import { createUnexpectedProductionError } from "./domain/errors";
 import { loadCurrentProductionInputs } from "./start";
-import { validateVisualShellSourceGraph } from "./visual-shell-source-validator";
 
 const readRegularJson = async (path: string, label: string) => {
   let metadata;
@@ -140,7 +139,7 @@ const resolveSceneFreezeInputs = async ({
     throw new Error("Production run requirements are stale.");
   }
   const projectDir = join(rootDir, "src/projects", loaded.run.storyId);
-  const [story, timing, catalog, visualStyle, rawPool, rawBrief, visualShell] =
+  const [story, timing, catalog, visualStyle, rawPool, rawBrief] =
     await Promise.all([
       readRegularJson(join(projectDir, "story.json"), "StorySpec").then(
         StorySpecSchema.parse,
@@ -162,10 +161,6 @@ const resolveSceneFreezeInputs = async ({
         join(projectDir, "production/scene-production-brief.json"),
         "SceneProductionBrief",
       ),
-      validateVisualShellSourceGraph({
-        rootDir,
-        storyId: loaded.run.storyId,
-      }),
     ]);
   if (
     story.storyId !== loaded.run.storyId ||
@@ -231,7 +226,6 @@ const resolveSceneFreezeInputs = async ({
     pool,
     brief,
     autoCheckFingerprint,
-    visualShell,
   } as const;
 };
 
@@ -315,8 +309,6 @@ const buildAssignments = ({
       sceneCompositionBoundaryVersion:
         current.requirements.sceneBoundaryOwnership
           .sceneCompositionBoundaryVersion,
-      visualShellSourceGraphFingerprint:
-        inputs.visualShell.visualShellSourceGraphFingerprint,
     });
     return buildSceneAssignmentV3({
       runId: loaded.run.runId,
@@ -330,8 +322,6 @@ const buildAssignments = ({
       sceneCompositionBoundaryVersion:
         current.requirements.sceneBoundaryOwnership
           .sceneCompositionBoundaryVersion,
-      visualShellSourceGraphFingerprint:
-        inputs.visualShell.visualShellSourceGraphFingerprint,
       sceneBrief,
       additionalRequirements: relevantSceneRequirements(
         current.requirements,

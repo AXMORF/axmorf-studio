@@ -42,7 +42,6 @@ export const SceneBoundaryOwnershipSchema = z
       SCENE_COMPOSITION_BOUNDARY_VERSION,
     ),
     sceneSafeAreaOwner: z.literal("composition"),
-    visualShellOwner: z.literal("project"),
     captionOwner: z.literal("caption-layer"),
   })
   .strict()
@@ -642,7 +641,6 @@ export const buildProductionRequirementsFreeze = (
     sceneBoundaryOwnership: {
       sceneCompositionBoundaryVersion: SCENE_COMPOSITION_BOUNDARY_VERSION,
       sceneSafeAreaOwner: "composition",
-      visualShellOwner: "project",
       captionOwner: "caption-layer",
     },
   });

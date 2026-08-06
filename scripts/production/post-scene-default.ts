@@ -62,7 +62,6 @@ import {
 } from "./preview-evidence";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
 import { validateSceneReadability } from "./readability-validator";
-import { validateVisualShellSourceGraph } from "./visual-shell-source-validator";
 
 const checksumFile = async (path: string) =>
   Sha256DigestSchema.parse(
@@ -125,22 +124,16 @@ const preparePreview = async ({
     throw new Error("Production Preview requirements are stale.");
   }
   const requirements = resolved.inputs.current.requirements;
-  const visualShell =
-    requirements.schemaVersion === 3
-      ? await validateVisualShellSourceGraph({ rootDir, storyId })
-      : null;
   if (
     requirements.schemaVersion === 3 &&
     resolved.assignments.some(
       (assignment) =>
         assignment.schemaVersion !== 3 ||
         assignment.sceneCompositionBoundaryVersion !==
-          requirements.sceneBoundaryOwnership.sceneCompositionBoundaryVersion ||
-        assignment.visualShellSourceGraphFingerprint !==
-          visualShell?.visualShellSourceGraphFingerprint,
+          requirements.sceneBoundaryOwnership.sceneCompositionBoundaryVersion,
     )
   ) {
-    throw new Error("Production Preview VisualShell identity is stale.");
+    throw new Error("Production Preview shared boundary identity is stale.");
   }
   const coverage = SceneCoverageMapSchema.parse(
     await generateSceneCoverageFromProjectFiles({
@@ -300,10 +293,8 @@ const preparePreview = async ({
     })),
     rendererRegistryFingerprint: registry.registryFingerprint,
     storyVisualProjectionFingerprint: visualProjection.projectionFingerprint,
-    ...(requirements.schemaVersion === 3 && visualShell !== null
+    ...(requirements.schemaVersion === 3
       ? {
-          visualShellSourceGraphFingerprint:
-            visualShell.visualShellSourceGraphFingerprint,
           sceneCompositionBoundaryVersion:
             requirements.sceneBoundaryOwnership.sceneCompositionBoundaryVersion,
         }
@@ -329,7 +320,6 @@ const preparePreview = async ({
     layerOrder:
       requirements.schemaVersion === 3
         ? [
-            "visual-shell",
             "story-visual",
             "narrative-core",
             "scene-local-sound",

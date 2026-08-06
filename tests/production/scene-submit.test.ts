@@ -69,7 +69,6 @@ const createAssignment = (
     },
     readabilityPolicy,
     sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
-    visualShellSourceGraphFingerprint: sha("0"),
   });
   return buildSceneAssignmentV3({
     runId,
@@ -81,7 +80,6 @@ const createAssignment = (
     taskInput,
     readabilityPolicy,
     sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
-    visualShellSourceGraphFingerprint: sha("0"),
     sceneBrief: {
       meaningId: "opening",
       visualIntent: "Show the cumulative timing boundary.",

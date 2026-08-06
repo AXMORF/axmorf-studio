@@ -45,20 +45,16 @@ test("future production scaffolds bind frozen readability into captions and Scen
   assert.match(runtime, /readabilityPolicy: scene\.task\.schemaVersion >= 2/u);
 });
 
-test("v3 Preview imports one project-local VisualShell around StoryVisualTrack", () => {
+test("v3 Preview mounts StoryVisualTrack directly without a second global visual owner", () => {
   const source = renderV3ProductionPreviewProjectScaffold({
     storyId: "future-story",
     sceneLocalSoundPresent: false,
   });
-  assert.equal(
-    source.match(/from "\.\/visual-shell\/VisualShell"/gu)?.length,
-    1,
-  );
-  assert.equal(source.match(/<VisualShell>/gu)?.length, 1);
+  assert.doesNotMatch(source, /VisualShell|visual-shell/u);
   assert.equal(source.match(/<StoryVisualTrack /gu)?.length, 1);
   assert.match(
     source,
-    /storyVisualTrack=\{<VisualShell><StoryVisualTrack [^>]+ \/><\/VisualShell>\}/u,
+    /storyVisualTrack=\{<StoryVisualTrack [^>]+ \/>\}/u,
   );
   assert.doesNotMatch(source, /globalVisualLayers|GlobalVisualLayers/u);
 });

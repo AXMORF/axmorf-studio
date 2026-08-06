@@ -17,10 +17,7 @@ test("builds a versioned preview assembly with explicit absent enhancements", ()
     assembly.sceneCompositionBoundaryVersion,
     "scene-composition-boundary-v1",
   );
-  assert.equal(
-    assembly.layerOrder[0],
-    "visual-shell",
-  );
+  assert.equal(assembly.layerOrder[0], "story-visual");
   assert.equal(assembly.reviewPolicy, "mechanical-only");
   assert.equal(
     ProductionPreviewAssemblySchema.parse(assembly).assemblyFingerprint,

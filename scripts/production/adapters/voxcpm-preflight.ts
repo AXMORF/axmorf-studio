@@ -56,6 +56,49 @@ const isLoopback = (baseUrl: string) => {
   );
 };
 
+const isEnvironmentPermissionDenied = (rawError: unknown) => {
+  let error = rawError;
+  const seen = new Set<unknown>();
+  for (let depth = 0; depth < 4 && error !== null && typeof error === "object"; depth += 1) {
+    if (seen.has(error)) return false;
+    seen.add(error);
+    const record = error as { code?: unknown; message?: unknown; cause?: unknown };
+    if (
+      record.code === "EPERM" ||
+      record.code === "EACCES" ||
+      (typeof record.message === "string" &&
+        /operation not permitted|permission denied/iu.test(record.message))
+    ) {
+      return true;
+    }
+    error = record.cause;
+  }
+  return false;
+};
+
+const probeFailure = ({
+  error,
+  requirementsFingerprint,
+  phase,
+}: {
+  readonly error: unknown;
+  readonly requirementsFingerprint: string;
+  readonly phase: "liveness" | "readiness";
+}) =>
+  isEnvironmentPermissionDenied(error)
+    ? failure({
+        requirementsFingerprint,
+        code: "VOXCPM_ENVIRONMENT_PERMISSION_DENIED",
+        summary: "The environment denied access to the local speech service.",
+        remediation: "Run the fixed preflight with required host permissions.",
+      })
+    : failure({
+        requirementsFingerprint,
+        code: "VOXCPM_SERVICE_UNREACHABLE",
+        summary: `The local speech service ${phase} check is unreachable.`,
+        remediation: "Restore local speech service access before starting production.",
+      });
+
 export const preflightVoxcpm = async ({
   requirementsFingerprint,
   metadata,
@@ -81,13 +124,8 @@ export const preflightVoxcpm = async ({
       ...(metadata.token === undefined ? {} : { token: metadata.token }),
       timeoutMs: metadata.timeoutMs,
     });
-  } catch {
-    return failure({
-      requirementsFingerprint,
-      code: "VOXCPM_SERVICE_UNREACHABLE",
-      summary: "The local speech service is unreachable.",
-      remediation: "Restore local speech service access before starting production.",
-    });
+  } catch (error) {
+    return probeFailure({ error, requirementsFingerprint, phase: "liveness" });
   }
   if (
     health.status !== 200 ||
@@ -110,13 +148,8 @@ export const preflightVoxcpm = async ({
       ...(metadata.token === undefined ? {} : { token: metadata.token }),
       timeoutMs: metadata.timeoutMs,
     });
-  } catch {
-    return failure({
-      requirementsFingerprint,
-      code: "VOXCPM_SERVICE_UNREACHABLE",
-      summary: "The local speech service readiness check is unreachable.",
-      remediation: "Restore local speech service access before starting production.",
-    });
+  } catch (error) {
+    return probeFailure({ error, requirementsFingerprint, phase: "readiness" });
   }
   if (ready.status === 500) {
     return failure({

@@ -118,11 +118,9 @@ const PreviewAssemblyV2InputObject = z.object({
   ...PreviewAssemblyInputObject.shape,
   schemaVersion: z.literal(2),
   contractVersion: z.literal(PRODUCTION_PREVIEW_ASSEMBLY_VERSION_V2),
-  visualShellSourceGraphFingerprint: Sha256DigestSchema,
   sceneCompositionBoundaryVersion: z.literal("scene-composition-boundary-v1"),
   layerOrder: z
     .tuple([
-      z.literal("visual-shell"),
       z.literal("story-visual"),
       z.literal("narrative-core"),
       z.literal("scene-local-sound"),
@@ -185,7 +183,7 @@ export const buildProductionPreviewAssembly = (rawInput: unknown) => {
   const isV2 =
     rawInput !== null &&
     typeof rawInput === "object" &&
-    "visualShellSourceGraphFingerprint" in rawInput;
+    "sceneCompositionBoundaryVersion" in rawInput;
   const record: Record<string, unknown> = {
     ...(rawInput as Record<string, unknown>),
     schemaVersion: isV2 ? 2 : 1,

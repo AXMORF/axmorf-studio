@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
@@ -220,12 +220,6 @@ const createE2eFixture = async (context: TestContext) => {
     join(fixture.projectDir, "production/scene-production-brief.json"),
     brief,
   );
-  const shellDir = join(fixture.projectDir, "visual-shell");
-  await mkdir(shellDir, { recursive: true });
-  await writeFile(
-    join(shellDir, "VisualShell.tsx"),
-    'import type {PropsWithChildren} from "react"; export default function VisualShell({children}: PropsWithChildren) { return <div>{children}</div>; }\n',
-  );
   const frozen = await runProductionSceneFreeze({
     rootDir,
     runId: fixture.runId,
@@ -276,8 +270,6 @@ const successResult = (assignment: SceneAssignment, index: number) =>
       ? {
           sceneCompositionBoundaryVersion:
             assignment.sceneCompositionBoundaryVersion,
-          visualShellSourceGraphFingerprint:
-            assignment.visualShellSourceGraphFingerprint,
         }
       : {}),
   }) as Extract<SceneProductionResult, { status: "success" }>;
@@ -374,8 +366,8 @@ test("fake provider plus two Scene successes reaches preview-ready byte-stably",
       (assignment) =>
         assignment.schemaVersion === 3 &&
         assignment.taskInput.schemaVersion === 3 &&
-        assignment.visualShellSourceGraphFingerprint ===
-          assignment.taskInput.visualShellSourceGraphFingerprint,
+        assignment.sceneCompositionBoundaryVersion ===
+          assignment.taskInput.sceneCompositionBoundaryVersion,
     ),
   );
   const results = fixture.assignments.map(successResult);

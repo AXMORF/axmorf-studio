@@ -209,8 +209,6 @@ const validateSceneFromProjectFiles: SceneValidator = async ({
           ? {
               sceneCompositionBoundaryVersion:
                 assignment.sceneCompositionBoundaryVersion,
-              visualShellSourceGraphFingerprint:
-                assignment.visualShellSourceGraphFingerprint,
             }
           : {}),
       },
@@ -282,8 +280,6 @@ const commonResultInput = (assignment: SceneAssignment, occurredAt: string) => {
           ? {
               sceneCompositionBoundaryVersion:
                 assignment.sceneCompositionBoundaryVersion,
-              visualShellSourceGraphFingerprint:
-                assignment.visualShellSourceGraphFingerprint,
             }
           : {}),
       }

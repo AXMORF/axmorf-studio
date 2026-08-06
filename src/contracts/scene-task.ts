@@ -98,7 +98,6 @@ const SceneTaskInputV3Object = SceneTaskInputV2Object.extend({
   sceneCompositionBoundaryVersion: z.literal(
     SCENE_COMPOSITION_BOUNDARY_VERSION,
   ),
-  visualShellSourceGraphFingerprint: Sha256DigestSchema,
 }).strict();
 
 type SceneTaskV1FingerprintInput = Omit<

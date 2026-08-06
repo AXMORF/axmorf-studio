@@ -371,7 +371,6 @@ const assertNoSharedBoundaryOwnership = (
     "SceneSafeArea",
     "SceneContentFrame",
     "SceneBackground",
-    "VisualShell",
     "CaptionLayer",
     "GlobalVisualLayers",
     "Audio",
