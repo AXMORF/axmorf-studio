@@ -77,7 +77,7 @@ export const createProductionNarrativeCoreProps = (input: unknown): NarrativeCor
 const NeuralNetworkNameComposition: FC<StoryCompositionProps> = (props) => (
   <CompositionAssembly
     storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning} />}
-    globalVisualLayers={<GlobalVisualLayers plan={globalVisualPlan} projection={globalVisualProjection} />}
+    globalVisualBackgroundLayers={<GlobalVisualLayers plan={globalVisualPlan} projection={globalVisualProjection} />}
     narrativeCore={<NarrativeCore {...createProductionNarrativeCoreProps(props)} />}
   />
 );

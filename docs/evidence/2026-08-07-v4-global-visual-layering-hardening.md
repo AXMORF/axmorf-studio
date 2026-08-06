@@ -21,3 +21,9 @@
   exact previous generated v4 Preview scaffold before creating a Run. A second focused Red/Green adds
   byte-exact recognition for that one legacy generator output while drifted and hand-written sources
   remain protected.
+- Fresh immutable Run proof: `neural-network-name-run-20260806185545-b0b95a619241` reached
+  `preview-ready` at sequence `17`; its Preview checksum is
+  `sha256:5b9c10cc328d7d075d6b1cbce712c8ca7600fc9c2edad55c745e737828b59259`.
+  The current contact sheet visibly retains Scene semantic drawings above the hand-drawn paper
+  background, a repeated Preview check was a read-only no-op, full media decode passed, and the
+  complete repository gate passed with 689 tests.

@@ -15,7 +15,7 @@ import {
   type CompositionAssemblyProps,
 } from "../../src/remotion/runtime/composition-assembly";
 
-test("CompositionAssembly exposes one required and three exact optional semantic slots", () => {
+test("CompositionAssembly exposes one required and four exact optional semantic slots", () => {
   const props: CompositionAssemblyProps = {
     narrativeCore: createElement("span", null, "narrative"),
   };
@@ -29,10 +29,16 @@ test("CompositionAssembly exposes one required and three exact optional semantic
   assert.equal(narrativeChildren[0].props.children, "narrative");
 
   const storyVisualTrack = createElement("span", null, "visual");
+  const globalVisualBackgroundLayers = createElement(
+    "span",
+    null,
+    "global-background",
+  );
   const globalVisualLayers = createElement("span", null, "global");
   const soundDesignTrack = createElement("span", null, "sound");
   const full = CompositionAssembly({
     narrativeCore: props.narrativeCore,
+    globalVisualBackgroundLayers,
     storyVisualTrack,
     globalVisualLayers,
     soundDesignTrack,
@@ -43,11 +49,11 @@ test("CompositionAssembly exposes one required and three exact optional semantic
       (child) =>
         isValidElement<{ children?: ReactNode }>(child) && child.props.children,
     ),
-    ["visual", "global", "narrative", "sound"],
+    ["global-background", "visual", "global", "narrative", "sound"],
   );
 });
 
-test("assembly source has four approved semantic slots and no generic track array", async () => {
+test("assembly source has five approved semantic slots and no generic track array", async () => {
   const path = new URL(
     "../../src/remotion/runtime/composition-assembly/CompositionAssembly.tsx",
     import.meta.url,
@@ -63,7 +69,7 @@ test("assembly source has four approved semantic slots and no generic track arra
   assert.equal(ast.kind, ts.SyntaxKind.SourceFile);
   assert.match(
     source,
-    /readonly narrativeCore: ReactNode;\s*readonly storyVisualTrack\?: ReactNode;\s*readonly globalVisualLayers\?: ReactNode;\s*readonly soundDesignTrack\?: ReactNode;/,
+    /readonly narrativeCore: ReactNode;\s*readonly globalVisualBackgroundLayers\?: ReactNode;\s*readonly storyVisualTrack\?: ReactNode;\s*readonly globalVisualLayers\?: ReactNode;\s*readonly soundDesignTrack\?: ReactNode;/,
   );
   assert.doesNotMatch(
     source,
