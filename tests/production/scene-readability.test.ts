@@ -256,6 +256,7 @@ test("v3 rejects Renderer-owned boundary shell caption audio and raw policy", as
     ["caption", semanticRenderer("<CaptionLayer />")],
     ["audio", semanticRenderer("<Audio />")],
     ["raw policy", "const Renderer = ({readabilityPolicy}: any) => <div />; export default Renderer;"],
+    ["boundary version", "const Renderer = ({sceneBoundaryVersion}: any) => <div />; export default Renderer;"],
   ] as const) {
     await context.test(label, async (child) => {
       const fixture = await createFixture(child);

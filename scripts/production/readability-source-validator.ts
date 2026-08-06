@@ -376,6 +376,7 @@ const assertNoSharedBoundaryOwnership = (
     "Audio",
     "Html5Audio",
     "readabilityPolicy",
+    "sceneBoundaryVersion",
     "sceneContentSafeAreaPx",
     "safeAreaPx",
   ]);
