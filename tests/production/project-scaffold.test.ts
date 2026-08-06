@@ -42,7 +42,10 @@ test("future production scaffolds bind frozen readability into captions and Scen
     storyId: "future-story",
     meaningIds: ["opening"],
   });
-  assert.match(runtime, /readabilityPolicy: scene\.task\.schemaVersion >= 2/u);
+  assert.match(runtime, /const task = scene\.task;/u);
+  assert.match(runtime, /if \(task\.schemaVersion === 1\)/u);
+  assert.match(runtime, /readabilityPolicy: task\.readabilityPolicy/u);
+  assert.doesNotMatch(runtime, /scene\.task\.schemaVersion >= 2/u);
 });
 
 test("v3 Preview mounts StoryVisualTrack directly without a second global visual owner", () => {

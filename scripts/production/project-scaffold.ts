@@ -395,15 +395,17 @@ export const productionSoundDesignProjection = buildSoundDesignProjection({
   sceneSoundProjections,
 });
 export const productionRendererPropsByMeaning: Readonly<Record<string, Omit<SceneRendererProps, "sceneFrame">>> = Object.fromEntries(
-  scenes.map((scene) => [scene.task.meaningId, {
-    storyId: scene.task.storyId,
-    meaningId: scene.task.meaningId,
-    durationInFrames: scene.task.timingBeat.endFrame - scene.task.timingBeat.startFrame,
+  scenes.map((scene) => {
+    const task = scene.task;
+    return [task.meaningId, {
+    storyId: task.storyId,
+    meaningId: task.meaningId,
+    durationInFrames: task.timingBeat.endFrame - task.timingBeat.startFrame,
     fps: render.fps,
     width: render.width,
     height: render.height,
-    storyBeat: scene.task.storyBeat,
-    timingBeat: scene.task.timingBeat,
+    storyBeat: task.storyBeat,
+    timingBeat: task.timingBeat,
     visualStyle,
     visualPlan: scene.visual,
     shots: scene.shots,
@@ -412,7 +414,8 @@ export const productionRendererPropsByMeaning: Readonly<Record<string, Omit<Scen
       if (descriptor.kind !== "asset" || !descriptor.localPath.startsWith("public/")) throw new Error("Production Scene visual resource is not local.");
       return {resourceId: selected.resourceId, src: staticFile(descriptor.localPath.slice("public/".length)), descriptorFingerprint: selected.descriptorFingerprint};
     }),
-  }]),
+  }];
+  }),
 );
 export {currentRegistry as productionRendererRegistry};
 `;
@@ -426,10 +429,15 @@ export const renderReadabilityAwareProductionSceneRuntime = (input: {
     PRODUCTION_PREVIEW_SCAFFOLD_MARKER,
     PRODUCTION_READABILITY_SCAFFOLD_MARKER,
   );
-  return replaceRequired(
+  const narrowed = replaceRequired(
     source,
+    "    const task = scene.task;\n",
+    '    const task = scene.task;\n    if (task.schemaVersion === 1) throw new Error("Production Scene runtime requires readability-aware task input.");\n',
+  );
+  return replaceRequired(
+    narrowed,
     "    visualResources: scene.resources.filter",
-    '    readabilityPolicy: scene.task.schemaVersion >= 2 ? scene.task.readabilityPolicy : (() => { throw new Error("Production Scene runtime requires readability-aware task input."); })(),\n    sceneBoundaryVersion: scene.task.schemaVersion === 3 ? scene.task.sceneCompositionBoundaryVersion : undefined,\n    visualResources: scene.resources.filter',
+    "    readabilityPolicy: task.readabilityPolicy,\n    sceneBoundaryVersion: task.schemaVersion === 3 ? task.sceneCompositionBoundaryVersion : undefined,\n    visualResources: scene.resources.filter",
   );
 };
 

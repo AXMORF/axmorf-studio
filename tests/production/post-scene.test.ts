@@ -239,14 +239,16 @@ test("post-scene failure records central failure and stops later steps", async (
   assert.deepEqual(calls, ["freeze-check", "preview-write"]);
 });
 
-test("default composition listing preserves enumerable Remotion stdout", async () => {
+test("default composition listing does not suppress enumerable Remotion stdout", async () => {
   const calls: string[][] = [];
   const dependencies = createDefaultPostSceneProductionDependencies({
     runProcess: async (_command, args) => {
       calls.push([...args]);
       return {
         status: 0,
-        stdout: "RoundedAirplaneWindows 30 1080x1920 1102",
+        stdout: args.includes("--log=error")
+          ? ""
+          : "RoundedAirplaneWindows 30 1080x1920 1102",
         stderr: "",
       };
     },
@@ -261,6 +263,6 @@ test("default composition listing preserves enumerable Remotion stdout", async (
   });
 
   assert.deepEqual(calls, [
-    ["compositions", "src/index.ts", "--log=error"],
+    ["compositions", "src/index.ts"],
   ]);
 });

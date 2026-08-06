@@ -42,7 +42,6 @@ test("uses the production Remotion command and classifies sandbox denial", async
   assert.deepEqual(buildProductionCompositionsArgs(), [
     "compositions",
     "src/index.ts",
-    "--log=error",
   ]);
   const calls: Array<readonly [string, readonly string[]]> = [];
   const result = await preflightRemotionBrowser({
@@ -59,7 +58,7 @@ test("uses the production Remotion command and classifies sandbox denial", async
   });
   assert.deepEqual(calls, [[
     "/repo/node_modules/.bin/remotion",
-    ["compositions", "src/index.ts", "--log=error"],
+    ["compositions", "src/index.ts"],
   ]]);
   assert.equal(result.status, "failed");
   if (result.status === "failed") {

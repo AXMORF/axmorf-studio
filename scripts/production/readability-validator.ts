@@ -29,7 +29,7 @@ const assertCurrentSharedSceneBoundary = async () => {
     !sceneSlot.includes("<SceneSafeArea") ||
     !sceneSafeArea.includes("policy.sceneContentSafeAreaPx") ||
     !sceneSafeArea.includes("SceneReadabilityProvider") ||
-    !scaffold.includes("sceneBoundaryVersion: scene.task.schemaVersion === 3")
+    !scaffold.includes("sceneBoundaryVersion: task.schemaVersion === 3")
   ) {
     throw new Error("Shared Scene boundary runtime or scaffold marker is stale.");
   }

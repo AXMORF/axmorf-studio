@@ -13,7 +13,7 @@ export const resolveProductionRemotionCommand = (rootDir: string) =>
   join(rootDir, "node_modules/.bin/remotion");
 
 export const buildProductionCompositionsArgs = () =>
-  ["compositions", PRODUCTION_REMOTION_ENTRY, "--log=error"] as const;
+  ["compositions", PRODUCTION_REMOTION_ENTRY] as const;
 
 export const buildProductionStillArgs = ({
   compositionId,
