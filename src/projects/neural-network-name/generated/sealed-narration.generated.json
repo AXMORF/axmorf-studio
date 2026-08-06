@@ -1,0 +1,115 @@
+{
+  "assemblyAlgorithmId": "ordered-pcm-concat-v1",
+  "canonicalPcm": {
+    "channelLayout": "mono",
+    "sampleFormat": "s16le",
+    "sampleRate": 48000
+  },
+  "completeAudio": {
+    "checksum": "sha256:41efc67546017c87899fe9dccc168643503a004570e9b9514df141130e807d54",
+    "localPath": "public/projects/neural-network-name/narration/2c1677d6e5be23d3a8a233872de1207af68725f2ab65d3c318dafe5a2593593b/complete.wav",
+    "pcm": {
+      "channelLayout": "mono",
+      "sampleFormat": "s16le",
+      "sampleRate": 48000
+    },
+    "sampleFrameCount": 1843200
+  },
+  "generationInputFingerprint": "sha256:4b90ecbd61841f309432b95f2ac83c2220a36afeaca55b8411fc8b518ff5de9b",
+  "narrationSpec": {
+    "mode": "voice-clone",
+    "schemaVersion": 1,
+    "seed": 20260807,
+    "voiceProfileId": "my-voice"
+  },
+  "normalizationAlgorithmId": "pcm-s16le-normalize-v1",
+  "schemaVersion": 1,
+  "sealedNarrationFingerprint": "sha256:2c1677d6e5be23d3a8a233872de1207af68725f2ab65d3c318dafe5a2593593b",
+  "segments": [
+    {
+      "checksum": "sha256:5bad65265f3afdc656955ca3188ae7a5a8ce626f5eda300e194461b29655edd8",
+      "chunkId": "name-origin-01",
+      "kind": "chunk",
+      "localPath": "public/projects/neural-network-name/narration/2c1677d6e5be23d3a8a233872de1207af68725f2ab65d3c318dafe5a2593593b/chunks/name-origin-01.wav",
+      "meaningId": "name-origin",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 276480,
+      "ttsText": "神经网络为什么叫神经网络？答案藏在它最初模仿的对象里。"
+    },
+    {
+      "checksum": "sha256:43d1e643b00acdcb72bdb331ccbb76d975cdd38ec5c2af6302da6d3c980b5fe5",
+      "chunkId": "biological-neuron-01",
+      "kind": "chunk",
+      "localPath": "public/projects/neural-network-name/narration/2c1677d6e5be23d3a8a233872de1207af68725f2ab65d3c318dafe5a2593593b/chunks/biological-neuron-01.wav",
+      "meaningId": "biological-neuron",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 322560,
+      "ttsText": "生物神经元会接收许多信号，整合之后，再把信号传给其他神经元。"
+    },
+    {
+      "checksum": "sha256:e71d33d9dfb9d625cfd2cb16ea888acac17ecb8f173a0144f0c1346e563693e4",
+      "chunkId": "artificial-neuron-01",
+      "kind": "chunk",
+      "localPath": "public/projects/neural-network-name/narration/2c1677d6e5be23d3a8a233872de1207af68725f2ab65d3c318dafe5a2593593b/chunks/artificial-neuron-01.wav",
+      "meaningId": "artificial-neuron",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 284160,
+      "ttsText": "人工神经网络把这种关系简化成一组数字运算。"
+    },
+    {
+      "checksum": "sha256:24deb2d1d8e79b4e6d45fb13c300fa8d7f3578d05cf798e54cfbdd1c12e544b0",
+      "chunkId": "artificial-neuron-02",
+      "kind": "chunk",
+      "localPath": "public/projects/neural-network-name/narration/2c1677d6e5be23d3a8a233872de1207af68725f2ab65d3c318dafe5a2593593b/chunks/artificial-neuron-02.wav",
+      "meaningId": "artificial-neuron",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 299520,
+      "ttsText": "输入乘上权重，相加，再经过激活函数，得到新的输出。"
+    },
+    {
+      "checksum": "sha256:bdd49f0e8ae3f65b30d3a22d793f5ee9727991b918ba3c93157d20ffaab43e9e",
+      "chunkId": "network-learning-01",
+      "kind": "chunk",
+      "localPath": "public/projects/neural-network-name/narration/2c1677d6e5be23d3a8a233872de1207af68725f2ab65d3c318dafe5a2593593b/chunks/network-learning-01.wav",
+      "meaningId": "network-learning",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 330240,
+      "ttsText": "许多人工神经元分层连接，就组成了网络。训练会不断调整连接的权重。"
+    },
+    {
+      "checksum": "sha256:8f2cb5c7b92c7f3045b943f76b32e936ba04a34c5c6e4619edcada14be31123a",
+      "chunkId": "analogy-limit-01",
+      "kind": "chunk",
+      "localPath": "public/projects/neural-network-name/narration/2c1677d6e5be23d3a8a233872de1207af68725f2ab65d3c318dafe5a2593593b/chunks/analogy-limit-01.wav",
+      "meaningId": "analogy-limit",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 330240,
+      "ttsText": "所以，神经网络这个名字说的是结构灵感，而不是一颗装在电脑里的大脑。"
+    }
+  ],
+  "storyId": "neural-network-name"
+}

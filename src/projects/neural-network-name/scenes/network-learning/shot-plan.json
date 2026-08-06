@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:f8daa12307fba7dec586d709efb65da4aaf2cc7569af8f521136c1f62af715d1",
+  "meaningId": "network-learning",
+  "sceneDurationInFrames": 206,
+  "shots": [
+    {
+      "shotId": "forward-and-correct",
+      "order": 0,
+      "primaryRange": {
+        "startFrame": 0,
+        "endFrame": 206
+      },
+      "purpose": "在一个连续解释镜头中呈现网络形成、前向输出、误差比较与权重修正。",
+      "action": "节点和连线逐步出现，靛蓝信号向右传播，橙色误差从目标处向左返回，部分连接随后变粗。",
+      "visualResourceIds": [],
+      "syncAnchorIds": [
+        "network-formed",
+        "forward-signal",
+        "target-compared",
+        "weights-corrected"
+      ]
+    }
+  ],
+  "shotPlanFingerprint": "sha256:3efe1ee546ad909d0a17d12925493ffc82faead27371f1b868405019c5088888"
+}

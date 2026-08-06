@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "planVersion": "global-visual-plan-v1",
+  "storyId": "neural-network-name",
+  "compositionId": "NeuralNetworkName",
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "durationInFrames": 1197,
+  "captionSafeArea": {
+    "top": 90,
+    "right": 90,
+    "bottom": 180,
+    "left": 90
+  },
+  "catalogFingerprint": "sha256:83872a754e05df18d0ec008ecd4f9cb637c0c159481dc59b0368898125188689",
+  "frameTreatment": {
+    "inset": 24,
+    "borderWidth": 2,
+    "borderColor": "#2F3448",
+    "borderOpacity": 0.12,
+    "vignetteOpacity": 0.05,
+    "grainOpacity": 0.18
+  },
+  "continuityMotif": {
+    "color": "#394B78",
+    "strokeWidth": 4,
+    "opacity": 0.24,
+    "motionPolicy": "linear-frame-progress-v1",
+    "windows": [
+      {"startFrame": 0, "endFrame": 188, "axis": "y", "direction": 1},
+      {"startFrame": 188, "endFrame": 390, "axis": "x", "direction": -1},
+      {"startFrame": 390, "endFrame": 755, "axis": "y", "direction": 1},
+      {"startFrame": 755, "endFrame": 961, "axis": "x", "direction": -1},
+      {"startFrame": 961, "endFrame": 1197, "axis": "y", "direction": 1}
+    ]
+  },
+  "planFingerprint": "sha256:55ce31a8beb21e6d0bfe1ad2c040c8c5e81db080a03c6d30fb290250ed88adbb"
+}

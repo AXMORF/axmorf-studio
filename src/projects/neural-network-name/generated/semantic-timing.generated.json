@@ -1,0 +1,168 @@
+{
+  "algorithmId": "pcm-cumulative-ceil-v1",
+  "captionCues": [
+    {
+      "chunkId": "name-origin-01",
+      "endFrame": 188,
+      "meaningId": "name-origin",
+      "startFrame": 15,
+      "text": "神经网络为什么叫神经网络？答案藏在它最初模仿的对象里。"
+    },
+    {
+      "chunkId": "biological-neuron-01",
+      "endFrame": 390,
+      "meaningId": "biological-neuron",
+      "startFrame": 188,
+      "text": "生物神经元会接收许多信号，整合之后，再把信号传给其他神经元。"
+    },
+    {
+      "chunkId": "artificial-neuron-01",
+      "endFrame": 567,
+      "meaningId": "artificial-neuron",
+      "startFrame": 390,
+      "text": "人工神经网络把这种关系简化成一组数字运算。"
+    },
+    {
+      "chunkId": "artificial-neuron-02",
+      "endFrame": 755,
+      "meaningId": "artificial-neuron",
+      "startFrame": 567,
+      "text": "输入乘上权重，相加，再经过激活函数，得到新的输出。"
+    },
+    {
+      "chunkId": "network-learning-01",
+      "endFrame": 961,
+      "meaningId": "network-learning",
+      "startFrame": 755,
+      "text": "许多人工神经元分层连接，就组成了网络。训练会不断调整连接的权重。"
+    },
+    {
+      "chunkId": "analogy-limit-01",
+      "endFrame": 1167,
+      "meaningId": "analogy-limit",
+      "startFrame": 961,
+      "text": "所以，神经网络这个名字说的是结构灵感，而不是一颗装在电脑里的大脑。"
+    }
+  ],
+  "durationInFrames": 1197,
+  "fingerprint": "sha256:ab295d8d9a976488811703b63bcad06c57ef21da92a7517cf0365fa2968adc6e",
+  "fps": 30,
+  "leadInFrames": 15,
+  "sampleRate": 48000,
+  "schemaVersion": 1,
+  "segments": [
+    {
+      "chunkId": "name-origin-01",
+      "frameRange": {
+        "endFrame": 188,
+        "startFrame": 15
+      },
+      "kind": "chunk",
+      "meaningId": "name-origin",
+      "sampleRange": {
+        "endSampleFrame": 276480,
+        "startSampleFrame": 0
+      },
+      "ttsText": "神经网络为什么叫神经网络？答案藏在它最初模仿的对象里。"
+    },
+    {
+      "chunkId": "biological-neuron-01",
+      "frameRange": {
+        "endFrame": 390,
+        "startFrame": 188
+      },
+      "kind": "chunk",
+      "meaningId": "biological-neuron",
+      "sampleRange": {
+        "endSampleFrame": 599040,
+        "startSampleFrame": 276480
+      },
+      "ttsText": "生物神经元会接收许多信号，整合之后，再把信号传给其他神经元。"
+    },
+    {
+      "chunkId": "artificial-neuron-01",
+      "frameRange": {
+        "endFrame": 567,
+        "startFrame": 390
+      },
+      "kind": "chunk",
+      "meaningId": "artificial-neuron",
+      "sampleRange": {
+        "endSampleFrame": 883200,
+        "startSampleFrame": 599040
+      },
+      "ttsText": "人工神经网络把这种关系简化成一组数字运算。"
+    },
+    {
+      "chunkId": "artificial-neuron-02",
+      "frameRange": {
+        "endFrame": 755,
+        "startFrame": 567
+      },
+      "kind": "chunk",
+      "meaningId": "artificial-neuron",
+      "sampleRange": {
+        "endSampleFrame": 1182720,
+        "startSampleFrame": 883200
+      },
+      "ttsText": "输入乘上权重，相加，再经过激活函数，得到新的输出。"
+    },
+    {
+      "chunkId": "network-learning-01",
+      "frameRange": {
+        "endFrame": 961,
+        "startFrame": 755
+      },
+      "kind": "chunk",
+      "meaningId": "network-learning",
+      "sampleRange": {
+        "endSampleFrame": 1512960,
+        "startSampleFrame": 1182720
+      },
+      "ttsText": "许多人工神经元分层连接，就组成了网络。训练会不断调整连接的权重。"
+    },
+    {
+      "chunkId": "analogy-limit-01",
+      "frameRange": {
+        "endFrame": 1167,
+        "startFrame": 961
+      },
+      "kind": "chunk",
+      "meaningId": "analogy-limit",
+      "sampleRange": {
+        "endSampleFrame": 1843200,
+        "startSampleFrame": 1512960
+      },
+      "ttsText": "所以，神经网络这个名字说的是结构灵感，而不是一颗装在电脑里的大脑。"
+    }
+  ],
+  "storyBeats": [
+    {
+      "endFrame": 188,
+      "meaningId": "name-origin",
+      "startFrame": 15
+    },
+    {
+      "endFrame": 390,
+      "meaningId": "biological-neuron",
+      "startFrame": 188
+    },
+    {
+      "endFrame": 755,
+      "meaningId": "artificial-neuron",
+      "startFrame": 390
+    },
+    {
+      "endFrame": 961,
+      "meaningId": "network-learning",
+      "startFrame": 755
+    },
+    {
+      "endFrame": 1167,
+      "meaningId": "analogy-limit",
+      "startFrame": 961
+    }
+  ],
+  "storyId": "neural-network-name",
+  "tailFrames": 30
+}

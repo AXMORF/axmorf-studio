@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "storyId": "neural-network-name",
+  "styleProfileId": "hand-drawn-explainer",
+  "resourceCatalogFingerprint": "sha256:83872a754e05df18d0ec008ecd4f9cb637c0c159481dc59b0368898125188689",
+  "artDirection": {
+    "medium": "温暖纸张上的手绘科普插画，以有轻微抖动感的深色铅笔线和扁平色块构成。",
+    "palette": "米白纸色为底，炭黑线条，珊瑚橙、鼠尾草绿和靛蓝作为有限强调色。",
+    "lighting": "二维纸面无写实光照，通过淡铅笔阴影和局部色块建立层次。",
+    "texture": "全片保持细微纸纤维与铅笔颗粒，语义图形边缘略不规则但清晰。",
+    "compositionGrammar": "每个 Scene 使用一个中心解释图形，按从左到右或从上到下的阅读顺序逐步揭示，保留充分留白。",
+    "motionLanguage": "线条像被逐笔画出，节点以轻微弹性出现，信号沿连接线流动；全部运动由 Remotion frame API 驱动。",
+    "typography": "仅在确有必要时使用简短中文标签，粗体无衬线字配手绘下划线，字号不得低于冻结最小值。"
+  },
+  "continuityRules": [
+    "同一条靛蓝手绘连线作为跨 Scene 连续性母题，但只由全局视觉层拥有。",
+    "生物神经元使用珊瑚橙，人工神经元使用鼠尾草绿，信号使用靛蓝。",
+    "所有 Scene 根节点透明，背景、纸张纹理和非语义装饰由 GlobalVisualPackage 统一提供。",
+    "所有语义内容限制在冻结的 Scene 内容安全区内，并避开顶层字幕区域。"
+  ],
+  "forbiddenTreatments": [
+    "禁止写实大脑、医学扫描影像或照片拼贴。",
+    "禁止霓虹赛博朋克、玻璃拟态和三维金属神经网络。",
+    "禁止 Scene 绘制全帧背景、纸张纹理、安全区底板或字幕。",
+    "禁止密集公式墙、长段文字和低于冻结最小字号的标签。"
+  ]
+}

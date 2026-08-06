@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "global-visual-brief-v1",
+  "storyId": "neural-network-name",
+  "responsibility": "project-global-background-texture-decoration-continuity-v1",
+  "visualIntent": [
+    {
+      "intentId": "warm-paper-field",
+      "description": "为完整 Composition 提供温暖米白纸张底色与极轻纸纤维纹理，不进入 Scene 语义内容区的主层级。",
+      "appliesTo": "full-composition"
+    },
+    {
+      "intentId": "continuous-pencil-thread",
+      "description": "用一条低对比度靛蓝手绘细线作为跨 Scene 连续性母题，在各 Beat 边界缓慢改变走向但不读取 Scene 输出。",
+      "appliesTo": "full-composition"
+    },
+    {
+      "intentId": "quiet-edge-marks",
+      "description": "在冻结画面窗口的安全边缘提供少量铅笔点、短弧线和色块装饰，始终避开字幕与 Scene 语义内容。",
+      "appliesTo": "frozen-frame-windows"
+    }
+  ],
+  "constraints": {
+    "captionOwner": "caption-layer",
+    "sceneSemanticOwner": "scene-package",
+    "visibleText": "forbidden",
+    "motion": "remotion-frame-api-only",
+    "runtimeExternalAccess": "forbidden",
+    "genericDsl": "forbidden"
+  },
+  "briefFingerprint": "sha256:c9fb5f4e98cf76d853ab9ab203ba88c198bdfdcac066cf5d711f69f170e72e79"
+}

@@ -72,6 +72,21 @@ export const projectRegistry = [
     load: () => import("./machine-learning-basics/Composition"),
   },
   {
+    id: "NeuralNetworkName",
+    fps: 30,
+    width: 1080,
+    height: 1920,
+    durationInFrames: 1197,
+    defaultProps: { projectId: "neural-network-name" } as StoryCompositionProps,
+    generatedEntryChecksum:
+      "sha256:4b3253c1bd84cb3a182b2b4dd06a6f1ad65177462ec5ef744b1e6ae004392ede",
+    projectRegistryEntryFingerprint:
+      "sha256:d1727eb4bce0f84161beddf72b1f7f552d2c68b233fb0ca24ca517219152ff41",
+    narrativeBaselineFingerprint:
+      "sha256:a046e7048a971fa1b64f1084e3594af22bf0c86037f86dae7e8e845b68a9210b",
+    load: () => import("./neural-network-name/Composition"),
+  },
+  {
     id: "ProductComicVertical",
     fps: 30,
     width: 1080,

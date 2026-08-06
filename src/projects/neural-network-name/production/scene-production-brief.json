@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "scene-production-brief-v1",
+  "storyId": "neural-network-name",
+  "requirementsFingerprint": "sha256:596472fded03d75f7651fe6fea1a35704cee89c6bf30c886b1b72c504634338e",
+  "semanticTimingFingerprint": "sha256:ab295d8d9a976488811703b63bcad06c57ef21da92a7517cf0365fa2968adc6e",
+  "visualStyleFingerprint": "sha256:b634a12467c18c8bd36555752ee84c08bca02f1136d7a964543189b998edca0c",
+  "resourcePoolFingerprint": "sha256:3a88b46938f9052b60c0a4aa67b466651b4f6c369db0075ac0c5da368758df1d",
+  "sceneLocalSoundPolicy": "allowed",
+  "reviewPolicy": "mechanical-only",
+  "scenes": [
+    {
+      "meaningId": "name-origin",
+      "visualIntent": "用一个手绘问号逐步变形为带有分叉连线的节点网络，直观建立名称问题与神经连接灵感。",
+      "compositionIntent": "问号居中偏上，随后橙色生物节点从左侧出现，绿色人工节点从右侧出现，中间以靛蓝连线建立对应关系。",
+      "motionIntent": "问号按笔画绘制，节点依次轻弹出现，连接线由两侧向中央生长并在答案落点时短暂脉冲。",
+      "soundIntent": "只在问号完成和连线接通时使用轻微自创纸笔落点声，不与旁白竞争。",
+      "continuityBrief": "引入橙色生物节点、绿色人工节点和靛蓝信号线，供后续 Scene 保持稳定语义配色。",
+      "candidateResourceIds": [],
+      "allowedSnapshotCards": []
+    },
+    {
+      "meaningId": "biological-neuron",
+      "visualIntent": "展示一个手绘生物神经元从多根树突接收信号，经胞体整合，再沿轴突传向其他神经元。",
+      "compositionIntent": "主神经元位于内容区中央，左侧多路输入箭头汇入橙色胞体，右侧轴突分叉连接两个简化节点。",
+      "motionIntent": "输入点依次沿树突流入，胞体产生一次柔和脉冲，随后信号沿轴突向右传播。",
+      "soundIntent": "使用极轻的自创铅笔触碰与一次柔和脉冲提示，不模拟医学设备声音。",
+      "continuityBrief": "保持橙色代表生物神经元、靛蓝代表信号，线条粗细和手绘抖动与开场一致。",
+      "candidateResourceIds": [],
+      "allowedSnapshotCards": []
+    },
+    {
+      "meaningId": "artificial-neuron",
+      "visualIntent": "把生物神经元抽象成一个清晰的人工节点运算图：多个输入经过不同权重，汇总并通过激活门得到输出。",
+      "compositionIntent": "左侧三枚输入圆点，中部绿色求和节点，右侧手绘门形激活符号与单一输出；只保留必要短标签。",
+      "motionIntent": "输入数值块逐个滑入，连接粗细随权重变化，求和节点转动一次，输出线随后亮起。",
+      "soundIntent": "为三次输入和最终输出配置克制的自创纸片轻响，音量保持在旁白之下。",
+      "continuityBrief": "从上一 Scene 的橙色有机形态转为绿色几何节点，靛蓝信号线保持不变以说明关系被抽象。",
+      "candidateResourceIds": [],
+      "allowedSnapshotCards": []
+    },
+    {
+      "meaningId": "network-learning",
+      "visualIntent": "展示许多人工节点分层连接成网络，并通过一次前向输出与一次权重修正表现训练学习。",
+      "compositionIntent": "三列绿色手绘节点从左到右排列，少量关键连接清晰可见；右侧目标标记与输出标记形成可读差距。",
+      "motionIntent": "信号由左向右传播，输出与目标比较后，一条橙色修正波从右向左掠过，部分连接粗细平滑改变。",
+      "soundIntent": "前向传播使用连续的轻柔点触声，修正返回使用短促纸张刷动声，均为自创局部声音。",
+      "continuityBrief": "沿用绿色人工节点和靛蓝前向信号，橙色仅用于误差修正，避免与生物神经元画面混淆。",
+      "candidateResourceIds": [],
+      "allowedSnapshotCards": []
+    },
+    {
+      "meaningId": "analogy-limit",
+      "visualIntent": "把手绘生物神经元与人工网络并排对照，用相似连线强调灵感来源，再用清晰边界说明二者并不等同。",
+      "compositionIntent": "左侧为简化橙色生物神经元，右侧为绿色分层节点，中间先出现相似符号，再转为带说明性的非等同符号；避免画出电脑里的大脑。",
+      "motionIntent": "两侧连线同步生长，相似符号短暂出现后被手绘一笔修正为非等同符号，最后网络节点稳定停留。",
+      "soundIntent": "结论修正时使用一次克制的铅笔划线声，结尾留出干净尾音。",
+      "continuityBrief": "回收全片橙、绿、靛蓝三色语义和节点连线母题，以留白和稳定构图完成收束。",
+      "candidateResourceIds": [],
+      "allowedSnapshotCards": []
+    }
+  ],
+  "briefFingerprint": "sha256:58540f239bdc55a53f013c0e394587a43c67d646aad4bc3f9df60ba51b891bfb"
+}

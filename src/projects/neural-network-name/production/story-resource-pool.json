@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "story-resource-pool-v1",
+  "storyId": "neural-network-name",
+  "requirementsFingerprint": "sha256:596472fded03d75f7651fe6fea1a35704cee89c6bf30c886b1b72c504634338e",
+  "resourceCatalogFingerprint": "sha256:83872a754e05df18d0ec008ecd4f9cb637c0c159481dc59b0368898125188689",
+  "allowedResourceIds": [],
+  "allowedSnapshots": [],
+  "selfAuthoredVisualsAllowed": true,
+  "poolFingerprint": "sha256:3a88b46938f9052b60c0a4aa67b466651b4f6c369db0075ac0c5da368758df1d"
+}
