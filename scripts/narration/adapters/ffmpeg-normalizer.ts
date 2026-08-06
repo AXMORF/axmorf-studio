@@ -3,7 +3,10 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { encodeCanonicalPcmWav } from "../domain/pcm-wav";
+import {
+  CANONICAL_NARRATION_PCM,
+  encodeCanonicalPcmWav,
+} from "../domain/pcm-wav";
 
 export type ProcessResult = {
   readonly exitCode: number;
@@ -66,7 +69,7 @@ export const normalizeProviderAudio = async ({
       "-ac",
       "1",
       "-ar",
-      "48000",
+      String(CANONICAL_NARRATION_PCM.sampleRate),
       "-acodec",
       "pcm_s16le",
       "-f",

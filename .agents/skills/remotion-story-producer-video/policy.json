@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "policyVersion": "remotion-story-producer-video-policy-v1",
+  "automaticEndpoint": "preview-ready / awaiting-user-preview",
+  "privateConfigPath": "voxcpm/voxcpm.private.json",
+  "requiredEntrypointHeadings": [
+    "Start directly",
+    "Require isolated Scene Agents",
+    "Keep context bounded",
+    "Preserve production invariants",
+    "Classify failure by owner",
+    "Stop at mechanical Preview"
+  ],
+  "requiredReferences": [
+    "references/direct-production-workflow.md",
+    "references/scene-agent-orchestration.md",
+    "references/agent-rework-and-system-hardening.md"
+  ],
+  "workflowCommands": [
+    "production:preflight",
+    "production:start",
+    "production:narrative",
+    "production:scene:freeze",
+    "production:watch",
+    "production:scene:check",
+    "production:scene:submit",
+    "production:scene:fail",
+    "production:preview:check"
+  ],
+  "invariants": {
+    "sceneAuthoringOwner": "one-child-agent-per-meaning-id",
+    "rootAgentAuthorsScenes": false,
+    "inlineSceneFallback": false,
+    "fixedFlowRecovery": false,
+    "centralStateWriter": "repository-cli-only",
+    "ttsChunkAutoSplit": false,
+    "sceneRoot": "transparent",
+    "sceneBackgroundOwner": "global-composition-only",
+    "runtimeExternalSystems": false,
+    "readabilityPolicySource": "frozen-assignment",
+    "timingPolicy": "pcm-cumulative-ceil-v1"
+  },
+  "forbiddenActions": [
+    "git add .",
+    "push",
+    "create-approval",
+    "publish",
+    "hand-edit-derived-state"
+  ],
+  "contextBudgets": {
+    "entrypointMaxWords": 520,
+    "directWorkflowMaxWords": 850,
+    "normalProductionMaxWords": 1300,
+    "sceneOrchestrationMaxWords": 500
+  }
+}

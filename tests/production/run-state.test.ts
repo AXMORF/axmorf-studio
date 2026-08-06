@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  DEFAULT_PRODUCTION_RUN_POLICY,
+  ProductionRunPolicySchema,
   createProductionRunManifest,
   type ProductionFingerprintRef,
 } from "../../src/contracts/production-run";
@@ -13,6 +15,23 @@ import {
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 const occurredAt = "2026-08-04T00:00:00.000Z";
+
+test("production Run policy has one validated fingerprinted default", () => {
+  assert.deepEqual(DEFAULT_PRODUCTION_RUN_POLICY, {
+    pollIntervalMs: 1_000,
+    sceneTimeoutMs: 30 * 60 * 1_000,
+  });
+  assert.deepEqual(
+    ProductionRunPolicySchema.parse(DEFAULT_PRODUCTION_RUN_POLICY),
+    DEFAULT_PRODUCTION_RUN_POLICY,
+  );
+  assert.throws(() =>
+    ProductionRunPolicySchema.parse({
+      pollIntervalMs: 2_000,
+      sceneTimeoutMs: 1_000,
+    }),
+  );
+});
 
 const run = createProductionRunManifest({
   runId: "story-example-run-001",

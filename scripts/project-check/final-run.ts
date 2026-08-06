@@ -49,6 +49,7 @@ import { buildResourceCatalog } from "../catalog/domain";
 import { generateResourceCatalog } from "../catalog/generate";
 import { readGeneratedResourceCatalog } from "../catalog/project-files";
 import { checksumExternalBytes } from "../external-references/project-files";
+import { resolveFinalPreviewEvidenceCompatibilityPaths } from "../compatibility/formal-project-artifacts-v1";
 import { loadNarrationProjectFiles } from "../narration/project-files";
 import { collectRendererSourceGraph } from "../renderer-registry/domain";
 import { generateRendererRegistryFromProjectFiles } from "../renderer-registry/generate";
@@ -144,7 +145,7 @@ const failedSceneBranch = (): MutableBranch => ({
 });
 
 export const selectCurrentCatalogByFingerprint = <
-  Catalog extends Readonly<{catalogFingerprint: string}>,
+  Catalog extends Readonly<{ catalogFingerprint: string }>,
 >({
   catalogs,
   fingerprint,
@@ -155,7 +156,7 @@ export const selectCurrentCatalogByFingerprint = <
   readonly authority: string;
 }): Catalog => {
   const matches = catalogs.filter(
-    ({catalogFingerprint}) => catalogFingerprint === fingerprint,
+    ({ catalogFingerprint }) => catalogFingerprint === fingerprint,
   );
   if (matches.length !== 1 || matches[0] === undefined) {
     throw new Error(
@@ -166,7 +167,7 @@ export const selectCurrentCatalogByFingerprint = <
 };
 
 export const selectCurrentSceneResourceCatalog = <
-  Catalog extends Readonly<{catalogFingerprint: string}>,
+  Catalog extends Readonly<{ catalogFingerprint: string }>,
 >({
   catalogs,
   taskCatalogFingerprints,
@@ -207,8 +208,10 @@ export const derivePreFinalSceneCatalog = (rawCatalog: unknown) => {
 };
 
 export const deduplicateCatalogCandidates = <
-  Catalog extends Readonly<{catalogFingerprint: string}>,
->(catalogs: readonly Catalog[]): readonly Catalog[] =>
+  Catalog extends Readonly<{ catalogFingerprint: string }>,
+>(
+  catalogs: readonly Catalog[],
+): readonly Catalog[] =>
   catalogs.filter(
     (catalog, index) =>
       catalogs.findIndex(
@@ -289,22 +292,23 @@ export const loadCurrentFinalSceneBranch = async ({
   result.checkStatuses = { ...result.checkStatuses, "scene-coverage": "pass" };
   const ready = coverage.entries.filter((entry) => entry.status === "ready");
   const taskCatalogFingerprints = await Promise.all(
-    ready.map(async ({meaningId}) =>
-      SceneTaskInputSchema.parse(
-        await loadProjectCheckJson(
-          scenePath(
-            rootDir,
-            paths.storyId,
-            meaningId,
+    ready.map(
+      async ({ meaningId }) =>
+        SceneTaskInputSchema.parse(
+          await loadProjectCheckJson(
+            scenePath(
+              rootDir,
+              paths.storyId,
+              meaningId,
+              "task-input.generated.json",
+            ),
             "task-input.generated.json",
           ),
-          "task-input.generated.json",
-        ),
-      ).resourceCatalogFingerprint,
+        ).resourceCatalogFingerprint,
     ),
   );
   const rawCatalogCandidates = [baseCatalog];
-  const projectCatalogPath = projectM8Path(
+  const projectCatalogPath = projectArtifactPath(
     rootDir,
     paths.storyId,
     "generated/resource-catalog.generated.json",
@@ -739,8 +743,11 @@ const failedM8Branch = (): FinalM8BranchResult => {
   };
 };
 
-const projectM8Path = (rootDir: string, projectId: string, path: string) =>
-  join(rootDir, "src", "projects", projectId, path);
+const projectArtifactPath = (
+  rootDir: string,
+  projectId: string,
+  path: string,
+) => join(rootDir, "src", "projects", projectId, path);
 
 const pathExists = async (path: string) => {
   try {
@@ -755,19 +762,13 @@ export const resolveFinalPreviewEvidencePath = async (
   rootDir: string,
   projectId: string,
 ): Promise<string> => {
-  const canonical = projectM8Path(
+  const { canonical, legacy } = resolveFinalPreviewEvidenceCompatibilityPaths(
     rootDir,
     projectId,
-    "generated/final-preview-evidence.generated.json",
-  );
-  const legacy = projectM8Path(
-    rootDir,
-    projectId,
-    "generated/m8-final-preview-evidence.generated.json",
   );
   const [hasCanonical, hasLegacy] = await Promise.all([
     pathExists(canonical),
-    pathExists(legacy),
+    legacy === null ? false : pathExists(legacy),
   ]);
   if (hasCanonical && hasLegacy) {
     throw new Error(
@@ -775,7 +776,7 @@ export const resolveFinalPreviewEvidencePath = async (
     );
   }
   if (hasCanonical) return canonical;
-  if (projectId === "gps-relativity" && hasLegacy) return legacy;
+  if (legacy !== null && hasLegacy) return legacy;
   throw new Error("FinalPreviewEvidence is missing.");
 };
 
@@ -803,7 +804,7 @@ export const loadCurrentFinalM8Branch = async ({
   try {
     assemblyCatalog = ResourceCatalogSchema.parse(
       await loadProjectCheckJson(
-        projectM8Path(
+        projectArtifactPath(
           rootDir,
           projectId,
           "generated/resource-catalog.generated.json",
@@ -819,7 +820,7 @@ export const loadCurrentFinalM8Branch = async ({
   try {
     globalSound = GlobalSoundPlanSchema.parse(
       await loadProjectCheckJson(
-        projectM8Path(rootDir, projectId, "global-sound-plan.json"),
+        projectArtifactPath(rootDir, projectId, "global-sound-plan.json"),
         "global-sound-plan.json",
       ),
     );
@@ -840,7 +841,7 @@ export const loadCurrentFinalM8Branch = async ({
   try {
     globalVisual = GlobalVisualPlanSchema.parse(
       await loadProjectCheckJson(
-        projectM8Path(rootDir, projectId, "global-visual-plan.json"),
+        projectArtifactPath(rootDir, projectId, "global-visual-plan.json"),
         "global-visual-plan.json",
       ),
     );
@@ -861,7 +862,7 @@ export const loadCurrentFinalM8Branch = async ({
   try {
     assembly = FinalAssemblyPlanSchema.parse(
       await loadProjectCheckJson(
-        projectM8Path(
+        projectArtifactPath(
           rootDir,
           projectId,
           "generated/final-assembly.generated.json",
@@ -888,7 +889,7 @@ export const loadCurrentFinalM8Branch = async ({
         sceneBranch.soundDesignProjectionFingerprint ||
       assembly.compositionSourceChecksum !==
         (await checksumFile(
-          projectM8Path(rootDir, projectId, "Composition.tsx"),
+          projectArtifactPath(rootDir, projectId, "Composition.tsx"),
         ))
     ) {
       throw new Error("FinalAssembly identity does not match current inputs.");
@@ -929,7 +930,7 @@ export const loadCurrentFinalM8Branch = async ({
   try {
     const approval = FinalPreviewApprovalSchema.parse(
       await loadProjectCheckJson(
-        projectM8Path(
+        projectArtifactPath(
           rootDir,
           projectId,
           "generated/final-preview-approval.generated.json",
@@ -1038,7 +1039,9 @@ export const runFinalMechanicalCheck = async ({
     : "pass";
   let m8Declared = false;
   try {
-    await access(projectM8Path(rootDir, projectId, "final-assembly-plan.json"));
+    await access(
+      projectArtifactPath(rootDir, projectId, "final-assembly-plan.json"),
+    );
     m8Declared = true;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") m8Declared = true;

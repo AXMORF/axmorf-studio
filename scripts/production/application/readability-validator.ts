@@ -3,17 +3,17 @@ import { join } from "node:path";
 
 import {
   ProductionRequirementsFreezeSchema,
-  createFingerprint,
   validateStoryCaptionReadability,
   type ProductionRequirementsFreeze,
   type SceneAssignment,
 } from "../../../src/contracts";
 import type { RendererSourceGraph } from "../../renderer-registry/domain";
+import { renderReadabilityAwareProductionSceneRuntime } from "./project-scaffold";
 import { validatePolicyAwareRendererSourceGraph } from "./readability-source-validator";
+import { validateSharedSceneBoundarySources } from "./shared-boundary-source-validator";
 
-const assertCurrentSharedSceneBoundary = async () => {
-  const rootDir = process.cwd();
-  const [sceneSlot, sceneSafeArea, scaffold] = await Promise.all([
+const assertCurrentSharedSceneBoundary = async (rootDir: string) => {
+  const [sceneSlotSource, sceneSafeAreaSource] = await Promise.all([
     readFile(
       join(rootDir, "src/remotion/runtime/story-visual/SceneSlot.tsx"),
       "utf8",
@@ -22,30 +22,14 @@ const assertCurrentSharedSceneBoundary = async () => {
       join(rootDir, "src/remotion/runtime/readability/SceneSafeArea.tsx"),
       "utf8",
     ),
-    readFile(
-      join(rootDir, "scripts/production/application/project-scaffold.ts"),
-      "utf8",
-    ),
   ]);
-  if (
-    !sceneSlot.includes(
-      'sceneBoundaryVersion === "scene-composition-boundary-v1"',
-    ) ||
-    !sceneSlot.includes("<SceneSafeArea") ||
-    !sceneSafeArea.includes("policy.sceneContentSafeAreaPx") ||
-    !sceneSafeArea.includes("SceneReadabilityProvider") ||
-    !scaffold.includes(
-      "task.schemaVersion === 3 ? {sceneBoundaryVersion: task.sceneCompositionBoundaryVersion}",
-    )
-  ) {
-    throw new Error(
-      "Shared Scene boundary runtime or scaffold marker is stale.",
-    );
-  }
-  return createFingerprint({
-    namespace: "production-shared-scene-boundary-source",
-    version: 1,
-    value: { sceneSlot, sceneSafeArea, scaffold },
+  return validateSharedSceneBoundarySources({
+    sceneSlotSource,
+    sceneSafeAreaSource,
+    generatedRuntimeSource: renderReadabilityAwareProductionSceneRuntime({
+      storyId: "shared-boundary-contract",
+      meaningIds: ["semantic-scene"],
+    }),
   });
 };
 
@@ -101,7 +85,7 @@ export const validateSceneReadability = async ({
         policy: assignment.readabilityPolicy,
         boundaryMode: "shared-v3",
       }),
-      assertCurrentSharedSceneBoundary(),
+      assertCurrentSharedSceneBoundary(rootDir),
     ]);
     if (
       assignment.taskInput.schemaVersion !== 3 ||
@@ -115,7 +99,8 @@ export const validateSceneReadability = async ({
       legacy: false,
       sceneCompositionBoundaryVersion:
         assignment.sceneCompositionBoundaryVersion,
-      boundarySourceFingerprint,
+      boundarySourceFingerprint:
+        boundarySourceFingerprint.boundarySourceFingerprint,
     } as const;
   }
   const validated = await validatePolicyAwareRendererSourceGraph({

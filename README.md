@@ -71,6 +71,15 @@ npm run check:host
 npm run check
 ```
 
+正式作品复验使用静态白名单 profile，不扫描项目目录，也不从 JSON 加载脚本路径：
+
+```bash
+npm run project:verify -- --all
+npm run project:verify -- --project gps-relativity --scope full
+npm run project:evidence:check -- --project product-comic-vertical
+npm run project:approval:check -- --project product-comic-vertical
+```
+
 生产编排：
 
 ```bash
@@ -99,6 +108,9 @@ docs/                        当前权威文档与导航
   archive/                   不再代表当前事实的历史快照
 scripts/                     构建期、检查和生产工具
   production/                cli / application / domain / adapters
+  project-validation/        正式作品静态验证 profile 与受控 adapter
+  project-tools/<story>/     作品专属构建期工具，不是通用生产 API
+  proofs/                    独立 synthetic regression proof
 src/contracts/               可执行 Zod 合同与确定性纯函数
 src/remotion/runtime/        固定、离线、frame-driven runtime
 src/remotion/capabilities/   已批准共享能力

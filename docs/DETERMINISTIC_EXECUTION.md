@@ -209,8 +209,11 @@ scripts/external-references/           M6 immutable snapshot、resolver/localize
 scripts/scene-package/                 M6 ScenePackage/Coverage 生成与检查
 scripts/renderer-registry/             M6 composition-local registry 生成与检查
 scripts/final-assembly/                M8 FinalAssembly pass-only 生成与检查
-scripts/m8-gps/                        M8 global audio/freeze/media/evidence/approval
-scripts/m9-product/                    M9 Shotcraft/漫画/audio/media/evidence/approval
+scripts/project-validation/            正式作品静态 profile 与受控 adapter
+scripts/project-tools/gps-relativity/  GPS project-local audio/freeze/evidence/approval
+scripts/project-tools/product-comic-vertical/
+                                      Product Comic project-local Shotcraft/audio/evidence/approval
+scripts/proofs/scene-runtime/           与正式作品隔离的 synthetic Scene runtime proof
 scripts/production/                    production CLI 与分层入口
 ├── application/                      用例编排、Scene lifecycle、Preview 与 validators
 ├── domain/                           事件、状态转换、投影和错误语义
@@ -578,7 +581,8 @@ decode、帧数/时长/声道检查和响度/true-peak/sample-peak 分析；阈�
 ## 10. 聚合检查
 
 M1–M9 当前提供聚焦机械检查、真实 file-backed 检查、registry drift check、listing、窄
-Baseline/M6 proof evidence、M7/M8/M9 evidence 与作品级 narrative/final 聚合：
+Baseline/Scene runtime proof evidence，以及由静态作品 profile 编排的正式 evidence 与
+narrative/final 聚合：
 
 ```bash
 npm test
@@ -586,18 +590,20 @@ npm run narration:check -- --project gps-relativity
 npm run registry:check
 npm run catalog:check
 npm run compositions
-npm run m6:proof:compositions
-npm run m6:proof:evidence
+npm run proof:scene-runtime:compositions
+npm run proof:scene-runtime:evidence
 npm run baseline:evidence -- --project gps-relativity
 npm run project:check -- --project gps-relativity --level narrative
-npm run m7:gps:evidence
-npm run m8:gps:audio -- check
-npm run m8:gps:freeze -- check
 npm run final:assembly -- --project gps-relativity --check
-npm run m8:gps:evidence
-npm run m8:gps:approval
+npm run project:evidence:check -- --project gps-relativity
+npm run project:approval:check -- --project gps-relativity
 npm run project:check -- --project gps-relativity --level final
+npm run project:verify -- --all
 ```
+
+正式作品 profile 只声明固定 project ID 和语义步骤；脚本路径由 repository-owned 静态 adapter
+绑定，不能从 JSON 注入，也不通过目录扫描发现。兼容旧作品时，只在窄兼容模块解析历史 artifact
+文件名或 identity，不把 M6–M9 命名重新暴露为公共命令。
 
 它们覆盖严格合同、StoryCheck、provider adapter、candidate/measured resume、canonical
 fingerprint、真实 WAV/checksum/sample-frame、原子 sealed receipt、累计 PCM timing、

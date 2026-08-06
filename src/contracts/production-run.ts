@@ -103,7 +103,7 @@ const addUniqueArtifactIssues = (
   }
 };
 
-const ProductionRunPolicySchema = z
+export const ProductionRunPolicySchema = z
   .object({
     pollIntervalMs: PositiveIntegerSchema.max(60_000),
     sceneTimeoutMs: PositiveIntegerSchema.max(7 * 24 * 60 * 60 * 1_000),
@@ -114,6 +114,11 @@ const ProductionRunPolicySchema = z
     path: ["sceneTimeoutMs"],
   })
   .readonly();
+
+export const DEFAULT_PRODUCTION_RUN_POLICY = ProductionRunPolicySchema.parse({
+  pollIntervalMs: 1_000,
+  sceneTimeoutMs: 30 * 60 * 1_000,
+});
 
 const ProductionRunManifestInputObject = z
   .object({
@@ -716,6 +721,7 @@ export type ProductionOutputArtifact = z.infer<
   typeof ProductionOutputArtifactSchema
 >;
 export type ProductionRunManifest = z.infer<typeof ProductionRunManifestSchema>;
+export type ProductionRunPolicy = z.infer<typeof ProductionRunPolicySchema>;
 export type ProductionError = z.infer<typeof ProductionErrorSchema>;
 export type ProductionStageEvent = z.infer<typeof ProductionStageEventSchema>;
 export type ProductionRunState = z.infer<typeof ProductionRunStateSchema>;

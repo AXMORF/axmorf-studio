@@ -19,6 +19,10 @@ test("documentation separates active authorities, guides, and archived plans", a
     "promotions",
   ]);
 
+  // This whitelist protects lifecycle ownership: active authorities stay at
+  // docs root, while guides, evidence, proposals, contracts, and history have
+  // distinct directories instead of accumulating milestone-shaped folders.
+
   const archivedPlans = path.join(docsRoot, "archive", "implementation-plans");
   const planFiles = (await readdir(archivedPlans))
     .filter((entry) => entry.endsWith(".md") && entry !== "README.md")

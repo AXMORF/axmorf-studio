@@ -30,6 +30,12 @@ const createFixture = async (context: TestContext) => {
     await writeFile(destination, source);
     return path;
   };
+  for (const path of [
+    "src/remotion/runtime/story-visual/SceneSlot.tsx",
+    "src/remotion/runtime/readability/SceneSafeArea.tsx",
+  ]) {
+    await write(path, await readFile(join(process.cwd(), path), "utf8"));
+  }
   return {
     rootDir,
     rendererPath,

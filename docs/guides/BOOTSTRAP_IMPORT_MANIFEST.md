@@ -8,14 +8,14 @@
 
 ## 新仓库
 
-- 目录：`/home/zzzxc/projects/repos/remotion-story-producer`
+- 目录：`<repo-root>`
 - 脚手架：`create-video@4.0.489` blank template
 - 包管理：npm
 - 运行方式：宿主机 Node.js/Remotion CLI，不使用 Docker
 
 ## 能力来源
 
-- 来源仓库：`/data/projects/labs/ai-video-studio`
+- 来源仓库：`<source-repo>`（当次白名单迁移使用的外部仓库）
 - 来源 commit：`bbfc7cba898a419838f05e5358ccf36417db8ce6`
 - 提取方式：只读取该 commit 的已提交内容，不读取来源仓库的未提交能力修改
 

@@ -1,5 +1,6 @@
 import type { FC } from "react";
 import { Sequence, useCurrentFrame } from "remotion";
+import { SCENE_COMPOSITION_BOUNDARY_VERSION } from "../../../contracts";
 import { SceneSafeArea } from "../readability";
 import type {
   SceneRendererComponent,
@@ -31,7 +32,7 @@ export const renderSceneRendererMount = (
 ) => {
   const { sceneBoundaryVersion, ...rendererPropsWithoutBoundary } =
     rendererProps;
-  if (sceneBoundaryVersion === "scene-composition-boundary-v1") {
+  if (sceneBoundaryVersion === SCENE_COMPOSITION_BOUNDARY_VERSION) {
     const { readabilityPolicy, ...rendererOwnedProps } =
       rendererPropsWithoutBoundary;
     if (readabilityPolicy === undefined) {

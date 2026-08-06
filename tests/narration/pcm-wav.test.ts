@@ -69,7 +69,7 @@ test("normalizer requests raw 48 kHz mono s16le without trim filters", async () 
     "-ac",
     "1",
     "-ar",
-    "48000",
+    String(CANONICAL_NARRATION_PCM.sampleRate),
     "-acodec",
     "pcm_s16le",
     "-f",
@@ -77,9 +77,7 @@ test("normalizer requests raw 48 kHz mono s16le without trim filters", async () 
     "pipe:1",
   ]);
   assert.equal(
-    captured.args?.some((argument) =>
-      /silenceremove|atrim/.test(argument),
-    ),
+    captured.args?.some((argument) => /silenceremove|atrim/.test(argument)),
     false,
   );
   assert.deepEqual(decodeCanonicalPcmWav(wav).rawPcm, rawPcm);

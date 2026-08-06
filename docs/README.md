@@ -23,14 +23,15 @@
 
 ## 操作与维护指南
 
-| 主题                                | 文档                                                                       |
-| ----------------------------------- | -------------------------------------------------------------------------- |
-| 固定 production CLI、状态与 handoff | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md)   |
-| VoxCPM 生成、续跑、封存与恢复       | [guides/NARRATION_GENERATION.md](guides/NARRATION_GENERATION.md)           |
-| 检查层级与用户批准边界              | [guides/REVIEW_MODEL.md](guides/REVIEW_MODEL.md)                           |
-| 资源与共享能力目录                  | [guides/CAPABILITY_CATALOG.md](guides/CAPABILITY_CATALOG.md)               |
-| 新仓库初始化和白名单迁移            | [guides/BOOTSTRAP_IMPORT_MANIFEST.md](guides/BOOTSTRAP_IMPORT_MANIFEST.md) |
-| Narrative 数据合同说明              | [contracts/NARRATIVE_CONTRACTS.md](contracts/NARRATIVE_CONTRACTS.md)       |
+| 主题                                | 文档                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------ |
+| 固定 production CLI、状态与 handoff | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md)       |
+| VoxCPM 生成、续跑、封存与恢复       | [guides/NARRATION_GENERATION.md](guides/NARRATION_GENERATION.md)               |
+| 检查层级与用户批准边界              | [guides/REVIEW_MODEL.md](guides/REVIEW_MODEL.md)                               |
+| 正式作品静态 profile 与复验命令     | [guides/FORMAL_PROJECT_VERIFICATION.md](guides/FORMAL_PROJECT_VERIFICATION.md) |
+| 资源与共享能力目录                  | [guides/CAPABILITY_CATALOG.md](guides/CAPABILITY_CATALOG.md)                   |
+| 新仓库初始化和白名单迁移            | [guides/BOOTSTRAP_IMPORT_MANIFEST.md](guides/BOOTSTRAP_IMPORT_MANIFEST.md)     |
+| Narrative 数据合同说明              | [contracts/NARRATIVE_CONTRACTS.md](contracts/NARRATIVE_CONTRACTS.md)           |
 
 ## 证据、提案与历史
 

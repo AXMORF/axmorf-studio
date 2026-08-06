@@ -50,6 +50,12 @@ promotion、发布或自动进入 M10。
 ### 工程与验证
 
 - `scripts/production` 按 `cli / application / domain / adapters` 分层。
+- milestone 命名的脚本目录已收口为稳定职责：通用 production、正式作品静态验证、
+  `project-tools/<story>` 作品专属工具、`proofs/` synthetic proof 和窄 compatibility 模块。
+- GPS 与 Product Comic 的完整复验由 `formal-project-verification-v1` 静态 profile 编排；
+  profile 不含脚本路径、不扫描项目目录，未知项目或缺失 adapter 直接失败。
+- production scaffold 使用显式版本模板；shared Scene boundary 用 TypeScript AST 验证所有权，
+  不再依赖格式敏感的整段源码替换或 exact prose/source 匹配。
 - `src/contracts`、`src/remotion/runtime`、`src/remotion/capabilities` 与
   `src/projects/<story>` 维持合同、runtime、共享能力和作品实现的明确边界。
 - `npm run check:static` 提供无 Chromium 门禁；`npm run check:host` 负责真实 Composition 和

@@ -23,6 +23,7 @@ import {
   discoverProjectEntries,
   loadProjectRegistrationEntry,
 } from "../registry/project-files";
+import { getFormalProjectArtifactCompatibility } from "../compatibility/formal-project-artifacts-v1";
 
 export type ProcessResult = {
   readonly status: number;
@@ -270,7 +271,13 @@ export const resolveM3GeneratedRegistryChecksum = async ({
   readonly storyId: string;
   readonly entry: ValidatedProjectRegistrationEntry;
 }) => {
-  if (storyId !== "gps-relativity") return entry.generatedEntryChecksum;
+  const compatibility = getFormalProjectArtifactCompatibility(storyId);
+  if (
+    compatibility?.narrativeBaselineRegistryChecksum !==
+    "legacy-evidence-receipt"
+  ) {
+    return entry.generatedEntryChecksum;
+  }
   const legacyReceiptPath = join(
     rootDir,
     `src/projects/${storyId}/generated/narrative-baseline-evidence.generated.json`,
@@ -287,7 +294,7 @@ export const resolveM3GeneratedRegistryChecksum = async ({
         entry.narrativeBaselineFingerprint
     ) {
       throw new Error(
-        "GPS legacy M3 evidence identity is stale against its registry entry.",
+        "Legacy M3 evidence identity is stale against its registry entry.",
       );
     }
     return legacyReceipt.generatedRegistryChecksum;
@@ -359,8 +366,11 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
   ) {
     throw new Error("M3 evidence inputs are stale against ProjectRegistry.");
   }
-  const generatedRegistryChecksum =
-    await resolveM3GeneratedRegistryChecksum({ rootDir, storyId, entry });
+  const generatedRegistryChecksum = await resolveM3GeneratedRegistryChecksum({
+    rootDir,
+    storyId,
+    entry,
+  });
   const [transparentAlpha, captionAlpha, renderFacts] = await Promise.all([
     inspectAlphaStill(absolute(paths.transparentStill), runProcess),
     inspectAlphaStill(absolute(paths.captionStill), runProcess, true),

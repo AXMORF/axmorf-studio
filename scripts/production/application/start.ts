@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 
 import {
+  DEFAULT_PRODUCTION_RUN_POLICY,
   createProductionRunManifest,
   ProductionRequirementsFreezeSchema,
   resolveCurrentProductionRequirements,
@@ -174,7 +175,7 @@ export const runProductionStart = async ({
     storyId: projectId,
     requirementsPath: `src/projects/${projectId}/production/requirements.json`,
     requirementsFingerprint: requirements.requirementsFingerprint,
-    policy: { pollIntervalMs: 1_000, sceneTimeoutMs: 30 * 60 * 1_000 },
+    policy: DEFAULT_PRODUCTION_RUN_POLICY,
     createdAt: now.toISOString(),
   });
   const initialized = await initializeProductionRunStore({ rootDir, run });

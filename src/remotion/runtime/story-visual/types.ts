@@ -1,13 +1,14 @@
 import type { ComponentType } from "react";
 
-import type {
+import {
+  SCENE_COMPOSITION_BOUNDARY_VERSION,
+  type ProductionReadabilityPolicy,
   Sha256Digest,
   SceneSyncAnchorSet,
   SceneVisualPlan,
   ShotPlanSet,
   StoryBeat,
   VisualStyleSpec,
-  ProductionReadabilityPolicy,
 } from "../../../contracts";
 
 export type ResolvedSceneVisualResource = Readonly<{
@@ -37,7 +38,7 @@ export type SceneRendererProps = Readonly<{
 
 export type SceneRendererMountProps = Readonly<
   Omit<SceneRendererProps, "sceneFrame"> & {
-    sceneBoundaryVersion?: "scene-composition-boundary-v1";
+    sceneBoundaryVersion?: typeof SCENE_COMPOSITION_BOUNDARY_VERSION;
   }
 >;
 

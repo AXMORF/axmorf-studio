@@ -206,7 +206,8 @@ src/remotion/runtime/global-sound/       frame-driven global buses 与 duck enve
 src/remotion/runtime/composition-assembly/ 四个显式语义插槽
 src/projects/gps-relativity/global-visual/ project-local GlobalVisualLayers
 scripts/final-assembly/                  FinalAssembly pass-only writer/checker
-scripts/m8-gps/                          global audio/freeze/media/evidence/approval
+scripts/project-tools/gps-relativity/    project-local global audio/freeze/media/evidence/approval
+scripts/project-validation/              static formal-project profiles + controlled adapters
 generated/final-mechanical-check.generated.json final-mechanical-check-v2
 ```
 
@@ -224,7 +225,8 @@ src/projects/product-comic-vertical/references/video-shotcraft/
                                            104/161/161 inventory、coverage 与 exact closure
 src/projects/product-comic-vertical/global-visual/
                                            project-local 漫画连续性层
-scripts/m9-product/                       Scene/global audio、Shotcraft、evidence、approval
+scripts/project-tools/product-comic-vertical/
+                                           project-local Scene/global audio、Shotcraft、evidence、approval
 generated/m9-fail-closed-matrix.generated.json
                                            42-case isolation evidence
 generated/m9-generalization-report.generated.json

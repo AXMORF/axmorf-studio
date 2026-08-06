@@ -2,6 +2,11 @@
 
 状态：`proposal-only`。本文件只记录候选，不构成迁移授权；未移动任何文件，未修改 GPS 或 M9 的 import。
 
+下列 `scripts/m8-gps`、`scripts/m9-product` 路径和 checksum 是提案创建时的历史 source
+identity，必须原样保留以便审计；当前等价的 project-local 工具位于
+`scripts/project-tools/gps-relativity/` 与 `scripts/project-tools/product-comic-vertical/`。
+该路径整理不构成 promotion，也不改变提案时的 source checksum。
+
 ## deterministic-pcm-audio-authoring
 
 - GPS source：`scripts/m8-gps/generate-global-audio.ts`，`sha256:7b806de61960c7c33a0ee70f467e7e024056c0673867a272fa5929ad9d7c81f1`

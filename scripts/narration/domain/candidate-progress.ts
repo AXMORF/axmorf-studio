@@ -8,11 +8,16 @@ import {
   TtsChunkIdSchema,
 } from "../../../src/contracts/primitives";
 import type { VoxcpmChunkRequest } from "./provider-input";
+import { CANONICAL_NARRATION_PCM } from "./pcm-wav";
 
-const NonEmptyTextSchema = z.string().refine((value) => value.trim().length > 0);
+const NonEmptyTextSchema = z
+  .string()
+  .refine((value) => value.trim().length > 0);
 const CandidateRelativePathSchema = z
   .string()
-  .regex(/^candidates\/[a-z0-9]+(?:-[a-z0-9]+)*\/[0-9a-f]{64}\/(?:raw|normalized)\.wav$/);
+  .regex(
+    /^candidates\/[a-z0-9]+(?:-[a-z0-9]+)*\/[0-9a-f]{64}\/(?:raw|normalized)\.wav$/,
+  );
 
 export const RawNarrationCandidateSchema = z
   .object({
@@ -40,9 +45,9 @@ export const CanonicalMeasuredChunkSchema = z
     normalizedChecksum: Sha256DigestSchema,
     pcm: z
       .object({
-        sampleRate: z.literal(48_000),
-        channelLayout: z.literal("mono"),
-        sampleFormat: z.literal("s16le"),
+        sampleRate: z.literal(CANONICAL_NARRATION_PCM.sampleRate),
+        channelLayout: z.literal(CANONICAL_NARRATION_PCM.channelLayout),
+        sampleFormat: z.literal(CANONICAL_NARRATION_PCM.sampleFormat),
       })
       .strict()
       .readonly(),
@@ -91,9 +96,7 @@ export const NarrationGenerationProgressSchema = z
   })
   .readonly();
 
-export type RawNarrationCandidate = z.infer<
-  typeof RawNarrationCandidateSchema
->;
+export type RawNarrationCandidate = z.infer<typeof RawNarrationCandidateSchema>;
 export type CanonicalMeasuredChunk = z.infer<
   typeof CanonicalMeasuredChunkSchema
 >;
@@ -163,9 +166,7 @@ export const planChunkGeneration = ({
   const progressById = new Map<
     string,
     RawNarrationCandidate | CanonicalMeasuredChunk
-  >(
-    verifiedProgress.chunks.map((chunk) => [chunk.chunkId, chunk] as const),
-  );
+  >(verifiedProgress.chunks.map((chunk) => [chunk.chunkId, chunk] as const));
   return expected.chunks.map((request): ChunkGenerationAction => {
     const progressChunk = progressById.get(request.chunkId);
     if (progressChunk === undefined) return { kind: "generate", request };
@@ -199,9 +200,7 @@ export const replaceProgressChunk = ({
   const chunksById = new Map<
     string,
     RawNarrationCandidate | CanonicalMeasuredChunk
-  >(
-    progress.chunks.map((current) => [current.chunkId, current] as const),
-  );
+  >(progress.chunks.map((current) => [current.chunkId, current] as const));
   chunksById.set(chunk.chunkId, chunk);
   const next = NarrationGenerationProgressSchema.parse({
     ...progress,
