@@ -2,7 +2,7 @@
 
 > 文档类型：架构与依赖权威
 >
-> 最后复核：2026-08-06
+> 最后复核：2026-08-07
 >
 > 当前完成状态只在 [ITERATION_STATUS.md](ITERATION_STATUS.md) 维护。
 
@@ -19,11 +19,11 @@ Agent 贯穿创作与制作过程：参与创作决策、完成制作编排并�
 结构节点，也不进入正式渲染运行时。自动化只能检查和执行已确定输入，不能自行选择
 StoryBeat、Scene 方案、Shot、资源、镜头、声音或转场。
 
-M9.5 已把 Agent 与固定执行的交界落成合同：主 Agent 写冻结要求和制作简报，为每个
-meaningId 创建一个独立 Scene 子 Agent；子 Agent 只写自己的目录并先运行非终态 Scene check，
-主 Agent 复检后串行提交 Scene result。append-only event ledger 和 generated state projection
-由中央脚本单写。这里的 `ProductionRunState` 是制作期投影，不是手工状态，也不进入 Remotion
-runtime。
+M9.5 已把 Agent 与固定执行的交界落成合同；后续 v4 在同次 freeze 中生成每个 meaningId 的
+Scene assignment 和一份 whole-film GlobalVisual assignment。N+1 owner 只写各自独占目录并先
+运行非终态 check，主 Agent 复检后串行提交 immutable result。append-only event ledger 和
+generated state projection 由中央脚本单写。这里的 `ProductionRunState` 是制作期投影，不是
+手工状态，也不进入 Remotion runtime；repo 不保存 Agent/task/thread/progress/heartbeat 状态。
 
 ## 当前设计顺序
 
@@ -446,9 +446,9 @@ repo 内脚本不创建/托管 Agent，也不承诺主任务结束后的 detache
 首次真实 lifecycle 与 hardening 证据见
 [M9.5 Production Trial and Hardening Evidence](evidence/2026-08-05-m9-5-production-trial-and-hardening.md)。
 
-#### v3 production boundary
+#### v3 production boundary（兼容历史）
 
-新 Run 在创建任何 scaffold/ledger/narration work 前执行同一 `production:preflight`。VoxCPM
+v3 Run 在创建任何 scaffold/ledger/narration work 前执行同一 `production:preflight`。VoxCPM
 adapter 固定 GET `/health` 与 `/ready`：前者证明服务存活，后者只区分 resident、允许自动装载的
 cold/loading 和 external model failure；它不调用 clone/TTS route。Remotion adapter 使用正式
 compositions executable、entry 与参数，browser sandbox/permission denial 不归因给 Scene，
@@ -463,6 +463,20 @@ owner。v3 scaffold 直接挂载 StoryVisualTrack，不建立第二个 project-g
 `GlobalVisualLayers` enhancement 保持 absent，未来正式接入时独占全局背景、纹理、装饰和连续性
 motif。静态 literal imports 进入生成 scaffold，source graph 发现只发生在制作期检查，render
 runtime 不扫描目录。v1/v2 runtime 与现有正式项目保持原样。
+
+#### v4 parallel GlobalVisual contract boundary
+
+v4 requirements 绑定 `GlobalVisualBrief`，freeze 原子生成 N 个 Scene assignment 与一个
+GlobalVisual assignment。两类 owner 并行创作、互不读取输出：ScenePackage 仍只拥有 Beat
+语义视觉和局部声音，GlobalVisualPackage 只拥有 project-local 背景、纹理、装饰和连续性
+motif。GlobalVisual source graph 固定从 `global-visual/GlobalVisualLayers.tsx` 进入，使用 Remotion
+frame API，不渲染字幕、可见文本、音频或 Scene 语义，不实现 DSL、自动布局或自动导演。
+
+watcher 只轮询 Scene/GlobalVisual immutable result contracts；到达顺序不进入 identity，也不能
+由 Agent/task/thread/progress/heartbeat 推断完成。N+1 全 accepted 后，固定 post-scene 生成
+GlobalVisualProjection v2、PreviewAssembly v3、Evidence v2 与 MechanicalCheck v2，并把静态
+literal GlobalVisual import 接入已有强语义槽位。GlobalSound 继续 absent，v1-v3 和正式作品不
+迁移、不回填。
 
 ## 外部镜头参考边界
 

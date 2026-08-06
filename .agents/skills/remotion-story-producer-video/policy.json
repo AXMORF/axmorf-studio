@@ -5,7 +5,7 @@
   "privateConfigPath": "voxcpm/voxcpm.private.json",
   "requiredEntrypointHeadings": [
     "Start directly",
-    "Require isolated Scene Agents",
+    "Require N plus one visual owners",
     "Keep context bounded",
     "Preserve production invariants",
     "Classify failure by owner",
@@ -14,6 +14,7 @@
   "requiredReferences": [
     "references/direct-production-workflow.md",
     "references/scene-agent-orchestration.md",
+    "references/global-visual-agent-orchestration.md",
     "references/agent-rework-and-system-hardening.md"
   ],
   "workflowCommands": [
@@ -25,12 +26,20 @@
     "production:scene:check",
     "production:scene:submit",
     "production:scene:fail",
+    "production:global-visual:check",
+    "production:global-visual:submit",
+    "production:global-visual:fail",
     "production:preview:check"
   ],
   "invariants": {
     "sceneAuthoringOwner": "one-child-agent-per-meaning-id",
+    "globalVisualAuthoringOwner": "one-child-agent-per-story",
     "rootAgentAuthorsScenes": false,
+    "rootAgentAuthorsGlobalVisual": false,
     "inlineSceneFallback": false,
+    "repositoryMonitorsAgentLifecycle": false,
+    "watcherInput": "immutable-result-contracts-only",
+    "globalVisualReadsSceneOutputs": false,
     "fixedFlowRecovery": false,
     "centralStateWriter": "repository-cli-only",
     "ttsChunkAutoSplit": false,
@@ -51,6 +60,7 @@
     "entrypointMaxWords": 520,
     "directWorkflowMaxWords": 850,
     "normalProductionMaxWords": 1300,
-    "sceneOrchestrationMaxWords": 500
+    "sceneOrchestrationMaxWords": 500,
+    "globalVisualOrchestrationMaxWords": 500
   }
 }

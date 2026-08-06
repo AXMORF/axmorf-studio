@@ -1,6 +1,8 @@
 # Isolated Scene Agent orchestration
 
-This reference owns the mandatory post-freeze Agent protocol.
+This reference owns the Scene side of the mandatory post-freeze N+1 Agent protocol. Scene owners run
+in parallel with the single whole-film GlobalVisual owner described in
+[global-visual-agent-orchestration.md](global-visual-agent-orchestration.md).
 
 ## Keep root ownership
 
@@ -9,6 +11,9 @@ state, validation aggregation, result submission, generated registries, staging,
 author Scene deliverables in the root task, reuse one child for multiple meaningIds, or silently fall
 back to inline Scene work. Stop before Scene authoring if native child-Agent execution is unavailable
 or explicitly forbidden.
+
+The watcher accepts immutable Scene and GlobalVisual result contracts only. It does not observe or
+persist Agent, task, thread, progress, conversation, log, or heartbeat state.
 
 ## Dispatch one owner per meaningId
 

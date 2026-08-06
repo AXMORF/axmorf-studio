@@ -1,6 +1,6 @@
 ---
 name: remotion-story-producer-video
-description: Produce a contract-driven Remotion Story Producer video through authored inputs, sealed narration, isolated Scene Agents, the central watcher, and mechanical preview-ready handoff. Use for new or continued video authoring or explicit $remotion-story-producer-video invocation; start directly, isolate each Scene in one child Agent, keep shared state single-writer, and harden fixed-flow failures.
+description: Produce a contract-driven Remotion Story Producer video. Use for new or continued authoring or explicit $remotion-story-producer-video invocation; isolate N Scene owners and one GlobalVisual owner, keep state single-writer, and stop at mechanical preview-ready.
 ---
 
 # Remotion Story Producer Video
@@ -15,13 +15,12 @@ Own production until
 `preview-ready / awaiting-user-preview`, a genuine external blocker, or user cancellation. Never
 detach live work from the current task.
 
-## Require isolated Scene Agents
+## Require N plus one visual owners
 
-After Scene freeze, read
-[references/scene-agent-orchestration.md](references/scene-agent-orchestration.md) completely and
-follow it. Create one distinct child Agent per meaningId; never author Scenes in the root task or
-silently fall back to inline work. Stop before authoring when child-Agent execution is unavailable or
-forbidden.
+After freeze, read [references/scene-agent-orchestration.md](references/scene-agent-orchestration.md)
+and [references/global-visual-agent-orchestration.md](references/global-visual-agent-orchestration.md)
+completely. Dispatch one child per meaningId plus one GlobalVisual owner concurrently.
+Root authors neither; no inline fallback. Stop if child-Agent execution is unavailable or forbidden.
 
 ## Keep context bounded
 
@@ -44,12 +43,14 @@ use CodeGraph first when `.codegraph/` exists.
 - Author `ttsChunks` by meaning, tone, and reading rhythm; never auto-split by punctuation or characters.
   Return an over-budget chunk for Agent rework; sealed PCM with `pcm-cumulative-ceil-v1` owns timing.
 - Keep one Story, one Composition, and one exclusive ScenePackage per meaningId/StoryBeat.
+- Keep one project-local GlobalVisualPackage per Story, independent from every ScenePackage.
 - Keep captions/narration top-level; every Scene root transparent; render only Beat-semantic content
   plus local sound, never Scene-local backgrounds.
 - Bind renderers through the composition-local static registry; keep JSON non-executable.
 - Use manifest-verified repository-local assets and Remotion frame APIs only.
 - Keep runtime free of Agent, Skill, MCP, Git, provider, network, and directory scanning.
-- Never edit central events or derived state.
+- Never edit central events or derived state. The repository records result contracts, never Agent,
+  task, thread, progress, or heartbeat state.
 
 Use ignored `voxcpm/voxcpm.private.json` by default. `RSP_VOXCPM_PRIVATE_CONFIG` is optional. Never
 open, print, summarize, stage, or commit private configuration or protected voice-profile contents;

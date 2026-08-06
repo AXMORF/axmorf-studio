@@ -2,7 +2,7 @@
 
 > 文档类型：确定性、时间、指纹与失效权威
 >
-> 最后复核：2026-08-06
+> 最后复核：2026-08-07
 >
 > 当前完成状态只在 [ITERATION_STATUS.md](ITERATION_STATUS.md) 维护。
 
@@ -25,12 +25,14 @@ Remotion runtime 只读取声明和已封存本地产物
 固定检查、证据生成与渲染
 ```
 
-M9.5 在制作期增加另一种确定性：固定脚本把 stage success/failure 和 Scene result 写成
+M9.5 在制作期增加另一种确定性；current v4 固定脚本把 stage success/failure 和
+Scene/GlobalVisual result 写成
 append-only strict events，再复算 `ProductionRunState`。脚本成功不是手工把 status 改成
 success，而是先证明输出 identity current，再提交成功事件；意外异常必须形成脱敏
-`ProductionError`。该运行状态不进入作品 fingerprint 或 Remotion runtime。
+`ProductionError`。该运行状态不进入作品 fingerprint 或 Remotion runtime，也不包含 Agent、
+task、thread、model、progress、conversation、log 或 heartbeat 状态。
 
-未来 production 还增加统一的可读性确定性。`ProductionRequirementsFreeze` v3 按 Composition
+future-only production 使用 `ProductionRequirementsFreeze` v4；它保留 v3 按 Composition
 width/height 解析并冻结 `production-readability-v1`；整数有理 scale、派生安全区、Scene/字幕
 字号和两行字幕预算都进入 policy fingerprint。`caption-display-unit-v1` 以 Unicode grapheme
 和整数 half-unit 在 provider 前拒绝超限 authored `ttsChunks`，不按标点或字符自动拆分，也不
@@ -40,8 +42,11 @@ result/mechanical identity，并由 submit、watcher 与 post-Scene Preview 调�
 SceneSafeArea 由 Composition exactly once 提供相同 policy context；Renderer 不复制安全框，也
 不得 import CaptionLayer、GlobalVisualLayers、audio 或读取 raw policy。Renderer 根节点保持透明，
 不得补 Scene-local 安全区底板、全帧底色、纹理或装饰背景；没有 GlobalVisualLayers 时，未使用
-像素继续透明。当前不建立临时项目级全局视觉层；已有 v1/v2 artifacts 保持原字节与解析路径，
-不迁移、不注入默认策略。
+像素继续透明。v4 另冻结 GlobalVisualBrief/Assignment，要求一个与 N 个 Scene owner 并行的
+whole-film GlobalVisual owner；两类输出只通过 immutable result contracts 汇合。GlobalVisual
+source/package/projection 绑定同一 frozen identities，不读取 Scene 输出，不拥有字幕、音频或
+Scene 语义，也不实现通用 DSL、自动布局或自动导演。已有 v1-v3 artifacts 保持原字节与解析
+路径，不迁移、不注入默认策略。
 
 `npm run production:preflight -- --project <storyId>` 是确定性的 Run-before-write 环境门：固定
 `/health` liveness、`/ready` resident/cold diagnosis 和正式 Chromium compositions launch。
@@ -230,7 +235,9 @@ src/projects/<story>/
 ├── generated/                         timing、manifest、fingerprint 等生成数据
 ├── visual-style.json                  M6 合同；正式项目实例由 M7 创建
 ├── external-references.generated.json M6 合同/工具；正式项目实例由 M7 选择
-├── production/                        M9.5：requirements、resource pool、Scene assignments
+├── production/                        requirements、resource pool、Scene/GlobalVisual assignments
+├── global-visual-plan.json            v4 whole-film GlobalVisual 创作声明
+├── global-visual/                     project-local static renderer、资源选择与 generated package
 ├── scenes/<meaningId>/                M7 Scene 视听制作阶段；单 Agent 独占
 │   ├── visual-plan.json               Agent 画面方案
 │   ├── shot-plan.json                 Scene 内 Shot 与同步锚点声明
@@ -251,7 +258,7 @@ src/projects/project-registry.generated.ts  Story ID → 静态元数据 + 字�
 public/projects/<story>/narration/     已封存的旁白产物
 out/<story>/                           本地预览、证据与成片
 
-.producer-runs/<runId>/                M9.5：ignored 制作期 events/results/state/lock
+.producer-runs/<runId>/                ignored 制作期 events、Scene/GlobalVisual results、state/lock
 ```
 
 物理文件可以按实施计划细化，但必须保持“创作声明、实测产物、生成元数据、React
@@ -665,9 +672,10 @@ skill 负责引导 Agent 完成 Story/ttsChunks 创作、旁白生成编排，�
 后，Scene 分发、fidelity 检查、正式 preview、render 和 quality runtime 只读取静态源码、
 合同数据、本地资产和已封存产物，不调用 skill、Agent、MCP 或网络服务。
 
-M9.5 的 repo CLI 不调用 skill 或 Agent API。主 Agent 仍通过当前 Codex 原生能力分发 Scene，
-再保持当前任务运行并等待 `production:watch`；watcher 只读取 strict Scene result 合同。主任务
-彻底结束后的 detached Agent lifecycle 需要外部 lifecycle owner，不属于确定性执行或 M9.5。
+repo CLI 不调用 skill 或 Agent API。主 Agent 通过当前 Codex 原生能力并行分发 N 个 Scene
+owner 和一个 GlobalVisual owner，再保持当前任务运行并等待 `production:watch`；watcher 只读取
+strict immutable result contracts。Agent/task/thread/progress/heartbeat 从不成为 repo state，主
+任务彻底结束后的 detached Agent lifecycle 需要外部 lifecycle owner，不属于确定性执行。
 
 项目级
 [$remotion-story-producer-video](../.agents/skills/remotion-story-producer-video/SKILL.md) 已把这条

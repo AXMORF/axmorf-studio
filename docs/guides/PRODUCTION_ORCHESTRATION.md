@@ -2,7 +2,7 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-06
+> 最后复核：2026-08-07
 >
 > 自动流程的唯一成功终点是
 > `preview-ready / awaiting-user-preview`；它不表示 reviewed、approved、quality-pass 或
@@ -28,6 +28,9 @@ npm run production:scene:freeze -- --run <runId>
 npm run production:scene:check -- --run <runId> --scene <meaningId>
 npm run production:scene:submit -- --run <runId> --scene <meaningId>
 npm run production:scene:fail -- --run <runId> --scene <meaningId> --code <CODE> --description "<safe description>"
+npm run production:global-visual:check -- --run <runId>
+npm run production:global-visual:submit -- --run <runId>
+npm run production:global-visual:fail -- --run <runId> --code <CODE> --description "<safe description>"
 npm run production:watch -- --run <runId>
 npm run production:preview:check -- --run <runId>
 ```
@@ -56,10 +59,11 @@ sandbox 安全设置。
 
 ## 未来 production 的统一可读性冻结
 
-代码变更之后开始的新 Run 只接受 `production-requirements-freeze-v3`。它把 Composition 的
-width/height 与 `production-readability-v1` 完整解析结果结构化封存并 fingerprint；这是一条
-适用于所有画幅的生产规则，不是 9:16 或 portrait policy。已有 v1/v2 requirements/Run 继续按
-原合同读取和检查，不注入默认字段、不迁移、不重写任何旧作品或 identity。
+代码变更之后开始的新 Run 只接受 `production-requirements-freeze-v4`。它在 v3 可读性与
+Composition ownership 上要求 current `GlobalVisualBrief` 并冻结 whole-film GlobalVisual
+选择。Composition width/height 与 `production-readability-v1` 完整解析结果继续结构化封存并
+fingerprint；这是一条适用于所有画幅的生产规则，不是 9:16 或 portrait policy。已有 v1-v3
+requirements/Run 继续按原合同读取和检查，不注入默认字段、不迁移、不重写旧作品或 identity。
 
 策略用整数有理数 `scale = max(1080, min(width, height)) / 1080` 计算：90/36/40/180/30/38
 分别按明确的整数 round 解析为 edge inset、Scene 最小字号、字幕字号、字幕 bottom inset、
@@ -74,29 +78,36 @@ bottom inset 再向上取整到 10 的倍数。1080 short edge 的结果为
 chunks；超限只返回可定位到 `chunkId` 的 Agent-owned authoring failure，不自动拆分、改写、
 裁剪或缩小字号。
 
-Scene freeze 将完整策略和 `scene-composition-boundary-v1` 写入 v3 task/assignment；
+Scene freeze 将完整策略和 `scene-composition-boundary-v1` 写入 current task/assignment；
 package/result/mechanical identity、watcher 与 post-Scene Preview 都复检同一组 identity。
 Composition 的 `SceneSafeArea` exactly once 直接消费 frozen policy 并提供 SceneText context；v3
 Renderer 只输出 semantic content，不接收 raw policy，也不拥有安全框、CaptionLayer、
 GlobalVisualLayers 或 audio。完整 source graph 中可见 HTML/SVG
 文字仍必须静态证明达到字号下限，未知/继承/相对单位/缩小 scale 均 fail closed。
 
-v3 scaffold 直接把 StoryVisualTrack 挂入已有视觉 node，不建立临时 project-global wrapper。
-`GlobalVisualLayers` 在正式进入 production 前保持 absent；未来只由该既有 enhancement 拥有全屏
-背景、纹理、非语义装饰与连续性 motif，不建立第二套 global visual authority、Track、Scene
-DSL、自动布局器或自动导演。顶层 CaptionLayer 仍由 NarrativeCore 唯一渲染。v1/v2 scaffold、
-Renderer、package/result/check path 与所有现有正式项目保持原样，不回填、不迁移。
+v4 scaffold 把 StoryVisualTrack 与已验证的 project-local `GlobalVisualLayers` 分别挂入既有强
+语义槽位。GlobalVisual 只拥有全屏背景、纹理、非语义装饰与连续性 motif，不建立第二套
+authority、Track、Scene DSL、自动布局器或自动导演，也不读取 Scene 输出。顶层 CaptionLayer
+仍由 NarrativeCore 唯一渲染。v1-v3 scaffold、Renderer、package/result/check path 与所有现有
+正式项目保持原样，不回填、不迁移。
 
 Narrative 到达 `baseline-ready` 后，主 Agent 写 current `visual-style.json`、
-`production/story-resource-pool.json` 和 `production/scene-production-brief.json`，再运行
-`production:scene:freeze`。每个 meaningId 得到一份只读 assignment，并由主 Agent 启动一个
-独立 Scene 子 Agent。子 Agent 只拥有 assignment 声明的 Scene/source/public 输出路径；完成后
+`production/story-resource-pool.json`、`production/scene-production-brief.json` 和
+`production/global-visual-brief.json`，再运行 `production:scene:freeze`。每个 meaningId 得到
+一份只读 Scene assignment，同时生成一份 whole-film GlobalVisual assignment。主 Agent 并行
+启动 N 个 Scene owner 与一个 GlobalVisual owner；每个 owner 只写 assignment 独占路径。Scene 完成后
 运行不写 Scene result/event/state 的 `production:scene:check`。检查失败只退回同一 owning 子
 Agent 返工。检查通过后，主 Agent 复检写入范围并串行运行 submit；只有真正无法完成时才运行
 fail。子 Agent 不写中央 events、state、result、coverage、registry 或 Composition。
 
-主 Agent 分发 Scene 后保持当前任务运行，并以宿主权限由 `production:watch` 等待结果。repo
-CLI 不创建或托管 Agent，也不承诺主任务结束后的 detached lifecycle；若当前环境不能创建
+GlobalVisual owner 只写 `global-visual-plan.json`、固定 project-local source root、资源选择和
+允许的 public assets，不读取 Scene outputs/results，不渲染字幕、可见文本或音频，也不扩张为
+通用 DSL、自动布局或自动导演。它先运行 `production:global-visual:check`；同一 owner 返工至
+通过后，由 root 复检并运行 submit/fail。ScenePackage 与 GlobalVisualPackage 双向不引用。
+
+主 Agent 分发 N+1 owner 后保持当前任务运行，并以宿主权限由 `production:watch` 等待结果。
+watcher 只接受 immutable Scene/GlobalVisual result contracts；repo 不监控或保存 Agent、task、
+thread、progress、conversation、log 或 heartbeat 状态。repo CLI 不创建或托管 Agent，也不承诺主任务结束后的 detached lifecycle；若当前环境不能创建
 独立子 Agent，生产在 Scene authoring 前报告 blocker，不静默退回主 Agent inline 制作。
 
 ## 状态与单写者
@@ -107,6 +118,7 @@ CLI 不创建或托管 Agent，也不承诺主任务结束后的 detached lifecy
 run.json                 immutable run manifest
 events/                  append-only stage events
 scene-results/           immutable per-meaningId success/failure results
+global-visual-result.json immutable whole-film GlobalVisual success/failure result
 state.generated.json     events + results + current fingerprints 的派生投影
 lock/                    central writer lock
 ```
@@ -131,10 +143,10 @@ scaffold，以及用 video stream duration/fps/frame count 而非 AAC-padded con
 
 ## Preview 产物与交接
 
-全部 Scene result mechanically ready 后，watcher 固定生成/检查 SceneCoverageMap、
+全部 N+1 result contracts mechanically ready 后，watcher 固定生成/检查 SceneCoverageMap、
 composition-local RendererRegistry、visual/Scene-local sound projections、Composition、静态
-ProjectRegistry、完整 MP4、三个代表 still、contact sheet、Preview evidence 和 mechanical
-check。运行产物位于：
+ProjectRegistry、GlobalVisualProjection v2、完整 MP4、三个代表 still、contact sheet、Preview
+evidence 和 mechanical check。运行产物位于：
 
 ```text
 out/<storyId>/production/<runId>/preview.mp4
@@ -145,9 +157,10 @@ src/projects/<storyId>/generated/production-preview-evidence.generated.json
 src/projects/<storyId>/generated/production-preview-mechanical-check.generated.json
 ```
 
-机械检查绑定画幅、fps、帧数、音视频流、完整解码、coverage、registry、projection、assembly
-和媒体 checksum。v3 PreviewAssembly v2 额外绑定 shared boundary，
-同时仍显式禁止 GlobalSoundPlan、BGM、跨 Scene ambience、ducking 和 GlobalVisualLayers；
+机械检查绑定画幅、fps、帧数、音视频流、完整解码、coverage、registry、Scene/GlobalVisual
+projection、assembly 和媒体 checksum。v4 PreviewAssembly v3 绑定 current GlobalVisual
+assignment/package/source/result identity，同时仍显式禁止 GlobalSoundPlan、BGM、跨 Scene
+ambience 和 ducking；
 Scene-local ambience/SFX 仍归 ScenePackage 所有。它不执行 NarrativeCheck
 或 Scene Agent 审美审核。
 
@@ -157,9 +170,10 @@ Preview 决定；M9.5 不创建 `FinalPreviewApproval`，也不实现用户预�
 
 ## 验证与范围
 
-M9.5 单元/集成测试位于 `tests/production/`，使用 fake provider、fake process runner、fake
-clock/scheduler 和临时 fixture，覆盖正常两 Scene 流程、expected/unexpected failure、timeout、
-malformed/stale result、共享输入漂移、幂等与受保护正式作品 checksum。运行：
+production 单元/集成测试位于 `tests/production/`，使用 fake provider、fake process runner、
+fake clock/scheduler 和临时 fixture，覆盖 N Scene + one GlobalVisual 的三种到达顺序、
+expected/unexpected failure、timeout、malformed/stale result、共享输入漂移、幂等与受保护正式
+作品 checksum。运行：
 
 ```bash
 node --import tsx --test tests/production/*.test.ts

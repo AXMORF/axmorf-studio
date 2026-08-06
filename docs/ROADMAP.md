@@ -2,9 +2,10 @@
 
 > 文档类型：未来工作权威
 >
-> 最后复核：2026-08-06
+> 最后复核：2026-08-07
 >
-> 当前阶段：M1–M9.5 与 production hardening 已完成；M10 尚未开始
+> 当前阶段：M1–M9.5 与 production hardening（含 parallel GlobalVisual contracts）已完成；
+> M10 尚未开始
 
 ## 用途
 
@@ -26,7 +27,7 @@
 | M8        | Global sound/visual、FinalAssembly、用户批准与 final-v2    |
 | M9        | ProductComicVertical 第二主题泛化与 final-v2               |
 | M9.5      | 合同驱动生产 CLI、single-writer watcher 与机械 Preview     |
-| Hardening | v3 preflight、统一可读性、Composition-owned Scene boundary |
+| Hardening | v3 preflight、统一可读性、Composition-owned Scene boundary；future-only v4 N+1 GlobalVisual contracts |
 
 当前实现细节以 [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准；历史计划见
 [archive/implementation-plans/](archive/implementation-plans/README.md)。

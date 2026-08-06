@@ -22,7 +22,7 @@ const SkillPolicySchema = z
     privateConfigPath: z.literal("voxcpm/voxcpm.private.json"),
     requiredEntrypointHeadings: z.tuple([
       z.literal("Start directly"),
-      z.literal("Require isolated Scene Agents"),
+      z.literal("Require N plus one visual owners"),
       z.literal("Keep context bounded"),
       z.literal("Preserve production invariants"),
       z.literal("Classify failure by owner"),
@@ -31,6 +31,7 @@ const SkillPolicySchema = z
     requiredReferences: z.tuple([
       z.literal("references/direct-production-workflow.md"),
       z.literal("references/scene-agent-orchestration.md"),
+      z.literal("references/global-visual-agent-orchestration.md"),
       z.literal("references/agent-rework-and-system-hardening.md"),
     ]),
     workflowCommands: z.tuple([
@@ -42,13 +43,21 @@ const SkillPolicySchema = z
       z.literal("production:scene:check"),
       z.literal("production:scene:submit"),
       z.literal("production:scene:fail"),
+      z.literal("production:global-visual:check"),
+      z.literal("production:global-visual:submit"),
+      z.literal("production:global-visual:fail"),
       z.literal("production:preview:check"),
     ]),
     invariants: z
       .object({
         sceneAuthoringOwner: z.literal("one-child-agent-per-meaning-id"),
+        globalVisualAuthoringOwner: z.literal("one-child-agent-per-story"),
         rootAgentAuthorsScenes: z.literal(false),
+        rootAgentAuthorsGlobalVisual: z.literal(false),
         inlineSceneFallback: z.literal(false),
+        repositoryMonitorsAgentLifecycle: z.literal(false),
+        watcherInput: z.literal("immutable-result-contracts-only"),
+        globalVisualReadsSceneOutputs: z.literal(false),
         fixedFlowRecovery: z.literal(false),
         centralStateWriter: z.literal("repository-cli-only"),
         ttsChunkAutoSplit: z.literal(false),
@@ -72,18 +81,28 @@ const SkillPolicySchema = z
         directWorkflowMaxWords: z.number().int().positive(),
         normalProductionMaxWords: z.number().int().positive(),
         sceneOrchestrationMaxWords: z.number().int().positive(),
+        globalVisualOrchestrationMaxWords: z.number().int().positive(),
       })
       .strict(),
   })
   .strict();
 
 test("repository video skill exposes a structured production policy", async () => {
-  const [skill, metadata, workflow, sceneWorkflow, failurePolicy, rawPolicy] =
+  const [
+    skill,
+    metadata,
+    workflow,
+    sceneWorkflow,
+    globalVisualWorkflow,
+    failurePolicy,
+    rawPolicy,
+  ] =
     await Promise.all([
       readSkillFile("SKILL.md"),
       readSkillFile("agents/openai.yaml"),
       readSkillFile("references/direct-production-workflow.md"),
       readSkillFile("references/scene-agent-orchestration.md"),
+      readSkillFile("references/global-visual-agent-orchestration.md"),
       readSkillFile("references/agent-rework-and-system-hardening.md"),
       readSkillFile("policy.json"),
     ]);
@@ -104,7 +123,7 @@ test("repository video skill exposes a structured production policy", async () =
     await assert.doesNotReject(readSkillFile(reference));
   }
 
-  const executableWorkflow = `${workflow}\n${sceneWorkflow}`;
+  const executableWorkflow = `${workflow}\n${sceneWorkflow}\n${globalVisualWorkflow}`;
   for (const command of policy.workflowCommands) {
     assert.match(executableWorkflow, new RegExp(`npm run ${command}`, "u"));
   }
@@ -126,6 +145,21 @@ test("repository video skill exposes a structured production policy", async () =
     wordCount(sceneWorkflow) <=
       policy.contextBudgets.sceneOrchestrationMaxWords,
     `Scene orchestration exceeds its policy budget (${wordCount(sceneWorkflow)} words)`,
+  );
+  assert.ok(
+    wordCount(globalVisualWorkflow) <=
+      policy.contextBudgets.globalVisualOrchestrationMaxWords,
+    `GlobalVisual orchestration exceeds its policy budget (${wordCount(globalVisualWorkflow)} words)`,
+  );
+  assert.match(
+    globalVisualWorkflow,
+    /does not read Scene outputs|不得读取 Scene 输出/u,
+  );
+  assert.match(globalVisualWorkflow, /caption|字幕/u);
+  assert.match(globalVisualWorkflow, /DSL|automatic director|自动导演/u);
+  assert.match(
+    executableWorkflow,
+    /result contracts only|只(?:读取|接受)结果合同/u,
   );
 
   assert.ok(failurePolicy.length > 0);

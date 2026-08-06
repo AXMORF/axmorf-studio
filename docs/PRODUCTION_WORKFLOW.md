@@ -2,7 +2,7 @@
 
 > 文档类型：生产阶段、输入输出与所有权权威
 >
-> 最后复核：2026-08-06
+> 最后复核：2026-08-07
 >
 > 当前完成状态只在 [ITERATION_STATUS.md](ITERATION_STATUS.md) 维护。
 
@@ -16,9 +16,9 @@
 ```text
 冻结完整制作要求
 → 稳定叙事生产主链
-→ 冻结全片画风、Story 级候选资源池与每 Beat 制作输入
-→ 按 meaningId 并行制作内聚视听 ScenePackage
-→ 固定脚本监控结果合同并投影、装配机械完整预览
+→ 冻结全片画风、Story 级候选资源池、每 Beat 制作输入与 GlobalVisual 输入
+→ N 个 Scene owner 与一个 whole-film GlobalVisual owner 并行制作
+→ 固定脚本只接受结果合同并投影、装配机械完整预览
 → 用户观看最终预览
 ```
 
@@ -145,9 +145,9 @@ owner，然后保持当前任务运行、以宿主权限等待 watcher；不可�
 blocker，不允许静默 inline。M9.5 不保证主任务结束后子 Agent 继续存活。完整实施边界见
 [M9.5 历史实施计划](archive/implementation-plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md)。
 
-### 3.2 v3 Run-before-write preflight 与 Scene ownership
+### 3.2 v3 Run-before-write preflight 与 Scene ownership（兼容历史）
 
-新 Run 只接受 `production-requirements-freeze-v3`。`production:start` 在 scaffold、clock、run
+v3 Run 只接受 `production-requirements-freeze-v3`。`production:start` 在 scaffold、clock、run
 manifest、event/state 或 narration work 写入前复用同一只读 preflight：VoxCPM `/health`
 只检查 liveness，`/ready` 只诊断模型状态；`503/loading` 作为
 `cold-auto-load-on-first-tts` 通过，不预热、不发送测试 TTS，`500` 安全归类为 external model
@@ -163,6 +163,24 @@ Composition 的 `SceneSafeArea` 持有安全区和文字 context，Scene Rendere
 唯一项目级视觉权威。Scene Renderer 根节点必须透明，只渲染当前 Beat 的语义内容；不得自行
 补安全区底板、全帧底色、纹理或装饰背景。`GlobalVisualLayers` 缺失时，未使用区域保持透明。
 v1/v2 scaffold、Renderer、package/result/check path 保持兼容，现有正式项目不迁移。
+
+### 3.3 v4 parallel GlobalVisual contracts
+
+future-only v4 requirements 要求 current `GlobalVisualBrief`，并在一次
+`production:scene:freeze` 中原子写入 N 个 `SceneAssignment` 和一个
+`GlobalVisualAssignment`。主 Agent 同时分发 N 个 Scene owner 与一个 whole-film
+GlobalVisual owner；GlobalVisual 不等待、读取或引用任何 Scene 输出，两类 package 双向独立。
+
+每个 owner 只能写 assignment 独占路径，先运行对应 non-terminal check，由 root 复检后串行
+submit/fail。Scene 与 GlobalVisual result 可以任意顺序到达；watcher 只读取 immutable result
+contracts，直到 N+1 全部 accepted 才装配。repo 不调用 Agent API，也不监控或保存 Agent、task、
+thread、model、progress、conversation、log 或 heartbeat 状态；缺 result 只表示合同尚未到达。
+
+GlobalVisualPackage 绑定 current plan、project-local static source graph 和选中资源。其 renderer
+只拥有背景、纹理、装饰和连续性 motif，不渲染字幕、可见文本、音频或 Scene 语义，不扩张为
+通用 DSL、自动布局器或自动导演。固定 post-scene 生成 GlobalVisualProjection v2，并通过
+PreviewAssembly v3 / Evidence v2 / MechanicalCheck v2 绑定 current identity；GlobalSound 仍
+absent。旧 v1-v3 requirements/Run/scaffold 和 GPS/ProductComicVertical 正式作品保持原字节。
 
 ## 4. 阶段输入与输出
 
@@ -184,8 +202,11 @@ v1/v2 scaffold、Renderer、package/result/check path 保持兼容，现有正�
 | Narrative Check          | Narrative Baseline 与机械报告                                               | 未来可能另行设计的 Agent 叙事检查报告                                                    | 不属于当前 gate；如未来设计，必须另行批准主观检查边界                                                          |
 | Visual Direction         | 用户画风意图、Story、RenderSpec、已注册 style profiles                      | `VisualStyleSpec`                                                                        | 项目级全片画风权威；不进入旁白封存或 SemanticTiming                                                            |
 | External Reference Sync  | 显式允许的上游 repository/commit                                            | immutable snapshot、recipe/demo/preview index、license metadata                          | 仅 authoring step 可联网；浮动 branch/tag 不能成为生产 identity；runtime 不访问上游                            |
+| GlobalVisual Brief       | Story、RenderSpec、VisualStyleSpec、全片视觉意图                            | `GlobalVisualBrief`                                                                      | v4 requirement freeze 前创作；不引用 Scene 输出或 Agent lifecycle                                              |
 | Scene Task Freeze        | StoryBeat、SemanticTiming、VisualStyleSpec、Catalog、references、相邻连续性 | 每个 meaningId 的只读任务输入                                                            | 一个独占 Scene 目录对应一个 Agent 任务；共享输入、上游 revision 与 registry 不可由子 Agent 修改                |
+| GlobalVisual Freeze      | Brief、StoryBeat 时间窗、Style、Catalog、readability                        | 一份 whole-film `GlobalVisualAssignment`                                                  | 与 N 个 Scene assignment 同次原子冻结；独占 project-local source/public paths                                  |
 | Scene Authoring          | 单个 Beat 的固定任务输入                                                    | SceneVisualPlan、ShotPlan、SceneSoundPlan、资源/recipe 选择、本地化 Shot 与 Renderer.tsx | 画面与 Scene 局部声音内聚；recipe 可为空；不得修改 Beat 时长、旁白、字幕或其他 Scene                           |
+| GlobalVisual Authoring   | GlobalVisualAssignment                                                      | plan、selected resources、static renderer、`GlobalVisualPackage`                         | 不读取 Scene 输出；不拥有字幕、声音、Scene 语义、DSL、自动布局或自动导演                                       |
 | Reference Fidelity       | exact recipe selection、准确 demo、本地源码和证据                           | pass-only fidelity receipt 或明确 not-applicable                                         | exact 必须证明 lineage、最小依赖闭包、真实 Renderer/frame-state binding 和正常速度可辨识；preview 只作证据     |
 | Scene Package            | 已完成并校验的单 Scene 本地输入                                             | 视觉/局部声音贡献、同步锚点、reference receipt 与分层 fingerprint                        | 一个 meaningId 对应一个 ScenePackage；SceneRenderer 仍只输出视觉                                               |
 | Enhancement Projection   | 有序 ScenePackage、GlobalSoundPlan、GlobalVisualPlan                        | StoryVisualTrack、SoundDesignTrack、GlobalVisualLayers                                   | 运行时分轨是确定性投影，不建立第二份 Scene SFX 创作权威                                                        |
@@ -528,3 +549,7 @@ pipeline、expected/unexpected error、超时、malformed/stale/shared drift 与
 测试使用 fake provider/process/clock/scheduler，不伪造真实作品 evidence 或用户批准。M9.5 的
 成功终点是等待用户观看的 `preview-ready / awaiting-user-preview`，不是 FinalPreviewApproval
 或发布。
+
+后续 future-only v4 hardening 已把一个 GlobalVisual owner 加入同次 freeze 与 N+1 result join，
+并通过三种到达顺序、strict lifecycle-field rejection、旧 v1-v3 parse/checksum 和两套正式作品
+identity 矩阵验证。它没有增加 Agent 监控、GlobalSound、审美 gate、用户批准、M10 或发布。

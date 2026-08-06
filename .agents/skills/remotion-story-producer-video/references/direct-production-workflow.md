@@ -29,7 +29,9 @@ the authority; an over-budget chunk is Agent-owned authoring failure and must be
 provider call. Existing videos and v1 runs are not migrated.
 Infer safe format defaults and record them in the handoff. Use a safe profile ID through the default
 VoxCPM command without reading private values. Bind current input identities in
-`ProductionRequirementsFreeze`; select no M9.5 global enhancements.
+`ProductionRequirementsFreeze`. For current v4 production, also author
+`production/global-visual-brief.json` and select the required GlobalVisual enhancement. Existing
+v1-v3 inputs and runs remain read-only compatibility artifacts.
 
 Before Run writes, execute on the first attempt with host permissions:
 
@@ -63,33 +65,35 @@ candidate handling, sealing, measurement, timing, registry, Baseline media/evide
 do not reproduce its stages manually. Require `baseline-ready`, sealed narration identity,
 SemanticTiming, CaptionCues, Baseline evidence, AutoCheck, and any applicable no-op recheck.
 
-## 3. Freeze Scene work
+## 3. Freeze parallel visual work
 
-Author current-project `visual-style.json`, `production/story-resource-pool.json`, and
-`production/scene-production-brief.json`. Use only current ResourceCatalog entries and explicitly
-selected immutable references; an empty resource pool is valid. Then run:
+Author current-project `visual-style.json`, `production/story-resource-pool.json`,
+`production/scene-production-brief.json`, and the GlobalVisual brief. Use only current
+ResourceCatalog entries and explicitly selected immutable references; an empty resource pool is
+valid. Then run:
 
 ```bash
 npm run production:scene:freeze -- --run <runId>
 ```
 
-Require one immutable assignment per meaningId with exclusive source/public paths and the exact
-frozen readability policy.
+Require one immutable assignment per meaningId plus one immutable whole-film GlobalVisual assignment,
+each with exclusive source/public paths and exact frozen identities.
 
-## 4. Own watcher and Scene lifecycle
+## 4. Own watcher and N+1 authoring lifecycle
 
-After freeze, read
-[scene-agent-orchestration.md](scene-agent-orchestration.md) completely. Start the live watcher with
-host permissions:
+After freeze, read [scene-agent-orchestration.md](scene-agent-orchestration.md) and
+[global-visual-agent-orchestration.md](global-visual-agent-orchestration.md) completely. Start the
+live watcher with host permissions:
 
 ```bash
 npm run production:watch -- --run <runId>
 ```
 
-Keep polling its real output and execute the referenced ownership, check, rework, and root-only submit
-protocol. Do not detach it from the current task, inline a Scene, or manually write events, state,
-coverage, registry, projection, or Composition. For any fixed-command failure, stop and load the
-hardening reference; do not retry it.
+Dispatch N Scene owners and one GlobalVisual owner concurrently. Poll watcher output and follow both
+ownership, check, rework, and root-submit protocols. The repository and watcher read result contracts
+only; they never persist Agent, task, thread, progress, or heartbeat state. Do not detach, inline
+authoring, or manually write events, state, coverage, registry, projection, or Composition. For any
+fixed-command failure, stop and load the hardening reference; do not retry it.
 
 ## 5. Verify Preview
 
@@ -102,8 +106,9 @@ ffmpeg -v error -xerror -i out/<storyId>/production/<runId>/preview.mp4 -f null 
 npm run compositions
 ```
 
-Require Preview recheck `noOp: true`, unchanged event sequence, current assembly/evidence/mechanical
-fingerprints, exact dimensions/fps/frame count/streams, and complete decode. Run focused checks for
+Require Preview recheck `noOp: true`, unchanged event sequence, all N+1 result contracts accepted,
+current GlobalVisual projection/assembly/evidence/mechanical fingerprints, exact dimensions/fps/frame
+count/streams, and complete decode. Run focused checks for
 changed workflow code and `npm run check` when source, contracts, registry, runtime, or authority docs
 changed. Sync only docs whose facts changed.
 

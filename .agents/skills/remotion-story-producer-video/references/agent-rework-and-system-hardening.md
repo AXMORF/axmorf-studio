@@ -11,6 +11,8 @@ Agent-owned work includes:
 
 - VideoBrief/Story/StoryBeat/ttsChunks and StoryCheck authoring;
 - VisualStyleSpec, StoryResourcePool, SceneProductionBrief, and resource choices;
+- GlobalVisualBrief, GlobalVisualPlan, selected-resource declarations, project-local source, and
+  other GlobalVisual assignment-owned inputs;
 - SceneVisualPlan, ShotPlan, SceneSoundPlan, selected-resource declarations, localized authoring
   adaptation, Renderer source, and other assignment-owned Scene inputs;
 - continuity decisions and safe fallback authored by the responsible Agent.
@@ -23,6 +25,10 @@ Always run `production:scene:check` before result submission. A check failure mu
 immutable Scene result or change event/state; return it to the same owning child Agent. The root Agent
 reruns the passing check and is the only Agent that invokes `production:scene:submit` or
 `production:scene:fail`.
+
+Apply the same rule to `production:global-visual:check`: return a failure to the same whole-film
+owner, then let only the root Agent invoke `production:global-visual:submit` or
+`production:global-visual:fail` after a passing recheck.
 
 If no immutable Scene result or terminal event exists, submit the corrected Agent output normally. If
 an explicit Agent failure already made the run terminal, keep that run immutable, correct the Agent
@@ -132,7 +138,7 @@ The automatic endpoint is mechanical `preview-ready / awaiting-user-preview`. It
 
 - `FinalPreviewApproval` or an approval authoring record;
 - NarrativeCheck, SceneVisualCheck, SceneSoundCheck, or another aesthetic gate;
-- full-film BGM, cross-Scene ambience, ducking, or independent GlobalVisualLayers in the M9.5 path;
+- full-film BGM, cross-Scene ambience, or ducking;
 - user-preview revision automation;
 - capability promotion;
 - M10, publishing, upload, account, network, secret, or permission work;

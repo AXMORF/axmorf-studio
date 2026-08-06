@@ -63,7 +63,8 @@
   实现数据合同驱动生产编排：`ProductionRequirementsFreeze`、append-only ProductionRun、
   固定 `production:*` CLI、Scene result/watcher 和无全局增强的 mechanical Preview 已落地。
   M10 发布、NarrativeCheck 和 promotion 仍未开始。
-- M9.5 的运行状态只能由 append-only 事件、Scene result 合同和 current fingerprints 复算；
+- ProductionRun 状态只能由 append-only 事件、Scene/GlobalVisual result 合同和 current
+  fingerprints 复算；
   子 Agent 不修改中央 state，中央脚本是唯一 writer。主 Agent 分发 Scene 后保持当前任务运行
   并等待 watcher，但 repo 脚本不创建 Agent，也不承诺主任务结束后的 detached lifecycle。
 - M9.5 第一版不生成全片 BGM、跨 Scene ambience、ducking 或独立 GlobalVisualLayers；不
@@ -72,6 +73,10 @@
   VoxCPM/Chromium preflight 与 `scene-composition-boundary-v1`。Composition exactly once
   提供 `SceneSafeArea`；Scene Renderer 根节点透明，只拥有当前 Beat 的语义视觉，不绘制
   Scene-local 背景、安全区底板、全帧纹理或装饰。已有 v1/v2 Run 与正式作品不迁移、不回填。
+- 当前 future-only v4 production 在同次 freeze 后并行分发 N 个 Scene assignment 与一个
+  whole-film GlobalVisual assignment，通过各自 immutable result 合同汇合。GlobalVisual 只拥有
+  project-local 背景、纹理、装饰和连续性 motif，不读取 Scene 输出；repo 不监控或保存
+  Agent/task/thread/progress/heartbeat 状态。已有 v1-v3 Run 和正式作品不迁移、不回填。
 - M6 的 Scene 级 renderer/runtime 不得成为 Narrative Baseline 的前置条件，也不得反向修改
   Story、旁白、字幕或实测时间线。M8 不得重做五个 M7 ScenePackage；Scene-local
   ambience/SFX 仍由 ScenePackage 拥有，GlobalSoundPlan 不建立第二份 Scene SFX 权威。

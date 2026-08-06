@@ -2,13 +2,14 @@
 
 > 文档类型：当前事实权威
 >
-> 最后复核：2026-08-06
+> 最后复核：2026-08-07
 >
 > 下一里程碑：M10（尚未开始）
 
 ## 当前基线
 
-仓库已完成 M1–M9.5 以及后续 production preflight / Scene ownership hardening。当前主链可以把
+仓库已完成 M1–M9.5 以及后续 production preflight、Scene ownership 和 GlobalVisual contract
+hardening。当前主链可以把
 一个新 Story 推进到机械 `preview-ready / awaiting-user-preview`，但不会代签用户批准、执行
 promotion、发布或自动进入 M10。
 
@@ -35,17 +36,20 @@ promotion、发布或自动进入 M10。
 
 ### 稳定生产编排
 
-- versioned `ProductionRequirementsFreeze`、append-only events、派生
-  `ProductionRunState`、immutable Scene result 和中央 single-writer watcher。
-- `production:preflight/start/status/narrative/scene-freeze/scene-check/scene-submit/scene-fail/watch/preview-check`
-  固定 CLI。
+- versioned `ProductionRequirementsFreeze`、append-only events、派生 `ProductionRunState`、
+  immutable Scene/GlobalVisual result 和中央 single-writer watcher。
+- 固定 CLI 已覆盖 preflight/start/status/narrative/scene freeze、Scene check/submit/fail、
+  GlobalVisual check/submit/fail、watch 和 preview check。
 - Run-before-write VoxCPM/Chromium preflight；外部环境 blocker 不再先污染 immutable Run。
-- 所有新 production 使用 v3 requirements 和 `production-readability-v1`；旧 v1/v2 artifacts
-  只读兼容，不迁移、不回填。
+- future-only production 使用 v4 requirements 和 `production-readability-v1`；旧 v1-v3
+  artifacts 只读兼容，不迁移、不回填。
 - Composition exactly once 提供 `SceneSafeArea`；Scene Renderer 不接收 boundary ownership，
   根节点保持透明，只输出当前 Beat 的语义视觉。
-- M9.5 Preview 不自动增加 BGM、跨 Scene ambience、ducking 或 `GlobalVisualLayers`，终点只表示
-  mechanically ready。
+- v4 freeze 原子生成 N 个 Scene assignment 和一个 whole-film GlobalVisual assignment；两类
+  owner 并行创作，通过 package/result 数据合同汇合。repo 不监控或保存 Agent/task/thread/
+  progress/heartbeat 状态。
+- v4 Preview 必须绑定 current GlobalVisualProjection/Package/source identities；仍不自动增加
+  BGM、跨 Scene ambience 或 ducking，终点只表示 mechanically ready。
 
 ### 工程与验证
 
