@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:3da6f1353ed44b55ac498861656a4b1ad7d5a90ee5fab498e803761715beefdd",
+  "meaningId": "features-build-up",
+  "sceneDurationInFrames": 321,
+  "ambience": null,
+  "cues": [],
+  "soundPlanFingerprint": "sha256:40aa7b00886d09fed27b94feeb2f1bede3afa32b786fc91044352dc59c48c6d4"
+}

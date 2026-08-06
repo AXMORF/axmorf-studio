@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:b99d736550ddfd773bcac0b807559c03c14ab82d1d0e55a87926603a6c31298e",
+  "meaningId": "training-adjusts-weights",
+  "sceneDurationInFrames": 312,
+  "ambience": null,
+  "cues": [],
+  "soundPlanFingerprint": "sha256:49b46bc99a509a53a11b10096bbeba1879ba3c2f441c4f6181c8e87a6f91c86c"
+}

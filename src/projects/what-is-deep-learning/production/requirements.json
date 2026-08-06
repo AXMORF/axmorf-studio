@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 3,
+  "contractVersion": "production-requirements-freeze-v3",
+  "storyId": "what-is-deep-learning",
+  "sourceBindings": {
+    "videoBrief": {
+      "repositoryPath": "src/projects/what-is-deep-learning/brief.json",
+      "checksum": "sha256:243c768209ec85aa621f39561d5240fbeb1a255e74b0e94ee4d9f7d885eab3ee"
+    },
+    "storySpec": {
+      "repositoryPath": "src/projects/what-is-deep-learning/story.json",
+      "checksum": "sha256:b49da92fa81d63f752b64be601b15f2eaad3b457550ce5198a3318cce8f771bf",
+      "fingerprint": "sha256:067a9bd3e908a02ba52fbfb39ad6ee1621693f7732cf645a01315e8c6d5ff63a"
+    },
+    "narrationSpec": {
+      "repositoryPath": "src/projects/what-is-deep-learning/narration.json",
+      "checksum": "sha256:244346a23e615588e57dcf6adf665a8d680b259ace87ccd1a3c7d0f02c645ab4",
+      "fingerprint": "sha256:7dc8878424b09e06a700b85174a91db0b938cfaa786749daa0bd0eb3e943100b"
+    },
+    "renderSpec": {
+      "repositoryPath": "src/projects/what-is-deep-learning/render.json",
+      "checksum": "sha256:6c779670097f74ff32b5cf3cff6bbad58593d7080b24e8ab70d4e2fcc773a9af",
+      "fingerprint": "sha256:193a0313c1287c08d30f36308442af820f296058a993c618540296f4ab8f5f78"
+    },
+    "storyCheck": {
+      "repositoryPath": "src/projects/what-is-deep-learning/reviews/story-check.json",
+      "checksum": "sha256:19953543add5c962eadf82c544edea6f5dece0e504ec3f491a9ee804ca443052",
+      "fingerprint": "sha256:acb57fc2509e411a846b9870e4f6e2eb4bb0df8639359d56a73780cc4bd6d243"
+    }
+  },
+  "normalizedSummary": {
+    "locale": "zh-CN",
+    "fps": 30,
+    "width": 1080,
+    "height": 1920,
+    "voiceProfileId": "my-voice",
+    "captionSafeArea": {
+      "top": 90,
+      "right": 90,
+      "bottom": 180,
+      "left": 90
+    }
+  },
+  "enhancementSelection": {
+    "storyVisual": "required",
+    "sceneLocalSound": "none",
+    "globalSound": "none",
+    "globalVisual": "none"
+  },
+  "resourcePolicy": {
+    "selfAuthoredVisualsAllowed": true,
+    "unlistedThirdPartyResources": "deny"
+  },
+  "additionalRequirements": [
+    {
+      "requirementId": "vertical-format",
+      "scope": "production",
+      "targetMeaningIds": [],
+      "category": "render",
+      "statement": "成片必须使用 1080×1920、30fps 的 9:16 竖屏画幅。",
+      "owner": "script",
+      "verification": "mechanical",
+      "severity": "error"
+    },
+    {
+      "requirementId": "beginner-clarity",
+      "scope": "all-scenes",
+      "targetMeaningIds": [],
+      "category": "visual",
+      "statement": "画面必须以普通观众可理解的视觉因果链呈现多层特征、训练调权重、能力与局限，避免公式和术语堆砌。",
+      "owner": "scene-agent",
+      "verification": "contract",
+      "severity": "error"
+    },
+    {
+      "requirementId": "local-assets-only",
+      "scope": "all-scenes",
+      "targetMeaningIds": [],
+      "category": "resource",
+      "statement": "不得参考旧作品画面或布局，所有运行时资产必须仓库本地化且不得访问远程资源。",
+      "owner": "scene-agent",
+      "verification": "contract",
+      "severity": "error"
+    },
+    {
+      "requirementId": "frozen-readability",
+      "scope": "all-scenes",
+      "targetMeaningIds": [],
+      "category": "caption",
+      "statement": "每个 Scene 必须服从 assignment 冻结的通用 readability policy，Scene 内容边界由 Composition 负责，字幕只由顶层渲染。",
+      "owner": "script",
+      "verification": "mechanical",
+      "severity": "error"
+    },
+    {
+      "requirementId": "mechanical-preview-only",
+      "scope": "final-preview",
+      "targetMeaningIds": [],
+      "category": "delivery",
+      "statement": "自动流程只到机械 Preview；语义与审美判断等待用户观看后明确决定。",
+      "owner": "user-preview",
+      "verification": "user-preview",
+      "severity": "warning"
+    }
+  ],
+  "readabilityPolicy": {
+    "schemaVersion": 1,
+    "policyId": "production-readability-v1",
+    "policyVersion": 1,
+    "width": 1080,
+    "height": 1920,
+    "scale": {
+      "numerator": 1080,
+      "denominator": 1080
+    },
+    "edgeInsetPx": 90,
+    "sceneBottomInsetPx": 360,
+    "typographyPolicy": {
+      "minFontSizePx": 36
+    },
+    "captionPolicy": {
+      "displayUnitAlgorithmId": "caption-display-unit-v1",
+      "recommendedDisplayUnitsPerChunk": 32,
+      "maxDisplayUnitsPerChunk": 36,
+      "recommendedDisplayHalfUnits": 64,
+      "maxDisplayHalfUnits": 72,
+      "maxCaptionLines": 2,
+      "captionFontSizePx": 40,
+      "captionBottomInsetPx": 180,
+      "captionGapPx": 30,
+      "captionVerticalPaddingPx": 38,
+      "captionBoxHeightPx": 146,
+      "lineHeight": {
+        "numerator": 135,
+        "denominator": 100
+      }
+    },
+    "sceneContentSafeAreaPx": {
+      "top": 90,
+      "right": 90,
+      "bottom": 360,
+      "left": 90
+    },
+    "captionSafeAreaPx": {
+      "top": 90,
+      "right": 90,
+      "bottom": 180,
+      "left": 90
+    },
+    "policyFingerprint": "sha256:5ce5655efa4b5219f25958a8fd0efba30921d52277e89e8cddbcedffbe5f826b"
+  },
+  "sceneBoundaryOwnership": {
+    "sceneCompositionBoundaryVersion": "scene-composition-boundary-v1",
+    "sceneSafeAreaOwner": "composition",
+    "captionOwner": "caption-layer"
+  },
+  "requirementsFingerprint": "sha256:069d6fd01449d4bfa87b403fc4f3580b4df3819d11ea185e1632669446ba73d3"
+}

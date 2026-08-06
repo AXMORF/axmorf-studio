@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:3981cd158b89034e0e04c53da8e6cb3376143b179839530780a4376e45780481",
+  "meaningId": "power-has-limits",
+  "sceneDurationInFrames": 466,
+  "anchors": [
+    {"eventId": "boundary-visible", "sceneLocalFrame": 0, "purpose": "能力边界语义开始。"},
+    {"eventId": "shift-arrives", "sceneLocalFrame": 86, "purpose": "场景变化语义开始。"},
+    {"eventId": "warning-visible", "sceneLocalFrame": 118, "purpose": "错误风险警告开始显现。"},
+    {"eventId": "definition-arrives", "sceneLocalFrame": 216, "purpose": "最终定义语义开始。"},
+    {"eventId": "definition-settled", "sceneLocalFrame": 354, "purpose": "学习链完成并稳定保持。"}
+  ],
+  "syncAnchorFingerprint": "sha256:3a86afe64b94faf5e97252613eb8f0b2da6ed8db8ce65b935d3ee1f2cf78fb87"
+}

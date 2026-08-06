@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "storyId": "what-is-deep-learning",
+  "storyFingerprint": "sha256:067a9bd3e908a02ba52fbfb39ad6ee1621693f7732cf645a01315e8c6d5ff63a",
+  "generationInputFingerprint": "sha256:7ca48295055a70fec24623668bb92d4704fc9725643cedf7e868c57a44177f87",
+  "voiceProfileId": "my-voice",
+  "decision": "proceed",
+  "checks": [
+    {
+      "checkId": "story-beat-order",
+      "status": "pass",
+      "note": "五个 StoryBeat 从直观问题进入多层特征、训练机制、应用能力，再落到局限与定义。"
+    },
+    {
+      "checkId": "narrative-completeness",
+      "status": "pass",
+      "note": "完整解释深度、多层神经网络、数据训练、权重调整、典型能力与错误边界。"
+    },
+    {
+      "checkId": "authored-tts-chunks",
+      "status": "pass",
+      "note": "所有 ttsChunks 按语义、语气和朗读节奏创作，未按标点或字符机械拆分。"
+    },
+    {
+      "checkId": "voice-profile-selection",
+      "status": "pass",
+      "note": "使用仓库现有安全 voice profile 引用 my-voice。"
+    },
+    {
+      "checkId": "pronunciation-risks",
+      "status": "pass",
+      "note": "旁白使用常用中文词汇，无需额外英文缩写或生僻术语处理。"
+    }
+  ]
+}

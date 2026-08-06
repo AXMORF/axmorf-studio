@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:3da6f1353ed44b55ac498861656a4b1ad7d5a90ee5fab498e803761715beefdd",
+  "meaningId": "features-build-up",
+  "semanticObjective": "用可视化因果链说明前层发现简单线索，后层把线索组合为部件与完整猫判断。",
+  "subject": "边缘、颜色、纹理线索逐层合成为耳朵、眼睛和猫的预测。",
+  "primaryAction": "三个简单线索沿既有向上路径汇合成两个部件卡，再围绕猫轮廓完成预测。",
+  "causalLink": "简单特征先被分别发现，随后被组合成更复杂部件，最终共同支持完整对象判断。",
+  "primaryComposition": "内容框内保持自下而上的三阶段结构：底部三种线索、中部耳朵与眼睛、上部完整猫预测；右侧留出空反馈路径。",
+  "styleRealization": [
+    "输入证据使用冷青色，学习到的部件与连接使用鲜明紫色。",
+    "使用柔和白色描边和克制发光节点，不添加背景、纹理或装饰层。",
+    "概念标签短而清晰，所有文字不小于冻结最小字号。"
+  ],
+  "continuity": "开场承接向上的青色到紫色路径；结尾稳定保留完整猫预测，并在右侧留下未激活的反馈路径供下一 Scene 使用。",
+  "orderedShotIds": [
+    "simple-clues",
+    "feature-parts",
+    "cat-prediction"
+  ],
+  "visualResourceIds": [],
+  "recipeDecision": "empty",
+  "fallbackIntent": "若复杂合成不可用，保留三种线索依次亮起、两个部件出现并收束到猫轮廓的纯矢量因果链。",
+  "visualPlanFingerprint": "sha256:01b250d8dde4aceba376dc18dba711032367b2e5a5a48c73d2f893ea6b368ce7"
+}

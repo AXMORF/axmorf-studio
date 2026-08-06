@@ -1,0 +1,301 @@
+{
+  "algorithmId": "pcm-cumulative-ceil-v1",
+  "captionCues": [
+    {
+      "chunkId": "layers-find-patterns-01",
+      "endFrame": 99,
+      "meaningId": "layers-find-patterns",
+      "startFrame": 12,
+      "text": "电脑怎么认出照片里是一只猫？"
+    },
+    {
+      "chunkId": "layers-find-patterns-02",
+      "endFrame": 258,
+      "meaningId": "layers-find-patterns",
+      "startFrame": 104,
+      "text": "深度学习的办法，是让多层神经网络逐层寻找模式。"
+    },
+    {
+      "chunkId": "features-build-up-01",
+      "endFrame": 397,
+      "meaningId": "features-build-up",
+      "startFrame": 258,
+      "text": "前面的层先发现边缘、颜色和纹理。"
+    },
+    {
+      "chunkId": "features-build-up-02",
+      "endFrame": 579,
+      "meaningId": "features-build-up",
+      "startFrame": 397,
+      "text": "后面的层再把它们组合成耳朵、眼睛，最后判断是不是猫。"
+    },
+    {
+      "chunkId": "training-adjusts-weights-01",
+      "endFrame": 690,
+      "meaningId": "training-adjusts-weights",
+      "startFrame": 579,
+      "text": "这些本领不是程序员一条条写进去的。"
+    },
+    {
+      "chunkId": "training-adjusts-weights-02",
+      "endFrame": 891,
+      "meaningId": "training-adjusts-weights",
+      "startFrame": 690,
+      "text": "训练时，网络看大量例子，猜错就根据误差调整内部连接的权重。"
+    },
+    {
+      "chunkId": "depth-enables-learning-01",
+      "endFrame": 1026,
+      "meaningId": "depth-enables-learning",
+      "startFrame": 891,
+      "text": "所谓深度，主要就是处理中间信息的层数很多。"
+    },
+    {
+      "chunkId": "depth-enables-learning-02",
+      "endFrame": 1218,
+      "meaningId": "depth-enables-learning",
+      "startFrame": 1026,
+      "text": "层层积累后，它能处理图像、语音和文字中的复杂规律。"
+    },
+    {
+      "chunkId": "power-has-limits-01",
+      "endFrame": 1304,
+      "meaningId": "power-has-limits",
+      "startFrame": 1218,
+      "text": "但它不是像人一样真正理解世界。"
+    },
+    {
+      "chunkId": "power-has-limits-02",
+      "endFrame": 1429,
+      "meaningId": "power-has-limits",
+      "startFrame": 1304,
+      "text": "数据有偏、场景变化，它也可能自信地犯错。"
+    },
+    {
+      "chunkId": "power-has-limits-03",
+      "endFrame": 1684,
+      "meaningId": "power-has-limits",
+      "startFrame": 1434,
+      "text": "所以，深度学习就是用多层网络，从数据中训练出识别模式的能力。"
+    }
+  ],
+  "durationInFrames": 1702,
+  "fingerprint": "sha256:17bb3842ab15c27b23fd9258e967f1ad9ab5c47bdcef85824e39e586456699f8",
+  "fps": 30,
+  "leadInFrames": 12,
+  "sampleRate": 48000,
+  "schemaVersion": 1,
+  "segments": [
+    {
+      "chunkId": "layers-find-patterns-01",
+      "frameRange": {
+        "endFrame": 99,
+        "startFrame": 12
+      },
+      "kind": "chunk",
+      "meaningId": "layers-find-patterns",
+      "sampleRange": {
+        "endSampleFrame": 138240,
+        "startSampleFrame": 0
+      },
+      "ttsText": "电脑怎么认出照片里是一只猫？"
+    },
+    {
+      "afterChunkId": "layers-find-patterns-01",
+      "frameRange": {
+        "endFrame": 104,
+        "startFrame": 99
+      },
+      "kind": "pause",
+      "meaningId": "layers-find-patterns",
+      "pauseMs": 180,
+      "sampleRange": {
+        "endSampleFrame": 146880,
+        "startSampleFrame": 138240
+      }
+    },
+    {
+      "chunkId": "layers-find-patterns-02",
+      "frameRange": {
+        "endFrame": 258,
+        "startFrame": 104
+      },
+      "kind": "chunk",
+      "meaningId": "layers-find-patterns",
+      "sampleRange": {
+        "endSampleFrame": 392640,
+        "startSampleFrame": 146880
+      },
+      "ttsText": "深度学习的办法，是让多层神经网络逐层寻找模式。"
+    },
+    {
+      "chunkId": "features-build-up-01",
+      "frameRange": {
+        "endFrame": 397,
+        "startFrame": 258
+      },
+      "kind": "chunk",
+      "meaningId": "features-build-up",
+      "sampleRange": {
+        "endSampleFrame": 615360,
+        "startSampleFrame": 392640
+      },
+      "ttsText": "前面的层先发现边缘、颜色和纹理。"
+    },
+    {
+      "chunkId": "features-build-up-02",
+      "frameRange": {
+        "endFrame": 579,
+        "startFrame": 397
+      },
+      "kind": "chunk",
+      "meaningId": "features-build-up",
+      "sampleRange": {
+        "endSampleFrame": 907200,
+        "startSampleFrame": 615360
+      },
+      "ttsText": "后面的层再把它们组合成耳朵、眼睛，最后判断是不是猫。"
+    },
+    {
+      "chunkId": "training-adjusts-weights-01",
+      "frameRange": {
+        "endFrame": 690,
+        "startFrame": 579
+      },
+      "kind": "chunk",
+      "meaningId": "training-adjusts-weights",
+      "sampleRange": {
+        "endSampleFrame": 1083840,
+        "startSampleFrame": 907200
+      },
+      "ttsText": "这些本领不是程序员一条条写进去的。"
+    },
+    {
+      "chunkId": "training-adjusts-weights-02",
+      "frameRange": {
+        "endFrame": 891,
+        "startFrame": 690
+      },
+      "kind": "chunk",
+      "meaningId": "training-adjusts-weights",
+      "sampleRange": {
+        "endSampleFrame": 1406400,
+        "startSampleFrame": 1083840
+      },
+      "ttsText": "训练时，网络看大量例子，猜错就根据误差调整内部连接的权重。"
+    },
+    {
+      "chunkId": "depth-enables-learning-01",
+      "frameRange": {
+        "endFrame": 1026,
+        "startFrame": 891
+      },
+      "kind": "chunk",
+      "meaningId": "depth-enables-learning",
+      "sampleRange": {
+        "endSampleFrame": 1621440,
+        "startSampleFrame": 1406400
+      },
+      "ttsText": "所谓深度，主要就是处理中间信息的层数很多。"
+    },
+    {
+      "chunkId": "depth-enables-learning-02",
+      "frameRange": {
+        "endFrame": 1218,
+        "startFrame": 1026
+      },
+      "kind": "chunk",
+      "meaningId": "depth-enables-learning",
+      "sampleRange": {
+        "endSampleFrame": 1928640,
+        "startSampleFrame": 1621440
+      },
+      "ttsText": "层层积累后，它能处理图像、语音和文字中的复杂规律。"
+    },
+    {
+      "chunkId": "power-has-limits-01",
+      "frameRange": {
+        "endFrame": 1304,
+        "startFrame": 1218
+      },
+      "kind": "chunk",
+      "meaningId": "power-has-limits",
+      "sampleRange": {
+        "endSampleFrame": 2066880,
+        "startSampleFrame": 1928640
+      },
+      "ttsText": "但它不是像人一样真正理解世界。"
+    },
+    {
+      "chunkId": "power-has-limits-02",
+      "frameRange": {
+        "endFrame": 1429,
+        "startFrame": 1304
+      },
+      "kind": "chunk",
+      "meaningId": "power-has-limits",
+      "sampleRange": {
+        "endSampleFrame": 2266560,
+        "startSampleFrame": 2066880
+      },
+      "ttsText": "数据有偏、场景变化，它也可能自信地犯错。"
+    },
+    {
+      "afterChunkId": "power-has-limits-02",
+      "frameRange": {
+        "endFrame": 1434,
+        "startFrame": 1429
+      },
+      "kind": "pause",
+      "meaningId": "power-has-limits",
+      "pauseMs": 180,
+      "sampleRange": {
+        "endSampleFrame": 2275200,
+        "startSampleFrame": 2266560
+      }
+    },
+    {
+      "chunkId": "power-has-limits-03",
+      "frameRange": {
+        "endFrame": 1684,
+        "startFrame": 1434
+      },
+      "kind": "chunk",
+      "meaningId": "power-has-limits",
+      "sampleRange": {
+        "endSampleFrame": 2674560,
+        "startSampleFrame": 2275200
+      },
+      "ttsText": "所以，深度学习就是用多层网络，从数据中训练出识别模式的能力。"
+    }
+  ],
+  "storyBeats": [
+    {
+      "endFrame": 258,
+      "meaningId": "layers-find-patterns",
+      "startFrame": 12
+    },
+    {
+      "endFrame": 579,
+      "meaningId": "features-build-up",
+      "startFrame": 258
+    },
+    {
+      "endFrame": 891,
+      "meaningId": "training-adjusts-weights",
+      "startFrame": 579
+    },
+    {
+      "endFrame": 1218,
+      "meaningId": "depth-enables-learning",
+      "startFrame": 891
+    },
+    {
+      "endFrame": 1684,
+      "meaningId": "power-has-limits",
+      "startFrame": 1218
+    }
+  ],
+  "storyId": "what-is-deep-learning",
+  "tailFrames": 18
+}

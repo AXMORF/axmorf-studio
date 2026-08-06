@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:b99d736550ddfd773bcac0b807559c03c14ab82d1d0e55a87926603a6c31298e",
+  "meaningId": "training-adjusts-weights",
+  "sceneDurationInFrames": 312,
+  "anchors": [
+    { "eventId": "example-cycle", "sceneLocalFrame": 38, "purpose": "第一个训练例子进入网络。" },
+    { "eventId": "wrong-guess", "sceneLocalFrame": 108, "purpose": "错误预测出现。" },
+    { "eventId": "error-backward", "sceneLocalFrame": 142, "purpose": "误差信号开始向网络内部返回。" },
+    { "eventId": "weights-settled", "sceneLocalFrame": 260, "purpose": "调整后的连接权重稳定。" }
+  ],
+  "syncAnchorFingerprint": "sha256:ff29bcae80af04a7e5b43626292843e3d8c52d2b6489f2f9bcc218ea34ff0c09"
+}

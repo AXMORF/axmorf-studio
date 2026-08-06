@@ -105,4 +105,21 @@ export const projectRegistry = [
       "sha256:1a3ffb7ce3827a90312e1c0d681130a0ca755c5747c0b48e6bf3d59f597afbf0",
     load: () => import("./rounded-airplane-windows/Composition"),
   },
+  {
+    id: "WhatIsDeepLearning",
+    fps: 30,
+    width: 1080,
+    height: 1920,
+    durationInFrames: 1702,
+    defaultProps: {
+      projectId: "what-is-deep-learning",
+    } as StoryCompositionProps,
+    generatedEntryChecksum:
+      "sha256:43a68bbc59cd838be29a3b617359da7a8ee5851e3375564de206d1b1e640f676",
+    projectRegistryEntryFingerprint:
+      "sha256:e3ec53d5ab8b5f8867cd7568fe488833d75e57b1bc11cfcae58caecd5c17ed2d",
+    narrativeBaselineFingerprint:
+      "sha256:e9105bc51dccc2e51cc3766d40bd18097552b0747f4f364f74767c33646c96c2",
+    load: () => import("./what-is-deep-learning/Composition"),
+  },
 ] as const satisfies readonly ProjectRegistryEntry[];

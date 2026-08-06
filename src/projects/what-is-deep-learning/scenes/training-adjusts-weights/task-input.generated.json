@@ -1,0 +1,91 @@
+{
+  "allowedDirectories": {
+    "publicAssetRoot": "public/projects/what-is-deep-learning/scenes/training-adjusts-weights",
+    "sceneRoot": "src/projects/what-is-deep-learning/scenes/training-adjusts-weights"
+  },
+  "allowedResourceIds": [],
+  "allowedSnapshots": [],
+  "continuity": {
+    "continuityBrief": "Reuse the established network and finish with strengthened violet connections ready to support deeper representations.",
+    "nextMeaningId": "depth-enables-learning",
+    "nextSummary": "说明“深度”的含义，以及多层表示带来的应用能力。",
+    "previousMeaningId": "features-build-up",
+    "previousSummary": "解释多层结构如何从简单特征逐步组合出复杂概念。"
+  },
+  "meaningId": "training-adjusts-weights",
+  "readabilityPolicy": {
+    "captionPolicy": {
+      "captionBottomInsetPx": 180,
+      "captionBoxHeightPx": 146,
+      "captionFontSizePx": 40,
+      "captionGapPx": 30,
+      "captionVerticalPaddingPx": 38,
+      "displayUnitAlgorithmId": "caption-display-unit-v1",
+      "lineHeight": {
+        "denominator": 100,
+        "numerator": 135
+      },
+      "maxCaptionLines": 2,
+      "maxDisplayHalfUnits": 72,
+      "maxDisplayUnitsPerChunk": 36,
+      "recommendedDisplayHalfUnits": 64,
+      "recommendedDisplayUnitsPerChunk": 32
+    },
+    "captionSafeAreaPx": {
+      "bottom": 180,
+      "left": 90,
+      "right": 90,
+      "top": 90
+    },
+    "edgeInsetPx": 90,
+    "height": 1920,
+    "policyFingerprint": "sha256:5ce5655efa4b5219f25958a8fd0efba30921d52277e89e8cddbcedffbe5f826b",
+    "policyId": "production-readability-v1",
+    "policyVersion": 1,
+    "scale": {
+      "denominator": 1080,
+      "numerator": 1080
+    },
+    "sceneBottomInsetPx": 360,
+    "sceneContentSafeAreaPx": {
+      "bottom": 360,
+      "left": 90,
+      "right": 90,
+      "top": 90
+    },
+    "schemaVersion": 1,
+    "typographyPolicy": {
+      "minFontSizePx": 36
+    },
+    "width": 1080
+  },
+  "renderFingerprint": "sha256:193a0313c1287c08d30f36308442af820f296058a993c618540296f4ab8f5f78",
+  "resourceCatalogFingerprint": "sha256:83872a754e05df18d0ec008ecd4f9cb637c0c159481dc59b0368898125188689",
+  "sceneCompositionBoundaryVersion": "scene-composition-boundary-v1",
+  "schemaVersion": 3,
+  "semanticTimingFingerprint": "sha256:17bb3842ab15c27b23fd9258e967f1ad9ab5c47bdcef85824e39e586456699f8",
+  "storyBeat": {
+    "explicitPauses": [],
+    "meaningId": "training-adjusts-weights",
+    "narrativePurpose": "解释训练数据、误差反馈和连接权重调整的基本机制。",
+    "ttsChunks": [
+      {
+        "chunkId": "training-adjusts-weights-01",
+        "ttsText": "这些本领不是程序员一条条写进去的。"
+      },
+      {
+        "chunkId": "training-adjusts-weights-02",
+        "ttsText": "训练时，网络看大量例子，猜错就根据误差调整内部连接的权重。"
+      }
+    ]
+  },
+  "storyFingerprint": "sha256:067a9bd3e908a02ba52fbfb39ad6ee1621693f7732cf645a01315e8c6d5ff63a",
+  "storyId": "what-is-deep-learning",
+  "taskInputFingerprint": "sha256:b99d736550ddfd773bcac0b807559c03c14ab82d1d0e55a87926603a6c31298e",
+  "timingBeat": {
+    "endFrame": 891,
+    "meaningId": "training-adjusts-weights",
+    "startFrame": 579
+  },
+  "visualStyleFingerprint": "sha256:aa0d889aa955f11f9ae34f1e9c13562a2a35a0d7c093e62164addbdd9e28e7a2"
+}

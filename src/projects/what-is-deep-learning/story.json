@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "storyId": "what-is-deep-learning",
+  "title": "什么是深度学习？",
+  "beats": [
+    {
+      "meaningId": "layers-find-patterns",
+      "narrativePurpose": "用识别照片的直观问题引出深度学习和多层神经网络。",
+      "ttsChunks": [
+        {
+          "chunkId": "layers-find-patterns-01",
+          "ttsText": "电脑怎么认出照片里是一只猫？"
+        },
+        {
+          "chunkId": "layers-find-patterns-02",
+          "ttsText": "深度学习的办法，是让多层神经网络逐层寻找模式。"
+        }
+      ],
+      "explicitPauses": [
+        {
+          "afterChunkId": "layers-find-patterns-01",
+          "pauseMs": 180
+        }
+      ]
+    },
+    {
+      "meaningId": "features-build-up",
+      "narrativePurpose": "解释多层结构如何从简单特征逐步组合出复杂概念。",
+      "ttsChunks": [
+        {
+          "chunkId": "features-build-up-01",
+          "ttsText": "前面的层先发现边缘、颜色和纹理。"
+        },
+        {
+          "chunkId": "features-build-up-02",
+          "ttsText": "后面的层再把它们组合成耳朵、眼睛，最后判断是不是猫。"
+        }
+      ],
+      "explicitPauses": []
+    },
+    {
+      "meaningId": "training-adjusts-weights",
+      "narrativePurpose": "解释训练数据、误差反馈和连接权重调整的基本机制。",
+      "ttsChunks": [
+        {
+          "chunkId": "training-adjusts-weights-01",
+          "ttsText": "这些本领不是程序员一条条写进去的。"
+        },
+        {
+          "chunkId": "training-adjusts-weights-02",
+          "ttsText": "训练时，网络看大量例子，猜错就根据误差调整内部连接的权重。"
+        }
+      ],
+      "explicitPauses": []
+    },
+    {
+      "meaningId": "depth-enables-learning",
+      "narrativePurpose": "说明“深度”的含义，以及多层表示带来的应用能力。",
+      "ttsChunks": [
+        {
+          "chunkId": "depth-enables-learning-01",
+          "ttsText": "所谓深度，主要就是处理中间信息的层数很多。"
+        },
+        {
+          "chunkId": "depth-enables-learning-02",
+          "ttsText": "层层积累后，它能处理图像、语音和文字中的复杂规律。"
+        }
+      ],
+      "explicitPauses": []
+    },
+    {
+      "meaningId": "power-has-limits",
+      "narrativePurpose": "澄清深度学习的能力边界并给出简洁定义。",
+      "ttsChunks": [
+        {
+          "chunkId": "power-has-limits-01",
+          "ttsText": "但它不是像人一样真正理解世界。"
+        },
+        {
+          "chunkId": "power-has-limits-02",
+          "ttsText": "数据有偏、场景变化，它也可能自信地犯错。"
+        },
+        {
+          "chunkId": "power-has-limits-03",
+          "ttsText": "所以，深度学习就是用多层网络，从数据中训练出识别模式的能力。"
+        }
+      ],
+      "explicitPauses": [
+        {
+          "afterChunkId": "power-has-limits-02",
+          "pauseMs": 180
+        }
+      ]
+    }
+  ]
+}

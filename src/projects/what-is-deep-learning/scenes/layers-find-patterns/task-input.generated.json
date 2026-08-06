@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 3,
+  "storyId": "what-is-deep-learning",
+  "meaningId": "layers-find-patterns",
+  "storyBeat": {
+    "meaningId": "layers-find-patterns",
+    "narrativePurpose": "用识别照片的直观问题引出深度学习和多层神经网络。",
+    "ttsChunks": [
+      {
+        "chunkId": "layers-find-patterns-01",
+        "ttsText": "电脑怎么认出照片里是一只猫？"
+      },
+      {
+        "chunkId": "layers-find-patterns-02",
+        "ttsText": "深度学习的办法，是让多层神经网络逐层寻找模式。"
+      }
+    ],
+    "explicitPauses": [
+      {
+        "afterChunkId": "layers-find-patterns-01",
+        "pauseMs": 180
+      }
+    ]
+  },
+  "timingBeat": {
+    "meaningId": "layers-find-patterns",
+    "startFrame": 12,
+    "endFrame": 258
+  },
+  "storyFingerprint": "sha256:067a9bd3e908a02ba52fbfb39ad6ee1621693f7732cf645a01315e8c6d5ff63a",
+  "semanticTimingFingerprint": "sha256:17bb3842ab15c27b23fd9258e967f1ad9ab5c47bdcef85824e39e586456699f8",
+  "renderFingerprint": "sha256:193a0313c1287c08d30f36308442af820f296058a993c618540296f4ab8f5f78",
+  "visualStyleFingerprint": "sha256:aa0d889aa955f11f9ae34f1e9c13562a2a35a0d7c093e62164addbdd9e28e7a2",
+  "resourceCatalogFingerprint": "sha256:83872a754e05df18d0ec008ecd4f9cb637c0c159481dc59b0368898125188689",
+  "allowedSnapshots": [],
+  "allowedResourceIds": [],
+  "continuity": {
+    "previousMeaningId": null,
+    "previousSummary": null,
+    "nextMeaningId": "features-build-up",
+    "nextSummary": "解释多层结构如何从简单特征逐步组合出复杂概念。",
+    "continuityBrief": "Establish the cyan-to-violet upward path and leave the first feature layer active for the next Scene."
+  },
+  "allowedDirectories": {
+    "sceneRoot": "src/projects/what-is-deep-learning/scenes/layers-find-patterns",
+    "publicAssetRoot": "public/projects/what-is-deep-learning/scenes/layers-find-patterns"
+  },
+  "taskInputFingerprint": "sha256:dfa2a770cc4005266d6d70b766a9ca424ddc6c3d7db19c89857bab3f768e27d8",
+  "readabilityPolicy": {
+    "schemaVersion": 1,
+    "policyVersion": 1,
+    "policyId": "production-readability-v1",
+    "width": 1080,
+    "height": 1920,
+    "scale": {
+      "numerator": 1080,
+      "denominator": 1080
+    },
+    "edgeInsetPx": 90,
+    "captionSafeAreaPx": {
+      "top": 90,
+      "right": 90,
+      "bottom": 180,
+      "left": 90
+    },
+    "sceneBottomInsetPx": 360,
+    "sceneContentSafeAreaPx": {
+      "top": 90,
+      "right": 90,
+      "bottom": 360,
+      "left": 90
+    },
+    "typographyPolicy": {
+      "minFontSizePx": 36
+    },
+    "captionPolicy": {
+      "captionBottomInsetPx": 180,
+      "captionBoxHeightPx": 146,
+      "captionFontSizePx": 40,
+      "captionGapPx": 30,
+      "captionVerticalPaddingPx": 38,
+      "lineHeight": {
+        "numerator": 135,
+        "denominator": 100
+      },
+      "maxCaptionLines": 2,
+      "recommendedDisplayUnitsPerChunk": 32,
+      "maxDisplayUnitsPerChunk": 36,
+      "recommendedDisplayHalfUnits": 64,
+      "maxDisplayHalfUnits": 72,
+      "displayUnitAlgorithmId": "caption-display-unit-v1"
+    },
+    "policyFingerprint": "sha256:5ce5655efa4b5219f25958a8fd0efba30921d52277e89e8cddbcedffbe5f826b"
+  },
+  "sceneCompositionBoundaryVersion": "scene-composition-boundary-v1"
+}

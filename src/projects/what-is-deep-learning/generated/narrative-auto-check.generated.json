@@ -1,0 +1,110 @@
+{
+  "aggregateStatus": "pass",
+  "checks": [
+    {
+      "checkId": "source-contracts",
+      "evidenceIds": [],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "story-check",
+      "evidenceIds": [
+        "story-check"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "sealed-narration",
+      "evidenceIds": [
+        "sealed-manifest",
+        "complete-wav"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "semantic-timing",
+      "evidenceIds": [
+        "semantic-timing"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "project-registry",
+      "evidenceIds": [
+        "project-registry"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "narrative-baseline",
+      "evidenceIds": [],
+      "failureReasons": [],
+      "status": "pass"
+    },
+    {
+      "checkId": "m3-evidence",
+      "evidenceIds": [
+        "m3-receipt"
+      ],
+      "failureReasons": [],
+      "status": "pass"
+    }
+  ],
+  "evidenceRefs": [
+    {
+      "checksum": "sha256:19953543add5c962eadf82c544edea6f5dece0e504ec3f491a9ee804ca443052",
+      "evidenceId": "story-check",
+      "repositoryPath": "src/projects/what-is-deep-learning/reviews/story-check.json"
+    },
+    {
+      "checksum": "sha256:a3757acfdbe8038d40f317dd03f459d6e27f980c51ab73859ae786328a8d0c14",
+      "evidenceId": "sealed-manifest",
+      "repositoryPath": "src/projects/what-is-deep-learning/generated/sealed-narration.generated.json"
+    },
+    {
+      "checksum": "sha256:9e836c9651fcc43c49a890ad7f7930fea30addad43d86221cc248834a95d1bb1",
+      "evidenceId": "complete-wav",
+      "repositoryPath": "public/projects/what-is-deep-learning/narration/8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029/complete.wav"
+    },
+    {
+      "checksum": "sha256:1265a3a58fd65981df4b6d33e04173cc61504b4625060299d3586f5b4c59b768",
+      "evidenceId": "semantic-timing",
+      "repositoryPath": "src/projects/what-is-deep-learning/generated/semantic-timing.generated.json"
+    },
+    {
+      "checksum": "sha256:43a68bbc59cd838be29a3b617359da7a8ee5851e3375564de206d1b1e640f676",
+      "evidenceId": "project-registry",
+      "repositoryPath": "src/projects/project-registry.generated.ts"
+    },
+    {
+      "checksum": "sha256:77c6efa9fa3f3322ab226d5519388f0d804f3e677e8ff96773562a2bac742fe9",
+      "evidenceId": "m3-receipt",
+      "repositoryPath": "src/projects/what-is-deep-learning/generated/narrative-baseline-evidence.generated.json"
+    }
+  ],
+  "inputIdentity": {
+    "generatedEntryChecksum": "sha256:43a68bbc59cd838be29a3b617359da7a8ee5851e3375564de206d1b1e640f676",
+    "generatedRegistryChecksum": "sha256:43a68bbc59cd838be29a3b617359da7a8ee5851e3375564de206d1b1e640f676",
+    "generationInputFingerprint": "sha256:7ca48295055a70fec24623668bb92d4704fc9725643cedf7e868c57a44177f87",
+    "m3EvidenceFingerprint": "sha256:50788361085a098f3641672037fa228054428068bc567a15e4da3c26a50490d3",
+    "narrativeBaselineFingerprint": "sha256:e9105bc51dccc2e51cc3766d40bd18097552b0747f4f364f74767c33646c96c2",
+    "narrativeCoreVersion": "narrative-core-v2",
+    "projectRegistryEntryFingerprint": "sha256:e3ec53d5ab8b5f8867cd7568fe488833d75e57b1bc11cfcae58caecd5c17ed2d",
+    "projectRegistryGeneratorId": "project-registry-generator-v1",
+    "renderSpecFingerprint": "sha256:193a0313c1287c08d30f36308442af820f296058a993c618540296f4ab8f5f78",
+    "sealedNarrationFingerprint": "sha256:8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029",
+    "semanticTimingFingerprint": "sha256:17bb3842ab15c27b23fd9258e967f1ad9ab5c47bdcef85824e39e586456699f8",
+    "storyCheckFingerprint": "sha256:acb57fc2509e411a846b9870e4f6e2eb4bb0df8639359d56a73780cc4bd6d243",
+    "storyFingerprint": "sha256:067a9bd3e908a02ba52fbfb39ad6ee1621693f7732cf645a01315e8c6d5ff63a"
+  },
+  "level": "narrative",
+  "reportFingerprint": "sha256:1546d245bc4046526320b28254ad6405ee10289d3c4e54476191f5386ab59ade",
+  "reportVersion": "narrative-auto-check-v1",
+  "schemaVersion": 1,
+  "storyId": "what-is-deep-learning"
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:3981cd158b89034e0e04c53da8e6cb3376143b179839530780a4376e45780481",
+  "meaningId": "power-has-limits",
+  "sceneDurationInFrames": 466,
+  "shots": [
+    {"shotId": "recognition-boundary", "order": 0, "primaryRange": {"startFrame": 0, "endFrame": 86}, "purpose": "建立模式识别与理解世界之间的能力边界。", "action": "多层网络与模式标签渐显，明确学到模式但不具有人类理解。", "visualResourceIds": [], "syncAnchorIds": ["boundary-visible"]},
+    {"shotId": "distribution-shift", "order": 1, "primaryRange": {"startFrame": 86, "endFrame": 216}, "purpose": "呈现数据偏差或场景变化如何导致高置信错误。", "action": "熟悉输入保持规律排列，偏移输入变为混合分布并触发珊瑚警告。", "visualResourceIds": [], "syncAnchorIds": ["shift-arrives", "warning-visible"]},
+    {"shotId": "learning-definition", "order": 2, "primaryRange": {"startFrame": 216, "endFrame": 466}, "purpose": "将能力与局限收束为准确、初学者可理解的深度学习定义。", "action": "对照图降低权重，数据、多层网络、模式能力依次形成稳定学习链。", "visualResourceIds": [], "syncAnchorIds": ["definition-arrives", "definition-settled"]}
+  ],
+  "shotPlanFingerprint": "sha256:de1ae326d3ed6f4735558539d773f90d3e2207dfe8c7922782e1be7949ce601d"
+}

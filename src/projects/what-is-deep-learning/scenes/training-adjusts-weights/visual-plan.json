@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "taskInputFingerprint": "sha256:b99d736550ddfd773bcac0b807559c03c14ab82d1d0e55a87926603a6c31298e",
+  "meaningId": "training-adjusts-weights",
+  "semanticObjective": "让普通观众看见训练的因果链：多个例子进入固定网络，错误反馈返回网络，连接权重随后发生小幅调整。",
+  "subject": "一个正在学习区分例子的多层神经网络",
+  "primaryAction": "例子依次进入网络；一次错误预测触发珊瑚色反馈箭头；连接线粗细被重新平衡。",
+  "causalLink": "大量例子产生预测，错误形成反馈，反馈促使内部连接权重调整。",
+  "primaryComposition": "透明 guarded frame 内，左侧排列训练例子，中部固定三层网络，右侧放紧凑误差表与回传箭头；底部三步因果标记依次点亮。",
+  "styleRealization": [
+    "输入证据使用冷青色，学习后的连接使用鲜明紫色，错误只使用暖珊瑚色。",
+    "节点保持柔和发光、卡片保持清晰哑光边框，避免公式和术语堆叠。",
+    "运动完全由 sceneFrame 驱动：例子轮换、信号前进、错误回传、线宽调整。"
+  ],
+  "continuity": "继承向上的青色到紫色学习路径；结尾保持中心网络稳定，并留下更粗的紫色连接供下一 Scene 扩展为更深层。",
+  "orderedShotIds": [
+    "examples-enter",
+    "error-returns",
+    "weights-rebalance"
+  ],
+  "visualResourceIds": [],
+  "recipeDecision": "empty",
+  "fallbackIntent": "无资源时仍用项目内纯 SVG 几何和静态中文概念标签完整表达训练因果链。",
+  "visualPlanFingerprint": "sha256:9b5d2841555bc9c1522ebe0d9dde09ad45193b84f5484ca5dcc18ad90bb56739"
+}

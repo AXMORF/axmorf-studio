@@ -1,0 +1,199 @@
+{
+  "assemblyAlgorithmId": "ordered-pcm-concat-v1",
+  "canonicalPcm": {
+    "channelLayout": "mono",
+    "sampleFormat": "s16le",
+    "sampleRate": 48000
+  },
+  "completeAudio": {
+    "checksum": "sha256:9e836c9651fcc43c49a890ad7f7930fea30addad43d86221cc248834a95d1bb1",
+    "localPath": "public/projects/what-is-deep-learning/narration/8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029/complete.wav",
+    "pcm": {
+      "channelLayout": "mono",
+      "sampleFormat": "s16le",
+      "sampleRate": 48000
+    },
+    "sampleFrameCount": 2674560
+  },
+  "generationInputFingerprint": "sha256:7ca48295055a70fec24623668bb92d4704fc9725643cedf7e868c57a44177f87",
+  "narrationSpec": {
+    "mode": "voice-clone",
+    "schemaVersion": 1,
+    "seed": 20260806,
+    "voiceProfileId": "my-voice"
+  },
+  "normalizationAlgorithmId": "pcm-s16le-normalize-v1",
+  "schemaVersion": 1,
+  "sealedNarrationFingerprint": "sha256:8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029",
+  "segments": [
+    {
+      "checksum": "sha256:e3cc657287d7193a00429c2fb1231f77bb1780d67d7470a5cdc58a21ca660214",
+      "chunkId": "layers-find-patterns-01",
+      "kind": "chunk",
+      "localPath": "public/projects/what-is-deep-learning/narration/8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029/chunks/layers-find-patterns-01.wav",
+      "meaningId": "layers-find-patterns",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 138240,
+      "ttsText": "电脑怎么认出照片里是一只猫？"
+    },
+    {
+      "afterChunkId": "layers-find-patterns-01",
+      "kind": "pause",
+      "meaningId": "layers-find-patterns",
+      "pauseMs": 180,
+      "sampleFrameCount": 8640
+    },
+    {
+      "checksum": "sha256:f86d778c50b5b79359eca64879603a66b8d2e1ff186eb3b875f248d37cb2caf6",
+      "chunkId": "layers-find-patterns-02",
+      "kind": "chunk",
+      "localPath": "public/projects/what-is-deep-learning/narration/8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029/chunks/layers-find-patterns-02.wav",
+      "meaningId": "layers-find-patterns",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 245760,
+      "ttsText": "深度学习的办法，是让多层神经网络逐层寻找模式。"
+    },
+    {
+      "checksum": "sha256:c08bdd82b6b38579cd2cdf4007b1d197131983edae8bd5db5ed9f92c970b69fd",
+      "chunkId": "features-build-up-01",
+      "kind": "chunk",
+      "localPath": "public/projects/what-is-deep-learning/narration/8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029/chunks/features-build-up-01.wav",
+      "meaningId": "features-build-up",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 222720,
+      "ttsText": "前面的层先发现边缘、颜色和纹理。"
+    },
+    {
+      "checksum": "sha256:7126440d33fe9e2baa6b45c66374cb8c4b8c928b3701008492b19a185992d78b",
+      "chunkId": "features-build-up-02",
+      "kind": "chunk",
+      "localPath": "public/projects/what-is-deep-learning/narration/8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029/chunks/features-build-up-02.wav",
+      "meaningId": "features-build-up",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 291840,
+      "ttsText": "后面的层再把它们组合成耳朵、眼睛，最后判断是不是猫。"
+    },
+    {
+      "checksum": "sha256:af582d89eaa087ec846572ffd9a9e5309b7cb51849cfead4d7a2279a6f3a5cb2",
+      "chunkId": "training-adjusts-weights-01",
+      "kind": "chunk",
+      "localPath": "public/projects/what-is-deep-learning/narration/8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029/chunks/training-adjusts-weights-01.wav",
+      "meaningId": "training-adjusts-weights",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 176640,
+      "ttsText": "这些本领不是程序员一条条写进去的。"
+    },
+    {
+      "checksum": "sha256:e6dfe2628bf01ebe365d5db94d8efe2bcde20ece2ecbdf713e7a65c7aec9d70d",
+      "chunkId": "training-adjusts-weights-02",
+      "kind": "chunk",
+      "localPath": "public/projects/what-is-deep-learning/narration/8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029/chunks/training-adjusts-weights-02.wav",
+      "meaningId": "training-adjusts-weights",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 322560,
+      "ttsText": "训练时，网络看大量例子，猜错就根据误差调整内部连接的权重。"
+    },
+    {
+      "checksum": "sha256:ee2f9427e9f912b20d8bb467d5ce8d7695131c39d5b06547b377b76a38e473c4",
+      "chunkId": "depth-enables-learning-01",
+      "kind": "chunk",
+      "localPath": "public/projects/what-is-deep-learning/narration/8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029/chunks/depth-enables-learning-01.wav",
+      "meaningId": "depth-enables-learning",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 215040,
+      "ttsText": "所谓深度，主要就是处理中间信息的层数很多。"
+    },
+    {
+      "checksum": "sha256:65a3219e73de70db0106436b952ee5dbf151c335c9f2d00021fe8f7622dc7e7a",
+      "chunkId": "depth-enables-learning-02",
+      "kind": "chunk",
+      "localPath": "public/projects/what-is-deep-learning/narration/8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029/chunks/depth-enables-learning-02.wav",
+      "meaningId": "depth-enables-learning",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 307200,
+      "ttsText": "层层积累后，它能处理图像、语音和文字中的复杂规律。"
+    },
+    {
+      "checksum": "sha256:a5072659002b8d33b9f0607d057c131d97d85b49d10d7df9e514309a545b6619",
+      "chunkId": "power-has-limits-01",
+      "kind": "chunk",
+      "localPath": "public/projects/what-is-deep-learning/narration/8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029/chunks/power-has-limits-01.wav",
+      "meaningId": "power-has-limits",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 138240,
+      "ttsText": "但它不是像人一样真正理解世界。"
+    },
+    {
+      "checksum": "sha256:7d26a3af8ec33ec3034cf7a8f17a1887cd196c6a71113294281af004cbfca935",
+      "chunkId": "power-has-limits-02",
+      "kind": "chunk",
+      "localPath": "public/projects/what-is-deep-learning/narration/8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029/chunks/power-has-limits-02.wav",
+      "meaningId": "power-has-limits",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 199680,
+      "ttsText": "数据有偏、场景变化，它也可能自信地犯错。"
+    },
+    {
+      "afterChunkId": "power-has-limits-02",
+      "kind": "pause",
+      "meaningId": "power-has-limits",
+      "pauseMs": 180,
+      "sampleFrameCount": 8640
+    },
+    {
+      "checksum": "sha256:f0997229075da8123e031a5421f93f5e115a79112b3479e67dd27634cb2cedd0",
+      "chunkId": "power-has-limits-03",
+      "kind": "chunk",
+      "localPath": "public/projects/what-is-deep-learning/narration/8beb5bf64b711e0e667f8b954fbe9ddaebfc6103ff27efb6dc0a3f6bc173e029/chunks/power-has-limits-03.wav",
+      "meaningId": "power-has-limits",
+      "pcm": {
+        "channelLayout": "mono",
+        "sampleFormat": "s16le",
+        "sampleRate": 48000
+      },
+      "sampleFrameCount": 399360,
+      "ttsText": "所以，深度学习就是用多层网络，从数据中训练出识别模式的能力。"
+    }
+  ],
+  "storyId": "what-is-deep-learning"
+}
