@@ -45,6 +45,11 @@ sandbox。preflight 不进入 ProductionRun ledger，不写 event/state/scaffold
 VoxCPM 不可用。复检仍使用同一固定命令，不发送测试 TTS，也不 fallback 或降低 Chromium
 sandbox 安全设置。
 
+同一权限边界也适用于仓库验证：`npm run check:static` 是不启动 Chromium 的沙箱安全子集；
+完整 `npm run check` 会进入 `npm run check:host` 并执行 `npm run compositions`，因此二者首次
+执行必须直接使用宿主权限。所有直接或间接调用 `remotion compositions`、`remotion still`、
+`remotion render` 的命令都不得把受限沙箱试跑作为正常路径。
+
 ## 未来 production 的统一可读性冻结
 
 代码变更之后开始的新 Run 只接受 `production-requirements-freeze-v3`。它把 Composition 的
@@ -154,8 +159,12 @@ malformed/stale result、共享输入漂移、幂等与受保护正式作品 che
 
 ```bash
 node --import tsx --test tests/production/*.test.ts
+npm run check:static
 npm run check
 ```
+
+`npm run check` 保持完整仓库门禁语义，等价于先运行浏览器无关的 `check:static`，再以宿主权限
+运行包含 Composition 枚举和真实作品检查的 `check:host`。
 
 本里程碑没有修改 GPS/ProductComicVertical 的真实媒体、approval、evidence 或 final report，
 没有执行 promotion，也没有实现发布、上传、账号、网络、密钥、权限、自动导演、通用 Scene

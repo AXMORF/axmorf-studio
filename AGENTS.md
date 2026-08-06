@@ -134,7 +134,11 @@ proposal，并得到用户对范围、API、文件和目标位置的明确批准
 
 - 保护用户现有未提交修改；不重置、不覆盖、不顺手整理无关内容。
 - 删除、覆盖、强推、生产发布、密钥或权限变更必须有明确授权。
-- 修改后先跑聚焦检查，再按风险运行 `npm run check`。
+- 修改后先跑聚焦检查，再按风险运行 `npm run check`。`npm run check:static` 是不启动
+  Chromium 的沙箱安全子集；`npm run check:host` 是需要宿主权限的浏览器/真实作品门禁。
+- `npm run check` 与 `npm run compositions` 首次执行必须直接使用宿主权限，因为两者都会
+  直接或间接启动 Remotion Chromium。所有 `remotion compositions`、`remotion still`、
+  `remotion render` 及会调用它们的 production 命令同样不得先在受限沙箱试跑。
 - 真实 production preflight 必须直接以宿主权限运行；沙箱内失败只能作为环境诊断，不能据此
   判定 VoxCPM 不可用。不得为了通过检查而预热、发送测试 TTS、fallback 或降低 Chromium
   sandbox 安全设置。

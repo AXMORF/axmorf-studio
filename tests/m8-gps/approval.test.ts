@@ -251,7 +251,13 @@ test("top-level check includes every current M7 and M8 read-only gate", async ()
   const packageJson = JSON.parse(
     await readFile(join(rootDir, "package.json"), "utf8"),
   );
-  const check = String(packageJson.scripts.check);
+  assert.equal(
+    packageJson.scripts.check,
+    "npm run check:static && npm run check:host",
+  );
+  const check = `${String(packageJson.scripts["check:static"])} ${String(
+    packageJson.scripts["check:host"],
+  )}`;
   for (const gate of [
     "m7:gps:freeze -- check",
     "m7:gps:evidence",

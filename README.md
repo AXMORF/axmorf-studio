@@ -193,6 +193,16 @@ npm run compositions
 npm run check
 ```
 
+验证命令按执行环境拆分：
+
+```bash
+npm run check:static # 不启动 Chromium，可在受限沙箱运行
+npm run check:host   # Composition 与真实作品门禁，必须使用宿主权限
+```
+
+完整 `npm run check` 依次执行这两个子门，因此第一次就必须使用宿主权限；不要先在受限沙箱
+试跑，也不要通过降低 Chromium sandbox 安全设置绕过权限边界。
+
 M4/M7/M8/M9 作品级机械检查：
 
 ```bash

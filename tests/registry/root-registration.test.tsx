@@ -98,7 +98,11 @@ test("build and listing generate before bundle while formal check detects drift 
   assert.equal(scripts.predev, "npm run registry:generate");
   assert.equal(scripts.prebuild, "npm run registry:generate");
   assert.equal(scripts.precompositions, "npm run registry:generate");
-  assert.match(scripts.check, /registry:check.*build.*compositions/);
+  assert.equal(scripts.check, "npm run check:static && npm run check:host");
+  assert.match(
+    `${scripts["check:static"]} ${scripts["check:host"]}`,
+    /registry:check.*build.*compositions/,
+  );
   for (const pattern of [
     "tests/runtime/*.test.tsx",
     "tests/projects/*.test.tsx",

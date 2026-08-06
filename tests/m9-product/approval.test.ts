@@ -209,7 +209,13 @@ test("top-level check includes current M9 read-only gates", async () => {
   const packageJson = JSON.parse(
     await readFile(join(rootDir, "package.json"), "utf8"),
   );
-  const check = String(packageJson.scripts.check);
+  assert.equal(
+    packageJson.scripts.check,
+    "npm run check:static && npm run check:host",
+  );
+  const check = `${String(packageJson.scripts["check:static"])} ${String(
+    packageJson.scripts["check:host"],
+  )}`;
   for (const gate of [
     "m9:product:audio -- check",
     "m9:product:scene-evidence",

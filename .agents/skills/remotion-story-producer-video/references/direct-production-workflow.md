@@ -43,6 +43,10 @@ repeats the gate. Run the production regression suite and typecheck before the f
 shared production code has changed since its last verified commit. All provider, Chromium, Remotion,
 watcher-render, and final media commands use host permissions on their first attempt; never use a
 restricted-sandbox attempt as the normal production path.
+This explicitly includes `npm run check` and `npm run compositions`: both use host permissions on
+their first attempt because the full check transitively launches Remotion Chromium. Use
+`npm run check:static` only when a browser-free restricted-sandbox verification is intentionally
+required; it is not the complete repository gate.
 
 ## 2. Narrative Baseline
 
