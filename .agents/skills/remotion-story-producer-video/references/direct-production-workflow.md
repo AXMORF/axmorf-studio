@@ -29,8 +29,17 @@ the authority; an over-budget chunk is Agent-owned authoring failure and must be
 provider call. Existing videos and v1 runs are not migrated.
 Infer safe format defaults and record them in the handoff. Use a safe profile ID through the default
 VoxCPM command without reading private values. Bind current input identities in
-`ProductionRequirementsFreeze`; select no M9.5 global enhancements. Validate and commit only exact
-current-project input paths when a checkpoint is needed.
+`ProductionRequirementsFreeze`; select no M9.5 global enhancements.
+
+Before Run writes, execute on the first attempt with host permissions:
+
+```bash
+npm run production:preflight -- --project <storyId>
+```
+
+A restricted-sandbox failure cannot prove that VoxCPM is unavailable. Do not warm or test TTS,
+weaken Chromium sandboxing, or fallback. Run `production:start` with the same host permissions; it
+repeats the gate.
 
 ## 2. Narrative Baseline
 

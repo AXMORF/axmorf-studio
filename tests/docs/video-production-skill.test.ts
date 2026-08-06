@@ -61,6 +61,13 @@ test("repository video skill separates Agent rework from fixed-flow hardening", 
   assert.match(workflow, /Do not detach it from the current task/u);
   assert.match(workflow, /Read only the relevant authority section/u);
   assert.match(workflow, /before any\s+provider call/u);
+  assert.match(
+    workflow,
+    /npm run production:preflight -- --project <storyId>/u,
+  );
+  assert.match(workflow, /first attempt with host permissions/u);
+  assert.match(workflow, /cannot prove that VoxCPM is unavailable/u);
+  assert.match(workflow, /production:start.*same host permissions/su);
   assert.match(workflow, /Existing videos and v1 runs are not migrated/u);
   assert.match(workflow, /assignment-provided content\/caption safe areas/u);
   assert.match(workflow, /common-flow defect/u);
