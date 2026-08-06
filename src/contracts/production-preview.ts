@@ -177,14 +177,24 @@ const PreviewAssemblyV3InputObject = z
       })
       .strict()
       .readonly(),
-    layerOrder: z
-      .tuple([
-        z.literal("story-visual"),
-        z.literal("global-visual"),
-        z.literal("narrative-core"),
-        z.literal("scene-local-sound"),
-      ])
-      .readonly(),
+    layerOrder: z.union([
+      z
+        .tuple([
+          z.literal("story-visual"),
+          z.literal("global-visual"),
+          z.literal("narrative-core"),
+          z.literal("scene-local-sound"),
+        ])
+        .readonly(),
+      z
+        .tuple([
+          z.literal("global-visual"),
+          z.literal("story-visual"),
+          z.literal("narrative-core"),
+          z.literal("scene-local-sound"),
+        ])
+        .readonly(),
+    ]),
   })
   .strict()
   .superRefine((assembly, context) => {

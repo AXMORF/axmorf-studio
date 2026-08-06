@@ -63,8 +63,8 @@ test("builds v3 with a current GlobalVisual identity and fixed layer order", () 
       globalVisualLayers: "present",
     },
     layerOrder: [
-      "story-visual",
       "global-visual",
+      "story-visual",
       "narrative-core",
       "scene-local-sound",
     ],
@@ -73,8 +73,8 @@ test("builds v3 with a current GlobalVisual identity and fixed layer order", () 
   assert.equal(assembly.contractVersion, "production-preview-assembly-v3");
   assert.equal(assembly.enhancements.globalVisualLayers, "present");
   assert.deepEqual(assembly.layerOrder, [
-    "story-visual",
     "global-visual",
+    "story-visual",
     "narrative-core",
     "scene-local-sound",
   ]);

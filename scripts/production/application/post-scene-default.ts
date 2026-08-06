@@ -463,8 +463,8 @@ const preparePreview = async ({
       currentGlobalVisual === null
         ? ["story-visual", "narrative-core", "scene-local-sound"]
         : [
-            "story-visual",
             "global-visual",
+            "story-visual",
             "narrative-core",
             "scene-local-sound",
           ],

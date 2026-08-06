@@ -519,7 +519,7 @@ if (previewAssembly.schemaVersion !== 3 || globalVisualProjection.schemaVersion 
     : "";
   const globalVisualProp = globalVisualAware
     ? `
-    globalVisualLayers={<GlobalVisualLayers plan={globalVisualPlan} projection={globalVisualProjection} />}`
+    globalVisualBackgroundLayers={<GlobalVisualLayers plan={globalVisualPlan} projection={globalVisualProjection} />}`
     : "";
   return `// ${marker}
 import type {FC} from "react";

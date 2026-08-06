@@ -78,10 +78,10 @@ test("v4 Preview statically mounts one project-local GlobalVisual layer", () => 
     )?.length,
     1,
   );
-  assert.equal(source.match(/globalVisualLayers=\{/gu)?.length, 1);
+  assert.equal(source.match(/globalVisualBackgroundLayers=\{/gu)?.length, 1);
   assert.match(
     source,
-    /globalVisualLayers=\{<GlobalVisualLayers plan=\{globalVisualPlan\} projection=\{globalVisualProjection\} \/>\}/u,
+    /globalVisualBackgroundLayers=\{<GlobalVisualLayers plan=\{globalVisualPlan\} projection=\{globalVisualProjection\} \/>\}/u,
   );
   assert.match(source, /GlobalVisualPlanSchema\.parse/u);
   assert.match(source, /GlobalVisualProjectionSchema\.parse/u);
