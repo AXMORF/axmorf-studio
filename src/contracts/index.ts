@@ -17,6 +17,7 @@ export * from "./production-requirements";
 export * from "./production-readability";
 export * from "./production-preview";
 export * from "./production-preflight";
+export * from "./production-global-visual";
 export * from "./production-run";
 export * from "./production-scene-result";
 export * from "./project";

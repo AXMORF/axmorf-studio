@@ -273,7 +273,55 @@ const ProductionErrorInputObject = z
     }
   });
 
-export const ProductionErrorInputSchema = ProductionErrorInputObject.readonly();
+const ProductionErrorV2InputObject = z
+  .object({
+    ...ProductionErrorInputObject.shape,
+    schemaVersion: z.literal(2),
+    scope: z.enum([
+      "run",
+      "narrative",
+      "scene",
+      "global-visual",
+      "post-scene",
+      "preview",
+    ]),
+  })
+  .strict()
+  .superRefine((error, context) => {
+    if ((error.scope === "scene") !== (error.meaningId !== null)) {
+      context.addIssue({
+        code: "custom",
+        message: "Only Scene-scoped errors bind a meaningId.",
+        path: ["meaningId"],
+      });
+    }
+    if (
+      error.scope === "global-visual" &&
+      (error.stageId !== "scenes" || error.meaningId !== null)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "GlobalVisual errors belong to the scenes stage without a meaningId.",
+        path: ["scope"],
+      });
+    }
+    if (error.kind === "unexpected" && error.code !== "UNEXPECTED") {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Unexpected ProductionError must use the stable UNEXPECTED code.",
+        path: ["code"],
+      });
+    }
+  });
+
+export const ProductionErrorInputSchema = z
+  .union([
+    ProductionErrorInputObject.readonly(),
+    ProductionErrorV2InputObject.readonly(),
+  ])
+  .readonly();
 
 export const computeProductionErrorFingerprint = (rawInput: unknown) => {
   if (
@@ -288,7 +336,7 @@ export const computeProductionErrorFingerprint = (rawInput: unknown) => {
   const input = ProductionErrorInputSchema.parse(inputRecord);
   return createFingerprint({
     namespace: "production-error",
-    version: 1,
+    version: input.schemaVersion,
     value: input,
   });
 };
@@ -315,8 +363,24 @@ const ProductionErrorObject = z
   })
   .strict();
 
-export const ProductionErrorSchema = ProductionErrorObject.superRefine(
-  (error, context) => {
+const ProductionErrorV2Object = z
+  .object({
+    ...ProductionErrorObject.shape,
+    schemaVersion: z.literal(2),
+    scope: z.enum([
+      "run",
+      "narrative",
+      "scene",
+      "global-visual",
+      "post-scene",
+      "preview",
+    ]),
+  })
+  .strict();
+
+export const ProductionErrorSchema = z
+  .union([ProductionErrorObject, ProductionErrorV2Object])
+  .superRefine((error, context) => {
     const { errorFingerprint, ...input } = error;
     const parsed = ProductionErrorInputSchema.safeParse(input);
     if (!parsed.success) {
@@ -336,13 +400,18 @@ export const ProductionErrorSchema = ProductionErrorObject.superRefine(
         path: ["errorFingerprint"],
       });
     }
-  },
-).readonly();
+  })
+  .readonly();
 
 export const createProductionError = (rawInput: unknown) => {
+  const isV2 =
+    rawInput !== null &&
+    typeof rawInput === "object" &&
+    !Array.isArray(rawInput) &&
+    (rawInput as Record<string, unknown>).scope === "global-visual";
   const inputRecord: Record<string, unknown> = {
     ...(rawInput as Record<string, unknown>),
-    schemaVersion: 1,
+    schemaVersion: isV2 ? 2 : 1,
   };
   delete inputRecord.errorFingerprint;
   const input = ProductionErrorInputSchema.parse(inputRecord);

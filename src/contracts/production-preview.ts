@@ -14,6 +14,8 @@ export const PRODUCTION_PREVIEW_ASSEMBLY_VERSION =
   "production-preview-assembly-v1" as const;
 export const PRODUCTION_PREVIEW_ASSEMBLY_VERSION_V2 =
   "production-preview-assembly-v2" as const;
+export const PRODUCTION_PREVIEW_ASSEMBLY_VERSION_V3 =
+  "production-preview-assembly-v3" as const;
 export const PRODUCTION_PREVIEW_EVIDENCE_VERSION =
   "production-preview-evidence-v1" as const;
 export const PRODUCTION_PREVIEW_MECHANICAL_CHECK_VERSION =
@@ -114,32 +116,86 @@ const PreviewAssemblyInputObject = z
     }
   });
 
-const PreviewAssemblyV2InputObject = z.object({
-  ...PreviewAssemblyInputObject.shape,
-  schemaVersion: z.literal(2),
-  contractVersion: z.literal(PRODUCTION_PREVIEW_ASSEMBLY_VERSION_V2),
-  sceneCompositionBoundaryVersion: z.literal("scene-composition-boundary-v1"),
-  layerOrder: z
-    .tuple([
-      z.literal("story-visual"),
-      z.literal("narrative-core"),
-      z.literal("scene-local-sound"),
-    ])
-    .readonly(),
-}).strict().superRefine((assembly, context) => {
-  const meaningIds = assembly.scenePackages.map(({ meaningId }) => meaningId);
-  if (new Set(meaningIds).size !== meaningIds.length) {
-    context.addIssue({
-      code: "custom",
-      message: "PreviewAssembly ScenePackage identities must be unique.",
-      path: ["scenePackages"],
-    });
-  }
-});
+const PreviewAssemblyV2InputObject = z
+  .object({
+    ...PreviewAssemblyInputObject.shape,
+    schemaVersion: z.literal(2),
+    contractVersion: z.literal(PRODUCTION_PREVIEW_ASSEMBLY_VERSION_V2),
+    sceneCompositionBoundaryVersion: z.literal("scene-composition-boundary-v1"),
+    layerOrder: z
+      .tuple([
+        z.literal("story-visual"),
+        z.literal("narrative-core"),
+        z.literal("scene-local-sound"),
+      ])
+      .readonly(),
+  })
+  .strict()
+  .superRefine((assembly, context) => {
+    const meaningIds = assembly.scenePackages.map(({ meaningId }) => meaningId);
+    if (new Set(meaningIds).size !== meaningIds.length) {
+      context.addIssue({
+        code: "custom",
+        message: "PreviewAssembly ScenePackage identities must be unique.",
+        path: ["scenePackages"],
+      });
+    }
+  });
+
+const PreviewAssemblyV3InputObject = z
+  .object({
+    ...PreviewAssemblyInputObject.shape,
+    schemaVersion: z.literal(3),
+    contractVersion: z.literal(PRODUCTION_PREVIEW_ASSEMBLY_VERSION_V3),
+    sceneCompositionBoundaryVersion: z.literal("scene-composition-boundary-v1"),
+    globalVisual: z
+      .object({
+        assignmentFingerprint: Sha256DigestSchema,
+        packageFingerprint: Sha256DigestSchema,
+        resultFingerprint: Sha256DigestSchema,
+        planFingerprint: Sha256DigestSchema,
+        projectionFingerprint: Sha256DigestSchema,
+        rendererSourceGraphFingerprint: Sha256DigestSchema,
+      })
+      .strict()
+      .readonly(),
+    enhancements: z
+      .object({
+        narrativeCore: z.literal("required"),
+        storyVisualTrack: z.literal("present"),
+        globalSoundPlan: z.literal("absent"),
+        bgm: z.literal("absent"),
+        crossSceneAmbience: z.literal("absent"),
+        ducking: z.literal("absent"),
+        globalVisualLayers: z.literal("present"),
+      })
+      .strict()
+      .readonly(),
+    layerOrder: z
+      .tuple([
+        z.literal("story-visual"),
+        z.literal("global-visual"),
+        z.literal("narrative-core"),
+        z.literal("scene-local-sound"),
+      ])
+      .readonly(),
+  })
+  .strict()
+  .superRefine((assembly, context) => {
+    const meaningIds = assembly.scenePackages.map(({ meaningId }) => meaningId);
+    if (new Set(meaningIds).size !== meaningIds.length) {
+      context.addIssue({
+        code: "custom",
+        message: "PreviewAssembly ScenePackage identities must be unique.",
+        path: ["scenePackages"],
+      });
+    }
+  });
 
 export const ProductionPreviewAssemblyInputSchema = z.union([
   PreviewAssemblyInputObject.readonly(),
   PreviewAssemblyV2InputObject.readonly(),
+  PreviewAssemblyV3InputObject.readonly(),
 ]);
 
 export const computeProductionPreviewAssemblyFingerprint = (
@@ -163,32 +219,39 @@ export const ProductionPreviewAssemblySchema = z
     PreviewAssemblyV2InputObject.extend({
       assemblyFingerprint: Sha256DigestSchema,
     }).strict(),
+    PreviewAssemblyV3InputObject.extend({
+      assemblyFingerprint: Sha256DigestSchema,
+    }).strict(),
   ])
-    .superRefine((assembly, context) => {
-      const { assemblyFingerprint, ...input } = assembly;
-      if (
-        assemblyFingerprint !==
-        computeProductionPreviewAssemblyFingerprint(input)
-      ) {
-        context.addIssue({
-          code: "custom",
-          message: "Production PreviewAssembly fingerprint is stale.",
-          path: ["assemblyFingerprint"],
-        });
-      }
-    })
+  .superRefine((assembly, context) => {
+    const { assemblyFingerprint, ...input } = assembly;
+    if (
+      assemblyFingerprint !== computeProductionPreviewAssemblyFingerprint(input)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Production PreviewAssembly fingerprint is stale.",
+        path: ["assemblyFingerprint"],
+      });
+    }
+  })
   .readonly();
 
 export const buildProductionPreviewAssembly = (rawInput: unknown) => {
+  const isV3 =
+    rawInput !== null &&
+    typeof rawInput === "object" &&
+    "globalVisual" in rawInput;
   const isV2 =
     rawInput !== null &&
     typeof rawInput === "object" &&
     "sceneCompositionBoundaryVersion" in rawInput;
   const record: Record<string, unknown> = {
     ...(rawInput as Record<string, unknown>),
-    schemaVersion: isV2 ? 2 : 1,
-    contractVersion:
-      isV2
+    schemaVersion: isV3 ? 3 : isV2 ? 2 : 1,
+    contractVersion: isV3
+      ? PRODUCTION_PREVIEW_ASSEMBLY_VERSION_V3
+      : isV2
         ? PRODUCTION_PREVIEW_ASSEMBLY_VERSION_V2
         : PRODUCTION_PREVIEW_ASSEMBLY_VERSION,
   };

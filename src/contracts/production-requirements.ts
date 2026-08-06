@@ -31,8 +31,10 @@ export const PRODUCTION_REQUIREMENTS_CONTRACT_VERSION_V1 =
   "production-requirements-freeze-v1" as const;
 export const PRODUCTION_REQUIREMENTS_CONTRACT_VERSION_V2 =
   "production-requirements-freeze-v2" as const;
-export const PRODUCTION_REQUIREMENTS_CONTRACT_VERSION =
+export const PRODUCTION_REQUIREMENTS_CONTRACT_VERSION_V3 =
   "production-requirements-freeze-v3" as const;
+export const PRODUCTION_REQUIREMENTS_CONTRACT_VERSION =
+  "production-requirements-freeze-v4" as const;
 export const SCENE_COMPOSITION_BOUNDARY_VERSION =
   "scene-composition-boundary-v1" as const;
 
@@ -213,12 +215,22 @@ export const ProductionRequirementSchema =
     }
   }).readonly();
 
-const EnhancementSelectionSchema = z
+const LegacyEnhancementSelectionSchema = z
   .object({
     storyVisual: z.literal("required"),
     sceneLocalSound: z.enum(["allowed", "none"]),
     globalSound: z.literal("none"),
     globalVisual: z.literal("none"),
+  })
+  .strict()
+  .readonly();
+
+const EnhancementSelectionSchema = z
+  .object({
+    storyVisual: z.literal("required"),
+    sceneLocalSound: z.enum(["allowed", "none"]),
+    globalSound: z.literal("none"),
+    globalVisual: z.literal("required"),
   })
   .strict()
   .readonly();
@@ -238,7 +250,7 @@ const ProductionRequirementsFreezeV1InputObject = z
     storyId: StoryIdSchema,
     sourceBindings: ProductionSourceBindingsSchema,
     normalizedSummary: ProductionNormalizedSummarySchema,
-    enhancementSelection: EnhancementSelectionSchema,
+    enhancementSelection: LegacyEnhancementSelectionSchema,
     resourcePolicy: ResourcePolicySchema,
     additionalRequirements: z
       .array(ProductionRequirementSchema)
@@ -257,14 +269,22 @@ const ProductionRequirementsFreezeV2InputObject =
 const ProductionRequirementsFreezeV3InputObject =
   ProductionRequirementsFreezeV2InputObject.extend({
     schemaVersion: z.literal(3),
-    contractVersion: z.literal(PRODUCTION_REQUIREMENTS_CONTRACT_VERSION),
+    contractVersion: z.literal(PRODUCTION_REQUIREMENTS_CONTRACT_VERSION_V3),
     sceneBoundaryOwnership: SceneBoundaryOwnershipSchema,
+  }).strict();
+
+const ProductionRequirementsFreezeV4InputObject =
+  ProductionRequirementsFreezeV3InputObject.extend({
+    schemaVersion: z.literal(4),
+    contractVersion: z.literal(PRODUCTION_REQUIREMENTS_CONTRACT_VERSION),
+    enhancementSelection: EnhancementSelectionSchema,
   }).strict();
 
 type ProductionRequirementsFreezeInput =
   | z.infer<typeof ProductionRequirementsFreezeV1InputObject>
   | z.infer<typeof ProductionRequirementsFreezeV2InputObject>
-  | z.infer<typeof ProductionRequirementsFreezeV3InputObject>;
+  | z.infer<typeof ProductionRequirementsFreezeV3InputObject>
+  | z.infer<typeof ProductionRequirementsFreezeV4InputObject>;
 
 const addFreezeInputIssues = (
   freeze: ProductionRequirementsFreezeInput,
@@ -335,11 +355,27 @@ const ProductionRequirementsFreezeV3InputSchema =
       });
     }
   }).readonly();
+const ProductionRequirementsFreezeV4InputSchema =
+  ProductionRequirementsFreezeV4InputObject.superRefine((freeze, context) => {
+    addFreezeInputIssues(freeze, context);
+    if (
+      freeze.readabilityPolicy.width !== freeze.normalizedSummary.width ||
+      freeze.readabilityPolicy.height !== freeze.normalizedSummary.height
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Production readability policy dimensions must match the frozen RenderSpec.",
+        path: ["readabilityPolicy"],
+      });
+    }
+  }).readonly();
 
 export const ProductionRequirementsFreezeInputSchema = z.union([
   ProductionRequirementsFreezeV1InputSchema,
   ProductionRequirementsFreezeV2InputSchema,
   ProductionRequirementsFreezeV3InputSchema,
+  ProductionRequirementsFreezeV4InputSchema,
 ]);
 
 export const computeProductionRequirementsFingerprint = (rawInput: unknown) => {
@@ -371,6 +407,10 @@ const ProductionRequirementsFreezeV2Object =
   }).strict();
 const ProductionRequirementsFreezeV3Object =
   ProductionRequirementsFreezeV3InputObject.extend({
+    requirementsFingerprint: Sha256DigestSchema,
+  }).strict();
+const ProductionRequirementsFreezeV4Object =
+  ProductionRequirementsFreezeV4InputObject.extend({
     requirementsFingerprint: Sha256DigestSchema,
   }).strict();
 
@@ -432,11 +472,27 @@ const ProductionRequirementsFreezeV3Schema =
       });
     }
   }).readonly();
+const ProductionRequirementsFreezeV4Schema =
+  ProductionRequirementsFreezeV4Object.superRefine((freeze, context) => {
+    withCurrentFreezeFingerprint(freeze, context);
+    if (
+      freeze.readabilityPolicy.width !== freeze.normalizedSummary.width ||
+      freeze.readabilityPolicy.height !== freeze.normalizedSummary.height
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Production readability policy dimensions must match the frozen RenderSpec.",
+        path: ["readabilityPolicy"],
+      });
+    }
+  }).readonly();
 
 export const ProductionRequirementsFreezeSchema = z.union([
   ProductionRequirementsFreezeV1Schema,
   ProductionRequirementsFreezeV2Schema,
   ProductionRequirementsFreezeV3Schema,
+  ProductionRequirementsFreezeV4Schema,
 ]);
 
 const ProductionRequirementsSourceSchema = z
@@ -628,7 +684,7 @@ export const buildProductionRequirementsFreezeV2 = (
   });
 };
 
-export const buildProductionRequirementsFreeze = (
+export const buildProductionRequirementsFreezeV3 = (
   input: ProductionRequirementsBuildInput,
 ) => {
   const v2 = buildProductionRequirementsFreezeV2(input);
@@ -637,7 +693,7 @@ export const buildProductionRequirementsFreeze = (
   const freezeInput = ProductionRequirementsFreezeV3InputSchema.parse({
     ...base,
     schemaVersion: 3,
-    contractVersion: PRODUCTION_REQUIREMENTS_CONTRACT_VERSION,
+    contractVersion: PRODUCTION_REQUIREMENTS_CONTRACT_VERSION_V3,
     sceneBoundaryOwnership: {
       sceneCompositionBoundaryVersion: SCENE_COMPOSITION_BOUNDARY_VERSION,
       sceneSafeAreaOwner: "composition",
@@ -645,6 +701,37 @@ export const buildProductionRequirementsFreeze = (
     },
   });
   return ProductionRequirementsFreezeV3Schema.parse({
+    ...freezeInput,
+    requirementsFingerprint:
+      computeProductionRequirementsFingerprint(freezeInput),
+  });
+};
+
+export const buildProductionRequirementsFreeze = (
+  input: ProductionRequirementsBuildInput,
+) => {
+  const base = buildProductionRequirementsBase(input);
+  const readabilityPolicy = resolveProductionReadabilityPolicy({
+    width: base.normalizedSummary.width,
+    height: base.normalizedSummary.height,
+  });
+  const source = assertCurrentSource(input.source);
+  validateStoryCaptionReadability({
+    story: source.story,
+    policy: readabilityPolicy,
+  });
+  const freezeInput = ProductionRequirementsFreezeV4InputSchema.parse({
+    ...base,
+    schemaVersion: 4,
+    contractVersion: PRODUCTION_REQUIREMENTS_CONTRACT_VERSION,
+    readabilityPolicy,
+    sceneBoundaryOwnership: {
+      sceneCompositionBoundaryVersion: SCENE_COMPOSITION_BOUNDARY_VERSION,
+      sceneSafeAreaOwner: "composition",
+      captionOwner: "caption-layer",
+    },
+  });
+  return ProductionRequirementsFreezeV4Schema.parse({
     ...freezeInput,
     requirementsFingerprint:
       computeProductionRequirementsFingerprint(freezeInput),
@@ -668,7 +755,9 @@ export const resolveCurrentProductionRequirements = ({
       ? buildProductionRequirementsFreezeV1
       : requirements.schemaVersion === 2
         ? buildProductionRequirementsFreezeV2
-        : buildProductionRequirementsFreeze
+        : requirements.schemaVersion === 3
+          ? buildProductionRequirementsFreezeV3
+          : buildProductionRequirementsFreeze
   )({
     source,
     sourceChecksums,

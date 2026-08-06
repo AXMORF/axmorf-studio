@@ -1,6 +1,6 @@
-import {z} from "zod";
+import { z } from "zod";
 
-import {createFingerprint} from "./fingerprint";
+import { createFingerprint } from "./fingerprint";
 import {
   CompositionIdSchema,
   NonNegativeIntegerSchema,
@@ -12,6 +12,8 @@ import {
 export const GLOBAL_VISUAL_PLAN_VERSION = "global-visual-plan-v1" as const;
 export const GLOBAL_VISUAL_PROJECTION_VERSION =
   "global-visual-projection-v1" as const;
+export const GLOBAL_VISUAL_PROJECTION_VERSION_V2 =
+  "global-visual-projection-v2" as const;
 
 const HexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const UnitIntervalSchema = z.number().finite().min(0).max(1);
@@ -99,12 +101,12 @@ const GlobalVisualInputObject = z
       }
       if (
         index > 0 &&
-        window.startFrame <
-          plan.continuityMotif.windows[index - 1].endFrame
+        window.startFrame < plan.continuityMotif.windows[index - 1].endFrame
       ) {
         context.addIssue({
           code: "custom",
-          message: "Continuity motif windows must be sorted and non-overlapping.",
+          message:
+            "Continuity motif windows must be sorted and non-overlapping.",
           path: ["continuityMotif", "windows", index],
         });
       }
@@ -121,12 +123,13 @@ export const computeGlobalVisualPlanFingerprint = (rawInput: unknown) =>
     value: GlobalVisualPlanInputSchema.parse(rawInput),
   });
 
-export const GlobalVisualPlanSchema = GlobalVisualInputObject.unwrap().safeExtend({
-  planFingerprint: Sha256DigestSchema,
-})
+export const GlobalVisualPlanSchema = GlobalVisualInputObject.unwrap()
+  .safeExtend({
+    planFingerprint: Sha256DigestSchema,
+  })
   .strict()
   .superRefine((plan, context) => {
-    const {planFingerprint, ...input} = plan;
+    const { planFingerprint, ...input } = plan;
     if (planFingerprint !== computeGlobalVisualPlanFingerprint(input)) {
       context.addIssue({
         code: "custom",
@@ -145,7 +148,7 @@ export const createGlobalVisualPlan = (rawInput: unknown) => {
   });
 };
 
-export const GlobalVisualProjectionSchema = z
+const GlobalVisualProjectionV1InputObject = z
   .object({
     schemaVersion: z.literal(1),
     projectionVersion: z.literal(GLOBAL_VISUAL_PROJECTION_VERSION),
@@ -154,17 +157,58 @@ export const GlobalVisualProjectionSchema = z
     durationInFrames: PositiveIntegerSchema,
     globalVisualPlanFingerprint: Sha256DigestSchema,
     sourceChecksum: Sha256DigestSchema,
-    projectionFingerprint: Sha256DigestSchema,
   })
-  .strict()
+  .strict();
+
+const GlobalVisualProjectionV2InputObject = z
+  .object({
+    schemaVersion: z.literal(2),
+    projectionVersion: z.literal(GLOBAL_VISUAL_PROJECTION_VERSION_V2),
+    storyId: StoryIdSchema,
+    compositionId: CompositionIdSchema,
+    durationInFrames: PositiveIntegerSchema,
+    requirementsFingerprint: Sha256DigestSchema,
+    assignmentFingerprint: Sha256DigestSchema,
+    packageFingerprint: Sha256DigestSchema,
+    globalVisualPlanFingerprint: Sha256DigestSchema,
+    rendererSourceGraphFingerprint: Sha256DigestSchema,
+    selectedResourcesFingerprint: Sha256DigestSchema,
+    productionResultFingerprint: Sha256DigestSchema,
+  })
+  .strict();
+
+export const GlobalVisualProjectionInputSchema = z
+  .union([
+    GlobalVisualProjectionV1InputObject.readonly(),
+    GlobalVisualProjectionV2InputObject.readonly(),
+  ])
+  .readonly();
+
+export const computeGlobalVisualProjectionFingerprint = (rawInput: unknown) => {
+  const record = { ...(rawInput as Record<string, unknown>) };
+  delete record.projectionFingerprint;
+  const input = GlobalVisualProjectionInputSchema.parse(record);
+  return createFingerprint({
+    namespace: "global-visual-projection",
+    version: input.schemaVersion,
+    value: input,
+  });
+};
+
+export const GlobalVisualProjectionSchema = z
+  .union([
+    GlobalVisualProjectionV1InputObject.extend({
+      projectionFingerprint: Sha256DigestSchema,
+    }).strict(),
+    GlobalVisualProjectionV2InputObject.extend({
+      projectionFingerprint: Sha256DigestSchema,
+    }).strict(),
+  ])
   .superRefine((projection, context) => {
-    const {projectionFingerprint, ...input} = projection;
-    const expected = createFingerprint({
-      namespace: "global-visual-projection",
-      version: 1,
-      value: input,
-    });
-    if (projectionFingerprint !== expected) {
+    const { projectionFingerprint, ...input } = projection;
+    if (
+      projectionFingerprint !== computeGlobalVisualProjectionFingerprint(input)
+    ) {
       context.addIssue({
         code: "custom",
         message: "GlobalVisualProjection fingerprint is stale.",
@@ -175,25 +219,23 @@ export const GlobalVisualProjectionSchema = z
   .readonly();
 
 export const createGlobalVisualProjection = (rawInput: unknown) => {
-  const input = z
-    .object({
-      schemaVersion: z.literal(1),
-      projectionVersion: z.literal(GLOBAL_VISUAL_PROJECTION_VERSION),
-      storyId: StoryIdSchema,
-      compositionId: CompositionIdSchema,
-      durationInFrames: PositiveIntegerSchema,
-      globalVisualPlanFingerprint: Sha256DigestSchema,
-      sourceChecksum: Sha256DigestSchema,
-    })
-    .strict()
-    .parse(rawInput);
+  const isV2 =
+    rawInput !== null &&
+    typeof rawInput === "object" &&
+    !Array.isArray(rawInput) &&
+    "requirementsFingerprint" in rawInput;
+  const record: Record<string, unknown> = {
+    ...(rawInput as Record<string, unknown>),
+    schemaVersion: isV2 ? 2 : 1,
+    projectionVersion: isV2
+      ? GLOBAL_VISUAL_PROJECTION_VERSION_V2
+      : GLOBAL_VISUAL_PROJECTION_VERSION,
+  };
+  delete record.projectionFingerprint;
+  const input = GlobalVisualProjectionInputSchema.parse(record);
   return GlobalVisualProjectionSchema.parse({
     ...input,
-    projectionFingerprint: createFingerprint({
-      namespace: "global-visual-projection",
-      version: 1,
-      value: input,
-    }),
+    projectionFingerprint: computeGlobalVisualProjectionFingerprint(input),
   });
 };
 

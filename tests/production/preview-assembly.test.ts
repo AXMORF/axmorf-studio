@@ -46,3 +46,36 @@ test("rejects implicit global layers duplicate Scenes and approval language", ()
     assert.throws(() => buildProductionPreviewAssembly(invalid));
   }
 });
+
+test("builds v3 with a current GlobalVisual identity and fixed layer order", () => {
+  const assembly = buildProductionPreviewAssembly({
+    ...validPreviewAssemblyInput,
+    globalVisual: {
+      assignmentFingerprint: "sha256:c" + "c".repeat(63),
+      packageFingerprint: "sha256:d" + "d".repeat(63),
+      resultFingerprint: "sha256:e" + "e".repeat(63),
+      planFingerprint: "sha256:f" + "f".repeat(63),
+      projectionFingerprint: "sha256:0" + "0".repeat(63),
+      rendererSourceGraphFingerprint: "sha256:1" + "1".repeat(63),
+    },
+    enhancements: {
+      ...validPreviewAssemblyInput.enhancements,
+      globalVisualLayers: "present",
+    },
+    layerOrder: [
+      "story-visual",
+      "global-visual",
+      "narrative-core",
+      "scene-local-sound",
+    ],
+  });
+  assert.equal(assembly.schemaVersion, 3);
+  assert.equal(assembly.contractVersion, "production-preview-assembly-v3");
+  assert.equal(assembly.enhancements.globalVisualLayers, "present");
+  assert.deepEqual(assembly.layerOrder, [
+    "story-visual",
+    "global-visual",
+    "narrative-core",
+    "scene-local-sound",
+  ]);
+});

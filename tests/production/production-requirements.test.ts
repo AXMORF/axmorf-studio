@@ -5,6 +5,7 @@ import {
   buildProductionRequirementsFreeze,
   buildProductionRequirementsFreezeV1,
   buildProductionRequirementsFreezeV2,
+  buildProductionRequirementsFreezeV3,
   computeProductionRequirementsFingerprint,
   ProductionRequirementsFreezeSchema,
   resolveCurrentProductionRequirements,
@@ -116,7 +117,7 @@ const buildValidFreeze = () =>
       storyVisual: "required",
       sceneLocalSound: "allowed",
       globalSound: "none",
-      globalVisual: "none",
+      globalVisual: "required",
     },
     resourcePolicy: {
       selfAuthoredVisualsAllowed: true,
@@ -133,8 +134,9 @@ const withCurrentFingerprint = (value: Record<string, unknown>) => ({
 test("builds and resolves a current production requirements freeze", () => {
   const freeze = buildValidFreeze();
 
-  assert.equal(freeze.schemaVersion, 3);
-  assert.equal(freeze.contractVersion, "production-requirements-freeze-v3");
+  assert.equal(freeze.schemaVersion, 4);
+  assert.equal(freeze.contractVersion, "production-requirements-freeze-v4");
+  assert.equal(freeze.enhancementSelection.globalVisual, "required");
   assert.deepEqual(freeze.sceneBoundaryOwnership, {
     sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
     sceneSafeAreaOwner: "composition",
@@ -165,6 +167,39 @@ test("builds and resolves a current production requirements freeze", () => {
     freeze.requirementsFingerprint,
   );
   assert.deepEqual(buildValidFreeze(), freeze);
+});
+
+test("keeps the v3 freeze parser and fingerprint byte-compatible", () => {
+  const legacy = buildProductionRequirementsFreezeV3({
+    source,
+    sourceChecksums,
+    enhancementSelection: {
+      storyVisual: "required",
+      sceneLocalSound: "allowed",
+      globalSound: "none",
+      globalVisual: "none",
+    },
+    resourcePolicy: {
+      selfAuthoredVisualsAllowed: true,
+      unlistedThirdPartyResources: "deny",
+    },
+    additionalRequirements,
+  });
+  assert.equal(legacy.schemaVersion, 3);
+  assert.equal(legacy.contractVersion, "production-requirements-freeze-v3");
+  assert.equal(legacy.enhancementSelection.globalVisual, "none");
+  assert.equal(
+    ProductionRequirementsFreezeSchema.parse(legacy).requirementsFingerprint,
+    legacy.requirementsFingerprint,
+  );
+  assert.equal(
+    resolveCurrentProductionRequirements({
+      requirements: legacy,
+      source,
+      sourceChecksums,
+    }).requirementsFingerprint,
+    legacy.requirementsFingerprint,
+  );
 });
 
 test("keeps the v2 freeze parser and fingerprint byte-compatible", () => {
@@ -312,11 +347,11 @@ test("rejects duplicate requirements and invalid scope-owner-verification combin
   }
 });
 
-test("requires explicit absence of global sound and global visual enhancements", () => {
+test("requires absent global sound and required global visual for v4", () => {
   const freeze = buildValidFreeze();
   for (const enhancementSelection of [
     { ...freeze.enhancementSelection, globalSound: "required" },
-    { ...freeze.enhancementSelection, globalVisual: "required" },
+    { ...freeze.enhancementSelection, globalVisual: "none" },
     (() => {
       const { globalSound, ...selection } = freeze.enhancementSelection;
       void globalSound;
