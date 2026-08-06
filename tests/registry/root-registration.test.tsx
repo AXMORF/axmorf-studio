@@ -70,8 +70,12 @@ test("Root keeps the system Composition and maps Story entries lazily", async ()
       entry.props.id === "GpsRelativity",
   );
   const storyElement = asElement(story);
+  const gpsRegistryEntry = projectRegistry.find(
+    (entry) => entry.id === "GpsRelativity",
+  );
+  assert.ok(gpsRegistryEntry);
   assert.equal(storyElement.props.component, undefined);
-  assert.equal(storyElement.props.lazyComponent, projectRegistry[0].load);
+  assert.equal(storyElement.props.lazyComponent, gpsRegistryEntry.load);
   assert.equal(storyElement.props.durationInFrames, 1731);
   assert.equal(storyElement.props.fps, 30);
   assert.equal(storyElement.props.width, 1920);
