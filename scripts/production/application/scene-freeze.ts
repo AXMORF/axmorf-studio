@@ -588,6 +588,7 @@ export const runProductionSceneFreeze = async ({
   let currentState = initial.state;
   try {
     const started = createProductionStageEvent({
+      schemaVersion: initial.run.schemaVersion,
       type: "stage-started",
       runId: initial.run.runId,
       storyId: initial.run.storyId,
@@ -655,6 +656,7 @@ export const runProductionSceneFreeze = async ({
         });
       }
       const succeeded = createProductionStageEvent({
+        schemaVersion: initial.run.schemaVersion,
         type: "stage-succeeded",
         runId: initial.run.runId,
         storyId: initial.run.storyId,
@@ -763,6 +765,7 @@ export const runProductionSceneFreeze = async ({
         runId,
         lock,
         event: createProductionStageEvent({
+          schemaVersion: initial.run.schemaVersion,
           type: "stage-failed",
           runId: initial.run.runId,
           storyId: initial.run.storyId,

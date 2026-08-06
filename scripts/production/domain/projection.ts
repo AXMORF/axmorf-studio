@@ -30,6 +30,7 @@ export const createInitialProductionRunState = (
 ): ProductionRunState => {
   const run = ProductionRunManifestSchema.parse(rawRun);
   return createProductionRunState({
+    schemaVersion: run.schemaVersion,
     runId: run.runId,
     storyId: run.storyId,
     runFingerprint: run.runFingerprint,
@@ -44,6 +45,7 @@ export const createInitialProductionRunState = (
     ],
     outputArtifacts: [],
     acceptedSceneResults: [],
+    ...(run.schemaVersion === 2 ? { acceptedGlobalVisualResult: null } : {}),
     failure: null,
   });
 };
@@ -139,9 +141,15 @@ export const projectProductionRunState = ({
       readonly resultFingerprint: string;
     }
   >();
+  let acceptedGlobalVisualResult: null | Readonly<{
+    resultFingerprint: string;
+  }> = null;
   assertCurrentInput(current, state.inputFingerprints[0]);
 
   for (const event of events) {
+    if (event.schemaVersion !== run.schemaVersion) {
+      throw new Error("Production event version does not match its run.");
+    }
     if (event.runId !== run.runId || event.storyId !== run.storyId) {
       throw new Error("Production event does not belong to this run.");
     }
@@ -171,11 +179,30 @@ export const projectProductionRunState = ({
         resultFingerprint: event.sceneResultFingerprint,
       });
     }
+    if (event.type === "global-visual-result-accepted") {
+      if (acceptedGlobalVisualResult !== null) {
+        throw new Error("GlobalVisual result was accepted more than once.");
+      }
+      acceptedGlobalVisualResult = {
+        resultFingerprint: event.globalVisualResultFingerprint,
+      };
+    }
+    if (
+      run.schemaVersion === 2 &&
+      event.type === "stage-succeeded" &&
+      event.stageId === "scenes" &&
+      (accepted.size === 0 || acceptedGlobalVisualResult === null)
+    ) {
+      throw new Error(
+        "The scenes stage requires accepted Scene and GlobalVisual results.",
+      );
+    }
     const nextState = transitionProductionRunState({
       state: state.state,
       event,
     });
     state = createProductionRunState({
+      schemaVersion: run.schemaVersion,
       runId: run.runId,
       storyId: run.storyId,
       runFingerprint: run.runFingerprint,
@@ -185,6 +212,7 @@ export const projectProductionRunState = ({
       inputFingerprints: sortedFingerprintRefs(inputs.values()),
       outputArtifacts: sortedOutputArtifacts(outputs.values()),
       acceptedSceneResults: [...accepted.values()],
+      ...(run.schemaVersion === 2 ? { acceptedGlobalVisualResult } : {}),
       failure: event.type === "stage-failed" ? event.error : null,
     });
   }

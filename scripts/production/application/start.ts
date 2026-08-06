@@ -4,7 +4,7 @@ import { join, relative, sep } from "node:path";
 
 import {
   DEFAULT_PRODUCTION_RUN_POLICY,
-  createProductionRunManifest,
+  createProductionRunManifestV2,
   ProductionRequirementsFreezeSchema,
   resolveCurrentProductionRequirements,
   StoryIdSchema,
@@ -170,7 +170,7 @@ export const runProductionStart = async ({
   const now = clock();
   if (Number.isNaN(now.getTime()))
     throw new Error("Production clock is invalid.");
-  const run = createProductionRunManifest({
+  const run = createProductionRunManifestV2({
     runId: createRunId({ storyId: projectId, now }),
     storyId: projectId,
     requirementsPath: `src/projects/${projectId}/production/requirements.json`,
@@ -180,6 +180,7 @@ export const runProductionStart = async ({
   });
   const initialized = await initializeProductionRunStore({ rootDir, run });
   const event = createProductionStageEvent({
+    schemaVersion: run.schemaVersion,
     type: "stage-succeeded",
     runId: run.runId,
     storyId: run.storyId,

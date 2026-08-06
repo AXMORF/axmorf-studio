@@ -1,14 +1,17 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 
 import {
+  buildGlobalVisualAssignment,
+  buildGlobalVisualProductionResult,
   buildSceneAssignment,
   buildSceneProductionResult,
   buildSceneTaskInput,
   type SceneAssignment,
+  type GlobalVisualAssignment,
 } from "../../src/contracts";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
 import {
@@ -16,6 +19,10 @@ import {
   writeSceneProductionResult,
 } from "../../scripts/production/application/scene-submit";
 import { runProductionWatch } from "../../scripts/production/application/watch";
+import {
+  createGlobalVisualFailureResult,
+  writeGlobalVisualProductionResult,
+} from "../../scripts/production/application/global-visual-submit";
 import {
   FIXED_PRODUCTION_NOW,
   createProductionFixture,
@@ -116,6 +123,66 @@ const successResult = (assignment: SceneAssignment) =>
     mechanicalCheckFingerprint: sha("d"),
   });
 
+const createGlobalVisualAssignment = ({
+  runId,
+  requirementsFingerprint,
+  deadlineAt = "2026-08-04T00:30:00.000Z",
+}: {
+  readonly runId: string;
+  readonly requirementsFingerprint: string;
+  readonly deadlineAt?: string;
+}) =>
+  buildGlobalVisualAssignment({
+    runId,
+    storyId: "story-example",
+    compositionId: "StoryExample",
+    requirementsFingerprint,
+    globalVisualBriefFingerprint: sha("e"),
+    storyFingerprint: sha("1"),
+    renderFingerprint: sha("3"),
+    semanticTimingFingerprint: sha("2"),
+    visualStyleFingerprint: sha("4"),
+    resourceCatalogFingerprint: sha("5"),
+    resourcePoolFingerprint: sha("7"),
+    readabilityPolicyFingerprint: sha("f"),
+    timeline: {
+      fps: 30,
+      width: 1080,
+      height: 1920,
+      durationInFrames: 150,
+      captionSafeArea: { top: 120, right: 72, bottom: 280, left: 72 },
+      storyBeatWindows: [
+        { meaningId: "opening", startFrame: 15, endFrame: 84 },
+        { meaningId: "conclusion", startFrame: 84, endFrame: 150 },
+      ],
+    },
+    allowedResourceIds: [],
+    exclusivePaths: {
+      plan: "src/projects/story-example/global-visual-plan.json",
+      sourceDirectory: "src/projects/story-example/global-visual",
+      publicDirectory: "public/projects/story-example/global-visual",
+    },
+    deadlineAt,
+  });
+
+const successGlobalVisualResult = (assignment: GlobalVisualAssignment) =>
+  buildGlobalVisualProductionResult({
+    runId: assignment.runId,
+    storyId: assignment.storyId,
+    assignmentFingerprint: assignment.assignmentFingerprint,
+    requirementsFingerprint: assignment.requirementsFingerprint,
+    status: "success",
+    globalVisualPackage: {
+      repositoryPath:
+        "src/projects/story-example/global-visual/generated/global-visual-package.generated.json",
+      packageFingerprint: sha("a"),
+    },
+    globalVisualPlanFingerprint: sha("b"),
+    rendererSourceGraphFingerprint: sha("c"),
+    selectedResourcesFingerprint: sha("d"),
+    mechanicalCheckFingerprint: sha("e"),
+  });
+
 const createFixture = async (context: TestContext, deadlineAt?: string) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-watch-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
@@ -126,26 +193,44 @@ const createFixture = async (context: TestContext, deadlineAt?: string) => {
     requirementsFingerprint: fixture.requirements.requirementsFingerprint,
     deadlineAt,
   });
+  const globalVisualAssignment = createGlobalVisualAssignment({
+    runId: fixture.runId,
+    requirementsFingerprint: fixture.requirements.requirementsFingerprint,
+    deadlineAt,
+  });
   await markProductionSceneInputsFrozen({
     ...fixture,
     assignmentFingerprints: assignments.map((assignment) => ({
       meaningId: assignment.meaningId,
       fingerprint: assignment.assignmentFingerprint,
     })),
+    globalVisualAssignmentFingerprint:
+      globalVisualAssignment.assignmentFingerprint,
   });
-  return { ...fixture, assignments };
+  return { ...fixture, assignments, globalVisualAssignment };
 };
 
-const resolver = (assignments: readonly SceneAssignment[]) => async () => ({
-  assignments,
-});
+const resolver =
+  (
+    assignments: readonly SceneAssignment[],
+    globalVisualAssignment = createGlobalVisualAssignment({
+      runId: assignments[0]!.runId,
+      requirementsFingerprint: assignments[0]!.requirementsFingerprint,
+      deadlineAt: assignments[0]!.deadlineAt,
+    }),
+  ) =>
+  async () => ({ assignments, globalVisualAssignment });
 
-test("waits through partial out-of-order results and triggers post-scene once", async (context) => {
+test("accepts GlobalVisual first, waits for Scenes, and triggers post-scene once", async (context) => {
   const fixture = await createFixture(context);
   const [opening, conclusion] = fixture.assignments;
   await writeSceneProductionResult({
     rootDir: fixture.rootDir,
     result: successResult(conclusion),
+  });
+  await writeGlobalVisualProductionResult({
+    rootDir: fixture.rootDir,
+    result: successGlobalVisualResult(fixture.globalVisualAssignment),
   });
   let sleeps = 0;
   let postSceneCalls = 0;
@@ -162,8 +247,12 @@ test("waits through partial out-of-order results and triggers post-scene once", 
         });
       },
     },
-    resolveAssignments: resolver(fixture.assignments),
+    resolveAssignments: resolver(
+      fixture.assignments,
+      fixture.globalVisualAssignment,
+    ),
     verifySuccess: async () => undefined,
+    verifyGlobalVisualSuccess: async () => undefined,
     postScene: async () => {
       postSceneCalls += 1;
     },
@@ -179,20 +268,261 @@ test("waits through partial out-of-order results and triggers post-scene once", 
     ),
     new Set(["opening", "conclusion"]),
   );
+  assert.equal(loaded.state.schemaVersion, 2);
+  if (loaded.state.schemaVersion !== 2) assert.fail("v2 state required");
+  assert.equal(
+    loaded.state.acceptedGlobalVisualResult?.resultFingerprint,
+    successGlobalVisualResult(fixture.globalVisualAssignment).resultFingerprint,
+  );
 
   const repeated = await runProductionWatch({
     rootDir: fixture.rootDir,
     runId: fixture.runId,
     clock: () => FIXED_PRODUCTION_NOW,
     scheduler: { sleep: async () => assert.fail("must not wait") },
-    resolveAssignments: resolver(fixture.assignments),
+    resolveAssignments: resolver(
+      fixture.assignments,
+      fixture.globalVisualAssignment,
+    ),
     verifySuccess: async () => undefined,
+    verifyGlobalVisualSuccess: async () => undefined,
     postScene: async () => {
       postSceneCalls += 1;
     },
   });
   assert.equal(repeated.noOp, true);
   assert.equal(postSceneCalls, 1);
+});
+
+test("keeps all Scenes accepted until the GlobalVisual result arrives", async (context) => {
+  const fixture = await createFixture(context);
+  for (const assignment of fixture.assignments) {
+    await writeSceneProductionResult({
+      rootDir: fixture.rootDir,
+      result: successResult(assignment),
+    });
+  }
+  let sleeps = 0;
+  const watched = await runProductionWatch({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    clock: () => FIXED_PRODUCTION_NOW,
+    scheduler: {
+      sleep: async () => {
+        sleeps += 1;
+        await writeGlobalVisualProductionResult({
+          rootDir: fixture.rootDir,
+          result: successGlobalVisualResult(fixture.globalVisualAssignment),
+        });
+      },
+    },
+    resolveAssignments: resolver(
+      fixture.assignments,
+      fixture.globalVisualAssignment,
+    ),
+    verifySuccess: async () => undefined,
+    verifyGlobalVisualSuccess: async () => undefined,
+    postScene: async () => undefined,
+  });
+  assert.equal(sleeps, 1);
+  assert.equal(watched.status, "post-scene-running");
+});
+
+test("accepts interleaved Scene, GlobalVisual, and Scene results", async (context) => {
+  const fixture = await createFixture(context);
+  await writeSceneProductionResult({
+    rootDir: fixture.rootDir,
+    result: successResult(fixture.assignments[0]),
+  });
+  let sleeps = 0;
+  const watched = await runProductionWatch({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    clock: () => FIXED_PRODUCTION_NOW,
+    scheduler: {
+      sleep: async () => {
+        sleeps += 1;
+        await writeGlobalVisualProductionResult({
+          rootDir: fixture.rootDir,
+          result: successGlobalVisualResult(fixture.globalVisualAssignment),
+        });
+        await writeSceneProductionResult({
+          rootDir: fixture.rootDir,
+          result: successResult(fixture.assignments[1]),
+        });
+      },
+    },
+    resolveAssignments: resolver(
+      fixture.assignments,
+      fixture.globalVisualAssignment,
+    ),
+    verifySuccess: async () => undefined,
+    verifyGlobalVisualSuccess: async () => undefined,
+    postScene: async () => undefined,
+  });
+  assert.equal(sleeps, 1);
+  assert.equal(watched.status, "post-scene-running");
+});
+
+test("times out a missing GlobalVisual result after all Scenes", async (context) => {
+  const fixture = await createFixture(context, "2026-08-04T00:00:01.000Z");
+  for (const assignment of fixture.assignments) {
+    await writeSceneProductionResult({
+      rootDir: fixture.rootDir,
+      result: successResult(assignment),
+    });
+  }
+  let now = FIXED_PRODUCTION_NOW.getTime();
+  await assert.rejects(() =>
+    runProductionWatch({
+      rootDir: fixture.rootDir,
+      runId: fixture.runId,
+      clock: () => new Date(now),
+      scheduler: {
+        sleep: async (milliseconds) => {
+          now += milliseconds;
+        },
+      },
+      resolveAssignments: resolver(
+        fixture.assignments,
+        fixture.globalVisualAssignment,
+      ),
+      verifySuccess: async () => undefined,
+      verifyGlobalVisualSuccess: async () => undefined,
+      postScene: async () => undefined,
+    }),
+  );
+  const loaded = await readProductionRunStore(fixture);
+  assert.equal(loaded.state.failure?.code, "GLOBAL_VISUAL_RESULT_TIMEOUT");
+  assert.equal(loaded.state.failure?.scope, "global-visual");
+});
+
+test("fails immediately on an explicit GlobalVisual failure", async (context) => {
+  const fixture = await createFixture(context);
+  await writeGlobalVisualProductionResult({
+    rootDir: fixture.rootDir,
+    result: createGlobalVisualFailureResult({
+      assignment: fixture.globalVisualAssignment,
+      code: "GLOBAL_VISUAL_BLOCKED",
+      description: "The frozen global visual contract cannot be satisfied.",
+      redactionApplied: false,
+      commandId: "production-global-visual-fail",
+    }),
+  });
+  await assert.rejects(() =>
+    runProductionWatch({
+      rootDir: fixture.rootDir,
+      runId: fixture.runId,
+      clock: () => FIXED_PRODUCTION_NOW,
+      scheduler: { sleep: async () => undefined },
+      resolveAssignments: resolver(
+        fixture.assignments,
+        fixture.globalVisualAssignment,
+      ),
+      verifySuccess: async () => undefined,
+      verifyGlobalVisualSuccess: async () => undefined,
+      postScene: async () => undefined,
+    }),
+  );
+  assert.equal(
+    (await readProductionRunStore(fixture)).state.failure?.code,
+    "GLOBAL_VISUAL_BLOCKED",
+  );
+});
+
+test("fails closed for malformed stale and symlink GlobalVisual results", async (context) => {
+  for (const variant of ["malformed", "stale", "symlink"] as const) {
+    await context.test(variant, async (child) => {
+      const fixture = await createFixture(child);
+      const resultPath = join(
+        fixture.rootDir,
+        ".producer-runs",
+        fixture.runId,
+        "global-visual-result.json",
+      );
+      if (variant === "malformed") {
+        await writeFile(resultPath, "{malformed\n");
+      } else if (variant === "stale") {
+        const stale = buildGlobalVisualProductionResult({
+          ...successGlobalVisualResult(fixture.globalVisualAssignment),
+          assignmentFingerprint: sha("0"),
+        });
+        await writeFile(resultPath, `${JSON.stringify(stale)}\n`);
+      } else {
+        const target = join(fixture.rootDir, "global-result-target.json");
+        await writeFile(
+          target,
+          `${JSON.stringify(successGlobalVisualResult(fixture.globalVisualAssignment))}\n`,
+        );
+        await symlink(target, resultPath);
+      }
+      await assert.rejects(() =>
+        runProductionWatch({
+          rootDir: fixture.rootDir,
+          runId: fixture.runId,
+          clock: () => FIXED_PRODUCTION_NOW,
+          scheduler: { sleep: async () => undefined },
+          resolveAssignments: resolver(
+            fixture.assignments,
+            fixture.globalVisualAssignment,
+          ),
+          verifySuccess: async () => undefined,
+          verifyGlobalVisualSuccess: async () => undefined,
+          postScene: async () => undefined,
+        }),
+      );
+      assert.equal(
+        (await readProductionRunStore(fixture)).state.failure?.code,
+        variant === "stale"
+          ? "STALE_GLOBAL_VISUAL_RESULT"
+          : "GLOBAL_VISUAL_RESULT_MALFORMED",
+      );
+    });
+  }
+});
+
+test("detects mutation after accepting a GlobalVisual result", async (context) => {
+  const fixture = await createFixture(context);
+  await writeGlobalVisualProductionResult({
+    rootDir: fixture.rootDir,
+    result: successGlobalVisualResult(fixture.globalVisualAssignment),
+  });
+  const resultPath = join(
+    fixture.rootDir,
+    ".producer-runs",
+    fixture.runId,
+    "global-visual-result.json",
+  );
+  let sleeps = 0;
+  await assert.rejects(() =>
+    runProductionWatch({
+      rootDir: fixture.rootDir,
+      runId: fixture.runId,
+      clock: () => FIXED_PRODUCTION_NOW,
+      scheduler: {
+        sleep: async () => {
+          sleeps += 1;
+          const changed = buildGlobalVisualProductionResult({
+            ...successGlobalVisualResult(fixture.globalVisualAssignment),
+            mechanicalCheckFingerprint: sha("0"),
+          });
+          await writeFile(resultPath, `${JSON.stringify(changed)}\n`);
+        },
+      },
+      resolveAssignments: resolver(
+        fixture.assignments,
+        fixture.globalVisualAssignment,
+      ),
+      verifySuccess: async () => undefined,
+      verifyGlobalVisualSuccess: async () => undefined,
+      postScene: async () => undefined,
+    }),
+  );
+  assert.equal(sleeps, 1);
+  assert.equal(
+    (await readProductionRunStore(fixture)).state.failure?.code,
+    "STALE_GLOBAL_VISUAL_RESULT",
+  );
 });
 
 test("fails immediately on an explicit Scene failure", async (context) => {
@@ -353,6 +683,7 @@ test("single writer lock rejects a second watcher", async (context) => {
     },
     resolveAssignments: resolver(fixture.assignments),
     verifySuccess: async () => undefined,
+    verifyGlobalVisualSuccess: async () => undefined,
     postScene: async () => undefined,
   });
   while (releaseSleep === undefined)
@@ -366,6 +697,7 @@ test("single writer lock rejects a second watcher", async (context) => {
         scheduler: { sleep: async () => undefined },
         resolveAssignments: resolver(fixture.assignments),
         verifySuccess: async () => undefined,
+        verifyGlobalVisualSuccess: async () => undefined,
         postScene: async () => undefined,
       }),
     /active writer lock/i,
@@ -377,6 +709,10 @@ test("single writer lock rejects a second watcher", async (context) => {
   await writeSceneProductionResult({
     rootDir: fixture.rootDir,
     result: successResult(fixture.assignments[1]),
+  });
+  await writeGlobalVisualProductionResult({
+    rootDir: fixture.rootDir,
+    result: successGlobalVisualResult(fixture.globalVisualAssignment),
   });
   releaseSleep();
   await first;

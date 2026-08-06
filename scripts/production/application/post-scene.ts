@@ -192,6 +192,7 @@ export const runProductionPostScene = async ({
           runId,
           lock,
           event: createProductionStageEvent({
+            schemaVersion: loaded.run.schemaVersion,
             type: "stage-started",
             runId: loaded.run.runId,
             storyId: loaded.run.storyId,
@@ -310,6 +311,7 @@ export const runProductionPostScene = async ({
           runId,
           lock,
           event: createProductionStageEvent({
+            schemaVersion: loaded.run.schemaVersion,
             type: "stage-succeeded",
             runId: loaded.run.runId,
             storyId: loaded.run.storyId,
@@ -351,6 +353,7 @@ export const runProductionPostScene = async ({
           runId,
           lock,
           event: createProductionStageEvent({
+            schemaVersion: loaded.run.schemaVersion,
             type: "stage-started",
             runId: loaded.run.runId,
             storyId: loaded.run.storyId,
@@ -376,6 +379,7 @@ export const runProductionPostScene = async ({
       runId,
       lock,
       event: createProductionStageEvent({
+        schemaVersion: loaded.run.schemaVersion,
         type: "preview-ready",
         runId: loaded.run.runId,
         storyId: loaded.run.storyId,
@@ -447,6 +451,7 @@ export const runProductionPostScene = async ({
         runId,
         lock,
         event: createProductionStageEvent({
+          schemaVersion: loaded.run.schemaVersion,
           type: "stage-failed",
           runId: loaded.run.runId,
           storyId: loaded.run.storyId,

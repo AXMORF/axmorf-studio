@@ -136,6 +136,9 @@ test("starts one immutable contract-bound run and records its first event", asyn
     runId: fixedRunId,
   });
   assert.equal(loaded.events.length, 1);
+  assert.equal(loaded.run.schemaVersion, 2);
+  assert.equal(loaded.events[0]?.schemaVersion, 2);
+  assert.equal(loaded.state.schemaVersion, 2);
   assert.equal(loaded.events[0]?.type, "stage-succeeded");
   assert.equal(loaded.state.state, "initialized");
   assert.equal(loaded.state.lastSequence, 1);

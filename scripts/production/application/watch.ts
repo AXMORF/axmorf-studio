@@ -5,6 +5,8 @@ import {
   ScenePackageSchema,
   SceneProductionResultSchema,
   createFingerprint,
+  type GlobalVisualAssignment,
+  type GlobalVisualProductionResult,
   type SceneAssignment,
   type SceneProductionResult,
 } from "../../../src/contracts";
@@ -19,14 +21,21 @@ import {
 import { createProductionStageEvent } from "../domain/events";
 import { createExpectedProductionError } from "../domain/errors";
 import { runProductionPostScene } from "./post-scene";
+import { readExistingGlobalVisualResult } from "./global-visual-check";
+import { validateGlobalVisualFromProjectFiles } from "./global-visual-validator";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
 import { validateSceneReadability } from "./readability-validator";
 
 type CurrentAssignments = Readonly<{
   assignments: readonly SceneAssignment[];
+  globalVisualAssignment?: GlobalVisualAssignment | null;
 }>;
 
 type SuccessResult = Extract<SceneProductionResult, { status: "success" }>;
+type GlobalVisualSuccessResult = Extract<
+  GlobalVisualProductionResult,
+  { status: "success" }
+>;
 
 type WatchScheduler = Readonly<{
   sleep: (milliseconds: number) => Promise<void>;
@@ -46,28 +55,35 @@ type WatchFailureCode =
   | "UNKNOWN_SCENE_RESULT"
   | "SCENE_TIMEOUT"
   | "STALE_SCENE_INPUTS"
-  | "SCENE_WATCH_FAILED";
+  | "SCENE_WATCH_FAILED"
+  | "GLOBAL_VISUAL_RESULT_MALFORMED"
+  | "STALE_GLOBAL_VISUAL_RESULT"
+  | "GLOBAL_VISUAL_RESULT_TIMEOUT";
 
 class WatchFailure extends Error {
   readonly code: WatchFailureCode;
   readonly meaningId: string | null;
   readonly inputFingerprint: string;
+  readonly scope: "run" | "scene" | "global-visual";
 
   constructor({
     code,
     message,
     meaningId,
     inputFingerprint,
+    scope,
   }: {
     readonly code: WatchFailureCode;
     readonly message: string;
     readonly meaningId: string | null;
     readonly inputFingerprint: string;
+    readonly scope?: "run" | "scene" | "global-visual";
   }) {
     super(message);
     this.code = code;
     this.meaningId = meaningId;
     this.inputFingerprint = inputFingerprint;
+    this.scope = scope ?? (meaningId === null ? "run" : "scene");
   }
 }
 
@@ -174,6 +190,84 @@ const defaultVerifySuccess = async ({
   });
   if (mechanicalCheckFingerprint !== result.mechanicalCheckFingerprint) {
     throw new Error("Scene mechanical check fingerprint is stale.");
+  }
+};
+
+const defaultVerifyGlobalVisualSuccess = async ({
+  rootDir,
+  assignment,
+  result,
+}: {
+  readonly rootDir: string;
+  readonly assignment: GlobalVisualAssignment;
+  readonly result: GlobalVisualSuccessResult;
+}) => {
+  const validated = await validateGlobalVisualFromProjectFiles({
+    rootDir,
+    assignment,
+  });
+  if (
+    validated.globalVisualPackage.packageFingerprint !==
+      result.globalVisualPackage.packageFingerprint ||
+    validated.globalVisualPackage.globalVisualPlanFingerprint !==
+      result.globalVisualPlanFingerprint ||
+    validated.globalVisualPackage.rendererSourceGraphFingerprint !==
+      result.rendererSourceGraphFingerprint ||
+    validated.globalVisualPackage.selectedResourcesFingerprint !==
+      result.selectedResourcesFingerprint ||
+    validated.mechanicalCheckFingerprint !== result.mechanicalCheckFingerprint
+  ) {
+    throw new Error(
+      "GlobalVisual result is stale against current project files.",
+    );
+  }
+};
+
+const globalVisualResultPath = (runId: string) =>
+  `.producer-runs/${runId}/global-visual-result.json`;
+
+const readGlobalVisualResult = async ({
+  rootDir,
+  runId,
+  assignmentFingerprint,
+}: {
+  readonly rootDir: string;
+  readonly runId: string;
+  readonly assignmentFingerprint: string;
+}) => {
+  try {
+    return await readExistingGlobalVisualResult({ rootDir, runId });
+  } catch {
+    throw new WatchFailure({
+      code: "GLOBAL_VISUAL_RESULT_MALFORMED",
+      message: "GlobalVisual result contract is malformed.",
+      meaningId: null,
+      scope: "global-visual",
+      inputFingerprint: assignmentFingerprint,
+    });
+  }
+};
+
+const assertGlobalVisualResultMatchesAssignment = ({
+  result,
+  assignment,
+}: {
+  readonly result: GlobalVisualProductionResult;
+  readonly assignment: GlobalVisualAssignment;
+}) => {
+  if (
+    result.runId !== assignment.runId ||
+    result.storyId !== assignment.storyId ||
+    result.assignmentFingerprint !== assignment.assignmentFingerprint ||
+    result.requirementsFingerprint !== assignment.requirementsFingerprint
+  ) {
+    throw new WatchFailure({
+      code: "STALE_GLOBAL_VISUAL_RESULT",
+      message: "GlobalVisual result is stale against its frozen assignment.",
+      meaningId: null,
+      scope: "global-visual",
+      inputFingerprint: result.resultFingerprint,
+    });
   }
 };
 
@@ -295,21 +389,33 @@ const appendWatchFailure = async ({
         message: string;
         meaningId: string | null;
         inputFingerprint: string;
+        scope?: "run" | "scene" | "global-visual";
       }>;
   readonly occurredAt: string;
 }) => {
   const loaded = await readProductionRunStore({ rootDir, runId });
   if (loaded.state.state === "failed") return loaded.state;
+  const scope =
+    "scope" in failure && failure.scope !== undefined
+      ? failure.scope
+      : failure.meaningId === null
+        ? "run"
+        : "scene";
   const error = createExpectedProductionError({
     code: failure.code,
-    summary: "Scene monitoring failed.",
+    summary:
+      scope === "global-visual"
+        ? "Global visual result monitoring failed."
+        : "Scene monitoring failed.",
     description: failure.message,
     stageId: "scenes",
-    scope: failure.meaningId === null ? "run" : "scene",
+    scope,
     meaningId: failure.meaningId,
     retryable: false,
     remediation:
-      "Inspect the frozen Scene assignment and result contract, then start a new production run after correction.",
+      scope === "global-visual"
+        ? "Inspect the frozen GlobalVisual assignment and result contract, then start a new production run after correction."
+        : "Inspect the frozen Scene assignment and result contract, then start a new production run after correction.",
     commandId: "production-watch",
     inputFingerprint: failure.inputFingerprint,
   });
@@ -319,6 +425,7 @@ const appendWatchFailure = async ({
       runId,
       lock,
       event: createProductionStageEvent({
+        schemaVersion: loaded.run.schemaVersion,
         type: "stage-failed",
         runId: loaded.run.runId,
         storyId: loaded.run.storyId,
@@ -348,6 +455,7 @@ export const runProductionWatch = async ({
   scheduler = defaultScheduler,
   resolveAssignments = defaultResolveAssignments,
   verifySuccess = defaultVerifySuccess,
+  verifyGlobalVisualSuccess = defaultVerifyGlobalVisualSuccess,
   postScene = runProductionPostScene,
 }: {
   readonly rootDir: string;
@@ -362,6 +470,11 @@ export const runProductionWatch = async ({
     readonly rootDir: string;
     readonly assignment: SceneAssignment;
     readonly result: SuccessResult;
+  }) => Promise<void>;
+  readonly verifyGlobalVisualSuccess?: (request: {
+    readonly rootDir: string;
+    readonly assignment: GlobalVisualAssignment;
+    readonly result: GlobalVisualSuccessResult;
   }) => Promise<void>;
   readonly postScene?: (request: {
     readonly rootDir: string;
@@ -418,6 +531,7 @@ export const runProductionWatch = async ({
               runId,
               lock,
               event: createProductionStageEvent({
+                schemaVersion: loaded.run.schemaVersion,
                 type: "stage-started",
                 runId: loaded.run.runId,
                 storyId: loaded.run.storyId,
@@ -442,9 +556,17 @@ export const runProductionWatch = async ({
 
       for (;;) {
         let assignments: readonly SceneAssignment[];
+        let globalVisualAssignment: GlobalVisualAssignment | null = null;
         try {
-          assignments = (await resolveAssignments({ rootDir, runId }))
-            .assignments;
+          const resolved = await resolveAssignments({ rootDir, runId });
+          assignments = resolved.assignments;
+          globalVisualAssignment = resolved.globalVisualAssignment ?? null;
+          if (
+            loaded.run.schemaVersion === 2 &&
+            globalVisualAssignment === null
+          ) {
+            throw new Error("GlobalVisualAssignment is missing.");
+          }
         } catch {
           throw new WatchFailure({
             code: "STALE_SCENE_INPUTS",
@@ -486,6 +608,105 @@ export const runProductionWatch = async ({
             result.resultFingerprint,
           ]),
         );
+        let acceptedGlobalVisualResult =
+          loaded.state.schemaVersion === 2
+            ? loaded.state.acceptedGlobalVisualResult
+            : null;
+        if (globalVisualAssignment !== null) {
+          const globalVisualResult = await readGlobalVisualResult({
+            rootDir,
+            runId,
+            assignmentFingerprint: globalVisualAssignment.assignmentFingerprint,
+          });
+          if (globalVisualResult !== null) {
+            assertGlobalVisualResultMatchesAssignment({
+              result: globalVisualResult,
+              assignment: globalVisualAssignment,
+            });
+            if (
+              acceptedGlobalVisualResult !== null &&
+              acceptedGlobalVisualResult.resultFingerprint !==
+                globalVisualResult.resultFingerprint
+            ) {
+              throw new WatchFailure({
+                code: "STALE_GLOBAL_VISUAL_RESULT",
+                message: "Accepted GlobalVisual result changed.",
+                meaningId: null,
+                scope: "global-visual",
+                inputFingerprint: globalVisualResult.resultFingerprint,
+              });
+            }
+            if (globalVisualResult.status === "failure") {
+              throw {
+                code: globalVisualResult.error.code,
+                message: globalVisualResult.error.description,
+                meaningId: null,
+                scope: "global-visual" as const,
+                inputFingerprint: globalVisualResult.resultFingerprint,
+              };
+            }
+            try {
+              await verifyGlobalVisualSuccess({
+                rootDir,
+                assignment: globalVisualAssignment,
+                result: globalVisualResult,
+              });
+            } catch {
+              throw new WatchFailure({
+                code: "STALE_GLOBAL_VISUAL_RESULT",
+                message:
+                  "GlobalVisual result failed current package, source, or resource validation.",
+                meaningId: null,
+                scope: "global-visual",
+                inputFingerprint: globalVisualResult.resultFingerprint,
+              });
+            }
+            if (acceptedGlobalVisualResult === null) {
+              loaded = {
+                ...loaded,
+                state: (
+                  await appendProductionRunEvent({
+                    rootDir,
+                    runId,
+                    lock,
+                    event: createProductionStageEvent({
+                      schemaVersion: loaded.run.schemaVersion,
+                      type: "global-visual-result-accepted",
+                      runId: loaded.run.runId,
+                      storyId: loaded.run.storyId,
+                      sequence: loaded.state.lastSequence + 1,
+                      eventId: `global-visual-result-accepted-${loaded.state.lastSequence + 1}`,
+                      stageId: "scenes",
+                      attempt: 1,
+                      occurredAt: clock().toISOString(),
+                      commandId: "production-watch",
+                      previousStateFingerprint: loaded.state.stateFingerprint,
+                      inputFingerprints: [
+                        {
+                          artifactId: "global-visual-assignment",
+                          fingerprint:
+                            globalVisualAssignment.assignmentFingerprint,
+                        },
+                      ],
+                      globalVisualResultFingerprint:
+                        globalVisualResult.resultFingerprint,
+                      outputArtifacts: [
+                        {
+                          artifactId: "global-visual-result",
+                          repositoryPath: globalVisualResultPath(runId),
+                          fingerprint: globalVisualResult.resultFingerprint,
+                        },
+                      ],
+                    }),
+                  })
+                ).state,
+              };
+              acceptedGlobalVisualResult = {
+                resultFingerprint: globalVisualResult.resultFingerprint,
+              };
+            }
+          }
+        }
         for (const assignment of assignments) {
           const result: SceneProductionResult | null = await readSceneResult({
             rootDir,
@@ -533,6 +754,7 @@ export const runProductionWatch = async ({
                   runId,
                   lock,
                   event: createProductionStageEvent({
+                    schemaVersion: loaded.run.schemaVersion,
                     type: "scene-result-accepted",
                     runId: loaded.run.runId,
                     storyId: loaded.run.storyId,
@@ -566,7 +788,11 @@ export const runProductionWatch = async ({
           }
         }
 
-        if (accepted.size === assignments.length) {
+        if (
+          accepted.size === assignments.length &&
+          (loaded.run.schemaVersion === 1 ||
+            acceptedGlobalVisualResult !== null)
+        ) {
           const completedAt = clock();
           loaded = {
             ...loaded,
@@ -576,6 +802,7 @@ export const runProductionWatch = async ({
                 runId,
                 lock,
                 event: createProductionStageEvent({
+                  schemaVersion: loaded.run.schemaVersion,
                   type: "stage-succeeded",
                   runId: loaded.run.runId,
                   storyId: loaded.run.storyId,
@@ -586,15 +813,38 @@ export const runProductionWatch = async ({
                   occurredAt: completedAt.toISOString(),
                   commandId: "production-watch",
                   previousStateFingerprint: loaded.state.stateFingerprint,
-                  inputFingerprints: assignments.map((assignment) => ({
-                    artifactId: `scene-assignment.${assignment.meaningId}`,
-                    fingerprint: assignment.assignmentFingerprint,
-                  })),
-                  outputArtifacts: assignments.map((assignment) => ({
-                    artifactId: `scene-result.${assignment.meaningId}`,
-                    repositoryPath: resultPath(runId, assignment.meaningId),
-                    fingerprint: accepted.get(assignment.meaningId),
-                  })),
+                  inputFingerprints: [
+                    ...assignments.map((assignment) => ({
+                      artifactId: `scene-assignment.${assignment.meaningId}`,
+                      fingerprint: assignment.assignmentFingerprint,
+                    })),
+                    ...(globalVisualAssignment === null
+                      ? []
+                      : [
+                          {
+                            artifactId: "global-visual-assignment",
+                            fingerprint:
+                              globalVisualAssignment.assignmentFingerprint,
+                          },
+                        ]),
+                  ],
+                  outputArtifacts: [
+                    ...assignments.map((assignment) => ({
+                      artifactId: `scene-result.${assignment.meaningId}`,
+                      repositoryPath: resultPath(runId, assignment.meaningId),
+                      fingerprint: accepted.get(assignment.meaningId),
+                    })),
+                    ...(acceptedGlobalVisualResult === null
+                      ? []
+                      : [
+                          {
+                            artifactId: "global-visual-result",
+                            repositoryPath: globalVisualResultPath(runId),
+                            fingerprint:
+                              acceptedGlobalVisualResult.resultFingerprint,
+                          },
+                        ]),
+                  ],
                 }),
               })
             ).state,
@@ -622,6 +872,20 @@ export const runProductionWatch = async ({
               inputFingerprint: assignment.assignmentFingerprint,
             });
           }
+        }
+        if (
+          globalVisualAssignment !== null &&
+          acceptedGlobalVisualResult === null &&
+          now.getTime() >= Date.parse(globalVisualAssignment.deadlineAt)
+        ) {
+          throw new WatchFailure({
+            code: "GLOBAL_VISUAL_RESULT_TIMEOUT",
+            message:
+              "The frozen GlobalVisual result contract was not submitted before its deadline.",
+            meaningId: null,
+            scope: "global-visual",
+            inputFingerprint: globalVisualAssignment.assignmentFingerprint,
+          });
         }
         await scheduler.sleep(loaded.run.policy.pollIntervalMs);
       }

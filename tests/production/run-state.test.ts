@@ -5,7 +5,9 @@ import {
   DEFAULT_PRODUCTION_RUN_POLICY,
   ProductionRunPolicySchema,
   createProductionRunManifest,
+  createProductionRunManifestV2,
   type ProductionFingerprintRef,
+  type ProductionStageEvent,
 } from "../../src/contracts/production-run";
 import { createProductionStageEvent } from "../../scripts/production/domain/events";
 import {
@@ -38,6 +40,15 @@ const run = createProductionRunManifest({
   storyId: "story-example",
   requirementsPath: "src/projects/story-example/production/requirements.json",
   requirementsFingerprint: sha("a"),
+  policy: { pollIntervalMs: 25, sceneTimeoutMs: 2_000 },
+  createdAt: occurredAt,
+});
+
+const runV2 = createProductionRunManifestV2({
+  runId: "story-example-run-002",
+  storyId: "story-example",
+  requirementsPath: "src/projects/story-example/production/requirements.json",
+  requirementsFingerprint: sha("b"),
   policy: { pollIntervalMs: 25, sceneTimeoutMs: 2_000 },
   createdAt: occurredAt,
 });
@@ -102,7 +113,7 @@ const stageEvent = ({
   );
 
 test("projects the legal production lifecycle from append-only events", () => {
-  const events = [];
+  const events: ProductionStageEvent[] = [];
   let state = createInitialProductionRunState(run);
   assert.equal(state.state, "initialized");
 
@@ -247,6 +258,106 @@ test("projects the legal production lifecycle from append-only events", () => {
   assert.equal(state.state, "preview-ready");
   assert.equal(state.lastSequence, 9);
   assert.equal(state.failure, null);
+});
+
+test("v2 projects one GlobalVisual result without storing Agent lifecycle state", () => {
+  let state = createInitialProductionRunState(runV2);
+  assert.equal(state.schemaVersion, 2);
+  assert.equal(state.acceptedGlobalVisualResult, null);
+  assert.deepEqual(
+    Object.keys(state).filter((key) =>
+      /agent|task|thread|progress|heartbeat/iu.test(key),
+    ),
+    [],
+  );
+  const events: ProductionStageEvent[] = [];
+  const appendStage = (
+    type: "stage-started" | "stage-succeeded",
+    stageId: "production-start" | "narrative" | "scene-freeze" | "scenes",
+  ) => {
+    const sequence = events.length + 1;
+    const event = createProductionStageEvent({
+      schemaVersion: 2,
+      type,
+      runId: runV2.runId,
+      storyId: runV2.storyId,
+      sequence,
+      eventId: `${stageId}-${type}-${sequence}`,
+      stageId,
+      attempt: 1,
+      occurredAt,
+      commandId: "production-watch",
+      previousStateFingerprint: state.stateFingerprint,
+      inputFingerprints: [
+        {
+          artifactId: "requirements",
+          fingerprint: runV2.requirementsFingerprint,
+        },
+      ],
+      ...(type === "stage-succeeded"
+        ? {
+            outputArtifacts: [
+              {
+                artifactId: `${stageId}-output-${sequence}`,
+                repositoryPath: `out/${stageId}-${sequence}.json`,
+                fingerprint: sha(String(sequence)),
+              },
+            ],
+          }
+        : {}),
+    });
+    events.push(event);
+    state = projectProductionRunState({ run: runV2, events });
+  };
+  appendStage("stage-succeeded", "production-start");
+  appendStage("stage-started", "narrative");
+  appendStage("stage-succeeded", "narrative");
+  appendStage("stage-started", "scene-freeze");
+  appendStage("stage-succeeded", "scene-freeze");
+  appendStage("stage-started", "scenes");
+  const globalAccepted = createProductionStageEvent({
+    schemaVersion: 2,
+    type: "global-visual-result-accepted",
+    runId: runV2.runId,
+    storyId: runV2.storyId,
+    sequence: events.length + 1,
+    eventId: "global-visual-result-accepted-7",
+    stageId: "scenes",
+    attempt: 1,
+    occurredAt,
+    commandId: "production-watch",
+    previousStateFingerprint: state.stateFingerprint,
+    inputFingerprints: [
+      {
+        artifactId: "requirements",
+        fingerprint: runV2.requirementsFingerprint,
+      },
+    ],
+    globalVisualResultFingerprint: sha("c"),
+    outputArtifacts: [
+      {
+        artifactId: "global-visual-result",
+        repositoryPath:
+          ".producer-runs/story-example-run-002/global-visual-result.json",
+        fingerprint: sha("c"),
+      },
+    ],
+  });
+  assert.equal(globalAccepted.schemaVersion, 2);
+  assert.equal(globalAccepted.type, "global-visual-result-accepted");
+  events.push(globalAccepted);
+  state = projectProductionRunState({ run: runV2, events });
+  assert.equal(state.schemaVersion, 2);
+  if (state.schemaVersion !== 2) assert.fail("v2 state required");
+  assert.deepEqual(state.acceptedGlobalVisualResult, {
+    resultFingerprint: sha("c"),
+  });
+  assert.throws(() =>
+    projectProductionRunState({
+      run: runV2,
+      events: [...events, globalAccepted],
+    }),
+  );
 });
 
 test("rejects illegal transitions, out-of-order events, and stale previous state", () => {

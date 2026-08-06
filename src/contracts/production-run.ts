@@ -13,6 +13,11 @@ export const PRODUCTION_EVENT_CONTRACT_VERSION =
   "production-stage-event-v1" as const;
 export const PRODUCTION_STATE_CONTRACT_VERSION =
   "production-run-state-v1" as const;
+export const PRODUCTION_RUN_CONTRACT_VERSION_V2 = "production-run-v2" as const;
+export const PRODUCTION_EVENT_CONTRACT_VERSION_V2 =
+  "production-stage-event-v2" as const;
+export const PRODUCTION_STATE_CONTRACT_VERSION_V2 =
+  "production-run-state-v2" as const;
 
 export const PRODUCTION_STAGE_IDS = [
   "production-start",
@@ -178,8 +183,8 @@ const ProductionRunManifestObject = z
   })
   .strict();
 
-export const ProductionRunManifestSchema =
-  ProductionRunManifestObject.superRefine((run, context) => {
+const ProductionRunManifestV1Schema = ProductionRunManifestObject.superRefine(
+  (run, context) => {
     const { runFingerprint, ...input } = run;
     const expectedPath = `src/projects/${run.storyId}/production/requirements.json`;
     if (run.requirementsPath !== expectedPath) {
@@ -202,7 +207,58 @@ export const ProductionRunManifestSchema =
         path: ["runFingerprint"],
       });
     }
-  }).readonly();
+  },
+).readonly();
+
+const ProductionRunManifestV2InputObject = z
+  .object({
+    ...ProductionRunManifestInputObject.shape,
+    schemaVersion: z.literal(2),
+    contractVersion: z.literal(PRODUCTION_RUN_CONTRACT_VERSION_V2),
+  })
+  .strict();
+
+export const ProductionRunManifestV2InputSchema =
+  ProductionRunManifestV2InputObject.readonly();
+
+const computeProductionRunFingerprintV2 = (rawInput: unknown) => {
+  const inputRecord = { ...(rawInput as Record<string, unknown>) };
+  delete inputRecord.runFingerprint;
+  const input = ProductionRunManifestV2InputSchema.parse(inputRecord);
+  return createFingerprint({
+    namespace: "production-run-manifest",
+    version: 2,
+    value: input,
+  });
+};
+
+const ProductionRunManifestV2Schema = ProductionRunManifestV2InputObject.extend(
+  { runFingerprint: Sha256DigestSchema },
+)
+  .strict()
+  .superRefine((run, context) => {
+    const { runFingerprint, ...input } = run;
+    const expectedPath = `src/projects/${run.storyId}/production/requirements.json`;
+    if (run.requirementsPath !== expectedPath) {
+      context.addIssue({
+        code: "custom",
+        message: "Production run requirements path is not current.",
+        path: ["requirementsPath"],
+      });
+    }
+    if (runFingerprint !== computeProductionRunFingerprintV2(input)) {
+      context.addIssue({
+        code: "custom",
+        message: "Production run fingerprint is stale.",
+        path: ["runFingerprint"],
+      });
+    }
+  })
+  .readonly();
+
+export const ProductionRunManifestSchema = z
+  .union([ProductionRunManifestV1Schema, ProductionRunManifestV2Schema])
+  .readonly();
 
 export const createProductionRunManifest = (rawInput: unknown) => {
   const inputRecord: Record<string, unknown> = {
@@ -215,6 +271,20 @@ export const createProductionRunManifest = (rawInput: unknown) => {
   return ProductionRunManifestSchema.parse({
     ...input,
     runFingerprint: computeProductionRunFingerprint(input),
+  });
+};
+
+export const createProductionRunManifestV2 = (rawInput: unknown) => {
+  const inputRecord: Record<string, unknown> = {
+    ...(rawInput as Record<string, unknown>),
+    schemaVersion: 2,
+    contractVersion: PRODUCTION_RUN_CONTRACT_VERSION_V2,
+  };
+  delete inputRecord.runFingerprint;
+  const input = ProductionRunManifestV2InputSchema.parse(inputRecord);
+  return ProductionRunManifestV2Schema.parse({
+    ...input,
+    runFingerprint: computeProductionRunFingerprintV2(input),
   });
 };
 
@@ -421,7 +491,7 @@ export const createProductionError = (rawInput: unknown) => {
   });
 };
 
-const EventCommonShape = {
+const EventCommonShapeV1 = {
   schemaVersion: z.literal(1),
   eventVersion: z.literal(PRODUCTION_EVENT_CONTRACT_VERSION),
   runId: ProductionRunIdSchema,
@@ -444,12 +514,18 @@ const EventCommonShape = {
     .readonly(),
 } as const;
 
+const EventCommonShapeV2 = {
+  ...EventCommonShapeV1,
+  schemaVersion: z.literal(2),
+  eventVersion: z.literal(PRODUCTION_EVENT_CONTRACT_VERSION_V2),
+} as const;
+
 const StageStartedEventInputObject = z
-  .object({ ...EventCommonShape, type: z.literal("stage-started") })
+  .object({ ...EventCommonShapeV1, type: z.literal("stage-started") })
   .strict();
 const StageSucceededEventInputObject = z
   .object({
-    ...EventCommonShape,
+    ...EventCommonShapeV1,
     type: z.literal("stage-succeeded"),
     outputArtifacts: z
       .array(ProductionOutputArtifactSchema)
@@ -460,14 +536,14 @@ const StageSucceededEventInputObject = z
   .strict();
 const StageFailedEventInputObject = z
   .object({
-    ...EventCommonShape,
+    ...EventCommonShapeV1,
     type: z.literal("stage-failed"),
     error: ProductionErrorSchema,
   })
   .strict();
 const SceneResultAcceptedEventInputObject = z
   .object({
-    ...EventCommonShape,
+    ...EventCommonShapeV1,
     type: z.literal("scene-result-accepted"),
     stageId: z.literal("scenes"),
     meaningId: MeaningIdSchema,
@@ -481,7 +557,7 @@ const SceneResultAcceptedEventInputObject = z
   .strict();
 const PreviewReadyEventInputObject = z
   .object({
-    ...EventCommonShape,
+    ...EventCommonShapeV1,
     type: z.literal("preview-ready"),
     stageId: z.literal("preview"),
     outputArtifacts: z
@@ -494,12 +570,85 @@ const PreviewReadyEventInputObject = z
   })
   .strict();
 
-const ProductionStageEventInputUnion = z.discriminatedUnion("type", [
+const ProductionStageEventInputV1Union = z.discriminatedUnion("type", [
   StageStartedEventInputObject,
   StageSucceededEventInputObject,
   StageFailedEventInputObject,
   SceneResultAcceptedEventInputObject,
   PreviewReadyEventInputObject,
+]);
+
+const eventInputObjectsV2 = [
+  z
+    .object({ ...EventCommonShapeV2, type: z.literal("stage-started") })
+    .strict(),
+  z
+    .object({
+      ...EventCommonShapeV2,
+      type: z.literal("stage-succeeded"),
+      outputArtifacts: z
+        .array(ProductionOutputArtifactSchema)
+        .min(1)
+        .max(128)
+        .readonly(),
+    })
+    .strict(),
+  z
+    .object({
+      ...EventCommonShapeV2,
+      type: z.literal("stage-failed"),
+      error: ProductionErrorSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...EventCommonShapeV2,
+      type: z.literal("scene-result-accepted"),
+      stageId: z.literal("scenes"),
+      meaningId: MeaningIdSchema,
+      sceneResultFingerprint: Sha256DigestSchema,
+      outputArtifacts: z
+        .array(ProductionOutputArtifactSchema)
+        .length(1)
+        .readonly(),
+    })
+    .strict(),
+  z
+    .object({
+      ...EventCommonShapeV2,
+      type: z.literal("global-visual-result-accepted"),
+      stageId: z.literal("scenes"),
+      globalVisualResultFingerprint: Sha256DigestSchema,
+      outputArtifacts: z
+        .array(ProductionOutputArtifactSchema)
+        .length(1)
+        .readonly(),
+    })
+    .strict(),
+  z
+    .object({
+      ...EventCommonShapeV2,
+      type: z.literal("preview-ready"),
+      stageId: z.literal("preview"),
+      outputArtifacts: z
+        .array(ProductionOutputArtifactSchema)
+        .min(1)
+        .max(128)
+        .readonly(),
+      status: z.literal("preview-ready"),
+      handoff: z.literal("awaiting explicit user preview decision"),
+    })
+    .strict(),
+] as const;
+
+const ProductionStageEventInputV2Union = z.discriminatedUnion(
+  "type",
+  eventInputObjectsV2,
+);
+
+const ProductionStageEventInputUnion = z.union([
+  ProductionStageEventInputV1Union,
+  ProductionStageEventInputV2Union,
 ]);
 
 const addEventInputIssues = (
@@ -543,7 +692,7 @@ export const computeProductionStageEventFingerprint = (rawInput: unknown) => {
   const input = ProductionStageEventInputSchema.parse(inputRecord);
   return createFingerprint({
     namespace: "production-stage-event",
-    version: 1,
+    version: input.schemaVersion,
     value: input,
   });
 };
@@ -551,13 +700,13 @@ export const computeProductionStageEventFingerprint = (rawInput: unknown) => {
 const withEventFingerprint = <Shape extends z.ZodRawShape>(shape: Shape) =>
   z.object({ ...shape, eventFingerprint: Sha256DigestSchema }).strict();
 
-const ProductionStageEventUnion = z.discriminatedUnion("type", [
+const ProductionStageEventV1Union = z.discriminatedUnion("type", [
   withEventFingerprint({
-    ...EventCommonShape,
+    ...EventCommonShapeV1,
     type: z.literal("stage-started"),
   }),
   withEventFingerprint({
-    ...EventCommonShape,
+    ...EventCommonShapeV1,
     type: z.literal("stage-succeeded"),
     outputArtifacts: z
       .array(ProductionOutputArtifactSchema)
@@ -566,12 +715,12 @@ const ProductionStageEventUnion = z.discriminatedUnion("type", [
       .readonly(),
   }),
   withEventFingerprint({
-    ...EventCommonShape,
+    ...EventCommonShapeV1,
     type: z.literal("stage-failed"),
     error: ProductionErrorSchema,
   }),
   withEventFingerprint({
-    ...EventCommonShape,
+    ...EventCommonShapeV1,
     type: z.literal("scene-result-accepted"),
     stageId: z.literal("scenes"),
     meaningId: MeaningIdSchema,
@@ -583,7 +732,7 @@ const ProductionStageEventUnion = z.discriminatedUnion("type", [
       .readonly(),
   }),
   withEventFingerprint({
-    ...EventCommonShape,
+    ...EventCommonShapeV1,
     type: z.literal("preview-ready"),
     stageId: z.literal("preview"),
     outputArtifacts: z
@@ -594,6 +743,65 @@ const ProductionStageEventUnion = z.discriminatedUnion("type", [
     status: z.literal("preview-ready"),
     handoff: z.literal("awaiting explicit user preview decision"),
   }),
+]);
+
+const ProductionStageEventV2Union = z.discriminatedUnion("type", [
+  withEventFingerprint({
+    ...EventCommonShapeV2,
+    type: z.literal("stage-started"),
+  }),
+  withEventFingerprint({
+    ...EventCommonShapeV2,
+    type: z.literal("stage-succeeded"),
+    outputArtifacts: z
+      .array(ProductionOutputArtifactSchema)
+      .min(1)
+      .max(128)
+      .readonly(),
+  }),
+  withEventFingerprint({
+    ...EventCommonShapeV2,
+    type: z.literal("stage-failed"),
+    error: ProductionErrorSchema,
+  }),
+  withEventFingerprint({
+    ...EventCommonShapeV2,
+    type: z.literal("scene-result-accepted"),
+    stageId: z.literal("scenes"),
+    meaningId: MeaningIdSchema,
+    sceneResultFingerprint: Sha256DigestSchema,
+    outputArtifacts: z
+      .array(ProductionOutputArtifactSchema)
+      .length(1)
+      .readonly(),
+  }),
+  withEventFingerprint({
+    ...EventCommonShapeV2,
+    type: z.literal("global-visual-result-accepted"),
+    stageId: z.literal("scenes"),
+    globalVisualResultFingerprint: Sha256DigestSchema,
+    outputArtifacts: z
+      .array(ProductionOutputArtifactSchema)
+      .length(1)
+      .readonly(),
+  }),
+  withEventFingerprint({
+    ...EventCommonShapeV2,
+    type: z.literal("preview-ready"),
+    stageId: z.literal("preview"),
+    outputArtifacts: z
+      .array(ProductionOutputArtifactSchema)
+      .min(1)
+      .max(128)
+      .readonly(),
+    status: z.literal("preview-ready"),
+    handoff: z.literal("awaiting explicit user preview decision"),
+  }),
+]);
+
+const ProductionStageEventUnion = z.union([
+  ProductionStageEventV1Union,
+  ProductionStageEventV2Union,
 ]);
 
 export const ProductionStageEventSchema = ProductionStageEventUnion.superRefine(
@@ -630,7 +838,7 @@ const AcceptedSceneResultSchema = z
   .strict()
   .readonly();
 
-const ProductionRunStateInputObject = z
+const ProductionRunStateInputV1Object = z
   .object({
     schemaVersion: z.literal(1),
     stateVersion: z.literal(PRODUCTION_STATE_CONTRACT_VERSION),
@@ -689,8 +897,78 @@ const ProductionRunStateInputObject = z
     }
   });
 
-export const ProductionRunStateInputSchema =
-  ProductionRunStateInputObject.readonly();
+const ProductionRunStateInputV1Schema =
+  ProductionRunStateInputV1Object.readonly();
+
+const AcceptedGlobalVisualResultSchema = z
+  .object({ resultFingerprint: Sha256DigestSchema })
+  .strict()
+  .readonly();
+
+const ProductionRunStateInputV2Object = z
+  .object({
+    schemaVersion: z.literal(2),
+    stateVersion: z.literal(PRODUCTION_STATE_CONTRACT_VERSION_V2),
+    runId: ProductionRunIdSchema,
+    storyId: StoryIdSchema,
+    runFingerprint: Sha256DigestSchema,
+    state: ProductionRunStateNameSchema,
+    lastSequence: z.number().int().nonnegative().safe(),
+    lastEventFingerprint: Sha256DigestSchema.nullable(),
+    inputFingerprints: z
+      .array(ProductionFingerprintRefSchema)
+      .min(1)
+      .max(256)
+      .readonly(),
+    outputArtifacts: z
+      .array(ProductionOutputArtifactSchema)
+      .max(512)
+      .readonly(),
+    acceptedSceneResults: z
+      .array(AcceptedSceneResultSchema)
+      .max(256)
+      .readonly(),
+    acceptedGlobalVisualResult: AcceptedGlobalVisualResultSchema.nullable(),
+    failure: ProductionErrorSchema.nullable(),
+  })
+  .strict()
+  .superRefine((state, context) => {
+    addUniqueArtifactIssues(
+      state.inputFingerprints,
+      context,
+      "inputFingerprints",
+    );
+    addUniqueArtifactIssues(state.outputArtifacts, context, "outputArtifacts");
+    const meaningIds = state.acceptedSceneResults.map(
+      ({ meaningId }) => meaningId,
+    );
+    if (new Set(meaningIds).size !== meaningIds.length) {
+      context.addIssue({
+        code: "custom",
+        message: "A Scene result can be accepted only once.",
+        path: ["acceptedSceneResults"],
+      });
+    }
+    if ((state.state === "failed") !== (state.failure !== null)) {
+      context.addIssue({
+        code: "custom",
+        message: "Only failed run state carries one ProductionError.",
+        path: ["failure"],
+      });
+    }
+    if ((state.lastSequence === 0) !== (state.lastEventFingerprint === null)) {
+      context.addIssue({
+        code: "custom",
+        message: "Initial state is the only state without a last event.",
+        path: ["lastEventFingerprint"],
+      });
+    }
+  })
+  .readonly();
+
+export const ProductionRunStateInputSchema = z
+  .union([ProductionRunStateInputV1Schema, ProductionRunStateInputV2Object])
+  .readonly();
 
 export const computeProductionRunStateFingerprint = (rawInput: unknown) => {
   if (
@@ -705,12 +983,12 @@ export const computeProductionRunStateFingerprint = (rawInput: unknown) => {
   const input = ProductionRunStateInputSchema.parse(inputRecord);
   return createFingerprint({
     namespace: "production-run-state",
-    version: 1,
+    version: input.schemaVersion,
     value: input,
   });
 };
 
-const ProductionRunStateObject = z
+const ProductionRunStateV1Object = z
   .object({
     schemaVersion: z.literal(1),
     stateVersion: z.literal(PRODUCTION_STATE_CONTRACT_VERSION),
@@ -738,7 +1016,7 @@ const ProductionRunStateObject = z
   })
   .strict();
 
-export const ProductionRunStateSchema = ProductionRunStateObject.superRefine(
+const ProductionRunStateV1Schema = ProductionRunStateV1Object.superRefine(
   (state, context) => {
     const { stateFingerprint, ...input } = state;
     const parsed = ProductionRunStateInputSchema.safeParse(input);
@@ -764,11 +1042,80 @@ export const ProductionRunStateSchema = ProductionRunStateObject.superRefine(
   },
 ).readonly();
 
+const ProductionRunStateV2Object = z
+  .object({
+    schemaVersion: z.literal(2),
+    stateVersion: z.literal(PRODUCTION_STATE_CONTRACT_VERSION_V2),
+    runId: ProductionRunIdSchema,
+    storyId: StoryIdSchema,
+    runFingerprint: Sha256DigestSchema,
+    state: ProductionRunStateNameSchema,
+    lastSequence: z.number().int().nonnegative().safe(),
+    lastEventFingerprint: Sha256DigestSchema.nullable(),
+    inputFingerprints: z
+      .array(ProductionFingerprintRefSchema)
+      .min(1)
+      .max(256)
+      .readonly(),
+    outputArtifacts: z
+      .array(ProductionOutputArtifactSchema)
+      .max(512)
+      .readonly(),
+    acceptedSceneResults: z
+      .array(AcceptedSceneResultSchema)
+      .max(256)
+      .readonly(),
+    acceptedGlobalVisualResult: AcceptedGlobalVisualResultSchema.nullable(),
+    failure: ProductionErrorSchema.nullable(),
+    stateFingerprint: Sha256DigestSchema,
+  })
+  .strict();
+
+const ProductionRunStateV2Schema = ProductionRunStateV2Object.superRefine(
+  (state, context) => {
+    const { stateFingerprint, ...input } = state;
+    const parsed = ProductionRunStateInputV2Object.safeParse(input);
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        context.addIssue({
+          code: "custom",
+          message: issue.message,
+          path: issue.path,
+        });
+      }
+      return;
+    }
+    if (
+      stateFingerprint !== computeProductionRunStateFingerprint(parsed.data)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Production run state fingerprint is stale.",
+        path: ["stateFingerprint"],
+      });
+    }
+  },
+).readonly();
+
+export const ProductionRunStateSchema = z
+  .union([ProductionRunStateV1Schema, ProductionRunStateV2Schema])
+  .readonly();
+
 export const createProductionRunState = (rawInput: unknown) => {
+  const requestedSchemaVersion =
+    rawInput !== null &&
+    typeof rawInput === "object" &&
+    !Array.isArray(rawInput) &&
+    (rawInput as Record<string, unknown>).schemaVersion === 2
+      ? 2
+      : 1;
   const inputRecord: Record<string, unknown> = {
     ...(rawInput as Record<string, unknown>),
-    schemaVersion: 1,
-    stateVersion: PRODUCTION_STATE_CONTRACT_VERSION,
+    schemaVersion: requestedSchemaVersion,
+    stateVersion:
+      requestedSchemaVersion === 2
+        ? PRODUCTION_STATE_CONTRACT_VERSION_V2
+        : PRODUCTION_STATE_CONTRACT_VERSION,
   };
   delete inputRecord.stateFingerprint;
   const input = ProductionRunStateInputSchema.parse(inputRecord);

@@ -63,6 +63,7 @@ export const transitionProductionRunState = ({
       next = ACTIVE_STATES.has(state) ? "failed" : null;
       break;
     case "scene-result-accepted":
+    case "global-visual-result-accepted":
       next = state === "scenes-running" ? "scenes-running" : null;
       break;
     case "preview-ready":

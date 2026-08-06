@@ -99,3 +99,28 @@ test("keeps a bounded actionable unexpected description without raw object field
   assert.doesNotMatch(JSON.stringify(error), /endpoint|arbitrary|secret/i);
   assert.ok(error.description.length <= 1_200);
 });
+
+test("GlobalVisual errors are v2, scoped to scenes, and contain no Agent identity", () => {
+  const error = createExpectedProductionError({
+    stageId: "scenes",
+    scope: "global-visual",
+    meaningId: null,
+    commandId: "production-watch",
+    inputFingerprint: sha("b"),
+    code: "GLOBAL_VISUAL_RESULT_TIMEOUT",
+    summary: "Global visual result monitoring failed.",
+    description:
+      "The frozen GlobalVisual result contract was not submitted before its deadline.",
+    retryable: false,
+    remediation: "Correct the owned artifact and start a new run.",
+  });
+  assert.equal(error.schemaVersion, 2);
+  assert.equal(error.scope, "global-visual");
+  assert.deepEqual(
+    Object.keys(error).filter((key) =>
+      /agent|task|thread|progress|heartbeat/iu.test(key),
+    ),
+    [],
+  );
+  assert.doesNotThrow(() => ProductionErrorSchema.parse(error));
+});

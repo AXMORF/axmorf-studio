@@ -151,6 +151,7 @@ export const markProductionBaselineReady = async ({
 }) => {
   let loaded = await readProductionRunStore({ rootDir, runId });
   const started = createProductionStageEvent({
+    schemaVersion: loaded.run.schemaVersion,
     type: "stage-started",
     runId: loaded.run.runId,
     storyId: loaded.run.storyId,
@@ -171,6 +172,7 @@ export const markProductionBaselineReady = async ({
   await appendProductionRunEvent({ rootDir, runId, event: started });
   loaded = await readProductionRunStore({ rootDir, runId });
   const succeeded = createProductionStageEvent({
+    schemaVersion: loaded.run.schemaVersion,
     type: "stage-succeeded",
     runId: loaded.run.runId,
     storyId: loaded.run.storyId,
@@ -204,6 +206,7 @@ export const markProductionSceneInputsFrozen = async ({
   runId,
   assignmentFingerprint = sha("f"),
   assignmentFingerprints,
+  globalVisualAssignmentFingerprint,
   occurredAt = FIXED_PRODUCTION_NOW.toISOString(),
 }: {
   readonly rootDir: string;
@@ -213,10 +216,12 @@ export const markProductionSceneInputsFrozen = async ({
     readonly meaningId: string;
     readonly fingerprint: string;
   }[];
+  readonly globalVisualAssignmentFingerprint?: string;
   readonly occurredAt?: string;
 }) => {
   let loaded = await readProductionRunStore({ rootDir, runId });
   const started = createProductionStageEvent({
+    schemaVersion: loaded.run.schemaVersion,
     type: "stage-started",
     runId: loaded.run.runId,
     storyId: loaded.run.storyId,
@@ -237,6 +242,7 @@ export const markProductionSceneInputsFrozen = async ({
   await appendProductionRunEvent({ rootDir, runId, event: started });
   loaded = await readProductionRunStore({ rootDir, runId });
   const succeeded = createProductionStageEvent({
+    schemaVersion: loaded.run.schemaVersion,
     type: "stage-succeeded",
     runId: loaded.run.runId,
     storyId: loaded.run.storyId,
@@ -253,15 +259,27 @@ export const markProductionSceneInputsFrozen = async ({
         fingerprint: loaded.run.requirementsFingerprint,
       },
     ],
-    outputArtifacts: (
-      assignmentFingerprints ?? [
-        { meaningId: "opening", fingerprint: assignmentFingerprint },
-      ]
-    ).map(({ meaningId, fingerprint }) => ({
-      artifactId: `scene-assignment.${meaningId}`,
-      repositoryPath: `src/projects/story-example/production/scene-assignments/${meaningId}.generated.json`,
-      fingerprint,
-    })),
+    outputArtifacts: [
+      ...(
+        assignmentFingerprints ?? [
+          { meaningId: "opening", fingerprint: assignmentFingerprint },
+        ]
+      ).map(({ meaningId, fingerprint }) => ({
+        artifactId: `scene-assignment.${meaningId}`,
+        repositoryPath: `src/projects/story-example/production/scene-assignments/${meaningId}.generated.json`,
+        fingerprint,
+      })),
+      ...(globalVisualAssignmentFingerprint === undefined
+        ? []
+        : [
+            {
+              artifactId: "global-visual-assignment",
+              repositoryPath:
+                "src/projects/story-example/production/global-visual-assignment.generated.json",
+              fingerprint: globalVisualAssignmentFingerprint,
+            },
+          ]),
+    ],
   });
   await appendProductionRunEvent({ rootDir, runId, event: succeeded });
 };
@@ -270,6 +288,8 @@ export const markProductionPostSceneRunning = async ({
   rootDir,
   runId,
   sceneResults,
+  globalVisualAssignmentFingerprint = sha("a"),
+  globalVisualResultFingerprint = sha("b"),
   occurredAt = FIXED_PRODUCTION_NOW.toISOString(),
 }: {
   readonly rootDir: string;
@@ -279,6 +299,8 @@ export const markProductionPostSceneRunning = async ({
     readonly assignmentFingerprint: string;
     readonly resultFingerprint: string;
   }[];
+  readonly globalVisualAssignmentFingerprint?: string;
+  readonly globalVisualResultFingerprint?: string;
   readonly occurredAt?: string;
 }) => {
   let loaded = await readProductionRunStore({ rootDir, runId });
@@ -286,6 +308,7 @@ export const markProductionPostSceneRunning = async ({
     rootDir,
     runId,
     event: createProductionStageEvent({
+      schemaVersion: loaded.run.schemaVersion,
       type: "stage-started",
       runId: loaded.run.runId,
       storyId: loaded.run.storyId,
@@ -304,12 +327,47 @@ export const markProductionPostSceneRunning = async ({
       ],
     }),
   });
+  loaded = await readProductionRunStore({ rootDir, runId });
+  if (loaded.run.schemaVersion === 2) {
+    await appendProductionRunEvent({
+      rootDir,
+      runId,
+      event: createProductionStageEvent({
+        schemaVersion: loaded.run.schemaVersion,
+        type: "global-visual-result-accepted",
+        runId: loaded.run.runId,
+        storyId: loaded.run.storyId,
+        sequence: loaded.state.lastSequence + 1,
+        eventId: "global-visual-result-accepted-test",
+        stageId: "scenes",
+        attempt: 1,
+        occurredAt,
+        commandId: "production-watch",
+        previousStateFingerprint: loaded.state.stateFingerprint,
+        inputFingerprints: [
+          {
+            artifactId: "global-visual-assignment",
+            fingerprint: globalVisualAssignmentFingerprint,
+          },
+        ],
+        globalVisualResultFingerprint,
+        outputArtifacts: [
+          {
+            artifactId: "global-visual-result",
+            repositoryPath: `.producer-runs/${runId}/global-visual-result.json`,
+            fingerprint: globalVisualResultFingerprint,
+          },
+        ],
+      }),
+    });
+  }
   for (const scene of sceneResults) {
     loaded = await readProductionRunStore({ rootDir, runId });
     await appendProductionRunEvent({
       rootDir,
       runId,
       event: createProductionStageEvent({
+        schemaVersion: loaded.run.schemaVersion,
         type: "scene-result-accepted",
         runId: loaded.run.runId,
         storyId: loaded.run.storyId,
@@ -343,6 +401,7 @@ export const markProductionPostSceneRunning = async ({
     rootDir,
     runId,
     event: createProductionStageEvent({
+      schemaVersion: loaded.run.schemaVersion,
       type: "stage-succeeded",
       runId: loaded.run.runId,
       storyId: loaded.run.storyId,
@@ -353,15 +412,36 @@ export const markProductionPostSceneRunning = async ({
       occurredAt,
       commandId: "production-watch",
       previousStateFingerprint: loaded.state.stateFingerprint,
-      inputFingerprints: sceneResults.map((scene) => ({
-        artifactId: `scene-assignment.${scene.meaningId}`,
-        fingerprint: scene.assignmentFingerprint,
-      })),
-      outputArtifacts: sceneResults.map((scene) => ({
-        artifactId: `scene-result.${scene.meaningId}`,
-        repositoryPath: `.producer-runs/${runId}/scene-results/${scene.meaningId}.json`,
-        fingerprint: scene.resultFingerprint,
-      })),
+      inputFingerprints: [
+        ...sceneResults.map((scene) => ({
+          artifactId: `scene-assignment.${scene.meaningId}`,
+          fingerprint: scene.assignmentFingerprint,
+        })),
+        ...(loaded.run.schemaVersion === 2
+          ? [
+              {
+                artifactId: "global-visual-assignment",
+                fingerprint: globalVisualAssignmentFingerprint,
+              },
+            ]
+          : []),
+      ],
+      outputArtifacts: [
+        ...sceneResults.map((scene) => ({
+          artifactId: `scene-result.${scene.meaningId}`,
+          repositoryPath: `.producer-runs/${runId}/scene-results/${scene.meaningId}.json`,
+          fingerprint: scene.resultFingerprint,
+        })),
+        ...(loaded.run.schemaVersion === 2
+          ? [
+              {
+                artifactId: "global-visual-result",
+                repositoryPath: `.producer-runs/${runId}/global-visual-result.json`,
+                fingerprint: globalVisualResultFingerprint,
+              },
+            ]
+          : []),
+      ],
     }),
   });
 };
