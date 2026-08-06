@@ -207,4 +207,21 @@ test("replacement start restores an exact generated Preview scaffold", async (co
     await readFile(destination, "utf8"),
     renderProductionProjectScaffold("story-example"),
   );
+
+  const legacyV4 = renderV4ProductionPreviewProjectScaffold({
+    storyId: "story-example",
+    sceneLocalSoundPresent: false,
+  }).replace("globalVisualBackgroundLayers=", "globalVisualLayers=");
+  await writeFile(destination, legacyV4);
+  const restoredLegacyV4 = await ensureProductionProjectScaffold({
+    rootDir,
+    storyId: "story-example",
+    mode: "write",
+    readabilityPolicyAware: true,
+  });
+  assert.equal(restoredLegacyV4.written, true);
+  assert.equal(
+    await readFile(destination, "utf8"),
+    renderReadabilityAwareProductionProjectScaffold("story-example"),
+  );
 });

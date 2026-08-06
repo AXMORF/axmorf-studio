@@ -17,3 +17,7 @@
 - Green target: v4 scaffolds use an explicit background slot before `StoryVisualTrack`, new v3
   assemblies declare background-first order, and the parser retains read compatibility for existing
   v3 assembly bytes.
+- Follow-up fixed-flow finding: after the template changed, `production:start` initially rejected the
+  exact previous generated v4 Preview scaffold before creating a Run. A second focused Red/Green adds
+  byte-exact recognition for that one legacy generator output while drifted and hand-written sources
+  remain protected.

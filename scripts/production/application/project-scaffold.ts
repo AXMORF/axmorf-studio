@@ -211,6 +211,10 @@ export const ensureProductionProjectScaffold = async ({
         storyId,
         sceneLocalSoundPresent,
       }),
+      renderV4ProductionPreviewProjectScaffold({
+        storyId,
+        sceneLocalSoundPresent,
+      }).replace("globalVisualBackgroundLayers=", "globalVisualLayers="),
     ].includes(actual ?? ""),
   );
   if (isExactPreviewScaffold && mode === "write") {
