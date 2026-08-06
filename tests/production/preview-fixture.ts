@@ -1,5 +1,14 @@
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
+export const validGlobalVisualIdentity = {
+  assignmentFingerprint: sha("c"),
+  packageFingerprint: sha("d"),
+  resultFingerprint: sha("e"),
+  planFingerprint: sha("f"),
+  projectionFingerprint: sha("0"),
+  rendererSourceGraphFingerprint: sha("1"),
+} as const;
+
 export const validPreviewAssemblyInput = {
   storyId: "story-example",
   compositionId: "StoryExample",
@@ -31,11 +40,7 @@ export const validPreviewAssemblyInput = {
     ducking: "absent",
     globalVisualLayers: "absent",
   },
-  layerOrder: [
-    "story-visual",
-    "narrative-core",
-    "scene-local-sound",
-  ],
+  layerOrder: ["story-visual", "narrative-core", "scene-local-sound"],
   mixOrder: ["narration", "scene-local-sound"],
   reviewPolicy: "mechanical-only",
 } as const;

@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import {
   NarrativeAutoCheckReportSchema,
+  GlobalVisualProductionResultSchema,
   ProductionPreviewAssemblySchema,
   ProductionPreviewEvidenceSchema,
   ProductionPreviewMechanicalCheckSchema,
@@ -20,6 +21,7 @@ import {
   buildProductionPreviewEvidence,
   buildProductionPreviewMechanicalCheck,
   createFingerprint,
+  createGlobalVisualProjection,
 } from "../../../src/contracts";
 import type { ProcessRunner } from "../../baseline/evidence";
 import {
@@ -54,6 +56,7 @@ import {
   renderReadabilityAwareProductionPreviewProjectScaffold,
   renderProductionPreviewProjectScaffold,
   renderV3ProductionPreviewProjectScaffold,
+  renderV4ProductionPreviewProjectScaffold,
 } from "./project-scaffold";
 import {
   inspectProductionPreviewMedia,
@@ -62,6 +65,8 @@ import {
 } from "./preview-evidence";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
 import { validateSceneReadability } from "./readability-validator";
+import { readExistingGlobalVisualResult } from "./global-visual-check";
+import { validateGlobalVisualFromProjectFiles } from "./global-visual-validator";
 
 const checksumFile = async (path: string) =>
   Sha256DigestSchema.parse(
@@ -108,6 +113,96 @@ const loadPreviewSources = async (rootDir: string, storyId: string) => {
   return { projectRoot, timing, render, sealedNarration, autoCheck } as const;
 };
 
+const resolveCurrentGlobalVisual = async ({
+  rootDir,
+  runId,
+  assignment,
+}: {
+  readonly rootDir: string;
+  readonly runId: string;
+  readonly assignment: NonNullable<
+    Awaited<
+      ReturnType<typeof resolveCurrentSceneAssignments>
+    >["globalVisualAssignment"]
+  >;
+}) => {
+  const [loaded, rawResult, validated] = await Promise.all([
+    readProductionRunStore({ rootDir, runId }),
+    readExistingGlobalVisualResult({ rootDir, runId }),
+    validateGlobalVisualFromProjectFiles({
+      rootDir,
+      assignment,
+      mode: "check",
+    }),
+  ]);
+  const result = GlobalVisualProductionResultSchema.parse(rawResult);
+  if (
+    loaded.state.schemaVersion !== 2 ||
+    loaded.state.acceptedGlobalVisualResult?.resultFingerprint !==
+      result.resultFingerprint ||
+    result.status !== "success" ||
+    result.runId !== assignment.runId ||
+    result.storyId !== assignment.storyId ||
+    result.assignmentFingerprint !== assignment.assignmentFingerprint ||
+    result.requirementsFingerprint !== assignment.requirementsFingerprint ||
+    result.globalVisualPackage.packageFingerprint !==
+      validated.globalVisualPackage.packageFingerprint ||
+    result.globalVisualPlanFingerprint !==
+      validated.globalVisualPackage.globalVisualPlanFingerprint ||
+    result.rendererSourceGraphFingerprint !==
+      validated.globalVisualPackage.rendererSourceGraphFingerprint ||
+    result.selectedResourcesFingerprint !==
+      validated.globalVisualPackage.selectedResourcesFingerprint ||
+    result.mechanicalCheckFingerprint !== validated.mechanicalCheckFingerprint
+  ) {
+    throw new Error(
+      "Accepted GlobalVisual result is stale against current project files.",
+    );
+  }
+  return {
+    assignment,
+    result,
+    globalVisualPackage: validated.globalVisualPackage,
+  } as const;
+};
+
+const writeOrCheckGlobalVisualProjection = async ({
+  rootDir,
+  storyId,
+  current,
+  mode,
+}: {
+  readonly rootDir: string;
+  readonly storyId: string;
+  readonly current: Awaited<ReturnType<typeof resolveCurrentGlobalVisual>>;
+  readonly mode: "write" | "check";
+}) => {
+  const projection = createGlobalVisualProjection({
+    storyId,
+    compositionId: current.assignment.compositionId,
+    durationInFrames: current.assignment.timeline.durationInFrames,
+    requirementsFingerprint: current.assignment.requirementsFingerprint,
+    assignmentFingerprint: current.assignment.assignmentFingerprint,
+    packageFingerprint: current.globalVisualPackage.packageFingerprint,
+    globalVisualPlanFingerprint:
+      current.globalVisualPackage.globalVisualPlanFingerprint,
+    rendererSourceGraphFingerprint:
+      current.globalVisualPackage.rendererSourceGraphFingerprint,
+    selectedResourcesFingerprint:
+      current.globalVisualPackage.selectedResourcesFingerprint,
+    productionResultFingerprint: current.result.resultFingerprint,
+  });
+  await writeOrCheckSceneArtifact({
+    destination: join(
+      rootDir,
+      `src/projects/${storyId}/generated/global-visual-projection.generated.json`,
+    ),
+    value: projection,
+    mode,
+  });
+  return projection;
+};
+
 const preparePreview = async ({
   rootDir,
   runId,
@@ -125,7 +220,7 @@ const preparePreview = async ({
   }
   const requirements = resolved.inputs.current.requirements;
   if (
-    requirements.schemaVersion === 3 &&
+    (requirements.schemaVersion === 3 || requirements.schemaVersion === 4) &&
     resolved.assignments.some(
       (assignment) =>
         assignment.schemaVersion !== 3 ||
@@ -135,6 +230,28 @@ const preparePreview = async ({
   ) {
     throw new Error("Production Preview shared boundary identity is stale.");
   }
+  const currentGlobalVisual =
+    requirements.schemaVersion === 4
+      ? resolved.globalVisualAssignment === null
+        ? null
+        : await resolveCurrentGlobalVisual({
+            rootDir,
+            runId,
+            assignment: resolved.globalVisualAssignment,
+          })
+      : null;
+  if (requirements.schemaVersion === 4 && currentGlobalVisual === null) {
+    throw new Error("Production Preview requires current GlobalVisual inputs.");
+  }
+  const globalVisualProjection =
+    currentGlobalVisual === null
+      ? null
+      : await writeOrCheckGlobalVisualProjection({
+          rootDir,
+          storyId,
+          current: currentGlobalVisual,
+          mode,
+        });
   const coverage = SceneCoverageMapSchema.parse(
     await generateSceneCoverageFromProjectFiles({
       rootDir,
@@ -256,23 +373,30 @@ const preparePreview = async ({
     readabilityPolicyAware:
       resolved.inputs.current.requirements.schemaVersion === 2,
     sceneCompositionBoundaryAware:
-      resolved.inputs.current.requirements.schemaVersion === 3,
+      resolved.inputs.current.requirements.schemaVersion === 3 ||
+      resolved.inputs.current.requirements.schemaVersion === 4,
+    globalVisualAware: resolved.inputs.current.requirements.schemaVersion === 4,
   });
   const compositionSource =
-    resolved.inputs.current.requirements.schemaVersion === 3
-      ? renderV3ProductionPreviewProjectScaffold({
+    resolved.inputs.current.requirements.schemaVersion === 4
+      ? renderV4ProductionPreviewProjectScaffold({
           storyId,
           sceneLocalSoundPresent,
         })
-      : resolved.inputs.current.requirements.schemaVersion === 2
-        ? renderReadabilityAwareProductionPreviewProjectScaffold({
+      : resolved.inputs.current.requirements.schemaVersion === 3
+        ? renderV3ProductionPreviewProjectScaffold({
             storyId,
             sceneLocalSoundPresent,
           })
-        : renderProductionPreviewProjectScaffold({
-            storyId,
-            sceneLocalSoundPresent,
-          });
+        : resolved.inputs.current.requirements.schemaVersion === 2
+          ? renderReadabilityAwareProductionPreviewProjectScaffold({
+              storyId,
+              sceneLocalSoundPresent,
+            })
+          : renderProductionPreviewProjectScaffold({
+              storyId,
+              sceneLocalSoundPresent,
+            });
   const assembly = buildProductionPreviewAssembly({
     storyId,
     compositionId: sources.render.compositionId,
@@ -293,12 +417,30 @@ const preparePreview = async ({
     })),
     rendererRegistryFingerprint: registry.registryFingerprint,
     storyVisualProjectionFingerprint: visualProjection.projectionFingerprint,
-    ...(requirements.schemaVersion === 3
+    ...(requirements.schemaVersion === 3 || requirements.schemaVersion === 4
       ? {
           sceneCompositionBoundaryVersion:
             requirements.sceneBoundaryOwnership.sceneCompositionBoundaryVersion,
         }
       : {}),
+    ...(currentGlobalVisual === null || globalVisualProjection === null
+      ? {}
+      : {
+          globalVisual: {
+            assignmentFingerprint:
+              currentGlobalVisual.assignment.assignmentFingerprint,
+            packageFingerprint:
+              currentGlobalVisual.globalVisualPackage.packageFingerprint,
+            resultFingerprint: currentGlobalVisual.result.resultFingerprint,
+            planFingerprint:
+              currentGlobalVisual.globalVisualPackage
+                .globalVisualPlanFingerprint,
+            projectionFingerprint: globalVisualProjection.projectionFingerprint,
+            rendererSourceGraphFingerprint:
+              currentGlobalVisual.globalVisualPackage
+                .rendererSourceGraphFingerprint,
+          },
+        }),
     sceneLocalSound: sceneLocalSoundPresent
       ? {
           selection: "present",
@@ -315,12 +457,17 @@ const preparePreview = async ({
       bgm: "absent",
       crossSceneAmbience: "absent",
       ducking: "absent",
-      globalVisualLayers: "absent",
+      globalVisualLayers: currentGlobalVisual === null ? "absent" : "present",
     },
     layerOrder:
-      requirements.schemaVersion === 3
+      currentGlobalVisual === null
         ? ["story-visual", "narrative-core", "scene-local-sound"]
-        : ["story-visual", "narrative-core", "scene-local-sound"],
+        : [
+            "story-visual",
+            "global-visual",
+            "narrative-core",
+            "scene-local-sound",
+          ],
     mixOrder: ["narration", "scene-local-sound"],
     reviewPolicy: "mechanical-only",
   });
@@ -381,6 +528,16 @@ export const createDefaultPostSceneProductionDependencies = ({
         ) {
           throw new Error("Accepted Scene result is stale.");
         }
+      }
+      if (resolved.inputs.current.requirements.schemaVersion === 4) {
+        if (resolved.globalVisualAssignment === null) {
+          throw new Error("Accepted GlobalVisual assignment is missing.");
+        }
+        await resolveCurrentGlobalVisual({
+          rootDir,
+          runId,
+          assignment: resolved.globalVisualAssignment,
+        });
       }
     },
     preparePreview,
@@ -529,6 +686,9 @@ export const createDefaultPostSceneProductionDependencies = ({
         rendererRegistryFingerprint: assembly.rendererRegistryFingerprint,
         storyVisualProjectionFingerprint:
           assembly.storyVisualProjectionFingerprint,
+        ...(assembly.schemaVersion === 3
+          ? { globalVisual: assembly.globalVisual }
+          : {}),
         media: {
           fullPreview,
           representativeStills: reviewMedia.representativeStills,
@@ -548,16 +708,30 @@ export const createDefaultPostSceneProductionDependencies = ({
           coverage: "current-all-ready",
           rendererRegistry: "current",
           projections: "current",
+          ...(assembly.schemaVersion === 3
+            ? { globalVisual: "current" as const }
+            : {}),
           assembly: "current",
           mediaIdentity: "current",
         },
-        absentEnhancements: {
-          globalSoundPlan: true,
-          bgm: true,
-          crossSceneAmbience: true,
-          ducking: true,
-          globalVisualLayers: true,
-        },
+        absentEnhancements:
+          assembly.schemaVersion === 3
+            ? {
+                globalSoundPlan: true,
+                bgm: true,
+                crossSceneAmbience: true,
+                ducking: true,
+              }
+            : {
+                globalSoundPlan: true,
+                bgm: true,
+                crossSceneAmbience: true,
+                ducking: true,
+                globalVisualLayers: true,
+              },
+        ...(assembly.schemaVersion === 3
+          ? { presentEnhancements: { globalVisualLayers: true } }
+          : {}),
         aggregateStatus: "mechanically-ready",
         handoff: "awaiting explicit user preview decision",
       });
@@ -585,10 +759,15 @@ export const createDefaultPostSceneProductionDependencies = ({
           sceneCoverage: "pass",
           rendererRegistry: "pass",
           projections: "pass",
+          ...(assembly.schemaVersion === 3
+            ? { globalVisual: "pass" as const }
+            : {}),
           composition: "pass",
           media: "pass",
           completeDecode: "pass",
-          enhancementAbsence: "pass",
+          ...(assembly.schemaVersion === 3
+            ? { enhancementPolicy: "pass" as const }
+            : { enhancementAbsence: "pass" as const }),
         },
         aggregateStatus: "mechanically-ready",
         handoff: "awaiting explicit user preview decision",

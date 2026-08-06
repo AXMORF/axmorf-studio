@@ -26,6 +26,7 @@ export type GlobalVisualAssignmentResolver = (request: {
 export type GlobalVisualValidator = (request: {
   readonly rootDir: string;
   readonly assignment: GlobalVisualAssignment;
+  readonly mode?: "write" | "check";
 }) => Promise<GlobalVisualValidation>;
 
 const assignmentPath = (storyId: string) =>

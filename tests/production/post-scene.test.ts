@@ -23,6 +23,7 @@ import {
   markProductionSceneInputsFrozen,
 } from "./fixture";
 import {
+  validGlobalVisualIdentity,
   validPreviewAssemblyInput,
   validPreviewEvidenceInput,
 } from "./preview-fixture";
@@ -62,15 +63,39 @@ const createFixture = async (context: TestContext) => {
 const createDependencies = (
   calls: string[],
   requirementsFingerprint: string,
+  evidenceGlobalVisual = validGlobalVisualIdentity,
 ): PostSceneProductionDependencies => {
   const assembly = buildProductionPreviewAssembly({
     ...validPreviewAssemblyInput,
     requirementsFingerprint,
+    globalVisual: evidenceGlobalVisual,
+    enhancements: {
+      ...validPreviewAssemblyInput.enhancements,
+      globalVisualLayers: "present",
+    },
+    layerOrder: [
+      "story-visual",
+      "global-visual",
+      "narrative-core",
+      "scene-local-sound",
+    ],
   });
   const evidence = buildProductionPreviewEvidence({
     ...validPreviewEvidenceInput,
     requirementsFingerprint,
     previewAssemblyFingerprint: assembly.assemblyFingerprint,
+    globalVisual: validGlobalVisualIdentity,
+    currentChecks: {
+      ...validPreviewEvidenceInput.currentChecks,
+      globalVisual: "current",
+    },
+    absentEnhancements: {
+      globalSoundPlan: true,
+      bgm: true,
+      crossSceneAmbience: true,
+      ducking: true,
+    },
+    presentEnhancements: { globalVisualLayers: true },
   });
   const check = buildProductionPreviewMechanicalCheck({
     storyId: evidence.storyId,
@@ -82,10 +107,11 @@ const createDependencies = (
       sceneCoverage: "pass",
       rendererRegistry: "pass",
       projections: "pass",
+      globalVisual: "pass",
       composition: "pass",
       media: "pass",
       completeDecode: "pass",
-      enhancementAbsence: "pass",
+      enhancementPolicy: "pass",
     },
     aggregateStatus: "mechanically-ready",
     handoff: "awaiting explicit user preview decision",
@@ -237,6 +263,27 @@ test("post-scene failure records central failure and stops later steps", async (
   assert.equal(state.state, "failed");
   assert.equal(state.failure?.stageId, "post-scene");
   assert.deepEqual(calls, ["freeze-check", "preview-write"]);
+});
+
+test("post-scene rejects drift between v3 assembly and v2 evidence GlobalVisual identity", async (context) => {
+  const fixture = await createFixture(context);
+  const calls: string[] = [];
+  await assert.rejects(() =>
+    runProductionPostScene({
+      rootDir: fixture.rootDir,
+      runId: fixture.runId,
+      clock: () => FIXED_PRODUCTION_NOW,
+      dependencies: createDependencies(
+        calls,
+        fixture.requirements.requirementsFingerprint,
+        { ...validGlobalVisualIdentity, packageFingerprint: sha("2") },
+      ),
+    }),
+  );
+  assert.equal(
+    (await readProductionRunStore(fixture)).state.failure?.stageId,
+    "post-scene",
+  );
 });
 
 test("default composition listing does not suppress enumerable Remotion stdout", async () => {

@@ -103,6 +103,23 @@ const assertCurrentPreviewBindings = ({
   const assembly = ProductionPreviewAssemblySchema.parse(rawAssembly);
   const evidence = ProductionPreviewEvidenceSchema.parse(rawEvidence);
   const check = ProductionPreviewMechanicalCheckSchema.parse(rawCheck);
+  const globalVisualBindingStale =
+    assembly.schemaVersion === 3
+      ? evidence.schemaVersion !== 2 ||
+        check.schemaVersion !== 2 ||
+        evidence.globalVisual.assignmentFingerprint !==
+          assembly.globalVisual.assignmentFingerprint ||
+        evidence.globalVisual.packageFingerprint !==
+          assembly.globalVisual.packageFingerprint ||
+        evidence.globalVisual.resultFingerprint !==
+          assembly.globalVisual.resultFingerprint ||
+        evidence.globalVisual.planFingerprint !==
+          assembly.globalVisual.planFingerprint ||
+        evidence.globalVisual.projectionFingerprint !==
+          assembly.globalVisual.projectionFingerprint ||
+        evidence.globalVisual.rendererSourceGraphFingerprint !==
+          assembly.globalVisual.rendererSourceGraphFingerprint
+      : evidence.schemaVersion !== 1 || check.schemaVersion !== 1;
   if (
     assembly.storyId !== storyId ||
     evidence.storyId !== storyId ||
@@ -113,7 +130,8 @@ const assertCurrentPreviewBindings = ({
     evidence.previewAssemblyFingerprint !== assembly.assemblyFingerprint ||
     check.previewAssemblyFingerprint !== assembly.assemblyFingerprint ||
     check.evidenceFingerprint !== evidence.evidenceFingerprint ||
-    evidence.compositionId !== assembly.compositionId
+    evidence.compositionId !== assembly.compositionId ||
+    globalVisualBindingStale
   ) {
     throw new Error("Production preview artifacts are stale or mismatched.");
   }
@@ -339,6 +357,15 @@ export const runProductionPostScene = async ({
                 repositoryPath: "src/projects/project-registry.generated.ts",
                 fingerprint: registry.registryChecksum,
               },
+              ...(assembly.schemaVersion === 3
+                ? [
+                    {
+                      artifactId: "global-visual-projection",
+                      repositoryPath: `src/projects/${loaded.run.storyId}/generated/global-visual-projection.generated.json`,
+                      fingerprint: assembly.globalVisual.projectionFingerprint,
+                    },
+                  ]
+                : []),
             ],
           }),
         })

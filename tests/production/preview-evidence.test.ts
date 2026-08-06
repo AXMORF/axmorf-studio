@@ -6,10 +6,15 @@ import test from "node:test";
 
 import {
   ProductionPreviewEvidenceSchema,
+  ProductionPreviewMechanicalCheckSchema,
   buildProductionPreviewEvidence,
+  buildProductionPreviewMechanicalCheck,
 } from "../../src/contracts";
 import { inspectProductionPreviewMedia } from "../../scripts/production/application/preview-evidence";
-import { validPreviewEvidenceInput } from "./preview-fixture";
+import {
+  validGlobalVisualIdentity,
+  validPreviewEvidenceInput,
+} from "./preview-fixture";
 
 test("accepts only mechanically-ready current preview evidence", () => {
   const evidence = buildProductionPreviewEvidence(validPreviewEvidenceInput);
@@ -35,6 +40,51 @@ test("accepts only mechanically-ready current preview evidence", () => {
         },
       },
     }),
+  );
+});
+
+test("v2 evidence and mechanical check bind current GlobalVisual presence", () => {
+  const evidence = buildProductionPreviewEvidence({
+    ...validPreviewEvidenceInput,
+    globalVisual: validGlobalVisualIdentity,
+    currentChecks: {
+      ...validPreviewEvidenceInput.currentChecks,
+      globalVisual: "current",
+    },
+    absentEnhancements: {
+      globalSoundPlan: true,
+      bgm: true,
+      crossSceneAmbience: true,
+      ducking: true,
+    },
+    presentEnhancements: { globalVisualLayers: true },
+  });
+  assert.equal(evidence.schemaVersion, 2);
+  assert.equal(evidence.currentChecks.globalVisual, "current");
+  assert.equal(evidence.presentEnhancements.globalVisualLayers, true);
+  const check = buildProductionPreviewMechanicalCheck({
+    storyId: evidence.storyId,
+    requirementsFingerprint: evidence.requirementsFingerprint,
+    previewAssemblyFingerprint: evidence.previewAssemblyFingerprint,
+    evidenceFingerprint: evidence.evidenceFingerprint,
+    checks: {
+      contracts: "pass",
+      sceneCoverage: "pass",
+      rendererRegistry: "pass",
+      projections: "pass",
+      globalVisual: "pass",
+      composition: "pass",
+      media: "pass",
+      completeDecode: "pass",
+      enhancementPolicy: "pass",
+    },
+    aggregateStatus: "mechanically-ready",
+    handoff: "awaiting explicit user preview decision",
+  });
+  assert.equal(check.schemaVersion, 2);
+  assert.doesNotThrow(() => ProductionPreviewEvidenceSchema.parse(evidence));
+  assert.doesNotThrow(() =>
+    ProductionPreviewMechanicalCheckSchema.parse(check),
   );
 });
 

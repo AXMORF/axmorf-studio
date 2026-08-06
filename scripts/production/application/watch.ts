@@ -205,6 +205,7 @@ const defaultVerifyGlobalVisualSuccess = async ({
   const validated = await validateGlobalVisualFromProjectFiles({
     rootDir,
     assignment,
+    mode: "check",
   });
   if (
     validated.globalVisualPackage.packageFingerprint !==

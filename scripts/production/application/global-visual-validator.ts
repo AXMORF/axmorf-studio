@@ -249,9 +249,11 @@ export type GlobalVisualValidation = Readonly<{
 export const validateGlobalVisualFromProjectFiles = async ({
   rootDir,
   assignment: rawAssignment,
+  mode = "write",
 }: {
   readonly rootDir: string;
   readonly assignment: GlobalVisualAssignment;
+  readonly mode?: "write" | "check";
 }): Promise<GlobalVisualValidation> => {
   const assignment = GlobalVisualAssignmentSchema.parse(rawAssignment);
   const projectRoot = join(rootDir, "src/projects", assignment.storyId);
@@ -342,7 +344,7 @@ export const validateGlobalVisualFromProjectFiles = async ({
   await writeOrCheckSceneArtifact({
     destination,
     value: globalVisualPackage,
-    mode: "write",
+    mode,
   });
   await writeOrCheckSceneArtifact({
     destination,

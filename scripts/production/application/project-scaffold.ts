@@ -11,6 +11,8 @@ export const PRODUCTION_PREVIEW_SCAFFOLD_MARKER =
   "@generated-by production-preview-scaffold-v1" as const;
 export const PRODUCTION_READABILITY_SCAFFOLD_MARKER =
   "@generated-by production-readability-scaffold-v2" as const;
+export const PRODUCTION_GLOBAL_VISUAL_SCAFFOLD_MARKER =
+  "@generated-by production-global-visual-scaffold-v4" as const;
 
 const componentNameFor = (storyId: string) =>
   `${storyId
@@ -202,6 +204,10 @@ export const ensureProductionProjectScaffold = async ({
         sceneLocalSoundPresent,
       }),
       renderV3ProductionPreviewProjectScaffold({
+        storyId,
+        sceneLocalSoundPresent,
+      }),
+      renderV4ProductionPreviewProjectScaffold({
         storyId,
         sceneLocalSoundPresent,
       }),
@@ -449,14 +455,17 @@ const renderProductionPreviewProjectScaffoldTemplate = ({
 }: {
   readonly storyId: string;
   readonly sceneLocalSoundPresent: boolean;
-  readonly requirementsSchemaVersion: 2 | 3 | null;
+  readonly requirementsSchemaVersion: 2 | 3 | 4 | null;
 }) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
   const componentName = componentNameFor(storyId);
   const readabilityPolicyAware = requirementsSchemaVersion !== null;
-  const marker = readabilityPolicyAware
-    ? PRODUCTION_READABILITY_SCAFFOLD_MARKER
-    : PRODUCTION_PREVIEW_SCAFFOLD_MARKER;
+  const globalVisualAware = requirementsSchemaVersion === 4;
+  const marker = globalVisualAware
+    ? PRODUCTION_GLOBAL_VISUAL_SCAFFOLD_MARKER
+    : readabilityPolicyAware
+      ? PRODUCTION_READABILITY_SCAFFOLD_MARKER
+      : PRODUCTION_PREVIEW_SCAFFOLD_MARKER;
   const soundImport = sceneLocalSoundPresent
     ? `import {SoundDesignTrack} from "../../remotion/runtime/sound-design";`
     : "";
@@ -470,15 +479,20 @@ const renderProductionPreviewProjectScaffoldTemplate = ({
   const requirementsContractImport = readabilityPolicyAware
     ? "  ProductionRequirementsFreezeSchema,\n"
     : "";
+  const globalVisualContractImports = globalVisualAware
+    ? "  GlobalVisualPlanSchema,\n  GlobalVisualProjectionSchema,\n"
+    : "";
   const requirementsImport = readabilityPolicyAware
     ? 'import requirementsJson from "./production/requirements.json";\n'
     : "";
   const requirementsSetup = readabilityPolicyAware
     ? `const productionRequirements = ProductionRequirementsFreezeSchema.parse(requirementsJson);
 if (productionRequirements.schemaVersion !== ${requirementsSchemaVersion}) throw new Error(${JSON.stringify(
-        requirementsSchemaVersion === 3
-          ? "Production Preview requires v3 shared-boundary requirements."
-          : "Production Preview requires readability-aware requirements.",
+        requirementsSchemaVersion === 4
+          ? "Production Preview requires v4 GlobalVisual requirements."
+          : requirementsSchemaVersion === 3
+            ? "Production Preview requires v3 shared-boundary requirements."
+            : "Production Preview requires readability-aware requirements.",
       )});
 const readabilityPolicy = productionRequirements.readabilityPolicy;
 `
@@ -489,11 +503,30 @@ const readabilityPolicy = productionRequirements.readabilityPolicy;
   const narrativeReadabilityProps = readabilityPolicyAware
     ? "safeAreaPx: readabilityPolicy.captionSafeAreaPx, readabilityPolicy"
     : "safeAreaPx: render.captionSafeAreaPx";
+  const globalVisualImports = globalVisualAware
+    ? `import globalVisualPlanJson from "./global-visual-plan.json";
+import globalVisualProjectionJson from "./generated/global-visual-projection.generated.json";
+import {GlobalVisualLayers} from "./global-visual/GlobalVisualLayers";
+`
+    : "";
+  const globalVisualSetup = globalVisualAware
+    ? `const globalVisualPlan = GlobalVisualPlanSchema.parse(globalVisualPlanJson);
+const globalVisualProjection = GlobalVisualProjectionSchema.parse(globalVisualProjectionJson);
+if (previewAssembly.schemaVersion !== 3 || globalVisualProjection.schemaVersion !== 2 || globalVisualPlan.storyId !== storyId || globalVisualPlan.compositionId !== render.compositionId || globalVisualProjection.storyId !== storyId || globalVisualProjection.compositionId !== render.compositionId || globalVisualProjection.durationInFrames !== timing.durationInFrames || previewAssembly.globalVisual.planFingerprint !== globalVisualPlan.planFingerprint || previewAssembly.globalVisual.projectionFingerprint !== globalVisualProjection.projectionFingerprint) {
+  throw new Error("Production GlobalVisual runtime identity is stale.");
+}
+`
+    : "";
+  const globalVisualProp = globalVisualAware
+    ? `
+    globalVisualLayers={<GlobalVisualLayers plan={globalVisualPlan} projection={globalVisualProjection} />}`
+    : "";
   return `// ${marker}
 import type {FC} from "react";
 import {staticFile} from "remotion";
 
 import {
+${globalVisualContractImports}
   parseNarrativeProjectSource,
 ${requirementsContractImport}  ProductionPreviewAssemblySchema,
   SealedNarrationManifestSchema,
@@ -513,6 +546,7 @@ import semanticTimingJson from "./generated/semantic-timing.generated.json";
 import narrationJson from "./narration.json";
 import renderJson from "./render.json";
 ${requirementsImport}import storyJson from "./story.json";
+${globalVisualImports}
 import {
   productionRendererPropsByMeaning,
   productionRendererRegistry${soundRuntimeImport},
@@ -531,7 +565,7 @@ const timing = artifactBundle.semanticTiming;
 if (${readabilityIdentityCondition}storyId !== expectedStoryId || previewAssembly.storyId !== storyId || render.fps !== timing.fps || previewAssembly.sceneLocalSound.selection !== ${JSON.stringify(sceneLocalSoundPresent ? "present" : "none")}) {
   throw new Error("Production Preview Composition identity is stale.");
 }
-const completeAudioLocalPath = artifactBundle.sealedNarration.completeAudio.localPath;
+${globalVisualSetup}const completeAudioLocalPath = artifactBundle.sealedNarration.completeAudio.localPath;
 if (!completeAudioLocalPath.startsWith("public/projects/" + storyId + "/narration/")) throw new Error("Complete narration must stay under the Story narration path.");
 const completeNarrationSrc = staticFile(completeAudioLocalPath.slice("public/".length));
 export const productionNarrativeCompositionMetadata = {
@@ -550,7 +584,7 @@ export const createProductionNarrativeCoreProps = (input: unknown): NarrativeCor
 
 const ${componentName}: FC<StoryCompositionProps> = (props) => (
   <CompositionAssembly
-    storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning} />}
+    storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning} />}${globalVisualProp}
     narrativeCore={<NarrativeCore {...createProductionNarrativeCoreProps(props)} />}${soundProp}
   />
 );
@@ -585,6 +619,15 @@ export const renderV3ProductionPreviewProjectScaffold = (input: {
     requirementsSchemaVersion: 3,
   });
 
+export const renderV4ProductionPreviewProjectScaffold = (input: {
+  readonly storyId: string;
+  readonly sceneLocalSoundPresent: boolean;
+}) =>
+  renderProductionPreviewProjectScaffoldTemplate({
+    ...input,
+    requirementsSchemaVersion: 4,
+  });
+
 export const ensureProductionPreviewScaffold = async ({
   rootDir,
   storyId,
@@ -593,6 +636,7 @@ export const ensureProductionPreviewScaffold = async ({
   mode,
   readabilityPolicyAware = false,
   sceneCompositionBoundaryAware = false,
+  globalVisualAware = false,
 }: {
   readonly rootDir: string;
   readonly storyId: string;
@@ -601,6 +645,7 @@ export const ensureProductionPreviewScaffold = async ({
   readonly mode: "write" | "check";
   readonly readabilityPolicyAware?: boolean;
   readonly sceneCompositionBoundaryAware?: boolean;
+  readonly globalVisualAware?: boolean;
 }) => {
   const projectRoot = join(
     rootDir,
@@ -621,20 +666,25 @@ export const ensureProductionPreviewScaffold = async ({
     mode,
   });
   const destination = join(projectRoot, "Composition.tsx");
-  const expected = sceneCompositionBoundaryAware
-    ? renderV3ProductionPreviewProjectScaffold({
+  const expected = globalVisualAware
+    ? renderV4ProductionPreviewProjectScaffold({
         storyId,
         sceneLocalSoundPresent,
       })
-    : readabilityPolicyAware
-      ? renderReadabilityAwareProductionPreviewProjectScaffold({
+    : sceneCompositionBoundaryAware
+      ? renderV3ProductionPreviewProjectScaffold({
           storyId,
           sceneLocalSoundPresent,
         })
-      : renderProductionPreviewProjectScaffold({
-          storyId,
-          sceneLocalSoundPresent,
-        });
+      : readabilityPolicyAware
+        ? renderReadabilityAwareProductionPreviewProjectScaffold({
+            storyId,
+            sceneLocalSoundPresent,
+          })
+        : renderProductionPreviewProjectScaffold({
+            storyId,
+            sceneLocalSoundPresent,
+          });
   if (mode === "check") {
     if ((await readFile(destination, "utf8")) !== expected) {
       throw new Error("Production Preview Composition bytes are stale.");

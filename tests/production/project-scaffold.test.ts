@@ -18,6 +18,7 @@ import {
   renderProductionProjectScaffold,
   renderReadabilityAwareProductionProjectScaffold,
   renderV3ProductionPreviewProjectScaffold,
+  renderV4ProductionPreviewProjectScaffold,
   renderReadabilityAwareProductionSceneRuntime,
 } from "../../scripts/production/application/project-scaffold";
 
@@ -64,6 +65,28 @@ test("v3 Preview mounts StoryVisualTrack directly without a second global visual
   assert.equal(source.match(/<StoryVisualTrack /gu)?.length, 1);
   assert.match(source, /storyVisualTrack=\{<StoryVisualTrack [^>]+ \/>\}/u);
   assert.doesNotMatch(source, /globalVisualLayers|GlobalVisualLayers/u);
+});
+
+test("v4 Preview statically mounts one project-local GlobalVisual layer", () => {
+  const source = renderV4ProductionPreviewProjectScaffold({
+    storyId: "future-story",
+    sceneLocalSoundPresent: false,
+  });
+  assert.equal(
+    source.match(
+      /import \{GlobalVisualLayers\} from "\.\/global-visual\/GlobalVisualLayers";/gu,
+    )?.length,
+    1,
+  );
+  assert.equal(source.match(/globalVisualLayers=\{/gu)?.length, 1);
+  assert.match(
+    source,
+    /globalVisualLayers=\{<GlobalVisualLayers plan=\{globalVisualPlan\} projection=\{globalVisualProjection\} \/>\}/u,
+  );
+  assert.match(source, /GlobalVisualPlanSchema\.parse/u);
+  assert.match(source, /GlobalVisualProjectionSchema\.parse/u);
+  assert.match(source, /production-preview-assembly-v3|schemaVersion !== 3/u);
+  assert.doesNotMatch(source, /GlobalSoundPlan|BGM|ducking/u);
 });
 
 test("writes one default-export Narrative scaffold and repeats byte-mtime stable", async (context) => {

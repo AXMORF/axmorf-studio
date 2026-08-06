@@ -18,8 +18,12 @@ export const PRODUCTION_PREVIEW_ASSEMBLY_VERSION_V3 =
   "production-preview-assembly-v3" as const;
 export const PRODUCTION_PREVIEW_EVIDENCE_VERSION =
   "production-preview-evidence-v1" as const;
+export const PRODUCTION_PREVIEW_EVIDENCE_VERSION_V2 =
+  "production-preview-evidence-v2" as const;
 export const PRODUCTION_PREVIEW_MECHANICAL_CHECK_VERSION =
   "production-preview-mechanical-check-v1" as const;
+export const PRODUCTION_PREVIEW_MECHANICAL_CHECK_VERSION_V2 =
+  "production-preview-mechanical-check-v2" as const;
 
 const RelativeOutputPathSchema = z
   .string()
@@ -57,6 +61,18 @@ const SceneLocalSoundSelectionSchema = z.discriminatedUnion("selection", [
     })
     .strict(),
 ]);
+
+const GlobalVisualPreviewIdentitySchema = z
+  .object({
+    assignmentFingerprint: Sha256DigestSchema,
+    packageFingerprint: Sha256DigestSchema,
+    resultFingerprint: Sha256DigestSchema,
+    planFingerprint: Sha256DigestSchema,
+    projectionFingerprint: Sha256DigestSchema,
+    rendererSourceGraphFingerprint: Sha256DigestSchema,
+  })
+  .strict()
+  .readonly();
 
 const PreviewAssemblyInputObject = z
   .object({
@@ -148,17 +164,7 @@ const PreviewAssemblyV3InputObject = z
     schemaVersion: z.literal(3),
     contractVersion: z.literal(PRODUCTION_PREVIEW_ASSEMBLY_VERSION_V3),
     sceneCompositionBoundaryVersion: z.literal("scene-composition-boundary-v1"),
-    globalVisual: z
-      .object({
-        assignmentFingerprint: Sha256DigestSchema,
-        packageFingerprint: Sha256DigestSchema,
-        resultFingerprint: Sha256DigestSchema,
-        planFingerprint: Sha256DigestSchema,
-        projectionFingerprint: Sha256DigestSchema,
-        rendererSourceGraphFingerprint: Sha256DigestSchema,
-      })
-      .strict()
-      .readonly(),
+    globalVisual: GlobalVisualPreviewIdentitySchema,
     enhancements: z
       .object({
         narrativeCore: z.literal("required"),
@@ -390,8 +396,77 @@ const PreviewEvidenceInputObject = z
     }
   });
 
-export const ProductionPreviewEvidenceInputSchema =
-  PreviewEvidenceInputObject.readonly();
+const PreviewEvidenceV2InputObject = z
+  .object({
+    ...PreviewEvidenceInputObject.shape,
+    schemaVersion: z.literal(2),
+    evidenceVersion: z.literal(PRODUCTION_PREVIEW_EVIDENCE_VERSION_V2),
+    globalVisual: GlobalVisualPreviewIdentitySchema,
+    currentChecks: z
+      .object({
+        coverage: z.literal("current-all-ready"),
+        rendererRegistry: z.literal("current"),
+        projections: z.literal("current"),
+        globalVisual: z.literal("current"),
+        assembly: z.literal("current"),
+        mediaIdentity: z.literal("current"),
+      })
+      .strict()
+      .readonly(),
+    absentEnhancements: z
+      .object({
+        globalSoundPlan: z.literal(true),
+        bgm: z.literal(true),
+        crossSceneAmbience: z.literal(true),
+        ducking: z.literal(true),
+      })
+      .strict()
+      .readonly(),
+    presentEnhancements: z
+      .object({ globalVisualLayers: z.literal(true) })
+      .strict()
+      .readonly(),
+  })
+  .strict()
+  .superRefine((evidence, context) => {
+    const { expected, actual } = evidence.technical;
+    const actualFps = actual.fpsNumerator / actual.fpsDenominator;
+    const expectedDuration = expected.frameCount / expected.fps;
+    if (
+      actual.width !== expected.width ||
+      actual.height !== expected.height ||
+      actualFps !== expected.fps ||
+      actual.frameCount !== expected.frameCount ||
+      Math.abs(actual.durationSeconds - expectedDuration) > 1 / expected.fps
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Production preview technical media identity is stale.",
+        path: ["technical", "actual"],
+      });
+    }
+    const mediaPaths = [
+      evidence.media.fullPreview.relativePath,
+      evidence.media.contactSheet.relativePath,
+      ...evidence.media.representativeStills.map(
+        ({ relativePath }) => relativePath,
+      ),
+    ];
+    if (new Set(mediaPaths).size !== mediaPaths.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Production preview media paths must be unique.",
+        path: ["media"],
+      });
+    }
+  });
+
+export const ProductionPreviewEvidenceInputSchema = z
+  .union([
+    PreviewEvidenceInputObject.readonly(),
+    PreviewEvidenceV2InputObject.readonly(),
+  ])
+  .readonly();
 
 export const computeProductionPreviewEvidenceFingerprint = (
   rawInput: unknown,
@@ -401,34 +476,46 @@ export const computeProductionPreviewEvidenceFingerprint = (
   const input = ProductionPreviewEvidenceInputSchema.parse(record);
   return createFingerprint({
     namespace: "production-preview-evidence",
-    version: 1,
+    version: input.schemaVersion,
     value: input,
   });
 };
 
-export const ProductionPreviewEvidenceSchema =
-  PreviewEvidenceInputObject.extend({ evidenceFingerprint: Sha256DigestSchema })
-    .strict()
-    .superRefine((evidence, context) => {
-      const { evidenceFingerprint, ...input } = evidence;
-      if (
-        evidenceFingerprint !==
-        computeProductionPreviewEvidenceFingerprint(input)
-      ) {
-        context.addIssue({
-          code: "custom",
-          message: "ProductionPreviewEvidence fingerprint is stale.",
-          path: ["evidenceFingerprint"],
-        });
-      }
-    })
-    .readonly();
+export const ProductionPreviewEvidenceSchema = z
+  .union([
+    PreviewEvidenceInputObject.extend({
+      evidenceFingerprint: Sha256DigestSchema,
+    }).strict(),
+    PreviewEvidenceV2InputObject.extend({
+      evidenceFingerprint: Sha256DigestSchema,
+    }).strict(),
+  ])
+  .superRefine((evidence, context) => {
+    const { evidenceFingerprint, ...input } = evidence;
+    if (
+      evidenceFingerprint !== computeProductionPreviewEvidenceFingerprint(input)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "ProductionPreviewEvidence fingerprint is stale.",
+        path: ["evidenceFingerprint"],
+      });
+    }
+  })
+  .readonly();
 
 export const buildProductionPreviewEvidence = (rawInput: unknown) => {
+  const isV2 =
+    rawInput !== null &&
+    typeof rawInput === "object" &&
+    !Array.isArray(rawInput) &&
+    "globalVisual" in rawInput;
   const record: Record<string, unknown> = {
     ...(rawInput as Record<string, unknown>),
-    schemaVersion: 1,
-    evidenceVersion: PRODUCTION_PREVIEW_EVIDENCE_VERSION,
+    schemaVersion: isV2 ? 2 : 1,
+    evidenceVersion: isV2
+      ? PRODUCTION_PREVIEW_EVIDENCE_VERSION_V2
+      : PRODUCTION_PREVIEW_EVIDENCE_VERSION,
   };
   delete record.evidenceFingerprint;
   const input = ProductionPreviewEvidenceInputSchema.parse(record);
@@ -464,8 +551,34 @@ const PreviewMechanicalCheckInputObject = z
   })
   .strict();
 
-export const ProductionPreviewMechanicalCheckInputSchema =
-  PreviewMechanicalCheckInputObject.readonly();
+const PreviewMechanicalCheckV2InputObject = z
+  .object({
+    ...PreviewMechanicalCheckInputObject.shape,
+    schemaVersion: z.literal(2),
+    checkVersion: z.literal(PRODUCTION_PREVIEW_MECHANICAL_CHECK_VERSION_V2),
+    checks: z
+      .object({
+        contracts: z.literal("pass"),
+        sceneCoverage: z.literal("pass"),
+        rendererRegistry: z.literal("pass"),
+        projections: z.literal("pass"),
+        globalVisual: z.literal("pass"),
+        composition: z.literal("pass"),
+        media: z.literal("pass"),
+        completeDecode: z.literal("pass"),
+        enhancementPolicy: z.literal("pass"),
+      })
+      .strict()
+      .readonly(),
+  })
+  .strict();
+
+export const ProductionPreviewMechanicalCheckInputSchema = z
+  .union([
+    PreviewMechanicalCheckInputObject.readonly(),
+    PreviewMechanicalCheckV2InputObject.readonly(),
+  ])
+  .readonly();
 
 export const computeProductionPreviewMechanicalCheckFingerprint = (
   rawInput: unknown,
@@ -475,36 +588,51 @@ export const computeProductionPreviewMechanicalCheckFingerprint = (
   const input = ProductionPreviewMechanicalCheckInputSchema.parse(record);
   return createFingerprint({
     namespace: "production-preview-mechanical-check",
-    version: 1,
+    version: input.schemaVersion,
     value: input,
   });
 };
 
-export const ProductionPreviewMechanicalCheckSchema =
-  PreviewMechanicalCheckInputObject.extend({
-    checkFingerprint: Sha256DigestSchema,
+export const ProductionPreviewMechanicalCheckSchema = z
+  .union([
+    PreviewMechanicalCheckInputObject.extend({
+      checkFingerprint: Sha256DigestSchema,
+    }).strict(),
+    PreviewMechanicalCheckV2InputObject.extend({
+      checkFingerprint: Sha256DigestSchema,
+    }).strict(),
+  ])
+  .superRefine((check, context) => {
+    const { checkFingerprint, ...input } = check;
+    if (
+      checkFingerprint !==
+      computeProductionPreviewMechanicalCheckFingerprint(input)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Production preview mechanical check fingerprint is stale.",
+        path: ["checkFingerprint"],
+      });
+    }
   })
-    .strict()
-    .superRefine((check, context) => {
-      const { checkFingerprint, ...input } = check;
-      if (
-        checkFingerprint !==
-        computeProductionPreviewMechanicalCheckFingerprint(input)
-      ) {
-        context.addIssue({
-          code: "custom",
-          message: "Production preview mechanical check fingerprint is stale.",
-          path: ["checkFingerprint"],
-        });
-      }
-    })
-    .readonly();
+  .readonly();
 
 export const buildProductionPreviewMechanicalCheck = (rawInput: unknown) => {
+  const isV2 =
+    rawInput !== null &&
+    typeof rawInput === "object" &&
+    !Array.isArray(rawInput) &&
+    "checks" in rawInput &&
+    (rawInput as { readonly checks?: unknown }).checks !== null &&
+    typeof (rawInput as { readonly checks?: unknown }).checks === "object" &&
+    "globalVisual" in
+      ((rawInput as { readonly checks: Record<string, unknown> }).checks ?? {});
   const record: Record<string, unknown> = {
     ...(rawInput as Record<string, unknown>),
-    schemaVersion: 1,
-    checkVersion: PRODUCTION_PREVIEW_MECHANICAL_CHECK_VERSION,
+    schemaVersion: isV2 ? 2 : 1,
+    checkVersion: isV2
+      ? PRODUCTION_PREVIEW_MECHANICAL_CHECK_VERSION_V2
+      : PRODUCTION_PREVIEW_MECHANICAL_CHECK_VERSION,
   };
   delete record.checkFingerprint;
   const input = ProductionPreviewMechanicalCheckInputSchema.parse(record);
