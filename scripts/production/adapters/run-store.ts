@@ -133,6 +133,7 @@ export const getProductionRunPaths = ({
     run: join(root, "run.json"),
     events: join(root, "events"),
     sceneResults: join(root, "scene-results"),
+    globalVisualResult: join(root, "global-visual-result.json"),
     state: join(root, "state.generated.json"),
     lock: join(root, "lock"),
   } as const;

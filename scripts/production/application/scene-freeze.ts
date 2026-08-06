@@ -2,6 +2,7 @@ import { lstat, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
+  GlobalVisualBriefSchema,
   ResourceCatalogSchema,
   RenderSpecSchema,
   SceneAssignmentSchema,
@@ -12,6 +13,7 @@ import {
   VisualStyleSpecSchema,
   buildSceneAssignmentV3,
   buildSceneTaskInputV3,
+  buildGlobalVisualAssignment,
   computeRenderSpecFingerprint,
   computeStoryFingerprint,
   computeVisualStyleFingerprint,
@@ -162,6 +164,15 @@ const resolveSceneFreezeInputs = async ({
         "SceneProductionBrief",
       ),
     ]);
+  const globalVisualBrief =
+    current.requirements.schemaVersion === 4
+      ? GlobalVisualBriefSchema.parse(
+          await readRegularJson(
+            join(projectDir, "production/global-visual-brief.json"),
+            "GlobalVisualBrief",
+          ),
+        )
+      : null;
   if (
     story.storyId !== loaded.run.storyId ||
     timing.storyId !== loaded.run.storyId ||
@@ -197,6 +208,12 @@ const resolveSceneFreezeInputs = async ({
   if (pool.storyId !== loaded.run.storyId) {
     throw new Error("Story resource pool story identity is stale.");
   }
+  if (
+    globalVisualBrief !== null &&
+    globalVisualBrief.storyId !== loaded.run.storyId
+  ) {
+    throw new Error("GlobalVisualBrief story identity is stale.");
+  }
   const brief = validateSceneProductionBrief({
     brief: SceneProductionBriefSchema.parse(rawBrief),
     story,
@@ -225,6 +242,7 @@ const resolveSceneFreezeInputs = async ({
     visualStyleFingerprint,
     pool,
     brief,
+    globalVisualBrief,
     autoCheckFingerprint,
   } as const;
 };
@@ -277,7 +295,10 @@ const buildAssignments = ({
         };
       },
     );
-    if (current.requirements.schemaVersion !== 3) {
+    if (
+      current.requirements.schemaVersion !== 3 &&
+      current.requirements.schemaVersion !== 4
+    ) {
       throw new Error(
         "New Scene assignments require v3 shared-boundary requirements.",
       );
@@ -333,8 +354,82 @@ const buildAssignments = ({
   return assertSceneAssignmentIsolation(assignments);
 };
 
+const buildGlobalVisualAssignmentForInputs = ({
+  inputs,
+  deadlineAt,
+}: {
+  readonly inputs: Awaited<ReturnType<typeof resolveSceneFreezeInputs>>;
+  readonly deadlineAt: string;
+}) => {
+  const {
+    loaded,
+    current,
+    story,
+    render,
+    timing,
+    catalog,
+    visualStyleFingerprint,
+    pool,
+    globalVisualBrief,
+  } = inputs;
+  if (current.requirements.schemaVersion !== 4) return null;
+  if (globalVisualBrief === null) {
+    throw new Error("GlobalVisualBrief is required for v4 production.");
+  }
+  const allowedResourceIds = catalog.entries
+    .filter(
+      ({ descriptor }) =>
+        pool.allowedResourceIds.includes(descriptor.id) &&
+        descriptor.kind === "asset" &&
+        descriptor.mediaRole === "global-visual" &&
+        descriptor.status === "approved" &&
+        descriptor.allowedUse === "runtime-approved",
+    )
+    .map(({ descriptor }) => descriptor.id)
+    .sort((left, right) => left.localeCompare(right));
+  return buildGlobalVisualAssignment({
+    runId: loaded.run.runId,
+    storyId: story.storyId,
+    compositionId: render.compositionId,
+    requirementsFingerprint: current.requirements.requirementsFingerprint,
+    globalVisualBriefFingerprint: globalVisualBrief.briefFingerprint,
+    storyFingerprint: computeStoryFingerprint(story),
+    renderFingerprint: computeRenderSpecFingerprint(render),
+    semanticTimingFingerprint: timing.fingerprint,
+    visualStyleFingerprint,
+    resourceCatalogFingerprint: catalog.catalogFingerprint,
+    resourcePoolFingerprint: pool.poolFingerprint,
+    readabilityPolicyFingerprint:
+      current.requirements.readabilityPolicy.policyFingerprint,
+    timeline: {
+      fps: render.fps,
+      width: render.width,
+      height: render.height,
+      durationInFrames: timing.durationInFrames,
+      captionSafeArea: current.requirements.readabilityPolicy.captionSafeAreaPx,
+      storyBeatWindows: timing.storyBeats.map(
+        ({ meaningId, startFrame, endFrame }) => ({
+          meaningId,
+          startFrame,
+          endFrame,
+        }),
+      ),
+    },
+    allowedResourceIds,
+    exclusivePaths: {
+      plan: `src/projects/${story.storyId}/global-visual-plan.json`,
+      sourceDirectory: `src/projects/${story.storyId}/global-visual`,
+      publicDirectory: `public/projects/${story.storyId}/global-visual`,
+    },
+    deadlineAt,
+  });
+};
+
 const assignmentPath = (storyId: string, meaningId: string) =>
   `src/projects/${storyId}/production/scene-assignments/${meaningId}.generated.json`;
+
+const globalVisualAssignmentPath = (storyId: string) =>
+  `src/projects/${storyId}/production/global-visual-assignment.generated.json`;
 
 const defaultVerifyNarrativeAutoCheck = async ({
   rootDir,
@@ -378,6 +473,10 @@ export const resolveCurrentSceneAssignments = async ({
     inputs,
     deadlineAt: first.deadlineAt,
   });
+  const globalVisualAssignment = buildGlobalVisualAssignmentForInputs({
+    inputs,
+    deadlineAt: first.deadlineAt,
+  });
   for (const assignment of assignments) {
     await writeOrCheckSceneArtifact({
       destination: join(
@@ -388,7 +487,17 @@ export const resolveCurrentSceneAssignments = async ({
       mode: "check",
     });
   }
-  return { inputs, assignments } as const;
+  if (globalVisualAssignment !== null) {
+    await writeOrCheckSceneArtifact({
+      destination: join(
+        rootDir,
+        globalVisualAssignmentPath(globalVisualAssignment.storyId),
+      ),
+      value: globalVisualAssignment,
+      mode: "check",
+    });
+  }
+  return { inputs, assignments, globalVisualAssignment } as const;
 };
 
 export const runProductionSceneFreeze = async ({
@@ -429,6 +538,10 @@ export const runProductionSceneFreeze = async ({
       inputs,
       deadlineAt: first.deadlineAt,
     });
+    const globalVisualAssignment = buildGlobalVisualAssignmentForInputs({
+      inputs,
+      deadlineAt: first.deadlineAt,
+    });
     for (const assignment of assignments) {
       await writeOrCheckSceneArtifact({
         destination: join(
@@ -436,6 +549,16 @@ export const runProductionSceneFreeze = async ({
           assignmentPath(assignment.storyId, assignment.meaningId),
         ),
         value: assignment,
+        mode: "check",
+      });
+    }
+    if (globalVisualAssignment !== null) {
+      await writeOrCheckSceneArtifact({
+        destination: join(
+          rootDir,
+          globalVisualAssignmentPath(globalVisualAssignment.storyId),
+        ),
+        value: globalVisualAssignment,
         mode: "check",
       });
     }
@@ -447,6 +570,10 @@ export const runProductionSceneFreeze = async ({
       assignmentPaths: assignments.map(({ storyId, meaningId }) =>
         assignmentPath(storyId, meaningId),
       ),
+      globalVisualAssignmentPath:
+        globalVisualAssignment === null
+          ? null
+          : globalVisualAssignmentPath(globalVisualAssignment.storyId),
     } as const;
   }
   const now = clock();
@@ -491,6 +618,10 @@ export const runProductionSceneFreeze = async ({
         now.getTime() + initial.run.policy.sceneTimeoutMs,
       ).toISOString();
       const assignments = buildAssignments({ inputs, deadlineAt });
+      const globalVisualAssignment = buildGlobalVisualAssignmentForInputs({
+        inputs,
+        deadlineAt,
+      });
       for (const assignment of assignments) {
         const destination = join(
           rootDir,
@@ -504,6 +635,22 @@ export const runProductionSceneFreeze = async ({
         await writeOrCheckSceneArtifact({
           destination,
           value: assignment,
+          mode: "check",
+        });
+      }
+      if (globalVisualAssignment !== null) {
+        const destination = join(
+          rootDir,
+          globalVisualAssignmentPath(globalVisualAssignment.storyId),
+        );
+        await writeOrCheckSceneArtifact({
+          destination,
+          value: globalVisualAssignment,
+          mode: "write",
+        });
+        await writeOrCheckSceneArtifact({
+          destination,
+          value: globalVisualAssignment,
           mode: "check",
         });
       }
@@ -547,19 +694,40 @@ export const runProductionSceneFreeze = async ({
             artifactId: "scene-production-brief",
             fingerprint: inputs.brief.briefFingerprint,
           },
+          ...(inputs.globalVisualBrief === null
+            ? []
+            : [
+                {
+                  artifactId: "global-visual-brief",
+                  fingerprint: inputs.globalVisualBrief.briefFingerprint,
+                },
+              ]),
           {
             artifactId: "narrative-auto-check",
             fingerprint: inputs.autoCheckFingerprint,
           },
         ],
-        outputArtifacts: assignments.map((assignment) => ({
-          artifactId: `scene-assignment.${assignment.meaningId}`,
-          repositoryPath: assignmentPath(
-            assignment.storyId,
-            assignment.meaningId,
-          ),
-          fingerprint: assignment.assignmentFingerprint,
-        })),
+        outputArtifacts: [
+          ...assignments.map((assignment) => ({
+            artifactId: `scene-assignment.${assignment.meaningId}`,
+            repositoryPath: assignmentPath(
+              assignment.storyId,
+              assignment.meaningId,
+            ),
+            fingerprint: assignment.assignmentFingerprint,
+          })),
+          ...(globalVisualAssignment === null
+            ? []
+            : [
+                {
+                  artifactId: "global-visual-assignment",
+                  repositoryPath: globalVisualAssignmentPath(
+                    globalVisualAssignment.storyId,
+                  ),
+                  fingerprint: globalVisualAssignment.assignmentFingerprint,
+                },
+              ]),
+        ],
       });
       const appended = await appendProductionRunEvent({
         rootDir,
@@ -575,6 +743,10 @@ export const runProductionSceneFreeze = async ({
         assignmentPaths: assignments.map(({ storyId, meaningId }) =>
           assignmentPath(storyId, meaningId),
         ),
+        globalVisualAssignmentPath:
+          globalVisualAssignment === null
+            ? null
+            : globalVisualAssignmentPath(globalVisualAssignment.storyId),
       } as const;
     } catch (error) {
       const failure = createUnexpectedProductionError({

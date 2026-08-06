@@ -5,10 +5,12 @@ import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 
 import {
+  GlobalVisualAssignmentSchema,
   SceneAssignmentSchema,
   ProductionRequirementSchema,
   VisualStyleSpecSchema,
   buildSceneProductionBrief,
+  buildGlobalVisualBrief,
   buildStoryResourcePool,
   computeVisualStyleFingerprint,
   generateSemanticTiming,
@@ -153,6 +155,30 @@ const createFixture = async (context: TestContext) => {
     join(fixture.projectDir, "production/scene-production-brief.json"),
     brief,
   );
+  const globalVisualBrief = buildGlobalVisualBrief({
+    storyId: "story-example",
+    responsibility:
+      "project-global-background-texture-decoration-continuity-v1",
+    visualIntent: [
+      {
+        intentId: "unified-frame",
+        description: "Carry one restrained frame treatment through the story.",
+        appliesTo: "full-composition",
+      },
+    ],
+    constraints: {
+      captionOwner: "caption-layer",
+      sceneSemanticOwner: "scene-package",
+      visibleText: "forbidden",
+      motion: "remotion-frame-api-only",
+      runtimeExternalAccess: "forbidden",
+      genericDsl: "forbidden",
+    },
+  });
+  await writeProductionJson(
+    join(fixture.projectDir, "production/global-visual-brief.json"),
+    globalVisualBrief,
+  );
   return {
     ...fixture,
     ...baseline,
@@ -161,6 +187,7 @@ const createFixture = async (context: TestContext) => {
     timing,
     pool,
     brief,
+    globalVisualBrief,
   } as const;
 };
 
@@ -177,6 +204,26 @@ test("freezes one assignment per StoryBeat in order and projects Scene requireme
   const result = await freeze(fixture);
   assert.equal(result.status, "scene-inputs-frozen");
   assert.deepEqual(result.meaningIds, ["opening", "conclusion"]);
+  assert.ok(result.globalVisualAssignmentPath !== null);
+  const globalAssignment = GlobalVisualAssignmentSchema.parse(
+    JSON.parse(
+      await readFile(
+        join(fixture.rootDir, result.globalVisualAssignmentPath),
+        "utf8",
+      ),
+    ),
+  );
+  assert.equal(globalAssignment.storyId, "story-example");
+  assert.equal(
+    globalAssignment.globalVisualBriefFingerprint,
+    fixture.globalVisualBrief.briefFingerprint,
+  );
+  assert.deepEqual(
+    globalAssignment.timeline.storyBeatWindows.map(
+      ({ meaningId }) => meaningId,
+    ),
+    ["opening", "conclusion"],
+  );
   const assignments = await Promise.all(
     result.assignmentPaths.map(async (path) =>
       SceneAssignmentSchema.parse(
@@ -234,10 +281,45 @@ test("current freeze rerun is a byte and mtime stable no-op", async (context) =>
   const path = join(fixture.rootDir, first.assignmentPaths[0]);
   const bytes = await readFile(path);
   const mtime = (await stat(path)).mtimeMs;
+  assert.ok(first.globalVisualAssignmentPath !== null);
+  const globalPath = join(fixture.rootDir, first.globalVisualAssignmentPath);
+  const globalBytes = await readFile(globalPath);
+  const globalMtime = (await stat(globalPath)).mtimeMs;
   const repeated = await freeze(fixture);
   assert.equal(repeated.noOp, true);
   assert.deepEqual(await readFile(path), bytes);
   assert.equal((await stat(path)).mtimeMs, mtime);
+  assert.deepEqual(await readFile(globalPath), globalBytes);
+  assert.equal((await stat(globalPath)).mtimeMs, globalMtime);
+});
+
+test("missing GlobalVisualBrief fails before writing any assignment", async (context) => {
+  const fixture = await createFixture(context);
+  await writeProductionJson(
+    join(fixture.projectDir, "production/global-visual-brief.json"),
+    { malformed: true },
+  );
+  await assert.rejects(() => freeze(fixture));
+  await assert.rejects(
+    () =>
+      readFile(
+        join(
+          fixture.projectDir,
+          "production/scene-assignments/opening.generated.json",
+        ),
+      ),
+    { code: "ENOENT" },
+  );
+  await assert.rejects(
+    () =>
+      readFile(
+        join(
+          fixture.projectDir,
+          "production/global-visual-assignment.generated.json",
+        ),
+      ),
+    { code: "ENOENT" },
+  );
 });
 
 test("fails closed on requirements, timing, style, pool, or Scene brief drift", async (context) => {

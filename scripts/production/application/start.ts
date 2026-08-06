@@ -144,9 +144,9 @@ export const runProductionStart = async ({
     projectId: rawProjectId,
   });
   const { projectId, requirements } = inputs;
-  if (requirements.schemaVersion !== 3) {
+  if (requirements.schemaVersion !== 4) {
     throw new Error(
-      "New production runs require production-requirements-freeze-v3.",
+      "New production runs require production-requirements-freeze-v4.",
     );
   }
   requireCurrentProductionReadabilityPolicy(requirements);

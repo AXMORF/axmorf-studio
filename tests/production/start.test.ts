@@ -89,7 +89,7 @@ const createStartFixture = async (context: TestContext) => {
       storyVisual: "required",
       sceneLocalSound: "allowed",
       globalSound: "none",
-      globalVisual: "none",
+      globalVisual: "required",
     },
     resourcePolicy: {
       selfAuthoredVisualsAllowed: true,
@@ -189,7 +189,10 @@ test("refuses to start a new run from a readable legacy v1 freeze", async (conte
   const legacy = buildProductionRequirementsFreezeV1({
     source: fixture.source,
     sourceChecksums: fixture.sourceChecksums,
-    enhancementSelection: fixture.requirements.enhancementSelection,
+    enhancementSelection: {
+      ...fixture.requirements.enhancementSelection,
+      globalVisual: "none",
+    },
     resourcePolicy: fixture.requirements.resourcePolicy,
     additionalRequirements: fixture.requirements.additionalRequirements,
   });
@@ -198,7 +201,7 @@ test("refuses to start a new run from a readable legacy v1 freeze", async (conte
     legacy,
   );
 
-  await assert.rejects(() => start(fixture.rootDir), /freeze-v3/iu);
+  await assert.rejects(() => start(fixture.rootDir), /freeze-v4/iu);
   await assert.rejects(
     () => access(join(fixture.rootDir, ".producer-runs", fixedRunId)),
     /ENOENT/,

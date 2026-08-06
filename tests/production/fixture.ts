@@ -101,7 +101,7 @@ export const createProductionFixture = async (
       storyVisual: "required",
       sceneLocalSound: "allowed",
       globalSound: "none",
-      globalVisual: "none",
+      globalVisual: "required",
     },
     resourcePolicy: {
       selfAuthoredVisualsAllowed: true,

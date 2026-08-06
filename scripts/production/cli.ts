@@ -9,6 +9,9 @@ import { redactProductionErrorDescription } from "./adapters/error-redaction";
 import { readProductionRunStore } from "./adapters/run-store";
 import {
   runProductionNarrative,
+  runProductionGlobalVisualFail,
+  runProductionGlobalVisualCheck,
+  runProductionGlobalVisualSubmit,
   runProductionPostScene,
   runProductionPreflight,
   runProductionSceneFail,
@@ -56,6 +59,20 @@ type ProductionCliContext = Readonly<{
     readonly rootDir: string;
     readonly runId: string;
     readonly meaningId: string;
+    readonly code: string;
+    readonly description: string;
+  }) => Promise<unknown>;
+  globalVisualCheck?: (request: {
+    readonly rootDir: string;
+    readonly runId: string;
+  }) => Promise<unknown>;
+  globalVisualSubmit?: (request: {
+    readonly rootDir: string;
+    readonly runId: string;
+  }) => Promise<unknown>;
+  globalVisualFail?: (request: {
+    readonly rootDir: string;
+    readonly runId: string;
     readonly code: string;
     readonly description: string;
   }) => Promise<unknown>;
@@ -141,6 +158,30 @@ export const runProductionCli = async (
       ? await context.sceneFreeze({ rootDir: context.rootDir, runId })
       : await runProductionSceneFreeze({ rootDir: context.rootDir, runId });
   } else if (
+    args.length === 3 &&
+    args[0] === "global-visual-check" &&
+    args[1] === "--run"
+  ) {
+    const runId = ProductionRunIdSchema.parse(args[2]);
+    result = context.globalVisualCheck
+      ? await context.globalVisualCheck({ rootDir: context.rootDir, runId })
+      : await runProductionGlobalVisualCheck({
+          rootDir: context.rootDir,
+          runId,
+        });
+  } else if (
+    args.length === 3 &&
+    args[0] === "global-visual-submit" &&
+    args[1] === "--run"
+  ) {
+    const runId = ProductionRunIdSchema.parse(args[2]);
+    result = context.globalVisualSubmit
+      ? await context.globalVisualSubmit({ rootDir: context.rootDir, runId })
+      : await runProductionGlobalVisualSubmit({
+          rootDir: context.rootDir,
+          runId,
+        });
+  } else if (
     args.length === 5 &&
     args[0] === "scene-check" &&
     args[1] === "--run" &&
@@ -192,6 +233,29 @@ export const runProductionCli = async (
     result = context.previewCheck
       ? await context.previewCheck({ rootDir: context.rootDir, runId })
       : await runProductionPostScene({ rootDir: context.rootDir, runId });
+  } else if (
+    args.length === 7 &&
+    args[0] === "global-visual-fail" &&
+    args[1] === "--run" &&
+    args[3] === "--code" &&
+    args[5] === "--description"
+  ) {
+    const runId = ProductionRunIdSchema.parse(args[2]);
+    const code = args[4];
+    const description = args[6];
+    result = context.globalVisualFail
+      ? await context.globalVisualFail({
+          rootDir: context.rootDir,
+          runId,
+          code,
+          description,
+        })
+      : await runProductionGlobalVisualFail({
+          rootDir: context.rootDir,
+          runId,
+          code,
+          description,
+        });
   } else if (
     args.length === 9 &&
     args[0] === "scene-fail" &&
