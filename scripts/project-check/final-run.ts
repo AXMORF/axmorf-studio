@@ -1,5 +1,5 @@
 import { access, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import { z } from "zod";
 
@@ -775,7 +775,7 @@ export const resolveFinalPreviewEvidencePath = async (
   );
   const [hasCanonical, hasLegacy] = await Promise.all([
     pathExists(canonical),
-    legacy === null ? false : pathExists(legacy),
+    pathExists(legacy),
   ]);
   if (hasCanonical && hasLegacy) {
     throw new Error(
@@ -783,7 +783,7 @@ export const resolveFinalPreviewEvidencePath = async (
     );
   }
   if (hasCanonical) return canonical;
-  if (legacy !== null && hasLegacy) return legacy;
+  if (hasLegacy) return legacy;
   throw new Error("FinalPreviewEvidence is missing.");
 };
 
@@ -915,12 +915,7 @@ export const loadCurrentFinalM8Branch = async ({
         projectId,
       );
       evidence = FinalPreviewEvidenceSchema.parse(
-        await loadProjectCheckJson(
-          evidencePath,
-          evidencePath.endsWith("/m8-final-preview-evidence.generated.json")
-            ? "m8-final-preview-evidence.generated.json"
-            : "final-preview-evidence.generated.json",
-        ),
+        await loadProjectCheckJson(evidencePath, basename(evidencePath)),
       );
       if (
         assembly === null ||

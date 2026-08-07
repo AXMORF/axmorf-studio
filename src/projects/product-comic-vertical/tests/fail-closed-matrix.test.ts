@@ -24,9 +24,9 @@ import {
   createFingerprint,
 } from "../../../contracts";
 import { assertGuardedSource } from "../../../../scripts/external-references/source-guard";
-import { resolveHistoricalProjectToolPath } from "../../../../scripts/compatibility/formal-project-artifacts-v1";
 import { validateComicDesignSystem } from "../tools/verification/design-system";
 import { assertM9MasteringMeasurements } from "../tools/verification/final-evidence";
+import { resolveHistoricalProjectToolPath } from "../tools/verification/historical-tool-paths";
 import {
   computeShotcraftFingerprint,
   validateCoverageDocument,

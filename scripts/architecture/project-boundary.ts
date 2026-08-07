@@ -10,6 +10,9 @@ const CORE_ROOTS = [
   "scripts/registry",
   "scripts/catalog",
   "scripts/project-check",
+  "scripts/project-validation",
+  "scripts/baseline",
+  "scripts/compatibility",
 ] as const;
 
 const toPosix = (path: string) => path.split(sep).join(posix.sep);
@@ -87,6 +90,38 @@ export const findCoreProjectImportViolations = async (rootDir: string) => {
         ) {
           violations.push(`${sourcePath} -> ${target}`);
         }
+      }
+    }
+  }
+  return violations.sort();
+};
+
+export const findCoreConcreteProjectIdViolations = async (rootDir: string) => {
+  const projectIds = await listDirectories(join(rootDir, "src/projects"));
+  const centralFiles = [
+    ...(
+      await Promise.all(
+        CORE_ROOTS.map((coreRoot) => listFiles(join(rootDir, coreRoot))),
+      )
+    ).flat(),
+    join(rootDir, "package.json"),
+    join(rootDir, "src/remotion/catalog/assets.manifest.json"),
+  ];
+  const violations: string[] = [];
+  for (const absolutePath of centralFiles) {
+    if (absolutePath.endsWith("resource-catalog.generated.json")) continue;
+    let source: string;
+    try {
+      source = await readFile(absolutePath, "utf8");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+      throw error;
+    }
+    for (const projectId of projectIds) {
+      if (source.includes(projectId)) {
+        violations.push(
+          `${toPosix(relative(rootDir, absolutePath))}: ${projectId}`,
+        );
       }
     }
   }

@@ -7,6 +7,7 @@ import test, { type TestContext } from "node:test";
 import {
   collectDefaultCheckScripts,
   findCentralProjectOwnershipViolations,
+  findCoreConcreteProjectIdViolations,
   findCoreProjectImportViolations,
   findDefaultCheckArtifactViolations,
 } from "../../scripts/architecture/project-boundary";
@@ -82,6 +83,13 @@ test("central project-owned tests and tools are structural violations", async (c
 test("the current repository has no central project-owned tests or tools", async () => {
   assert.deepEqual(
     await findCentralProjectOwnershipViolations(process.cwd()),
+    [],
+  );
+});
+
+test("core and active central configuration contain no concrete current Project IDs", async () => {
+  assert.deepEqual(
+    await findCoreConcreteProjectIdViolations(process.cwd()),
     [],
   );
 });

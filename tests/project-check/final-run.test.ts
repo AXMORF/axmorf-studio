@@ -41,21 +41,21 @@ test("FinalAssembly Catalog derives the sealed M9 Scene Catalog without final-ow
   );
   assert.ok(
     sceneCatalog.entries.some(
-      ({descriptor}) =>
+      ({ descriptor }) =>
         descriptor.id ===
         "asset.product-comic-vertical.scene.problem-hook.identity-break-pulse",
     ),
   );
   assert.ok(
     sceneCatalog.entries.some(
-      ({descriptor}) =>
+      ({ descriptor }) =>
         descriptor.id ===
         "reference.product-comic-vertical.draw-svg-trace-demo",
     ),
   );
   assert.ok(
     sceneCatalog.entries.every(
-      ({descriptor}) =>
+      ({ descriptor }) =>
         descriptor.kind !== "asset" ||
         !["global-bgm", "cross-scene-ambience", "global-visual"].includes(
           descriptor.mediaRole,
@@ -63,14 +63,14 @@ test("FinalAssembly Catalog derives the sealed M9 Scene Catalog without final-ow
     ),
   );
   assert.deepEqual(
-    deduplicateCatalogCandidates([sceneCatalog, {...sceneCatalog}]),
+    deduplicateCatalogCandidates([sceneCatalog, { ...sceneCatalog }]),
     [sceneCatalog],
   );
 });
 
 test("Scene branch selects the unique Catalog bound by all ready Scene tasks", () => {
-  const base = {catalogFingerprint: sha("1"), source: "base"};
-  const project = {catalogFingerprint: sha("2"), source: "project"};
+  const base = { catalogFingerprint: sha("1"), source: "base" };
+  const project = { catalogFingerprint: sha("2"), source: "project" };
   assert.equal(
     selectCurrentSceneResourceCatalog({
       catalogs: [base, project],
@@ -99,7 +99,7 @@ test("Scene branch selects the unique Catalog bound by all ready Scene tasks", (
   );
   assert.throws(() =>
     selectCurrentSceneResourceCatalog({
-      catalogs: [project, {...project}],
+      catalogs: [project, { ...project }],
       taskCatalogFingerprints: [sha("2")],
     }),
   );
@@ -113,52 +113,35 @@ test("Scene branch selects the unique Catalog bound by all ready Scene tasks", (
   );
   assert.throws(() =>
     selectCurrentCatalogByFingerprint({
-      catalogs: [project, {...project}],
+      catalogs: [project, { ...project }],
       fingerprint: sha("2"),
       authority: "VisualStyleSpec",
     }),
   );
 });
 
-test("final preview evidence path is canonical with GPS-only legacy compatibility", async (context) => {
+test("final preview evidence path resolves generic legacy filenames and rejects conflicts", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-final-evidence-path-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const generated = join(rootDir, "src/projects/gps-relativity/generated");
+  const generated = join(rootDir, "src/projects/alpha-story/generated");
   await mkdir(generated, { recursive: true });
   await writeFile(
     join(generated, "m8-final-preview-evidence.generated.json"),
     "{}\n",
   );
   assert.equal(
-    await resolveFinalPreviewEvidencePath(rootDir, "gps-relativity"),
+    await resolveFinalPreviewEvidencePath(rootDir, "alpha-story"),
     join(generated, "m8-final-preview-evidence.generated.json"),
   );
   const canonical = join(generated, "final-preview-evidence.generated.json");
   await writeFile(canonical, "{}\n");
   await assert.rejects(() =>
-    resolveFinalPreviewEvidencePath(rootDir, "gps-relativity"),
+    resolveFinalPreviewEvidencePath(rootDir, "alpha-story"),
   );
-
-  const productGenerated = join(
-    rootDir,
-    "src/projects/product-comic-vertical/generated",
-  );
-  await mkdir(productGenerated, { recursive: true });
-  await writeFile(
-    join(productGenerated, "m8-final-preview-evidence.generated.json"),
-    "{}\n",
-  );
-  await assert.rejects(() =>
-    resolveFinalPreviewEvidencePath(rootDir, "product-comic-vertical"),
-  );
-  await writeFile(
-    join(productGenerated, "final-preview-evidence.generated.json"),
-    "{}\n",
-  );
-  await rm(join(productGenerated, "m8-final-preview-evidence.generated.json"));
+  await rm(join(generated, "m8-final-preview-evidence.generated.json"));
   assert.equal(
-    await resolveFinalPreviewEvidencePath(rootDir, "product-comic-vertical"),
-    join(productGenerated, "final-preview-evidence.generated.json"),
+    await resolveFinalPreviewEvidencePath(rootDir, "alpha-story"),
+    join(generated, "final-preview-evidence.generated.json"),
   );
 });
 

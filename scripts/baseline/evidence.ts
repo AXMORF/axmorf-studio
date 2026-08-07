@@ -23,7 +23,6 @@ import {
   discoverProjectEntries,
   loadProjectRegistrationEntry,
 } from "../registry/project-files";
-import { getFormalProjectArtifactCompatibility } from "../compatibility/formal-project-artifacts-v1";
 
 export type ProcessResult = {
   readonly status: number;
@@ -271,13 +270,6 @@ export const resolveM3GeneratedRegistryChecksum = async ({
   readonly storyId: string;
   readonly entry: ValidatedProjectRegistrationEntry;
 }) => {
-  const compatibility = getFormalProjectArtifactCompatibility(storyId);
-  if (
-    compatibility?.narrativeBaselineRegistryChecksum !==
-    "legacy-evidence-receipt"
-  ) {
-    return entry.generatedEntryChecksum;
-  }
   const legacyReceiptPath = join(
     rootDir,
     `src/projects/${storyId}/generated/narrative-baseline-evidence.generated.json`,
