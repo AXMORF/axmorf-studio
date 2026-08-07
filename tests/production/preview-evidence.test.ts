@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -9,8 +9,13 @@ import {
   ProductionPreviewMechanicalCheckSchema,
   buildProductionPreviewEvidence,
   buildProductionPreviewMechanicalCheck,
+  serializeCanonicalJson,
 } from "../../src/contracts";
 import { inspectProductionPreviewMedia } from "../../scripts/production/application/preview-evidence";
+import {
+  writeOrCheckProductionPreviewEvidence,
+  writeOrCheckProductionPreviewMechanicalCheck,
+} from "../../scripts/production/application/preview-evidence";
 import {
   validGlobalVisualIdentity,
   validPreviewEvidenceInput,
@@ -39,6 +44,82 @@ test("accepts only mechanically-ready current preview evidence", () => {
           frameCount: 299,
         },
       },
+    }),
+  );
+});
+
+test("future preview evidence and checks are Run-owned", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-preview-run-owned-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const runId = "story-example-run-001";
+  const evidence = buildProductionPreviewEvidence(validPreviewEvidenceInput);
+  const check = buildProductionPreviewMechanicalCheck({
+    storyId: evidence.storyId,
+    requirementsFingerprint: evidence.requirementsFingerprint,
+    previewAssemblyFingerprint: evidence.previewAssemblyFingerprint,
+    evidenceFingerprint: evidence.evidenceFingerprint,
+    checks: {
+      contracts: "pass",
+      sceneCoverage: "pass",
+      rendererRegistry: "pass",
+      projections: "pass",
+      composition: "pass",
+      media: "pass",
+      completeDecode: "pass",
+      enhancementAbsence: "pass",
+    },
+    aggregateStatus: "mechanically-ready",
+    handoff: "awaiting explicit user preview decision",
+  });
+
+  await writeOrCheckProductionPreviewEvidence({
+    rootDir,
+    runId,
+    evidence,
+    mode: "write",
+  });
+  await writeOrCheckProductionPreviewMechanicalCheck({
+    rootDir,
+    runId,
+    check,
+    mode: "write",
+  });
+  await access(
+    join(
+      rootDir,
+      `.producer-runs/${runId}/artifacts/production-preview-evidence.generated.json`,
+    ),
+  );
+  await access(
+    join(
+      rootDir,
+      `.producer-runs/${runId}/artifacts/production-preview-mechanical-check.generated.json`,
+    ),
+  );
+  await assert.rejects(() =>
+    access(
+      join(
+        rootDir,
+        `src/projects/${evidence.storyId}/generated/production-preview-evidence.generated.json`,
+      ),
+    ),
+  );
+
+  const legacyRepositoryPath = `src/projects/${evidence.storyId}/generated/production-preview-evidence.generated.json`;
+  await mkdir(join(rootDir, `src/projects/${evidence.storyId}/generated`), {
+    recursive: true,
+  });
+  await writeFile(
+    join(rootDir, legacyRepositoryPath),
+    `${serializeCanonicalJson(evidence)}\n`,
+  );
+  await assert.doesNotReject(() =>
+    writeOrCheckProductionPreviewEvidence({
+      rootDir,
+      runId,
+      evidence,
+      mode: "check",
+      artifactRepositoryPath: legacyRepositoryPath,
     }),
   );
 });

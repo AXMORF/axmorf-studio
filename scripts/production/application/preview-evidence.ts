@@ -13,6 +13,7 @@ import {
 import type { ProcessRunner } from "../../baseline/evidence";
 import { writeOrCheckSceneArtifact } from "../../scene-package/project-files";
 import { runProductionMediaProcess } from "../adapters/process-runner";
+import { getProductionRunPaths } from "../adapters/run-store";
 
 type ProbeStream = Readonly<{
   codec_type?: unknown;
@@ -175,48 +176,83 @@ export const inspectProductionPreviewMedia = async ({
   } as const;
 };
 
-const productionEvidencePath = (rootDir: string, storyId: string) =>
-  join(
-    rootDir,
-    "src/projects",
-    StoryIdSchema.parse(storyId),
-    "generated/production-preview-evidence.generated.json",
-  );
-
-const productionMechanicalCheckPath = (rootDir: string, storyId: string) =>
-  join(
-    rootDir,
-    "src/projects",
-    StoryIdSchema.parse(storyId),
-    "generated/production-preview-mechanical-check.generated.json",
-  );
+const resolveArtifactDestination = ({
+  rootDir,
+  runId,
+  fileName,
+  mode,
+  artifactRepositoryPath,
+}: {
+  readonly rootDir: string;
+  readonly runId: string;
+  readonly fileName: string;
+  readonly mode: "write" | "check";
+  readonly artifactRepositoryPath?: string;
+}) => {
+  const runPaths = getProductionRunPaths({ rootDir, runId });
+  if (artifactRepositoryPath !== undefined) {
+    if (
+      mode !== "check" ||
+      artifactRepositoryPath.startsWith("/") ||
+      artifactRepositoryPath.includes("\\") ||
+      artifactRepositoryPath.split("/").includes("..") ||
+      artifactRepositoryPath.includes("://")
+    ) {
+      throw new Error("Production preview artifact path is unsafe.");
+    }
+    return join(rootDir, artifactRepositoryPath);
+  }
+  return join(runPaths.artifacts, fileName);
+};
 
 export const writeOrCheckProductionPreviewEvidence = async ({
   rootDir,
+  runId,
   evidence: rawEvidence,
   mode,
+  artifactRepositoryPath,
 }: {
   readonly rootDir: string;
+  readonly runId: string;
   readonly evidence: ProductionPreviewEvidence;
   readonly mode: "write" | "check";
+  readonly artifactRepositoryPath?: string;
 }) => {
   const evidence = ProductionPreviewEvidenceSchema.parse(rawEvidence);
-  const destination = productionEvidencePath(rootDir, evidence.storyId);
+  StoryIdSchema.parse(evidence.storyId);
+  const destination = resolveArtifactDestination({
+    rootDir,
+    runId,
+    fileName: "production-preview-evidence.generated.json",
+    mode,
+    artifactRepositoryPath,
+  });
   await writeOrCheckSceneArtifact({ destination, value: evidence, mode });
   return evidence;
 };
 
 export const writeOrCheckProductionPreviewMechanicalCheck = async ({
   rootDir,
+  runId,
   check: rawCheck,
   mode,
+  artifactRepositoryPath,
 }: {
   readonly rootDir: string;
+  readonly runId: string;
   readonly check: ProductionPreviewMechanicalCheck;
   readonly mode: "write" | "check";
+  readonly artifactRepositoryPath?: string;
 }) => {
   const check = ProductionPreviewMechanicalCheckSchema.parse(rawCheck);
-  const destination = productionMechanicalCheckPath(rootDir, check.storyId);
+  StoryIdSchema.parse(check.storyId);
+  const destination = resolveArtifactDestination({
+    rootDir,
+    runId,
+    fileName: "production-preview-mechanical-check.generated.json",
+    mode,
+    artifactRepositoryPath,
+  });
   await writeOrCheckSceneArtifact({ destination, value: check, mode });
   return check;
 };

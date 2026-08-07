@@ -644,12 +644,14 @@ export const createDefaultPostSceneProductionDependencies = ({
     },
     previewEvidence: async ({
       rootDir,
+      runId,
       storyId,
       requirementsFingerprint,
       mode,
       assembly,
       fullPreview,
       reviewMedia,
+      artifactRepositoryPath,
     }) => {
       const sources = await loadPreviewSources(rootDir, storyId);
       const inspected = await inspectProductionPreviewMedia({
@@ -737,17 +739,21 @@ export const createDefaultPostSceneProductionDependencies = ({
       });
       return writeOrCheckProductionPreviewEvidence({
         rootDir,
+        runId,
         evidence,
         mode,
+        artifactRepositoryPath,
       });
     },
     mechanicalCheck: async ({
       rootDir,
+      runId,
       storyId,
       requirementsFingerprint,
       mode,
       assembly,
       evidence,
+      artifactRepositoryPath,
     }) => {
       const check = buildProductionPreviewMechanicalCheck({
         storyId,
@@ -774,8 +780,10 @@ export const createDefaultPostSceneProductionDependencies = ({
       });
       return writeOrCheckProductionPreviewMechanicalCheck({
         rootDir,
+        runId,
         check,
         mode,
+        artifactRepositoryPath,
       });
     },
     checkCurrentPreview: async (request) => {
@@ -793,14 +801,28 @@ export const createDefaultPostSceneProductionDependencies = ({
       ) {
         throw new Error("Current production preview registry is stale.");
       }
+      const loaded = await readProductionRunStore({
+        rootDir: request.rootDir,
+        runId: request.runId,
+      });
+      const evidenceArtifact = loaded.state.outputArtifacts.find(
+        ({ artifactId }) => artifactId === "production-preview-evidence",
+      );
+      const checkArtifact = loaded.state.outputArtifacts.find(
+        ({ artifactId }) =>
+          artifactId === "production-preview-mechanical-check",
+      );
+      if (evidenceArtifact === undefined || checkArtifact === undefined) {
+        throw new Error("Production preview Run artifacts are missing.");
+      }
       const evidence = ProductionPreviewEvidenceSchema.parse(
         await readJsonFile(
-          join(
-            request.rootDir,
-            `src/projects/${request.storyId}/generated/production-preview-evidence.generated.json`,
-          ),
+          join(request.rootDir, evidenceArtifact.repositoryPath),
         ),
       );
+      if (evidenceArtifact.fingerprint !== evidence.evidenceFingerprint) {
+        throw new Error("Production preview evidence Run identity is stale.");
+      }
       await dependencies.previewEvidence({
         ...request,
         mode: "check",
@@ -810,20 +832,20 @@ export const createDefaultPostSceneProductionDependencies = ({
           representativeStills: evidence.media.representativeStills,
           contactSheet: evidence.media.contactSheet,
         },
+        artifactRepositoryPath: evidenceArtifact.repositoryPath,
       });
       const check = ProductionPreviewMechanicalCheckSchema.parse(
-        await readJsonFile(
-          join(
-            request.rootDir,
-            `src/projects/${request.storyId}/generated/production-preview-mechanical-check.generated.json`,
-          ),
-        ),
+        await readJsonFile(join(request.rootDir, checkArtifact.repositoryPath)),
       );
+      if (checkArtifact.fingerprint !== check.checkFingerprint) {
+        throw new Error("Production preview check Run identity is stale.");
+      }
       await dependencies.mechanicalCheck({
         ...request,
         mode: "check",
         assembly,
         evidence,
+        artifactRepositoryPath: checkArtifact.repositoryPath,
       });
       return { assembly, evidence, check };
     },

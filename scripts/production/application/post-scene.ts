@@ -67,6 +67,7 @@ export type PostSceneProductionDependencies = Readonly<{
     request: CommonPostSceneRequest &
       Readonly<{
         mode: "write" | "check";
+        artifactRepositoryPath?: string;
         assembly: ProductionPreviewAssembly;
         fullPreview: PreviewMediaIdentity;
         reviewMedia: PreviewReviewMedia;
@@ -76,6 +77,7 @@ export type PostSceneProductionDependencies = Readonly<{
     request: CommonPostSceneRequest &
       Readonly<{
         mode: "write" | "check";
+        artifactRepositoryPath?: string;
         assembly: ProductionPreviewAssembly;
         evidence: ProductionPreviewEvidence;
       }>,
@@ -440,12 +442,12 @@ export const runProductionPostScene = async ({
           },
           {
             artifactId: "production-preview-evidence",
-            repositoryPath: `src/projects/${loaded.run.storyId}/generated/production-preview-evidence.generated.json`,
+            repositoryPath: `.producer-runs/${loaded.run.runId}/artifacts/production-preview-evidence.generated.json`,
             fingerprint: evidence.evidenceFingerprint,
           },
           {
             artifactId: "production-preview-mechanical-check",
-            repositoryPath: `src/projects/${loaded.run.storyId}/generated/production-preview-mechanical-check.generated.json`,
+            repositoryPath: `.producer-runs/${loaded.run.runId}/artifacts/production-preview-mechanical-check.generated.json`,
             fingerprint: check.checkFingerprint,
           },
         ],

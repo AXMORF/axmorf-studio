@@ -80,6 +80,7 @@ test("initializes an immutable run and appends one canonical event byte-stably",
   });
   assert.equal(first.written, true);
   const paths = getProductionRunPaths({ rootDir, runId: run.runId });
+  assert.equal(paths.artifacts, join(paths.root, "artifacts"));
   const eventPath = join(
     paths.events,
     "000001-production-start-succeeded-1.json",

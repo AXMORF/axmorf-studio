@@ -192,6 +192,20 @@ test("runs the fixed post-scene pipeline and ends only at preview-ready", async 
     (await readProductionRunStore(fixture)).state.state,
     "preview-ready",
   );
+  const outputArtifacts = (await readProductionRunStore(fixture)).state
+    .outputArtifacts;
+  assert.equal(
+    outputArtifacts.find(
+      ({ artifactId }) => artifactId === "production-preview-evidence",
+    )?.repositoryPath,
+    `.producer-runs/${fixture.runId}/artifacts/production-preview-evidence.generated.json`,
+  );
+  assert.equal(
+    outputArtifacts.find(
+      ({ artifactId }) => artifactId === "production-preview-mechanical-check",
+    )?.repositoryPath,
+    `.producer-runs/${fixture.runId}/artifacts/production-preview-mechanical-check.generated.json`,
+  );
   assert.doesNotMatch(
     JSON.stringify(result),
     /approved|reviewed|quality-pass|released/u,

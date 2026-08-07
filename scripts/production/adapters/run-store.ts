@@ -132,6 +132,7 @@ export const getProductionRunPaths = ({
     root,
     run: join(root, "run.json"),
     events: join(root, "events"),
+    artifacts: join(root, "artifacts"),
     sceneResults: join(root, "scene-results"),
     globalVisualResult: join(root, "global-visual-result.json"),
     state: join(root, "state.generated.json"),
@@ -225,6 +226,7 @@ export const initializeProductionRunStore = async ({
   }
   try {
     await mkdir(paths.events);
+    await mkdir(paths.artifacts);
     await mkdir(paths.sceneResults);
     const state = createInitialProductionRunState(run);
     await writeAtomic({
