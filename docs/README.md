@@ -33,6 +33,11 @@
 | 新仓库初始化和白名单迁移            | [guides/BOOTSTRAP_IMPORT_MANIFEST.md](guides/BOOTSTRAP_IMPORT_MANIFEST.md)     |
 | Narrative 数据合同说明              | [contracts/NARRATIVE_CONTRACTS.md](contracts/NARRATIVE_CONTRACTS.md)           |
 
+## 当前待实施计划
+
+- [Project 可删除性与产物解耦实施计划](PROJECT_DELETABILITY_IMPLEMENTATION_PLAN.md)：使任意具体
+  Project 和 `out/` 媒体都不再成为核心系统健康的前置条件；当前仅为计划，尚未实现。
+
 ## 证据、提案与历史
 
 - `evidence/`：一次里程碑或作品验收的历史证据，不承担当前状态。
