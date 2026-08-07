@@ -22,7 +22,10 @@ import {
   type ResourceAssetDescriptor,
 } from "../../../../contracts";
 import { resolveGlobalSound } from "../../../../remotion/runtime/global-sound";
-import { buildResourceCatalog } from "../../../../../scripts/catalog/domain";
+import {
+  buildResourceCatalog,
+  deriveCatalogWithoutProjectOwnedDescriptors,
+} from "../../../../../scripts/catalog/domain";
 import { validateAssetDescriptorFiles } from "../../../../../scripts/catalog/project-files";
 import { checksumFile } from "../../../../../scripts/project-check/project-files";
 import { loadCurrentFinalSceneBranch } from "../../../../../scripts/project-check/final-run";
@@ -53,7 +56,7 @@ const createLicenseFingerprint = (descriptor: ResourceAssetDescriptor) =>
 
 export const buildGpsM8FrozenInputs = async (rootDir: string) => {
   const [
-    baseCatalog,
+    projectCatalog,
     overlay,
     timing,
     render,
@@ -62,7 +65,7 @@ export const buildGpsM8FrozenInputs = async (rootDir: string) => {
   ] = await Promise.all([
     readJson(
       rootDir,
-      "src/remotion/catalog/resource-catalog.generated.json",
+      "src/projects/gps-relativity/generated/resource-catalog.generated.json",
     ).then(ResourceCatalogSchema.parse),
     readJson(rootDir, "src/projects/gps-relativity/resource-catalog.json").then(
       OverlaySchema.parse,
@@ -83,6 +86,10 @@ export const buildGpsM8FrozenInputs = async (rootDir: string) => {
       "src/projects/gps-relativity/generated/narrative-auto-check.generated.json",
     ).then(NarrativeAutoCheckReportSchema.parse),
   ]);
+  const baseCatalog = deriveCatalogWithoutProjectOwnedDescriptors(
+    projectCatalog,
+    STORY_ID,
+  );
   if (
     overlay.baseCatalogFingerprint !== baseCatalog.catalogFingerprint ||
     timing.storyId !== STORY_ID ||

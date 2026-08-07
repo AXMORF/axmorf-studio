@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { lstat, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { lstat, readFile, readdir } from "node:fs/promises";
+import { join, posix, relative, sep } from "node:path";
 import ts from "typescript";
 
 import {
@@ -117,8 +117,84 @@ const withAuthorityChecksum = async (
   });
 };
 
+const toRepositoryPath = (rootDir: string, path: string) =>
+  relative(rootDir, path).split(sep).join(posix.sep);
+
+export const loadProjectResourceDescriptors = async (
+  rootDir: string,
+  projectId?: string,
+): Promise<readonly ResourceDescriptor[]> => {
+  const projectsRoot = join(rootDir, "src/projects");
+  let projects;
+  try {
+    projects = await readdir(projectsRoot, { withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+  const descriptors: ResourceDescriptor[] = [];
+  for (const project of projects.sort((left, right) =>
+    left.name.localeCompare(right.name),
+  )) {
+    if (projectId !== undefined && project.name !== projectId) continue;
+    if (project.isSymbolicLink()) {
+      throw new Error(
+        `Project symbolic links are not allowed: ${project.name}.`,
+      );
+    }
+    if (!project.isDirectory()) continue;
+    for (const fileName of ["assets.manifest.json", "resource-catalog.json"]) {
+      const manifestPath = join(projectsRoot, project.name, fileName);
+      let metadata;
+      try {
+        metadata = await lstat(manifestPath);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+        throw error;
+      }
+      if (!metadata.isFile() || metadata.isSymbolicLink()) {
+        throw new Error("Project Catalog authority must be a regular file.");
+      }
+      const raw = JSON.parse(await readFile(manifestPath, "utf8"));
+      if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+        throw new Error("Project Catalog manifest is malformed.");
+      }
+      const record = raw as Record<string, unknown>;
+      if (
+        record.schemaVersion !== 1 ||
+        (record.projectId !== undefined && record.projectId !== project.name)
+      ) {
+        throw new Error("Project Catalog manifest identity is stale.");
+      }
+      const declarations =
+        fileName === "assets.manifest.json"
+          ? record.assets
+          : record.descriptors;
+      if (!Array.isArray(declarations)) {
+        throw new Error("Project Catalog descriptor list is missing.");
+      }
+      const repositoryPath = toRepositoryPath(rootDir, manifestPath);
+      for (const declaration of declarations) {
+        const descriptor = ResourceDescriptorSchema.parse(declaration);
+        if (descriptor.authority.repositoryPath !== repositoryPath) {
+          throw new Error(
+            `Project Catalog authority is stale: ${descriptor.id}.`,
+          );
+        }
+        descriptors.push(descriptor);
+      }
+    }
+  }
+  await validateAssetDescriptorFiles(
+    rootDir,
+    descriptors.filter(({ kind }) => kind === "asset"),
+  );
+  return descriptors;
+};
+
 export const loadCatalogAuthorityDescriptors = async (
   rootDir: string,
+  projectId?: string,
 ): Promise<readonly ResourceDescriptor[]> => {
   const manifestPath = join(
     rootDir,
@@ -128,6 +204,10 @@ export const loadCatalogAuthorityDescriptors = async (
     (await readRegularFile(manifestPath)).toString("utf8"),
   );
   const manifest = ProducerAssetManifestSchema.parse(rawManifest);
+  const projectDescriptors = await loadProjectResourceDescriptors(
+    rootDir,
+    projectId,
+  );
   await validateAssetDescriptorFiles(rootDir, manifest.assets);
   await validateCapabilityDescriptorExports(rootDir, [
     ...styleDescriptorDeclarations,
@@ -144,6 +224,7 @@ export const loadCatalogAuthorityDescriptors = async (
   }
   const descriptors = [
     ...manifest.assets,
+    ...projectDescriptors,
     ...styleDescriptorDeclarations,
     ...capabilityDescriptorDeclarations,
   ];

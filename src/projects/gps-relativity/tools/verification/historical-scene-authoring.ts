@@ -19,6 +19,7 @@ import {
   validateSelectedResourceRef,
   type ResourceCatalog,
 } from "../../../../contracts";
+import { deriveCatalogWithoutProjectOwnedDescriptors } from "../../../../../scripts/catalog/domain";
 import { collectRendererSourceGraph } from "../../../../../scripts/renderer-registry/domain";
 import {
   readJsonFile,
@@ -267,12 +268,19 @@ export const authorGpsM7Scene = async ({
   ) {
     throw new Error("M7 GPS visual style identity is stale.");
   }
-  const catalog = ResourceCatalogSchema.parse(
+  const projectCatalog = ResourceCatalogSchema.parse(
     JSON.parse(
       await readRegularText(
-        join(rootDir, "src/remotion/catalog/resource-catalog.generated.json"),
+        join(
+          rootDir,
+          "src/projects/gps-relativity/generated/resource-catalog.generated.json",
+        ),
       ),
     ),
+  );
+  const catalog = deriveCatalogWithoutProjectOwnedDescriptors(
+    projectCatalog,
+    STORY_ID,
   );
   if (catalog.catalogFingerprint !== task.resourceCatalogFingerprint) {
     throw new Error("M7 GPS Catalog identity is stale.");

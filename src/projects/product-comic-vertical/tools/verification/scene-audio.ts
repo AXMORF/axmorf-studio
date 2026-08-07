@@ -11,6 +11,7 @@ import {
 } from "../../../../contracts";
 import {
   buildResourceCatalog,
+  deriveCatalogWithoutProjectOwnedDescriptors,
   renderResourceCatalogJson,
 } from "../../../../../scripts/catalog/domain";
 
@@ -333,16 +334,12 @@ const run = async (mode: "write" | "check") => {
     projectRoot,
     "generated/resource-catalog.generated.json",
   );
-  const baseCatalog = ResourceCatalogSchema.parse(
-    JSON.parse(
-      await readFile(
-        resolve(
-          rootDir,
-          "src/remotion/catalog/resource-catalog.generated.json",
-        ),
-        "utf8",
-      ),
-    ),
+  const projectCatalog = ResourceCatalogSchema.parse(
+    JSON.parse(await readFile(generatedCatalogPath, "utf8")),
+  );
+  const baseCatalog = deriveCatalogWithoutProjectOwnedDescriptors(
+    projectCatalog,
+    PROJECT_ID,
   );
   const currentOverlay = ProjectOverlaySchema.parse(
     JSON.parse(await readFile(overlayPath, "utf8")),

@@ -45,7 +45,10 @@ import { buildStoryVisualProjection } from "../../src/remotion/runtime/story-vis
 import { checkPersistedNarrativeAutoCheck } from "./report-files";
 import { runNarrativeAutoCheck } from "./run";
 import type { ProcessRunner } from "../baseline/evidence";
-import { buildResourceCatalog } from "../catalog/domain";
+import {
+  buildResourceCatalog,
+  deriveCatalogWithoutProjectOwnedDescriptors,
+} from "../catalog/domain";
 import { generateResourceCatalog } from "../catalog/generate";
 import { readGeneratedResourceCatalog } from "../catalog/project-files";
 import { checksumExternalBytes } from "../external-references/project-files";
@@ -323,6 +326,10 @@ export const loadCurrentFinalSceneBranch = async ({
     rawCatalogCandidates.push(
       projectCatalog,
       derivePreFinalSceneCatalog(projectCatalog),
+      deriveCatalogWithoutProjectOwnedDescriptors(
+        projectCatalog,
+        paths.storyId,
+      ),
     );
   }
   const catalogCandidates = deduplicateCatalogCandidates(rawCatalogCandidates);

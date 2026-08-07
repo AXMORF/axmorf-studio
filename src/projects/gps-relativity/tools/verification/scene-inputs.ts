@@ -20,6 +20,7 @@ import {
   writeOrCheckSceneArtifact,
   type SceneArtifactMode,
 } from "../../../../../scripts/scene-package/project-files";
+import { deriveCatalogWithoutProjectOwnedDescriptors } from "../../../../../scripts/catalog/domain";
 import { GPS_M7_AUDIO_CUES } from "./scene-audio";
 
 export const GPS_M7_MEANING_IDS = [
@@ -140,7 +141,7 @@ export const buildGpsM7FrozenInputs = async (
   >;
   readonly tasks: readonly SceneTaskInput[];
 }> => {
-  const [story, render, timing, catalog] = await Promise.all([
+  const [story, render, timing, projectCatalog] = await Promise.all([
     readRegularJson(rootDir, "src/projects/gps-relativity/story.json").then(
       StorySpecSchema.parse,
     ),
@@ -153,9 +154,13 @@ export const buildGpsM7FrozenInputs = async (
     ).then(SemanticTimingSchema.parse),
     readRegularJson(
       rootDir,
-      "src/remotion/catalog/resource-catalog.generated.json",
+      "src/projects/gps-relativity/generated/resource-catalog.generated.json",
     ).then(ResourceCatalogSchema.parse),
   ]);
+  const catalog = deriveCatalogWithoutProjectOwnedDescriptors(
+    projectCatalog,
+    STORY_ID,
+  );
   if (
     story.storyId !== STORY_ID ||
     timing.storyId !== STORY_ID ||

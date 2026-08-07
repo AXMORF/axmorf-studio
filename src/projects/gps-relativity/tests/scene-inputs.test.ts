@@ -19,6 +19,7 @@ import {
   VisualStyleSpecSchema,
   computeVisualStyleFingerprint,
 } from "../../../contracts";
+import { deriveCatalogWithoutProjectOwnedDescriptors } from "../../../../scripts/catalog/domain";
 
 const rootDir = process.cwd();
 
@@ -76,15 +77,26 @@ test("M7 GPS audio check fails closed on missing and drifted bytes", async () =>
 
 test("M7 GPS frozen style and five task inputs bind current authority", async () => {
   const frozen = await buildGpsM7FrozenInputs(rootDir);
-  const catalog = ResourceCatalogSchema.parse(
+  const projectCatalog = ResourceCatalogSchema.parse(
     JSON.parse(
       await readFile(
-        join(rootDir, "src/remotion/catalog/resource-catalog.generated.json"),
+        join(
+          rootDir,
+          "src/projects/gps-relativity/generated/resource-catalog.generated.json",
+        ),
         "utf8",
       ),
     ),
   );
+  const catalog = deriveCatalogWithoutProjectOwnedDescriptors(
+    projectCatalog,
+    "gps-relativity",
+  );
   const visualStyle = VisualStyleSpecSchema.parse(frozen.visualStyle);
+  assert.equal(
+    visualStyle.resourceCatalogFingerprint,
+    catalog.catalogFingerprint,
+  );
   const styleEntry = catalog.entries.find(
     ({ descriptor }) =>
       descriptor.kind === "style-profile" &&

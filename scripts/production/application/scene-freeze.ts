@@ -22,6 +22,8 @@ import {
   type SceneAssignment,
 } from "../../../src/contracts";
 import { runProjectCheckCli } from "../../project-check/cli";
+import { buildResourceCatalog } from "../../catalog/domain";
+import { loadCatalogAuthorityDescriptors } from "../../catalog/project-files";
 import { writeOrCheckSceneArtifact } from "../../scene-package/project-files";
 import {
   acquireProductionRunLock,
@@ -67,11 +69,8 @@ const loadCurrentCatalog = async (rootDir: string, storyId: string) => {
     ) {
       throw error;
     }
-    return ResourceCatalogSchema.parse(
-      await readRegularJson(
-        join(rootDir, "src/remotion/catalog/resource-catalog.generated.json"),
-        "Shared ResourceCatalog",
-      ),
+    return buildResourceCatalog(
+      await loadCatalogAuthorityDescriptors(rootDir, storyId),
     );
   }
 };

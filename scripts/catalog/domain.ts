@@ -2,6 +2,7 @@ import {
   RESOURCE_CATALOG_GENERATOR_ID,
   ResourceCatalogSchema,
   ResourceDescriptorSchema,
+  StoryIdSchema,
   computeResourceCatalogFingerprint,
   computeResourceDescriptorFingerprint,
   serializeCanonicalJson,
@@ -31,6 +32,23 @@ export const buildResourceCatalog = (
     ...input,
     catalogFingerprint: computeResourceCatalogFingerprint(input),
   });
+};
+
+export const deriveCatalogWithoutProjectOwnedDescriptors = (
+  rawCatalog: unknown,
+  rawProjectId: unknown,
+): ResourceCatalog => {
+  const catalog = ResourceCatalogSchema.parse(rawCatalog);
+  const projectId = StoryIdSchema.parse(rawProjectId);
+  const projectPrefix = `src/projects/${projectId}/`;
+  return buildResourceCatalog(
+    catalog.entries
+      .map(({ descriptor }) => descriptor)
+      .filter(
+        (descriptor) =>
+          !descriptor.authority.repositoryPath.startsWith(projectPrefix),
+      ),
+  );
 };
 
 export const renderResourceCatalogJson = (catalog: ResourceCatalog): string =>

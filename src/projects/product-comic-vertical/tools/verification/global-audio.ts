@@ -29,7 +29,10 @@ import {
   productComicVerticalStoryVisualProjection,
 } from "../../scene-runtime-data";
 import { resolveGlobalSound } from "../../../../remotion/runtime/global-sound";
-import { buildResourceCatalog } from "../../../../../scripts/catalog/domain";
+import {
+  buildResourceCatalog,
+  deriveCatalogWithoutProjectOwnedDescriptors,
+} from "../../../../../scripts/catalog/domain";
 import { checksumFile } from "../../../../../scripts/project-check/project-files";
 import { writeOrCheckSceneArtifact } from "../../../../../scripts/scene-package/project-files";
 
@@ -314,7 +317,7 @@ const buildTask8Inputs = async (rootDir: string) => {
     bytes: renderCanonicalWav(spec),
   }));
   const [
-    baseCatalog,
+    projectCatalog,
     currentOverlay,
     timing,
     render,
@@ -325,7 +328,7 @@ const buildTask8Inputs = async (rootDir: string) => {
   ] = await Promise.all([
     readJson(
       rootDir,
-      "src/remotion/catalog/resource-catalog.generated.json",
+      `src/projects/${STORY_ID}/generated/resource-catalog.generated.json`,
     ).then(ResourceCatalogSchema.parse),
     readJson(rootDir, `src/projects/${STORY_ID}/resource-catalog.json`).then(
       ProjectOverlaySchema.parse,
@@ -363,6 +366,10 @@ const buildTask8Inputs = async (rootDir: string) => {
         .parse,
     ),
   ]);
+  const baseCatalog = deriveCatalogWithoutProjectOwnedDescriptors(
+    projectCatalog,
+    STORY_ID,
+  );
   if (
     currentOverlay.baseCatalogFingerprint !== baseCatalog.catalogFingerprint ||
     timing.storyId !== STORY_ID ||

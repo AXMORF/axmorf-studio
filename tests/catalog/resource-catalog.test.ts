@@ -16,17 +16,49 @@ import { capabilityDescriptorDeclarations } from "../../src/remotion/catalog/cap
 import { styleDescriptorDeclarations } from "../../src/remotion/catalog/style-descriptors";
 import {
   buildResourceCatalog,
+  deriveCatalogWithoutProjectOwnedDescriptors,
   queryResourceCatalog,
   renderResourceCatalogJson,
 } from "../../scripts/catalog/domain";
 import {
   loadCatalogAuthorityDescriptors,
+  loadProjectResourceDescriptors,
   validateAssetDescriptorFiles,
   validateCapabilityDescriptorExports,
 } from "../../scripts/catalog/project-files";
 import { generateResourceCatalog } from "../../scripts/catalog/generate";
 
 const repositoryRoot = join(import.meta.dirname, "../..");
+
+test("historical catalogs can drop one Project's owned descriptors generically", async () => {
+  const catalog = ResourceCatalogSchema.parse(
+    JSON.parse(
+      await readFile(
+        join(
+          repositoryRoot,
+          "src/projects/gps-relativity/generated/resource-catalog.generated.json",
+        ),
+        "utf8",
+      ),
+    ),
+  );
+  const shared = deriveCatalogWithoutProjectOwnedDescriptors(
+    catalog,
+    "gps-relativity",
+  );
+  assert.equal(
+    shared.catalogFingerprint,
+    "sha256:83872a754e05df18d0ec008ecd4f9cb637c0c159481dc59b0368898125188689",
+  );
+  assert.ok(
+    shared.entries.every(
+      ({ descriptor }) =>
+        !descriptor.authority.repositoryPath.startsWith(
+          "src/projects/gps-relativity/",
+        ),
+    ),
+  );
+});
 
 test("Catalog generation is byte-stable and descriptor order is canonical", async () => {
   const descriptors = await loadCatalogAuthorityDescriptors(repositoryRoot);
@@ -46,6 +78,85 @@ test("Catalog generation is byte-stable and descriptor order is canonical", asyn
   assert.equal(
     ResourceCatalogSchema.parse(first).catalogFingerprint,
     first.catalogFingerprint,
+  );
+});
+
+test("Project resource discovery is removable and never scans orphan public files", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-project-catalog-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const projectId = "alpha-story";
+  const manifestPath = `src/projects/${projectId}/resource-catalog.json`;
+  const localPath = `public/projects/${projectId}/proof.svg`;
+  await mkdir(dirname(join(rootDir, manifestPath)), { recursive: true });
+  await mkdir(dirname(join(rootDir, localPath)), { recursive: true });
+  await writeFile(join(rootDir, localPath), "<svg/>");
+  await writeFile(
+    join(rootDir, manifestPath),
+    JSON.stringify({
+      schemaVersion: 1,
+      projectId,
+      descriptors: [
+        {
+          schemaVersion: 1,
+          id: "asset.alpha-story-proof",
+          kind: "asset",
+          status: "approved",
+          title: "Alpha proof",
+          description: "Project-local removable proof asset",
+          useCases: ["project proof"],
+          tags: ["alpha-story"],
+          authority: { kind: "repository-file", repositoryPath: manifestPath },
+          allowedUse: "runtime-approved",
+          assetKind: "svg",
+          mediaRole: "scene-visual",
+          localPath,
+          checksum:
+            "sha256:d4dc56669143034f31aa309635d4113d9ad76a02b1739da22c965ed2049be9e6",
+          license: {
+            id: "Project-Authored",
+            verificationStatus: "verified",
+            sourceUrl: null,
+            attributionRequired: false,
+            attributionText: null,
+            verifiedAt: "2026-08-02T00:00:00.000Z",
+            sourceEvidenceFingerprint: `sha256:${"a".repeat(64)}`,
+          },
+        },
+      ],
+    }),
+  );
+  await mkdir(join(rootDir, "public/projects/orphan-story"), {
+    recursive: true,
+  });
+  await writeFile(
+    join(rootDir, "public/projects/orphan-story/unlisted.svg"),
+    "<svg/>",
+  );
+
+  assert.deepEqual(
+    (await loadProjectResourceDescriptors(rootDir)).map(({ id }) => id),
+    ["asset.alpha-story-proof"],
+  );
+  await rm(join(rootDir, "src/projects", projectId), { recursive: true });
+  assert.deepEqual(await loadProjectResourceDescriptors(rootDir), []);
+});
+
+test("shared asset manifest contains no Project-owned public paths", async () => {
+  const shared = JSON.parse(
+    await readFile(
+      join(repositoryRoot, "src/remotion/catalog/assets.manifest.json"),
+      "utf8",
+    ),
+  ) as { assets: readonly { localPath: string }[] };
+  assert.ok(
+    shared.assets.every(
+      ({ localPath }) => !localPath.startsWith("public/projects/"),
+    ),
+  );
+  assert.ok(
+    (await loadProjectResourceDescriptors(repositoryRoot)).some(
+      ({ id }) => id === "asset.gps-error-accumulation-alert",
+    ),
   );
 });
 
