@@ -18,5 +18,12 @@ test("package scripts expose GlobalVisual production commands in the default gat
     packageJson.scripts["production:global-visual:fail"],
     "node --import tsx scripts/production/cli.ts global-visual-fail",
   );
-  assert.match(packageJson.scripts.test, /tests\/production\/\*\.test\.ts/u);
+  assert.equal(
+    packageJson.scripts.test,
+    "node --import tsx scripts/tests/project-tests.ts",
+  );
+  assert.match(
+    await readFile("scripts/tests/project-tests.ts", "utf8"),
+    /"tests\/production"/u,
+  );
 });

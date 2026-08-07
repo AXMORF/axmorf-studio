@@ -52,7 +52,7 @@
     "build": "remotion bundle",
     "prebuild": "npm run registry:generate",
     "upgrade": "remotion upgrade",
-    "test": "node --import tsx --test tests/architecture/*.test.ts tests/contracts/*.test.ts tests/catalog/*.test.ts tests/compatibility/*.test.ts tests/docs/*.test.ts tests/external-references/*.test.ts tests/scene-package/*.test.ts tests/renderer-registry/*.test.ts tests/narration/*.test.ts tests/runtime/*.test.ts tests/runtime/*.test.tsx tests/projects/*.test.ts tests/projects/*.test.tsx tests/registry/*.test.ts tests/registry/*.test.tsx tests/baseline/*.test.ts tests/project-check/*.test.ts tests/project-validation/*.test.ts tests/final-assembly/*.test.ts tests/scene-runtime-proof/*.test.ts tests/gps-relativity/*.test.ts tests/gps-relativity/*.test.tsx tests/product-comic-vertical/*.test.ts tests/product-comic-vertical/*.test.tsx tests/production/*.test.ts",
+    "test": "node --import tsx scripts/tests/project-tests.ts",
     "pretest": "npm run registry:generate",
     "typecheck": "tsc --noEmit --pretty false",
     "pretypecheck": "npm run registry:generate",

@@ -174,5 +174,12 @@ test("package scripts expose production commands and include production tests by
     packageJson.scripts["production:scene:check"],
     "node --import tsx scripts/production/cli.ts scene-check",
   );
-  assert.match(packageJson.scripts.test, /tests\/production\/\*\.test\.ts/u);
+  assert.equal(
+    packageJson.scripts.test,
+    "node --import tsx scripts/tests/project-tests.ts",
+  );
+  assert.match(
+    await readFile("scripts/tests/project-tests.ts", "utf8"),
+    /"tests\/production"/u,
+  );
 });

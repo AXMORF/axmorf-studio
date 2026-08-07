@@ -78,3 +78,10 @@ test("central project-owned tests and tools are structural violations", async (c
     "tests/alpha-story/render.test.ts",
   ]);
 });
+
+test("the current repository has no central project-owned tests or tools", async () => {
+  assert.deepEqual(
+    await findCentralProjectOwnershipViolations(process.cwd()),
+    [],
+  );
+});

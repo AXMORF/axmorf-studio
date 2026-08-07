@@ -130,14 +130,10 @@ test("build and listing generate before bundle while formal check detects drift 
     `${scripts["check:static"]} ${scripts["check:host"]}`,
     /registry:check.*build.*compositions/,
   );
-  for (const pattern of [
-    "tests/runtime/*.test.tsx",
-    "tests/projects/*.test.tsx",
-    "tests/registry/*.test.ts",
-    "tests/registry/*.test.tsx",
-  ]) {
-    assert.match(scripts.test, new RegExp(pattern.replaceAll("*", "\\*")));
-  }
+  assert.equal(
+    scripts.test,
+    "node --import tsx scripts/tests/project-tests.ts",
+  );
 });
 
 test("Root statically consumes only registry metadata and passes through lazy loaders", async () => {
