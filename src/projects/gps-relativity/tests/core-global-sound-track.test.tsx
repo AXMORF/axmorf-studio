@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
-import {readFile} from "node:fs/promises";
-import {Children, isValidElement, type ReactElement, type ReactNode} from "react";
+import { readFile } from "node:fs/promises";
+import {
+  Children,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import test from "node:test";
 
-import {GlobalSoundTrack} from "../../src/remotion/runtime/global-sound";
-import {gpsRelativityFinalAssemblyData} from "../../src/projects/gps-relativity/final-assembly-data";
+import { GlobalSoundTrack } from "../../../remotion/runtime/global-sound";
+import { gpsRelativityFinalAssemblyData } from "../final-assembly-data";
 
 test("FinalSoundProjection binds M7 sound identity without copying Scene cues", () => {
-  const {finalSound} = gpsRelativityFinalAssemblyData;
+  const { finalSound } = gpsRelativityFinalAssemblyData;
   assert.equal(
     finalSound.projection.soundDesignProjectionFingerprint,
     gpsRelativityFinalAssemblyData.sceneSoundProjectionFingerprint,
@@ -18,8 +23,10 @@ test("FinalSoundProjection binds M7 sound identity without copying Scene cues", 
 });
 
 test("GlobalSoundTrack mounts exactly two local frame-volume buses", () => {
-  const element = GlobalSoundTrack({resolved: gpsRelativityFinalAssemblyData.finalSound});
-  assert.ok(isValidElement<{children?: unknown}>(element));
+  const element = GlobalSoundTrack({
+    resolved: gpsRelativityFinalAssemblyData.finalSound,
+  });
+  assert.ok(isValidElement<{ children?: unknown }>(element));
   assert.equal(Children.toArray(element.props.children as ReactNode).length, 2);
 });
 
@@ -27,8 +34,10 @@ test("global buses use the exact current-frame duck envelope at production bound
   const element = GlobalSoundTrack({
     resolved: gpsRelativityFinalAssemblyData.finalSound,
   });
-  assert.ok(isValidElement<{children?: unknown}>(element));
-  const buses = Children.toArray(element.props.children as ReactNode) as ReactElement<{
+  assert.ok(isValidElement<{ children?: unknown }>(element));
+  const buses = Children.toArray(
+    element.props.children as ReactNode,
+  ) as ReactElement<{
     volume: (frame: number) => number;
   }>[];
   const ambienceVolume = buses[0]?.props.volume;
@@ -40,8 +49,7 @@ test("global buses use the exact current-frame duck envelope at production bound
   assert.equal(bgmVolume(15), 0.22 * 0.32);
   assert.equal(bgmVolume(155), 0.22 * 0.32);
   assert.ok(
-    Math.abs(bgmVolume(691) - 0.22 * (0.32 + (4 / 15) * 0.68)) <
-      Number.EPSILON,
+    Math.abs(bgmVolume(691) - 0.22 * (0.32 + (4 / 15) * 0.68)) < Number.EPSILON,
   );
   assert.equal(bgmVolume(696), 0.22 * 0.32);
   assert.ok(
@@ -55,7 +63,10 @@ test("global buses use the exact current-frame duck envelope at production bound
 
 test("global sound runtime excludes adaptive DSP network and directory discovery", async () => {
   const source = await readFile(
-    new URL("../../src/remotion/runtime/global-sound/GlobalSoundTrack.tsx", import.meta.url),
+    new URL(
+      "../../../remotion/runtime/global-sound/GlobalSoundTrack.tsx",
+      import.meta.url,
+    ),
     "utf8",
   );
   assert.match(source, /volume=\{\(frame\) =>/);

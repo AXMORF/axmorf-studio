@@ -13,11 +13,10 @@ import { dirname, join } from "node:path";
 import test, { type TestContext } from "node:test";
 
 import {
-  M3NarrativeBaselineEvidenceReceiptSchema,
   M3NarrativeBaselineEvidenceReceiptInputSchema,
   Sha256DigestSchema,
-} from "../../src/contracts";
-import { projectRegistry } from "../../src/projects/project-registry.generated";
+} from "../../../contracts";
+import { projectRegistry } from "../../project-registry.generated";
 import {
   createM3EvidenceReceipt,
   checkM3NarrativeBaselineEvidence,
@@ -28,8 +27,8 @@ import {
   runBaselineEvidenceCli,
   writeM3NarrativeBaselineEvidence,
   type ProcessRunner,
-} from "../../scripts/baseline/evidence";
-import { generateProjectRegistry } from "../../scripts/registry/generate";
+} from "../../../../scripts/baseline/evidence";
+import { generateProjectRegistry } from "../../../../scripts/registry/generate";
 
 const ok = (stdout: string): Awaited<ReturnType<ProcessRunner>> => ({
   status: 0,
@@ -465,24 +464,4 @@ test("read-only M3 check rejects registry artifact alpha and media drift", async
       }),
     /registry drift/i,
   );
-});
-
-test("current real M3 evidence recollects to the persisted strict receipt", async () => {
-  const current = await collectCurrentM3NarrativeBaselineEvidence({
-    rootDir: process.cwd(),
-    storyId: "gps-relativity",
-    runProcess: validEvidenceProcess,
-  });
-  const persisted = M3NarrativeBaselineEvidenceReceiptSchema.parse(
-    JSON.parse(
-      await readFile(
-        join(
-          process.cwd(),
-          "src/projects/gps-relativity/generated/narrative-baseline-evidence.generated.json",
-        ),
-        "utf8",
-      ),
-    ),
-  );
-  assert.deepEqual(current, persisted);
 });

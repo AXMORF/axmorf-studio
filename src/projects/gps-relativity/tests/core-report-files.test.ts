@@ -11,14 +11,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { Sha256DigestSchema } from "../../src/contracts";
+import { Sha256DigestSchema } from "../../../contracts";
 import {
   checkPersistedNarrativeAutoCheck,
   serializeNarrativeAutoCheckReport,
   writeNarrativeAutoCheckIfPassed,
-} from "../../scripts/project-check/report-files";
-import { runNarrativeAutoCheck } from "../../scripts/project-check/run";
-import type { ProcessRunner } from "../../scripts/baseline/evidence";
+} from "../../../../scripts/project-check/report-files";
+import { runNarrativeAutoCheck } from "../../../../scripts/project-check/run";
+import type { ProcessRunner } from "../../../../scripts/baseline/evidence";
 
 const ok = (stdout: string): Awaited<ReturnType<ProcessRunner>> => ({
   status: 0,
@@ -62,7 +62,10 @@ test("pass-only writer is canonical atomic and byte-mtime stable", async (contex
   const result = await writeNarrativeAutoCheckIfPassed({ rootDir, report });
   const firstBytes = await readFile(result.destination);
   const firstMtime = (await stat(result.destination)).mtimeMs;
-  assert.equal(firstBytes.toString("utf8"), serializeNarrativeAutoCheckReport(report));
+  assert.equal(
+    firstBytes.toString("utf8"),
+    serializeNarrativeAutoCheckReport(report),
+  );
   assert.ok(firstBytes.toString("utf8").endsWith("\n"));
 
   const repeated = await writeNarrativeAutoCheckIfPassed({ rootDir, report });
@@ -99,9 +102,7 @@ test("fail schema and fingerprint errors never create or overwrite a report", as
       rootDir,
       report: {
         ...pass,
-        reportFingerprint: Sha256DigestSchema.parse(
-          `sha256:${"0".repeat(64)}`,
-        ),
+        reportFingerprint: Sha256DigestSchema.parse(`sha256:${"0".repeat(64)}`),
       },
     }),
   );

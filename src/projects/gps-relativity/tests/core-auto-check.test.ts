@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import renderJson from "../../src/projects/gps-relativity/render.json";
-import storyCheckJson from "../../src/projects/gps-relativity/reviews/story-check.json";
+import renderJson from "../render.json";
+import storyCheckJson from "../reviews/story-check.json";
 import {
   NARRATIVE_AUTO_CHECK_EVIDENCE_IDS,
   NARRATIVE_AUTO_CHECK_IDS,
@@ -12,17 +12,17 @@ import {
   createNarrativeAutoCheckEvidenceRefs,
   createNarrativeAutoCheckReport,
   type NarrativeAutoCheckReportInput,
-} from "../../src/contracts/auto-check";
+} from "../../../contracts/auto-check";
 import {
   NARRATIVE_CORE_VERSION,
   PROJECT_REGISTRY_GENERATOR_ID,
-} from "../../src/contracts/narrative-baseline";
-import { RenderSpecSchema } from "../../src/contracts/render";
+} from "../../../contracts/narrative-baseline";
+import { RenderSpecSchema } from "../../../contracts/render";
 import {
   Sha256DigestSchema,
   StoryIdSchema,
-} from "../../src/contracts/primitives";
-import { StoryCheckReportSchema } from "../../src/contracts/story-check";
+} from "../../../contracts/primitives";
+import { StoryCheckReportSchema } from "../../../contracts/story-check";
 
 const digest = (character: string) =>
   Sha256DigestSchema.parse(`sha256:${character.repeat(64)}`);

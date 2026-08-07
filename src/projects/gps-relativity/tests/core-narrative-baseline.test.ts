@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import briefJson from "../../src/projects/gps-relativity/brief.json";
-import narrationJson from "../../src/projects/gps-relativity/narration.json";
-import renderJson from "../../src/projects/gps-relativity/render.json";
-import sealedNarrationJson from "../../src/projects/gps-relativity/generated/sealed-narration.generated.json";
-import semanticTimingJson from "../../src/projects/gps-relativity/generated/semantic-timing.generated.json";
-import storyJson from "../../src/projects/gps-relativity/story.json";
+import briefJson from "../brief.json";
+import narrationJson from "../narration.json";
+import renderJson from "../render.json";
+import sealedNarrationJson from "../generated/sealed-narration.generated.json";
+import semanticTimingJson from "../generated/semantic-timing.generated.json";
+import storyJson from "../story.json";
 import {
   computeGeneratedRegistryEntryChecksum,
   computeM3EvidenceFingerprint,
@@ -25,7 +25,7 @@ import {
   validateM1ArtifactBundle,
   type M3NarrativeBaselineEvidenceReceiptInput,
   type ProjectRegistrationDescriptor,
-} from "../../src/contracts";
+} from "../../../contracts";
 
 const projectSource = parseNarrativeProjectSource({
   brief: briefJson,

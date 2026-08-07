@@ -260,9 +260,11 @@ const validateReviewArtifacts = async ({
 export const loadCurrentFinalSceneBranch = async ({
   rootDir,
   projectId,
+  includeMediaEvidence = true,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
+  readonly includeMediaEvidence?: boolean;
 }): Promise<FinalSceneBranchResult> => {
   const result = failedSceneBranch();
   const paths = getProjectCheckPaths({ rootDir, projectId });
@@ -562,7 +564,9 @@ export const loadCurrentFinalSceneBranch = async ({
       if (review.reviewFingerprint !== fidelity.reviewFingerprint) {
         throw new Error("Reference fidelity review identity is stale.");
       }
-      await validateReviewArtifacts({ rootDir, review });
+      if (includeMediaEvidence) {
+        await validateReviewArtifacts({ rootDir, review });
+      }
       for (const item of fidelity.items) {
         for (const source of item.localizedSourceChecksums) {
           if (
@@ -993,9 +997,14 @@ export const checkFinalSourceHealth = async ({
   readonly loadSceneBranch?: (input: {
     readonly rootDir: string;
     readonly projectId: string;
+    readonly includeMediaEvidence?: boolean;
   }) => Promise<FinalSceneBranchResult>;
 }) => {
-  const sceneBranch = await loadSceneBranch({ rootDir, projectId });
+  const sceneBranch = await loadSceneBranch({
+    rootDir,
+    projectId,
+    includeMediaEvidence: false,
+  });
   const failedScene = Object.entries(sceneBranch.checkStatuses).find(
     ([, status]) => status === "fail",
   );

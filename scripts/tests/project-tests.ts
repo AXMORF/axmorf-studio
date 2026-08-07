@@ -12,6 +12,8 @@ const MEDIA_PROJECT_TEST_NAMES = new Set([
   "final-evidence.test.ts",
   "final-invalidation.test.ts",
   "fail-closed-matrix.test.ts",
+  "core-project-check-cli.test.ts",
+  "core-report-files.test.ts",
 ]);
 
 const CORE_TEST_ROOTS = [
@@ -91,9 +93,10 @@ const discoverProjectTests = async (
     );
     discovered.push(
       ...projectTests.filter((path) => {
-        const isMedia = MEDIA_PROJECT_TEST_NAMES.has(
-          path.split("/").at(-1) ?? "",
-        );
+        const fileName = path.split("/").at(-1) ?? "";
+        const isMedia =
+          MEDIA_PROJECT_TEST_NAMES.has(fileName) ||
+          /\.media\.test\.tsx?$/.test(fileName);
         return scope === "all" || (scope === "media" ? isMedia : !isMedia);
       }),
     );

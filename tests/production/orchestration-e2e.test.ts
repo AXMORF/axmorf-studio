@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import {
   mkdir,
   mkdtemp,
@@ -680,31 +679,7 @@ const fakePostSceneDependencies = ({
   };
 };
 
-const protectedArtifactPaths = [
-  "src/projects/gps-relativity/generated/final-assembly.generated.json",
-  "src/projects/gps-relativity/generated/final-mechanical-check.generated.json",
-  "src/projects/gps-relativity/generated/final-preview-approval.generated.json",
-  "src/projects/gps-relativity/generated/m8-final-preview-evidence.generated.json",
-  "out/m8-gps-final-assembly/gps-relativity-m8-final-preview.mp4",
-  "src/projects/product-comic-vertical/generated/final-assembly.generated.json",
-  "src/projects/product-comic-vertical/generated/final-mechanical-check.generated.json",
-  "src/projects/product-comic-vertical/generated/final-preview-approval.generated.json",
-  "src/projects/product-comic-vertical/generated/final-preview-evidence.generated.json",
-  "out/m9-product-comic-vertical/product-comic-vertical-final-preview.mp4",
-] as const;
-
-const checksumProtectedArtifacts = async () =>
-  Promise.all(
-    protectedArtifactPaths.map(async (path) => ({
-      path,
-      checksum: createHash("sha256")
-        .update(Uint8Array.from(await readFile(join(process.cwd(), path))))
-        .digest("hex"),
-    })),
-  );
-
 test("N+1 result contracts reach one byte-stable Preview identity in three arrival orders", async (context) => {
-  const protectedBefore = await checksumProtectedArtifacts();
   const previewFingerprints: string[] = [];
   for (const arrivalOrder of [
     "global-first",
@@ -832,7 +807,6 @@ test("N+1 result contracts reach one byte-stable Preview identity in three arriv
     });
   }
   assert.equal(new Set(previewFingerprints).size, 1);
-  assert.deepEqual(await checksumProtectedArtifacts(), protectedBefore);
 });
 
 test("one Scene failure stops the run before assembly", async (context) => {

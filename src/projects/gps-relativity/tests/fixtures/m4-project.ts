@@ -1,12 +1,5 @@
 import { createHash } from "node:crypto";
-import {
-  cp,
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { TestContext } from "node:test";
@@ -14,14 +7,14 @@ import type { TestContext } from "node:test";
 import {
   SealedNarrationManifestSchema,
   type NarrativeAutoCheckReport,
-} from "../../src/contracts";
+} from "../../../../contracts";
 import {
   writeM3NarrativeBaselineEvidence,
   type ProcessRunner,
-} from "../../scripts/baseline/evidence";
-import { writeNarrativeAutoCheckIfPassed } from "../../scripts/project-check/report-files";
-import { runNarrativeAutoCheck } from "../../scripts/project-check/run";
-import { generateProjectRegistry } from "../../scripts/registry/generate";
+} from "../../../../../scripts/baseline/evidence";
+import { writeNarrativeAutoCheckIfPassed } from "../../../../../scripts/project-check/report-files";
+import { runNarrativeAutoCheck } from "../../../../../scripts/project-check/run";
+import { generateProjectRegistry } from "../../../../../scripts/registry/generate";
 
 const ok = (stdout: string): Awaited<ReturnType<ProcessRunner>> => ({
   status: 0,
@@ -70,21 +63,18 @@ export const createM4ProjectFixture = async (
     join(rootDir, "public/projects", storyId),
     { recursive: true },
   );
-  await rm(
-    join(
-      rootDir,
-      "src/projects",
-      storyId,
-      "final-assembly-plan.json",
-    ),
-    {force: true},
-  );
+  await rm(join(rootDir, "src/projects", storyId, "final-assembly-plan.json"), {
+    force: true,
+  });
   const paths = {
     brief: join(rootDir, `src/projects/${storyId}/brief.json`),
     story: join(rootDir, `src/projects/${storyId}/story.json`),
     narration: join(rootDir, `src/projects/${storyId}/narration.json`),
     render: join(rootDir, `src/projects/${storyId}/render.json`),
-    storyCheck: join(rootDir, `src/projects/${storyId}/reviews/story-check.json`),
+    storyCheck: join(
+      rootDir,
+      `src/projects/${storyId}/reviews/story-check.json`,
+    ),
     manifest: join(
       rootDir,
       `src/projects/${storyId}/generated/sealed-narration.generated.json`,
@@ -117,7 +107,8 @@ export const createM4ProjectFixture = async (
   const firstChunk = manifest.segments.find(
     (segment) => segment.kind === "chunk",
   );
-  if (firstChunk?.kind !== "chunk") throw new Error("M4 fixture needs a chunk.");
+  if (firstChunk?.kind !== "chunk")
+    throw new Error("M4 fixture needs a chunk.");
   const resolvedPaths = {
     ...paths,
     completeWav: join(rootDir, manifest.completeAudio.localPath),
@@ -176,9 +167,7 @@ export const createM4ProjectFixture = async (
   };
 };
 
-export const snapshotM4FixtureBytes = async (
-  fixture: M4ProjectFixture,
-) => {
+export const snapshotM4FixtureBytes = async (fixture: M4ProjectFixture) => {
   const snapshot: Record<string, string | null> = {};
   for (const path of Object.values(fixture.paths)) {
     try {

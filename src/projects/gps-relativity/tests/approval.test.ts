@@ -274,7 +274,7 @@ test("top-level check runs the complete static GPS verification profile", async 
   );
   assert.equal(
     packageJson.scripts["check:host"],
-    "npm run compositions && npm run project:verify -- --all",
+    "npm run compositions && npm run project:verify -- --all --scope source",
   );
   assert.deepEqual(profiles.steps, [
     "narrative",

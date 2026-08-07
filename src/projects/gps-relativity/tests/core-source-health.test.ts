@@ -3,12 +3,12 @@ import { appendFile, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 
-import { checkFinalSourceHealth } from "../../scripts/project-check/final-run";
+import { checkFinalSourceHealth } from "../../../../scripts/project-check/final-run";
 import {
   checkNarrativeSourceHealth,
   runNarrativeAutoCheck,
-} from "../../scripts/project-check/run";
-import { createM4ProjectFixture } from "../fixtures/m4-project";
+} from "../../../../scripts/project-check/run";
+import { createM4ProjectFixture } from "./fixtures/m4-project";
 
 const passingSceneBranch = () => ({
   referenceModes: ["empty"] as const,

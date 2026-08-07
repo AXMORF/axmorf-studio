@@ -112,11 +112,21 @@ const trackedMarkdownPaths = async (rootDir: string) => {
     ["ls-files", "--cached", "--", "*.md"],
     { cwd: rootDir, encoding: "utf8" },
   );
-  return stdout
+  const tracked = stdout
     .split(/\r?\n/u)
     .filter((entry) => entry.length > 0)
     .filter(isActiveDocumentationPath)
     .sort();
+  const current: string[] = [];
+  for (const repositoryPath of tracked) {
+    try {
+      const metadata = await stat(path.join(rootDir, repositoryPath));
+      if (metadata.isFile()) current.push(repositoryPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+  return current;
 };
 
 export const checkMarkdownLinks = async ({

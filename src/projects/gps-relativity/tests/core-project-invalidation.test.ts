@@ -15,18 +15,18 @@ import {
   parseNarrativeProjectSource,
   validateM1ArtifactBundle,
   type NarrativeAutoCheckId,
-} from "../../src/contracts";
-import { loadProjectRegistrationEntry } from "../../scripts/registry/project-files";
+} from "../../../contracts";
+import { loadProjectRegistrationEntry } from "../../../../scripts/registry/project-files";
 import {
   checkPersistedNarrativeAutoCheck,
   writeNarrativeAutoCheckIfPassed,
-} from "../../scripts/project-check/report-files";
-import { runNarrativeAutoCheck } from "../../scripts/project-check/run";
+} from "../../../../scripts/project-check/report-files";
+import { runNarrativeAutoCheck } from "../../../../scripts/project-check/run";
 import {
   createM4ProjectFixture,
   snapshotM4FixtureBytes,
   type M4ProjectFixture,
-} from "../fixtures/m4-project";
+} from "./fixtures/m4-project";
 
 const readJson = async (path: string): Promise<Record<string, unknown>> =>
   JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
@@ -251,7 +251,7 @@ test("NarrativeCore version changes only Baseline and its downstream fingerprint
     await readJson(fixture.paths.manifest),
   );
   const semanticTiming = (
-    await import("../../src/contracts")
+    await import("../../../contracts")
   ).SemanticTimingSchema.parse(await readJson(fixture.paths.timing));
   const artifactBundle = validateM1ArtifactBundle({
     projectSource,

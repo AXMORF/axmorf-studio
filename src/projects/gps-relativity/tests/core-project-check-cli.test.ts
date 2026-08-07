@@ -4,12 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 
-import type { ProcessRunner } from "../../scripts/baseline/evidence";
+import type { ProcessRunner } from "../../../../scripts/baseline/evidence";
 import {
   parseProjectCheckArgs,
   runProjectCheckCli,
-} from "../../scripts/project-check/cli";
-import { generateProjectRegistry } from "../../scripts/registry/generate";
+} from "../../../../scripts/project-check/cli";
+import { generateProjectRegistry } from "../../../../scripts/registry/generate";
 
 const ok = (stdout: string): Awaited<ReturnType<ProcessRunner>> => ({
   status: 0,

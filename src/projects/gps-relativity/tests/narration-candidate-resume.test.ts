@@ -7,13 +7,13 @@ import test, { type TestContext } from "node:test";
 import {
   getNarrationWorkPaths,
   loadVerifiedProgress,
-} from "../../scripts/narration/adapters/candidate-workspace";
+} from "../../../../scripts/narration/adapters/candidate-workspace";
 import {
   NarrationGenerationProgressSchema,
   type PcmNormalizer,
-} from "../../scripts/narration/domain/candidate-progress";
-import { runNarrationGeneration } from "../../scripts/narration/generate-runner";
-import type { ChunkAudioGenerator } from "../../scripts/narration/domain/provider-input";
+} from "../../../../scripts/narration/domain/candidate-progress";
+import { runNarrationGeneration } from "../../../../scripts/narration/generate-runner";
+import type { ChunkAudioGenerator } from "../../../../scripts/narration/domain/provider-input";
 import {
   computeGenerationInputFingerprint,
   computeStoryFingerprint,
@@ -25,10 +25,10 @@ import {
   type NarrationSpec,
   type StoryCheckReport,
   type StorySpec,
-} from "../../src/contracts";
-import gpsNarrationJson from "../../src/projects/gps-relativity/narration.json";
-import gpsStoryJson from "../../src/projects/gps-relativity/story.json";
-import { encodeCanonicalPcmWav } from "../../scripts/narration/domain/pcm-wav";
+} from "../../../contracts";
+import gpsNarrationJson from "../narration.json";
+import gpsStoryJson from "../story.json";
+import { encodeCanonicalPcmWav } from "../../../../scripts/narration/domain/pcm-wav";
 
 const providerAttemptFingerprint = `sha256:${"9".repeat(64)}`;
 const story = StorySpecSchema.parse(gpsStoryJson);
@@ -54,22 +54,24 @@ const createStoryCheck = (
   })),
 });
 
-const createNormalizer = (
-  normalizedChunkIds: string[] = [],
-): PcmNormalizer => async (sourceBytes) => {
-  normalizedChunkIds.push(sourceBytes.toString("utf8"));
-  return encodeCanonicalPcmWav(
-    Buffer.alloc(Math.max(2, sourceBytes.length * 2), 1),
-  );
-};
+const createNormalizer =
+  (normalizedChunkIds: string[] = []): PcmNormalizer =>
+  async (sourceBytes) => {
+    normalizedChunkIds.push(sourceBytes.toString("utf8"));
+    return encodeCanonicalPcmWav(
+      Buffer.alloc(Math.max(2, sourceBytes.length * 2), 1),
+    );
+  };
 
-const createGenerator = (
-  requests: string[],
-  transform: (chunkId: string) => Buffer = (chunkId) => Buffer.from(chunkId),
-): ChunkAudioGenerator => async (request) => {
-  requests.push(request.chunkId);
-  return transform(request.chunkId);
-};
+const createGenerator =
+  (
+    requests: string[],
+    transform: (chunkId: string) => Buffer = (chunkId) => Buffer.from(chunkId),
+  ): ChunkAudioGenerator =>
+  async (request) => {
+    requests.push(request.chunkId);
+    return transform(request.chunkId);
+  };
 
 const createWorkRoot = async (context: TestContext) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-candidates-test-"));
@@ -188,9 +190,7 @@ test("normalization failure preserves the verified raw candidate", async (contex
     normalizePcm: createNormalizer(resumeNormalizedChunkIds),
   });
   assert.equal(resumeProviderRequests.length, 0);
-  assert.deepEqual(resumeNormalizedChunkIds, [
-    "two-relativistic-effects-02",
-  ]);
+  assert.deepEqual(resumeNormalizedChunkIds, ["two-relativistic-effects-02"]);
 });
 
 test("same generation and attempt fingerprints reuse verified measured chunks", async (context) => {

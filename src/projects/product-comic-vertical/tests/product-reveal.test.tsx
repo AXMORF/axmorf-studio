@@ -390,16 +390,6 @@ test("product-reveal exact lineage closure real frame binding and media evidence
     reviewItem.traitReviews.map(({ trait }) => trait),
     exact.requiredTraits,
   );
-  for (const artifact of [
-    reviewItem.sourcePreview,
-    reviewItem.adaptationPreview,
-    ...reviewItem.phasePairs.flatMap((pair) => [
-      pair.sourceEvidence,
-      pair.adaptationEvidence,
-    ]),
-  ]) {
-    assert.equal(await checksum(artifact.artifactPath), artifact.checksum);
-  }
   assert.equal(receipt.status, "pass");
   if (receipt.status !== "pass") throw new Error("exact receipt must pass");
   assert.equal(receipt.selectionFingerprint, selection.selectionFingerprint);

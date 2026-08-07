@@ -595,6 +595,7 @@ const probeGpsProtection = async () => {
       (path) =>
         !path.startsWith("src/projects/gps-relativity/tests/") &&
         !path.startsWith("src/projects/gps-relativity/tools/verification/") &&
+        path !== "src/projects/gps-relativity/assets.manifest.json" &&
         path !== "src/projects/gps-relativity/verification.profile.json",
     );
   assert.deepEqual(renderCriticalChanges, []);

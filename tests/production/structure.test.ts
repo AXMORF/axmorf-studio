@@ -34,7 +34,6 @@ test("top-level tooling uses stable responsibilities instead of milestone direct
   }
   for (const required of [
     "compatibility",
-    "project-tools",
     "project-validation",
     "proofs",
     "production",
@@ -48,7 +47,5 @@ test("top-level tooling uses stable responsibilities instead of milestone direct
 
   await Promise.all([
     access(path.join(scriptsRoot, "proofs", "scene-runtime")),
-    access(path.join(scriptsRoot, "project-tools", "gps-relativity")),
-    access(path.join(scriptsRoot, "project-tools", "product-comic-vertical")),
   ]);
 });

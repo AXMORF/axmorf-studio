@@ -8,14 +8,14 @@ import {
   resolveVoxcpmPrivateConfigPath,
   runCli,
   type NarrationCliContext,
-} from "../../scripts/narration/cli";
-import { encodeCanonicalPcmWav } from "../../scripts/narration/domain/pcm-wav";
-import type { ChunkAudioGenerator } from "../../scripts/narration/domain/provider-input";
-import briefJson from "../../src/projects/gps-relativity/brief.json";
-import narrationJson from "../../src/projects/gps-relativity/narration.json";
-import renderJson from "../../src/projects/gps-relativity/render.json";
-import storyCheckJson from "../../src/projects/gps-relativity/reviews/story-check.json";
-import storyJson from "../../src/projects/gps-relativity/story.json";
+} from "../../../../scripts/narration/cli";
+import { encodeCanonicalPcmWav } from "../../../../scripts/narration/domain/pcm-wav";
+import type { ChunkAudioGenerator } from "../../../../scripts/narration/domain/provider-input";
+import briefJson from "../brief.json";
+import narrationJson from "../narration.json";
+import renderJson from "../render.json";
+import storyCheckJson from "../reviews/story-check.json";
+import storyJson from "../story.json";
 
 const attemptFingerprint = `sha256:${"5".repeat(64)}`;
 
@@ -123,21 +123,15 @@ test("generate still requires a current StoryCheck with the default private conf
     Buffer.from(request.chunkId);
 
   await writeJson(
-    join(
-      rootDir,
-      "src/projects/gps-relativity/reviews/story-check.json",
-    ),
+    join(rootDir, "src/projects/gps-relativity/reviews/story-check.json"),
     { ...storyCheckJson, storyFingerprint: `sha256:${"0".repeat(64)}` },
   );
   await assert.rejects(
     () =>
-      runCli(
-        ["generate", "--project", "gps-relativity"],
-        {
-          ...createContext({ rootDir, provider }),
-          env: {},
-        },
-      ),
+      runCli(["generate", "--project", "gps-relativity"], {
+        ...createContext({ rootDir, provider }),
+        env: {},
+      }),
     /StoryCheck/i,
   );
 });
@@ -157,11 +151,7 @@ test("synthetic interruption resume seal and check complete end to end", async (
   const cliContext = createContext({ rootDir, provider, stdout });
 
   await assert.rejects(
-    () =>
-      runCli(
-        ["generate", "--project", "gps-relativity"],
-        cliContext,
-      ),
+    () => runCli(["generate", "--project", "gps-relativity"], cliContext),
     /synthetic provider interruption/,
   );
   failOnSix = false;
@@ -207,8 +197,7 @@ test("unknown flags arbitrary paths and M3 commands are rejected", async (contex
     Buffer.from(request.chunkId);
   const cliContext = createContext({ rootDir, provider });
   await assert.rejects(
-    () =>
-      runCli(["render", "--project", "gps-relativity"], cliContext),
+    () => runCli(["render", "--project", "gps-relativity"], cliContext),
     /generate|seal|check/,
   );
   await assert.rejects(

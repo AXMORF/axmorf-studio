@@ -4,25 +4,23 @@ import test from "node:test";
 import {
   CanonicalMeasuredChunkSchema,
   NarrationGenerationProgressSchema,
-} from "../../scripts/narration/domain/candidate-progress";
+} from "../../../../scripts/narration/domain/candidate-progress";
 import {
   encodeCanonicalPcmWav,
   measureCanonicalPcmWav,
   sha256Bytes,
-} from "../../scripts/narration/domain/pcm-wav";
-import { buildNarrationSeal } from "../../scripts/narration/domain/seal";
-import {
-  computeChunkRequestFingerprint,
-} from "../../scripts/narration/domain/provider-input";
+} from "../../../../scripts/narration/domain/pcm-wav";
+import { buildNarrationSeal } from "../../../../scripts/narration/domain/seal";
+import { computeChunkRequestFingerprint } from "../../../../scripts/narration/domain/provider-input";
 import {
   computeGenerationInputFingerprint,
   flattenTtsChunks,
   NarrationSpecSchema,
   StorySpecSchema,
-} from "../../src/contracts";
-import gpsNarrationJson from "../../src/projects/gps-relativity/narration.json";
-import gpsStoryJson from "../../src/projects/gps-relativity/story.json";
-import { createWavFixture } from "../fixtures/wav";
+} from "../../../contracts";
+import gpsNarrationJson from "../narration.json";
+import gpsStoryJson from "../story.json";
+import { createWavFixture } from "../../../../tests/fixtures/wav";
 
 const providerAttemptFingerprint = `sha256:${"7".repeat(64)}`;
 const story = StorySpecSchema.parse(gpsStoryJson);

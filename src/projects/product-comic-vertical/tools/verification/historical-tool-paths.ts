@@ -1,4 +1,6 @@
 const historicalToolPaths: Readonly<Record<string, string>> = {
+  "tests/project-check/final-run.test.ts":
+    "src/projects/gps-relativity/tests/core-final-run.test.ts",
   "scripts/m6-proof/evidence.ts": "scripts/proofs/scene-runtime/evidence.ts",
   "scripts/m6-proof/generate-assets.ts":
     "scripts/proofs/scene-runtime/generate-assets.ts",

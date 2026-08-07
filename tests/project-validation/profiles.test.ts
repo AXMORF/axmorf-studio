@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test, { type TestContext } from "node:test";
@@ -138,17 +138,16 @@ test("project validation CLI accepts explicit source scope", () => {
   );
 });
 
-test("project-specific adapters resolve only inside the same Project", async () => {
-  const projectId = "gps-relativity";
+test("project-specific adapters resolve only inside the requested Project", () => {
+  const projectId = "alpha-story";
   const invocation = resolveProjectVerificationInvocation({
     projectId,
     step: "scene-audio",
   });
   assert.equal(
     invocation.script,
-    "src/projects/gps-relativity/tools/verification/scene-audio.ts",
+    "src/projects/alpha-story/tools/verification/scene-audio.ts",
   );
-  await access(join(process.cwd(), invocation.script));
 
   const common = resolveProjectVerificationInvocation({
     projectId: "synthetic-story",

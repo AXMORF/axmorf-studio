@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { promisify } from "node:util";
 
 import {
   checkMarkdownLinks,
   isActiveDocumentationPath,
+  runDocsLinkCheck,
 } from "../../scripts/docs/check-links";
+
+const execFileAsync = promisify(execFile);
 
 test("default documentation scope excludes historical archive snapshots", () => {
   assert.equal(isActiveDocumentationPath("docs/README.md"), true);
@@ -111,6 +116,26 @@ test("repository escape fails before reading the target", async () => {
           }),
         /escapes repository/i,
       );
+    },
+  );
+});
+
+test("default scope ignores tracked Markdown removed from the current Project set", async () => {
+  await withFixture(
+    {
+      "README.md": "# Current\n",
+      "src/projects/removable/incident.md": "[Missing](missing.md)\n",
+    },
+    async (rootDir) => {
+      await execFileAsync("git", ["init", "-q"], { cwd: rootDir });
+      await execFileAsync("git", ["add", "README.md", "src/projects/removable/incident.md"], {
+        cwd: rootDir,
+      });
+      await rm(path.join(rootDir, "src/projects/removable"), {
+        recursive: true,
+      });
+      const result = await runDocsLinkCheck(rootDir);
+      assert.equal(result.fileCount, 1);
     },
   );
 });

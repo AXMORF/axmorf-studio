@@ -30,33 +30,25 @@ import { generateResourceCatalog } from "../../scripts/catalog/generate";
 
 const repositoryRoot = join(import.meta.dirname, "../..");
 
-test("historical catalogs can drop one Project's owned descriptors generically", async () => {
-  const catalog = ResourceCatalogSchema.parse(
-    JSON.parse(
-      await readFile(
-        join(
-          repositoryRoot,
-          "src/projects/gps-relativity/generated/resource-catalog.generated.json",
-        ),
-        "utf8",
-      ),
-    ),
-  );
+test("historical catalogs can drop one Project's owned descriptors generically", () => {
+  const sharedDescriptor = styleDescriptorDeclarations[0]!;
+  const projectDescriptor = {
+    ...styleDescriptorDeclarations[1]!,
+    id: "style.alpha-story",
+    styleProfileId: "alpha-story",
+    authority: {
+      kind: "repository-file" as const,
+      repositoryPath: "src/projects/alpha-story/visual-style.json",
+    },
+  };
+  const catalog = buildResourceCatalog([sharedDescriptor, projectDescriptor]);
   const shared = deriveCatalogWithoutProjectOwnedDescriptors(
     catalog,
-    "gps-relativity",
+    "alpha-story",
   );
-  assert.equal(
-    shared.catalogFingerprint,
-    "sha256:83872a754e05df18d0ec008ecd4f9cb637c0c159481dc59b0368898125188689",
-  );
-  assert.ok(
-    shared.entries.every(
-      ({ descriptor }) =>
-        !descriptor.authority.repositoryPath.startsWith(
-          "src/projects/gps-relativity/",
-        ),
-    ),
+  assert.deepEqual(
+    shared.entries.map(({ descriptor }) => descriptor.id),
+    [sharedDescriptor.id],
   );
 });
 
@@ -151,11 +143,6 @@ test("shared asset manifest contains no Project-owned public paths", async () =>
   assert.ok(
     shared.assets.every(
       ({ localPath }) => !localPath.startsWith("public/projects/"),
-    ),
-  );
-  assert.ok(
-    (await loadProjectResourceDescriptors(repositoryRoot)).some(
-      ({ id }) => id === "asset.gps-error-accumulation-alert",
     ),
   );
 });

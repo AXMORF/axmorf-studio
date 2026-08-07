@@ -15,19 +15,19 @@ import {
   createNarrationSealFileOperations,
   withProjectSealLock,
   type NarrationSealFileOperations,
-} from "../../scripts/narration/adapters/atomic-files";
-import { checkM2NarrationArtifacts } from "../../scripts/narration/check";
+} from "../../../../scripts/narration/adapters/atomic-files";
+import { checkM2NarrationArtifacts } from "../../../../scripts/narration/check";
 import {
   CanonicalMeasuredChunkSchema,
   NarrationGenerationProgressSchema,
-} from "../../scripts/narration/domain/candidate-progress";
+} from "../../../../scripts/narration/domain/candidate-progress";
 import {
   encodeCanonicalPcmWav,
   sha256Bytes,
-} from "../../scripts/narration/domain/pcm-wav";
-import { computeChunkRequestFingerprint } from "../../scripts/narration/domain/provider-input";
-import { buildNarrationSeal } from "../../scripts/narration/domain/seal";
-import { runNarrationSeal } from "../../scripts/narration/seal-runner";
+} from "../../../../scripts/narration/domain/pcm-wav";
+import { computeChunkRequestFingerprint } from "../../../../scripts/narration/domain/provider-input";
+import { buildNarrationSeal } from "../../../../scripts/narration/domain/seal";
+import { runNarrationSeal } from "../../../../scripts/narration/seal-runner";
 import {
   computeGenerationInputFingerprint,
   computeStoryFingerprint,
@@ -37,11 +37,11 @@ import {
   type NarrativeProjectSource,
   type StoryCheckReport,
   StorySpecSchema,
-} from "../../src/contracts";
-import briefJson from "../../src/projects/gps-relativity/brief.json";
-import narrationJson from "../../src/projects/gps-relativity/narration.json";
-import renderJson from "../../src/projects/gps-relativity/render.json";
-import storyJson from "../../src/projects/gps-relativity/story.json";
+} from "../../../contracts";
+import briefJson from "../brief.json";
+import narrationJson from "../narration.json";
+import renderJson from "../render.json";
+import storyJson from "../story.json";
 
 const providerAttemptFingerprint = `sha256:${"6".repeat(64)}`;
 const baseProjectSource = parseNarrativeProjectSource({
@@ -152,10 +152,7 @@ const getPaths = (rootDir: string, projectSource = baseProjectSource) => {
   };
 };
 
-const createInput = (
-  rootDir: string,
-  projectSource = baseProjectSource,
-) => ({
+const createInput = (rootDir: string, projectSource = baseProjectSource) => ({
   rootDir,
   projectSource,
   storyCheck: createStoryCheck(projectSource),
@@ -235,10 +232,7 @@ test("failure after receipt leaves a valid seal and recoverable stale timing", a
   await assert.rejects(() =>
     runNarrationSeal({
       ...input,
-      fileOperations: createFailingSealFileOperations(
-        rootDir,
-        "before-timing",
-      ),
+      fileOperations: createFailingSealFileOperations(rootDir, "before-timing"),
     }),
   );
   const manifest = JSON.parse(

@@ -5,22 +5,22 @@ import test from "node:test";
 import ts from "typescript";
 import { Html5Audio, Sequence } from "remotion";
 
-import timingJson from "../../src/projects/gps-relativity/generated/semantic-timing.generated.json";
+import timingJson from "../generated/semantic-timing.generated.json";
 import {
   CaptionLayer,
   findActiveCaptionCue,
   NarrativeCore,
   NarrationAudioTrack,
   resolveCaptionLayout,
-} from "../../src/remotion/runtime/narrative-core";
+} from "../../../remotion/runtime/narrative-core";
 import {
   SemanticTimingSchema,
   resolveProductionReadabilityPolicy,
-} from "../../src/contracts";
+} from "../../../contracts";
 
 const timing = SemanticTimingSchema.parse(timingJson);
 const runtimeDirectory = new URL(
-  "../../src/remotion/runtime/narrative-core/",
+  "../../../remotion/runtime/narrative-core/",
   import.meta.url,
 );
 
