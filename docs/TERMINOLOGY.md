@@ -50,6 +50,10 @@
 | FinalAssembly                | 最终 Composition 装配 identity                                 | 绑定 narrative、Scene、global、Composition source、Remotion exact version 和固定 z-order/mix-order                                                    |
 | FinalPreviewEvidence         | exact 最终预览的机械与批量审核凭据                             | 绑定 MP4/contact sheet/stills、技术测量、ducking evidence、Agent review 和 FinalAssembly；供用户批准当前完整预览                                      |
 | FinalPreviewApproval         | 用户对 current exact 最终预览作出的唯一创意批准                | authoring/generated artifact 精确绑定 preview checksum、evidence 与 FinalAssembly；Agent、脚本和 checker 不可代签                                     |
+| DeliverySpecification       | M10 Project-owned 本地交付声明                                 | future-only v1；包含标题、简介、6–7 个唯一主题词、显式 collection、章节与固定封面 source graph，不拥有平台账号或网络配置                                 |
+| DeliveryRelease             | 已批准 exact preview 的不可覆盖本地交付包                      | 固定写入 `deliveries/<storyId>/<releaseId>/`；相同 identity 幂等复验，不同内容 fail closed，不改变 production 状态                                      |
+| PublishingMetadata          | 本地发布所需的 canonical 内容元数据                             | 包含章节 frame/timecode、fps、总帧数、实际时长和交付文件名；章节名最多 11 个 Unicode 字符，不使用固定 collection 枚举                                   |
+| DeliveryReleaseManifest     | M10 release 的机器可复验 identity 与文件清单                    | 绑定 Story/Composition、approval/evidence/FinalAssembly/passing final-v2、交付规格、payload checksum/大小/媒体参数与固定复验命令                          |
 | ProductionError              | M9.5 制作期结构化错误                                          | 区分 expected/unexpected，保留脱敏 summary/description/code/remediation；不保存 raw stack、token、私有 endpoint 或绝对路径                            |
 | ProductionRunState           | M9.5 制作期派生状态投影                                        | 由 append-only stage events、Scene results 和 current fingerprints 复算；不可手改、不进入 render runtime 或作品 authority                             |
 | ProductionPreviewEvidence    | M9.5 无全局增强机械预览凭据                                    | 绑定完整 MP4、画幅/fps/帧数/流/完整解码、coverage/registry/projection/assembly；只能表示 mechanically-ready，不表示审美通过                           |
@@ -65,4 +69,5 @@
 名称相近但不是同一创作权威，也不得互相复制以绕过 fingerprint。
 
 上述 M9.5 名词已有 strict contracts、固定 CLI 和测试覆盖。它们只描述制作编排与机械
-`preview-ready`，不表示 reviewed、approved、quality-pass 或 released。
+`preview-ready`，不表示 reviewed、approved、quality-pass 或 released。M10 名词只描述用户批准
+之后的本地封存，不把 `LocallyDelivered` 解释为平台上传或网络发布。

@@ -202,7 +202,8 @@ Track、DSL 或自动导演。v1/v2 项目和 Run 保持原合同，不迁移、
    仓库；
 6. 用 generated static ProjectRegistry 注册 Story Composition，通过 `lazyComponent`
    按需加载组件，并在 Scene 阶段用 composition-local RendererRegistry 绑定 Scene renderer；
-7. 以少量机械检查、批量 ScenePackage 视听审核和一次最终预览批准完成交付；
+7. 以少量机械检查、批量 ScenePackage 视听审核和一次最终预览批准完成创意收口，并在批准后
+   把 exact preview、双比例封面、发布元数据、manifest 与 checksum 原子封存为本地 release；
 8. 在用户明确批准后，把被多个真实主题证明的能力提升到共享层。
 
 M9.5 第一版稳定流程把第 7 项收敛为“Scene 只做固定机械检查，整片 MP4 到达

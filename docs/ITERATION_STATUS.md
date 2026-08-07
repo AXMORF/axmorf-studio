@@ -2,16 +2,17 @@
 
 > 文档类型：当前事实权威
 >
-> 最后复核：2026-08-07
+> 最后复核：2026-08-08
 >
-> 下一里程碑：M10（尚未开始）
+> 当前阶段：M10 本地交付已完成；后续能力分别规划
 
 ## 当前基线
 
-仓库已完成 M1–M9.5 以及后续 production preflight、Scene ownership 和 GlobalVisual contract
+仓库已完成 M1–M10 以及后续 production preflight、Scene ownership 和 GlobalVisual contract
 hardening。当前主链可以把
 一个新 Story 推进到机械 `preview-ready / awaiting-user-preview`，但不会代签用户批准、执行
-promotion、发布或自动进入 M10。
+promotion 或自动进入交付。用户批准后，独立 `delivery:*` 能力可以把 exact current preview
+封存为本地可复验 release；它不改变 production 状态或连接发布平台。
 
 ## 已实现
 
@@ -52,6 +53,22 @@ promotion、发布或自动进入 M10。
 - v4 Preview 必须绑定 current GlobalVisualProjection/Package/source identities；仍不自动增加
   BGM、跨 Scene ambience 或 ducking，终点只表示 mechanically ready。
 
+### M10 本地交付
+
+- future-only `delivery-specification-v1`、`delivery-release-manifest-v1` 与固定
+  `delivery:build` / `delivery:check` CLI 已实现；没有扩张任何 `production:*` 命令或状态。
+- `releaseId` 只由 current `FinalPreviewApproval`、`FinalAssembly` 和交付规格 identity 派生；
+  相同 release 幂等复验，不同或漂移内容 fail closed，固定输出到
+  `deliveries/<storyId>/<releaseId>/`。
+- 构建只复制已批准 exact preview，不重新编码；同时生成两个 Project-owned Remotion Still
+  封面、publishing metadata、release manifest、checksum ledger 与 handoff。
+- MP4、PNG、JSON 和 ledger 均在原子 staging 内完成 ffprobe/FFmpeg/尺寸/checksum/canonical
+  复验后才封存；绝对路径、`..`、符号链接、未知文件和半成品均被拒绝。
+- `product-comic-vertical` 已完成首个真实 release 证明，视频 checksum 与其获批 preview
+  完全一致；两张封面分别按 4:3 与 3:4 构图并完成全尺寸和缩略图检查。
+- `deliveries/`、Project source 与交付媒体继续是 ignored 本地叶节点；删除 `deliveries/`
+  不影响 core 默认检查，交付只由显式命令 fail closed。
+
 ### 工程与验证
 
 - `scripts/production` 按 `cli / application / domain / adapters` 分层。
@@ -80,8 +97,7 @@ promotion、发布或自动进入 M10。
 - NarrativeCheck 与主观 Story、旁白、字幕、整体叙事节奏审核。
 - 用户预览后的定点 Scene 修改循环。
 - 已提出 promotion proposal 的明确批准与共享能力迁移。
-- 封面、交付包与 M10 发布收口。
-- 平台上传、账号、网络发布、密钥或权限管理；这些也不属于当前 M10 默认范围。
+- 平台上传、账号、网络发布、密钥或权限管理。
 
 以上内容不得写成已有能力。机械 Preview、Agent review 和 checker 都不能创建
 `FinalPreviewApproval`。

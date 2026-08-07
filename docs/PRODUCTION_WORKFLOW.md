@@ -2,7 +2,7 @@
 
 > 文档类型：生产阶段、输入输出与所有权权威
 >
-> 最后复核：2026-08-07
+> 最后复核：2026-08-08
 >
 > 当前完成状态只在 [ITERATION_STATUS.md](ITERATION_STATUS.md) 维护。
 
@@ -22,9 +22,10 @@
 → 用户观看最终预览
 ```
 
-流程产物分为三个生命周期：Project source 是可继续制作、注册和渲染的源码及 render-critical
+流程产物分为四个生命周期：Project source 是可继续制作、注册和渲染的源码及 render-critical
 本地输入；Run review 是某次 production 的事件、PreviewEvidence 和机械检查；delivery output
-是 `out/` 中可删除、可重新导出的 MP4、PNG、contact sheet 等媒体。默认 `npm run check` 只把
+是 `out/` 中可删除、可重新导出的 MP4、PNG、contact sheet 等媒体；local release 是
+`deliveries/<storyId>/<releaseId>/` 下不可覆盖、可显式复验的批准后交付包。默认 `npm run check` 只把
 core 与当前 Project source 作为健康前置条件。媒体和批准必须通过显式 Project-owned 命令复验，
 缺失时保持 fail closed，但不反向判定 core 或其他 Project 失效。
 
@@ -59,7 +60,7 @@ Scene 制作权威
 NarrativeCore + 已选择的可选增强轨
 → Final Preview
 → FinalPreviewApproval
-→ Render / Release
+→ independent local Delivery Release
 ```
 
 `NarrativeCore` 是唯一必需轨。任何增强轨缺失，都不得阻止 Narrative Baseline 的检查、
@@ -116,7 +117,7 @@ flowchart TB
 
     Assembly --> Preview["Final Preview"]
     Preview --> Approval["FinalPreviewApproval"]
-    Approval --> Render["Render / Release"]
+    Approval --> Delivery["delivery:build<br/>local immutable release"]
 ```
 
 虚线表示可选依赖。M4 的 `Narrative Baseline` 机械 AutoCheck 不要求任何增强轨存在；M6
@@ -188,6 +189,20 @@ GlobalVisualPackage 绑定 current plan、project-local static source graph 和�
 PreviewAssembly v3 / Evidence v2 / MechanicalCheck v2 绑定 current identity；GlobalSound 仍
 absent。旧 v1-v3 requirements/Run/scaffold 和 GPS/ProductComicVertical 正式作品保持原字节。
 
+### 3.4 M10 批准后本地交付
+
+M10 不属于 `production:*` 状态机。只有 current `FinalAssembly`、current
+`FinalPreviewEvidence`、用户真实 `FinalPreviewApproval` 和 passing
+`final-mechanical-check-v2` 相互精确绑定时，`delivery:build` 才可读取获批 preview。脚本直接
+复制该 MP4，避免重新编码产生新的未批准媒体 identity；同时从 Project-owned 独立 Remotion
+Still 入口渲染 4:3 与 3:4 封面。
+
+交付规格、三个封面 source checksums、approval 和 FinalAssembly 共同确定 release identity。
+application/domain/adapters 分层只允许固定仓库相对路径和固定输出
+`deliveries/<storyId>/<releaseId>/`。构建在 `.staging` 完成媒体、canonical metadata、文件集和
+checksum 复验后才原子封存；相同 release 幂等 check，任何不同内容都拒绝覆盖。该流程不签署
+批准、不修改 Story/旁白/字幕/时间线/ScenePackage/FinalAssembly，不执行网络或平台操作。
+
 ## 4. 阶段输入与输出
 
 | 阶段                     | 输入                                                                        | 固定输出                                                                                 | 边界                                                                                                           |
@@ -219,7 +234,7 @@ absent。旧 v1-v3 requirements/Run/scaffold 和 GPS/ProductComicVertical 正式
 | Final Assembly           | NarrativeCore 与已选择增强轨                                                | FinalAssembly、完整正常速度 Preview                                                      | 固定 z-order/mix-order；缺失未选择的增强轨不是错误                                                             |
 | Final Preview Evidence   | FinalAssembly、完整 MP4、contact sheet、still 与批量 review                 | checksum-bound evidence、技术测量和 review fingerprint                                   | 完整解码、帧数、时长、响度、true peak、声道和 ducking 均 fail closed                                           |
 | Final Preview Approval   | current FinalPreviewEvidence                                                | 用户 authoring record 与 generated approval                                              | 仅用户可批准；精确绑定 preview/evidence/assembly，Agent/checker 不得代签                                       |
-| Release                  | 已批准 FinalAssembly                                                        | 未来发布物                                                                               | 尚未实现，不因 M8/M9 批准自动发布                                                                              |
+| Local Delivery           | current approval/evidence/FinalAssembly、passing final-v2、Project delivery spec | fixed local release、双比例封面、publishing/manifest/checksums/handoff                   | 只复制 exact approved preview；不可覆盖、不上传平台、不改变 production 状态                                   |
 
 ## 5. 权威与所有权
 
@@ -319,7 +334,7 @@ Draft
 → EnhancementInProgress（可跳过）
 → FinalPreviewReady
 → Approved
-→ Rendered
+→ LocallyDelivered（显式、可选）
 ```
 
 这些名称用于描述作品生命周期，不建立一个可被手工修改的万能 `status` 字段。当前作品
@@ -331,8 +346,8 @@ fingerprints 复算 byte-stable state。任何手改、非法 transition 或旧 
 fail closed；render runtime 不读取 `.producer-runs/`。
 
 GPS M8 与产品漫画 M9 当前均已到 `Approved`：完整 MP4 与 evidence checksum current，用户
-批准与 FinalAssembly identity 一致，`final-mechanical-check-v2` pass；`Rendered` 在这里指
-后续正式发布交付状态，不由这两次批准自动推导。
+批准与 FinalAssembly identity 一致，`final-mechanical-check-v2` pass。产品漫画另由显式 M10
+命令到达 `LocallyDelivered`；该状态不由批准自动推导，也不表示已上传或网络发布。
 
 允许返回上游修改，但必须形成新的 fingerprint 并让下游结果失效；不能修改上游后继续
 沿用旧 timing、旧 preview 或旧 approval。
@@ -496,7 +511,7 @@ assembly/evidence、真实用户批准和 v2 final report。M9 又使用同一�
 实现。后续制作仍必须把 sealed
 narration、SemanticTiming、StoryBeat、项目级 VisualStyleSpec 和主 Agent 冻结来源当作只读输入。
 
-## 10. M2–M9.5 完成事实与后续门槛
+## 10. M2–M10 完成事实与后续门槛
 
 M2 已满足：
 
@@ -552,7 +567,7 @@ M9 另已满足：`product-comic-vertical` 的 high-fidelity clone 旁白、十 
 9:16 漫画系统、104/161/161 Shotcraft inventory/coverage、一个 exact localized demo、全片
 global sound/visual、5116 帧最终 MP4 和 45 张 review still 均绑定 current identities。真实用户
 批准与第二份 15 项 v2 pass；42-case matrix 与四类泛化报告通过。三个 promotion candidates
-仍为 proposal-only，M10 与发布均未开始。
+仍为 proposal-only；M9 当时没有自动进入 M10。
 
 M9.5 已用严格合同和临时两 Scene orchestration proof 证明完整制作要求第一次冻结、Baseline
 后 Scene 输入第二次冻结、Scene 独立结果合同、中央 watcher、无全局增强的机械 Preview
@@ -563,4 +578,11 @@ pipeline、expected/unexpected error、超时、malformed/stale/shared drift 与
 
 后续 future-only v4 hardening 已把一个 GlobalVisual owner 加入同次 freeze 与 N+1 result join，
 并通过三种到达顺序、strict lifecycle-field rejection、旧 v1-v3 parse/checksum 和两套正式作品
-identity 矩阵验证。它没有增加 Agent 监控、GlobalSound、审美 gate、用户批准、M10 或发布。
+identity 矩阵验证。它没有增加 Agent 监控、GlobalSound、审美 gate 或用户批准，也没有把 M10
+并入 production。
+
+M10 另已满足：future-only delivery v1 contracts、固定 `delivery:build/check`、原子不可覆盖
+release、exact preview byte identity、H.264/AAC/帧数/时长/完整解码检查、两个 Project-owned
+ratio-specific Remotion Still、canonical publishing/manifest、六文件 checksum ledger 与
+zero-deliveries core 隔离均有自动化测试。`product-comic-vertical` 首个真实 release 绑定其
+current approval/evidence/FinalAssembly/final-v2 identities，MP4 与获批 preview checksum 相同。

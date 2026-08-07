@@ -2,7 +2,7 @@
 
 > 文档类型：架构与依赖权威
 >
-> 最后复核：2026-08-07
+> 最后复核：2026-08-08
 >
 > 当前完成状态只在 [ITERATION_STATUS.md](ITERATION_STATUS.md) 维护。
 
@@ -38,8 +38,34 @@ Project，仍使用稳定排序、字面量 `import()` 与 `lazyComponent`；ren
 两份聚合投影同样是 ignored 本地文件，由 `npm run bootstrap` 在 install、test、typecheck、lint、
 build、dev 和 Composition listing 前重建。fresh clone 默认投影零 Project，只保留系统级
 `CapabilityGallery`。删除或新增 Project 后只重算投影，不修改 Root 或 core 配置。`out/` 是本地
-交付/证据输出，不是源码健康前置条件；历史媒体和用户批准只由显式 Project-owned
-evidence/approval 命令复验。
+预览/证据输出，`deliveries/` 是不可覆盖的本地 release 叶节点；两者都不是源码健康前置条件。
+历史媒体、用户批准和交付 release 只由显式 Project-owned 或 `delivery:*` 命令复验。
+
+## M10 本地交付边界
+
+M10 位于用户批准之后，是独立于 production orchestration 和 Remotion render runtime 的固定
+应用层：
+
+```text
+Project-owned delivery spec + cover source
+current FinalAssembly + FinalPreviewEvidence + FinalPreviewApproval + passing final-v2
+approved exact preview
+  → scripts/delivery/application
+  → fixed local media/filesystem adapters
+  → deliveries/<storyId>/<releaseId>/
+```
+
+`src/contracts/delivery.ts` 定义 future-only v1 contract 和 identity；`scripts/delivery/` 继续按
+`cli / application / domain / adapters` 分层。application 只编排 current input、媒体检查和
+封存；domain 只生成 canonical publishing/handoff/checksum 内容；adapters 只处理固定本地路径、
+FFprobe/FFmpeg 和 Project-owned Remotion Still。delivery 不 import Project runtime，不进入
+Composition，也不读取 Agent、Skill、MCP、Git、网络、账号、密钥或权限。
+
+`releaseId` 由 approval、FinalAssembly 和交付规格 fingerprint 派生。交付规格同时绑定
+Project-owned 的 `delivery/Covers.tsx`、`Root.tsx` 和 `index.ts` source checksums，因此修改封面
+构图会得到新 release identity；旧 release 不迁移、不覆盖。写入先发生在固定 `.staging`，全部
+媒体和 checksum 复验成功后以目录 rename 封存。任何绝对路径、`..`、符号链接、未知文件、
+非 current input 或半成品都 fail closed。
 
 ## 当前设计顺序
 

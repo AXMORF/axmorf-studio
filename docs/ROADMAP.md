@@ -2,10 +2,9 @@
 
 > 文档类型：未来工作权威
 >
-> 最后复核：2026-08-07
+> 最后复核：2026-08-08
 >
-> 当前阶段：M1–M9.5 与 production hardening（含 parallel GlobalVisual contracts）已完成；
-> M10 尚未开始
+> 当前阶段：M1–M10 与 production hardening（含 parallel GlobalVisual contracts）已完成
 
 ## 用途
 
@@ -27,44 +26,23 @@
 | M8        | Global sound/visual、FinalAssembly、用户批准与 final-v2                                               |
 | M9        | ProductComicVertical 第二主题泛化与 final-v2                                                          |
 | M9.5      | 合同驱动生产 CLI、single-writer watcher 与机械 Preview                                                |
+| M10       | exact approved preview 的不可覆盖本地 release、双比例封面、发布元数据与固定复验                     |
 | Hardening | v3 preflight、统一可读性、Composition-owned Scene boundary；future-only v4 N+1 GlobalVisual contracts |
 
 当前实现细节以 [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准；历史计划见
 [archive/implementation-plans/](archive/implementation-plans/README.md)。
 
-## 下一里程碑：M10 本地发布收口
+## M10 已完成边界
 
-M10 必须单独规划并获得授权后才开始。
+M10 以独立 `delivery:*` 层完成本地发布收口：固定读取 current、checksum-bound、用户已批准的
+exact preview 与 passing `final-mechanical-check-v2`，输出到 ignored
+`deliveries/<storyId>/<releaseId>/`。release 不可覆盖，相同 identity 只做幂等复验；交付包
+包含原字节 H.264/AAC MP4、两个 Project-owned Remotion Still 封面、publishing metadata、
+release manifest、checksum ledger 和 handoff。
 
-目标是把已批准作品导出到用户明确指定的仓库外或本地目标目录，生成可追溯、可复验的交付包，
-而不是连接平台账号或自动发布到网络。M10 不得把具体 Project、`out/` 历史媒体或交付目录重新
-固化为 core 健康前置条件。
-
-建议范围：
-
-- 冻结被批准作品的 Composition、媒体和 evidence identity；
-- 要求用户明确提供交付目标目录，并在写入前校验精确目标；
-- 生成本地 release manifest、文件清单和校验和；
-- 生成封面/缩略图等明确列入计划的交付资产；
-- 提供从 clean core checkout 加显式恢复的本地 Project/交付输入复验交付包的固定命令；
-- 更新 changelog/交接说明和发布前检查。
-
-明确排除：
-
-- 代签 `FinalPreviewApproval`；
-- 平台上传、账号登录、远程发布、密钥或权限管理；
-- 以发布名义修改已封存旁白、字幕、时间线或 Scene；
-- 自动执行 promotion 或 NarrativeCheck。
-- 新增 `project:delete`、自动删除 Project 或自动清理 `out/`。
-
-完成门槛：
-
-- 用户已经对 exact current preview 作出明确批准；
-- release manifest 与所有文件 checksum 可从仓库事实重算；
-- clean core checkout 的 zero-Project 静态与宿主门禁通过；恢复目标 Project 后，其 source、
-  media、evidence 与 approval 门禁另行通过；
-- 交付包不包含私有配置、voice profile、临时文件或未跟踪输入；
-- 文档和交接明确说明已知限制与复验命令。
+该里程碑没有代签批准、改写正式作品、扩张 `production:*`、连接平台、登录账号、使用网络或
+密钥，也没有执行 promotion、NarrativeCheck、Project 删除或 `out/` 清理。首个真实证明使用
+`product-comic-vertical`，详见 [M10 evidence](evidence/2026-08-08-m10-local-delivery.md)。
 
 ## 独立后续能力
 

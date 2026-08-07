@@ -94,6 +94,8 @@
     "project:evidence:check": "node --import tsx scripts/project-validation/cli.ts evidence",
     "project:approval:check": "node --import tsx scripts/project-validation/cli.ts approval",
     "final:assembly": "node --import tsx scripts/final-assembly/cli.ts",
+    "delivery:build": "node --import tsx scripts/delivery/cli.ts build",
+    "delivery:check": "node --import tsx scripts/delivery/cli.ts check",
     "production:preflight": "node --import tsx scripts/production/cli.ts preflight",
     "production:start": "node --import tsx scripts/production/cli.ts start",
     "production:status": "node --import tsx scripts/production/cli.ts status",

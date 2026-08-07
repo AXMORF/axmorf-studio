@@ -2,7 +2,7 @@
 
 > 文档类型：确定性、时间、指纹与失效权威
 >
-> 最后复核：2026-08-07
+> 最后复核：2026-08-08
 >
 > 当前完成状态只在 [ITERATION_STATUS.md](ITERATION_STATUS.md) 维护。
 
@@ -16,7 +16,8 @@ ProjectRegistry 与 ResourceCatalog 不是永久作品清单，而是每次固�
 集合的可复算投影。集合可以为空；生成结果仍保持静态元数据、稳定排序、字面量 import 和
 bundle 前校验，render runtime 不做目录发现。未来 production 的 PreviewEvidence 位于对应
 Run 输出中；`out/` 下 MP4、PNG、contact sheet 和媒体 receipt 只在显式 evidence/media 命令中
-fail closed，不进入默认 source health。删除媒体不会伪造批准，也不会改变已有
+fail closed，不进入默认 source health。M10 的 `deliveries/` 同样是 ignored 本地叶节点，只由
+显式 `delivery:*` 命令复验。删除媒体或 release 不会伪造批准，也不会改变已有
 `FinalPreviewApproval` 的语义或 identity。
 
 ```text
@@ -230,6 +231,10 @@ scripts/production/                    production CLI 与分层入口
 ├── application/                      用例编排、Scene lifecycle、Preview 与 validators
 ├── domain/                           事件、状态转换、投影和错误语义
 └── adapters/                         run store、process、Remotion 与 VoxCPM 端口
+scripts/delivery/                      M10 本地交付 CLI 与分层入口
+├── application/                      current input、build/check 与原子用例编排
+├── domain/                           canonical publishing/handoff/checksum 规则
+└── adapters/                         fixed filesystem、FFprobe/FFmpeg 与 Remotion Still
 src/remotion/runtime/narrative-core/   旁白、顶层字幕与绝对时间挂载
 src/remotion/runtime/composition-assembly/ 四个强语义聚合的显式装配
 src/remotion/runtime/story-visual/     M6 Scene 视觉、Shot 与转场时间装配
@@ -243,6 +248,7 @@ src/projects/<story>/
 ├── visual-style.json                  M6 合同；正式项目实例由 M7 创建
 ├── external-references.generated.json M6 合同/工具；正式项目实例由 M7 选择
 ├── production/                        requirements、resource pool、Scene/GlobalVisual assignments
+├── delivery/                          Project-owned v1 spec 与两个比例独立构图的 Still
 ├── global-visual-plan.json            v4 whole-film GlobalVisual 创作声明
 ├── global-visual/                     project-local static renderer、资源选择与 generated package
 ├── scenes/<meaningId>/                M7 Scene 视听制作阶段；单 Agent 独占
@@ -264,6 +270,7 @@ src/projects/project-registry.generated.ts  Story ID → 静态元数据 + 字�
 
 public/projects/<story>/narration/     已封存的旁白产物
 out/<story>/                           本地预览、证据与成片
+deliveries/<story>/<releaseId>/        ignored、不可覆盖、显式复验的本地交付包
 
 .producer-runs/<runId>/                ignored 制作期 events、Scene/GlobalVisual results、state/lock
 ```
@@ -556,7 +563,10 @@ Story fingerprint
 └── FinalAssembly fingerprint
     └── FinalPreviewEvidence fingerprint（media + technical + Agent review）
         └── FinalPreviewApproval fingerprint（真实用户决定）
-            └── final-mechanical-check-v2 report fingerprint
+            ├── final-mechanical-check-v2 report fingerprint
+            └── Delivery release identity
+                ├── delivery specification + cover source fingerprints
+                └── release manifest + payload checksums
 ```
 
 M1 定义、M2 实际生成并校验到 SemanticTiming，M3 已继续生成 ProjectRegistry entry、
@@ -595,7 +605,7 @@ decode、帧数/时长/声道检查和响度/true-peak/sample-peak 分析；阈�
 
 ## 10. 聚合检查
 
-M1–M9 当前提供聚焦机械检查、真实 file-backed 检查、registry drift check、listing、窄
+M1–M10 当前提供聚焦机械检查、真实 file-backed 检查、registry drift check、listing、窄
 Baseline/Scene runtime proof evidence，以及由静态作品 profile 编排的正式 evidence 与
 narrative/final 聚合：
 
@@ -670,8 +680,35 @@ byte-exact，不创建 approval、不修复 drift。
 声音、转场或审美结果。GPS 五个 ScenePackage 与 ProductComicVertical 十个 ScenePackage 均
 全 ready，两项目 evidence/approval current，因此各自 `narrative` 与 v2 `final` 均通过；独立
 evidence receipts 分别绑定 Scene review 和最终 GlobalSound/GlobalVisual/连续性/正常速度
-review。只有用户 approval artifact 表示最终创意批准；NarrativeCheck、promotion 实施与发布
-检查仍未实现。
+review。只有用户 approval artifact 表示最终创意批准；NarrativeCheck 与 promotion 实施仍未
+实现。
+
+### 10.1 M10 delivery build/check
+
+M10 使用两个且仅两个 exact CLI：
+
+```bash
+npm run delivery:build -- --project <storyId>
+npm run delivery:check -- --project <storyId> --release <releaseId>
+```
+
+build 先以 Project-owned final verification 复算 source、media、evidence、approval 和 passing
+`final-mechanical-check-v2`，再要求 approval 精确绑定当前 preview checksum、evidence 与
+FinalAssembly。`releaseId` 只从 approval fingerprint、FinalAssembly fingerprint 和完整交付规格
+fingerprint 计算；交付规格 fingerprint 还包含三个固定封面 source 文件 checksum。
+
+MP4 直接 exclusive copy 获批 preview，不重新编码。FFprobe 必须得到一条 H.264 视频流和一条
+AAC 音频流，并验证画幅、fps、帧数、视频/容器实际时长、采样率与声道；FFmpeg 必须完整解码到
+EOF。两个 PNG 分别必须为 1600×1200 和 1200×1600，并完整解码。所有 payload 的 checksum、
+大小与媒体参数进入 manifest；`checksums.sha256` 绑定 MP4、双封面、publishing、manifest 和
+handoff。manifest 不递归记录自身与 checksum ledger，以避免自引用；ledger 对 manifest 提供
+最终外层绑定。
+
+全部写入先进入 `deliveries/.staging/` 下的唯一目录；仅当 canonical JSON、固定文件集、媒体和
+checksum 全部复验通过时才 rename 到最终 release。已存在的相同 release 只执行 check 且不改
+mtime；任何 drift、冲突、符号链接、未知文件、绝对路径、`..` 或残留 staging 都 fail closed。
+删除整个 `deliveries/` 不影响 core `npm run check`，但显式 `delivery:check` 会因 release 缺失
+失败。
 
 ## 11. Skill 边界
 

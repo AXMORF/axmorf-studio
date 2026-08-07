@@ -32,6 +32,7 @@ const CORE_TEST_ROOTS = [
   "tests/project-check",
   "tests/project-validation",
   "tests/final-assembly",
+  "tests/delivery",
   "tests/scene-runtime-proof",
   "tests/production",
 ] as const;

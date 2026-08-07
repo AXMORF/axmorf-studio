@@ -5,12 +5,14 @@
 
 ## 当前结论
 
-- M1–M9.5 已完成：叙事合同、真实旁白封存、Narrative Baseline、ScenePackage、全局装配、
-  第二主题泛化与稳定生产编排均已有代码和验证证据。
+- M1–M10 已完成：叙事合同、真实旁白封存、Narrative Baseline、ScenePackage、全局装配、
+  第二主题泛化、稳定生产编排与本地交付均已有代码和验证证据。
 - 新 production 使用 v3 requirements、Run-before-write preflight、Composition-owned
   `SceneSafeArea`、透明 Scene Renderer 和机械 Preview 门禁。
 - 自动化终点是 `preview-ready / awaiting-user-preview`；它不代表用户批准、发布或 promotion。
-- NarrativeCheck、用户预览后的定点 Scene 修改循环、能力 promotion 和 M10 发布收口尚未实现。
+- 独立的 `delivery:*` 只接受用户已批准的 exact current preview，生成本地不可覆盖 release；
+  不扩张 `production:*`，也不上传平台。
+- NarrativeCheck、用户预览后的定点 Scene 修改循环和能力 promotion 尚未实现。
 
 完整当前事实见 [当前实现状态](docs/ITERATION_STATUS.md)，下一阶段只看
 [Roadmap](docs/ROADMAP.md)。
@@ -103,6 +105,16 @@ npm run production:preview:check -- --run <run-id>
 详细输入、输出和失败语义见
 [生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md)。
 
+本地交付在用户批准之后显式运行：
+
+```bash
+npm run delivery:build -- --project <story-id>
+npm run delivery:check -- --project <story-id> --release <release-id>
+```
+
+固定目录、Project-owned 封面入口和复验方式见
+[本地交付指南](docs/guides/LOCAL_DELIVERY.md)。
+
 ## 目录
 
 ```text
@@ -114,6 +126,7 @@ docs/                        当前权威文档与导航
   archive/                   不再代表当前事实的历史快照
 scripts/                     构建期、检查和生产工具
   production/                cli / application / domain / adapters
+  delivery/                  M10 本地交付的 cli / application / domain / adapters
   project-validation/        正式作品静态验证 profile 与受控 adapter
   project-tools/<story>/     作品专属构建期工具，不是通用生产 API
   proofs/                    独立 synthetic regression proof
@@ -122,6 +135,7 @@ src/remotion/runtime/        固定、离线、frame-driven runtime
 src/remotion/capabilities/   已批准共享能力
 src/projects/<story>/        ignored 本地作品：Composition、数据和 Scene
 public/                      ignored 本地资产与作品媒体；bootstrap 可重建 core proof 资产
+deliveries/                  ignored、不可覆盖的本地交付 release
 tests/                       与模块/用例对应的自动化测试
 ```
 
