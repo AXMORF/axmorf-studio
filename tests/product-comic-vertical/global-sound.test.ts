@@ -16,7 +16,7 @@ import { productComicVerticalFinalAssemblyData } from "../../src/projects/produc
 import {
   inspectCanonicalWav,
   validateProductComicGlobalAudio,
-} from "../../scripts/project-tools/product-comic-vertical/global-audio";
+} from "../../src/projects/product-comic-vertical/tools/verification/global-audio";
 
 const rootDir = process.cwd();
 const readJson = async (path: string): Promise<unknown> =>

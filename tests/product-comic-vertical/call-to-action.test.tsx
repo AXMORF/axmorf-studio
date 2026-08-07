@@ -36,7 +36,7 @@ import { derivePreFinalSceneCatalog } from "../../scripts/project-check/final-ru
 import {
   validateCoverageDocument,
   validateInventoryDocument,
-} from "../../scripts/project-tools/product-comic-vertical/shotcraft-inventory";
+} from "../../src/projects/product-comic-vertical/tools/verification/shotcraft-inventory";
 
 const rootDir = process.cwd();
 const sceneRoot = "src/projects/product-comic-vertical/scenes/call-to-action";

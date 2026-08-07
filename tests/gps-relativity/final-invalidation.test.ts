@@ -22,8 +22,8 @@ import {
   inspectM8FinalPreviewTechnical,
   validateM8FinalAssemblyReview,
   writeM8FinalPreviewEvidenceArtifact,
-} from "../../scripts/project-tools/gps-relativity/final-evidence";
-import { freezeGpsM8Inputs } from "../../scripts/project-tools/gps-relativity/final-inputs";
+} from "../../src/projects/gps-relativity/tools/verification/final-evidence";
+import { freezeGpsM8Inputs } from "../../src/projects/gps-relativity/tools/verification/final-inputs";
 
 const rootDir = join(import.meta.dirname, "../..");
 const evidencePath = join(

@@ -1,23 +1,11 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { runProjectVerificationStep } from "./adapters";
 import {
+  loadProjectVerificationProfiles,
   parseProjectValidationArgs,
-  parseProjectVerificationProfiles,
   resolveProfileSteps,
 } from "./profiles";
-
-const loadManifest = async (rootDir: string) =>
-  parseProjectVerificationProfiles(
-    JSON.parse(
-      await readFile(
-        join(rootDir, "scripts/project-validation/formal-projects.json"),
-        "utf8",
-      ),
-    ),
-  );
 
 export const runProjectValidationCli = async ({
   rootDir,
@@ -29,7 +17,7 @@ export const runProjectValidationCli = async ({
   readonly stdout?: (value: string) => void;
 }) => {
   const parsed = parseProjectValidationArgs(args);
-  const manifest = await loadManifest(rootDir);
+  const manifest = await loadProjectVerificationProfiles(rootDir);
   const projects =
     parsed.target === "all"
       ? manifest.projects.map(({ projectId }) => projectId)

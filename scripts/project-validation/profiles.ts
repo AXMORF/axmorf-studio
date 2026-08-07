@@ -1,3 +1,5 @@
+import { lstat, readFile, readdir } from "node:fs/promises";
+import { join } from "node:path";
 import { z } from "zod";
 
 import { StoryIdSchema } from "../../src/contracts";
@@ -17,7 +19,8 @@ export const ProjectVerificationStepSchema = z.enum([
 
 const ProjectVerificationProfileSchema = z
   .object({
-    projectId: StoryIdSchema,
+    schemaVersion: z.literal(1),
+    profileVersion: z.literal("project-verification-v2"),
     steps: z.array(ProjectVerificationStepSchema).min(1).readonly(),
   })
   .strict()
@@ -25,41 +28,15 @@ const ProjectVerificationProfileSchema = z
     if (new Set(profile.steps).size !== profile.steps.length) {
       context.addIssue({
         code: "custom",
-        message: "Formal project verification steps must be unique.",
+        message: "Project verification steps must be unique.",
         path: ["steps"],
       });
     }
     if (profile.steps[0] !== "narrative" || profile.steps.at(-1) !== "final") {
       context.addIssue({
         code: "custom",
-        message:
-          "Formal project verification must start narrative and end final.",
+        message: "Project verification must start narrative and end final.",
         path: ["steps"],
-      });
-    }
-  });
-
-const ProjectVerificationProfilesSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    profileVersion: z.literal("formal-project-verification-v1"),
-    projects: z.array(ProjectVerificationProfileSchema).min(1).readonly(),
-  })
-  .strict()
-  .superRefine((manifest, context) => {
-    const ids = manifest.projects.map(({ projectId }) => projectId);
-    if (new Set(ids).size !== ids.length) {
-      context.addIssue({
-        code: "custom",
-        message: "Formal project verification profiles must be unique.",
-        path: ["projects"],
-      });
-    }
-    if ([...ids].sort().some((id, index) => id !== ids[index])) {
-      context.addIssue({
-        code: "custom",
-        message: "Formal project verification profiles must be sorted.",
-        path: ["projects"],
       });
     }
   });
@@ -67,21 +44,71 @@ const ProjectVerificationProfilesSchema = z
 export type ProjectVerificationStep = z.infer<
   typeof ProjectVerificationStepSchema
 >;
-export type ProjectVerificationScope = "full" | "evidence" | "approval";
+export type ProjectVerificationScope =
+  | "full"
+  | "source"
+  | "evidence"
+  | "approval";
 
-export const parseProjectVerificationProfiles = (raw: unknown) =>
-  ProjectVerificationProfilesSchema.parse(raw);
+export type ProjectVerificationProfiles = Readonly<{
+  profileVersion: "project-verification-v2";
+  projects: readonly Readonly<{
+    projectId: z.infer<typeof StoryIdSchema>;
+    steps: readonly ProjectVerificationStep[];
+  }>[];
+}>;
 
-const stepScopes: Readonly<
-  Record<ProjectVerificationScope, readonly ProjectVerificationStep[] | null>
-> = {
-  full: null,
-  evidence: ["scene-evidence", "final-evidence"],
-  approval: ["approval"],
+export const parseProjectVerificationProfile = (raw: unknown) =>
+  ProjectVerificationProfileSchema.parse(raw);
+
+export const loadProjectVerificationProfiles = async (
+  rootDir: string,
+): Promise<ProjectVerificationProfiles> => {
+  const projectsRoot = join(rootDir, "src/projects");
+  const entries = await readdir(projectsRoot, { withFileTypes: true });
+  const projects: ProjectVerificationProfiles["projects"][number][] = [];
+  for (const entry of entries.sort((left, right) =>
+    left.name.localeCompare(right.name),
+  )) {
+    if (entry.isSymbolicLink()) {
+      throw new Error(`Project symbolic links are not allowed: ${entry.name}.`);
+    }
+    if (!entry.isDirectory()) continue;
+    const profilePath = join(
+      projectsRoot,
+      entry.name,
+      "verification.profile.json",
+    );
+    let stat;
+    try {
+      stat = await lstat(profilePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+      throw error;
+    }
+    if (stat.isSymbolicLink() || !stat.isFile()) {
+      throw new Error(
+        `Project verification profile must be a regular file: ${entry.name}.`,
+      );
+    }
+    const profile = parseProjectVerificationProfile(
+      JSON.parse(await readFile(profilePath, "utf8")),
+    );
+    projects.push({
+      projectId: StoryIdSchema.parse(entry.name),
+      steps: profile.steps,
+    });
+  }
+  return { profileVersion: "project-verification-v2", projects };
 };
 
+const evidenceSteps = new Set<ProjectVerificationStep>([
+  "scene-evidence",
+  "final-evidence",
+]);
+
 export const resolveProfileSteps = (
-  manifest: ReturnType<typeof parseProjectVerificationProfiles>,
+  manifest: ProjectVerificationProfiles,
   projectId: string,
   scope: ProjectVerificationScope,
 ) => {
@@ -89,15 +116,21 @@ export const resolveProfileSteps = (
     (candidate) => candidate.projectId === projectId,
   );
   if (profile === undefined) {
-    throw new Error(
-      `Unknown formal project verification profile: ${projectId}.`,
-    );
+    throw new Error(`Unknown Project verification profile: ${projectId}.`);
   }
-  const selected = stepScopes[scope];
-  return selected === null
-    ? profile.steps
-    : profile.steps.filter((step) => selected.includes(step));
+  if (scope === "full") return profile.steps;
+  if (scope === "evidence") {
+    return profile.steps.filter((step) => evidenceSteps.has(step));
+  }
+  if (scope === "approval") {
+    return profile.steps.filter((step) => step === "approval");
+  }
+  return profile.steps.filter(
+    (step) => !evidenceSteps.has(step) && step !== "approval",
+  );
 };
+
+const scopes = ["full", "source", "evidence", "approval"] as const;
 
 export const parseProjectValidationArgs = (args: readonly string[]) => {
   if (
@@ -114,13 +147,24 @@ export const parseProjectValidationArgs = (args: readonly string[]) => {
     return { target: "all", scope: "full" } as const;
   }
   if (
+    args.length === 3 &&
+    args[0] === "--all" &&
+    args[1] === "--scope" &&
+    scopes.includes(args[2] as (typeof scopes)[number])
+  ) {
+    return {
+      target: "all",
+      scope: args[2] as ProjectVerificationScope,
+    } as const;
+  }
+  if (
     args.length !== 4 ||
     args[0] !== "--project" ||
     args[2] !== "--scope" ||
-    !["full", "evidence", "approval"].includes(args[3] ?? "")
+    !scopes.includes(args[3] as (typeof scopes)[number])
   ) {
     throw new Error(
-      "Expected --all, evidence|approval --project <id>, or --project <id> --scope full|evidence|approval.",
+      "Expected --all [--scope source|full|evidence|approval], evidence|approval --project <id>, or --project <id> --scope source|full|evidence|approval.",
     );
   }
   return {

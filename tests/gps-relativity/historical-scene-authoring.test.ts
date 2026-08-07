@@ -6,11 +6,11 @@ import test from "node:test";
 import {
   authorGpsM7Scene,
   runM7GpsAuthorCli,
-} from "../../scripts/project-tools/gps-relativity/historical-scene-authoring";
+} from "../../src/projects/gps-relativity/tools/verification/historical-scene-authoring";
 import {
   GPS_M7_MEANING_IDS,
   buildGpsM7FrozenInputs,
-} from "../../scripts/project-tools/gps-relativity/scene-inputs";
+} from "../../src/projects/gps-relativity/tools/verification/scene-inputs";
 import { serializeCanonicalJson } from "../../src/contracts";
 
 const rootDir = process.cwd();

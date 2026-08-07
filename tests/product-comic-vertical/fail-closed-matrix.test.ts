@@ -25,13 +25,13 @@ import {
 } from "../../src/contracts";
 import { assertGuardedSource } from "../../scripts/external-references/source-guard";
 import { resolveHistoricalProjectToolPath } from "../../scripts/compatibility/formal-project-artifacts-v1";
-import { validateComicDesignSystem } from "../../scripts/project-tools/product-comic-vertical/design-system";
-import { assertM9MasteringMeasurements } from "../../scripts/project-tools/product-comic-vertical/final-evidence";
+import { validateComicDesignSystem } from "../../src/projects/product-comic-vertical/tools/verification/design-system";
+import { assertM9MasteringMeasurements } from "../../src/projects/product-comic-vertical/tools/verification/final-evidence";
 import {
   computeShotcraftFingerprint,
   validateCoverageDocument,
   validateInventoryDocument,
-} from "../../scripts/project-tools/product-comic-vertical/shotcraft-inventory";
+} from "../../src/projects/product-comic-vertical/tools/verification/shotcraft-inventory";
 
 const execFileAsync = promisify(execFile);
 const rootDir = join(import.meta.dirname, "../..");

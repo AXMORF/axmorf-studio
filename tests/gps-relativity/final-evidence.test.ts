@@ -9,7 +9,7 @@ import {
   M8_REPRESENTATIVE_FRAMES,
   runM8FinalPreviewEvidence,
   validateM8FinalAssemblyReview,
-} from "../../scripts/project-tools/gps-relativity/final-evidence";
+} from "../../src/projects/gps-relativity/tools/verification/final-evidence";
 import { readJsonFile } from "../../scripts/scene-package/project-files";
 
 const rootDir = join(import.meta.dirname, "../..");

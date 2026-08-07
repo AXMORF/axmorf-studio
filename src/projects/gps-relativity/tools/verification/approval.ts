@@ -9,35 +9,37 @@ import {
   FinalPreviewApprovalInputSchema,
   FinalPreviewApprovalSchema,
   createFinalPreviewApproval,
-} from "../../../src/contracts";
-import { writeOrCheckSceneArtifact } from "../../scene-package/project-files";
-import { runM9FinalPreviewEvidence } from "./final-evidence";
+} from "../../../../contracts";
+import { writeOrCheckSceneArtifact } from "../../../../../scripts/scene-package/project-files";
+import { runM8FinalPreviewEvidence } from "./final-evidence";
 
-const STORY_ID = "product-comic-vertical";
-const COMPOSITION_ID = "ProductComicVertical";
-const PROJECT_ROOT = `src/projects/${STORY_ID}`;
-const APPROVAL_PATH = `${PROJECT_ROOT}/generated/final-preview-approval.generated.json`;
-const APPROVAL_AUTHORING_PATH = `${PROJECT_ROOT}/reviews/final-preview-approval.json`;
-const ASSEMBLY_PATH = `${PROJECT_ROOT}/generated/final-assembly.generated.json`;
+const STORY_ID = "gps-relativity";
+const COMPOSITION_ID = "GpsRelativity";
+const APPROVAL_PATH =
+  "src/projects/gps-relativity/generated/final-preview-approval.generated.json";
+const APPROVAL_AUTHORING_PATH =
+  "src/projects/gps-relativity/reviews/final-preview-approval.json";
+const ASSEMBLY_PATH =
+  "src/projects/gps-relativity/generated/final-assembly.generated.json";
 
-export type M9ApprovalErrorCode =
+export type M8ApprovalErrorCode =
   | "missing-approval"
   | "stale-approval"
   | "approval-write-not-authorized";
 
-export class M9ApprovalError extends Error {
-  public readonly code: M9ApprovalErrorCode;
+export class M8ApprovalError extends Error {
+  public readonly code: M8ApprovalErrorCode;
 
-  public constructor(code: M9ApprovalErrorCode) {
+  public constructor(code: M8ApprovalErrorCode) {
     super(code);
-    this.name = "M9ApprovalError";
+    this.name = "M8ApprovalError";
     this.code = code;
   }
 }
 
 const loadCurrentInputs = async (rootDir: string) => {
   const [evidence, assembly] = await Promise.all([
-    runM9FinalPreviewEvidence({ rootDir, mode: "check" }),
+    runM8FinalPreviewEvidence({ rootDir, mode: "check" }),
     readFile(join(rootDir, ASSEMBLY_PATH), "utf8").then((value) =>
       FinalAssemblyPlanSchema.parse(JSON.parse(value)),
     ),
@@ -47,23 +49,23 @@ const loadCurrentInputs = async (rootDir: string) => {
     evidence.compositionId !== COMPOSITION_ID ||
     evidence.finalAssemblyFingerprint !== assembly.finalAssemblyFingerprint
   ) {
-    throw new M9ApprovalError("stale-approval");
+    throw new M8ApprovalError("stale-approval");
   }
   return { evidence, assembly };
 };
 
-export const validateM9ApprovalAuthoringRecord = ({
+export const validateM8ApprovalAuthoringRecord = ({
   rawAuthoring,
   evidence,
   assembly,
 }: {
   readonly rawAuthoring: unknown;
-  readonly evidence: Awaited<ReturnType<typeof runM9FinalPreviewEvidence>>;
+  readonly evidence: Awaited<ReturnType<typeof runM8FinalPreviewEvidence>>;
   readonly assembly: ReturnType<typeof FinalAssemblyPlanSchema.parse>;
 }) => {
   const parsed = FinalPreviewApprovalInputSchema.safeParse(rawAuthoring);
   if (!parsed.success) {
-    throw new M9ApprovalError("approval-write-not-authorized");
+    throw new M8ApprovalError("approval-write-not-authorized");
   }
   if (
     parsed.data.storyId !== STORY_ID ||
@@ -72,12 +74,12 @@ export const validateM9ApprovalAuthoringRecord = ({
     parsed.data.evidenceFingerprint !== evidence.evidenceFingerprint ||
     parsed.data.finalAssemblyFingerprint !== assembly.finalAssemblyFingerprint
   ) {
-    throw new M9ApprovalError("stale-approval");
+    throw new M8ApprovalError("stale-approval");
   }
   return parsed.data;
 };
 
-export const persistM9FinalPreviewApprovalArtifact = async ({
+export const persistM8FinalPreviewApprovalArtifact = async ({
   destination,
   approval,
   mode,
@@ -87,20 +89,6 @@ export const persistM9FinalPreviewApprovalArtifact = async ({
   readonly mode: "write" | "check";
 }) => {
   const parsed = FinalPreviewApprovalSchema.parse(approval);
-  await writeOrCheckSceneArtifact({ destination, value: parsed, mode });
-  return parsed;
-};
-
-const persistM9ApprovalAuthoringRecord = async ({
-  destination,
-  authoring,
-  mode,
-}: {
-  readonly destination: string;
-  readonly authoring: unknown;
-  readonly mode: "write" | "check";
-}) => {
-  const parsed = FinalPreviewApprovalInputSchema.parse(authoring);
   await writeOrCheckSceneArtifact({ destination, value: parsed, mode });
   return parsed;
 };
@@ -117,17 +105,17 @@ const loadApprovalAuthoringRecord = async ({
       await readFile(join(rootDir, APPROVAL_AUTHORING_PATH), "utf8"),
     );
   } catch {
-    throw new M9ApprovalError(missingCode);
+    throw new M8ApprovalError(missingCode);
   }
 };
 
-export const checkM9FinalPreviewApproval = async ({
+export const checkM8FinalPreviewApproval = async ({
   rootDir,
 }: {
   readonly rootDir: string;
 }) => {
   const { evidence, assembly } = await loadCurrentInputs(rootDir);
-  const authoring = validateM9ApprovalAuthoringRecord({
+  const authoring = validateM8ApprovalAuthoringRecord({
     rawAuthoring: await loadApprovalAuthoringRecord({
       rootDir,
       missingCode: "missing-approval",
@@ -135,44 +123,37 @@ export const checkM9FinalPreviewApproval = async ({
     evidence,
     assembly,
   });
-  let rawApproval: unknown;
+  let raw: unknown;
   try {
-    rawApproval = JSON.parse(
-      await readFile(join(rootDir, APPROVAL_PATH), "utf8"),
-    );
-  } catch {
-    throw new M9ApprovalError("missing-approval");
+    raw = JSON.parse(await readFile(join(rootDir, APPROVAL_PATH), "utf8"));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new M8ApprovalError("missing-approval");
+    }
+    throw new M8ApprovalError("stale-approval");
   }
   let approval: ReturnType<typeof FinalPreviewApprovalSchema.parse>;
   try {
-    approval = FinalPreviewApprovalSchema.parse(rawApproval);
+    approval = FinalPreviewApprovalSchema.parse(raw);
   } catch {
-    throw new M9ApprovalError("stale-approval");
+    throw new M8ApprovalError("stale-approval");
   }
-  const expected = createFinalPreviewApproval(authoring);
   if (
     approval.storyId !== STORY_ID ||
     approval.compositionId !== COMPOSITION_ID ||
     approval.previewChecksum !== evidence.media.fullPreview.checksum ||
     approval.evidenceFingerprint !== evidence.evidenceFingerprint ||
-    approval.finalAssemblyFingerprint !== assembly.finalAssemblyFingerprint ||
-    approval.approvalFingerprint !== expected.approvalFingerprint
+    approval.finalAssemblyFingerprint !== assembly.finalAssemblyFingerprint
   ) {
-    throw new M9ApprovalError("stale-approval");
+    throw new M8ApprovalError("stale-approval");
   }
-  await Promise.all([
-    persistM9ApprovalAuthoringRecord({
-      destination: join(rootDir, APPROVAL_AUTHORING_PATH),
-      authoring,
-      mode: "check",
-    }),
-    persistM9FinalPreviewApprovalArtifact({
-      destination: join(rootDir, APPROVAL_PATH),
-      approval: expected,
-      mode: "check",
-    }),
-  ]).catch(() => {
-    throw new M9ApprovalError("stale-approval");
+  const expectedApproval = createFinalPreviewApproval(authoring);
+  await persistM8FinalPreviewApprovalArtifact({
+    destination: join(rootDir, APPROVAL_PATH),
+    approval: expectedApproval,
+    mode: "check",
+  }).catch(() => {
+    throw new M8ApprovalError("stale-approval");
   });
   return approval;
 };
@@ -184,7 +165,7 @@ const ExplicitUserAuthorizationSchema = z
   })
   .strict();
 
-export const writeM9FinalPreviewApproval = async ({
+export const writeM8FinalPreviewApproval = async ({
   rootDir,
   authorization,
 }: {
@@ -193,31 +174,20 @@ export const writeM9FinalPreviewApproval = async ({
 }) => {
   const parsed = ExplicitUserAuthorizationSchema.safeParse(authorization);
   if (!parsed.success) {
-    throw new M9ApprovalError("approval-write-not-authorized");
+    throw new M8ApprovalError("approval-write-not-authorized");
   }
+  const rawAuthoring = await loadApprovalAuthoringRecord({
+    rootDir,
+    missingCode: "approval-write-not-authorized",
+  });
   const { evidence, assembly } = await loadCurrentInputs(rootDir);
-  const authoring = validateM9ApprovalAuthoringRecord({
-    rawAuthoring: {
-      schemaVersion: 1,
-      approvalVersion: "final-preview-approval-v1",
-      storyId: STORY_ID,
-      compositionId: COMPOSITION_ID,
-      decision: "approved",
-      previewChecksum: evidence.media.fullPreview.checksum,
-      evidenceFingerprint: evidence.evidenceFingerprint,
-      finalAssemblyFingerprint: assembly.finalAssemblyFingerprint,
-      approvalReference: "user-approved-current-preview",
-    },
+  const authoring = validateM8ApprovalAuthoringRecord({
+    rawAuthoring,
     evidence,
     assembly,
   });
   const approval = createFinalPreviewApproval(authoring);
-  await persistM9ApprovalAuthoringRecord({
-    destination: join(rootDir, APPROVAL_AUTHORING_PATH),
-    authoring,
-    mode: "write",
-  });
-  await persistM9FinalPreviewApprovalArtifact({
+  await persistM8FinalPreviewApprovalArtifact({
     destination: join(rootDir, APPROVAL_PATH),
     approval,
     mode: "write",
@@ -232,7 +202,7 @@ if (
   const run = async () => {
     const args = process.argv.slice(2);
     if (args.length === 1 && args[0] === "check") {
-      const approval = await checkM9FinalPreviewApproval({
+      const approval = await checkM8FinalPreviewApproval({
         rootDir: process.cwd(),
       });
       return {
@@ -245,22 +215,25 @@ if (
       args[0] === "write" &&
       args[1] === "explicit-user-current-preview"
     ) {
-      const approval = await writeM9FinalPreviewApproval({
+      const approval = await writeM8FinalPreviewApproval({
         rootDir: process.cwd(),
-        authorization: { source: args[1], decision: "approved" },
+        authorization: {
+          source: args[1],
+          decision: "approved",
+        },
       });
       return {
         status: "approved",
         approvalFingerprint: approval.approvalFingerprint,
       };
     }
-    throw new M9ApprovalError("approval-write-not-authorized");
+    throw new M8ApprovalError("approval-write-not-authorized");
   };
   run()
     .then((result) => process.stdout.write(`${JSON.stringify(result)}\n`))
     .catch((error: unknown) => {
       const code =
-        error instanceof M9ApprovalError ? error.code : "stale-approval";
+        error instanceof M8ApprovalError ? error.code : "stale-approval";
       process.stderr.write(`${JSON.stringify({ status: "fail", code })}\n`);
       process.exitCode = 1;
     });

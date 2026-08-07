@@ -9,7 +9,7 @@ import {
   validateCoverageDocument,
   validateInventoryDocument,
   validateTask5Staging,
-} from "../../scripts/project-tools/product-comic-vertical/shotcraft-inventory";
+} from "../../src/projects/product-comic-vertical/tools/verification/shotcraft-inventory";
 
 const digest = (character: string) => `sha256:${character.repeat(64)}`;
 const repositoryRoot = join(import.meta.dirname, "../..");

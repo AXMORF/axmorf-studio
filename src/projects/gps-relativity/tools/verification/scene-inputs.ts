@@ -15,11 +15,11 @@ import {
   type ResourceCatalog,
   type SceneTaskInput,
   type VisualStyleSpec,
-} from "../../../src/contracts";
+} from "../../../../contracts";
 import {
   writeOrCheckSceneArtifact,
   type SceneArtifactMode,
-} from "../../scene-package/project-files";
+} from "../../../../../scripts/scene-package/project-files";
 import { GPS_M7_AUDIO_CUES } from "./scene-audio";
 
 export const GPS_M7_MEANING_IDS = [

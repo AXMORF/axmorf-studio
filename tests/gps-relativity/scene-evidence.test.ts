@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 
-import { validateM7SceneReview } from "../../scripts/project-tools/gps-relativity/scene-evidence";
+import { validateM7SceneReview } from "../../src/projects/gps-relativity/tools/verification/scene-evidence";
 
 const rootDir = join(import.meta.dirname, "../..");
 
@@ -49,7 +49,10 @@ test("M7 review strictly binds five current Scene and four continuity conclusion
 
 test("M7 evidence source excludes approval release and automatic aesthetic scoring", async () => {
   const source = await readFile(
-    join(rootDir, "scripts/project-tools/gps-relativity/scene-evidence.ts"),
+    join(
+      rootDir,
+      "src/projects/gps-relativity/tools/verification/scene-evidence.ts",
+    ),
     "utf8",
   );
   assert.doesNotMatch(

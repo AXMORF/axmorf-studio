@@ -10,16 +10,16 @@ import {
   Sha256DigestSchema,
   createFinalPreviewEvidence,
   createFingerprint,
-} from "../../../src/contracts";
-import { productComicVerticalFinalAssemblyData } from "../../../src/projects/product-comic-vertical/final-assembly-data";
-import { evaluateDuckEnvelope } from "../../../src/remotion/runtime/global-sound";
-import { checkPersistedFinalAssembly } from "../../final-assembly/files";
-import { checksumExternalBytes } from "../../external-references/project-files";
+} from "../../../../contracts";
+import { productComicVerticalFinalAssemblyData } from "../../final-assembly-data";
+import { evaluateDuckEnvelope } from "../../../../remotion/runtime/global-sound";
+import { checkPersistedFinalAssembly } from "../../../../../scripts/final-assembly/files";
+import { checksumExternalBytes } from "../../../../../scripts/external-references/project-files";
 import {
   readJsonFile,
   writeOrCheckSceneArtifact,
   type SceneArtifactMode,
-} from "../../scene-package/project-files";
+} from "../../../../../scripts/scene-package/project-files";
 import { generateProductComicGlobalAudio } from "./global-audio";
 import { buildM9StillManifest, runM9SceneEvidence } from "./scene-evidence";
 

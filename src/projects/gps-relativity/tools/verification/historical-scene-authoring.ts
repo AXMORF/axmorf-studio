@@ -18,13 +18,13 @@ import {
   validateScenePlanBundle,
   validateSelectedResourceRef,
   type ResourceCatalog,
-} from "../../../src/contracts";
-import { collectRendererSourceGraph } from "../../renderer-registry/domain";
+} from "../../../../contracts";
+import { collectRendererSourceGraph } from "../../../../../scripts/renderer-registry/domain";
 import {
   readJsonFile,
   writeOrCheckSceneArtifact,
   type SceneArtifactMode,
-} from "../../scene-package/project-files";
+} from "../../../../../scripts/scene-package/project-files";
 import { GPS_M7_MEANING_IDS, buildGpsM7FrozenInputs } from "./scene-inputs";
 
 const execFileAsync = promisify(execFile);

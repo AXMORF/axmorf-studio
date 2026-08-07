@@ -11,19 +11,19 @@ import {
   ScenePackageSchema,
   Sha256DigestSchema,
   createFingerprint,
-} from "../../../src/contracts";
+} from "../../../../contracts";
 import {
   productComicVerticalCoverage,
   productComicVerticalSoundDesignProjection,
   productComicVerticalStoryVisualProjection,
-} from "../../../src/projects/product-comic-vertical/scene-runtime-data";
-import { rendererRegistryFingerprint } from "../../../src/projects/product-comic-vertical/renderer-registry.generated";
-import { checksumExternalBytes } from "../../external-references/project-files";
+} from "../../scene-runtime-data";
+import { rendererRegistryFingerprint } from "../../renderer-registry.generated";
+import { checksumExternalBytes } from "../../../../../scripts/external-references/project-files";
 import {
   readJsonFile,
   writeOrCheckSceneArtifact,
   type SceneArtifactMode,
-} from "../../scene-package/project-files";
+} from "../../../../../scripts/scene-package/project-files";
 
 const execFileAsync = promisify(execFile);
 const STORY_ID = "product-comic-vertical";

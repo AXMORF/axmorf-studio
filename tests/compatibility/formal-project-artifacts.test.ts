@@ -42,11 +42,11 @@ test("formal project compatibility isolates GPS-only legacy artifact paths", () 
 test("historical milestone tool identities resolve to stable responsibility paths", () => {
   assert.equal(
     resolveHistoricalProjectToolPath("scripts/m8-gps/evidence.ts"),
-    "scripts/project-tools/gps-relativity/final-evidence.ts",
+    "src/projects/gps-relativity/tools/verification/final-evidence.ts",
   );
   assert.equal(
     resolveHistoricalProjectToolPath("scripts/m9-product/scene-audio.ts"),
-    "scripts/project-tools/product-comic-vertical/scene-audio.ts",
+    "src/projects/product-comic-vertical/tools/verification/scene-audio.ts",
   );
   assert.equal(
     resolveHistoricalProjectToolPath("src/contracts/story.ts"),

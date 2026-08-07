@@ -18,7 +18,7 @@ import {
   persistM9FinalPreviewApprovalArtifact,
   validateM9ApprovalAuthoringRecord,
   writeM9FinalPreviewApproval,
-} from "../../scripts/project-tools/product-comic-vertical/approval";
+} from "../../src/projects/product-comic-vertical/tools/verification/approval";
 import { runFinalMechanicalCheck } from "../../scripts/project-check/final-run";
 
 const rootDir = join(import.meta.dirname, "../..");
@@ -213,7 +213,10 @@ test("top-level check runs the complete static Product Comic profile", async () 
   const [packageJson, profiles] = await Promise.all([
     readFile(join(rootDir, "package.json"), "utf8").then(JSON.parse),
     readFile(
-      join(rootDir, "scripts/project-validation/formal-projects.json"),
+      join(
+        rootDir,
+        "src/projects/product-comic-vertical/verification.profile.json",
+      ),
       "utf8",
     ).then(JSON.parse),
   ]);
@@ -225,20 +228,14 @@ test("top-level check runs the complete static Product Comic profile", async () 
     packageJson.scripts["check:host"],
     "npm run compositions && npm run project:verify -- --all",
   );
-  assert.deepEqual(
-    profiles.projects.find(
-      ({ projectId }: { projectId: string }) =>
-        projectId === "product-comic-vertical",
-    )?.steps,
-    [
-      "narrative",
-      "scene-audio",
-      "global-audio",
-      "scene-evidence",
-      "final-assembly",
-      "final-evidence",
-      "approval",
-      "final",
-    ],
-  );
+  assert.deepEqual(profiles.steps, [
+    "narrative",
+    "scene-audio",
+    "global-audio",
+    "scene-evidence",
+    "final-assembly",
+    "final-evidence",
+    "approval",
+    "final",
+  ]);
 });

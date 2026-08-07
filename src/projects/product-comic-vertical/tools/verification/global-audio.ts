@@ -22,16 +22,16 @@ import {
   computeResourceDescriptorFingerprint,
   serializeCanonicalJson,
   type ResourceAssetDescriptor,
-} from "../../../src/contracts";
-import { rendererRegistryFingerprint } from "../../../src/projects/product-comic-vertical/renderer-registry.generated";
+} from "../../../../contracts";
+import { rendererRegistryFingerprint } from "../../renderer-registry.generated";
 import {
   productComicVerticalSoundDesignProjection,
   productComicVerticalStoryVisualProjection,
-} from "../../../src/projects/product-comic-vertical/scene-runtime-data";
-import { resolveGlobalSound } from "../../../src/remotion/runtime/global-sound";
-import { buildResourceCatalog } from "../../catalog/domain";
-import { checksumFile } from "../../project-check/project-files";
-import { writeOrCheckSceneArtifact } from "../../scene-package/project-files";
+} from "../../scene-runtime-data";
+import { resolveGlobalSound } from "../../../../remotion/runtime/global-sound";
+import { buildResourceCatalog } from "../../../../../scripts/catalog/domain";
+import { checksumFile } from "../../../../../scripts/project-check/project-files";
+import { writeOrCheckSceneArtifact } from "../../../../../scripts/scene-package/project-files";
 
 const STORY_ID = "product-comic-vertical";
 const COMPOSITION_ID = "ProductComicVertical";

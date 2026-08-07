@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "profileVersion": "project-verification-v2",
+  "steps": [
+    "narrative",
+    "scene-audio",
+    "global-audio",
+    "scene-evidence",
+    "final-assembly",
+    "final-evidence",
+    "approval",
+    "final"
+  ]
+}

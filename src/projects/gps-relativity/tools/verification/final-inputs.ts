@@ -20,13 +20,13 @@ import {
   createGlobalVisualProjection,
   computeResourceDescriptorFingerprint,
   type ResourceAssetDescriptor,
-} from "../../../src/contracts";
-import { resolveGlobalSound } from "../../../src/remotion/runtime/global-sound";
-import { buildResourceCatalog } from "../../catalog/domain";
-import { validateAssetDescriptorFiles } from "../../catalog/project-files";
-import { checksumFile } from "../../project-check/project-files";
-import { loadCurrentFinalSceneBranch } from "../../project-check/final-run";
-import { writeOrCheckSceneArtifact } from "../../scene-package/project-files";
+} from "../../../../contracts";
+import { resolveGlobalSound } from "../../../../remotion/runtime/global-sound";
+import { buildResourceCatalog } from "../../../../../scripts/catalog/domain";
+import { validateAssetDescriptorFiles } from "../../../../../scripts/catalog/project-files";
+import { checksumFile } from "../../../../../scripts/project-check/project-files";
+import { loadCurrentFinalSceneBranch } from "../../../../../scripts/project-check/final-run";
+import { writeOrCheckSceneArtifact } from "../../../../../scripts/scene-package/project-files";
 import { generateGpsGlobalAudio } from "./global-audio";
 
 const STORY_ID = "gps-relativity";

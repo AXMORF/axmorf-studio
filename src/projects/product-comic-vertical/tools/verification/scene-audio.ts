@@ -8,11 +8,11 @@ import {
   ResourceCatalogSchema,
   ResourceDescriptorSchema,
   serializeCanonicalJson,
-} from "../../../src/contracts";
+} from "../../../../contracts";
 import {
   buildResourceCatalog,
   renderResourceCatalogJson,
-} from "../../catalog/domain";
+} from "../../../../../scripts/catalog/domain";
 
 const PROJECT_ID = "product-comic-vertical";
 const SAMPLE_RATE = 48_000;
@@ -326,7 +326,7 @@ const writeAtomic = async (destination: string, contents: Buffer | string) => {
 };
 
 const run = async (mode: "write" | "check") => {
-  const rootDir = resolve(import.meta.dirname, "../../..");
+  const rootDir = resolve(import.meta.dirname, "../../../../..");
   const projectRoot = resolve(rootDir, `src/projects/${PROJECT_ID}`);
   const overlayPath = resolve(projectRoot, "resource-catalog.json");
   const generatedCatalogPath = resolve(

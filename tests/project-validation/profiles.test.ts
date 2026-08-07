@@ -1,113 +1,155 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
-import { join } from "node:path";
-import test from "node:test";
+import { access, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import test, { type TestContext } from "node:test";
 
+import { resolveProjectVerificationInvocation } from "../../scripts/project-validation/adapters";
 import {
+  loadProjectVerificationProfiles,
   parseProjectValidationArgs,
-  parseProjectVerificationProfiles,
+  parseProjectVerificationProfile,
   resolveProfileSteps,
 } from "../../scripts/project-validation/profiles";
-import { resolveProjectVerificationInvocation } from "../../scripts/project-validation/adapters";
 
-const loadProfiles = async () =>
-  parseProjectVerificationProfiles(
-    JSON.parse(
-      await readFile(
-        join(process.cwd(), "scripts/project-validation/formal-projects.json"),
-        "utf8",
-      ),
-    ),
+const createRoot = async (context: TestContext) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-project-profiles-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  await mkdir(join(rootDir, "src/projects"), { recursive: true });
+  return rootDir;
+};
+
+const writeProfile = async ({
+  rootDir,
+  projectId,
+  steps,
+}: {
+  readonly rootDir: string;
+  readonly projectId: string;
+  readonly steps: readonly string[];
+}) => {
+  const path = join(
+    rootDir,
+    "src/projects",
+    projectId,
+    "verification.profile.json",
   );
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(
+    path,
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        profileVersion: "project-verification-v2",
+        steps,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  return dirname(path);
+};
 
-test("formal project verification profiles are static, ordered, and complete", async () => {
-  const profiles = await loadProfiles();
+test("verification profiles are Project-owned, sorted, and removable", async (context) => {
+  const rootDir = await createRoot(context);
+  await writeProfile({
+    rootDir,
+    projectId: "zeta-story",
+    steps: ["narrative", "final"],
+  });
+  const alpha = await writeProfile({
+    rootDir,
+    projectId: "alpha-story",
+    steps: ["narrative", "scene-audio", "final"],
+  });
+
+  const profiles = await loadProjectVerificationProfiles(rootDir);
   assert.deepEqual(
     profiles.projects.map(({ projectId }) => projectId),
-    ["gps-relativity", "product-comic-vertical"],
+    ["alpha-story", "zeta-story"],
   );
-  assert.deepEqual(resolveProfileSteps(profiles, "gps-relativity", "full"), [
+  assert.deepEqual(resolveProfileSteps(profiles, "alpha-story", "source"), [
     "narrative",
     "scene-audio",
-    "scene-inputs",
-    "scene-evidence",
-    "global-audio",
-    "final-inputs",
-    "final-assembly",
-    "final-evidence",
-    "approval",
     "final",
   ]);
+
+  await rm(alpha, { recursive: true });
   assert.deepEqual(
-    resolveProfileSteps(profiles, "product-comic-vertical", "full"),
-    [
-      "narrative",
-      "scene-audio",
-      "global-audio",
-      "scene-evidence",
-      "final-assembly",
-      "final-evidence",
-      "approval",
-      "final",
-    ],
-  );
-  assert.deepEqual(
-    resolveProfileSteps(profiles, "gps-relativity", "evidence"),
-    ["scene-evidence", "final-evidence"],
-  );
-  assert.deepEqual(
-    resolveProfileSteps(profiles, "product-comic-vertical", "approval"),
-    ["approval"],
+    (await loadProjectVerificationProfiles(rootDir)).projects.map(
+      ({ projectId }) => projectId,
+    ),
+    ["zeta-story"],
   );
 });
 
-test("project validation CLI accepts only exact static forms", () => {
-  assert.deepEqual(parseProjectValidationArgs(["--all"]), {
+test("zero Project verification profiles are valid", async (context) => {
+  const rootDir = await createRoot(context);
+  assert.deepEqual(await loadProjectVerificationProfiles(rootDir), {
+    profileVersion: "project-verification-v2",
+    projects: [],
+  });
+});
+
+test("profile data permits fixed step IDs but rejects paths and commands", () => {
+  assert.deepEqual(
+    parseProjectVerificationProfile({
+      schemaVersion: 1,
+      profileVersion: "project-verification-v2",
+      steps: ["narrative", "final"],
+    }).steps,
+    ["narrative", "final"],
+  );
+  for (const forbidden of [
+    { script: "./check.ts" },
+    { command: "node check.ts" },
+    { modulePath: "./check.ts" },
+  ]) {
+    assert.throws(() =>
+      parseProjectVerificationProfile({
+        schemaVersion: 1,
+        profileVersion: "project-verification-v2",
+        steps: ["narrative", "final"],
+        ...forbidden,
+      }),
+    );
+  }
+});
+
+test("project validation CLI accepts explicit source scope", () => {
+  assert.deepEqual(parseProjectValidationArgs(["--all", "--scope", "source"]), {
     target: "all",
-    scope: "full",
+    scope: "source",
   });
   assert.deepEqual(
-    parseProjectValidationArgs(["evidence", "--project", "gps-relativity"]),
-    { target: "gps-relativity", scope: "evidence" },
-  );
-  assert.deepEqual(
-    parseProjectValidationArgs([
-      "--project",
-      "gps-relativity",
-      "--scope",
-      "evidence",
-    ]),
-    { target: "gps-relativity", scope: "evidence" },
-  );
-  assert.throws(() =>
-    parseProjectValidationArgs(["--project", "gps-relativity"]),
+    parseProjectValidationArgs(["evidence", "--project", "alpha-story"]),
+    { target: "alpha-story", scope: "evidence" },
   );
   assert.throws(() =>
     parseProjectValidationArgs([
       "--project",
-      "gps-relativity",
+      "alpha-story",
       "--scope",
       "repair",
     ]),
   );
 });
 
-test("every declared verification step has a repository-local static adapter", async () => {
-  const profiles = await loadProfiles();
-  for (const { projectId, steps } of profiles.projects) {
-    for (const step of steps) {
-      const invocation = resolveProjectVerificationInvocation({
-        projectId,
-        step,
-      });
-      assert.match(invocation.script, /^scripts\/[a-z0-9./-]+\.ts$/u);
-      await access(join(process.cwd(), invocation.script));
-    }
-  }
-  assert.throws(() =>
-    resolveProjectVerificationInvocation({
-      projectId: "unregistered-project",
-      step: "scene-audio",
-    }),
+test("project-specific adapters resolve only inside the same Project", async () => {
+  const projectId = "gps-relativity";
+  const invocation = resolveProjectVerificationInvocation({
+    projectId,
+    step: "scene-audio",
+  });
+  assert.equal(
+    invocation.script,
+    "src/projects/gps-relativity/tools/verification/scene-audio.ts",
   );
+  await access(join(process.cwd(), invocation.script));
+
+  const common = resolveProjectVerificationInvocation({
+    projectId: "synthetic-story",
+    step: "narrative",
+  });
+  assert.equal(common.script, "scripts/project-check/cli.ts");
 });

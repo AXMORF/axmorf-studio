@@ -7,7 +7,7 @@ import {
   M9_MEANING_IDS,
   buildM9StillManifest,
   validateM9SceneReview,
-} from "../../scripts/project-tools/product-comic-vertical/scene-evidence";
+} from "../../src/projects/product-comic-vertical/tools/verification/scene-evidence";
 
 const rootDir = process.cwd();
 

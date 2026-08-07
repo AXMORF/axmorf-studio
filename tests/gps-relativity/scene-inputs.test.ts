@@ -7,12 +7,12 @@ import test from "node:test";
 import {
   GPS_M7_AUDIO_CUES,
   generateGpsLocalAudio,
-} from "../../scripts/project-tools/gps-relativity/scene-audio";
+} from "../../src/projects/gps-relativity/tools/verification/scene-audio";
 import {
   GPS_M7_MEANING_IDS,
   buildGpsM7FrozenInputs,
   freezeGpsM7Inputs,
-} from "../../scripts/project-tools/gps-relativity/scene-inputs";
+} from "../../src/projects/gps-relativity/tools/verification/scene-inputs";
 import {
   ResourceCatalogSchema,
   SceneTaskInputSchema,

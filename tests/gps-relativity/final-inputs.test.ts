@@ -17,11 +17,11 @@ import {
   GlobalVisualPlanSchema,
   ResourceCatalogSchema,
 } from "../../src/contracts";
-import { buildGpsM8FrozenInputs } from "../../scripts/project-tools/gps-relativity/final-inputs";
+import { buildGpsM8FrozenInputs } from "../../src/projects/gps-relativity/tools/verification/final-inputs";
 import {
   generateGpsGlobalAudio,
   inspectCanonicalWav,
-} from "../../scripts/project-tools/gps-relativity/global-audio";
+} from "../../src/projects/gps-relativity/tools/verification/global-audio";
 
 const rootDir = join(import.meta.dirname, "../..");
 

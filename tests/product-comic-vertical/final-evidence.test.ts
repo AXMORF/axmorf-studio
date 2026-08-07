@@ -14,7 +14,7 @@ import {
   assertM9MasteringMeasurements,
   runM9FinalPreviewEvidence,
   validateM9FinalAssemblyReview,
-} from "../../scripts/project-tools/product-comic-vertical/final-evidence";
+} from "../../src/projects/product-comic-vertical/tools/verification/final-evidence";
 
 const rootDir = process.cwd();
 

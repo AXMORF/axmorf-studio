@@ -25,7 +25,7 @@ import {
   persistM8FinalPreviewApprovalArtifact,
   validateM8ApprovalAuthoringRecord,
   writeM8FinalPreviewApproval,
-} from "../../scripts/project-tools/gps-relativity/approval";
+} from "../../src/projects/gps-relativity/tools/verification/approval";
 import { runFinalMechanicalCheck } from "../../scripts/project-check/final-run";
 import { checkPersistedFinalMechanicalCheck } from "../../scripts/project-check/final-report-files";
 
@@ -264,7 +264,7 @@ test("top-level check runs the complete static GPS verification profile", async 
   const [packageJson, profiles] = await Promise.all([
     readFile(join(rootDir, "package.json"), "utf8").then(JSON.parse),
     readFile(
-      join(rootDir, "scripts/project-validation/formal-projects.json"),
+      join(rootDir, "src/projects/gps-relativity/verification.profile.json"),
       "utf8",
     ).then(JSON.parse),
   ]);
@@ -276,21 +276,16 @@ test("top-level check runs the complete static GPS verification profile", async 
     packageJson.scripts["check:host"],
     "npm run compositions && npm run project:verify -- --all",
   );
-  assert.deepEqual(
-    profiles.projects.find(
-      ({ projectId }: { projectId: string }) => projectId === "gps-relativity",
-    )?.steps,
-    [
-      "narrative",
-      "scene-audio",
-      "scene-inputs",
-      "scene-evidence",
-      "global-audio",
-      "final-inputs",
-      "final-assembly",
-      "final-evidence",
-      "approval",
-      "final",
-    ],
-  );
+  assert.deepEqual(profiles.steps, [
+    "narrative",
+    "scene-audio",
+    "scene-inputs",
+    "scene-evidence",
+    "global-audio",
+    "final-inputs",
+    "final-assembly",
+    "final-evidence",
+    "approval",
+    "final",
+  ]);
 });

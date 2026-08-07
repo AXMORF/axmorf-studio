@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 import { z } from "zod";
 
-import { ResourceDescriptorSchema } from "../../../src/contracts";
+import { ResourceDescriptorSchema } from "../../../../contracts";
 
 const HexSchema = z.string().regex(/^#[0-9a-f]{6}$/i);
 const RelativePublicPathSchema = z

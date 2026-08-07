@@ -12,11 +12,11 @@ import { dirname, extname, isAbsolute, posix, resolve } from "node:path";
 
 import { z } from "zod";
 
-import { serializeCanonicalJson } from "../../../src/contracts";
+import { serializeCanonicalJson } from "../../../../contracts";
 import {
   buildResourceCatalog,
   renderResourceCatalogJson,
-} from "../../catalog/domain";
+} from "../../../../../scripts/catalog/domain";
 
 const Sha256Schema = z.string().regex(/^sha256:[0-9a-f]{64}$/);
 const GitCommitSchema = z.string().regex(/^[0-9a-f]{40}$/);
@@ -655,12 +655,10 @@ const buildSourceClosure = async ({
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([path, checksum]) => ({ path, checksum })),
     relativeImports: [...relativeImports].sort(),
-    barePackages: [...barePackages]
-      .sort()
-      .map((packageName) => ({
-        packageName,
-        exactVersion: packageVersions[packageName],
-      })),
+    barePackages: [...barePackages].sort().map((packageName) => ({
+      packageName,
+      exactVersion: packageVersions[packageName],
+    })),
     localAssets: [...localAssets].sort(),
     hasBundledAudio,
     hasBundledMedia,
@@ -1487,7 +1485,7 @@ const runCli = async () => {
     throw new Error(
       "Expected fixed project, source-root and preview-root flags.",
     );
-  const repositoryRoot = resolve(import.meta.dirname, "../../..");
+  const repositoryRoot = resolve(import.meta.dirname, "../../../../..");
   if (mode === "write") {
     const result = await generateTask5({
       repositoryRoot,

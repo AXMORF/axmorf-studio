@@ -6,7 +6,7 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import type { SceneRendererComponent } from "../../src/remotion/runtime/story-visual/types";
-import { GPS_M7_MEANING_IDS } from "../../scripts/project-tools/gps-relativity/scene-inputs";
+import { GPS_M7_MEANING_IDS } from "../../src/projects/gps-relativity/tools/verification/scene-inputs";
 import {
   SceneSyncAnchorSetSchema,
   SceneTaskInputSchema,

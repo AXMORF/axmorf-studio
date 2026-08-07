@@ -5,9 +5,9 @@ import { pathToFileURL } from "node:url";
 
 import { z } from "zod";
 
-import { createFingerprint } from "../../../src/contracts";
-import { checksumExternalBytes } from "../../external-references/project-files";
-import { writeOrCheckSceneArtifact } from "../../scene-package/project-files";
+import { createFingerprint } from "../../../../contracts";
+import { checksumExternalBytes } from "../../../../../scripts/external-references/project-files";
+import { writeOrCheckSceneArtifact } from "../../../../../scripts/scene-package/project-files";
 
 const SAMPLE_RATE = 48_000;
 const CHANNELS = 1;

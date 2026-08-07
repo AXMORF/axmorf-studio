@@ -8,11 +8,11 @@ import { ResourceCatalogSchema } from "../../src/contracts";
 import {
   validateComicDesignSystem,
   validateProjectResourceOverlay,
-} from "../../scripts/project-tools/product-comic-vertical/design-system";
+} from "../../src/projects/product-comic-vertical/tools/verification/design-system";
 import {
   PRODUCT_COMIC_SCENE_AUDIO_SPECS,
   validateProductComicSceneAudio,
-} from "../../scripts/project-tools/product-comic-vertical/scene-audio";
+} from "../../src/projects/product-comic-vertical/tools/verification/scene-audio";
 
 const design = () => ({
   schemaVersion: 1,

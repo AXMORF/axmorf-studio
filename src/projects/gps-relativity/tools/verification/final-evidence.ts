@@ -13,18 +13,18 @@ import {
   Sha256DigestSchema,
   createFinalPreviewEvidence,
   createFingerprint,
-} from "../../../src/contracts";
-import { evaluateDuckEnvelope } from "../../../src/remotion/runtime/global-sound";
-import { checkPersistedFinalAssembly } from "../../final-assembly/files";
-import { generateResourceCatalog } from "../../catalog/generate";
-import { checksumExternalBytes } from "../../external-references/project-files";
-import { checkPersistedNarrativeAutoCheck } from "../../project-check/report-files";
-import { runNarrativeAutoCheck } from "../../project-check/run";
+} from "../../../../contracts";
+import { evaluateDuckEnvelope } from "../../../../remotion/runtime/global-sound";
+import { checkPersistedFinalAssembly } from "../../../../../scripts/final-assembly/files";
+import { generateResourceCatalog } from "../../../../../scripts/catalog/generate";
+import { checksumExternalBytes } from "../../../../../scripts/external-references/project-files";
+import { checkPersistedNarrativeAutoCheck } from "../../../../../scripts/project-check/report-files";
+import { runNarrativeAutoCheck } from "../../../../../scripts/project-check/run";
 import {
   readJsonFile,
   writeOrCheckSceneArtifact,
   type SceneArtifactMode,
-} from "../../scene-package/project-files";
+} from "../../../../../scripts/scene-package/project-files";
 import { runM7Evidence } from "./scene-evidence";
 import { freezeGpsM8Inputs } from "./final-inputs";
 
