@@ -2,9 +2,12 @@ import "./index.css";
 import { Composition, Folder } from "remotion";
 
 import { projectRegistry } from "./projects/project-registry.generated";
+import type { ProjectRegistryEntry } from "./projects/project-registry.generated";
 import { CapabilityGallery } from "./remotion/compositions/capability-gallery/CapabilityGallery";
 
-export const RemotionRoot: React.FC = () => {
+export const createRemotionRoot = (
+  entries: readonly ProjectRegistryEntry[],
+) => {
   return (
     <>
       <Folder name="System">
@@ -18,7 +21,7 @@ export const RemotionRoot: React.FC = () => {
         />
       </Folder>
       <Folder name="Stories">
-        {projectRegistry.map((entry) => (
+        {entries.map((entry) => (
           <Composition
             key={entry.id}
             id={entry.id}
@@ -34,3 +37,5 @@ export const RemotionRoot: React.FC = () => {
     </>
   );
 };
+
+export const RemotionRoot: React.FC = () => createRemotionRoot(projectRegistry);

@@ -7,7 +7,8 @@ import ts from "typescript";
 import { Composition, Folder } from "remotion";
 
 import packageJson from "../../package.json";
-import { projectRegistry } from "../../src/projects/project-registry.generated";
+import { StoryCompositionPropsSchema } from "../../src/contracts";
+import type { ProjectRegistryEntry } from "../../src/projects/project-registry.generated";
 
 type ElementProps = {
   readonly name?: string;
@@ -32,11 +33,11 @@ const asElement = (node: unknown) => {
   return node;
 };
 
-test("Root keeps the system Composition and maps Story entries lazily", async () => {
+test("Root keeps CapabilityGallery when the ProjectRegistry is empty", async () => {
   const require = createRequire(import.meta.url);
   require.extensions[".css"] = () => undefined;
-  const { RemotionRoot } = await import("../../src/Root");
-  const root = RemotionRoot({});
+  const { createRemotionRoot } = await import("../../src/Root");
+  const root = createRemotionRoot([]);
   const folders = elementChildren(root);
   const systemFolder = folders.find(
     (folder) =>
@@ -62,26 +63,49 @@ test("Root keeps the system Composition and maps Story entries lazily", async ()
   const systemCompositionElement = asElement(systemComposition);
   assert.notEqual(systemCompositionElement.props.component, undefined);
   assert.equal(systemCompositionElement.props.lazyComponent, undefined);
+  assert.deepEqual(elementChildren(storiesFolderElement), []);
+});
 
-  const story = elementChildren(storiesFolderElement).find(
-    (entry) =>
-      isValidElement<ElementProps>(entry) &&
-      entry.type === Composition &&
-      entry.props.id === "GpsRelativity",
+test("Root maps synthetic Project entries without concrete Story assumptions", async () => {
+  const require = createRequire(import.meta.url);
+  require.extensions[".css"] = () => undefined;
+  const { createRemotionRoot } = await import("../../src/Root");
+  const load = async () => ({ default: () => null });
+  const entries: readonly ProjectRegistryEntry[] = [
+    {
+      id: "SyntheticStory",
+      fps: 24,
+      width: 1080,
+      height: 1080,
+      durationInFrames: 96,
+      defaultProps: StoryCompositionPropsSchema.parse({
+        projectId: "synthetic-story",
+      }),
+      generatedEntryChecksum: `sha256:${"a".repeat(64)}`,
+      projectRegistryEntryFingerprint: `sha256:${"b".repeat(64)}`,
+      narrativeBaselineFingerprint: `sha256:${"c".repeat(64)}`,
+      load,
+    },
+  ];
+  const root = createRemotionRoot(entries);
+  const storiesFolder = elementChildren(root).find(
+    (folder) =>
+      isValidElement<ElementProps>(folder) &&
+      folder.type === Folder &&
+      folder.props.name === "Stories",
   );
+  const story = elementChildren(asElement(storiesFolder))[0];
   const storyElement = asElement(story);
-  const gpsRegistryEntry = projectRegistry.find(
-    (entry) => entry.id === "GpsRelativity",
-  );
-  assert.ok(gpsRegistryEntry);
+
   assert.equal(storyElement.props.component, undefined);
-  assert.equal(storyElement.props.lazyComponent, gpsRegistryEntry.load);
-  assert.equal(storyElement.props.durationInFrames, 1731);
-  assert.equal(storyElement.props.fps, 30);
-  assert.equal(storyElement.props.width, 1920);
+  assert.equal(storyElement.props.lazyComponent, load);
+  assert.equal(storyElement.props.id, "SyntheticStory");
+  assert.equal(storyElement.props.durationInFrames, 96);
+  assert.equal(storyElement.props.fps, 24);
+  assert.equal(storyElement.props.width, 1080);
   assert.equal(storyElement.props.height, 1080);
   assert.deepEqual(storyElement.props.defaultProps, {
-    projectId: "gps-relativity",
+    projectId: "synthetic-story",
   });
 });
 
@@ -96,6 +120,9 @@ test("build and listing generate before bundle while formal check detects drift 
     "node --import tsx scripts/registry/cli.ts check",
   );
   assert.equal(scripts.predev, "npm run registry:generate");
+  assert.equal(scripts.pretest, "npm run registry:generate");
+  assert.equal(scripts.pretypecheck, "npm run registry:generate");
+  assert.equal(scripts.prelint, "npm run registry:generate");
   assert.equal(scripts.prebuild, "npm run registry:generate");
   assert.equal(scripts.precompositions, "npm run registry:generate");
   assert.equal(scripts.check, "npm run check:static && npm run check:host");
