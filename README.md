@@ -7,11 +7,13 @@
 
 - M1–M10 已完成：叙事合同、真实旁白封存、Narrative Baseline、ScenePackage、全局装配、
   第二主题泛化、稳定生产编排与本地交付均已有代码和验证证据。
-- 新 production 使用 v3 requirements、Run-before-write preflight、Composition-owned
-  `SceneSafeArea`、透明 Scene Renderer 和机械 Preview 门禁。
+- 新 production 使用 v4 requirements、Run-before-write preflight、Composition-owned
+  `SceneSafeArea`、透明 Scene Renderer、parallel GlobalVisual 和机械 Preview 门禁。
 - 自动化终点是 `preview-ready / awaiting-user-preview`；它不代表用户批准、发布或 promotion。
-- 独立的 `delivery:*` 只接受用户已批准的 exact current preview，生成本地不可覆盖 release；
-  不扩张 `production:*`，也不上传平台。
+- future-only M10 v2 在 Story 阶段冻结 PublishingIntent，并让独立 Cover owner 与 Scene/
+  GlobalVisual 同时制作；`delivery:build` 只接受用户已批准的 exact current preview 和 current
+  immutable Cover result，执行纯脚本复制封存，不扩张 `production:*`，也不上传平台。旧 v1
+  release 保持只读复验。
 - NarrativeCheck、用户预览后的定点 Scene 修改循环和能力 promotion 尚未实现。
 
 完整当前事实见 [当前实现状态](docs/ITERATION_STATUS.md)，下一阶段只看
@@ -25,7 +27,7 @@ VideoBrief + StorySpec + authored ttsChunks + RenderSpec
   → VoxCPM candidates → measured and sealed narration
   → SemanticTiming + CaptionCue
   → NarrativeCore
-  → SceneAssignment → ScenePackage
+  → SceneAssignment → ScenePackage（并行：GlobalVisual + independent Cover）
   → StoryVisualTrack + SoundDesignTrack
   → mechanical Preview
   → explicit user preview decision
@@ -108,11 +110,14 @@ npm run production:preview:check -- --run <run-id>
 本地交付在用户批准之后显式运行：
 
 ```bash
+npm run delivery:cover:freeze -- --project <story-id>
+npm run delivery:cover:check -- --project <story-id>
+npm run delivery:cover:submit -- --project <story-id>
 npm run delivery:build -- --project <story-id>
 npm run delivery:check -- --project <story-id> --release <release-id>
 ```
 
-固定目录、Project-owned 封面入口和复验方式见
+固定 PublishingIntent、独立 Cover 生命周期、纯脚本封存和复验方式见
 [本地交付指南](docs/guides/LOCAL_DELIVERY.md)。
 
 ## 目录

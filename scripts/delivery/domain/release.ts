@@ -1,9 +1,13 @@
 import {
   DeliveryPublishingSchema,
+  DeliveryPublishingV2Schema,
   DeliveryReleaseManifestSchema,
+  DeliveryReleaseManifestV2Schema,
   serializeCanonicalJson,
   type DeliveryPublishing,
+  type DeliveryPublishingV2,
   type DeliveryReleaseManifest,
+  type DeliveryReleaseManifestV2,
 } from "../../../src/contracts";
 
 export const serializeDeliveryJson = (value: unknown) =>
@@ -14,10 +18,10 @@ export const buildDeliveryHandoff = ({
   publishing,
 }: {
   readonly manifest: Pick<
-    DeliveryReleaseManifest,
+    DeliveryReleaseManifest | DeliveryReleaseManifestV2,
     "releaseId" | "storyId" | "compositionId" | "identities" | "verification"
   >;
-  readonly publishing: DeliveryPublishing;
+  readonly publishing: DeliveryPublishing | DeliveryPublishingV2;
 }) => {
   const lines = [
     `# ${publishing.title}`,
@@ -96,6 +100,17 @@ export const assertCanonicalPublishing = (
   return actual;
 };
 
+export const assertCanonicalPublishingV2 = (
+  raw: unknown,
+  expected: DeliveryPublishingV2,
+) => {
+  const actual = DeliveryPublishingV2Schema.parse(raw);
+  if (serializeDeliveryJson(actual) !== serializeDeliveryJson(expected)) {
+    throw new Error("Delivery publishing metadata v2 drifted.");
+  }
+  return actual;
+};
+
 export const assertCanonicalReleaseManifest = (
   raw: unknown,
   expected: DeliveryReleaseManifest,
@@ -103,6 +118,17 @@ export const assertCanonicalReleaseManifest = (
   const actual = DeliveryReleaseManifestSchema.parse(raw);
   if (serializeDeliveryJson(actual) !== serializeDeliveryJson(expected)) {
     throw new Error("Delivery release manifest drifted.");
+  }
+  return actual;
+};
+
+export const assertCanonicalReleaseManifestV2 = (
+  raw: unknown,
+  expected: DeliveryReleaseManifestV2,
+) => {
+  const actual = DeliveryReleaseManifestV2Schema.parse(raw);
+  if (serializeDeliveryJson(actual) !== serializeDeliveryJson(expected)) {
+    throw new Error("Delivery release manifest v2 drifted.");
   }
   return actual;
 };

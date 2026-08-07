@@ -53,19 +53,30 @@ promotion 或自动进入交付。用户批准后，独立 `delivery:*` 能力�
 - v4 Preview 必须绑定 current GlobalVisualProjection/Package/source identities；仍不自动增加
   BGM、跨 Scene ambience 或 ducking，终点只表示 mechanically ready。
 
-### M10 本地交付
+### M10 本地交付 v1 compatibility 与 future-only v2
 
-- future-only `delivery-specification-v1`、`delivery-release-manifest-v1` 与固定
-  `delivery:build` / `delivery:check` CLI 已实现；没有扩张任何 `production:*` 命令或状态。
-- `releaseId` 只由 current `FinalPreviewApproval`、`FinalAssembly` 和交付规格 identity 派生；
-  相同 release 幂等复验，不同或漂移内容 fail closed，固定输出到
-  `deliveries/<storyId>/<releaseId>/`。
-- 构建只复制已批准 exact preview，不重新编码；同时生成两个 Project-owned Remotion Still
-  封面、publishing metadata、release manifest、checksum ledger 与 handoff。
+- 既有 `delivery-specification-v1`、`delivery-release-manifest-v1` 和已有 release 不迁移、不
+  回填、不改 identity；`delivery:check` 可在没有 current v2 Project inputs 时自包含只读复验。
+- future-only `PublishingIntent` 在 Story 阶段绑定 current Story fingerprint；title 只来自
+  StorySpec，description/topics/free-text collection/ordered chapter names 只创作一次，章节不保存
+  frame/timecode。
+- 固定 CoverSpec、Cover assignment/package/result v2 和 exact
+  `delivery:cover:freeze/check/submit -- --project <storyId>` 已实现。一个独立 owner 同时制作
+  1600×1200 与 1200×1600 的纯代码独立 Composition；其 assignment 只包含 StorySpec、
+  VisualStyleSpec 和 CoverSpec。
+- Cover 与 N Scene + GlobalVisual 同时分发，但不进入 production watcher/state。Cover 缺失或
+  失败不阻止 preview-ready，只阻止 future-only delivery。
+- v2 `releaseId` 绑定 current FinalPreviewApproval、FinalAssembly 和 delivery specification；
+  specification 再绑定 PublishingIntent、Cover result 和固定 archive policy。相同 release 幂等
+  复验，不同或漂移内容 fail closed。
+- v2 build 只复制已批准 exact preview 与 immutable Cover result 的 exact PNG，不调用 Agent、
+  Remotion render 或重新编码；publishing/manifest/checksum/handoff 均由脚本确定性投影。
 - MP4、PNG、JSON 和 ledger 均在原子 staging 内完成 ffprobe/FFmpeg/尺寸/checksum/canonical
   复验后才封存；绝对路径、`..`、符号链接、未知文件和半成品均被拒绝。
-- `product-comic-vertical` 已完成首个真实 release 证明，视频 checksum 与其获批 preview
-  完全一致；两张封面分别按 4:3 与 3:4 构图并完成全尺寸和缩略图检查。
+- `product-comic-vertical` 已新增 v2 local release
+  `release-13d1965fb25769a118e31405dee53758228d3f6916452c579c24273876ebced7`；MP4 checksum
+  `c70a25a898abe828e90664b061e2e18840420099bb82bbe33b49357642f05b30` 与获批 preview 完全
+  一致，两张新路径封面均完成全尺寸、缩略图和主 Agent 视觉复检，旧 v1 cover/release 未修改。
 - `deliveries/`、Project source 与交付媒体继续是 ignored 本地叶节点；删除 `deliveries/`
   不影响 core 默认检查，交付只由显式命令 fail closed。
 

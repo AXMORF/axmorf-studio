@@ -116,7 +116,12 @@ flowchart TB
     Global["GlobalVisualLayers<br/>可选增强"] -.-> Assembly
 
     Assembly --> Preview["Final Preview"]
+    Story --> Intent["PublishingIntent<br/>Story stage"]
+    Story --> Cover["Cover owner<br/>4:3 + 3:4 code-only"]
+    Style --> Cover
     Preview --> Approval["FinalPreviewApproval"]
+    Intent --> Delivery
+    Cover --> Delivery
     Approval --> Delivery["delivery:build<br/>local immutable release"]
 ```
 
@@ -189,15 +194,29 @@ GlobalVisualPackage 绑定 current plan、project-local static source graph 和�
 PreviewAssembly v3 / Evidence v2 / MechanicalCheck v2 绑定 current identity；GlobalSound 仍
 absent。旧 v1-v3 requirements/Run/scaffold 和 GPS/ProductComicVertical 正式作品保持原字节。
 
-### 3.4 M10 批准后本地交付
+### 3.4 M10 v2 前移发布内容与独立 Cover
 
-M10 不属于 `production:*` 状态机。只有 current `FinalAssembly`、current
-`FinalPreviewEvidence`、用户真实 `FinalPreviewApproval` 和 passing
-`final-mechanical-check-v2` 相互精确绑定时，`delivery:build` 才可读取获批 preview。脚本直接
-复制该 MP4，避免重新编码产生新的未批准媒体 identity；同时从 Project-owned 独立 Remotion
-Still 入口渲染 4:3 与 3:4 封面。
+历史 M10 v1 artifacts/releases 保持只读兼容。future-only v2 在 Story 阶段一次创作并冻结
+PublishingIntent：它绑定 Story fingerprint、不重复 title、不保存 frame/timecode，只保存
+description、6–7 个唯一 topics、自由文本 collection 和按 Story 顺序覆盖全部 meaningId 的中文
+章节名。
 
-交付规格、三个封面 source checksums、approval 和 FinalAssembly 共同确定 release identity。
+VisualStyleSpec current 后，主 Agent 在 N Scene + GlobalVisual 分发时同时创建一个 Cover owner。
+CoverAssignment 只嵌入 StorySpec、VisualStyleSpec 和 fixed CoverSpec；owner 独立完成 1600×1200
+与 1200×1600 纯代码 Composition、真实 PNG、缩略图检查和 immutable Cover result。它不读取
+PublishingIntent、timing、旁白、字幕、Scene/GlobalVisual 输出、FinalAssembly、preview、
+evidence 或 approval。Cover 不进入 watcher 的 N+1 join：missing/failed 不阻止
+`preview-ready`，只阻止后续 delivery。
+
+M10 不属于 `production:*` 状态机。只有 current PublishingIntent、current Cover result、current
+`FinalAssembly`、current `FinalPreviewEvidence`、用户真实 `FinalPreviewApproval` 和 passing
+`final-mechanical-check-v2` 相互精确绑定时，future-only `delivery:build` 才可读取获批 preview。
+脚本直接复制该 MP4 和 Cover result 已封存的 exact PNG，不调用 Agent、不重新渲染或编码。
+
+PublishingIntent、Cover result 和固定 archive policy 进入交付规格；交付规格、approval 和
+FinalAssembly 共同确定 release identity。`publishing.json` 的 title 来自 StorySpec，内容来自
+PublishingIntent，chapter startFrame/timecode 来自 current SemanticTiming 的起始帧与向下取整
+`HH:MM:SS`，fps/总帧数来自 FinalAssembly，实际时长来自交付 MP4 实测。
 application/domain/adapters 分层只允许固定仓库相对路径和固定输出
 `deliveries/<storyId>/<releaseId>/`。构建在 `.staging` 完成媒体、canonical metadata、文件集和
 checksum 复验后才原子封存；相同 release 幂等 check，任何不同内容都拒绝覆盖。该流程不签署
@@ -208,7 +227,7 @@ checksum 复验后才原子封存；相同 release 幂等 check，任何不同�
 | 阶段                     | 输入                                                                        | 固定输出                                                                                 | 边界                                                                                                           |
 | ------------------------ | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Brief                    | 用户内容、资料、受众、时长与交付约束                                        | `VideoBrief`                                                                             | 只描述目标，不包含实现代码                                                                                     |
-| Story Authoring          | `VideoBrief`                                                                | `StorySpec`、有序 StoryBeat、已创作 `ttsChunks`、显式叙事停顿意图                        | `ttsChunks` 和停顿都由创作决策产生，不按标点自动拆分或推断                                                     |
+| Story Authoring          | `VideoBrief`                                                                | `StorySpec`、`PublishingIntent`、有序 StoryBeat、已创作 `ttsChunks`、显式叙事停顿意图     | title 只在 StorySpec；PublishingIntent 不保存 frame/timecode；`ttsChunks` 不按标点自动拆分                     |
 | Narration Authoring      | `VideoBrief`                                                                | `NarrationSpec`、voice profile 引用和允许的生成参数                                      | 不包含 provider 地址、token 或私有配置                                                                         |
 | Render Input             | 用户每次制作直接提供的参数                                                  | `RenderSpec`                                                                             | Agent 原样结构化并应用合同中已经定义的默认值；只做类型、范围和兼容性校验，不形成确认或审批节点                 |
 | Contract Check           | StorySpec、NarrationSpec 与用户提供的 RenderSpec                            | 分层校验报告；由有序 ttsChunks + NarrationSpec 得到 generation input fingerprint         | 只校验已确定输入，不改写文案、声音选择或输出约束                                                               |
@@ -234,7 +253,8 @@ checksum 复验后才原子封存；相同 release 幂等 check，任何不同�
 | Final Assembly           | NarrativeCore 与已选择增强轨                                                | FinalAssembly、完整正常速度 Preview                                                      | 固定 z-order/mix-order；缺失未选择的增强轨不是错误                                                             |
 | Final Preview Evidence   | FinalAssembly、完整 MP4、contact sheet、still 与批量 review                 | checksum-bound evidence、技术测量和 review fingerprint                                   | 完整解码、帧数、时长、响度、true peak、声道和 ducking 均 fail closed                                           |
 | Final Preview Approval   | current FinalPreviewEvidence                                                | 用户 authoring record 与 generated approval                                              | 仅用户可批准；精确绑定 preview/evidence/assembly，Agent/checker 不得代签                                       |
-| Local Delivery           | current approval/evidence/FinalAssembly、passing final-v2、Project delivery spec | fixed local release、双比例封面、publishing/manifest/checksums/handoff                   | 只复制 exact approved preview；不可覆盖、不上传平台、不改变 production 状态                                   |
+| Cover Authoring          | current StorySpec、VisualStyleSpec、fixed CoverSpec                          | immutable Cover package/result、两张 exact PNG                                           | 与 N+1 owners 同时但不进入 watcher；禁止其他生产/发布/批准输入                                                 |
+| Local Delivery           | current PublishingIntent/Cover result/approval/evidence/FinalAssembly、passing final-v2 | fixed local release、publishing/manifest/checksums/handoff                         | 纯脚本复制 exact approved preview 与封存 PNG；不可覆盖、不上传平台、不改变 production 状态                     |
 
 ## 5. 权威与所有权
 
@@ -586,3 +606,10 @@ release、exact preview byte identity、H.264/AAC/帧数/时长/完整解码检�
 ratio-specific Remotion Still、canonical publishing/manifest、六文件 checksum ledger 与
 zero-deliveries core 隔离均有自动化测试。`product-comic-vertical` 首个真实 release 绑定其
 current approval/evidence/FinalAssembly/final-v2 identities，MP4 与获批 preview checksum 相同。
+
+future-only M10 v2 进一步实现 PublishingIntent、固定 CoverSpec、Cover assignment/package/result
+与三个 strict Cover CLI；Cover owner 与 N+1 production owners 同时工作但独立汇合。批准后 build
+只复制 exact approved MP4 和 immutable Cover PNG，再确定性生成 publishing/manifest/ledger/
+handoff。`product-comic-vertical` 的 v2 release
+`release-13d1965fb25769a118e31405dee53758228d3f6916452c579c24273876ebced7` 已证明 MP4
+checksum 仍与 approved preview 相同，旧 v1 release 未修改。

@@ -243,12 +243,13 @@ src/remotion/runtime/scene-sound/      M6 ScenePackage 局部声音确定性投�
 
 src/projects/<story>/
 ├── story.json                         Agent 创作声明
+├── publishing-intent.json             Story-bound 发布内容；不含 title/frame/timecode
 ├── Composition.tsx                    不依赖 Scene 的 Story Composition 入口
 ├── generated/                         timing、manifest、fingerprint 等生成数据
 ├── visual-style.json                  M6 合同；正式项目实例由 M7 创建
 ├── external-references.generated.json M6 合同/工具；正式项目实例由 M7 选择
 ├── production/                        requirements、resource pool、Scene/GlobalVisual assignments
-├── delivery/                          Project-owned v1 spec 与两个比例独立构图的 Still
+├── delivery/                          v1 兼容；v2 Cover assignment/source/immutable result
 ├── global-visual-plan.json            v4 whole-film GlobalVisual 创作声明
 ├── global-visual/                     project-local static renderer、资源选择与 generated package
 ├── scenes/<meaningId>/                M7 Scene 视听制作阶段；单 Agent 独占
@@ -565,7 +566,7 @@ Story fingerprint
         └── FinalPreviewApproval fingerprint（真实用户决定）
             ├── final-mechanical-check-v2 report fingerprint
             └── Delivery release identity
-                ├── delivery specification + cover source fingerprints
+                ├── PublishingIntent + immutable Cover result + archive policy
                 └── release manifest + payload checksums
 ```
 
@@ -683,23 +684,36 @@ evidence receipts 分别绑定 Scene review 和最终 GlobalSound/GlobalVisual/�
 review。只有用户 approval artifact 表示最终创意批准；NarrativeCheck 与 promotion 实施仍未
 实现。
 
-### 10.1 M10 delivery build/check
+### 10.1 M10 Cover lifecycle 与 delivery build/check
 
-M10 使用两个且仅两个 exact CLI：
+future-only v2 使用五个 exact CLI；旧 v1 artifacts/releases 只读兼容：
 
 ```bash
+npm run delivery:cover:freeze -- --project <storyId>
+npm run delivery:cover:check -- --project <storyId>
+npm run delivery:cover:submit -- --project <storyId>
 npm run delivery:build -- --project <storyId>
 npm run delivery:check -- --project <storyId> --release <releaseId>
 ```
 
-build 先以 Project-owned final verification 复算 source、media、evidence、approval 和 passing
-`final-mechanical-check-v2`，再要求 approval 精确绑定当前 preview checksum、evidence 与
-FinalAssembly。`releaseId` 只从 approval fingerprint、FinalAssembly fingerprint 和完整交付规格
-fingerprint 计算；交付规格 fingerprint 还包含三个固定封面 source 文件 checksum。
+Cover freeze 确定性嵌入 current StorySpec、VisualStyleSpec 和 fixed CoverSpec；check/submit 用
+AST source graph validator 拒绝媒体、网络、远程字体、生产输出、共用 source/Composition 与错误
+尺寸，真实渲染并完整解码两张 PNG 和固定缩略图。immutable result 路径由 assignment
+fingerprint 唯一确定；source、package、result 或 media drift 全部 fail closed。该分支不读取或
+写入任何 production Run/event/state。
 
-MP4 直接 exclusive copy 获批 preview，不重新编码。FFprobe 必须得到一条 H.264 视频流和一条
-AAC 音频流，并验证画幅、fps、帧数、视频/容器实际时长、采样率与声道；FFmpeg 必须完整解码到
-EOF。两个 PNG 分别必须为 1600×1200 和 1200×1600，并完整解码。所有 payload 的 checksum、
+build 先以 Project-owned final verification 复算 source、media、evidence、approval 和 passing
+`final-mechanical-check-v2`，再要求 current PublishingIntent、current immutable Cover result，
+以及 approval 精确绑定当前 preview checksum、evidence 与 FinalAssembly。`releaseId` 从 approval
+fingerprint、FinalAssembly fingerprint 和完整 v2 交付规格 fingerprint 计算；交付规格绑定
+PublishingIntent fingerprint、Cover result fingerprint 和固定 archive policy。
+
+MP4 直接 exclusive copy 获批 preview，两个 PNG 直接 exclusive copy Cover result，不调用
+Agent、Remotion render 或重新编码。publishing metadata 从 current Story/intent/timing/assembly
+确定性投影，timecode 对 frame/fps 向下取整且只输出 `HH:MM:SS`；实际时长来自交付 MP4 实测。
+FFprobe 必须得到一条 H.264 视频流和一条 AAC 音频流，并验证画幅、fps、帧数、视频/容器实际
+时长、采样率与声道；FFmpeg 必须完整解码到 EOF。两个 PNG 分别必须为 1600×1200 和 1200×1600，
+并与 Cover result checksum/大小一致。所有 payload 的 checksum、
 大小与媒体参数进入 manifest；`checksums.sha256` 绑定 MP4、双封面、publishing、manifest 和
 handoff。manifest 不递归记录自身与 checksum ledger，以避免自引用；ledger 对 manifest 提供
 最终外层绑定。
@@ -718,8 +732,9 @@ skill 负责引导 Agent 完成 Story/ttsChunks 创作、旁白生成编排，�
 合同数据、本地资产和已封存产物，不调用 skill、Agent、MCP 或网络服务。
 
 repo CLI 不调用 skill 或 Agent API。主 Agent 通过当前 Codex 原生能力并行分发 N 个 Scene
-owner 和一个 GlobalVisual owner，再保持当前任务运行并等待 `production:watch`；watcher 只读取
-strict immutable result contracts。Agent/task/thread/progress/heartbeat 从不成为 repo state，主
+owner、一个 GlobalVisual owner 和一个独立 Cover owner，再保持当前任务运行并等待
+`production:watch`；watcher 只读取 N+1 production immutable result contracts，Cover CLI 只读取
+独立 assignment/package/result。Agent/task/thread/progress/heartbeat 从不成为 repo state，主
 任务彻底结束后的 detached Agent lifecycle 需要外部 lifecycle owner，不属于确定性执行。
 
 项目级

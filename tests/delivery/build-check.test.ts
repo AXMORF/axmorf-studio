@@ -18,6 +18,8 @@ import { promisify } from "node:util";
 import type { ProcessRunner } from "../../scripts/baseline/evidence";
 import { buildDelivery } from "../../scripts/delivery/application/build";
 import { checkDelivery } from "../../scripts/delivery/application/check";
+import { runDeliveryCoverFreeze } from "../../scripts/delivery/application/cover-freeze";
+import { runDeliveryCoverSubmit } from "../../scripts/delivery/application/cover-submit";
 import { createDeliveryProjectFixture } from "../fixtures/delivery";
 
 const createRoot = (context: TestContext) =>
@@ -55,8 +57,8 @@ const mediaRunner =
       await writeFile(
         output,
         fakePng(
-          String(compositionId).endsWith("Cover4x3") ? 1600 : 1200,
-          String(compositionId).endsWith("Cover4x3") ? 1200 : 1600,
+          String(compositionId).endsWith("Cover4x3V2") ? 1600 : 1200,
+          String(compositionId).endsWith("Cover4x3V2") ? 1200 : 1600,
         ),
       );
       return { status: 0, stdout: "", stderr: "" };
@@ -97,9 +99,19 @@ const mediaRunner =
     throw new Error(`Unexpected process: ${command}`);
   };
 
+const prepareCover = async (
+  rootDir: string,
+  storyId: string,
+  runProcess: ProcessRunner,
+) => {
+  await runDeliveryCoverFreeze({ rootDir, projectId: storyId });
+  await runDeliveryCoverSubmit({ rootDir, projectId: storyId, runProcess });
+};
+
 test("build seals the fixed package atomically and repeated build is an idempotent check", async (context) => {
   const rootDir = await createRoot(context);
   const fixture = await createDeliveryProjectFixture(rootDir);
+  await prepareCover(rootDir, fixture.storyId, mediaRunner());
   const dependencies = {
     verifyFinalProject: async () => fixture.finalReport,
     runProcess: mediaRunner(),
@@ -151,6 +163,7 @@ test("build seals the fixed package atomically and repeated build is an idempote
 test("checksum drift and conflicting existing content fail closed without overwrite", async (context) => {
   const rootDir = await createRoot(context);
   const fixture = await createDeliveryProjectFixture(rootDir);
+  await prepareCover(rootDir, fixture.storyId, mediaRunner());
   const dependencies = {
     verifyFinalProject: async () => fixture.finalReport,
     runProcess: mediaRunner(),
@@ -182,25 +195,23 @@ test("checksum drift and conflicting existing content fail closed without overwr
   assert.equal(await readFile(video, "utf8"), "drift");
 });
 
-test("cover render failure leaves neither final directory nor half-finished staging", async (context) => {
+test("Cover submit failure leaves neither immutable result nor half-finished staging", async (context) => {
   const rootDir = await createRoot(context);
   const fixture = await createDeliveryProjectFixture(rootDir);
+  await runDeliveryCoverFreeze({ rootDir, projectId: fixture.storyId });
   await assert.rejects(() =>
-    buildDelivery({
+    runDeliveryCoverSubmit({
       rootDir,
       projectId: fixture.storyId,
-      dependencies: {
-        verifyFinalProject: async () => fixture.finalReport,
-        runProcess: mediaRunner({ failCover: true }),
-      },
+      runProcess: mediaRunner({ failCover: true }),
     }),
   );
-  const deliveriesRoot = join(rootDir, "deliveries");
-  const entries = await readdir(deliveriesRoot, { recursive: true }).catch(
+  const coverRoot = join(fixture.projectRoot, "delivery/cover");
+  const entries = await readdir(coverRoot, { recursive: true }).catch(
     () => [],
   );
   assert.equal(
-    entries.some((entry) => String(entry).startsWith("release-")),
+    entries.some((entry) => String(entry).endsWith("cover-result.generated.json")),
     false,
   );
 });
@@ -208,6 +219,7 @@ test("cover render failure leaves neither final directory nor half-finished stag
 test("container duration drift fails before sealing the release", async (context) => {
   const rootDir = await createRoot(context);
   const fixture = await createDeliveryProjectFixture(rootDir);
+  await prepareCover(rootDir, fixture.storyId, mediaRunner());
   await assert.rejects(
     () =>
       buildDelivery({
@@ -225,6 +237,7 @@ test("container duration drift fails before sealing the release", async (context
 test("build and check reject a symbolic-link deliveries parent", async (context) => {
   const rootDir = await createRoot(context);
   const fixture = await createDeliveryProjectFixture(rootDir);
+  await prepareCover(rootDir, fixture.storyId, mediaRunner());
   const dependencies = {
     verifyFinalProject: async () => fixture.finalReport,
     runProcess: mediaRunner(),

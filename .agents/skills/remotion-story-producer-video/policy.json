@@ -1,11 +1,11 @@
 {
-  "schemaVersion": 1,
-  "policyVersion": "remotion-story-producer-video-policy-v1",
+  "schemaVersion": 2,
+  "policyVersion": "remotion-story-producer-video-policy-v2",
   "automaticEndpoint": "preview-ready / awaiting-user-preview",
   "privateConfigPath": "voxcpm/voxcpm.private.json",
   "requiredEntrypointHeadings": [
     "Start directly",
-    "Require N plus one visual owners",
+    "Require N plus one production owners and one Cover owner",
     "Keep context bounded",
     "Preserve production invariants",
     "Classify failure by owner",
@@ -15,6 +15,7 @@
     "references/direct-production-workflow.md",
     "references/scene-agent-orchestration.md",
     "references/global-visual-agent-orchestration.md",
+    "references/cover-agent-orchestration.md",
     "references/agent-rework-and-system-hardening.md"
   ],
   "workflowCommands": [
@@ -29,17 +30,27 @@
     "production:global-visual:check",
     "production:global-visual:submit",
     "production:global-visual:fail",
+    "delivery:cover:freeze",
+    "delivery:cover:check",
+    "delivery:cover:submit",
     "production:preview:check"
   ],
   "invariants": {
     "sceneAuthoringOwner": "one-child-agent-per-meaning-id",
     "globalVisualAuthoringOwner": "one-child-agent-per-story",
+    "coverAuthoringOwner": "one-child-agent-per-story",
     "rootAgentAuthorsScenes": false,
     "rootAgentAuthorsGlobalVisual": false,
+    "rootAgentAuthorsCover": false,
     "inlineSceneFallback": false,
     "repositoryMonitorsAgentLifecycle": false,
     "watcherInput": "immutable-result-contracts-only",
     "globalVisualReadsSceneOutputs": false,
+    "coverReadsOnlyAssignmentInputs": true,
+    "coverJoinsProductionWatcher": false,
+    "coverMissingBlocksPreview": false,
+    "coverMissingBlocksDelivery": true,
+    "publishingIntentStage": "story-authoring",
     "fixedFlowRecovery": false,
     "centralStateWriter": "repository-cli-only",
     "ttsChunkAutoSplit": false,
@@ -57,10 +68,11 @@
     "hand-edit-derived-state"
   ],
   "contextBudgets": {
-    "entrypointMaxWords": 520,
-    "directWorkflowMaxWords": 850,
-    "normalProductionMaxWords": 1300,
+    "entrypointMaxWords": 700,
+    "directWorkflowMaxWords": 1000,
+    "normalProductionMaxWords": 1700,
     "sceneOrchestrationMaxWords": 500,
-    "globalVisualOrchestrationMaxWords": 500
+    "globalVisualOrchestrationMaxWords": 500,
+    "coverOrchestrationMaxWords": 500
   }
 }

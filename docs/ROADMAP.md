@@ -26,7 +26,7 @@
 | M8        | Global sound/visual、FinalAssembly、用户批准与 final-v2                                               |
 | M9        | ProductComicVertical 第二主题泛化与 final-v2                                                          |
 | M9.5      | 合同驱动生产 CLI、single-writer watcher 与机械 Preview                                                |
-| M10       | exact approved preview 的不可覆盖本地 release、双比例封面、发布元数据与固定复验                     |
+| M10       | v1 release 兼容；future-only v2 PublishingIntent、独立 Cover owner 与纯脚本本地封存                |
 | Hardening | v3 preflight、统一可读性、Composition-owned Scene boundary；future-only v4 N+1 GlobalVisual contracts |
 
 当前实现细节以 [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准；历史计划见
@@ -34,15 +34,21 @@
 
 ## M10 已完成边界
 
-M10 以独立 `delivery:*` 层完成本地发布收口：固定读取 current、checksum-bound、用户已批准的
-exact preview 与 passing `final-mechanical-check-v2`，输出到 ignored
-`deliveries/<storyId>/<releaseId>/`。release 不可覆盖，相同 identity 只做幂等复验；交付包
-包含原字节 H.264/AAC MP4、两个 Project-owned Remotion Still 封面、publishing metadata、
-release manifest、checksum ledger 和 handoff。
+M10 v1 artifacts/releases 保持只读兼容。future-only v2 在 Story 阶段冻结不重复 title、也不
+保存 timecode/frame 的 PublishingIntent，并在 Scene/GlobalVisual 分发时由一个独立 Cover owner
+根据 StorySpec、VisualStyleSpec 和固定 CoverSpec 制作、检查并封存两个独立纯代码构图。
+Cover 不进入 production watcher 的 N+1 join；missing/failed 不阻止 Preview，只阻止后续 delivery。
+
+用户批准后，`delivery:build` 固定读取 current、checksum-bound exact preview、current immutable
+Cover result 与 passing `final-mechanical-check-v2`，纯脚本复制到 ignored
+`deliveries/<storyId>/<releaseId>/`，不再调用 Agent、渲染或重新编码视频/封面。release 不可
+覆盖，相同 identity 只做幂等复验；PublishingIntent、Cover result 和固定 archive policy 都进入
+delivery specification identity。
 
 该里程碑没有代签批准、改写正式作品、扩张 `production:*`、连接平台、登录账号、使用网络或
 密钥，也没有执行 promotion、NarrativeCheck、Project 删除或 `out/` 清理。首个真实证明使用
-`product-comic-vertical`，详见 [M10 evidence](evidence/2026-08-08-m10-local-delivery.md)。
+`product-comic-vertical`；v1 证据见 [M10 evidence](evidence/2026-08-08-m10-local-delivery.md)，v2
+证据见 [M10 v2 evidence](evidence/2026-08-08-m10-v2-early-publishing-cover.md)。
 
 ## 独立后续能力
 

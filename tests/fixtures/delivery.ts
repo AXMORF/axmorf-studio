@@ -8,6 +8,7 @@ import {
   createFinalMechanicalCheckV2Report,
   createFinalPreviewApproval,
   createFinalPreviewEvidence,
+  buildPublishingIntent,
 } from "../../src/contracts";
 
 const sha = (value: string) => `sha256:${value.repeat(64)}`;
@@ -38,6 +39,138 @@ export const createDeliveryProjectFixture = async (rootDir: string) => {
     "export const Root = true;\n",
   );
   await writeFile(join(projectRoot, "delivery/index.ts"), "export {};\n");
+
+  const story = {
+    schemaVersion: 1 as const,
+    storyId,
+    title: "可验证的视频交付",
+    beats: [
+      {
+        meaningId: "problem",
+        narrativePurpose: "提出问题",
+        ttsChunks: [{ chunkId: "problem-1", ttsText: "先看问题。" }],
+        explicitPauses: [],
+      },
+      {
+        meaningId: "solution",
+        narrativePurpose: "给出方案",
+        ttsChunks: [{ chunkId: "solution-1", ttsText: "再看方案。" }],
+        explicitPauses: [],
+      },
+    ],
+  };
+  const visualStyle = {
+    schemaVersion: 1 as const,
+    storyId,
+    styleProfileId: "comic-editorial",
+    resourceCatalogFingerprint: sha("6"),
+    artDirection: {
+      medium: "纯代码漫画图形",
+      palette: "暖黄深蓝",
+      lighting: "平面高对比",
+      texture: "代码网点",
+      compositionGrammar: "大标题图形叙事",
+      motionLanguage: "静态封面",
+      typography: "粗体中文",
+    },
+    continuityRules: ["保持编辑漫画语言"],
+    forbiddenTreatments: ["禁止图片"],
+  };
+  const semanticTiming = {
+    schemaVersion: 1 as const,
+    algorithmId: "pcm-cumulative-ceil-v1" as const,
+    storyId,
+    fingerprint: sha("4"),
+    sampleRate: 48_000,
+    fps: 30,
+    leadInFrames: 0,
+    tailFrames: 0,
+    durationInFrames: 120,
+    segments: [
+      {
+        kind: "chunk" as const,
+        chunkId: "problem-1",
+        meaningId: "problem",
+        ttsText: "先看问题。",
+        sampleRange: { startSampleFrame: 0, endSampleFrame: 96_000 },
+        frameRange: { startFrame: 0, endFrame: 60 },
+      },
+      {
+        kind: "chunk" as const,
+        chunkId: "solution-1",
+        meaningId: "solution",
+        ttsText: "再看方案。",
+        sampleRange: { startSampleFrame: 96_000, endSampleFrame: 192_000 },
+        frameRange: { startFrame: 60, endFrame: 120 },
+      },
+    ],
+    captionCues: [
+      {
+        chunkId: "problem-1",
+        meaningId: "problem",
+        text: "先看问题。",
+        startFrame: 0,
+        endFrame: 60,
+      },
+      {
+        chunkId: "solution-1",
+        meaningId: "solution",
+        text: "再看方案。",
+        startFrame: 60,
+        endFrame: 120,
+      },
+    ],
+    storyBeats: [
+      { meaningId: "problem", startFrame: 0, endFrame: 60 },
+      { meaningId: "solution", startFrame: 60, endFrame: 120 },
+    ],
+  };
+  const publishingIntent = buildPublishingIntent({
+    story,
+    authored: {
+      description: "从批准预览生成可复验的本地交付包。",
+      topics: [
+        "视频制作",
+        "Remotion",
+        "创作流程",
+        "本地交付",
+        "可验证",
+        "工程实践",
+      ],
+      collection: "可验证创作",
+      chapters: [
+        { meaningId: "problem", name: "问题" },
+        { meaningId: "solution", name: "生产流程" },
+      ],
+    },
+  });
+  await writeJson(join(projectRoot, "story.json"), story);
+  await writeJson(join(projectRoot, "visual-style.json"), visualStyle);
+  await writeJson(
+    join(projectRoot, "generated/semantic-timing.generated.json"),
+    semanticTiming,
+  );
+  await writeJson(
+    join(projectRoot, "publishing-intent.json"),
+    publishingIntent,
+  );
+  await mkdir(join(projectRoot, "delivery/cover"), { recursive: true });
+  await writeFile(
+    join(projectRoot, "delivery/cover/Cover4x3.tsx"),
+    `import {AbsoluteFill} from "remotion"; export default function Cover4x3(){return <AbsoluteFill style={{backgroundColor:"#f5c542"}}><div>可验证交付</div></AbsoluteFill>}\n`,
+  );
+  await writeFile(
+    join(projectRoot, "delivery/cover/Cover3x4.tsx"),
+    `import {AbsoluteFill} from "remotion"; export default function Cover3x4(){return <AbsoluteFill style={{backgroundColor:"#14213d"}}><div>独立构图</div></AbsoluteFill>}\n`,
+  );
+  await writeFile(
+    join(projectRoot, "delivery/cover/Root.tsx"),
+    `import {Composition} from "remotion";\nimport Cover4x3 from "./Cover4x3";\nimport Cover3x4 from "./Cover3x4";\nexport const CoverRoot=()=> <><Composition id="DeliveryProofDeliveryCover4x3V2" component={Cover4x3} width={1600} height={1200} fps={30} durationInFrames={1}/><Composition id="DeliveryProofDeliveryCover3x4V2" component={Cover3x4} width={1200} height={1600} fps={30} durationInFrames={1}/></>;\n`,
+  );
+  await writeFile(
+    join(projectRoot, "delivery/cover/index.ts"),
+    `import {registerRoot} from "remotion";\nimport {CoverRoot} from "./Root";\nregisterRoot(CoverRoot);\n`,
+  );
 
   const assembly = createFinalAssemblyPlan({
     schemaVersion: 1,
@@ -206,5 +339,9 @@ export const createDeliveryProjectFixture = async (rootDir: string) => {
     evidence,
     approval,
     finalReport,
+    story,
+    visualStyle,
+    semanticTiming,
+    publishingIntent,
   } as const;
 };

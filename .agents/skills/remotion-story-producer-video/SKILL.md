@@ -1,6 +1,6 @@
 ---
 name: remotion-story-producer-video
-description: Produce a contract-driven Remotion Story Producer video. Use for new or continued authoring or explicit $remotion-story-producer-video invocation; isolate N Scene owners and one GlobalVisual owner, keep state single-writer, and stop at mechanical preview-ready.
+description: Produce a contract-driven Remotion Story Producer video. Use for new or continued authoring or explicit $remotion-story-producer-video invocation; isolate N Scene owners, one GlobalVisual owner, and one independent Cover owner, keep production state single-writer, and stop at mechanical preview-ready.
 ---
 
 # Remotion Story Producer Video
@@ -15,12 +15,15 @@ Own production until
 `preview-ready / awaiting-user-preview`, a genuine external blocker, or user cancellation. Never
 detach live work from the current task.
 
-## Require N plus one visual owners
+## Require N plus one production owners and one Cover owner
 
-After freeze, read [references/scene-agent-orchestration.md](references/scene-agent-orchestration.md)
-and [references/global-visual-agent-orchestration.md](references/global-visual-agent-orchestration.md)
-completely. Dispatch one child per meaningId plus one GlobalVisual owner concurrently.
-Root authors neither; no inline fallback. Stop if child-Agent execution is unavailable or forbidden.
+After freeze, read [references/scene-agent-orchestration.md](references/scene-agent-orchestration.md),
+[references/global-visual-agent-orchestration.md](references/global-visual-agent-orchestration.md), and
+[references/cover-agent-orchestration.md](references/cover-agent-orchestration.md) completely. Dispatch
+one child per meaningId, one GlobalVisual owner, and one independent Cover owner concurrently. Root
+authors none of their deliverables; no inline fallback. The production watcher joins only the N Scene
+results plus GlobalVisual. Cover reaches `cover-ready` through delivery Cover contracts and never
+enters production state. Stop if child-Agent execution is unavailable or forbidden.
 
 ## Keep context bounded
 
@@ -44,6 +47,10 @@ use CodeGraph first when `.codegraph/` exists.
   Return an over-budget chunk for Agent rework; sealed PCM with `pcm-cumulative-ceil-v1` owns timing.
 - Keep one Story, one Composition, and one exclusive ScenePackage per meaningId/StoryBeat.
 - Keep one project-local GlobalVisualPackage per Story, independent from every ScenePackage.
+- Create and freeze one current `PublishingIntent` during Story authoring; keep title solely in
+  `StorySpec`, and keep chapter frames/timecodes out of the authored intent.
+- Keep one fixed code-only CoverAssignment/CoverPackage/CoverResult chain per future production. Its
+  creative inputs are only current StorySpec, VisualStyleSpec, and fixed CoverSpec.
 - Keep captions/narration top-level; every Scene root transparent; render only Beat-semantic content
   plus local sound, never Scene-local backgrounds.
 - Bind renderers through the composition-local static registry; keep JSON non-executable.
@@ -65,9 +72,12 @@ host-tool, sandbox, permission, or authorization failures are external blockers.
 
 ## Stop at mechanical Preview
 
-Verify current status, idempotent Preview check, checksums/fingerprints, media facts, and full FFmpeg
-decode. Report absolute Preview/contact-sheet/still paths, commits, failure classification, protection
-result, and known issues; end awaiting explicit user preview decision.
+Verify current status, idempotent Preview check, checksums/fingerprints, media facts, full FFmpeg
+decode, and the independent current Cover result. Cover failure never blocks `preview-ready`, but must
+be reported because it will block later delivery. Report absolute Preview/contact-sheet/still and
+Cover paths, commits, failure classification, protection result, and known issues; end awaiting
+explicit user preview decision.
 
-Do not create approval, run NarrativeCheck or aesthetic gates, promote capabilities, start M10,
-publish, or push. Never use `git add .`; preserve unrelated worktree changes.
+Do not create approval, run NarrativeCheck or aesthetic gates, promote capabilities, run
+`delivery:build` before explicit approval, publish, or push. Never use `git add .`; preserve unrelated
+worktree changes.

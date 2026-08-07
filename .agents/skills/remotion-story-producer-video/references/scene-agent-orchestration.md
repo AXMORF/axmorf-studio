@@ -1,8 +1,10 @@
 # Isolated Scene Agent orchestration
 
-This reference owns the Scene side of the mandatory post-freeze N+1 Agent protocol. Scene owners run
-in parallel with the single whole-film GlobalVisual owner described in
-[global-visual-agent-orchestration.md](global-visual-agent-orchestration.md).
+This reference owns the Scene side of the mandatory post-freeze N+1 production Agent protocol. Scene
+owners run in parallel with the single whole-film GlobalVisual owner described in
+[global-visual-agent-orchestration.md](global-visual-agent-orchestration.md) and the independent Cover
+owner described in [cover-agent-orchestration.md](cover-agent-orchestration.md). Cover is outside the
+production watcher join.
 
 ## Keep root ownership
 

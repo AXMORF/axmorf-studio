@@ -470,11 +470,14 @@ const ReleaseManifestInputObject = z
       });
     }
     const releaseRoot = `deliveries/${manifest.storyId}/${manifest.releaseId}`;
+    const checksumCommands = [
+      `cd ${releaseRoot} && sha256sum -c checksums.sha256`,
+      `sha256sum -c ${releaseRoot}/checksums.sha256`,
+    ];
     if (
       manifest.verification.deliveryCheckCommand !==
         `npm run delivery:check -- --project ${manifest.storyId} --release ${manifest.releaseId}` ||
-      manifest.verification.checksumCommand !==
-        `cd ${releaseRoot} && sha256sum -c checksums.sha256`
+      !checksumCommands.includes(manifest.verification.checksumCommand)
     ) {
       context.addIssue({
         code: "custom",

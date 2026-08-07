@@ -62,7 +62,8 @@
   `docs/archive/implementation-plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md`
   实现数据合同驱动生产编排：`ProductionRequirementsFreeze`、append-only ProductionRun、
   固定 `production:*` CLI、Scene result/watcher 和无全局增强的 mechanical Preview 已落地。
-  M10 发布、NarrativeCheck 和 promotion 仍未开始。
+  M10 v1 本地交付及 future-only v2 早期 PublishingIntent、独立 Cover owner、纯脚本 release
+  封存已经实现；NarrativeCheck、平台发布和 promotion 仍未开始。
 - ProductionRun 状态只能由 append-only 事件、Scene/GlobalVisual result 合同和 current
   fingerprints 复算；
   子 Agent 不修改中央 state，中央脚本是唯一 writer。主 Agent 分发 Scene 后保持当前任务运行
@@ -77,6 +78,11 @@
   whole-film GlobalVisual assignment，通过各自 immutable result 合同汇合。GlobalVisual 只拥有
   project-local 背景、纹理、装饰和连续性 motif，不读取 Scene 输出；repo 不监控或保存
   Agent/task/thread/progress/heartbeat 状态。已有 v1-v3 Run 和正式作品不迁移、不回填。
+- future-only M10 v2 在 Story 阶段冻结 PublishingIntent；一个独立 Cover owner 与 N Scene +
+  GlobalVisual owners 同时工作，但只消费 StorySpec、VisualStyleSpec 和 fixed CoverSpec，不进入
+  production watcher/state。`delivery:build` 只复制 exact approved MP4 与 immutable Cover PNG；
+  Cover missing/stale 不阻止 preview-ready，只阻止 delivery。已有 v1 artifacts/releases 不迁移、
+  不回填、不改 identity。
 - Project 可删除性与产物解耦已实现：具体 Project 只依赖 core，core 不依赖具体 storyId；
   ProjectRegistry/ResourceCatalog 投影当前集并允许 zero Project。默认 `npm run check` 不读取
   `out/` 历史媒体；显式 media/evidence/approval 命令仍 fail closed。保留或删除 Project 都是

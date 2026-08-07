@@ -1,9 +1,9 @@
 import { join } from "node:path";
 
 import {
-  createDeliveryReleaseId,
-  createDeliveryReleaseManifest,
-  createPublishingMetadata,
+  createDeliveryReleaseIdV2,
+  createDeliveryReleaseManifestV2,
+  createPublishingMetadataV2,
 } from "../../../src/contracts";
 import {
   assertDeliveryDirectoryChain,
@@ -16,18 +16,17 @@ import {
   resolveDeliveryPaths,
   writeDeliveryFileExclusive,
 } from "../adapters/filesystem";
-import {
-  inspectDeliveryCover,
-  inspectDeliveryVideo,
-  renderDeliveryCover,
-} from "../adapters/media";
+import { inspectDeliveryCover, inspectDeliveryVideo } from "../adapters/media";
 import {
   buildChecksumLedger,
   buildDeliveryHandoff,
   serializeDeliveryJson,
 } from "../domain/release";
-import { buildDeliveryManifestContext, checkDeliveryDirectory } from "./check";
-import { loadCurrentDeliveryInputs } from "./inputs";
+import {
+  buildDeliveryManifestContextV2,
+  checkDeliveryDirectoryV2,
+} from "./check";
+import { loadCurrentDeliveryInputsV2 } from "./inputs-v2";
 import type { DeliveryApplicationDependencies } from "./types";
 
 export const buildDelivery = async ({
@@ -39,14 +38,12 @@ export const buildDelivery = async ({
   readonly projectId: string;
   readonly dependencies?: DeliveryApplicationDependencies;
 }) => {
-  const inputs = await loadCurrentDeliveryInputs({
+  const inputs = await loadCurrentDeliveryInputsV2({
     rootDir,
     projectId,
-    ...(dependencies.verifyFinalProject === undefined
-      ? {}
-      : { verifyFinalProject: dependencies.verifyFinalProject }),
+    dependencies,
   });
-  const releaseId = createDeliveryReleaseId({
+  const releaseId = createDeliveryReleaseIdV2({
     approvalFingerprint: inputs.approval.approvalFingerprint,
     finalAssemblyFingerprint: inputs.finalAssembly.finalAssemblyFingerprint,
     deliverySpecificationFingerprint:
@@ -59,7 +56,7 @@ export const buildDelivery = async ({
     fixedPaths.release,
   ]);
   if (await deliveryReleaseExists(fixedPaths.release)) {
-    await checkDeliveryDirectory({
+    await checkDeliveryDirectoryV2({
       releaseDir: fixedPaths.release,
       releaseId,
       inputs,
@@ -88,7 +85,7 @@ export const buildDelivery = async ({
     const videoFile = await inspectDeliveryFile(videoPath);
     if (videoFile.checksum !== inputs.approval.previewChecksum) {
       throw new Error(
-        "Delivery staging video differs from the approved preview.",
+        "Delivery v2 staging video differs from the approved preview.",
       );
     }
     const videoMedia = await inspectDeliveryVideo({
@@ -103,49 +100,43 @@ export const buildDelivery = async ({
         ? {}
         : { runProcess: dependencies.runProcess }),
     });
-    const cover4x3Path = join(staging.root, "cover-4x3.png");
-    const cover3x4Path = join(staging.root, "cover-3x4.png");
-    await renderDeliveryCover({
-      rootDir,
-      projectId,
-      compositionId: `${inputs.finalAssembly.compositionId}Cover4x3`,
-      outputPath: cover4x3Path,
-      ...(dependencies.runProcess === undefined
-        ? {}
-        : { runProcess: dependencies.runProcess }),
-    });
-    await renderDeliveryCover({
-      rootDir,
-      projectId,
-      compositionId: `${inputs.finalAssembly.compositionId}Cover3x4`,
-      outputPath: cover3x4Path,
-      ...(dependencies.runProcess === undefined
-        ? {}
-        : { runProcess: dependencies.runProcess }),
-    });
-    const [cover4x3Media, cover3x4Media, cover4x3File, cover3x4File] =
-      await Promise.all([
-        inspectDeliveryCover({
-          absolutePath: cover4x3Path,
-          expected: { width: 1600, height: 1200 },
-          ...(dependencies.runProcess === undefined
-            ? {}
-            : { runProcess: dependencies.runProcess }),
-        }),
-        inspectDeliveryCover({
-          absolutePath: cover3x4Path,
-          expected: { width: 1200, height: 1600 },
-          ...(dependencies.runProcess === undefined
-            ? {}
-            : { runProcess: dependencies.runProcess }),
-        }),
-        inspectDeliveryFile(cover4x3Path),
-        inspectDeliveryFile(cover3x4Path),
-      ]);
-    const publishing = createPublishingMetadata({
-      specification: inputs.specification,
-      fps: inputs.finalAssembly.fps,
-      totalFrames: inputs.finalAssembly.durationInFrames,
+    const coverRecords = [];
+    for (const cover of inputs.cover.result.covers) {
+      const destination = join(
+        staging.root,
+        cover.variantId === "cover-4x3"
+          ? "cover-4x3.png"
+          : "cover-3x4.png",
+      );
+      await copyDeliveryFileExclusive({
+        source: join(rootDir, cover.repositoryPath),
+        destination,
+      });
+      const file = await inspectDeliveryFile(destination);
+      if (file.checksum !== cover.checksum || file.sizeBytes !== cover.sizeBytes) {
+        throw new Error("Delivery v2 Cover copy differs from immutable result.");
+      }
+      const media = await inspectDeliveryCover({
+        absolutePath: destination,
+        expected: { width: cover.width, height: cover.height },
+        ...(dependencies.runProcess === undefined
+          ? {}
+          : { runProcess: dependencies.runProcess }),
+      });
+      coverRecords.push({ cover, destination, file, media });
+    }
+    const [cover4x3, cover3x4] = coverRecords;
+    if (
+      cover4x3?.cover.variantId !== "cover-4x3" ||
+      cover3x4?.cover.variantId !== "cover-3x4"
+    ) {
+      throw new Error("Delivery v2 requires both immutable Cover outputs.");
+    }
+    const publishing = createPublishingMetadataV2({
+      story: inputs.story,
+      intent: inputs.intent,
+      semanticTiming: inputs.semanticTiming,
+      finalAssembly: inputs.finalAssembly,
       actualDurationSeconds: videoMedia.actualDurationSeconds,
     });
     const publishingPath = join(staging.root, "publishing.json");
@@ -153,11 +144,11 @@ export const buildDelivery = async ({
       destination: publishingPath,
       bytes: serializeDeliveryJson(publishing),
     });
-    const manifestContext = buildDeliveryManifestContext({ inputs, releaseId });
-    const handoff = buildDeliveryHandoff({
-      manifest: manifestContext,
-      publishing,
+    const manifestContext = buildDeliveryManifestContextV2({
+      inputs,
+      releaseId,
     });
+    const handoff = buildDeliveryHandoff({ manifest: manifestContext, publishing });
     const handoffPath = join(staging.root, "HANDOFF.md");
     await writeDeliveryFileExclusive({
       destination: handoffPath,
@@ -167,9 +158,7 @@ export const buildDelivery = async ({
       inspectDeliveryFile(publishingPath),
       inspectDeliveryFile(handoffPath),
     ]);
-    const manifest = createDeliveryReleaseManifest({
-      schemaVersion: 1,
-      manifestVersion: "delivery-release-manifest-v1",
+    const manifest = createDeliveryReleaseManifestV2({
       ...manifestContext,
       files: {
         video: {
@@ -182,16 +171,16 @@ export const buildDelivery = async ({
         cover4x3: {
           kind: "image",
           fileName: "cover-4x3.png",
-          checksum: cover4x3File.checksum,
-          sizeBytes: cover4x3File.sizeBytes,
-          media: cover4x3Media,
+          checksum: cover4x3.file.checksum,
+          sizeBytes: cover4x3.file.sizeBytes,
+          media: cover4x3.media,
         },
         cover3x4: {
           kind: "image",
           fileName: "cover-3x4.png",
-          checksum: cover3x4File.checksum,
-          sizeBytes: cover3x4File.sizeBytes,
-          media: cover3x4Media,
+          checksum: cover3x4.file.checksum,
+          sizeBytes: cover3x4.file.sizeBytes,
+          media: cover3x4.media,
         },
         publishing: {
           kind: "json",
@@ -217,8 +206,8 @@ export const buildDelivery = async ({
     const manifestFile = await inspectDeliveryFile(manifestPath);
     const ledger = buildChecksumLedger([
       { fileName: videoFileName, checksum: videoFile.checksum },
-      { fileName: "cover-4x3.png", checksum: cover4x3File.checksum },
-      { fileName: "cover-3x4.png", checksum: cover3x4File.checksum },
+      { fileName: "cover-4x3.png", checksum: cover4x3.file.checksum },
+      { fileName: "cover-3x4.png", checksum: cover3x4.file.checksum },
       { fileName: "publishing.json", checksum: publishingFile.checksum },
       { fileName: "HANDOFF.md", checksum: handoffFile.checksum },
       { fileName: "release-manifest.json", checksum: manifestFile.checksum },
@@ -227,7 +216,7 @@ export const buildDelivery = async ({
       destination: join(staging.root, "checksums.sha256"),
       bytes: ledger,
     });
-    await checkDeliveryDirectory({
+    await checkDeliveryDirectoryV2({
       releaseDir: staging.root,
       releaseId,
       inputs,

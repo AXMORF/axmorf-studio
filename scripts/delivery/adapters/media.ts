@@ -250,3 +250,74 @@ export const renderDeliveryCover = async ({
     );
   }
 };
+
+export const renderDeliveryCoverV2 = async ({
+  rootDir,
+  projectId,
+  compositionId,
+  outputPath,
+  runProcess = runProductionMediaProcess,
+}: {
+  readonly rootDir: string;
+  readonly projectId: string;
+  readonly compositionId: string;
+  readonly outputPath: string;
+  readonly runProcess?: ProcessRunner;
+}) => {
+  const entry = join(
+    rootDir,
+    "src/projects",
+    projectId,
+    "delivery/cover/index.ts",
+  );
+  const result = await runProcess(resolveProductionRemotionCommand(rootDir), [
+    "still",
+    entry,
+    compositionId,
+    outputPath,
+    "--image-format=png",
+    "--log=error",
+  ]);
+  if (result.status !== 0) {
+    throw new Error(
+      `Remotion could not render frozen Cover output: ${basename(outputPath)}.`,
+    );
+  }
+};
+
+export const inspectDeliveryCoverThumbnail = async ({
+  absolutePath,
+  expected,
+  runProcess = runProductionMediaProcess,
+}: {
+  readonly absolutePath: string;
+  readonly expected: Readonly<{ width: number; height: number }>;
+  readonly runProcess?: ProcessRunner;
+}) => {
+  const metadata = await lstat(absolutePath);
+  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size < 24) {
+    throw new Error("Cover thumbnail input must be a non-empty regular PNG.");
+  }
+  const result = await runProcess("ffmpeg", [
+    "-v",
+    "error",
+    "-xerror",
+    "-i",
+    absolutePath,
+    "-vf",
+    `scale=${expected.width}:${expected.height}`,
+    "-frames:v",
+    "1",
+    "-f",
+    "null",
+    "-",
+  ]);
+  if (result.status !== 0) {
+    throw new Error("Cover thumbnail did not decode at the fixed review size.");
+  }
+  return {
+    width: expected.width,
+    height: expected.height,
+    decodedToEof: true as const,
+  };
+};

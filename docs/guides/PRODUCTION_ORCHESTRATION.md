@@ -93,9 +93,11 @@ authority、Track、Scene DSL、自动布局器或自动导演，也不读取 Sc
 
 Narrative 到达 `baseline-ready` 后，主 Agent 写 current `visual-style.json`、
 `production/story-resource-pool.json`、`production/scene-production-brief.json` 和
-`production/global-visual-brief.json`，再运行 `production:scene:freeze`。每个 meaningId 得到
+`production/global-visual-brief.json`。future-only v2 的 PublishingIntent 已在 Story 阶段创作；
+此时分别运行 `production:scene:freeze` 与 `delivery:cover:freeze`。每个 meaningId 得到
 一份只读 Scene assignment，同时生成一份 whole-film GlobalVisual assignment。主 Agent 并行
-启动 N 个 Scene owner 与一个 GlobalVisual owner；每个 owner 只写 assignment 独占路径。Scene 完成后
+启动 N 个 Scene owner、一个 GlobalVisual owner 和一个独立 Cover owner；每个 owner 只写
+assignment 独占路径。Scene 完成后
 运行不写 Scene result/event/state 的 `production:scene:check`。检查失败只退回同一 owning 子
 Agent 返工。检查通过后，主 Agent 复检写入范围并串行运行 submit；只有真正无法完成时才运行
 fail。子 Agent 不写中央 events、state、result、coverage、registry 或 Composition。
@@ -105,10 +107,18 @@ GlobalVisual owner 只写 `global-visual-plan.json`、固定 project-local sourc
 通用 DSL、自动布局或自动导演。它先运行 `production:global-visual:check`；同一 owner 返工至
 通过后，由 root 复检并运行 submit/fail。ScenePackage 与 GlobalVisualPackage 双向不引用。
 
-主 Agent 分发 N+1 owner 后保持当前任务运行，并以宿主权限由 `production:watch` 等待结果。
+Cover owner 同时负责 1600×1200 和 1200×1600 两个独立纯代码 Composition，只读取
+CoverAssignment 内的 StorySpec、VisualStyleSpec 和固定 CoverSpec，使用
+`delivery:cover:check/submit` 生成 immutable Cover result。它不读取 PublishingIntent、timing、
+Scene/GlobalVisual 输出、FinalAssembly、preview/evidence/approval，也不进入
+`production:watch` 或 `ProductionRunState`。
+
+主 Agent 分发 N+1 production owner 与独立 Cover owner 后保持当前任务运行，并以宿主权限由
+`production:watch` 等待 N+1 结果，同时单独复核 Cover result。
 watcher 只接受 immutable Scene/GlobalVisual result contracts；repo 不监控或保存 Agent、task、
 thread、progress、conversation、log 或 heartbeat 状态。repo CLI 不创建或托管 Agent，也不承诺主任务结束后的 detached lifecycle；若当前环境不能创建
-独立子 Agent，生产在 Scene authoring 前报告 blocker，不静默退回主 Agent inline 制作。
+独立子 Agent，生产在 authoring 前报告 blocker，不静默退回主 Agent inline 制作。Cover
+missing/failed 不阻止 watcher 到达 `preview-ready`，但会阻止后续 `delivery:build`。
 
 ## 状态与单写者
 

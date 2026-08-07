@@ -24,6 +24,8 @@ Scene assignment 和一份 whole-film GlobalVisual assignment。N+1 owner 只写
 运行非终态 check，主 Agent 复检后串行提交 immutable result。append-only event ledger 和
 generated state projection 由中央脚本单写。这里的 `ProductionRunState` 是制作期投影，不是
 手工状态，也不进入 Remotion runtime；repo 不保存 Agent/task/thread/progress/heartbeat 状态。
+future-only M10 v2 同时分发一个独立 Cover owner，但其 Cover result 不进入 N+1 join、event
+ledger 或 ProductionRunState。
 
 ## Project 可删除性与单向依赖
 
@@ -43,11 +45,14 @@ build、dev 和 Composition listing 前重建。fresh clone 默认投影零 Proj
 
 ## M10 本地交付边界
 
-M10 位于用户批准之后，是独立于 production orchestration 和 Remotion render runtime 的固定
-应用层：
+M10 v1 artifacts/releases 保持只读兼容。future-only v2 把 PublishingIntent 和 Cover 制作移到
+用户批准之前，但交付封存仍是独立于 production orchestration 和 Remotion render runtime 的
+固定应用层：
 
 ```text
-Project-owned delivery spec + cover source
+StorySpec + PublishingIntent + SemanticTiming
+StorySpec + VisualStyleSpec + fixed CoverSpec
+  → independent CoverAssignment → CoverPackage → immutable CoverResult
 current FinalAssembly + FinalPreviewEvidence + FinalPreviewApproval + passing final-v2
 approved exact preview
   → scripts/delivery/application
@@ -55,17 +60,22 @@ approved exact preview
   → deliveries/<storyId>/<releaseId>/
 ```
 
-`src/contracts/delivery.ts` 定义 future-only v1 contract 和 identity；`scripts/delivery/` 继续按
-`cli / application / domain / adapters` 分层。application 只编排 current input、媒体检查和
-封存；domain 只生成 canonical publishing/handoff/checksum 内容；adapters 只处理固定本地路径、
-FFprobe/FFmpeg 和 Project-owned Remotion Still。delivery 不 import Project runtime，不进入
-Composition，也不读取 Agent、Skill、MCP、Git、网络、账号、密钥或权限。
+`src/contracts/delivery.ts` 保留 v1 identity；`publishing-intent.ts`、`delivery-cover.ts` 与
+`delivery-v2.ts` 定义 future-only v2。`scripts/delivery/` 继续按
+`cli / application / domain / adapters` 分层。Cover assignment 只读取 current StorySpec、
+VisualStyleSpec 和 fixed CoverSpec；source validator 和 media adapter 在批准前真实渲染、检查并
+封存双比例 PNG。Cover 不读 PublishingIntent、timing、Scene/GlobalVisual 输出、FinalAssembly、
+preview/evidence/approval，也不进入 production watcher。
 
-`releaseId` 由 approval、FinalAssembly 和交付规格 fingerprint 派生。交付规格同时绑定
-Project-owned 的 `delivery/Covers.tsx`、`Root.tsx` 和 `index.ts` source checksums，因此修改封面
-构图会得到新 release identity；旧 release 不迁移、不覆盖。写入先发生在固定 `.staging`，全部
-媒体和 checksum 复验成功后以目录 rename 封存。任何绝对路径、`..`、符号链接、未知文件、
-非 current input 或半成品都 fail closed。
+v2 application 在批准后只复制 exact approved preview 与 CoverResult 封存的 exact PNG；不
+调用 Agent、Remotion render 或重新编码。publishing projection 从 StorySpec 取 title，从
+PublishingIntent 取内容，从 SemanticTiming 取 chapter startFrame 并向下取整为 `HH:MM:SS`，从
+FinalAssembly 取 fps/总帧数，从交付 MP4 实测实际时长。
+
+v2 `releaseId` 由 approval、FinalAssembly 和交付规格 fingerprint 派生；交付规格绑定
+PublishingIntent、Cover result 和固定 archive policy。旧 v1 release 不迁移、不覆盖。写入先
+发生在固定 `.staging`，全部媒体和 checksum 复验成功后以目录 rename 封存。任何绝对路径、
+`..`、符号链接、未知文件、非 current input 或半成品都 fail closed。
 
 ## 当前设计顺序
 

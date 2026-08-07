@@ -1,6 +1,8 @@
 # Whole-film GlobalVisual Agent orchestration
 
-This reference owns the GlobalVisual side of the mandatory post-freeze N+1 Agent protocol.
+This reference owns the GlobalVisual side of the mandatory post-freeze N+1 production Agent protocol.
+The independent Cover owner runs concurrently under
+[cover-agent-orchestration.md](cover-agent-orchestration.md) but never joins production state.
 
 ## Keep one exclusive owner
 

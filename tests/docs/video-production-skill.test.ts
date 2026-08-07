@@ -16,13 +16,13 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 
 const SkillPolicySchema = z
   .object({
-    schemaVersion: z.literal(1),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v1"),
+    schemaVersion: z.literal(2),
+    policyVersion: z.literal("remotion-story-producer-video-policy-v2"),
     automaticEndpoint: z.literal("preview-ready / awaiting-user-preview"),
     privateConfigPath: z.literal("voxcpm/voxcpm.private.json"),
     requiredEntrypointHeadings: z.tuple([
       z.literal("Start directly"),
-      z.literal("Require N plus one visual owners"),
+      z.literal("Require N plus one production owners and one Cover owner"),
       z.literal("Keep context bounded"),
       z.literal("Preserve production invariants"),
       z.literal("Classify failure by owner"),
@@ -32,6 +32,7 @@ const SkillPolicySchema = z
       z.literal("references/direct-production-workflow.md"),
       z.literal("references/scene-agent-orchestration.md"),
       z.literal("references/global-visual-agent-orchestration.md"),
+      z.literal("references/cover-agent-orchestration.md"),
       z.literal("references/agent-rework-and-system-hardening.md"),
     ]),
     workflowCommands: z.tuple([
@@ -46,18 +47,28 @@ const SkillPolicySchema = z
       z.literal("production:global-visual:check"),
       z.literal("production:global-visual:submit"),
       z.literal("production:global-visual:fail"),
+      z.literal("delivery:cover:freeze"),
+      z.literal("delivery:cover:check"),
+      z.literal("delivery:cover:submit"),
       z.literal("production:preview:check"),
     ]),
     invariants: z
       .object({
         sceneAuthoringOwner: z.literal("one-child-agent-per-meaning-id"),
         globalVisualAuthoringOwner: z.literal("one-child-agent-per-story"),
+        coverAuthoringOwner: z.literal("one-child-agent-per-story"),
         rootAgentAuthorsScenes: z.literal(false),
         rootAgentAuthorsGlobalVisual: z.literal(false),
+        rootAgentAuthorsCover: z.literal(false),
         inlineSceneFallback: z.literal(false),
         repositoryMonitorsAgentLifecycle: z.literal(false),
         watcherInput: z.literal("immutable-result-contracts-only"),
         globalVisualReadsSceneOutputs: z.literal(false),
+        coverReadsOnlyAssignmentInputs: z.literal(true),
+        coverJoinsProductionWatcher: z.literal(false),
+        coverMissingBlocksPreview: z.literal(false),
+        coverMissingBlocksDelivery: z.literal(true),
+        publishingIntentStage: z.literal("story-authoring"),
         fixedFlowRecovery: z.literal(false),
         centralStateWriter: z.literal("repository-cli-only"),
         ttsChunkAutoSplit: z.literal(false),
@@ -82,6 +93,7 @@ const SkillPolicySchema = z
         normalProductionMaxWords: z.number().int().positive(),
         sceneOrchestrationMaxWords: z.number().int().positive(),
         globalVisualOrchestrationMaxWords: z.number().int().positive(),
+        coverOrchestrationMaxWords: z.number().int().positive(),
       })
       .strict(),
   })
@@ -94,6 +106,7 @@ test("repository video skill exposes a structured production policy", async () =
     workflow,
     sceneWorkflow,
     globalVisualWorkflow,
+    coverWorkflow,
     failurePolicy,
     rawPolicy,
   ] =
@@ -103,6 +116,7 @@ test("repository video skill exposes a structured production policy", async () =
       readSkillFile("references/direct-production-workflow.md"),
       readSkillFile("references/scene-agent-orchestration.md"),
       readSkillFile("references/global-visual-agent-orchestration.md"),
+      readSkillFile("references/cover-agent-orchestration.md"),
       readSkillFile("references/agent-rework-and-system-hardening.md"),
       readSkillFile("policy.json"),
     ]);
@@ -123,7 +137,7 @@ test("repository video skill exposes a structured production policy", async () =
     await assert.doesNotReject(readSkillFile(reference));
   }
 
-  const executableWorkflow = `${workflow}\n${sceneWorkflow}\n${globalVisualWorkflow}`;
+  const executableWorkflow = `${workflow}\n${sceneWorkflow}\n${globalVisualWorkflow}\n${coverWorkflow}`;
   for (const command of policy.workflowCommands) {
     assert.match(executableWorkflow, new RegExp(`npm run ${command}`, "u"));
   }
@@ -150,6 +164,11 @@ test("repository video skill exposes a structured production policy", async () =
     wordCount(globalVisualWorkflow) <=
       policy.contextBudgets.globalVisualOrchestrationMaxWords,
     `GlobalVisual orchestration exceeds its policy budget (${wordCount(globalVisualWorkflow)} words)`,
+  );
+  assert.ok(
+    wordCount(coverWorkflow) <=
+      policy.contextBudgets.coverOrchestrationMaxWords,
+    `Cover orchestration exceeds its policy budget (${wordCount(coverWorkflow)} words)`,
   );
   assert.match(
     globalVisualWorkflow,

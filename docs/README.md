@@ -39,6 +39,8 @@
 - `evidence/`：一次里程碑或作品验收的历史证据，不承担当前状态。
 - M10 首个真实本地交付证明见
   [2026-08-08-m10-local-delivery.md](evidence/2026-08-08-m10-local-delivery.md)。
+- M10 future-only v2 的早期 PublishingIntent、独立 Cover owner 与纯脚本 release 证明见
+  [2026-08-08-m10-v2-early-publishing-cover.md](evidence/2026-08-08-m10-v2-early-publishing-cover.md)。
 - `promotions/`：尚需用户明确批准的共享能力提升提案。
 - [archive/](archive/README.md)：已完成或被取代的计划和规格，仅供追溯。
 - 已完成的 Project 可删除性与产物解耦计划见
