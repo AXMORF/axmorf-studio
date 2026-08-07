@@ -349,106 +349,25 @@ const reportCase = (caseId: string, summary: string) => {
 export const runProjectDeletionMatrix = async (sourceRoot: string) => {
   const cleanups: string[] = [];
   try {
-    const current = await createIsolatedRepository({
-      sourceRoot,
-      label: "current",
-    });
-    cleanups.push(current.matrixRoot);
-    await runSourceSurface(current.repositoryRoot);
-    reportCase("A", "current compositions and source checks");
-
-    const removable = await createIsolatedRepository({
-      sourceRoot,
-      label: "one-project",
-    });
-    cleanups.push(removable.matrixRoot);
-    const targetProjectId = await selectDeletionTarget(
-      removable.repositoryRoot,
-    );
-    await removeTreeWithinMatrix(
-      removable.matrixRoot,
-      join(removable.repositoryRoot, "src/projects", targetProjectId),
-    );
-    await regenerateCurrentSet(removable.repositoryRoot);
-    await runSourceSurface(removable.repositoryRoot);
-    reportCase("B", `removed src Project ${targetProjectId}`);
-    await removeTreeWithinMatrix(
-      removable.matrixRoot,
-      join(removable.repositoryRoot, "public/projects", targetProjectId),
-    );
-    await npm(removable.repositoryRoot, ["run", "check"]);
-    reportCase("C", `removed matching public Project ${targetProjectId}`);
-
-    const withoutOut = await createIsolatedRepository({
-      sourceRoot,
-      label: "without-out",
-    });
-    cleanups.push(withoutOut.matrixRoot);
-    await writeJson(join(withoutOut.repositoryRoot, "out/.matrix-sentinel"), {
-      purpose: "prove the isolated out tree is explicitly deleted",
-    });
-    const evidenceProjectId = await selectDeletionTarget(
-      withoutOut.repositoryRoot,
-    );
-    await removeTreeWithinMatrix(
-      withoutOut.matrixRoot,
-      join(withoutOut.repositoryRoot, "out"),
-    );
-    await npm(withoutOut.repositoryRoot, ["run", "check"]);
-    await expectFailure(
-      "npm",
-      ["run", "test:media"],
-      withoutOut.repositoryRoot,
-    );
-    await expectFailure(
-      "npm",
-      ["run", "project:evidence:check", "--", "--project", evidenceProjectId],
-      withoutOut.repositoryRoot,
-    );
-    reportCase("D", "deleted out while explicit evidence remained fail-closed");
-
     const zero = await createIsolatedRepository({
       sourceRoot,
       label: "zero-project",
     });
     cleanups.push(zero.matrixRoot);
-    for (const projectId of await listProjectIds(zero.repositoryRoot)) {
-      await removeTreeWithinMatrix(
-        zero.matrixRoot,
-        join(zero.repositoryRoot, "src/projects", projectId),
-      );
-    }
-    const publicProjectsRoot = join(zero.repositoryRoot, "public/projects");
-    try {
-      for (const entry of await readdir(publicProjectsRoot, {
-        withFileTypes: true,
-      })) {
-        if (entry.isSymbolicLink()) {
-          throw new Error("Matrix rejects a public Project symlink.");
-        }
-        if (!entry.isDirectory()) continue;
-        await removeTreeWithinMatrix(
-          zero.matrixRoot,
-          join(publicProjectsRoot, entry.name),
-        );
-      }
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    }
-    await regenerateCurrentSet(zero.repositoryRoot);
+    await npm(zero.repositoryRoot, ["run", "bootstrap"]);
     await npm(zero.repositoryRoot, ["run", "check"]);
     const zeroRegistry = await readFile(
       join(zero.repositoryRoot, "src/projects/project-registry.generated.ts"),
       "utf8",
     );
     if (!/projectRegistry\s*=\s*\[\]/.test(zeroRegistry)) {
-      throw new Error("Zero Project registry is not empty.");
+      throw new Error("Fresh checkout Project registry is not empty.");
     }
-    reportCase("E", "zero Project core and CapabilityGallery");
+    reportCase("A", "fresh checkout bootstraps zero Project core");
 
     const synthetic = await writeSyntheticProject(zero.repositoryRoot);
     await regenerateCurrentSet(zero.repositoryRoot);
-    await npm(zero.repositoryRoot, ["run", "check:static"]);
+    await runSourceSurface(zero.repositoryRoot);
     const compositions = await npm(zero.repositoryRoot, [
       "run",
       "compositions",
@@ -456,7 +375,68 @@ export const runProjectDeletionMatrix = async (sourceRoot: string) => {
     if (!compositions.stdout.includes(synthetic.compositionId)) {
       throw new Error("Synthetic Project is missing from compositions.");
     }
-    reportCase("F", `added ${synthetic.storyId} from zero state`);
+    reportCase("B", `added ${synthetic.storyId} from zero state`);
+
+    await writeJson(
+      join(
+        zero.repositoryRoot,
+        "public/projects",
+        synthetic.storyId,
+        ".matrix-sentinel",
+      ),
+      { purpose: "prove public Project artifacts remain removable" },
+    );
+    await removeTreeWithinMatrix(
+      zero.matrixRoot,
+      join(zero.repositoryRoot, "public/projects", synthetic.storyId),
+    );
+    await npm(zero.repositoryRoot, ["run", "check"]);
+    reportCase("C", `removed public Project ${synthetic.storyId}`);
+
+    await writeJson(join(zero.repositoryRoot, "out/.matrix-sentinel"), {
+      purpose: "prove the isolated out tree is explicitly deleted",
+    });
+    await removeTreeWithinMatrix(
+      zero.matrixRoot,
+      join(zero.repositoryRoot, "out"),
+    );
+    await npm(zero.repositoryRoot, ["run", "check"]);
+    await expectFailure("npm", ["run", "test:media"], zero.repositoryRoot);
+    await expectFailure(
+      "npm",
+      ["run", "project:evidence:check", "--", "--project", synthetic.storyId],
+      zero.repositoryRoot,
+    );
+    reportCase("D", "deleted out while explicit evidence remained fail-closed");
+
+    await removeTreeWithinMatrix(
+      zero.matrixRoot,
+      join(zero.repositoryRoot, "src/projects", synthetic.storyId),
+    );
+    await regenerateCurrentSet(zero.repositoryRoot);
+    await npm(zero.repositoryRoot, ["run", "check"]);
+    const regeneratedZeroRegistry = await readFile(
+      join(zero.repositoryRoot, "src/projects/project-registry.generated.ts"),
+      "utf8",
+    );
+    if (!/projectRegistry\s*=\s*\[\]/.test(regeneratedZeroRegistry)) {
+      throw new Error("Zero Project registry is not empty.");
+    }
+    reportCase("E", `removed src Project ${synthetic.storyId}`);
+
+    const restored = await writeSyntheticProject(zero.repositoryRoot);
+    await regenerateCurrentSet(zero.repositoryRoot);
+    await npm(zero.repositoryRoot, ["run", "check:static"]);
+    const restoredCompositions = await npm(zero.repositoryRoot, [
+      "run",
+      "compositions",
+    ]);
+    if (!restoredCompositions.stdout.includes(restored.compositionId)) {
+      throw new Error(
+        "Restored synthetic Project is missing from compositions.",
+      );
+    }
+    reportCase("F", `restored ${restored.storyId} after deletion`);
   } finally {
     for (const matrixRoot of cleanups.reverse()) {
       await removeTreeWithinMatrix(matrixRoot, join(matrixRoot, "repository"));

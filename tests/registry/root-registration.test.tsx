@@ -109,8 +109,10 @@ test("Root maps synthetic Project entries without concrete Story assumptions", a
   });
 });
 
-test("build and listing generate before bundle while formal check detects drift first", () => {
+test("fresh-clone entrypoints bootstrap local projections before use", () => {
   const scripts = packageJson.scripts as Record<string, string>;
+  assert.equal(scripts.bootstrap, "node --import tsx scripts/bootstrap/cli.ts");
+  assert.equal(scripts.prepare, "npm run bootstrap");
   assert.equal(
     scripts["registry:generate"],
     "node --import tsx scripts/registry/cli.ts generate",
@@ -119,12 +121,19 @@ test("build and listing generate before bundle while formal check detects drift 
     scripts["registry:check"],
     "node --import tsx scripts/registry/cli.ts check",
   );
-  assert.equal(scripts.predev, "npm run registry:generate");
-  assert.equal(scripts.pretest, "npm run registry:generate");
-  assert.equal(scripts.pretypecheck, "npm run registry:generate");
-  assert.equal(scripts.prelint, "npm run registry:generate");
-  assert.equal(scripts.prebuild, "npm run registry:generate");
-  assert.equal(scripts.precompositions, "npm run registry:generate");
+  for (const hook of [
+    "predev",
+    "pretest",
+    "pretest:media",
+    "pretest:all",
+    "pretypecheck",
+    "prelint",
+    "prebuild",
+    "precatalog:query",
+    "precompositions",
+  ]) {
+    assert.equal(scripts[hook], "npm run bootstrap");
+  }
   assert.equal(scripts.check, "npm run check:static && npm run check:host");
   assert.match(
     `${scripts["check:static"]} ${scripts["check:host"]}`,

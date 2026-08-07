@@ -11,6 +11,10 @@ JSON 不包含模块路径、shell 命令或可执行表达式；通用 adapter 
 Project 内的约定工具位置。删除 Project 后，其 profile、工具与验证测试一起消失，中央配置不
 保留该 storyId。
 
+`src/projects/` 与 `public/` 均是 ignored 本地生产叶节点。fresh clone 默认没有正式作品，
+`--all` 返回空 completed 集合；恢复或新建本地 Project 后，bootstrap 才把它加入 Registry 和
+Catalog，验证器也只发现当前本地 profile。
+
 验证器只在显式命令或 `--all` 时发现当前一级 Project profile；拒绝 symlink、未知 step、路径和
 命令字段。新正式作品必须提供 profile、Project-owned 工具与测试，缺少任一绑定都 fail closed。
 
@@ -41,3 +45,4 @@ npm run project:approval:check -- --project <story-id>
 - profile 的 `check` 路径只读，不生成音频、不重签批准、不改写正式 evidence。
 - 不把具体 storyId 加回 core、package scripts 或 active 中央 manifest；新增/删除 Project 后重算
   Registry/Catalog 即可。
+- 不提交 `src/projects/`、`public/` 或当前 Project 集的聚合 Registry/Catalog。

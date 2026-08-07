@@ -2,6 +2,13 @@ import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
+const PROOF_SHAPE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 380" role="img" aria-label="M6 deterministic proof shape">
+  <rect width="560" height="380" rx="28" fill="#08111f"/>
+  <path d="M112 252 L210 104 L292 202 L360 128 L448 252 Z" fill="#22d3ee" opacity="0.88"/>
+  <circle cx="280" cy="190" r="112" fill="none" stroke="#f8fafc" stroke-width="12"/>
+</svg>
+`;
+
 const createPulseWav = (): Uint8Array => {
   const sampleRate = 48_000;
   const sampleCount = 8_640;
@@ -70,12 +77,20 @@ export const generateM6ProofAssets = async ({
 }: {
   readonly rootDir: string;
   readonly mode: "write" | "check";
-}) =>
-  writeBytesAtomic(
-    join(rootDir, "public/assets/library/m6-scene-runtime/proof-pulse.wav"),
-    createPulseWav(),
-    mode,
-  );
+}) => {
+  await Promise.all([
+    writeBytesAtomic(
+      join(rootDir, "public/assets/library/m6-scene-runtime/proof-pulse.wav"),
+      createPulseWav(),
+      mode,
+    ),
+    writeBytesAtomic(
+      join(rootDir, "public/assets/library/m6-scene-runtime/proof-shape.svg"),
+      Uint8Array.from(Buffer.from(PROOF_SHAPE_SVG, "utf8")),
+      mode,
+    ),
+  ]);
+};
 
 if (
   process.argv[1] !== undefined &&

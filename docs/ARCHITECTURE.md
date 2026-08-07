@@ -27,15 +27,19 @@ generated state projection 由中央脚本单写。这里的 `ProductionRunState
 
 ## Project 可删除性与单向依赖
 
-具体 Project 是 `src/projects/<storyId>/` 与 `public/projects/<storyId>/` 中可保留、可归档或经
-明确授权后删除的叶节点。依赖方向只能是具体 Project → contracts/runtime/capabilities/production
-core；core、中央 package scripts 和 active 配置不得枚举或分支判断具体 `storyId`。Project 自有
-测试、工具和 `verification.profile.json` 随 Project 一起存在或消失。
+具体 Project 是 ignored 的 `src/projects/<storyId>/` 与 `public/projects/<storyId>/` 本地叶节点，
+不进入 Git 版本管理，可独立保留、归档或经明确授权后删除。依赖方向只能是具体 Project →
+contracts/runtime/capabilities/production core；core、中央 package scripts 和 active 配置不得
+枚举或分支判断具体 `storyId`。Project 自有测试、工具和 `verification.profile.json` 随 Project
+一起存在或消失。
 
 bundle 前生成的 ProjectRegistry 和 ResourceCatalog 是“当前 Project 集”的静态投影：允许零
 Project，仍使用稳定排序、字面量 `import()` 与 `lazyComponent`；render runtime 不扫描目录。
-删除或新增 Project 后只重算投影，不修改 Root 或 core 配置。`out/` 是本地交付/证据输出，不是
-源码健康前置条件；历史媒体和用户批准只由显式 Project-owned evidence/approval 命令复验。
+两份聚合投影同样是 ignored 本地文件，由 `npm run bootstrap` 在 install、test、typecheck、lint、
+build、dev 和 Composition listing 前重建。fresh clone 默认投影零 Project，只保留系统级
+`CapabilityGallery`。删除或新增 Project 后只重算投影，不修改 Root 或 core 配置。`out/` 是本地
+交付/证据输出，不是源码健康前置条件；历史媒体和用户批准只由显式 Project-owned
+evidence/approval 命令复验。
 
 ## 当前设计顺序
 
@@ -53,8 +57,9 @@ sealed narration + RenderSpec → SemanticTiming + CaptionCue
 → fixed project:check + persisted AutoCheck（M4）
 ```
 
-当前 M4 已实现到 Narrative Baseline 的机械验证闭环：透明 NarrativeCore、tracked registry、
-`GpsRelativity` lazy Composition、透明 still、全长 render 和 evidence receipt 均已落地。
+M4 历史上已完成 Narrative Baseline 的机械验证闭环；当前 core 保留透明 NarrativeCore、
+zero-safe 本地 registry 生成与机械检查，具体作品 Composition、媒体和 evidence 不再随 Git
+分发。
 `project:check` 以只读固定顺序聚合 M1–M3 权威并校验 persisted AutoCheck drift。主观叙事
 质量审核和 NarrativeCheck 均未实现。
 
@@ -63,7 +68,7 @@ M4 的边界位于：
 - `src/contracts/auto-check.ts`：strict report、固定 check/evidence 顺序和 report fingerprint；
 - `scripts/project-check/`：固定作品发现、只读聚合、pass-only 原子写入和 exact CLI；
 - `scripts/baseline/evidence.ts`：M3 collector 与 persisted receipt 的独立只读复验；
-- `src/projects/gps-relativity/generated/narrative-auto-check.generated.json`：当前通过的持久化
+- `src/projects/<story>/generated/narrative-auto-check.generated.json`：本地 Project 的持久化
   AutoCheck。
 
 这些检查代码不进入 Remotion render runtime，也不调用 Agent、skill、MCP、provider 或网络。
@@ -181,9 +186,9 @@ src/contracts/narrative-baseline.ts
                                               registry/Baseline/evidence schemas 与 fingerprints
 src/remotion/runtime/narrative-core/          single audio、顶层字幕、透明 NarrativeCore
 src/remotion/runtime/composition-assembly/    required narrativeCore slot only
-src/projects/gps-relativity/Composition.tsx   static local data validation + default export
+src/projects/<story>/Composition.tsx          ignored local data validation + default export
 scripts/registry/                             fixed discovery、AST check、stable atomic generation
-src/projects/project-registry.generated.ts    tracked metadata + literal lazy import
+src/projects/project-registry.generated.ts    ignored local projection + literal lazy import
 src/Root.tsx                                  System component + Stories lazyComponent 映射
 scripts/baseline/evidence.ts                  PNG alpha、MP4 streams/frames 与 receipt
 ```
@@ -210,7 +215,7 @@ src/remotion/proofs/m6-scene-runtime/  与 ProjectRegistry 隔离的 synthetic p
 所有生成器都是 pass-only、原子、byte-stable；check mode 只读。runtime 只消费静态 registry、
 已校验合同和 `public/` 本地资产，不调用 Agent、skill、MCP、Git、网络或目录扫描。
 
-### 已实现的 M8 模块
+### M8 历史验证过的本地 Project 模块
 
 ```text
 src/contracts/{global-sound,global-visual,final-assembly,final-preview}.ts
@@ -229,7 +234,7 @@ version → FinalAssembly，完整媒体/review → FinalPreviewEvidence，真�
 FinalPreviewApproval → `final-mechanical-check-v2`。任一上游或媒体字节变化只向下游失效，
 checker 不修复或自动重签。
 
-### 已实现的 M9 第二主题模块
+### M9 历史验证过的本地第二主题模块
 
 ```text
 src/projects/product-comic-vertical/      十 Beat/十 ScenePackage 的 9:16 漫画作品
@@ -244,6 +249,9 @@ generated/m9-fail-closed-matrix.generated.json
 generated/m9-generalization-report.generated.json
                                            四类两主题泛化结论
 ```
+
+上述具体 M8/M9 Project 路径是历史实现结构与本地作品结构说明，不属于 fresh clone 的 tracked
+core；其可复验性取决于对应本地 Project、媒体和 evidence 是否存在。
 
 M9 复用同一 NarrativeCore、ScenePackage/runtime、CompositionAssembly、FinalPreview 与 v2
 合同；共享修改仅限 Narrative Baseline、Shotcraft closure、high-fidelity voice provider 和

@@ -14,5 +14,12 @@ voxcpm/voice_profile/
 public/voice_profile/
 .codegraph/
 
+# Project source and every public asset are local production artifacts.
+/src/projects/
+/public/
+
+# This aggregate view is rebuilt from core descriptors and local Projects.
+/src/remotion/catalog/resource-catalog.generated.json
+
 # Ignore the output video from Git but not videos you import into src/.
 out

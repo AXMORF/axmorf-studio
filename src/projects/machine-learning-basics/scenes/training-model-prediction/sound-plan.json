@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "taskInputFingerprint": "sha256:ce8c1620b7e6215688c13b0b95daa75274debfa44b3a7ee21d5b7916165c39ba",
-  "meaningId": "training-model-prediction",
-  "sceneDurationInFrames": 461,
-  "ambience": null,
-  "cues": [],
-  "soundPlanFingerprint": "sha256:926e5c3eaf2e2e9474fe0e6fd79a2fb219964cbba63c04e7a9aebeae672bab4d"
-}

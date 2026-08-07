@@ -14,19 +14,19 @@
 
 ## 已完成里程碑
 
-| 阶段      | 结果                                                       |
-| --------- | ---------------------------------------------------------- |
-| M0        | 产品边界、架构、流程和依赖顺序收口                         |
-| M1        | 数据合同、fingerprint 和确定性时间内核                     |
-| M2        | 真实 VoxCPM 旁白生成、实测与封存                           |
-| M3        | Narrative Baseline runtime 与静态 Story 注册               |
-| M4        | 机械 AutoCheck 与失效矩阵                                  |
-| M5        | ScenePackage 视听制作规格                                  |
-| M6        | ResourceCatalog、Scene contract 和 runtime foundation      |
-| M7        | GPS 完整 ScenePackage 集合与正常速度证据                   |
-| M8        | Global sound/visual、FinalAssembly、用户批准与 final-v2    |
-| M9        | ProductComicVertical 第二主题泛化与 final-v2               |
-| M9.5      | 合同驱动生产 CLI、single-writer watcher 与机械 Preview     |
+| 阶段      | 结果                                                                                                  |
+| --------- | ----------------------------------------------------------------------------------------------------- |
+| M0        | 产品边界、架构、流程和依赖顺序收口                                                                    |
+| M1        | 数据合同、fingerprint 和确定性时间内核                                                                |
+| M2        | 真实 VoxCPM 旁白生成、实测与封存                                                                      |
+| M3        | Narrative Baseline runtime 与静态 Story 注册                                                          |
+| M4        | 机械 AutoCheck 与失效矩阵                                                                             |
+| M5        | ScenePackage 视听制作规格                                                                             |
+| M6        | ResourceCatalog、Scene contract 和 runtime foundation                                                 |
+| M7        | GPS 完整 ScenePackage 集合与正常速度证据                                                              |
+| M8        | Global sound/visual、FinalAssembly、用户批准与 final-v2                                               |
+| M9        | ProductComicVertical 第二主题泛化与 final-v2                                                          |
+| M9.5      | 合同驱动生产 CLI、single-writer watcher 与机械 Preview                                                |
 | Hardening | v3 preflight、统一可读性、Composition-owned Scene boundary；future-only v4 N+1 GlobalVisual contracts |
 
 当前实现细节以 [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准；历史计划见
@@ -46,7 +46,7 @@ M10 必须单独规划并获得授权后才开始。
 - 要求用户明确提供交付目标目录，并在写入前校验精确目标；
 - 生成本地 release manifest、文件清单和校验和；
 - 生成封面/缩略图等明确列入计划的交付资产；
-- 提供从 clean checkout 复验交付包的固定命令；
+- 提供从 clean core checkout 加显式恢复的本地 Project/交付输入复验交付包的固定命令；
 - 更新 changelog/交接说明和发布前检查。
 
 明确排除：
@@ -61,7 +61,8 @@ M10 必须单独规划并获得授权后才开始。
 
 - 用户已经对 exact current preview 作出明确批准；
 - release manifest 与所有文件 checksum 可从仓库事实重算；
-- clean checkout 的静态与宿主门禁通过；
+- clean core checkout 的 zero-Project 静态与宿主门禁通过；恢复目标 Project 后，其 source、
+  media、evidence 与 approval 门禁另行通过；
 - 交付包不包含私有配置、voice profile、临时文件或未跟踪输入；
 - 文档和交接明确说明已知限制与复验命令。
 

@@ -81,6 +81,10 @@
   ProjectRegistry/ResourceCatalog 投影当前集并允许 zero Project。默认 `npm run check` 不读取
   `out/` 历史媒体；显式 media/evidence/approval 命令仍 fail closed。保留或删除 Project 都是
   用户选择，本仓库不提供自动删除或 `project:delete`。
+- `public/`、`src/projects/`、`src/projects/project-registry.generated.ts` 与聚合
+  `src/remotion/catalog/resource-catalog.generated.json` 都是 ignored 本地产物，不进入 Git。
+  fresh clone 由 `npm run bootstrap` 重建 core proof 资产和 zero-safe Catalog/Registry；不得把
+  具体 Project 或媒体重新加入 core 版本管理。
 - M6 的 Scene 级 renderer/runtime 不得成为 Narrative Baseline 的前置条件，也不得反向修改
   Story、旁白、字幕或实测时间线。M8 不得重做五个 M7 ScenePackage；Scene-local
   ambience/SFX 仍由 ScenePackage 拥有，GlobalSoundPlan 不建立第二份 Scene SFX 权威。

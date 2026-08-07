@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { lstat, readFile, readdir } from "node:fs/promises";
+import { lstat, readFile } from "node:fs/promises";
 import { join, posix, relative, sep } from "node:path";
 import ts from "typescript";
 
@@ -16,6 +16,7 @@ import {
 import { capabilityDescriptorDeclarations } from "../../src/remotion/catalog/capability-descriptors";
 import { styleDescriptorDeclarations } from "../../src/remotion/catalog/style-descriptors";
 import { producerStyleProfileIds } from "../../src/remotion/capabilities/styles";
+import { readLocalProjectRoot } from "../projects/root";
 
 const checksumBytes = (bytes: Buffer) =>
   Sha256DigestSchema.parse(
@@ -125,17 +126,9 @@ export const loadProjectResourceDescriptors = async (
   projectId?: string,
 ): Promise<readonly ResourceDescriptor[]> => {
   const projectsRoot = join(rootDir, "src/projects");
-  let projects;
-  try {
-    projects = await readdir(projectsRoot, { withFileTypes: true });
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw error;
-  }
+  const projects = await readLocalProjectRoot(rootDir);
   const descriptors: ResourceDescriptor[] = [];
-  for (const project of projects.sort((left, right) =>
-    left.name.localeCompare(right.name),
-  )) {
+  for (const project of projects) {
     if (projectId !== undefined && project.name !== projectId) continue;
     if (project.isSymbolicLink()) {
       throw new Error(

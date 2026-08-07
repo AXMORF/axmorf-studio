@@ -210,7 +210,7 @@ absent。旧 v1-v3 requirements/Run/scaffold 和 GPS/ProductComicVertical 正式
 | External Reference Sync  | 显式允许的上游 repository/commit                                            | immutable snapshot、recipe/demo/preview index、license metadata                          | 仅 authoring step 可联网；浮动 branch/tag 不能成为生产 identity；runtime 不访问上游                            |
 | GlobalVisual Brief       | Story、RenderSpec、VisualStyleSpec、全片视觉意图                            | `GlobalVisualBrief`                                                                      | v4 requirement freeze 前创作；不引用 Scene 输出或 Agent lifecycle                                              |
 | Scene Task Freeze        | StoryBeat、SemanticTiming、VisualStyleSpec、Catalog、references、相邻连续性 | 每个 meaningId 的只读任务输入                                                            | 一个独占 Scene 目录对应一个 Agent 任务；共享输入、上游 revision 与 registry 不可由子 Agent 修改                |
-| GlobalVisual Freeze      | Brief、StoryBeat 时间窗、Style、Catalog、readability                        | 一份 whole-film `GlobalVisualAssignment`                                                  | 与 N 个 Scene assignment 同次原子冻结；独占 project-local source/public paths                                  |
+| GlobalVisual Freeze      | Brief、StoryBeat 时间窗、Style、Catalog、readability                        | 一份 whole-film `GlobalVisualAssignment`                                                 | 与 N 个 Scene assignment 同次原子冻结；独占 project-local source/public paths                                  |
 | Scene Authoring          | 单个 Beat 的固定任务输入                                                    | SceneVisualPlan、ShotPlan、SceneSoundPlan、资源/recipe 选择、本地化 Shot 与 Renderer.tsx | 画面与 Scene 局部声音内聚；recipe 可为空；不得修改 Beat 时长、旁白、字幕或其他 Scene                           |
 | GlobalVisual Authoring   | GlobalVisualAssignment                                                      | plan、selected resources、static renderer、`GlobalVisualPackage`                         | 不读取 Scene 输出；不拥有字幕、声音、Scene 语义、DSL、自动布局或自动导演                                       |
 | Reference Fidelity       | exact recipe selection、准确 demo、本地源码和证据                           | pass-only fidelity receipt 或明确 not-applicable                                         | exact 必须证明 lineage、最小依赖闭包、真实 Renderer/frame-state binding 和正常速度可辨识；preview 只作证据     |
@@ -273,9 +273,12 @@ recipe、选择原因以及如何服务 StoryBeat，仍由 SceneVisualPlan/ShotR
 - `ProjectRegistry` 把静态可枚举的 Story 注册元数据与字面量 lazy import 绑定；它与
   把 rendererId 绑定到 SceneRenderer 的 RendererRegistry 是两个独立 registry；
 - ProjectRegistry 与 ResourceCatalog 都只投影当前 Project 集并允许零 Project；具体 Project
-  可保留或经明确授权删除，core 不保存具体 storyId 分支，render runtime 仍不扫描目录；
+  位于 ignored 本地目录，可保留或经明确授权删除，core 不保存具体 storyId 分支，render
+  runtime 仍不扫描目录；
 - 固定生成步骤只发现 `src/projects/*/Composition.tsx`，稳定排序并生成
   `project-registry.generated.ts`；每个入口必须 default export；
+- `npm run bootstrap` 在 fresh clone 和常用 npm 入口前生成 core proof 的 `public/` 资产、
+  ResourceCatalog 与 ProjectRegistry；这些当前集投影不进入 Git；
 - Root 静态读取 generated registry，再把条目的字面量 loader 传给 Remotion
   `lazyComponent`。具体 Composition 只在选中、preview 或 render 时加载；
 - generated registry 必须进入 fingerprint，并由 read-only check mode 做 byte-for-byte

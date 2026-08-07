@@ -94,6 +94,16 @@ test("zero Project verification profiles are valid", async (context) => {
   });
 });
 
+test("an absent local Projects root is the zero Project profile set", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-project-profiles-absent-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+
+  assert.deepEqual(await loadProjectVerificationProfiles(rootDir), {
+    profileVersion: "project-verification-v2",
+    projects: [],
+  });
+});
+
 test("profile data permits fixed step IDs but rejects paths and commands", () => {
   assert.deepEqual(
     parseProjectVerificationProfile({

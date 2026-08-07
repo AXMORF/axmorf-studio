@@ -298,8 +298,9 @@ Webpack 按需加载指定 Story Composition
 - `durationInFrames` 使用已生成 SemanticTiming 的总帧数，不在 registry 中重新测量音频；
 - 条目按 Composition ID 稳定排序；生成器原子写入完整文件，部分扫描或部分校验结果不得
   覆盖旧 registry；
-- generated registry 是需要进入版本控制和 fingerprint 的确定性产物。正式检查使用
-  read-only check mode 重新生成到内存并做 byte-for-byte 比较，发现漂移即失败。
+- generated registry 是 ignored 的本地确定性投影，必须进入当前 Project 的 fingerprint，但
+  不进入 Git 版本管理。`npm run bootstrap` 先按当前本地 Project 集生成它，正式检查再使用
+  read-only check mode 重算并做 byte-for-byte 比较，发现漂移即失败。
 
 生成结果的概念形态为：
 

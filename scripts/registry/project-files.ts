@@ -1,4 +1,4 @@
-import { lstat, readFile, readdir } from "node:fs/promises";
+import { lstat, readFile } from "node:fs/promises";
 import { join, posix, relative, sep } from "node:path";
 import ts from "typescript";
 
@@ -13,6 +13,7 @@ import {
   createValidatedProjectRegistrationEntry,
   type ValidatedProjectRegistrationEntry,
 } from "./domain";
+import { readLocalProjectRoot } from "../projects/root";
 
 const PROJECT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const PROJECT_COMPOSITION_PATTERN =
@@ -25,13 +26,9 @@ export const discoverProjectEntries = async (
   rootDir: string,
 ): Promise<readonly string[]> => {
   const projectsDirectory = join(rootDir, "src/projects");
-  const directoryEntries = await readdir(projectsDirectory, {
-    withFileTypes: true,
-  });
+  const directoryEntries = await readLocalProjectRoot(rootDir);
   const discovered: string[] = [];
-  for (const entry of directoryEntries.sort((left, right) =>
-    left.name.localeCompare(right.name),
-  )) {
+  for (const entry of directoryEntries) {
     if (entry.isSymbolicLink()) {
       throw new Error(`Project symbolic links are not allowed: ${entry.name}.`);
     }

@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "taskInputFingerprint": "sha256:dfa2a770cc4005266d6d70b766a9ca424ddc6c3d7db19c89857bab3f768e27d8",
-  "meaningId": "layers-find-patterns",
-  "sceneDurationInFrames": 246,
-  "ambience": null,
-  "cues": [],
-  "soundPlanFingerprint": "sha256:1520489a58ed5d76e0ca4f76bc35e4a5e5e70925fe37652b8b81d7a1ffbc3e73"
-}

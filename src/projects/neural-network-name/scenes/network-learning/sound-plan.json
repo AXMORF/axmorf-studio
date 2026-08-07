@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "taskInputFingerprint": "sha256:f8daa12307fba7dec586d709efb65da4aaf2cc7569af8f521136c1f62af715d1",
-  "meaningId": "network-learning",
-  "sceneDurationInFrames": 206,
-  "ambience": null,
-  "cues": [],
-  "soundPlanFingerprint": "sha256:68d460735fe5a35122cdf0110c10bdcc72b119deab6dd84dc452289bc98a7b58"
-}

@@ -1,9 +1,0 @@
-{
-  "ambience": null,
-  "cues": [],
-  "meaningId": "system-operates",
-  "sceneDurationInFrames": 278,
-  "schemaVersion": 1,
-  "soundPlanFingerprint": "sha256:6861402c461141114de61a3f0ca3777f55db77134ea99fa185666df9e1da0406",
-  "taskInputFingerprint": "sha256:443ca1ddece1a58ada77823fe827d8a9ef13c16f4762c797428b729e66a9fca3"
-}

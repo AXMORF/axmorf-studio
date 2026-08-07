@@ -48,7 +48,8 @@ flowchart LR
 - `src/remotion/catalog/assets.manifest.json`：本地 asset descriptor 权威；
 - `src/remotion/catalog/style-descriptors.ts` 与 `capability-descriptors.ts`：静态 export
   descriptor 声明；
-- `src/remotion/catalog/resource-catalog.generated.json`：tracked canonical 读取视图；
+- `src/remotion/catalog/resource-catalog.generated.json`：由 bootstrap 重建的 ignored 本地读取
+  视图；
 - `src/contracts/resource-catalog.ts`：四类 descriptor、选择引用和准入合同；
 - `scripts/catalog/`：稳定生成、byte drift check 和只读查询。
 
@@ -58,6 +59,9 @@ npm run catalog:check
 npm run catalog:query -- --kind capability --tag motion
 npm run catalog:query -- --kind asset --text proof
 ```
+
+fresh clone 先由 `npm install` 的 prepare hook 执行 `npm run bootstrap`；也可手动执行该命令。
+bootstrap 会先重建 catalog 所需的 core synthetic proof 资产，再生成当前本地 Project 集投影。
 
 生成器按 ID 稳定排序，校验 authority file/source export、asset regular-file/checksum、style
 profile identity、重复 ID 和 descriptor fingerprint；write 只在完整通过后原子替换，check/query

@@ -40,6 +40,11 @@ npm install
 npm run dev
 ```
 
+`npm install` 会自动执行 `npm run bootstrap`，重建 core synthetic proof 需要的本地
+`public/` 资产、ResourceCatalog 和 ProjectRegistry。fresh clone 默认没有任何具体 Project，
+仍可运行测试、构建和 `CapabilityGallery`；本地创建 Project 后再次运行 bootstrap 即会把它
+加入 Composition 列表。
+
 在新对话直接制作视频时，使用仓库 Skill：
 
 ```text
@@ -71,13 +76,14 @@ npm run check:host
 npm run check
 ```
 
-正式作品复验使用静态白名单 profile，不扫描项目目录，也不从 JSON 加载脚本路径：
+本地正式作品存在时，复验使用其 Project-owned profile，不从 JSON 加载脚本路径；fresh clone
+的 `--all` 集合为空：
 
 ```bash
 npm run project:verify -- --all
-npm run project:verify -- --project gps-relativity --scope full
-npm run project:evidence:check -- --project product-comic-vertical
-npm run project:approval:check -- --project product-comic-vertical
+npm run project:verify -- --project <story-id> --scope full
+npm run project:evidence:check -- --project <story-id>
+npm run project:approval:check -- --project <story-id>
 ```
 
 生产编排：
@@ -114,8 +120,8 @@ scripts/                     构建期、检查和生产工具
 src/contracts/               可执行 Zod 合同与确定性纯函数
 src/remotion/runtime/        固定、离线、frame-driven runtime
 src/remotion/capabilities/   已批准共享能力
-src/projects/<story>/        一个 Story 的 Composition、数据和 Scene
-public/projects/<story>/     已登记的 render-critical 媒体
+src/projects/<story>/        ignored 本地作品：Composition、数据和 Scene
+public/                      ignored 本地资产与作品媒体；bootstrap 可重建 core proof 资产
 tests/                       与模块/用例对应的自动化测试
 ```
 

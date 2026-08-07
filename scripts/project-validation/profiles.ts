@@ -1,8 +1,9 @@
-import { lstat, readFile, readdir } from "node:fs/promises";
+import { lstat, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 
 import { StoryIdSchema } from "../../src/contracts";
+import { readLocalProjectRoot } from "../projects/root";
 
 export const ProjectVerificationStepSchema = z.enum([
   "narrative",
@@ -65,11 +66,9 @@ export const loadProjectVerificationProfiles = async (
   rootDir: string,
 ): Promise<ProjectVerificationProfiles> => {
   const projectsRoot = join(rootDir, "src/projects");
-  const entries = await readdir(projectsRoot, { withFileTypes: true });
+  const entries = await readLocalProjectRoot(rootDir);
   const projects: ProjectVerificationProfiles["projects"][number][] = [];
-  for (const entry of entries.sort((left, right) =>
-    left.name.localeCompare(right.name),
-  )) {
+  for (const entry of entries) {
     if (entry.isSymbolicLink()) {
       throw new Error(`Project symbolic links are not allowed: ${entry.name}.`);
     }

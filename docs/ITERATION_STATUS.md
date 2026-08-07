@@ -31,8 +31,9 @@ promotion、发布或自动进入 M10。
 - 一 StoryBeat 对应一个 `meaningId` 和一个 Scene；ScenePackage 内聚视觉与 Scene 局部声音。
 - `StoryVisualTrack`、`SoundDesignTrack`、GlobalSound、project-local `GlobalVisualLayers` 和
   `FinalAssembly` 固定所有权与投影。
-- GPS 横屏作品与 ProductComicVertical 竖屏作品均有真实预览、用户批准、evidence 和 passing
-  `final-mechanical-check-v2`；它们继续作为兼容保护基线。
+- GPS 横屏作品与 ProductComicVertical 竖屏作品历史上均完成真实预览、用户批准、evidence
+  和 passing `final-mechanical-check-v2`；其 Project、媒体和 evidence 现为本地 ignored 叶节点，
+  不再作为 fresh clone 的 core 健康前置条件。
 
 ### 稳定生产编排
 
@@ -54,21 +55,25 @@ promotion、发布或自动进入 M10。
 ### 工程与验证
 
 - `scripts/production` 按 `cli / application / domain / adapters` 分层。
-- milestone 命名的脚本目录已收口为稳定职责：通用 production、正式作品静态验证、
+- milestone 命名的脚本目录已收口为稳定职责：通用 production、本地作品静态验证、
   Project-owned `src/projects/<story>/tools`、`proofs/` synthetic proof 和窄 compatibility 模块。
-- 当前 GPS 与 Product Comic 的完整复验由各自 Project-owned `verification.profile.json` 编排；
-  profile 不含脚本路径，通用 adapter 只解析当前 Project 的固定工具位置，未知或缺失绑定失败。
+- 本地正式作品的完整复验由各自 Project-owned `verification.profile.json` 编排；profile 不含
+  脚本路径，通用 adapter 只解析当前 Project 的固定工具位置，未知或缺失绑定失败。
 - production scaffold 使用显式版本模板；shared Scene boundary 用 TypeScript AST 验证所有权，
   不再依赖格式敏感的整段源码替换或 exact prose/source 匹配。
+- zero-project bootstrap 已实现：`public/`、`src/projects/` 和两份当前集聚合投影均为 ignored
+  本地产物；fresh clone 在常用 npm 入口前重建 core proof 资产、空 Catalog/Registry，并只列出
+  `CapabilityGallery`。
 - `src/contracts`、`src/remotion/runtime`、`src/remotion/capabilities` 与
   `src/projects/<story>` 维持合同、runtime、共享能力和作品实现的明确边界。
-- `npm run check:static` 提供无 Chromium 门禁；`npm run check:host` 负责真实 Composition 和
-  正式作品门禁；`npm run check` 顺序执行两者。
+- `npm run check:static` 提供无 Chromium 门禁；`npm run check:host` 负责当前本地 Composition
+  和 Project profile 门禁；零 Project 时 profile 集为空但 Composition listing 仍真实启动
+  Chromium。`npm run check` 顺序执行两者。
 - active 文档使用 authority / guide / evidence / archive 生命周期并受本地链接门禁约束。
 - Project 可删除性与产物解耦已实现：Registry/Catalog 对当前集 zero-safe，具体 Project 自有
   profile、工具与测试，默认 source/check 不读取 `out/`；显式 media/evidence/approval 仍
   fail closed。隔离 A–F 矩阵已证明单 Project、全部 Project、对应 public、整个 `out/` 的删除，
-  以及从零加入 synthetic Project，当前工作树真实作品未删除。
+  以及从零加入 synthetic Project。迁移只取消 Git 跟踪，当前工作树本地作品与媒体未删除。
 
 ## 尚未实现
 

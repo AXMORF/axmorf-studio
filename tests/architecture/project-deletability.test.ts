@@ -18,6 +18,17 @@ test("ProjectRegistry generation accepts zero Projects", async (context) => {
   assert.match(source, /export const projectRegistry =\s*\[\]/);
 });
 
+test("ProjectRegistry bootstraps when the local Projects root is absent", async (context) => {
+  const rootDir = await createRemovableProjectRoot(context);
+  await rm(join(rootDir, "src/projects"), { recursive: true });
+
+  const result = await generateProjectRegistry({ rootDir, mode: "write" });
+  const source = await readFile(result.destination, "utf8");
+
+  assert.equal(result.entryCount, 0);
+  assert.match(source, /export const projectRegistry =\s*\[\]/);
+});
+
 test("regeneration removes a deleted Project literal import", async (context) => {
   const rootDir = await createRemovableProjectRoot(context);
   const alpha = await writeRemovableProject({

@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 1,
-  "storyId": "product-comic-vertical",
-  "runtimeAssetCount": 0,
-  "assets": [],
-  "unlistedAssetPolicy": "forbidden-until-receipted",
-  "note": "Task 2 未选择或本地化产品 runtime 资产；后续资产必须单独绑定 owner、permission、checksum、license/attribution、localization target 和 Catalog identity。"
-}

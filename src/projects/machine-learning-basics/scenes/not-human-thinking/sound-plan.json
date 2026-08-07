@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "taskInputFingerprint": "sha256:eee40118ad28f1f25f57fd5e88a5372e643dcbab8c35a9284a8fe9c15d2e93bf",
-  "meaningId": "not-human-thinking",
-  "sceneDurationInFrames": 240,
-  "ambience": null,
-  "cues": [],
-  "soundPlanFingerprint": "sha256:0582eba7dffacf79d5c3043ca8f8c9c3d9dea3b8bb15115e1594017eb9ab68f0"
-}

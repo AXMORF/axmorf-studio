@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "taskInputFingerprint": "sha256:3981cd158b89034e0e04c53da8e6cb3376143b179839530780a4376e45780481",
-  "meaningId": "power-has-limits",
-  "sceneDurationInFrames": 466,
-  "ambience": null,
-  "cues": [],
-  "soundPlanFingerprint": "sha256:f06b362ec54741ddf10794a2697327afb1a2c6960488b16bb18cd420f8f41f4e"
-}
