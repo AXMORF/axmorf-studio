@@ -2,24 +2,25 @@
 
 > 文档类型：维护指南
 >
-> 最后复核：2026-08-06
+> 最后复核：2026-08-07
 
 ## 边界
 
-`scripts/project-validation/formal-projects.json` 是正式作品验证的静态白名单，只声明项目 ID
-和有序语义步骤。JSON 不包含模块路径、shell 命令或可执行表达式；步骤到实现的绑定只存在于
-`scripts/project-validation/adapters.ts` 的静态 adapter 中。
+每个正式作品在 `src/projects/<story-id>/verification.profile.json` 声明自己的有序语义步骤。
+JSON 不包含模块路径、shell 命令或可执行表达式；通用 adapter 只把固定 step ID 绑定到当前
+Project 内的约定工具位置。删除 Project 后，其 profile、工具与验证测试一起消失，中央配置不
+保留该 storyId。
 
-验证器不扫描 `src/projects/`，不会因为新增目录自动执行代码。新正式作品必须同时增加 profile、
-静态 adapter 与测试，缺少任一绑定都 fail closed。
+验证器只在显式命令或 `--all` 时发现当前一级 Project profile；拒绝 symlink、未知 step、路径和
+命令字段。新正式作品必须提供 profile、Project-owned 工具与测试，缺少任一绑定都 fail closed。
 
 ## 命令
 
 ```bash
-# 所有正式作品的完整验证；会间接启动 Remotion Chromium
-npm run project:verify -- --all
+# 默认核心门禁使用的当前 Project source 验证
+npm run project:verify -- --all --scope source
 
-# 一个作品的完整验证
+# 一个作品的完整验证（包含已声明的媒体与批准）
 npm run project:verify -- --project <story-id> --scope full
 
 # 只复验已声明的 evidence 或 approval adapter
@@ -27,14 +28,16 @@ npm run project:evidence:check -- --project <story-id>
 npm run project:approval:check -- --project <story-id>
 ```
 
-`npm run check:host` 依次执行 Composition listing 和所有正式作品 profile。profile 保持既有
-作品的 narrative、Scene、最终装配、evidence、approval 与 final 聚合顺序，但不暴露 M6–M9
-里程碑命名的公共脚本入口。
+`npm run check:host` 依次执行 Composition listing 和当前 Project 的 source scope，不读取
+`out/` 历史 MP4/PNG/contact sheet。`test:media`、evidence、approval 与 full scope 都是显式
+复验入口；媒体缺失或 checksum 漂移时继续 fail closed，并且不会重签用户批准。
 
 ## 维护规则
 
 - 通用生产入口只放在 `scripts/production/`；
-- 作品专属构建期工具放在 `scripts/project-tools/<story-id>/`；
+- 作品专属构建期/验证工具放在 `src/projects/<story-id>/tools/`；
 - synthetic proof 放在 `scripts/proofs/<proof-id>/`；
 - 历史 schemaVersion、artifact 文件名和已封存 fingerprint 继续按兼容层读取，不回填；
 - profile 的 `check` 路径只读，不生成音频、不重签批准、不改写正式 evidence。
+- 不把具体 storyId 加回 core、package scripts 或 active 中央 manifest；新增/删除 Project 后重算
+  Registry/Catalog 即可。

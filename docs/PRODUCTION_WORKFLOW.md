@@ -22,6 +22,12 @@
 → 用户观看最终预览
 ```
 
+流程产物分为三个生命周期：Project source 是可继续制作、注册和渲染的源码及 render-critical
+本地输入；Run review 是某次 production 的事件、PreviewEvidence 和机械检查；delivery output
+是 `out/` 中可删除、可重新导出的 MP4、PNG、contact sheet 等媒体。默认 `npm run check` 只把
+core 与当前 Project source 作为健康前置条件。媒体和批准必须通过显式 Project-owned 命令复验，
+缺失时保持 fail closed，但不反向判定 core 或其他 Project 失效。
+
 M6 已完成 Scene 构图/Shot/renderer/局部声音/转场/选材的数据与确定性执行接口；M7 已在
 GPS 上用五个 composition-local renderer 和五个 project-authored cue 落地这些接口，且未
 提升新的共享能力。这些接口不成为叙事主链的前置条件。
@@ -266,6 +272,8 @@ recipe、选择原因以及如何服务 StoryBeat，仍由 SceneVisualPlan/ShotR
   CaptionLayer 外的视觉区域保持透明；
 - `ProjectRegistry` 把静态可枚举的 Story 注册元数据与字面量 lazy import 绑定；它与
   把 rendererId 绑定到 SceneRenderer 的 RendererRegistry 是两个独立 registry；
+- ProjectRegistry 与 ResourceCatalog 都只投影当前 Project 集并允许零 Project；具体 Project
+  可保留或经明确授权删除，core 不保存具体 storyId 分支，render runtime 仍不扫描目录；
 - 固定生成步骤只发现 `src/projects/*/Composition.tsx`，稳定排序并生成
   `project-registry.generated.ts`；每个入口必须 default export；
 - Root 静态读取 generated registry，再把条目的字面量 loader 传给 Remotion

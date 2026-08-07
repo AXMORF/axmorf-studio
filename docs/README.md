@@ -2,7 +2,7 @@
 
 > 文档类型：唯一导航入口
 >
-> 最后复核：2026-08-06
+> 最后复核：2026-08-07
 
 先按问题选择文档，不要从历史计划反推当前实现。
 
@@ -28,21 +28,18 @@
 | 固定 production CLI、状态与 handoff | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md)       |
 | VoxCPM 生成、续跑、封存与恢复       | [guides/NARRATION_GENERATION.md](guides/NARRATION_GENERATION.md)               |
 | 检查层级与用户批准边界              | [guides/REVIEW_MODEL.md](guides/REVIEW_MODEL.md)                               |
-| 正式作品静态 profile 与复验命令     | [guides/FORMAL_PROJECT_VERIFICATION.md](guides/FORMAL_PROJECT_VERIFICATION.md) |
+| Project-owned profile 与复验命令    | [guides/FORMAL_PROJECT_VERIFICATION.md](guides/FORMAL_PROJECT_VERIFICATION.md) |
 | 资源与共享能力目录                  | [guides/CAPABILITY_CATALOG.md](guides/CAPABILITY_CATALOG.md)                   |
 | 新仓库初始化和白名单迁移            | [guides/BOOTSTRAP_IMPORT_MANIFEST.md](guides/BOOTSTRAP_IMPORT_MANIFEST.md)     |
 | Narrative 数据合同说明              | [contracts/NARRATIVE_CONTRACTS.md](contracts/NARRATIVE_CONTRACTS.md)           |
-
-## 当前待实施计划
-
-- [Project 可删除性与产物解耦实施计划](PROJECT_DELETABILITY_IMPLEMENTATION_PLAN.md)：使任意具体
-  Project 和 `out/` 媒体都不再成为核心系统健康的前置条件；当前仅为计划，尚未实现。
 
 ## 证据、提案与历史
 
 - `evidence/`：一次里程碑或作品验收的历史证据，不承担当前状态。
 - `promotions/`：尚需用户明确批准的共享能力提升提案。
 - [archive/](archive/README.md)：已完成或被取代的计划和规格，仅供追溯。
+- 已完成的 Project 可删除性与产物解耦计划见
+  [archive/implementation-plans/](archive/implementation-plans/README.md)。
 
 ## 管理规则
 

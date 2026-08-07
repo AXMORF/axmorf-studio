@@ -2,7 +2,7 @@
 
 > 文档类型：治理规则
 >
-> 最后复核：2026-08-06
+> 最后复核：2026-08-07
 
 ## 单一事实来源
 
@@ -39,7 +39,8 @@ README 只做入口和快速开始；guide 只解释操作；evidence 只证明�
 2. 架构边界变化只更新 `ARCHITECTURE.md`；操作步骤变化只更新对应 guide 或 workflow。
 3. 已完成任务只在状态表留一行摘要，详细过程放 evidence/archive，不回填到 README。
 4. 新计划在执行完成后必须归档；被取代的方案不得继续留在 active 导航。
-5. 所有 active Markdown 必须通过 `npm run docs:check-links`。
+5. 所有当前存在的 active Markdown 必须通过 `npm run docs:check-links`；已从当前 Project 集删除
+   的 tracked 历史路径不再被当作 active source，但任何保留文档指向缺失目标仍 fail closed。
 
 ## 文档完成定义
 

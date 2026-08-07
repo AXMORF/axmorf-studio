@@ -77,6 +77,10 @@
   whole-film GlobalVisual assignment，通过各自 immutable result 合同汇合。GlobalVisual 只拥有
   project-local 背景、纹理、装饰和连续性 motif，不读取 Scene 输出；repo 不监控或保存
   Agent/task/thread/progress/heartbeat 状态。已有 v1-v3 Run 和正式作品不迁移、不回填。
+- Project 可删除性与产物解耦已实现：具体 Project 只依赖 core，core 不依赖具体 storyId；
+  ProjectRegistry/ResourceCatalog 投影当前集并允许 zero Project。默认 `npm run check` 不读取
+  `out/` 历史媒体；显式 media/evidence/approval 命令仍 fail closed。保留或删除 Project 都是
+  用户选择，本仓库不提供自动删除或 `project:delete`。
 - M6 的 Scene 级 renderer/runtime 不得成为 Narrative Baseline 的前置条件，也不得反向修改
   Story、旁白、字幕或实测时间线。M8 不得重做五个 M7 ScenePackage；Scene-local
   ambience/SFX 仍由 ScenePackage 拥有，GlobalSoundPlan 不建立第二份 Scene SFX 权威。
@@ -145,6 +149,8 @@ proposal，并得到用户对范围、API、文件和目标位置的明确批准
 - 删除、覆盖、强推、生产发布、密钥或权限变更必须有明确授权。
 - 修改后先跑聚焦检查，再按风险运行 `npm run check`。`npm run check:static` 是不启动
   Chromium 的沙箱安全子集；`npm run check:host` 是需要宿主权限的浏览器/真实作品门禁。
+- 正式作品存在时使用其 Project-owned profile/tools/tests 复验；不得把具体 storyId、历史媒体或
+  approval 重新加入 core/default gate。可删除性矩阵只能在明确的 `mktemp` 隔离副本中执行。
 - `scripts/production/` 只保留 CLI 入口；用例编排、纯领域规则和外部 I/O 分别位于
   `application/`、`domain/` 和 `adapters/`，新增代码不得重新平铺到根目录。
 - `npm run check` 与 `npm run compositions` 首次执行必须直接使用宿主权限，因为两者都会

@@ -11,3 +11,7 @@
 Scene owner 与一个 GlobalVisual owner 的并行 assignment/result 汇合、static Preview 装配、
 兼容矩阵和 Skill/authority closeout；计划快照见
 `2026-08-07-agent-authored-global-visual-contract-production-plan.md`。
+
+2026-08-07 的 Project 可删除性与产物解耦计划完成了 current-set Registry/Catalog、
+Project-owned profile/tools/tests、source/media gate 分离、Run-owned PreviewEvidence 和 A–F 隔离
+删除矩阵；计划快照见 `2026-08-07-project-deletability-implementation-plan.md`。

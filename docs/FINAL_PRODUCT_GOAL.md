@@ -158,6 +158,8 @@ Track、DSL 或自动导演。v1/v2 项目和 Run 保持原合同，不迁移、
   投影，SoundDesignTrack 再叠加全局声音计划。
 - ProjectRegistry 在 bundle 前自动发现固定目录并生成静态注册元数据；Story Composition
   通过 Remotion `lazyComponent` 按需加载。它不依赖 composition-local RendererRegistry。
+- 具体 Project 是可保留或经明确授权删除的叶节点；core 不依赖任何具体 storyId。Registry 与
+  Catalog 只投影当前 Project 集并允许零 Project，`out/` 媒体不成为默认核心检查前置条件。
 - 每个 ScenePackage 只绑定一个 Scene 级 `rendererId`；ShotPlan 不绑定 `rendererId`、
   组件或模块路径。
 - Scene renderer 是 runtime 的单一视觉入口，但内部可以拆分多个本地 Shot 组件并调用

@@ -55,9 +55,9 @@ promotion、发布或自动进入 M10。
 
 - `scripts/production` 按 `cli / application / domain / adapters` 分层。
 - milestone 命名的脚本目录已收口为稳定职责：通用 production、正式作品静态验证、
-  `project-tools/<story>` 作品专属工具、`proofs/` synthetic proof 和窄 compatibility 模块。
-- GPS 与 Product Comic 的完整复验由 `formal-project-verification-v1` 静态 profile 编排；
-  profile 不含脚本路径、不扫描项目目录，未知项目或缺失 adapter 直接失败。
+  Project-owned `src/projects/<story>/tools`、`proofs/` synthetic proof 和窄 compatibility 模块。
+- 当前 GPS 与 Product Comic 的完整复验由各自 Project-owned `verification.profile.json` 编排；
+  profile 不含脚本路径，通用 adapter 只解析当前 Project 的固定工具位置，未知或缺失绑定失败。
 - production scaffold 使用显式版本模板；shared Scene boundary 用 TypeScript AST 验证所有权，
   不再依赖格式敏感的整段源码替换或 exact prose/source 匹配。
 - `src/contracts`、`src/remotion/runtime`、`src/remotion/capabilities` 与
@@ -65,6 +65,10 @@ promotion、发布或自动进入 M10。
 - `npm run check:static` 提供无 Chromium 门禁；`npm run check:host` 负责真实 Composition 和
   正式作品门禁；`npm run check` 顺序执行两者。
 - active 文档使用 authority / guide / evidence / archive 生命周期并受本地链接门禁约束。
+- Project 可删除性与产物解耦已实现：Registry/Catalog 对当前集 zero-safe，具体 Project 自有
+  profile、工具与测试，默认 source/check 不读取 `out/`；显式 media/evidence/approval 仍
+  fail closed。隔离 A–F 矩阵已证明单 Project、全部 Project、对应 public、整个 `out/` 的删除，
+  以及从零加入 synthetic Project，当前工作树真实作品未删除。
 
 ## 尚未实现
 

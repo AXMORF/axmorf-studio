@@ -25,6 +25,18 @@ Scene assignment 和一份 whole-film GlobalVisual assignment。N+1 owner 只写
 generated state projection 由中央脚本单写。这里的 `ProductionRunState` 是制作期投影，不是
 手工状态，也不进入 Remotion runtime；repo 不保存 Agent/task/thread/progress/heartbeat 状态。
 
+## Project 可删除性与单向依赖
+
+具体 Project 是 `src/projects/<storyId>/` 与 `public/projects/<storyId>/` 中可保留、可归档或经
+明确授权后删除的叶节点。依赖方向只能是具体 Project → contracts/runtime/capabilities/production
+core；core、中央 package scripts 和 active 配置不得枚举或分支判断具体 `storyId`。Project 自有
+测试、工具和 `verification.profile.json` 随 Project 一起存在或消失。
+
+bundle 前生成的 ProjectRegistry 和 ResourceCatalog 是“当前 Project 集”的静态投影：允许零
+Project，仍使用稳定排序、字面量 `import()` 与 `lazyComponent`；render runtime 不扫描目录。
+删除或新增 Project 后只重算投影，不修改 Root 或 core 配置。`out/` 是本地交付/证据输出，不是
+源码健康前置条件；历史媒体和用户批准只由显式 Project-owned evidence/approval 命令复验。
+
 ## 当前设计顺序
 
 Scene 外部叙事生产主链按以下顺序推进：
@@ -206,8 +218,8 @@ src/remotion/runtime/global-sound/       frame-driven global buses 与 duck enve
 src/remotion/runtime/composition-assembly/ 四个显式语义插槽
 src/projects/gps-relativity/global-visual/ project-local GlobalVisualLayers
 scripts/final-assembly/                  FinalAssembly pass-only writer/checker
-scripts/project-tools/gps-relativity/    project-local global audio/freeze/media/evidence/approval
-scripts/project-validation/              static formal-project profiles + controlled adapters
+src/projects/gps-relativity/tools/       project-local global audio/freeze/media/evidence/approval
+scripts/project-validation/              current Project profile discovery + controlled adapters
 generated/final-mechanical-check.generated.json final-mechanical-check-v2
 ```
 
@@ -225,7 +237,7 @@ src/projects/product-comic-vertical/references/video-shotcraft/
                                            104/161/161 inventory、coverage 与 exact closure
 src/projects/product-comic-vertical/global-visual/
                                            project-local 漫画连续性层
-scripts/project-tools/product-comic-vertical/
+src/projects/product-comic-vertical/tools/
                                            project-local Scene/global audio、Shotcraft、evidence、approval
 generated/m9-fail-closed-matrix.generated.json
                                            42-case isolation evidence

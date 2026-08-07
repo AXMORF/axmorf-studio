@@ -12,6 +12,13 @@
 注册、通用 Remotion runtime 和 fingerprint 失效机制组成。M9.5 实现的 orchestrator 也
 只按固定图连接这些已有节点；它不能决定 Story、Scene 方案、精确资源或审美结果。
 
+ProjectRegistry 与 ResourceCatalog 不是永久作品清单，而是每次固定生成步骤对当前 Project
+集合的可复算投影。集合可以为空；生成结果仍保持静态元数据、稳定排序、字面量 import 和
+bundle 前校验，render runtime 不做目录发现。未来 production 的 PreviewEvidence 位于对应
+Run 输出中；`out/` 下 MP4、PNG、contact sheet 和媒体 receipt 只在显式 evidence/media 命令中
+fail closed，不进入默认 source health。删除媒体不会伪造批准，也不会改变已有
+`FinalPreviewApproval` 的语义或 identity。
+
 ```text
 Agent 写入 StorySpec、NarrationSpec 和 authored ttsChunks，并结构化用户本次提供的 RenderSpec
 与完整 ProductionRequirementsFreeze
@@ -214,9 +221,9 @@ scripts/external-references/           M6 immutable snapshot、resolver/localize
 scripts/scene-package/                 M6 ScenePackage/Coverage 生成与检查
 scripts/renderer-registry/             M6 composition-local registry 生成与检查
 scripts/final-assembly/                M8 FinalAssembly pass-only 生成与检查
-scripts/project-validation/            正式作品静态 profile 与受控 adapter
-scripts/project-tools/gps-relativity/  GPS project-local audio/freeze/evidence/approval
-scripts/project-tools/product-comic-vertical/
+scripts/project-validation/            当前 Project profile 发现与受控 adapter
+src/projects/gps-relativity/tools/     GPS project-local audio/freeze/evidence/approval
+src/projects/product-comic-vertical/tools/
                                       Product Comic project-local Shotcraft/audio/evidence/approval
 scripts/proofs/scene-runtime/           与正式作品隔离的 synthetic Scene runtime proof
 scripts/production/                    production CLI 与分层入口
