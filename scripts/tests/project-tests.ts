@@ -3,7 +3,16 @@ import { readdir } from "node:fs/promises";
 import { join, posix, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
-export const PROJECT_TEST_RUNNER_ID = "project-test-runner-v1" as const;
+export const PROJECT_TEST_RUNNER_ID = "project-test-runner-v2" as const;
+
+export type RepositoryTestScope = "source" | "media" | "all";
+
+const MEDIA_PROJECT_TEST_NAMES = new Set([
+  "approval.test.ts",
+  "final-evidence.test.ts",
+  "final-invalidation.test.ts",
+  "fail-closed-matrix.test.ts",
+]);
 
 const CORE_TEST_ROOTS = [
   "tests/architecture",
@@ -56,7 +65,10 @@ const discoverTestsBelow = async (
   return discovered;
 };
 
-const discoverProjectTests = async (rootDir: string) => {
+const discoverProjectTests = async (
+  rootDir: string,
+  scope: RepositoryTestScope,
+) => {
   const projectsRoot = join(rootDir, "src/projects");
   let entries;
   try {
@@ -73,28 +85,42 @@ const discoverProjectTests = async (rootDir: string) => {
       throw new Error(`Project symbolic links are not allowed: ${entry.name}.`);
     }
     if (!entry.isDirectory()) continue;
+    const projectTests = await discoverTestsBelow(
+      rootDir,
+      join(projectsRoot, entry.name, "tests"),
+    );
     discovered.push(
-      ...(await discoverTestsBelow(
-        rootDir,
-        join(projectsRoot, entry.name, "tests"),
-      )),
+      ...projectTests.filter((path) => {
+        const isMedia = MEDIA_PROJECT_TEST_NAMES.has(
+          path.split("/").at(-1) ?? "",
+        );
+        return scope === "all" || (scope === "media" ? isMedia : !isMedia);
+      }),
     );
   }
   return discovered;
 };
 
-export const discoverRepositoryTests = async (rootDir: string) => {
+export const discoverRepositoryTests = async (
+  rootDir: string,
+  scope: RepositoryTestScope = "source",
+) => {
   const coreTests: string[] = [];
-  for (const testRoot of CORE_TEST_ROOTS) {
-    coreTests.push(
-      ...(await discoverTestsBelow(rootDir, join(rootDir, testRoot))),
-    );
+  if (scope !== "media") {
+    for (const testRoot of CORE_TEST_ROOTS) {
+      coreTests.push(
+        ...(await discoverTestsBelow(rootDir, join(rootDir, testRoot))),
+      );
+    }
   }
-  return [...coreTests, ...(await discoverProjectTests(rootDir))];
+  return [...coreTests, ...(await discoverProjectTests(rootDir, scope))];
 };
 
-export const runRepositoryTests = async (rootDir: string) => {
-  const testFiles = await discoverRepositoryTests(rootDir);
+export const runRepositoryTests = async (
+  rootDir: string,
+  scope: RepositoryTestScope = "source",
+) => {
+  const testFiles = await discoverRepositoryTests(rootDir, scope);
   if (testFiles.length === 0) {
     throw new Error("Repository test discovery found no tests.");
   }
@@ -118,11 +144,28 @@ export const runRepositoryTests = async (rootDir: string) => {
   });
 };
 
+export const parseRepositoryTestScope = (
+  args: readonly string[],
+): RepositoryTestScope => {
+  if (args.length === 0) return "source";
+  if (
+    args.length === 2 &&
+    args[0] === "--scope" &&
+    (args[1] === "source" || args[1] === "media" || args[1] === "all")
+  ) {
+    return args[1];
+  }
+  throw new Error("Expected no arguments or --scope source|media|all.");
+};
+
 if (
   process.argv[1] !== undefined &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  runRepositoryTests(process.cwd()).catch((error: unknown) => {
+  runRepositoryTests(
+    process.cwd(),
+    parseRepositoryTestScope(process.argv.slice(2)),
+  ).catch((error: unknown) => {
     process.stderr.write(
       `${error instanceof Error ? error.message : "Repository tests failed."}\n`,
     );

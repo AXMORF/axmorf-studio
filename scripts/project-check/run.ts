@@ -30,10 +30,7 @@ import {
 import { checkM2NarrationArtifacts } from "../narration/check";
 import { loadNarrationProjectFiles } from "../narration/project-files";
 import type { ValidatedProjectRegistrationEntry } from "../registry/domain";
-import {
-  createNarrativeCheckItem,
-  orderNarrativeCheckItems,
-} from "./domain";
+import { createNarrativeCheckItem, orderNarrativeCheckItems } from "./domain";
 import {
   checksumFile,
   getProjectCheckPaths,
@@ -44,6 +41,93 @@ import {
 
 const failDependency = (label: string) =>
   new Error(`${label} identity does not match.`);
+
+export const checkNarrativeSourceHealth = async ({
+  rootDir,
+  projectId,
+}: {
+  readonly rootDir: string;
+  readonly projectId: string;
+}) => {
+  const paths = getProjectCheckPaths({ rootDir, projectId });
+  let projectSource: NarrativeProjectSource;
+  let storyCheck: StoryCheckReport;
+  try {
+    const loaded = await loadNarrationProjectFiles({
+      rootDir,
+      projectId: paths.storyId,
+    });
+    projectSource = loaded.projectSource;
+    storyCheck = loaded.storyCheck;
+    const validated = validateStoryCheckReport({
+      story: projectSource.story,
+      narration: projectSource.narration,
+      report: storyCheck,
+    });
+    if (validated.decision !== "proceed") {
+      throw new Error("StoryCheck identity does not match an active project.");
+    }
+  } catch (error) {
+    throw new Error("Narrative source contracts are invalid.", {
+      cause: error,
+    });
+  }
+
+  let sealedNarration: SealedNarrationManifest;
+  let semanticTiming: SemanticTiming;
+  try {
+    sealedNarration = await loadProjectCheckSealedNarration(
+      paths.sealedNarration,
+    );
+    semanticTiming = await loadProjectCheckSemanticTiming(paths.semanticTiming);
+    const physicalCheckProjectSource = {
+      ...projectSource,
+      render: {
+        ...projectSource.render,
+        fps: semanticTiming.fps,
+        leadInFrames: semanticTiming.leadInFrames,
+        tailFrames: semanticTiming.tailFrames,
+      },
+    };
+    const m2 = await checkM2NarrationArtifacts({
+      rootDir,
+      projectSource: physicalCheckProjectSource,
+      storyCheck,
+    });
+    if (
+      m2.generationInputFingerprint !==
+        sealedNarration.generationInputFingerprint ||
+      m2.sealedNarrationFingerprint !==
+        sealedNarration.sealedNarrationFingerprint ||
+      m2.completeAudioChecksum !== sealedNarration.completeAudio.checksum
+    ) {
+      throw new Error("M2 checker identity does not match sealed narration.");
+    }
+    validateM1ArtifactBundle({
+      projectSource,
+      sealedNarration,
+      semanticTiming,
+    });
+  } catch (error) {
+    throw new Error("Sealed narration source is invalid.", { cause: error });
+  }
+
+  try {
+    const entry = await resolveCurrentM3Entry(rootDir, paths.storyId);
+    await resolveM3GeneratedRegistryChecksum({
+      rootDir,
+      storyId: paths.storyId,
+      entry,
+    });
+    if (entry.descriptor.storyId !== paths.storyId) {
+      throw failDependency("Narrative Baseline");
+    }
+  } catch (error) {
+    throw new Error("Narrative registry source is invalid.", { cause: error });
+  }
+
+  return { storyId: paths.storyId, aggregateStatus: "pass" as const };
+};
 
 type Mutable<Input> = { -readonly [Key in keyof Input]: Input[Key] };
 
@@ -67,9 +151,7 @@ export const runNarrativeAutoCheck = async ({
   > = Object.fromEntries(
     NARRATIVE_AUTO_CHECK_EVIDENCE_IDS.map((evidenceId) => [evidenceId, null]),
   ) as Record<NarrativeAutoCheckEvidenceId, Sha256Digest | null>;
-  const identity: Mutable<
-    NarrativeAutoCheckReportInput["inputIdentity"]
-  > = {
+  const identity: Mutable<NarrativeAutoCheckReportInput["inputIdentity"]> = {
     storyFingerprint: null,
     renderSpecFingerprint: null,
     storyCheckFingerprint: null,
@@ -88,7 +170,8 @@ export const runNarrativeAutoCheck = async ({
     checkId: NarrativeAutoCheckId,
     status: "pass" | "fail",
     error?: unknown,
-  ) => checks.set(checkId, createNarrativeCheckItem({ checkId, status, error }));
+  ) =>
+    checks.set(checkId, createNarrativeCheckItem({ checkId, status, error }));
 
   let projectSource: NarrativeProjectSource | undefined;
   let storyCheck: StoryCheckReport | undefined;
@@ -107,8 +190,7 @@ export const runNarrativeAutoCheck = async ({
     identity.renderSpecFingerprint = computeRenderSpecFingerprint(
       projectSource.render,
     );
-    identity.storyCheckFingerprint =
-      computeStoryCheckFingerprint(storyCheck);
+    identity.storyCheckFingerprint = computeStoryCheckFingerprint(storyCheck);
     evidenceChecksums["story-check"] = await checksumFile(paths.storyCheck);
     mark("source-contracts", "pass");
   } catch (error) {
@@ -209,8 +291,7 @@ export const runNarrativeAutoCheck = async ({
     identity.generatedEntryChecksum = entry.generatedEntryChecksum;
     identity.projectRegistryEntryFingerprint =
       entry.projectRegistryEntryFingerprint;
-    identity.narrativeBaselineFingerprint =
-      entry.narrativeBaselineFingerprint;
+    identity.narrativeBaselineFingerprint = entry.narrativeBaselineFingerprint;
     evidenceChecksums["project-registry"] = identity.generatedRegistryChecksum;
     mark("project-registry", "pass");
   } catch (error) {
@@ -257,7 +338,9 @@ export const runNarrativeAutoCheck = async ({
   }
 
   const orderedChecks = orderNarrativeCheckItems(checks);
-  const aggregateStatus = orderedChecks.every((check) => check.status === "pass")
+  const aggregateStatus = orderedChecks.every(
+    (check) => check.status === "pass",
+  )
     ? "pass"
     : "fail";
   return createNarrativeAutoCheckReport({

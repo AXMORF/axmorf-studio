@@ -27,11 +27,24 @@ test("test discovery combines fixed core roots with current Project-owned tests"
   await write(rootDir, "tests/contracts/helper.ts");
   await write(rootDir, "src/projects/zeta-story/tests/zeta.test.tsx");
   await write(rootDir, "src/projects/alpha-story/tests/alpha.test.ts");
+  await write(rootDir, "src/projects/alpha-story/tests/final-evidence.test.ts");
+  await write(rootDir, "src/projects/alpha-story/tests/approval.test.ts");
 
-  assert.equal(PROJECT_TEST_RUNNER_ID, "project-test-runner-v1");
+  assert.equal(PROJECT_TEST_RUNNER_ID, "project-test-runner-v2");
   assert.deepEqual(await discoverRepositoryTests(rootDir), [
     "tests/contracts/core.test.ts",
     "src/projects/alpha-story/tests/alpha.test.ts",
+    "src/projects/zeta-story/tests/zeta.test.tsx",
+  ]);
+  assert.deepEqual(await discoverRepositoryTests(rootDir, "media"), [
+    "src/projects/alpha-story/tests/approval.test.ts",
+    "src/projects/alpha-story/tests/final-evidence.test.ts",
+  ]);
+  assert.deepEqual(await discoverRepositoryTests(rootDir, "all"), [
+    "tests/contracts/core.test.ts",
+    "src/projects/alpha-story/tests/alpha.test.ts",
+    "src/projects/alpha-story/tests/approval.test.ts",
+    "src/projects/alpha-story/tests/final-evidence.test.ts",
     "src/projects/zeta-story/tests/zeta.test.tsx",
   ]);
 });

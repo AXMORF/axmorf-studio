@@ -442,6 +442,11 @@ const defaultVerifyNarrativeAutoCheck = async ({
     ["--project", storyId, "--level", "narrative"],
     { rootDir, stdout: () => undefined },
   );
+  if (!("reportFingerprint" in report)) {
+    throw new Error(
+      "Narrative AutoCheck did not return a persisted report identity.",
+    );
+  }
   return report.reportFingerprint;
 };
 

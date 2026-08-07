@@ -11,8 +11,8 @@ import {
   checkPersistedFinalMechanicalCheck,
   writeFinalMechanicalCheckIfPassed,
 } from "./final-report-files";
-import { runFinalMechanicalCheck } from "./final-run";
-import { runNarrativeAutoCheck } from "./run";
+import { checkFinalSourceHealth, runFinalMechanicalCheck } from "./final-run";
+import { checkNarrativeSourceHealth, runNarrativeAutoCheck } from "./run";
 
 export type ProjectCheckCliContext = {
   readonly rootDir: string;
@@ -26,6 +26,12 @@ const defaultContext = (): ProjectCheckCliContext => ({
 });
 
 export const parseProjectCheckArgs = (args: readonly string[]) => {
+  const isSource =
+    args.length === 6 &&
+    args[0] === "--project" &&
+    args[2] === "--level" &&
+    args[4] === "--scope" &&
+    args[5] === "source";
   const isDefault =
     args.length === 4 && args[0] === "--project" && args[2] === "--level";
   const isNarrativeWrite =
@@ -39,7 +45,7 @@ export const parseProjectCheckArgs = (args: readonly string[]) => {
     args[2] === "--level" &&
     args[3] === "final" &&
     args[4] === "--write-final-check";
-  if (!isDefault && !isNarrativeWrite && !isFinalWrite) {
+  if (!isDefault && !isNarrativeWrite && !isFinalWrite && !isSource) {
     throw new Error(
       "Expected an exact narrative or final project check command.",
     );
@@ -66,6 +72,7 @@ export const parseProjectCheckArgs = (args: readonly string[]) => {
     storyId,
     level,
     write: isNarrativeWrite || isFinalWrite,
+    ...(isSource ? { sourceOnly: true as const } : {}),
   } as const;
 };
 
@@ -83,6 +90,27 @@ export const runProjectCheckCli = async (
   }
   if (!discovered.includes(expectedCompositionPath)) {
     throw new Error(`Unknown project: ${parsed.storyId}.`);
+  }
+  if (parsed.sourceOnly === true) {
+    const source =
+      parsed.level === "narrative"
+        ? await checkNarrativeSourceHealth({
+            rootDir: context.rootDir,
+            projectId: parsed.storyId,
+          })
+        : await checkFinalSourceHealth({
+            rootDir: context.rootDir,
+            projectId: parsed.storyId,
+          });
+    context.stdout(
+      JSON.stringify({
+        storyId: source.storyId,
+        level: parsed.level,
+        scope: "source",
+        aggregateStatus: source.aggregateStatus,
+      }),
+    );
+    return source;
   }
   const report =
     parsed.level === "narrative"

@@ -35,6 +35,7 @@ export const runProjectValidationCli = async ({
         rootDir,
         projectId,
         step,
+        scope: parsed.scope,
       });
       if (result.stdout.length > 0) stdout(result.stdout);
       if (result.stderr.length > 0) process.stderr.write(result.stderr);

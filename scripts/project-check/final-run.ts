@@ -784,10 +784,12 @@ export const loadCurrentFinalM8Branch = async ({
   rootDir,
   projectId,
   sceneBranch,
+  includeMediaEvidence = true,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly sceneBranch: FinalSceneBranchResult;
+  readonly includeMediaEvidence?: boolean;
 }): Promise<FinalM8BranchResult> => {
   const result = failedM8Branch();
   const statuses = { ...result.checkStatuses };
@@ -899,59 +901,69 @@ export const loadCurrentFinalM8Branch = async ({
     errors["final-assembly"] = error;
   }
 
-  try {
-    const evidencePath = await resolveFinalPreviewEvidencePath(
-      rootDir,
-      projectId,
-    );
-    evidence = FinalPreviewEvidenceSchema.parse(
-      await loadProjectCheckJson(
-        evidencePath,
-        evidencePath.endsWith("/m8-final-preview-evidence.generated.json")
-          ? "m8-final-preview-evidence.generated.json"
-          : "final-preview-evidence.generated.json",
-      ),
-    );
-    if (
-      assembly === null ||
-      evidence.storyId !== projectId ||
-      evidence.finalAssemblyFingerprint !== assembly.finalAssemblyFingerprint ||
-      assemblyCatalog === null ||
-      evidence.resourceCatalogFingerprint !== assemblyCatalog.catalogFingerprint
-    ) {
-      throw new Error("FinalPreviewEvidence identity does not match assembly.");
+  if (includeMediaEvidence) {
+    try {
+      const evidencePath = await resolveFinalPreviewEvidencePath(
+        rootDir,
+        projectId,
+      );
+      evidence = FinalPreviewEvidenceSchema.parse(
+        await loadProjectCheckJson(
+          evidencePath,
+          evidencePath.endsWith("/m8-final-preview-evidence.generated.json")
+            ? "m8-final-preview-evidence.generated.json"
+            : "final-preview-evidence.generated.json",
+        ),
+      );
+      if (
+        assembly === null ||
+        evidence.storyId !== projectId ||
+        evidence.finalAssemblyFingerprint !==
+          assembly.finalAssemblyFingerprint ||
+        assemblyCatalog === null ||
+        evidence.resourceCatalogFingerprint !==
+          assemblyCatalog.catalogFingerprint
+      ) {
+        throw new Error(
+          "FinalPreviewEvidence identity does not match assembly.",
+        );
+      }
+      statuses["final-preview-evidence"] = "pass";
+    } catch (error) {
+      errors["final-preview-evidence"] = error;
     }
-    statuses["final-preview-evidence"] = "pass";
-  } catch (error) {
-    errors["final-preview-evidence"] = error;
   }
 
   let approvalFingerprint: string | null = null;
-  try {
-    const approval = FinalPreviewApprovalSchema.parse(
-      await loadProjectCheckJson(
-        projectArtifactPath(
-          rootDir,
-          projectId,
-          "generated/final-preview-approval.generated.json",
+  if (includeMediaEvidence) {
+    try {
+      const approval = FinalPreviewApprovalSchema.parse(
+        await loadProjectCheckJson(
+          projectArtifactPath(
+            rootDir,
+            projectId,
+            "generated/final-preview-approval.generated.json",
+          ),
+          "final-preview-approval.generated.json",
         ),
-        "final-preview-approval.generated.json",
-      ),
-    );
-    if (
-      evidence === null ||
-      assembly === null ||
-      approval.storyId !== projectId ||
-      approval.previewChecksum !== evidence.media.fullPreview.checksum ||
-      approval.evidenceFingerprint !== evidence.evidenceFingerprint ||
-      approval.finalAssemblyFingerprint !== assembly.finalAssemblyFingerprint
-    ) {
-      throw new Error("FinalPreviewApproval identity does not match preview.");
+      );
+      if (
+        evidence === null ||
+        assembly === null ||
+        approval.storyId !== projectId ||
+        approval.previewChecksum !== evidence.media.fullPreview.checksum ||
+        approval.evidenceFingerprint !== evidence.evidenceFingerprint ||
+        approval.finalAssemblyFingerprint !== assembly.finalAssemblyFingerprint
+      ) {
+        throw new Error(
+          "FinalPreviewApproval identity does not match preview.",
+        );
+      }
+      approvalFingerprint = approval.approvalFingerprint;
+      statuses["final-preview-approval"] = "pass";
+    } catch (error) {
+      errors["final-preview-approval"] = error;
     }
-    approvalFingerprint = approval.approvalFingerprint;
-    statuses["final-preview-approval"] = "pass";
-  } catch (error) {
-    errors["final-preview-approval"] = error;
   }
 
   return {
@@ -967,6 +979,52 @@ export const loadCurrentFinalM8Branch = async ({
     checkStatuses: statuses,
     checkErrors: errors,
   };
+};
+
+export const checkFinalSourceHealth = async ({
+  rootDir,
+  projectId,
+  loadSceneBranch = loadCurrentFinalSceneBranch,
+}: {
+  readonly rootDir: string;
+  readonly projectId: string;
+  readonly loadSceneBranch?: (input: {
+    readonly rootDir: string;
+    readonly projectId: string;
+  }) => Promise<FinalSceneBranchResult>;
+}) => {
+  const sceneBranch = await loadSceneBranch({ rootDir, projectId });
+  const failedScene = Object.entries(sceneBranch.checkStatuses).find(
+    ([, status]) => status === "fail",
+  );
+  if (failedScene !== undefined) {
+    throw new Error(`Final source Scene check failed: ${failedScene[0]}.`);
+  }
+  if (
+    !(await pathExists(
+      projectArtifactPath(rootDir, projectId, "final-assembly-plan.json"),
+    ))
+  ) {
+    return { storyId: projectId, aggregateStatus: "pass" as const };
+  }
+  const m8Branch = await loadCurrentFinalM8Branch({
+    rootDir,
+    projectId,
+    sceneBranch,
+    includeMediaEvidence: false,
+  });
+  for (const checkId of [
+    "global-sound",
+    "global-visual",
+    "final-assembly",
+  ] as const) {
+    if (m8Branch.checkStatuses[checkId] !== "pass") {
+      throw new Error(`Final source assembly check failed: ${checkId}.`, {
+        cause: m8Branch.checkErrors[checkId],
+      });
+    }
+  }
+  return { storyId: projectId, aggregateStatus: "pass" as const };
 };
 
 export const runFinalMechanicalCheck = async ({

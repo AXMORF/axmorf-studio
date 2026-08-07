@@ -102,7 +102,7 @@ export const loadProjectVerificationProfiles = async (
   return { profileVersion: "project-verification-v2", projects };
 };
 
-const evidenceSteps = new Set<ProjectVerificationStep>([
+const mediaEvidenceSteps = new Set<ProjectVerificationStep>([
   "scene-evidence",
   "final-evidence",
 ]);
@@ -120,13 +120,15 @@ export const resolveProfileSteps = (
   }
   if (scope === "full") return profile.steps;
   if (scope === "evidence") {
-    return profile.steps.filter((step) => evidenceSteps.has(step));
+    return profile.steps.filter(
+      (step) => step === "narrative" || mediaEvidenceSteps.has(step),
+    );
   }
   if (scope === "approval") {
     return profile.steps.filter((step) => step === "approval");
   }
   return profile.steps.filter(
-    (step) => !evidenceSteps.has(step) && step !== "approval",
+    (step) => !mediaEvidenceSteps.has(step) && step !== "approval",
   );
 };
 

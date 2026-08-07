@@ -53,6 +53,8 @@
     "prebuild": "npm run registry:generate",
     "upgrade": "remotion upgrade",
     "test": "node --import tsx scripts/tests/project-tests.ts",
+    "test:media": "node --import tsx scripts/tests/project-tests.ts --scope media",
+    "test:all": "node --import tsx scripts/tests/project-tests.ts --scope all",
     "pretest": "npm run registry:generate",
     "typecheck": "tsc --noEmit --pretty false",
     "pretypecheck": "npm run registry:generate",
@@ -102,7 +104,7 @@
     "compositions": "remotion compositions src/index.ts",
     "precompositions": "npm run registry:generate",
     "check:static": "npm run test && npm run typecheck && npm run lint && npm run docs:check-links && npm run catalog:check && npm run registry:check && npm run build",
-    "check:host": "npm run compositions && npm run project:verify -- --all",
+    "check:host": "npm run compositions && npm run project:verify -- --all --scope source",
     "check": "npm run check:static && npm run check:host"
   },
   "sideEffects": [

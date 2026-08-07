@@ -73,6 +73,9 @@ test("verification profiles are Project-owned, sorted, and removable", async (co
     "scene-audio",
     "final",
   ]);
+  assert.deepEqual(resolveProfileSteps(profiles, "alpha-story", "evidence"), [
+    "narrative",
+  ]);
 
   await rm(alpha, { recursive: true });
   assert.deepEqual(
@@ -150,6 +153,15 @@ test("project-specific adapters resolve only inside the same Project", async () 
   const common = resolveProjectVerificationInvocation({
     projectId: "synthetic-story",
     step: "narrative",
+    scope: "source",
   });
   assert.equal(common.script, "scripts/project-check/cli.ts");
+  assert.deepEqual(common.args, [
+    "--project",
+    "synthetic-story",
+    "--level",
+    "narrative",
+    "--scope",
+    "source",
+  ]);
 });
