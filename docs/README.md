@@ -2,7 +2,7 @@
 
 > 文档类型：唯一导航入口
 >
-> 最后复核：2026-08-08
+> 最后复核：2026-08-09
 
 先按问题选择文档，不要从历史计划反推当前实现。
 
@@ -26,9 +26,9 @@
 | 主题                                | 文档                                                                           |
 | ----------------------------------- | ------------------------------------------------------------------------------ |
 | 固定 production CLI、状态与 handoff | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md)       |
-| M10 本地 release 构建与复验          | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md)                           |
+| 自动交付 package、launch 与复验      | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md)                           |
 | VoxCPM 生成、续跑、封存与恢复       | [guides/NARRATION_GENERATION.md](guides/NARRATION_GENERATION.md)               |
-| 检查层级与用户批准边界              | [guides/REVIEW_MODEL.md](guides/REVIEW_MODEL.md)                               |
+| 机械检查与终点事实边界              | [guides/REVIEW_MODEL.md](guides/REVIEW_MODEL.md)                               |
 | Project-owned profile 与复验命令    | [guides/FORMAL_PROJECT_VERIFICATION.md](guides/FORMAL_PROJECT_VERIFICATION.md) |
 | 资源与共享能力目录                  | [guides/CAPABILITY_CATALOG.md](guides/CAPABILITY_CATALOG.md)                   |
 | 新仓库初始化和白名单迁移            | [guides/BOOTSTRAP_IMPORT_MANIFEST.md](guides/BOOTSTRAP_IMPORT_MANIFEST.md)     |
@@ -37,10 +37,9 @@
 ## 证据、提案与历史
 
 - `evidence/`：一次里程碑或作品验收的历史证据，不承担当前状态。
-- M10 首个真实本地交付证明见
-  [2026-08-08-m10-local-delivery.md](evidence/2026-08-08-m10-local-delivery.md)。
-- M10 future-only v2 的早期 PublishingIntent、独立 Cover owner 与纯脚本 release 证明见
-  [2026-08-08-m10-v2-early-publishing-cover.md](evidence/2026-08-08-m10-v2-early-publishing-cover.md)。
+- clean-break 自动交付实现证据见
+  [2026-08-09-clean-break-automatic-delivery.md](evidence/2026-08-09-clean-break-automatic-delivery.md)。
+- 其他 `evidence/` 条目只记录发生时的历史事实，不定义 current runtime。
 - `promotions/`：尚需用户明确批准的共享能力提升提案。
 - [archive/](archive/README.md)：已完成或被取代的计划和规格，仅供追溯。
 - 已完成的 Project 可删除性与产物解耦计划见

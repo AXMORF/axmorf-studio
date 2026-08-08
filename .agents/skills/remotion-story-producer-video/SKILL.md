@@ -1,6 +1,6 @@
 ---
 name: remotion-story-producer-video
-description: Produce a contract-driven Remotion Story Producer video. Use for new or continued authoring or explicit $remotion-story-producer-video invocation; isolate N Scene owners, one GlobalVisual owner, and one independent Cover owner, keep production state single-writer, and stop at mechanical preview-ready.
+description: Produce and automatically hand off a contract-driven Remotion Story Producer video. Use for authoring or explicit $remotion-story-producer-video invocation; isolate Scene, GlobalVisual, and Cover owners, keep production state single-writer, and finish after detached delivery render spawn acknowledgement.
 ---
 
 # Remotion Story Producer Video
@@ -8,12 +8,12 @@ description: Produce a contract-driven Remotion Story Producer video. Use for ne
 ## Start directly
 
 Use the repository and request as authority. Inspect branch, HEAD, and status; preserve unrelated
-changes. Start without a plan or routine confirmation. Infer defaults unless a missing choice changes
-the result. Never ask the user to restate Skill rules.
+changes. Start without routine confirmation. Infer safe defaults and never ask the user to restate
+Skill rules.
 
-Own production until
-`preview-ready / awaiting-user-preview`, a genuine external blocker, or user cancellation. Never
-detach live work from the current task.
+Own production and delivery launch until `delivery-render-started`, a genuine external blocker, or
+user cancellation. Keep Agent-owned work and the production watcher attached to the current task;
+only the final Remotion delivery render is intentionally detached by the fixed repository adapter.
 
 ## Require N plus one production owners and one Cover owner
 
@@ -70,14 +70,16 @@ validator. Never recover a failed fixed workflow: stop, preserve a sanitized inc
 the smallest common fix, prove Green, commit exact paths locally, and begin a fresh run. Provider,
 host-tool, sandbox, permission, or authorization failures are external blockers.
 
-## Stop at mechanical Preview
+## Finish at detached delivery launch
 
-Verify current status, idempotent Preview check, checksums/fingerprints, media facts, full FFmpeg
-decode, and the independent current Cover result. Cover failure never blocks `preview-ready`, but must
-be reported because it will block later delivery. Report absolute Preview/contact-sheet/still and
-Cover paths, commits, failure classification, protection result, and known issues; end awaiting
-explicit user preview decision.
+Require current `render-ready / awaiting-automatic-delivery`, an idempotent render-ready check, and the
+independent current Cover result. Cover failure never blocks render-ready, but it blocks automatic
+delivery. Run `delivery:build` without asking for another decision. The fixed adapter writes the
+non-MP4 package and launch intent before spawning detached Remotion, then writes a receipt only after
+the OS emits `spawn`. An intent without a receipt is launch-ambiguous and must never be retried.
 
-Do not create approval, run NarrativeCheck or aesthetic gates, promote capabilities, run
-`delivery:build` before explicit approval, publish, or push. Never use `git add .`; preserve unrelated
-worktree changes.
+Stop at `delivery-render-started`. This proves only launch acknowledgement, not render completion or
+MP4 validity. Do not wait for, monitor, read, hash, probe, or decode the detached output. Report the
+delivery directory, planned MP4 and log paths, launch receipt, commits, failure classification,
+protection result, and known issues. Do not run aesthetic gates, promote capabilities, publish, or
+push. Never use `git add .`; preserve unrelated worktree changes.

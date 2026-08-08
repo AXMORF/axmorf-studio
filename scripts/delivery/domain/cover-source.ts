@@ -238,8 +238,6 @@ const assertForbiddenSource = (
     "GlobalVisualLayers",
     "GlobalVisualPackage",
     "FinalAssembly",
-    "FinalPreviewEvidence",
-    "FinalPreviewApproval",
     "SemanticTiming",
     "CaptionLayer",
     "NarrativeCore",

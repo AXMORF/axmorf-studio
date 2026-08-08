@@ -1,55 +1,56 @@
 # Remotion Story Producer
 
-一个以旁白时间线为权威、按 StoryBeat 独立制作 Scene，并通过静态 Remotion runtime 装配成片的
-合同驱动视频生产仓库。
+一个以旁白实测时间线为权威、按 StoryBeat 隔离制作 Scene，并由静态 Remotion runtime 装配与
+自动发起本地交付渲染的合同驱动视频生产仓库。
 
 ## 当前结论
 
-- M1–M10 已完成：叙事合同、真实旁白封存、Narrative Baseline、ScenePackage、全局装配、
-  第二主题泛化、稳定生产编排与本地交付均已有代码和验证证据。
-- 新 production 使用 v4 requirements、Run-before-write preflight、Composition-owned
-  `SceneSafeArea`、透明 Scene Renderer、parallel GlobalVisual 和机械 Preview 门禁。
-- 自动化终点是 `preview-ready / awaiting-user-preview`；它不代表用户批准、发布或 promotion。
-- future-only M10 v2 在 Story 阶段冻结 PublishingIntent，并让独立 Cover owner 与 Scene/
-  GlobalVisual 同时制作；`delivery:build` 只接受用户已批准的 exact current preview 和 current
-  immutable Cover result，执行纯脚本复制封存，不扩张 `production:*`，也不上传平台。旧 v1
-  release 保持只读复验。
-- NarrativeCheck、用户预览后的定点 Scene 修改循环和能力 promotion 尚未实现。
+- 当前只有一套 production 合同与运行路径，不读取或解释旧 Run、旧作品和旧交付目录。
+- production 终点是 `render-ready / awaiting-automatic-delivery`：Composition、render plan 和
+  所有输入 identity 已冻结，但尚未生成最终 MP4。
+- production 到达 render-ready 后，主 Agent 继续执行 `delivery:build`。命令先封存非 MP4
+  交付包和 launch intent，再 detached spawn Remotion；收到 OS `spawn` 事件后写 receipt，返回
+  `delivery-render-started`。
+- `delivery-render-started` 只证明进程启动确认，不证明渲染完成或 MP4 有效。仓库不等待、监控、
+  读取、hash、probe 或 decode detached 输出。
+- PublishingIntent 与独立 Cover 生命周期保留；Cover 不阻止 render-ready，但会阻止自动交付。
+- 当前是 zero-Project baseline；历史本地 Projects、Runs、媒体与交付目录已按用户授权删除。下一个
+  新视频将是新流程的第一个真实 Project。
+- `deliveries/` 不是 checksum-bound verified release；ledger 只覆盖 immutable 非 MP4 文件。
+- 平台上传、发布账号、网络发布、NarrativeCheck 和 capability promotion 尚未实现。
 
-完整当前事实见 [当前实现状态](docs/ITERATION_STATUS.md)，下一阶段只看
-[Roadmap](docs/ROADMAP.md)。
+完整事实见 [当前实现状态](docs/ITERATION_STATUS.md)，执行方式见
+[生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md) 与
+[自动交付指南](docs/guides/LOCAL_DELIVERY.md)。
 
-## 生产主链
+## 主链
 
 ```text
-VideoBrief + StorySpec + authored ttsChunks + RenderSpec
-  → StoryCheck
-  → VoxCPM candidates → measured and sealed narration
-  → SemanticTiming + CaptionCue
-  → NarrativeCore
-  → SceneAssignment → ScenePackage（并行：GlobalVisual + independent Cover）
-  → StoryVisualTrack + SoundDesignTrack
-  → mechanical Preview
-  → explicit user preview decision
+Story + authored ttsChunks + RenderSpec + PublishingIntent
+  → measured and sealed narration
+  → SemanticTiming + CaptionCue + NarrativeCore
+  → N Scene owners + one GlobalVisual owner + independent Cover owner
+  → FinalAssembly + ProductionRenderPlan
+  → render-ready / awaiting-automatic-delivery
+  → immutable non-MP4 delivery package + launch intent
+  → detached Remotion spawn acknowledgement + launch receipt
+  → delivery-render-started
 ```
-
-时间、所有权和兼容边界见 [外部生产流程](docs/PRODUCTION_WORKFLOW.md)。
 
 ## 快速开始
 
-要求 Node.js 20+、npm、FFmpeg 和宿主机可用的 Remotion Chromium。本项目不使用 Docker。
+要求 Node.js 20+、npm、FFmpeg 和宿主机可用的 Remotion Chromium，不使用 Docker。
 
 ```bash
 npm install
 npm run dev
 ```
 
-`npm install` 会自动执行 `npm run bootstrap`，重建 core synthetic proof 需要的本地
-`public/` 资产、ResourceCatalog 和 ProjectRegistry。fresh clone 默认没有任何具体 Project，
-仍可运行测试、构建和 `CapabilityGallery`；本地创建 Project 后再次运行 bootstrap 即会把它
-加入 Composition 列表。
+`npm install` 自动执行 `npm run bootstrap`，重建 core synthetic proof 资产、zero-safe
+ResourceCatalog 和 ProjectRegistry。fresh clone 默认没有具体 Project，仍可测试、构建并列出
+`CapabilityGallery`。
 
-在新对话直接制作视频时，使用仓库 Skill：
+制作新视频时使用仓库 Skill：
 
 ```text
 使用 $remotion-story-producer-video，把下面的完整内容直接制作成视频，不先写计划：
@@ -61,8 +62,6 @@ npm run dev
 [$remotion-story-producer-video](.agents/skills/remotion-story-producer-video/SKILL.md)。
 
 ## 常用命令
-
-静态开发门禁：
 
 ```bash
 npm test
@@ -80,14 +79,12 @@ npm run check:host
 npm run check
 ```
 
-本地正式作品存在时，复验使用其 Project-owned profile，不从 JSON 加载脚本路径；fresh clone
-的 `--all` 集合为空：
+正式作品复验使用 Project-owned profile；zero Project 时 `--all` 集合为空：
 
 ```bash
 npm run project:verify -- --all
 npm run project:verify -- --project <story-id> --scope full
 npm run project:evidence:check -- --project <story-id>
-npm run project:approval:check -- --project <story-id>
 ```
 
 生产编排：
@@ -95,56 +92,38 @@ npm run project:approval:check -- --project <story-id>
 ```bash
 npm run production:preflight -- --project <story-id>
 npm run production:start -- --project <story-id>
-npm run production:status -- --run <run-id>
 npm run production:narrative -- --run <run-id>
 npm run production:scene:freeze -- --run <run-id>
-npm run production:scene:check -- --run <run-id> --scene <meaning-id>
-npm run production:scene:submit -- --run <run-id> --scene <meaning-id>
 npm run production:watch -- --run <run-id>
-npm run production:preview:check -- --run <run-id>
+npm run production:render-ready:check -- --run <run-id>
 ```
 
-详细输入、输出和失败语义见
-[生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md)。
-
-本地交付在用户批准之后显式运行：
+独立 Cover 与自动交付：
 
 ```bash
 npm run delivery:cover:freeze -- --project <story-id>
 npm run delivery:cover:check -- --project <story-id>
 npm run delivery:cover:submit -- --project <story-id>
 npm run delivery:build -- --project <story-id>
-npm run delivery:check -- --project <story-id> --release <release-id>
+npm run delivery:check -- --project <story-id> --delivery <delivery-id>
 ```
-
-固定 PublishingIntent、独立 Cover 生命周期、纯脚本封存和复验方式见
-[本地交付指南](docs/guides/LOCAL_DELIVERY.md)。
 
 ## 目录
 
 ```text
 .agents/skills/              仓库生产 Skill
-docs/                        当前权威文档与导航
-  guides/                    操作和维护指南
-  contracts/                 合同说明
-  evidence/                  历史验收证据
-  archive/                   不再代表当前事实的历史快照
-scripts/                     构建期、检查和生产工具
-  production/                cli / application / domain / adapters
-  delivery/                  M10 本地交付的 cli / application / domain / adapters
-  project-validation/        正式作品静态验证 profile 与受控 adapter
-  project-tools/<story>/     作品专属构建期工具，不是通用生产 API
-  proofs/                    独立 synthetic regression proof
-src/contracts/               可执行 Zod 合同与确定性纯函数
+docs/                        当前权威、指南、证据和历史归档
+scripts/production/          production cli / application / domain / adapters
+scripts/delivery/            Cover 与自动交付 cli / application / domain / adapters
+src/contracts/               strict、versioned、可执行 Zod 合同
 src/remotion/runtime/        固定、离线、frame-driven runtime
 src/remotion/capabilities/   已批准共享能力
-src/projects/<story>/        ignored 本地作品：Composition、数据和 Scene
-public/                      ignored 本地资产与作品媒体；bootstrap 可重建 core proof 资产
-deliveries/                  ignored、不可覆盖的本地交付 release
-tests/                       与模块/用例对应的自动化测试
+src/projects/<story>/        ignored 本地作品
+public/                      ignored 本地资产；bootstrap 可重建 core proof 资产
+deliveries/<story>/<id>/     ignored 非 MP4 包、intent、receipt 与异步 MP4 输出
+out/<story>/delivery-render/ ignored detached Remotion 日志
+tests/                       单元、集成与架构回归
 ```
 
-## 文档入口
-
-从 [文档导航](docs/README.md) 开始。文档职责、归档和去重规则见
+从 [文档导航](docs/README.md) 开始；文档职责见
 [文档管理规则](docs/DOCUMENTATION_POLICY.md)。

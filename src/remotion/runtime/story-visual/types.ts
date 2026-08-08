@@ -32,13 +32,12 @@ export type SceneRendererProps = Readonly<{
   shots: ShotPlanSet;
   syncAnchors: SceneSyncAnchorSet;
   visualResources: readonly ResolvedSceneVisualResource[];
-  /** Legacy v2 compatibility; v3 mounts consume this policy at the boundary. */
-  readabilityPolicy?: ProductionReadabilityPolicy;
 }>;
 
 export type SceneRendererMountProps = Readonly<
   Omit<SceneRendererProps, "sceneFrame"> & {
-    sceneBoundaryVersion?: typeof SCENE_COMPOSITION_BOUNDARY_VERSION;
+    readabilityPolicy: ProductionReadabilityPolicy;
+    sceneBoundaryVersion: typeof SCENE_COMPOSITION_BOUNDARY_VERSION;
   }
 >;
 

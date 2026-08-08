@@ -1,6 +1,6 @@
 # Independent Cover Agent orchestration
 
-This reference owns the Cover side of future-only v2 production authoring. Cover runs concurrently
+This reference owns the Cover side of current production authoring. Cover runs concurrently
 with the N Scene owners and the whole-film GlobalVisual owner, but it is not part of the production
 watcher's N+1 join and never changes a `production:*` command or state.
 
@@ -15,8 +15,8 @@ npm run delivery:cover:freeze -- --project <storyId>
 Create exactly one Cover child Agent for both ratios. Give it only the generated CoverAssignment and
 its fixed `src/projects/<storyId>/delivery/cover/` ownership. The assignment embeds exactly current
 StorySpec, current VisualStyleSpec, and fixed CoverSpec. Do not give or let it read PublishingIntent,
-SemanticTiming, narration, captions, ScenePackage, Scene/GlobalVisual output, FinalAssembly, preview,
-evidence, approval, historical Cover source, or existing deliveries.
+SemanticTiming, narration, captions, ScenePackage, Scene/GlobalVisual output, FinalAssembly,
+historical Cover source, or existing deliveries.
 
 The owner writes only:
 
@@ -44,5 +44,5 @@ atomically seals the PNGs, package, and result under the assignment-fingerprint 
 
 After `cover-ready`, the root Agent audits changed paths and images, reruns both fixed commands, and
 records the package/source/result/PNG fingerprints. A Cover failure does not block the production
-watcher from reaching `preview-ready`; it only blocks later future-only `delivery:build`. Repository
+watcher from reaching `render-ready`; it blocks the current automatic `delivery:build`. Repository
 files never record or monitor Agent, task, thread, progress, conversation, logs, or heartbeat state.

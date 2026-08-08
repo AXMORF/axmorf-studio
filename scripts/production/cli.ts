@@ -12,7 +12,7 @@ import {
   runProductionGlobalVisualFail,
   runProductionGlobalVisualCheck,
   runProductionGlobalVisualSubmit,
-  runProductionPostScene,
+  checkProductionRenderReady,
   runProductionPreflight,
   runProductionSceneFail,
   runProductionSceneFreeze,
@@ -80,7 +80,7 @@ type ProductionCliContext = Readonly<{
     readonly rootDir: string;
     readonly runId: string;
   }) => Promise<unknown>;
-  previewCheck?: (request: {
+  renderReadyCheck?: (request: {
     readonly rootDir: string;
     readonly runId: string;
   }) => Promise<unknown>;
@@ -226,13 +226,13 @@ export const runProductionCli = async (
       : await runProductionWatch({ rootDir: context.rootDir, runId });
   } else if (
     args.length === 3 &&
-    args[0] === "preview-check" &&
+    args[0] === "render-ready-check" &&
     args[1] === "--run"
   ) {
     const runId = ProductionRunIdSchema.parse(args[2]);
-    result = context.previewCheck
-      ? await context.previewCheck({ rootDir: context.rootDir, runId })
-      : await runProductionPostScene({ rootDir: context.rootDir, runId });
+    result = context.renderReadyCheck
+      ? await context.renderReadyCheck({ rootDir: context.rootDir, runId })
+      : await checkProductionRenderReady({ rootDir: context.rootDir, runId });
   } else if (
     args.length === 7 &&
     args[0] === "global-visual-fail" &&

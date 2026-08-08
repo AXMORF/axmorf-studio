@@ -30,21 +30,19 @@ export const renderSceneRendererMount = (
   rendererProps: SceneRendererMountProps,
   sceneFrame: number,
 ) => {
-  const { sceneBoundaryVersion, ...rendererPropsWithoutBoundary } =
+  const { sceneBoundaryVersion, readabilityPolicy, ...rendererOwnedProps } =
     rendererProps;
-  if (sceneBoundaryVersion === SCENE_COMPOSITION_BOUNDARY_VERSION) {
-    const { readabilityPolicy, ...rendererOwnedProps } =
-      rendererPropsWithoutBoundary;
-    if (readabilityPolicy === undefined) {
-      throw new Error("V3 Scene mount requires the frozen readability policy.");
-    }
-    return (
-      <SceneSafeArea policy={readabilityPolicy}>
-        <Renderer {...rendererOwnedProps} sceneFrame={sceneFrame} />
-      </SceneSafeArea>
-    );
+  if (sceneBoundaryVersion !== SCENE_COMPOSITION_BOUNDARY_VERSION) {
+    throw new Error("Scene mount requires the current Scene boundary.");
   }
-  return <Renderer {...rendererPropsWithoutBoundary} sceneFrame={sceneFrame} />;
+  if (readabilityPolicy === undefined) {
+    throw new Error("Scene mount requires the frozen readability policy.");
+  }
+  return (
+    <SceneSafeArea policy={readabilityPolicy}>
+      <Renderer {...rendererOwnedProps} sceneFrame={sceneFrame} />
+    </SceneSafeArea>
+  );
 };
 
 const MountedSceneRenderer: FC<MountedSceneRendererProps> = ({

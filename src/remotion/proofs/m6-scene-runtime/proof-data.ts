@@ -14,12 +14,13 @@ import {
   ShotPlanSetSchema,
   ShotRecipeSelectionSchema,
   VisualStyleSpecSchema,
+  resolveProductionReadabilityPolicy,
 } from "../../../contracts";
 import { resolveSceneSound } from "../../runtime/scene-sound";
 import { buildSoundDesignProjection } from "../../runtime/sound-design";
 import {
   buildStoryVisualProjection,
-  type SceneRendererProps,
+  type SceneRendererMountProps,
   type SceneRendererRegistry,
 } from "../../runtime/story-visual";
 import coverageJson from "./generated/scene-coverage.generated.json";
@@ -124,7 +125,7 @@ const visualResources = resourcePairs
   });
 
 export const m6ProofRendererPropsByMeaning: Readonly<
-  Record<string, Omit<SceneRendererProps, "sceneFrame">>
+  Record<string, SceneRendererMountProps>
 > = {
   [task.meaningId]: {
     storyId: task.storyId,
@@ -140,6 +141,11 @@ export const m6ProofRendererPropsByMeaning: Readonly<
     shots,
     syncAnchors,
     visualResources,
+    readabilityPolicy: resolveProductionReadabilityPolicy({
+      width: 1920,
+      height: 1080,
+    }),
+    sceneBoundaryVersion: "scene-composition-boundary-v1",
   },
 };
 

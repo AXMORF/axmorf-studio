@@ -90,8 +90,6 @@ test("v2 final writer preserves the same pass-only canonical byte boundary", asy
       globalVisualPlanFingerprint: sha("e"),
       globalVisualProjectionFingerprint: sha("f"),
       finalAssemblyFingerprint: sha("0"),
-      finalPreviewEvidenceFingerprint: sha("1"),
-      finalPreviewApprovalFingerprint: sha("2"),
     },
     checks: FINAL_MECHANICAL_CHECK_V2_IDS.map((checkId) => ({
       checkId,

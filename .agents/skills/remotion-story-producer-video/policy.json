@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 2,
-  "policyVersion": "remotion-story-producer-video-policy-v2",
-  "automaticEndpoint": "preview-ready / awaiting-user-preview",
+  "schemaVersion": 3,
+  "policyVersion": "remotion-story-producer-video-policy-v3",
+  "automaticEndpoint": "delivery-render-started",
   "privateConfigPath": "voxcpm/voxcpm.private.json",
   "requiredEntrypointHeadings": [
     "Start directly",
@@ -9,7 +9,7 @@
     "Keep context bounded",
     "Preserve production invariants",
     "Classify failure by owner",
-    "Stop at mechanical Preview"
+    "Finish at detached delivery launch"
   ],
   "requiredReferences": [
     "references/direct-production-workflow.md",
@@ -33,7 +33,8 @@
     "delivery:cover:freeze",
     "delivery:cover:check",
     "delivery:cover:submit",
-    "production:preview:check"
+    "production:render-ready:check",
+    "delivery:build"
   ],
   "invariants": {
     "sceneAuthoringOwner": "one-child-agent-per-meaning-id",
@@ -48,8 +49,8 @@
     "globalVisualReadsSceneOutputs": false,
     "coverReadsOnlyAssignmentInputs": true,
     "coverJoinsProductionWatcher": false,
-    "coverMissingBlocksPreview": false,
-    "coverMissingBlocksDelivery": true,
+    "coverMissingBlocksRenderReady": false,
+    "coverMissingBlocksAutomaticDelivery": true,
     "publishingIntentStage": "story-authoring",
     "fixedFlowRecovery": false,
     "centralStateWriter": "repository-cli-only",
@@ -58,13 +59,16 @@
     "sceneBackgroundOwner": "global-composition-only",
     "runtimeExternalSystems": false,
     "readabilityPolicySource": "frozen-assignment",
-    "timingPolicy": "pcm-cumulative-ceil-v1"
+    "timingPolicy": "pcm-cumulative-ceil-v1",
+    "deliveryRenderLaunchPolicy": "detached-spawn-acknowledgement-v1",
+    "deliveryLaunchAmbiguityPolicy": "intent-without-receipt-never-retry",
+    "deliveryReadsRenderedMp4": false
   },
   "forbiddenActions": [
     "git add .",
     "push",
-    "create-approval",
     "publish",
+    "monitor-detached-render",
     "hand-edit-derived-state"
   ],
   "contextBudgets": {

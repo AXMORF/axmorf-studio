@@ -284,7 +284,7 @@ export const markProductionSceneInputsFrozen = async ({
   await appendProductionRunEvent({ rootDir, runId, event: succeeded });
 };
 
-export const markProductionPostSceneRunning = async ({
+export const markProductionRenderReadyRunning = async ({
   rootDir,
   runId,
   sceneResults,
@@ -328,39 +328,37 @@ export const markProductionPostSceneRunning = async ({
     }),
   });
   loaded = await readProductionRunStore({ rootDir, runId });
-  if (loaded.run.schemaVersion === 2) {
-    await appendProductionRunEvent({
-      rootDir,
-      runId,
-      event: createProductionStageEvent({
-        schemaVersion: loaded.run.schemaVersion,
-        type: "global-visual-result-accepted",
-        runId: loaded.run.runId,
-        storyId: loaded.run.storyId,
-        sequence: loaded.state.lastSequence + 1,
-        eventId: "global-visual-result-accepted-test",
-        stageId: "scenes",
-        attempt: 1,
-        occurredAt,
-        commandId: "production-watch",
-        previousStateFingerprint: loaded.state.stateFingerprint,
-        inputFingerprints: [
-          {
-            artifactId: "global-visual-assignment",
-            fingerprint: globalVisualAssignmentFingerprint,
-          },
-        ],
-        globalVisualResultFingerprint,
-        outputArtifacts: [
-          {
-            artifactId: "global-visual-result",
-            repositoryPath: `.producer-runs/${runId}/global-visual-result.json`,
-            fingerprint: globalVisualResultFingerprint,
-          },
-        ],
-      }),
-    });
-  }
+  await appendProductionRunEvent({
+    rootDir,
+    runId,
+    event: createProductionStageEvent({
+      schemaVersion: loaded.run.schemaVersion,
+      type: "global-visual-result-accepted",
+      runId: loaded.run.runId,
+      storyId: loaded.run.storyId,
+      sequence: loaded.state.lastSequence + 1,
+      eventId: "global-visual-result-accepted-test",
+      stageId: "scenes",
+      attempt: 1,
+      occurredAt,
+      commandId: "production-watch",
+      previousStateFingerprint: loaded.state.stateFingerprint,
+      inputFingerprints: [
+        {
+          artifactId: "global-visual-assignment",
+          fingerprint: globalVisualAssignmentFingerprint,
+        },
+      ],
+      globalVisualResultFingerprint,
+      outputArtifacts: [
+        {
+          artifactId: "global-visual-result",
+          repositoryPath: `.producer-runs/${runId}/global-visual-result.json`,
+          fingerprint: globalVisualResultFingerprint,
+        },
+      ],
+    }),
+  });
   for (const scene of sceneResults) {
     loaded = await readProductionRunStore({ rootDir, runId });
     await appendProductionRunEvent({
@@ -417,14 +415,10 @@ export const markProductionPostSceneRunning = async ({
           artifactId: `scene-assignment.${scene.meaningId}`,
           fingerprint: scene.assignmentFingerprint,
         })),
-        ...(loaded.run.schemaVersion === 2
-          ? [
-              {
-                artifactId: "global-visual-assignment",
-                fingerprint: globalVisualAssignmentFingerprint,
-              },
-            ]
-          : []),
+        {
+          artifactId: "global-visual-assignment",
+          fingerprint: globalVisualAssignmentFingerprint,
+        },
       ],
       outputArtifacts: [
         ...sceneResults.map((scene) => ({
@@ -432,15 +426,11 @@ export const markProductionPostSceneRunning = async ({
           repositoryPath: `.producer-runs/${runId}/scene-results/${scene.meaningId}.json`,
           fingerprint: scene.resultFingerprint,
         })),
-        ...(loaded.run.schemaVersion === 2
-          ? [
-              {
-                artifactId: "global-visual-result",
-                repositoryPath: `.producer-runs/${runId}/global-visual-result.json`,
-                fingerprint: globalVisualResultFingerprint,
-              },
-            ]
-          : []),
+        {
+          artifactId: "global-visual-result",
+          repositoryPath: `.producer-runs/${runId}/global-visual-result.json`,
+          fingerprint: globalVisualResultFingerprint,
+        },
       ],
     }),
   });

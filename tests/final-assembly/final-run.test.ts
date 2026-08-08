@@ -42,7 +42,7 @@ test("M8 identity invalidation matrix rejects every locked assembly boundary", (
   }
 });
 
-test("v2 cannot pass with stale evidence approval order or extra identity", () => {
+test("v2 cannot pass with stale assembly order or extra identity", () => {
   const identity = {
     narrativeReportFingerprint: sha("1"),
     visualStyleFingerprint: sha("2"),
@@ -61,8 +61,6 @@ test("v2 cannot pass with stale evidence approval order or extra identity", () =
     globalVisualPlanFingerprint: sha("c"),
     globalVisualProjectionFingerprint: sha("d"),
     finalAssemblyFingerprint: sha("e"),
-    finalPreviewEvidenceFingerprint: sha("f"),
-    finalPreviewApprovalFingerprint: sha("0"),
   } as const;
   const checks = FINAL_MECHANICAL_CHECK_V2_IDS.map((checkId) => ({
     checkId,
@@ -81,12 +79,6 @@ test("v2 cannot pass with stale evidence approval order or extra identity", () =
     checks,
   };
   assert.doesNotThrow(() => createFinalMechanicalCheckV2Report(base));
-  assert.throws(() =>
-    createFinalMechanicalCheckV2Report({
-      ...base,
-      inputIdentity: {...identity, finalPreviewApprovalFingerprint: null},
-    }),
-  );
   assert.throws(() =>
     createFinalMechanicalCheckV2Report({...base, checks: [...checks].reverse()}),
   );

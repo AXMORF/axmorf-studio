@@ -1,168 +1,137 @@
 import {
-  AuthoredDeliverySpecificationSchema,
-  FinalAssemblyPlanSchema,
-  FinalMechanicalCheckV2ReportSchema,
-  FinalPreviewApprovalSchema,
-  FinalPreviewEvidenceSchema,
-  createDeliverySpecification,
-  type FinalMechanicalCheckV2Report,
+  ProductionRenderPlanSchema,
+  ProductionRenderReadySchema,
+  PublishingIntentSchema,
+  SemanticTimingSchema,
+  StoryIdSchema,
+  StorySpecSchema,
+  computeStoryFingerprint,
+  resolveCurrentPublishingIntent,
+  type ProductionRenderPlan,
+  type ProductionRenderReady,
+  type SemanticTiming,
+  type StorySpec,
 } from "../../../src/contracts";
-import { runProjectCheckCli } from "../../project-check/cli";
-import {
-  checksumDeliveryBytes,
-  readDeliveryJson,
-  readDeliveryRegularFile,
-} from "../adapters/filesystem";
-
-export type VerifyFinalProject = (request: {
-  readonly rootDir: string;
-  readonly projectId: string;
-}) => Promise<FinalMechanicalCheckV2Report>;
-
-const defaultVerifyFinalProject: VerifyFinalProject = async ({
-  rootDir,
-  projectId,
-}) =>
-  FinalMechanicalCheckV2ReportSchema.parse(
-    await runProjectCheckCli(["--project", projectId, "--level", "final"], {
-      rootDir,
-      stdout: () => undefined,
-    }),
-  );
+import { checkProductionRenderReady } from "../../production/application/render-ready";
+import { readDeliveryJson } from "../adapters/filesystem";
+import { loadCurrentDeliveryCoverResult } from "./cover-inputs";
+import type { DeliveryApplicationDependencies } from "./types";
 
 const generatedPath = (projectId: string, fileName: string) =>
   `src/projects/${projectId}/generated/${fileName}`;
 
+export const assertCurrentDeliveryInputBindings = ({
+  projectId,
+  story,
+  semanticTiming,
+  renderPlan,
+  renderReady,
+  current,
+}: {
+  readonly projectId: string;
+  readonly story: StorySpec;
+  readonly semanticTiming: SemanticTiming;
+  readonly renderPlan: ProductionRenderPlan;
+  readonly renderReady: ProductionRenderReady;
+  readonly current: Readonly<{
+    runId: string;
+    renderPlanFingerprint: string;
+    renderReadyFingerprint: string;
+  }>;
+}) => {
+  if (
+    story.storyId !== projectId ||
+    semanticTiming.storyId !== projectId ||
+    renderPlan.storyId !== projectId ||
+    renderReady.storyId !== projectId ||
+    renderReady.runId !== renderPlan.runId ||
+    renderReady.requirementsFingerprint !== renderPlan.requirementsFingerprint ||
+    renderReady.renderPlanFingerprint !== renderPlan.renderPlanFingerprint ||
+    renderPlan.storyFingerprint !== computeStoryFingerprint(story) ||
+    renderPlan.semanticTimingFingerprint !==
+      semanticTiming.fingerprint ||
+    semanticTiming.fps !== renderPlan.fps ||
+    semanticTiming.durationInFrames !== renderPlan.frameCount ||
+    current.runId !== renderPlan.runId ||
+    current.renderPlanFingerprint !== renderPlan.renderPlanFingerprint ||
+    current.renderReadyFingerprint !== renderReady.renderReadyFingerprint
+  ) {
+    throw new Error("Automatic delivery inputs are stale or cross-bound.");
+  }
+};
+
 export const loadCurrentDeliveryInputs = async ({
   rootDir,
-  projectId,
-  verifyFinalProject = defaultVerifyFinalProject,
+  projectId: rawProjectId,
+  dependencies = {},
 }: {
   readonly rootDir: string;
   readonly projectId: string;
-  readonly verifyFinalProject?: VerifyFinalProject;
+  readonly dependencies?: DeliveryApplicationDependencies;
 }) => {
-  const finalReport = FinalMechanicalCheckV2ReportSchema.parse(
-    await verifyFinalProject({ rootDir, projectId }),
-  );
-  if (
-    finalReport.storyId !== projectId ||
-    finalReport.reportVersion !== "final-mechanical-check-v2" ||
-    finalReport.aggregateStatus !== "pass"
-  ) {
-    throw new Error(
-      "Delivery requires a passing current final-mechanical-check-v2.",
-    );
-  }
-  const persistedFinalReport = FinalMechanicalCheckV2ReportSchema.parse(
-    await readDeliveryJson({
-      rootDir,
-      relativePath: generatedPath(
+  const projectId = StoryIdSchema.parse(rawProjectId);
+  const [story, semanticTiming, rawIntent, renderPlan, renderReady, cover] =
+    await Promise.all([
+      readDeliveryJson({
+        rootDir,
+        relativePath: `src/projects/${projectId}/story.json`,
+      }).then(StorySpecSchema.parse),
+      readDeliveryJson({
+        rootDir,
+        relativePath: generatedPath(
+          projectId,
+          "semantic-timing.generated.json",
+        ),
+      }).then(SemanticTimingSchema.parse),
+      readDeliveryJson({
+        rootDir,
+        relativePath: `src/projects/${projectId}/publishing-intent.json`,
+      }).then(PublishingIntentSchema.parse),
+      readDeliveryJson({
+        rootDir,
+        relativePath: generatedPath(
+          projectId,
+          "production-render-plan.generated.json",
+        ),
+      }).then(ProductionRenderPlanSchema.parse),
+      readDeliveryJson({
+        rootDir,
+        relativePath: generatedPath(
+          projectId,
+          "production-render-ready.generated.json",
+        ),
+      }).then(ProductionRenderReadySchema.parse),
+      loadCurrentDeliveryCoverResult({
+        rootDir,
         projectId,
-        "final-mechanical-check.generated.json",
-      ),
-    }),
-  );
-  if (
-    persistedFinalReport.reportFingerprint !== finalReport.reportFingerprint
-  ) {
-    throw new Error("Delivery final mechanical report is not current.");
-  }
-  const finalAssembly = FinalAssemblyPlanSchema.parse(
-    await readDeliveryJson({
-      rootDir,
-      relativePath: generatedPath(projectId, "final-assembly.generated.json"),
-    }),
-  );
-  const evidence = FinalPreviewEvidenceSchema.parse(
-    await readDeliveryJson({
-      rootDir,
-      relativePath: generatedPath(
-        projectId,
-        "final-preview-evidence.generated.json",
-      ),
-    }),
-  );
-  const approval = FinalPreviewApprovalSchema.parse(
-    await readDeliveryJson({
-      rootDir,
-      relativePath: generatedPath(
-        projectId,
-        "final-preview-approval.generated.json",
-      ),
-    }),
-  );
-  const authoredSpecification = AuthoredDeliverySpecificationSchema.parse(
-    await readDeliveryJson({
-      rootDir,
-      relativePath: `src/projects/${projectId}/delivery/delivery-spec.json`,
-    }),
-  );
-  const coverSourceFiles = await Promise.all(
-    ["Covers.tsx", "Root.tsx", "index.ts"].map(async (fileName) => {
-      const relativePath = `src/projects/${projectId}/delivery/${fileName}`;
-      const source = await readDeliveryRegularFile({ rootDir, relativePath });
-      return {
-        relativePath,
-        checksum: checksumDeliveryBytes(source.bytes),
-      };
-    }),
-  );
-  const specification = createDeliverySpecification({
-    authored: authoredSpecification,
-    coverSourceFiles,
+        ...(dependencies.runProcess === undefined
+          ? {}
+          : { runProcess: dependencies.runProcess }),
+      }),
+    ]);
+  const intent = resolveCurrentPublishingIntent({ story, intent: rawIntent });
+  const current = await (
+    dependencies.checkRenderReady ?? checkProductionRenderReady
+  )({ rootDir, runId: renderPlan.runId });
+  assertCurrentDeliveryInputBindings({
+    projectId,
+    story,
+    semanticTiming,
+    renderPlan,
+    renderReady,
+    current,
   });
-  const preview = await readDeliveryRegularFile({
-    rootDir,
-    relativePath: evidence.media.fullPreview.relativePath,
-  });
-  const previewChecksum = checksumDeliveryBytes(preview.bytes);
-  const sharedIdentity =
-    finalAssembly.storyId === projectId &&
-    evidence.storyId === projectId &&
-    approval.storyId === projectId &&
-    specification.storyId === projectId &&
-    finalAssembly.compositionId === evidence.compositionId &&
-    evidence.compositionId === approval.compositionId &&
-    approval.compositionId === specification.compositionId &&
-    evidence.finalAssemblyFingerprint ===
-      finalAssembly.finalAssemblyFingerprint &&
-    approval.finalAssemblyFingerprint ===
-      finalAssembly.finalAssemblyFingerprint &&
-    approval.evidenceFingerprint === evidence.evidenceFingerprint &&
-    approval.previewChecksum === evidence.media.fullPreview.checksum &&
-    previewChecksum === approval.previewChecksum &&
-    finalReport.inputIdentity.finalAssemblyFingerprint ===
-      finalAssembly.finalAssemblyFingerprint &&
-    finalReport.inputIdentity.finalPreviewEvidenceFingerprint ===
-      evidence.evidenceFingerprint &&
-    finalReport.inputIdentity.finalPreviewApprovalFingerprint ===
-      approval.approvalFingerprint;
-  if (!sharedIdentity) {
-    throw new Error(
-      "Delivery approval evidence assembly or media identity is stale.",
-    );
-  }
   if (
-    finalAssembly.fps !== evidence.technical.fpsNumerator ||
-    evidence.technical.fpsDenominator !== 1 ||
-    finalAssembly.width !== evidence.technical.width ||
-    finalAssembly.height !== evidence.technical.height ||
-    finalAssembly.durationInFrames !== evidence.technical.frameCount
+    cover.result.storyId !== projectId
   ) {
-    throw new Error("Delivery approved preview technical identity is stale.");
+    throw new Error("Automatic delivery inputs are stale or cross-bound.");
   }
   return {
-    finalReport,
-    finalAssembly,
-    evidence,
-    approval,
-    specification,
-    preview: {
-      relativePath: evidence.media.fullPreview.relativePath,
-      absolutePath: preview.absolutePath,
-      checksum: previewChecksum,
-      sizeBytes: preview.sizeBytes,
-    },
+    story,
+    semanticTiming,
+    intent,
+    renderPlan,
+    renderReady,
+    cover,
   } as const;
 };

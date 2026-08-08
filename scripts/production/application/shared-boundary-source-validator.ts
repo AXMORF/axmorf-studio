@@ -254,42 +254,35 @@ const assertSceneSlotMountFlow = ({
   if (mountBinding === null) {
     throw new Error("SceneSlot boundary binding is missing.");
   }
-  const boundaryIndex = mount.body.statements.findIndex((statement) => {
+  const policyBinding = findObjectBinding(
+    mount.body.statements,
+    "readabilityPolicy",
+  );
+  if (
+    policyBinding === null ||
+    policyBinding.restName !== mountBinding.restName
+  ) {
+    throw new Error("SceneSlot frozen policy binding is missing.");
+  }
+  const boundaryGuarded = mount.body.statements.some((statement) => {
     if (!ts.isIfStatement(statement)) return false;
     const condition = unwrapExpression(statement.expression);
     if (
       !ts.isBinaryExpression(condition) ||
-      condition.operatorToken.kind !== ts.SyntaxKind.EqualsEqualsEqualsToken
+      condition.operatorToken.kind !==
+        ts.SyntaxKind.ExclamationEqualsEqualsToken
     ) {
       return false;
     }
     const left = condition.left.getText();
     const right = condition.right.getText();
     return (
-      (left === mountBinding.localName && right === boundaryVersionLocal) ||
-      (right === mountBinding.localName && left === boundaryVersionLocal)
+      ((left === mountBinding.localName && right === boundaryVersionLocal) ||
+        (right === mountBinding.localName && left === boundaryVersionLocal)) &&
+      hasNode(statement.thenStatement, ts.isThrowStatement)
     );
   });
-  if (boundaryIndex < 0) {
-    throw new Error("SceneSlot boundary branch is missing.");
-  }
-  const boundary = mount.body.statements[boundaryIndex];
-  if (
-    !ts.isIfStatement(boundary) ||
-    boundary.elseStatement !== undefined ||
-    !ts.isBlock(boundary.thenStatement)
-  ) {
-    throw new Error("SceneSlot boundary branch is not exclusive.");
-  }
-  const policyBinding = findObjectBinding(
-    boundary.thenStatement.statements,
-    "readabilityPolicy",
-    mountBinding.restName,
-  );
-  if (policyBinding === null) {
-    throw new Error("SceneSlot frozen policy binding is missing.");
-  }
-  const guarded = boundary.thenStatement.statements.some(
+  const policyGuarded = mount.body.statements.some(
     (statement) =>
       ts.isIfStatement(statement) &&
       hasNode(
@@ -299,14 +292,14 @@ const assertSceneSlotMountFlow = ({
       ) &&
       hasNode(statement.thenStatement, ts.isThrowStatement),
   );
-  const wrappedReturn = boundary.thenStatement.statements.find(
+  const wrappedReturns = mount.body.statements.filter(
     (statement): statement is ts.ReturnStatement =>
       ts.isReturnStatement(statement) && jsxRoot(statement) !== null,
   );
-  if (wrappedReturn === undefined) {
+  if (wrappedReturns.length !== 1) {
     throw new Error("SceneSlot shared-boundary return is missing.");
   }
-  const wrapper = jsxRoot(wrappedReturn);
+  const wrapper = jsxRoot(wrappedReturns[0]);
   if (
     wrapper === null ||
     jsxTagName(wrapper) !== sceneSafeAreaLocal ||
@@ -317,34 +310,14 @@ const assertSceneSlotMountFlow = ({
   }
   const wrappedRenderer = findJsxDescendant(wrapper, rendererName.text);
   if (
-    !guarded ||
+    !boundaryGuarded ||
+    !policyGuarded ||
     wrappedRenderer === null ||
     !hasJsxSpread(jsxAttributes(wrappedRenderer), policyBinding.restName) ||
     findJsxAttributeExpression(jsxAttributes(wrappedRenderer), "sceneFrame") !==
       frameName.text
   ) {
     throw new Error("SceneSlot wrapped Renderer wiring is stale.");
-  }
-  const alternateReturn = mount.body.statements
-    .slice(boundaryIndex + 1)
-    .find(
-      (statement): statement is ts.ReturnStatement =>
-        ts.isReturnStatement(statement) && jsxRoot(statement) !== null,
-    );
-  if (alternateReturn === undefined) {
-    throw new Error("SceneSlot legacy Renderer return is missing.");
-  }
-  const alternateRenderer = jsxRoot(alternateReturn);
-  if (
-    alternateRenderer === null ||
-    jsxTagName(alternateRenderer) !== rendererName.text ||
-    !hasJsxSpread(jsxAttributes(alternateRenderer), mountBinding.restName) ||
-    findJsxAttributeExpression(
-      jsxAttributes(alternateRenderer),
-      "sceneFrame",
-    ) !== frameName.text
-  ) {
-    throw new Error("SceneSlot legacy Renderer wiring is stale.");
   }
 };
 

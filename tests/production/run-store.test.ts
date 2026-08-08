@@ -12,10 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import {
-  createProductionRunManifest,
-  createProductionRunManifestV2,
-} from "../../src/contracts/production-run";
+import { createProductionRunManifest } from "../../src/contracts/production-run";
 import {
   acquireProductionRunLock,
   appendProductionRunEvent,
@@ -204,24 +201,6 @@ test("an atomic event write failure leaves no half event and preserves current s
     access(join(paths.events, "000001-production-start-succeeded-1.json")),
   );
   assert.deepEqual(await readFile(paths.state), beforeState);
-});
-
-test("initializes a v2 run with a v2 derived state while preserving v1", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-production-store-v2-"));
-  context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const run = createProductionRunManifestV2({
-    runId: "story-example-run-002",
-    storyId: "story-example",
-    requirementsPath: "src/projects/story-example/production/requirements.json",
-    requirementsFingerprint: sha("b"),
-    policy: { pollIntervalMs: 25, sceneTimeoutMs: 2_000 },
-    createdAt: occurredAt,
-  });
-  const initialized = await initializeProductionRunStore({ rootDir, run });
-  assert.equal(initialized.run.schemaVersion, 2);
-  assert.equal(initialized.state.schemaVersion, 2);
-  assert.equal(initialized.state.acceptedGlobalVisualResult, null);
-  assert.equal(createRun().schemaVersion, 1);
 });
 
 test("production runtime has no Agent SDK, task, thread, progress, or heartbeat dependency", async () => {

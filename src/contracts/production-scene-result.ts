@@ -23,14 +23,8 @@ import type { StorySpec } from "./story";
 export const STORY_RESOURCE_POOL_VERSION = "story-resource-pool-v1" as const;
 export const SCENE_PRODUCTION_BRIEF_VERSION =
   "scene-production-brief-v1" as const;
-export const SCENE_ASSIGNMENT_VERSION = "scene-assignment-v1" as const;
-export const CURRENT_SCENE_ASSIGNMENT_VERSION = "scene-assignment-v2" as const;
-export const SCENE_ASSIGNMENT_VERSION_V3 = "scene-assignment-v3" as const;
+export const SCENE_ASSIGNMENT_VERSION = "scene-assignment-v3" as const;
 export const SCENE_PRODUCTION_RESULT_VERSION =
-  "scene-production-result-v1" as const;
-export const CURRENT_SCENE_PRODUCTION_RESULT_VERSION =
-  "scene-production-result-v2" as const;
-export const SCENE_PRODUCTION_RESULT_VERSION_V3 =
   "scene-production-result-v3" as const;
 
 const SafeProductionTextSchema = z
@@ -410,9 +404,9 @@ export const validateSceneProductionBrief = ({
   return brief;
 };
 
-const SceneAssignmentV1InputObject = z
+const SceneAssignmentInputObject = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(3),
     contractVersion: z.literal(SCENE_ASSIGNMENT_VERSION),
     runId: ProductionRunIdSchema,
     storyId: StoryIdSchema,
@@ -426,25 +420,15 @@ const SceneAssignmentV1InputObject = z
       .array(ProductionRequirementSchema)
       .max(256)
       .readonly(),
+    readabilityPolicy: ProductionReadabilityPolicySchema,
+    sceneCompositionBoundaryVersion: z.literal(
+      "scene-composition-boundary-v1",
+    ),
     deadlineAt: z.string().datetime({ offset: true }),
   })
   .strict();
 
-const SceneAssignmentV2InputObject = SceneAssignmentV1InputObject.extend({
-  schemaVersion: z.literal(2),
-  contractVersion: z.literal(CURRENT_SCENE_ASSIGNMENT_VERSION),
-  readabilityPolicy: ProductionReadabilityPolicySchema,
-}).strict();
-const SceneAssignmentV3InputObject = SceneAssignmentV2InputObject.extend({
-  schemaVersion: z.literal(3),
-  contractVersion: z.literal(SCENE_ASSIGNMENT_VERSION_V3),
-  sceneCompositionBoundaryVersion: z.literal("scene-composition-boundary-v1"),
-}).strict();
-
-type SceneAssignmentInput =
-  | z.infer<typeof SceneAssignmentV1InputObject>
-  | z.infer<typeof SceneAssignmentV2InputObject>
-  | z.infer<typeof SceneAssignmentV3InputObject>;
+type SceneAssignmentInput = z.infer<typeof SceneAssignmentInputObject>;
 
 const addSceneAssignmentIssues = (
   assignment: SceneAssignmentInput,
@@ -487,34 +471,23 @@ const addSceneAssignmentIssues = (
     }
   }
   if (
-    assignment.schemaVersion !== 1 &&
-    (assignment.taskInput.schemaVersion !== assignment.schemaVersion ||
-      assignment.taskInput.readabilityPolicy.policyFingerprint !==
-        assignment.readabilityPolicy.policyFingerprint)
+    assignment.taskInput.schemaVersion !== 3 ||
+    assignment.taskInput.readabilityPolicy.policyFingerprint !==
+      assignment.readabilityPolicy.policyFingerprint ||
+    assignment.taskInput.sceneCompositionBoundaryVersion !==
+      assignment.sceneCompositionBoundaryVersion
   ) {
     context.addIssue({
       code: "custom",
-      message: "Scene assignment readability policy is stale.",
+      message: "Scene assignment current boundary identity is stale.",
       path: ["readabilityPolicy"],
     });
   }
 };
 
-const SceneAssignmentV1InputSchema = SceneAssignmentV1InputObject.superRefine(
+export const SceneAssignmentInputSchema = SceneAssignmentInputObject.superRefine(
   addSceneAssignmentIssues,
 ).readonly();
-const SceneAssignmentV2InputSchema = SceneAssignmentV2InputObject.superRefine(
-  addSceneAssignmentIssues,
-).readonly();
-const SceneAssignmentV3InputSchema = SceneAssignmentV3InputObject.superRefine(
-  addSceneAssignmentIssues,
-).readonly();
-
-export const SceneAssignmentInputSchema = z.union([
-  SceneAssignmentV1InputSchema,
-  SceneAssignmentV2InputSchema,
-  SceneAssignmentV3InputSchema,
-]);
 
 export const computeSceneAssignmentFingerprint = (rawInput: unknown) => {
   const record = { ...(rawInput as Record<string, unknown>) };
@@ -554,69 +527,22 @@ const addSceneAssignmentFingerprintIssues = (
   }
 };
 
-const SceneAssignmentV1Schema = SceneAssignmentV1InputObject.extend({
+export const SceneAssignmentSchema = SceneAssignmentInputObject.extend({
   assignmentFingerprint: Sha256DigestSchema,
 })
   .strict()
   .superRefine(addSceneAssignmentFingerprintIssues)
   .readonly();
-
-const SceneAssignmentV2Schema = SceneAssignmentV2InputObject.extend({
-  assignmentFingerprint: Sha256DigestSchema,
-})
-  .strict()
-  .superRefine(addSceneAssignmentFingerprintIssues)
-  .readonly();
-const SceneAssignmentV3Schema = SceneAssignmentV3InputObject.extend({
-  assignmentFingerprint: Sha256DigestSchema,
-})
-  .strict()
-  .superRefine(addSceneAssignmentFingerprintIssues)
-  .readonly();
-
-export const SceneAssignmentSchema = z.union([
-  SceneAssignmentV1Schema,
-  SceneAssignmentV2Schema,
-  SceneAssignmentV3Schema,
-]);
 
 export const buildSceneAssignment = (rawInput: unknown) => {
   const record: Record<string, unknown> = {
     ...(rawInput as Record<string, unknown>),
-    schemaVersion: 1,
+    schemaVersion: 3,
     contractVersion: SCENE_ASSIGNMENT_VERSION,
   };
   delete record.assignmentFingerprint;
   const input = SceneAssignmentInputSchema.parse(record);
   return SceneAssignmentSchema.parse({
-    ...input,
-    assignmentFingerprint: computeSceneAssignmentFingerprint(input),
-  });
-};
-
-export const buildSceneAssignmentV2 = (rawInput: unknown) => {
-  const record: Record<string, unknown> = {
-    ...(rawInput as Record<string, unknown>),
-    schemaVersion: 2,
-    contractVersion: CURRENT_SCENE_ASSIGNMENT_VERSION,
-  };
-  delete record.assignmentFingerprint;
-  const input = SceneAssignmentV2InputSchema.parse(record);
-  return SceneAssignmentV2Schema.parse({
-    ...input,
-    assignmentFingerprint: computeSceneAssignmentFingerprint(input),
-  });
-};
-
-export const buildSceneAssignmentV3 = (rawInput: unknown) => {
-  const record: Record<string, unknown> = {
-    ...(rawInput as Record<string, unknown>),
-    schemaVersion: 3,
-    contractVersion: SCENE_ASSIGNMENT_VERSION_V3,
-  };
-  delete record.assignmentFingerprint;
-  const input = SceneAssignmentV3InputSchema.parse(record);
-  return SceneAssignmentV3Schema.parse({
     ...input,
     assignmentFingerprint: computeSceneAssignmentFingerprint(input),
   });
@@ -636,7 +562,7 @@ const ResultRepositoryPathSchema = z
   );
 
 const SceneProductionResultCommonShape = {
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(3),
   contractVersion: z.literal(SCENE_PRODUCTION_RESULT_VERSION),
   runId: ProductionRunIdSchema,
   storyId: StoryIdSchema,
@@ -646,21 +572,11 @@ const SceneProductionResultCommonShape = {
   requirementsFingerprint: Sha256DigestSchema,
   sceneBriefFingerprint: Sha256DigestSchema,
   resourcePoolFingerprint: Sha256DigestSchema,
+  readabilityPolicyFingerprint: Sha256DigestSchema,
+  sceneCompositionBoundaryVersion: z.literal(
+    "scene-composition-boundary-v1",
+  ),
   occurredAt: z.string().datetime({ offset: true }),
-} as const;
-
-const SceneProductionResultV2CommonShape = {
-  ...SceneProductionResultCommonShape,
-  schemaVersion: z.literal(2),
-  contractVersion: z.literal(CURRENT_SCENE_PRODUCTION_RESULT_VERSION),
-  readabilityPolicyFingerprint: Sha256DigestSchema,
-} as const;
-const SceneProductionResultV3CommonShape = {
-  ...SceneProductionResultCommonShape,
-  schemaVersion: z.literal(3),
-  contractVersion: z.literal(SCENE_PRODUCTION_RESULT_VERSION_V3),
-  readabilityPolicyFingerprint: Sha256DigestSchema,
-  sceneCompositionBoundaryVersion: z.literal("scene-composition-boundary-v1"),
 } as const;
 
 const SceneProductionSuccessInputObject = z
@@ -689,48 +605,9 @@ const SceneProductionFailureInputObject = z
   })
   .strict();
 
-const SceneProductionV2SuccessInputObject = z
-  .object({
-    ...SceneProductionResultV2CommonShape,
-    ...SceneProductionSuccessInputObject.shape,
-    schemaVersion: z.literal(2),
-    contractVersion: z.literal(CURRENT_SCENE_PRODUCTION_RESULT_VERSION),
-    readabilityPolicyFingerprint: Sha256DigestSchema,
-  })
-  .strict();
-
-const SceneProductionV2FailureInputObject = z
-  .object({
-    ...SceneProductionResultV2CommonShape,
-    ...SceneProductionFailureInputObject.shape,
-    schemaVersion: z.literal(2),
-    contractVersion: z.literal(CURRENT_SCENE_PRODUCTION_RESULT_VERSION),
-    readabilityPolicyFingerprint: Sha256DigestSchema,
-  })
-  .strict();
-
-const SceneProductionResultV1InputUnion = z.discriminatedUnion("status", [
+const SceneProductionResultInputUnion = z.discriminatedUnion("status", [
   SceneProductionSuccessInputObject,
   SceneProductionFailureInputObject,
-]);
-const SceneProductionResultV2InputUnion = z.discriminatedUnion("status", [
-  SceneProductionV2SuccessInputObject,
-  SceneProductionV2FailureInputObject,
-]);
-const SceneProductionV3SuccessInputObject = SceneProductionSuccessInputObject.extend({
-  ...SceneProductionResultV3CommonShape,
-}).strict();
-const SceneProductionV3FailureInputObject = SceneProductionFailureInputObject.extend({
-  ...SceneProductionResultV3CommonShape,
-}).strict();
-const SceneProductionResultV3InputUnion = z.discriminatedUnion("status", [
-  SceneProductionV3SuccessInputObject,
-  SceneProductionV3FailureInputObject,
-]);
-const SceneProductionResultInputUnion = z.union([
-  SceneProductionResultV1InputUnion,
-  SceneProductionResultV2InputUnion,
-  SceneProductionResultV3InputUnion,
 ]);
 
 const addSceneProductionResultIssues = (
@@ -778,22 +655,9 @@ export const computeSceneProductionResultFingerprint = (rawInput: unknown) => {
 const withResultFingerprint = <Shape extends z.ZodRawShape>(shape: Shape) =>
   z.object({ ...shape, resultFingerprint: Sha256DigestSchema }).strict();
 
-const SceneProductionResultV1Union = z.discriminatedUnion("status", [
+const SceneProductionResultUnion = z.discriminatedUnion("status", [
   withResultFingerprint(SceneProductionSuccessInputObject.shape),
   withResultFingerprint(SceneProductionFailureInputObject.shape),
-]);
-const SceneProductionResultV2Union = z.discriminatedUnion("status", [
-  withResultFingerprint(SceneProductionV2SuccessInputObject.shape),
-  withResultFingerprint(SceneProductionV2FailureInputObject.shape),
-]);
-const SceneProductionResultV3Union = z.discriminatedUnion("status", [
-  withResultFingerprint(SceneProductionV3SuccessInputObject.shape),
-  withResultFingerprint(SceneProductionV3FailureInputObject.shape),
-]);
-const SceneProductionResultUnion = z.union([
-  SceneProductionResultV1Union,
-  SceneProductionResultV2Union,
-  SceneProductionResultV3Union,
 ]);
 
 export const SceneProductionResultSchema =
@@ -824,45 +688,11 @@ export const SceneProductionResultSchema =
 export const buildSceneProductionResult = (rawInput: unknown) => {
   const record: Record<string, unknown> = {
     ...(rawInput as Record<string, unknown>),
-    schemaVersion: 1,
+    schemaVersion: 3,
     contractVersion: SCENE_PRODUCTION_RESULT_VERSION,
   };
   delete record.resultFingerprint;
   const input = SceneProductionResultInputSchema.parse(record);
-  return SceneProductionResultSchema.parse({
-    ...input,
-    resultFingerprint: computeSceneProductionResultFingerprint(input),
-  });
-};
-
-export const buildSceneProductionResultV2 = (rawInput: unknown) => {
-  const record: Record<string, unknown> = {
-    ...(rawInput as Record<string, unknown>),
-    schemaVersion: 2,
-    contractVersion: CURRENT_SCENE_PRODUCTION_RESULT_VERSION,
-  };
-  delete record.resultFingerprint;
-  const input = SceneProductionResultInputSchema.parse(record);
-  if (input.schemaVersion !== 2) {
-    throw new Error("Scene production result v2 input is required.");
-  }
-  return SceneProductionResultSchema.parse({
-    ...input,
-    resultFingerprint: computeSceneProductionResultFingerprint(input),
-  });
-};
-
-export const buildSceneProductionResultV3 = (rawInput: unknown) => {
-  const record: Record<string, unknown> = {
-    ...(rawInput as Record<string, unknown>),
-    schemaVersion: 3,
-    contractVersion: SCENE_PRODUCTION_RESULT_VERSION_V3,
-  };
-  delete record.resultFingerprint;
-  const input = SceneProductionResultInputSchema.parse(record);
-  if (input.schemaVersion !== 3) {
-    throw new Error("Scene production result v3 input is required.");
-  }
   return SceneProductionResultSchema.parse({
     ...input,
     resultFingerprint: computeSceneProductionResultFingerprint(input),

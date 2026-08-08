@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
   copyFile,
+  link,
   lstat,
   mkdir,
   mkdtemp,
@@ -11,11 +12,12 @@ import {
   rename,
   rm,
   stat,
+  unlink,
 } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, sep } from "node:path";
 
 import {
-  DeliveryReleaseIdSchema,
+  DeliveryIdSchema,
   Sha256DigestSchema,
   StoryIdSchema,
 } from "../../../src/contracts";
@@ -53,6 +55,15 @@ const pathExists = async (path: string) => {
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw error;
+  }
+};
+
+export const deliveryPathExists = async (path: string) =>
+  (await pathExists(path)) !== null;
+
+export const assertDeliveryOutputAbsent = async (path: string) => {
+  if ((await pathExists(path)) !== null) {
+    throw new Error("Delivery render output already exists before launch.");
   }
 };
 
@@ -137,29 +148,29 @@ const ensureDirectory = async (path: string) => {
 export const resolveDeliveryPaths = ({
   rootDir,
   projectId: rawProjectId,
-  releaseId: rawReleaseId,
+  deliveryId: rawDeliveryId,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
-  readonly releaseId: string;
+  readonly deliveryId: string;
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
-  const releaseId = DeliveryReleaseIdSchema.parse(rawReleaseId);
+  const deliveryId = DeliveryIdSchema.parse(rawDeliveryId);
   const deliveries = join(rootDir, "deliveries");
   const staging = join(deliveries, ".staging");
   const project = join(deliveries, projectId);
-  const release = join(project, releaseId);
-  for (const path of [deliveries, staging, project, release]) {
+  const delivery = join(project, deliveryId);
+  for (const path of [deliveries, staging, project, delivery]) {
     assertInsideRoot(rootDir, path);
   }
-  return { deliveries, staging, project, release } as const;
+  return { deliveries, staging, project, delivery } as const;
 };
 
-export const deliveryReleaseExists = async (path: string) => {
+export const deliveryExists = async (path: string) => {
   const metadata = await pathExists(path);
   if (metadata === null) return false;
   if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
-    throw new Error("Delivery release path must be a regular directory.");
+    throw new Error("Delivery path must be a regular directory.");
   }
   return true;
 };
@@ -184,13 +195,13 @@ export const assertDeliveryDirectoryChain = async (
 export const createDeliveryStaging = async ({
   rootDir,
   projectId,
-  releaseId,
+  deliveryId,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
-  readonly releaseId: string;
+  readonly deliveryId: string;
 }) => {
-  const paths = resolveDeliveryPaths({ rootDir, projectId, releaseId });
+  const paths = resolveDeliveryPaths({ rootDir, projectId, deliveryId });
   await ensureDirectory(paths.deliveries);
   await ensureDirectory(paths.staging);
   await ensureDirectory(paths.project);
@@ -199,14 +210,14 @@ export const createDeliveryStaging = async ({
     throw new Error("Delivery staging contains an unfinished package.");
   }
   const root = await mkdtemp(
-    join(paths.staging, `${releaseId}.${process.pid}.${randomUUID()}.`),
+    join(paths.staging, `${deliveryId}.${process.pid}.${randomUUID()}.`),
   );
   return { ...paths, root } as const;
 };
 
 export const cleanupDeliveryStaging = async (path: string) => {
   if (
-    !basename(path).startsWith("release-") ||
+    !basename(path).startsWith("delivery-") ||
     basename(dirname(path)) !== ".staging"
   ) {
     throw new Error("Refusing to clean an unsafe delivery staging path.");
@@ -221,9 +232,9 @@ export const promoteDeliveryStaging = async ({
   readonly staging: string;
   readonly destination: string;
 }) => {
-  if (await deliveryReleaseExists(destination)) {
+  if (await deliveryExists(destination)) {
     throw new Error(
-      "Delivery release already exists and cannot be overwritten.",
+      "Delivery already exists and cannot be overwritten.",
     );
   }
   await rename(staging, destination);
@@ -261,30 +272,62 @@ export const writeDeliveryFileExclusive = async ({
   }
 };
 
-export const assertDeliveryReleaseEntries = async ({
-  releaseDir,
-  expected,
+export const writeDeliveryFileAtomicExclusive = async ({
+  destination,
+  bytes,
 }: {
-  readonly releaseDir: string;
-  readonly expected: readonly string[];
+  readonly destination: string;
+  readonly bytes: string | Uint8Array;
 }) => {
-  const rootMetadata = await lstat(releaseDir);
-  if (!rootMetadata.isDirectory() || rootMetadata.isSymbolicLink()) {
-    throw new Error("Delivery release must be a regular directory.");
+  const temporary = join(
+    dirname(destination),
+    `.${basename(destination)}.${randomUUID()}.tmp`,
+  );
+  const handle = await open(temporary, "wx", 0o600);
+  try {
+    await handle.writeFile(bytes);
+    await handle.sync();
+  } finally {
+    await handle.close();
   }
-  const entries = await readdir(releaseDir, { withFileTypes: true });
-  const actual = entries.map(({ name }) => name).sort();
+  try {
+    await link(temporary, destination);
+  } finally {
+    await unlink(temporary).catch((error: unknown) => {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    });
+  }
+};
+
+export const assertDeliveryEntries = async ({
+  deliveryDir,
+  expected,
+  ignoredOutputFileName,
+}: {
+  readonly deliveryDir: string;
+  readonly expected: readonly string[];
+  readonly ignoredOutputFileName?: string;
+}) => {
+  const rootMetadata = await lstat(deliveryDir);
+  if (!rootMetadata.isDirectory() || rootMetadata.isSymbolicLink()) {
+    throw new Error("Delivery must be a regular directory.");
+  }
+  const entries = await readdir(deliveryDir, { withFileTypes: true });
+  const packageEntries = entries.filter(
+    ({ name }) => name !== ignoredOutputFileName,
+  );
+  const actual = packageEntries.map(({ name }) => name).sort();
   const wanted = [...expected].sort();
   if (
     actual.length !== wanted.length ||
     actual.some((name, index) => name !== wanted[index])
   ) {
-    throw new Error("Delivery release contains missing or unknown files.");
+    throw new Error("Delivery contains missing or unknown files.");
   }
-  for (const entry of entries) {
+  for (const entry of packageEntries) {
     if (!entry.isFile() || entry.isSymbolicLink()) {
       throw new Error(
-        `Delivery release rejects non-files and symbolic links: ${entry.name}.`,
+        `Delivery rejects non-files and symbolic links: ${entry.name}.`,
       );
     }
   }

@@ -45,7 +45,7 @@ export const createInitialProductionRunState = (
     ],
     outputArtifacts: [],
     acceptedSceneResults: [],
-    ...(run.schemaVersion === 2 ? { acceptedGlobalVisualResult: null } : {}),
+    acceptedGlobalVisualResult: null,
     failure: null,
   });
 };
@@ -188,7 +188,6 @@ export const projectProductionRunState = ({
       };
     }
     if (
-      run.schemaVersion === 2 &&
       event.type === "stage-succeeded" &&
       event.stageId === "scenes" &&
       (accepted.size === 0 || acceptedGlobalVisualResult === null)
@@ -212,7 +211,7 @@ export const projectProductionRunState = ({
       inputFingerprints: sortedFingerprintRefs(inputs.values()),
       outputArtifacts: sortedOutputArtifacts(outputs.values()),
       acceptedSceneResults: [...accepted.values()],
-      ...(run.schemaVersion === 2 ? { acceptedGlobalVisualResult } : {}),
+      acceptedGlobalVisualResult,
       failure: event.type === "stage-failed" ? event.error : null,
     });
   }

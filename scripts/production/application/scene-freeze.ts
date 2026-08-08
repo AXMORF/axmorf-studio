@@ -11,7 +11,7 @@ import {
   StoryResourcePoolSchema,
   StorySpecSchema,
   VisualStyleSpecSchema,
-  buildSceneAssignmentV3,
+  buildSceneAssignment,
   buildSceneTaskInputV3,
   buildGlobalVisualAssignment,
   computeRenderSpecFingerprint,
@@ -88,9 +88,11 @@ const relevantSceneRequirements = (
         requirement.targetMeaningIds.some((target) => target === meaningId)),
   );
 
-export const assertSceneAssignmentIsolation = (
-  rawAssignments: readonly SceneAssignment[],
-) => {
+export const assertSceneAssignmentIsolation = <
+  Assignment extends SceneAssignment,
+>(
+  rawAssignments: readonly Assignment[],
+): readonly Assignment[] => {
   const assignments = rawAssignments.map((assignment) =>
     SceneAssignmentSchema.parse(assignment),
   );
@@ -113,7 +115,7 @@ export const assertSceneAssignmentIsolation = (
       }
     }
   }
-  return assignments;
+  return rawAssignments;
 };
 
 const resolveSceneFreezeInputs = async ({
@@ -163,15 +165,12 @@ const resolveSceneFreezeInputs = async ({
         "SceneProductionBrief",
       ),
     ]);
-  const globalVisualBrief =
-    current.requirements.schemaVersion === 4
-      ? GlobalVisualBriefSchema.parse(
-          await readRegularJson(
-            join(projectDir, "production/global-visual-brief.json"),
-            "GlobalVisualBrief",
-          ),
-        )
-      : null;
+  const globalVisualBrief = GlobalVisualBriefSchema.parse(
+    await readRegularJson(
+      join(projectDir, "production/global-visual-brief.json"),
+      "GlobalVisualBrief",
+    ),
+  );
   if (
     story.storyId !== loaded.run.storyId ||
     timing.storyId !== loaded.run.storyId ||
@@ -294,14 +293,6 @@ const buildAssignments = ({
         };
       },
     );
-    if (
-      current.requirements.schemaVersion !== 3 &&
-      current.requirements.schemaVersion !== 4
-    ) {
-      throw new Error(
-        "New Scene assignments require v3 shared-boundary requirements.",
-      );
-    }
     const taskInput = buildSceneTaskInputV3({
       storyId: story.storyId,
       meaningId: storyBeat.meaningId,
@@ -330,7 +321,7 @@ const buildAssignments = ({
         current.requirements.sceneBoundaryOwnership
           .sceneCompositionBoundaryVersion,
     });
-    return buildSceneAssignmentV3({
+    return buildSceneAssignment({
       runId: loaded.run.runId,
       storyId: story.storyId,
       meaningId: storyBeat.meaningId,
@@ -371,9 +362,8 @@ const buildGlobalVisualAssignmentForInputs = ({
     pool,
     globalVisualBrief,
   } = inputs;
-  if (current.requirements.schemaVersion !== 4) return null;
   if (globalVisualBrief === null) {
-    throw new Error("GlobalVisualBrief is required for v4 production.");
+    throw new Error("GlobalVisualBrief is required for current production.");
   }
   const allowedResourceIds = catalog.entries
     .filter(

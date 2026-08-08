@@ -225,7 +225,7 @@ export const buildSceneTaskInputV3 = (
   rawInput: SceneTaskV3FingerprintInput,
 ) => {
   const input = { ...rawInput, schemaVersion: 3 as const };
-  return SceneTaskInputSchema.parse({
+  return SceneTaskInputV3Schema.parse({
     ...input,
     taskInputFingerprint: computeSceneTaskInputFingerprint(input),
   });

@@ -9,7 +9,8 @@ import {
   buildGlobalVisualProductionResult,
   buildSceneAssignment,
   buildSceneProductionResult,
-  buildSceneTaskInput,
+  buildSceneTaskInputV3,
+  type ProductionReadabilityPolicy,
   type SceneAssignment,
   type GlobalVisualAssignment,
 } from "../../src/contracts";
@@ -35,14 +36,16 @@ const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 const createAssignments = ({
   runId,
   requirementsFingerprint,
+  readabilityPolicy,
   deadlineAt = "2026-08-04T00:30:00.000Z",
 }: {
   readonly runId: string;
   readonly requirementsFingerprint: string;
+  readonly readabilityPolicy: ProductionReadabilityPolicy;
   readonly deadlineAt?: string;
 }) =>
   (["opening", "conclusion"] as const).map((meaningId, index) => {
-    const taskInput = buildSceneTaskInput({
+    const taskInput = buildSceneTaskInputV3({
       storyId: "story-example",
       meaningId,
       storyBeat: {
@@ -64,6 +67,8 @@ const createAssignments = ({
       renderFingerprint: sha("3"),
       visualStyleFingerprint: sha("4"),
       resourceCatalogFingerprint: sha("5"),
+      readabilityPolicy,
+      sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
       allowedSnapshots: [],
       allowedResourceIds: [],
       continuity: {
@@ -86,6 +91,8 @@ const createAssignments = ({
       sceneBriefFingerprint: sha("6"),
       resourcePoolFingerprint: sha("7"),
       taskInput,
+      readabilityPolicy,
+      sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
       sceneBrief: {
         meaningId,
         visualIntent: "Show the timing boundary.",
@@ -101,7 +108,7 @@ const createAssignments = ({
     });
   });
 
-const successResult = (assignment: SceneAssignment) =>
+const successResult = (assignment: Extract<SceneAssignment, { schemaVersion: 3 }>) =>
   buildSceneProductionResult({
     runId: assignment.runId,
     storyId: assignment.storyId,
@@ -111,6 +118,10 @@ const successResult = (assignment: SceneAssignment) =>
     requirementsFingerprint: assignment.requirementsFingerprint,
     sceneBriefFingerprint: assignment.sceneBriefFingerprint,
     resourcePoolFingerprint: assignment.resourcePoolFingerprint,
+    readabilityPolicyFingerprint:
+      assignment.readabilityPolicy.policyFingerprint,
+    sceneCompositionBoundaryVersion:
+      assignment.sceneCompositionBoundaryVersion,
     occurredAt: FIXED_PRODUCTION_NOW.toISOString(),
     status: "success",
     scenePackage: {
@@ -191,6 +202,7 @@ const createFixture = async (context: TestContext, deadlineAt?: string) => {
   const assignments = createAssignments({
     runId: fixture.runId,
     requirementsFingerprint: fixture.requirements.requirementsFingerprint,
+    readabilityPolicy: fixture.requirements.readabilityPolicy,
     deadlineAt,
   });
   const globalVisualAssignment = createGlobalVisualAssignment({
@@ -212,7 +224,7 @@ const createFixture = async (context: TestContext, deadlineAt?: string) => {
 
 const resolver =
   (
-    assignments: readonly SceneAssignment[],
+    assignments: readonly Extract<SceneAssignment, { schemaVersion: 3 }>[],
     globalVisualAssignment = createGlobalVisualAssignment({
       runId: assignments[0]!.runId,
       requirementsFingerprint: assignments[0]!.requirementsFingerprint,
@@ -221,7 +233,7 @@ const resolver =
   ) =>
   async () => ({ assignments, globalVisualAssignment });
 
-test("accepts GlobalVisual first, waits for Scenes, and triggers post-scene once", async (context) => {
+test("accepts GlobalVisual first, waits for Scenes, and triggers render-ready once", async (context) => {
   const fixture = await createFixture(context);
   const [opening, conclusion] = fixture.assignments;
   await writeSceneProductionResult({
@@ -233,7 +245,7 @@ test("accepts GlobalVisual first, waits for Scenes, and triggers post-scene once
     result: successGlobalVisualResult(fixture.globalVisualAssignment),
   });
   let sleeps = 0;
-  let postSceneCalls = 0;
+  let renderReadyCalls = 0;
   const watched = await runProductionWatch({
     rootDir: fixture.rootDir,
     runId: fixture.runId,
@@ -253,23 +265,22 @@ test("accepts GlobalVisual first, waits for Scenes, and triggers post-scene once
     ),
     verifySuccess: async () => undefined,
     verifyGlobalVisualSuccess: async () => undefined,
-    postScene: async () => {
-      postSceneCalls += 1;
+    renderReady: async () => {
+      renderReadyCalls += 1;
     },
   });
-  assert.equal(watched.status, "post-scene-running");
+  assert.equal(watched.status, "render-ready-running");
   assert.equal(sleeps, 1);
-  assert.equal(postSceneCalls, 1);
+  assert.equal(renderReadyCalls, 1);
   const loaded = await readProductionRunStore(fixture);
-  assert.equal(loaded.state.state, "post-scene-running");
+  assert.equal(loaded.state.state, "render-ready-running");
   assert.deepEqual(
     new Set(
       loaded.state.acceptedSceneResults.map(({ meaningId }) => meaningId),
     ),
     new Set(["opening", "conclusion"]),
   );
-  assert.equal(loaded.state.schemaVersion, 2);
-  if (loaded.state.schemaVersion !== 2) assert.fail("v2 state required");
+  assert.equal(loaded.state.schemaVersion, 1);
   assert.equal(
     loaded.state.acceptedGlobalVisualResult?.resultFingerprint,
     successGlobalVisualResult(fixture.globalVisualAssignment).resultFingerprint,
@@ -286,12 +297,12 @@ test("accepts GlobalVisual first, waits for Scenes, and triggers post-scene once
     ),
     verifySuccess: async () => undefined,
     verifyGlobalVisualSuccess: async () => undefined,
-    postScene: async () => {
-      postSceneCalls += 1;
+    renderReady: async () => {
+      renderReadyCalls += 1;
     },
   });
   assert.equal(repeated.noOp, true);
-  assert.equal(postSceneCalls, 1);
+  assert.equal(renderReadyCalls, 2);
 });
 
 test("keeps all Scenes accepted until the GlobalVisual result arrives", async (context) => {
@@ -322,10 +333,10 @@ test("keeps all Scenes accepted until the GlobalVisual result arrives", async (c
     ),
     verifySuccess: async () => undefined,
     verifyGlobalVisualSuccess: async () => undefined,
-    postScene: async () => undefined,
+    renderReady: async () => undefined,
   });
   assert.equal(sleeps, 1);
-  assert.equal(watched.status, "post-scene-running");
+  assert.equal(watched.status, "render-ready-running");
 });
 
 test("accepts interleaved Scene, GlobalVisual, and Scene results", async (context) => {
@@ -358,10 +369,10 @@ test("accepts interleaved Scene, GlobalVisual, and Scene results", async (contex
     ),
     verifySuccess: async () => undefined,
     verifyGlobalVisualSuccess: async () => undefined,
-    postScene: async () => undefined,
+    renderReady: async () => undefined,
   });
   assert.equal(sleeps, 1);
-  assert.equal(watched.status, "post-scene-running");
+  assert.equal(watched.status, "render-ready-running");
 });
 
 test("times out a missing GlobalVisual result after all Scenes", async (context) => {
@@ -389,7 +400,7 @@ test("times out a missing GlobalVisual result after all Scenes", async (context)
       ),
       verifySuccess: async () => undefined,
       verifyGlobalVisualSuccess: async () => undefined,
-      postScene: async () => undefined,
+      renderReady: async () => undefined,
     }),
   );
   const loaded = await readProductionRunStore(fixture);
@@ -421,7 +432,7 @@ test("fails immediately on an explicit GlobalVisual failure", async (context) =>
       ),
       verifySuccess: async () => undefined,
       verifyGlobalVisualSuccess: async () => undefined,
-      postScene: async () => undefined,
+      renderReady: async () => undefined,
     }),
   );
   assert.equal(
@@ -468,7 +479,7 @@ test("fails closed for malformed stale and symlink GlobalVisual results", async 
           ),
           verifySuccess: async () => undefined,
           verifyGlobalVisualSuccess: async () => undefined,
-          postScene: async () => undefined,
+          renderReady: async () => undefined,
         }),
       );
       assert.equal(
@@ -515,7 +526,7 @@ test("detects mutation after accepting a GlobalVisual result", async (context) =
       ),
       verifySuccess: async () => undefined,
       verifyGlobalVisualSuccess: async () => undefined,
-      postScene: async () => undefined,
+      renderReady: async () => undefined,
     }),
   );
   assert.equal(sleeps, 1);
@@ -539,7 +550,7 @@ test("fails immediately on an explicit Scene failure", async (context) => {
     rootDir: fixture.rootDir,
     result: failure,
   });
-  let postSceneCalls = 0;
+  let renderReadyCalls = 0;
   await assert.rejects(() =>
     runProductionWatch({
       rootDir: fixture.rootDir,
@@ -548,15 +559,15 @@ test("fails immediately on an explicit Scene failure", async (context) => {
       scheduler: { sleep: async () => assert.fail("must not wait") },
       resolveAssignments: resolver(fixture.assignments),
       verifySuccess: async () => undefined,
-      postScene: async () => {
-        postSceneCalls += 1;
+      renderReady: async () => {
+        renderReadyCalls += 1;
       },
     }),
   );
   const loaded = await readProductionRunStore(fixture);
   assert.equal(loaded.state.state, "failed");
   assert.equal(loaded.state.failure?.code, "SCENE_BLOCKED");
-  assert.equal(postSceneCalls, 0);
+  assert.equal(renderReadyCalls, 0);
 });
 
 test("fails closed for malformed stale and unknown Scene results", async (context) => {
@@ -579,7 +590,7 @@ test("fails closed for malformed stale and unknown Scene results", async (contex
         scheduler: { sleep: async () => undefined },
         resolveAssignments: resolver(fixture.assignments),
         verifySuccess: async () => undefined,
-        postScene: async () => undefined,
+        renderReady: async () => undefined,
       }),
     );
     assert.equal(
@@ -606,7 +617,7 @@ test("fails closed for malformed stale and unknown Scene results", async (contex
         scheduler: { sleep: async () => undefined },
         resolveAssignments: resolver(fixture.assignments),
         verifySuccess: async () => undefined,
-        postScene: async () => undefined,
+        renderReady: async () => undefined,
       }),
     );
     assert.equal(
@@ -634,7 +645,7 @@ test("fails closed for malformed stale and unknown Scene results", async (contex
         scheduler: { sleep: async () => undefined },
         resolveAssignments: resolver(fixture.assignments),
         verifySuccess: async () => undefined,
-        postScene: async () => undefined,
+        renderReady: async () => undefined,
       }),
     );
     assert.equal(
@@ -659,7 +670,7 @@ test("times out a missing Scene at its frozen deadline", async (context) => {
       },
       resolveAssignments: resolver(fixture.assignments),
       verifySuccess: async () => undefined,
-      postScene: async () => undefined,
+      renderReady: async () => undefined,
     }),
   );
   assert.equal(
@@ -684,7 +695,7 @@ test("single writer lock rejects a second watcher", async (context) => {
     resolveAssignments: resolver(fixture.assignments),
     verifySuccess: async () => undefined,
     verifyGlobalVisualSuccess: async () => undefined,
-    postScene: async () => undefined,
+    renderReady: async () => undefined,
   });
   while (releaseSleep === undefined)
     await new Promise((resolve) => setImmediate(resolve));
@@ -698,7 +709,7 @@ test("single writer lock rejects a second watcher", async (context) => {
         resolveAssignments: resolver(fixture.assignments),
         verifySuccess: async () => undefined,
         verifyGlobalVisualSuccess: async () => undefined,
-        postScene: async () => undefined,
+        renderReady: async () => undefined,
       }),
     /active writer lock/i,
   );
@@ -733,7 +744,7 @@ test("shared freeze drift while waiting records failure", async (context) => {
         return { assignments: fixture.assignments };
       },
       verifySuccess: async () => undefined,
-      postScene: async () => undefined,
+      renderReady: async () => undefined,
     }),
   );
   assert.equal(
@@ -758,7 +769,7 @@ test("watcher never edits Scene result bytes", async (context) => {
       scheduler: { sleep: async () => undefined },
       resolveAssignments: resolver(fixture.assignments),
       verifySuccess: async () => undefined,
-      postScene: async () => undefined,
+      renderReady: async () => undefined,
     }),
   );
   assert.deepEqual(await readFile(written.resultPath), before);

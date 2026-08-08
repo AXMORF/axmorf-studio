@@ -20,18 +20,22 @@ import {
 } from "../adapters/run-store";
 import { createProductionStageEvent } from "../domain/events";
 import { createExpectedProductionError } from "../domain/errors";
-import { runProductionPostScene } from "./post-scene";
+import { runProductionRenderReady } from "./render-ready";
 import { readExistingGlobalVisualResult } from "./global-visual-check";
 import { validateGlobalVisualFromProjectFiles } from "./global-visual-validator";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
 import { validateSceneReadability } from "./readability-validator";
 
+type CurrentSceneAssignment = Extract<SceneAssignment, { schemaVersion: 3 }>;
 type CurrentAssignments = Readonly<{
-  assignments: readonly SceneAssignment[];
+  assignments: readonly CurrentSceneAssignment[];
   globalVisualAssignment?: GlobalVisualAssignment | null;
 }>;
 
-type SuccessResult = Extract<SceneProductionResult, { status: "success" }>;
+type SuccessResult = Extract<
+  SceneProductionResult,
+  { schemaVersion: 3; status: "success" }
+>;
 type GlobalVisualSuccessResult = Extract<
   GlobalVisualProductionResult,
   { status: "success" }
@@ -107,7 +111,7 @@ const defaultVerifySuccess = async ({
   result,
 }: {
   readonly rootDir: string;
-  readonly assignment: SceneAssignment;
+  readonly assignment: CurrentSceneAssignment;
   readonly result: SuccessResult;
 }) => {
   const scenePackage = ScenePackageSchema.parse(
@@ -116,23 +120,19 @@ const defaultVerifySuccess = async ({
     ),
   );
   const readabilityIdentityStale =
-    assignment.schemaVersion !== 1 &&
-    (scenePackage.schemaVersion !== assignment.schemaVersion ||
-      result.schemaVersion !== assignment.schemaVersion ||
-      !("readabilityPolicyFingerprint" in scenePackage) ||
-      !("readabilityPolicyFingerprint" in result) ||
-      scenePackage.readabilityPolicyFingerprint !==
-        assignment.readabilityPolicy.policyFingerprint ||
-      result.readabilityPolicyFingerprint !==
-        assignment.readabilityPolicy.policyFingerprint);
+    scenePackage.schemaVersion !== 3 ||
+    result.schemaVersion !== 3 ||
+    scenePackage.readabilityPolicyFingerprint !==
+      assignment.readabilityPolicy.policyFingerprint ||
+    result.readabilityPolicyFingerprint !==
+      assignment.readabilityPolicy.policyFingerprint;
   const sharedBoundaryIdentityStale =
-    assignment.schemaVersion === 3 &&
-    (scenePackage.schemaVersion !== 3 ||
-      result.schemaVersion !== 3 ||
-      scenePackage.sceneCompositionBoundaryVersion !==
-        assignment.sceneCompositionBoundaryVersion ||
-      result.sceneCompositionBoundaryVersion !==
-        assignment.sceneCompositionBoundaryVersion);
+    scenePackage.schemaVersion !== 3 ||
+    result.schemaVersion !== 3 ||
+    scenePackage.sceneCompositionBoundaryVersion !==
+      assignment.sceneCompositionBoundaryVersion ||
+    result.sceneCompositionBoundaryVersion !==
+      assignment.sceneCompositionBoundaryVersion;
   if (
     scenePackage.storyId !== assignment.storyId ||
     scenePackage.meaningId !== assignment.meaningId ||
@@ -164,9 +164,7 @@ const defaultVerifySuccess = async ({
   ) {
     throw new Error("Scene result renderer source graph is stale.");
   }
-  if (assignment.schemaVersion !== 1) {
-    await validateSceneReadability({ rootDir, assignment, graph });
-  }
+  await validateSceneReadability({ rootDir, assignment, graph });
   const mechanicalCheckFingerprint = createFingerprint({
     namespace: "production-scene-mechanical-check",
     version: 1,
@@ -174,18 +172,10 @@ const defaultVerifySuccess = async ({
       assignmentFingerprint: assignment.assignmentFingerprint,
       packageFingerprint: scenePackage.packageFingerprint,
       rendererSourceGraphFingerprint: graph.sourceGraphFingerprint,
-      ...(assignment.schemaVersion !== 1
-        ? {
-            readabilityPolicyFingerprint:
-              assignment.readabilityPolicy.policyFingerprint,
-          }
-        : {}),
-      ...(assignment.schemaVersion === 3
-        ? {
-            sceneCompositionBoundaryVersion:
-              assignment.sceneCompositionBoundaryVersion,
-          }
-        : {}),
+      readabilityPolicyFingerprint:
+        assignment.readabilityPolicy.policyFingerprint,
+      sceneCompositionBoundaryVersion:
+        assignment.sceneCompositionBoundaryVersion,
     },
   });
   if (mechanicalCheckFingerprint !== result.mechanicalCheckFingerprint) {
@@ -290,9 +280,10 @@ const readSceneResult = async ({
     if (!metadata.isFile() || metadata.isSymbolicLink()) {
       throw new Error("Scene result must be a regular file.");
     }
-    return SceneProductionResultSchema.parse(
+    const result = SceneProductionResultSchema.parse(
       JSON.parse(await readFile(path, "utf8")),
     );
+    return result;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw new WatchFailure({
@@ -339,19 +330,16 @@ const assertResultMatchesAssignment = ({
   assignment,
 }: {
   readonly result: SceneProductionResult;
-  readonly assignment: SceneAssignment;
+  readonly assignment: CurrentSceneAssignment;
 }) => {
   const readabilityIdentityStale =
-    assignment.schemaVersion !== 1 &&
-    (result.schemaVersion !== assignment.schemaVersion ||
-      !("readabilityPolicyFingerprint" in result) ||
-      result.readabilityPolicyFingerprint !==
-        assignment.readabilityPolicy.policyFingerprint);
+    result.schemaVersion !== 3 ||
+    result.readabilityPolicyFingerprint !==
+      assignment.readabilityPolicy.policyFingerprint;
   const sharedBoundaryIdentityStale =
-    assignment.schemaVersion === 3 &&
-    (result.schemaVersion !== 3 ||
-      result.sceneCompositionBoundaryVersion !==
-        assignment.sceneCompositionBoundaryVersion);
+    result.schemaVersion !== 3 ||
+    result.sceneCompositionBoundaryVersion !==
+      assignment.sceneCompositionBoundaryVersion;
   if (
     result.runId !== assignment.runId ||
     result.storyId !== assignment.storyId ||
@@ -457,7 +445,7 @@ export const runProductionWatch = async ({
   resolveAssignments = defaultResolveAssignments,
   verifySuccess = defaultVerifySuccess,
   verifyGlobalVisualSuccess = defaultVerifyGlobalVisualSuccess,
-  postScene = runProductionPostScene,
+  renderReady = runProductionRenderReady,
 }: {
   readonly rootDir: string;
   readonly runId: string;
@@ -469,7 +457,7 @@ export const runProductionWatch = async ({
   }) => Promise<CurrentAssignments>;
   readonly verifySuccess?: (request: {
     readonly rootDir: string;
-    readonly assignment: SceneAssignment;
+    readonly assignment: CurrentSceneAssignment;
     readonly result: SuccessResult;
   }) => Promise<void>;
   readonly verifyGlobalVisualSuccess?: (request: {
@@ -477,7 +465,7 @@ export const runProductionWatch = async ({
     readonly assignment: GlobalVisualAssignment;
     readonly result: GlobalVisualSuccessResult;
   }) => Promise<void>;
-  readonly postScene?: (request: {
+  readonly renderReady?: (request: {
     readonly rootDir: string;
     readonly runId: string;
   }) => Promise<unknown>;
@@ -492,11 +480,11 @@ export const runProductionWatch = async ({
     ownerId: "production-watch",
     acquiredAt: acquiredAt.toISOString(),
   });
-  let shouldRunPostScene = false;
+  let shouldRunRenderReady = false;
   let outcome:
     | Readonly<{
         runId: string;
-        status: "post-scene-running" | "preview-ready";
+        status: "render-ready-running" | "render-ready";
         noOp: boolean;
         acceptedMeaningIds: readonly string[];
       }>
@@ -504,8 +492,8 @@ export const runProductionWatch = async ({
   try {
     let loaded = await readProductionRunStore({ rootDir, runId });
     if (
-      loaded.state.state === "post-scene-running" ||
-      loaded.state.state === "preview-ready"
+      loaded.state.state === "render-ready-running" ||
+      loaded.state.state === "render-ready"
     ) {
       outcome = {
         runId,
@@ -515,7 +503,7 @@ export const runProductionWatch = async ({
           ({ meaningId }) => meaningId,
         ),
       };
-      shouldRunPostScene = loaded.state.state === "preview-ready";
+      shouldRunRenderReady = true;
     } else {
       if (
         loaded.state.state !== "scene-inputs-frozen" &&
@@ -556,16 +544,13 @@ export const runProductionWatch = async ({
       }
 
       for (;;) {
-        let assignments: readonly SceneAssignment[];
+        let assignments: readonly CurrentSceneAssignment[];
         let globalVisualAssignment: GlobalVisualAssignment | null = null;
         try {
           const resolved = await resolveAssignments({ rootDir, runId });
           assignments = resolved.assignments;
           globalVisualAssignment = resolved.globalVisualAssignment ?? null;
-          if (
-            loaded.run.schemaVersion === 2 &&
-            globalVisualAssignment === null
-          ) {
+          if (globalVisualAssignment === null) {
             throw new Error("GlobalVisualAssignment is missing.");
           }
         } catch {
@@ -610,9 +595,7 @@ export const runProductionWatch = async ({
           ]),
         );
         let acceptedGlobalVisualResult =
-          loaded.state.schemaVersion === 2
-            ? loaded.state.acceptedGlobalVisualResult
-            : null;
+          loaded.state.acceptedGlobalVisualResult;
         if (globalVisualAssignment !== null) {
           const globalVisualResult = await readGlobalVisualResult({
             rootDir,
@@ -709,7 +692,7 @@ export const runProductionWatch = async ({
           }
         }
         for (const assignment of assignments) {
-          const result: SceneProductionResult | null = await readSceneResult({
+          const result = await readSceneResult({
             rootDir,
             runId,
             meaningId: assignment.meaningId,
@@ -791,8 +774,7 @@ export const runProductionWatch = async ({
 
         if (
           accepted.size === assignments.length &&
-          (loaded.run.schemaVersion === 1 ||
-            acceptedGlobalVisualResult !== null)
+          acceptedGlobalVisualResult !== null
         ) {
           const completedAt = clock();
           loaded = {
@@ -850,10 +832,10 @@ export const runProductionWatch = async ({
               })
             ).state,
           };
-          shouldRunPostScene = true;
+          shouldRunRenderReady = true;
           outcome = {
             runId,
-            status: "post-scene-running",
+            status: "render-ready-running",
             noOp: false,
             acceptedMeaningIds: assignments.map(({ meaningId }) => meaningId),
           };
@@ -922,19 +904,19 @@ export const runProductionWatch = async ({
   if (outcome === undefined) {
     throw new Error("Production watcher completed without an outcome.");
   }
-  if (shouldRunPostScene) {
-    const postSceneResult = await postScene({ rootDir, runId });
+  if (shouldRunRenderReady) {
+    const renderReadyResult = await renderReady({ rootDir, runId });
     if (
-      postSceneResult !== null &&
-      typeof postSceneResult === "object" &&
-      "runId" in postSceneResult &&
-      typeof postSceneResult.runId === "string" &&
-      "status" in postSceneResult &&
-      typeof postSceneResult.status === "string" &&
-      "noOp" in postSceneResult &&
-      typeof postSceneResult.noOp === "boolean"
+      renderReadyResult !== null &&
+      typeof renderReadyResult === "object" &&
+      "runId" in renderReadyResult &&
+      typeof renderReadyResult.runId === "string" &&
+      "status" in renderReadyResult &&
+      typeof renderReadyResult.status === "string" &&
+      "noOp" in renderReadyResult &&
+      typeof renderReadyResult.noOp === "boolean"
     ) {
-      return postSceneResult as ProductionWatchResult;
+      return renderReadyResult as ProductionWatchResult;
     }
     return outcome;
   }

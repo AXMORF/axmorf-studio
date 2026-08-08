@@ -270,26 +270,26 @@ export const resolveM3GeneratedRegistryChecksum = async ({
   readonly storyId: string;
   readonly entry: ValidatedProjectRegistrationEntry;
 }) => {
-  const legacyReceiptPath = join(
+  const currentReceiptPath = join(
     rootDir,
     `src/projects/${storyId}/generated/narrative-baseline-evidence.generated.json`,
   );
   try {
-    const legacyReceipt = M3NarrativeBaselineEvidenceReceiptSchema.parse(
-      JSON.parse(await readFile(legacyReceiptPath, "utf8")),
+    const currentReceipt = M3NarrativeBaselineEvidenceReceiptSchema.parse(
+      JSON.parse(await readFile(currentReceiptPath, "utf8")),
     );
     if (
-      legacyReceipt.storyId !== storyId ||
-      legacyReceipt.projectRegistryEntryFingerprint !==
+      currentReceipt.storyId !== storyId ||
+      currentReceipt.projectRegistryEntryFingerprint !==
         entry.projectRegistryEntryFingerprint ||
-      legacyReceipt.narrativeBaselineFingerprint !==
+      currentReceipt.narrativeBaselineFingerprint !==
         entry.narrativeBaselineFingerprint
     ) {
       throw new Error(
-        "Legacy M3 evidence identity is stale against its registry entry.",
+        "Current M3 evidence identity is stale against its registry entry.",
       );
     }
-    return legacyReceipt.generatedRegistryChecksum;
+    return currentReceipt.generatedRegistryChecksum;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     return entry.generatedEntryChecksum;

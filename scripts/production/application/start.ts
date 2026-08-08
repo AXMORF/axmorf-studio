@@ -4,7 +4,7 @@ import { join, relative, sep } from "node:path";
 
 import {
   DEFAULT_PRODUCTION_RUN_POLICY,
-  createProductionRunManifestV2,
+  createProductionRunManifest,
   ProductionRequirementsFreezeSchema,
   resolveCurrentProductionRequirements,
   StoryIdSchema,
@@ -144,9 +144,9 @@ export const runProductionStart = async ({
     projectId: rawProjectId,
   });
   const { projectId, requirements } = inputs;
-  if (requirements.schemaVersion !== 4) {
+  if (requirements.schemaVersion !== 1) {
     throw new Error(
-      "New production runs require production-requirements-freeze-v4.",
+      "New production runs require production-requirements-current-v1.",
     );
   }
   requireCurrentProductionReadabilityPolicy(requirements);
@@ -164,13 +164,12 @@ export const runProductionStart = async ({
     rootDir,
     storyId: projectId,
     mode: "write",
-    readabilityPolicyAware: true,
   });
 
   const now = clock();
   if (Number.isNaN(now.getTime()))
     throw new Error("Production clock is invalid.");
-  const run = createProductionRunManifestV2({
+  const run = createProductionRunManifest({
     runId: createRunId({ storyId: projectId, now }),
     storyId: projectId,
     requirementsPath: `src/projects/${projectId}/production/requirements.json`,

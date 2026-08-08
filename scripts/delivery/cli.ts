@@ -1,11 +1,11 @@
 import { pathToFileURL } from "node:url";
 
-import { DeliveryReleaseIdSchema, StoryIdSchema } from "../../src/contracts";
+import { DeliveryIdSchema, StoryIdSchema } from "../../src/contracts";
 import { buildDelivery } from "./application/build";
 import { checkDelivery } from "./application/check";
 
 type BuildRequest = Readonly<{ projectId: string }>;
-type CheckRequest = Readonly<{ projectId: string; releaseId: string }>;
+type CheckRequest = Readonly<{ projectId: string; deliveryId: string }>;
 
 export type DeliveryCliContext = Readonly<{
   rootDir: string;
@@ -35,22 +35,22 @@ export const runDeliveryCli = async (
     args.length === 5 &&
     args[0] === "check" &&
     args[1] === "--project" &&
-    args[3] === "--release"
+    args[3] === "--delivery"
   ) {
     const projectId = StoryIdSchema.parse(args[2]);
-    const releaseId = DeliveryReleaseIdSchema.parse(args[4]);
+    const deliveryId = DeliveryIdSchema.parse(args[4]);
     const result = context.check
-      ? await context.check({ projectId, releaseId })
+      ? await context.check({ projectId, deliveryId })
       : await checkDelivery({
           rootDir: context.rootDir,
           projectId,
-          releaseId,
+          deliveryId,
         });
     context.stdout(JSON.stringify(result));
     return result;
   }
   throw new Error(
-    "Expected delivery build --project <id> or delivery check --project <id> --release <release-id>.",
+    "Expected delivery build --project <id> or delivery check --project <id> --delivery <delivery-id>.",
   );
 };
 

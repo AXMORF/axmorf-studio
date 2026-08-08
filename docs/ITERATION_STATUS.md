@@ -2,122 +2,82 @@
 
 > 文档类型：当前事实权威
 >
-> 最后复核：2026-08-08
+> 最后复核：2026-08-09
 >
-> 当前阶段：M10 本地交付已完成；后续能力分别规划
+> 当前阶段：clean-break production render handoff 与自动交付已实现
 
 ## 当前基线
 
-仓库已完成 M1–M10 以及后续 production preflight、Scene ownership 和 GlobalVisual contract
-hardening。当前主链可以把
-一个新 Story 推进到机械 `preview-ready / awaiting-user-preview`，但不会代签用户批准、执行
-promotion 或自动进入交付。用户批准后，独立 `delivery:*` 能力可以把 exact current preview
-封存为本地可复验 release；它不改变 production 状态或连接发布平台。
+仓库只有一套 current production/delivery 路径。production 从 strict 当前输入开始，经 immutable
+Scene/GlobalVisual results 和 append-only Run 投影，到达
+`render-ready / awaiting-automatic-delivery`。随后 `delivery:build` 确定性准备非 MP4 包并发起
+detached Remotion render；收到 OS spawn acknowledgement 后返回 `delivery-render-started`。
+
+该终点不是媒体成功证据。current scripts 不等待 detached child，不读取、hash、probe 或 decode
+计划 MP4，也不从旧 Run、旧作品或旧 delivery 推断状态。
+
+当前工作树是 zero-Project baseline。历史本地 Projects、Runs、媒体和 deliveries 已按用户明确
+授权删除；下一个新视频将是本流程的第一个真实 Project。新的 `deliveries/` 不是
+checksum-bound verified release，ledger 只封存 immutable 非 MP4 bytes。
 
 ## 已实现
 
-### 叙事与时间
+### 叙事、时间与 Scene
 
-- `VideoBrief`、`StorySpec`、`NarrationSpec`、`RenderSpec`、StoryBeat 和 authored
-  `ttsChunks` 严格合同；工具不按标点重新拆分朗读单元。
-- VoxCPM 候选生成、恢复、PCM 规范化、实测、checksum/fingerprint 封存。
-- `pcm-cumulative-ceil-v1` 累计整数 sample-frame 时间算法、`SemanticTiming` 和
-  1:1 `CaptionCue`。
-- 透明 `NarrativeCore`、唯一顶层 `CaptionLayer`、静态 ProjectRegistry、lazy Composition
-  和 Narrative Baseline 机械检查。
+- strict VideoBrief、StorySpec、NarrationSpec、RenderSpec、StoryBeat、Agent-authored ttsChunks。
+- VoxCPM 候选、sealed PCM、checksum/fingerprint、`pcm-cumulative-ceil-v1`、SemanticTiming 与
+  CaptionCue。
+- Composition-owned `SceneSafeArea`、唯一顶层 CaptionLayer、透明语义 Scene root。
+- 每个 meaningId 一个 Scene owner；每个 Story 一个独立 GlobalVisual owner；immutable result
+  contracts 由 single-writer watcher 汇合。
+- ResourceCatalog、composition-local RendererRegistry、ScenePackage、Coverage、visual/sound
+  projection 与 FinalAssembly。
 
-### Scene 与最终装配
+### 当前 production render handoff
 
-- `VisualStyleSpec`、ResourceCatalog、SceneTask/Plan/Package/Coverage、静态 RendererRegistry。
-- 一 StoryBeat 对应一个 `meaningId` 和一个 Scene；ScenePackage 内聚视觉与 Scene 局部声音。
-- `StoryVisualTrack`、`SoundDesignTrack`、GlobalSound、project-local `GlobalVisualLayers` 和
-  `FinalAssembly` 固定所有权与投影。
-- GPS 横屏作品与 ProductComicVertical 竖屏作品历史上均完成真实预览、用户批准、evidence
-  和 passing `final-mechanical-check-v2`；其 Project、媒体和 evidence 现为本地 ignored 叶节点，
-  不再作为 fresh clone 的 core 健康前置条件。
+- current `ProductionRequirementsFreeze`、append-only events、派生 ProductionRunState。
+- fixed preflight/start/narrative/scene freeze/check/submit/fail、GlobalVisual
+  check/submit/fail、watch、status 与 render-ready check。
+- `production-render-plan-v1` 绑定 Story/Run、Composition、source checksum、尺寸、fps、帧数、
+  layer/mix order 和固定 Remotion policy。
+- `production-render-ready-v1` 绑定 render plan 与全部 current assembly identities；终态固定为
+  `render-ready / awaiting-automatic-delivery`。
+- render-ready check 只重算 current contracts，保持 events 与产物 byte/mtime 不变。
 
-### 稳定生产编排
+### PublishingIntent、Cover 与自动交付
 
-- versioned `ProductionRequirementsFreeze`、append-only events、派生 `ProductionRunState`、
-  immutable Scene/GlobalVisual result 和中央 single-writer watcher。
-- 固定 CLI 已覆盖 preflight/start/status/narrative/scene freeze、Scene check/submit/fail、
-  GlobalVisual check/submit/fail、watch 和 preview check。
-- Run-before-write VoxCPM/Chromium preflight；外部环境 blocker 不再先污染 immutable Run。
-- future-only production 使用 v4 requirements 和 `production-readability-v1`；旧 v1-v3
-  artifacts 只读兼容，不迁移、不回填。
-- Composition exactly once 提供 `SceneSafeArea`；Scene Renderer 不接收 boundary ownership，
-  根节点保持透明，只输出当前 Beat 的语义视觉。
-- v4 freeze 原子生成 N 个 Scene assignment 和一个 whole-film GlobalVisual assignment；两类
-  owner 并行创作，通过 package/result 数据合同汇合。repo 不监控或保存 Agent/task/thread/
-  progress/heartbeat 状态。
-- v4 Preview 必须绑定 current GlobalVisualProjection/Package/source identities；仍不自动增加
-  BGM、跨 Scene ambience 或 ducking，终点只表示 mechanically ready。
+- PublishingIntent 在 Story 阶段绑定 Story fingerprint；title 由 StorySpec 独占，章节 frame/time
+  从 SemanticTiming 确定性投影。
+- 独立 Cover assignment/package/result 与 `delivery:cover:freeze/check/submit` 保留；Cover owner
+  只消费 StorySpec、VisualStyleSpec 和固定 CoverSpec，不加入 production watcher/state。
+- `delivery-launch-manifest-v1`、`render-launch-intent-v1`、`render-launch-receipt-v1` 与
+  `detached-spawn-acknowledgement-v1` 已实现。
+- `deliveryId` 绑定 PublishingIntent、Cover result、render-ready、render plan、Composition 与
+  exact argv/policy；同一 current 输入得到同一 identity。
+- build 先在 staging 写 Covers、publishing、handoff、manifest、intent 和 immutable checksum
+  ledger，完整检查后原子提升，再 detached spawn Remotion。
+- receipt 只在 OS `spawn` 事件后 exclusive write；已有 receipt 的重复 build 只读复验并
+  `noOp: true`。
+- intent 已存在但 receipt 缺失时状态永久 launch-ambiguous，命令 fail closed 且禁止重试。
+- `delivery:check` 校验非 MP4 包与 receipt，但明确忽略 exact 计划 MP4 路径，不读取其 metadata
+  或内容。
 
-### M10 本地交付 v1 compatibility 与 future-only v2
+### 工程与可删除性
 
-- 既有 `delivery-specification-v1`、`delivery-release-manifest-v1` 和已有 release 不迁移、不
-  回填、不改 identity；`delivery:check` 可在没有 current v2 Project inputs 时自包含只读复验。
-- future-only `PublishingIntent` 在 Story 阶段绑定 current Story fingerprint；title 只来自
-  StorySpec，description/topics/free-text collection/ordered chapter names 只创作一次，章节不保存
-  frame/timecode。
-- 固定 CoverSpec、Cover assignment/package/result v2 和 exact
-  `delivery:cover:freeze/check/submit -- --project <storyId>` 已实现。一个独立 owner 同时制作
-  1600×1200 与 1200×1600 的纯代码独立 Composition；其 assignment 只包含 StorySpec、
-  VisualStyleSpec 和 CoverSpec。
-- Cover 与 N Scene + GlobalVisual 同时分发，但不进入 production watcher/state。Cover 缺失或
-  失败不阻止 preview-ready，只阻止 future-only delivery。
-- v2 `releaseId` 绑定 current FinalPreviewApproval、FinalAssembly 和 delivery specification；
-  specification 再绑定 PublishingIntent、Cover result 和固定 archive policy。相同 release 幂等
-  复验，不同或漂移内容 fail closed。
-- v2 build 只复制已批准 exact preview 与 immutable Cover result 的 exact PNG，不调用 Agent、
-  Remotion render 或重新编码；publishing/manifest/checksum/handoff 均由脚本确定性投影。
-- MP4、PNG、JSON 和 ledger 均在原子 staging 内完成 ffprobe/FFmpeg/尺寸/checksum/canonical
-  复验后才封存；绝对路径、`..`、符号链接、未知文件和半成品均被拒绝。
-- `product-comic-vertical` 已新增 v2 local release
-  `release-13d1965fb25769a118e31405dee53758228d3f6916452c579c24273876ebced7`；MP4 checksum
-  `c70a25a898abe828e90664b061e2e18840420099bb82bbe33b49357642f05b30` 与获批 preview 完全
-  一致，两张新路径封面均完成全尺寸、缩略图和主 Agent 视觉复检，旧 v1 cover/release 未修改。
-- `deliveries/`、Project source 与交付媒体继续是 ignored 本地叶节点；删除 `deliveries/`
-  不影响 core 默认检查，交付只由显式命令 fail closed。
+- `scripts/production` 与 `scripts/delivery` 均按 cli/application/domain/adapters 分层。
+- `public/`、`src/projects/`、Registry/Catalog 投影、`out/`、`deliveries/` 和 Run 均是 ignored
+  本地产物；bootstrap 从 zero Project 重建 core proof 与 zero-safe 聚合。
+- 默认 source gate 不读取历史媒体；显式 media 检查 fail closed；Project deletion matrix 只在
+  隔离副本中验证。
+- render runtime 不调用 Agent、Skill、MCP、Git、目录扫描或网络服务；所有 motion 使用
+  Remotion frame API。
 
-### 工程与验证
+## 明确不实现
 
-- `scripts/production` 按 `cli / application / domain / adapters` 分层。
-- milestone 命名的脚本目录已收口为稳定职责：通用 production、本地作品静态验证、
-  Project-owned `src/projects/<story>/tools`、`proofs/` synthetic proof 和窄 compatibility 模块。
-- 本地正式作品的完整复验由各自 Project-owned `verification.profile.json` 编排；profile 不含
-  脚本路径，通用 adapter 只解析当前 Project 的固定工具位置，未知或缺失绑定失败。
-- production scaffold 使用显式版本模板；shared Scene boundary 用 TypeScript AST 验证所有权，
-  不再依赖格式敏感的整段源码替换或 exact prose/source 匹配。
-- zero-project bootstrap 已实现：`public/`、`src/projects/` 和两份当前集聚合投影均为 ignored
-  本地产物；fresh clone 在常用 npm 入口前重建 core proof 资产、空 Catalog/Registry，并只列出
-  `CapabilityGallery`。
-- `src/contracts`、`src/remotion/runtime`、`src/remotion/capabilities` 与
-  `src/projects/<story>` 维持合同、runtime、共享能力和作品实现的明确边界。
-- `npm run check:static` 提供无 Chromium 门禁；`npm run check:host` 负责当前本地 Composition
-  和 Project profile 门禁；零 Project 时 profile 集为空但 Composition listing 仍真实启动
-  Chromium。`npm run check` 顺序执行两者。
-- active 文档使用 authority / guide / evidence / archive 生命周期并受本地链接门禁约束。
-- Project 可删除性与产物解耦已实现：Registry/Catalog 对当前集 zero-safe，具体 Project 自有
-  profile、工具与测试，默认 source/check 不读取 `out/`；显式 media/evidence/approval 仍
-  fail closed。隔离 A–F 矩阵已证明单 Project、全部 Project、对应 public、整个 `out/` 的删除，
-  以及从零加入 synthetic Project。迁移只取消 Git 跟踪，当前工作树本地作品与媒体未删除。
-
-## 尚未实现
-
-- NarrativeCheck 与主观 Story、旁白、字幕、整体叙事节奏审核。
-- 用户预览后的定点 Scene 修改循环。
-- 已提出 promotion proposal 的明确批准与共享能力迁移。
+- detached render 的后台状态机、轮询、重试、完成标记或媒体检查。
 - 平台上传、账号、网络发布、密钥或权限管理。
+- NarrativeCheck、主观审美 gate、自动修片和未批准的 capability promotion。
+- 对旧 Run、旧作品、旧 release 或旧媒体的 runtime compatibility、迁移或回填。
 
-以上内容不得写成已有能力。机械 Preview、Agent review 和 checker 都不能创建
-`FinalPreviewApproval`。
-
-## 当前维护边界
-
-- render runtime 不调用 Agent、Skill、MCP、Git、目录扫描或网络服务。
-- 所有 render-critical 资产位于 `public/` 并有可校验 identity。
-- 所有 motion 使用 Remotion frame API；不使用 CSS animation/transition。
-- 新共享能力仍需具体 promotion proposal 和用户明确批准。
-
-下一阶段定义见 [ROADMAP.md](ROADMAP.md)，详细历史证明从 [文档导航](README.md) 进入。
+下一阶段只从 [ROADMAP.md](ROADMAP.md) 进入；执行合同见
+[PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。

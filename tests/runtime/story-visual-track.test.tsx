@@ -140,12 +140,20 @@ test("SceneSlot owns the exact Beat Sequence and resolves one current renderer",
   assert.equal(entry.status, "ready");
   const Renderer = () => <div />;
   const registry = { [entry.rendererId]: Renderer };
+  const policy = resolveProductionReadabilityPolicy({
+    width: 1080,
+    height: 1920,
+  });
   assert.equal(resolveSceneRenderer(registry, entry.rendererId), Renderer);
   assert.throws(() => resolveSceneRenderer(registry, "unknown"));
   const element = SceneSlot({
     entry,
     registry,
-    rendererProps: {} as Omit<SceneRendererProps, "sceneFrame">,
+    rendererProps: {
+      durationInFrames: 120,
+      sceneBoundaryVersion: "scene-composition-boundary-v1",
+      readabilityPolicy: policy,
+    } as SceneRendererMountProps,
   });
   assert.ok(isValidElement<ElementProps>(element));
   assert.equal(element.type, Sequence);
@@ -153,7 +161,7 @@ test("SceneSlot owns the exact Beat Sequence and resolves one current renderer",
   assert.equal(element.props.durationInFrames, 120);
 });
 
-test("v3 SceneSlot keeps boundary policy internal to the mount", () => {
+test("current SceneSlot keeps boundary policy internal to the mount", () => {
   const { projection } = makeProjection();
   const entry = projection.entries[0];
   assert.equal(entry.status, "ready");
@@ -175,55 +183,41 @@ test("v3 SceneSlot keeps boundary policy internal to the mount", () => {
   assert.equal(Children.count(element.props.children), 1);
 });
 
-test("Scene renderer and mount props keep v1 v2 and v3 ownership boundaries", () => {
+test("Scene renderer and mount props enforce the current ownership boundary", () => {
   assert.equal(rendererBoundaryIsExcluded, false);
   assert.equal(mountBoundaryIsIncluded, true);
   const Renderer = () => <div />;
-  const baseProps = {
-    durationInFrames: 120,
-  } as SceneRendererMountProps;
   const policy = resolveProductionReadabilityPolicy({
     width: 1080,
     height: 1920,
   });
-
-  const v1 = renderSceneRendererMount(Renderer, baseProps, 4);
-  assert.ok(isValidElement<SceneRendererProps>(v1));
-  assert.equal(v1.type, Renderer);
-  assert.equal(v1.props.readabilityPolicy, undefined);
-
-  const v2 = renderSceneRendererMount(
-    Renderer,
-    { ...baseProps, readabilityPolicy: policy },
-    5,
-  );
-  assert.ok(isValidElement<SceneRendererProps>(v2));
-  assert.equal(v2.type, Renderer);
-  assert.equal(v2.props.readabilityPolicy, policy);
-
-  const v3 = renderSceneRendererMount(
+  const current = renderSceneRendererMount(
     Renderer,
     {
-      ...baseProps,
+      durationInFrames: 120,
       sceneBoundaryVersion: "scene-composition-boundary-v1",
       readabilityPolicy: policy,
-    },
+    } as SceneRendererMountProps,
     6,
   );
   assert.ok(
     isValidElement<{
       readonly policy: typeof policy;
       readonly children: ReactNode;
-    }>(v3),
+    }>(current),
   );
-  assert.equal(v3.type, SceneSafeArea);
-  assert.equal(v3.props.policy, policy);
-  assert.ok(isValidElement<SceneRendererProps>(v3.props.children));
-  assert.equal(v3.props.children.type, Renderer);
-  assert.equal(v3.props.children.props.sceneFrame, 6);
-  assert.equal(v3.props.children.props.readabilityPolicy, undefined);
+  assert.equal(current.type, SceneSafeArea);
+  assert.equal(current.props.policy, policy);
+  assert.ok(isValidElement<SceneRendererProps>(current.props.children));
+  assert.equal(current.props.children.type, Renderer);
+  assert.equal(current.props.children.props.sceneFrame, 6);
   assert.equal(
-    (v3.props.children.props as Readonly<Record<string, unknown>>)
+    (current.props.children.props as Readonly<Record<string, unknown>>)
+      .readabilityPolicy,
+    undefined,
+  );
+  assert.equal(
+    (current.props.children.props as Readonly<Record<string, unknown>>)
       .sceneBoundaryVersion,
     undefined,
   );
@@ -233,12 +227,13 @@ test("Scene renderer and mount props keep v1 v2 and v3 ownership boundaries", ()
       renderSceneRendererMount(
         Renderer,
         {
-          ...baseProps,
-          sceneBoundaryVersion: "scene-composition-boundary-v1",
-        },
+          durationInFrames: 120,
+          sceneBoundaryVersion: "stale-boundary",
+          readabilityPolicy: policy,
+        } as unknown as SceneRendererMountProps,
         7,
       ),
-    /requires the frozen readability policy/u,
+    /current Scene boundary/u,
   );
 });
 
@@ -251,7 +246,14 @@ test("StoryVisualTrack mounts ready SceneSlot only and sound-only identity chang
       [fixture.scenePackage.rendererBinding.rendererId]: Renderer,
     },
     rendererPropsByMeaning: {
-      "meaning-one": {} as Omit<SceneRendererProps, "sceneFrame">,
+      "meaning-one": {
+        durationInFrames: 120,
+        sceneBoundaryVersion: "scene-composition-boundary-v1",
+        readabilityPolicy: resolveProductionReadabilityPolicy({
+          width: 1080,
+          height: 1920,
+        }),
+      } as SceneRendererMountProps,
     },
   });
   assert.ok(isValidElement<{ children?: ReactNode }>(node));

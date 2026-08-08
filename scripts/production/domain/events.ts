@@ -2,30 +2,23 @@ import {
   computeProductionStageEventFingerprint,
   createProductionError,
   PRODUCTION_EVENT_CONTRACT_VERSION,
-  PRODUCTION_EVENT_CONTRACT_VERSION_V2,
+  ProductionErrorSchema,
   ProductionStageEventInputSchema,
   ProductionStageEventSchema,
 } from "../../../src/contracts";
 
 export const createProductionStageEvent = (rawInput: unknown) => {
-  const requestedSchemaVersion =
-    rawInput !== null &&
-    typeof rawInput === "object" &&
-    !Array.isArray(rawInput) &&
-    (rawInput as Record<string, unknown>).schemaVersion === 2
-      ? 2
-      : 1;
   const inputRecord: Record<string, unknown> = {
     ...(rawInput as Record<string, unknown>),
-    schemaVersion: requestedSchemaVersion,
-    eventVersion:
-      requestedSchemaVersion === 2
-        ? PRODUCTION_EVENT_CONTRACT_VERSION_V2
-        : PRODUCTION_EVENT_CONTRACT_VERSION,
+    schemaVersion: 1,
+    eventVersion: PRODUCTION_EVENT_CONTRACT_VERSION,
   };
   delete inputRecord.eventFingerprint;
   if (inputRecord.type === "stage-failed") {
-    inputRecord.error = createProductionError(inputRecord.error);
+    const parsed = ProductionErrorSchema.safeParse(inputRecord.error);
+    inputRecord.error = parsed.success
+      ? parsed.data
+      : createProductionError(inputRecord.error);
   }
   const input = ProductionStageEventInputSchema.parse(inputRecord);
   return ProductionStageEventSchema.parse({

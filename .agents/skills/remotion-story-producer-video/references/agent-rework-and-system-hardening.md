@@ -40,8 +40,9 @@ contract; it does not mean the fixed workflow was recovered.
 The fixed flow includes contract implementations, production CLI parsing and dispatch, non-terminal
 Scene check, append-only
 ledger/state projection, locks, watcher behavior, Scene result ingestion, package/coverage/registry/
-projection generation, Composition scaffolding/listing, Remotion/FFmpeg process invocation, media
-inspection, Preview assembly/evidence/check writing, and check-only idempotence.
+projection generation, Composition scaffolding/listing, render-plan/render-ready writing, non-MP4
+delivery packaging, detached Remotion launch, launch intent/receipt writing, and check-only
+idempotence.
 
 When valid current inputs expose a failure in any of those components:
 
@@ -58,7 +59,7 @@ When valid current inputs expose a failure in any of those components:
 7. Prove focused Green, adjacent production tests, typecheck, lint, and any affected real media gate.
 8. Inspect secret/protected scope, stage exact paths, and create a local hardening commit.
 9. Keep the failed run terminal and immutable. Start a fresh run from `production:start`, replay the
-   fixed workflow, and continue until the common flow reaches `preview-ready` without intervention.
+   fixed workflow, and continue until the common flow reaches `render-ready` without intervention.
 
 Call this system hardening or common-flow completion, never failure recovery.
 
@@ -83,11 +84,14 @@ Treat these as regression requirements:
   or derived state, while submit repeats validation before its atomic result write.
 - Preserve Remotion Composition listing stdout when it is parsed; a zero exit with suppressed stdout
   is not proof that the Composition is absent.
-- Replace a Composition scaffold only when it byte-matches a recognized generated Narrative or Preview
-  variant. Never overwrite hand-written or drifted source.
-- Use the sole video stream duration, exact fps, and exact frame count as Composition timing evidence.
-  Do not reject correct video because AAC tail padding lengthens container duration.
-- Keep Preview rechecks byte/mtime stable and append no new event after `preview-ready`.
+- Replace a Composition scaffold only when it byte-matches the current generated variant. Never
+  overwrite hand-written or drifted source.
+- Bind the frozen Composition source checksum, exact fps, and exact frame count in the render plan.
+- Keep render-ready rechecks byte/mtime stable and append no new event after `render-ready`.
+- Write launch intent exactly once before detached spawn. After an intent exists, missing receipt is
+  permanently ambiguous and no repository command may retry that launch.
+- Treat the OS `spawn` event only as launch acknowledgement. Never monitor the child or use MP4
+  completion, checksum, probing, or decoding as part of the automatic handoff.
 
 Add a Red regression before changing any of these behaviors. Never reclassify their failure as Agent
 rework.
@@ -127,21 +131,19 @@ diagnosis from new authoring decisions.
   directories.
 - Do not include secrets, private endpoints, absolute private paths, transcripts for private prompt
   recordings, or raw provider responses in events, tests, reports, or commits.
-- Keep existing formal media, approval, evidence, final reports, and sealed narration byte-identical
-  unless the user explicitly places that project in scope.
+- Keep protected voice profiles and private configuration untouched.
 - Use explicit protected paths for before/after checks. Avoid repository-wide commands that enumerate
   ignored/private contents.
 
 ## Scope stop
 
-The automatic endpoint is mechanical `preview-ready / awaiting-user-preview`. It does not authorize:
+The automatic endpoint is `delivery-render-started`. It does not prove or authorize:
 
-- `FinalPreviewApproval` or an approval authoring record;
 - NarrativeCheck, SceneVisualCheck, SceneSoundCheck, or another aesthetic gate;
 - full-film BGM, cross-Scene ambience, or ducking;
-- user-preview revision automation;
+- detached-render monitoring or MP4 success claims;
 - capability promotion;
-- M10, publishing, upload, account, network, secret, or permission work;
+- publishing, upload, account, network, secret, or permission work;
 - push.
 
 Start any of those only after a new explicit user instruction and the repository's corresponding

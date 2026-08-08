@@ -9,7 +9,7 @@ import {
   ScenePackageSchema,
   SceneProductionResultSchema,
   buildNotApplicableFidelityReceipt,
-  buildSceneAssignmentV3,
+  buildSceneAssignment,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
   buildSceneTaskInputV3,
@@ -73,7 +73,7 @@ const createAssignment = (
     readabilityPolicy,
     sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
   });
-  return buildSceneAssignmentV3({
+  return buildSceneAssignment({
     runId,
     storyId: "story-example",
     meaningId: "opening",

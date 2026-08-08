@@ -14,14 +14,13 @@ export const ProjectVerificationStepSchema = z.enum([
   "final-inputs",
   "final-assembly",
   "final-evidence",
-  "approval",
   "final",
 ]);
 
 const ProjectVerificationProfileSchema = z
   .object({
     schemaVersion: z.literal(1),
-    profileVersion: z.literal("project-verification-v2"),
+    profileVersion: z.literal("project-verification-current-v1"),
     steps: z.array(ProjectVerificationStepSchema).min(1).readonly(),
   })
   .strict()
@@ -48,11 +47,10 @@ export type ProjectVerificationStep = z.infer<
 export type ProjectVerificationScope =
   | "full"
   | "source"
-  | "evidence"
-  | "approval";
+  | "evidence";
 
 export type ProjectVerificationProfiles = Readonly<{
-  profileVersion: "project-verification-v2";
+  profileVersion: "project-verification-current-v1";
   projects: readonly Readonly<{
     projectId: z.infer<typeof StoryIdSchema>;
     steps: readonly ProjectVerificationStep[];
@@ -98,7 +96,7 @@ export const loadProjectVerificationProfiles = async (
       steps: profile.steps,
     });
   }
-  return { profileVersion: "project-verification-v2", projects };
+  return { profileVersion: "project-verification-current-v1", projects };
 };
 
 const mediaEvidenceSteps = new Set<ProjectVerificationStep>([
@@ -123,20 +121,15 @@ export const resolveProfileSteps = (
       (step) => step === "narrative" || mediaEvidenceSteps.has(step),
     );
   }
-  if (scope === "approval") {
-    return profile.steps.filter((step) => step === "approval");
-  }
-  return profile.steps.filter(
-    (step) => !mediaEvidenceSteps.has(step) && step !== "approval",
-  );
+  return profile.steps.filter((step) => !mediaEvidenceSteps.has(step));
 };
 
-const scopes = ["full", "source", "evidence", "approval"] as const;
+const scopes = ["full", "source", "evidence"] as const;
 
 export const parseProjectValidationArgs = (args: readonly string[]) => {
   if (
     args.length === 3 &&
-    (args[0] === "evidence" || args[0] === "approval") &&
+    args[0] === "evidence" &&
     args[1] === "--project"
   ) {
     return {
@@ -165,7 +158,7 @@ export const parseProjectValidationArgs = (args: readonly string[]) => {
     !scopes.includes(args[3] as (typeof scopes)[number])
   ) {
     throw new Error(
-      "Expected --all [--scope source|full|evidence|approval], evidence|approval --project <id>, or --project <id> --scope source|full|evidence|approval.",
+      "Expected --all [--scope source|full|evidence], evidence --project <id>, or --project <id> --scope source|full|evidence.",
     );
   }
   return {

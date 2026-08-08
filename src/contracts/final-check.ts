@@ -280,8 +280,6 @@ export const FINAL_MECHANICAL_CHECK_V2_IDS = [
   "global-sound",
   "global-visual",
   "final-assembly",
-  "final-preview-evidence",
-  "final-preview-approval",
 ] as const;
 
 export type FinalMechanicalCheckV2Id =
@@ -302,8 +300,6 @@ const FinalV2InputIdentitySchema = FinalInputIdentitySchema.unwrap().extend({
   globalVisualPlanFingerprint: Sha256DigestSchema.nullable(),
   globalVisualProjectionFingerprint: Sha256DigestSchema.nullable(),
   finalAssemblyFingerprint: Sha256DigestSchema.nullable(),
-  finalPreviewEvidenceFingerprint: Sha256DigestSchema.nullable(),
-  finalPreviewApprovalFingerprint: Sha256DigestSchema.nullable(),
 })
   .strict()
   .readonly();
@@ -346,7 +342,7 @@ const addFinalV2ReportIssues = (
     }
   });
 
-  const legacyInput: FinalReportInput = {
+  const baseInput: FinalReportInput = {
     schemaVersion: 1,
     reportVersion: FINAL_MECHANICAL_CHECK_VERSION,
     storyId: report.storyId,
@@ -378,7 +374,7 @@ const addFinalV2ReportIssues = (
       typeof CheckItemSchema
     >[],
   };
-  addFinalReportIssues(legacyInput, context);
+  addFinalReportIssues(baseInput, context);
 
   if (report.aggregateStatus === "pass") {
     const m8Identities = [
@@ -387,8 +383,6 @@ const addFinalV2ReportIssues = (
       report.inputIdentity.globalVisualPlanFingerprint,
       report.inputIdentity.globalVisualProjectionFingerprint,
       report.inputIdentity.finalAssemblyFingerprint,
-      report.inputIdentity.finalPreviewEvidenceFingerprint,
-      report.inputIdentity.finalPreviewApprovalFingerprint,
     ];
     const m8Checks = report.checks.slice(FINAL_MECHANICAL_CHECK_IDS.length);
     if (
@@ -397,7 +391,7 @@ const addFinalV2ReportIssues = (
     ) {
       context.addIssue({
         code: "custom",
-        message: "Final v2 pass requires current M8 identities and approval.",
+        message: "Final v2 pass requires current M8 assembly identities.",
         path: ["aggregateStatus"],
       });
     }

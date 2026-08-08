@@ -8,9 +8,9 @@ import { createRemovableProjectRoot } from "../fixtures/removable-project";
 
 test("deleting deliveries does not affect the zero-Project core projection", async (context) => {
   const rootDir = await createRemovableProjectRoot(context);
-  const delivery = join(rootDir, "deliveries/example/release-proof");
+  const delivery = join(rootDir, "deliveries/example/delivery-proof");
   await mkdir(delivery, { recursive: true });
-  await writeFile(join(delivery, "release-manifest.json"), "ignored\n");
+  await writeFile(join(delivery, "delivery-launch-manifest.json"), "ignored\n");
   const before = await generateProjectRegistry({ rootDir, mode: "write" });
   const beforeBytes = await readFile(before.destination, "utf8");
   await rm(join(rootDir, "deliveries"), { recursive: true });

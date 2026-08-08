@@ -16,9 +16,9 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 
 const SkillPolicySchema = z
   .object({
-    schemaVersion: z.literal(2),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v2"),
-    automaticEndpoint: z.literal("preview-ready / awaiting-user-preview"),
+    schemaVersion: z.literal(3),
+    policyVersion: z.literal("remotion-story-producer-video-policy-v3"),
+    automaticEndpoint: z.literal("delivery-render-started"),
     privateConfigPath: z.literal("voxcpm/voxcpm.private.json"),
     requiredEntrypointHeadings: z.tuple([
       z.literal("Start directly"),
@@ -26,7 +26,7 @@ const SkillPolicySchema = z
       z.literal("Keep context bounded"),
       z.literal("Preserve production invariants"),
       z.literal("Classify failure by owner"),
-      z.literal("Stop at mechanical Preview"),
+      z.literal("Finish at detached delivery launch"),
     ]),
     requiredReferences: z.tuple([
       z.literal("references/direct-production-workflow.md"),
@@ -50,7 +50,8 @@ const SkillPolicySchema = z
       z.literal("delivery:cover:freeze"),
       z.literal("delivery:cover:check"),
       z.literal("delivery:cover:submit"),
-      z.literal("production:preview:check"),
+      z.literal("production:render-ready:check"),
+      z.literal("delivery:build"),
     ]),
     invariants: z
       .object({
@@ -66,8 +67,8 @@ const SkillPolicySchema = z
         globalVisualReadsSceneOutputs: z.literal(false),
         coverReadsOnlyAssignmentInputs: z.literal(true),
         coverJoinsProductionWatcher: z.literal(false),
-        coverMissingBlocksPreview: z.literal(false),
-        coverMissingBlocksDelivery: z.literal(true),
+        coverMissingBlocksRenderReady: z.literal(false),
+        coverMissingBlocksAutomaticDelivery: z.literal(true),
         publishingIntentStage: z.literal("story-authoring"),
         fixedFlowRecovery: z.literal(false),
         centralStateWriter: z.literal("repository-cli-only"),
@@ -77,13 +78,20 @@ const SkillPolicySchema = z
         runtimeExternalSystems: z.literal(false),
         readabilityPolicySource: z.literal("frozen-assignment"),
         timingPolicy: z.literal("pcm-cumulative-ceil-v1"),
+        deliveryRenderLaunchPolicy: z.literal(
+          "detached-spawn-acknowledgement-v1",
+        ),
+        deliveryLaunchAmbiguityPolicy: z.literal(
+          "intent-without-receipt-never-retry",
+        ),
+        deliveryReadsRenderedMp4: z.literal(false),
       })
       .strict(),
     forbiddenActions: z.tuple([
       z.literal("git add ."),
       z.literal("push"),
-      z.literal("create-approval"),
       z.literal("publish"),
+      z.literal("monitor-detached-render"),
       z.literal("hand-edit-derived-state"),
     ]),
     contextBudgets: z

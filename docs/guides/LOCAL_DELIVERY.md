@@ -1,121 +1,102 @@
-# M10 本地交付指南
+# 自动本地交付指南
 
-> 适用范围：future-only v2 作品在 Story 阶段已有 current PublishingIntent，独立 Cover 已
-> `cover-ready`，用户已经批准 exact current preview，且 Project 的 source、media、evidence、
-> approval 与 `final-mechanical-check-v2` 均可复验。
+> 适用范围：current Project 已有 current PublishingIntent、ProductionRenderPlan、
+> ProductionRenderReady 和 immutable CoverResult。
 
-M10 v2 把发布内容和封面制作前移；批准后的 `delivery:build` 是纯脚本复制与封存，不调用
-Agent、不渲染或重新编码视频，也不重新渲染或设计封面。M10 仍不属于 `production:*`：production
-只根据 N 个 Scene result 加一个 GlobalVisual result 到达
-`preview-ready / awaiting-user-preview`，Cover missing/failed 不改变该状态。
-
-历史 `delivery-specification-v1` 和 `delivery-release-manifest-v1` 不迁移、不回填、不改 identity。
-`delivery:check` 根据 manifest 版本对已有 v1 release 做自包含、只读复验；新的 build 只产生 v2。
-
-## Story 阶段 PublishingIntent
-
-每个 future-only v2 Project 在 Story 阶段一次创作：
-
-```text
-src/projects/<storyId>/publishing-intent.json
-```
-
-`publishing-intent-v1` 绑定 current Story fingerprint，但不重复保存 title；title 始终来自
-`StorySpec.title`。它只保存 description、6–7 个唯一 topics、自由文本 collection，以及按 Story
-顺序覆盖全部 StoryBeat 的 `meaningId + 中文章节名`。章节名必须包含中文，最多 11 个 Unicode
-字符；不得保存 startFrame 或 timecode。
+自动交付准备一个不可覆盖的非 MP4 package，并发起 detached Remotion render。成功终点是
+`delivery-render-started`，只表示操作系统确认 child 已 spawn，不表示渲染完成。
 
 ## 独立 Cover 生命周期
 
-VisualStyleSpec 当前后，主 Agent 执行：
+主 Agent 在 VisualStyleSpec current 后执行：
 
 ```bash
 npm run delivery:cover:freeze -- --project <storyId>
 ```
 
-生成的 future-only `delivery-cover-assignment-v2` 只嵌入 current StorySpec、current
-VisualStyleSpec 和固定 CoverSpec。它禁止读取 PublishingIntent、SemanticTiming、旁白、字幕、
-ScenePackage、Scene/GlobalVisual 输出、FinalAssembly、preview、evidence、approval 或旧封面。
-
-一个独立 Cover owner 同时负责固定目录中的两个独立源码构图：
-
-```text
-src/projects/<storyId>/delivery/cover/
-├── assignment.generated.json
-├── Cover4x3.tsx             # 1600×1200 独立 Composition
-├── Cover3x4.tsx             # 1200×1600 独立 Composition
-├── Root.tsx
-└── index.ts
-```
-
-只能使用纯代码图形；禁止图片、视频、音频、网络、远程字体、Scene/GlobalVisual 输出、共用
-Composition 或机械裁切。owner 执行：
+CoverAssignment 只嵌入 current StorySpec、VisualStyleSpec 和固定 CoverSpec。独立 owner 在
+`src/projects/<storyId>/delivery/cover/` 制作 1600×1200 和 1200×1600 两个纯代码 Composition，
+不得读取 PublishingIntent、SemanticTiming、Scene/GlobalVisual 输出、FinalAssembly、历史封面
+或已有 deliveries。
 
 ```bash
 npm run delivery:cover:check -- --project <storyId>
 npm run delivery:cover:submit -- --project <storyId>
 ```
 
-check 真实渲染两张临时全尺寸 PNG，并验证 320×240、240×320 缩略图完整解码；submit 重复同一
-验证后把 `delivery-cover-package-v2`、两张 exact PNG 和
-`delivery-cover-result-v2` 原子封存在 assignment-fingerprint 目录。主 Agent 复检源码与画面并
-复跑命令。repo CLI 不创建或监控 Agent，也不保存 task/thread/progress/heartbeat。
+check 真实渲染临时全尺寸 PNG 并验证尺寸和完整 decode；submit 重复验证后原子封存 package、
+exact PNG 与 result。Cover 缺失或 stale 不阻止 production render-ready，但会阻止 delivery build。
 
-## 纯脚本构建
+## 自动 build
 
-用户明确批准最终视频后只接受：
+production 到达 `render-ready / awaiting-automatic-delivery` 后直接执行：
 
 ```bash
 npm run delivery:build -- --project <storyId>
 ```
 
-命令要求 current PublishingIntent、current immutable Cover result、current FinalAssembly、
-FinalPreviewEvidence、checksum-bound 用户 FinalPreviewApproval 和 passing
-`final-mechanical-check-v2`。之后它：
+输入固定为 current StorySpec、SemanticTiming、PublishingIntent、ProductionRenderPlan、
+ProductionRenderReady 和 CoverResult。`deliveryId` 确定性绑定这些 identity、Composition、exact
+render argv 与 `detached-spawn-acknowledgement-v1`。
 
-1. 原字节复制获批 preview 为 `<storyId>.mp4`，不重新渲染或编码；
-2. 原字节复制 Cover result 已封存并重新校验的两个 exact PNG；
-3. 确定性投影 `publishing.json`：title 来自 StorySpec；内容字段来自 PublishingIntent；章节
-   startFrame 来自 current SemanticTiming；timecode 将 frame/fps 小数秒向下取整并输出
-   `HH:MM:SS`；fps/总帧数来自 FinalAssembly；实际时长来自交付 MP4 的 FFprobe 实测；
-4. 生成 canonical `release-manifest.json`、`HANDOFF.md` 和 `checksums.sha256`；
-5. 在固定 staging 内完整复验后原子封存。
+`publishing.json` 的 title 来自 StorySpec，description/topics/collection/chapter names 来自
+PublishingIntent；每章 startFrame 来自 SemanticTiming，timecode 按 `startFrame / fps` 向下取整
+为 `HH:MM:SS`。只保存 `plannedDurationSeconds = frameCount / fps`，不保存媒体实测时长。
 
-固定输出：
+build 顺序不可交换：
+
+1. 在唯一 staging 中复制 exact Cover PNG；
+2. 写 canonical publishing、launch manifest、handoff、render launch intent 和 checksum ledger；
+3. 对非 MP4 package 做完整 current check；
+4. 原子提升为 `deliveries/<storyId>/<deliveryId>/`；
+5. 再次确认计划 MP4 与 log 不预存；
+6. 用 `shell: false`、固定 cwd/argv/log、`detached: true` spawn Remotion；
+7. 只等待 child 的 `spawn` 或 `error`；`spawn` 后 `unref()`；
+8. 收到 `spawn` 后以同目录 fsynced temporary + atomic exclusive publish 写 receipt，并返回
+   `delivery-render-started`。
+
+固定 package：
 
 ```text
-deliveries/<storyId>/<releaseId>/
-├── <storyId>.mp4
+deliveries/<storyId>/<deliveryId>/
 ├── cover-4x3.png
 ├── cover-3x4.png
 ├── publishing.json
-├── release-manifest.json
-├── checksums.sha256
-└── HANDOFF.md
+├── delivery-launch-manifest.json
+├── HANDOFF.md
+├── immutable-checksums.sha256
+├── render-launch-intent.json
+└── render-launch-receipt.json
 ```
 
-v2 `releaseId` 绑定 approval fingerprint、FinalAssembly fingerprint 和
-`delivery-specification-v2` fingerprint；后者进一步绑定 PublishingIntent fingerprint、Cover
-result fingerprint 和固定 archive policy。已有相同内容只读复验并返回 `noOp: true`，不会覆盖。
+计划 MP4 与 package 同目录，但不属于 immutable ledger；render log 独立位于 `out/`：
 
-## 复验
+```text
+deliveries/<storyId>/<deliveryId>/<storyId>.mp4
+out/<storyId>/delivery-render/<deliveryId>.log
+```
+
+## Exactly-once 与歧义
+
+- launch intent 必须在 spawn 前且只能写一次。
+- receipt 只能在 OS 发出 `spawn` 后写一次。
+- receipt 已存在时，重复 build 只读复验并返回 `noOp: true`。
+- intent 存在但 receipt 缺失时，无法证明 child 是否启动；该 delivery 永久
+  launch-ambiguous，所有 build/check 都 fail closed，绝不自动重试。
+- spawn acknowledgement 后 child 即使很快失败，也不改写 receipt；仓库没有后台监控状态机。
+
+## 复验边界
+
+正常自动流程在 `delivery:build` 返回后立即结束，不再调用任何命令；下面的 check 只保留为用户
+显式运行的独立只读诊断。
 
 ```bash
-npm run delivery:check -- --project <storyId> --release <releaseId>
-cd deliveries/<storyId>/<releaseId> && sha256sum -c checksums.sha256
+npm run delivery:check -- --project <storyId> --delivery <deliveryId>
 ```
 
-v2 check 重读 current Project authority，并验证 release identity、固定文件集、canonical JSON、
-所有 checksum/大小、H.264/AAC 流、画幅、fps、帧数、视频和容器实际时长、采样率、声道、完整
-EOF 解码，以及两个 PNG 与 current Cover result 完全一致。v1 check 不要求 current v2 inputs，
-仅按原 manifest/ledger/媒体 identity 做只读兼容复验。
+check 重读 current inputs，验证 delivery identity、固定 package 文件集、canonical bytes、
+checksums、Cover equality、manifest、intent 和 receipt。它允许 exact 计划 MP4 文件出现，但不
+stat、read、hash、probe 或 decode 该文件，也不把它的存在解释为完成。
 
-## 失败语义与边界
-
-- PublishingIntent、Cover assignment/package/result、approval 或媒体 missing/malformed/stale 都
-  fail closed；Cover missing/stale 只阻止 delivery，不阻止 production preview-ready；
-- checksum drift、未知文件、路径逃逸、符号链接、残留 staging 和目标冲突全部 fail closed；
-- 失败构建只清理本次唯一 staging，不留下可冒充 release 的半成品；
-- `deliveries/` 是 ignored 本地叶节点，不进入 Git；删除它不影响 core 健康，但显式 check 失败；
-- 不上传平台、不登录账号、不访问网络、不处理密钥或权限，也不执行 promotion、
-  NarrativeCheck、Project 删除或 `out/` 清理。
+未知文件、路径逃逸、symlink、input drift、缺失 receipt 或目标冲突 fail closed。不上传平台、
+不访问网络、不处理账号/密钥，也不清理 `out/`。

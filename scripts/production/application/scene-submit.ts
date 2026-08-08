@@ -8,8 +8,6 @@ import {
   ScenePackageSchema,
   SceneProductionResultSchema,
   buildSceneProductionResult,
-  buildSceneProductionResultV2,
-  buildSceneProductionResultV3,
   createFingerprint,
   serializeCanonicalJson,
   type SceneAssignment,
@@ -35,15 +33,21 @@ type SceneValidation = Readonly<{
   mechanicalCheckFingerprint: string;
 }>;
 
+type CurrentSceneAssignment = SceneAssignment;
+type CurrentSceneResult = SceneProductionResult;
+
+const parseCurrentSceneAssignment = (raw: unknown): CurrentSceneAssignment =>
+  SceneAssignmentSchema.parse(raw);
+
 type SceneAssignmentResolver = (request: {
   readonly rootDir: string;
   readonly runId: string;
   readonly meaningId: string;
-}) => Promise<SceneAssignment>;
+}) => Promise<CurrentSceneAssignment>;
 
 type SceneValidator = (request: {
   readonly rootDir: string;
-  readonly assignment: SceneAssignment;
+  readonly assignment: CurrentSceneAssignment;
 }) => Promise<SceneValidation>;
 
 const scenePackagePath = (storyId: string, meaningId: string) =>
@@ -58,12 +62,15 @@ export const loadStoredSceneAssignment: SceneAssignmentResolver = async ({
   meaningId,
 }) => {
   const loaded = await readProductionRunStore({ rootDir, runId });
-  const assignment = SceneAssignmentSchema.parse(
+  const assignment = parseCurrentSceneAssignment(
     await readJsonFile(
       join(rootDir, sceneAssignmentPath(loaded.run.storyId, meaningId)),
     ),
   );
-  if (assignment.runId !== runId || assignment.meaningId !== meaningId) {
+  if (
+    assignment.runId !== runId ||
+    assignment.meaningId !== meaningId
+  ) {
     throw new Error(
       "Stored SceneAssignment identity does not match the request.",
     );
@@ -151,6 +158,8 @@ const validateSceneFromProjectFiles: SceneValidator = async ({
     }),
   );
   if (
+    scenePackage.schemaVersion !== 3 ||
+    checkedPackage.schemaVersion !== 3 ||
     checkedPackage.packageFingerprint !== scenePackage.packageFingerprint ||
     scenePackage.taskInputFingerprint !==
       assignment.taskInput.taskInputFingerprint
@@ -180,10 +189,7 @@ const validateSceneFromProjectFiles: SceneValidator = async ({
   ) {
     throw new Error("Renderer source graph is stale against ScenePackage.");
   }
-  const readability =
-    assignment.schemaVersion !== 1
-      ? await validateSceneReadability({ rootDir, assignment, graph })
-      : null;
+  await validateSceneReadability({ rootDir, assignment, graph });
   assertFocusedCompile({
     rootDir,
     sourcePaths: graph.files.map(({ sourcePath }) => sourcePath),
@@ -199,18 +205,10 @@ const validateSceneFromProjectFiles: SceneValidator = async ({
         assignmentFingerprint: assignment.assignmentFingerprint,
         packageFingerprint: scenePackage.packageFingerprint,
         rendererSourceGraphFingerprint: graph.sourceGraphFingerprint,
-        ...(assignment.schemaVersion !== 1
-          ? {
-              readabilityPolicyFingerprint:
-                assignment.readabilityPolicy.policyFingerprint,
-            }
-          : {}),
-        ...(assignment.schemaVersion === 3 && readability !== null
-          ? {
-              sceneCompositionBoundaryVersion:
-                assignment.sceneCompositionBoundaryVersion,
-            }
-          : {}),
+        readabilityPolicyFingerprint:
+          assignment.readabilityPolicy.policyFingerprint,
+        sceneCompositionBoundaryVersion:
+          assignment.sceneCompositionBoundaryVersion,
       },
     }),
   };
@@ -224,15 +222,16 @@ export const readExistingSceneResult = async ({
   readonly rootDir: string;
   readonly runId: string;
   readonly meaningId: string;
-}): Promise<SceneProductionResult | null> => {
+}): Promise<CurrentSceneResult | null> => {
   const path = join(
     getProductionRunPaths({ rootDir, runId }).sceneResults,
     `${meaningId}.json`,
   );
   try {
-    return SceneProductionResultSchema.parse(
+    const result = SceneProductionResultSchema.parse(
       JSON.parse(await readFile(path, "utf8")),
     );
+    return result;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw error;
@@ -244,7 +243,7 @@ export const writeSceneProductionResult = async ({
   result: rawResult,
 }: {
   readonly rootDir: string;
-  readonly result: SceneProductionResult;
+  readonly result: CurrentSceneResult;
 }) => {
   const result = SceneProductionResultSchema.parse(rawResult);
   const resultPath = join(
@@ -259,7 +258,10 @@ export const writeSceneProductionResult = async ({
   return { result, resultPath, written: write.written } as const;
 };
 
-const commonResultInput = (assignment: SceneAssignment, occurredAt: string) => {
+const commonResultInput = (
+  assignment: CurrentSceneAssignment,
+  occurredAt: string,
+) => {
   const common = {
     runId: assignment.runId,
     storyId: assignment.storyId,
@@ -271,30 +273,19 @@ const commonResultInput = (assignment: SceneAssignment, occurredAt: string) => {
     resourcePoolFingerprint: assignment.resourcePoolFingerprint,
     occurredAt,
   };
-  return assignment.schemaVersion !== 1
-    ? {
-        ...common,
-        readabilityPolicyFingerprint:
-          assignment.readabilityPolicy.policyFingerprint,
-        ...(assignment.schemaVersion === 3
-          ? {
-              sceneCompositionBoundaryVersion:
-                assignment.sceneCompositionBoundaryVersion,
-            }
-          : {}),
-      }
-    : common;
+  return {
+    ...common,
+    readabilityPolicyFingerprint:
+      assignment.readabilityPolicy.policyFingerprint,
+    sceneCompositionBoundaryVersion:
+      assignment.sceneCompositionBoundaryVersion,
+  };
 };
 
 const buildResultForAssignment = (
-  assignment: SceneAssignment,
+  _assignment: CurrentSceneAssignment,
   input: Record<string, unknown>,
-) =>
-  assignment.schemaVersion === 3
-    ? buildSceneProductionResultV3(input)
-    : assignment.schemaVersion === 2
-      ? buildSceneProductionResultV2(input)
-      : buildSceneProductionResult(input);
+) => buildSceneProductionResult(input);
 
 export const createSceneFailureResult = ({
   assignment,
@@ -304,7 +295,7 @@ export const createSceneFailureResult = ({
   occurredAt,
   commandId,
 }: {
-  readonly assignment: SceneAssignment;
+  readonly assignment: CurrentSceneAssignment;
   readonly code: string;
   readonly description: string;
   readonly redactionApplied: boolean;
@@ -354,7 +345,7 @@ export const runProductionSceneSubmit = async ({
   const meaningId = MeaningIdSchema.parse(rawMeaningId);
   const loaded = await readProductionRunStore({ rootDir, runId });
   assertSceneResultState(loaded.state.state);
-  const assignment = SceneAssignmentSchema.parse(
+  const assignment = parseCurrentSceneAssignment(
     await resolveAssignment({ rootDir, runId, meaningId }),
   );
   if (
@@ -446,7 +437,7 @@ export const runProductionSceneCheck = async ({
   const meaningId = MeaningIdSchema.parse(rawMeaningId);
   const loaded = await readProductionRunStore({ rootDir, runId });
   assertSceneResultState(loaded.state.state);
-  const assignment = SceneAssignmentSchema.parse(
+  const assignment = parseCurrentSceneAssignment(
     await resolveAssignment({ rootDir, runId, meaningId }),
   );
   if (

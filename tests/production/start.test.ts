@@ -15,7 +15,6 @@ import test, { type TestContext } from "node:test";
 
 import {
   buildProductionRequirementsFreeze,
-  buildProductionRequirementsFreezeV1,
   computeGenerationInputFingerprint,
   computeStoryFingerprint,
   NarrationSpecSchema,
@@ -136,9 +135,9 @@ test("starts one immutable contract-bound run and records its first event", asyn
     runId: fixedRunId,
   });
   assert.equal(loaded.events.length, 1);
-  assert.equal(loaded.run.schemaVersion, 2);
-  assert.equal(loaded.events[0]?.schemaVersion, 2);
-  assert.equal(loaded.state.schemaVersion, 2);
+  assert.equal(loaded.run.schemaVersion, 1);
+  assert.equal(loaded.events[0]?.schemaVersion, 1);
+  assert.equal(loaded.state.schemaVersion, 1);
   assert.equal(loaded.events[0]?.type, "stage-succeeded");
   assert.equal(loaded.state.state, "initialized");
   assert.equal(loaded.state.lastSequence, 1);
@@ -185,30 +184,6 @@ test("runs both preflight probes before scaffold clock and Run creation", async 
     },
   });
   assert.deepEqual(calls, ["voxcpm", "browser", "clock", "run-id"]);
-});
-
-test("refuses to start a new run from a readable legacy v1 freeze", async (context) => {
-  const fixture = await createStartFixture(context);
-  const legacy = buildProductionRequirementsFreezeV1({
-    source: fixture.source,
-    sourceChecksums: fixture.sourceChecksums,
-    enhancementSelection: {
-      ...fixture.requirements.enhancementSelection,
-      globalVisual: "none",
-    },
-    resourcePolicy: fixture.requirements.resourcePolicy,
-    additionalRequirements: fixture.requirements.additionalRequirements,
-  });
-  await writeJson(
-    join(fixture.projectDir, "production/requirements.json"),
-    legacy,
-  );
-
-  await assert.rejects(() => start(fixture.rootDir), /freeze-v4/iu);
-  await assert.rejects(
-    () => access(join(fixture.rootDir, ".producer-runs", fixedRunId)),
-    /ENOENT/,
-  );
 });
 
 test("preflight failure occurs before scaffold run store or clock", async (context) => {

@@ -1,4 +1,4 @@
-import { MeaningIdSchema, SceneAssignmentSchema } from "../../../src/contracts";
+import { MeaningIdSchema } from "../../../src/contracts";
 import { redactProductionErrorDescription } from "../adapters/error-redaction";
 import { readProductionRunStore } from "../adapters/run-store";
 import {
@@ -38,9 +38,7 @@ export const runProductionSceneFail = async ({
   ) {
     throw new Error("Scene failures require frozen Scene inputs.");
   }
-  const assignment = SceneAssignmentSchema.parse(
-    await resolveAssignment({ rootDir, runId, meaningId }),
-  );
+  const assignment = await resolveAssignment({ rootDir, runId, meaningId });
   if (
     assignment.runId !== loaded.run.runId ||
     assignment.storyId !== loaded.run.storyId ||

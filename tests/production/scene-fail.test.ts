@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 
-import { buildSceneAssignment, buildSceneTaskInput } from "../../src/contracts";
+import {
+  buildSceneAssignment,
+  buildSceneTaskInputV3,
+} from "../../src/contracts";
 import { runProductionCli } from "../../scripts/production/cli";
 import { runProductionSceneFail } from "../../scripts/production/application/scene-fail";
 import {
@@ -21,7 +24,7 @@ const createFixture = async (context: TestContext) => {
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const fixture = await createProductionFixture(context, rootDir);
   await markProductionBaselineReady(fixture);
-  const taskInput = buildSceneTaskInput({
+  const taskInput = buildSceneTaskInputV3({
     storyId: "story-example",
     meaningId: "opening",
     storyBeat: fixture.source.story.beats[0],
@@ -31,6 +34,8 @@ const createFixture = async (context: TestContext) => {
     renderFingerprint: sha("3"),
     visualStyleFingerprint: sha("4"),
     resourceCatalogFingerprint: sha("5"),
+    readabilityPolicy: fixture.requirements.readabilityPolicy,
+    sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
     allowedSnapshots: [],
     allowedResourceIds: [],
     continuity: {
@@ -53,6 +58,8 @@ const createFixture = async (context: TestContext) => {
     sceneBriefFingerprint: sha("6"),
     resourcePoolFingerprint: sha("7"),
     taskInput,
+    readabilityPolicy: fixture.requirements.readabilityPolicy,
+    sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
     sceneBrief: {
       meaningId: "opening",
       visualIntent: "Show the timing boundary.",

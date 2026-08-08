@@ -4,7 +4,7 @@ import test from "node:test";
 
 import { runDeliveryCli } from "../../scripts/delivery/cli";
 
-const releaseId = `release-${"a".repeat(64)}`;
+const deliveryId = `delivery-${"a".repeat(64)}`;
 
 test("delivery CLI accepts only exact build and check forms", async () => {
   const output: string[] = [];
@@ -15,36 +15,36 @@ test("delivery CLI accepts only exact build and check forms", async () => {
     stdout: output.push.bind(output),
     build: async ({ projectId }: { readonly projectId: string }) => {
       builds.push(projectId);
-      return { projectId, releaseId, status: "built", noOp: false } as const;
+      return { projectId, deliveryId, status: "delivery-render-started", noOp: false } as const;
     },
     check: async ({
       projectId,
-      releaseId: requestedRelease,
+      deliveryId: requestedDelivery,
     }: {
       readonly projectId: string;
-      readonly releaseId: string;
+      readonly deliveryId: string;
     }) => {
-      checks.push(`${projectId}:${requestedRelease}`);
+      checks.push(`${projectId}:${requestedDelivery}`);
       return {
         projectId,
-        releaseId: requestedRelease,
-        status: "current",
+        deliveryId: requestedDelivery,
+        status: "delivery-render-started",
       } as const;
     },
   };
 
   await runDeliveryCli(["build", "--project", "delivery-proof"], context);
   await runDeliveryCli(
-    ["check", "--project", "delivery-proof", "--release", releaseId],
+    ["check", "--project", "delivery-proof", "--delivery", deliveryId],
     context,
   );
   assert.deepEqual(builds, ["delivery-proof"]);
-  assert.deepEqual(checks, [`delivery-proof:${releaseId}`]);
+  assert.deepEqual(checks, [`delivery-proof:${deliveryId}`]);
   assert.deepEqual(
     output.map((line) => JSON.parse(line)),
     [
-      { projectId: "delivery-proof", releaseId, status: "built", noOp: false },
-      { projectId: "delivery-proof", releaseId, status: "current" },
+      { projectId: "delivery-proof", deliveryId, status: "delivery-render-started", noOp: false },
+      { projectId: "delivery-proof", deliveryId, status: "delivery-render-started" },
     ],
   );
 
@@ -55,9 +55,9 @@ test("delivery CLI accepts only exact build and check forms", async () => {
     ["build", "--project", "delivery-proof", "extra"],
     ["build", "--output", "/tmp/release"],
     ["check", "--project", "delivery-proof"],
-    ["check", "--project", "delivery-proof", "--release", "../escape"],
-    ["check", "--release", releaseId, "--project", "delivery-proof"],
-    ["check", "--project", "delivery-proof", "--release", `/tmp/${releaseId}`],
+    ["check", "--project", "delivery-proof", "--delivery", "../escape"],
+    ["check", "--delivery", deliveryId, "--project", "delivery-proof"],
+    ["check", "--project", "delivery-proof", "--delivery", `/tmp/${deliveryId}`],
     ["unknown", "--project", "delivery-proof"],
   ]) {
     await assert.rejects(() => runDeliveryCli(args, context));
@@ -77,7 +77,7 @@ test("package scripts expose delivery without extending production commands", as
     "node --import tsx scripts/delivery/cli.ts check",
   );
   assert.equal(
-    packageJson.scripts["production:preview:check"],
-    "node --import tsx scripts/production/cli.ts preview-check",
+    packageJson.scripts["production:render-ready:check"],
+    "node --import tsx scripts/production/cli.ts render-ready-check",
   );
 });

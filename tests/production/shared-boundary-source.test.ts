@@ -7,13 +7,10 @@ const sceneSlot = `
 import { SceneSafeArea as Boundary } from "../readability";
 import { SCENE_COMPOSITION_BOUNDARY_VERSION as BoundaryVersion } from "../../../contracts";
 export function renderSceneRendererMount(Component: any, mountProps: any, localFrame: number) {
-  const { sceneBoundaryVersion: version, ...withoutBoundary } = mountProps;
-  if (version === BoundaryVersion) {
-    const { readabilityPolicy: policy, ...ownedProps } = withoutBoundary;
-    if (policy === undefined) throw new Error("missing policy");
-    return <Boundary policy={policy}><Component {...ownedProps} sceneFrame={localFrame} /></Boundary>;
-  }
-  return <Component {...withoutBoundary} sceneFrame={localFrame} />;
+  const { sceneBoundaryVersion: version, readabilityPolicy: policy, ...ownedProps } = mountProps;
+  if (version !== BoundaryVersion) throw new Error("stale boundary");
+  if (policy === undefined) throw new Error("missing policy");
+  return <Boundary policy={policy}><Component {...ownedProps} sceneFrame={localFrame} /></Boundary>;
 }
 `;
 
@@ -31,7 +28,7 @@ export const SceneSafeArea = ({ policy: raw, children }: any) => {
 const generatedRuntime = `
 const props = {
   readabilityPolicy: task.readabilityPolicy,
-  ...(task.schemaVersion === 3 ? { sceneBoundaryVersion: task.sceneCompositionBoundaryVersion } : {}),
+  sceneBoundaryVersion: task.sceneCompositionBoundaryVersion,
 };
 `;
 
@@ -80,8 +77,8 @@ test("shared boundary validation fails closed when ownership wiring is absent", 
   assert.throws(() =>
     validateSharedSceneBoundarySources({
       sceneSlotSource: sceneSlot.replace(
-        "if (version === BoundaryVersion) {",
-        "if (version === BoundaryVersion) { return <Component {...withoutBoundary} sceneFrame={localFrame} />; }\n  if (true) {",
+        'if (version !== BoundaryVersion) throw new Error("stale boundary");',
+        "if (false) throw new Error(\"stale boundary\");",
       ),
       sceneSafeAreaSource: safeArea,
       generatedRuntimeSource: generatedRuntime,

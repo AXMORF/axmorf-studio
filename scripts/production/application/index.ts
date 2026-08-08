@@ -1,5 +1,8 @@
 export { runProductionNarrative } from "./narrative";
-export { runProductionPostScene } from "./post-scene";
+export {
+  checkProductionRenderReady,
+  runProductionRenderReady,
+} from "./render-ready";
 export { runProductionPreflight } from "./preflight";
 export { runProductionGlobalVisualFail } from "./global-visual-fail";
 export { runProductionGlobalVisualCheck } from "./global-visual-check";

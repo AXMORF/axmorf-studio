@@ -32,12 +32,7 @@ test("top-level tooling uses stable responsibilities instead of milestone direct
       `${obsolete} makes a historical milestone part of the current architecture`,
     );
   }
-  for (const required of [
-    "compatibility",
-    "project-validation",
-    "proofs",
-    "production",
-  ]) {
+  for (const required of ["delivery", "project-validation", "proofs", "production"]) {
     assert.equal(
       directories.has(required),
       true,

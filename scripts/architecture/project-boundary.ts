@@ -12,7 +12,6 @@ const CORE_ROOTS = [
   "scripts/project-check",
   "scripts/project-validation",
   "scripts/baseline",
-  "scripts/compatibility",
 ] as const;
 
 const toPosix = (path: string) => path.split(sep).join(posix.sep);

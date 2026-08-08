@@ -10,7 +10,7 @@ const ACTIVE_STATES = new Set<ProductionRunStateName>([
   "baseline-ready",
   "scene-inputs-frozen",
   "scenes-running",
-  "post-scene-running",
+  "render-ready-running",
 ]);
 
 const startedTransition = (
@@ -23,8 +23,7 @@ const startedTransition = (
     "initialized:narrative": "narrative-running",
     "baseline-ready:scene-freeze": "baseline-ready",
     "scene-inputs-frozen:scenes": "scenes-running",
-    "post-scene-running:post-scene": "post-scene-running",
-    "post-scene-running:preview": "post-scene-running",
+    "render-ready-running:render-ready": "render-ready-running",
   };
   return transitions[key] ?? null;
 };
@@ -38,8 +37,8 @@ const succeededTransition = (
     "initialized:production-start": "initialized",
     "narrative-running:narrative": "baseline-ready",
     "baseline-ready:scene-freeze": "scene-inputs-frozen",
-    "scenes-running:scenes": "post-scene-running",
-    "post-scene-running:post-scene": "post-scene-running",
+    "scenes-running:scenes": "render-ready-running",
+    "render-ready-running:render-ready": "render-ready-running",
   };
   return transitions[key] ?? null;
 };
@@ -66,8 +65,8 @@ export const transitionProductionRunState = ({
     case "global-visual-result-accepted":
       next = state === "scenes-running" ? "scenes-running" : null;
       break;
-    case "preview-ready":
-      next = state === "post-scene-running" ? "preview-ready" : null;
+    case "render-ready":
+      next = state === "render-ready-running" ? "render-ready" : null;
       break;
   }
   if (next === null) {

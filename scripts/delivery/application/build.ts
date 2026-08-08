@@ -1,233 +1,185 @@
 import { join } from "node:path";
 
-import {
-  createDeliveryReleaseIdV2,
-  createDeliveryReleaseManifestV2,
-  createPublishingMetadataV2,
-} from "../../../src/contracts";
+import { buildRenderLaunchReceipt } from "../../../src/contracts";
 import {
   assertDeliveryDirectoryChain,
+  assertDeliveryOutputAbsent,
   cleanupDeliveryStaging,
   copyDeliveryFileExclusive,
   createDeliveryStaging,
-  deliveryReleaseExists,
-  inspectDeliveryFile,
+  deliveryExists,
+  deliveryPathExists,
   promoteDeliveryStaging,
   resolveDeliveryPaths,
   writeDeliveryFileExclusive,
+  writeDeliveryFileAtomicExclusive,
 } from "../adapters/filesystem";
-import { inspectDeliveryCover, inspectDeliveryVideo } from "../adapters/media";
-import {
-  buildChecksumLedger,
-  buildDeliveryHandoff,
-  serializeDeliveryJson,
-} from "../domain/release";
-import {
-  buildDeliveryManifestContextV2,
-  checkDeliveryDirectoryV2,
-} from "./check";
-import { loadCurrentDeliveryInputsV2 } from "./inputs-v2";
+import { launchDetachedRemotionRender } from "../adapters/render-launch";
+import { buildDeliveryPackageModel } from "../domain/model";
+import { serializeDeliveryJson } from "../domain/package";
+import { checkDeliveryDirectory } from "./check";
+import { loadCurrentDeliveryInputs } from "./inputs";
 import type { DeliveryApplicationDependencies } from "./types";
 
 export const buildDelivery = async ({
   rootDir,
   projectId,
   dependencies = {},
+  loadInputs = loadCurrentDeliveryInputs,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly dependencies?: DeliveryApplicationDependencies;
+  readonly loadInputs?: typeof loadCurrentDeliveryInputs;
 }) => {
-  const inputs = await loadCurrentDeliveryInputsV2({
+  const inputs = await loadInputs({
     rootDir,
     projectId,
     dependencies,
   });
-  const releaseId = createDeliveryReleaseIdV2({
-    approvalFingerprint: inputs.approval.approvalFingerprint,
-    finalAssemblyFingerprint: inputs.finalAssembly.finalAssemblyFingerprint,
-    deliverySpecificationFingerprint:
-      inputs.specification.deliverySpecificationFingerprint,
+  const model = buildDeliveryPackageModel(inputs);
+  const paths = resolveDeliveryPaths({
+    rootDir,
+    projectId,
+    deliveryId: model.deliveryId,
   });
-  const fixedPaths = resolveDeliveryPaths({ rootDir, projectId, releaseId });
   await assertDeliveryDirectoryChain([
-    fixedPaths.deliveries,
-    fixedPaths.project,
-    fixedPaths.release,
+    paths.deliveries,
+    paths.project,
+    paths.delivery,
   ]);
-  if (await deliveryReleaseExists(fixedPaths.release)) {
-    await checkDeliveryDirectoryV2({
-      releaseDir: fixedPaths.release,
-      releaseId,
+  if (await deliveryExists(paths.delivery)) {
+    const intentExists = await deliveryPathExists(
+      join(paths.delivery, "render-launch-intent.json"),
+    );
+    const receiptExists = await deliveryPathExists(
+      join(paths.delivery, "render-launch-receipt.json"),
+    );
+    if (intentExists && !receiptExists) {
+      throw new Error(
+        "Automatic delivery launch is ambiguous: intent exists without a receipt; refusing to retry.",
+      );
+    }
+    if (
+      !intentExists &&
+      (await deliveryPathExists(join(paths.delivery, `${projectId}.mp4`)))
+    ) {
+      throw new Error("Delivery render output already exists before launch.");
+    }
+    if (!intentExists || !receiptExists) {
+      throw new Error("Existing automatic delivery package is incomplete.");
+    }
+    const checked = await checkDeliveryDirectory({
+      deliveryDir: paths.delivery,
+      deliveryId: model.deliveryId,
       inputs,
-      dependencies,
+      requireReceipt: true,
     });
-    return {
-      projectId,
-      releaseId,
-      status: "current" as const,
-      noOp: true,
-    };
+    return { ...checked, noOp: true as const };
   }
+
   const staging = await createDeliveryStaging({
     rootDir,
     projectId,
-    releaseId,
+    deliveryId: model.deliveryId,
   });
   let promoted = false;
   try {
-    const videoFileName = `${projectId}.mp4`;
-    const videoPath = join(staging.root, videoFileName);
-    await copyDeliveryFileExclusive({
-      source: inputs.preview.absolutePath,
-      destination: videoPath,
-    });
-    const videoFile = await inspectDeliveryFile(videoPath);
-    if (videoFile.checksum !== inputs.approval.previewChecksum) {
-      throw new Error(
-        "Delivery v2 staging video differs from the approved preview.",
-      );
-    }
-    const videoMedia = await inspectDeliveryVideo({
-      absolutePath: videoPath,
-      expected: {
-        width: inputs.finalAssembly.width,
-        height: inputs.finalAssembly.height,
-        fps: inputs.finalAssembly.fps,
-        frameCount: inputs.finalAssembly.durationInFrames,
-      },
-      ...(dependencies.runProcess === undefined
-        ? {}
-        : { runProcess: dependencies.runProcess }),
-    });
-    const coverRecords = [];
-    for (const cover of inputs.cover.result.covers) {
-      const destination = join(
-        staging.root,
-        cover.variantId === "cover-4x3"
-          ? "cover-4x3.png"
-          : "cover-3x4.png",
-      );
-      await copyDeliveryFileExclusive({
-        source: join(rootDir, cover.repositoryPath),
-        destination,
-      });
-      const file = await inspectDeliveryFile(destination);
-      if (file.checksum !== cover.checksum || file.sizeBytes !== cover.sizeBytes) {
-        throw new Error("Delivery v2 Cover copy differs from immutable result.");
-      }
-      const media = await inspectDeliveryCover({
-        absolutePath: destination,
-        expected: { width: cover.width, height: cover.height },
-        ...(dependencies.runProcess === undefined
-          ? {}
-          : { runProcess: dependencies.runProcess }),
-      });
-      coverRecords.push({ cover, destination, file, media });
-    }
-    const [cover4x3, cover3x4] = coverRecords;
-    if (
-      cover4x3?.cover.variantId !== "cover-4x3" ||
-      cover3x4?.cover.variantId !== "cover-3x4"
-    ) {
-      throw new Error("Delivery v2 requires both immutable Cover outputs.");
-    }
-    const publishing = createPublishingMetadataV2({
-      story: inputs.story,
-      intent: inputs.intent,
-      semanticTiming: inputs.semanticTiming,
-      finalAssembly: inputs.finalAssembly,
-      actualDurationSeconds: videoMedia.actualDurationSeconds,
-    });
-    const publishingPath = join(staging.root, "publishing.json");
-    await writeDeliveryFileExclusive({
-      destination: publishingPath,
-      bytes: serializeDeliveryJson(publishing),
-    });
-    const manifestContext = buildDeliveryManifestContextV2({
-      inputs,
-      releaseId,
-    });
-    const handoff = buildDeliveryHandoff({ manifest: manifestContext, publishing });
-    const handoffPath = join(staging.root, "HANDOFF.md");
-    await writeDeliveryFileExclusive({
-      destination: handoffPath,
-      bytes: handoff,
-    });
-    const [publishingFile, handoffFile] = await Promise.all([
-      inspectDeliveryFile(publishingPath),
-      inspectDeliveryFile(handoffPath),
+    const [cover4x3, cover3x4] = inputs.cover.result.covers;
+    await Promise.all([
+      copyDeliveryFileExclusive({
+        source: join(rootDir, cover4x3.repositoryPath),
+        destination: join(staging.root, "cover-4x3.png"),
+      }),
+      copyDeliveryFileExclusive({
+        source: join(rootDir, cover3x4.repositoryPath),
+        destination: join(staging.root, "cover-3x4.png"),
+      }),
     ]);
-    const manifest = createDeliveryReleaseManifestV2({
-      ...manifestContext,
-      files: {
-        video: {
-          kind: "video",
-          fileName: videoFileName,
-          checksum: videoFile.checksum,
-          sizeBytes: videoFile.sizeBytes,
-          media: videoMedia,
-        },
-        cover4x3: {
-          kind: "image",
-          fileName: "cover-4x3.png",
-          checksum: cover4x3.file.checksum,
-          sizeBytes: cover4x3.file.sizeBytes,
-          media: cover4x3.media,
-        },
-        cover3x4: {
-          kind: "image",
-          fileName: "cover-3x4.png",
-          checksum: cover3x4.file.checksum,
-          sizeBytes: cover3x4.file.sizeBytes,
-          media: cover3x4.media,
-        },
-        publishing: {
-          kind: "json",
-          fileName: "publishing.json",
-          checksum: publishingFile.checksum,
-          sizeBytes: publishingFile.sizeBytes,
-          contentType: "application/json",
-        },
-        handoff: {
-          kind: "markdown",
-          fileName: "HANDOFF.md",
-          checksum: handoffFile.checksum,
-          sizeBytes: handoffFile.sizeBytes,
-          contentType: "text/markdown; charset=utf-8",
-        },
-      },
-    });
-    const manifestPath = join(staging.root, "release-manifest.json");
-    await writeDeliveryFileExclusive({
-      destination: manifestPath,
-      bytes: serializeDeliveryJson(manifest),
-    });
-    const manifestFile = await inspectDeliveryFile(manifestPath);
-    const ledger = buildChecksumLedger([
-      { fileName: videoFileName, checksum: videoFile.checksum },
-      { fileName: "cover-4x3.png", checksum: cover4x3.file.checksum },
-      { fileName: "cover-3x4.png", checksum: cover3x4.file.checksum },
-      { fileName: "publishing.json", checksum: publishingFile.checksum },
-      { fileName: "HANDOFF.md", checksum: handoffFile.checksum },
-      { fileName: "release-manifest.json", checksum: manifestFile.checksum },
+    await Promise.all([
+      writeDeliveryFileExclusive({
+        destination: join(staging.root, "publishing.json"),
+        bytes: model.bytes.publishing,
+      }),
+      writeDeliveryFileExclusive({
+        destination: join(staging.root, "delivery-launch-manifest.json"),
+        bytes: model.bytes.manifest,
+      }),
+      writeDeliveryFileExclusive({
+        destination: join(staging.root, "HANDOFF.md"),
+        bytes: model.bytes.handoff,
+      }),
+      writeDeliveryFileExclusive({
+        destination: join(staging.root, "render-launch-intent.json"),
+        bytes: model.bytes.intent,
+      }),
+      writeDeliveryFileExclusive({
+        destination: join(staging.root, "immutable-checksums.sha256"),
+        bytes: model.bytes.ledger,
+      }),
     ]);
-    await writeDeliveryFileExclusive({
-      destination: join(staging.root, "checksums.sha256"),
-      bytes: ledger,
-    });
-    await checkDeliveryDirectoryV2({
-      releaseDir: staging.root,
-      releaseId,
+    await checkDeliveryDirectory({
+      deliveryDir: staging.root,
+      deliveryId: model.deliveryId,
       inputs,
-      dependencies,
+      requireReceipt: false,
     });
     await promoteDeliveryStaging({
       staging: staging.root,
-      destination: fixedPaths.release,
+      destination: paths.delivery,
     });
     promoted = true;
-    return { projectId, releaseId, status: "built" as const, noOp: false };
+
+    const launchInputs = await loadInputs({
+      rootDir,
+      projectId,
+      dependencies,
+    });
+    const launchModel = buildDeliveryPackageModel(launchInputs);
+    if (launchModel.deliveryId !== model.deliveryId) {
+      throw new Error("Automatic delivery inputs drifted before render launch.");
+    }
+    await checkDeliveryDirectory({
+      deliveryDir: paths.delivery,
+      deliveryId: model.deliveryId,
+      inputs: launchInputs,
+      requireReceipt: false,
+    });
+
+    const outputPath = join(rootDir, model.intent.outputPath);
+    const logPath = join(rootDir, model.intent.logPath);
+    await assertDeliveryOutputAbsent(outputPath);
+    await assertDeliveryOutputAbsent(logPath);
+    await assertDeliveryDirectoryChain([
+      join(rootDir, "out"),
+      join(rootDir, "out", projectId),
+      join(rootDir, "out", projectId, "delivery-render"),
+    ]);
+    const launch = dependencies.launchRender ?? launchDetachedRemotionRender;
+    await launch({
+      rootDir,
+      command: join(rootDir, model.intent.command),
+      args: model.intent.args,
+      logPath,
+    });
+    const now = (dependencies.clock ?? (() => new Date()))();
+    if (Number.isNaN(now.getTime())) {
+      throw new Error("Delivery launch receipt clock is invalid.");
+    }
+    const receipt = buildRenderLaunchReceipt({
+      intent: model.intent,
+      startedAt: now.toISOString(),
+    });
+    await writeDeliveryFileAtomicExclusive({
+      destination: join(paths.delivery, "render-launch-receipt.json"),
+      bytes: serializeDeliveryJson(receipt),
+    });
+    return {
+      projectId,
+      deliveryId: model.deliveryId,
+      status: "delivery-render-started" as const,
+      noOp: false as const,
+    };
   } finally {
     if (!promoted) await cleanupDeliveryStaging(staging.root);
   }

@@ -114,7 +114,7 @@ test("GlobalVisual errors are v2, scoped to scenes, and contain no Agent identit
     retryable: false,
     remediation: "Correct the owned artifact and start a new run.",
   });
-  assert.equal(error.schemaVersion, 2);
+  assert.equal(error.schemaVersion, 1);
   assert.equal(error.scope, "global-visual");
   assert.deepEqual(
     Object.keys(error).filter((key) =>

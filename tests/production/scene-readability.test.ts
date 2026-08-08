@@ -185,7 +185,7 @@ test("the shared submit watcher checker is check-only and byte-mtime stable", as
   const fixture = await createFixture(context);
   await fixture.write(
     fixture.rendererPath,
-    renderer(`<div style={{fontSize: 36}}>Stable</div>`),
+    semanticRenderer(`<div style={{fontSize: 36}}>Stable</div>`),
   );
   const destination = join(fixture.rootDir, fixture.rendererPath);
   const before = {
@@ -193,8 +193,13 @@ test("the shared submit watcher checker is check-only and byte-mtime stable", as
     mtime: (await stat(destination)).mtimeMs,
   };
   const assignment = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     readabilityPolicy: fixture.policy,
+    sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
+    taskInput: {
+      schemaVersion: 3,
+      sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
+    },
   } as SceneAssignment;
   const graph = {
     rendererPath: fixture.rendererPath,
@@ -247,7 +252,6 @@ test("v3 accepts semantic-only Renderer and binds the shared boundary identities
     graph,
   });
   assert.equal(result.policyFingerprint, fixture.policy.policyFingerprint);
-  assert.equal(result.legacy, false);
   assert.ok("sceneCompositionBoundaryVersion" in result);
   assert.equal(
     result.sceneCompositionBoundaryVersion,

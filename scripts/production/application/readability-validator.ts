@@ -42,9 +42,6 @@ export const validateProductionReadabilityInputs = ({
 }) => {
   const requirements =
     ProductionRequirementsFreezeSchema.parse(rawRequirements);
-  if (requirements.schemaVersion === 1) {
-    return { requirements, readabilityPolicy: null } as const;
-  }
   validateStoryCaptionReadability({
     story,
     policy: requirements.readabilityPolicy,
@@ -57,12 +54,7 @@ export const validateProductionReadabilityInputs = ({
 
 export const requireCurrentProductionReadabilityPolicy = (
   requirements: ProductionRequirementsFreeze,
-) => {
-  if (requirements.schemaVersion === 1) {
-    throw new Error("New production runs require a frozen readability policy.");
-  }
-  return requirements.readabilityPolicy;
-};
+) => requirements.readabilityPolicy;
 
 export const validateSceneReadability = async ({
   rootDir,
@@ -73,41 +65,29 @@ export const validateSceneReadability = async ({
   readonly assignment: SceneAssignment;
   readonly graph: RendererSourceGraph;
 }) => {
-  if (assignment.schemaVersion === 1) {
-    return { policyFingerprint: null, legacy: true } as const;
+  if (assignment.taskInput.schemaVersion !== 3) {
+    throw new Error("Production Scene assignment is not current.");
   }
-  if (assignment.schemaVersion === 3) {
-    const [validated, boundarySourceFingerprint] = await Promise.all([
-      validatePolicyAwareRendererSourceGraph({
-        rootDir,
-        rendererPath: graph.rendererPath,
-        sourcePaths: graph.files.map(({ sourcePath }) => sourcePath),
-        policy: assignment.readabilityPolicy,
-        boundaryMode: "shared-v3",
-      }),
-      assertCurrentSharedSceneBoundary(rootDir),
-    ]);
-    if (
-      assignment.taskInput.schemaVersion !== 3 ||
-      assignment.sceneCompositionBoundaryVersion !==
-        assignment.taskInput.sceneCompositionBoundaryVersion
-    ) {
-      throw new Error("v3 Scene shared boundary identity is stale.");
-    }
-    return {
-      ...validated,
-      legacy: false,
-      sceneCompositionBoundaryVersion:
-        assignment.sceneCompositionBoundaryVersion,
-      boundarySourceFingerprint:
-        boundarySourceFingerprint.boundarySourceFingerprint,
-    } as const;
+  const [validated, boundarySourceFingerprint] = await Promise.all([
+    validatePolicyAwareRendererSourceGraph({
+      rootDir,
+      rendererPath: graph.rendererPath,
+      sourcePaths: graph.files.map(({ sourcePath }) => sourcePath),
+      policy: assignment.readabilityPolicy,
+      boundaryMode: "shared-v3",
+    }),
+    assertCurrentSharedSceneBoundary(rootDir),
+  ]);
+  if (
+    assignment.sceneCompositionBoundaryVersion !==
+    assignment.taskInput.sceneCompositionBoundaryVersion
+  ) {
+    throw new Error("Production Scene shared boundary identity is stale.");
   }
-  const validated = await validatePolicyAwareRendererSourceGraph({
-    rootDir,
-    rendererPath: graph.rendererPath,
-    sourcePaths: graph.files.map(({ sourcePath }) => sourcePath),
-    policy: assignment.readabilityPolicy,
-  });
-  return { ...validated, legacy: false } as const;
+  return {
+    ...validated,
+    sceneCompositionBoundaryVersion: assignment.sceneCompositionBoundaryVersion,
+    boundarySourceFingerprint:
+      boundarySourceFingerprint.boundarySourceFingerprint,
+  } as const;
 };

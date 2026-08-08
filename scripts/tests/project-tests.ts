@@ -3,12 +3,13 @@ import { readdir } from "node:fs/promises";
 import { join, posix, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
-export const PROJECT_TEST_RUNNER_ID = "project-test-runner-v2" as const;
+import { discoverProjectEntries } from "../registry/project-files";
+
+export const PROJECT_TEST_RUNNER_ID = "project-test-runner-current-v1" as const;
 
 export type RepositoryTestScope = "source" | "media" | "all";
 
 const MEDIA_PROJECT_TEST_NAMES = new Set([
-  "approval.test.ts",
   "final-evidence.test.ts",
   "final-invalidation.test.ts",
   "fail-closed-matrix.test.ts",
@@ -20,7 +21,6 @@ const CORE_TEST_ROOTS = [
   "tests/architecture",
   "tests/contracts",
   "tests/catalog",
-  "tests/compatibility",
   "tests/docs",
   "tests/external-references",
   "tests/scene-package",
@@ -126,6 +126,12 @@ export const runRepositoryTests = async (
 ) => {
   const testFiles = await discoverRepositoryTests(rootDir, scope);
   if (testFiles.length === 0) {
+    if (
+      scope === "media" &&
+      (await discoverProjectEntries(rootDir)).length === 0
+    ) {
+      return;
+    }
     throw new Error("Repository test discovery found no tests.");
   }
   return new Promise<void>((resolvePromise, reject) => {

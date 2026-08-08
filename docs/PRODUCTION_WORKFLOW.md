@@ -1,615 +1,98 @@
-# 外部生产流程与解耦边界
+# 外部生产流程
 
-> 文档类型：生产阶段、输入输出与所有权权威
+> 文档类型：执行流程权威
 >
-> 最后复核：2026-08-08
->
-> 当前完成状态只在 [ITERATION_STATUS.md](ITERATION_STATUS.md) 维护。
+> 最后复核：2026-08-09
 
-## 1. 文档范围
-
-这里的“外部生产流程”指 Scene 内部视听制作之外，从用户输入到可播放视频、最终装配和
-交付的完整流程，同时包括 VoxCPM 等生成服务与本地确定性系统之间的边界。
-
-当前设计顺序是：
-
-```text
-冻结完整制作要求
-→ 稳定叙事生产主链
-→ 冻结全片画风、Story 级候选资源池、每 Beat 制作输入与 GlobalVisual 输入
-→ N 个 Scene owner 与一个 whole-film GlobalVisual owner 并行制作
-→ 固定脚本只接受结果合同并投影、装配机械完整预览
-→ 用户观看最终预览
-```
-
-流程产物分为四个生命周期：Project source 是可继续制作、注册和渲染的源码及 render-critical
-本地输入；Run review 是某次 production 的事件、PreviewEvidence 和机械检查；delivery output
-是 `out/` 中可删除、可重新导出的 MP4、PNG、contact sheet 等媒体；local release 是
-`deliveries/<storyId>/<releaseId>/` 下不可覆盖、可显式复验的批准后交付包。默认 `npm run check` 只把
-core 与当前 Project source 作为健康前置条件。媒体和批准必须通过显式 Project-owned 命令复验，
-缺失时保持 fail closed，但不反向判定 core 或其他 Project 失效。
-
-M6 已完成 Scene 构图/Shot/renderer/局部声音/转场/选材的数据与确定性执行接口；M7 已在
-GPS 上用五个 composition-local renderer 和五个 project-authored cue 落地这些接口，且未
-提升新的共享能力。这些接口不成为叙事主链的前置条件。
-
-## 2. 必需主链与可选增强
-
-```text
-必需主链
-VideoBrief
-→ StorySpec + NarrationSpec + RenderSpec
-→ Narration Generation
-→ SealedNarrationManifest
-→ SemanticTiming + CaptionCue + Complete Narration Audio
-→ NarrativeCore
-→ Generated Static ProjectRegistry + lazy-loaded Composition
-→ Narrative Baseline
-
-可选运行时增强轨
-StoryVisualTrack
-SoundDesignTrack
-GlobalVisualLayers
-
-Scene 制作权威
-1 StoryBeat / meaningId
-→ 1 ScenePackage
-→ visual contribution + Scene-local sound contribution
-
-最终装配
-NarrativeCore + 已选择的可选增强轨
-→ Final Preview
-→ FinalPreviewApproval
-→ independent local Delivery Release
-```
-
-`NarrativeCore` 是唯一必需轨。任何增强轨缺失，都不得阻止 Narrative Baseline 的检查、
-预览或渲染。StoryVisualTrack 与 SoundDesignTrack 是运行时投影；Scene 局部画面和声音的
-创作权威共同位于对应 ScenePackage。
-
-## 3. 总流程
+## Current-only 主链
 
 ```mermaid
-flowchart TB
-    Input["用户内容 / 资料 / 约束"] --> Brief["VideoBrief<br/>【创作决策】"]
-    RenderInput["用户本次制作参数<br/>无需二次确认"] --> RenderSpec["RenderSpec<br/>画幅 / fps / 字幕与输出约束<br/>【用户输入】"]
-    Brief --> Story["StorySpec<br/>StoryBeat + authored ttsChunks<br/>【创作决策】"]
-    Brief --> NarrationSpec["NarrationSpec<br/>voice profile / 生成参数<br/>【创作决策】"]
-    Story --> NarrationContract["叙事与旁白合同校验<br/>【确定性执行】"]
-    NarrationSpec --> NarrationContract
-    RenderSpec --> RenderContract["渲染合同校验<br/>【确定性执行】"]
-
-    NarrationContract --> StoryCheck["StoryCheck<br/>语义 / 顺序 / 朗读单元<br/>【创作决策】"]
-    StoryCheck --> Generate["VoxCPM 逐 chunk 生成<br/>【外部生成边界】"]
-    Generate --> Candidates["候选 chunk 音频<br/>非时间权威"]
-    Candidates --> Seal["实测 / checksum / fingerprint / 原子封存<br/>【确定性执行】"]
-    Seal --> Narration["SealedNarrationManifest<br/>完整旁白音频"]
-    Narration --> Timing["SemanticTiming + CaptionCue<br/>【时间权威】"]
-    RenderContract --> Timing
-
-    Story --> Core["NarrativeCore"]
-    RenderSpec --> Core
-    Timing --> Core
-    Narration --> Core
-    Core --> Register["Generated Static ProjectRegistry<br/>metadata + literal lazy import"]
-    Register --> Baseline["Lazy-loaded Story Composition<br/>Narrative Baseline"]
-    Baseline --> Auto["AutoCheck<br/>机械检查"]
-
-    Auto --> Style["VisualStyleSpec<br/>全片画风权威<br/>M6 合同 / M7 实例"]
-    StyleInput["用户画风意图"] --> Style
-    Upstream["video-shotcraft / approved upstream"] --> Snapshot["ExternalReferenceSnapshot<br/>immutable commit / index / license"]
-    Snapshot --> Catalog
-    Catalog["ResourceCatalog<br/>资产 / style / capability / authoring reference"] --> Style
-    Style --> Freeze["冻结共享输入<br/>Catalog / references / continuity / timing"]
-    Catalog --> Freeze
-    Freeze --> Tasks["按 meaningId 并行 Scene 任务"]
-    Tasks --> Fidelity["Reference fidelity<br/>source / adaptation / binding evidence"]
-    Fidelity --> Packages["ScenePackage[]<br/>visual + local sound + provenance"]
-    Packages --> Visual["StoryVisualTrack<br/>运行时投影"]
-    Packages --> SceneSound["SceneSoundContribution[]"]
-    SceneSound --> Sound["SoundDesignTrack<br/>运行时汇总 / 混音"]
-    GlobalSound["GlobalSoundPlan<br/>BGM / 跨 Scene ambience / ducking"] --> Sound
-
-    Auto --> Assembly["CompositionAssembly"]
-    Visual -.-> Assembly
-    Sound -.-> Assembly
-    Global["GlobalVisualLayers<br/>可选增强"] -.-> Assembly
-
-    Assembly --> Preview["Final Preview"]
-    Story --> Intent["PublishingIntent<br/>Story stage"]
-    Story --> Cover["Cover owner<br/>4:3 + 3:4 code-only"]
-    Style --> Cover
-    Preview --> Approval["FinalPreviewApproval"]
-    Intent --> Delivery
-    Cover --> Delivery
-    Approval --> Delivery["delivery:build<br/>local immutable release"]
+flowchart TD
+    Inputs["Story inputs + PublishingIntent"] --> Preflight["Host preflight"]
+    Preflight --> Narrative["Sealed narration + SemanticTiming"]
+    Narrative --> Freeze["Freeze N Scene + GlobalVisual + Cover assignments"]
+    Freeze --> Scenes["N isolated Scene owners"]
+    Freeze --> Global["One GlobalVisual owner"]
+    Freeze --> Cover["One independent Cover owner"]
+    Scenes --> Watcher["Single-writer watcher"]
+    Global --> Watcher
+    Watcher --> Ready["ProductionRenderPlan + ProductionRenderReady"]
+    Ready --> Package["Non-MP4 delivery package + launch intent"]
+    Cover --> Package
+    Package --> Spawn["Detached Remotion spawn"]
+    Spawn --> Receipt["OS spawn acknowledgement receipt"]
+    Receipt --> Endpoint["delivery-render-started"]
 ```
 
-虚线表示可选依赖。M4 的 `Narrative Baseline` 机械 AutoCheck 不要求任何增强轨存在；M6
-实现 Scene visual/local-sound 可选投影和 final 机械基础。主观 NarrativeCheck、Scene 审美
-判断和用户最终批准都没有被自动 gate 冒充。GPS M8 与产品漫画 M9 的用户批准都由真实用户
-对 exact checksum-bound 完整预览作出，再由只读 checker 绑定各自 evidence 和 FinalAssembly
-identity。
-
-### 3.1 M9.5 已实现稳定路径
-
-M9.5 不把“Agent 正在做什么”当作可监控状态。主 Agent 在入口写并冻结
-`ProductionRequirementsFreeze`，其中绑定 VideoBrief、Story、NarrationSpec、RenderSpec、
-StoryCheck、画幅、voice profile、字幕/安全区、资源政策和额外要求；固定 narrative runner
-随后持续执行到 `baseline-ready`。
-
-Baseline current 后，主 Agent 写 VisualStyleSpec、StoryResourcePool 和
-SceneProductionBrief。StoryResourcePool 只大致选择整个 Story 可能使用的批准资源；每个
-Scene Agent 在 assignment 内精确选择子集或零资源，也可以使用 project-local Remotion 自行
-实现。每个 meaningId 必须由一个独立 owning 子 Agent 完成，并先通过不写不可变结果的固定
-`production:scene:check`；主 Agent 复检后串行调用 submit/fail CLI 写
-`SceneProductionResult`。子 Agent 不改中央状态、共享生成物或另一个 Scene。
-
-中央 watcher 是唯一状态 writer。它轮询 Scene result 合同并从 append-only events 复算
-`ProductionRunState`：任一 expected/unexpected error、timeout、malformed、stale、共享输入
-漂移或越权资源都会停止；全部 mechanically-ready 后才继续 coverage、RendererRegistry、
-projection、Composition、MP4 和机械 Preview evidence。第一版不生成 BGM、跨 Scene
-ambience、ducking 或 GlobalVisualLayers，不执行 Agent Scene 审美审核，成功终点只能是
-`preview-ready / awaiting-user-preview`。
-
-仓库脚本不负责创建 Codex 子 Agent。主 Agent 使用当前原生 Agent 能力按 meaningId 创建独立
-owner，然后保持当前任务运行、以宿主权限等待 watcher；不可用时在 Scene authoring 前报告
-blocker，不允许静默 inline。M9.5 不保证主任务结束后子 Agent 继续存活。完整实施边界见
-[M9.5 历史实施计划](archive/implementation-plans/2026-08-04-m9-5-contract-driven-production-orchestration-plan.md)。
-
-### 3.2 v3 Run-before-write preflight 与 Scene ownership（兼容历史）
-
-v3 Run 只接受 `production-requirements-freeze-v3`。`production:start` 在 scaffold、clock、run
-manifest、event/state 或 narration work 写入前复用同一只读 preflight：VoxCPM `/health`
-只检查 liveness，`/ready` 只诊断模型状态；`503/loading` 作为
-`cold-auto-load-on-first-tts` 通过，不预热、不发送测试 TTS，`500` 安全归类为 external model
-blocker。Chromium 使用与正式 compositions 完全相同的 executable、entry 和参数；sandbox/
-permission failure 属于外部环境，不降级 sandbox、不 fallback。preflight 不进入 ProductionRun ledger，
-也不成为作品 authority，append-only event/state 的 single-writer 边界不变。
-
-v3 Scene freeze 把 frozen readability policy 和 `scene-composition-boundary-v1` 绑定进
-task/assignment；package、result、watcher 和 PreviewAssembly 复检同一组 identity。
-Composition 的 `SceneSafeArea` 持有安全区和文字 context，Scene Renderer 只输出语义视觉，
-`CaptionLayer` 仍由 NarrativeCore 顶层唯一渲染。当前流程不生成 project-global visual wrapper；
-`GlobalVisualLayers` 在正式接入前保持 absent，未来作为全局背景、纹理、装饰和连续性 motif 的
-唯一项目级视觉权威。Scene Renderer 根节点必须透明，只渲染当前 Beat 的语义内容；不得自行
-补安全区底板、全帧底色、纹理或装饰背景。`GlobalVisualLayers` 缺失时，未使用区域保持透明。
-v1/v2 scaffold、Renderer、package/result/check path 保持兼容，现有正式项目不迁移。
-
-### 3.3 v4 parallel GlobalVisual contracts
-
-future-only v4 requirements 要求 current `GlobalVisualBrief`，并在一次
-`production:scene:freeze` 中原子写入 N 个 `SceneAssignment` 和一个
-`GlobalVisualAssignment`。主 Agent 同时分发 N 个 Scene owner 与一个 whole-film
-GlobalVisual owner；GlobalVisual 不等待、读取或引用任何 Scene 输出，两类 package 双向独立。
-
-每个 owner 只能写 assignment 独占路径，先运行对应 non-terminal check，由 root 复检后串行
-submit/fail。Scene 与 GlobalVisual result 可以任意顺序到达；watcher 只读取 immutable result
-contracts，直到 N+1 全部 accepted 才装配。repo 不调用 Agent API，也不监控或保存 Agent、task、
-thread、model、progress、conversation、log 或 heartbeat 状态；缺 result 只表示合同尚未到达。
-
-GlobalVisualPackage 绑定 current plan、project-local static source graph 和选中资源。其 renderer
-只拥有背景、纹理、装饰和连续性 motif，不渲染字幕、可见文本、音频或 Scene 语义，不扩张为
-通用 DSL、自动布局器或自动导演。固定 post-scene 生成 GlobalVisualProjection v2，并通过
-PreviewAssembly v3 / Evidence v2 / MechanicalCheck v2 绑定 current identity；GlobalSound 仍
-absent。旧 v1-v3 requirements/Run/scaffold 和 GPS/ProductComicVertical 正式作品保持原字节。
-
-### 3.4 M10 v2 前移发布内容与独立 Cover
-
-历史 M10 v1 artifacts/releases 保持只读兼容。future-only v2 在 Story 阶段一次创作并冻结
-PublishingIntent：它绑定 Story fingerprint、不重复 title、不保存 frame/timecode，只保存
-description、6–7 个唯一 topics、自由文本 collection 和按 Story 顺序覆盖全部 meaningId 的中文
-章节名。
-
-VisualStyleSpec current 后，主 Agent 在 N Scene + GlobalVisual 分发时同时创建一个 Cover owner。
-CoverAssignment 只嵌入 StorySpec、VisualStyleSpec 和 fixed CoverSpec；owner 独立完成 1600×1200
-与 1200×1600 纯代码 Composition、真实 PNG、缩略图检查和 immutable Cover result。它不读取
-PublishingIntent、timing、旁白、字幕、Scene/GlobalVisual 输出、FinalAssembly、preview、
-evidence 或 approval。Cover 不进入 watcher 的 N+1 join：missing/failed 不阻止
-`preview-ready`，只阻止后续 delivery。
-
-M10 不属于 `production:*` 状态机。只有 current PublishingIntent、current Cover result、current
-`FinalAssembly`、current `FinalPreviewEvidence`、用户真实 `FinalPreviewApproval` 和 passing
-`final-mechanical-check-v2` 相互精确绑定时，future-only `delivery:build` 才可读取获批 preview。
-脚本直接复制该 MP4 和 Cover result 已封存的 exact PNG，不调用 Agent、不重新渲染或编码。
-
-PublishingIntent、Cover result 和固定 archive policy 进入交付规格；交付规格、approval 和
-FinalAssembly 共同确定 release identity。`publishing.json` 的 title 来自 StorySpec，内容来自
-PublishingIntent，chapter startFrame/timecode 来自 current SemanticTiming 的起始帧与向下取整
-`HH:MM:SS`，fps/总帧数来自 FinalAssembly，实际时长来自交付 MP4 实测。
-application/domain/adapters 分层只允许固定仓库相对路径和固定输出
-`deliveries/<storyId>/<releaseId>/`。构建在 `.staging` 完成媒体、canonical metadata、文件集和
-checksum 复验后才原子封存；相同 release 幂等 check，任何不同内容都拒绝覆盖。该流程不签署
-批准、不修改 Story/旁白/字幕/时间线/ScenePackage/FinalAssembly，不执行网络或平台操作。
-
-## 4. 阶段输入与输出
-
-| 阶段                     | 输入                                                                        | 固定输出                                                                                 | 边界                                                                                                           |
-| ------------------------ | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Brief                    | 用户内容、资料、受众、时长与交付约束                                        | `VideoBrief`                                                                             | 只描述目标，不包含实现代码                                                                                     |
-| Story Authoring          | `VideoBrief`                                                                | `StorySpec`、`PublishingIntent`、有序 StoryBeat、已创作 `ttsChunks`、显式叙事停顿意图     | title 只在 StorySpec；PublishingIntent 不保存 frame/timecode；`ttsChunks` 不按标点自动拆分                     |
-| Narration Authoring      | `VideoBrief`                                                                | `NarrationSpec`、voice profile 引用和允许的生成参数                                      | 不包含 provider 地址、token 或私有配置                                                                         |
-| Render Input             | 用户每次制作直接提供的参数                                                  | `RenderSpec`                                                                             | Agent 原样结构化并应用合同中已经定义的默认值；只做类型、范围和兼容性校验，不形成确认或审批节点                 |
-| Contract Check           | StorySpec、NarrationSpec 与用户提供的 RenderSpec                            | 分层校验报告；由有序 ttsChunks + NarrationSpec 得到 generation input fingerprint         | 只校验已确定输入，不改写文案、声音选择或输出约束                                                               |
-| Story Check              | StorySpec、NarrationSpec 与合同报告                                         | Agent 叙事计划检查报告                                                                   | 在调用外部生成前检查语义顺序、朗读单元和声音选择；不增加用户审批                                               |
-| Narration Generation     | `StorySpec.ttsChunks`、`NarrationSpec`                                      | 候选 chunk 音频                                                                          | 可调用 VoxCPM；候选产物不是时间权威                                                                            |
-| Seal and Measure         | 完整候选 chunk 集合、显式停顿声明                                           | sealed manifest、chunk checksum、完整音频、实测时长和非朗读区间                          | 全部验证成功后原子封存；部分结果不得冒充完成                                                                   |
-| Timing                   | sealed manifest、`RenderSpec.fps` 和显式时间边界                            | `SemanticTiming`、`CaptionCue`                                                           | 按 `pcm-cumulative-ceil-v1` 从累计 sampleFrameCount 计算；不得逐 chunk 转帧累加                                |
-| Narrative Runtime        | `StorySpec`、`RenderSpec`、sealed narration、timing                         | `NarrativeCore`                                                                          | 不消费 NarrationSpec 的生成参数，不调用 Agent、skill、MCP、VoxCPM 或网络服务                                   |
-| Composition Registration | NarrativeCore、Story ID、RenderSpec、SemanticTiming、固定项目入口           | generated static ProjectRegistry、lazy-loaded Narrative Baseline Composition             | bundle 前固定一级目录发现；元数据静态可枚举，字面量 `import()` 交给 `lazyComponent`；render runtime 不扫描目录 |
-| Baseline Evidence        | Narrative Baseline 与其 fingerprints                                        | M3 透明 still、全长 render、严格 evidence receipt                                        | 固定路径和机械媒体事实                                                                                         |
-| Baseline AutoCheck       | M1–M3 source、封存产物、registry、Baseline 与 evidence                      | M4 strict persisted report 和作品级机械汇总                                              | 默认只读 drift gate；不要求 ScenePackage、视觉资产或 renderer registry                                         |
-| Narrative Check          | Narrative Baseline 与机械报告                                               | 未来可能另行设计的 Agent 叙事检查报告                                                    | 不属于当前 gate；如未来设计，必须另行批准主观检查边界                                                          |
-| Visual Direction         | 用户画风意图、Story、RenderSpec、已注册 style profiles                      | `VisualStyleSpec`                                                                        | 项目级全片画风权威；不进入旁白封存或 SemanticTiming                                                            |
-| External Reference Sync  | 显式允许的上游 repository/commit                                            | immutable snapshot、recipe/demo/preview index、license metadata                          | 仅 authoring step 可联网；浮动 branch/tag 不能成为生产 identity；runtime 不访问上游                            |
-| GlobalVisual Brief       | Story、RenderSpec、VisualStyleSpec、全片视觉意图                            | `GlobalVisualBrief`                                                                      | v4 requirement freeze 前创作；不引用 Scene 输出或 Agent lifecycle                                              |
-| Scene Task Freeze        | StoryBeat、SemanticTiming、VisualStyleSpec、Catalog、references、相邻连续性 | 每个 meaningId 的只读任务输入                                                            | 一个独占 Scene 目录对应一个 Agent 任务；共享输入、上游 revision 与 registry 不可由子 Agent 修改                |
-| GlobalVisual Freeze      | Brief、StoryBeat 时间窗、Style、Catalog、readability                        | 一份 whole-film `GlobalVisualAssignment`                                                 | 与 N 个 Scene assignment 同次原子冻结；独占 project-local source/public paths                                  |
-| Scene Authoring          | 单个 Beat 的固定任务输入                                                    | SceneVisualPlan、ShotPlan、SceneSoundPlan、资源/recipe 选择、本地化 Shot 与 Renderer.tsx | 画面与 Scene 局部声音内聚；recipe 可为空；不得修改 Beat 时长、旁白、字幕或其他 Scene                           |
-| GlobalVisual Authoring   | GlobalVisualAssignment                                                      | plan、selected resources、static renderer、`GlobalVisualPackage`                         | 不读取 Scene 输出；不拥有字幕、声音、Scene 语义、DSL、自动布局或自动导演                                       |
-| Reference Fidelity       | exact recipe selection、准确 demo、本地源码和证据                           | pass-only fidelity receipt 或明确 not-applicable                                         | exact 必须证明 lineage、最小依赖闭包、真实 Renderer/frame-state binding 和正常速度可辨识；preview 只作证据     |
-| Scene Package            | 已完成并校验的单 Scene 本地输入                                             | 视觉/局部声音贡献、同步锚点、reference receipt 与分层 fingerprint                        | 一个 meaningId 对应一个 ScenePackage；SceneRenderer 仍只输出视觉                                               |
-| Enhancement Projection   | 有序 ScenePackage、GlobalSoundPlan、GlobalVisualPlan                        | StoryVisualTrack、SoundDesignTrack、GlobalVisualLayers                                   | 运行时分轨是确定性投影，不建立第二份 Scene SFX 创作权威                                                        |
-| Final Assembly           | NarrativeCore 与已选择增强轨                                                | FinalAssembly、完整正常速度 Preview                                                      | 固定 z-order/mix-order；缺失未选择的增强轨不是错误                                                             |
-| Final Preview Evidence   | FinalAssembly、完整 MP4、contact sheet、still 与批量 review                 | checksum-bound evidence、技术测量和 review fingerprint                                   | 完整解码、帧数、时长、响度、true peak、声道和 ducking 均 fail closed                                           |
-| Final Preview Approval   | current FinalPreviewEvidence                                                | 用户 authoring record 与 generated approval                                              | 仅用户可批准；精确绑定 preview/evidence/assembly，Agent/checker 不得代签                                       |
-| Cover Authoring          | current StorySpec、VisualStyleSpec、fixed CoverSpec                          | immutable Cover package/result、两张 exact PNG                                           | 与 N+1 owners 同时但不进入 watcher；禁止其他生产/发布/批准输入                                                 |
-| Local Delivery           | current PublishingIntent/Cover result/approval/evidence/FinalAssembly、passing final-v2 | fixed local release、publishing/manifest/checksums/handoff                         | 纯脚本复制 exact approved preview 与封存 PNG；不可覆盖、不上传平台、不改变 production 状态                     |
-
-## 5. 权威与所有权
-
-### 创作权威
-
-- `VideoBrief`：用户目标和约束权威；
-- `StoryBeat`：语义、顺序和叙事推进权威；
-- `ttsChunks`：已创作的实际朗读单元；工具不得按标点重新切分；
-- chunk 或 StoryBeat 之间若需要额外停顿，必须由创作声明显式表达；工具不得根据标点
-  猜测停顿。封存音频本身已有的自然静音按实测结果保留；
-- `NarrationSpec`：本次 voice profile 和允许生成参数的权威；
-- `RenderSpec`：用户在每次制作时直接交给 Agent 的 fps、画幅、字幕与交付格式权威。
-  Agent 只负责结构化和机械校验，不得把它变成重复确认或创意审批；它不拥有台词或旁白
-  波形。
-- `VisualStyleSpec`：Scene 制作前冻结的项目级画风权威，包含已选 style profile、项目化 art
-  direction、连续性规则和禁止项；它不属于 RenderSpec，也不反向修改叙事主链。
-- `ScenePackage`：一个 meaningId 的视听制作权威，内聚视觉、Shot、Scene 局部 ambience、
-  SFX、同步锚点、已选资源和已选上游 recipe 的本地适配结果；不拥有旁白、字幕、全局 BGM
-  或独立时长。
-
-ExternalReferenceSnapshot 不是新的创作权威。它只是不可变来源与允许用途的证据；是否选择
-recipe、选择原因以及如何服务 StoryBeat，仍由 SceneVisualPlan/ShotRecipeSelection 负责，
-全片皮肤仍由 VisualStyleSpec 决定。
-
-### 产物权威
-
-- VoxCPM 刚生成的 chunk 音频只是候选产物；
-- 完整候选集合通过实测、checksum 和 fingerprint 后，
-  `SealedNarrationManifest` 才成为旁白产物权威；
-- `SemanticTiming` 只从 sealed manifest 生成，是后续绝对时间权威；
-- CaptionCue 与 TTSChunk 一一对应，文本来自实际 `ttsText`，不做词级对齐；显式片头、
-  片尾或段间静音属于 SemanticTiming 的非朗读区间，不生成伪字幕。
-
-### 音频到帧
-
-- 音频时间事实是封存 PCM 的整数 sample-frame 数（每声道采样时刻数），不是容器报告
-  的浮点秒数或交错声道样本总数；
-- 所有 chunk 和显式叙事停顿先形成一条连续样本时间线，再对每个累计样本边界统一执行
-  `ceilDiv(累计样本 × fps, sampleRate)`；禁止每个 chunk 分别转帧后求和；
-- `RenderSpec` 中的片头、片尾在结构化后保存为整数帧。完整旁白只在片头帧之后播放，
-  修改片头片尾不会改写 sealed narration；
-- CaptionCue 使用对应 TTSChunk 的两个共享边界，显式停顿只占时间、不生成字幕；
-- 唯一公式、取整理由、零帧保护和运行时约束见
-  [确定性执行：音频样本到帧](DETERMINISTIC_EXECUTION.md#8-音频样本到帧的唯一算法)。
-
-### 运行时所有权
-
-- `NarrativeCore` 拥有旁白播放、顶层 CaptionLayer 和绝对时间挂载；CaptionLayer 固定 40px
-  字号，并按 Composition 宽高约束最大宽度和响应式安全区；NarrativeCore 不绘制背景，除
-  CaptionLayer 外的视觉区域保持透明；
-- `ProjectRegistry` 把静态可枚举的 Story 注册元数据与字面量 lazy import 绑定；它与
-  把 rendererId 绑定到 SceneRenderer 的 RendererRegistry 是两个独立 registry；
-- ProjectRegistry 与 ResourceCatalog 都只投影当前 Project 集并允许零 Project；具体 Project
-  位于 ignored 本地目录，可保留或经明确授权删除，core 不保存具体 storyId 分支，render
-  runtime 仍不扫描目录；
-- 固定生成步骤只发现 `src/projects/*/Composition.tsx`，稳定排序并生成
-  `project-registry.generated.ts`；每个入口必须 default export；
-- `npm run bootstrap` 在 fresh clone 和常用 npm 入口前生成 core proof 的 `public/` 资产、
-  ResourceCatalog 与 ProjectRegistry；这些当前集投影不进入 Git；
-- Root 静态读取 generated registry，再把条目的字面量 loader 传给 Remotion
-  `lazyComponent`。具体 Composition 只在选中、preview 或 render 时加载；
-- generated registry 必须进入 fingerprint，并由 read-only check mode 做 byte-for-byte
-  漂移检查；正式 render runtime 不扫描目录、不生成 registry，也不读取 JSON 模块路径；
-- StoryVisualTrack 和 SoundDesignTrack 分别汇总 ScenePackage 的 visual/local-sound 投影；
-  M8 保留 M7 SoundDesignProjection identity，再由 FinalSoundProjection 叠加
-  GlobalSoundPlan。运行时轨不成为第二份 Scene 创作权威；
-- GlobalVisualLayers 位于 Scene visual 之上、CaptionLayer 之下，只消费固定 project-local
-  plan/projection；
-- CompositionAssembly 只按固定四槽位与 z-order/mix-order 装配，不进行创作选择，也不重算
-  叙事时间。
-
-## 6. VoxCPM 外部生成边界
-
-只有 Narration Generation 阶段可以调用 VoxCPM。其余检查、preview、render 和 quality
-流程只读取仓库内声明、本地源码和已封存产物。
-
-必须遵守：
-
-- 每个请求绑定 chunkId、meaningId、实际 `ttsText`、NarrationSpec 和 generation input
-  fingerprint；
-- 部分成功可以作为同一 generation input fingerprint 下的续跑候选，但不能生成 sealed
-  receipt；
-- 重试不得静默覆盖上一次已封存旁白；重新生成产生新的 sealed fingerprint；
-- provider 不可用时，最后一份仍匹配 StorySpec 和 NarrationSpec 的 sealed narration 保持
-  有效；
-- provider 地址、token、私有配置不得写入 StorySpec、manifest 或 render runtime；
-- runtime 不以“重新调用一次 TTS”修复缺失或失效产物，而是 fail closed。
-
-## 7. 生命周期
-
-```text
-Draft
-→ StoryReady
-→ NarrationInProgress
-→ NarrationSealed
-→ BaselineReady
-→ EnhancementInProgress（可跳过）
-→ FinalPreviewReady
-→ Approved
-→ LocallyDelivered（显式、可选）
-```
-
-这些名称用于描述作品生命周期，不建立一个可被手工修改的万能 `status` 字段。当前作品
-状态必须由合同、产物、receipt 和 fingerprint 是否齐全且相互匹配推导。
-
-M9.5 的 `ProductionRunState` 是制作期运行投影，不是新的作品 authority：固定脚本先
-追加 strict `ProductionStageEvent`/`SceneProductionResult`，再从 ledger 与 current artifact
-fingerprints 复算 byte-stable state。任何手改、非法 transition 或旧 previous fingerprint 都
-fail closed；render runtime 不读取 `.producer-runs/`。
-
-GPS M8 与产品漫画 M9 当前均已到 `Approved`：完整 MP4 与 evidence checksum current，用户
-批准与 FinalAssembly identity 一致，`final-mechanical-check-v2` pass。产品漫画另由显式 M10
-命令到达 `LocallyDelivered`；该状态不由批准自动推导，也不表示已上传或网络发布。
-
-允许返回上游修改，但必须形成新的 fingerprint 并让下游结果失效；不能修改上游后继续
-沿用旧 timing、旧 preview 或旧 approval。
-
-## 8. 失效方向
-
-```text
-Generation input fingerprint
-= ordered StorySpec.ttsChunks + NarrationSpec
-
-Sealed narration fingerprint
-= generation input fingerprint
-+ selected measured chunk checksums
-+ explicit pause declarations
-+ measurement / assembly algorithm version
-+ complete audio checksum
-
-SemanticTiming fingerprint
-= sealed narration fingerprint + RenderSpec timing fields + timing algorithm version
-
-ProjectRegistry entry fingerprint
-= Story ID + RenderSpec registration fields + SemanticTiming total frames
-+ literal Composition entry + registry generator version + generated entry checksum
-
-Narrative Baseline fingerprint
-= StorySpec + RenderSpec + sealed narration + SemanticTiming
-+ ProjectRegistry entry fingerprint + NarrativeCore version
-
-VisualStyle fingerprint（M6）
-= style profile identity + 项目化 art direction + 连续性规则 + 禁止项
-
-Scene visual fingerprint（M6）
-= StoryBeat + SemanticTiming + VisualStyle fingerprint
-+ SceneVisualPlan + ShotPlan + sync anchors + visual resources + renderer source
-
-Scene sound fingerprint（M6）
-= StoryBeat + SemanticTiming + sync-anchor fingerprint
-+ SceneSoundPlan + audio resources + scene-audio runtime version
-
-External reference snapshot fingerprint（M6 制作期）
-= repository + immutable commit + index + source license metadata + snapshot algorithm version
-
-Reference fidelity receipt fingerprint（命中 exact recipe 时）
-= selected card/style-key + card/demo/preview fingerprints
-+ minimal dependency closure + localized source + real renderer/frame-state binding
-+ source/adaptation evidence + normal-playback recognizability + asset license results
-
-ScenePackage fingerprint（M6）
-= Scene visual fingerprint + Scene sound fingerprint + renderer binding
-+ ShotRecipeSelection + reference fidelity receipt
-
-StoryVisualTrack / SoundDesignTrack fingerprints（M6 Scene 运行时投影）
-= ordered ScenePackage projections + transition/Scene-local sound inputs + runtime versions
-
-Assembly fingerprint
-= Narrative Baseline fingerprint + selected enhancement fingerprints + assembly plan
-
-Approval / Render evidence
-= Assembly fingerprint
-```
-
-- StoryBeat、`ttsText`、顺序或 NarrationSpec 变化：旁白封存及所有下游失效；
-- 只修改显式停顿：仍匹配 generation input fingerprint 的 chunk 候选可以复用；sealed
-  complete audio、timing、Baseline 和下游证据失效；
-- 只重新生成旁白：Story 语义仍可保留，但 timing、字幕、Baseline 和所有增强证据失效；
-- 只修改 RenderSpec timing 字段（fps、片头或片尾）：已封存旁白保持有效；
-  SemanticTiming、registry entry、字幕边界、Baseline 和依赖它们的下游结果失效；
-- 只修改 RenderSpec 的非 timing 字段：已封存旁白与 SemanticTiming 保持有效；相关
-  registry 元数据、字幕布局或输出约束、Baseline 和依赖它们的下游结果失效；
-- 新增、删除、重命名 Story 入口，或修改 Composition ID、default export、registry
-  generator：ProjectRegistry、Composition listing、Baseline 和 evidence 失效；sealed
-  narration 与 SemanticTiming 只按各自输入判断；
-- 只修改 VisualStyleSpec：依赖该画风的 Scene visual/package、视觉轨和完整 Preview 失效；
-  旁白、timing 和尚未受视觉变化影响的 Scene sound 输入保持有效；
-- 只修改某个 Scene 的纯视觉表现且同步锚点不变：该 Scene visual/package、视觉证据和完整
-  Preview 失效；它的 Scene sound fingerprint 与其他 Beat 保持有效；
-- 修改某个 Scene 的同步锚点或局部声音：该 Scene sound/package、声音检查和完整 Preview
-  失效；其他 Beat 与 NarrativeCore 保持有效；
-- 上游出现新 commit 但项目未显式切换 snapshot：已封存 package 不自动变化；浮动远程状态
-  不是当前生产输入；
-- 主 Agent 用新 ExternalReferenceSnapshot 重发 task/selection，或已选
-  card/demo/preview/依赖闭包 identity 变化：使用对应 reference 的 Scene
-  task/fidelity/visual/package/Preview fail closed；未重发且仍绑定有效旧 snapshot 的 Scene 与
-  NarrativeCore 保持有效；
-- 本地化 Shot 源码、真实 Renderer binding、配对证据或逐资产 license 状态变化：只使引用
-  它们的 reference receipt、ScenePackage 和下游 Preview 失效；
-- 只修改 GlobalSoundPlan 或 GlobalVisualPlan：对应运行时轨、assembly 和完整 Preview 失效，
-  各 ScenePackage 内部证据保持有效；
-- 修改 Story、旁白或 SemanticTiming：所有依赖变化 Beat 时间的 ScenePackage 与后续绝对
-  时间投影失效；Scene 不得自行延长时间来规避重算；
-- 任一最终装配输入变化：FinalPreviewApproval 失效，必须绑定新 assembly fingerprint。
-
-失效只能向下游传播，视觉或发布阶段不得反向改写 StorySpec 和实测旁白时间线。
-
-## 9. 已完成里程碑
-
-M2 已为 `gps-relativity` 实现和验证：
-
-```text
-VideoBrief
-→ StorySpec + NarrationSpec + RenderSpec
-→ StoryBeat + authored ttsChunks
-→ StoryCheck
-→ VoxCPM generation boundary
-→ candidate / measured progress + resume
-→ canonical PCM normalization / checksum / atomic sealed narration
-→ SemanticTiming + CaptionCue
-```
-
-M2 本身明确没有实现：
-
-- NarrativeCore、NarrationAudioTrack、CaptionLayer；
-- generated static ProjectRegistry、Story Composition、preview 或 render；
-- NarrativeCheck；
-- VisualStyleSpec、SceneVisualPlan、ShotPlan、SceneSyncAnchor、SceneSoundPlan、ScenePackage
-  和 Scene renderer；
-- ExternalReferenceSnapshot、ShotRecipeSelection、上游 demo 本地化与 reference fidelity；
-- StoryBeatTransition 和统一视觉/音频资源查询；
-- SceneVisualCheck、SceneSoundCheck、视觉 benchmark 和 promotion；
-- StoryVisualTrack、SoundDesignTrack、GlobalVisualLayers、封面与发布自动化。
-
-M3 已在不修改上述 M2 权威的前提下继续实现：
-
-```text
-sealed narration + SemanticTiming
-→ NarrationAudioTrack + CaptionLayer + transparent NarrativeCore
-→ required-only CompositionAssembly
-→ generated static ProjectRegistry + literal lazy import
-→ GpsRelativity lazy Story Composition
-→ transparent stills + 1731-frame H.264/AAC render + M3 evidence receipt
-```
-
-M4 已在不修改上述 M2/M3 权威的前提下继续实现：
-
-```text
-M1 contracts + StoryCheck identity + M2 sealed narration + SemanticTiming
-+ ProjectRegistry + Narrative Baseline + M3 evidence
-→ fixed project:check --level narrative
-→ strict persisted AutoCheck + read-only drift gate
-→ 16-case isolated invalidation proof
-```
-
-M4 明确只收口机械验证，没有增加主观审核。M6 随后在不修改 M2/M3 权威的前提下实现：
-
-```text
-VisualStyleSpec + ResourceCatalog + immutable external reference
-→ SceneTask/Visual/Shot/Sync/Sound contracts
-→ ScenePackage + SceneCoverageMap + composition-local RendererRegistry
-→ StoryVisualTrack + Scene-local SoundDesignTrack
-→ explicit CompositionAssembly slots + final-mechanical-check-v1
-→ isolated M6SceneRuntimeProof
-```
-
-M6 没有把 synthetic proof 注册进 ProjectRegistry；M7 随后完成 GPS 五个正式 Scene、全 ready
-coverage、registry/projection、批量 Scene review 与正常速度媒体 evidence。M8 随后在保持
-M7 ScenePackage 和 projection identity 不变的条件下完成 global sound/global visual、最终
-assembly/evidence、真实用户批准和 v2 final report。M9 又使用同一流程完成十 Scene 的 9:16
-产品漫画、完整 Shotcraft coverage、第二份用户批准/v2 和四类泛化报告，同时保持 GPS 受保护
-产物零差异。M9.5 随后增加了合同驱动 runner/watcher、Scene 结果合同和机械 Preview；没有
-修改两套正式作品权威，也没有生成新的用户批准。NarrativeCheck、promotion 实施与发布仍未
-实现。后续制作仍必须把 sealed
-narration、SemanticTiming、StoryBeat、项目级 VisualStyleSpec 和主 Agent 冻结来源当作只读输入。
-
-## 10. M2–M10 完成事实与后续门槛
-
-M2 已满足：
-
-1. 一个全新真实主题形成合法 StorySpec、NarrationSpec、StoryBeat 和已创作
-   `ttsChunks`；用户本次提供的 RenderSpec 只经结构化和机械校验，不产生二次确认，并在
-   调用 VoxCPM 前通过非用户阻塞的 StoryCheck；
-2. 真实 VoxCPM 逐 chunk 生成可中断续跑，未完成批次不会产生 sealed receipt；
-3. 完整旁白经实测、checksum 和 fingerprint 封存且不会覆盖旧封存结果；
-4. CaptionCue、meaningId 和 TTSChunk 一一对应；所有帧边界均由累计
-   sampleFrameCount 按 `pcm-cumulative-ceil-v1` 重算得到，完整绝对时间线没有重叠、
-   累计漂移或未解释空洞，所有非朗读区间都有显式来源；
-5. 重复封存字节不变，不同 active seal 必须用精确 `--supersede` compare-and-swap；
-6. 真实文件-backed checker 校验 manifest、WAV checksum/sample-frame 和 byte-equivalent
-   SemanticTiming；
-7. README、状态、架构、合同、恢复指南和真实验收证据与实际命令保持一致。
-
-M3 另已满足：
-
-1. 完整旁白只挂载一次且 `playbackRate=1`，字幕只消费已生成绝对帧；
-2. NarrativeCore 除 CaptionLayer 外不绘制视觉，frame 0 的真实 PNG 全透明；
-3. fixed first-level ProjectRegistry 生成、default export 检查、稳定排序、literal import、
-   原子写入与 byte drift check 全部 fail closed；
-4. Root 通过 `lazyComponent` 列出 `GpsRelativity` 30 fps、1920×1080、1731 frames；
-5. frame 15 字幕可见且外部/左上透明，完整 render 有 1731 帧、1 路 H.264 与 1 路 AAC；
-6. registry-entry、Narrative Baseline 与 M3 evidence fingerprints 均已生成并进入脱敏证据；
-7. 全部 M1–M3 tests、typecheck、lint、bundle、listing、render 与隐私/保护 gate 通过。
-
-M4 另已满足：固定七项 AutoCheck 全部通过；默认重算拒绝缺失、malformed 和 byte drift；
-显式写入只保存 pass 且重复执行 checksum/mtime 稳定；16 类隔离 mutation 全部 fail closed；
-M2/M3 受保护文件、fingerprint、listing 和媒体证据保持不变。主观 NarrativeCheck 不属于
-本里程碑完成事实。
-
-M6 另已满足：ResourceCatalog 和所有 receipt/package/registry/evidence writer 都是 pass-only、
-原子、byte-stable，check mode 不修复 drift；冻结 Shotcraft fixture 只本地化两文件最小闭包；
-独立 proof listing/render/evidence 证明纯视觉 renderer 与单路 Scene-local audio；十项 final
-机械报告绑定 current evidence。
-
-M7 另已满足：GPS 五个 Beat 均为正式 ready ScenePackage；正常 ProjectRegistry listing 仍只有
-`CapabilityGallery` 与 `GpsRelativity`；真实 Story Composition 同时装配 StoryVisualTrack、
-Scene-local SoundDesignTrack 和受保护 NarrativeCore；15 张 still、5×3 contact sheet、完整
-1731 帧 H.264/AAC review 和批量 SceneVisual/SceneSound/连续性 review 均绑定 current
-fingerprint。M7 机械门和 Agent review 均不冒充 NarrativeCheck、M8 全局增强、Scene 审美
-自动评分或用户批准。
-
-M8 另已满足：两条全长 project-authored PCM 全局资产进入 current 24-entry project Catalog；
-GlobalSoundPlan/FinalSoundProjection 保留 M7 Scene-local sound ownership 并用 Remotion frame
-API 驱动固定 duck envelope；project-local GlobalVisualLayers 不渲染字幕或扩张为通用 DSL；
-26 张 still、contact sheet 和 1731 帧正常速度最终 MP4 通过完整解码、响度、true peak、声道、
-帧数、时长和批量 review。真实用户批准绑定 exact preview/evidence/FinalAssembly identity，
-15 项 `final-mechanical-check-v2` aggregate pass。M8 closeout 当时没有启动 M9 或发布。
-
-M9 另已满足：`product-comic-vertical` 的 high-fidelity clone 旁白、十 Beat/十 ScenePackage、
-9:16 漫画系统、104/161/161 Shotcraft inventory/coverage、一个 exact localized demo、全片
-global sound/visual、5116 帧最终 MP4 和 45 张 review still 均绑定 current identities。真实用户
-批准与第二份 15 项 v2 pass；42-case matrix 与四类泛化报告通过。三个 promotion candidates
-仍为 proposal-only；M9 当时没有自动进入 M10。
-
-M9.5 已用严格合同和临时两 Scene orchestration proof 证明完整制作要求第一次冻结、Baseline
-后 Scene 输入第二次冻结、Scene 独立结果合同、中央 watcher、无全局增强的机械 Preview
-pipeline、expected/unexpected error、超时、malformed/stale/shared drift 与重复执行幂等语义。
-测试使用 fake provider/process/clock/scheduler，不伪造真实作品 evidence 或用户批准。M9.5 的
-成功终点是等待用户观看的 `preview-ready / awaiting-user-preview`，不是 FinalPreviewApproval
-或发布。
-
-后续 future-only v4 hardening 已把一个 GlobalVisual owner 加入同次 freeze 与 N+1 result join，
-并通过三种到达顺序、strict lifecycle-field rejection、旧 v1-v3 parse/checksum 和两套正式作品
-identity 矩阵验证。它没有增加 Agent 监控、GlobalSound、审美 gate 或用户批准，也没有把 M10
-并入 production。
-
-M10 另已满足：future-only delivery v1 contracts、固定 `delivery:build/check`、原子不可覆盖
-release、exact preview byte identity、H.264/AAC/帧数/时长/完整解码检查、两个 Project-owned
-ratio-specific Remotion Still、canonical publishing/manifest、六文件 checksum ledger 与
-zero-deliveries core 隔离均有自动化测试。`product-comic-vertical` 首个真实 release 绑定其
-current approval/evidence/FinalAssembly/final-v2 identities，MP4 与获批 preview checksum 相同。
-
-future-only M10 v2 进一步实现 PublishingIntent、固定 CoverSpec、Cover assignment/package/result
-与三个 strict Cover CLI；Cover owner 与 N+1 production owners 同时工作但独立汇合。批准后 build
-只复制 exact approved MP4 和 immutable Cover PNG，再确定性生成 publishing/manifest/ledger/
-handoff。`product-comic-vertical` 的 v2 release
-`release-13d1965fb25769a118e31405dee53758228d3f6916452c579c24273876ebced7` 已证明 MP4
-checksum 仍与 approved preview 相同，旧 v1 release 未修改。
+仓库不包含旧 production/delivery dispatch。历史普通文件不会被 current scripts 读取、迁移、
+回填或解释。
+
+## 1. Authoring 与 preflight
+
+Agent author VideoBrief、StorySpec、NarrationSpec、RenderSpec、StoryCheck、PublishingIntent 和
+current ProductionRequirementsFreeze。每个 StoryBeat 有稳定 meaningId；ttsChunks 按意义、语气
+与朗读节奏创作，工具不得自动拆分。
+
+`production:preflight` 在 Run write 前检查 VoxCPM liveness/readiness 与 Remotion Chromium。
+真实调用直接使用宿主权限；cold loading 合法且不触发 warm-up 或 test TTS。
+
+## 2. Narrative baseline
+
+`production:start` 建 immutable Run manifest；`production:narrative` 生成并封存 narration，按
+sealed PCM 累计 sample 边界导出 SemanticTiming、CaptionCue 与 NarrativeCore，并完成 fixed
+mechanical AutoCheck。实测音频时间不可被 Scene 或转场移动、压缩或吞掉。
+
+## 3. Freeze 与 owner 隔离
+
+`production:scene:freeze` 原子冻结 N Scene assignments 与一个 GlobalVisual assignment；
+`delivery:cover:freeze` 独立冻结 Cover assignment。
+
+- Scene owner 只写其 exclusive project/public paths；先 check，再由 root submit/fail。
+- GlobalVisual owner 不读取 Scene results，不绘制字幕/可见文本/音频，不扩张为通用 DSL。
+- Cover owner 只读取 assignment 内的 StorySpec、VisualStyleSpec、CoverSpec，并封存两个固定比例
+  exact PNG。
+- root 保持 watcher 活跃，只让 repository CLI 写 events/state/results。
+
+## 4. Watcher 与 render-ready
+
+watcher 从 immutable N+1 results 投影 Coverage、RendererRegistry、visual/sound projections、
+GlobalVisualProjection、FinalAssembly 与 current Composition。之后构建：
+
+- `production-render-plan-v1`：绑定 story/run、Composition/source checksum、width/height、fps、
+  frameCount、layer/mix order 与固定 Remotion policy；
+- `production-render-ready-v1`：绑定 plan 及全部 render-critical identities，状态
+  `render-ready`，handoff `awaiting-automatic-delivery`。
+
+这个阶段不运行最终 Remotion render，不读取媒体，也不写媒体完成 evidence。Cover failure 不
+改变 production 状态，但 delivery build 必须要求 current CoverResult。
+
+## 5. 自动交付 launch
+
+`delivery:build` 从 current inputs 确定性生成 deliveryId，在 staging 中写 exact Covers、
+publishing、handoff、`delivery-launch-manifest-v1`、`render-launch-intent-v1` 和 checksum ledger，
+检查后原子提升。
+
+intent 已持久化后才允许 spawn。adapter 使用固定 executable/argv/cwd/log、`shell: false` 与
+`detached: true`，只监听 `spawn` 和 `error`。收到 `spawn` 后立即 `unref()` 并写
+`render-launch-receipt-v1`。stdout 返回 `delivery-render-started`。
+
+exactly-once 规则：
+
+- receipt exists → check current package，返回 no-op；
+- intent exists + no receipt → launch-ambiguous，fail closed，never retry；
+- output/log pre-exists before first launch → fail closed；
+- spawn error → intent 保留、receipt 缺失，后续同样 ambiguous。
+
+## 6. 终点与交接
+
+主 Agent 报告 run、deliveryId、delivery directory、planned MP4/log path、intent/receipt identity
+和保护检查。不得等待或监控 detached child；不得把 MP4 存在、进程 exit 或 launch receipt
+转换为 render success 声明。
+
+## 故障所有权
+
+- Agent-owned authored artifact 被 check 拒绝：退回同一 owner 修改其独占路径。
+- fixed workflow 在 valid inputs 下失败：停止、保存脱敏 incident、写 Red regression、做最小
+  shared fix、验证 Green，并从 fresh Run 重放。
+- provider/host/permission/authorization：external blocker，不增加 fallback/retry。
+- launch-ambiguous：确定性终态；除非用户明确设计新的人工处置流程，否则不得自动处理。

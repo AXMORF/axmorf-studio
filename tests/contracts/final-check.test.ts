@@ -102,7 +102,7 @@ test("final report rejects unknown fields unsafe failures order drift and fake a
   }
 });
 
-test("v2 adds five fixed M8 checks without changing v1 parsing", () => {
+test("v2 adds fixed assembly checks without changing v1 parsing", () => {
   const v1 = createFinalMechanicalCheckReport(makePassInput());
   assert.doesNotThrow(() => FinalMechanicalCheckReportSchema.parse(v1));
   const v2 = createFinalMechanicalCheckV2Report({
@@ -116,8 +116,6 @@ test("v2 adds five fixed M8 checks without changing v1 parsing", () => {
       globalVisualPlanFingerprint: sha("e"),
       globalVisualProjectionFingerprint: sha("f"),
       finalAssemblyFingerprint: sha("0"),
-      finalPreviewEvidenceFingerprint: sha("1"),
-      finalPreviewApprovalFingerprint: sha("2"),
     },
     checks: FINAL_MECHANICAL_CHECK_V2_IDS.map((checkId) => ({
       checkId,

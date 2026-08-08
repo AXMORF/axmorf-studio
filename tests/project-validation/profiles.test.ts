@@ -40,7 +40,7 @@ const writeProfile = async ({
     `${JSON.stringify(
       {
         schemaVersion: 1,
-        profileVersion: "project-verification-v2",
+        profileVersion: "project-verification-current-v1",
         steps,
       },
       null,
@@ -89,7 +89,7 @@ test("verification profiles are Project-owned, sorted, and removable", async (co
 test("zero Project verification profiles are valid", async (context) => {
   const rootDir = await createRoot(context);
   assert.deepEqual(await loadProjectVerificationProfiles(rootDir), {
-    profileVersion: "project-verification-v2",
+    profileVersion: "project-verification-current-v1",
     projects: [],
   });
 });
@@ -99,7 +99,7 @@ test("an absent local Projects root is the zero Project profile set", async (con
   context.after(() => rm(rootDir, { recursive: true, force: true }));
 
   assert.deepEqual(await loadProjectVerificationProfiles(rootDir), {
-    profileVersion: "project-verification-v2",
+    profileVersion: "project-verification-current-v1",
     projects: [],
   });
 });
@@ -108,7 +108,7 @@ test("profile data permits fixed step IDs but rejects paths and commands", () =>
   assert.deepEqual(
     parseProjectVerificationProfile({
       schemaVersion: 1,
-      profileVersion: "project-verification-v2",
+      profileVersion: "project-verification-current-v1",
       steps: ["narrative", "final"],
     }).steps,
     ["narrative", "final"],
@@ -121,7 +121,7 @@ test("profile data permits fixed step IDs but rejects paths and commands", () =>
     assert.throws(() =>
       parseProjectVerificationProfile({
         schemaVersion: 1,
-        profileVersion: "project-verification-v2",
+        profileVersion: "project-verification-current-v1",
         steps: ["narrative", "final"],
         ...forbidden,
       }),
