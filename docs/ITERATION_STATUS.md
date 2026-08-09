@@ -77,6 +77,9 @@ checksum-bound verified release，ledger 只封存 immutable 非 MP4 bytes。
   本地产物；bootstrap 从 zero Project 重建 core proof 与 zero-safe 聚合。
 - 默认 source gate 不读取历史媒体；显式 media 检查 fail closed；Project deletion matrix 只在
   隔离副本中验证。
+- `project:delete` 是真实作品清理入口，支持一个、多个或全部 storyId；它删除 Project、项目媒体、
+  narration work、Runs、out 和 deliveries 的完整绑定数据，重建零安全 Registry/Catalog，并保护
+  core 与 `public/voice_profile/`。非空 delivery staging、writer lock 与不安全路径均在删除前阻断。
 - render runtime 不调用 Agent、Skill、MCP、Git、目录扫描或网络服务；所有 motion 使用
   Remotion frame API。
 

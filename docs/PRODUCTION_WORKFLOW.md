@@ -107,6 +107,23 @@ exactly-once 规则：
 和保护检查。不得等待或监控 detached child；不得把 MP4 存在、进程 exit 或 launch receipt
 转换为 render success 声明。
 
+## 7. 作品删除
+
+用户明确要求删除一个、多个或全部已制作作品时，含义是删除对应 storyId 的完整本地生产数据，
+不是只删除 MP4。统一执行：
+
+```bash
+npm run project:delete -- --project <story-id> --confirm-delete
+npm run project:delete -- --project <story-a> --project <story-b> --confirm-delete
+npm run project:delete -- --all --confirm-delete
+```
+
+删除集合固定覆盖 `src/projects/<storyId>/`、`public/projects/<storyId>/`、
+`.narration-work/<storyId>/`、该 storyId 的全部 `.producer-runs/<runId>/`、`out/<storyId>/` 与
+`deliveries/<storyId>/`，随后重建 ResourceCatalog 与 ProjectRegistry。命令不触碰 core、其他作品、
+private config 或 `public/voice_profile/`。任何目标 symlink/非目录、目标 writer lock、非空
+`deliveries/.staging/` 或不存在的显式 storyId 都会在首次删除前令命令失败。
+
 ## 故障所有权
 
 - Agent-owned authored artifact 被 check 拒绝：退回同一 owner 修改其独占路径。

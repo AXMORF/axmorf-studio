@@ -92,6 +92,7 @@
     "project:check": "node --import tsx scripts/project-check/cli.ts",
     "project:verify": "node --import tsx scripts/project-validation/cli.ts",
     "project:evidence:check": "node --import tsx scripts/project-validation/cli.ts evidence",
+    "project:delete": "node --import tsx scripts/projects/delete.ts",
     "final:assembly": "node --import tsx scripts/final-assembly/cli.ts",
     "delivery:build": "node --import tsx scripts/delivery/cli.ts build",
     "delivery:check": "node --import tsx scripts/delivery/cli.ts check",

@@ -62,5 +62,7 @@ intent 存在而 receipt 缺失时状态 launch-ambiguous，仓库永久拒绝�
   production artifacts。
 - core 不依赖具体 storyId，Registry/Catalog 对零 Project 有效。
 - 删除矩阵只在隔离副本验证，不删除真实作品。
+- 用户明确授权后，`project:delete` 可按一个、多个或全部 storyId 删除完整本地生产数据并重建
+  Registry/Catalog；core、其他 Project、private config 与 `public/voice_profile/` 不进入删除集合。
 - 新能力先留 project-local；只有 fingerprint-bound proposal 与用户明确批准后才 promotion。
 - 平台发布、账号、网络、密钥、主观审美 gate 和 detached render monitoring 是独立未来范围。

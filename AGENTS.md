@@ -63,6 +63,10 @@
   Project。
 - `public/`、`src/projects/`、Registry/Catalog generated projection、`.producer-runs/`、`out/` 与
   `deliveries/` 都是 ignored 本地产物，不进入 Git。
+- 用户明确要求删除一个、多个或全部已制作视频/Project 时，默认含义是删除这些 storyId 的全部
+  本地生产数据，而非只删 MP4；必须使用 `npm run project:delete -- ... --confirm-delete`，不得用
+  broad `rm`。删除范围包含 Project、匹配 public media、narration work、Runs、out 与 deliveries，
+  但不包含 core、其他 Project、private config 或 `public/voice_profile/`。
 - fresh clone 由 `npm run bootstrap` 重建 core proof assets 与 zero-safe Catalog/Registry；不得把
   具体 Project 或媒体加入 core version control。
 - 默认 source/check 不读取历史媒体；显式 media/evidence/delivery 命令 fail closed。

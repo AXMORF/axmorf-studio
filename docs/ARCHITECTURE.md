@@ -106,6 +106,12 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
 - delivery staging/target/output 路径逐级拒绝 symlink、escape、unknown entries 和覆盖。
 - protected voice profiles/private config 不被通用扫描、stage 或 commit。
 - Project deletion proof 只在 `mktemp` 隔离副本运行。
+- 真实作品删除只通过 `project:delete`：一次预检后按 storyId 删除 `src/projects/`、
+  `public/projects/`、`.narration-work/`、`.producer-runs/`、`out/` 与 `deliveries/` 中的全部绑定数据，
+  再重建 Catalog/Registry。一个、多个与全部 Project 使用同一语义；core、其他 Project 和
+  `public/voice_profile/` 永远不属于删除目标。
+- `project:delete` 要求显式 `--confirm-delete`，并在 delivery staging 非空、目标 Run 有 writer
+  lock、路径为 symlink/非目录或指定 storyId 不存在时，于任何删除发生前 fail closed。
 
 ## Extension boundary
 

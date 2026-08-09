@@ -92,6 +92,24 @@ npm run project:verify -- --project <story-id> --scope full
 npm run project:evidence:check -- --project <story-id>
 ```
 
+删除已完成作品时使用固定清理入口。命令会删除选中 storyId 的 Project 源码、项目媒体、旁白工作区、
+ProductionRun、`out/` 与 delivery 全部数据，再重建 Registry/Catalog；不会删除 core、
+`public/voice_profile/` 或其他作品。`--confirm-delete` 只在用户已明确授权删除后使用：
+
+```bash
+# 一个
+npm run project:delete -- --project <story-id> --confirm-delete
+
+# 多个
+npm run project:delete -- --project <story-a> --project <story-b> --confirm-delete
+
+# 全部具体作品
+npm run project:delete -- --all --confirm-delete
+```
+
+非空 `deliveries/.staging/`、目标 Run writer lock、symlink 或异常路径会使整个命令在删除前
+fail closed。命令不终止正在运行的 provider 或 detached render，必须只对已停止生产/渲染的作品执行。
+
 生产编排：
 
 ```bash
