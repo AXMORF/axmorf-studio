@@ -48,7 +48,7 @@
 ## 管理规则
 
 [DOCUMENTATION_POLICY.md](DOCUMENTATION_POLICY.md) 定义单一事实来源、目录生命周期、归档和
-完成门槛。所有 active Markdown 必须通过：
+完成门槛。所有 active Markdown 的本地链接以及 current 操作文档引用的 npm script 必须通过：
 
 ```bash
 npm run docs:check-links

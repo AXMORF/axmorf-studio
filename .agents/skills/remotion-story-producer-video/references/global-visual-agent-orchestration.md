@@ -9,6 +9,10 @@ The independent Cover owner runs concurrently under
 Create exactly one whole-film GlobalVisual child Agent concurrently with the N Scene owners. Give it
 only the frozen GlobalVisual assignment, GlobalVisual brief, Story and StoryBeat timing windows,
 VisualStyleSpec, readability/caption safe area, ResourceCatalog allowlist, and its exclusive paths.
+Tell it to build the simplest full-frame background board that remains recognizably aligned with the
+current VisualStyleSpec. It may use restrained color, gradient, or subtle texture, but must not invent
+standalone decoration, continuity motifs, or Beat-specific visual changes unless the user explicitly
+requested them and the frozen brief carries that requirement.
 The root Agent owns shared inputs, result submission, central state, generated projection/assembly,
 staging, and commits. Never author GlobalVisual deliverables in the root task or reuse a Scene owner.
 
@@ -26,10 +30,12 @@ commit, or create nested Agents.
 
 ## Preserve the visual-only boundary
 
-`GlobalVisualLayers` owns project-global background, texture, decoration, and continuity motifs. It
-must not render captions, narration, audio, visible text, Scene semantics, safe-area panels, a generic
-DSL, automatic layout, or an automatic director. Use Remotion frame APIs only, keep the root
-non-interactive, and keep JSON free of executable expressions or module paths.
+`GlobalVisualLayers` is a style-aligned background board, not a second visual storytelling layer. Keep
+it visually quiet and subordinate to every Scene. It must not render captions, narration, audio,
+visible text, Scene semantics, safe-area panels, standalone decoration, a generic DSL, automatic
+layout, or an automatic director. Do not vary it by StoryBeat unless the frozen brief contains an
+explicit user requirement. Use Remotion frame APIs only, keep the root non-interactive, and keep JSON
+free of executable expressions or module paths.
 
 Export `GlobalVisualLayers` as a no-Props React component. Do not declare required Props and do not
 accept GlobalVisual plan/projection Props: the generated Composition already parses those artifacts

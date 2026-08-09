@@ -9,6 +9,13 @@ const execFileAsync = promisify(execFile);
 export const isActiveDocumentationPath = (repositoryPath: string) =>
   !repositoryPath.startsWith("docs/archive/");
 
+export const isCurrentOperationalDocumentationPath = (
+  repositoryPath: string,
+) =>
+  isActiveDocumentationPath(repositoryPath) &&
+  !repositoryPath.startsWith("docs/evidence/") &&
+  !repositoryPath.startsWith("docs/promotions/");
+
 export type MarkdownLinkCheckOptions = {
   readonly rootDir: string;
   readonly markdownPaths?: readonly string[];
@@ -18,6 +25,11 @@ export type MarkdownLinkCheckResult = {
   readonly externalLinkCount: number;
   readonly fileCount: number;
   readonly localLinkCount: number;
+};
+
+export type DocumentedNpmScriptCheckResult = {
+  readonly fileCount: number;
+  readonly scriptReferenceCount: number;
 };
 
 type MarkdownLink = {
@@ -127,6 +139,47 @@ const trackedMarkdownPaths = async (rootDir: string) => {
     }
   }
   return current;
+};
+
+export const checkDocumentedNpmScripts = async ({
+  rootDir,
+  markdownPaths,
+}: MarkdownLinkCheckOptions): Promise<DocumentedNpmScriptCheckResult> => {
+  const absoluteRoot = await realpath(rootDir);
+  const paths = [
+    ...(markdownPaths ?? (await trackedMarkdownPaths(absoluteRoot))),
+  ]
+    .filter(isCurrentOperationalDocumentationPath)
+    .sort();
+  const packageJson = JSON.parse(
+    await readFile(path.join(absoluteRoot, "package.json"), "utf8"),
+  ) as { readonly scripts?: Readonly<Record<string, unknown>> };
+  const available = new Set(Object.keys(packageJson.scripts ?? {}));
+  const failures: string[] = [];
+  let scriptReferenceCount = 0;
+  const scriptPattern = /\bnpm run(?:\s+--silent)?\s+([A-Za-z0-9:_-]+)/gu;
+
+  for (const sourcePath of paths) {
+    const source = await readFile(path.join(absoluteRoot, sourcePath), "utf8");
+    for (const match of source.matchAll(scriptPattern)) {
+      const script = match[1];
+      if (script === undefined || match.index === undefined) continue;
+      scriptReferenceCount += 1;
+      if (!available.has(script)) {
+        const line = source.slice(0, match.index).split("\n").length;
+        failures.push(
+          `${sourcePath}:${line}: unknown package script referenced by documentation: ${script}`,
+        );
+      }
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(
+      `Documented npm script check failed:\n${failures.sort().join("\n")}`,
+    );
+  }
+  return { fileCount: paths.length, scriptReferenceCount };
 };
 
 export const checkMarkdownLinks = async ({
@@ -244,9 +297,13 @@ export const checkMarkdownLinks = async ({
 };
 
 export const runDocsLinkCheck = async (rootDir = process.cwd()) => {
-  const result = await checkMarkdownLinks({ rootDir });
+  const markdownPaths = await trackedMarkdownPaths(await realpath(rootDir));
+  const [result, scripts] = await Promise.all([
+    checkMarkdownLinks({ rootDir, markdownPaths }),
+    checkDocumentedNpmScripts({ rootDir, markdownPaths }),
+  ]);
   process.stdout.write(
-    `Markdown links are current across ${result.fileCount} tracked files (${result.localLinkCount} local, ${result.externalLinkCount} external skipped).\n`,
+    `Markdown links are current across ${result.fileCount} tracked files (${result.localLinkCount} local, ${result.externalLinkCount} external skipped); ${scripts.scriptReferenceCount} npm script references are current across ${scripts.fileCount} operational files.\n`,
   );
   return result;
 };

@@ -10,10 +10,11 @@
 flowchart TD
     Inputs["Story inputs + PublishingIntent"] --> Preflight["Host preflight"]
     Preflight --> Narrative["Sealed narration + SemanticTiming"]
-    Narrative --> Freeze["Freeze N Scene + GlobalVisual + Cover assignments"]
-    Freeze --> Scenes["N isolated Scene owners"]
-    Freeze --> Global["One GlobalVisual owner"]
-    Freeze --> Cover["One independent Cover owner"]
+    Narrative --> ProductionFreeze["Freeze N Scene + GlobalVisual assignments"]
+    Narrative --> CoverFreeze["Independently freeze Cover assignment"]
+    ProductionFreeze --> Scenes["N isolated Scene owners"]
+    ProductionFreeze --> Global["One GlobalVisual owner"]
+    CoverFreeze --> Cover["One independent Cover owner"]
     Scenes --> Watcher["Single-writer watcher"]
     Global --> Watcher
     Watcher --> Ready["ProductionRenderPlan + ProductionRenderReady"]

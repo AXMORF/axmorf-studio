@@ -62,7 +62,10 @@ sealed narration identity, SemanticTiming, CaptionCues, baseline evidence, and A
 Author `visual-style.json`, `production/story-resource-pool.json`,
 `production/scene-production-brief.json`, and `production/global-visual-brief.json`. Use current
 ResourceCatalog entries and explicitly selected immutable references; an empty resource pool is
-valid. Then freeze production and Cover assignments:
+valid. Keep the GlobalVisual brief to the simplest full-frame background board that still follows the
+current VisualStyleSpec. Use only restrained color, gradient, or subtle texture by default; do not add
+standalone decoration, continuity motifs, or Beat-specific changes unless the user explicitly asks
+for them. Then freeze production and Cover assignments:
 
 ```bash
 npm run production:scene:freeze -- --run <runId>

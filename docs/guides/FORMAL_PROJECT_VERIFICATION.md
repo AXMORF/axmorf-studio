@@ -2,7 +2,7 @@
 
 > 文档类型：维护指南
 >
-> 最后复核：2026-08-07
+> 最后复核：2026-08-09
 
 ## 边界
 
@@ -24,24 +24,24 @@ Catalog，验证器也只发现当前本地 profile。
 # 默认核心门禁使用的当前 Project source 验证
 npm run project:verify -- --all --scope source
 
-# 一个作品的完整验证（包含已声明的媒体与批准）
+# 一个作品的完整验证（包含 profile 声明的 source 与 media evidence）
 npm run project:verify -- --project <story-id> --scope full
 
-# 只复验已声明的 evidence 或 approval adapter
+# 只复验已声明的 media evidence adapter
 npm run project:evidence:check -- --project <story-id>
-npm run project:approval:check -- --project <story-id>
 ```
 
 `npm run check:host` 依次执行 Composition listing 和当前 Project 的 source scope，不读取
-`out/` 历史 MP4/PNG/contact sheet。`test:media`、evidence、approval 与 full scope 都是显式
-复验入口；媒体缺失或 checksum 漂移时继续 fail closed，并且不会重签用户批准。
+`out/` 中的 MP4/PNG/contact sheet。`test:media`、evidence 与 full scope 都是显式复验入口；
+媒体缺失或 checksum 漂移时继续 fail closed。current profile 没有 approval scope 或
+`project:approval:check` 命令。
 
 ## 维护规则
 
 - 通用生产入口只放在 `scripts/production/`；
 - 作品专属构建期/验证工具放在 `src/projects/<story-id>/tools/`；
 - synthetic proof 放在 `scripts/proofs/<proof-id>/`；
-- 历史 schemaVersion、artifact 文件名和已封存 fingerprint 继续按兼容层读取，不回填；
+- profile 与 adapter 只读取 current Project 合同；不解释、迁移或回填旧 Project artifact；
 - profile 的 `check` 路径只读，不生成音频、不重签批准、不改写正式 evidence。
 - 不把具体 storyId 加回 core、package scripts 或 active 中央 manifest；新增/删除 Project 后重算
   Registry/Catalog 即可。

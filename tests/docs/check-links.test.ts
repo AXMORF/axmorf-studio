@@ -7,8 +7,10 @@ import test from "node:test";
 import { promisify } from "node:util";
 
 import {
+  checkDocumentedNpmScripts,
   checkMarkdownLinks,
   isActiveDocumentationPath,
+  isCurrentOperationalDocumentationPath,
   runDocsLinkCheck,
 } from "../../scripts/docs/check-links";
 
@@ -19,6 +21,22 @@ test("default documentation scope excludes historical archive snapshots", () => 
   assert.equal(isActiveDocumentationPath("docs/guides/REVIEW_MODEL.md"), true);
   assert.equal(
     isActiveDocumentationPath("docs/archive/implementation-plans/old.md"),
+    false,
+  );
+});
+
+test("npm script checks exclude historical evidence and proposals", () => {
+  assert.equal(isCurrentOperationalDocumentationPath("docs/README.md"), true);
+  assert.equal(
+    isCurrentOperationalDocumentationPath("docs/guides/LOCAL_DELIVERY.md"),
+    true,
+  );
+  assert.equal(
+    isCurrentOperationalDocumentationPath("docs/evidence/old.md"),
+    false,
+  );
+  assert.equal(
+    isCurrentOperationalDocumentationPath("docs/promotions/future.md"),
     false,
   );
 });
@@ -85,6 +103,29 @@ test("missing local file fails closed", async () => {
   );
 });
 
+test("documented npm scripts must exist in package.json", async () => {
+  await withFixture(
+    {
+      "package.json": `${JSON.stringify({ scripts: { check: "true" } })}\n`,
+      "README.md": "npm run check\nnpm run missing:script\n",
+      "docs/evidence/old.md": "npm run removed:historical\n",
+    },
+    async (rootDir) => {
+      await assert.rejects(
+        () =>
+          checkDocumentedNpmScripts({
+            markdownPaths: [
+              "README.md",
+              "docs/evidence/old.md",
+            ],
+            rootDir,
+          }),
+        /README\.md:2: unknown package script.*missing:script/i,
+      );
+    },
+  );
+});
+
 test("missing heading anchor fails closed", async () => {
   await withFixture(
     {
@@ -124,6 +165,7 @@ test("default scope ignores tracked Markdown removed from the current Project se
   await withFixture(
     {
       "README.md": "# Current\n",
+      "package.json": `${JSON.stringify({ scripts: {} })}\n`,
       "src/projects/removable/incident.md": "[Missing](missing.md)\n",
     },
     async (rootDir) => {

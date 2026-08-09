@@ -1,5 +1,9 @@
 # 自动本地交付指南
 
+> 文档类型：操作指南
+>
+> 最后复核：2026-08-09
+>
 > 适用范围：current Project 已有 current PublishingIntent、ProductionRenderPlan、
 > ProductionRenderReady 和 immutable CoverResult。
 

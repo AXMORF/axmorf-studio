@@ -2,7 +2,7 @@
 
 > 文档类型：维护指南
 >
-> 最后复核：2026-08-06
+> 最后复核：2026-08-09
 >
 > 系统结构与当前状态分别以 [ARCHITECTURE.md](../ARCHITECTURE.md) 和
 > [ITERATION_STATUS.md](../ITERATION_STATUS.md) 为准。
@@ -106,16 +106,9 @@ demo/preview identity，并仅本地化两个源码文件及 Apache-2.0 license�
 闭包 guard 和 fidelity receipt，不复制 Gallery、模板集合、全部 demos 或音频库，也不作为
 GPS 正式资源选择。
 
-M7 GPS 五个 Scene 均选择各自唯一的 project-authored PCM cue，并复用 `editorial-tech` style
-profile；VisualPlan/ShotPlan 没有选择额外视觉 asset。五个 ShotRecipeSelection 均为合法
-`empty`，因此没有 external snapshot、本地化闭包或 exact fidelity receipt，不能显示 fake
-exact pass。
-
-M8 GPS 新增 `global-bgm.wav` 与 `cross-scene-ambience.wav` 两条 project-authored、全长
-48 kHz/mono/s16le PCM 资产。它们位于 `public/projects/gps-relativity/global-audio/`，由
-project manifest/receipt 绑定 checksum、sample-frame、license/attribution，再与 M7 22-entry
-Catalog 合成为 current 24-entry assembly Catalog。该 overlay 只服务 GPS FinalAssembly；
-project-local GlobalVisualLayers 也没有登记或晋升为共享 capability。
+已删除 Project 的历史 Scene、音频 overlay 和 Project-local GlobalVisual 不属于 current Catalog，
+不能从旧 evidence 反推为当前可选资源。历史 GPS 选型只保留在 evidence 中；恢复或新建 Project
+时必须从 current Catalog、current local assets 和当次冻结 snapshot 重新选择。
 
 ## 新能力
 

@@ -2,12 +2,13 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-06
+> 最后复核：2026-08-09
 
-M2 provides a host-only Node.js workflow for turning authored `ttsChunks` into measured canonical
-PCM, an immutable narration seal, and `SemanticTiming`. M3 now consumes the current seal read-only for
-Narrative Baseline preview/render; it never calls the provider or seal workflow. See
-[M3 Narrative Baseline evidence](../evidence/2026-08-01-gps-relativity-m3.md).
+The current host-only narration workflow turns Agent-authored `ttsChunks` into measured canonical
+PCM, an immutable narration seal, `SemanticTiming`, and `CaptionCue`. Normal production invokes this
+flow through `production:narrative`; the standalone commands below are maintenance and diagnosis
+entrypoints. Downstream baseline, Scene, GlobalVisual, assembly, and delivery code consume the seal
+read-only and never call the provider.
 
 ## Private VoxCPM configuration
 
@@ -68,7 +69,7 @@ sealed artifacts and must work when the provider and private file are unavailabl
 Generate or resume candidates:
 
 ```bash
-npm run --silent narration:generate -- --project <story> > out/<story>/m2-generation.json
+npm run --silent narration:generate -- --project <story> > out/<story>/narration-generation.json
 ```
 
 The JSON on stdout is redaction-safe and includes the Story identity, generation and provider-attempt
@@ -76,7 +77,7 @@ fingerprints, and generated/normalized/reused counts. Progress messages go to st
 reported provider-attempt fingerprint and seal that exact attempt:
 
 ```bash
-ATTEMPT_FINGERPRINT="$(node -e 'const fs=require("node:fs");const r=JSON.parse(fs.readFileSync("out/<story>/m2-generation.json","utf8"));process.stdout.write(r.providerAttemptFingerprint)')"
+ATTEMPT_FINGERPRINT="$(node -e 'const fs=require("node:fs");const r=JSON.parse(fs.readFileSync("out/<story>/narration-generation.json","utf8"));process.stdout.write(r.providerAttemptFingerprint)')"
 npm run narration:seal -- --project <story> --attempt "$ATTEMPT_FINGERPRINT"
 ```
 
@@ -185,8 +186,8 @@ After the checker passes—or reports the precise incomplete state—rerun the e
 Never overwrite an active seal by retrying or guessing. First check it and copy its exact fingerprint:
 
 ```bash
-npm run --silent narration:check -- --project <story> > out/<story>/m2-check.json
-CURRENT_SEAL="$(node -e 'const fs=require("node:fs");const r=JSON.parse(fs.readFileSync("out/<story>/m2-check.json","utf8"));process.stdout.write(r.sealedNarrationFingerprint)')"
+npm run --silent narration:check -- --project <story> > out/<story>/narration-check.json
+CURRENT_SEAL="$(node -e 'const fs=require("node:fs");const r=JSON.parse(fs.readFileSync("out/<story>/narration-check.json","utf8"));process.stdout.write(r.sealedNarrationFingerprint)')"
 npm run narration:seal -- --project <story> --attempt "$ATTEMPT_FINGERPRINT" --supersede "$CURRENT_SEAL"
 npm run narration:check -- --project <story>
 ```
@@ -196,7 +197,7 @@ preserved; only a fully verified different seal can replace the active receipt.
 
 ## Git and privacy checks
 
-Before staging a narration seal:
+Before any repository staging, confirm private and ignored narration paths remain outside Git:
 
 ```bash
 git check-ignore .narration-work/<story> out/<story> .env.local private/probe
@@ -204,15 +205,15 @@ git status --short
 git ls-files .narration-work out .env .env.local private
 ```
 
-Stage only the content-addressed public WAV directory, active manifest, SemanticTiming artifact, and
-redacted evidence. Never stage the private configuration, reference voice, `.narration-work`, `out`,
-environment files, lock files, temporary staging directories, or provider logs.
+`public/`, `src/projects/`, `.narration-work/` and `out/` are ignored local production artifacts and
+must not be staged. Never stage private configuration, reference voice, environment files, lock files,
+temporary staging directories, provider logs, or generated Project media.
 
-## M2 scope boundary and M3 consumption
+## Current production consumption
 
-M2 itself ends at verified sealed narration and generated SemanticTiming/CaptionCue artifacts. M3 reads
-those exact artifacts to provide NarrativeCore, NarrationAudioTrack, CaptionLayer, generated
-ProjectRegistry, one lazy Story Composition, transparent stills and a full Baseline render. M4 now checks
-the same sealed files read-only as part of `project:check`; it does not regenerate, reseal, supersede or
-rewrite SemanticTiming. NarrativeCheck, Scene, renderer, Shot, BaseCanvas, sound and global visual layers
-remain unimplemented.
+The standalone narration lifecycle ends at verified sealed narration and generated
+SemanticTiming/CaptionCue artifacts. `production:narrative` continues with NarrativeCore,
+NarrationAudioTrack, CaptionLayer, ProjectRegistry, baseline evidence, and mechanical AutoCheck.
+Later production stages consume those exact identities for Scene/GlobalVisual results, FinalAssembly,
+render-ready, and automatic delivery. Read-only checks never regenerate, reseal, supersede, or rewrite
+SemanticTiming. NarrativeCheck and subjective aesthetic gates remain outside the current flow.

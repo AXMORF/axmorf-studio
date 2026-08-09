@@ -23,5 +23,5 @@
 | delivery-render-started | Skill 的自动终点 | render completed、published 或 quality passed |
 | launch-ambiguous | intent 存在而 receipt 缺失 | 可安全重试的失败 |
 
-`deliveries/` 保存 immutable 非 MP4 package、intent 和 receipt；`out/` 保存 detached Remotion
-计划输出与日志。两者都是 ignored 本地产物，不是 core source authority。
+`deliveries/` 保存 immutable 非 MP4 package、intent、receipt 与未纳入 ledger 的计划 MP4；
+`out/` 只保存 detached Remotion log。两者都是 ignored 本地产物，不是 core source authority。

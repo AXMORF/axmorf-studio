@@ -39,6 +39,7 @@
   "invariants": {
     "sceneAuthoringOwner": "one-child-agent-per-meaning-id",
     "globalVisualAuthoringOwner": "one-child-agent-per-story",
+    "globalVisualDefaultRole": "minimal-style-aligned-background-board",
     "coverAuthoringOwner": "one-child-agent-per-story",
     "rootAgentAuthorsScenes": false,
     "rootAgentAuthorsGlobalVisual": false,

@@ -57,6 +57,9 @@ const SkillPolicySchema = z
       .object({
         sceneAuthoringOwner: z.literal("one-child-agent-per-meaning-id"),
         globalVisualAuthoringOwner: z.literal("one-child-agent-per-story"),
+        globalVisualDefaultRole: z.literal(
+          "minimal-style-aligned-background-board",
+        ),
         coverAuthoringOwner: z.literal("one-child-agent-per-story"),
         rootAgentAuthorsScenes: z.literal(false),
         rootAgentAuthorsGlobalVisual: z.literal(false),
@@ -181,6 +184,15 @@ test("repository video skill exposes a structured production policy", async () =
   assert.match(
     globalVisualWorkflow,
     /does not read Scene outputs|不得读取 Scene 输出/u,
+  );
+  assert.match(globalVisualWorkflow, /simplest full-frame background board/u);
+  assert.match(
+    globalVisualWorkflow,
+    /aligned with the[\s\S]*current VisualStyleSpec/u,
+  );
+  assert.match(
+    globalVisualWorkflow,
+    /must not invent[\s\S]*continuity motifs/u,
   );
   assert.match(globalVisualWorkflow, /caption|字幕/u);
   assert.match(globalVisualWorkflow, /DSL|automatic director|自动导演/u);

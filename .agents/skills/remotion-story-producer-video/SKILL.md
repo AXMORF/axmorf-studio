@@ -40,8 +40,8 @@ use CodeGraph first when `.codegraph/` exists.
 
 ## Preserve production invariants
 
-- Freeze the [universal readability policy](policy.json) for every future production; old videos stay
-  untouched.
+- Freeze the [universal readability policy](policy.json) for every new production; existing frozen
+  artifacts stay untouched.
 - Read chunk budgets, safe areas, and font minima from the frozen assignment, never Skill constants.
 - Author `ttsChunks` by meaning, tone, and reading rhythm; never auto-split by punctuation or characters.
   Return an over-budget chunk for Agent rework; sealed PCM with `pcm-cumulative-ceil-v1` owns timing.

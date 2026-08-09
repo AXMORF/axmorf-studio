@@ -16,8 +16,8 @@ detached Remotion render；收到 OS spawn acknowledgement 后返回 `delivery-r
 该终点不是媒体成功证据。current scripts 不等待 detached child，不读取、hash、probe 或 decode
 计划 MP4，也不从旧 Run、旧作品或旧 delivery 推断状态。
 
-当前工作树是 zero-Project baseline。历史本地 Projects、Runs、媒体和 deliveries 已按用户明确
-授权删除；下一个新视频将是本流程的第一个真实 Project。新的 `deliveries/` 不是
+core 与 fresh clone 是 zero-Project-safe；ignored 本地 Project、Run、媒体和 delivery 集由当前
+工作目录动态决定，不属于 capability 状态权威，也不在本文枚举。current `deliveries/` 不是
 checksum-bound verified release，ledger 只封存 immutable 非 MP4 bytes。
 
 ## 已实现

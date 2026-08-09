@@ -46,8 +46,9 @@
 ## 自动交付边界
 
 交付 identity 必须绑定 current PublishingIntent、CoverResult、ProductionRenderReady、
-ProductionRenderPlan、Composition、fixed argv 和 launch policy。package 中只有 exact Covers、
-publishing、handoff、manifest、intent、receipt 与 checksum ledger；最终 MP4 计划写入 `out/`。
+ProductionRenderPlan、Composition、fixed argv 和 launch policy。immutable package 包含 exact
+Covers、publishing、handoff、manifest、intent、receipt 与 checksum ledger；计划 MP4 写入同一
+delivery directory，但不属于 immutable ledger。`out/` 只保存 detached render log。
 
 intent-before-spawn 与 receipt-after-spawn 是不可交换协议。receipt 已存在时重复 build 只读 no-op；
 intent 存在而 receipt 缺失时状态 launch-ambiguous，仓库永久拒绝自动重试。current delivery check
