@@ -38,6 +38,7 @@
   ],
   "invariants": {
     "sceneAuthoringOwner": "one-child-agent-per-meaning-id",
+    "sceneAuthoringSkill": "repository-local-remotion-best-practices",
     "globalVisualAuthoringOwner": "one-child-agent-per-story",
     "globalVisualDefaultRole": "minimal-style-aligned-background-board",
     "coverAuthoringOwner": "one-child-agent-per-story",

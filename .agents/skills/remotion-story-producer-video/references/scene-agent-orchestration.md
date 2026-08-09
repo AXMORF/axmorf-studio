@@ -24,6 +24,11 @@ surface. Run independent owners concurrently when possible. Give each child only
 exclusive source/public paths, current Beat and sealed timing, style, Scene brief, assignment,
 adjacent continuity summary, and approved current resources.
 
+Each child must read and use `.agents/skills/remotion-best-practices/SKILL.md` completely, then load
+`remotion-markup/REFERENCE.md` and routed references relevant to its Renderer. `AGENTS.md`, assignment,
+contracts, and validators take precedence; never widen ownership or runtime
+boundaries.
+
 Tell every child that other Agents share the worktree and require it to:
 
 - write only its exclusive Scene source/public directories and preserve all other changes;

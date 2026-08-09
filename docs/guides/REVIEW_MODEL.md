@@ -17,6 +17,9 @@
 | Render-ready check | repository | FinalAssembly、Composition 和 render plan identities current |
 | Delivery check | repository | 非 MP4 package、intent、receipt 与 current inputs 一致 |
 
+repository-local `remotion-best-practices` 是 Scene authoring guidance，不是新增的审美 gate，也不
+替代 assignment、contracts、validators 或 Scene check。
+
 `delivery-render-started` 只证明 detached child 获得 OS spawn acknowledgement。它不证明 exit
 success、MP4 存在、媒体有效、审美质量或平台发布。
 

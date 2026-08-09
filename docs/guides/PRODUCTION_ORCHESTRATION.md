@@ -51,6 +51,11 @@ GlobalVisual assignment。主 Agent并行分发 N Scene owners、一个 GlobalVi
 Cover owner。production watcher 只 join N+1 Scene/GlobalVisual immutable result contracts；
 Cover lifecycle 独立。
 
+每个 Scene owner authoring 前必须完整读取并使用 repository-local
+`.agents/skills/remotion-best-practices/SKILL.md`，并加载 `remotion-markup/REFERENCE.md` 及当前
+Renderer 需要的 routed references。AGENTS、assignment、contracts 与 validators 优先，Skill
+不得扩大 exclusive ownership 或 runtime 边界。
+
 Scene root 透明，只绘制 Beat 语义内容；Composition exactly once 提供 SceneSafeArea、全局背景、
 字幕与旁白。GlobalVisual 不读取 Scene 输出，不拥有字幕、音频、可见文本或 Scene DSL。
 

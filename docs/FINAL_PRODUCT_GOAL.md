@@ -34,6 +34,8 @@
 - 一 Story 一个 Composition；一 StoryBeat 一个 meaningId 和 Scene。
 - ttsChunks 是创作决定，工具不按标点或字符自动拆分。
 - sealed PCM 的累计整数 sample-frame 边界是绝对时间 authority。
+- 每个 Scene owner 使用 repository-local `remotion-best-practices` authoring guidance；仓库
+  assignment、contracts 与 validators 拥有更高 authority。
 - Scene root 透明，只拥有 Beat 语义视觉与 Scene-local sound；Composition owns safe area、
   narration、captions 与 GlobalVisual background。
 - captions 只由顶层 CaptionLayer 渲染。

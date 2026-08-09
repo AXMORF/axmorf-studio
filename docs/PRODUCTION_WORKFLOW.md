@@ -48,7 +48,10 @@ mechanical AutoCheck。实测音频时间不可被 Scene 或转场移动、压�
 `production:scene:freeze` 原子冻结 N Scene assignments 与一个 GlobalVisual assignment；
 `delivery:cover:freeze` 独立冻结 Cover assignment。
 
-- Scene owner 只写其 exclusive project/public paths；先 check，再由 root submit/fail。
+- Scene owner 制作前必须读取并使用 repository-local
+  `.agents/skills/remotion-best-practices/SKILL.md`，同时以 AGENTS、assignment、contracts 与
+  validators 为更高 authority；只写 exclusive project/public paths，先 check，再由 root
+  submit/fail。
 - GlobalVisual owner 不读取 Scene results，不绘制字幕/可见文本/音频，不扩张为通用 DSL。
 - Cover owner 只读取 assignment 内的 StorySpec、VisualStyleSpec、CoverSpec，并封存两个固定比例
   exact PNG。

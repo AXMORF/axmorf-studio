@@ -127,6 +127,8 @@ revision 或其他 Scene 的资源/recipe 选择。
 
 `VisualStyleSpec.styleProfileId` 必须解析到 Catalog 中唯一、已批准的 style profile；
 SceneVisualPlan 的视觉资源与 SceneSoundPlan 的 ambience/SFX 也必须解析到相应 kind/role。
+repository-local `remotion-best-practices` 只提供 Scene authoring guidance，不是 Catalog 条目、
+资源 manifest 或 production identity，也不改变这些解析规则。
 缺失、重复、类型不匹配、路径越界或 snapshot fingerprint 漂移全部 fail closed。
 exact recipe 还必须唯一解析到 cardId/style-key、准确 demo 与 preview identities，并由独立
 reference fidelity receipt 证明最小本地化闭包、真实 Renderer/frame-state binding、配对

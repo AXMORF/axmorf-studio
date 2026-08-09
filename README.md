@@ -62,6 +62,9 @@ ResourceCatalog 和 ProjectRegistry。fresh clone 默认没有具体 Project，�
 
 入口见
 [$remotion-story-producer-video](.agents/skills/remotion-story-producer-video/SKILL.md)。
+生产 Skill 会要求每个 Scene owner 使用仓库内
+[$remotion-best-practices](.agents/skills/remotion-best-practices/SKILL.md) 及其按需路由的 reference；
+仓库合同、assignment 和 validators 仍是更高 authority。
 
 ## 常用命令
 
@@ -113,7 +116,7 @@ npm run delivery:check -- --project <story-id> --delivery <delivery-id>
 ## 目录
 
 ```text
-.agents/skills/              仓库生产 Skill
+.agents/skills/              仓库生产 Skill 与 repository-local Remotion authoring guidance
 docs/                        当前权威、指南、证据和历史归档
 scripts/production/          production cli / application / domain / adapters
 scripts/delivery/            Cover 与自动交付 cli / application / domain / adapters

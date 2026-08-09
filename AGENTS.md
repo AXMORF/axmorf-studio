@@ -74,6 +74,11 @@
 
 ## Scene 制作来源
 
+每个 Scene owner 制作前必须完整读取并使用 repository-local
+`.agents/skills/remotion-best-practices/SKILL.md`，再按当前 Renderer 需要读取其路由 reference。
+`AGENTS.md`、assignment、contracts 与 validators 始终拥有更高 authority；Skill 不能扩大 owner
+写入范围或 render runtime 边界。
+
 新 Scene 只参考：
 
 1. current Story/StoryBeat/timing/VisualStyleSpec/Scene plans 与相邻连续性；

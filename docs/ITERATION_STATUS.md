@@ -30,6 +30,8 @@ checksum-bound verified release，ledger 只封存 immutable 非 MP4 bytes。
 - Composition-owned `SceneSafeArea`、唯一顶层 CaptionLayer、透明语义 Scene root。
 - 每个 meaningId 一个 Scene owner；每个 Story 一个独立 GlobalVisual owner；immutable result
   contracts 由 single-writer watcher 汇合。
+- repository-local `remotion-best-practices` router v4.0.506 已完整纳入仓库；Scene assignment
+  policy 与 owner 编排要求制作前完整读取入口，并按 Renderer 需要加载 routed references。
 - ResourceCatalog、composition-local RendererRegistry、ScenePackage、Coverage、visual/sound
   projection 与 FinalAssembly。
 

@@ -68,6 +68,11 @@ heartbeat。
 当前状态机只接受：production-start → narrative → scene-freeze → scenes → render-ready。终态绑定
 `production-render-plan-v1` 与 `production-render-ready-v1`，不包含媒体渲染阶段。
 
+Scene authoring 期使用 repository-local `.agents/skills/remotion-best-practices/SKILL.md` router 与
+按需 references，但 AGENTS、assignment、contracts 和 validators 优先。该 Skill 不进入
+ProductionRun、ScenePackage fingerprint、ResourceCatalog 或 render runtime，也不改变 child 的
+exclusive ownership。
+
 ## Composition ownership
 
 Composition exactly once 提供 SceneSafeArea、NarrativeCore、CaptionLayer、GlobalVisual background

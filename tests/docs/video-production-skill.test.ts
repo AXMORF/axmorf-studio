@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { z } from "zod";
@@ -8,11 +9,50 @@ const skillRoot = path.join(
   process.cwd(),
   ".agents/skills/remotion-story-producer-video",
 );
+const remotionBestPracticesRoot = path.join(
+  process.cwd(),
+  ".agents/skills/remotion-best-practices",
+);
 
 const readSkillFile = (relativePath: string) =>
   readFile(path.join(skillRoot, relativePath), "utf8");
 
 const wordCount = (value: string) => value.trim().split(/\s+/u).length;
+
+const listFiles = async (
+  root: string,
+  relativeDirectory = "",
+): Promise<string[]> => {
+  const entries = await readdir(path.join(root, relativeDirectory), {
+    withFileTypes: true,
+  });
+  const files: string[][] = await Promise.all(
+    entries.map(async (entry) => {
+      const relativePath = path.join(relativeDirectory, entry.name);
+      return entry.isDirectory()
+        ? listFiles(root, relativePath)
+        : [relativePath];
+    }),
+  );
+  return files.flat().sort();
+};
+
+const fingerprintFileTree = async (
+  root: string,
+): Promise<{ fileCount: number; fingerprint: string }> => {
+  const files = await listFiles(root);
+  const contents = await Promise.all(
+    files.map((relativePath) => readFile(path.join(root, relativePath))),
+  );
+  const hash = createHash("sha256");
+  files.forEach((relativePath, index) => {
+    hash.update(relativePath);
+    hash.update("\0");
+    hash.update(contents[index].toString("base64"));
+    hash.update("\0");
+  });
+  return { fileCount: files.length, fingerprint: hash.digest("hex") };
+};
 
 const SkillPolicySchema = z
   .object({
@@ -56,6 +96,9 @@ const SkillPolicySchema = z
     invariants: z
       .object({
         sceneAuthoringOwner: z.literal("one-child-agent-per-meaning-id"),
+        sceneAuthoringSkill: z.literal(
+          "repository-local-remotion-best-practices",
+        ),
         globalVisualAuthoringOwner: z.literal("one-child-agent-per-story"),
         globalVisualDefaultRole: z.literal(
           "minimal-style-aligned-background-board",
@@ -132,10 +175,69 @@ test("repository video skill exposes a structured production policy", async () =
       readSkillFile("policy.json"),
     ]);
   const policy = SkillPolicySchema.parse(JSON.parse(rawPolicy));
+  const remotionBestPractices = await readFile(
+    path.join(remotionBestPracticesRoot, "SKILL.md"),
+    "utf8",
+  );
 
   assert.match(skill, /^name: remotion-story-producer-video$/mu);
   assert.match(skill, /\(policy\.json\)/u);
   assert.match(metadata, /\$remotion-story-producer-video/u);
+  assert.match(
+    remotionBestPractices,
+    /^name: remotion-best-practices$/mu,
+  );
+  assert.match(
+    remotionBestPractices,
+    /^description: Router for all Remotion skills$/mu,
+  );
+  assert.match(remotionBestPractices, /^version: 4\.0\.506$/mu);
+  assert.deepEqual(await fingerprintFileTree(remotionBestPracticesRoot), {
+    fileCount: 127,
+    fingerprint:
+      "a27d1df90df0b28e026f3c112af5d9821d9c3be655b73c3503b221fbdb2edc3a",
+  });
+
+  const alignedDocumentation = await Promise.all(
+    [
+      "AGENTS.md",
+      "README.md",
+      "docs/FINAL_PRODUCT_GOAL.md",
+      "docs/ITERATION_STATUS.md",
+      "docs/PRODUCTION_WORKFLOW.md",
+      "docs/ARCHITECTURE.md",
+      "docs/guides/PRODUCTION_ORCHESTRATION.md",
+      "docs/guides/REVIEW_MODEL.md",
+      "docs/guides/CAPABILITY_CATALOG.md",
+    ].map((relativePath) =>
+      readFile(path.join(process.cwd(), relativePath), "utf8"),
+    ),
+  );
+  for (const document of alignedDocumentation) {
+    assert.match(document, /remotion-best-practices/u);
+  }
+
+  assert.match(
+    sceneWorkflow,
+    /\.agents\/skills\/remotion-best-practices\/SKILL\.md/u,
+  );
+  assert.match(
+    sceneWorkflow,
+    /must read and use[\s\S]*remotion-best-practices\/SKILL\.md` completely[\s\S]*remotion-markup\/REFERENCE\.md/u,
+  );
+
+  const remotionRuleReferences = [
+    ...remotionBestPractices.matchAll(/\]\(([^)#]+\.md)(?:#[^)]+)?\)/gu),
+  ]
+    .map((match) => match[1].replace(/^\.\//u, ""))
+    .filter((reference) => !/^[a-z]+:\/\//u.test(reference));
+  assert.ok(remotionRuleReferences.length > 0);
+  assert.ok(remotionRuleReferences.includes("remotion-markup/REFERENCE.md"));
+  for (const reference of new Set(remotionRuleReferences)) {
+    await assert.doesNotReject(
+      readFile(path.join(remotionBestPracticesRoot, reference), "utf8"),
+    );
+  }
 
   for (const heading of policy.requiredEntrypointHeadings) {
     assert.match(skill, new RegExp(`^## ${heading}$`, "mu"));
