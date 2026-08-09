@@ -91,6 +91,9 @@ const readyFixture = async (context: TestContext) => {
         registryChecksum: sha("a"),
       };
     },
+    compileProjectComposition: async () => {
+      calls.push("compile");
+    },
     writeOrCheckRenderReady: async ({ mode }) => {
       calls.push(`ready:${mode}`);
       return ready;
@@ -122,6 +125,7 @@ test("render-ready writes, rechecks, seals terminal state, and is idempotent", a
     "plan:check",
     "registry:write",
     "registry:check",
+    "compile",
     "ready:write",
     "ready:check",
   ]);
@@ -164,4 +168,37 @@ test("render-ready failure is recorded centrally and never claims readiness", as
   const state = (await readProductionRunStore(fixture)).state;
   assert.equal(state.state, "failed");
   assert.equal(state.failure?.stageId, "render-ready");
+});
+
+test("Composition compile failure is terminal before render-ready is written", async (context) => {
+  const fixture = await readyFixture(context);
+  let readyWrites = 0;
+  await assert.rejects(
+    runProductionRenderReady({
+      rootDir: fixture.rootDir,
+      runId: fixture.runId,
+      clock: () => FIXED_PRODUCTION_NOW,
+      dependencies: {
+        ...fixture.dependencies,
+        compileProjectComposition: async () => {
+          throw new Error("Target Project Composition TypeScript compile failed (TS2322).");
+        },
+        writeOrCheckRenderReady: async (request) => {
+          if (request.mode === "write") readyWrites += 1;
+          return fixture.dependencies.writeOrCheckRenderReady(request);
+        },
+      },
+    }),
+    /TypeScript compile failed \(TS2322\)/u,
+  );
+  const state = (await readProductionRunStore(fixture)).state;
+  assert.equal(state.state, "failed");
+  assert.equal(state.failure?.stageId, "render-ready");
+  assert.equal(readyWrites, 0);
+  assert.equal(
+    state.outputArtifacts.some(
+      ({ artifactId }) => artifactId === "production-render-ready",
+    ),
+    false,
+  );
 });

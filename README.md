@@ -14,6 +14,8 @@
 - `delivery-render-started` 只证明进程启动确认，不证明渲染完成或 MP4 有效。仓库不等待、监控、
   读取、hash、probe 或 decode detached 输出。
 - PublishingIntent 与独立 Cover 生命周期保留；Cover 不阻止 render-ready，但会阻止自动交付。
+- `GlobalVisualLayers` 是唯一的无 Props 组件接口；render-ready 在封存 ready artifact 前只编译目标
+  Project 的 Composition 与真实 import graph，跨模块类型漂移会 fail closed。
 - 当前是 zero-Project baseline；历史本地 Projects、Runs、媒体与交付目录已按用户授权删除。下一个
   新视频将是新流程的第一个真实 Project。
 - `deliveries/` 不是 checksum-bound verified release；ledger 只覆盖 immutable 非 MP4 文件。

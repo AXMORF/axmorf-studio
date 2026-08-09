@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -17,9 +24,28 @@ export const GlobalVisualLayers: React.FC = () => {
 };
 `;
 
+const prepareTypeScriptFixture = async (rootDir: string) => {
+  await mkdir(join(rootDir, "src"), { recursive: true });
+  await symlink(
+    join(process.cwd(), "src/remotion"),
+    join(rootDir, "src/remotion"),
+    "dir",
+  );
+  await symlink(
+    join(process.cwd(), "node_modules"),
+    join(rootDir, "node_modules"),
+    "dir",
+  );
+  await writeFile(
+    join(rootDir, "tsconfig.json"),
+    await readFile(join(process.cwd(), "tsconfig.json"), "utf8"),
+  );
+};
+
 test("collects a project-local frame-driven GlobalVisual source graph", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-visual-source-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
+  await prepareTypeScriptFixture(rootDir);
   const sourceDir = join(rootDir, "src/projects/story-example/global-visual");
   await mkdir(sourceDir, { recursive: true });
   await writeFile(join(sourceDir, "GlobalVisualLayers.tsx"), validSource);
@@ -62,6 +88,7 @@ test("rejects Scene caption audio visible text CSS and external runtime access",
         join(tmpdir(), "rsp-global-visual-invalid-"),
       );
       child.after(() => rm(rootDir, { recursive: true, force: true }));
+      await prepareTypeScriptFixture(rootDir);
       const sourceDir = join(
         rootDir,
         "src/projects/story-example/global-visual",
@@ -74,6 +101,65 @@ test("rejects Scene caption audio visible text CSS and external runtime access",
       );
       await assert.rejects(() =>
         collectGlobalVisualSourceGraph({ rootDir, storyId: "story-example" }),
+      );
+    });
+  }
+});
+
+test("rejects a GlobalVisual component with required Props", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-visual-props-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  await prepareTypeScriptFixture(rootDir);
+  const sourceDir = join(rootDir, "src/projects/story-example/global-visual");
+  await mkdir(sourceDir, { recursive: true });
+  await writeFile(
+    join(sourceDir, "GlobalVisualLayers.tsx"),
+    validSource
+      .replace("React.FC = () =>", "React.FC<{required: string}> = ({required}) =>")
+      .replace(
+        "opacity: opacityForFrame(frame)",
+        "opacity: required.length > 0 ? opacityForFrame(frame) : 0",
+      ),
+  );
+  await writeFile(
+    join(sourceDir, "motif.ts"),
+    "export const opacityForFrame = (frame: number) => frame >= 0 ? 1 : 0;\n",
+  );
+
+  await assert.rejects(
+    collectGlobalVisualSourceGraph({ rootDir, storyId: "story-example" }),
+    /GlobalVisualLayers component interface compile failed \(TS2322\)/u,
+  );
+});
+
+test("rejects loose GlobalVisual Props", async (context) => {
+  for (const declaration of [
+    "React.FC<{plan?: string}> = () =>",
+    "React.FC<any> = () =>",
+    "React.FC<unknown> = () =>",
+    "React.FC<{} | {plan?: string}> = () =>",
+  ]) {
+    await context.test(declaration, async (child) => {
+      const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-visual-loose-props-"));
+      child.after(() => rm(rootDir, { recursive: true, force: true }));
+      await prepareTypeScriptFixture(rootDir);
+      const sourceDir = join(
+        rootDir,
+        "src/projects/story-example/global-visual",
+      );
+      await mkdir(sourceDir, { recursive: true });
+      await writeFile(
+        join(sourceDir, "GlobalVisualLayers.tsx"),
+        validSource.replace("React.FC = () =>", declaration),
+      );
+      await writeFile(
+        join(sourceDir, "motif.ts"),
+        "export const opacityForFrame = (frame: number) => frame >= 0 ? 1 : 0;\n",
+      );
+
+      await assert.rejects(
+        collectGlobalVisualSourceGraph({ rootDir, storyId: "story-example" }),
+        /GlobalVisualLayers component interface compile failed \(TS2322\)/u,
       );
     });
   }

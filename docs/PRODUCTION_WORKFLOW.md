@@ -60,8 +60,13 @@ GlobalVisualProjection、FinalAssembly 与 current Composition。之后构建：
 
 - `production-render-plan-v1`：绑定 story/run、Composition/source checksum、width/height、fps、
   frameCount、layer/mix order 与固定 Remotion policy；
+- `GlobalVisualLayers` 的固定接口是无 Props；plan/projection 由 Composition 顶层解析并校验
+  identity，不传给组件。render plan 与最终 Composition current 后，fixed flow 用仓库
+  TypeScript/tsconfig 和 `noEmit` 只编译该 Project 的真实 import graph；
 - `production-render-ready-v1`：绑定 plan 及全部 render-critical identities，状态
   `render-ready`，handoff `awaiting-automatic-delivery`。
+
+任何类型不兼容都在写入 ProductionRenderReady 前终止当前 Run。
 
 这个阶段不运行最终 Remotion render，不读取媒体，也不写媒体完成 evidence。Cover failure 不
 改变 production 状态，但 delivery build 必须要求 current CoverResult。

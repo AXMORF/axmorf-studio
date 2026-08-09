@@ -47,6 +47,10 @@ current authored inputs 创建 fresh Run，不能编辑 event/state/result。
 `production-render-ready-v1` 再绑定 plan fingerprint，并固定 status/handoff。该 artifact 只证明
 所有 render-critical inputs current，不证明媒体存在。
 
+在 ready artifact 写入前，目标 Project Composition 必须通过仓库固定 TypeScript/tsconfig 的
+`noEmit` 编译。编译 root 只有 `src/projects/<storyId>/Composition.tsx`，依赖由真实 import graph
+决定；失败只暴露去重后的 TypeScript diagnostic codes，不输出源码、绝对路径或完整 diagnostic。
+
 ## Delivery identity 与 canonical package
 
 deliveryId 从 PublishingIntent fingerprint、CoverResult fingerprint、render-ready fingerprint、

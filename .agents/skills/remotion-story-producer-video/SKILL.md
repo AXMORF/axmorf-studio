@@ -47,6 +47,7 @@ use CodeGraph first when `.codegraph/` exists.
   Return an over-budget chunk for Agent rework; sealed PCM with `pcm-cumulative-ceil-v1` owns timing.
 - Keep one Story, one Composition, and one exclusive ScenePackage per meaningId/StoryBeat.
 - Keep one project-local GlobalVisualPackage per Story, independent from every ScenePackage.
+- Keep `GlobalVisualLayers` no-Props.
 - Create and freeze one current `PublishingIntent` during Story authoring; keep title solely in
   `StorySpec`, and keep chapter frames/timecodes out of the authored intent.
 - Keep one fixed code-only CoverAssignment/CoverPackage/CoverResult chain per future production. Its

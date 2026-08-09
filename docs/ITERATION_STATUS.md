@@ -42,6 +42,9 @@ checksum-bound verified release，ledger 只封存 immutable 非 MP4 bytes。
   layer/mix order 和固定 Remotion policy。
 - `production-render-ready-v1` 绑定 render plan 与全部 current assembly identities；终态固定为
   `render-ready / awaiting-automatic-delivery`。
+- GlobalVisual validator、generated Composition 与目标 Project compile gate 共享无 Props
+  `GlobalVisualLayers` 类型合同；compile 使用仓库 tsconfig、`noEmit` 且只以 current
+  `Composition.tsx` 为 root，其他 ignored Projects 不进入该门禁。
 - render-ready check 只重算 current contracts，保持 events 与产物 byte/mtime 不变。
 
 ### PublishingIntent、Cover 与自动交付

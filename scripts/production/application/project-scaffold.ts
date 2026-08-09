@@ -156,11 +156,22 @@ export const ensureProductionProjectScaffold = async ({
   if (actual === expected) {
     return { destination, written: false } as const;
   }
-  const isExactRenderScaffold = [false, true].some((sceneLocalSoundPresent) =>
-    renderProductionRenderProjectScaffold({
-      storyId,
-      sceneLocalSoundPresent,
-    }) === actual,
+  const isExactRenderScaffold = [false, true].some(
+    (sceneLocalSoundPresent) =>
+      [
+        renderProductionRenderProjectScaffold({
+          storyId,
+          sceneLocalSoundPresent,
+        }),
+        renderLegacyNoPropsProductionRenderProjectScaffold({
+          storyId,
+          sceneLocalSoundPresent,
+        }),
+        renderLegacyPropsProductionRenderProjectScaffold({
+          storyId,
+          sceneLocalSoundPresent,
+        }),
+      ].includes(actual ?? ""),
   );
   if (isExactRenderScaffold && mode === "write") {
     const result = await writeProductionFileAtomic({
@@ -376,12 +387,17 @@ export const renderReadabilityAwareProductionSceneRuntime = (input: {
   readonly meaningIds: readonly string[];
 }) => renderProductionSceneRuntimeTemplate(input);
 
-export const renderProductionRenderProjectScaffold = ({
+const renderProductionRenderProjectScaffoldVariant = ({
   storyId: rawStoryId,
   sceneLocalSoundPresent,
+  globalVisualComponentInterface,
 }: {
   readonly storyId: string;
   readonly sceneLocalSoundPresent: boolean;
+  readonly globalVisualComponentInterface:
+    | "current-no-props"
+    | "legacy-no-props"
+    | "legacy-props";
 }) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
   const componentName = componentNameFor(storyId);
@@ -398,7 +414,11 @@ export const renderProductionRenderProjectScaffold = ({
   const requirementsSetup = `const productionRequirements = ProductionRequirementsFreezeSchema.parse(requirementsJson);
 const readabilityPolicy = productionRequirements.readabilityPolicy;
 `;
-  const globalVisualImports = `import globalVisualPlanJson from "./global-visual-plan.json";
+  const globalVisualImports = `${
+    globalVisualComponentInterface !== "legacy-props"
+      ? 'import type {GlobalVisualLayersComponent} from "../../remotion/runtime/global-visual";\n'
+      : ""
+  }import globalVisualPlanJson from "./global-visual-plan.json";
 import globalVisualProjectionJson from "./generated/global-visual-projection.generated.json";
 import {GlobalVisualLayers} from "./global-visual/GlobalVisualLayers";
 `;
@@ -407,8 +427,16 @@ const globalVisualProjection = GlobalVisualProjectionSchema.parse(globalVisualPr
 if (globalVisualProjection.schemaVersion !== 2 || globalVisualPlan.storyId !== storyId || globalVisualPlan.compositionId !== render.compositionId || globalVisualProjection.storyId !== storyId || globalVisualProjection.compositionId !== render.compositionId || globalVisualProjection.durationInFrames !== timing.durationInFrames || renderPlan.globalVisual.planFingerprint !== globalVisualPlan.planFingerprint || renderPlan.globalVisual.projectionFingerprint !== globalVisualProjection.projectionFingerprint) {
   throw new Error("Production GlobalVisual runtime identity is stale.");
 }
-`;
-  const globalVisualProp = `
+${globalVisualComponentInterface === "current-no-props"
+  ? "const ProductionGlobalVisualLayers: GlobalVisualLayersComponent<typeof GlobalVisualLayers> = GlobalVisualLayers;\n"
+  : globalVisualComponentInterface === "legacy-no-props"
+    ? "const ProductionGlobalVisualLayers: GlobalVisualLayersComponent = GlobalVisualLayers;\n"
+    : ""}`;
+  const globalVisualProp =
+    globalVisualComponentInterface !== "legacy-props"
+      ? `
+    globalVisualBackgroundLayers={<ProductionGlobalVisualLayers />}`
+      : `
     globalVisualBackgroundLayers={<GlobalVisualLayers plan={globalVisualPlan} projection={globalVisualProjection} />}`;
   return `// ${PRODUCTION_RENDER_SCAFFOLD_MARKER}
 import type {FC} from "react";
@@ -484,6 +512,33 @@ export default ${componentName};
 `;
 };
 
+export const renderProductionRenderProjectScaffold = (input: {
+  readonly storyId: string;
+  readonly sceneLocalSoundPresent: boolean;
+}) =>
+  renderProductionRenderProjectScaffoldVariant({
+    ...input,
+    globalVisualComponentInterface: "current-no-props",
+  });
+
+const renderLegacyPropsProductionRenderProjectScaffold = (input: {
+  readonly storyId: string;
+  readonly sceneLocalSoundPresent: boolean;
+}) =>
+  renderProductionRenderProjectScaffoldVariant({
+    ...input,
+    globalVisualComponentInterface: "legacy-props",
+  });
+
+const renderLegacyNoPropsProductionRenderProjectScaffold = (input: {
+  readonly storyId: string;
+  readonly sceneLocalSoundPresent: boolean;
+}) =>
+  renderProductionRenderProjectScaffoldVariant({
+    ...input,
+    globalVisualComponentInterface: "legacy-no-props",
+  });
+
 export const ensureProductionRenderScaffold = async ({
   rootDir,
   storyId,
@@ -528,7 +583,22 @@ export const ensureProductionRenderScaffold = async ({
   }
   const current = await readFile(destination, "utf8");
   const narrativeScaffold = renderProductionProjectScaffold(storyId);
-  if (current !== expected && current !== narrativeScaffold) {
+  const legacyRenderScaffold =
+    renderLegacyPropsProductionRenderProjectScaffold({
+      storyId,
+      sceneLocalSoundPresent,
+    });
+  const legacyNoPropsRenderScaffold =
+    renderLegacyNoPropsProductionRenderProjectScaffold({
+      storyId,
+      sceneLocalSoundPresent,
+    });
+  if (
+    current !== expected &&
+    current !== narrativeScaffold &&
+    current !== legacyNoPropsRenderScaffold &&
+    current !== legacyRenderScaffold
+  ) {
     throw new Error("Refusing to overwrite a drifted Production Composition.");
   }
   await writeProductionFileAtomic({

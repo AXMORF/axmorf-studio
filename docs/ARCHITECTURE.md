@@ -73,10 +73,13 @@ heartbeat。
 Composition exactly once 提供 SceneSafeArea、NarrativeCore、CaptionLayer、GlobalVisual background
 与 Scene track。Scene renderer 根透明且只画 current Beat 语义；ScenePackage owns Scene-local
 ambience/SFX，不拥有旁白、字幕或全局音频。GlobalVisual owns project-local 背景/纹理/装饰/motif，
-不读取 Scene output。
+不读取 Scene output。`GlobalVisualLayers` 实现统一满足 runtime 的无 Props 组件类型；Composition
+顶层独立解析 GlobalVisual plan/projection 并做 identity 校验。
 
 ProjectRegistry 在 bundle 前按固定一级目录生成静态 TypeScript，Composition 用字面量
 `import()` 与 `lazyComponent`；render runtime 不扫描目录或读取动态模块路径。
+render-ready 的 compile gate 以 current Project `Composition.tsx` 为唯一 TypeScript root，让编译器
+沿真实 imports 收集依赖，不枚举或阻塞其他 ignored Projects。
 
 ## Automatic delivery
 

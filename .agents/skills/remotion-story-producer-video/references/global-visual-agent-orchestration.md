@@ -31,6 +31,12 @@ must not render captions, narration, audio, visible text, Scene semantics, safe-
 DSL, automatic layout, or an automatic director. Use Remotion frame APIs only, keep the root
 non-interactive, and keep JSON free of executable expressions or module paths.
 
+Export `GlobalVisualLayers` as a no-Props React component. Do not declare required Props and do not
+accept GlobalVisual plan/projection Props: the generated Composition already parses those artifacts
+and verifies their identities before mounting `<GlobalVisualLayers />`. The fixed validator checks the
+shared component type, and render-ready compiles the target Composition import graph before it may
+write the ready artifact.
+
 ## Check, rework, then root-submit
 
 The child runs:

@@ -63,6 +63,9 @@ test("render scaffold binds the frozen plan and current GlobalVisual layer", asy
   assert.match(source, new RegExp(PRODUCTION_RENDER_SCAFFOLD_MARKER));
   assert.match(source, /ProductionRenderPlanSchema/u);
   assert.match(source, /globalVisualBackgroundLayers/u);
+  assert.match(source, /GlobalVisualLayersComponent/u);
+  assert.match(source, /<ProductionGlobalVisualLayers \/>/u);
+  assert.doesNotMatch(source, /<GlobalVisualLayers plan=/u);
   assert.match(source, /StoryVisualTrack/u);
   assert.match(source, /SoundDesignTrack/u);
   assert.doesNotMatch(source, /ProductionPreview|FinalPreview|approval/iu);
@@ -74,6 +77,72 @@ test("render scaffold binds the frozen plan and current GlobalVisual layer", asy
     sceneLocalSoundPresent: true,
     mode: "check",
   });
+});
+
+test("rebuilds only the byte-exact legacy generated render scaffold", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-render-scaffold-legacy-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  await ensureProductionProjectScaffold({
+    rootDir,
+    storyId: "story-example",
+    mode: "write",
+  });
+  const current = renderProductionRenderProjectScaffold({
+    storyId: "story-example",
+    sceneLocalSoundPresent: false,
+  });
+  const legacyNoProps = current.replace("<typeof GlobalVisualLayers>", "");
+  const legacy = current
+    .replace(
+      'import type {GlobalVisualLayersComponent} from "../../remotion/runtime/global-visual";\n',
+      "",
+    )
+    .replace(
+      "const ProductionGlobalVisualLayers: GlobalVisualLayersComponent<typeof GlobalVisualLayers> = GlobalVisualLayers;\n",
+      "",
+    )
+    .replace(
+      "<ProductionGlobalVisualLayers />",
+      "<GlobalVisualLayers plan={globalVisualPlan} projection={globalVisualProjection} />",
+    );
+  const destination = join(
+    rootDir,
+    "src/projects/story-example/Composition.tsx",
+  );
+  await writeFile(destination, legacyNoProps);
+
+  await ensureProductionRenderScaffold({
+    rootDir,
+    storyId: "story-example",
+    meaningIds: ["opening"],
+    sceneLocalSoundPresent: false,
+    mode: "write",
+  });
+  assert.equal(await readFile(destination, "utf8"), current);
+
+  await writeFile(destination, legacy);
+
+  await ensureProductionRenderScaffold({
+    rootDir,
+    storyId: "story-example",
+    meaningIds: ["opening"],
+    sceneLocalSoundPresent: false,
+    mode: "write",
+  });
+  assert.equal(await readFile(destination, "utf8"), current);
+
+  await writeFile(destination, `${legacy}// drift\n`);
+  await assert.rejects(
+    ensureProductionRenderScaffold({
+      rootDir,
+      storyId: "story-example",
+      meaningIds: ["opening"],
+      sceneLocalSoundPresent: false,
+      mode: "write",
+    }),
+    /Refusing to overwrite a drifted Production Composition/u,
+  );
+  assert.equal(await readFile(destination, "utf8"), `${legacy}// drift\n`);
 });
 
 test("refuses to overwrite a hand-written Composition", async (context) => {

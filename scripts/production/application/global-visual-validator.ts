@@ -23,12 +23,39 @@ import {
 } from "../../external-references/project-files";
 import { assertGuardedSource } from "../../external-references/source-guard";
 import { writeOrCheckSceneArtifact } from "../../scene-package/project-files";
+import { compileTypeScriptImportGraph } from "./typescript-compile";
 
 export type GlobalVisualSourceGraph = Readonly<{
   entryPath: string;
   files: readonly { readonly sourcePath: string; readonly checksum: string }[];
   sourceGraphFingerprint: string;
 }>;
+
+export const assertGlobalVisualLayersComponentInterface = ({
+  rootDir,
+  storyId,
+}: {
+  readonly rootDir: string;
+  readonly storyId: string;
+}) => {
+  const rootPath = join(
+    rootDir,
+    "src/projects",
+    storyId,
+    "global-visual/global-visual-interface.generated.tsx",
+  );
+  compileTypeScriptImportGraph({
+    rootDir,
+    rootPath,
+    label: "GlobalVisualLayers component interface compile",
+    virtualSource: `import type {GlobalVisualLayersComponent} from "../../../remotion/runtime/global-visual";
+import {GlobalVisualLayers} from "./GlobalVisualLayers";
+
+const CheckedGlobalVisualLayers: GlobalVisualLayersComponent<typeof GlobalVisualLayers> = GlobalVisualLayers;
+export const GlobalVisualLayersInterfaceProof = CheckedGlobalVisualLayers;
+`,
+  });
+};
 
 const resolveSourceFile = async (
   rootDir: string,
@@ -211,6 +238,7 @@ export const collectGlobalVisualSourceGraph = async ({
       sourcePath,
       checksum: checksumExternalBytes(bytes),
     }));
+  assertGlobalVisualLayersComponentInterface({ rootDir, storyId });
   return {
     entryPath,
     files: graphFiles,

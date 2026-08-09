@@ -45,6 +45,7 @@ import {
 } from "./project-scaffold";
 import { validateSceneReadability } from "./readability-validator";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
+import { compileTargetProjectComposition } from "./project-composition-compiler";
 
 const checksumText = (value: string) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}` as const;
@@ -438,6 +439,7 @@ export const createDefaultRenderReadyDependencies = () => ({
       registryChecksum: entry.generatedEntryChecksum,
     } as const;
   },
+  compileProjectComposition: compileTargetProjectComposition,
   writeOrCheckRenderReady: async ({
     rootDir,
     storyId,

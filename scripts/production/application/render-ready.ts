@@ -31,6 +31,7 @@ export type RenderReadyDependencies = Readonly<{
     readonly compositionId: string;
     readonly registryChecksum: string;
   }>;
+  compileProjectComposition: (request: CommonRequest) => Promise<unknown>;
   writeOrCheckRenderReady: (
     request: CommonRequest &
       Readonly<{
@@ -127,6 +128,7 @@ export const runProductionRenderReady = async ({
         ...common,
         mode: "check",
       });
+      await dependencies.compileProjectComposition(common);
       const ready = ProductionRenderReadySchema.parse(
         await dependencies.writeOrCheckRenderReady({
           ...common,
@@ -192,6 +194,7 @@ export const runProductionRenderReady = async ({
     ) {
       throw new Error("ProjectRegistry write/check drifted during render-ready.");
     }
+    await dependencies.compileProjectComposition(common);
     const writtenReady = ProductionRenderReadySchema.parse(
       await dependencies.writeOrCheckRenderReady({
         ...common,
@@ -318,6 +321,7 @@ export const checkProductionRenderReady = async ({
   await dependencies.assertCurrentFreeze(common);
   const plan = await dependencies.prepareRenderPlan({ ...common, mode: "check" });
   const registry = await dependencies.projectRegistry({ ...common, mode: "check" });
+  await dependencies.compileProjectComposition(common);
   const ready = await dependencies.writeOrCheckRenderReady({
     ...common,
     mode: "check",
