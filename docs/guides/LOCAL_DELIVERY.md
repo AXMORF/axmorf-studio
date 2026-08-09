@@ -2,7 +2,7 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-09
+> 最后复核：2026-08-10
 >
 > 适用范围：current Project 已有 current PublishingIntent、ProductionRenderPlan、
 > ProductionRenderReady 和 immutable CoverResult。
@@ -103,4 +103,6 @@ checksums、Cover equality、manifest、intent 和 receipt。它允许 exact 计
 stat、read、hash、probe 或 decode 该文件，也不把它的存在解释为完成。
 
 未知文件、路径逃逸、symlink、input drift、缺失 receipt 或目标冲突 fail closed。不上传平台、
-不访问网络、不处理账号/密钥，也不清理 `out/`。
+不访问网络、不处理账号/密钥，也不清理 `out/`。用户明确要求删除整个作品时，改用
+[`project:delete`](../PRODUCTION_WORKFLOW.md#7-作品删除) 一次清理该 storyId 的 Project、媒体、
+narration work、Runs、out 与 deliveries；它不是 delivery 重试或歧义恢复手段。

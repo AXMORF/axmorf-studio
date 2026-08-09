@@ -2,13 +2,14 @@
 
 > 文档类型：实施顺序与阶段门槛
 >
-> 最后复核：2026-08-09
+> 最后复核：2026-08-10
 
 ## 已完成基线
 
 1. 叙事、sealed narration、SemanticTiming、CaptionCue 与 NarrativeCore。
 2. ScenePackage、ResourceCatalog、RendererRegistry、Coverage 与 Scene-local sound。
-3. GlobalSound、GlobalVisual、FinalAssembly 和 Project deletion/zero-project bootstrap。
+3. GlobalSound、GlobalVisual、FinalAssembly、zero-project bootstrap、隔离 deletion matrix 与显式
+   `project:delete` 完整数据清理。
 4. single-writer production orchestration、N Scene + one GlobalVisual 并行 result join。
 5. current-only render plan/render-ready handoff。
 6. independent Cover、non-MP4 delivery package、exactly-once launch intent 与 detached spawn
@@ -25,6 +26,8 @@
 - current delivery check 不读取计划 MP4；
 - Cover 独立、production single-writer、Run events append-only；
 - zero Project bootstrap 与隔离 deletion matrix 继续通过。
+- `project:delete` 继续保护 core、其他 Project、private config 与 `public/voice_profile/`，并在
+  writer lock、非空 delivery staging 或不安全路径出现时于首次删除前 fail closed。
 
 ## 可独立立项的后续工作
 

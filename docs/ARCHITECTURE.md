@@ -2,7 +2,7 @@
 
 > 文档类型：架构权威
 >
-> 最后复核：2026-08-09
+> 最后复核：2026-08-10
 
 ## 分层
 
@@ -19,6 +19,7 @@ scripts/delivery/cli.ts        delivery build/check dispatch
 scripts/delivery/application/  input loading, package, launch, check
 scripts/delivery/domain/       deterministic delivery model and canonical bytes
 scripts/delivery/adapters/     filesystem, Cover media, detached spawn
+scripts/projects/delete.ts     preflighted destructive Project data cleanup
 ```
 
 CLI 入口保持薄；用例编排、纯规则和 external I/O 不平铺混合。render runtime 永远不调用
@@ -101,7 +102,8 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
 
 ## Filesystem 与安全
 
-- Project、public media、Run、out、deliveries 是 ignored local production artifacts。
+- Project、public media、narration work、Run、out、deliveries 是 ignored local production
+  artifacts。
 - bootstrap 从 zero Project 重建 core proof assets、Catalog 与 Registry。
 - delivery staging/target/output 路径逐级拒绝 symlink、escape、unknown entries 和覆盖。
 - protected voice profiles/private config 不被通用扫描、stage 或 commit。

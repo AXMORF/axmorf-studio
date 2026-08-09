@@ -2,7 +2,7 @@
 
 > 文档类型：执行语义权威
 >
-> 最后复核：2026-08-09
+> 最后复核：2026-08-10
 
 ## 确定性的对象
 
@@ -110,6 +110,7 @@ receipt bytes 先写同目录 temporary 并 fsync，再以 exclusive hard-link �
 - render-ready check：current → no-op；drift → fail closed。
 - delivery build：receipt current → no-op；intent-only → ambiguous；different/unknown target → fail。
 - delivery check：只读 current package，不修复、不创建 receipt。
-- 删除 Project/out/deliveries 不影响 core source gate；显式 project/media/delivery 命令保持
-  fail closed。
+- 用户明确授权后，真实作品只由 `project:delete` 按 storyId 删除 Project、public media、
+  narration work、Runs、out 与 deliveries，并确定性重建 Registry/Catalog；core source gate
+  保持有效，其他显式 project/media/delivery 命令继续 fail closed。
 - deletion matrix 只在隔离副本执行，真实 production artifacts 不作为测试夹具删除。

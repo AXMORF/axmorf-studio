@@ -61,8 +61,8 @@
 
 - 具体 Project 只依赖 core，core 不依赖 storyId；ProjectRegistry/ResourceCatalog 允许 zero
   Project。
-- `public/`、`src/projects/`、Registry/Catalog generated projection、`.producer-runs/`、`out/` 与
-  `deliveries/` 都是 ignored 本地产物，不进入 Git。
+- `public/`、`src/projects/`、Registry/Catalog generated projection、`.narration-work/`、
+  `.producer-runs/`、`out/` 与 `deliveries/` 都是 ignored 本地产物，不进入 Git。
 - 用户明确要求删除一个、多个或全部已制作视频/Project 时，默认含义是删除这些 storyId 的全部
   本地生产数据，而非只删 MP4；必须使用 `npm run project:delete -- ... --confirm-delete`，不得用
   broad `rm`。删除范围包含 Project、匹配 public media、narration work、Runs、out 与 deliveries，

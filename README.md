@@ -142,9 +142,12 @@ src/contracts/               strict、versioned、可执行 Zod 合同
 src/remotion/runtime/        固定、离线、frame-driven runtime
 src/remotion/capabilities/   已批准共享能力
 src/projects/<story>/        ignored 本地作品
-public/                      ignored 本地资产；bootstrap 可重建 core proof 资产
+public/projects/<story>/     ignored Project 媒体；public/voice_profile 永远受保护
+.narration-work/<story>/     ignored 旁白候选与 provider progress
+.producer-runs/<runId>/      ignored immutable Run ledger 与 derived state
+public/assets/               bootstrap 可重建的 core proof 资产
 deliveries/<story>/<id>/     ignored 非 MP4 包、intent、receipt 与异步 MP4 输出
-out/<story>/delivery-render/ ignored detached Remotion 日志
+out/<story>/                 ignored baseline 媒体、诊断输出与 detached render 日志
 tests/                       单元、集成与架构回归
 ```
 

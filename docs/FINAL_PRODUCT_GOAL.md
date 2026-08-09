@@ -2,7 +2,7 @@
 
 > 文档类型：产品目标权威
 >
-> 最后复核：2026-08-09
+> 最后复核：2026-08-10
 
 ## 一句话目标
 
@@ -50,7 +50,9 @@
 交付 identity 必须绑定 current PublishingIntent、CoverResult、ProductionRenderReady、
 ProductionRenderPlan、Composition、fixed argv 和 launch policy。immutable package 包含 exact
 Covers、publishing、handoff、manifest、intent、receipt 与 checksum ledger；计划 MP4 写入同一
-delivery directory，但不属于 immutable ledger。`out/` 只保存 detached render log。
+delivery directory，但不属于 immutable ledger。自动 delivery 只向
+`out/<storyId>/delivery-render/` 写 detached render log；Project baseline 与 core proof 使用各自独立
+的 `out/` 子树。
 
 intent-before-spawn 与 receipt-after-spawn 是不可交换协议。receipt 已存在时重复 build 只读 no-op；
 intent 存在而 receipt 缺失时状态 launch-ambiguous，仓库永久拒绝自动重试。current delivery check
@@ -58,8 +60,8 @@ intent 存在而 receipt 缺失时状态 launch-ambiguous，仓库永久拒绝�
 
 ## 工程目标
 
-- fresh clone 从 zero Project bootstrap；具体 Project、媒体、Run 和 deliveries 均为 ignored
-  production artifacts。
+- fresh clone 从 zero Project bootstrap；具体 Project、媒体、narration work、Run、out 和
+  deliveries 均为 ignored production artifacts。
 - core 不依赖具体 storyId，Registry/Catalog 对零 Project 有效。
 - 删除矩阵只在隔离副本验证，不删除真实作品。
 - 用户明确授权后，`project:delete` 可按一个、多个或全部 storyId 删除完整本地生产数据并重建

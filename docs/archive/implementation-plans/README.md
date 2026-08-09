@@ -14,4 +14,6 @@ Scene owner 与一个 GlobalVisual owner 的并行 assignment/result 汇合、st
 
 2026-08-07 的 Project 可删除性与产物解耦计划完成了 current-set Registry/Catalog、
 Project-owned profile/tools/tests、source/media gate 分离、Run-owned PreviewEvidence 和 A–F 隔离
-删除矩阵；计划快照见 `2026-08-07-project-deletability-implementation-plan.md`。
+删除矩阵；计划快照见 `2026-08-07-project-deletability-implementation-plan.md`。其中“不新增
+`project:delete`”是当时批准边界，已被 current
+[`PRODUCTION_WORKFLOW.md`](../../PRODUCTION_WORKFLOW.md#7-作品删除) 的显式用户授权删除入口取代。

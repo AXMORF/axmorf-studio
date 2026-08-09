@@ -2,7 +2,7 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-09
+> 最后复核：2026-08-10
 
 production 的唯一成功终点是 `render-ready / awaiting-automatic-delivery`。主 Agent随后进入
 自动 delivery build；整个 Skill 的终点是 `delivery-render-started`。
@@ -100,6 +100,10 @@ src/projects/<storyId>/generated/production-render-ready.generated.json
 
 随后按 [自动本地交付指南](LOCAL_DELIVERY.md) 检查 Cover、运行 `delivery:build`，并在收到 OS
 spawn acknowledgement 后结束。不得在 production 内等待或检查最终 MP4。
+
+production 和 delivery 命令不会自动清理作品。用户明确要求删除一个、多个或全部 Project 时，
+只使用 [`project:delete`](../PRODUCTION_WORKFLOW.md#7-作品删除) 删除这些 storyId 的完整本地生产
+数据；不得手删 Run event/state 或用删除规避 failed/launch-ambiguous 语义。
 
 ## 验证
 

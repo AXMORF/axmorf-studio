@@ -2,7 +2,7 @@
 
 > 文档类型：唯一导航入口
 >
-> 最后复核：2026-08-09
+> 最后复核：2026-08-10
 
 先按问题选择文档，不要从历史计划反推当前实现。
 
@@ -26,7 +26,8 @@
 | 主题                                | 文档                                                                           |
 | ----------------------------------- | ------------------------------------------------------------------------------ |
 | 固定 production CLI、状态与 handoff | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md)       |
-| 自动交付 package、launch 与复验      | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md)                           |
+| 自动交付 package、launch 与复验     | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md)                           |
+| 完整 Project 数据删除               | [PRODUCTION_WORKFLOW.md#7-作品删除](PRODUCTION_WORKFLOW.md#7-作品删除)         |
 | VoxCPM 生成、续跑、封存与恢复       | [guides/NARRATION_GENERATION.md](guides/NARRATION_GENERATION.md)               |
 | 机械检查与终点事实边界              | [guides/REVIEW_MODEL.md](guides/REVIEW_MODEL.md)                               |
 | Project-owned profile 与复验命令    | [guides/FORMAL_PROJECT_VERIFICATION.md](guides/FORMAL_PROJECT_VERIFICATION.md) |

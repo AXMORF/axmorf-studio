@@ -2,7 +2,7 @@
 
 > 文档类型：当前事实权威
 >
-> 最后复核：2026-08-09
+> 最后复核：2026-08-10
 >
 > 当前阶段：clean-break production render handoff 与自动交付已实现
 
@@ -16,9 +16,9 @@ detached Remotion render；收到 OS spawn acknowledgement 后返回 `delivery-r
 该终点不是媒体成功证据。current scripts 不等待 detached child，不读取、hash、probe 或 decode
 计划 MP4，也不从旧 Run、旧作品或旧 delivery 推断状态。
 
-core 与 fresh clone 是 zero-Project-safe；ignored 本地 Project、Run、媒体和 delivery 集由当前
-工作目录动态决定，不属于 capability 状态权威，也不在本文枚举。current `deliveries/` 不是
-checksum-bound verified release，ledger 只封存 immutable 非 MP4 bytes。
+core 与 fresh clone 是 zero-Project-safe；ignored 本地 Project、narration work、Run、media/out 和
+delivery 集由当前工作目录动态决定，不属于 capability 状态权威，也不在本文枚举。current
+`deliveries/` 不是 checksum-bound verified release，ledger 只封存 immutable 非 MP4 bytes。
 
 ## 已实现
 
@@ -73,8 +73,8 @@ checksum-bound verified release，ledger 只封存 immutable 非 MP4 bytes。
 ### 工程与可删除性
 
 - `scripts/production` 与 `scripts/delivery` 均按 cli/application/domain/adapters 分层。
-- `public/`、`src/projects/`、Registry/Catalog 投影、`out/`、`deliveries/` 和 Run 均是 ignored
-  本地产物；bootstrap 从 zero Project 重建 core proof 与 zero-safe 聚合。
+- `public/`、`src/projects/`、Registry/Catalog 投影、`.narration-work/`、`out/`、`deliveries/` 和
+  Run 均是 ignored 本地产物；bootstrap 从 zero Project 重建 core proof 与 zero-safe 聚合。
 - 默认 source gate 不读取历史媒体；显式 media 检查 fail closed；Project deletion matrix 只在
   隔离副本中验证。
 - `project:delete` 是真实作品清理入口，支持一个、多个或全部 storyId；它删除 Project、项目媒体、
