@@ -11,9 +11,10 @@
 | --- | --- | --- |
 | StoryCheck | Agent | StoryBeat、ttsChunks、叙事输入和 voice profile 选择已明确 |
 | AutoCheck | repository | narration、timing、registry、Narrative Baseline current |
-| Scene check | Scene owner 后由 root 复检 | assignment-owned source/package 机械有效 |
-| GlobalVisual check | GlobalVisual owner 后由 root 复检 | whole-film background package 机械有效 |
-| Cover check | independent Cover owner 后由 root 复检 | 两个固定比例 Composition 和 PNG 有效 |
+| Owner receipt check | detached watcher | assignment identity、exclusive output manifest/checksum current |
+| Scene check | detached watcher | assignment-owned source/package 机械有效 |
+| GlobalVisual check | detached watcher | whole-film background package 机械有效 |
+| Cover check | detached watcher | 两个固定比例 Composition 和 PNG 有效 |
 | Render-ready check | repository | FinalAssembly、Composition 和 render plan identities current |
 | Delivery check | repository | 非 MP4 package、intent、receipt 与 current inputs 一致 |
 

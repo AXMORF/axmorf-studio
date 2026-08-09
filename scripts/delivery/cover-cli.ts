@@ -3,7 +3,6 @@ import { pathToFileURL } from "node:url";
 import { StoryIdSchema } from "../../src/contracts";
 import { runDeliveryCoverCheck } from "./application/cover-check";
 import { runDeliveryCoverFreeze } from "./application/cover-freeze";
-import { runDeliveryCoverSubmit } from "./application/cover-submit";
 
 type CoverRequest = Readonly<{ projectId: string }>;
 
@@ -12,7 +11,6 @@ export type DeliveryCoverCliContext = Readonly<{
   stdout: (line: string) => void;
   freeze?: (request: CoverRequest) => Promise<unknown>;
   check?: (request: CoverRequest) => Promise<unknown>;
-  submit?: (request: CoverRequest) => Promise<unknown>;
 }>;
 
 const defaultContext = (): DeliveryCoverCliContext => ({
@@ -26,11 +24,11 @@ export const runDeliveryCoverCli = async (
 ) => {
   if (
     args.length !== 3 ||
-    (args[0] !== "freeze" && args[0] !== "check" && args[0] !== "submit") ||
+    (args[0] !== "freeze" && args[0] !== "check") ||
     args[1] !== "--project"
   ) {
     throw new Error(
-      "Expected delivery Cover freeze|check|submit --project <storyId>.",
+      "Expected delivery Cover freeze|check --project <storyId>.",
     );
   }
   const projectId = StoryIdSchema.parse(args[2]);
@@ -40,13 +38,9 @@ export const runDeliveryCoverCli = async (
       ? context.freeze
         ? await context.freeze(request)
         : await runDeliveryCoverFreeze({ rootDir: context.rootDir, projectId })
-      : args[0] === "check"
-        ? context.check
-          ? await context.check(request)
-          : await runDeliveryCoverCheck({ rootDir: context.rootDir, projectId })
-        : context.submit
-          ? await context.submit(request)
-          : await runDeliveryCoverSubmit({ rootDir: context.rootDir, projectId });
+      : context.check
+        ? await context.check(request)
+        : await runDeliveryCoverCheck({ rootDir: context.rootDir, projectId });
   context.stdout(JSON.stringify(result));
   return result;
 };

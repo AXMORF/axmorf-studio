@@ -94,7 +94,6 @@ const createAssignment = (
       allowedSnapshotCards: [],
     },
     additionalRequirements: [],
-    deadlineAt: "2026-08-04T00:30:00.000Z",
   });
 };
 

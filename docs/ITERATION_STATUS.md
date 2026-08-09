@@ -4,13 +4,13 @@
 >
 > 最后复核：2026-08-10
 >
-> 当前阶段：clean-break production render handoff 与自动交付已实现
+> 当前阶段：detached watcher、独立线程 owner receipt 与自动交付已实现
 
 ## 当前基线
 
 仓库只有一套 current production/delivery 路径。production 从 strict 当前输入开始，经 immutable
-Scene/GlobalVisual results 和 append-only Run 投影，到达
-`render-ready / awaiting-automatic-delivery`。随后 `delivery:build` 确定性准备非 MP4 包并发起
+Scene/GlobalVisual/Cover owner receipts 和 append-only Run 投影，到达
+`render-ready / awaiting-automatic-delivery`。detached watcher 随后自动执行 `delivery:build` 并发起
 detached Remotion render；收到 OS spawn acknowledgement 后返回 `delivery-render-started`。
 
 该终点不是媒体成功证据。current scripts 不等待 detached child，不读取、hash、probe 或 decode
@@ -30,8 +30,9 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   PCM、checksum/fingerprint、`pcm-cumulative-ceil-v1`、SemanticTiming 与
   CaptionCue。
 - Composition-owned `SceneSafeArea`、唯一顶层 CaptionLayer、透明语义 Scene root。
-- 每个 meaningId 一个 Scene owner；每个 Story 一个独立 GlobalVisual owner；immutable result
-  contracts 由 single-writer watcher 汇合。
+- 每个 meaningId 一个独立 Codex task；每个 Story 一个 GlobalVisual task 与一个 Cover task；共享
+  checkout 使用不重叠 exclusive paths。owner 只发布 immutable receipt，single-writer watcher
+  串行验证并写正式 result。
 - repository-local `remotion-best-practices` router v4.0.506 已完整纳入仓库；Scene assignment
   policy 与 owner 编排要求制作前完整读取入口，并按 Renderer 需要加载 routed references。
 - ResourceCatalog、composition-local RendererRegistry、ScenePackage、Coverage、visual/sound
@@ -40,9 +41,10 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 ### 当前 production render handoff
 
 - current `ProductionRequirementsFreeze`、append-only events、派生 ProductionRunState。
-- fixed production-start-preflight-v2（resident/loading/offloaded/model-load-failed 与 denoiser
-  capability）、start/narrative/scene freeze/check/submit/fail、GlobalVisual
-  check/submit/fail、watch、status 与 render-ready check。
+- fixed production-start-preflight-v2、start/narrative/Scene+GlobalVisual freeze、Cover freeze、
+  owner-ready/failed receipt、detached watch start/worker、status 与 render-ready check。
+- watcher launch intent/receipt 使用 fixed cwd/argv/log、`shell:false`、`detached:true`；intent-only
+  永久 ambiguous。缺失 owner receipt 永久 `waiting-for-owner-results`，无 timeout/retry/heartbeat。
 - `production-render-plan-v1` 绑定 Story/Run、Composition、source checksum、尺寸、fps、帧数、
   layer/mix order 和固定 Remotion policy。
 - `production-render-ready-v1` 绑定 render plan 与全部 current assembly identities；终态固定为
@@ -56,8 +58,8 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 - PublishingIntent 在 Story 阶段绑定 Story fingerprint；title 由 StorySpec 独占，章节 frame/time
   从 SemanticTiming 确定性投影。
-- 独立 Cover assignment/package/result 与 `delivery:cover:freeze/check/submit` 保留；Cover owner
-  只消费 StorySpec、VisualStyleSpec 和固定 CoverSpec，不加入 production watcher/state。
+- 独立 Cover assignment/package/result 保留；Cover owner 只消费 StorySpec、VisualStyleSpec 和固定
+  CoverSpec，通过 receipt 进入 watcher，但不阻止 render-ready 或进入 production state。
 - `delivery-launch-manifest-v1`、`render-launch-intent-v1`、`render-launch-receipt-v1` 与
   `detached-spawn-acknowledgement-v1` 已实现。
 - `deliveryId` 绑定 PublishingIntent、Cover result、render-ready、render plan、Composition 与

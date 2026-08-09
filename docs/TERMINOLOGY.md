@@ -12,6 +12,9 @@
 | ScenePackage                | 一个 meaningId 的视觉与局部声音成品合同                              | 字幕、旁白或全局背景 authority                      |
 | GlobalVisualPackage         | Story 级背景、纹理、装饰和连续性 motif                               | Scene DSL、自动导演或字幕层                         |
 | ProductionRun               | append-only events 与 immutable results 的一次执行                   | 可手改或恢复的任务状态                              |
+| OwnerReceipt                | assignment identity 与 output manifest 绑定的 ready/failed inbox 回执 | Codex task 身份、heartbeat 或正式 production result |
+| waiting-for-owner-results   | watcher 等待缺失 assignment receipt 的无超时状态                     | task 失败、自动重试或 replacement thread 已创建     |
+| WatcherLaunchReceipt        | detached watcher 的 OS `spawn` acknowledgement                       | production 已完成或 watcher 可安全重启              |
 | ProductionRenderPlan        | 冻结 Composition、源码、帧和启动 policy 的渲染计划                   | 已渲染媒体                                          |
 | ProductionRenderReady       | 所有 current render-critical identity 已汇合                         | MP4 已生成或已检查                                  |
 | awaiting-automatic-delivery | render-ready 的固定 handoff                                          | 等待人工判断                                        |

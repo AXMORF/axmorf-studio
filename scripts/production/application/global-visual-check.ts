@@ -83,7 +83,10 @@ export const readExistingGlobalVisualResult = async ({
 };
 
 export const assertGlobalVisualResultState = (state: string) => {
-  if (state !== "scene-inputs-frozen" && state !== "scenes-running") {
+  if (
+    state !== "scene-inputs-frozen" &&
+    state !== "waiting-for-owner-results"
+  ) {
     throw new Error("GlobalVisual results require frozen visual inputs.");
   }
 };

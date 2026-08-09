@@ -34,7 +34,7 @@ export const runProductionSceneFail = async ({
   const loaded = await readProductionRunStore({ rootDir, runId });
   if (
     loaded.state.state !== "scene-inputs-frozen" &&
-    loaded.state.state !== "scenes-running"
+    loaded.state.state !== "waiting-for-owner-results"
   ) {
     throw new Error("Scene failures require frozen Scene inputs.");
   }

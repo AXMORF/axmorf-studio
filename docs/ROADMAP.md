@@ -14,6 +14,8 @@
 5. current-only render plan/render-ready handoff。
 6. independent Cover、non-MP4 delivery package、exactly-once launch intent 与 detached spawn
    acknowledgement receipt。
+7. assignment-bound owner receipt inbox、detached single-writer watcher、`create_thread` 独立任务
+   派发与 root dispatch-after-exit。
 
 ## 当前门槛
 
@@ -25,6 +27,8 @@
 - spawn acknowledgement 不升级为 render completion；
 - current delivery check 不读取计划 MP4；
 - Cover 独立、production single-writer、Run events append-only；
+- watcher intent-only 永久 ambiguous；缺失 owner receipt 永久 waiting，无 timeout/retry/heartbeat；
+- root 只创建独立用户任务，派发后不 wait/read/poll；
 - zero Project bootstrap 与隔离 deletion matrix 继续通过。
 - `project:delete` 继续保护 core、其他 Project、private config 与 `public/voice_profile/`，并在
   writer lock、非空 delivery staging 或不安全路径出现时于首次删除前 fail closed。

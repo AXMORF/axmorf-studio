@@ -8,9 +8,9 @@
 - 当前只有一套 production 合同与运行路径，不读取或解释旧 Run、旧作品和旧交付目录。
 - production 终点是 `render-ready / awaiting-automatic-delivery`：Composition、render plan 和
   所有输入 identity 已冻结，但尚未生成最终 MP4。
-- production 到达 render-ready 后，主 Agent 继续执行 `delivery:build`。命令先封存非 MP4
-  交付包和 launch intent，再 detached spawn Remotion；收到 OS `spawn` 事件后写 receipt，返回
-  `delivery-render-started`。
+- 主 Agent 冻结全部 assignment 后启动 detached watcher，再用 `create_thread` 派发 N 个 Scene、
+  GlobalVisual 与 Cover 独立任务，全部创建成功后立即结束。watcher 独立 check/submit、汇合
+  render-ready 并自动执行 `delivery:build`。
 - `delivery-render-started` 只证明进程启动确认，不证明渲染完成或 MP4 有效。仓库不等待、监控、
   读取、hash、probe 或 decode detached 输出。
 - PublishingIntent 与独立 Cover 生命周期保留；Cover 不阻止 render-ready，但会阻止自动交付。
@@ -32,6 +32,7 @@ Story + authored ttsChunks + RenderSpec + PublishingIntent
   → measured and sealed narration
   → SemanticTiming + CaptionCue + NarrativeCore
   → N Scene owners + one GlobalVisual owner + independent Cover owner
+  → assignment-bound owner receipts + detached single-writer watcher
   → FinalAssembly + ProductionRenderPlan
   → render-ready / awaiting-automatic-delivery
   → immutable non-MP4 delivery package + launch intent
@@ -117,16 +118,18 @@ npm run production:preflight -- --project <story-id>
 npm run production:start -- --project <story-id>
 npm run production:narrative -- --run <run-id>
 npm run production:scene:freeze -- --run <run-id>
-npm run production:watch -- --run <run-id>
+npm run delivery:cover:freeze -- --project <story-id>
+npm run production:watch:start -- --run <run-id>
+npm run production:owner:ready -- --run <run-id> --owner scene --scene <meaning-id>
+npm run production:owner:ready -- --run <run-id> --owner global-visual
+npm run production:owner:ready -- --run <run-id> --owner cover
 npm run production:render-ready:check -- --run <run-id>
 ```
 
 独立 Cover 与自动交付：
 
 ```bash
-npm run delivery:cover:freeze -- --project <story-id>
 npm run delivery:cover:check -- --project <story-id>
-npm run delivery:cover:submit -- --project <story-id>
 npm run delivery:build -- --project <story-id>
 npm run delivery:check -- --project <story-id> --delivery <delivery-id>
 ```

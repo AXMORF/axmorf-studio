@@ -9,7 +9,7 @@ const ACTIVE_STATES = new Set<ProductionRunStateName>([
   "narrative-running",
   "baseline-ready",
   "scene-inputs-frozen",
-  "scenes-running",
+  "waiting-for-owner-results",
   "render-ready-running",
 ]);
 
@@ -22,7 +22,7 @@ const startedTransition = (
     "initialized:production-start": "initialized",
     "initialized:narrative": "narrative-running",
     "baseline-ready:scene-freeze": "baseline-ready",
-    "scene-inputs-frozen:scenes": "scenes-running",
+    "scene-inputs-frozen:scenes": "waiting-for-owner-results",
     "render-ready-running:render-ready": "render-ready-running",
   };
   return transitions[key] ?? null;
@@ -37,7 +37,7 @@ const succeededTransition = (
     "initialized:production-start": "initialized",
     "narrative-running:narrative": "baseline-ready",
     "baseline-ready:scene-freeze": "scene-inputs-frozen",
-    "scenes-running:scenes": "render-ready-running",
+    "waiting-for-owner-results:scenes": "render-ready-running",
     "render-ready-running:render-ready": "render-ready-running",
   };
   return transitions[key] ?? null;
@@ -63,7 +63,10 @@ export const transitionProductionRunState = ({
       break;
     case "scene-result-accepted":
     case "global-visual-result-accepted":
-      next = state === "scenes-running" ? "scenes-running" : null;
+      next =
+        state === "waiting-for-owner-results"
+          ? "waiting-for-owner-results"
+          : null;
       break;
     case "render-ready":
       next = state === "render-ready-running" ? "render-ready" : null;

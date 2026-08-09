@@ -32,7 +32,7 @@ const createRun = () =>
     storyId: "story-example",
     requirementsPath: "src/projects/story-example/production/requirements.json",
     requirementsFingerprint: sha("a"),
-    policy: { pollIntervalMs: 25, sceneTimeoutMs: 2_000 },
+    policy: { pollIntervalMs: 25 },
     createdAt: occurredAt,
   });
 

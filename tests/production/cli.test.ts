@@ -18,8 +18,8 @@ test("production CLI accepts only exact start and status forms", async () => {
   const statuses: string[] = [];
   const sceneChecks: string[] = [];
   const globalVisualChecks: string[] = [];
-  const globalVisualSubmits: string[] = [];
-  const globalVisualFailures: string[] = [];
+  const watcherStarts: string[] = [];
+  const ownerReceipts: string[] = [];
   const context = {
     rootDir: process.cwd(),
     stdout: output.push.bind(output),
@@ -49,21 +49,22 @@ test("production CLI accepts only exact start and status forms", async () => {
       globalVisualChecks.push(runId);
       return { runId, status: "ready-to-submit" };
     },
-    globalVisualSubmit: async ({ runId }: { readonly runId: string }) => {
-      globalVisualSubmits.push(runId);
-      return { runId, status: "success" };
+    watchStart: async ({ runId }: { readonly runId: string }) => {
+      watcherStarts.push(runId);
+      return { runId, status: "watcher-started" };
     },
-    globalVisualFail: async ({
-      runId,
-      code,
-      description,
-    }: {
+    ownerReceipt: async (request: {
       readonly runId: string;
-      readonly code: string;
-      readonly description: string;
+      readonly ownerKind: string;
+      readonly meaningId: string | null;
+      readonly status: string;
+      readonly code?: string;
+      readonly description?: string;
     }) => {
-      globalVisualFailures.push(`${runId}:${code}:${description}`);
-      return { runId, status: "failure" };
+      ownerReceipts.push(
+        `${request.status}:${request.ownerKind}:${request.meaningId ?? "story"}:${request.code ?? "ready"}:${request.description ?? "ready"}`,
+      );
+      return { runId: request.runId, status: request.status };
     },
   };
 
@@ -79,14 +80,16 @@ test("production CLI accepts only exact start and status forms", async () => {
     context,
   );
   await runProductionCli(
-    ["global-visual-submit", "--run", "story-example-run-001"],
+    ["watch-start", "--run", "story-example-run-001"],
     context,
   );
   await runProductionCli(
     [
-      "global-visual-fail",
+      "owner-failed",
       "--run",
       "story-example-run-001",
+      "--owner",
+      "global-visual",
       "--code",
       "GLOBAL_VISUAL_BLOCKED",
       "--description",
@@ -99,9 +102,9 @@ test("production CLI accepts only exact start and status forms", async () => {
   assert.deepEqual(statuses, ["story-example-run-001"]);
   assert.deepEqual(sceneChecks, ["story-example-run-001:opening"]);
   assert.deepEqual(globalVisualChecks, ["story-example-run-001"]);
-  assert.deepEqual(globalVisualSubmits, ["story-example-run-001"]);
-  assert.deepEqual(globalVisualFailures, [
-    "story-example-run-001:GLOBAL_VISUAL_BLOCKED:Blocked.",
+  assert.deepEqual(watcherStarts, ["story-example-run-001"]);
+  assert.deepEqual(ownerReceipts, [
+    "owner-failed:global-visual:story:GLOBAL_VISUAL_BLOCKED:Blocked.",
   ]);
   assert.deepEqual(
     output.map((line) => JSON.parse(line)),
@@ -118,8 +121,8 @@ test("production CLI accepts only exact start and status forms", async () => {
         runId: "story-example-run-001",
         status: "ready-to-submit",
       },
-      { runId: "story-example-run-001", status: "success" },
-      { runId: "story-example-run-001", status: "failure" },
+      { runId: "story-example-run-001", status: "watcher-started" },
+      { runId: "story-example-run-001", status: "owner-failed" },
     ],
   );
 
@@ -137,14 +140,17 @@ test("production CLI accepts only exact start and status forms", async () => {
     ["scene-check", "--run", "story-example-run-001", "--scene", "Bad_ID"],
     ["global-visual-check", "--run"],
     ["global-visual-check", "--run", "story-example-run-001", "extra"],
-    ["global-visual-submit", "--run"],
-    ["global-visual-fail", "--run", "story-example-run-001"],
+    ["scene-submit", "--run", "story-example-run-001", "--scene", "opening"],
+    ["global-visual-submit", "--run", "story-example-run-001"],
+    ["global-visual-fail", "--run", "story-example-run-001", "--code", "X", "--description", "X"],
     [
-      "global-visual-fail",
+      "owner-failed",
       "--run",
       "story-example-run-001",
       "--description",
       "Blocked.",
+      "--owner",
+      "global-visual",
       "--code",
       "GLOBAL_VISUAL_BLOCKED",
     ],
@@ -174,6 +180,15 @@ test("package scripts expose production commands and include production tests by
     packageJson.scripts["production:scene:check"],
     "node --import tsx scripts/production/cli.ts scene-check",
   );
+  assert.equal(
+    packageJson.scripts["production:watch:start"],
+    "node --import tsx scripts/production/cli.ts watch-start",
+  );
+  assert.equal(
+    packageJson.scripts["production:owner:ready"],
+    "node --import tsx scripts/production/cli.ts owner-ready",
+  );
+  assert.equal(packageJson.scripts["production:scene:submit"], undefined);
   assert.equal(
     packageJson.scripts.test,
     "node --import tsx scripts/tests/project-tests.ts",

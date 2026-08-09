@@ -2,26 +2,28 @@ import { pathToFileURL } from "node:url";
 
 import {
   MeaningIdSchema,
+  ProductionOwnerKindSchema,
   ProductionRunIdSchema,
   Sha256DigestSchema,
   StoryIdSchema,
 } from "../../src/contracts";
 import { redactProductionErrorDescription } from "./adapters/error-redaction";
 import { readProductionRunStore } from "./adapters/run-store";
+import { readOwnerReceipt } from "./adapters/owner-inbox";
+import { loadCurrentDeliveryCoverAssignment } from "../delivery/application/cover-inputs";
 import {
   runProductionNarrative,
-  runProductionGlobalVisualFail,
   runProductionGlobalVisualCheck,
-  runProductionGlobalVisualSubmit,
   checkProductionRenderReady,
   runProductionPreflight,
-  runProductionSceneFail,
   runProductionSceneFreeze,
   runProductionSceneCheck,
-  runProductionSceneSubmit,
   runProductionStart,
   runProductionWatch,
+  startProductionWatcher,
+  publishProductionOwnerReceipt,
 } from "./application";
+import { resolveCurrentSceneAssignments } from "./application/scene-freeze";
 
 type ProductionCliContext = Readonly<{
   rootDir: string;
@@ -47,40 +49,31 @@ type ProductionCliContext = Readonly<{
     readonly rootDir: string;
     readonly runId: string;
   }) => Promise<unknown>;
-  sceneSubmit?: (request: {
-    readonly rootDir: string;
-    readonly runId: string;
-    readonly meaningId: string;
-  }) => Promise<unknown>;
   sceneCheck?: (request: {
     readonly rootDir: string;
     readonly runId: string;
     readonly meaningId: string;
   }) => Promise<unknown>;
-  sceneFail?: (request: {
-    readonly rootDir: string;
-    readonly runId: string;
-    readonly meaningId: string;
-    readonly code: string;
-    readonly description: string;
-  }) => Promise<unknown>;
   globalVisualCheck?: (request: {
     readonly rootDir: string;
     readonly runId: string;
   }) => Promise<unknown>;
-  globalVisualSubmit?: (request: {
-    readonly rootDir: string;
-    readonly runId: string;
-  }) => Promise<unknown>;
-  globalVisualFail?: (request: {
-    readonly rootDir: string;
-    readonly runId: string;
-    readonly code: string;
-    readonly description: string;
-  }) => Promise<unknown>;
   watch?: (request: {
     readonly rootDir: string;
     readonly runId: string;
+  }) => Promise<unknown>;
+  watchStart?: (request: {
+    readonly rootDir: string;
+    readonly runId: string;
+  }) => Promise<unknown>;
+  ownerReceipt?: (request: {
+    readonly rootDir: string;
+    readonly runId: string;
+    readonly ownerKind: "scene" | "global-visual" | "cover";
+    readonly meaningId: string | null;
+    readonly status: "owner-ready" | "owner-failed";
+    readonly code?: string;
+    readonly description?: string;
   }) => Promise<unknown>;
   renderReadyCheck?: (request: {
     readonly rootDir: string;
@@ -101,12 +94,56 @@ const runStatus = async ({
   readonly runId: string;
 }) => {
   const loaded = await readProductionRunStore({ rootDir, runId });
+  const missingOwnerAssignments: Array<{
+    ownerKind: "scene" | "global-visual" | "cover";
+    meaningId: string | null;
+    assignmentFingerprint: string;
+  }> = [];
+  if (
+    new Set([
+      "scene-inputs-frozen",
+      "waiting-for-owner-results",
+      "render-ready-running",
+      "render-ready",
+    ]).has(loaded.state.state)
+  ) {
+    const [resolved, cover] = await Promise.all([
+      resolveCurrentSceneAssignments({ rootDir, runId }),
+      loadCurrentDeliveryCoverAssignment({ rootDir, projectId: loaded.run.storyId }),
+    ]);
+    const identities = [
+      ...resolved.assignments.map((assignment) => ({
+        ownerKind: "scene" as const,
+        meaningId: assignment.meaningId,
+        assignmentFingerprint: assignment.assignmentFingerprint,
+      })),
+      ...(resolved.globalVisualAssignment === null
+        ? []
+        : [{
+            ownerKind: "global-visual" as const,
+            meaningId: null,
+            assignmentFingerprint:
+              resolved.globalVisualAssignment.assignmentFingerprint,
+          }]),
+      {
+        ownerKind: "cover" as const,
+        meaningId: null,
+        assignmentFingerprint: cover.assignment.assignmentFingerprint,
+      },
+    ];
+    for (const identity of identities) {
+      if (await readOwnerReceipt({ rootDir, runId, ...identity }) === null) {
+        missingOwnerAssignments.push(identity);
+      }
+    }
+  }
   return {
     runId: loaded.run.runId,
     status: loaded.state.state,
     statePath: `.producer-runs/${loaded.run.runId}/state.generated.json`,
     requirementsFingerprint: loaded.run.requirementsFingerprint,
     lastSequence: loaded.state.lastSequence,
+    missingOwnerAssignments,
   } as const;
 };
 
@@ -182,18 +219,6 @@ export const runProductionCli = async (
           runId,
         });
   } else if (
-    args.length === 3 &&
-    args[0] === "global-visual-submit" &&
-    args[1] === "--run"
-  ) {
-    const runId = ProductionRunIdSchema.parse(args[2]);
-    result = context.globalVisualSubmit
-      ? await context.globalVisualSubmit({ rootDir: context.rootDir, runId })
-      : await runProductionGlobalVisualSubmit({
-          rootDir: context.rootDir,
-          runId,
-        });
-  } else if (
     args.length === 5 &&
     args[0] === "scene-check" &&
     args[1] === "--run" &&
@@ -213,29 +238,60 @@ export const runProductionCli = async (
           meaningId,
         });
   } else if (
-    args.length === 5 &&
-    args[0] === "scene-submit" &&
-    args[1] === "--run" &&
-    args[3] === "--scene"
+    args.length === 3 &&
+    args[0] === "watch-start" &&
+    args[1] === "--run"
   ) {
     const runId = ProductionRunIdSchema.parse(args[2]);
-    const meaningId = MeaningIdSchema.parse(args[4]);
-    result = context.sceneSubmit
-      ? await context.sceneSubmit({
-          rootDir: context.rootDir,
-          runId,
-          meaningId,
-        })
-      : await runProductionSceneSubmit({
-          rootDir: context.rootDir,
-          runId,
-          meaningId,
-        });
-  } else if (args.length === 3 && args[0] === "watch" && args[1] === "--run") {
+    result = context.watchStart
+      ? await context.watchStart({ rootDir: context.rootDir, runId })
+      : await startProductionWatcher({ rootDir: context.rootDir, runId });
+  } else if (
+    args.length === 3 &&
+    args[0] === "watch-worker" &&
+    args[1] === "--run"
+  ) {
     const runId = ProductionRunIdSchema.parse(args[2]);
     result = context.watch
       ? await context.watch({ rootDir: context.rootDir, runId })
       : await runProductionWatch({ rootDir: context.rootDir, runId });
+  } else if (
+    (args[0] === "owner-ready" || args[0] === "owner-failed") &&
+    args[1] === "--run" &&
+    args[3] === "--owner"
+  ) {
+    const status = args[0];
+    const runId = ProductionRunIdSchema.parse(args[2]);
+    const ownerKind = ProductionOwnerKindSchema.parse(args[4]);
+    const isScene = ownerKind === "scene";
+    const readyLength = isScene ? 7 : 5;
+    const failedLength = isScene ? 11 : 9;
+    if (
+      args.length !== (status === "owner-ready" ? readyLength : failedLength) ||
+      (isScene && args[5] !== "--scene") ||
+      (status === "owner-failed" &&
+        (args[isScene ? 7 : 5] !== "--code" ||
+          args[isScene ? 9 : 7] !== "--description"))
+    ) {
+      throw new Error("Expected an exact documented owner receipt command form.");
+    }
+    const meaningId = isScene ? MeaningIdSchema.parse(args[6]) : null;
+    const request = {
+      rootDir: context.rootDir,
+      runId,
+      ownerKind,
+      meaningId,
+      status,
+      ...(status === "owner-failed"
+        ? {
+            code: args[isScene ? 8 : 6],
+            description: args[isScene ? 10 : 8],
+          }
+        : {}),
+    } as const;
+    result = context.ownerReceipt
+      ? await context.ownerReceipt(request)
+      : await publishProductionOwnerReceipt(request);
   } else if (
     args.length === 3 &&
     args[0] === "render-ready-check" &&
@@ -245,56 +301,6 @@ export const runProductionCli = async (
     result = context.renderReadyCheck
       ? await context.renderReadyCheck({ rootDir: context.rootDir, runId })
       : await checkProductionRenderReady({ rootDir: context.rootDir, runId });
-  } else if (
-    args.length === 7 &&
-    args[0] === "global-visual-fail" &&
-    args[1] === "--run" &&
-    args[3] === "--code" &&
-    args[5] === "--description"
-  ) {
-    const runId = ProductionRunIdSchema.parse(args[2]);
-    const code = args[4];
-    const description = args[6];
-    result = context.globalVisualFail
-      ? await context.globalVisualFail({
-          rootDir: context.rootDir,
-          runId,
-          code,
-          description,
-        })
-      : await runProductionGlobalVisualFail({
-          rootDir: context.rootDir,
-          runId,
-          code,
-          description,
-        });
-  } else if (
-    args.length === 9 &&
-    args[0] === "scene-fail" &&
-    args[1] === "--run" &&
-    args[3] === "--scene" &&
-    args[5] === "--code" &&
-    args[7] === "--description"
-  ) {
-    const runId = ProductionRunIdSchema.parse(args[2]);
-    const meaningId = MeaningIdSchema.parse(args[4]);
-    const code = args[6];
-    const description = args[8];
-    result = context.sceneFail
-      ? await context.sceneFail({
-          rootDir: context.rootDir,
-          runId,
-          meaningId,
-          code,
-          description,
-        })
-      : await runProductionSceneFail({
-          rootDir: context.rootDir,
-          runId,
-          meaningId,
-          code,
-          description,
-        });
   } else {
     throw new Error("Expected an exact documented production command form.");
   }

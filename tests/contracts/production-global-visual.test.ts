@@ -65,7 +65,6 @@ const assignmentInput = {
     sourceDirectory: "src/projects/story-example/global-visual",
     publicDirectory: "public/projects/story-example/global-visual",
   },
-  deadlineAt: "2026-08-07T12:00:00.000Z",
 } as const;
 
 test("builds strict GlobalVisual brief assignment package and success result contracts", () => {

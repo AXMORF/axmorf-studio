@@ -424,7 +424,6 @@ const SceneAssignmentInputObject = z
     sceneCompositionBoundaryVersion: z.literal(
       "scene-composition-boundary-v1",
     ),
-    deadlineAt: z.string().datetime({ offset: true }),
   })
   .strict();
 

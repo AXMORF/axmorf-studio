@@ -58,7 +58,6 @@ const createFixture = async (context: TestContext) => {
       sourceDirectory: "src/projects/story-example/global-visual",
       publicDirectory: "public/projects/story-example/global-visual",
     },
-    deadlineAt: "2026-08-04T00:30:00.000Z",
   });
   const globalVisualPackage = buildGlobalVisualPackage({
     storyId: "story-example",

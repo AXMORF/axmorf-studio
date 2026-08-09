@@ -32,11 +32,14 @@ flowchart LR
     Story["StorySpec"] --> Timing["SemanticTiming"]
     Story --> Publish["PublishingIntent"]
     Timing --> Scene["Scene assignments/results"]
-    Scene --> Assembly["FinalAssembly"]
-    Global["GlobalVisual result"] --> Assembly
+    Scene --> Receipts["Owner receipt inbox"]
+    Global["GlobalVisual owner"] --> Receipts
+    Cover["Cover owner"] --> Receipts
+    Receipts --> Watcher["Detached single writer"]
+    Watcher --> Assembly["FinalAssembly"]
     Assembly --> Plan["ProductionRenderPlan"]
     Plan --> Ready["ProductionRenderReady"]
-    Story --> Cover["Cover assignment/result"]
+    Story --> Cover
     Publish --> Delivery["Delivery identity/package"]
     Cover --> Delivery
     Ready --> Delivery
@@ -56,17 +59,23 @@ ProductionRun 是 append-only ledger 的派生投影：
 .producer-runs/<runId>/
 ├── run.json
 ├── events/
+├── owner-receipts/
+├── owner-results/
 ├── scene-results/
 ├── global-visual-result.json
+├── watcher-launch-intent.json
+├── watcher-launch-receipt.json
 ├── state.generated.json
 └── lock/
 ```
 
-只有中央 repository CLI 写 event/state。Scene/GlobalVisual child 只写 assignment-owned source；
-root 复检后 submit immutable results。repo 不存 Agent lifecycle、task、thread、progress 或
-heartbeat。
+只有 detached watcher 写 event/state、正式 results、registry convergence 与 delivery。owner
+独立 Codex task 只写 assignment-owned source，再向固定 inbox 原子发布 ready/failed receipt。
+repo 不存 Agent lifecycle、task、thread、progress、聊天或 heartbeat。
 
-当前状态机只接受：production-start → narrative → scene-freeze → scenes → render-ready。终态绑定
+当前状态机只接受：production-start → narrative → scene-freeze → waiting-for-owner-results →
+render-ready。缺失 receipt 永久等待，不使用 assignment deadline、heartbeat、timeout 或 retry。
+终态绑定
 `production-render-plan-v1` 与 `production-render-ready-v1`，不包含媒体渲染阶段。
 
 Scene authoring 期使用 repository-local `.agents/skills/remotion-best-practices/SKILL.md` router 与
@@ -88,6 +97,11 @@ render-ready 的 compile gate 以 current Project `Composition.tsx` 为唯一 Ty
 沿真实 imports 收集依赖，不枚举或阻塞其他 ignored Projects。
 
 ## Automatic delivery
+
+Root 以 `production:watch:start` exactly once 写 watcher launch intent，并只在 OS `spawn` 后写
+receipt。intent-only 是 watcher-launch-ambiguous，禁止自动重试。watcher receipt 只证明 worker
+启动，不证明 production 成功。root 随后使用 `create_thread` 派发共享 checkout 的 N+2 独立任务，
+不调用 wait/read/poll，派发后立即结束。
 
 delivery package 是 immutable directory，identity 绑定 PublishingIntent、CoverResult、render
 plan/ready、Composition、exact argv 和 launch policy。manifest 只保存 planned frames/fps/duration，

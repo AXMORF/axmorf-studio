@@ -1,6 +1,6 @@
 ---
 name: remotion-story-producer-video
-description: Produce and automatically hand off a contract-driven Remotion Story Producer video. Use for authoring or explicit $remotion-story-producer-video invocation; isolate Scene, GlobalVisual, and Cover owners, keep production state single-writer, and finish after detached delivery render spawn acknowledgement.
+description: Freeze and dispatch a contract-driven Remotion Story production to independent Codex threads and a detached single-writer watcher. Use for new video production or explicit $remotion-story-producer-video invocation.
 ---
 
 # Remotion Story Producer Video
@@ -11,76 +11,74 @@ Use the repository and request as authority. Inspect branch, HEAD, and status; p
 changes. Start without routine confirmation. Infer safe defaults and never ask the user to restate
 Skill rules.
 
-Own production and delivery launch until `delivery-render-started`, a genuine external blocker, or
-user cancellation. Keep Agent-owned work and the production watcher attached to the current task;
-only the final Remotion delivery render is intentionally detached by the fixed repository adapter.
+The root Agent owns only preflight, authored shared inputs, narration/timing freeze, all owner
+assignments, detached watcher launch, and independent thread creation. It does not remain attached to
+authoring or delivery.
 
-## Require N plus one production owners and one Cover owner
+## Freeze inputs before dispatch
+
+Read [references/direct-production-workflow.md](references/direct-production-workflow.md) completely.
+Finish preflight, Story/narration/timing/requirements, Scene freeze, and independent Cover freeze
+before starting the watcher or creating any owner thread. Treat all assignments and shared inputs as
+immutable after dispatch.
 
 After freeze, read [references/scene-agent-orchestration.md](references/scene-agent-orchestration.md),
 [references/global-visual-agent-orchestration.md](references/global-visual-agent-orchestration.md), and
-[references/cover-agent-orchestration.md](references/cover-agent-orchestration.md) completely. Dispatch
-one child per meaningId, one GlobalVisual owner, and one independent Cover owner concurrently. Root
-authors none of their deliverables; no inline fallback. The production watcher joins only the N Scene
-results plus GlobalVisual. Cover reaches `cover-ready` through delivery Cover contracts and never
-enters production state. Stop if child-Agent execution is unavailable or forbidden.
+[references/cover-agent-orchestration.md](references/cover-agent-orchestration.md) completely.
+
+## Launch watcher and dispatch threads
+
+Run `production:watch:start` and require its OS spawn acknowledgement receipt. Then use Codex
+`create_thread` once per meaningId, once for GlobalVisual, and once for Cover. These are independent,
+user-visible threads sharing the current checkout, not subagents or worktrees. Give each thread a
+complete self-contained prompt with runId, assignment path, exclusive paths, required Skill/reference,
+and exact `production:owner:ready` / `production:owner:failed` commands.
+
+After every `create_thread` call succeeds, end the root task immediately. Do not call `wait_threads`,
+`read_thread`, poll status, inspect owner files, run checks/submits, aggregate results, invoke
+`delivery:build`, or monitor the detached watcher. If some thread creation calls fail, report the exact
+un-dispatched assignment identities; leave the acknowledged watcher and successful threads running.
 
 ## Keep context bounded
 
 Do not preload authority docs. Read
-[references/direct-production-workflow.md](references/direct-production-workflow.md) completely for
-new production or active authoring.
-
-Read
 [references/agent-rework-and-system-hardening.md](references/agent-rework-and-system-hardening.md)
-only after Agent output fails, a fixed command fails, implementation changes, or a protected-artifact
-incident needs classification. Read only the relevant authority section for a contract conflict,
-fixed-flow defect, fact dispute, or scope expansion. Use current code and tests as executable truth;
-use CodeGraph first when `.codegraph/` exists.
+only when a fixed command fails before dispatch or implementation changes are required. Use current
+code and tests as executable truth; use CodeGraph first when `.codegraph/` exists.
 
 ## Preserve production invariants
 
-- Freeze the [universal readability policy](policy.json) for every new production; existing frozen
-  artifacts stay untouched.
-- Read chunk budgets, safe areas, and font minima from the frozen assignment, never Skill constants.
-- Author `ttsChunks` by meaning, tone, and reading rhythm; never auto-split by punctuation or characters.
-  Return an over-budget chunk for Agent rework; sealed PCM with `pcm-cumulative-ceil-v1` owns timing.
-- Keep one Story, one Composition, and one exclusive ScenePackage per meaningId/StoryBeat.
-- Keep one project-local GlobalVisualPackage per Story, independent from every ScenePackage.
-- Keep `GlobalVisualLayers` no-Props.
-- Create and freeze one current `PublishingIntent` during Story authoring; keep title solely in
-  `StorySpec`, and keep chapter frames/timecodes out of the authored intent.
-- Keep one fixed code-only CoverAssignment/CoverPackage/CoverResult chain per future production. Its
-  creative inputs are only current StorySpec, VisualStyleSpec, and fixed CoverSpec.
-- Keep captions/narration top-level; every Scene root transparent; render only Beat-semantic content
-  plus local sound, never Scene-local backgrounds.
-- Bind renderers through the composition-local static registry; keep JSON non-executable.
-- Use manifest-verified repository-local assets and Remotion frame APIs only.
-- Keep runtime free of Agent, Skill, MCP, Git, provider, network, and directory scanning.
-- Never edit central events or derived state. The repository records result contracts, never Agent,
-  task, thread, progress, or heartbeat state.
+- Freeze the [universal readability policy](policy.json); read numeric policy from assignments.
+- Keep one Story/Composition, one meaningId/ScenePackage, one whole-film GlobalVisualPackage, and one
+  independent Cover owner.
+- Keep Scene roots transparent; captions/narration/safe area/GlobalVisual stay Composition-owned.
+- Keep `GlobalVisualLayers` no-Props and visually subordinate.
+- Keep PublishingIntent in Story authoring and Cover creative inputs limited to StorySpec,
+  VisualStyleSpec, and fixed CoverSpec.
+- Keep owner paths disjoint. Owners do not bootstrap, generate global registry/catalog, submit formal
+  results, build delivery, stage, commit, or create nested Agents.
+- Owners publish only assignment-bound immutable receipts. Repository state never stores threadId,
+  taskId, conversation, progress, or heartbeat.
+- Missing receipts remain `waiting-for-owner-results` without timeout, retry, or replacement thread.
+- The detached watcher is the sole state/event/formal-result/registry/delivery writer and stops at
+  `delivery-render-started`.
 
-Use ignored `voxcpm/voxcpm.private.json` by default. `RSP_VOXCPM_PRIVATE_CONFIG` is optional. Never
-open, print, summarize, stage, or commit private configuration or protected voice-profile contents;
-let the fixed narration command consume them.
+Use ignored `voxcpm/voxcpm.private.json` by default. Never open, print, summarize, stage, or commit
+private configuration or protected voice-profile contents.
 
 ## Classify failure by owner
 
-Recover only Agent-owned authoring work by correcting the owned artifact and rerunning the same fixed
-validator. Never recover a failed fixed workflow: stop, preserve a sanitized incident, prove Red, make
-the smallest common fix, prove Green, commit exact paths locally, and begin a fresh run. Provider,
-host-tool, sandbox, permission, or authorization failures are external blockers.
+Before dispatch, correct only Agent-owned authored input and rerun the same validator. A valid-input
+fixed-flow defect requires Red, the smallest shared Green, verification, an exact local commit, and a
+fresh Run. Provider, host-tool, sandbox, permission, or authorization failures are external blockers.
 
-## Finish at detached delivery launch
+After dispatch, root does not coordinate rework. An owner may publish one immutable failed receipt.
+No receipt means wait forever; an external actor may create another independent thread for the same
+immutable assignment. The watcher binds only assignment identity, never thread identity.
 
-Require current `render-ready / awaiting-automatic-delivery`, an idempotent render-ready check, and the
-independent current Cover result. Cover failure never blocks render-ready, but it blocks automatic
-delivery. Run `delivery:build` without asking for another decision. The fixed adapter writes the
-non-MP4 package and launch intent before spawning detached Remotion, then writes a receipt only after
-the OS emits `spawn`. An intent without a receipt is launch-ambiguous and must never be retried.
+## Finish after dispatch
 
-Stop at `delivery-render-started`. This proves only launch acknowledgement, not render completion or
-MP4 validity. Do not wait for, monitor, read, hash, probe, or decode the detached output. Report the
-delivery directory, planned MP4 and log paths, launch receipt, commits, failure classification,
-protection result, and known issues. Do not run aesthetic gates, promote capabilities, publish, or
-push. Never use `git add .`; preserve unrelated worktree changes.
+Report watcher launch acknowledgement, runId, assignment paths, created tasks, and any un-dispatched
+assignments. State that watcher acknowledgement is not production success, and later
+`delivery-render-started` is only detached Remotion spawn acknowledgement, not MP4 completion. Do not
+monitor, publish, push, or use `git add .`.

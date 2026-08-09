@@ -1,73 +1,47 @@
-# Isolated Scene Agent orchestration
+# Independent Scene thread orchestration
 
-This reference owns the Scene side of the mandatory post-freeze N+1 production Agent protocol. Scene
-owners run in parallel with the single whole-film GlobalVisual owner described in
-[global-visual-agent-orchestration.md](global-visual-agent-orchestration.md) and the independent Cover
-owner described in [cover-agent-orchestration.md](cover-agent-orchestration.md). Cover is outside the
-production watcher join.
+Create one user-visible Codex task with `create_thread` for every frozen meaningId. Do not use a
+subagent or worktree. All tasks share the current checkout, so each prompt must state that other tasks
+are editing disjoint paths and that their work must be preserved.
 
-## Keep root ownership
+## Self-contained prompt
 
-Keep the root Agent alive as watcher owner and coordinator. It exclusively owns shared inputs, run
-state, validation aggregation, result submission, generated registries, staging, and commits. Never
-author Scene deliverables in the root task, reuse one child for multiple meaningIds, or silently fall
-back to inline Scene work. Stop before Scene authoring if native child-Agent execution is unavailable
-or explicitly forbidden.
+Include the actual values for every placeholder:
 
-The watcher accepts immutable Scene and GlobalVisual result contracts only. It does not observe or
-persist Agent, task, thread, progress, conversation, log, or heartbeat state.
+The Scene owner must read and use repository-local
+`.agents/skills/remotion-best-practices/SKILL.md` completely, then read
+`.agents/skills/remotion-best-practices/remotion-markup/REFERENCE.md` and any renderer-specific references
+selected by that router.
 
-## Dispatch one owner per meaningId
+```text
+在共享 checkout <repo> 中完成 Scene owner 工作。你不是唯一工作线程，不得覆盖其他线程修改。
 
-Create one distinct child Agent for every frozen assignment, using the current native collaboration
-surface. Run independent owners concurrently when possible. Give each child only its meaningId,
-exclusive source/public paths, current Beat and sealed timing, style, Scene brief, assignment,
-adjacent continuity summary, and approved current resources.
+runId: <runId>
+storyId: <storyId>
+meaningId: <meaningId>
+assignment: <assignmentPath>
+唯一可写目录:
+- <sceneRoot>
+- <publicAssetRoot>
 
-Each child must read and use `.agents/skills/remotion-best-practices/SKILL.md` completely, then load
-`remotion-markup/REFERENCE.md` and routed references relevant to its Renderer. `AGENTS.md`, assignment,
-contracts, and validators take precedence; never widen ownership or runtime
-boundaries.
+先完整读取根 AGENTS.md、assignment、.agents/skills/remotion-best-practices/SKILL.md 和
+.agents/skills/remotion-best-practices/remotion-markup/REFERENCE.md，再按 Renderer 需要读取 router
+指定的 references。AGENTS、assignment、contracts、validators 优先。
 
-Tell every child that other Agents share the worktree and require it to:
+只 author 当前 Beat 的透明 Scene 视觉和可选 Scene-local sound。不得读取历史 Scene/Composition/
+still，或其他 owner 输出；不得写字幕、旁白、全局背景、共享 registry/catalog、Run state/event/result。
+不得 bootstrap、production submit、delivery build、Git stage/commit、创建嵌套 Agent。
 
-- write only its exclusive Scene source/public directories and preserve all other changes;
-- avoid historical Scene/media, another child's output, central run state, and shared generated files;
-- use assignment-provided safe areas, font minimum, and resources without copying numeric policy into
-  instructions;
-- keep captions top-level and use the Renderer only for visuals plus optional Scene-local sound;
-- avoid staging, commits, result-writing commands, and nested Agents.
+完成 authoring 后只运行：
+npm run production:owner:ready -- --run <runId> --owner scene --scene <meaningId>
 
-Each child produces the assignment-required plans, selections, Renderer, optional local-sound
-declarations, and ScenePackage inputs. Keep the Renderer root transparent and put only Beat-semantic
-content inside the guarded frame. Never paint a Scene-local background, safe-area panel, full-frame
-color wash, texture, or decorative backdrop. If `GlobalVisualLayers` is absent, leave all unused
-pixels transparent; a Scene Agent must not compensate by inventing its own background.
+若 assignment 明确无法完成，只运行一次：
+npm run production:owner:failed -- --run <runId> --owner scene --scene <meaningId> --code <SAFE_CODE> --description "<safe description>"
 
-## Check before immutable submission
-
-Have the child run:
-
-```bash
-npm run production:scene:check -- --run <runId> --scene <meaningId>
+receipt 发布后立即结束，不等待 watcher。
 ```
 
-The check may refresh deterministic Scene-owned generated output, but writes no Scene result, event,
-or derived run state. Return a safe validation finding to the same owner and rerun the same check; do
-not use submit/fail as validation control flow.
-
-After `ready-to-submit`, audit the child's changed paths in the root task and rerun the check. The root
-Agent then serially invokes:
-
-```bash
-npm run production:scene:submit -- --run <runId> --scene <meaningId>
-```
-
-Only for a genuine terminal child failure, invoke:
-
-```bash
-npm run production:scene:fail -- --run <runId> --scene <meaningId> --code <CODE> --description "<safe description>"
-```
-
-Keep polling the watcher until all results are accepted or the Run is terminal. Record the final
-meaningId-to-child-task mapping and check result for handoff.
+The root only confirms that `create_thread` returned successfully. It does not read the task, wait for
+it, audit its files, or submit its result. A missing receipt has no timeout. Another independent task
+may later process the same immutable assignment; the watcher accepts the first identity-consistent
+receipt and does not store task identity.

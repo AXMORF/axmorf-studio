@@ -247,10 +247,8 @@ const resolveSceneFreezeInputs = async ({
 
 const buildAssignments = ({
   inputs,
-  deadlineAt,
 }: {
   readonly inputs: Awaited<ReturnType<typeof resolveSceneFreezeInputs>>;
-  readonly deadlineAt: string;
 }) => {
   const {
     loaded,
@@ -338,7 +336,6 @@ const buildAssignments = ({
         current.requirements,
         storyBeat.meaningId,
       ),
-      deadlineAt,
     });
   });
   return assertSceneAssignmentIsolation(assignments);
@@ -346,10 +343,8 @@ const buildAssignments = ({
 
 const buildGlobalVisualAssignmentForInputs = ({
   inputs,
-  deadlineAt,
 }: {
   readonly inputs: Awaited<ReturnType<typeof resolveSceneFreezeInputs>>;
-  readonly deadlineAt: string;
 }) => {
   const {
     loaded,
@@ -410,7 +405,6 @@ const buildGlobalVisualAssignmentForInputs = ({
       sourceDirectory: `src/projects/${story.storyId}/global-visual`,
       publicDirectory: `public/projects/${story.storyId}/global-visual`,
     },
-    deadlineAt,
   });
 };
 
@@ -456,20 +450,11 @@ export const resolveCurrentSceneAssignments = async ({
     runId,
     verifyNarrativeAutoCheck,
   });
-  const firstPath = assignmentPath(
-    inputs.story.storyId,
-    inputs.story.beats[0].meaningId,
-  );
-  const first = SceneAssignmentSchema.parse(
-    await readRegularJson(join(rootDir, firstPath), "SceneAssignment"),
-  );
   const assignments = buildAssignments({
     inputs,
-    deadlineAt: first.deadlineAt,
   });
   const globalVisualAssignment = buildGlobalVisualAssignmentForInputs({
     inputs,
-    deadlineAt: first.deadlineAt,
   });
   for (const assignment of assignments) {
     await writeOrCheckSceneArtifact({
@@ -521,20 +506,11 @@ export const runProductionSceneFreeze = async ({
       runId,
       verifyNarrativeAutoCheck,
     });
-    const firstPath = assignmentPath(
-      inputs.story.storyId,
-      inputs.story.beats[0].meaningId,
-    );
-    const first = SceneAssignmentSchema.parse(
-      await readRegularJson(join(rootDir, firstPath), "SceneAssignment"),
-    );
     const assignments = buildAssignments({
       inputs,
-      deadlineAt: first.deadlineAt,
     });
     const globalVisualAssignment = buildGlobalVisualAssignmentForInputs({
       inputs,
-      deadlineAt: first.deadlineAt,
     });
     for (const assignment of assignments) {
       await writeOrCheckSceneArtifact({
@@ -609,13 +585,9 @@ export const runProductionSceneFreeze = async ({
         runId,
         verifyNarrativeAutoCheck,
       });
-      const deadlineAt = new Date(
-        now.getTime() + initial.run.policy.sceneTimeoutMs,
-      ).toISOString();
-      const assignments = buildAssignments({ inputs, deadlineAt });
+      const assignments = buildAssignments({ inputs });
       const globalVisualAssignment = buildGlobalVisualAssignmentForInputs({
         inputs,
-        deadlineAt,
       });
       for (const assignment of assignments) {
         const destination = join(

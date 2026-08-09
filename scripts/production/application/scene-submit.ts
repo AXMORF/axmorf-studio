@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { lstat, readFile } from "node:fs/promises";
 import { join, posix } from "node:path";
 import ts from "typescript";
 
@@ -228,6 +228,10 @@ export const readExistingSceneResult = async ({
     `${meaningId}.json`,
   );
   try {
+    const metadata = await lstat(path);
+    if (!metadata.isFile() || metadata.isSymbolicLink()) {
+      throw new Error("Scene result must be a regular file.");
+    }
     const result = SceneProductionResultSchema.parse(
       JSON.parse(await readFile(path, "utf8")),
     );
@@ -322,7 +326,10 @@ export const createSceneFailureResult = ({
   });
 
 const assertSceneResultState = (state: string) => {
-  if (state !== "scene-inputs-frozen" && state !== "scenes-running") {
+  if (
+    state !== "scene-inputs-frozen" &&
+    state !== "waiting-for-owner-results"
+  ) {
     throw new Error("Scene results require frozen Scene inputs.");
   }
 };

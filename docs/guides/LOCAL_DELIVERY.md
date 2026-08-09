@@ -12,7 +12,7 @@
 
 ## 独立 Cover 生命周期
 
-主 Agent 在 VisualStyleSpec current 后执行：
+主 Agent 在 VisualStyleSpec current 后只冻结 Cover assignment：
 
 ```bash
 npm run delivery:cover:freeze -- --project <storyId>
@@ -23,17 +23,14 @@ CoverAssignment 只嵌入 current StorySpec、VisualStyleSpec 和固定 CoverSpe
 不得读取 PublishingIntent、SemanticTiming、Scene/GlobalVisual 输出、FinalAssembly、历史封面
 或已有 deliveries。
 
-```bash
-npm run delivery:cover:check -- --project <storyId>
-npm run delivery:cover:submit -- --project <storyId>
-```
-
-check 真实渲染临时全尺寸 PNG 并验证尺寸和完整 decode；submit 重复验证后原子封存 package、
+owner 不运行 check/submit。watcher 内部的 fixed check 真实渲染临时全尺寸 PNG 并验证尺寸和完整
+decode；随后重复验证并原子封存 package、
 exact PNG 与 result。Cover 缺失或 stale 不阻止 production render-ready，但会阻止 delivery build。
 
 ## 自动 build
 
-production 到达 `render-ready / awaiting-automatic-delivery` 后直接执行：
+Cover owner 通过 `production:owner:ready -- --run <runId> --owner cover` 发布 receipt。detached
+production 到达 render-ready 后，watcher 才串行执行 Cover check/submit；Cover current 后自动执行：
 
 ```bash
 npm run delivery:build -- --project <storyId>

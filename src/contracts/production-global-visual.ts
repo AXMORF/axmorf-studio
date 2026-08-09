@@ -194,7 +194,6 @@ const GlobalVisualAssignmentInputObject = z
       })
       .strict()
       .readonly(),
-    deadlineAt: z.string().datetime({ offset: true }),
   })
   .strict()
   .superRefine((assignment, context) => {

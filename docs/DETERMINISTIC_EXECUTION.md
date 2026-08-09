@@ -37,6 +37,24 @@ GlobalVisual result immutable；state 是由 events/results/current fingerprints
 任何 fixed-stage failure 形成 terminal event 后，该 Run 永不恢复。公共流修复完成后必须从
 current authored inputs 创建 fresh Run，不能编辑 event/state/result。
 
+owner receipt inbox 是按 assignment identity 隔离的 multi-writer 边界。receipt 绑定 current
+run/story/assignment/task/requirements、排序后的规范化 output manifest/checksum 与 receipt
+fingerprint；同内容重放 no-op，同 identity 不同内容、malformed、stale、symlink、escape、unknown
+file 或 checksum drift fail closed。owner-receipts 不含 thread/task/progress/heartbeat。
+
+receipt rename 前的 deterministic `.pending` 已包含完整 canonical bytes。publisher 中断但 receipt
+尚未出现时，处理同一 immutable assignment 的替代线程可用相同语义内容完成 atomic rename；首次
+pending 的 occurredAt/fingerprint 保持不变，不同语义内容仍冲突。这里不使用会把缺失 receipt 永久
+锁死的空 publication lock。
+
+缺失 receipt 不产生 event 或 failure；Run 保持 `waiting-for-owner-results`，不超时、不自动重试。
+watcher restart 从 receipts、owner-results、formal results 与 events 恢复，已接受 identity 不重复写。
+
+detached process 不是宿主机服务管理器：机器重启后 repository 不自动拉起 watcher。已有 launch
+receipt 也不会被当成“进程仍存活”的证明或自动重启许可；突然断电还可能留下 writer lock。恢复逻辑
+保证一次明确重新执行 worker 时不会重复 submit/event/delivery，但当前 runtime 不提供跨宿主机重启
+的监督、存活探测或自动清锁。
+
 ## Render-ready identity
 
 `production-render-plan-v1` 固定：
@@ -78,6 +96,10 @@ render-launch-intent.json
 immutable ledger。
 
 ## Launch protocol
+
+同一 intent-before-spawn/receipt-after-spawn 协议先用于 detached production watcher，再用于最终
+Remotion render。watcher 使用 fixed cwd/argv/log、`shell:false`、`detached:true`、non-inherited
+stdio；receipt 只在 OS `spawn` 后写入。watcher intent 无 receipt 同样永久 ambiguous。
 
 ```mermaid
 stateDiagram-v2

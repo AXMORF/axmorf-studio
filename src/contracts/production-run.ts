@@ -9,11 +9,11 @@ import {
 } from "./primitives";
 
 export const PRODUCTION_RUN_CONTRACT_VERSION =
-  "production-run-current-v1" as const;
+  "production-run-current-v2" as const;
 export const PRODUCTION_EVENT_CONTRACT_VERSION =
-  "production-stage-event-current-v1" as const;
+  "production-stage-event-current-v2" as const;
 export const PRODUCTION_STATE_CONTRACT_VERSION =
-  "production-run-state-current-v1" as const;
+  "production-run-state-current-v2" as const;
 
 export const PRODUCTION_STAGE_IDS = [
   "production-start",
@@ -28,7 +28,7 @@ export const PRODUCTION_RUN_STATES = [
   "narrative-running",
   "baseline-ready",
   "scene-inputs-frozen",
-  "scenes-running",
+  "waiting-for-owner-results",
   "render-ready-running",
   "render-ready",
   "failed",
@@ -106,18 +106,12 @@ const addUniqueArtifactIssues = (
 export const ProductionRunPolicySchema = z
   .object({
     pollIntervalMs: PositiveIntegerSchema.max(60_000),
-    sceneTimeoutMs: PositiveIntegerSchema.max(7 * 24 * 60 * 60 * 1_000),
   })
   .strict()
-  .refine((policy) => policy.sceneTimeoutMs >= policy.pollIntervalMs, {
-    message: "Scene timeout must not be shorter than the poll interval.",
-    path: ["sceneTimeoutMs"],
-  })
   .readonly();
 
 export const DEFAULT_PRODUCTION_RUN_POLICY = ProductionRunPolicySchema.parse({
   pollIntervalMs: 1_000,
-  sceneTimeoutMs: 30 * 60 * 1_000,
 });
 
 const ProductionRunManifestInputObject = z

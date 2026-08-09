@@ -12,11 +12,17 @@ flowchart TD
     Preflight --> Narrative["Sealed narration + SemanticTiming"]
     Narrative --> ProductionFreeze["Freeze N Scene + GlobalVisual assignments"]
     Narrative --> CoverFreeze["Independently freeze Cover assignment"]
-    ProductionFreeze --> Scenes["N isolated Scene owners"]
-    ProductionFreeze --> Global["One GlobalVisual owner"]
-    CoverFreeze --> Cover["One independent Cover owner"]
-    Scenes --> Watcher["Single-writer watcher"]
-    Global --> Watcher
+    ProductionFreeze --> WatchStart["Detached watcher intent + receipt"]
+    CoverFreeze --> WatchStart
+    WatchStart --> Dispatch["create_thread N Scene + GlobalVisual + Cover"]
+    Dispatch --> RootExit["Root task exits"]
+    Dispatch --> Scenes["N isolated Scene owners"]
+    Dispatch --> Global["One GlobalVisual owner"]
+    Dispatch --> Cover["One independent Cover owner"]
+    Scenes --> Inbox["Assignment-bound receipt inbox"]
+    Global --> Inbox
+    Cover --> Inbox
+    Inbox --> Watcher["Single-writer detached watcher"]
     Watcher --> Ready["ProductionRenderPlan + ProductionRenderReady"]
     Ready --> Package["Non-MP4 delivery package + launch intent"]
     Cover --> Package
@@ -59,14 +65,28 @@ check-only 路径仍严格拒绝 stale 或 malformed evidence，replacement 只�
 
 - Scene owner 制作前必须读取并使用 repository-local
   `.agents/skills/remotion-best-practices/SKILL.md`，同时以 AGENTS、assignment、contracts 与
-  validators 为更高 authority；只写 exclusive project/public paths，先 check，再由 root
-  submit/fail。
+  validators 为更高 authority；只写 exclusive project/public paths，完成后发布 ready/failed
+  receipt，不直接 submit 正式结果。
 - GlobalVisual owner 不读取 Scene results，不绘制字幕/可见文本/音频，不扩张为通用 DSL。
 - Cover owner 只读取 assignment 内的 StorySpec、VisualStyleSpec、CoverSpec，并封存两个固定比例
   exact PNG。
-- root 保持 watcher 活跃，只让 repository CLI 写 events/state/results。
+- root 运行 `production:watch:start`，收到 OS spawn acknowledgement 后用 Codex `create_thread`
+  派发独立任务并立即结束。root 不等待、读取或轮询任务，也不参与后续收口。
 
-## 4. Watcher 与 render-ready
+## 4. Receipt inbox、watcher 与 render-ready
+
+每个 assignment 只有一个固定 receipt path。receipt 绑定 run/story/owner/meaningId、assignment、
+task/requirements inputs、规范化 output manifest/checksum 与自身 fingerprint；同内容重放 no-op，
+冲突、malformed、stale、symlink、path escape、unknown file 或 checksum drift fail closed。发布使用
+同目录 temporary 与 atomic rename。仓库不保存 threadId、taskId、heartbeat、progress 或聊天内容。
+
+owner 没有 receipt 时状态保持 `waiting-for-owner-results`，不读取 deadline 猜失败，不监控
+heartbeat，不自动 retry 或创建替代任务。外部可为同一 immutable assignment 创建新线程。
+
+watcher 按 assignment identity 扫描 receipts，先串行执行 fixed Scene/GlobalVisual validation 与正式
+result write；events/state、registry/projections/Composition 和 delivery 仍只有它可写。Cover receipt
+可提前出现，但 watcher 只在 production 已是 render-ready 后执行 Cover fixed check/submit，因此任何
+Cover 缺失或失败都不会把 production 变成 failed，只会阻止 automatic delivery。
 
 watcher 从 immutable N+1 results 投影 Coverage、RendererRegistry、visual/sound projections、
 GlobalVisualProjection、FinalAssembly 与 current Composition。之后构建：
@@ -84,7 +104,11 @@ GlobalVisualProjection、FinalAssembly 与 current Composition。之后构建：
 这个阶段不运行最终 Remotion render，不读取媒体，也不写媒体完成 evidence。Cover failure 不
 改变 production 状态，但 delivery build 必须要求 current CoverResult。
 
-## 5. 自动交付 launch
+## 5. Watcher launch 与自动交付 launch
+
+`production:watch:start` exactly once 写 watcher launch intent，再用 fixed cwd/argv/log、
+`shell:false`、`detached:true` 和非继承 stdio spawn worker。只在 OS `spawn` 后写 watcher launch
+receipt；intent 无 receipt 永久 ambiguous，禁止重试。receipt 不证明 watcher 完成生产。
 
 `delivery:build` 从 current inputs 确定性生成 deliveryId，在 staging 中写 exact Covers、
 publishing、handoff、`delivery-launch-manifest-v1`、`render-launch-intent-v1` 和 checksum ledger，
@@ -103,9 +127,9 @@ exactly-once 规则：
 
 ## 6. 终点与交接
 
-主 Agent 报告 run、deliveryId、delivery directory、planned MP4/log path、intent/receipt identity
-和保护检查。不得等待或监控 detached child；不得把 MP4 存在、进程 exit 或 launch receipt
-转换为 render success 声明。
+主 Agent 只报告 run、watcher intent/receipt、已创建任务与未派发 assignment，并立即结束。后台
+watcher 自动到达 `delivery-render-started` 后停止，不等待或监控 detached Remotion child。两层
+spawn receipt 都不是生产成功或 MP4 有效声明。
 
 ## 7. 作品删除
 

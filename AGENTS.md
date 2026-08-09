@@ -40,14 +40,18 @@
   解释旧 Run、旧 Project、旧交付或旧媒体。
 - ProductionRun 只由 append-only events、immutable Scene/GlobalVisual results 与 current
   fingerprints 投影；中央 repository CLI 是唯一 writer。
-- current freeze 同时产生 N Scene assignments 与 one GlobalVisual assignment；一个独立 Cover
-  owner 并行工作，但 Cover 不进入 production watcher/state。
+- current freeze 同时产生 N Scene assignments 与 one GlobalVisual assignment；独立 Cover freeze
+  产生 CoverAssignment。三个 owner kind 都通过 assignment-bound receipt 进入 detached watcher，
+  但 Cover 不阻塞 production render-ready，也不进入 production state projection。
 - GlobalVisual 只 owns project-local 背景、纹理、装饰和连续性 motif，不读取 Scene 输出，不
   渲染字幕/音频，不扩张为 Track、Scene DSL、自动布局或自动导演。
 - production 的唯一成功终点是 `render-ready / awaiting-automatic-delivery`。它绑定
   `production-render-plan-v1` 与 `production-render-ready-v1`，不生成或检查最终 MP4。
 - Cover missing/stale 不阻止 render-ready，但阻止自动 delivery build。
-- 主 Agent 到达 render-ready 后直接执行 `delivery:build`，不再请求第二次创意决定。
+- 主 Agent 在冻结全部 assignment 后先启动 detached watcher，再用 Codex `create_thread` 创建 N 个
+  Scene、一个 GlobalVisual 和一个 Cover 独立用户任务；全部创建调用完成后立即结束，不等待
+  render-ready 或 delivery。
+- watcher 是 check、正式 result/event、registry convergence 与 `delivery:build` 的唯一中央 writer。
 - build 先准备 immutable non-MP4 package 并 exactly once 写 `render-launch-intent-v1`，再用 fixed
   cwd/argv/log、`shell:false`、`detached:true` spawn Remotion。
 - OS 发出 `spawn` 后才写 `render-launch-receipt-v1` 并返回 `delivery-render-started`。receipt 只
@@ -100,14 +104,21 @@ Shotcraft 等来源只能通过冻结 commit、准确 demo/recipe 和最小依�
 
 - StoryCheck：外部旁白调用前由 Agent 检查 StoryBeat、ttsChunks、叙事完整性和 voice profile。
 - AutoCheck：机械聚合 source、sealed narration、SemanticTiming、Registry 与 Narrative Baseline。
-- Scene/GlobalVisual/Cover owner 先运行各自 fixed check；root 复检写入范围后才 submit/fail。
+- Scene/GlobalVisual/Cover owner 只写 assignment-exclusive 路径并用固定 CLI 发布 one immutable
+  `owner-ready` 或 `owner-failed` receipt；owner/root 均不直接 submit 正式结果。
 - current 自动流程没有 NarrativeCheck、Scene aesthetic gate 或人工创意 gate。
 - 新实现默认留在 `src/projects/<story>/`。只有 fingerprint-bound promotion proposal 与用户对
   scope/API/files/target 的明确授权后，才移入 `src/remotion/capabilities/`。
 
-主 Agent 分发 owner 后保持当前任务运行并等待 watcher。repo 不创建或托管 Agent，不监控或
-保存 Agent/task/thread/progress/heartbeat。若环境不能创建要求的独立 owner，authoring 前报告
-blocker，不回退到 root inline 制作。
+主 Agent 只使用 Codex `create_thread` 创建共享 checkout 的独立用户任务，不使用 subagent 或
+worktree。每个任务 prompt 必须自包含 runId、assignment、独占目录、必读 Skill/reference 和
+ready/failed receipt 命令。确认 watcher spawn acknowledgement 与所有 thread creation 调用后立即
+结束；不得调用 `wait_threads`、`read_thread`、轮询或参与 check/submit/delivery。部分派发失败时
+准确报告未派发 assignment，已启动 watcher 和已创建任务保持运行。
+
+repo 不创建、托管或监控 Codex task，不保存 task/thread/progress/heartbeat。owner receipt 只绑定
+assignment identity；无 receipt 时 Run 永久保持 `waiting-for-owner-results`，不超时、不猜失败、
+不自动重试或创建替代任务。用户或外部自动化可为同一 immutable assignment 再创建独立任务。
 
 ## 故障语义
 
@@ -118,6 +129,8 @@ blocker，不回退到 root inline 制作。
 - provider、host tool、sandbox、permission 或 authorization failure 是 external blocker，不增加
   fallback、warm-up、自动重试或弱化 Chromium sandbox。
 - launch-ambiguous 是 fail-closed 终态，不归类为可恢复 workflow failure。
+- watcher launch 同样 intent-before-spawn、receipt-after-spawn；intent 无 receipt 是 ambiguous，
+  禁止自动重试。receipt 只证明 watcher 获得 OS spawn acknowledgement。
 
 ## 修改与验证
 

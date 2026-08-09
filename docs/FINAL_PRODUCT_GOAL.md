@@ -17,13 +17,15 @@
 1. 把内容结构化为 Story、StoryBeat、Agent-authored ttsChunks、RenderSpec 与
    PublishingIntent；
 2. 用 sealed PCM 实测生成 SemanticTiming 与 CaptionCue；
-3. 为每个 meaningId 隔离一个 Scene owner，并并行一个 whole-film GlobalVisual owner 与一个
-   independent Cover owner；
-4. 通过 immutable results 与 single-writer watcher 汇合 current FinalAssembly；
-5. 冻结 `production-render-plan-v1` 和 `production-render-ready-v1`，到达
+3. 冻结全部 owner assignments，exactly once 启动 detached watcher；
+4. 主 Agent 用 `create_thread` 派发每个 meaningId 的 Scene、一个 GlobalVisual 与一个 Cover 独立
+   用户任务，全部创建成功后立即结束；
+5. owner 只发布 assignment-bound immutable receipt，watcher 串行 check/submit 并汇合
+   current FinalAssembly；
+6. 冻结 `production-render-plan-v1` 和 `production-render-ready-v1`，到达
    `render-ready / awaiting-automatic-delivery`；
-6. 准备 non-MP4 delivery package，在 spawn 前 exactly once 写 launch intent；
-7. detached spawn Remotion，收到 OS `spawn` 后写 receipt 并返回
+7. Cover ready 后准备 non-MP4 delivery package，在 spawn 前 exactly once 写 launch intent；
+8. detached spawn Remotion，收到 OS `spawn` 后写 receipt 并到达
    `delivery-render-started`。
 
 最后一步仅证明启动确认。产品目标不包括等待 child exit、判断 render completion、检查 MP4 或
@@ -44,6 +46,7 @@
 - 所有 render-critical 资产 repository-local、manifest-verified；motion 使用 Remotion frame API。
 - production state 只由 append-only events、immutable results 与 current fingerprints 投影。
 - Cover 独立于 production state，只消费 StorySpec、VisualStyleSpec 与 fixed CoverSpec。
+- Codex task/thread/progress/heartbeat 不进入 repository state；缺失 receipt 不触发 timeout/retry。
 
 ## 自动交付边界
 

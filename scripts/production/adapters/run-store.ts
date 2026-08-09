@@ -135,6 +135,11 @@ export const getProductionRunPaths = ({
     artifacts: join(root, "artifacts"),
     sceneResults: join(root, "scene-results"),
     globalVisualResult: join(root, "global-visual-result.json"),
+    ownerReceipts: join(root, "owner-receipts"),
+    ownerResults: join(root, "owner-results"),
+    watcherLaunchIntent: join(root, "watcher-launch-intent.json"),
+    watcherLaunchReceipt: join(root, "watcher-launch-receipt.json"),
+    watcherLog: join(root, "watcher.log"),
     state: join(root, "state.generated.json"),
     lock: join(root, "lock"),
   } as const;
@@ -228,6 +233,10 @@ export const initializeProductionRunStore = async ({
     await mkdir(paths.events);
     await mkdir(paths.artifacts);
     await mkdir(paths.sceneResults);
+    await mkdir(paths.ownerReceipts);
+    await mkdir(join(paths.ownerReceipts, "scene"));
+    await mkdir(paths.ownerResults);
+    await mkdir(join(paths.ownerResults, "scene"));
     const state = createInitialProductionRunState(run);
     await writeAtomic({
       destination: paths.run,

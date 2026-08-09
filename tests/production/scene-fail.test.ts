@@ -71,7 +71,6 @@ const createFixture = async (context: TestContext) => {
       allowedSnapshotCards: [],
     },
     additionalRequirements: [],
-    deadlineAt: "2026-08-04T00:30:00.000Z",
   });
   await markProductionSceneInputsFrozen({
     ...fixture,

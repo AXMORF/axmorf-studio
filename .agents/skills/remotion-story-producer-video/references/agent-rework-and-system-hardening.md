@@ -17,23 +17,17 @@ Agent-owned work includes:
   adaptation, Renderer source, and other assignment-owned Scene inputs;
 - continuity decisions and safe fallback authored by the responsible Agent.
 
-When fixed validation rejects one of these outputs, return the finding to the owning Agent. Correct
-only that owned artifact, rerun the same fixed validator, and preserve shared inputs and other Scene
-ownership. Do not weaken the validator to make bad Agent output pass.
+Before thread dispatch, correct only the root-owned authored artifact, rerun the same fixed validator,
+and preserve other ownership. Do not weaken validators.
 
-Always run `production:scene:check` before result submission. A check failure must not create an
-immutable Scene result or change event/state; return it to the same owning child Agent. The root Agent
-reruns the passing check and is the only Agent that invokes `production:scene:submit` or
-`production:scene:fail`.
+After dispatch the root task has ended and does not coordinate rework. An owner publishes exactly one
+assignment-bound ready or failed receipt. The detached watcher alone reruns fixed validation and
+writes formal Scene/GlobalVisual/Cover results. An owner must never call submit/fail result commands.
 
-Apply the same rule to `production:global-visual:check`: return a failure to the same whole-film
-owner, then let only the root Agent invoke `production:global-visual:submit` or
-`production:global-visual:fail` after a passing recheck.
-
-If no immutable Scene result or terminal event exists, submit the corrected Agent output normally. If
-an explicit Agent failure already made the run terminal, keep that run immutable, correct the Agent
-output, and start a new run from current authored inputs. The new run is required by the fixed state
-contract; it does not mean the fixed workflow was recovered.
+No receipt is not failure: the Run remains `waiting-for-owner-results` indefinitely, without timeout,
+heartbeat, retry, or an automatic replacement task. A user or external automation may create another
+independent task for the same immutable assignment. Once any receipt exists it is immutable; an
+explicit failed receipt keeps its formal failure outcome immutable and requires a fresh Run.
 
 When Story or ttsChunks change after an earlier active narration seal exists, the fresh Run must call
 `production:narrative -- --run <runId> --supersede <current-sealed-fingerprint>`. The fingerprint is

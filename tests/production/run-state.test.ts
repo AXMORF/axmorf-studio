@@ -20,14 +20,13 @@ const run = createProductionRunManifest({
   storyId: "story-example",
   requirementsPath: "src/projects/story-example/production/requirements.json",
   requirementsFingerprint: sha("a"),
-  policy: { pollIntervalMs: 25, sceneTimeoutMs: 2_000 },
+  policy: { pollIntervalMs: 25 },
   createdAt: occurredAt,
 });
 
 test("production Run policy has one validated fingerprinted default", () => {
   assert.deepEqual(DEFAULT_PRODUCTION_RUN_POLICY, {
     pollIntervalMs: 1_000,
-    sceneTimeoutMs: 30 * 60 * 1_000,
   });
   assert.deepEqual(
     ProductionRunPolicySchema.parse(DEFAULT_PRODUCTION_RUN_POLICY),
