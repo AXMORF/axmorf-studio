@@ -265,10 +265,12 @@ export const resolveM3GeneratedRegistryChecksum = async ({
   rootDir,
   storyId,
   entry,
+  allowStaleEvidence = false,
 }: {
   readonly rootDir: string;
   readonly storyId: string;
   readonly entry: ValidatedProjectRegistrationEntry;
+  readonly allowStaleEvidence?: boolean;
 }) => {
   const currentReceiptPath = join(
     rootDir,
@@ -285,6 +287,7 @@ export const resolveM3GeneratedRegistryChecksum = async ({
       currentReceipt.narrativeBaselineFingerprint !==
         entry.narrativeBaselineFingerprint
     ) {
+      if (allowStaleEvidence) return entry.generatedEntryChecksum;
       throw new Error(
         "Current M3 evidence identity is stale against its registry entry.",
       );
@@ -300,10 +303,12 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
   rootDir,
   storyId: rawStoryId,
   runProcess = defaultProcessRunner,
+  allowStaleEvidence = false,
 }: {
   readonly rootDir: string;
   readonly storyId: string;
   readonly runProcess?: ProcessRunner;
+  readonly allowStaleEvidence?: boolean;
 }): Promise<M3NarrativeBaselineEvidenceReceipt> => {
   const storyId = StoryIdSchema.parse(rawStoryId);
   const entry = await resolveCurrentM3Entry(rootDir, storyId);
@@ -362,6 +367,7 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
     rootDir,
     storyId,
     entry,
+    allowStaleEvidence,
   });
   const [transparentAlpha, captionAlpha, renderFacts] = await Promise.all([
     inspectAlphaStill(absolute(paths.transparentStill), runProcess),
@@ -469,6 +475,7 @@ export const writeM3NarrativeBaselineEvidence = async ({
     rootDir,
     storyId,
     runProcess,
+    allowStaleEvidence: true,
   });
   const receiptPath = join(
     rootDir,

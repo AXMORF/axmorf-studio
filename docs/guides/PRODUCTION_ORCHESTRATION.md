@@ -44,6 +44,8 @@ CaptionCue、ProjectRegistry、Narrative Baseline evidence 和 AutoCheck。seale
 第二种命令只用于 Agent-owned Story 返工后的 fresh Run：调用者必须提供当前 active seal 的精确
 fingerprint，底层 identity-safe seal 会拒绝缺失或 stale 值。失败 Run、旧 seal directory 与事件均
 保持 immutable。
+seal 替换后的 M3 evidence 只能由 narrative writer 重建：writer 可替换一个结构有效但 identity-stale
+的旧 receipt；普通 evidence check 与 project check 仍 fail closed，禁止手改或删除 receipt 来继续。
 
 ## Freeze 与并行 owner
 

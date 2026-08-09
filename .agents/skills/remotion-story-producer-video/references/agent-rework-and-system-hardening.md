@@ -41,6 +41,11 @@ an explicit identity authorization for the existing atomic seal contract, not a 
 edit. A missing or stale value must fail closed, and the previous Run and immutable seal directory
 remain untouched.
 
+After an authorized seal replacement, the fixed narrative writer may replace one structurally valid
+but identity-stale M3 evidence receipt while rebuilding the baseline. Check-only evidence and project
+checks remain strict, malformed receipts never become replaceable input, and Agents never edit or
+delete the receipt to continue.
+
 ## Fixed-flow failure requires system hardening
 
 The fixed flow includes contract implementations, production CLI parsing and dispatch, non-terminal

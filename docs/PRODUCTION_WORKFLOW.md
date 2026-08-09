@@ -46,6 +46,8 @@ mechanical AutoCheck。实测音频时间不可被 Scene 或转场移动、压�
 若 Agent-owned Story authoring 在实测时长后返工，旧 Run 保持 immutable，新 Run 必须显式使用
 `production:narrative -- --run <runId> --supersede <current-sealed-fingerprint>` 绑定当前 active
 seal identity。只有 identity 精确匹配时 fixed flow 才能原子提升新 seal；不得手改 active manifest。
+新 baseline writer 允许把一个结构有效但 identity-stale 的旧 M3 receipt 作为待替换输入；所有
+check-only 路径仍严格拒绝 stale 或 malformed evidence，replacement 只由 fixed writer 原子完成。
 
 ## 3. Freeze 与 owner 隔离
 

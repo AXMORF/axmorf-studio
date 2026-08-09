@@ -222,6 +222,7 @@ export const createDefaultNarrativeProductionDependencies = ({
         rootDir,
         storyId,
         entry,
+        allowStaleEvidence: true,
       }),
       projectRegistryEntryFingerprint: Sha256DigestSchema.parse(
         entry.projectRegistryEntryFingerprint,
