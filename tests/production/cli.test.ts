@@ -183,3 +183,48 @@ test("package scripts expose production commands and include production tests by
     /"tests\/production"/u,
   );
 });
+
+test("production narrative accepts one exact supersede fingerprint", async () => {
+  const output: string[] = [];
+  const requests: unknown[] = [];
+  const fingerprint = `sha256:${"e".repeat(64)}`;
+  const context = {
+    rootDir: process.cwd(),
+    stdout: output.push.bind(output),
+    narrative: async (request: unknown) => {
+      requests.push(request);
+      return { status: "baseline-ready" };
+    },
+  };
+
+  await runProductionCli(
+    [
+      "narrative",
+      "--run",
+      "story-example-run-001",
+      "--supersede",
+      fingerprint,
+    ],
+    context,
+  );
+
+  assert.deepEqual(requests, [
+    {
+      rootDir: process.cwd(),
+      runId: "story-example-run-001",
+      supersedeFingerprint: fingerprint,
+    },
+  ]);
+  await assert.rejects(() =>
+    runProductionCli(
+      [
+        "narrative",
+        "--run",
+        "story-example-run-001",
+        "--supersede",
+        "not-a-fingerprint",
+      ],
+      context,
+    ),
+  );
+});

@@ -62,6 +62,40 @@ const timingIsCurrent = async (
   }
 };
 
+export const authorizeNarrationSealPromotion = ({
+  existingFingerprint,
+  nextFingerprint,
+  supersedeFingerprint,
+}: {
+  readonly existingFingerprint: string | undefined;
+  readonly nextFingerprint: string;
+  readonly supersedeFingerprint: string | undefined;
+}) => {
+  const isSameSeal = existingFingerprint === nextFingerprint;
+  if (supersedeFingerprint !== undefined) {
+    if (existingFingerprint === undefined) {
+      throw new Error(
+        "Cannot supersede because no active sealed fingerprint exists.",
+      );
+    }
+    if (supersedeFingerprint !== existingFingerprint) {
+      throw new Error(
+        "The --supersede value does not match the current sealed fingerprint.",
+      );
+    }
+  }
+  if (
+    existingFingerprint !== undefined &&
+    !isSameSeal &&
+    supersedeFingerprint === undefined
+  ) {
+    throw new Error(
+      "A different active seal exists; pass --supersede with its current sealed fingerprint.",
+    );
+  }
+  return isSameSeal;
+};
+
 export const runNarrationSeal = async ({
   rootDir,
   projectSource,
@@ -126,24 +160,11 @@ export const runNarrationSeal = async ({
       });
 
       const existingManifest = await readExistingManifest(activeManifestPath);
-      const isSameSeal =
-        existingManifest?.sealedNarrationFingerprint ===
-        seal.manifest.sealedNarrationFingerprint;
-      if (existingManifest !== undefined && !isSameSeal) {
-        if (supersedeFingerprint === undefined) {
-          throw new Error(
-            "A different active seal exists; pass --supersede with its current sealed fingerprint.",
-          );
-        }
-        if (
-          supersedeFingerprint !==
-          existingManifest.sealedNarrationFingerprint
-        ) {
-          throw new Error(
-            "The --supersede value does not match the current sealed fingerprint.",
-          );
-        }
-      }
+      const isSameSeal = authorizeNarrationSealPromotion({
+        existingFingerprint: existingManifest?.sealedNarrationFingerprint,
+        nextFingerprint: seal.manifest.sealedNarrationFingerprint,
+        supersedeFingerprint,
+      });
 
       const { stagingDirectory, destinationDir } =
         await stageNarrationSealDirectory({ rootDir, seal });

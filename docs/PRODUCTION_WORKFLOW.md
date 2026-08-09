@@ -43,6 +43,10 @@ current ProductionRequirementsFreeze。每个 StoryBeat 有稳定 meaningId；tt
 sealed PCM 累计 sample 边界导出 SemanticTiming、CaptionCue 与 NarrativeCore，并完成 fixed
 mechanical AutoCheck。实测音频时间不可被 Scene 或转场移动、压缩或吞掉。
 
+若 Agent-owned Story authoring 在实测时长后返工，旧 Run 保持 immutable，新 Run 必须显式使用
+`production:narrative -- --run <runId> --supersede <current-sealed-fingerprint>` 绑定当前 active
+seal identity。只有 identity 精确匹配时 fixed flow 才能原子提升新 seal；不得手改 active manifest。
+
 ## 3. Freeze 与 owner 隔离
 
 `production:scene:freeze` 原子冻结 N Scene assignments 与一个 GlobalVisual assignment；

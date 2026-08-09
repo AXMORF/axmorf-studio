@@ -159,9 +159,23 @@ export const createDefaultNarrativeProductionDependencies = ({
       ),
     };
   },
-  sealNarration: async ({ rootDir, storyId, providerAttemptFingerprint }) => {
+  sealNarration: async ({
+    rootDir,
+    storyId,
+    providerAttemptFingerprint,
+    supersedeFingerprint,
+  }) => {
     const result = await runNarrationCli(
-      ["seal", "--project", storyId, "--attempt", providerAttemptFingerprint],
+      [
+        "seal",
+        "--project",
+        storyId,
+        "--attempt",
+        providerAttemptFingerprint,
+        ...(supersedeFingerprint === undefined
+          ? []
+          : ["--supersede", supersedeFingerprint]),
+      ],
       {
         rootDir,
         env: process.env,
@@ -363,14 +377,20 @@ const verifyCurrentNarrative = async ({
 export const runProductionNarrative = async ({
   rootDir,
   runId,
+  supersedeFingerprint,
   clock = () => new Date(),
   dependencies = createDefaultNarrativeProductionDependencies(),
 }: {
   readonly rootDir: string;
   readonly runId: string;
+  readonly supersedeFingerprint?: string;
   readonly clock?: () => Date;
   readonly dependencies?: NarrativeProductionDependencies;
 }) => {
+  const authorizedSupersedeFingerprint =
+    supersedeFingerprint === undefined
+      ? undefined
+      : Sha256DigestSchema.parse(supersedeFingerprint);
   const initial = await readProductionRunStore({ rootDir, runId });
   if (initial.state.state === "baseline-ready") {
     const current = await loadCurrentProductionInputs({
@@ -459,6 +479,9 @@ export const runProductionNarrative = async ({
       const sealed = await dependencies.sealNarration({
         ...common,
         providerAttemptFingerprint: generation.providerAttemptFingerprint,
+        ...(authorizedSupersedeFingerprint === undefined
+          ? {}
+          : { supersedeFingerprint: authorizedSupersedeFingerprint }),
       });
       assertSameFingerprint(
         "Generation input",

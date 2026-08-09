@@ -35,6 +35,12 @@ an explicit Agent failure already made the run terminal, keep that run immutable
 output, and start a new run from current authored inputs. The new run is required by the fixed state
 contract; it does not mean the fixed workflow was recovered.
 
+When Story or ttsChunks change after an earlier active narration seal exists, the fresh Run must call
+`production:narrative -- --run <runId> --supersede <current-sealed-fingerprint>`. The fingerprint is
+an explicit identity authorization for the existing atomic seal contract, not a retry or manual state
+edit. A missing or stale value must fail closed, and the previous Run and immutable seal directory
+remain untouched.
+
 ## Fixed-flow failure requires system hardening
 
 The fixed flow includes contract implementations, production CLI parsing and dispatch, non-terminal

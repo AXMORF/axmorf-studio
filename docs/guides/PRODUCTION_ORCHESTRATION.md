@@ -13,6 +13,7 @@ production 的唯一成功终点是 `render-ready / awaiting-automatic-delivery`
 npm run production:preflight -- --project <storyId>
 npm run production:start -- --project <storyId>
 npm run production:narrative -- --run <runId>
+npm run production:narrative -- --run <runId> --supersede <current-sealed-fingerprint>
 npm run production:status -- --run <runId>
 npm run production:scene:freeze -- --run <runId>
 npm run production:scene:check -- --run <runId> --scene <meaningId>
@@ -40,6 +41,9 @@ VoxCPM/Chromium 不可用，不预热 TTS、不 fallback、不降低 Chromium sa
 `production:narrative` 固定完成 narration generation/seal、PCM measurement、SemanticTiming、
 CaptionCue、ProjectRegistry、Narrative Baseline evidence 和 AutoCheck。sealed PCM 与
 `pcm-cumulative-ceil-v1` 是时间 authority；工具不得拆分或重写 Agent-authored ttsChunks。
+第二种命令只用于 Agent-owned Story 返工后的 fresh Run：调用者必须提供当前 active seal 的精确
+fingerprint，底层 identity-safe seal 会拒绝缺失或 stale 值。失败 Run、旧 seal directory 与事件均
+保持 immutable。
 
 ## Freeze 与并行 owner
 

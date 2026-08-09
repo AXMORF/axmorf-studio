@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 import {
   MeaningIdSchema,
   ProductionRunIdSchema,
+  Sha256DigestSchema,
   StoryIdSchema,
 } from "../../src/contracts";
 import { redactProductionErrorDescription } from "./adapters/error-redaction";
@@ -40,6 +41,7 @@ type ProductionCliContext = Readonly<{
   narrative?: (request: {
     readonly rootDir: string;
     readonly runId: string;
+    readonly supersedeFingerprint?: string;
   }) => Promise<unknown>;
   sceneFreeze?: (request: {
     readonly rootDir: string;
@@ -140,14 +142,24 @@ export const runProductionCli = async (
       ? await context.status({ rootDir: context.rootDir, runId })
       : await runStatus({ rootDir: context.rootDir, runId });
   } else if (
-    args.length === 3 &&
+    (args.length === 3 || args.length === 5) &&
     args[0] === "narrative" &&
-    args[1] === "--run"
+    args[1] === "--run" &&
+    (args.length === 3 || args[3] === "--supersede")
   ) {
     const runId = ProductionRunIdSchema.parse(args[2]);
+    const supersedeFingerprint =
+      args.length === 5 ? Sha256DigestSchema.parse(args[4]) : undefined;
+    const request = {
+      rootDir: context.rootDir,
+      runId,
+      ...(supersedeFingerprint === undefined
+        ? {}
+        : { supersedeFingerprint }),
+    } as const;
     result = context.narrative
-      ? await context.narrative({ rootDir: context.rootDir, runId })
-      : await runProductionNarrative({ rootDir: context.rootDir, runId });
+      ? await context.narrative(request)
+      : await runProductionNarrative(request);
   } else if (
     args.length === 3 &&
     args[0] === "scene-freeze" &&

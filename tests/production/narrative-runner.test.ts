@@ -25,6 +25,7 @@ const createFixture = async (context: TestContext) => {
 
 const createDependencies = (
   calls: string[],
+  expectedSupersedeFingerprint?: string,
 ): NarrativeProductionDependencies => ({
   generateNarration: async (request) => {
     calls.push("generate");
@@ -36,7 +37,10 @@ const createDependencies = (
   },
   sealNarration: async (request) => {
     calls.push("seal");
-    assert.equal(request.supersedeFingerprint, undefined);
+    assert.equal(
+      request.supersedeFingerprint,
+      expectedSupersedeFingerprint,
+    );
     return {
       generationInputFingerprint: sha("2"),
       sealedNarrationFingerprint: sha("3"),
@@ -137,6 +141,22 @@ test("runs the fixed narrative chain and binds outputs only at baseline-ready", 
     ],
   );
   assert.equal(loaded.state.outputArtifacts.length, 10);
+});
+
+test("passes an explicitly authorized active seal identity to narration sealing", async (context) => {
+  const fixture = await createFixture(context);
+  const calls: string[] = [];
+  const supersedeFingerprint = sha("e");
+  const result = await runProductionNarrative({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    supersedeFingerprint,
+    clock: () => FIXED_PRODUCTION_NOW,
+    dependencies: createDependencies(calls, supersedeFingerprint),
+  });
+
+  assert.equal(result.status, "baseline-ready");
+  assert.deepEqual(calls, fullOrder);
 });
 
 test("each failed step records one safe failure and stops all later steps", async (context) => {
