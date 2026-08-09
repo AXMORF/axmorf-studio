@@ -3,7 +3,7 @@ import { z } from "zod";
 import { Sha256DigestSchema } from "./primitives";
 
 export const PRODUCTION_START_PREFLIGHT_VERSION =
-  "production-start-preflight-v1" as const;
+  "production-start-preflight-v2" as const;
 
 const SafeTextSchema = z
   .string()
@@ -19,7 +19,7 @@ const SafeTextSchema = z
   );
 
 const CommonShape = {
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   contractVersion: z.literal(PRODUCTION_START_PREFLIGHT_VERSION),
   requirementsFingerprint: Sha256DigestSchema,
   redactionApplied: z.boolean(),
@@ -35,6 +35,7 @@ const FailureCodeSchema = z.enum([
   "VOXCPM_HEALTH_RESPONSE_UNRECOGNIZED",
   "VOXCPM_READINESS_RESPONSE_UNRECOGNIZED",
   "VOXCPM_MODEL_LOAD_FAILED",
+  "VOXCPM_DENOISER_UNAVAILABLE",
   "REMOTION_BROWSER_UNAVAILABLE",
   "REMOTION_BROWSER_PERMISSION_DENIED",
   "REMOTION_BROWSER_SANDBOX_DENIED",
@@ -46,7 +47,7 @@ const ProductionStartPreflightPassSchema = z
     ...CommonShape,
     status: z.literal("pass"),
     checks: z.tuple([
-      z.object({ domain: z.literal("voxcpm"), status: z.literal("pass"), serviceState: z.enum(["resident-ready", "cold-auto-load-on-first-tts"]) }).strict(),
+      z.object({ domain: z.literal("voxcpm"), status: z.literal("pass"), serviceState: z.enum(["resident-ready", "loading", "offloaded-auto-reload-on-first-generation"]) }).strict(),
       z.object({ domain: z.literal("remotion-browser"), status: z.literal("pass") }).strict(),
     ]),
   })
@@ -79,7 +80,7 @@ export const buildProductionStartPreflightPass = (raw: {
   readonly voxcpmServiceState: unknown;
 }) =>
   ProductionStartPreflightPassSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
     contractVersion: PRODUCTION_START_PREFLIGHT_VERSION,
     status: "pass",
     requirementsFingerprint: raw.requirementsFingerprint,
@@ -93,7 +94,7 @@ export const buildProductionStartPreflightPass = (raw: {
 export const buildProductionStartPreflightFailure = (raw: unknown) =>
   ProductionStartPreflightFailureSchema.parse({
     ...(raw as Record<string, unknown>),
-    schemaVersion: 1,
+    schemaVersion: 2,
     contractVersion: PRODUCTION_START_PREFLIGHT_VERSION,
     status: "failed",
     redactionApplied: true,

@@ -18,19 +18,27 @@ const resolved: ResolvedVoxcpmProfile = {
   parameters: {
     cfgValue: 2,
     inferenceTimesteps: 10,
+    minLen: 2,
+    maxLen: 4096,
     normalize: false,
     denoise: true,
     retryBadcase: true,
+    retryBadcaseMaxTimes: 3,
+    retryBadcaseRatioThreshold: 6,
   },
   safeDescriptor: {
-    adapterId: "voxcpm-controllable-clone-http-v1",
+    adapterId: "voxcpm-controllable-clone-http-v2",
     modelId: "private-deployment",
     mode: "controllable-clone",
     cfgValue: 2,
     inferenceTimesteps: 10,
+    minLen: 2,
+    maxLen: 4096,
     normalize: false,
     denoise: true,
     retryBadcase: true,
+    retryBadcaseMaxTimes: 3,
+    retryBadcaseRatioThreshold: 6,
     voiceProfileId: "science-explainer-young-male",
     referenceAudioChecksum: `sha256:${"a".repeat(64)}`,
     controlInstruction: "冷静、清晰、自然。",
@@ -87,14 +95,33 @@ test("one authored TTSChunk causes exactly one VoxCPM request", async () => {
   assert.equal(form.get("control"), resolved.controlInstruction);
   assert.equal(form.get("cfg_value"), "2");
   assert.equal(form.get("inference_timesteps"), "10");
+  assert.equal(form.get("min_len"), "2");
+  assert.equal(form.get("max_len"), "4096");
   assert.equal(form.get("normalize"), "false");
   assert.equal(form.get("denoise"), "true");
   assert.equal(form.get("retry_badcase"), "true");
+  assert.equal(form.get("retry_badcase_max_times"), "3");
+  assert.equal(form.get("retry_badcase_ratio_threshold"), "6");
   assert.equal(form.get("save"), "false");
   const reference = form.get("reference_audio");
   assert.ok(reference instanceof Blob);
   assert.equal(reference.type, "audio/wav");
   assert.equal(form.has("modelId"), false);
+  assert.deepEqual([...form.keys()].sort(), [
+    "cfg_value",
+    "control",
+    "denoise",
+    "inference_timesteps",
+    "max_len",
+    "min_len",
+    "normalize",
+    "reference_audio",
+    "retry_badcase",
+    "retry_badcase_max_times",
+    "retry_badcase_ratio_threshold",
+    "save",
+    "text",
+  ]);
 });
 
 test("authorization is omitted when no token exists", async () => {

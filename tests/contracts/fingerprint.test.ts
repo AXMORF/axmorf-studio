@@ -35,7 +35,7 @@ test("fingerprint uses a stable domain-separated SHA-256 value", () => {
   );
 });
 
-test("generation fingerprint includes ordered ttsChunks and NarrationSpec but excludes pauses", () => {
+test("generation fingerprint includes ordered ttsChunks and NarrationSpec v2 but excludes pauses", () => {
   const story = StorySpecSchema.parse(validStorySpec);
   const narration = NarrationSpecSchema.parse(validNarrationSpec);
   const changedPause = StorySpecSchema.parse({
@@ -67,12 +67,11 @@ test("generation fingerprint includes ordered ttsChunks and NarrationSpec but ex
     computeGenerationInputFingerprint(story, narration),
     computeGenerationInputFingerprint(changedText, narration),
   );
-  assert.notEqual(
-    computeGenerationInputFingerprint(story, narration),
-    computeGenerationInputFingerprint(
-      story,
-      NarrationSpecSchema.parse({ ...validNarrationSpec, seed: 43 }),
-    ),
+  assert.throws(() =>
+    NarrationSpecSchema.parse({ ...validNarrationSpec, seed: 43 }),
+  );
+  assert.throws(() =>
+    NarrationSpecSchema.parse({ ...validNarrationSpec, schemaVersion: 1 }),
   );
   assert.notEqual(
     computeStoryFingerprint(story),

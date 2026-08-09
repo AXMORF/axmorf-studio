@@ -13,6 +13,10 @@
 namespace/version-bound SHA-256 fingerprint。未知字段、非 current contract、path escape、symlink、
 identity drift 或 malformed bytes fail closed。
 
+NarrationSpec 与 narration generation input 是 current-only v2；已删除的 VoxCPM `seed` 不参与
+任何合同。provider-attempt v2 绑定 adapter v2、完整 generation parameters 与安全内容 checksum，
+因此旧 provider attempt 或任一参数漂移都不能复用候选。
+
 ## 时间确定性
 
 旁白封存后，累计 PCM samples 是唯一时间 authority：

@@ -24,8 +24,10 @@ checksum-bound verified release，ledger 只封存 immutable 非 MP4 bytes。
 
 ### 叙事、时间与 Scene
 
-- strict VideoBrief、StorySpec、NarrationSpec、RenderSpec、StoryBeat、Agent-authored ttsChunks。
-- VoxCPM 候选、sealed PCM、checksum/fingerprint、`pcm-cumulative-ceil-v1`、SemanticTiming 与
+- strict VideoBrief、StorySpec、current-only NarrationSpec v2、RenderSpec、StoryBeat、
+  Agent-authored ttsChunks；NarrationSpec v1/`seed` 无 runtime compatibility。
+- VoxCPM clone adapters v2、完整 generation parameter/provider-attempt binding、候选、sealed
+  PCM、checksum/fingerprint、`pcm-cumulative-ceil-v1`、SemanticTiming 与
   CaptionCue。
 - Composition-owned `SceneSafeArea`、唯一顶层 CaptionLayer、透明语义 Scene root。
 - 每个 meaningId 一个 Scene owner；每个 Story 一个独立 GlobalVisual owner；immutable result
@@ -38,7 +40,8 @@ checksum-bound verified release，ledger 只封存 immutable 非 MP4 bytes。
 ### 当前 production render handoff
 
 - current `ProductionRequirementsFreeze`、append-only events、派生 ProductionRunState。
-- fixed preflight/start/narrative/scene freeze/check/submit/fail、GlobalVisual
+- fixed production-start-preflight-v2（resident/loading/offloaded/model-load-failed 与 denoiser
+  capability）、start/narrative/scene freeze/check/submit/fail、GlobalVisual
   check/submit/fail、watch、status 与 render-ready check。
 - `production-render-plan-v1` 绑定 Story/Run、Composition、source checksum、尺寸、fps、帧数、
   layer/mix order 和固定 Remotion policy。

@@ -57,7 +57,7 @@ test("metadata-only profile resolution never opens protected voice content", asy
 });
 const story = StorySpecSchema.parse(validStorySpec);
 const fixturePrivateConfig = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   baseUrl: "http://127.0.0.1:9880",
   token: "secret-token",
   timeoutMs: 120_000,
@@ -66,9 +66,13 @@ const fixturePrivateConfig = {
   parameters: {
     cfgValue: 2,
     inferenceTimesteps: 10,
+    minLen: 2,
+    maxLen: 4096,
     normalize: false,
     denoise: true,
     retryBadcase: true,
+    retryBadcaseMaxTimes: 3,
+    retryBadcaseRatioThreshold: 6,
   },
   voiceProfiles: [
     {
@@ -121,11 +125,15 @@ test("safe fingerprints exclude endpoints tokens and absolute paths", async () =
     "controlInstruction",
     "denoise",
     "inferenceTimesteps",
+    "maxLen",
+    "minLen",
     "mode",
     "modelId",
     "normalize",
     "referenceAudioChecksum",
     "retryBadcase",
+    "retryBadcaseMaxTimes",
+    "retryBadcaseRatioThreshold",
     "voiceProfileId",
   ]);
 });
@@ -149,6 +157,33 @@ test("provider configuration changes fork the attempt but not M1 generation inpu
       cfgValue: 2.5,
     }),
   );
+  assert.equal(resolved.safeDescriptor.adapterId, "voxcpm-controllable-clone-http-v2");
+  assert.notEqual(
+    computeProviderAttemptFingerprint(resolved.safeDescriptor),
+    computeProviderAttemptFingerprint({
+      ...resolved.safeDescriptor,
+      adapterId: "voxcpm-controllable-clone-http-v1",
+    } as unknown as typeof resolved.safeDescriptor),
+  );
+  for (const [key, changed] of [
+    ["inferenceTimesteps", 11],
+    ["minLen", 3],
+    ["maxLen", 4095],
+    ["normalize", true],
+    ["denoise", false],
+    ["retryBadcase", false],
+    ["retryBadcaseMaxTimes", 4],
+    ["retryBadcaseRatioThreshold", 5.5],
+  ] as const) {
+    assert.notEqual(
+      computeProviderAttemptFingerprint(resolved.safeDescriptor),
+      computeProviderAttemptFingerprint({
+        ...resolved.safeDescriptor,
+        [key]: changed,
+      }),
+      `${key} must fork the provider attempt`,
+    );
+  }
   assert.equal(
     currentGenerationInputFingerprint,
     computeGenerationInputFingerprint(story, narration),
@@ -260,4 +295,27 @@ test("private config rejects duplicate profiles unsupported fields and bad refer
       }),
     /reference audio/i,
   );
+});
+
+test("private config enforces the upstream generation parameter contract", async () => {
+  for (const parameters of [
+    { ...fixturePrivateConfig.parameters, cfgValue: 0.9 },
+    { ...fixturePrivateConfig.parameters, cfgValue: 3.1 },
+    { ...fixturePrivateConfig.parameters, inferenceTimesteps: 3 },
+    { ...fixturePrivateConfig.parameters, inferenceTimesteps: 31 },
+    { ...fixturePrivateConfig.parameters, minLen: 0 },
+    { ...fixturePrivateConfig.parameters, minLen: 20, maxLen: 10 },
+    { ...fixturePrivateConfig.parameters, maxLen: 8193 },
+    { ...fixturePrivateConfig.parameters, retryBadcaseMaxTimes: -1 },
+    { ...fixturePrivateConfig.parameters, retryBadcaseMaxTimes: 11 },
+    { ...fixturePrivateConfig.parameters, retryBadcaseRatioThreshold: 0 },
+  ]) {
+    await assert.rejects(() =>
+      resolveVoxcpmProfile({
+        config: { ...fixturePrivateConfig, parameters },
+        narration,
+        readFile: fixtureReadFile,
+      }),
+    );
+  }
 });

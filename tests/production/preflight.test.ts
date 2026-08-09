@@ -18,8 +18,10 @@ const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 test("builds bounded transient preflight pass and failure contracts", () => {
   const pass = buildProductionStartPreflightPass({
     requirementsFingerprint: sha("1"),
-    voxcpmServiceState: "cold-auto-load-on-first-tts",
+    voxcpmServiceState: "offloaded-auto-reload-on-first-generation",
   });
+  assert.equal(pass.schemaVersion, 2);
+  assert.equal(pass.contractVersion, "production-start-preflight-v2");
   assert.equal(ProductionStartPreflightSchema.parse(pass).status, "pass");
 
   const failure = buildProductionStartPreflightFailure({
@@ -69,10 +71,11 @@ test("uses the production Remotion command and classifies sandbox denial", async
   assert.equal(calls[0][1].includes("--disable-web-security"), false);
 });
 
-test("accepts liveness plus resident or cold readiness without TTS", async () => {
+test("recognizes resident loading and offloaded readiness without generation", async () => {
   for (const ready of [
-    { status: 200, body: { ready: true } },
+    { status: 200, body: { ready: true, denoiser_ready: false } },
     { status: 503, body: { detail: { ready: false, status: "loading" } } },
+    { status: 503, body: { detail: { ready: false, status: "offloaded" } } },
   ]) {
     const routes: string[] = [];
     const result = await preflightVoxcpm({
@@ -82,6 +85,7 @@ test("accepts liveness plus resident or cold readiness without TTS", async () =>
         token: "private-token",
         timeoutMs: 1000,
         mode: "controllable-clone",
+        denoise: false,
         profileMatched: true,
       },
       probe: async ({ route }) => {
@@ -94,6 +98,16 @@ test("accepts liveness plus resident or cold readiness without TTS", async () =>
     assert.deepEqual(routes, ["/health", "/ready"]);
     assert.equal(routes.some((route) => /tts|generate|warm/iu.test(route)), false);
     assert.equal(result.status, "pass");
+    if (result.status === "pass") {
+      assert.equal(
+        result.serviceState,
+        ready.status === 200
+          ? "resident-ready"
+          : (ready.body as { detail: { status: string } }).detail.status === "loading"
+            ? "loading"
+            : "offloaded-auto-reload-on-first-generation",
+      );
+    }
   }
 });
 
@@ -107,6 +121,7 @@ test("distinguishes host permission denial from a real VoxCPM outage", async () 
       baseUrl: "http://127.0.0.1:9880",
       timeoutMs: 1000,
       mode: "controllable-clone",
+      denoise: false,
       profileMatched: true,
     },
     probe: async () => {
@@ -128,18 +143,79 @@ test("classifies readiness 500 without exposing response body", async () => {
       token: "private-token",
       timeoutMs: 1000,
       mode: "controllable-clone",
+      denoise: false,
       profileMatched: true,
     },
     probe: async ({ route }) =>
       route === "/health"
         ? { status: 200, body: { status: "ok" } }
-        : { status: 500, body: { trace: "/data/private/model.py", token: "bad" } },
+        : {
+            status: 500,
+            body: {
+              detail: {
+                ready: false,
+                error: "model_load_failed",
+                trace: "/data/private/model.py",
+                token: "bad",
+              },
+            },
+          },
   });
   assert.equal(result.status, "failed");
   if (result.status === "failed") {
     assert.equal(result.code, "VOXCPM_MODEL_LOAD_FAILED");
     assert.doesNotMatch(JSON.stringify(result), /\/data\/|private-token|trace/);
   }
+});
+
+test("denoise requires a resident or configured denoiser before generation", async () => {
+  for (const ready of [
+    { status: 200, body: { ready: true, denoiser_ready: false } },
+    { status: 503, body: { detail: { ready: false, status: "offloaded" } } },
+  ]) {
+    const routes: string[] = [];
+    const result = await preflightVoxcpm({
+      requirementsFingerprint: sha("1"),
+      metadata: {
+        baseUrl: "http://127.0.0.1:9880",
+        timeoutMs: 1000,
+        mode: "high-fidelity-clone",
+        denoise: true,
+        profileMatched: true,
+      },
+      probe: async ({ route }) => {
+        routes.push(route);
+        if (route === "/health") return { status: 200, body: { status: "ok" } };
+        if (route === "/ready") return ready;
+        return { status: 200, body: { load_denoiser: false } };
+      },
+    });
+    assert.equal(result.status, "failed");
+    if (result.status === "failed") {
+      assert.equal(result.code, "VOXCPM_DENOISER_UNAVAILABLE");
+      assert.doesNotMatch(JSON.stringify(result), /https?:|\/data\/|token/i);
+    }
+    assert.equal(routes.some((route) => /tts|clone|generate|warm/iu.test(route)), false);
+  }
+
+  const offloaded = await preflightVoxcpm({
+    requirementsFingerprint: sha("1"),
+    metadata: {
+      baseUrl: "http://127.0.0.1:9880",
+      timeoutMs: 1000,
+      mode: "high-fidelity-clone",
+      denoise: true,
+      profileMatched: true,
+    },
+    probe: async ({ route }) => {
+      if (route === "/health") return { status: 200, body: { status: "ok" } };
+      if (route === "/ready") {
+        return { status: 503, body: { detail: { ready: false, status: "offloaded" } } };
+      }
+      return { status: 200, body: { load_denoiser: true } };
+    },
+  });
+  assert.equal(offloaded.status, "pass");
 });
 
 test("rejects private diagnostics from preflight contracts", () => {

@@ -1,13 +1,12 @@
 import { z } from "zod";
 
-import { NonNegativeIntegerSchema, VoiceProfileIdSchema } from "./primitives";
+import { VoiceProfileIdSchema } from "./primitives";
 
 export const NarrationSpecSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     voiceProfileId: VoiceProfileIdSchema,
     mode: z.literal("voice-clone"),
-    seed: NonNegativeIntegerSchema.max(2_147_483_647).optional(),
   })
   .strict()
   .readonly();

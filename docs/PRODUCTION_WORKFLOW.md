@@ -34,8 +34,11 @@ Agent author VideoBrief、StorySpec、NarrationSpec、RenderSpec、StoryCheck、
 current ProductionRequirementsFreeze。每个 StoryBeat 有稳定 meaningId；ttsChunks 按意义、语气
 与朗读节奏创作，工具不得自动拆分。
 
-`production:preflight` 在 Run write 前检查 VoxCPM liveness/readiness 与 Remotion Chromium。
-真实调用直接使用宿主权限；cold loading 合法且不触发 warm-up 或 test TTS。
+`production:preflight` 使用 `production-start-preflight-v2` 在 Run write 前检查 VoxCPM
+liveness/readiness 与 Remotion Chromium，
+区分 resident-ready、loading、offloaded 与 model-load-failed。offloaded 表示首个真实生成请求会
+自动重载，不触发 warm-up 或 test TTS；`denoise=true` 时还必须在真实生成前确认 denoiser
+capability，否则返回脱敏 external blocker。真实调用直接使用宿主权限。
 
 ## 2. Narrative baseline
 

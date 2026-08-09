@@ -4,21 +4,25 @@ type SafeVoxcpmDescriptorBase = {
   readonly modelId: string;
   readonly cfgValue: number;
   readonly inferenceTimesteps: number;
+  readonly minLen: number;
+  readonly maxLen: number;
   readonly normalize: boolean;
   readonly denoise: boolean;
   readonly retryBadcase: boolean;
+  readonly retryBadcaseMaxTimes: number;
+  readonly retryBadcaseRatioThreshold: number;
   readonly voiceProfileId: string;
 };
 
 export type SafeVoxcpmExecutionDescriptor =
   | (SafeVoxcpmDescriptorBase & {
-      readonly adapterId: "voxcpm-controllable-clone-http-v1";
+      readonly adapterId: "voxcpm-controllable-clone-http-v2";
       readonly mode: "controllable-clone";
       readonly referenceAudioChecksum: string;
       readonly controlInstruction: string;
     })
   | (SafeVoxcpmDescriptorBase & {
-      readonly adapterId: "voxcpm-high-fidelity-clone-http-v1";
+      readonly adapterId: "voxcpm-high-fidelity-clone-http-v2";
       readonly mode: "high-fidelity-clone";
       readonly promptSourceChecksum: string;
       readonly promptTextChecksum: string;
@@ -38,9 +42,13 @@ export type ResolvedVoxcpmProfile = {
   readonly parameters: {
     readonly cfgValue: number;
     readonly inferenceTimesteps: number;
+    readonly minLen: number;
+    readonly maxLen: number;
     readonly normalize: boolean;
     readonly denoise: boolean;
     readonly retryBadcase: boolean;
+    readonly retryBadcaseMaxTimes: number;
+    readonly retryBadcaseRatioThreshold: number;
   };
   readonly safeDescriptor: SafeVoxcpmExecutionDescriptor;
 };
@@ -63,7 +71,7 @@ export const computeProviderAttemptFingerprint = (
 ) =>
   createFingerprint({
     namespace: "voxcpm-provider-attempt",
-    version: 1,
+    version: 2,
     value: descriptor,
   });
 

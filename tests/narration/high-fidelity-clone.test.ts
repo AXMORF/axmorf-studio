@@ -19,7 +19,7 @@ const sourceBytes = Buffer.from("protected m4a source");
 const canonicalPromptWav = encodeCanonicalPcmWav(Buffer.from([0, 0, 1, 0]));
 
 const config = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   baseUrl: "http://127.0.0.1:8810",
   timeoutMs: 180_000,
   modelId: "VoxCPM2-local",
@@ -27,9 +27,13 @@ const config = {
   parameters: {
     cfgValue: 2,
     inferenceTimesteps: 10,
+    minLen: 2,
+    maxLen: 4096,
     normalize: true,
     denoise: false,
     retryBadcase: false,
+    retryBadcaseMaxTimes: 3,
+    retryBadcaseRatioThreshold: 6,
   },
   voiceProfiles: [
     {
@@ -43,7 +47,7 @@ const config = {
 } as const;
 
 const narration = NarrationSpecSchema.parse({
-  schemaVersion: 1,
+  schemaVersion: 2,
   voiceProfileId: "m9-project-my-voice",
   mode: "voice-clone",
 });
@@ -85,6 +89,7 @@ test("high fidelity profile binds exact prompt transcript and canonical audio", 
     normalizePromptAudio: async () => canonicalPromptWav,
   });
   assert.equal(resolved.safeDescriptor.mode, "high-fidelity-clone");
+  assert.equal(resolved.safeDescriptor.adapterId, "voxcpm-high-fidelity-clone-http-v2");
   assert.equal(resolved.endpointPath, "/clone_with_prompt");
   assert.equal(resolved.promptText, promptText);
   assert.deepEqual(resolved.promptAudioBytes, canonicalPromptWav);
@@ -130,6 +135,22 @@ test("high fidelity client sends only the frozen clone_with_prompt fields", asyn
   for (const forbidden of ["control", "controlInstruction", "emotion"]) {
     assert.equal(requestBody?.has(forbidden), false);
   }
+  assert.deepEqual([...(requestBody?.keys() ?? [])].sort(), [
+    "cfg_value",
+    "denoise",
+    "inference_timesteps",
+    "max_len",
+    "min_len",
+    "normalize",
+    "prompt_audio",
+    "prompt_text",
+    "reference_audio",
+    "retry_badcase",
+    "retry_badcase_max_times",
+    "retry_badcase_ratio_threshold",
+    "save",
+    "text",
+  ]);
 });
 
 test("high fidelity profile rejects unconfirmed transcript and control fields", async () => {

@@ -254,10 +254,9 @@ const writeSyntheticProject = async (rootDir: string) => {
     ],
   });
   const narration = NarrationSpecSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
     voiceProfileId: "synthetic-voice",
     mode: "voice-clone",
-    seed: 1,
   });
   const render = RenderSpecSchema.parse({
     schemaVersion: 1,

@@ -170,7 +170,7 @@ test("runs both preflight probes before scaffold clock and Run creation", async 
         return {
           status: "pass",
           domain: "voxcpm",
-          serviceState: "cold-auto-load-on-first-tts",
+          serviceState: "offloaded-auto-reload-on-first-generation",
           profileMode: "controllable-clone",
         };
       },
@@ -199,8 +199,8 @@ test("preflight failure occurs before scaffold run store or clock", async (conte
       },
       preflightDependencies: {
         voxcpm: async () => ({
-          schemaVersion: 1,
-          contractVersion: "production-start-preflight-v1",
+          schemaVersion: 2,
+          contractVersion: "production-start-preflight-v2",
           status: "failed",
           domain: "voxcpm",
           kind: "external-blocker",

@@ -57,12 +57,20 @@ export const createVoxcpmChunkGenerator = ({
       "inference_timesteps",
       String(resolved.parameters.inferenceTimesteps),
     );
+    form.set("min_len", String(resolved.parameters.minLen));
+    form.set("max_len", String(resolved.parameters.maxLen));
     form.set("normalize", String(resolved.parameters.normalize));
     form.set("denoise", String(resolved.parameters.denoise));
-    if (resolved.safeDescriptor.mode === "controllable-clone") {
-      form.set("retry_badcase", String(resolved.parameters.retryBadcase));
-      form.set("save", "false");
-    }
+    form.set("retry_badcase", String(resolved.parameters.retryBadcase));
+    form.set(
+      "retry_badcase_max_times",
+      String(resolved.parameters.retryBadcaseMaxTimes),
+    );
+    form.set(
+      "retry_badcase_ratio_threshold",
+      String(resolved.parameters.retryBadcaseRatioThreshold),
+    );
+    form.set("save", "false");
     form.set(
       "reference_audio",
       new Blob([Uint8Array.from(resolved.referenceAudioBytes)], {

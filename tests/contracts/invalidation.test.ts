@@ -39,7 +39,7 @@ test("M1 aggregate accepts a mutually matching source, seal, and timing set", ()
   );
 });
 
-test("ttsText and NarrationSpec changes invalidate generation and all sealed downstream", () => {
+test("ttsText and voice-profile changes invalidate generation and all sealed downstream", () => {
   const bundle = buildBundle();
   const changedStory = StorySpecSchema.parse({
     ...validStorySpec,
@@ -69,7 +69,10 @@ test("ttsText and NarrationSpec changes invalidate generation and all sealed dow
       ...bundle,
       projectSource: {
         ...validProjectSource,
-        narration: { ...validNarrationSpec, seed: 43 },
+        narration: {
+          ...validNarrationSpec,
+          voiceProfileId: "replacement-voice",
+        },
       },
     }),
   );

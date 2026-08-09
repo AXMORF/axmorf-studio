@@ -8,10 +8,14 @@ import type { VoxcpmProfileMetadata } from "../../narration/adapters/private-con
 
 export const VOXCPM_HEALTH_ROUTE = "/health" as const;
 export const VOXCPM_READY_ROUTE = "/ready" as const;
+export const VOXCPM_INFO_ROUTE = "/info" as const;
 
 export type VoxcpmProbe = (input: Readonly<{
   baseUrl: string;
-  route: typeof VOXCPM_HEALTH_ROUTE | typeof VOXCPM_READY_ROUTE;
+  route:
+    | typeof VOXCPM_HEALTH_ROUTE
+    | typeof VOXCPM_READY_ROUTE
+    | typeof VOXCPM_INFO_ROUTE;
   token?: string;
   timeoutMs: number;
 }>) => Promise<Readonly<{ status: number; body: unknown }>>;
@@ -21,7 +25,10 @@ export type VoxcpmPreflightResult =
   | Readonly<{
       status: "pass";
       domain: "voxcpm";
-      serviceState: "resident-ready" | "cold-auto-load-on-first-tts";
+      serviceState:
+        | "resident-ready"
+        | "loading"
+        | "offloaded-auto-reload-on-first-generation";
       profileMode: VoxcpmProfileMetadata["mode"];
     }>
   | Failure;
@@ -83,7 +90,7 @@ const probeFailure = ({
 }: {
   readonly error: unknown;
   readonly requirementsFingerprint: string;
-  readonly phase: "liveness" | "readiness";
+  readonly phase: "liveness" | "readiness" | "denoiser capability";
 }) =>
   isEnvironmentPermissionDenied(error)
     ? failure({
@@ -151,7 +158,19 @@ export const preflightVoxcpm = async ({
   } catch (error) {
     return probeFailure({ error, requirementsFingerprint, phase: "readiness" });
   }
-  if (ready.status === 500) {
+  const detail =
+    ready.body !== null && typeof ready.body === "object"
+      ? (ready.body as { detail?: unknown }).detail
+      : undefined;
+  const detailRecord =
+    detail !== null && typeof detail === "object"
+      ? (detail as Record<string, unknown>)
+      : undefined;
+  if (
+    ready.status === 500 &&
+    detailRecord?.ready === false &&
+    detailRecord.error === "model_load_failed"
+  ) {
     return failure({
       requirementsFingerprint,
       code: "VOXCPM_MODEL_LOAD_FAILED",
@@ -163,18 +182,18 @@ export const preflightVoxcpm = async ({
     ready.status === 200 &&
     ready.body !== null &&
     typeof ready.body === "object" &&
-    (ready.body as { ready?: unknown }).ready === true;
-  const detail =
-    ready.body !== null && typeof ready.body === "object"
-      ? (ready.body as { detail?: unknown }).detail
-      : undefined;
-  const cold =
+    (ready.body as { ready?: unknown }).ready === true &&
+    typeof (ready.body as { denoiser_ready?: unknown }).denoiser_ready ===
+      "boolean";
+  const loading =
     ready.status === 503 &&
-    detail !== null &&
-    typeof detail === "object" &&
-    (detail as { ready?: unknown }).ready === false &&
-    (detail as { status?: unknown }).status === "loading";
-  if (!resident && !cold) {
+    detailRecord?.ready === false &&
+    detailRecord.status === "loading";
+  const offloaded =
+    ready.status === 503 &&
+    detailRecord?.ready === false &&
+    detailRecord.status === "offloaded";
+  if (!resident && !loading && !offloaded) {
     return failure({
       requirementsFingerprint,
       code: "VOXCPM_READINESS_RESPONSE_UNRECOGNIZED",
@@ -182,12 +201,59 @@ export const preflightVoxcpm = async ({
       remediation: "Restore the supported speech service contract before starting production.",
     });
   }
+  if (metadata.denoise) {
+    if (
+      resident &&
+      (ready.body as { denoiser_ready: boolean }).denoiser_ready === false
+    ) {
+      return failure({
+        requirementsFingerprint,
+        code: "VOXCPM_DENOISER_UNAVAILABLE",
+        summary: "The requested speech denoiser is unavailable.",
+        remediation:
+          "Load the supported denoiser before starting production.",
+      });
+    }
+    if (!resident) {
+      let info: Awaited<ReturnType<VoxcpmProbe>>;
+      try {
+        info = await probe({
+          baseUrl: metadata.baseUrl,
+          route: VOXCPM_INFO_ROUTE,
+          ...(metadata.token === undefined ? {} : { token: metadata.token }),
+          timeoutMs: metadata.timeoutMs,
+        });
+      } catch (error) {
+        return probeFailure({
+          error,
+          requirementsFingerprint,
+          phase: "denoiser capability",
+        });
+      }
+      if (
+        info.status !== 200 ||
+        info.body === null ||
+        typeof info.body !== "object" ||
+        (info.body as { load_denoiser?: unknown }).load_denoiser !== true
+      ) {
+        return failure({
+          requirementsFingerprint,
+          code: "VOXCPM_DENOISER_UNAVAILABLE",
+          summary: "The requested speech denoiser is unavailable.",
+          remediation:
+            "Enable the supported denoiser before starting production.",
+        });
+      }
+    }
+  }
   return {
     status: "pass",
     domain: "voxcpm",
     serviceState: resident
       ? "resident-ready"
-      : "cold-auto-load-on-first-tts",
+      : loading
+        ? "loading"
+        : "offloaded-auto-reload-on-first-generation",
     profileMode: metadata.mode,
   };
 };

@@ -43,6 +43,12 @@ Remotion, watcher, and browser-backed verification commands use host permissions
 attempt. This includes `npm run check` and `npm run compositions`; `npm run check:static` is only the
 browser-free subset.
 
+Treat preflight v2 states precisely: resident is ready now, loading is still loading, and offloaded
+will auto-reload only on the first real generation request. Never turn offloaded into a warm-up call.
+When the selected private configuration has `denoise=true`, require the fixed preflight denoiser
+capability check before narrative generation and classify an unavailable denoiser as an external
+blocker.
+
 ## 2. Narrative baseline
 
 Run:

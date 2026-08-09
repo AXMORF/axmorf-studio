@@ -39,7 +39,6 @@ const defaultProbe: VoxcpmProbe = async ({
       : { headers: { Authorization: `Bearer ${token}` } }),
     signal: AbortSignal.timeout(Math.min(timeoutMs, 5_000)),
   });
-  if (response.status === 500) return { status: 500, body: undefined };
   let body: unknown;
   try {
     body = JSON.parse(await response.text());

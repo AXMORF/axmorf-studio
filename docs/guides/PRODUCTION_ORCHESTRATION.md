@@ -35,8 +35,10 @@ VoxCPM/Chromium 不可用，不预热 TTS、不 fallback、不降低 Chromium sa
 ## 当前 inputs 与 narrative
 
 `production:start` 只接受 current authored inputs 和 strict
-`production-requirements-current-v1`。preflight 在任何 Run write 前检查 VoxCPM `/health`、
-`/ready` 与 Remotion Chromium；`503/loading` 是可接受的 cold-auto-load 状态，不发送测试 TTS。
+`production-requirements-current-v1`。preflight v2 在任何 Run write 前检查 VoxCPM `/health`、
+`/ready` 与 Remotion Chromium，区分 resident、loading、offloaded 与 model-load-failed；offloaded
+只表示首个真实生成请求会自动重载，不发送测试 TTS。选择 `denoise=true` 时还会在真实生成前
+检查 resident denoiser 或 `/info` 的 configured capability，不可用则返回脱敏 external blocker。
 
 `production:narrative` 固定完成 narration generation/seal、PCM measurement、SemanticTiming、
 CaptionCue、ProjectRegistry、Narrative Baseline evidence 和 AutoCheck。sealed PCM 与

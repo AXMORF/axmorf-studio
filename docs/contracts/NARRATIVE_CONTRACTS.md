@@ -28,6 +28,11 @@ Array order is semantic order; no independent numeric order field exists.
 
 ## Authored narration
 
+`NarrationSpecSchema` is current-only v2 and contains only `voiceProfileId` plus the fixed
+`voice-clone` mode. The removed `seed` field is rejected; VoxCPM has no seed input and no compatibility
+branch interprets old NarrationSpec v1. `narration-generation-input` is likewise v2, so the clean-break
+contract cannot reuse a v1 generation identity.
+
 `ttsChunks` are authored units and are never split mechanically. An explicit pause is declared by
 `{afterChunkId, pauseMs}` in its owning StoryBeat, where `pauseMs` is a non-negative integer. A zero
 pause remains an owned zero-length timeline segment; a positive pause must quantize to at least one PCM
@@ -69,6 +74,12 @@ ignored `.narration-work/` tree. They identify and verify resumable provider out
 persisted Story source nor sealed timing authority. A raw candidate becomes a measured candidate only
 after canonical PCM, checksum, authored identity, request fingerprint, and positive sample-frame checks.
 Only a complete measured batch can produce the persisted seal.
+
+The current VoxCPM provider-attempt fingerprint is v2. Its safe descriptor binds the selected adapter
+v2, profile/model identity, content checksums, `cfgValue`, `inferenceTimesteps`, `minLen`, `maxLen`,
+`normalize`, `denoise`, `retryBadcase`, `retryBadcaseMaxTimes`, and
+`retryBadcaseRatioThreshold`, without persisting provider URLs, credentials, private paths, transcripts,
+or audio bytes.
 
 ## Semantic timing
 

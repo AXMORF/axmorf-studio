@@ -61,7 +61,7 @@ const VoxcpmVoiceProfileSchema = z.discriminatedUnion("mode", [
 
 export const VoxcpmPrivateConfigSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     baseUrl: HttpUrlSchema,
     token: z.string().trim().min(1).optional(),
     timeoutMs: z.number().int().positive().safe(),
@@ -69,13 +69,26 @@ export const VoxcpmPrivateConfigSchema = z
     endpointPath: z.literal("/clone"),
     parameters: z
       .object({
-        cfgValue: z.number().positive().finite(),
-        inferenceTimesteps: z.number().int().positive().safe(),
+        cfgValue: z.number().finite().min(1).max(3),
+        inferenceTimesteps: z.number().int().min(4).max(30),
+        minLen: z.number().int().min(1).max(8192),
+        maxLen: z.number().int().min(2).max(8192),
         normalize: z.boolean(),
         denoise: z.boolean(),
         retryBadcase: z.boolean(),
+        retryBadcaseMaxTimes: z.number().int().min(0).max(10),
+        retryBadcaseRatioThreshold: z.number().finite().positive(),
       })
       .strict()
+      .superRefine((parameters, context) => {
+        if (parameters.minLen > parameters.maxLen) {
+          context.addIssue({
+            code: "custom",
+            message: "minLen must not exceed maxLen.",
+            path: ["minLen"],
+          });
+        }
+      })
       .readonly(),
     voiceProfiles: z.array(VoxcpmVoiceProfileSchema).min(1).readonly(),
   })
@@ -102,6 +115,7 @@ export type VoxcpmProfileMetadata = Readonly<{
   token?: string;
   timeoutMs: number;
   mode: "controllable-clone" | "high-fidelity-clone";
+  denoise: boolean;
   profileMatched: true;
 }>;
 
@@ -152,6 +166,7 @@ export const resolveVoxcpmProfileMetadata = async ({
     ...(config.token === undefined ? {} : { token: config.token }),
     timeoutMs: config.timeoutMs,
     mode: profile.mode,
+    denoise: config.parameters.denoise,
     profileMatched: true,
   };
 };
@@ -252,14 +267,19 @@ export const resolveVoxcpmProfile = async ({
     measureCanonicalPcmWav(promptAudioBytes);
     const promptAudioChecksum = checksum(promptAudioBytes);
     const safeDescriptor: SafeVoxcpmExecutionDescriptor = {
-      adapterId: "voxcpm-high-fidelity-clone-http-v1",
+      adapterId: "voxcpm-high-fidelity-clone-http-v2",
       modelId: parsed.modelId,
       mode: profile.mode,
       cfgValue: parsed.parameters.cfgValue,
       inferenceTimesteps: parsed.parameters.inferenceTimesteps,
+      minLen: parsed.parameters.minLen,
+      maxLen: parsed.parameters.maxLen,
       normalize: parsed.parameters.normalize,
       denoise: parsed.parameters.denoise,
       retryBadcase: parsed.parameters.retryBadcase,
+      retryBadcaseMaxTimes: parsed.parameters.retryBadcaseMaxTimes,
+      retryBadcaseRatioThreshold:
+        parsed.parameters.retryBadcaseRatioThreshold,
       voiceProfileId: profile.id,
       promptSourceChecksum: checksum(promptSourceBytes),
       promptTextChecksum: checksum(promptTextBytes),
@@ -299,14 +319,18 @@ export const resolveVoxcpmProfile = async ({
   }
   const referenceAudioChecksum = checksum(referenceAudioBytes);
   const safeDescriptor: SafeVoxcpmExecutionDescriptor = {
-    adapterId: "voxcpm-controllable-clone-http-v1",
+    adapterId: "voxcpm-controllable-clone-http-v2",
     modelId: parsed.modelId,
     mode: profile.mode,
     cfgValue: parsed.parameters.cfgValue,
     inferenceTimesteps: parsed.parameters.inferenceTimesteps,
+    minLen: parsed.parameters.minLen,
+    maxLen: parsed.parameters.maxLen,
     normalize: parsed.parameters.normalize,
     denoise: parsed.parameters.denoise,
     retryBadcase: parsed.parameters.retryBadcase,
+    retryBadcaseMaxTimes: parsed.parameters.retryBadcaseMaxTimes,
+    retryBadcaseRatioThreshold: parsed.parameters.retryBadcaseRatioThreshold,
     voiceProfileId: profile.id,
     referenceAudioChecksum,
     controlInstruction: profile.controlInstruction,

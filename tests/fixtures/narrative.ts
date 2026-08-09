@@ -39,10 +39,9 @@ export const validStorySpec = {
 } as const;
 
 export const validNarrationSpec = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   voiceProfileId: "primary-voice",
   mode: "voice-clone",
-  seed: 42,
 } as const;
 
 export const validRenderSpec = {

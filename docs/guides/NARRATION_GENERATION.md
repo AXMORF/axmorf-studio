@@ -29,7 +29,7 @@ Either way, the referenced JSON has this strict shape:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "baseUrl": "http://provider-host:port",
   "timeoutMs": 180000,
   "modelId": "operator-deployment-label",
@@ -37,9 +37,13 @@ Either way, the referenced JSON has this strict shape:
   "parameters": {
     "cfgValue": 2,
     "inferenceTimesteps": 10,
+    "minLen": 2,
+    "maxLen": 4096,
     "normalize": true,
     "denoise": false,
-    "retryBadcase": true
+    "retryBadcase": true,
+    "retryBadcaseMaxTimes": 3,
+    "retryBadcaseRatioThreshold": 6
   },
   "voiceProfiles": [
     {
@@ -52,6 +56,30 @@ Either way, the referenced JSON has this strict shape:
 }
 ```
 
+The strict generation ranges match the current provider API: `cfgValue` is 1–3,
+`inferenceTimesteps` is 4–30, `minLen` is 1–8192, `maxLen` is 2–8192 with
+`minLen <= maxLen`, `retryBadcaseMaxTimes` is 0–10, and
+`retryBadcaseRatioThreshold` is greater than zero. Both clone modes send every listed generation
+parameter plus `save=false`; unknown or removed fields such as `seed` fail closed. Provider
+`normalize` is a generation-time VoxCPM option, not LUFS loudness normalization or mastering.
+
+High-fidelity clone profiles instead use this strict profile shape:
+
+```json
+{
+  "id": "profile-id-from-narration-spec",
+  "mode": "high-fidelity-clone",
+  "promptAudioPath": "/absolute/operator-owned/prompt-audio.wav",
+  "promptTextPath": "/absolute/operator-owned/prompt-transcript.txt",
+  "promptTranscriptConfirmed": true
+}
+```
+
+The transcript must be the confirmed exact content of the prompt audio. The adapter normalizes the
+prompt source to canonical WAV and submits those same canonical bytes as both `prompt_audio` and
+`reference_audio` to `/clone_with_prompt`. High-fidelity mode forbids `controlInstruction`, `control`,
+and `emotion`; it never guesses or transcribes prompt text.
+
 An optional non-empty `token` may be added at the top level when the private deployment requires
 bearer-scheme authentication. Unknown keys, duplicate profiles, relative references, non-WAV references,
 unsupported modes, and missing files fail closed. Provider connection details, credentials, model
@@ -61,8 +89,28 @@ summaries, sealed manifests, evidence, logs, or Git. The exact default config pa
 Repository-local private reference inputs belong under the likewise ignored
 `voxcpm/voice_profile/` directory, never under tracked project assets.
 
-Only `generate` reads this file or calls the network. `seal` and `check` operate from local measured or
-sealed artifacts and must work when the provider and private file are unavailable.
+The host-only migration command upgrades an explicitly selected legacy profile without printing
+private configuration or source paths:
+
+```bash
+node --import tsx scripts/narration/migrate-private-config.ts --profile <voice-profile-id>
+```
+
+When the legacy reference audio has exactly one regular, non-symlink TXT sibling with the same stem,
+and the operator has personally confirmed that TXT is the audio's exact word-for-word transcript, the
+confirmation may be supplied explicitly:
+
+```bash
+node --import tsx scripts/narration/migrate-private-config.ts --profile <voice-profile-id> --confirm-adjacent-transcript
+```
+
+This option does not transcribe, compare, guess, or print the text. Missing, differently named,
+non-regular, symlinked, or ambiguous TXT candidates fail closed before the atomic private-config
+write. The prompt audio must also normalize successfully to canonical WAV.
+
+Only `generate` and the explicit migration entrypoint read this file; only `generate` calls the
+network. `seal` and `check` operate from local measured or sealed artifacts and must work when the
+provider and private file are unavailable.
 
 ## Commands
 
@@ -146,6 +194,12 @@ generated timing artifact is derived from that receipt plus RenderSpec timing fi
 Rerun the same `generate` command unchanged. Reuse occurs only when both the generation input and
 provider-attempt fingerprints match and the stored raw checksum, normalized checksum, canonical WAV,
 sample-frame count, authored identity, and request fingerprint all verify.
+
+The safe descriptor uses adapter IDs `voxcpm-controllable-clone-http-v2` and
+`voxcpm-high-fidelity-clone-http-v2`. It includes all generation parameters, profile identity, and
+content checksums while excluding endpoint, token, private paths, and raw private bytes. The
+provider-attempt fingerprint uses this descriptor, so changing any generation parameter or switching
+from a v1 adapter creates a new attempt and cannot reuse stale candidates.
 
 Changing the private deployment label, reference bytes, control instruction, or generation parameters
 creates a different provider-attempt fingerprint and a separate attempt directory. Stale candidates are

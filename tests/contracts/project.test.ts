@@ -14,7 +14,7 @@ import {
   validRenderSpec,
 } from "../fixtures/narrative";
 
-test("NarrationSpec stores only a voice reference and allowed generation controls", () => {
+test("NarrationSpec v2 stores only the voice-clone identity", () => {
   assert.deepEqual(
     NarrationSpecSchema.parse(validNarrationSpec),
     validNarrationSpec,
@@ -27,6 +27,9 @@ test("NarrationSpec stores only a voice reference and allowed generation control
   );
   assert.throws(() =>
     NarrationSpecSchema.parse({ ...validNarrationSpec, token: "secret" }),
+  );
+  assert.throws(() =>
+    NarrationSpecSchema.parse({ ...validNarrationSpec, seed: 42 }),
   );
 });
 
