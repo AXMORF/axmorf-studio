@@ -24,6 +24,13 @@ export const GlobalVisualLayers: React.FC = () => {
 };
 `;
 
+const literalNoPropsSource = validSource
+  .replace('import React from "react";\n', "")
+  .replace(
+    "export const GlobalVisualLayers: React.FC = () =>",
+    "export const GlobalVisualLayers = () =>",
+  );
+
 const prepareTypeScriptFixture = async (rootDir: string) => {
   await mkdir(join(rootDir, "src"), { recursive: true });
   await symlink(
@@ -60,6 +67,28 @@ test("collects a project-local frame-driven GlobalVisual source graph", async (c
   });
   assert.equal(graph.files.length, 2);
   assert.match(graph.sourceGraphFingerprint, /^sha256:/u);
+});
+
+test("accepts a literal zero-parameter GlobalVisual component", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-visual-zero-args-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  await prepareTypeScriptFixture(rootDir);
+  const sourceDir = join(rootDir, "src/projects/story-example/global-visual");
+  await mkdir(sourceDir, { recursive: true });
+  await writeFile(
+    join(sourceDir, "GlobalVisualLayers.tsx"),
+    literalNoPropsSource,
+  );
+  await writeFile(
+    join(sourceDir, "motif.ts"),
+    "export const opacityForFrame = (frame: number) => frame >= 0 ? 1 : 0;\n",
+  );
+
+  const graph = await collectGlobalVisualSourceGraph({
+    rootDir,
+    storyId: "story-example",
+  });
+  assert.equal(graph.files.length, 2);
 });
 
 test("rejects Scene caption audio visible text CSS and external runtime access", async (context) => {
