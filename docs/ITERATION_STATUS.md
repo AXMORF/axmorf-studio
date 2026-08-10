@@ -45,9 +45,9 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   owner-ready/failed receipt、detached watch start/worker、status 与 render-ready check。
 - watcher launch intent/receipt 使用 fixed cwd/argv/log、`shell:false`、`detached:true`；intent-only
   永久 ambiguous。缺失 owner receipt 永久 `waiting-for-owner-results`，无 timeout/retry/heartbeat。
-- `production-render-plan-v1` 绑定 Story/Run、Composition、source checksum、尺寸、fps、帧数、
-  layer/mix order 和固定 Remotion policy。
-- `production-render-ready-v1` 绑定 render plan 与全部 current assembly identities；终态固定为
+- `production-render-plan-v2` 绑定 Story/Run、sealed/mastered narration、Composition、source
+  checksum、尺寸、fps、帧数、layer/mix order 和固定 Remotion policy。
+- `production-render-ready-v2` 绑定 render plan 与全部 current assembly identities；终态固定为
   `render-ready / awaiting-automatic-delivery`。
 - GlobalVisual validator、generated Composition 与目标 Project compile gate 共享无 Props
   `GlobalVisualLayers` 类型合同；compile 使用仓库 tsconfig、`noEmit` 且只以 current

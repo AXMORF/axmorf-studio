@@ -11,6 +11,7 @@ export * from "./generation-input";
 export * from "./global-sound";
 export * from "./global-visual";
 export * from "./m1-validation";
+export * from "./mastered-narration";
 export * from "./narrative-baseline";
 export * from "./narration";
 export * from "./primitives";

@@ -33,6 +33,7 @@ import {staticFile} from "remotion";
 
 import {
   parseNarrativeProjectSource,
+  MasteredNarrationManifestSchema,
   ProductionRequirementsFreezeSchema,
   SealedNarrationManifestSchema,
   SemanticTimingSchema,
@@ -46,6 +47,7 @@ import {
   type NarrativeCoreProps,
 } from "../../remotion/runtime/narrative-core";
 import briefJson from "./brief.json";
+import masteredNarrationJson from "./generated/mastered-narration.generated.json";
 import sealedNarrationJson from "./generated/sealed-narration.generated.json";
 import semanticTimingJson from "./generated/semantic-timing.generated.json";
 import narrationJson from "./narration.json";
@@ -63,6 +65,8 @@ const projectSource = parseNarrativeProjectSource({
 });
 const sealedNarration =
   SealedNarrationManifestSchema.parse(sealedNarrationJson);
+const masteredNarration =
+  MasteredNarrationManifestSchema.parse(masteredNarrationJson);
 const semanticTiming = SemanticTimingSchema.parse(semanticTimingJson);
 const artifactBundle = validateM1ArtifactBundle({
   projectSource,
@@ -84,8 +88,18 @@ if (render.fps !== timing.fps) {
   throw new Error("Production Composition render and timing fps differ.");
 }
 
-const completeAudioLocalPath =
-  artifactBundle.sealedNarration.completeAudio.localPath;
+if (
+  masteredNarration.storyId !== storyId ||
+  masteredNarration.sealedNarrationFingerprint !==
+    artifactBundle.sealedNarration.sealedNarrationFingerprint ||
+  masteredNarration.sourceAudio.checksum !==
+    artifactBundle.sealedNarration.completeAudio.checksum ||
+  masteredNarration.outputAudio.sampleFrameCount !==
+    artifactBundle.sealedNarration.completeAudio.sampleFrameCount
+) {
+  throw new Error("Mastered narration identity is stale.");
+}
+const completeAudioLocalPath = masteredNarration.outputAudio.localPath;
 const expectedAudioPrefix = \`public/projects/\${storyId}/narration/\`;
 if (!completeAudioLocalPath.startsWith(expectedAudioPrefix)) {
   throw new Error("Complete narration must stay under the Story narration path.");
@@ -156,22 +170,33 @@ export const ensureProductionProjectScaffold = async ({
   if (actual === expected) {
     return { destination, written: false } as const;
   }
-  const isExactRenderScaffold = [false, true].some(
-    (sceneLocalSoundPresent) =>
-      [
-        renderProductionRenderProjectScaffold({
-          storyId,
-          sceneLocalSoundPresent,
-        }),
-        renderLegacyNoPropsProductionRenderProjectScaffold({
-          storyId,
-          sceneLocalSoundPresent,
-        }),
-        renderLegacyPropsProductionRenderProjectScaffold({
-          storyId,
-          sceneLocalSoundPresent,
-        }),
-      ].includes(actual ?? ""),
+  const isExactRenderScaffold = [false, true].some((sceneLocalSoundPresent) =>
+    [
+      renderProductionRenderProjectScaffold({
+        storyId,
+        sceneLocalSoundPresent,
+      }),
+      renderPreMasteringProductionRenderProjectScaffold({
+        storyId,
+        sceneLocalSoundPresent,
+      }),
+      renderLegacyNoPropsProductionRenderProjectScaffold({
+        storyId,
+        sceneLocalSoundPresent,
+      }),
+      renderLegacyPropsProductionRenderProjectScaffold({
+        storyId,
+        sceneLocalSoundPresent,
+      }),
+      renderPreMasteringLegacyNoPropsProductionRenderProjectScaffold({
+        storyId,
+        sceneLocalSoundPresent,
+      }),
+      renderPreMasteringLegacyPropsProductionRenderProjectScaffold({
+        storyId,
+        sceneLocalSoundPresent,
+      }),
+    ].includes(actual ?? ""),
   );
   if (isExactRenderScaffold && mode === "write") {
     const result = await writeProductionFileAtomic({
@@ -391,6 +416,7 @@ const renderProductionRenderProjectScaffoldVariant = ({
   storyId: rawStoryId,
   sceneLocalSoundPresent,
   globalVisualComponentInterface,
+  masteredNarration,
 }: {
   readonly storyId: string;
   readonly sceneLocalSoundPresent: boolean;
@@ -398,6 +424,7 @@ const renderProductionRenderProjectScaffoldVariant = ({
     | "current-no-props"
     | "legacy-no-props"
     | "legacy-props";
+  readonly masteredNarration: boolean;
 }) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
   const componentName = componentNameFor(storyId);
@@ -427,17 +454,37 @@ const globalVisualProjection = GlobalVisualProjectionSchema.parse(globalVisualPr
 if (globalVisualProjection.schemaVersion !== 2 || globalVisualPlan.storyId !== storyId || globalVisualPlan.compositionId !== render.compositionId || globalVisualProjection.storyId !== storyId || globalVisualProjection.compositionId !== render.compositionId || globalVisualProjection.durationInFrames !== timing.durationInFrames || renderPlan.globalVisual.planFingerprint !== globalVisualPlan.planFingerprint || renderPlan.globalVisual.projectionFingerprint !== globalVisualProjection.projectionFingerprint) {
   throw new Error("Production GlobalVisual runtime identity is stale.");
 }
-${globalVisualComponentInterface === "current-no-props"
-  ? "const ProductionGlobalVisualLayers: GlobalVisualLayersComponent<typeof GlobalVisualLayers> = GlobalVisualLayers;\n"
-  : globalVisualComponentInterface === "legacy-no-props"
-    ? "const ProductionGlobalVisualLayers: GlobalVisualLayersComponent = GlobalVisualLayers;\n"
-    : ""}`;
+${
+  globalVisualComponentInterface === "current-no-props"
+    ? "const ProductionGlobalVisualLayers: GlobalVisualLayersComponent<typeof GlobalVisualLayers> = GlobalVisualLayers;\n"
+    : globalVisualComponentInterface === "legacy-no-props"
+      ? "const ProductionGlobalVisualLayers: GlobalVisualLayersComponent = GlobalVisualLayers;\n"
+      : ""
+}`;
   const globalVisualProp =
     globalVisualComponentInterface !== "legacy-props"
       ? `
     globalVisualBackgroundLayers={<ProductionGlobalVisualLayers />}`
       : `
     globalVisualBackgroundLayers={<GlobalVisualLayers plan={globalVisualPlan} projection={globalVisualProjection} />}`;
+  const masteredNarrationContractImport = masteredNarration
+    ? "  MasteredNarrationManifestSchema,\n"
+    : "";
+  const masteredNarrationJsonImport = masteredNarration
+    ? 'import masteredNarrationJson from "./generated/mastered-narration.generated.json";\n'
+    : "";
+  const masteredNarrationSetup = masteredNarration
+    ? "const masteredNarration = MasteredNarrationManifestSchema.parse(masteredNarrationJson);\n"
+    : "";
+  const narrationIdentityCheck = masteredNarration
+    ? `if (masteredNarration.storyId !== storyId || masteredNarration.sealedNarrationFingerprint !== artifactBundle.sealedNarration.sealedNarrationFingerprint || masteredNarration.masteredNarrationFingerprint !== renderPlan.masteredNarrationFingerprint || masteredNarration.sourceAudio.checksum !== artifactBundle.sealedNarration.completeAudio.checksum || masteredNarration.outputAudio.sampleFrameCount !== artifactBundle.sealedNarration.completeAudio.sampleFrameCount) {
+  throw new Error("Production mastered narration identity is stale.");
+}
+`
+    : "";
+  const completeAudioExpression = masteredNarration
+    ? "masteredNarration.outputAudio.localPath"
+    : "artifactBundle.sealedNarration.completeAudio.localPath";
   return `// ${PRODUCTION_RENDER_SCAFFOLD_MARKER}
 import type {FC} from "react";
 import {staticFile} from "remotion";
@@ -445,7 +492,7 @@ import {staticFile} from "remotion";
 import {
   GlobalVisualPlanSchema,
   GlobalVisualProjectionSchema,
-  parseNarrativeProjectSource,
+${masteredNarrationContractImport}  parseNarrativeProjectSource,
   ProductionRenderPlanSchema,
   ProductionRequirementsFreezeSchema,
   SealedNarrationManifestSchema,
@@ -459,7 +506,7 @@ import {NarrativeCore, type NarrativeCoreProps} from "../../remotion/runtime/nar
 ${soundImport}
 import {StoryVisualTrack} from "../../remotion/runtime/story-visual";
 import briefJson from "./brief.json";
-import renderPlanJson from "./generated/production-render-plan.generated.json";
+${masteredNarrationJsonImport}import renderPlanJson from "./generated/production-render-plan.generated.json";
 import sealedNarrationJson from "./generated/sealed-narration.generated.json";
 import semanticTimingJson from "./generated/semantic-timing.generated.json";
 import narrationJson from "./narration.json";
@@ -475,7 +522,7 @@ import {
 
 ${requirementsSetup}const projectSource = parseNarrativeProjectSource({brief: briefJson, story: storyJson, narration: narrationJson, render: renderJson});
 const sealedNarration = SealedNarrationManifestSchema.parse(sealedNarrationJson);
-const semanticTiming = SemanticTimingSchema.parse(semanticTimingJson);
+${masteredNarrationSetup}const semanticTiming = SemanticTimingSchema.parse(semanticTimingJson);
 const renderPlan = ProductionRenderPlanSchema.parse(renderPlanJson);
 const artifactBundle = validateM1ArtifactBundle({projectSource, sealedNarration, semanticTiming});
 const expectedStoryId = ${JSON.stringify(storyId)};
@@ -485,7 +532,7 @@ const timing = artifactBundle.semanticTiming;
 if (readabilityPolicy.width !== render.width || readabilityPolicy.height !== render.height || storyId !== expectedStoryId || renderPlan.storyId !== storyId || render.fps !== timing.fps || renderPlan.frameCount !== timing.durationInFrames) {
   throw new Error("Production render Composition identity is stale.");
 }
-${globalVisualSetup}const completeAudioLocalPath = artifactBundle.sealedNarration.completeAudio.localPath;
+${globalVisualSetup}${narrationIdentityCheck}const completeAudioLocalPath = ${completeAudioExpression};
 if (!completeAudioLocalPath.startsWith("public/projects/" + storyId + "/narration/")) throw new Error("Complete narration must stay under the Story narration path.");
 const completeNarrationSrc = staticFile(completeAudioLocalPath.slice("public/".length));
 export const productionNarrativeCompositionMetadata = {
@@ -519,6 +566,17 @@ export const renderProductionRenderProjectScaffold = (input: {
   renderProductionRenderProjectScaffoldVariant({
     ...input,
     globalVisualComponentInterface: "current-no-props",
+    masteredNarration: true,
+  });
+
+const renderPreMasteringProductionRenderProjectScaffold = (input: {
+  readonly storyId: string;
+  readonly sceneLocalSoundPresent: boolean;
+}) =>
+  renderProductionRenderProjectScaffoldVariant({
+    ...input,
+    globalVisualComponentInterface: "current-no-props",
+    masteredNarration: false,
   });
 
 const renderLegacyPropsProductionRenderProjectScaffold = (input: {
@@ -528,6 +586,7 @@ const renderLegacyPropsProductionRenderProjectScaffold = (input: {
   renderProductionRenderProjectScaffoldVariant({
     ...input,
     globalVisualComponentInterface: "legacy-props",
+    masteredNarration: true,
   });
 
 const renderLegacyNoPropsProductionRenderProjectScaffold = (input: {
@@ -537,6 +596,27 @@ const renderLegacyNoPropsProductionRenderProjectScaffold = (input: {
   renderProductionRenderProjectScaffoldVariant({
     ...input,
     globalVisualComponentInterface: "legacy-no-props",
+    masteredNarration: true,
+  });
+
+const renderPreMasteringLegacyPropsProductionRenderProjectScaffold = (input: {
+  readonly storyId: string;
+  readonly sceneLocalSoundPresent: boolean;
+}) =>
+  renderProductionRenderProjectScaffoldVariant({
+    ...input,
+    globalVisualComponentInterface: "legacy-props",
+    masteredNarration: false,
+  });
+
+const renderPreMasteringLegacyNoPropsProductionRenderProjectScaffold = (input: {
+  readonly storyId: string;
+  readonly sceneLocalSoundPresent: boolean;
+}) =>
+  renderProductionRenderProjectScaffoldVariant({
+    ...input,
+    globalVisualComponentInterface: "legacy-no-props",
+    masteredNarration: false,
   });
 
 export const ensureProductionRenderScaffold = async ({
@@ -583,19 +663,38 @@ export const ensureProductionRenderScaffold = async ({
   }
   const current = await readFile(destination, "utf8");
   const narrativeScaffold = renderProductionProjectScaffold(storyId);
-  const legacyRenderScaffold =
-    renderLegacyPropsProductionRenderProjectScaffold({
+  const legacyRenderScaffold = renderLegacyPropsProductionRenderProjectScaffold(
+    {
+      storyId,
+      sceneLocalSoundPresent,
+    },
+  );
+  const legacyNoPropsRenderScaffold =
+    renderLegacyNoPropsProductionRenderProjectScaffold({
       storyId,
       sceneLocalSoundPresent,
     });
-  const legacyNoPropsRenderScaffold =
-    renderLegacyNoPropsProductionRenderProjectScaffold({
+  const preMasteringRenderScaffold =
+    renderPreMasteringProductionRenderProjectScaffold({
+      storyId,
+      sceneLocalSoundPresent,
+    });
+  const preMasteringLegacyRenderScaffold =
+    renderPreMasteringLegacyPropsProductionRenderProjectScaffold({
+      storyId,
+      sceneLocalSoundPresent,
+    });
+  const preMasteringLegacyNoPropsRenderScaffold =
+    renderPreMasteringLegacyNoPropsProductionRenderProjectScaffold({
       storyId,
       sceneLocalSoundPresent,
     });
   if (
     current !== expected &&
     current !== narrativeScaffold &&
+    current !== preMasteringRenderScaffold &&
+    current !== preMasteringLegacyNoPropsRenderScaffold &&
+    current !== preMasteringLegacyRenderScaffold &&
     current !== legacyNoPropsRenderScaffold &&
     current !== legacyRenderScaffold
   ) {

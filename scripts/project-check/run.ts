@@ -16,6 +16,7 @@ import {
   type NarrativeAutoCheckReport,
   type NarrativeAutoCheckReportInput,
   type NarrativeProjectSource,
+  type MasteredNarrationManifest,
   type SealedNarrationManifest,
   type SemanticTiming,
   type Sha256Digest,
@@ -28,6 +29,7 @@ import {
   type ProcessRunner,
 } from "../baseline/evidence";
 import { checkM2NarrationArtifacts } from "../narration/check";
+import { checkMasteredNarrationArtifacts } from "../narration/mastering";
 import { loadNarrationProjectFiles } from "../narration/project-files";
 import type { ValidatedProjectRegistrationEntry } from "../registry/domain";
 import { createNarrativeCheckItem, orderNarrativeCheckItems } from "./domain";
@@ -35,6 +37,7 @@ import {
   checksumFile,
   getProjectCheckPaths,
   loadProjectCheckM3Receipt,
+  loadProjectCheckMasteredNarration,
   loadProjectCheckSealedNarration,
   loadProjectCheckSemanticTiming,
 } from "./project-files";
@@ -74,10 +77,14 @@ export const checkNarrativeSourceHealth = async ({
   }
 
   let sealedNarration: SealedNarrationManifest;
+  let masteredNarration: MasteredNarrationManifest;
   let semanticTiming: SemanticTiming;
   try {
     sealedNarration = await loadProjectCheckSealedNarration(
       paths.sealedNarration,
+    );
+    masteredNarration = await loadProjectCheckMasteredNarration(
+      paths.masteredNarration,
     );
     semanticTiming = await loadProjectCheckSemanticTiming(paths.semanticTiming);
     const physicalCheckProjectSource = {
@@ -102,6 +109,18 @@ export const checkNarrativeSourceHealth = async ({
       m2.completeAudioChecksum !== sealedNarration.completeAudio.checksum
     ) {
       throw new Error("M2 checker identity does not match sealed narration.");
+    }
+    const master = await checkMasteredNarrationArtifacts({
+      rootDir,
+      storyId: paths.storyId,
+    });
+    if (
+      master.sealedNarrationFingerprint !==
+        sealedNarration.sealedNarrationFingerprint ||
+      master.masteredNarrationFingerprint !==
+        masteredNarration.masteredNarrationFingerprint
+    ) {
+      throw new Error("Mastered narration identity does not match its seal.");
     }
     validateM1ArtifactBundle({
       projectSource,
@@ -157,6 +176,7 @@ export const runNarrativeAutoCheck = async ({
     storyCheckFingerprint: null,
     generationInputFingerprint: null,
     sealedNarrationFingerprint: null,
+    masteredNarrationFingerprint: null,
     semanticTimingFingerprint: null,
     projectRegistryGeneratorId: PROJECT_REGISTRY_GENERATOR_ID,
     generatedRegistryChecksum: null,
@@ -176,6 +196,7 @@ export const runNarrativeAutoCheck = async ({
   let projectSource: NarrativeProjectSource | undefined;
   let storyCheck: StoryCheckReport | undefined;
   let sealedNarration: SealedNarrationManifest | undefined;
+  let masteredNarration: MasteredNarrationManifest | undefined;
   let semanticTiming: SemanticTiming | undefined;
   let entry: ValidatedProjectRegistrationEntry | undefined;
 
@@ -221,10 +242,15 @@ export const runNarrativeAutoCheck = async ({
     sealedNarration = await loadProjectCheckSealedNarration(
       paths.sealedNarration,
     );
+    masteredNarration = await loadProjectCheckMasteredNarration(
+      paths.masteredNarration,
+    );
     identity.generationInputFingerprint =
       sealedNarration.generationInputFingerprint;
     identity.sealedNarrationFingerprint =
       sealedNarration.sealedNarrationFingerprint;
+    identity.masteredNarrationFingerprint =
+      masteredNarration.masteredNarrationFingerprint;
     evidenceChecksums["sealed-manifest"] = await checksumFile(
       paths.sealedNarration,
     );
@@ -244,8 +270,24 @@ export const runNarrativeAutoCheck = async ({
       projectSource: physicalCheckProjectSource,
       storyCheck,
     });
+    const master = await checkMasteredNarrationArtifacts({
+      rootDir,
+      storyId: paths.storyId,
+      ...(runM3EvidenceProcess === undefined
+        ? {}
+        : {
+            runProcess: async (command, args) => {
+              const result = await runM3EvidenceProcess(command, args);
+              return {
+                exitCode: result.status,
+                stdout: Buffer.from(result.stdout),
+                stderr: Buffer.from(result.stderr),
+              };
+            },
+          }),
+    });
     evidenceChecksums["complete-wav"] = await checksumFile(
-      `${rootDir}/${sealedNarration.completeAudio.localPath}`,
+      `${rootDir}/${master.outputAudioPath}`,
     );
     if (
       m2.generationInputFingerprint !==
@@ -255,6 +297,15 @@ export const runNarrativeAutoCheck = async ({
       m2.completeAudioChecksum !== sealedNarration.completeAudio.checksum
     ) {
       throw new Error("M2 checker identity does not match sealed narration.");
+    }
+    if (
+      master.sealedNarrationFingerprint !==
+        sealedNarration.sealedNarrationFingerprint ||
+      master.masteredNarrationFingerprint !==
+        masteredNarration.masteredNarrationFingerprint ||
+      master.outputAudioChecksum !== masteredNarration.outputAudio.checksum
+    ) {
+      throw new Error("Mastered narration checker identity does not match.");
     }
     mark("sealed-narration", "pass");
   } catch (error) {
@@ -353,6 +404,7 @@ export const runNarrativeAutoCheck = async ({
     evidenceRefs: createNarrativeAutoCheckEvidenceRefs({
       storyId: paths.storyId,
       sealedNarrationFingerprint: identity.sealedNarrationFingerprint,
+      masteredNarrationFingerprint: identity.masteredNarrationFingerprint,
       checksums: evidenceChecksums,
     }),
     checks: NARRATIVE_AUTO_CHECK_IDS.map((checkId) =>

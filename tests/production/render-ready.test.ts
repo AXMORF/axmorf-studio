@@ -49,6 +49,7 @@ const readyFixture = async (context: TestContext) => {
     requirementsFingerprint: fixture.requirements.requirementsFingerprint,
     storyFingerprint: sha("1"),
     sealedNarrationFingerprint: sha("2"),
+    masteredNarrationFingerprint: sha("3"),
     semanticTimingFingerprint: sha("3"),
     captionCuesFingerprint: sha("4"),
     sceneCoverageFingerprint: sha("5"),
@@ -181,7 +182,9 @@ test("Composition compile failure is terminal before render-ready is written", a
       dependencies: {
         ...fixture.dependencies,
         compileProjectComposition: async () => {
-          throw new Error("Target Project Composition TypeScript compile failed (TS2322).");
+          throw new Error(
+            "Target Project Composition TypeScript compile failed (TS2322).",
+          );
         },
         writeOrCheckRenderReady: async (request) => {
           if (request.mode === "write") readyWrites += 1;

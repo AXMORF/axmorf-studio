@@ -91,12 +91,13 @@ Cover 缺失或失败都不会把 production 变成 failed，只会阻止 automa
 watcher 从 immutable N+1 results 投影 Coverage、RendererRegistry、visual/sound projections、
 GlobalVisualProjection、FinalAssembly 与 current Composition。之后构建：
 
-- `production-render-plan-v1`：绑定 story/run、Composition/source checksum、width/height、fps、
-  frameCount、layer/mix order 与固定 Remotion policy；
+- `production-render-plan-v2`：绑定 story/run、sealed narration、content-addressed mastered
+  narration、Composition/source checksum、width/height、fps、frameCount、layer/mix order 与固定
+  Remotion policy；
 - `GlobalVisualLayers` 的固定接口是无 Props；plan/projection 由 Composition 顶层解析并校验
   identity，不传给组件。render plan 与最终 Composition current 后，fixed flow 用仓库
   TypeScript/tsconfig 和 `noEmit` 只编译该 Project 的真实 import graph；
-- `production-render-ready-v1`：绑定 plan 及全部 render-critical identities，状态
+- `production-render-ready-v2`：绑定 plan 及全部 render-critical identities，状态
   `render-ready`，handoff `awaiting-automatic-delivery`。
 
 任何类型不兼容都在写入 ProductionRenderReady 前终止当前 Run。

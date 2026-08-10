@@ -38,7 +38,11 @@ const createCompileFixture = async () => {
   await mkdir(generatedRoot, { recursive: true });
   await mkdir(globalVisualRoot, { recursive: true });
   await mkdir(join(projectRoot, "production"), { recursive: true });
-  await symlink(join(repositoryRoot, "node_modules"), join(rootDir, "node_modules"), "dir");
+  await symlink(
+    join(repositoryRoot, "node_modules"),
+    join(rootDir, "node_modules"),
+    "dir",
+  );
   await symlink(
     join(repositoryRoot, "src/contracts"),
     join(rootDir, "src/contracts"),
@@ -63,6 +67,7 @@ const createCompileFixture = async () => {
       "production/requirements.json",
       "generated/global-visual-projection.generated.json",
       "generated/production-render-plan.generated.json",
+      "generated/mastered-narration.generated.json",
       "generated/sealed-narration.generated.json",
       "generated/semantic-timing.generated.json",
     ].map((path) => writeJson(join(projectRoot, path))),

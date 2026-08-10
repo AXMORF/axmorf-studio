@@ -15,6 +15,7 @@ const planInput = {
   requirementsFingerprint: sha("1"),
   storyFingerprint: sha("2"),
   sealedNarrationFingerprint: sha("3"),
+  masteredNarrationFingerprint: sha("4"),
   semanticTimingFingerprint: sha("4"),
   captionCuesFingerprint: sha("5"),
   sceneCoverageFingerprint: sha("6"),
@@ -48,9 +49,12 @@ test("builds one current render plan and terminal render-ready contract", () => 
   const plan = buildProductionRenderPlan(planInput);
   const ready = buildProductionRenderReady({ plan });
 
-  assert.equal(plan.contractVersion, "production-render-plan-v1");
-  assert.equal(plan.renderPolicy.policyVersion, "remotion-detached-h264-aac-v1");
-  assert.equal(ready.contractVersion, "production-render-ready-v1");
+  assert.equal(plan.contractVersion, "production-render-plan-v2");
+  assert.equal(
+    plan.renderPolicy.policyVersion,
+    "remotion-detached-h264-aac-v1",
+  );
+  assert.equal(ready.contractVersion, "production-render-ready-v2");
   assert.equal(ready.status, "render-ready");
   assert.equal(ready.handoff, "awaiting-automatic-delivery");
   assert.equal(ready.renderPlanFingerprint, plan.renderPlanFingerprint);

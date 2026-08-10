@@ -37,10 +37,7 @@ const createDependencies = (
   },
   sealNarration: async (request) => {
     calls.push("seal");
-    assert.equal(
-      request.supersedeFingerprint,
-      expectedSupersedeFingerprint,
-    );
+    assert.equal(request.supersedeFingerprint, expectedSupersedeFingerprint);
     return {
       generationInputFingerprint: sha("2"),
       sealedNarrationFingerprint: sha("3"),
@@ -55,6 +52,26 @@ const createDependencies = (
       sealedNarrationFingerprint: sha("3"),
       semanticTimingFingerprint: sha("4"),
       completeAudioChecksum: sha("5"),
+    };
+  },
+  masterNarration: async () => {
+    calls.push("master-narration");
+    return {
+      masteredNarrationFingerprint: sha("f"),
+      outputAudioPath:
+        "public/projects/story-example/narration/mastered/complete.wav",
+      outputAudioChecksum: sha("0"),
+      outputAudioSampleFrameCount: 48_000,
+    };
+  },
+  checkMasteredNarration: async () => {
+    calls.push("check-mastered-narration");
+    return {
+      masteredNarrationFingerprint: sha("f"),
+      outputAudioPath:
+        "public/projects/story-example/narration/mastered/complete.wav",
+      outputAudioChecksum: sha("0"),
+      outputAudioSampleFrameCount: 48_000,
     };
   },
   generateRegistry: async () => {
@@ -105,6 +122,8 @@ const fullOrder = [
   "generate",
   "seal",
   "check-narration",
+  "master-narration",
+  "check-mastered-narration",
   "generate-registry",
   "check-registry",
   "compositions",
@@ -140,7 +159,7 @@ test("runs the fixed narrative chain and binds outputs only at baseline-ready", 
       "stage-succeeded:narrative",
     ],
   );
-  assert.equal(loaded.state.outputArtifacts.length, 10);
+  assert.equal(loaded.state.outputArtifacts.length, 12);
 });
 
 test("passes an explicitly authorized active seal identity to narration sealing", async (context) => {
@@ -171,6 +190,8 @@ test("each failed step records one safe failure and stops all later steps", asyn
             generate: "generateNarration",
             seal: "sealNarration",
             "check-narration": "checkNarration",
+            "master-narration": "masterNarration",
+            "check-mastered-narration": "checkMasteredNarration",
             "generate-registry": "generateRegistry",
             "check-registry": "checkRegistry",
             compositions: "listCompositions",
@@ -186,6 +207,8 @@ test("each failed step records one safe failure and stops all later steps", asyn
           generate: "generateNarration",
           seal: "sealNarration",
           "check-narration": "checkNarration",
+          "master-narration": "masterNarration",
+          "check-mastered-narration": "checkMasteredNarration",
           "generate-registry": "generateRegistry",
           "check-registry": "checkRegistry",
           compositions: "listCompositions",
@@ -255,6 +278,7 @@ test("repeating a current baseline is read-only and checks persisted identities"
   assert.equal(repeated.noOp, true);
   assert.deepEqual(calls, [
     "check-narration",
+    "check-mastered-narration",
     "check-registry",
     "compositions",
     "check-evidence",

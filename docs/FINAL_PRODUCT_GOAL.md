@@ -16,13 +16,14 @@
 
 1. 把内容结构化为 Story、StoryBeat、Agent-authored ttsChunks、RenderSpec 与
    PublishingIntent；
-2. 用 sealed PCM 实测生成 SemanticTiming 与 CaptionCue；
+2. 用 sealed PCM 实测生成 SemanticTiming 与 CaptionCue，并生成保持 PCM 格式与 sample count
+   不变的响度母带；
 3. 冻结全部 owner assignments，exactly once 启动 detached watcher；
 4. 主 Agent 用 `create_thread` 派发每个 meaningId 的 Scene、一个 GlobalVisual 与一个 Cover 独立
    用户任务，全部创建成功后立即结束；
 5. owner 只发布 assignment-bound immutable receipt，watcher 串行 check/submit 并汇合
    current FinalAssembly；
-6. 冻结 `production-render-plan-v1` 和 `production-render-ready-v1`，到达
+6. 冻结 `production-render-plan-v2` 和 `production-render-ready-v2`，到达
    `render-ready / awaiting-automatic-delivery`；
 7. Cover ready 后准备 non-MP4 delivery package，在 spawn 前 exactly once 写 launch intent；
 8. detached spawn Remotion，收到 OS `spawn` 后写 receipt 并到达

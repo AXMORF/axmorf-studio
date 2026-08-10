@@ -11,9 +11,9 @@ import {
 import { ProductionRunIdSchema } from "./production-run";
 
 export const PRODUCTION_RENDER_PLAN_VERSION =
-  "production-render-plan-v1" as const;
+  "production-render-plan-v2" as const;
 export const PRODUCTION_RENDER_READY_VERSION =
-  "production-render-ready-v1" as const;
+  "production-render-ready-v2" as const;
 export const PRODUCTION_RENDER_POLICY_VERSION =
   "remotion-detached-h264-aac-v1" as const;
 
@@ -58,10 +58,15 @@ const RenderPlanInputObject = z
     requirementsFingerprint: Sha256DigestSchema,
     storyFingerprint: Sha256DigestSchema,
     sealedNarrationFingerprint: Sha256DigestSchema,
+    masteredNarrationFingerprint: Sha256DigestSchema,
     semanticTimingFingerprint: Sha256DigestSchema,
     captionCuesFingerprint: Sha256DigestSchema,
     sceneCoverageFingerprint: Sha256DigestSchema,
-    scenePackages: z.array(ScenePackageIdentitySchema).min(1).max(256).readonly(),
+    scenePackages: z
+      .array(ScenePackageIdentitySchema)
+      .min(1)
+      .max(256)
+      .readonly(),
     rendererRegistryFingerprint: Sha256DigestSchema,
     storyVisualProjectionFingerprint: Sha256DigestSchema,
     sceneSoundProjectionFingerprint: Sha256DigestSchema,
@@ -161,7 +166,8 @@ const RenderReadyInputObject = z
   })
   .strict();
 
-export const ProductionRenderReadyInputSchema = RenderReadyInputObject.readonly();
+export const ProductionRenderReadyInputSchema =
+  RenderReadyInputObject.readonly();
 
 export const computeProductionRenderReadyFingerprint = (rawInput: unknown) => {
   const record = { ...(rawInput as Record<string, unknown>) };

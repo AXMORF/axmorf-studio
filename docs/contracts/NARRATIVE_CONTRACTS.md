@@ -49,9 +49,9 @@ fingerprint. The identity binds StorySpec, RenderSpec, sealed narration, Semanti
 registry-entry identity and `narrative-core-v2`. Baseline evidence then adds exact transparent PNG and
 full-render checksums without changing the upstream identity.
 
-`narrative-auto-check-v1` binds the complete strict report body, including current source/StoryCheck,
-seal/timing, registry/baseline/evidence identities, fixed evidence checksums and the ordered mechanical
-results. Unknown fields fail closed.
+`narrative-auto-check-v2` binds the complete strict report body, including current source/StoryCheck,
+seal, content-addressed mastered narration, timing, registry/baseline/evidence identities, fixed
+evidence checksums and the ordered mechanical results. Unknown fields fail closed.
 
 ## Sealed narration
 
@@ -61,6 +61,12 @@ sealed narration fingerprint. The current workflow normalizes real provider byte
 WAV sample frames, validates selected files and checksums, assembles the complete WAV, and publishes the
 immutable content-addressed directory plus active receipt atomically. The read-only checker validates
 the persisted contract against the actual files.
+
+`MasteredNarrationManifestSchema` binds that seal to a two-pass FFmpeg loudness result. The output
+remains canonical mono 48 kHz signed 16-bit PCM with the exact sealed sample-frame count, lives in an
+immutable directory addressed by its own fingerprint, targets `-16 LUFS` / `-1.5 dBTP`, and passes
+only within the fixed integrated-loudness range and true-peak ceiling. SemanticTiming continues to
+derive exclusively from the sealed PCM; the mastered WAV is the render playback artifact.
 
 ## StoryCheck and operational work
 

@@ -47,6 +47,13 @@ type NarrationResult = Readonly<{
   completeAudioChecksum: string;
 }>;
 
+type MasteringResult = Readonly<{
+  masteredNarrationFingerprint: string;
+  outputAudioPath: string;
+  outputAudioChecksum: string;
+  outputAudioSampleFrameCount: number;
+}>;
+
 type RegistryResult = Readonly<{
   compositionId: string;
   generatedRegistryChecksum: string;
@@ -85,6 +92,10 @@ export type NarrativeProductionDependencies = Readonly<{
       }>,
   ) => Promise<NarrationResult>;
   checkNarration: (request: CommonStepRequest) => Promise<NarrationResult>;
+  masterNarration: (request: CommonStepRequest) => Promise<MasteringResult>;
+  checkMasteredNarration: (
+    request: CommonStepRequest,
+  ) => Promise<MasteringResult>;
   generateRegistry: (request: CommonStepRequest) => Promise<void>;
   checkRegistry: (request: CommonStepRequest) => Promise<RegistryResult>;
   listCompositions: (
@@ -209,6 +220,16 @@ export const createDefaultNarrativeProductionDependencies = ({
       throw new Error("Narration check returned the wrong command result.");
     }
     return result.result;
+  },
+  masterNarration: async ({ rootDir, storyId }) => {
+    const { writeMasteredNarrationArtifacts } =
+      await import("../../narration/mastering");
+    return writeMasteredNarrationArtifacts({ rootDir, storyId });
+  },
+  checkMasteredNarration: async ({ rootDir, storyId }) => {
+    const { checkMasteredNarrationArtifacts } =
+      await import("../../narration/mastering");
+    return checkMasteredNarrationArtifacts({ rootDir, storyId });
   },
   generateRegistry: async ({ rootDir }) => {
     await generateProjectRegistry({ rootDir, mode: "write" });
@@ -358,6 +379,23 @@ const assertSameFingerprint = (
   if (expected !== actual) throw new Error(`${label} identity is stale.`);
 };
 
+const assertSameMasteringIdentity = (
+  expected: MasteringResult,
+  actual: MasteringResult,
+) => {
+  if (
+    expected.masteredNarrationFingerprint !==
+      actual.masteredNarrationFingerprint ||
+    expected.outputAudioPath !== actual.outputAudioPath ||
+    expected.outputAudioChecksum !== actual.outputAudioChecksum ||
+    expected.outputAudioSampleFrameCount !== actual.outputAudioSampleFrameCount
+  ) {
+    throw new Error(
+      "Narration mastering writer and checker identities differ.",
+    );
+  }
+};
+
 const verifyCurrentNarrative = async ({
   common,
   dependencies,
@@ -366,6 +404,7 @@ const verifyCurrentNarrative = async ({
   readonly dependencies: NarrativeProductionDependencies;
 }) => {
   await dependencies.checkNarration(common);
+  await dependencies.checkMasteredNarration(common);
   const registry = await dependencies.checkRegistry(common);
   await dependencies.listCompositions({
     ...common,
@@ -491,6 +530,9 @@ export const runProductionNarrative = async ({
       );
       const checked = await dependencies.checkNarration(common);
       assertSameNarrationIdentity(sealed, checked);
+      const mastered = await dependencies.masterNarration(common);
+      const checkedMaster = await dependencies.checkMasteredNarration(common);
+      assertSameMasteringIdentity(mastered, checkedMaster);
       await dependencies.generateRegistry(common);
       const registry = await dependencies.checkRegistry(common);
       await dependencies.listCompositions({
@@ -552,6 +594,16 @@ export const runProductionNarrative = async ({
             artifactId: "complete-narration-audio",
             repositoryPath: `public/projects/${initial.run.storyId}/narration/complete.wav`,
             fingerprint: sealed.completeAudioChecksum,
+          },
+          {
+            artifactId: "mastered-narration",
+            repositoryPath: `src/projects/${initial.run.storyId}/generated/mastered-narration.generated.json`,
+            fingerprint: mastered.masteredNarrationFingerprint,
+          },
+          {
+            artifactId: "mastered-narration-audio",
+            repositoryPath: mastered.outputAudioPath,
+            fingerprint: mastered.outputAudioChecksum,
           },
           {
             artifactId: "project-registry",

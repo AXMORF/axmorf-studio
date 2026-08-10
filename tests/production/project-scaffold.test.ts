@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -62,6 +69,9 @@ test("render scaffold binds the frozen plan and current GlobalVisual layer", asy
   );
   assert.match(source, new RegExp(PRODUCTION_RENDER_SCAFFOLD_MARKER));
   assert.match(source, /ProductionRenderPlanSchema/u);
+  assert.match(source, /MasteredNarrationManifestSchema/u);
+  assert.match(source, /masteredNarrationJson/u);
+  assert.match(source, /masteredNarration\.outputAudio\.localPath/u);
   assert.match(source, /globalVisualBackgroundLayers/u);
   assert.match(source, /GlobalVisualLayersComponent/u);
   assert.match(source, /<ProductionGlobalVisualLayers \/>/u);

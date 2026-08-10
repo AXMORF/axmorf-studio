@@ -7,13 +7,9 @@ import {
 } from "./narrative-baseline";
 import { Sha256DigestSchema, StoryIdSchema } from "./primitives";
 import { RenderSpecSchema, type RenderSpec } from "./render";
-import {
-  StoryCheckReportSchema,
-  type StoryCheckReport,
-} from "./story-check";
+import { StoryCheckReportSchema, type StoryCheckReport } from "./story-check";
 
-export const NARRATIVE_AUTO_CHECK_VERSION =
-  "narrative-auto-check-v1" as const;
+export const NARRATIVE_AUTO_CHECK_VERSION = "narrative-auto-check-v2" as const;
 
 export const NARRATIVE_AUTO_CHECK_IDS = [
   "source-contracts",
@@ -45,8 +41,7 @@ export const NARRATIVE_AUTO_CHECK_FAILURE_CODES = [
   "unexpected",
 ] as const;
 
-export type NarrativeAutoCheckId =
-  (typeof NARRATIVE_AUTO_CHECK_IDS)[number];
+export type NarrativeAutoCheckId = (typeof NARRATIVE_AUTO_CHECK_IDS)[number];
 export type NarrativeAutoCheckEvidenceId =
   (typeof NARRATIVE_AUTO_CHECK_EVIDENCE_IDS)[number];
 
@@ -75,9 +70,7 @@ const NarrativeAutoCheckItemSchema = z
   .object({
     checkId: z.enum(NARRATIVE_AUTO_CHECK_IDS),
     status: z.enum(["pass", "fail"]),
-    evidenceIds: z
-      .array(z.enum(NARRATIVE_AUTO_CHECK_EVIDENCE_IDS))
-      .readonly(),
+    evidenceIds: z.array(z.enum(NARRATIVE_AUTO_CHECK_EVIDENCE_IDS)).readonly(),
     failureReasons: z.array(NarrativeAutoCheckFailureReasonSchema).readonly(),
   })
   .strict()
@@ -90,6 +83,7 @@ const NarrativeAutoCheckInputIdentitySchema = z
     storyCheckFingerprint: Sha256DigestSchema.nullable(),
     generationInputFingerprint: Sha256DigestSchema.nullable(),
     sealedNarrationFingerprint: Sha256DigestSchema.nullable(),
+    masteredNarrationFingerprint: Sha256DigestSchema.nullable(),
     semanticTimingFingerprint: Sha256DigestSchema.nullable(),
     projectRegistryGeneratorId: z
       .literal(PROJECT_REGISTRY_GENERATOR_ID)
@@ -145,16 +139,20 @@ const NarrativeAutoCheckReportInputObject = z
 const expectedEvidencePaths = ({
   storyId,
   sealedNarrationFingerprint,
+  masteredNarrationFingerprint,
 }: {
   readonly storyId: string;
   readonly sealedNarrationFingerprint: string | null;
+  readonly masteredNarrationFingerprint: string | null;
 }) => {
   const sealDirectory =
     sealedNarrationFingerprint?.slice("sha256:".length) ?? "unavailable";
+  const masterDirectory =
+    masteredNarrationFingerprint?.slice("sha256:".length) ?? "unavailable";
   return [
     `src/projects/${storyId}/reviews/story-check.json`,
     `src/projects/${storyId}/generated/sealed-narration.generated.json`,
-    `public/projects/${storyId}/narration/${sealDirectory}/complete.wav`,
+    `public/projects/${storyId}/narration/${sealDirectory}/mastered/${masterDirectory}/complete.wav`,
     `src/projects/${storyId}/generated/semantic-timing.generated.json`,
     "src/projects/project-registry.generated.ts",
     `src/projects/${storyId}/generated/narrative-baseline-evidence.generated.json`,
@@ -182,8 +180,9 @@ const addReportIssues = (
 ) => {
   const expectedPaths = expectedEvidencePaths({
     storyId: report.storyId,
-    sealedNarrationFingerprint:
-      report.inputIdentity.sealedNarrationFingerprint,
+    sealedNarrationFingerprint: report.inputIdentity.sealedNarrationFingerprint,
+    masteredNarrationFingerprint:
+      report.inputIdentity.masteredNarrationFingerprint,
   });
   report.evidenceRefs.forEach((reference, index) => {
     if (reference.evidenceId !== NARRATIVE_AUTO_CHECK_EVIDENCE_IDS[index]) {
@@ -280,8 +279,8 @@ export const computeNarrativeAutoCheckReportFingerprint = (
   });
 };
 
-export const NarrativeAutoCheckReportSchema = NarrativeAutoCheckReportObject
-  .superRefine((report, context) => {
+export const NarrativeAutoCheckReportSchema =
+  NarrativeAutoCheckReportObject.superRefine((report, context) => {
     addReportIssues(report, context);
     const { reportFingerprint, ...input } = report;
     let expectedFingerprint;
@@ -297,8 +296,7 @@ export const NarrativeAutoCheckReportSchema = NarrativeAutoCheckReportObject
         path: ["reportFingerprint"],
       });
     }
-  })
-  .readonly();
+  }).readonly();
 
 export type NarrativeAutoCheckReport = z.infer<
   typeof NarrativeAutoCheckReportSchema
@@ -311,9 +309,7 @@ export const computeRenderSpecFingerprint = (rawRender: RenderSpec) =>
     value: RenderSpecSchema.parse(rawRender),
   });
 
-export const computeStoryCheckFingerprint = (
-  rawStoryCheck: StoryCheckReport,
-) =>
+export const computeStoryCheckFingerprint = (rawStoryCheck: StoryCheckReport) =>
   createFingerprint({
     namespace: "story-check-report",
     version: 1,
@@ -323,10 +319,12 @@ export const computeStoryCheckFingerprint = (
 export const createNarrativeAutoCheckEvidenceRefs = ({
   storyId: rawStoryId,
   sealedNarrationFingerprint: rawSealedNarrationFingerprint,
+  masteredNarrationFingerprint: rawMasteredNarrationFingerprint,
   checksums,
 }: {
   readonly storyId: string;
   readonly sealedNarrationFingerprint: string | null;
+  readonly masteredNarrationFingerprint: string | null;
   readonly checksums: Readonly<
     Record<NarrativeAutoCheckEvidenceId, string | null>
   >;
@@ -336,9 +334,14 @@ export const createNarrativeAutoCheckEvidenceRefs = ({
     rawSealedNarrationFingerprint === null
       ? null
       : Sha256DigestSchema.parse(rawSealedNarrationFingerprint);
+  const masteredNarrationFingerprint =
+    rawMasteredNarrationFingerprint === null
+      ? null
+      : Sha256DigestSchema.parse(rawMasteredNarrationFingerprint);
   const paths = expectedEvidencePaths({
     storyId,
     sealedNarrationFingerprint,
+    masteredNarrationFingerprint,
   });
   return NARRATIVE_AUTO_CHECK_EVIDENCE_IDS.map((evidenceId, index) =>
     NarrativeAutoCheckEvidenceRefSchema.parse({

@@ -76,7 +76,8 @@ repo 不存 Agent lifecycle、task、thread、progress、聊天或 heartbeat。
 当前状态机只接受：production-start → narrative → scene-freeze → waiting-for-owner-results →
 render-ready。缺失 receipt 永久等待，不使用 assignment deadline、heartbeat、timeout 或 retry。
 终态绑定
-`production-render-plan-v1` 与 `production-render-ready-v1`，不包含媒体渲染阶段。
+`production-render-plan-v2` 与 `production-render-ready-v2`，不包含媒体渲染阶段。render plan
+同时绑定 sealed narration 与其确定性、content-addressed 响度母带。
 
 Scene authoring 期使用 repository-local `.agents/skills/remotion-best-practices/SKILL.md` router 与
 按需 references，但 AGENTS、assignment、contracts 和 validators 优先。该 Skill 不进入

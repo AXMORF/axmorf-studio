@@ -46,7 +46,7 @@
 - GlobalVisual 只 owns project-local 背景、纹理、装饰和连续性 motif，不读取 Scene 输出，不
   渲染字幕/音频，不扩张为 Track、Scene DSL、自动布局或自动导演。
 - production 的唯一成功终点是 `render-ready / awaiting-automatic-delivery`。它绑定
-  `production-render-plan-v1` 与 `production-render-ready-v1`，不生成或检查最终 MP4。
+  `production-render-plan-v2` 与 `production-render-ready-v2`，不生成或检查最终 MP4。
 - Cover missing/stale 不阻止 render-ready，但阻止自动 delivery build。
 - 主 Agent 在冻结全部 assignment 后先启动 detached watcher，再用 Codex `create_thread` 创建 N 个
   Scene、一个 GlobalVisual 和一个 Cover 独立用户任务；全部创建调用完成后立即结束，不等待

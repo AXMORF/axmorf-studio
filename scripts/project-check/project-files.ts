@@ -4,11 +4,13 @@ import { join } from "node:path";
 
 import {
   M3NarrativeBaselineEvidenceReceiptSchema,
+  MasteredNarrationManifestSchema,
   SealedNarrationManifestSchema,
   SemanticTimingSchema,
   Sha256DigestSchema,
   StoryIdSchema,
   type M3NarrativeBaselineEvidenceReceipt,
+  type MasteredNarrationManifest,
   type SealedNarrationManifest,
   type SemanticTiming,
   type Sha256Digest,
@@ -34,6 +36,10 @@ export const getProjectCheckPaths = ({
     sealedNarration: join(
       projectDirectory,
       "generated/sealed-narration.generated.json",
+    ),
+    masteredNarration: join(
+      projectDirectory,
+      "generated/mastered-narration.generated.json",
     ),
     semanticTiming: join(
       projectDirectory,
@@ -102,6 +108,13 @@ export const loadProjectCheckSealedNarration = async (
 ): Promise<SealedNarrationManifest> =>
   SealedNarrationManifestSchema.parse(
     await readJson(path, "sealed-narration.generated.json"),
+  );
+
+export const loadProjectCheckMasteredNarration = async (
+  path: string,
+): Promise<MasteredNarrationManifest> =>
+  MasteredNarrationManifestSchema.parse(
+    await readJson(path, "mastered-narration.generated.json"),
   );
 
 export const loadProjectCheckSemanticTiming = async (

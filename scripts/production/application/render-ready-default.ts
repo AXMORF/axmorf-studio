@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import {
   GlobalVisualProductionResultSchema,
+  MasteredNarrationManifestSchema,
   NarrativeAutoCheckReportSchema,
   ProductionRenderPlanSchema,
   ProductionRenderReadySchema,
@@ -25,6 +26,7 @@ import { resolveSceneSound } from "../../../src/remotion/runtime/scene-sound";
 import { buildSoundDesignProjection } from "../../../src/remotion/runtime/sound-design";
 import { buildStoryVisualProjection } from "../../../src/remotion/runtime/story-visual";
 import { resolveCurrentM3Entry } from "../../baseline/evidence";
+import { checkMasteredNarrationArtifacts } from "../../narration/mastering";
 import { generateProjectRegistry } from "../../registry/generate";
 import { collectRendererSourceGraph } from "../../renderer-registry/domain";
 import { generateRendererRegistryFromProjectFiles } from "../../renderer-registry/generate";
@@ -52,28 +54,58 @@ const checksumText = (value: string) =>
 
 const loadRenderSources = async (rootDir: string, storyId: string) => {
   const projectRoot = join(rootDir, "src/projects", storyId);
-  const [story, timing, render, sealedNarration, autoCheck] = await Promise.all([
-    readJsonFile(join(projectRoot, "story.json")).then(StorySpecSchema.parse),
-    readJsonFile(
-      join(projectRoot, "generated/semantic-timing.generated.json"),
-    ).then(SemanticTimingSchema.parse),
-    readJsonFile(join(projectRoot, "render.json")).then(RenderSpecSchema.parse),
-    readJsonFile(
-      join(projectRoot, "generated/sealed-narration.generated.json"),
-    ).then(SealedNarrationManifestSchema.parse),
-    readJsonFile(
-      join(projectRoot, "generated/narrative-auto-check.generated.json"),
-    ).then(NarrativeAutoCheckReportSchema.parse),
-  ]);
+  const [story, timing, render, sealedNarration, masteredNarration, autoCheck] =
+    await Promise.all([
+      readJsonFile(join(projectRoot, "story.json")).then(StorySpecSchema.parse),
+      readJsonFile(
+        join(projectRoot, "generated/semantic-timing.generated.json"),
+      ).then(SemanticTimingSchema.parse),
+      readJsonFile(join(projectRoot, "render.json")).then(
+        RenderSpecSchema.parse,
+      ),
+      readJsonFile(
+        join(projectRoot, "generated/sealed-narration.generated.json"),
+      ).then(SealedNarrationManifestSchema.parse),
+      readJsonFile(
+        join(projectRoot, "generated/mastered-narration.generated.json"),
+      ).then(MasteredNarrationManifestSchema.parse),
+      readJsonFile(
+        join(projectRoot, "generated/narrative-auto-check.generated.json"),
+      ).then(NarrativeAutoCheckReportSchema.parse),
+    ]);
   if (
     story.storyId !== storyId ||
     timing.storyId !== storyId ||
     sealedNarration.storyId !== storyId ||
+    masteredNarration.storyId !== storyId ||
+    masteredNarration.sealedNarrationFingerprint !==
+      sealedNarration.sealedNarrationFingerprint ||
+    autoCheck.inputIdentity.masteredNarrationFingerprint !==
+      masteredNarration.masteredNarrationFingerprint ||
     autoCheck.storyId !== storyId
   ) {
     throw new Error("Production render narrative identities are stale.");
   }
-  return { projectRoot, story, timing, render, sealedNarration, autoCheck } as const;
+  const checkedMaster = await checkMasteredNarrationArtifacts({
+    rootDir,
+    storyId,
+  });
+  if (
+    checkedMaster.masteredNarrationFingerprint !==
+      masteredNarration.masteredNarrationFingerprint ||
+    checkedMaster.outputAudioChecksum !== masteredNarration.outputAudio.checksum
+  ) {
+    throw new Error("Production render mastered narration is stale.");
+  }
+  return {
+    projectRoot,
+    story,
+    timing,
+    render,
+    sealedNarration,
+    masteredNarration,
+    autoCheck,
+  } as const;
 };
 
 const resolveCurrentGlobalVisual = async ({
@@ -92,7 +124,11 @@ const resolveCurrentGlobalVisual = async ({
   const [loaded, rawResult, validated] = await Promise.all([
     readProductionRunStore({ rootDir, runId }),
     readExistingGlobalVisualResult({ rootDir, runId }),
-    validateGlobalVisualFromProjectFiles({ rootDir, assignment, mode: "check" }),
+    validateGlobalVisualFromProjectFiles({
+      rootDir,
+      assignment,
+      mode: "check",
+    }),
   ]);
   const result = GlobalVisualProductionResultSchema.parse(rawResult);
   if (
@@ -115,7 +151,11 @@ const resolveCurrentGlobalVisual = async ({
   ) {
     throw new Error("Accepted GlobalVisual result is stale.");
   }
-  return { assignment, result, package: validated.globalVisualPackage } as const;
+  return {
+    assignment,
+    result,
+    package: validated.globalVisualPackage,
+  } as const;
 };
 
 const writeOrCheckGlobalVisualProjection = async ({
@@ -288,8 +328,7 @@ export const prepareProductionRenderPlan = async ({
         syncAnchors: anchors,
         resources: resources.selectedResources.filter(
           ({ selected }) =>
-            selected.role === "scene-ambience" ||
-            selected.role === "scene-sfx",
+            selected.role === "scene-ambience" || selected.role === "scene-sfx",
         ),
       }),
     );
@@ -305,8 +344,8 @@ export const prepareProductionRenderPlan = async ({
   );
   if (
     sceneLocalSoundPresent &&
-    resolved.inputs.current.requirements.enhancementSelection.sceneLocalSound ===
-      "none"
+    resolved.inputs.current.requirements.enhancementSelection
+      .sceneLocalSound === "none"
   ) {
     throw new Error("Scene-local sound violates current requirements.");
   }
@@ -331,6 +370,8 @@ export const prepareProductionRenderPlan = async ({
     storyFingerprint: computeStoryFingerprint(sources.story),
     sealedNarrationFingerprint:
       sources.sealedNarration.sealedNarrationFingerprint,
+    masteredNarrationFingerprint:
+      sources.masteredNarration.masteredNarrationFingerprint,
     semanticTimingFingerprint: sources.timing.fingerprint,
     captionCuesFingerprint: createFingerprint({
       namespace: "production-render-caption-cues",
@@ -347,7 +388,8 @@ export const prepareProductionRenderPlan = async ({
     sceneSoundProjectionFingerprint:
       soundProjection.soundDesignProjectionFingerprint,
     globalVisual: {
-      assignmentFingerprint: currentGlobalVisual.assignment.assignmentFingerprint,
+      assignmentFingerprint:
+        currentGlobalVisual.assignment.assignmentFingerprint,
       packageFingerprint: currentGlobalVisual.package.packageFingerprint,
       resultFingerprint: currentGlobalVisual.result.resultFingerprint,
       planFingerprint: currentGlobalVisual.package.globalVisualPlanFingerprint,
@@ -396,7 +438,8 @@ export const createDefaultRenderReadyDependencies = () => ({
       resolved.inputs.story.storyId !== storyId ||
       resolved.inputs.current.requirements.requirementsFingerprint !==
         requirementsFingerprint ||
-      loaded.state.acceptedSceneResults.length !== resolved.assignments.length ||
+      loaded.state.acceptedSceneResults.length !==
+        resolved.assignments.length ||
       loaded.state.acceptedGlobalVisualResult === null
     ) {
       throw new Error("Accepted production freeze is stale.");

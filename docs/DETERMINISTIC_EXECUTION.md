@@ -57,16 +57,16 @@ receipt 也不会被当成“进程仍存活”的证明或自动重启许可；
 
 ## Render-ready identity
 
-`production-render-plan-v1` 固定：
+`production-render-plan-v2` 固定：
 
 - storyId/runId/compositionId；
 - Composition source path 与 checksum；
 - width/height/fps/frameCount；
-- FinalAssembly、semantic timing、renderer registry 与 projections；
+- FinalAssembly、sealed/mastered narration、semantic timing、renderer registry 与 projections；
 - layer/mix order；
 - fixed Remotion render policy。
 
-`production-render-ready-v1` 再绑定 plan fingerprint，并固定 status/handoff。该 artifact 只证明
+`production-render-ready-v2` 再绑定 plan fingerprint，并固定 status/handoff。该 artifact 只证明
 所有 render-critical inputs current，不证明媒体存在。
 
 在 ready artifact 写入前，目标 Project Composition 必须通过仓库固定 TypeScript/tsconfig 的
