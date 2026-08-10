@@ -100,7 +100,7 @@ if (
   throw new Error("Mastered narration identity is stale.");
 }
 const completeAudioLocalPath = masteredNarration.outputAudio.localPath;
-const expectedAudioPrefix = \`public/projects/\${storyId}/narration/\`;
+const expectedAudioPrefix = \`public/projects/\${storyId}/narration-mastered/\`;
 if (!completeAudioLocalPath.startsWith(expectedAudioPrefix)) {
   throw new Error("Complete narration must stay under the Story narration path.");
 }
@@ -485,6 +485,12 @@ ${
   const completeAudioExpression = masteredNarration
     ? "masteredNarration.outputAudio.localPath"
     : "artifactBundle.sealedNarration.completeAudio.localPath";
+  const completeAudioPrefix = masteredNarration
+    ? '"public/projects/" + storyId + "/narration-mastered/"'
+    : '"public/projects/" + storyId + "/narration/"';
+  const completeAudioPathError = masteredNarration
+    ? "Complete narration must stay under the Story mastered narration path."
+    : "Complete narration must stay under the Story narration path.";
   return `// ${PRODUCTION_RENDER_SCAFFOLD_MARKER}
 import type {FC} from "react";
 import {staticFile} from "remotion";
@@ -533,7 +539,7 @@ if (readabilityPolicy.width !== render.width || readabilityPolicy.height !== ren
   throw new Error("Production render Composition identity is stale.");
 }
 ${globalVisualSetup}${narrationIdentityCheck}const completeAudioLocalPath = ${completeAudioExpression};
-if (!completeAudioLocalPath.startsWith("public/projects/" + storyId + "/narration/")) throw new Error("Complete narration must stay under the Story narration path.");
+if (!completeAudioLocalPath.startsWith(${completeAudioPrefix})) throw new Error(${JSON.stringify(completeAudioPathError)});
 const completeNarrationSrc = staticFile(completeAudioLocalPath.slice("public/".length));
 export const productionNarrativeCompositionMetadata = {
   id: render.compositionId,

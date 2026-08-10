@@ -19,3 +19,7 @@
   require exact sample-count preservation and measured loudness/true-peak acceptance, bind the
   artifact through Narrative AutoCheck, ProductionRenderPlan, and the generated Composition, commit
   the shared fix, then replay production from a fresh Run.
+- Replay finding: fresh Run `ai-in-your-workflow-run-20260810062654-d432f6c4a714` failed immutably in
+  narrative because the first mastered path nested inside the sealed immutable directory and changed
+  its file set. The corrected contract keeps mastered output under a separate sibling project root;
+  the failed Run is not retried or edited.

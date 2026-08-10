@@ -118,7 +118,7 @@ const expectedOutputPath = ({
   readonly sealedNarrationFingerprint: string;
   readonly masteredNarrationFingerprint: string;
 }) =>
-  `public/projects/${storyId}/narration/${sealedNarrationFingerprint.slice("sha256:".length)}/mastered/${masteredNarrationFingerprint.slice("sha256:".length)}/complete.wav`;
+  `public/projects/${storyId}/narration-mastered/${sealedNarrationFingerprint.slice("sha256:".length)}/${masteredNarrationFingerprint.slice("sha256:".length)}/complete.wav`;
 
 export const MasteredNarrationManifestSchema =
   MasteredNarrationFingerprintInputObject.extend({

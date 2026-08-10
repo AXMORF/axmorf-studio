@@ -374,7 +374,7 @@ export const writeMasteredNarrationArtifacts = async ({
         sealedNarrationFingerprint: seal.sealedNarrationFingerprint,
         sourceAudio: seal.completeAudio,
         outputAudio: {
-          localPath: `public/projects/${storyId}/narration/pending/mastered/complete.wav`,
+          localPath: `public/projects/${storyId}/narration-mastered/pending/complete.wav`,
           checksum: sha256Bytes(mastered.outputWav),
           pcm: seal.completeAudio.pcm,
           sampleFrameCount: sourceMeasurement.sampleFrameCount,

@@ -63,8 +63,9 @@ immutable content-addressed directory plus active receipt atomically. The read-o
 the persisted contract against the actual files.
 
 `MasteredNarrationManifestSchema` binds that seal to a two-pass FFmpeg loudness result. The output
-remains canonical mono 48 kHz signed 16-bit PCM with the exact sealed sample-frame count, lives in an
-immutable directory addressed by its own fingerprint, targets `-16 LUFS` / `-1.5 dBTP`, and passes
+remains canonical mono 48 kHz signed 16-bit PCM with the exact sealed sample-frame count, lives under
+the separate `public/projects/<storyId>/narration-mastered/` root in an immutable directory addressed
+by its own fingerprint, targets `-16 LUFS` / `-1.5 dBTP`, and passes
 only within the fixed integrated-loudness range and true-peak ceiling. SemanticTiming continues to
 derive exclusively from the sealed PCM; the mastered WAV is the render playback artifact.
 

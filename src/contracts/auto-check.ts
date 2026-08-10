@@ -152,7 +152,7 @@ const expectedEvidencePaths = ({
   return [
     `src/projects/${storyId}/reviews/story-check.json`,
     `src/projects/${storyId}/generated/sealed-narration.generated.json`,
-    `public/projects/${storyId}/narration/${sealDirectory}/mastered/${masterDirectory}/complete.wav`,
+    `public/projects/${storyId}/narration-mastered/${sealDirectory}/${masterDirectory}/complete.wav`,
     `src/projects/${storyId}/generated/semantic-timing.generated.json`,
     "src/projects/project-registry.generated.ts",
     `src/projects/${storyId}/generated/narrative-baseline-evidence.generated.json`,

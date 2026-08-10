@@ -129,9 +129,15 @@ test("mastered narration contract binds seal, policy, measurements, checksum, an
   assert.match(
     manifest.outputAudio.localPath,
     new RegExp(
-      `^public/projects/story-example/narration/${"a".repeat(64)}/mastered/[0-9a-f]{64}/complete\\.wav$`,
+      `^public/projects/story-example/narration-mastered/${"a".repeat(64)}/[0-9a-f]{64}/complete\\.wav$`,
       "u",
     ),
+  );
+  assert.equal(
+    manifest.outputAudio.localPath.startsWith(
+      `public/projects/story-example/narration/${"a".repeat(64)}/`,
+    ),
+    false,
   );
   assert.throws(
     () =>
