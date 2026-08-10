@@ -23,3 +23,7 @@
   narrative because the first mastered path nested inside the sealed immutable directory and changed
   its file set. The corrected contract keeps mastered output under a separate sibling project root;
   the failed Run is not retried or edited.
+- Replay migration finding: the next `production:start` stopped before Run creation because the first
+  failed replay had already installed the exact pre-isolation generated narrative scaffold. The
+  generator must recognize and replace only those exact old bytes while continuing to reject drifted
+  or hand-written Composition source.

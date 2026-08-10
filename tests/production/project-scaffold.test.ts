@@ -44,6 +44,29 @@ test("writes one current narrative scaffold and repeats byte-mtime stable", asyn
   assert.equal((await stat(first.destination)).mtimeMs, mtime);
 });
 
+test("upgrades only the byte-exact pre-isolation narrative scaffold", async (context) => {
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-narrative-scaffold-legacy-"),
+  );
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const destination = join(
+    rootDir,
+    "src/projects/story-example/Composition.tsx",
+  );
+  await mkdir(join(rootDir, "src/projects/story-example"), { recursive: true });
+  const current = renderProductionProjectScaffold("story-example");
+  const preIsolation = current.replace("/narration-mastered/", "/narration/");
+  assert.notEqual(preIsolation, current);
+  await writeFile(destination, preIsolation);
+
+  await ensureProductionProjectScaffold({
+    rootDir,
+    storyId: "story-example",
+    mode: "write",
+  });
+  assert.equal(await readFile(destination, "utf8"), current);
+});
+
 test("render scaffold binds the frozen plan and current GlobalVisual layer", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-render-scaffold-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));

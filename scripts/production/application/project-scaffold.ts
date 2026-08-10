@@ -145,6 +145,15 @@ export default ${componentName};
 `;
 };
 
+const renderPreIsolationProductionProjectScaffold = (storyId: string) => {
+  const current = renderProductionProjectScaffold(storyId);
+  const preIsolation = current.replace("/narration-mastered/", "/narration/");
+  if (preIsolation === current) {
+    throw new Error("Pre-isolation narrative scaffold migration is stale.");
+  }
+  return preIsolation;
+};
+
 export const ensureProductionProjectScaffold = async ({
   rootDir,
   storyId: rawStoryId,
@@ -169,6 +178,17 @@ export const ensureProductionProjectScaffold = async ({
   }
   if (actual === expected) {
     return { destination, written: false } as const;
+  }
+  if (
+    actual === renderPreIsolationProductionProjectScaffold(storyId) &&
+    mode === "write"
+  ) {
+    const result = await writeProductionFileAtomic({
+      destination,
+      bytes: expected,
+      mode: "replace",
+    });
+    return { destination, written: result.written } as const;
   }
   const isExactRenderScaffold = [false, true].some((sceneLocalSoundPresent) =>
     [
