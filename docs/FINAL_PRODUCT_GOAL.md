@@ -58,9 +58,10 @@
 交付 identity 必须绑定 current PublishingIntent、CoverResult、ProductionRenderReady、
 ProductionRenderPlan、Composition、fixed argv 和 launch policy。immutable package 包含 exact
 Covers、publishing、handoff、manifest、intent、receipt 与 checksum ledger；计划 MP4 写入同一
-delivery directory，但不属于 immutable ledger。自动 delivery 只向
-`out/<storyId>/delivery-render/` 写 detached render log；Project baseline 与 core proof 使用各自独立
-的 `out/` 子树。
+delivery directory，但不属于 immutable ledger。每个 Project 只有 `deliveries/<storyId>/` 一个
+current slot；重新生成以新 identity 从 staging 替换旧 package，不保留多个 delivery。自动
+delivery 只向 `out/<storyId>/delivery-render/` 写 detached render log；Project baseline 与 core
+proof 使用各自独立的 `out/` 子树。
 
 intent-before-spawn 与 receipt-after-spawn 是不可交换协议。receipt 已存在时重复 build 只读 no-op；
 intent 存在而 receipt 缺失时状态 launch-ambiguous，仓库永久拒绝自动重试。current delivery check

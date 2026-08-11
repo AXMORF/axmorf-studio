@@ -29,7 +29,8 @@
 | launch-ambiguous            | intent 存在而 receipt 缺失                                            | 可安全重试的失败                                     |
 | Project deletion            | 用户明确授权后按 storyId 删除全部本地生产数据并重建 Registry/Catalog  | 只删 MP4、删除 core/其他作品/私有声线或自动清理策略  |
 
-`deliveries/` 保存 immutable 非 MP4 package、intent、receipt 与未纳入 ledger 的计划 MP4；
+`deliveries/<storyId>/` 是每个 Project 唯一的 current slot，保存当前 identity 的 immutable 非 MP4
+package、intent、receipt 与未纳入 ledger 的计划 MP4；新 identity 通过 staging 受控替换旧 package。
 `out/` 保存 Project baseline 媒体、诊断输出、detached Remotion log 与明确的 core proof 输出。
 两者都是 ignored 本地产物，不是 core source authority；`project:delete` 只删除选中 storyId 的
 Project-owned 子树，保留 core proof。

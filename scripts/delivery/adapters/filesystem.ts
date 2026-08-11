@@ -148,22 +148,18 @@ const ensureDirectory = async (path: string) => {
 export const resolveDeliveryPaths = ({
   rootDir,
   projectId: rawProjectId,
-  deliveryId: rawDeliveryId,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
-  readonly deliveryId: string;
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
-  const deliveryId = DeliveryIdSchema.parse(rawDeliveryId);
   const deliveries = join(rootDir, "deliveries");
   const staging = join(deliveries, ".staging");
-  const project = join(deliveries, projectId);
-  const delivery = join(project, deliveryId);
-  for (const path of [deliveries, staging, project, delivery]) {
+  const delivery = join(deliveries, projectId);
+  for (const path of [deliveries, staging, delivery]) {
     assertInsideRoot(rootDir, path);
   }
-  return { deliveries, staging, project, delivery } as const;
+  return { deliveries, staging, delivery } as const;
 };
 
 export const deliveryExists = async (path: string) => {
@@ -201,16 +197,16 @@ export const createDeliveryStaging = async ({
   readonly projectId: string;
   readonly deliveryId: string;
 }) => {
-  const paths = resolveDeliveryPaths({ rootDir, projectId, deliveryId });
+  const safeDeliveryId = DeliveryIdSchema.parse(deliveryId);
+  const paths = resolveDeliveryPaths({ rootDir, projectId });
   await ensureDirectory(paths.deliveries);
   await ensureDirectory(paths.staging);
-  await ensureDirectory(paths.project);
   const staleEntries = await readdir(paths.staging);
   if (staleEntries.length > 0) {
     throw new Error("Delivery staging contains an unfinished package.");
   }
   const root = await mkdtemp(
-    join(paths.staging, `${deliveryId}.${process.pid}.${randomUUID()}.`),
+    join(paths.staging, `${safeDeliveryId}.${process.pid}.${randomUUID()}.`),
   );
   return { ...paths, root } as const;
 };
@@ -232,12 +228,29 @@ export const promoteDeliveryStaging = async ({
   readonly staging: string;
   readonly destination: string;
 }) => {
-  if (await deliveryExists(destination)) {
-    throw new Error(
-      "Delivery already exists and cannot be overwritten.",
-    );
+  if (!(await deliveryExists(destination))) {
+    await rename(staging, destination);
+    return;
   }
-  await rename(staging, destination);
+  const replaced = join(
+    dirname(staging),
+    `.replaced-${basename(destination)}-${randomUUID()}`,
+  );
+  await rename(destination, replaced);
+  try {
+    await rename(staging, destination);
+  } catch (error) {
+    try {
+      await rename(replaced, destination);
+    } catch (restoreError) {
+      throw new AggregateError(
+        [error, restoreError],
+        "Delivery replacement failed and the previous delivery could not be restored.",
+      );
+    }
+    throw error;
+  }
+  await rm(replaced, { recursive: true });
 };
 
 export const copyDeliveryFileExclusive = async ({

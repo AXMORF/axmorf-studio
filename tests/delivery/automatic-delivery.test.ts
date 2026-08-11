@@ -17,11 +17,11 @@ import test, { type TestContext } from "node:test";
 
 import { buildDelivery } from "../../scripts/delivery/application/build";
 import { checkDelivery } from "../../scripts/delivery/application/check";
+import { promoteDeliveryStaging } from "../../scripts/delivery/adapters/filesystem";
 import {
   assertCurrentDeliveryInputBindings,
   type loadCurrentDeliveryInputs,
 } from "../../scripts/delivery/application/inputs";
-import { buildDeliveryPackageModel } from "../../scripts/delivery/domain/model";
 import { computeStoryFingerprint } from "../../src/contracts";
 
 const sha = (bytes: Uint8Array) =>
@@ -107,10 +107,7 @@ const createFixture = async (context: TestContext) => {
   };
   const loadInputs = (async () =>
     inputs) as unknown as typeof loadCurrentDeliveryInputs;
-  const model = buildDeliveryPackageModel(
-    inputs as unknown as Awaited<ReturnType<typeof loadCurrentDeliveryInputs>>,
-  );
-  return { rootDir, inputs, loadInputs, model } as const;
+  return { rootDir, inputs, loadInputs } as const;
 };
 
 test("current input bindings reject same-size Story and SemanticTiming drift", async (context) => {
@@ -158,11 +155,7 @@ test("build records intent before spawn and receipt only after spawn acknowledge
     readonly args: readonly string[];
   }) => {
     launches += 1;
-    const deliveryDir = join(
-      fixture.rootDir,
-      "deliveries/story-example",
-      fixture.model.deliveryId,
-    );
+    const deliveryDir = join(fixture.rootDir, "deliveries/story-example");
     assert.equal(
       JSON.parse(
         await readFile(join(deliveryDir, "render-launch-intent.json"), "utf8"),
@@ -172,15 +165,7 @@ test("build records intent before spawn and receipt only after spawn acknowledge
     await assert.rejects(
       readFile(join(deliveryDir, "render-launch-receipt.json")),
     );
-    assert.equal(
-      args[3],
-      join(
-        "deliveries",
-        "story-example",
-        fixture.model.deliveryId,
-        "story-example.mp4",
-      ),
-    );
+    assert.equal(args[3], join("deliveries", "story-example", "story-example.mp4"));
   };
   const first = await buildDelivery({
     rootDir: fixture.rootDir,
@@ -194,11 +179,7 @@ test("build records intent before spawn and receipt only after spawn acknowledge
   assert.equal(first.status, "delivery-render-started");
   assert.equal(first.noOp, false);
   assert.equal(launches, 1);
-  const deliveryDir = join(
-    fixture.rootDir,
-    "deliveries/story-example",
-    first.deliveryId,
-  );
+  const deliveryDir = join(fixture.rootDir, "deliveries/story-example");
   assert.deepEqual((await readdir(deliveryDir)).sort(), [
     "HANDOFF.md",
     "cover-3x4.png",
@@ -232,10 +213,83 @@ test("build records intent before spawn and receipt only after spawn acknowledge
   const checked = await checkDelivery({
     rootDir: fixture.rootDir,
     projectId: "story-example",
-    deliveryId: first.deliveryId,
     loadInputs: fixture.loadInputs,
   });
   assert.equal(checked.status, "delivery-render-started");
+});
+
+test("changed inputs replace the single Project delivery in place", async (context) => {
+  const fixture = await createFixture(context);
+  const first = await buildDelivery({
+    rootDir: fixture.rootDir,
+    projectId: "story-example",
+    loadInputs: fixture.loadInputs,
+    dependencies: { launchRender: (async () => undefined) as never },
+  });
+  const deliveryDir = join(fixture.rootDir, "deliveries/story-example");
+  await writeFile(join(deliveryDir, "story-example.mp4"), "old render");
+
+  const replacementInputs = {
+    ...fixture.inputs,
+    cover: {
+      result: {
+        ...fixture.inputs.cover.result,
+        resultFingerprint: `sha256:${"7".repeat(64)}`,
+      },
+    },
+  };
+  const replacementLoadInputs = (async () =>
+    replacementInputs) as unknown as typeof loadCurrentDeliveryInputs;
+  let launches = 0;
+  const replacement = await buildDelivery({
+    rootDir: fixture.rootDir,
+    projectId: "story-example",
+    loadInputs: replacementLoadInputs,
+    dependencies: {
+      launchRender: (async ({ args }: { readonly args: readonly string[] }) => {
+        launches += 1;
+        assert.equal(args[3], "deliveries/story-example/story-example.mp4");
+      }) as never,
+    },
+  });
+
+  assert.notEqual(replacement.deliveryId, first.deliveryId);
+  assert.equal(replacement.noOp, false);
+  assert.equal(launches, 1);
+  assert.equal(
+    JSON.parse(
+      await readFile(join(deliveryDir, "delivery-launch-manifest.json"), "utf8"),
+    ).deliveryId,
+    replacement.deliveryId,
+  );
+  await assert.rejects(readFile(join(deliveryDir, "story-example.mp4")));
+  assert.deepEqual(
+    (await readdir(join(fixture.rootDir, "deliveries"))).sort(),
+    [".staging", "story-example"],
+  );
+});
+
+test("failed staged replacement restores the previous Project delivery", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-delivery-rollback-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const deliveryDir = join(rootDir, "deliveries/story-example");
+  const stagingRoot = join(rootDir, "deliveries/.staging");
+  await mkdir(deliveryDir, { recursive: true });
+  await mkdir(stagingRoot, { recursive: true });
+  await writeFile(join(deliveryDir, "marker.txt"), "previous delivery");
+
+  await assert.rejects(
+    promoteDeliveryStaging({
+      staging: join(stagingRoot, "delivery-missing"),
+      destination: deliveryDir,
+    }),
+  );
+
+  assert.equal(
+    await readFile(join(deliveryDir, "marker.txt"), "utf8"),
+    "previous delivery",
+  );
+  assert.deepEqual(await readdir(stagingRoot), []);
 });
 
 test("spawn failure leaves an ambiguous intent and is never retried", async (context) => {
@@ -304,7 +358,7 @@ test("input drift after package promotion blocks spawn and becomes ambiguous", a
   );
 });
 
-test("fails closed on missing Cover, stale inputs, path conflicts, unknown files, and symlinks", async (context) => {
+test("fails closed on missing Cover, stale inputs, unknown files, and symlinks", async (context) => {
   const missing = await createFixture(context);
   await unlink(
     join(missing.rootDir, missing.inputs.cover.result.covers[0].repositoryPath),
@@ -330,38 +384,19 @@ test("fails closed on missing Cover, stale inputs, path conflicts, unknown files
     /stale render-ready/iu,
   );
 
-  const conflict = await createFixture(context);
-  const output = join(conflict.rootDir, conflict.model.intent.outputPath);
-  await mkdir(dirname(output), { recursive: true });
-  await writeFile(output, "conflict");
-  await assert.rejects(
-    buildDelivery({
-      rootDir: conflict.rootDir,
-      projectId: "story-example",
-      loadInputs: conflict.loadInputs,
-      dependencies: { launchRender: (async () => undefined) as never },
-    }),
-    /output already exists/iu,
-  );
-
   const unsafe = await createFixture(context);
-  const built = await buildDelivery({
+  await buildDelivery({
     rootDir: unsafe.rootDir,
     projectId: "story-example",
     loadInputs: unsafe.loadInputs,
     dependencies: { launchRender: (async () => undefined) as never },
   });
-  const deliveryDir = join(
-    unsafe.rootDir,
-    "deliveries/story-example",
-    built.deliveryId,
-  );
+  const deliveryDir = join(unsafe.rootDir, "deliveries/story-example");
   await writeFile(join(deliveryDir, "unknown.txt"), "unexpected");
   await assert.rejects(
     checkDelivery({
       rootDir: unsafe.rootDir,
       projectId: "story-example",
-      deliveryId: built.deliveryId,
       loadInputs: unsafe.loadInputs,
     }),
     /unknown files/iu,
@@ -373,7 +408,6 @@ test("fails closed on missing Cover, stale inputs, path conflicts, unknown files
     checkDelivery({
       rootDir: unsafe.rootDir,
       projectId: "story-example",
-      deliveryId: built.deliveryId,
       loadInputs: unsafe.loadInputs,
     }),
     /symbolic links|non-files/iu,

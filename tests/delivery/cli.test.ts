@@ -17,29 +17,20 @@ test("delivery CLI accepts only exact build and check forms", async () => {
       builds.push(projectId);
       return { projectId, deliveryId, status: "delivery-render-started", noOp: false } as const;
     },
-    check: async ({
-      projectId,
-      deliveryId: requestedDelivery,
-    }: {
-      readonly projectId: string;
-      readonly deliveryId: string;
-    }) => {
-      checks.push(`${projectId}:${requestedDelivery}`);
+    check: async ({ projectId }: { readonly projectId: string }) => {
+      checks.push(projectId);
       return {
         projectId,
-        deliveryId: requestedDelivery,
+        deliveryId,
         status: "delivery-render-started",
       } as const;
     },
   };
 
   await runDeliveryCli(["build", "--project", "delivery-proof"], context);
-  await runDeliveryCli(
-    ["check", "--project", "delivery-proof", "--delivery", deliveryId],
-    context,
-  );
+  await runDeliveryCli(["check", "--project", "delivery-proof"], context);
   assert.deepEqual(builds, ["delivery-proof"]);
-  assert.deepEqual(checks, [`delivery-proof:${deliveryId}`]);
+  assert.deepEqual(checks, ["delivery-proof"]);
   assert.deepEqual(
     output.map((line) => JSON.parse(line)),
     [
@@ -54,7 +45,8 @@ test("delivery CLI accepts only exact build and check forms", async () => {
     ["build", "--project"],
     ["build", "--project", "delivery-proof", "extra"],
     ["build", "--output", "/tmp/release"],
-    ["check", "--project", "delivery-proof"],
+    ["check", "--project"],
+    ["check", "--project", "delivery-proof", "extra"],
     ["check", "--project", "delivery-proof", "--delivery", "../escape"],
     ["check", "--delivery", deliveryId, "--project", "delivery-proof"],
     ["check", "--project", "delivery-proof", "--delivery", `/tmp/${deliveryId}`],

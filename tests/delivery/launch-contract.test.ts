@@ -23,7 +23,7 @@ const identity = {
     "render",
     "src/index.ts",
     "StoryExample",
-    "deliveries/story-example/delivery-placeholder/story-example.mp4",
+    "deliveries/story-example/story-example.mp4",
     "--codec=h264",
     "--audio-codec=aac",
     "--pixel-format=yuv420p",
@@ -92,7 +92,7 @@ test("delivery identity excludes MP4 completion facts", () => {
   });
 
   assert.match(deliveryId, /^delivery-[a-f0-9]{64}$/u);
-  assert.equal(manifest.contractVersion, "delivery-launch-manifest-v1");
+  assert.equal(manifest.contractVersion, "delivery-launch-manifest-v2");
   assert.doesNotMatch(
     JSON.stringify(manifest),
     /actualDuration|mp4Checksum|decode|approved|render-succeeded|complete/iu,
@@ -104,7 +104,7 @@ test("launch intent and receipt prove only the spawn acknowledgement", () => {
   const intent = buildRenderLaunchIntent({
     ...identity,
     deliveryId,
-    outputPath: `deliveries/story-example/${deliveryId}/story-example.mp4`,
+    outputPath: "deliveries/story-example/story-example.mp4",
     logPath: `out/story-example/delivery-render/${deliveryId}.log`,
   });
   const receipt = buildRenderLaunchReceipt({
@@ -112,16 +112,16 @@ test("launch intent and receipt prove only the spawn acknowledgement", () => {
     startedAt: "2026-08-09T00:00:00.000Z",
   });
 
-  assert.equal(intent.contractVersion, "render-launch-intent-v1");
-  assert.equal(receipt.contractVersion, "render-launch-receipt-v1");
+  assert.equal(intent.contractVersion, "render-launch-intent-v2");
+  assert.equal(receipt.contractVersion, "render-launch-receipt-v2");
   assert.equal(receipt.status, "render-started");
   assert.equal("pid" in receipt, false);
   assert.doesNotMatch(JSON.stringify(receipt), /succeeded|complete|verified/iu);
   assert.throws(() => RenderLaunchIntentSchema.parse({ ...intent, pid: 123 }));
 });
 
-test("launch argv materializes only the exact output template slot", () => {
-  const storyId = "delivery-placeholder";
+test("launch argv keeps the fixed Project output path", () => {
+  const storyId = "delivery-path-example";
   const collisionIdentity = {
     ...identity,
     storyId,
@@ -130,7 +130,7 @@ test("launch argv materializes only the exact output template slot", () => {
       "render",
       "src/index.ts",
       "DeliveryPlaceholder",
-      `deliveries/${storyId}/delivery-placeholder/${storyId}.mp4`,
+      `deliveries/${storyId}/${storyId}.mp4`,
       "--codec=h264",
       "--audio-codec=aac",
       "--pixel-format=yuv420p",

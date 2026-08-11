@@ -1,6 +1,11 @@
 import { join } from "node:path";
 
-import { buildRenderLaunchReceipt } from "../../../src/contracts";
+import {
+  DeliveryLaunchManifestSchema,
+  RenderLaunchIntentSchema,
+  RenderLaunchReceiptSchema,
+  buildRenderLaunchReceipt,
+} from "../../../src/contracts";
 import {
   assertDeliveryDirectoryChain,
   assertDeliveryOutputAbsent,
@@ -9,6 +14,7 @@ import {
   createDeliveryStaging,
   deliveryExists,
   deliveryPathExists,
+  inspectDeliveryFile,
   promoteDeliveryStaging,
   resolveDeliveryPaths,
   writeDeliveryFileExclusive,
@@ -20,6 +26,14 @@ import { serializeDeliveryJson } from "../domain/package";
 import { checkDeliveryDirectory } from "./check";
 import { loadCurrentDeliveryInputs } from "./inputs";
 import type { DeliveryApplicationDependencies } from "./types";
+
+const decodeDeliveryJson = (bytes: Uint8Array, label: string) => {
+  try {
+    return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
+  } catch (error) {
+    throw new Error(`${label} is malformed JSON.`, { cause: error });
+  }
+};
 
 export const buildDelivery = async ({
   rootDir,
@@ -41,11 +55,9 @@ export const buildDelivery = async ({
   const paths = resolveDeliveryPaths({
     rootDir,
     projectId,
-    deliveryId: model.deliveryId,
   });
   await assertDeliveryDirectoryChain([
     paths.deliveries,
-    paths.project,
     paths.delivery,
   ]);
   if (await deliveryExists(paths.delivery)) {
@@ -60,22 +72,45 @@ export const buildDelivery = async ({
         "Automatic delivery launch is ambiguous: intent exists without a receipt; refusing to retry.",
       );
     }
-    if (
-      !intentExists &&
-      (await deliveryPathExists(join(paths.delivery, `${projectId}.mp4`)))
-    ) {
-      throw new Error("Delivery render output already exists before launch.");
-    }
-    if (!intentExists || !receiptExists) {
+    if (intentExists !== receiptExists) {
       throw new Error("Existing automatic delivery package is incomplete.");
     }
-    const checked = await checkDeliveryDirectory({
-      deliveryDir: paths.delivery,
-      deliveryId: model.deliveryId,
-      inputs,
-      requireReceipt: true,
-    });
-    return { ...checked, noOp: true as const };
+    if (intentExists && receiptExists) {
+      const [manifestFile, intentFile, receiptFile] = await Promise.all([
+        inspectDeliveryFile(
+          join(paths.delivery, "delivery-launch-manifest.json"),
+        ),
+        inspectDeliveryFile(join(paths.delivery, "render-launch-intent.json")),
+        inspectDeliveryFile(join(paths.delivery, "render-launch-receipt.json")),
+      ]);
+      const existingManifest = DeliveryLaunchManifestSchema.parse(
+        decodeDeliveryJson(manifestFile.bytes, "Delivery manifest"),
+      );
+      const existingIntent = RenderLaunchIntentSchema.parse(
+        decodeDeliveryJson(intentFile.bytes, "Render launch intent"),
+      );
+      const existingReceipt = RenderLaunchReceiptSchema.parse(
+        decodeDeliveryJson(receiptFile.bytes, "Render launch receipt"),
+      );
+      if (
+        existingManifest.deliveryId !== existingIntent.deliveryId ||
+        existingReceipt.deliveryId !== existingIntent.deliveryId ||
+        existingReceipt.intentFingerprint !== existingIntent.intentFingerprint ||
+        existingReceipt.commandFingerprint !== existingIntent.commandFingerprint ||
+        existingReceipt.outputPath !== existingIntent.outputPath
+      ) {
+        throw new Error("Existing automatic delivery launch records are cross-bound.");
+      }
+      if (existingManifest.deliveryId === model.deliveryId) {
+        const checked = await checkDeliveryDirectory({
+          deliveryDir: paths.delivery,
+          deliveryId: model.deliveryId,
+          inputs,
+          requireReceipt: true,
+        });
+        return { ...checked, noOp: true as const };
+      }
+    }
   }
 
   const staging = await createDeliveryStaging({
@@ -149,7 +184,6 @@ export const buildDelivery = async ({
     const outputPath = join(rootDir, model.intent.outputPath);
     const logPath = join(rootDir, model.intent.logPath);
     await assertDeliveryOutputAbsent(outputPath);
-    await assertDeliveryOutputAbsent(logPath);
     await assertDeliveryDirectoryChain([
       join(rootDir, "out"),
       join(rootDir, "out", projectId),

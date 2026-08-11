@@ -49,8 +49,8 @@ build 顺序不可交换：
 1. 在唯一 staging 中复制 exact Cover PNG；
 2. 写 canonical publishing、launch manifest、handoff、render launch intent 和 checksum ledger；
 3. 对非 MP4 package 做完整 current check；
-4. 原子提升为 `deliveries/<storyId>/<deliveryId>/`；
-5. 再次确认计划 MP4 与 log 不预存；
+4. 原子提升为每个 Project 唯一的 `deliveries/<storyId>/`；identity 变化时替换旧 package；
+5. 再次确认新 package 尚未包含计划 MP4；
 6. 用 `shell: false`、固定 cwd/argv/log、`detached: true` spawn Remotion；
 7. 只等待 child 的 `spawn` 或 `error`；`spawn` 后 `unref()`；
 8. 收到 `spawn` 后以同目录 fsynced temporary + atomic exclusive publish 写 receipt，并返回
@@ -59,7 +59,7 @@ build 顺序不可交换：
 固定 package：
 
 ```text
-deliveries/<storyId>/<deliveryId>/
+deliveries/<storyId>/
 ├── cover-4x3.png
 ├── cover-3x4.png
 ├── publishing.json
@@ -73,7 +73,7 @@ deliveries/<storyId>/<deliveryId>/
 计划 MP4 与 package 同目录，但不属于 immutable ledger；render log 独立位于 `out/`：
 
 ```text
-deliveries/<storyId>/<deliveryId>/<storyId>.mp4
+deliveries/<storyId>/<storyId>.mp4
 out/<storyId>/delivery-render/<deliveryId>.log
 ```
 
@@ -81,7 +81,9 @@ out/<storyId>/delivery-render/<deliveryId>.log
 
 - launch intent 必须在 spawn 前且只能写一次。
 - receipt 只能在 OS 发出 `spawn` 后写一次。
-- receipt 已存在时，重复 build 只读复验并返回 `noOp: true`。
+- receipt 已存在且 identity 相同时，重复 build 只读复验并返回 `noOp: true`。
+- receipt 已存在且 current inputs 产生新 identity 时，build 通过 staging 受控替换该 Project 的
+  唯一 package，不保留旧 delivery 目录，然后启动新 render 覆盖固定 MP4 路径。
 - intent 存在但 receipt 缺失时，无法证明 child 是否启动；该 delivery 永久
   launch-ambiguous，所有 build/check 都 fail closed，绝不自动重试。
 - spawn acknowledgement 后 child 即使很快失败，也不改写 receipt；仓库没有后台监控状态机。
@@ -92,14 +94,14 @@ out/<storyId>/delivery-render/<deliveryId>.log
 显式运行的独立只读诊断。
 
 ```bash
-npm run delivery:check -- --project <storyId> --delivery <deliveryId>
+npm run delivery:check -- --project <storyId>
 ```
 
 check 重读 current inputs，验证 delivery identity、固定 package 文件集、canonical bytes、
 checksums、Cover equality、manifest、intent 和 receipt。它允许 exact 计划 MP4 文件出现，但不
 stat、read、hash、probe 或 decode 该文件，也不把它的存在解释为完成。
 
-未知文件、路径逃逸、symlink、input drift、缺失 receipt 或目标冲突 fail closed。不上传平台、
+未知文件、路径逃逸、symlink、input drift 或缺失 receipt fail closed。不上传平台、
 不访问网络、不处理账号/密钥，也不清理 `out/`。用户明确要求删除整个作品时，改用
 [`project:delete`](../PRODUCTION_WORKFLOW.md#7-作品删除) 一次清理该 storyId 的 Project、媒体、
 narration work、Runs、out 与 deliveries；它不是 delivery 重试或歧义恢复手段。

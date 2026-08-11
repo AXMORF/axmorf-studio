@@ -50,7 +50,7 @@ export const buildDeliveryPackageModel = (inputs: DeliveryInputs) => {
     "render",
     "src/index.ts",
     renderPlan.compositionId,
-    `deliveries/${story.storyId}/delivery-placeholder/${story.storyId}.mp4`,
+    `deliveries/${story.storyId}/${story.storyId}.mp4`,
     "--codec=h264",
     "--audio-codec=aac",
     "--pixel-format=yuv420p",

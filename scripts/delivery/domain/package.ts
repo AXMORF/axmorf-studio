@@ -40,7 +40,7 @@ export const buildDeliveryHandoff = ({
     "## Manual diagnostic only",
     "",
     "```bash",
-    `npm run delivery:check -- --project ${manifest.storyId} --delivery ${manifest.deliveryId}`,
+    `npm run delivery:check -- --project ${manifest.storyId}`,
     "```",
     "",
   ].join("\n");

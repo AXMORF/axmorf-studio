@@ -10,11 +10,11 @@ import {
 } from "./primitives";
 
 export const DELIVERY_LAUNCH_MANIFEST_VERSION =
-  "delivery-launch-manifest-v1" as const;
+  "delivery-launch-manifest-v2" as const;
 export const RENDER_LAUNCH_INTENT_VERSION =
-  "render-launch-intent-v1" as const;
+  "render-launch-intent-v2" as const;
 export const RENDER_LAUNCH_RECEIPT_VERSION =
-  "render-launch-receipt-v1" as const;
+  "render-launch-receipt-v2" as const;
 export const RENDER_LAUNCH_POLICY_VERSION =
   "detached-spawn-acknowledgement-v1" as const;
 export const DELIVERY_PUBLISHING_VERSION = "delivery-publishing-v1" as const;
@@ -56,7 +56,7 @@ const DeliveryIdentityInputObject = z
   })
   .strict()
   .superRefine((identity, context) => {
-    const expectedOutput = `deliveries/${identity.storyId}/delivery-placeholder/${identity.storyId}.mp4`;
+    const expectedOutput = `deliveries/${identity.storyId}/${identity.storyId}.mp4`;
     if (
       identity.renderArgs[0] !== "render" ||
       identity.renderArgs[1] !== "src/index.ts" ||
@@ -72,15 +72,6 @@ const DeliveryIdentityInputObject = z
   });
 
 export const DeliveryIdentityInputSchema = DeliveryIdentityInputObject.readonly();
-
-const materializeRenderArgs = ({
-  renderArgs,
-  outputPath,
-}: {
-  readonly renderArgs: readonly string[];
-  readonly outputPath: string;
-}) =>
-  renderArgs.map((argument, index) => (index === 3 ? outputPath : argument));
 
 const pickDeliveryIdentity = (rawInput: unknown) => {
   const input = rawInput as Record<string, unknown>;
@@ -286,17 +277,13 @@ const RenderLaunchIntentInputObject = DeliveryIdentityInputObject.extend({
 export const RenderLaunchIntentInputSchema =
   RenderLaunchIntentInputObject.superRefine((intent, context) => {
     const expectedDeliveryId = createDeliveryId(intent);
-    const expectedOutput = `deliveries/${intent.storyId}/${expectedDeliveryId}/${intent.storyId}.mp4`;
+    const expectedOutput = `deliveries/${intent.storyId}/${intent.storyId}.mp4`;
     const expectedLog = `out/${intent.storyId}/delivery-render/${expectedDeliveryId}.log`;
-    const expectedArgs = materializeRenderArgs({
-      renderArgs: intent.renderArgs,
-      outputPath: expectedOutput,
-    });
     if (
       intent.deliveryId !== expectedDeliveryId ||
       intent.outputPath !== expectedOutput ||
       intent.logPath !== expectedLog ||
-      JSON.stringify(intent.args) !== JSON.stringify(expectedArgs)
+      JSON.stringify(intent.args) !== JSON.stringify(intent.renderArgs)
     ) {
       context.addIssue({
         code: "custom",
@@ -361,12 +348,9 @@ export const RenderLaunchIntentSchema = RenderLaunchIntentInputObject.extend({
 export const buildRenderLaunchIntent = (rawInput: unknown) => {
   const identity = pickDeliveryIdentity(rawInput);
   const deliveryId = createDeliveryId(identity);
-  const outputPath = `deliveries/${identity.storyId}/${deliveryId}/${identity.storyId}.mp4`;
+  const outputPath = `deliveries/${identity.storyId}/${identity.storyId}.mp4`;
   const logPath = `out/${identity.storyId}/delivery-render/${deliveryId}.log`;
-  const args = materializeRenderArgs({
-    renderArgs: identity.renderArgs,
-    outputPath,
-  });
+  const args = identity.renderArgs;
   const command = "node_modules/.bin/remotion" as const;
   const commandFingerprint = createFingerprint({
     namespace: "detached-remotion-command",

@@ -113,9 +113,10 @@ receipt。intent-only 是 watcher-launch-ambiguous，禁止自动重试。watche
 启动，不证明 production 成功。root 随后使用 `create_thread` 派发共享 checkout 的 N+2 独立任务，
 不调用 wait/read/poll，派发后立即结束。
 
-delivery package 是 immutable directory，identity 绑定 PublishingIntent、CoverResult、render
-plan/ready、Composition、exact argv 和 launch policy。manifest 只保存 planned frames/fps/duration，
-不保存实际媒体事实。
+每个 Project 只有 `deliveries/<storyId>/` 一个 current delivery slot。slot 内 package 对其 identity
+是 immutable 的，identity 绑定 PublishingIntent、CoverResult、render plan/ready、Composition、
+exact argv 和 launch policy；新 identity 通过 staging backup + promote 受控替换旧 package，不形成
+历史 delivery 目录。manifest 只保存 planned frames/fps/duration，不保存实际媒体事实。
 
 intent-before-spawn/receipt-after-spawn 构成 exactly-once boundary。由于进程可能已经启动但 receipt
 write 尚未成功，intent-without-receipt 无法安全判断，必须永久拒绝重试。receipt 只保存 intent

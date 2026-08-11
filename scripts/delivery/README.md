@@ -12,7 +12,7 @@ npm run delivery:cover:freeze -- --project <storyId>
 npm run delivery:cover:check -- --project <storyId>
 npm run production:owner:ready -- --run <runId> --owner cover
 npm run delivery:build -- --project <storyId>
-npm run delivery:check -- --project <storyId> --delivery <deliveryId>
+npm run delivery:check -- --project <storyId>
 ```
 
 Cover task 只 author 并发布 receipt；detached production watcher 是 Cover fixed check/submit 与
@@ -20,8 +20,10 @@ automatic `delivery:build` 的唯一正常调用方。上面的 check/build 是�
 root 或 Cover owner 的派发后流程。
 
 `delivery:build` requires current PublishingIntent, ProductionRenderPlan, ProductionRenderReady and
-CoverResult. It writes an immutable non-MP4 package and launch intent before detached Remotion spawn;
-after the OS emits `spawn`, it writes a receipt and returns `delivery-render-started`.
+CoverResult. Each Project has one `deliveries/<storyId>/` current slot; a new identity replaces the
+previous package through staging with rollback on promotion failure. Build writes the immutable
+non-MP4 package and launch intent before detached Remotion spawn; after the OS emits `spawn`, it writes
+a receipt and returns `delivery-render-started`.
 
 Intent without receipt is launch-ambiguous and never retried. Receipt does not prove render
 completion. Build/check do not monitor, read, hash, probe, or decode the planned MP4. Full semantics:

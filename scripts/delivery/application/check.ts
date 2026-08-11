@@ -141,13 +141,11 @@ export const checkDeliveryDirectory = async ({
 export const checkDelivery = async ({
   rootDir,
   projectId,
-  deliveryId,
   dependencies = {},
   loadInputs = loadCurrentDeliveryInputs,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
-  readonly deliveryId: string;
   readonly dependencies?: DeliveryApplicationDependencies;
   readonly loadInputs?: typeof loadCurrentDeliveryInputs;
 }) => {
@@ -156,15 +154,15 @@ export const checkDelivery = async ({
     projectId,
     dependencies,
   });
-  const paths = resolveDeliveryPaths({ rootDir, projectId, deliveryId });
+  const model = buildDeliveryPackageModel(inputs);
+  const paths = resolveDeliveryPaths({ rootDir, projectId });
   await assertDeliveryDirectoryChain([
     paths.deliveries,
-    paths.project,
     paths.delivery,
   ]);
   return checkDeliveryDirectory({
     deliveryDir: paths.delivery,
-    deliveryId,
+    deliveryId: model.deliveryId,
     inputs,
     requireReceipt: true,
   });

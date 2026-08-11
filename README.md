@@ -23,7 +23,8 @@
   Project 的 Composition 与真实 import graph，跨模块类型漂移会 fail closed。
 - core 与 fresh clone 是 zero-Project-safe；ignored 本地 Project 集由 bootstrap 动态发现，不写入
   README 或 current capability 状态。
-- `deliveries/` 不是 checksum-bound verified release；ledger 只覆盖 immutable 非 MP4 文件。
+- 每个 Project 只有一个 `deliveries/<storyId>/` current delivery；重新生成时原位替换。它不是
+  checksum-bound verified release，ledger 只覆盖当前 identity 的 immutable 非 MP4 文件。
 - 平台上传、发布账号、网络发布、NarrativeCheck 和 capability promotion 尚未实现。
 
 完整事实见 [当前实现状态](docs/ITERATION_STATUS.md)，执行方式见
@@ -145,7 +146,7 @@ npm run production:render-ready:check -- --run <run-id>
 ```bash
 npm run delivery:cover:check -- --project <story-id>
 npm run delivery:build -- --project <story-id>
-npm run delivery:check -- --project <story-id> --delivery <delivery-id>
+npm run delivery:check -- --project <story-id>
 ```
 
 ## 目录
@@ -166,7 +167,7 @@ public/projects/<story>/     ignored Project 媒体；public/voice_profile 永�
 .narration-work/<story>/     ignored 旁白候选与 provider progress
 .producer-runs/<runId>/      ignored immutable Run ledger 与 derived state
 public/assets/               bootstrap 可重建的 core proof 资产
-deliveries/<story>/<id>/     ignored 非 MP4 包、intent、receipt 与异步 MP4 输出
+deliveries/<story>/          ignored 单一 current 非 MP4 包、intent、receipt 与异步 MP4 输出
 out/<story>/                 ignored baseline 媒体、诊断输出与 detached render 日志
 tests/                       单元、集成与架构回归
 ```

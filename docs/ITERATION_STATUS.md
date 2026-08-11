@@ -81,12 +81,13 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   独占，章节 frame/time 从 SemanticTiming 确定性投影。
 - 独立 Cover assignment/package/result 保留；Cover owner 只消费 StorySpec、VisualStyleSpec 和固定
   CoverSpec，通过 receipt 进入 watcher，但不阻止 render-ready 或进入 production state。
-- `delivery-launch-manifest-v1`、`render-launch-intent-v1`、`render-launch-receipt-v1` 与
+- `delivery-launch-manifest-v2`、`render-launch-intent-v2`、`render-launch-receipt-v2` 与
   `detached-spawn-acknowledgement-v1` 已实现。
 - `deliveryId` 绑定 PublishingIntent、Cover result、render-ready、render plan、Composition 与
   exact argv/policy；同一 current 输入得到同一 identity。
-- build 先在 staging 写 Covers、publishing、handoff、manifest、intent 和 immutable checksum
-  ledger，完整检查后原子提升，再 detached spawn Remotion。
+- 每个 Project 只有 `deliveries/<storyId>/` 一个 current slot。build 先在 staging 写 Covers、
+  publishing、handoff、manifest、intent 和 immutable checksum ledger，完整检查后原子提升；新
+  identity 通过 staging 受控替换旧 package，不累积多个 delivery 目录，再 detached spawn Remotion。
 - receipt 只在 OS `spawn` 事件后 exclusive write；已有 receipt 的重复 build 只读复验并
   `noOp: true`。
 - intent 已存在但 receipt 缺失时状态永久 launch-ambiguous，命令 fail closed 且禁止重试。
