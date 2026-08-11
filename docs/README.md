@@ -2,7 +2,7 @@
 
 > 文档类型：唯一导航入口
 >
-> 最后复核：2026-08-10
+> 最后复核：2026-08-11
 
 先按问题选择文档，不要从历史计划反推当前实现。
 
@@ -25,6 +25,7 @@
 
 | 主题                                | 文档                                                                           |
 | ----------------------------------- | ------------------------------------------------------------------------------ |
+| 统一制作配置、迁移与本地页面        | [guides/PRODUCER_CONFIG.md](guides/PRODUCER_CONFIG.md)                         |
 | 固定 production CLI、状态与 handoff | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md)       |
 | 自动交付 package、launch 与复验     | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md)                           |
 | 完整 Project 数据删除               | [PRODUCTION_WORKFLOW.md#7-作品删除](PRODUCTION_WORKFLOW.md#7-作品删除)         |

@@ -35,6 +35,7 @@ const CORE_TEST_ROOTS = [
   "tests/delivery",
   "tests/scene-runtime-proof",
   "tests/production",
+  "tests/config",
 ] as const;
 
 const toPosixRelative = (rootDir: string, path: string) =>

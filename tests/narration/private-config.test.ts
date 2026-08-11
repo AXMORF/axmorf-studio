@@ -13,10 +13,7 @@ import {
 import { NarrationSpecSchema } from "../../src/contracts/narration";
 import { computeGenerationInputFingerprint } from "../../src/contracts/generation-input";
 import { StorySpecSchema } from "../../src/contracts/story";
-import {
-  validNarrationSpec,
-  validStorySpec,
-} from "../fixtures/narrative";
+import { validNarrationSpec, validStorySpec } from "../fixtures/narrative";
 
 const referencePath = "/srv/private/science.wav";
 const referenceBytes = Buffer.from("fixture reference wav");
@@ -32,14 +29,18 @@ test("metadata-only profile resolution never opens protected voice content", asy
       resolveVoxcpmProfileMetadata({
         config: {
           ...fixturePrivateConfig,
-          voiceProfiles: [{
-            ...fixturePrivateConfig.voiceProfiles[0],
-            referenceAudioPath: "/repo/public/voice_profile/private.wav",
-          }],
+          voiceProfiles: [
+            {
+              ...fixturePrivateConfig.voiceProfiles[0],
+              referenceAudioPath: "/repo/public/voice_profile/private.wav",
+            },
+          ],
         },
         narration,
         rootDir: "/repo",
-        access: async () => { accessCount += 1; },
+        access: async () => {
+          accessCount += 1;
+        },
       }),
     /protected/i,
   );
@@ -49,7 +50,9 @@ test("metadata-only profile resolution never opens protected voice content", asy
     config: fixturePrivateConfig,
     narration,
     rootDir: "/repo",
-    access: async () => { accessCount += 1; },
+    access: async () => {
+      accessCount += 1;
+    },
   });
   assert.equal(metadata.mode, "controllable-clone");
   assert.equal(metadata.baseUrl, "http://127.0.0.1:9880");
@@ -134,6 +137,7 @@ test("safe fingerprints exclude endpoints tokens and absolute paths", async () =
     "retryBadcase",
     "retryBadcaseMaxTimes",
     "retryBadcaseRatioThreshold",
+    "speechRate",
     "voiceProfileId",
   ]);
 });
@@ -144,8 +148,10 @@ test("provider configuration changes fork the attempt but not M1 generation inpu
     narration,
     readFile: fixtureReadFile,
   });
-  const currentGenerationInputFingerprint =
-    computeGenerationInputFingerprint(story, narration);
+  const currentGenerationInputFingerprint = computeGenerationInputFingerprint(
+    story,
+    narration,
+  );
 
   assert.notEqual(
     computeProviderAttemptFingerprint({
@@ -157,7 +163,10 @@ test("provider configuration changes fork the attempt but not M1 generation inpu
       cfgValue: 2.5,
     }),
   );
-  assert.equal(resolved.safeDescriptor.adapterId, "voxcpm-controllable-clone-http-v2");
+  assert.equal(
+    resolved.safeDescriptor.adapterId,
+    "voxcpm-controllable-clone-http-v2",
+  );
   assert.notEqual(
     computeProviderAttemptFingerprint(resolved.safeDescriptor),
     computeProviderAttemptFingerprint({
@@ -174,6 +183,7 @@ test("provider configuration changes fork the attempt but not M1 generation inpu
     ["retryBadcase", false],
     ["retryBadcaseMaxTimes", 4],
     ["retryBadcaseRatioThreshold", 5.5],
+    ["speechRate", 1.1],
   ] as const) {
     assert.notEqual(
       computeProviderAttemptFingerprint(resolved.safeDescriptor),

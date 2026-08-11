@@ -12,6 +12,7 @@ type SafeVoxcpmDescriptorBase = {
   readonly retryBadcaseMaxTimes: number;
   readonly retryBadcaseRatioThreshold: number;
   readonly voiceProfileId: string;
+  readonly speechRate: number;
 };
 
 export type SafeVoxcpmExecutionDescriptor =

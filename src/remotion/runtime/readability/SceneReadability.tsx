@@ -8,7 +8,7 @@ import {
 } from "react";
 
 export type SceneReadabilityPolicy = Readonly<{
-  policyId: "production-readability-v1";
+  policyId: "production-readability-v2";
   policyFingerprint: string;
   typographyPolicy: Readonly<{ minFontSizePx: number }>;
   sceneContentSafeAreaPx: Readonly<{
@@ -71,7 +71,7 @@ export const SceneContentFrame: FC<
   }>
 > = ({ policy, children }) => {
   if (
-    policy.policyId !== "production-readability-v1" ||
+    policy.policyId !== "production-readability-v2" ||
     !policy.policyFingerprint.startsWith("sha256:")
   ) {
     throw new Error(

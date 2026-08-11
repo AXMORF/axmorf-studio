@@ -17,6 +17,10 @@ authoring or delivery.
 
 ## Freeze inputs before dispatch
 
+Read [references/producer-config.md](references/producer-config.md) completely and resolve the current
+private ProducerConfig before authoring a new Project. Treat it as defaults and selection authority;
+freeze actual values into Project/contracts before dispatch.
+
 Read [references/direct-production-workflow.md](references/direct-production-workflow.md) completely.
 Finish preflight, Story/narration/timing/requirements, Scene freeze, and independent Cover freeze
 before starting the watcher or creating any owner thread. Treat all assignments and shared inputs as
@@ -48,7 +52,8 @@ code and tests as executable truth; use CodeGraph first when `.codegraph/` exist
 
 ## Preserve production invariants
 
-- Freeze the [universal readability policy](policy.json); read numeric policy from assignments.
+- Preserve the structured [repository policy](policy.json) and freeze the configured readability policy;
+  owners read only the derived numeric policy from assignments.
 - Keep one Story/Composition, one meaningId/ScenePackage, one whole-film GlobalVisualPackage, and one
   independent Cover owner.
 - Keep Scene roots transparent; captions/narration/safe area/GlobalVisual stay Composition-owned.
@@ -63,8 +68,8 @@ code and tests as executable truth; use CodeGraph first when `.codegraph/` exist
 - The detached watcher is the sole state/event/formal-result/registry/delivery writer and stops at
   `delivery-render-started`.
 
-Use ignored `voxcpm/voxcpm.private.json` by default. Never open, print, summarize, stage, or commit
-private configuration or protected voice-profile contents.
+Use ignored `private/producer.config.json` through repository config helpers. Never print, summarize,
+stage, or commit private configuration or protected voice-profile contents.
 
 ## Classify failure by owner
 

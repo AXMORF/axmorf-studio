@@ -201,12 +201,14 @@ export const readVoxcpmPrivateConfig = async ({
 export const resolveVoxcpmProfile = async ({
   config,
   narration,
+  speechRate = 1,
   readFile = readFileFromDisk,
   normalizePromptAudio = ({ sourceBytes }: { readonly sourceBytes: Buffer }) =>
     normalizePromptAudioBytes({ sourceBytes }),
 }: {
   readonly config: unknown;
   readonly narration: NarrationSpec;
+  readonly speechRate?: number;
   readonly readFile?: BinaryFileReader;
   readonly normalizePromptAudio?: (input: {
     readonly sourceBytes: Buffer;
@@ -278,9 +280,9 @@ export const resolveVoxcpmProfile = async ({
       denoise: parsed.parameters.denoise,
       retryBadcase: parsed.parameters.retryBadcase,
       retryBadcaseMaxTimes: parsed.parameters.retryBadcaseMaxTimes,
-      retryBadcaseRatioThreshold:
-        parsed.parameters.retryBadcaseRatioThreshold,
+      retryBadcaseRatioThreshold: parsed.parameters.retryBadcaseRatioThreshold,
       voiceProfileId: profile.id,
+      speechRate,
       promptSourceChecksum: checksum(promptSourceBytes),
       promptTextChecksum: checksum(promptTextBytes),
       promptAudioChecksum,
@@ -332,6 +334,7 @@ export const resolveVoxcpmProfile = async ({
     retryBadcaseMaxTimes: parsed.parameters.retryBadcaseMaxTimes,
     retryBadcaseRatioThreshold: parsed.parameters.retryBadcaseRatioThreshold,
     voiceProfileId: profile.id,
+    speechRate,
     referenceAudioChecksum,
     controlInstruction: profile.controlInstruction,
   };

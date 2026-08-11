@@ -267,7 +267,6 @@ const writeSyntheticProject = async (rootDir: string) => {
     locale: "zh-CN",
     leadInFrames: 0,
     tailFrames: 0,
-    captionSafeAreaPx: { top: 72, right: 96, bottom: 72, left: 96 },
     output: {
       container: "mp4",
       videoCodec: "h264",

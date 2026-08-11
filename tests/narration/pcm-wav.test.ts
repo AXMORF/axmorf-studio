@@ -51,11 +51,12 @@ test("canonical concatenation preserves natural zero samples inside chunks", () 
   assert.deepEqual(decodeCanonicalPcmWav(combined).rawPcm, expectedRawPcm);
 });
 
-test("normalizer requests raw 48 kHz mono s16le without trim filters", async () => {
+test("normalizer applies provider-neutral speech rate before canonical PCM", async () => {
   const captured: { command?: string; args?: readonly string[] } = {};
   const rawPcm = createRawPcmFixture([1, 2, 3]);
   const wav = await normalizeProviderAudio({
     sourceBytes: Buffer.from("provider bytes"),
+    speechRate: 1.15,
     runProcess: async (command, args) => {
       captured.command = command;
       captured.args = args;
@@ -64,6 +65,7 @@ test("normalizer requests raw 48 kHz mono s16le without trim filters", async () 
   });
 
   assert.equal(captured.command, "ffmpeg");
+  assert.deepEqual(captured.args?.slice(6, 8), ["-af", "atempo=1.15"]);
   assert.deepEqual(captured.args?.slice(-10), [
     "-vn",
     "-ac",
@@ -113,6 +115,14 @@ test("WAV decoding rejects malformed and noncanonical audio", () => {
 });
 
 test("normalizer rejects empty input process failures and empty PCM", async () => {
+  await assert.rejects(
+    () =>
+      normalizeProviderAudio({
+        sourceBytes: Buffer.from("provider"),
+        speechRate: 2.1,
+      }),
+    /speech rate/i,
+  );
   await assert.rejects(
     () =>
       normalizeProviderAudio({

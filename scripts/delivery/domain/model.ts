@@ -26,7 +26,7 @@ export const buildDeliveryPackageModel = (inputs: DeliveryInputs) => {
     title: story.title,
     description: intent.description,
     topics: intent.topics,
-    collection: intent.collection,
+    collection: intent.collection.name,
     outputFileName: `${story.storyId}.mp4`,
     fps: renderPlan.fps,
     frameCount: renderPlan.frameCount,
@@ -34,7 +34,9 @@ export const buildDeliveryPackageModel = (inputs: DeliveryInputs) => {
     chapters: intent.chapters.map((chapter, index) => {
       const timing = semanticTiming.storyBeats[index];
       if (timing?.meaningId !== chapter.meaningId) {
-        throw new Error("Publishing chapters are stale against SemanticTiming.");
+        throw new Error(
+          "Publishing chapters are stale against SemanticTiming.",
+        );
       }
       return {
         meaningId: chapter.meaningId,

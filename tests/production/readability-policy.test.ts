@@ -15,7 +15,7 @@ test("resolves the scale=1 readability baseline for portrait and landscape", () 
     [1920, 1080],
   ] as const) {
     const policy = resolveProductionReadabilityPolicy({ width, height });
-    assert.equal(policy.policyId, "production-readability-v1");
+    assert.equal(policy.policyId, "production-readability-v2");
     assert.deepEqual(policy.scale, { numerator: 1080, denominator: 1080 });
     assert.equal(policy.edgeInsetPx, 90);
     assert.equal(policy.typographyPolicy.minFontSizePx, 36);
@@ -37,6 +37,23 @@ test("resolves the scale=1 readability baseline for portrait and landscape", () 
       left: 90,
     });
   }
+});
+
+test("derives caption and Scene bottom insets from the configured edge inset", () => {
+  const policy = resolveProductionReadabilityPolicy({
+    width: 1080,
+    height: 1920,
+    edgeInsetPx: 120,
+  });
+  assert.equal(policy.edgeInsetPx, 120);
+  assert.equal(policy.captionPolicy.captionBottomInsetPx, 240);
+  assert.equal(policy.sceneBottomInsetPx, 420);
+  assert.deepEqual(policy.sceneContentSafeAreaPx, {
+    top: 120,
+    right: 120,
+    bottom: 420,
+    left: 120,
+  });
 });
 
 test("uses integer rational scaling and never scales below one", () => {

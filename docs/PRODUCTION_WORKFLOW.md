@@ -2,7 +2,7 @@
 
 > 文档类型：执行流程权威
 >
-> 最后复核：2026-08-10
+> 最后复核：2026-08-11
 
 ## Current-only 主链
 
@@ -36,9 +36,12 @@ flowchart TD
 
 ## 1. Authoring 与 preflight
 
-Agent author VideoBrief、StorySpec、NarrationSpec、RenderSpec、StoryCheck、PublishingIntent 和
-current ProductionRequirementsFreeze。每个 StoryBeat 有稳定 meaningId；ttsChunks 按意义、语气
-与朗读节奏创作，工具不得自动拆分。
+Agent 先通过 strict ProducerConfig 读取 render 默认值、Scene 基准边缘留白、合集数组和通用 TTS
+默认策略，再 author VideoBrief、StorySpec、NarrationSpec、RenderSpec、StoryCheck、
+PublishingIntent v2 和 current ProductionRequirementsFreeze。PublishingIntent 必须从合集数组选
+且只选一个最合适的 ID，并封存名称与目录 fingerprint；不得写自由文本合集。RenderSpec 不保存
+目标时长或字幕安全区。每个 StoryBeat 有稳定 meaningId；ttsChunks 按意义、语气与朗读节奏创作，
+工具不得自动拆分。
 
 `production:preflight` 使用 `production-start-preflight-v2` 在 Run write 前检查 VoxCPM
 liveness/readiness 与 Remotion Chromium，
@@ -46,11 +49,20 @@ liveness/readiness 与 Remotion Chromium，
 自动重载，不触发 warm-up 或 test TTS；`denoise=true` 时还必须在真实生成前确认 denoiser
 capability，否则返回脱敏 external blocker。真实调用直接使用宿主权限。
 
+配置页与 Studio 由同一个 `npm run dev` 启动：loopback `:3100` 是配置控制台，`:3101` 是 Remotion
+Studio。可信局域网可显式使用 `npm run dev:lan`，两者通过同一 LAN IP 访问；配置写入仍要求
+Origin/Host 精确同源。私密 JSON、完整 token 和声线路径只允许停留在 ignored 配置与可信页面，
+LAN 端口不得转发到公网。
+
 ## 2. Narrative baseline
 
 `production:start` 建 immutable Run manifest；`production:narrative` 生成并封存 narration，按
 sealed PCM 累计 sample 边界导出 SemanticTiming、CaptionCue 与 NarrativeCore，并完成 fixed
 mechanical AutoCheck。实测音频时间不可被 Scene 或转场移动、压缩或吞掉。
+
+TTS 语速在 provider response 后、canonical PCM 实测前处理并绑定 provider-attempt；目标 LUFS
+进入两遍 loudnorm mastering policy 与母带 fingerprint。VoxCPM 可控/高品质克隆分别使用
+`/clone` 与 `/clone_with_prompt`，内部 mode 不作为 provider 字段发送。
 
 若 Agent-owned Story authoring 在实测时长后返工，旧 Run 保持 immutable，新 Run 必须显式使用
 `production:narrative -- --run <runId> --supersede <current-sealed-fingerprint>` 绑定当前 active

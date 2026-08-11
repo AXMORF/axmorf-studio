@@ -44,7 +44,6 @@ export const RenderSpecSchema = z
     locale: CanonicalLocaleSchema,
     leadInFrames: NonNegativeIntegerSchema,
     tailFrames: NonNegativeIntegerSchema,
-    captionSafeAreaPx: CaptionSafeAreaSchema,
     output: RenderOutputSchema,
   })
   .strict()
@@ -56,30 +55,8 @@ export const RenderSpecSchema = z
         path: [render.width % 2 !== 0 ? "width" : "height"],
       });
     }
-    if (
-      render.captionSafeAreaPx.left + render.captionSafeAreaPx.right >=
-      render.width
-    ) {
-      context.addIssue({
-        code: "custom",
-        message:
-          "Horizontal caption safe area must leave positive content width.",
-        path: ["captionSafeAreaPx"],
-      });
-    }
-    if (
-      render.captionSafeAreaPx.top + render.captionSafeAreaPx.bottom >=
-      render.height
-    ) {
-      context.addIssue({
-        code: "custom",
-        message:
-          "Vertical caption safe area must leave positive content height.",
-        path: ["captionSafeAreaPx"],
-      });
-    }
   })
   .readonly();
 
-export type CaptionSafeArea = z.infer<typeof CaptionSafeAreaSchema>;
 export type RenderSpec = z.infer<typeof RenderSpecSchema>;
+export type CaptionSafeArea = z.infer<typeof CaptionSafeAreaSchema>;

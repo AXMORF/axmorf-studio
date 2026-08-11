@@ -2,12 +2,14 @@
 
 > 文档类型：架构权威
 >
-> 最后复核：2026-08-10
+> 最后复核：2026-08-11
 
 ## 分层
 
 ```text
 src/contracts/                 strict data contracts and pure fingerprints
+settings/                      local / trusted-LAN React config console
+scripts/config/                private config read/write/migration boundary
 src/remotion/runtime/          offline frame-driven render runtime
 src/remotion/capabilities/     explicitly promoted shared capabilities
 src/projects/<story>/          ignored project-local source and generated authority
@@ -29,6 +31,8 @@ production/delivery scripts 或外部系统。
 
 ```mermaid
 flowchart LR
+    Config["ProducerConfig defaults"] --> Story
+    Config --> Publish
     Story["StorySpec"] --> Timing["SemanticTiming"]
     Story --> Publish["PublishingIntent"]
     Timing --> Scene["Scene assignments/results"]
@@ -122,6 +126,9 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
 - bootstrap 从 zero Project 重建 core proof assets、Catalog 与 Registry。
 - delivery staging/target/output 路径逐级拒绝 symlink、escape、unknown entries 和覆盖。
 - protected voice profiles/private config 不被通用扫描、stage 或 commit。
+- `private/producer.config.json` 是权限 `0600` 的 ignored 文件；配置 API 默认只监听 loopback，显式
+  `dev:lan` 才监听可信局域网，并始终要求 Origin/Host 精确同源。完整 token 不写日志、不进
+  localStorage；LAN 端口不得暴露到公网。render runtime 不读取 ProducerConfig。
 - Project deletion proof 只在 `mktemp` 隔离副本运行。
 - 真实作品删除只通过 `project:delete`：一次预检后按 storyId 删除 `src/projects/`、
   `public/projects/`、`.narration-work/`、`.producer-runs/`、`out/` 与 `deliveries/` 中的全部绑定数据，

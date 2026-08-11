@@ -222,9 +222,18 @@ export const createDefaultNarrativeProductionDependencies = ({
     return result.result;
   },
   masterNarration: async ({ rootDir, storyId }) => {
+    const { readProducerConfig, resolveProducerConfigPath } =
+      await import("../../config/producer-config");
     const { writeMasteredNarrationArtifacts } =
       await import("../../narration/mastering");
-    return writeMasteredNarrationArtifacts({ rootDir, storyId });
+    const config = await readProducerConfig({
+      configPath: resolveProducerConfigPath({ rootDir, env: process.env }),
+    });
+    return writeMasteredNarrationArtifacts({
+      rootDir,
+      storyId,
+      targetLoudnessLufs: config.tts.speech.targetLoudnessLufs,
+    });
   },
   checkMasteredNarration: async ({ rootDir, storyId }) => {
     const { checkMasteredNarrationArtifacts } =

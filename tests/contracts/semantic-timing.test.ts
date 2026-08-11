@@ -236,11 +236,11 @@ test("timing fingerprint ignores RenderSpec non-timing fields", () => {
     ...input,
     render: RenderSpecSchema.parse(validRenderSpec),
   });
-  const captionLayoutOnly = generateSemanticTiming({
+  const localeOnly = generateSemanticTiming({
     ...input,
     render: RenderSpecSchema.parse({
       ...validRenderSpec,
-      captionSafeAreaPx: { ...validRenderSpec.captionSafeAreaPx, bottom: 96 },
+      locale: "en-US",
     }),
   });
   const changedFps = generateSemanticTiming({
@@ -248,7 +248,7 @@ test("timing fingerprint ignores RenderSpec non-timing fields", () => {
     render: RenderSpecSchema.parse({ ...validRenderSpec, fps: 24 }),
   });
 
-  assert.equal(original.fingerprint, captionLayoutOnly.fingerprint);
+  assert.equal(original.fingerprint, localeOnly.fingerprint);
   assert.notEqual(original.fingerprint, changedFps.fingerprint);
 });
 

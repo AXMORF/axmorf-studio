@@ -5,6 +5,7 @@ import { basename, dirname, join } from "node:path";
 import {
   MasteredNarrationManifestSchema,
   NARRATION_MASTERING_POLICY,
+  buildNarrationMasteringPolicy,
   NarrationLoudnessMeasurementSchema,
   SealedNarrationManifestSchema,
   buildMasteredNarrationManifest,
@@ -67,17 +68,23 @@ export const parseLoudnormAnalysis = (rawOutput: string): LoudnormPass => {
   };
 };
 
-const analysisFilter =
-  `loudnorm=I=${NARRATION_MASTERING_POLICY.targetIntegratedLoudnessLufs}` +
-  `:TP=${NARRATION_MASTERING_POLICY.targetTruePeakDbtp}` +
-  `:LRA=${NARRATION_MASTERING_POLICY.targetLoudnessRangeLu}` +
+type NarrationMasteringPolicy = ReturnType<
+  typeof buildNarrationMasteringPolicy
+>;
+
+const analysisFilter = (policy: NarrationMasteringPolicy) =>
+  `loudnorm=I=${policy.targetIntegratedLoudnessLufs}` +
+  `:TP=${policy.targetTruePeakDbtp}` +
+  `:LRA=${policy.targetLoudnessRangeLu}` +
   ":print_format=json";
 
 export const analyzeNarrationLoudness = async ({
   path,
+  masteringPolicy = NARRATION_MASTERING_POLICY,
   runProcess = runHostProcess,
 }: {
   readonly path: string;
+  readonly masteringPolicy?: NarrationMasteringPolicy;
   readonly runProcess?: ProcessRunner;
 }): Promise<LoudnormPass> => {
   const result = await runProcess("ffmpeg", [
@@ -87,7 +94,7 @@ export const analyzeNarrationLoudness = async ({
     "-i",
     path,
     "-af",
-    analysisFilter,
+    analysisFilter(masteringPolicy),
     "-f",
     "null",
     "-",
@@ -108,10 +115,13 @@ const asMeasurement = (analysis: LoudnormPass): NarrationLoudnessMeasurement =>
     thresholdLufs: analysis.inputThreshold,
   });
 
-const masterFilter = (analysis: LoudnormPass) =>
-  `loudnorm=I=${NARRATION_MASTERING_POLICY.targetIntegratedLoudnessLufs}` +
-  `:TP=${NARRATION_MASTERING_POLICY.targetTruePeakDbtp}` +
-  `:LRA=${NARRATION_MASTERING_POLICY.targetLoudnessRangeLu}` +
+const masterFilter = (
+  analysis: LoudnormPass,
+  policy: NarrationMasteringPolicy,
+) =>
+  `loudnorm=I=${policy.targetIntegratedLoudnessLufs}` +
+  `:TP=${policy.targetTruePeakDbtp}` +
+  `:LRA=${policy.targetLoudnessRangeLu}` +
   `:measured_I=${analysis.inputI}` +
   `:measured_TP=${analysis.inputTp}` +
   `:measured_LRA=${analysis.inputLra}` +
@@ -132,15 +142,19 @@ const writeBytesSynced = async (path: string, bytes: Buffer) => {
 const analyzeWavBytes = async ({
   wav,
   runProcess,
+  masteringPolicy,
 }: {
   readonly wav: Buffer;
   readonly runProcess: ProcessRunner;
+  readonly masteringPolicy: NarrationMasteringPolicy;
 }) => {
   const directory = await mkdtemp(join(tmpdir(), "rsp-narration-master-"));
   const path = join(directory, "complete.wav");
   try {
     await writeBytesSynced(path, wav);
-    return asMeasurement(await analyzeNarrationLoudness({ path, runProcess }));
+    return asMeasurement(
+      await analyzeNarrationLoudness({ path, runProcess, masteringPolicy }),
+    );
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
@@ -149,16 +163,20 @@ const analyzeWavBytes = async ({
 export const masterNarrationBytes = async ({
   sourcePath,
   sourceWav,
+  targetLoudnessLufs = -16,
   runProcess = runHostProcess,
 }: {
   readonly sourcePath: string;
   readonly sourceWav: Buffer;
+  readonly targetLoudnessLufs?: number;
   readonly runProcess?: ProcessRunner;
 }) => {
+  const masteringPolicy = buildNarrationMasteringPolicy(targetLoudnessLufs);
   const sourceMeasurement = measureCanonicalPcmWav(sourceWav);
   const sourceAnalysis = await analyzeNarrationLoudness({
     path: sourcePath,
     runProcess,
+    masteringPolicy,
   });
   const result = await runProcess("ffmpeg", [
     "-nostdin",
@@ -168,7 +186,7 @@ export const masterNarrationBytes = async ({
     "-i",
     sourcePath,
     "-af",
-    masterFilter(sourceAnalysis),
+    masterFilter(sourceAnalysis, masteringPolicy),
     "-map_metadata",
     "-1",
     "-vn",
@@ -192,8 +210,12 @@ export const masterNarrationBytes = async ({
   ) {
     throw new Error("Narration mastering changed the sealed sample count.");
   }
-  const measurements = await analyzeWavBytes({ wav: outputWav, runProcess });
-  return { outputWav, measurements } as const;
+  const measurements = await analyzeWavBytes({
+    wav: outputWav,
+    runProcess,
+    masteringPolicy,
+  });
+  return { outputWav, measurements, masteringPolicy } as const;
 };
 
 const readJson = async (path: string, label: string) => {
@@ -241,6 +263,19 @@ const readActiveMaster = async (
     });
   }
 };
+
+export const shouldReuseMasteredNarration = ({
+  existing,
+  sealedNarrationFingerprint,
+  targetLoudnessLufs,
+}: {
+  readonly existing: MasteredNarrationManifest | undefined;
+  readonly sealedNarrationFingerprint: string;
+  readonly targetLoudnessLufs: number;
+}) =>
+  existing?.sealedNarrationFingerprint === sealedNarrationFingerprint &&
+  serializeCanonicalJson(existing.masteringPolicy) ===
+    serializeCanonicalJson(buildNarrationMasteringPolicy(targetLoudnessLufs));
 
 export type MasteredNarrationCheckResult = Readonly<{
   storyId: string;
@@ -304,6 +339,7 @@ export const checkMasteredNarrationArtifacts = async ({
   const measurements = await analyzeWavBytes({
     wav: outputWav,
     runProcess,
+    masteringPolicy: master.masteringPolicy,
   });
   if (
     serializeCanonicalJson(measurements) !==
@@ -326,10 +362,12 @@ export const checkMasteredNarrationArtifacts = async ({
 export const writeMasteredNarrationArtifacts = async ({
   rootDir,
   storyId,
+  targetLoudnessLufs = -16,
   runProcess = runHostProcess,
 }: {
   readonly rootDir: string;
   readonly storyId: string;
+  readonly targetLoudnessLufs?: number;
   readonly runProcess?: ProcessRunner;
 }): Promise<MasteredNarrationCheckResult> => {
   const paths = projectPaths(rootDir, storyId);
@@ -342,9 +380,14 @@ export const writeMasteredNarrationArtifacts = async ({
       if (seal.storyId !== storyId) {
         throw new Error("Sealed narration Story identity is stale.");
       }
+      const requestedPolicy = buildNarrationMasteringPolicy(targetLoudnessLufs);
       const existing = await readActiveMaster(paths.master);
       if (
-        existing?.sealedNarrationFingerprint === seal.sealedNarrationFingerprint
+        shouldReuseMasteredNarration({
+          existing,
+          sealedNarrationFingerprint: seal.sealedNarrationFingerprint,
+          targetLoudnessLufs: requestedPolicy.targetIntegratedLoudnessLufs,
+        })
       ) {
         return checkMasteredNarrationArtifacts({
           rootDir,
@@ -368,6 +411,7 @@ export const writeMasteredNarrationArtifacts = async ({
         sourcePath,
         sourceWav,
         runProcess,
+        targetLoudnessLufs: requestedPolicy.targetIntegratedLoudnessLufs,
       });
       const manifest = buildMasteredNarrationManifest({
         storyId,
@@ -380,6 +424,7 @@ export const writeMasteredNarrationArtifacts = async ({
           sampleFrameCount: sourceMeasurement.sampleFrameCount,
         },
         measurements: mastered.measurements,
+        masteringPolicy: mastered.masteringPolicy,
       });
       const destinationDir = join(
         rootDir,

@@ -10,7 +10,10 @@ test("package scripts reserve submit/fail for the detached watcher", async () =>
     packageJson.scripts["production:global-visual:check"],
     "node --import tsx scripts/production/cli.ts global-visual-check",
   );
-  assert.equal(packageJson.scripts["production:global-visual:submit"], undefined);
+  assert.equal(
+    packageJson.scripts["production:global-visual:submit"],
+    undefined,
+  );
   assert.equal(packageJson.scripts["production:global-visual:fail"], undefined);
   assert.equal(packageJson.scripts["delivery:cover:submit"], undefined);
   assert.equal(
@@ -20,6 +23,19 @@ test("package scripts reserve submit/fail for the detached watcher", async () =>
   assert.equal(
     packageJson.scripts.test,
     "node --import tsx scripts/tests/project-tests.ts",
+  );
+  assert.equal(packageJson.scripts.dev, "node --import tsx scripts/dev/cli.ts");
+  assert.equal(
+    packageJson.scripts["dev:lan"],
+    "node --import tsx scripts/dev/cli.ts --lan",
+  );
+  assert.equal(
+    packageJson.scripts["config:migrate"],
+    "node --import tsx scripts/config/migrate.ts",
+  );
+  assert.equal(
+    packageJson.scripts["config:build"],
+    "vite build --config settings/vite.config.ts",
   );
   assert.match(
     await readFile("scripts/tests/project-tests.ts", "utf8"),

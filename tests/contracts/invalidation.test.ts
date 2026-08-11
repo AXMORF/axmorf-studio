@@ -129,11 +129,11 @@ test("RenderSpec timing changes invalidate timing while non-timing fields do not
     narration: NarrationSpecSchema.parse(validNarrationSpec),
     sealedNarration: bundle.sealedNarration,
   };
-  const changedLayout = generateSemanticTiming({
+  const changedLocale = generateSemanticTiming({
     ...source,
     render: RenderSpecSchema.parse({
       ...validRenderSpec,
-      captionSafeAreaPx: { ...validRenderSpec.captionSafeAreaPx, bottom: 96 },
+      locale: "en-US",
     }),
   });
   const changedLeadIn = generateSemanticTiming({
@@ -141,20 +141,14 @@ test("RenderSpec timing changes invalidate timing while non-timing fields do not
     render: RenderSpecSchema.parse({ ...validRenderSpec, leadInFrames: 30 }),
   });
 
-  assert.equal(changedLayout.fingerprint, bundle.semanticTiming.fingerprint);
+  assert.equal(changedLocale.fingerprint, bundle.semanticTiming.fingerprint);
   assert.notEqual(changedLeadIn.fingerprint, bundle.semanticTiming.fingerprint);
   assert.doesNotThrow(() =>
     validateM1ArtifactBundle({
       ...bundle,
       projectSource: {
         ...validProjectSource,
-        render: {
-          ...validRenderSpec,
-          captionSafeAreaPx: {
-            ...validRenderSpec.captionSafeAreaPx,
-            bottom: 96,
-          },
-        },
+        render: { ...validRenderSpec, locale: "en-US" },
       },
     }),
   );

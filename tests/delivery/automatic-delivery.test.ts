@@ -32,8 +32,10 @@ const createFixture = async (context: TestContext) => {
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const wide = new TextEncoder().encode("immutable-cover-wide");
   const tall = new TextEncoder().encode("immutable-cover-tall");
-  const widePath = "src/projects/story-example/delivery/cover/results/fixture/cover-4x3.png";
-  const tallPath = "src/projects/story-example/delivery/cover/results/fixture/cover-3x4.png";
+  const widePath =
+    "src/projects/story-example/delivery/cover/results/fixture/cover-4x3.png";
+  const tallPath =
+    "src/projects/story-example/delivery/cover/results/fixture/cover-3x4.png";
   await mkdir(dirname(join(rootDir, widePath)), { recursive: true });
   await Promise.all([
     writeFile(join(rootDir, widePath), wide),
@@ -57,7 +59,11 @@ const createFixture = async (context: TestContext) => {
       intentFingerprint: `sha256:${"1".repeat(64)}`,
       description: "A current publishing description.",
       topics: ["one", "two", "three", "four", "five", "six"],
-      collection: "Deterministic stories",
+      collection: {
+        id: "deterministic-stories",
+        name: "Deterministic stories",
+        catalogFingerprint: `sha256:${"8".repeat(64)}`,
+      },
       chapters: [{ meaningId: "opening", name: "开场" }],
     },
     renderPlan: {
@@ -99,7 +105,8 @@ const createFixture = async (context: TestContext) => {
       },
     },
   };
-  const loadInputs = (async () => inputs) as unknown as typeof loadCurrentDeliveryInputs;
+  const loadInputs = (async () =>
+    inputs) as unknown as typeof loadCurrentDeliveryInputs;
   const model = buildDeliveryPackageModel(
     inputs as unknown as Awaited<ReturnType<typeof loadCurrentDeliveryInputs>>,
   );
@@ -145,7 +152,11 @@ test("current input bindings reject same-size Story and SemanticTiming drift", a
 test("build records intent before spawn and receipt only after spawn acknowledgement", async (context) => {
   const fixture = await createFixture(context);
   let launches = 0;
-  const launchRender = async ({ args }: { readonly args: readonly string[] }) => {
+  const launchRender = async ({
+    args,
+  }: {
+    readonly args: readonly string[];
+  }) => {
     launches += 1;
     const deliveryDir = join(
       fixture.rootDir,
@@ -153,11 +164,23 @@ test("build records intent before spawn and receipt only after spawn acknowledge
       fixture.model.deliveryId,
     );
     assert.equal(
-      JSON.parse(await readFile(join(deliveryDir, "render-launch-intent.json"), "utf8")).status,
+      JSON.parse(
+        await readFile(join(deliveryDir, "render-launch-intent.json"), "utf8"),
+      ).status,
       "launch-intent-recorded",
     );
-    await assert.rejects(readFile(join(deliveryDir, "render-launch-receipt.json")));
-    assert.equal(args[3], join("deliveries", "story-example", fixture.model.deliveryId, "story-example.mp4"));
+    await assert.rejects(
+      readFile(join(deliveryDir, "render-launch-receipt.json")),
+    );
+    assert.equal(
+      args[3],
+      join(
+        "deliveries",
+        "story-example",
+        fixture.model.deliveryId,
+        "story-example.mp4",
+      ),
+    );
   };
   const first = await buildDelivery({
     rootDir: fixture.rootDir,
@@ -283,7 +306,9 @@ test("input drift after package promotion blocks spawn and becomes ambiguous", a
 
 test("fails closed on missing Cover, stale inputs, path conflicts, unknown files, and symlinks", async (context) => {
   const missing = await createFixture(context);
-  await unlink(join(missing.rootDir, missing.inputs.cover.result.covers[0].repositoryPath));
+  await unlink(
+    join(missing.rootDir, missing.inputs.cover.result.covers[0].repositoryPath),
+  );
   await assert.rejects(
     buildDelivery({
       rootDir: missing.rootDir,

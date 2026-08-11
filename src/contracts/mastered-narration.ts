@@ -8,20 +8,29 @@ import {
   StoryIdSchema,
 } from "./primitives";
 
-export const MASTERED_NARRATION_VERSION = "mastered-narration-v1" as const;
+export const MASTERED_NARRATION_VERSION = "mastered-narration-v2" as const;
 export const NARRATION_MASTERING_ALGORITHM_ID =
   "ffmpeg-loudnorm-two-pass-v1" as const;
 
-export const NARRATION_MASTERING_POLICY = {
-  policyId: "narration-speech-master-v1",
+export const buildNarrationMasteringPolicy = (
+  targetIntegratedLoudnessLufs: number,
+) => ({
+  policyId: "narration-speech-master-v2" as const,
   algorithmId: NARRATION_MASTERING_ALGORITHM_ID,
-  targetIntegratedLoudnessLufs: -16,
+  targetIntegratedLoudnessLufs: z
+    .number()
+    .finite()
+    .min(-30)
+    .max(-8)
+    .parse(targetIntegratedLoudnessLufs),
   targetTruePeakDbtp: -1.5,
   targetLoudnessRangeLu: 11,
-  acceptedIntegratedLoudnessMinLufs: -16.5,
-  acceptedIntegratedLoudnessMaxLufs: -15.5,
+  acceptedIntegratedLoudnessMinLufs: targetIntegratedLoudnessLufs - 0.5,
+  acceptedIntegratedLoudnessMaxLufs: targetIntegratedLoudnessLufs + 0.5,
   truePeakCeilingDbtp: -1.4,
-} as const;
+});
+
+export const NARRATION_MASTERING_POLICY = buildNarrationMasteringPolicy(-16);
 
 const MasteredNarrationAudioSchema = z
   .object({
@@ -35,28 +44,33 @@ const MasteredNarrationAudioSchema = z
 
 const NarrationMasteringPolicySchema = z
   .object({
-    policyId: z.literal(NARRATION_MASTERING_POLICY.policyId),
+    policyId: z.literal("narration-speech-master-v2"),
     algorithmId: z.literal(NARRATION_MASTERING_ALGORITHM_ID),
-    targetIntegratedLoudnessLufs: z.literal(
-      NARRATION_MASTERING_POLICY.targetIntegratedLoudnessLufs,
-    ),
-    targetTruePeakDbtp: z.literal(
-      NARRATION_MASTERING_POLICY.targetTruePeakDbtp,
-    ),
-    targetLoudnessRangeLu: z.literal(
-      NARRATION_MASTERING_POLICY.targetLoudnessRangeLu,
-    ),
-    acceptedIntegratedLoudnessMinLufs: z.literal(
-      NARRATION_MASTERING_POLICY.acceptedIntegratedLoudnessMinLufs,
-    ),
-    acceptedIntegratedLoudnessMaxLufs: z.literal(
-      NARRATION_MASTERING_POLICY.acceptedIntegratedLoudnessMaxLufs,
-    ),
-    truePeakCeilingDbtp: z.literal(
-      NARRATION_MASTERING_POLICY.truePeakCeilingDbtp,
-    ),
+    targetIntegratedLoudnessLufs: z.number().finite().min(-30).max(-8),
+    targetTruePeakDbtp: z.literal(-1.5),
+    targetLoudnessRangeLu: z.literal(11),
+    acceptedIntegratedLoudnessMinLufs: z.number().finite().min(-30.5).max(-8.5),
+    acceptedIntegratedLoudnessMaxLufs: z.number().finite().min(-29.5).max(-7.5),
+    truePeakCeilingDbtp: z.literal(-1.4),
   })
   .strict()
+  .superRefine((policy, context) => {
+    const expected = buildNarrationMasteringPolicy(
+      policy.targetIntegratedLoudnessLufs,
+    );
+    if (
+      policy.acceptedIntegratedLoudnessMinLufs !==
+        expected.acceptedIntegratedLoudnessMinLufs ||
+      policy.acceptedIntegratedLoudnessMaxLufs !==
+        expected.acceptedIntegratedLoudnessMaxLufs
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Narration mastering acceptance window is stale.",
+        path: ["targetIntegratedLoudnessLufs"],
+      });
+    }
+  })
   .readonly();
 
 export const NarrationLoudnessMeasurementSchema = z
@@ -198,11 +212,15 @@ export const MasteredNarrationManifestSchema =
 
 export const buildMasteredNarrationManifest = (rawInput: unknown) => {
   const raw = z.record(z.string(), z.unknown()).parse(rawInput);
+  const masteringPolicy =
+    raw.masteringPolicy === undefined
+      ? NARRATION_MASTERING_POLICY
+      : NarrationMasteringPolicySchema.parse(raw.masteringPolicy);
   const provisional = MasteredNarrationFingerprintInputSchema.parse({
     ...raw,
     schemaVersion: 1,
     contractVersion: MASTERED_NARRATION_VERSION,
-    masteringPolicy: NARRATION_MASTERING_POLICY,
+    masteringPolicy,
   });
   const masteredNarrationFingerprint =
     computeMasteredNarrationFingerprint(provisional);

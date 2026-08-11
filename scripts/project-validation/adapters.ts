@@ -81,6 +81,7 @@ export const runProjectVerificationStep = async ({
   }
   const env = { ...process.env };
   if (invocation.withoutPrivateNarrationConfig) {
+    delete env.RSP_PRODUCER_CONFIG;
     delete env.RSP_VOXCPM_PRIVATE_CONFIG;
   }
   const result = await execFileAsync(

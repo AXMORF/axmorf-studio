@@ -2,7 +2,7 @@
 
 > 文档类型：执行语义权威
 >
-> 最后复核：2026-08-10
+> 最后复核：2026-08-11
 
 ## 确定性的对象
 
@@ -16,6 +16,12 @@ identity drift 或 malformed bytes fail closed。
 NarrationSpec 与 narration generation input 是 current-only v2；已删除的 VoxCPM `seed` 不参与
 任何合同。provider-attempt v2 绑定 adapter v2、完整 generation parameters 与安全内容 checksum，
 因此旧 provider attempt 或任一参数漂移都不能复用候选。
+
+ProducerConfig 自身使用 `producer-config-v1` strict schema 与 fingerprint。它是新 authoring/freeze
+的默认/选择 authority，不是已封存 Project 的可变 runtime dependency：合集选择连同 catalog
+fingerprint 进入 PublishingIntent v2，边缘留白进入 production-readability-v2，语速进入
+provider-attempt，目标 LUFS 进入 mastered-narration-v2。token、endpoint 和私有路径不进入安全
+fingerprint 或公开产物。
 
 ## 时间确定性
 

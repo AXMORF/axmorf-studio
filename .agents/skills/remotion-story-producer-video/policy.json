@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 4,
-  "policyVersion": "remotion-story-producer-video-policy-v4",
+  "schemaVersion": 5,
+  "policyVersion": "remotion-story-producer-video-policy-v5",
   "rootEndpoint": "watcher-started-and-owners-dispatched",
   "backgroundEndpoint": "delivery-render-started",
-  "privateConfigPath": "voxcpm/voxcpm.private.json",
+  "privateConfigPath": "private/producer.config.json",
   "requiredEntrypointHeadings": [
     "Start directly",
     "Freeze inputs before dispatch",
@@ -14,6 +14,7 @@
     "Finish after dispatch"
   ],
   "requiredReferences": [
+    "references/producer-config.md",
     "references/direct-production-workflow.md",
     "references/scene-agent-orchestration.md",
     "references/global-visual-agent-orchestration.md",

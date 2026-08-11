@@ -5,11 +5,13 @@ import {
   type ProductionRequirementsFreeze,
   type ProductionStartPreflight,
 } from "../../../src/contracts";
+import { resolveVoxcpmProfileMetadata } from "../../narration/adapters/private-config";
 import {
-  readVoxcpmPrivateConfig,
-  resolveVoxcpmProfileMetadata,
-} from "../../narration/adapters/private-config";
-import { resolveVoxcpmPrivateConfigPath } from "../../narration/cli";
+  readProducerConfig,
+  resolveDefaultTtsProvider,
+  resolveProducerConfigPath,
+  toVoxcpmPrivateConfig,
+} from "../../config/producer-config";
 import {
   preflightRemotionBrowser,
   type RemotionBrowserPreflightResult,
@@ -69,12 +71,13 @@ const createDefaultDependencies = (): ProductionPreflightDependencies => ({
     const narration = NarrationSpecSchema.parse(rawNarration);
     let config;
     try {
-      config = await readVoxcpmPrivateConfig({
-        configPath: resolveVoxcpmPrivateConfigPath({
+      const producerConfig = await readProducerConfig({
+        configPath: resolveProducerConfigPath({
           rootDir,
           env: process.env,
         }),
       });
+      config = toVoxcpmPrivateConfig(resolveDefaultTtsProvider(producerConfig));
     } catch {
       return buildProductionStartPreflightFailure({
         domain: "voxcpm",

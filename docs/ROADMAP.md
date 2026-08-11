@@ -2,7 +2,7 @@
 
 > 文档类型：实施顺序与阶段门槛
 >
-> 最后复核：2026-08-10
+> 最后复核：2026-08-11
 
 ## 已完成基线
 
@@ -16,6 +16,8 @@
    acknowledgement receipt。
 7. assignment-bound owner receipt inbox、detached single-writer watcher、`create_thread` 独立任务
    派发与 root dispatch-after-exit。
+8. unified private ProducerConfig、同一开发入口下的本地配置控制台、可配置 Scene 留白/合集/TTS
+   语速与目标响度，以及对应 contracts/fingerprints/Skill 路由。
 
 ## 当前门槛
 

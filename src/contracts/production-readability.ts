@@ -5,7 +5,7 @@ import { PositiveIntegerSchema, Sha256DigestSchema } from "./primitives";
 import { StorySpecSchema, type StorySpec } from "./story";
 
 export const PRODUCTION_READABILITY_POLICY_ID =
-  "production-readability-v1" as const;
+  "production-readability-v2" as const;
 export const CAPTION_DISPLAY_UNIT_ALGORITHM_ID =
   "caption-display-unit-v1" as const;
 
@@ -51,6 +51,7 @@ const ProductionReadabilityPolicyInputObject = z
       })
       .strict()
       .readonly(),
+    baseEdgeInsetPx: PositiveIntegerSchema.max(1000),
     edgeInsetPx: PositiveIntegerSchema,
     sceneBottomInsetPx: PositiveIntegerSchema,
     typographyPolicy: z
@@ -104,20 +105,23 @@ export const computeProductionReadabilityPolicyFingerprint = (
 const buildProductionReadabilityPolicyInput = ({
   width,
   height,
+  edgeInsetPx: rawEdgeInsetPx,
 }: {
   readonly width: number;
   readonly height: number;
+  readonly edgeInsetPx: number;
 }) => {
   const parsedWidth = PositiveIntegerSchema.parse(width);
   const parsedHeight = PositiveIntegerSchema.parse(height);
+  const baseEdgeInsetPx = PositiveIntegerSchema.max(1000).parse(rawEdgeInsetPx);
   const scaleNumerator = Math.max(
     SCALE_DENOMINATOR,
     Math.min(parsedWidth, parsedHeight),
   );
-  const edgeInsetPx = scaleInteger(90, scaleNumerator);
+  const edgeInsetPx = scaleInteger(baseEdgeInsetPx, scaleNumerator);
   const minFontSizePx = scaleInteger(36, scaleNumerator);
   const captionFontSizePx = scaleInteger(40, scaleNumerator);
-  const captionBottomInsetPx = scaleInteger(180, scaleNumerator);
+  const captionBottomInsetPx = edgeInsetPx * 2;
   const captionGapPx = scaleInteger(30, scaleNumerator);
   const captionVerticalPaddingPx = scaleInteger(38, scaleNumerator);
   const captionBoxHeightPx =
@@ -139,6 +143,7 @@ const buildProductionReadabilityPolicyInput = ({
       numerator: scaleNumerator,
       denominator: SCALE_DENOMINATOR,
     },
+    baseEdgeInsetPx,
     edgeInsetPx,
     sceneBottomInsetPx,
     typographyPolicy: { minFontSizePx },
@@ -183,6 +188,7 @@ export const ProductionReadabilityPolicySchema =
       const expected = buildProductionReadabilityPolicyInput({
         width: policy.width,
         height: policy.height,
+        edgeInsetPx: policy.baseEdgeInsetPx,
       });
       const actual = { ...policy } as Record<string, unknown>;
       delete actual.policyFingerprint;
@@ -204,11 +210,17 @@ export const ProductionReadabilityPolicySchema =
 export const resolveProductionReadabilityPolicy = ({
   width,
   height,
+  edgeInsetPx = 90,
 }: {
   readonly width: number;
   readonly height: number;
+  readonly edgeInsetPx?: number;
 }) => {
-  const input = buildProductionReadabilityPolicyInput({ width, height });
+  const input = buildProductionReadabilityPolicyInput({
+    width,
+    height,
+    edgeInsetPx,
+  });
   return ProductionReadabilityPolicySchema.parse({
     ...input,
     policyFingerprint: computeProductionReadabilityPolicyFingerprint(input),

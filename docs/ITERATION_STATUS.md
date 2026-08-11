@@ -2,7 +2,7 @@
 
 > 文档类型：当前事实权威
 >
-> 最后复核：2026-08-10
+> 最后复核：2026-08-11
 >
 > 当前阶段：detached watcher、独立线程 owner receipt 与自动交付已实现
 
@@ -21,6 +21,18 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 `deliveries/` 不是 checksum-bound verified release，ledger 只封存 immutable 非 MP4 bytes。
 
 ## 已实现
+
+### 统一制作配置
+
+- ignored `private/producer.config.json` 是 render 默认值、Scene 基准边缘留白、合集数组与通用 TTS
+  provider/声线/语速/目标 LUFS 的唯一配置 authority；旧 VoxCPM 配置可一次性无泄露迁移。
+- `npm run dev` 同时启动 loopback 配置控制台 `:3100` 与 Remotion Studio `:3101`；显式
+  `npm run dev:lan` 让两者通过可信 LAN IP 访问。token 按要求完整回传、显示、可修改，同时使用
+  精确同源写入、no-store、无浏览器持久化和 `0600` 原子写入。
+- `production-readability-v2` 从可配置边缘留白派生字幕底边与 Scene 底边；RenderSpec 已移除冗余
+  caption safe area。
+- PublishingIntent v2 只能选择配置数组中的一个合集并封存目录 fingerprint；TTS 语速进入
+  provider attempt，目标 LUFS 进入 mastered narration v2 policy/fingerprint。
 
 ### 叙事、时间与 Scene
 
@@ -56,8 +68,8 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 ### PublishingIntent、Cover 与自动交付
 
-- PublishingIntent 在 Story 阶段绑定 Story fingerprint；title 由 StorySpec 独占，章节 frame/time
-  从 SemanticTiming 确定性投影。
+- PublishingIntent v2 在 Story 阶段绑定 Story fingerprint 与所选配置合集；title 由 StorySpec
+  独占，章节 frame/time 从 SemanticTiming 确定性投影。
 - 独立 Cover assignment/package/result 保留；Cover owner 只消费 StorySpec、VisualStyleSpec 和固定
   CoverSpec，通过 receipt 进入 watcher，但不阻止 render-ready 或进入 production state。
 - `delivery-launch-manifest-v1`、`render-launch-intent-v1`、`render-launch-receipt-v1` 与

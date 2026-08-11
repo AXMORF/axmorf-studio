@@ -5,9 +5,11 @@ successful independent task creation.
 
 ## 1. Freeze shared inputs
 
-Inspect branch/HEAD/status without enumerating protected ignored paths. Author current brief, Story,
-PublishingIntent, narration, render, StoryCheck, and requirements. Preserve causal StoryBeat structure
-and Agent-authored ttsChunks; never auto-split or rewrite narration text.
+Inspect branch/HEAD/status without enumerating protected ignored paths. Read the Producer config
+reference and current config through repository helpers. Author current brief, Story,
+PublishingIntent v2, narration, render, StoryCheck, and requirements from its defaults. Select exactly
+one configured publishing collection; never invent free text. Preserve causal StoryBeat structure and
+Agent-authored ttsChunks; never auto-split or rewrite narration text.
 
 Run host preflight, then create and seal one Run:
 

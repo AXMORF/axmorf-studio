@@ -33,16 +33,10 @@ test("NarrationSpec v2 stores only the voice-clone identity", () => {
   );
 });
 
-test("RenderSpec validates dimensions, safe area, and the fixed v1 output tuple", () => {
+test("RenderSpec validates dimensions and the fixed v1 output tuple", () => {
   assert.deepEqual(RenderSpecSchema.parse(validRenderSpec), validRenderSpec);
   assert.throws(() =>
     RenderSpecSchema.parse({ ...validRenderSpec, width: 1919 }),
-  );
-  assert.throws(() =>
-    RenderSpecSchema.parse({
-      ...validRenderSpec,
-      captionSafeAreaPx: { ...validRenderSpec.captionSafeAreaPx, left: 1900 },
-    }),
   );
   assert.throws(() =>
     RenderSpecSchema.parse({

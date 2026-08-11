@@ -20,7 +20,7 @@ import {
   resolveProductionReadabilityPolicy,
   validateStoryCaptionReadability,
 } from "./production-readability";
-import { CaptionSafeAreaSchema, RenderSpecSchema } from "./render";
+import { RenderSpecSchema } from "./render";
 import {
   StoryCheckReportSchema,
   validateStoryCheckReport,
@@ -91,7 +91,6 @@ const ProductionNormalizedSummarySchema = z
     width: PositiveIntegerSchema,
     height: PositiveIntegerSchema,
     voiceProfileId: VoiceProfileIdSchema,
-    captionSafeArea: CaptionSafeAreaSchema,
   })
   .strict()
   .readonly();
@@ -218,8 +217,9 @@ const ProductionRequirementsFreezeInputObject = z
   })
   .strict();
 
-type ProductionRequirementsFreezeInput =
-  z.infer<typeof ProductionRequirementsFreezeInputObject>;
+type ProductionRequirementsFreezeInput = z.infer<
+  typeof ProductionRequirementsFreezeInputObject
+>;
 
 const addFreezeInputIssues = (
   freeze: ProductionRequirementsFreezeInput,
@@ -468,7 +468,6 @@ const buildProductionRequirementsBase = ({
       width: source.render.width,
       height: source.render.height,
       voiceProfileId: source.narration.voiceProfileId,
-      captionSafeArea: source.render.captionSafeAreaPx,
     },
     enhancementSelection,
     resourcePolicy,
@@ -478,7 +477,7 @@ const buildProductionRequirementsBase = ({
 
 type ProductionRequirementsBuildInput = Parameters<
   typeof buildProductionRequirementsBase
->[0];
+>[0] & { readonly readability?: Readonly<{ edgeInsetPx: number }> };
 
 export const buildProductionRequirementsFreeze = (
   input: ProductionRequirementsBuildInput,
@@ -487,6 +486,7 @@ export const buildProductionRequirementsFreeze = (
   const readabilityPolicy = resolveProductionReadabilityPolicy({
     width: base.normalizedSummary.width,
     height: base.normalizedSummary.height,
+    edgeInsetPx: input.readability?.edgeInsetPx ?? 90,
   });
   const source = assertCurrentSource(input.source);
   validateStoryCaptionReadability({
@@ -529,6 +529,9 @@ export const resolveCurrentProductionRequirements = ({
     enhancementSelection: requirements.enhancementSelection,
     resourcePolicy: requirements.resourcePolicy,
     additionalRequirements: requirements.additionalRequirements,
+    readability: {
+      edgeInsetPx: requirements.readabilityPolicy.baseEdgeInsetPx,
+    },
   });
   if (
     serializeCanonicalJson(requirements.normalizedSummary) !==

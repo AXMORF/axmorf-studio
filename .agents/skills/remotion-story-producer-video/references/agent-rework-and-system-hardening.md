@@ -131,7 +131,7 @@ diagnosis from new authoring decisions.
 
 ## Privacy and protected artifacts
 
-- Do not manually open or report `voxcpm/voxcpm.private.json`; let the fixed provider adapter consume it.
+- Do not manually open or report `private/producer.config.json`; let repository config helpers consume it.
 - Do not read, glob, checksum, copy, modify, stage, or commit user-designated protected voice-profile
   directories.
 - Do not include secrets, private endpoints, absolute private paths, transcripts for private prompt

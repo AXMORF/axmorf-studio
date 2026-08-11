@@ -40,6 +40,7 @@ const resolved: ResolvedVoxcpmProfile = {
     retryBadcaseMaxTimes: 3,
     retryBadcaseRatioThreshold: 6,
     voiceProfileId: "science-explainer-young-male",
+    speechRate: 1,
     referenceAudioChecksum: `sha256:${"a".repeat(64)}`,
     controlInstruction: "冷静、清晰、自然。",
   },
@@ -214,5 +215,8 @@ test("unsupported modes and punctuation helper imports are rejected", async () =
     ),
     "utf8",
   );
-  assert.equal(/split|punctuation|silenceremove|atrim|\/api\/tts|F5/i.test(source), false);
+  assert.equal(
+    /split|punctuation|silenceremove|atrim|\/api\/tts|F5/i.test(source),
+    false,
+  );
 });

@@ -8,8 +8,13 @@ import {
   StoryIdSchema,
 } from "./primitives";
 import { StorySpecSchema } from "./story";
+import {
+  PublishingCollectionSchema,
+  ProducerConfigIdSchema,
+  computePublishingCollectionCatalogFingerprint,
+} from "./producer-config";
 
-export const PUBLISHING_INTENT_VERSION = "publishing-intent-v1" as const;
+export const PUBLISHING_INTENT_VERSION = "publishing-intent-v2" as const;
 
 const PublishingTextSchema = z.string().trim().min(1);
 
@@ -31,12 +36,16 @@ const PublishingIntentChapterSchema = z
   .strict()
   .readonly();
 
+const PublishingIntentAuthoredFields = {
+  description: PublishingTextSchema.max(2_000),
+  topics: z.array(PublishingTextSchema.max(48)).min(6).max(7).readonly(),
+  chapters: z.array(PublishingIntentChapterSchema).min(1).max(256).readonly(),
+} as const;
+
 export const AuthoredPublishingIntentSchema = z
   .object({
-    description: PublishingTextSchema.max(2_000),
-    topics: z.array(PublishingTextSchema.max(48)).min(6).max(7).readonly(),
-    collection: PublishingTextSchema.max(96),
-    chapters: z.array(PublishingIntentChapterSchema).min(1).max(256).readonly(),
+    ...PublishingIntentAuthoredFields,
+    collectionId: ProducerConfigIdSchema,
   })
   .strict()
   .superRefine((intent, context) => {
@@ -58,14 +67,40 @@ export const AuthoredPublishingIntentSchema = z
   })
   .readonly();
 
-const PublishingIntentInputObject = AuthoredPublishingIntentSchema.unwrap()
-  .extend({
-    schemaVersion: z.literal(1),
+const PublishingIntentInputObject = z
+  .object({
+    ...PublishingIntentAuthoredFields,
+    schemaVersion: z.literal(2),
     contractVersion: z.literal(PUBLISHING_INTENT_VERSION),
     storyId: StoryIdSchema,
     storyFingerprint: Sha256DigestSchema,
+    collection: z
+      .object({
+        id: ProducerConfigIdSchema,
+        name: PublishingTextSchema.max(96),
+        catalogFingerprint: Sha256DigestSchema,
+      })
+      .strict()
+      .readonly(),
   })
-  .strict();
+  .strict()
+  .superRefine((intent, context) => {
+    if (new Set(intent.topics).size !== intent.topics.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Publishing topics must be unique.",
+        path: ["topics"],
+      });
+    }
+    const meaningIds = intent.chapters.map(({ meaningId }) => meaningId);
+    if (new Set(meaningIds).size !== meaningIds.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Publishing chapters must use unique meaning IDs.",
+        path: ["chapters"],
+      });
+    }
+  });
 
 export const PublishingIntentInputSchema =
   PublishingIntentInputObject.readonly();
@@ -75,12 +110,12 @@ export const computePublishingIntentFingerprint = (rawInput: unknown) => {
   delete record.intentFingerprint;
   return createFingerprint({
     namespace: "publishing-intent",
-    version: 1,
+    version: 2,
     value: PublishingIntentInputSchema.parse(record),
   });
 };
 
-export const PublishingIntentSchema = PublishingIntentInputObject.extend({
+export const PublishingIntentSchema = PublishingIntentInputObject.safeExtend({
   intentFingerprint: Sha256DigestSchema,
 })
   .strict()
@@ -99,18 +134,46 @@ export const PublishingIntentSchema = PublishingIntentInputObject.extend({
 export const buildPublishingIntent = ({
   story: rawStory,
   authored: rawAuthored,
+  publishingCollections: rawPublishingCollections,
 }: {
   readonly story: unknown;
   readonly authored: unknown;
+  readonly publishingCollections: unknown;
 }) => {
   const story = StorySpecSchema.parse(rawStory);
   const authored = AuthoredPublishingIntentSchema.parse(rawAuthored);
+  const publishingCollections = z
+    .array(PublishingCollectionSchema)
+    .min(1)
+    .parse(rawPublishingCollections);
+  const matches = publishingCollections.filter(
+    ({ id }) => id === authored.collectionId,
+  );
+  if (matches.length !== 1) {
+    throw new Error(
+      "PublishingIntent must select exactly one current publishing collection.",
+    );
+  }
+  const selectedCollection = matches[0];
+  if (selectedCollection === undefined) {
+    throw new Error("Publishing collection selection is unavailable.");
+  }
+  const { collectionId: _collectionId, ...authoredWithoutCollection } =
+    authored;
+  void _collectionId;
   const input = PublishingIntentInputSchema.parse({
-    ...authored,
-    schemaVersion: 1,
+    ...authoredWithoutCollection,
+    schemaVersion: 2,
     contractVersion: PUBLISHING_INTENT_VERSION,
     storyId: story.storyId,
     storyFingerprint: computeStoryFingerprint(story),
+    collection: {
+      id: selectedCollection.id,
+      name: selectedCollection.name,
+      catalogFingerprint: computePublishingCollectionCatalogFingerprint(
+        publishingCollections,
+      ),
+    },
   });
   const intent = PublishingIntentSchema.parse({
     ...input,

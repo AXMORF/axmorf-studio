@@ -128,7 +128,7 @@ test("builds and resolves a current production requirements freeze", () => {
     sceneSafeAreaOwner: "composition",
     captionOwner: "caption-layer",
   });
-  assert.equal(freeze.readabilityPolicy.policyId, "production-readability-v1");
+  assert.equal(freeze.readabilityPolicy.policyId, "production-readability-v2");
   assert.equal(freeze.readabilityPolicy.width, render.width);
   assert.equal(freeze.readabilityPolicy.height, render.height);
 
@@ -138,7 +138,6 @@ test("builds and resolves a current production requirements freeze", () => {
     width: render.width,
     height: render.height,
     voiceProfileId: narration.voiceProfileId,
-    captionSafeArea: render.captionSafeAreaPx,
   });
   assert.equal(
     freeze.sourceBindings.storySpec.fingerprint,
@@ -165,13 +164,6 @@ test("rejects normalized render and voice summaries that disagree with source co
     },
     { ...freeze.normalizedSummary, fps: freeze.normalizedSummary.fps + 1 },
     { ...freeze.normalizedSummary, voiceProfileId: "different-voice" },
-    {
-      ...freeze.normalizedSummary,
-      captionSafeArea: {
-        ...freeze.normalizedSummary.captionSafeArea,
-        bottom: 99,
-      },
-    },
   ]) {
     const { requirementsFingerprint, ...input } = freeze;
     void requirementsFingerprint;

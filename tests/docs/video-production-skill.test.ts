@@ -56,11 +56,11 @@ const fingerprintFileTree = async (
 
 const SkillPolicySchema = z
   .object({
-    schemaVersion: z.literal(4),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v4"),
+    schemaVersion: z.literal(5),
+    policyVersion: z.literal("remotion-story-producer-video-policy-v5"),
     rootEndpoint: z.literal("watcher-started-and-owners-dispatched"),
     backgroundEndpoint: z.literal("delivery-render-started"),
-    privateConfigPath: z.literal("voxcpm/voxcpm.private.json"),
+    privateConfigPath: z.literal("private/producer.config.json"),
     requiredEntrypointHeadings: z.tuple([
       z.literal("Start directly"),
       z.literal("Freeze inputs before dispatch"),
@@ -71,6 +71,7 @@ const SkillPolicySchema = z
       z.literal("Finish after dispatch"),
     ]),
     requiredReferences: z.tuple([
+      z.literal("references/producer-config.md"),
       z.literal("references/direct-production-workflow.md"),
       z.literal("references/scene-agent-orchestration.md"),
       z.literal("references/global-visual-agent-orchestration.md"),
@@ -93,7 +94,9 @@ const SkillPolicySchema = z
         sceneAuthoringSkill: z.literal(
           "repository-local-remotion-best-practices",
         ),
-        globalVisualAuthoringOwner: z.literal("one-independent-thread-per-story"),
+        globalVisualAuthoringOwner: z.literal(
+          "one-independent-thread-per-story",
+        ),
         globalVisualDefaultRole: z.literal(
           "minimal-style-aligned-background-board",
         ),
@@ -104,7 +107,9 @@ const SkillPolicySchema = z
         rootWaitsAfterDispatch: z.literal(false),
         repositoryMonitorsThreadLifecycle: z.literal(false),
         watcherInput: z.literal("assignment-bound-owner-receipts-only"),
-        missingReceiptPolicy: z.literal("wait-without-timeout-retry-or-heartbeat"),
+        missingReceiptPolicy: z.literal(
+          "wait-without-timeout-retry-or-heartbeat",
+        ),
         globalVisualReadsSceneOutputs: z.literal(false),
         coverReadsOnlyAssignmentInputs: z.literal(true),
         coverMissingBlocksRenderReady: z.literal(false),
@@ -112,9 +117,7 @@ const SkillPolicySchema = z
         centralWriter: z.literal("detached-repository-watcher-only"),
         threadIdentityPersisted: z.literal(false),
         timingPolicy: z.literal("pcm-cumulative-ceil-v1"),
-        watcherLaunchPolicy: z.literal(
-          "detached-spawn-acknowledgement-v1",
-        ),
+        watcherLaunchPolicy: z.literal("detached-spawn-acknowledgement-v1"),
         watcherLaunchAmbiguityPolicy: z.literal(
           "intent-without-receipt-never-retry",
         ),
@@ -154,22 +157,23 @@ test("repository video skill exposes a structured production policy", async () =
     skill,
     metadata,
     workflow,
+    producerConfig,
     sceneWorkflow,
     globalVisualWorkflow,
     coverWorkflow,
     failurePolicy,
     rawPolicy,
-  ] =
-    await Promise.all([
-      readSkillFile("SKILL.md"),
-      readSkillFile("agents/openai.yaml"),
-      readSkillFile("references/direct-production-workflow.md"),
-      readSkillFile("references/scene-agent-orchestration.md"),
-      readSkillFile("references/global-visual-agent-orchestration.md"),
-      readSkillFile("references/cover-agent-orchestration.md"),
-      readSkillFile("references/agent-rework-and-system-hardening.md"),
-      readSkillFile("policy.json"),
-    ]);
+  ] = await Promise.all([
+    readSkillFile("SKILL.md"),
+    readSkillFile("agents/openai.yaml"),
+    readSkillFile("references/direct-production-workflow.md"),
+    readSkillFile("references/producer-config.md"),
+    readSkillFile("references/scene-agent-orchestration.md"),
+    readSkillFile("references/global-visual-agent-orchestration.md"),
+    readSkillFile("references/cover-agent-orchestration.md"),
+    readSkillFile("references/agent-rework-and-system-hardening.md"),
+    readSkillFile("policy.json"),
+  ]);
   const policy = SkillPolicySchema.parse(JSON.parse(rawPolicy));
   const remotionBestPractices = await readFile(
     path.join(remotionBestPracticesRoot, "SKILL.md"),
@@ -179,10 +183,7 @@ test("repository video skill exposes a structured production policy", async () =
   assert.match(skill, /^name: remotion-story-producer-video$/mu);
   assert.match(skill, /\(policy\.json\)/u);
   assert.match(metadata, /\$remotion-story-producer-video/u);
-  assert.match(
-    remotionBestPractices,
-    /^name: remotion-best-practices$/mu,
-  );
+  assert.match(remotionBestPractices, /^name: remotion-best-practices$/mu);
   assert.match(
     remotionBestPractices,
     /^description: Router for all Remotion skills$/mu,
@@ -217,6 +218,9 @@ test("repository video skill exposes a structured production policy", async () =
     sceneWorkflow,
     /\.agents\/skills\/remotion-best-practices\/SKILL\.md/u,
   );
+  assert.match(producerConfig, /publishingCollections/u);
+  assert.match(producerConfig, /targetLoudnessLufs/u);
+  assert.match(producerConfig, /POST \/clone_with_prompt/u);
   assert.match(
     sceneWorkflow,
     /must read and use[\s\S]*remotion-best-practices\/SKILL\.md` completely[\s\S]*remotion-markup\/REFERENCE\.md/u,
@@ -299,7 +303,10 @@ test("repository video skill exposes a structured production policy", async () =
     /assignment-keyed receipts|assignment-bound-owner-receipts|assignment identity|receipt/u,
   );
   assert.match(executableWorkflow, /create_thread/u);
-  assert.doesNotMatch(executableWorkflow, /production:scene:submit|delivery:cover:submit/u);
+  assert.doesNotMatch(
+    executableWorkflow,
+    /production:scene:submit|delivery:cover:submit/u,
+  );
 
   assert.ok(failurePolicy.length > 0);
   assert.ok(

@@ -21,6 +21,7 @@ export * from "./production-render";
 export * from "./production-preflight";
 export * from "./production-global-visual";
 export * from "./production-owner";
+export * from "./producer-config";
 export * from "./production-run";
 export * from "./production-scene-result";
 export * from "./publishing-intent";

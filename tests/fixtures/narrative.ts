@@ -53,7 +53,6 @@ export const validRenderSpec = {
   locale: "zh-CN",
   leadInFrames: 15,
   tailFrames: 12,
-  captionSafeAreaPx: { top: 72, right: 96, bottom: 72, left: 96 },
   output: {
     container: "mp4",
     videoCodec: "h264",

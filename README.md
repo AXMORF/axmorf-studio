@@ -14,6 +14,8 @@
 - `delivery-render-started` 只证明进程启动确认，不证明渲染完成或 MP4 有效。仓库不等待、监控、
   读取、hash、probe 或 decode detached 输出。
 - PublishingIntent 与独立 Cover 生命周期保留；Cover 不阻止 render-ready，但会阻止自动交付。
+- ignored `private/producer.config.json` 统一管理新作品的渲染默认值、Scene 留白、合集数组与通用
+  TTS；实际选择会冻结进 contracts/fingerprints。
 - `GlobalVisualLayers` 是唯一的无 Props 组件接口；render-ready 在封存 ready artifact 前只编译目标
   Project 的 Composition 与真实 import graph，跨模块类型漂移会 fail closed。
 - core 与 fresh clone 是 zero-Project-safe；ignored 本地 Project 集由 bootstrap 动态发现，不写入
@@ -23,7 +25,8 @@
 
 完整事实见 [当前实现状态](docs/ITERATION_STATUS.md)，执行方式见
 [生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md) 与
-[自动交付指南](docs/guides/LOCAL_DELIVERY.md)。
+[自动交付指南](docs/guides/LOCAL_DELIVERY.md)，本地设置见
+[制作配置指南](docs/guides/PRODUCER_CONFIG.md)。
 
 ## 主链
 
@@ -48,6 +51,11 @@ Story + authored ttsChunks + RenderSpec + PublishingIntent
 npm install
 npm run dev
 ```
+
+该命令同时启动 `http://127.0.0.1:3100` 制作配置页和 `http://127.0.0.1:3101` Remotion Studio。
+从旧私有 VoxCPM JSON 首次迁移时运行 `npm run config:migrate`；新配置和完整 token 始终保持
+ignored，不得 stage。可信局域网内需要其他设备直接访问时运行 `npm run dev:lan`，再使用终端
+输出的 Network 地址访问 `:3100` 和 `:3101`；不要把端口暴露到公网。
 
 `npm install` 自动执行 `npm run bootstrap`，重建 core synthetic proof 资产、zero-safe
 ResourceCatalog 和 ProjectRegistry。fresh clone 默认没有具体 Project，仍可测试、构建并列出
@@ -141,6 +149,8 @@ npm run delivery:check -- --project <story-id> --delivery <delivery-id>
 docs/                        当前权威、指南、证据和历史归档
 scripts/production/          production cli / application / domain / adapters
 scripts/delivery/            Cover 与自动交付 cli / application / domain / adapters
+scripts/config/              private ProducerConfig 读写与迁移
+settings/                    local / trusted-LAN React 配置控制台
 src/contracts/               strict、versioned、可执行 Zod 合同
 src/remotion/runtime/        固定、离线、frame-driven runtime
 src/remotion/capabilities/   已批准共享能力

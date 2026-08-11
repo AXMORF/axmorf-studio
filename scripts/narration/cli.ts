@@ -4,11 +4,17 @@ import { pathToFileURL } from "node:url";
 import { computeGenerationInputFingerprint } from "../../src/contracts/generation-input";
 import type { NarrationSpec } from "../../src/contracts/narration";
 import { Sha256DigestSchema } from "../../src/contracts/primitives";
-import { loadVerifiedProgress, readCandidateBytes } from "./adapters/candidate-workspace";
 import {
-  readVoxcpmPrivateConfig,
-  resolveVoxcpmProfile,
-} from "./adapters/private-config";
+  loadVerifiedProgress,
+  readCandidateBytes,
+} from "./adapters/candidate-workspace";
+import { resolveVoxcpmProfile } from "./adapters/private-config";
+import {
+  readProducerConfig,
+  resolveDefaultTtsProvider,
+  resolveProducerConfigPath,
+  toVoxcpmPrivateConfig,
+} from "../config/producer-config";
 import { createVoxcpmChunkGenerator } from "./adapters/voxcpm-client";
 import { normalizeProviderAudio } from "./adapters/ffmpeg-normalizer";
 import { checkM2NarrationArtifacts } from "./check";
@@ -24,22 +30,6 @@ import { runNarrationGeneration } from "./generate-runner";
 import { loadNarrationProjectFiles } from "./project-files";
 import { runNarrationSeal } from "./seal-runner";
 import type { M2NarrationCheckResult } from "./check";
-
-export const DEFAULT_VOXCPM_PRIVATE_CONFIG_REPOSITORY_PATH =
-  "voxcpm/voxcpm.private.json";
-
-export const resolveVoxcpmPrivateConfigPath = ({
-  rootDir,
-  env,
-}: {
-  readonly rootDir: string;
-  readonly env: Readonly<Record<string, string | undefined>>;
-}) => {
-  const configuredPath = env.RSP_VOXCPM_PRIVATE_CONFIG;
-  return configuredPath === undefined || configuredPath.trim() === ""
-    ? join(rootDir, DEFAULT_VOXCPM_PRIVATE_CONFIG_REPOSITORY_PATH)
-    : configuredPath;
-};
 
 type GenerationDependencies = {
   readonly providerAttemptFingerprint: string;
@@ -65,15 +55,23 @@ export type NarrationCliResult =
 
 const createDefaultGenerationDependencies: NarrationCliContext["createGenerationDependencies"] =
   async ({ configPath, narration }) => {
-    const config = await readVoxcpmPrivateConfig({ configPath });
-    const resolved = await resolveVoxcpmProfile({ config, narration });
+    const producerConfig = await readProducerConfig({ configPath });
+    const provider = resolveDefaultTtsProvider(producerConfig);
+    const resolved = await resolveVoxcpmProfile({
+      config: toVoxcpmPrivateConfig(provider),
+      narration,
+      speechRate: producerConfig.tts.speech.rate,
+    });
     return {
       providerAttemptFingerprint: computeProviderAttemptFingerprint(
         resolved.safeDescriptor,
       ),
       generateChunk: createVoxcpmChunkGenerator({ resolved }),
       normalizePcm: (sourceBytes) =>
-        normalizeProviderAudio({ sourceBytes }),
+        normalizeProviderAudio({
+          sourceBytes,
+          speechRate: producerConfig.tts.speech.rate,
+        }),
     };
   };
 
@@ -135,12 +133,14 @@ export const runCli = async (
       rootDir: context.rootDir,
       projectId,
     });
-    const configPath = resolveVoxcpmPrivateConfigPath(context);
+    const configPath = resolveProducerConfigPath(context);
     const dependencies = await context.createGenerationDependencies({
       configPath,
       narration: projectSource.narration,
     });
-    context.stderr(`Generating narration candidates for ${projectSource.story.storyId}.`);
+    context.stderr(
+      `Generating narration candidates for ${projectSource.story.storyId}.`,
+    );
     const result = await runNarrationGeneration({
       rootDir: join(context.rootDir, ".narration-work"),
       story: projectSource.story,
@@ -199,7 +199,9 @@ export const runCli = async (
     rootDir: context.rootDir,
     projectId,
   });
-  context.stderr(`Checking sealed narration for ${projectSource.story.storyId}.`);
+  context.stderr(
+    `Checking sealed narration for ${projectSource.story.storyId}.`,
+  );
   const result = await checkM2NarrationArtifacts({
     rootDir: context.rootDir,
     projectSource,

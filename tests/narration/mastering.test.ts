@@ -8,6 +8,7 @@ import {
 import {
   masterNarrationBytes,
   parseLoudnormAnalysis,
+  shouldReuseMasteredNarration,
 } from "../../scripts/narration/mastering";
 import type { ProcessRunner } from "../../scripts/narration/adapters/ffmpeg-normalizer";
 import { createRawPcmFixture, createWavFixture } from "../fixtures/wav";
@@ -73,23 +74,26 @@ test("two-pass mastering preserves canonical sample count and verifies output lo
     return {
       exitCode: 0,
       stdout: Buffer.alloc(0),
-      stderr: analysis({ integrated: -16.12, peak: -1.5 }),
+      stderr: analysis({ integrated: -18.12, peak: -1.5 }),
     };
   };
 
   const mastered = await masterNarrationBytes({
     sourcePath: "/tmp/source.wav",
     sourceWav,
+    targetLoudnessLufs: -18,
     runProcess,
   });
 
   assert.equal(mastered.outputWav.length, sourceWav.length);
   assert.deepEqual(mastered.measurements, {
-    integratedLoudnessLufs: -16.12,
+    integratedLoudnessLufs: -18.12,
     truePeakDbtp: -1.5,
     loudnessRangeLu: 3.3,
     thresholdLufs: -26.87,
   });
+  assert.equal(mastered.masteringPolicy.targetIntegratedLoudnessLufs, -18);
+  assert.match(calls[0]?.join(" ") ?? "", /loudnorm=I=-18:/u);
   assert.match(calls[1]?.join(" ") ?? "", /measured_I=-18\.77/u);
   assert.match(calls[1]?.join(" ") ?? "", /measured_TP=-0\.25/u);
   assert.deepEqual(calls[1]?.slice(-5), [
@@ -160,5 +164,22 @@ test("mastered narration contract binds seal, policy, measurements, checksum, an
         },
       }),
     /preserve the sealed sample count|fingerprint is stale/iu,
+  );
+
+  assert.equal(
+    shouldReuseMasteredNarration({
+      existing: manifest,
+      sealedNarrationFingerprint: manifest.sealedNarrationFingerprint,
+      targetLoudnessLufs: -16,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldReuseMasteredNarration({
+      existing: manifest,
+      sealedNarrationFingerprint: manifest.sealedNarrationFingerprint,
+      targetLoudnessLufs: -18,
+    }),
+    false,
   );
 });

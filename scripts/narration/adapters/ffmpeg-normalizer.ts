@@ -42,13 +42,18 @@ export const runHostProcess: ProcessRunner = (command, args) =>
 
 export const normalizeProviderAudio = async ({
   sourceBytes,
+  speechRate = 1,
   runProcess = runHostProcess,
 }: {
   readonly sourceBytes: Buffer;
+  readonly speechRate?: number;
   readonly runProcess?: ProcessRunner;
 }): Promise<Buffer> => {
   if (sourceBytes.length === 0) {
     throw new Error("Cannot normalize empty provider audio.");
+  }
+  if (!Number.isFinite(speechRate) || speechRate < 0.5 || speechRate > 2) {
+    throw new Error("Narration speech rate must be between 0.5 and 2.");
   }
   const temporaryDirectory = await mkdtemp(
     join(tmpdir(), "rsp-voxcpm-normalize-"),
@@ -63,6 +68,8 @@ export const normalizeProviderAudio = async ({
       "error",
       "-i",
       inputPath,
+      "-af",
+      `atempo=${speechRate}`,
       "-map_metadata",
       "-1",
       "-vn",

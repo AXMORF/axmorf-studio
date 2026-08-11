@@ -2,7 +2,7 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-10
+> 最后复核：2026-08-11
 
 The current host-only narration workflow turns Agent-authored `ttsChunks` into measured canonical
 PCM, an immutable narration seal, `SemanticTiming`, and `CaptionCue`. Normal production invokes this
@@ -10,22 +10,23 @@ flow through `production:narrative`; the standalone commands below are maintenan
 entrypoints. Downstream baseline, Scene, GlobalVisual, assembly, and delivery code consume the seal
 read-only and never call the provider.
 
-## Private VoxCPM configuration
+## Unified private producer configuration
 
-`generate` defaults to the following Git-ignored repository-local file:
+`generate` and production preflight read the generic TTS section of the following Git-ignored file:
 
 ```text
-voxcpm/voxcpm.private.json
+private/producer.config.json
 ```
 
 Operators may override that default with an absolute path:
 
 ```bash
-export RSP_VOXCPM_PRIVATE_CONFIG=/absolute/operator-owned/path/voxcpm.private.json
+export RSP_PRODUCER_CONFIG=/absolute/operator-owned/path/producer.config.json
 ```
 
-The default file must remain ignored and untracked. The override may remain outside the repository.
-Either way, the referenced JSON has this strict shape:
+The full schema, local UI, token boundary, speech-rate/LUFS semantics, and one-time migration command are
+documented in [本地制作配置](PRODUCER_CONFIG.md). The old file below is retained only as the input to
+`npm run config:migrate`; narration runtime no longer reads it directly. Its strict legacy shape is:
 
 ```json
 {
@@ -80,7 +81,7 @@ prompt source to canonical WAV and submits those same canonical bytes as both `p
 `reference_audio` to `/clone_with_prompt`. High-fidelity mode forbids `controlInstruction`, `control`,
 and `emotion`; it never guesses or transcribes prompt text.
 
-An optional non-empty `token` may be added at the top level when the private deployment requires
+An optional non-empty `token` may be added to the legacy file when the private deployment requires
 bearer-scheme authentication. Unknown keys, duplicate profiles, relative references, non-WAV references,
 unsupported modes, and missing files fail closed. Provider connection details, credentials, model
 configuration, control text, private paths, and reference bytes must not enter Story source, progress
@@ -89,7 +90,8 @@ summaries, sealed manifests, evidence, logs, or Git. The exact default config pa
 Repository-local private reference inputs belong under the likewise ignored
 `voxcpm/voice_profile/` directory, never under tracked project assets.
 
-The host-only migration command upgrades an explicitly selected legacy profile without printing
+The older host-only profile migration command upgrades an explicitly selected v1 legacy profile to
+the v2 legacy shape without printing
 private configuration or source paths:
 
 ```bash
@@ -108,9 +110,9 @@ This option does not transcribe, compare, guess, or print the text. Missing, dif
 non-regular, symlinked, or ambiguous TXT candidates fail closed before the atomic private-config
 write. The prompt audio must also normalize successfully to canonical WAV.
 
-Only `generate` and the explicit migration entrypoint read this file; only `generate` calls the
-network. `seal` and `check` operate from local measured or sealed artifacts and must work when the
-provider and private file are unavailable.
+Only migration entrypoints read the legacy file. Current `generate` reads ProducerConfig and is the
+only narration command that calls the network. `seal` and `check` operate from local measured or sealed
+artifacts and must work when the provider and private files are unavailable.
 
 ## Commands
 
@@ -147,6 +149,8 @@ checksum, sample-frame, chunk, and CaptionCue identities. They never print priva
 - Extra narration pauses come only from authored `explicitPauses` and become zero-valued PCM.
 - FFmpeg normalizes each selected provider response to 48 kHz, mono, s16le PCM. Node code validates the
   WAV structure, checksum, and positive integer sample-frame count.
+- Configured speech rate is applied provider-neutrally before that PCM measurement and is included in
+  provider-attempt identity. Configured target LUFS is frozen in the later two-pass mastering policy.
 - Frames come only from cumulative sealed PCM sample boundaries through `pcm-cumulative-ceil-v1` with
   `BigInt`; per-chunk floating-second conversion is forbidden.
 
@@ -198,7 +202,8 @@ sample-frame count, authored identity, and request fingerprint all verify.
 The safe descriptor uses adapter IDs `voxcpm-controllable-clone-http-v2` and
 `voxcpm-high-fidelity-clone-http-v2`. It includes all generation parameters, profile identity, and
 content checksums while excluding endpoint, token, private paths, and raw private bytes. The
-provider-attempt fingerprint uses this descriptor, so changing any generation parameter or switching
+provider-attempt fingerprint also includes configured speech rate, so changing it, any generation
+parameter, or switching
 from a v1 adapter creates a new attempt and cannot reuse stale candidates.
 
 Changing the private deployment label, reference bytes, control instruction, or generation parameters
