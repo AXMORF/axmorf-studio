@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {
   copyFile,
   link,
@@ -16,11 +16,8 @@ import {
 } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, sep } from "node:path";
 
-import {
-  DeliveryIdSchema,
-  Sha256DigestSchema,
-  StoryIdSchema,
-} from "../../../src/contracts";
+import { DeliveryIdSchema, StoryIdSchema } from "../../../src/contracts";
+import { checksumDeliveryBytes } from "../domain/checksum";
 
 const toPosix = (value: string) => value.split(sep).join("/");
 
@@ -113,11 +110,6 @@ export const readDeliveryJson = async (request: {
     );
   }
 };
-
-export const checksumDeliveryBytes = (bytes: Uint8Array) =>
-  Sha256DigestSchema.parse(
-    `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
-  );
 
 export const inspectDeliveryFile = async (path: string) => {
   const metadata = await lstat(path);

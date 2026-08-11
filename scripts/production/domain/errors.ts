@@ -1,5 +1,5 @@
 import { createProductionError } from "../../../src/contracts";
-import { redactProductionErrorDescription } from "../adapters/error-redaction";
+import { redactProductionErrorDescription } from "./error-redaction";
 
 type ErrorContext = Readonly<{
   stageId: unknown;

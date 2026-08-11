@@ -31,8 +31,9 @@ flowchart TD
     Receipt --> Endpoint["delivery-render-started"]
 ```
 
-仓库不包含旧 production/delivery dispatch。历史普通文件不会被 current scripts 读取、迁移、
-回填或解释。
+仓库不包含旧 production/delivery dispatch。历史普通文件不会被 current production/delivery
+scripts 读取、迁移、回填或解释。显式 `project:delete` 仅为清理提取 Run 的严格
+`runId/storyId` 所有权，不解析旧 production contract/state/event。
 
 ## 1. Authoring 与 preflight
 
@@ -175,6 +176,8 @@ npm run project:delete -- --all --confirm-delete
 `deliveries/<storyId>/`，随后重建 ResourceCatalog 与 ProjectRegistry。命令不触碰 core、其他作品、
 private config 或 `public/voice_profile/`。任何目标 symlink/非目录、目标 writer lock、非空
 `deliveries/.staging/` 或不存在的显式 storyId 都会在首次删除前令命令失败。
+删除器不要求旧 Run 通过 current ProductionRun schema；它只校验 JSON、目录 `runId` identity 与
+严格 storyId，以保证已移除合同留下的数据仍可安全删除。这不构成旧 Run 兼容或迁移。
 
 ## 故障所有权
 

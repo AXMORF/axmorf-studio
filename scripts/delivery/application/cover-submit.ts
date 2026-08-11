@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { buildDeliveryCoverResult } from "../../../src/contracts";
-import type { ProcessRunner } from "../../baseline/evidence";
+import type { ProcessRunner } from "../../shared/process";
 import {
   cleanupCoverResultStaging,
   coverResultExists,
@@ -95,8 +95,7 @@ export const runDeliveryCoverSubmit = async ({
       storyId: assignment.storyId,
       assignmentFingerprint: assignment.assignmentFingerprint,
       packageFingerprint: validated.coverPackage.packageFingerprint,
-      sourceGraphFingerprint:
-        validated.coverPackage.sourceGraphFingerprint,
+      sourceGraphFingerprint: validated.coverPackage.sourceGraphFingerprint,
       covers,
       thumbnailChecks,
     });

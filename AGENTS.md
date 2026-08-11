@@ -75,6 +75,8 @@
   但不包含 core、其他 Project、private config 或 `public/voice_profile/`。
 - fresh clone 由 `npm run bootstrap` 重建 core proof assets 与 zero-safe Catalog/Registry；不得把
   具体 Project 或媒体加入 core version control。
+- `project:delete` 可为清理从任意结构有效的 Run manifest 只提取严格 `runId/storyId` 所有权；
+  不解析旧 production contract/state/event，也不把该边界扩张为 runtime compatibility。
 - 默认 source/check 不读取历史媒体；显式 media/evidence/delivery 命令 fail closed。
 - Project 可删除性矩阵只能在明确的 `mktemp` 隔离副本中执行，不删除真实作品。
 - ProjectRegistry 在 bundle 前按固定一级目录生成静态 TypeScript；Composition 用
@@ -145,6 +147,8 @@ assignment identity；无 receipt 时 Run 永久保持 `waiting-for-owner-result
 - 沙箱诊断失败不能判定 VoxCPM 不可用。
 - 不为了通过检查预热/测试 TTS、fallback 或降低 Chromium sandbox。
 - `scripts/production/` 与 `scripts/delivery/` 都只在根保留 CLI；application/domain/adapters 分层。
+- 跨 production/delivery 的无业务语义技术 port/host adapter 放在窄 `scripts/shared/`；domain 不得
+  依赖 application/adapters，delivery adapter 不得反向复用 production adapter。
 - 新 Composition 至少通过 `npm run compositions`；高风险视觉改动补真实 still/短片。
 - 完成后检查 README、status、architecture、contracts 与 Skill 是否同步，复核 final diff。
 - 精确 staging，不用 `git add .`；不 push，除非用户明确要求。

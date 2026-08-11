@@ -1,5 +1,5 @@
 import { GlobalVisualAssignmentSchema } from "../../../src/contracts";
-import { redactProductionErrorDescription } from "../adapters/error-redaction";
+import { redactProductionErrorDescription } from "../domain/error-redaction";
 import { readProductionRunStore } from "../adapters/run-store";
 import {
   assertGlobalVisualResultState,

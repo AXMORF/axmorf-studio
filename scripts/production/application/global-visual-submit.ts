@@ -7,7 +7,7 @@ import {
   type GlobalVisualAssignment,
   type GlobalVisualProductionResult,
 } from "../../../src/contracts";
-import { redactProductionErrorDescription } from "../adapters/error-redaction";
+import { redactProductionErrorDescription } from "../domain/error-redaction";
 import {
   getProductionRunPaths,
   readProductionRunStore,

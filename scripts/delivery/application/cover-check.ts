@@ -1,4 +1,4 @@
-import type { ProcessRunner } from "../../baseline/evidence";
+import type { ProcessRunner } from "../../shared/process";
 import {
   cleanupCoverCheckWorkspace,
   createCoverCheckWorkspace,
@@ -32,8 +32,7 @@ export const runDeliveryCoverCheck = async ({
       status: "ready-to-submit" as const,
       assignmentFingerprint: assignment.assignmentFingerprint,
       packageFingerprint: validated.coverPackage.packageFingerprint,
-      sourceGraphFingerprint:
-        validated.coverPackage.sourceGraphFingerprint,
+      sourceGraphFingerprint: validated.coverPackage.sourceGraphFingerprint,
     };
   } finally {
     await cleanupCoverCheckWorkspace(workspace);

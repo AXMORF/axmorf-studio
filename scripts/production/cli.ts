@@ -7,10 +7,7 @@ import {
   Sha256DigestSchema,
   StoryIdSchema,
 } from "../../src/contracts";
-import { redactProductionErrorDescription } from "./adapters/error-redaction";
-import { readProductionRunStore } from "./adapters/run-store";
-import { readOwnerReceipt } from "./adapters/owner-inbox";
-import { loadCurrentDeliveryCoverAssignment } from "../delivery/application/cover-inputs";
+import { redactProductionErrorDescription } from "./domain/error-redaction";
 import {
   runProductionNarrative,
   runProductionGlobalVisualCheck,
@@ -19,11 +16,11 @@ import {
   runProductionSceneFreeze,
   runProductionSceneCheck,
   runProductionStart,
+  runProductionStatus,
   runProductionWatch,
   startProductionWatcher,
   publishProductionOwnerReceipt,
 } from "./application";
-import { resolveCurrentSceneAssignments } from "./application/scene-freeze";
 
 type ProductionCliContext = Readonly<{
   rootDir: string;
@@ -86,67 +83,6 @@ const defaultContext = (): ProductionCliContext => ({
   stdout: (line) => process.stdout.write(`${line}\n`),
 });
 
-const runStatus = async ({
-  rootDir,
-  runId,
-}: {
-  readonly rootDir: string;
-  readonly runId: string;
-}) => {
-  const loaded = await readProductionRunStore({ rootDir, runId });
-  const missingOwnerAssignments: Array<{
-    ownerKind: "scene" | "global-visual" | "cover";
-    meaningId: string | null;
-    assignmentFingerprint: string;
-  }> = [];
-  if (
-    new Set([
-      "scene-inputs-frozen",
-      "waiting-for-owner-results",
-      "render-ready-running",
-      "render-ready",
-    ]).has(loaded.state.state)
-  ) {
-    const [resolved, cover] = await Promise.all([
-      resolveCurrentSceneAssignments({ rootDir, runId }),
-      loadCurrentDeliveryCoverAssignment({ rootDir, projectId: loaded.run.storyId }),
-    ]);
-    const identities = [
-      ...resolved.assignments.map((assignment) => ({
-        ownerKind: "scene" as const,
-        meaningId: assignment.meaningId,
-        assignmentFingerprint: assignment.assignmentFingerprint,
-      })),
-      ...(resolved.globalVisualAssignment === null
-        ? []
-        : [{
-            ownerKind: "global-visual" as const,
-            meaningId: null,
-            assignmentFingerprint:
-              resolved.globalVisualAssignment.assignmentFingerprint,
-          }]),
-      {
-        ownerKind: "cover" as const,
-        meaningId: null,
-        assignmentFingerprint: cover.assignment.assignmentFingerprint,
-      },
-    ];
-    for (const identity of identities) {
-      if (await readOwnerReceipt({ rootDir, runId, ...identity }) === null) {
-        missingOwnerAssignments.push(identity);
-      }
-    }
-  }
-  return {
-    runId: loaded.run.runId,
-    status: loaded.state.state,
-    statePath: `.producer-runs/${loaded.run.runId}/state.generated.json`,
-    requirementsFingerprint: loaded.run.requirementsFingerprint,
-    lastSequence: loaded.state.lastSequence,
-    missingOwnerAssignments,
-  } as const;
-};
-
 export const runProductionCli = async (
   args: readonly string[],
   context: ProductionCliContext = defaultContext(),
@@ -177,7 +113,7 @@ export const runProductionCli = async (
     const runId = ProductionRunIdSchema.parse(args[2]);
     result = context.status
       ? await context.status({ rootDir: context.rootDir, runId })
-      : await runStatus({ rootDir: context.rootDir, runId });
+      : await runProductionStatus({ rootDir: context.rootDir, runId });
   } else if (
     (args.length === 3 || args.length === 5) &&
     args[0] === "narrative" &&
@@ -190,9 +126,7 @@ export const runProductionCli = async (
     const request = {
       rootDir: context.rootDir,
       runId,
-      ...(supersedeFingerprint === undefined
-        ? {}
-        : { supersedeFingerprint }),
+      ...(supersedeFingerprint === undefined ? {} : { supersedeFingerprint }),
     } as const;
     result = context.narrative
       ? await context.narrative(request)
@@ -273,7 +207,9 @@ export const runProductionCli = async (
         (args[isScene ? 7 : 5] !== "--code" ||
           args[isScene ? 9 : 7] !== "--description"))
     ) {
-      throw new Error("Expected an exact documented owner receipt command form.");
+      throw new Error(
+        "Expected an exact documented owner receipt command form.",
+      );
     }
     const meaningId = isScene ? MeaningIdSchema.parse(args[6]) : null;
     const request = {

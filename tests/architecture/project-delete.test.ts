@@ -217,6 +217,43 @@ test("all deletion discovers Projects across authority roots but preserves core 
   await access(join(rootDir, "out/m6-scene-runtime-proof/proof.mp4"));
 });
 
+test("deletion identifies Project ownership without parsing obsolete Run contracts", async (context) => {
+  const rootDir = await createRoot(context);
+  const { runRoot } = await writeProjectData({
+    rootDir,
+    projectId: "legacy-story",
+  });
+  const runPath = join(runRoot, "run.json");
+  const run = JSON.parse(await readFile(runPath, "utf8")) as Record<
+    string,
+    unknown
+  >;
+  await writeFile(
+    runPath,
+    `${JSON.stringify({
+      ...run,
+      contractVersion: "production-run-current-v1",
+      policy: {
+        pollIntervalMs: 1_000,
+        sceneTimeoutMs: 60_000,
+      },
+    })}\n`,
+  );
+
+  const result = await deleteProjectData({
+    rootDir,
+    selection: { kind: "all" },
+    regenerate: async () => ({
+      catalogEntryCount: 17,
+      projectEntryCount: 0,
+    }),
+  });
+
+  assert.deepEqual(result.deletedProjectIds, ["legacy-story"]);
+  await missing(runRoot);
+  await missing(join(rootDir, "src/projects/legacy-story"));
+});
+
 test("preflight rejects unsafe targets before deleting anything", async (context) => {
   const rootDir = await createRoot(context);
   await writeProjectData({ rootDir, projectId: "alpha-story" });

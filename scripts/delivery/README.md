@@ -7,6 +7,10 @@ Current automatic local delivery keeps fixed layers:
 - `domain/`: deterministic identity, canonical publishing/manifest/handoff/ledger bytes;
 - `adapters/`: protected filesystem, independent Cover media checks, detached Remotion spawn.
 
+Shared process ports and the allowlisted host media runner live in `scripts/shared/`; delivery adapters
+do not import production adapters, and delivery domain code does not import application or adapters.
+`tests/architecture/script-layering.test.ts` enforces these directions.
+
 ```bash
 npm run delivery:cover:freeze -- --project <storyId>
 npm run delivery:cover:check -- --project <storyId>

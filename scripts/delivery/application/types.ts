@@ -1,4 +1,4 @@
-import type { ProcessRunner } from "../../baseline/evidence";
+import type { ProcessRunner } from "../../shared/process";
 import type { checkProductionRenderReady } from "../../production/application/render-ready";
 import type { launchDetachedRemotionRender } from "../adapters/render-launch";
 

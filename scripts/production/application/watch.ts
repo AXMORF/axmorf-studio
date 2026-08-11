@@ -15,11 +15,11 @@ import {
 } from "../adapters/run-store";
 import {
   assertOnlyExpectedOwnerInboxEntries,
-  assertOwnerOutputManifestCurrent,
   readOwnerReceipt,
   readOwnerResult,
   writeOwnerResult,
 } from "../adapters/owner-inbox";
+import { assertOwnerOutputManifestCurrent } from "../adapters/owner-output-manifest";
 import { createProductionStageEvent } from "../domain/events";
 import { createExpectedProductionError } from "../domain/errors";
 import { runProductionGlobalVisualSubmit } from "./global-visual-submit";
@@ -27,7 +27,10 @@ import { runProductionGlobalVisualFail } from "./global-visual-fail";
 import { readExistingGlobalVisualResult } from "./global-visual-check";
 import { ownerOutputScope, resolveOwnerAssignment } from "./owner-receipt";
 import { runProductionRenderReady } from "./render-ready";
-import { readExistingSceneResult, runProductionSceneSubmit } from "./scene-submit";
+import {
+  readExistingSceneResult,
+  runProductionSceneSubmit,
+} from "./scene-submit";
 import { runProductionSceneFail } from "./scene-fail";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
 
@@ -128,7 +131,10 @@ const assertReceiptIdentity = ({
     });
   }
   const inputFingerprints = new Map(
-    receipt.inputFingerprints.map((item) => [item.artifactId, item.fingerprint]),
+    receipt.inputFingerprints.map((item) => [
+      item.artifactId,
+      item.fingerprint,
+    ]),
   );
   if (
     inputFingerprints.get("assignment") !== owner.assignmentFingerprint ||
@@ -139,7 +145,8 @@ const assertReceiptIdentity = ({
   ) {
     throw failure({
       code: "STALE_OWNER_RECEIPT",
-      message: "Owner receipt input identities are stale against frozen inputs.",
+      message:
+        "Owner receipt input identities are stale against frozen inputs.",
       owner,
     });
   }
@@ -159,7 +166,10 @@ const appendWatchFailure = async ({
   readonly occurredAt: string;
 }) => {
   const loaded = await readProductionRunStore({ rootDir, runId });
-  if (loaded.state.state === "failed" || loaded.state.state === "render-ready") {
+  if (
+    loaded.state.state === "failed" ||
+    loaded.state.state === "render-ready"
+  ) {
     return loaded.state;
   }
   const error = createExpectedProductionError({
@@ -269,7 +279,8 @@ const processOwnerReceipt = async ({
     return { receipt, result: existingResult } as const;
   }
 
-  let formalResult: { repositoryPath: string; fingerprint: string } | null = null;
+  let formalResult: { repositoryPath: string; fingerprint: string } | null =
+    null;
   if (receipt.status === "owner-failed") {
     if (owner.ownerKind === "scene") {
       await runProductionSceneFail({
@@ -284,7 +295,8 @@ const processOwnerReceipt = async ({
         runId,
         meaningId: owner.meaningId!,
       });
-      if (result === null) throw new Error("Scene failure result was not written.");
+      if (result === null)
+        throw new Error("Scene failure result was not written.");
       formalResult = {
         repositoryPath: `.producer-runs/${runId}/scene-results/${owner.meaningId}.json`,
         fingerprint: result.resultFingerprint,
@@ -297,7 +309,8 @@ const processOwnerReceipt = async ({
         description: receipt.error.description,
       });
       const result = await readExistingGlobalVisualResult({ rootDir, runId });
-      if (result === null) throw new Error("GlobalVisual failure result was not written.");
+      if (result === null)
+        throw new Error("GlobalVisual failure result was not written.");
       formalResult = {
         repositoryPath: `.producer-runs/${runId}/global-visual-result.json`,
         fingerprint: result.resultFingerprint,
@@ -362,7 +375,10 @@ const acceptFormalResults = async ({
 }) => {
   let loaded = await readProductionRunStore({ rootDir, runId });
   const accepted = new Map(
-    loaded.state.acceptedSceneResults.map((item) => [item.meaningId, item.resultFingerprint]),
+    loaded.state.acceptedSceneResults.map((item) => [
+      item.meaningId,
+      item.resultFingerprint,
+    ]),
   );
   for (const assignment of assignments) {
     const owner = assignmentIdentity(assignment);
@@ -373,10 +389,14 @@ const acceptFormalResults = async ({
       runId,
       meaningId: assignment.meaningId,
     });
-    if (result === null || result.resultFingerprint !== ownerResult.formalResult?.fingerprint) {
+    if (
+      result === null ||
+      result.resultFingerprint !== ownerResult.formalResult?.fingerprint
+    ) {
       throw failure({
         code: "STALE_SCENE_RESULT",
-        message: "Formal Scene result is missing or stale against the watcher outcome.",
+        message:
+          "Formal Scene result is missing or stale against the watcher outcome.",
         owner,
       });
     }
@@ -389,7 +409,11 @@ const acceptFormalResults = async ({
     }
     const prior = accepted.get(assignment.meaningId);
     if (prior !== undefined && prior !== result.resultFingerprint) {
-      throw failure({ code: "STALE_SCENE_RESULT", message: "Accepted Scene result changed.", owner });
+      throw failure({
+        code: "STALE_SCENE_RESULT",
+        message: "Accepted Scene result changed.",
+        owner,
+      });
     }
     if (prior === undefined) {
       loaded = {
@@ -412,8 +436,14 @@ const acceptFormalResults = async ({
               commandId: "production-watch-worker",
               previousStateFingerprint: loaded.state.stateFingerprint,
               inputFingerprints: [
-                { artifactId: `scene-assignment.${assignment.meaningId}`, fingerprint: assignment.assignmentFingerprint },
-                { artifactId: `owner-receipt.scene.${assignment.meaningId}`, fingerprint: ownerResult.receiptFingerprint },
+                {
+                  artifactId: `scene-assignment.${assignment.meaningId}`,
+                  fingerprint: assignment.assignmentFingerprint,
+                },
+                {
+                  artifactId: `owner-receipt.scene.${assignment.meaningId}`,
+                  fingerprint: ownerResult.receiptFingerprint,
+                },
               ],
               meaningId: assignment.meaningId,
               sceneResultFingerprint: result.resultFingerprint,
@@ -433,18 +463,40 @@ const acceptFormalResults = async ({
   }
 
   const globalOwner = assignmentIdentity(globalVisualAssignment);
-  const globalOwnerResult = await readOwnerResult({ rootDir, runId, ...globalOwner });
+  const globalOwnerResult = await readOwnerResult({
+    rootDir,
+    runId,
+    ...globalOwner,
+  });
   let acceptedGlobal = loaded.state.acceptedGlobalVisualResult;
   if (globalOwnerResult !== null) {
     const result = await readExistingGlobalVisualResult({ rootDir, runId });
-    if (result === null || result.resultFingerprint !== globalOwnerResult.formalResult?.fingerprint) {
-      throw failure({ code: "STALE_GLOBAL_VISUAL_RESULT", message: "Formal GlobalVisual result is missing or stale.", owner: globalOwner });
+    if (
+      result === null ||
+      result.resultFingerprint !== globalOwnerResult.formalResult?.fingerprint
+    ) {
+      throw failure({
+        code: "STALE_GLOBAL_VISUAL_RESULT",
+        message: "Formal GlobalVisual result is missing or stale.",
+        owner: globalOwner,
+      });
     }
     if (result.status === "failure") {
-      throw failure({ code: result.error.code, message: result.error.description, owner: globalOwner });
+      throw failure({
+        code: result.error.code,
+        message: result.error.description,
+        owner: globalOwner,
+      });
     }
-    if (acceptedGlobal !== null && acceptedGlobal.resultFingerprint !== result.resultFingerprint) {
-      throw failure({ code: "STALE_GLOBAL_VISUAL_RESULT", message: "Accepted GlobalVisual result changed.", owner: globalOwner });
+    if (
+      acceptedGlobal !== null &&
+      acceptedGlobal.resultFingerprint !== result.resultFingerprint
+    ) {
+      throw failure({
+        code: "STALE_GLOBAL_VISUAL_RESULT",
+        message: "Accepted GlobalVisual result changed.",
+        owner: globalOwner,
+      });
     }
     if (acceptedGlobal === null) {
       loaded = {
@@ -467,8 +519,14 @@ const acceptFormalResults = async ({
               commandId: "production-watch-worker",
               previousStateFingerprint: loaded.state.stateFingerprint,
               inputFingerprints: [
-                { artifactId: "global-visual-assignment", fingerprint: globalVisualAssignment.assignmentFingerprint },
-                { artifactId: "owner-receipt.global-visual", fingerprint: globalOwnerResult.receiptFingerprint },
+                {
+                  artifactId: "global-visual-assignment",
+                  fingerprint: globalVisualAssignment.assignmentFingerprint,
+                },
+                {
+                  artifactId: "owner-receipt.global-visual",
+                  fingerprint: globalOwnerResult.receiptFingerprint,
+                },
               ],
               globalVisualResultFingerprint: result.resultFingerprint,
               outputArtifacts: [
@@ -507,7 +565,11 @@ const completeScenesStage = async ({
   readonly clock: () => Date;
 }) => {
   const loaded = await readProductionRunStore({ rootDir, runId });
-  if (loaded.state.state === "render-ready-running" || loaded.state.state === "render-ready") return;
+  if (
+    loaded.state.state === "render-ready-running" ||
+    loaded.state.state === "render-ready"
+  )
+    return;
   await appendProductionRunEvent({
     rootDir,
     runId,
@@ -525,8 +587,14 @@ const completeScenesStage = async ({
       commandId: "production-watch-worker",
       previousStateFingerprint: loaded.state.stateFingerprint,
       inputFingerprints: [
-        ...assignments.map((assignment) => ({ artifactId: `scene-assignment.${assignment.meaningId}`, fingerprint: assignment.assignmentFingerprint })),
-        { artifactId: "global-visual-assignment", fingerprint: globalVisualAssignment.assignmentFingerprint },
+        ...assignments.map((assignment) => ({
+          artifactId: `scene-assignment.${assignment.meaningId}`,
+          fingerprint: assignment.assignmentFingerprint,
+        })),
+        {
+          artifactId: "global-visual-assignment",
+          fingerprint: globalVisualAssignment.assignmentFingerprint,
+        },
       ],
       outputArtifacts: [
         ...loaded.state.acceptedSceneResults.map((result) => ({
@@ -537,7 +605,8 @@ const completeScenesStage = async ({
         {
           artifactId: "global-visual-result",
           repositoryPath: `.producer-runs/${runId}/global-visual-result.json`,
-          fingerprint: loaded.state.acceptedGlobalVisualResult!.resultFingerprint,
+          fingerprint:
+            loaded.state.acceptedGlobalVisualResult!.resultFingerprint,
         },
       ],
     }),
@@ -584,7 +653,8 @@ export const runProductionWatch = async ({
   readonly dependencies?: ProductionWatchDependencies;
 }) => {
   const acquiredAt = clock();
-  if (Number.isNaN(acquiredAt.getTime())) throw new Error("Production watcher clock is invalid.");
+  if (Number.isNaN(acquiredAt.getTime()))
+    throw new Error("Production watcher clock is invalid.");
   let lock: ProductionRunLock | null = await acquireProductionRunLock({
     rootDir,
     runId,
@@ -618,7 +688,10 @@ export const runProductionWatch = async ({
               commandId: "production-watch-worker",
               previousStateFingerprint: loaded.state.stateFingerprint,
               inputFingerprints: [
-                { artifactId: "requirements", fingerprint: loaded.run.requirementsFingerprint },
+                {
+                  artifactId: "requirements",
+                  fingerprint: loaded.run.requirementsFingerprint,
+                },
               ],
             }),
           })
@@ -629,23 +702,33 @@ export const runProductionWatch = async ({
       loaded = await readProductionRunStore({ rootDir, runId });
       const resolved = dependencies.resolveAssignments
         ? await dependencies.resolveAssignments({ rootDir, runId })
-        : await resolveCurrentSceneAssignments({ rootDir, runId }).then((value) => {
-            if (value.globalVisualAssignment === null) {
-              throw new Error("GlobalVisual assignment is missing.");
-            }
-            return {
-              assignments: value.assignments as readonly CurrentSceneAssignment[],
-              globalVisualAssignment: value.globalVisualAssignment,
-            };
-          });
+        : await resolveCurrentSceneAssignments({ rootDir, runId }).then(
+            (value) => {
+              if (value.globalVisualAssignment === null) {
+                throw new Error("GlobalVisual assignment is missing.");
+              }
+              return {
+                assignments:
+                  value.assignments as readonly CurrentSceneAssignment[],
+                globalVisualAssignment: value.globalVisualAssignment,
+              };
+            },
+          );
       if (resolved.assignments.length === 0) {
-        throw failure({ code: "STALE_OWNER_ASSIGNMENTS", message: "Frozen owner assignments are missing." });
+        throw failure({
+          code: "STALE_OWNER_ASSIGNMENTS",
+          message: "Frozen owner assignments are missing.",
+        });
       }
-      const assignments = resolved.assignments as readonly CurrentSceneAssignment[];
+      const assignments =
+        resolved.assignments as readonly CurrentSceneAssignment[];
       const globalVisualAssignment = resolved.globalVisualAssignment;
       const meaningIds = new Set(assignments.map(({ meaningId }) => meaningId));
       if (meaningIds.size !== assignments.length) {
-        throw failure({ code: "STALE_OWNER_ASSIGNMENTS", message: "Frozen Scene assignment identities conflict." });
+        throw failure({
+          code: "STALE_OWNER_ASSIGNMENTS",
+          message: "Frozen Scene assignment identities conflict.",
+        });
       }
       await assertOnlyExpectedOwnerInboxEntries({ rootDir, runId, meaningIds });
 
@@ -691,7 +774,10 @@ export const runProductionWatch = async ({
           });
           await lock.release();
           lock = null;
-          await (dependencies.renderReady ?? runProductionRenderReady)({ rootDir, runId });
+          await (dependencies.renderReady ?? runProductionRenderReady)({
+            rootDir,
+            runId,
+          });
           lock = await acquireProductionRunLock({
             rootDir,
             runId,
@@ -704,7 +790,10 @@ export const runProductionWatch = async ({
       if (loaded.state.state === "render-ready-running") {
         await lock.release();
         lock = null;
-        await (dependencies.renderReady ?? runProductionRenderReady)({ rootDir, runId });
+        await (dependencies.renderReady ?? runProductionRenderReady)({
+          rootDir,
+          runId,
+        });
         lock = await acquireProductionRunLock({
           rootDir,
           runId,
@@ -748,7 +837,9 @@ export const runProductionWatch = async ({
           continue;
         }
         if (coverOutcome.receipt.status === "owner-failed") {
-          throw new Error("Cover owner failed; render-ready is preserved but automatic delivery is blocked.");
+          throw new Error(
+            "Cover owner failed; render-ready is preserved but automatic delivery is blocked.",
+          );
         }
         const delivered = await (dependencies.deliveryBuild ?? buildDelivery)({
           rootDir,
@@ -782,7 +873,8 @@ export const runProductionWatch = async ({
       ) {
         watchFailure = {
           code: "OWNER_WATCH_FAILED",
-          message: "Detached production watcher failed during fixed receipt processing.",
+          message:
+            "Detached production watcher failed during fixed receipt processing.",
           meaningId: null,
           inputFingerprint: current.run.requirementsFingerprint,
           scope: "run",

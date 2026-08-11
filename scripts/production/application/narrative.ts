@@ -14,7 +14,6 @@ import {
   resolveCurrentM3Entry,
   resolveM3GeneratedRegistryChecksum,
   writeM3NarrativeBaselineEvidence,
-  type ProcessRunner,
 } from "../../baseline/evidence";
 import {
   createDefaultGenerationDependencies,
@@ -22,7 +21,8 @@ import {
 } from "../../narration/cli";
 import { runProjectCheckCli } from "../../project-check/cli";
 import { generateProjectRegistry } from "../../registry/generate";
-import { runProductionMediaProcess } from "../adapters/process-runner";
+import { runMediaProcess } from "../../shared/media-process";
+import type { ProcessRunner } from "../../shared/process";
 import {
   buildProductionCompositionsArgs,
   buildProductionRenderArgs,
@@ -132,7 +132,7 @@ const assertProcessSucceeded = (
 };
 
 export const createDefaultNarrativeProductionDependencies = ({
-  runProcess = runProductionMediaProcess,
+  runProcess = runMediaProcess,
   runNarrationCli = defaultRunNarrationCli,
 }: {
   readonly runProcess?: ProcessRunner;

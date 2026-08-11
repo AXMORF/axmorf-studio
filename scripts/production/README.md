@@ -7,6 +7,10 @@
 - `domain/`：状态转换、事件、投影与错误语义；不得依赖文件系统、进程或网络。
 - `adapters/`：文件存储、Remotion/VoxCPM 进程和外部服务端口。
 
+跨 production/delivery 的纯技术 port 与受限宿主媒体进程 adapter 位于 `scripts/shared/`；domain
+不得依赖 application/adapters，delivery 不得反向 import production adapter。这些方向由
+`tests/architecture/script-layering.test.ts` 执行检查。
+
 current public handoff is `production:watch:start`: it writes watcher launch intent, waits only for
 OS spawn acknowledgement, writes the launch receipt, and returns. Independent owners publish
 assignment-bound receipts through `production:owner:ready` or `production:owner:failed`; only the

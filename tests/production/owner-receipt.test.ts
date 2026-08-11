@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
-import { access, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -10,11 +18,13 @@ import {
   serializeCanonicalJson,
 } from "../../src/contracts";
 import {
-  assertOwnerOutputManifestCurrent,
-  collectOwnerOutputManifest,
   readOwnerReceipt,
   writeOwnerReceiptAtomic,
 } from "../../scripts/production/adapters/owner-inbox";
+import {
+  assertOwnerOutputManifestCurrent,
+  collectOwnerOutputManifest,
+} from "../../scripts/production/adapters/owner-output-manifest";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
@@ -27,9 +37,7 @@ const receipt = (overrides: Record<string, unknown> = {}) =>
     assignmentFingerprint: sha("1"),
     taskInputFingerprint: sha("2"),
     requirementsFingerprint: sha("3"),
-    inputFingerprints: [
-      { artifactId: "assignment", fingerprint: sha("1") },
-    ],
+    inputFingerprints: [{ artifactId: "assignment", fingerprint: sha("1") }],
     outputManifest: [],
     occurredAt: "2026-08-10T00:00:00.000Z",
     status: "owner-ready",
@@ -39,7 +47,10 @@ const receipt = (overrides: Record<string, unknown> = {}) =>
 test("owner receipt is strict, fingerprinted, and contains no lifecycle fields", () => {
   const ready = receipt();
   assert.equal(ready.status, "owner-ready");
-  assert.doesNotMatch(JSON.stringify(ready), /threadId|taskId|heartbeat|progress/iu);
+  assert.doesNotMatch(
+    JSON.stringify(ready),
+    /threadId|taskId|heartbeat|progress/iu,
+  );
   assert.throws(() =>
     ProductionOwnerReceiptSchema.parse({ ...ready, threadId: "forbidden" }),
   );
@@ -64,7 +75,8 @@ test("receipt publication is atomic, idempotent, and conflicting content fails c
       receipt: receipt({
         outputManifest: [
           {
-            repositoryPath: "src/projects/story-example/scenes/opening/extra.ts",
+            repositoryPath:
+              "src/projects/story-example/scenes/opening/extra.ts",
             checksum: sha("8"),
             sizeBytes: 1,
           },
@@ -103,12 +115,14 @@ test("an orphan same-directory pending receipt is recoverable by a replacement o
   });
   assert.equal(recovered.written, true);
   assert.equal(
-    (await readOwnerReceipt({
-      rootDir,
-      runId: ready.runId,
-      ownerKind: "scene",
-      meaningId: "opening",
-    }))?.receiptFingerprint,
+    (
+      await readOwnerReceipt({
+        rootDir,
+        runId: ready.runId,
+        ownerKind: "scene",
+        meaningId: "opening",
+      })
+    )?.receiptFingerprint,
     ready.receiptFingerprint,
   );
   await assert.rejects(access(pending));
@@ -134,7 +148,8 @@ test("concurrent semantic replay with different clocks installs one immutable re
     );
     assert.equal(writes.filter(({ written }) => written).length, 1);
     assert.equal(
-      new Set(writes.map(({ receipt: stored }) => stored.receiptFingerprint)).size,
+      new Set(writes.map(({ receipt: stored }) => stored.receiptFingerprint))
+        .size,
       1,
     );
   }
@@ -145,7 +160,10 @@ test("malformed receipt, output drift, unknown files, symlinks, and escapes are 
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const sceneRoot = "src/projects/story-example/scenes/opening";
   await mkdir(join(rootDir, sceneRoot), { recursive: true });
-  await writeFile(join(rootDir, sceneRoot, "Renderer.tsx"), "export const Renderer = () => null;\n");
+  await writeFile(
+    join(rootDir, sceneRoot, "Renderer.tsx"),
+    "export const Renderer = () => null;\n",
+  );
   const scope = {
     directories: [sceneRoot],
     requiredFiles: [`${sceneRoot}/Renderer.tsx`],
@@ -155,7 +173,11 @@ test("malformed receipt, output drift, unknown files, symlinks, and escapes are 
     scope,
     allowMissing: false,
   });
-  await assertOwnerOutputManifestCurrent({ rootDir, scope, expected: manifest });
+  await assertOwnerOutputManifestCurrent({
+    rootDir,
+    scope,
+    expected: manifest,
+  });
   await writeFile(join(rootDir, sceneRoot, "unknown.ts"), "export {};\n");
   await assert.rejects(
     assertOwnerOutputManifestCurrent({ rootDir, scope, expected: manifest }),

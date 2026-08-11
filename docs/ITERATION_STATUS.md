@@ -98,7 +98,11 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 ### 工程与可删除性
 
-- `scripts/production` 与 `scripts/delivery` 均按 cli/application/domain/adapters 分层。
+- `scripts/production` 与 `scripts/delivery` 均按 cli/application/domain/adapters 分层；通用文本进程
+  port、受限媒体进程 adapter 与 Remotion executable resolution 位于窄 `scripts/shared/`，delivery
+  不再反向复用 production adapter，domain 不依赖 application/adapters。架构测试阻止层级回退。
+- owner output 路径安全、manifest 收集与 receipt/result inbox 持久化已拆为独立 adapter；
+  production status 是 application use case，CLI 只保留精确命令解析与输出边界。
 - `public/`、`src/projects/`、Registry/Catalog 投影、`.narration-work/`、`out/`、`deliveries/` 和
   Run 均是 ignored 本地产物；bootstrap 从 zero Project 重建 core proof 与 zero-safe 聚合。
 - 默认 source gate 不读取历史媒体；显式 media 检查 fail closed；Project deletion matrix 只在
@@ -106,6 +110,8 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 - `project:delete` 是真实作品清理入口，支持一个、多个或全部 storyId；它删除 Project、项目媒体、
   narration work、Runs、out 和 deliveries 的完整绑定数据，重建零安全 Registry/Catalog，并保护
   core 与 `public/voice_profile/`。非空 delivery staging、writer lock 与不安全路径均在删除前阻断。
+- 删除器为清理只读取 Run 的严格 `runId/storyId` 所有权，因此已移除的旧 Run contract 不会让作品
+  变成不可删除；production/delivery runtime 仍保持 current-only，绝不解释旧 state/event/result。
 - render runtime 不调用 Agent、Skill、MCP、Git、目录扫描或网络服务；所有 motion 使用
   Remotion frame API。
 

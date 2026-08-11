@@ -21,12 +21,15 @@ scripts/delivery/cli.ts        delivery build/check dispatch
 scripts/delivery/application/  input loading, package, launch, check
 scripts/delivery/domain/       deterministic delivery model and canonical bytes
 scripts/delivery/adapters/     filesystem, Cover media, detached spawn
+scripts/shared/                cross-workflow technical ports and host media adapters
 scripts/projects/delete.ts     preflighted destructive Project data cleanup
 scripts/projects/configure.ts  new-Project ProducerConfig freeze application/CLI
 ```
 
 CLI 入口保持薄；用例编排、纯规则和 external I/O 不平铺混合。render runtime 永远不调用
-production/delivery scripts 或外部系统。
+production/delivery scripts 或外部系统。`scripts/shared/` 只接纳无业务语义的窄接口与宿主适配器，
+不得成为跨模块 service locator；`tests/architecture/script-layering.test.ts` 执行检查 domain、
+application、adapter 与跨流程依赖方向。
 
 ## Authority graph
 
@@ -148,6 +151,8 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
   `public/voice_profile/` 永远不属于删除目标。
 - `project:delete` 要求显式 `--confirm-delete`，并在 delivery staging 非空、目标 Run 有 writer
   lock、路径为 symlink/非目录或指定 storyId 不存在时，于任何删除发生前 fail closed。
+- 删除器不解析旧 Run 的 production contract/state/event；它只从结构有效的 `run.json` 提取严格
+  `runId` 与 `storyId` 所有权。这是清理边界，不是旧 Run runtime compatibility。
 
 ## Extension boundary
 

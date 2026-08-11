@@ -1,16 +1,14 @@
-import { join } from "node:path";
-
 import {
   buildProductionStartPreflightFailure,
   type ProductionStartPreflight,
 } from "../../../src/contracts";
-import type { ProcessRunner } from "../../baseline/evidence";
-import { runProductionMediaProcess } from "./process-runner";
+import { runMediaProcess } from "../../shared/media-process";
+import { resolveRemotionCommand } from "../../shared/remotion-command";
+import type { ProcessRunner } from "../../shared/process";
 
 export const PRODUCTION_REMOTION_ENTRY = "src/index.ts" as const;
 
-export const resolveProductionRemotionCommand = (rootDir: string) =>
-  join(rootDir, "node_modules/.bin/remotion");
+export const resolveProductionRemotionCommand = resolveRemotionCommand;
 
 export const buildProductionCompositionsArgs = () =>
   ["compositions", PRODUCTION_REMOTION_ENTRY] as const;
@@ -83,7 +81,7 @@ const failure = ({
 export const preflightRemotionBrowser = async ({
   rootDir,
   requirementsFingerprint,
-  runProcess = runProductionMediaProcess,
+  runProcess = runMediaProcess,
 }: {
   readonly rootDir: string;
   readonly requirementsFingerprint: string;
@@ -101,7 +99,8 @@ export const preflightRemotionBrowser = async ({
       code: "REMOTION_BROWSER_UNAVAILABLE",
       kind: "external-blocker",
       summary: "The production browser executable is unavailable.",
-      remediation: "Restore the supported Remotion browser environment before starting production.",
+      remediation:
+        "Restore the supported Remotion browser environment before starting production.",
     });
   }
   if (result.status === 0) {
@@ -117,8 +116,10 @@ export const preflightRemotionBrowser = async ({
       requirementsFingerprint,
       code: "REMOTION_BROWSER_SANDBOX_DENIED",
       kind: "external-blocker",
-      summary: "The production browser sandbox is denied by the host environment.",
-      remediation: "Run with the required host browser permissions without weakening sandbox settings.",
+      summary:
+        "The production browser sandbox is denied by the host environment.",
+      remediation:
+        "Run with the required host browser permissions without weakening sandbox settings.",
     });
   }
   if (/EACCES|permission denied/iu.test(bounded)) {
@@ -127,7 +128,8 @@ export const preflightRemotionBrowser = async ({
       code: "REMOTION_BROWSER_PERMISSION_DENIED",
       kind: "external-blocker",
       summary: "The production browser process lacks host permission.",
-      remediation: "Restore the required host browser permission before starting production.",
+      remediation:
+        "Restore the required host browser permission before starting production.",
     });
   }
   return failure({

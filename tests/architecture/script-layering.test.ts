@@ -1,0 +1,71 @@
+import assert from "node:assert/strict";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import test from "node:test";
+
+import { findScriptLayeringViolations } from "../../scripts/architecture/script-layering";
+
+test("production and delivery scripts keep one-way layer dependencies", async () => {
+  assert.deepEqual(await findScriptLayeringViolations(process.cwd()), []);
+});
+
+test("layering guard detects every forbidden dependency direction", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-script-layering-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  await Promise.all(
+    [
+      "scripts/production/domain",
+      "scripts/production/application",
+      "scripts/production/adapters",
+      "scripts/delivery/domain",
+      "scripts/delivery/application",
+      "scripts/delivery/adapters",
+    ].map((path) => mkdir(join(rootDir, path), { recursive: true })),
+  );
+  await Promise.all([
+    writeFile(
+      join(rootDir, "scripts/production/domain/bad.ts"),
+      [
+        'import "../application/use-case";',
+        'import "../adapters/filesystem";',
+        'import "../cli";',
+      ].join("\n"),
+    ),
+    writeFile(
+      join(rootDir, "scripts/production/application/bad.ts"),
+      'import "../cli";\n',
+    ),
+    writeFile(
+      join(rootDir, "scripts/production/adapters/bad.ts"),
+      'import "../application/use-case";\n',
+    ),
+    writeFile(
+      join(rootDir, "scripts/delivery/adapters/bad.ts"),
+      [
+        'import "../../production/adapters/filesystem";',
+        'import type {ProcessRunner} from "../../baseline/evidence";',
+      ].join("\n"),
+    ),
+    writeFile(
+      join(rootDir, "scripts/delivery/application/bad.ts"),
+      'import "../cover-cli";\n',
+    ),
+    writeFile(
+      join(rootDir, "scripts/delivery/domain/bad.ts"),
+      'import "../cover-cli";\n',
+    ),
+  ]);
+
+  assert.deepEqual(await findScriptLayeringViolations(rootDir), [
+    "scripts/delivery/adapters/bad.ts -> scripts/baseline/evidence: shared process port owned by baseline",
+    "scripts/delivery/adapters/bad.ts -> scripts/production/adapters/filesystem: delivery reuses production adapter",
+    "scripts/delivery/application/bad.ts -> scripts/delivery/cover-cli: application depends on CLI",
+    "scripts/delivery/domain/bad.ts -> scripts/delivery/cover-cli: domain dependency inversion",
+    "scripts/production/adapters/bad.ts -> scripts/production/application/use-case: adapter dependency inversion",
+    "scripts/production/application/bad.ts -> scripts/production/cli: application depends on CLI",
+    "scripts/production/domain/bad.ts -> scripts/production/adapters/filesystem: domain dependency inversion",
+    "scripts/production/domain/bad.ts -> scripts/production/application/use-case: domain dependency inversion",
+    "scripts/production/domain/bad.ts -> scripts/production/cli: domain dependency inversion",
+  ]);
+});

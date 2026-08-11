@@ -5,20 +5,32 @@ import {
   buildRenderLaunchIntent,
   createDeliveryId,
   formatDeliveryTimecode,
+  type DeliveryCoverResult,
+  type ProductionRenderPlan,
+  type ProductionRenderReady,
+  type PublishingIntent,
+  type SemanticTiming,
+  type StorySpec,
 } from "../../../src/contracts";
-import { checksumDeliveryBytes } from "../adapters/filesystem";
-import type { loadCurrentDeliveryInputs } from "../application/inputs";
+import { checksumDeliveryBytes } from "./checksum";
 import {
   buildChecksumLedger,
   buildDeliveryHandoff,
   serializeDeliveryJson,
 } from "./package";
 
-type DeliveryInputs = Awaited<ReturnType<typeof loadCurrentDeliveryInputs>>;
+export type DeliveryPackageInputs = Readonly<{
+  story: StorySpec;
+  semanticTiming: SemanticTiming;
+  intent: PublishingIntent;
+  renderPlan: ProductionRenderPlan;
+  renderReady: ProductionRenderReady;
+  cover: Readonly<{ result: DeliveryCoverResult }>;
+}>;
 
 const bytesOf = (value: string) => new TextEncoder().encode(value);
 
-export const buildDeliveryPackageModel = (inputs: DeliveryInputs) => {
+export const buildDeliveryPackageModel = (inputs: DeliveryPackageInputs) => {
   const { story, semanticTiming, intent, renderPlan, renderReady, cover } =
     inputs;
   const publishing = buildDeliveryPublishing({

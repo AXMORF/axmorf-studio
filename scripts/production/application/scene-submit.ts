@@ -17,7 +17,7 @@ import {
 import { collectRendererSourceGraph } from "../../renderer-registry/domain";
 import { generateScenePackageFromProjectFiles } from "../../scene-package/generate";
 import { readJsonFile } from "../../scene-package/project-files";
-import { redactProductionErrorDescription } from "../adapters/error-redaction";
+import { redactProductionErrorDescription } from "../domain/error-redaction";
 import { validateSceneReadability } from "./readability-validator";
 import {
   getProductionRunPaths,
@@ -67,10 +67,7 @@ export const loadStoredSceneAssignment: SceneAssignmentResolver = async ({
       join(rootDir, sceneAssignmentPath(loaded.run.storyId, meaningId)),
     ),
   );
-  if (
-    assignment.runId !== runId ||
-    assignment.meaningId !== meaningId
-  ) {
+  if (assignment.runId !== runId || assignment.meaningId !== meaningId) {
     throw new Error(
       "Stored SceneAssignment identity does not match the request.",
     );
@@ -281,8 +278,7 @@ const commonResultInput = (
     ...common,
     readabilityPolicyFingerprint:
       assignment.readabilityPolicy.policyFingerprint,
-    sceneCompositionBoundaryVersion:
-      assignment.sceneCompositionBoundaryVersion,
+    sceneCompositionBoundaryVersion: assignment.sceneCompositionBoundaryVersion,
   };
 };
 

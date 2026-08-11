@@ -3,10 +3,7 @@ import { lstat, readFile, readdir, rm } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import {
-  ProductionRunManifestSchema,
-  StoryIdSchema,
-} from "../../src/contracts";
+import { ProductionRunIdSchema, StoryIdSchema } from "../../src/contracts";
 import { generateResourceCatalog } from "../catalog/generate";
 import { generateProjectRegistry } from "../registry/generate";
 
@@ -130,6 +127,17 @@ type StoredRun = Readonly<{
   hasWriterLock: boolean;
 }>;
 
+const parseStoredRunOwnership = (raw: unknown) => {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("Production run ownership is malformed.");
+  }
+  const record = raw as Record<string, unknown>;
+  return {
+    runId: ProductionRunIdSchema.parse(record.runId),
+    storyId: StoryIdSchema.parse(record.storyId),
+  } as const;
+};
+
 const readStoredRuns = async (
   rootDir: string,
 ): Promise<readonly StoredRun[]> => {
@@ -162,7 +170,7 @@ const readStoredRuns = async (
         cause: error,
       });
     }
-    const run = ProductionRunManifestSchema.parse(raw);
+    const run = parseStoredRunOwnership(raw);
     if (run.runId !== entry.name) {
       throw new Error(
         `Production run directory identity is stale: ${entry.name}.`,

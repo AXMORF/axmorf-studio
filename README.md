@@ -125,6 +125,8 @@ npm run project:delete -- --all --confirm-delete
 
 非空 `deliveries/.staging/`、目标 Run writer lock、symlink 或异常路径会使整个命令在删除前
 fail closed。命令不终止正在运行的 provider 或 detached render，必须只对已停止生产/渲染的作品执行。
+删除器只读取 Run 的严格 `runId/storyId` 所有权，所以旧合同数据仍可清理；这不会让其他 current
+production/delivery 命令兼容或解释旧 Run。
 
 生产编排：
 
@@ -157,6 +159,7 @@ npm run delivery:check -- --project <story-id>
 docs/                        当前权威、指南、证据和历史归档
 scripts/production/          production cli / application / domain / adapters
 scripts/delivery/            Cover 与自动交付 cli / application / domain / adapters
+scripts/shared/              跨 production/delivery 的窄技术端口与宿主媒体 adapter
 scripts/config/              private ProducerConfig 读写与迁移
 scripts/projects/configure.ts 新 Project 通用默认值冻结入口
 settings/                    local / trusted-LAN React 配置控制台

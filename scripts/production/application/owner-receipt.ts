@@ -7,17 +7,17 @@ import {
   type SceneAssignment,
 } from "../../../src/contracts";
 import { loadCurrentDeliveryCoverAssignment } from "../../delivery/application/cover-inputs";
-import { redactProductionErrorDescription } from "../adapters/error-redaction";
+import { redactProductionErrorDescription } from "../domain/error-redaction";
 import {
-  collectOwnerOutputManifest,
   readOwnerReceipt,
   writeOwnerReceiptAtomic,
-  type OwnerOutputScope,
 } from "../adapters/owner-inbox";
-import { readProductionRunStore } from "../adapters/run-store";
 import {
-  loadCurrentGlobalVisualAssignment,
-} from "./global-visual-check";
+  collectOwnerOutputManifest,
+  type OwnerOutputScope,
+} from "../adapters/owner-output-manifest";
+import { readProductionRunStore } from "../adapters/run-store";
+import { loadCurrentGlobalVisualAssignment } from "./global-visual-check";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
 
 type OwnerAssignment =
@@ -30,7 +30,8 @@ type OwnerAssignment =
 
 export const ownerOutputScope = (owner: OwnerAssignment): OwnerOutputScope => {
   if (owner.ownerKind === "scene") {
-    const { sceneRoot, publicAssetRoot } = owner.assignment.taskInput.allowedDirectories;
+    const { sceneRoot, publicAssetRoot } =
+      owner.assignment.taskInput.allowedDirectories;
     return {
       directories: [sceneRoot, publicAssetRoot],
       excludedPrefixes: [`${sceneRoot}/generated`],
@@ -117,17 +118,23 @@ export const resolveOwnerAssignment = async ({
     throw new Error("Owner receipt requires frozen owner assignments.");
   }
   if (ownerKind === "scene") {
-    if (meaningId === null) throw new Error("Scene owner receipt requires meaningId.");
+    if (meaningId === null)
+      throw new Error("Scene owner receipt requires meaningId.");
     const resolved = await resolveCurrentSceneAssignments({ rootDir, runId });
     const assignment = resolved.assignments.find(
       (candidate) => candidate.meaningId === meaningId,
     );
-    if (assignment === undefined) throw new Error("Scene assignment identity is unknown.");
+    if (assignment === undefined)
+      throw new Error("Scene assignment identity is unknown.");
     return { ownerKind, assignment };
   }
-  if (meaningId !== null) throw new Error("Non-Scene owner receipt must not carry meaningId.");
+  if (meaningId !== null)
+    throw new Error("Non-Scene owner receipt must not carry meaningId.");
   if (ownerKind === "global-visual") {
-    const assignment = await loadCurrentGlobalVisualAssignment({ rootDir, runId });
+    const assignment = await loadCurrentGlobalVisualAssignment({
+      rootDir,
+      runId,
+    });
     return { ownerKind, assignment };
   }
   const { assignment } = await loadCurrentDeliveryCoverAssignment({
@@ -148,11 +155,26 @@ const receiptIdentity = (owner: OwnerAssignment) => {
       taskInputFingerprint: assignment.taskInput.taskInputFingerprint,
       requirementsFingerprint: assignment.requirementsFingerprint,
       inputFingerprints: [
-        { artifactId: "assignment", fingerprint: assignment.assignmentFingerprint },
-        { artifactId: "requirements", fingerprint: assignment.requirementsFingerprint },
-        { artifactId: "resource-pool", fingerprint: assignment.resourcePoolFingerprint },
-        { artifactId: "scene-brief", fingerprint: assignment.sceneBriefFingerprint },
-        { artifactId: "task-input", fingerprint: assignment.taskInput.taskInputFingerprint },
+        {
+          artifactId: "assignment",
+          fingerprint: assignment.assignmentFingerprint,
+        },
+        {
+          artifactId: "requirements",
+          fingerprint: assignment.requirementsFingerprint,
+        },
+        {
+          artifactId: "resource-pool",
+          fingerprint: assignment.resourcePoolFingerprint,
+        },
+        {
+          artifactId: "scene-brief",
+          fingerprint: assignment.sceneBriefFingerprint,
+        },
+        {
+          artifactId: "task-input",
+          fingerprint: assignment.taskInput.taskInputFingerprint,
+        },
       ],
     } as const;
   }
@@ -166,10 +188,22 @@ const receiptIdentity = (owner: OwnerAssignment) => {
       taskInputFingerprint: null,
       requirementsFingerprint: assignment.requirementsFingerprint,
       inputFingerprints: [
-        { artifactId: "assignment", fingerprint: assignment.assignmentFingerprint },
-        { artifactId: "global-visual-brief", fingerprint: assignment.globalVisualBriefFingerprint },
-        { artifactId: "requirements", fingerprint: assignment.requirementsFingerprint },
-        { artifactId: "resource-pool", fingerprint: assignment.resourcePoolFingerprint },
+        {
+          artifactId: "assignment",
+          fingerprint: assignment.assignmentFingerprint,
+        },
+        {
+          artifactId: "global-visual-brief",
+          fingerprint: assignment.globalVisualBriefFingerprint,
+        },
+        {
+          artifactId: "requirements",
+          fingerprint: assignment.requirementsFingerprint,
+        },
+        {
+          artifactId: "resource-pool",
+          fingerprint: assignment.resourcePoolFingerprint,
+        },
       ],
     } as const;
   }
@@ -182,7 +216,10 @@ const receiptIdentity = (owner: OwnerAssignment) => {
     taskInputFingerprint: null,
     requirementsFingerprint: null,
     inputFingerprints: [
-      { artifactId: "assignment", fingerprint: assignment.assignmentFingerprint },
+      {
+        artifactId: "assignment",
+        fingerprint: assignment.assignmentFingerprint,
+      },
       ...assignment.inputs.map((input) => ({
         artifactId: `cover-input.${input.kind}`,
         fingerprint: input.fingerprint,
@@ -225,7 +262,8 @@ export const publishProductionOwnerReceipt = async ({
   });
   const identity = receiptIdentity(owner);
   const now = clock();
-  if (Number.isNaN(now.getTime())) throw new Error("Owner receipt clock is invalid.");
+  if (Number.isNaN(now.getTime()))
+    throw new Error("Owner receipt clock is invalid.");
   const error =
     status === "owner-failed"
       ? redactProductionErrorDescription({
@@ -263,8 +301,13 @@ export const publishProductionOwnerReceipt = async ({
       delete record.receiptFingerprint;
       return record;
     };
-    if (JSON.stringify(comparable(existing)) !== JSON.stringify(comparable(receipt))) {
-      throw new Error("Owner receipt identity already has conflicting content.");
+    if (
+      JSON.stringify(comparable(existing)) !==
+      JSON.stringify(comparable(receipt))
+    ) {
+      throw new Error(
+        "Owner receipt identity already has conflicting content.",
+      );
     }
     return {
       runId,

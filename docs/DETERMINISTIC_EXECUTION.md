@@ -147,5 +147,6 @@ receipt bytes 先写同目录 temporary 并 fsync，再以 exclusive hard-link �
 - delivery check：只读 current package，不修复、不创建 receipt。
 - 用户明确授权后，真实作品只由 `project:delete` 按 storyId 删除 Project、public media、
   narration work、Runs、out 与 deliveries，并确定性重建 Registry/Catalog；core source gate
-  保持有效，其他显式 project/media/delivery 命令继续 fail closed。
+  保持有效，其他显式 project/media/delivery 命令继续 fail closed。删除预检只投影 Run 的严格
+  `runId/storyId` 所有权，不验证或解释已移除的 production contract/state/event。
 - deletion matrix 只在隔离副本执行，真实 production artifacts 不作为测试夹具删除。

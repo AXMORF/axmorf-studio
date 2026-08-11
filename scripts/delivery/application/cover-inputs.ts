@@ -1,6 +1,6 @@
 import { join } from "node:path";
 
-import type { ProcessRunner } from "../../baseline/evidence";
+import type { ProcessRunner } from "../../shared/process";
 import {
   DeliveryCoverAssignmentSchema,
   DeliveryCoverPackageSchema,
@@ -11,10 +11,7 @@ import {
   buildDeliveryCoverAssignment,
   buildDeliveryCoverPackage,
 } from "../../../src/contracts";
-import {
-  checksumDeliveryBytes,
-  readDeliveryJson,
-} from "../adapters/filesystem";
+import { readDeliveryJson } from "../adapters/filesystem";
 import { collectDeliveryCoverSourceGraph } from "../adapters/cover-source";
 import {
   coverResultRelativeRoot,
@@ -25,6 +22,7 @@ import {
   inspectDeliveryCover,
   inspectDeliveryCoverThumbnail,
 } from "../adapters/media";
+import { checksumDeliveryBytes } from "../domain/checksum";
 
 export const loadCurrentDeliveryCoverAssignment = async ({
   rootDir,
@@ -95,8 +93,7 @@ export const loadCurrentDeliveryCoverResult = async ({
     compositionId: current.assignment.compositionBaseId,
     assignmentFingerprint: current.assignment.assignmentFingerprint,
     storyFingerprint: current.assignment.storyFingerprint,
-    visualStyleSpecFingerprint:
-      current.assignment.visualStyleSpecFingerprint,
+    visualStyleSpecFingerprint: current.assignment.visualStyleSpecFingerprint,
     coverSpecFingerprint: current.assignment.coverSpecFingerprint,
     sourceFiles: graph.files,
     sourceGraphFingerprint: graph.sourceGraphFingerprint,

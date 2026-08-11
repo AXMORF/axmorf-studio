@@ -4,7 +4,7 @@ import {
   buildDeliveryCoverPackage,
   type DeliveryCoverAssignment,
 } from "../../../src/contracts";
-import type { ProcessRunner } from "../../baseline/evidence";
+import type { ProcessRunner } from "../../shared/process";
 import { inspectDeliveryFile } from "../adapters/filesystem";
 import { collectDeliveryCoverSourceGraph } from "../adapters/cover-source";
 import {

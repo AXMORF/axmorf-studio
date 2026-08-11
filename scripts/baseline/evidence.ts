@@ -23,17 +23,9 @@ import {
   discoverProjectEntries,
   loadProjectRegistrationEntry,
 } from "../registry/project-files";
+import type { ProcessRunner } from "../shared/process";
 
-export type ProcessResult = {
-  readonly status: number;
-  readonly stdout: string;
-  readonly stderr: string;
-};
-
-export type ProcessRunner = (
-  command: string,
-  args: readonly string[],
-) => Promise<ProcessResult>;
+export type { ProcessResult, ProcessRunner } from "../shared/process";
 
 const defaultProcessRunner: ProcessRunner = (command, args) =>
   new Promise((resolve, reject) => {

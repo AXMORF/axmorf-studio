@@ -1,16 +1,16 @@
 import { lstat, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
-import type { ProcessRunner } from "../../baseline/evidence";
-import { runProductionMediaProcess } from "../../production/adapters/process-runner";
-import { resolveProductionRemotionCommand } from "../../production/adapters/remotion-process";
+import { runMediaProcess } from "../../shared/media-process";
+import { resolveRemotionCommand } from "../../shared/remotion-command";
+import type { ProcessRunner } from "../../shared/process";
 
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const;
 
 export const inspectDeliveryCover = async ({
   absolutePath,
   expected,
-  runProcess = runProductionMediaProcess,
+  runProcess = runMediaProcess,
 }: {
   readonly absolutePath: string;
   readonly expected: Readonly<{ width: number; height: number }>;
@@ -59,7 +59,7 @@ export const renderDeliveryCoverV2 = async ({
   projectId,
   compositionId,
   outputPath,
-  runProcess = runProductionMediaProcess,
+  runProcess = runMediaProcess,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
@@ -73,7 +73,7 @@ export const renderDeliveryCoverV2 = async ({
     projectId,
     "delivery/cover/index.ts",
   );
-  const result = await runProcess(resolveProductionRemotionCommand(rootDir), [
+  const result = await runProcess(resolveRemotionCommand(rootDir), [
     "still",
     entry,
     compositionId,
@@ -91,7 +91,7 @@ export const renderDeliveryCoverV2 = async ({
 export const inspectDeliveryCoverThumbnail = async ({
   absolutePath,
   expected,
-  runProcess = runProductionMediaProcess,
+  runProcess = runMediaProcess,
 }: {
   readonly absolutePath: string;
   readonly expected: Readonly<{ width: number; height: number }>;

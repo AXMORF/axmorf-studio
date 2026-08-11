@@ -2,7 +2,7 @@
 
 > 文档类型：实施顺序与阶段门槛
 >
-> 最后复核：2026-08-11
+> 最后复核：2026-08-12
 
 ## 已完成基线
 
@@ -18,6 +18,8 @@
    派发与 root dispatch-after-exit。
 8. unified private ProducerConfig、同一开发入口下的本地配置控制台、可配置 Scene 留白/合集/TTS
    语速与目标响度，以及对应 contracts/fingerprints/Skill 路由。
+9. production/delivery 单向脚本分层、窄 shared technical adapters、CLI/use-case 与 owner inbox/output
+   manifest 职责拆分，以及 executable architecture regression。
 
 ## 当前门槛
 

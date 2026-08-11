@@ -1,13 +1,15 @@
 import { spawn } from "node:child_process";
 import { basename } from "node:path";
 
-import type { ProcessRunner } from "../../baseline/evidence";
+import type { ProcessRunner } from "./process";
 
 const ALLOWED_MEDIA_EXECUTABLES = new Set(["ffmpeg", "ffprobe", "remotion"]);
 
-export const runProductionMediaProcess: ProcessRunner = (command, args) => {
+export const runMediaProcess: ProcessRunner = (command, args) => {
   if (!ALLOWED_MEDIA_EXECUTABLES.has(basename(command))) {
-    throw new Error("Production process adapter only permits Remotion and FFmpeg tools.");
+    throw new Error(
+      "Media process adapter only permits Remotion and FFmpeg tools.",
+    );
   }
   return new Promise((resolve, reject) => {
     const child = spawn(command, [...args], {
