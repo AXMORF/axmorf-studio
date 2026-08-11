@@ -8,6 +8,16 @@
 它不是 render runtime 输入；新作品在 authoring/freeze 时把实际选择写入 Project 合同或产物指纹，
 因此之后修改全局配置不会静默改变已经封存的作品。
 
+`.env.example` 可以直接复制为 `.env`：
+
+```bash
+cp .env.example .env
+```
+
+默认保持 `RSP_PRODUCER_CONFIG` 注释即可使用上述仓库内配置；需要把配置放到其他位置时，在
+`.env` 中取消注释并填写绝对路径。配置页、Narration、Production/preflight 和迁移命令都会自动
+读取仓库根目录 `.env`。同名 Shell 环境变量优先于 `.env`；两者都未设置时使用默认路径。
+
 ## 打开配置页
 
 ```bash
@@ -53,4 +63,4 @@ token 或私有声线路径。目标文件已存在时命令会拒绝覆盖；�
 - `tts.providers[].kind = "voxcpm"`：当前 VoxCPM 适配器。可控克隆 POST `/clone`；高品质克隆
   POST `/clone_with_prompt`。`mode` 只在适配器内部选择请求结构，不作为 form 字段发送。
 
-`RSP_PRODUCER_CONFIG` 可指向另一份绝对路径。生产脚本、preflight 与配置页使用同一解析规则。
+`RSP_PRODUCER_CONFIG` 必须指向绝对路径。生产脚本、preflight、迁移命令与配置页使用同一解析规则。

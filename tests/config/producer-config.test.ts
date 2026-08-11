@@ -15,6 +15,7 @@ import { buildProducerConfig } from "../../src/contracts";
 import {
   readProducerConfig,
   resolveDefaultTtsProvider,
+  resolveProducerConfigPathFromEnvironment,
   toVoxcpmPrivateConfig,
   writeProducerConfig,
 } from "../../scripts/config/producer-config";
@@ -37,6 +38,46 @@ test("private producer config writes atomically with owner-only permissions", as
   assert.deepEqual(loaded, written);
   assert.equal((await stat(configPath)).mode & 0o777, 0o600);
   assert.match(await readFile(configPath, "utf8"), /visible-editable-token/u);
+});
+
+test(".env config path loads automatically while shell env remains authoritative", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-config-env-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const dotenvPath = join(rootDir, "operator/producer.config.json");
+  const shellPath = join(rootDir, "shell/producer.config.json");
+  await writeFile(
+    join(rootDir, ".env"),
+    await readFile(".env.example", "utf8"),
+    "utf8",
+  );
+  assert.equal(
+    await resolveProducerConfigPathFromEnvironment({ rootDir, env: {} }),
+    join(rootDir, "private/producer.config.json"),
+  );
+  await writeFile(
+    join(rootDir, ".env"),
+    `RSP_PRODUCER_CONFIG=${dotenvPath}\n`,
+    "utf8",
+  );
+
+  assert.equal(
+    await resolveProducerConfigPathFromEnvironment({ rootDir, env: {} }),
+    dotenvPath,
+  );
+  assert.equal(
+    await resolveProducerConfigPathFromEnvironment({
+      rootDir,
+      env: { RSP_PRODUCER_CONFIG: shellPath },
+    }),
+    shellPath,
+  );
+  assert.equal(
+    await resolveProducerConfigPathFromEnvironment({
+      rootDir: join(rootDir, "missing-env"),
+      env: {},
+    }),
+    join(rootDir, "missing-env/private/producer.config.json"),
+  );
 });
 
 test("generic config projects the selected VoxCPM adapter without UI-only names", () => {

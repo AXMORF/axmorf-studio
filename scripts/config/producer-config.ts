@@ -9,6 +9,7 @@ import {
   unlink,
 } from "node:fs/promises";
 import { dirname, isAbsolute, join } from "node:path";
+import { parseEnv } from "node:util";
 
 import {
   ProducerConfigSchema,
@@ -33,6 +34,45 @@ export const resolveProducerConfigPath = ({
     ? join(rootDir, DEFAULT_PRODUCER_CONFIG_REPOSITORY_PATH)
     : configuredPath;
 };
+
+export const loadProducerConfigEnvironment = async ({
+  rootDir,
+  env,
+}: {
+  readonly rootDir: string;
+  readonly env: Readonly<Record<string, string | undefined>>;
+}) => {
+  if (env.RSP_PRODUCER_CONFIG !== undefined) return env;
+  let source: string;
+  try {
+    source = await readFile(join(rootDir, ".env"), "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return env;
+    throw new Error("Repository .env is unreadable.", { cause: error });
+  }
+  let parsed: NodeJS.Dict<string>;
+  try {
+    parsed = parseEnv(source);
+  } catch (error) {
+    throw new Error("Repository .env is malformed.", { cause: error });
+  }
+  const configuredPath = parsed.RSP_PRODUCER_CONFIG;
+  return configuredPath === undefined
+    ? env
+    : { ...env, RSP_PRODUCER_CONFIG: configuredPath };
+};
+
+export const resolveProducerConfigPathFromEnvironment = async ({
+  rootDir,
+  env,
+}: {
+  readonly rootDir: string;
+  readonly env: Readonly<Record<string, string | undefined>>;
+}) =>
+  resolveProducerConfigPath({
+    rootDir,
+    env: await loadProducerConfigEnvironment({ rootDir, env }),
+  });
 
 export const readProducerConfig = async ({
   configPath,

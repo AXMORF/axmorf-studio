@@ -56,6 +56,8 @@ npm run dev
 从旧私有 VoxCPM JSON 首次迁移时运行 `npm run config:migrate`；新配置和完整 token 始终保持
 ignored，不得 stage。可信局域网内需要其他设备直接访问时运行 `npm run dev:lan`，再使用终端
 输出的 Network 地址访问 `:3100` 和 `:3101`；不要把端口暴露到公网。
+需要覆盖默认配置路径时，将 `.env.example` 复制为 `.env`，取消注释
+`RSP_PRODUCER_CONFIG` 并填写绝对路径；Shell 同名变量优先。
 
 `npm install` 自动执行 `npm run bootstrap`，重建 core synthetic proof 资产、zero-safe
 ResourceCatalog 和 ProjectRegistry。fresh clone 默认没有具体 Project，仍可测试、构建并列出

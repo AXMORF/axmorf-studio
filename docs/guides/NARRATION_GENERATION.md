@@ -24,6 +24,10 @@ Operators may override that default with an absolute path:
 export RSP_PRODUCER_CONFIG=/absolute/operator-owned/path/producer.config.json
 ```
 
+The same override may be placed in a repository-root `.env` copied from `.env.example`; current
+config, narration, and production entrypoints load it automatically. An already exported shell value
+takes precedence over `.env`.
+
 The full schema, local UI, token boundary, speech-rate/LUFS semantics, and one-time migration command are
 documented in [本地制作配置](PRODUCER_CONFIG.md). The old file below is retained only as the input to
 `npm run config:migrate`; narration runtime no longer reads it directly. Its strict legacy shape is:

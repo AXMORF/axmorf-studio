@@ -12,7 +12,7 @@ import { resolveVoxcpmProfile } from "./adapters/private-config";
 import {
   readProducerConfig,
   resolveDefaultTtsProvider,
-  resolveProducerConfigPath,
+  resolveProducerConfigPathFromEnvironment,
   toVoxcpmPrivateConfig,
 } from "../config/producer-config";
 import { createVoxcpmChunkGenerator } from "./adapters/voxcpm-client";
@@ -133,7 +133,7 @@ export const runCli = async (
       rootDir: context.rootDir,
       projectId,
     });
-    const configPath = resolveProducerConfigPath(context);
+    const configPath = await resolveProducerConfigPathFromEnvironment(context);
     const dependencies = await context.createGenerationDependencies({
       configPath,
       narration: projectSource.narration,

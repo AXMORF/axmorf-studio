@@ -5,7 +5,7 @@ import { defineConfig, type Plugin } from "vite";
 
 import {
   readProducerConfig,
-  resolveProducerConfigPath,
+  resolveProducerConfigPathFromEnvironment,
   writeProducerConfig,
 } from "../scripts/config/producer-config";
 import { isLanDevEnabled, isSameOriginSettingsWrite } from "./dev-network";
@@ -42,11 +42,11 @@ const settingsApi = (): Plugin => ({
         return;
       }
       if (request.url !== "/api/settings") return next();
-      const configPath = resolveProducerConfigPath({
-        rootDir: process.cwd(),
-        env: process.env,
-      });
       try {
+        const configPath = await resolveProducerConfigPathFromEnvironment({
+          rootDir: process.cwd(),
+          env: process.env,
+        });
         if (request.method === "GET") {
           json(response, 200, await readProducerConfig({ configPath }));
           return;

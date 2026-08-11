@@ -2,6 +2,9 @@
 
 Before authoring a new Project, read the current ignored `private/producer.config.json` through the
 repository config contract. Never print, summarize, stage, or commit its token or private paths.
+Repository entrypoints automatically load an optional root `.env` copied from `.env.example`;
+`RSP_PRODUCER_CONFIG` there may select another absolute path, while an exported shell value has
+precedence.
 
 Use it as follows:
 

@@ -9,7 +9,7 @@ import { resolveVoxcpmProfileMetadata } from "../../narration/adapters/private-c
 import {
   readProducerConfig,
   resolveDefaultTtsProvider,
-  resolveProducerConfigPath,
+  resolveProducerConfigPathFromEnvironment,
   toVoxcpmPrivateConfig,
 } from "../../config/producer-config";
 import {
@@ -72,7 +72,7 @@ const createDefaultDependencies = (): ProductionPreflightDependencies => ({
     let config;
     try {
       const producerConfig = await readProducerConfig({
-        configPath: resolveProducerConfigPath({
+        configPath: await resolveProducerConfigPathFromEnvironment({
           rootDir,
           env: process.env,
         }),

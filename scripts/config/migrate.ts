@@ -8,7 +8,7 @@ import {
   type VoxcpmPrivateConfig,
 } from "../narration/adapters/private-config";
 import {
-  DEFAULT_PRODUCER_CONFIG_REPOSITORY_PATH,
+  resolveProducerConfigPathFromEnvironment,
   writeProducerConfig,
 } from "./producer-config";
 
@@ -65,14 +65,16 @@ export const migrateVoxcpmConfigToProducerConfig = ({
 
 export const runProducerConfigMigration = async ({
   rootDir,
+  env = {},
 }: {
   readonly rootDir: string;
+  readonly env?: Readonly<Record<string, string | undefined>>;
 }) => {
   const legacyPath = join(rootDir, "voxcpm/voxcpm.private.json");
-  const destinationPath = join(
+  const destinationPath = await resolveProducerConfigPathFromEnvironment({
     rootDir,
-    DEFAULT_PRODUCER_CONFIG_REPOSITORY_PATH,
-  );
+    env,
+  });
   const legacy = VoxcpmPrivateConfigSchema.parse(
     JSON.parse(await readFile(legacyPath, "utf8")),
   );
@@ -89,7 +91,7 @@ if (
   process.argv[1] !== undefined &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  runProducerConfigMigration({ rootDir: process.cwd() })
+  runProducerConfigMigration({ rootDir: process.cwd(), env: process.env })
     .then(({ destinationPath }) => {
       process.stdout.write(`Producer config written to ${destinationPath}.\n`);
     })

@@ -222,12 +222,15 @@ export const createDefaultNarrativeProductionDependencies = ({
     return result.result;
   },
   masterNarration: async ({ rootDir, storyId }) => {
-    const { readProducerConfig, resolveProducerConfigPath } =
+    const { readProducerConfig, resolveProducerConfigPathFromEnvironment } =
       await import("../../config/producer-config");
     const { writeMasteredNarrationArtifacts } =
       await import("../../narration/mastering");
     const config = await readProducerConfig({
-      configPath: resolveProducerConfigPath({ rootDir, env: process.env }),
+      configPath: await resolveProducerConfigPathFromEnvironment({
+        rootDir,
+        env: process.env,
+      }),
     });
     return writeMasteredNarrationArtifacts({
       rootDir,
