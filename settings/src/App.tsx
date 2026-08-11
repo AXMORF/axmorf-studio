@@ -8,9 +8,12 @@ import {
 
 import { buildStudioUrl, isLanAccessHostname } from "./network";
 import {
+  COMMON_RENDER_SIZES,
   getConfigConsistencyError,
   nextUniqueId,
+  parseRenderSize,
   removeVoiceProfile,
+  renderSizeValue,
   selectProviderAndVoice,
 } from "./model";
 
@@ -64,6 +67,9 @@ type EditableConfig = {
     locale: string;
   };
   readability: { edgeInsetPx: number };
+  audioDefaults?: {
+    globalBgm: null | { sourcePath: string; volume: number };
+  };
   publishingCollections: Array<{
     id: string;
     name: string;
@@ -390,67 +396,136 @@ type EditorProps = Readonly<{
   update: (mutate: (draft: EditableConfig) => void) => void;
 }>;
 
-const General = ({ config, update }: EditorProps) => (
-  <Section
-    eyebrow="01 / OUTPUT"
-    title="通用输出"
-    description="这些值是新作品的默认渲染参数；作品创建后由 RenderSpec 冻结。"
-  >
-    <FieldRow>
-      <Field label="画面宽度" hint="H.264 要求偶数">
-        <input
-          type="number"
-          value={config.renderDefaults.width}
-          onChange={(event) =>
-            update((draft) => {
-              draft.renderDefaults.width = numberValue(event.target.value);
-            })
-          }
-        />
-      </Field>
-      <Field label="画面高度" hint="H.264 要求偶数">
-        <input
-          type="number"
-          value={config.renderDefaults.height}
-          onChange={(event) =>
-            update((draft) => {
-              draft.renderDefaults.height = numberValue(event.target.value);
-            })
-          }
-        />
-      </Field>
-      <Field label="帧率">
-        <input
-          type="number"
-          value={config.renderDefaults.fps}
-          onChange={(event) =>
-            update((draft) => {
-              draft.renderDefaults.fps = numberValue(event.target.value);
-            })
-          }
-        />
-      </Field>
-      <Field label="语言">
-        <input
-          value={config.renderDefaults.locale}
-          onChange={(event) =>
-            update((draft) => {
-              draft.renderDefaults.locale = event.target.value;
-            })
-          }
-        />
-      </Field>
-    </FieldRow>
-    <div className="spec-strip">
-      <span>输出规格</span>
-      <strong>
-        {config.renderDefaults.width} × {config.renderDefaults.height}
-      </strong>
-      <strong>{config.renderDefaults.fps} FPS</strong>
-      <strong>{config.renderDefaults.locale}</strong>
-    </div>
-  </Section>
-);
+const General = ({ config, update }: EditorProps) => {
+  const selectedSize = renderSizeValue(config.renderDefaults);
+  const isCommonSize = COMMON_RENDER_SIZES.some(
+    (size) => renderSizeValue(size) === selectedSize,
+  );
+  const bgm = config.audioDefaults?.globalBgm ?? null;
+  return (
+    <>
+      <Section
+        eyebrow="01 / OUTPUT"
+        title="通用输出"
+        description="这些值是新作品的默认渲染参数；作品创建后由 RenderSpec 冻结。"
+      >
+        <FieldRow>
+          <Field label="画面尺寸" hint="宽 × 高，选择常用输出规格">
+            <select
+              value={selectedSize}
+              onChange={(event) => {
+                const size = parseRenderSize(event.target.value);
+                update((draft) => {
+                  draft.renderDefaults.width = size.width;
+                  draft.renderDefaults.height = size.height;
+                });
+              }}
+            >
+              {isCommonSize ? null : (
+                <option value={selectedSize}>
+                  当前自定义 · {config.renderDefaults.width} ×{" "}
+                  {config.renderDefaults.height}
+                </option>
+              )}
+              {COMMON_RENDER_SIZES.map((size) => (
+                <option
+                  key={renderSizeValue(size)}
+                  value={renderSizeValue(size)}
+                >
+                  {size.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="帧率">
+            <input
+              type="number"
+              value={config.renderDefaults.fps}
+              onChange={(event) =>
+                update((draft) => {
+                  draft.renderDefaults.fps = numberValue(event.target.value);
+                })
+              }
+            />
+          </Field>
+          <Field label="语言">
+            <input
+              value={config.renderDefaults.locale}
+              onChange={(event) =>
+                update((draft) => {
+                  draft.renderDefaults.locale = event.target.value;
+                })
+              }
+            />
+          </Field>
+        </FieldRow>
+        <div className="spec-strip">
+          <span>输出规格</span>
+          <strong>
+            {config.renderDefaults.width} × {config.renderDefaults.height}
+          </strong>
+          <strong>{config.renderDefaults.fps} FPS</strong>
+          <strong>{config.renderDefaults.locale}</strong>
+        </div>
+      </Section>
+      <Section
+        eyebrow="AUDIO / DEFAULT"
+        title="全局 BGM"
+        description="保存本地 BGM 默认值；文件位置以仓库根目录为起点，不接受绝对路径。"
+      >
+        <FieldRow>
+          <Field
+            label="BGM 文件"
+            hint="例如 public/audio/default-bgm.mp3；留空表示不配置"
+          >
+            <input
+              value={bgm?.sourcePath ?? ""}
+              placeholder="public/audio/default-bgm.mp3"
+              onChange={(event) =>
+                update((draft) => {
+                  const sourcePath = event.target.value;
+                  draft.audioDefaults = {
+                    globalBgm:
+                      sourcePath === ""
+                        ? null
+                        : {
+                            sourcePath,
+                            volume:
+                              draft.audioDefaults?.globalBgm?.volume ?? 0.15,
+                          },
+                  };
+                })
+              }
+            />
+          </Field>
+          <Field label="BGM 音量" hint="线性音量，0 为静音，1 为原始音量">
+            <input
+              type="number"
+              min="0"
+              max="1"
+              step="0.05"
+              disabled={bgm === null}
+              value={bgm?.volume ?? 0.15}
+              onChange={(event) =>
+                update((draft) => {
+                  if (
+                    draft.audioDefaults?.globalBgm === null ||
+                    draft.audioDefaults === undefined
+                  ) {
+                    return;
+                  }
+                  draft.audioDefaults.globalBgm.volume = numberValue(
+                    event.target.value,
+                  );
+                })
+              }
+            />
+          </Field>
+        </FieldRow>
+      </Section>
+    </>
+  );
+};
 
 const SafeArea = ({ config, update }: EditorProps) => {
   const baseEdge = config.readability.edgeInsetPx;
@@ -1014,6 +1089,7 @@ const Tts = ({
                     ? "参考音频"
                     : "Prompt 音频"
                 }
+                hint="仓库根目录相对路径"
               >
                 <input
                   value={
@@ -1076,7 +1152,7 @@ const Tts = ({
                   />
                 </Field>
               ) : (
-                <Field label="Prompt 文本文件">
+                <Field label="Prompt 文本文件" hint="仓库根目录相对路径">
                   <input
                     value={profile.promptTextPath}
                     onChange={(event) =>

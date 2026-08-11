@@ -3,7 +3,9 @@ import test from "node:test";
 
 import {
   getConfigConsistencyError,
+  isRepositoryRelativeFilePath,
   nextUniqueId,
+  parseRenderSize,
   selectProviderAndVoice,
   removeVoiceProfile,
   type EditableTtsConfig,
@@ -15,6 +17,25 @@ test("new collection and voice IDs skip existing collisions", () => {
     "collection-2",
   );
   assert.equal(nextUniqueId("voice", ["voice-1", "voice-2"]), "voice-3");
+});
+
+test("common render values parse as one width-height selection", () => {
+  assert.deepEqual(parseRenderSize("1080x1920"), {
+    width: 1080,
+    height: 1920,
+  });
+  assert.throws(() => parseRenderSize("1080"));
+  assert.throws(() => parseRenderSize("1080x0"));
+});
+
+test("local file fields reject absolute and escaping paths", () => {
+  assert.equal(
+    isRepositoryRelativeFilePath("voxcpm/voice_profile/my-voice.wav"),
+    true,
+  );
+  assert.equal(isRepositoryRelativeFilePath("/srv/private/voice.wav"), false);
+  assert.equal(isRepositoryRelativeFilePath("../voice.wav"), false);
+  assert.equal(isRepositoryRelativeFilePath("C:\\voice.wav"), false);
 });
 
 test("provider switching and voice deletion keep a valid default immediately", () => {

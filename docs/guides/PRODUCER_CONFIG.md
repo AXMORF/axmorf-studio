@@ -2,7 +2,7 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-11
+> 最后复核：2026-08-12
 
 仓库使用一份 Git-ignored 的 `private/producer.config.json` 作为制作默认值与私密 TTS 连接配置。
 它不是 render runtime 输入；新作品在 authoring/freeze 时把实际选择写入 Project 合同或产物指纹，
@@ -54,12 +54,14 @@ npm run config:migrate
 ```
 
 命令读取旧 `voxcpm/voxcpm.private.json`，原子写入权限 `0600` 的新配置，不删除旧文件、不打印
-token 或私有声线路径。位于仓库内的声线输入会转换成仓库相对路径，仓库外路径保持绝对。目标文件
-已存在时命令会拒绝覆盖；迁移后应在页面中补充准确的合集名称/描述。
+token 或私有声线路径。位于仓库内的声线输入会转换成仓库相对路径；仓库外声线必须先由操作员移入
+ignored 的仓库目录，否则迁移 fail closed。目标文件已存在时命令会拒绝覆盖；迁移后应在页面中
+补充准确的合集名称/描述。
 
 ## 配置语义
 
-- `renderDefaults`：新 RenderSpec 的 width/height/fps/locale；没有目标时长。
+- `renderDefaults`：新 RenderSpec 的 width/height/fps/locale；页面用一个“画面尺寸”下拉同时设置
+  width/height，提供 9:16、16:9、4:5 与 1:1 四个常用规格；没有目标时长。
 - `readability.edgeInsetPx`：以 1080 短边为基准的 Scene 边缘留白。字幕底边 = 缩放后边缘留白 × 2；
   Scene 底边 = 字幕底边 + 字幕盒高度 + gap，再向上取整到 10px。RenderSpec 不再保存字幕安全区。
 - `publishingCollections`：有稳定 ID、名称和适用描述的数组。Agent 必须选一个最合适的已有合集；
@@ -68,9 +70,12 @@ token 或私有声线路径。位于仓库内的声线输入会转换成仓库�
   fingerprint；`speech.targetLoudnessLufs` 进入两遍 loudnorm mastering policy 和母带 fingerprint。
 - `tts.providers[].kind = "voxcpm"`：当前 VoxCPM 适配器。可控克隆 POST `/clone`；高品质克隆
   POST `/clone_with_prompt`。`mode` 只在适配器内部选择请求结构，不作为 form 字段发送。
-- 声线的 `referenceAudioPath`、`promptAudioPath` 和 `promptTextPath` 优先保存为仓库根目录相对
-  路径，例如 `voxcpm/voice_profile/my-voice.wav`；外部操作员文件仍可使用绝对路径。Narration 和
-  preflight 在进入 VoxCPM 适配器前统一解析为绝对路径，配置页保存的仍是原始相对值。
+- 声线的 `referenceAudioPath`、`promptAudioPath` 和 `promptTextPath` 只保存仓库根目录相对路径，
+  例如 `voxcpm/voice_profile/my-voice.wav`；绝对路径、反斜杠、URL 与 `..` 逃逸均被拒绝。Narration
+  和 preflight 在进入 VoxCPM 适配器前统一解析为宿主绝对路径，配置页保存的仍是相对值。
+- `audioDefaults.globalBgm`：可为空，或保存一个仓库相对 `sourcePath` 与 0–1 线性 `volume`。这是
+  配置页中的本地 BGM 预设；current `ProductionRequirementsFreeze` 仍固定 `globalSound: none`，
+  `project:configure` 与 render runtime 尚不消费它，不能把已保存预设表述为已混入成片。
 
 `RSP_PRODUCER_CONFIG` 支持仓库根目录相对路径和绝对路径。生产脚本、preflight、迁移命令与配置页
 使用同一解析规则。

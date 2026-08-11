@@ -1,3 +1,6 @@
+import { lstat, realpath } from "node:fs/promises";
+import { isAbsolute, relative, resolve } from "node:path";
+
 import { NarrationSpecSchema } from "../src/contracts/narration";
 import {
   readProducerConfig,
@@ -74,6 +77,47 @@ export const runProducerEnvironmentDiagnostics = async ({
       remediation: null,
     },
   ];
+  const bgm = config.audioDefaults?.globalBgm;
+  if (bgm === null || bgm === undefined) {
+    checks.push({
+      id: "global-bgm",
+      status: "pass",
+      summary: "未配置全局 BGM 预设。",
+      remediation: null,
+    });
+  } else {
+    try {
+      const unresolvedSourcePath = resolve(rootDir, bgm.sourcePath);
+      const [repositoryPath, sourcePath, source] = await Promise.all([
+        realpath(rootDir),
+        realpath(unresolvedSourcePath),
+        lstat(unresolvedSourcePath),
+      ]);
+      const sourcePathFromRepository = relative(repositoryPath, sourcePath);
+      if (
+        sourcePathFromRepository === "" ||
+        sourcePathFromRepository.startsWith("..") ||
+        isAbsolute(sourcePathFromRepository) ||
+        !source.isFile() ||
+        source.isSymbolicLink()
+      ) {
+        throw new Error("BGM source is not a regular file.");
+      }
+      checks.push({
+        id: "global-bgm",
+        status: "pass",
+        summary: "全局 BGM 预设文件可访问。",
+        remediation: null,
+      });
+    } catch {
+      checks.push({
+        id: "global-bgm",
+        status: "fail",
+        summary: "全局 BGM 预设文件不可访问。",
+        remediation: "修复仓库相对文件位置或权限后重新诊断。",
+      });
+    }
+  }
   let metadata;
   try {
     const provider = resolveDefaultTtsProvider(config);

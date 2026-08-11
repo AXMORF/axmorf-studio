@@ -67,7 +67,7 @@ const draft = {
   },
 } as const;
 
-test("ProducerConfig freezes every generic default into one new Project", async (context) => {
+test("ProducerConfig freezes every production-connected default into one new Project", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-project-configure-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const projectDir = join(rootDir, "src/projects/story-example");
@@ -136,7 +136,7 @@ test("ProducerConfig freezes every generic default into one new Project", async 
   );
   assert.doesNotMatch(
     JSON.stringify({ narration, render, publishing, requirements, result }),
-    /visible-editable-token|\/srv\/private|127\.0\.0\.1/iu,
+    /visible-editable-token|\/srv\/private|127\.0\.0\.1|default-bgm/iu,
   );
 
   assert.deepEqual(

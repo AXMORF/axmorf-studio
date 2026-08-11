@@ -2,7 +2,7 @@
 
 > 文档类型：执行语义权威
 >
-> 最后复核：2026-08-11
+> 最后复核：2026-08-12
 
 ## 确定性的对象
 
@@ -20,8 +20,9 @@ NarrationSpec 与 narration generation input 是 current-only v2；已删除的 
 ProducerConfig 自身使用 `producer-config-v1` strict schema 与 fingerprint。它是新 authoring/freeze
 的默认/选择 authority，不是已封存 Project 的可变 runtime dependency：合集选择连同 catalog
 fingerprint 进入 PublishingIntent v2，边缘留白进入 production-readability-v2，语速进入
-provider-attempt，目标 LUFS 进入 mastering policy。`project:configure` 要求显式 readability，不再
-存在创建阶段的 90px fallback。
+provider-attempt，目标 LUFS 进入 mastering policy。声线文件与可选 BGM 预设只接受规范化仓库相对
+路径；绝对路径、URL、反斜杠与目录逃逸 fail closed。BGM 预设当前不进入 Project/Run 或 render
+identity。`project:configure` 要求显式 readability，不再存在创建阶段的 90px fallback。
 
 start 的同一次 provider resolution 同时供 VoxCPM preflight 与 `NarrationExecutionSnapshot` 使用。
 快照复用 provider-attempt fingerprint 与完整 mastering policy；provider-attempt 额外绑定 opaque

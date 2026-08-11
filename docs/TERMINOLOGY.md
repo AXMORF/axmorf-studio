@@ -2,13 +2,13 @@
 
 > 文档类型：当前名词权威
 >
-> 最后复核：2026-08-11
+> 最后复核：2026-08-12
 
 | 名词                        | 含义                                                                  | 明确不代表                                           |
 | --------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------- |
 | StoryBeat                   | 一个有稳定 meaningId 的叙事单元                                       | 自动按标点拆分的句子                                 |
 | ttsChunks                   | Agent 已决定的朗读单元                                                | 工具可重写的文本切片                                 |
-| ProducerConfig              | 新作品的 render、可读性、合集与通用 TTS 默认/选择 authority           | 已封存作品的可变 runtime 输入                        |
+| ProducerConfig              | 新作品的 render、可读性、合集、TTS 与可选 BGM 预设 authority          | 已封存作品的可变 runtime 输入                        |
 | NarrationExecutionSnapshot  | Run 级 provider-attempt 与 mastering policy 的 private-safe 冻结身份  | token、URL、私有路径、声线内容或 render runtime 配置 |
 | SemanticTiming              | sealed PCM 实测导出的绝对 frame authority                             | 容器浮点时长估算                                     |
 | ScenePackage                | 一个 meaningId 的视觉与局部声音成品合同                               | 字幕、旁白或全局背景 authority                       |

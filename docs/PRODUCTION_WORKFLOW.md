@@ -2,7 +2,7 @@
 
 > 文档类型：执行流程权威
 >
-> 最后复核：2026-08-11
+> 最后复核：2026-08-12
 
 ## Current-only 主链
 
@@ -59,7 +59,8 @@ fresh Run。快照只包含安全 ID、数值 policy 与 fingerprint，不包含
 配置页与 Studio 由同一个 `npm run dev` 启动：loopback `:3100` 是配置控制台，`:3101` 是 Remotion
 Studio。可信局域网可显式使用 `npm run dev:lan`，两者通过同一 LAN IP 访问；配置写入仍要求
 Origin/Host 精确同源。私密 JSON、完整 token 和声线路径只允许停留在 ignored 配置与可信页面，
-LAN 端口不得转发到公网。
+LAN 端口不得转发到公网。声线与可选 BGM 文件字段只接受仓库相对路径；BGM 当前仅为配置预设，
+`project:configure` 不会把它冻结或挂载到 current `globalSound: none` 的生产路径。
 
 配置页的“只读环境诊断”复用 metadata-only 声线检查、VoxCPM health/ready 与固定 Remotion browser
 preflight；不生成测试语音、不 warm-up provider，也不修改 Chromium sandbox policy，只返回脱敏

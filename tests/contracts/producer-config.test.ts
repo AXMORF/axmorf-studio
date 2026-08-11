@@ -17,6 +17,12 @@ export const validProducerConfigInput = {
     locale: "zh-CN",
   },
   readability: { edgeInsetPx: 90 },
+  audioDefaults: {
+    globalBgm: {
+      sourcePath: "public/audio/default-bgm.mp3",
+      volume: 0.15,
+    },
+  },
   publishingCollections: [
     {
       id: "ai-workflow",
@@ -64,7 +70,7 @@ export const validProducerConfigInput = {
             id: "my-voice",
             name: "我的声音",
             mode: "controllable-clone",
-            referenceAudioPath: "/srv/private/my-voice.wav",
+            referenceAudioPath: "voxcpm/voice_profile/my-voice.wav",
             controlInstruction: "自然、克制、清晰。",
           },
         ],
@@ -77,11 +83,45 @@ test("one strict config owns render, readability, collections, and generic TTS",
   const config = buildProducerConfig(validProducerConfigInput);
   assert.equal(config.renderDefaults.width, 1080);
   assert.equal(config.readability.edgeInsetPx, 90);
+  assert.deepEqual(config.audioDefaults?.globalBgm, {
+    sourcePath: "public/audio/default-bgm.mp3",
+    volume: 0.15,
+  });
   assert.equal(config.publishingCollections.length, 2);
   assert.equal(config.tts.speech.rate, 1);
   assert.equal(config.tts.speech.targetLoudnessLufs, -16);
   assert.equal(config.tts.providers[0]?.kind, "voxcpm");
   assert.match(config.configFingerprint, /^sha256:[a-f0-9]{64}$/u);
+});
+
+test("voice and BGM files must use safe repository-relative paths", () => {
+  assert.throws(() =>
+    buildProducerConfig({
+      ...validProducerConfigInput,
+      audioDefaults: {
+        globalBgm: { sourcePath: "/srv/audio/bgm.mp3", volume: 0.15 },
+      },
+    }),
+  );
+  assert.throws(() =>
+    buildProducerConfig({
+      ...validProducerConfigInput,
+      tts: {
+        ...validProducerConfigInput.tts,
+        providers: [
+          {
+            ...validProducerConfigInput.tts.providers[0],
+            voiceProfiles: [
+              {
+                ...validProducerConfigInput.tts.providers[0].voiceProfiles[0],
+                referenceAudioPath: "../private/my-voice.wav",
+              },
+            ],
+          },
+        ],
+      },
+    }),
+  );
 });
 
 test("token remains present in the parsed config for the local settings UI", () => {

@@ -2,7 +2,7 @@
 
 > 文档类型：当前事实权威
 >
-> 最后复核：2026-08-11
+> 最后复核：2026-08-12
 >
 > 当前阶段：detached watcher、独立线程 owner receipt 与自动交付已实现
 
@@ -24,8 +24,9 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 ### 统一制作配置
 
-- ignored `private/producer.config.json` 是 render 默认值、Scene 基准边缘留白、合集数组与通用 TTS
-  provider/声线/语速/目标 LUFS 的唯一配置 authority；旧 VoxCPM 配置可一次性无泄露迁移。
+- ignored `private/producer.config.json` 是 render 默认值、Scene 基准边缘留白、合集数组、通用 TTS
+  provider/声线/语速/目标 LUFS 与可选本地 BGM 预设的唯一配置 authority；旧 VoxCPM 配置可一次性
+  无泄露迁移。页面将 width/height 合为常用画面规格下拉，声线与 BGM 文件只接受仓库相对路径。
 - `npm run dev` 同时启动 loopback 配置控制台 `:3100` 与 Remotion Studio `:3101`；显式
   `npm run dev:lan` 让两者通过可信 LAN IP 访问。token 按要求完整回传、显示、可修改，同时使用
   精确同源写入、no-store、无浏览器持久化和 `0600` 原子写入。
@@ -107,6 +108,8 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 ## 明确不实现
 
+- 配置页中的 `audioDefaults.globalBgm` 目前只保存相对路径与音量预设；current production 仍固定
+  `globalSound: none`，没有自动 BGM 本地化、封存、混音或 render runtime 挂载。
 - detached render 的后台状态机、轮询、重试、完成标记或媒体检查。
 - 平台上传、账号、网络发布、密钥或权限管理。
 - NarrativeCheck、主观审美 gate、自动修片和未批准的 capability promotion。

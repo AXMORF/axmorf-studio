@@ -33,11 +33,16 @@ const toPortableVoicePath = ({
     canonicalPath(rootDir),
     canonicalPath(sourcePath),
   );
-  return repositoryPath !== "" &&
+  if (
+    repositoryPath !== "" &&
     !repositoryPath.startsWith("..") &&
     !isAbsolute(repositoryPath)
-    ? repositoryPath
-    : sourcePath;
+  ) {
+    return repositoryPath;
+  }
+  throw new Error(
+    "Voice files must be moved under the repository before migration.",
+  );
 };
 
 export const migrateVoxcpmConfigToProducerConfig = ({
@@ -57,6 +62,7 @@ export const migrateVoxcpmConfigToProducerConfig = ({
       locale: "zh-CN",
     },
     readability: { edgeInsetPx: 90 },
+    audioDefaults: { globalBgm: null },
     publishingCollections: [
       {
         id: "default",

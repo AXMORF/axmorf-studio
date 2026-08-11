@@ -36,6 +36,24 @@ const HttpUrlSchema = z.string().refine(
   { message: "baseUrl must be a valid HTTP URL." },
 );
 
+export const RepositoryRelativeFilePathSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(512)
+  .refine((value) => {
+    const segments = value.split("/");
+    return (
+      !value.startsWith("/") &&
+      !/^[A-Za-z]:[\\/]/u.test(value) &&
+      !value.includes("\\") &&
+      !value.includes("://") &&
+      segments.every(
+        (segment) => segment !== "" && segment !== "." && segment !== "..",
+      )
+    );
+  }, "File paths must be normalized repository-relative paths.");
+
 export const PublishingCollectionSchema = z
   .object({
     id: ProducerConfigIdSchema,
@@ -50,7 +68,7 @@ const ControllableCloneProfileSchema = z
     id: VoiceProfileIdSchema,
     name: z.string().trim().min(1).max(96),
     mode: z.literal("controllable-clone"),
-    referenceAudioPath: z.string().trim().min(1),
+    referenceAudioPath: RepositoryRelativeFilePathSchema,
     controlInstruction: z.string().trim().min(1),
   })
   .strict()
@@ -61,8 +79,8 @@ const HighFidelityCloneProfileSchema = z
     id: VoiceProfileIdSchema,
     name: z.string().trim().min(1).max(96),
     mode: z.literal("high-fidelity-clone"),
-    promptAudioPath: z.string().trim().min(1),
-    promptTextPath: z.string().trim().min(1),
+    promptAudioPath: RepositoryRelativeFilePathSchema,
+    promptTextPath: RepositoryRelativeFilePathSchema,
     promptTranscriptConfirmed: z.literal(true),
   })
   .strict()
@@ -161,6 +179,20 @@ const ProducerConfigInputObject = z
       .object({ edgeInsetPx: PositiveIntegerSchema.max(1000) })
       .strict()
       .readonly(),
+    audioDefaults: z
+      .object({
+        globalBgm: z
+          .object({
+            sourcePath: RepositoryRelativeFilePathSchema,
+            volume: z.number().finite().min(0).max(1),
+          })
+          .strict()
+          .readonly()
+          .nullable(),
+      })
+      .strict()
+      .readonly()
+      .optional(),
     publishingCollections: z
       .array(PublishingCollectionSchema)
       .min(1)

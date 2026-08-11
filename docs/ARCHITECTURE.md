@@ -2,7 +2,7 @@
 
 > 文档类型：架构权威
 >
-> 最后复核：2026-08-11
+> 最后复核：2026-08-12
 
 ## 分层
 
@@ -133,7 +133,8 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
 - protected voice profiles/private config 不被通用扫描、stage 或 commit。
 - `private/producer.config.json` 是权限 `0600` 的 ignored 文件；配置 API 默认只监听 loopback，显式
   `dev:lan` 才监听可信局域网，并始终要求 Origin/Host 精确同源。完整 token 不写日志、不进
-  localStorage；LAN 端口不得暴露到公网。render runtime 不读取 ProducerConfig。
+  localStorage；LAN 端口不得暴露到公网。声线与可选 BGM 预设只接受仓库相对路径。BGM 预设尚未
+  接入 current `globalSound: none` 的 Project freeze/render 路径；render runtime 不读取 ProducerConfig。
 - 新 Project 只由 `project:configure` 将 defaults 写入 immutable Project contracts；new Run 将
   provider-attempt 与 mastering policy 写入 private-safe execution snapshot。narrative application
   可以为 drift check 重读私密配置，render/delivery runtime 仍只消费 Project/Run immutable inputs。

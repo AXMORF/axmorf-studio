@@ -145,17 +145,6 @@ test("generic config resolves repository-relative voice paths at the VoxCPM adap
       "/repo/voxcpm/voice_profile/my-prompt-voice.txt",
     ],
   );
-
-  const absoluteProvider = resolveDefaultTtsProvider(
-    buildProducerConfig(validProducerConfigInput),
-  );
-  const absoluteRuntime = toVoxcpmPrivateConfig(absoluteProvider, "/repo");
-  assert.equal(
-    absoluteRuntime.voiceProfiles[0]?.mode === "controllable-clone"
-      ? absoluteRuntime.voiceProfiles[0].referenceAudioPath
-      : undefined,
-    "/srv/private/my-voice.wav",
-  );
 });
 
 test("legacy VoxCPM settings migrate into the generic provider without losing modes", () => {
@@ -207,15 +196,13 @@ test("legacy VoxCPM settings migrate into the generic provider without losing mo
     targetLoudnessLufs: -16,
   });
   assert.equal(
-    migrated.tts.providers[0]?.voiceProfiles[0]?.mode ===
-      "controllable-clone"
+    migrated.tts.providers[0]?.voiceProfiles[0]?.mode === "controllable-clone"
       ? migrated.tts.providers[0].voiceProfiles[0].referenceAudioPath
       : undefined,
     "voice-a.wav",
   );
   assert.deepEqual(
-    migrated.tts.providers[0]?.voiceProfiles[1]?.mode ===
-      "high-fidelity-clone"
+    migrated.tts.providers[0]?.voiceProfiles[1]?.mode === "high-fidelity-clone"
       ? [
           migrated.tts.providers[0].voiceProfiles[1].promptAudioPath,
           migrated.tts.providers[0].voiceProfiles[1].promptTextPath,
@@ -252,7 +239,7 @@ test("migration atomically refuses to overwrite an existing producer config", as
         {
           id: "voice-a",
           mode: "controllable-clone",
-          referenceAudioPath: "/private/voice-a.wav",
+          referenceAudioPath: join(rootDir, "voxcpm/voice_profile/voice-a.wav"),
           controlInstruction: "自然。",
         },
       ],

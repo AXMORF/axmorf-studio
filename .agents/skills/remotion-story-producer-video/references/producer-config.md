@@ -3,10 +3,12 @@
 Before freezing a new Project, use the repository config helper and fixed `project:configure` CLI.
 Never print, summarize, stage, or commit its token or private paths.
 Repository entrypoints automatically load an optional root `.env` copied from `.env.example`;
-`RSP_PRODUCER_CONFIG` there may select a repository-relative or absolute path, while an exported
-shell value has precedence. Voice profile source paths should remain repository-relative when they
-live below the ignored `voxcpm/voice_profile/` directory; the host adapters resolve them from the
-repository root before access.
+`RSP_PRODUCER_CONFIG` there may select a repository-relative or absolute config file, while an
+exported shell value has precedence. Voice profile source files themselves must use normalized
+repository-relative paths, normally below ignored `voxcpm/voice_profile/`; the host adapters resolve
+them from the repository root before access. `audioDefaults.globalBgm`, when present, is also a
+repository-relative path plus linear volume, but current production keeps `globalSound: none` and
+does not freeze or render this preset.
 
 The CLI applies it as follows:
 

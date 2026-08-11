@@ -14,8 +14,9 @@
 - `delivery-render-started` 只证明进程启动确认，不证明渲染完成或 MP4 有效。仓库不等待、监控、
   读取、hash、probe 或 decode detached 输出。
 - PublishingIntent 与独立 Cover 生命周期保留；Cover 不阻止 render-ready，但会阻止自动交付。
-- ignored `private/producer.config.json` 统一管理新作品的渲染默认值、Scene 留白、合集数组与通用
-  TTS；`project:configure` 把实际选择冻结进新 Project contracts/fingerprints。
+- ignored `private/producer.config.json` 统一管理新作品的常用画面规格、Scene 留白、合集数组、通用
+  TTS 与可选本地 BGM 预设；声线/BGM 文件只接受仓库相对路径。`project:configure` 把当前已接入的
+  render/readability/publishing/TTS 选择冻结进新 Project contracts/fingerprints。
 - production start 将已确认的 provider-attempt 与 mastering policy 合成为 private-safe Run 执行快照；
   preflight 后配置漂移会要求 fresh Run，不会切换当前 Run 的 provider、声线、语速或 LUFS。
 - `GlobalVisualLayers` 是唯一的无 Props 组件接口；render-ready 在封存 ready artifact 前只编译目标

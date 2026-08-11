@@ -36,6 +36,10 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
     (get.body as typeof validProducerConfigInput).renderDefaults.fps,
     30,
   );
+  assert.deepEqual(
+    (get.body as typeof validProducerConfigInput).audioDefaults.globalBgm,
+    validProducerConfigInput.audioDefaults.globalBgm,
+  );
 
   const rejectedOrigin = await api({
     method: "PUT",
@@ -79,6 +83,11 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
   assert.equal(
     JSON.parse(await readFile(configPath, "utf8")).renderDefaults.fps,
     25,
+  );
+  assert.equal(
+    JSON.parse(await readFile(configPath, "utf8")).audioDefaults.globalBgm
+      .volume,
+    0.15,
   );
 
   const diagnostics = await api({
