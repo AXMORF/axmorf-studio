@@ -18,6 +18,7 @@ import {
 import {
   createProductionFixture,
   FIXED_PRODUCTION_NOW,
+  FIXED_NARRATION_EXECUTION,
   writeProductionJson,
 } from "./fixture";
 
@@ -168,10 +169,11 @@ test("default production narration uses the unified ProducerConfig dependency fa
     runId: fixture.runId,
     storyId: fixture.source.story.storyId,
     requirements: fixture.requirements,
+    narrationExecution: FIXED_NARRATION_EXECUTION,
     resume: true,
   });
 
-  assert.equal(
+  assert.notEqual(
     receivedContext?.createGenerationDependencies,
     createDefaultGenerationDependencies,
   );

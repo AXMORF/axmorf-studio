@@ -22,6 +22,7 @@ scripts/delivery/application/  input loading, package, launch, check
 scripts/delivery/domain/       deterministic delivery model and canonical bytes
 scripts/delivery/adapters/     filesystem, Cover media, detached spawn
 scripts/projects/delete.ts     preflighted destructive Project data cleanup
+scripts/projects/configure.ts  new-Project ProducerConfig freeze application/CLI
 ```
 
 CLI 入口保持薄；用例编排、纯规则和 external I/O 不平铺混合。render runtime 永远不调用
@@ -31,8 +32,12 @@ production/delivery scripts 或外部系统。
 
 ```mermaid
 flowchart LR
-    Config["ProducerConfig defaults"] --> Story
-    Config --> Publish
+    Config["ProducerConfig defaults"] --> Freeze["project:configure"]
+    Freeze --> Story
+    Freeze --> Publish
+    Freeze --> Requirements["ProductionRequirementsFreeze"]
+    Config --> Execution["private-safe narration execution"]
+    Execution --> Run["ProductionRun manifest"]
     Story["StorySpec"] --> Timing["SemanticTiming"]
     Story --> Publish["PublishingIntent"]
     Timing --> Scene["Scene assignments/results"]
@@ -129,6 +134,9 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
 - `private/producer.config.json` 是权限 `0600` 的 ignored 文件；配置 API 默认只监听 loopback，显式
   `dev:lan` 才监听可信局域网，并始终要求 Origin/Host 精确同源。完整 token 不写日志、不进
   localStorage；LAN 端口不得暴露到公网。render runtime 不读取 ProducerConfig。
+- 新 Project 只由 `project:configure` 将 defaults 写入 immutable Project contracts；new Run 将
+  provider-attempt 与 mastering policy 写入 private-safe execution snapshot。narrative application
+  可以为 drift check 重读私密配置，render/delivery runtime 仍只消费 Project/Run immutable inputs。
 - Project deletion proof 只在 `mktemp` 隔离副本运行。
 - 真实作品删除只通过 `project:delete`：一次预检后按 storyId 删除 `src/projects/`、
   `public/projects/`、`.narration-work/`、`.producer-runs/`、`out/` 与 `deliveries/` 中的全部绑定数据，

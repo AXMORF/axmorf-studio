@@ -42,7 +42,7 @@ const MasteredNarrationAudioSchema = z
   .strict()
   .readonly();
 
-const NarrationMasteringPolicySchema = z
+export const NarrationMasteringPolicySchema = z
   .object({
     policyId: z.literal("narration-speech-master-v2"),
     algorithmId: z.literal(NARRATION_MASTERING_ALGORITHM_ID),

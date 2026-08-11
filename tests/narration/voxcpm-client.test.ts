@@ -27,6 +27,7 @@ const resolved: ResolvedVoxcpmProfile = {
     retryBadcaseRatioThreshold: 6,
   },
   safeDescriptor: {
+    privateConfigFingerprint: `sha256:${"0".repeat(64)}`,
     adapterId: "voxcpm-controllable-clone-http-v2",
     modelId: "private-deployment",
     mode: "controllable-clone",

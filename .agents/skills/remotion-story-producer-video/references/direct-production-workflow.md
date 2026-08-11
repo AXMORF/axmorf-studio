@@ -6,10 +6,16 @@ successful independent task creation.
 ## 1. Freeze shared inputs
 
 Inspect branch/HEAD/status without enumerating protected ignored paths. Read the Producer config
-reference and current config through repository helpers. Author current brief, Story,
-PublishingIntent v2, narration, render, StoryCheck, and requirements from its defaults. Select exactly
-one configured publishing collection; never invent free text. Preserve causal StoryBeat structure and
-Agent-authored ttsChunks; never auto-split or rewrite narration text.
+reference. Author current brief, Story and project-local `producer-input.json`; select exactly one
+configured publishing collection and never invent free text. Then run:
+
+```bash
+npm run project:configure -- --project <storyId> --input src/projects/<storyId>/producer-input.json
+```
+
+This fixed entrypoint freezes PublishingIntent v2, NarrationSpec, RenderSpec, StoryCheck and current
+requirements from one ProducerConfig read. Do not manually copy defaults. Preserve causal StoryBeat
+structure and Agent-authored ttsChunks; never auto-split or rewrite narration text.
 
 Run host preflight, then create and seal one Run:
 

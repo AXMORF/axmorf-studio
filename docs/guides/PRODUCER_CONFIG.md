@@ -31,6 +31,11 @@ npm run dev
 写入、使用 `no-store`，不把配置写入 localStorage。按产品要求，token 会完整返回并显示以便修改；
 不得通过截图、日志或 Git 泄露页面内容。
 
+右侧“只读环境诊断”检查配置、默认声线来源、VoxCPM health/ready 与 Remotion browser preflight。
+它不生成测试语音、不 warm-up 服务、不弱化 Chromium sandbox，只显示脱敏状态和修复建议。表单会
+为新增合集/声线选择未占用 ID；切换 provider 或删除默认声线时立即选择仍有效的默认声线，重复 ID
+或无效 default 会直接阻止保存。
+
 可信局域网内需要其他设备直接访问时运行：
 
 ```bash
@@ -69,3 +74,24 @@ token 或私有声线路径。位于仓库内的声线输入会转换成仓库�
 
 `RSP_PRODUCER_CONFIG` 支持仓库根目录相对路径和绝对路径。生产脚本、preflight、迁移命令与配置页
 使用同一解析规则。
+
+## 冻结到新 Project
+
+在新 Project 已有 `brief.json`、`story.json` 与 project-local `producer-input.json` 后运行：
+
+```bash
+npm run project:configure -- --project <storyId> --input src/projects/<storyId>/producer-input.json
+```
+
+`producer-input.json` 只保存单个作品的 render 非默认字段、PublishingIntent authored fields、
+StoryCheck checks 与 production requirement selections；标题、StoryBeat、旁白文案、发布描述仍是
+Project 内容，绝不放入 ProducerConfig。命令从一次 ProducerConfig 读取生成 `narration.json`、
+`render.json`、`reviews/story-check.json`、`publishing-intent.json` 和
+`production/requirements.json`。合集必须且只能选择当前数组中的一个 ID；完整数组 fingerprint 被
+封存。任何目标已有不同内容时命令在写入前 fail closed，不改旧 Project。
+
+`production:start` 用同一次已解析 TTS 配置完成 preflight 并冻结 Run 级
+`NarrationExecutionSnapshot`。generation 会在 provider request 前重算并比较；mastering 只读取
+快照中的 LUFS policy。配置页在 Run 开始后发生 provider、connection、voice、生成参数、speech
+rate 或 LUFS 变化时，该 Run 会拒绝继续并要求 fresh Run。快照与安全 projection 只含 ID、数值
+policy 和 fingerprint，不含 token、URL、绝对路径、声线内容或 transcript。

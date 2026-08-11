@@ -7,6 +7,7 @@ import {
   Sha256DigestSchema,
   StoryIdSchema,
 } from "./primitives";
+import { NarrationExecutionSnapshotSchema } from "./narration-execution";
 
 export const PRODUCTION_RUN_CONTRACT_VERSION =
   "production-run-current-v2" as const;
@@ -122,6 +123,7 @@ const ProductionRunManifestInputObject = z
     storyId: StoryIdSchema,
     requirementsPath: SafeRepositoryPathSchema,
     requirementsFingerprint: Sha256DigestSchema,
+    narrationExecution: NarrationExecutionSnapshotSchema.optional(),
     policy: ProductionRunPolicySchema,
     createdAt: IsoTimestampSchema,
   })

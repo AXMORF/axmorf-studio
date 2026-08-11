@@ -14,8 +14,9 @@
 
 一次正常生产必须完成：
 
-1. 从统一 ProducerConfig 选择渲染默认值、Scene 边缘留白、一个发布合集与通用 TTS 策略，再把
-   内容结构化为 Story、StoryBeat、Agent-authored ttsChunks、RenderSpec 与 PublishingIntent；
+1. 从统一 ProducerConfig 选择渲染默认值、Scene 边缘留白、一个发布合集与通用 TTS 策略，使用
+   fixed `project:configure` 将其冻结进新 Project，再把内容结构化为 Story、StoryBeat、
+   Agent-authored ttsChunks、RenderSpec 与 PublishingIntent；
 2. 用 sealed PCM 实测生成 SemanticTiming 与 CaptionCue，并生成保持 PCM 格式与 sample count
    不变的响度母带；
 3. 冻结全部 owner assignments，exactly once 启动 detached watcher；
@@ -49,7 +50,8 @@
 - Cover 独立于 production state，只消费 StorySpec、VisualStyleSpec 与 fixed CoverSpec。
 - Codex task/thread/progress/heartbeat 不进入 repository state；缺失 receipt 不触发 timeout/retry。
 - 全局配置只提供 authoring/freeze 默认值；实际合集、可读性、语速与响度策略进入 immutable
-  contracts/fingerprints，修改配置不能静默改写已封存作品。
+  contracts/fingerprints。Run 开始时再冻结 private-safe narration execution identity；修改配置不能
+  静默改写已封存作品或切换已开始 Run 的 provider、声线、参数、语速和 LUFS。
 
 ## 自动交付边界
 

@@ -110,7 +110,30 @@ const buildValidFreeze = () =>
       unlistedThirdPartyResources: "deny",
     },
     additionalRequirements,
+    readability: { edgeInsetPx: 90 },
   });
+
+test("requires an explicit readability freeze input", () => {
+  assert.throws(
+    () =>
+      (buildProductionRequirementsFreeze as (input: unknown) => unknown)({
+        source,
+        sourceChecksums,
+        enhancementSelection: {
+          storyVisual: "required",
+          sceneLocalSound: "allowed",
+          globalSound: "none",
+          globalVisual: "required",
+        },
+        resourcePolicy: {
+          selfAuthoredVisualsAllowed: true,
+          unlistedThirdPartyResources: "deny",
+        },
+        additionalRequirements,
+      }),
+    /readability.*required|edgeInsetPx/iu,
+  );
+});
 
 const withCurrentFingerprint = (value: Record<string, unknown>) => ({
   ...value,
@@ -227,6 +250,7 @@ test("rejects duplicate requirements and invalid scope-owner-verification combin
         enhancementSelection: valid.enhancementSelection,
         resourcePolicy: valid.resourcePolicy,
         additionalRequirements: candidate,
+        readability: { edgeInsetPx: valid.readabilityPolicy.baseEdgeInsetPx },
       }),
     );
   }
@@ -250,6 +274,7 @@ test("requires absent global sound and required global visual", () => {
         enhancementSelection,
         resourcePolicy: freeze.resourcePolicy,
         additionalRequirements,
+        readability: { edgeInsetPx: freeze.readabilityPolicy.baseEdgeInsetPx },
       }),
     );
   }
@@ -311,6 +336,7 @@ test("rejects unknown fields, absolute paths, secret-shaped fields, and unsafe s
           statement: "Read the provider token from /home/private/config.json.",
         },
       ],
+      readability: { edgeInsetPx: freeze.readabilityPolicy.baseEdgeInsetPx },
     }),
   );
 });

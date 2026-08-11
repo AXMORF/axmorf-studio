@@ -29,10 +29,18 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 - `npm run dev` 同时启动 loopback 配置控制台 `:3100` 与 Remotion Studio `:3101`；显式
   `npm run dev:lan` 让两者通过可信 LAN IP 访问。token 按要求完整回传、显示、可修改，同时使用
   精确同源写入、no-store、无浏览器持久化和 `0600` 原子写入。
+- `project:configure` 是新 Project 的固定冻结入口：从 Project `producer-input.json` 与一次
+  ProducerConfig 读取生成 NarrationSpec、RenderSpec、StoryCheck、PublishingIntent v2 和
+  ProductionRequirementsFreeze；输出 conflict 时拒绝覆盖。
+- 配置 API 已覆盖 GET/PUT、strict validation、同源拒绝和原子写入；页面提供只读的声线来源、
+  VoxCPM health/ready 与 Remotion browser 诊断，并即时维护唯一 ID 与有效默认声线。
 - `production-readability-v2` 从可配置边缘留白派生字幕底边与 Scene 底边；RenderSpec 已移除冗余
   caption safe area。
 - PublishingIntent v2 只能选择配置数组中的一个合集并封存目录 fingerprint；TTS 语速进入
   provider attempt，目标 LUFS 进入 mastered narration v2 policy/fingerprint。
+- 新 Run 在同一次 VoxCPM preflight 中冻结 private-safe NarrationExecutionSnapshot；generation
+  重算不一致时在 provider request 前拒绝，mastering 只消费 Run policy。服务连接只以 opaque
+  private-config fingerprint 进入 provider-attempt，raw token/URL/path/voice content 不持久化。
 
 ### 叙事、时间与 Scene
 

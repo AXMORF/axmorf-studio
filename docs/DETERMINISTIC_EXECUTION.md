@@ -20,8 +20,14 @@ NarrationSpec 与 narration generation input 是 current-only v2；已删除的 
 ProducerConfig 自身使用 `producer-config-v1` strict schema 与 fingerprint。它是新 authoring/freeze
 的默认/选择 authority，不是已封存 Project 的可变 runtime dependency：合集选择连同 catalog
 fingerprint 进入 PublishingIntent v2，边缘留白进入 production-readability-v2，语速进入
-provider-attempt，目标 LUFS 进入 mastered-narration-v2。token、endpoint 和私有路径不进入安全
-fingerprint 或公开产物。
+provider-attempt，目标 LUFS 进入 mastering policy。`project:configure` 要求显式 readability，不再
+存在创建阶段的 90px fallback。
+
+start 的同一次 provider resolution 同时供 VoxCPM preflight 与 `NarrationExecutionSnapshot` 使用。
+快照复用 provider-attempt fingerprint 与完整 mastering policy；provider-attempt 额外绑定 opaque
+private-config fingerprint，从而让 URL/token/path 变化触发 drift，但 raw token、URL、绝对路径、
+声线内容和 transcript 不进入 Project、Run、events、错误或日志。generation 在请求前重算并比较
+快照；mastering 只使用 Run policy。已冻结 Project/Run 不因全局配置变化而改变。
 
 ## 时间确定性
 

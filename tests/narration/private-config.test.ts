@@ -133,6 +133,7 @@ test("safe fingerprints exclude endpoints tokens and absolute paths", async () =
     "mode",
     "modelId",
     "normalize",
+    "privateConfigFingerprint",
     "referenceAudioChecksum",
     "retryBadcase",
     "retryBadcaseMaxTimes",

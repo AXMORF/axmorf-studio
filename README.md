@@ -15,7 +15,9 @@
   读取、hash、probe 或 decode detached 输出。
 - PublishingIntent 与独立 Cover 生命周期保留；Cover 不阻止 render-ready，但会阻止自动交付。
 - ignored `private/producer.config.json` 统一管理新作品的渲染默认值、Scene 留白、合集数组与通用
-  TTS；实际选择会冻结进 contracts/fingerprints。
+  TTS；`project:configure` 把实际选择冻结进新 Project contracts/fingerprints。
+- production start 将已确认的 provider-attempt 与 mastering policy 合成为 private-safe Run 执行快照；
+  preflight 后配置漂移会要求 fresh Run，不会切换当前 Run 的 provider、声线、语速或 LUFS。
 - `GlobalVisualLayers` 是唯一的无 Props 组件接口；render-ready 在封存 ready artifact 前只编译目标
   Project 的 Composition 与真实 import graph，跨模块类型漂移会 fail closed。
 - core 与 fresh clone 是 zero-Project-safe；ignored 本地 Project 集由 bootstrap 动态发现，不写入
@@ -124,6 +126,7 @@ fail closed。命令不终止正在运行的 provider 或 detached render，必�
 生产编排：
 
 ```bash
+npm run project:configure -- --project <story-id> --input src/projects/<story-id>/producer-input.json
 npm run production:preflight -- --project <story-id>
 npm run production:start -- --project <story-id>
 npm run production:narrative -- --run <run-id>
@@ -152,6 +155,7 @@ docs/                        当前权威、指南、证据和历史归档
 scripts/production/          production cli / application / domain / adapters
 scripts/delivery/            Cover 与自动交付 cli / application / domain / adapters
 scripts/config/              private ProducerConfig 读写与迁移
+scripts/projects/configure.ts 新 Project 通用默认值冻结入口
 settings/                    local / trusted-LAN React 配置控制台
 src/contracts/               strict、versioned、可执行 Zod 合同
 src/remotion/runtime/        固定、离线、frame-driven runtime

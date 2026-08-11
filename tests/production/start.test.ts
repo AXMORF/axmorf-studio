@@ -15,6 +15,7 @@ import test, { type TestContext } from "node:test";
 
 import {
   buildProductionRequirementsFreeze,
+  buildNarrationExecutionSnapshot,
   computeGenerationInputFingerprint,
   computeStoryFingerprint,
   NarrationSpecSchema,
@@ -32,6 +33,13 @@ import {
 
 const fixedNow = new Date("2026-08-04T00:00:00.000Z");
 const fixedRunId = "story-example-run-001";
+const narrationExecution = buildNarrationExecutionSnapshot({
+  providerId: "test-provider",
+  voiceProfileId: validNarrationSpec.voiceProfileId,
+  speechRate: 1,
+  providerAttemptFingerprint: `sha256:${"a".repeat(64)}`,
+  targetLoudnessLufs: -16,
+});
 
 const checksum = (bytes: string) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}` as const;
@@ -95,6 +103,7 @@ const createStartFixture = async (context: TestContext) => {
       unlistedThirdPartyResources: "deny",
     },
     additionalRequirements: [],
+    readability: { edgeInsetPx: 90 },
   });
   await writeJson(
     join(projectDir, "production/requirements.json"),
@@ -115,6 +124,7 @@ const start = (rootDir: string) =>
         domain: "voxcpm",
         serviceState: "resident-ready",
         profileMode: "controllable-clone",
+        narrationExecution,
       }),
       browser: async () => ({ status: "pass", domain: "remotion-browser" }),
     },
@@ -136,6 +146,7 @@ test("starts one immutable contract-bound run and records its first event", asyn
   });
   assert.equal(loaded.events.length, 1);
   assert.equal(loaded.run.schemaVersion, 1);
+  assert.deepEqual(loaded.run.narrationExecution, narrationExecution);
   assert.equal(loaded.events[0]?.schemaVersion, 1);
   assert.equal(loaded.state.schemaVersion, 1);
   assert.equal(loaded.events[0]?.type, "stage-succeeded");
@@ -172,6 +183,7 @@ test("runs both preflight probes before scaffold clock and Run creation", async 
           domain: "voxcpm",
           serviceState: "offloaded-auto-reload-on-first-generation",
           profileMode: "controllable-clone",
+          narrationExecution,
         };
       },
       browser: async () => {

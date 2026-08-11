@@ -477,7 +477,7 @@ const buildProductionRequirementsBase = ({
 
 type ProductionRequirementsBuildInput = Parameters<
   typeof buildProductionRequirementsBase
->[0] & { readonly readability?: Readonly<{ edgeInsetPx: number }> };
+>[0] & { readonly readability: Readonly<{ edgeInsetPx: number }> };
 
 export const buildProductionRequirementsFreeze = (
   input: ProductionRequirementsBuildInput,
@@ -486,7 +486,7 @@ export const buildProductionRequirementsFreeze = (
   const readabilityPolicy = resolveProductionReadabilityPolicy({
     width: base.normalizedSummary.width,
     height: base.normalizedSummary.height,
-    edgeInsetPx: input.readability?.edgeInsetPx ?? 90,
+    edgeInsetPx: input.readability.edgeInsetPx,
   });
   const source = assertCurrentSource(input.source);
   validateStoryCaptionReadability({

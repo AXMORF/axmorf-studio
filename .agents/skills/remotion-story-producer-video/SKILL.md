@@ -17,9 +17,9 @@ authoring or delivery.
 
 ## Freeze inputs before dispatch
 
-Read [references/producer-config.md](references/producer-config.md) completely and resolve the current
-private ProducerConfig before authoring a new Project. Treat it as defaults and selection authority;
-freeze actual values into Project/contracts before dispatch.
+Read [references/producer-config.md](references/producer-config.md) completely. Author the Project-local
+producer input, then use the fixed `project:configure` entrypoint; do not manually copy defaults into
+Project contracts. The CLI resolves private ProducerConfig and freezes actual values before dispatch.
 
 Read [references/direct-production-workflow.md](references/direct-production-workflow.md) completely.
 Finish preflight, Story/narration/timing/requirements, Scene freeze, and independent Cover freeze

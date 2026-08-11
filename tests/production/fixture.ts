@@ -5,6 +5,7 @@ import type { TestContext } from "node:test";
 
 import {
   buildProductionRequirementsFreeze,
+  buildNarrationExecutionSnapshot,
   computeGenerationInputFingerprint,
   computeStoryFingerprint,
   NarrationSpecSchema,
@@ -29,6 +30,13 @@ import {
 
 export const FIXED_PRODUCTION_NOW = new Date("2026-08-04T00:00:00.000Z");
 export const FIXED_PRODUCTION_RUN_ID = "story-example-run-001";
+export const FIXED_NARRATION_EXECUTION = buildNarrationExecutionSnapshot({
+  providerId: "test-provider",
+  voiceProfileId: validNarrationSpec.voiceProfileId,
+  speechRate: 1,
+  providerAttemptFingerprint: `sha256:${"a".repeat(64)}`,
+  targetLoudnessLufs: -16,
+});
 
 export const checksumText = (bytes: string) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}` as const;
@@ -108,6 +116,7 @@ export const createProductionFixture = async (
       unlistedThirdPartyResources: "deny",
     },
     additionalRequirements: options.additionalRequirements ?? [],
+    readability: { edgeInsetPx: 90 },
   });
   await writeProductionJson(
     join(projectDir, "production/requirements.json"),
@@ -124,6 +133,7 @@ export const createProductionFixture = async (
         domain: "voxcpm",
         serviceState: "resident-ready",
         profileMode: "controllable-clone",
+        narrationExecution: FIXED_NARRATION_EXECUTION,
       }),
       browser: async () => ({ status: "pass", domain: "remotion-browser" }),
     },

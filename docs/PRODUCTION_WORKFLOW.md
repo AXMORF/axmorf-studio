@@ -36,12 +36,13 @@ flowchart TD
 
 ## 1. Authoring 与 preflight
 
-Agent 先通过 strict ProducerConfig 读取 render 默认值、Scene 基准边缘留白、合集数组和通用 TTS
-默认策略，再 author VideoBrief、StorySpec、NarrationSpec、RenderSpec、StoryCheck、
-PublishingIntent v2 和 current ProductionRequirementsFreeze。PublishingIntent 必须从合集数组选
-且只选一个最合适的 ID，并封存名称与目录 fingerprint；不得写自由文本合集。RenderSpec 不保存
-目标时长或字幕安全区。每个 StoryBeat 有稳定 meaningId；ttsChunks 按意义、语气与朗读节奏创作，
-工具不得自动拆分。
+Agent 先 author VideoBrief、StorySpec 与 project-local `producer-input.json`，再运行
+`npm run project:configure -- --project <storyId> --input <path>`。fixed application 只通过 strict
+ProducerConfig helper 读取一次默认值，生成 NarrationSpec/RenderSpec/StoryCheck、PublishingIntent
+v2 与 current ProductionRequirementsFreeze。PublishingIntent 必须从合集数组选且只选一个 ID，
+并封存名称与完整目录 fingerprint；readability 必须显式来自 ProducerConfig，创建 API 不再使用
+90px fallback。RenderSpec 不保存目标时长或字幕安全区。每个 StoryBeat 有稳定 meaningId；ttsChunks
+按意义、语气与朗读节奏创作，工具不得自动拆分。
 
 `production:preflight` 使用 `production-start-preflight-v2` 在 Run write 前检查 VoxCPM
 liveness/readiness 与 Remotion Chromium，
@@ -49,10 +50,20 @@ liveness/readiness 与 Remotion Chromium，
 自动重载，不触发 warm-up 或 test TTS；`denoise=true` 时还必须在真实生成前确认 denoiser
 capability，否则返回脱敏 external blocker。真实调用直接使用宿主权限。
 
+同一次 start 的 VoxCPM preflight 从一份已解析配置构建 provider-attempt identity 与 mastering
+policy，并把组合后的 `NarrationExecutionSnapshot` 写入 immutable Run manifest。narrative generation
+重新解析当前私密输入后必须得到完全相同的快照才允许发出 provider request；mastering 只消费 Run
+中冻结的 policy，不再回读全局配置。任何 provider/connection/voice/参数/语速/LUFS 漂移都要求
+fresh Run。快照只包含安全 ID、数值 policy 与 fingerprint，不包含 token、URL、绝对路径或声线内容。
+
 配置页与 Studio 由同一个 `npm run dev` 启动：loopback `:3100` 是配置控制台，`:3101` 是 Remotion
 Studio。可信局域网可显式使用 `npm run dev:lan`，两者通过同一 LAN IP 访问；配置写入仍要求
 Origin/Host 精确同源。私密 JSON、完整 token 和声线路径只允许停留在 ignored 配置与可信页面，
 LAN 端口不得转发到公网。
+
+配置页的“只读环境诊断”复用 metadata-only 声线检查、VoxCPM health/ready 与固定 Remotion browser
+preflight；不生成测试语音、不 warm-up provider，也不修改 Chromium sandbox policy，只返回脱敏
+状态与修复建议。
 
 ## 2. Narrative baseline
 

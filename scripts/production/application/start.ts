@@ -150,15 +150,18 @@ export const runProductionStart = async ({
     );
   }
   requireCurrentProductionReadabilityPolicy(requirements);
-  const preflight = await runProductionPreflightForInputs({
+  const preparedPreflight = await runProductionPreflightForInputs({
     rootDir,
     inputs,
     ...(preflightDependencies === undefined
       ? {}
       : { dependencies: preflightDependencies }),
   });
-  if (preflight.status === "failed") {
-    throw new Error(JSON.stringify(preflight));
+  if (preparedPreflight.preflight.status === "failed") {
+    throw new Error(JSON.stringify(preparedPreflight.preflight));
+  }
+  if (!("narrationExecution" in preparedPreflight)) {
+    throw new Error("Production preflight did not freeze narration execution.");
   }
   await ensureProductionProjectScaffold({
     rootDir,
@@ -174,6 +177,7 @@ export const runProductionStart = async ({
     storyId: projectId,
     requirementsPath: `src/projects/${projectId}/production/requirements.json`,
     requirementsFingerprint: requirements.requirementsFingerprint,
+    narrationExecution: preparedPreflight.narrationExecution,
     policy: DEFAULT_PRODUCTION_RUN_POLICY,
     createdAt: now.toISOString(),
   });

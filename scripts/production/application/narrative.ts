@@ -37,6 +37,7 @@ import {
 import { createProductionStageEvent } from "../domain/events";
 import { createUnexpectedProductionError } from "../domain/errors";
 import { loadCurrentProductionInputs } from "./start";
+import { assertNarrationExecutionCurrent } from "./narration-execution";
 
 type GenerationResult = Readonly<{
   providerAttemptFingerprint: string;
@@ -81,6 +82,7 @@ type CommonStepRequest = Readonly<{
   runId: string;
   storyId: string;
   requirements: ProductionRequirementsFreeze;
+  narrationExecution: import("../../../src/contracts").NarrationExecutionSnapshot;
 }>;
 
 export type NarrativeProductionDependencies = Readonly<{
@@ -136,13 +138,20 @@ export const createDefaultNarrativeProductionDependencies = ({
   readonly runProcess?: ProcessRunner;
   readonly runNarrationCli?: typeof defaultRunNarrationCli;
 } = {}): NarrativeProductionDependencies => ({
-  generateNarration: async ({ rootDir, storyId }) => {
+  generateNarration: async ({ rootDir, storyId, narrationExecution }) => {
     const result = await runNarrationCli(["generate", "--project", storyId], {
       rootDir,
       env: process.env,
       stdout: () => undefined,
       stderr: () => undefined,
-      createGenerationDependencies: createDefaultGenerationDependencies,
+      createGenerationDependencies: async (input) => {
+        const dependencies = await createDefaultGenerationDependencies(input);
+        assertNarrationExecutionCurrent({
+          frozen: narrationExecution,
+          current: dependencies.executionSnapshot,
+        });
+        return dependencies;
+      },
     });
     if (result.command !== "generate") {
       throw new Error("Narration generate returned the wrong command result.");
@@ -207,21 +216,14 @@ export const createDefaultNarrativeProductionDependencies = ({
     }
     return result.result;
   },
-  masterNarration: async ({ rootDir, storyId }) => {
-    const { readProducerConfig, resolveProducerConfigPathFromEnvironment } =
-      await import("../../config/producer-config");
+  masterNarration: async ({ rootDir, storyId, narrationExecution }) => {
     const { writeMasteredNarrationArtifacts } =
       await import("../../narration/mastering");
-    const config = await readProducerConfig({
-      configPath: await resolveProducerConfigPathFromEnvironment({
-        rootDir,
-        env: process.env,
-      }),
-    });
     return writeMasteredNarrationArtifacts({
       rootDir,
       storyId,
-      targetLoudnessLufs: config.tts.speech.targetLoudnessLufs,
+      targetLoudnessLufs:
+        narrationExecution.masteringPolicy.targetIntegratedLoudnessLufs,
     });
   },
   checkMasteredNarration: async ({ rootDir, storyId }) => {
@@ -430,6 +432,11 @@ export const runProductionNarrative = async ({
       ? undefined
       : Sha256DigestSchema.parse(supersedeFingerprint);
   const initial = await readProductionRunStore({ rootDir, runId });
+  if (initial.run.narrationExecution === undefined) {
+    throw new Error(
+      "Production Run lacks frozen narration execution; create a fresh Run.",
+    );
+  }
   if (initial.state.state === "baseline-ready") {
     const current = await loadCurrentProductionInputs({
       rootDir,
@@ -446,6 +453,7 @@ export const runProductionNarrative = async ({
       runId,
       storyId: initial.run.storyId,
       requirements: current.requirements,
+      narrationExecution: initial.run.narrationExecution,
     } as const;
     await verifyCurrentNarrative({ common, dependencies });
     return { runId, status: "baseline-ready", noOp: true } as const;
@@ -509,6 +517,7 @@ export const runProductionNarrative = async ({
         runId,
         storyId: initial.run.storyId,
         requirements: current.requirements,
+        narrationExecution: initial.run.narrationExecution,
       } as const;
       const generation = await dependencies.generateNarration({
         ...common,

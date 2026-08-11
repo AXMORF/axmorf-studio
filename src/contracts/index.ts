@@ -14,6 +14,7 @@ export * from "./m1-validation";
 export * from "./mastered-narration";
 export * from "./narrative-baseline";
 export * from "./narration";
+export * from "./narration-execution";
 export * from "./primitives";
 export * from "./production-requirements";
 export * from "./production-readability";

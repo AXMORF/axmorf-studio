@@ -1,29 +1,31 @@
 # Producer config
 
-Before authoring a new Project, read the current ignored `private/producer.config.json` through the
-repository config contract. Never print, summarize, stage, or commit its token or private paths.
+Before freezing a new Project, use the repository config helper and fixed `project:configure` CLI.
+Never print, summarize, stage, or commit its token or private paths.
 Repository entrypoints automatically load an optional root `.env` copied from `.env.example`;
 `RSP_PRODUCER_CONFIG` there may select a repository-relative or absolute path, while an exported
 shell value has precedence. Voice profile source paths should remain repository-relative when they
 live below the ignored `voxcpm/voice_profile/` directory; the host adapters resolve them from the
 repository root before access.
 
-Use it as follows:
+The CLI applies it as follows:
 
-- copy `renderDefaults` into the new RenderSpec; do not add target duration or caption-safe-area
+- freeze `renderDefaults` into the new RenderSpec; do not add target duration or caption-safe-area
   fields;
-- pass `readability.edgeInsetPx` when building ProductionRequirementsFreeze. The policy scales this
+- require `readability.edgeInsetPx` when building ProductionRequirementsFreeze. There is no fallback.
+  The policy scales this
   reference inset by short edge, derives caption bottom as twice the resolved edge inset, then derives
   Scene bottom from caption bottom + caption box + gap and rounds upward to 10 px;
 - inspect every `publishingCollections` entry and choose exactly one most suitable `id` from its name
   and description. Do not invent free-text collections. Build PublishingIntent v2 with the whole
   current collection array so it freezes the selected ID/name and catalog fingerprint;
-- use `tts.defaultProviderId` and `tts.defaultVoiceProfileId` for NarrationSpec selection unless the
-  brief explicitly requires another configured voice;
-- narration generation reads `tts.speech.rate` and the selected provider. The provider response is
-  rate-adjusted before canonical PCM measurement, and the rate is bound by provider-attempt identity;
-- narration mastering reads `tts.speech.targetLoudnessLufs` and freezes the resolved mastering policy
-  in the mastered narration manifest.
+- freeze `tts.defaultVoiceProfileId` into NarrationSpec and use `tts.defaultProviderId` for the Run
+  execution provider;
+- production start resolves the selected provider once for preflight and freezes a private-safe Run
+  snapshot that reuses provider-attempt identity and freezes `speech.rate` plus
+  `targetLoudnessLufs` in the mastering policy. Generation must reproduce the snapshot before its
+  first request; mastering consumes the frozen policy and never rereads global config. Drift requires
+  a fresh Run.
 
 `tts` is the stable product boundary. `kind: "voxcpm"` is one adapter. Controllable clone uses
 `POST /clone` with `control` and `reference_audio`; high-fidelity clone uses
@@ -36,3 +38,5 @@ full token for editing and uses no browser persistence. When the operator has ex
 trusted LAN, `npm run dev:lan` exposes both surfaces on the same LAN hostname at ports 3100 and 3101;
 settings writes still require an exact Origin/Host match. Never forward either port to the public
 internet.
+Its environment diagnostics are read-only: metadata access, health/ready and Remotion browser
+preflight only. They never generate speech, warm the provider, or weaken the Chromium sandbox.

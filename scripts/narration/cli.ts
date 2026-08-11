@@ -8,24 +8,16 @@ import {
   loadVerifiedProgress,
   readCandidateBytes,
 } from "./adapters/candidate-workspace";
-import { resolveVoxcpmProfile } from "./adapters/private-config";
-import {
-  readProducerConfig,
-  resolveDefaultTtsProvider,
-  resolveProducerConfigPathFromEnvironment,
-  toVoxcpmPrivateConfig,
-} from "../config/producer-config";
+import { resolveProducerConfigPathFromEnvironment } from "../config/producer-config";
 import { createVoxcpmChunkGenerator } from "./adapters/voxcpm-client";
 import { normalizeProviderAudio } from "./adapters/ffmpeg-normalizer";
+import { resolveProducerNarrationExecution } from "../config/narration-execution";
 import { checkM2NarrationArtifacts } from "./check";
 import type {
   NarrationGenerationResult,
   PcmNormalizer,
 } from "./domain/candidate-progress";
-import {
-  computeProviderAttemptFingerprint,
-  type ChunkAudioGenerator,
-} from "./domain/provider-input";
+import type { ChunkAudioGenerator } from "./domain/provider-input";
 import { runNarrationGeneration } from "./generate-runner";
 import { loadNarrationProjectFiles } from "./project-files";
 import { runNarrationSeal } from "./seal-runner";
@@ -33,6 +25,7 @@ import type { M2NarrationCheckResult } from "./check";
 
 type GenerationDependencies = {
   readonly providerAttemptFingerprint: string;
+  readonly executionSnapshot: import("../../src/contracts").NarrationExecutionSnapshot;
   readonly generateChunk: ChunkAudioGenerator;
   readonly normalizePcm: PcmNormalizer;
 };
@@ -56,22 +49,20 @@ export type NarrationCliResult =
 
 export const createDefaultGenerationDependencies: NarrationCliContext["createGenerationDependencies"] =
   async ({ rootDir, configPath, narration }) => {
-    const producerConfig = await readProducerConfig({ configPath });
-    const provider = resolveDefaultTtsProvider(producerConfig);
-    const resolved = await resolveVoxcpmProfile({
-      config: toVoxcpmPrivateConfig(provider, rootDir),
+    const resolvedExecution = await resolveProducerNarrationExecution({
+      rootDir,
+      env: { RSP_PRODUCER_CONFIG: configPath },
       narration,
-      speechRate: producerConfig.tts.speech.rate,
     });
+    const { resolved, snapshot } = resolvedExecution;
     return {
-      providerAttemptFingerprint: computeProviderAttemptFingerprint(
-        resolved.safeDescriptor,
-      ),
+      providerAttemptFingerprint: snapshot.providerAttemptFingerprint,
+      executionSnapshot: snapshot,
       generateChunk: createVoxcpmChunkGenerator({ resolved }),
       normalizePcm: (sourceBytes) =>
         normalizeProviderAudio({
           sourceBytes,
-          speechRate: producerConfig.tts.speech.rate,
+          speechRate: snapshot.speechRate,
         }),
     };
   };

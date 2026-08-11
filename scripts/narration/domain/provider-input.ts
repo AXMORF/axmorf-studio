@@ -1,6 +1,7 @@
 import { createFingerprint } from "../../../src/contracts/fingerprint";
 
 type SafeVoxcpmDescriptorBase = {
+  readonly privateConfigFingerprint: string;
   readonly modelId: string;
   readonly cfgValue: number;
   readonly inferenceTimesteps: number;

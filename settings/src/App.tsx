@@ -1,6 +1,18 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { buildStudioUrl, isLanAccessHostname } from "./network";
+import {
+  getConfigConsistencyError,
+  nextUniqueId,
+  removeVoiceProfile,
+  selectProviderAndVoice,
+} from "./model";
 
 type TabId = "general" | "safe-area" | "collections" | "tts";
 type VoiceProfile =
@@ -64,6 +76,16 @@ type EditableConfig = {
     providers: VoxcpmProviderConfig[];
   };
   configFingerprint?: string;
+};
+type EnvironmentDiagnostics = {
+  schemaVersion: 1;
+  status: "pass" | "attention";
+  checks: Array<{
+    id: string;
+    status: "pass" | "fail";
+    summary: string;
+    remediation: string | null;
+  }>;
 };
 
 const tabs: ReadonlyArray<
@@ -129,6 +151,10 @@ export const App = () => {
   const [savedFingerprint, setSavedFingerprint] = useState<string | null>(null);
   const [status, setStatus] = useState("正在读取本地配置…");
   const [isSaving, setIsSaving] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<EnvironmentDiagnostics | null>(
+    null,
+  );
+  const [diagnosticsStatus, setDiagnosticsStatus] = useState("等待环境诊断…");
   const studioUrl = useMemo(() => buildStudioUrl(window.location.href), []);
   const lanAccess = isLanAccessHostname(window.location.hostname);
 
@@ -159,34 +185,63 @@ export const App = () => {
   );
   const dirty =
     config !== null && config.configFingerprint !== savedFingerprint;
+  const consistencyError = useMemo(
+    () =>
+      config === null ? "配置尚未加载。" : getConfigConsistencyError(config),
+    [config],
+  );
+  const refreshDiagnostics = useCallback(() => {
+    setDiagnosticsStatus("正在运行只读 preflight…");
+    fetch("/api/diagnostics", { cache: "no-store" })
+      .then(async (response) => {
+        const body = (await response.json()) as
+          | EnvironmentDiagnostics
+          | { error: string };
+        if (!response.ok || "error" in body) {
+          throw new Error("error" in body ? body.error : "环境诊断失败");
+        }
+        return body;
+      })
+      .then((result) => {
+        setDiagnostics(result);
+        setDiagnosticsStatus(
+          result.status === "pass" ? "环境诊断通过" : "环境需要处理",
+        );
+      })
+      .catch((error: unknown) => {
+        setDiagnostics(null);
+        setDiagnosticsStatus(
+          error instanceof Error ? error.message : "环境诊断失败",
+        );
+      });
+  }, []);
+
+  useEffect(() => {
+    refreshDiagnostics();
+  }, [refreshDiagnostics]);
   const validation = useMemo(
     () => [
       {
-        label: "配置结构",
-        value: config === null ? "等待数据" : "已载入 v1",
-        state: config === null ? "waiting" : "pass",
+        label: "表单一致性",
+        value: consistencyError ?? "默认 Provider、声线与 ID 一致。",
+        state: consistencyError === null ? "pass" : "fail",
       },
-      {
-        label: "合集目录",
-        value: `${config?.publishingCollections.length ?? 0} 个可选合集`,
-        state:
-          (config?.publishingCollections.length ?? 0) > 0 ? "pass" : "fail",
-      },
-      {
-        label: "默认 TTS",
-        value: provider?.name ?? "未找到",
-        state: provider === undefined ? "fail" : "pass",
-      },
-      {
-        label: "私密字段",
+      ...(diagnostics?.checks.map((check) => ({
+        label: check.id,
         value:
-          provider?.connection.token === undefined
-            ? "未配置 token"
-            : "token 可见并可编辑",
-        state: "notice",
-      },
+          check.remediation === null
+            ? check.summary
+            : `${check.summary} ${check.remediation}`,
+        state: check.status,
+      })) ?? [
+        {
+          label: "宿主环境",
+          value: diagnosticsStatus,
+          state: "waiting",
+        },
+      ]),
     ],
-    [config, provider],
+    [consistencyError, diagnostics, diagnosticsStatus],
   );
 
   const update = (mutate: (draft: EditableConfig) => void) => {
@@ -199,7 +254,10 @@ export const App = () => {
   };
 
   const save = async () => {
-    if (config === null) return;
+    if (config === null || consistencyError !== null) {
+      setStatus(consistencyError ?? "配置尚未加载。");
+      return;
+    }
     setIsSaving(true);
     setStatus("正在校验并保存…");
     try {
@@ -243,7 +301,7 @@ export const App = () => {
         </div>
         <button
           className="save-button"
-          disabled={config === null || isSaving}
+          disabled={config === null || isSaving || consistencyError !== null}
           onClick={save}
         >
           {isSaving ? "保存中" : "保存配置"}
@@ -298,8 +356,11 @@ export const App = () => {
 
       <aside className="validation-rail">
         <div className="rail-title">
-          <span>LIVE CHECK</span>
-          <strong>配置状态</strong>
+          <span>ENVIRONMENT</span>
+          <strong>只读环境诊断</strong>
+          <button className="diagnostics-button" onClick={refreshDiagnostics}>
+            重新诊断
+          </button>
         </div>
         {validation.map((item) => (
           <div className="check-row" key={item.label}>
@@ -456,7 +517,10 @@ const Collections = ({ config, update }: EditorProps) => {
       draft.publishingCollections = [
         ...draft.publishingCollections,
         {
-          id: `collection-${draft.publishingCollections.length + 1}`,
+          id: nextUniqueId(
+            "collection",
+            draft.publishingCollections.map(({ id }) => id),
+          ),
           name: "新合集",
           description: "说明这个合集最适合什么主题。",
         },
@@ -548,6 +612,18 @@ const Tts = ({
       draft.tts.providers = draft.tts.providers.map((item) =>
         item.id === provider.id ? next : item,
       );
+      if (
+        draft.tts.defaultProviderId === next.id &&
+        !next.voiceProfiles.some(
+          ({ id }) => id === draft.tts.defaultVoiceProfileId,
+        )
+      ) {
+        const first = next.voiceProfiles[0];
+        if (first === undefined) {
+          throw new Error("Provider 必须至少保留一个声线。");
+        }
+        draft.tts.defaultVoiceProfileId = first.id;
+      }
     });
   const patchProvider = (patch: Partial<VoxcpmProviderConfig>) =>
     replaceProvider({ ...provider, ...patch });
@@ -556,7 +632,10 @@ const Tts = ({
       voiceProfiles: [
         ...provider.voiceProfiles,
         {
-          id: `voice-${provider.voiceProfiles.length + 1}`,
+          id: nextUniqueId(
+            "voice",
+            provider.voiceProfiles.map(({ id }) => id),
+          ),
           name: "新声线",
           mode: "controllable-clone",
           referenceAudioPath: "voxcpm/voice_profile/reference.wav",
@@ -577,7 +656,7 @@ const Tts = ({
               value={config.tts.defaultProviderId}
               onChange={(event) =>
                 update((draft) => {
-                  draft.tts.defaultProviderId = event.target.value;
+                  selectProviderAndVoice(draft, event.target.value);
                 })
               }
             >
@@ -968,10 +1047,8 @@ const Tts = ({
                 aria-label={`删除 ${profile.name}`}
                 disabled={provider.voiceProfiles.length === 1}
                 onClick={() =>
-                  patchProvider({
-                    voiceProfiles: provider.voiceProfiles.filter(
-                      (_, itemIndex) => itemIndex !== index,
-                    ),
+                  update((draft) => {
+                    removeVoiceProfile(draft, provider.id, profile.id);
                   })
                 }
               >

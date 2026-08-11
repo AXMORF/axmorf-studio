@@ -7,6 +7,7 @@ import { extname, isAbsolute, relative, resolve } from "node:path";
 
 import { z } from "zod";
 
+import { createFingerprint } from "../../../src/contracts/fingerprint";
 import type { NarrationSpec } from "../../../src/contracts/narration";
 import {
   VoiceProfileIdSchema,
@@ -224,6 +225,22 @@ export const resolveVoxcpmProfile = async ({
     );
   }
   const profile = matches[0];
+  const privateConfigFingerprint = createFingerprint({
+    namespace: "voxcpm-private-execution-config",
+    version: 1,
+    value: {
+      baseUrl: parsed.baseUrl.replace(/\/+$/, ""),
+      token: parsed.token ?? null,
+      timeoutMs: parsed.timeoutMs,
+      modelId: parsed.modelId,
+      endpointPath:
+        profile.mode === "high-fidelity-clone"
+          ? "/clone_with_prompt"
+          : parsed.endpointPath,
+      parameters: parsed.parameters,
+      profile,
+    },
+  });
   const checksum = (bytes: Buffer) =>
     Sha256DigestSchema.parse(
       `sha256:${createHash("sha256")
@@ -269,6 +286,7 @@ export const resolveVoxcpmProfile = async ({
     measureCanonicalPcmWav(promptAudioBytes);
     const promptAudioChecksum = checksum(promptAudioBytes);
     const safeDescriptor: SafeVoxcpmExecutionDescriptor = {
+      privateConfigFingerprint,
       adapterId: "voxcpm-high-fidelity-clone-http-v2",
       modelId: parsed.modelId,
       mode: profile.mode,
@@ -321,6 +339,7 @@ export const resolveVoxcpmProfile = async ({
   }
   const referenceAudioChecksum = checksum(referenceAudioBytes);
   const safeDescriptor: SafeVoxcpmExecutionDescriptor = {
+    privateConfigFingerprint,
     adapterId: "voxcpm-controllable-clone-http-v2",
     modelId: parsed.modelId,
     mode: profile.mode,
