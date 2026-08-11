@@ -8,7 +8,7 @@ import {
   rename,
   unlink,
 } from "node:fs/promises";
-import { dirname, isAbsolute, join } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { parseEnv } from "node:util";
 
 import {
@@ -30,9 +30,12 @@ export const resolveProducerConfigPath = ({
   readonly env: Readonly<Record<string, string | undefined>>;
 }) => {
   const configuredPath = env.RSP_PRODUCER_CONFIG;
-  return configuredPath === undefined || configuredPath.trim() === ""
-    ? join(rootDir, DEFAULT_PRODUCER_CONFIG_REPOSITORY_PATH)
-    : configuredPath;
+  if (configuredPath === undefined || configuredPath.trim() === "") {
+    return join(rootDir, DEFAULT_PRODUCER_CONFIG_REPOSITORY_PATH);
+  }
+  return isAbsolute(configuredPath)
+    ? configuredPath
+    : resolve(rootDir, configuredPath);
 };
 
 export const loadProducerConfigEnvironment = async ({
@@ -157,6 +160,7 @@ export const resolveDefaultTtsProvider = (
 
 export const toVoxcpmPrivateConfig = (
   provider: VoxcpmProviderConfig,
+  rootDir: string,
 ): VoxcpmPrivateConfig => ({
   schemaVersion: 2,
   baseUrl: provider.connection.baseUrl,
@@ -170,6 +174,21 @@ export const toVoxcpmPrivateConfig = (
   voiceProfiles: provider.voiceProfiles.map((profile) => {
     const { name: _name, ...runtimeProfile } = profile;
     void _name;
-    return runtimeProfile;
+    return runtimeProfile.mode === "controllable-clone"
+      ? {
+          ...runtimeProfile,
+          referenceAudioPath: isAbsolute(runtimeProfile.referenceAudioPath)
+            ? runtimeProfile.referenceAudioPath
+            : resolve(rootDir, runtimeProfile.referenceAudioPath),
+        }
+      : {
+          ...runtimeProfile,
+          promptAudioPath: isAbsolute(runtimeProfile.promptAudioPath)
+            ? runtimeProfile.promptAudioPath
+            : resolve(rootDir, runtimeProfile.promptAudioPath),
+          promptTextPath: isAbsolute(runtimeProfile.promptTextPath)
+            ? runtimeProfile.promptTextPath
+            : resolve(rootDir, runtimeProfile.promptTextPath),
+        };
   }),
 });

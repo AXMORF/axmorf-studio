@@ -77,7 +77,10 @@ const createDefaultDependencies = (): ProductionPreflightDependencies => ({
           env: process.env,
         }),
       });
-      config = toVoxcpmPrivateConfig(resolveDefaultTtsProvider(producerConfig));
+      config = toVoxcpmPrivateConfig(
+        resolveDefaultTtsProvider(producerConfig),
+        rootDir,
+      );
     } catch {
       return buildProductionStartPreflightFailure({
         domain: "voxcpm",

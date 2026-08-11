@@ -14,9 +14,9 @@
 cp .env.example .env
 ```
 
-默认保持 `RSP_PRODUCER_CONFIG` 注释即可使用上述仓库内配置；需要把配置放到其他位置时，在
-`.env` 中取消注释并填写绝对路径。配置页、Narration、Production/preflight 和迁移命令都会自动
-读取仓库根目录 `.env`。同名 Shell 环境变量优先于 `.env`；两者都未设置时使用默认路径。
+示例默认使用 `private/producer.config.json`；相对路径以仓库根目录解析，也可以填写绝对路径把
+配置放到其他位置。配置页、Narration、Production/preflight 和迁移命令都会自动读取仓库根目录
+`.env`。同名 Shell 环境变量优先于 `.env`；两者都未设置时仍使用上述默认路径。
 
 ## 打开配置页
 
@@ -49,7 +49,8 @@ npm run config:migrate
 ```
 
 命令读取旧 `voxcpm/voxcpm.private.json`，原子写入权限 `0600` 的新配置，不删除旧文件、不打印
-token 或私有声线路径。目标文件已存在时命令会拒绝覆盖；迁移后应在页面中补充准确的合集名称/描述。
+token 或私有声线路径。位于仓库内的声线输入会转换成仓库相对路径，仓库外路径保持绝对。目标文件
+已存在时命令会拒绝覆盖；迁移后应在页面中补充准确的合集名称/描述。
 
 ## 配置语义
 
@@ -62,5 +63,9 @@ token 或私有声线路径。目标文件已存在时命令会拒绝覆盖；�
   fingerprint；`speech.targetLoudnessLufs` 进入两遍 loudnorm mastering policy 和母带 fingerprint。
 - `tts.providers[].kind = "voxcpm"`：当前 VoxCPM 适配器。可控克隆 POST `/clone`；高品质克隆
   POST `/clone_with_prompt`。`mode` 只在适配器内部选择请求结构，不作为 form 字段发送。
+- 声线的 `referenceAudioPath`、`promptAudioPath` 和 `promptTextPath` 优先保存为仓库根目录相对
+  路径，例如 `voxcpm/voice_profile/my-voice.wav`；外部操作员文件仍可使用绝对路径。Narration 和
+  preflight 在进入 VoxCPM 适配器前统一解析为绝对路径，配置页保存的仍是原始相对值。
 
-`RSP_PRODUCER_CONFIG` 必须指向绝对路径。生产脚本、preflight、迁移命令与配置页使用同一解析规则。
+`RSP_PRODUCER_CONFIG` 支持仓库根目录相对路径和绝对路径。生产脚本、preflight、迁移命令与配置页
+使用同一解析规则。

@@ -559,7 +559,7 @@ const Tts = ({
           id: `voice-${provider.voiceProfiles.length + 1}`,
           name: "新声线",
           mode: "controllable-clone",
-          referenceAudioPath: "/absolute/path/to/reference.wav",
+          referenceAudioPath: "voxcpm/voice_profile/reference.wav",
           controlInstruction: "自然、清晰。",
         },
       ],
@@ -908,9 +908,9 @@ const Tts = ({
                                   name: item.name,
                                   mode: "high-fidelity-clone",
                                   promptAudioPath:
-                                    "/absolute/path/to/prompt.wav",
+                                    "voxcpm/voice_profile/prompt.wav",
                                   promptTextPath:
-                                    "/absolute/path/to/prompt.txt",
+                                    "voxcpm/voice_profile/prompt.txt",
                                   promptTranscriptConfirmed: true,
                                 }
                               : {
@@ -918,7 +918,7 @@ const Tts = ({
                                   name: item.name,
                                   mode: "controllable-clone",
                                   referenceAudioPath:
-                                    "/absolute/path/to/reference.wav",
+                                    "voxcpm/voice_profile/reference.wav",
                                   controlInstruction: "自然、清晰。",
                                 },
                       ),

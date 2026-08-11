@@ -40,7 +40,7 @@ test("private producer config writes atomically with owner-only permissions", as
   assert.match(await readFile(configPath, "utf8"), /visible-editable-token/u);
 });
 
-test(".env config path loads automatically while shell env remains authoritative", async (context) => {
+test("config paths resolve relative to the repository while shell env remains authoritative", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-config-env-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const dotenvPath = join(rootDir, "operator/producer.config.json");
@@ -64,10 +64,26 @@ test(".env config path loads automatically while shell env remains authoritative
     await resolveProducerConfigPathFromEnvironment({ rootDir, env: {} }),
     dotenvPath,
   );
+  await writeFile(
+    join(rootDir, ".env"),
+    "RSP_PRODUCER_CONFIG=operator/producer.config.json\n",
+    "utf8",
+  );
+  assert.equal(
+    await resolveProducerConfigPathFromEnvironment({ rootDir, env: {} }),
+    dotenvPath,
+  );
   assert.equal(
     await resolveProducerConfigPathFromEnvironment({
       rootDir,
       env: { RSP_PRODUCER_CONFIG: shellPath },
+    }),
+    shellPath,
+  );
+  assert.equal(
+    await resolveProducerConfigPathFromEnvironment({
+      rootDir,
+      env: { RSP_PRODUCER_CONFIG: "shell/producer.config.json" },
     }),
     shellPath,
   );
@@ -80,13 +96,66 @@ test(".env config path loads automatically while shell env remains authoritative
   );
 });
 
-test("generic config projects the selected VoxCPM adapter without UI-only names", () => {
-  const config = buildProducerConfig(validProducerConfigInput);
+test("generic config resolves repository-relative voice paths at the VoxCPM adapter boundary", () => {
+  const config = buildProducerConfig({
+    ...validProducerConfigInput,
+    tts: {
+      ...validProducerConfigInput.tts,
+      providers: [
+        {
+          ...validProducerConfigInput.tts.providers[0],
+          voiceProfiles: [
+            {
+              ...validProducerConfigInput.tts.providers[0].voiceProfiles[0],
+              referenceAudioPath: "voxcpm/voice_profile/my-voice.wav",
+            },
+            {
+              id: "my-prompt-voice",
+              name: "我的高品质声音",
+              mode: "high-fidelity-clone",
+              promptAudioPath: "voxcpm/voice_profile/my-prompt-voice.wav",
+              promptTextPath: "voxcpm/voice_profile/my-prompt-voice.txt",
+              promptTranscriptConfirmed: true,
+            },
+          ],
+        },
+      ],
+    },
+  });
   const provider = resolveDefaultTtsProvider(config);
-  const runtime = toVoxcpmPrivateConfig(provider);
+  const runtime = toVoxcpmPrivateConfig(provider, "/repo");
   assert.equal(runtime.endpointPath, "/clone");
   assert.equal(runtime.voiceProfiles[0]?.id, "my-voice");
   assert.equal("name" in (runtime.voiceProfiles[0] ?? {}), false);
+  assert.equal(
+    runtime.voiceProfiles[0]?.mode === "controllable-clone"
+      ? runtime.voiceProfiles[0].referenceAudioPath
+      : undefined,
+    "/repo/voxcpm/voice_profile/my-voice.wav",
+  );
+  assert.deepEqual(
+    runtime.voiceProfiles[1]?.mode === "high-fidelity-clone"
+      ? [
+          runtime.voiceProfiles[1].promptAudioPath,
+          runtime.voiceProfiles[1].promptTextPath,
+        ]
+      : undefined,
+    [
+      "/repo/voxcpm/voice_profile/my-prompt-voice.wav",
+      "/repo/voxcpm/voice_profile/my-prompt-voice.txt",
+    ],
+  );
+
+  const absoluteProvider = resolveDefaultTtsProvider(
+    buildProducerConfig(validProducerConfigInput),
+  );
+  const absoluteRuntime = toVoxcpmPrivateConfig(absoluteProvider, "/repo");
+  assert.equal(
+    absoluteRuntime.voiceProfiles[0]?.mode === "controllable-clone"
+      ? absoluteRuntime.voiceProfiles[0].referenceAudioPath
+      : undefined,
+    "/srv/private/my-voice.wav",
+  );
 });
 
 test("legacy VoxCPM settings migrate into the generic provider without losing modes", () => {
@@ -124,7 +193,10 @@ test("legacy VoxCPM settings migrate into the generic provider without losing mo
       },
     ],
   });
-  const migrated = migrateVoxcpmConfigToProducerConfig({ legacy });
+  const migrated = migrateVoxcpmConfigToProducerConfig({
+    legacy,
+    rootDir: "/private",
+  });
   assert.equal(migrated.tts.providers[0]?.connection.token, "private-token");
   assert.deepEqual(
     migrated.tts.providers[0]?.voiceProfiles.map(({ mode }) => mode),
@@ -134,6 +206,23 @@ test("legacy VoxCPM settings migrate into the generic provider without losing mo
     rate: 1,
     targetLoudnessLufs: -16,
   });
+  assert.equal(
+    migrated.tts.providers[0]?.voiceProfiles[0]?.mode ===
+      "controllable-clone"
+      ? migrated.tts.providers[0].voiceProfiles[0].referenceAudioPath
+      : undefined,
+    "voice-a.wav",
+  );
+  assert.deepEqual(
+    migrated.tts.providers[0]?.voiceProfiles[1]?.mode ===
+      "high-fidelity-clone"
+      ? [
+          migrated.tts.providers[0].voiceProfiles[1].promptAudioPath,
+          migrated.tts.providers[0].voiceProfiles[1].promptTextPath,
+        ]
+      : undefined,
+    ["voice-b.wav", "voice-b.txt"],
+  );
 });
 
 test("migration atomically refuses to overwrite an existing producer config", async (context) => {

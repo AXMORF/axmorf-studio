@@ -3,8 +3,10 @@
 Before authoring a new Project, read the current ignored `private/producer.config.json` through the
 repository config contract. Never print, summarize, stage, or commit its token or private paths.
 Repository entrypoints automatically load an optional root `.env` copied from `.env.example`;
-`RSP_PRODUCER_CONFIG` there may select another absolute path, while an exported shell value has
-precedence.
+`RSP_PRODUCER_CONFIG` there may select a repository-relative or absolute path, while an exported
+shell value has precedence. Voice profile source paths should remain repository-relative when they
+live below the ignored `voxcpm/voice_profile/` directory; the host adapters resolve them from the
+repository root before access.
 
 Use it as follows:
 

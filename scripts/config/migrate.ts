@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { realpathSync } from "node:fs";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { buildProducerConfig } from "../../src/contracts";
@@ -12,10 +13,39 @@ import {
   writeProducerConfig,
 } from "./producer-config";
 
+const canonicalPath = (path: string) => {
+  try {
+    return realpathSync(path);
+  } catch {
+    return resolve(path);
+  }
+};
+
+const toPortableVoicePath = ({
+  rootDir,
+  sourcePath,
+}: {
+  readonly rootDir: string;
+  readonly sourcePath: string;
+}) => {
+  if (!isAbsolute(sourcePath)) return sourcePath;
+  const repositoryPath = relative(
+    canonicalPath(rootDir),
+    canonicalPath(sourcePath),
+  );
+  return repositoryPath !== "" &&
+    !repositoryPath.startsWith("..") &&
+    !isAbsolute(repositoryPath)
+    ? repositoryPath
+    : sourcePath;
+};
+
 export const migrateVoxcpmConfigToProducerConfig = ({
   legacy,
+  rootDir,
 }: {
   readonly legacy: VoxcpmPrivateConfig;
+  readonly rootDir: string;
 }) =>
   buildProducerConfig({
     schemaVersion: 1,
@@ -54,10 +84,29 @@ export const migrateVoxcpmConfigToProducerConfig = ({
             highFidelityClone: "/clone_with_prompt",
           },
           parameters: legacy.parameters,
-          voiceProfiles: legacy.voiceProfiles.map((profile) => ({
-            ...profile,
-            name: profile.id,
-          })),
+          voiceProfiles: legacy.voiceProfiles.map((profile) =>
+            profile.mode === "controllable-clone"
+              ? {
+                  ...profile,
+                  name: profile.id,
+                  referenceAudioPath: toPortableVoicePath({
+                    rootDir,
+                    sourcePath: profile.referenceAudioPath,
+                  }),
+                }
+              : {
+                  ...profile,
+                  name: profile.id,
+                  promptAudioPath: toPortableVoicePath({
+                    rootDir,
+                    sourcePath: profile.promptAudioPath,
+                  }),
+                  promptTextPath: toPortableVoicePath({
+                    rootDir,
+                    sourcePath: profile.promptTextPath,
+                  }),
+                },
+          ),
         },
       ],
     },
@@ -78,7 +127,7 @@ export const runProducerConfigMigration = async ({
   const legacy = VoxcpmPrivateConfigSchema.parse(
     JSON.parse(await readFile(legacyPath, "utf8")),
   );
-  const config = migrateVoxcpmConfigToProducerConfig({ legacy });
+  const config = migrateVoxcpmConfigToProducerConfig({ legacy, rootDir });
   await writeProducerConfig({
     configPath: destinationPath,
     value: config,

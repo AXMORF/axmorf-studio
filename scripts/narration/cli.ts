@@ -43,6 +43,7 @@ export type NarrationCliContext = {
   readonly stdout: (line: string) => void;
   readonly stderr: (line: string) => void;
   readonly createGenerationDependencies: (input: {
+    readonly rootDir: string;
     readonly configPath: string;
     readonly narration: NarrationSpec;
   }) => Promise<GenerationDependencies>;
@@ -54,11 +55,11 @@ export type NarrationCliResult =
   | { readonly command: "check"; readonly result: M2NarrationCheckResult };
 
 export const createDefaultGenerationDependencies: NarrationCliContext["createGenerationDependencies"] =
-  async ({ configPath, narration }) => {
+  async ({ rootDir, configPath, narration }) => {
     const producerConfig = await readProducerConfig({ configPath });
     const provider = resolveDefaultTtsProvider(producerConfig);
     const resolved = await resolveVoxcpmProfile({
-      config: toVoxcpmPrivateConfig(provider),
+      config: toVoxcpmPrivateConfig(provider, rootDir),
       narration,
       speechRate: producerConfig.tts.speech.rate,
     });
@@ -135,6 +136,7 @@ export const runCli = async (
     });
     const configPath = await resolveProducerConfigPathFromEnvironment(context);
     const dependencies = await context.createGenerationDependencies({
+      rootDir: context.rootDir,
       configPath,
       narration: projectSource.narration,
     });
