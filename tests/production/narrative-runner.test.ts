@@ -6,6 +6,12 @@ import test, { type TestContext } from "node:test";
 
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
 import {
+  createDefaultGenerationDependencies,
+  type NarrationCliContext,
+  type NarrationCliResult,
+} from "../../scripts/narration/cli";
+import {
+  createDefaultNarrativeProductionDependencies,
   runProductionNarrative,
   type NarrativeProductionDependencies,
 } from "../../scripts/production/application/narrative";
@@ -133,6 +139,43 @@ const fullOrder = [
   "write-auto-check",
   "check-auto-check",
 ] as const;
+
+test("default production narration uses the unified ProducerConfig dependency factory", async (context) => {
+  const fixture = await createFixture(context);
+  let receivedContext: NarrationCliContext | undefined;
+  const dependencies = createDefaultNarrativeProductionDependencies({
+    runNarrationCli: async (args, cliContext) => {
+      assert.deepEqual(args, ["generate", "--project", "story-example"]);
+      receivedContext = cliContext;
+      return {
+        command: "generate",
+        result: {
+          storyId: "story-example",
+          generationInputFingerprint: sha("2"),
+          providerAttemptFingerprint: sha("1"),
+          chunkCount: 1,
+          measuredChunkCount: 1,
+          generatedChunkCount: 1,
+          normalizedChunkCount: 1,
+          reusedChunkCount: 0,
+        },
+      } satisfies NarrationCliResult;
+    },
+  });
+
+  await dependencies.generateNarration({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    storyId: fixture.source.story.storyId,
+    requirements: fixture.requirements,
+    resume: true,
+  });
+
+  assert.equal(
+    receivedContext?.createGenerationDependencies,
+    createDefaultGenerationDependencies,
+  );
+});
 
 test("runs the fixed narrative chain and binds outputs only at baseline-ready", async (context) => {
   const fixture = await createFixture(context);

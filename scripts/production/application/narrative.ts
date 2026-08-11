@@ -16,7 +16,10 @@ import {
   writeM3NarrativeBaselineEvidence,
   type ProcessRunner,
 } from "../../baseline/evidence";
-import { runCli as runNarrationCli } from "../../narration/cli";
+import {
+  createDefaultGenerationDependencies,
+  runCli as defaultRunNarrationCli,
+} from "../../narration/cli";
 import { runProjectCheckCli } from "../../project-check/cli";
 import { generateProjectRegistry } from "../../registry/generate";
 import { runProductionMediaProcess } from "../adapters/process-runner";
@@ -128,8 +131,10 @@ const assertProcessSucceeded = (
 
 export const createDefaultNarrativeProductionDependencies = ({
   runProcess = runProductionMediaProcess,
+  runNarrationCli = defaultRunNarrationCli,
 }: {
   readonly runProcess?: ProcessRunner;
+  readonly runNarrationCli?: typeof defaultRunNarrationCli;
 } = {}): NarrativeProductionDependencies => ({
   generateNarration: async ({ rootDir, storyId }) => {
     const result = await runNarrationCli(["generate", "--project", storyId], {
@@ -137,26 +142,7 @@ export const createDefaultNarrativeProductionDependencies = ({
       env: process.env,
       stdout: () => undefined,
       stderr: () => undefined,
-      createGenerationDependencies: async ({ configPath, narration }) => {
-        const { readVoxcpmPrivateConfig, resolveVoxcpmProfile } =
-          await import("../../narration/adapters/private-config");
-        const { createVoxcpmChunkGenerator } =
-          await import("../../narration/adapters/voxcpm-client");
-        const { normalizeProviderAudio } =
-          await import("../../narration/adapters/ffmpeg-normalizer");
-        const { computeProviderAttemptFingerprint } =
-          await import("../../narration/domain/provider-input");
-        const config = await readVoxcpmPrivateConfig({ configPath });
-        const resolved = await resolveVoxcpmProfile({ config, narration });
-        return {
-          providerAttemptFingerprint: computeProviderAttemptFingerprint(
-            resolved.safeDescriptor,
-          ),
-          generateChunk: createVoxcpmChunkGenerator({ resolved }),
-          normalizePcm: (sourceBytes) =>
-            normalizeProviderAudio({ sourceBytes }),
-        };
-      },
+      createGenerationDependencies: createDefaultGenerationDependencies,
     });
     if (result.command !== "generate") {
       throw new Error("Narration generate returned the wrong command result.");

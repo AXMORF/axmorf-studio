@@ -53,7 +53,7 @@ export type NarrationCliResult =
   | { readonly command: "seal"; readonly result: M2NarrationCheckResult }
   | { readonly command: "check"; readonly result: M2NarrationCheckResult };
 
-const createDefaultGenerationDependencies: NarrationCliContext["createGenerationDependencies"] =
+export const createDefaultGenerationDependencies: NarrationCliContext["createGenerationDependencies"] =
   async ({ configPath, narration }) => {
     const producerConfig = await readProducerConfig({ configPath });
     const provider = resolveDefaultTtsProvider(producerConfig);
