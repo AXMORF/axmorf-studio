@@ -28,6 +28,10 @@ export const buildDeliveryPackageModel = (inputs: DeliveryInputs) => {
     topics: intent.topics,
     collection: intent.collection.name,
     outputFileName: `${story.storyId}.mp4`,
+    coverFileNames: {
+      cover4x3: "cover-4x3.png",
+      cover3x4: "cover-3x4.png",
+    },
     fps: renderPlan.fps,
     frameCount: renderPlan.frameCount,
     plannedDurationSeconds: renderPlan.frameCount / renderPlan.fps,
@@ -46,6 +50,9 @@ export const buildDeliveryPackageModel = (inputs: DeliveryInputs) => {
       };
     }),
   });
+  const publishingBytes = serializeDeliveryJson(publishing);
+  const publishingEncoded = bytesOf(publishingBytes);
+  const publishingChecksum = checksumDeliveryBytes(publishingEncoded);
   const renderArgs = [
     "render",
     "src/index.ts",
@@ -58,6 +65,7 @@ export const buildDeliveryPackageModel = (inputs: DeliveryInputs) => {
   const identity = {
     storyId: story.storyId,
     publishingIntentFingerprint: intent.intentFingerprint,
+    publishingChecksum,
     coverResultFingerprint: cover.result.resultFingerprint,
     renderReadyFingerprint: renderReady.renderReadyFingerprint,
     renderPlanFingerprint: renderPlan.renderPlanFingerprint,
@@ -66,8 +74,6 @@ export const buildDeliveryPackageModel = (inputs: DeliveryInputs) => {
     renderLaunchPolicyVersion: RENDER_LAUNCH_POLICY_VERSION,
   } as const;
   const deliveryId = createDeliveryId(identity);
-  const publishingBytes = serializeDeliveryJson(publishing);
-  const publishingEncoded = bytesOf(publishingBytes);
   const [cover4x3, cover3x4] = cover.result.covers;
   const manifest = buildDeliveryLaunchManifest({
     ...identity,
@@ -88,7 +94,7 @@ export const buildDeliveryPackageModel = (inputs: DeliveryInputs) => {
       },
       publishing: {
         fileName: "publishing.json",
-        checksum: checksumDeliveryBytes(publishingEncoded),
+        checksum: publishingChecksum,
         sizeBytes: publishingEncoded.byteLength,
       },
     },
@@ -102,7 +108,7 @@ export const buildDeliveryPackageModel = (inputs: DeliveryInputs) => {
     { fileName: "cover-3x4.png", checksum: cover3x4.checksum },
     {
       fileName: "publishing.json",
-      checksum: checksumDeliveryBytes(publishingEncoded),
+      checksum: publishingChecksum,
     },
     {
       fileName: "delivery-launch-manifest.json",

@@ -24,7 +24,8 @@
 - core 与 fresh clone 是 zero-Project-safe；ignored 本地 Project 集由 bootstrap 动态发现，不写入
   README 或 current capability 状态。
 - 每个 Project 只有一个 `deliveries/<storyId>/` current delivery；重新生成时原位替换。它不是
-  checksum-bound verified release，ledger 只覆盖当前 identity 的 immutable 非 MP4 文件。
+  checksum-bound verified release，ledger 只覆盖当前 identity 的 immutable 非 MP4 文件；
+  `publishing.json` 同时给出 MP4 与两张 Cover 的固定文件名。
 - 平台上传、发布账号、网络发布、NarrativeCheck 和 capability promotion 尚未实现。
 
 完整事实见 [当前实现状态](docs/ITERATION_STATUS.md)，执行方式见

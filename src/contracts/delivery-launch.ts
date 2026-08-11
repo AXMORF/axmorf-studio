@@ -10,14 +10,14 @@ import {
 } from "./primitives";
 
 export const DELIVERY_LAUNCH_MANIFEST_VERSION =
-  "delivery-launch-manifest-v2" as const;
+  "delivery-launch-manifest-v3" as const;
 export const RENDER_LAUNCH_INTENT_VERSION =
-  "render-launch-intent-v2" as const;
+  "render-launch-intent-v3" as const;
 export const RENDER_LAUNCH_RECEIPT_VERSION =
-  "render-launch-receipt-v2" as const;
+  "render-launch-receipt-v3" as const;
 export const RENDER_LAUNCH_POLICY_VERSION =
   "detached-spawn-acknowledgement-v1" as const;
-export const DELIVERY_PUBLISHING_VERSION = "delivery-publishing-v1" as const;
+export const DELIVERY_PUBLISHING_VERSION = "delivery-publishing-v2" as const;
 
 export const DeliveryIdSchema = z
   .string()
@@ -47,6 +47,7 @@ const DeliveryIdentityInputObject = z
   .object({
     storyId: StoryIdSchema,
     publishingIntentFingerprint: Sha256DigestSchema,
+    publishingChecksum: Sha256DigestSchema,
     coverResultFingerprint: Sha256DigestSchema,
     renderReadyFingerprint: Sha256DigestSchema,
     renderPlanFingerprint: Sha256DigestSchema,
@@ -78,6 +79,7 @@ const pickDeliveryIdentity = (rawInput: unknown) => {
   return DeliveryIdentityInputSchema.parse({
     storyId: input.storyId,
     publishingIntentFingerprint: input.publishingIntentFingerprint,
+    publishingChecksum: input.publishingChecksum,
     coverResultFingerprint: input.coverResultFingerprint,
     renderReadyFingerprint: input.renderReadyFingerprint,
     renderPlanFingerprint: input.renderPlanFingerprint,
@@ -132,7 +134,7 @@ export const formatDeliveryTimecode = (startFrame: number, fps: number) => {
 
 const DeliveryPublishingInputObject = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     contractVersion: z.literal(DELIVERY_PUBLISHING_VERSION),
     storyId: StoryIdSchema,
     title: z.string().trim().min(1),
@@ -140,6 +142,13 @@ const DeliveryPublishingInputObject = z
     topics: z.array(z.string().trim().min(1).max(48)).min(6).max(7).readonly(),
     collection: z.string().trim().min(1).max(96),
     outputFileName: z.string().regex(/^[a-z0-9][a-z0-9-]*\.mp4$/u),
+    coverFileNames: z
+      .object({
+        cover4x3: z.literal("cover-4x3.png"),
+        cover3x4: z.literal("cover-3x4.png"),
+      })
+      .strict()
+      .readonly(),
     fps: PositiveIntegerSchema.max(120),
     frameCount: PositiveIntegerSchema,
     plannedDurationSeconds: z.number().positive().finite(),
@@ -174,7 +183,7 @@ export const DeliveryPublishingSchema = DeliveryPublishingInputObject.readonly()
 export const buildDeliveryPublishing = (rawInput: unknown) =>
   DeliveryPublishingSchema.parse({
     ...(rawInput as Record<string, unknown>),
-    schemaVersion: 1,
+    schemaVersion: 2,
     contractVersion: DELIVERY_PUBLISHING_VERSION,
   });
 

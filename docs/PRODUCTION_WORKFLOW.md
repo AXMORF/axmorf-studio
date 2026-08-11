@@ -135,15 +135,16 @@ GlobalVisualProjection、FinalAssembly 与 current Composition。之后构建：
 `shell:false`、`detached:true` 和非继承 stdio spawn worker。只在 OS `spawn` 后写 watcher launch
 receipt；intent 无 receipt 永久 ambiguous，禁止重试。receipt 不证明 watcher 完成生产。
 
-`delivery:build` 从 current inputs 确定性生成 deliveryId，在 staging 中写 exact Covers、
-publishing、handoff、`delivery-launch-manifest-v2`、`render-launch-intent-v2` 和 checksum ledger，
+`delivery:build` 从 current inputs 确定性生成 deliveryId，在 staging 中写 exact Covers、包含 MP4
+与 Cover 固定文件名的 `delivery-publishing-v2`、handoff、`delivery-launch-manifest-v3`、
+`render-launch-intent-v3` 和 checksum ledger，
 检查后原子提升到每个 Project 唯一的 `deliveries/<storyId>/` current slot。slot 中 identity 不变时
 只读复验；identity 变化时先把旧 slot 移入 staging backup，再提升新 package，提升失败则恢复旧
 slot；成功后不保留多个 delivery 目录。
 
 intent 已持久化后才允许 spawn。adapter 使用固定 executable/argv/cwd/log、`shell: false` 与
 `detached: true`，只监听 `spawn` 和 `error`。收到 `spawn` 后立即 `unref()` 并写
-`render-launch-receipt-v2`。stdout 返回 `delivery-render-started`。
+`render-launch-receipt-v3`。stdout 返回 `delivery-render-started`。
 
 exactly-once 规则：
 

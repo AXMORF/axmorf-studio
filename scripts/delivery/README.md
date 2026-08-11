@@ -24,6 +24,7 @@ CoverResult. Each Project has one `deliveries/<storyId>/` current slot; a new id
 previous package through staging with rollback on promotion failure. Build writes the immutable
 non-MP4 package and launch intent before detached Remotion spawn; after the OS emits `spawn`, it writes
 a receipt and returns `delivery-render-started`.
+`publishing.json` uses `delivery-publishing-v2` and names the MP4 plus both package Cover files.
 
 Intent without receipt is launch-ambiguous and never retried. Receipt does not prove render
 completion. Build/check do not monitor, read, hash, probe, or decode the planned MP4. Full semantics:

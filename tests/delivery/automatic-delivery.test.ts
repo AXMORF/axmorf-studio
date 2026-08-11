@@ -194,6 +194,15 @@ test("build records intent before spawn and receipt only after spawn acknowledge
     await readFile(join(deliveryDir, "publishing.json"), "utf8"),
     /actualDuration|checksum.*mp4|decode/iu,
   );
+  assert.deepEqual(
+    JSON.parse(
+      await readFile(join(deliveryDir, "publishing.json"), "utf8"),
+    ).coverFileNames,
+    {
+      cover4x3: "cover-4x3.png",
+      cover3x4: "cover-3x4.png",
+    },
+  );
   assert.doesNotMatch(
     await readFile(join(deliveryDir, "HANDOFF.md"), "utf8"),
     /approved|verified release|render-succeeded|complete/iu,

@@ -40,9 +40,11 @@ npm run delivery:build -- --project <storyId>
 ProductionRenderReady 和 CoverResult。`deliveryId` 确定性绑定这些 identity、Composition、exact
 render argv 与 `detached-spawn-acknowledgement-v1`。
 
-`publishing.json` 的 title 来自 StorySpec，description/topics/collection/chapter names 来自
-PublishingIntent；每章 startFrame 来自 SemanticTiming，timecode 按 `startFrame / fps` 向下取整
-为 `HH:MM:SS`。只保存 `plannedDurationSeconds = frameCount / fps`，不保存媒体实测时长。
+`publishing.json` 使用 `delivery-publishing-v2`：title 来自 StorySpec，
+description/topics/collection/chapter names 来自 PublishingIntent；`outputFileName` 固定为
+`<storyId>.mp4`，`coverFileNames` 固定映射 `cover4x3` → `cover-4x3.png`、`cover3x4` →
+`cover-3x4.png`。每章 startFrame 来自 SemanticTiming，timecode 按 `startFrame / fps` 向下取整为
+`HH:MM:SS`。只保存 `plannedDurationSeconds = frameCount / fps`，不保存媒体实测时长。
 
 build 顺序不可交换：
 

@@ -117,6 +117,8 @@ receipt。intent-only 是 watcher-launch-ambiguous，禁止自动重试。watche
 是 immutable 的，identity 绑定 PublishingIntent、CoverResult、render plan/ready、Composition、
 exact argv 和 launch policy；新 identity 通过 staging backup + promote 受控替换旧 package，不形成
 历史 delivery 目录。manifest 只保存 planned frames/fps/duration，不保存实际媒体事实。
+`delivery-publishing-v2` 投影发布文本、章节以及 package 内 MP4、4:3 Cover、3:4 Cover 的固定文件名，
+不保存媒体完成状态。
 
 intent-before-spawn/receipt-after-spawn 构成 exactly-once boundary。由于进程可能已经启动但 receipt
 write 尚未成功，intent-without-receipt 无法安全判断，必须永久拒绝重试。receipt 只保存 intent

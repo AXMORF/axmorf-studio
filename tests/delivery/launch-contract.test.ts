@@ -15,6 +15,7 @@ const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 const identity = {
   storyId: "story-example",
   publishingIntentFingerprint: sha("1"),
+  publishingChecksum: sha("8"),
   coverResultFingerprint: sha("2"),
   renderReadyFingerprint: sha("3"),
   renderPlanFingerprint: sha("4"),
@@ -39,6 +40,10 @@ test("publishing chapters derive floor-rounded HH:MM:SS from frames", () => {
     topics: ["one", "two", "three", "four", "five", "six"],
     collection: "Current stories",
     outputFileName: "story-example.mp4",
+    coverFileNames: {
+      cover4x3: "cover-4x3.png",
+      cover3x4: "cover-3x4.png",
+    },
     fps: 30,
     frameCount: 120_000,
     plannedDurationSeconds: 4_000,
@@ -51,7 +56,21 @@ test("publishing chapters derive floor-rounded HH:MM:SS from frames", () => {
       },
     ],
   });
+  assert.equal(publishing.contractVersion, "delivery-publishing-v2");
   assert.equal(publishing.chapters[0]?.timecode, "01:02:03");
+  assert.deepEqual(publishing.coverFileNames, {
+    cover4x3: "cover-4x3.png",
+    cover3x4: "cover-3x4.png",
+  });
+  assert.throws(() =>
+    buildDeliveryPublishing({
+      ...publishing,
+      coverFileNames: {
+        ...publishing.coverFileNames,
+        cover3x4: "wrong.png",
+      },
+    }),
+  );
   assert.throws(() =>
     buildDeliveryPublishing({
       ...publishing,
@@ -92,7 +111,11 @@ test("delivery identity excludes MP4 completion facts", () => {
   });
 
   assert.match(deliveryId, /^delivery-[a-f0-9]{64}$/u);
-  assert.equal(manifest.contractVersion, "delivery-launch-manifest-v2");
+  assert.notEqual(
+    createDeliveryId({ ...identity, publishingChecksum: sha("9") }),
+    deliveryId,
+  );
+  assert.equal(manifest.contractVersion, "delivery-launch-manifest-v3");
   assert.doesNotMatch(
     JSON.stringify(manifest),
     /actualDuration|mp4Checksum|decode|approved|render-succeeded|complete/iu,
@@ -112,8 +135,8 @@ test("launch intent and receipt prove only the spawn acknowledgement", () => {
     startedAt: "2026-08-09T00:00:00.000Z",
   });
 
-  assert.equal(intent.contractVersion, "render-launch-intent-v2");
-  assert.equal(receipt.contractVersion, "render-launch-receipt-v2");
+  assert.equal(intent.contractVersion, "render-launch-intent-v3");
+  assert.equal(receipt.contractVersion, "render-launch-receipt-v3");
   assert.equal(receipt.status, "render-started");
   assert.equal("pid" in receipt, false);
   assert.doesNotMatch(JSON.stringify(receipt), /succeeded|complete|verified/iu);
