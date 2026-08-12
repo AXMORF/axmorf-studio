@@ -57,8 +57,8 @@ const fingerprintFileTree = async (
 
 const SkillPolicySchema = z
   .object({
-    schemaVersion: z.literal(5),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v5"),
+    schemaVersion: z.literal(6),
+    policyVersion: z.literal("remotion-story-producer-video-policy-v6"),
     rootEndpoint: z.literal("watcher-started-and-owners-dispatched"),
     backgroundEndpoint: z.literal("delivery-render-started"),
     privateConfigPath: z.literal("private/producer.config.json"),
@@ -86,6 +86,7 @@ const SkillPolicySchema = z
       z.literal("production:scene:freeze"),
       z.literal("delivery:cover:freeze"),
       z.literal("production:watch:start"),
+      z.literal("production:scene:check"),
       z.literal("production:owner:ready"),
       z.literal("production:owner:failed"),
     ]),
@@ -94,6 +95,15 @@ const SkillPolicySchema = z
         sceneAuthoringOwner: z.literal("one-independent-thread-per-meaning-id"),
         sceneAuthoringSkill: z.literal(
           "repository-local-remotion-best-practices",
+        ),
+        sceneTaskInputProjection: z.literal(
+          "complete-assignment-task-input",
+        ),
+        sceneOwnerValidation: z.literal(
+          "scene-check-ready-before-owner-ready",
+        ),
+        sceneReadabilityAuthority: z.literal(
+          "assignment-readability-policy",
         ),
         globalVisualAuthoringOwner: z.literal(
           "one-independent-thread-per-story",
@@ -226,6 +236,51 @@ test("repository video skill exposes a structured production policy", async () =
   assert.match(
     sceneWorkflow,
     /完整读取[\s\S]*remotion-best-practices\/SKILL\.md[\s\S]*remotion-markup\/REFERENCE\.md/u,
+  );
+  assert.match(
+    sceneWorkflow,
+    /assignment\.taskInput[\s\S]*完整一致/u,
+  );
+  assert.match(sceneWorkflow, /task-input\.generated\.json/u);
+  assert.match(
+    sceneWorkflow,
+    /node -e [^\n]*readFileSync\("<assignmentPath>"\)[^\n]*writeFileSync\("<sceneRoot>\/task-input\.generated\.json",JSON\.stringify\(a\.taskInput\)\)/u,
+  );
+  assert.match(
+    sceneWorkflow,
+    /不得[\s\S]{0,40}(?:手工挑字段|只改 fingerprint)/u,
+  );
+  assert.match(sceneWorkflow, /readabilityPolicy/u);
+  assert.match(sceneWorkflow, /sceneContentSafeAreaPx/u);
+  assert.match(sceneWorkflow, /typographyPolicy\.minFontSizePx/u);
+  assert.match(sceneWorkflow, /allowedResourceIds/u);
+  assert.match(sceneWorkflow, /allowedSnapshots/u);
+  assert.match(sceneWorkflow, /透明 Scene/u);
+  assert.match(sceneWorkflow, /顶层[\s\S]{0,40}字幕[\s\S]{0,20}旁白[\s\S]{0,20}背景/u);
+
+  const sceneCheckCommand =
+    "npm run production:scene:check -- --run <runId> --scene <meaningId>";
+  const sceneReadyCommand =
+    "npm run production:owner:ready -- --run <runId> --owner scene --scene <meaningId>";
+  const sceneCheckIndex = sceneWorkflow.indexOf(sceneCheckCommand);
+  const readyStatusIndex = sceneWorkflow.indexOf("ready-to-submit");
+  const sceneReadyIndex = sceneWorkflow.indexOf(sceneReadyCommand);
+  assert.ok(sceneCheckIndex >= 0, "Scene owner prompt must run Scene check");
+  assert.ok(
+    readyStatusIndex > sceneCheckIndex,
+    "Scene owner prompt must require ready-to-submit after Scene check",
+  );
+  assert.ok(
+    sceneReadyIndex > readyStatusIndex,
+    "Scene owner prompt must publish owner-ready only after ready-to-submit",
+  );
+  assert.match(
+    sceneWorkflow,
+    /校验失败[\s\S]*同一 owner[\s\S]*重跑/u,
+  );
+  assert.match(
+    sceneWorkflow,
+    /不得[^\n]*owner-failed[^\n]*校验控制流/u,
   );
 
   const remotionRuleReferences = [

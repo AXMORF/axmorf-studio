@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 5,
-  "policyVersion": "remotion-story-producer-video-policy-v5",
+  "schemaVersion": 6,
+  "policyVersion": "remotion-story-producer-video-policy-v6",
   "rootEndpoint": "watcher-started-and-owners-dispatched",
   "backgroundEndpoint": "delivery-render-started",
   "privateConfigPath": "private/producer.config.json",
@@ -28,12 +28,16 @@
     "production:scene:freeze",
     "delivery:cover:freeze",
     "production:watch:start",
+    "production:scene:check",
     "production:owner:ready",
     "production:owner:failed"
   ],
   "invariants": {
     "sceneAuthoringOwner": "one-independent-thread-per-meaning-id",
     "sceneAuthoringSkill": "repository-local-remotion-best-practices",
+    "sceneTaskInputProjection": "complete-assignment-task-input",
+    "sceneOwnerValidation": "scene-check-ready-before-owner-ready",
+    "sceneReadabilityAuthority": "assignment-readability-policy",
     "globalVisualAuthoringOwner": "one-independent-thread-per-story",
     "globalVisualDefaultRole": "minimal-style-aligned-background-board",
     "coverAuthoringOwner": "one-independent-thread-per-story",
