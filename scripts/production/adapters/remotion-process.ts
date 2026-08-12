@@ -7,11 +7,16 @@ import { resolveRemotionCommand } from "../../shared/remotion-command";
 import type { ProcessRunner } from "../../shared/process";
 
 export const PRODUCTION_REMOTION_ENTRY = "src/index.ts" as const;
+export const PRODUCTION_REMOTION_PREFLIGHT_ENTRY =
+  "src/remotion/preflight/index.tsx" as const;
 
 export const resolveProductionRemotionCommand = resolveRemotionCommand;
 
 export const buildProductionCompositionsArgs = () =>
   ["compositions", PRODUCTION_REMOTION_ENTRY] as const;
+
+export const buildProductionBrowserPreflightArgs = () =>
+  ["compositions", PRODUCTION_REMOTION_PREFLIGHT_ENTRY] as const;
 
 export const buildProductionStillArgs = ({
   compositionId,
@@ -91,7 +96,7 @@ export const preflightRemotionBrowser = async ({
   try {
     result = await runProcess(
       resolveProductionRemotionCommand(rootDir),
-      buildProductionCompositionsArgs(),
+      buildProductionBrowserPreflightArgs(),
     );
   } catch {
     return failure({

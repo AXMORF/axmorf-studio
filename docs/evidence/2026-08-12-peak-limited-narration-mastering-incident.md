@@ -20,3 +20,8 @@
 - Hardening: reserve a deterministic `0.25 LU` processing margin inside the existing acceptance
   window, version the mastering algorithm identity, prove the regression and adjacent checks Green,
   commit the shared fix, then replay production from a fresh Run.
+- Replay finding: before a fresh Run could be created, the browser preflight listed compositions from
+  the global `src/index.ts`. The terminal failed Project's generated Composition correctly required a
+  mastered narration file that the failed stage had never written, so this Project-coupled probe
+  blocked every fresh replay. Keep actual narrative composition listing on `src/index.ts`, but run the
+  start-time browser probe against one tracked Project-independent minimal Composition.

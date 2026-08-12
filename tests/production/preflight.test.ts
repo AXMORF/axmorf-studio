@@ -8,6 +8,7 @@ import {
 } from "../../src/contracts";
 import { preflightVoxcpm } from "../../scripts/production/adapters/voxcpm-preflight";
 import {
+  buildProductionBrowserPreflightArgs,
   buildProductionCompositionsArgs,
   preflightRemotionBrowser,
   resolveProductionRemotionCommand,
@@ -36,7 +37,7 @@ test("builds bounded transient preflight pass and failure contracts", () => {
   assert.doesNotMatch(JSON.stringify(failure), /https?:|\/home\/|\/data\/|token/i);
 });
 
-test("uses the production Remotion command and classifies sandbox denial", async () => {
+test("uses a Project-independent Remotion probe and classifies sandbox denial", async () => {
   assert.equal(
     resolveProductionRemotionCommand("/repo"),
     "/repo/node_modules/.bin/remotion",
@@ -44,6 +45,10 @@ test("uses the production Remotion command and classifies sandbox denial", async
   assert.deepEqual(buildProductionCompositionsArgs(), [
     "compositions",
     "src/index.ts",
+  ]);
+  assert.deepEqual(buildProductionBrowserPreflightArgs(), [
+    "compositions",
+    "src/remotion/preflight/index.tsx",
   ]);
   const calls: Array<readonly [string, readonly string[]]> = [];
   const result = await preflightRemotionBrowser({
@@ -60,7 +65,7 @@ test("uses the production Remotion command and classifies sandbox denial", async
   });
   assert.deepEqual(calls, [[
     "/repo/node_modules/.bin/remotion",
-    ["compositions", "src/index.ts"],
+    ["compositions", "src/remotion/preflight/index.tsx"],
   ]]);
   assert.equal(result.status, "failed");
   if (result.status === "failed") {
