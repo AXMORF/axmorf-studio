@@ -1,11 +1,21 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import test, { type TestContext } from "node:test";
 
 import {
   GlobalVisualAssignmentSchema,
+  ProducerAssetManifestSchema,
+  ResourceCatalogSchema,
   SceneAssignmentSchema,
   ProductionRequirementSchema,
   VisualStyleSpecSchema,
@@ -18,6 +28,7 @@ import {
 import { capabilityDescriptorDeclarations } from "../../src/remotion/catalog/capability-descriptors";
 import { styleDescriptorDeclarations } from "../../src/remotion/catalog/style-descriptors";
 import { buildResourceCatalog } from "../../scripts/catalog/domain";
+import { loadCatalogAuthorityDescriptors } from "../../scripts/catalog/project-files";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
 import {
   assertSceneAssignmentIsolation,
@@ -32,6 +43,35 @@ import {
 } from "./fixture";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
+const repositoryRoot = join(import.meta.dirname, "../..");
+
+const copyRepositoryFile = async (rootDir: string, relativePath: string) => {
+  const destination = join(rootDir, relativePath);
+  await mkdir(dirname(destination), { recursive: true });
+  await copyFile(join(repositoryRoot, relativePath), destination);
+};
+
+const materializeCatalogAuthority = async (rootDir: string) => {
+  const manifestPath = "src/remotion/catalog/assets.manifest.json";
+  await copyRepositoryFile(rootDir, manifestPath);
+  const manifest = ProducerAssetManifestSchema.parse(
+    JSON.parse(await readFile(join(rootDir, manifestPath), "utf8")),
+  );
+  for (const asset of manifest.assets) {
+    await copyRepositoryFile(rootDir, asset.localPath);
+  }
+  const sourcePaths = new Set(
+    [...styleDescriptorDeclarations, ...capabilityDescriptorDeclarations].flatMap(
+      (descriptor) => [
+        descriptor.authority.repositoryPath,
+        descriptor.sourceFile,
+      ],
+    ),
+  );
+  for (const sourcePath of sourcePaths) {
+    await copyRepositoryFile(rootDir, sourcePath);
+  }
+};
 const sceneRequirement = ProductionRequirementSchema.parse({
   requirementId: "opening-visual-proof",
   scope: "scene",
@@ -50,17 +90,9 @@ const createFixture = async (context: TestContext) => {
     additionalRequirements: [sceneRequirement],
   });
   const baseline = await markProductionBaselineReady(fixture);
-  const catalog = buildResourceCatalog([
-    styleDescriptorDeclarations.find(
-      ({ styleProfileId }) => styleProfileId === "editorial-tech",
-    )!,
-    capabilityDescriptorDeclarations.find(
-      ({ id }) => id === "capability.motion",
-    )!,
-  ]);
-  await writeProductionJson(
-    join(fixture.projectDir, "generated/resource-catalog.generated.json"),
-    catalog,
+  await materializeCatalogAuthority(rootDir);
+  const catalog = buildResourceCatalog(
+    await loadCatalogAuthorityDescriptors(rootDir, fixture.source.story.storyId),
   );
   const styleEntry = catalog.entries.find(
     ({ descriptor }) => descriptor.id === "style.editorial-tech",
@@ -199,6 +231,22 @@ const freeze = (fixture: Awaited<ReturnType<typeof createFixture>>) =>
     verifyNarrativeAutoCheck: async () => fixture.narrativeAutoCheckFingerprint,
   });
 
+test("freezes a Project ResourceCatalog for code-led work without imported assets", async (context) => {
+  const fixture = await createFixture(context);
+  const catalogPath = join(
+    fixture.projectDir,
+    "generated/resource-catalog.generated.json",
+  );
+  await assert.rejects(() => readFile(catalogPath), { code: "ENOENT" });
+
+  await freeze(fixture);
+
+  const frozen = ResourceCatalogSchema.parse(
+    JSON.parse(await readFile(catalogPath, "utf8")),
+  );
+  assert.deepEqual(frozen, fixture.catalog);
+});
+
 test("freezes one assignment per StoryBeat in order and projects Scene requirements", async (context) => {
   const fixture = await createFixture(context);
   const result = await freeze(fixture);
@@ -278,6 +326,12 @@ test("freezes one assignment per StoryBeat in order and projects Scene requireme
 test("current freeze rerun is a byte and mtime stable no-op", async (context) => {
   const fixture = await createFixture(context);
   const first = await freeze(fixture);
+  const catalogPath = join(
+    fixture.projectDir,
+    "generated/resource-catalog.generated.json",
+  );
+  const catalogBytes = await readFile(catalogPath);
+  const catalogMtime = (await stat(catalogPath)).mtimeMs;
   const path = join(fixture.rootDir, first.assignmentPaths[0]);
   const bytes = await readFile(path);
   const mtime = (await stat(path)).mtimeMs;
@@ -287,10 +341,27 @@ test("current freeze rerun is a byte and mtime stable no-op", async (context) =>
   const globalMtime = (await stat(globalPath)).mtimeMs;
   const repeated = await freeze(fixture);
   assert.equal(repeated.noOp, true);
+  assert.deepEqual(await readFile(catalogPath), catalogBytes);
+  assert.equal((await stat(catalogPath)).mtimeMs, catalogMtime);
   assert.deepEqual(await readFile(path), bytes);
   assert.equal((await stat(path)).mtimeMs, mtime);
   assert.deepEqual(await readFile(globalPath), globalBytes);
   assert.equal((await stat(globalPath)).mtimeMs, globalMtime);
+});
+
+test("current freeze rejects Project ResourceCatalog drift", async (context) => {
+  const fixture = await createFixture(context);
+  await freeze(fixture);
+  const catalogPath = join(
+    fixture.projectDir,
+    "generated/resource-catalog.generated.json",
+  );
+  await writeFile(catalogPath, `${await readFile(catalogPath, "utf8")} `);
+
+  await assert.rejects(
+    () => freeze(fixture),
+    /Project ResourceCatalog drift: generated bytes are stale\./u,
+  );
 });
 
 test("missing GlobalVisualBrief fails before writing any assignment", async (context) => {

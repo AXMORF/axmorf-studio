@@ -107,7 +107,10 @@ check-only 路径仍严格拒绝 stale 或 malformed evidence，replacement 只�
 ## 3. Freeze 与 owner 隔离
 
 `production:scene:freeze` 原子冻结 N Scene assignments 与一个 GlobalVisual assignment；
-`delivery:cover:freeze` 独立冻结 Cover assignment。
+`delivery:cover:freeze` 独立冻结 Cover assignment。Scene freeze 同时从 current authority 无条件生成
+Project-local `generated/resource-catalog.generated.json` 快照，因此未导入外部素材的 code-led
+Project 也具有 delivery attribution 所需的确定性 Catalog；后续 freeze/render-ready/delivery 只做
+canonical byte check，缺失或漂移均 fail closed。
 
 - Scene owner 制作前必须读取并使用 repository-local
   `.agents/skills/remotion-best-practices/SKILL.md`，同时以 AGENTS、assignment、contracts 与

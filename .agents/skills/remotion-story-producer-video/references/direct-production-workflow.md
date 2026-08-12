@@ -24,10 +24,9 @@ npm run production:narrative -- --run <runId>
 npm run production:status -- --run <runId>
 ```
 
-Use host permission on the first provider/Chromium attempt. The narrative command owns TTS, sealing,
-mastering, measured SemanticTiming, registry, Composition listing, baseline evidence, and AutoCheck.
-Do not reproduce those steps manually, warm TTS, use fallback, or weaken Chromium sandboxing. Require
-`baseline-ready` before continuing.
+Use host permission first. The narrative command owns TTS, sealing, mastering, measured timing,
+registry, baseline evidence, and AutoCheck. Do not reproduce steps, warm TTS, use fallback, or weaken
+the sandbox. Require `baseline-ready`.
 
 For implementation changes, run `npm run check` with host permissions and `npm run compositions` with
 host permissions before dispatch.
@@ -50,6 +49,8 @@ external import is not supported. Cover remains unable to consume Scene/MCP asse
 npm run production:scene:freeze -- --run <runId>
 npm run delivery:cover:freeze -- --project <storyId>
 ```
+
+Scene freeze writes/checks every Project-local Catalog snapshot; owners never repair it.
 
 Require N Scene assignments, one GlobalVisual assignment, and one CoverAssignment. Record their
 assignment/exclusive paths for owner prompts. Do not mutate frozen inputs afterward.

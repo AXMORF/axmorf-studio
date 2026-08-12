@@ -22,8 +22,7 @@ import {
   type SceneAssignment,
 } from "../../../src/contracts";
 import { runProjectCheckCli } from "../../project-check/cli";
-import { buildResourceCatalog } from "../../catalog/domain";
-import { loadCatalogAuthorityDescriptors } from "../../catalog/project-files";
+import { generateProjectResourceCatalog } from "../../catalog/generate";
 import { writeOrCheckSceneArtifact } from "../../scene-package/project-files";
 import {
   acquireProductionRunLock,
@@ -48,30 +47,6 @@ const readRegularJson = async (path: string, label: string) => {
     return JSON.parse(await readFile(path, "utf8"));
   } catch (error) {
     throw new Error(`${label} contains malformed JSON.`, { cause: error });
-  }
-};
-
-const loadCurrentCatalog = async (rootDir: string, storyId: string) => {
-  const projectCatalog = join(
-    rootDir,
-    "src/projects",
-    storyId,
-    "generated/resource-catalog.generated.json",
-  );
-  try {
-    return ResourceCatalogSchema.parse(
-      await readRegularJson(projectCatalog, "Project ResourceCatalog"),
-    );
-  } catch (error) {
-    if (
-      (error as Error).message !==
-      "Project ResourceCatalog is missing or unreadable."
-    ) {
-      throw error;
-    }
-    return buildResourceCatalog(
-      await loadCatalogAuthorityDescriptors(rootDir, storyId),
-    );
   }
 };
 
@@ -122,9 +97,11 @@ const resolveSceneFreezeInputs = async ({
   rootDir,
   runId,
   verifyNarrativeAutoCheck,
+  catalogMode,
 }: {
   readonly rootDir: string;
   readonly runId: string;
+  readonly catalogMode: "write" | "check";
   readonly verifyNarrativeAutoCheck: (input: {
     readonly rootDir: string;
     readonly storyId: string;
@@ -151,7 +128,11 @@ const resolveSceneFreezeInputs = async ({
         join(projectDir, "generated/semantic-timing.generated.json"),
         "SemanticTiming",
       ).then(SemanticTimingSchema.parse),
-      loadCurrentCatalog(rootDir, loaded.run.storyId),
+      generateProjectResourceCatalog({
+        rootDir,
+        projectId: loaded.run.storyId,
+        mode: catalogMode,
+      }).then(({ catalog }) => ResourceCatalogSchema.parse(catalog)),
       readRegularJson(
         join(projectDir, "visual-style.json"),
         "VisualStyleSpec",
@@ -449,6 +430,7 @@ export const resolveCurrentSceneAssignments = async ({
     rootDir,
     runId,
     verifyNarrativeAutoCheck,
+    catalogMode: "check",
   });
   const assignments = buildAssignments({
     inputs,
@@ -505,6 +487,7 @@ export const runProductionSceneFreeze = async ({
       rootDir,
       runId,
       verifyNarrativeAutoCheck,
+      catalogMode: "check",
     });
     const assignments = buildAssignments({
       inputs,
@@ -584,6 +567,7 @@ export const runProductionSceneFreeze = async ({
         rootDir,
         runId,
         verifyNarrativeAutoCheck,
+        catalogMode: "write",
       });
       const assignments = buildAssignments({ inputs });
       const globalVisualAssignment = buildGlobalVisualAssignmentForInputs({

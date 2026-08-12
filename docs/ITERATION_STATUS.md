@@ -77,6 +77,9 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 ### 外部图片准入与 ResourceCatalog
 
+- Scene freeze 对所有 Project（包括无外部素材的 code-led Project）无条件冻结 Project-local
+  ResourceCatalog 快照；render-ready 与 delivery 通过 current freeze 重查同一 canonical bytes，
+  不再依赖是否曾执行 asset import。
 - `project:asset:import` 已严格适配 stock-assets-mcp Pexels image acquisition receipt v1，不引入
   MCP/provider SDK 或网络 runtime；receipt、candidate 与私有配置不进入仓库提交。
 - 导入校验 absolute receipt、同目录 containment、regular/no-symlink、MIME/扩展名、dimensions、
