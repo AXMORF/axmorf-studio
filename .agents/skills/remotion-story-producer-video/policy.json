@@ -69,11 +69,12 @@
     "hand-edit-derived-state"
   ],
   "contextBudgets": {
-    "entrypointMaxWords": 800,
-    "directWorkflowMaxWords": 900,
-    "normalProductionMaxWords": 1700,
-    "sceneOrchestrationMaxWords": 500,
-    "globalVisualOrchestrationMaxWords": 500,
-    "coverOrchestrationMaxWords": 500
+    "entrypointMaxWords": 450,
+    "directWorkflowMaxWords": 500,
+    "normalProductionMaxWords": 1500,
+    "normalProductionMaxCharacters": 12000,
+    "sceneOrchestrationMaxWords": 300,
+    "globalVisualOrchestrationMaxWords": 250,
+    "coverOrchestrationMaxWords": 220
   }
 }

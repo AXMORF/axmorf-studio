@@ -1,23 +1,21 @@
 # Direct production workflow
 
-This file owns the root task's current normal path. It ends after detached watcher acknowledgement and
-successful independent task creation.
+This is the root Agent's normal path. Agent design decisions and fixed commands alternate; scripts
+freeze, validate, and execute contracts but do not choose creative direction.
 
-## 1. Freeze shared inputs
+## 1. Design and freeze the Project
 
-Inspect branch/HEAD/status without enumerating protected ignored paths. Read the Producer config
-reference. Author current brief, Story and project-local `producer-input.json`; select exactly one
-configured publishing collection and never invent free text. Then run:
+Author a concise brief, causal StoryBeats, and meaning/rhythm-based Agent-authored ttsChunks. Titles,
+narration copy, and publishing descriptions are Project content. Choose one configured
+`publishingCollections` ID and author `producer-input.json`, then run:
 
 ```bash
 npm run project:configure -- --project <storyId> --input src/projects/<storyId>/producer-input.json
 ```
 
-This fixed entrypoint freezes PublishingIntent v2, NarrationSpec, RenderSpec, StoryCheck and current
-requirements from one ProducerConfig read. Do not manually copy defaults. Preserve causal StoryBeat
-structure and Agent-authored ttsChunks; never auto-split or rewrite narration text.
+Do not manually copy ProducerConfig values or mechanically split/rewrite narration.
 
-Run host preflight, then create and seal one Run:
+## 2. Produce the narrative baseline
 
 ```bash
 npm run production:preflight -- --project <storyId>
@@ -26,53 +24,43 @@ npm run production:narrative -- --run <runId>
 npm run production:status -- --run <runId>
 ```
 
-Use host permissions on first attempt for provider/Chromium commands. Never warm TTS, use fallback,
-open private config, or weaken Chromium sandboxing.
-Repository implementation verification runs `npm run check` with host permissions; this is separate
-from the root production task's post-dispatch prohibition. New Composition verification likewise runs
-`npm run compositions` with host permissions before dispatch.
+Use host permission on the first provider/Chromium attempt. The narrative command owns TTS, sealing,
+mastering, measured SemanticTiming, registry, Composition listing, baseline evidence, and AutoCheck.
+Do not reproduce those steps manually, warm TTS, use fallback, or weaken Chromium sandboxing. Require
+`baseline-ready` before continuing.
 
-## 2. Freeze every owner assignment
+For implementation changes, run `npm run check` with host permissions and `npm run compositions` with
+host permissions before dispatch.
 
-Author current VisualStyleSpec, resource pool, Scene brief, and the simplest style-aligned GlobalVisual
-brief. Then run:
+## 3. Design visuals and freeze owners
+
+Using the current Story and measured timing, author VisualStyleSpec, resource choices, Scene briefs,
+and the simplest style-aligned GlobalVisual brief. Keep Scene expression specific to each Beat
+while maintaining whole-film visual continuity. Cover direction remains an independent design derived
+from StorySpec, VisualStyleSpec, and fixed CoverSpec.
 
 ```bash
 npm run production:scene:freeze -- --run <runId>
 npm run delivery:cover:freeze -- --project <storyId>
 ```
 
-Require N immutable Scene assignments, one GlobalVisual assignment, and one CoverAssignment. Record
-their fingerprints, assignment paths, and exclusive paths for thread prompts. Do not mutate shared
-inputs after this point.
+Require N Scene assignments, one GlobalVisual assignment, and one CoverAssignment. Record their
+assignment/exclusive paths for owner prompts. Do not mutate frozen inputs afterward.
 
-## 3. Start the detached watcher
+## 4. Start automation, dispatch, and exit
 
-Run with host permissions:
+Run the watcher launcher with host permission:
 
 ```bash
 npm run production:watch:start -- --run <runId>
 ```
 
-Require `watcher-started`, a current `production-watcher-launch-intent-v1`, and
-`production-watcher-launch-receipt-v1`. The receipt proves only OS spawn acknowledgement. Intent
-without receipt is watcher-launch-ambiguous and must never be retried.
+Require `watcher-started` plus watcher launch intent and receipt. Intent without receipt is permanently
+ambiguous and must not be retried. The watcher consumes assignment-keyed receipts and owns all later
+checks, formal submission, convergence, render-ready, Cover processing, and delivery launch.
 
-The watcher independently scans assignment-keyed receipts, verifies manifests and current inputs,
-serially checks/submits all owners, writes formal results/events, converges registry/Composition,
-reaches render-ready without Cover, waits for Cover before delivery, and stops only after
-`delivery-render-started`. It never stores Codex task identity or monitors detached MP4.
-
-## 4. Create independent tasks and exit
-
-Read the three orchestration references. Call Codex `create_thread` once per Scene, once for
-GlobalVisual, and once for Cover. Use their self-contained prompt templates with concrete paths and
-receipt commands. Do not use subagents, worktrees, branches, or merge.
-
-After all calls return successfully, immediately finish the root task. Never call `wait_threads`,
-`read_thread`, `production:status`, check/submit commands, render-ready check, compositions, or
-delivery commands after dispatch. If a creation call fails, report that assignment as un-dispatched;
-do not cancel the watcher or tasks already created.
-
-Report runId, watcher intent/receipt, created task references, and missing dispatches. Clarify that
-neither watcher spawn nor later delivery spawn is MP4 completion.
+Create one `create_thread` task per Scene plus GlobalVisual and Cover using their prompt references.
+After all creation calls return, immediately exit. Do not call `wait_threads`, `read_thread`, status,
+check/submit, compositions, or delivery commands after dispatch. Report failed creation calls exactly;
+leave the acknowledged watcher and successfully created tasks running. Neither watcher nor delivery
+spawn acknowledgement proves MP4 completion.

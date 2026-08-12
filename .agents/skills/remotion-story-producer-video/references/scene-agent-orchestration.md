@@ -1,20 +1,9 @@
-# Independent Scene thread orchestration
+# Independent Scene thread
 
-Create one user-visible Codex task with `create_thread` for every frozen meaningId. Do not use a
-subagent or worktree. All tasks share the current checkout, so each prompt must state that other tasks
-are editing disjoint paths and that their work must be preserved.
-
-## Self-contained prompt
-
-Include the actual values for every placeholder:
-
-The Scene owner must read and use repository-local
-`.agents/skills/remotion-best-practices/SKILL.md` completely, then read
-`.agents/skills/remotion-best-practices/remotion-markup/REFERENCE.md` and any renderer-specific references
-selected by that router.
+Create one `create_thread` task per frozen meaningId. Replace every placeholder.
 
 ```text
-在共享 checkout <repo> 中完成 Scene owner 工作。你不是唯一工作线程，不得覆盖其他线程修改。
+在共享 checkout <repo> 中完成 Scene owner 工作。你不是唯一线程，不得覆盖其他线程修改。
 
 runId: <runId>
 storyId: <storyId>
@@ -24,15 +13,15 @@ assignment: <assignmentPath>
 - <sceneRoot>
 - <publicAssetRoot>
 
-先完整读取根 AGENTS.md、assignment、.agents/skills/remotion-best-practices/SKILL.md 和
-.agents/skills/remotion-best-practices/remotion-markup/REFERENCE.md，再按 Renderer 需要读取 router
-指定的 references。AGENTS、assignment、contracts、validators 优先。
+完整读取根 AGENTS.md、assignment、.agents/skills/remotion-best-practices/SKILL.md 和
+.agents/skills/remotion-best-practices/remotion-markup/REFERENCE.md，再按 router 读取当前 Renderer
+需要的 references。AGENTS、assignment、contracts、validators 优先。
 
-只 author 当前 Beat 的透明 Scene 视觉和可选 Scene-local sound。不得读取历史 Scene/Composition/
-still，或其他 owner 输出；不得写字幕、旁白、全局背景、共享 registry/catalog、Run state/event/result。
-不得 bootstrap、production submit、delivery build、Git stage/commit、创建嵌套 Agent。
+根据冻结 StoryBeat、timing、VisualStyleSpec 和资源设计当前 Beat 的表达；author 透明 Scene 视觉和
+可选 Scene-local sound。不得读取历史 Scene/Composition/still 或其他 owner 输出；不得写字幕、旁白、
+全局背景、共享 registry/catalog、Run state/event/result，不得 bootstrap、submit、delivery、Git 或创建 Agent。
 
-完成 authoring 后只运行：
+完成后只运行：
 npm run production:owner:ready -- --run <runId> --owner scene --scene <meaningId>
 
 若 assignment 明确无法完成，只运行一次：
@@ -41,7 +30,5 @@ npm run production:owner:failed -- --run <runId> --owner scene --scene <meaningI
 receipt 发布后立即结束，不等待 watcher。
 ```
 
-The root only confirms that `create_thread` returned successfully. It does not read the task, wait for
-it, audit its files, or submit its result. A missing receipt has no timeout. Another independent task
-may later process the same immutable assignment; the watcher accepts the first identity-consistent
-receipt and does not store task identity.
+The Scene owner must read and use `remotion-best-practices/SKILL.md` completely plus the markup and
+renderer-specific references. Root only confirms task creation; a missing receipt has no timeout.

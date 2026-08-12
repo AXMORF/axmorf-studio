@@ -1,4 +1,4 @@
 interface:
   display_name: "Remotion Story 视频制作"
-  short_description: "冻结生产并派发独立线程，由后台 watcher 自动交付"
-  default_prompt: "使用 $remotion-story-producer-video，把我提供的完整内容冻结并派发到独立线程，由后台 watcher 自动收口交付；主任务派发后立即结束。"
+  short_description: "由 Agent 设计内容，以固定流程冻结并派发制作"
+  default_prompt: "使用 $remotion-story-producer-video，根据我的要求完成叙事与视觉设计，驱动固定生产流程并派发独立制作任务。"

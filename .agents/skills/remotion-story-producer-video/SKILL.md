@@ -1,89 +1,61 @@
 ---
 name: remotion-story-producer-video
-description: Freeze and dispatch a contract-driven Remotion Story production to independent Codex threads and a detached single-writer watcher. Use for new video production or explicit $remotion-story-producer-video invocation.
+description: Design, freeze, and dispatch a contract-driven Remotion Story production to independent Codex threads and a detached watcher. Use for new video production or explicit $remotion-story-producer-video invocation.
 ---
 
 # Remotion Story Producer Video
 
 ## Start directly
 
-Use the repository and request as authority. Inspect branch, HEAD, and status; preserve unrelated
-changes. Start without routine confirmation. Infer safe defaults and never ask the user to restate
-Skill rules.
-
-The root Agent owns only preflight, authored shared inputs, narration/timing freeze, all owner
-assignments, detached watcher launch, and independent thread creation. It does not remain attached to
-authoring or delivery.
+Use the request and current repository as authority. Inspect branch, HEAD, and status; preserve
+unrelated changes. The Agent makes the narrative and visual decisions. Repository scripts only freeze,
+validate, and execute the fixed production flow; they do not choose creative direction.
 
 ## Freeze inputs before dispatch
 
-Read [references/producer-config.md](references/producer-config.md) completely. Author the Project-local
-producer input, then use the fixed `project:configure` entrypoint; do not manually copy defaults into
-Project contracts. The CLI resolves private ProducerConfig and freezes actual values before dispatch.
+Read [the direct workflow](references/direct-production-workflow.md) completely. It alternates the
+Agent-owned design work with the fixed commands. Read [Producer config](references/producer-config.md)
+when authoring the new Project input; use `project:configure` instead of copying defaults.
 
-Read [references/direct-production-workflow.md](references/direct-production-workflow.md) completely.
-Finish preflight, Story/narration/timing/requirements, Scene freeze, and independent Cover freeze
-before starting the watcher or creating any owner thread. Treat all assignments and shared inputs as
-immutable after dispatch.
-
-After freeze, read [references/scene-agent-orchestration.md](references/scene-agent-orchestration.md),
-[references/global-visual-agent-orchestration.md](references/global-visual-agent-orchestration.md), and
-[references/cover-agent-orchestration.md](references/cover-agent-orchestration.md) completely.
+Freeze Story, narration/timing, requirements, Scene/GlobalVisual assignments, and CoverAssignment
+before dispatch. Treat them as immutable afterward.
 
 ## Launch watcher and dispatch threads
 
-Run `production:watch:start` and require its OS spawn acknowledgement receipt. Then use Codex
-`create_thread` once per meaningId, once for GlobalVisual, and once for Cover. These are independent,
-user-visible threads sharing the current checkout, not subagents or worktrees. Give each thread a
-complete self-contained prompt with runId, assignment path, exclusive paths, required Skill/reference,
-and exact `production:owner:ready` / `production:owner:failed` commands.
+After a successful `production:watch:start`, read only the prompt reference needed for each owner:
+[Scene](references/scene-agent-orchestration.md),
+[GlobalVisual](references/global-visual-agent-orchestration.md), and
+[Cover](references/cover-agent-orchestration.md). Use `create_thread` once per meaningId and once for
+each whole-film owner. Every prompt must contain concrete assignment and exclusive paths plus exact
+`production:owner:ready` / `production:owner:failed` commands.
 
-After every `create_thread` call succeeds, end the root task immediately. Do not call `wait_threads`,
-`read_thread`, poll status, inspect owner files, run checks/submits, aggregate results, invoke
-`delivery:build`, or monitor the detached watcher. If some thread creation calls fail, report the exact
-un-dispatched assignment identities; leave the acknowledged watcher and successful threads running.
+Owners are independent user-visible tasks in the shared checkout, never subagents or worktrees.
+After all creation calls return, end the root task; do not inspect, wait for, or coordinate them.
 
 ## Keep context bounded
 
-Do not preload authority docs. Read
-[references/agent-rework-and-system-hardening.md](references/agent-rework-and-system-hardening.md)
-only when a fixed command fails before dispatch or implementation changes are required. Use current
-code and tests as executable truth; use CodeGraph first when `.codegraph/` exists.
+Do not preload authority docs or implementation detail. Use current code/tests and [policy.json](policy.json)
+for executable constraints. Read [system hardening](references/agent-rework-and-system-hardening.md)
+only when a fixed command fails before dispatch or the implementation must change. Use CodeGraph first
+when indexed.
 
 ## Preserve production invariants
 
-- Preserve the structured [repository policy](policy.json) and freeze the configured readability policy;
-  owners read only the derived numeric policy from assignments.
-- Keep one Story/Composition, one meaningId/ScenePackage, one whole-film GlobalVisualPackage, and one
-  independent Cover owner.
-- Keep Scene roots transparent; captions/narration/safe area/GlobalVisual stay Composition-owned.
-- Keep `GlobalVisualLayers` no-Props and visually subordinate.
-- Keep PublishingIntent in Story authoring and Cover creative inputs limited to StorySpec,
-  VisualStyleSpec, and fixed CoverSpec.
-- Keep owner paths disjoint. Owners do not bootstrap, generate global registry/catalog, submit formal
-  results, build delivery, stage, commit, or create nested Agents.
-- Owners publish only assignment-bound immutable receipts. Repository state never stores threadId,
-  taskId, conversation, progress, or heartbeat.
-- Missing receipts remain `waiting-for-owner-results` without timeout, retry, or replacement thread.
-- The detached watcher is the sole state/event/formal-result/registry/delivery writer and stops at
-  `delivery-render-started`.
-
-Use ignored `private/producer.config.json` through repository config helpers. Never print, summarize,
-stage, or commit private configuration or protected voice-profile contents.
+- Keep one Story/Composition, one meaningId/ScenePackage, one GlobalVisualPackage, and one Cover owner.
+- Keep owner paths disjoint. Owners author only their assignment and publish one assignment-bound
+  immutable receipt; the watcher alone writes central results/state and drives delivery.
+- Keep private config and protected voice material unread, unreported, unstaged, and uncommitted.
+- Leave a missing receipt waiting without timeout, retry, heartbeat, or replacement task.
+- Treat launch intent without receipt as permanently ambiguous; never retry it.
 
 ## Classify failure by owner
 
-Before dispatch, correct only Agent-owned authored input and rerun the same validator. A valid-input
-fixed-flow defect requires Red, the smallest shared Green, verification, an exact local commit, and a
-fresh Run. Provider, host-tool, sandbox, permission, or authorization failures are external blockers.
-
-After dispatch, root does not coordinate rework. An owner may publish one immutable failed receipt.
-No receipt means wait forever; an external actor may create another independent thread for the same
-immutable assignment. The watcher binds only assignment identity, never thread identity.
+Before dispatch, revise only Agent-authored inputs and rerun the same validator. For a valid-input
+fixed-flow defect, stop and follow the JIT hardening reference. Treat provider, host, sandbox,
+permission, and authorization failures as external blockers. After dispatch, root does no rework.
 
 ## Finish after dispatch
 
-Report watcher launch acknowledgement, runId, assignment paths, created tasks, and any un-dispatched
-assignments. State that watcher acknowledgement is not production success, and later
-`delivery-render-started` is only detached Remotion spawn acknowledgement, not MP4 completion. Do not
-monitor, publish, push, or use `git add .`.
+Report runId, watcher acknowledgement, assignment paths, created tasks, and exact missing dispatches.
+`watcher-started` is only watcher spawn acknowledgement; `delivery-render-started` is only detached
+Remotion spawn acknowledgement, not MP4 completion. Do not monitor, publish, push, or use `git add .`.

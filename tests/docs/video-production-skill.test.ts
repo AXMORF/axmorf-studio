@@ -13,6 +13,7 @@ const remotionBestPracticesRoot = path.join(
   process.cwd(),
   ".agents/skills/remotion-best-practices",
 );
+const NORMAL_PRODUCTION_HARD_MAX_CHARACTERS = 12_000;
 
 const readSkillFile = (relativePath: string) =>
   readFile(path.join(skillRoot, relativePath), "utf8");
@@ -144,6 +145,7 @@ const SkillPolicySchema = z
         entrypointMaxWords: z.number().int().positive(),
         directWorkflowMaxWords: z.number().int().positive(),
         normalProductionMaxWords: z.number().int().positive(),
+        normalProductionMaxCharacters: z.number().int().positive(),
         sceneOrchestrationMaxWords: z.number().int().positive(),
         globalVisualOrchestrationMaxWords: z.number().int().positive(),
         coverOrchestrationMaxWords: z.number().int().positive(),
@@ -220,10 +222,10 @@ test("repository video skill exposes a structured production policy", async () =
   );
   assert.match(producerConfig, /publishingCollections/u);
   assert.match(producerConfig, /targetLoudnessLufs/u);
-  assert.match(producerConfig, /POST \/clone_with_prompt/u);
+  assert.doesNotMatch(producerConfig, /POST \/clone|127\.0\.0\.1:31(?:00|01)/u);
   assert.match(
     sceneWorkflow,
-    /must read and use[\s\S]*remotion-best-practices\/SKILL\.md` completely[\s\S]*remotion-markup\/REFERENCE\.md/u,
+    /完整读取[\s\S]*remotion-best-practices\/SKILL\.md[\s\S]*remotion-markup\/REFERENCE\.md/u,
   );
 
   const remotionRuleReferences = [
@@ -263,10 +265,35 @@ test("repository video skill exposes a structured production policy", async () =
     wordCount(workflow) <= policy.contextBudgets.directWorkflowMaxWords,
     `direct workflow exceeds its policy budget (${wordCount(workflow)} words)`,
   );
+  const normalProductionWords = [
+    skill,
+    workflow,
+    producerConfig,
+    sceneWorkflow,
+    globalVisualWorkflow,
+    coverWorkflow,
+  ].reduce((total, document) => total + wordCount(document), 0);
+  const normalProductionCharacters = [
+    skill,
+    workflow,
+    producerConfig,
+    sceneWorkflow,
+    globalVisualWorkflow,
+    coverWorkflow,
+  ].reduce((total, document) => total + Array.from(document).length, 0);
   assert.ok(
-    wordCount(skill) + wordCount(workflow) <=
-      policy.contextBudgets.normalProductionMaxWords,
-    "normal production context exceeds its policy budget",
+    normalProductionWords <= policy.contextBudgets.normalProductionMaxWords,
+    `normal production context exceeds its policy budget (${normalProductionWords} words)`,
+  );
+  assert.ok(
+    policy.contextBudgets.normalProductionMaxCharacters <=
+      NORMAL_PRODUCTION_HARD_MAX_CHARACTERS,
+    "normal production character budget exceeds the test-owned hard ceiling",
+  );
+  assert.ok(
+    normalProductionCharacters <=
+      policy.contextBudgets.normalProductionMaxCharacters,
+    `normal production context exceeds its policy budget (${normalProductionCharacters} characters)`,
   );
   assert.ok(
     wordCount(sceneWorkflow) <=
@@ -301,6 +328,15 @@ test("repository video skill exposes a structured production policy", async () =
   assert.match(
     executableWorkflow,
     /assignment-keyed receipts|assignment-bound-owner-receipts|assignment identity|receipt/u,
+  );
+  assert.match(workflow, /StoryBeat/u);
+  assert.match(workflow, /Agent-authored ttsChunks/u);
+  assert.match(workflow, /VisualStyleSpec/u);
+  assert.match(workflow, /Scene brief/u);
+  assert.match(workflow, /Cover/u);
+  assert.match(
+    workflow,
+    /scripts?\s+(?:freeze|validate|execute)[\s\S]*do not choose creative direction/iu,
   );
   assert.match(executableWorkflow, /create_thread/u);
   assert.doesNotMatch(
