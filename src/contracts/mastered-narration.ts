@@ -10,7 +10,7 @@ import {
 
 export const MASTERED_NARRATION_VERSION = "mastered-narration-v2" as const;
 export const NARRATION_MASTERING_ALGORITHM_ID =
-  "ffmpeg-loudnorm-two-pass-v1" as const;
+  "ffmpeg-loudnorm-two-pass-target-margin-v2" as const;
 
 export const buildNarrationMasteringPolicy = (
   targetIntegratedLoudnessLufs: number,

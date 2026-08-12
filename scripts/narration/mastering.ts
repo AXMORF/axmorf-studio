@@ -36,6 +36,8 @@ type LoudnormPass = Readonly<{
   targetOffset: number;
 }>;
 
+const LOUDNORM_PROCESSING_MARGIN_LU = 0.25;
+
 const parseFinite = (value: unknown, label: string) => {
   const parsed = typeof value === "string" ? Number(value) : Number.NaN;
   if (!Number.isFinite(parsed)) {
@@ -172,11 +174,19 @@ export const masterNarrationBytes = async ({
   readonly runProcess?: ProcessRunner;
 }) => {
   const masteringPolicy = buildNarrationMasteringPolicy(targetLoudnessLufs);
+  // Peak-limited speech can finish slightly below loudnorm's requested target.
+  // Keep that deterministic undershoot inside the policy's existing +/-0.5 LU window.
+  const processingPolicy = {
+    ...masteringPolicy,
+    targetIntegratedLoudnessLufs:
+      masteringPolicy.targetIntegratedLoudnessLufs +
+      LOUDNORM_PROCESSING_MARGIN_LU,
+  };
   const sourceMeasurement = measureCanonicalPcmWav(sourceWav);
   const sourceAnalysis = await analyzeNarrationLoudness({
     path: sourcePath,
     runProcess,
-    masteringPolicy,
+    masteringPolicy: processingPolicy,
   });
   const result = await runProcess("ffmpeg", [
     "-nostdin",
@@ -186,7 +196,7 @@ export const masterNarrationBytes = async ({
     "-i",
     sourcePath,
     "-af",
-    masterFilter(sourceAnalysis, masteringPolicy),
+    masterFilter(sourceAnalysis, processingPolicy),
     "-map_metadata",
     "-1",
     "-vn",

@@ -93,7 +93,8 @@ test("two-pass mastering preserves canonical sample count and verifies output lo
     thresholdLufs: -26.87,
   });
   assert.equal(mastered.masteringPolicy.targetIntegratedLoudnessLufs, -18);
-  assert.match(calls[0]?.join(" ") ?? "", /loudnorm=I=-18:/u);
+  assert.match(calls[0]?.join(" ") ?? "", /loudnorm=I=-17\.75:/u);
+  assert.match(calls[1]?.join(" ") ?? "", /loudnorm=I=-17\.75:/u);
   assert.match(calls[1]?.join(" ") ?? "", /measured_I=-18\.77/u);
   assert.match(calls[1]?.join(" ") ?? "", /measured_TP=-0\.25/u);
   assert.deepEqual(calls[1]?.slice(-5), [
@@ -103,6 +104,76 @@ test("two-pass mastering preserves canonical sample count and verifies output lo
     "s16le",
     "pipe:1",
   ]);
+});
+
+test("two-pass mastering keeps peak-limited speech inside the accepted loudness window", async () => {
+  const sourceRaw = createRawPcmFixture([100, -100, 200, -200]);
+  const outputRaw = createRawPcmFixture([200, -200, 400, -400]);
+  const sourceWav = createWavFixture({ rawPcm: sourceRaw });
+  const calls: string[][] = [];
+  let index = 0;
+  const runProcess: ProcessRunner = async (_command, args) => {
+    calls.push([...args]);
+    index += 1;
+    if (index === 1) {
+      return {
+        exitCode: 0,
+        stdout: Buffer.alloc(0),
+        stderr: analysis({ integrated: -19.11, peak: -0.81 }),
+      };
+    }
+    if (index === 2) {
+      return { exitCode: 0, stdout: outputRaw, stderr: Buffer.alloc(0) };
+    }
+    const usedBiasedTarget = calls[1]?.join(" ").includes("loudnorm=I=-17.75:");
+    return {
+      exitCode: 0,
+      stdout: Buffer.alloc(0),
+      stderr: analysis({
+        integrated: usedBiasedTarget ? -18.42 : -18.54,
+        peak: -1.49,
+      }),
+    };
+  };
+
+  const mastered = await masterNarrationBytes({
+    sourcePath: "/tmp/source.wav",
+    sourceWav,
+    targetLoudnessLufs: -18,
+    runProcess,
+  });
+
+  assert.doesNotThrow(() =>
+    buildMasteredNarrationManifest({
+      storyId: "story-example",
+      sealedNarrationFingerprint: sha("a"),
+      sourceAudio: {
+        localPath: `public/projects/story-example/narration/${"a".repeat(64)}/complete.wav`,
+        checksum: sha("b"),
+        pcm: {
+          sampleRate: 48_000,
+          channelLayout: "mono",
+          sampleFormat: "s16le",
+        },
+        sampleFrameCount: 4,
+      },
+      outputAudio: {
+        localPath: "public/projects/story-example/narration-mastered/pending/complete.wav",
+        checksum: sha("c"),
+        pcm: {
+          sampleRate: 48_000,
+          channelLayout: "mono",
+          sampleFormat: "s16le",
+        },
+        sampleFrameCount: 4,
+      },
+      measurements: mastered.measurements,
+      masteringPolicy: mastered.masteringPolicy,
+    }),
+  );
+  assert.match(calls[0]?.join(" ") ?? "", /loudnorm=I=-17\.75:/u);
+  assert.match(calls[1]?.join(" ") ?? "", /loudnorm=I=-17\.75:/u);
+  assert.equal(mastered.masteringPolicy.targetIntegratedLoudnessLufs, -18);
 });
 
 test("mastered narration contract binds seal, policy, measurements, checksum, and content path", () => {
