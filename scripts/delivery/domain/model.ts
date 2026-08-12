@@ -6,6 +6,8 @@ import {
   createDeliveryId,
   formatDeliveryTimecode,
   type DeliveryCoverResult,
+  AssetAttributionsSchema,
+  type AssetAttributions,
   type ProductionRenderPlan,
   type ProductionRenderReady,
   type PublishingIntent,
@@ -26,6 +28,7 @@ export type DeliveryPackageInputs = Readonly<{
   renderPlan: ProductionRenderPlan;
   renderReady: ProductionRenderReady;
   cover: Readonly<{ result: DeliveryCoverResult }>;
+  assetAttributions: AssetAttributions;
 }>;
 
 const bytesOf = (value: string) => new TextEncoder().encode(value);
@@ -33,6 +36,9 @@ const bytesOf = (value: string) => new TextEncoder().encode(value);
 export const buildDeliveryPackageModel = (inputs: DeliveryPackageInputs) => {
   const { story, semanticTiming, intent, renderPlan, renderReady, cover } =
     inputs;
+  const assetAttributions = AssetAttributionsSchema.parse(
+    inputs.assetAttributions,
+  );
   const publishing = buildDeliveryPublishing({
     storyId: story.storyId,
     title: story.title,
@@ -65,6 +71,11 @@ export const buildDeliveryPackageModel = (inputs: DeliveryPackageInputs) => {
   const publishingBytes = serializeDeliveryJson(publishing);
   const publishingEncoded = bytesOf(publishingBytes);
   const publishingChecksum = checksumDeliveryBytes(publishingEncoded);
+  const assetAttributionsBytes = serializeDeliveryJson(assetAttributions);
+  const assetAttributionsEncoded = bytesOf(assetAttributionsBytes);
+  const assetAttributionsChecksum = checksumDeliveryBytes(
+    assetAttributionsEncoded,
+  );
   const renderArgs = [
     "render",
     "src/index.ts",
@@ -78,6 +89,8 @@ export const buildDeliveryPackageModel = (inputs: DeliveryPackageInputs) => {
     storyId: story.storyId,
     publishingIntentFingerprint: intent.intentFingerprint,
     publishingChecksum,
+    assetAttributionsFingerprint: assetAttributions.attributionsFingerprint,
+    assetAttributionsChecksum,
     coverResultFingerprint: cover.result.resultFingerprint,
     renderReadyFingerprint: renderReady.renderReadyFingerprint,
     renderPlanFingerprint: renderPlan.renderPlanFingerprint,
@@ -109,15 +122,28 @@ export const buildDeliveryPackageModel = (inputs: DeliveryPackageInputs) => {
         checksum: publishingChecksum,
         sizeBytes: publishingEncoded.byteLength,
       },
+      assetAttributions: {
+        fileName: "asset-attributions.json",
+        checksum: assetAttributionsChecksum,
+        sizeBytes: assetAttributionsEncoded.byteLength,
+      },
     },
   });
   const intentRecord = buildRenderLaunchIntent(identity);
   const manifestBytes = serializeDeliveryJson(manifest);
   const intentBytes = serializeDeliveryJson(intentRecord);
-  const handoffBytes = buildDeliveryHandoff({ manifest, publishing });
+  const handoffBytes = buildDeliveryHandoff({
+    manifest,
+    publishing,
+    assetAttributions,
+  });
   const ledgerBytes = buildChecksumLedger([
     { fileName: "cover-4x3.png", checksum: cover4x3.checksum },
     { fileName: "cover-3x4.png", checksum: cover3x4.checksum },
+    {
+      fileName: "asset-attributions.json",
+      checksum: assetAttributionsChecksum,
+    },
     {
       fileName: "publishing.json",
       checksum: publishingChecksum,
@@ -143,6 +169,7 @@ export const buildDeliveryPackageModel = (inputs: DeliveryPackageInputs) => {
     intent: intentRecord,
     bytes: {
       publishing: publishingBytes,
+      assetAttributions: assetAttributionsBytes,
       manifest: manifestBytes,
       handoff: handoffBytes,
       intent: intentBytes,

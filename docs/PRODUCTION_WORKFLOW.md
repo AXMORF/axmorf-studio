@@ -10,6 +10,9 @@
 flowchart TD
     Inputs["Story inputs + PublishingIntent"] --> Preflight["Host preflight"]
     Preflight --> Narrative["Sealed narration + SemanticTiming"]
+    Narrative --> AssetChoice["Local Catalog lookup + optional MCP acquire"]
+    AssetChoice --> AssetImport["Project-local asset import"]
+    AssetImport --> ProductionFreeze
     Narrative --> ProductionFreeze["Freeze N Scene + GlobalVisual assignments"]
     Narrative --> CoverFreeze["Independently freeze Cover assignment"]
     ProductionFreeze --> WatchStart["Detached watcher intent + receipt"]
@@ -67,6 +70,24 @@ LAN 端口不得转发到公网。声线与可选 BGM 文件字段只接受仓�
 preflight；不生成测试语音、不 warm-up provider，也不修改 Chromium sandbox policy，只返回脱敏
 状态与修复建议。
 
+外部素材服务只在 authoring 阶段负责 search/preview/acquire。当前唯一 provider adapter 严格接收
+stock-assets-mcp 的 Pexels image acquisition receipt v1；仓库不依赖其 package、SDK 或密钥。
+Agent 先查 current ResourceCatalog，确需外部图片时 acquire 后运行：
+
+```bash
+npm run project:asset:import -- \
+  --project <storyId> \
+  --receipt <absolute-receipt-path> \
+  --role scene-visual
+```
+
+CLI 从 receipt 同目录安全定位候选文件，拒绝 symlink、escape、non-regular file、未知字段/版本/
+kind，以及 MIME、扩展名、尺寸、大小、checksum、license 或 attribution 漂移；然后原子写入
+`public/projects/<storyId>/assets/`、不可变来源证据与 `assets.manifest.json`，并重建/检查
+ResourceCatalog。相同 identity 重放是只读 no-op，冲突不覆盖；导入发生在 Scene freeze 前，已有
+freeze 的 Project 必须 fresh Run。当前只开放 image，内部 discriminated contract 为 video/audio
+保留独立分支但明确拒绝导入。Cover 不消费这些资源。
+
 ## 2. Narrative baseline
 
 `production:start` 建 immutable Run manifest；`production:narrative` 生成并封存 narration，按
@@ -93,6 +114,8 @@ check-only 路径仍严格拒绝 stale 或 malformed evidence，replacement 只�
   validators 为更高 authority；只写 exclusive project/public paths，完成后发布 ready/failed
   receipt，不直接 submit 正式结果。
 - GlobalVisual owner 不读取 Scene results，不绘制字幕/可见文本/音频，不扩张为通用 DSL。
+- Scene/GlobalVisual owner 只消费 assignment 中冻结的 Project-local Resource ID，不调用 MCP、
+  provider、网络或远程 URL。
 - Cover owner 只读取 assignment 内的 StorySpec、VisualStyleSpec、CoverSpec，并封存两个固定比例
   exact PNG。
 - root 运行 `production:watch:start`，收到 OS spawn acknowledgement 后用 Codex `create_thread`
@@ -136,16 +159,20 @@ GlobalVisualProjection、FinalAssembly 与 current Composition。之后构建：
 `shell:false`、`detached:true` 和非继承 stdio spawn worker。只在 OS `spawn` 后写 watcher launch
 receipt；intent 无 receipt 永久 ambiguous，禁止重试。receipt 不证明 watcher 完成生产。
 
-`delivery:build` 从 current inputs 确定性生成 deliveryId，在 staging 中写 exact Covers、包含 MP4
-与 Cover 固定文件名的 `delivery-publishing-v2`、handoff、`delivery-launch-manifest-v3`、
-`render-launch-intent-v3` 和 checksum ledger，
+`delivery:build` 从 render plan 中实际使用的 ScenePackage/GlobalVisualPackage 资源选择解析绑定的
+ResourceCatalog，去重生成 fingerprint-bound `asset-attributions.json`；未使用的 Catalog 资源不
+进入投影，无需署名时仍写稳定空结果。它不改写 PublishingIntent description。
+
+build 从 current inputs 确定性生成 deliveryId，在 staging 中写 exact Covers、包含 MP4 与 Cover
+固定文件名的 `delivery-publishing-v2`、attribution、handoff、`delivery-launch-manifest-v4`、
+`render-launch-intent-v4` 和 checksum ledger，
 检查后原子提升到每个 Project 唯一的 `deliveries/<storyId>/` current slot。slot 中 identity 不变时
 只读复验；identity 变化时先把旧 slot 移入 staging backup，再提升新 package，提升失败则恢复旧
 slot；成功后不保留多个 delivery 目录。
 
 intent 已持久化后才允许 spawn。adapter 使用固定 executable/argv/cwd/log、`shell: false` 与
 `detached: true`，只监听 `spawn` 和 `error`。收到 `spawn` 后立即 `unref()` 并写
-`render-launch-receipt-v3`。stdout 返回 `delivery-render-started`。
+`render-launch-receipt-v4`。stdout 返回 `delivery-render-started`。
 
 exactly-once 规则：
 

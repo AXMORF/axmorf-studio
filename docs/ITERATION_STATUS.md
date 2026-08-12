@@ -75,14 +75,29 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   `Composition.tsx` 为 root，其他 ignored Projects 不进入该门禁。
 - render-ready check 只重算 current contracts，保持 events 与产物 byte/mtime 不变。
 
+### 外部图片准入与 ResourceCatalog
+
+- `project:asset:import` 已严格适配 stock-assets-mcp Pexels image acquisition receipt v1，不引入
+  MCP/provider SDK 或网络 runtime；receipt、candidate 与私有配置不进入仓库提交。
+- 导入校验 absolute receipt、同目录 containment、regular/no-symlink、MIME/扩展名、dimensions、
+  size、SHA-256、license 与 attribution，原子本地化到 Project public 路径并保存不可变来源证据和
+  `project-asset-manifest-v2`，随后重建并检查 ResourceCatalog。
+- Resource ID 是 provider-aware、Project-local 且稳定的；相同 identity 重放只读 no-op，receipt、
+  文件或 identity 漂移 fail closed，不覆盖共享素材库或冻结后的 Run。
+- `external-asset-acquisition-v1` 使用 image/video/audio 独立 discriminated branches；当前只有 image
+  import 可用，video/audio 明确未开放且 fail closed。
+
 ### PublishingIntent、Cover 与自动交付
 
 - PublishingIntent v2 在 Story 阶段绑定 Story fingerprint 与所选配置合集；title 由 StorySpec
   独占，章节 frame/time 从 SemanticTiming 确定性投影。
 - 独立 Cover assignment/package/result 保留；Cover owner 只消费 StorySpec、VisualStyleSpec 和固定
   CoverSpec，通过 receipt 进入 watcher，但不阻止 render-ready 或进入 production state。
-- `delivery-launch-manifest-v3`、`render-launch-intent-v3`、`render-launch-receipt-v3` 与
+- `delivery-launch-manifest-v4`、`render-launch-intent-v4`、`render-launch-receipt-v4` 与
   `detached-spawn-acknowledgement-v1` 已实现。
+- delivery 从 render plan 实际引用的 ScenePackage/GlobalVisualPackage 资源解析绑定 Catalog，写入
+  去重且 fingerprint-bound 的 `asset-attributions.json`；未使用资源不输出，空结果也稳定存在，
+  attribution checksum/fingerprint 进入 delivery identity、ledger 与 HANDOFF。
 - `delivery-publishing-v2` 在发布元数据中包含固定 `outputFileName`，以及分别指向
   `cover-4x3.png`、`cover-3x4.png` 的 `coverFileNames`。
 - `deliveryId` 绑定 PublishingIntent、canonical publishing checksum、Cover result、render-ready、
@@ -120,6 +135,7 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 - 配置页中的 `audioDefaults.globalBgm` 目前只保存相对路径与音量预设；current production 仍固定
   `globalSound: none`，没有自动 BGM 本地化、封存、混音或 render runtime 挂载。
 - detached render 的后台状态机、轮询、重试、完成标记或媒体检查。
+- 外部 video/audio 导入、provider 搜索实现、转码或除当前 Pexels image receipt 外的 adapter。
 - 平台上传、账号、网络发布、密钥或权限管理。
 - NarrativeCheck、主观审美 gate、自动修片和未批准的 capability promotion。
 - 对旧 Run、旧作品、旧 release 或旧媒体的 runtime compatibility、迁移或回填。

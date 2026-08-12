@@ -10,11 +10,10 @@ import {
 } from "./primitives";
 
 export const DELIVERY_LAUNCH_MANIFEST_VERSION =
-  "delivery-launch-manifest-v3" as const;
-export const RENDER_LAUNCH_INTENT_VERSION =
-  "render-launch-intent-v3" as const;
+  "delivery-launch-manifest-v4" as const;
+export const RENDER_LAUNCH_INTENT_VERSION = "render-launch-intent-v4" as const;
 export const RENDER_LAUNCH_RECEIPT_VERSION =
-  "render-launch-receipt-v3" as const;
+  "render-launch-receipt-v4" as const;
 export const RENDER_LAUNCH_POLICY_VERSION =
   "detached-spawn-acknowledgement-v1" as const;
 export const DELIVERY_PUBLISHING_VERSION = "delivery-publishing-v2" as const;
@@ -41,13 +40,18 @@ const RenderArgSchema = z
   .string()
   .min(1)
   .max(1_024)
-  .refine((value) => !value.includes("\0"), "Render arguments cannot contain NUL.");
+  .refine(
+    (value) => !value.includes("\0"),
+    "Render arguments cannot contain NUL.",
+  );
 
 const DeliveryIdentityInputObject = z
   .object({
     storyId: StoryIdSchema,
     publishingIntentFingerprint: Sha256DigestSchema,
     publishingChecksum: Sha256DigestSchema,
+    assetAttributionsFingerprint: Sha256DigestSchema,
+    assetAttributionsChecksum: Sha256DigestSchema,
     coverResultFingerprint: Sha256DigestSchema,
     renderReadyFingerprint: Sha256DigestSchema,
     renderPlanFingerprint: Sha256DigestSchema,
@@ -66,13 +70,15 @@ const DeliveryIdentityInputObject = z
     ) {
       context.addIssue({
         code: "custom",
-        message: "Delivery identity must bind the fixed Remotion render argument template.",
+        message:
+          "Delivery identity must bind the fixed Remotion render argument template.",
         path: ["renderArgs"],
       });
     }
   });
 
-export const DeliveryIdentityInputSchema = DeliveryIdentityInputObject.readonly();
+export const DeliveryIdentityInputSchema =
+  DeliveryIdentityInputObject.readonly();
 
 const pickDeliveryIdentity = (rawInput: unknown) => {
   const input = rawInput as Record<string, unknown>;
@@ -80,6 +86,8 @@ const pickDeliveryIdentity = (rawInput: unknown) => {
     storyId: input.storyId,
     publishingIntentFingerprint: input.publishingIntentFingerprint,
     publishingChecksum: input.publishingChecksum,
+    assetAttributionsFingerprint: input.assetAttributionsFingerprint,
+    assetAttributionsChecksum: input.assetAttributionsChecksum,
     coverResultFingerprint: input.coverResultFingerprint,
     renderReadyFingerprint: input.renderReadyFingerprint,
     renderPlanFingerprint: input.renderPlanFingerprint,
@@ -98,7 +106,9 @@ export const computeDeliveryIdentityFingerprint = (rawInput: unknown) =>
 
 export const createDeliveryId = (rawInput: unknown) => {
   const fingerprint = computeDeliveryIdentityFingerprint(rawInput);
-  return DeliveryIdSchema.parse(`delivery-${fingerprint.slice("sha256:".length)}`);
+  return DeliveryIdSchema.parse(
+    `delivery-${fingerprint.slice("sha256:".length)}`,
+  );
 };
 
 const ImmutableFileSchema = z
@@ -152,14 +162,22 @@ const DeliveryPublishingInputObject = z
     fps: PositiveIntegerSchema.max(120),
     frameCount: PositiveIntegerSchema,
     plannedDurationSeconds: z.number().positive().finite(),
-    chapters: z.array(DeliveryPublishingChapterSchema).min(1).max(256).readonly(),
+    chapters: z
+      .array(DeliveryPublishingChapterSchema)
+      .min(1)
+      .max(256)
+      .readonly(),
   })
   .strict()
   .superRefine((publishing, context) => {
-    if (publishing.plannedDurationSeconds !== publishing.frameCount / publishing.fps) {
+    if (
+      publishing.plannedDurationSeconds !==
+      publishing.frameCount / publishing.fps
+    ) {
       context.addIssue({
         code: "custom",
-        message: "Publishing planned duration must equal frameCount divided by fps.",
+        message:
+          "Publishing planned duration must equal frameCount divided by fps.",
         path: ["plannedDurationSeconds"],
       });
     }
@@ -178,7 +196,8 @@ const DeliveryPublishingInputObject = z
     }
   });
 
-export const DeliveryPublishingSchema = DeliveryPublishingInputObject.readonly();
+export const DeliveryPublishingSchema =
+  DeliveryPublishingInputObject.readonly();
 
 export const buildDeliveryPublishing = (rawInput: unknown) =>
   DeliveryPublishingSchema.parse({
@@ -199,6 +218,7 @@ const DeliveryLaunchManifestInputObject = DeliveryIdentityInputObject.extend({
       cover4x3: ImmutableFileSchema,
       cover3x4: ImmutableFileSchema,
       publishing: ImmutableFileSchema,
+      assetAttributions: ImmutableFileSchema,
     })
     .strict()
     .readonly(),
@@ -213,7 +233,10 @@ export const DeliveryLaunchManifestInputSchema =
         path: ["deliveryId"],
       });
     }
-    if (manifest.plannedDurationSeconds !== manifest.frameCount / manifest.fps) {
+    if (
+      manifest.plannedDurationSeconds !==
+      manifest.frameCount / manifest.fps
+    ) {
       context.addIssue({
         code: "custom",
         message: "Planned duration must equal frameCount divided by fps.",
@@ -233,31 +256,36 @@ export const computeDeliveryLaunchManifestFingerprint = (rawInput: unknown) => {
   });
 };
 
-export const DeliveryLaunchManifestSchema = DeliveryLaunchManifestInputObject.extend({
-  manifestFingerprint: Sha256DigestSchema,
-})
-  .strict()
-  .superRefine((manifest, context) => {
-    const { manifestFingerprint, ...input } = manifest;
-    const parsed = DeliveryLaunchManifestInputSchema.safeParse(input);
-    if (!parsed.success) {
-      for (const issue of parsed.error.issues) {
-        context.addIssue({ code: "custom", message: issue.message, path: issue.path });
-      }
-      return;
-    }
-    if (
-      manifestFingerprint !==
-      computeDeliveryLaunchManifestFingerprint(parsed.data)
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "Delivery launch manifest fingerprint is stale.",
-        path: ["manifestFingerprint"],
-      });
-    }
+export const DeliveryLaunchManifestSchema =
+  DeliveryLaunchManifestInputObject.extend({
+    manifestFingerprint: Sha256DigestSchema,
   })
-  .readonly();
+    .strict()
+    .superRefine((manifest, context) => {
+      const { manifestFingerprint, ...input } = manifest;
+      const parsed = DeliveryLaunchManifestInputSchema.safeParse(input);
+      if (!parsed.success) {
+        for (const issue of parsed.error.issues) {
+          context.addIssue({
+            code: "custom",
+            message: issue.message,
+            path: issue.path,
+          });
+        }
+        return;
+      }
+      if (
+        manifestFingerprint !==
+        computeDeliveryLaunchManifestFingerprint(parsed.data)
+      ) {
+        context.addIssue({
+          code: "custom",
+          message: "Delivery launch manifest fingerprint is stale.",
+          path: ["manifestFingerprint"],
+        });
+      }
+    })
+    .readonly();
 
 export const buildDeliveryLaunchManifest = (rawInput: unknown) => {
   const input = DeliveryLaunchManifestInputSchema.parse({
@@ -340,11 +368,17 @@ export const RenderLaunchIntentSchema = RenderLaunchIntentInputObject.extend({
     const parsed = RenderLaunchIntentInputSchema.safeParse(input);
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
-        context.addIssue({ code: "custom", message: issue.message, path: issue.path });
+        context.addIssue({
+          code: "custom",
+          message: issue.message,
+          path: issue.path,
+        });
       }
       return;
     }
-    if (intentFingerprint !== computeRenderLaunchIntentFingerprint(parsed.data)) {
+    if (
+      intentFingerprint !== computeRenderLaunchIntentFingerprint(parsed.data)
+    ) {
       context.addIssue({
         code: "custom",
         message: "Render launch intent fingerprint is stale.",
@@ -418,9 +452,7 @@ export const RenderLaunchReceiptSchema = RenderLaunchReceiptInputObject.extend({
   .strict()
   .superRefine((receipt, context) => {
     const { receiptFingerprint, ...input } = receipt;
-    if (
-      receiptFingerprint !== computeRenderLaunchReceiptFingerprint(input)
-    ) {
+    if (receiptFingerprint !== computeRenderLaunchReceiptFingerprint(input)) {
       context.addIssue({
         code: "custom",
         message: "Render launch receipt fingerprint is stale.",

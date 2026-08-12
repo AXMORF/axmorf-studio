@@ -157,11 +157,47 @@ export const ResourceMediaRoleSchema = z.enum([
 
 const ResourceMediaMetadataSchema = z
   .object({
+    mimeType: z
+      .string()
+      .regex(/^[a-z0-9.+-]+\/[a-z0-9.+-]+$/u)
+      .optional(),
+    sizeBytes: z.number().int().positive().safe().optional(),
     width: z.number().int().positive().safe().optional(),
     height: z.number().int().positive().safe().optional(),
     durationInSeconds: z.number().positive().finite().optional(),
     codec: z.string().trim().min(1).max(80).optional(),
     sampleRate: z.number().int().positive().safe().optional(),
+  })
+  .strict()
+  .readonly();
+
+const ExternalAssetSourceSchema = z
+  .object({
+    provider: z
+      .string()
+      .min(1)
+      .max(80)
+      .regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/u),
+    providerAssetId: z.string().trim().min(1).max(200),
+    sourcePageUrl: z
+      .url()
+      .refine(
+        (value) => new URL(value).protocol === "https:",
+        "External source page must use HTTPS.",
+      ),
+    creator: z
+      .object({
+        name: z.string().trim().min(1).max(200),
+        profileUrl: z
+          .url()
+          .refine(
+            (value) => new URL(value).protocol === "https:",
+            "External creator profile must use HTTPS.",
+          ),
+      })
+      .strict()
+      .readonly(),
+    provenanceFingerprint: Sha256DigestSchema,
   })
   .strict()
   .readonly();
@@ -175,6 +211,7 @@ const ResourceAssetDescriptorObject = z
     localPath: PublicAssetPathSchema,
     checksum: Sha256DigestSchema,
     license: LicenseRecordSchema,
+    externalSource: ExternalAssetSourceSchema.optional(),
     media: ResourceMediaMetadataSchema.optional(),
   })
   .strict()

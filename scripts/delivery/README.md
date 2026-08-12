@@ -23,12 +23,15 @@ Cover task 只 author 并发布 receipt；detached production watcher 是 Cover 
 automatic `delivery:build` 的唯一正常调用方。上面的 check/build 是诊断和中央 use case，不属于
 root 或 Cover owner 的派发后流程。
 
-`delivery:build` requires current PublishingIntent, ProductionRenderPlan, ProductionRenderReady and
-CoverResult. Each Project has one `deliveries/<storyId>/` current slot; a new identity replaces the
+`delivery:build` requires current PublishingIntent, ProductionRenderPlan, ProductionRenderReady,
+CoverResult, and the attribution projection of resources actually selected by the bound Scene and
+GlobalVisual packages. Each Project has one `deliveries/<storyId>/` current slot; a new identity replaces the
 previous package through staging with rollback on promotion failure. Build writes the immutable
 non-MP4 package and launch intent before detached Remotion spawn; after the OS emits `spawn`, it writes
 a receipt and returns `delivery-render-started`.
 `publishing.json` uses `delivery-publishing-v2` and names the MP4 plus both package Cover files.
+`asset-attributions.json` is always present, is deduplicated and fingerprint-bound, and remains a stable
+empty projection when no selected resource requires attribution.
 
 Intent without receipt is launch-ambiguous and never retried. Receipt does not prove render
 completion. Build/check do not monitor, read, hash, probe, or decode the planned MP4. Full semantics:

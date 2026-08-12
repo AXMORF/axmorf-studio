@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { findScriptLayeringViolations } from "../../scripts/architecture/script-layering";
 
-test("production and delivery scripts keep one-way layer dependencies", async () => {
+test("production delivery and project asset scripts keep one-way layer dependencies", async () => {
   assert.deepEqual(await findScriptLayeringViolations(process.cwd()), []);
 });
 
@@ -21,6 +21,9 @@ test("layering guard detects every forbidden dependency direction", async (conte
       "scripts/delivery/domain",
       "scripts/delivery/application",
       "scripts/delivery/adapters",
+      "scripts/project-assets/domain",
+      "scripts/project-assets/application",
+      "scripts/project-assets/adapters",
     ].map((path) => mkdir(join(rootDir, path), { recursive: true })),
   );
   await Promise.all([
@@ -55,6 +58,10 @@ test("layering guard detects every forbidden dependency direction", async (conte
       join(rootDir, "scripts/delivery/domain/bad.ts"),
       'import "../cover-cli";\n',
     ),
+    writeFile(
+      join(rootDir, "scripts/project-assets/domain/bad.ts"),
+      'import "../application/import";\n',
+    ),
   ]);
 
   assert.deepEqual(await findScriptLayeringViolations(rootDir), [
@@ -67,5 +74,6 @@ test("layering guard detects every forbidden dependency direction", async (conte
     "scripts/production/domain/bad.ts -> scripts/production/adapters/filesystem: domain dependency inversion",
     "scripts/production/domain/bad.ts -> scripts/production/application/use-case: domain dependency inversion",
     "scripts/production/domain/bad.ts -> scripts/production/cli: domain dependency inversion",
+    "scripts/project-assets/domain/bad.ts -> scripts/project-assets/application/import: domain dependency inversion",
   ]);
 });

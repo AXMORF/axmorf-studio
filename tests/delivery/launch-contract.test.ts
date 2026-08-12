@@ -16,6 +16,8 @@ const identity = {
   storyId: "story-example",
   publishingIntentFingerprint: sha("1"),
   publishingChecksum: sha("8"),
+  assetAttributionsFingerprint: sha("9"),
+  assetAttributionsChecksum: sha("a"),
   coverResultFingerprint: sha("2"),
   renderReadyFingerprint: sha("3"),
   renderPlanFingerprint: sha("4"),
@@ -104,9 +106,26 @@ test("delivery identity excludes MP4 completion facts", () => {
     fps: 30,
     frameCount: 120,
     files: {
-      cover4x3: { fileName: "cover-4x3.png", checksum: sha("5"), sizeBytes: 10 },
-      cover3x4: { fileName: "cover-3x4.png", checksum: sha("6"), sizeBytes: 11 },
-      publishing: { fileName: "publishing.json", checksum: sha("7"), sizeBytes: 12 },
+      cover4x3: {
+        fileName: "cover-4x3.png",
+        checksum: sha("5"),
+        sizeBytes: 10,
+      },
+      cover3x4: {
+        fileName: "cover-3x4.png",
+        checksum: sha("6"),
+        sizeBytes: 11,
+      },
+      publishing: {
+        fileName: "publishing.json",
+        checksum: sha("7"),
+        sizeBytes: 12,
+      },
+      assetAttributions: {
+        fileName: "asset-attributions.json",
+        checksum: sha("a"),
+        sizeBytes: 13,
+      },
     },
   });
 
@@ -115,7 +134,11 @@ test("delivery identity excludes MP4 completion facts", () => {
     createDeliveryId({ ...identity, publishingChecksum: sha("9") }),
     deliveryId,
   );
-  assert.equal(manifest.contractVersion, "delivery-launch-manifest-v3");
+  assert.notEqual(
+    createDeliveryId({ ...identity, assetAttributionsChecksum: sha("b") }),
+    deliveryId,
+  );
+  assert.equal(manifest.contractVersion, "delivery-launch-manifest-v4");
   assert.doesNotMatch(
     JSON.stringify(manifest),
     /actualDuration|mp4Checksum|decode|approved|render-succeeded|complete/iu,
@@ -135,8 +158,8 @@ test("launch intent and receipt prove only the spawn acknowledgement", () => {
     startedAt: "2026-08-09T00:00:00.000Z",
   });
 
-  assert.equal(intent.contractVersion, "render-launch-intent-v3");
-  assert.equal(receipt.contractVersion, "render-launch-receipt-v3");
+  assert.equal(intent.contractVersion, "render-launch-intent-v4");
+  assert.equal(receipt.contractVersion, "render-launch-receipt-v4");
   assert.equal(receipt.status, "render-started");
   assert.equal("pid" in receipt, false);
   assert.doesNotMatch(JSON.stringify(receipt), /succeeded|complete|verified/iu);

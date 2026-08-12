@@ -2,7 +2,7 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-10
+> 最后复核：2026-08-12
 >
 > 适用范围：current Project 已有 current PublishingIntent、ProductionRenderPlan、
 > ProductionRenderReady 和 immutable CoverResult。
@@ -37,8 +37,9 @@ npm run delivery:build -- --project <storyId>
 ```
 
 输入固定为 current StorySpec、SemanticTiming、PublishingIntent、ProductionRenderPlan、
-ProductionRenderReady 和 CoverResult。`deliveryId` 确定性绑定这些 identity、Composition、exact
-render argv 与 `detached-spawn-acknowledgement-v1`。
+ProductionRenderReady、CoverResult，以及 render plan 实际使用资源从绑定 ResourceCatalog 投影的
+`asset-attributions-v1`。`deliveryId` 确定性绑定这些 identity、attribution fingerprint/checksum、
+Composition、exact render argv 与 `detached-spawn-acknowledgement-v1`。
 
 `publishing.json` 使用 `delivery-publishing-v2`：title 来自 StorySpec，
 description/topics/collection/chapter names 来自 PublishingIntent；`outputFileName` 固定为
@@ -49,7 +50,8 @@ description/topics/collection/chapter names 来自 PublishingIntent；`outputFil
 build 顺序不可交换：
 
 1. 在唯一 staging 中复制 exact Cover PNG；
-2. 写 canonical publishing、launch manifest、handoff、render launch intent 和 checksum ledger；
+2. 写 canonical publishing、`asset-attributions.json`、launch manifest、handoff、render launch
+   intent 和 checksum ledger；
 3. 对非 MP4 package 做完整 current check；
 4. 原子提升为每个 Project 唯一的 `deliveries/<storyId>/`；identity 变化时替换旧 package；
 5. 再次确认新 package 尚未包含计划 MP4；
@@ -65,6 +67,7 @@ deliveries/<storyId>/
 ├── cover-4x3.png
 ├── cover-3x4.png
 ├── publishing.json
+├── asset-attributions.json
 ├── delivery-launch-manifest.json
 ├── HANDOFF.md
 ├── immutable-checksums.sha256
@@ -100,7 +103,7 @@ npm run delivery:check -- --project <storyId>
 ```
 
 check 重读 current inputs，验证 delivery identity、固定 package 文件集、canonical bytes、
-checksums、Cover equality、manifest、intent 和 receipt。它允许 exact 计划 MP4 文件出现，但不
+checksums、Cover equality、attribution、manifest、intent 和 receipt。它允许 exact 计划 MP4 文件出现，但不
 stat、read、hash、probe 或 decode 该文件，也不把它的存在解释为完成。
 
 未知文件、路径逃逸、symlink、input drift 或缺失 receipt fail closed。不上传平台、

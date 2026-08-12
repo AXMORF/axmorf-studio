@@ -17,6 +17,10 @@ scripts/production/cli.ts      fixed CLI dispatch only
 scripts/production/application use-case orchestration
 scripts/production/domain/     pure run/event/projection rules
 scripts/production/adapters/   filesystem/provider/process boundaries
+scripts/project-assets/cli.ts  external asset import CLI dispatch
+scripts/project-assets/application Project-local import and Catalog orchestration
+scripts/project-assets/domain/ provider-neutral identity and media rules
+scripts/project-assets/adapters/ provider receipt and protected filesystem boundaries
 scripts/delivery/cli.ts        delivery build/check dispatch
 scripts/delivery/application/  input loading, package, launch, check
 scripts/delivery/domain/       deterministic delivery model and canonical bytes
@@ -42,6 +46,9 @@ flowchart LR
     Config --> Execution["private-safe narration execution"]
     Execution --> Run["ProductionRun manifest"]
     Story["StorySpec"] --> Timing["SemanticTiming"]
+    Provider["External provider receipt"] --> Import["Project asset import"]
+    Import --> Catalog["ResourceCatalog"]
+    Catalog --> Scene
     Story --> Publish["PublishingIntent"]
     Timing --> Scene["Scene assignments/results"]
     Scene --> Receipts["Owner receipt inbox"]
@@ -55,6 +62,8 @@ flowchart LR
     Publish --> Delivery["Delivery identity/package"]
     Cover --> Delivery
     Ready --> Delivery
+    Catalog --> Attribution["Used asset attribution"]
+    Attribution --> Delivery
     Delivery --> Intent["RenderLaunchIntent"]
     Intent --> Spawn["Detached spawn"]
     Spawn --> Receipt["RenderLaunchReceipt"]
@@ -96,6 +105,15 @@ Scene authoring 期使用 repository-local `.agents/skills/remotion-best-practic
 ProductionRun、ScenePackage fingerprint、ResourceCatalog 或 render runtime，也不改变 child 的
 exclusive ownership。
 
+## External asset boundary
+
+Provider-specific receipt 只存在于 `scripts/project-assets/adapters/`。adapter 将当前 Pexels image
+receipt v1 映射为版本化的通用 `ExternalAssetAcquisition` discriminated union；image 已开放，
+video/audio 是独立且当前 fail-closed 的扩展 seam。准入负责路径 containment、regular/no-symlink、
+真实媒体 identity、原子本地化、不可变来源证据和 Project manifest；ResourceCatalog 只暴露
+Project-local `runtime-approved` descriptor。MCP、provider SDK、网络和 credential 不进入 Scene
+owner、watcher、delivery 或 Remotion runtime，远程 URL 永远不是 runtime asset source。
+
 ## Composition ownership
 
 Composition exactly once 提供 SceneSafeArea、NarrativeCore、CaptionLayer、GlobalVisual background
@@ -118,7 +136,8 @@ receipt。intent-only 是 watcher-launch-ambiguous，禁止自动重试。watche
 
 每个 Project 只有 `deliveries/<storyId>/` 一个 current delivery slot。slot 内 package 对其 identity
 是 immutable 的，identity 绑定 PublishingIntent、CoverResult、render plan/ready、Composition、
-exact argv 和 launch policy；新 identity 通过 staging backup + promote 受控替换旧 package，不形成
+exact argv、launch policy 与实际使用资源的 attribution fingerprint/checksum；新 identity 通过
+staging backup + promote 受控替换旧 package，不形成
 历史 delivery 目录。manifest 只保存 planned frames/fps/duration，不保存实际媒体事实。
 `delivery-publishing-v2` 投影发布文本、章节以及 package 内 MP4、4:3 Cover、3:4 Cover 的固定文件名，
 不保存媒体完成状态。

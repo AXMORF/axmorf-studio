@@ -5,6 +5,7 @@ import ts from "typescript";
 
 import {
   ProducerAssetManifestSchema,
+  ProjectAssetManifestSchema,
   ResourceAssetDescriptorSchema,
   ResourceDescriptorSchema,
   ResourceIdSchema,
@@ -153,16 +154,25 @@ export const loadProjectResourceDescriptors = async (
         throw new Error("Project Catalog manifest is malformed.");
       }
       const record = raw as Record<string, unknown>;
-      if (
-        record.schemaVersion !== 1 ||
-        (record.projectId !== undefined && record.projectId !== project.name)
-      ) {
-        throw new Error("Project Catalog manifest identity is stale.");
+      let declarations: unknown;
+      if (fileName === "assets.manifest.json" && record.schemaVersion === 2) {
+        const manifest = ProjectAssetManifestSchema.parse(raw);
+        if (manifest.projectId !== project.name) {
+          throw new Error("Project Catalog manifest identity is stale.");
+        }
+        declarations = manifest.assets;
+      } else {
+        if (
+          record.schemaVersion !== 1 ||
+          (record.projectId !== undefined && record.projectId !== project.name)
+        ) {
+          throw new Error("Project Catalog manifest identity is stale.");
+        }
+        declarations =
+          fileName === "assets.manifest.json"
+            ? record.assets
+            : record.descriptors;
       }
-      const declarations =
-        fileName === "assets.manifest.json"
-          ? record.assets
-          : record.descriptors;
       if (!Array.isArray(declarations)) {
         throw new Error("Project Catalog descriptor list is missing.");
       }

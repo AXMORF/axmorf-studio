@@ -2,7 +2,7 @@
 
 > 文档类型：产品目标权威
 >
-> 最后复核：2026-08-11
+> 最后复核：2026-08-12
 
 ## 一句话目标
 
@@ -19,7 +19,8 @@
    Agent-authored ttsChunks、RenderSpec 与 PublishingIntent；
 2. 用 sealed PCM 实测生成 SemanticTiming 与 CaptionCue，并生成保持 PCM 格式与 sample count
    不变的响度母带；
-3. 冻结全部 owner assignments，exactly once 启动 detached watcher；
+3. 先查本地 ResourceCatalog；确需外部图片时经 MCP acquire 后，由仓库严格准入并本地化，再冻结
+   全部 owner assignments，exactly once 启动 detached watcher；
 4. 主 Agent 用 `create_thread` 派发每个 meaningId 的 Scene、一个 GlobalVisual 与一个 Cover 独立
    用户任务，全部创建成功后立即结束；
 5. owner 只发布 assignment-bound immutable receipt，watcher 串行 check/submit 并汇合
@@ -46,6 +47,8 @@
 - JSON 不包含 JSX、代码、动态模块路径或 executable expression。
 - render runtime 不调用 Agent、Skill、MCP、Git、网络或目录扫描。
 - 所有 render-critical 资产 repository-local、manifest-verified；motion 使用 Remotion frame API。
+- 外部 provider receipt 只能在准入 adapter 边界存在；MCP、网络、SDK、API Key 与远程 asset URL
+  不进入 owner、watcher、delivery 或 Remotion runtime。
 - production state 只由 append-only events、immutable results 与 current fingerprints 投影。
 - Cover 独立于 production state，只消费 StorySpec、VisualStyleSpec 与 fixed CoverSpec。
 - Codex task/thread/progress/heartbeat 不进入 repository state；缺失 receipt 不触发 timeout/retry。
@@ -56,8 +59,9 @@
 ## 自动交付边界
 
 交付 identity 必须绑定 current PublishingIntent、CoverResult、ProductionRenderReady、
-ProductionRenderPlan、Composition、fixed argv 和 launch policy。immutable package 包含 exact
-Covers、publishing、handoff、manifest、intent、receipt 与 checksum ledger；计划 MP4 写入同一
+ProductionRenderPlan、Composition、实际使用资源的 attribution、fixed argv 和 launch policy。
+immutable package 包含 exact Covers、publishing、`asset-attributions.json`、handoff、manifest、
+intent、receipt 与 checksum ledger；计划 MP4 写入同一
 delivery directory，但不属于 immutable ledger。每个 Project 只有 `deliveries/<storyId>/` 一个
 current slot；重新生成以新 identity 从 staging 替换旧 package，不保留多个 delivery。自动
 delivery 只向 `out/<storyId>/delivery-render/` 写 detached render log；Project baseline 与 core

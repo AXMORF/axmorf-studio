@@ -54,9 +54,9 @@
 - watcher 是 check、正式 result/event、registry convergence 与 `delivery:build` 的唯一中央 writer。
 - 每个 Project 只有 `deliveries/<storyId>/` 一个 current delivery slot；identity 变化时通过 staging
   受控替换旧 package，同一 identity 重复 build 仍为只读 no-op。
-- build 先准备 immutable non-MP4 package 并 exactly once 写 `render-launch-intent-v3`，再用 fixed
+- build 先准备 immutable non-MP4 package 并 exactly once 写 `render-launch-intent-v4`，再用 fixed
   cwd/argv/log、`shell:false`、`detached:true` spawn Remotion。
-- OS 发出 `spawn` 后才写 `render-launch-receipt-v3` 并返回 `delivery-render-started`。receipt 只
+- OS 发出 `spawn` 后才写 `render-launch-receipt-v4` 并返回 `delivery-render-started`。receipt 只
   证明 spawn acknowledgement，不证明 render completion 或 MP4 有效。
 - intent 存在而 receipt 缺失时 launch-ambiguous，current scripts 永不自动重试。
 - repository 不等待、监控、read、hash、probe 或 decode detached MP4，不保存 PID/exit 状态。

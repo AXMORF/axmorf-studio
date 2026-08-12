@@ -39,6 +39,13 @@ and the simplest style-aligned GlobalVisual brief. Keep Scene expression specifi
 while maintaining whole-film visual continuity. Cover direction remains an independent design derived
 from StorySpec, VisualStyleSpec, and fixed CoverSpec.
 
+Choose asset-led, code-led, or hybrid deliberately. Query the current local ResourceCatalog first. If
+an external image is needed, use the external MCP only for search/preview/acquire, then run
+`npm run project:asset:import -- --project <storyId> --receipt <absoluteReceiptPath> --role <scene-visual|global-visual>`
+before Scene freeze. Only the imported Project-local Resource ID may enter frozen plans. Do not pass a
+receipt, candidate path, provider URL, MCP call, credential, or SDK to an owner or runtime. Video/audio
+external import is not supported. Cover remains unable to consume Scene/MCP assets.
+
 ```bash
 npm run production:scene:freeze -- --run <runId>
 npm run delivery:cover:freeze -- --project <storyId>

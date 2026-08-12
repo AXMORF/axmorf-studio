@@ -22,7 +22,11 @@ import {
   assertCurrentDeliveryInputBindings,
   type loadCurrentDeliveryInputs,
 } from "../../scripts/delivery/application/inputs";
-import { computeStoryFingerprint } from "../../src/contracts";
+import {
+  buildAssetAttributions,
+  computeStoryFingerprint,
+} from "../../src/contracts";
+import { buildResourceCatalog } from "../../scripts/catalog/domain";
 
 const sha = (bytes: Uint8Array) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}` as const;
@@ -104,6 +108,12 @@ const createFixture = async (context: TestContext) => {
         ],
       },
     },
+    assetAttributions: buildAssetAttributions({
+      storyId: "story-example",
+      resourceCatalog: buildResourceCatalog([]),
+      renderPlanFingerprint: `sha256:${"2".repeat(64)}`,
+      selectedResources: [],
+    }),
   };
   const loadInputs = (async () =>
     inputs) as unknown as typeof loadCurrentDeliveryInputs;
@@ -165,7 +175,10 @@ test("build records intent before spawn and receipt only after spawn acknowledge
     await assert.rejects(
       readFile(join(deliveryDir, "render-launch-receipt.json")),
     );
-    assert.equal(args[3], join("deliveries", "story-example", "story-example.mp4"));
+    assert.equal(
+      args[3],
+      join("deliveries", "story-example", "story-example.mp4"),
+    );
   };
   const first = await buildDelivery({
     rootDir: fixture.rootDir,
@@ -182,6 +195,7 @@ test("build records intent before spawn and receipt only after spawn acknowledge
   const deliveryDir = join(fixture.rootDir, "deliveries/story-example");
   assert.deepEqual((await readdir(deliveryDir)).sort(), [
     "HANDOFF.md",
+    "asset-attributions.json",
     "cover-3x4.png",
     "cover-4x3.png",
     "delivery-launch-manifest.json",
@@ -195,9 +209,8 @@ test("build records intent before spawn and receipt only after spawn acknowledge
     /actualDuration|checksum.*mp4|decode/iu,
   );
   assert.deepEqual(
-    JSON.parse(
-      await readFile(join(deliveryDir, "publishing.json"), "utf8"),
-    ).coverFileNames,
+    JSON.parse(await readFile(join(deliveryDir, "publishing.json"), "utf8"))
+      .coverFileNames,
     {
       cover4x3: "cover-4x3.png",
       cover3x4: "cover-3x4.png",
@@ -267,7 +280,10 @@ test("changed inputs replace the single Project delivery in place", async (conte
   assert.equal(launches, 1);
   assert.equal(
     JSON.parse(
-      await readFile(join(deliveryDir, "delivery-launch-manifest.json"), "utf8"),
+      await readFile(
+        join(deliveryDir, "delivery-launch-manifest.json"),
+        "utf8",
+      ),
     ).deliveryId,
     replacement.deliveryId,
   );

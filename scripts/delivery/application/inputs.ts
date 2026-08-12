@@ -15,6 +15,7 @@ import {
 import { checkProductionRenderReady } from "../../production/application/render-ready";
 import { readDeliveryJson } from "../adapters/filesystem";
 import { loadCurrentDeliveryCoverResult } from "./cover-inputs";
+import { loadDeliveryAssetAttributions } from "./asset-attributions";
 import type { DeliveryApplicationDependencies } from "./types";
 
 const generatedPath = (projectId: string, fileName: string) =>
@@ -45,11 +46,11 @@ export const assertCurrentDeliveryInputBindings = ({
     renderPlan.storyId !== projectId ||
     renderReady.storyId !== projectId ||
     renderReady.runId !== renderPlan.runId ||
-    renderReady.requirementsFingerprint !== renderPlan.requirementsFingerprint ||
+    renderReady.requirementsFingerprint !==
+      renderPlan.requirementsFingerprint ||
     renderReady.renderPlanFingerprint !== renderPlan.renderPlanFingerprint ||
     renderPlan.storyFingerprint !== computeStoryFingerprint(story) ||
-    renderPlan.semanticTimingFingerprint !==
-      semanticTiming.fingerprint ||
+    renderPlan.semanticTimingFingerprint !== semanticTiming.fingerprint ||
     semanticTiming.fps !== renderPlan.fps ||
     semanticTiming.durationInFrames !== renderPlan.frameCount ||
     current.runId !== renderPlan.runId ||
@@ -110,6 +111,11 @@ export const loadCurrentDeliveryInputs = async ({
       }),
     ]);
   const intent = resolveCurrentPublishingIntent({ story, intent: rawIntent });
+  const assetAttributions = await loadDeliveryAssetAttributions({
+    rootDir,
+    projectId,
+    renderPlan,
+  });
   const current = await (
     dependencies.checkRenderReady ?? checkProductionRenderReady
   )({ rootDir, runId: renderPlan.runId });
@@ -121,9 +127,7 @@ export const loadCurrentDeliveryInputs = async ({
     renderReady,
     current,
   });
-  if (
-    cover.result.storyId !== projectId
-  ) {
+  if (cover.result.storyId !== projectId) {
     throw new Error("Automatic delivery inputs are stale or cross-bound.");
   }
   return {
@@ -133,5 +137,6 @@ export const loadCurrentDeliveryInputs = async ({
     renderPlan,
     renderReady,
     cover,
+    assetAttributions,
   } as const;
 };

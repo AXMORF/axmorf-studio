@@ -89,9 +89,10 @@ receipt 也不会被当成“进程仍存活”的证明或自动重启许可；
 ## Delivery identity 与 canonical package
 
 deliveryId 从 PublishingIntent fingerprint、canonical publishing checksum、CoverResult fingerprint、
-render-ready fingerprint、render-plan fingerprint、Composition、Project 固定 output path、exact
-render args 和 launch policy 计算。真实 intent fingerprint exact command/argv/output/log；deliveryId
-仍是 current package 的校验 identity，但不再作为存储目录名。
+render-ready fingerprint、render-plan fingerprint、Composition、实际使用资源的 attribution
+fingerprint/checksum、Project 固定 output path、exact render args 和 launch policy 计算。真实 intent
+fingerprint exact command/argv/output/log；deliveryId 仍是 current package 的校验 identity，但不再
+作为存储目录名。
 
 staging 中先写并校验：
 
@@ -99,6 +100,7 @@ staging 中先写并校验：
 cover-4x3.png
 cover-3x4.png
 publishing.json
+asset-attributions.json
 delivery-launch-manifest.json
 HANDOFF.md
 immutable-checksums.sha256

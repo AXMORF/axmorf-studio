@@ -17,6 +17,8 @@ or Beat-specific changes。不得读取 Scene 输出、字幕、旁白或历史 
 
 GlobalVisualLayers 必须 no-Props、无可见文字/音频/Scene DSL/automatic director，只用 Remotion frame
 APIs。不得写共享 registry/catalog、Run state/event/result，不得 bootstrap、submit、delivery、Git 或创建 Agent。
+只消费 assignment 中冻结且可由绑定 ResourceCatalog 解析的 Project-local Resource ID；不得调用
+MCP、网络、provider SDK，不得读取 acquisition receipt/candidate，不得把远程 URL 用作 asset src。
 
 完成后只运行：
 npm run production:owner:ready -- --run <runId> --owner global-visual

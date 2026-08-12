@@ -2,7 +2,7 @@
 
 > 文档类型：维护指南
 >
-> 最后复核：2026-08-10
+> 最后复核：2026-08-12
 >
 > 系统结构与当前状态分别以 [ARCHITECTURE.md](../ARCHITECTURE.md) 和
 > [ITERATION_STATUS.md](../ITERATION_STATUS.md) 为准。
@@ -16,6 +16,7 @@ Scene 设计只通过一个只读目录发现可用视觉、音频、style profi
 ```mermaid
 flowchart LR
     Assets["本地资产 manifest"] --> Build["buildResourceCatalog"]
+    ExternalMedia["Imported external media<br/>provider receipt evidence"] --> Build
     Primitives["primitives"] --> Code["capabilityCatalog"]
     Camera["camera"] --> Code
     Effects["effects / motion"] --> Code
@@ -85,6 +86,12 @@ ResourceDescriptor
 这属于目录元数据增强，不改变其实现权威。
 
 ## 外部镜头参考
+
+外部可播放媒体与 authoring-only 镜头参考是不同边界。当前 `project:asset:import` 只准入 Pexels
+image receipt v1：校验候选 bytes 后复制到 Project-owned public 路径，把 provider receipt 映射为
+通用 acquisition evidence 和 `runtime-approved` asset descriptor。Scene freeze 后不能补导入，
+Scene/GlobalVisual owner 只消费冻结的本地 Resource ID。video/audio 分支存在于通用合同中，但当前
+明确 fail closed；Catalog 不把它们伪装成已支持资源。
 
 `video-shotcraft` 等上游库通过 `ExternalReferenceSnapshot` 进入制作期查询面，而不是直接
 安装为 Composition 依赖。主 Agent 在显式 authoring sync 中固定 repository 和完整 commit，

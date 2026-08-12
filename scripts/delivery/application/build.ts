@@ -56,10 +56,7 @@ export const buildDelivery = async ({
     rootDir,
     projectId,
   });
-  await assertDeliveryDirectoryChain([
-    paths.deliveries,
-    paths.delivery,
-  ]);
+  await assertDeliveryDirectoryChain([paths.deliveries, paths.delivery]);
   if (await deliveryExists(paths.delivery)) {
     const intentExists = await deliveryPathExists(
       join(paths.delivery, "render-launch-intent.json"),
@@ -95,11 +92,15 @@ export const buildDelivery = async ({
       if (
         existingManifest.deliveryId !== existingIntent.deliveryId ||
         existingReceipt.deliveryId !== existingIntent.deliveryId ||
-        existingReceipt.intentFingerprint !== existingIntent.intentFingerprint ||
-        existingReceipt.commandFingerprint !== existingIntent.commandFingerprint ||
+        existingReceipt.intentFingerprint !==
+          existingIntent.intentFingerprint ||
+        existingReceipt.commandFingerprint !==
+          existingIntent.commandFingerprint ||
         existingReceipt.outputPath !== existingIntent.outputPath
       ) {
-        throw new Error("Existing automatic delivery launch records are cross-bound.");
+        throw new Error(
+          "Existing automatic delivery launch records are cross-bound.",
+        );
       }
       if (existingManifest.deliveryId === model.deliveryId) {
         const checked = await checkDeliveryDirectory({
@@ -132,6 +133,10 @@ export const buildDelivery = async ({
       }),
     ]);
     await Promise.all([
+      writeDeliveryFileExclusive({
+        destination: join(staging.root, "asset-attributions.json"),
+        bytes: model.bytes.assetAttributions,
+      }),
       writeDeliveryFileExclusive({
         destination: join(staging.root, "publishing.json"),
         bytes: model.bytes.publishing,
@@ -172,7 +177,9 @@ export const buildDelivery = async ({
     });
     const launchModel = buildDeliveryPackageModel(launchInputs);
     if (launchModel.deliveryId !== model.deliveryId) {
-      throw new Error("Automatic delivery inputs drifted before render launch.");
+      throw new Error(
+        "Automatic delivery inputs drifted before render launch.",
+      );
     }
     await checkDeliveryDirectory({
       deliveryDir: paths.delivery,

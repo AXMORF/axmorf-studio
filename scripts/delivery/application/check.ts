@@ -18,6 +18,7 @@ import type { DeliveryApplicationDependencies } from "./types";
 
 const PRELAUNCH_FILES = [
   "HANDOFF.md",
+  "asset-attributions.json",
   "cover-3x4.png",
   "cover-4x3.png",
   "delivery-launch-manifest.json",
@@ -34,7 +35,11 @@ const decodeJson = (bytes: Uint8Array, label: string) => {
   }
 };
 
-const assertExactBytes = (actual: Uint8Array, expected: string, label: string) => {
+const assertExactBytes = (
+  actual: Uint8Array,
+  expected: string,
+  label: string,
+) => {
   const wanted = new TextEncoder().encode(expected);
   if (
     actual.byteLength !== wanted.byteLength ||
@@ -74,18 +79,27 @@ export const checkDeliveryDirectory = async ({
       : PRELAUNCH_FILES,
     ignoredOutputFileName: `${inputs.story.storyId}.mp4`,
   });
-  const [cover4x3, cover3x4, publishing, manifest, handoff, intent, ledger] =
-    await Promise.all(
-      [
-        "cover-4x3.png",
-        "cover-3x4.png",
-        "publishing.json",
-        "delivery-launch-manifest.json",
-        "HANDOFF.md",
-        "render-launch-intent.json",
-        "immutable-checksums.sha256",
-      ].map((fileName) => inspectDeliveryFile(join(deliveryDir, fileName))),
-    );
+  const [
+    cover4x3,
+    cover3x4,
+    assetAttributions,
+    publishing,
+    manifest,
+    handoff,
+    intent,
+    ledger,
+  ] = await Promise.all(
+    [
+      "cover-4x3.png",
+      "cover-3x4.png",
+      "asset-attributions.json",
+      "publishing.json",
+      "delivery-launch-manifest.json",
+      "HANDOFF.md",
+      "render-launch-intent.json",
+      "immutable-checksums.sha256",
+    ].map((fileName) => inspectDeliveryFile(join(deliveryDir, fileName))),
+  );
   const [expected4x3, expected3x4] = inputs.cover.result.covers;
   if (
     cover4x3.checksum !== expected4x3.checksum ||
@@ -97,12 +111,21 @@ export const checkDeliveryDirectory = async ({
   }
   assertExactBytes(publishing.bytes, model.bytes.publishing, "publishing.json");
   assertExactBytes(
+    assetAttributions.bytes,
+    model.bytes.assetAttributions,
+    "asset-attributions.json",
+  );
+  assertExactBytes(
     manifest.bytes,
     model.bytes.manifest,
     "delivery-launch-manifest.json",
   );
   assertExactBytes(handoff.bytes, model.bytes.handoff, "HANDOFF.md");
-  assertExactBytes(intent.bytes, model.bytes.intent, "render-launch-intent.json");
+  assertExactBytes(
+    intent.bytes,
+    model.bytes.intent,
+    "render-launch-intent.json",
+  );
   assertExactBytes(
     ledger.bytes,
     model.bytes.ledger,
@@ -134,7 +157,9 @@ export const checkDeliveryDirectory = async ({
   return {
     projectId: inputs.story.storyId,
     deliveryId,
-    status: hasReceipt ? ("delivery-render-started" as const) : ("launch-intent-recorded" as const),
+    status: hasReceipt
+      ? ("delivery-render-started" as const)
+      : ("launch-intent-recorded" as const),
   };
 };
 
@@ -156,10 +181,7 @@ export const checkDelivery = async ({
   });
   const model = buildDeliveryPackageModel(inputs);
   const paths = resolveDeliveryPaths({ rootDir, projectId });
-  await assertDeliveryDirectoryChain([
-    paths.deliveries,
-    paths.delivery,
-  ]);
+  await assertDeliveryDirectoryChain([paths.deliveries, paths.delivery]);
   return checkDeliveryDirectory({
     deliveryDir: paths.delivery,
     deliveryId: model.deliveryId,

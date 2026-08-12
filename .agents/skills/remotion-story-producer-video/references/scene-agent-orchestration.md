@@ -20,6 +20,8 @@ assignment: <assignmentPath>
 根据冻结 StoryBeat、timing、VisualStyleSpec 和资源设计当前 Beat 的表达；author 透明 Scene 视觉和
 可选 Scene-local sound。不得读取历史 Scene/Composition/still 或其他 owner 输出；不得写字幕、旁白、
 全局背景、共享 registry/catalog、Run state/event/result，不得 bootstrap、submit、delivery、Git 或创建 Agent。
+只消费 assignment 中冻结且可由绑定 ResourceCatalog 解析的 Project-local Resource ID；不得调用
+MCP、网络、provider SDK，不得读取 acquisition receipt/candidate，不得把远程 URL 用作 asset src。
 
 完成后只运行：
 npm run production:owner:ready -- --run <runId> --owner scene --scene <meaningId>

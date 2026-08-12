@@ -23,6 +23,10 @@
   Project 的 Composition 与真实 import graph，跨模块类型漂移会 fail closed。
 - core 与 fresh clone 是 zero-Project-safe；ignored 本地 Project 集由 bootstrap 动态发现，不写入
   README 或 current capability 状态。
+- 外部素材服务只负责 search/preview/acquire。当前 `project:asset:import` 严格接收
+  stock-assets-mcp 的 Pexels image receipt v1，把候选图片校验并本地化到 Project-owned 路径后才
+  进入 ResourceCatalog；MCP、网络、provider SDK 与 API Key 不进入 owner、watcher、delivery 或
+  Remotion runtime。
 - 每个 Project 只有一个 `deliveries/<storyId>/` current delivery；重新生成时原位替换。它不是
   checksum-bound verified release，ledger 只覆盖当前 identity 的 immutable 非 MP4 文件；
   `publishing.json` 同时给出 MP4 与两张 Cover 的固定文件名。
@@ -39,6 +43,7 @@
 Story + authored ttsChunks + RenderSpec + PublishingIntent
   → measured and sealed narration
   → SemanticTiming + CaptionCue + NarrativeCore
+  → local ResourceCatalog lookup + optional external image import
   → N Scene owners + one GlobalVisual owner + independent Cover owner
   → assignment-bound owner receipts + detached single-writer watcher
   → FinalAssembly + ProductionRenderPlan
@@ -108,6 +113,15 @@ npm run project:verify -- --project <story-id> --scope full
 npm run project:evidence:check -- --project <story-id>
 ```
 
+外部图片必须在 Scene freeze 前由中央 CLI 准入；receipt 使用绝对路径，候选文件保持原样：
+
+```bash
+npm run project:asset:import -- \
+  --project <story-id> \
+  --receipt <absolute-receipt-path> \
+  --role scene-visual
+```
+
 删除已完成作品时使用固定清理入口。命令会删除选中 storyId 的 Project 源码、项目媒体、旁白工作区、
 ProductionRun、`out/` 与 delivery 全部数据，再重建 Registry/Catalog；不会删除 core、
 `public/voice_profile/` 或其他作品。`--confirm-delete` 只在用户已明确授权删除后使用：
@@ -158,6 +172,7 @@ npm run delivery:check -- --project <story-id>
 .agents/skills/              仓库生产 Skill 与 repository-local Remotion authoring guidance
 docs/                        当前权威、指南、证据和历史归档
 scripts/production/          production cli / application / domain / adapters
+scripts/project-assets/      外部 receipt adapter、Project-local 准入与 Catalog 同步
 scripts/delivery/            Cover 与自动交付 cli / application / domain / adapters
 scripts/shared/              跨 production/delivery 的窄技术端口与宿主媒体 adapter
 scripts/config/              private ProducerConfig 读写与迁移

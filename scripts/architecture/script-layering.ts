@@ -66,12 +66,12 @@ const resolveLocalImport = (sourcePath: string, specifier: string) =>
 
 const layerOf = (sourcePath: string) => {
   const match =
-    /^scripts\/(production|delivery)\/(application|domain|adapters)\//u.exec(
+    /^scripts\/(production|delivery|project-assets)\/(application|domain|adapters)\//u.exec(
       sourcePath,
     );
   return (
     match?.[2] ??
-    (/^scripts\/(production|delivery)\/(?:[a-z0-9-]+-)?cli(?:\.[cm]?tsx?)?$/u.test(
+    (/^scripts\/(production|delivery|project-assets)\/(?:[a-z0-9-]+-)?cli(?:\.[cm]?tsx?)?$/u.test(
       sourcePath,
     )
       ? "cli"
@@ -80,7 +80,11 @@ const layerOf = (sourcePath: string) => {
 };
 
 export const findScriptLayeringViolations = async (rootDir: string) => {
-  const roots = ["scripts/production", "scripts/delivery"] as const;
+  const roots = [
+    "scripts/production",
+    "scripts/delivery",
+    "scripts/project-assets",
+  ] as const;
   const files = (
     await Promise.all(
       roots.map((root) => listTypeScriptFiles(join(rootDir, root))),

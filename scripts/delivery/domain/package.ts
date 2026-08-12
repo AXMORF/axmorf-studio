@@ -6,6 +6,7 @@ import {
   serializeCanonicalJson,
   type DeliveryLaunchManifest,
   type DeliveryPublishing,
+  type AssetAttributions,
 } from "../../../src/contracts";
 
 export const serializeDeliveryJson = (value: unknown) =>
@@ -14,9 +15,11 @@ export const serializeDeliveryJson = (value: unknown) =>
 export const buildDeliveryHandoff = ({
   manifest,
   publishing,
+  assetAttributions,
 }: {
   readonly manifest: DeliveryLaunchManifest;
   readonly publishing: DeliveryPublishing;
+  readonly assetAttributions: AssetAttributions;
 }) =>
   [
     `# ${publishing.title}`,
@@ -31,11 +34,22 @@ export const buildDeliveryHandoff = ({
     "- `cover-4x3.png`",
     "- `cover-3x4.png`",
     "- `publishing.json`",
+    "- `asset-attributions.json`",
     "- `delivery-launch-manifest.json`",
     "- `render-launch-intent.json`",
     "- `immutable-checksums.sha256`",
     "",
     "The MP4 is rendered asynchronously to the planned output path. A launch receipt proves only that the operating system acknowledged process creation; it proves no later render state or media validity.",
+    "",
+    "## Asset attribution",
+    "",
+    ...(assetAttributions.entries.length === 0
+      ? ["No used asset requires attribution."]
+      : assetAttributions.entries.map((entry) =>
+          entry.sourceKind === "external"
+            ? `- ${entry.attributionText} — ${entry.sourcePageUrl}`
+            : `- ${entry.attributionText}`,
+        )),
     "",
     "## Manual diagnostic only",
     "",
