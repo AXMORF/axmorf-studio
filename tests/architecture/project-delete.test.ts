@@ -20,6 +20,8 @@ import {
   deleteProjectData,
   parseProjectDeleteArguments,
 } from "../../scripts/projects/delete";
+import { acquireRepositoryOperationLock } from "../../scripts/shared/repository-operation-lock";
+import { writeRemovableProject } from "../fixtures/removable-project";
 
 const missing = async (path: string) => {
   await assert.rejects(() => access(path));
@@ -177,6 +179,77 @@ test("selected deletion removes every owned data root and preserves other Projec
   await access(join(rootDir, "out/orphan-story/render.log"));
 });
 
+test("deletion removes the target Registry import before source disappears", async (context) => {
+  const rootDir = await createRoot(context);
+  await writeRemovableProject({
+    rootDir,
+    slug: "alpha-story",
+    compositionId: "AlphaStory",
+  });
+  await writeRemovableProject({
+    rootDir,
+    slug: "beta-story",
+    compositionId: "BetaStory",
+  });
+
+  await deleteProjectData({
+    rootDir,
+    selection: { kind: "projects", projectIds: ["alpha-story"] },
+    regenerate: async () => {
+      const registry = await readFile(
+        join(rootDir, "src/projects/project-registry.generated.ts"),
+        "utf8",
+      );
+      assert.doesNotMatch(registry, /alpha-story/u);
+      assert.match(registry, /beta-story/u);
+      return { catalogEntryCount: 17, projectEntryCount: 1 };
+    },
+  });
+
+  await missing(join(rootDir, "src/projects/alpha-story"));
+  await access(join(rootDir, "src/projects/beta-story/Composition.tsx"));
+});
+
+test("failed removal rebuilds the Registry from the Projects still on disk", async (context) => {
+  const rootDir = await createRoot(context);
+  await writeRemovableProject({
+    rootDir,
+    slug: "alpha-story",
+    compositionId: "AlphaStory",
+  });
+  await writeRemovableProject({
+    rootDir,
+    slug: "beta-story",
+    compositionId: "BetaStory",
+  });
+
+  await assert.rejects(
+    deleteProjectData({
+      rootDir,
+      selection: { kind: "projects", projectIds: ["alpha-story"] },
+      remove: async () => {
+        throw new Error("injected removal failure");
+      },
+    }),
+    (error: unknown) => {
+      if (error instanceof AggregateError) {
+        assert.match(String(error.errors[0]), /injected removal failure/u);
+      } else {
+        assert.match(String(error), /injected removal failure/u);
+      }
+      return true;
+    },
+  );
+
+  await access(join(rootDir, "src/projects/alpha-story/Composition.tsx"));
+  const registry = await readFile(
+    join(rootDir, "src/projects/project-registry.generated.ts"),
+    "utf8",
+  );
+  assert.match(registry, /alpha-story/u);
+  assert.match(registry, /beta-story/u);
+});
+
 test("all deletion discovers Projects across authority roots but preserves core outputs", async (context) => {
   const rootDir = await createRoot(context);
   const alpha = await writeProjectData({ rootDir, projectId: "alpha-story" });
@@ -332,4 +405,72 @@ test("preflight refuses active writer locks and unfinished delivery staging", as
     }),
   );
   await access(join(stagedRoot, "src/projects/staged-story/sentinel.txt"));
+});
+
+test("Project deletion refuses a concurrent repository mutation before deleting", async (context) => {
+  const rootDir = await createRoot(context);
+  await writeProjectData({ rootDir, projectId: "active-story" });
+  const lock = await acquireRepositoryOperationLock({
+    rootDir,
+    ownerId: "production-start",
+  });
+  try {
+    await assert.rejects(
+      deleteProjectData({
+        rootDir,
+        selection: { kind: "projects", projectIds: ["active-story"] },
+        regenerate: async () => ({
+          catalogEntryCount: 17,
+          projectEntryCount: 0,
+        }),
+      }),
+      /Another Project operation is already active/u,
+    );
+    await access(join(rootDir, "src/projects/active-story/sentinel.txt"));
+  } finally {
+    await lock.release();
+  }
+});
+
+test("repository operation lock initialization failure leaves no stale lock", async (context) => {
+  const rootDir = await createRoot(context);
+  await assert.rejects(
+    acquireRepositoryOperationLock({
+      rootDir,
+      ownerId: "production-start",
+      initialize: async () => {
+        throw new Error("injected lock initialization failure");
+      },
+    }),
+    /injected lock initialization failure/u,
+  );
+  await missing(join(rootDir, ".project-operation.lock"));
+
+  const recovered = await acquireRepositoryOperationLock({
+    rootDir,
+    ownerId: "production-start",
+  });
+  await recovered.release();
+});
+
+test("repository operation lock close failure leaves no stale lock", async (context) => {
+  const rootDir = await createRoot(context);
+  await assert.rejects(
+    acquireRepositoryOperationLock({
+      rootDir,
+      ownerId: "delivery-build",
+      close: async (handle) => {
+        await handle.close();
+        throw new Error("injected lock close failure");
+      },
+    }),
+    /injected lock close failure/u,
+  );
+  await missing(join(rootDir, ".project-operation.lock"));
+
+  const recovered = await acquireRepositoryOperationLock({
+    rootDir,
+    ownerId: "delivery-build",
+  });
+  await recovered.release();
 });

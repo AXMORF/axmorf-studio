@@ -8,6 +8,7 @@ build
 .narration-work/
 .reference-workspaces/
 .producer-runs/
+.project-operation.lock
 private/
 voxcpm/voxcpm.private.json
 voxcpm/voice_profile/

@@ -2,6 +2,8 @@ import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 
+import { StoryIdSchema } from "../../src/contracts";
+
 import { renderProjectRegistrySource } from "./domain";
 import {
   discoverProjectEntries,
@@ -62,11 +64,21 @@ const writeAtomic = async (destination: string, source: string) => {
 export const generateProjectRegistry = async ({
   rootDir,
   mode,
+  excludeProjectIds = [],
 }: {
   readonly rootDir: string;
   readonly mode: RegistryGenerationMode;
+  readonly excludeProjectIds?: readonly string[];
 }): Promise<ProjectRegistryGenerationResult> => {
-  const compositionPaths = await discoverProjectEntries(rootDir);
+  const excludedCompositionPaths = new Set(
+    excludeProjectIds.map(
+      (projectId) =>
+        `src/projects/${StoryIdSchema.parse(projectId)}/Composition.tsx`,
+    ),
+  );
+  const compositionPaths = (await discoverProjectEntries(rootDir)).filter(
+    (compositionPath) => !excludedCompositionPaths.has(compositionPath),
+  );
   const entries = await Promise.all(
     compositionPaths.map((compositionPath) =>
       loadProjectRegistrationEntry({ rootDir, compositionPath }),

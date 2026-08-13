@@ -23,6 +23,13 @@ export const COMMON_RENDER_SIZES = [
   { width: 1080, height: 1080, label: "方形 1:1 · 1080 × 1080" },
 ] as const;
 
+export const projectDeletionErrorMessage = (error: unknown) => {
+  if (error instanceof TypeError && error.message === "Failed to fetch") {
+    return "删除请求连接中断，Project 可能已经删除；请重新启动本地开发服务或刷新页面确认。";
+  }
+  return error instanceof Error ? error.message : "Project 删除结果未知";
+};
+
 export const renderSizeValue = (size: {
   readonly width: number;
   readonly height: number;

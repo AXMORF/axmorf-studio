@@ -6,6 +6,8 @@ import { defineConfig, type Plugin } from "vite";
 import { createSettingsApi } from "./api";
 import { runProducerEnvironmentDiagnostics } from "./diagnostics";
 import { isLanDevEnabled } from "./dev-network";
+import { deleteProjectData } from "../scripts/projects/delete";
+import { readProjectProductionProgress } from "./production-progress";
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -32,6 +34,22 @@ const readBody = async (request: IncomingMessage) => {
 const settingsApi = (): Plugin => ({
   name: "rsp-local-settings-api",
   configureServer(server) {
+    const api = createSettingsApi({
+      rootDir: process.cwd(),
+      env: process.env,
+      diagnose: () =>
+        runProducerEnvironmentDiagnostics({
+          rootDir: process.cwd(),
+          env: process.env,
+        }),
+      inspectProductionProgress: () =>
+        readProjectProductionProgress({ rootDir: process.cwd() }),
+      deleteProject: ({ projectId }) =>
+        deleteProjectData({
+          rootDir: process.cwd(),
+          selection: { kind: "projects", projectIds: [projectId] },
+        }),
+    });
     server.middlewares.use(async (request, response, next) => {
       if (request.url === "/favicon.ico") {
         response.statusCode = 204;
@@ -40,22 +58,18 @@ const settingsApi = (): Plugin => ({
       }
       if (
         request.url !== "/api/settings" &&
-        request.url !== "/api/diagnostics"
+        request.url !== "/api/diagnostics" &&
+        request.url !== "/api/production-progress" &&
+        request.url !== "/api/projects/delete"
       ) {
         return next();
       }
-      const api = createSettingsApi({
-        rootDir: process.cwd(),
-        env: process.env,
-        diagnose: () =>
-          runProducerEnvironmentDiagnostics({
-            rootDir: process.cwd(),
-            env: process.env,
-          }),
-      });
       let body: string | undefined;
       try {
-        body = request.method === "PUT" ? await readBody(request) : undefined;
+        body =
+          request.method === "PUT" || request.method === "DELETE"
+            ? await readBody(request)
+            : undefined;
       } catch {
         json(response, 400, { error: "配置请求正文无效。" });
         return;

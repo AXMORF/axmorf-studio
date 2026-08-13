@@ -2,7 +2,7 @@
 
 > 文档类型：执行流程权威
 >
-> 最后复核：2026-08-12
+> 最后复核：2026-08-13
 
 ## Current-only 主链
 
@@ -69,6 +69,11 @@ LAN 端口不得转发到公网。声线与可选 BGM 文件字段只接受仓�
 配置页的“只读环境诊断”复用 metadata-only 声线检查、VoxCPM health/ready 与固定 Remotion browser
 preflight；不生成测试语音、不 warm-up provider，也不修改 Chromium sandbox policy，只返回脱敏
 状态与修复建议。
+
+配置页的“制作进度”从 current Project ownership roots 生成 Project 列表，并对每个 Project 只选择
+`createdAt` 最新的一条 current Production Run。六个关键步骤只投影 strict manifest、append-only
+events、derived state 与 fingerprint-bound delivery intent/receipt，每 3 秒刷新；它不运行生产脚本、
+不读取 PID/exit 状态、不保留历史 Run，也不把 `delivery-render-started` 表述为 MP4 完成。
 
 外部素材服务只在 authoring 阶段负责 search/preview/acquire。当前唯一 provider adapter 严格接收
 stock-assets-mcp 的 Pexels image acquisition receipt v1；仓库不依赖其 package、SDK 或密钥。
@@ -208,6 +213,13 @@ private config 或 `public/voice_profile/`。任何目标 symlink/非目录、�
 `deliveries/.staging/` 或不存在的显式 storyId 都会在首次删除前令命令失败。
 删除器不要求旧 Run 通过 current ProductionRun schema；它只校验 JSON、目录 `runId` identity 与
 严格 storyId，以保证已移除合同留下的数据仍可安全删除。这不构成旧 Run 兼容或迁移。
+
+配置页 Project 详情提供同一删除能力，但必须输入完整 Project ID 二次确认，且 API 只接受精确同源
+JSON DELETE。`project:configure`、`production:start`、`delivery:build` 与删除共享 repository operation
+lock；删除还独占目标 Run writer locks，并在持锁后重读完整目标集。删除源码前先原子发布排除目标的
+ProjectRegistry，避免同一 `npm run dev` 下 Studio 因旧 import 退出并中断 API；若后续清理失败，
+异常路径按磁盘真实状态重建 Registry/Catalog。浏览器连接中断只表示删除结果需重新确认，不能据此
+断言删除失败或成功。
 
 ## 故障所有权
 

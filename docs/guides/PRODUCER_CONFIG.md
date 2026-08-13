@@ -2,7 +2,7 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-12
+> 最后复核：2026-08-13
 
 仓库使用一份 Git-ignored 的 `private/producer.config.json` 作为制作默认值与私密 TTS 连接配置。
 它不是 render runtime 输入；新作品在 authoring/freeze 时把实际选择写入 Project 合同或产物指纹，
@@ -30,6 +30,24 @@ npm run dev
 两者由同一个本地开发命令启动，不是两个需要部署的产品。配置 API 只监听 loopback、拒绝非同源
 写入、使用 `no-store`，不把配置写入 localStorage。按产品要求，token 会完整返回并显示以便修改；
 不得通过截图、日志或 Git 泄露页面内容。
+
+左侧“制作进度”先列出当前所有 Project；选择一个 Project 后，只展示它按 `createdAt` 选出的最新
+current Production Run，不提供历史 Run 列表。详情按 `production:start`、`production:narrative`、
+`production:scene:freeze`、detached watcher、`production:render-ready:check` 与 `delivery:build` 六个
+关键步骤显示状态，每 3 秒刷新。状态只由 strict Run manifest、append-only events、投影 state 以及
+与当前 render-ready fingerprint 绑定的 delivery intent/receipt 得出，不运行脚本、不读取日志、
+不检查进程/PID。`delivery:build` 的“已启动”只表示存在合法 OS spawn acknowledgement，绝不表示
+MP4 已完成。
+
+Project 详情提供删除入口，必须输入完整 Project ID 二次确认。页面调用与 `project:delete` 完全相同
+的删除器：删除该 Project 的代码、媒体、narration work、全部绑定 Runs、out 与 current delivery，
+随后重建 Catalog/Registry；其他 Project、private config 与 `public/voice_profile/` 不受影响。
+非同源请求、非空 delivery staging、writer lock、不安全路径或不存在的 Project 会在删除前被拒绝。
+生产启动、Project 配置或交付构建正在改变仓库时，删除也会通过共享 operation lock 拒绝执行；删除在
+持锁后会重读目标集合，并在删除源码前先发布排除目标的 Registry，避免预检与实际清理之间混入新的
+Run 或产物，也避免 Remotion Studio 因短暂的旧 import 终止配置 API；后续删除报错时会按磁盘真实
+状态恢复 Registry/Catalog。若浏览器连接仍在请求中断，页面只提示“删除结果需确认”，不会把无法
+确认的网络状态误报为删除未完成。
 
 右侧“只读环境诊断”检查配置、默认声线来源、VoxCPM health/ready 与 Remotion browser preflight。
 它不生成测试语音、不 warm-up 服务、不弱化 Chromium sandbox，只显示脱敏状态和修复建议。表单会

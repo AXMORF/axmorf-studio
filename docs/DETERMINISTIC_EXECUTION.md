@@ -2,7 +2,7 @@
 
 > 文档类型：执行语义权威
 >
-> 最后复核：2026-08-12
+> 最后复核：2026-08-13
 
 ## 确定性的对象
 
@@ -147,8 +147,12 @@ receipt bytes 先写同目录 temporary 并 fsync，再以 exclusive hard-link �
 - render-ready check：current → no-op；drift → fail closed。
 - delivery build：receipt current → no-op；intent-only → ambiguous；different/unknown target → fail。
 - delivery check：只读 current package，不修复、不创建 receipt。
+- 配置页 production progress 按 Project 独立选择 `createdAt` 最新 current Run，并只从校验后的
+  manifest/events/state 和 fingerprint-bound delivery intent/receipt 投影；轮询不写仓库状态。
 - 用户明确授权后，真实作品只由 `project:delete` 按 storyId 删除 Project、public media、
   narration work、Runs、out 与 deliveries，并确定性重建 Registry/Catalog；core source gate
   保持有效，其他显式 project/media/delivery 命令继续 fail closed。删除预检只投影 Run 的严格
-  `runId/storyId` 所有权，不验证或解释已移除的 production contract/state/event。
+  `runId/storyId` 所有权，不验证或解释已移除的 production contract/state/event。删除与其他
+  Project-level mutation 共享 repository operation lock；目标 Run lock、持锁重检、删除前 Registry
+  预发布和异常后的磁盘真实状态重建保证并发与失败路径不会暴露 stale projection。
 - deletion matrix 只在隔离副本执行，真实 production artifacts 不作为测试夹具删除。

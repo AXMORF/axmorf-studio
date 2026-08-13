@@ -63,6 +63,9 @@ npm run dev
 ```
 
 该命令同时启动 `http://127.0.0.1:3100` 制作配置页和 `http://127.0.0.1:3101` Remotion Studio。
+配置页的“制作进度”列出所有 current Project；每个 Project 只展示最新一条 current Run 的六个关键
+production/delivery 步骤，并每 3 秒刷新。它不跟踪进程或 MP4 完成状态。Project 详情也可在输入完整
+Project ID 二次确认后执行与 `project:delete` 相同的完整清理。
 从旧私有 VoxCPM JSON 首次迁移时运行 `npm run config:migrate`；新配置和完整 token 始终保持
 ignored，不得 stage。可信局域网内需要其他设备直接访问时运行 `npm run dev:lan`，再使用终端
 输出的 Network 地址访问 `:3100` 和 `:3101`；不要把端口暴露到公网。
@@ -140,7 +143,9 @@ npm run project:delete -- --all --confirm-delete
 非空 `deliveries/.staging/`、目标 Run writer lock、symlink 或异常路径会使整个命令在删除前
 fail closed。命令不终止正在运行的 provider 或 detached render，必须只对已停止生产/渲染的作品执行。
 删除器只读取 Run 的严格 `runId/storyId` 所有权，所以旧合同数据仍可清理；这不会让其他 current
-production/delivery 命令兼容或解释旧 Run。
+production/delivery 命令兼容或解释旧 Run。configure/start/delivery/delete 共享 repository operation
+lock；删除在持锁后重检目标，并在源码消失前先发布排除目标的 Registry。后续删除失败会按磁盘真实
+状态恢复 Registry/Catalog；浏览器 `Failed to fetch` 只会提示结果需确认，不再误报“删除未完成”。
 
 生产编排：
 
@@ -177,7 +182,7 @@ scripts/delivery/            Cover 与自动交付 cli / application / domain / 
 scripts/shared/              跨 production/delivery 的窄技术端口与宿主媒体 adapter
 scripts/config/              private ProducerConfig 读写与迁移
 scripts/projects/configure.ts 新 Project 通用默认值冻结入口
-settings/                    local / trusted-LAN React 配置控制台
+settings/                    配置、每 Project 最新 Run 进度与确认删除控制台
 src/contracts/               strict、versioned、可执行 Zod 合同
 src/remotion/runtime/        固定、离线、frame-driven runtime
 src/remotion/capabilities/   已批准共享能力

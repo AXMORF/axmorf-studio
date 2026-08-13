@@ -26,6 +26,7 @@ import {
   resolveProducerConfigPathFromEnvironment,
 } from "../config/producer-config";
 import { writeProductionFileAtomic } from "../production/adapters/run-store";
+import { acquireRepositoryOperationLock } from "../shared/repository-operation-lock";
 
 const DraftSchema = z
   .object({
@@ -115,7 +116,7 @@ const assertNoConflicts = async (
   return missing;
 };
 
-export const runProjectConfigure = async ({
+const runProjectConfigureUnlocked = async ({
   rootDir,
   projectId: rawProjectId,
   inputPath,
@@ -223,6 +224,20 @@ export const runProjectConfigure = async ({
     requirementsFingerprint: requirements.requirementsFingerprint,
     publishingIntentFingerprint: publishingIntent.intentFingerprint,
   } as const;
+};
+
+export const runProjectConfigure = async (
+  input: Parameters<typeof runProjectConfigureUnlocked>[0],
+) => {
+  const lock = await acquireRepositoryOperationLock({
+    rootDir: input.rootDir,
+    ownerId: "project-configure",
+  });
+  try {
+    return await runProjectConfigureUnlocked(input);
+  } finally {
+    await lock.release();
+  }
 };
 
 export const runProjectConfigureCli = async (

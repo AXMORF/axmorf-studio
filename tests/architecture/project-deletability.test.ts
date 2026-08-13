@@ -55,3 +55,28 @@ test("regeneration removes a deleted Project literal import", async (context) =>
     join(rootDir, "src/projects/project-registry.generated.ts"),
   );
 });
+
+test("deletion can publish a Registry without the target before removing source", async (context) => {
+  const rootDir = await createRemovableProjectRoot(context);
+  const alpha = await writeRemovableProject({
+    rootDir,
+    slug: "alpha-story",
+    compositionId: "AlphaStory",
+  });
+  await writeRemovableProject({
+    rootDir,
+    slug: "beta-story",
+    compositionId: "BetaStory",
+  });
+
+  const result = await generateProjectRegistry({
+    rootDir,
+    mode: "write",
+    excludeProjectIds: ["alpha-story"],
+  });
+  const source = await readFile(result.destination, "utf8");
+  await readFile(join(alpha, "Composition.tsx"), "utf8");
+  assert.doesNotMatch(source, /alpha-story/);
+  assert.match(source, /beta-story/);
+  assert.equal(result.entryCount, 1);
+});

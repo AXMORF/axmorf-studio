@@ -6,6 +6,8 @@ import { pathToFileURL } from "node:url";
 import { ProductionRunIdSchema, StoryIdSchema } from "../../src/contracts";
 import { generateResourceCatalog } from "../catalog/generate";
 import { generateProjectRegistry } from "../registry/generate";
+import { acquireProductionRunLock } from "../production/adapters/run-store";
+import { acquireRepositoryOperationLock } from "../shared/repository-operation-lock";
 
 export type ProjectDeletionSelection =
   | Readonly<{ kind: "projects"; projectIds: readonly string[] }>
@@ -219,6 +221,18 @@ const discoverProjectIds = async ({
   return [...projectIds].sort();
 };
 
+export const discoverDeletableProjectIds = async ({
+  rootDir: rawRootDir,
+}: {
+  readonly rootDir: string;
+}) => {
+  const rootDir = resolve(rawRootDir);
+  await assertRealRoot(rootDir);
+  await assertFixedParentChains(rootDir);
+  const runs = await readStoredRuns(rootDir);
+  return discoverProjectIds({ rootDir, runs });
+};
+
 const resolveSelectedProjectIds = async ({
   rootDir,
   selection,
@@ -248,11 +262,13 @@ const collectDeletionTargets = async ({
   projectIds,
   runs,
   requireEveryProject,
+  ownedLockRunIds = new Set(),
 }: {
   readonly rootDir: string;
   readonly projectIds: readonly string[];
   readonly runs: readonly StoredRun[];
   readonly requireEveryProject: boolean;
+  readonly ownedLockRunIds?: ReadonlySet<string>;
 }) => {
   const selected = new Set(projectIds);
   const found = new Set<string>();
@@ -273,7 +289,7 @@ const collectDeletionTargets = async ({
   }
   for (const run of runs) {
     if (!selected.has(run.storyId)) continue;
-    if (run.hasWriterLock) {
+    if (run.hasWriterLock && !ownedLockRunIds.has(run.directoryName)) {
       throw new Error(
         `Production run has a writer lock: ${run.directoryName}.`,
       );
@@ -307,43 +323,158 @@ export const deleteProjectData = async ({
   rootDir: rawRootDir,
   selection,
   regenerate,
+  remove = (path: string) => rm(path, { recursive: true }),
 }: {
   readonly rootDir: string;
   readonly selection: ProjectDeletionSelection;
   readonly regenerate?: ProjectDataRegenerator;
+  readonly remove?: (path: string) => Promise<void>;
 }) => {
   const rootDir = resolve(rawRootDir);
   await assertRealRoot(rootDir);
-  await assertFixedParentChains(rootDir);
-  await assertDeliveryStagingIdle(rootDir);
-  const runs = await readStoredRuns(rootDir);
-  const projectIds = await resolveSelectedProjectIds({
-    rootDir,
-    selection,
-    runs,
-  });
-  const targets = await collectDeletionTargets({
-    rootDir,
-    projectIds,
-    runs,
-    requireEveryProject: selection.kind === "projects",
-  });
+  let repositoryLock: Awaited<
+    ReturnType<typeof acquireRepositoryOperationLock>
+  > | null = null;
+  const runLocks: Awaited<ReturnType<typeof acquireProductionRunLock>>[] = [];
+  let outcome:
+    | Readonly<{
+        deletionVersion: 1;
+        deletedProjectIds: readonly string[];
+        deletedPaths: readonly string[];
+        catalogEntryCount: number;
+        projectEntryCount: number;
+      }>
+    | undefined;
+  let operationError: unknown;
+  let registryPrepublished = false;
+  try {
+    await assertFixedParentChains(rootDir);
+    await assertDeliveryStagingIdle(rootDir);
+    const runs = await readStoredRuns(rootDir);
+    const projectIds = await resolveSelectedProjectIds({
+      rootDir,
+      selection,
+      runs,
+    });
+    const targets = await collectDeletionTargets({
+      rootDir,
+      projectIds,
+      runs,
+      requireEveryProject: selection.kind === "projects",
+    });
+    const selected = new Set(projectIds);
+    for (const run of runs.filter(({ storyId }) => selected.has(storyId))) {
+      runLocks.push(
+        await acquireProductionRunLock({
+          rootDir,
+          runId: run.directoryName,
+          ownerId: "project-delete",
+          acquiredAt: new Date().toISOString(),
+        }),
+      );
+    }
 
-  for (const relativePath of targets) {
-    await rm(join(rootDir, relativePath), { recursive: true });
-  }
-  const generated = await (regenerate ?? defaultRegenerator(rootDir))();
-  for (const relativePath of targets) {
-    if ((await pathState(join(rootDir, relativePath))) !== null) {
-      throw new Error(`Project deletion target still exists: ${relativePath}.`);
+    repositoryLock = await acquireRepositoryOperationLock({
+      rootDir,
+      ownerId: "project-delete",
+    });
+    await assertFixedParentChains(rootDir);
+    await assertDeliveryStagingIdle(rootDir);
+    const lockedRunIds = new Set(
+      runs
+        .filter(({ storyId }) => selected.has(storyId))
+        .map(({ directoryName }) => directoryName),
+    );
+    const currentRuns = await readStoredRuns(rootDir);
+    const currentProjectIds = await resolveSelectedProjectIds({
+      rootDir,
+      selection,
+      runs: currentRuns,
+    });
+    const currentTargets = await collectDeletionTargets({
+      rootDir,
+      projectIds: currentProjectIds,
+      runs: currentRuns,
+      requireEveryProject: selection.kind === "projects",
+      ownedLockRunIds: lockedRunIds,
+    });
+    if (
+      JSON.stringify(currentProjectIds) !== JSON.stringify(projectIds) ||
+      JSON.stringify(currentTargets) !== JSON.stringify(targets)
+    ) {
+      throw new Error("Project-owned data changed during deletion preflight.");
+    }
+
+    await generateProjectRegistry({
+      rootDir,
+      mode: "write",
+      excludeProjectIds: projectIds,
+    });
+    registryPrepublished = true;
+
+    for (const relativePath of targets) {
+      await remove(join(rootDir, relativePath));
+    }
+    const generated = await (regenerate ?? defaultRegenerator(rootDir))();
+    for (const relativePath of targets) {
+      if ((await pathState(join(rootDir, relativePath))) !== null) {
+        throw new Error(
+          `Project deletion target still exists: ${relativePath}.`,
+        );
+      }
+    }
+    outcome = {
+      deletionVersion: 1,
+      deletedProjectIds: projectIds,
+      deletedPaths: targets,
+      ...generated,
+    } as const;
+  } catch (error) {
+    if (!registryPrepublished) {
+      operationError = error;
+    } else {
+      const recoveryErrors: unknown[] = [];
+      await generateProjectRegistry({ rootDir, mode: "write" }).catch(
+        (recoveryError: unknown) => recoveryErrors.push(recoveryError),
+      );
+      await generateResourceCatalog({ rootDir, mode: "write" }).catch(
+        (recoveryError: unknown) => recoveryErrors.push(recoveryError),
+      );
+      if (recoveryErrors.length === 0) {
+        operationError = error;
+      } else {
+        operationError = new AggregateError(
+          [error, ...recoveryErrors],
+          "Project deletion failed and current projections could not be rebuilt.",
+        );
+      }
     }
   }
-  return {
-    deletionVersion: 1,
-    deletedProjectIds: projectIds,
-    deletedPaths: targets,
-    ...generated,
-  } as const;
+  const releaseErrors: unknown[] = [];
+  for (const lock of runLocks.reverse()) {
+    await lock.release().catch((error: unknown) => {
+      const directCode = (error as NodeJS.ErrnoException).code;
+      const causeCode = (
+        (error as Error & { cause?: NodeJS.ErrnoException }).cause ?? {}
+      ).code;
+      if (directCode !== "ENOENT" && causeCode !== "ENOENT") {
+        releaseErrors.push(error);
+      }
+    });
+  }
+  await repositoryLock?.release().catch((error: unknown) => {
+    releaseErrors.push(error);
+  });
+  if (operationError !== undefined || releaseErrors.length > 0) {
+    const errors = [operationError, ...releaseErrors].filter(
+      (error) => error !== undefined,
+    );
+    if (errors.length === 1) throw errors[0];
+    throw new AggregateError(errors, "Project deletion failed.");
+  }
+  if (outcome === undefined)
+    throw new Error("Project deletion produced no result.");
+  return outcome;
 };
 
 export const parseProjectDeleteArguments = (

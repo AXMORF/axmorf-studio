@@ -2,7 +2,7 @@
 
 > 文档类型：当前名词权威
 >
-> 最后复核：2026-08-12
+> 最后复核：2026-08-13
 
 | 名词                        | 含义                                                                  | 明确不代表                                           |
 | --------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------- |
@@ -14,6 +14,8 @@
 | ScenePackage                | 一个 meaningId 的视觉与局部声音成品合同                               | 字幕、旁白或全局背景 authority                       |
 | GlobalVisualPackage         | Story 级背景、纹理、装饰和连续性 motif                                | Scene DSL、自动导演或字幕层                          |
 | ProductionRun               | append-only events 与 immutable results 的一次执行                    | 可手改或恢复的任务状态                               |
+| Project production progress | 每 Project 最新 current Run 的只读关键步骤投影                        | 历史任务库、PID 监控或 MP4 完成状态                  |
+| Repository operation lock   | configure/start/delivery/delete 共用的 Project mutation 互斥边界      | 跨 checkout 锁或自动恢复策略                         |
 | OwnerReceipt                | assignment identity 与 output manifest 绑定的 ready/failed inbox 回执 | Codex task 身份、heartbeat 或正式 production result  |
 | waiting-for-owner-results   | watcher 等待缺失 assignment receipt 的无超时状态                      | task 失败、自动重试或 replacement thread 已创建      |
 | WatcherLaunchReceipt        | detached watcher 的 OS `spawn` acknowledgement                        | production 已完成或 watcher 可安全重启               |
@@ -27,7 +29,7 @@
 | RenderLaunchReceipt         | OS `spawn` acknowledgement 后写入的回执                               | exit code、完成状态或 MP4 有效性                     |
 | delivery-render-started     | Skill 的自动终点                                                      | render completed、published 或 quality passed        |
 | launch-ambiguous            | intent 存在而 receipt 缺失                                            | 可安全重试的失败                                     |
-| Project deletion            | 用户明确授权后按 storyId 删除全部本地生产数据并重建 Registry/Catalog  | 只删 MP4、删除 core/其他作品/私有声线或自动清理策略  |
+| Project deletion            | 明确确认后按 storyId 删除全部本地生产数据并重建 Registry/Catalog      | 只删 MP4、删除 core/其他作品/私有声线或自动清理策略  |
 
 `deliveries/<storyId>/` 是每个 Project 唯一的 current slot，保存当前 identity 的 immutable 非 MP4
 package、intent、receipt 与未纳入 ledger 的计划 MP4；新 identity 通过 staging 受控替换旧 package。

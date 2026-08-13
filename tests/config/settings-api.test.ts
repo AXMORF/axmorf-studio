@@ -13,6 +13,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const configPath = join(rootDir, "operator/config.json");
   await writeProducerConfig({ configPath, value: validProducerConfigInput });
+  const deletedProjectIds: string[] = [];
   const api = createSettingsApi({
     rootDir,
     env: { RSP_PRODUCER_CONFIG: configPath },
@@ -28,6 +29,13 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
         },
       ],
     }),
+    inspectProductionProgress: async () => ({
+      schemaVersion: 2,
+      projects: [],
+    }),
+    deleteProject: async ({ projectId }) => {
+      deletedProjectIds.push(projectId);
+    },
   });
 
   const get = await api({ method: "GET", url: "/api/settings", headers: {} });
@@ -100,4 +108,63 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
     JSON.stringify(diagnostics.body),
     /visible-editable-token|127\.0\.0\.1:9880|\/srv\/private/iu,
   );
+
+  const progress = await api({
+    method: "GET",
+    url: "/api/production-progress",
+    headers: {},
+  });
+  assert.deepEqual(progress, {
+    statusCode: 200,
+    body: { schemaVersion: 2, projects: [] },
+  });
+
+  const rejectedDeleteOrigin = await api({
+    method: "DELETE",
+    url: "/api/projects/delete",
+    headers: {
+      origin: "http://evil.example",
+      host: "127.0.0.1:3100",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      projectId: "story-example",
+      confirmation: "story-example",
+    }),
+  });
+  assert.equal(rejectedDeleteOrigin.statusCode, 403);
+
+  const rejectedDeleteConfirmation = await api({
+    method: "DELETE",
+    url: "/api/projects/delete",
+    headers: {
+      origin: "http://127.0.0.1:3100",
+      host: "127.0.0.1:3100",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      projectId: "story-example",
+      confirmation: "wrong-project",
+    }),
+  });
+  assert.equal(rejectedDeleteConfirmation.statusCode, 400);
+
+  const deleted = await api({
+    method: "DELETE",
+    url: "/api/projects/delete",
+    headers: {
+      origin: "http://127.0.0.1:3100",
+      host: "127.0.0.1:3100",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      projectId: "story-example",
+      confirmation: "story-example",
+    }),
+  });
+  assert.deepEqual(deleted, {
+    statusCode: 200,
+    body: { deletedProjectId: "story-example" },
+  });
+  assert.deepEqual(deletedProjectIds, ["story-example"]);
 });

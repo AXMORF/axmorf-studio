@@ -2,7 +2,7 @@
 
 > 文档类型：当前事实权威
 >
-> 最后复核：2026-08-12
+> 最后复核：2026-08-13
 >
 > 当前阶段：detached watcher、独立线程 owner receipt 与自动交付已实现
 
@@ -35,6 +35,16 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   ProductionRequirementsFreeze；输出 conflict 时拒绝覆盖。
 - 配置 API 已覆盖 GET/PUT、strict validation、同源拒绝和原子写入；页面提供只读的声线来源、
   VoxCPM health/ready 与 Remotion browser 诊断，并即时维护唯一 ID 与有效默认声线。
+- 配置页“制作进度”提供 Project 列表；每个 Project 只投影 `createdAt` 最新的一条 current Run，
+  选择后展示六个关键 production/delivery 步骤并每 3 秒刷新。它严格复用 Run events/state 与
+  fingerprint-bound delivery intent/receipt，不启动脚本、不追踪 PID、不把 spawn acknowledgement
+  表述为 MP4 完成，也不提供历史 Run 列表。
+- Project 详情可在输入完整 Project ID 后删除；同源 API 复用 `project:delete` 的完整预检与删除语义，
+  清理该 Project 代码及全部本地产物并重建 Catalog/Registry，不扩张到其他 Project、私有配置或
+  受保护声线。删除与 production start、Project configure、delivery build 共享跨进程 operation
+  lock，并独占目标 Run writer locks、持锁重检完整目标集，竞态或漂移在删除前 fail closed；Project
+  源码删除前先发布不再引用目标 Composition 的 Registry，防止本地 Studio 中断删除 API；后续清理
+  报错时按磁盘真实状态重建 Registry/Catalog，仍在磁盘的 Project 不会被投影隐藏。
 - `production-readability-v2` 从可配置边缘留白派生字幕底边与 Scene 底边；RenderSpec 已移除冗余
   caption safe area。
 - PublishingIntent v2 只能选择配置数组中的一个合集并封存目录 fingerprint；TTS 语速进入

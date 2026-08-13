@@ -6,6 +6,7 @@ import {
   RenderLaunchReceiptSchema,
   buildRenderLaunchReceipt,
 } from "../../../src/contracts";
+import { acquireRepositoryOperationLock } from "../../shared/repository-operation-lock";
 import {
   assertDeliveryDirectoryChain,
   assertDeliveryOutputAbsent,
@@ -35,7 +36,7 @@ const decodeDeliveryJson = (bytes: Uint8Array, label: string) => {
   }
 };
 
-export const buildDelivery = async ({
+const buildDeliveryUnlocked = async ({
   rootDir,
   projectId,
   dependencies = {},
@@ -223,5 +224,19 @@ export const buildDelivery = async ({
     };
   } finally {
     if (!promoted) await cleanupDeliveryStaging(staging.root);
+  }
+};
+
+export const buildDelivery = async (
+  input: Parameters<typeof buildDeliveryUnlocked>[0],
+) => {
+  const lock = await acquireRepositoryOperationLock({
+    rootDir: input.rootDir,
+    ownerId: "delivery-build",
+  });
+  try {
+    return await buildDeliveryUnlocked(input);
+  } finally {
+    await lock.release();
   }
 };

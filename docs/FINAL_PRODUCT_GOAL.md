@@ -2,7 +2,7 @@
 
 > 文档类型：产品目标权威
 >
-> 最后复核：2026-08-12
+> 最后复核：2026-08-13
 
 ## 一句话目标
 
@@ -76,8 +76,12 @@ intent 存在而 receipt 缺失时状态 launch-ambiguous，仓库永久拒绝�
 - fresh clone 从 zero Project bootstrap；具体 Project、媒体、narration work、Run、out 和
   deliveries 均为 ignored production artifacts。
 - core 不依赖具体 storyId，Registry/Catalog 对零 Project 有效。
+- 本地配置控制台列出每个 current Project，并且每个 Project 只投影其最新一条 current Run 的关键
+  production/delivery 状态；它不保存历史任务、PID、heartbeat，也不把 spawn receipt 当作 MP4 完成。
 - 删除矩阵只在隔离副本验证，不删除真实作品。
 - 用户明确授权后，`project:delete` 可按一个、多个或全部 storyId 删除完整本地生产数据并重建
-  Registry/Catalog；core、其他 Project、private config 与 `public/voice_profile/` 不进入删除集合。
+  Registry/Catalog；配置页只在完整 Project ID 二次确认后复用同一删除器。删除与 Project 配置、
+  production start、delivery build 共享 repository operation lock，并在源码消失前先发布安全 Registry；
+  core、其他 Project、private config 与 `public/voice_profile/` 不进入删除集合。
 - 新能力先留 project-local；只有 fingerprint-bound proposal 与用户明确批准后才 promotion。
 - 平台发布、账号、网络、密钥、主观审美 gate 和 detached render monitoring 是独立未来范围。

@@ -13,6 +13,7 @@ import {
   appendProductionRunEvent,
   initializeProductionRunStore,
 } from "../adapters/run-store";
+import { acquireRepositoryOperationLock } from "../../shared/repository-operation-lock";
 import { createProductionStageEvent } from "../domain/events";
 import { ensureProductionProjectScaffold } from "./project-scaffold";
 import {
@@ -123,7 +124,7 @@ export const loadCurrentProductionInputs = async ({
   return { projectId, projectDir, paths, source, requirements } as const;
 };
 
-export const runProductionStart = async ({
+const runProductionStartUnlocked = async ({
   rootDir,
   projectId: rawProjectId,
   clock = () => new Date(),
@@ -222,4 +223,18 @@ export const runProductionStart = async ({
     ),
     requirementsFingerprint: requirements.requirementsFingerprint,
   } as const;
+};
+
+export const runProductionStart = async (
+  input: Parameters<typeof runProductionStartUnlocked>[0],
+) => {
+  const lock = await acquireRepositoryOperationLock({
+    rootDir: input.rootDir,
+    ownerId: "production-start",
+  });
+  try {
+    return await runProductionStartUnlocked(input);
+  } finally {
+    await lock.release();
+  }
 };
