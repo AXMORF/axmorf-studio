@@ -18,6 +18,11 @@ export const PUBLISHING_INTENT_VERSION = "publishing-intent-v2" as const;
 
 const PublishingTextSchema = z.string().trim().min(1);
 
+export const PublishingTopicSchema = z.string().min(1).max(48).refine(
+  (value) => !/[\s\p{White_Space}]/u.test(value),
+  "Publishing topics must not contain whitespace.",
+);
+
 export const PublishingChapterNameSchema = PublishingTextSchema.max(64)
   .refine(
     (value) => Array.from(value).length <= 11,
@@ -38,7 +43,7 @@ const PublishingIntentChapterSchema = z
 
 const PublishingIntentAuthoredFields = {
   description: PublishingTextSchema.max(2_000),
-  topics: z.array(PublishingTextSchema.max(48)).min(6).max(7).readonly(),
+  topics: z.array(PublishingTopicSchema).min(6).max(7).readonly(),
   chapters: z.array(PublishingIntentChapterSchema).min(1).max(256).readonly(),
 } as const;
 

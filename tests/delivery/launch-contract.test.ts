@@ -95,6 +95,21 @@ test("publishing chapters derive floor-rounded HH:MM:SS from frames", () => {
       ],
     }),
   );
+  for (const topic of [
+    "AI workflow",
+    "AI\u0085workflow",
+    "AI\ufeffworkflow",
+    " AI",
+    "AI ",
+    "AI\tworkflow",
+  ]) {
+    assert.throws(() =>
+      buildDeliveryPublishing({
+        ...publishing,
+        topics: [topic, "two", "three", "four", "five", "six"],
+      }),
+    );
+  }
 });
 
 test("delivery identity excludes MP4 completion facts", () => {

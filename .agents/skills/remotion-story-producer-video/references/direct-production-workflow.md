@@ -6,7 +6,7 @@ freeze, validate, and execute contracts but do not choose creative direction.
 ## 1. Design and freeze the Project
 
 Author a concise brief, causal StoryBeats, and meaning/rhythm-based Agent-authored ttsChunks. Titles,
-narration copy, and publishing descriptions are Project content. Choose one configured
+narration, descriptions, and 6–7 unique whitespace-free topics are Project data. Choose a configured
 `publishingCollections` ID and author `producer-input.json`, then run:
 
 ```bash

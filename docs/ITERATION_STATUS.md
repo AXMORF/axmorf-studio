@@ -102,8 +102,8 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 ### PublishingIntent、Cover 与自动交付
 
-- PublishingIntent v2 在 Story 阶段绑定 Story fingerprint 与所选配置合集；title 由 StorySpec
-  独占，章节 frame/time 从 SemanticTiming 确定性投影。
+- PublishingIntent v2 在 Story 阶段绑定 Story fingerprint 与所选配置合集；6–7 个唯一话题均不得
+  包含空白字符；title 由 StorySpec 独占，章节 frame/time 从 SemanticTiming 确定性投影。
 - 独立 Cover assignment/package/result 保留；Cover owner 只消费 StorySpec、VisualStyleSpec 和固定
   CoverSpec，通过 receipt 进入 watcher，但不阻止 render-ready 或进入 production state。
 - `delivery-launch-manifest-v4`、`render-launch-intent-v4`、`render-launch-receipt-v4` 与

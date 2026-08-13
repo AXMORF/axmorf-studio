@@ -44,7 +44,7 @@ Agent 先 author VideoBrief、StorySpec 与 project-local `producer-input.json`�
 `npm run project:configure -- --project <storyId> --input <path>`。fixed application 只通过 strict
 ProducerConfig helper 读取一次默认值，生成 NarrationSpec/RenderSpec/StoryCheck、PublishingIntent
 v2 与 current ProductionRequirementsFreeze。PublishingIntent 必须从合集数组选且只选一个 ID，
-并封存名称与完整目录 fingerprint；readability 必须显式来自 ProducerConfig，创建 API 不再使用
+包含 6–7 个唯一且不含空白字符的话题字符串，并封存名称与完整目录 fingerprint；readability 必须显式来自 ProducerConfig，创建 API 不再使用
 90px fallback。RenderSpec 不保存目标时长或字幕安全区。每个 StoryBeat 有稳定 meaningId；ttsChunks
 按意义、语气与朗读节奏创作，工具不得自动拆分。
 

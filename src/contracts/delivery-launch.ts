@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { createFingerprint } from "./fingerprint";
+import { PublishingTopicSchema } from "./publishing-intent";
 import {
   CompositionIdSchema,
   MeaningIdSchema,
@@ -149,7 +150,7 @@ const DeliveryPublishingInputObject = z
     storyId: StoryIdSchema,
     title: z.string().trim().min(1),
     description: z.string().trim().min(1).max(2_000),
-    topics: z.array(z.string().trim().min(1).max(48)).min(6).max(7).readonly(),
+    topics: z.array(PublishingTopicSchema).min(6).max(7).readonly(),
     collection: z.string().trim().min(1).max(96),
     outputFileName: z.string().regex(/^[a-z0-9][a-z0-9-]*\.mp4$/u),
     coverFileNames: z

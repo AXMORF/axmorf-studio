@@ -62,3 +62,27 @@ test("publishing intent rejects a free-text or missing collection", () => {
     }),
   );
 });
+
+test("publishing intent rejects topics containing whitespace", () => {
+  for (const topic of [
+    "AI workflow",
+    "AI\u0085workflow",
+    "AI\u00a0workflow",
+    "AI\u3000workflow",
+    "AI\ufeffworkflow",
+    " AI",
+    "AI ",
+    "AI\tworkflow",
+  ]) {
+    assert.throws(() =>
+      buildPublishingIntent({
+        story: validStorySpec,
+        authored: {
+          ...authored,
+          topics: [topic, "two", "three", "four", "five", "six"],
+        },
+        publishingCollections: collections,
+      }),
+    );
+  }
+});
