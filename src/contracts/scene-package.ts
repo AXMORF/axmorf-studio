@@ -72,10 +72,12 @@ const ScenePackageV3InputObject = ScenePackageV2InputObject.extend({
   visualRuntimeVersion: z.literal(STORY_VISUAL_RUNTIME_VERSION_V2),
 }).strict();
 
-export type ScenePackageInput =
-  | z.infer<typeof ScenePackageV1InputObject>
-  | z.infer<typeof ScenePackageV2InputObject>
-  | z.infer<typeof ScenePackageV3InputObject>;
+const ScenePackageV4InputObject = ScenePackageV3InputObject.extend({
+  schemaVersion: z.literal(4),
+  scenePresetFingerprint: Sha256DigestSchema.nullable(),
+}).strict();
+
+export type ScenePackageInput = z.infer<typeof ScenePackageV4InputObject>;
 
 export const computeSceneVisualFingerprint = (
   input: Pick<
@@ -150,30 +152,14 @@ const addScenePackageIssues = (
   }
 };
 
-const ScenePackageV1Schema = ScenePackageV1InputObject.extend({
-  packageFingerprint: Sha256DigestSchema,
-})
-  .strict()
-  .superRefine(addScenePackageIssues)
-  .readonly();
-const ScenePackageV2Schema = ScenePackageV2InputObject.extend({
-  packageFingerprint: Sha256DigestSchema,
-})
-  .strict()
-  .superRefine(addScenePackageIssues)
-  .readonly();
-const ScenePackageV3Schema = ScenePackageV3InputObject.extend({
+const ScenePackageV4Schema = ScenePackageV4InputObject.extend({
   packageFingerprint: Sha256DigestSchema,
 })
   .strict()
   .superRefine(addScenePackageIssues)
   .readonly();
 
-export const ScenePackageSchema = z.union([
-  ScenePackageV1Schema,
-  ScenePackageV2Schema,
-  ScenePackageV3Schema,
-]);
+export const ScenePackageSchema = ScenePackageV4Schema;
 
 const SceneFallbackInputSchema = z
   .object({

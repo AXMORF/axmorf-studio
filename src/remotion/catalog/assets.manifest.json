@@ -3,6 +3,72 @@
   "assets": [
     {
       "schemaVersion": 1,
+      "id": "asset.axmorf-intro-chime",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF intro chime",
+      "description": "Project-authored mono PCM chime for the default intro Scene preset.",
+      "useCases": ["default intro Scene cue"],
+      "tags": ["bookend", "intro", "sfx"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "scene-sfx",
+      "localPath": "public/assets/library/story-bookends/axmorf-intro-chime.wav",
+      "checksum": "sha256:739069dd51389ebac5704cdcd4b16ef43abc458a268931ab5817b834c1f2c475",
+      "license": {
+        "id": "Project-Authored",
+        "verificationStatus": "verified",
+        "sourceUrl": null,
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-08-15T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:739069dd51389ebac5704cdcd4b16ef43abc458a268931ab5817b834c1f2c475"
+      },
+      "media": {
+        "durationInSeconds": 0.6,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf-outro-chime",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF outro chime",
+      "description": "Project-authored mono PCM chime for the default outro Scene preset.",
+      "useCases": ["default outro Scene cue"],
+      "tags": ["bookend", "outro", "sfx"],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "scene-sfx",
+      "localPath": "public/assets/library/story-bookends/axmorf-outro-chime.wav",
+      "checksum": "sha256:7140b3c599b3656e5c3ee26c9c127a5d6a8deb26a336c67574114e4fdbe355b0",
+      "license": {
+        "id": "Project-Authored",
+        "verificationStatus": "verified",
+        "sourceUrl": null,
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-08-15T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:7140b3c599b3656e5c3ee26c9c127a5d6a8deb26a336c67574114e4fdbe355b0"
+      },
+      "media": {
+        "durationInSeconds": 1,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
       "id": "asset.m6-proof-pulse",
       "kind": "asset",
       "status": "approved",

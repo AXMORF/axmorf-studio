@@ -1,11 +1,12 @@
 # Direct production workflow
 
-This is the root Agent's normal path. Agent design decisions and fixed commands alternate; scripts
-freeze, validate, and execute contracts but do not choose creative direction.
+This is the root Agent path. The Agent designs. Scripts freeze, validate, and execute; they do not choose creative direction.
 
 ## 1. Design and freeze the Project
 
-Author a concise brief, causal StoryBeats, and meaning/rhythm-based Agent-authored ttsChunks. Titles,
+Author a concise brief and causal StoryBeats. Explicitly select default silent intro/outro presets,
+unless Project source replaces or disables either. Silent Scenes have no TTS, fake text, CaptionCue,
+or sealed segment. Narrated content uses Agent-authored ttsChunks as atomic units. Titles,
 narration, descriptions, and 6–7 unique whitespace-free topics are Project data. Choose a configured
 `publishingCollections` ID and author `producer-input.json`, then run:
 
@@ -24,36 +25,35 @@ npm run production:narrative -- --run <runId>
 npm run production:status -- --run <runId>
 ```
 
-Use host permission first. The narrative command owns TTS, sealing, mastering, measured timing,
-registry, baseline evidence, and AutoCheck. Do not reproduce steps, warm TTS, use fallback, or weaken
-the sandbox. Require `baseline-ready`.
+Use host permission first. The command owns TTS, sealing, mastering, timing, registry, evidence, and
+AutoCheck. Do not reproduce steps, warm TTS, add fallback, or weaken the sandbox. Require `baseline-ready`.
 
 For implementation changes, run `npm run check` with host permissions and `npm run compositions` with
 host permissions before dispatch.
 
 ## 3. Design visuals and freeze owners
 
-Using the current Story and measured timing, author VisualStyleSpec, resource choices, Scene briefs,
-and the simplest style-aligned GlobalVisual brief. Keep Scene expression specific to each Beat
-while maintaining whole-film visual continuity. Cover direction remains an independent design derived
-from StorySpec, VisualStyleSpec, and fixed CoverSpec.
+From current Story/timing, author VisualStyleSpec, resource choices, Beat-specific Scene briefs, and a
+minimal continuous GlobalVisual brief. Cover remains independent and assignment-derived.
 
-Choose asset-led, code-led, or hybrid deliberately. Query the current local ResourceCatalog first. If
-an external image is needed, use the external MCP only for search/preview/acquire, then run
+Bind intro/outro briefs exactly to selected preset visual/sound/resource identities. SemanticTiming
+already resolves duration. Default chimes are local Catalog audio; external audio import is unsupported.
+
+Choose asset-led, code-led, or hybrid; query ResourceCatalog first. For an external image, use MCP only
+for acquisition, then run
 `npm run project:asset:import -- --project <storyId> --receipt <absoluteReceiptPath> --role <scene-visual|global-visual>`
-before Scene freeze. Only the imported Project-local Resource ID may enter frozen plans. Do not pass a
-receipt, candidate path, provider URL, MCP call, credential, or SDK to an owner or runtime. Video/audio
-external import is not supported. Cover remains unable to consume Scene/MCP assets.
+before freeze. Only the imported Project-local ID enters plans. Receipts, candidates, provider URLs,
+credentials, SDKs, video/audio imports, and Scene/MCP assets for Cover remain forbidden.
 
 ```bash
 npm run production:scene:freeze -- --run <runId>
 npm run delivery:cover:freeze -- --project <storyId>
 ```
 
-Scene freeze writes/checks every Project-local Catalog snapshot; owners never repair it.
+Scene freeze owns each Project-local Catalog snapshot.
 
-Require N Scene assignments, one GlobalVisual assignment, and one CoverAssignment. Record their
-assignment/exclusive paths for owner prompts. Do not mutate frozen inputs afterward.
+Require ordinary Scene assignments for every intro/content/outro Beat, plus GlobalVisual and Cover.
+Record assignment/exclusive paths; do not mutate frozen inputs.
 
 ## 4. Start automation, dispatch, and exit
 
@@ -63,12 +63,9 @@ Run the watcher launcher with host permission:
 npm run production:watch:start -- --run <runId>
 ```
 
-Require `watcher-started` plus watcher launch intent and receipt. Intent without receipt is permanently
-ambiguous and must not be retried. The watcher consumes assignment-keyed receipts and owns all later
-checks, formal submission, convergence, render-ready, Cover processing, and delivery launch.
+Require `watcher-started`, intent, and receipt. Intent without receipt is permanently ambiguous. The
+watcher alone consumes receipts and owns validation, convergence, render-ready, Cover, and delivery.
 
-Create one `create_thread` task per Scene plus GlobalVisual and Cover using their prompt references.
-After all creation calls return, immediately exit. Do not call `wait_threads`, `read_thread`, status,
-check/submit, compositions, or delivery commands after dispatch. Report failed creation calls exactly;
-leave the acknowledged watcher and successfully created tasks running. Neither watcher nor delivery
-spawn acknowledgement proves MP4 completion.
+Use `create_thread` per Scene, GlobalVisual, and Cover. After creation calls, exit without wait/read,
+status, check/submit, compositions, or delivery commands. Report failed calls exactly. Spawn
+acknowledgement never proves MP4 completion.

@@ -67,7 +67,14 @@ const createFixture = async (context: TestContext) => {
     fps: 30,
     durationInFrames: 120,
     fingerprint: `sha256:${"5".repeat(64)}`,
-    storyBeats: [{ meaningId: "opening", startFrame: 0, endFrame: 120 }],
+    storyBeats: [
+      {
+        kind: "narrated-scene",
+        meaningId: "opening",
+        startFrame: 0,
+        endFrame: 120,
+      },
+    ],
   };
   const inputs = {
     story,
@@ -92,12 +99,12 @@ const createFixture = async (context: TestContext) => {
       semanticTimingFingerprint: semanticTiming.fingerprint,
       compositionId: "StoryExample",
       fps: 30,
-      timelinePolicyVersion: "fixed-bookends-v1",
+      timelinePolicyVersion: "scene-package-timeline-v1",
       sourceReferencesFingerprint: computeVideoSourceReferencesFingerprint(
         brief.sourceReferences,
       ),
-      bodyFrameCount: 120,
-      frameCount: 420,
+      semanticTimingFrameCount: 120,
+      frameCount: 120,
       renderPlanFingerprint: `sha256:${"2".repeat(64)}`,
     },
     renderReady: {
@@ -255,14 +262,14 @@ test("build records intent before spawn and receipt only after spawn acknowledge
       timecode: string;
     }>[];
   };
-  assert.equal(publishing.frameCount, 420);
-  assert.equal(publishing.plannedDurationSeconds, 14);
+  assert.equal(publishing.frameCount, 120);
+  assert.equal(publishing.plannedDurationSeconds, 4);
   assert.deepEqual(publishing.chapters, [
     {
       meaningId: "opening",
       name: "开场",
-      startFrame: 60,
-      timecode: "00:00:02",
+      startFrame: 0,
+      timecode: "00:00:00",
     },
   ]);
   assert.doesNotMatch(

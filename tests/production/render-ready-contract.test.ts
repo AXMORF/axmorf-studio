@@ -39,10 +39,10 @@ const planInput = {
   width: 1080,
   height: 1920,
   fps: 30,
-  timelinePolicyVersion: "fixed-bookends-v1",
+  timelinePolicyVersion: "scene-package-timeline-v1",
   sourceReferencesFingerprint: sha("3"),
-  bodyFrameCount: 120,
-  frameCount: 420,
+  semanticTimingFrameCount: 120,
+  frameCount: 120,
   layerOrder: ["global-visual", "story-visual", "narrative-core"],
   mixOrder: ["narration", "scene-local-sound"],
   remotionVersion: "4.0.489",
@@ -52,21 +52,21 @@ test("builds one current render plan and terminal render-ready contract", () => 
   const plan = buildProductionRenderPlan(planInput);
   const ready = buildProductionRenderReady({ plan });
 
-  assert.equal(plan.contractVersion, "production-render-plan-v3");
-  assert.equal(plan.bodyFrameCount, 120);
-  assert.equal(plan.frameCount, 420);
+  assert.equal(plan.contractVersion, "production-render-plan-v4");
+  assert.equal(plan.semanticTimingFrameCount, 120);
+  assert.equal(plan.frameCount, 120);
   assert.equal(
     plan.renderPolicy.policyVersion,
     "remotion-detached-h264-aac-v1",
   );
-  assert.equal(ready.contractVersion, "production-render-ready-v3");
+  assert.equal(ready.contractVersion, "production-render-ready-v4");
   assert.equal(ready.status, "render-ready");
   assert.equal(ready.handoff, "awaiting-automatic-delivery");
   assert.equal(ready.renderPlanFingerprint, plan.renderPlanFingerprint);
   assert.doesNotMatch(JSON.stringify(ready), /preview|approval/iu);
 });
 
-test("render plan rejects a final frame count that disagrees with fixed bookends", () => {
+test("render plan rejects a final frame count that disagrees with SemanticTiming", () => {
   assert.throws(() =>
     buildProductionRenderPlan({
       ...planInput,

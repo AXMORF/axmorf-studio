@@ -3,14 +3,14 @@ import { Html5Audio, Sequence } from "remotion";
 
 export type NarrationAudioTrackProps = {
   readonly src: string;
-  readonly leadInFrames: number;
+  readonly narrationStartFrame: number;
 };
 
 export const NarrationAudioTrack: FC<NarrationAudioTrackProps> = ({
   src,
-  leadInFrames,
+  narrationStartFrame,
 }) => (
-  <Sequence from={leadInFrames}>
+  <Sequence from={narrationStartFrame}>
     <Html5Audio src={src} playbackRate={1} />
   </Sequence>
 );

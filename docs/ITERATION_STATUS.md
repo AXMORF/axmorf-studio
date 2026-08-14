@@ -2,7 +2,7 @@
 
 > 文档类型：当前事实权威
 >
-> 最后复核：2026-08-14
+> 最后复核：2026-08-15
 >
 > 当前阶段：detached watcher、独立线程 owner receipt 与自动交付已实现
 
@@ -56,20 +56,16 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 ### 叙事、时间与 Scene
 
-- strict VideoBrief、StorySpec、current-only NarrationSpec v2、RenderSpec、StoryBeat、
+- strict VideoBrief、StorySpec v2 discriminated narrated/silent Scene、current-only NarrationSpec v2、RenderSpec、StoryBeat、
   Agent-authored ttsChunks；NarrationSpec v1/`seed` 无 runtime compatibility。
 - VoxCPM clone adapters v2、完整 generation parameter/provider-attempt binding、候选、sealed
   PCM、checksum/fingerprint、`pcm-cumulative-ceil-v1`、SemanticTiming 与
   CaptionCue。
 - Composition-owned `SceneSafeArea`、唯一顶层 CaptionLayer、透明语义 Scene root。
-- 共享 `StoryCompositionShell` 已接入 current production Composition，固定顺序为
-  `FixedIntro → 正文 → FixedOutro`；共享 `FixedIntro` 已裁为前 60 帧（2 秒）、无音频的 AXMORF logo + wordmark 动效，并以独立 System preview
-  注册；共享 `FixedOutro` 已定义为 240 帧（8 秒）、无音频的双画面片尾：前 120 帧（4 秒）展示固定结束语和来自
-  `VideoBrief.sourceReferences` 的标题/HTTP(S) 地址，再以
-  `logo-shrink-wordmark-lockup` 以 1.5 倍速度收束 AXMORF 品牌并完成点击关注反馈。它已注册 9:16/16:9 两个
-  System preview。成片帧数统一为 `60 + bodyDurationInFrames + 240`；正文仍完整使用原
-  SemanticTiming 局部帧，只在顶层 Series 中整体延后 60 帧。旁白、字幕、GlobalVisual 与
-  Scene-local sound 都只挂载在正文段。
+- intro/content/outro 已统一走普通 ScenePackage；SemanticTiming v2 覆盖连续全片窗口，CaptionCue
+  只覆盖 narrated chunks。默认 intro/outro preset 分别绑定 60/240 帧、视觉/音效意图、本地 PCM
+  Resource ID 与 fingerprint；Project source 可显式替换或关闭。`leadInFrames`/`tailFrames` 只保留
+  真正空白 padding，NarrativeCore 从 `narrationStartFrame` 挂载唯一完整旁白。
 - 每个 meaningId 一个独立 Codex task；每个 Story 一个 GlobalVisual task 与一个 Cover task；共享
   checkout 使用不重叠 exclusive paths。owner 只发布 immutable receipt，single-writer watcher
   串行验证并写正式 result。
@@ -85,10 +81,10 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   owner-ready/failed receipt、detached watch start/worker、status 与 render-ready check。
 - watcher launch intent/receipt 使用 fixed cwd/argv/log、`shell:false`、`detached:true`；intent-only
   永久 ambiguous。缺失 owner receipt 永久 `waiting-for-owner-results`，无 timeout/retry/heartbeat。
-- `production-render-plan-v3` 绑定 Story/Run、sealed/mastered narration、Composition、source
-  checksum、sourceReferences fingerprint、尺寸、fps、正文/成片帧数、fixed bookend timeline、
+- `production-render-plan-v4` 绑定 Story/Run、sealed/mastered narration、Composition、source
+  checksum、sourceReferences fingerprint、尺寸、fps、SemanticTiming 全片帧数、ScenePackage timeline、
   layer/mix order 和固定 Remotion policy。
-- `production-render-ready-v3` 绑定 render plan 与全部 current assembly identities；终态固定为
+- `production-render-ready-v4` 绑定 render plan 与全部 current assembly identities；终态固定为
   `render-ready / awaiting-automatic-delivery`。
 - GlobalVisual validator、generated Composition 与目标 Project compile gate 共享无 Props
   `GlobalVisualLayers` 类型合同；compile 使用仓库 tsconfig、`noEmit` 且只以 current
@@ -113,8 +109,8 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 ### PublishingIntent、Cover 与自动交付
 
 - PublishingIntent v2 在 Story 阶段绑定 Story fingerprint 与所选配置合集；6–7 个唯一话题均不得
-  包含空白字符；title 由 StorySpec 独占，章节先取 SemanticTiming 正文局部 frame，再加固定 60
-  帧片头偏移投影到最终成片 frame/time。
+  包含空白字符；title 由 StorySpec 独占，章节只覆盖 narrated Scene 并直接使用 SemanticTiming
+  的全片绝对 frame/time。
 - 独立 Cover assignment/package/result 保留；Cover owner 只消费 StorySpec、VisualStyleSpec 和固定
   CoverSpec，通过 receipt 进入 watcher，但不阻止 render-ready 或进入 production state。
 - `delivery-launch-manifest-v4`、`render-launch-intent-v4`、`render-launch-receipt-v4` 与

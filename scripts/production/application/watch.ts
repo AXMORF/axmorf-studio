@@ -34,7 +34,7 @@ import {
 import { runProductionSceneFail } from "./scene-fail";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
 
-type CurrentSceneAssignment = Extract<SceneAssignment, { schemaVersion: 3 }>;
+type CurrentSceneAssignment = Extract<SceneAssignment, { schemaVersion: 4 }>;
 type CurrentAssignments = Readonly<{
   assignments: readonly CurrentSceneAssignment[];
   globalVisualAssignment: GlobalVisualAssignment;

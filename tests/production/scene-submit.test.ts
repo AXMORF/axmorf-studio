@@ -12,7 +12,7 @@ import {
   buildSceneAssignment,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
-  buildSceneTaskInputV3,
+  buildSceneTaskInputV4,
   buildSceneVisualPlan,
   buildShotPlanSet,
   buildShotRecipeSelection,
@@ -42,16 +42,22 @@ const createAssignment = (
   requirementsFingerprint: string,
   readabilityPolicy: ProductionReadabilityPolicy,
 ) => {
-  const taskInput = buildSceneTaskInputV3({
+  const taskInput = buildSceneTaskInputV4({
     storyId: "story-example",
     meaningId: "opening",
     storyBeat: {
+      kind: "narrated-scene",
       meaningId: "opening",
       narrativePurpose: "State the timing problem.",
       ttsChunks: [{ chunkId: "opening-01", ttsText: "A" }],
       explicitPauses: [{ afterChunkId: "opening-01", pauseMs: 250 }],
     },
-    timingBeat: { meaningId: "opening", startFrame: 15, endFrame: 84 },
+    timingBeat: {
+      kind: "narrated-scene",
+      meaningId: "opening",
+      startFrame: 15,
+      endFrame: 84,
+    },
     storyFingerprint: sha("1"),
     semanticTimingFingerprint: sha("2"),
     renderFingerprint: sha("3"),
@@ -302,7 +308,7 @@ test("submit creates one success result without changing central state", async (
     }),
   });
   assert.equal(result.result.status, "success");
-  assert.equal(result.result.schemaVersion, 3);
+  assert.equal(result.result.schemaVersion, 4);
   assert.equal(result.written, true);
   assert.deepEqual(await readFile(statePath), beforeState);
   assert.equal((await stat(statePath)).mtimeMs, beforeMtime);

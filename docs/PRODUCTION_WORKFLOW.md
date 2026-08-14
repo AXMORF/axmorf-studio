@@ -2,7 +2,7 @@
 
 > 文档类型：执行流程权威
 >
-> 最后复核：2026-08-14
+> 最后复核：2026-08-15
 
 ## Current-only 主链
 
@@ -45,10 +45,11 @@ Agent 先 author VideoBrief、StorySpec 与 project-local `producer-input.json`�
 ProducerConfig helper 读取一次默认值，生成 NarrationSpec/RenderSpec/StoryCheck、PublishingIntent
 v2 与 current ProductionRequirementsFreeze。PublishingIntent 必须从合集数组选且只选一个 ID，
 包含 6–7 个唯一且不含空白字符的话题字符串，并封存名称与完整目录 fingerprint；readability 必须显式来自 ProducerConfig，创建 API 不再使用
-90px fallback。RenderSpec 不保存目标时长或字幕安全区。每个 StoryBeat 有稳定 meaningId；ttsChunks
-按意义、语气与朗读节奏创作，工具不得自动拆分。VideoBrief 另以
-`sourceReferences: [{title, url}]` 保存本期引用资料；最多 8 条且 URL 只接受 HTTP(S)，供固定片尾
-作为参数消费，不从 `sourceMaterial` 文本猜测或机械抽取。
+90px fallback。RenderSpec 不保存目标时长或字幕安全区。StorySpec v2 使用严格联合：
+`narrated-scene` 拥有原子 `ttsChunks`，`silent-scene` 只允许 intro/outro，并绑定视觉、音效、资源与
+固定帧数的 preset。每个 StoryBeat 只有一个稳定 meaningId；默认新 Story 显式包含 intro 与 outro，
+Project source 可替换 preset 或显式关闭。工具不得自动拆分、补静音 TTS 或伪造字幕。VideoBrief 另以
+`sourceReferences: [{title, url}]` 保存本期资料引用；最多 8 条且 URL 只接受 HTTP(S)。
 
 `production:preflight` 使用 `production-start-preflight-v2` 在 Run write 前检查 VoxCPM
 liveness/readiness 与 Remotion Chromium，
@@ -99,14 +100,14 @@ freeze 的 Project 必须 fresh Run。当前只开放 image，内部 discriminat
 
 ## 2. Narrative baseline
 
-`production:start` 建 immutable Run manifest；`production:narrative` 生成并封存 narration，按
-sealed PCM 累计 sample 边界导出 SemanticTiming、CaptionCue 与 NarrativeCore，并完成 fixed
+`production:start` 建 immutable Run manifest；`production:narrative` 只为 narrated Scene 生成并
+封存 narration，按 sealed PCM 累计 sample 边界和 silent preset 固定帧一次性导出覆盖全片的
+SemanticTiming、narrated-only CaptionCue 与 NarrativeCore，并完成 fixed
 mechanical AutoCheck。实测音频时间不可被 Scene 或转场移动、压缩或吞掉。
 
-这个 M3 Narrative Baseline 仍是正文专用诊断面：narrative scaffold 不挂载 fixed bookends，render
-命令显式限制为 `0..SemanticTiming.durationInFrames - 1`。ProjectRegistry 可提前投影正式成片总时长，
-但 baseline evidence 的媒体时长与 CaptionCue frame 继续按正文局部时间验证；正式 bookends 只在
-render-ready scaffold 接入。
+M3 Narrative Baseline 使用完整 SemanticTiming；NarrativeCore 从 `narrationStartFrame` 只挂载一次
+完整旁白，CaptionLayer 只消费 narrated chunks。silent Scene 不进入 generation input、VoxCPM、
+sealed manifest 或 CaptionCue，但其固定窗口计入 baseline 与最终 Composition 总帧数。
 
 TTS 语速在 provider response 后、canonical PCM 实测前处理并绑定 provider-attempt；目标 LUFS
 进入两遍 loudnorm mastering policy 与母带 fingerprint。VoxCPM 可控/高品质克隆分别使用
@@ -120,7 +121,8 @@ check-only 路径仍严格拒绝 stale 或 malformed evidence，replacement 只�
 
 ## 3. Freeze 与 owner 隔离
 
-`production:scene:freeze` 原子冻结 N Scene assignments 与一个 GlobalVisual assignment；
+`production:scene:freeze` 对 intro、content 与 outro 每个 StoryBeat 原子冻结一个普通 Scene
+assignment，并冻结一个 GlobalVisual assignment；
 `delivery:cover:freeze` 独立冻结 Cover assignment。Scene freeze 同时从 current authority 无条件生成
 Project-local `generated/resource-catalog.generated.json` 快照，因此未导入外部素材的 code-led
 Project 也具有 delivery attribution 所需的确定性 Catalog；后续 freeze/render-ready/delivery 只做
@@ -156,24 +158,24 @@ Cover 缺失或失败都不会把 production 变成 failed，只会阻止 automa
 watcher 从 immutable N+1 results 投影 Coverage、RendererRegistry、visual/sound projections、
 GlobalVisualProjection、FinalAssembly 与 current Composition。之后构建：
 
-- `production-render-plan-v3`：绑定 story/run、sealed narration、content-addressed mastered
+- `production-render-plan-v4`：绑定 story/run、sealed narration、content-addressed mastered
   narration、Composition/source checksum、`VideoBrief.sourceReferences` fingerprint、width/height、
-  fps、正文 `bodyFrameCount`、固定 bookend timeline policy、成片 `frameCount = 60 + body + 240`、
+  fps、`scene-package-timeline-v1`、`semanticTimingFrameCount` 与相等的最终 `frameCount`、
   layer/mix order 与固定 Remotion policy；
 - `GlobalVisualLayers` 的固定接口是无 Props；plan/projection 由 Composition 顶层解析并校验
   identity，不传给组件。render plan 与最终 Composition current 后，fixed flow 用仓库
   TypeScript/tsconfig 和 `noEmit` 只编译该 Project 的真实 import graph；
-- `production-render-ready-v3`：绑定 plan 及全部 render-critical identities，状态
+- `production-render-ready-v4`：绑定 plan 及全部 render-critical identities，状态
   `render-ready`，handoff `awaiting-automatic-delivery`。
 
 任何类型不兼容都在写入 ProductionRenderReady 前终止当前 Run。
 
-current Project Composition 顶层用 `StoryCompositionShell` 固定顺序挂载 60 帧无音频片头、正文与
-240 帧无音频片尾。正文 `CompositionAssembly` 整体延后 60 帧，但 Sequence 内局部 frame 从 0
-开始；SemanticTiming、Scene/GlobalVisual projection、NarrativeCore、CaptionLayer 与 sound design
-均继续使用原正文局部帧。`FixedOutro.references` 只取
-`projectSource.brief.sourceReferences`。ProjectRegistry、render plan、Remotion Composition metadata
-与 delivery planned duration 都使用同一成片总帧数。
+current Project Composition 直接装配完整 Scene coverage。intro/outro 与正文一样消费 visual-plan、
+shot-plan、sync-anchors、sound-plan、selected resources、RendererRegistry 与 Scene sound runtime；
+Scene renderer 仍只负责视觉。默认 intro/outro preset 使用 bootstrap 可重建、Catalog checksum 与
+Project-Authored license 绑定的本地 PCM 提示音。替换 preset 会改变 Story/timing/task/package identity，
+关闭 preset 会移除对应 StoryBeat，因此旧音效不会残留。ProjectRegistry、render plan、Composition
+metadata 与 delivery planned duration 都直接使用 `SemanticTiming.durationInFrames`。
 
 这个阶段不运行最终 Remotion render，不读取媒体，也不写媒体完成 evidence。Cover failure 不
 改变 production 状态，但 delivery build 必须要求 current CoverResult。
@@ -194,7 +196,7 @@ build 从 current inputs 确定性生成 deliveryId，在 staging 中写 exact C
 检查后原子提升到每个 Project 唯一的 `deliveries/<storyId>/` current slot。slot 中 identity 不变时
 只读复验；identity 变化时先把旧 slot 移入 staging backup，再提升新 package，提升失败则恢复旧
 slot；成功后不保留多个 delivery 目录。publishing/manifest 的 frameCount 与 planned duration 使用
-成片总帧数；章节 startFrame 在 SemanticTiming 正文局部帧上统一加 60，不改变上游 timing。
+成片总帧数；发布章节只覆盖 narrated StoryBeat，并直接使用 SemanticTiming 中的绝对 startFrame。
 
 intent 已持久化后才允许 spawn。adapter 使用固定 executable/argv/cwd/log、`shell: false` 与
 `detached: true`，只监听 `spawn` 和 `error`。收到 `spawn` 后立即 `unref()` 并写

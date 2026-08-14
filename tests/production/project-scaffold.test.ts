@@ -102,13 +102,10 @@ test("render scaffold binds the frozen plan and current GlobalVisual layer", asy
   assert.doesNotMatch(source, /<GlobalVisualLayers plan=/u);
   assert.match(source, /StoryVisualTrack/u);
   assert.match(source, /SoundDesignTrack/u);
-  assert.match(source, /StoryCompositionShell/u);
-  assert.match(source, /sourceReferencesFingerprint/u);
-  assert.match(
-    source,
-    /<FixedOutro references=\{projectSource\.brief\.sourceReferences\}\s*\/>/u,
-  );
-  assert.match(source, /bodyDurationInFrames=\{timing\.durationInFrames\}/u);
+  assert.doesNotMatch(source, /StoryCompositionShell|FixedIntro|FixedOutro/u);
+  assert.match(source, /narrationStartFrame: timing\.narrationStartFrame/u);
+  assert.match(source, /semanticTimingFrameCount/u);
+  assert.match(source, /=> \(\s*<CompositionAssembly/u);
   assert.doesNotMatch(source, /ProductionPreview|FinalPreview|approval/iu);
 
   await ensureProductionRenderScaffold({

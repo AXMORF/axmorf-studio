@@ -305,12 +305,14 @@ export const validateStoryCaptionReadability = ({
   const story = StorySpecSchema.parse(rawStory);
   const policy = ProductionReadabilityPolicySchema.parse(rawPolicy);
   return story.beats.flatMap((beat) =>
-    beat.ttsChunks.map((chunk) =>
-      validateCaptionDisplayBudget({
-        ...chunk,
-        maxDisplayHalfUnits: policy.captionPolicy.maxDisplayHalfUnits,
-      }),
-    ),
+    beat.kind === "narrated-scene"
+      ? beat.ttsChunks.map((chunk) =>
+          validateCaptionDisplayBudget({
+            ...chunk,
+            maxDisplayHalfUnits: policy.captionPolicy.maxDisplayHalfUnits,
+          }),
+        )
+      : [],
   );
 };
 

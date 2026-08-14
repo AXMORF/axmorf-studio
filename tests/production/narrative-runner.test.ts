@@ -376,7 +376,7 @@ test("an over-budget chunk fails by chunkId before any provider dependency runs"
   const overlongStory = {
     ...fixture.source.story,
     beats: fixture.source.story.beats.map((beat, index) =>
-      index === 0
+      index === 0 && beat.kind === "narrated-scene"
         ? {
             ...beat,
             ttsChunks: beat.ttsChunks.map((chunk) => ({

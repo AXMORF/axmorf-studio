@@ -61,7 +61,7 @@ export const assertCurrentDeliveryInputBindings = ({
       computeVideoSourceReferencesFingerprint(brief.sourceReferences) ||
     renderPlan.semanticTimingFingerprint !== semanticTiming.fingerprint ||
     semanticTiming.fps !== renderPlan.fps ||
-    semanticTiming.durationInFrames !== renderPlan.bodyFrameCount ||
+    semanticTiming.durationInFrames !== renderPlan.semanticTimingFrameCount ||
     renderPlan.frameCount !==
       getStoryCompositionDurationInFrames(semanticTiming.durationInFrames) ||
     current.runId !== renderPlan.runId ||

@@ -2,7 +2,6 @@ import {
   ReferenceFidelityReceiptSchema,
   ResourceDescriptorSchema,
   SCENE_AUDIO_RUNTIME_VERSION,
-  STORY_VISUAL_RUNTIME_VERSION,
   STORY_VISUAL_RUNTIME_VERSION_V2,
   ScenePackageSchema,
   SceneRendererBindingSchema,
@@ -89,9 +88,7 @@ export const buildScenePackage = (rawInput: {
     rawInput.current.rendererSourceFingerprint !==
       rendererBinding.rendererSourceFingerprint ||
     rawInput.current.visualRuntimeVersion !==
-      (task.schemaVersion === 3
-        ? STORY_VISUAL_RUNTIME_VERSION_V2
-        : STORY_VISUAL_RUNTIME_VERSION) ||
+      STORY_VISUAL_RUNTIME_VERSION_V2 ||
     rawInput.current.sceneAudioRuntimeVersion !== SCENE_AUDIO_RUNTIME_VERSION
   ) {
     throw new Error("Scene package current authority inputs are stale.");
@@ -160,6 +157,15 @@ export const buildScenePackage = (rawInput: {
       "Scene package selected resources do not exactly cover authored plans.",
     );
   }
+  if (
+    task.storyBeat.kind === "silent-scene" &&
+    JSON.stringify(selectedResources.map(({ resourceId }) => resourceId)) !==
+      JSON.stringify(task.storyBeat.preset.resourceIds)
+  ) {
+    throw new Error(
+      "Silent Scene package resources must exactly consume its selected preset.",
+    );
+  }
   const commonBase = {
     storyId: task.storyId,
     meaningId: task.meaningId,
@@ -180,36 +186,20 @@ export const buildScenePackage = (rawInput: {
     soundPlanFingerprint: sound.soundPlanFingerprint,
     rendererBinding,
     selectedResources,
-    visualRuntimeVersion:
-      task.schemaVersion === 3
-        ? STORY_VISUAL_RUNTIME_VERSION_V2
-        : STORY_VISUAL_RUNTIME_VERSION,
+    visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION_V2,
     sceneAudioRuntimeVersion: SCENE_AUDIO_RUNTIME_VERSION,
   };
-  const base =
-    task.schemaVersion === 3
-      ? {
-          schemaVersion: 3 as const,
-          ...commonBase,
-          visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION_V2,
-          readabilityPolicyFingerprint:
-            task.readabilityPolicy.policyFingerprint,
-          sceneCompositionBoundaryVersion:
-            task.sceneCompositionBoundaryVersion,
-        }
-      : task.schemaVersion === 2
-      ? {
-          schemaVersion: 2 as const,
-          ...commonBase,
-          visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION,
-          readabilityPolicyFingerprint:
-            task.readabilityPolicy.policyFingerprint,
-        }
-      : {
-          schemaVersion: 1 as const,
-          ...commonBase,
-          visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION,
-        };
+  const base = {
+    schemaVersion: 4 as const,
+    ...commonBase,
+    visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION_V2,
+    readabilityPolicyFingerprint: task.readabilityPolicy.policyFingerprint,
+    sceneCompositionBoundaryVersion: task.sceneCompositionBoundaryVersion,
+    scenePresetFingerprint:
+      task.storyBeat.kind === "silent-scene"
+        ? task.storyBeat.preset.presetFingerprint
+        : null,
+  };
   const visualInput = {
     taskInputFingerprint: base.taskInputFingerprint,
     visualStyleFingerprint: base.visualStyleFingerprint,

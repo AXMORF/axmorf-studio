@@ -78,10 +78,12 @@ export const buildNarrationSeal = ({
 
   const pausesByChunkId = new Map(
     story.beats.flatMap((beat) =>
-      beat.explicitPauses.map((pause) => [
-        pause.afterChunkId,
-        { ...pause, meaningId: beat.meaningId },
-      ] as const),
+      beat.kind === "narrated-scene"
+        ? beat.explicitPauses.map((pause) => [
+            pause.afterChunkId,
+            { ...pause, meaningId: beat.meaningId },
+          ] as const)
+        : [],
     ),
   );
   const chunkWavs = new Map<string, Buffer>();

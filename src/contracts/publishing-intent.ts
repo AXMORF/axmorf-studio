@@ -202,14 +202,18 @@ export const resolveCurrentPublishingIntent = ({
   ) {
     throw new Error("PublishingIntent is stale against the current StorySpec.");
   }
+  const narratedBeats = story.beats.filter(
+    (beat) => beat.kind === "narrated-scene",
+  );
   if (
-    intent.chapters.length !== story.beats.length ||
+    intent.chapters.length !== narratedBeats.length ||
     intent.chapters.some(
-      ({ meaningId }, index) => meaningId !== story.beats[index]?.meaningId,
+      ({ meaningId }, index) =>
+        meaningId !== narratedBeats[index]?.meaningId,
     )
   ) {
     throw new Error(
-      "PublishingIntent chapters must cover current StoryBeats in Story order.",
+      "PublishingIntent chapters must cover narrated StoryBeats in Story order.",
     );
   }
   return intent;

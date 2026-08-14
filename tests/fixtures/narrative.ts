@@ -25,17 +25,23 @@ export const validVideoBrief = {
 } as const;
 
 export const validStorySpec = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   storyId: "story-example",
   title: "A deterministic narration example",
+  bookends: {
+    intro: { mode: "disabled" },
+    outro: { mode: "disabled" },
+  },
   beats: [
     {
+      kind: "narrated-scene",
       meaningId: "opening",
       narrativePurpose: "State the timing problem.",
       ttsChunks: [{ chunkId: "opening-01", ttsText: "A" }],
       explicitPauses: [{ afterChunkId: "opening-01", pauseMs: 250 }],
     },
     {
+      kind: "narrated-scene",
       meaningId: "conclusion",
       narrativePurpose: "State the deterministic result.",
       ttsChunks: [{ chunkId: "conclusion-01", ttsText: "B" }],

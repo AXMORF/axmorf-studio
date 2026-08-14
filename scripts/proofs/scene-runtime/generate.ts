@@ -12,13 +12,14 @@ import {
   buildSceneCoverageMap,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
-  buildSceneTaskInput,
+  buildSceneTaskInputV4,
   buildSceneVisualPlan,
   buildShotPlanSet,
   buildShotRecipeSelection,
   computeLocalizationFingerprint,
   computeVisualStyleFingerprint,
   createFingerprint,
+  resolveProductionReadabilityPolicy,
   type ExternalReferenceSnapshot,
   type LocalizationManifest,
   type ResourceCatalog,
@@ -292,10 +293,11 @@ export const generateM6Proof = async ({
     visualStyle,
     resolvedStyleDescriptorFingerprint: style.descriptorFingerprint,
   });
-  const task = buildSceneTaskInput({
+  const task = buildSceneTaskInputV4({
     storyId: STORY_ID,
     meaningId: MEANING_ID,
     storyBeat: {
+      kind: "narrated-scene",
       meaningId: MEANING_ID,
       narrativePurpose:
         "Prove one deterministic visual and local sound Scene slot.",
@@ -307,7 +309,12 @@ export const generateM6Proof = async ({
       ],
       explicitPauses: [],
     },
-    timingBeat: { meaningId: MEANING_ID, startFrame: 0, endFrame: 120 },
+    timingBeat: {
+      kind: "narrated-scene",
+      meaningId: MEANING_ID,
+      startFrame: 0,
+      endFrame: 120,
+    },
     storyFingerprint: createFingerprint({
       namespace: "m6-proof-story",
       version: 1,
@@ -345,6 +352,11 @@ export const generateM6Proof = async ({
       sceneRoot: `src/projects/${STORY_ID}/scenes/${MEANING_ID}`,
       publicAssetRoot: `public/assets/library/${STORY_ID}/${MEANING_ID}`,
     },
+    readabilityPolicy: resolveProductionReadabilityPolicy({
+      width: 1920,
+      height: 1080,
+    }),
+    sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
   });
   const shapeSelected = {
     schemaVersion: 1 as const,
@@ -568,7 +580,7 @@ export const generateM6Proof = async ({
       resourceCatalogFingerprint: task.resourceCatalogFingerprint,
       snapshotFingerprints: [snapshot.snapshotFingerprint],
       rendererSourceFingerprint: graph.sourceGraphFingerprint,
-      visualRuntimeVersion: "story-visual-runtime-v1",
+      visualRuntimeVersion: "story-visual-runtime-v2",
       sceneAudioRuntimeVersion: "scene-audio-runtime-v1",
     },
   });

@@ -2,7 +2,7 @@
 
 > 文档类型：产品目标权威
 >
-> 最后复核：2026-08-14
+> 最后复核：2026-08-15
 
 ## 一句话目标
 
@@ -25,8 +25,8 @@
    用户任务，全部创建成功后立即结束；
 5. owner 只发布 assignment-bound immutable receipt，watcher 串行 check/submit 并汇合
    current FinalAssembly；
-6. 用固定 60 帧片头、完整正文与固定 240 帧片尾组装正式 Composition，冻结
-   `production-render-plan-v3` 和 `production-render-ready-v3`，到达
+6. 用普通 ScenePackage 组装片头、正文与片尾，冻结
+   `production-render-plan-v4` 和 `production-render-ready-v4`，到达
    `render-ready / awaiting-automatic-delivery`；
 7. Cover ready 后准备 non-MP4 delivery package，在 spawn 前 exactly once 写 launch intent；
 8. detached spawn Remotion，收到 OS `spawn` 后写 receipt 并到达
@@ -45,7 +45,7 @@
 - Scene root 透明，只拥有 Beat 语义视觉与 Scene-local sound；Composition owns safe area、
   narration、captions 与 GlobalVisual background。
 - captions 只由顶层 CaptionLayer 渲染。
-- SemanticTiming 只描述正文；正式成片固定为 `60 + body + 240` 帧，正文局部帧不变且片头片尾无音频。
+- SemanticTiming 一次性解析片头、正文与片尾的连续权威窗口；片头片尾默认无旁白和字幕，但可拥有 Scene-local 音效。
 - JSON 不包含 JSX、代码、动态模块路径或 executable expression。
 - render runtime 不调用 Agent、Skill、MCP、Git、网络或目录扫描。
 - 所有 render-critical 资产 repository-local、manifest-verified；motion 使用 Remotion frame API。

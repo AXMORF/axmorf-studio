@@ -57,8 +57,8 @@ const fingerprintFileTree = async (
 
 const SkillPolicySchema = z
   .object({
-    schemaVersion: z.literal(6),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v6"),
+    schemaVersion: z.literal(7),
+    policyVersion: z.literal("remotion-story-producer-video-policy-v7"),
     rootEndpoint: z.literal("watcher-started-and-owners-dispatched"),
     backgroundEndpoint: z.literal("delivery-render-started"),
     privateConfigPath: z.literal("private/producer.config.json"),
@@ -128,6 +128,13 @@ const SkillPolicySchema = z
         centralWriter: z.literal("detached-repository-watcher-only"),
         threadIdentityPersisted: z.literal(false),
         timingPolicy: z.literal("pcm-cumulative-ceil-v1"),
+        storyBeatContract: z.literal(
+          "discriminated-narrated-or-silent-scene",
+        ),
+        defaultBookends: z.literal("explicit-intro-outro-scene-presets"),
+        silentSceneNarrationPolicy: z.literal(
+          "no-tts-no-captions-fixed-preset-frames",
+        ),
         watcherLaunchPolicy: z.literal("detached-spawn-acknowledgement-v1"),
         watcherLaunchAmbiguityPolicy: z.literal(
           "intent-without-receipt-never-retry",
@@ -256,6 +263,9 @@ test("repository video skill exposes a structured production policy", async () =
   assert.match(sceneWorkflow, /allowedResourceIds/u);
   assert.match(sceneWorkflow, /allowedSnapshots/u);
   assert.match(sceneWorkflow, /透明 Scene/u);
+  assert.match(workflow, /default[\s\S]*silent intro\/outro/u);
+  assert.match(sceneWorkflow, /silent-scene/u);
+  assert.match(sceneWorkflow, /不得[\s\S]*TTS[\s\S]*CaptionCue/u);
   assert.match(sceneWorkflow, /顶层[\s\S]{0,40}字幕[\s\S]{0,20}旁白[\s\S]{0,20}背景/u);
 
   const sceneCheckCommand =

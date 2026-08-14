@@ -65,7 +65,7 @@ export const validateSceneReadability = async ({
   readonly assignment: SceneAssignment;
   readonly graph: RendererSourceGraph;
 }) => {
-  if (assignment.taskInput.schemaVersion !== 3) {
+  if (assignment.taskInput.schemaVersion !== 4) {
     throw new Error("Production Scene assignment is not current.");
   }
   const [validated, boundarySourceFingerprint] = await Promise.all([

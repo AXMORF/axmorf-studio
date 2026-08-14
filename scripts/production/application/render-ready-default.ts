@@ -230,7 +230,7 @@ export const prepareProductionRenderPlan = async ({
   if (
     resolved.assignments.some(
       (assignment) =>
-        assignment.schemaVersion !== 3 ||
+        assignment.schemaVersion !== 4 ||
         assignment.sceneCompositionBoundaryVersion !==
           resolved.inputs.current.requirements.sceneBoundaryOwnership
             .sceneCompositionBoundaryVersion,
@@ -418,7 +418,7 @@ export const prepareProductionRenderPlan = async ({
     sourceReferencesFingerprint: computeVideoSourceReferencesFingerprint(
       sources.brief.sourceReferences,
     ),
-    bodyFrameCount: sources.timing.durationInFrames,
+    semanticTimingFrameCount: sources.timing.durationInFrames,
     frameCount: getStoryCompositionDurationInFrames(
       sources.timing.durationInFrames,
     ),

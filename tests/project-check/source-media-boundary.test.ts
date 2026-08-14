@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -43,4 +43,16 @@ test("final source health disables Scene review media byte verification", async 
     },
   });
   assert.equal(includeMediaEvidence, false);
+});
+
+test("final Project verification rebuilds current ScenePackages with visual runtime v2", async () => {
+  const source = await readFile(
+    join(process.cwd(), "scripts/project-check/final-run.ts"),
+    "utf8",
+  );
+  assert.match(source, /visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION_V2/u);
+  assert.doesNotMatch(
+    source,
+    /visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION,/u,
+  );
 });

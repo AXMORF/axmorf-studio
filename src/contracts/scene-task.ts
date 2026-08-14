@@ -12,11 +12,28 @@ import { SCENE_COMPOSITION_BOUNDARY_VERSION } from "./production-requirements";
 import { ResourceIdSchema } from "./resource-catalog";
 import { StoryBeatSchema } from "./story";
 
-const TimingBeatSchema = z
+const TimingRangeShape = {
+  meaningId: MeaningIdSchema,
+  startFrame: z.number().int().nonnegative().safe(),
+  endFrame: z.number().int().positive().safe(),
+} as const;
+
+const NarratedTimingBeatSchema = z
+  .object({ kind: z.literal("narrated-scene"), ...TimingRangeShape })
+  .strict()
+  .refine((beat) => beat.endFrame > beat.startFrame, {
+    message: "Scene timing Beat range must be non-empty.",
+    path: ["endFrame"],
+  })
+  .readonly();
+
+const SilentTimingBeatSchema = z
   .object({
-    meaningId: MeaningIdSchema,
-    startFrame: z.number().int().nonnegative().safe(),
-    endFrame: z.number().int().positive().safe(),
+    kind: z.literal("silent-scene"),
+    sceneRole: z.enum(["intro", "outro"]),
+    presetFingerprint: Sha256DigestSchema,
+    presetDurationInFrames: z.number().int().positive().safe(),
+    ...TimingRangeShape,
   })
   .strict()
   .refine((beat) => beat.endFrame > beat.startFrame, {
@@ -25,12 +42,17 @@ const TimingBeatSchema = z
   })
   .readonly();
 
+const TimingBeatSchema = z.discriminatedUnion("kind", [
+  NarratedTimingBeatSchema,
+  SilentTimingBeatSchema,
+]);
+
 const AllowedSnapshotSchema = z
   .object({
     sourceId: z.literal("video-shotcraft"),
     snapshotFingerprint: Sha256DigestSchema,
     allowedCardIds: z
-      .array(z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/))
+      .array(z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u))
       .min(1)
       .readonly(),
   })
@@ -69,9 +91,9 @@ const SceneAllowedDirectoriesSchema = z
   .strict()
   .readonly();
 
-const SceneTaskInputV1Object = z
+const SceneTaskInputObject = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(4),
     storyId: StoryIdSchema,
     meaningId: MeaningIdSchema,
     storyBeat: StoryBeatSchema,
@@ -85,39 +107,18 @@ const SceneTaskInputV1Object = z
     allowedResourceIds: z.array(ResourceIdSchema).max(128).readonly(),
     continuity: ContinuityBriefSchema,
     allowedDirectories: SceneAllowedDirectoriesSchema,
+    readabilityPolicy: ProductionReadabilityPolicySchema,
+    sceneCompositionBoundaryVersion: z.literal(
+      SCENE_COMPOSITION_BOUNDARY_VERSION,
+    ),
     taskInputFingerprint: Sha256DigestSchema,
   })
   .strict();
 
-const SceneTaskInputV2Object = SceneTaskInputV1Object.extend({
-  schemaVersion: z.literal(2),
-  readabilityPolicy: ProductionReadabilityPolicySchema,
-}).strict();
-const SceneTaskInputV3Object = SceneTaskInputV2Object.extend({
-  schemaVersion: z.literal(3),
-  sceneCompositionBoundaryVersion: z.literal(
-    SCENE_COMPOSITION_BOUNDARY_VERSION,
-  ),
-}).strict();
-
-type SceneTaskV1FingerprintInput = Omit<
-  z.input<typeof SceneTaskInputV1Object>,
+type SceneTaskFingerprintInput = Omit<
+  z.input<typeof SceneTaskInputObject>,
   "schemaVersion" | "taskInputFingerprint"
-> & { readonly schemaVersion?: 1 };
-
-type SceneTaskV2FingerprintInput = Omit<
-  z.input<typeof SceneTaskInputV2Object>,
-  "schemaVersion" | "taskInputFingerprint"
-> & { readonly schemaVersion?: 2 };
-type SceneTaskV3FingerprintInput = Omit<
-  z.input<typeof SceneTaskInputV3Object>,
-  "schemaVersion" | "taskInputFingerprint"
-> & { readonly schemaVersion?: 3 };
-
-type SceneTaskFingerprintInput =
-  | SceneTaskV1FingerprintInput
-  | SceneTaskV2FingerprintInput
-  | SceneTaskV3FingerprintInput;
+> & { readonly schemaVersion?: 4 };
 
 export const computeSceneTaskInputFingerprint = (
   rawTask: SceneTaskFingerprintInput & {
@@ -128,26 +129,41 @@ export const computeSceneTaskInputFingerprint = (
   delete task.taskInputFingerprint;
   return createFingerprint({
     namespace: "scene-task-input",
-    version: task.schemaVersion === 3 ? 3 : task.schemaVersion === 2 ? 2 : 1,
+    version: 4,
     value: task,
   });
 };
 
 const addSceneTaskIssues = (
-  task:
-    | z.infer<typeof SceneTaskInputV1Object>
-    | z.infer<typeof SceneTaskInputV2Object>
-    | z.infer<typeof SceneTaskInputV3Object>,
+  task: z.infer<typeof SceneTaskInputObject>,
   context: z.RefinementCtx,
 ) => {
   if (
     task.storyBeat.meaningId !== task.meaningId ||
-    task.timingBeat.meaningId !== task.meaningId
+    task.timingBeat.meaningId !== task.meaningId ||
+    task.storyBeat.kind !== task.timingBeat.kind
   ) {
     context.addIssue({
       code: "custom",
-      message: "Scene task StoryBeat and timing must own the same meaningId.",
+      message: "Scene task StoryBeat and timing must own one Scene identity.",
       path: ["meaningId"],
+    });
+  }
+  if (
+    task.storyBeat.kind === "silent-scene" &&
+    (task.timingBeat.kind !== "silent-scene" ||
+      task.storyBeat.sceneRole !== task.timingBeat.sceneRole ||
+      task.storyBeat.preset.presetFingerprint !==
+        task.timingBeat.presetFingerprint ||
+      task.storyBeat.preset.durationInFrames !==
+        task.timingBeat.presetDurationInFrames ||
+      task.timingBeat.endFrame - task.timingBeat.startFrame !==
+        task.storyBeat.preset.durationInFrames)
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "Silent Scene task preset timing identity is stale.",
+      path: ["timingBeat"],
     });
   }
   const expectedSceneRoot = `src/projects/${task.storyId}/scenes/${task.meaningId}`;
@@ -175,6 +191,17 @@ const addSceneTaskIssues = (
       message: "Scene task allowlists must contain unique identities.",
     });
   }
+  if (
+    task.storyBeat.kind === "silent-scene" &&
+    JSON.stringify(task.allowedResourceIds) !==
+      JSON.stringify(task.storyBeat.preset.resourceIds)
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "Silent Scene task resources must equal its preset resources.",
+      path: ["allowedResourceIds"],
+    });
+  }
   if (task.taskInputFingerprint !== computeSceneTaskInputFingerprint(task)) {
     context.addIssue({
       code: "custom",
@@ -184,48 +211,13 @@ const addSceneTaskIssues = (
   }
 };
 
-const SceneTaskInputV1Schema =
-  SceneTaskInputV1Object.superRefine(addSceneTaskIssues).readonly();
-const SceneTaskInputV2Schema =
-  SceneTaskInputV2Object.superRefine(addSceneTaskIssues).readonly();
-const SceneTaskInputV3Schema =
-  SceneTaskInputV3Object.superRefine(addSceneTaskIssues).readonly();
+export const SceneTaskInputSchema = SceneTaskInputObject.superRefine(
+  addSceneTaskIssues,
+).readonly();
 
-export const SceneTaskInputSchema = z.union([
-  SceneTaskInputV1Schema,
-  SceneTaskInputV2Schema,
-  SceneTaskInputV3Schema,
-]);
-
-export const buildSceneTaskInput = (rawInput: SceneTaskV1FingerprintInput) => {
-  const input = {
-    ...rawInput,
-    schemaVersion: 1 as const,
-  };
+export const buildSceneTaskInputV4 = (rawInput: SceneTaskFingerprintInput) => {
+  const input = { ...rawInput, schemaVersion: 4 as const };
   return SceneTaskInputSchema.parse({
-    ...input,
-    taskInputFingerprint: computeSceneTaskInputFingerprint(input),
-  });
-};
-
-export const buildSceneTaskInputV2 = (
-  rawInput: SceneTaskV2FingerprintInput,
-) => {
-  const input = {
-    ...rawInput,
-    schemaVersion: 2 as const,
-  };
-  return SceneTaskInputSchema.parse({
-    ...input,
-    taskInputFingerprint: computeSceneTaskInputFingerprint(input),
-  });
-};
-
-export const buildSceneTaskInputV3 = (
-  rawInput: SceneTaskV3FingerprintInput,
-) => {
-  const input = { ...rawInput, schemaVersion: 3 as const };
-  return SceneTaskInputV3Schema.parse({
     ...input,
     taskInputFingerprint: computeSceneTaskInputFingerprint(input),
   });

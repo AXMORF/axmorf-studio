@@ -2,7 +2,7 @@
 
 > 文档类型：合同参考。可执行 schema 与 fingerprint 逻辑以 `src/contracts/` 为准。
 >
-> 最后复核：2026-08-14
+> 最后复核：2026-08-15
 
 ## Persisted source files
 
@@ -36,10 +36,14 @@ Array order is semantic order; no independent numeric order field exists.
 
 `NarrationSpecSchema` is current-only v2 and contains only `voiceProfileId` plus the fixed
 `voice-clone` mode. The removed `seed` field is rejected; VoxCPM has no seed input and no compatibility
-branch interprets old NarrationSpec v1. `narration-generation-input` is likewise v2, so the clean-break
+branch interprets old NarrationSpec v1. `narration-generation-input` is v3 and consumes only
+`narrated-scene` chunks, so the clean-break
 contract cannot reuse a v1 generation identity.
 
-`ttsChunks` are authored units and are never split mechanically. An explicit pause is declared by
+StorySpec v2 discriminates `narrated-scene` from `silent-scene`. Every Story still requires at least one
+real narrated Scene. silent intro/outro bind a fixed-duration preset and never synthesize an empty TTS
+chunk, sealed segment, CaptionCue, narration file or caption text. `ttsChunks` are authored units and are
+never split mechanically. An explicit pause is declared by
 `{afterChunkId, pauseMs}` in its owning StoryBeat, where `pauseMs` is a non-negative integer. A zero
 pause remains an owned zero-length timeline segment; a positive pause must quantize to at least one PCM
 sample frame. Pause declarations are excluded from the generation input fingerprint but included in the
@@ -99,29 +103,19 @@ or audio bytes.
 `pcm-cumulative-ceil-v1` builds one cumulative integer sample timeline and applies
 `ceilDiv(samples × fps, sampleRate)` at shared boundaries with `BigInt`. CaptionCue is one-to-one with
 TTSChunk. Explicit pauses have timing but no CaptionCue. RenderSpec timing fields are `fps`,
-`leadInFrames`, and `tailFrames`. The current narration workflow generates each Project's
-SemanticTiming directly from sealed sample frames.
+`leadInFrames`, and `tailFrames`. The current workflow combines sealed narrated sample frames with
+silent preset durations once, producing continuous intro → content → outro windows. `narrationStartFrame`
+is the absolute frame where the one complete narration WAV begins; lead/tail remain only blank padding.
 
-## Fixed Story Composition timeline
+## ScenePackage Story Composition timeline
 
-`SemanticTiming.durationInFrames` remains the body-only authority. The formal Story Composition uses
-`fixed-bookends-v1` and derives its final duration as
-`60 + SemanticTiming.durationInFrames + 240`. `ProjectRegistrationDescriptor.durationInFrames`,
-`production-render-plan-v3.frameCount`, Remotion Composition metadata, delivery publishing and the
-delivery manifest all use that final duration. The render plan separately preserves
-`bodyFrameCount = SemanticTiming.durationInFrames`; changing the bookend projection never rewrites a
-StoryBeat, CaptionCue, Scene, narration, GlobalVisual or Scene-local sound frame.
-
-The body is mounted inside a `Series.Sequence` that begins at final frame 60, so local body frame 0
-remains local frame 0. `FixedIntro` and `FixedOutro` are outside that Sequence and contain no audio.
-`FixedOutro.references` is exactly the parsed `VideoBrief.sourceReferences` array. Its canonical
-fingerprint is bound into the render plan, so changing references requires a fresh current plan/Run.
-Delivery chapter frames are final-timeline projections: `SemanticTiming.startFrame + 60`.
-
-M3 Narrative Baseline is intentionally body-only evidence. Its temporary narrative scaffold does not
-mount bookends, and its render command restricts output to body frames even though the current Registry
-already advertises the final Story Composition duration. The persisted M3 render duration therefore
-remains `SemanticTiming.durationInFrames`; this diagnostic artifact is not a final delivery render.
+`SemanticTiming.durationInFrames` is the full timeline authority. The formal Composition uses
+`scene-package-timeline-v1`; `ProjectRegistrationDescriptor.durationInFrames`,
+`production-render-plan-v4.semanticTimingFrameCount/frameCount`, Remotion metadata, delivery publishing
+and the delivery manifest all use the same value. intro/outro receive ordinary SceneAssignment and
+ScenePackage identities. Their selected preset fingerprint enters task/package identity, while visual,
+sound, duration or resource changes invalidate the old assignment and package. Delivery chapters cover
+only narrated StoryBeats and use their absolute SemanticTiming start frames.
 
 ## Implemented commands
 

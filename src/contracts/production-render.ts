@@ -15,9 +15,9 @@ import {
 } from "./story-composition";
 
 export const PRODUCTION_RENDER_PLAN_VERSION =
-  "production-render-plan-v3" as const;
+  "production-render-plan-v4" as const;
 export const PRODUCTION_RENDER_READY_VERSION =
-  "production-render-ready-v3" as const;
+  "production-render-ready-v4" as const;
 export const PRODUCTION_RENDER_POLICY_VERSION =
   "remotion-detached-h264-aac-v1" as const;
 
@@ -82,7 +82,7 @@ const RenderPlanInputObject = z
     fps: PositiveIntegerSchema.max(120),
     timelinePolicyVersion: z.literal(STORY_COMPOSITION_TIMELINE_VERSION),
     sourceReferencesFingerprint: Sha256DigestSchema,
-    bodyFrameCount: PositiveIntegerSchema,
+    semanticTimingFrameCount: PositiveIntegerSchema,
     frameCount: PositiveIntegerSchema,
     layerOrder: z
       .tuple([
@@ -109,12 +109,12 @@ const RenderPlanInputObject = z
     }
     if (
       plan.frameCount !==
-      getStoryCompositionDurationInFrames(plan.bodyFrameCount)
+      getStoryCompositionDurationInFrames(plan.semanticTimingFrameCount)
     ) {
       context.addIssue({
         code: "custom",
         message:
-          "Production render frameCount must equal fixed intro, body, and fixed outro durations.",
+          "Production render frameCount must equal the resolved SemanticTiming duration.",
         path: ["frameCount"],
       });
     }

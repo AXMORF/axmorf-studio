@@ -12,7 +12,7 @@ import {
   StorySpecSchema,
   VisualStyleSpecSchema,
   buildSceneAssignment,
-  buildSceneTaskInputV3,
+  buildSceneTaskInputV4,
   buildGlobalVisualAssignment,
   computeRenderSpecFingerprint,
   computeStoryFingerprint,
@@ -272,7 +272,7 @@ const buildAssignments = ({
         };
       },
     );
-    const taskInput = buildSceneTaskInputV3({
+    const taskInput = buildSceneTaskInputV4({
       storyId: story.storyId,
       meaningId: storyBeat.meaningId,
       storyBeat,

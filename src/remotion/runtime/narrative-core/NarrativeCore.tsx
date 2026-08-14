@@ -10,7 +10,10 @@ export type NarrativeCoreProps = NarrationAudioTrackProps & CaptionLayerProps;
 
 export const NarrativeCore: FC<NarrativeCoreProps> = (props) => (
   <>
-    <NarrationAudioTrack src={props.src} leadInFrames={props.leadInFrames} />
+    <NarrationAudioTrack
+      src={props.src}
+      narrationStartFrame={props.narrationStartFrame}
+    />
     <CaptionLayer
       captionCues={props.captionCues}
       safeAreaPx={props.safeAreaPx}

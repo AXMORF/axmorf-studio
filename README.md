@@ -41,13 +41,13 @@
 
 ```text
 VideoBrief(sourceReferences) + Story + authored ttsChunks + RenderSpec + PublishingIntent
-  → measured and sealed narration
-  → SemanticTiming + CaptionCue + NarrativeCore
+  → narrated content chunks measured and sealed once
+  → full SemanticTiming (intro → content Scenes → outro) + narrated-only CaptionCue
   → local ResourceCatalog lookup + optional external image import
-  → N Scene owners + one GlobalVisual owner + independent Cover owner
+  → N ordinary Scene owners (intro/content/outro) + one GlobalVisual owner + independent Cover owner
   → assignment-bound owner receipts + detached single-writer watcher
-  → FixedIntro + FinalAssembly body + FixedOutro(sourceReferences)
-  → ProductionRenderPlan (60 + body + 240 frames)
+  → ScenePackage Registry + StoryVisualTrack/SoundDesignTrack + FinalAssembly
+  → ProductionRenderPlan (SemanticTiming.durationInFrames)
   → render-ready / awaiting-automatic-delivery
   → immutable non-MP4 delivery package + launch intent
   → detached Remotion spawn acknowledgement + launch receipt

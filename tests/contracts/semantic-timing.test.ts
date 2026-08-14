@@ -54,8 +54,18 @@ test("pcm-cumulative-ceil-v1 reproduces the authority example", () => {
     },
   ]);
   assert.deepEqual(timing.storyBeats, [
-    { meaningId: "opening", startFrame: 15, endFrame: 56 },
-    { meaningId: "conclusion", startFrame: 56, endFrame: 84 },
+    {
+      kind: "narrated-scene",
+      meaningId: "opening",
+      startFrame: 15,
+      endFrame: 56,
+    },
+    {
+      kind: "narrated-scene",
+      meaningId: "conclusion",
+      startFrame: 56,
+      endFrame: 84,
+    },
   ]);
   assert.equal(timing.durationInFrames, 96);
 });

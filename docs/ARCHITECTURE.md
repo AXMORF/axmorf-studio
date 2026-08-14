@@ -2,7 +2,7 @@
 
 > 文档类型：架构权威
 >
-> 最后复核：2026-08-14
+> 最后复核：2026-08-15
 
 ## 分层
 
@@ -97,7 +97,7 @@ repo 不存 Agent lifecycle、task、thread、progress、聊天或 heartbeat。
 当前状态机只接受：production-start → narrative → scene-freeze → waiting-for-owner-results →
 render-ready。缺失 receipt 永久等待，不使用 assignment deadline、heartbeat、timeout 或 retry。
 终态绑定
-`production-render-plan-v3` 与 `production-render-ready-v3`，不包含媒体渲染阶段。render plan
+`production-render-plan-v4` 与 `production-render-ready-v4`，不包含媒体渲染阶段。render plan
 同时绑定 sealed narration 与其确定性、content-addressed 响度母带。
 
 Scene authoring 期使用 repository-local `.agents/skills/remotion-best-practices/SKILL.md` router 与
@@ -116,17 +116,14 @@ owner、watcher、delivery 或 Remotion runtime，远程 URL 永远不是 runtim
 
 ## Composition ownership
 
-`StoryCompositionShell` 是 current production Composition 顶层的顺序时间壳，固定挂载
-`FixedIntro → 正文 CompositionAssembly → FixedOutro`。共享 `FixedIntro` 已裁为前 60 帧（2 秒）的无音频 AXMORF 品牌片头；共享 `FixedOutro` 已实现为
-240 帧、无音频的两段式片尾：前 120 帧展示固定结束语和参数化资料引用，后 120 帧以 1.5 倍速度执行
-`logo-shrink-wordmark-lockup` 并完成关注确认。`FixedOutro` 只接收精简的
-`references: [{title, url}]`，其生产数据来源是 `VideoBrief.sourceReferences`，不读取完整
-Story/Scene/Run，也不从 `sourceMaterial` 猜测。成片总时长由同一 fixed timeline contract 投影为
-`60 + SemanticTiming.durationInFrames + 240`；SemanticTiming 仍只描述正文。正文整体从成片第 60
-帧开始，但在 `Series.Sequence` 内继续从局部第 0 帧运行，因此 Scene、GlobalVisual、旁白、字幕与
-Scene-local sound 的局部帧完全不变，且只存在于正文段。片头片尾都作为独立 System preview 验证。正文由
-Composition exactly once 提供 SceneSafeArea、NarrativeCore、CaptionLayer、GlobalVisual background
-与 Scene track。Scene renderer 根透明且只画 current Beat 语义；ScenePackage owns Scene-local
+StorySpec v2 把 `narrated-scene` 与 `silent-scene` 作为严格联合。intro/outro 是普通 StoryBeat，
+通过 SceneAssignment、ScenePackage、RendererRegistry、StoryVisualTrack 与 SoundDesignTrack；
+不存在专用 Intro/Outro package、boundary sound track 或顶层 bookend shell。silent preset 绑定
+role、视觉意图、音效意图、固定帧数、资源 ID 与 fingerprint，SemanticTiming 一次性把它们与 sealed
+PCM narrated windows 解析为连续全片时间轴。默认 preset 使用本地 checksum/license-bound PCM；
+替换或关闭会改变上游 identity 或移除 Scene，旧音效不能残留。Composition exactly once 提供
+SceneSafeArea、NarrativeCore、CaptionLayer、GlobalVisual background 与 Scene track。Scene renderer
+根透明且只画 current Beat 语义；ScenePackage owns Scene-local
 ambience/SFX，不拥有旁白、字幕或全局音频。GlobalVisual owns project-local 背景/纹理/装饰/motif，
 不读取 Scene output。`GlobalVisualLayers` 实现统一满足 runtime 的无 Props 组件类型；Composition
 顶层独立解析 GlobalVisual plan/projection 并做 identity 校验。
@@ -147,8 +144,8 @@ receipt。intent-only 是 watcher-launch-ambiguous，禁止自动重试。watche
 是 immutable 的，identity 绑定 PublishingIntent、CoverResult、render plan/ready、Composition、
 exact argv、launch policy 与实际使用资源的 attribution fingerprint/checksum；新 identity 通过
 staging backup + promote 受控替换旧 package，不形成
-历史 delivery 目录。manifest 只保存包含片头片尾的 planned frames/fps/duration，不保存实际媒体事实。
-发布章节从 SemanticTiming 正文局部帧确定性加 60 帧后投影到成片时间轴，不回写 SemanticTiming。
+历史 delivery 目录。manifest 只保存全片 planned frames/fps/duration，不保存实际媒体事实。
+发布章节只对应 narrated Scene，并直接使用 SemanticTiming 的绝对 startFrame。
 `delivery-publishing-v2` 投影发布文本、章节以及 package 内 MP4、4:3 Cover、3:4 Cover 的固定文件名，
 不保存媒体完成状态。
 

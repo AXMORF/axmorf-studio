@@ -1,9 +1,10 @@
 import {
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
-  buildSceneTaskInput,
+  buildSceneTaskInputV4,
   buildSceneVisualPlan,
   buildShotPlanSet,
+  resolveProductionReadabilityPolicy,
   Sha256DigestSchema,
 } from "../../../src/contracts";
 
@@ -11,16 +12,18 @@ export const sha = (character: string) =>
   Sha256DigestSchema.parse(`sha256:${character.repeat(64)}`);
 
 export const createM6SceneTaskInput = () =>
-  buildSceneTaskInput({
+  buildSceneTaskInputV4({
     storyId: "synthetic-proof",
     meaningId: "meaning-one",
     storyBeat: {
+      kind: "narrated-scene",
       meaningId: "meaning-one",
       narrativePurpose: "Demonstrate one deterministic Scene runtime slot.",
       ttsChunks: [{ chunkId: "chunk-one", ttsText: "A synthetic proof." }],
       explicitPauses: [],
     },
     timingBeat: {
+      kind: "narrated-scene",
       meaningId: "meaning-one",
       startFrame: 20,
       endFrame: 140,
@@ -49,6 +52,11 @@ export const createM6SceneTaskInput = () =>
       sceneRoot: "src/projects/synthetic-proof/scenes/meaning-one",
       publicAssetRoot: "public/assets/library/synthetic-proof/meaning-one",
     },
+    readabilityPolicy: resolveProductionReadabilityPolicy({
+      width: 1920,
+      height: 1080,
+    }),
+    sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
   });
 
 export const createM6ScenePlans = (

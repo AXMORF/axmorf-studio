@@ -52,10 +52,11 @@ export const createProductionFixture = async (
   rootDir: string,
   options: Readonly<{
     additionalRequirements?: readonly ProductionRequirement[];
+    story?: unknown;
   }> = {},
 ) => {
   const projectDir = join(rootDir, "src/projects/story-example");
-  const story = StorySpecSchema.parse(validStorySpec);
+  const story = StorySpecSchema.parse(options.story ?? validStorySpec);
   const narration = NarrationSpecSchema.parse(validNarrationSpec);
   const storyCheck = StoryCheckReportSchema.parse({
     schemaVersion: 1,

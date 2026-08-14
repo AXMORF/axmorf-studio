@@ -13,6 +13,8 @@ import { dirname, join } from "node:path";
 import test, { type TestContext } from "node:test";
 
 import {
+  DEFAULT_INTRO_SCENE_PRESET,
+  DEFAULT_OUTRO_SCENE_PRESET,
   GlobalVisualAssignmentSchema,
   ProducerAssetManifestSchema,
   ResourceCatalogSchema,
@@ -34,7 +36,10 @@ import {
   assertSceneAssignmentIsolation,
   runProductionSceneFreeze,
 } from "../../scripts/production/application/scene-freeze";
-import { buildValidSealedNarrationManifest } from "../fixtures/narrative";
+import {
+  buildValidSealedNarrationManifest,
+  validStorySpec,
+} from "../fixtures/narrative";
 import {
   FIXED_PRODUCTION_NOW,
   createProductionFixture,
@@ -83,11 +88,43 @@ const sceneRequirement = ProductionRequirementSchema.parse({
   severity: "error",
 });
 
-const createFixture = async (context: TestContext) => {
+const createFixture = async (
+  context: TestContext,
+  options: { readonly withDefaultBookends?: boolean } = {},
+) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-freeze-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const bookendBeats = options.withDefaultBookends
+    ? [
+        {
+          kind: "silent-scene" as const,
+          sceneRole: "intro" as const,
+          meaningId: "intro",
+          narrativePurpose: "Open with the selected intro preset.",
+          preset: DEFAULT_INTRO_SCENE_PRESET,
+        },
+        ...validStorySpec.beats,
+        {
+          kind: "silent-scene" as const,
+          sceneRole: "outro" as const,
+          meaningId: "outro",
+          narrativePurpose: "Close with the selected outro preset.",
+          preset: DEFAULT_OUTRO_SCENE_PRESET,
+        },
+      ]
+    : validStorySpec.beats;
   const fixture = await createProductionFixture(context, rootDir, {
     additionalRequirements: [sceneRequirement],
+    story: options.withDefaultBookends
+      ? {
+          ...validStorySpec,
+          bookends: {
+            intro: { mode: "scene", meaningId: "intro" },
+            outro: { mode: "scene", meaningId: "outro" },
+          },
+          beats: bookendBeats,
+        }
+      : validStorySpec,
   });
   const baseline = await markProductionBaselineReady(fixture);
   await materializeCatalogAuthority(rootDir);
@@ -136,7 +173,13 @@ const createFixture = async (context: TestContext) => {
     storyId: "story-example",
     requirementsFingerprint: fixture.requirements.requirementsFingerprint,
     resourceCatalogFingerprint: catalog.catalogFingerprint,
-    allowedResourceIds: ["capability.motion"],
+    allowedResourceIds: options.withDefaultBookends
+      ? [
+          "asset.axmorf-intro-chime",
+          "asset.axmorf-outro-chime",
+          "capability.motion",
+        ]
+      : ["capability.motion"],
     allowedSnapshots: [
       {
         sourceId: "video-shotcraft",
@@ -159,6 +202,20 @@ const createFixture = async (context: TestContext) => {
     sceneLocalSoundPolicy: "allowed",
     reviewPolicy: "mechanical-only",
     scenes: [
+      ...(options.withDefaultBookends
+        ? [
+            {
+              meaningId: "intro",
+              visualIntent: DEFAULT_INTRO_SCENE_PRESET.visualIntent,
+              compositionIntent: "Center the authored brand reveal.",
+              motionIntent: "Resolve the reveal within the preset window.",
+              soundIntent: DEFAULT_INTRO_SCENE_PRESET.soundIntent,
+              continuityBrief: "Hand the opened frame to narrated content.",
+              candidateResourceIds: ["asset.axmorf-intro-chime"],
+              allowedSnapshotCards: [],
+            },
+          ]
+        : []),
       {
         meaningId: "opening",
         visualIntent: "Establish the cumulative boundary.",
@@ -181,6 +238,20 @@ const createFixture = async (context: TestContext) => {
           { sourceId: "video-shotcraft", cardIds: ["draw-svg-trace"] },
         ],
       },
+      ...(options.withDefaultBookends
+        ? [
+            {
+              meaningId: "outro",
+              visualIntent: DEFAULT_OUTRO_SCENE_PRESET.visualIntent,
+              compositionIntent: "Resolve credits into the follow lockup.",
+              motionIntent: "Finish in a stable authored closing frame.",
+              soundIntent: DEFAULT_OUTRO_SCENE_PRESET.soundIntent,
+              continuityBrief: "Close the complete Story timeline.",
+              candidateResourceIds: ["asset.axmorf-outro-chime"],
+              allowedSnapshotCards: [],
+            },
+          ]
+        : []),
     ],
   });
   await writeProductionJson(
@@ -279,13 +350,13 @@ test("freezes one assignment per StoryBeat in order and projects Scene requireme
       ),
     ),
   );
-  assert.equal(assignments[0].schemaVersion, 3);
-  assert.equal(assignments[0].taskInput.schemaVersion, 3);
+  assert.equal(assignments[0].schemaVersion, 4);
+  assert.equal(assignments[0].taskInput.schemaVersion, 4);
   if (
-    assignments[0].schemaVersion !== 3 ||
-    assignments[0].taskInput.schemaVersion !== 3
+    assignments[0].schemaVersion !== 4 ||
+    assignments[0].taskInput.schemaVersion !== 4
   ) {
-    assert.fail("Expected v3 Scene assignment and task input.");
+    assert.fail("Expected v4 Scene assignment and task input.");
   }
   assert.equal(
     assignments[0].sceneCompositionBoundaryVersion,
@@ -321,6 +392,46 @@ test("freezes one assignment per StoryBeat in order and projects Scene requireme
     runId: fixture.runId,
   });
   assert.equal(state.state.state, "scene-inputs-frozen");
+});
+
+test("default intro and outro freeze as ordinary preset-bound Scene assignments", async (context) => {
+  const fixture = await createFixture(context, { withDefaultBookends: true });
+  const result = await freeze(fixture);
+  assert.deepEqual(result.meaningIds, [
+    "intro",
+    "opening",
+    "conclusion",
+    "outro",
+  ]);
+  const assignments = await Promise.all(
+    result.assignmentPaths.map(async (path) =>
+      SceneAssignmentSchema.parse(
+        JSON.parse(await readFile(join(fixture.rootDir, path), "utf8")),
+      ),
+    ),
+  );
+  const intro = assignments[0];
+  const outro = assignments[3];
+  assert.equal(intro.taskInput.storyBeat.kind, "silent-scene");
+  assert.equal(outro.taskInput.storyBeat.kind, "silent-scene");
+  assert.equal(intro.taskInput.timingBeat.startFrame, fixture.source.render.leadInFrames);
+  assert.equal(
+    intro.taskInput.timingBeat.endFrame - intro.taskInput.timingBeat.startFrame,
+    DEFAULT_INTRO_SCENE_PRESET.durationInFrames,
+  );
+  assert.deepEqual(intro.taskInput.allowedResourceIds, [
+    "asset.axmorf-intro-chime",
+  ]);
+  assert.deepEqual(outro.taskInput.allowedResourceIds, [
+    "asset.axmorf-outro-chime",
+  ]);
+  assert.equal(
+    outro.taskInput.storyBeat.kind === "silent-scene"
+      ? outro.taskInput.storyBeat.preset.presetFingerprint
+      : null,
+    DEFAULT_OUTRO_SCENE_PRESET.presetFingerprint,
+  );
+  assertSceneAssignmentIsolation(assignments);
 });
 
 test("current freeze rerun is a byte and mtime stable no-op", async (context) => {

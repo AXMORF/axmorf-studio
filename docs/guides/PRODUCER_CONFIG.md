@@ -102,6 +102,9 @@ ignored 的仓库目录，否则迁移 fail closed。目标文件已存在时命
 
 在新 Project 已有 `brief.json`、`story.json` 与 project-local `producer-input.json` 后运行：
 
+新 `story.json` 默认显式选择仓库的 silent intro/outro Scene presets；Project 可替换或用
+`mode: "disabled"` 关闭。preset 选择属于 Project source，不来自 private ProducerConfig。
+
 ```bash
 npm run project:configure -- --project <storyId> --input src/projects/<storyId>/producer-input.json
 ```

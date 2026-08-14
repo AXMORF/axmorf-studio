@@ -34,7 +34,7 @@ const asElement = (node: unknown) => {
   return node;
 };
 
-test("Root keeps system previews when the ProjectRegistry is empty", async () => {
+test("Root keeps only capability previews when the ProjectRegistry is empty", async () => {
   const require = createRequire(import.meta.url);
   require.extensions[".css"] = () => undefined;
   const { createRemotionRoot } = await import("../../src/Root");
@@ -64,70 +64,10 @@ test("Root keeps system previews when the ProjectRegistry is empty", async () =>
   const systemCompositionElement = asElement(systemComposition);
   assert.notEqual(systemCompositionElement.props.component, undefined);
   assert.equal(systemCompositionElement.props.lazyComponent, undefined);
-  const fixedIntroPreview = elementChildren(systemFolderElement).find(
-    (entry) =>
-      isValidElement<ElementProps>(entry) &&
-      entry.type === Composition &&
-      entry.props.id === "FixedIntroPreview",
+  assert.deepEqual(
+    elementChildren(systemFolderElement).map((entry) => asElement(entry).props.id),
+    ["CapabilityGallery"],
   );
-  const fixedIntroPreviewElement = asElement(fixedIntroPreview);
-  assert.notEqual(fixedIntroPreviewElement.props.component, undefined);
-  assert.equal(fixedIntroPreviewElement.props.durationInFrames, 60);
-  assert.equal(fixedIntroPreviewElement.props.fps, 30);
-  assert.equal(fixedIntroPreviewElement.props.width, 1080);
-  assert.equal(fixedIntroPreviewElement.props.height, 1920);
-  const fixedIntroLandscapePreview = elementChildren(systemFolderElement).find(
-    (entry) =>
-      isValidElement<ElementProps>(entry) &&
-      entry.type === Composition &&
-      entry.props.id === "FixedIntroPreview16x9",
-  );
-  const fixedIntroLandscapePreviewElement = asElement(
-    fixedIntroLandscapePreview,
-  );
-  assert.equal(fixedIntroLandscapePreviewElement.props.durationInFrames, 60);
-  assert.equal(fixedIntroLandscapePreviewElement.props.width, 1920);
-  assert.equal(fixedIntroLandscapePreviewElement.props.height, 1080);
-  const fixedOutroPreview = elementChildren(systemFolderElement).find(
-    (entry) =>
-      isValidElement<ElementProps>(entry) &&
-      entry.type === Composition &&
-      entry.props.id === "FixedOutroPreview",
-  );
-  const fixedOutroPreviewElement = asElement(fixedOutroPreview);
-  assert.notEqual(fixedOutroPreviewElement.props.component, undefined);
-  assert.equal(fixedOutroPreviewElement.props.durationInFrames, 240);
-  assert.equal(fixedOutroPreviewElement.props.width, 1080);
-  assert.equal(fixedOutroPreviewElement.props.height, 1920);
-  assert.notEqual(fixedOutroPreviewElement.props.schema, undefined);
-  assert.deepEqual(fixedOutroPreviewElement.props.defaultProps, {
-    references: [
-      {
-        title: "Remotion Documentation",
-        url: "https://www.remotion.dev/docs/",
-      },
-      {
-        title: "Remotion Story Producer",
-        url: "https://github.com/zzzxc/remotion-story-producer",
-      },
-      {
-        title: "video-shotcraft",
-        url: "https://github.com/Vincentwei1021/video-shotcraft",
-      },
-    ],
-  });
-  const fixedOutroLandscapePreview = elementChildren(systemFolderElement).find(
-    (entry) =>
-      isValidElement<ElementProps>(entry) &&
-      entry.type === Composition &&
-      entry.props.id === "FixedOutroPreview16x9",
-  );
-  const fixedOutroLandscapePreviewElement = asElement(
-    fixedOutroLandscapePreview,
-  );
-  assert.equal(fixedOutroLandscapePreviewElement.props.durationInFrames, 240);
-  assert.equal(fixedOutroLandscapePreviewElement.props.width, 1920);
-  assert.equal(fixedOutroLandscapePreviewElement.props.height, 1080);
   assert.deepEqual(elementChildren(storiesFolderElement), []);
 });
 

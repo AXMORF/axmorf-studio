@@ -126,7 +126,7 @@ export const createProductionNarrativeCoreProps = (
   }
   return {
     src: completeNarrationSrc,
-    leadInFrames: render.leadInFrames,
+    narrationStartFrame: timing.narrationStartFrame,
     captionCues: timing.captionCues,
     safeAreaPx: readabilityPolicy.captionSafeAreaPx,
     readabilityPolicy,
@@ -399,7 +399,7 @@ export const productionSoundDesignProjection = buildSoundDesignProjection({
 });
 export const productionRendererPropsByMeaning: Readonly<Record<string, SceneRendererMountProps>> = Object.fromEntries(
   scenes.map((scene) => {
-    if (scene.scenePackage.schemaVersion !== 3 || scene.task.schemaVersion !== 3) throw new Error("Production Scene package is not current.");
+    if (scene.scenePackage.schemaVersion !== 4 || scene.task.schemaVersion !== 4) throw new Error("Production Scene package is not current.");
     const task = scene.task;
     return [task.meaningId, {
     storyId: task.storyId,
@@ -517,8 +517,6 @@ import {staticFile} from "remotion";
 
 import {
   computeVideoSourceReferencesFingerprint,
-  FIXED_INTRO_DURATION_IN_FRAMES,
-  FIXED_OUTRO_DURATION_IN_FRAMES,
   GlobalVisualPlanSchema,
   GlobalVisualProjectionSchema,
   getStoryCompositionDurationInFrames,
@@ -533,10 +531,7 @@ ${masteredNarrationContractImport}  parseNarrativeProjectSource,
   type StoryCompositionProps,
 } from "../../contracts";
 import {CompositionAssembly} from "../../remotion/runtime/composition-assembly";
-import {FixedIntro} from "../../remotion/runtime/fixed-intro";
-import {FixedOutro} from "../../remotion/runtime/fixed-outro";
 import {NarrativeCore, type NarrativeCoreProps} from "../../remotion/runtime/narrative-core";
-import {StoryCompositionShell} from "../../remotion/runtime/story-composition-shell";
 ${soundImport}
 import {StoryVisualTrack} from "../../remotion/runtime/story-visual";
 import briefJson from "./brief.json";
@@ -563,7 +558,7 @@ const expectedStoryId = ${JSON.stringify(storyId)};
 const storyId = artifactBundle.projectSource.story.storyId;
 const render = artifactBundle.projectSource.render;
 const timing = artifactBundle.semanticTiming;
-if (readabilityPolicy.width !== render.width || readabilityPolicy.height !== render.height || storyId !== expectedStoryId || renderPlan.storyId !== storyId || render.fps !== timing.fps || renderPlan.timelinePolicyVersion !== STORY_COMPOSITION_TIMELINE_VERSION || renderPlan.sourceReferencesFingerprint !== computeVideoSourceReferencesFingerprint(projectSource.brief.sourceReferences) || renderPlan.bodyFrameCount !== timing.durationInFrames || renderPlan.frameCount !== getStoryCompositionDurationInFrames(timing.durationInFrames)) {
+if (readabilityPolicy.width !== render.width || readabilityPolicy.height !== render.height || storyId !== expectedStoryId || renderPlan.storyId !== storyId || render.fps !== timing.fps || renderPlan.timelinePolicyVersion !== STORY_COMPOSITION_TIMELINE_VERSION || renderPlan.sourceReferencesFingerprint !== computeVideoSourceReferencesFingerprint(projectSource.brief.sourceReferences) || renderPlan.semanticTimingFrameCount !== timing.durationInFrames || renderPlan.frameCount !== getStoryCompositionDurationInFrames(timing.durationInFrames)) {
   throw new Error("Production render Composition identity is stale.");
 }
 ${globalVisualSetup}${narrationIdentityCheck}const completeAudioLocalPath = ${completeAudioExpression};
@@ -580,20 +575,14 @@ export const productionNarrativeCompositionMetadata = {
 export const createProductionNarrativeCoreProps = (input: unknown): NarrativeCoreProps => {
   const props = StoryCompositionPropsSchema.parse(input);
   if (props.projectId !== storyId) throw new Error("Production Composition only accepts its own projectId.");
-  return {src: completeNarrationSrc, leadInFrames: render.leadInFrames, captionCues: timing.captionCues, safeAreaPx: readabilityPolicy.captionSafeAreaPx, readabilityPolicy};
+  return {src: completeNarrationSrc, narrationStartFrame: timing.narrationStartFrame, captionCues: timing.captionCues, safeAreaPx: readabilityPolicy.captionSafeAreaPx, readabilityPolicy};
 };
 
 const ${componentName}: FC<StoryCompositionProps> = (props) => (
-  <StoryCompositionShell
-    bodyDurationInFrames={timing.durationInFrames}
-    intro={{durationInFrames: FIXED_INTRO_DURATION_IN_FRAMES, content: <FixedIntro />}}
-    outro={{durationInFrames: FIXED_OUTRO_DURATION_IN_FRAMES, content: <FixedOutro references={projectSource.brief.sourceReferences} />}}
-  >
-    <CompositionAssembly
-      storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning} />}${globalVisualProp}
-      narrativeCore={<NarrativeCore {...createProductionNarrativeCoreProps(props)} />}${soundProp}
-    />
-  </StoryCompositionShell>
+  <CompositionAssembly
+    storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning} />}${globalVisualProp}
+    narrativeCore={<NarrativeCore {...createProductionNarrativeCoreProps(props)} />}${soundProp}
+  />
 );
 export default ${componentName};
 `;

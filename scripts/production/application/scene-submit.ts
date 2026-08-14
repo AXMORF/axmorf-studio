@@ -155,8 +155,8 @@ const validateSceneFromProjectFiles: SceneValidator = async ({
     }),
   );
   if (
-    scenePackage.schemaVersion !== 3 ||
-    checkedPackage.schemaVersion !== 3 ||
+    scenePackage.schemaVersion !== 4 ||
+    checkedPackage.schemaVersion !== 4 ||
     checkedPackage.packageFingerprint !== scenePackage.packageFingerprint ||
     scenePackage.taskInputFingerprint !==
       assignment.taskInput.taskInputFingerprint

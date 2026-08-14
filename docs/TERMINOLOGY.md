@@ -2,7 +2,7 @@
 
 > 文档类型：当前名词权威
 >
-> 最后复核：2026-08-14
+> 最后复核：2026-08-15
 
 | 名词                        | 含义                                                                  | 明确不代表                                           |
 | --------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------- |
@@ -10,7 +10,7 @@
 | ttsChunks                   | Agent 已决定的朗读单元                                                | 工具可重写的文本切片                                 |
 | ProducerConfig              | 新作品的 render、可读性、合集、TTS 与可选 BGM 预设 authority          | 已封存作品的可变 runtime 输入                        |
 | NarrationExecutionSnapshot  | Run 级 provider-attempt 与 mastering policy 的 private-safe 冻结身份  | token、URL、私有路径、声线内容或 render runtime 配置 |
-| SemanticTiming              | sealed PCM 实测导出的正文局部 frame authority                         | 最终成片 bookend 帧或容器浮点时长估算                |
+| SemanticTiming              | silent preset 固定帧与 sealed PCM 累计边界共同导出的全片 frame authority | runtime 重算、伪造静音 TTS 或容器浮点时长估算       |
 | ScenePackage                | 一个 meaningId 的视觉与局部声音成品合同                               | 字幕、旁白或全局背景 authority                       |
 | GlobalVisualPackage         | Story 级背景、纹理、装饰和连续性 motif                                | Scene DSL、自动导演或字幕层                          |
 | ProductionRun               | append-only events 与 immutable results 的一次执行                    | 可手改或恢复的任务状态                               |

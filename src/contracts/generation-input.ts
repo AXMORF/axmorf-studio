@@ -16,7 +16,7 @@ export const GenerationChunkSchema = z
 
 export const GenerationInputSchema = z
   .object({
-    schemaVersion: z.literal(2),
+    schemaVersion: z.literal(3),
     chunks: z.array(GenerationChunkSchema).min(1).readonly(),
     narration: NarrationSpecSchema,
   })
@@ -30,13 +30,13 @@ export const buildGenerationInput = (
   narration: NarrationSpec,
 ): GenerationInput =>
   GenerationInputSchema.parse({
-    schemaVersion: 2,
+    schemaVersion: 3,
     chunks: flattenTtsChunks(story),
     narration,
   });
 
 export const computeStoryFingerprint = (story: StorySpec) =>
-  createFingerprint({ namespace: "story-spec", version: 1, value: story });
+  createFingerprint({ namespace: "story-spec", version: 2, value: story });
 
 export const computeGenerationInputFingerprint = (
   story: StorySpec,
@@ -44,6 +44,6 @@ export const computeGenerationInputFingerprint = (
 ) =>
   createFingerprint({
     namespace: "narration-generation-input",
-    version: 2,
+    version: 3,
     value: buildGenerationInput(story, narration),
   });

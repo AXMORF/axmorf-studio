@@ -2,7 +2,7 @@
 
 > 文档类型：执行语义权威
 >
-> 最后复核：2026-08-14
+> 最后复核：2026-08-15
 
 ## 确定性的对象
 
@@ -41,10 +41,10 @@ frameBoundary = ceilDiv(cumulativeSamples * fps, sampleRate)
 不得逐 chunk 把浮点秒数转 frame 再累加。Scene 与 transition 不能移动、缩短或覆盖 spoken
 frames。planned duration 只能由 `frameCount / fps` 推导，不伪装为媒体实测。
 
-SemanticTiming 只描述正文局部帧。成片固定使用 `fixed-bookends-v1`：60 帧片头、完整正文、240
-帧片尾，因此 `frameCount = 60 + bodyFrameCount + 240`。正文由 Series 统一延后 60 帧，内部 frame
-仍从 0 开始。delivery 章节只在最终投影时把正文 startFrame 加 60，不修改 SemanticTiming。M3
-Narrative Baseline 是正文诊断渲染，显式限制到 body frame range，不冒充正式成片。
+SemanticTiming v2 从 `leadInFrames` 开始，按 StoryBeat 顺序写入 silent preset 固定窗口与 narrated
+PCM 累计窗口，再追加真正的 `tailFrames`。silent Scene 不产生 segment 或 CaptionCue；完整旁白从
+`narrationStartFrame` exactly once 播放。`scene-package-timeline-v1` 的 Composition、Registry、render
+plan 和 delivery 直接使用 `SemanticTiming.durationInFrames`，章节直接使用 narrated Scene 的绝对帧。
 
 ## Production ledger
 
@@ -75,17 +75,17 @@ receipt 也不会被当成“进程仍存活”的证明或自动重启许可；
 
 ## Render-ready identity
 
-`production-render-plan-v3` 固定：
+`production-render-plan-v4` 固定：
 
 - storyId/runId/compositionId；
 - Composition source path 与 checksum；
-- width/height/fps、fixed bookend timeline、bodyFrameCount/final frameCount；
+- width/height/fps、ScenePackage timeline、semanticTimingFrameCount/final frameCount；
 - `VideoBrief.sourceReferences` fingerprint；
 - FinalAssembly、sealed/mastered narration、semantic timing、renderer registry 与 projections；
 - layer/mix order；
 - fixed Remotion render policy。
 
-`production-render-ready-v3` 再绑定 plan fingerprint，并固定 status/handoff。该 artifact 只证明
+`production-render-ready-v4` 再绑定 plan fingerprint，并固定 status/handoff。该 artifact 只证明
 所有 render-critical inputs current，不证明媒体存在。
 
 在 ready artifact 写入前，目标 Project Composition 必须通过仓库固定 TypeScript/tsconfig 的

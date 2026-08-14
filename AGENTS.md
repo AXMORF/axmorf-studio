@@ -20,6 +20,9 @@
 - 所有 `remotion` 与 `@remotion/*` 包保持完全相同的精确版本。
 - 一 Story 一个 Composition；一 StoryBeat 一个 meaningId 和 Scene；完成制作的 Scene 对应一个
   ScenePackage。
+- StoryBeat 严格区分 narrated-scene 与 silent intro/outro Scene；新 Story 默认显式选择片头片尾
+  preset，Project source 可替换或关闭。silent preset 固定视觉、Scene-local 音效、资源与帧数，
+  不得伪造 TTS、CaptionCue 或 sealed narration segment。
 - ttsChunks 是 Agent 已确定的朗读单元；工具不按标点自动拆分或重写。
 - sealed PCM 实测时间是绝对 authority；统一用
   `ceilDiv(cumulativeSamples × fps, sampleRate)` 计算 frame boundary。
@@ -46,7 +49,7 @@
 - GlobalVisual 只 owns project-local 背景、纹理、装饰和连续性 motif，不读取 Scene 输出，不
   渲染字幕/音频，不扩张为 Track、Scene DSL、自动布局或自动导演。
 - production 的唯一成功终点是 `render-ready / awaiting-automatic-delivery`。它绑定
-  `production-render-plan-v3` 与 `production-render-ready-v3`，不生成或检查最终 MP4。
+  `production-render-plan-v4` 与 `production-render-ready-v4`，不生成或检查最终 MP4。
 - Cover missing/stale 不阻止 render-ready，但阻止自动 delivery build。
 - 主 Agent 在冻结全部 assignment 后先启动 detached watcher，再用 Codex `create_thread` 创建 N 个
   Scene、一个 GlobalVisual 和一个 Cover 独立用户任务；全部创建调用完成后立即结束，不等待

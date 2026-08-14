@@ -1,11 +1,15 @@
 import { z } from "zod";
 
 import { createFingerprint, serializeCanonicalJson } from "./fingerprint";
-import { computeGenerationInputFingerprint } from "./generation-input";
+import {
+  computeGenerationInputFingerprint,
+  computeStoryFingerprint,
+} from "./generation-input";
 import type { NarrationSpec } from "./narration";
 import {
   MeaningIdSchema,
   NonNegativeIntegerSchema,
+  PositiveIntegerSchema,
   Sha256DigestSchema,
   StoryIdSchema,
   TtsChunkIdSchema,
@@ -102,8 +106,9 @@ const CaptionCueSchema = z
   })
   .readonly();
 
-const StoryBeatTimingSchema = z
+const NarratedStoryBeatTimingSchema = z
   .object({
+    kind: z.literal("narrated-scene"),
     meaningId: MeaningIdSchema,
     startFrame: NonNegativeIntegerSchema,
     endFrame: NonNegativeIntegerSchema,
@@ -119,9 +124,44 @@ const StoryBeatTimingSchema = z
   })
   .readonly();
 
+const SilentStoryBeatTimingSchema = z
+  .object({
+    kind: z.literal("silent-scene"),
+    sceneRole: z.enum(["intro", "outro"]),
+    meaningId: MeaningIdSchema,
+    presetFingerprint: Sha256DigestSchema,
+    presetDurationInFrames: PositiveIntegerSchema,
+    startFrame: NonNegativeIntegerSchema,
+    endFrame: NonNegativeIntegerSchema,
+  })
+  .strict()
+  .superRefine((beat, context) => {
+    if (beat.endFrame <= beat.startFrame) {
+      context.addIssue({
+        code: "custom",
+        message: "Silent StoryBeat timing must cover at least one frame.",
+      });
+    }
+    if (
+      beat.endFrame - beat.startFrame !== beat.presetDurationInFrames
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Silent StoryBeat timing must equal its preset duration.",
+        path: ["endFrame"],
+      });
+    }
+  })
+  .readonly();
+
+const StoryBeatTimingSchema = z.discriminatedUnion("kind", [
+  NarratedStoryBeatTimingSchema,
+  SilentStoryBeatTimingSchema,
+]);
+
 export const SemanticTimingSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     algorithmId: z.literal(TIMING_ALGORITHM_ID),
     storyId: StoryIdSchema,
     fingerprint: Sha256DigestSchema,
@@ -129,6 +169,7 @@ export const SemanticTimingSchema = z
     fps: z.number().int().positive().safe(),
     leadInFrames: NonNegativeIntegerSchema,
     tailFrames: NonNegativeIntegerSchema,
+    narrationStartFrame: NonNegativeIntegerSchema,
     durationInFrames: z.number().int().positive().safe(),
     segments: z
       .array(z.discriminatedUnion("kind", [TimedChunkSchema, TimedPauseSchema]))
@@ -146,14 +187,14 @@ export const SemanticTimingSchema = z
       readonly startFrame: number;
       readonly endFrame: number;
     }> = [];
-    const expectedStoryBeats: Array<{
+    const narratedGroups: Array<{
       readonly meaningId: string;
       readonly startFrame: number;
       endFrame: number;
     }> = [];
     const seenMeaningIds = new Set<string>();
     let previousSampleEnd = 0;
-    let previousFrameEnd = timing.leadInFrames;
+    let previousFrameEnd = timing.narrationStartFrame;
 
     timing.segments.forEach((segment, index) => {
       if (segment.sampleRange.startSampleFrame !== previousSampleEnd) {
@@ -183,7 +224,7 @@ export const SemanticTimingSchema = z
         });
       }
 
-      const currentBeat = expectedStoryBeats.at(-1);
+      const currentBeat = narratedGroups.at(-1);
       if (currentBeat?.meaningId === segment.meaningId) {
         currentBeat.endFrame = segment.frameRange.endFrame;
       } else {
@@ -195,7 +236,7 @@ export const SemanticTimingSchema = z
           });
         }
         seenMeaningIds.add(segment.meaningId);
-        expectedStoryBeats.push({
+        narratedGroups.push({
           meaningId: segment.meaningId,
           startFrame: segment.frameRange.startFrame,
           endFrame: segment.frameRange.endFrame,
@@ -228,15 +269,32 @@ export const SemanticTimingSchema = z
       });
     }
 
-    if (timing.storyBeats.length !== expectedStoryBeats.length) {
+    let beatFrameCursor = timing.leadInFrames;
+    const narratedBeats = timing.storyBeats.filter(
+      (beat) => beat.kind === "narrated-scene",
+    );
+    timing.storyBeats.forEach((beat, index) => {
+      if (beat.startFrame !== beatFrameCursor) {
+        context.addIssue({
+          code: "custom",
+          message: "StoryBeat timing windows must be continuous.",
+          path: ["storyBeats", index, "startFrame"],
+        });
+      }
+      beatFrameCursor = beat.endFrame;
+    });
+    if (
+      narratedBeats.length !== narratedGroups.length ||
+      narratedBeats.length === 0
+    ) {
       context.addIssue({
         code: "custom",
-        message: "StoryBeat timing must match contiguous segment groups.",
+        message: "Narrated StoryBeat timing must match narration segments.",
         path: ["storyBeats"],
       });
     } else {
-      timing.storyBeats.forEach((beat, index) => {
-        const expected = expectedStoryBeats[index];
+      narratedBeats.forEach((beat, index) => {
+        const expected = narratedGroups[index];
         if (
           beat.meaningId !== expected.meaningId ||
           beat.startFrame !== expected.startFrame ||
@@ -244,14 +302,21 @@ export const SemanticTimingSchema = z
         ) {
           context.addIssue({
             code: "custom",
-            message: "StoryBeat timing must match its segment group.",
+            message: "Narrated StoryBeat timing must match its segment group.",
             path: ["storyBeats", index],
           });
         }
       });
+      if (timing.narrationStartFrame !== narratedBeats[0]?.startFrame) {
+        context.addIssue({
+          code: "custom",
+          message: "narrationStartFrame must equal the first narrated Scene.",
+          path: ["narrationStartFrame"],
+        });
+      }
     }
 
-    const expectedDuration = previousFrameEnd + timing.tailFrames;
+    const expectedDuration = beatFrameCursor + timing.tailFrames;
     if (
       !Number.isSafeInteger(expectedDuration) ||
       timing.durationInFrames !== expectedDuration
@@ -313,14 +378,16 @@ export const sampleFrameToFrame = ({
 };
 
 export const computeSemanticTimingFingerprint = (
+  story: StorySpec,
   sealedNarration: SealedNarrationManifest,
   render: RenderSpec,
 ) =>
   createFingerprint({
     namespace: "semantic-timing",
-    version: 1,
+    version: 2,
     value: {
       algorithmId: TIMING_ALGORITHM_ID,
+      storyFingerprint: computeStoryFingerprint(story),
       sealedNarrationFingerprint: sealedNarration.sealedNarrationFingerprint,
       fps: render.fps,
       leadInFrames: render.leadInFrames,
@@ -355,6 +422,7 @@ export const generateSemanticTiming = ({
   }
 
   const expected = story.beats.flatMap((beat) => {
+    if (beat.kind === "silent-scene") return [];
     const pauses = new Map(
       beat.explicitPauses.map((pause) => [pause.afterChunkId, pause]),
     );
@@ -385,6 +453,15 @@ export const generateSemanticTiming = ({
     throw new Error("Sealed timeline segment count does not match StorySpec.");
   }
 
+  const introFrames =
+    story.beats[0]?.kind === "silent-scene" &&
+    story.beats[0].sceneRole === "intro"
+      ? story.beats[0].preset.durationInFrames
+      : 0;
+  const narrationStartFrame = toSafeNumber(
+    BigInt(render.leadInFrames) + BigInt(introFrames),
+    "narrationStartFrame",
+  );
   let sampleCursor = 0n;
   const timedSegments = sealedNarration.segments.map((segment, index) => {
     const declaration = expected[index];
@@ -428,7 +505,7 @@ export const generateSemanticTiming = ({
     );
     const endSampleFrame = toSafeNumber(endSampleFrameBigInt, "endSampleFrame");
     const startFrame = toSafeNumber(
-      BigInt(render.leadInFrames) +
+      BigInt(narrationStartFrame) +
         BigInt(
           sampleFrameToFrame({
             sampleFrame: startSampleFrame,
@@ -439,7 +516,7 @@ export const generateSemanticTiming = ({
       "absolute startFrame",
     );
     const endFrame = toSafeNumber(
-      BigInt(render.leadInFrames) +
+      BigInt(narrationStartFrame) +
         BigInt(
           sampleFrameToFrame({
             sampleFrame: endSampleFrame,
@@ -478,38 +555,54 @@ export const generateSemanticTiming = ({
       : [],
   );
 
+  let beatFrameCursor = render.leadInFrames;
   const storyBeats = story.beats.map((beat) => {
+    if (beat.kind === "silent-scene") {
+      const startFrame = beatFrameCursor;
+      beatFrameCursor = toSafeNumber(
+        BigInt(beatFrameCursor) + BigInt(beat.preset.durationInFrames),
+        `${beat.sceneRole} endFrame`,
+      );
+      return {
+        kind: beat.kind,
+        sceneRole: beat.sceneRole,
+        meaningId: beat.meaningId,
+        presetFingerprint: beat.preset.presetFingerprint,
+        presetDurationInFrames: beat.preset.durationInFrames,
+        startFrame,
+        endFrame: beatFrameCursor,
+      };
+    }
     const owned = timedSegments.filter(
       (segment) => segment.meaningId === beat.meaningId,
     );
     if (owned.length === 0)
       throw new Error(`StoryBeat ${beat.meaningId} has no timed segments.`);
-    return {
+    const timingBeat = {
+      kind: beat.kind,
       meaningId: beat.meaningId,
       startFrame: owned[0].frameRange.startFrame,
       endFrame: owned[owned.length - 1].frameRange.endFrame,
     };
-  });
-
-  const narrationFrames = sampleFrameToFrame({
-    sampleFrame: toSafeNumber(sampleCursor, "total sampleFrameCount"),
-    fps: render.fps,
-    sampleRate: sealedNarration.canonicalPcm.sampleRate,
+    if (timingBeat.startFrame !== beatFrameCursor) {
+      throw new Error(`StoryBeat ${beat.meaningId} timing is not continuous.`);
+    }
+    beatFrameCursor = timingBeat.endFrame;
+    return timingBeat;
   });
 
   return SemanticTimingSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
     algorithmId: TIMING_ALGORITHM_ID,
     storyId: story.storyId,
-    fingerprint: computeSemanticTimingFingerprint(sealedNarration, render),
+    fingerprint: computeSemanticTimingFingerprint(story, sealedNarration, render),
     sampleRate: sealedNarration.canonicalPcm.sampleRate,
     fps: render.fps,
     leadInFrames: render.leadInFrames,
     tailFrames: render.tailFrames,
+    narrationStartFrame,
     durationInFrames: toSafeNumber(
-      BigInt(render.leadInFrames) +
-        BigInt(narrationFrames) +
-        BigInt(render.tailFrames),
+      BigInt(beatFrameCursor) + BigInt(render.tailFrames),
       "durationInFrames",
     ),
     segments: timedSegments,

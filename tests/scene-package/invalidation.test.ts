@@ -6,8 +6,10 @@ import test from "node:test";
 import {
   buildSceneCoverageMap,
   buildSceneSoundPlan,
+  buildSceneTaskInputV4,
   buildSceneSyncAnchors,
   buildSceneVisualPlan,
+  buildSilentScenePreset,
   buildShotPlanSet,
 } from "../../src/contracts";
 import {
@@ -40,6 +42,62 @@ const cases: readonly {
   readonly name: string;
   readonly mutate: (fixture: Fixture) => Promise<void>;
 }[] = [
+  {
+    name: "silent Scene preset visual sound or duration drift invalidates the old task and package",
+    mutate: async (fixture) => {
+      const { taskInputFingerprint: _taskInputFingerprint, ...taskBase } =
+        fixture.input.task;
+      void _taskInputFingerprint;
+      for (const [index, changed] of [
+        { visualIntent: "Changed preset visual intent." },
+        { soundIntent: "Changed preset sound intent." },
+        { durationInFrames: 121 },
+      ].entries()) {
+        const preset = buildSilentScenePreset({
+          sceneRole: "intro",
+          presetId: `changed-intro-${index + 1}`,
+          durationInFrames: changed.durationInFrames ?? 120,
+          visualIntent:
+            changed.visualIntent ?? "Render the authored preset visual.",
+          soundIntent:
+            changed.soundIntent ?? "Render the authored preset local sound.",
+          resourceIds: ["asset.proof-sfx", "asset.proof-shape"],
+        });
+        const task = buildSceneTaskInputV4({
+          ...taskBase,
+          storyBeat: {
+            kind: "silent-scene",
+            sceneRole: "intro",
+            meaningId: taskBase.meaningId,
+            narrativePurpose: "Render a fixed-duration intro Scene.",
+            preset,
+          },
+          timingBeat: {
+            kind: "silent-scene",
+            sceneRole: "intro",
+            presetFingerprint: preset.presetFingerprint,
+            presetDurationInFrames: preset.durationInFrames,
+            meaningId: taskBase.meaningId,
+            startFrame: taskBase.timingBeat.startFrame,
+            endFrame:
+              taskBase.timingBeat.startFrame + preset.durationInFrames,
+          },
+          allowedSnapshots: [],
+          allowedResourceIds: preset.resourceIds,
+        });
+        assert.notEqual(task.taskInputFingerprint, fixture.input.task.taskInputFingerprint);
+        await expectPackageStale(fixture, {
+          ...fixture.input,
+          task,
+          current: {
+            ...fixture.input.current,
+            timingBeat: task.timingBeat,
+            snapshotFingerprints: [],
+          },
+        });
+      }
+    },
+  },
   {
     name: "VisualStyle art direction invalidates task/package but not narrative bytes",
     mutate: (fixture) =>
@@ -245,7 +303,7 @@ const cases: readonly {
         ...fixture.input,
         current: {
           ...fixture.input.current,
-          visualRuntimeVersion: "story-visual-runtime-v2",
+          visualRuntimeVersion: "story-visual-runtime-v1",
         },
       });
       await expectPackageStale(fixture, {

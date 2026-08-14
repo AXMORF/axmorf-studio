@@ -23,9 +23,9 @@ import type { StorySpec } from "./story";
 export const STORY_RESOURCE_POOL_VERSION = "story-resource-pool-v1" as const;
 export const SCENE_PRODUCTION_BRIEF_VERSION =
   "scene-production-brief-v1" as const;
-export const SCENE_ASSIGNMENT_VERSION = "scene-assignment-v3" as const;
+export const SCENE_ASSIGNMENT_VERSION = "scene-assignment-v4" as const;
 export const SCENE_PRODUCTION_RESULT_VERSION =
-  "scene-production-result-v3" as const;
+  "scene-production-result-v4" as const;
 
 const SafeProductionTextSchema = z
   .string()
@@ -380,6 +380,20 @@ export const validateSceneProductionBrief = ({
     ]),
   );
   for (const scene of brief.scenes) {
+    const storyBeat = story.beats.find(
+      ({ meaningId }) => meaningId === scene.meaningId,
+    );
+    if (
+      storyBeat?.kind === "silent-scene" &&
+      (scene.visualIntent !== storyBeat.preset.visualIntent ||
+        scene.soundIntent !== storyBeat.preset.soundIntent ||
+        JSON.stringify(scene.candidateResourceIds) !==
+          JSON.stringify(storyBeat.preset.resourceIds))
+    ) {
+      throw new Error(
+        `Silent Scene ${scene.meaningId} brief must exactly bind its preset.`,
+      );
+    }
     if (
       scene.candidateResourceIds.some(
         (resourceId) => !poolResources.has(resourceId),
@@ -406,7 +420,7 @@ export const validateSceneProductionBrief = ({
 
 const SceneAssignmentInputObject = z
   .object({
-    schemaVersion: z.literal(3),
+    schemaVersion: z.literal(4),
     contractVersion: z.literal(SCENE_ASSIGNMENT_VERSION),
     runId: ProductionRunIdSchema,
     storyId: StoryIdSchema,
@@ -470,7 +484,7 @@ const addSceneAssignmentIssues = (
     }
   }
   if (
-    assignment.taskInput.schemaVersion !== 3 ||
+    assignment.taskInput.schemaVersion !== 4 ||
     assignment.taskInput.readabilityPolicy.policyFingerprint !==
       assignment.readabilityPolicy.policyFingerprint ||
     assignment.taskInput.sceneCompositionBoundaryVersion !==
@@ -536,7 +550,7 @@ export const SceneAssignmentSchema = SceneAssignmentInputObject.extend({
 export const buildSceneAssignment = (rawInput: unknown) => {
   const record: Record<string, unknown> = {
     ...(rawInput as Record<string, unknown>),
-    schemaVersion: 3,
+    schemaVersion: 4,
     contractVersion: SCENE_ASSIGNMENT_VERSION,
   };
   delete record.assignmentFingerprint;
@@ -561,7 +575,7 @@ const ResultRepositoryPathSchema = z
   );
 
 const SceneProductionResultCommonShape = {
-  schemaVersion: z.literal(3),
+  schemaVersion: z.literal(4),
   contractVersion: z.literal(SCENE_PRODUCTION_RESULT_VERSION),
   runId: ProductionRunIdSchema,
   storyId: StoryIdSchema,
@@ -687,7 +701,7 @@ export const SceneProductionResultSchema =
 export const buildSceneProductionResult = (rawInput: unknown) => {
   const record: Record<string, unknown> = {
     ...(rawInput as Record<string, unknown>),
-    schemaVersion: 3,
+    schemaVersion: 4,
     contractVersion: SCENE_PRODUCTION_RESULT_VERSION,
   };
   delete record.resultFingerprint;

@@ -70,7 +70,7 @@ export const createM6PackageInput = () => {
         (snapshot) => snapshot.snapshotFingerprint,
       ),
       rendererSourceFingerprint: sha("a"),
-      visualRuntimeVersion: "story-visual-runtime-v1",
+      visualRuntimeVersion: "story-visual-runtime-v2",
       sceneAudioRuntimeVersion: "scene-audio-runtime-v1",
     },
   };

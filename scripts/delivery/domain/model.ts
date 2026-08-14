@@ -56,9 +56,11 @@ export const buildDeliveryPackageModel = (inputs: DeliveryPackageInputs) => {
     fps: renderPlan.fps,
     frameCount: renderPlan.frameCount,
     plannedDurationSeconds: renderPlan.frameCount / renderPlan.fps,
-    chapters: intent.chapters.map((chapter, index) => {
-      const timing = semanticTiming.storyBeats[index];
-      if (timing?.meaningId !== chapter.meaningId) {
+    chapters: intent.chapters.map((chapter) => {
+      const timing = semanticTiming.storyBeats.find(
+        ({ meaningId }) => meaningId === chapter.meaningId,
+      );
+      if (timing === undefined || timing.kind !== "narrated-scene") {
         throw new Error(
           "Publishing chapters are stale against SemanticTiming.",
         );

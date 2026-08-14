@@ -17,8 +17,7 @@ Read [the direct workflow](references/direct-production-workflow.md) completely.
 Agent-owned design work with the fixed commands. Read [Producer config](references/producer-config.md)
 when authoring the new Project input; use `project:configure` instead of copying defaults.
 
-Freeze Story, narration/timing, requirements, Scene/GlobalVisual assignments, and CoverAssignment
-before dispatch. Treat them as immutable afterward.
+Freeze Story, timing, requirements, and all owner assignments before dispatch. Frozen inputs are immutable.
 
 ## Launch watcher and dispatch threads
 
