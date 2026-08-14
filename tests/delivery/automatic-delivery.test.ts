@@ -24,6 +24,7 @@ import {
 } from "../../scripts/delivery/application/inputs";
 import {
   buildAssetAttributions,
+  computeVideoSourceReferencesFingerprint,
   computeStoryFingerprint,
 } from "../../src/contracts";
 import { buildResourceCatalog } from "../../scripts/catalog/domain";
@@ -49,6 +50,18 @@ const createFixture = async (context: TestContext) => {
     storyId: "story-example",
     title: "A deterministic story",
   };
+  const brief = {
+    schemaVersion: 1,
+    storyId: "story-example",
+    title: "A deterministic story",
+    sourceMaterial: "Current source material.",
+    sourceReferences: [
+      { title: "Current reference", url: "https://example.com/reference" },
+    ],
+    audience: "Current audience",
+    targetDurationSeconds: 4,
+    deliveryConstraints: [],
+  } as const;
   const semanticTiming = {
     storyId: "story-example",
     fps: 30,
@@ -58,6 +71,7 @@ const createFixture = async (context: TestContext) => {
   };
   const inputs = {
     story,
+    brief,
     semanticTiming,
     intent: {
       intentFingerprint: `sha256:${"1".repeat(64)}`,
@@ -78,7 +92,12 @@ const createFixture = async (context: TestContext) => {
       semanticTimingFingerprint: semanticTiming.fingerprint,
       compositionId: "StoryExample",
       fps: 30,
-      frameCount: 120,
+      timelinePolicyVersion: "fixed-bookends-v1",
+      sourceReferencesFingerprint: computeVideoSourceReferencesFingerprint(
+        brief.sourceReferences,
+      ),
+      bodyFrameCount: 120,
+      frameCount: 420,
       renderPlanFingerprint: `sha256:${"2".repeat(64)}`,
     },
     renderReady: {
@@ -129,6 +148,7 @@ test("current input bindings reject same-size Story and SemanticTiming drift", a
   };
   const request = {
     projectId: "story-example",
+    brief: fixture.inputs.brief,
     story: fixture.inputs.story,
     semanticTiming: fixture.inputs.semanticTiming,
     renderPlan: fixture.inputs.renderPlan,
@@ -152,6 +172,15 @@ test("current input bindings reject same-size Story and SemanticTiming drift", a
     assertCurrentDeliveryInputBindings({
       ...request,
       story: { ...fixture.inputs.story, title: "Drifted title" },
+    } as never),
+  );
+  assert.throws(() =>
+    assertCurrentDeliveryInputBindings({
+      ...request,
+      brief: {
+        ...fixture.inputs.brief,
+        sourceReferences: [],
+      },
     } as never),
   );
 });
@@ -216,6 +245,26 @@ test("build records intent before spawn and receipt only after spawn acknowledge
       cover3x4: "cover-3x4.png",
     },
   );
+  const publishing = JSON.parse(
+    await readFile(join(deliveryDir, "publishing.json"), "utf8"),
+  ) as {
+    readonly frameCount: number;
+    readonly plannedDurationSeconds: number;
+    readonly chapters: readonly Readonly<{
+      startFrame: number;
+      timecode: string;
+    }>[];
+  };
+  assert.equal(publishing.frameCount, 420);
+  assert.equal(publishing.plannedDurationSeconds, 14);
+  assert.deepEqual(publishing.chapters, [
+    {
+      meaningId: "opening",
+      name: "开场",
+      startFrame: 60,
+      timecode: "00:00:02",
+    },
+  ]);
   assert.doesNotMatch(
     await readFile(join(deliveryDir, "HANDOFF.md"), "utf8"),
     /approved|verified release|render-succeeded|complete/iu,

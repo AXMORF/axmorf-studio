@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url";
 import {
   computeM3EvidenceFingerprint,
   CompositionIdSchema,
+  getStoryCompositionDurationInFrames,
   M3NarrativeBaselineEvidenceReceiptInputSchema,
   M3NarrativeBaselineEvidenceReceiptSchema,
   SealedNarrationManifestSchema,
@@ -351,7 +352,8 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
     persistedTiming.storyId !== storyId ||
     persistedTiming.fingerprint !== semanticTiming.fingerprint ||
     semanticTiming.fps !== entry.descriptor.fps ||
-    semanticTiming.durationInFrames !== entry.descriptor.durationInFrames
+    getStoryCompositionDurationInFrames(semanticTiming.durationInFrames) !==
+      entry.descriptor.durationInFrames
   ) {
     throw new Error("M3 evidence inputs are stale against ProjectRegistry.");
   }
@@ -366,7 +368,7 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
     inspectAlphaStill(absolute(paths.captionStill), runProcess, true),
     inspectBaselineRender(absolute(paths.render), runProcess, {
       fps: entry.descriptor.fps,
-      durationInFrames: entry.descriptor.durationInFrames,
+      durationInFrames: semanticTiming.durationInFrames,
     }),
   ]);
 

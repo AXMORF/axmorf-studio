@@ -10,10 +10,63 @@ test("valid authored inputs preserve StoryBeat and TTSChunk order", () => {
   const story = StorySpecSchema.parse(validStorySpec);
 
   assert.equal(brief.storyId, story.storyId);
+  assert.deepEqual(brief.sourceReferences, validVideoBrief.sourceReferences);
   assert.deepEqual(flattenTtsChunks(story), [
     { chunkId: "opening-01", meaningId: "opening", ttsText: "A" },
     { chunkId: "conclusion-01", meaningId: "conclusion", ttsText: "B" },
   ]);
+});
+
+test("VideoBrief keeps structured public source references", () => {
+  assert.deepEqual(
+    VideoBriefSchema.parse({
+      ...validVideoBrief,
+      sourceReferences: [
+        {
+          title: "Remotion documentation",
+          url: "https://www.remotion.dev/docs/",
+        },
+        {
+          title: "Local development reference",
+          url: "http://127.0.0.1:3000/reference",
+        },
+      ],
+    }).sourceReferences,
+    [
+      {
+        title: "Remotion documentation",
+        url: "https://www.remotion.dev/docs/",
+      },
+      {
+        title: "Local development reference",
+        url: "http://127.0.0.1:3000/reference",
+      },
+    ],
+  );
+  assert.throws(() =>
+    VideoBriefSchema.parse({
+      ...validVideoBrief,
+      sourceReferences: [
+        { title: "Unsafe protocol", url: "file:///tmp/reference.md" },
+      ],
+    }),
+  );
+  assert.throws(() =>
+    VideoBriefSchema.parse({
+      ...validVideoBrief,
+      sourceReferences: [{ title: "Malformed", url: "not a URL" }],
+    }),
+  );
+});
+
+test("VideoBrief projects an empty source-reference list when none is authored", () => {
+  const { sourceReferences: _sourceReferences, ...withoutReferences } =
+    validVideoBrief;
+  void _sourceReferences;
+  assert.deepEqual(
+    VideoBriefSchema.parse(withoutReferences).sourceReferences,
+    [],
+  );
 });
 
 test("all authoring objects reject unknown fields", () => {

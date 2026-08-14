@@ -2,7 +2,7 @@
 
 > 文档类型：合同参考。可执行 schema 与 fingerprint 逻辑以 `src/contracts/` 为准。
 >
-> 最后复核：2026-08-09
+> 最后复核：2026-08-14
 
 ## Persisted source files
 
@@ -19,6 +19,12 @@
 
 The first five files are authored source/review inputs; the four `generated/` files are derived
 artifacts. All objects are strict and versioned by their executable schemas.
+
+`VideoBrief.sourceReferences` 是最多 8 条的结构化资料引用，每条严格包含最长 160 字符的
+`title` 与最长 240 字符的 HTTP(S) `url`。显示合同会完整换行渲染这些合法值，不用省略号截断。
+它属于具体 Project 的内容来源，不属于通用 ProducerConfig、StoryBeat 或发布文案。
+新 Project 应显式 author 该数组；没有外部引用时使用空数组。当前未声明该字段的 Project 在解析后
+投影为空数组，既有已冻结 source bytes 不被改写。
 
 ## Identity
 
@@ -95,6 +101,27 @@ or audio bytes.
 TTSChunk. Explicit pauses have timing but no CaptionCue. RenderSpec timing fields are `fps`,
 `leadInFrames`, and `tailFrames`. The current narration workflow generates each Project's
 SemanticTiming directly from sealed sample frames.
+
+## Fixed Story Composition timeline
+
+`SemanticTiming.durationInFrames` remains the body-only authority. The formal Story Composition uses
+`fixed-bookends-v1` and derives its final duration as
+`60 + SemanticTiming.durationInFrames + 240`. `ProjectRegistrationDescriptor.durationInFrames`,
+`production-render-plan-v3.frameCount`, Remotion Composition metadata, delivery publishing and the
+delivery manifest all use that final duration. The render plan separately preserves
+`bodyFrameCount = SemanticTiming.durationInFrames`; changing the bookend projection never rewrites a
+StoryBeat, CaptionCue, Scene, narration, GlobalVisual or Scene-local sound frame.
+
+The body is mounted inside a `Series.Sequence` that begins at final frame 60, so local body frame 0
+remains local frame 0. `FixedIntro` and `FixedOutro` are outside that Sequence and contain no audio.
+`FixedOutro.references` is exactly the parsed `VideoBrief.sourceReferences` array. Its canonical
+fingerprint is bound into the render plan, so changing references requires a fresh current plan/Run.
+Delivery chapter frames are final-timeline projections: `SemanticTiming.startFrame + 60`.
+
+M3 Narrative Baseline is intentionally body-only evidence. Its temporary narrative scaffold does not
+mount bookends, and its render command restricts output to body frames even though the current Registry
+already advertises the final Story Composition duration. The persisted M3 render duration therefore
+remains `SemanticTiming.durationInFrames`; this diagnostic artifact is not a final delivery render.
 
 ## Implemented commands
 

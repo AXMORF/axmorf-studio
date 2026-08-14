@@ -36,7 +36,7 @@ production 到达 render-ready 后，watcher 才串行执行 Cover check/submit�
 npm run delivery:build -- --project <storyId>
 ```
 
-输入固定为 current StorySpec、SemanticTiming、PublishingIntent、ProductionRenderPlan、
+输入固定为 current VideoBrief、StorySpec、SemanticTiming、PublishingIntent、ProductionRenderPlan、
 ProductionRenderReady、CoverResult，以及 render plan 实际使用资源从绑定 ResourceCatalog 投影的
 `asset-attributions-v1`。`deliveryId` 确定性绑定这些 identity、attribution fingerprint/checksum、
 Composition、exact render argv 与 `detached-spawn-acknowledgement-v1`。
@@ -44,8 +44,10 @@ Composition、exact render argv 与 `detached-spawn-acknowledgement-v1`。
 `publishing.json` 使用 `delivery-publishing-v2`：title 来自 StorySpec，
 description/topics/collection/chapter names 来自 PublishingIntent；`outputFileName` 固定为
 `<storyId>.mp4`，`coverFileNames` 固定映射 `cover4x3` → `cover-4x3.png`、`cover3x4` →
-`cover-3x4.png`。每章 startFrame 来自 SemanticTiming，timecode 按 `startFrame / fps` 向下取整为
-`HH:MM:SS`。只保存 `plannedDurationSeconds = frameCount / fps`，不保存媒体实测时长。
+`cover-3x4.png`。每章先取 SemanticTiming 正文 startFrame，再加固定 60 帧片头偏移；timecode 按
+最终 `startFrame / fps` 向下取整为 `HH:MM:SS`。frameCount 固定为
+`60 + SemanticTiming.durationInFrames + 240`，只保存 `plannedDurationSeconds = frameCount / fps`，
+不保存媒体实测时长。
 
 build 顺序不可交换：
 

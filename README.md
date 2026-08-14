@@ -40,13 +40,14 @@
 ## 主链
 
 ```text
-Story + authored ttsChunks + RenderSpec + PublishingIntent
+VideoBrief(sourceReferences) + Story + authored ttsChunks + RenderSpec + PublishingIntent
   → measured and sealed narration
   → SemanticTiming + CaptionCue + NarrativeCore
   → local ResourceCatalog lookup + optional external image import
   → N Scene owners + one GlobalVisual owner + independent Cover owner
   → assignment-bound owner receipts + detached single-writer watcher
-  → FinalAssembly + ProductionRenderPlan
+  → FixedIntro + FinalAssembly body + FixedOutro(sourceReferences)
+  → ProductionRenderPlan (60 + body + 240 frames)
   → render-ready / awaiting-automatic-delivery
   → immutable non-MP4 delivery package + launch intent
   → detached Remotion spawn acknowledgement + launch receipt

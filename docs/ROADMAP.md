@@ -2,7 +2,7 @@
 
 > 文档类型：实施顺序与阶段门槛
 >
-> 最后复核：2026-08-13
+> 最后复核：2026-08-14
 
 ## 已完成基线
 
@@ -22,6 +22,9 @@
    manifest 职责拆分，以及 executable architecture regression。
 10. 配置控制台的 Project 列表、每 Project 最新 current Run 关键进度、严格二次确认删除，以及跨
     configure/start/delivery/delete 的 repository operation lock 与删除投影恢复。
+11. `fixed-bookends-v1` 正式 Composition：60 帧无音频片头、正文局部 SemanticTiming 与 240 帧
+    无音频片尾；`VideoBrief.sourceReferences` 精确投影到片尾，Registry、render plan/ready 与
+    delivery 统一使用 `60 + body + 240` 成片帧数。
 
 ## 当前门槛
 
@@ -36,6 +39,8 @@
 - watcher intent-only 永久 ambiguous；缺失 owner receipt 永久 waiting，无 timeout/retry/heartbeat；
 - root 只创建独立用户任务，派发后不 wait/read/poll；
 - zero Project bootstrap 与隔离 deletion matrix 继续通过。
+- fixed bookends 只扩张最终 Composition 时间轴；正文 SemanticTiming、spoken frames、Scene、字幕、
+  GlobalVisual 与 sound design 的局部帧继续保持不变。
 - `project:delete` 继续保护 core、其他 Project、private config 与 `public/voice_profile/`，并在
   writer lock、repository operation lock、非空 delivery staging 或不安全路径出现时于首次删除前
   fail closed；源码删除前的 Registry 预发布和异常后的磁盘真实状态恢复必须保持。

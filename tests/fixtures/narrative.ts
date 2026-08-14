@@ -11,6 +11,12 @@ export const validVideoBrief = {
   storyId: "story-example",
   title: "A deterministic narration example",
   sourceMaterial: "Explain why cumulative PCM boundaries prevent frame drift.",
+  sourceReferences: [
+    {
+      title: "Remotion documentation",
+      url: "https://www.remotion.dev/docs/",
+    },
+  ],
   audience: "Developers building narrated video systems",
   targetDurationSeconds: 10,
   deliveryConstraints: [

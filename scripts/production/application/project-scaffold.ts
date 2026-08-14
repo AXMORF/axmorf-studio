@@ -516,19 +516,27 @@ import type {FC} from "react";
 import {staticFile} from "remotion";
 
 import {
+  computeVideoSourceReferencesFingerprint,
+  FIXED_INTRO_DURATION_IN_FRAMES,
+  FIXED_OUTRO_DURATION_IN_FRAMES,
   GlobalVisualPlanSchema,
   GlobalVisualProjectionSchema,
+  getStoryCompositionDurationInFrames,
 ${masteredNarrationContractImport}  parseNarrativeProjectSource,
   ProductionRenderPlanSchema,
   ProductionRequirementsFreezeSchema,
   SealedNarrationManifestSchema,
   SemanticTimingSchema,
   StoryCompositionPropsSchema,
+  STORY_COMPOSITION_TIMELINE_VERSION,
   validateM1ArtifactBundle,
   type StoryCompositionProps,
 } from "../../contracts";
 import {CompositionAssembly} from "../../remotion/runtime/composition-assembly";
+import {FixedIntro} from "../../remotion/runtime/fixed-intro";
+import {FixedOutro} from "../../remotion/runtime/fixed-outro";
 import {NarrativeCore, type NarrativeCoreProps} from "../../remotion/runtime/narrative-core";
+import {StoryCompositionShell} from "../../remotion/runtime/story-composition-shell";
 ${soundImport}
 import {StoryVisualTrack} from "../../remotion/runtime/story-visual";
 import briefJson from "./brief.json";
@@ -555,7 +563,7 @@ const expectedStoryId = ${JSON.stringify(storyId)};
 const storyId = artifactBundle.projectSource.story.storyId;
 const render = artifactBundle.projectSource.render;
 const timing = artifactBundle.semanticTiming;
-if (readabilityPolicy.width !== render.width || readabilityPolicy.height !== render.height || storyId !== expectedStoryId || renderPlan.storyId !== storyId || render.fps !== timing.fps || renderPlan.frameCount !== timing.durationInFrames) {
+if (readabilityPolicy.width !== render.width || readabilityPolicy.height !== render.height || storyId !== expectedStoryId || renderPlan.storyId !== storyId || render.fps !== timing.fps || renderPlan.timelinePolicyVersion !== STORY_COMPOSITION_TIMELINE_VERSION || renderPlan.sourceReferencesFingerprint !== computeVideoSourceReferencesFingerprint(projectSource.brief.sourceReferences) || renderPlan.bodyFrameCount !== timing.durationInFrames || renderPlan.frameCount !== getStoryCompositionDurationInFrames(timing.durationInFrames)) {
   throw new Error("Production render Composition identity is stale.");
 }
 ${globalVisualSetup}${narrationIdentityCheck}const completeAudioLocalPath = ${completeAudioExpression};
@@ -566,7 +574,7 @@ export const productionNarrativeCompositionMetadata = {
   fps: render.fps,
   width: render.width,
   height: render.height,
-  durationInFrames: timing.durationInFrames,
+  durationInFrames: getStoryCompositionDurationInFrames(timing.durationInFrames),
   defaultProps: {projectId: storyId},
 } as const;
 export const createProductionNarrativeCoreProps = (input: unknown): NarrativeCoreProps => {
@@ -576,10 +584,16 @@ export const createProductionNarrativeCoreProps = (input: unknown): NarrativeCor
 };
 
 const ${componentName}: FC<StoryCompositionProps> = (props) => (
-  <CompositionAssembly
-    storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning} />}${globalVisualProp}
-    narrativeCore={<NarrativeCore {...createProductionNarrativeCoreProps(props)} />}${soundProp}
-  />
+  <StoryCompositionShell
+    bodyDurationInFrames={timing.durationInFrames}
+    intro={{durationInFrames: FIXED_INTRO_DURATION_IN_FRAMES, content: <FixedIntro />}}
+    outro={{durationInFrames: FIXED_OUTRO_DURATION_IN_FRAMES, content: <FixedOutro references={projectSource.brief.sourceReferences} />}}
+  >
+    <CompositionAssembly
+      storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning} />}${globalVisualProp}
+      narrativeCore={<NarrativeCore {...createProductionNarrativeCoreProps(props)} />}${soundProp}
+    />
+  </StoryCompositionShell>
 );
 export default ${componentName};
 `;

@@ -42,4 +42,5 @@ export * from "./sealed-narration";
 export * from "./semantic-timing";
 export * from "./story";
 export * from "./story-check";
+export * from "./story-composition";
 export * from "./visual-style";

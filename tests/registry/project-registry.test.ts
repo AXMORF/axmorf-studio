@@ -207,6 +207,7 @@ test("generated entries are stably sorted and use literal import expressions", a
   visit(ast);
   assert.equal(importArguments.length, 2);
   assert.ok(importArguments.every(ts.isStringLiteral));
+  assert.match(first, /durationInFrames: 396/u);
 });
 
 test("read-only check detects one-byte registry drift", async (context) => {

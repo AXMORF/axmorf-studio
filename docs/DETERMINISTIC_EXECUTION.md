@@ -2,7 +2,7 @@
 
 > 文档类型：执行语义权威
 >
-> 最后复核：2026-08-13
+> 最后复核：2026-08-14
 
 ## 确定性的对象
 
@@ -41,6 +41,11 @@ frameBoundary = ceilDiv(cumulativeSamples * fps, sampleRate)
 不得逐 chunk 把浮点秒数转 frame 再累加。Scene 与 transition 不能移动、缩短或覆盖 spoken
 frames。planned duration 只能由 `frameCount / fps` 推导，不伪装为媒体实测。
 
+SemanticTiming 只描述正文局部帧。成片固定使用 `fixed-bookends-v1`：60 帧片头、完整正文、240
+帧片尾，因此 `frameCount = 60 + bodyFrameCount + 240`。正文由 Series 统一延后 60 帧，内部 frame
+仍从 0 开始。delivery 章节只在最终投影时把正文 startFrame 加 60，不修改 SemanticTiming。M3
+Narrative Baseline 是正文诊断渲染，显式限制到 body frame range，不冒充正式成片。
+
 ## Production ledger
 
 Run manifest immutable；events append-only、连续编号并绑定 previous-state fingerprint；Scene 与
@@ -70,16 +75,17 @@ receipt 也不会被当成“进程仍存活”的证明或自动重启许可；
 
 ## Render-ready identity
 
-`production-render-plan-v2` 固定：
+`production-render-plan-v3` 固定：
 
 - storyId/runId/compositionId；
 - Composition source path 与 checksum；
-- width/height/fps/frameCount；
+- width/height/fps、fixed bookend timeline、bodyFrameCount/final frameCount；
+- `VideoBrief.sourceReferences` fingerprint；
 - FinalAssembly、sealed/mastered narration、semantic timing、renderer registry 与 projections；
 - layer/mix order；
 - fixed Remotion render policy。
 
-`production-render-ready-v2` 再绑定 plan fingerprint，并固定 status/handoff。该 artifact 只证明
+`production-render-ready-v3` 再绑定 plan fingerprint，并固定 status/handoff。该 artifact 只证明
 所有 render-critical inputs current，不证明媒体存在。
 
 在 ready artifact 写入前，目标 Project Composition 必须通过仓库固定 TypeScript/tsconfig 的

@@ -20,6 +20,7 @@ import {
   type StoryCompositionProps,
 } from "./project";
 import { SemanticTimingSchema, type SemanticTiming } from "./semantic-timing";
+import { getStoryCompositionDurationInFrames } from "./story-composition";
 
 export const PROJECT_REGISTRY_GENERATOR_ID =
   "project-registry-generator-v1" as const;
@@ -92,7 +93,9 @@ export const createProjectRegistrationDescriptor = ({
     fps: render.fps,
     width: render.width,
     height: render.height,
-    durationInFrames: semanticTiming.durationInFrames,
+    durationInFrames: getStoryCompositionDurationInFrames(
+      semanticTiming.durationInFrames,
+    ),
     defaultProps: { projectId: story.storyId } satisfies StoryCompositionProps,
     compositionModulePath,
   });

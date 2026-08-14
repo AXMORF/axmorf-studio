@@ -2,7 +2,7 @@
 
 > 文档类型：当前名词权威
 >
-> 最后复核：2026-08-13
+> 最后复核：2026-08-14
 
 | 名词                        | 含义                                                                  | 明确不代表                                           |
 | --------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------- |
@@ -10,7 +10,7 @@
 | ttsChunks                   | Agent 已决定的朗读单元                                                | 工具可重写的文本切片                                 |
 | ProducerConfig              | 新作品的 render、可读性、合集、TTS 与可选 BGM 预设 authority          | 已封存作品的可变 runtime 输入                        |
 | NarrationExecutionSnapshot  | Run 级 provider-attempt 与 mastering policy 的 private-safe 冻结身份  | token、URL、私有路径、声线内容或 render runtime 配置 |
-| SemanticTiming              | sealed PCM 实测导出的绝对 frame authority                             | 容器浮点时长估算                                     |
+| SemanticTiming              | sealed PCM 实测导出的正文局部 frame authority                         | 最终成片 bookend 帧或容器浮点时长估算                |
 | ScenePackage                | 一个 meaningId 的视觉与局部声音成品合同                               | 字幕、旁白或全局背景 authority                       |
 | GlobalVisualPackage         | Story 级背景、纹理、装饰和连续性 motif                                | Scene DSL、自动导演或字幕层                          |
 | ProductionRun               | append-only events 与 immutable results 的一次执行                    | 可手改或恢复的任务状态                               |
@@ -19,7 +19,7 @@
 | OwnerReceipt                | assignment identity 与 output manifest 绑定的 ready/failed inbox 回执 | Codex task 身份、heartbeat 或正式 production result  |
 | waiting-for-owner-results   | watcher 等待缺失 assignment receipt 的无超时状态                      | task 失败、自动重试或 replacement thread 已创建      |
 | WatcherLaunchReceipt        | detached watcher 的 OS `spawn` acknowledgement                        | production 已完成或 watcher 可安全重启               |
-| ProductionRenderPlan        | 冻结 Composition、源码、帧和启动 policy 的渲染计划                    | 已渲染媒体                                           |
+| ProductionRenderPlan        | 冻结 Composition、资料引用、正文/成片帧与启动 policy 的渲染计划       | 已渲染媒体                                           |
 | ProductionRenderReady       | 所有 current render-critical identity 已汇合                          | MP4 已生成或已检查                                   |
 | awaiting-automatic-delivery | render-ready 的固定 handoff                                           | 等待人工判断                                         |
 | PublishingIntent            | Story 阶段冻结的发布元数据及一个配置合集选择                          | 自由文本合集或平台发布行为                           |

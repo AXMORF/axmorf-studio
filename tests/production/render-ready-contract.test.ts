@@ -39,7 +39,10 @@ const planInput = {
   width: 1080,
   height: 1920,
   fps: 30,
-  frameCount: 120,
+  timelinePolicyVersion: "fixed-bookends-v1",
+  sourceReferencesFingerprint: sha("3"),
+  bodyFrameCount: 120,
+  frameCount: 420,
   layerOrder: ["global-visual", "story-visual", "narrative-core"],
   mixOrder: ["narration", "scene-local-sound"],
   remotionVersion: "4.0.489",
@@ -49,16 +52,27 @@ test("builds one current render plan and terminal render-ready contract", () => 
   const plan = buildProductionRenderPlan(planInput);
   const ready = buildProductionRenderReady({ plan });
 
-  assert.equal(plan.contractVersion, "production-render-plan-v2");
+  assert.equal(plan.contractVersion, "production-render-plan-v3");
+  assert.equal(plan.bodyFrameCount, 120);
+  assert.equal(plan.frameCount, 420);
   assert.equal(
     plan.renderPolicy.policyVersion,
     "remotion-detached-h264-aac-v1",
   );
-  assert.equal(ready.contractVersion, "production-render-ready-v2");
+  assert.equal(ready.contractVersion, "production-render-ready-v3");
   assert.equal(ready.status, "render-ready");
   assert.equal(ready.handoff, "awaiting-automatic-delivery");
   assert.equal(ready.renderPlanFingerprint, plan.renderPlanFingerprint);
   assert.doesNotMatch(JSON.stringify(ready), /preview|approval/iu);
+});
+
+test("render plan rejects a final frame count that disagrees with fixed bookends", () => {
+  assert.throws(() =>
+    buildProductionRenderPlan({
+      ...planInput,
+      frameCount: planInput.frameCount - 1,
+    }),
+  );
 });
 
 test("render-ready rejects stale plan identity and unexpected fields", () => {

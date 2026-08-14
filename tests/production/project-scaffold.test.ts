@@ -33,6 +33,7 @@ test("writes one current narrative scaffold and repeats byte-mtime stable", asyn
   assert.equal(bytes, renderProductionProjectScaffold("story-example"));
   assert.match(bytes, new RegExp(PRODUCTION_PROJECT_SCAFFOLD_MARKER));
   assert.match(bytes, /ProductionRequirementsFreezeSchema/u);
+  assert.doesNotMatch(bytes, /StoryCompositionShell|FixedIntro|FixedOutro/u);
   assert.doesNotMatch(bytes, /ProductionPreview|FinalPreview|approval/iu);
 
   const second = await ensureProductionProjectScaffold({
@@ -101,6 +102,13 @@ test("render scaffold binds the frozen plan and current GlobalVisual layer", asy
   assert.doesNotMatch(source, /<GlobalVisualLayers plan=/u);
   assert.match(source, /StoryVisualTrack/u);
   assert.match(source, /SoundDesignTrack/u);
+  assert.match(source, /StoryCompositionShell/u);
+  assert.match(source, /sourceReferencesFingerprint/u);
+  assert.match(
+    source,
+    /<FixedOutro references=\{projectSource\.brief\.sourceReferences\}\s*\/>/u,
+  );
+  assert.match(source, /bodyDurationInFrames=\{timing\.durationInFrames\}/u);
   assert.doesNotMatch(source, /ProductionPreview|FinalPreview|approval/iu);
 
   await ensureProductionRenderScaffold({

@@ -306,7 +306,11 @@ export const createDefaultNarrativeProductionDependencies = ({
       ],
       [
         "Narrative Baseline render",
-        buildProductionRenderArgs({ compositionId, outputPath: renderPath }),
+        buildProductionRenderArgs({
+          compositionId,
+          outputPath: renderPath,
+          durationInFrames: timing.durationInFrames,
+        }),
       ],
     ] as const) {
       assertProcessSucceeded(await runProcess(remotion, args), label);

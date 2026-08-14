@@ -5,12 +5,16 @@ import {
   SemanticTimingSchema,
   StoryIdSchema,
   StorySpecSchema,
+  VideoBriefSchema,
+  computeVideoSourceReferencesFingerprint,
   computeStoryFingerprint,
+  getStoryCompositionDurationInFrames,
   resolveCurrentPublishingIntent,
   type ProductionRenderPlan,
   type ProductionRenderReady,
   type SemanticTiming,
   type StorySpec,
+  type VideoBrief,
 } from "../../../src/contracts";
 import { checkProductionRenderReady } from "../../production/application/render-ready";
 import { readDeliveryJson } from "../adapters/filesystem";
@@ -23,6 +27,7 @@ const generatedPath = (projectId: string, fileName: string) =>
 
 export const assertCurrentDeliveryInputBindings = ({
   projectId,
+  brief,
   story,
   semanticTiming,
   renderPlan,
@@ -30,6 +35,7 @@ export const assertCurrentDeliveryInputBindings = ({
   current,
 }: {
   readonly projectId: string;
+  readonly brief: VideoBrief;
   readonly story: StorySpec;
   readonly semanticTiming: SemanticTiming;
   readonly renderPlan: ProductionRenderPlan;
@@ -41,6 +47,7 @@ export const assertCurrentDeliveryInputBindings = ({
   }>;
 }) => {
   if (
+    brief.storyId !== projectId ||
     story.storyId !== projectId ||
     semanticTiming.storyId !== projectId ||
     renderPlan.storyId !== projectId ||
@@ -50,9 +57,13 @@ export const assertCurrentDeliveryInputBindings = ({
       renderPlan.requirementsFingerprint ||
     renderReady.renderPlanFingerprint !== renderPlan.renderPlanFingerprint ||
     renderPlan.storyFingerprint !== computeStoryFingerprint(story) ||
+    renderPlan.sourceReferencesFingerprint !==
+      computeVideoSourceReferencesFingerprint(brief.sourceReferences) ||
     renderPlan.semanticTimingFingerprint !== semanticTiming.fingerprint ||
     semanticTiming.fps !== renderPlan.fps ||
-    semanticTiming.durationInFrames !== renderPlan.frameCount ||
+    semanticTiming.durationInFrames !== renderPlan.bodyFrameCount ||
+    renderPlan.frameCount !==
+      getStoryCompositionDurationInFrames(semanticTiming.durationInFrames) ||
     current.runId !== renderPlan.runId ||
     current.renderPlanFingerprint !== renderPlan.renderPlanFingerprint ||
     current.renderReadyFingerprint !== renderReady.renderReadyFingerprint
@@ -71,45 +82,53 @@ export const loadCurrentDeliveryInputs = async ({
   readonly dependencies?: DeliveryApplicationDependencies;
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
-  const [story, semanticTiming, rawIntent, renderPlan, renderReady, cover] =
-    await Promise.all([
-      readDeliveryJson({
-        rootDir,
-        relativePath: `src/projects/${projectId}/story.json`,
-      }).then(StorySpecSchema.parse),
-      readDeliveryJson({
-        rootDir,
-        relativePath: generatedPath(
-          projectId,
-          "semantic-timing.generated.json",
-        ),
-      }).then(SemanticTimingSchema.parse),
-      readDeliveryJson({
-        rootDir,
-        relativePath: `src/projects/${projectId}/publishing-intent.json`,
-      }).then(PublishingIntentSchema.parse),
-      readDeliveryJson({
-        rootDir,
-        relativePath: generatedPath(
-          projectId,
-          "production-render-plan.generated.json",
-        ),
-      }).then(ProductionRenderPlanSchema.parse),
-      readDeliveryJson({
-        rootDir,
-        relativePath: generatedPath(
-          projectId,
-          "production-render-ready.generated.json",
-        ),
-      }).then(ProductionRenderReadySchema.parse),
-      loadCurrentDeliveryCoverResult({
-        rootDir,
+  const [
+    brief,
+    story,
+    semanticTiming,
+    rawIntent,
+    renderPlan,
+    renderReady,
+    cover,
+  ] = await Promise.all([
+    readDeliveryJson({
+      rootDir,
+      relativePath: `src/projects/${projectId}/brief.json`,
+    }).then(VideoBriefSchema.parse),
+    readDeliveryJson({
+      rootDir,
+      relativePath: `src/projects/${projectId}/story.json`,
+    }).then(StorySpecSchema.parse),
+    readDeliveryJson({
+      rootDir,
+      relativePath: generatedPath(projectId, "semantic-timing.generated.json"),
+    }).then(SemanticTimingSchema.parse),
+    readDeliveryJson({
+      rootDir,
+      relativePath: `src/projects/${projectId}/publishing-intent.json`,
+    }).then(PublishingIntentSchema.parse),
+    readDeliveryJson({
+      rootDir,
+      relativePath: generatedPath(
         projectId,
-        ...(dependencies.runProcess === undefined
-          ? {}
-          : { runProcess: dependencies.runProcess }),
-      }),
-    ]);
+        "production-render-plan.generated.json",
+      ),
+    }).then(ProductionRenderPlanSchema.parse),
+    readDeliveryJson({
+      rootDir,
+      relativePath: generatedPath(
+        projectId,
+        "production-render-ready.generated.json",
+      ),
+    }).then(ProductionRenderReadySchema.parse),
+    loadCurrentDeliveryCoverResult({
+      rootDir,
+      projectId,
+      ...(dependencies.runProcess === undefined
+        ? {}
+        : { runProcess: dependencies.runProcess }),
+    }),
+  ]);
   const intent = resolveCurrentPublishingIntent({ story, intent: rawIntent });
   const assetAttributions = await loadDeliveryAssetAttributions({
     rootDir,
@@ -121,6 +140,7 @@ export const loadCurrentDeliveryInputs = async ({
   )({ rootDir, runId: renderPlan.runId });
   assertCurrentDeliveryInputBindings({
     projectId,
+    brief,
     story,
     semanticTiming,
     renderPlan,
@@ -131,6 +151,7 @@ export const loadCurrentDeliveryInputs = async ({
     throw new Error("Automatic delivery inputs are stale or cross-bound.");
   }
   return {
+    brief,
     story,
     semanticTiming,
     intent,

@@ -9,11 +9,15 @@ import {
   StoryIdSchema,
 } from "./primitives";
 import { ProductionRunIdSchema } from "./production-run";
+import {
+  STORY_COMPOSITION_TIMELINE_VERSION,
+  getStoryCompositionDurationInFrames,
+} from "./story-composition";
 
 export const PRODUCTION_RENDER_PLAN_VERSION =
-  "production-render-plan-v2" as const;
+  "production-render-plan-v3" as const;
 export const PRODUCTION_RENDER_READY_VERSION =
-  "production-render-ready-v2" as const;
+  "production-render-ready-v3" as const;
 export const PRODUCTION_RENDER_POLICY_VERSION =
   "remotion-detached-h264-aac-v1" as const;
 
@@ -76,6 +80,9 @@ const RenderPlanInputObject = z
     width: PositiveIntegerSchema,
     height: PositiveIntegerSchema,
     fps: PositiveIntegerSchema.max(120),
+    timelinePolicyVersion: z.literal(STORY_COMPOSITION_TIMELINE_VERSION),
+    sourceReferencesFingerprint: Sha256DigestSchema,
+    bodyFrameCount: PositiveIntegerSchema,
     frameCount: PositiveIntegerSchema,
     layerOrder: z
       .tuple([
@@ -98,6 +105,17 @@ const RenderPlanInputObject = z
         code: "custom",
         message: "Production render plan Scene identities must be unique.",
         path: ["scenePackages"],
+      });
+    }
+    if (
+      plan.frameCount !==
+      getStoryCompositionDurationInFrames(plan.bodyFrameCount)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Production render frameCount must equal fixed intro, body, and fixed outro durations.",
+        path: ["frameCount"],
       });
     }
   });

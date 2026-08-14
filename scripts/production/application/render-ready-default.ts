@@ -16,11 +16,15 @@ import {
   SealedNarrationManifestSchema,
   SemanticTimingSchema,
   StorySpecSchema,
+  VideoBriefSchema,
   buildProductionRenderPlan,
   buildProductionRenderReady,
   computeStoryFingerprint,
+  computeVideoSourceReferencesFingerprint,
   createFingerprint,
   createGlobalVisualProjection,
+  getStoryCompositionDurationInFrames,
+  STORY_COMPOSITION_TIMELINE_VERSION,
 } from "../../../src/contracts";
 import { resolveSceneSound } from "../../../src/remotion/runtime/scene-sound";
 import { buildSoundDesignProjection } from "../../../src/remotion/runtime/sound-design";
@@ -54,26 +58,33 @@ const checksumText = (value: string) =>
 
 const loadRenderSources = async (rootDir: string, storyId: string) => {
   const projectRoot = join(rootDir, "src/projects", storyId);
-  const [story, timing, render, sealedNarration, masteredNarration, autoCheck] =
-    await Promise.all([
-      readJsonFile(join(projectRoot, "story.json")).then(StorySpecSchema.parse),
-      readJsonFile(
-        join(projectRoot, "generated/semantic-timing.generated.json"),
-      ).then(SemanticTimingSchema.parse),
-      readJsonFile(join(projectRoot, "render.json")).then(
-        RenderSpecSchema.parse,
-      ),
-      readJsonFile(
-        join(projectRoot, "generated/sealed-narration.generated.json"),
-      ).then(SealedNarrationManifestSchema.parse),
-      readJsonFile(
-        join(projectRoot, "generated/mastered-narration.generated.json"),
-      ).then(MasteredNarrationManifestSchema.parse),
-      readJsonFile(
-        join(projectRoot, "generated/narrative-auto-check.generated.json"),
-      ).then(NarrativeAutoCheckReportSchema.parse),
-    ]);
+  const [
+    brief,
+    story,
+    timing,
+    render,
+    sealedNarration,
+    masteredNarration,
+    autoCheck,
+  ] = await Promise.all([
+    readJsonFile(join(projectRoot, "brief.json")).then(VideoBriefSchema.parse),
+    readJsonFile(join(projectRoot, "story.json")).then(StorySpecSchema.parse),
+    readJsonFile(
+      join(projectRoot, "generated/semantic-timing.generated.json"),
+    ).then(SemanticTimingSchema.parse),
+    readJsonFile(join(projectRoot, "render.json")).then(RenderSpecSchema.parse),
+    readJsonFile(
+      join(projectRoot, "generated/sealed-narration.generated.json"),
+    ).then(SealedNarrationManifestSchema.parse),
+    readJsonFile(
+      join(projectRoot, "generated/mastered-narration.generated.json"),
+    ).then(MasteredNarrationManifestSchema.parse),
+    readJsonFile(
+      join(projectRoot, "generated/narrative-auto-check.generated.json"),
+    ).then(NarrativeAutoCheckReportSchema.parse),
+  ]);
   if (
+    brief.storyId !== storyId ||
     story.storyId !== storyId ||
     timing.storyId !== storyId ||
     sealedNarration.storyId !== storyId ||
@@ -99,6 +110,7 @@ const loadRenderSources = async (rootDir: string, storyId: string) => {
   }
   return {
     projectRoot,
+    brief,
     story,
     timing,
     render,
@@ -402,7 +414,14 @@ export const prepareProductionRenderPlan = async ({
     width: sources.render.width,
     height: sources.render.height,
     fps: sources.render.fps,
-    frameCount: sources.timing.durationInFrames,
+    timelinePolicyVersion: STORY_COMPOSITION_TIMELINE_VERSION,
+    sourceReferencesFingerprint: computeVideoSourceReferencesFingerprint(
+      sources.brief.sourceReferences,
+    ),
+    bodyFrameCount: sources.timing.durationInFrames,
+    frameCount: getStoryCompositionDurationInFrames(
+      sources.timing.durationInFrames,
+    ),
     layerOrder: ["global-visual", "story-visual", "narrative-core"],
     mixOrder: ["narration", "scene-local-sound"],
     remotionVersion: "4.0.489",

@@ -41,20 +41,29 @@ export const buildProductionStillArgs = ({
 export const buildProductionRenderArgs = ({
   compositionId,
   outputPath,
+  durationInFrames,
 }: {
   readonly compositionId: string;
   readonly outputPath: string;
-}) =>
-  [
+  readonly durationInFrames: number;
+}) => {
+  if (!Number.isSafeInteger(durationInFrames) || durationInFrames <= 0) {
+    throw new Error(
+      "Narrative Baseline duration must be a positive safe integer.",
+    );
+  }
+  return [
     "render",
     PRODUCTION_REMOTION_ENTRY,
     compositionId,
     outputPath,
     "--codec=h264",
     "--audio-codec=aac",
+    `--frames=0-${durationInFrames - 1}`,
     "--overwrite",
     "--log=error",
   ] as const;
+};
 
 type Failure = Extract<ProductionStartPreflight, { status: "failed" }>;
 export type RemotionBrowserPreflightResult =

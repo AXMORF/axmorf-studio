@@ -5,6 +5,7 @@ import {
   buildRenderLaunchIntent,
   createDeliveryId,
   formatDeliveryTimecode,
+  toStoryCompositionFrame,
   type DeliveryCoverResult,
   AssetAttributionsSchema,
   type AssetAttributions,
@@ -13,6 +14,7 @@ import {
   type PublishingIntent,
   type SemanticTiming,
   type StorySpec,
+  type VideoBrief,
 } from "../../../src/contracts";
 import { checksumDeliveryBytes } from "./checksum";
 import {
@@ -22,6 +24,7 @@ import {
 } from "./package";
 
 export type DeliveryPackageInputs = Readonly<{
+  brief: VideoBrief;
   story: StorySpec;
   semanticTiming: SemanticTiming;
   intent: PublishingIntent;
@@ -60,11 +63,12 @@ export const buildDeliveryPackageModel = (inputs: DeliveryPackageInputs) => {
           "Publishing chapters are stale against SemanticTiming.",
         );
       }
+      const startFrame = toStoryCompositionFrame(timing.startFrame);
       return {
         meaningId: chapter.meaningId,
         name: chapter.name,
-        startFrame: timing.startFrame,
-        timecode: formatDeliveryTimecode(timing.startFrame, renderPlan.fps),
+        startFrame,
+        timecode: formatDeliveryTimecode(startFrame, renderPlan.fps),
       };
     }),
   });
