@@ -67,8 +67,10 @@
 
 - 具体 Project 只依赖 core，core 不依赖 storyId；ProjectRegistry/ResourceCatalog 允许 zero
   Project。
-- 配置页从严格 Project ownership roots 生成列表，并且每个 Project 只投影最新一条 current Run 的关键
-  production/delivery 状态；删除入口必须完整输入 Project ID，复用 `project:delete` 的相同语义。
+- 配置页只从 `src/projects/` 的 source Project 与 current Run manifest 的 storyId 生成展示列表，
+  不把 `out/`、deliveries 等 output-only 清理目标伪装成 Project；每个 Project 只投影最新一条
+  current Run 的关键 production/delivery 状态。删除入口必须完整输入 Project ID，仍复用
+  `project:delete` 对全部 ownership roots 的相同语义。
 - `public/`、`src/projects/`、Registry/Catalog generated projection、`.narration-work/`、
   `.producer-runs/`、`out/` 与 `deliveries/` 都是 ignored 本地产物，不进入 Git。
 - 用户明确要求删除一个、多个或全部已制作视频/Project 时，默认含义是删除这些 storyId 的全部

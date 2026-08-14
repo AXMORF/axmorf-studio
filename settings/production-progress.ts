@@ -21,7 +21,7 @@ import {
   deliveryPathExists,
   readDeliveryJson,
 } from "../scripts/delivery/adapters/filesystem";
-import { discoverDeletableProjectIds } from "../scripts/projects/delete";
+import { readLocalProjectRoot } from "../scripts/projects/root";
 
 export type ProductionProgressStepStatus =
   | "pending"
@@ -94,6 +94,18 @@ const readOptionalJson = async (path: string, label: string) => {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw error;
   }
+};
+
+const discoverSourceProjectIds = async (rootDir: string) => {
+  const projectIds: string[] = [];
+  for (const entry of await readLocalProjectRoot(rootDir)) {
+    if (entry.isSymbolicLink()) {
+      throw new Error(`Project symbolic links are not allowed: ${entry.name}.`);
+    }
+    if (!entry.isDirectory()) continue;
+    projectIds.push(StoryIdSchema.parse(entry.name));
+  }
+  return projectIds;
 };
 
 const findLatestRunIdsByProject = async (rootDir: string) => {
@@ -466,10 +478,17 @@ export const readProjectProductionProgress = async ({
 }: {
   readonly rootDir: string;
 }): Promise<ProductionProgressResponse> => {
-  const [projectIds, discovery] = await Promise.all([
-    discoverDeletableProjectIds({ rootDir }),
+  const [sourceProjectIds, discovery] = await Promise.all([
+    discoverSourceProjectIds(rootDir),
     findLatestRunIdsByProject(rootDir),
   ]);
+  const projectIds = [
+    ...new Set([
+      ...sourceProjectIds,
+      ...discovery.latestRunIds.keys(),
+      ...discovery.invalidProjectIds,
+    ]),
+  ].sort();
   const projects = await Promise.all(
     projectIds.map(async (projectId): Promise<ProjectProductionProgress> => {
       if (discovery.invalidProjectIds.has(projectId)) {

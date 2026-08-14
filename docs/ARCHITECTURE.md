@@ -170,9 +170,11 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
   `dev:lan` 才监听可信局域网，并始终要求 Origin/Host 精确同源。完整 token 不写日志、不进
   localStorage；LAN 端口不得暴露到公网。声线与可选 BGM 预设只接受仓库相对路径。BGM 预设尚未
   接入 current `globalSound: none` 的 Project freeze/render 路径；render runtime 不读取 ProducerConfig。
-- 配置页从删除器的严格 ownership discovery 生成 Project 列表；每个 Project 只读取其最新 current
-  Run。删除 API 要求精确同源 JSON 与 Project ID 二次确认，并直接调用同一个 `deleteProjectData`，
-  不复制或弱化 CLI 的预检、目标集合与 Catalog/Registry 重建语义。
+- 配置页从 `src/projects/` 的 source Project 与 current Run manifest storyId 的并集生成展示列表；
+  `out/`、deliveries 等 output-only 清理目标不进入进度页。每个 Project 只读取其最新 current Run。
+  删除 API 则继续使用独立的严格 ownership discovery，要求精确同源 JSON 与 Project ID 二次确认，
+  并直接调用同一个 `deleteProjectData`，不复制或弱化 CLI 的预检、目标集合与 Catalog/Registry
+  重建语义。
 - 删除器在移除 Project 源码前先原子发布排除目标 Project 的 Registry，避免本地 Remotion Studio
   在删除窗口读取到指向已移除 Composition 的旧 import，并终止承载删除 API 的开发进程；若后续
   删除失败，异常路径会按磁盘真实状态重建 Registry 与 Catalog，不能隐藏仍存在的 Project。

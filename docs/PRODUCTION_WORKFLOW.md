@@ -72,10 +72,12 @@ LAN 端口不得转发到公网。声线与可选 BGM 文件字段只接受仓�
 preflight；不生成测试语音、不 warm-up provider，也不修改 Chromium sandbox policy，只返回脱敏
 状态与修复建议。
 
-配置页的“制作进度”从 current Project ownership roots 生成 Project 列表，并对每个 Project 只选择
-`createdAt` 最新的一条 current Production Run。六个关键步骤只投影 strict manifest、append-only
-events、derived state 与 fingerprint-bound delivery intent/receipt，每 3 秒刷新；它不运行生产脚本、
-不读取 PID/exit 状态、不保留历史 Run，也不把 `delivery-render-started` 表述为 MP4 完成。
+配置页的“制作进度”从 `src/projects/` source directory 与 current Run manifest storyId 的并集生成
+Project 列表，不把 `out/`、deliveries 等 output-only 清理目标当成 Project；删除器仍独立扫描全部
+ownership roots。进度页对每个 Project 只选择 `createdAt` 最新的一条 current Production Run。六个
+关键步骤只投影 strict manifest、append-only events、derived state 与 fingerprint-bound delivery
+intent/receipt，每 3 秒刷新；它不运行生产脚本、不读取 PID/exit 状态、不保留历史 Run，也不把
+`delivery-render-started` 表述为 MP4 完成。
 
 外部素材服务只在 authoring 阶段负责 search/preview/acquire。当前唯一 provider adapter 严格接收
 stock-assets-mcp 的 Pexels image acquisition receipt v1；仓库不依赖其 package、SDK 或密钥。

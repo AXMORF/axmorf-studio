@@ -35,10 +35,11 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   ProductionRequirementsFreeze；输出 conflict 时拒绝覆盖。
 - 配置 API 已覆盖 GET/PUT、strict validation、同源拒绝和原子写入；页面提供只读的声线来源、
   VoxCPM health/ready 与 Remotion browser 诊断，并即时维护唯一 ID 与有效默认声线。
-- 配置页“制作进度”提供 Project 列表；每个 Project 只投影 `createdAt` 最新的一条 current Run，
-  选择后展示六个关键 production/delivery 步骤并每 3 秒刷新。它严格复用 Run events/state 与
-  fingerprint-bound delivery intent/receipt，不启动脚本、不追踪 PID、不把 spawn acknowledgement
-  表述为 MP4 完成，也不提供历史 Run 列表。
+- 配置页“制作进度”只把 `src/projects/` source directory 或 current Run manifest storyId 识别为
+  可展示 Project，不纳入 `out/`、deliveries 等 output-only 清理目标；每个 Project 只投影
+  `createdAt` 最新的一条 current Run，选择后展示六个关键 production/delivery 步骤并每 3 秒刷新。
+  它严格复用 Run events/state 与 fingerprint-bound delivery intent/receipt，不启动脚本、不追踪
+  PID、不把 spawn acknowledgement 表述为 MP4 完成，也不提供历史 Run 列表。
 - Project 详情可在输入完整 Project ID 后删除；同源 API 复用 `project:delete` 的完整预检与删除语义，
   清理该 Project 代码及全部本地产物并重建 Catalog/Registry，不扩张到其他 Project、私有配置或
   受保护声线。删除与 production start、Project configure、delivery build 共享跨进程 operation

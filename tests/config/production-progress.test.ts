@@ -78,6 +78,19 @@ test("Project list includes source-only Projects without a Production Run", asyn
   });
 });
 
+test("Project list excludes output-only deletion targets", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-progress-output-only-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  await mkdir(join(rootDir, "out/fixed-bookends-verification"), {
+    recursive: true,
+  });
+
+  assert.deepEqual(await readProjectProductionProgress({ rootDir }), {
+    schemaVersion: 2,
+    projects: [],
+  });
+});
+
 test("one Project with invalid current Run discovery does not hide healthy Projects", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-progress-invalid-run-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));

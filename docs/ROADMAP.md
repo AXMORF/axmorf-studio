@@ -45,6 +45,8 @@
   writer lock、repository operation lock、非空 delivery staging 或不安全路径出现时于首次删除前
   fail closed；源码删除前的 Registry 预发布和异常后的磁盘真实状态恢复必须保持。
 - 配置页每个 Project 只展示最新 current Run，不升级为历史任务库、进程监控或 MP4 完成检查。
+- 配置页展示 discovery 与删除 discovery 保持分离：前者只接受 source Project/current Run identity，
+  后者继续覆盖全部 Project-owned 清理根。
 
 ## 可独立立项的后续工作
 

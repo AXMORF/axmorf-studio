@@ -153,8 +153,10 @@ receipt bytes 先写同目录 temporary 并 fsync，再以 exclusive hard-link �
 - render-ready check：current → no-op；drift → fail closed。
 - delivery build：receipt current → no-op；intent-only → ambiguous；different/unknown target → fail。
 - delivery check：只读 current package，不修复、不创建 receipt。
-- 配置页 production progress 按 Project 独立选择 `createdAt` 最新 current Run，并只从校验后的
-  manifest/events/state 和 fingerprint-bound delivery intent/receipt 投影；轮询不写仓库状态。
+- 配置页 production progress 只展示 source Project 或 current Run manifest 明确拥有的 storyId，
+  不从 `out/`、deliveries 等 output-only 根推断 Project；随后按 Project 独立选择 `createdAt` 最新
+  current Run，并只从校验后的 manifest/events/state 和 fingerprint-bound delivery intent/receipt
+  投影；轮询不写仓库状态。
 - 用户明确授权后，真实作品只由 `project:delete` 按 storyId 删除 Project、public media、
   narration work、Runs、out 与 deliveries，并确定性重建 Registry/Catalog；core source gate
   保持有效，其他显式 project/media/delivery 命令继续 fail closed。删除预检只投影 Run 的严格
