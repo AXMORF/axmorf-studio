@@ -37,7 +37,7 @@ From current Story/timing, author VisualStyleSpec, resource choices, Beat-specif
 minimal continuous GlobalVisual brief. Cover remains independent and assignment-derived.
 
 Bind copied silent Scene briefs exactly to their frozen preset visual/sound/resource identities. SemanticTiming
-already resolves duration. Template chimes are Project-local Catalog audio; external audio import is unsupported.
+already resolves duration. Template chimes are Project-local; shared `localize-asset` audio is authoring-only.
 
 Choose asset-led, code-led, or hybrid; query ResourceCatalog first. For an external image, use MCP only
 for acquisition, then run

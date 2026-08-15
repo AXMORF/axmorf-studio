@@ -113,6 +113,10 @@ video/audio 是独立且当前 fail-closed 的扩展 seam。准入负责路径 c
 真实媒体 identity、原子本地化、不可变来源证据和 Project manifest；ResourceCatalog 只暴露
 Project-local `runtime-approved` descriptor。MCP、provider SDK、网络和 credential 不进入 Scene
 owner、watcher、delivery 或 Remotion runtime，远程 URL 永远不是 runtime asset source。
+另有可选 ignored `private/reference-assets/assets.manifest.json`，只暴露用户已人工确认许可、位于
+`public/assets/library/` 的共享音频 `localize-asset` descriptor，并校验 fixed local license evidence。
+这些条目只供 authoring 查询，不能作为 runtime resource 或直接进入 Scene/GlobalSound plan；外部
+audio 的 Project-local import 仍未开放。
 
 ## Composition ownership
 

@@ -96,6 +96,10 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 ### 外部图片准入与 ResourceCatalog
 
+- ResourceCatalog 可选合并 ignored `private/reference-assets/assets.manifest.json`，用于用户已人工确认
+  许可的跨 Project `localize-asset` 参考音频；只接受 `public/assets/library/` 下的非旁白音频，并将
+  许可绑定到 fixed ignored evidence 文件。路径、文件、checksum、authority 或 evidence 异常仍
+  fail closed，manifest 缺失则保持 zero-safe，不将参考库伪装为 Project，也不允许直接进入计划。
 - Scene freeze 对所有 Project（包括无外部素材的 code-led Project）无条件冻结 Project-local
   ResourceCatalog 快照；render-ready 与 delivery 通过 current freeze 重查同一 canonical bytes，
   不再依赖是否曾执行 asset import。

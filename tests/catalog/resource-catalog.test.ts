@@ -22,7 +22,10 @@ import {
   renderResourceCatalogJson,
 } from "../../scripts/catalog/domain";
 import {
+  LOCAL_REFERENCE_ASSET_LICENSE_EVIDENCE_PATH,
+  LOCAL_REFERENCE_ASSET_MANIFEST_PATH,
   loadCatalogAuthorityDescriptors,
+  loadLocalReferenceAssetDescriptors,
   loadProjectResourceDescriptors,
   validateAssetDescriptorFiles,
   validateCapabilityDescriptorExports,
@@ -151,6 +154,128 @@ test("shared asset manifest contains no Project-owned public paths", async () =>
   );
 });
 
+test("optional local reference assets enforce shared audio and license evidence scope", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-local-reference-catalog-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  assert.deepEqual(await loadLocalReferenceAssetDescriptors(rootDir), []);
+
+  const localPath = "public/assets/library/reference-audio/proof.wav";
+  await mkdir(dirname(join(rootDir, localPath)), { recursive: true });
+  await writeFile(join(rootDir, localPath), "local reference audio");
+  await mkdir(dirname(join(rootDir, LOCAL_REFERENCE_ASSET_MANIFEST_PATH)), {
+    recursive: true,
+  });
+  await writeFile(
+    join(rootDir, LOCAL_REFERENCE_ASSET_LICENSE_EVIDENCE_PATH),
+    "commercial license evidence",
+  );
+  const descriptor = {
+    schemaVersion: 1,
+    id: "asset.local-reference-proof",
+    kind: "asset",
+    status: "approved",
+    title: "Local reference proof",
+    description: "Local reusable reference audio proof",
+    useCases: ["background music reference"],
+    tags: ["audio", "reference"],
+    authority: {
+      kind: "repository-file",
+      repositoryPath: LOCAL_REFERENCE_ASSET_MANIFEST_PATH,
+    },
+    allowedUse: "localize-asset",
+    assetKind: "audio",
+    mediaRole: "global-bgm",
+    localPath,
+    checksum:
+      "sha256:abcf67382100fc23b30f8f70667c136aa06555e1e144e2db2c9b7a3433946cc1",
+    license: {
+      id: "Commercial-use-proof",
+      verificationStatus: "verified",
+      sourceUrl: null,
+      attributionRequired: false,
+      attributionText: null,
+      verifiedAt: "2026-08-15T00:00:00.000Z",
+      sourceEvidenceFingerprint:
+        "sha256:305e14e6ccb58bb7b5a48e5e3f4dd6a6ebc4352f36caca6242e33cf49e423bff",
+    },
+    media: {
+      durationInSeconds: 1,
+      codec: "pcm_s16le",
+      sampleRate: 48000,
+    },
+  } as const;
+  await writeFile(
+    join(rootDir, LOCAL_REFERENCE_ASSET_MANIFEST_PATH),
+    JSON.stringify({ schemaVersion: 1, assets: [descriptor] }),
+  );
+
+  assert.deepEqual(
+    (await loadLocalReferenceAssetDescriptors(rootDir)).map(({ id }) => id),
+    [descriptor.id],
+  );
+  assert.deepEqual(await loadProjectResourceDescriptors(rootDir), []);
+
+  await writeFile(
+    join(rootDir, LOCAL_REFERENCE_ASSET_MANIFEST_PATH),
+    JSON.stringify({
+      schemaVersion: 1,
+      assets: [
+        {
+          ...descriptor,
+          authority: {
+            kind: "repository-file",
+            repositoryPath: "src/remotion/catalog/assets.manifest.json",
+          },
+        },
+      ],
+    }),
+  );
+  await assert.rejects(
+    () => loadLocalReferenceAssetDescriptors(rootDir),
+    /authority is stale/u,
+  );
+
+  await writeFile(
+    join(rootDir, LOCAL_REFERENCE_ASSET_MANIFEST_PATH),
+    JSON.stringify({
+      schemaVersion: 1,
+      assets: [
+        {
+          ...descriptor,
+          localPath: "public/projects/story-example/reference.wav",
+        },
+      ],
+    }),
+  );
+  await assert.rejects(
+    () => loadLocalReferenceAssetDescriptors(rootDir),
+    /scope is invalid/u,
+  );
+
+  await writeFile(
+    join(rootDir, LOCAL_REFERENCE_ASSET_MANIFEST_PATH),
+    JSON.stringify({ schemaVersion: 1, assets: [descriptor] }),
+  );
+  await writeFile(
+    join(rootDir, LOCAL_REFERENCE_ASSET_LICENSE_EVIDENCE_PATH),
+    "tampered license evidence",
+  );
+  await assert.rejects(
+    () => loadLocalReferenceAssetDescriptors(rootDir),
+    /license evidence is stale/u,
+  );
+
+  await rm(join(rootDir, LOCAL_REFERENCE_ASSET_LICENSE_EVIDENCE_PATH));
+  await symlink(
+    "/dev/null",
+    join(rootDir, LOCAL_REFERENCE_ASSET_LICENSE_EVIDENCE_PATH),
+  );
+  await assert.rejects(
+    () => loadLocalReferenceAssetDescriptors(rootDir),
+    /regular non-symbolic file/u,
+  );
+});
+
 test("all six current style profiles and approved capability exports are current", async () => {
   assert.equal(styleDescriptorDeclarations.length, 6);
   assert.deepEqual(
@@ -274,7 +399,9 @@ test("generate then check preserves isolated bytes and rejects drift", async (co
 
 test("Project Catalog generation writes code-led snapshots and checks drift", async (context) => {
   const descriptors = await loadCatalogAuthorityDescriptors(repositoryRoot);
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-project-catalog-generate-"));
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-project-catalog-generate-"),
+  );
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const loadDescriptors = async () => descriptors;
   const generated = await generateProjectResourceCatalog({

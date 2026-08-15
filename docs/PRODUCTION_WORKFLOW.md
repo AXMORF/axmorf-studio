@@ -86,6 +86,14 @@ intent/receipt，每 3 秒刷新；它不运行生产脚本、不读取 PID/exit
 
 外部素材服务只在 authoring 阶段负责 search/preview/acquire。当前唯一 provider adapter 严格接收
 stock-assets-mcp 的 Pexels image acquisition receipt v1；仓库不依赖其 package、SDK 或密钥。
+用户已人工确认许可、需要跨 Project 复用的本地参考音频，可放在
+`public/assets/library/`，并由 ignored
+`private/reference-assets/assets.manifest.json` 记录 checksum、媒体信息、用途与 `localize-asset` 许可，
+许可 evidence 固定由 ignored `private/reference-assets/MIXKIT_AUDIO_LICENSE.md` 提供并校验 checksum。
+Catalog 在文件存在时合并该 manifest；它不创建虚假 Project，也不改变缺少本地参考库时的
+fresh-clone/bootstrap 行为。它只用于 authoring 查询，不能直接进入 Scene/GlobalSound plan；current
+production 尚未开放外部 audio import，真正使用前必须先实现并通过独立授权的 Project-local audio
+准入。
 Agent 先查 current ResourceCatalog，确需外部图片时 acquire 后运行：
 
 ```bash

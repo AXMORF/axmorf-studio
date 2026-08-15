@@ -19,6 +19,18 @@ import { styleDescriptorDeclarations } from "../../src/remotion/catalog/style-de
 import { producerStyleProfileIds } from "../../src/remotion/capabilities/styles";
 import { readLocalProjectRoot } from "../projects/root";
 
+export const LOCAL_REFERENCE_ASSET_MANIFEST_PATH =
+  "private/reference-assets/assets.manifest.json";
+export const LOCAL_REFERENCE_ASSET_LICENSE_EVIDENCE_PATH =
+  "private/reference-assets/MIXKIT_AUDIO_LICENSE.md";
+
+const LOCAL_REFERENCE_AUDIO_ROLES = new Set([
+  "scene-ambience",
+  "scene-sfx",
+  "global-bgm",
+  "cross-scene-ambience",
+]);
+
 const checksumBytes = (bytes: Buffer) =>
   Sha256DigestSchema.parse(
     `sha256:${createHash("sha256").update(bytes.toString("latin1"), "latin1").digest("hex")}`,
@@ -195,6 +207,61 @@ export const loadProjectResourceDescriptors = async (
   return descriptors;
 };
 
+export const loadLocalReferenceAssetDescriptors = async (
+  rootDir: string,
+): Promise<readonly ResourceDescriptor[]> => {
+  const manifestPath = join(rootDir, LOCAL_REFERENCE_ASSET_MANIFEST_PATH);
+  let metadata;
+  try {
+    metadata = await lstat(manifestPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+  if (!metadata.isFile() || metadata.isSymbolicLink()) {
+    throw new Error(
+      "Local reference asset manifest must be a regular non-symbolic file.",
+    );
+  }
+  const manifest = ProducerAssetManifestSchema.parse(
+    JSON.parse((await readFile(manifestPath, "utf8")).toString()),
+  );
+  const licenseEvidenceChecksum = checksumBytes(
+    await readRegularFile(
+      join(rootDir, LOCAL_REFERENCE_ASSET_LICENSE_EVIDENCE_PATH),
+    ),
+  );
+  for (const descriptor of manifest.assets) {
+    if (
+      descriptor.authority.repositoryPath !==
+      LOCAL_REFERENCE_ASSET_MANIFEST_PATH
+    ) {
+      throw new Error(
+        `Local reference asset authority is stale: ${descriptor.id}.`,
+      );
+    }
+    if (
+      descriptor.assetKind !== "audio" ||
+      !LOCAL_REFERENCE_AUDIO_ROLES.has(descriptor.mediaRole) ||
+      descriptor.allowedUse !== "localize-asset" ||
+      !descriptor.localPath.startsWith("public/assets/library/")
+    ) {
+      throw new Error(
+        `Local reference asset scope is invalid: ${descriptor.id}.`,
+      );
+    }
+    if (
+      descriptor.license.sourceEvidenceFingerprint !== licenseEvidenceChecksum
+    ) {
+      throw new Error(
+        `Local reference asset license evidence is stale: ${descriptor.id}.`,
+      );
+    }
+  }
+  await validateAssetDescriptorFiles(rootDir, manifest.assets);
+  return manifest.assets;
+};
+
 export const loadCatalogAuthorityDescriptors = async (
   rootDir: string,
   projectId?: string,
@@ -207,6 +274,8 @@ export const loadCatalogAuthorityDescriptors = async (
     (await readRegularFile(manifestPath)).toString("utf8"),
   );
   const manifest = ProducerAssetManifestSchema.parse(rawManifest);
+  const localReferenceDescriptors =
+    await loadLocalReferenceAssetDescriptors(rootDir);
   const projectDescriptors = await loadProjectResourceDescriptors(
     rootDir,
     projectId,
@@ -227,6 +296,7 @@ export const loadCatalogAuthorityDescriptors = async (
   }
   const descriptors = [
     ...manifest.assets,
+    ...localReferenceDescriptors,
     ...projectDescriptors,
     ...styleDescriptorDeclarations,
     ...capabilityDescriptorDeclarations,
