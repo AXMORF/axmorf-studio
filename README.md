@@ -78,7 +78,8 @@ ignored，不得 stage。可信局域网内需要其他设备直接访问时运�
 
 `npm install` 自动执行 `npm run bootstrap`，重建 core synthetic proof 资产、zero-safe
 ResourceCatalog 和 ProjectRegistry。fresh clone 默认没有具体 Project，仍可测试、构建并列出
-`CapabilityGallery`。
+`CapabilityGallery`、`DefaultIntroPreview` 与 `DefaultOutroPreview`。两个 bookend preview 位于
+Studio 的 `System` folder，使用默认固定帧数与本地 chime，便于在没有具体 Project 时直接预览。
 
 制作新视频时使用仓库 Skill：
 

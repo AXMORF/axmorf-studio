@@ -203,3 +203,6 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
 fingerprint-bound promotion proposal，并获得用户对范围、API、文件与目标路径的明确授权。
 `src/remotion/capabilities/story-bookends/` 是已明确批准的例外：它只提供默认 intro/outro 的视觉
 Renderer，不挂载音频；音效仍由 preset 投影的 `sound-plan.json` 经 Scene sound runtime 播放。
+Root 的 `System` folder 另行提供 `DefaultIntroPreview` / `DefaultOutroPreview` 演示 Composition；
+预览外壳只消费同一默认 preset 与本地 Catalog chime，不进入 Project Registry、ScenePackage 或
+production sound ownership。

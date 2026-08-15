@@ -68,6 +68,8 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   确定性投影 Project-local Renderer 和全部 Scene plans，owner 只校验/发布 receipt，不重新创作；
   Project source 可显式选择 `scene-owner` replacement 或关闭。`leadInFrames`/`tailFrames` 只保留
   真正空白 padding，NarrativeCore 从 `narrationStartFrame` 挂载唯一完整旁白。
+- zero-Project Root 的 `System` folder 提供默认 intro/outro 的独立可听预览 Composition；它们消费
+  shared `story-bookends` 视觉与 Catalog-bound 本地 chime，但不形成第二套 production 音效所有权。
 - 每个 meaningId 一个独立 Codex task；每个 Story 一个 GlobalVisual task 与一个 Cover task；共享
   checkout 使用不重叠 exclusive paths。owner 只发布 immutable receipt，single-writer watcher
   串行验证并写正式 result。

@@ -34,7 +34,7 @@ const asElement = (node: unknown) => {
   return node;
 };
 
-test("Root keeps only capability previews when the ProjectRegistry is empty", async () => {
+test("Root keeps System capability and default bookend previews when the ProjectRegistry is empty", async () => {
   const require = createRequire(import.meta.url);
   require.extensions[".css"] = () => undefined;
   const { createRemotionRoot } = await import("../../src/Root");
@@ -55,9 +55,9 @@ test("Root keeps only capability previews when the ProjectRegistry is empty", as
   const systemFolderElement = asElement(systemFolder);
   const storiesFolderElement = asElement(storiesFolder);
 
-  const systemComposition = elementChildren(systemFolderElement).find(
+  const systemCompositions = elementChildren(systemFolderElement).map(asElement);
+  const systemComposition = systemCompositions.find(
     (entry) =>
-      isValidElement<ElementProps>(entry) &&
       entry.type === Composition &&
       entry.props.id === "CapabilityGallery",
   );
@@ -65,8 +65,50 @@ test("Root keeps only capability previews when the ProjectRegistry is empty", as
   assert.notEqual(systemCompositionElement.props.component, undefined);
   assert.equal(systemCompositionElement.props.lazyComponent, undefined);
   assert.deepEqual(
-    elementChildren(systemFolderElement).map((entry) => asElement(entry).props.id),
-    ["CapabilityGallery"],
+    systemCompositions.map((entry) => entry.props.id),
+    ["CapabilityGallery", "DefaultIntroPreview", "DefaultOutroPreview"],
+  );
+  const introPreview = asElement(
+    systemCompositions.find(
+      (entry) =>
+        entry.type === Composition &&
+        entry.props.id === "DefaultIntroPreview",
+    ),
+  );
+  const outroPreview = asElement(
+    systemCompositions.find(
+      (entry) =>
+        entry.type === Composition &&
+        entry.props.id === "DefaultOutroPreview",
+    ),
+  );
+  assert.deepEqual(
+    [introPreview, outroPreview].map(({ props }) => ({
+      durationInFrames: props.durationInFrames,
+      fps: props.fps,
+      width: props.width,
+      height: props.height,
+      hasComponent: props.component !== undefined,
+      hasLazyComponent: props.lazyComponent !== undefined,
+    })),
+    [
+      {
+        durationInFrames: 60,
+        fps: 30,
+        width: 1080,
+        height: 1920,
+        hasComponent: true,
+        hasLazyComponent: false,
+      },
+      {
+        durationInFrames: 240,
+        fps: 30,
+        width: 1080,
+        height: 1920,
+        hasComponent: true,
+        hasLazyComponent: false,
+      },
+    ],
   );
   assert.deepEqual(elementChildren(storiesFolderElement), []);
 });

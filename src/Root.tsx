@@ -3,6 +3,10 @@ import { Composition, Folder } from "remotion";
 
 import { projectRegistry } from "./projects/project-registry.generated";
 import type { ProjectRegistryEntry } from "./projects/project-registry.generated";
+import {
+  DefaultIntroPreview,
+  DefaultOutroPreview,
+} from "./remotion/compositions/bookend-previews/BookendPreviews";
 import { CapabilityGallery } from "./remotion/compositions/capability-gallery/CapabilityGallery";
 
 export const createRemotionRoot = (
@@ -18,6 +22,22 @@ export const createRemotionRoot = (
           fps={30}
           width={1920}
           height={1080}
+        />
+        <Composition
+          id="DefaultIntroPreview"
+          component={DefaultIntroPreview}
+          durationInFrames={60}
+          fps={30}
+          width={1080}
+          height={1920}
+        />
+        <Composition
+          id="DefaultOutroPreview"
+          component={DefaultOutroPreview}
+          durationInFrames={240}
+          fps={30}
+          width={1080}
+          height={1920}
         />
       </Folder>
       <Folder name="Stories">

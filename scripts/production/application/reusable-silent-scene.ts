@@ -14,6 +14,7 @@ import {
   type SelectedResourceRef,
   type Sha256Digest,
 } from "../../../src/contracts";
+import { BOOKEND_IMPLEMENTATION_TIMING } from "../../../src/remotion/capabilities/story-bookends/timing";
 import {
   checksumExternalBytes,
   readExternalRegularFile,
@@ -68,7 +69,10 @@ const INTRO_DEFINITION: ReusableDefinition = {
   anchors: [
     {
       eventId: "brand-reveal-start",
-      sceneLocalFrame: 6,
+      sceneLocalFrame:
+        BOOKEND_IMPLEMENTATION_TIMING["axmorf-brand-intro-v1"].anchors[
+          "brand-reveal-start"
+        ],
       purpose: "Start the fixed AXMORF mark and wordmark reveal.",
     },
   ],
@@ -76,7 +80,12 @@ const INTRO_DEFINITION: ReusableDefinition = {
     {
       shotId: "brand-reveal",
       order: 0,
-      primaryRange: { startFrame: 0, endFrame: 60 },
+      primaryRange: {
+        startFrame: 0,
+        endFrame:
+          BOOKEND_IMPLEMENTATION_TIMING["axmorf-brand-intro-v1"]
+            .durationInFrames,
+      },
       purpose: "Open with the reusable AXMORF brand reveal.",
       action: "Construction guides resolve into the AXMORF mark and wordmark.",
       syncAnchorIds: ["brand-reveal-start"],
@@ -116,7 +125,10 @@ const OUTRO_DEFINITION: ReusableDefinition = {
   anchors: [
     {
       eventId: "brand-lockup-start",
-      sceneLocalFrame: 120,
+      sceneLocalFrame:
+        BOOKEND_IMPLEMENTATION_TIMING["axmorf-source-follow-outro-v1"].anchors[
+          "brand-lockup-start"
+        ],
       purpose: "Hand source credits to the fixed AXMORF follow lockup.",
     },
   ],
@@ -124,7 +136,12 @@ const OUTRO_DEFINITION: ReusableDefinition = {
     {
       shotId: "source-credits",
       order: 0,
-      primaryRange: { startFrame: 0, endFrame: 120 },
+      primaryRange: {
+        startFrame: 0,
+        endFrame:
+          BOOKEND_IMPLEMENTATION_TIMING["axmorf-source-follow-outro-v1"]
+            .anchors["brand-lockup-start"],
+      },
       purpose: "Show the current Story source references.",
       action:
         "The closing statement and source reference cards resolve in order.",
@@ -133,7 +150,14 @@ const OUTRO_DEFINITION: ReusableDefinition = {
     {
       shotId: "brand-follow",
       order: 1,
-      primaryRange: { startFrame: 120, endFrame: 240 },
+      primaryRange: {
+        startFrame:
+          BOOKEND_IMPLEMENTATION_TIMING["axmorf-source-follow-outro-v1"]
+            .anchors["brand-lockup-start"],
+        endFrame:
+          BOOKEND_IMPLEMENTATION_TIMING["axmorf-source-follow-outro-v1"]
+            .durationInFrames,
+      },
       purpose: "Close on the reusable AXMORF follow interaction.",
       action: "The mark shrinks into a lockup and the follow state confirms.",
       syncAnchorIds: ["brand-lockup-start"],
