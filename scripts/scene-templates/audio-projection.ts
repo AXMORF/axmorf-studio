@@ -8,7 +8,7 @@ import {
   SceneTemplateAudioOverrideSchema,
   SceneTemplateAudioProjectionSchema,
   type SceneTemplateAudioProjection,
-} from "../../src/remotion/capabilities/scenes/template-audio";
+} from "../../src/remotion/capabilities/scene-templates/template-audio";
 import { loadLocalReferenceAssetDescriptors } from "../catalog/project-files";
 import { writeTextFileAtomic } from "../shared/atomic-file";
 

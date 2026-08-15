@@ -65,19 +65,19 @@ import {
 type SceneCheckId = Exclude<FinalMechanicalCheckId, "narrative">;
 type FinalStatus = "pass" | "fail" | "not-applicable";
 
-type M8CheckId = Extract<
+type AssemblyCheckId = Extract<
   FinalMechanicalCheckV2Id,
   "global-sound" | "global-visual" | "final-assembly"
 >;
 
-export type FinalM8BranchResult = Readonly<{
+export type FinalAssemblyBranchResult = Readonly<{
   globalSoundPlanFingerprint: string | null;
   finalSoundProjectionFingerprint: string | null;
   globalVisualPlanFingerprint: string | null;
   globalVisualProjectionFingerprint: string | null;
   finalAssemblyFingerprint: string | null;
-  checkStatuses: Readonly<Record<M8CheckId, "pass" | "fail">>;
-  checkErrors: Readonly<Record<M8CheckId, unknown>>;
+  checkStatuses: Readonly<Record<AssemblyCheckId, "pass" | "fail">>;
+  checkErrors: Readonly<Record<AssemblyCheckId, unknown>>;
 }>;
 
 export type FinalSceneBranchResult = Readonly<{
@@ -716,10 +716,8 @@ const failureReason = (error: unknown) => {
   return { code, message: SAFE_FAILURE[code] } as const;
 };
 
-const failedM8Branch = (): FinalM8BranchResult => {
-  const missing = new Error(
-    "Required M8 final mechanical artifact is missing.",
-  );
+const failedAssemblyBranch = (): FinalAssemblyBranchResult => {
+  const missing = new Error("Required final mechanical artifact is missing.");
   return {
     globalSoundPlanFingerprint: null,
     finalSoundProjectionFingerprint: null,
@@ -754,7 +752,7 @@ const pathExists = async (path: string) => {
   }
 };
 
-export const loadCurrentFinalM8Branch = async ({
+export const loadCurrentFinalAssemblyBranch = async ({
   rootDir,
   projectId,
   sceneBranch,
@@ -763,8 +761,8 @@ export const loadCurrentFinalM8Branch = async ({
   readonly projectId: string;
   readonly sceneBranch: FinalSceneBranchResult;
   readonly includeMediaEvidence?: boolean;
-}): Promise<FinalM8BranchResult> => {
-  const result = failedM8Branch();
+}): Promise<FinalAssemblyBranchResult> => {
+  const result = failedAssemblyBranch();
   const statuses = { ...result.checkStatuses };
   const errors = { ...result.checkErrors };
   let globalSound: ReturnType<typeof GlobalSoundPlanSchema.parse> | null = null;
@@ -916,7 +914,7 @@ export const checkFinalSourceHealth = async ({
   ) {
     return { storyId: projectId, aggregateStatus: "pass" as const };
   }
-  const m8Branch = await loadCurrentFinalM8Branch({
+  const assemblyBranch = await loadCurrentFinalAssemblyBranch({
     rootDir,
     projectId,
     sceneBranch,
@@ -927,9 +925,9 @@ export const checkFinalSourceHealth = async ({
     "global-visual",
     "final-assembly",
   ] as const) {
-    if (m8Branch.checkStatuses[checkId] !== "pass") {
+    if (assemblyBranch.checkStatuses[checkId] !== "pass") {
       throw new Error(`Final source assembly check failed: ${checkId}.`, {
-        cause: m8Branch.checkErrors[checkId],
+        cause: assemblyBranch.checkErrors[checkId],
       });
     }
   }
@@ -939,22 +937,22 @@ export const checkFinalSourceHealth = async ({
 export const runFinalMechanicalCheck = async ({
   rootDir,
   projectId,
-  runM3EvidenceProcess,
+  runNarrativeBaselineEvidenceProcess,
   loadSceneBranch = loadCurrentFinalSceneBranch,
-  loadM8Branch = loadCurrentFinalM8Branch,
+  loadAssemblyBranch = loadCurrentFinalAssemblyBranch,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
-  readonly runM3EvidenceProcess?: ProcessRunner;
+  readonly runNarrativeBaselineEvidenceProcess?: ProcessRunner;
   readonly loadSceneBranch?: (input: {
     readonly rootDir: string;
     readonly projectId: string;
   }) => Promise<FinalSceneBranchResult>;
-  readonly loadM8Branch?: (input: {
+  readonly loadAssemblyBranch?: (input: {
     readonly rootDir: string;
     readonly projectId: string;
     readonly sceneBranch: FinalSceneBranchResult;
-  }) => Promise<FinalM8BranchResult>;
+  }) => Promise<FinalAssemblyBranchResult>;
 }) => {
   let narrativeReportFingerprint: Sha256Digest | null = null;
   let narrativeStatus: "pass" | "fail" = "fail";
@@ -963,7 +961,7 @@ export const runFinalMechanicalCheck = async ({
     const narrative = await runNarrativeAutoCheck({
       rootDir,
       projectId,
-      runM3EvidenceProcess,
+      runNarrativeBaselineEvidenceProcess,
     });
     if (narrative.aggregateStatus !== "pass") {
       throw new Error("Narrative project check is stale.");
@@ -1004,16 +1002,17 @@ export const runFinalMechanicalCheck = async ({
   const aggregateStatus = checks.some((check) => check.status === "fail")
     ? "fail"
     : "pass";
-  let m8Declared = false;
+  let assemblyDeclared = false;
   try {
     await access(
       projectArtifactPath(rootDir, projectId, "final-assembly-plan.json"),
     );
-    m8Declared = true;
+    assemblyDeclared = true;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") m8Declared = true;
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT")
+      assemblyDeclared = true;
   }
-  if (!m8Declared) {
+  if (!assemblyDeclared) {
     return createFinalMechanicalCheckReport({
       schemaVersion: 1,
       reportVersion: "final-mechanical-check-v1",
@@ -1040,32 +1039,41 @@ export const runFinalMechanicalCheck = async ({
     });
   }
 
-  let m8Branch = failedM8Branch();
+  let assemblyBranch = failedAssemblyBranch();
   try {
-    m8Branch = await loadM8Branch({ rootDir, projectId, sceneBranch });
+    assemblyBranch = await loadAssemblyBranch({
+      rootDir,
+      projectId,
+      sceneBranch,
+    });
   } catch (error) {
-    m8Branch = {
-      ...m8Branch,
+    assemblyBranch = {
+      ...assemblyBranch,
       checkErrors: Object.fromEntries(
-        Object.keys(m8Branch.checkErrors).map((checkId) => [checkId, error]),
-      ) as Record<M8CheckId, unknown>,
+        Object.keys(assemblyBranch.checkErrors).map((checkId) => [
+          checkId,
+          error,
+        ]),
+      ) as Record<AssemblyCheckId, unknown>,
     };
   }
-  const m8CheckIds = FINAL_MECHANICAL_CHECK_V2_IDS.slice(
+  const assemblyCheckIds = FINAL_MECHANICAL_CHECK_V2_IDS.slice(
     FINAL_MECHANICAL_CHECK_IDS.length,
-  ) as readonly M8CheckId[];
-  const m8Checks = m8CheckIds.map((checkId) => {
-    const status = m8Branch.checkStatuses[checkId];
+  ) as readonly AssemblyCheckId[];
+  const assemblyChecks = assemblyCheckIds.map((checkId) => {
+    const status = assemblyBranch.checkStatuses[checkId];
     return {
       checkId,
       status,
       failureReasons:
-        status === "pass" ? [] : [failureReason(m8Branch.checkErrors[checkId])],
+        status === "pass"
+          ? []
+          : [failureReason(assemblyBranch.checkErrors[checkId])],
     };
   });
   const v2Checks = [
     ...checks,
-    ...m8Checks,
+    ...assemblyChecks,
   ] as FinalMechanicalCheckV2ReportInput["checks"];
   const v2AggregateStatus = v2Checks.some((check) => check.status === "fail")
     ? "fail"
@@ -1091,12 +1099,13 @@ export const runFinalMechanicalCheck = async ({
       soundDesignProjectionFingerprint:
         sceneBranch.soundDesignProjectionFingerprint,
       compositionAssemblyChecksum: sceneBranch.compositionAssemblyChecksum,
-      globalSoundPlanFingerprint: m8Branch.globalSoundPlanFingerprint,
-      finalSoundProjectionFingerprint: m8Branch.finalSoundProjectionFingerprint,
-      globalVisualPlanFingerprint: m8Branch.globalVisualPlanFingerprint,
+      globalSoundPlanFingerprint: assemblyBranch.globalSoundPlanFingerprint,
+      finalSoundProjectionFingerprint:
+        assemblyBranch.finalSoundProjectionFingerprint,
+      globalVisualPlanFingerprint: assemblyBranch.globalVisualPlanFingerprint,
       globalVisualProjectionFingerprint:
-        m8Branch.globalVisualProjectionFingerprint,
-      finalAssemblyFingerprint: m8Branch.finalAssemblyFingerprint,
+        assemblyBranch.globalVisualProjectionFingerprint,
+      finalAssemblyFingerprint: assemblyBranch.finalAssemblyFingerprint,
     },
     checks: v2Checks,
   });

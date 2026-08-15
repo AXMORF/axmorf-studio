@@ -6,24 +6,24 @@ import {
   createFinalAssemblyPlan,
   createFinalMechanicalCheckV2Report,
 } from "../../src/contracts";
-import {finalAssemblyInput} from "../fixtures/m8/final-assembly";
+import { finalAssemblyInput } from "../fixtures/final-assembly/input";
 
 const sha = (value: string) => `sha256:${value.repeat(64)}`;
 
-test("M8 identity invalidation matrix rejects every locked assembly boundary", () => {
+test("Final assembly identity invalidation matrix rejects every locked assembly boundary", () => {
   const base = finalAssemblyInput();
   const mutations = [
-    {...base, schemaVersion: 2},
-    {...base, semanticTimingFingerprint: sha("a")},
-    {...base, durationInFrames: 121},
-    {...base, fps: 60},
-    {...base, resourceCatalogFingerprint: sha("a")},
-    {...base, soundDesignProjectionFingerprint: sha("a")},
-    {...base, compositionSourceChecksum: sha("a")},
-    {...base, zOrderVersion: "track-array-v1"},
-    {...base, mixOrderVersion: "adaptive-mastering-v1"},
-    {...base, scenePackageFingerprints: [sha("8"), sha("8")]},
-    {...base, unknown: true},
+    { ...base, schemaVersion: 2 },
+    { ...base, semanticTimingFingerprint: sha("a") },
+    { ...base, durationInFrames: 121 },
+    { ...base, fps: 60 },
+    { ...base, resourceCatalogFingerprint: sha("a") },
+    { ...base, soundDesignProjectionFingerprint: sha("a") },
+    { ...base, compositionSourceChecksum: sha("a") },
+    { ...base, zOrderVersion: "track-array-v1" },
+    { ...base, mixOrderVersion: "adaptive-mastering-v1" },
+    { ...base, scenePackageFingerprints: [sha("8"), sha("8")] },
+    { ...base, unknown: true },
   ];
   const current = createFinalAssemblyPlan(base).finalAssemblyFingerprint;
   for (const mutation of mutations) {
@@ -35,7 +35,10 @@ test("M8 identity invalidation matrix rejects every locked assembly boundary", (
       new Set(mutation.scenePackageFingerprints).size ===
         mutation.scenePackageFingerprints.length
     ) {
-      assert.notEqual(createFinalAssemblyPlan(mutation).finalAssemblyFingerprint, current);
+      assert.notEqual(
+        createFinalAssemblyPlan(mutation).finalAssemblyFingerprint,
+        current,
+      );
     } else {
       assert.throws(() => createFinalAssemblyPlan(mutation));
     }
@@ -80,9 +83,15 @@ test("v2 cannot pass with stale assembly order or extra identity", () => {
   };
   assert.doesNotThrow(() => createFinalMechanicalCheckV2Report(base));
   assert.throws(() =>
-    createFinalMechanicalCheckV2Report({...base, checks: [...checks].reverse()}),
+    createFinalMechanicalCheckV2Report({
+      ...base,
+      checks: [...checks].reverse(),
+    }),
   );
   assert.throws(() =>
-    createFinalMechanicalCheckV2Report({...base, inputIdentity: {...identity, extra: true}}),
+    createFinalMechanicalCheckV2Report({
+      ...base,
+      inputIdentity: { ...identity, extra: true },
+    }),
   );
 });

@@ -7,10 +7,10 @@ import {
   buildSceneCoverageMap,
 } from "../../src/contracts/scene-package";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
-import { createM6PackageInput } from "../fixtures/scene/m6-package-input";
+import { createScenePackageInput } from "../fixtures/scene/package-input";
 
 test("coverage follows StoryBeat order with exclusive ready fallback missing and stale states", () => {
-  const ready = buildScenePackage(createM6PackageInput());
+  const ready = buildScenePackage(createScenePackageInput());
   const fallback = buildSceneFallbackDeclaration({
     taskInputFingerprint: `sha256:${"b".repeat(64)}`,
     meaningId: "meaning-two",
@@ -45,7 +45,7 @@ test("coverage follows StoryBeat order with exclusive ready fallback missing and
 });
 
 test("coverage rejects duplicate unknown out-of-order and conflicting claims", () => {
-  const ready = buildScenePackage(createM6PackageInput());
+  const ready = buildScenePackage(createScenePackageInput());
   const base = {
     storyId: "synthetic-proof",
     storyBeatOrder: ["meaning-one"],

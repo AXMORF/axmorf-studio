@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { writeProducerConfig } from "../../scripts/config/producer-config";
-import { runProducerEnvironmentDiagnostics } from "../../settings/diagnostics";
+import { runProducerEnvironmentDiagnostics } from "../../settings/server/diagnostics";
 import { validProducerConfigInput } from "../contracts/producer-config.test";
 
 test("environment diagnostics reuse read-only preflight without generation or private projection", async (context) => {

@@ -11,9 +11,9 @@ import {
 import {
   AxmorfIntroScene,
   AxmorfOutroScene,
-} from "../../capabilities/scenes/templates/axmorf";
-import { AXMORF_SCENE_TEMPLATE_TIMING } from "../../capabilities/scenes/templates/axmorf/timing";
-import { getSceneTemplateDefinition } from "../../capabilities/scenes/registry";
+} from "../../capabilities/scene-templates/axmorf";
+import { AXMORF_SCENE_TEMPLATE_TIMING } from "../../capabilities/scene-templates/axmorf/timing";
+import { getSceneTemplateDefinition } from "../../capabilities/scene-templates/registry";
 
 const PREVIEW_FPS = 30;
 

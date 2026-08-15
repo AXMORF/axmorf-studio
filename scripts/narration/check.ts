@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { validateM1ArtifactBundle } from "../../src/contracts/m1-validation";
+import { validateNarrativeArtifactBundle } from "../../src/contracts/narrative-artifact-bundle";
 import type { NarrativeProjectSource } from "../../src/contracts/project";
 import {
   SealedNarrationManifestSchema,
@@ -96,10 +96,7 @@ export const checkM2NarrationArtifacts = async ({
   if (validatedStoryCheck.decision !== "proceed") {
     throw new Error("StoryCheck must proceed for an active M2 narration seal.");
   }
-  const manifest = await readManifest(
-    rootDir,
-    projectSource.story.storyId,
-  );
+  const manifest = await readManifest(rootDir, projectSource.story.storyId);
   const timing = await readTiming(rootDir, projectSource.story.storyId);
 
   const reconstructedParts: Buffer[] = [];
@@ -159,7 +156,7 @@ export const checkM2NarrationArtifacts = async ({
     throw new Error("Complete narration audio sampleFrameCount is stale.");
   }
 
-  validateM1ArtifactBundle({
+  validateNarrativeArtifactBundle({
     projectSource,
     sealedNarration: manifest,
     semanticTiming: timing,

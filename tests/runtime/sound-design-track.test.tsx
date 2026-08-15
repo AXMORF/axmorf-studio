@@ -12,7 +12,7 @@ import {
   SoundDesignTrack,
   buildSoundDesignProjection,
 } from "../../src/remotion/runtime/sound-design/SoundDesignTrack";
-import { createSoundRuntimeFixture } from "../fixtures/scene/m6-sound-runtime";
+import { createSoundRuntimeFixture } from "../fixtures/scene/sound-runtime";
 
 const makeSoundDesign = () => {
   const fixture = createSoundRuntimeFixture();
@@ -51,8 +51,7 @@ test("SoundDesignTrack follows ready and fallback Beat order", () => {
   const children = Children.toArray(node.props.children);
   assert.equal(
     children.filter(
-      (child) =>
-        isValidElement(child) && child.type === SceneSoundContribution,
+      (child) => isValidElement(child) && child.type === SceneSoundContribution,
     ).length,
     1,
   );

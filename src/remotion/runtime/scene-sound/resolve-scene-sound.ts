@@ -1,17 +1,21 @@
 import {
   SCENE_AUDIO_RUNTIME_VERSION,
-  ResourceAssetDescriptorSchema,
   ScenePackageSchema,
+  computeSceneSoundFingerprint,
+} from "../../../contracts/scene-package";
+import {
   SceneSoundPlanSchema,
   SceneSyncAnchorSetSchema,
-  computeSceneSoundFingerprint,
-  createFingerprint,
   resolveSceneSoundCues,
+} from "../../../contracts/scene-plan";
+import {
+  ResourceAssetDescriptorSchema,
   validateSelectedResourceRef,
   type ResourceAssetDescriptor,
   type SelectedResourceRef,
-  type Sha256Digest,
-} from "../../../contracts";
+} from "../../../contracts/resource-catalog";
+import { createFingerprint } from "../../../contracts/fingerprint";
+import type { Sha256Digest } from "../../../contracts/primitives";
 
 export type SceneSoundContributionValue = Readonly<{
   contributionId: string;
@@ -118,10 +122,7 @@ export const resolveSceneSound = ({
   ) {
     throw new Error("Scene sound package fingerprint is stale.");
   }
-  const resources = new Map<
-    string,
-    ReturnType<typeof resolveResource>
-  >();
+  const resources = new Map<string, ReturnType<typeof resolveResource>>();
   for (const resource of rawResources) {
     const resolved = resolveResource({
       ...resource,

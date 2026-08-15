@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { createSettingsApi } from "../../settings/api";
+import { SETTINGS_API_ROUTES } from "../../settings/contracts/api";
+import { createSettingsApi } from "../../settings/server/api";
 import { writeProducerConfig } from "../../scripts/config/producer-config";
 import { validProducerConfigInput } from "../contracts/producer-config.test";
 
@@ -38,7 +39,11 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
     },
   });
 
-  const get = await api({ method: "GET", url: "/api/settings", headers: {} });
+  const get = await api({
+    method: "GET",
+    url: SETTINGS_API_ROUTES.settings,
+    headers: {},
+  });
   assert.equal(get.statusCode, 200);
   assert.equal(
     (get.body as typeof validProducerConfigInput).renderDefaults.fps,
@@ -51,7 +56,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
 
   const rejectedOrigin = await api({
     method: "PUT",
-    url: "/api/settings",
+    url: SETTINGS_API_ROUTES.settings,
     headers: {
       origin: "http://evil.example",
       host: "127.0.0.1:3100",
@@ -63,7 +68,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
 
   const invalid = await api({
     method: "PUT",
-    url: "/api/settings",
+    url: SETTINGS_API_ROUTES.settings,
     headers: {
       origin: "http://127.0.0.1:3100",
       host: "127.0.0.1:3100",
@@ -75,7 +80,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
 
   const put = await api({
     method: "PUT",
-    url: "/api/settings",
+    url: SETTINGS_API_ROUTES.settings,
     headers: {
       origin: "http://127.0.0.1:3100",
       host: "127.0.0.1:3100",
@@ -100,7 +105,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
 
   const diagnostics = await api({
     method: "GET",
-    url: "/api/diagnostics",
+    url: SETTINGS_API_ROUTES.diagnostics,
     headers: {},
   });
   assert.equal(diagnostics.statusCode, 200);
@@ -111,7 +116,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
 
   const progress = await api({
     method: "GET",
-    url: "/api/production-progress",
+    url: SETTINGS_API_ROUTES.productionProgress,
     headers: {},
   });
   assert.deepEqual(progress, {
@@ -121,7 +126,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
 
   const rejectedDeleteOrigin = await api({
     method: "DELETE",
-    url: "/api/projects/delete",
+    url: SETTINGS_API_ROUTES.projectDeletion,
     headers: {
       origin: "http://evil.example",
       host: "127.0.0.1:3100",
@@ -136,7 +141,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
 
   const rejectedDeleteConfirmation = await api({
     method: "DELETE",
-    url: "/api/projects/delete",
+    url: SETTINGS_API_ROUTES.projectDeletion,
     headers: {
       origin: "http://127.0.0.1:3100",
       host: "127.0.0.1:3100",
@@ -151,7 +156,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
 
   const deleted = await api({
     method: "DELETE",
-    url: "/api/projects/delete",
+    url: SETTINGS_API_ROUTES.projectDeletion,
     headers: {
       origin: "http://127.0.0.1:3100",
       host: "127.0.0.1:3100",

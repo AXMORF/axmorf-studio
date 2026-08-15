@@ -266,6 +266,32 @@ export const loadCatalogAuthorityDescriptors = async (
   rootDir: string,
   projectId?: string,
 ): Promise<readonly ResourceDescriptor[]> => {
+  const [coreDescriptors, localReferenceDescriptors, projectDescriptors] =
+    await Promise.all([
+      loadCoreCatalogAuthorityDescriptors(rootDir),
+      loadLocalReferenceAssetDescriptors(rootDir),
+      loadProjectResourceDescriptors(rootDir, projectId),
+    ]);
+  const enrichedLocalDescriptors = await Promise.all(
+    [...localReferenceDescriptors, ...projectDescriptors].map((descriptor) =>
+      withAuthorityChecksum(rootDir, descriptor),
+    ),
+  );
+  const descriptors = [...coreDescriptors, ...enrichedLocalDescriptors];
+  const ids = new Set<string>();
+  for (const descriptor of descriptors) {
+    ResourceIdSchema.parse(descriptor.id);
+    if (ids.has(descriptor.id)) {
+      throw new Error(`Duplicate Resource Catalog ID: ${descriptor.id}.`);
+    }
+    ids.add(descriptor.id);
+  }
+  return descriptors;
+};
+
+export const loadCoreCatalogAuthorityDescriptors = async (
+  rootDir: string,
+): Promise<readonly ResourceDescriptor[]> => {
   const manifestPath = join(
     rootDir,
     "src/remotion/catalog/assets.manifest.json",
@@ -274,12 +300,6 @@ export const loadCatalogAuthorityDescriptors = async (
     (await readRegularFile(manifestPath)).toString("utf8"),
   );
   const manifest = ProducerAssetManifestSchema.parse(rawManifest);
-  const localReferenceDescriptors =
-    await loadLocalReferenceAssetDescriptors(rootDir);
-  const projectDescriptors = await loadProjectResourceDescriptors(
-    rootDir,
-    projectId,
-  );
   await validateAssetDescriptorFiles(rootDir, manifest.assets);
   await validateCapabilityDescriptorExports(rootDir, [
     ...styleDescriptorDeclarations,
@@ -296,22 +316,12 @@ export const loadCatalogAuthorityDescriptors = async (
   }
   const descriptors = [
     ...manifest.assets,
-    ...localReferenceDescriptors,
-    ...projectDescriptors,
     ...styleDescriptorDeclarations,
     ...capabilityDescriptorDeclarations,
   ];
   const enriched = await Promise.all(
     descriptors.map((descriptor) => withAuthorityChecksum(rootDir, descriptor)),
   );
-  const ids = new Set<string>();
-  for (const descriptor of enriched) {
-    ResourceIdSchema.parse(descriptor.id);
-    if (ids.has(descriptor.id)) {
-      throw new Error(`Duplicate Resource Catalog ID: ${descriptor.id}.`);
-    }
-    ids.add(descriptor.id);
-  }
   return enriched;
 };
 

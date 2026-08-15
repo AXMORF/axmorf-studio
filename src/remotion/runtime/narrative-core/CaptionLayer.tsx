@@ -3,10 +3,10 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 
 import {
   ProductionReadabilityPolicySchema,
-  type CaptionSafeArea,
   type ProductionReadabilityPolicy,
-  type SemanticTiming,
-} from "../../../contracts";
+} from "../../../contracts/production-readability";
+import type { CaptionSafeArea } from "../../../contracts/render";
+import type { SemanticTiming } from "../../../contracts/semantic-timing";
 
 export type CaptionCue = SemanticTiming["captionCues"][number];
 

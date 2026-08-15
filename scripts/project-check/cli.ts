@@ -16,7 +16,7 @@ import { checkNarrativeSourceHealth, runNarrativeAutoCheck } from "./run";
 
 export type ProjectCheckCliContext = {
   readonly rootDir: string;
-  readonly runM3EvidenceProcess?: ProcessRunner;
+  readonly runNarrativeBaselineEvidenceProcess?: ProcessRunner;
   readonly stdout: (line: string) => void;
 };
 
@@ -117,12 +117,14 @@ export const runProjectCheckCli = async (
       ? await runNarrativeAutoCheck({
           rootDir: context.rootDir,
           projectId: parsed.storyId,
-          runM3EvidenceProcess: context.runM3EvidenceProcess,
+          runNarrativeBaselineEvidenceProcess:
+            context.runNarrativeBaselineEvidenceProcess,
         })
       : await runFinalMechanicalCheck({
           rootDir: context.rootDir,
           projectId: parsed.storyId,
-          runM3EvidenceProcess: context.runM3EvidenceProcess,
+          runNarrativeBaselineEvidenceProcess:
+            context.runNarrativeBaselineEvidenceProcess,
         });
   if (report.aggregateStatus !== "pass") {
     throw new Error(

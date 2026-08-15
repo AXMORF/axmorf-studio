@@ -2,14 +2,16 @@ import { Fragment, type FC } from "react";
 
 import {
   STORY_VISUAL_RUNTIME_VERSION,
-  MeaningIdSchema,
   SceneCoverageMapSchema,
   ScenePackageSchema,
+  type ScenePackage,
+} from "../../../contracts/scene-package";
+import {
+  MeaningIdSchema,
   Sha256DigestSchema,
   StoryIdSchema,
-  createFingerprint,
-  type ScenePackage,
-} from "../../../contracts";
+} from "../../../contracts/primitives";
+import { createFingerprint } from "../../../contracts/fingerprint";
 import { SceneSlot } from "./SceneSlot";
 import { StoryBeatTransitionOverlay } from "./StoryBeatTransitionOverlay";
 import type {
@@ -108,9 +110,14 @@ export const buildStoryVisualProjection = (rawInput: {
       coverageEntry?.meaningId !== timing.meaningId ||
       (prior !== undefined && timing.startFrame !== prior.endFrame)
     ) {
-      throw new Error("Visual projection Beat order or timing is not contiguous.");
+      throw new Error(
+        "Visual projection Beat order or timing is not contiguous.",
+      );
     }
-    if (coverageEntry.status === "missing" || coverageEntry.status === "stale") {
+    if (
+      coverageEntry.status === "missing" ||
+      coverageEntry.status === "stale"
+    ) {
       throw new Error("Visual projection rejects missing or stale coverage.");
     }
     if (coverageEntry.status === "fallback") {
@@ -207,9 +214,7 @@ export const buildStoryVisualProjection = (rawInput: {
 export type StoryVisualTrackProps = Readonly<{
   projection: StoryVisualProjection;
   registry: SceneRendererRegistry;
-  rendererPropsByMeaning: Readonly<
-    Record<string, SceneRendererMountProps>
-  >;
+  rendererPropsByMeaning: Readonly<Record<string, SceneRendererMountProps>>;
 }>;
 
 export const StoryVisualTrack: FC<StoryVisualTrackProps> = ({
@@ -222,7 +227,9 @@ export const StoryVisualTrack: FC<StoryVisualTrackProps> = ({
       if (entry.status === "fallback") return null;
       const rendererProps = rendererPropsByMeaning[entry.meaningId];
       if (rendererProps === undefined) {
-        throw new Error(`Scene renderer props are missing: ${entry.meaningId}.`);
+        throw new Error(
+          `Scene renderer props are missing: ${entry.meaningId}.`,
+        );
       }
       return (
         <SceneSlot

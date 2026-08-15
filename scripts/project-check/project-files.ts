@@ -3,13 +3,13 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
-  M3NarrativeBaselineEvidenceReceiptSchema,
+  NarrativeBaselineEvidenceReceiptSchema,
   MasteredNarrationManifestSchema,
   SealedNarrationManifestSchema,
   SemanticTimingSchema,
   Sha256DigestSchema,
   StoryIdSchema,
-  type M3NarrativeBaselineEvidenceReceipt,
+  type NarrativeBaselineEvidenceReceipt,
   type MasteredNarrationManifest,
   type SealedNarrationManifest,
   type SemanticTiming,
@@ -45,7 +45,7 @@ export const getProjectCheckPaths = ({
       projectDirectory,
       "generated/semantic-timing.generated.json",
     ),
-    m3Receipt: join(
+    narrativeBaselineReceipt: join(
       projectDirectory,
       "generated/narrative-baseline-evidence.generated.json",
     ),
@@ -124,9 +124,9 @@ export const loadProjectCheckSemanticTiming = async (
     await readJson(path, "semantic-timing.generated.json"),
   );
 
-export const loadProjectCheckM3Receipt = async (
+export const loadProjectCheckNarrativeBaselineReceipt = async (
   path: string,
-): Promise<M3NarrativeBaselineEvidenceReceipt> =>
-  M3NarrativeBaselineEvidenceReceiptSchema.parse(
+): Promise<NarrativeBaselineEvidenceReceipt> =>
+  NarrativeBaselineEvidenceReceiptSchema.parse(
     await readJson(path, "narrative-baseline-evidence.generated.json"),
   );

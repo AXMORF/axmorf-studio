@@ -1,9 +1,7 @@
 import ts from "typescript";
 
-import {
-  createFingerprint,
-  SCENE_COMPOSITION_BOUNDARY_VERSION,
-} from "../../../src/contracts";
+import { createFingerprint } from "../../../src/contracts/fingerprint";
+import { SCENE_COMPOSITION_BOUNDARY_VERSION } from "../../../src/contracts/production-requirements";
 
 const parseTsx = (fileName: string, source: string) => {
   const sourceFile = ts.createSourceFile(
@@ -343,7 +341,7 @@ export const validateSharedSceneBoundarySources = ({
   });
   const boundaryVersionLocal = importedLocalName({
     sourceFile: sceneSlot,
-    moduleSuffix: "/contracts",
+    moduleSuffix: "/contracts/production-requirements",
     exportedName: "SCENE_COMPOSITION_BOUNDARY_VERSION",
   });
   const providerLocal = importedLocalName({
@@ -353,7 +351,7 @@ export const validateSharedSceneBoundarySources = ({
   });
   const policySchemaLocal = importedLocalName({
     sourceFile: sceneSafeArea,
-    moduleSuffix: "/contracts",
+    moduleSuffix: "/contracts/production-readability",
     exportedName: "ProductionReadabilityPolicySchema",
   });
   if (sceneSafeAreaLocal === null || boundaryVersionLocal === null) {

@@ -29,8 +29,12 @@ src/remotion/motion        -> src/remotion/capabilities/motion
 src/remotion/sound         -> src/remotion/capabilities/sound
 src/remotion/styles        -> src/remotion/capabilities/styles
 src/remotion/transitions   -> src/remotion/capabilities/transitions
-src/remotion/primitives    -> src/remotion/capabilities/primitives
+src/remotion/primitives    -> src/remotion/capabilities/visual-components
 ```
+
+迁入后的视觉组件继续按职责细分：旧 `scenes`、`media`、`transitions` 子目录分别成为
+`scene-patterns`、`media-layouts`、`transition-components`，避免与顶层 runtime media、transition
+preset 及 copy-on-configure `scene-templates` 产生同名边界。
 
 迁入后仅有一处基础适配：`sound/library.ts` 的资产 manifest 类型引用改为新仓库
 `src/contracts/assets.ts`。其余白名单源码与来源 commit 一致。

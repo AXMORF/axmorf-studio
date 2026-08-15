@@ -119,7 +119,7 @@ freeze 的 Project 必须 fresh Run。当前只开放 image，内部 discriminat
 SemanticTiming、narrated-only CaptionCue 与 NarrativeCore，并完成 fixed
 mechanical AutoCheck。实测音频时间不可被 Scene 或转场移动、压缩或吞掉。
 
-M3 Narrative Baseline 使用完整 SemanticTiming；NarrativeCore 从 `narrationStartFrame` 只挂载一次
+Narrative Baseline 使用完整 SemanticTiming；NarrativeCore 从 `narrationStartFrame` 只挂载一次
 完整旁白，CaptionLayer 只消费 narrated chunks。silent Scene 不进入 generation input、VoxCPM、
 sealed manifest 或 CaptionCue，但其固定窗口计入 baseline 与最终 Composition 总帧数。
 
@@ -130,7 +130,7 @@ TTS 语速在 provider response 后、canonical PCM 实测前处理并绑定 pro
 若 Agent-owned Story authoring 在实测时长后返工，旧 Run 保持 immutable，新 Run 必须显式使用
 `production:narrative -- --run <runId> --supersede <current-sealed-fingerprint>` 绑定当前 active
 seal identity。只有 identity 精确匹配时 fixed flow 才能原子提升新 seal；不得手改 active manifest。
-新 baseline writer 允许把一个结构有效但 identity-stale 的旧 M3 receipt 作为待替换输入；所有
+新 baseline writer 允许把一个结构有效但 identity-stale 的旧 narrative baseline receipt 作为待替换输入；所有
 check-only 路径仍严格拒绝 stale 或 malformed evidence，replacement 只由 fixed writer 原子完成。
 
 ## 3. Freeze 与 owner 隔离

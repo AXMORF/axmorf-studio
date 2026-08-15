@@ -99,11 +99,13 @@ const createDependencies = (
   renderBaseline: async () => {
     calls.push("render-baseline");
     return {
-      transparentStillPath: "out/story-example/m3-transparent-frame-0.png",
+      transparentStillPath:
+        "out/story-example/narrative-baseline-transparent-frame-0.png",
       transparentStillChecksum: sha("9"),
-      captionStillPath: "out/story-example/m3-caption-frame-15.png",
+      captionStillPath:
+        "out/story-example/narrative-baseline-caption-frame-15.png",
       captionStillChecksum: sha("a"),
-      renderPath: "out/story-example/m3-narrative-baseline.mp4",
+      renderPath: "out/story-example/narrative-baseline.mp4",
       renderChecksum: sha("b"),
     };
   },

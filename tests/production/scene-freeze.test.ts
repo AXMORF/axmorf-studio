@@ -27,7 +27,7 @@ import {
 } from "../../src/contracts";
 import { capabilityDescriptorDeclarations } from "../../src/remotion/catalog/capability-descriptors";
 import { styleDescriptorDeclarations } from "../../src/remotion/catalog/style-descriptors";
-import { SCENE_TEMPLATE_DEFINITIONS } from "../../src/remotion/capabilities/scenes/registry";
+import { SCENE_TEMPLATE_DEFINITIONS } from "../../src/remotion/capabilities/scene-templates/registry";
 import { buildResourceCatalog } from "../../scripts/catalog/domain";
 import { loadCatalogAuthorityDescriptors } from "../../scripts/catalog/project-files";
 import { generateScenePackageFromProjectFiles } from "../../scripts/scene-package/generate";
@@ -90,13 +90,13 @@ const materializeCatalogAuthority = async (rootDir: string) => {
     await copyRepositoryFile(rootDir, sourcePath);
   }
   for (const sourcePath of [
-    "src/remotion/capabilities/scenes/templates/axmorf/AxmorfBrand.tsx",
-    "src/remotion/capabilities/scenes/templates/axmorf/AxmorfIntroScene.tsx",
-    "src/remotion/capabilities/scenes/templates/axmorf/AxmorfOutroScene.tsx",
-    "src/remotion/capabilities/scenes/templates/axmorf/BrandFollowScene.tsx",
-    "src/remotion/capabilities/scenes/templates/axmorf/SourceCreditsScene.tsx",
-    "src/remotion/capabilities/scenes/templates/axmorf/content.ts",
-    "src/remotion/capabilities/scenes/templates/axmorf/NOTICE.md",
+    "src/remotion/capabilities/scene-templates/axmorf/AxmorfBrand.tsx",
+    "src/remotion/capabilities/scene-templates/axmorf/AxmorfIntroScene.tsx",
+    "src/remotion/capabilities/scene-templates/axmorf/AxmorfOutroScene.tsx",
+    "src/remotion/capabilities/scene-templates/axmorf/BrandFollowScene.tsx",
+    "src/remotion/capabilities/scene-templates/axmorf/SourceCreditsScene.tsx",
+    "src/remotion/capabilities/scene-templates/axmorf/content.ts",
+    "src/remotion/capabilities/scene-templates/axmorf/NOTICE.md",
   ]) {
     await copyRepositoryFile(rootDir, sourcePath);
   }
@@ -117,10 +117,7 @@ const materializeCatalogAuthority = async (rootDir: string) => {
   try {
     const localManifest = JSON.parse(
       await readFile(
-        join(
-          repositoryRoot,
-          "private/reference-assets/assets.manifest.json",
-        ),
+        join(repositoryRoot, "private/reference-assets/assets.manifest.json"),
         "utf8",
       ),
     ) as { readonly assets: readonly { readonly localPath: string }[] };

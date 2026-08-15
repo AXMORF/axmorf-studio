@@ -6,14 +6,14 @@ import { buildProductionRenderArgs } from "../../scripts/production/adapters/rem
 test("Narrative Baseline renders only the body range of a final-duration registration", () => {
   const args = buildProductionRenderArgs({
     compositionId: "StoryExample",
-    outputPath: "out/story-example/m3-narrative-baseline.mp4",
+    outputPath: "out/story-example/narrative-baseline.mp4",
     durationInFrames: 120,
   });
   assert.ok(args.includes("--frames=0-119"));
   assert.throws(() =>
     buildProductionRenderArgs({
       compositionId: "StoryExample",
-      outputPath: "out/story-example/m3-narrative-baseline.mp4",
+      outputPath: "out/story-example/narrative-baseline.mp4",
       durationInFrames: 0,
     }),
   );

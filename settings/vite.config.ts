@@ -3,13 +3,12 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 
-import { createSettingsApi } from "./api";
-import { runProducerEnvironmentDiagnostics } from "./diagnostics";
-import { isLanDevEnabled } from "./dev-network";
+import { SETTINGS_API_ROUTES } from "./contracts/api";
+import { createSettingsApi, SETTINGS_API_MAX_BODY_BYTES } from "./server/api";
+import { runProducerEnvironmentDiagnostics } from "./server/diagnostics";
+import { isLanDevEnabled } from "./server/dev-network";
 import { deleteProjectData } from "../scripts/projects/delete";
-import { readProjectProductionProgress } from "./production-progress";
-
-const MAX_BODY_BYTES = 1024 * 1024;
+import { readProjectProductionProgress } from "./server/production-progress";
 
 const json = (response: ServerResponse, statusCode: number, value: unknown) => {
   response.statusCode = statusCode;
@@ -25,7 +24,9 @@ const readBody = async (request: IncomingMessage) => {
   for await (const chunk of request) {
     const bytes = Buffer.from(chunk as Uint8Array);
     size += bytes.length;
-    if (size > MAX_BODY_BYTES) throw new Error("配置内容超过 1MB 限制");
+    if (size > SETTINGS_API_MAX_BODY_BYTES) {
+      throw new Error("配置内容超过 1MB 限制");
+    }
     chunks.push(bytes);
   }
   return Buffer.concat(chunks).toString("utf8");
@@ -57,10 +58,9 @@ const settingsApi = (): Plugin => ({
         return;
       }
       if (
-        request.url !== "/api/settings" &&
-        request.url !== "/api/diagnostics" &&
-        request.url !== "/api/production-progress" &&
-        request.url !== "/api/projects/delete"
+        !Object.values(SETTINGS_API_ROUTES).some(
+          (route) => request.url === route,
+        )
       ) {
         return next();
       }

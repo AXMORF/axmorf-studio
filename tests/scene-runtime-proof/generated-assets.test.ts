@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { generateM6ProofAssets } from "../../scripts/proofs/scene-runtime/generate-assets";
+import { generateSceneRuntimeProofAssets } from "../../scripts/proofs/scene-runtime/generate-assets";
 import { generateSceneTemplateAudioProjection } from "../../scripts/scene-templates/audio-projection";
 
 const checksum = (bytes: Buffer) =>
@@ -17,13 +17,13 @@ test("core authored assets bootstrap deterministically without tracked public fi
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-proof-assets-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
 
-  await generateM6ProofAssets({ rootDir, mode: "write" });
+  await generateSceneRuntimeProofAssets({ rootDir, mode: "write" });
 
   const pulse = await readFile(
-    join(rootDir, "public/assets/library/m6-scene-runtime/proof-pulse.wav"),
+    join(rootDir, "public/assets/library/scene-runtime-proof/proof-pulse.wav"),
   );
   const shape = await readFile(
-    join(rootDir, "public/assets/library/m6-scene-runtime/proof-shape.svg"),
+    join(rootDir, "public/assets/library/scene-runtime-proof/proof-shape.svg"),
   );
   const introChime = await readFile(
     join(
@@ -43,7 +43,7 @@ test("core authored assets bootstrap deterministically without tracked public fi
   );
   assert.equal(
     checksum(shape),
-    "sha256:83284733c309b88ffa56e1cda84a2699a7ace251df4831620d3484154745ccbb",
+    "sha256:a173d06fa0f769755cda708c82cb9180ca88f7bcbd98e0d624dfb7a39c617f5c",
   );
   assert.equal(introChime.length, 57_644);
   assert.equal(outroChime.length, 96_044);
@@ -61,14 +61,13 @@ test("core authored assets bootstrap deterministically without tracked public fi
   );
   await assert.rejects(readFile(projectionPath), { code: "ENOENT" });
   await generateSceneTemplateAudioProjection({ rootDir, mode: "write" });
-  assert.deepEqual(
-    JSON.parse(
-      await readFile(projectionPath, "utf8"),
-    ),
-    { schemaVersion: 1, intro: null, outro: null },
-  );
+  assert.deepEqual(JSON.parse(await readFile(projectionPath, "utf8")), {
+    schemaVersion: 1,
+    intro: null,
+    outro: null,
+  });
 
-  await generateM6ProofAssets({ rootDir, mode: "check" });
+  await generateSceneRuntimeProofAssets({ rootDir, mode: "check" });
   await generateSceneTemplateAudioProjection({ rootDir, mode: "check" });
   await writeFile(projectionPath, "{}\n");
   await assert.rejects(

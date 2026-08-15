@@ -4,9 +4,10 @@ import { pathToFileURL } from "node:url";
 
 import { format } from "prettier";
 
+import { SCENE_RUNTIME_PROOF_IDENTITY } from "../../../proofs/scene-runtime/identity";
+
 import {
   LocalizationManifestSchema,
-  ResourceCatalogSchema,
   VisualStyleSpecSchema,
   buildReferenceFidelityReview,
   buildSceneCoverageMap,
@@ -43,19 +44,20 @@ import {
   writeOrCheckSceneArtifact,
   type SceneArtifactMode,
 } from "../../scene-package/project-files";
-import { generateM6ProofAssets } from "./generate-assets";
+import { generateSceneRuntimeProofAssets } from "./generate-assets";
+import { buildResourceCatalog } from "../../catalog/domain";
+import { loadCoreCatalogAuthorityDescriptors } from "../../catalog/project-files";
 
-const STORY_ID = "m6-scene-runtime-proof";
-const MEANING_ID = "m6-scene-proof";
+const STORY_ID = SCENE_RUNTIME_PROOF_IDENTITY.storyId;
+const MEANING_ID = SCENE_RUNTIME_PROOF_IDENTITY.meaningId;
 const CARD_ID = "draw-svg-trace";
-const PROOF_ROOT = "src/remotion/proofs/m6-scene-runtime";
-const SCENE_ROOT = `${PROOF_ROOT}/scenes/${MEANING_ID}`;
+const PROOF_ROOT = "proofs/scene-runtime";
+const PROOF_FIXTURE_ROOT = `${PROOF_ROOT}/fixtures`;
+const PROOF_EVIDENCE_ROOT = `${PROOF_ROOT}/evidence`;
+const SCENE_ROOT = `${PROOF_FIXTURE_ROOT}/scenes/${MEANING_ID}`;
 const FIXTURE_REVISION = "d4915443232e89527fdc9d7e79f132ba411fc440";
-const FIXTURE_ROOT = `tests/fixtures/external-references/video-shotcraft/${FIXTURE_REVISION}`;
+const EXTERNAL_REFERENCE_FIXTURE_ROOT = `tests/fixtures/external-references/video-shotcraft/${FIXTURE_REVISION}`;
 const LOCALIZATION_ROOT = `${SCENE_ROOT}/shots/video-shotcraft/${CARD_ID}`;
-
-const readJson = async (path: string): Promise<unknown> =>
-  JSON.parse(await readFile(path, "utf8"));
 
 const writeOrCheckBytes = async ({
   destination,
@@ -74,11 +76,11 @@ const writeOrCheckBytes = async ({
     )
       return;
     if (mode === "check")
-      throw new Error("M6 proof localized bytes are stale.");
+      throw new Error("Scene runtime proof localized bytes are stale.");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     if (mode === "check")
-      throw new Error("M6 proof localized bytes are missing.");
+      throw new Error("Scene runtime proof localized bytes are missing.");
   }
   await mkdir(dirname(destination), { recursive: true });
   const temporary = `${destination}.tmp-${process.pid}-${Date.now()}`;
@@ -104,7 +106,7 @@ const getEntry = (
     (candidate) => candidate.descriptor.id === id,
   );
   if (entry === undefined)
-    throw new Error(`M6 proof Catalog entry is missing: ${id}.`);
+    throw new Error(`Scene runtime proof Catalog entry is missing: ${id}.`);
   return entry;
 };
 
@@ -117,7 +119,7 @@ const buildProofLocalization = async ({
   readonly snapshot: ExternalReferenceSnapshot;
   readonly mode: SceneArtifactMode;
 }): Promise<LocalizationManifest> => {
-  const fixtureRoot = join(rootDir, FIXTURE_ROOT);
+  const fixtureRoot = join(rootDir, EXTERNAL_REFERENCE_FIXTURE_ROOT);
   const closure = await buildDependencyClosure({
     snapshotRoot: fixtureRoot,
     entryPath: snapshot.index.cards[0].demoSourcePath,
@@ -139,7 +141,7 @@ const buildProofLocalization = async ({
     ) ||
     snapshot.sourceLicense.attributionText === null
   ) {
-    throw new Error("M6 proof localization inputs are stale.");
+    throw new Error("Scene runtime proof localization inputs are stale.");
   }
   const files = [
     ...sourceInputs.map(({ file, bytes }) => ({
@@ -242,35 +244,33 @@ const checksumFile = async (
 ): Promise<Sha256Digest> =>
   checksumExternalBytes(await readFile(join(rootDir, path)));
 
-export const generateM6Proof = async ({
+export const generateSceneRuntimeProof = async ({
   rootDir,
   mode,
 }: {
   readonly rootDir: string;
   readonly mode: SceneArtifactMode;
 }) => {
-  await generateM6ProofAssets({ rootDir, mode });
-  const catalog = ResourceCatalogSchema.parse(
-    await readJson(
-      join(rootDir, "src/remotion/catalog/resource-catalog.generated.json"),
-    ),
+  await generateSceneRuntimeProofAssets({ rootDir, mode });
+  const catalog = buildResourceCatalog(
+    await loadCoreCatalogAuthorityDescriptors(rootDir),
   );
-  const fixtureRoot = join(rootDir, FIXTURE_ROOT);
+  const fixtureRoot = join(rootDir, EXTERNAL_REFERENCE_FIXTURE_ROOT);
   const snapshot = await loadExternalReferenceSnapshot(fixtureRoot);
   const localization = await buildProofLocalization({
     rootDir,
     snapshot,
     mode,
   });
-  const shape = getEntry(catalog, "asset.m6-proof-shape");
-  const pulse = getEntry(catalog, "asset.m6-proof-pulse");
+  const shape = getEntry(catalog, SCENE_RUNTIME_PROOF_IDENTITY.assetIds.shape);
+  const pulse = getEntry(catalog, SCENE_RUNTIME_PROOF_IDENTITY.assetIds.pulse);
   const style = getEntry(catalog, "style.editorial-tech");
   if (
     shape.descriptor.kind !== "asset" ||
     pulse.descriptor.kind !== "asset" ||
     style.descriptor.kind !== "style-profile"
   ) {
-    throw new Error("M6 proof Catalog descriptor kinds are stale.");
+    throw new Error("Scene runtime proof Catalog descriptor kinds are stale.");
   }
   const visualStyle = VisualStyleSpecSchema.parse({
     schemaVersion: 1,
@@ -303,8 +303,8 @@ export const generateM6Proof = async ({
         "Prove one deterministic visual and local sound Scene slot.",
       ttsChunks: [
         {
-          chunkId: "m6-proof-chunk",
-          ttsText: "This synthetic scene proves the M6 runtime foundation.",
+          chunkId: SCENE_RUNTIME_PROOF_IDENTITY.captionChunkId,
+          ttsText: "This synthetic scene proves the Scene runtime foundation.",
         },
       ],
       explicitPauses: [],
@@ -314,22 +314,31 @@ export const generateM6Proof = async ({
       kind: "narrated-scene",
       meaningId: MEANING_ID,
       startFrame: 0,
-      endFrame: 120,
+      endFrame: SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames,
     },
     storyFingerprint: createFingerprint({
-      namespace: "m6-proof-story",
+      namespace: "scene-runtime-proof-story",
       version: 1,
       value: { meaningId: MEANING_ID },
     }),
     semanticTimingFingerprint: createFingerprint({
-      namespace: "m6-proof-semantic-timing",
+      namespace: "scene-runtime-proof-semantic-timing",
       version: 1,
-      value: { meaningId: MEANING_ID, startFrame: 0, endFrame: 120 },
+      value: {
+        meaningId: MEANING_ID,
+        startFrame: 0,
+        endFrame: SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames,
+      },
     }),
     renderFingerprint: createFingerprint({
-      namespace: "m6-proof-render",
+      namespace: "scene-runtime-proof-render",
       version: 1,
-      value: { fps: 30, width: 1920, height: 1080, durationInFrames: 120 },
+      value: {
+        fps: SCENE_RUNTIME_PROOF_IDENTITY.fps,
+        width: SCENE_RUNTIME_PROOF_IDENTITY.width,
+        height: SCENE_RUNTIME_PROOF_IDENTITY.height,
+        durationInFrames: SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames,
+      },
     }),
     visualStyleFingerprint,
     resourceCatalogFingerprint: catalog.catalogFingerprint,
@@ -354,8 +363,8 @@ export const generateM6Proof = async ({
       publicAssetRoot: `public/assets/library/${STORY_ID}/${MEANING_ID}`,
     },
     readabilityPolicy: resolveProductionReadabilityPolicy({
-      width: 1920,
-      height: 1080,
+      width: SCENE_RUNTIME_PROOF_IDENTITY.width,
+      height: SCENE_RUNTIME_PROOF_IDENTITY.height,
     }),
     sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
   });
@@ -378,13 +387,13 @@ export const generateM6Proof = async ({
   const visual = buildSceneVisualPlan({
     taskInputFingerprint: task.taskInputFingerprint,
     meaningId: MEANING_ID,
-    semanticObjective: "Make the fixed M6 Scene window visibly testable.",
+    semanticObjective: "Make the fixed Scene runtime window visibly testable.",
     subject: "One project-authored geometric proof shape.",
     primaryAction: "A moving pen traces closes and reveals the shape.",
     causalLink: "The closed trace triggers the visual and local sound handoff.",
     primaryComposition: "Centered proof shape with one technical header.",
     styleRealization: ["Cyan vector trace", "Deep navy technical field"],
-    continuity: "Enter and leave within the same fixed 120-frame Beat.",
+    continuity: `Enter and leave within the same fixed ${SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames}-frame Beat.`,
     orderedShotIds: ["draw-svg-trace-shot"],
     visualResourceIds: [shape.descriptor.id],
     recipeDecision: "exact-demo-localized",
@@ -394,12 +403,15 @@ export const generateM6Proof = async ({
   const shots = buildShotPlanSet({
     taskInputFingerprint: task.taskInputFingerprint,
     meaningId: MEANING_ID,
-    sceneDurationInFrames: 120,
+    sceneDurationInFrames: SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames,
     shots: [
       {
         shotId: "draw-svg-trace-shot",
         order: 0,
-        primaryRange: { startFrame: 0, endFrame: 120 },
+        primaryRange: {
+          startFrame: 0,
+          endFrame: SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames,
+        },
         purpose:
           "Prove exact localized trace motion in one fixed Scene renderer.",
         action: "Trace for 40 frames then flash reveal and settle.",
@@ -411,7 +423,7 @@ export const generateM6Proof = async ({
   const anchors = buildSceneSyncAnchors({
     taskInputFingerprint: task.taskInputFingerprint,
     meaningId: MEANING_ID,
-    sceneDurationInFrames: 120,
+    sceneDurationInFrames: SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames,
     anchors: [
       {
         eventId: "outline-closes",
@@ -423,7 +435,7 @@ export const generateM6Proof = async ({
   const sound = buildSceneSoundPlan({
     taskInputFingerprint: task.taskInputFingerprint,
     meaningId: MEANING_ID,
-    sceneDurationInFrames: 120,
+    sceneDurationInFrames: SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames,
     ambience: null,
     cues: [
       {
@@ -454,7 +466,7 @@ export const generateM6Proof = async ({
         localizationFingerprint: localization.localizationFingerprint,
         adaptationMode: "adapted",
         selectionReason:
-          "Use the exact trace close handoff as the M6 runtime fixture.",
+          "Use the exact trace close handoff as the Scene runtime fixture.",
         requiredTraits: [
           "40-frame outline trace",
           "closed-outline flash handoff",
@@ -463,9 +475,9 @@ export const generateM6Proof = async ({
       },
     ],
   });
-  const evidenceRoot = `${PROOF_ROOT}/generated/fidelity-evidence`;
+  const evidenceRoot = `${PROOF_EVIDENCE_ROOT}/fidelity`;
   const evidencePaths = {
-    sourcePreview: `${FIXTURE_ROOT}/gallery/media/draw-svg-trace.mp4`,
+    sourcePreview: `${EXTERNAL_REFERENCE_FIXTURE_ROOT}/gallery/media/draw-svg-trace.mp4`,
     adaptationPreview: `${evidenceRoot}/adaptation-preview.mp4`,
     sourceEarly: `${evidenceRoot}/source-frame-28.png`,
     sourceLate: `${evidenceRoot}/source-frame-98.png`,
@@ -481,16 +493,19 @@ export const generateM6Proof = async ({
     ),
   ) as Record<keyof typeof evidencePaths, Sha256Digest>;
   if (checksums.sourcePreview !== card.previewChecksum) {
-    throw new Error("M6 proof source preview does not match the frozen card.");
+    throw new Error(
+      "Scene runtime proof source preview does not match the frozen card.",
+    );
   }
   const review = buildReferenceFidelityReview({
     selectionFingerprint: selection.selectionFingerprint,
     items: [
       {
         selectionIndex: 0,
-        normalizedFps: 30,
+        normalizedFps: SCENE_RUNTIME_PROOF_IDENTITY.fps,
         sourceDurationInFrames: 140,
-        adaptationDurationInFrames: 120,
+        adaptationDurationInFrames:
+          SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames,
         sourcePreview: {
           artifactPath: evidencePaths.sourcePreview,
           checksum: checksums.sourcePreview,
@@ -530,7 +545,9 @@ export const generateM6Proof = async ({
         traitReviews: (() => {
           const exactSelection = selection.selections[0];
           if (exactSelection.mode !== "exact-demo-localized") {
-            throw new Error("M6 proof requires one exact selection.");
+            throw new Error(
+              "Scene runtime proof requires one exact selection.",
+            );
           }
           return exactSelection.requiredTraits.map((trait) => ({
             trait,
@@ -612,7 +629,7 @@ export const generateM6Proof = async ({
   const registrySource = await format(
     `// Generated by ${RENDERER_REGISTRY_GENERATOR_ID}. Do not edit.
 import Renderer from "./scenes/${MEANING_ID}/Renderer";
-import type { SceneRendererRegistry } from "../../runtime/story-visual/types";
+import type { SceneRendererRegistry } from "../../../src/remotion/runtime/story-visual/types";
 
 export const rendererRegistryFingerprint = ${JSON.stringify(rendererRegistryFingerprint)};
 export const rendererSourceGraphFingerprints = {
@@ -627,10 +644,10 @@ export const rendererRegistry = {
   const generated = `${SCENE_ROOT}/generated`;
   const artifacts: readonly [string, unknown][] = [
     [
-      `${PROOF_ROOT}/generated/external-reference-snapshot.generated.json`,
+      `${PROOF_FIXTURE_ROOT}/generated/external-reference-snapshot.generated.json`,
       snapshot,
     ],
-    [`${PROOF_ROOT}/visual-style.generated.json`, visualStyle],
+    [`${PROOF_FIXTURE_ROOT}/visual-style.generated.json`, visualStyle],
     [`${SCENE_ROOT}/task-input.generated.json`, task],
     [`${SCENE_ROOT}/visual-plan.json`, visual],
     [`${SCENE_ROOT}/shot-plan.json`, shots],
@@ -645,9 +662,9 @@ export const rendererRegistry = {
     [`${generated}/reference-fidelity-review.generated.json`, review],
     [`${generated}/reference-fidelity.generated.json`, fidelityReceipt],
     [`${generated}/scene-package.generated.json`, scenePackage],
-    [`${PROOF_ROOT}/generated/scene-coverage.generated.json`, coverage],
+    [`${PROOF_FIXTURE_ROOT}/generated/scene-coverage.generated.json`, coverage],
     [
-      `${PROOF_ROOT}/generated/renderer-source-graph.generated.json`,
+      `${PROOF_FIXTURE_ROOT}/generated/renderer-source-graph.generated.json`,
       {
         schemaVersion: 1,
         rendererPath: graph.rendererPath,
@@ -668,13 +685,16 @@ export const rendererRegistry = {
         error instanceof Error &&
         error.message === "Generated Scene artifact bytes are stale."
       ) {
-        throw new Error(`M6 proof artifact is stale: ${path}.`);
+        throw new Error(`Scene runtime proof artifact is stale: ${path}.`);
       }
       throw error;
     }
   }
   await writeOrCheckRendererRegistry({
-    destination: join(rootDir, `${PROOF_ROOT}/renderer-registry.generated.ts`),
+    destination: join(
+      rootDir,
+      `${PROOF_FIXTURE_ROOT}/renderer-registry.generated.ts`,
+    ),
     source: registrySource,
     mode,
   });
@@ -697,11 +717,11 @@ if (
   ) {
     throw new Error("Expected exactly write or check.");
   }
-  generateM6Proof({ rootDir: process.cwd(), mode: command })
+  generateSceneRuntimeProof({ rootDir: process.cwd(), mode: command })
     .then((result) => process.stdout.write(`${JSON.stringify(result)}\n`))
     .catch((error: unknown) => {
       process.stderr.write(
-        `${error instanceof Error ? error.message : "M6 proof generation failed."}\n`,
+        `${error instanceof Error ? error.message : "Scene runtime proof generation failed."}\n`,
       );
       process.exitCode = 1;
     });

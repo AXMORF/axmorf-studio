@@ -1,16 +1,16 @@
 import type { ComponentType } from "react";
 
-import {
-  SCENE_COMPOSITION_BOUNDARY_VERSION,
-  type ProductionReadabilityPolicy,
-  Sha256Digest,
+import { SCENE_COMPOSITION_BOUNDARY_VERSION } from "../../../contracts/production-requirements";
+import type { ProductionReadabilityPolicy } from "../../../contracts/production-readability";
+import type { Sha256Digest } from "../../../contracts/primitives";
+import type {
   SceneSyncAnchorSet,
   SceneVisualPlan,
   ShotPlanSet,
-  StoryBeat,
-  type VideoSourceReference,
-  VisualStyleSpec,
-} from "../../../contracts";
+} from "../../../contracts/scene-plan";
+import type { StoryBeat } from "../../../contracts/story";
+import type { VideoSourceReference } from "../../../contracts/brief";
+import type { VisualStyleSpec } from "../../../contracts/visual-style";
 
 export type ResolvedSceneVisualResource = Readonly<{
   resourceId: string;

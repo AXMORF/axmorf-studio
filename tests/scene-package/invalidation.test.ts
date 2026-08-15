@@ -17,13 +17,13 @@ import {
   generateScenePackage,
 } from "../../scripts/scene-package/generate";
 import {
-  assertM6ProtectedStateUnchanged,
-  createIsolatedM6Project,
-  disposeIsolatedM6Project,
-} from "../fixtures/m6-project";
-import { sha } from "../fixtures/scene/m6-scene-input";
+  assertScenePackageProtectedStateUnchanged,
+  createIsolatedScenePackageProject,
+  disposeIsolatedScenePackageProject,
+} from "../fixtures/scene-package/project";
+import { sha } from "../fixtures/scene/scene-input";
 
-type Fixture = Awaited<ReturnType<typeof createIsolatedM6Project>>;
+type Fixture = Awaited<ReturnType<typeof createIsolatedScenePackageProject>>;
 
 const expectPackageStale = async (
   fixture: Fixture,
@@ -319,12 +319,12 @@ const cases: readonly {
 
 for (const invalidationCase of cases) {
   test(invalidationCase.name, async () => {
-    const fixture = await createIsolatedM6Project();
+    const fixture = await createIsolatedScenePackageProject();
     try {
       await invalidationCase.mutate(fixture);
-      await assertM6ProtectedStateUnchanged(fixture);
+      await assertScenePackageProtectedStateUnchanged(fixture);
     } finally {
-      await disposeIsolatedM6Project(fixture);
+      await disposeIsolatedScenePackageProject(fixture);
     }
   });
 }

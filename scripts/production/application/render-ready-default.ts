@@ -29,7 +29,7 @@ import {
 import { resolveSceneSound } from "../../../src/remotion/runtime/scene-sound";
 import { buildSoundDesignProjection } from "../../../src/remotion/runtime/sound-design";
 import { buildStoryVisualProjection } from "../../../src/remotion/runtime/story-visual";
-import { resolveCurrentM3Entry } from "../../baseline/evidence";
+import { resolveCurrentNarrativeBaselineEntry } from "../../baseline/evidence";
 import { checkMasteredNarrationArtifacts } from "../../narration/mastering";
 import { generateProjectRegistry } from "../../registry/generate";
 import { collectRendererSourceGraph } from "../../renderer-registry/domain";
@@ -495,7 +495,7 @@ export const createDefaultRenderReadyDependencies = () => ({
     readonly mode: "write" | "check";
   }) => {
     await generateProjectRegistry({ rootDir, mode });
-    const entry = await resolveCurrentM3Entry(rootDir, storyId);
+    const entry = await resolveCurrentNarrativeBaselineEntry(rootDir, storyId);
     return {
       compositionId: entry.descriptor.id,
       registryChecksum: entry.generatedEntryChecksum,

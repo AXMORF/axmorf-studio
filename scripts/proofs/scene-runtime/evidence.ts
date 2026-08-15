@@ -6,27 +6,29 @@ import { promisify } from "node:util";
 
 import { z } from "zod";
 
+import { SCENE_RUNTIME_PROOF_IDENTITY } from "../../../proofs/scene-runtime/identity";
+
 import {
   Sha256DigestSchema,
   createFingerprint,
   serializeCanonicalJson,
 } from "../../../src/contracts";
 import {
-  m6ProofCoverage,
-  m6ProofFidelityReceipt,
-  m6ProofScenePackage,
-  m6ProofSoundDesignProjection,
-  m6ProofStoryVisualProjection,
-} from "../../../src/remotion/proofs/m6-scene-runtime/proof-data";
-import { rendererRegistryFingerprint } from "../../../src/remotion/proofs/m6-scene-runtime/renderer-registry.generated";
+  sceneRuntimeProofCoverage,
+  sceneRuntimeProofFidelityReceipt,
+  sceneRuntimeProofScenePackage,
+  sceneRuntimeProofSoundDesignProjection,
+  sceneRuntimeProofStoryVisualProjection,
+} from "../../../proofs/scene-runtime/source/proof-data";
+import { rendererRegistryFingerprint } from "../../../proofs/scene-runtime/fixtures/renderer-registry.generated";
 import { checksumExternalBytes } from "../../external-references/project-files";
 
 const execFileAsync = promisify(execFile);
 
-const M6ProofEvidenceInputSchema = z
+const SceneRuntimeProofEvidenceInputSchema = z
   .object({
     schemaVersion: z.literal(1),
-    proofId: z.literal("M6SceneRuntimeProof"),
+    proofId: z.literal(SCENE_RUNTIME_PROOF_IDENTITY.compositionId),
     scenePackageFingerprint: Sha256DigestSchema,
     coverageFingerprint: Sha256DigestSchema,
     rendererRegistryFingerprint: Sha256DigestSchema,
@@ -35,71 +37,78 @@ const M6ProofEvidenceInputSchema = z
     soundDesignProjectionFingerprint: Sha256DigestSchema,
     still: z
       .object({
-        localPath: z.literal("out/m6-scene-runtime-proof/frame-72.png"),
+        localPath: z.literal(
+          `${SCENE_RUNTIME_PROOF_IDENTITY.outputDirectory}/frame-${SCENE_RUNTIME_PROOF_IDENTITY.stillFrame}.png`,
+        ),
         checksum: Sha256DigestSchema,
-        frame: z.literal(72),
+        frame: z.literal(SCENE_RUNTIME_PROOF_IDENTITY.stillFrame),
         alphaMin: z.literal(255),
         alphaMax: z.literal(255),
       })
       .strict(),
     render: z
       .object({
-        localPath: z.literal("out/m6-scene-runtime-proof/proof.mp4"),
+        localPath: z.literal(
+          `${SCENE_RUNTIME_PROOF_IDENTITY.outputDirectory}/proof.mp4`,
+        ),
         checksum: Sha256DigestSchema,
-        durationInFrames: z.literal(120),
-        fps: z.literal(30),
-        width: z.literal(1920),
-        height: z.literal(1080),
+        durationInFrames: z.literal(
+          SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames,
+        ),
+        fps: z.literal(SCENE_RUNTIME_PROOF_IDENTITY.fps),
+        width: z.literal(SCENE_RUNTIME_PROOF_IDENTITY.width),
+        height: z.literal(SCENE_RUNTIME_PROOF_IDENTITY.height),
         audioStreams: z.literal(1),
       })
       .strict(),
   })
   .strict();
 
-export const M6ProofEvidenceReceiptSchema = M6ProofEvidenceInputSchema.extend({
-  status: z.literal("pass"),
-  evidenceFingerprint: Sha256DigestSchema,
-})
-  .strict()
-  .superRefine((receipt, context) => {
-    const input = { ...receipt } as Record<string, unknown>;
-    delete input.status;
-    delete input.evidenceFingerprint;
-    const expected = createFingerprint({
-      namespace: "m6-scene-runtime-proof-evidence",
-      version: 1,
-      value: M6ProofEvidenceInputSchema.parse(input),
-    });
-    if (receipt.evidenceFingerprint !== expected) {
-      context.addIssue({
-        code: "custom",
-        message: "M6 proof evidence fingerprint is stale.",
-        path: ["evidenceFingerprint"],
+export const SceneRuntimeProofEvidenceReceiptSchema =
+  SceneRuntimeProofEvidenceInputSchema.extend({
+    status: z.literal("pass"),
+    evidenceFingerprint: Sha256DigestSchema,
+  })
+    .strict()
+    .superRefine((receipt, context) => {
+      const input = { ...receipt } as Record<string, unknown>;
+      delete input.status;
+      delete input.evidenceFingerprint;
+      const expected = createFingerprint({
+        namespace: "scene-runtime-proof-evidence",
+        version: 1,
+        value: SceneRuntimeProofEvidenceInputSchema.parse(input),
       });
-    }
-  });
+      if (receipt.evidenceFingerprint !== expected) {
+        context.addIssue({
+          code: "custom",
+          message: "Scene runtime proof evidence fingerprint is stale.",
+          path: ["evidenceFingerprint"],
+        });
+      }
+    });
 
-export const createM6ProofEvidenceReceipt = (rawInput: unknown) => {
-  const input = M6ProofEvidenceInputSchema.parse(rawInput);
-  return M6ProofEvidenceReceiptSchema.parse({
+export const createSceneRuntimeProofEvidenceReceipt = (rawInput: unknown) => {
+  const input = SceneRuntimeProofEvidenceInputSchema.parse(rawInput);
+  return SceneRuntimeProofEvidenceReceiptSchema.parse({
     ...input,
     status: "pass",
     evidenceFingerprint: createFingerprint({
-      namespace: "m6-scene-runtime-proof-evidence",
+      namespace: "scene-runtime-proof-evidence",
       version: 1,
       value: input,
     }),
   });
 };
 
-export const writeM6ProofEvidenceReceiptAtomic = async ({
+export const writeSceneRuntimeProofEvidenceReceiptAtomic = async ({
   destination,
   receipt: rawReceipt,
 }: {
   readonly destination: string;
   readonly receipt: unknown;
 }): Promise<void> => {
-  const receipt = M6ProofEvidenceReceiptSchema.parse(rawReceipt);
+  const receipt = SceneRuntimeProofEvidenceReceiptSchema.parse(rawReceipt);
   const contents = `${serializeCanonicalJson(receipt)}\n`;
   try {
     if ((await readFile(destination, "utf8")) === contents) return;
@@ -143,8 +152,11 @@ const inspectStill = async (path: string) => {
   };
   const width = facts.streams?.[0]?.width;
   const height = facts.streams?.[0]?.height;
-  if (width !== 1920 || height !== 1080) {
-    throw new Error("M6 proof still dimensions are stale.");
+  if (
+    width !== SCENE_RUNTIME_PROOF_IDENTITY.width ||
+    height !== SCENE_RUNTIME_PROOF_IDENTITY.height
+  ) {
+    throw new Error("Scene runtime proof still dimensions are stale.");
   }
   const { stdout } = await execFileAsync(
     "ffmpeg",
@@ -165,7 +177,7 @@ const inspectStill = async (path: string) => {
   );
   const pixels = stdout as unknown as Uint8Array;
   if (pixels.length !== width * height * 4) {
-    throw new Error("M6 proof still pixel bytes are incomplete.");
+    throw new Error("Scene runtime proof still pixel bytes are incomplete.");
   }
   let alphaMin = 255;
   let alphaMax = 0;
@@ -195,7 +207,7 @@ const inspectStill = async (path: string) => {
     captionBrightPixels < 100
   ) {
     throw new Error(
-      "M6 proof still does not show current Scene and caption layering.",
+      "Scene runtime proof still does not show current Scene and caption layering.",
     );
   }
   return { alphaMin: 255 as const, alphaMax: 255 as const };
@@ -230,50 +242,52 @@ const inspectRender = async (path: string) => {
     facts.streams?.filter((stream) => stream.codec_type === "audio").length ??
     0;
   if (
-    video?.width !== 1920 ||
-    video.height !== 1080 ||
-    video.r_frame_rate !== "30/1" ||
-    video.nb_read_frames !== "120" ||
+    video?.width !== SCENE_RUNTIME_PROOF_IDENTITY.width ||
+    video.height !== SCENE_RUNTIME_PROOF_IDENTITY.height ||
+    video.r_frame_rate !== `${SCENE_RUNTIME_PROOF_IDENTITY.fps}/1` ||
+    video.nb_read_frames !==
+      String(SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames) ||
     audioStreams !== 1
   ) {
-    throw new Error("M6 proof render media facts are stale.");
+    throw new Error("Scene runtime proof render media facts are stale.");
   }
   return { audioStreams: 1 as const };
 };
 
-export const collectM6ProofEvidence = async (rootDir: string) => {
-  const stillPath = "out/m6-scene-runtime-proof/frame-72.png";
-  const renderPath = "out/m6-scene-runtime-proof/proof.mp4";
+export const collectSceneRuntimeProofEvidence = async (rootDir: string) => {
+  const stillPath = `${SCENE_RUNTIME_PROOF_IDENTITY.outputDirectory}/frame-${SCENE_RUNTIME_PROOF_IDENTITY.stillFrame}.png`;
+  const renderPath = `${SCENE_RUNTIME_PROOF_IDENTITY.outputDirectory}/proof.mp4`;
   const [stillBytes, renderBytes, stillFacts, renderFacts] = await Promise.all([
     readFile(join(rootDir, stillPath)),
     readFile(join(rootDir, renderPath)),
     inspectStill(join(rootDir, stillPath)),
     inspectRender(join(rootDir, renderPath)),
   ]);
-  return createM6ProofEvidenceReceipt({
+  return createSceneRuntimeProofEvidenceReceipt({
     schemaVersion: 1,
-    proofId: "M6SceneRuntimeProof",
-    scenePackageFingerprint: m6ProofScenePackage.packageFingerprint,
-    coverageFingerprint: m6ProofCoverage.coverageFingerprint,
+    proofId: SCENE_RUNTIME_PROOF_IDENTITY.compositionId,
+    scenePackageFingerprint: sceneRuntimeProofScenePackage.packageFingerprint,
+    coverageFingerprint: sceneRuntimeProofCoverage.coverageFingerprint,
     rendererRegistryFingerprint,
-    fidelityReceiptFingerprint: m6ProofFidelityReceipt.receiptFingerprint,
+    fidelityReceiptFingerprint:
+      sceneRuntimeProofFidelityReceipt.receiptFingerprint,
     storyVisualProjectionFingerprint:
-      m6ProofStoryVisualProjection.projectionFingerprint,
+      sceneRuntimeProofStoryVisualProjection.projectionFingerprint,
     soundDesignProjectionFingerprint:
-      m6ProofSoundDesignProjection.soundDesignProjectionFingerprint,
+      sceneRuntimeProofSoundDesignProjection.soundDesignProjectionFingerprint,
     still: {
       localPath: stillPath,
       checksum: checksumExternalBytes(stillBytes),
-      frame: 72,
+      frame: SCENE_RUNTIME_PROOF_IDENTITY.stillFrame,
       ...stillFacts,
     },
     render: {
       localPath: renderPath,
       checksum: checksumExternalBytes(renderBytes),
-      durationInFrames: 120,
-      fps: 30,
-      width: 1920,
-      height: 1080,
+      durationInFrames: SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames,
+      fps: SCENE_RUNTIME_PROOF_IDENTITY.fps,
+      width: SCENE_RUNTIME_PROOF_IDENTITY.width,
+      height: SCENE_RUNTIME_PROOF_IDENTITY.height,
       ...renderFacts,
     },
   });
@@ -282,13 +296,13 @@ export const collectM6ProofEvidence = async (rootDir: string) => {
 const receiptPath = (rootDir: string) =>
   join(
     rootDir,
-    "src/remotion/proofs/m6-scene-runtime/generated/m6-proof-evidence.generated.json",
+    "proofs/scene-runtime/evidence/scene-runtime-proof-evidence.generated.json",
   );
 
-export const checkM6ProofEvidence = async (rootDir: string) => {
-  const current = await collectM6ProofEvidence(rootDir);
+export const checkSceneRuntimeProofEvidence = async (rootDir: string) => {
+  const current = await collectSceneRuntimeProofEvidence(rootDir);
   const persistedBytes = await readFile(receiptPath(rootDir), "utf8");
-  const persisted = M6ProofEvidenceReceiptSchema.parse(
+  const persisted = SceneRuntimeProofEvidenceReceiptSchema.parse(
     JSON.parse(persistedBytes),
   );
   const expected = `${serializeCanonicalJson(current)}\n`;
@@ -296,7 +310,7 @@ export const checkM6ProofEvidence = async (rootDir: string) => {
     persistedBytes !== expected ||
     serializeCanonicalJson(persisted) !== serializeCanonicalJson(current)
   ) {
-    throw new Error("M6 proof evidence receipt bytes are stale.");
+    throw new Error("Scene runtime proof evidence receipt bytes are stale.");
   }
   return persisted;
 };
@@ -313,19 +327,19 @@ if (
     throw new Error("Expected exactly write or check.");
   }
   (command === "write"
-    ? collectM6ProofEvidence(process.cwd()).then(async (receipt) => {
-        await writeM6ProofEvidenceReceiptAtomic({
+    ? collectSceneRuntimeProofEvidence(process.cwd()).then(async (receipt) => {
+        await writeSceneRuntimeProofEvidenceReceiptAtomic({
           destination: receiptPath(process.cwd()),
           receipt,
         });
         return receipt;
       })
-    : checkM6ProofEvidence(process.cwd())
+    : checkSceneRuntimeProofEvidence(process.cwd())
   )
     .then((receipt) => process.stdout.write(`${receipt.evidenceFingerprint}\n`))
     .catch((error: unknown) => {
       process.stderr.write(
-        `${error instanceof Error ? error.message : "M6 evidence failed."}\n`,
+        `${error instanceof Error ? error.message : "Scene runtime evidence failed."}\n`,
       );
       process.exitCode = 1;
     });

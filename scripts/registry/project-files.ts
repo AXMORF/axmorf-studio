@@ -8,7 +8,7 @@ import {
   SealedNarrationManifestSchema,
   SemanticTimingSchema,
   STORY_SPEC_SCHEMA_VERSION,
-  validateM1ArtifactBundle,
+  validateNarrativeArtifactBundle,
 } from "../../src/contracts";
 import {
   createValidatedProjectRegistrationEntry,
@@ -181,7 +181,7 @@ export const loadProjectRegistrationEntry = async ({
   }
   const sealedNarration = SealedNarrationManifestSchema.parse(rawManifest);
   const semanticTiming = SemanticTimingSchema.parse(rawTiming);
-  const artifactBundle = validateM1ArtifactBundle({
+  const artifactBundle = validateNarrativeArtifactBundle({
     projectSource,
     sealedNarration,
     semanticTiming,

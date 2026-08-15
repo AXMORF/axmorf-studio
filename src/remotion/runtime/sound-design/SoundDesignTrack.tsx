@@ -1,11 +1,11 @@
 import { Fragment, type FC } from "react";
 
+import { SceneCoverageMapSchema } from "../../../contracts/scene-package";
 import {
-  SceneCoverageMapSchema,
   StoryIdSchema,
-  createFingerprint,
   type Sha256Digest,
-} from "../../../contracts";
+} from "../../../contracts/primitives";
+import { createFingerprint } from "../../../contracts/fingerprint";
 import {
   SceneSoundContribution,
   type SceneSoundProjection,

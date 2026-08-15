@@ -190,15 +190,19 @@ scripts/config/              private ProducerConfig 读写与迁移
 scripts/projects/configure.ts 新 Project 通用默认值冻结入口
 scripts/projects/application/ Project-local Scene template 实例化用例
 scripts/scene-templates/     repository-wide Scene template authoring 投影
-settings/                    配置、每 Project 最新 Run 进度与确认删除控制台
+settings/contracts/          配置页 API DTO 与运行时校验的单一权威
+settings/client/             browser-only React UI、feature components 与稳定 hooks
+settings/server/             本地同源 API、诊断与只读 Project 进度投影
 src/contracts/               strict、versioned、可执行 Zod 合同
 src/remotion/runtime/        固定、离线、frame-driven runtime
-src/remotion/capabilities/   已批准共享能力
+src/remotion/capabilities/visual-components/ 已批准视觉组件，按背景、图表、文字、布局和 Scene pattern 分组
+src/remotion/capabilities/scene-templates/    新 Project 可复制的 Scene template 权威
+proofs/scene-runtime/        与生产 src 隔离的 source、fixtures 与 evidence
 src/projects/<story>/        ignored 本地作品
 public/projects/<story>/     ignored Project 媒体；public/voice_profile 永远受保护
 .narration-work/<story>/     ignored 旁白候选与 provider progress
 .producer-runs/<runId>/      ignored immutable Run ledger 与 derived state
-public/assets/               bootstrap 可重建的 core proof 资产
+public/assets/               bootstrap 可重建的 core proof 与 Scene template 资产
 deliveries/<story>/          ignored 单一 current 非 MP4 包、intent、receipt 与异步 MP4 输出
 out/<story>/                 ignored baseline 媒体、诊断输出与 detached render 日志
 tests/                       单元、集成与架构回归

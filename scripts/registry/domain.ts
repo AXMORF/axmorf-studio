@@ -6,7 +6,7 @@ import {
   computeProjectRegistryEntryFingerprint,
   NARRATIVE_CORE_VERSION,
   PROJECT_REGISTRY_GENERATOR_ID,
-  type M1ArtifactBundle,
+  type NarrativeArtifactBundle,
   type ProjectRegistrationDescriptor,
   type Sha256Digest,
 } from "../../src/contracts";
@@ -23,7 +23,7 @@ export const createValidatedProjectRegistrationEntry = ({
   artifactBundle,
 }: {
   readonly descriptor: ProjectRegistrationDescriptor;
-  readonly artifactBundle: M1ArtifactBundle;
+  readonly artifactBundle: NarrativeArtifactBundle;
 }): ValidatedProjectRegistrationEntry => {
   const generatedEntryChecksum =
     computeGeneratedRegistryEntryChecksum(descriptor);

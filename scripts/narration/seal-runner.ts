@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { serializeCanonicalJson } from "../../src/contracts/fingerprint";
-import { validateM1ArtifactBundle } from "../../src/contracts/m1-validation";
+import { validateNarrativeArtifactBundle } from "../../src/contracts/narrative-artifact-bundle";
 import type { NarrativeProjectSource } from "../../src/contracts/project";
 import {
   SealedNarrationManifestSchema,
@@ -124,10 +124,7 @@ export const runNarrationSeal = async ({
     generatedDirectory,
     "sealed-narration.generated.json",
   );
-  const timingPath = join(
-    generatedDirectory,
-    "semantic-timing.generated.json",
-  );
+  const timingPath = join(generatedDirectory, "semantic-timing.generated.json");
   const lockPath = join(generatedDirectory, ".narration-seal.lock");
 
   return withProjectSealLock(
@@ -153,7 +150,7 @@ export const runNarrationSeal = async ({
         render: projectSource.render,
         sealedNarration: seal.manifest,
       });
-      validateM1ArtifactBundle({
+      validateNarrativeArtifactBundle({
         projectSource,
         sealedNarration: seal.manifest,
         semanticTiming: timing,

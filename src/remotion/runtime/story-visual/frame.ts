@@ -2,7 +2,7 @@ import {
   toSceneLocalFrame,
   toShotLocalFrame,
   type SceneLocalFrame,
-} from "../../../contracts";
+} from "../../../contracts/scene-primitives";
 
 export const resolveSceneLocalFrame = (
   compositionFrame: unknown,

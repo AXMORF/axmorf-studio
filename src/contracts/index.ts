@@ -12,7 +12,7 @@ export * from "./final-assembly";
 export * from "./generation-input";
 export * from "./global-sound";
 export * from "./global-visual";
-export * from "./m1-validation";
+export * from "./narrative-artifact-bundle";
 export * from "./mastered-narration";
 export * from "./narrative-baseline";
 export * from "./narration";

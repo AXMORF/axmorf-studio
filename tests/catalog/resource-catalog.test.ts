@@ -25,6 +25,7 @@ import {
   LOCAL_REFERENCE_ASSET_LICENSE_EVIDENCE_PATH,
   LOCAL_REFERENCE_ASSET_MANIFEST_PATH,
   loadCatalogAuthorityDescriptors,
+  loadCoreCatalogAuthorityDescriptors,
   loadLocalReferenceAssetDescriptors,
   loadProjectResourceDescriptors,
   validateAssetDescriptorFiles,
@@ -77,6 +78,22 @@ test("Catalog generation is byte-stable and descriptor order is canonical", asyn
   assert.equal(
     ResourceCatalogSchema.parse(first).catalogFingerprint,
     first.catalogFingerprint,
+  );
+});
+
+test("core proof catalog excludes local references and Project-owned descriptors", async () => {
+  const core = await loadCoreCatalogAuthorityDescriptors(repositoryRoot);
+  const coreIds = new Set(core.map(({ id }) => id));
+  assert.ok(
+    capabilityDescriptorDeclarations.every(({ id }) => coreIds.has(id)),
+  );
+  assert.ok(styleDescriptorDeclarations.every(({ id }) => coreIds.has(id)));
+  assert.ok(
+    core.every(
+      ({ authority }) =>
+        !authority.repositoryPath.startsWith("private/") &&
+        !authority.repositoryPath.startsWith("src/projects/"),
+    ),
   );
 });
 

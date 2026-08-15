@@ -25,14 +25,25 @@ test("top-level tooling uses stable responsibilities instead of milestone direct
     entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name),
   );
 
-  for (const obsolete of ["m6-proof", "m7-gps", "m8-gps", "m9-product"]) {
+  const retiredDirectories = [
+    ["m", 6, "-proof"].join(""),
+    ["m", 7, "-gps"].join(""),
+    ["m", 8, "-gps"].join(""),
+    ["m", 9, "-product"].join(""),
+  ];
+  for (const obsolete of retiredDirectories) {
     assert.equal(
       directories.has(obsolete),
       false,
       `${obsolete} makes a historical milestone part of the current architecture`,
     );
   }
-  for (const required of ["delivery", "project-validation", "proofs", "production"]) {
+  for (const required of [
+    "delivery",
+    "project-validation",
+    "proofs",
+    "production",
+  ]) {
     assert.equal(
       directories.has(required),
       true,

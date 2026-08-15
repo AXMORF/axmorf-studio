@@ -19,7 +19,7 @@ test("sampleFrameCount counts channel frames rather than interleaved samples", (
   assert.deepEqual(measureCanonicalPcmWav(wav).pcm, CANONICAL_NARRATION_PCM);
 });
 
-test("explicit pauses use M1 round-half-up sample conversion", () => {
+test("explicit pauses use round-half-up sample conversion", () => {
   assert.equal(createExplicitPausePcm(250).sampleFrameCount, 12_000);
   assert.equal(createExplicitPausePcm(300).sampleFrameCount, 14_400);
   assert.equal(createExplicitPausePcm(400).sampleFrameCount, 19_200);

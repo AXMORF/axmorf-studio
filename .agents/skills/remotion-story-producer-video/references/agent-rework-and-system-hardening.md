@@ -36,7 +36,7 @@ edit. A missing or stale value must fail closed, and the previous Run and immuta
 remain untouched.
 
 After an authorized seal replacement, the fixed narrative writer may replace one structurally valid
-but identity-stale M3 evidence receipt while rebuilding the baseline. Check-only evidence and project
+but identity-stale narrative baseline evidence receipt while rebuilding the baseline. Check-only evidence and project
 checks remain strict, malformed receipts never become replaceable input, and Agents never edit or
 delete the receipt to continue.
 

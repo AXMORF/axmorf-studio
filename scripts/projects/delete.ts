@@ -38,7 +38,7 @@ const PROJECT_DISCOVERY_ROOTS = [
   "deliveries",
 ] as const;
 
-const CORE_OUT_DIRECTORIES = new Set(["m6-scene-runtime-proof"]);
+const CORE_OUT_DIRECTORIES = new Set(["scene-runtime-proof"]);
 
 const usage =
   "Expected --project <storyId> [--project <storyId> ...] --confirm-delete or --all --confirm-delete.";

@@ -20,7 +20,7 @@ import {
 } from "../../src/contracts";
 import { writeProducerConfig } from "../../scripts/config/producer-config";
 import { runProjectConfigure } from "../../scripts/projects/configure";
-import { SCENE_TEMPLATE_DEFINITIONS } from "../../src/remotion/capabilities/scenes/registry";
+import { SCENE_TEMPLATE_DEFINITIONS } from "../../src/remotion/capabilities/scene-templates/registry";
 import { validProducerConfigInput } from "../contracts/producer-config.test";
 import { validStorySpec, validVideoBrief } from "../fixtures/narrative";
 
@@ -66,10 +66,7 @@ const copySceneTemplateInputs = async (rootDir: string) => {
   try {
     const localManifest = JSON.parse(
       await readFile(
-        join(
-          repositoryRoot,
-          "private/reference-assets/assets.manifest.json",
-        ),
+        join(repositoryRoot, "private/reference-assets/assets.manifest.json"),
         "utf8",
       ),
     ) as { readonly assets: readonly { readonly localPath: string }[] };
@@ -246,7 +243,7 @@ test("ProducerConfig freezes every production-connected default into one new Pro
   const frozenProjectTemplateSource = await readFile(projectTemplateSourcePath);
   const sharedTemplateSourcePath = join(
     rootDir,
-    "src/remotion/capabilities/scenes/templates/axmorf/AxmorfBrand.tsx",
+    "src/remotion/capabilities/scene-templates/axmorf/AxmorfBrand.tsx",
   );
   await writeFile(
     sharedTemplateSourcePath,

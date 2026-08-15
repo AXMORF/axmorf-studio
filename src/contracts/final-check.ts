@@ -294,13 +294,14 @@ const FinalV2CheckItemSchema = z
   .strict()
   .readonly();
 
-const FinalV2InputIdentitySchema = FinalInputIdentitySchema.unwrap().extend({
-  globalSoundPlanFingerprint: Sha256DigestSchema.nullable(),
-  finalSoundProjectionFingerprint: Sha256DigestSchema.nullable(),
-  globalVisualPlanFingerprint: Sha256DigestSchema.nullable(),
-  globalVisualProjectionFingerprint: Sha256DigestSchema.nullable(),
-  finalAssemblyFingerprint: Sha256DigestSchema.nullable(),
-})
+const FinalV2InputIdentitySchema = FinalInputIdentitySchema.unwrap()
+  .extend({
+    globalSoundPlanFingerprint: Sha256DigestSchema.nullable(),
+    finalSoundProjectionFingerprint: Sha256DigestSchema.nullable(),
+    globalVisualPlanFingerprint: Sha256DigestSchema.nullable(),
+    globalVisualProjectionFingerprint: Sha256DigestSchema.nullable(),
+    finalAssemblyFingerprint: Sha256DigestSchema.nullable(),
+  })
   .strict()
   .readonly();
 
@@ -370,28 +371,31 @@ const addFinalV2ReportIssues = (
       compositionAssemblyChecksum:
         report.inputIdentity.compositionAssemblyChecksum,
     },
-    checks: report.checks.slice(0, FINAL_MECHANICAL_CHECK_IDS.length) as z.infer<
-      typeof CheckItemSchema
-    >[],
+    checks: report.checks.slice(
+      0,
+      FINAL_MECHANICAL_CHECK_IDS.length,
+    ) as z.infer<typeof CheckItemSchema>[],
   };
   addFinalReportIssues(baseInput, context);
 
   if (report.aggregateStatus === "pass") {
-    const m8Identities = [
+    const assemblyIdentities = [
       report.inputIdentity.globalSoundPlanFingerprint,
       report.inputIdentity.finalSoundProjectionFingerprint,
       report.inputIdentity.globalVisualPlanFingerprint,
       report.inputIdentity.globalVisualProjectionFingerprint,
       report.inputIdentity.finalAssemblyFingerprint,
     ];
-    const m8Checks = report.checks.slice(FINAL_MECHANICAL_CHECK_IDS.length);
+    const assemblyChecks = report.checks.slice(
+      FINAL_MECHANICAL_CHECK_IDS.length,
+    );
     if (
-      m8Identities.some((identity) => identity === null) ||
-      m8Checks.some((check) => check.status !== "pass")
+      assemblyIdentities.some((identity) => identity === null) ||
+      assemblyChecks.some((check) => check.status !== "pass")
     ) {
       context.addIssue({
         code: "custom",
-        message: "Final v2 pass requires current M8 assembly identities.",
+        message: "Final v2 pass requires current Final assembly identities.",
         path: ["aggregateStatus"],
       });
     }
@@ -413,11 +417,11 @@ export const computeFinalMechanicalCheckV2ReportFingerprint = (
 };
 
 export const FinalMechanicalCheckV2ReportSchema =
-  FinalV2ReportInputObject.extend({reportFingerprint: Sha256DigestSchema})
+  FinalV2ReportInputObject.extend({ reportFingerprint: Sha256DigestSchema })
     .strict()
     .superRefine((report, context) => {
       addFinalV2ReportIssues(report, context);
-      const {reportFingerprint, ...input} = report;
+      const { reportFingerprint, ...input } = report;
       try {
         if (
           reportFingerprint !==

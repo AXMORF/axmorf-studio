@@ -3,7 +3,7 @@ import type { FC, ReactNode } from "react";
 import {
   ProductionReadabilityPolicySchema,
   type ProductionReadabilityPolicy,
-} from "../../../contracts";
+} from "../../../contracts/production-readability";
 import { SceneReadabilityProvider } from "./SceneReadability";
 
 export const SceneSafeArea: FC<

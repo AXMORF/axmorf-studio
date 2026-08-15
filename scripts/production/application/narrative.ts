@@ -3,17 +3,17 @@ import { mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
-  M3NarrativeBaselineEvidenceReceiptSchema,
+  NarrativeBaselineEvidenceReceiptSchema,
   NarrativeAutoCheckReportSchema,
   SemanticTimingSchema,
   Sha256DigestSchema,
   type ProductionRequirementsFreeze,
 } from "../../../src/contracts";
 import {
-  checkM3NarrativeBaselineEvidence,
-  resolveCurrentM3Entry,
-  resolveM3GeneratedRegistryChecksum,
-  writeM3NarrativeBaselineEvidence,
+  checkNarrativeBaselineEvidence,
+  resolveCurrentNarrativeBaselineEntry,
+  resolveNarrativeBaselineGeneratedRegistryChecksum,
+  writeNarrativeBaselineEvidence,
 } from "../../baseline/evidence";
 import {
   createDefaultGenerationDependencies,
@@ -236,15 +236,16 @@ export const createDefaultNarrativeProductionDependencies = ({
   },
   checkRegistry: async ({ rootDir, storyId }) => {
     await generateProjectRegistry({ rootDir, mode: "check" });
-    const entry = await resolveCurrentM3Entry(rootDir, storyId);
+    const entry = await resolveCurrentNarrativeBaselineEntry(rootDir, storyId);
     return {
       compositionId: entry.descriptor.id,
-      generatedRegistryChecksum: await resolveM3GeneratedRegistryChecksum({
-        rootDir,
-        storyId,
-        entry,
-        allowStaleEvidence: true,
-      }),
+      generatedRegistryChecksum:
+        await resolveNarrativeBaselineGeneratedRegistryChecksum({
+          rootDir,
+          storyId,
+          entry,
+          allowStaleEvidence: true,
+        }),
       projectRegistryEntryFingerprint: Sha256DigestSchema.parse(
         entry.projectRegistryEntryFingerprint,
       ),
@@ -283,9 +284,9 @@ export const createDefaultNarrativeProductionDependencies = ({
     }
     const outputDirectory = join(rootDir, "out", storyId);
     await mkdir(outputDirectory, { recursive: true });
-    const transparentStillPath = `out/${storyId}/m3-transparent-frame-0.png`;
-    const captionStillPath = `out/${storyId}/m3-caption-frame-${captionFrame}.png`;
-    const renderPath = `out/${storyId}/m3-narrative-baseline.mp4`;
+    const transparentStillPath = `out/${storyId}/narrative-baseline-transparent-frame-0.png`;
+    const captionStillPath = `out/${storyId}/narrative-baseline-caption-frame-${captionFrame}.png`;
+    const renderPath = `out/${storyId}/narrative-baseline.mp4`;
     const remotion = resolveProductionRemotionCommand(rootDir);
     for (const [label, args] of [
       [
@@ -327,7 +328,7 @@ export const createDefaultNarrativeProductionDependencies = ({
     };
   },
   writeEvidence: async ({ rootDir, storyId }) => {
-    const receipt = await writeM3NarrativeBaselineEvidence({
+    const receipt = await writeNarrativeBaselineEvidence({
       rootDir,
       storyId,
       runProcess,
@@ -335,8 +336,8 @@ export const createDefaultNarrativeProductionDependencies = ({
     return { evidenceFingerprint: receipt.evidenceFingerprint };
   },
   checkEvidence: async ({ rootDir, storyId }) => {
-    const receipt = M3NarrativeBaselineEvidenceReceiptSchema.parse(
-      await checkM3NarrativeBaselineEvidence({ rootDir, storyId, runProcess }),
+    const receipt = NarrativeBaselineEvidenceReceiptSchema.parse(
+      await checkNarrativeBaselineEvidence({ rootDir, storyId, runProcess }),
     );
     return { evidenceFingerprint: receipt.evidenceFingerprint };
   },
@@ -344,7 +345,11 @@ export const createDefaultNarrativeProductionDependencies = ({
     const report = NarrativeAutoCheckReportSchema.parse(
       await runProjectCheckCli(
         ["--project", storyId, "--level", "narrative", "--write-auto-check"],
-        { rootDir, runM3EvidenceProcess: runProcess, stdout: () => undefined },
+        {
+          rootDir,
+          runNarrativeBaselineEvidenceProcess: runProcess,
+          stdout: () => undefined,
+        },
       ),
     );
     return { reportFingerprint: report.reportFingerprint };
@@ -353,7 +358,7 @@ export const createDefaultNarrativeProductionDependencies = ({
     const report = NarrativeAutoCheckReportSchema.parse(
       await runProjectCheckCli(["--project", storyId, "--level", "narrative"], {
         rootDir,
-        runM3EvidenceProcess: runProcess,
+        runNarrativeBaselineEvidenceProcess: runProcess,
         stdout: () => undefined,
       }),
     );

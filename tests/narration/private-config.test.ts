@@ -143,7 +143,7 @@ test("safe fingerprints exclude endpoints tokens and absolute paths", async () =
   ]);
 });
 
-test("provider configuration changes fork the attempt but not M1 generation input", async () => {
+test("provider configuration changes fork the attempt but not narration generation input", async () => {
   const resolved = await resolveVoxcpmProfile({
     config: fixturePrivateConfig,
     narration,

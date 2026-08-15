@@ -109,7 +109,7 @@ test("delete arguments require an explicit selector and confirmation", () => {
   assert.throws(() =>
     parseProjectDeleteArguments([
       "--project",
-      "m6-scene-runtime-proof",
+      "scene-runtime-proof",
       "--confirm-delete",
     ]),
   );
@@ -131,13 +131,10 @@ test("selected deletion removes every owned data root and preserves other Projec
   const beta = await writeProjectData({ rootDir, projectId: "beta-story" });
   await mkdir(join(rootDir, "public/voice_profile"), { recursive: true });
   await writeFile(join(rootDir, "public/voice_profile/my_voice.m4a"), "voice");
-  await mkdir(join(rootDir, "out/m6-scene-runtime-proof"), {
+  await mkdir(join(rootDir, "out/scene-runtime-proof"), {
     recursive: true,
   });
-  await writeFile(
-    join(rootDir, "out/m6-scene-runtime-proof/proof.mp4"),
-    "core",
-  );
+  await writeFile(join(rootDir, "out/scene-runtime-proof/proof.mp4"), "core");
   await mkdir(join(rootDir, "out/orphan-story"), { recursive: true });
   await writeFile(join(rootDir, "out/orphan-story/render.log"), "orphan");
 
@@ -175,7 +172,7 @@ test("selected deletion removes every owned data root and preserves other Projec
   await access(join(rootDir, "src/projects/beta-story"));
   await access(beta.runRoot);
   await access(join(rootDir, "public/voice_profile/my_voice.m4a"));
-  await access(join(rootDir, "out/m6-scene-runtime-proof/proof.mp4"));
+  await access(join(rootDir, "out/scene-runtime-proof/proof.mp4"));
   await access(join(rootDir, "out/orphan-story/render.log"));
 });
 
@@ -258,13 +255,10 @@ test("all deletion discovers Projects across authority roots but preserves core 
     recursive: true,
     force: true,
   });
-  await mkdir(join(rootDir, "out/m6-scene-runtime-proof"), {
+  await mkdir(join(rootDir, "out/scene-runtime-proof"), {
     recursive: true,
   });
-  await writeFile(
-    join(rootDir, "out/m6-scene-runtime-proof/proof.mp4"),
-    "core",
-  );
+  await writeFile(join(rootDir, "out/scene-runtime-proof/proof.mp4"), "core");
   await mkdir(join(rootDir, "out/orphan-story"), { recursive: true });
   await writeFile(join(rootDir, "out/orphan-story/render.log"), "orphan");
 
@@ -287,7 +281,7 @@ test("all deletion discovers Projects across authority roots but preserves core 
   await missing(join(rootDir, "out/alpha-story"));
   await missing(join(rootDir, "out/beta-story"));
   await missing(join(rootDir, "out/orphan-story"));
-  await access(join(rootDir, "out/m6-scene-runtime-proof/proof.mp4"));
+  await access(join(rootDir, "out/scene-runtime-proof/proof.mp4"));
 });
 
 test("deletion identifies Project ownership without parsing obsolete Run contracts", async (context) => {

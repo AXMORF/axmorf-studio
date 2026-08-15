@@ -8,10 +8,14 @@
 
 ```text
 src/contracts/                 strict data contracts and pure fingerprints
-settings/                      config, per-Project latest-Run projection and confirmed Project deletion console
+settings/contracts/            shared API DTO and runtime validation authority
+settings/client/               browser-only React features, hooks and styles
+settings/server/               same-origin local API, diagnostics and read-only progress projection
 scripts/config/                private config read/write/migration boundary
 src/remotion/runtime/          offline frame-driven render runtime
-src/remotion/capabilities/     explicitly promoted shared capabilities
+src/remotion/capabilities/visual-components explicitly promoted visual components
+src/remotion/capabilities/scene-templates approved copy-on-configure Scene templates
+proofs/scene-runtime/          isolated proof source, generated fixtures and evidence
 src/projects/<story>/          ignored project-local source and generated authority
 scripts/production/cli.ts      fixed CLI dispatch only
 scripts/production/application use-case orchestration
@@ -36,6 +40,9 @@ CLI 入口保持薄；用例编排、纯规则和 external I/O 不平铺混合�
 production/delivery scripts 或外部系统。`scripts/shared/` 只接纳无业务语义的窄接口与宿主适配器，
 不得成为跨模块 service locator；`tests/architecture/script-layering.test.ts` 执行检查 domain、
 application、adapter、Project template instantiation、Scene template projection 与跨流程依赖方向。
+settings client 不依赖 Node、scripts 或 server；progress server 只消费 production/delivery 的只读
+application query，不直接读取它们的 filesystem adapters。`proofs/` 不进入正常 Root/Registry，
+其中 `source/`、`fixtures/`、`evidence/` 分别承担可执行证明、生成输入快照和真实媒体证据。
 
 ## Authority graph
 
@@ -127,7 +134,7 @@ StorySpec v3 把 `narrated-scene` 与 `silent-scene` 作为严格联合。首尾
 不存在专用 Intro/Outro package、boundary sound track 或顶层 shell。silent preset 不保存位置 role，
 只绑定视觉意图、音效意图、固定帧数、资源 ID 与 fingerprint，SemanticTiming 按 StoryBeat 顺序把它们
 与 sealed PCM narrated windows 解析为连续全片时间轴。ProducerConfig 的首尾字段只是业务选择；
-`project:configure` 从 `src/remotion/capabilities/scenes/templates/` 复制完整源码与资源到 Project-local
+`project:configure` 从 `src/remotion/capabilities/scene-templates/` 复制完整源码与资源到 Project-local
 Scene 并冻结 `template-copy` instance。freeze 不回读共享模板，只机械投影 plans、校验并直接 submit；
 共享模板后续变化不会传递到既有 Project。Composition exactly once 提供
 SceneSafeArea、NarrativeCore、CaptionLayer、GlobalVisual background 与 Scene track。Scene renderer
@@ -207,7 +214,7 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
 
 新 Scene 能力默认留在 project-local。移入 `src/remotion/capabilities/` 必须先有具体、
 fingerprint-bound promotion proposal，并获得用户对范围、API、文件与目标路径的明确授权。
-`src/remotion/capabilities/scenes/templates/` 保存可供新 Project 复制的已批准 Scene template；它不是
+`src/remotion/capabilities/scene-templates/` 保存可供新 Project 复制的已批准 Scene template；它不是
 既有 Project 的 runtime dependency。模板 Renderer 不挂载音频；可选 ignored 本地覆盖只在 bootstrap
 由 `scripts/scene-templates/` 独立生成 `scene-template-audio.generated.json` authoring 投影，并在
 `project:configure` 时由 `scripts/projects/application/` 把已校验的

@@ -19,7 +19,7 @@ import {
 } from "../../scripts/renderer-registry/domain";
 import { generateRendererRegistry } from "../../scripts/renderer-registry/generate";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
-import { createM6PackageInput } from "../fixtures/scene/m6-package-input";
+import { createScenePackageInput } from "../fixtures/scene/package-input";
 
 const write = async (root: string, path: string, source: string) => {
   await mkdir(dirname(join(root, path)), { recursive: true });
@@ -53,7 +53,7 @@ const prepare = async () => {
     projectId: "synthetic-proof",
     rendererPath,
   });
-  const packageInput = createM6PackageInput();
+  const packageInput = createScenePackageInput();
   packageInput.rendererBinding.rendererSourceFingerprint =
     graph.sourceGraphFingerprint;
   packageInput.current.rendererSourceFingerprint = graph.sourceGraphFingerprint;

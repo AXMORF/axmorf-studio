@@ -2,9 +2,9 @@ import { z } from "zod";
 
 import { createFingerprint } from "./fingerprint";
 import {
-  type M1ArtifactBundle,
-  validateM1ArtifactBundle,
-} from "./m1-validation";
+  type NarrativeArtifactBundle,
+  validateNarrativeArtifactBundle,
+} from "./narrative-artifact-bundle";
 import {
   CompositionIdSchema,
   NonNegativeIntegerSchema,
@@ -25,7 +25,7 @@ import { getStoryCompositionDurationInFrames } from "./story-composition";
 export const PROJECT_REGISTRY_GENERATOR_ID =
   "project-registry-generator-v1" as const;
 export const NARRATIVE_CORE_VERSION = "narrative-core-v2" as const;
-export const M3_EVIDENCE_SCHEMA_VERSION = 1 as const;
+export const NARRATIVE_BASELINE_EVIDENCE_SCHEMA_VERSION = 2 as const;
 
 const CompositionModulePathSchema = z
   .string()
@@ -148,11 +148,11 @@ export const computeProjectRegistryEntryFingerprint = (input: {
 };
 
 export const computeNarrativeBaselineFingerprint = (input: {
-  readonly artifactBundle: M1ArtifactBundle;
+  readonly artifactBundle: NarrativeArtifactBundle;
   readonly projectRegistryEntryFingerprint: Sha256Digest;
   readonly narrativeCoreVersion: typeof NARRATIVE_CORE_VERSION;
 }): Sha256Digest => {
-  const artifactBundle = validateM1ArtifactBundle(input.artifactBundle);
+  const artifactBundle = validateNarrativeArtifactBundle(input.artifactBundle);
   const projectRegistryEntryFingerprint = Sha256DigestSchema.parse(
     input.projectRegistryEntryFingerprint,
   );
@@ -217,7 +217,7 @@ const EvidenceArtifactsSchema = z
 
 const EvidenceReceiptInputObject = z
   .object({
-    schemaVersion: z.literal(M3_EVIDENCE_SCHEMA_VERSION),
+    schemaVersion: z.literal(NARRATIVE_BASELINE_EVIDENCE_SCHEMA_VERSION),
     storyId: StoryIdSchema,
     compositionId: CompositionIdSchema,
     sealedNarrationFingerprint: Sha256DigestSchema,
@@ -235,9 +235,9 @@ const addEvidencePathIssues = (
 ) => {
   const prefix = `out/${receipt.storyId}/`;
   const expectedPaths = {
-    transparentStill: `${prefix}m3-transparent-frame-0.png`,
-    captionStill: `${prefix}m3-caption-frame-${receipt.artifacts.captionStill.frame}.png`,
-    render: `${prefix}m3-narrative-baseline.mp4`,
+    transparentStill: `${prefix}narrative-baseline-transparent-frame-0.png`,
+    captionStill: `${prefix}narrative-baseline-caption-frame-${receipt.artifacts.captionStill.frame}.png`,
+    render: `${prefix}narrative-baseline.mp4`,
   } as const;
   for (const [artifact, expectedPath] of Object.entries(expectedPaths)) {
     const actualPath =
@@ -262,23 +262,23 @@ const addEvidencePathIssues = (
   }
 };
 
-export const M3NarrativeBaselineEvidenceReceiptInputSchema =
+export const NarrativeBaselineEvidenceReceiptInputSchema =
   EvidenceReceiptInputObject.superRefine(addEvidencePathIssues).readonly();
 
-export type M3NarrativeBaselineEvidenceReceiptInput = z.infer<
-  typeof M3NarrativeBaselineEvidenceReceiptInputSchema
+export type NarrativeBaselineEvidenceReceiptInput = z.infer<
+  typeof NarrativeBaselineEvidenceReceiptInputSchema
 >;
 
-export const computeM3EvidenceFingerprint = (
-  input: M3NarrativeBaselineEvidenceReceiptInput,
+export const computeNarrativeBaselineEvidenceFingerprint = (
+  input: NarrativeBaselineEvidenceReceiptInput,
 ): Sha256Digest =>
   createFingerprint({
-    namespace: "m3-narrative-baseline-evidence",
-    version: 1,
+    namespace: "narrative-baseline-evidence",
+    version: 2,
     value: input,
   });
 
-export const M3NarrativeBaselineEvidenceReceiptSchema =
+export const NarrativeBaselineEvidenceReceiptSchema =
   EvidenceReceiptInputObject.extend({
     evidenceFingerprint: Sha256DigestSchema,
   })
@@ -286,16 +286,19 @@ export const M3NarrativeBaselineEvidenceReceiptSchema =
     .superRefine((receipt, context) => {
       addEvidencePathIssues(receipt, context);
       const { evidenceFingerprint, ...input } = receipt;
-      if (computeM3EvidenceFingerprint(input) !== evidenceFingerprint) {
+      if (
+        computeNarrativeBaselineEvidenceFingerprint(input) !==
+        evidenceFingerprint
+      ) {
         context.addIssue({
           code: "custom",
-          message: "M3 evidence fingerprint is stale.",
+          message: "Narrative baseline evidence fingerprint is stale.",
           path: ["evidenceFingerprint"],
         });
       }
     })
     .readonly();
 
-export type M3NarrativeBaselineEvidenceReceipt = z.infer<
-  typeof M3NarrativeBaselineEvidenceReceiptSchema
+export type NarrativeBaselineEvidenceReceipt = z.infer<
+  typeof NarrativeBaselineEvidenceReceiptSchema
 >;

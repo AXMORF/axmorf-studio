@@ -19,7 +19,7 @@ import {
 import { buildResourceCatalog } from "../../scripts/catalog/domain";
 import { loadDeliveryAssetAttributions } from "../../scripts/delivery/application/asset-attributions";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
-import { createM6PackageInput } from "../fixtures/scene/m6-package-input";
+import { createScenePackageInput } from "../fixtures/scene/package-input";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
@@ -186,7 +186,7 @@ test("delivery loader reads only render-plan-bound Scene and GlobalVisual packag
   });
   const catalog = buildResourceCatalog([used, unused]);
   const selectedResource = selected(used, catalog.catalogFingerprint);
-  const basePackage = buildScenePackage(createM6PackageInput());
+  const basePackage = buildScenePackage(createScenePackageInput());
   const patchedBase = {
     ...basePackage,
     resourceCatalogFingerprint: catalog.catalogFingerprint,

@@ -8,7 +8,7 @@ import {
   NarrationSpecSchema,
   RenderSpecSchema,
   StorySpecSchema,
-  validateM1ArtifactBundle,
+  validateNarrativeArtifactBundle,
 } from "../../src/contracts";
 import {
   buildValidSealedNarrationManifest,
@@ -32,9 +32,10 @@ const buildBundle = () => {
   return { projectSource: validProjectSource, sealedNarration, semanticTiming };
 };
 
-test("M1 aggregate accepts a mutually matching source, seal, and timing set", () => {
+test("Narrative artifact bundle accepts a mutually matching source, seal, and timing set", () => {
   assert.equal(
-    validateM1ArtifactBundle(buildBundle()).semanticTiming.durationInFrames,
+    validateNarrativeArtifactBundle(buildBundle()).semanticTiming
+      .durationInFrames,
     96,
   );
 });
@@ -59,13 +60,13 @@ test("ttsText and voice-profile changes invalidate generation and all sealed dow
     bundle.sealedNarration.generationInputFingerprint,
   );
   assert.throws(() =>
-    validateM1ArtifactBundle({
+    validateNarrativeArtifactBundle({
       ...bundle,
       projectSource: { ...validProjectSource, story: changedStory },
     }),
   );
   assert.throws(() =>
-    validateM1ArtifactBundle({
+    validateNarrativeArtifactBundle({
       ...bundle,
       projectSource: {
         ...validProjectSource,
@@ -115,7 +116,7 @@ test("pause changes retain generation input but invalidate sealed narration and 
     currentFingerprint,
   );
   assert.throws(() =>
-    validateM1ArtifactBundle({
+    validateNarrativeArtifactBundle({
       ...bundle,
       projectSource: { ...validProjectSource, story: changedPauseStory },
     }),
@@ -144,7 +145,7 @@ test("RenderSpec timing changes invalidate timing while non-timing fields do not
   assert.equal(changedLocale.fingerprint, bundle.semanticTiming.fingerprint);
   assert.notEqual(changedLeadIn.fingerprint, bundle.semanticTiming.fingerprint);
   assert.doesNotThrow(() =>
-    validateM1ArtifactBundle({
+    validateNarrativeArtifactBundle({
       ...bundle,
       projectSource: {
         ...validProjectSource,
@@ -153,7 +154,7 @@ test("RenderSpec timing changes invalidate timing while non-timing fields do not
     }),
   );
   assert.throws(() =>
-    validateM1ArtifactBundle({
+    validateNarrativeArtifactBundle({
       ...bundle,
       projectSource: {
         ...validProjectSource,

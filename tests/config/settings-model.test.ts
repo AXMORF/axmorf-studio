@@ -10,7 +10,7 @@ import {
   selectProviderAndVoice,
   removeVoiceProfile,
   type EditableTtsConfig,
-} from "../../settings/src/model";
+} from "../../settings/client/model";
 
 test("an interrupted deletion request is reported as ambiguous rather than failed", () => {
   assert.match(

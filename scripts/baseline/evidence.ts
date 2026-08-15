@@ -5,17 +5,18 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import {
-  computeM3EvidenceFingerprint,
+  computeNarrativeBaselineEvidenceFingerprint,
   CompositionIdSchema,
   getStoryCompositionDurationInFrames,
-  M3NarrativeBaselineEvidenceReceiptInputSchema,
-  M3NarrativeBaselineEvidenceReceiptSchema,
+  NARRATIVE_BASELINE_EVIDENCE_SCHEMA_VERSION,
+  NarrativeBaselineEvidenceReceiptInputSchema,
+  NarrativeBaselineEvidenceReceiptSchema,
   SealedNarrationManifestSchema,
   SemanticTimingSchema,
   Sha256DigestSchema,
   StoryIdSchema,
-  type M3NarrativeBaselineEvidenceReceipt,
-  type M3NarrativeBaselineEvidenceReceiptInput,
+  type NarrativeBaselineEvidenceReceipt,
+  type NarrativeBaselineEvidenceReceiptInput,
 } from "../../src/contracts";
 import { writeJsonAtomic } from "../narration/adapters/atomic-files";
 import { generateProjectRegistry } from "../registry/generate";
@@ -204,13 +205,13 @@ export const inspectBaselineRender = async (
   };
 };
 
-export const createM3EvidenceReceipt = (
-  rawInput: M3NarrativeBaselineEvidenceReceiptInput,
-): M3NarrativeBaselineEvidenceReceipt => {
-  const input = M3NarrativeBaselineEvidenceReceiptInputSchema.parse(rawInput);
-  return M3NarrativeBaselineEvidenceReceiptSchema.parse({
+export const createNarrativeBaselineEvidenceReceipt = (
+  rawInput: NarrativeBaselineEvidenceReceiptInput,
+): NarrativeBaselineEvidenceReceipt => {
+  const input = NarrativeBaselineEvidenceReceiptInputSchema.parse(rawInput);
+  return NarrativeBaselineEvidenceReceiptSchema.parse({
     ...input,
-    evidenceFingerprint: computeM3EvidenceFingerprint(input),
+    evidenceFingerprint: computeNarrativeBaselineEvidenceFingerprint(input),
   });
 };
 
@@ -233,10 +234,10 @@ const sortJsonValue = (value: unknown): unknown => {
   return value;
 };
 
-const serializeReceipt = (receipt: M3NarrativeBaselineEvidenceReceipt) =>
+const serializeReceipt = (receipt: NarrativeBaselineEvidenceReceipt) =>
   `${JSON.stringify(sortJsonValue(receipt), null, 2)}\n`;
 
-export const resolveCurrentM3Entry = async (
+export const resolveCurrentNarrativeBaselineEntry = async (
   rootDir: string,
   rawStoryId: string,
 ) => {
@@ -254,7 +255,7 @@ export const resolveCurrentM3Entry = async (
   });
 };
 
-export const resolveM3GeneratedRegistryChecksum = async ({
+export const resolveNarrativeBaselineGeneratedRegistryChecksum = async ({
   rootDir,
   storyId,
   entry,
@@ -270,7 +271,7 @@ export const resolveM3GeneratedRegistryChecksum = async ({
     `src/projects/${storyId}/generated/narrative-baseline-evidence.generated.json`,
   );
   try {
-    const currentReceipt = M3NarrativeBaselineEvidenceReceiptSchema.parse(
+    const currentReceipt = NarrativeBaselineEvidenceReceiptSchema.parse(
       JSON.parse(await readFile(currentReceiptPath, "utf8")),
     );
     if (
@@ -282,7 +283,7 @@ export const resolveM3GeneratedRegistryChecksum = async ({
     ) {
       if (allowStaleEvidence) return entry.generatedEntryChecksum;
       throw new Error(
-        "Current M3 evidence identity is stale against its registry entry.",
+        "Current Narrative baseline evidence identity is stale against its registry entry.",
       );
     }
     return currentReceipt.generatedRegistryChecksum;
@@ -292,7 +293,7 @@ export const resolveM3GeneratedRegistryChecksum = async ({
   }
 };
 
-export const collectCurrentM3NarrativeBaselineEvidence = async ({
+export const collectCurrentNarrativeBaselineEvidence = async ({
   rootDir,
   storyId: rawStoryId,
   runProcess = defaultProcessRunner,
@@ -302,9 +303,9 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
   readonly storyId: string;
   readonly runProcess?: ProcessRunner;
   readonly allowStaleEvidence?: boolean;
-}): Promise<M3NarrativeBaselineEvidenceReceipt> => {
+}): Promise<NarrativeBaselineEvidenceReceipt> => {
   const storyId = StoryIdSchema.parse(rawStoryId);
-  const entry = await resolveCurrentM3Entry(rootDir, storyId);
+  const entry = await resolveCurrentNarrativeBaselineEntry(rootDir, storyId);
 
   const timingPath =
     `src/projects/${storyId}/generated/semantic-timing.generated.json` as const;
@@ -315,16 +316,18 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
     (cue) => cue.text.trim().length > 0 && cue.endFrame > cue.startFrame,
   );
   if (firstCaption === undefined) {
-    throw new Error("M3 evidence requires one visible CaptionCue.");
+    throw new Error(
+      "Narrative baseline evidence requires one visible CaptionCue.",
+    );
   }
   const captionFrame = firstCaption.startFrame;
 
   const paths = {
     manifest: `src/projects/${storyId}/generated/sealed-narration.generated.json`,
     timing: timingPath,
-    transparentStill: `out/${storyId}/m3-transparent-frame-0.png`,
-    captionStill: `out/${storyId}/m3-caption-frame-${captionFrame}.png`,
-    render: `out/${storyId}/m3-narrative-baseline.mp4`,
+    transparentStill: `out/${storyId}/narrative-baseline-transparent-frame-0.png`,
+    captionStill: `out/${storyId}/narrative-baseline-caption-frame-${captionFrame}.png`,
+    render: `out/${storyId}/narrative-baseline.mp4`,
     receipt: `src/projects/${storyId}/generated/narrative-baseline-evidence.generated.json`,
   } as const;
   const absolute = (path: string) => join(rootDir, path);
@@ -355,14 +358,17 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
     getStoryCompositionDurationInFrames(semanticTiming.durationInFrames) !==
       entry.descriptor.durationInFrames
   ) {
-    throw new Error("M3 evidence inputs are stale against ProjectRegistry.");
+    throw new Error(
+      "Narrative baseline evidence inputs are stale against ProjectRegistry.",
+    );
   }
-  const generatedRegistryChecksum = await resolveM3GeneratedRegistryChecksum({
-    rootDir,
-    storyId,
-    entry,
-    allowStaleEvidence,
-  });
+  const generatedRegistryChecksum =
+    await resolveNarrativeBaselineGeneratedRegistryChecksum({
+      rootDir,
+      storyId,
+      entry,
+      allowStaleEvidence,
+    });
   const [transparentAlpha, captionAlpha, renderFacts] = await Promise.all([
     inspectAlphaStill(absolute(paths.transparentStill), runProcess),
     inspectAlphaStill(absolute(paths.captionStill), runProcess, true),
@@ -372,8 +378,8 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
     }),
   ]);
 
-  const receipt = createM3EvidenceReceipt({
-    schemaVersion: 1,
+  const receipt = createNarrativeBaselineEvidenceReceipt({
+    schemaVersion: NARRATIVE_BASELINE_EVIDENCE_SCHEMA_VERSION,
     storyId: sealedNarration.storyId,
     compositionId: CompositionIdSchema.parse(entry.descriptor.id),
     sealedNarrationFingerprint: sealedNarration.sealedNarrationFingerprint,
@@ -411,7 +417,7 @@ export const collectCurrentM3NarrativeBaselineEvidence = async ({
   return receipt;
 };
 
-export const checkM3NarrativeBaselineEvidence = async ({
+export const checkNarrativeBaselineEvidence = async ({
   rootDir,
   storyId,
   runProcess = defaultProcessRunner,
@@ -419,8 +425,8 @@ export const checkM3NarrativeBaselineEvidence = async ({
   readonly rootDir: string;
   readonly storyId: string;
   readonly runProcess?: ProcessRunner;
-}): Promise<M3NarrativeBaselineEvidenceReceipt> => {
-  const current = await collectCurrentM3NarrativeBaselineEvidence({
+}): Promise<NarrativeBaselineEvidenceReceipt> => {
+  const current = await collectCurrentNarrativeBaselineEvidence({
     rootDir,
     storyId,
     runProcess,
@@ -433,30 +439,37 @@ export const checkM3NarrativeBaselineEvidence = async ({
   try {
     persistedBytes = await readFile(receiptPath);
   } catch (error) {
-    throw new Error("M3 evidence receipt is missing or unreadable.", {
-      cause: error,
-    });
+    throw new Error(
+      "Narrative baseline evidence receipt is missing or unreadable.",
+      {
+        cause: error,
+      },
+    );
   }
   let rawPersisted: unknown;
   try {
     rawPersisted = JSON.parse(persistedBytes.toString("utf8"));
   } catch (error) {
-    throw new Error("M3 evidence receipt contains malformed JSON.", {
-      cause: error,
-    });
+    throw new Error(
+      "Narrative baseline evidence receipt contains malformed JSON.",
+      {
+        cause: error,
+      },
+    );
   }
-  const persisted =
-    M3NarrativeBaselineEvidenceReceiptSchema.parse(rawPersisted);
+  const persisted = NarrativeBaselineEvidenceReceiptSchema.parse(rawPersisted);
   if (
     persistedBytes.toString("utf8") !== serializeReceipt(current) ||
     serializeReceipt(persisted) !== serializeReceipt(current)
   ) {
-    throw new Error("M3 evidence receipt drift: persisted bytes are stale.");
+    throw new Error(
+      "Narrative baseline evidence receipt drift: persisted bytes are stale.",
+    );
   }
   return persisted;
 };
 
-export const writeM3NarrativeBaselineEvidence = async ({
+export const writeNarrativeBaselineEvidence = async ({
   rootDir,
   storyId,
   runProcess = defaultProcessRunner,
@@ -464,8 +477,8 @@ export const writeM3NarrativeBaselineEvidence = async ({
   readonly rootDir: string;
   readonly storyId: string;
   readonly runProcess?: ProcessRunner;
-}): Promise<M3NarrativeBaselineEvidenceReceipt> => {
-  const receipt = await collectCurrentM3NarrativeBaselineEvidence({
+}): Promise<NarrativeBaselineEvidenceReceipt> => {
+  const receipt = await collectCurrentNarrativeBaselineEvidence({
     rootDir,
     storyId,
     runProcess,
@@ -502,7 +515,7 @@ export const runBaselineEvidenceCli = async (
     throw new Error("Expected exactly --project <project slug>.");
   }
   const storyId = args[1] ?? "";
-  const receipt = await writeM3NarrativeBaselineEvidence({
+  const receipt = await writeNarrativeBaselineEvidence({
     rootDir: context.rootDir,
     storyId,
     runProcess: context.runProcess,

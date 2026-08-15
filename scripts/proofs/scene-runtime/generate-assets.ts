@@ -2,7 +2,9 @@ import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const PROOF_SHAPE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 380" role="img" aria-label="M6 deterministic proof shape">
+import { SCENE_RUNTIME_PROOF_IDENTITY } from "../../../proofs/scene-runtime/identity";
+
+const PROOF_SHAPE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 380" role="img" aria-label="Scene runtime deterministic proof shape">
   <rect width="560" height="380" rx="28" fill="#08111f"/>
   <path d="M112 252 L210 104 L292 202 L360 128 L448 252 Z" fill="#22d3ee" opacity="0.88"/>
   <circle cx="280" cy="190" r="112" fill="none" stroke="#f8fafc" stroke-width="12"/>
@@ -93,7 +95,8 @@ const writeBytesAtomic = async (
       throw new Error("Scene runtime proof asset bytes are stale.");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    if (mode === "check") throw new Error("M6 proof asset is missing.");
+    if (mode === "check")
+      throw new Error("Scene runtime proof asset is missing.");
   }
   await mkdir(dirname(destination), { recursive: true });
   const temporary = `${destination}.tmp-${process.pid}`;
@@ -111,7 +114,7 @@ const writeBytesAtomic = async (
   }
 };
 
-export const generateM6ProofAssets = async ({
+export const generateSceneRuntimeProofAssets = async ({
   rootDir,
   mode,
 }: {
@@ -120,12 +123,12 @@ export const generateM6ProofAssets = async ({
 }) => {
   await Promise.all([
     writeBytesAtomic(
-      join(rootDir, "public/assets/library/m6-scene-runtime/proof-pulse.wav"),
+      join(rootDir, SCENE_RUNTIME_PROOF_IDENTITY.publicAssetPaths.pulse),
       createPulseWav(),
       mode,
     ),
     writeBytesAtomic(
-      join(rootDir, "public/assets/library/m6-scene-runtime/proof-shape.svg"),
+      join(rootDir, SCENE_RUNTIME_PROOF_IDENTITY.publicAssetPaths.shape),
       Uint8Array.from(Buffer.from(PROOF_SHAPE_SVG, "utf8")),
       mode,
     ),
@@ -165,12 +168,13 @@ if (
   ) {
     throw new Error("Expected exactly write or check.");
   }
-  generateM6ProofAssets({ rootDir: process.cwd(), mode: command }).catch(
-    (error: unknown) => {
-      process.stderr.write(
-        `${error instanceof Error ? error.message : "M6 asset generation failed."}\n`,
-      );
-      process.exitCode = 1;
-    },
-  );
+  generateSceneRuntimeProofAssets({
+    rootDir: process.cwd(),
+    mode: command,
+  }).catch((error: unknown) => {
+    process.stderr.write(
+      `${error instanceof Error ? error.message : "Scene runtime asset generation failed."}\n`,
+    );
+    process.exitCode = 1;
+  });
 }

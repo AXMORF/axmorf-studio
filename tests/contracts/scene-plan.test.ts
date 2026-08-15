@@ -8,10 +8,10 @@ import {
   resolveSceneSoundCues,
   validateScenePlanBundle,
 } from "../../src/contracts/scene-plan";
-import { createM6ScenePlans, sha } from "../fixtures/scene/m6-scene-input";
+import { createScenePlans, sha } from "../fixtures/scene/scene-input";
 
 test("visual Shot anchor and explicit empty sound plans form one strict 120-frame Scene", () => {
-  const { anchors, shots, sound, task, visual } = createM6ScenePlans();
+  const { anchors, shots, sound, task, visual } = createScenePlans();
   assert.deepEqual(
     visual.orderedShotIds,
     shots.shots.map((shot) => shot.shotId),
@@ -36,7 +36,7 @@ test("visual Shot anchor and explicit empty sound plans form one strict 120-fram
 });
 
 test("ShotPlanSet rejects duplicate unordered empty and out-of-window primary ranges", () => {
-  const { shots } = createM6ScenePlans();
+  const { shots } = createScenePlans();
   const shot = shots.shots[0];
   for (const mutation of [
     { ...shots, shots: [shot, shot] },
@@ -55,7 +55,7 @@ test("ShotPlanSet rejects duplicate unordered empty and out-of-window primary ra
 });
 
 test("Shot plans cannot own renderer caption narration chunk or module identities", () => {
-  const { shots } = createM6ScenePlans();
+  const { shots } = createScenePlans();
   for (const forbidden of [
     "rendererId",
     "component",
@@ -73,8 +73,8 @@ test("Shot plans cannot own renderer caption narration chunk or module identitie
   }
 });
 
-test("Scene-local sound resolves anchor xor explicit frame without clamp or M8 fields", () => {
-  const { anchors, task } = createM6ScenePlans();
+test("Scene-local sound resolves anchor xor explicit frame without clamp or final-assembly fields", () => {
+  const { anchors, task } = createScenePlans();
   const ambience = {
     schemaVersion: 1,
     resourceId: "asset.proof-ambience",

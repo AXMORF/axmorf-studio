@@ -14,7 +14,7 @@
 - `generated/sealed-narration.generated.json` → `SealedNarrationManifestSchema`
 - `generated/semantic-timing.generated.json` → `SemanticTimingSchema`
 - `generated/narrative-baseline-evidence.generated.json` →
-  `M3NarrativeBaselineEvidenceReceiptSchema`
+  `NarrativeBaselineEvidenceReceiptSchema`
 - `generated/narrative-auto-check.generated.json` → `NarrativeAutoCheckReportSchema`
 
 The first five files are authored source/review inputs; the four `generated/` files are derived
@@ -65,9 +65,12 @@ values, and hashes a domain-separated `{namespace, value, version}` envelope as 
 Narrative Baseline adds a generated-entry checksum, ProjectRegistry entry fingerprint and baseline
 fingerprint. The identity binds StorySpec, RenderSpec, sealed narration, SemanticTiming,
 registry-entry identity and `narrative-core-v2`. Baseline evidence then adds exact transparent PNG and
-full-render checksums without changing the upstream identity.
+full-render checksums without changing the upstream identity. The current evidence receipt is schema v2;
+its semantic artifact paths are `narrative-baseline-transparent-frame-0.png`,
+`narrative-baseline-caption-frame-<frame>.png` and `narrative-baseline.mp4`, and its fingerprint namespace
+is `narrative-baseline-evidence` version 2.
 
-`narrative-auto-check-v2` binds the complete strict report body, including current source/StoryCheck,
+`narrative-auto-check-v3` uses report schema v2 and binds the complete strict report body, including current source/StoryCheck,
 seal, content-addressed mastered narration, timing, registry/baseline/evidence identities, fixed
 evidence checksums and the ordered mechanical results. Unknown fields fail closed.
 
@@ -144,7 +147,7 @@ current registry, lazy Composition metadata, transparent PNG facts, render facts
 fingerprint.
 
 `project:check` aggregates `source-contracts`, `story-check`, `sealed-narration`,
-`semantic-timing`, `project-registry`, `narrative-baseline` and `m3-evidence`, in that order. Default mode
+`semantic-timing`, `project-registry`, `narrative-baseline` and `baseline-evidence`, in that order. Default mode
 recomputes read-only and rejects a missing, malformed or byte-drifted persisted AutoCheck. The optional
 `--write-auto-check` atomically writes only a passing report and skips unchanged bytes so checksum and
 mtime remain stable. Failed checks never overwrite the last valid report. The checker does not implement

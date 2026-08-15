@@ -22,7 +22,7 @@ const declarations = [
     description: "Approved chart rendering entrypoint",
     tags: ["chart", "shared"],
     exportName: "LineChart",
-    sourceFile: "src/remotion/capabilities/primitives/index.ts",
+    sourceFile: "src/remotion/capabilities/visual-components/index.ts",
   },
   {
     id: "capability.effects",
@@ -38,7 +38,7 @@ const declarations = [
     description: "Approved composition layout entrypoint",
     tags: ["layout", "shared"],
     exportName: "CalloutGrid",
-    sourceFile: "src/remotion/capabilities/primitives/index.ts",
+    sourceFile: "src/remotion/capabilities/visual-components/index.ts",
   },
   {
     id: "capability.media",
@@ -57,12 +57,12 @@ const declarations = [
     sourceFile: "src/remotion/capabilities/motion/index.ts",
   },
   {
-    id: "capability.primitives",
-    title: "Visual primitives",
-    description: "Approved visual primitive entrypoint",
-    tags: ["primitives", "shared"],
+    id: "capability.visual-components",
+    title: "Visual components",
+    description: "Approved visual component entrypoint",
+    tags: ["shared", "visual-components"],
     exportName: "AnimatedText",
-    sourceFile: "src/remotion/capabilities/primitives/index.ts",
+    sourceFile: "src/remotion/capabilities/visual-components/index.ts",
   },
   {
     id: "capability.sound",

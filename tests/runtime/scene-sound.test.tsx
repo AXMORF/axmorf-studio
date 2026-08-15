@@ -18,9 +18,9 @@ import {
 import { SceneSoundContribution } from "../../src/remotion/runtime/scene-sound/SceneSoundContribution";
 import { resolveSceneSound } from "../../src/remotion/runtime/scene-sound/resolve-scene-sound";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
-import { createM6PackageInput } from "../fixtures/scene/m6-package-input";
-import { createSoundRuntimeFixture } from "../fixtures/scene/m6-sound-runtime";
-import { sha } from "../fixtures/scene/m6-scene-input";
+import { createScenePackageInput } from "../fixtures/scene/package-input";
+import { createSoundRuntimeFixture } from "../fixtures/scene/sound-runtime";
+import { sha } from "../fixtures/scene/scene-input";
 
 test("Scene sound resolves current selected local audio and exact anchor ranges", () => {
   const fixture = createSoundRuntimeFixture();
@@ -78,8 +78,8 @@ test("Scene sound never clamps cue ranges and empty plans mount no audio", () =>
       ],
     }),
   );
-  const emptyPackage = buildScenePackage(createM6PackageInput());
-  const emptyInput = createM6PackageInput();
+  const emptyPackage = buildScenePackage(createScenePackageInput());
+  const emptyInput = createScenePackageInput();
   const empty = resolveSceneSound({
     scenePackage: emptyPackage,
     soundPlan: emptyInput.sound,

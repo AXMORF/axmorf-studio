@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { SceneTaskInputSchema } from "../../src/contracts/scene-task";
-import { createM6SceneTaskInput } from "../fixtures/scene/m6-scene-input";
+import { createSceneTaskInput } from "../fixtures/scene/scene-input";
 
 test("SceneTaskInput binds exact StoryBeat timing shared identities allowlists continuity and directories", () => {
-  const task = createM6SceneTaskInput();
+  const task = createSceneTaskInput();
   assert.equal(task.storyBeat.meaningId, task.meaningId);
   assert.equal(task.timingBeat.endFrame - task.timingBeat.startFrame, 120);
   assert.equal(
@@ -19,7 +19,7 @@ test("SceneTaskInput binds exact StoryBeat timing shared identities allowlists c
 });
 
 test("SceneTaskInput fails closed on meaning timing snapshot directory and fingerprint drift", () => {
-  const task = createM6SceneTaskInput();
+  const task = createSceneTaskInput();
   for (const mutation of [
     { ...task, meaningId: "meaning-two" },
     { ...task, timingBeat: { ...task.timingBeat, meaningId: "meaning-two" } },
@@ -44,7 +44,7 @@ test("SceneTaskInput fails closed on meaning timing snapshot directory and finge
 });
 
 test("SceneTaskInput rejects historical Scene and arbitrary output fields", () => {
-  const task = createM6SceneTaskInput();
+  const task = createSceneTaskInput();
   assert.throws(() =>
     SceneTaskInputSchema.parse({
       ...task,

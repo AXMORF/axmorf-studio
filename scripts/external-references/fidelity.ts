@@ -266,7 +266,7 @@ export const generateReferenceFidelityReceipt = async (rawInput: {
     selection.selections.length !== 1
   ) {
     throw new Error(
-      "M6 fidelity requires one ordered review per exact selection.",
+      "Reference fidelity requires one ordered review per exact selection.",
     );
   }
   const rendererBytes = await readExternalRegularFile(

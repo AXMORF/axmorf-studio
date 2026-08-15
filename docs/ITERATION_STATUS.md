@@ -142,6 +142,15 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 ### 工程与可删除性
 
+- active contract、测试 API、proof identity 与错误文本已使用领域语义命名；架构回归阻止已退休
+  里程碑编号重新进入 current source，同时保留 SVG path 与 M4A 格式等合法语法。
+- Scene runtime proof 已移出生产 `src/remotion`，按 `proofs/scene-runtime/{source,fixtures,evidence}`
+  隔离；Catalog asset ID、Story/Meaning/Composition identity 与所有生成 fingerprint 已重建。
+- settings 已拆为共享 contracts、browser-only client 与 Node server。配置、诊断和进度轮询使用独立
+  hooks；server 通过 production/delivery application query 读取状态，Project 删除继续复用同一
+  preflighted 删除用例。
+- 共享视觉能力位于 `visual-components/{backgrounds,charts,text,layouts,scene-patterns,...}`，
+  可复制模板位于独立 `scene-templates/`；Catalog authority 路径和 capability identity 已同步。
 - `scripts/production` 与 `scripts/delivery` 均按 cli/application/domain/adapters 分层；通用原子文本
   写入、进程 port、受限媒体进程 adapter 与 Remotion executable resolution 位于窄
   `scripts/shared/`。Project Scene template 实例化位于 `scripts/projects/application/`，repository-wide

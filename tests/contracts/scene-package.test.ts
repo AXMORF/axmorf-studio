@@ -6,18 +6,18 @@ import {
   buildShotRecipeSelection,
 } from "../../src/contracts";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
-import { createM6PackageInput } from "../fixtures/scene/m6-package-input";
-import { sha } from "../fixtures/scene/m6-scene-input";
+import { createScenePackageInput } from "../fixtures/scene/package-input";
+import { sha } from "../fixtures/scene/scene-input";
 
 test("ScenePackage binds one renderer and one sound identity without storing duration", () => {
-  const scenePackage = buildScenePackage(createM6PackageInput());
+  const scenePackage = buildScenePackage(createScenePackageInput());
   assert.equal(
     scenePackage.rendererBinding.rendererId,
     "synthetic-proof-meaning-one",
   );
   assert.equal(
     scenePackage.soundPlanFingerprint,
-    createM6PackageInput().sound.soundPlanFingerprint,
+    createScenePackageInput().sound.soundPlanFingerprint,
   );
   assert.equal("durationInFrames" in scenePackage, false);
   assert.equal(
@@ -27,7 +27,7 @@ test("ScenePackage binds one renderer and one sound identity without storing dur
 });
 
 test("ScenePackage fails when any current layered identity drifts", () => {
-  const input = createM6PackageInput();
+  const input = createScenePackageInput();
   const mutations = [
     {
       ...input,
@@ -65,7 +65,7 @@ test("ScenePackage fails when any current layered identity drifts", () => {
 });
 
 test("recipe state requires matching current fidelity applicability", () => {
-  const input = createM6PackageInput();
+  const input = createScenePackageInput();
   const inspiration = buildShotRecipeSelection({
     taskInputFingerprint: input.task.taskInputFingerprint,
     selections: [

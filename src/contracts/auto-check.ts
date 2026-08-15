@@ -9,7 +9,7 @@ import { Sha256DigestSchema, StoryIdSchema } from "./primitives";
 import { RenderSpecSchema, type RenderSpec } from "./render";
 import { StoryCheckReportSchema, type StoryCheckReport } from "./story-check";
 
-export const NARRATIVE_AUTO_CHECK_VERSION = "narrative-auto-check-v2" as const;
+export const NARRATIVE_AUTO_CHECK_VERSION = "narrative-auto-check-v3" as const;
 
 export const NARRATIVE_AUTO_CHECK_IDS = [
   "source-contracts",
@@ -18,7 +18,7 @@ export const NARRATIVE_AUTO_CHECK_IDS = [
   "semantic-timing",
   "project-registry",
   "narrative-baseline",
-  "m3-evidence",
+  "baseline-evidence",
 ] as const;
 
 export const NARRATIVE_AUTO_CHECK_EVIDENCE_IDS = [
@@ -27,7 +27,7 @@ export const NARRATIVE_AUTO_CHECK_EVIDENCE_IDS = [
   "complete-wav",
   "semantic-timing",
   "project-registry",
-  "m3-receipt",
+  "baseline-receipt",
 ] as const;
 
 export const NARRATIVE_AUTO_CHECK_FAILURE_CODES = [
@@ -93,7 +93,7 @@ const NarrativeAutoCheckInputIdentitySchema = z
     projectRegistryEntryFingerprint: Sha256DigestSchema.nullable(),
     narrativeCoreVersion: z.literal(NARRATIVE_CORE_VERSION).nullable(),
     narrativeBaselineFingerprint: Sha256DigestSchema.nullable(),
-    m3EvidenceFingerprint: Sha256DigestSchema.nullable(),
+    baselineEvidenceFingerprint: Sha256DigestSchema.nullable(),
   })
   .strict()
   .readonly();
@@ -119,7 +119,7 @@ const NarrativeAutoCheckEvidenceRefSchema = z
 
 const NarrativeAutoCheckReportInputObject = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     reportVersion: z.literal(NARRATIVE_AUTO_CHECK_VERSION),
     storyId: StoryIdSchema,
     level: z.literal("narrative"),
@@ -166,7 +166,7 @@ const EXPECTED_CHECK_EVIDENCE = {
   "semantic-timing": ["semantic-timing"],
   "project-registry": ["project-registry"],
   "narrative-baseline": [],
-  "m3-evidence": ["m3-receipt"],
+  "baseline-evidence": ["baseline-receipt"],
 } as const satisfies Record<
   NarrativeAutoCheckId,
   readonly NarrativeAutoCheckEvidenceId[]
@@ -274,7 +274,7 @@ export const computeNarrativeAutoCheckReportFingerprint = (
   const input = NarrativeAutoCheckReportInputSchema.parse(rawInput);
   return createFingerprint({
     namespace: "narrative-auto-check-report",
-    version: 1,
+    version: 2,
     value: input,
   });
 };

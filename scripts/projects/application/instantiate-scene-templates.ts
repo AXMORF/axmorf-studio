@@ -36,7 +36,7 @@ import {
   getSceneTemplateDefinition,
   renderCopiedSceneRenderer,
   type SceneTemplateDefinition,
-} from "../../../src/remotion/capabilities/scenes/registry";
+} from "../../../src/remotion/capabilities/scene-templates/registry";
 import { assertSceneTemplateAudioProjectionCurrent } from "../../scene-templates/audio-projection";
 import {
   checksumExternalBytes,

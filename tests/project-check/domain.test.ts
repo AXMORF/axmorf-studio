@@ -10,11 +10,23 @@ import {
 test("safe failure mapping uses fixed codes and never exposes raw diagnostics", () => {
   const cases = [
     ["source-contracts", new Error("ENOENT /home/private/token"), "missing"],
-    ["source-contracts", new Error("contains malformed JSON at /data/private"), "malformed"],
+    [
+      "source-contracts",
+      new Error("contains malformed JSON at /data/private"),
+      "malformed",
+    ],
     ["sealed-narration", new Error("checksum is stale"), "checksum-mismatch"],
-    ["story-check", new Error("identity does not match endpoint"), "identity-mismatch"],
-    ["project-registry", new Error("ProjectRegistry drift: stale bytes"), "registry-drift"],
-    ["m3-evidence", new Error("ffprobe wrong codec"), "media-invalid"],
+    [
+      "story-check",
+      new Error("identity does not match endpoint"),
+      "identity-mismatch",
+    ],
+    [
+      "project-registry",
+      new Error("ProjectRegistry drift: stale bytes"),
+      "registry-drift",
+    ],
+    ["baseline-evidence", new Error("ffprobe wrong codec"), "media-invalid"],
   ] as const;
   for (const [checkId, error, expectedCode] of cases) {
     const reason = mapNarrativeCheckFailure(checkId, error);
@@ -38,7 +50,7 @@ test("fixed check items preserve order-specific evidence ownership", () => {
       ["semantic-timing", ["semantic-timing"]],
       ["project-registry", ["project-registry"]],
       ["narrative-baseline", []],
-      ["m3-evidence", ["m3-receipt"]],
+      ["baseline-evidence", ["baseline-receipt"]],
     ],
   );
   const failed = createNarrativeCheckItem({

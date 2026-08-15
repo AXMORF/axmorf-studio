@@ -5,7 +5,7 @@ import { validateSharedSceneBoundarySources } from "../../scripts/production/app
 
 const sceneSlot = `
 import { SceneSafeArea as Boundary } from "../readability";
-import { SCENE_COMPOSITION_BOUNDARY_VERSION as BoundaryVersion } from "../../../contracts";
+import { SCENE_COMPOSITION_BOUNDARY_VERSION as BoundaryVersion } from "../../../contracts/production-requirements";
 export function renderSceneRendererMount(Component: any, mountProps: any, localFrame: number) {
   const { sceneBoundaryVersion: version, readabilityPolicy: policy, ...ownedProps } = mountProps;
   if (version !== BoundaryVersion) throw new Error("stale boundary");
@@ -15,7 +15,7 @@ export function renderSceneRendererMount(Component: any, mountProps: any, localF
 `;
 
 const safeArea = `
-import { ProductionReadabilityPolicySchema as PolicySchema } from "../../../contracts";
+import { ProductionReadabilityPolicySchema as PolicySchema } from "../../../contracts/production-readability";
 import { SceneReadabilityProvider as Provider } from "./SceneReadability";
 export const SceneSafeArea = ({ policy: raw, children }: any) => {
   const current = PolicySchema.parse(raw);
@@ -52,6 +52,16 @@ test("shared boundary validation is structural and formatting independent", () =
 test("shared boundary validation fails closed when ownership wiring is absent", () => {
   assert.throws(() =>
     validateSharedSceneBoundarySources({
+      sceneSlotSource: sceneSlot.replace(
+        "/contracts/production-requirements",
+        "/contracts",
+      ),
+      sceneSafeAreaSource: safeArea,
+      generatedRuntimeSource: generatedRuntime,
+    }),
+  );
+  assert.throws(() =>
+    validateSharedSceneBoundarySources({
       sceneSlotSource: sceneSlot.replace("<Boundary policy={policy}>", "<>"),
       sceneSafeAreaSource: safeArea,
       generatedRuntimeSource: generatedRuntime,
@@ -78,7 +88,7 @@ test("shared boundary validation fails closed when ownership wiring is absent", 
     validateSharedSceneBoundarySources({
       sceneSlotSource: sceneSlot.replace(
         'if (version !== BoundaryVersion) throw new Error("stale boundary");',
-        "if (false) throw new Error(\"stale boundary\");",
+        'if (false) throw new Error("stale boundary");',
       ),
       sceneSafeAreaSource: safeArea,
       generatedRuntimeSource: generatedRuntime,

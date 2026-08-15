@@ -6,7 +6,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { generateScenePackage } from "../../scripts/scene-package/generate";
-import { createM6PackageInput } from "../fixtures/scene/m6-package-input";
+import { createScenePackageInput } from "../fixtures/scene/package-input";
 
 test("file-backed package generation fingerprints the complete Renderer source graph", async () => {
   const source = await readFile(
@@ -26,7 +26,7 @@ test("ScenePackage write is pass-only atomic byte-stable and check is read-only"
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-package-"));
   const destination = join(rootDir, "scene-package.generated.json");
   try {
-    const input = createM6PackageInput();
+    const input = createScenePackageInput();
     await generateScenePackage({ mode: "write", destination, input });
     const before = await readFile(destination, "utf8");
     const beforeMtime = (await stat(destination)).mtimeMs;
@@ -59,7 +59,7 @@ test("failed write keeps the last pass receipt bytes and mtime", async () => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-package-fail-"));
   const destination = join(rootDir, "scene-package.generated.json");
   try {
-    const input = createM6PackageInput();
+    const input = createScenePackageInput();
     await generateScenePackage({ mode: "write", destination, input });
     const before = await readFile(destination, "utf8");
     const beforeMtime = (await stat(destination)).mtimeMs;

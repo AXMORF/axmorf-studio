@@ -1,6 +1,6 @@
 import type { FC } from "react";
 import { Sequence, useCurrentFrame } from "remotion";
-import { SCENE_COMPOSITION_BOUNDARY_VERSION } from "../../../contracts";
+import { SCENE_COMPOSITION_BOUNDARY_VERSION } from "../../../contracts/production-requirements";
 import { SceneSafeArea } from "../readability";
 import type {
   SceneRendererComponent,

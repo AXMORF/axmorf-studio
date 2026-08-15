@@ -27,7 +27,7 @@ import type {
   SceneRendererProps,
 } from "../../src/remotion/runtime/story-visual/types";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
-import { createM6PackageInput } from "../fixtures/scene/m6-package-input";
+import { createScenePackageInput } from "../fixtures/scene/package-input";
 
 type ElementProps = {
   readonly from?: number;
@@ -46,7 +46,7 @@ const mountBoundaryIsIncluded: AssertTrue<
 > = true;
 
 const makeProjection = () => {
-  const scenePackage = buildScenePackage(createM6PackageInput());
+  const scenePackage = buildScenePackage(createScenePackageInput());
   const fallback = buildSceneFallbackDeclaration({
     taskInputFingerprint: `sha256:${"b".repeat(64)}`,
     meaningId: "meaning-two",
@@ -267,9 +267,7 @@ test("StoryVisualTrack mounts ready SceneSlot only and sound-only identity chang
 
   const soundChangedInput = {
     ...fixture.scenePackage,
-    sceneSoundFingerprint: Sha256DigestSchema.parse(
-      `sha256:${"d".repeat(64)}`,
-    ),
+    sceneSoundFingerprint: Sha256DigestSchema.parse(`sha256:${"d".repeat(64)}`),
   };
   const soundChanged = ScenePackageSchema.parse({
     ...soundChangedInput,

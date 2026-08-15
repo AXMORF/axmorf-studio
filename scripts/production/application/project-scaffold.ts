@@ -38,7 +38,7 @@ import {
   SealedNarrationManifestSchema,
   SemanticTimingSchema,
   StoryCompositionPropsSchema,
-  validateM1ArtifactBundle,
+  validateNarrativeArtifactBundle,
   type StoryCompositionProps,
 } from "../../contracts";
 import {CompositionAssembly} from "../../remotion/runtime/composition-assembly";
@@ -68,7 +68,7 @@ const sealedNarration =
 const masteredNarration =
   MasteredNarrationManifestSchema.parse(masteredNarrationJson);
 const semanticTiming = SemanticTimingSchema.parse(semanticTimingJson);
-const artifactBundle = validateM1ArtifactBundle({
+const artifactBundle = validateNarrativeArtifactBundle({
   projectSource,
   sealedNarration,
   semanticTiming,
@@ -528,7 +528,7 @@ ${masteredNarrationContractImport}  parseNarrativeProjectSource,
   SemanticTimingSchema,
   StoryCompositionPropsSchema,
   STORY_COMPOSITION_TIMELINE_VERSION,
-  validateM1ArtifactBundle,
+  validateNarrativeArtifactBundle,
   type StoryCompositionProps,
 } from "../../contracts";
 import {CompositionAssembly} from "../../remotion/runtime/composition-assembly";
@@ -554,7 +554,7 @@ ${requirementsSetup}const projectSource = parseNarrativeProjectSource({brief: br
 const sealedNarration = SealedNarrationManifestSchema.parse(sealedNarrationJson);
 ${masteredNarrationSetup}const semanticTiming = SemanticTimingSchema.parse(semanticTimingJson);
 const renderPlan = ProductionRenderPlanSchema.parse(renderPlanJson);
-const artifactBundle = validateM1ArtifactBundle({projectSource, sealedNarration, semanticTiming});
+const artifactBundle = validateNarrativeArtifactBundle({projectSource, sealedNarration, semanticTiming});
 const expectedStoryId = ${JSON.stringify(storyId)};
 const storyId = artifactBundle.projectSource.story.storyId;
 const render = artifactBundle.projectSource.render;

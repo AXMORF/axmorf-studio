@@ -1,0 +1,25 @@
+:root {
+  font-family:
+    Inter, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #182635;
+  background: #e9eef3;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 1180px;
+  min-height: 100vh;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}

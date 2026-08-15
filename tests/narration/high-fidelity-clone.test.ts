@@ -37,7 +37,7 @@ const config = {
   },
   voiceProfiles: [
     {
-      id: "m9-project-my-voice",
+      id: "production-project-my-voice",
       mode: "high-fidelity-clone",
       promptAudioPath,
       promptTextPath,
@@ -48,7 +48,7 @@ const config = {
 
 const narration = NarrationSpecSchema.parse({
   schemaVersion: 2,
-  voiceProfileId: "m9-project-my-voice",
+  voiceProfileId: "production-project-my-voice",
   mode: "voice-clone",
 });
 
@@ -89,7 +89,10 @@ test("high fidelity profile binds exact prompt transcript and canonical audio", 
     normalizePromptAudio: async () => canonicalPromptWav,
   });
   assert.equal(resolved.safeDescriptor.mode, "high-fidelity-clone");
-  assert.equal(resolved.safeDescriptor.adapterId, "voxcpm-high-fidelity-clone-http-v2");
+  assert.equal(
+    resolved.safeDescriptor.adapterId,
+    "voxcpm-high-fidelity-clone-http-v2",
+  );
   assert.equal(resolved.endpointPath, "/clone_with_prompt");
   assert.equal(resolved.promptText, promptText);
   assert.deepEqual(resolved.promptAudioBytes, canonicalPromptWav);

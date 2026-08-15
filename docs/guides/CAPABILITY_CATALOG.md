@@ -17,7 +17,7 @@ Scene 设计只通过一个只读目录发现可用视觉、音频、style profi
 flowchart LR
     Assets["本地资产 manifest"] --> Build["buildResourceCatalog"]
     ExternalMedia["Imported external media<br/>provider receipt evidence"] --> Build
-    Primitives["primitives"] --> Code["capabilityCatalog"]
+    VisualComponents["visual-components"] --> Code["capabilityCatalog"]
     Camera["camera"] --> Code
     Effects["effects / motion"] --> Code
     Media["Lottie / GIF / video"] --> Code
@@ -40,12 +40,16 @@ flowchart LR
 - Three.js、motion blur、layout utils、paths、shapes、Google Fonts、renderer、Tailwind v4；
 - camera 2D/3D、focus pull、layered stage；
 - code effects、motion treatments、soundtrack/ducking/SFX、style profiles；
-- backgrounds、charts、cinematic、elements、layouts、logos、media、scene、text 与 transition
-  primitives。
+- `visual-components/` 下的 backgrounds、charts、cinematic、elements、layouts、logos、
+  media-layouts、scene-patterns、text 与 transition-components；
+- `scene-templates/` 下仅保存可在 configure 时复制并冻结的完整 Scene template，不与 runtime
+  media、transition preset 或 Project-local Scene 混为一类。
 
 当前权威与生成入口：
 
 - `src/remotion/capabilities/`：各领域权威；
+- `capability.visual-components`：共享视觉组件 Catalog identity；chart/layout descriptor 复用同一
+  明确 export authority，不保留旧目录或兼容别名；
 - `src/remotion/catalog/assets.manifest.json`：本地 asset descriptor 权威；
 - `src/remotion/catalog/style-descriptors.ts` 与 `capability-descriptors.ts`：静态 export
   descriptor 声明；
@@ -75,6 +79,9 @@ npm run scene-template-audio:check
 
 fresh clone 先由 `npm install` 的 prepare hook 执行 `npm run bootstrap`；也可手动执行该命令。
 bootstrap 会先重建 catalog 所需的 core synthetic proof 资产，再生成当前本地 Project 集投影。
+Scene runtime proof 单独从 tracked core asset、style 与 capability authority 构建稳定 Catalog
+projection；它不会把 ignored private reference 或 Project-owned descriptor 的存在写进 tracked proof
+fingerprint。
 
 生成器按 ID 稳定排序，校验 authority file/source export、asset regular-file/checksum、style
 profile identity、重复 ID 和 descriptor fingerprint；write 只在完整通过后原子替换，check/query
@@ -120,7 +127,7 @@ descriptor。浮动 branch/tag、远程 `latest` 或全局 skill 安装路径不
   不允许当前用途的条目一律 `blocked`，不能因仓库顶层许可证而默认放行；
 - 未使用外部 recipe 的 Scene 使用空 ShotRecipeSelection，不能被目录强迫套卡。
 
-M6 synthetic fixture 只冻结 `draw-svg-trace` 一张 card/style-key，固定完整 commit、准确
+Scene runtime synthetic fixture 只冻结 `draw-svg-trace` 一张 card/style-key，固定完整 commit、准确
 demo/preview identity，并仅本地化两个源码文件及 Apache-2.0 license。它证明 resolver、最小
 闭包 guard 和 fidelity receipt，不复制 Gallery、模板集合、全部 demos 或音频库，也不作为
 GPS 正式资源选择。

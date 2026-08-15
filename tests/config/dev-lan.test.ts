@@ -5,11 +5,11 @@ import { parseDevLanFlag } from "../../scripts/dev/cli";
 import {
   isLanDevEnabled,
   isSameOriginSettingsWrite,
-} from "../../settings/dev-network";
+} from "../../settings/server/dev-network";
 import {
   buildStudioUrl,
   isLanAccessHostname,
-} from "../../settings/src/network";
+} from "../../settings/client/network";
 
 test("LAN development mode is explicit and fail-closed", () => {
   assert.equal(parseDevLanFlag([]), false);

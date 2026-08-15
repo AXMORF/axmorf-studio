@@ -4,10 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import {
-  inspectDeliveryProgress,
-  readProjectProductionProgress,
-} from "../../settings/production-progress";
+import { readDeliveryProgressProjection } from "../../scripts/delivery/application/progress-query";
+import { readProjectProductionProgress } from "../../settings/server/production-progress";
 import {
   buildDeliveryLaunchManifest,
   buildProductionWatcherLaunchIntent,
@@ -357,7 +355,7 @@ test("delivery progress distinguishes launch ambiguity from spawn acknowledgemen
   ]);
 
   assert.deepEqual(
-    await inspectDeliveryProgress({
+    await readDeliveryProgressProjection({
       rootDir,
       storyId: "story-example",
       renderReadyFingerprint: identity.renderReadyFingerprint,
@@ -378,7 +376,7 @@ test("delivery progress distinguishes launch ambiguity from spawn acknowledgemen
     JSON.stringify(receipt),
   );
   assert.deepEqual(
-    await inspectDeliveryProgress({
+    await readDeliveryProgressProjection({
       rootDir,
       storyId: "story-example",
       renderReadyFingerprint: identity.renderReadyFingerprint,

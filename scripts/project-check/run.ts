@@ -9,7 +9,7 @@ import {
   computeStoryFingerprint,
   createNarrativeAutoCheckEvidenceRefs,
   createNarrativeAutoCheckReport,
-  validateM1ArtifactBundle,
+  validateNarrativeArtifactBundle,
   validateStoryCheckReport,
   type NarrativeAutoCheckEvidenceId,
   type NarrativeAutoCheckId,
@@ -23,9 +23,9 @@ import {
   type StoryCheckReport,
 } from "../../src/contracts";
 import {
-  checkM3NarrativeBaselineEvidence,
-  resolveCurrentM3Entry,
-  resolveM3GeneratedRegistryChecksum,
+  checkNarrativeBaselineEvidence,
+  resolveCurrentNarrativeBaselineEntry,
+  resolveNarrativeBaselineGeneratedRegistryChecksum,
   type ProcessRunner,
 } from "../baseline/evidence";
 import { checkM2NarrationArtifacts } from "../narration/check";
@@ -36,7 +36,7 @@ import { createNarrativeCheckItem, orderNarrativeCheckItems } from "./domain";
 import {
   checksumFile,
   getProjectCheckPaths,
-  loadProjectCheckM3Receipt,
+  loadProjectCheckNarrativeBaselineReceipt,
   loadProjectCheckMasteredNarration,
   loadProjectCheckSealedNarration,
   loadProjectCheckSemanticTiming,
@@ -122,7 +122,7 @@ export const checkNarrativeSourceHealth = async ({
     ) {
       throw new Error("Mastered narration identity does not match its seal.");
     }
-    validateM1ArtifactBundle({
+    validateNarrativeArtifactBundle({
       projectSource,
       sealedNarration,
       semanticTiming,
@@ -132,8 +132,11 @@ export const checkNarrativeSourceHealth = async ({
   }
 
   try {
-    const entry = await resolveCurrentM3Entry(rootDir, paths.storyId);
-    await resolveM3GeneratedRegistryChecksum({
+    const entry = await resolveCurrentNarrativeBaselineEntry(
+      rootDir,
+      paths.storyId,
+    );
+    await resolveNarrativeBaselineGeneratedRegistryChecksum({
       rootDir,
       storyId: paths.storyId,
       entry,
@@ -153,11 +156,11 @@ type Mutable<Input> = { -readonly [Key in keyof Input]: Input[Key] };
 export const runNarrativeAutoCheck = async ({
   rootDir,
   projectId,
-  runM3EvidenceProcess,
+  runNarrativeBaselineEvidenceProcess,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
-  readonly runM3EvidenceProcess?: ProcessRunner;
+  readonly runNarrativeBaselineEvidenceProcess?: ProcessRunner;
 }): Promise<NarrativeAutoCheckReport> => {
   const paths = getProjectCheckPaths({ rootDir, projectId });
   const checks = new Map<
@@ -184,7 +187,7 @@ export const runNarrativeAutoCheck = async ({
     projectRegistryEntryFingerprint: null,
     narrativeCoreVersion: NARRATIVE_CORE_VERSION,
     narrativeBaselineFingerprint: null,
-    m3EvidenceFingerprint: null,
+    baselineEvidenceFingerprint: null,
   };
   const mark = (
     checkId: NarrativeAutoCheckId,
@@ -273,11 +276,14 @@ export const runNarrativeAutoCheck = async ({
     const master = await checkMasteredNarrationArtifacts({
       rootDir,
       storyId: paths.storyId,
-      ...(runM3EvidenceProcess === undefined
+      ...(runNarrativeBaselineEvidenceProcess === undefined
         ? {}
         : {
             runProcess: async (command, args) => {
-              const result = await runM3EvidenceProcess(command, args);
+              const result = await runNarrativeBaselineEvidenceProcess(
+                command,
+                args,
+              );
               return {
                 exitCode: result.status,
                 stdout: Buffer.from(result.stdout),
@@ -317,7 +323,7 @@ export const runNarrativeAutoCheck = async ({
       throw failDependency("Sealed narration");
     }
     semanticTiming = await loadProjectCheckSemanticTiming(paths.semanticTiming);
-    validateM1ArtifactBundle({
+    validateNarrativeArtifactBundle({
       projectSource,
       sealedNarration,
       semanticTiming,
@@ -332,9 +338,9 @@ export const runNarrativeAutoCheck = async ({
   }
 
   try {
-    entry = await resolveCurrentM3Entry(rootDir, paths.storyId);
+    entry = await resolveCurrentNarrativeBaselineEntry(rootDir, paths.storyId);
     identity.generatedRegistryChecksum =
-      await resolveM3GeneratedRegistryChecksum({
+      await resolveNarrativeBaselineGeneratedRegistryChecksum({
         rootDir,
         storyId: paths.storyId,
         entry,
@@ -358,7 +364,7 @@ export const runNarrativeAutoCheck = async ({
     ) {
       throw failDependency("Narrative Baseline");
     }
-    validateM1ArtifactBundle({
+    validateNarrativeArtifactBundle({
       projectSource,
       sealedNarration,
       semanticTiming,
@@ -372,20 +378,24 @@ export const runNarrativeAutoCheck = async ({
   }
 
   try {
-    const receipt = await checkM3NarrativeBaselineEvidence({
+    const receipt = await checkNarrativeBaselineEvidence({
       rootDir,
       storyId: paths.storyId,
-      runProcess: runM3EvidenceProcess,
+      runProcess: runNarrativeBaselineEvidenceProcess,
     });
-    const persistedReceipt = await loadProjectCheckM3Receipt(paths.m3Receipt);
+    const persistedReceipt = await loadProjectCheckNarrativeBaselineReceipt(
+      paths.narrativeBaselineReceipt,
+    );
     if (persistedReceipt.evidenceFingerprint !== receipt.evidenceFingerprint) {
-      throw failDependency("M3 evidence");
+      throw failDependency("Narrative baseline evidence");
     }
-    identity.m3EvidenceFingerprint = receipt.evidenceFingerprint;
-    evidenceChecksums["m3-receipt"] = await checksumFile(paths.m3Receipt);
-    mark("m3-evidence", "pass");
+    identity.baselineEvidenceFingerprint = receipt.evidenceFingerprint;
+    evidenceChecksums["baseline-receipt"] = await checksumFile(
+      paths.narrativeBaselineReceipt,
+    );
+    mark("baseline-evidence", "pass");
   } catch (error) {
-    mark("m3-evidence", "fail", error);
+    mark("baseline-evidence", "fail", error);
   }
 
   const orderedChecks = orderNarrativeCheckItems(checks);
@@ -395,7 +405,7 @@ export const runNarrativeAutoCheck = async ({
     ? "pass"
     : "fail";
   return createNarrativeAutoCheckReport({
-    schemaVersion: 1,
+    schemaVersion: 2,
     reportVersion: NARRATIVE_AUTO_CHECK_VERSION,
     storyId: paths.storyId,
     level: "narrative",
