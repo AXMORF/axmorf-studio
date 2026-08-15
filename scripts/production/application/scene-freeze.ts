@@ -11,8 +11,9 @@ import {
   StoryResourcePoolSchema,
   StorySpecSchema,
   VisualStyleSpecSchema,
+  VideoBriefSchema,
   buildSceneAssignment,
-  buildSceneTaskInputV4,
+  buildSceneTaskInputV5,
   buildGlobalVisualAssignment,
   computeRenderSpecFingerprint,
   computeStoryFingerprint,
@@ -32,6 +33,7 @@ import {
 import { createProductionStageEvent } from "../domain/events";
 import { createUnexpectedProductionError } from "../domain/errors";
 import { loadCurrentProductionInputs } from "./start";
+import { materializeReusableSilentScenes } from "./reusable-silent-scene";
 
 const readRegularJson = async (path: string, label: string) => {
   let metadata;
@@ -272,10 +274,12 @@ const buildAssignments = ({
         };
       },
     );
-    const taskInput = buildSceneTaskInputV4({
+    const taskInput = buildSceneTaskInputV5({
       storyId: story.storyId,
       meaningId: storyBeat.meaningId,
       storyBeat,
+      sourceReferences: VideoBriefSchema.parse(current.source.brief)
+        .sourceReferences,
       timingBeat,
       storyFingerprint,
       semanticTimingFingerprint: timing.fingerprint,
@@ -448,6 +452,12 @@ export const resolveCurrentSceneAssignments = async ({
       mode: "check",
     });
   }
+  await materializeReusableSilentScenes({
+    rootDir,
+    assignments,
+    catalog: inputs.catalog,
+    mode: "check",
+  });
   if (globalVisualAssignment !== null) {
     await writeOrCheckSceneArtifact({
       destination: join(
@@ -505,6 +515,12 @@ export const runProductionSceneFreeze = async ({
         mode: "check",
       });
     }
+    const preauthoredMeaningIds = await materializeReusableSilentScenes({
+      rootDir,
+      assignments,
+      catalog: inputs.catalog,
+      mode: "check",
+    });
     if (globalVisualAssignment !== null) {
       await writeOrCheckSceneArtifact({
         destination: join(
@@ -523,6 +539,7 @@ export const runProductionSceneFreeze = async ({
       assignmentPaths: assignments.map(({ storyId, meaningId }) =>
         assignmentPath(storyId, meaningId),
       ),
+      preauthoredMeaningIds,
       globalVisualAssignmentPath:
         globalVisualAssignment === null
           ? null
@@ -589,6 +606,12 @@ export const runProductionSceneFreeze = async ({
           mode: "check",
         });
       }
+      const preauthoredMeaningIds = await materializeReusableSilentScenes({
+        rootDir,
+        assignments,
+        catalog: inputs.catalog,
+        mode: "write",
+      });
       if (globalVisualAssignment !== null) {
         const destination = join(
           rootDir,
@@ -695,6 +718,7 @@ export const runProductionSceneFreeze = async ({
         assignmentPaths: assignments.map(({ storyId, meaningId }) =>
           assignmentPath(storyId, meaningId),
         ),
+        preauthoredMeaningIds,
         globalVisualAssignmentPath:
           globalVisualAssignment === null
             ? null

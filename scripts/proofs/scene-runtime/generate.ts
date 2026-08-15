@@ -12,7 +12,7 @@ import {
   buildSceneCoverageMap,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
-  buildSceneTaskInputV4,
+  buildSceneTaskInputV5,
   buildSceneVisualPlan,
   buildShotPlanSet,
   buildShotRecipeSelection,
@@ -293,7 +293,7 @@ export const generateM6Proof = async ({
     visualStyle,
     resolvedStyleDescriptorFingerprint: style.descriptorFingerprint,
   });
-  const task = buildSceneTaskInputV4({
+  const task = buildSceneTaskInputV5({
     storyId: STORY_ID,
     meaningId: MEANING_ID,
     storyBeat: {
@@ -309,6 +309,7 @@ export const generateM6Proof = async ({
       ],
       explicitPauses: [],
     },
+    sourceReferences: [],
     timingBeat: {
       kind: "narrated-scene",
       meaningId: MEANING_ID,

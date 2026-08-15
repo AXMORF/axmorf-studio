@@ -121,7 +121,9 @@ StorySpec v2 把 `narrated-scene` 与 `silent-scene` 作为严格联合。intro/
 不存在专用 Intro/Outro package、boundary sound track 或顶层 bookend shell。silent preset 绑定
 role、视觉意图、音效意图、固定帧数、资源 ID 与 fingerprint，SemanticTiming 一次性把它们与 sealed
 PCM narrated windows 解析为连续全片时间轴。默认 preset 使用本地 checksum/license-bound PCM；
-替换或关闭会改变上游 identity 或移除 Scene，旧音效不能残留。Composition exactly once 提供
+并绑定已批准 `story-bookends` capability 的 source fingerprint 与 exact cue choreography。freeze
+把它确定性投影成 Project-local Renderer wrapper 和普通 Scene plans；source drift 在 assignment
+解析时 fail closed。替换或关闭会改变上游 identity 或移除 Scene，旧音效不能残留。Composition exactly once 提供
 SceneSafeArea、NarrativeCore、CaptionLayer、GlobalVisual background 与 Scene track。Scene renderer
 根透明且只画 current Beat 语义；ScenePackage owns Scene-local
 ambience/SFX，不拥有旁白、字幕或全局音频。GlobalVisual owns project-local 背景/纹理/装饰/motif，
@@ -199,3 +201,5 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
 
 新 Scene 能力默认留在 project-local。移入 `src/remotion/capabilities/` 必须先有具体、
 fingerprint-bound promotion proposal，并获得用户对范围、API、文件与目标路径的明确授权。
+`src/remotion/capabilities/story-bookends/` 是已明确批准的例外：它只提供默认 intro/outro 的视觉
+Renderer，不挂载音频；音效仍由 preset 投影的 `sound-plan.json` 经 Scene sound runtime 播放。

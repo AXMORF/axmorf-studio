@@ -31,6 +31,12 @@ test("SceneTaskInput fails closed on meaning timing snapshot directory and finge
         sceneRoot: "src/projects/synthetic-proof/scenes/another",
       },
     },
+    {
+      ...task,
+      sourceReferences: [
+        { title: "Changed visible source", url: "https://example.com/source" },
+      ],
+    },
     { ...task, storyFingerprint: `sha256:${"f".repeat(64)}` },
   ]) {
     assert.throws(() => SceneTaskInputSchema.parse(mutation));

@@ -6,7 +6,7 @@ import test from "node:test";
 import {
   buildSceneCoverageMap,
   buildSceneSoundPlan,
-  buildSceneTaskInputV4,
+  buildSceneTaskInputV5,
   buildSceneSyncAnchors,
   buildSceneVisualPlan,
   buildSilentScenePreset,
@@ -62,8 +62,9 @@ const cases: readonly {
           soundIntent:
             changed.soundIntent ?? "Render the authored preset local sound.",
           resourceIds: ["asset.proof-sfx", "asset.proof-shape"],
+          implementation: { kind: "scene-owner" },
         });
-        const task = buildSceneTaskInputV4({
+        const task = buildSceneTaskInputV5({
           ...taskBase,
           storyBeat: {
             kind: "silent-scene",
@@ -79,13 +80,15 @@ const cases: readonly {
             presetDurationInFrames: preset.durationInFrames,
             meaningId: taskBase.meaningId,
             startFrame: taskBase.timingBeat.startFrame,
-            endFrame:
-              taskBase.timingBeat.startFrame + preset.durationInFrames,
+            endFrame: taskBase.timingBeat.startFrame + preset.durationInFrames,
           },
           allowedSnapshots: [],
           allowedResourceIds: preset.resourceIds,
         });
-        assert.notEqual(task.taskInputFingerprint, fixture.input.task.taskInputFingerprint);
+        assert.notEqual(
+          task.taskInputFingerprint,
+          fixture.input.task.taskInputFingerprint,
+        );
         await expectPackageStale(fixture, {
           ...fixture.input,
           task,

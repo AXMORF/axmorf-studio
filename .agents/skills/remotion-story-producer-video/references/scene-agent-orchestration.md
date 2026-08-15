@@ -13,7 +13,8 @@ assignment: <assignmentPath>
 .agents/skills/remotion-best-practices/remotion-markup/REFERENCE.md，再按 router 读取 Renderer references；
 AGENTS、assignment、contracts、validators 优先。
 
-将 assignment.taskInput 完整投影到 Scene-owned task-input.generated.json，保持
+若 meaningId 属于 `preauthoredMeaningIds`，不得修改已投影文件；直接 check，ready 后发 receipt。否则将
+assignment.taskInput 完整投影到 Scene-owned task-input.generated.json，保持
 完整一致；不得手工挑字段或只改 fingerprint：
 node -e 'f=require("fs");a=JSON.parse(f.readFileSync("<assignmentPath>"));f.writeFileSync("<sceneRoot>/task-input.generated.json",JSON.stringify(a.taskInput))'
 
@@ -23,7 +24,7 @@ allowedSnapshots 制作冻结 Beat；author 透明 Scene root，只含语义视�
 旁白和背景。资源限绑定 ResourceCatalog 可解析的 Project-local ID。不得读历史/其他 owner 输出，不得用
 MCP、网络、provider/remote URL，不得写共享 registry/catalog、Run result/state/event、delivery 或 Git。
 silent-scene 严格消费 preset 与已解析窗口，不创建 TTS、空白文字、CaptionCue、sealed segment 或
-专用 runtime；仍制作普通 plans、anchors、resources、Renderer 与 ScenePackage。
+专用 runtime；只为 `scene-owner` replacement 制作普通 ScenePackage，reusable default 不得重做。
 
 先运行：
 npm run production:scene:check -- --run <runId> --scene <meaningId>

@@ -230,7 +230,7 @@ export const prepareProductionRenderPlan = async ({
   if (
     resolved.assignments.some(
       (assignment) =>
-        assignment.schemaVersion !== 4 ||
+        assignment.schemaVersion !== 5 ||
         assignment.sceneCompositionBoundaryVersion !==
           resolved.inputs.current.requirements.sceneBoundaryOwnership
             .sceneCompositionBoundaryVersion,

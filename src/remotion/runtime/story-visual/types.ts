@@ -8,6 +8,7 @@ import {
   SceneVisualPlan,
   ShotPlanSet,
   StoryBeat,
+  type VideoSourceReference,
   VisualStyleSpec,
 } from "../../../contracts";
 
@@ -26,6 +27,7 @@ export type SceneRendererProps = Readonly<{
   width: number;
   height: number;
   storyBeat: StoryBeat;
+  sourceReferences: readonly VideoSourceReference[];
   timingBeat: Readonly<{ startFrame: number; endFrame: number }>;
   visualStyle: VisualStyleSpec;
   visualPlan: SceneVisualPlan;

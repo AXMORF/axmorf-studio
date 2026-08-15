@@ -52,6 +52,7 @@ export const createProductionFixture = async (
   rootDir: string,
   options: Readonly<{
     additionalRequirements?: readonly ProductionRequirement[];
+    sceneLocalSound?: "allowed" | "none";
     story?: unknown;
   }> = {},
 ) => {
@@ -108,7 +109,7 @@ export const createProductionFixture = async (
     sourceChecksums,
     enhancementSelection: {
       storyVisual: "required",
-      sceneLocalSound: "allowed",
+      sceneLocalSound: options.sceneLocalSound ?? "allowed",
       globalSound: "none",
       globalVisual: "required",
     },

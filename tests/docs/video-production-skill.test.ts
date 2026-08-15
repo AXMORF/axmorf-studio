@@ -131,7 +131,12 @@ const SkillPolicySchema = z
         storyBeatContract: z.literal(
           "discriminated-narrated-or-silent-scene",
         ),
-        defaultBookends: z.literal("explicit-intro-outro-scene-presets"),
+        defaultBookends: z.literal(
+          "explicit-reusable-intro-outro-scene-presets",
+        ),
+        defaultBookendOwnerPolicy: z.literal(
+          "preauthored-check-and-receipt-only",
+        ),
         silentSceneNarrationPolicy: z.literal(
           "no-tts-no-captions-fixed-preset-frames",
         ),

@@ -43,5 +43,41 @@ export const writeOrCheckSceneArtifact = async ({
   }
 };
 
+export const writeOrCheckSceneText = async ({
+  destination,
+  value,
+  mode,
+}: {
+  readonly destination: string;
+  readonly value: string;
+  readonly mode: SceneArtifactMode;
+}): Promise<void> => {
+  if (mode === "check") {
+    if ((await readFile(destination, "utf8")) !== value) {
+      throw new Error("Generated Scene source bytes are stale.");
+    }
+    return;
+  }
+  try {
+    if ((await readFile(destination, "utf8")) === value) return;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  await mkdir(dirname(destination), { recursive: true });
+  const temporary = `${destination}.tmp-${process.pid}-${Date.now()}`;
+  const handle = await open(temporary, "wx");
+  try {
+    await handle.writeFile(value, "utf8");
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+  try {
+    await rename(temporary, destination);
+  } finally {
+    await rm(temporary, { force: true });
+  }
+};
+
 export const readJsonFile = async (path: string): Promise<unknown> =>
   JSON.parse(await readFile(path, "utf8"));

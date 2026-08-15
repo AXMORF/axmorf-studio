@@ -41,6 +41,7 @@ when indexed.
 ## Preserve production invariants
 
 - Keep one Story/Composition, one meaningId/ScenePackage, one GlobalVisualPackage, and one Cover owner.
+- For `preauthoredMeaningIds`, only check and publish receipts; never recreate their Renderer or sound.
 - Keep owner paths disjoint. Owners author only their assignment and publish one assignment-bound
   immutable receipt; the watcher alone writes central results/state and drives delivery.
 - Keep private config and protected voice material unread, unreported, unstaged, and uncommitted.

@@ -46,6 +46,11 @@ PCM 累计窗口，再追加真正的 `tailFrames`。silent Scene 不产生 segm
 `narrationStartFrame` exactly once 播放。`scene-package-timeline-v1` 的 Composition、Registry、render
 plan 和 delivery 直接使用 `SemanticTiming.durationInFrames`，章节直接使用 narrated Scene 的绝对帧。
 
+默认 reusable intro/outro 在 freeze 时从 preset 的 implementation identity 确定性投影。preset
+绑定 capability source fingerprint 与 exact sound cues；freeze 重算 capability source bytes，漂移即
+fail closed。Renderer wrapper、plans、anchors 和 selected resources 在重复 freeze 中必须 byte/mtime
+稳定。replacement/disabled preset 不运行该投影，因此不会携带默认 cue。
+
 ## Production ledger
 
 Run manifest immutable；events append-only、连续编号并绑定 previous-state fingerprint；Scene 与

@@ -37,10 +37,9 @@ const conclusionBeat = {
 
 const silentBeat = (
   sceneRole: "intro" | "outro",
-  preset =
-    sceneRole === "intro"
-      ? DEFAULT_INTRO_SCENE_PRESET
-      : DEFAULT_OUTRO_SCENE_PRESET,
+  preset = sceneRole === "intro"
+    ? DEFAULT_INTRO_SCENE_PRESET
+    : DEFAULT_OUTRO_SCENE_PRESET,
 ) => ({
   kind: "silent-scene" as const,
   sceneRole,
@@ -82,17 +81,68 @@ test("default intro and outro presets bind role visual sound duration and resour
   }
   assert.equal(DEFAULT_INTRO_SCENE_PRESET.sceneRole, "intro");
   assert.equal(DEFAULT_OUTRO_SCENE_PRESET.sceneRole, "outro");
+  assert.equal(
+    DEFAULT_INTRO_SCENE_PRESET.implementation.kind,
+    "reusable-scene",
+  );
+  assert.equal(
+    DEFAULT_OUTRO_SCENE_PRESET.implementation.kind,
+    "reusable-scene",
+  );
+  if (
+    DEFAULT_INTRO_SCENE_PRESET.implementation.kind !== "reusable-scene" ||
+    DEFAULT_OUTRO_SCENE_PRESET.implementation.kind !== "reusable-scene"
+  ) {
+    assert.fail("Default bookends must use reusable Scene implementations.");
+  }
+  assert.deepEqual(DEFAULT_INTRO_SCENE_PRESET.implementation, {
+    kind: "reusable-scene",
+    implementationId: "axmorf-brand-intro-v1",
+    rendererSourceFingerprint:
+      "sha256:02b378a71f5b518e822aefb9ffbc0b295fceff011ebab6349fd1d14cdd7b7915",
+    soundCues: [
+      {
+        cueId: "intro-chime",
+        resourceId: "asset.axmorf-intro-chime",
+        anchorId: "brand-reveal-start",
+        offsetFrames: 0,
+        durationInFrames: 18,
+        volume: 0.82,
+      },
+    ],
+  });
+  assert.match(
+    DEFAULT_INTRO_SCENE_PRESET.implementation.rendererSourceFingerprint,
+    /^sha256:[0-9a-f]{64}$/u,
+  );
+  assert.deepEqual(DEFAULT_OUTRO_SCENE_PRESET.implementation, {
+    kind: "reusable-scene",
+    implementationId: "axmorf-source-follow-outro-v1",
+    rendererSourceFingerprint:
+      "sha256:76f5561a7de1fb4547d98d83e2fd392a3bc21620f4e29854032a7713bb04672d",
+    soundCues: [
+      {
+        cueId: "outro-chime",
+        resourceId: "asset.axmorf-outro-chime",
+        anchorId: "brand-lockup-start",
+        offsetFrames: 0,
+        durationInFrames: 30,
+        volume: 0.82,
+      },
+    ],
+  });
+  assert.match(
+    DEFAULT_OUTRO_SCENE_PRESET.implementation.rendererSourceFingerprint,
+    /^sha256:[0-9a-f]{64}$/u,
+  );
 });
 
 test("StorySpec strictly discriminates narrated and silent Scenes", () => {
   const story = storyWithDefaultBookends();
-  assert.deepEqual(
-    buildGenerationInput(story, narration).chunks,
-    [
-      { chunkId: "opening-01", meaningId: "opening", ttsText: "A" },
-      { chunkId: "conclusion-01", meaningId: "conclusion", ttsText: "B" },
-    ],
-  );
+  assert.deepEqual(buildGenerationInput(story, narration).chunks, [
+    { chunkId: "opening-01", meaningId: "opening", ttsText: "A" },
+    { chunkId: "conclusion-01", meaningId: "conclusion", ttsText: "B" },
+  ]);
 
   assert.throws(() =>
     StorySpecSchema.parse({
@@ -138,6 +188,7 @@ test("replacing or disabling a bookend is explicit and never changes narration g
     visualIntent: "Use the Project-specific fast intro visual.",
     soundIntent: "Use only the Project-specific fast intro chime.",
     resourceIds: ["asset.project-intro-fast-chime"],
+    implementation: { kind: "scene-owner" },
   });
   const replaced = StorySpecSchema.parse({
     ...original,
@@ -173,6 +224,42 @@ test("replacing or disabling a bookend is explicit and never changes narration g
     computeGenerationInputFingerprint(original, narration),
     computeGenerationInputFingerprint(disabled, narration),
   );
+});
+
+test("reusable bookend visual source and exact sound choreography invalidate preset identity", () => {
+  const intro = DEFAULT_INTRO_SCENE_PRESET;
+  assert.equal(intro.implementation.kind, "reusable-scene");
+  if (intro.implementation.kind !== "reusable-scene") {
+    assert.fail("Default intro must be reusable.");
+  }
+  const base = {
+    sceneRole: intro.sceneRole,
+    presetId: intro.presetId,
+    durationInFrames: intro.durationInFrames,
+    visualIntent: intro.visualIntent,
+    soundIntent: intro.soundIntent,
+    resourceIds: intro.resourceIds,
+  } as const;
+  const changedVisual = buildSilentScenePreset({
+    ...base,
+    implementation: {
+      ...intro.implementation,
+      rendererSourceFingerprint:
+        "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    },
+  });
+  const changedSound = buildSilentScenePreset({
+    ...base,
+    implementation: {
+      ...intro.implementation,
+      soundCues: intro.implementation.soundCues.map((cue) => ({
+        ...cue,
+        volume: 0.7,
+      })),
+    },
+  });
+  assert.notEqual(changedVisual.presetFingerprint, intro.presetFingerprint);
+  assert.notEqual(changedSound.presetFingerprint, intro.presetFingerprint);
 });
 
 test("SemanticTiming resolves intro narrated Scenes outro and true padding once", () => {

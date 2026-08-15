@@ -73,7 +73,7 @@ const ScenePackageV3InputObject = ScenePackageV2InputObject.extend({
 }).strict();
 
 const ScenePackageV4InputObject = ScenePackageV3InputObject.extend({
-  schemaVersion: z.literal(4),
+  schemaVersion: z.literal(5),
   scenePresetFingerprint: Sha256DigestSchema.nullable(),
 }).strict();
 

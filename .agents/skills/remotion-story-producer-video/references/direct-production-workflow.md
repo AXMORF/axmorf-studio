@@ -53,7 +53,7 @@ npm run delivery:cover:freeze -- --project <storyId>
 Scene freeze owns each Project-local Catalog snapshot.
 
 Require ordinary Scene assignments for every intro/content/outro Beat, plus GlobalVisual and Cover.
-Record assignment/exclusive paths; do not mutate frozen inputs.
+Record paths and `preauthoredMeaningIds`; those defaults are already materialized. Do not rewrite frozen inputs.
 
 ## 4. Start automation, dispatch, and exit
 

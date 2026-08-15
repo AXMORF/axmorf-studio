@@ -23,9 +23,9 @@ import type { StorySpec } from "./story";
 export const STORY_RESOURCE_POOL_VERSION = "story-resource-pool-v1" as const;
 export const SCENE_PRODUCTION_BRIEF_VERSION =
   "scene-production-brief-v1" as const;
-export const SCENE_ASSIGNMENT_VERSION = "scene-assignment-v4" as const;
+export const SCENE_ASSIGNMENT_VERSION = "scene-assignment-v5" as const;
 export const SCENE_PRODUCTION_RESULT_VERSION =
-  "scene-production-result-v4" as const;
+  "scene-production-result-v5" as const;
 
 const SafeProductionTextSchema = z
   .string()
@@ -383,16 +383,31 @@ export const validateSceneProductionBrief = ({
     const storyBeat = story.beats.find(
       ({ meaningId }) => meaningId === scene.meaningId,
     );
-    if (
-      storyBeat?.kind === "silent-scene" &&
-      (scene.visualIntent !== storyBeat.preset.visualIntent ||
+    if (storyBeat?.kind === "silent-scene") {
+      if (
+        scene.visualIntent !== storyBeat.preset.visualIntent ||
         scene.soundIntent !== storyBeat.preset.soundIntent ||
         JSON.stringify(scene.candidateResourceIds) !==
-          JSON.stringify(storyBeat.preset.resourceIds))
-    ) {
-      throw new Error(
-        `Silent Scene ${scene.meaningId} brief must exactly bind its preset.`,
-      );
+          JSON.stringify(storyBeat.preset.resourceIds)
+      ) {
+        throw new Error(
+          `Silent Scene ${scene.meaningId} brief must exactly bind its preset.`,
+        );
+      }
+      if (scene.allowedSnapshotCards.length > 0) {
+        throw new Error(
+          `Silent Scene ${scene.meaningId} must not carry snapshot cards.`,
+        );
+      }
+      if (
+        brief.sceneLocalSoundPolicy === "none" &&
+        storyBeat.preset.implementation.kind === "reusable-scene" &&
+        storyBeat.preset.implementation.soundCues.length > 0
+      ) {
+        throw new Error(
+          `Reusable silent Scene ${scene.meaningId} requires Scene-local sound.`,
+        );
+      }
     }
     if (
       scene.candidateResourceIds.some(
@@ -420,7 +435,7 @@ export const validateSceneProductionBrief = ({
 
 const SceneAssignmentInputObject = z
   .object({
-    schemaVersion: z.literal(4),
+    schemaVersion: z.literal(5),
     contractVersion: z.literal(SCENE_ASSIGNMENT_VERSION),
     runId: ProductionRunIdSchema,
     storyId: StoryIdSchema,
@@ -484,7 +499,7 @@ const addSceneAssignmentIssues = (
     }
   }
   if (
-    assignment.taskInput.schemaVersion !== 4 ||
+    assignment.taskInput.schemaVersion !== 5 ||
     assignment.taskInput.readabilityPolicy.policyFingerprint !==
       assignment.readabilityPolicy.policyFingerprint ||
     assignment.taskInput.sceneCompositionBoundaryVersion !==
@@ -550,7 +565,7 @@ export const SceneAssignmentSchema = SceneAssignmentInputObject.extend({
 export const buildSceneAssignment = (rawInput: unknown) => {
   const record: Record<string, unknown> = {
     ...(rawInput as Record<string, unknown>),
-    schemaVersion: 4,
+    schemaVersion: 5,
     contractVersion: SCENE_ASSIGNMENT_VERSION,
   };
   delete record.assignmentFingerprint;
@@ -575,7 +590,7 @@ const ResultRepositoryPathSchema = z
   );
 
 const SceneProductionResultCommonShape = {
-  schemaVersion: z.literal(4),
+  schemaVersion: z.literal(5),
   contractVersion: z.literal(SCENE_PRODUCTION_RESULT_VERSION),
   runId: ProductionRunIdSchema,
   storyId: StoryIdSchema,
@@ -701,7 +716,7 @@ export const SceneProductionResultSchema =
 export const buildSceneProductionResult = (rawInput: unknown) => {
   const record: Record<string, unknown> = {
     ...(rawInput as Record<string, unknown>),
-    schemaVersion: 4,
+    schemaVersion: 5,
     contractVersion: SCENE_PRODUCTION_RESULT_VERSION,
   };
   delete record.resultFingerprint;

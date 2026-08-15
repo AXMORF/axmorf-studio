@@ -31,6 +31,7 @@ import { capabilityDescriptorDeclarations } from "../../src/remotion/catalog/cap
 import { styleDescriptorDeclarations } from "../../src/remotion/catalog/style-descriptors";
 import { buildResourceCatalog } from "../../scripts/catalog/domain";
 import { loadCatalogAuthorityDescriptors } from "../../scripts/catalog/project-files";
+import { generateScenePackageFromProjectFiles } from "../../scripts/scene-package/generate";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
 import {
   assertSceneAssignmentIsolation,
@@ -66,14 +67,25 @@ const materializeCatalogAuthority = async (rootDir: string) => {
     await copyRepositoryFile(rootDir, asset.localPath);
   }
   const sourcePaths = new Set(
-    [...styleDescriptorDeclarations, ...capabilityDescriptorDeclarations].flatMap(
-      (descriptor) => [
-        descriptor.authority.repositoryPath,
-        descriptor.sourceFile,
-      ],
-    ),
+    [
+      ...styleDescriptorDeclarations,
+      ...capabilityDescriptorDeclarations,
+    ].flatMap((descriptor) => [
+      descriptor.authority.repositoryPath,
+      descriptor.sourceFile,
+    ]),
   );
   for (const sourcePath of sourcePaths) {
+    await copyRepositoryFile(rootDir, sourcePath);
+  }
+  for (const sourcePath of [
+    "src/remotion/capabilities/story-bookends/AxmorfBrand.tsx",
+    "src/remotion/capabilities/story-bookends/AxmorfIntroScene.tsx",
+    "src/remotion/capabilities/story-bookends/AxmorfOutroScene.tsx",
+    "src/remotion/capabilities/story-bookends/BrandFollowScene.tsx",
+    "src/remotion/capabilities/story-bookends/SourceCreditsScene.tsx",
+    "src/remotion/capabilities/story-bookends/content.ts",
+  ]) {
     await copyRepositoryFile(rootDir, sourcePath);
   }
 };
@@ -90,7 +102,10 @@ const sceneRequirement = ProductionRequirementSchema.parse({
 
 const createFixture = async (
   context: TestContext,
-  options: { readonly withDefaultBookends?: boolean } = {},
+  options: {
+    readonly sceneLocalSound?: "allowed" | "none";
+    readonly withDefaultBookends?: boolean;
+  } = {},
 ) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-freeze-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
@@ -115,6 +130,7 @@ const createFixture = async (
     : validStorySpec.beats;
   const fixture = await createProductionFixture(context, rootDir, {
     additionalRequirements: [sceneRequirement],
+    sceneLocalSound: options.sceneLocalSound,
     story: options.withDefaultBookends
       ? {
           ...validStorySpec,
@@ -129,7 +145,10 @@ const createFixture = async (
   const baseline = await markProductionBaselineReady(fixture);
   await materializeCatalogAuthority(rootDir);
   const catalog = buildResourceCatalog(
-    await loadCatalogAuthorityDescriptors(rootDir, fixture.source.story.storyId),
+    await loadCatalogAuthorityDescriptors(
+      rootDir,
+      fixture.source.story.storyId,
+    ),
   );
   const styleEntry = catalog.entries.find(
     ({ descriptor }) => descriptor.id === "style.editorial-tech",
@@ -199,7 +218,8 @@ const createFixture = async (
     semanticTimingFingerprint: timing.fingerprint,
     visualStyleFingerprint,
     resourcePoolFingerprint: pool.poolFingerprint,
-    sceneLocalSoundPolicy: "allowed",
+    sceneLocalSoundPolicy:
+      fixture.requirements.enhancementSelection.sceneLocalSound,
     reviewPolicy: "mechanical-only",
     scenes: [
       ...(options.withDefaultBookends
@@ -350,13 +370,13 @@ test("freezes one assignment per StoryBeat in order and projects Scene requireme
       ),
     ),
   );
-  assert.equal(assignments[0].schemaVersion, 4);
-  assert.equal(assignments[0].taskInput.schemaVersion, 4);
+  assert.equal(assignments[0].schemaVersion, 5);
+  assert.equal(assignments[0].taskInput.schemaVersion, 5);
   if (
-    assignments[0].schemaVersion !== 4 ||
-    assignments[0].taskInput.schemaVersion !== 4
+    assignments[0].schemaVersion !== 5 ||
+    assignments[0].taskInput.schemaVersion !== 5
   ) {
-    assert.fail("Expected v4 Scene assignment and task input.");
+    assert.fail("Expected v5 Scene assignment and task input.");
   }
   assert.equal(
     assignments[0].sceneCompositionBoundaryVersion,
@@ -414,7 +434,10 @@ test("default intro and outro freeze as ordinary preset-bound Scene assignments"
   const outro = assignments[3];
   assert.equal(intro.taskInput.storyBeat.kind, "silent-scene");
   assert.equal(outro.taskInput.storyBeat.kind, "silent-scene");
-  assert.equal(intro.taskInput.timingBeat.startFrame, fixture.source.render.leadInFrames);
+  assert.equal(
+    intro.taskInput.timingBeat.startFrame,
+    fixture.source.render.leadInFrames,
+  );
   assert.equal(
     intro.taskInput.timingBeat.endFrame - intro.taskInput.timingBeat.startFrame,
     DEFAULT_INTRO_SCENE_PRESET.durationInFrames,
@@ -432,6 +455,136 @@ test("default intro and outro freeze as ordinary preset-bound Scene assignments"
     DEFAULT_OUTRO_SCENE_PRESET.presetFingerprint,
   );
   assertSceneAssignmentIsolation(assignments);
+  assert.deepEqual(result.preauthoredMeaningIds, ["intro", "outro"]);
+
+  const introRoot = join(fixture.projectDir, "scenes/intro");
+  const outroRoot = join(fixture.projectDir, "scenes/outro");
+  const introRenderer = await readFile(join(introRoot, "Renderer.tsx"), "utf8");
+  const outroRenderer = await readFile(join(outroRoot, "Renderer.tsx"), "utf8");
+  assert.match(introRenderer, /AxmorfIntroScene/u);
+  assert.match(outroRenderer, /AxmorfOutroScene/u);
+
+  const introSound = JSON.parse(
+    await readFile(join(introRoot, "sound-plan.json"), "utf8"),
+  );
+  const outroSound = JSON.parse(
+    await readFile(join(outroRoot, "sound-plan.json"), "utf8"),
+  );
+  assert.deepEqual(introSound.cues, [
+    {
+      cueId: "intro-chime",
+      resource: {
+        schemaVersion: 1,
+        resourceId: "asset.axmorf-intro-chime",
+        kind: "asset",
+        role: "scene-sfx",
+        descriptorFingerprint:
+          introSound.cues[0].resource.descriptorFingerprint,
+        catalogFingerprint: fixture.catalog.catalogFingerprint,
+      },
+      timing: {
+        kind: "anchor",
+        eventId: "brand-reveal-start",
+        offsetFrames: 0,
+      },
+      durationInFrames: 18,
+      volume: 0.82,
+    },
+  ]);
+  assert.equal(outroSound.cues[0].cueId, "outro-chime");
+  assert.deepEqual(outroSound.cues[0].timing, {
+    kind: "anchor",
+    eventId: "brand-lockup-start",
+    offsetFrames: 0,
+  });
+  assert.equal(outroSound.cues[0].durationInFrames, 30);
+
+  const introPackage = await generateScenePackageFromProjectFiles({
+    rootDir: fixture.rootDir,
+    projectId: "story-example",
+    meaningId: "intro",
+    mode: "write",
+  });
+  const outroPackage = await generateScenePackageFromProjectFiles({
+    rootDir: fixture.rootDir,
+    projectId: "story-example",
+    meaningId: "outro",
+    mode: "write",
+  });
+  assert.equal(introPackage.schemaVersion, 5);
+  assert.equal(outroPackage.schemaVersion, 5);
+  assert.equal(
+    introPackage.scenePresetFingerprint,
+    DEFAULT_INTRO_SCENE_PRESET.presetFingerprint,
+  );
+  assert.equal(
+    outroPackage.scenePresetFingerprint,
+    DEFAULT_OUTRO_SCENE_PRESET.presetFingerprint,
+  );
+  assert.deepEqual(
+    introPackage.selectedResources.map(({ resourceId }) => resourceId),
+    ["asset.axmorf-intro-chime"],
+  );
+  assert.deepEqual(
+    outroPackage.selectedResources.map(({ resourceId }) => resourceId),
+    ["asset.axmorf-outro-chime"],
+  );
+});
+
+test("disabled bookends leave no reusable Scene source or sound plan", async (context) => {
+  const fixture = await createFixture(context);
+  const result = await freeze(fixture);
+  assert.deepEqual(result.preauthoredMeaningIds, []);
+  await assert.rejects(
+    () => readFile(join(fixture.projectDir, "scenes/intro/Renderer.tsx")),
+    {
+      code: "ENOENT",
+    },
+  );
+  await assert.rejects(
+    () => readFile(join(fixture.projectDir, "scenes/outro/sound-plan.json")),
+    {
+      code: "ENOENT",
+    },
+  );
+});
+
+test("reusable bookends reject unused external snapshot cards", async (context) => {
+  const fixture = await createFixture(context, { withDefaultBookends: true });
+  await writeProductionJson(
+    join(fixture.projectDir, "production/scene-production-brief.json"),
+    buildSceneProductionBrief({
+      ...fixture.brief,
+      scenes: fixture.brief.scenes.map((scene) =>
+        scene.meaningId === "intro"
+          ? {
+              ...scene,
+              allowedSnapshotCards: [
+                {
+                  sourceId: "video-shotcraft",
+                  cardIds: ["draw-svg-trace"],
+                },
+              ],
+            }
+          : scene,
+      ),
+    }),
+  );
+  await assert.rejects(
+    () => freeze(fixture),
+    /Silent Scene intro must not carry snapshot cards\./u,
+  );
+});
+
+test("reusable bookend sound conflicts fail during Scene freeze", async (context) => {
+  const fixture = await createFixture(context, {
+    withDefaultBookends: true,
+    sceneLocalSound: "none",
+  });
+  await assert.rejects(
+    () => freeze(fixture),
+    /Reusable silent Scene intro requires Scene-local sound\./u,
+  );
 });
 
 test("current freeze rerun is a byte and mtime stable no-op", async (context) => {
@@ -472,6 +625,20 @@ test("current freeze rejects Project ResourceCatalog drift", async (context) => 
   await assert.rejects(
     () => freeze(fixture),
     /Project ResourceCatalog drift: generated bytes are stale\./u,
+  );
+});
+
+test("current freeze rejects reusable bookend Renderer source drift", async (context) => {
+  const fixture = await createFixture(context, { withDefaultBookends: true });
+  await freeze(fixture);
+  const sourcePath = join(
+    fixture.rootDir,
+    "src/remotion/capabilities/story-bookends/AxmorfIntroScene.tsx",
+  );
+  await writeFile(sourcePath, `${await readFile(sourcePath, "utf8")}\n`);
+  await assert.rejects(
+    () => freeze(fixture),
+    /Reusable silent Scene Renderer source identity is stale\./u,
   );
 });
 

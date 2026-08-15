@@ -193,11 +193,11 @@ test("the shared submit watcher checker is check-only and byte-mtime stable", as
     mtime: (await stat(destination)).mtimeMs,
   };
   const assignment = {
-    schemaVersion: 4,
+    schemaVersion: 5,
     readabilityPolicy: fixture.policy,
     sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
     taskInput: {
-      schemaVersion: 4,
+      schemaVersion: 5,
       sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
     },
   } as SceneAssignment;
@@ -237,12 +237,12 @@ test("v3 accepts semantic-only Renderer and binds the shared boundary identities
     rendererPath: fixture.rendererPath,
   });
   const assignment = {
-    schemaVersion: 4,
+    schemaVersion: 5,
     storyId: "future-story",
     readabilityPolicy: fixture.policy,
     sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
     taskInput: {
-      schemaVersion: 4,
+      schemaVersion: 5,
       sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
     },
   } as SceneAssignment;

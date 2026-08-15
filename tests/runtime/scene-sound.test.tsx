@@ -8,7 +8,7 @@ import {
   buildNotApplicableFidelityReceipt,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
-  buildSceneTaskInputV4,
+  buildSceneTaskInputV5,
   buildSceneVisualPlan,
   buildShotPlanSet,
   buildShotRecipeSelection,
@@ -73,7 +73,9 @@ test("Scene sound never clamps cue ranges and empty plans mount no audio", () =>
       scenePackage: fixture.scenePackage,
       soundPlan: invalidSound,
       syncAnchors: fixture.anchors,
-      resources: [{ selected: fixture.selected, descriptor: fixture.descriptor }],
+      resources: [
+        { selected: fixture.selected, descriptor: fixture.descriptor },
+      ],
     }),
   );
   const emptyPackage = buildScenePackage(createM6PackageInput());
@@ -117,11 +119,12 @@ test("silent intro uses the ordinary ScenePackage and Scene sound projection", (
     visualIntent: "Render the proof shape as the intro visual.",
     soundIntent: "Play the proof pulse as the intro local cue.",
     resourceIds: ["asset.proof-sfx", "asset.proof-shape"],
+    implementation: { kind: "scene-owner" },
   });
   const { taskInputFingerprint: _oldTaskFingerprint, ...taskBase } =
     fixture.task;
   void _oldTaskFingerprint;
-  const task = buildSceneTaskInputV4({
+  const task = buildSceneTaskInputV5({
     ...taskBase,
     storyBeat: {
       kind: "silent-scene",
@@ -207,7 +210,9 @@ test("Scene sound fingerprint ignores visual-only package identity changes", () 
   const fixture = createSoundRuntimeFixture();
   const visualChangedInput = {
     ...fixture.scenePackage,
-    sceneVisualFingerprint: Sha256DigestSchema.parse(`sha256:${"9".repeat(64)}`),
+    sceneVisualFingerprint: Sha256DigestSchema.parse(
+      `sha256:${"9".repeat(64)}`,
+    ),
   };
   const visualChangedPackage = {
     ...visualChangedInput,

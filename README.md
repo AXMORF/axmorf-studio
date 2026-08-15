@@ -21,6 +21,9 @@
   preflight 后配置漂移会要求 fresh Run，不会切换当前 Run 的 provider、声线、语速或 LUFS。
 - `GlobalVisualLayers` 是唯一的无 Props 组件接口；render-ready 在封存 ready artifact 前只编译目标
   Project 的 Composition 与真实 import graph，跨模块类型漂移会 fail closed。
+- 默认片头片尾由 `story-bookends` reusable Scene capability 固定。Scene freeze 确定性投影普通
+  Renderer、visual/shot/anchor/sound plans 与资源选择；Scene owner 只校验并发布 receipt，不重复设计。
+  Project 显式替换或关闭 preset 才会改变对应 Scene 与声音。
 - core 与 fresh clone 是 zero-Project-safe；ignored 本地 Project 集由 bootstrap 动态发现，不写入
   README 或 current capability 状态。
 - 外部素材服务只负责 search/preview/acquire。当前 `project:asset:import` 严格接收
@@ -30,7 +33,7 @@
 - 每个 Project 只有一个 `deliveries/<storyId>/` current delivery；重新生成时原位替换。它不是
   checksum-bound verified release，ledger 只覆盖当前 identity 的 immutable 非 MP4 文件；
   `publishing.json` 同时给出 MP4 与两张 Cover 的固定文件名。
-- 平台上传、发布账号、网络发布、NarrativeCheck 和 capability promotion 尚未实现。
+- 平台上传、发布账号、网络发布、NarrativeCheck 和其他未批准 capability promotion 尚未实现。
 
 完整事实见 [当前实现状态](docs/ITERATION_STATUS.md)，执行方式见
 [生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md) 与
@@ -44,7 +47,7 @@ VideoBrief(sourceReferences) + Story + authored ttsChunks + RenderSpec + Publish
   → narrated content chunks measured and sealed once
   → full SemanticTiming (intro → content Scenes → outro) + narrated-only CaptionCue
   → local ResourceCatalog lookup + optional external image import
-  → N ordinary Scene owners (intro/content/outro) + one GlobalVisual owner + independent Cover owner
+  → default bookends deterministically materialized + N ordinary Scene owners + GlobalVisual/Cover owners
   → assignment-bound owner receipts + detached single-writer watcher
   → ScenePackage Registry + StoryVisualTrack/SoundDesignTrack + FinalAssembly
   → ProductionRenderPlan (SemanticTiming.durationInFrames)

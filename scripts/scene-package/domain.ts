@@ -87,8 +87,7 @@ export const buildScenePackage = (rawInput: {
       ) ||
     rawInput.current.rendererSourceFingerprint !==
       rendererBinding.rendererSourceFingerprint ||
-    rawInput.current.visualRuntimeVersion !==
-      STORY_VISUAL_RUNTIME_VERSION_V2 ||
+    rawInput.current.visualRuntimeVersion !== STORY_VISUAL_RUNTIME_VERSION_V2 ||
     rawInput.current.sceneAudioRuntimeVersion !== SCENE_AUDIO_RUNTIME_VERSION
   ) {
     throw new Error("Scene package current authority inputs are stale.");
@@ -190,7 +189,7 @@ export const buildScenePackage = (rawInput: {
     sceneAudioRuntimeVersion: SCENE_AUDIO_RUNTIME_VERSION,
   };
   const base = {
-    schemaVersion: 4 as const,
+    schemaVersion: 5 as const,
     ...commonBase,
     visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION_V2,
     readabilityPolicyFingerprint: task.readabilityPolicy.policyFingerprint,

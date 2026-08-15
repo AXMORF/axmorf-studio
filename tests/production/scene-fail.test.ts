@@ -6,7 +6,7 @@ import test, { type TestContext } from "node:test";
 
 import {
   buildSceneAssignment,
-  buildSceneTaskInputV4,
+  buildSceneTaskInputV5,
 } from "../../src/contracts";
 import { runProductionCli } from "../../scripts/production/cli";
 import { runProductionSceneFail } from "../../scripts/production/application/scene-fail";
@@ -24,10 +24,11 @@ const createFixture = async (context: TestContext) => {
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const fixture = await createProductionFixture(context, rootDir);
   await markProductionBaselineReady(fixture);
-  const taskInput = buildSceneTaskInputV4({
+  const taskInput = buildSceneTaskInputV5({
     storyId: "story-example",
     meaningId: "opening",
     storyBeat: fixture.source.story.beats[0],
+    sourceReferences: fixture.source.brief.sourceReferences,
     timingBeat: {
       kind: "narrated-scene",
       meaningId: "opening",

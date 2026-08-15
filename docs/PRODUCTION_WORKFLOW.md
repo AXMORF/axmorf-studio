@@ -51,6 +51,9 @@ v2 与 current ProductionRequirementsFreeze。PublishingIntent 必须从合集�
 Project source 可替换 preset 或显式关闭。工具不得自动拆分、补静音 TTS 或伪造字幕。VideoBrief 另以
 `sourceReferences: [{title, url}]` 保存本期资料引用；最多 8 条且 URL 只接受 HTTP(S)。
 
+默认 preset 的 `reusable-scene` implementation 额外绑定 capability source fingerprint 与精确
+Scene-local cue choreography。`scene-owner` 只用于 Project 显式选择的替代 preset；它不是默认路径。
+
 `production:preflight` 使用 `production-start-preflight-v2` 在 Run write 前检查 VoxCPM
 liveness/readiness 与 Remotion Chromium，
 区分 resident-ready、loading、offloaded 与 model-load-failed。offloaded 表示首个真实生成请求会
@@ -128,6 +131,13 @@ Project-local `generated/resource-catalog.generated.json` 快照，因此未导�
 Project 也具有 delivery attribution 所需的确定性 Catalog；后续 freeze/render-ready/delivery 只做
 canonical byte check，缺失或漂移均 fail closed。
 
+freeze 对已批准的 reusable intro/outro 只做确定性投影：写 Project-local Renderer wrapper、完整
+task-input、visual/shot/anchor/sound plans、selected resources、empty recipe 与 not-applicable
+fidelity receipt。它不选择新设计。返回的 `preauthoredMeaningIds` 仍拥有普通 SceneAssignment，
+Scene owner 只运行 `production:scene:check` 并发布 ready receipt，不修改这些固定文件。
+silent Scene brief 不接受另行注入的 snapshot card；带 exact cue 的 reusable preset 要求
+`sceneLocalSound: allowed`，冲突在 freeze 时直接 fail closed。
+
 - Scene owner 制作前必须读取并使用 repository-local
   `.agents/skills/remotion-best-practices/SKILL.md`，同时以 AGENTS、assignment、contracts 与
   validators 为更高 authority；只写 exclusive project/public paths，完成后发布 ready/failed
@@ -172,7 +182,8 @@ GlobalVisualProjection、FinalAssembly 与 current Composition。之后构建：
 
 current Project Composition 直接装配完整 Scene coverage。intro/outro 与正文一样消费 visual-plan、
 shot-plan、sync-anchors、sound-plan、selected resources、RendererRegistry 与 Scene sound runtime；
-Scene renderer 仍只负责视觉。默认 intro/outro preset 使用 bootstrap 可重建、Catalog checksum 与
+Scene renderer 仍只负责视觉。默认 intro/outro preset 使用批准的 `story-bookends` reusable capability，
+其 source fingerprint 进入 preset/task/package identity，并使用 bootstrap 可重建、Catalog checksum 与
 Project-Authored license 绑定的本地 PCM 提示音。替换 preset 会改变 Story/timing/task/package identity，
 关闭 preset 会移除对应 StoryBeat，因此旧音效不会残留。ProjectRegistry、render plan、Composition
 metadata 与 delivery planned duration 都直接使用 `SemanticTiming.durationInFrames`。

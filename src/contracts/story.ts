@@ -12,6 +12,11 @@ import {
 import { ResourceIdSchema } from "./resource-catalog";
 
 const NonEmptyTextSchema = z.string().trim().min(1);
+const StableSlugSchema = z
+  .string()
+  .min(1)
+  .max(128)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u);
 
 export const STORY_SPEC_SCHEMA_VERSION = 2 as const;
 
@@ -82,19 +87,48 @@ const NarratedStoryBeatSchema = z
   })
   .readonly();
 
+const ReusableSilentSceneSoundCueSchema = z
+  .object({
+    cueId: StableSlugSchema,
+    resourceId: ResourceIdSchema,
+    anchorId: StableSlugSchema,
+    offsetFrames: z.number().int().safe(),
+    durationInFrames: PositiveIntegerSchema,
+    volume: z.number().finite().min(0).max(1),
+  })
+  .strict()
+  .readonly();
+
+const SilentSceneImplementationSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("reusable-scene"),
+      implementationId: StableSlugSchema,
+      rendererSourceFingerprint: Sha256DigestSchema,
+      soundCues: z
+        .array(ReusableSilentSceneSoundCueSchema)
+        .min(1)
+        .max(16)
+        .readonly(),
+    })
+    .strict()
+    .readonly(),
+  z
+    .object({ kind: z.literal("scene-owner") })
+    .strict()
+    .readonly(),
+]);
+
 const SilentScenePresetInputSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     sceneRole: z.enum(["intro", "outro"]),
-    presetId: z
-      .string()
-      .min(1)
-      .max(128)
-      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u),
+    presetId: StableSlugSchema,
     durationInFrames: PositiveIntegerSchema,
     visualIntent: NonEmptyTextSchema.max(1600),
     soundIntent: NonEmptyTextSchema.max(1600),
     resourceIds: z.array(ResourceIdSchema).min(1).max(128).readonly(),
+    implementation: SilentSceneImplementationSchema,
   })
   .strict()
   .superRefine((preset, context) => {
@@ -113,6 +147,50 @@ const SilentScenePresetInputSchema = z
         });
       }
     });
+    if (preset.implementation.kind === "reusable-scene") {
+      const cueIds = new Set<string>();
+      const cueResourceIds = new Set<string>();
+      preset.implementation.soundCues.forEach((cue, index) => {
+        if (cueIds.has(cue.cueId)) {
+          context.addIssue({
+            code: "custom",
+            message: "Reusable Scene sound cue IDs must be unique.",
+            path: ["implementation", "soundCues", index, "cueId"],
+          });
+        }
+        cueIds.add(cue.cueId);
+        cueResourceIds.add(cue.resourceId);
+        if (!preset.resourceIds.includes(cue.resourceId)) {
+          context.addIssue({
+            code: "custom",
+            message: "Reusable Scene sound cues must use preset resources.",
+            path: ["implementation", "soundCues", index, "resourceId"],
+          });
+        }
+        if (
+          cue.offsetFrames < 0 ||
+          cue.offsetFrames + cue.durationInFrames > preset.durationInFrames
+        ) {
+          context.addIssue({
+            code: "custom",
+            message: "Reusable Scene sound cue must fit its preset window.",
+            path: ["implementation", "soundCues", index],
+          });
+        }
+      });
+      if (
+        JSON.stringify(
+          [...cueResourceIds].sort((left, right) => left.localeCompare(right)),
+        ) !== JSON.stringify(preset.resourceIds)
+      ) {
+        context.addIssue({
+          code: "custom",
+          message:
+            "Reusable Scene resources must exactly equal its sound cue resources.",
+          path: ["resourceIds"],
+        });
+      }
+    }
   });
 
 export const computeSilentScenePresetFingerprint = (rawInput: unknown) => {
@@ -121,7 +199,7 @@ export const computeSilentScenePresetFingerprint = (rawInput: unknown) => {
   const input = SilentScenePresetInputSchema.parse(record);
   return createFingerprint({
     namespace: "silent-scene-preset",
-    version: 1,
+    version: 2,
     value: input,
   });
 };
@@ -150,9 +228,10 @@ export const buildSilentScenePreset = (rawInput: {
   readonly visualIntent: unknown;
   readonly soundIntent: unknown;
   readonly resourceIds: readonly unknown[];
+  readonly implementation: unknown;
 }) => {
   const input = SilentScenePresetInputSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
     ...rawInput,
   });
   return SilentScenePresetSchema.parse({
@@ -170,6 +249,22 @@ export const DEFAULT_INTRO_SCENE_PRESET = buildSilentScenePreset({
   soundIntent:
     "Play only the checksum-bound AXMORF intro chime as Scene-local SFX.",
   resourceIds: ["asset.axmorf-intro-chime"],
+  implementation: {
+    kind: "reusable-scene",
+    implementationId: "axmorf-brand-intro-v1",
+    rendererSourceFingerprint:
+      "sha256:02b378a71f5b518e822aefb9ffbc0b295fceff011ebab6349fd1d14cdd7b7915",
+    soundCues: [
+      {
+        cueId: "intro-chime",
+        resourceId: "asset.axmorf-intro-chime",
+        anchorId: "brand-reveal-start",
+        offsetFrames: 0,
+        durationInFrames: 18,
+        volume: 0.82,
+      },
+    ],
+  },
 });
 
 export const DEFAULT_OUTRO_SCENE_PRESET = buildSilentScenePreset({
@@ -181,6 +276,22 @@ export const DEFAULT_OUTRO_SCENE_PRESET = buildSilentScenePreset({
   soundIntent:
     "Play only the checksum-bound AXMORF outro chime as Scene-local SFX.",
   resourceIds: ["asset.axmorf-outro-chime"],
+  implementation: {
+    kind: "reusable-scene",
+    implementationId: "axmorf-source-follow-outro-v1",
+    rendererSourceFingerprint:
+      "sha256:76f5561a7de1fb4547d98d83e2fd392a3bc21620f4e29854032a7713bb04672d",
+    soundCues: [
+      {
+        cueId: "outro-chime",
+        resourceId: "asset.axmorf-outro-chime",
+        anchorId: "brand-lockup-start",
+        offsetFrames: 0,
+        durationInFrames: 30,
+        volume: 0.82,
+      },
+    ],
+  },
 });
 
 const SilentStoryBeatSchema = z
@@ -259,7 +370,8 @@ export const StorySpecSchema = z
         ) {
           context.addIssue({
             code: "custom",
-            message: "Silent intro must be first and silent outro must be last.",
+            message:
+              "Silent intro must be first and silent outro must be last.",
             path: ["beats", beatIndex, "sceneRole"],
           });
         }
@@ -310,6 +422,9 @@ export const StorySpecSchema = z
 export type TTSChunk = z.infer<typeof TTSChunkSchema>;
 export type ExplicitPause = z.infer<typeof ExplicitPauseSchema>;
 export type SilentScenePreset = z.infer<typeof SilentScenePresetSchema>;
+export type SilentSceneImplementation = z.infer<
+  typeof SilentSceneImplementationSchema
+>;
 export type StoryBeat = z.infer<typeof StoryBeatSchema>;
 export type StorySpec = z.infer<typeof StorySpecSchema>;
 

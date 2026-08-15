@@ -23,6 +23,9 @@
 - StoryBeat 严格区分 narrated-scene 与 silent intro/outro Scene；新 Story 默认显式选择片头片尾
   preset，Project source 可替换或关闭。silent preset 固定视觉、Scene-local 音效、资源与帧数，
   不得伪造 TTS、CaptionCue 或 sealed narration segment。
+- 默认 intro/outro preset 使用已批准的 reusable Scene capability；freeze 只确定性投影其 Renderer、
+  plans、anchors、selected resources 与 sound plan。对应 Scene owner 只校验并发布 receipt，不重新创作；
+  只有 Project 显式选择 `scene-owner` replacement preset 时才重新制作。
 - ttsChunks 是 Agent 已确定的朗读单元；工具不按标点自动拆分或重写。
 - sealed PCM 实测时间是绝对 authority；统一用
   `ceilDiv(cumulativeSamples × fps, sampleRate)` 计算 frame boundary。

@@ -399,7 +399,7 @@ export const productionSoundDesignProjection = buildSoundDesignProjection({
 });
 export const productionRendererPropsByMeaning: Readonly<Record<string, SceneRendererMountProps>> = Object.fromEntries(
   scenes.map((scene) => {
-    if (scene.scenePackage.schemaVersion !== 4 || scene.task.schemaVersion !== 4) throw new Error("Production Scene package is not current.");
+    if (scene.scenePackage.schemaVersion !== 5 || scene.task.schemaVersion !== 5) throw new Error("Production Scene package is not current.");
     const task = scene.task;
     return [task.meaningId, {
     storyId: task.storyId,
@@ -409,6 +409,7 @@ export const productionRendererPropsByMeaning: Readonly<Record<string, SceneRend
     width: render.width,
     height: render.height,
     storyBeat: task.storyBeat,
+    sourceReferences: task.sourceReferences,
     timingBeat: task.timingBeat,
     visualStyle,
     visualPlan: scene.visual,

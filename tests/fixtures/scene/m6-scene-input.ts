@@ -1,7 +1,7 @@
 import {
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
-  buildSceneTaskInputV4,
+  buildSceneTaskInputV5,
   buildSceneVisualPlan,
   buildShotPlanSet,
   resolveProductionReadabilityPolicy,
@@ -12,7 +12,7 @@ export const sha = (character: string) =>
   Sha256DigestSchema.parse(`sha256:${character.repeat(64)}`);
 
 export const createM6SceneTaskInput = () =>
-  buildSceneTaskInputV4({
+  buildSceneTaskInputV5({
     storyId: "synthetic-proof",
     meaningId: "meaning-one",
     storyBeat: {
@@ -22,6 +22,7 @@ export const createM6SceneTaskInput = () =>
       ttsChunks: [{ chunkId: "chunk-one", ttsText: "A synthetic proof." }],
       explicitPauses: [],
     },
+    sourceReferences: [],
     timingBeat: {
       kind: "narrated-scene",
       meaningId: "meaning-one",

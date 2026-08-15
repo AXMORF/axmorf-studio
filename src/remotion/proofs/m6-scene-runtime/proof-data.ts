@@ -135,6 +135,7 @@ export const m6ProofRendererPropsByMeaning: Readonly<
     width: 1920,
     height: 1080,
     storyBeat: task.storyBeat,
+    sourceReferences: task.sourceReferences,
     timingBeat: task.timingBeat,
     visualStyle,
     visualPlan,

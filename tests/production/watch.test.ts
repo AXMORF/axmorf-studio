@@ -11,7 +11,7 @@ import {
   buildProductionOwnerResult,
   buildSceneAssignment,
   buildSceneProductionResult,
-  buildSceneTaskInputV4,
+  buildSceneTaskInputV5,
   type GlobalVisualAssignment,
   type ProductionReadabilityPolicy,
   type SceneAssignment,
@@ -51,7 +51,7 @@ const createAssignments = ({
   readonly readabilityPolicy: ProductionReadabilityPolicy;
 }) =>
   (["opening", "conclusion"] as const).map((meaningId, index) => {
-    const taskInput = buildSceneTaskInputV4({
+    const taskInput = buildSceneTaskInputV5({
       storyId: "story-example",
       meaningId,
       storyBeat: {
@@ -61,6 +61,7 @@ const createAssignments = ({
         ttsChunks: [{ chunkId: `${meaningId}-01`, ttsText: "A" }],
         explicitPauses: [{ afterChunkId: `${meaningId}-01`, pauseMs: 250 }],
       },
+      sourceReferences: [],
       timingBeat: {
         kind: "narrated-scene",
         meaningId,
@@ -177,7 +178,7 @@ const createFixture = async (context: TestContext) => {
   return { ...fixture, assignments, globalVisualAssignment };
 };
 
-const successScene = (assignment: Extract<SceneAssignment, { schemaVersion: 4 }>) =>
+const successScene = (assignment: Extract<SceneAssignment, { schemaVersion: 5 }>) =>
   buildSceneProductionResult({
     runId: assignment.runId,
     storyId: assignment.storyId,

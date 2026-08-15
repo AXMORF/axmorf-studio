@@ -46,6 +46,8 @@
   narration、captions 与 GlobalVisual background。
 - captions 只由顶层 CaptionLayer 渲染。
 - SemanticTiming 一次性解析片头、正文与片尾的连续权威窗口；片头片尾默认无旁白和字幕，但可拥有 Scene-local 音效。
+- 默认片头片尾 preset 绑定 reusable Scene Renderer source identity、固定 visual/shot/anchor/sound
+  choreography、时长和本地资源；fresh Run 只确定性投影并校验，不再次作创意设计。
 - JSON 不包含 JSX、代码、动态模块路径或 executable expression。
 - render runtime 不调用 Agent、Skill、MCP、Git、网络或目录扫描。
 - 所有 render-critical 资产 repository-local、manifest-verified；motion 使用 Remotion frame API。
