@@ -20,12 +20,14 @@
 - 所有 `remotion` 与 `@remotion/*` 包保持完全相同的精确版本。
 - 一 Story 一个 Composition；一 StoryBeat 一个 meaningId 和 Scene；完成制作的 Scene 对应一个
   ScenePackage。
-- StoryBeat 严格区分 narrated-scene 与 silent intro/outro Scene；新 Story 默认显式选择片头片尾
-  preset，Project source 可替换或关闭。silent preset 固定视觉、Scene-local 音效、资源与帧数，
+- StoryBeat 严格区分 narrated-scene 与 silent Scene；silent Scene 只允许位于时间线首尾边界，但合同
+  不声明 intro/outro role。新 Project 从全局配置选择边界 Scene template，也可关闭；silent preset
+  固定视觉、Scene-local 音效、资源与帧数，
   不得伪造 TTS、CaptionCue 或 sealed narration segment。
-- 默认 intro/outro preset 使用已批准的 reusable Scene capability；freeze 只确定性投影其 Renderer、
-  plans、anchors、selected resources 与 sound plan。对应 Scene owner 只校验并发布 receipt，不重新创作；
-  只有 Project 显式选择 `scene-owner` replacement preset 时才重新制作。
+- `project:configure` 把所选 Scene template 的源码和资源复制到 Project-local Scene 并冻结独立
+  instance identity；已有 Project 不引用共享 template，也不受其后续修改影响。freeze 只机械投影
+  plans、anchors、selected resources 与 sound plan，并由脚本直接 check/submit，不创建 Scene owner、
+  不接收 owner receipt；只有 Project 显式使用 `scene-owner` preset 时才交给 Agent 制作。
 - ttsChunks 是 Agent 已确定的朗读单元；工具不按标点自动拆分或重写。
 - sealed PCM 实测时间是绝对 authority；统一用
   `ceilDiv(cumulativeSamples × fps, sampleRate)` 计算 frame boundary。
@@ -54,8 +56,9 @@
 - production 的唯一成功终点是 `render-ready / awaiting-automatic-delivery`。它绑定
   `production-render-plan-v4` 与 `production-render-ready-v4`，不生成或检查最终 MP4。
 - Cover missing/stale 不阻止 render-ready，但阻止自动 delivery build。
-- 主 Agent 在冻结全部 assignment 后先启动 detached watcher，再用 Codex `create_thread` 创建 N 个
-  Scene、一个 GlobalVisual 和一个 Cover 独立用户任务；全部创建调用完成后立即结束，不等待
+- 主 Agent 在冻结全部 assignment 后先启动 detached watcher，再用 Codex `create_thread` 只为需要
+  Agent 创作的 Scene assignment、一个 GlobalVisual 和一个 Cover 创建独立用户任务；template-copy
+  Scene 由脚本处理。全部创建调用完成后立即结束，不等待
   render-ready 或 delivery。
 - watcher 是 check、正式 result/event、registry convergence 与 `delivery:build` 的唯一中央 writer。
 - 每个 Project 只有 `deliveries/<storyId>/` 一个 current delivery slot；identity 变化时通过 staging

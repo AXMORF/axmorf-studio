@@ -56,20 +56,19 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 ### 叙事、时间与 Scene
 
-- strict VideoBrief、StorySpec v2 discriminated narrated/silent Scene、current-only NarrationSpec v2、RenderSpec、StoryBeat、
+- strict VideoBrief、StorySpec v3 discriminated narrated/silent Scene、current-only NarrationSpec v2、RenderSpec、StoryBeat、
   Agent-authored ttsChunks；NarrationSpec v1/`seed` 无 runtime compatibility。
 - VoxCPM clone adapters v2、完整 generation parameter/provider-attempt binding、候选、sealed
   PCM、checksum/fingerprint、`pcm-cumulative-ceil-v1`、SemanticTiming 与
   CaptionCue。
 - Composition-owned `SceneSafeArea`、唯一顶层 CaptionLayer、透明语义 Scene root。
-- intro/content/outro 已统一走普通 ScenePackage；SemanticTiming v2 覆盖连续全片窗口，CaptionCue
-  只覆盖 narrated chunks。默认 intro/outro preset 分别绑定 60/240 帧、视觉/音效意图、本地 PCM
-  Resource ID、精确 cue choreography、reusable Renderer source identity 与 fingerprint。freeze
-  确定性投影 Project-local Renderer 和全部 Scene plans，owner 只校验/发布 receipt，不重新创作；
-  Project source 可显式选择 `scene-owner` replacement 或关闭。`leadInFrames`/`tailFrames` 只保留
+- 首尾 silent Scene 与 content 已统一走普通 ScenePackage；SemanticTiming v3 覆盖连续全片窗口，
+  CaptionCue 只覆盖 narrated chunks。ProducerConfig 选择普通 Scene template，`project:configure`
+  把源码和资源复制到 Project-local Scene 并冻结独立 instance；freeze 机械投影 plans、校验并直接
+  submit，不创建 owner receipt。Project 也可使用 `scene-owner` 或关闭。`leadInFrames`/`tailFrames` 只保留
   真正空白 padding，NarrativeCore 从 `narrationStartFrame` 挂载唯一完整旁白。
-- zero-Project Root 的 `System` folder 提供默认 intro/outro 的独立可听预览 Composition；它们消费
-  shared `story-bookends` 视觉与 Catalog-bound 本地 chime，但不形成第二套 production 音效所有权。
+- zero-Project Root 的 `System` folder 提供两个 Scene template 的独立可听预览 Composition；它们消费
+  template library 与 Catalog-bound 本地 chime，但不形成 Project runtime 依赖或第二套音效所有权。
 - 每个 meaningId 一个独立 Codex task；每个 Story 一个 GlobalVisual task 与一个 Cover task；共享
   checkout 使用不重叠 exclusive paths。owner 只发布 immutable receipt，single-writer watcher
   串行验证并写正式 result。

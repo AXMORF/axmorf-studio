@@ -5,17 +5,17 @@ import test from "node:test";
 import {
   AxmorfIntroScene,
   AxmorfOutroScene,
-} from "../../src/remotion/capabilities/story-bookends";
+} from "../../src/remotion/capabilities/scenes/templates/axmorf";
 
-test("reusable bookend renderers remain visual-only", async () => {
+test("reusable Scene template renderers remain visual-only", async () => {
   assert.equal(typeof AxmorfIntroScene, "function");
   assert.equal(typeof AxmorfOutroScene, "function");
   const sources = await Promise.all(
     [
-      "../../src/remotion/capabilities/story-bookends/AxmorfIntroScene.tsx",
-      "../../src/remotion/capabilities/story-bookends/AxmorfOutroScene.tsx",
-      "../../src/remotion/capabilities/story-bookends/SourceCreditsScene.tsx",
-      "../../src/remotion/capabilities/story-bookends/BrandFollowScene.tsx",
+      "../../src/remotion/capabilities/scenes/templates/axmorf/AxmorfIntroScene.tsx",
+      "../../src/remotion/capabilities/scenes/templates/axmorf/AxmorfOutroScene.tsx",
+      "../../src/remotion/capabilities/scenes/templates/axmorf/SourceCreditsScene.tsx",
+      "../../src/remotion/capabilities/scenes/templates/axmorf/BrandFollowScene.tsx",
     ].map((path) => readFile(new URL(path, import.meta.url), "utf8")),
   );
   for (const source of sources) {

@@ -9,45 +9,48 @@ import {
 } from "remotion";
 
 import {
-  DEFAULT_INTRO_SCENE_PRESET,
-  DEFAULT_OUTRO_SCENE_PRESET,
   ProducerAssetManifestSchema,
-  type SilentScenePreset,
 } from "../../../contracts";
 import assetManifestJson from "../../catalog/assets.manifest.json";
 import {
   AxmorfIntroScene,
   AxmorfOutroScene,
-} from "../../capabilities/story-bookends";
-import { BOOKEND_IMPLEMENTATION_TIMING } from "../../capabilities/story-bookends/timing";
+} from "../../capabilities/scenes/templates/axmorf";
+import { AXMORF_SCENE_TEMPLATE_TIMING } from "../../capabilities/scenes/templates/axmorf/timing";
+import { getSceneTemplateDefinition } from "../../capabilities/scenes/registry";
 
 const PREVIEW_FPS = 30;
 const assetManifest = ProducerAssetManifestSchema.parse(assetManifestJson);
 
 const buildPreviewSpec = ({
-  preset,
-  implementationId,
+  templateId,
+  timingId,
   anchorFrame,
 }: {
-  readonly preset: SilentScenePreset;
-  readonly implementationId: keyof typeof BOOKEND_IMPLEMENTATION_TIMING;
+  readonly templateId:
+    | "axmorf-brand-reveal-v1"
+    | "axmorf-source-follow-v1";
+  readonly timingId: keyof typeof AXMORF_SCENE_TEMPLATE_TIMING;
   readonly anchorFrame: number;
 }) => {
-  const implementation = preset.implementation;
-  const timing = BOOKEND_IMPLEMENTATION_TIMING[implementationId];
+  const definition = getSceneTemplateDefinition(templateId);
+  const timing = AXMORF_SCENE_TEMPLATE_TIMING[timingId];
   if (
-    implementation.kind !== "reusable-scene" ||
-    implementation.implementationId !== implementationId ||
-    implementation.soundCues.length !== 1 ||
-    preset.durationInFrames !== timing.durationInFrames
+    definition.soundCues.length !== 1 ||
+    definition.assets.length !== 1 ||
+    definition.durationInFrames !== timing.durationInFrames
   ) {
-    throw new Error("System bookend preview is stale against its preset.");
+    throw new Error("System Scene template preview is stale.");
   }
-  const cue = implementation.soundCues[0];
+  const cue = definition.soundCues[0];
+  const templateAsset = definition.assets.find(
+    ({ assetKey }) => assetKey === cue.assetKey,
+  );
   const descriptor = assetManifest.assets.find(
-    (asset) => asset.id === cue.resourceId,
+    (asset) => asset.checksum === templateAsset?.checksum,
   );
   if (
+    templateAsset === undefined ||
     descriptor === undefined ||
     descriptor.kind !== "asset" ||
     descriptor.assetKind !== "audio" ||
@@ -55,7 +58,7 @@ const buildPreviewSpec = ({
     descriptor.allowedUse !== "runtime-approved" ||
     !descriptor.localPath.startsWith("public/")
   ) {
-    throw new Error("System bookend preview audio identity is invalid.");
+    throw new Error("System Scene template preview audio identity is invalid.");
   }
   const durationInSeconds = descriptor.media?.durationInSeconds;
   if (
@@ -63,12 +66,12 @@ const buildPreviewSpec = ({
     Math.round(durationInSeconds * PREVIEW_FPS) !== cue.durationInFrames ||
     anchorFrame + cue.offsetFrames < 0 ||
     anchorFrame + cue.offsetFrames + cue.durationInFrames >
-      preset.durationInFrames
+      definition.durationInFrames
   ) {
-    throw new Error("System bookend preview audio identity is invalid.");
+    throw new Error("System Scene template preview audio identity is invalid.");
   }
   return {
-    durationInFrames: preset.durationInFrames,
+    durationInFrames: definition.durationInFrames,
     cue: {
       startFrame: anchorFrame + cue.offsetFrames,
       durationInFrames: cue.durationInFrames,
@@ -79,20 +82,20 @@ const buildPreviewSpec = ({
   } as const;
 };
 
-export const SYSTEM_BOOKEND_PREVIEW_SPECS = {
+export const SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS = {
   intro: buildPreviewSpec({
-    preset: DEFAULT_INTRO_SCENE_PRESET,
-    implementationId: "axmorf-brand-intro-v1",
+    templateId: "axmorf-brand-reveal-v1",
+    timingId: "axmorf-brand-reveal-v1",
     anchorFrame:
-      BOOKEND_IMPLEMENTATION_TIMING["axmorf-brand-intro-v1"].anchors[
+      AXMORF_SCENE_TEMPLATE_TIMING["axmorf-brand-reveal-v1"].anchors[
         "brand-reveal-start"
       ],
   }),
   outro: buildPreviewSpec({
-    preset: DEFAULT_OUTRO_SCENE_PRESET,
-    implementationId: "axmorf-source-follow-outro-v1",
+    templateId: "axmorf-source-follow-v1",
+    timingId: "axmorf-source-follow-v1",
     anchorFrame:
-      BOOKEND_IMPLEMENTATION_TIMING["axmorf-source-follow-outro-v1"].anchors[
+      AXMORF_SCENE_TEMPLATE_TIMING["axmorf-source-follow-v1"].anchors[
         "brand-lockup-start"
       ],
   }),
@@ -111,7 +114,7 @@ const PreviewStage: FC<{ readonly children: ReactNode }> = ({ children }) => (
 );
 
 const PreviewSound: FC<{
-  readonly spec: (typeof SYSTEM_BOOKEND_PREVIEW_SPECS)[keyof typeof SYSTEM_BOOKEND_PREVIEW_SPECS];
+  readonly spec: (typeof SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS)[keyof typeof SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS];
 }> = ({ spec }) => (
   <Sequence
     from={spec.cue.startFrame}
@@ -124,7 +127,7 @@ const PreviewSound: FC<{
   </Sequence>
 );
 
-export const DefaultIntroPreview: FC = () => {
+export const BrandRevealTemplatePreview: FC = () => {
   const sceneFrame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   return (
@@ -134,12 +137,12 @@ export const DefaultIntroPreview: FC = () => {
         width={width}
         height={height}
       />
-      <PreviewSound spec={SYSTEM_BOOKEND_PREVIEW_SPECS.intro} />
+      <PreviewSound spec={SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS.intro} />
     </PreviewStage>
   );
 };
 
-export const DefaultOutroPreview: FC = () => {
+export const SourceFollowTemplatePreview: FC = () => {
   const sceneFrame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   return (
@@ -159,7 +162,7 @@ export const DefaultOutroPreview: FC = () => {
           },
         ]}
       />
-      <PreviewSound spec={SYSTEM_BOOKEND_PREVIEW_SPECS.outro} />
+      <PreviewSound spec={SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS.outro} />
     </PreviewStage>
   );
 };

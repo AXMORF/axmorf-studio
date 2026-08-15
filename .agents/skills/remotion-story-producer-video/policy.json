@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 7,
-  "policyVersion": "remotion-story-producer-video-policy-v7",
+  "schemaVersion": 8,
+  "policyVersion": "remotion-story-producer-video-policy-v8",
   "rootEndpoint": "watcher-started-and-owners-dispatched",
   "backgroundEndpoint": "delivery-render-started",
   "privateConfigPath": "private/producer.config.json",
@@ -33,7 +33,7 @@
     "production:owner:failed"
   ],
   "invariants": {
-    "sceneAuthoringOwner": "one-independent-thread-per-meaning-id",
+    "sceneAuthoringOwner": "one-independent-thread-per-owner-meaning-id",
     "sceneAuthoringSkill": "repository-local-remotion-best-practices",
     "sceneTaskInputProjection": "complete-assignment-task-input",
     "sceneOwnerValidation": "scene-check-ready-before-owner-ready",
@@ -56,8 +56,8 @@
     "threadIdentityPersisted": false,
     "timingPolicy": "pcm-cumulative-ceil-v1",
     "storyBeatContract": "discriminated-narrated-or-silent-scene",
-    "defaultBookends": "explicit-reusable-intro-outro-scene-presets",
-    "defaultBookendOwnerPolicy": "preauthored-check-and-receipt-only",
+    "configuredSceneTemplates": "project-configure-copy-with-project-local-instance",
+    "templateCopyOwnerPolicy": "script-check-submit-without-owner-receipt",
     "silentSceneNarrationPolicy": "no-tts-no-captions-fixed-preset-frames",
     "watcherLaunchPolicy": "detached-spawn-acknowledgement-v1",
     "watcherLaunchAmbiguityPolicy": "intent-without-receipt-never-retry",

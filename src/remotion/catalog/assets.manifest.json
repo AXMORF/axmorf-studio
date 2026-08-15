@@ -3,13 +3,13 @@
   "assets": [
     {
       "schemaVersion": 1,
-      "id": "asset.axmorf-intro-chime",
+      "id": "asset.axmorf-brand-reveal-chime",
       "kind": "asset",
       "status": "approved",
-      "title": "AXMORF intro chime",
-      "description": "Project-authored mono PCM chime for the default intro Scene preset.",
-      "useCases": ["default intro Scene cue"],
-      "tags": ["bookend", "intro", "sfx"],
+      "title": "AXMORF brand reveal chime",
+      "description": "Project-authored mono PCM chime for the AXMORF brand reveal Scene template.",
+      "useCases": ["AXMORF brand reveal Scene template preview"],
+      "tags": ["brand-reveal", "scene-template", "sfx"],
       "authority": {
         "kind": "repository-file",
         "repositoryPath": "src/remotion/catalog/assets.manifest.json"
@@ -17,7 +17,7 @@
       "allowedUse": "runtime-approved",
       "assetKind": "audio",
       "mediaRole": "scene-sfx",
-      "localPath": "public/assets/library/story-bookends/axmorf-intro-chime.wav",
+      "localPath": "public/assets/library/scene-templates/axmorf-brand-reveal-chime.wav",
       "checksum": "sha256:739069dd51389ebac5704cdcd4b16ef43abc458a268931ab5817b834c1f2c475",
       "license": {
         "id": "Project-Authored",
@@ -36,13 +36,13 @@
     },
     {
       "schemaVersion": 1,
-      "id": "asset.axmorf-outro-chime",
+      "id": "asset.axmorf-source-follow-chime",
       "kind": "asset",
       "status": "approved",
-      "title": "AXMORF outro chime",
-      "description": "Project-authored mono PCM chime for the default outro Scene preset.",
-      "useCases": ["default outro Scene cue"],
-      "tags": ["bookend", "outro", "sfx"],
+      "title": "AXMORF source follow chime",
+      "description": "Project-authored mono PCM chime for the AXMORF source follow Scene template.",
+      "useCases": ["AXMORF source follow Scene template preview"],
+      "tags": ["scene-template", "sfx", "source-follow"],
       "authority": {
         "kind": "repository-file",
         "repositoryPath": "src/remotion/catalog/assets.manifest.json"
@@ -50,7 +50,7 @@
       "allowedUse": "runtime-approved",
       "assetKind": "audio",
       "mediaRole": "scene-sfx",
-      "localPath": "public/assets/library/story-bookends/axmorf-outro-chime.wav",
+      "localPath": "public/assets/library/scene-templates/axmorf-source-follow-chime.wav",
       "checksum": "sha256:7140b3c599b3656e5c3ee26c9c127a5d6a8deb26a336c67574114e4fdbe355b0",
       "license": {
         "id": "Project-Authored",

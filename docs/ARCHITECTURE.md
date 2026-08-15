@@ -116,14 +116,14 @@ owner、watcher、delivery 或 Remotion runtime，远程 URL 永远不是 runtim
 
 ## Composition ownership
 
-StorySpec v2 把 `narrated-scene` 与 `silent-scene` 作为严格联合。intro/outro 是普通 StoryBeat，
+StorySpec v3 把 `narrated-scene` 与 `silent-scene` 作为严格联合。首尾 silent Scene 是普通 StoryBeat，
 通过 SceneAssignment、ScenePackage、RendererRegistry、StoryVisualTrack 与 SoundDesignTrack；
-不存在专用 Intro/Outro package、boundary sound track 或顶层 bookend shell。silent preset 绑定
-role、视觉意图、音效意图、固定帧数、资源 ID 与 fingerprint，SemanticTiming 一次性把它们与 sealed
-PCM narrated windows 解析为连续全片时间轴。默认 preset 使用本地 checksum/license-bound PCM；
-并绑定已批准 `story-bookends` capability 的 source fingerprint 与 exact cue choreography。freeze
-把它确定性投影成 Project-local Renderer wrapper 和普通 Scene plans；source drift 在 assignment
-解析时 fail closed。替换或关闭会改变上游 identity 或移除 Scene，旧音效不能残留。Composition exactly once 提供
+不存在专用 Intro/Outro package、boundary sound track 或顶层 shell。silent preset 不保存位置 role，
+只绑定视觉意图、音效意图、固定帧数、资源 ID 与 fingerprint，SemanticTiming 按 StoryBeat 顺序把它们
+与 sealed PCM narrated windows 解析为连续全片时间轴。ProducerConfig 的首尾字段只是业务选择；
+`project:configure` 从 `src/remotion/capabilities/scenes/templates/` 复制完整源码与资源到 Project-local
+Scene 并冻结 `template-copy` instance。freeze 不回读共享模板，只机械投影 plans、校验并直接 submit；
+共享模板后续变化不会传递到既有 Project。Composition exactly once 提供
 SceneSafeArea、NarrativeCore、CaptionLayer、GlobalVisual background 与 Scene track。Scene renderer
 根透明且只画 current Beat 语义；ScenePackage owns Scene-local
 ambience/SFX，不拥有旁白、字幕或全局音频。GlobalVisual owns project-local 背景/纹理/装饰/motif，
@@ -201,8 +201,9 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
 
 新 Scene 能力默认留在 project-local。移入 `src/remotion/capabilities/` 必须先有具体、
 fingerprint-bound promotion proposal，并获得用户对范围、API、文件与目标路径的明确授权。
-`src/remotion/capabilities/story-bookends/` 是已明确批准的例外：它只提供默认 intro/outro 的视觉
-Renderer，不挂载音频；音效仍由 preset 投影的 `sound-plan.json` 经 Scene sound runtime 播放。
+`src/remotion/capabilities/scenes/templates/` 保存可供新 Project 复制的已批准 Scene template；它不是
+既有 Project 的 runtime dependency。模板 Renderer 不挂载音频；复制后的音效仍由 preset 投影的
+`sound-plan.json` 经 Scene sound runtime 播放。
 Root 的 `System` folder 另行提供 `DefaultIntroPreview` / `DefaultOutroPreview` 演示 Composition；
-预览外壳只消费同一默认 preset 与本地 Catalog chime，不进入 Project Registry、ScenePackage 或
+预览外壳只消费模板定义与本地 Catalog chime，不进入 Project Registry、ScenePackage 或
 production sound ownership。

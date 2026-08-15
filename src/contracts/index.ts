@@ -37,6 +37,7 @@ export * from "./scene-primitives";
 export * from "./scene-plan";
 export * from "./scene-package";
 export * from "./scene-task";
+export * from "./scene-template";
 export * from "./shot-recipe";
 export * from "./sealed-narration";
 export * from "./semantic-timing";

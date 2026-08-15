@@ -8,6 +8,8 @@ Read this only while authoring a new Project's `producer-input.json`.
   or commit tokens, private paths, or protected voice material.
 - Choose exactly one existing `publishingCollections` ID from its name and description. Never invent a
   free-text collection.
+- Treat `sceneDefaults` as business-position choices for new Projects. `project:configure` copies the
+  selected generic Scene templates; do not add placement compatibility rules or hand-copy their files.
 - Let the CLI freeze render defaults, readability, default voice/provider identity, speech rate, and
   `targetLoudnessLufs`. Do not reproduce its derivation or copy values into contracts manually.
 - A Run freezes a private-safe narration execution snapshot. Configuration drift requires a fresh Run;

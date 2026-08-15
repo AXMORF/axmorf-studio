@@ -13,8 +13,6 @@ import { dirname, join } from "node:path";
 import test, { type TestContext } from "node:test";
 
 import {
-  DEFAULT_INTRO_SCENE_PRESET,
-  DEFAULT_OUTRO_SCENE_PRESET,
   GlobalVisualAssignmentSchema,
   ProducerAssetManifestSchema,
   ResourceCatalogSchema,
@@ -32,6 +30,7 @@ import { styleDescriptorDeclarations } from "../../src/remotion/catalog/style-de
 import { buildResourceCatalog } from "../../scripts/catalog/domain";
 import { loadCatalogAuthorityDescriptors } from "../../scripts/catalog/project-files";
 import { generateScenePackageFromProjectFiles } from "../../scripts/scene-package/generate";
+import { materializeConfiguredSceneTemplates } from "../../scripts/projects/scene-template-instantiation";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
 import {
   assertSceneAssignmentIsolation,
@@ -79,12 +78,13 @@ const materializeCatalogAuthority = async (rootDir: string) => {
     await copyRepositoryFile(rootDir, sourcePath);
   }
   for (const sourcePath of [
-    "src/remotion/capabilities/story-bookends/AxmorfBrand.tsx",
-    "src/remotion/capabilities/story-bookends/AxmorfIntroScene.tsx",
-    "src/remotion/capabilities/story-bookends/AxmorfOutroScene.tsx",
-    "src/remotion/capabilities/story-bookends/BrandFollowScene.tsx",
-    "src/remotion/capabilities/story-bookends/SourceCreditsScene.tsx",
-    "src/remotion/capabilities/story-bookends/content.ts",
+    "src/remotion/capabilities/scenes/templates/axmorf/AxmorfBrand.tsx",
+    "src/remotion/capabilities/scenes/templates/axmorf/AxmorfIntroScene.tsx",
+    "src/remotion/capabilities/scenes/templates/axmorf/AxmorfOutroScene.tsx",
+    "src/remotion/capabilities/scenes/templates/axmorf/BrandFollowScene.tsx",
+    "src/remotion/capabilities/scenes/templates/axmorf/SourceCreditsScene.tsx",
+    "src/remotion/capabilities/scenes/templates/axmorf/content.ts",
+    "src/remotion/capabilities/scenes/templates/axmorf/NOTICE.md",
   ]) {
     await copyRepositoryFile(rootDir, sourcePath);
   }
@@ -104,46 +104,37 @@ const createFixture = async (
   context: TestContext,
   options: {
     readonly sceneLocalSound?: "allowed" | "none";
-    readonly withDefaultBookends?: boolean;
+    readonly withConfiguredTemplates?: boolean;
   } = {},
 ) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-freeze-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const bookendBeats = options.withDefaultBookends
-    ? [
-        {
-          kind: "silent-scene" as const,
-          sceneRole: "intro" as const,
-          meaningId: "intro",
-          narrativePurpose: "Open with the selected intro preset.",
-          preset: DEFAULT_INTRO_SCENE_PRESET,
-        },
-        ...validStorySpec.beats,
-        {
-          kind: "silent-scene" as const,
-          sceneRole: "outro" as const,
-          meaningId: "outro",
-          narrativePurpose: "Close with the selected outro preset.",
-          preset: DEFAULT_OUTRO_SCENE_PRESET,
-        },
-      ]
-    : validStorySpec.beats;
+  await materializeCatalogAuthority(rootDir);
+  const configured = options.withConfiguredTemplates
+    ? await writeProductionJson(
+        join(rootDir, "src/projects/story-example/story.json"),
+        validStorySpec,
+      ).then(() =>
+        materializeConfiguredSceneTemplates({
+          rootDir,
+          projectId: "story-example",
+          story: validStorySpec,
+          sceneDefaults: {
+            introSceneTemplateId: "axmorf-brand-reveal-v1",
+            outroSceneTemplateId: "axmorf-source-follow-v1",
+          },
+        }),
+      )
+    : null;
+  const story = configured?.story ?? validStorySpec;
+  const configuredIntro = story.beats[0];
+  const configuredOutro = story.beats.at(-1);
   const fixture = await createProductionFixture(context, rootDir, {
     additionalRequirements: [sceneRequirement],
     sceneLocalSound: options.sceneLocalSound,
-    story: options.withDefaultBookends
-      ? {
-          ...validStorySpec,
-          bookends: {
-            intro: { mode: "scene", meaningId: "intro" },
-            outro: { mode: "scene", meaningId: "outro" },
-          },
-          beats: bookendBeats,
-        }
-      : validStorySpec,
+    story,
   });
   const baseline = await markProductionBaselineReady(fixture);
-  await materializeCatalogAuthority(rootDir);
   const catalog = buildResourceCatalog(
     await loadCatalogAuthorityDescriptors(
       rootDir,
@@ -192,10 +183,10 @@ const createFixture = async (
     storyId: "story-example",
     requirementsFingerprint: fixture.requirements.requirementsFingerprint,
     resourceCatalogFingerprint: catalog.catalogFingerprint,
-    allowedResourceIds: options.withDefaultBookends
+    allowedResourceIds: options.withConfiguredTemplates
       ? [
-          "asset.axmorf-intro-chime",
-          "asset.axmorf-outro-chime",
+          "asset.story-example.configured-intro-scene.chime",
+          "asset.story-example.configured-outro-scene.chime",
           "capability.motion",
         ]
       : ["capability.motion"],
@@ -222,16 +213,24 @@ const createFixture = async (
       fixture.requirements.enhancementSelection.sceneLocalSound,
     reviewPolicy: "mechanical-only",
     scenes: [
-      ...(options.withDefaultBookends
+      ...(options.withConfiguredTemplates
         ? [
             {
-              meaningId: "intro",
-              visualIntent: DEFAULT_INTRO_SCENE_PRESET.visualIntent,
+              meaningId: "configured-intro-scene",
+              visualIntent:
+                configuredIntro?.kind === "silent-scene"
+                  ? configuredIntro.preset.visualIntent
+                  : "missing configured Scene",
               compositionIntent: "Center the authored brand reveal.",
               motionIntent: "Resolve the reveal within the preset window.",
-              soundIntent: DEFAULT_INTRO_SCENE_PRESET.soundIntent,
+              soundIntent:
+                configuredIntro?.kind === "silent-scene"
+                  ? configuredIntro.preset.soundIntent
+                  : "missing configured Scene",
               continuityBrief: "Hand the opened frame to narrated content.",
-              candidateResourceIds: ["asset.axmorf-intro-chime"],
+              candidateResourceIds: [
+                "asset.story-example.configured-intro-scene.chime",
+              ],
               allowedSnapshotCards: [],
             },
           ]
@@ -258,16 +257,24 @@ const createFixture = async (
           { sourceId: "video-shotcraft", cardIds: ["draw-svg-trace"] },
         ],
       },
-      ...(options.withDefaultBookends
+      ...(options.withConfiguredTemplates
         ? [
             {
-              meaningId: "outro",
-              visualIntent: DEFAULT_OUTRO_SCENE_PRESET.visualIntent,
+              meaningId: "configured-outro-scene",
+              visualIntent:
+                configuredOutro?.kind === "silent-scene"
+                  ? configuredOutro.preset.visualIntent
+                  : "missing configured Scene",
               compositionIntent: "Resolve credits into the follow lockup.",
               motionIntent: "Finish in a stable authored closing frame.",
-              soundIntent: DEFAULT_OUTRO_SCENE_PRESET.soundIntent,
+              soundIntent:
+                configuredOutro?.kind === "silent-scene"
+                  ? configuredOutro.preset.soundIntent
+                  : "missing configured Scene",
               continuityBrief: "Close the complete Story timeline.",
-              candidateResourceIds: ["asset.axmorf-outro-chime"],
+              candidateResourceIds: [
+                "asset.story-example.configured-outro-scene.chime",
+              ],
               allowedSnapshotCards: [],
             },
           ]
@@ -320,6 +327,7 @@ const freeze = (fixture: Awaited<ReturnType<typeof createFixture>>) =>
     runId: fixture.runId,
     clock: () => FIXED_PRODUCTION_NOW,
     verifyNarrativeAutoCheck: async () => fixture.narrativeAutoCheckFingerprint,
+    submitTemplateScene: async () => undefined as never,
   });
 
 test("freezes a Project ResourceCatalog for code-led work without imported assets", async (context) => {
@@ -414,14 +422,16 @@ test("freezes one assignment per StoryBeat in order and projects Scene requireme
   assert.equal(state.state.state, "scene-inputs-frozen");
 });
 
-test("default intro and outro freeze as ordinary preset-bound Scene assignments", async (context) => {
-  const fixture = await createFixture(context, { withDefaultBookends: true });
+test("configured template copies freeze and submit without Scene owners", async (context) => {
+  const fixture = await createFixture(context, {
+    withConfiguredTemplates: true,
+  });
   const result = await freeze(fixture);
   assert.deepEqual(result.meaningIds, [
-    "intro",
+    "configured-intro-scene",
     "opening",
     "conclusion",
-    "outro",
+    "configured-outro-scene",
   ]);
   const assignments = await Promise.all(
     result.assignmentPaths.map(async (path) =>
@@ -432,6 +442,8 @@ test("default intro and outro freeze as ordinary preset-bound Scene assignments"
   );
   const intro = assignments[0];
   const outro = assignments[3];
+  const firstBeat = fixture.source.story.beats[0];
+  const lastBeat = fixture.source.story.beats.at(-1);
   assert.equal(intro.taskInput.storyBeat.kind, "silent-scene");
   assert.equal(outro.taskInput.storyBeat.kind, "silent-scene");
   assert.equal(
@@ -440,25 +452,31 @@ test("default intro and outro freeze as ordinary preset-bound Scene assignments"
   );
   assert.equal(
     intro.taskInput.timingBeat.endFrame - intro.taskInput.timingBeat.startFrame,
-    DEFAULT_INTRO_SCENE_PRESET.durationInFrames,
+    60,
   );
   assert.deepEqual(intro.taskInput.allowedResourceIds, [
-    "asset.axmorf-intro-chime",
+    "asset.story-example.configured-intro-scene.chime",
   ]);
   assert.deepEqual(outro.taskInput.allowedResourceIds, [
-    "asset.axmorf-outro-chime",
+    "asset.story-example.configured-outro-scene.chime",
   ]);
   assert.equal(
     outro.taskInput.storyBeat.kind === "silent-scene"
       ? outro.taskInput.storyBeat.preset.presetFingerprint
       : null,
-    DEFAULT_OUTRO_SCENE_PRESET.presetFingerprint,
+    lastBeat?.kind === "silent-scene"
+      ? lastBeat.preset.presetFingerprint
+      : null,
   );
   assertSceneAssignmentIsolation(assignments);
-  assert.deepEqual(result.preauthoredMeaningIds, ["intro", "outro"]);
+  assert.deepEqual(result.templateMeaningIds, [
+    "configured-intro-scene",
+    "configured-outro-scene",
+  ]);
+  assert.deepEqual(result.ownerMeaningIds, ["opening", "conclusion"]);
 
-  const introRoot = join(fixture.projectDir, "scenes/intro");
-  const outroRoot = join(fixture.projectDir, "scenes/outro");
+  const introRoot = join(fixture.projectDir, "scenes/configured-intro-scene");
+  const outroRoot = join(fixture.projectDir, "scenes/configured-outro-scene");
   const introRenderer = await readFile(join(introRoot, "Renderer.tsx"), "utf8");
   const outroRenderer = await readFile(join(outroRoot, "Renderer.tsx"), "utf8");
   assert.match(introRenderer, /AxmorfIntroScene/u);
@@ -472,10 +490,10 @@ test("default intro and outro freeze as ordinary preset-bound Scene assignments"
   );
   assert.deepEqual(introSound.cues, [
     {
-      cueId: "intro-chime",
+      cueId: "reveal-chime",
       resource: {
         schemaVersion: 1,
-        resourceId: "asset.axmorf-intro-chime",
+        resourceId: "asset.story-example.configured-intro-scene.chime",
         kind: "asset",
         role: "scene-sfx",
         descriptorFingerprint:
@@ -491,7 +509,7 @@ test("default intro and outro freeze as ordinary preset-bound Scene assignments"
       volume: 0.82,
     },
   ]);
-  assert.equal(outroSound.cues[0].cueId, "outro-chime");
+  assert.equal(outroSound.cues[0].cueId, "resolve-chime");
   assert.deepEqual(outroSound.cues[0].timing, {
     kind: "anchor",
     eventId: "brand-lockup-start",
@@ -502,39 +520,43 @@ test("default intro and outro freeze as ordinary preset-bound Scene assignments"
   const introPackage = await generateScenePackageFromProjectFiles({
     rootDir: fixture.rootDir,
     projectId: "story-example",
-    meaningId: "intro",
+    meaningId: "configured-intro-scene",
     mode: "write",
   });
   const outroPackage = await generateScenePackageFromProjectFiles({
     rootDir: fixture.rootDir,
     projectId: "story-example",
-    meaningId: "outro",
+    meaningId: "configured-outro-scene",
     mode: "write",
   });
   assert.equal(introPackage.schemaVersion, 5);
   assert.equal(outroPackage.schemaVersion, 5);
   assert.equal(
     introPackage.scenePresetFingerprint,
-    DEFAULT_INTRO_SCENE_PRESET.presetFingerprint,
+    firstBeat?.kind === "silent-scene"
+      ? firstBeat.preset.presetFingerprint
+      : null,
   );
   assert.equal(
     outroPackage.scenePresetFingerprint,
-    DEFAULT_OUTRO_SCENE_PRESET.presetFingerprint,
+    lastBeat?.kind === "silent-scene"
+      ? lastBeat.preset.presetFingerprint
+      : null,
   );
   assert.deepEqual(
     introPackage.selectedResources.map(({ resourceId }) => resourceId),
-    ["asset.axmorf-intro-chime"],
+    ["asset.story-example.configured-intro-scene.chime"],
   );
   assert.deepEqual(
     outroPackage.selectedResources.map(({ resourceId }) => resourceId),
-    ["asset.axmorf-outro-chime"],
+    ["asset.story-example.configured-outro-scene.chime"],
   );
 });
 
-test("disabled bookends leave no reusable Scene source or sound plan", async (context) => {
+test("disabled defaults leave no copied Scene source or sound plan", async (context) => {
   const fixture = await createFixture(context);
   const result = await freeze(fixture);
-  assert.deepEqual(result.preauthoredMeaningIds, []);
+  assert.deepEqual(result.templateMeaningIds, []);
   await assert.rejects(
     () => readFile(join(fixture.projectDir, "scenes/intro/Renderer.tsx")),
     {
@@ -549,14 +571,16 @@ test("disabled bookends leave no reusable Scene source or sound plan", async (co
   );
 });
 
-test("reusable bookends reject unused external snapshot cards", async (context) => {
-  const fixture = await createFixture(context, { withDefaultBookends: true });
+test("template-copied Scenes reject unused external snapshot cards", async (context) => {
+  const fixture = await createFixture(context, {
+    withConfiguredTemplates: true,
+  });
   await writeProductionJson(
     join(fixture.projectDir, "production/scene-production-brief.json"),
     buildSceneProductionBrief({
       ...fixture.brief,
       scenes: fixture.brief.scenes.map((scene) =>
-        scene.meaningId === "intro"
+        scene.meaningId === "configured-intro-scene"
           ? {
               ...scene,
               allowedSnapshotCards: [
@@ -572,18 +596,18 @@ test("reusable bookends reject unused external snapshot cards", async (context) 
   );
   await assert.rejects(
     () => freeze(fixture),
-    /Silent Scene intro must not carry snapshot cards\./u,
+    /Silent Scene configured-intro-scene must not carry snapshot cards\./u,
   );
 });
 
-test("reusable bookend sound conflicts fail during Scene freeze", async (context) => {
+test("template-copied Scene sound conflicts fail during Scene freeze", async (context) => {
   const fixture = await createFixture(context, {
-    withDefaultBookends: true,
+    withConfiguredTemplates: true,
     sceneLocalSound: "none",
   });
   await assert.rejects(
     () => freeze(fixture),
-    /Reusable silent Scene intro requires Scene-local sound\./u,
+    /Template-copied silent Scene configured-intro-scene requires Scene-local sound\./u,
   );
 });
 
@@ -628,18 +652,17 @@ test("current freeze rejects Project ResourceCatalog drift", async (context) => 
   );
 });
 
-test("current freeze rejects reusable bookend Renderer source drift", async (context) => {
-  const fixture = await createFixture(context, { withDefaultBookends: true });
+test("current freeze rejects copied Scene Renderer source drift", async (context) => {
+  const fixture = await createFixture(context, {
+    withConfiguredTemplates: true,
+  });
   await freeze(fixture);
   const sourcePath = join(
     fixture.rootDir,
-    "src/remotion/capabilities/story-bookends/AxmorfIntroScene.tsx",
+    "src/projects/story-example/scenes/configured-intro-scene/AxmorfIntroScene.tsx",
   );
   await writeFile(sourcePath, `${await readFile(sourcePath, "utf8")}\n`);
-  await assert.rejects(
-    () => freeze(fixture),
-    /Reusable silent Scene Renderer source identity is stale\./u,
-  );
+  await assert.rejects(() => freeze(fixture), /Copied Scene file is stale:/u);
 });
 
 test("missing GlobalVisualBrief fails before writing any assignment", async (context) => {

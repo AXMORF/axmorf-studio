@@ -36,7 +36,7 @@ export const buildGenerationInput = (
   });
 
 export const computeStoryFingerprint = (story: StorySpec) =>
-  createFingerprint({ namespace: "story-spec", version: 2, value: story });
+  createFingerprint({ namespace: "story-spec", version: 3, value: story });
 
 export const computeGenerationInputFingerprint = (
   story: StorySpec,

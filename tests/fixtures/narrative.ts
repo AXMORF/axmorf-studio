@@ -25,13 +25,9 @@ export const validVideoBrief = {
 } as const;
 
 export const validStorySpec = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   storyId: "story-example",
   title: "A deterministic narration example",
-  bookends: {
-    intro: { mode: "disabled" },
-    outro: { mode: "disabled" },
-  },
   beats: [
     {
       kind: "narrated-scene",

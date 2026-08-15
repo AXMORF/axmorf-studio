@@ -6,6 +6,10 @@ type VoiceProfile = Readonly<{
 }>;
 type Provider = { id: string; voiceProfiles: VoiceProfile[] };
 export type EditableTtsConfig = {
+  sceneDefaults?: {
+    introSceneTemplateId: string | null;
+    outroSceneTemplateId: string | null;
+  };
   audioDefaults?: {
     globalBgm: null | { sourcePath: string; volume: number };
   };
@@ -127,6 +131,18 @@ export const getConfigConsistencyError = (
     new Set(values).size !== values.length;
   if (duplicate(config.publishingCollections.map(({ id }) => id))) {
     return "合集 ID 必须唯一。";
+  }
+  for (const templateId of [
+    config.sceneDefaults?.introSceneTemplateId,
+    config.sceneDefaults?.outroSceneTemplateId,
+  ]) {
+    if (
+      templateId !== null &&
+      templateId !== undefined &&
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(templateId)
+    ) {
+      return "默认 Scene 模板 ID 格式无效。";
+    }
   }
   if (duplicate(config.tts.providers.map(({ id }) => id))) {
     return "Provider ID 必须唯一。";

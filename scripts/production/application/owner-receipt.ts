@@ -126,6 +126,13 @@ export const resolveOwnerAssignment = async ({
     );
     if (assignment === undefined)
       throw new Error("Scene assignment identity is unknown.");
+    if (
+      assignment.taskInput.storyBeat.kind === "silent-scene" &&
+      assignment.taskInput.storyBeat.preset.implementation.kind ===
+        "template-copy"
+    ) {
+      throw new Error("Template-copied Scene does not accept an owner receipt.");
+    }
     return { ownerKind, assignment };
   }
   if (meaningId !== null)

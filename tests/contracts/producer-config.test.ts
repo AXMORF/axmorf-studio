@@ -8,8 +8,8 @@ import {
 } from "../../src/contracts/producer-config";
 
 export const validProducerConfigInput = {
-  schemaVersion: 1,
-  contractVersion: "producer-config-v1",
+  schemaVersion: 2,
+  contractVersion: "producer-config-v2",
   renderDefaults: {
     width: 1080,
     height: 1920,
@@ -17,6 +17,10 @@ export const validProducerConfigInput = {
     locale: "zh-CN",
   },
   readability: { edgeInsetPx: 90 },
+  sceneDefaults: {
+    introSceneTemplateId: "axmorf-brand-reveal-v1",
+    outroSceneTemplateId: "axmorf-source-follow-v1",
+  },
   audioDefaults: {
     globalBgm: {
       sourcePath: "public/audio/default-bgm.mp3",
@@ -79,10 +83,14 @@ export const validProducerConfigInput = {
   },
 } as const;
 
-test("one strict config owns render, readability, collections, and generic TTS", () => {
+test("one strict config owns render, Scene defaults, collections, and generic TTS", () => {
   const config = buildProducerConfig(validProducerConfigInput);
   assert.equal(config.renderDefaults.width, 1080);
   assert.equal(config.readability.edgeInsetPx, 90);
+  assert.deepEqual(config.sceneDefaults, {
+    introSceneTemplateId: "axmorf-brand-reveal-v1",
+    outroSceneTemplateId: "axmorf-source-follow-v1",
+  });
   assert.deepEqual(config.audioDefaults?.globalBgm, {
     sourcePath: "public/audio/default-bgm.mp3",
     volume: 0.15,

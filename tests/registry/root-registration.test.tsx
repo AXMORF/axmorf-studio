@@ -34,7 +34,7 @@ const asElement = (node: unknown) => {
   return node;
 };
 
-test("Root keeps System capability and default bookend previews when the ProjectRegistry is empty", async () => {
+test("Root keeps System capability and Scene template previews when the ProjectRegistry is empty", async () => {
   const require = createRequire(import.meta.url);
   require.extensions[".css"] = () => undefined;
   const { createRemotionRoot } = await import("../../src/Root");

@@ -54,7 +54,6 @@ const cases: readonly {
         { durationInFrames: 121 },
       ].entries()) {
         const preset = buildSilentScenePreset({
-          sceneRole: "intro",
           presetId: `changed-intro-${index + 1}`,
           durationInFrames: changed.durationInFrames ?? 120,
           visualIntent:
@@ -68,14 +67,12 @@ const cases: readonly {
           ...taskBase,
           storyBeat: {
             kind: "silent-scene",
-            sceneRole: "intro",
             meaningId: taskBase.meaningId,
             narrativePurpose: "Render a fixed-duration intro Scene.",
             preset,
           },
           timingBeat: {
             kind: "silent-scene",
-            sceneRole: "intro",
             presetFingerprint: preset.presetFingerprint,
             presetDurationInFrames: preset.durationInFrames,
             meaningId: taskBase.meaningId,

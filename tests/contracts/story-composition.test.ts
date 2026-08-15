@@ -7,7 +7,7 @@ import {
   toStoryCompositionFrame,
 } from "../../src/contracts/story-composition";
 
-test("ScenePackage timeline uses SemanticTiming frames without a bookend offset", () => {
+test("ScenePackage timeline uses SemanticTiming frames without a boundary offset", () => {
   assert.equal(STORY_COMPOSITION_TIMELINE_VERSION, "scene-package-timeline-v1");
   assert.equal(getStoryCompositionDurationInFrames(120), 120);
   assert.equal(toStoryCompositionFrame(0), 0);

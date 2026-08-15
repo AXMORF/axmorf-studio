@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { buildProducerConfig } from "../../src/contracts";
+import { buildProducerConfig, createFingerprint } from "../../src/contracts";
 import {
   readProducerConfig,
   resolveDefaultTtsProvider,
@@ -38,6 +38,70 @@ test("private producer config writes atomically with owner-only permissions", as
   assert.deepEqual(loaded, written);
   assert.equal((await stat(configPath)).mode & 0o777, 0o600);
   assert.match(await readFile(configPath, "utf8"), /visible-editable-token/u);
+});
+
+test("producer-config-v1 loads as v2 without mutating the private source file", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-config-v1-upgrade-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const configPath = join(rootDir, "private/producer.config.json");
+  const shared = { ...validProducerConfigInput } as Record<string, unknown>;
+  delete shared.sceneDefaults;
+  const legacyInput = {
+    ...shared,
+    schemaVersion: 1,
+    contractVersion: "producer-config-v1",
+  } as const;
+  const legacy = {
+    ...legacyInput,
+    configFingerprint: createFingerprint({
+      namespace: "producer-config",
+      version: 1,
+      value: legacyInput,
+    }),
+  };
+  await mkdir(join(rootDir, "private"), { recursive: true });
+  await writeFile(configPath, `${JSON.stringify(legacy, null, 2)}\n`, "utf8");
+
+  const loaded = await readProducerConfig({ configPath });
+
+  assert.equal(loaded.schemaVersion, 2);
+  assert.equal(loaded.contractVersion, "producer-config-v2");
+  assert.deepEqual(loaded.sceneDefaults, {
+    introSceneTemplateId: "axmorf-brand-reveal-v1",
+    outroSceneTemplateId: "axmorf-source-follow-v1",
+  });
+  assert.equal(
+    JSON.parse(await readFile(configPath, "utf8")).contractVersion,
+    "producer-config-v1",
+  );
+
+  const invalidLegacyInput = {
+    ...legacyInput,
+    sceneDefaults: {
+      introSceneTemplateId: null,
+      outroSceneTemplateId: null,
+    },
+  };
+  await writeFile(
+    configPath,
+    `${JSON.stringify(
+      {
+        ...invalidLegacyInput,
+        configFingerprint: createFingerprint({
+          namespace: "producer-config",
+          version: 1,
+          value: invalidLegacyInput,
+        }),
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
+  await assert.rejects(
+    () => readProducerConfig({ configPath }),
+    /v1 contains unknown fields/u,
+  );
 });
 
 test("config paths resolve relative to the repository while shell env remains authoritative", async (context) => {

@@ -37,7 +37,7 @@ const createPulseWav = (): Uint8Array => {
   return Uint8Array.from(wav);
 };
 
-const createBookendChimeWav = ({
+const createSceneTemplateChimeWav = ({
   frequencies,
   sampleCount,
 }: {
@@ -132,9 +132,9 @@ export const generateM6ProofAssets = async ({
     writeBytesAtomic(
       join(
         rootDir,
-        "public/assets/library/story-bookends/axmorf-intro-chime.wav",
+        "public/assets/library/scene-templates/axmorf-brand-reveal-chime.wav",
       ),
-      createBookendChimeWav({
+      createSceneTemplateChimeWav({
         frequencies: [440, 554.365, 659.255],
         sampleCount: 28_800,
       }),
@@ -143,9 +143,9 @@ export const generateM6ProofAssets = async ({
     writeBytesAtomic(
       join(
         rootDir,
-        "public/assets/library/story-bookends/axmorf-outro-chime.wav",
+        "public/assets/library/scene-templates/axmorf-source-follow-chime.wav",
       ),
-      createBookendChimeWav({
+      createSceneTemplateChimeWav({
         frequencies: [659.255, 554.365, 440],
         sampleCount: 48_000,
       }),

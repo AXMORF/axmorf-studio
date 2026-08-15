@@ -17,12 +17,14 @@ NarrationSpec 与 narration generation input 是 current-only v2；已删除的 
 任何合同。provider-attempt v2 绑定 adapter v2、完整 generation parameters 与安全内容 checksum，
 因此旧 provider attempt 或任一参数漂移都不能复用候选。
 
-ProducerConfig 自身使用 `producer-config-v1` strict schema 与 fingerprint。它是新 authoring/freeze
-的默认/选择 authority，不是已封存 Project 的可变 runtime dependency：合集选择连同 catalog
-fingerprint 进入 PublishingIntent v2，边缘留白进入 production-readability-v2，语速进入
-provider-attempt，目标 LUFS 进入 mastering policy。声线文件与可选 BGM 预设只接受规范化仓库相对
-路径；绝对路径、URL、反斜杠与目录逃逸 fail closed。BGM 预设当前不进入 Project/Run 或 render
-identity。`project:configure` 要求显式 readability，不再存在创建阶段的 90px fallback。
+ProducerConfig 自身使用 `producer-config-v2` strict schema 与 fingerprint。合法 v1 只在读取时校验原
+fingerprint 并在内存中补入 Scene 默认项；GET 不改写私有文件，页面保存后才原子写成 v2。它是新
+authoring/freeze 的默认/选择 authority，不是已封存 Project 的可变 runtime dependency：Scene template
+在 `project:configure` 时复制为 Project-local source/assets/instance，合集选择连同 catalog fingerprint
+进入 PublishingIntent v2，边缘留白进入 production-readability-v2，语速进入 provider-attempt，目标
+LUFS 进入 mastering policy。声线文件与可选 BGM 预设只接受规范化仓库相对路径；绝对路径、URL、
+反斜杠与目录逃逸 fail closed。BGM 预设当前不进入 Project/Run 或 render identity。
+`project:configure` 要求显式 readability，不再存在创建阶段的 90px fallback。
 
 start 的同一次 provider resolution 同时供 VoxCPM preflight 与 `NarrationExecutionSnapshot` 使用。
 快照复用 provider-attempt fingerprint 与完整 mastering policy；provider-attempt 额外绑定 opaque
@@ -41,15 +43,16 @@ frameBoundary = ceilDiv(cumulativeSamples * fps, sampleRate)
 不得逐 chunk 把浮点秒数转 frame 再累加。Scene 与 transition 不能移动、缩短或覆盖 spoken
 frames。planned duration 只能由 `frameCount / fps` 推导，不伪装为媒体实测。
 
-SemanticTiming v2 从 `leadInFrames` 开始，按 StoryBeat 顺序写入 silent preset 固定窗口与 narrated
+SemanticTiming v3 从 `leadInFrames` 开始，按 StoryBeat 顺序写入 silent preset 固定窗口与 narrated
 PCM 累计窗口，再追加真正的 `tailFrames`。silent Scene 不产生 segment 或 CaptionCue；完整旁白从
 `narrationStartFrame` exactly once 播放。`scene-package-timeline-v1` 的 Composition、Registry、render
 plan 和 delivery 直接使用 `SemanticTiming.durationInFrames`，章节直接使用 narrated Scene 的绝对帧。
 
-默认 reusable intro/outro 在 freeze 时从 preset 的 implementation identity 确定性投影。preset
-绑定 capability source fingerprint 与 exact sound cues；freeze 重算 capability source bytes，漂移即
-fail closed。Renderer wrapper、plans、anchors 和 selected resources 在重复 freeze 中必须 byte/mtime
-稳定。replacement/disabled preset 不运行该投影，因此不会携带默认 cue。
+配置选择的 reusable Scene template 在 `project:configure` 时复制源码、Renderer、资源与 exact sound
+cues，并冻结 template/instance/source graph fingerprint。之后 freeze 只读取 Project-local
+`template-copy` instance，机械投影 plans、anchors 与 selected resources；本地 source/cue 漂移即 fail
+closed，重复 configure/freeze 必须 byte/mtime 稳定。全局选择或共享模板后续变化不改变既有 Project。
+`scene-owner` silent preset 仍走 Agent owner；`null` 配置不插入边界 Scene。
 
 ## Production ledger
 

@@ -8,22 +8,23 @@
 - 当前只有一套 production 合同与运行路径，不读取或解释旧 Run、旧作品和旧交付目录。
 - production 终点是 `render-ready / awaiting-automatic-delivery`：Composition、render plan 和
   所有输入 identity 已冻结，但尚未生成最终 MP4。
-- 主 Agent 冻结全部 assignment 后启动 detached watcher，再用 `create_thread` 派发 N 个 Scene、
-  GlobalVisual 与 Cover 独立任务，全部创建成功后立即结束。watcher 独立 check/submit、汇合
+- 主 Agent 冻结全部 assignment 后启动 detached watcher，再用 `create_thread` 只派发需要创作的
+  Scene、GlobalVisual 与 Cover 独立任务；template-copy Scene 由脚本提交。全部创建成功后立即结束，
+  watcher 独立 check/submit、汇合
   render-ready 并自动执行 `delivery:build`。
 - `delivery-render-started` 只证明进程启动确认，不证明渲染完成或 MP4 有效。仓库不等待、监控、
   读取、hash、probe 或 decode detached 输出。
 - PublishingIntent 与独立 Cover 生命周期保留；Cover 不阻止 render-ready，但会阻止自动交付。
-- ignored `private/producer.config.json` 统一管理新作品的常用画面规格、Scene 留白、合集数组、通用
-  TTS 与可选本地 BGM 预设；声线/BGM 文件只接受仓库相对路径。`project:configure` 把当前已接入的
-  render/readability/publishing/TTS 选择冻结进新 Project contracts/fingerprints。
+- ignored `private/producer.config.json` 统一管理新作品的常用画面规格、Scene 留白、首尾 Scene
+  template 选择、合集数组、通用 TTS 与可选本地 BGM 预设；声线/BGM 文件只接受仓库相对路径。
+  `project:configure` 把选择冻结进新 Project，并复制所选 template 的源码与资源。
 - production start 将已确认的 provider-attempt 与 mastering policy 合成为 private-safe Run 执行快照；
   preflight 后配置漂移会要求 fresh Run，不会切换当前 Run 的 provider、声线、语速或 LUFS。
 - `GlobalVisualLayers` 是唯一的无 Props 组件接口；render-ready 在封存 ready artifact 前只编译目标
   Project 的 Composition 与真实 import graph，跨模块类型漂移会 fail closed。
-- 默认片头片尾由 `story-bookends` reusable Scene capability 固定。Scene freeze 确定性投影普通
-  Renderer、visual/shot/anchor/sound plans 与资源选择；Scene owner 只校验并发布 receipt，不重复设计。
-  Project 显式替换或关闭 preset 才会改变对应 Scene 与声音。
+- 片头片尾只存在于配置和界面业务语义；代码合同使用普通 reusable Scene template。新 Project
+  复制所选 template 到自己的 Scene 目录并重算 identity，之后不引用共享模板。Scene freeze 由脚本
+  确定性校验、生成普通 ScenePackage 并直接 submit，不创建 Agent owner。
 - core 与 fresh clone 是 zero-Project-safe；ignored 本地 Project 集由 bootstrap 动态发现，不写入
   README 或 current capability 状态。
 - 外部素材服务只负责 search/preview/acquire。当前 `project:asset:import` 严格接收
@@ -47,7 +48,7 @@ VideoBrief(sourceReferences) + Story + authored ttsChunks + RenderSpec + Publish
   → narrated content chunks measured and sealed once
   → full SemanticTiming (intro → content Scenes → outro) + narrated-only CaptionCue
   → local ResourceCatalog lookup + optional external image import
-  → default bookends deterministically materialized + N ordinary Scene owners + GlobalVisual/Cover owners
+  → configured Scene templates copied and script-submitted + authored Scene/GlobalVisual/Cover owners
   → assignment-bound owner receipts + detached single-writer watcher
   → ScenePackage Registry + StoryVisualTrack/SoundDesignTrack + FinalAssembly
   → ProductionRenderPlan (SemanticTiming.durationInFrames)
@@ -78,8 +79,8 @@ ignored，不得 stage。可信局域网内需要其他设备直接访问时运�
 
 `npm install` 自动执行 `npm run bootstrap`，重建 core synthetic proof 资产、zero-safe
 ResourceCatalog 和 ProjectRegistry。fresh clone 默认没有具体 Project，仍可测试、构建并列出
-`CapabilityGallery`、`DefaultIntroPreview` 与 `DefaultOutroPreview`。两个 bookend preview 位于
-Studio 的 `System` folder，使用默认固定帧数与本地 chime，便于在没有具体 Project 时直接预览。
+`CapabilityGallery`、`DefaultIntroPreview` 与 `DefaultOutroPreview`。后两个是 Scene template 的业务位
+预览，位于 Studio 的 `System` folder，使用固定帧数与本地 chime，不进入任何 Project identity。
 
 制作新视频时使用仓库 Skill：
 

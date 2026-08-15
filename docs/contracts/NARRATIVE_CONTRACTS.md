@@ -40,8 +40,9 @@ branch interprets old NarrationSpec v1. `narration-generation-input` is v3 and c
 `narrated-scene` chunks, so the clean-break
 contract cannot reuse a v1 generation identity.
 
-StorySpec v2 discriminates `narrated-scene` from `silent-scene`. Every Story still requires at least one
-real narrated Scene. silent intro/outro bind a fixed-duration preset and never synthesize an empty TTS
+StorySpec v3 discriminates `narrated-scene` from `silent-scene`. Every Story still requires at least one
+real narrated Scene. A silent Scene may appear only at a timeline boundary, carries no intro/outro role,
+binds a fixed-duration preset and never synthesizes an empty TTS
 chunk, sealed segment, CaptionCue, narration file or caption text. `ttsChunks` are authored units and are
 never split mechanically. An explicit pause is declared by
 `{afterChunkId, pauseMs}` in its owning StoryBeat, where `pauseMs` is a non-negative integer. A zero
@@ -49,10 +50,11 @@ pause remains an owned zero-length timeline segment; a positive pause must quant
 sample frame. Pause declarations are excluded from the generation input fingerprint but included in the
 sealed narration fingerprint.
 
-Silent Scene preset v2 discriminates `reusable-scene` from `scene-owner`. Defaults use
-`reusable-scene`, binding an implementation ID, capability source fingerprint and exact local cue list;
-Project replacements must choose explicitly. Scene task/assignment/result/package v5 also carry the exact
-`VideoBrief.sourceReferences` consumed by the reusable credits Renderer, so changing visible credits
+Silent Scene preset v3 discriminates `template-copy` from `scene-owner`. `project:configure` copies the
+selected template source and assets into the Project, then binds the template and instance fingerprints plus
+the exact local cue list. Production validates and submits `template-copy` Scenes without an Agent owner.
+Scene task/assignment/result/package v5 also carry the exact
+`VideoBrief.sourceReferences` consumed by a copied credits Renderer, so changing visible credits
 invalidates the Scene task and all downstream identities.
 
 ## Fingerprints
@@ -120,10 +122,10 @@ is the absolute frame where the one complete narration WAV begins; lead/tail rem
 `production-render-plan-v4.semanticTimingFrameCount/frameCount`, Remotion metadata, delivery publishing
 and the delivery manifest all use the same value. intro/outro receive ordinary SceneAssignment and
 ScenePackage identities. Their selected preset fingerprint enters task/package identity, while visual,
-sound, duration or resource changes invalidate the old assignment and package. Default reusable presets
-are materialized during freeze as ordinary Project-local Scene artifacts; their owners only validate and
-publish receipts. Delivery chapters cover
-only narrated StoryBeats and use their absolute SemanticTiming start frames.
+sound, duration or resource changes invalidate the old assignment and package. Configured reusable Scene
+templates are copied during `project:configure` as ordinary Project-local `template-copy` artifacts;
+freeze mechanically validates and submits them without an Agent owner or owner receipt. Delivery chapters
+cover only narrated StoryBeats and use their absolute SemanticTiming start frames.
 
 ## Implemented commands
 

@@ -2,16 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  DEFAULT_INTRO_SCENE_PRESET,
-  DEFAULT_OUTRO_SCENE_PRESET,
+  NarrationSpecSchema,
+  RenderSpecSchema,
   StorySpecSchema,
   buildGenerationInput,
   buildSilentScenePreset,
   computeGenerationInputFingerprint,
   computeStoryFingerprint,
   generateSemanticTiming,
-  NarrationSpecSchema,
-  RenderSpecSchema,
 } from "../../src/contracts";
 import {
   buildValidSealedNarrationManifest,
@@ -19,6 +17,37 @@ import {
   validRenderSpec,
 } from "../fixtures/narrative";
 
+const sha = (character: string) =>
+  `sha256:${character.repeat(64)}` as const;
+
+const copiedPreset = (templateId: string, durationInFrames: number) =>
+  buildSilentScenePreset({
+    presetId: templateId,
+    durationInFrames,
+    visualIntent: `Render copied template ${templateId}.`,
+    soundIntent: "Use only its copied Scene-local sound.",
+    resourceIds: [`asset.story-example.${templateId}.chime`],
+    implementation: {
+      kind: "template-copy",
+      templateId,
+      templateFingerprint: sha("a"),
+      instanceFingerprint: sha("b"),
+      rendererSourceFingerprint: sha("c"),
+      soundCues: [
+        {
+          cueId: "chime",
+          resourceId: `asset.story-example.${templateId}.chime`,
+          anchorId: "start",
+          offsetFrames: 0,
+          durationInFrames: 10,
+          volume: 0.8,
+        },
+      ],
+    },
+  });
+
+const firstPreset = copiedPreset("brand-reveal-v1", 60);
+const lastPreset = copiedPreset("source-follow-v1", 240);
 const narratedBeat = {
   kind: "narrated-scene" as const,
   meaningId: "opening",
@@ -26,7 +55,6 @@ const narratedBeat = {
   ttsChunks: [{ chunkId: "opening-01", ttsText: "A" }],
   explicitPauses: [{ afterChunkId: "opening-01", pauseMs: 250 }],
 };
-
 const conclusionBeat = {
   kind: "narrated-scene" as const,
   meaningId: "conclusion",
@@ -34,180 +62,92 @@ const conclusionBeat = {
   ttsChunks: [{ chunkId: "conclusion-01", ttsText: "B" }],
   explicitPauses: [],
 };
-
-const silentBeat = (
-  sceneRole: "intro" | "outro",
-  preset = sceneRole === "intro"
-    ? DEFAULT_INTRO_SCENE_PRESET
-    : DEFAULT_OUTRO_SCENE_PRESET,
-) => ({
+const silentBeat = (meaningId: string, preset = firstPreset) => ({
   kind: "silent-scene" as const,
-  sceneRole,
-  meaningId: sceneRole,
-  narrativePurpose: `Render the ${sceneRole} as a normal ScenePackage.`,
+  meaningId,
+  narrativePurpose: "Render a configured reusable Scene copy.",
   preset,
 });
-
-const storyWithDefaultBookends = () =>
+const storyWithCopiedBoundaryScenes = () =>
   StorySpecSchema.parse({
-    schemaVersion: 2,
+    schemaVersion: 3,
     storyId: "story-example",
     title: "Unified ScenePackage timeline",
-    bookends: {
-      intro: { mode: "scene", meaningId: "intro" },
-      outro: { mode: "scene", meaningId: "outro" },
-    },
     beats: [
-      silentBeat("intro"),
+      silentBeat("first-scene"),
       narratedBeat,
       conclusionBeat,
-      silentBeat("outro"),
+      silentBeat("last-scene", lastPreset),
     ],
   });
 
 const narration = NarrationSpecSchema.parse(validNarrationSpec);
 const render = RenderSpecSchema.parse(validRenderSpec);
 
-test("default intro and outro presets bind role visual sound duration and resources", () => {
-  for (const preset of [
-    DEFAULT_INTRO_SCENE_PRESET,
-    DEFAULT_OUTRO_SCENE_PRESET,
-  ]) {
-    assert.ok(preset.visualIntent.length > 0);
-    assert.ok(preset.soundIntent.length > 0);
-    assert.ok(preset.durationInFrames > 0);
-    assert.ok(preset.resourceIds.length > 0);
-    assert.match(preset.presetFingerprint, /^sha256:[0-9a-f]{64}$/u);
-  }
-  assert.equal(DEFAULT_INTRO_SCENE_PRESET.sceneRole, "intro");
-  assert.equal(DEFAULT_OUTRO_SCENE_PRESET.sceneRole, "outro");
-  assert.equal(
-    DEFAULT_INTRO_SCENE_PRESET.implementation.kind,
-    "reusable-scene",
-  );
-  assert.equal(
-    DEFAULT_OUTRO_SCENE_PRESET.implementation.kind,
-    "reusable-scene",
-  );
-  if (
-    DEFAULT_INTRO_SCENE_PRESET.implementation.kind !== "reusable-scene" ||
-    DEFAULT_OUTRO_SCENE_PRESET.implementation.kind !== "reusable-scene"
-  ) {
-    assert.fail("Default bookends must use reusable Scene implementations.");
-  }
-  assert.deepEqual(DEFAULT_INTRO_SCENE_PRESET.implementation, {
-    kind: "reusable-scene",
-    implementationId: "axmorf-brand-intro-v1",
-    rendererSourceFingerprint:
-      "sha256:02b378a71f5b518e822aefb9ffbc0b295fceff011ebab6349fd1d14cdd7b7915",
-    soundCues: [
-      {
-        cueId: "intro-chime",
-        resourceId: "asset.axmorf-intro-chime",
-        anchorId: "brand-reveal-start",
-        offsetFrames: 0,
-        durationInFrames: 18,
-        volume: 0.82,
-      },
-    ],
+test("generic silent Scene presets bind copied identity without placement semantics", () => {
+  assert.equal(firstPreset.implementation.kind, "template-copy");
+  assert.equal("sceneRole" in firstPreset, false);
+  assert.match(firstPreset.presetFingerprint, /^sha256:[0-9a-f]{64}$/u);
+  const changedTemplate = buildSilentScenePreset({
+    presetId: firstPreset.presetId,
+    durationInFrames: firstPreset.durationInFrames,
+    visualIntent: firstPreset.visualIntent,
+    soundIntent: firstPreset.soundIntent,
+    resourceIds: firstPreset.resourceIds,
+    implementation: {
+      ...firstPreset.implementation,
+      instanceFingerprint: sha("d"),
+    },
   });
-  assert.match(
-    DEFAULT_INTRO_SCENE_PRESET.implementation.rendererSourceFingerprint,
-    /^sha256:[0-9a-f]{64}$/u,
-  );
-  assert.deepEqual(DEFAULT_OUTRO_SCENE_PRESET.implementation, {
-    kind: "reusable-scene",
-    implementationId: "axmorf-source-follow-outro-v1",
-    rendererSourceFingerprint:
-      "sha256:76f5561a7de1fb4547d98d83e2fd392a3bc21620f4e29854032a7713bb04672d",
-    soundCues: [
-      {
-        cueId: "outro-chime",
-        resourceId: "asset.axmorf-outro-chime",
-        anchorId: "brand-lockup-start",
-        offsetFrames: 0,
-        durationInFrames: 30,
-        volume: 0.82,
-      },
-    ],
-  });
-  assert.match(
-    DEFAULT_OUTRO_SCENE_PRESET.implementation.rendererSourceFingerprint,
-    /^sha256:[0-9a-f]{64}$/u,
+  assert.notEqual(
+    changedTemplate.presetFingerprint,
+    firstPreset.presetFingerprint,
   );
 });
 
-test("StorySpec strictly discriminates narrated and silent Scenes", () => {
-  const story = storyWithDefaultBookends();
+test("StorySpec accepts silent Scenes only at timeline boundaries", () => {
+  const story = storyWithCopiedBoundaryScenes();
   assert.deepEqual(buildGenerationInput(story, narration).chunks, [
     { chunkId: "opening-01", meaningId: "opening", ttsText: "A" },
     { chunkId: "conclusion-01", meaningId: "conclusion", ttsText: "B" },
   ]);
-
   assert.throws(() =>
     StorySpecSchema.parse({
       ...story,
-      bookends: {
-        intro: { mode: "scene", meaningId: "intro" },
-        outro: { mode: "disabled" },
-      },
-      beats: [
-        { ...silentBeat("intro"), ttsChunks: [], explicitPauses: [] },
-        narratedBeat,
-      ],
+      beats: [narratedBeat, silentBeat("middle"), conclusionBeat],
     }),
   );
   assert.throws(() =>
     StorySpecSchema.parse({
       ...story,
-      bookends: {
-        intro: { mode: "scene", meaningId: "intro" },
-        outro: { mode: "scene", meaningId: "outro" },
-      },
-      beats: [silentBeat("intro"), silentBeat("outro")],
-    }),
-  );
-  assert.throws(() =>
-    StorySpecSchema.parse({
-      ...story,
-      bookends: {
-        intro: { mode: "scene", meaningId: "intro" },
-        outro: { mode: "disabled" },
-      },
-      beats: [narratedBeat, silentBeat("intro"), conclusionBeat],
+      beats: [silentBeat("one"), silentBeat("two")],
     }),
   );
 });
 
-test("replacing or disabling a bookend is explicit and never changes narration generation", () => {
-  const original = storyWithDefaultBookends();
+test("selecting, replacing, or disabling a boundary Scene never changes narration generation", () => {
+  const original = storyWithCopiedBoundaryScenes();
   const replacementPreset = buildSilentScenePreset({
-    sceneRole: "intro",
-    presetId: "project-intro-fast-v1",
+    presetId: "project-fast-v1",
     durationInFrames: 45,
-    visualIntent: "Use the Project-specific fast intro visual.",
-    soundIntent: "Use only the Project-specific fast intro chime.",
-    resourceIds: ["asset.project-intro-fast-chime"],
+    visualIntent: "Use the Project-specific Scene visual.",
+    soundIntent: "Use only its Project-specific Scene sound.",
+    resourceIds: [],
     implementation: { kind: "scene-owner" },
   });
   const replaced = StorySpecSchema.parse({
     ...original,
     beats: [
-      silentBeat("intro", replacementPreset),
+      silentBeat("first-scene", replacementPreset),
       narratedBeat,
       conclusionBeat,
-      silentBeat("outro"),
+      silentBeat("last-scene", lastPreset),
     ],
   });
   const disabled = StorySpecSchema.parse({
     ...original,
-    bookends: {
-      intro: { mode: "disabled" },
-      outro: { mode: "disabled" },
-    },
     beats: [narratedBeat, conclusionBeat],
   });
-
   assert.notEqual(
     computeStoryFingerprint(original),
     computeStoryFingerprint(replaced),
@@ -226,107 +166,35 @@ test("replacing or disabling a bookend is explicit and never changes narration g
   );
 });
 
-test("reusable bookend visual source and exact sound choreography invalidate preset identity", () => {
-  const intro = DEFAULT_INTRO_SCENE_PRESET;
-  assert.equal(intro.implementation.kind, "reusable-scene");
-  if (intro.implementation.kind !== "reusable-scene") {
-    assert.fail("Default intro must be reusable.");
-  }
-  const base = {
-    sceneRole: intro.sceneRole,
-    presetId: intro.presetId,
-    durationInFrames: intro.durationInFrames,
-    visualIntent: intro.visualIntent,
-    soundIntent: intro.soundIntent,
-    resourceIds: intro.resourceIds,
-  } as const;
-  const changedVisual = buildSilentScenePreset({
-    ...base,
-    implementation: {
-      ...intro.implementation,
-      rendererSourceFingerprint:
-        "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    },
-  });
-  const changedSound = buildSilentScenePreset({
-    ...base,
-    implementation: {
-      ...intro.implementation,
-      soundCues: intro.implementation.soundCues.map((cue) => ({
-        ...cue,
-        volume: 0.7,
-      })),
-    },
-  });
-  assert.notEqual(changedVisual.presetFingerprint, intro.presetFingerprint);
-  assert.notEqual(changedSound.presetFingerprint, intro.presetFingerprint);
-});
-
-test("SemanticTiming resolves intro narrated Scenes outro and true padding once", () => {
+test("SemanticTiming uses timeline order rather than intro or outro roles", () => {
   const timing = generateSemanticTiming({
-    story: storyWithDefaultBookends(),
+    story: storyWithCopiedBoundaryScenes(),
     narration,
     render,
     sealedNarration: buildValidSealedNarrationManifest(),
   });
 
-  assert.equal(timing.schemaVersion, 2);
+  assert.equal(timing.schemaVersion, 3);
   assert.equal(timing.narrationStartFrame, 75);
   assert.deepEqual(timing.storyBeats, [
     {
       kind: "silent-scene",
-      sceneRole: "intro",
-      meaningId: "intro",
-      presetFingerprint: DEFAULT_INTRO_SCENE_PRESET.presetFingerprint,
-      presetDurationInFrames: DEFAULT_INTRO_SCENE_PRESET.durationInFrames,
+      meaningId: "first-scene",
+      presetFingerprint: firstPreset.presetFingerprint,
+      presetDurationInFrames: 60,
       startFrame: 15,
       endFrame: 75,
     },
-    {
-      kind: "narrated-scene",
-      meaningId: "opening",
-      startFrame: 75,
-      endFrame: 116,
-    },
-    {
-      kind: "narrated-scene",
-      meaningId: "conclusion",
-      startFrame: 116,
-      endFrame: 144,
-    },
+    { kind: "narrated-scene", meaningId: "opening", startFrame: 75, endFrame: 116 },
+    { kind: "narrated-scene", meaningId: "conclusion", startFrame: 116, endFrame: 144 },
     {
       kind: "silent-scene",
-      sceneRole: "outro",
-      meaningId: "outro",
-      presetFingerprint: DEFAULT_OUTRO_SCENE_PRESET.presetFingerprint,
-      presetDurationInFrames: DEFAULT_OUTRO_SCENE_PRESET.durationInFrames,
+      meaningId: "last-scene",
+      presetFingerprint: lastPreset.presetFingerprint,
+      presetDurationInFrames: 240,
       startFrame: 144,
       endFrame: 384,
     },
   ]);
-  assert.deepEqual(timing.captionCues, [
-    {
-      chunkId: "opening-01",
-      meaningId: "opening",
-      text: "A",
-      startFrame: 75,
-      endFrame: 108,
-    },
-    {
-      chunkId: "conclusion-01",
-      meaningId: "conclusion",
-      text: "B",
-      startFrame: 116,
-      endFrame: 144,
-    },
-  ]);
   assert.equal(timing.durationInFrames, 396);
-  assert.equal(
-    timing.segments.some((segment) => segment.meaningId === "intro"),
-    false,
-  );
-  assert.equal(
-    timing.segments.some((segment) => segment.meaningId === "outro"),
-    false,
-  );
 });

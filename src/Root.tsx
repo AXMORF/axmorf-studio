@@ -4,9 +4,9 @@ import { Composition, Folder } from "remotion";
 import { projectRegistry } from "./projects/project-registry.generated";
 import type { ProjectRegistryEntry } from "./projects/project-registry.generated";
 import {
-  DefaultIntroPreview,
-  DefaultOutroPreview,
-} from "./remotion/compositions/bookend-previews/BookendPreviews";
+  BrandRevealTemplatePreview,
+  SourceFollowTemplatePreview,
+} from "./remotion/compositions/scene-template-previews/SceneTemplatePreviews";
 import { CapabilityGallery } from "./remotion/compositions/capability-gallery/CapabilityGallery";
 
 export const createRemotionRoot = (
@@ -25,7 +25,7 @@ export const createRemotionRoot = (
         />
         <Composition
           id="DefaultIntroPreview"
-          component={DefaultIntroPreview}
+          component={BrandRevealTemplatePreview}
           durationInFrames={60}
           fps={30}
           width={1080}
@@ -33,7 +33,7 @@ export const createRemotionRoot = (
         />
         <Composition
           id="DefaultOutroPreview"
-          component={DefaultOutroPreview}
+          component={SourceFollowTemplatePreview}
           durationInFrames={240}
           fps={30}
           width={1080}

@@ -401,11 +401,11 @@ export const validateSceneProductionBrief = ({
       }
       if (
         brief.sceneLocalSoundPolicy === "none" &&
-        storyBeat.preset.implementation.kind === "reusable-scene" &&
+        storyBeat.preset.implementation.kind === "template-copy" &&
         storyBeat.preset.implementation.soundCues.length > 0
       ) {
         throw new Error(
-          `Reusable silent Scene ${scene.meaningId} requires Scene-local sound.`,
+          `Template-copied silent Scene ${scene.meaningId} requires Scene-local sound.`,
         );
       }
     }

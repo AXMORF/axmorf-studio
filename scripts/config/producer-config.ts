@@ -14,6 +14,7 @@ import { parseEnv } from "node:util";
 import {
   ProducerConfigSchema,
   buildProducerConfig,
+  createFingerprint,
   type ProducerConfig,
   type VoxcpmProviderConfig,
 } from "../../src/contracts";
@@ -91,6 +92,49 @@ export const readProducerConfig = async ({
   } catch (error) {
     throw new Error("Producer config is missing, malformed, or unreadable.", {
       cause: error,
+    });
+  }
+  if (
+    raw !== null &&
+    typeof raw === "object" &&
+    !Array.isArray(raw) &&
+    (raw as Record<string, unknown>).schemaVersion === 1 &&
+    (raw as Record<string, unknown>).contractVersion === "producer-config-v1"
+  ) {
+    const legacy = { ...(raw as Record<string, unknown>) };
+    const allowedKeys = new Set([
+      "schemaVersion",
+      "contractVersion",
+      "renderDefaults",
+      "readability",
+      "audioDefaults",
+      "publishingCollections",
+      "tts",
+      "configFingerprint",
+    ]);
+    if (Object.keys(legacy).some((key) => !allowedKeys.has(key))) {
+      throw new Error("Producer config v1 contains unknown fields.");
+    }
+    const fingerprint = legacy.configFingerprint;
+    delete legacy.configFingerprint;
+    const expectedFingerprint = createFingerprint({
+      namespace: "producer-config",
+      version: 1,
+      value: legacy,
+    });
+    if (fingerprint !== expectedFingerprint) {
+      throw new Error("Producer config v1 fingerprint is stale.");
+    }
+    delete legacy.schemaVersion;
+    delete legacy.contractVersion;
+    return buildProducerConfig({
+      ...legacy,
+      schemaVersion: 2,
+      contractVersion: "producer-config-v2",
+      sceneDefaults: {
+        introSceneTemplateId: "axmorf-brand-reveal-v1",
+        outroSceneTemplateId: "axmorf-source-follow-v1",
+      },
     });
   }
   return ProducerConfigSchema.parse(raw);

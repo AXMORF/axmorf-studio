@@ -7,9 +7,8 @@ description: Design, freeze, and dispatch a contract-driven Remotion Story produ
 
 ## Start directly
 
-Use the request and current repository as authority. Inspect branch, HEAD, and status; preserve
-unrelated changes. The Agent makes the narrative and visual decisions. Repository scripts only freeze,
-validate, and execute the fixed production flow; they do not choose creative direction.
+Use the request and repository as authority. Preserve unrelated changes. The Agent makes
+narrative and visual decisions; scripts only freeze, validate, and execute.
 
 ## Freeze inputs before dispatch
 
@@ -17,31 +16,30 @@ Read [the direct workflow](references/direct-production-workflow.md) completely.
 Agent-owned design work with the fixed commands. Read [Producer config](references/producer-config.md)
 when authoring the new Project input; use `project:configure` instead of copying defaults.
 
-Freeze Story, timing, requirements, and all owner assignments before dispatch. Frozen inputs are immutable.
+Freeze Story, timing, requirements, and assignments before dispatch.
 
 ## Launch watcher and dispatch threads
 
 After a successful `production:watch:start`, read only the prompt reference needed for each owner:
 [Scene](references/scene-agent-orchestration.md),
 [GlobalVisual](references/global-visual-agent-orchestration.md), and
-[Cover](references/cover-agent-orchestration.md). Use `create_thread` once per meaningId and once for
-each whole-film owner. Every prompt must contain concrete assignment and exclusive paths plus exact
+[Cover](references/cover-agent-orchestration.md). Use `create_thread` once per `ownerMeaningIds` entry and
+once for each whole-film owner. Never create a thread for `templateMeaningIds`. Every prompt must contain concrete assignment and exclusive paths plus exact
 `production:owner:ready` / `production:owner:failed` commands.
 
-Owners are independent user-visible tasks in the shared checkout, never subagents or worktrees.
-After all creation calls return, end the root task; do not inspect, wait for, or coordinate them.
+Owners are independent user-visible tasks in the shared checkout, never subagents or worktrees. After
+creation calls return, end the root task without inspecting or waiting.
 
 ## Keep context bounded
 
-Do not preload authority docs or implementation detail. Use current code/tests and [policy.json](policy.json)
-for executable constraints. Read [system hardening](references/agent-rework-and-system-hardening.md)
-only when a fixed command fails before dispatch or the implementation must change. Use CodeGraph first
-when indexed.
+Do not preload authority docs. Use current code/tests and [policy.json](policy.json). Read
+[system hardening](references/agent-rework-and-system-hardening.md) only for a fixed-flow defect. Use
+CodeGraph first when indexed.
 
 ## Preserve production invariants
 
 - Keep one Story/Composition, one meaningId/ScenePackage, one GlobalVisualPackage, and one Cover owner.
-- For `preauthoredMeaningIds`, only check and publish receipts; never recreate their Renderer or sound.
+- `templateMeaningIds` are copied, checked, and submitted by scripts; never create an owner task or receipt for them.
 - Keep owner paths disjoint. Owners author only their assignment and publish one assignment-bound
   immutable receipt; the watcher alone writes central results/state and drives delivery.
 - Keep private config and protected voice material unread, unreported, unstaged, and uncommitted.
@@ -50,9 +48,9 @@ when indexed.
 
 ## Classify failure by owner
 
-Before dispatch, revise only Agent-authored inputs and rerun the same validator. For a valid-input
-fixed-flow defect, stop and follow the JIT hardening reference. Treat provider, host, sandbox,
-permission, and authorization failures as external blockers. After dispatch, root does no rework.
+Before dispatch, revise only Agent-authored inputs and rerun the validator. For a fixed-flow defect,
+follow the hardening reference. Provider, host, sandbox, permission, and authorization failures are
+external blockers. After dispatch, root does no rework.
 
 ## Finish after dispatch
 

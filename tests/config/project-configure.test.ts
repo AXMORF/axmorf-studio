@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -13,12 +20,29 @@ import {
 } from "../../src/contracts";
 import { writeProducerConfig } from "../../scripts/config/producer-config";
 import { runProjectConfigure } from "../../scripts/projects/configure";
+import { SCENE_TEMPLATE_DEFINITIONS } from "../../src/remotion/capabilities/scenes/registry";
 import { validProducerConfigInput } from "../contracts/producer-config.test";
 import { validStorySpec, validVideoBrief } from "../fixtures/narrative";
 
 const writeJson = async (path: string, value: unknown) => {
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+};
+
+const repositoryRoot = join(import.meta.dirname, "../..");
+
+const copySceneTemplateInputs = async (rootDir: string) => {
+  const paths = new Set(
+    SCENE_TEMPLATE_DEFINITIONS.flatMap((definition) => [
+      ...definition.sourceFiles.map(({ sourcePath }) => sourcePath),
+      ...definition.assets.map(({ sourcePath }) => sourcePath),
+    ]),
+  );
+  for (const relativePath of paths) {
+    const destination = join(rootDir, relativePath);
+    await mkdir(dirname(destination), { recursive: true });
+    await copyFile(join(repositoryRoot, relativePath), destination);
+  }
 };
 
 const draft = {
@@ -67,6 +91,25 @@ const draft = {
   },
 } as const;
 
+const writeProjectConfigureInputs = async ({
+  rootDir,
+  configPath,
+  configInput = validProducerConfigInput,
+}: {
+  readonly rootDir: string;
+  readonly configPath: string;
+  readonly configInput?: typeof validProducerConfigInput;
+}) => {
+  const projectDir = join(rootDir, "src/projects/story-example");
+  const inputPath = join(projectDir, "producer-input.json");
+  await copySceneTemplateInputs(rootDir);
+  await writeProducerConfig({ configPath, value: configInput });
+  await writeJson(join(projectDir, "brief.json"), validVideoBrief);
+  await writeJson(join(projectDir, "story.json"), validStorySpec);
+  await writeJson(inputPath, draft);
+  return { projectDir, inputPath };
+};
+
 test("ProducerConfig freezes every production-connected default into one new Project", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-project-configure-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
@@ -83,6 +126,7 @@ test("ProducerConfig freezes every production-connected default into one new Pro
       speech: { rate: 1.15, targetLoudnessLufs: -18 },
     },
   } as const;
+  await copySceneTemplateInputs(rootDir);
   await writeProducerConfig({ configPath, value: configInput });
   await writeJson(join(projectDir, "brief.json"), validVideoBrief);
   await writeJson(join(projectDir, "story.json"), validStorySpec);
@@ -134,6 +178,16 @@ test("ProducerConfig freezes every production-connected default into one new Pro
     result.requirementsFingerprint,
     requirements.requirementsFingerprint,
   );
+  assert.deepEqual(result.copiedSceneMeaningIds, [
+    "configured-intro-scene",
+    "configured-outro-scene",
+  ]);
+  const copiedRenderer = await readFile(
+    join(projectDir, "scenes/configured-intro-scene/Renderer.tsx"),
+    "utf8",
+  );
+  assert.match(copiedRenderer, /from "\.\/AxmorfIntroScene"/u);
+  assert.doesNotMatch(copiedRenderer, /remotion\/capabilities/u);
   assert.doesNotMatch(
     JSON.stringify({ narration, render, publishing, requirements, result }),
     /visible-editable-token|\/srv\/private|127\.0\.0\.1|default-bgm/iu,
@@ -147,6 +201,43 @@ test("ProducerConfig freezes every production-connected default into one new Pro
       env: { RSP_PRODUCER_CONFIG: configPath },
     }),
     result,
+  );
+
+  const projectTemplateSourcePath = join(
+    projectDir,
+    "scenes/configured-intro-scene/AxmorfBrand.tsx",
+  );
+  const frozenProjectTemplateSource = await readFile(projectTemplateSourcePath);
+  const sharedTemplateSourcePath = join(
+    rootDir,
+    "src/remotion/capabilities/scenes/templates/axmorf/AxmorfBrand.tsx",
+  );
+  await writeFile(
+    sharedTemplateSourcePath,
+    `${await readFile(sharedTemplateSourcePath, "utf8")}\n`,
+  );
+  await writeProducerConfig({
+    configPath,
+    value: {
+      ...configInput,
+      sceneDefaults: {
+        introSceneTemplateId: null,
+        outroSceneTemplateId: "axmorf-brand-reveal-v1",
+      },
+    },
+  });
+  assert.deepEqual(
+    await runProjectConfigure({
+      rootDir,
+      projectId: "story-example",
+      inputPath,
+      env: { RSP_PRODUCER_CONFIG: configPath },
+    }),
+    result,
+  );
+  assert.deepEqual(
+    await readFile(projectTemplateSourcePath),
+    frozenProjectTemplateSource,
   );
 
   const before = await Promise.all(
@@ -184,4 +275,77 @@ test("ProducerConfig freezes every production-connected default into one new Pro
     ].map((path) => readFile(join(projectDir, path))),
   );
   assert.deepEqual(after, before);
+});
+
+test("Project configure detects downstream conflicts before copying Scene templates", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-project-conflict-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const configPath = join(rootDir, "operator/producer.config.json");
+  const { projectDir, inputPath } = await writeProjectConfigureInputs({
+    rootDir,
+    configPath,
+  });
+  const originalStory = await readFile(join(projectDir, "story.json"));
+  await writeJson(join(projectDir, "render.json"), { conflicting: true });
+
+  await assert.rejects(
+    () =>
+      runProjectConfigure({
+        rootDir,
+        projectId: "story-example",
+        inputPath,
+        env: { RSP_PRODUCER_CONFIG: configPath },
+      }),
+    /conflict|already frozen/iu,
+  );
+
+  assert.deepEqual(
+    await readFile(join(projectDir, "story.json")),
+    originalStory,
+  );
+  await assert.rejects(
+    readFile(join(projectDir, "scenes/configured-intro-scene/Renderer.tsx")),
+    { code: "ENOENT" },
+  );
+  await assert.rejects(
+    readFile(join(projectDir, "production/scene-template-instantiation.json")),
+    { code: "ENOENT" },
+  );
+  await assert.rejects(readFile(join(projectDir, "assets.manifest.json")), {
+    code: "ENOENT",
+  });
+});
+
+test("Project configure recovers an interrupted Scene template commit", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-project-reentry-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const configPath = join(rootDir, "operator/producer.config.json");
+  const { projectDir, inputPath } = await writeProjectConfigureInputs({
+    rootDir,
+    configPath,
+  });
+  const input = {
+    rootDir,
+    projectId: "story-example",
+    inputPath,
+    env: { RSP_PRODUCER_CONFIG: configPath },
+  } as const;
+  const first = await runProjectConfigure(input);
+  const rendererPath = join(
+    projectDir,
+    "scenes/configured-intro-scene/Renderer.tsx",
+  );
+  const instantiationPath = join(
+    projectDir,
+    "production/scene-template-instantiation.json",
+  );
+  await rm(rendererPath);
+  await rm(instantiationPath);
+
+  assert.deepEqual(await runProjectConfigure(input), first);
+  assert.match(await readFile(rendererPath, "utf8"), /AxmorfIntroScene/u);
+  assert.equal(
+    JSON.parse(await readFile(instantiationPath, "utf8")).storyId,
+    "story-example",
+  );
 });

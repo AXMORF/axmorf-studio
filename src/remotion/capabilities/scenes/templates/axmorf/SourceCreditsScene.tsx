@@ -2,9 +2,9 @@ import type { FC } from "react";
 import { AbsoluteFill, Easing, interpolate } from "remotion";
 
 import {
-  BOOKEND_OUTRO_LANDSCAPE_LINES,
-  BOOKEND_OUTRO_MESSAGE,
-  BOOKEND_OUTRO_PORTRAIT_LINES,
+  AXMORF_SOURCE_FOLLOW_LANDSCAPE_LINES,
+  AXMORF_SOURCE_FOLLOW_MESSAGE,
+  AXMORF_SOURCE_FOLLOW_PORTRAIT_LINES,
 } from "./content";
 
 const clamped = {
@@ -28,8 +28,8 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
   const isLandscape = width > height;
   const isDense = references.length > 5;
   const lines = isLandscape
-    ? BOOKEND_OUTRO_LANDSCAPE_LINES
-    : BOOKEND_OUTRO_PORTRAIT_LINES;
+    ? AXMORF_SOURCE_FOLLOW_LANDSCAPE_LINES
+    : AXMORF_SOURCE_FOLLOW_PORTRAIT_LINES;
   return (
     <AbsoluteFill
       style={{
@@ -42,7 +42,7 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
       }}
     >
       <div
-        aria-label={BOOKEND_OUTRO_MESSAGE}
+        aria-label={AXMORF_SOURCE_FOLLOW_MESSAGE}
         role="img"
         style={{
           fontFamily:

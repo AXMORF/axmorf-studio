@@ -113,7 +113,6 @@ test("SceneSoundContribution mounts only fixed local Html5Audio Sequences", () =
 test("silent intro uses the ordinary ScenePackage and Scene sound projection", () => {
   const fixture = createSoundRuntimeFixture();
   const preset = buildSilentScenePreset({
-    sceneRole: "intro",
     presetId: "proof-intro-v1",
     durationInFrames: 120,
     visualIntent: "Render the proof shape as the intro visual.",
@@ -128,14 +127,12 @@ test("silent intro uses the ordinary ScenePackage and Scene sound projection", (
     ...taskBase,
     storyBeat: {
       kind: "silent-scene",
-      sceneRole: "intro",
       meaningId: taskBase.meaningId,
       narrativePurpose: "Open with an ordinary fixed-duration Scene.",
       preset,
     },
     timingBeat: {
       kind: "silent-scene",
-      sceneRole: "intro",
       presetFingerprint: preset.presetFingerprint,
       presetDurationInFrames: preset.durationInFrames,
       meaningId: taskBase.meaningId,

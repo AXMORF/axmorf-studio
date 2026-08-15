@@ -27,6 +27,10 @@ import {
 } from "../config/producer-config";
 import { writeProductionFileAtomic } from "../production/adapters/run-store";
 import { acquireRepositoryOperationLock } from "../shared/repository-operation-lock";
+import {
+  commitConfiguredSceneTemplates,
+  prepareConfiguredSceneTemplates,
+} from "./scene-template-instantiation";
 
 const DraftSchema = z
   .object({
@@ -139,11 +143,18 @@ const runProjectConfigureUnlocked = async ({
       ),
     ]);
   const brief = VideoBriefSchema.parse(briefArtifact.value);
-  const story = StorySpecSchema.parse(storyArtifact.value);
-  if (brief.storyId !== projectId || story.storyId !== projectId) {
+  const sourceStory = StorySpecSchema.parse(storyArtifact.value);
+  const draft = DraftSchema.parse(draftArtifact.value);
+  if (brief.storyId !== projectId || sourceStory.storyId !== projectId) {
     throw new Error("Project producer input story identity is stale.");
   }
-  const draft = DraftSchema.parse(draftArtifact.value);
+  const materialized = await prepareConfiguredSceneTemplates({
+    rootDir,
+    projectId,
+    story: sourceStory,
+    sceneDefaults: config.sceneDefaults,
+  });
+  const story = materialized.story;
   const narration = NarrationSpecSchema.parse({
     schemaVersion: 2,
     voiceProfileId: config.tts.defaultVoiceProfileId,
@@ -187,7 +198,7 @@ const runProjectConfigureUnlocked = async ({
     source: { brief, story, narration, render, storyCheck },
     sourceChecksums: {
       videoBrief: checksum(briefArtifact.bytes),
-      storySpec: checksum(storyArtifact.bytes),
+      storySpec: checksum(Buffer.from(materialized.storyBytes)),
       narrationSpec: checksum(Buffer.from(sourceBytes.narration)),
       renderSpec: checksum(Buffer.from(sourceBytes.render)),
       storyCheck: checksum(Buffer.from(sourceBytes.storyCheck)),
@@ -212,6 +223,11 @@ const runProjectConfigureUnlocked = async ({
     },
   ] as const;
   const missingFiles = await assertNoConflicts(files);
+  await commitConfiguredSceneTemplates({
+    rootDir,
+    projectId,
+    prepared: materialized,
+  });
   for (const file of missingFiles) {
     await writeProductionFileAtomic({
       destination: file.path,
@@ -223,6 +239,9 @@ const runProjectConfigureUnlocked = async ({
     storyId: projectId,
     requirementsFingerprint: requirements.requirementsFingerprint,
     publishingIntentFingerprint: publishingIntent.intentFingerprint,
+    sceneTemplateInstantiationFingerprint:
+      materialized.instantiation.instantiationFingerprint,
+    copiedSceneMeaningIds: materialized.copiedMeaningIds,
   } as const;
 };
 

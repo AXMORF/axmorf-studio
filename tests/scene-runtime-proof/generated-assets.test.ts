@@ -27,13 +27,13 @@ test("core authored assets bootstrap deterministically without tracked public fi
   const introChime = await readFile(
     join(
       rootDir,
-      "public/assets/library/story-bookends/axmorf-intro-chime.wav",
+      "public/assets/library/scene-templates/axmorf-brand-reveal-chime.wav",
     ),
   );
   const outroChime = await readFile(
     join(
       rootDir,
-      "public/assets/library/story-bookends/axmorf-outro-chime.wav",
+      "public/assets/library/scene-templates/axmorf-source-follow-chime.wav",
     ),
   );
   assert.equal(

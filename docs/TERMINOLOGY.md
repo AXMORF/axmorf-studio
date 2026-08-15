@@ -8,11 +8,12 @@
 | --------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------- |
 | StoryBeat                   | 一个有稳定 meaningId 的叙事单元                                           | 自动按标点拆分的句子                                 |
 | ttsChunks                   | Agent 已决定的朗读单元                                                    | 工具可重写的文本切片                                 |
-| ProducerConfig              | 新作品的 render、可读性、合集、TTS 与可选 BGM 预设 authority              | 已封存作品的可变 runtime 输入                        |
+| ProducerConfig              | 新作品的 Scene 默认、render、可读性、合集、TTS 与可选 BGM authority        | 已封存作品的可变 runtime 输入                        |
 | NarrationExecutionSnapshot  | Run 级 provider-attempt 与 mastering policy 的 private-safe 冻结身份      | token、URL、私有路径、声线内容或 render runtime 配置 |
 | SemanticTiming              | silent preset 固定帧与 sealed PCM 累计边界共同导出的全片 frame authority  | runtime 重算、伪造静音 TTS 或容器浮点时长估算        |
 | ScenePackage                | 一个 meaningId 的视觉与局部声音成品合同                                   | 字幕、旁白或全局背景 authority                       |
-| reusable Scene preset       | 绑定共享 Renderer source、固定 plans/cues/frames/resources 的已批准 Scene | 每个 Project 重新创作或专用 Intro/Outro runtime      |
+| reusable Scene template     | 可复制源码、Renderer、plans/cues/frames/resources 的已批准普通 Scene       | 既有 Project 的共享 runtime dependency 或位置限定    |
+| template-copy Scene         | `project:configure` 复制并冻结、由脚本校验提交的 Project-local Scene       | Scene owner 重新创作或发布 owner receipt             |
 | GlobalVisualPackage         | Story 级背景、纹理、装饰和连续性 motif                                    | Scene DSL、自动导演或字幕层                          |
 | ProductionRun               | append-only events 与 immutable results 的一次执行                        | 可手改或恢复的任务状态                               |
 | Project production progress | source Project/current Run 的最新关键步骤只读投影                         | output-only 清理目标、PID 监控或 MP4 完成状态        |

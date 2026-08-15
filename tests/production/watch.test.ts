@@ -12,6 +12,7 @@ import {
   buildSceneAssignment,
   buildSceneProductionResult,
   buildSceneTaskInputV5,
+  buildSilentScenePreset,
   type GlobalVisualAssignment,
   type ProductionReadabilityPolicy,
   type SceneAssignment,
@@ -45,73 +46,157 @@ const createAssignments = ({
   runId,
   requirementsFingerprint,
   readabilityPolicy,
+  includeTemplate = false,
 }: {
   readonly runId: string;
   readonly requirementsFingerprint: string;
   readonly readabilityPolicy: ProductionReadabilityPolicy;
-}) =>
-  (["opening", "conclusion"] as const).map((meaningId, index) => {
-    const taskInput = buildSceneTaskInputV5({
-      storyId: "story-example",
-      meaningId,
-      storyBeat: {
-        kind: "narrated-scene",
+  readonly includeTemplate?: boolean;
+}) => {
+  const authored = (["opening", "conclusion"] as const).map(
+    (meaningId, index) => {
+      const taskInput = buildSceneTaskInputV5({
+        storyId: "story-example",
         meaningId,
-        narrativePurpose: "Explain one immutable step.",
-        ttsChunks: [{ chunkId: `${meaningId}-01`, ttsText: "A" }],
-        explicitPauses: [{ afterChunkId: `${meaningId}-01`, pauseMs: 250 }],
-      },
-      sourceReferences: [],
-      timingBeat: {
-        kind: "narrated-scene",
+        storyBeat: {
+          kind: "narrated-scene",
+          meaningId,
+          narrativePurpose: "Explain one immutable step.",
+          ttsChunks: [{ chunkId: `${meaningId}-01`, ttsText: "A" }],
+          explicitPauses: [{ afterChunkId: `${meaningId}-01`, pauseMs: 250 }],
+        },
+        sourceReferences: [],
+        timingBeat: {
+          kind: "narrated-scene",
+          meaningId,
+          startFrame: index === 0 ? 15 : 84,
+          endFrame: index === 0 ? 84 : 150,
+        },
+        storyFingerprint: sha("1"),
+        semanticTimingFingerprint: sha("2"),
+        renderFingerprint: sha("3"),
+        visualStyleFingerprint: sha("4"),
+        resourceCatalogFingerprint: sha("5"),
+        readabilityPolicy,
+        sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
+        allowedSnapshots: [],
+        allowedResourceIds: [],
+        continuity: {
+          previousMeaningId: index === 0 ? null : "opening",
+          previousSummary: index === 0 ? null : "Opening.",
+          nextMeaningId: index === 0 ? "conclusion" : null,
+          nextSummary: index === 0 ? "Conclusion." : null,
+          continuityBrief: "Keep one visual system.",
+        },
+        allowedDirectories: {
+          sceneRoot: `src/projects/story-example/scenes/${meaningId}`,
+          publicAssetRoot: `public/projects/story-example/scenes/${meaningId}`,
+        },
+      });
+      return buildSceneAssignment({
+        runId,
+        storyId: "story-example",
         meaningId,
-        startFrame: index === 0 ? 15 : 84,
-        endFrame: index === 0 ? 84 : 150,
-      },
-      storyFingerprint: sha("1"),
-      semanticTimingFingerprint: sha("2"),
-      renderFingerprint: sha("3"),
-      visualStyleFingerprint: sha("4"),
-      resourceCatalogFingerprint: sha("5"),
-      readabilityPolicy,
-      sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
-      allowedSnapshots: [],
-      allowedResourceIds: [],
-      continuity: {
-        previousMeaningId: index === 0 ? null : "opening",
-        previousSummary: index === 0 ? null : "Opening.",
-        nextMeaningId: index === 0 ? "conclusion" : null,
-        nextSummary: index === 0 ? "Conclusion." : null,
-        continuityBrief: "Keep one visual system.",
-      },
-      allowedDirectories: {
-        sceneRoot: `src/projects/story-example/scenes/${meaningId}`,
-        publicAssetRoot: `public/projects/story-example/scenes/${meaningId}`,
-      },
-    });
-    return buildSceneAssignment({
-      runId,
-      storyId: "story-example",
-      meaningId,
-      requirementsFingerprint,
-      sceneBriefFingerprint: sha("6"),
-      resourcePoolFingerprint: sha("7"),
-      taskInput,
-      readabilityPolicy,
-      sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
-      sceneBrief: {
-        meaningId,
-        visualIntent: "Show the step.",
-        compositionIntent: "Use one axis.",
-        motionIntent: "Reveal by frame.",
-        soundIntent: "No local sound.",
-        continuityBrief: "Keep one visual system.",
-        candidateResourceIds: [],
-        allowedSnapshotCards: [],
-      },
-      additionalRequirements: [],
-    });
+        requirementsFingerprint,
+        sceneBriefFingerprint: sha("6"),
+        resourcePoolFingerprint: sha("7"),
+        taskInput,
+        readabilityPolicy,
+        sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
+        sceneBrief: {
+          meaningId,
+          visualIntent: "Show the step.",
+          compositionIntent: "Use one axis.",
+          motionIntent: "Reveal by frame.",
+          soundIntent: "No local sound.",
+          continuityBrief: "Keep one visual system.",
+          candidateResourceIds: [],
+          allowedSnapshotCards: [],
+        },
+        additionalRequirements: [],
+      });
+    },
+  );
+  if (!includeTemplate) return authored;
+  const preset = buildSilentScenePreset({
+    presetId: "copied-template-v1",
+    durationInFrames: 15,
+    visualIntent: "Render the copied template.",
+    soundIntent: "No local sound.",
+    resourceIds: [],
+    implementation: {
+      kind: "template-copy",
+      templateId: "copied-template-v1",
+      templateFingerprint: sha("8"),
+      instanceFingerprint: sha("9"),
+      rendererSourceFingerprint: sha("a"),
+      soundCues: [],
+    },
   });
+  const meaningId = "configured-template-scene";
+  const taskInput = buildSceneTaskInputV5({
+    storyId: "story-example",
+    meaningId,
+    storyBeat: {
+      kind: "silent-scene",
+      meaningId,
+      narrativePurpose: "Render one copied Scene template.",
+      preset,
+    },
+    sourceReferences: [],
+    timingBeat: {
+      kind: "silent-scene",
+      meaningId,
+      presetFingerprint: preset.presetFingerprint,
+      presetDurationInFrames: 15,
+      startFrame: 0,
+      endFrame: 15,
+    },
+    storyFingerprint: sha("1"),
+    semanticTimingFingerprint: sha("2"),
+    renderFingerprint: sha("3"),
+    visualStyleFingerprint: sha("4"),
+    resourceCatalogFingerprint: sha("5"),
+    readabilityPolicy,
+    sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
+    allowedSnapshots: [],
+    allowedResourceIds: [],
+    continuity: {
+      previousMeaningId: null,
+      previousSummary: null,
+      nextMeaningId: "opening",
+      nextSummary: "Opening.",
+      continuityBrief: "Hand the copied Scene to the authored opening.",
+    },
+    allowedDirectories: {
+      sceneRoot: `src/projects/story-example/scenes/${meaningId}`,
+      publicAssetRoot: `public/projects/story-example/scenes/${meaningId}`,
+    },
+  });
+  const template = buildSceneAssignment({
+    runId,
+    storyId: "story-example",
+    meaningId,
+    requirementsFingerprint,
+    sceneBriefFingerprint: sha("6"),
+    resourcePoolFingerprint: sha("7"),
+    taskInput,
+    readabilityPolicy,
+    sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
+    sceneBrief: {
+      meaningId,
+      visualIntent: preset.visualIntent,
+      compositionIntent: "Use the copied composition.",
+      motionIntent: "Use the copied motion.",
+      soundIntent: preset.soundIntent,
+      continuityBrief: "Hand the copied Scene to content.",
+      candidateResourceIds: [],
+      allowedSnapshotCards: [],
+    },
+    additionalRequirements: [],
+  });
+  return [template, ...authored];
+};
 
 const createGlobalAssignment = ({
   runId,
@@ -152,7 +237,10 @@ const createGlobalAssignment = ({
     },
   });
 
-const createFixture = async (context: TestContext) => {
+const createFixture = async (
+  context: TestContext,
+  options: { readonly includeTemplate?: boolean } = {},
+) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-owner-watch-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const fixture = await createProductionFixture(context, rootDir);
@@ -161,6 +249,7 @@ const createFixture = async (context: TestContext) => {
     runId: fixture.runId,
     requirementsFingerprint: fixture.requirements.requirementsFingerprint,
     readabilityPolicy: fixture.requirements.readabilityPolicy,
+    includeTemplate: options.includeTemplate,
   });
   const globalVisualAssignment = createGlobalAssignment({
     runId: fixture.runId,
@@ -178,7 +267,9 @@ const createFixture = async (context: TestContext) => {
   return { ...fixture, assignments, globalVisualAssignment };
 };
 
-const successScene = (assignment: Extract<SceneAssignment, { schemaVersion: 5 }>) =>
+const successScene = (
+  assignment: Extract<SceneAssignment, { schemaVersion: 5 }>,
+) =>
   buildSceneProductionResult({
     runId: assignment.runId,
     storyId: assignment.storyId,
@@ -188,7 +279,8 @@ const successScene = (assignment: Extract<SceneAssignment, { schemaVersion: 5 }>
     requirementsFingerprint: assignment.requirementsFingerprint,
     sceneBriefFingerprint: assignment.sceneBriefFingerprint,
     resourcePoolFingerprint: assignment.resourcePoolFingerprint,
-    readabilityPolicyFingerprint: assignment.readabilityPolicy.policyFingerprint,
+    readabilityPolicyFingerprint:
+      assignment.readabilityPolicy.policyFingerprint,
     sceneCompositionBoundaryVersion: assignment.sceneCompositionBoundaryVersion,
     occurredAt: FIXED_PRODUCTION_NOW.toISOString(),
     status: "success",
@@ -233,7 +325,9 @@ const readyReceipt = ({
 }) => {
   const scene =
     owner.ownerKind === "scene"
-      ? fixture.assignments.find(({ meaningId }) => meaningId === owner.meaningId)!
+      ? fixture.assignments.find(
+          ({ meaningId }) => meaningId === owner.meaningId,
+        )!
       : null;
   return buildProductionOwnerReceipt({
     runId: fixture.runId,
@@ -265,9 +359,10 @@ const storeReadyOutcome = async ({
   };
 }) => {
   const receipt = readyReceipt({ fixture, owner });
-  let formalResult:
-    | Readonly<{ repositoryPath: string; fingerprint: string }>
-    | null = null;
+  let formalResult: Readonly<{
+    repositoryPath: string;
+    fingerprint: string;
+  }> | null = null;
   if (owner.ownerKind === "scene") {
     const assignment = fixture.assignments.find(
       ({ meaningId }) => meaningId === owner.meaningId,
@@ -280,14 +375,18 @@ const storeReadyOutcome = async ({
     };
   } else if (owner.ownerKind === "global-visual") {
     const result = successGlobal(fixture.globalVisualAssignment);
-    await writeGlobalVisualProductionResult({ rootDir: fixture.rootDir, result });
+    await writeGlobalVisualProductionResult({
+      rootDir: fixture.rootDir,
+      result,
+    });
     formalResult = {
       repositoryPath: `.producer-runs/${fixture.runId}/global-visual-result.json`,
       fingerprint: result.resultFingerprint,
     };
   } else {
     formalResult = {
-      repositoryPath: "src/projects/story-example/delivery/cover/results/result.json",
+      repositoryPath:
+        "src/projects/story-example/delivery/cover/results/result.json",
       fingerprint: sha("f"),
     };
   }
@@ -304,7 +403,13 @@ const storeReadyOutcome = async ({
   return { receipt, result } as const;
 };
 
-const markRenderReady = async ({ rootDir, runId }: { rootDir: string; runId: string }) => {
+const markRenderReady = async ({
+  rootDir,
+  runId,
+}: {
+  rootDir: string;
+  runId: string;
+}) => {
   const loaded = await readProductionRunStore({ rootDir, runId });
   const lock = await acquireProductionRunLock({
     rootDir,
@@ -330,11 +435,22 @@ const markRenderReady = async ({ rootDir, runId }: { rootDir: string; runId: str
         commandId: "production-render-ready",
         previousStateFingerprint: loaded.state.stateFingerprint,
         inputFingerprints: [
-          { artifactId: "requirements", fingerprint: loaded.run.requirementsFingerprint },
+          {
+            artifactId: "requirements",
+            fingerprint: loaded.run.requirementsFingerprint,
+          },
         ],
         outputArtifacts: [
-          { artifactId: "production-render-plan", repositoryPath: "plan.json", fingerprint: sha("1") },
-          { artifactId: "production-render-ready", repositoryPath: "ready.json", fingerprint: sha("2") },
+          {
+            artifactId: "production-render-plan",
+            repositoryPath: "plan.json",
+            fingerprint: sha("1"),
+          },
+          {
+            artifactId: "production-render-ready",
+            repositoryPath: "ready.json",
+            fingerprint: sha("2"),
+          },
         ],
         status: "render-ready",
         handoff: "awaiting-automatic-delivery",
@@ -348,7 +464,9 @@ const markRenderReady = async ({ rootDir, runId }: { rootDir: string; runId: str
 
 const dependenciesFor = (
   fixture: Awaited<ReturnType<typeof createFixture>>,
-  processOwner: NonNullable<Parameters<typeof runProductionWatch>[0]["dependencies"]>["processOwner"],
+  processOwner: NonNullable<
+    Parameters<typeof runProductionWatch>[0]["dependencies"]
+  >["processOwner"],
 ) => ({
   resolveAssignments: async () => ({
     assignments: fixture.assignments,
@@ -374,7 +492,8 @@ test("missing receipts remain waiting forever without deadline failure or retry"
       scheduler: {
         sleep: async () => {
           sleeps += 1;
-          if (sleeps === 3) throw new ProductionWatchInterruption("stop test watcher");
+          if (sleeps === 3)
+            throw new ProductionWatchInterruption("stop test watcher");
         },
       },
       dependencies: dependenciesFor(fixture, async () => null),
@@ -385,6 +504,58 @@ test("missing receipts remain waiting forever without deadline failure or retry"
   assert.equal(loaded.state.state, "waiting-for-owner-results");
   assert.equal(loaded.state.failure, null);
   assert.equal(sleeps, 3);
+});
+
+test("template-copied Scene results converge without an owner task or receipt", async (context) => {
+  const fixture = await createFixture(context, { includeTemplate: true });
+  const templateAssignment = fixture.assignments[0];
+  assert.equal(
+    templateAssignment.taskInput.storyBeat.kind === "silent-scene"
+      ? templateAssignment.taskInput.storyBeat.preset.implementation.kind
+      : null,
+    "template-copy",
+  );
+  await writeSceneProductionResult({
+    rootDir: fixture.rootDir,
+    result: successScene(templateAssignment),
+  });
+  const processedOwners: string[] = [];
+  const processOwner = async (request: {
+    owner: {
+      ownerKind: "scene" | "global-visual" | "cover";
+      meaningId: string | null;
+      assignmentFingerprint: string;
+    };
+  }) => {
+    processedOwners.push(
+      `${request.owner.ownerKind}:${request.owner.meaningId ?? "story"}`,
+    );
+    return storeReadyOutcome({ fixture, owner: request.owner });
+  };
+  await runProductionWatch({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    clock: () => FIXED_PRODUCTION_NOW,
+    scheduler: { sleep: async () => assert.fail("must not wait") },
+    dependencies: {
+      ...dependenciesFor(fixture, processOwner as never),
+      deliveryBuild: async () => ({
+        projectId: fixture.source.story.storyId,
+        deliveryId: "story-example-delivery-test",
+        status: "delivery-render-started",
+        noOp: false,
+      }),
+    },
+  });
+  assert.equal(
+    processedOwners.includes("scene:configured-template-scene"),
+    false,
+  );
+  const loaded = await readProductionRunStore(fixture);
+  assert.deepEqual(
+    loaded.state.acceptedSceneResults.map(({ meaningId }) => meaningId),
+    ["configured-template-scene", "opening", "conclusion"],
+  );
 });
 
 test("watcher remains a single writer and rejects an unknown inbox identity", async (context) => {
@@ -486,9 +657,15 @@ test("concurrent owner availability is processed serially and Cover gates delive
   let coverAvailable = false;
   let deliveryCalls = 0;
   const processOwner = async (request: {
-    owner: { ownerKind: "scene" | "global-visual" | "cover"; meaningId: string | null; assignmentFingerprint: string };
+    owner: {
+      ownerKind: "scene" | "global-visual" | "cover";
+      meaningId: string | null;
+      assignmentFingerprint: string;
+    };
   }) => {
-    order.push(`${request.owner.ownerKind}:${request.owner.meaningId ?? "story"}`);
+    order.push(
+      `${request.owner.ownerKind}:${request.owner.meaningId ?? "story"}`,
+    );
     if (request.owner.ownerKind === "cover") {
       assert.equal(
         (await readProductionRunStore(fixture)).state.state,
@@ -504,7 +681,10 @@ test("concurrent owner availability is processed serially and Cover gates delive
     clock: () => FIXED_PRODUCTION_NOW,
     scheduler: {
       sleep: async () => {
-        assert.equal((await readProductionRunStore(fixture)).state.state, "render-ready");
+        assert.equal(
+          (await readProductionRunStore(fixture)).state.state,
+          "render-ready",
+        );
         assert.equal(deliveryCalls, 0);
         coverAvailable = true;
       },
@@ -513,7 +693,12 @@ test("concurrent owner availability is processed serially and Cover gates delive
       ...dependenciesFor(fixture, processOwner as never),
       deliveryBuild: async () => {
         deliveryCalls += 1;
-        return { projectId: fixture.source.story.storyId, deliveryId: "story-example-delivery-test", status: "delivery-render-started" as const, noOp: false as const };
+        return {
+          projectId: fixture.source.story.storyId,
+          deliveryId: "story-example-delivery-test",
+          status: "delivery-render-started" as const,
+          noOp: false as const,
+        };
       },
     },
   });
@@ -572,7 +757,11 @@ test("watcher restart resumes immutable results without duplicate acceptance", a
   const fixture = await createFixture(context);
   let firstRun = true;
   const processOwner = async (request: {
-    owner: { ownerKind: "scene" | "global-visual" | "cover"; meaningId: string | null; assignmentFingerprint: string };
+    owner: {
+      ownerKind: "scene" | "global-visual" | "cover";
+      meaningId: string | null;
+      assignmentFingerprint: string;
+    };
   }) => {
     if (firstRun && request.owner.ownerKind !== "scene") return null;
     if (firstRun && request.owner.meaningId === "conclusion") return null;
@@ -584,20 +773,31 @@ test("watcher restart resumes immutable results without duplicate acceptance", a
       rootDir: fixture.rootDir,
       runId: fixture.runId,
       clock: () => FIXED_PRODUCTION_NOW,
-      scheduler: { sleep: async () => { throw new ProductionWatchInterruption("restart watcher"); } },
+      scheduler: {
+        sleep: async () => {
+          throw new ProductionWatchInterruption("restart watcher");
+        },
+      },
       dependencies: dependenciesFor(fixture, processOwner as never),
     }),
     /restart watcher/u,
   );
   const partial = await readProductionRunStore(fixture);
-  assert.deepEqual(partial.state.acceptedSceneResults.map(({ meaningId }) => meaningId), ["opening"]);
+  assert.deepEqual(
+    partial.state.acceptedSceneResults.map(({ meaningId }) => meaningId),
+    ["opening"],
+  );
   firstRun = false;
   await assert.rejects(
     runProductionWatch({
       rootDir: fixture.rootDir,
       runId: fixture.runId,
       clock: () => FIXED_PRODUCTION_NOW,
-      scheduler: { sleep: async () => { throw new ProductionWatchInterruption("cover remains missing"); } },
+      scheduler: {
+        sleep: async () => {
+          throw new ProductionWatchInterruption("cover remains missing");
+        },
+      },
       dependencies: dependenciesFor(fixture, processOwner as never),
     }),
     /cover remains missing/u,
@@ -606,7 +806,8 @@ test("watcher restart resumes immutable results without duplicate acceptance", a
   assert.equal(resumed.state.state, "render-ready");
   assert.equal(
     resumed.events.filter(
-      (event) => event.type === "scene-result-accepted" && event.meaningId === "opening",
+      (event) =>
+        event.type === "scene-result-accepted" && event.meaningId === "opening",
     ).length,
     1,
   );
@@ -620,13 +821,12 @@ test("explicit failed owner outcome becomes one immutable terminal failure", asy
     meaningId: failedAssignment.meaningId,
     assignmentFingerprint: failedAssignment.assignmentFingerprint,
   };
-  const processOwner = async (request: {
-    owner: typeof failedOwner;
-  }) => {
+  const processOwner = async (request: { owner: typeof failedOwner }) => {
     if (
       request.owner.ownerKind !== "scene" ||
       request.owner.meaningId !== failedAssignment.meaningId
-    ) return null;
+    )
+      return null;
     const formal = createSceneFailureResult({
       assignment: failedAssignment,
       code: "OWNER_EXPLICIT_FAILURE",
@@ -635,7 +835,10 @@ test("explicit failed owner outcome becomes one immutable terminal failure", asy
       occurredAt: FIXED_PRODUCTION_NOW.toISOString(),
       commandId: "production-scene-fail",
     });
-    await writeSceneProductionResult({ rootDir: fixture.rootDir, result: formal });
+    await writeSceneProductionResult({
+      rootDir: fixture.rootDir,
+      result: formal,
+    });
     const ready = readyReceipt({ fixture, owner: failedOwner });
     const result = buildProductionOwnerResult({
       runId: fixture.runId,

@@ -127,7 +127,6 @@ const NarratedStoryBeatTimingSchema = z
 const SilentStoryBeatTimingSchema = z
   .object({
     kind: z.literal("silent-scene"),
-    sceneRole: z.enum(["intro", "outro"]),
     meaningId: MeaningIdSchema,
     presetFingerprint: Sha256DigestSchema,
     presetDurationInFrames: PositiveIntegerSchema,
@@ -161,7 +160,7 @@ const StoryBeatTimingSchema = z.discriminatedUnion("kind", [
 
 export const SemanticTimingSchema = z
   .object({
-    schemaVersion: z.literal(2),
+    schemaVersion: z.literal(3),
     algorithmId: z.literal(TIMING_ALGORITHM_ID),
     storyId: StoryIdSchema,
     fingerprint: Sha256DigestSchema,
@@ -384,7 +383,7 @@ export const computeSemanticTimingFingerprint = (
 ) =>
   createFingerprint({
     namespace: "semantic-timing",
-    version: 2,
+    version: 3,
     value: {
       algorithmId: TIMING_ALGORITHM_ID,
       storyFingerprint: computeStoryFingerprint(story),
@@ -453,13 +452,12 @@ export const generateSemanticTiming = ({
     throw new Error("Sealed timeline segment count does not match StorySpec.");
   }
 
-  const introFrames =
-    story.beats[0]?.kind === "silent-scene" &&
-    story.beats[0].sceneRole === "intro"
+  const leadingSilentFrames =
+    story.beats[0]?.kind === "silent-scene"
       ? story.beats[0].preset.durationInFrames
       : 0;
   const narrationStartFrame = toSafeNumber(
-    BigInt(render.leadInFrames) + BigInt(introFrames),
+    BigInt(render.leadInFrames) + BigInt(leadingSilentFrames),
     "narrationStartFrame",
   );
   let sampleCursor = 0n;
@@ -561,11 +559,10 @@ export const generateSemanticTiming = ({
       const startFrame = beatFrameCursor;
       beatFrameCursor = toSafeNumber(
         BigInt(beatFrameCursor) + BigInt(beat.preset.durationInFrames),
-        `${beat.sceneRole} endFrame`,
+        `Silent Scene ${beat.meaningId} endFrame`,
       );
       return {
         kind: beat.kind,
-        sceneRole: beat.sceneRole,
         meaningId: beat.meaningId,
         presetFingerprint: beat.preset.presetFingerprint,
         presetDurationInFrames: beat.preset.durationInFrames,
@@ -592,7 +589,7 @@ export const generateSemanticTiming = ({
   });
 
   return SemanticTimingSchema.parse({
-    schemaVersion: 2,
+    schemaVersion: 3,
     algorithmId: TIMING_ALGORITHM_ID,
     storyId: story.storyId,
     fingerprint: computeSemanticTimingFingerprint(story, sealedNarration, render),

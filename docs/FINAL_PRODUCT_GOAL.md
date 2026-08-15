@@ -46,8 +46,8 @@
   narration、captions 与 GlobalVisual background。
 - captions 只由顶层 CaptionLayer 渲染。
 - SemanticTiming 一次性解析片头、正文与片尾的连续权威窗口；片头片尾默认无旁白和字幕，但可拥有 Scene-local 音效。
-- 默认片头片尾 preset 绑定 reusable Scene Renderer source identity、固定 visual/shot/anchor/sound
-  choreography、时长和本地资源；fresh Run 只确定性投影并校验，不再次作创意设计。
+- 配置页为首尾业务位置选择普通 reusable Scene template；新 Project 复制其源码和资源并冻结
+  Project-local instance。production 只确定性投影、校验并 submit，不派发 Agent，也不依赖共享模板。
 - JSON 不包含 JSX、代码、动态模块路径或 executable expression。
 - render runtime 不调用 Agent、Skill、MCP、Git、网络或目录扫描。
 - 所有 render-critical 资产 repository-local、manifest-verified；motion 使用 Remotion frame API。
@@ -56,7 +56,7 @@
 - production state 只由 append-only events、immutable results 与 current fingerprints 投影。
 - Cover 独立于 production state，只消费 StorySpec、VisualStyleSpec 与 fixed CoverSpec。
 - Codex task/thread/progress/heartbeat 不进入 repository state；缺失 receipt 不触发 timeout/retry。
-- 全局配置只提供 authoring/freeze 默认值；实际合集、可读性、语速与响度策略进入 immutable
+- 全局配置只提供新 Project 默认值；Scene template 在 `project:configure` 时复制，实际合集、可读性、语速与响度策略进入 immutable
   contracts/fingerprints。Run 开始时再冻结 private-safe narration execution identity；修改配置不能
   静默改写已封存作品或切换已开始 Run 的 provider、声线、参数、语速和 LUFS。
 

@@ -3,15 +3,15 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
-  DefaultIntroPreview,
-  DefaultOutroPreview,
-  SYSTEM_BOOKEND_PREVIEW_SPECS,
-} from "../../src/remotion/compositions/bookend-previews/BookendPreviews";
+  BrandRevealTemplatePreview,
+  SourceFollowTemplatePreview,
+  SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS,
+} from "../../src/remotion/compositions/scene-template-previews/SceneTemplatePreviews";
 
-test("System bookend previews bind the default local cue timing and assets", async () => {
-  assert.equal(typeof DefaultIntroPreview, "function");
-  assert.equal(typeof DefaultOutroPreview, "function");
-  assert.deepEqual(SYSTEM_BOOKEND_PREVIEW_SPECS, {
+test("System Scene template previews bind local cue timing and assets", async () => {
+  assert.equal(typeof BrandRevealTemplatePreview, "function");
+  assert.equal(typeof SourceFollowTemplatePreview, "function");
+  assert.deepEqual(SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS, {
     intro: {
       durationInFrames: 60,
       cue: {
@@ -19,7 +19,7 @@ test("System bookend previews bind the default local cue timing and assets", asy
         durationInFrames: 18,
         volume: 0.82,
         publicPath:
-          "public/assets/library/story-bookends/axmorf-intro-chime.wav",
+          "public/assets/library/scene-templates/axmorf-brand-reveal-chime.wav",
         checksum:
           "sha256:739069dd51389ebac5704cdcd4b16ef43abc458a268931ab5817b834c1f2c475",
       },
@@ -31,7 +31,7 @@ test("System bookend previews bind the default local cue timing and assets", asy
         durationInFrames: 30,
         volume: 0.82,
         publicPath:
-          "public/assets/library/story-bookends/axmorf-outro-chime.wav",
+          "public/assets/library/scene-templates/axmorf-source-follow-chime.wav",
         checksum:
           "sha256:7140b3c599b3656e5c3ee26c9c127a5d6a8deb26a336c67574114e4fdbe355b0",
       },
@@ -39,7 +39,7 @@ test("System bookend previews bind the default local cue timing and assets", asy
   });
   const source = await readFile(
     new URL(
-      "../../src/remotion/compositions/bookend-previews/BookendPreviews.tsx",
+      "../../src/remotion/compositions/scene-template-previews/SceneTemplatePreviews.tsx",
       import.meta.url,
     ),
     "utf8",

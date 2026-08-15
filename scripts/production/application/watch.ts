@@ -100,6 +100,14 @@ const assignmentIdentity = (
         assignmentFingerprint: assignment.assignmentFingerprint,
       };
 
+const requiresSceneOwner = (assignment: CurrentSceneAssignment) => {
+  const beat = assignment.taskInput.storyBeat;
+  return (
+    beat.kind === "narrated-scene" ||
+    beat.preset.implementation.kind === "scene-owner"
+  );
+};
+
 const assertReceiptIdentity = ({
   receipt,
   runId,
@@ -382,8 +390,10 @@ const acceptFormalResults = async ({
   );
   for (const assignment of assignments) {
     const owner = assignmentIdentity(assignment);
-    const ownerResult = await readOwnerResult({ rootDir, runId, ...owner });
-    if (ownerResult === null) continue;
+    const ownerResult = requiresSceneOwner(assignment)
+      ? await readOwnerResult({ rootDir, runId, ...owner })
+      : null;
+    if (requiresSceneOwner(assignment) && ownerResult === null) continue;
     const result = await readExistingSceneResult({
       rootDir,
       runId,
@@ -391,7 +401,21 @@ const acceptFormalResults = async ({
     });
     if (
       result === null ||
-      result.resultFingerprint !== ownerResult.formalResult?.fingerprint
+      result.runId !== runId ||
+      result.storyId !== loaded.run.storyId ||
+      result.meaningId !== assignment.meaningId ||
+      result.assignmentFingerprint !== assignment.assignmentFingerprint ||
+      result.taskInputFingerprint !==
+        assignment.taskInput.taskInputFingerprint ||
+      result.requirementsFingerprint !== assignment.requirementsFingerprint ||
+      result.sceneBriefFingerprint !== assignment.sceneBriefFingerprint ||
+      result.resourcePoolFingerprint !== assignment.resourcePoolFingerprint ||
+      result.readabilityPolicyFingerprint !==
+        assignment.readabilityPolicy.policyFingerprint ||
+      result.sceneCompositionBoundaryVersion !==
+        assignment.sceneCompositionBoundaryVersion ||
+      (ownerResult !== null &&
+        result.resultFingerprint !== ownerResult.formalResult?.fingerprint)
     ) {
       throw failure({
         code: "STALE_SCENE_RESULT",
@@ -440,10 +464,19 @@ const acceptFormalResults = async ({
                   artifactId: `scene-assignment.${assignment.meaningId}`,
                   fingerprint: assignment.assignmentFingerprint,
                 },
-                {
-                  artifactId: `owner-receipt.scene.${assignment.meaningId}`,
-                  fingerprint: ownerResult.receiptFingerprint,
-                },
+                ...(ownerResult === null
+                  ? [
+                      {
+                        artifactId: `template-scene-result.${assignment.meaningId}`,
+                        fingerprint: result.resultFingerprint,
+                      },
+                    ]
+                  : [
+                      {
+                        artifactId: `owner-receipt.scene.${assignment.meaningId}`,
+                        fingerprint: ownerResult.receiptFingerprint,
+                      },
+                    ]),
               ],
               meaningId: assignment.meaningId,
               sceneResultFingerprint: result.resultFingerprint,
@@ -723,16 +756,27 @@ export const runProductionWatch = async ({
       const assignments =
         resolved.assignments as readonly CurrentSceneAssignment[];
       const globalVisualAssignment = resolved.globalVisualAssignment;
-      const meaningIds = new Set(assignments.map(({ meaningId }) => meaningId));
-      if (meaningIds.size !== assignments.length) {
+      const allMeaningIds = new Set(
+        assignments.map(({ meaningId }) => meaningId),
+      );
+      if (allMeaningIds.size !== assignments.length) {
         throw failure({
           code: "STALE_OWNER_ASSIGNMENTS",
           message: "Frozen Scene assignment identities conflict.",
         });
       }
-      await assertOnlyExpectedOwnerInboxEntries({ rootDir, runId, meaningIds });
+      const ownerAssignments = assignments.filter(requiresSceneOwner);
+      const meaningIds = new Set(
+        ownerAssignments.map(({ meaningId }) => meaningId),
+      );
+      await assertOnlyExpectedOwnerInboxEntries({
+        rootDir,
+        runId,
+        ownerMeaningIds: meaningIds,
+        sceneResultMeaningIds: allMeaningIds,
+      });
 
-      for (const assignment of assignments) {
+      for (const assignment of ownerAssignments) {
         await processOwner({
           rootDir,
           runId,

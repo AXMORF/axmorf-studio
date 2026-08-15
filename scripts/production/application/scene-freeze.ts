@@ -33,7 +33,8 @@ import {
 import { createProductionStageEvent } from "../domain/events";
 import { createUnexpectedProductionError } from "../domain/errors";
 import { loadCurrentProductionInputs } from "./start";
-import { materializeReusableSilentScenes } from "./reusable-silent-scene";
+import { materializeTemplateCopiedScenes } from "./template-copied-scene";
+import { runProductionSceneSubmit } from "./scene-submit";
 
 const readRegularJson = async (path: string, label: string) => {
   let metadata;
@@ -452,7 +453,7 @@ export const resolveCurrentSceneAssignments = async ({
       mode: "check",
     });
   }
-  await materializeReusableSilentScenes({
+  await materializeTemplateCopiedScenes({
     rootDir,
     assignments,
     catalog: inputs.catalog,
@@ -476,6 +477,7 @@ export const runProductionSceneFreeze = async ({
   runId,
   clock = () => new Date(),
   verifyNarrativeAutoCheck = defaultVerifyNarrativeAutoCheck,
+  submitTemplateScene = runProductionSceneSubmit,
 }: {
   readonly rootDir: string;
   readonly runId: string;
@@ -484,6 +486,7 @@ export const runProductionSceneFreeze = async ({
     readonly rootDir: string;
     readonly storyId: string;
   }) => Promise<string>;
+  readonly submitTemplateScene?: typeof runProductionSceneSubmit;
 }) => {
   const initial = await readProductionRunStore({ rootDir, runId });
   if (
@@ -515,7 +518,7 @@ export const runProductionSceneFreeze = async ({
         mode: "check",
       });
     }
-    const preauthoredMeaningIds = await materializeReusableSilentScenes({
+    const templateMeaningIds = await materializeTemplateCopiedScenes({
       rootDir,
       assignments,
       catalog: inputs.catalog,
@@ -531,6 +534,9 @@ export const runProductionSceneFreeze = async ({
         mode: "check",
       });
     }
+    for (const meaningId of templateMeaningIds) {
+      await submitTemplateScene({ rootDir, runId, meaningId });
+    }
     return {
       runId,
       status: "scene-inputs-frozen",
@@ -539,7 +545,14 @@ export const runProductionSceneFreeze = async ({
       assignmentPaths: assignments.map(({ storyId, meaningId }) =>
         assignmentPath(storyId, meaningId),
       ),
-      preauthoredMeaningIds,
+      templateMeaningIds,
+      ownerMeaningIds: assignments
+        .filter(
+          ({ taskInput }) =>
+            taskInput.storyBeat.kind === "narrated-scene" ||
+            taskInput.storyBeat.preset.implementation.kind === "scene-owner",
+        )
+        .map(({ meaningId }) => meaningId),
       globalVisualAssignmentPath:
         globalVisualAssignment === null
           ? null
@@ -606,7 +619,7 @@ export const runProductionSceneFreeze = async ({
           mode: "check",
         });
       }
-      const preauthoredMeaningIds = await materializeReusableSilentScenes({
+      const templateMeaningIds = await materializeTemplateCopiedScenes({
         rootDir,
         assignments,
         catalog: inputs.catalog,
@@ -710,6 +723,10 @@ export const runProductionSceneFreeze = async ({
         event: succeeded,
         lock,
       });
+      currentState = appended.state;
+      for (const meaningId of templateMeaningIds) {
+        await submitTemplateScene({ rootDir, runId, meaningId });
+      }
       return {
         runId,
         status: appended.state.state,
@@ -718,7 +735,14 @@ export const runProductionSceneFreeze = async ({
         assignmentPaths: assignments.map(({ storyId, meaningId }) =>
           assignmentPath(storyId, meaningId),
         ),
-        preauthoredMeaningIds,
+        templateMeaningIds,
+        ownerMeaningIds: assignments
+          .filter(
+            ({ taskInput }) =>
+              taskInput.storyBeat.kind === "narrated-scene" ||
+              taskInput.storyBeat.preset.implementation.kind === "scene-owner",
+          )
+          .map(({ meaningId }) => meaningId),
         globalVisualAssignmentPath:
           globalVisualAssignment === null
             ? null

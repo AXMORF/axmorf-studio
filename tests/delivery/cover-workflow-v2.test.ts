@@ -62,13 +62,9 @@ const createProject = async (context: TestContext) => {
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const project = join(rootDir, "src/projects/cover-proof");
   await writeJson(join(project, "story.json"), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     storyId: "cover-proof",
     title: "纯代码封面",
-    bookends: {
-      intro: { mode: "disabled" },
-      outro: { mode: "disabled" },
-    },
     beats: [
       {
         kind: "narrated-scene",

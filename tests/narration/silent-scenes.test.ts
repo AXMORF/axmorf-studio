@@ -2,10 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  DEFAULT_INTRO_SCENE_PRESET,
-  DEFAULT_OUTRO_SCENE_PRESET,
   NarrationSpecSchema,
   StorySpecSchema,
+  buildSilentScenePreset,
   computeGenerationInputFingerprint,
 } from "../../src/contracts";
 import { NarrationGenerationProgressSchema } from "../../scripts/narration/domain/candidate-progress";
@@ -23,27 +22,29 @@ import {
 import { createRawPcmFixture, createWavFixture } from "../fixtures/wav";
 
 test("narration sealing consumes only narrated chunks when silent Scenes exist", () => {
+  const silentPreset = buildSilentScenePreset({
+    presetId: "generic-boundary-v1",
+    durationInFrames: 30,
+    visualIntent: "Render a generic silent Scene.",
+    soundIntent: "No sound.",
+    resourceIds: [],
+    implementation: { kind: "scene-owner" },
+  });
   const story = StorySpecSchema.parse({
     ...validStorySpec,
-    bookends: {
-      intro: { mode: "scene", meaningId: "intro" },
-      outro: { mode: "scene", meaningId: "outro" },
-    },
     beats: [
       {
         kind: "silent-scene",
-        sceneRole: "intro",
         meaningId: "intro",
         narrativePurpose: "Open the Story.",
-        preset: DEFAULT_INTRO_SCENE_PRESET,
+        preset: silentPreset,
       },
       ...validStorySpec.beats,
       {
         kind: "silent-scene",
-        sceneRole: "outro",
         meaningId: "outro",
         narrativePurpose: "Close the Story.",
-        preset: DEFAULT_OUTRO_SCENE_PRESET,
+        preset: silentPreset,
       },
     ],
   });

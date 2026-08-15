@@ -57,8 +57,8 @@ const fingerprintFileTree = async (
 
 const SkillPolicySchema = z
   .object({
-    schemaVersion: z.literal(7),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v7"),
+    schemaVersion: z.literal(8),
+    policyVersion: z.literal("remotion-story-producer-video-policy-v8"),
     rootEndpoint: z.literal("watcher-started-and-owners-dispatched"),
     backgroundEndpoint: z.literal("delivery-render-started"),
     privateConfigPath: z.literal("private/producer.config.json"),
@@ -92,7 +92,9 @@ const SkillPolicySchema = z
     ]),
     invariants: z
       .object({
-        sceneAuthoringOwner: z.literal("one-independent-thread-per-meaning-id"),
+        sceneAuthoringOwner: z.literal(
+          "one-independent-thread-per-owner-meaning-id",
+        ),
         sceneAuthoringSkill: z.literal(
           "repository-local-remotion-best-practices",
         ),
@@ -131,11 +133,11 @@ const SkillPolicySchema = z
         storyBeatContract: z.literal(
           "discriminated-narrated-or-silent-scene",
         ),
-        defaultBookends: z.literal(
-          "explicit-reusable-intro-outro-scene-presets",
+        configuredSceneTemplates: z.literal(
+          "project-configure-copy-with-project-local-instance",
         ),
-        defaultBookendOwnerPolicy: z.literal(
-          "preauthored-check-and-receipt-only",
+        templateCopyOwnerPolicy: z.literal(
+          "script-check-submit-without-owner-receipt",
         ),
         silentSceneNarrationPolicy: z.literal(
           "no-tts-no-captions-fixed-preset-frames",
@@ -268,7 +270,9 @@ test("repository video skill exposes a structured production policy", async () =
   assert.match(sceneWorkflow, /allowedResourceIds/u);
   assert.match(sceneWorkflow, /allowedSnapshots/u);
   assert.match(sceneWorkflow, /透明 Scene/u);
-  assert.match(workflow, /default[\s\S]*silent intro\/outro/u);
+  assert.match(workflow, /ProducerConfig[\s\S]*boundary Scene[\s\S]*copies/u);
+  assert.match(workflow, /templateMeaningIds[\s\S]*ownerMeaningIds/u);
+  assert.match(workflow, /Do not dispatch[\s\S]*templateMeaningIds/u);
   assert.match(sceneWorkflow, /silent-scene/u);
   assert.match(sceneWorkflow, /不得[\s\S]*TTS[\s\S]*CaptionCue/u);
   assert.match(sceneWorkflow, /顶层[\s\S]{0,40}字幕[\s\S]{0,20}旁白[\s\S]{0,20}背景/u);

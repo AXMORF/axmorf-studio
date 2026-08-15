@@ -53,8 +53,8 @@ export const migrateVoxcpmConfigToProducerConfig = ({
   readonly rootDir: string;
 }) =>
   buildProducerConfig({
-    schemaVersion: 1,
-    contractVersion: "producer-config-v1",
+    schemaVersion: 2,
+    contractVersion: "producer-config-v2",
     renderDefaults: {
       width: 1080,
       height: 1920,
@@ -62,6 +62,10 @@ export const migrateVoxcpmConfigToProducerConfig = ({
       locale: "zh-CN",
     },
     readability: { edgeInsetPx: 90 },
+    sceneDefaults: {
+      introSceneTemplateId: "axmorf-brand-reveal-v1",
+      outroSceneTemplateId: "axmorf-source-follow-v1",
+    },
     audioDefaults: { globalBgm: null },
     publishingCollections: [
       {

@@ -6,8 +6,9 @@ import {
   Sha256DigestSchema,
   VoiceProfileIdSchema,
 } from "./primitives";
+import { SceneTemplateIdSchema } from "./scene-template";
 
-export const PRODUCER_CONFIG_VERSION = "producer-config-v1" as const;
+export const PRODUCER_CONFIG_VERSION = "producer-config-v2" as const;
 
 export const ProducerConfigIdSchema = z
   .string()
@@ -155,7 +156,7 @@ export const VoxcpmProviderConfigSchema = z
 
 const ProducerConfigInputObject = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     contractVersion: z.literal(PRODUCER_CONFIG_VERSION),
     renderDefaults: z
       .object({
@@ -177,6 +178,13 @@ const ProducerConfigInputObject = z
       .readonly(),
     readability: z
       .object({ edgeInsetPx: PositiveIntegerSchema.max(1000) })
+      .strict()
+      .readonly(),
+    sceneDefaults: z
+      .object({
+        introSceneTemplateId: SceneTemplateIdSchema.nullable(),
+        outroSceneTemplateId: SceneTemplateIdSchema.nullable(),
+      })
       .strict()
       .readonly(),
     audioDefaults: z
@@ -274,7 +282,7 @@ export const computeProducerConfigFingerprint = (rawConfig: unknown) => {
   delete record.configFingerprint;
   return createFingerprint({
     namespace: "producer-config",
-    version: 1,
+    version: 2,
     value: ProducerConfigInputSchema.parse(record),
   });
 };

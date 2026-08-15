@@ -2,7 +2,7 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-13
+> 最后复核：2026-08-15
 
 仓库使用一份 Git-ignored 的 `private/producer.config.json` 作为制作默认值与私密 TTS 连接配置。
 它不是 render runtime 输入；新作品在 authoring/freeze 时把实际选择写入 Project 合同或产物指纹，
@@ -76,8 +76,15 @@ token 或私有声线路径。位于仓库内的声线输入会转换成仓库�
 ignored 的仓库目录，否则迁移 fail closed。目标文件已存在时命令会拒绝覆盖；迁移后应在页面中
 补充准确的合集名称/描述。
 
+已有 `producer-config-v1` 会在读取时校验原 fingerprint，并只在内存中升级为 v2：原字段保持不变，
+新增默认 Scene 选择。GET 和环境诊断不会改写私有文件；操作员在配置页确认并保存后才原子写入 v2。
+fingerprint 不匹配或结构无效的 v1 仍然 fail closed。
+
 ## 配置语义
 
+- `sceneDefaults.introSceneTemplateId` / `outroSceneTemplateId`：配置页中的首尾业务位置选择。两者都
+  接受任意已登记 Scene template 或 `null`，不做位置适配判断；同一 template 可同时选择两次。
+  该选择只在新 Project 首次 `project:configure` 时使用。
 - `renderDefaults`：新 RenderSpec 的 width/height/fps/locale；页面用一个“画面尺寸”下拉同时设置
   width/height，提供 9:16、16:9、4:5 与 1:1 四个常用规格；没有目标时长。
 - `readability.edgeInsetPx`：以 1080 短边为基准的 Scene 边缘留白。字幕底边 = 缩放后边缘留白 × 2；
@@ -102,8 +109,10 @@ ignored 的仓库目录，否则迁移 fail closed。目标文件已存在时命
 
 在新 Project 已有 `brief.json`、`story.json` 与 project-local `producer-input.json` 后运行：
 
-新 `story.json` 默认显式选择仓库的 silent intro/outro Scene presets；Project 可替换或用
-`mode: "disabled"` 关闭。preset 选择属于 Project source，不来自 private ProducerConfig。
+新 `story.json` 在配置前只包含 authored content StoryBeat。`project:configure` 按 ProducerConfig 的
+`sceneDefaults` 把所选普通 Scene template 的源码和资源复制到
+`src/projects/<storyId>/scenes/` 与 `public/projects/<storyId>/scenes/`，再把对应 silent StoryBeat 写入
+时间线首尾；`null` 表示不插入。脚本同时冻结 template/instance/source graph fingerprint。
 
 ```bash
 npm run project:configure -- --project <storyId> --input src/projects/<storyId>/producer-input.json
@@ -113,8 +122,10 @@ npm run project:configure -- --project <storyId> --input src/projects/<storyId>/
 StoryCheck checks 与 production requirement selections；标题、StoryBeat、旁白文案、发布描述仍是
 Project 内容，绝不放入 ProducerConfig。命令从一次 ProducerConfig 读取生成 `narration.json`、
 `render.json`、`reviews/story-check.json`、`publishing-intent.json` 和
-`production/requirements.json`。合集必须且只能选择当前数组中的一个 ID；完整数组 fingerprint 被
-封存。任何目标已有不同内容时命令在写入前 fail closed，不改旧 Project。
+`production/requirements.json`，以及 `production/scene-template-instantiation.json` 和每个复制
+Scene 的 `scene-template-instance.json`。合集必须且只能选择当前数组中的一个 ID；完整数组
+fingerprint 被封存。Project 一旦存在 instantiation，后续修改全局 Scene 选择或共享模板不会重新复制
+或改变该 Project；Project-local 文件漂移会 fail closed。其他冻结目标已有不同内容时命令拒绝覆盖。
 
 `production:start` 用同一次已解析 TTS 配置完成 preflight 并冻结 Run 级
 `NarrationExecutionSnapshot`。generation 会在 provider request 前重算并比较；mastering 只读取

@@ -261,14 +261,21 @@ export const writeOwnerResult = async ({
 export const assertOnlyExpectedOwnerInboxEntries = async ({
   rootDir,
   runId,
-  meaningIds,
+  ownerMeaningIds,
+  sceneResultMeaningIds = ownerMeaningIds,
 }: {
   readonly rootDir: string;
   readonly runId: string;
-  readonly meaningIds: ReadonlySet<string>;
+  readonly ownerMeaningIds: ReadonlySet<string>;
+  readonly sceneResultMeaningIds?: ReadonlySet<string>;
 }) => {
   const paths = getProductionRunPaths({ rootDir, runId });
-  const sceneFiles = new Set([...meaningIds].map((id) => `${id}.json`));
+  const sceneFiles = new Set(
+    [...ownerMeaningIds].map((id) => `${id}.json`),
+  );
+  const sceneResultFiles = new Set(
+    [...sceneResultMeaningIds].map((id) => `${id}.json`),
+  );
   for (const [directory, allowed] of [
     [
       paths.ownerReceipts,
@@ -280,7 +287,7 @@ export const assertOnlyExpectedOwnerInboxEntries = async ({
       new Set(["scene", "global-visual.json", "cover.json"]),
     ],
     [join(paths.ownerResults, "scene"), sceneFiles],
-    [paths.sceneResults, sceneFiles],
+    [paths.sceneResults, sceneResultFiles],
   ] as const) {
     const metadata = await lstat(directory);
     if (!metadata.isDirectory() || metadata.isSymbolicLink()) {

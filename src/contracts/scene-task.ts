@@ -31,7 +31,6 @@ const NarratedTimingBeatSchema = z
 const SilentTimingBeatSchema = z
   .object({
     kind: z.literal("silent-scene"),
-    sceneRole: z.enum(["intro", "outro"]),
     presetFingerprint: Sha256DigestSchema,
     presetDurationInFrames: z.number().int().positive().safe(),
     ...TimingRangeShape,
@@ -154,7 +153,6 @@ const addSceneTaskIssues = (
   if (
     task.storyBeat.kind === "silent-scene" &&
     (task.timingBeat.kind !== "silent-scene" ||
-      task.storyBeat.sceneRole !== task.timingBeat.sceneRole ||
       task.storyBeat.preset.presetFingerprint !==
         task.timingBeat.presetFingerprint ||
       task.storyBeat.preset.durationInFrames !==

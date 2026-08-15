@@ -24,8 +24,8 @@
     configure/start/delivery/delete 的 repository operation lock 与删除投影恢复。
 11. `scene-package-timeline-v1` 正式 Composition：片头、正文、片尾统一为 StoryBeat、普通
     SceneAssignment/ScenePackage 与 visual/sound projection；SemanticTiming 统一使用全片帧数。
-12. 默认片头片尾恢复为已批准的 reusable `story-bookends` Scene capability；freeze 确定性投影其
-    Project-local Renderer 与完整 plans，source/sound/duration/resource 漂移全部进入 current identity。
+12. 全局配置选择普通 reusable Scene template；`project:configure` 复制其源码与资源到新 Project，
+    冻结 Project-local instance identity，production 脚本机械校验并直接 submit，不派发 Agent owner。
 
 ## 当前门槛
 
@@ -42,8 +42,8 @@
 - zero Project bootstrap 与隔离 deletion matrix 继续通过。
 - silent intro/outro 只从所选 preset 取得固定时长，不伪造 TTS、CaptionCue 或 sealed segment；
   narrated chunk 仍保持一次 provider request、一次 CaptionCue 与 sealed PCM authority。
-- reusable 默认片头片尾不得被 Scene owner 重新创作；source fingerprint 或精确 cue 变化必须使旧
-  assignment/package/result fail closed，replacement/disabled preset 不得继承默认声音。
+- `template-copy` Scene 不得被 Scene owner 重新创作或发布 receipt；Project-local source/cue 漂移必须
+  fail closed，共享模板或全局选择后续变化不得影响既有 Project。
 - `project:delete` 继续保护 core、其他 Project、private config 与 `public/voice_profile/`，并在
   writer lock、repository operation lock、非空 delivery staging 或不安全路径出现时于首次删除前
   fail closed；源码删除前的 Registry 预发布和异常后的磁盘真实状态恢复必须保持。

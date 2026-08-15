@@ -45,14 +45,15 @@ Agent 先 author VideoBrief、StorySpec 与 project-local `producer-input.json`�
 ProducerConfig helper 读取一次默认值，生成 NarrationSpec/RenderSpec/StoryCheck、PublishingIntent
 v2 与 current ProductionRequirementsFreeze。PublishingIntent 必须从合集数组选且只选一个 ID，
 包含 6–7 个唯一且不含空白字符的话题字符串，并封存名称与完整目录 fingerprint；readability 必须显式来自 ProducerConfig，创建 API 不再使用
-90px fallback。RenderSpec 不保存目标时长或字幕安全区。StorySpec v2 使用严格联合：
-`narrated-scene` 拥有原子 `ttsChunks`，`silent-scene` 只允许 intro/outro，并绑定视觉、音效、资源与
-固定帧数的 preset。每个 StoryBeat 只有一个稳定 meaningId；默认新 Story 显式包含 intro 与 outro，
-Project source 可替换 preset 或显式关闭。工具不得自动拆分、补静音 TTS 或伪造字幕。VideoBrief 另以
+90px fallback。RenderSpec 不保存目标时长或字幕安全区。StorySpec v3 使用严格联合：
+`narrated-scene` 拥有原子 `ttsChunks`，`silent-scene` 只允许位于时间线首尾边界，并绑定视觉、音效、
+资源与固定帧数的 preset。合同不保存 intro/outro role；每个 StoryBeat 只有一个稳定 meaningId。
+工具不得自动拆分、补静音 TTS 或伪造字幕。VideoBrief 另以
 `sourceReferences: [{title, url}]` 保存本期资料引用；最多 8 条且 URL 只接受 HTTP(S)。
 
-默认 preset 的 `reusable-scene` implementation 额外绑定 capability source fingerprint 与精确
-Scene-local cue choreography。`scene-owner` 只用于 Project 显式选择的替代 preset；它不是默认路径。
+ProducerConfig 的 `sceneDefaults` 在 `project:configure` 阶段选择首尾 Scene template。脚本把所选
+template 的完整源码与资源复制到 Project-local Scene，写入 `template-copy` instance/preset identity；
+已有 Project 以后不再读取全局选择或共享 template。`scene-owner` 仅表示该 Scene 需要 Agent 创作。
 
 `production:preflight` 使用 `production-start-preflight-v2` 在 Run write 前检查 VoxCPM
 liveness/readiness 与 Remotion Chromium，
@@ -124,18 +125,17 @@ check-only 路径仍严格拒绝 stale 或 malformed evidence，replacement 只�
 
 ## 3. Freeze 与 owner 隔离
 
-`production:scene:freeze` 对 intro、content 与 outro 每个 StoryBeat 原子冻结一个普通 Scene
+`production:scene:freeze` 对每个 StoryBeat 原子冻结一个普通 Scene
 assignment，并冻结一个 GlobalVisual assignment；
 `delivery:cover:freeze` 独立冻结 Cover assignment。Scene freeze 同时从 current authority 无条件生成
 Project-local `generated/resource-catalog.generated.json` 快照，因此未导入外部素材的 code-led
 Project 也具有 delivery attribution 所需的确定性 Catalog；后续 freeze/render-ready/delivery 只做
 canonical byte check，缺失或漂移均 fail closed。
 
-freeze 对已批准的 reusable intro/outro 只做确定性投影：写 Project-local Renderer wrapper、完整
-task-input、visual/shot/anchor/sound plans、selected resources、empty recipe 与 not-applicable
-fidelity receipt。它不选择新设计。返回的 `preauthoredMeaningIds` 仍拥有普通 SceneAssignment，
-Scene owner 只运行 `production:scene:check` 并发布 ready receipt，不修改这些固定文件。
-silent Scene brief 不接受另行注入的 snapshot card；带 exact cue 的 reusable preset 要求
+`project:configure` 已经复制并冻结 `template-copy` Renderer 与资源。freeze 只写完整 task-input、
+visual/shot/anchor/sound plans、selected resources、empty recipe 与 not-applicable fidelity receipt，
+然后机械 check/submit。返回的 `templateMeaningIds` 不创建 Scene owner 或 receipt；只有
+`ownerMeaningIds` 被派发。silent Scene brief 不接受另行注入的 snapshot card；带 exact cue 的 template 要求
 `sceneLocalSound: allowed`，冲突在 freeze 时直接 fail closed。
 
 - Scene owner 制作前必须读取并使用 repository-local
@@ -180,12 +180,11 @@ GlobalVisualProjection、FinalAssembly 与 current Composition。之后构建：
 
 任何类型不兼容都在写入 ProductionRenderReady 前终止当前 Run。
 
-current Project Composition 直接装配完整 Scene coverage。intro/outro 与正文一样消费 visual-plan、
+current Project Composition 直接装配完整 Scene coverage。首尾 silent Scene 与正文一样消费 visual-plan、
 shot-plan、sync-anchors、sound-plan、selected resources、RendererRegistry 与 Scene sound runtime；
-Scene renderer 仍只负责视觉。默认 intro/outro preset 使用批准的 `story-bookends` reusable capability，
-其 source fingerprint 进入 preset/task/package identity，并使用 bootstrap 可重建、Catalog checksum 与
-Project-Authored license 绑定的本地 PCM 提示音。替换 preset 会改变 Story/timing/task/package identity，
-关闭 preset 会移除对应 StoryBeat，因此旧音效不会残留。ProjectRegistry、render plan、Composition
+Scene renderer 仍只负责视觉。`template-copy` 使用已冻结的 Project-local Renderer、资源与 instance
+fingerprint；freeze 只机械生成 plans、校验 source graph/package，并直接写正式 Scene result，不等待
+Scene owner receipt。替换或关闭全局选择只影响尚未配置的新 Project；ProjectRegistry、render plan、Composition
 metadata 与 delivery planned duration 都直接使用 `SemanticTiming.durationInFrames`。
 
 这个阶段不运行最终 Remotion render，不读取媒体，也不写媒体完成 evidence。Cover failure 不

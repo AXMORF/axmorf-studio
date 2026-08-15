@@ -18,8 +18,15 @@ import {
   renderSizeValue,
   selectProviderAndVoice,
 } from "./model";
+import { SCENE_TEMPLATE_OPTIONS } from "../../src/remotion/capabilities/scenes/catalog";
 
-type TabId = "progress" | "general" | "safe-area" | "collections" | "tts";
+type TabId =
+  | "progress"
+  | "general"
+  | "scenes"
+  | "safe-area"
+  | "collections"
+  | "tts";
 type VoiceProfile =
   | {
       id: string;
@@ -60,8 +67,8 @@ type VoxcpmProviderConfig = {
   voiceProfiles: VoiceProfile[];
 };
 type EditableConfig = {
-  schemaVersion: 1;
-  contractVersion: "producer-config-v1";
+  schemaVersion: 2;
+  contractVersion: "producer-config-v2";
   renderDefaults: {
     width: number;
     height: number;
@@ -69,6 +76,10 @@ type EditableConfig = {
     locale: string;
   };
   readability: { edgeInsetPx: number };
+  sceneDefaults: {
+    introSceneTemplateId: string | null;
+    outroSceneTemplateId: string | null;
+  };
   audioDefaults?: {
     globalBgm: null | { sourcePath: string; volume: number };
   };
@@ -135,9 +146,10 @@ const tabs: ReadonlyArray<
 > = [
   { id: "progress", label: "制作进度", index: "01" },
   { id: "general", label: "通用", index: "02" },
-  { id: "safe-area", label: "画面安全区", index: "03" },
-  { id: "collections", label: "合集", index: "04" },
-  { id: "tts", label: "TTS", index: "05" },
+  { id: "scenes", label: "默认 Scene", index: "03" },
+  { id: "safe-area", label: "画面安全区", index: "04" },
+  { id: "collections", label: "合集", index: "05" },
+  { id: "tts", label: "TTS", index: "06" },
 ];
 
 const progressStatusLabels: Record<ProductionProgressStepStatus, string> = {
@@ -475,7 +487,7 @@ export const App = () => {
       </header>
 
       <aside className="sidebar">
-        <div className="sidebar-label">CONFIG / V1</div>
+        <div className="sidebar-label">CONFIG / V2</div>
         <nav>
           {tabs.map((tab) => (
             <button
@@ -514,6 +526,9 @@ export const App = () => {
           <>
             {activeTab === "general" ? (
               <General config={config} update={update} />
+            ) : null}
+            {activeTab === "scenes" ? (
+              <SceneDefaults config={config} update={update} />
             ) : null}
             {activeTab === "safe-area" ? (
               <SafeArea config={config} update={update} />
@@ -976,6 +991,58 @@ const General = ({ config, update }: EditorProps) => {
     </>
   );
 };
+
+const SceneDefaults = ({ config, update }: EditorProps) => (
+  <Section
+    eyebrow="03 / SCENE TEMPLATES"
+    title="新作品默认 Scene"
+    description="创建新 Project 时复制所选 Scene 的源码与资源；已经创建的 Project 不再引用或跟随这里的模板。"
+  >
+    <FieldRow>
+      <Field label="片头 Scene" hint="留空表示新作品不添加片头 Scene">
+        <select
+          value={config.sceneDefaults.introSceneTemplateId ?? ""}
+          onChange={(event) =>
+            update((draft) => {
+              draft.sceneDefaults.introSceneTemplateId =
+                event.target.value === "" ? null : event.target.value;
+            })
+          }
+        >
+          <option value="">不使用</option>
+          {SCENE_TEMPLATE_OPTIONS.map((template) => (
+            <option key={template.id} value={template.id}>
+              {template.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="片尾 Scene" hint="留空表示新作品不添加片尾 Scene">
+        <select
+          value={config.sceneDefaults.outroSceneTemplateId ?? ""}
+          onChange={(event) =>
+            update((draft) => {
+              draft.sceneDefaults.outroSceneTemplateId =
+                event.target.value === "" ? null : event.target.value;
+            })
+          }
+        >
+          <option value="">不使用</option>
+          {SCENE_TEMPLATE_OPTIONS.map((template) => (
+            <option key={template.id} value={template.id}>
+              {template.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+    </FieldRow>
+    <div className="spec-strip">
+      <span>实例化策略</span>
+      <strong>复制到 Project-local</strong>
+      <strong>现有 Project 不跟随模板变化</strong>
+    </div>
+  </Section>
+);
 
 const SafeArea = ({ config, update }: EditorProps) => {
   const baseEdge = config.readability.edgeInsetPx;

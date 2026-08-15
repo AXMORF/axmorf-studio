@@ -4,8 +4,8 @@ This is the root Agent path. The Agent designs. Scripts freeze, validate, and ex
 
 ## 1. Design and freeze the Project
 
-Author a concise brief and causal StoryBeats. Explicitly select default silent intro/outro presets,
-unless Project source replaces or disables either. Silent Scenes have no TTS, fake text, CaptionCue,
+Author a concise brief and causal narrated StoryBeats. ProducerConfig selects optional boundary Scene
+templates; `project:configure` copies them into the new Project. Silent Scenes have no TTS, fake text, CaptionCue,
 or sealed segment. Narrated content uses Agent-authored ttsChunks as atomic units. Titles,
 narration, descriptions, and 6–7 unique whitespace-free topics are Project data. Choose a configured
 `publishingCollections` ID and author `producer-input.json`, then run:
@@ -36,8 +36,8 @@ host permissions before dispatch.
 From current Story/timing, author VisualStyleSpec, resource choices, Beat-specific Scene briefs, and a
 minimal continuous GlobalVisual brief. Cover remains independent and assignment-derived.
 
-Bind intro/outro briefs exactly to selected preset visual/sound/resource identities. SemanticTiming
-already resolves duration. Default chimes are local Catalog audio; external audio import is unsupported.
+Bind copied silent Scene briefs exactly to their frozen preset visual/sound/resource identities. SemanticTiming
+already resolves duration. Template chimes are Project-local Catalog audio; external audio import is unsupported.
 
 Choose asset-led, code-led, or hybrid; query ResourceCatalog first. For an external image, use MCP only
 for acquisition, then run
@@ -52,8 +52,9 @@ npm run delivery:cover:freeze -- --project <storyId>
 
 Scene freeze owns each Project-local Catalog snapshot.
 
-Require ordinary Scene assignments for every intro/content/outro Beat, plus GlobalVisual and Cover.
-Record paths and `preauthoredMeaningIds`; those defaults are already materialized. Do not rewrite frozen inputs.
+Require ordinary Scene assignments for every Beat, plus GlobalVisual and Cover. Record paths,
+`templateMeaningIds`, and `ownerMeaningIds`. Template copies are already materialized and script-submitted;
+only `ownerMeaningIds` need Scene tasks. Do not rewrite frozen inputs.
 
 ## 4. Start automation, dispatch, and exit
 
@@ -66,6 +67,7 @@ npm run production:watch:start -- --run <runId>
 Require `watcher-started`, intent, and receipt. Intent without receipt is permanently ambiguous. The
 watcher alone consumes receipts and owns validation, convergence, render-ready, Cover, and delivery.
 
-Use `create_thread` per Scene, GlobalVisual, and Cover. After creation calls, exit without wait/read,
+Use `create_thread` per `ownerMeaningIds` Scene, GlobalVisual, and Cover. Do not dispatch
+`templateMeaningIds`. After creation calls, exit without wait/read,
 status, check/submit, compositions, or delivery commands. Report failed calls exactly. Spawn
 acknowledgement never proves MP4 completion.
