@@ -7,6 +7,7 @@ import {
   parseNarrativeProjectSource,
   SealedNarrationManifestSchema,
   SemanticTimingSchema,
+  STORY_SPEC_SCHEMA_VERSION,
   validateM1ArtifactBundle,
 } from "../../src/contracts";
 import {
@@ -21,6 +22,32 @@ const PROJECT_COMPOSITION_PATTERN =
 
 const toPosixRelative = (rootDir: string, path: string) =>
   relative(rootDir, path).split(sep).join(posix.sep);
+
+const hasExplicitlyNonCurrentStorySpecVersion = async (
+  projectDirectory: string,
+) => {
+  let rawStory: unknown;
+  try {
+    rawStory = JSON.parse(
+      await readFile(join(projectDirectory, "story.json"), "utf8"),
+    ) as unknown;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
+  }
+  if (
+    rawStory !== null &&
+    typeof rawStory === "object" &&
+    !Array.isArray(rawStory) &&
+    Number.isSafeInteger((rawStory as Record<string, unknown>).schemaVersion)
+  ) {
+    return (
+      (rawStory as Record<string, unknown>).schemaVersion !==
+      STORY_SPEC_SCHEMA_VERSION
+    );
+  }
+  return false;
+};
 
 export const discoverProjectEntries = async (
   rootDir: string,
@@ -52,6 +79,13 @@ export const discoverProjectEntries = async (
       throw new Error(
         `Project Composition must be a regular non-symbolic file: ${entry.name}.`,
       );
+    }
+    if (
+      await hasExplicitlyNonCurrentStorySpecVersion(
+        join(projectsDirectory, entry.name),
+      )
+    ) {
+      continue;
     }
     discovered.push(toPosixRelative(rootDir, compositionPath));
   }

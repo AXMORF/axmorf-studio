@@ -150,6 +150,19 @@ test("fresh-clone entrypoints bootstrap local projections before use", () => {
   );
 });
 
+test("root typecheck reaches current Projects only through the generated Registry", async () => {
+  const tsconfig = JSON.parse(
+    await readFile(new URL("../../tsconfig.json", import.meta.url), "utf8"),
+  ) as { readonly exclude?: readonly string[] };
+  assert.deepEqual(tsconfig.exclude, [
+    "remotion.config.ts",
+    "build",
+    "dist",
+    "out",
+    "src/projects/*",
+  ]);
+});
+
 test("Root statically consumes only registry metadata and passes through lazy loaders", async () => {
   const path = new URL("../../src/Root.tsx", import.meta.url);
   const source = await readFile(path, "utf8");

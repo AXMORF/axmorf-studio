@@ -130,6 +130,10 @@ ambience/SFX，不拥有旁白、字幕或全局音频。GlobalVisual owns proje
 
 ProjectRegistry 在 bundle 前按固定一级目录生成静态 TypeScript，Composition 用字面量
 `import()` 与 `lazyComponent`；render runtime 不扫描目录或读取动态模块路径。
+Registry 发现只注册显式使用 current StorySpec schema 的 Project；明确的非 current Project
+保留在本地供配置页展示和严格删除，但不读取其旧合同、不进入 runtime import graph。根
+TypeScript 检查同样不枚举 ignored `src/projects/` 或 `out/`，current Project 只经生成 Registry
+进入真实 import graph。
 render-ready 的 compile gate 以 current Project `Composition.tsx` 为唯一 TypeScript root，让编译器
 沿真实 imports 收集依赖，不枚举或阻塞其他 ignored Projects。
 

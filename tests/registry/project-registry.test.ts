@@ -176,6 +176,47 @@ test("discovery considers only exact first-level Composition.tsx files", async (
   ]);
 });
 
+test("registry excludes explicitly non-current StorySpec projects", async (context) => {
+  const rootDir = await createRoot(context);
+  await createProject({ rootDir, slug: "current", compositionId: "Current" });
+  const legacyProjectDir = await createProject({
+    rootDir,
+    slug: "legacy",
+    compositionId: "Legacy",
+    compositionSource:
+      'import "./removed-runtime"; export default () => null;\n',
+  });
+  const legacyBeats = validStorySpec.beats.flatMap((beat) =>
+    beat.kind === "narrated-scene"
+      ? [
+          {
+            meaningId: beat.meaningId,
+            narrativePurpose: beat.narrativePurpose,
+            ttsChunks: beat.ttsChunks,
+            explicitPauses: beat.explicitPauses,
+          },
+        ]
+      : [],
+  );
+  await writeJson(join(legacyProjectDir, "story.json"), {
+    schemaVersion: 1,
+    storyId: "legacy",
+    title: "legacy",
+    beats: legacyBeats,
+  });
+
+  assert.deepEqual(await discoverProjectEntries(rootDir), [
+    "src/projects/current/Composition.tsx",
+  ]);
+  await generateProjectRegistry({ rootDir, mode: "write" });
+  const generated = await readFile(
+    join(rootDir, "src/projects/project-registry.generated.ts"),
+    "utf8",
+  );
+  assert.match(generated, /id: "Current"/u);
+  assert.doesNotMatch(generated, /Legacy|removed-runtime/u);
+});
+
 test("generated entries are stably sorted and use literal import expressions", async (context) => {
   const rootDir = await createRoot(context);
   await createProject({ rootDir, slug: "zeta", compositionId: "Zeta" });

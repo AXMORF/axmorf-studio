@@ -13,6 +13,8 @@ import { ResourceIdSchema } from "./resource-catalog";
 
 const NonEmptyTextSchema = z.string().trim().min(1);
 
+export const STORY_SPEC_SCHEMA_VERSION = 2 as const;
+
 export const TTSChunkSchema = z
   .object({
     chunkId: TtsChunkIdSchema,
@@ -213,7 +215,7 @@ const StoryBookendSelectionSchema = z.discriminatedUnion("mode", [
 
 export const StorySpecSchema = z
   .object({
-    schemaVersion: z.literal(2),
+    schemaVersion: z.literal(STORY_SPEC_SCHEMA_VERSION),
     storyId: StoryIdSchema,
     title: NonEmptyTextSchema,
     bookends: z

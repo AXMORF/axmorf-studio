@@ -140,6 +140,9 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   production status 是 application use case，CLI 只保留精确命令解析与输出边界。
 - `public/`、`src/projects/`、Registry/Catalog 投影、`.narration-work/`、`out/`、`deliveries/` 和
   Run 均是 ignored 本地产物；bootstrap 从 zero Project 重建 core proof 与 zero-safe 聚合。
+- ProjectRegistry 只注册显式 current StorySpec Project；非 current Project 仍可展示和删除，但不
+  进入 runtime。根 typecheck 不枚举 ignored Project/output，current Project 通过 Registry 的真实
+  import graph 与 render-ready 专用 compile gate 验证。
 - 默认 source gate 不读取历史媒体；显式 media 检查 fail closed；Project deletion matrix 只在
   隔离副本中验证。
 - `project:delete` 是真实作品清理入口，支持一个、多个或全部 storyId；它删除 Project、项目媒体、
