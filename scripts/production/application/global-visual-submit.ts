@@ -11,8 +11,8 @@ import { redactProductionErrorDescription } from "../domain/error-redaction";
 import {
   getProductionRunPaths,
   readProductionRunStore,
-  writeProductionFileAtomic,
 } from "../adapters/run-store";
+import { writeTextFileAtomic } from "../../shared/atomic-file";
 import {
   assertGlobalVisualResultState,
   loadCurrentGlobalVisualAssignment,
@@ -35,7 +35,7 @@ export const writeGlobalVisualProductionResult = async ({
     rootDir,
     runId: result.runId,
   }).globalVisualResult;
-  const write = await writeProductionFileAtomic({
+  const write = await writeTextFileAtomic({
     destination: resultPath,
     bytes: `${serializeCanonicalJson(result)}\n`,
     mode: "create",

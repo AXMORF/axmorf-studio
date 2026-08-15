@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { findScriptLayeringViolations } from "../../scripts/architecture/script-layering";
 
-test("production delivery and project asset scripts keep one-way layer dependencies", async () => {
+test("workflow and shared scripts keep one-way layer dependencies", async () => {
   assert.deepEqual(await findScriptLayeringViolations(process.cwd()), []);
 });
 
@@ -24,6 +24,9 @@ test("layering guard detects every forbidden dependency direction", async (conte
       "scripts/project-assets/domain",
       "scripts/project-assets/application",
       "scripts/project-assets/adapters",
+      "scripts/projects/application",
+      "scripts/scene-templates",
+      "scripts/shared",
     ].map((path) => mkdir(join(rootDir, path), { recursive: true })),
   );
   await Promise.all([
@@ -62,6 +65,26 @@ test("layering guard detects every forbidden dependency direction", async (conte
       join(rootDir, "scripts/project-assets/domain/bad.ts"),
       'import "../application/import";\n',
     ),
+    writeFile(
+      join(rootDir, "scripts/projects/application/bad.ts"),
+      'import "../../production/adapters/run-store";\n',
+    ),
+    writeFile(
+      join(rootDir, "scripts/projects/configure.ts"),
+      'import {writeTextFileAtomic} from "../production/adapters/run-store";\n',
+    ),
+    writeFile(
+      join(rootDir, "scripts/projects/delete.ts"),
+      'import {acquireProductionRunLock} from "../production/adapters/run-store";\n',
+    ),
+    writeFile(
+      join(rootDir, "scripts/scene-templates/bad.ts"),
+      'import "../projects/configure";\n',
+    ),
+    writeFile(
+      join(rootDir, "scripts/shared/bad.ts"),
+      'import "../production/application/start";\n',
+    ),
   ]);
 
   assert.deepEqual(await findScriptLayeringViolations(rootDir), [
@@ -75,5 +98,9 @@ test("layering guard detects every forbidden dependency direction", async (conte
     "scripts/production/domain/bad.ts -> scripts/production/application/use-case: domain dependency inversion",
     "scripts/production/domain/bad.ts -> scripts/production/cli: domain dependency inversion",
     "scripts/project-assets/domain/bad.ts -> scripts/project-assets/application/import: domain dependency inversion",
+    "scripts/projects/application/bad.ts -> scripts/production/adapters/run-store: Project workflow reuses production adapter",
+    "scripts/projects/configure.ts -> scripts/production/adapters/run-store: Project workflow reuses production adapter",
+    "scripts/scene-templates/bad.ts -> scripts/projects/configure: Scene template projection depends on Project workflow",
+    "scripts/shared/bad.ts -> scripts/production/application/start: shared technical module depends on business workflow",
   ]);
 });

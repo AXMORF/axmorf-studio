@@ -6,6 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { generateM6ProofAssets } from "../../scripts/proofs/scene-runtime/generate-assets";
+import { generateSceneTemplateAudioProjection } from "../../scripts/scene-templates/audio-projection";
 
 const checksum = (bytes: Buffer) =>
   `sha256:${createHash("sha256")
@@ -54,20 +55,27 @@ test("core authored assets bootstrap deterministically without tracked public fi
     checksum(outroChime),
     "sha256:7140b3c599b3656e5c3ee26c9c127a5d6a8deb26a336c67574114e4fdbe355b0",
   );
+  const projectionPath = join(
+    rootDir,
+    "src/remotion/catalog/scene-template-audio.generated.json",
+  );
+  await assert.rejects(readFile(projectionPath), { code: "ENOENT" });
+  await generateSceneTemplateAudioProjection({ rootDir, mode: "write" });
   assert.deepEqual(
     JSON.parse(
-      await readFile(
-        join(
-          rootDir,
-          "src/remotion/catalog/scene-template-audio.generated.json",
-        ),
-        "utf8",
-      ),
+      await readFile(projectionPath, "utf8"),
     ),
     { schemaVersion: 1, intro: null, outro: null },
   );
 
   await generateM6ProofAssets({ rootDir, mode: "check" });
+  await generateSceneTemplateAudioProjection({ rootDir, mode: "check" });
+  await writeFile(projectionPath, "{}\n");
+  await assert.rejects(
+    generateSceneTemplateAudioProjection({ rootDir, mode: "check" }),
+    /Scene template audio projection is stale\./u,
+  );
+  await generateSceneTemplateAudioProjection({ rootDir, mode: "write" });
 });
 
 test("local reference overrides bind the full intro and outro from source frame zero", async (context) => {
@@ -172,7 +180,7 @@ test("local reference overrides bind the full intro and outro from source frame 
     }),
   );
 
-  await generateM6ProofAssets({ rootDir, mode: "write" });
+  await generateSceneTemplateAudioProjection({ rootDir, mode: "write" });
 
   const projection = JSON.parse(
     await readFile(
@@ -198,5 +206,5 @@ test("local reference overrides bind the full intro and outro from source frame 
   assert.equal(projection.outro.targetMediaRole, "scene-ambience");
   assert.deepEqual(projection.outro.soundCues, []);
 
-  await generateM6ProofAssets({ rootDir, mode: "check" });
+  await generateSceneTemplateAudioProjection({ rootDir, mode: "check" });
 });

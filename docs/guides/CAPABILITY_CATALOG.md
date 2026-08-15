@@ -2,7 +2,7 @@
 
 > 文档类型：维护指南
 >
-> 最后复核：2026-08-12
+> 最后复核：2026-08-16
 >
 > 系统结构与当前状态分别以 [ARCHITECTURE.md](../ARCHITECTURE.md) 和
 > [ITERATION_STATUS.md](../ITERATION_STATUS.md) 为准。
@@ -60,6 +60,18 @@ npm run catalog:check
 npm run catalog:query -- --kind capability --tag motion
 npm run catalog:query -- --kind asset --text proof
 ```
+
+Scene template 的可选本地声音由独立 authoring projection 管理，不由 proof generator 或具体
+Project 拥有：
+
+```bash
+npm run scene-template-audio:generate
+npm run scene-template-audio:check
+```
+
+`generate` 从 ignored private reference manifest 与 override 生成
+`scene-template-audio.generated.json`；`check` 只读比较 expected bytes。bootstrap 显式调用同一
+生成器，随后 `project:configure` 才把选中的声音、许可证和模板源码复制进具体 Project。
 
 fresh clone 先由 `npm install` 的 prepare hook 执行 `npm run bootstrap`；也可手动执行该命令。
 bootstrap 会先重建 catalog 所需的 core synthetic proof 资产，再生成当前本地 Project 集投影。

@@ -37,6 +37,18 @@ test("package scripts reserve submit/fail for the detached watcher", async () =>
     packageJson.scripts["config:build"],
     "vite build --config settings/vite.config.ts",
   );
+  assert.equal(
+    packageJson.scripts["scene-template-audio:generate"],
+    "node --import tsx scripts/scene-templates/cli.ts generate",
+  );
+  assert.equal(
+    packageJson.scripts["scene-template-audio:check"],
+    "node --import tsx scripts/scene-templates/cli.ts check",
+  );
+  assert.match(
+    packageJson.scripts["check:static"],
+    /npm run scene-template-audio:check/u,
+  );
   assert.match(
     await readFile("scripts/tests/project-tests.ts", "utf8"),
     /"tests\/production"/u,

@@ -19,9 +19,9 @@ import {
   getProductionRunPaths,
   initializeProductionRunStore,
   readProductionRunStore,
-  type ProductionAtomicWriter,
 } from "../../scripts/production/adapters/run-store";
 import { createProductionStageEvent } from "../../scripts/production/domain/events";
+import type { AtomicTextFileWriter } from "../../scripts/shared/atomic-file";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 const occurredAt = "2026-08-04T00:00:00.000Z";
@@ -183,7 +183,7 @@ test("an atomic event write failure leaves no half event and preserves current s
   const paths = getProductionRunPaths({ rootDir, runId: run.runId });
   const beforeState = await readFile(paths.state);
   const event = createStartEvent(run, initialized.state.stateFingerprint);
-  const failWriter: ProductionAtomicWriter = async ({ destination }) => {
+  const failWriter: AtomicTextFileWriter = async ({ destination }) => {
     throw new Error(
       `Injected atomic failure for ${destination.split("/").at(-1)}.`,
     );

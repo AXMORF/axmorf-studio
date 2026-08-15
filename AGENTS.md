@@ -160,8 +160,9 @@ assignment identity；无 receipt 时 Run 永久保持 `waiting-for-owner-result
 - 沙箱诊断失败不能判定 VoxCPM 不可用。
 - 不为了通过检查预热/测试 TTS、fallback 或降低 Chromium sandbox。
 - `scripts/production/` 与 `scripts/delivery/` 都只在根保留 CLI；application/domain/adapters 分层。
-- 跨 production/delivery 的无业务语义技术 port/host adapter 放在窄 `scripts/shared/`；domain 不得
-  依赖 application/adapters，delivery adapter 不得反向复用 production adapter。
+- 跨 Project 配置、production/delivery 的无业务语义原子文件、技术 port/host adapter 放在窄
+  `scripts/shared/`；domain 不得依赖 application/adapters，delivery adapter 不得反向复用
+  production adapter。
 - 新 Composition 至少通过 `npm run compositions`；高风险视觉改动补真实 still/短片。
 - 完成后检查 README、status、architecture、contracts 与 Skill 是否同步，复核 final diff。
 - 精确 staging，不用 `git add .`；不 push，除非用户明确要求。

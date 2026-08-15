@@ -66,12 +66,12 @@ const resolveLocalImport = (sourcePath: string, specifier: string) =>
 
 const layerOf = (sourcePath: string) => {
   const match =
-    /^scripts\/(production|delivery|project-assets)\/(application|domain|adapters)\//u.exec(
+    /^scripts\/(production|delivery|project-assets|projects)\/(application|domain|adapters)\//u.exec(
       sourcePath,
     );
   return (
     match?.[2] ??
-    (/^scripts\/(production|delivery|project-assets)\/(?:[a-z0-9-]+-)?cli(?:\.[cm]?tsx?)?$/u.test(
+    (/^scripts\/(production|delivery|project-assets|projects)\/(?:[a-z0-9-]+-)?cli(?:\.[cm]?tsx?)?$/u.test(
       sourcePath,
     )
       ? "cli"
@@ -84,6 +84,9 @@ export const findScriptLayeringViolations = async (rootDir: string) => {
     "scripts/production",
     "scripts/delivery",
     "scripts/project-assets",
+    "scripts/projects",
+    "scripts/scene-templates",
+    "scripts/shared",
   ] as const;
   const files = (
     await Promise.all(
@@ -131,6 +134,38 @@ export const findScriptLayeringViolations = async (rootDir: string) => {
       ) {
         violations.push(
           `${sourcePath} -> ${target}: delivery reuses production adapter`,
+        );
+      }
+      if (
+        sourcePath.startsWith("scripts/projects/") &&
+        target.startsWith("scripts/production/adapters/") &&
+        !(
+          sourcePath === "scripts/projects/delete.ts" &&
+          target === "scripts/production/adapters/run-store" &&
+          importedNames.length === 1 &&
+          importedNames[0] === "acquireProductionRunLock"
+        )
+      ) {
+        violations.push(
+          `${sourcePath} -> ${target}: Project workflow reuses production adapter`,
+        );
+      }
+      if (
+        sourcePath.startsWith("scripts/scene-templates/") &&
+        target.startsWith("scripts/projects/")
+      ) {
+        violations.push(
+          `${sourcePath} -> ${target}: Scene template projection depends on Project workflow`,
+        );
+      }
+      if (
+        sourcePath.startsWith("scripts/shared/") &&
+        /^scripts\/(production|delivery|project-assets|projects|scene-templates)\//u.test(
+          target,
+        )
+      ) {
+        violations.push(
+          `${sourcePath} -> ${target}: shared technical module depends on business workflow`,
         );
       }
       if (

@@ -25,12 +25,12 @@ import {
   readProducerConfig,
   resolveProducerConfigPathFromEnvironment,
 } from "../config/producer-config";
-import { writeProductionFileAtomic } from "../production/adapters/run-store";
+import { writeTextFileAtomic } from "../shared/atomic-file";
 import { acquireRepositoryOperationLock } from "../shared/repository-operation-lock";
 import {
   commitConfiguredSceneTemplates,
   prepareConfiguredSceneTemplates,
-} from "./scene-template-instantiation";
+} from "./application/instantiate-scene-templates";
 
 const DraftSchema = z
   .object({
@@ -229,7 +229,7 @@ const runProjectConfigureUnlocked = async ({
     prepared: materialized,
   });
   for (const file of missingFiles) {
-    await writeProductionFileAtomic({
+    await writeTextFileAtomic({
       destination: file.path,
       bytes: file.bytes,
       mode: "create",

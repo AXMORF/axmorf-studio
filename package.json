@@ -80,6 +80,8 @@
     "catalog:check": "node --import tsx scripts/catalog/cli.ts check",
     "catalog:query": "node --import tsx scripts/catalog/cli.ts query",
     "precatalog:query": "npm run bootstrap",
+    "scene-template-audio:generate": "node --import tsx scripts/scene-templates/cli.ts generate",
+    "scene-template-audio:check": "node --import tsx scripts/scene-templates/cli.ts check",
     "docs:check-links": "node --import tsx scripts/docs/check-links.ts",
     "architecture:deletion-matrix": "node --import tsx scripts/architecture/project-deletion-matrix.ts",
     "reference:sync": "node --import tsx scripts/external-references/cli.ts sync",
@@ -121,7 +123,7 @@
     "production:render-ready:check": "node --import tsx scripts/production/cli.ts render-ready-check",
     "compositions": "remotion compositions src/index.ts",
     "precompositions": "npm run bootstrap",
-    "check:static": "npm run test && npm run typecheck && npm run lint && npm run docs:check-links && npm run catalog:check && npm run registry:check && npm run config:build && npm run build",
+    "check:static": "npm run test && npm run typecheck && npm run lint && npm run docs:check-links && npm run scene-template-audio:check && npm run catalog:check && npm run registry:check && npm run config:build && npm run build",
     "check:host": "npm run compositions && npm run project:verify -- --all --scope source",
     "check": "npm run check:static && npm run check:host"
   },

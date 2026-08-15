@@ -1,15 +1,13 @@
 import { randomUUID } from "node:crypto";
 import {
-  link,
   mkdir,
   open,
   readFile,
   readdir,
-  rename,
   rm,
   unlink,
 } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { join } from "node:path";
 
 import {
   ProductionRunIdSchema,
@@ -26,95 +24,11 @@ import {
   createInitialProductionRunState,
   projectProductionRunState,
 } from "../domain/projection";
-
-export type ProductionAtomicWriter = (request: {
-  readonly destination: string;
-  readonly bytes: string;
-  readonly mode: "create" | "replace";
-}) => Promise<{ readonly written: boolean }>;
-
-const syncDirectory = async (directory: string): Promise<void> => {
-  let handle;
-  try {
-    handle = await open(directory, "r");
-    await handle.sync();
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code !== "EINVAL" && code !== "ENOTSUP" && code !== "EBADF") {
-      throw error;
-    }
-  } finally {
-    await handle?.close();
-  }
-};
-
-const readExistingBytes = async (
-  destination: string,
-): Promise<string | null> => {
-  try {
-    return await readFile(destination, "utf8");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw error;
-  }
-};
-
-export const writeProductionFileAtomic: ProductionAtomicWriter = async ({
-  destination,
-  bytes,
-  mode,
-}) => {
-  const parent = dirname(destination);
-  await mkdir(parent, { recursive: true });
-  const existing = await readExistingBytes(destination);
-  if (existing === bytes) return { written: false };
-  if (mode === "create" && existing !== null) {
-    throw new Error(
-      `Immutable production file conflicts: ${basename(destination)}.`,
-    );
-  }
-
-  const temporaryPath = join(
-    parent,
-    `.${basename(destination)}.${process.pid}.${randomUUID()}.tmp`,
-  );
-  let installed = false;
-  try {
-    const handle = await open(temporaryPath, "wx");
-    try {
-      await handle.writeFile(bytes, "utf8");
-      await handle.sync();
-    } finally {
-      await handle.close();
-    }
-    if (mode === "create") {
-      try {
-        await link(temporaryPath, destination);
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-        const racedBytes = await readExistingBytes(destination);
-        if (racedBytes !== bytes) {
-          throw new Error(
-            `Immutable production file conflicts: ${basename(destination)}.`,
-          );
-        }
-        return { written: false };
-      }
-      await unlink(temporaryPath);
-    } else {
-      await rename(temporaryPath, destination);
-    }
-    installed = true;
-    await syncDirectory(parent);
-    return { written: true };
-  } finally {
-    if (!installed) {
-      await unlink(temporaryPath).catch((error: NodeJS.ErrnoException) => {
-        if (error.code !== "ENOENT") throw error;
-      });
-    }
-  }
-};
+import {
+  readOptionalTextFile,
+  writeTextFileAtomic,
+  type AtomicTextFileWriter,
+} from "../../shared/atomic-file";
 
 const serializeProductionJson = (value: unknown) =>
   `${serializeCanonicalJson(value)}\n`;
@@ -207,11 +121,11 @@ const readStoredState = async (path: string) =>
 export const initializeProductionRunStore = async ({
   rootDir,
   run: rawRun,
-  writeAtomic = writeProductionFileAtomic,
+  writeAtomic = writeTextFileAtomic,
 }: {
   readonly rootDir: string;
   readonly run: ProductionRunManifest;
-  readonly writeAtomic?: ProductionAtomicWriter;
+  readonly writeAtomic?: AtomicTextFileWriter;
 }): Promise<{
   readonly run: ProductionRunManifest;
   readonly state: ProductionRunState;
@@ -404,14 +318,14 @@ export const appendProductionRunEvent = async ({
   runId: rawRunId,
   event: rawEvent,
   currentInputFingerprints,
-  writeAtomic = writeProductionFileAtomic,
+  writeAtomic = writeTextFileAtomic,
   lock: providedLock,
 }: {
   readonly rootDir: string;
   readonly runId: string;
   readonly event: ProductionStageEvent;
   readonly currentInputFingerprints?: readonly ProductionFingerprintRef[];
-  readonly writeAtomic?: ProductionAtomicWriter;
+  readonly writeAtomic?: AtomicTextFileWriter;
   readonly lock?: ProductionRunLock;
 }) => {
   const runId = ProductionRunIdSchema.parse(rawRunId);
@@ -437,7 +351,7 @@ export const appendProductionRunEvent = async ({
     }
     const destination = join(current.paths.events, eventFileName(event));
     const eventBytes = serializeProductionJson(event);
-    const existing = await readExistingBytes(destination);
+    const existing = await readOptionalTextFile(destination);
     if (existing !== null) {
       if (existing !== eventBytes) {
         throw new Error("Conflicting production event already exists.");

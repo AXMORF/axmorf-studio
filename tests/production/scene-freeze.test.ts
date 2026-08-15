@@ -31,7 +31,7 @@ import { SCENE_TEMPLATE_DEFINITIONS } from "../../src/remotion/capabilities/scen
 import { buildResourceCatalog } from "../../scripts/catalog/domain";
 import { loadCatalogAuthorityDescriptors } from "../../scripts/catalog/project-files";
 import { generateScenePackageFromProjectFiles } from "../../scripts/scene-package/generate";
-import { materializeConfiguredSceneTemplates } from "../../scripts/projects/scene-template-instantiation";
+import { materializeConfiguredSceneTemplates } from "../../scripts/projects/application/instantiate-scene-templates";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
 import {
   assertSceneAssignmentIsolation,

@@ -1,10 +1,10 @@
 import {
+  link,
   lstat,
   mkdir,
   open,
   readFile,
   readdir,
-  rename,
   unlink,
 } from "node:fs/promises";
 import { basename, dirname, join, relative, sep } from "node:path";
@@ -17,8 +17,9 @@ import {
   type ProductionOwnerReceipt,
   type ProductionOwnerResult,
 } from "../../../src/contracts";
+import { writeTextFileAtomic } from "../../shared/atomic-file";
 import { assertRegularOwnerPathChain, ownerPathState } from "./owner-paths";
-import { getProductionRunPaths, writeProductionFileAtomic } from "./run-store";
+import { getProductionRunPaths } from "./run-store";
 
 export const getOwnerReceiptPath = ({
   rootDir,
@@ -186,7 +187,7 @@ export const writeOwnerReceiptAtomic = async ({
     adoptPending(existingPending);
   } else {
     try {
-      await writeProductionFileAtomic({
+      await writeTextFileAtomic({
         destination: pending,
         bytes,
         mode: "create",
@@ -223,11 +224,15 @@ export const writeOwnerReceiptAtomic = async ({
       await syncDirectory(dirname(destination));
       return { receipt: parsed, written: false, path: destination } as const;
     }
-    await rename(pending, destination);
+    await link(pending, destination);
+    await unlink(pending).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== "ENOENT") throw error;
+    });
     await syncDirectory(dirname(destination));
     return { receipt, written: true, path: destination } as const;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code !== "ENOENT" && code !== "EEXIST") throw error;
     const raced = await readOptionalJson({ rootDir, path: destination });
     if (raced === null) throw error;
     const parsed = ProductionOwnerReceiptSchema.parse(raced);
@@ -250,7 +255,7 @@ export const writeOwnerResult = async ({
     ownerKind: result.ownerKind,
     meaningId: result.meaningId,
   });
-  const write = await writeProductionFileAtomic({
+  const write = await writeTextFileAtomic({
     destination,
     bytes: `${serializeCanonicalJson(result)}\n`,
     mode: "create",

@@ -13,8 +13,8 @@ import { launchDetachedProductionWatcher } from "../adapters/watcher-launch";
 import {
   getProductionRunPaths,
   readProductionRunStore,
-  writeProductionFileAtomic,
 } from "../adapters/run-store";
+import { writeTextFileAtomic } from "../../shared/atomic-file";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
 import { assertOwnerAssignmentsIsolated } from "./owner-receipt";
 
@@ -137,7 +137,7 @@ export const startProductionWatcher = async ({
       logPath: intent.logPath,
     };
   }
-  const intentWrite = await writeProductionFileAtomic({
+  const intentWrite = await writeTextFileAtomic({
     destination: paths.watcherLaunchIntent,
     bytes: `${serializeCanonicalJson(intent)}\n`,
     mode: "create",
@@ -182,7 +182,7 @@ export const startProductionWatcher = async ({
     startedAt: now.toISOString(),
     acknowledgementPolicy: "os-spawn-event-v1",
   });
-  await writeProductionFileAtomic({
+  await writeTextFileAtomic({
     destination: paths.watcherLaunchReceipt,
     bytes: `${serializeCanonicalJson(receipt)}\n`,
     mode: "create",

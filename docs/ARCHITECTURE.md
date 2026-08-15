@@ -2,7 +2,7 @@
 
 > 文档类型：架构权威
 >
-> 最后复核：2026-08-15
+> 最后复核：2026-08-16
 
 ## 分层
 
@@ -25,15 +25,17 @@ scripts/delivery/cli.ts        delivery build/check dispatch
 scripts/delivery/application/  input loading, package, launch, check
 scripts/delivery/domain/       deterministic delivery model and canonical bytes
 scripts/delivery/adapters/     filesystem, Cover media, detached spawn
-scripts/shared/                cross-workflow technical ports and host media adapters
+scripts/shared/                business-neutral atomic files, process ports and host media adapters
 scripts/projects/delete.ts     preflighted destructive Project data cleanup
 scripts/projects/configure.ts  new-Project ProducerConfig freeze application/CLI
+scripts/projects/application/  Project-local Scene template instantiation use cases
+scripts/scene-templates/       repository-wide Scene template authoring projections
 ```
 
 CLI 入口保持薄；用例编排、纯规则和 external I/O 不平铺混合。render runtime 永远不调用
 production/delivery scripts 或外部系统。`scripts/shared/` 只接纳无业务语义的窄接口与宿主适配器，
 不得成为跨模块 service locator；`tests/architecture/script-layering.test.ts` 执行检查 domain、
-application、adapter 与跨流程依赖方向。
+application、adapter、Project template instantiation、Scene template projection 与跨流程依赖方向。
 
 ## Authority graph
 
@@ -207,9 +209,12 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
 fingerprint-bound promotion proposal，并获得用户对范围、API、文件与目标路径的明确授权。
 `src/remotion/capabilities/scenes/templates/` 保存可供新 Project 复制的已批准 Scene template；它不是
 既有 Project 的 runtime dependency。模板 Renderer 不挂载音频；可选 ignored 本地覆盖只在 bootstrap
-生成 `scene-template-audio.generated.json` authoring 投影，并在 `project:configure` 时把已校验的
+由 `scripts/scene-templates/` 独立生成 `scene-template-audio.generated.json` authoring 投影，并在
+`project:configure` 时由 `scripts/projects/application/` 把已校验的
 `localize-asset` 音频及许可证元数据复制进 Project。复制后的 SFX/ambience 仍由 preset 投影的
-`sound-plan.json` 经 Scene sound runtime 播放。
+`sound-plan.json` 经 Scene sound runtime 播放。该投影可用
+`scene-template-audio:generate` / `scene-template-audio:check` 独立生成或只读复验；bootstrap 显式
+调用相同生成器，proof asset generator 不拥有该投影。
 Root 的 `System` folder 另行提供 `DefaultIntroPreview` / `DefaultOutroPreview` 演示 Composition；
 预览外壳只消费模板定义与本地 authoring 投影，不进入 Project Registry、ScenePackage 或
 production sound ownership。

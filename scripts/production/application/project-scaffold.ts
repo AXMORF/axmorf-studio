@@ -2,8 +2,8 @@ import { lstat, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { StoryIdSchema } from "../../../src/contracts";
-import { writeProductionFileAtomic } from "../adapters/run-store";
 import { writeOrCheckRendererRegistry } from "../../renderer-registry/project-files";
+import { writeTextFileAtomic } from "../../shared/atomic-file";
 
 export const PRODUCTION_PROJECT_SCAFFOLD_MARKER =
   "@generated-by production-project-current-v1" as const;
@@ -183,7 +183,7 @@ export const ensureProductionProjectScaffold = async ({
     actual === renderPreIsolationProductionProjectScaffold(storyId) &&
     mode === "write"
   ) {
-    const result = await writeProductionFileAtomic({
+    const result = await writeTextFileAtomic({
       destination,
       bytes: expected,
       mode: "replace",
@@ -219,7 +219,7 @@ export const ensureProductionProjectScaffold = async ({
     ].includes(actual ?? ""),
   );
   if (isExactRenderScaffold && mode === "write") {
-    const result = await writeProductionFileAtomic({
+    const result = await writeTextFileAtomic({
       destination,
       bytes: expected,
       mode: "replace",
@@ -239,7 +239,7 @@ export const ensureProductionProjectScaffold = async ({
   if (mode === "check") {
     throw new Error("Production Composition scaffold is missing.");
   }
-  const result = await writeProductionFileAtomic({
+  const result = await writeTextFileAtomic({
     destination,
     bytes: expected,
     mode: "create",
@@ -730,7 +730,7 @@ export const ensureProductionRenderScaffold = async ({
   ) {
     throw new Error("Refusing to overwrite a drifted Production Composition.");
   }
-  await writeProductionFileAtomic({
+  await writeTextFileAtomic({
     destination,
     bytes: expected,
     mode: "replace",

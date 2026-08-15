@@ -185,9 +185,11 @@ docs/                        当前权威、指南、证据和历史归档
 scripts/production/          production cli / application / domain / adapters
 scripts/project-assets/      外部 receipt adapter、Project-local 准入与 Catalog 同步
 scripts/delivery/            Cover 与自动交付 cli / application / domain / adapters
-scripts/shared/              跨 production/delivery 的窄技术端口与宿主媒体 adapter
+scripts/shared/              跨流程的原子文件、窄技术端口与宿主媒体 adapter
 scripts/config/              private ProducerConfig 读写与迁移
 scripts/projects/configure.ts 新 Project 通用默认值冻结入口
+scripts/projects/application/ Project-local Scene template 实例化用例
+scripts/scene-templates/     repository-wide Scene template authoring 投影
 settings/                    配置、每 Project 最新 Run 进度与确认删除控制台
 src/contracts/               strict、versioned、可执行 Zod 合同
 src/remotion/runtime/        固定、离线、frame-driven runtime

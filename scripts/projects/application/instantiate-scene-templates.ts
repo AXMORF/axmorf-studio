@@ -30,20 +30,20 @@ import {
   type ResourceAssetDescriptor,
   type Sha256Digest,
   type StorySpec,
-} from "../../src/contracts";
+} from "../../../src/contracts";
 import {
   SCENE_TEMPLATE_AUDIO_PROJECTION,
   getSceneTemplateDefinition,
   renderCopiedSceneRenderer,
   type SceneTemplateDefinition,
-} from "../../src/remotion/capabilities/scenes/registry";
-import { assertSceneTemplateAudioProjectionCurrent } from "./scene-template-audio-projection";
+} from "../../../src/remotion/capabilities/scenes/registry";
+import { assertSceneTemplateAudioProjectionCurrent } from "../../scene-templates/audio-projection";
 import {
   checksumExternalBytes,
   readExternalRegularFile,
-} from "../external-references/project-files";
-import { collectRendererSourceGraph } from "../renderer-registry/domain";
-import { writeProductionFileAtomic } from "../production/adapters/run-store";
+} from "../../external-references/project-files";
+import { collectRendererSourceGraph } from "../../renderer-registry/domain";
+import { writeTextFileAtomic } from "../../shared/atomic-file";
 
 type SceneDefaults = Readonly<{
   introSceneTemplateId: string | null;
@@ -740,7 +740,7 @@ export const commitConfiguredSceneTemplates = async ({
       Buffer.from(instance.bytes),
     );
   }
-  await writeProductionFileAtomic({
+  await writeTextFileAtomic({
     destination: join(
       rootDir,
       `src/projects/${projectId}/assets.manifest.json`,
@@ -748,7 +748,7 @@ export const commitConfiguredSceneTemplates = async ({
     bytes: jsonBytes(prepared.commit.assetManifest),
     mode: "replace",
   });
-  await writeProductionFileAtomic({
+  await writeTextFileAtomic({
     destination: join(rootDir, `src/projects/${projectId}/story.json`),
     bytes: prepared.storyBytes,
     mode: "replace",

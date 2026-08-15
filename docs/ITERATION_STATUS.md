@@ -142,9 +142,11 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 ### 工程与可删除性
 
-- `scripts/production` 与 `scripts/delivery` 均按 cli/application/domain/adapters 分层；通用文本进程
-  port、受限媒体进程 adapter 与 Remotion executable resolution 位于窄 `scripts/shared/`，delivery
-  不再反向复用 production adapter，domain 不依赖 application/adapters。架构测试阻止层级回退。
+- `scripts/production` 与 `scripts/delivery` 均按 cli/application/domain/adapters 分层；通用原子文本
+  写入、进程 port、受限媒体进程 adapter 与 Remotion executable resolution 位于窄
+  `scripts/shared/`。Project Scene template 实例化位于 `scripts/projects/application/`，repository-wide
+  template authoring 投影位于 `scripts/scene-templates/`；架构测试阻止这些边界及 domain/application/
+  adapter 方向回退。
 - owner output 路径安全、manifest 收集与 receipt/result inbox 持久化已拆为独立 adapter；
   production status 是 application use case，CLI 只保留精确命令解析与输出边界。
 - `public/`、`src/projects/`、Registry/Catalog 投影、`.narration-work/`、`out/`、`deliveries/` 和

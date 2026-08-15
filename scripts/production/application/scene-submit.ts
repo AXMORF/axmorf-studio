@@ -17,12 +17,12 @@ import {
 import { collectRendererSourceGraph } from "../../renderer-registry/domain";
 import { generateScenePackageFromProjectFiles } from "../../scene-package/generate";
 import { readJsonFile } from "../../scene-package/project-files";
+import { writeTextFileAtomic } from "../../shared/atomic-file";
 import { redactProductionErrorDescription } from "../domain/error-redaction";
 import { validateSceneReadability } from "./readability-validator";
 import {
   getProductionRunPaths,
   readProductionRunStore,
-  writeProductionFileAtomic,
 } from "../adapters/run-store";
 import { createExpectedProductionError } from "../domain/errors";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
@@ -251,7 +251,7 @@ export const writeSceneProductionResult = async ({
     getProductionRunPaths({ rootDir, runId: result.runId }).sceneResults,
     `${result.meaningId}.json`,
   );
-  const write = await writeProductionFileAtomic({
+  const write = await writeTextFileAtomic({
     destination: resultPath,
     bytes: `${serializeCanonicalJson(result)}\n`,
     mode: "create",
