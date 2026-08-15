@@ -32,10 +32,12 @@ import {
   type StorySpec,
 } from "../../src/contracts";
 import {
+  SCENE_TEMPLATE_AUDIO_PROJECTION,
   getSceneTemplateDefinition,
   renderCopiedSceneRenderer,
   type SceneTemplateDefinition,
 } from "../../src/remotion/capabilities/scenes/registry";
+import { assertSceneTemplateAudioProjectionCurrent } from "./scene-template-audio-projection";
 import {
   checksumExternalBytes,
   readExternalRegularFile,
@@ -176,7 +178,7 @@ const templateFingerprint = async ({
     definition.assets.map(async (asset) => {
       const bytes = await readExternalRegularFile(rootDir, asset.sourcePath);
       const actual = checksumExternalBytes(bytes);
-      if (actual !== asset.checksum) {
+      if (actual !== asset.sourceDescriptor.checksum) {
         throw new Error(
           `Configured Scene template asset is stale: ${asset.sourcePath}.`,
         );
@@ -269,33 +271,21 @@ const instantiateOne = async ({
         id: resourceId,
         kind: "asset",
         status: "approved",
-        title: asset.title,
-        description: asset.description,
-        useCases: ["configured Scene-local sound"],
-        tags: ["configured-scene", "scene-template", "sfx"],
+        title: asset.sourceDescriptor.title,
+        description: asset.sourceDescriptor.description,
+        useCases: asset.sourceDescriptor.useCases,
+        tags: asset.sourceDescriptor.tags,
         authority: {
           kind: "repository-file",
           repositoryPath: `src/projects/${projectId}/assets.manifest.json`,
         },
         allowedUse: "runtime-approved",
         assetKind: "audio",
-        mediaRole: "scene-sfx",
+        mediaRole: asset.targetMediaRole,
         localPath: repositoryPath,
-        checksum: asset.checksum,
-        license: {
-          id: "Project-Authored",
-          verificationStatus: "verified",
-          sourceUrl: null,
-          attributionRequired: false,
-          attributionText: null,
-          verifiedAt: "2026-08-15T00:00:00.000Z",
-          sourceEvidenceFingerprint: asset.checksum,
-        },
-        media: {
-          durationInSeconds: asset.durationInSeconds,
-          codec: "pcm_s16le",
-          sampleRate: 48_000,
-        },
+        checksum: asset.sourceDescriptor.checksum,
+        license: asset.sourceDescriptor.license,
+        media: asset.sourceDescriptor.media,
       },
     });
   }
@@ -575,6 +565,15 @@ export const prepareConfiguredSceneTemplates = async ({
       noOp: true,
       commit: null,
     } as const;
+  }
+  if (
+    sceneDefaults.introSceneTemplateId !== null ||
+    sceneDefaults.outroSceneTemplateId !== null
+  ) {
+    await assertSceneTemplateAudioProjectionCurrent({
+      rootDir,
+      loadedProjection: SCENE_TEMPLATE_AUDIO_PROJECTION,
+    });
   }
   const story = configuredBaseStory(sourceStory);
   const reserved = new Set<string>(

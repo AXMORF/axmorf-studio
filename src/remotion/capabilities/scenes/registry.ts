@@ -1,5 +1,15 @@
+import type { ResourceAssetDescriptor } from "../../../contracts";
+import sceneTemplateAudioJson from "../../catalog/scene-template-audio.generated.json";
 import type { SceneTemplateId } from "./catalog";
-import { Sha256DigestSchema, type Sha256Digest } from "../../../contracts";
+import {
+  SceneTemplateAudioProjectionSchema,
+  type SceneTemplateAudioProjection,
+} from "./template-audio";
+
+export const SCENE_TEMPLATE_AUDIO_PROJECTION =
+  SceneTemplateAudioProjectionSchema.parse(sceneTemplateAudioJson);
+
+type TemplateAudioBinding = NonNullable<SceneTemplateAudioProjection["intro"]>;
 
 export type SceneTemplateDefinition = Readonly<{
   templateId: SceneTemplateId;
@@ -17,10 +27,8 @@ export type SceneTemplateDefinition = Readonly<{
     assetKey: string;
     sourcePath: string;
     destinationName: string;
-    title: string;
-    description: string;
-    durationInSeconds: number;
-    checksum: Sha256Digest;
+    sourceDescriptor: ResourceAssetDescriptor;
+    targetMediaRole: "scene-sfx" | "scene-ambience";
   }>[];
   soundCues: readonly Readonly<{
     cueId: string;
@@ -56,13 +64,32 @@ export type SceneTemplateDefinition = Readonly<{
   }>;
 }>;
 
+const audioAssets = (binding: TemplateAudioBinding | null) =>
+  binding === null
+    ? []
+    : [
+        {
+          assetKey: "sound",
+          sourcePath: binding.source.localPath,
+          destinationName: binding.destinationName,
+          sourceDescriptor: binding.source,
+          targetMediaRole: binding.targetMediaRole,
+        },
+      ];
+
+const audioCues = (binding: TemplateAudioBinding | null) =>
+  binding?.soundCues.map((cue) => ({ ...cue, assetKey: "sound" })) ?? [];
+
 const BRAND_REVEAL: SceneTemplateDefinition = {
   templateId: "axmorf-brand-reveal-v1",
   durationInFrames: 60,
   narrativePurpose: "Render the configured opening Scene before content.",
   visualIntent:
     "Reveal the AXMORF mark and wordmark as a concise configured Scene.",
-  soundIntent: "Play only the copied AXMORF reveal chime as Scene-local SFX.",
+  soundIntent:
+    SCENE_TEMPLATE_AUDIO_PROJECTION.intro === null
+      ? "Render without Scene-local sound."
+      : "Play only the configured opening impact from frame zero for the full Scene.",
   componentName: "AxmorfIntroScene",
   sourceReferencesProp: false,
   sourceFiles: [
@@ -77,32 +104,15 @@ const BRAND_REVEAL: SceneTemplateDefinition = {
       destinationName: "AxmorfIntroScene.tsx",
     },
   ],
-  assets: [
-    {
-      assetKey: "chime",
-      sourcePath:
-        "public/assets/library/scene-templates/axmorf-brand-reveal-chime.wav",
-      destinationName: "axmorf-brand-reveal-chime.wav",
-      title: "AXMORF brand reveal chime",
-      description: "Copied Scene-local PCM chime for the AXMORF reveal.",
-      durationInSeconds: 0.6,
-      checksum: Sha256DigestSchema.parse(
-        "sha256:739069dd51389ebac5704cdcd4b16ef43abc458a268931ab5817b834c1f2c475",
-      ),
-    },
-  ],
-  soundCues: [
-    {
-      cueId: "reveal-chime",
-      assetKey: "chime",
-      anchorId: "brand-reveal-start",
-      offsetFrames: 0,
-      durationInFrames: 18,
-      volume: 0.82,
-    },
-  ],
+  assets: audioAssets(SCENE_TEMPLATE_AUDIO_PROJECTION.intro),
+  soundCues: audioCues(SCENE_TEMPLATE_AUDIO_PROJECTION.intro),
   orderedShotIds: ["brand-reveal"],
   anchors: [
+    {
+      eventId: "intro-sound-start",
+      sceneLocalFrame: 0,
+      purpose: "Start the configured opening sound at the Scene boundary.",
+    },
     {
       eventId: "brand-reveal-start",
       sceneLocalFrame: 6,
@@ -140,7 +150,10 @@ const SOURCE_FOLLOW: SceneTemplateDefinition = {
   durationInFrames: 240,
   narrativePurpose: "Render the configured closing Scene after content.",
   visualIntent: "Show source credits then resolve to the AXMORF follow lockup.",
-  soundIntent: "Play only the copied AXMORF resolve chime as Scene-local SFX.",
+  soundIntent:
+    SCENE_TEMPLATE_AUDIO_PROJECTION.outro === null
+      ? "Render without Scene-local sound."
+      : "Play only the configured closing music from frame zero for the full Scene.",
   componentName: "AxmorfOutroScene",
   sourceReferencesProp: true,
   sourceFiles: [
@@ -174,30 +187,8 @@ const SOURCE_FOLLOW: SceneTemplateDefinition = {
       destinationName: "NOTICE.md",
     },
   ],
-  assets: [
-    {
-      assetKey: "chime",
-      sourcePath:
-        "public/assets/library/scene-templates/axmorf-source-follow-chime.wav",
-      destinationName: "axmorf-source-follow-chime.wav",
-      title: "AXMORF source follow chime",
-      description: "Copied Scene-local PCM chime for the AXMORF resolve.",
-      durationInSeconds: 1,
-      checksum: Sha256DigestSchema.parse(
-        "sha256:7140b3c599b3656e5c3ee26c9c127a5d6a8deb26a336c67574114e4fdbe355b0",
-      ),
-    },
-  ],
-  soundCues: [
-    {
-      cueId: "resolve-chime",
-      assetKey: "chime",
-      anchorId: "brand-lockup-start",
-      offsetFrames: 0,
-      durationInFrames: 30,
-      volume: 0.82,
-    },
-  ],
+  assets: audioAssets(SCENE_TEMPLATE_AUDIO_PROJECTION.outro),
+  soundCues: audioCues(SCENE_TEMPLATE_AUDIO_PROJECTION.outro),
   orderedShotIds: ["source-credits", "brand-follow"],
   anchors: [
     {

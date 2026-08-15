@@ -206,8 +206,10 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
 新 Scene 能力默认留在 project-local。移入 `src/remotion/capabilities/` 必须先有具体、
 fingerprint-bound promotion proposal，并获得用户对范围、API、文件与目标路径的明确授权。
 `src/remotion/capabilities/scenes/templates/` 保存可供新 Project 复制的已批准 Scene template；它不是
-既有 Project 的 runtime dependency。模板 Renderer 不挂载音频；复制后的音效仍由 preset 投影的
+既有 Project 的 runtime dependency。模板 Renderer 不挂载音频；可选 ignored 本地覆盖只在 bootstrap
+生成 `scene-template-audio.generated.json` authoring 投影，并在 `project:configure` 时把已校验的
+`localize-asset` 音频及许可证元数据复制进 Project。复制后的 SFX/ambience 仍由 preset 投影的
 `sound-plan.json` 经 Scene sound runtime 播放。
 Root 的 `System` folder 另行提供 `DefaultIntroPreview` / `DefaultOutroPreview` 演示 Composition；
-预览外壳只消费模板定义与本地 Catalog chime，不进入 Project Registry、ScenePackage 或
+预览外壳只消费模板定义与本地 authoring 投影，不进入 Project Registry、ScenePackage 或
 production sound ownership。

@@ -2,6 +2,9 @@ import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { SCENE_TEMPLATE_AUDIO_PROJECTION_PATH } from "../../../src/remotion/capabilities/scenes/template-audio";
+import { buildSceneTemplateAudioProjection } from "../../projects/scene-template-audio-projection";
+
 const PROOF_SHAPE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 380" role="img" aria-label="M6 deterministic proof shape">
   <rect width="560" height="380" rx="28" fill="#08111f"/>
   <path d="M112 252 L210 104 L292 202 L360 128 L448 252 Z" fill="#22d3ee" opacity="0.88"/>
@@ -118,6 +121,7 @@ export const generateM6ProofAssets = async ({
   readonly rootDir: string;
   readonly mode: "write" | "check";
 }) => {
+  const sceneTemplateAudio = await buildSceneTemplateAudioProjection(rootDir);
   await Promise.all([
     writeBytesAtomic(
       join(rootDir, "public/assets/library/m6-scene-runtime/proof-pulse.wav"),
@@ -149,6 +153,13 @@ export const generateM6ProofAssets = async ({
         frequencies: [659.255, 554.365, 440],
         sampleCount: 48_000,
       }),
+      mode,
+    ),
+    writeBytesAtomic(
+      join(rootDir, SCENE_TEMPLATE_AUDIO_PROJECTION_PATH),
+      Uint8Array.from(
+        Buffer.from(`${JSON.stringify(sceneTemplateAudio, null, 2)}\n`, "utf8"),
+      ),
       mode,
     ),
   ]);

@@ -8,35 +8,23 @@ import {
   SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS,
 } from "../../src/remotion/compositions/scene-template-previews/SceneTemplatePreviews";
 
-test("System Scene template previews bind local cue timing and assets", async () => {
+test("System Scene template previews crop configured audio from frame zero", async () => {
   assert.equal(typeof BrandRevealTemplatePreview, "function");
   assert.equal(typeof SourceFollowTemplatePreview, "function");
-  assert.deepEqual(SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS, {
-    intro: {
-      durationInFrames: 60,
-      cue: {
-        startFrame: 6,
-        durationInFrames: 18,
-        volume: 0.82,
-        publicPath:
-          "public/assets/library/scene-templates/axmorf-brand-reveal-chime.wav",
-        checksum:
-          "sha256:739069dd51389ebac5704cdcd4b16ef43abc458a268931ab5817b834c1f2c475",
-      },
-    },
-    outro: {
-      durationInFrames: 240,
-      cue: {
-        startFrame: 120,
-        durationInFrames: 30,
-        volume: 0.82,
-        publicPath:
-          "public/assets/library/scene-templates/axmorf-source-follow-chime.wav",
-        checksum:
-          "sha256:7140b3c599b3656e5c3ee26c9c127a5d6a8deb26a336c67574114e4fdbe355b0",
-      },
-    },
-  });
+  assert.equal(SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS.intro.durationInFrames, 60);
+  assert.equal(SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS.outro.durationInFrames, 240);
+  const intro = SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS.intro.audio;
+  const outro = SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS.outro.audio;
+  if (intro !== null) {
+    assert.equal(intro.startFrame, 0);
+    assert.equal(intro.durationInFrames, 60);
+    assert.equal(intro.role, "scene-sfx");
+  }
+  if (outro !== null) {
+    assert.equal(outro.startFrame, 0);
+    assert.equal(outro.durationInFrames, 240);
+    assert.equal(outro.role, "scene-ambience");
+  }
   const source = await readFile(
     new URL(
       "../../src/remotion/compositions/scene-template-previews/SceneTemplatePreviews.tsx",

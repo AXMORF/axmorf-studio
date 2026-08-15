@@ -27,6 +27,7 @@ import {
 } from "../../src/contracts";
 import { capabilityDescriptorDeclarations } from "../../src/remotion/catalog/capability-descriptors";
 import { styleDescriptorDeclarations } from "../../src/remotion/catalog/style-descriptors";
+import { SCENE_TEMPLATE_DEFINITIONS } from "../../src/remotion/capabilities/scenes/registry";
 import { buildResourceCatalog } from "../../scripts/catalog/domain";
 import { loadCatalogAuthorityDescriptors } from "../../scripts/catalog/project-files";
 import { generateScenePackageFromProjectFiles } from "../../scripts/scene-package/generate";
@@ -54,6 +55,17 @@ const copyRepositoryFile = async (rootDir: string, relativePath: string) => {
   const destination = join(rootDir, relativePath);
   await mkdir(dirname(destination), { recursive: true });
   await copyFile(join(repositoryRoot, relativePath), destination);
+};
+
+const copyOptionalRepositoryFile = async (
+  rootDir: string,
+  relativePath: string,
+) => {
+  try {
+    await copyRepositoryFile(rootDir, relativePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
 };
 
 const materializeCatalogAuthority = async (rootDir: string) => {
@@ -87,6 +99,36 @@ const materializeCatalogAuthority = async (rootDir: string) => {
     "src/remotion/capabilities/scenes/templates/axmorf/NOTICE.md",
   ]) {
     await copyRepositoryFile(rootDir, sourcePath);
+  }
+  for (const sourcePath of new Set(
+    SCENE_TEMPLATE_DEFINITIONS.flatMap((definition) =>
+      definition.assets.map((asset) => asset.sourcePath),
+    ),
+  )) {
+    await copyRepositoryFile(rootDir, sourcePath);
+  }
+  for (const sourcePath of [
+    "private/reference-assets/scene-template-sound-overrides.json",
+    "private/reference-assets/assets.manifest.json",
+    "private/reference-assets/MIXKIT_AUDIO_LICENSE.md",
+  ]) {
+    await copyOptionalRepositoryFile(rootDir, sourcePath);
+  }
+  try {
+    const localManifest = JSON.parse(
+      await readFile(
+        join(
+          repositoryRoot,
+          "private/reference-assets/assets.manifest.json",
+        ),
+        "utf8",
+      ),
+    ) as { readonly assets: readonly { readonly localPath: string }[] };
+    for (const { localPath } of localManifest.assets) {
+      await copyOptionalRepositoryFile(rootDir, localPath);
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
 };
 const sceneRequirement = ProductionRequirementSchema.parse({
@@ -129,6 +171,9 @@ const createFixture = async (
   const story = configured?.story ?? validStorySpec;
   const configuredIntro = story.beats[0];
   const configuredOutro = story.beats.at(-1);
+  const configuredResourceIds = story.beats.flatMap((beat) =>
+    beat.kind === "silent-scene" ? beat.preset.resourceIds : [],
+  );
   const fixture = await createProductionFixture(context, rootDir, {
     additionalRequirements: [sceneRequirement],
     sceneLocalSound: options.sceneLocalSound,
@@ -184,11 +229,9 @@ const createFixture = async (
     requirementsFingerprint: fixture.requirements.requirementsFingerprint,
     resourceCatalogFingerprint: catalog.catalogFingerprint,
     allowedResourceIds: options.withConfiguredTemplates
-      ? [
-          "asset.story-example.configured-intro-scene.chime",
-          "asset.story-example.configured-outro-scene.chime",
-          "capability.motion",
-        ]
+      ? [...configuredResourceIds, "capability.motion"].sort((left, right) =>
+          left.localeCompare(right),
+        )
       : ["capability.motion"],
     allowedSnapshots: [
       {
@@ -228,9 +271,10 @@ const createFixture = async (
                   ? configuredIntro.preset.soundIntent
                   : "missing configured Scene",
               continuityBrief: "Hand the opened frame to narrated content.",
-              candidateResourceIds: [
-                "asset.story-example.configured-intro-scene.chime",
-              ],
+              candidateResourceIds:
+                configuredIntro?.kind === "silent-scene"
+                  ? configuredIntro.preset.resourceIds
+                  : [],
               allowedSnapshotCards: [],
             },
           ]
@@ -272,9 +316,10 @@ const createFixture = async (
                   ? configuredOutro.preset.soundIntent
                   : "missing configured Scene",
               continuityBrief: "Close the complete Story timeline.",
-              candidateResourceIds: [
-                "asset.story-example.configured-outro-scene.chime",
-              ],
+              candidateResourceIds:
+                configuredOutro?.kind === "silent-scene"
+                  ? configuredOutro.preset.resourceIds
+                  : [],
               allowedSnapshotCards: [],
             },
           ]
@@ -454,12 +499,14 @@ test("configured template copies freeze and submit without Scene owners", async 
     intro.taskInput.timingBeat.endFrame - intro.taskInput.timingBeat.startFrame,
     60,
   );
-  assert.deepEqual(intro.taskInput.allowedResourceIds, [
-    "asset.story-example.configured-intro-scene.chime",
-  ]);
-  assert.deepEqual(outro.taskInput.allowedResourceIds, [
-    "asset.story-example.configured-outro-scene.chime",
-  ]);
+  assert.deepEqual(
+    intro.taskInput.allowedResourceIds,
+    firstBeat?.kind === "silent-scene" ? firstBeat.preset.resourceIds : [],
+  );
+  assert.deepEqual(
+    outro.taskInput.allowedResourceIds,
+    lastBeat?.kind === "silent-scene" ? lastBeat.preset.resourceIds : [],
+  );
   assert.equal(
     outro.taskInput.storyBeat.kind === "silent-scene"
       ? outro.taskInput.storyBeat.preset.presetFingerprint
@@ -488,34 +535,31 @@ test("configured template copies freeze and submit without Scene owners", async 
   const outroSound = JSON.parse(
     await readFile(join(outroRoot, "sound-plan.json"), "utf8"),
   );
-  assert.deepEqual(introSound.cues, [
-    {
-      cueId: "reveal-chime",
-      resource: {
-        schemaVersion: 1,
-        resourceId: "asset.story-example.configured-intro-scene.chime",
-        kind: "asset",
-        role: "scene-sfx",
-        descriptorFingerprint:
-          introSound.cues[0].resource.descriptorFingerprint,
-        catalogFingerprint: fixture.catalog.catalogFingerprint,
-      },
-      timing: {
-        kind: "anchor",
-        eventId: "brand-reveal-start",
-        offsetFrames: 0,
-      },
-      durationInFrames: 18,
-      volume: 0.82,
-    },
-  ]);
-  assert.equal(outroSound.cues[0].cueId, "resolve-chime");
-  assert.deepEqual(outroSound.cues[0].timing, {
-    kind: "anchor",
-    eventId: "brand-lockup-start",
-    offsetFrames: 0,
-  });
-  assert.equal(outroSound.cues[0].durationInFrames, 30);
+  if (
+    firstBeat?.kind === "silent-scene" &&
+    firstBeat.preset.resourceIds.length > 0
+  ) {
+    assert.equal(introSound.cues[0].cueId, "reveal-impact");
+    assert.equal(introSound.cues[0].timing.eventId, "intro-sound-start");
+    assert.equal(introSound.cues[0].timing.offsetFrames, 0);
+    assert.equal(introSound.cues[0].durationInFrames, 60);
+    assert.equal(introSound.cues[0].resource.role, "scene-sfx");
+  } else {
+    assert.deepEqual(introSound.cues, []);
+  }
+  assert.deepEqual(outroSound.cues, []);
+  if (
+    lastBeat?.kind === "silent-scene" &&
+    lastBeat.preset.resourceIds.length > 0
+  ) {
+    assert.equal(
+      outroSound.ambience.resourceId,
+      lastBeat.preset.resourceIds[0],
+    );
+    assert.equal(outroSound.ambience.role, "scene-ambience");
+  } else {
+    assert.equal(outroSound.ambience, null);
+  }
 
   const introPackage = await generateScenePackageFromProjectFiles({
     rootDir: fixture.rootDir,
@@ -545,11 +589,11 @@ test("configured template copies freeze and submit without Scene owners", async 
   );
   assert.deepEqual(
     introPackage.selectedResources.map(({ resourceId }) => resourceId),
-    ["asset.story-example.configured-intro-scene.chime"],
+    firstBeat?.kind === "silent-scene" ? firstBeat.preset.resourceIds : [],
   );
   assert.deepEqual(
     outroPackage.selectedResources.map(({ resourceId }) => resourceId),
-    ["asset.story-example.configured-outro-scene.chime"],
+    lastBeat?.kind === "silent-scene" ? lastBeat.preset.resourceIds : [],
   );
 });
 
@@ -600,15 +644,23 @@ test("template-copied Scenes reject unused external snapshot cards", async (cont
   );
 });
 
-test("template-copied Scene sound conflicts fail during Scene freeze", async (context) => {
+test("template-copied Scene sound obeys the frozen local-sound policy", async (context) => {
   const fixture = await createFixture(context, {
     withConfiguredTemplates: true,
     sceneLocalSound: "none",
   });
-  await assert.rejects(
-    () => freeze(fixture),
-    /Template-copied silent Scene configured-intro-scene requires Scene-local sound\./u,
+  const hasConfiguredSound = fixture.source.story.beats.some(
+    (beat) =>
+      beat.kind === "silent-scene" && beat.preset.resourceIds.length > 0,
   );
+  if (hasConfiguredSound) {
+    await assert.rejects(
+      () => freeze(fixture),
+      /Template-copied silent Scene configured-intro-scene requires Scene-local sound\./u,
+    );
+  } else {
+    assert.equal((await freeze(fixture)).status, "scene-inputs-frozen");
+  }
 });
 
 test("current freeze rerun is a byte and mtime stable no-op", async (context) => {

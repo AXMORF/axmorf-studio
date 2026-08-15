@@ -9,10 +9,6 @@ import {
 } from "remotion";
 
 import {
-  ProducerAssetManifestSchema,
-} from "../../../contracts";
-import assetManifestJson from "../../catalog/assets.manifest.json";
-import {
   AxmorfIntroScene,
   AxmorfOutroScene,
 } from "../../capabilities/scenes/templates/axmorf";
@@ -20,64 +16,72 @@ import { AXMORF_SCENE_TEMPLATE_TIMING } from "../../capabilities/scenes/template
 import { getSceneTemplateDefinition } from "../../capabilities/scenes/registry";
 
 const PREVIEW_FPS = 30;
-const assetManifest = ProducerAssetManifestSchema.parse(assetManifestJson);
 
 const buildPreviewSpec = ({
   templateId,
   timingId,
-  anchorFrame,
 }: {
-  readonly templateId:
-    | "axmorf-brand-reveal-v1"
-    | "axmorf-source-follow-v1";
+  readonly templateId: "axmorf-brand-reveal-v1" | "axmorf-source-follow-v1";
   readonly timingId: keyof typeof AXMORF_SCENE_TEMPLATE_TIMING;
-  readonly anchorFrame: number;
 }) => {
   const definition = getSceneTemplateDefinition(templateId);
   const timing = AXMORF_SCENE_TEMPLATE_TIMING[timingId];
   if (
-    definition.soundCues.length !== 1 ||
-    definition.assets.length !== 1 ||
+    definition.assets.length > 1 ||
     definition.durationInFrames !== timing.durationInFrames
   ) {
     throw new Error("System Scene template preview is stale.");
   }
+  const templateAsset = definition.assets[0];
+  if (templateAsset === undefined) {
+    if (definition.soundCues.length !== 0) {
+      throw new Error(
+        "System Scene template preview audio identity is invalid.",
+      );
+    }
+    return {
+      durationInFrames: definition.durationInFrames,
+      audio: null,
+    } as const;
+  }
+  const descriptor = templateAsset.sourceDescriptor;
   const cue = definition.soundCues[0];
-  const templateAsset = definition.assets.find(
-    ({ assetKey }) => assetKey === cue.assetKey,
-  );
-  const descriptor = assetManifest.assets.find(
-    (asset) => asset.checksum === templateAsset?.checksum,
-  );
+  const isCue = templateAsset.targetMediaRole === "scene-sfx";
+  const cueAnchorFrame =
+    cue === undefined
+      ? undefined
+      : timing.anchors[cue.anchorId as keyof (typeof timing)["anchors"]];
   if (
-    templateAsset === undefined ||
-    descriptor === undefined ||
-    descriptor.kind !== "asset" ||
     descriptor.assetKind !== "audio" ||
-    descriptor.mediaRole !== "scene-sfx" ||
-    descriptor.allowedUse !== "runtime-approved" ||
-    !descriptor.localPath.startsWith("public/")
+    !descriptor.localPath.startsWith("public/") ||
+    (isCue
+      ? definition.soundCues.length !== 1 || cueAnchorFrame === undefined
+      : definition.soundCues.length !== 0)
   ) {
     throw new Error("System Scene template preview audio identity is invalid.");
   }
+  const startFrame = isCue ? cueAnchorFrame! + cue!.offsetFrames : 0;
+  const durationInFrames = isCue
+    ? cue!.durationInFrames
+    : definition.durationInFrames;
   const durationInSeconds = descriptor.media?.durationInSeconds;
   if (
     durationInSeconds === undefined ||
-    Math.round(durationInSeconds * PREVIEW_FPS) !== cue.durationInFrames ||
-    anchorFrame + cue.offsetFrames < 0 ||
-    anchorFrame + cue.offsetFrames + cue.durationInFrames >
-      definition.durationInFrames
+    Math.floor(durationInSeconds * PREVIEW_FPS) < durationInFrames ||
+    startFrame < 0 ||
+    startFrame + durationInFrames > definition.durationInFrames
   ) {
     throw new Error("System Scene template preview audio identity is invalid.");
   }
   return {
     durationInFrames: definition.durationInFrames,
-    cue: {
-      startFrame: anchorFrame + cue.offsetFrames,
-      durationInFrames: cue.durationInFrames,
-      volume: cue.volume,
+    audio: {
+      startFrame,
+      durationInFrames,
+      volume: isCue ? cue!.volume : 1,
       publicPath: descriptor.localPath,
       checksum: descriptor.checksum,
+      role: templateAsset.targetMediaRole,
     },
   } as const;
 };
@@ -86,18 +90,10 @@ export const SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS = {
   intro: buildPreviewSpec({
     templateId: "axmorf-brand-reveal-v1",
     timingId: "axmorf-brand-reveal-v1",
-    anchorFrame:
-      AXMORF_SCENE_TEMPLATE_TIMING["axmorf-brand-reveal-v1"].anchors[
-        "brand-reveal-start"
-      ],
   }),
   outro: buildPreviewSpec({
     templateId: "axmorf-source-follow-v1",
     timingId: "axmorf-source-follow-v1",
-    anchorFrame:
-      AXMORF_SCENE_TEMPLATE_TIMING["axmorf-source-follow-v1"].anchors[
-        "brand-lockup-start"
-      ],
   }),
 } as const;
 
@@ -115,28 +111,25 @@ const PreviewStage: FC<{ readonly children: ReactNode }> = ({ children }) => (
 
 const PreviewSound: FC<{
   readonly spec: (typeof SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS)[keyof typeof SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS];
-}> = ({ spec }) => (
-  <Sequence
-    from={spec.cue.startFrame}
-    durationInFrames={spec.cue.durationInFrames}
-  >
-    <Html5Audio
-      src={staticFile(spec.cue.publicPath.slice("public/".length))}
-      volume={() => spec.cue.volume}
-    />
-  </Sequence>
-);
+}> = ({ spec }) =>
+  spec.audio === null ? null : (
+    <Sequence
+      from={spec.audio.startFrame}
+      durationInFrames={spec.audio.durationInFrames}
+    >
+      <Html5Audio
+        src={staticFile(spec.audio.publicPath.slice("public/".length))}
+        volume={() => spec.audio.volume}
+      />
+    </Sequence>
+  );
 
 export const BrandRevealTemplatePreview: FC = () => {
   const sceneFrame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   return (
     <PreviewStage>
-      <AxmorfIntroScene
-        sceneFrame={sceneFrame}
-        width={width}
-        height={height}
-      />
+      <AxmorfIntroScene sceneFrame={sceneFrame} width={width} height={height} />
       <PreviewSound spec={SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS.intro} />
     </PreviewStage>
   );

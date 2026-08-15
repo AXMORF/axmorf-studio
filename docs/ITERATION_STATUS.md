@@ -67,8 +67,10 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   把源码和资源复制到 Project-local Scene 并冻结独立 instance；freeze 机械投影 plans、校验并直接
   submit，不创建 owner receipt。Project 也可使用 `scene-owner` 或关闭。`leadInFrames`/`tailFrames` 只保留
   真正空白 padding，NarrativeCore 从 `narrationStartFrame` 挂载唯一完整旁白。
-- zero-Project Root 的 `System` folder 提供两个 Scene template 的独立可听预览 Composition；它们消费
-  template library 与 Catalog-bound 本地 chime，但不形成 Project runtime 依赖或第二套音效所有权。
+- zero-Project Root 的 `System` folder 提供两个 Scene template 的独立可听预览 Composition。bootstrap
+  从 ignored `scene-template-sound-overrides.json` 生成 authoring-only 声音投影；当前片头从第 0 帧裁取
+  60 帧 Mixkit impact，片尾从第 0 帧裁取 240 帧 Deep Urban ambience，且不保留旧 cue。配置 Project
+  时仍复制为 Project-local runtime 资源，不形成共享 runtime 依赖或第二套音频所有权。
 - 每个 meaningId 一个独立 Codex task；每个 Story 一个 GlobalVisual task 与一个 Cover task；共享
   checkout 使用不重叠 exclusive paths。owner 只发布 immutable receipt，single-writer watcher
   串行验证并写正式 result。

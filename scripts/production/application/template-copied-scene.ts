@@ -23,7 +23,7 @@ import {
   type SceneArtifactMode,
 } from "../../scene-package/project-files";
 
-const selectedSfx = ({
+const selectedSound = ({
   catalog,
   resourceId,
 }: {
@@ -37,16 +37,18 @@ const selectedSfx = ({
     entry === undefined ||
     entry.descriptor.kind !== "asset" ||
     entry.descriptor.assetKind !== "audio" ||
-    entry.descriptor.mediaRole !== "scene-sfx" ||
+    !["scene-sfx", "scene-ambience"].includes(entry.descriptor.mediaRole) ||
     entry.descriptor.allowedUse !== "runtime-approved"
   ) {
-    throw new Error(`Copied Scene SFX is not runtime-approved: ${resourceId}.`);
+    throw new Error(
+      `Copied Scene sound is not runtime-approved: ${resourceId}.`,
+    );
   }
   const selected: SelectedResourceRef = {
     schemaVersion: 1,
     resourceId: entry.descriptor.id,
     kind: "asset",
-    role: "scene-sfx",
+    role: entry.descriptor.mediaRole as "scene-sfx" | "scene-ambience",
     descriptorFingerprint: entry.descriptorFingerprint,
     catalogFingerprint: catalog.catalogFingerprint,
   };
@@ -178,10 +180,8 @@ export const materializeTemplateCopiedScenes = async ({
       sceneDurationInFrames: durationInFrames,
       anchors: instance.anchors,
     });
-    const selectedResources = [
-      ...new Set(instance.soundCues.map(({ resourceId }) => resourceId)),
-    ]
-      .map((resourceId) => selectedSfx({ catalog, resourceId }))
+    const selectedResources = [...new Set(instance.resourceIds)]
+      .map((resourceId) => selectedSound({ catalog, resourceId }))
       .sort((left, right) =>
         left.selected.resourceId.localeCompare(right.selected.resourceId),
       );
@@ -191,14 +191,23 @@ export const materializeTemplateCopiedScenes = async ({
         resource,
       ]),
     );
+    const ambienceResources = selectedResources.filter(
+      ({ descriptor }) => descriptor.mediaRole === "scene-ambience",
+    );
+    if (ambienceResources.length > 1) {
+      throw new Error("Copied Scene may select at most one ambience resource.");
+    }
     const sound = buildSceneSoundPlan({
       taskInputFingerprint,
       meaningId: assignment.meaningId,
       sceneDurationInFrames: durationInFrames,
-      ambience: null,
+      ambience: ambienceResources[0]?.selected ?? null,
       cues: instance.soundCues.map((cue) => {
         const resource = selectedById.get(cue.resourceId);
-        if (resource === undefined) {
+        if (
+          resource === undefined ||
+          resource.descriptor.mediaRole !== "scene-sfx"
+        ) {
           throw new Error("Copied Scene sound resource is missing.");
         }
         return {

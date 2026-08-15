@@ -53,7 +53,9 @@ v2 与 current ProductionRequirementsFreeze。PublishingIntent 必须从合集�
 
 ProducerConfig 的 `sceneDefaults` 在 `project:configure` 阶段选择首尾 Scene template。脚本把所选
 template 的完整源码与资源复制到 Project-local Scene，写入 `template-copy` instance/preset identity；
-已有 Project 以后不再读取全局选择或共享 template。`scene-owner` 仅表示该 Scene 需要 Agent 创作。
+已有 Project 以后不再读取全局选择或共享 template。模板声音可由 ignored 本地
+`scene-template-sound-overrides.json` 在 bootstrap 时选择，但只以 authoring projection 进入模板；
+配置时必须连同已验证许可证元数据一起本地化。`scene-owner` 仅表示该 Scene 需要 Agent 创作。
 
 `production:preflight` 使用 `production-start-preflight-v2` 在 Run write 前检查 VoxCPM
 liveness/readiness 与 Remotion Chromium，
