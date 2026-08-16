@@ -14,6 +14,9 @@ test("semantic naming guard rejects milestone APIs but permits SVG and M4A synta
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-semantic-naming-"));
   const retiredMilestone = ["m", 6].join("");
   const retiredReceipt = ["M", 3, "Receipt"].join("");
+  const retiredOne = ["M", 1].join("");
+  const retiredThree = ["M", 3].join("");
+  const retiredSixReceipt = ["M", 6, "Receipt"].join("");
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   await Promise.all([
     mkdir(join(rootDir, "src/contracts"), { recursive: true }),
@@ -36,12 +39,25 @@ test("semantic naming guard rejects milestone APIs but permits SVG and M4A synta
       '<path d="M1 1 L11 6 L1 11" />\n',
     ),
     writeFile(
+      join(rootDir, "src/contracts/adversarial.tsx"),
+      [
+        `<path aria-label="text d='${retiredOne} legacy' here" />`,
+        `<path-note d="${retiredThree}" />`,
+        `<path aria-label="1 > 0" d="${retiredOne} 1`,
+        'L11 6" />',
+        `<span>${retiredSixReceipt}</span>`,
+      ].join("\n"),
+    ),
+    writeFile(
       join(rootDir, "docs/archive/history.md"),
       [1, 3, 6, 8, 9].map((number) => `M${number}`).join(" "),
     ),
   ]);
 
   assert.deepEqual(await findMilestoneNamingViolations(rootDir), [
+    "src/contracts/adversarial.tsx:1: milestone name in active content",
+    "src/contracts/adversarial.tsx:2: milestone name in active content",
+    "src/contracts/adversarial.tsx:5: milestone name in active content",
     `src/contracts/${retiredMilestone}-runtime.ts: milestone name in active path`,
   ]);
 });

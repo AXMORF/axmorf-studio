@@ -14,8 +14,9 @@ number immediately following an SVG move command.
 
 ## Resolution
 
-The scanner now masks quoted `d` attributes on SVG `path` elements while
-preserving line breaks and therefore diagnostic line numbers. Active paths and
-all other source content remain subject to the existing milestone-name rule. A
-regression fixture covers the exact `M1 1 L11 6 L1 11` path data that triggered
-the incident.
+The scanner now parses exact SVG `path` start tags and their attributes, masking
+only a directly quoted `d` value while preserving line breaks and therefore
+diagnostic line numbers. Active paths and all other source content remain
+subject to the existing milestone-name rule. Regression fixtures cover the
+exact `M1 1 L11 6 L1 11` path data that triggered the incident plus adversarial
+`aria-label`, similarly named tag, embedded `>`, and multiline cases.

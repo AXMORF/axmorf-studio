@@ -32,12 +32,85 @@ const milestonePattern = new RegExp(
   "iu",
 );
 
+const isMarkupWhitespace = (value: string | undefined) =>
+  value !== undefined && /\s/u.test(value);
+
+const skipBracedAttribute = (source: string, start: number) => {
+  let depth = 0;
+  let quote: '"' | "'" | "`" | undefined;
+  let escaped = false;
+  for (let index = start; index < source.length; index += 1) {
+    const value = source[index];
+    if (quote !== undefined) {
+      if (escaped) escaped = false;
+      else if (value === "\\") escaped = true;
+      else if (value === quote) quote = undefined;
+      continue;
+    }
+    if (value === '"' || value === "'" || value === "`") quote = value;
+    else if (value === "{") depth += 1;
+    else if (value === "}" && --depth === 0) return index + 1;
+  }
+  return source.length;
+};
+
 const maskSvgPathData = (source: string) => {
-  const maskAttribute = (_match: string, prefix: string, attribute: string) =>
-    `${prefix}${attribute.replace(/[^\r\n]/gu, " ")}`;
-  return source
-    .replace(/(<path\b[^>]*?\s)(d\s*=\s*"[^"]*")/giu, maskAttribute)
-    .replace(/(<path\b[^>]*?\s)(d\s*=\s*'[^']*')/giu, maskAttribute);
+  const masked = source.split("");
+  const pathStartPattern = /<path(?=[\s/>])/giu;
+  for (const match of source.matchAll(pathStartPattern)) {
+    let cursor = (match.index ?? 0) + match[0].length;
+    while (cursor < source.length) {
+      while (isMarkupWhitespace(source[cursor])) cursor += 1;
+      if (source[cursor] === ">") break;
+      if (source[cursor] === "/" && source[cursor + 1] === ">") break;
+      if (source[cursor] === "{") {
+        cursor = skipBracedAttribute(source, cursor);
+        continue;
+      }
+      if (source[cursor] === "/") {
+        cursor += 1;
+        continue;
+      }
+      const nameStart = cursor;
+      while (
+        cursor < source.length &&
+        !isMarkupWhitespace(source[cursor]) &&
+        !["=", "/", ">"].includes(source[cursor])
+      ) {
+        cursor += 1;
+      }
+      const attributeName = source.slice(nameStart, cursor).toLowerCase();
+      while (isMarkupWhitespace(source[cursor])) cursor += 1;
+      if (source[cursor] !== "=") continue;
+      cursor += 1;
+      while (isMarkupWhitespace(source[cursor])) cursor += 1;
+      const quote = source[cursor];
+      if (quote === '"' || quote === "'") {
+        const valueStart = cursor + 1;
+        cursor = source.indexOf(quote, valueStart);
+        if (cursor === -1) break;
+        if (attributeName === "d") {
+          for (let index = valueStart; index < cursor; index += 1) {
+            if (source[index] !== "\r" && source[index] !== "\n") {
+              masked[index] = " ";
+            }
+          }
+        }
+        cursor += 1;
+      } else if (quote === "{") {
+        cursor = skipBracedAttribute(source, cursor);
+      } else {
+        while (
+          cursor < source.length &&
+          !isMarkupWhitespace(source[cursor]) &&
+          source[cursor] !== ">"
+        ) {
+          cursor += 1;
+        }
+      }
+    }
+  }
+  return masked.join("");
 };
 
 const toRepositoryPath = (rootDir: string, path: string) =>
