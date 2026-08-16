@@ -8,6 +8,7 @@ import { VideoBriefSchema } from "./brief";
 import { createFingerprint, serializeCanonicalJson } from "./fingerprint";
 import { computeStoryFingerprint } from "./generation-input";
 import { NarrationSpecSchema } from "./narration";
+import { ProjectSoundPlanSchema } from "./project-sound";
 import {
   MeaningIdSchema,
   PositiveIntegerSchema,
@@ -28,7 +29,7 @@ import {
 import { StorySpecSchema } from "./story";
 
 export const PRODUCTION_REQUIREMENTS_CONTRACT_VERSION =
-  "production-requirements-current-v1" as const;
+  "production-requirements-current-v2" as const;
 export const SCENE_COMPOSITION_BOUNDARY_VERSION =
   "scene-composition-boundary-v1" as const;
 
@@ -80,6 +81,7 @@ const ProductionSourceBindingsSchema = z
     narrationSpec: FingerprintedProductionArtifactBindingSchema,
     renderSpec: FingerprintedProductionArtifactBindingSchema,
     storyCheck: FingerprintedProductionArtifactBindingSchema,
+    projectSound: FingerprintedProductionArtifactBindingSchema,
   })
   .strict()
   .readonly();
@@ -184,8 +186,7 @@ export const ProductionRequirementSchema =
 const EnhancementSelectionSchema = z
   .object({
     storyVisual: z.literal("required"),
-    sceneLocalSound: z.enum(["allowed", "none"]),
-    globalSound: z.literal("none"),
+    sound: z.enum(["allowed", "none"]),
     globalVisual: z.literal("required"),
   })
   .strict()
@@ -231,6 +232,7 @@ const addFreezeInputIssues = (
     narrationSpec: `src/projects/${freeze.storyId}/narration.json`,
     renderSpec: `src/projects/${freeze.storyId}/render.json`,
     storyCheck: `src/projects/${freeze.storyId}/reviews/story-check.json`,
+    projectSound: `src/projects/${freeze.storyId}/sound.json`,
   } as const;
   for (const [bindingId, expectedPath] of Object.entries(expectedPaths)) {
     const binding =
@@ -340,12 +342,14 @@ const ProductionRequirementsSourceSchema = z
     narration: NarrationSpecSchema,
     render: RenderSpecSchema,
     storyCheck: StoryCheckReportSchema,
+    projectSound: ProjectSoundPlanSchema,
   })
   .strict()
   .superRefine((source, context) => {
     if (
       source.brief.storyId !== source.story.storyId ||
-      source.storyCheck.storyId !== source.story.storyId
+      source.storyCheck.storyId !== source.story.storyId ||
+      source.projectSound.storyId !== source.story.storyId
     ) {
       context.addIssue({
         code: "custom",
@@ -363,6 +367,7 @@ const ProductionSourceChecksumsSchema = z
     narrationSpec: Sha256DigestSchema,
     renderSpec: Sha256DigestSchema,
     storyCheck: Sha256DigestSchema,
+    projectSound: Sha256DigestSchema,
   })
   .strict()
   .readonly();
@@ -423,6 +428,16 @@ const buildProductionRequirementsBase = ({
   const source = assertCurrentSource(rawSource);
   const sourceChecksums =
     ProductionSourceChecksumsSchema.parse(rawSourceChecksums);
+  const selectedEnhancements =
+    EnhancementSelectionSchema.parse(enhancementSelection);
+  if (
+    selectedEnhancements.sound === "none" &&
+    source.projectSound.contributions.length > 0
+  ) {
+    throw new Error(
+      "Production sound cannot be disabled while Project sound contributions are selected.",
+    );
+  }
   const requirements = z
     .array(ProductionRequirementSchema)
     .max(256)
@@ -461,6 +476,11 @@ const buildProductionRequirementsBase = ({
         checksum: sourceChecksums.storyCheck,
         fingerprint: computeStoryCheckFingerprint(source.storyCheck),
       },
+      projectSound: {
+        repositoryPath: `src/projects/${storyId}/sound.json`,
+        checksum: sourceChecksums.projectSound,
+        fingerprint: source.projectSound.soundPlanFingerprint,
+      },
     },
     normalizedSummary: {
       locale: source.render.locale,
@@ -469,7 +489,7 @@ const buildProductionRequirementsBase = ({
       height: source.render.height,
       voiceProfileId: source.narration.voiceProfileId,
     },
-    enhancementSelection,
+    enhancementSelection: selectedEnhancements,
     resourcePolicy,
     additionalRequirements: requirements,
   } as const;

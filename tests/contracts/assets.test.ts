@@ -19,23 +19,23 @@ const license = {
   sourceEvidenceFingerprint: digest("a"),
 } as const;
 
-const ambience = {
+const soundEffect = {
   schemaVersion: 1,
-  id: "audio.proof-ambience",
+  id: "audio.proof-effect",
   kind: "asset",
   status: "approved",
-  title: "Proof ambience",
-  description: "Verified local ambience",
-  useCases: ["scene ambience"],
-  tags: ["ambience", "proof"],
+  title: "Proof effect",
+  description: "Verified local sound effect",
+  useCases: ["scene sound effect"],
+  tags: ["proof", "sound-effect"],
   authority: {
     kind: "repository-file",
     repositoryPath: "src/remotion/catalog/assets.manifest.json",
   },
   allowedUse: "runtime-approved",
   assetKind: "audio",
-  mediaRole: "scene-ambience",
-  localPath: "public/assets/library/proof-ambience.wav",
+  mediaRole: "sound-effect",
+  localPath: "public/assets/library/proof-effect.wav",
   checksum: digest("b"),
   license,
   media: {
@@ -48,38 +48,36 @@ const ambience = {
 test("ProducerAssetManifest remains a strict compatibility view over asset descriptors", () => {
   const manifest = ProducerAssetManifestSchema.parse({
     schemaVersion: 1,
-    assets: [ambience],
+    assets: [soundEffect],
   });
   assert.doesNotThrow(() => assertProducerAssetManifest(manifest));
   assert.throws(() =>
     ProducerAssetManifestSchema.parse({
       schemaVersion: 1,
-      assets: [ambience, ambience],
+      assets: [soundEffect, soundEffect],
     }),
   );
   assert.throws(() =>
     ProducerAssetManifestSchema.parse({
       schemaVersion: 1,
-      assets: [ambience],
+      assets: [soundEffect],
       extra: true,
     }),
   );
 });
 
-test("sound library accepts only current verified Scene-local audio", () => {
+test("sound library accepts only current verified sound contributions", () => {
   const library = getProducerSoundLibrary({
     schemaVersion: 1,
-    assets: [ambience],
+    assets: [soundEffect],
   });
-  assert.equal(library.ambience.length, 1);
-  assert.equal(library.sfx.length, 0);
-  assert.equal(library.narration.length, 0);
-  assert.equal(library.bgm.length, 0);
+  assert.equal(library["sound-effect"].length, 1);
+  assert.equal(library["background-music"].length, 0);
 
   assert.throws(() =>
     getProducerSoundLibrary({
       schemaVersion: 1,
-      assets: [{ ...ambience, mediaRole: "narration" }],
+      assets: [{ ...soundEffect, mediaRole: "narration" }],
     }),
   );
   assert.throws(() =>
@@ -87,7 +85,7 @@ test("sound library accepts only current verified Scene-local audio", () => {
       schemaVersion: 1,
       assets: [
         {
-          ...ambience,
+          ...soundEffect,
           status: "blocked",
           allowedUse: "blocked",
           license: { ...license, verificationStatus: "unverified" },

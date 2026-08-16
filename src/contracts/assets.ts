@@ -13,11 +13,7 @@ export {
 export type AssetKind = ResourceAssetDescriptor["assetKind"];
 export type AssetSoundRole = Extract<
   ResourceAssetDescriptor["mediaRole"],
-  | "narration"
-  | "global-bgm"
-  | "cross-scene-ambience"
-  | "scene-ambience"
-  | "scene-sfx"
+  "narration" | "background-music" | "sound-effect"
 >;
 export type ProducerAsset = ResourceAssetDescriptor;
 

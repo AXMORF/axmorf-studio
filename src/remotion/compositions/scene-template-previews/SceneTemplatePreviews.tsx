@@ -46,24 +46,21 @@ const buildPreviewSpec = ({
   }
   const descriptor = templateAsset.sourceDescriptor;
   const cue = definition.soundCues[0];
-  const isCue = templateAsset.targetMediaRole === "scene-sfx";
   const cueAnchorFrame =
     cue === undefined
       ? undefined
-      : timing.anchors[cue.anchorId as keyof (typeof timing)["anchors"]];
+      : definition.anchors.find(({ eventId }) => eventId === cue.anchorId)
+          ?.sceneLocalFrame;
   if (
     descriptor.assetKind !== "audio" ||
     !descriptor.localPath.startsWith("public/") ||
-    (isCue
-      ? definition.soundCues.length !== 1 || cueAnchorFrame === undefined
-      : definition.soundCues.length !== 0)
+    definition.soundCues.length !== 1 ||
+    cueAnchorFrame === undefined
   ) {
     throw new Error("System Scene template preview audio identity is invalid.");
   }
-  const startFrame = isCue ? cueAnchorFrame! + cue!.offsetFrames : 0;
-  const durationInFrames = isCue
-    ? cue!.durationInFrames
-    : definition.durationInFrames;
+  const startFrame = cueAnchorFrame + cue!.offsetFrames;
+  const durationInFrames = cue!.durationInFrames;
   const durationInSeconds = descriptor.media?.durationInSeconds;
   if (
     durationInSeconds === undefined ||
@@ -78,7 +75,7 @@ const buildPreviewSpec = ({
     audio: {
       startFrame,
       durationInFrames,
-      volume: isCue ? cue!.volume : 1,
+      volume: cue!.volume,
       publicPath: descriptor.localPath,
       checksum: descriptor.checksum,
       role: templateAsset.targetMediaRole,

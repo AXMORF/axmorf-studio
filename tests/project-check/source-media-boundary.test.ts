@@ -50,9 +50,23 @@ test("final Project verification rebuilds current ScenePackages with visual runt
     join(process.cwd(), "scripts/project-check/final-run.ts"),
     "utf8",
   );
-  assert.match(source, /visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION_V2/u);
+  assert.match(
+    source,
+    /visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION_V2/u,
+  );
   assert.doesNotMatch(
     source,
     /visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION,/u,
   );
+});
+
+test("final Project verification binds Project BGM into the unified sound projection", async () => {
+  const source = await readFile(
+    join(process.cwd(), "scripts/project-check/final-run.ts"),
+    "utf8",
+  );
+  assert.match(source, /ProjectSoundPlanSchema\.parse/u);
+  assert.match(source, /projectSoundPlan: projectSound/u);
+  assert.match(source, /projectSoundResources: catalog\.entries/u);
+  assert.match(source, /descriptor\.mediaRole === "background-music"/u);
 });

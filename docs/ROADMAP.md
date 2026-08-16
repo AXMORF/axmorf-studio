@@ -2,13 +2,13 @@
 
 > 文档类型：实施顺序与阶段门槛
 >
-> 最后复核：2026-08-15
+> 最后复核：2026-08-16
 
 ## 已完成基线
 
 1. 叙事、sealed narration、SemanticTiming、CaptionCue 与 NarrativeCore。
-2. ScenePackage、ResourceCatalog、RendererRegistry、Coverage 与 Scene-local sound。
-3. GlobalSound、GlobalVisual、FinalAssembly、zero-project bootstrap、隔离 deletion matrix 与显式
+2. ScenePackage、ResourceCatalog、RendererRegistry、Coverage 与统一 SoundContribution。
+3. ProjectSoundPlan、GlobalVisual、FinalAssembly、zero-project bootstrap、隔离 deletion matrix 与显式
    `project:delete` 完整数据清理。
 4. single-writer production orchestration、N Scene + one GlobalVisual 并行 result join。
 5. current-only render plan/render-ready handoff。

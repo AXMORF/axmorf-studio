@@ -5,7 +5,7 @@ import {
   SceneSoundPlanSchema,
   ShotPlanSetSchema,
   buildSceneSoundPlan,
-  resolveSceneSoundCues,
+  resolveSceneSoundContributions,
   validateScenePlanBundle,
 } from "../../src/contracts/scene-plan";
 import { createScenePlans, sha } from "../fixtures/scene/scene-input";
@@ -18,8 +18,7 @@ test("visual Shot anchor and explicit empty sound plans form one strict 120-fram
   );
   assert.equal(shots.shots[0].primaryRange.endFrame, 120);
   assert.equal(anchors.anchors[0].sceneLocalFrame, 54);
-  assert.equal(sound.ambience, null);
-  assert.deepEqual(sound.cues, []);
+  assert.deepEqual(sound.contributions, []);
   assert.equal(task.timingBeat.endFrame - task.timingBeat.startFrame, 120);
   assert.doesNotThrow(() =>
     validateScenePlanBundle({
@@ -73,37 +72,31 @@ test("Shot plans cannot own renderer caption narration chunk or module identitie
   }
 });
 
-test("Scene-local sound resolves anchor xor explicit frame without clamp or final-assembly fields", () => {
+test("Scene sound contributions resolve anchor xor explicit frame without clamp or final-assembly fields", () => {
   const { anchors, task } = createScenePlans();
-  const ambience = {
+  const soundResource = {
     schemaVersion: 1,
-    resourceId: "asset.proof-ambience",
+    resourceId: "asset.proof-sfx",
     kind: "asset",
-    role: "scene-ambience",
+    role: "sound-effect",
     descriptorFingerprint: sha("a"),
     catalogFingerprint: task.resourceCatalogFingerprint,
   } as const;
-  const cueResource = {
-    ...ambience,
-    resourceId: "asset.proof-sfx",
-    role: "scene-sfx" as const,
-  };
   const plan = buildSceneSoundPlan({
     taskInputFingerprint: task.taskInputFingerprint,
     meaningId: task.meaningId,
     sceneDurationInFrames: 120,
-    ambience,
-    cues: [
+    contributions: [
       {
-        cueId: "handoff",
-        resource: cueResource,
+        contributionId: "handoff",
+        resource: soundResource,
         timing: { kind: "anchor", eventId: "outline-closes", offsetFrames: 2 },
         durationInFrames: 12,
         volume: 0.5,
       },
       {
-        cueId: "settle",
-        resource: cueResource,
+        contributionId: "settle",
+        resource: soundResource,
         timing: { kind: "explicit", sceneLocalFrame: 90 },
         durationInFrames: 10,
         volume: 0.4,
@@ -111,19 +104,19 @@ test("Scene-local sound resolves anchor xor explicit frame without clamp or fina
     ],
   });
   assert.deepEqual(
-    resolveSceneSoundCues({ soundPlan: plan, syncAnchors: anchors }),
+    resolveSceneSoundContributions({ soundPlan: plan, syncAnchors: anchors }),
     [
-      { cueId: "handoff", startFrame: 56, endFrame: 68 },
-      { cueId: "settle", startFrame: 90, endFrame: 100 },
+      { contributionId: "handoff", startFrame: 56, endFrame: 68 },
+      { contributionId: "settle", startFrame: 90, endFrame: 100 },
     ],
   );
   assert.throws(() =>
-    resolveSceneSoundCues({
+    resolveSceneSoundContributions({
       soundPlan: buildSceneSoundPlan({
         ...plan,
-        cues: [
+        contributions: [
           {
-            ...plan.cues[0],
+            ...plan.contributions[0],
             timing: { kind: "anchor", eventId: "missing", offsetFrames: 0 },
           },
         ],

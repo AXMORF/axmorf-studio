@@ -201,7 +201,7 @@ test("optional local reference assets enforce shared audio and license evidence 
     },
     allowedUse: "localize-asset",
     assetKind: "audio",
-    mediaRole: "global-bgm",
+    mediaRole: "background-music",
     localPath,
     checksum:
       "sha256:abcf67382100fc23b30f8f70667c136aa06555e1e144e2db2c9b7a3433946cc1",

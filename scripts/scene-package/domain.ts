@@ -143,8 +143,9 @@ export const buildScenePackage = (rawInput: {
   const requiredResourceIds = new Set([
     ...visual.visualResourceIds,
     ...shots.shots.flatMap((shot) => shot.visualResourceIds),
-    ...(sound.ambience ? [sound.ambience.resourceId] : []),
-    ...sound.cues.map((cue) => cue.resource.resourceId),
+    ...sound.contributions.map(
+      (contribution) => contribution.resource.resourceId,
+    ),
   ]);
   if (
     selectedResources.length !== requiredResourceIds.size ||
@@ -222,7 +223,8 @@ export const buildScenePackage = (rawInput: {
     soundPlanFingerprint: base.soundPlanFingerprint,
     selectedResources: base.selectedResources.filter(
       (resource) =>
-        resource.role === "scene-ambience" || resource.role === "scene-sfx",
+        resource.role === "sound-effect" ||
+        resource.role === "background-music",
     ),
     sceneAudioRuntimeVersion: base.sceneAudioRuntimeVersion,
   };

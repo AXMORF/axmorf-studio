@@ -85,8 +85,6 @@ test("v2 final writer preserves the same pass-only canonical byte boundary", asy
     aggregateStatus: "pass",
     inputIdentity: {
       ...v1.inputIdentity,
-      globalSoundPlanFingerprint: sha("c"),
-      finalSoundProjectionFingerprint: sha("d"),
       globalVisualPlanFingerprint: sha("e"),
       globalVisualProjectionFingerprint: sha("f"),
       finalAssemblyFingerprint: sha("0"),
@@ -99,13 +97,13 @@ test("v2 final writer preserves the same pass-only canonical byte boundary", asy
       failureReasons: [],
     })),
   });
-  const written = await writeFinalMechanicalCheckIfPassed({rootDir, report});
-  await checkPersistedFinalMechanicalCheck({rootDir, expectedReport: report});
+  const written = await writeFinalMechanicalCheckIfPassed({ rootDir, report });
+  await checkPersistedFinalMechanicalCheck({ rootDir, expectedReport: report });
   const before = await readFile(written.destination, "utf8");
   await assert.rejects(() =>
     writeFinalMechanicalCheckIfPassed({
       rootDir,
-      report: {...report, aggregateStatus: "fail"},
+      report: { ...report, aggregateStatus: "fail" },
     }),
   );
   assert.equal(await readFile(written.destination, "utf8"), before);

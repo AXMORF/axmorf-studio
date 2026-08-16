@@ -1,6 +1,6 @@
 import { Fragment, type FC } from "react";
-import { Html5Audio, Sequence, staticFile } from "remotion";
 
+import { SoundContribution } from "../sound-design/SoundContribution";
 import type { SceneSoundProjection } from "./resolve-scene-sound";
 
 export const SceneSoundContribution: FC<{
@@ -14,16 +14,16 @@ export const SceneSoundContribution: FC<{
   return (
     <Fragment>
       {projection.contributions.map((contribution) => (
-        <Sequence
+        <SoundContribution
           key={contribution.contributionId}
-          from={projection.beatStartFrame + contribution.startFrame}
-          durationInFrames={contribution.endFrame - contribution.startFrame}
-        >
-          <Html5Audio
-            src={staticFile(contribution.publicPath.slice("public/".length))}
-            volume={() => contribution.volume * busGain}
-          />
-        </Sequence>
+          contribution={{
+            ...contribution,
+            startFrame: projection.beatStartFrame + contribution.startFrame,
+            endFrame: projection.beatStartFrame + contribution.endFrame,
+            volume: contribution.volume * busGain,
+            loop: false,
+          }}
+        />
       ))}
     </Fragment>
   );

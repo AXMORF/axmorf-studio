@@ -2,6 +2,10 @@
 
 状态：`proposal-only`。本文件只记录候选，不构成迁移授权；未移动任何文件，未修改 GPS 或 M9 的 import。
 
+本文的验证名称只描述提案创建时的历史 Project。旧的独立 final sound projection 和固定 15 项
+final-v2 check 已从 current contracts 退役；任何重新授权的 promotion 必须改用统一
+SoundDesignProjection 与当前 final check IDs，不能把下述历史证据当成 current pass。
+
 下列 `scripts/m8-gps`、`scripts/m9-product` 路径和 checksum 是提案创建时的历史 source
 identity，必须原样保留以便审计；当前等价的 project-local 工具位于
 `scripts/project-tools/gps-relativity/` 与 `scripts/project-tools/product-comic-vertical/`。
@@ -15,7 +19,7 @@ identity，必须原样保留以便审计；当前等价的 project-local 工具
 - 建议 API：`createCanonicalPcmWav(spec)`、`inspectCanonicalPcm(bytes)`；只负责确定性 PCM/WAV 字节、采样事实和 checksum，不负责音乐创作。
 - 明确非目标：音乐/音效 DSL、自动配乐、自动声音导演、render runtime 生成音频。
 - 迁移 import：GPS 与 M9 两个 build-time audio writer 仅替换 WAV header、PCM clamp/serialize 和 canonical inspection；各项目波形、gain、role、manifest 仍留在项目目录。
-- 验证：两主题既有 audio byte checks、48 kHz/PCM tests、FinalSoundProjection、完整 preview evidence；迁移前后资产 checksum 必须逐字节相同。
+- 验证：两主题既有 audio byte checks、48 kHz/PCM tests、提案时 sound projection、完整 preview evidence；迁移前后资产 checksum 必须逐字节相同，并补当前统一 sound projection 门禁。
 - 风险：浮点取整、WAV header、声道与 sample-frame 算法漂移会使全部下游身份失效。
 - 回滚：恢复两个项目 writer 的本地 helper 和原 import；封存音频资产不重生成。
 - 为什么不是 DSL/自动导演：API 只序列化已经创作完成的 sample function/PCM，不选择音乐、节奏、cue 或 Scene。
@@ -41,7 +45,7 @@ identity，必须原样保留以便审计；当前等价的 project-local 工具
 - 建议 API：`validateApprovalAuthoring(input, current)`、`writeApprovalIfExplicit(authorization, current)`；固定绑定 preview checksum、evidence fingerprint 与 FinalAssembly fingerprint。
 - 明确非目标：Agent 代签、从 review 推断批准、自由文本授权、发布或远程审批服务。
 - 迁移 import：GPS/M9 wrapper 继续声明 story/composition/path，并把 current evidence/assembly 传给共享纯函数与原子 writer。
-- 验证：两主题 approval tests、缺失/错误/过期身份 cases、15 项 final-v2 和字节级 persisted report check。
+- 验证：两主题 approval tests、缺失/错误/过期身份 cases、current final check IDs 和字节级 persisted report check。
 - 风险：把 CLI token 错当成用户决策来源，或弱化 strict authoring schema，会破坏唯一人工批准边界。
 - 回滚：恢复两个项目 approval wrapper；保留既有 receipt 字节与 fingerprint。
 - 为什么不是 DSL/自动导演：候选只验证一次已经明确作出的外部决策，不参与作品创作或镜头选择。

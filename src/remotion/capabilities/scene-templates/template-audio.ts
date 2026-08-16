@@ -33,13 +33,13 @@ const SoundCueSchema = z
 const AudioBindingSchema = z
   .object({
     source: ResourceAssetDescriptorSchema,
-    targetMediaRole: z.enum(["scene-sfx", "scene-ambience"]),
+    targetMediaRole: z.enum(["sound-effect", "background-music"]),
     destinationName: z
       .string()
       .min(1)
       .max(160)
       .regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/u),
-    soundCues: z.array(SoundCueSchema).max(1).readonly(),
+    soundCues: z.array(SoundCueSchema).length(1).readonly(),
   })
   .strict()
   .readonly();

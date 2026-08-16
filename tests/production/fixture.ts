@@ -8,6 +8,7 @@ import {
   buildNarrationExecutionSnapshot,
   computeGenerationInputFingerprint,
   computeStoryFingerprint,
+  buildProjectSoundPlan,
   NarrationSpecSchema,
   RenderSpecSchema,
   STORY_CHECK_IDS,
@@ -52,7 +53,7 @@ export const createProductionFixture = async (
   rootDir: string,
   options: Readonly<{
     additionalRequirements?: readonly ProductionRequirement[];
-    sceneLocalSound?: "allowed" | "none";
+    sound?: "allowed" | "none";
     story?: unknown;
   }> = {},
 ) => {
@@ -81,6 +82,10 @@ export const createProductionFixture = async (
     narration,
     render: RenderSpecSchema.parse(validProjectSource.render),
     storyCheck,
+    projectSound: buildProjectSoundPlan({
+      storyId: story.storyId,
+      contributions: [],
+    }),
   } as const;
   const sourceChecksums = {
     videoBrief: await writeProductionJson(
@@ -103,14 +108,17 @@ export const createProductionFixture = async (
       join(projectDir, "reviews/story-check.json"),
       source.storyCheck,
     ),
+    projectSound: await writeProductionJson(
+      join(projectDir, "sound.json"),
+      source.projectSound,
+    ),
   };
   const requirements = buildProductionRequirementsFreeze({
     source,
     sourceChecksums,
     enhancementSelection: {
       storyVisual: "required",
-      sceneLocalSound: options.sceneLocalSound ?? "allowed",
-      globalSound: "none",
+      sound: options.sound ?? "allowed",
       globalVisual: "required",
     },
     resourcePolicy: {

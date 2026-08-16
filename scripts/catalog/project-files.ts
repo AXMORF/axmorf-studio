@@ -25,10 +25,8 @@ export const LOCAL_REFERENCE_ASSET_LICENSE_EVIDENCE_PATH =
   "private/reference-assets/MIXKIT_AUDIO_LICENSE.md";
 
 const LOCAL_REFERENCE_AUDIO_ROLES = new Set([
-  "scene-ambience",
-  "scene-sfx",
-  "global-bgm",
-  "cross-scene-ambience",
+  "sound-effect",
+  "background-music",
 ]);
 
 const checksumBytes = (bytes: Buffer) =>

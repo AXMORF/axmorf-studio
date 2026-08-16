@@ -111,8 +111,6 @@ test("v2 adds fixed assembly checks without changing v1 parsing", () => {
     reportVersion: "final-mechanical-check-v2",
     inputIdentity: {
       ...makePassInput().inputIdentity,
-      globalSoundPlanFingerprint: sha("c"),
-      finalSoundProjectionFingerprint: sha("d"),
       globalVisualPlanFingerprint: sha("e"),
       globalVisualProjectionFingerprint: sha("f"),
       finalAssemblyFingerprint: sha("0"),
@@ -123,7 +121,10 @@ test("v2 adds fixed assembly checks without changing v1 parsing", () => {
       failureReasons: [],
     })),
   });
-  assert.deepEqual(v2.checks.map((check) => check.checkId), FINAL_MECHANICAL_CHECK_V2_IDS);
+  assert.deepEqual(
+    v2.checks.map((check) => check.checkId),
+    FINAL_MECHANICAL_CHECK_V2_IDS,
+  );
   assert.doesNotThrow(() => FinalMechanicalCheckV2ReportSchema.parse(v2));
   assert.throws(() => FinalMechanicalCheckReportSchema.parse(v2));
   assert.throws(() => FinalMechanicalCheckV2ReportSchema.parse(v1));

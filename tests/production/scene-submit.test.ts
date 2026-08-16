@@ -95,7 +95,7 @@ const createAssignment = (
       visualIntent: "Show the cumulative timing boundary.",
       compositionIntent: "Use one horizontal axis.",
       motionIntent: "Reveal the boundary frame by frame.",
-      soundIntent: "No Scene-local sound is required.",
+      soundIntent: "No sound-effect contribution is required.",
       continuityBrief: "Hand the timing axis to the conclusion.",
       candidateResourceIds: [],
       allowedSnapshotCards: [],
@@ -151,8 +151,7 @@ const createPackage = (assignment: ReturnType<typeof createAssignment>) => {
     taskInputFingerprint: task.taskInputFingerprint,
     meaningId: task.meaningId,
     sceneDurationInFrames: 69,
-    ambience: null,
-    cues: [],
+    contributions: [],
   });
   const selection = buildShotRecipeSelection({
     taskInputFingerprint: task.taskInputFingerprint,
@@ -183,7 +182,7 @@ const createPackage = (assignment: ReturnType<typeof createAssignment>) => {
       snapshotFingerprints: [],
       rendererSourceFingerprint: sha("8"),
       visualRuntimeVersion: "story-visual-runtime-v2",
-      sceneAudioRuntimeVersion: "scene-audio-runtime-v1",
+      sceneAudioRuntimeVersion: "scene-audio-runtime-v2",
     },
   });
 };

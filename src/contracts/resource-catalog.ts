@@ -147,11 +147,9 @@ export const ResourceAssetKindSchema = z.enum([
 
 export const ResourceMediaRoleSchema = z.enum([
   "scene-visual",
-  "scene-ambience",
-  "scene-sfx",
+  "sound-effect",
   "narration",
-  "global-bgm",
-  "cross-scene-ambience",
+  "background-music",
   "global-visual",
 ]);
 
@@ -458,10 +456,8 @@ export const SelectedResourceRefSchema = z
     kind: z.enum(["asset", "style-profile", "capability"]),
     role: z.enum([
       "scene-visual",
-      "scene-ambience",
-      "scene-sfx",
-      "global-bgm",
-      "cross-scene-ambience",
+      "sound-effect",
+      "background-music",
       "global-visual",
       "style-profile",
       "capability",
@@ -506,10 +502,8 @@ export const computeResourceCatalogFingerprint = (
 
 export type ResourceUseContext =
   | "scene-visual"
-  | "scene-ambience"
-  | "scene-sfx"
-  | "global-bgm"
-  | "cross-scene-ambience"
+  | "sound-effect"
+  | "background-music"
   | "global-visual"
   | "style-profile"
   | "capability"
@@ -534,10 +528,8 @@ export const assertResourceAllowedForUse = (
     }
     const expectedRole =
       useContext === "scene-visual" ||
-      useContext === "scene-ambience" ||
-      useContext === "scene-sfx" ||
-      useContext === "global-bgm" ||
-      useContext === "cross-scene-ambience" ||
+      useContext === "sound-effect" ||
+      useContext === "background-music" ||
       useContext === "global-visual"
         ? useContext
         : null;

@@ -113,7 +113,7 @@ const assertGlobalVisualSource = ({
     "ScenePackage",
     "SceneProductionResult",
     "StoryBeat",
-    "GlobalSoundPlan",
+    "SoundContribution",
     "fetch",
     "WebSocket",
     "XMLHttpRequest",

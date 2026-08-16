@@ -119,8 +119,7 @@ export const createScenePlans = (
     taskInputFingerprint: task.taskInputFingerprint,
     meaningId: task.meaningId,
     sceneDurationInFrames: 120,
-    ambience: null,
-    cues: [],
+    contributions: [],
   });
   return { task, anchors, shots, visual, sound };
 };

@@ -380,7 +380,7 @@ export const generateSceneRuntimeProof = async ({
     schemaVersion: 1 as const,
     resourceId: pulse.descriptor.id,
     kind: "asset" as const,
-    role: "scene-sfx" as const,
+    role: "sound-effect" as const,
     descriptorFingerprint: pulse.descriptorFingerprint,
     catalogFingerprint: catalog.catalogFingerprint,
   };
@@ -436,10 +436,9 @@ export const generateSceneRuntimeProof = async ({
     taskInputFingerprint: task.taskInputFingerprint,
     meaningId: MEANING_ID,
     sceneDurationInFrames: SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames,
-    ambience: null,
-    cues: [
+    contributions: [
       {
-        cueId: "close-pulse",
+        contributionId: "close-pulse",
         resource: pulseSelected,
         timing: { kind: "anchor", eventId: "outline-closes", offsetFrames: 0 },
         durationInFrames: 6,
@@ -599,7 +598,7 @@ export const generateSceneRuntimeProof = async ({
       snapshotFingerprints: [snapshot.snapshotFingerprint],
       rendererSourceFingerprint: graph.sourceGraphFingerprint,
       visualRuntimeVersion: "story-visual-runtime-v2",
-      sceneAudioRuntimeVersion: "scene-audio-runtime-v1",
+      sceneAudioRuntimeVersion: "scene-audio-runtime-v2",
     },
   });
   const coverage = buildSceneCoverageMap({

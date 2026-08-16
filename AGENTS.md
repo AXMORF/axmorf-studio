@@ -22,7 +22,7 @@
   ScenePackage。
 - StoryBeat 严格区分 narrated-scene 与 silent Scene；silent Scene 只允许位于时间线首尾边界，但合同
   不声明 intro/outro role。新 Project 从全局配置选择边界 Scene template，也可关闭；silent preset
-  固定视觉、Scene-local 音效、资源与帧数，
+  固定视觉、音效 contributions、资源与帧数，
   不得伪造 TTS、CaptionCue 或 sealed narration segment。
 - `project:configure` 把所选 Scene template 的源码和资源复制到 Project-local Scene 并冻结独立
   instance identity；已有 Project 不引用共享 template，也不受其后续修改影响。freeze 只机械投影
@@ -33,7 +33,10 @@
   `ceilDiv(cumulativeSamples × fps, sampleRate)` 计算 frame boundary。
 - Scene/transition 不移动、缩短或吞掉 spoken frames。TTS 波形不假定 bit-for-bit 可重复，必须
   经实测、checksum 和 fingerprint 封存。
-- 字幕只由顶层 CaptionLayer 渲染；Scene root 透明，只输出 Beat 语义视觉与 Scene-local sound。
+- 字幕只由顶层 CaptionLayer 渲染；Scene root 透明，只输出 Beat 语义视觉与音效 contributions。
+- 旁白独占 narration track；所有非旁白声音统一为可独立控制音量的 `SoundContribution`。Scene 音效
+  使用 Scene-local frame 创作后投影到绝对帧；Project BGM 是同一结构的循环 contribution，固定只覆盖
+  首个 narrated Scene 起点到最后一个 narrated Scene 终点，不进入首尾 silent Scene。
 - Composition exactly once owns SceneSafeArea、captions、narration 与 GlobalVisual background。
 - JSON/数据文件不包含 JSX、代码、动态模块路径或 executable expression。
 - Scene renderer 通过 composition-local 静态 registry 绑定；render runtime 不调用 Agent、Skill、
@@ -54,7 +57,7 @@
 - GlobalVisual 只 owns project-local 背景、纹理、装饰和连续性 motif，不读取 Scene 输出，不
   渲染字幕/音频，不扩张为 Track、Scene DSL、自动布局或自动导演。
 - production 的唯一成功终点是 `render-ready / awaiting-automatic-delivery`。它绑定
-  `production-render-plan-v4` 与 `production-render-ready-v4`，不生成或检查最终 MP4。
+  `production-render-plan-v5` 与 `production-render-ready-v5`，不生成或检查最终 MP4。
 - Cover missing/stale 不阻止 render-ready，但阻止自动 delivery build。
 - 主 Agent 在冻结全部 assignment 后先启动 detached watcher，再用 Codex `create_thread` 只为需要
   Agent 创作的 Scene assignment、一个 GlobalVisual 和一个 Cover 创建独立用户任务；template-copy

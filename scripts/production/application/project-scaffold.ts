@@ -8,7 +8,7 @@ import { writeTextFileAtomic } from "../../shared/atomic-file";
 export const PRODUCTION_PROJECT_SCAFFOLD_MARKER =
   "@generated-by production-project-current-v1" as const;
 export const PRODUCTION_RENDER_SCAFFOLD_MARKER =
-  "@generated-by production-render-scaffold-v1" as const;
+  "@generated-by production-render-scaffold-v2" as const;
 
 const componentNameFor = (storyId: string) =>
   `${storyId
@@ -190,34 +190,14 @@ export const ensureProductionProjectScaffold = async ({
     });
     return { destination, written: result.written } as const;
   }
-  const isExactRenderScaffold = [false, true].some((sceneLocalSoundPresent) =>
-    [
-      renderProductionRenderProjectScaffold({
-        storyId,
-        sceneLocalSoundPresent,
-      }),
-      renderPreMasteringProductionRenderProjectScaffold({
-        storyId,
-        sceneLocalSoundPresent,
-      }),
-      renderLegacyNoPropsProductionRenderProjectScaffold({
-        storyId,
-        sceneLocalSoundPresent,
-      }),
-      renderLegacyPropsProductionRenderProjectScaffold({
-        storyId,
-        sceneLocalSoundPresent,
-      }),
-      renderPreMasteringLegacyNoPropsProductionRenderProjectScaffold({
-        storyId,
-        sceneLocalSoundPresent,
-      }),
-      renderPreMasteringLegacyPropsProductionRenderProjectScaffold({
-        storyId,
-        sceneLocalSoundPresent,
-      }),
-    ].includes(actual ?? ""),
-  );
+  const isExactRenderScaffold = [
+    renderProductionRenderProjectScaffold({ storyId }),
+    renderPreMasteringProductionRenderProjectScaffold({ storyId }),
+    renderLegacyNoPropsProductionRenderProjectScaffold({ storyId }),
+    renderLegacyPropsProductionRenderProjectScaffold({ storyId }),
+    renderPreMasteringLegacyNoPropsProductionRenderProjectScaffold({ storyId }),
+    renderPreMasteringLegacyPropsProductionRenderProjectScaffold({ storyId }),
+  ].includes(actual ?? "");
   if (isExactRenderScaffold && mode === "write") {
     const result = await writeTextFileAtomic({
       destination,
@@ -289,6 +269,8 @@ import {z} from "zod";
 
 import {
   RenderSpecSchema,
+  ProjectAssetManifestSchema,
+  ProjectSoundPlanSchema,
   ResourceDescriptorSchema,
   SceneCoverageMapSchema,
   ScenePackageSchema,
@@ -311,6 +293,8 @@ import {
 import coverageJson from "./generated/scene-coverage.generated.json";
 import semanticTimingJson from "./generated/semantic-timing.generated.json";
 import renderJson from "./render.json";
+import projectAssetsJson from "./assets.manifest.json";
+import projectSoundJson from "./sound.json";
 import {
   rendererRegistry,
   rendererRegistryFingerprint,
@@ -333,6 +317,9 @@ ${rawScenes}
 const visualStyle = VisualStyleSpecSchema.parse(visualStyleJson);
 const semanticTiming = SemanticTimingSchema.parse(semanticTimingJson);
 const render = RenderSpecSchema.parse(renderJson);
+const projectAssets = ProjectAssetManifestSchema.parse(projectAssetsJson);
+const projectSound = ProjectSoundPlanSchema.parse(projectSoundJson);
+const projectSoundResourceIds = new Set(projectSound.contributions.map(({resourceId}) => resourceId));
 export const productionSceneCoverage = SceneCoverageMapSchema.parse(coverageJson);
 const scenes = rawScenes.map((raw) => ({
   task: SceneTaskInputSchema.parse(raw.task),
@@ -389,13 +376,15 @@ const sceneSoundProjections = scenes.map((scene) => resolveSceneSound({
   scenePackage: scene.scenePackage,
   soundPlan: scene.sound,
   syncAnchors: scene.anchors,
-  resources: scene.resources.filter(({selected}) => selected.role === "scene-ambience" || selected.role === "scene-sfx"),
+  resources: scene.resources.filter(({selected}) => selected.role === "sound-effect" || selected.role === "background-music"),
 }));
 export const productionSoundDesignProjection = buildSoundDesignProjection({
   storyId: ${JSON.stringify(storyId)},
   coverage: productionSceneCoverage,
   storyBeatTimings,
   sceneSoundProjections,
+  projectSoundPlan: projectSound,
+  projectSoundResources: projectAssets.assets.filter(({id, mediaRole}) => mediaRole === "background-music" && projectSoundResourceIds.has(id)),
 });
 export const productionRendererPropsByMeaning: Readonly<Record<string, SceneRendererMountProps>> = Object.fromEntries(
   scenes.map((scene) => {
@@ -435,12 +424,10 @@ export const renderReadabilityAwareProductionSceneRuntime = (input: {
 
 const renderProductionRenderProjectScaffoldVariant = ({
   storyId: rawStoryId,
-  sceneLocalSoundPresent,
   globalVisualComponentInterface,
   masteredNarration,
 }: {
   readonly storyId: string;
-  readonly sceneLocalSoundPresent: boolean;
   readonly globalVisualComponentInterface:
     | "current-no-props"
     | "legacy-no-props"
@@ -449,16 +436,10 @@ const renderProductionRenderProjectScaffoldVariant = ({
 }) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
   const componentName = componentNameFor(storyId);
-  const soundImport = sceneLocalSoundPresent
-    ? `import {SoundDesignTrack} from "../../remotion/runtime/sound-design";`
-    : "";
-  const soundRuntimeImport = sceneLocalSoundPresent
-    ? ",\n  productionSoundDesignProjection"
-    : "";
-  const soundProp = sceneLocalSoundPresent
-    ? `
-    soundDesignTrack={<SoundDesignTrack projection={productionSoundDesignProjection} />}`
-    : "";
+  const soundImport = `import {SoundDesignTrack} from "../../remotion/runtime/sound-design";`;
+  const soundRuntimeImport = ",\n  productionSoundDesignProjection";
+  const soundProp = `
+    soundDesignTrack={<SoundDesignTrack projection={productionSoundDesignProjection} />}`;
   const requirementsSetup = `const productionRequirements = ProductionRequirementsFreezeSchema.parse(requirementsJson);
 const readabilityPolicy = productionRequirements.readabilityPolicy;
 `;
@@ -559,7 +540,7 @@ const expectedStoryId = ${JSON.stringify(storyId)};
 const storyId = artifactBundle.projectSource.story.storyId;
 const render = artifactBundle.projectSource.render;
 const timing = artifactBundle.semanticTiming;
-if (readabilityPolicy.width !== render.width || readabilityPolicy.height !== render.height || storyId !== expectedStoryId || renderPlan.storyId !== storyId || render.fps !== timing.fps || renderPlan.timelinePolicyVersion !== STORY_COMPOSITION_TIMELINE_VERSION || renderPlan.sourceReferencesFingerprint !== computeVideoSourceReferencesFingerprint(projectSource.brief.sourceReferences) || renderPlan.semanticTimingFrameCount !== timing.durationInFrames || renderPlan.frameCount !== getStoryCompositionDurationInFrames(timing.durationInFrames)) {
+if (readabilityPolicy.width !== render.width || readabilityPolicy.height !== render.height || storyId !== expectedStoryId || renderPlan.storyId !== storyId || render.fps !== timing.fps || renderPlan.timelinePolicyVersion !== STORY_COMPOSITION_TIMELINE_VERSION || renderPlan.sourceReferencesFingerprint !== computeVideoSourceReferencesFingerprint(projectSource.brief.sourceReferences) || renderPlan.semanticTimingFrameCount !== timing.durationInFrames || renderPlan.frameCount !== getStoryCompositionDurationInFrames(timing.durationInFrames) || renderPlan.soundProjectionFingerprint !== productionSoundDesignProjection.soundDesignProjectionFingerprint) {
   throw new Error("Production render Composition identity is stale.");
 }
 ${globalVisualSetup}${narrationIdentityCheck}const completeAudioLocalPath = ${completeAudioExpression};
@@ -591,7 +572,6 @@ export default ${componentName};
 
 export const renderProductionRenderProjectScaffold = (input: {
   readonly storyId: string;
-  readonly sceneLocalSoundPresent: boolean;
 }) =>
   renderProductionRenderProjectScaffoldVariant({
     ...input,
@@ -601,7 +581,6 @@ export const renderProductionRenderProjectScaffold = (input: {
 
 const renderPreMasteringProductionRenderProjectScaffold = (input: {
   readonly storyId: string;
-  readonly sceneLocalSoundPresent: boolean;
 }) =>
   renderProductionRenderProjectScaffoldVariant({
     ...input,
@@ -611,7 +590,6 @@ const renderPreMasteringProductionRenderProjectScaffold = (input: {
 
 const renderLegacyPropsProductionRenderProjectScaffold = (input: {
   readonly storyId: string;
-  readonly sceneLocalSoundPresent: boolean;
 }) =>
   renderProductionRenderProjectScaffoldVariant({
     ...input,
@@ -621,7 +599,6 @@ const renderLegacyPropsProductionRenderProjectScaffold = (input: {
 
 const renderLegacyNoPropsProductionRenderProjectScaffold = (input: {
   readonly storyId: string;
-  readonly sceneLocalSoundPresent: boolean;
 }) =>
   renderProductionRenderProjectScaffoldVariant({
     ...input,
@@ -631,7 +608,6 @@ const renderLegacyNoPropsProductionRenderProjectScaffold = (input: {
 
 const renderPreMasteringLegacyPropsProductionRenderProjectScaffold = (input: {
   readonly storyId: string;
-  readonly sceneLocalSoundPresent: boolean;
 }) =>
   renderProductionRenderProjectScaffoldVariant({
     ...input,
@@ -641,7 +617,6 @@ const renderPreMasteringLegacyPropsProductionRenderProjectScaffold = (input: {
 
 const renderPreMasteringLegacyNoPropsProductionRenderProjectScaffold = (input: {
   readonly storyId: string;
-  readonly sceneLocalSoundPresent: boolean;
 }) =>
   renderProductionRenderProjectScaffoldVariant({
     ...input,
@@ -653,13 +628,11 @@ export const ensureProductionRenderScaffold = async ({
   rootDir,
   storyId,
   meaningIds,
-  sceneLocalSoundPresent,
   mode,
 }: {
   readonly rootDir: string;
   readonly storyId: string;
   readonly meaningIds: readonly string[];
-  readonly sceneLocalSoundPresent: boolean;
   readonly mode: "write" | "check";
 }) => {
   const projectRoot = join(
@@ -683,7 +656,6 @@ export const ensureProductionRenderScaffold = async ({
   const destination = join(projectRoot, "Composition.tsx");
   const expected = renderProductionRenderProjectScaffold({
     storyId,
-    sceneLocalSoundPresent,
   });
   if (mode === "check") {
     if ((await readFile(destination, "utf8")) !== expected) {
@@ -696,28 +668,23 @@ export const ensureProductionRenderScaffold = async ({
   const legacyRenderScaffold = renderLegacyPropsProductionRenderProjectScaffold(
     {
       storyId,
-      sceneLocalSoundPresent,
     },
   );
   const legacyNoPropsRenderScaffold =
     renderLegacyNoPropsProductionRenderProjectScaffold({
       storyId,
-      sceneLocalSoundPresent,
     });
   const preMasteringRenderScaffold =
     renderPreMasteringProductionRenderProjectScaffold({
       storyId,
-      sceneLocalSoundPresent,
     });
   const preMasteringLegacyRenderScaffold =
     renderPreMasteringLegacyPropsProductionRenderProjectScaffold({
       storyId,
-      sceneLocalSoundPresent,
     });
   const preMasteringLegacyNoPropsRenderScaffold =
     renderPreMasteringLegacyNoPropsProductionRenderProjectScaffold({
       storyId,
-      sceneLocalSoundPresent,
     });
   if (
     current !== expected &&

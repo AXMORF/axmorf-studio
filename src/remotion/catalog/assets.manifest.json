@@ -16,7 +16,7 @@
       },
       "allowedUse": "runtime-approved",
       "assetKind": "audio",
-      "mediaRole": "scene-sfx",
+      "mediaRole": "sound-effect",
       "localPath": "public/assets/library/scene-templates/axmorf-brand-reveal-chime.wav",
       "checksum": "sha256:739069dd51389ebac5704cdcd4b16ef43abc458a268931ab5817b834c1f2c475",
       "license": {
@@ -49,7 +49,7 @@
       },
       "allowedUse": "runtime-approved",
       "assetKind": "audio",
-      "mediaRole": "scene-sfx",
+      "mediaRole": "sound-effect",
       "localPath": "public/assets/library/scene-templates/axmorf-source-follow-chime.wav",
       "checksum": "sha256:7140b3c599b3656e5c3ee26c9c127a5d6a8deb26a336c67574114e4fdbe355b0",
       "license": {
@@ -73,7 +73,7 @@
       "kind": "asset",
       "status": "approved",
       "title": "Scene runtime proof pulse",
-      "description": "Project-authored mono PCM pulse for the synthetic Scene-local sound proof.",
+      "description": "Project-authored mono PCM pulse for the synthetic sound contribution proof.",
       "useCases": ["synthetic scene cue"],
       "tags": ["proof", "scene-runtime", "sfx"],
       "authority": {
@@ -82,7 +82,7 @@
       },
       "allowedUse": "runtime-approved",
       "assetKind": "audio",
-      "mediaRole": "scene-sfx",
+      "mediaRole": "sound-effect",
       "localPath": "public/assets/library/scene-runtime-proof/proof-pulse.wav",
       "checksum": "sha256:187da07a941e050db15e5fe2e8e7aed327a3f796fda894125ae1b504e210c1a7",
       "license": {

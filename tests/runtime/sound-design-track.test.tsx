@@ -4,10 +4,12 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
+  buildProjectSoundPlan,
   buildSceneCoverageMap,
   buildSceneFallbackDeclaration,
+  computeResourceDescriptorFingerprint,
 } from "../../src/contracts";
-import { SceneSoundContribution } from "../../src/remotion/runtime/scene-sound";
+import { SoundContribution } from "../../src/remotion/runtime/sound-design";
 import {
   SoundDesignTrack,
   buildSoundDesignProjection,
@@ -51,7 +53,7 @@ test("SoundDesignTrack follows ready and fallback Beat order", () => {
   const children = Children.toArray(node.props.children);
   assert.equal(
     children.filter(
-      (child) => isValidElement(child) && child.type === SceneSoundContribution,
+      (child) => isValidElement(child) && child.type === SoundContribution,
     ).length,
     1,
   );
@@ -102,6 +104,141 @@ test("Sound design rejects missing stale duplicate and mismatched Scene projecti
       ],
       sceneSoundProjections: [fixture.projection, fixture.projection],
     }),
+  );
+});
+
+test("one looping background-music contribution spans narrated content but excludes silent boundaries", () => {
+  const fixture = createSoundRuntimeFixture();
+  const fallbacks = ["configured-intro", "meaning-two", "configured-outro"].map(
+    (meaningId, index) =>
+      buildSceneFallbackDeclaration({
+        taskInputFingerprint: `sha256:${String(index + 3).repeat(64)}`,
+        meaningId,
+        reason: "Explicit transparent fallback.",
+      }),
+  );
+  const coverage = buildSceneCoverageMap({
+    storyId: "synthetic-proof",
+    storyBeatOrder: [
+      "configured-intro",
+      "meaning-one",
+      "meaning-two",
+      "configured-outro",
+    ],
+    packages: [fixture.scenePackage],
+    fallbacks,
+    stalePackages: [],
+  });
+  const descriptor = {
+    ...fixture.descriptor,
+    id: "asset.synthetic-proof.background-music",
+    title: "Background music",
+    description: "Project-local background music.",
+    useCases: ["background music"],
+    tags: ["background-music", "proof"],
+    mediaRole: "background-music",
+    localPath: "public/projects/synthetic-proof/sound/background-music.mp3",
+  } as const;
+  const projectSoundPlan = buildProjectSoundPlan({
+    storyId: "synthetic-proof",
+    contributions: [
+      {
+        contributionId: "background-music",
+        resourceId: descriptor.id,
+        descriptorFingerprint: computeResourceDescriptorFingerprint(descriptor),
+        volume: 0.15,
+        loop: true,
+        playbackScope: "narrated-content",
+      },
+    ],
+  });
+  const projection = buildSoundDesignProjection({
+    storyId: "synthetic-proof",
+    coverage,
+    storyBeatTimings: [
+      {
+        kind: "silent-scene",
+        meaningId: "configured-intro",
+        startFrame: 0,
+        endFrame: 20,
+      },
+      {
+        kind: "narrated-scene",
+        meaningId: "meaning-one",
+        startFrame: 20,
+        endFrame: 140,
+      },
+      {
+        kind: "narrated-scene",
+        meaningId: "meaning-two",
+        startFrame: 140,
+        endFrame: 180,
+      },
+      {
+        kind: "silent-scene",
+        meaningId: "configured-outro",
+        startFrame: 180,
+        endFrame: 220,
+      },
+    ],
+    sceneSoundProjections: [fixture.projection],
+    projectSoundPlan,
+    projectSoundResources: [descriptor],
+  });
+  assert.deepEqual(
+    projection.contributions.find(
+      ({ contributionId }) => contributionId === "project:background-music",
+    ),
+    {
+      contributionId: "project:background-music",
+      resourceId: descriptor.id,
+      publicPath: descriptor.localPath,
+      checksum: descriptor.checksum,
+      startFrame: 20,
+      endFrame: 180,
+      volume: 0.15,
+      loop: true,
+    },
+  );
+  assert.throws(
+    () =>
+      buildSoundDesignProjection({
+        storyId: "synthetic-proof",
+        coverage,
+        storyBeatTimings: [
+          {
+            kind: "silent-scene",
+            meaningId: "configured-intro",
+            startFrame: 0,
+            endFrame: 20,
+          },
+          {
+            kind: "narrated-scene",
+            meaningId: "meaning-one",
+            startFrame: 20,
+            endFrame: 140,
+          },
+          {
+            kind: "narrated-scene",
+            meaningId: "meaning-two",
+            startFrame: 140,
+            endFrame: 180,
+          },
+          {
+            kind: "silent-scene",
+            meaningId: "configured-outro",
+            startFrame: 180,
+            endFrame: 220,
+          },
+        ],
+        sceneSoundProjections: [fixture.projection],
+        projectSoundPlan,
+        projectSoundResources: [
+          descriptor,
+          { ...descriptor, id: "asset.synthetic-proof.unselected-music" },
+        ],
+      }),
+    /resources do not exactly match/iu,
   );
 });
 

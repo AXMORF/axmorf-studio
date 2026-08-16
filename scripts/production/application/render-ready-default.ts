@@ -7,6 +7,7 @@ import {
   NarrativeAutoCheckReportSchema,
   ProductionRenderPlanSchema,
   ProductionRenderReadySchema,
+  ProjectSoundPlanSchema,
   RenderSpecSchema,
   SceneCoverageMapSchema,
   ScenePackageSchema,
@@ -340,37 +341,70 @@ export const prepareProductionRenderPlan = async ({
         syncAnchors: anchors,
         resources: resources.selectedResources.filter(
           ({ selected }) =>
-            selected.role === "scene-ambience" || selected.role === "scene-sfx",
+            selected.role === "sound-effect" ||
+            selected.role === "background-music",
         ),
       }),
     );
   }
+  const projectSound = ProjectSoundPlanSchema.parse(
+    resolved.inputs.current.source.projectSound,
+  );
+  const projectSoundResourceIds = new Set(
+    projectSound.contributions.map(({ resourceId }) => resourceId),
+  );
   const soundProjection = buildSoundDesignProjection({
     storyId,
     coverage,
     storyBeatTimings: sources.timing.storyBeats,
     sceneSoundProjections,
+    projectSoundPlan: projectSound,
+    projectSoundResources: resolved.inputs.catalog.entries
+      .map(({ descriptor }) => descriptor)
+      .filter(
+        (descriptor) =>
+          descriptor.kind === "asset" &&
+          descriptor.mediaRole === "background-music" &&
+          projectSoundResourceIds.has(descriptor.id),
+      ),
   });
-  const sceneLocalSoundPresent = sceneSoundProjections.some(
-    ({ contributions }) => contributions.length > 0,
-  );
+  const soundResources = soundProjection.contributions
+    .filter(({ contributionId }) => contributionId.startsWith("project:"))
+    .map(({ resourceId }) => {
+      const entry = resolved.inputs.catalog.entries.find(
+        ({ descriptor }) => descriptor.id === resourceId,
+      );
+      if (
+        entry === undefined ||
+        entry.descriptor.kind !== "asset" ||
+        entry.descriptor.mediaRole !== "background-music"
+      ) {
+        throw new Error("Project background music Catalog identity is stale.");
+      }
+      return {
+        schemaVersion: 1 as const,
+        resourceId: entry.descriptor.id,
+        kind: "asset" as const,
+        role: "background-music" as const,
+        descriptorFingerprint: entry.descriptorFingerprint,
+        catalogFingerprint: resolved.inputs.catalog.catalogFingerprint,
+      };
+    });
+  const soundPresent = soundProjection.contributions.length > 0;
   if (
-    sceneLocalSoundPresent &&
-    resolved.inputs.current.requirements.enhancementSelection
-      .sceneLocalSound === "none"
+    soundPresent &&
+    resolved.inputs.current.requirements.enhancementSelection.sound === "none"
   ) {
-    throw new Error("Scene-local sound violates current requirements.");
+    throw new Error("Sound violates current requirements.");
   }
   const scaffold = await ensureProductionRenderScaffold({
     rootDir,
     storyId,
     meaningIds: resolved.assignments.map(({ meaningId }) => meaningId),
-    sceneLocalSoundPresent,
     mode,
   });
   const expectedSource = renderProductionRenderProjectScaffold({
     storyId,
-    sceneLocalSoundPresent,
   });
   if (scaffold.source !== expectedSource) {
     throw new Error("Production render Composition source drifted.");
@@ -397,8 +431,9 @@ export const prepareProductionRenderPlan = async ({
     })),
     rendererRegistryFingerprint: registry.registryFingerprint,
     storyVisualProjectionFingerprint: visualProjection.projectionFingerprint,
-    sceneSoundProjectionFingerprint:
+    soundProjectionFingerprint:
       soundProjection.soundDesignProjectionFingerprint,
+    soundResources,
     globalVisual: {
       assignmentFingerprint:
         currentGlobalVisual.assignment.assignmentFingerprint,
@@ -423,7 +458,7 @@ export const prepareProductionRenderPlan = async ({
       sources.timing.durationInFrames,
     ),
     layerOrder: ["global-visual", "story-visual", "narrative-core"],
-    mixOrder: ["narration", "scene-local-sound"],
+    mixOrder: ["narration", "sound-contributions"],
     remotionVersion: "4.0.489",
   });
   await writeOrCheckSceneArtifact({

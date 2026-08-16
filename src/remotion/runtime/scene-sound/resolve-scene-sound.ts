@@ -6,7 +6,7 @@ import {
 import {
   SceneSoundPlanSchema,
   SceneSyncAnchorSetSchema,
-  resolveSceneSoundCues,
+  resolveSceneSoundContributions,
 } from "../../../contracts/scene-plan";
 import {
   ResourceAssetDescriptorSchema,
@@ -19,7 +19,6 @@ import type { Sha256Digest } from "../../../contracts/primitives";
 
 export type SceneSoundContributionValue = Readonly<{
   contributionId: string;
-  kind: "ambience" | "cue";
   resourceId: string;
   publicPath: string;
   checksum: Sha256Digest;
@@ -37,7 +36,7 @@ export type SceneSoundProjection = Readonly<{
   packageFingerprint: Sha256Digest;
   sceneSoundFingerprint: Sha256Digest;
   contributions: readonly SceneSoundContributionValue[];
-  runtimeVersion: "scene-audio-runtime-v1";
+  runtimeVersion: "scene-audio-runtime-v2";
   sceneSoundProjectionFingerprint: Sha256Digest;
 }>;
 
@@ -65,7 +64,7 @@ const resolveResource = ({
   });
   if (
     current.kind !== "asset" ||
-    (current.role !== "scene-ambience" && current.role !== "scene-sfx")
+    (current.role !== "sound-effect" && current.role !== "background-music")
   ) {
     throw new Error("Scene sound must resolve a current local audio asset.");
   }
@@ -107,7 +106,7 @@ export const resolveSceneSound = ({
   }
   const selectedSoundResources = scenePackage.selectedResources.filter(
     (resource) =>
-      resource.role === "scene-ambience" || resource.role === "scene-sfx",
+      resource.role === "sound-effect" || resource.role === "background-music",
   );
   if (
     scenePackage.sceneSoundFingerprint !==
@@ -149,14 +148,12 @@ export const resolveSceneSound = ({
   }
   const toContribution = ({
     contributionId,
-    kind,
     selected,
     startFrame,
     endFrame,
     volume,
   }: {
     readonly contributionId: string;
-    readonly kind: "ambience" | "cue";
     readonly selected: SelectedResourceRef;
     readonly startFrame: number;
     readonly endFrame: number;
@@ -181,7 +178,6 @@ export const resolveSceneSound = ({
     }
     return {
       contributionId,
-      kind,
       resourceId: selected.resourceId,
       publicPath: resource.descriptor.localPath,
       checksum: resource.descriptor.checksum,
@@ -190,35 +186,27 @@ export const resolveSceneSound = ({
       volume,
     };
   };
-  const resolvedCues = resolveSceneSoundCues({ soundPlan, syncAnchors });
-  const contributions: SceneSoundContributionValue[] = [
-    ...(soundPlan.ambience
-      ? [
-          toContribution({
-            contributionId: "ambience",
-            kind: "ambience",
-            selected: soundPlan.ambience,
-            startFrame: 0,
-            endFrame: durationInFrames,
-            volume: 1,
-          }),
-        ]
-      : []),
-    ...soundPlan.cues.map((cue, index) => {
-      const frames = resolvedCues[index];
-      if (frames === undefined || frames.cueId !== cue.cueId) {
-        throw new Error("Scene sound cue resolution order is stale.");
+  const resolvedContributions = resolveSceneSoundContributions({
+    soundPlan,
+    syncAnchors,
+  });
+  const contributions: SceneSoundContributionValue[] =
+    soundPlan.contributions.map((contribution, index) => {
+      const frames = resolvedContributions[index];
+      if (
+        frames === undefined ||
+        frames.contributionId !== contribution.contributionId
+      ) {
+        throw new Error("Scene sound contribution resolution order is stale.");
       }
       return toContribution({
-        contributionId: cue.cueId,
-        kind: "cue",
-        selected: cue.resource,
+        contributionId: contribution.contributionId,
+        selected: contribution.resource,
         startFrame: frames.startFrame,
         endFrame: frames.endFrame,
-        volume: cue.volume,
+        volume: contribution.volume,
       });
-    }),
-  ];
+    });
   const identity = {
     schemaVersion: 1 as const,
     storyId: scenePackage.storyId,

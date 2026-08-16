@@ -7,8 +7,8 @@ import {
   FINAL_MECHANICAL_CHECK_IDS,
   FINAL_MECHANICAL_CHECK_V2_IDS,
   FinalAssemblyPlanSchema,
-  GlobalSoundPlanSchema,
   GlobalVisualPlanSchema,
+  ProjectSoundPlanSchema,
   ReferenceFidelityReceiptSchema,
   ReferenceFidelityReviewSchema,
   ResourceCatalogSchema,
@@ -67,12 +67,10 @@ type FinalStatus = "pass" | "fail" | "not-applicable";
 
 type AssemblyCheckId = Extract<
   FinalMechanicalCheckV2Id,
-  "global-sound" | "global-visual" | "final-assembly"
+  "global-visual" | "final-assembly"
 >;
 
 export type FinalAssemblyBranchResult = Readonly<{
-  globalSoundPlanFingerprint: string | null;
-  finalSoundProjectionFingerprint: string | null;
   globalVisualPlanFingerprint: string | null;
   globalVisualProjectionFingerprint: string | null;
   finalAssemblyFingerprint: string | null;
@@ -182,11 +180,7 @@ export const selectCurrentSceneResourceCatalog = <
   });
 };
 
-const FINAL_OWNED_MEDIA_ROLES = new Set([
-  "global-bgm",
-  "cross-scene-ambience",
-  "global-visual",
-]);
+const FINAL_OWNED_MEDIA_ROLES = new Set(["background-music", "global-visual"]);
 
 export const derivePreFinalSceneCatalog = (rawCatalog: unknown) => {
   const catalog = ResourceCatalogSchema.parse(rawCatalog);
@@ -518,7 +512,8 @@ export const loadCurrentFinalSceneBranch = async ({
         syncAnchors: anchors,
         resources: selectedResources.filter(
           ({ selected }) =>
-            selected.role === "scene-ambience" || selected.role === "scene-sfx",
+            selected.role === "sound-effect" ||
+            selected.role === "background-music",
         ),
       }),
     );
@@ -647,11 +642,29 @@ export const loadCurrentFinalSceneBranch = async ({
       registryFingerprint: registry.registryFingerprint,
       transitions: hardCuts,
     });
+    const projectSound = ProjectSoundPlanSchema.parse(
+      await loadProjectCheckJson(
+        projectArtifactPath(rootDir, paths.storyId, "sound.json"),
+        "sound.json",
+      ),
+    );
+    const projectSoundResourceIds = new Set(
+      projectSound.contributions.map(({ resourceId }) => resourceId),
+    );
     const soundProjection = buildSoundDesignProjection({
       storyId: paths.storyId,
       coverage,
       storyBeatTimings: semanticTiming.storyBeats,
       sceneSoundProjections: soundProjections,
+      projectSoundPlan: projectSound,
+      projectSoundResources: catalog.entries
+        .map(({ descriptor }) => descriptor)
+        .filter(
+          (descriptor) =>
+            descriptor.kind === "asset" &&
+            descriptor.mediaRole === "background-music" &&
+            projectSoundResourceIds.has(descriptor.id),
+        ),
     });
     result.storyVisualProjectionFingerprint =
       visualProjection.projectionFingerprint;
@@ -719,18 +732,14 @@ const failureReason = (error: unknown) => {
 const failedAssemblyBranch = (): FinalAssemblyBranchResult => {
   const missing = new Error("Required final mechanical artifact is missing.");
   return {
-    globalSoundPlanFingerprint: null,
-    finalSoundProjectionFingerprint: null,
     globalVisualPlanFingerprint: null,
     globalVisualProjectionFingerprint: null,
     finalAssemblyFingerprint: null,
     checkStatuses: {
-      "global-sound": "fail",
       "global-visual": "fail",
       "final-assembly": "fail",
     },
     checkErrors: {
-      "global-sound": missing,
       "global-visual": missing,
       "final-assembly": missing,
     },
@@ -765,7 +774,6 @@ export const loadCurrentFinalAssemblyBranch = async ({
   const result = failedAssemblyBranch();
   const statuses = { ...result.checkStatuses };
   const errors = { ...result.checkErrors };
-  let globalSound: ReturnType<typeof GlobalSoundPlanSchema.parse> | null = null;
   let globalVisual: ReturnType<typeof GlobalVisualPlanSchema.parse> | null =
     null;
   let assembly: ReturnType<typeof FinalAssemblyPlanSchema.parse> | null = null;
@@ -784,29 +792,7 @@ export const loadCurrentFinalAssemblyBranch = async ({
       ),
     );
   } catch (error) {
-    errors["global-sound"] = error;
     errors["global-visual"] = error;
-  }
-
-  try {
-    globalSound = GlobalSoundPlanSchema.parse(
-      await loadProjectCheckJson(
-        projectArtifactPath(rootDir, projectId, "global-sound-plan.json"),
-        "global-sound-plan.json",
-      ),
-    );
-    if (
-      globalSound.storyId !== projectId ||
-      assemblyCatalog === null ||
-      globalSound.catalogFingerprint !== assemblyCatalog.catalogFingerprint
-    ) {
-      throw new Error(
-        "GlobalSoundPlan identity does not match current project.",
-      );
-    }
-    statuses["global-sound"] = "pass";
-  } catch (error) {
-    errors["global-sound"] = error;
   }
 
   try {
@@ -842,10 +828,8 @@ export const loadCurrentFinalAssemblyBranch = async ({
       ),
     );
     if (
-      globalSound === null ||
       globalVisual === null ||
       assembly.storyId !== projectId ||
-      assembly.globalSoundPlanFingerprint !== globalSound.planFingerprint ||
       assembly.globalVisualPlanFingerprint !== globalVisual.planFingerprint ||
       assemblyCatalog === null ||
       assembly.resourceCatalogFingerprint !==
@@ -871,9 +855,6 @@ export const loadCurrentFinalAssemblyBranch = async ({
   }
 
   return {
-    globalSoundPlanFingerprint: globalSound?.planFingerprint ?? null,
-    finalSoundProjectionFingerprint:
-      assembly?.finalSoundProjectionFingerprint ?? null,
     globalVisualPlanFingerprint: globalVisual?.planFingerprint ?? null,
     globalVisualProjectionFingerprint:
       assembly?.globalVisualProjectionFingerprint ?? null,
@@ -920,11 +901,7 @@ export const checkFinalSourceHealth = async ({
     sceneBranch,
     includeMediaEvidence: false,
   });
-  for (const checkId of [
-    "global-sound",
-    "global-visual",
-    "final-assembly",
-  ] as const) {
+  for (const checkId of ["global-visual", "final-assembly"] as const) {
     if (assemblyBranch.checkStatuses[checkId] !== "pass") {
       throw new Error(`Final source assembly check failed: ${checkId}.`, {
         cause: assemblyBranch.checkErrors[checkId],
@@ -1099,9 +1076,6 @@ export const runFinalMechanicalCheck = async ({
       soundDesignProjectionFingerprint:
         sceneBranch.soundDesignProjectionFingerprint,
       compositionAssemblyChecksum: sceneBranch.compositionAssemblyChecksum,
-      globalSoundPlanFingerprint: assemblyBranch.globalSoundPlanFingerprint,
-      finalSoundProjectionFingerprint:
-        assemblyBranch.finalSoundProjectionFingerprint,
       globalVisualPlanFingerprint: assemblyBranch.globalVisualPlanFingerprint,
       globalVisualProjectionFingerprint:
         assemblyBranch.globalVisualProjectionFingerprint,

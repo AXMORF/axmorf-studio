@@ -72,6 +72,7 @@ export const loadDeliveryAssetAttributions = async ({
     selectedResources: [
       ...scenePackages.flatMap(({ selectedResources }) => selectedResources),
       ...globalVisualPackage.selectedResources,
+      ...renderPlan.soundResources,
     ],
   });
 };

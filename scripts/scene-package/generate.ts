@@ -152,7 +152,7 @@ export const generateScenePackageFromProjectFiles = async ({
         ),
         rendererSourceFingerprint,
         visualRuntimeVersion: "story-visual-runtime-v2",
-        sceneAudioRuntimeVersion: "scene-audio-runtime-v1",
+        sceneAudioRuntimeVersion: "scene-audio-runtime-v2",
       },
     },
   });

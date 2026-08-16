@@ -60,9 +60,11 @@ const createCompileFixture = async () => {
   await Promise.all(
     [
       "brief.json",
+      "assets.manifest.json",
       "global-visual-plan.json",
       "narration.json",
       "render.json",
+      "sound.json",
       "story.json",
       "production/requirements.json",
       "generated/global-visual-projection.generated.json",
@@ -76,6 +78,7 @@ const createCompileFixture = async () => {
     join(projectRoot, "production-scene-runtime.generated.ts"),
     `export const productionRendererPropsByMeaning = {};
 export const productionRendererRegistry = {};
+export const productionSoundDesignProjection = {} as import("../../remotion/runtime/sound-design").SoundDesignProjection;
 export const productionStoryVisualProjection = {} as never;
 `,
   );
@@ -92,7 +95,6 @@ export const productionStoryVisualProjection = {} as never;
     compositionPath,
     renderProductionRenderProjectScaffold({
       storyId: "story-example",
-      sceneLocalSoundPresent: false,
     }),
   );
   return { rootDir, compositionPath } as const;

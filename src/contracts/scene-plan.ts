@@ -267,18 +267,16 @@ export const buildSceneSyncAnchors = (
   });
 };
 
-const SceneAmbienceRefSchema = SelectedResourceRefSchema.refine(
-  (resource) => resource.kind === "asset" && resource.role === "scene-ambience",
-  "Ambience must use a Scene ambience asset.",
-);
 const SceneSfxRefSchema = SelectedResourceRefSchema.refine(
-  (resource) => resource.kind === "asset" && resource.role === "scene-sfx",
-  "Sound cues must use Scene SFX assets.",
+  (resource) =>
+    resource.kind === "asset" &&
+    (resource.role === "sound-effect" || resource.role === "background-music"),
+  "Sound contributions must use Scene SFX assets.",
 );
 
-const SoundCueSchema = z
+const SceneSoundContributionSchema = z
   .object({
-    cueId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    contributionId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     resource: SceneSfxRefSchema,
     timing: z.discriminatedUnion("kind", [
       z
@@ -305,12 +303,11 @@ const SoundCueSchema = z
 
 const SoundPlanInputSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     taskInputFingerprint: Sha256DigestSchema,
     meaningId: MeaningIdSchema,
     sceneDurationInFrames: PositiveIntegerSchema,
-    ambience: SceneAmbienceRefSchema.nullable(),
-    cues: z.array(SoundCueSchema).max(128).readonly(),
+    contributions: z.array(SceneSoundContributionSchema).max(128).readonly(),
   })
   .strict();
 
@@ -319,11 +316,14 @@ export const SceneSoundPlanSchema = SoundPlanInputSchema.extend({
 })
   .strict()
   .superRefine((plan, context) => {
-    if (new Set(plan.cues.map((cue) => cue.cueId)).size !== plan.cues.length) {
+    if (
+      new Set(plan.contributions.map(({ contributionId }) => contributionId))
+        .size !== plan.contributions.length
+    ) {
       context.addIssue({
         code: "custom",
-        message: "Scene sound cue IDs must be unique.",
-        path: ["cues"],
+        message: "Scene sound contribution IDs must be unique.",
+        path: ["contributions"],
       });
     }
     const input = omitFingerprint(plan, "soundPlanFingerprint");
@@ -341,17 +341,16 @@ export const SceneSoundPlanSchema = SoundPlanInputSchema.extend({
 
 export const buildSceneSoundPlan = (
   rawInput: Omit<z.input<typeof SoundPlanInputSchema>, "schemaVersion"> & {
-    readonly schemaVersion?: 1;
+    readonly schemaVersion?: 2;
     readonly soundPlanFingerprint?: unknown;
   },
 ) => {
   const input = SoundPlanInputSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
     taskInputFingerprint: rawInput.taskInputFingerprint,
     meaningId: rawInput.meaningId,
     sceneDurationInFrames: rawInput.sceneDurationInFrames,
-    ambience: rawInput.ambience,
-    cues: rawInput.cues,
+    contributions: rawInput.contributions,
   });
   return SceneSoundPlanSchema.parse({
     ...input,
@@ -359,7 +358,7 @@ export const buildSceneSoundPlan = (
   });
 };
 
-export const resolveSceneSoundCues = ({
+export const resolveSceneSoundContributions = ({
   soundPlan: rawSoundPlan,
   syncAnchors: rawSyncAnchors,
 }: {
@@ -381,28 +380,34 @@ export const resolveSceneSoundCues = ({
       anchor.sceneLocalFrame,
     ]),
   );
-  return soundPlan.cues.map((cue) => {
+  return soundPlan.contributions.map((contribution) => {
     const startFrame =
-      cue.timing.kind === "explicit"
-        ? cue.timing.sceneLocalFrame
+      contribution.timing.kind === "explicit"
+        ? contribution.timing.sceneLocalFrame
         : (() => {
-            const anchorFrame = anchorFrames.get(cue.timing.eventId);
+            const anchorFrame = anchorFrames.get(contribution.timing.eventId);
             if (anchorFrame === undefined) {
               throw new Error(
-                `Sound cue anchor is missing: ${cue.timing.eventId}.`,
+                `Sound contribution anchor is missing: ${contribution.timing.eventId}.`,
               );
             }
-            return anchorFrame + cue.timing.offsetFrames;
+            return anchorFrame + contribution.timing.offsetFrames;
           })();
-    const endFrame = startFrame + cue.durationInFrames;
+    const endFrame = startFrame + contribution.durationInFrames;
     if (
       !Number.isSafeInteger(startFrame) ||
       startFrame < 0 ||
       endFrame > soundPlan.sceneDurationInFrames
     ) {
-      throw new Error(`Sound cue exceeds the Scene range: ${cue.cueId}.`);
+      throw new Error(
+        `Sound contribution exceeds the Scene range: ${contribution.contributionId}.`,
+      );
     }
-    return { cueId: cue.cueId, startFrame, endFrame };
+    return {
+      contributionId: contribution.contributionId,
+      startFrame,
+      endFrame,
+    };
   });
 };
 
@@ -455,8 +460,9 @@ export const validateScenePlanBundle = ({
   const referenced = [
     ...visualPlan.visualResourceIds,
     ...shotPlan.shots.flatMap((shot) => shot.visualResourceIds),
-    ...(soundPlan.ambience ? [soundPlan.ambience.resourceId] : []),
-    ...soundPlan.cues.map((cue) => cue.resource.resourceId),
+    ...soundPlan.contributions.map(
+      (contribution) => contribution.resource.resourceId,
+    ),
   ];
   if (referenced.some((id) => !allowed.has(id))) {
     throw new Error(
@@ -471,7 +477,7 @@ export const validateScenePlanBundle = ({
   ) {
     throw new Error("Shot plan references an undeclared Scene sync anchor.");
   }
-  resolveSceneSoundCues({ soundPlan, syncAnchors });
+  resolveSceneSoundContributions({ soundPlan, syncAnchors });
   return { visualPlan, shotPlan, syncAnchors, soundPlan };
 };
 

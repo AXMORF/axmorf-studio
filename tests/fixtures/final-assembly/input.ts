@@ -21,11 +21,9 @@ export const finalAssemblyInput = () => ({
   rendererRegistryFingerprint: sha("a"),
   storyVisualProjectionFingerprint: sha("b"),
   soundDesignProjectionFingerprint: sha("c"),
-  globalSoundPlanFingerprint: sha("d"),
-  finalSoundProjectionFingerprint: sha("e"),
   globalVisualPlanFingerprint: sha("f"),
   globalVisualProjectionFingerprint: sha("0"),
   compositionSourceChecksum: sha("1"),
   zOrderVersion: "scene-global-visual-caption-v1" as const,
-  mixOrderVersion: "narration-scene-ambience-bgm-v1" as const,
+  mixOrderVersion: "narration-sound-contributions-v1" as const,
 });

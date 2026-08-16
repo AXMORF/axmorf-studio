@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { Children, isValidElement, type ReactNode } from "react";
 import test from "node:test";
-import { Html5Audio, Sequence } from "remotion";
 
 import {
   Sha256DigestSchema,
@@ -17,6 +16,7 @@ import {
 } from "../../src/contracts";
 import { SceneSoundContribution } from "../../src/remotion/runtime/scene-sound/SceneSoundContribution";
 import { resolveSceneSound } from "../../src/remotion/runtime/scene-sound/resolve-scene-sound";
+import { SoundContribution } from "../../src/remotion/runtime/sound-design";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
 import { createScenePackageInput } from "../fixtures/scene/package-input";
 import { createSoundRuntimeFixture } from "../fixtures/scene/sound-runtime";
@@ -27,7 +27,6 @@ test("Scene sound resolves current selected local audio and exact anchor ranges"
   assert.deepEqual(fixture.projection.contributions, [
     {
       contributionId: "pulse",
-      kind: "cue",
       resourceId: "asset.proof-sfx",
       publicPath: fixture.descriptor.localPath,
       checksum: fixture.descriptor.checksum,
@@ -43,7 +42,7 @@ test("Scene sound resolves current selected local audio and exact anchor ranges"
       status: "blocked",
       allowedUse: "blocked",
     },
-    { ...fixture.descriptor, mediaRole: "global-bgm" },
+    { ...fixture.descriptor, mediaRole: "background-music" },
   ]) {
     assert.throws(() =>
       resolveSceneSound({
@@ -60,9 +59,9 @@ test("Scene sound never clamps cue ranges and empty plans mount no audio", () =>
   const fixture = createSoundRuntimeFixture();
   const invalidSound = buildSceneSoundPlan({
     ...fixture.sound,
-    cues: [
+    contributions: [
       {
-        ...fixture.sound.cues[0],
+        ...fixture.sound.contributions[0],
         timing: { kind: "explicit", sceneLocalFrame: 115 },
         durationInFrames: 10,
       },
@@ -89,25 +88,22 @@ test("Scene sound never clamps cue ranges and empty plans mount no audio", () =>
   assert.equal(SceneSoundContribution({ projection: empty }), null);
 });
 
-test("SceneSoundContribution mounts only fixed local Html5Audio Sequences", () => {
+test("SceneSoundContribution projects each Scene entry through the shared SoundContribution", () => {
   const { projection } = createSoundRuntimeFixture();
   const element = SceneSoundContribution({ projection });
   assert.ok(isValidElement<{ children?: ReactNode }>(element));
   const children = Children.toArray(element.props.children);
   assert.equal(children.length, 1);
-  const sequence = children[0];
+  const contribution = children[0];
   assert.ok(
     isValidElement<{
-      from: number;
-      durationInFrames: number;
-      children?: ReactNode;
-    }>(sequence),
+      contribution: { startFrame: number; endFrame: number; volume: number };
+    }>(contribution),
   );
-  assert.equal(sequence.type, Sequence);
-  assert.equal(sequence.props.from, 76);
-  assert.equal(sequence.props.durationInFrames, 12);
-  assert.ok(isValidElement(sequence.props.children));
-  assert.equal(sequence.props.children.type, Html5Audio);
+  assert.equal(contribution.type, SoundContribution);
+  assert.equal(contribution.props.contribution.startFrame, 76);
+  assert.equal(contribution.props.contribution.endFrame, 88);
+  assert.equal(contribution.props.contribution.volume, 0.5);
 });
 
 test("silent intro uses the ordinary ScenePackage and Scene sound projection", () => {
@@ -198,9 +194,11 @@ test("silent intro uses the ordinary ScenePackage and Scene sound projection", (
   assert.equal(projection.contributions[0]?.startFrame, 56);
   const element = SceneSoundContribution({ projection });
   assert.ok(isValidElement<{ children?: ReactNode }>(element));
-  const sequence = Children.toArray(element.props.children)[0];
-  assert.ok(isValidElement<{ from: number }>(sequence));
-  assert.equal(sequence.props.from, 76);
+  const contribution = Children.toArray(element.props.children)[0];
+  assert.ok(
+    isValidElement<{ contribution: { startFrame: number } }>(contribution),
+  );
+  assert.equal(contribution.props.contribution.startFrame, 76);
 });
 
 test("Scene sound fingerprint ignores visual-only package identity changes", () => {

@@ -17,15 +17,14 @@ import {
   validRenderSpec,
 } from "../fixtures/narrative";
 
-const sha = (character: string) =>
-  `sha256:${character.repeat(64)}` as const;
+const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
 const copiedPreset = (templateId: string, durationInFrames: number) =>
   buildSilentScenePreset({
     presetId: templateId,
     durationInFrames,
     visualIntent: `Render copied template ${templateId}.`,
-    soundIntent: "Use only its copied Scene-local sound.",
+    soundIntent: "Use only its copied sound-effect contribution.",
     resourceIds: [`asset.story-example.${templateId}.chime`],
     implementation: {
       kind: "template-copy",
@@ -185,8 +184,18 @@ test("SemanticTiming uses timeline order rather than intro or outro roles", () =
       startFrame: 15,
       endFrame: 75,
     },
-    { kind: "narrated-scene", meaningId: "opening", startFrame: 75, endFrame: 116 },
-    { kind: "narrated-scene", meaningId: "conclusion", startFrame: 116, endFrame: 144 },
+    {
+      kind: "narrated-scene",
+      meaningId: "opening",
+      startFrame: 75,
+      endFrame: 116,
+    },
+    {
+      kind: "narrated-scene",
+      meaningId: "conclusion",
+      startFrame: 116,
+      endFrame: 144,
+    },
     {
       kind: "silent-scene",
       meaningId: "last-scene",

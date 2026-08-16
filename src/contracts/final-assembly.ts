@@ -1,6 +1,6 @@
-import {z} from "zod";
+import { z } from "zod";
 
-import {createFingerprint} from "./fingerprint";
+import { createFingerprint } from "./fingerprint";
 import {
   CompositionIdSchema,
   PositiveIntegerSchema,
@@ -12,7 +12,7 @@ export const FINAL_ASSEMBLY_PLAN_VERSION = "final-assembly-plan-v1" as const;
 export const FINAL_ASSEMBLY_Z_ORDER_VERSION =
   "scene-global-visual-caption-v1" as const;
 export const FINAL_ASSEMBLY_MIX_ORDER_VERSION =
-  "narration-scene-ambience-bgm-v1" as const;
+  "narration-sound-contributions-v1" as const;
 
 const FinalAssemblyInputObject = z
   .object({
@@ -32,12 +32,14 @@ const FinalAssemblyInputObject = z
     captionCuesFingerprint: Sha256DigestSchema,
     resourceCatalogFingerprint: Sha256DigestSchema,
     sceneCoverageFingerprint: Sha256DigestSchema,
-    scenePackageFingerprints: z.array(Sha256DigestSchema).min(1).max(256).readonly(),
+    scenePackageFingerprints: z
+      .array(Sha256DigestSchema)
+      .min(1)
+      .max(256)
+      .readonly(),
     rendererRegistryFingerprint: Sha256DigestSchema,
     storyVisualProjectionFingerprint: Sha256DigestSchema,
     soundDesignProjectionFingerprint: Sha256DigestSchema,
-    globalSoundPlanFingerprint: Sha256DigestSchema,
-    finalSoundProjectionFingerprint: Sha256DigestSchema,
     globalVisualPlanFingerprint: Sha256DigestSchema,
     globalVisualProjectionFingerprint: Sha256DigestSchema,
     compositionSourceChecksum: Sha256DigestSchema,
@@ -78,10 +80,11 @@ export const createFinalAssemblyFingerprint = (rawInput: unknown) =>
     value: FinalAssemblyPlanInputSchema.parse(rawInput),
   });
 
-export const FinalAssemblyPlanSchema = FinalAssemblyInputObject.unwrap().safeExtend({
-  aggregateStatus: z.literal("pass").default("pass"),
-  finalAssemblyFingerprint: Sha256DigestSchema,
-})
+export const FinalAssemblyPlanSchema = FinalAssemblyInputObject.unwrap()
+  .safeExtend({
+    aggregateStatus: z.literal("pass").default("pass"),
+    finalAssemblyFingerprint: Sha256DigestSchema,
+  })
   .strict()
   .superRefine((plan, context) => {
     const finalAssemblyFingerprint = plan.finalAssemblyFingerprint;

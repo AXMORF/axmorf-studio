@@ -25,7 +25,8 @@ const planInput = {
   ],
   rendererRegistryFingerprint: sha("9"),
   storyVisualProjectionFingerprint: sha("a"),
-  sceneSoundProjectionFingerprint: sha("b"),
+  soundProjectionFingerprint: sha("b"),
+  soundResources: [],
   globalVisual: {
     assignmentFingerprint: sha("c"),
     packageFingerprint: sha("d"),
@@ -44,7 +45,7 @@ const planInput = {
   semanticTimingFrameCount: 120,
   frameCount: 120,
   layerOrder: ["global-visual", "story-visual", "narrative-core"],
-  mixOrder: ["narration", "scene-local-sound"],
+  mixOrder: ["narration", "sound-contributions"],
   remotionVersion: "4.0.489",
 } as const;
 
@@ -52,14 +53,14 @@ test("builds one current render plan and terminal render-ready contract", () => 
   const plan = buildProductionRenderPlan(planInput);
   const ready = buildProductionRenderReady({ plan });
 
-  assert.equal(plan.contractVersion, "production-render-plan-v4");
+  assert.equal(plan.contractVersion, "production-render-plan-v5");
   assert.equal(plan.semanticTimingFrameCount, 120);
   assert.equal(plan.frameCount, 120);
   assert.equal(
     plan.renderPolicy.policyVersion,
     "remotion-detached-h264-aac-v1",
   );
-  assert.equal(ready.contractVersion, "production-render-ready-v4");
+  assert.equal(ready.contractVersion, "production-render-ready-v5");
   assert.equal(ready.status, "render-ready");
   assert.equal(ready.handoff, "awaiting-automatic-delivery");
   assert.equal(ready.renderPlanFingerprint, plan.renderPlanFingerprint);

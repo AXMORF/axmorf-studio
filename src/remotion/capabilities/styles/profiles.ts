@@ -2,7 +2,10 @@ import type { ProducerEffectPresetId } from "../effects";
 import type { ProducerMotionTreatmentId } from "../motion";
 import type { ProducerTransitionSfxRole } from "../sound";
 import type { ProducerTransitionPresetId } from "../transitions";
-import { producerStyleProfileIds, type ProducerStyleProfileId } from "./profile-ids";
+import {
+  producerStyleProfileIds,
+  type ProducerStyleProfileId,
+} from "./profile-ids";
 
 export {
   isProducerStyleProfileId,
@@ -66,7 +69,7 @@ export type ProducerStyleCaptionTreatment = {
 export type ProducerStyleSoundStrategy = {
   readonly signature: string;
   readonly bgm: string;
-  readonly ambience: string;
+  readonly soundEffects: string;
   readonly sfx: string;
   readonly transitionSfx: ProducerTransitionSfxRole;
 };
@@ -107,7 +110,8 @@ export const producerStyleProfiles = [
   {
     id: "editorial-tech",
     label: "Editorial tech",
-    useWhen: "Technical arguments need strong typography, diagrams, and restrained evidence media.",
+    useWhen:
+      "Technical arguments need strong typography, diagrams, and restrained evidence media.",
     palette: {
       background: "#071019",
       surface: "#102536",
@@ -124,12 +128,14 @@ export const producerStyleProfiles = [
       headlineScale: "dominant",
     },
     background: {
-      treatment: "Deep editorial field with one measured grid and restrained edge glow.",
+      treatment:
+        "Deep editorial field with one measured grid and restrained edge glow.",
       materials: ["fine-grid", "diagram-line", "evidence-window"],
     },
     layout: {
       grammar: "asymmetric-editorial",
-      focalStructure: "Large left thesis balanced by one right-side evidence diagram.",
+      focalStructure:
+        "Large left thesis balanced by one right-side evidence diagram.",
       density: "balanced",
       whitespace: "generous",
     },
@@ -155,11 +161,14 @@ export const producerStyleProfiles = [
     sound: {
       signature: "measured-pulse-and-clean-nodes",
       bgm: "Restrained low pulse with generous midrange space for narration.",
-      ambience: "Quiet system room tone.",
+      soundEffects: "Restrained interface and transition effects.",
       sfx: "Sparse node confirmations and diagram joins.",
       transitionSfx: "soft-whoosh",
     },
-    forbiddenDefaults: ["equal-weight dashboard cards", "constant glitch treatment"],
+    forbiddenDefaults: [
+      "equal-weight dashboard cards",
+      "constant glitch treatment",
+    ],
   },
   {
     id: "comic-anime",
@@ -182,12 +191,14 @@ export const producerStyleProfiles = [
       headlineScale: "dominant",
     },
     background: {
-      treatment: "Offset printed panels over halftone paper with directional speed accents.",
+      treatment:
+        "Offset printed panels over halftone paper with directional speed accents.",
       materials: ["halftone", "ink-outline", "speed-line"],
     },
     layout: {
       grammar: "panel-sequence",
-      focalStructure: "One dominant angled panel followed by two subordinate reaction beats.",
+      focalStructure:
+        "One dominant angled panel followed by two subordinate reaction beats.",
       density: "layered",
       whitespace: "structured",
     },
@@ -213,11 +224,14 @@ export const producerStyleProfiles = [
     sound: {
       signature: "panel-hits-and-speed-swishes",
       bgm: "Percussive upbeat rhythm with clear narration gaps.",
-      ambience: "No continuous ambience unless the depicted place requires it.",
+      soundEffects: "Use only effects tied to visible actions.",
       sfx: "Panel hits, short speed swishes, and restrained impact punctuation.",
       transitionSfx: "directional-whoosh",
     },
-    forbiddenDefaults: ["six equal rectangular cards", "continuous camera shake"],
+    forbiddenDefaults: [
+      "six equal rectangular cards",
+      "continuous camera shake",
+    ],
   },
   {
     id: "cinematic-3d",
@@ -240,7 +254,8 @@ export const producerStyleProfiles = [
       headlineScale: "balanced",
     },
     background: {
-      treatment: "Deep stage with motivated key/rim light, atmosphere, and controlled lens depth.",
+      treatment:
+        "Deep stage with motivated key/rim light, atmosphere, and controlled lens depth.",
       materials: ["matte-metal", "volumetric-haze", "light-rim"],
     },
     layout: {
@@ -272,11 +287,14 @@ export const producerStyleProfiles = [
     sound: {
       signature: "low-cinematic-bed-and-weighted-impacts",
       bgm: "Low cinematic bed with slow harmonic movement.",
-      ambience: "Spatial air and room-scale texture matched to the stage.",
+      soundEffects: "Use spatial effects tied to visible stage actions.",
       sfx: "Weighted impacts and material movement tied to camera beats.",
       transitionSfx: "impact-bloom",
     },
-    forbiddenDefaults: ["unmotivated orbit camera", "decorative 3D behind dense text"],
+    forbiddenDefaults: [
+      "unmotivated orbit camera",
+      "decorative 3D behind dense text",
+    ],
   },
   {
     id: "retro-terminal",
@@ -299,12 +317,14 @@ export const producerStyleProfiles = [
       headlineScale: "balanced",
     },
     background: {
-      treatment: "Dark phosphor field with sparse grid, scanlines, and explicit signal windows.",
+      treatment:
+        "Dark phosphor field with sparse grid, scanlines, and explicit signal windows.",
       materials: ["scanline", "pixel-grid", "phosphor-glow"],
     },
     layout: {
       grammar: "terminal-stream",
-      focalStructure: "One command/result stream advances vertically with one active cursor.",
+      focalStructure:
+        "One command/result stream advances vertically with one active cursor.",
       density: "balanced",
       whitespace: "compressed",
     },
@@ -330,7 +350,7 @@ export const producerStyleProfiles = [
     sound: {
       signature: "clocked-sequence-and-signal-chirps",
       bgm: "Clocked minimal sequence with no broadband wash.",
-      ambience: "Low electronic room tone.",
+      soundEffects: "Use restrained electronic action effects.",
       sfx: "Key confirmations, signal chirps, and one error-state accent.",
       transitionSfx: "signal-sweep",
     },
@@ -357,12 +377,14 @@ export const producerStyleProfiles = [
       headlineScale: "balanced",
     },
     background: {
-      treatment: "Neutral editorial field that yields to source media, maps, quotes, and captions.",
+      treatment:
+        "Neutral editorial field that yields to source media, maps, quotes, and captions.",
       materials: ["subtle-grain", "source-frame", "map-line"],
     },
     layout: {
       grammar: "evidence-led",
-      focalStructure: "One dominant source frame with a restrained contextual lower third.",
+      focalStructure:
+        "One dominant source frame with a restrained contextual lower third.",
       density: "balanced",
       whitespace: "structured",
     },
@@ -372,7 +394,8 @@ export const producerStyleProfiles = [
     transitionPreset: { id: "editorial-fade", durationRange: [15, 24] },
     motion: {
       id: "camera-natural",
-      policy: "Use slow source-preserving pushes with explicit context returns.",
+      policy:
+        "Use slow source-preserving pushes with explicit context returns.",
     },
     mediaMix: ["evidence-image", "evidence-video", "map", "quote"],
     three: {
@@ -383,16 +406,20 @@ export const producerStyleProfiles = [
       placement: "lower-third",
       alignment: "left",
       surface: "Source-safe lower third with explicit attribution space.",
-      emphasis: "Prefer names, dates, and source context over decorative emphasis.",
+      emphasis:
+        "Prefer names, dates, and source context over decorative emphasis.",
     },
     sound: {
       signature: "observational-bed-and-location-detail",
       bgm: "Restrained observational score that never sentimentalizes evidence.",
-      ambience: "Location or room tone tied to the visible source.",
+      soundEffects: "Use effects tied to visible locations and actions.",
       sfx: "Only factual interface, archive, or location sounds with provenance.",
       transitionSfx: "soft-whoosh",
     },
-    forbiddenDefaults: ["fabricated screenshot treatment", "dramatic impact on every cut"],
+    forbiddenDefaults: [
+      "fabricated screenshot treatment",
+      "dramatic impact on every cut",
+    ],
   },
   {
     id: "hand-drawn-explainer",
@@ -415,7 +442,8 @@ export const producerStyleProfiles = [
       headlineScale: "dominant",
     },
     background: {
-      treatment: "Warm paper field with visible fibers, imperfect rules, and diagram annotations.",
+      treatment:
+        "Warm paper field with visible fibers, imperfect rules, and diagram annotations.",
       materials: ["paper-fiber", "pencil-line", "marker-accent"],
     },
     layout: {
@@ -447,11 +475,14 @@ export const producerStyleProfiles = [
     sound: {
       signature: "organic-plucks-and-drawn-marks",
       bgm: "Light organic plucks with open space around narration.",
-      ambience: "Very quiet paper and room texture.",
+      soundEffects: "Use quiet paper and drawing action effects.",
       sfx: "Pencil marks, paper turns, and soft diagram confirmations.",
       transitionSfx: "directional-whoosh",
     },
-    forbiddenDefaults: ["perfect UI card grid", "continuous handwritten font body copy"],
+    forbiddenDefaults: [
+      "perfect UI card grid",
+      "continuous handwritten font body copy",
+    ],
   },
 ] as const satisfies readonly ProducerStyleProfile[];
 
@@ -463,7 +494,9 @@ export const assertProducerStyleProfiles = (
   profiles: readonly ProducerStyleProfile[] = producerStyleProfiles,
 ): void => {
   if (profiles.length !== producerStyleProfileIds.length) {
-    throw new Error(`Expected ${producerStyleProfileIds.length} Producer style profiles.`);
+    throw new Error(
+      `Expected ${producerStyleProfileIds.length} Producer style profiles.`,
+    );
   }
 
   const ids = new Set<ProducerStyleProfileId>();
@@ -472,9 +505,12 @@ export const assertProducerStyleProfiles = (
 
   for (const profile of profiles) {
     if (!producerStyleProfileIds.includes(profile.id)) {
-      throw new Error(`Unknown Producer style profile id: ${String(profile.id)}.`);
+      throw new Error(
+        `Unknown Producer style profile id: ${String(profile.id)}.`,
+      );
     }
-    if (ids.has(profile.id)) throw new Error(`Duplicate Producer style profile: ${profile.id}.`);
+    if (ids.has(profile.id))
+      throw new Error(`Duplicate Producer style profile: ${profile.id}.`);
     ids.add(profile.id);
     grammars.add(profile.layout.grammar);
     soundSignatures.add(profile.sound.signature);
@@ -484,7 +520,10 @@ export const assertProducerStyleProfiles = (
     for (const [key, value] of Object.entries(profile.palette)) {
       requireText(value, `${profile.id} palette.${key}`);
     }
-    requireText(profile.typography.headingFamily, `${profile.id} headingFamily`);
+    requireText(
+      profile.typography.headingFamily,
+      `${profile.id} headingFamily`,
+    );
     requireText(profile.typography.bodyFamily, `${profile.id} bodyFamily`);
     if (
       !Number.isFinite(profile.typography.headingWeight) ||
@@ -492,7 +531,10 @@ export const assertProducerStyleProfiles = (
     ) {
       throw new Error(`${profile.id} headingWeight must be positive.`);
     }
-    requireText(profile.background.treatment, `${profile.id} background treatment`);
+    requireText(
+      profile.background.treatment,
+      `${profile.id} background treatment`,
+    );
     requireText(profile.layout.focalStructure, `${profile.id} focalStructure`);
     requireText(profile.motion.policy, `${profile.id} motion policy`);
     requireText(profile.three.rule, `${profile.id} Three.js rule`);
@@ -500,7 +542,10 @@ export const assertProducerStyleProfiles = (
     requireText(profile.captions.emphasis, `${profile.id} caption emphasis`);
     requireText(profile.sound.signature, `${profile.id} sound signature`);
     requireText(profile.sound.bgm, `${profile.id} BGM strategy`);
-    requireText(profile.sound.ambience, `${profile.id} ambience strategy`);
+    requireText(
+      profile.sound.soundEffects,
+      `${profile.id} sound effects strategy`,
+    );
     requireText(profile.sound.sfx, `${profile.id} SFX strategy`);
 
     for (const [label, values] of [
@@ -511,11 +556,15 @@ export const assertProducerStyleProfiles = (
       ["forbidden defaults", profile.forbiddenDefaults],
     ] as const) {
       if (values.length === 0 || values.some((value) => !value.trim())) {
-        throw new Error(`${profile.id} ${label} must contain non-empty entries.`);
+        throw new Error(
+          `${profile.id} ${label} must contain non-empty entries.`,
+        );
       }
     }
     if (profile.forbiddenDefaults.length < 2) {
-      throw new Error(`${profile.id} must declare at least two forbidden defaults.`);
+      throw new Error(
+        `${profile.id} must declare at least two forbidden defaults.`,
+      );
     }
     const [minimum, maximum] = profile.transitionPreset.durationRange;
     if (
@@ -529,16 +578,25 @@ export const assertProducerStyleProfiles = (
   }
 
   if (grammars.size !== profiles.length) {
-    throw new Error("Producer style profiles must use distinct layout grammars.");
+    throw new Error(
+      "Producer style profiles must use distinct layout grammars.",
+    );
   }
   if (soundSignatures.size !== profiles.length) {
-    throw new Error("Producer style profiles must use distinct sound signatures.");
+    throw new Error(
+      "Producer style profiles must use distinct sound signatures.",
+    );
   }
 };
 
-export const getProducerStyleProfile = (id: ProducerStyleProfileId): ProducerStyleProfile => {
-  const profile = producerStyleProfiles.find((candidate) => candidate.id === id);
-  if (!profile) throw new Error(`Unknown Producer style profile: ${String(id)}.`);
+export const getProducerStyleProfile = (
+  id: ProducerStyleProfileId,
+): ProducerStyleProfile => {
+  const profile = producerStyleProfiles.find(
+    (candidate) => candidate.id === id,
+  );
+  if (!profile)
+    throw new Error(`Unknown Producer style profile: ${String(id)}.`);
   return profile;
 };
 

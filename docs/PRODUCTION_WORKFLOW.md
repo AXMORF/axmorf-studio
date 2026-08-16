@@ -2,13 +2,14 @@
 
 > 文档类型：执行流程权威
 >
-> 最后复核：2026-08-15
+> 最后复核：2026-08-16
 
 ## Current-only 主链
 
 ```mermaid
 flowchart TD
-    Inputs["Story inputs + PublishingIntent"] --> Preflight["Host preflight"]
+    Inputs["Story inputs + PublishingIntent"] --> Configure["project:configure + ProjectSoundPlan"]
+    Configure --> Preflight["Host preflight"]
     Preflight --> Narrative["Sealed narration + SemanticTiming"]
     Narrative --> AssetChoice["Local Catalog lookup + optional MCP acquire"]
     AssetChoice --> AssetImport["Project-local asset import"]
@@ -72,8 +73,9 @@ fresh Run。快照只包含安全 ID、数值 policy 与 fingerprint，不包含
 配置页与 Studio 由同一个 `npm run dev` 启动：loopback `:3100` 是配置控制台，`:3101` 是 Remotion
 Studio。可信局域网可显式使用 `npm run dev:lan`，两者通过同一 LAN IP 访问；配置写入仍要求
 Origin/Host 精确同源。私密 JSON、完整 token 和声线路径只允许停留在 ignored 配置与可信页面，
-LAN 端口不得转发到公网。声线与可选 BGM 文件字段只接受仓库相对路径；BGM 当前仅为配置预设，
-`project:configure` 不会把它冻结或挂载到 current `globalSound: none` 的生产路径。
+LAN 端口不得转发到公网。声线与可选 BGM 文件字段只接受仓库相对路径。`project:configure`
+把已配置 BGM 本地化到 Project，封存 checksum、资源描述、独立音量与 `sound.json` identity；
+render-ready 将它作为一个循环 `SoundContribution`，只覆盖首个到最后一个 narrated Scene 的内容窗口。
 
 配置页的“只读环境诊断”复用 metadata-only 声线检查、VoxCPM health/ready 与固定 Remotion browser
 preflight；不生成测试语音、不 warm-up provider，也不修改 Chromium sandbox policy，只返回脱敏
@@ -93,7 +95,7 @@ stock-assets-mcp 的 Pexels image acquisition receipt v1；仓库不依赖其 pa
 `private/reference-assets/assets.manifest.json` 记录 checksum、媒体信息、用途与 `localize-asset` 许可，
 许可 evidence 固定由 ignored `private/reference-assets/MIXKIT_AUDIO_LICENSE.md` 提供并校验 checksum。
 Catalog 在文件存在时合并该 manifest；它不创建虚假 Project，也不改变缺少本地参考库时的
-fresh-clone/bootstrap 行为。它只用于 authoring 查询，不能直接进入 Scene/GlobalSound plan；current
+fresh-clone/bootstrap 行为。它只用于 authoring 查询，不能直接进入 Scene/ProjectSound plan；current
 production 尚未开放外部 audio import，真正使用前必须先实现并通过独立授权的 Project-local audio
 准入。
 Agent 先查 current ResourceCatalog，确需外部图片时 acquire 后运行：
@@ -146,7 +148,7 @@ canonical byte check，缺失或漂移均 fail closed。
 visual/shot/anchor/sound plans、selected resources、empty recipe 与 not-applicable fidelity receipt，
 然后机械 check/submit。返回的 `templateMeaningIds` 不创建 Scene owner 或 receipt；只有
 `ownerMeaningIds` 被派发。silent Scene brief 不接受另行注入的 snapshot card；带 exact cue 的 template 要求
-`sceneLocalSound: allowed`，冲突在 freeze 时直接 fail closed。
+统一 `sound: allowed`，冲突在 freeze 时直接 fail closed。
 
 - Scene owner 制作前必须读取并使用 repository-local
   `.agents/skills/remotion-best-practices/SKILL.md`，同时以 AGENTS、assignment、contracts 与
@@ -175,17 +177,17 @@ result write；events/state、registry/projections/Composition 和 delivery 仍�
 可提前出现，但 watcher 只在 production 已是 render-ready 后执行 Cover fixed check/submit，因此任何
 Cover 缺失或失败都不会把 production 变成 failed，只会阻止 automatic delivery。
 
-watcher 从 immutable N+1 results 投影 Coverage、RendererRegistry、visual/sound projections、
-GlobalVisualProjection、FinalAssembly 与 current Composition。之后构建：
+watcher 从 immutable N+1 results 与冻结的 ProjectSoundPlan 投影 Coverage、RendererRegistry、统一
+visual/sound projections、GlobalVisualProjection、FinalAssembly 与 current Composition。之后构建：
 
-- `production-render-plan-v4`：绑定 story/run、sealed narration、content-addressed mastered
+- `production-render-plan-v5`：绑定 story/run、sealed narration、content-addressed mastered
   narration、Composition/source checksum、`VideoBrief.sourceReferences` fingerprint、width/height、
   fps、`scene-package-timeline-v1`、`semanticTimingFrameCount` 与相等的最终 `frameCount`、
-  layer/mix order 与固定 Remotion policy；
+  完整 sound projection、实际引用的 background-music 资源、layer/mix order 与固定 Remotion policy；
 - `GlobalVisualLayers` 的固定接口是无 Props；plan/projection 由 Composition 顶层解析并校验
   identity，不传给组件。render plan 与最终 Composition current 后，fixed flow 用仓库
   TypeScript/tsconfig 和 `noEmit` 只编译该 Project 的真实 import graph；
-- `production-render-ready-v4`：绑定 plan 及全部 render-critical identities，状态
+- `production-render-ready-v5`：绑定 plan 及全部 render-critical identities，状态
   `render-ready`，handoff `awaiting-automatic-delivery`。
 
 任何类型不兼容都在写入 ProductionRenderReady 前终止当前 Run。

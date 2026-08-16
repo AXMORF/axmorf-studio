@@ -13,6 +13,8 @@ import test from "node:test";
 
 import {
   PublishingIntentSchema,
+  ProjectAssetManifestSchema,
+  ProjectSoundPlanSchema,
   ProductionRequirementsFreezeSchema,
   RenderSpecSchema,
   NarrationSpecSchema,
@@ -56,6 +58,13 @@ const copySceneTemplateInputs = async (rootDir: string) => {
     await mkdir(dirname(destination), { recursive: true });
     await copyFile(join(repositoryRoot, relativePath), destination);
   }
+  await writeJson(join(rootDir, "public/audio/.keep.json"), {
+    purpose: "test fixture directory",
+  });
+  await writeFile(
+    join(rootDir, "public/audio/default-bgm.mp3"),
+    Buffer.from("synthetic background music"),
+  );
   for (const relativePath of [
     "private/reference-assets/scene-template-sound-overrides.json",
     "private/reference-assets/assets.manifest.json",
@@ -112,8 +121,7 @@ const draft = {
   production: {
     enhancementSelection: {
       storyVisual: "required",
-      sceneLocalSound: "allowed",
-      globalSound: "none",
+      sound: "allowed",
       globalVisual: "required",
     },
     resourcePolicy: {
@@ -188,6 +196,14 @@ test("ProducerConfig freezes every production-connected default into one new Pro
       await readFile(join(projectDir, "production/requirements.json"), "utf8"),
     ),
   );
+  const projectSound = ProjectSoundPlanSchema.parse(
+    JSON.parse(await readFile(join(projectDir, "sound.json"), "utf8")),
+  );
+  const assetManifest = ProjectAssetManifestSchema.parse(
+    JSON.parse(
+      await readFile(join(projectDir, "assets.manifest.json"), "utf8"),
+    ),
+  );
 
   assert.equal(narration.voiceProfileId, "my-voice");
   assert.deepEqual(
@@ -207,6 +223,33 @@ test("ProducerConfig freezes every production-connected default into one new Pro
     ),
   });
   assert.equal(requirements.readabilityPolicy.baseEdgeInsetPx, 120);
+  assert.deepEqual(projectSound.contributions, [
+    {
+      contributionId: "background-music",
+      resourceId: "asset.story-example.background-music",
+      descriptorFingerprint:
+        projectSound.contributions[0]?.descriptorFingerprint,
+      volume: 0.15,
+      loop: true,
+      playbackScope: "narrated-content",
+    },
+  ]);
+  const backgroundMusic = assetManifest.assets.find(
+    ({ id }) => id === "asset.story-example.background-music",
+  );
+  assert.equal(backgroundMusic?.mediaRole, "background-music");
+  assert.equal(
+    backgroundMusic?.localPath,
+    "public/projects/story-example/sound/background-music.mp3",
+  );
+  assert.deepEqual(
+    await readFile(join(rootDir, backgroundMusic!.localPath)),
+    Buffer.from("synthetic background music"),
+  );
+  assert.equal(
+    requirements.sourceBindings.projectSound.fingerprint,
+    projectSound.soundPlanFingerprint,
+  );
   assert.equal(
     result.requirementsFingerprint,
     requirements.requirementsFingerprint,

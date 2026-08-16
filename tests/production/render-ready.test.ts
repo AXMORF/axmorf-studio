@@ -56,7 +56,8 @@ const readyFixture = async (context: TestContext) => {
     scenePackages: [{ meaningId: "opening", packageFingerprint: sha("6") }],
     rendererRegistryFingerprint: sha("7"),
     storyVisualProjectionFingerprint: sha("8"),
-    sceneSoundProjectionFingerprint: sha("9"),
+    soundProjectionFingerprint: sha("9"),
+    soundResources: [],
     globalVisual: {
       assignmentFingerprint: sha("a"),
       packageFingerprint: sha("b"),
@@ -75,7 +76,7 @@ const readyFixture = async (context: TestContext) => {
     semanticTimingFrameCount: 120,
     frameCount: 120,
     layerOrder: ["global-visual", "story-visual", "narrative-core"],
-    mixOrder: ["narration", "scene-local-sound"],
+    mixOrder: ["narration", "sound-contributions"],
     remotionVersion: "4.0.489",
   });
   const ready = buildProductionRenderReady({ plan });

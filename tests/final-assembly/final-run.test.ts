@@ -59,8 +59,6 @@ test("v2 cannot pass with stale assembly order or extra identity", () => {
     storyVisualProjectionFingerprint: sha("7"),
     soundDesignProjectionFingerprint: sha("8"),
     compositionAssemblyChecksum: sha("9"),
-    globalSoundPlanFingerprint: sha("a"),
-    finalSoundProjectionFingerprint: sha("b"),
     globalVisualPlanFingerprint: sha("c"),
     globalVisualProjectionFingerprint: sha("d"),
     finalAssemblyFingerprint: sha("e"),

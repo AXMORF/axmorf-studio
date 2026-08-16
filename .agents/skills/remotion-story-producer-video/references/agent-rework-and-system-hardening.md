@@ -145,7 +145,7 @@ diagnosis from new authoring decisions.
 The automatic endpoint is `delivery-render-started`. It does not prove or authorize:
 
 - NarrativeCheck, SceneVisualCheck, SceneSoundCheck, or another aesthetic gate;
-- full-film BGM, cross-Scene ambience, or ducking;
+- automatic ducking or mastering beyond the frozen contribution volumes;
 - detached-render monitoring or MP4 success claims;
 - capability promotion;
 - publishing, upload, account, network, secret, or permission work;

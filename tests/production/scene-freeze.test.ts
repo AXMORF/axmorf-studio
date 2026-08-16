@@ -142,7 +142,7 @@ const sceneRequirement = ProductionRequirementSchema.parse({
 const createFixture = async (
   context: TestContext,
   options: {
-    readonly sceneLocalSound?: "allowed" | "none";
+    readonly sound?: "allowed" | "none";
     readonly withConfiguredTemplates?: boolean;
   } = {},
 ) => {
@@ -173,7 +173,7 @@ const createFixture = async (
   );
   const fixture = await createProductionFixture(context, rootDir, {
     additionalRequirements: [sceneRequirement],
-    sceneLocalSound: options.sceneLocalSound,
+    sound: options.sound,
     story,
   });
   const baseline = await markProductionBaselineReady(fixture);
@@ -249,8 +249,7 @@ const createFixture = async (
     semanticTimingFingerprint: timing.fingerprint,
     visualStyleFingerprint,
     resourcePoolFingerprint: pool.poolFingerprint,
-    sceneLocalSoundPolicy:
-      fixture.requirements.enhancementSelection.sceneLocalSound,
+    soundPolicy: fixture.requirements.enhancementSelection.sound,
     reviewPolicy: "mechanical-only",
     scenes: [
       ...(options.withConfiguredTemplates
@@ -281,7 +280,7 @@ const createFixture = async (
         visualIntent: "Establish the cumulative boundary.",
         compositionIntent: "Use one left-to-right timing axis.",
         motionIntent: "Reveal the boundary from the first sample.",
-        soundIntent: "Scene-local sound is optional.",
+        soundIntent: "A sound-effect contribution is optional.",
         continuityBrief: "Hand the timing axis to the conclusion.",
         candidateResourceIds: [],
         allowedSnapshotCards: [],
@@ -291,7 +290,7 @@ const createFixture = async (
         visualIntent: "Resolve the boundary into a deterministic result.",
         compositionIntent: "Retain the same timing axis.",
         motionIntent: "Settle into a stable final state.",
-        soundIntent: "Scene-local sound is optional.",
+        soundIntent: "A sound-effect contribution is optional.",
         continuityBrief: "Inherit the opening timing axis unchanged.",
         candidateResourceIds: ["capability.motion"],
         allowedSnapshotCards: [
@@ -536,26 +535,29 @@ test("configured template copies freeze and submit without Scene owners", async 
     firstBeat?.kind === "silent-scene" &&
     firstBeat.preset.resourceIds.length > 0
   ) {
-    assert.equal(introSound.cues[0].cueId, "reveal-impact");
-    assert.equal(introSound.cues[0].timing.eventId, "intro-sound-start");
-    assert.equal(introSound.cues[0].timing.offsetFrames, 0);
-    assert.equal(introSound.cues[0].durationInFrames, 60);
-    assert.equal(introSound.cues[0].resource.role, "scene-sfx");
+    assert.equal(introSound.contributions[0].contributionId, "reveal-impact");
+    assert.equal(
+      introSound.contributions[0].timing.eventId,
+      "intro-sound-start",
+    );
+    assert.equal(introSound.contributions[0].timing.offsetFrames, 0);
+    assert.equal(introSound.contributions[0].durationInFrames, 60);
+    assert.equal(introSound.contributions[0].resource.role, "sound-effect");
   } else {
-    assert.deepEqual(introSound.cues, []);
+    assert.deepEqual(introSound.contributions, []);
   }
-  assert.deepEqual(outroSound.cues, []);
   if (
     lastBeat?.kind === "silent-scene" &&
     lastBeat.preset.resourceIds.length > 0
   ) {
+    assert.equal(outroSound.contributions[0].contributionId, "closing-music");
     assert.equal(
-      outroSound.ambience.resourceId,
+      outroSound.contributions[0].resource.resourceId,
       lastBeat.preset.resourceIds[0],
     );
-    assert.equal(outroSound.ambience.role, "scene-ambience");
+    assert.equal(outroSound.contributions[0].resource.role, "background-music");
   } else {
-    assert.equal(outroSound.ambience, null);
+    assert.deepEqual(outroSound.contributions, []);
   }
 
   const introPackage = await generateScenePackageFromProjectFiles({
@@ -641,10 +643,10 @@ test("template-copied Scenes reject unused external snapshot cards", async (cont
   );
 });
 
-test("template-copied Scene sound obeys the frozen local-sound policy", async (context) => {
+test("template-copied Scene sound obeys the unified frozen sound policy", async (context) => {
   const fixture = await createFixture(context, {
     withConfiguredTemplates: true,
-    sceneLocalSound: "none",
+    sound: "none",
   });
   const hasConfiguredSound = fixture.source.story.beats.some(
     (beat) =>
@@ -653,7 +655,7 @@ test("template-copied Scene sound obeys the frozen local-sound policy", async (c
   if (hasConfiguredSound) {
     await assert.rejects(
       () => freeze(fixture),
-      /Template-copied silent Scene configured-intro-scene requires Scene-local sound\./u,
+      /Template-copied silent Scene configured-intro-scene requires sound\./u,
     );
   } else {
     assert.equal((await freeze(fixture)).status, "scene-inputs-frozen");

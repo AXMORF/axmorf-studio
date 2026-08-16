@@ -9,15 +9,16 @@ import {
   StoryIdSchema,
 } from "./primitives";
 import { ProductionRunIdSchema } from "./production-run";
+import { SelectedResourceRefSchema } from "./resource-catalog";
 import {
   STORY_COMPOSITION_TIMELINE_VERSION,
   getStoryCompositionDurationInFrames,
 } from "./story-composition";
 
 export const PRODUCTION_RENDER_PLAN_VERSION =
-  "production-render-plan-v4" as const;
+  "production-render-plan-v5" as const;
 export const PRODUCTION_RENDER_READY_VERSION =
-  "production-render-ready-v4" as const;
+  "production-render-ready-v5" as const;
 export const PRODUCTION_RENDER_POLICY_VERSION =
   "remotion-detached-h264-aac-v1" as const;
 
@@ -73,7 +74,17 @@ const RenderPlanInputObject = z
       .readonly(),
     rendererRegistryFingerprint: Sha256DigestSchema,
     storyVisualProjectionFingerprint: Sha256DigestSchema,
-    sceneSoundProjectionFingerprint: Sha256DigestSchema,
+    soundProjectionFingerprint: Sha256DigestSchema,
+    soundResources: z
+      .array(
+        SelectedResourceRefSchema.refine(
+          (resource) =>
+            resource.kind === "asset" && resource.role === "background-music",
+          "Production sound resources must be background music assets.",
+        ),
+      )
+      .max(16)
+      .readonly(),
     globalVisual: ProductionGlobalVisualRenderIdentitySchema,
     compositionId: CompositionIdSchema,
     compositionSourceChecksum: Sha256DigestSchema,
@@ -92,7 +103,7 @@ const RenderPlanInputObject = z
       ])
       .readonly(),
     mixOrder: z
-      .tuple([z.literal("narration"), z.literal("scene-local-sound")])
+      .tuple([z.literal("narration"), z.literal("sound-contributions")])
       .readonly(),
     remotionVersion: z.string().regex(/^\d+\.\d+\.\d+$/u),
     renderPolicy: ProductionRenderPolicySchema,
@@ -105,6 +116,16 @@ const RenderPlanInputObject = z
         code: "custom",
         message: "Production render plan Scene identities must be unique.",
         path: ["scenePackages"],
+      });
+    }
+    const soundResourceIds = plan.soundResources.map(
+      ({ resourceId }) => resourceId,
+    );
+    if (new Set(soundResourceIds).size !== soundResourceIds.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Production render sound resources must be unique.",
+        path: ["soundResources"],
       });
     }
     if (

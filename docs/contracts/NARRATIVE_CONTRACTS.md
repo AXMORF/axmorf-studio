@@ -2,7 +2,7 @@
 
 > 文档类型：合同参考。可执行 schema 与 fingerprint 逻辑以 `src/contracts/` 为准。
 >
-> 最后复核：2026-08-15
+> 最后复核：2026-08-16
 
 ## Persisted source files
 
@@ -122,7 +122,7 @@ is the absolute frame where the one complete narration WAV begins; lead/tail rem
 
 `SemanticTiming.durationInFrames` is the full timeline authority. The formal Composition uses
 `scene-package-timeline-v1`; `ProjectRegistrationDescriptor.durationInFrames`,
-`production-render-plan-v4.semanticTimingFrameCount/frameCount`, Remotion metadata, delivery publishing
+`production-render-plan-v5.semanticTimingFrameCount/frameCount`, Remotion metadata, delivery publishing
 and the delivery manifest all use the same value. intro/outro receive ordinary SceneAssignment and
 ScenePackage identities. Their selected preset fingerprint enters task/package identity, while visual,
 sound, duration or resource changes invalidate the old assignment and package. Configured reusable Scene

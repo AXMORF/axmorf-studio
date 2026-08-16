@@ -37,7 +37,8 @@ const selectedSound = ({
     entry === undefined ||
     entry.descriptor.kind !== "asset" ||
     entry.descriptor.assetKind !== "audio" ||
-    !["scene-sfx", "scene-ambience"].includes(entry.descriptor.mediaRole) ||
+    (entry.descriptor.mediaRole !== "sound-effect" &&
+      entry.descriptor.mediaRole !== "background-music") ||
     entry.descriptor.allowedUse !== "runtime-approved"
   ) {
     throw new Error(
@@ -48,7 +49,7 @@ const selectedSound = ({
     schemaVersion: 1,
     resourceId: entry.descriptor.id,
     kind: "asset",
-    role: entry.descriptor.mediaRole as "scene-sfx" | "scene-ambience",
+    role: entry.descriptor.mediaRole,
     descriptorFingerprint: entry.descriptorFingerprint,
     catalogFingerprint: catalog.catalogFingerprint,
   };
@@ -191,27 +192,21 @@ export const materializeTemplateCopiedScenes = async ({
         resource,
       ]),
     );
-    const ambienceResources = selectedResources.filter(
-      ({ descriptor }) => descriptor.mediaRole === "scene-ambience",
-    );
-    if (ambienceResources.length > 1) {
-      throw new Error("Copied Scene may select at most one ambience resource.");
-    }
     const sound = buildSceneSoundPlan({
       taskInputFingerprint,
       meaningId: assignment.meaningId,
       sceneDurationInFrames: durationInFrames,
-      ambience: ambienceResources[0]?.selected ?? null,
-      cues: instance.soundCues.map((cue) => {
+      contributions: instance.soundCues.map((cue) => {
         const resource = selectedById.get(cue.resourceId);
         if (
           resource === undefined ||
-          resource.descriptor.mediaRole !== "scene-sfx"
+          (resource.descriptor.mediaRole !== "sound-effect" &&
+            resource.descriptor.mediaRole !== "background-music")
         ) {
           throw new Error("Copied Scene sound resource is missing.");
         }
         return {
-          cueId: cue.cueId,
+          contributionId: cue.cueId,
           resource: resource.selected,
           timing: {
             kind: "anchor" as const,

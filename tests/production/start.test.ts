@@ -16,6 +16,7 @@ import test, { type TestContext } from "node:test";
 import {
   buildProductionRequirementsFreeze,
   buildNarrationExecutionSnapshot,
+  buildProjectSoundPlan,
   computeGenerationInputFingerprint,
   computeStoryFingerprint,
   NarrationSpecSchema,
@@ -75,7 +76,14 @@ const createStartFixture = async (context: TestContext) => {
       note: `Checked ${checkId}.`,
     })),
   });
-  const source = { ...validProjectSource, storyCheck } as const;
+  const source = {
+    ...validProjectSource,
+    storyCheck,
+    projectSound: buildProjectSoundPlan({
+      storyId: story.storyId,
+      contributions: [],
+    }),
+  } as const;
   const sourceChecksums = {
     videoBrief: await writeJson(join(projectDir, "brief.json"), source.brief),
     storySpec: await writeJson(join(projectDir, "story.json"), source.story),
@@ -88,14 +96,17 @@ const createStartFixture = async (context: TestContext) => {
       join(projectDir, "reviews/story-check.json"),
       source.storyCheck,
     ),
+    projectSound: await writeJson(
+      join(projectDir, "sound.json"),
+      source.projectSound,
+    ),
   };
   const requirements = buildProductionRequirementsFreeze({
     source,
     sourceChecksums,
     enhancementSelection: {
       storyVisual: "required",
-      sceneLocalSound: "allowed",
-      globalSound: "none",
+      sound: "allowed",
       globalVisual: "required",
     },
     resourcePolicy: {

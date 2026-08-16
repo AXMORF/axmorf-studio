@@ -1,1 +1,49 @@
-{"beatFrameRange":{"endFrame":120,"startFrame":0},"externalSnapshotFingerprints":["sha256:35ba1a808e9c9f00038e3824fe539c1e2c17effbb044e3863a98ab7b942953e5"],"fidelityReceiptFingerprint":"sha256:be43bd2754db25913fb875eb385d22dc6f3f497f0b6857f255d643be1b80dfbd","meaningId":"runtime-proof-scene","packageFingerprint":"sha256:1f3a56b796a24947bf81ef50a15916aa9d7e96ebe9b6336247a5f96b1d6be332","readabilityPolicyFingerprint":"sha256:aa89b0d2998924420b5e48a22076f40f1bb47b52dd9441461b06c30dfea1e55c","rendererBinding":{"rendererId":"scene-runtime-proof-runtime-proof-scene","rendererSourceFingerprint":"sha256:5690a0fa9687e8d79e38d6945c41b78a1258258fb65fcdade9efe9678adbda9a"},"resourceCatalogFingerprint":"sha256:5dd477e849e41429badb066c9123f39814da17a43b7f663f6372a18c4408b074","sceneAudioRuntimeVersion":"scene-audio-runtime-v1","sceneCompositionBoundaryVersion":"scene-composition-boundary-v1","scenePresetFingerprint":null,"sceneSoundFingerprint":"sha256:87083b77e0a9f9170b177915eca8b15e69c7c3933b84a76f7c37dc3e1ef65f33","sceneVisualFingerprint":"sha256:4ccd42a37f47d21519f6a399b35a19fe0a8a9371cf91483eb2232dbe6a29fbf8","schemaVersion":5,"selectedResources":[{"catalogFingerprint":"sha256:5dd477e849e41429badb066c9123f39814da17a43b7f663f6372a18c4408b074","descriptorFingerprint":"sha256:fce4084089d5f3ac5bbcbd6cdf66d5d44339c2e4a60663be54486717422891fe","kind":"asset","resourceId":"asset.scene-runtime-proof-pulse","role":"scene-sfx","schemaVersion":1},{"catalogFingerprint":"sha256:5dd477e849e41429badb066c9123f39814da17a43b7f663f6372a18c4408b074","descriptorFingerprint":"sha256:73b47422f2c4b166c741dcbe3aba8ce5fb022a173d3a2d3dc244f41aafe2efe9","kind":"asset","resourceId":"asset.scene-runtime-proof-shape","role":"scene-visual","schemaVersion":1}],"selectionFingerprint":"sha256:b82bbff26d8d4fae799c9dc7982d9fbb7410e3a17dc9d65b8e4fae6d4104ab43","semanticTimingFingerprint":"sha256:765c170e83d7d792af847a4070dfc6e7c8d1c036e58e8063b20194165ac0bacc","shotPlanFingerprint":"sha256:b1e7007e0fa8e40ff0240ca2362bb7e245ac99275d49cbea284c52dc8c601574","soundPlanFingerprint":"sha256:1ea8e72051675f1b46e579af0abf57feb5117c364462c72ba557177877c5d6d7","storyId":"scene-runtime-proof","syncAnchorFingerprint":"sha256:6eb47ba1b462a223d358bebbe2ae23c32849bfb4c54f5329efed3ec2ee8d4bf6","taskInputFingerprint":"sha256:df8d1478af42db1480688eae1734825276d98e9f2f7140958be3feab2b2660d1","visualPlanFingerprint":"sha256:9953af187451987512ef6c40027ea200293fc05e6c01b256090dffae324775bf","visualRuntimeVersion":"story-visual-runtime-v2","visualStyleFingerprint":"sha256:f079ff7647bd1b0395165570dd216bd739de855879e6c241c4625664eea54b8f"}
+{
+  "beatFrameRange": { "endFrame": 120, "startFrame": 0 },
+  "externalSnapshotFingerprints": [
+    "sha256:35ba1a808e9c9f00038e3824fe539c1e2c17effbb044e3863a98ab7b942953e5"
+  ],
+  "fidelityReceiptFingerprint": "sha256:883cbb8ce42b68135e483248877fe06cf0988ef72fa0538619b451cbbedc3586",
+  "meaningId": "runtime-proof-scene",
+  "packageFingerprint": "sha256:6dd2c93bf5069dc6968a52ddfd34d5da94c3bf8e3a9ab549f666dac7d757f200",
+  "readabilityPolicyFingerprint": "sha256:aa89b0d2998924420b5e48a22076f40f1bb47b52dd9441461b06c30dfea1e55c",
+  "rendererBinding": {
+    "rendererId": "scene-runtime-proof-runtime-proof-scene",
+    "rendererSourceFingerprint": "sha256:5690a0fa9687e8d79e38d6945c41b78a1258258fb65fcdade9efe9678adbda9a"
+  },
+  "resourceCatalogFingerprint": "sha256:77a19890c110db923d8b853ffb0e12102f1d44ca6e6e1865981d6549a6abea32",
+  "sceneAudioRuntimeVersion": "scene-audio-runtime-v2",
+  "sceneCompositionBoundaryVersion": "scene-composition-boundary-v1",
+  "scenePresetFingerprint": null,
+  "sceneSoundFingerprint": "sha256:980a09c8d4968ff10910ab74b2456bf285ea47bc51c46af26ed2c97011ba4fdf",
+  "sceneVisualFingerprint": "sha256:badbedfe971411be572e0d146a1f912573de363112d0e8ea34a7fe2d229362a6",
+  "schemaVersion": 5,
+  "selectedResources": [
+    {
+      "catalogFingerprint": "sha256:77a19890c110db923d8b853ffb0e12102f1d44ca6e6e1865981d6549a6abea32",
+      "descriptorFingerprint": "sha256:ec114810a0c7bd729cb35f98f967481d87825232e8a81665b7b1c4ea8536ebed",
+      "kind": "asset",
+      "resourceId": "asset.scene-runtime-proof-pulse",
+      "role": "sound-effect",
+      "schemaVersion": 1
+    },
+    {
+      "catalogFingerprint": "sha256:77a19890c110db923d8b853ffb0e12102f1d44ca6e6e1865981d6549a6abea32",
+      "descriptorFingerprint": "sha256:604862a19442f725e816ae73aaea8897cc51066712acbe0f5669402b214361fd",
+      "kind": "asset",
+      "resourceId": "asset.scene-runtime-proof-shape",
+      "role": "scene-visual",
+      "schemaVersion": 1
+    }
+  ],
+  "selectionFingerprint": "sha256:04e69a5e4ec3e15266dcb5a3008f81c1e9d77c33e251fe58b67b1a9420e0fc8b",
+  "semanticTimingFingerprint": "sha256:765c170e83d7d792af847a4070dfc6e7c8d1c036e58e8063b20194165ac0bacc",
+  "shotPlanFingerprint": "sha256:c25d994ad6cf791ec4d696a54cce7aeaeab0c4f60eabc5cb8f974d2261f95933",
+  "soundPlanFingerprint": "sha256:1ba77fed060b91c7a8eb6e45e673fb271ab8d2ed0554f100e1a68991b64be060",
+  "storyId": "scene-runtime-proof",
+  "syncAnchorFingerprint": "sha256:6453cd68cf4d7db41ac413c30b398acdf9cef32d26a3e924a77c9220c207166e",
+  "taskInputFingerprint": "sha256:1a93ec795a75062242b17c5bf9cc2051af1b59520b8acebc3bb45826c625d119",
+  "visualPlanFingerprint": "sha256:6ca065d1eca591847d5b59512b5ce4f680a74d0551b6b41ebb484a60e19fef96",
+  "visualRuntimeVersion": "story-visual-runtime-v2",
+  "visualStyleFingerprint": "sha256:392c79a7de5b54638990995707b7c3423e9158f12c680bf8d0bd158ba76a8c00"
+}

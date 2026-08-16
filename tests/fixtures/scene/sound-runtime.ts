@@ -25,7 +25,7 @@ export const createSoundRuntimeFixture = () => {
     },
     allowedUse: "runtime-approved",
     assetKind: "audio",
-    mediaRole: "scene-sfx",
+    mediaRole: "sound-effect",
     localPath: "public/assets/library/synthetic-proof/meaning-one/pulse.wav",
     checksum: sha("e"),
     license: {
@@ -42,7 +42,7 @@ export const createSoundRuntimeFixture = () => {
     schemaVersion: 1,
     resourceId: descriptor.id,
     kind: "asset",
-    role: "scene-sfx",
+    role: "sound-effect",
     descriptorFingerprint: computeResourceDescriptorFingerprint(descriptor),
     catalogFingerprint: base.task.resourceCatalogFingerprint,
   } as const;
@@ -50,10 +50,9 @@ export const createSoundRuntimeFixture = () => {
     taskInputFingerprint: base.task.taskInputFingerprint,
     meaningId: base.task.meaningId,
     sceneDurationInFrames: 120,
-    ambience: null,
-    cues: [
+    contributions: [
       {
-        cueId: "pulse",
+        contributionId: "pulse",
         resource: selected,
         timing: {
           kind: "anchor",

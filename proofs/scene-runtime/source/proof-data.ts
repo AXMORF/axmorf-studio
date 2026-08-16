@@ -111,8 +111,7 @@ const sceneSoundProjection = resolveSceneSound({
   soundPlan,
   syncAnchors,
   resources: resourcePairs.filter(
-    ({ selected }) =>
-      selected.role === "scene-ambience" || selected.role === "scene-sfx",
+    ({ selected }) => selected.role === "sound-effect",
   ),
 });
 

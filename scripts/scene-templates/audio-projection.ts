@@ -49,7 +49,7 @@ export const buildSceneTemplateAudioProjection = async (
     minimumDurationInSeconds,
   }: {
     readonly resourceId: string;
-    readonly expectedRole: "scene-sfx" | "global-bgm";
+    readonly expectedRole: "sound-effect" | "background-music";
     readonly minimumDurationInSeconds: number;
   }) => {
     const descriptor = descriptors.find(({ id }) => id === resourceId);
@@ -70,19 +70,19 @@ export const buildSceneTemplateAudioProjection = async (
   };
   const intro = select({
     resourceId: override.introResourceId,
-    expectedRole: "scene-sfx",
+    expectedRole: "sound-effect",
     minimumDurationInSeconds: 2,
   });
   const outro = select({
     resourceId: override.outroResourceId,
-    expectedRole: "global-bgm",
+    expectedRole: "background-music",
     minimumDurationInSeconds: 8,
   });
   return SceneTemplateAudioProjectionSchema.parse({
     schemaVersion: 1,
     intro: {
       source: intro,
-      targetMediaRole: "scene-sfx",
+      targetMediaRole: "sound-effect",
       destinationName: basename(intro.localPath),
       soundCues: [
         {
@@ -96,9 +96,17 @@ export const buildSceneTemplateAudioProjection = async (
     },
     outro: {
       source: outro,
-      targetMediaRole: "scene-ambience",
+      targetMediaRole: "background-music",
       destinationName: basename(outro.localPath),
-      soundCues: [],
+      soundCues: [
+        {
+          cueId: "closing-music",
+          anchorId: "closing-music-start",
+          offsetFrames: 0,
+          durationInFrames: 240,
+          volume: 1,
+        },
+      ],
     },
   });
 };

@@ -8,6 +8,7 @@ import { z } from "zod";
 import {
   AuthoredPublishingIntentSchema,
   NarrationSpecSchema,
+  ProjectAssetManifestSchema,
   RenderSpecSchema,
   STORY_CHECK_IDS,
   StoryCheckReportSchema,
@@ -31,6 +32,10 @@ import {
   commitConfiguredSceneTemplates,
   prepareConfiguredSceneTemplates,
 } from "./application/instantiate-scene-templates";
+import {
+  commitProjectSound,
+  prepareProjectSound,
+} from "./application/localize-project-sound";
 
 const DraftSchema = z
   .object({
@@ -65,8 +70,7 @@ const DraftSchema = z
         enhancementSelection: z
           .object({
             storyVisual: z.literal("required"),
-            sceneLocalSound: z.enum(["allowed", "none"]),
-            globalSound: z.literal("none"),
+            sound: z.enum(["allowed", "none"]),
             globalVisual: z.literal("required"),
           })
           .strict(),
@@ -155,6 +159,19 @@ const runProjectConfigureUnlocked = async ({
     sceneDefaults: config.sceneDefaults,
   });
   const story = materialized.story;
+  const baseAssetManifest =
+    materialized.commit?.assetManifest ??
+    ProjectAssetManifestSchema.parse(
+      JSON.parse(
+        await readFile(join(projectDir, "assets.manifest.json"), "utf8"),
+      ),
+    );
+  const projectSound = await prepareProjectSound({
+    rootDir,
+    projectId,
+    config,
+    baseAssetManifest,
+  });
   const narration = NarrationSpecSchema.parse({
     schemaVersion: 2,
     voiceProfileId: config.tts.defaultVoiceProfileId,
@@ -193,15 +210,24 @@ const runProjectConfigureUnlocked = async ({
     render: jsonBytes(render),
     storyCheck: jsonBytes(storyCheck),
     publishingIntent: jsonBytes(publishingIntent),
+    projectSound: jsonBytes(projectSound.plan),
   } as const;
   const requirements = buildProductionRequirementsFreeze({
-    source: { brief, story, narration, render, storyCheck },
+    source: {
+      brief,
+      story,
+      narration,
+      render,
+      storyCheck,
+      projectSound: projectSound.plan,
+    },
     sourceChecksums: {
       videoBrief: checksum(briefArtifact.bytes),
       storySpec: checksum(Buffer.from(materialized.storyBytes)),
       narrationSpec: checksum(Buffer.from(sourceBytes.narration)),
       renderSpec: checksum(Buffer.from(sourceBytes.render)),
       storyCheck: checksum(Buffer.from(sourceBytes.storyCheck)),
+      projectSound: checksum(Buffer.from(sourceBytes.projectSound)),
     },
     ...draft.production,
     readability: { edgeInsetPx: config.readability.edgeInsetPx },
@@ -221,12 +247,19 @@ const runProjectConfigureUnlocked = async ({
       path: join(projectDir, "production/requirements.json"),
       bytes: jsonBytes(requirements),
     },
+    { path: join(projectDir, "sound.json"), bytes: sourceBytes.projectSound },
   ] as const;
   const missingFiles = await assertNoConflicts(files);
   await commitConfiguredSceneTemplates({
     rootDir,
     projectId,
     prepared: materialized,
+  });
+  await commitProjectSound({ rootDir, prepared: projectSound });
+  await writeTextFileAtomic({
+    destination: join(projectDir, "assets.manifest.json"),
+    bytes: jsonBytes(projectSound.assetManifest),
+    mode: "replace",
   });
   for (const file of missingFiles) {
     await writeTextFileAtomic({

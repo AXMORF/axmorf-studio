@@ -1,1 +1,14 @@
-{"coverageFingerprint":"sha256:b9686dcb795f1a9ece3ad67efa025be76f2e437d8ce25c350624d70c2d94da19","entries":[{"meaningId":"runtime-proof-scene","packageFingerprint":"sha256:1f3a56b796a24947bf81ef50a15916aa9d7e96ebe9b6336247a5f96b1d6be332","rendererId":"scene-runtime-proof-runtime-proof-scene","status":"ready"}],"schemaVersion":1,"storyBeatOrder":["runtime-proof-scene"],"storyId":"scene-runtime-proof"}
+{
+  "coverageFingerprint": "sha256:45754334d14b643175db59cf61799ebbafe95241c1e7f1a854d68dc68646d70e",
+  "entries": [
+    {
+      "meaningId": "runtime-proof-scene",
+      "packageFingerprint": "sha256:6dd2c93bf5069dc6968a52ddfd34d5da94c3bf8e3a9ab549f666dac7d757f200",
+      "rendererId": "scene-runtime-proof-runtime-proof-scene",
+      "status": "ready"
+    }
+  ],
+  "schemaVersion": 1,
+  "storyBeatOrder": ["runtime-proof-scene"],
+  "storyId": "scene-runtime-proof"
+}

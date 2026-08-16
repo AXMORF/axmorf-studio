@@ -19,7 +19,7 @@ node -e 'f=require("fs");a=JSON.parse(f.readFileSync("<assignmentPath>"));f.writ
 
 消费 taskInput、sceneBrief、additionalRequirements、readabilityPolicy。按
 readabilityPolicy.sceneContentSafeAreaPx、typographyPolicy.minFontSizePx、allowedResourceIds、
-allowedSnapshots 制作冻结 Beat；author 透明 Scene root，只含语义视觉和可选 Scene-local sound，顶层独占字幕、
+allowedSnapshots 制作冻结 Beat；author 透明 Scene root，只含语义视觉和可选音效 contribution，顶层独占字幕、
 旁白和背景。资源限绑定 ResourceCatalog 可解析的 Project-local ID。不得读历史/其他 owner 输出，不得用
 MCP、网络、provider/remote URL，不得写共享 registry/catalog、Run result/state/event、delivery 或 Git。
 silent-scene 严格消费 preset 与已解析窗口，不创建 TTS、空白文字、CaptionCue、sealed segment 或

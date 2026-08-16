@@ -30,7 +30,7 @@ flowchart LR
     Query --> ScenePlan["SceneVisualPlan"]
     Query --> SceneSound["SceneSoundPlan"]
     Query --> Recipe["ShotRecipeSelection"]
-    Query --> GlobalSound["GlobalSoundPlan"]
+    Query --> ProjectSound["ProjectSoundPlan"]
     Query --> GlobalVisual["GlobalVisualPlan"]
 ```
 
@@ -39,7 +39,7 @@ flowchart LR
 - Remotion core、media、Lottie、GIF、effects、transitions、light-leaks；
 - Three.js、motion blur、layout utils、paths、shapes、Google Fonts、renderer、Tailwind v4；
 - camera 2D/3D、focus pull、layered stage；
-- code effects、motion treatments、soundtrack/ducking/SFX、style profiles；
+- code effects、motion treatments、background music/sound effects、style profiles；
 - `visual-components/` 下的 backgrounds、charts、cinematic、elements、layouts、logos、
   media-layouts、scene-patterns、text 与 transition-components；
 - `scene-templates/` 下仅保存可在 configure 时复制并冻结的完整 Scene template，不与 runtime
@@ -154,7 +154,7 @@ ExternalReferenceSnapshot。每个 meaningId 子 Agent 只读查询这些快照�
 revision 或其他 Scene 的资源/recipe 选择。
 
 `VisualStyleSpec.styleProfileId` 必须解析到 Catalog 中唯一、已批准的 style profile；
-SceneVisualPlan 的视觉资源与 SceneSoundPlan 的 ambience/SFX 也必须解析到相应 kind/role。
+SceneVisualPlan 的视觉资源与 SceneSoundPlan 的音效 contribution 也必须解析到相应 kind/role。
 repository-local `remotion-best-practices` 只提供 Scene authoring guidance，不是 Catalog 条目、
 资源 manifest 或 production identity，也不改变这些解析规则。
 缺失、重复、类型不匹配、路径越界或 snapshot fingerprint 漂移全部 fail closed。

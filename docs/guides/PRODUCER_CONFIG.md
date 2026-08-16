@@ -2,7 +2,7 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-15
+> 最后复核：2026-08-16
 
 仓库使用一份 Git-ignored 的 `private/producer.config.json` 作为制作默认值与私密 TTS 连接配置。
 它不是 render runtime 输入；新作品在 authoring/freeze 时把实际选择写入 Project 合同或产物指纹，
@@ -99,8 +99,10 @@ fingerprint 不匹配或结构无效的 v1 仍然 fail closed。
   例如 `voxcpm/voice_profile/my-voice.wav`；绝对路径、反斜杠、URL 与 `..` 逃逸均被拒绝。Narration
   和 preflight 在进入 VoxCPM 适配器前统一解析为宿主绝对路径，配置页保存的仍是相对值。
 - `audioDefaults.globalBgm`：可为空，或保存一个仓库相对 `sourcePath` 与 0–1 线性 `volume`。这是
-  配置页中的本地 BGM 预设；current `ProductionRequirementsFreeze` 仍固定 `globalSound: none`，
-  `project:configure` 与 render runtime 尚不消费它，不能把已保存预设表述为已混入成片。
+  配置页中的本地 BGM 预设。`project:configure` 会复制并 checksum-bound 到 Project-local 资产，
+  写入 `sound.json`；render runtime 将它作为循环 contribution 播放于 narrated 内容窗口，并保留独立音量。
+  选择该本地文件即由 operator 声明其有权用于当前 Project；冻结的 manifest 记录这份 operator-provided
+  授权证据，runtime 不接受 URL、symlink 或未封存字节。
 
 `RSP_PRODUCER_CONFIG` 支持仓库根目录相对路径和绝对路径。生产脚本、preflight、迁移命令与配置页
 使用同一解析规则。

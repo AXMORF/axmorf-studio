@@ -2,7 +2,7 @@
 
 > 文档类型：产品目标权威
 >
-> 最后复核：2026-08-15
+> 最后复核：2026-08-16
 
 ## 一句话目标
 
@@ -26,7 +26,7 @@
 5. owner 只发布 assignment-bound immutable receipt，watcher 串行 check/submit 并汇合
    current FinalAssembly；
 6. 用普通 ScenePackage 组装片头、正文与片尾，冻结
-   `production-render-plan-v4` 和 `production-render-ready-v4`，到达
+   `production-render-plan-v5` 和 `production-render-ready-v5`，到达
    `render-ready / awaiting-automatic-delivery`；
 7. Cover ready 后准备 non-MP4 delivery package，在 spawn 前 exactly once 写 launch intent；
 8. detached spawn Remotion，收到 OS `spawn` 后写 receipt 并到达
@@ -42,10 +42,10 @@
 - sealed PCM 的累计整数 sample-frame 边界是绝对时间 authority。
 - 每个 Scene owner 使用 repository-local `remotion-best-practices` authoring guidance；仓库
   assignment、contracts 与 validators 拥有更高 authority。
-- Scene root 透明，只拥有 Beat 语义视觉与 Scene-local sound；Composition owns safe area、
+- Scene root 透明，只拥有 Beat 语义视觉与音效 contributions；Composition owns safe area、
   narration、captions 与 GlobalVisual background。
 - captions 只由顶层 CaptionLayer 渲染。
-- SemanticTiming 一次性解析片头、正文与片尾的连续权威窗口；片头片尾默认无旁白和字幕，但可拥有 Scene-local 音效。
+- SemanticTiming 一次性解析片头、正文与片尾的连续权威窗口；片头片尾默认无旁白和字幕，但可拥有自己的音效 contribution。内容 BGM 只覆盖 narrated Scene 窗口。
 - 配置页为首尾业务位置选择普通 reusable Scene template；新 Project 复制其源码和资源并冻结
   Project-local instance。production 只确定性投影、校验并 submit，不派发 Agent，也不依赖共享模板。
 - JSON 不包含 JSX、代码、动态模块路径或 executable expression。

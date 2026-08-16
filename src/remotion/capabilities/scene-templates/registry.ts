@@ -28,7 +28,7 @@ export type SceneTemplateDefinition = Readonly<{
     sourcePath: string;
     destinationName: string;
     sourceDescriptor: ResourceAssetDescriptor;
-    targetMediaRole: "scene-sfx" | "scene-ambience";
+    targetMediaRole: "sound-effect" | "background-music";
   }>[];
   soundCues: readonly Readonly<{
     cueId: string;
@@ -88,7 +88,7 @@ const BRAND_REVEAL: SceneTemplateDefinition = {
     "Reveal the AXMORF mark and wordmark as a concise configured Scene.",
   soundIntent:
     SCENE_TEMPLATE_AUDIO_PROJECTION.intro === null
-      ? "Render without Scene-local sound."
+      ? "Render without a sound-effect contribution."
       : "Play only the configured opening impact from frame zero for the full Scene.",
   componentName: "AxmorfIntroScene",
   sourceReferencesProp: false,
@@ -152,7 +152,7 @@ const SOURCE_FOLLOW: SceneTemplateDefinition = {
   visualIntent: "Show source credits then resolve to the AXMORF follow lockup.",
   soundIntent:
     SCENE_TEMPLATE_AUDIO_PROJECTION.outro === null
-      ? "Render without Scene-local sound."
+      ? "Render without a sound-effect contribution."
       : "Play only the configured closing music from frame zero for the full Scene.",
   componentName: "AxmorfOutroScene",
   sourceReferencesProp: true,
@@ -190,6 +190,11 @@ const SOURCE_FOLLOW: SceneTemplateDefinition = {
   soundCues: audioCues(SCENE_TEMPLATE_AUDIO_PROJECTION.outro),
   orderedShotIds: ["source-credits", "brand-follow"],
   anchors: [
+    {
+      eventId: "closing-music-start",
+      sceneLocalFrame: 0,
+      purpose: "Start the configured closing music at the Scene boundary.",
+    },
     {
       eventId: "brand-lockup-start",
       sceneLocalFrame: 120,

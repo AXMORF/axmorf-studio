@@ -18,6 +18,7 @@ import {
   StoryCheckReportSchema,
 } from "../../src/contracts/story-check";
 import { StorySpecSchema } from "../../src/contracts/story";
+import { buildProjectSoundPlan } from "../../src/contracts/project-sound";
 import {
   validNarrationSpec,
   validProjectSource,
@@ -50,6 +51,10 @@ const storyCheck = StoryCheckReportSchema.parse({
 const source = {
   ...validProjectSource,
   storyCheck,
+  projectSound: buildProjectSoundPlan({
+    storyId: story.storyId,
+    contributions: [],
+  }),
 } as const;
 
 const sourceChecksums = {
@@ -58,6 +63,7 @@ const sourceChecksums = {
   narrationSpec: sha("3"),
   renderSpec: sha("4"),
   storyCheck: sha("5"),
+  projectSound: sha("6"),
 } as const;
 
 const additionalRequirements = [
@@ -101,8 +107,7 @@ const buildValidFreeze = () =>
     sourceChecksums,
     enhancementSelection: {
       storyVisual: "required",
-      sceneLocalSound: "allowed",
-      globalSound: "none",
+      sound: "allowed",
       globalVisual: "required",
     },
     resourcePolicy: {
@@ -121,8 +126,7 @@ test("requires an explicit readability freeze input", () => {
         sourceChecksums,
         enhancementSelection: {
           storyVisual: "required",
-          sceneLocalSound: "allowed",
-          globalSound: "none",
+          sound: "allowed",
           globalVisual: "required",
         },
         resourcePolicy: {
@@ -135,6 +139,43 @@ test("requires an explicit readability freeze input", () => {
   );
 });
 
+test("sound none rejects a selected Project background-music contribution", () => {
+  assert.throws(
+    () =>
+      buildProductionRequirementsFreeze({
+        source: {
+          ...source,
+          projectSound: buildProjectSoundPlan({
+            storyId: story.storyId,
+            contributions: [
+              {
+                contributionId: "background-music",
+                resourceId: `asset.${story.storyId}.background-music`,
+                descriptorFingerprint: sha("a"),
+                volume: 0.15,
+                loop: true,
+                playbackScope: "narrated-content",
+              },
+            ],
+          }),
+        },
+        sourceChecksums,
+        enhancementSelection: {
+          storyVisual: "required",
+          sound: "none",
+          globalVisual: "required",
+        },
+        resourcePolicy: {
+          selfAuthoredVisualsAllowed: true,
+          unlistedThirdPartyResources: "deny",
+        },
+        additionalRequirements,
+        readability: { edgeInsetPx: 90 },
+      }),
+    /sound cannot be disabled/iu,
+  );
+});
+
 const withCurrentFingerprint = (value: Record<string, unknown>) => ({
   ...value,
   requirementsFingerprint: computeProductionRequirementsFingerprint(value),
@@ -144,7 +185,7 @@ test("builds and resolves a current production requirements freeze", () => {
   const freeze = buildValidFreeze();
 
   assert.equal(freeze.schemaVersion, 1);
-  assert.equal(freeze.contractVersion, "production-requirements-current-v1");
+  assert.equal(freeze.contractVersion, "production-requirements-current-v2");
   assert.equal(freeze.enhancementSelection.globalVisual, "required");
   assert.deepEqual(freeze.sceneBoundaryOwnership, {
     sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
@@ -256,14 +297,14 @@ test("rejects duplicate requirements and invalid scope-owner-verification combin
   }
 });
 
-test("requires absent global sound and required global visual", () => {
+test("requires one unified sound selection and required global visual", () => {
   const freeze = buildValidFreeze();
   for (const enhancementSelection of [
-    { ...freeze.enhancementSelection, globalSound: "required" },
+    { ...freeze.enhancementSelection, sound: "required" },
     { ...freeze.enhancementSelection, globalVisual: "none" },
     (() => {
-      const { globalSound, ...selection } = freeze.enhancementSelection;
-      void globalSound;
+      const { sound, ...selection } = freeze.enhancementSelection;
+      void sound;
       return selection;
     })(),
   ]) {

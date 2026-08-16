@@ -106,7 +106,7 @@ repo 不存 Agent lifecycle、task、thread、progress、聊天或 heartbeat。
 当前状态机只接受：production-start → narrative → scene-freeze → waiting-for-owner-results →
 render-ready。缺失 receipt 永久等待，不使用 assignment deadline、heartbeat、timeout 或 retry。
 终态绑定
-`production-render-plan-v4` 与 `production-render-ready-v4`，不包含媒体渲染阶段。render plan
+`production-render-plan-v5` 与 `production-render-ready-v5`，不包含媒体渲染阶段。render plan
 同时绑定 sealed narration 与其确定性、content-addressed 响度母带。
 
 Scene authoring 期使用 repository-local `.agents/skills/remotion-best-practices/SKILL.md` router 与
@@ -124,7 +124,7 @@ Project-local `runtime-approved` descriptor。MCP、provider SDK、网络和 cre
 owner、watcher、delivery 或 Remotion runtime，远程 URL 永远不是 runtime asset source。
 另有可选 ignored `private/reference-assets/assets.manifest.json`，只暴露用户已人工确认许可、位于
 `public/assets/library/` 的共享音频 `localize-asset` descriptor，并校验 fixed local license evidence。
-这些条目只供 authoring 查询，不能作为 runtime resource 或直接进入 Scene/GlobalSound plan；外部
+这些条目只供 authoring 查询，不能作为 runtime resource 或直接进入 Scene/ProjectSound plan；外部
 audio 的 Project-local import 仍未开放。
 
 ## Composition ownership
@@ -138,8 +138,9 @@ StorySpec v3 把 `narrated-scene` 与 `silent-scene` 作为严格联合。首尾
 Scene 并冻结 `template-copy` instance。freeze 不回读共享模板，只机械投影 plans、校验并直接 submit；
 共享模板后续变化不会传递到既有 Project。Composition exactly once 提供
 SceneSafeArea、NarrativeCore、CaptionLayer、GlobalVisual background 与 Scene track。Scene renderer
-根透明且只画 current Beat 语义；ScenePackage owns Scene-local
-ambience/SFX，不拥有旁白、字幕或全局音频。GlobalVisual owns project-local 背景/纹理/装饰/motif，
+根透明且只画 current Beat 语义；ScenePackage owns Scene 内的音效 contributions，不拥有旁白或字幕。
+Project `sound.json` owns 内容 BGM contribution。两者由同一 SoundDesignTrack 聚合、同一播放器挂载；
+区别只在绝对时间窗口、时长、循环和各自音量。GlobalVisual owns project-local 背景/纹理/装饰/motif，
 不读取 Scene output。`GlobalVisualLayers` 实现统一满足 runtime 的无 Props 组件类型；Composition
 顶层独立解析 GlobalVisual plan/projection 并做 identity 校验。
 
@@ -184,8 +185,8 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
 - protected voice profiles/private config 不被通用扫描、stage 或 commit。
 - `private/producer.config.json` 是权限 `0600` 的 ignored 文件；配置 API 默认只监听 loopback，显式
   `dev:lan` 才监听可信局域网，并始终要求 Origin/Host 精确同源。完整 token 不写日志、不进
-  localStorage；LAN 端口不得暴露到公网。声线与可选 BGM 预设只接受仓库相对路径。BGM 预设尚未
-  接入 current `globalSound: none` 的 Project freeze/render 路径；render runtime 不读取 ProducerConfig。
+  localStorage；LAN 端口不得暴露到公网。声线与可选 BGM 预设只接受仓库相对路径。BGM 在
+  `project:configure` 时本地化并冻结；render runtime 只读 Project `sound.json` 和本地资产，不读取 ProducerConfig。
 - 配置页从 `src/projects/` 的 source Project 与 current Run manifest storyId 的并集生成展示列表；
   `out/`、deliveries 等 output-only 清理目标不进入进度页。每个 Project 只读取其最新 current Run。
   删除 API 则继续使用独立的严格 ownership discovery，要求精确同源 JSON 与 Project ID 二次确认，
@@ -218,8 +219,8 @@ fingerprint-bound promotion proposal，并获得用户对范围、API、文件�
 既有 Project 的 runtime dependency。模板 Renderer 不挂载音频；可选 ignored 本地覆盖只在 bootstrap
 由 `scripts/scene-templates/` 独立生成 `scene-template-audio.generated.json` authoring 投影，并在
 `project:configure` 时由 `scripts/projects/application/` 把已校验的
-`localize-asset` 音频及许可证元数据复制进 Project。复制后的 SFX/ambience 仍由 preset 投影的
-`sound-plan.json` 经 Scene sound runtime 播放。该投影可用
+`localize-asset` 音频及许可证元数据复制进 Project。复制后的片头/片尾声音由 preset 投影为普通
+`SoundContribution`，经 Scene sound runtime 播放。该投影可用
 `scene-template-audio:generate` / `scene-template-audio:check` 独立生成或只读复验；bootstrap 显式
 调用相同生成器，proof asset generator 不拥有该投影。
 Root 的 `System` folder 另行提供 `DefaultIntroPreview` / `DefaultOutroPreview` 演示 Composition；

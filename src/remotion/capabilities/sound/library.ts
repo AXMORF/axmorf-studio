@@ -4,26 +4,31 @@ import { assertProducerLocalMediaPath } from "../media/local-path";
 import type {
   ProducerSoundLibrary,
   ProducerSoundLibraryEntry,
-  ProducerSoundRole,
+  ProducerSoundLibraryRole,
 } from "./types";
 
 export const getProducerSoundLibrary = (
   rawManifest: unknown,
 ): ProducerSoundLibrary => {
   const manifest = ProducerAssetManifestSchema.parse(rawManifest);
-  const byRole: Record<ProducerSoundRole, ProducerSoundLibraryEntry[]> = {
-    narration: [],
-    bgm: [],
-    ambience: [],
-    sfx: [],
-  };
+  const byRole: Record<ProducerSoundLibraryRole, ProducerSoundLibraryEntry[]> =
+    {
+      "background-music": [],
+      "sound-effect": [],
+    };
 
   for (const asset of manifest.assets) {
     if (asset.assetKind !== "audio") continue;
-    if (asset.mediaRole === "narration" || asset.mediaRole === "global-bgm") {
-      throw new Error(`${asset.id} is not Scene-local sound.`);
+    if (asset.mediaRole === "narration") {
+      throw new Error(`${asset.id} narration is not a sound contribution.`);
     }
-    const role = asset.mediaRole === "scene-ambience" ? "ambience" : "sfx";
+    if (
+      asset.mediaRole !== "background-music" &&
+      asset.mediaRole !== "sound-effect"
+    ) {
+      throw new Error(`${asset.id} uses an unsupported sound concept.`);
+    }
+    const role = asset.mediaRole;
     assertResourceAllowedForUse(asset, asset.mediaRole);
     if (
       !asset.media?.durationInSeconds ||
@@ -40,7 +45,7 @@ export const getProducerSoundLibrary = (
     byRole[role].push({
       id: asset.id,
       role,
-      src,
+      publicPath: asset.localPath,
       license: asset.license.id,
       durationInSeconds: asset.media.durationInSeconds,
     });

@@ -80,15 +80,14 @@ test("render scaffold binds the frozen plan and current GlobalVisual layer", asy
     rootDir,
     storyId: "story-example",
     meaningIds: ["opening"],
-    sceneLocalSoundPresent: true,
     mode: "write",
   });
   const source = await readFile(result.destination, "utf8");
+  const runtimeSource = await readFile(result.runtimeDestination, "utf8");
   assert.equal(
     source,
     renderProductionRenderProjectScaffold({
       storyId: "story-example",
-      sceneLocalSoundPresent: true,
     }),
   );
   assert.match(source, new RegExp(PRODUCTION_RENDER_SCAFFOLD_MARKER));
@@ -102,6 +101,8 @@ test("render scaffold binds the frozen plan and current GlobalVisual layer", asy
   assert.doesNotMatch(source, /<GlobalVisualLayers plan=/u);
   assert.match(source, /StoryVisualTrack/u);
   assert.match(source, /SoundDesignTrack/u);
+  assert.match(runtimeSource, /projectSoundResourceIds/u);
+  assert.match(runtimeSource, /projectSoundResourceIds\.has\(id\)/u);
   assert.doesNotMatch(source, /StoryCompositionShell|FixedIntro|FixedOutro/u);
   assert.match(source, /narrationStartFrame: timing\.narrationStartFrame/u);
   assert.match(source, /semanticTimingFrameCount/u);
@@ -112,7 +113,6 @@ test("render scaffold binds the frozen plan and current GlobalVisual layer", asy
     rootDir,
     storyId: "story-example",
     meaningIds: ["opening"],
-    sceneLocalSoundPresent: true,
     mode: "check",
   });
 });
@@ -127,7 +127,6 @@ test("rebuilds only the byte-exact legacy generated render scaffold", async (con
   });
   const current = renderProductionRenderProjectScaffold({
     storyId: "story-example",
-    sceneLocalSoundPresent: false,
   });
   const legacyNoProps = current.replace("<typeof GlobalVisualLayers>", "");
   const legacy = current
@@ -153,7 +152,6 @@ test("rebuilds only the byte-exact legacy generated render scaffold", async (con
     rootDir,
     storyId: "story-example",
     meaningIds: ["opening"],
-    sceneLocalSoundPresent: false,
     mode: "write",
   });
   assert.equal(await readFile(destination, "utf8"), current);
@@ -164,7 +162,6 @@ test("rebuilds only the byte-exact legacy generated render scaffold", async (con
     rootDir,
     storyId: "story-example",
     meaningIds: ["opening"],
-    sceneLocalSoundPresent: false,
     mode: "write",
   });
   assert.equal(await readFile(destination, "utf8"), current);
@@ -175,7 +172,6 @@ test("rebuilds only the byte-exact legacy generated render scaffold", async (con
       rootDir,
       storyId: "story-example",
       meaningIds: ["opening"],
-      sceneLocalSoundPresent: false,
       mode: "write",
     }),
     /Refusing to overwrite a drifted Production Composition/u,

@@ -184,8 +184,33 @@ test("delivery loader reads only render-plan-bound Scene and GlobalVisual packag
     attributionRequired: true,
     attributionText: "Photo by Unused Creator on Pexels",
   });
-  const catalog = buildResourceCatalog([used, unused]);
+  const backgroundMusic = {
+    ...used,
+    id: "asset.story-example.background-music",
+    title: "Background music",
+    description: "Fixture attributed background music",
+    useCases: ["background music"],
+    tags: ["background-music", "fixture"],
+    assetKind: "audio" as const,
+    mediaRole: "background-music" as const,
+    localPath: "public/projects/story-example/sound/background-music.mp3",
+    media: {
+      mimeType: "audio/mpeg",
+      durationInSeconds: 30,
+      sizeBytes: 100,
+    },
+  };
+  const catalog = buildResourceCatalog([backgroundMusic, used, unused]);
   const selectedResource = selected(used, catalog.catalogFingerprint);
+  const selectedBackgroundMusic = SelectedResourceRefSchema.parse({
+    schemaVersion: 1,
+    resourceId: backgroundMusic.id,
+    kind: "asset",
+    role: "background-music",
+    descriptorFingerprint:
+      computeResourceDescriptorFingerprint(backgroundMusic),
+    catalogFingerprint: catalog.catalogFingerprint,
+  });
   const basePackage = buildScenePackage(createScenePackageInput());
   const patchedBase = {
     ...basePackage,
@@ -232,7 +257,8 @@ test("delivery loader reads only render-plan-bound Scene and GlobalVisual packag
     ],
     rendererRegistryFingerprint: sha("8"),
     storyVisualProjectionFingerprint: sha("9"),
-    sceneSoundProjectionFingerprint: sha("a"),
+    soundProjectionFingerprint: sha("a"),
+    soundResources: [selectedBackgroundMusic],
     globalVisual: {
       assignmentFingerprint: sha("b"),
       packageFingerprint: globalVisualPackage.packageFingerprint,
@@ -251,7 +277,7 @@ test("delivery loader reads only render-plan-bound Scene and GlobalVisual packag
     semanticTimingFrameCount: 120,
     frameCount: 120,
     layerOrder: ["global-visual", "story-visual", "narrative-core"],
-    mixOrder: ["narration", "scene-local-sound"],
+    mixOrder: ["narration", "sound-contributions"],
     remotionVersion: "4.0.489",
   });
   const files = new Map<string, unknown>([
@@ -280,7 +306,10 @@ test("delivery loader reads only render-plan-bound Scene and GlobalVisual packag
     renderPlan,
   });
   assert.equal(projection.entries.length, 1);
-  assert.deepEqual(projection.entries[0]?.resourceIds, [used.id]);
+  assert.deepEqual(projection.entries[0]?.resourceIds, [
+    used.id,
+    backgroundMusic.id,
+  ]);
   assert.doesNotMatch(JSON.stringify(projection), /Unused Creator/u);
 
   await assert.rejects(() =>

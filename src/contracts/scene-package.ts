@@ -14,7 +14,7 @@ import { SceneRendererIdSchema } from "./scene-primitives";
 export const STORY_VISUAL_RUNTIME_VERSION = "story-visual-runtime-v1" as const;
 export const STORY_VISUAL_RUNTIME_VERSION_V2 =
   "story-visual-runtime-v2" as const;
-export const SCENE_AUDIO_RUNTIME_VERSION = "scene-audio-runtime-v1" as const;
+export const SCENE_AUDIO_RUNTIME_VERSION = "scene-audio-runtime-v2" as const;
 
 export const SceneRendererBindingSchema = z
   .object({

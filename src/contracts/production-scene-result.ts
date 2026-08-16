@@ -259,7 +259,7 @@ const SceneProductionBriefInputObject = z
     semanticTimingFingerprint: Sha256DigestSchema,
     visualStyleFingerprint: Sha256DigestSchema,
     resourcePoolFingerprint: Sha256DigestSchema,
-    sceneLocalSoundPolicy: z.enum(["allowed", "none"]),
+    soundPolicy: z.enum(["allowed", "none"]),
     reviewPolicy: z.literal("mechanical-only"),
     scenes: z.array(SceneProductionBriefItemSchema).min(1).max(256).readonly(),
   })
@@ -357,8 +357,7 @@ export const validateSceneProductionBrief = ({
     brief.visualStyleFingerprint !==
       Sha256DigestSchema.parse(visualStyleFingerprint) ||
     brief.resourcePoolFingerprint !== pool.poolFingerprint ||
-    brief.sceneLocalSoundPolicy !==
-      requirements.enhancementSelection.sceneLocalSound
+    brief.soundPolicy !== requirements.enhancementSelection.sound
   ) {
     throw new Error("Scene production brief identity is stale.");
   }
@@ -400,12 +399,12 @@ export const validateSceneProductionBrief = ({
         );
       }
       if (
-        brief.sceneLocalSoundPolicy === "none" &&
+        brief.soundPolicy === "none" &&
         storyBeat.preset.implementation.kind === "template-copy" &&
         storyBeat.preset.implementation.soundCues.length > 0
       ) {
         throw new Error(
-          `Template-copied silent Scene ${scene.meaningId} requires Scene-local sound.`,
+          `Template-copied silent Scene ${scene.meaningId} requires sound.`,
         );
       }
     }
@@ -450,9 +449,7 @@ const SceneAssignmentInputObject = z
       .max(256)
       .readonly(),
     readabilityPolicy: ProductionReadabilityPolicySchema,
-    sceneCompositionBoundaryVersion: z.literal(
-      "scene-composition-boundary-v1",
-    ),
+    sceneCompositionBoundaryVersion: z.literal("scene-composition-boundary-v1"),
   })
   .strict();
 
@@ -513,9 +510,8 @@ const addSceneAssignmentIssues = (
   }
 };
 
-export const SceneAssignmentInputSchema = SceneAssignmentInputObject.superRefine(
-  addSceneAssignmentIssues,
-).readonly();
+export const SceneAssignmentInputSchema =
+  SceneAssignmentInputObject.superRefine(addSceneAssignmentIssues).readonly();
 
 export const computeSceneAssignmentFingerprint = (rawInput: unknown) => {
   const record = { ...(rawInput as Record<string, unknown>) };
@@ -601,9 +597,7 @@ const SceneProductionResultCommonShape = {
   sceneBriefFingerprint: Sha256DigestSchema,
   resourcePoolFingerprint: Sha256DigestSchema,
   readabilityPolicyFingerprint: Sha256DigestSchema,
-  sceneCompositionBoundaryVersion: z.literal(
-    "scene-composition-boundary-v1",
-  ),
+  sceneCompositionBoundaryVersion: z.literal("scene-composition-boundary-v1"),
   occurredAt: z.string().datetime({ offset: true }),
 } as const;
 

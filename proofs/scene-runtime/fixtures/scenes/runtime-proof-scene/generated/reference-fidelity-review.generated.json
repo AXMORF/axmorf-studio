@@ -1,1 +1,70 @@
-{"items":[{"adaptationDurationInFrames":120,"adaptationPreview":{"artifactPath":"proofs/scene-runtime/evidence/fidelity/adaptation-preview.mp4","checksum":"sha256:8c971929ee66e631e30e3ec7b3b8ec3a03f95d9d9f8266d0ed1aafb33502565a"},"itemFingerprint":"sha256:f12345f527199005f5efb9a70e5b487370eae1e8ddd71fd8a73b1bbf4525dd9b","normalizedFps":30,"phasePairs":[{"adaptationEvidence":{"artifactPath":"proofs/scene-runtime/evidence/fidelity/adaptation-frame-24.png","checksum":"sha256:12cfecae72e377a3d1ab8907931f7717e07f44f38be19777c77f3b33eeefa748"},"adaptationFrame":24,"normalizedPhase":0.2,"sourceEvidence":{"artifactPath":"proofs/scene-runtime/evidence/fidelity/source-frame-28.png","checksum":"sha256:2b2effb509ea0c3fcd4d3f344d30451785afea2a9d67273a366cb0955890b6a9"},"sourceFrame":28},{"adaptationEvidence":{"artifactPath":"proofs/scene-runtime/evidence/fidelity/adaptation-frame-84.png","checksum":"sha256:d467e0dfae806d0e39c8725f423594fa72ad7107d40b9dc40fc2d92dd1d03ea5"},"adaptationFrame":84,"normalizedPhase":0.7,"sourceEvidence":{"artifactPath":"proofs/scene-runtime/evidence/fidelity/source-frame-98.png","checksum":"sha256:449875c2add7001bc4f8a81d37fc9975553636200dbe88ed031d5433a8cf9f1c"},"sourceFrame":98}],"recognizable":true,"recognizableNote":"Agent review confirms the trace close flash and moving pen remain recognizable at normal speed.","selectionIndex":0,"sourceDurationInFrames":140,"sourcePreview":{"artifactPath":"tests/fixtures/external-references/video-shotcraft/d4915443232e89527fdc9d7e79f132ba411fc440/gallery/media/draw-svg-trace.mp4","checksum":"sha256:3a499a7cf617f9c22b3e3abab66f57b532e5010d36ba1e82793a8966a6459444"},"traitReviews":[{"conclusion":"pass","note":"Current paired evidence preserves 40-frame outline trace.","trait":"40-frame outline trace"},{"conclusion":"pass","note":"Current paired evidence preserves closed-outline flash handoff.","trait":"closed-outline flash handoff"},{"conclusion":"pass","note":"Current paired evidence preserves normal-speed recognizable pen.","trait":"normal-speed recognizable pen"}]}],"reviewFingerprint":"sha256:381e5d321b30c277e99d69428c76bfcfa831e41226a787e14c11c9d5f1a0b75e","reviewerRole":"agent","schemaVersion":1,"selectionFingerprint":"sha256:b82bbff26d8d4fae799c9dc7982d9fbb7410e3a17dc9d65b8e4fae6d4104ab43"}
+{
+  "items": [
+    {
+      "adaptationDurationInFrames": 120,
+      "adaptationPreview": {
+        "artifactPath": "proofs/scene-runtime/evidence/fidelity/adaptation-preview.mp4",
+        "checksum": "sha256:8c971929ee66e631e30e3ec7b3b8ec3a03f95d9d9f8266d0ed1aafb33502565a"
+      },
+      "itemFingerprint": "sha256:f12345f527199005f5efb9a70e5b487370eae1e8ddd71fd8a73b1bbf4525dd9b",
+      "normalizedFps": 30,
+      "phasePairs": [
+        {
+          "adaptationEvidence": {
+            "artifactPath": "proofs/scene-runtime/evidence/fidelity/adaptation-frame-24.png",
+            "checksum": "sha256:12cfecae72e377a3d1ab8907931f7717e07f44f38be19777c77f3b33eeefa748"
+          },
+          "adaptationFrame": 24,
+          "normalizedPhase": 0.2,
+          "sourceEvidence": {
+            "artifactPath": "proofs/scene-runtime/evidence/fidelity/source-frame-28.png",
+            "checksum": "sha256:2b2effb509ea0c3fcd4d3f344d30451785afea2a9d67273a366cb0955890b6a9"
+          },
+          "sourceFrame": 28
+        },
+        {
+          "adaptationEvidence": {
+            "artifactPath": "proofs/scene-runtime/evidence/fidelity/adaptation-frame-84.png",
+            "checksum": "sha256:d467e0dfae806d0e39c8725f423594fa72ad7107d40b9dc40fc2d92dd1d03ea5"
+          },
+          "adaptationFrame": 84,
+          "normalizedPhase": 0.7,
+          "sourceEvidence": {
+            "artifactPath": "proofs/scene-runtime/evidence/fidelity/source-frame-98.png",
+            "checksum": "sha256:449875c2add7001bc4f8a81d37fc9975553636200dbe88ed031d5433a8cf9f1c"
+          },
+          "sourceFrame": 98
+        }
+      ],
+      "recognizable": true,
+      "recognizableNote": "Agent review confirms the trace close flash and moving pen remain recognizable at normal speed.",
+      "selectionIndex": 0,
+      "sourceDurationInFrames": 140,
+      "sourcePreview": {
+        "artifactPath": "tests/fixtures/external-references/video-shotcraft/d4915443232e89527fdc9d7e79f132ba411fc440/gallery/media/draw-svg-trace.mp4",
+        "checksum": "sha256:3a499a7cf617f9c22b3e3abab66f57b532e5010d36ba1e82793a8966a6459444"
+      },
+      "traitReviews": [
+        {
+          "conclusion": "pass",
+          "note": "Current paired evidence preserves 40-frame outline trace.",
+          "trait": "40-frame outline trace"
+        },
+        {
+          "conclusion": "pass",
+          "note": "Current paired evidence preserves closed-outline flash handoff.",
+          "trait": "closed-outline flash handoff"
+        },
+        {
+          "conclusion": "pass",
+          "note": "Current paired evidence preserves normal-speed recognizable pen.",
+          "trait": "normal-speed recognizable pen"
+        }
+      ]
+    }
+  ],
+  "reviewFingerprint": "sha256:6751ebc69090a2fbebdf3135b0fc5b936f5d4282837fc39ddb62fc47e9f9efbd",
+  "reviewerRole": "agent",
+  "schemaVersion": 1,
+  "selectionFingerprint": "sha256:04e69a5e4ec3e15266dcb5a3008f81c1e9d77c33e251fe58b67b1a9420e0fc8b"
+}

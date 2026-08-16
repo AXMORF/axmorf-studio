@@ -277,7 +277,6 @@ export const FINAL_MECHANICAL_CHECK_V2_VERSION =
 
 export const FINAL_MECHANICAL_CHECK_V2_IDS = [
   ...FINAL_MECHANICAL_CHECK_IDS,
-  "global-sound",
   "global-visual",
   "final-assembly",
 ] as const;
@@ -296,8 +295,6 @@ const FinalV2CheckItemSchema = z
 
 const FinalV2InputIdentitySchema = FinalInputIdentitySchema.unwrap()
   .extend({
-    globalSoundPlanFingerprint: Sha256DigestSchema.nullable(),
-    finalSoundProjectionFingerprint: Sha256DigestSchema.nullable(),
     globalVisualPlanFingerprint: Sha256DigestSchema.nullable(),
     globalVisualProjectionFingerprint: Sha256DigestSchema.nullable(),
     finalAssemblyFingerprint: Sha256DigestSchema.nullable(),
@@ -380,8 +377,6 @@ const addFinalV2ReportIssues = (
 
   if (report.aggregateStatus === "pass") {
     const assemblyIdentities = [
-      report.inputIdentity.globalSoundPlanFingerprint,
-      report.inputIdentity.finalSoundProjectionFingerprint,
       report.inputIdentity.globalVisualPlanFingerprint,
       report.inputIdentity.globalVisualProjectionFingerprint,
       report.inputIdentity.finalAssemblyFingerprint,

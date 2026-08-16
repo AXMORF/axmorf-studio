@@ -96,7 +96,7 @@ test("local reference overrides bind the full intro and outro from source frame 
     readonly id: string;
     readonly localPath: string;
     readonly bytes: Buffer;
-    readonly mediaRole: "scene-sfx" | "global-bgm";
+    readonly mediaRole: "sound-effect" | "background-music";
     readonly durationInSeconds: number;
   }) => ({
     schemaVersion: 1,
@@ -124,7 +124,7 @@ test("local reference overrides bind the full intro and outro from source frame 
     },
     media: {
       durationInSeconds,
-      codec: mediaRole === "global-bgm" ? "mp3" : "pcm_s16le",
+      codec: mediaRole === "background-music" ? "mp3" : "pcm_s16le",
       sampleRate: 44_100,
     },
   });
@@ -165,14 +165,14 @@ test("local reference overrides bind the full intro and outro from source frame 
           id: "asset.mixkit.movie-trailer-epic-impact-2908",
           localPath: introPath,
           bytes: intro,
-          mediaRole: "scene-sfx",
+          mediaRole: "sound-effect",
           durationInSeconds: 4.8,
         }),
         descriptor({
           id: "asset.mixkit.deep-urban-623",
           localPath: outroPath,
           bytes: outro,
-          mediaRole: "global-bgm",
+          mediaRole: "background-music",
           durationInSeconds: 288,
         }),
       ],
@@ -191,7 +191,7 @@ test("local reference overrides bind the full intro and outro from source frame 
     projection.intro.source.id,
     "asset.mixkit.movie-trailer-epic-impact-2908",
   );
-  assert.equal(projection.intro.targetMediaRole, "scene-sfx");
+  assert.equal(projection.intro.targetMediaRole, "sound-effect");
   assert.deepEqual(projection.intro.soundCues, [
     {
       cueId: "reveal-impact",
@@ -202,8 +202,16 @@ test("local reference overrides bind the full intro and outro from source frame 
     },
   ]);
   assert.equal(projection.outro.source.id, "asset.mixkit.deep-urban-623");
-  assert.equal(projection.outro.targetMediaRole, "scene-ambience");
-  assert.deepEqual(projection.outro.soundCues, []);
+  assert.equal(projection.outro.targetMediaRole, "background-music");
+  assert.deepEqual(projection.outro.soundCues, [
+    {
+      cueId: "closing-music",
+      anchorId: "closing-music-start",
+      offsetFrames: 0,
+      durationInFrames: 240,
+      volume: 1,
+    },
+  ]);
 
   await generateSceneTemplateAudioProjection({ rootDir, mode: "check" });
 });

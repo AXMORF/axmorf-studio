@@ -2,7 +2,7 @@
 
 > 文档类型：当前事实权威
 >
-> 最后复核：2026-08-15
+> 最后复核：2026-08-16
 >
 > 当前阶段：detached watcher、独立线程 owner receipt 与自动交付已实现
 
@@ -32,7 +32,8 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   精确同源写入、no-store、无浏览器持久化和 `0600` 原子写入。
 - `project:configure` 是新 Project 的固定冻结入口：从 Project `producer-input.json` 与一次
   ProducerConfig 读取生成 NarrationSpec、RenderSpec、StoryCheck、PublishingIntent v2 和
-  ProductionRequirementsFreeze；输出 conflict 时拒绝覆盖。
+  ProductionRequirementsFreeze；同时将可选 BGM 本地化并冻结为 Project `sound.json` 与 manifest
+  资源。输出 conflict 时拒绝覆盖。
 - 配置 API 已覆盖 GET/PUT、strict validation、同源拒绝和原子写入；页面提供只读的声线来源、
   VoxCPM health/ready 与 Remotion browser 诊断，并即时维护唯一 ID 与有效默认声线。
 - 配置页“制作进度”只把 `src/projects/` source directory 或 current Run manifest storyId 识别为
@@ -69,7 +70,7 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   真正空白 padding，NarrativeCore 从 `narrationStartFrame` 挂载唯一完整旁白。
 - zero-Project Root 的 `System` folder 提供两个 Scene template 的独立可听预览 Composition。bootstrap
   从 ignored `scene-template-sound-overrides.json` 生成 authoring-only 声音投影；当前片头从第 0 帧裁取
-  60 帧 Mixkit impact，片尾从第 0 帧裁取 240 帧 Deep Urban ambience，且不保留旧 cue。配置 Project
+  60 帧 Mixkit impact，片尾从第 0 帧播放 240 帧 Deep Urban closing music contribution。配置 Project
   时仍复制为 Project-local runtime 资源，不形成共享 runtime 依赖或第二套音频所有权。
 - 每个 meaningId 一个独立 Codex task；每个 Story 一个 GlobalVisual task 与一个 Cover task；共享
   checkout 使用不重叠 exclusive paths。owner 只发布 immutable receipt，single-writer watcher
@@ -86,10 +87,11 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   owner-ready/failed receipt、detached watch start/worker、status 与 render-ready check。
 - watcher launch intent/receipt 使用 fixed cwd/argv/log、`shell:false`、`detached:true`；intent-only
   永久 ambiguous。缺失 owner receipt 永久 `waiting-for-owner-results`，无 timeout/retry/heartbeat。
-- `production-render-plan-v4` 绑定 Story/Run、sealed/mastered narration、Composition、source
+- `production-render-plan-v5` 绑定 Story/Run、sealed/mastered narration、Composition、source
   checksum、sourceReferences fingerprint、尺寸、fps、SemanticTiming 全片帧数、ScenePackage timeline、
-  layer/mix order 和固定 Remotion policy。
-- `production-render-ready-v4` 绑定 render plan 与全部 current assembly identities；终态固定为
+  统一 sound projection、实际 BGM 资源、layer/mix order 和固定 Remotion policy。内容 BGM 只覆盖
+  首个 narrated Scene 起点至最后一个 narrated Scene 终点，不进入片头片尾 silent Scene。
+- `production-render-ready-v5` 绑定 render plan 与全部 current assembly identities；终态固定为
   `render-ready / awaiting-automatic-delivery`。
 - GlobalVisual validator、generated Composition 与目标 Project compile gate 共享无 Props
   `GlobalVisualLayers` 类型合同；compile 使用仓库 tsconfig、`noEmit` 且只以 current
@@ -175,8 +177,7 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 ## 明确不实现
 
-- 配置页中的 `audioDefaults.globalBgm` 目前只保存相对路径与音量预设；current production 仍固定
-  `globalSound: none`，没有自动 BGM 本地化、封存、混音或 render runtime 挂载。
+- 自动 ducking、响度自动混音或额外声音业务分类；音效与 BGM 都是独立音量的 `SoundContribution`。
 - detached render 的后台状态机、轮询、重试、完成标记或媒体检查。
 - 外部 video/audio 导入、provider 搜索实现、转码或除当前 Pexels image receipt 外的 adapter。
 - 平台上传、账号、网络发布、密钥或权限管理。

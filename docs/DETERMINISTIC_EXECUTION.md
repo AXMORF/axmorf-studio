@@ -2,7 +2,7 @@
 
 > 文档类型：执行语义权威
 >
-> 最后复核：2026-08-15
+> 最后复核：2026-08-16
 
 ## 确定性的对象
 
@@ -23,7 +23,8 @@ authoring/freeze 的默认/选择 authority，不是已封存 Project 的可变 
 在 `project:configure` 时复制为 Project-local source/assets/instance，合集选择连同 catalog fingerprint
 进入 PublishingIntent v2，边缘留白进入 production-readability-v2，语速进入 provider-attempt，目标
 LUFS 进入 mastering policy。声线文件与可选 BGM 预设只接受规范化仓库相对路径；绝对路径、URL、
-反斜杠与目录逃逸 fail closed。BGM 预设当前不进入 Project/Run 或 render identity。
+反斜杠与目录逃逸 fail closed。BGM 在 `project:configure` 时复制为 Project-local 资产，并以 checksum、
+descriptor fingerprint、独立音量和 `sound.json` fingerprint 进入 requirements、render 与 delivery identity。
 `project:configure` 要求显式 readability，不再存在创建阶段的 90px fallback。
 
 start 的同一次 provider resolution 同时供 VoxCPM preflight 与 `NarrationExecutionSnapshot` 使用。
@@ -47,6 +48,8 @@ SemanticTiming v3 从 `leadInFrames` 开始，按 StoryBeat 顺序写入 silent 
 PCM 累计窗口，再追加真正的 `tailFrames`。silent Scene 不产生 segment 或 CaptionCue；完整旁白从
 `narrationStartFrame` exactly once 播放。`scene-package-timeline-v1` 的 Composition、Registry、render
 plan 和 delivery 直接使用 `SemanticTiming.durationInFrames`，章节直接使用 narrated Scene 的绝对帧。
+内容 BGM 的半开窗口固定为首个 narrated Scene 的 `startFrame` 到最后一个 narrated Scene 的
+`endFrame`；因此首尾 silent Scene 无论是否存在自己的音效，均不会播放内容 BGM。
 
 配置选择的 reusable Scene template 在 `project:configure` 时复制源码、Renderer、资源与 exact sound
 cues，并冻结 template/instance/source graph fingerprint。之后 freeze 只读取 Project-local
@@ -83,7 +86,7 @@ receipt 也不会被当成“进程仍存活”的证明或自动重启许可；
 
 ## Render-ready identity
 
-`production-render-plan-v4` 固定：
+`production-render-plan-v5` 固定：
 
 - storyId/runId/compositionId；
 - Composition source path 与 checksum；
@@ -93,7 +96,7 @@ receipt 也不会被当成“进程仍存活”的证明或自动重启许可；
 - layer/mix order；
 - fixed Remotion render policy。
 
-`production-render-ready-v4` 再绑定 plan fingerprint，并固定 status/handoff。该 artifact 只证明
+`production-render-ready-v5` 再绑定 plan fingerprint，并固定 status/handoff。该 artifact 只证明
 所有 render-critical inputs current，不证明媒体存在。
 
 在 ready artifact 写入前，目标 Project Composition 必须通过仓库固定 TypeScript/tsconfig 的
