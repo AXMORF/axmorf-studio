@@ -34,7 +34,14 @@ import { createProductionStageEvent } from "../domain/events";
 import { createUnexpectedProductionError } from "../domain/errors";
 import { loadCurrentProductionInputs } from "./start";
 import { materializeTemplateCopiedScenes } from "./template-copied-scene";
-import { runProductionSceneSubmit } from "./scene-submit";
+import { runProductionTemplateSceneSubmit } from "./scene-submit";
+
+type TemplateSceneSubmitter = (request: {
+  readonly rootDir: string;
+  readonly runId: string;
+  readonly meaningId: string;
+  readonly assignment: SceneAssignment;
+}) => Promise<unknown>;
 
 const readRegularJson = async (path: string, label: string) => {
   let metadata;
@@ -477,7 +484,7 @@ export const runProductionSceneFreeze = async ({
   runId,
   clock = () => new Date(),
   verifyNarrativeAutoCheck = defaultVerifyNarrativeAutoCheck,
-  submitTemplateScene = runProductionSceneSubmit,
+  submitTemplateScene = runProductionTemplateSceneSubmit,
 }: {
   readonly rootDir: string;
   readonly runId: string;
@@ -486,7 +493,7 @@ export const runProductionSceneFreeze = async ({
     readonly rootDir: string;
     readonly storyId: string;
   }) => Promise<string>;
-  readonly submitTemplateScene?: typeof runProductionSceneSubmit;
+  readonly submitTemplateScene?: TemplateSceneSubmitter;
 }) => {
   const initial = await readProductionRunStore({ rootDir, runId });
   if (
@@ -535,7 +542,13 @@ export const runProductionSceneFreeze = async ({
       });
     }
     for (const meaningId of templateMeaningIds) {
-      await submitTemplateScene({ rootDir, runId, meaningId });
+      const assignment = assignments.find(
+        (candidate) => candidate.meaningId === meaningId,
+      );
+      if (assignment === undefined) {
+        throw new Error("Copied Scene assignment is missing after freeze.");
+      }
+      await submitTemplateScene({ rootDir, runId, meaningId, assignment });
     }
     return {
       runId,
@@ -725,7 +738,13 @@ export const runProductionSceneFreeze = async ({
       });
       currentState = appended.state;
       for (const meaningId of templateMeaningIds) {
-        await submitTemplateScene({ rootDir, runId, meaningId });
+        const assignment = assignments.find(
+          (candidate) => candidate.meaningId === meaningId,
+        );
+        if (assignment === undefined) {
+          throw new Error("Copied Scene assignment is missing after freeze.");
+        }
+        await submitTemplateScene({ rootDir, runId, meaningId, assignment });
       }
       return {
         runId,

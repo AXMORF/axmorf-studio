@@ -47,7 +47,8 @@
 - captions 只由顶层 CaptionLayer 渲染。
 - SemanticTiming 一次性解析片头、正文与片尾的连续权威窗口；片头片尾默认无旁白和字幕，但可拥有自己的音效 contribution。内容 BGM 只覆盖 narrated Scene 窗口。
 - 配置页为首尾业务位置选择普通 reusable Scene template；新 Project 复制其源码和资源并冻结
-  Project-local instance。production 只确定性投影、校验并 submit，不派发 Agent，也不依赖共享模板。
+  Project-local instance。production 只确定性投影，验证冻结绑定后直写结果，不进入通用 Scene
+  check/审查，不派发 Agent，也不依赖共享模板。
 - JSON 不包含 JSX、代码、动态模块路径或 executable expression。
 - render runtime 不调用 Agent、Skill、MCP、Git、网络或目录扫描。
 - 所有 render-critical 资产 repository-local、manifest-verified；motion 使用 Remotion frame API。

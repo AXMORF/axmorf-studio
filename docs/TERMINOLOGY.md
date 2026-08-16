@@ -15,7 +15,7 @@
 | SoundContribution           | 一个有资源、绝对起止帧、独立音量与循环策略的非旁白声音                   | 独立音轨文件、额外声音层级或 Remotion 强制分类       |
 | ProjectSoundPlan            | Project 级 contribution 选择；当前用于 narrated 内容窗口的循环 BGM       | 片头片尾声音、旁白或自动 ducking                     |
 | reusable Scene template     | 可复制源码、Renderer、plans/cues/frames/resources 的已批准普通 Scene     | 既有 Project 的共享 runtime dependency 或位置限定    |
-| template-copy Scene         | `project:configure` 复制并冻结、由脚本校验提交的 Project-local Scene     | Scene owner 重新创作或发布 owner receipt             |
+| template-copy Scene         | `project:configure` 复制冻结、由脚本验证 identity 并直写结果的 Project-local Scene | 通用 Scene check、Scene owner 或 owner receipt        |
 | GlobalVisualPackage         | Story 级背景、纹理、装饰和连续性 motif                                   | Scene DSL、自动导演或字幕层                          |
 | ProductionRun               | append-only events 与 immutable results 的一次执行                       | 可手改或恢复的任务状态                               |
 | Project production progress | source Project/current Run 的最新关键步骤只读投影                        | output-only 清理目标、PID 监控或 MP4 完成状态        |

@@ -17,6 +17,7 @@ import {
   ProducerAssetManifestSchema,
   ResourceCatalogSchema,
   SceneAssignmentSchema,
+  SceneProductionResultSchema,
   ProductionRequirementSchema,
   VisualStyleSpecSchema,
   buildSceneProductionBrief,
@@ -32,13 +33,12 @@ import { buildResourceCatalog } from "../../scripts/catalog/domain";
 import { loadCatalogAuthorityDescriptors } from "../../scripts/catalog/project-files";
 import { generateScenePackageFromProjectFiles } from "../../scripts/scene-package/generate";
 import { materializeConfiguredSceneTemplates } from "../../scripts/projects/application/instantiate-scene-templates";
-import { collectRendererSourceGraph } from "../../scripts/renderer-registry/domain";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
-import { validateSceneReadability } from "../../scripts/production/application/readability-validator";
 import {
   assertSceneAssignmentIsolation,
   runProductionSceneFreeze,
 } from "../../scripts/production/application/scene-freeze";
+import { readExistingSceneResult } from "../../scripts/production/application/scene-submit";
 import {
   buildValidSealedNarrationManifest,
   validStorySpec,
@@ -598,51 +598,37 @@ test("configured template copies freeze and submit without Scene owners", async 
   );
 });
 
-test("configured template copies pass the production readability validator", async (context) => {
+test("configured template copies submit deterministically without generic Scene review", async (context) => {
   const fixture = await createFixture(context, {
     withConfiguredTemplates: true,
   });
-  await Promise.all(
-    [
-      "src/remotion/runtime/story-visual/SceneSlot.tsx",
-      "src/remotion/runtime/readability/SceneSafeArea.tsx",
-    ].map((path) => copyRepositoryFile(fixture.rootDir, path)),
-  );
-  const result = await freeze(fixture);
+  const result = await runProductionSceneFreeze({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    clock: () => FIXED_PRODUCTION_NOW,
+    verifyNarrativeAutoCheck: async () =>
+      fixture.narrativeAutoCheckFingerprint,
+  });
 
   assert.deepEqual(result.templateMeaningIds, [
     "configured-intro-scene",
     "configured-outro-scene",
   ]);
   for (const meaningId of result.templateMeaningIds) {
-    const assignmentPath = join(
-      fixture.projectDir,
-      `production/scene-assignments/${meaningId}.generated.json`,
+    const productionResult = SceneProductionResultSchema.parse(
+      await readExistingSceneResult({
+        rootDir: fixture.rootDir,
+        runId: fixture.runId,
+        meaningId,
+      }),
     );
-    const assignment = SceneAssignmentSchema.parse(
-      JSON.parse(await readFile(assignmentPath, "utf8")),
-    );
-    const rendererPath = `src/projects/story-example/scenes/${meaningId}/Renderer.tsx`;
-    const graph = await collectRendererSourceGraph({
-      rootDir: fixture.rootDir,
-      projectId: "story-example",
-      rendererPath,
-    });
-    const check = await validateSceneReadability({
-      rootDir: fixture.rootDir,
-      assignment,
-      graph,
-    });
-    assert.equal(
-      check.sceneCompositionBoundaryVersion,
-      "scene-composition-boundary-v1",
+    assert.equal(productionResult.status, "success");
+    assert.match(
+      productionResult.mechanicalCheckFingerprint,
+      /^sha256:[0-9a-f]{64}$/u,
     );
   }
-  const state = await readProductionRunStore({
-    rootDir: fixture.rootDir,
-    runId: fixture.runId,
-  });
-  assert.equal(state.state.state, "scene-inputs-frozen");
+  assert.deepEqual(result.ownerMeaningIds, ["opening", "conclusion"]);
 });
 
 test("disabled defaults leave no copied Scene source or sound plan", async (context) => {

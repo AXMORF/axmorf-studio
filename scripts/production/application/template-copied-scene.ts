@@ -2,6 +2,7 @@ import { lstat, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
+  ScenePackageSchema,
   SceneTemplateInstanceSchema,
   buildNotApplicableFidelityReceipt,
   buildSceneSoundPlan,
@@ -9,6 +10,7 @@ import {
   buildSceneVisualPlan,
   buildShotPlanSet,
   buildShotRecipeSelection,
+  createFingerprint,
   type ResourceCatalog,
   type SceneAssignment,
   type SelectedResourceRef,
@@ -18,6 +20,7 @@ import {
   readExternalRegularFile,
 } from "../../external-references/project-files";
 import { collectRendererSourceGraph } from "../../renderer-registry/domain";
+import { generateScenePackageFromProjectFiles } from "../../scene-package/generate";
 import {
   writeOrCheckSceneArtifact,
   type SceneArtifactMode,
@@ -129,7 +132,72 @@ const readCopiedInstance = async ({
   if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
     throw new Error("Copied Scene public root must be a real directory.");
   }
-  return instance;
+  return {
+    instance,
+    rendererSourceGraphFingerprint: graph.sourceGraphFingerprint,
+  } as const;
+};
+
+export const validateTemplateCopiedSceneFromProjectFiles = async ({
+  rootDir,
+  assignment,
+}: {
+  readonly rootDir: string;
+  readonly assignment: SceneAssignment;
+}) => {
+  const beat = assignment.taskInput.storyBeat;
+  if (
+    beat.kind !== "silent-scene" ||
+    beat.preset.implementation.kind !== "template-copy"
+  ) {
+    throw new Error("Deterministic template submission requires template-copy.");
+  }
+  const copied = await readCopiedInstance({ rootDir, assignment });
+  const scenePackage = ScenePackageSchema.parse(
+    await generateScenePackageFromProjectFiles({
+      rootDir,
+      projectId: assignment.storyId,
+      meaningId: assignment.meaningId,
+      mode: "write",
+    }),
+  );
+  const checkedPackage = ScenePackageSchema.parse(
+    await generateScenePackageFromProjectFiles({
+      rootDir,
+      projectId: assignment.storyId,
+      meaningId: assignment.meaningId,
+      mode: "check",
+    }),
+  );
+  if (
+    scenePackage.schemaVersion !== 5 ||
+    checkedPackage.schemaVersion !== 5 ||
+    checkedPackage.packageFingerprint !== scenePackage.packageFingerprint ||
+    scenePackage.taskInputFingerprint !==
+      assignment.taskInput.taskInputFingerprint ||
+    scenePackage.scenePresetFingerprint !== beat.preset.presetFingerprint ||
+    scenePackage.rendererBinding.rendererSourceFingerprint !==
+      copied.rendererSourceGraphFingerprint
+  ) {
+    throw new Error(
+      "Copied ScenePackage is stale against its frozen template identity.",
+    );
+  }
+  return {
+    scenePackage,
+    rendererSourceGraphFingerprint: copied.rendererSourceGraphFingerprint,
+    mechanicalCheckFingerprint: createFingerprint({
+      namespace: "production-template-copied-scene-mechanical-check",
+      version: 1,
+      value: {
+        assignmentFingerprint: assignment.assignmentFingerprint,
+        instanceFingerprint: copied.instance.instanceFingerprint,
+        packageFingerprint: scenePackage.packageFingerprint,
+        rendererSourceGraphFingerprint:
+          copied.rendererSourceGraphFingerprint,
+      },
+    }),
+  } as const;
 };
 
 export const materializeTemplateCopiedScenes = async ({
@@ -152,7 +220,7 @@ export const materializeTemplateCopiedScenes = async ({
     ) {
       continue;
     }
-    const instance = await readCopiedInstance({ rootDir, assignment });
+    const { instance } = await readCopiedInstance({ rootDir, assignment });
     const durationInFrames =
       assignment.taskInput.timingBeat.endFrame -
       assignment.taskInput.timingBeat.startFrame;

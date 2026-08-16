@@ -26,8 +26,9 @@
   不得伪造 TTS、CaptionCue 或 sealed narration segment。
 - `project:configure` 把所选 Scene template 的源码和资源复制到 Project-local Scene 并冻结独立
   instance identity；已有 Project 不引用共享 template，也不受其后续修改影响。freeze 只机械投影
-  plans、anchors、selected resources 与 sound plan，并由脚本直接 check/submit，不创建 Scene owner、
-  不接收 owner receipt；只有 Project 显式使用 `scene-owner` preset 时才交给 Agent 制作。
+  plans、anchors、selected resources 与 sound plan，校验冻结 identity、复制 checksum、资源和
+  ScenePackage 绑定后由脚本直接写结果；不进入通用 Scene check/审查，不创建 Scene owner、不接收
+  owner receipt。只有 Project 显式使用 `scene-owner` preset 时才交给 Agent 制作。
 - ttsChunks 是 Agent 已确定的朗读单元；工具不按标点自动拆分或重写。
 - sealed PCM 实测时间是绝对 authority；统一用
   `ceilDiv(cumulativeSamples × fps, sampleRate)` 计算 frame boundary。

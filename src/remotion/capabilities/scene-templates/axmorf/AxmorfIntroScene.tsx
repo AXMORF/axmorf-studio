@@ -87,12 +87,7 @@ export const AxmorfIntroScene: FC<AxmorfIntroSceneProps> = ({
             aria-label="AXMORF logo"
             role="img"
             viewBox="0 0 640 640"
-            style={{
-              display: "block",
-              fontSize: 36,
-              height: markSize,
-              width: markSize,
-            }}
+            style={{ display: "block", height: markSize, width: markSize }}
           >
             {AXMORF_MARK_PATHS.map((path, index) => (
               <path
@@ -107,6 +102,14 @@ export const AxmorfIntroScene: FC<AxmorfIntroSceneProps> = ({
                     [0, 1],
                     clamped,
                   ),
+                  scale: interpolate(
+                    sceneFrame,
+                    [10 + index * 3, 24 + index * 3],
+                    [1.45, 1],
+                    clamped,
+                  ),
+                  transformBox: "fill-box",
+                  transformOrigin: "center",
                 }}
               />
             ))}
@@ -118,7 +121,7 @@ export const AxmorfIntroScene: FC<AxmorfIntroSceneProps> = ({
             color: "#242424",
             display: "flex",
             fontFamily: "Inter, Arial, ui-sans-serif, sans-serif",
-            fontSize: 82,
+            fontSize: isLandscape ? 70 : 82,
             fontWeight: 560,
             gap: isLandscape ? 10 : 12,
             letterSpacing: "0.18em",
@@ -132,11 +135,16 @@ export const AxmorfIntroScene: FC<AxmorfIntroSceneProps> = ({
               aria-hidden="true"
               style={{
                 filter: `blur(${interpolate(sceneFrame, [18 + index * 3, 30 + index * 3], [6, 0], clamped)}px)`,
-                fontSize: 82,
                 opacity: interpolate(
                   sceneFrame,
                   [18 + index * 3, 30 + index * 3],
                   [0, 1],
+                  clamped,
+                ),
+                scale: interpolate(
+                  sceneFrame,
+                  [18 + index * 3, 30 + index * 3],
+                  [1.55, 1],
                   clamped,
                 ),
               }}

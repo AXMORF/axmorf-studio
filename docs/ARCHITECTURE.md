@@ -135,7 +135,8 @@ StorySpec v3 把 `narrated-scene` 与 `silent-scene` 作为严格联合。首尾
 只绑定视觉意图、音效意图、固定帧数、资源 ID 与 fingerprint，SemanticTiming 按 StoryBeat 顺序把它们
 与 sealed PCM narrated windows 解析为连续全片时间轴。ProducerConfig 的首尾字段只是业务选择；
 `project:configure` 从 `src/remotion/capabilities/scene-templates/` 复制完整源码与资源到 Project-local
-Scene 并冻结 `template-copy` instance。freeze 不回读共享模板，只机械投影 plans、校验并直接 submit；
+Scene 并冻结 `template-copy` instance。freeze 不回读共享模板，只机械投影 plans，验证冻结 identity、
+复制 checksum、资源与 ScenePackage 绑定后直接写结果；不进入通用 Scene check 或审查；
 共享模板后续变化不会传递到既有 Project。Composition exactly once 提供
 SceneSafeArea、NarrativeCore、CaptionLayer、GlobalVisual background 与 Scene track。Scene renderer
 根透明且只画 current Beat 语义；ScenePackage owns Scene 内的音效 contributions，不拥有旁白或字幕。

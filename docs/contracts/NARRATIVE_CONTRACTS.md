@@ -52,7 +52,9 @@ sealed narration fingerprint.
 
 Silent Scene preset v3 discriminates `template-copy` from `scene-owner`. `project:configure` copies the
 selected template source and assets into the Project, then binds the template and instance fingerprints plus
-the exact local cue list. Production validates and submits `template-copy` Scenes without an Agent owner.
+the exact local cue list. Production verifies frozen identity, copied checksums, resources, and ScenePackage
+bindings, then writes `template-copy` results directly without generic Scene checking, creative review, or an
+Agent owner.
 Scene task/assignment/result/package v5 also carry the exact
 `VideoBrief.sourceReferences` consumed by a copied credits Renderer, so changing visible credits
 invalidates the Scene task and all downstream identities.
@@ -127,7 +129,8 @@ and the delivery manifest all use the same value. intro/outro receive ordinary S
 ScenePackage identities. Their selected preset fingerprint enters task/package identity, while visual,
 sound, duration or resource changes invalidate the old assignment and package. Configured reusable Scene
 templates are copied during `project:configure` as ordinary Project-local `template-copy` artifacts;
-freeze mechanically validates and submits them without an Agent owner or owner receipt. Delivery chapters
+freeze mechanically verifies their frozen bindings and writes results without generic Scene checking, an
+Agent owner, or an owner receipt. Delivery chapters
 cover only narrated StoryBeats and use their absolute SemanticTiming start frames.
 
 ## Implemented commands

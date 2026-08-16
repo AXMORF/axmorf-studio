@@ -58,7 +58,7 @@ const fingerprintFileTree = async (
 const SkillPolicySchema = z
   .object({
     schemaVersion: z.literal(8),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v8"),
+    policyVersion: z.literal("remotion-story-producer-video-policy-v9"),
     rootEndpoint: z.literal("watcher-started-and-owners-dispatched"),
     backgroundEndpoint: z.literal("delivery-render-started"),
     privateConfigPath: z.literal("private/producer.config.json"),
@@ -137,7 +137,7 @@ const SkillPolicySchema = z
           "project-configure-copy-with-project-local-instance",
         ),
         templateCopyOwnerPolicy: z.literal(
-          "script-check-submit-without-owner-receipt",
+          "script-direct-result-without-generic-review-or-owner-receipt",
         ),
         silentSceneNarrationPolicy: z.literal(
           "no-tts-no-captions-fixed-preset-frames",

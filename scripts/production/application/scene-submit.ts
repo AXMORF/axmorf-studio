@@ -26,6 +26,7 @@ import {
 } from "../adapters/run-store";
 import { createExpectedProductionError } from "../domain/errors";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
+import { validateTemplateCopiedSceneFromProjectFiles } from "./template-copied-scene";
 
 type SceneValidation = Readonly<{
   scenePackage: ScenePackage;
@@ -423,6 +424,28 @@ export const runProductionSceneSubmit = async ({
     throw error;
   }
 };
+
+export const runProductionTemplateSceneSubmit = async ({
+  rootDir,
+  runId,
+  meaningId,
+  assignment,
+  clock,
+}: {
+  readonly rootDir: string;
+  readonly runId: string;
+  readonly meaningId: string;
+  readonly assignment: SceneAssignment;
+  readonly clock?: () => Date;
+}) =>
+  runProductionSceneSubmit({
+    rootDir,
+    runId,
+    meaningId,
+    clock,
+    resolveAssignment: async () => assignment,
+    validateScene: validateTemplateCopiedSceneFromProjectFiles,
+  });
 
 export const runProductionSceneCheck = async ({
   rootDir,

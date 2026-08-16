@@ -65,8 +65,9 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 - Composition-owned `SceneSafeArea`、唯一顶层 CaptionLayer、透明语义 Scene root。
 - 首尾 silent Scene 与 content 已统一走普通 ScenePackage；SemanticTiming v3 覆盖连续全片窗口，
   CaptionCue 只覆盖 narrated chunks。ProducerConfig 选择普通 Scene template，`project:configure`
-  把源码和资源复制到 Project-local Scene 并冻结独立 instance；freeze 机械投影 plans、校验并直接
-  submit，不创建 owner receipt。Project 也可使用 `scene-owner` 或关闭。`leadInFrames`/`tailFrames` 只保留
+  把源码和资源复制到 Project-local Scene 并冻结独立 instance；freeze 机械投影 plans，验证冻结
+  identity、复制 checksum、资源与 ScenePackage 绑定后直写结果，不进入通用 Scene check/审查，也不创建
+  owner receipt。Project 也可使用 `scene-owner` 或关闭。`leadInFrames`/`tailFrames` 只保留
   真正空白 padding，NarrativeCore 从 `narrationStartFrame` 挂载唯一完整旁白。
 - zero-Project Root 的 `System` folder 提供两个 Scene template 的独立可听预览 Composition。bootstrap
   从 ignored `scene-template-sound-overrides.json` 生成 authoring-only 声音投影；当前片头从第 0 帧裁取

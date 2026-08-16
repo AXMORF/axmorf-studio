@@ -146,7 +146,9 @@ canonical byte check，缺失或漂移均 fail closed。
 
 `project:configure` 已经复制并冻结 `template-copy` Renderer 与资源。freeze 只写完整 task-input、
 visual/shot/anchor/sound plans、selected resources、empty recipe 与 not-applicable fidelity receipt，
-然后机械 check/submit。返回的 `templateMeaningIds` 不创建 Scene owner 或 receipt；只有
+然后校验冻结 identity、复制 checksum、资源与 ScenePackage 绑定并由脚本直接写正式结果；不进入
+通用 Scene readability check、focused compile 或创意审查。返回的 `templateMeaningIds` 不创建 Scene owner
+或 receipt；只有
 `ownerMeaningIds` 被派发。silent Scene brief 不接受另行注入的 snapshot card；带 exact cue 的 template 要求
 统一 `sound: allowed`，冲突在 freeze 时直接 fail closed。
 

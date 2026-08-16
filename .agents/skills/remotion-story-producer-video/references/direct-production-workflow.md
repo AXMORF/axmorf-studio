@@ -53,7 +53,7 @@ npm run delivery:cover:freeze -- --project <storyId>
 Scene freeze owns each Project-local Catalog snapshot.
 
 Require ordinary Scene assignments for every Beat, plus GlobalVisual and Cover. Record paths,
-`templateMeaningIds`, and `ownerMeaningIds`. Template copies are already materialized and script-submitted;
+`templateMeaningIds`, and `ownerMeaningIds`. Templates are script-verified/direct-resulted; no generic check/review;
 only `ownerMeaningIds` need Scene tasks. Do not rewrite frozen inputs.
 
 ## 4. Start automation, dispatch, and exit

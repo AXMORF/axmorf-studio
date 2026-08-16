@@ -39,7 +39,7 @@ CodeGraph first when indexed.
 ## Preserve production invariants
 
 - Keep one Story/Composition, one meaningId/ScenePackage, one GlobalVisualPackage, and one Cover owner.
-- `templateMeaningIds` are copied, checked, and submitted by scripts; never create an owner task or receipt for them.
+- Scripts directly result `templateMeaningIds` after binding checks; no generic check/review, owner task, or receipt.
 - Keep owner paths disjoint. Owners author only their assignment and publish one assignment-bound
   immutable receipt; the watcher alone writes central results/state and drives delivery.
 - Keep private config and protected voice material unread, unreported, unstaged, and uncommitted.

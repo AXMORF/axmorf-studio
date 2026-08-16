@@ -1,6 +1,6 @@
 {
   "schemaVersion": 8,
-  "policyVersion": "remotion-story-producer-video-policy-v8",
+  "policyVersion": "remotion-story-producer-video-policy-v9",
   "rootEndpoint": "watcher-started-and-owners-dispatched",
   "backgroundEndpoint": "delivery-render-started",
   "privateConfigPath": "private/producer.config.json",
@@ -57,7 +57,7 @@
     "timingPolicy": "pcm-cumulative-ceil-v1",
     "storyBeatContract": "discriminated-narrated-or-silent-scene",
     "configuredSceneTemplates": "project-configure-copy-with-project-local-instance",
-    "templateCopyOwnerPolicy": "script-check-submit-without-owner-receipt",
+    "templateCopyOwnerPolicy": "script-direct-result-without-generic-review-or-owner-receipt",
     "silentSceneNarrationPolicy": "no-tts-no-captions-fixed-preset-frames",
     "watcherLaunchPolicy": "detached-spawn-acknowledgement-v1",
     "watcherLaunchAmbiguityPolicy": "intent-without-receipt-never-retry",

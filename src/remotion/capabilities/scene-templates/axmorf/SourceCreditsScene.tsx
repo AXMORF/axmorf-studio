@@ -47,7 +47,7 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
         style={{
           fontFamily:
             '"Noto Serif SC", "Source Han Serif SC", "Songti SC", serif',
-          fontSize: 52,
+          fontSize: isLandscape ? 44 : isDense ? 44 : 51,
           fontWeight: 520,
           letterSpacing: "0.045em",
           lineHeight: isLandscape ? 1.58 : 1.66,
@@ -60,7 +60,6 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
             aria-hidden="true"
             style={{
               filter: `blur(${interpolate(sceneFrame, [10 + index * 7, 32 + index * 7], [7, 0], clamped)}px)`,
-              fontSize: 52,
               opacity: interpolate(
                 sceneFrame,
                 [10 + index * 7, 32 + index * 7],
@@ -81,7 +80,7 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
         style={{
           color: "#a37d5c",
           fontFamily: 'Inter, "Noto Sans SC", Arial, sans-serif',
-          fontSize: 36,
+          fontSize: isLandscape ? 20 : 23,
           fontWeight: 650,
           letterSpacing: "0.18em",
           marginTop: isLandscape ? 28 : 52,
@@ -98,7 +97,6 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
           gridTemplateColumns: isLandscape
             ? "repeat(2, minmax(0, 1fr))"
             : "minmax(0, 1fr)",
-          fontSize: 36,
           marginTop: 24,
         }}
       >
@@ -112,7 +110,6 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
               background: "rgba(255, 253, 249, 0.72)",
               border: "1px solid rgba(36, 36, 36, 0.1)",
               borderRadius: 18,
-              fontSize: 36,
               minWidth: 0,
               opacity: interpolate(
                 sceneFrame,
@@ -127,7 +124,7 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
             <div
               style={{
                 fontFamily: 'Inter, "Noto Sans SC", Arial, sans-serif',
-                fontSize: 38,
+                fontSize: isLandscape ? 23 : 27,
                 fontWeight: 650,
                 overflowWrap: "anywhere",
               }}
@@ -140,7 +137,7 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
                   color: "rgba(36, 36, 36, 0.72)",
                   direction: "ltr",
                   fontFamily: "Inter, Arial, ui-sans-serif, sans-serif",
-                  fontSize: 36,
+                  fontSize: isLandscape ? 15 : 18,
                   marginTop: 6,
                   overflowWrap: "anywhere",
                   textAlign: "left",
