@@ -106,8 +106,15 @@ export const prepareProjectSound = async ({
     ],
     externalAssets: manifest.externalAssets,
   });
-  const descriptorFingerprint =
-    computeResourceDescriptorFingerprint(descriptor);
+  const descriptorFingerprint = computeResourceDescriptorFingerprint({
+    ...descriptor,
+    authority: {
+      ...descriptor.authority,
+      sourceChecksum: checksum(
+        Buffer.from(`${serializeCanonicalJson(assetManifest)}\n`),
+      ),
+    },
+  });
   return {
     plan: buildProjectSoundPlan({
       storyId: projectId,

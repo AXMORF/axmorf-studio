@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import {
   copyFile,
   mkdir,
@@ -18,6 +19,7 @@ import {
   ProductionRequirementsFreezeSchema,
   RenderSpecSchema,
   NarrationSpecSchema,
+  computeResourceDescriptorFingerprint,
   computePublishingCollectionCatalogFingerprint,
 } from "../../src/contracts";
 import { writeProducerConfig } from "../../scripts/config/producer-config";
@@ -236,6 +238,20 @@ test("ProducerConfig freezes every production-connected default into one new Pro
   ]);
   const backgroundMusic = assetManifest.assets.find(
     ({ id }) => id === "asset.story-example.background-music",
+  );
+  assert.ok(backgroundMusic);
+  const assetManifestChecksum = `sha256:${createHash("sha256")
+    .update(await readFile(join(projectDir, "assets.manifest.json")))
+    .digest("hex")}` as const;
+  assert.equal(
+    projectSound.contributions[0]?.descriptorFingerprint,
+    computeResourceDescriptorFingerprint({
+      ...backgroundMusic,
+      authority: {
+        ...backgroundMusic.authority,
+        sourceChecksum: assetManifestChecksum,
+      },
+    }),
   );
   assert.equal(backgroundMusic?.mediaRole, "background-music");
   assert.equal(
