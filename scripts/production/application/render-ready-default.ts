@@ -26,6 +26,7 @@ import {
   createGlobalVisualProjection,
   getStoryCompositionDurationInFrames,
   STORY_COMPOSITION_TIMELINE_VERSION,
+  type SceneAssignment,
 } from "../../../src/contracts";
 import { resolveSceneSound } from "../../../src/remotion/runtime/scene-sound";
 import { buildSoundDesignProjection } from "../../../src/remotion/runtime/sound-design";
@@ -52,6 +53,7 @@ import {
 } from "./project-scaffold";
 import { validateSceneReadability } from "./readability-validator";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
+import { validateTemplateCopiedSceneFromProjectFiles } from "./template-copied-scene";
 import { compileTargetProjectComposition } from "./project-composition-compiler";
 
 const checksumText = (value: string) =>
@@ -206,6 +208,29 @@ const writeOrCheckGlobalVisualProjection = async ({
   return projection;
 };
 
+export const validateSceneForProductionRenderPlan = async ({
+  rootDir,
+  assignment,
+}: {
+  readonly rootDir: string;
+  readonly assignment: SceneAssignment;
+}) => {
+  const beat = assignment.taskInput.storyBeat;
+  if (
+    beat.kind === "silent-scene" &&
+    beat.preset.implementation.kind === "template-copy"
+  ) {
+    await validateTemplateCopiedSceneFromProjectFiles({ rootDir, assignment });
+    return;
+  }
+  const graph = await collectRendererSourceGraph({
+    rootDir,
+    projectId: assignment.storyId,
+    rendererPath: `src/projects/${assignment.storyId}/scenes/${assignment.meaningId}/Renderer.tsx`,
+  });
+  await validateSceneReadability({ rootDir, assignment, graph });
+};
+
 export const prepareProductionRenderPlan = async ({
   rootDir,
   runId,
@@ -282,12 +307,7 @@ export const prepareProductionRenderPlan = async ({
     throw new Error("Production render requires a RendererRegistry.");
   }
   for (const assignment of resolved.assignments) {
-    const graph = await collectRendererSourceGraph({
-      rootDir,
-      projectId: assignment.storyId,
-      rendererPath: `src/projects/${assignment.storyId}/scenes/${assignment.meaningId}/Renderer.tsx`,
-    });
-    await validateSceneReadability({ rootDir, assignment, graph });
+    await validateSceneForProductionRenderPlan({ rootDir, assignment });
   }
   const sources = await loadRenderSources(rootDir, storyId);
   const transitions = sources.timing.storyBeats.slice(1).map((beat, index) => ({

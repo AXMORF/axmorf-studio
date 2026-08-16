@@ -34,6 +34,7 @@ import { loadCatalogAuthorityDescriptors } from "../../scripts/catalog/project-f
 import { generateScenePackageFromProjectFiles } from "../../scripts/scene-package/generate";
 import { materializeConfiguredSceneTemplates } from "../../scripts/projects/application/instantiate-scene-templates";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
+import { validateSceneForProductionRenderPlan } from "../../scripts/production/application/render-ready-default";
 import {
   assertSceneAssignmentIsolation,
   runProductionSceneFreeze,
@@ -629,6 +630,26 @@ test("configured template copies submit deterministically without generic Scene 
     );
   }
   assert.deepEqual(result.ownerMeaningIds, ["opening", "conclusion"]);
+});
+
+test("render plan validates configured templates without generic Scene review", async (context) => {
+  const fixture = await createFixture(context, {
+    withConfiguredTemplates: true,
+  });
+  const result = await freeze(fixture);
+  const introAssignment = SceneAssignmentSchema.parse(
+    JSON.parse(
+      await readFile(
+        join(fixture.rootDir, result.assignmentPaths[0]),
+        "utf8",
+      ),
+    ),
+  );
+
+  await validateSceneForProductionRenderPlan({
+    rootDir: fixture.rootDir,
+    assignment: introAssignment,
+  });
 });
 
 test("disabled defaults leave no copied Scene source or sound plan", async (context) => {
