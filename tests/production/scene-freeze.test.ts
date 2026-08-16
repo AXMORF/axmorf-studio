@@ -32,7 +32,9 @@ import { buildResourceCatalog } from "../../scripts/catalog/domain";
 import { loadCatalogAuthorityDescriptors } from "../../scripts/catalog/project-files";
 import { generateScenePackageFromProjectFiles } from "../../scripts/scene-package/generate";
 import { materializeConfiguredSceneTemplates } from "../../scripts/projects/application/instantiate-scene-templates";
+import { collectRendererSourceGraph } from "../../scripts/renderer-registry/domain";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
+import { validateSceneReadability } from "../../scripts/production/application/readability-validator";
 import {
   assertSceneAssignmentIsolation,
   runProductionSceneFreeze,
@@ -594,6 +596,53 @@ test("configured template copies freeze and submit without Scene owners", async 
     outroPackage.selectedResources.map(({ resourceId }) => resourceId),
     lastBeat?.kind === "silent-scene" ? lastBeat.preset.resourceIds : [],
   );
+});
+
+test("configured template copies pass the production readability validator", async (context) => {
+  const fixture = await createFixture(context, {
+    withConfiguredTemplates: true,
+  });
+  await Promise.all(
+    [
+      "src/remotion/runtime/story-visual/SceneSlot.tsx",
+      "src/remotion/runtime/readability/SceneSafeArea.tsx",
+    ].map((path) => copyRepositoryFile(fixture.rootDir, path)),
+  );
+  const result = await freeze(fixture);
+
+  assert.deepEqual(result.templateMeaningIds, [
+    "configured-intro-scene",
+    "configured-outro-scene",
+  ]);
+  for (const meaningId of result.templateMeaningIds) {
+    const assignmentPath = join(
+      fixture.projectDir,
+      `production/scene-assignments/${meaningId}.generated.json`,
+    );
+    const assignment = SceneAssignmentSchema.parse(
+      JSON.parse(await readFile(assignmentPath, "utf8")),
+    );
+    const rendererPath = `src/projects/story-example/scenes/${meaningId}/Renderer.tsx`;
+    const graph = await collectRendererSourceGraph({
+      rootDir: fixture.rootDir,
+      projectId: "story-example",
+      rendererPath,
+    });
+    const check = await validateSceneReadability({
+      rootDir: fixture.rootDir,
+      assignment,
+      graph,
+    });
+    assert.equal(
+      check.sceneCompositionBoundaryVersion,
+      "scene-composition-boundary-v1",
+    );
+  }
+  const state = await readProductionRunStore({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+  });
+  assert.equal(state.state.state, "scene-inputs-frozen");
 });
 
 test("disabled defaults leave no copied Scene source or sound plan", async (context) => {

@@ -265,6 +265,10 @@ test("ProducerConfig freezes every production-connected default into one new Pro
   assert.match(copiedRenderer, /from "\.\/AxmorfIntroScene"/u);
   assert.doesNotMatch(copiedRenderer, /remotion\/capabilities/u);
   assert.doesNotMatch(
+    copiedRenderer,
+    /const Renderer = \(\{[^}]*sourceReferences/u,
+  );
+  assert.doesNotMatch(
     JSON.stringify({ narration, render, publishing, requirements, result }),
     /visible-editable-token|\/srv\/private|127\.0\.0\.1|default-bgm/iu,
   );

@@ -253,8 +253,11 @@ export const getSceneTemplateDefinition = (templateId: string) => {
 export const renderCopiedSceneRenderer = (
   definition: SceneTemplateDefinition,
 ) => {
+  const sourceReferencesBinding = definition.sourceReferencesProp
+    ? ", sourceReferences"
+    : "";
   const sourceReferencesProp = definition.sourceReferencesProp
     ? " sourceReferences={sourceReferences}"
     : "";
-  return `import {${definition.componentName}} from "./${definition.componentName}";\n\ntype RendererProps = Readonly<{\n  sceneFrame: number;\n  width: number;\n  height: number;\n  sourceReferences: readonly Readonly<{title: string; url: string}>[];\n}>;\n\nconst Renderer = ({sceneFrame, width, height, sourceReferences}: RendererProps) => (\n  <${definition.componentName} sceneFrame={sceneFrame} width={width} height={height}${sourceReferencesProp} />\n);\n\nexport default Renderer;\n`;
+  return `import {${definition.componentName}} from "./${definition.componentName}";\n\ntype RendererProps = Readonly<{\n  sceneFrame: number;\n  width: number;\n  height: number;\n  sourceReferences: readonly Readonly<{title: string; url: string}>[];\n}>;\n\nconst Renderer = ({sceneFrame, width, height${sourceReferencesBinding}}: RendererProps) => (\n  <${definition.componentName} sceneFrame={sceneFrame} width={width} height={height}${sourceReferencesProp} />\n);\n\nexport default Renderer;\n`;
 };

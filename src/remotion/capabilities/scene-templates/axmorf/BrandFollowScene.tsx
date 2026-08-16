@@ -41,11 +41,8 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
         style={{
           height: markSize,
           left: width / 2 - markSize / 2 + shiftX,
+          opacity: interpolate(frame, [2, 28], [0, 1], clamped),
           position: "absolute",
-          scale: interpolate(frame, [2, 40], [isLandscape ? 6.4 : 7.2, 1], {
-            ...clamped,
-            easing: Easing.inOut(Easing.cubic),
-          }),
           top: lockupY - markSize / 2,
           width: markSize,
         }}
@@ -58,7 +55,7 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
         style={{
           display: "flex",
           fontFamily: "Inter, Arial, ui-sans-serif, sans-serif",
-          fontSize: isLandscape ? 70 : 76,
+          fontSize: 76,
           fontWeight: 620,
           gap: isLandscape ? 13 : 15,
           left: width / 2 + (isLandscape ? -36 : -22),
@@ -72,6 +69,7 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
             key={`${character}-${index}`}
             aria-hidden="true"
             style={{
+              fontSize: 76,
               opacity: interpolate(
                 frame,
                 [64 + index * 4, 76 + index * 4],
@@ -95,7 +93,7 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
           color: "#fffdf9",
           display: "flex",
           fontFamily: 'Inter, "Noto Sans SC", Arial, sans-serif',
-          fontSize: isLandscape ? 27 : 30,
+          fontSize: 40,
           fontWeight: 650,
           height: buttonHeight,
           justifyContent: "center",
@@ -103,10 +101,6 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
           letterSpacing: "0.1em",
           opacity: interpolate(frame, [102, 118], [0, 1], clamped),
           position: "absolute",
-          scale: interpolate(frame, [102, 118], [0.82, 1], {
-            ...clamped,
-            easing: Easing.out(Easing.back(1.6)),
-          }),
           top: height * (isLandscape ? 0.72 : 0.68) - buttonHeight / 2,
           width: buttonWidth,
         }}

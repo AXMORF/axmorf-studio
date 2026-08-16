@@ -20,7 +20,7 @@ export const AxmorfMark: FC<{
     aria-label={ariaLabel}
     role={ariaLabel === undefined ? undefined : "img"}
     viewBox="0 0 640 640"
-    style={{ display: "block", ...style }}
+    style={{ display: "block", fontSize: 36, ...style }}
   >
     {AXMORF_MARK_PATHS.map((path) => (
       <path key={path} d={path} fill={color} />
