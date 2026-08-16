@@ -36,13 +36,14 @@ test("semantic naming guard rejects milestone APIs but permits SVG and M4A synta
     ),
     writeFile(
       join(rootDir, "src/contracts/vector.tsx"),
-      '<path d="M1 1 L11 6 L1 11" />\n',
+      `<path d="${retiredOne} 1 L11 6 L1 11" />\n`,
     ),
     writeFile(
       join(rootDir, "src/contracts/adversarial.tsx"),
       [
         `<path aria-label="text d='${retiredOne} legacy' here" />`,
         `<path-note d="${retiredThree}" />`,
+        `<path {...(/* } d="${retiredOne} legacy" */ props)} />`,
         `<path aria-label="1 > 0" d="${retiredOne} 1`,
         'L11 6" />',
         `<span>${retiredSixReceipt}</span>`,
@@ -57,7 +58,8 @@ test("semantic naming guard rejects milestone APIs but permits SVG and M4A synta
   assert.deepEqual(await findMilestoneNamingViolations(rootDir), [
     "src/contracts/adversarial.tsx:1: milestone name in active content",
     "src/contracts/adversarial.tsx:2: milestone name in active content",
-    "src/contracts/adversarial.tsx:5: milestone name in active content",
+    "src/contracts/adversarial.tsx:3: milestone name in active content",
+    "src/contracts/adversarial.tsx:6: milestone name in active content",
     `src/contracts/${retiredMilestone}-runtime.ts: milestone name in active path`,
   ]);
 });

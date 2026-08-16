@@ -14,9 +14,11 @@ number immediately following an SVG move command.
 
 ## Resolution
 
-The scanner now parses exact SVG `path` start tags and their attributes, masking
-only a directly quoted `d` value while preserving line breaks and therefore
-diagnostic line numbers. Active paths and all other source content remain
-subject to the existing milestone-name rule. Regression fixtures cover the
-exact `M1 1 L11 6 L1 11` path data that triggered the incident plus adversarial
-`aria-label`, similarly named tag, embedded `>`, and multiline cases.
+The scanner now uses the TypeScript TSX parser to identify exact SVG `path`
+elements and their attributes, masking only a direct string-literal `d` value
+while preserving line breaks and therefore diagnostic line numbers. Active
+paths and all other source content remain subject to the existing
+milestone-name rule. Regression fixtures cover the exact
+`M1 1 L11 6 L1 11` path data that triggered the incident plus adversarial
+`aria-label`, similarly named tag, embedded `>`, multiline, and braced-comment
+cases.

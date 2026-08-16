@@ -1,5 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import { extname, join, relative, sep } from "node:path";
+import ts from "typescript";
 
 const ACTIVE_ROOTS = [
   ".agents",
@@ -32,84 +33,39 @@ const milestonePattern = new RegExp(
   "iu",
 );
 
-const isMarkupWhitespace = (value: string | undefined) =>
-  value !== undefined && /\s/u.test(value);
-
-const skipBracedAttribute = (source: string, start: number) => {
-  let depth = 0;
-  let quote: '"' | "'" | "`" | undefined;
-  let escaped = false;
-  for (let index = start; index < source.length; index += 1) {
-    const value = source[index];
-    if (quote !== undefined) {
-      if (escaped) escaped = false;
-      else if (value === "\\") escaped = true;
-      else if (value === quote) quote = undefined;
-      continue;
-    }
-    if (value === '"' || value === "'" || value === "`") quote = value;
-    else if (value === "{") depth += 1;
-    else if (value === "}" && --depth === 0) return index + 1;
-  }
-  return source.length;
-};
-
 const maskSvgPathData = (source: string) => {
   const masked = source.split("");
-  const pathStartPattern = /<path(?=[\s/>])/giu;
-  for (const match of source.matchAll(pathStartPattern)) {
-    let cursor = (match.index ?? 0) + match[0].length;
-    while (cursor < source.length) {
-      while (isMarkupWhitespace(source[cursor])) cursor += 1;
-      if (source[cursor] === ">") break;
-      if (source[cursor] === "/" && source[cursor + 1] === ">") break;
-      if (source[cursor] === "{") {
-        cursor = skipBracedAttribute(source, cursor);
-        continue;
-      }
-      if (source[cursor] === "/") {
-        cursor += 1;
-        continue;
-      }
-      const nameStart = cursor;
-      while (
-        cursor < source.length &&
-        !isMarkupWhitespace(source[cursor]) &&
-        !["=", "/", ">"].includes(source[cursor])
-      ) {
-        cursor += 1;
-      }
-      const attributeName = source.slice(nameStart, cursor).toLowerCase();
-      while (isMarkupWhitespace(source[cursor])) cursor += 1;
-      if (source[cursor] !== "=") continue;
-      cursor += 1;
-      while (isMarkupWhitespace(source[cursor])) cursor += 1;
-      const quote = source[cursor];
-      if (quote === '"' || quote === "'") {
-        const valueStart = cursor + 1;
-        cursor = source.indexOf(quote, valueStart);
-        if (cursor === -1) break;
-        if (attributeName === "d") {
-          for (let index = valueStart; index < cursor; index += 1) {
-            if (source[index] !== "\r" && source[index] !== "\n") {
-              masked[index] = " ";
+  const sourceFile = ts.createSourceFile(
+    "semantic-naming-source.tsx",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+  const visit = (node: ts.Node) => {
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+      if (node.tagName.getText(sourceFile).toLowerCase() === "path") {
+        for (const attribute of node.attributes.properties) {
+          if (
+            ts.isJsxAttribute(attribute) &&
+            attribute.name.getText(sourceFile).toLowerCase() === "d" &&
+            attribute.initializer !== undefined &&
+            ts.isStringLiteral(attribute.initializer)
+          ) {
+            const valueStart = attribute.initializer.getStart(sourceFile) + 1;
+            const valueEnd = attribute.initializer.getEnd() - 1;
+            for (let index = valueStart; index < valueEnd; index += 1) {
+              if (source[index] !== "\r" && source[index] !== "\n") {
+                masked[index] = " ";
+              }
             }
           }
         }
-        cursor += 1;
-      } else if (quote === "{") {
-        cursor = skipBracedAttribute(source, cursor);
-      } else {
-        while (
-          cursor < source.length &&
-          !isMarkupWhitespace(source[cursor]) &&
-          source[cursor] !== ">"
-        ) {
-          cursor += 1;
-        }
       }
     }
-  }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
   return masked.join("");
 };
 
