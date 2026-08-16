@@ -158,21 +158,11 @@ export const validateTemplateCopiedSceneFromProjectFiles = async ({
       rootDir,
       projectId: assignment.storyId,
       meaningId: assignment.meaningId,
-      mode: "write",
-    }),
-  );
-  const checkedPackage = ScenePackageSchema.parse(
-    await generateScenePackageFromProjectFiles({
-      rootDir,
-      projectId: assignment.storyId,
-      meaningId: assignment.meaningId,
       mode: "check",
     }),
   );
   if (
     scenePackage.schemaVersion !== 5 ||
-    checkedPackage.schemaVersion !== 5 ||
-    checkedPackage.packageFingerprint !== scenePackage.packageFingerprint ||
     scenePackage.taskInputFingerprint !==
       assignment.taskInput.taskInputFingerprint ||
     scenePackage.scenePresetFingerprint !== beat.preset.presetFingerprint ||
@@ -315,6 +305,12 @@ export const materializeTemplateCopiedScenes = async ({
         mode,
       });
     }
+    await generateScenePackageFromProjectFiles({
+      rootDir,
+      projectId: assignment.storyId,
+      meaningId: assignment.meaningId,
+      mode,
+    });
     meaningIds.push(assignment.meaningId);
   }
   return meaningIds;

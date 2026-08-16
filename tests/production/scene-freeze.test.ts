@@ -698,7 +698,9 @@ test("template-copied Scene sound obeys the unified frozen sound policy", async 
 });
 
 test("current freeze rerun is a byte and mtime stable no-op", async (context) => {
-  const fixture = await createFixture(context);
+  const fixture = await createFixture(context, {
+    withConfiguredTemplates: true,
+  });
   const first = await freeze(fixture);
   const catalogPath = join(
     fixture.projectDir,
@@ -713,6 +715,12 @@ test("current freeze rerun is a byte and mtime stable no-op", async (context) =>
   const globalPath = join(fixture.rootDir, first.globalVisualAssignmentPath);
   const globalBytes = await readFile(globalPath);
   const globalMtime = (await stat(globalPath)).mtimeMs;
+  const templatePackagePath = join(
+    fixture.projectDir,
+    "scenes/configured-intro-scene/generated/scene-package.generated.json",
+  );
+  const templatePackageBytes = await readFile(templatePackagePath);
+  const templatePackageMtime = (await stat(templatePackagePath)).mtimeMs;
   const repeated = await freeze(fixture);
   assert.equal(repeated.noOp, true);
   assert.deepEqual(await readFile(catalogPath), catalogBytes);
@@ -721,6 +729,8 @@ test("current freeze rerun is a byte and mtime stable no-op", async (context) =>
   assert.equal((await stat(path)).mtimeMs, mtime);
   assert.deepEqual(await readFile(globalPath), globalBytes);
   assert.equal((await stat(globalPath)).mtimeMs, globalMtime);
+  assert.deepEqual(await readFile(templatePackagePath), templatePackageBytes);
+  assert.equal((await stat(templatePackagePath)).mtimeMs, templatePackageMtime);
 });
 
 test("current freeze rejects Project ResourceCatalog drift", async (context) => {
@@ -749,6 +759,23 @@ test("current freeze rejects copied Scene Renderer source drift", async (context
   );
   await writeFile(sourcePath, `${await readFile(sourcePath, "utf8")}\n`);
   await assert.rejects(() => freeze(fixture), /Copied Scene file is stale:/u);
+});
+
+test("current freeze rejects copied ScenePackage byte drift", async (context) => {
+  const fixture = await createFixture(context, {
+    withConfiguredTemplates: true,
+  });
+  await freeze(fixture);
+  const packagePath = join(
+    fixture.projectDir,
+    "scenes/configured-intro-scene/generated/scene-package.generated.json",
+  );
+  await writeFile(packagePath, `${await readFile(packagePath, "utf8")} `);
+
+  await assert.rejects(
+    () => freeze(fixture),
+    /Generated Scene artifact bytes are stale\./u,
+  );
 });
 
 test("missing GlobalVisualBrief fails before writing any assignment", async (context) => {
