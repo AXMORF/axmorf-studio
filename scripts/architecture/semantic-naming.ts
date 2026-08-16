@@ -32,6 +32,14 @@ const milestonePattern = new RegExp(
   "iu",
 );
 
+const maskSvgPathData = (source: string) => {
+  const maskAttribute = (_match: string, prefix: string, attribute: string) =>
+    `${prefix}${attribute.replace(/[^\r\n]/gu, " ")}`;
+  return source
+    .replace(/(<path\b[^>]*?\s)(d\s*=\s*"[^"]*")/giu, maskAttribute)
+    .replace(/(<path\b[^>]*?\s)(d\s*=\s*'[^']*')/giu, maskAttribute);
+};
+
 const toRepositoryPath = (rootDir: string, path: string) =>
   relative(rootDir, path).split(sep).join("/");
 
@@ -84,7 +92,7 @@ export const findMilestoneNamingViolations = async (rootDir: string) => {
       violations.push(`${repositoryPath}: milestone name in active path`);
       continue;
     }
-    const lines = (await readFile(path, "utf8")).split(/\r?\n/u);
+    const lines = maskSvgPathData(await readFile(path, "utf8")).split(/\r?\n/u);
     for (const [index, line] of lines.entries()) {
       if (milestonePattern.test(line)) {
         violations.push(

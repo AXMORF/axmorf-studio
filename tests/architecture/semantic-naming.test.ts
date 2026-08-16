@@ -32,6 +32,10 @@ test("semantic naming guard rejects milestone APIs but permits SVG and M4A synta
       'export const path = "M272 18H368"; export const audio = "voice.M4A";\n',
     ),
     writeFile(
+      join(rootDir, "src/contracts/vector.tsx"),
+      '<path d="M1 1 L11 6 L1 11" />\n',
+    ),
+    writeFile(
       join(rootDir, "docs/archive/history.md"),
       [1, 3, 6, 8, 9].map((number) => `M${number}`).join(" "),
     ),
