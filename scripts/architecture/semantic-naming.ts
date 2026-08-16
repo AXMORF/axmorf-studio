@@ -44,11 +44,11 @@ const maskSvgPathData = (source: string) => {
   );
   const visit = (node: ts.Node) => {
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
-      if (node.tagName.getText(sourceFile).toLowerCase() === "path") {
+      if (node.tagName.getText(sourceFile) === "path") {
         for (const attribute of node.attributes.properties) {
           if (
             ts.isJsxAttribute(attribute) &&
-            attribute.name.getText(sourceFile).toLowerCase() === "d" &&
+            attribute.name.getText(sourceFile) === "d" &&
             attribute.initializer !== undefined &&
             ts.isStringLiteral(attribute.initializer)
           ) {

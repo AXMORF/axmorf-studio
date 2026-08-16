@@ -21,4 +21,5 @@ paths and all other source content remain subject to the existing
 milestone-name rule. Regression fixtures cover the exact
 `M1 1 L11 6 L1 11` path data that triggered the incident plus adversarial
 `aria-label`, similarly named tag, embedded `>`, multiline, and braced-comment
-cases.
+cases. Tag and attribute matching is case-sensitive so React components such as
+`Path` and non-SVG attributes such as `D` remain inside the naming guard.

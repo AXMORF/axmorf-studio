@@ -43,6 +43,9 @@ test("semantic naming guard rejects milestone APIs but permits SVG and M4A synta
       [
         `<path aria-label="text d='${retiredOne} legacy' here" />`,
         `<path-note d="${retiredThree}" />`,
+        `<Path d="${retiredOne}" />`,
+        `<PATH d="${retiredThree}" />`,
+        `<path D="${retiredSixReceipt}" />`,
         `<path {...(/* } d="${retiredOne} legacy" */ props)} />`,
         `<path aria-label="1 > 0" d="${retiredOne} 1`,
         'L11 6" />',
@@ -59,7 +62,10 @@ test("semantic naming guard rejects milestone APIs but permits SVG and M4A synta
     "src/contracts/adversarial.tsx:1: milestone name in active content",
     "src/contracts/adversarial.tsx:2: milestone name in active content",
     "src/contracts/adversarial.tsx:3: milestone name in active content",
+    "src/contracts/adversarial.tsx:4: milestone name in active content",
+    "src/contracts/adversarial.tsx:5: milestone name in active content",
     "src/contracts/adversarial.tsx:6: milestone name in active content",
+    "src/contracts/adversarial.tsx:9: milestone name in active content",
     `src/contracts/${retiredMilestone}-runtime.ts: milestone name in active path`,
   ]);
 });
