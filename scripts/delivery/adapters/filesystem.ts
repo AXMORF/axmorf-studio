@@ -193,7 +193,9 @@ export const createDeliveryStaging = async ({
   const paths = resolveDeliveryPaths({ rootDir, projectId });
   await ensureDirectory(paths.deliveries);
   await ensureDirectory(paths.staging);
-  const staleEntries = await readdir(paths.staging);
+  const staleEntries = (await readdir(paths.staging)).filter(
+    (entry) => entry !== "project-build",
+  );
   if (staleEntries.length > 0) {
     throw new Error("Delivery staging contains an unfinished package.");
   }

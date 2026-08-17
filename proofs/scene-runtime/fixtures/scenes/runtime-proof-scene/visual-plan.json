@@ -1,17 +1,1 @@
-{
-  "causalLink": "The closed trace triggers the visual and local sound handoff.",
-  "continuity": "Enter and leave within the same fixed 120-frame Beat.",
-  "fallbackIntent": "Fail closed instead of approximating a stale exact recipe.",
-  "meaningId": "runtime-proof-scene",
-  "orderedShotIds": ["draw-svg-trace-shot"],
-  "primaryAction": "A moving pen traces closes and reveals the shape.",
-  "primaryComposition": "Centered proof shape with one technical header.",
-  "recipeDecision": "exact-demo-localized",
-  "schemaVersion": 1,
-  "semanticObjective": "Make the fixed Scene runtime window visibly testable.",
-  "styleRealization": ["Cyan vector trace", "Deep navy technical field"],
-  "subject": "One project-authored geometric proof shape.",
-  "taskInputFingerprint": "sha256:1a93ec795a75062242b17c5bf9cc2051af1b59520b8acebc3bb45826c625d119",
-  "visualPlanFingerprint": "sha256:6ca065d1eca591847d5b59512b5ce4f680a74d0551b6b41ebb484a60e19fef96",
-  "visualResourceIds": ["asset.scene-runtime-proof-shape"]
-}
+{"causalLink":"The closed trace triggers the visual and local sound handoff.","continuity":"Enter and leave within the same fixed 120-frame Beat.","fallbackIntent":"Fail closed instead of approximating a stale exact recipe.","meaningId":"runtime-proof-scene","orderedShotIds":["draw-svg-trace-shot"],"primaryAction":"A moving pen traces closes and reveals the shape.","primaryComposition":"Centered proof shape with one technical header.","recipeDecision":"exact-demo-localized","schemaVersion":1,"semanticObjective":"Make the fixed Scene runtime window visibly testable.","styleRealization":["Cyan vector trace","Deep navy technical field"],"subject":"One project-authored geometric proof shape.","taskInputFingerprint":"sha256:1a93ec795a75062242b17c5bf9cc2051af1b59520b8acebc3bb45826c625d119","visualPlanFingerprint":"sha256:6ca065d1eca591847d5b59512b5ce4f680a74d0551b6b41ebb484a60e19fef96","visualResourceIds":["asset.scene-runtime-proof-shape"]}

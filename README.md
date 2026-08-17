@@ -1,18 +1,23 @@
 # Remotion Story Producer
 
 一个以旁白实测时间线为权威、按 StoryBeat 隔离制作 Scene，并由静态 Remotion runtime 装配与
-自动发起本地交付渲染的合同驱动视频生产仓库。
+同步构建本地最终交付的合同驱动视频生产仓库。
 
 ## 当前结论
 
-- 当前只有一套 production 合同与运行路径，不读取或解释旧 Run、旧作品和旧交付目录。
-- production 终点是 `render-ready / awaiting-automatic-delivery`：Composition、render plan 和
-  所有输入 identity 已冻结，但尚未生成最终 MP4。
-- 主 Agent 冻结全部 assignment 后启动 detached watcher，再用 `create_thread` 只派发需要创作的
+- 默认入口是 `npm run project:build -- --project <storyId>`。它从 current 可变 Project authoring
+  source 生成同一 snapshot 的 `video.mp4`、两张 Cover 与最后写入的 `publish.json`，同步等待
+  Remotion 和 FFmpeg 完成后才从 staging 受控替换 current delivery。
+- 普通 rebuild 不创建 ProductionRun，不读取 owner receipt，不启动 watcher，不重做旁白；Agent 只在
+  内容缺失或用户明确要求重新设计时参与。
+- ProductionRun/owner/watcher/`delivery:build` 保留为显式 audited production 能力，不再阻塞默认
+  Project build。其 `delivery-render-started` 仍只表示旧审计流的 detached spawn acknowledgement。
+- 显式 audited production 中，主 Agent 冻结全部 assignment 后启动 detached watcher，再用
+  `create_thread` 只派发需要创作的
   Scene、GlobalVisual 与 Cover 独立任务；template-copy Scene 由脚本提交。全部创建成功后立即结束，
   watcher 独立 check/submit、汇合
   render-ready 并自动执行 `delivery:build`。
-- `delivery-render-started` 只证明进程启动确认，不证明渲染完成或 MP4 有效。仓库不等待、监控、
+- audited `delivery-render-started` 只证明进程启动确认，不证明渲染完成或 MP4 有效；该旧路径不等待、监控、
   读取、hash、probe 或 decode detached 输出。
 - PublishingIntent 与独立 Cover 生命周期保留；Cover 不阻止 render-ready，但会阻止自动交付。
 - ignored `private/producer.config.json` 统一管理新作品的常用画面规格、Scene 留白、首尾 Scene
@@ -32,9 +37,9 @@
   stock-assets-mcp 的 Pexels image receipt v1，把候选图片校验并本地化到 Project-owned 路径后才
   进入 ResourceCatalog；MCP、网络、provider SDK 与 API Key 不进入 owner、watcher、delivery 或
   Remotion runtime。
-- 每个 Project 只有一个 `deliveries/<storyId>/` current delivery；重新生成时原位替换。它不是
-  checksum-bound verified release，ledger 只覆盖当前 identity 的 immutable 非 MP4 文件；
-  `publishing.json` 同时给出 MP4 与两张 Cover 的固定文件名。
+- 每个 Project 只有一个 `deliveries/<storyId>/` current delivery，exactly 包含 `video.mp4`、
+  `cover-4x3.png`、`cover-3x4.png` 与 `publish.json`。publish 绑定 buildId、source snapshot、实际路径、
+  checksum、尺寸、fps、帧数、音视频 codec 与 EOF decode 结果。
 - 平台上传、发布账号、网络发布、NarrativeCheck 和其他未批准 capability promotion 尚未实现。
 
 完整事实见 [当前实现状态](docs/ITERATION_STATUS.md)，执行方式见
@@ -49,14 +54,12 @@ VideoBrief(sourceReferences) + Story + authored ttsChunks + RenderSpec + Publish
   → narrated content chunks measured and sealed once
   → full SemanticTiming (intro → content Scenes → outro) + narrated-only CaptionCue
   → local ResourceCatalog lookup + optional external image import
-  → configured Scene templates copied and script-submitted + authored Scene/GlobalVisual/Cover owners
-  → assignment-bound owner receipts + detached single-writer watcher
+  → configured Scene templates copied + authored source when content is missing
   → ScenePackage Registry + StoryVisualTrack/SoundDesignTrack + FinalAssembly
-  → ProductionRenderPlan (SemanticTiming.durationInFrames)
-  → render-ready / awaiting-automatic-delivery
-  → immutable non-MP4 delivery package + launch intent
-  → detached Remotion spawn acknowledgement + launch receipt
-  → delivery-render-started
+  → authoring source snapshot + buildId
+  → synchronous video/Cover render in reusable staging
+  → media/checksum/path verification + publish.json written last
+  → controlled staged current delivery replacement
 ```
 
 ## 快速开始
@@ -170,6 +173,12 @@ npm run production:owner:ready -- --run <run-id> --owner cover
 npm run production:render-ready:check -- --run <run-id>
 ```
 
+上面是新内容需要 Agent 创作时的显式 audited production。已有 Project 的默认重建只需：
+
+```bash
+npm run project:build -- --project <story-id>
+```
+
 独立 Cover 与自动交付：
 
 ```bash
@@ -184,6 +193,7 @@ npm run delivery:check -- --project <story-id>
 .agents/skills/              仓库生产 Skill 与 repository-local Remotion authoring guidance
 docs/                        当前权威、指南、证据和历史归档
 scripts/production/          production cli / application / domain / adapters
+scripts/project-build/       默认 Project build cli / application / adapters
 scripts/project-assets/      外部 receipt adapter、Project-local 准入与 Catalog 同步
 scripts/delivery/            Cover 与自动交付 cli / application / domain / adapters
 scripts/shared/              跨流程的原子文件、窄技术端口与宿主媒体 adapter
@@ -204,7 +214,7 @@ public/projects/<story>/     ignored Project 媒体；public/voice_profile 永�
 .narration-work/<story>/     ignored 旁白候选与 provider progress
 .producer-runs/<runId>/      ignored immutable Run ledger 与 derived state
 public/assets/               bootstrap 可重建的 core proof 与 Scene template 资产
-deliveries/<story>/          ignored 单一 current 非 MP4 包、intent、receipt 与异步 MP4 输出
+deliveries/<story>/          ignored 单一 current video、两个 Cover 与 publish.json
 out/<story>/                 ignored baseline 媒体、诊断输出与 detached render 日志
 tests/                       单元、集成与架构回归
 ```

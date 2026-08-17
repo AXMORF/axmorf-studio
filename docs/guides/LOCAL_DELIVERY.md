@@ -1,16 +1,35 @@
-# 自动本地交付指南
+# 本地交付指南
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-12
+> 最后复核：2026-08-16
 >
-> 适用范围：current Project 已有 current PublishingIntent、ProductionRenderPlan、
-> ProductionRenderReady 和 immutable CoverResult。
+> 默认适用范围：current Project 已有可渲染 authoring source 与 sealed narration。
 
-自动交付准备一个不可覆盖的非 MP4 package，并发起 detached Remotion render。成功终点是
-`delivery-render-started`，只表示操作系统确认 child 已 spawn，不表示渲染完成。
+## 默认 Project build
 
-## 独立 Cover 生命周期
+```bash
+npm run project:build -- --project <storyId>
+```
+
+该命令同步等待最终视频和两个 Cover 完成，验证实际媒体后写 `publish.json`，最后从 staging 受控替换：
+
+```text
+deliveries/<storyId>/
+├── video.mp4
+├── cover-4x3.png
+├── cover-3x4.png
+└── publish.json
+```
+
+`publish.json` 绑定 run-independent buildId/source snapshot、实际 repository paths、SHA-256、size、
+codec、声道、尺寸、fps、frameCount 与 EOF decode。普通 Scene/GlobalVisual/Cover source 修改不创建
+ProductionRun、不派发 owner、不启动 watcher、不重做旁白。相同 snapshot 且 current delivery 完整时
+no-op；失败时上一版不动，同 buildId 重试复用已验证 staged media。
+
+以下章节只适用于用户显式选择的 audited production/launch 流程，不是默认 rebuild。
+
+## Audited Cover 生命周期
 
 主 Agent 在 VisualStyleSpec current 后只冻结 Cover assignment：
 
@@ -27,7 +46,7 @@ owner 不运行 check/submit。watcher 内部的 fixed check 真实渲染临时�
 decode；随后重复验证并原子封存 package、
 exact PNG 与 result。Cover 缺失或 stale 不阻止 production render-ready，但会阻止 delivery build。
 
-## 自动 build
+## Audited detached build
 
 Cover owner 通过 `production:owner:ready -- --run <runId> --owner cover` 发布 receipt。detached
 production 到达 render-ready 后，watcher 才串行执行 Cover check/submit；Cover current 后自动执行：
@@ -97,7 +116,7 @@ out/<storyId>/delivery-render/<deliveryId>.log
 
 ## 复验边界
 
-正常自动流程在 `delivery:build` 返回后立即结束，不再调用任何命令；下面的 check 只保留为用户
+audited detached 流程在 `delivery:build` 返回后立即结束，不再调用任何命令；下面的 check 只保留为用户
 显式运行的独立只读诊断。
 
 ```bash
@@ -110,5 +129,5 @@ stat、read、hash、probe 或 decode 该文件，也不把它的存在解释为
 
 未知文件、路径逃逸、symlink、input drift 或缺失 receipt fail closed。不上传平台、
 不访问网络、不处理账号/密钥，也不清理 `out/`。用户明确要求删除整个作品时，改用
-[`project:delete`](../PRODUCTION_WORKFLOW.md#7-作品删除) 一次清理该 storyId 的 Project、媒体、
+[`project:delete`](../PRODUCTION_WORKFLOW.md#8-作品删除) 一次清理该 storyId 的 Project、媒体、
 narration work、Runs、out 与 deliveries；它不是 delivery 重试或歧义恢复手段。

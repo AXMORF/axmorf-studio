@@ -4,23 +4,35 @@
 >
 > 最后复核：2026-08-16
 >
-> 当前阶段：detached watcher、独立线程 owner receipt 与自动交付已实现
+> 当前阶段：build-centric final artifact alignment 已实现；audited production 保留为可选能力
 
 ## 当前基线
 
-仓库只有一套 current production/delivery 路径。production 从 strict 当前输入开始，经 immutable
-Scene/GlobalVisual/Cover owner receipts 和 append-only Run 投影，到达
-`render-ready / awaiting-automatic-delivery`。detached watcher 随后自动执行 `delivery:build` 并发起
-detached Remotion render；收到 OS spawn acknowledgement 后返回 `delivery-render-started`。
+默认交付路径是 `project:build`。它不创建/读取 ProductionRun、owner receipt 或 watcher，在一个
+可复用 staging 内同步生成并验证成片与两个 Cover，最后写 `publish.json`，然后受控替换 current
+delivery。相同 source snapshot 且四个文件完整时 no-op；捕获到的失败保留或恢复上一版，重试只补
+受影响 artifact。
 
-该终点不是媒体成功证据。current scripts 不等待 detached child，不读取、hash、probe 或 decode
-计划 MP4，也不从旧 Run、旧作品或旧 delivery 推断状态。
+原有 append-only Run、owner receipt、detached watcher、render-ready 与 `delivery:build` 仍可显式使用，
+但只承担 audited production；其 `delivery-render-started` 不是媒体成功证据，也不阻塞默认 rebuild。
 
 core 与 fresh clone 是 zero-Project-safe；ignored 本地 Project、narration work、Run、media/out 和
 delivery 集由当前工作目录动态决定，不属于 capability 状态权威，也不在本文枚举。current
-`deliveries/` 不是 checksum-bound verified release，ledger 只封存 immutable 非 MP4 bytes。
+默认 `deliveries/<storyId>/` 是 checksum/media-verified 四文件 current release。
 
 ## 已实现
+
+### Build-centric final artifact alignment
+
+- `npm run project:build -- --project <storyId>` 统一生成 `video.mp4`、4:3 Cover、3:4 Cover 和
+  `publish.json`；publish 绑定 buildId、source snapshot、实际路径/checksum/size 与媒体实测事实。
+- source snapshot 覆盖 Project source、Project-owned assets 与 shared render runtime，排除 runId、
+  assignments、receipts、render plan/ready 与 owner result。
+- Scene Renderer 改动会确定性重算 ScenePackage、coverage、RendererRegistry 和生成式 Composition；
+  template-copy Scene 保持脚本投影，不派发 Agent。
+- Remotion 前台完成后使用 ffprobe/ffmpeg 检查 H.264/AAC、声道、尺寸、fps、frame count 和 EOF decode；
+  三类媒体全部通过后才写 publish 并提升。
+- buildId staging 可跨失败复用已验证媒体；新 identity 失败不会替换上一版 current delivery。
 
 ### 统一制作配置
 

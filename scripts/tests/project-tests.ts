@@ -29,6 +29,7 @@ const CORE_TEST_ROOTS = [
   "tests/runtime",
   "tests/registry",
   "tests/baseline",
+  "tests/project-build",
   "tests/project-check",
   "tests/project-validation",
   "tests/final-assembly",

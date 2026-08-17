@@ -1,14 +1,1 @@
-{
-  "coverageFingerprint": "sha256:45754334d14b643175db59cf61799ebbafe95241c1e7f1a854d68dc68646d70e",
-  "entries": [
-    {
-      "meaningId": "runtime-proof-scene",
-      "packageFingerprint": "sha256:6dd2c93bf5069dc6968a52ddfd34d5da94c3bf8e3a9ab549f666dac7d757f200",
-      "rendererId": "scene-runtime-proof-runtime-proof-scene",
-      "status": "ready"
-    }
-  ],
-  "schemaVersion": 1,
-  "storyBeatOrder": ["runtime-proof-scene"],
-  "storyId": "scene-runtime-proof"
-}
+{"coverageFingerprint":"sha256:45754334d14b643175db59cf61799ebbafe95241c1e7f1a854d68dc68646d70e","entries":[{"meaningId":"runtime-proof-scene","packageFingerprint":"sha256:6dd2c93bf5069dc6968a52ddfd34d5da94c3bf8e3a9ab549f666dac7d757f200","rendererId":"scene-runtime-proof-runtime-proof-scene","status":"ready"}],"schemaVersion":1,"storyBeatOrder":["runtime-proof-scene"],"storyId":"scene-runtime-proof"}

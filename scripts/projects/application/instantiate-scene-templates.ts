@@ -133,6 +133,23 @@ const assertBinaryCreateCompatible = async (
   }
 };
 
+const ensureRealDirectory = async (directory: string) => {
+  try {
+    const metadata = await lstat(directory);
+    if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+      throw new Error("Copied Scene public root must be a real directory.");
+    }
+    return;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  await mkdir(directory, { recursive: true });
+  const metadata = await lstat(directory);
+  if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+    throw new Error("Copied Scene public root must be a real directory.");
+  }
+};
+
 const readProjectAssetManifest = async ({
   rootDir,
   projectId,
@@ -681,7 +698,13 @@ export const commitConfiguredSceneTemplates = async ({
   readonly projectId: string;
   readonly prepared: PreparedSceneTemplates;
 }) => {
-  if (prepared.commit === null) return;
+  const publicRoots = prepared.copiedMeaningIds.map((meaningId) =>
+    join(rootDir, `public/projects/${projectId}/scenes/${meaningId}`),
+  );
+  if (prepared.commit === null) {
+    await Promise.all(publicRoots.map(ensureRealDirectory));
+    return;
+  }
   const currentStory = StorySpecSchema.parse(
     JSON.parse(
       await readFile(
@@ -731,6 +754,7 @@ export const commitConfiguredSceneTemplates = async ({
       file.bytes,
     );
   }
+  await Promise.all(publicRoots.map(ensureRealDirectory));
   for (const file of prepared.commit.projectFiles) {
     await writeBinaryCreate(join(rootDir, file.repositoryPath), file.bytes);
   }

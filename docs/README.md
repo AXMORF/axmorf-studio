@@ -27,14 +27,15 @@
 | ----------------------------------- | ------------------------------------------------------------------------------ |
 | 统一制作配置、迁移与本地页面        | [guides/PRODUCER_CONFIG.md](guides/PRODUCER_CONFIG.md)                         |
 | 固定 production CLI、状态与 handoff | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md)       |
-| 自动交付 package、launch 与复验     | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md)                           |
-| 完整 Project 数据删除               | [PRODUCTION_WORKFLOW.md#7-作品删除](PRODUCTION_WORKFLOW.md#7-作品删除)         |
+| 默认原子 build、audited launch 与复验 | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md)                         |
+| 完整 Project 数据删除               | [PRODUCTION_WORKFLOW.md#8-作品删除](PRODUCTION_WORKFLOW.md#8-作品删除)         |
 | VoxCPM 生成、续跑、封存与恢复       | [guides/NARRATION_GENERATION.md](guides/NARRATION_GENERATION.md)               |
 | 机械检查与终点事实边界              | [guides/REVIEW_MODEL.md](guides/REVIEW_MODEL.md)                               |
 | Project-owned profile 与复验命令    | [guides/FORMAL_PROJECT_VERIFICATION.md](guides/FORMAL_PROJECT_VERIFICATION.md) |
 | 资源与共享能力目录                  | [guides/CAPABILITY_CATALOG.md](guides/CAPABILITY_CATALOG.md)                   |
 | 新仓库初始化和白名单迁移            | [guides/BOOTSTRAP_IMPORT_MANIFEST.md](guides/BOOTSTRAP_IMPORT_MANIFEST.md)     |
 | Narrative 数据合同说明              | [contracts/NARRATIVE_CONTRACTS.md](contracts/NARRATIVE_CONTRACTS.md)           |
+| Project build 与 publish 合同        | [contracts/PROJECT_BUILD_CONTRACT.md](contracts/PROJECT_BUILD_CONTRACT.md)     |
 
 ## 证据、提案与历史
 

@@ -29,6 +29,7 @@ scripts/delivery/cli.ts        delivery build/check dispatch
 scripts/delivery/application/  input loading, package, launch, check
 scripts/delivery/domain/       deterministic delivery model and canonical bytes
 scripts/delivery/adapters/     filesystem, Cover media, detached spawn
+scripts/project-build/         default synchronous Project build application and adapters
 scripts/shared/                business-neutral atomic files, process ports and host media adapters
 scripts/projects/delete.ts     preflighted destructive Project data cleanup
 scripts/projects/configure.ts  new-Project ProducerConfig freeze application/CLI
@@ -43,6 +44,23 @@ application、adapter、Project template instantiation、Scene template projecti
 settings client 不依赖 Node、scripts 或 server；progress server 只消费 production/delivery 的只读
 application query，不直接读取它们的 filesystem adapters。`proofs/` 不进入正常 Root/Registry，
 其中 `source/`、`fixtures/`、`evidence/` 分别承担可执行证明、生成输入快照和真实媒体证据。
+
+## Build-centric delivery authority
+
+默认 delivery authority 是 current mutable `src/projects/<storyId>/` authoring source，而不是某次
+ProductionRun。`scripts/project-build/application` 机械刷新 ScenePackage/coverage/RendererRegistry、
+生成式 Composition 和静态 ProjectRegistry；adapters 收集排除 run/execution records 的 source
+snapshot，并同步运行 Remotion、ffprobe 和 ffmpeg。buildId 由 source snapshot、Composition metadata
+与固定同步 policy 导出，不包含 runId、assignment fingerprint 或 receipt。
+
+`deliveries/.staging/project-build/<storyId>/<buildId>/` 是可续用的 build-owned staging。同 identity
+重试保留已完整验证的媒体，只生成缺失或损坏项；`publish.json` 最后写入。staging exact 四文件通过
+复验后，以目录 rename 协议受控替换 `deliveries/<storyId>/`；捕获到的替换失败恢复上一版。固定
+real-directory slot 需要两次 rename，因此 host 在两步之间被强杀不属于 crash-atomic 保证。current
+slot 不包含 launch intent、spawn receipt、Run manifest 或非最终 handoff 文件。
+
+ProductionRun、owner inbox 与 detached watcher 仍组成独立 audited production 子系统。它可用于新
+内容创作和过程证据，但它的 state/render-ready/detached delivery 不能反向成为默认 build 依赖。
 
 ## Authority graph
 

@@ -1,6 +1,10 @@
 # Delivery CLI
 
-Current automatic local delivery keeps fixed layers:
+This directory is the explicit audited launch-delivery capability. The default user delivery command is
+`npm run project:build -- --project <storyId>` and lives in `scripts/project-build/`; it does not consume
+ProductionRun, owner, watcher, render-ready, CoverResult, intent, or receipt records.
+
+Audited local delivery keeps fixed layers:
 
 - `cli.ts`: exact build/check argument dispatch;
 - `application/`: current input loading, independent Cover use cases, package/check, detached launch;

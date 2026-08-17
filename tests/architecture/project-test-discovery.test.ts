@@ -26,6 +26,7 @@ test("test discovery combines fixed core roots with current Project-owned tests"
   const rootDir = await createRoot(context);
   await write(rootDir, "tests/contracts/core.test.ts");
   await write(rootDir, "tests/contracts/helper.ts");
+  await write(rootDir, "tests/project-build/build.test.ts");
   await write(rootDir, "src/projects/zeta-story/tests/zeta.test.tsx");
   await write(rootDir, "src/projects/alpha-story/tests/alpha.test.ts");
   await write(rootDir, "src/projects/alpha-story/tests/final-evidence.test.ts");
@@ -34,6 +35,7 @@ test("test discovery combines fixed core roots with current Project-owned tests"
   assert.equal(PROJECT_TEST_RUNNER_ID, "project-test-runner-current-v1");
   assert.deepEqual(await discoverRepositoryTests(rootDir), [
     "tests/contracts/core.test.ts",
+    "tests/project-build/build.test.ts",
     "src/projects/alpha-story/tests/alpha.test.ts",
     "src/projects/zeta-story/tests/zeta.test.tsx",
   ]);
@@ -43,6 +45,7 @@ test("test discovery combines fixed core roots with current Project-owned tests"
   ]);
   assert.deepEqual(await discoverRepositoryTests(rootDir, "all"), [
     "tests/contracts/core.test.ts",
+    "tests/project-build/build.test.ts",
     "src/projects/alpha-story/tests/alpha.test.ts",
     "src/projects/alpha-story/tests/final-evidence.test.ts",
     "src/projects/alpha-story/tests/review.media.test.ts",

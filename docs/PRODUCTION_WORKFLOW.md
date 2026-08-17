@@ -4,7 +4,29 @@
 >
 > 最后复核：2026-08-16
 
-## Current-only 主链
+## 默认 build 主链
+
+已有 Project 的普通修改和重建不进入 ProductionRun：
+
+```text
+current Project authoring source
+  → deterministic ScenePackage/coverage/registry refresh
+  → target Composition and Cover/GlobalVisual source compile/validation
+  → run-independent source snapshot + buildId
+  → reusable buildId staging
+  → synchronous video.mp4 + two Cover renders
+  → codec/channel/dimension/fps/frame/checksum/EOF verification
+  → publish.json written last
+  → controlled staged replace deliveries/<storyId>/
+```
+
+命令为 `npm run project:build -- --project <storyId>`。同 snapshot 且四个 current 文件完整时 no-op；
+失败后同 buildId 复用已经验证的 staged artifact，只重做缺失或损坏部分。render/inspect/publish 失败
+都发生在 current slot 替换前；捕获到的 promotion 失败恢复上一版。authoring source 或
+Project-owned public asset 的 byte 变化
+会自动产生新 buildId。`publish.json` 不从旧 Run 或旧 delivery 推断，也不迁移它们。
+
+## 显式 audited production 主链
 
 ```mermaid
 flowchart TD
@@ -204,7 +226,19 @@ metadata 与 delivery planned duration 都直接使用 `SemanticTiming.durationI
 这个阶段不运行最终 Remotion render，不读取媒体，也不写媒体完成 evidence。Cover failure 不
 改变 production 状态，但 delivery build 必须要求 current CoverResult。
 
-## 5. Watcher launch 与自动交付 launch
+## 5. 默认 Project build
+
+`project:build` 只消费 current Project source 和已封存旁白。它不要求 runId、owner receipt、watcher、
+CoverResult、ProductionRenderReady 或 detached launch record。Scene Renderer 改动会机械重算
+ScenePackage、coverage 与 composition-local registry；template-copy Scene 使用同一确定性投影，不进入
+通用 Scene owner/check/review。生成式 Composition 的 render runtime 直接绑定 current authoring
+source，不再把 run-bound ProductionRenderPlan 当成渲染前置条件。
+
+source snapshot 覆盖 Project source、Project-owned public media 与 shared render runtime，显式排除
+assignment、receipt、render-ready/render-plan 和旧 package result 等过程投影。`publish.json` exactly
+绑定 `video.mp4`、`cover-4x3.png`、`cover-3x4.png` 的 current 路径、checksum、size 和实测 media facts。
+
+## 6. 可选 watcher launch 与 audited delivery launch
 
 `production:watch:start` exactly once 写 watcher launch intent，再用 fixed cwd/argv/log、
 `shell:false`、`detached:true` 和非继承 stdio spawn worker。只在 OS `spawn` 后写 watcher launch
@@ -233,13 +267,13 @@ exactly-once 规则：
 - intent exists + no receipt → launch-ambiguous，fail closed，never retry；
 - spawn error → intent 保留、receipt 缺失，后续同样 ambiguous。
 
-## 6. 终点与交接
+## 7. Audited production 终点与交接
 
 主 Agent 只报告 run、watcher intent/receipt、已创建任务与未派发 assignment，并立即结束。后台
 watcher 自动到达 `delivery-render-started` 后停止，不等待或监控 detached Remotion child。两层
 spawn receipt 都不是生产成功或 MP4 有效声明。
 
-## 7. 作品删除
+## 8. 作品删除
 
 用户明确要求删除一个、多个或全部已制作作品时，含义是删除对应 storyId 的完整本地生产数据，
 不是只删除 MP4。统一执行：

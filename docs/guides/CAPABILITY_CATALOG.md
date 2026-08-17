@@ -134,7 +134,7 @@ GPS 正式资源选择。
 
 已删除 Project 的历史 Scene、音频 overlay 和 Project-local GlobalVisual 不属于 current Catalog，
 不能从旧 evidence 反推为当前可选资源。真实删除必须通过
-[`project:delete`](../PRODUCTION_WORKFLOW.md#7-作品删除) 清理完整 Project-owned 数据并重建
+[`project:delete`](../PRODUCTION_WORKFLOW.md#8-作品删除) 清理完整 Project-owned 数据并重建
 Catalog/Registry。历史 GPS 选型只保留在 evidence 中；恢复或新建 Project 时必须从 current
 Catalog、current local assets 和当次冻结 snapshot 重新选择。
 

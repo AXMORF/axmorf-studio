@@ -6,8 +6,8 @@
 
 ## 确定性的对象
 
-仓库保证相同 sealed/current inputs 产生相同合同 identity、路径、canonical JSON 与启动计划；
-不保证 TTS 波形、Remotion 最终媒体或外部进程结果 bit-for-bit 相同。
+仓库保证相同 sealed/current inputs 产生相同合同 identity、路径与 canonical JSON；不保证 TTS 波形
+或 Remotion 媒体 bit-for-bit 相同，因此最终媒体必须在每次 build 后实测并以 checksum 绑定。
 
 所有 persisted JSON 使用 strict schema、stable key order、newline-terminated canonical bytes 和
 namespace/version-bound SHA-256 fingerprint。未知字段、非 current contract、path escape、symlink、
@@ -103,7 +103,30 @@ receipt 也不会被当成“进程仍存活”的证明或自动重启许可；
 `noEmit` 编译。编译 root 只有 `src/projects/<storyId>/Composition.tsx`，依赖由真实 import graph
 决定；失败只暴露去重后的 TypeScript diagnostic codes，不输出源码、绝对路径或完整 diagnostic。
 
-## Delivery identity 与 canonical package
+## Project build identity 与受控交付
+
+默认 build 先机械刷新由 current authoring source 可重算的 ScenePackage、coverage、registry 与生成式
+Composition，再对 Project source、Project-owned public media、shared contracts/runtime 和固定 build
+配置生成排序文件清单与 `project-authoring-source-snapshot` fingerprint。assignment、receipt、
+ProductionRenderPlan/Ready、owner result 和 run-bound generated package 显式排除，因此 runId 不污染
+可复用内容 identity。
+
+`build-<sha256>` 绑定 storyId、source snapshot、Composition、fps、frameCount、width/height 与
+`synchronous-atomic-project-build-v1` policy。同 buildId staging 中每个媒体只有在 metadata 与 EOF
+检查通过后才以 canonical 文件名落位；中途失败保留已验证文件供下一次相同 buildId 复用。
+`publish.json` 必须最后写，exactly 绑定：
+
+```text
+video.mp4
+cover-4x3.png
+cover-3x4.png
+```
+
+publish 自身连同三项媒体构成 current slot 的 exact 四文件集合。提升前和提升后都重新 parse schema、
+hash 文件并复验媒体；source 在渲染期间漂移则拒绝发布。新 staging 完成前绝不改动上一版 delivery。
+捕获到的 promotion 失败恢复上一版；real-directory slot 的两次 rename 不声明进程崩溃级原子性。
+
+## Audited delivery identity 与 canonical launch package
 
 deliveryId 从 PublishingIntent fingerprint、canonical publishing checksum、CoverResult fingerprint、
 render-ready fingerprint、render-plan fingerprint、Composition、实际使用资源的 attribution

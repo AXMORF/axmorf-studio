@@ -28,6 +28,7 @@ export * from "./production-run";
 export * from "./production-scene-result";
 export * from "./publishing-intent";
 export * from "./project";
+export * from "./project-build";
 export * from "./project-asset-manifest";
 export * from "./project-sound";
 export * from "./reference-fidelity";

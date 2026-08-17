@@ -244,7 +244,7 @@ npm run narration:check -- --project <story>
 Do not delete the generated directory, immutable narration directory, candidate tree, or a broad glob.
 After the checker passes—or reports the precise incomplete state—rerun the exact seal command.
 This exact stale-lock recovery is not Project cleanup. When the user explicitly requests deletion of a
-whole Project, use [`project:delete`](../PRODUCTION_WORKFLOW.md#7-作品删除) so the Project source,
+whole Project, use [`project:delete`](../PRODUCTION_WORKFLOW.md#8-作品删除) so the Project source,
 sealed media, candidate tree, Runs, out, and deliveries are removed as one preflighted set.
 
 ## Intentional supersede

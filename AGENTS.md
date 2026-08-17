@@ -48,8 +48,20 @@
 
 ## 当前 production 与 delivery 边界
 
-- 仓库只有一套 current production/delivery contracts 和 CLI dispatch；不读取、迁移、回填或
-  解释旧 Run、旧 Project、旧交付或旧媒体。
+- 默认交付是 build-centric：`npm run project:build -- --project <storyId>` 直接消费 current 可变
+  Project authoring source，不创建/重放 ProductionRun，不读取 owner receipt/watcher/render-ready，
+  不重做旁白。Agent 只在缺少内容或用户明确要求重新设计时参与。
+- 默认 build 机械刷新 ScenePackage、Coverage、RendererRegistry 和生成式 Composition；
+  template-copy Scene 继续直接投影，不进入通用 owner/check/review。
+- authoring source snapshot 排除 runId、assignment、receipt、ProductionRenderPlan/Ready 和 owner
+  result；buildId 绑定 snapshot、Composition metadata 与同步 build policy。
+- 同一 buildId 的 staging 可跨失败复用已验证媒体。同步生成并验证 `video.mp4`、4:3 Cover、3:4
+  Cover，最后写 `publish.json`；exact 四文件通过后受控替换 `deliveries/<storyId>/`，捕获到的失败保持或
+  恢复上一版。
+- 相同 snapshot 且 current delivery 完整时只读 no-op。资源、路径、TypeScript、codec、声道、尺寸、
+  fps、frame count、checksum 和 EOF decode 检查不得关闭。
+- 以下 ProductionRun/owner/watcher/detached delivery contracts 是显式 audited production 能力；
+  不读取、迁移、回填或解释旧 Run、旧 Project、旧交付或旧媒体，也不得阻塞普通 rebuild。
 - ProductionRun 只由 append-only events、immutable Scene/GlobalVisual results 与 current
   fingerprints 投影；中央 repository CLI 是唯一 writer。
 - current freeze 同时产生 N Scene assignments 与 one GlobalVisual assignment；独立 Cover freeze
@@ -57,7 +69,7 @@
   但 Cover 不阻塞 production render-ready，也不进入 production state projection。
 - GlobalVisual 只 owns project-local 背景、纹理、装饰和连续性 motif，不读取 Scene 输出，不
   渲染字幕/音频，不扩张为 Track、Scene DSL、自动布局或自动导演。
-- production 的唯一成功终点是 `render-ready / awaiting-automatic-delivery`。它绑定
+- audited production 的成功终点是 `render-ready / awaiting-automatic-delivery`。它绑定
   `production-render-plan-v5` 与 `production-render-ready-v5`，不生成或检查最终 MP4。
 - Cover missing/stale 不阻止 render-ready，但阻止自动 delivery build。
 - 主 Agent 在冻结全部 assignment 后先启动 detached watcher，再用 Codex `create_thread` 只为需要

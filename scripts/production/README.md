@@ -12,7 +12,9 @@
 delivery 不得反向 import production adapter。这些方向由
 `tests/architecture/script-layering.test.ts` 执行检查。
 
-current public handoff is `production:watch:start`: it writes watcher launch intent, waits only for
+For ordinary rebuilds, production is not entered: `project:build` consumes current authoring source and
+synchronously produces the verified four-file delivery. When missing content or explicit audit requirements
+need owner orchestration, the public handoff is `production:watch:start`: it writes watcher launch intent, waits only for
 OS spawn acknowledgement, writes the launch receipt, and returns. Independent owners publish
 assignment-bound receipts through `production:owner:ready` or `production:owner:failed`; only the
 detached worker calls internal submit/fail use cases, writes events/results, converges the Project,

@@ -18,6 +18,10 @@
 | template-copy Scene         | `project:configure` 复制冻结、由脚本验证 identity 并直写结果的 Project-local Scene | 通用 Scene check、Scene owner 或 owner receipt        |
 | GlobalVisualPackage         | Story 级背景、纹理、装饰和连续性 motif                                   | Scene DSL、自动导演或字幕层                          |
 | ProductionRun               | append-only events 与 immutable results 的一次执行                       | 可手改或恢复的任务状态                               |
+| authoring source snapshot   | current Project/source/public assets/shared runtime 的排序 byte identity | Run、assignment、receipt 或旧 delivery identity      |
+| ProjectBuildId              | source snapshot 与固定 Composition/build policy 导出的重建 identity      | ProductionRunId、delivery launch attempt 或媒体 checksum |
+| ProjectPublish              | 最后写入并绑定三类最终媒体路径、checksum 与 media facts 的 `publish.json` | 平台已发布、spawn receipt 或过程审计日志              |
+| project-build-complete      | 四个 current delivery 文件已同步渲染、复验并完成受控提升                 | 平台上传、crash-atomic 或 bit-for-bit 可复现           |
 | Project production progress | source Project/current Run 的最新关键步骤只读投影                        | output-only 清理目标、PID 监控或 MP4 完成状态        |
 | Repository operation lock   | configure/start/delivery/delete 共用的 Project mutation 互斥边界         | 跨 checkout 锁或自动恢复策略                         |
 | OwnerReceipt                | assignment identity 与 output manifest 绑定的 ready/failed inbox 回执    | Codex task 身份、heartbeat 或正式 production result  |
@@ -31,12 +35,13 @@
 | DeliveryLaunchManifest      | 非 MP4 包的 current identity 与 planned media facts                      | 渲染完成报告                                         |
 | RenderLaunchIntent          | spawn 前 exactly-once 写入的启动意图                                     | 子进程已经启动                                       |
 | RenderLaunchReceipt         | OS `spawn` acknowledgement 后写入的回执                                  | exit code、完成状态或 MP4 有效性                     |
-| delivery-render-started     | Skill 的自动终点                                                         | render completed、published 或 quality passed        |
+| delivery-render-started     | audited detached delivery 的启动终点                                     | render completed、published 或 quality passed        |
 | launch-ambiguous            | intent 存在而 receipt 缺失                                               | 可安全重试的失败                                     |
 | Project deletion            | 明确确认后按 storyId 删除全部本地生产数据并重建 Registry/Catalog         | 只删 MP4、删除 core/其他作品/私有声线或自动清理策略  |
 
-`deliveries/<storyId>/` 是每个 Project 唯一的 current slot，保存当前 identity 的 immutable 非 MP4
-package、intent、receipt 与未纳入 ledger 的计划 MP4；新 identity 通过 staging 受控替换旧 package。
+`deliveries/<storyId>/` 是每个 Project 唯一的默认 current slot，exactly 保存 `video.mp4`、两个 Cover 与
+`publish.json`；新 buildId 通过可续用 staging 受控替换上一版。audited production 的 launch
+manifest/intent/receipt 只属于显式旧式 `delivery:build` 能力，不是默认 slot 合同。
 
 声音业务分类固定为 `narration`、`background-music`、`sound-effect`。旁白由 NarrativeCore 独立拥有；
 背景音乐和音效都投影为 `SoundContribution`，由同一个 SoundDesignTrack 挂载，但每个 contribution

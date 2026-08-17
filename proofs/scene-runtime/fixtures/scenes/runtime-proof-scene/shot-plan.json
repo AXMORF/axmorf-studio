@@ -1,18 +1,1 @@
-{
-  "meaningId": "runtime-proof-scene",
-  "sceneDurationInFrames": 120,
-  "schemaVersion": 1,
-  "shotPlanFingerprint": "sha256:c25d994ad6cf791ec4d696a54cce7aeaeab0c4f60eabc5cb8f974d2261f95933",
-  "shots": [
-    {
-      "action": "Trace for 40 frames then flash reveal and settle.",
-      "order": 0,
-      "primaryRange": { "endFrame": 120, "startFrame": 0 },
-      "purpose": "Prove exact localized trace motion in one fixed Scene renderer.",
-      "shotId": "draw-svg-trace-shot",
-      "syncAnchorIds": ["outline-closes"],
-      "visualResourceIds": ["asset.scene-runtime-proof-shape"]
-    }
-  ],
-  "taskInputFingerprint": "sha256:1a93ec795a75062242b17c5bf9cc2051af1b59520b8acebc3bb45826c625d119"
-}
+{"meaningId":"runtime-proof-scene","sceneDurationInFrames":120,"schemaVersion":1,"shotPlanFingerprint":"sha256:c25d994ad6cf791ec4d696a54cce7aeaeab0c4f60eabc5cb8f974d2261f95933","shots":[{"action":"Trace for 40 frames then flash reveal and settle.","order":0,"primaryRange":{"endFrame":120,"startFrame":0},"purpose":"Prove exact localized trace motion in one fixed Scene renderer.","shotId":"draw-svg-trace-shot","syncAnchorIds":["outline-closes"],"visualResourceIds":["asset.scene-runtime-proof-shape"]}],"taskInputFingerprint":"sha256:1a93ec795a75062242b17c5bf9cc2051af1b59520b8acebc3bb45826c625d119"}

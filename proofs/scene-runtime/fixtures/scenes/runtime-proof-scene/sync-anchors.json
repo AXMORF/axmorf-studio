@@ -1,14 +1,1 @@
-{
-  "anchors": [
-    {
-      "eventId": "outline-closes",
-      "purpose": "Bind the close flash to one Scene-local pulse.",
-      "sceneLocalFrame": 48
-    }
-  ],
-  "meaningId": "runtime-proof-scene",
-  "sceneDurationInFrames": 120,
-  "schemaVersion": 1,
-  "syncAnchorFingerprint": "sha256:6453cd68cf4d7db41ac413c30b398acdf9cef32d26a3e924a77c9220c207166e",
-  "taskInputFingerprint": "sha256:1a93ec795a75062242b17c5bf9cc2051af1b59520b8acebc3bb45826c625d119"
-}
+{"anchors":[{"eventId":"outline-closes","purpose":"Bind the close flash to one Scene-local pulse.","sceneLocalFrame":48}],"meaningId":"runtime-proof-scene","sceneDurationInFrames":120,"schemaVersion":1,"syncAnchorFingerprint":"sha256:6453cd68cf4d7db41ac413c30b398acdf9cef32d26a3e924a77c9220c207166e","taskInputFingerprint":"sha256:1a93ec795a75062242b17c5bf9cc2051af1b59520b8acebc3bb45826c625d119"}

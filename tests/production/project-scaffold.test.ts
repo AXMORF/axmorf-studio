@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import {createHash} from "node:crypto";
 import {
   mkdtemp,
   mkdir,
@@ -15,7 +16,9 @@ import {
   PRODUCTION_PROJECT_SCAFFOLD_MARKER,
   PRODUCTION_RENDER_SCAFFOLD_MARKER,
   ensureProductionProjectScaffold,
+  ensureProjectAuthoringBuildScaffold,
   ensureProductionRenderScaffold,
+  renderProjectAuthoringBuildScaffold,
   renderProductionProjectScaffold,
   renderProductionRenderProjectScaffold,
 } from "../../scripts/production/application/project-scaffold";
@@ -68,7 +71,7 @@ test("upgrades only the byte-exact pre-isolation narrative scaffold", async (con
   assert.equal(await readFile(destination, "utf8"), current);
 });
 
-test("render scaffold binds the frozen plan and current GlobalVisual layer", async (context) => {
+test("production render scaffold retains the frozen Run plan and GlobalVisual projection", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-render-scaffold-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   await ensureProductionProjectScaffold({
@@ -91,7 +94,7 @@ test("render scaffold binds the frozen plan and current GlobalVisual layer", asy
     }),
   );
   assert.match(source, new RegExp(PRODUCTION_RENDER_SCAFFOLD_MARKER));
-  assert.match(source, /ProductionRenderPlanSchema/u);
+  assert.match(source, /ProductionRenderPlanSchema|renderPlanJson/u);
   assert.match(source, /MasteredNarrationManifestSchema/u);
   assert.match(source, /masteredNarrationJson/u);
   assert.match(source, /masteredNarration\.outputAudio\.localPath/u);
@@ -117,7 +120,18 @@ test("render scaffold binds the frozen plan and current GlobalVisual layer", asy
   });
 });
 
-test("rebuilds only the byte-exact legacy generated render scaffold", async (context) => {
+test("keeps the pre-project-build production scaffold byte exact for migration", () => {
+  const source = renderProductionRenderProjectScaffold({
+    storyId: "story-example",
+  });
+  assert.equal(Buffer.byteLength(source), 6677);
+  assert.equal(
+    createHash("sha256").update(source).digest("hex"),
+    "2752e020251c5e5b3124f84d9cb6d1d7e1a7778234ca5ae3caf6571f58136e3e",
+  );
+});
+
+test("production migrates only the byte-exact authoring build scaffold", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-render-scaffold-legacy-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   await ensureProductionProjectScaffold({
@@ -128,25 +142,14 @@ test("rebuilds only the byte-exact legacy generated render scaffold", async (con
   const current = renderProductionRenderProjectScaffold({
     storyId: "story-example",
   });
-  const legacyNoProps = current.replace("<typeof GlobalVisualLayers>", "");
-  const legacy = current
-    .replace(
-      'import type {GlobalVisualLayersComponent} from "../../remotion/runtime/global-visual";\n',
-      "",
-    )
-    .replace(
-      "const ProductionGlobalVisualLayers: GlobalVisualLayersComponent<typeof GlobalVisualLayers> = GlobalVisualLayers;\n",
-      "",
-    )
-    .replace(
-      "<ProductionGlobalVisualLayers />",
-      "<GlobalVisualLayers plan={globalVisualPlan} projection={globalVisualProjection} />",
-    );
+  const authoring = renderProjectAuthoringBuildScaffold({
+    storyId: "story-example",
+  });
   const destination = join(
     rootDir,
     "src/projects/story-example/Composition.tsx",
   );
-  await writeFile(destination, legacyNoProps);
+  await writeFile(destination, authoring);
 
   await ensureProductionRenderScaffold({
     rootDir,
@@ -156,17 +159,7 @@ test("rebuilds only the byte-exact legacy generated render scaffold", async (con
   });
   assert.equal(await readFile(destination, "utf8"), current);
 
-  await writeFile(destination, legacy);
-
-  await ensureProductionRenderScaffold({
-    rootDir,
-    storyId: "story-example",
-    meaningIds: ["opening"],
-    mode: "write",
-  });
-  assert.equal(await readFile(destination, "utf8"), current);
-
-  await writeFile(destination, `${legacy}// drift\n`);
+  await writeFile(destination, `${authoring}// drift\n`);
   await assert.rejects(
     ensureProductionRenderScaffold({
       rootDir,
@@ -176,7 +169,34 @@ test("rebuilds only the byte-exact legacy generated render scaffold", async (con
     }),
     /Refusing to overwrite a drifted Production Composition/u,
   );
-  assert.equal(await readFile(destination, "utf8"), `${legacy}// drift\n`);
+  assert.equal(await readFile(destination, "utf8"), `${authoring}// drift\n`);
+});
+
+test("authoring build migrates only the byte-exact production scaffold", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-authoring-scaffold-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  await ensureProductionProjectScaffold({
+    rootDir,
+    storyId: "story-example",
+    mode: "write",
+  });
+  const destination = join(rootDir, "src/projects/story-example/Composition.tsx");
+  await writeFile(
+    destination,
+    renderProductionRenderProjectScaffold({ storyId: "story-example" }),
+  );
+
+  await ensureProjectAuthoringBuildScaffold({
+    rootDir,
+    storyId: "story-example",
+    meaningIds: ["opening"],
+    mode: "write",
+  });
+
+  assert.equal(
+    await readFile(destination, "utf8"),
+    renderProjectAuthoringBuildScaffold({ storyId: "story-example" }),
+  );
 });
 
 test("refuses to overwrite a hand-written Composition", async (context) => {

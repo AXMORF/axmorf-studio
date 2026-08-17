@@ -192,6 +192,7 @@ export const ensureProductionProjectScaffold = async ({
   }
   const isExactRenderScaffold = [
     renderProductionRenderProjectScaffold({ storyId }),
+    renderProjectAuthoringBuildScaffold({ storyId }),
     renderPreMasteringProductionRenderProjectScaffold({ storyId }),
     renderLegacyNoPropsProductionRenderProjectScaffold({ storyId }),
     renderLegacyPropsProductionRenderProjectScaffold({ storyId }),
@@ -426,6 +427,7 @@ const renderProductionRenderProjectScaffoldVariant = ({
   storyId: rawStoryId,
   globalVisualComponentInterface,
   masteredNarration,
+  authority,
 }: {
   readonly storyId: string;
   readonly globalVisualComponentInterface:
@@ -433,6 +435,7 @@ const renderProductionRenderProjectScaffoldVariant = ({
     | "legacy-no-props"
     | "legacy-props";
   readonly masteredNarration: boolean;
+  readonly authority: "authoring-source" | "production-run";
 }) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
   const componentName = componentNameFor(storyId);
@@ -443,15 +446,16 @@ const renderProductionRenderProjectScaffoldVariant = ({
   const requirementsSetup = `const productionRequirements = ProductionRequirementsFreezeSchema.parse(requirementsJson);
 const readabilityPolicy = productionRequirements.readabilityPolicy;
 `;
+  const runBound = authority === "production-run";
   const globalVisualImports = `${
     globalVisualComponentInterface !== "legacy-props"
       ? 'import type {GlobalVisualLayersComponent} from "../../remotion/runtime/global-visual";\n'
       : ""
   }import globalVisualPlanJson from "./global-visual-plan.json";
-import globalVisualProjectionJson from "./generated/global-visual-projection.generated.json";
-import {GlobalVisualLayers} from "./global-visual/GlobalVisualLayers";
+${runBound ? 'import globalVisualProjectionJson from "./generated/global-visual-projection.generated.json";\n' : ""}import {GlobalVisualLayers} from "./global-visual/GlobalVisualLayers";
 `;
-  const globalVisualSetup = `const globalVisualPlan = GlobalVisualPlanSchema.parse(globalVisualPlanJson);
+  const globalVisualSetup = runBound
+    ? `const globalVisualPlan = GlobalVisualPlanSchema.parse(globalVisualPlanJson);
 const globalVisualProjection = GlobalVisualProjectionSchema.parse(globalVisualProjectionJson);
 if (globalVisualProjection.schemaVersion !== 2 || globalVisualPlan.storyId !== storyId || globalVisualPlan.compositionId !== render.compositionId || globalVisualProjection.storyId !== storyId || globalVisualProjection.compositionId !== render.compositionId || globalVisualProjection.durationInFrames !== timing.durationInFrames || renderPlan.globalVisual.planFingerprint !== globalVisualPlan.planFingerprint || renderPlan.globalVisual.projectionFingerprint !== globalVisualProjection.projectionFingerprint) {
   throw new Error("Production GlobalVisual runtime identity is stale.");
@@ -462,7 +466,13 @@ ${
     : globalVisualComponentInterface === "legacy-no-props"
       ? "const ProductionGlobalVisualLayers: GlobalVisualLayersComponent = GlobalVisualLayers;\n"
       : ""
-}`;
+}`
+    : `const globalVisualPlan = GlobalVisualPlanSchema.parse(globalVisualPlanJson);
+if (globalVisualPlan.storyId !== storyId || globalVisualPlan.compositionId !== render.compositionId) {
+  throw new Error("Production GlobalVisual authoring identity is stale.");
+}
+const ProductionGlobalVisualLayers: GlobalVisualLayersComponent<typeof GlobalVisualLayers> = GlobalVisualLayers;
+`;
   const globalVisualProp =
     globalVisualComponentInterface !== "legacy-props"
       ? `
@@ -479,7 +489,7 @@ ${
     ? "const masteredNarration = MasteredNarrationManifestSchema.parse(masteredNarrationJson);\n"
     : "";
   const narrationIdentityCheck = masteredNarration
-    ? `if (masteredNarration.storyId !== storyId || masteredNarration.sealedNarrationFingerprint !== artifactBundle.sealedNarration.sealedNarrationFingerprint || masteredNarration.masteredNarrationFingerprint !== renderPlan.masteredNarrationFingerprint || masteredNarration.sourceAudio.checksum !== artifactBundle.sealedNarration.completeAudio.checksum || masteredNarration.outputAudio.sampleFrameCount !== artifactBundle.sealedNarration.completeAudio.sampleFrameCount) {
+    ? `if (masteredNarration.storyId !== storyId || masteredNarration.sealedNarrationFingerprint !== artifactBundle.sealedNarration.sealedNarrationFingerprint || ${runBound ? "masteredNarration.masteredNarrationFingerprint !== renderPlan.masteredNarrationFingerprint || " : ""}masteredNarration.sourceAudio.checksum !== artifactBundle.sealedNarration.completeAudio.checksum || masteredNarration.outputAudio.sampleFrameCount !== artifactBundle.sealedNarration.completeAudio.sampleFrameCount) {
   throw new Error("Production mastered narration identity is stale.");
 }
 `
@@ -493,12 +503,8 @@ ${
   const completeAudioPathError = masteredNarration
     ? "Complete narration must stay under the Story mastered narration path."
     : "Complete narration must stay under the Story narration path.";
-  return `// ${PRODUCTION_RENDER_SCAFFOLD_MARKER}
-import type {FC} from "react";
-import {staticFile} from "remotion";
-
-import {
-  computeVideoSourceReferencesFingerprint,
+  const contractImports = runBound
+    ? `  computeVideoSourceReferencesFingerprint,
   GlobalVisualPlanSchema,
   GlobalVisualProjectionSchema,
   getStoryCompositionDurationInFrames,
@@ -510,15 +516,38 @@ ${masteredNarrationContractImport}  parseNarrativeProjectSource,
   StoryCompositionPropsSchema,
   STORY_COMPOSITION_TIMELINE_VERSION,
   validateNarrativeArtifactBundle,
-  type StoryCompositionProps,
+  type StoryCompositionProps,`
+    : `  GlobalVisualPlanSchema,
+  getStoryCompositionDurationInFrames,
+${masteredNarrationContractImport}  parseNarrativeProjectSource,
+  ProductionRequirementsFreezeSchema,
+  SealedNarrationManifestSchema,
+  SemanticTimingSchema,
+  StoryCompositionPropsSchema,
+  validateNarrativeArtifactBundle,
+  type StoryCompositionProps,`;
+  const runBoundRenderPlanImport = runBound
+    ? 'import renderPlanJson from "./generated/production-render-plan.generated.json";\n'
+    : "";
+  const runBoundRenderPlanSetup = runBound
+    ? "const renderPlan = ProductionRenderPlanSchema.parse(renderPlanJson);\n"
+    : "";
+  const compositionIdentityCheck = runBound
+    ? "readabilityPolicy.width !== render.width || readabilityPolicy.height !== render.height || storyId !== expectedStoryId || renderPlan.storyId !== storyId || render.fps !== timing.fps || renderPlan.timelinePolicyVersion !== STORY_COMPOSITION_TIMELINE_VERSION || renderPlan.sourceReferencesFingerprint !== computeVideoSourceReferencesFingerprint(projectSource.brief.sourceReferences) || renderPlan.semanticTimingFrameCount !== timing.durationInFrames || renderPlan.frameCount !== getStoryCompositionDurationInFrames(timing.durationInFrames) || renderPlan.soundProjectionFingerprint !== productionSoundDesignProjection.soundDesignProjectionFingerprint"
+    : "readabilityPolicy.width !== render.width || readabilityPolicy.height !== render.height || storyId !== expectedStoryId || render.fps !== timing.fps";
+  return `// ${PRODUCTION_RENDER_SCAFFOLD_MARKER}
+import type {FC} from "react";
+import {staticFile} from "remotion";
+
+import {
+${contractImports}
 } from "../../contracts";
 import {CompositionAssembly} from "../../remotion/runtime/composition-assembly";
 import {NarrativeCore, type NarrativeCoreProps} from "../../remotion/runtime/narrative-core";
 ${soundImport}
 import {StoryVisualTrack} from "../../remotion/runtime/story-visual";
 import briefJson from "./brief.json";
-${masteredNarrationJsonImport}import renderPlanJson from "./generated/production-render-plan.generated.json";
-import sealedNarrationJson from "./generated/sealed-narration.generated.json";
+${masteredNarrationJsonImport}${runBoundRenderPlanImport}import sealedNarrationJson from "./generated/sealed-narration.generated.json";
 import semanticTimingJson from "./generated/semantic-timing.generated.json";
 import narrationJson from "./narration.json";
 import renderJson from "./render.json";
@@ -534,13 +563,12 @@ import {
 ${requirementsSetup}const projectSource = parseNarrativeProjectSource({brief: briefJson, story: storyJson, narration: narrationJson, render: renderJson});
 const sealedNarration = SealedNarrationManifestSchema.parse(sealedNarrationJson);
 ${masteredNarrationSetup}const semanticTiming = SemanticTimingSchema.parse(semanticTimingJson);
-const renderPlan = ProductionRenderPlanSchema.parse(renderPlanJson);
-const artifactBundle = validateNarrativeArtifactBundle({projectSource, sealedNarration, semanticTiming});
+${runBoundRenderPlanSetup}const artifactBundle = validateNarrativeArtifactBundle({projectSource, sealedNarration, semanticTiming});
 const expectedStoryId = ${JSON.stringify(storyId)};
 const storyId = artifactBundle.projectSource.story.storyId;
 const render = artifactBundle.projectSource.render;
 const timing = artifactBundle.semanticTiming;
-if (readabilityPolicy.width !== render.width || readabilityPolicy.height !== render.height || storyId !== expectedStoryId || renderPlan.storyId !== storyId || render.fps !== timing.fps || renderPlan.timelinePolicyVersion !== STORY_COMPOSITION_TIMELINE_VERSION || renderPlan.sourceReferencesFingerprint !== computeVideoSourceReferencesFingerprint(projectSource.brief.sourceReferences) || renderPlan.semanticTimingFrameCount !== timing.durationInFrames || renderPlan.frameCount !== getStoryCompositionDurationInFrames(timing.durationInFrames) || renderPlan.soundProjectionFingerprint !== productionSoundDesignProjection.soundDesignProjectionFingerprint) {
+if (${compositionIdentityCheck}) {
   throw new Error("Production render Composition identity is stale.");
 }
 ${globalVisualSetup}${narrationIdentityCheck}const completeAudioLocalPath = ${completeAudioExpression};
@@ -570,6 +598,16 @@ export default ${componentName};
 `;
 };
 
+export const renderProjectAuthoringBuildScaffold = (input: {
+  readonly storyId: string;
+}) =>
+  renderProductionRenderProjectScaffoldVariant({
+    ...input,
+    globalVisualComponentInterface: "current-no-props",
+    masteredNarration: true,
+    authority: "authoring-source",
+  });
+
 export const renderProductionRenderProjectScaffold = (input: {
   readonly storyId: string;
 }) =>
@@ -577,6 +615,7 @@ export const renderProductionRenderProjectScaffold = (input: {
     ...input,
     globalVisualComponentInterface: "current-no-props",
     masteredNarration: true,
+    authority: "production-run",
   });
 
 const renderPreMasteringProductionRenderProjectScaffold = (input: {
@@ -586,6 +625,7 @@ const renderPreMasteringProductionRenderProjectScaffold = (input: {
     ...input,
     globalVisualComponentInterface: "current-no-props",
     masteredNarration: false,
+    authority: "production-run",
   });
 
 const renderLegacyPropsProductionRenderProjectScaffold = (input: {
@@ -595,6 +635,7 @@ const renderLegacyPropsProductionRenderProjectScaffold = (input: {
     ...input,
     globalVisualComponentInterface: "legacy-props",
     masteredNarration: true,
+    authority: "production-run",
   });
 
 const renderLegacyNoPropsProductionRenderProjectScaffold = (input: {
@@ -604,6 +645,7 @@ const renderLegacyNoPropsProductionRenderProjectScaffold = (input: {
     ...input,
     globalVisualComponentInterface: "legacy-no-props",
     masteredNarration: true,
+    authority: "production-run",
   });
 
 const renderPreMasteringLegacyPropsProductionRenderProjectScaffold = (input: {
@@ -613,6 +655,7 @@ const renderPreMasteringLegacyPropsProductionRenderProjectScaffold = (input: {
     ...input,
     globalVisualComponentInterface: "legacy-props",
     masteredNarration: false,
+    authority: "production-run",
   });
 
 const renderPreMasteringLegacyNoPropsProductionRenderProjectScaffold = (input: {
@@ -622,18 +665,21 @@ const renderPreMasteringLegacyNoPropsProductionRenderProjectScaffold = (input: {
     ...input,
     globalVisualComponentInterface: "legacy-no-props",
     masteredNarration: false,
+    authority: "production-run",
   });
 
-export const ensureProductionRenderScaffold = async ({
+const ensureRenderScaffold = async ({
   rootDir,
   storyId,
   meaningIds,
   mode,
+  authority,
 }: {
   readonly rootDir: string;
   readonly storyId: string;
   readonly meaningIds: readonly string[];
   readonly mode: "write" | "check";
+  readonly authority: "authoring-source" | "production-run";
 }) => {
   const projectRoot = join(
     rootDir,
@@ -654,9 +700,10 @@ export const ensureProductionRenderScaffold = async ({
     mode,
   });
   const destination = join(projectRoot, "Composition.tsx");
-  const expected = renderProductionRenderProjectScaffold({
-    storyId,
-  });
+  const expected =
+    authority === "production-run"
+      ? renderProductionRenderProjectScaffold({ storyId })
+      : renderProjectAuthoringBuildScaffold({ storyId });
   if (mode === "check") {
     if ((await readFile(destination, "utf8")) !== expected) {
       throw new Error("Production render Composition bytes are stale.");
@@ -665,6 +712,12 @@ export const ensureProductionRenderScaffold = async ({
   }
   const current = await readFile(destination, "utf8");
   const narrativeScaffold = renderProductionProjectScaffold(storyId);
+  const productionRenderScaffold = renderProductionRenderProjectScaffold({
+    storyId,
+  });
+  const authoringBuildScaffold = renderProjectAuthoringBuildScaffold({
+    storyId,
+  });
   const legacyRenderScaffold = renderLegacyPropsProductionRenderProjectScaffold(
     {
       storyId,
@@ -689,6 +742,8 @@ export const ensureProductionRenderScaffold = async ({
   if (
     current !== expected &&
     current !== narrativeScaffold &&
+    current !== productionRenderScaffold &&
+    current !== authoringBuildScaffold &&
     current !== preMasteringRenderScaffold &&
     current !== preMasteringLegacyNoPropsRenderScaffold &&
     current !== preMasteringLegacyRenderScaffold &&
@@ -704,3 +759,11 @@ export const ensureProductionRenderScaffold = async ({
   });
   return { destination, runtimeDestination, source: expected } as const;
 };
+
+export const ensureProductionRenderScaffold = (
+  input: Omit<Parameters<typeof ensureRenderScaffold>[0], "authority">,
+) => ensureRenderScaffold({ ...input, authority: "production-run" });
+
+export const ensureProjectAuthoringBuildScaffold = (
+  input: Omit<Parameters<typeof ensureRenderScaffold>[0], "authority">,
+) => ensureRenderScaffold({ ...input, authority: "authoring-source" });

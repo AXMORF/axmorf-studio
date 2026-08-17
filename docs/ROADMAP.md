@@ -26,20 +26,25 @@
     SceneAssignment/ScenePackage 与 visual/sound projection；SemanticTiming 统一使用全片帧数。
 12. 全局配置选择普通 reusable Scene template；`project:configure` 复制其源码与资源到新 Project，
     冻结 Project-local instance identity，production 脚本机械校验并直接 submit，不派发 Agent owner。
+13. build-centric final artifact alignment：可变 Project authoring source、run-independent buildId、可续用
+    staging、同步 Remotion/FFmpeg media gate、最后写 publish 与四文件 current slot 受控替换。
 
 ## 当前门槛
 
 任何继续开发必须保持：
 
-- production 的唯一终态是 `render-ready / awaiting-automatic-delivery`；
-- Skill 的自动终点是 `delivery-render-started`；
+- 默认交付终态是 `project-build-complete`，且四个 current 文件已经实际校验；
+- ProductionRun/render-ready/detached delivery 只作为显式 audited production，不阻塞普通 rebuild；
 - intent-before-spawn、receipt-after-spawn、intent-without-receipt-never-retry；
 - spawn acknowledgement 不升级为 render completion；
-- current delivery check 不读取计划 MP4；
+- 默认 project build 必须读取、probe、完整 decode 并 checksum 最终 MP4；audited delivery 的旧
+  `delivery:check` 仍只检查 launch package；
 - Cover 独立、production single-writer、Run events append-only；
 - watcher intent-only 永久 ambiguous；缺失 owner receipt 永久 waiting，无 timeout/retry/heartbeat；
 - root 只创建独立用户任务，派发后不 wait/read/poll；
 - zero Project bootstrap 与隔离 deletion matrix 继续通过。
+- 相同 source snapshot 的失败续建只重做缺失/损坏 artifact，current delivery 在受控提升前保持不动；
+- build identity 不绑定 runId/assignment/receipt，且 source/public asset byte drift 必须 invalidation；
 - silent intro/outro 只从所选 preset 取得固定时长，不伪造 TTS、CaptionCue 或 sealed segment；
   narrated chunk 仍保持一次 provider request、一次 CaptionCue 与 sealed PCM authority。
 - `template-copy` Scene 不得被 Scene owner 重新创作或发布 receipt；Project-local source/cue 漂移必须
