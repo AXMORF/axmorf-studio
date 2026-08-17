@@ -26,6 +26,25 @@ test("ScenePackage binds one renderer and one sound identity without storing dur
   );
 });
 
+test("ScenePackage treats semantic timing as canonical JSON instead of key order", () => {
+  const input = createScenePackageInput();
+  const timingBeat = input.task.timingBeat;
+  assert.doesNotThrow(() =>
+    buildScenePackage({
+      ...input,
+      current: {
+        ...input.current,
+        timingBeat: {
+          endFrame: timingBeat.endFrame,
+          startFrame: timingBeat.startFrame,
+          meaningId: timingBeat.meaningId,
+          kind: timingBeat.kind,
+        },
+      },
+    }),
+  );
+});
+
 test("ScenePackage fails when any current layered identity drifts", () => {
   const input = createScenePackageInput();
   const mutations = [

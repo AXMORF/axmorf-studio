@@ -15,6 +15,7 @@ import {
   computeScenePackageFingerprint,
   computeSceneSoundFingerprint,
   computeSceneVisualFingerprint,
+  serializeCanonicalJson,
   validateScenePlanBundle,
   validateSelectedResourceRef,
   type ScenePackage,
@@ -74,8 +75,8 @@ export const buildScenePackage = (rawInput: {
     soundPlan: sound,
   });
   if (
-    JSON.stringify(rawInput.current.timingBeat) !==
-      JSON.stringify(task.timingBeat) ||
+    serializeCanonicalJson(rawInput.current.timingBeat) !==
+      serializeCanonicalJson(task.timingBeat) ||
     rawInput.current.semanticTimingFingerprint !==
       task.semanticTimingFingerprint ||
     rawInput.current.visualStyleFingerprint !== task.visualStyleFingerprint ||
