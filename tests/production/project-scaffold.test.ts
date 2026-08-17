@@ -104,8 +104,18 @@ test("production render scaffold retains the frozen Run plan and GlobalVisual pr
   assert.doesNotMatch(source, /<GlobalVisualLayers plan=/u);
   assert.match(source, /StoryVisualTrack/u);
   assert.match(source, /SoundDesignTrack/u);
+  assert.match(runtimeSource, /ResourceCatalogSchema/u);
+  assert.match(
+    runtimeSource,
+    /resourceCatalogJson from "\.\/generated\/resource-catalog\.generated\.json"/u,
+  );
   assert.match(runtimeSource, /projectSoundResourceIds/u);
-  assert.match(runtimeSource, /projectSoundResourceIds\.has\(id\)/u);
+  assert.match(runtimeSource, /resourceCatalog\.entries/u);
+  assert.match(runtimeSource, /projectSoundResourceIds\.has\(descriptor\.id\)/u);
+  assert.doesNotMatch(
+    runtimeSource,
+    /ProjectAssetManifestSchema|projectAssetsJson|projectAssets\.assets/u,
+  );
   assert.doesNotMatch(source, /StoryCompositionShell|FixedIntro|FixedOutro/u);
   assert.match(source, /narrationStartFrame: timing\.narrationStartFrame/u);
   assert.match(source, /semanticTimingFrameCount/u);

@@ -270,8 +270,8 @@ import {z} from "zod";
 
 import {
   RenderSpecSchema,
-  ProjectAssetManifestSchema,
   ProjectSoundPlanSchema,
+  ResourceCatalogSchema,
   ResourceDescriptorSchema,
   SceneCoverageMapSchema,
   ScenePackageSchema,
@@ -292,9 +292,9 @@ import {
   type SceneRendererRegistry,
 } from "../../remotion/runtime/story-visual";
 import coverageJson from "./generated/scene-coverage.generated.json";
+import resourceCatalogJson from "./generated/resource-catalog.generated.json";
 import semanticTimingJson from "./generated/semantic-timing.generated.json";
 import renderJson from "./render.json";
-import projectAssetsJson from "./assets.manifest.json";
 import projectSoundJson from "./sound.json";
 import {
   rendererRegistry,
@@ -318,7 +318,7 @@ ${rawScenes}
 const visualStyle = VisualStyleSpecSchema.parse(visualStyleJson);
 const semanticTiming = SemanticTimingSchema.parse(semanticTimingJson);
 const render = RenderSpecSchema.parse(renderJson);
-const projectAssets = ProjectAssetManifestSchema.parse(projectAssetsJson);
+const resourceCatalog = ResourceCatalogSchema.parse(resourceCatalogJson);
 const projectSound = ProjectSoundPlanSchema.parse(projectSoundJson);
 const projectSoundResourceIds = new Set(projectSound.contributions.map(({resourceId}) => resourceId));
 export const productionSceneCoverage = SceneCoverageMapSchema.parse(coverageJson);
@@ -385,7 +385,7 @@ export const productionSoundDesignProjection = buildSoundDesignProjection({
   storyBeatTimings,
   sceneSoundProjections,
   projectSoundPlan: projectSound,
-  projectSoundResources: projectAssets.assets.filter(({id, mediaRole}) => mediaRole === "background-music" && projectSoundResourceIds.has(id)),
+  projectSoundResources: resourceCatalog.entries.map(({descriptor}) => descriptor).filter((descriptor) => descriptor.kind === "asset" && descriptor.mediaRole === "background-music" && projectSoundResourceIds.has(descriptor.id)),
 });
 export const productionRendererPropsByMeaning: Readonly<Record<string, SceneRendererMountProps>> = Object.fromEntries(
   scenes.map((scene) => {
