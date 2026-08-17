@@ -69,12 +69,14 @@ test("default check graph rejects concrete IDs and media-only artifacts", () => 
 
 test("central project-owned tests and tools are structural violations", async (context) => {
   const rootDir = await createRoot(context);
+  await write(rootDir, "scripts/one-off.ts");
   await write(rootDir, "scripts/project-tools/alpha-story/check.ts");
   await write(rootDir, "tests/alpha-story/render.test.ts");
   await write(rootDir, "src/projects/alpha-story/tests/render.test.ts");
   await write(rootDir, "src/projects/alpha-story/tools/verification/check.ts");
 
   assert.deepEqual(await findCentralProjectOwnershipViolations(rootDir), [
+    "scripts/one-off.ts",
     "scripts/project-tools/alpha-story/check.ts",
     "tests/alpha-story/render.test.ts",
   ]);

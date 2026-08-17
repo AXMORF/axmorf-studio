@@ -266,6 +266,8 @@ test("repository video skill exposes a structured production policy", async () =
   );
   assert.match(sceneWorkflow, /readabilityPolicy/u);
   assert.match(sceneWorkflow, /sceneContentSafeAreaPx/u);
+  assert.match(sceneWorkflow, /完整画布坐标系/u);
+  assert.match(sceneWorkflow, /不得[\s\S]{0,80}重复叠加[\s\S]{0,40}安全区/u);
   assert.match(sceneWorkflow, /typographyPolicy\.minFontSizePx/u);
   assert.match(sceneWorkflow, /allowedResourceIds/u);
   assert.match(sceneWorkflow, /allowedSnapshots/u);

@@ -17,11 +17,12 @@ export function renderSceneRendererMount(Component: any, mountProps: any, localF
 const safeArea = `
 import { ProductionReadabilityPolicySchema as PolicySchema } from "../../../contracts/production-readability";
 import { SceneReadabilityProvider as Provider } from "./SceneReadability";
+export const SCENE_SAFE_AREA_COORDINATE_SPACE = "composition-full-frame" as const;
 export const SceneSafeArea = ({ policy: raw, children }: any) => {
   const current = PolicySchema.parse(raw);
   const inset = current.sceneContentSafeAreaPx;
   return <Provider value={current}><div data-scene-safe-area={current.policyFingerprint}
-    style={{top: inset.top, right: inset.right, bottom: inset.bottom, left: inset.left}}>{children}</div></Provider>;
+    style={{inset: 0, clipPath: \`inset(\${inset.top}px \${inset.right}px \${inset.bottom}px \${inset.left}px)\`}}>{children}</div></Provider>;
 };
 `;
 
@@ -57,6 +58,23 @@ test("shared boundary validation fails closed when ownership wiring is absent", 
         "/contracts",
       ),
       sceneSafeAreaSource: safeArea,
+      generatedRuntimeSource: generatedRuntime,
+    }),
+  );
+  assert.throws(() =>
+    validateSharedSceneBoundarySources({
+      sceneSlotSource: sceneSlot,
+      sceneSafeAreaSource: safeArea.replace("clipPath", "otherClip"),
+      generatedRuntimeSource: generatedRuntime,
+    }),
+  );
+  assert.throws(() =>
+    validateSharedSceneBoundarySources({
+      sceneSlotSource: sceneSlot,
+      sceneSafeAreaSource: safeArea.replace(
+        "composition-full-frame",
+        "safe-area-local",
+      ),
       generatedRuntimeSource: generatedRuntime,
     }),
   );

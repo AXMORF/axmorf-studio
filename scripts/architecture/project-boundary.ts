@@ -34,6 +34,18 @@ const listFiles = async (directory: string): Promise<readonly string[]> => {
   return files.flat().sort();
 };
 
+const listDirectFiles = async (directory: string) => {
+  try {
+    return (await readdir(directory, { withFileTypes: true }))
+      .filter((entry) => entry.isFile())
+      .map((entry) => join(directory, entry.name))
+      .sort();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+};
+
 const importSpecifiers = (source: string, fileName: string) => {
   const sourceFile = ts.createSourceFile(
     fileName,
@@ -191,6 +203,7 @@ export const findCentralProjectOwnershipViolations = async (
     await listDirectories(join(rootDir, "src/projects")),
   );
   const candidates = [
+    ...(await listDirectFiles(join(rootDir, "scripts"))),
     ...(await listFiles(join(rootDir, "scripts/project-tools"))),
     ...(
       await Promise.all(

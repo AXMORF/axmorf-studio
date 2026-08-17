@@ -157,7 +157,9 @@ Scene 并冻结 `template-copy` instance。freeze 不回读共享模板，只机
 复制 checksum、资源与 ScenePackage 绑定后直接写结果；不进入通用 Scene check 或审查；
 共享模板后续变化不会传递到既有 Project。Composition exactly once 提供
 SceneSafeArea、NarrativeCore、CaptionLayer、GlobalVisual background 与 Scene track。Scene renderer
-根透明且只画 current Beat 语义；ScenePackage owns Scene 内的音效 contributions，不拥有旁白或字幕。
+根透明且只画 current Beat 语义；Renderer 的 `width`/`height` 与绝对坐标始终属于 Composition 完整
+画布坐标系，SceneSafeArea 只按冻结 inset 裁剪而不移动坐标原点，避免居中坐标重复叠加左/上 inset。
+ScenePackage owns Scene 内的音效 contributions，不拥有旁白或字幕。
 Project `sound.json` owns 内容 BGM contribution。两者由同一 SoundDesignTrack 聚合、同一播放器挂载；
 区别只在绝对时间窗口、时长、循环和各自音量。GlobalVisual owns project-local 背景/纹理/装饰/motif，
 不读取 Scene output。`GlobalVisualLayers` 实现统一满足 runtime 的无 Props 组件类型；Composition

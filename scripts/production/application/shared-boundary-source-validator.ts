@@ -93,9 +93,31 @@ const hasPropertyName = (sourceFile: ts.SourceFile, name: string) =>
   });
 
 const unwrapExpression = (expression: ts.Expression): ts.Expression =>
-  ts.isParenthesizedExpression(expression)
+  ts.isParenthesizedExpression(expression) ||
+  ts.isAsExpression(expression) ||
+  ts.isSatisfiesExpression(expression)
     ? unwrapExpression(expression.expression)
     : expression;
+
+const hasStringConstant = (
+  sourceFile: ts.SourceFile,
+  name: string,
+  value: string,
+) =>
+  sourceFile.statements
+    .filter(ts.isVariableStatement)
+    .flatMap((statement) => [...statement.declarationList.declarations])
+    .some((declaration) => {
+      if (
+        !ts.isIdentifier(declaration.name) ||
+        declaration.name.text !== name ||
+        declaration.initializer === undefined
+      ) {
+        return false;
+      }
+      const initializer = unwrapExpression(declaration.initializer);
+      return ts.isStringLiteral(initializer) && initializer.text === value;
+    });
 
 const bindingLocalName = (
   pattern: ts.ObjectBindingPattern,
@@ -368,6 +390,13 @@ export const validateSharedSceneBoundarySources = ({
     !hasJsxTag(sceneSafeArea, providerLocal) ||
     !hasPropertyName(sceneSafeArea, "sceneContentSafeAreaPx") ||
     !hasPropertyName(sceneSafeArea, "policyFingerprint") ||
+    !hasPropertyName(sceneSafeArea, "inset") ||
+    !hasPropertyName(sceneSafeArea, "clipPath") ||
+    !hasStringConstant(
+      sceneSafeArea,
+      "SCENE_SAFE_AREA_COORDINATE_SPACE",
+      "composition-full-frame",
+    ) ||
     !hasNode(
       sceneSafeArea,
       (node) =>
@@ -394,10 +423,11 @@ export const validateSharedSceneBoundarySources = ({
   return {
     boundarySourceFingerprint: createFingerprint({
       namespace: "production-shared-scene-boundary-structure",
-      version: 1,
+      version: 2,
       value: {
         boundaryVersion: SCENE_COMPOSITION_BOUNDARY_VERSION,
         compositionOwnsSafeArea: true,
+        coordinateSpace: "composition-full-frame",
         providerConsumesFrozenPolicy: true,
         generatedRuntimeBindsPolicyAndBoundary: true,
       },
