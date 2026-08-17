@@ -6,7 +6,7 @@ import {
 import {
   discoverLatestProductionProgressRuns,
   readProductionProgressRun,
-  readProductionWatcherProgress,
+  readProductionOwnerReceiptProgress,
 } from "../../scripts/production/application/progress-query";
 import { readDeliveryProgressProjection } from "../../scripts/delivery/application/progress-query";
 import { readLocalProjectRoot } from "../../scripts/projects/root";
@@ -72,10 +72,9 @@ const readRunProductionProgress = async ({
   const freezeEvent = eventFor("scene-freeze");
   const scenesEvent = eventFor("scenes");
   const renderReadyEvent = eventFor("render-ready");
-  const watcher = await readProductionWatcherProgress({
+  const ownerReceipts = await readProductionOwnerReceiptProgress({
     rootDir,
     runId,
-    storyId: loaded.run.storyId,
   });
 
   const freezeSucceededEvent = loaded.events.find(
@@ -88,32 +87,62 @@ const readRunProductionProgress = async ({
           artifact.artifactId.startsWith("scene-assignment."),
         ).length
       : 0;
-  const acceptedSceneCount = loaded.state.acceptedSceneResults.length;
-  const globalVisualAccepted = loaded.state.acceptedGlobalVisualResult !== null;
   const renderReadyFingerprint =
     renderReadyEvent !== null && "outputArtifacts" in renderReadyEvent
       ? (renderReadyEvent.outputArtifacts.find(
           (artifact) => artifact.artifactId === "production-render-ready",
         )?.fingerprint ?? null)
       : null;
-  const delivery = await readDeliveryProgressProjection({
+  let delivery = await readDeliveryProgressProjection({
     rootDir,
     storyId: loaded.run.storyId,
     renderReadyFingerprint,
   });
 
   let scenesStatus: ProductionProgressStepStatus = stageStatus(scenesEvent);
-  const scenesOccurredAt = scenesEvent?.occurredAt ?? watcher.startedAt;
-  let scenesDetail = `${acceptedSceneCount} / ${assignmentCount} 个 Scene 已收敛，GlobalVisual ${
-    globalVisualAccepted ? "已收敛" : "等待中"
+  const scenesOccurredAt =
+    scenesEvent?.occurredAt ?? ownerReceipts.latestReceiptAt;
+  let scenesDetail = `${ownerReceipts.receivedSceneReceipts} / ${ownerReceipts.expectedSceneReceipts} 个 Scene owner receipts，GlobalVisual ${
+    ownerReceipts.globalVisualReceipt === "missing" ||
+    ownerReceipts.globalVisualReceipt === "not-frozen"
+      ? "等待中"
+      : "已收到"
   }`;
-  if (watcher.status === "attention") {
-    scenesStatus = "attention";
-    scenesDetail =
-      "Watcher 已写入启动意图但缺少 spawn 回执（launch-ambiguous）";
-  } else if (scenesStatus === "pending" && watcher.status === "running") {
+  if (
+    scenesStatus === "pending" &&
+    ownerReceipts.receivedRenderReadyReceipts > 0
+  ) {
     scenesStatus = "running";
-    scenesDetail = "Watcher 已启动，等待 owner receipts";
+  }
+  if (
+    (scenesStatus === "pending" || scenesStatus === "running") &&
+    ownerReceipts.expectedRenderReadyReceipts > 0 &&
+    ownerReceipts.receivedRenderReadyReceipts ===
+      ownerReceipts.expectedRenderReadyReceipts
+  ) {
+    scenesStatus = "running";
+    scenesDetail = "Owner receipts 已齐全，等待固定 production:finalize 收敛";
+  }
+  if (
+    loaded.state.state === "render-ready" &&
+    renderReadyEvent !== null &&
+    ownerReceipts.coverReceipt === "missing"
+  ) {
+    delivery = {
+      status: "attention",
+      detail: "render-ready 已完成，Cover receipt 缺失，自动交付被阻塞",
+      occurredAt: renderReadyEvent.occurredAt,
+    };
+  } else if (
+    loaded.state.state === "render-ready" &&
+    renderReadyEvent !== null &&
+    ownerReceipts.coverReceipt === "owner-failed"
+  ) {
+    delivery = {
+      status: "attention",
+      detail: "render-ready 已完成，Cover owner 明确失败，自动交付被阻塞",
+      occurredAt: ownerReceipts.latestReceiptAt,
+    };
   }
 
   const steps: ProductionProgressStep[] = [
@@ -148,8 +177,8 @@ const readRunProductionProgress = async ({
     },
     {
       id: "scenes",
-      label: "Watcher 收敛制作结果",
-      command: "npm run production:watch:start",
+      label: "Owner 创作与固定收敛",
+      command: "npm run production:finalize",
       status: scenesStatus,
       detail: failedDetail(scenesEvent, scenesDetail),
       occurredAt: scenesOccurredAt,

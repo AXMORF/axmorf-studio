@@ -2,7 +2,7 @@
 
 This directory is the explicit audited launch-delivery capability. The default user delivery command is
 `npm run project:build -- --project <storyId>` and lives in `scripts/project-build/`; it does not consume
-ProductionRun, owner, watcher, render-ready, CoverResult, intent, or receipt records.
+ProductionRun, owner, audited finalize, render-ready, CoverResult, intent, or receipt records.
 
 Audited local delivery keeps fixed layers:
 
@@ -23,9 +23,9 @@ npm run delivery:build -- --project <storyId>
 npm run delivery:check -- --project <storyId>
 ```
 
-Cover task 只 author 并发布 receipt；detached production watcher 是 Cover fixed check/submit 与
-automatic `delivery:build` 的唯一正常调用方。上面的 check/build 是诊断和中央 use case，不属于
-root 或 Cover owner 的派发后流程。
+Cover 子 Agent 只 author 并发布 receipt；foreground `production:finalize` 是 Cover fixed
+check/submit 与 automatic `delivery:build` 的唯一正常调用方。上面的 check/build 是诊断
+和中央 use case，不属于 root 或 Cover owner 的派发后流程。
 
 `delivery:build` requires current PublishingIntent, ProductionRenderPlan, ProductionRenderReady,
 CoverResult, and the attribution projection of resources actually selected by the bound Scene and

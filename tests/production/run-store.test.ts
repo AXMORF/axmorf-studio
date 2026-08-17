@@ -32,7 +32,6 @@ const createRun = () =>
     storyId: "story-example",
     requirementsPath: "src/projects/story-example/production/requirements.json",
     requirementsFingerprint: sha("a"),
-    policy: { pollIntervalMs: 25 },
     createdAt: occurredAt,
   });
 
@@ -152,7 +151,7 @@ test("uses one writer lock and releases only its own lock", async (context) => {
   const first = await acquireProductionRunLock({
     rootDir,
     runId: run.runId,
-    ownerId: "watcher-one",
+    ownerId: "writer-one",
     acquiredAt: occurredAt,
   });
   await assert.rejects(
@@ -160,7 +159,7 @@ test("uses one writer lock and releases only its own lock", async (context) => {
       acquireProductionRunLock({
         rootDir,
         runId: run.runId,
-        ownerId: "watcher-two",
+        ownerId: "writer-two",
         acquiredAt: occurredAt,
       }),
     /lock|writer/i,
@@ -169,7 +168,7 @@ test("uses one writer lock and releases only its own lock", async (context) => {
   const second = await acquireProductionRunLock({
     rootDir,
     runId: run.runId,
-    ownerId: "watcher-two",
+    ownerId: "writer-two",
     acquiredAt: occurredAt,
   });
   await second.release();

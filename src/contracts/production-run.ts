@@ -10,11 +10,11 @@ import {
 import { NarrationExecutionSnapshotSchema } from "./narration-execution";
 
 export const PRODUCTION_RUN_CONTRACT_VERSION =
-  "production-run-current-v2" as const;
+  "production-run-current-v3" as const;
 export const PRODUCTION_EVENT_CONTRACT_VERSION =
-  "production-stage-event-current-v2" as const;
+  "production-stage-event-current-v3" as const;
 export const PRODUCTION_STATE_CONTRACT_VERSION =
-  "production-run-state-current-v2" as const;
+  "production-run-state-current-v3" as const;
 
 export const PRODUCTION_STAGE_IDS = [
   "production-start",
@@ -104,17 +104,6 @@ const addUniqueArtifactIssues = (
   }
 };
 
-export const ProductionRunPolicySchema = z
-  .object({
-    pollIntervalMs: PositiveIntegerSchema.max(60_000),
-  })
-  .strict()
-  .readonly();
-
-export const DEFAULT_PRODUCTION_RUN_POLICY = ProductionRunPolicySchema.parse({
-  pollIntervalMs: 1_000,
-});
-
 const ProductionRunManifestInputObject = z
   .object({
     schemaVersion: z.literal(1),
@@ -124,7 +113,6 @@ const ProductionRunManifestInputObject = z
     requirementsPath: SafeRepositoryPathSchema,
     requirementsFingerprint: Sha256DigestSchema,
     narrationExecution: NarrationExecutionSnapshotSchema.optional(),
-    policy: ProductionRunPolicySchema,
     createdAt: IsoTimestampSchema,
   })
   .strict()
@@ -150,7 +138,7 @@ export const computeProductionRunFingerprint = (rawInput: unknown) => {
   const input = ProductionRunManifestInputSchema.parse(record);
   return createFingerprint({
     namespace: "production-run-manifest",
-    version: 1,
+    version: 2,
     value: input,
   });
 };
@@ -398,7 +386,7 @@ export const computeProductionStageEventFingerprint = (rawInput: unknown) => {
   const input = ProductionStageEventInputSchema.parse(record);
   return createFingerprint({
     namespace: "production-stage-event",
-    version: 1,
+    version: 2,
     value: input,
   });
 };
@@ -546,7 +534,7 @@ export const computeProductionRunStateFingerprint = (rawInput: unknown) => {
   const input = ProductionRunStateInputSchema.parse(record);
   return createFingerprint({
     namespace: "production-run-state",
-    version: 1,
+    version: 2,
     value: input,
   });
 };
@@ -585,7 +573,6 @@ export type ProductionRunStateName = z.infer<typeof ProductionRunStateNameSchema
 export type ProductionFingerprintRef = z.infer<typeof ProductionFingerprintRefSchema>;
 export type ProductionOutputArtifact = z.infer<typeof ProductionOutputArtifactSchema>;
 export type ProductionRunManifest = z.infer<typeof ProductionRunManifestSchema>;
-export type ProductionRunPolicy = z.infer<typeof ProductionRunPolicySchema>;
 export type ProductionError = z.infer<typeof ProductionErrorSchema>;
 export type ProductionStageEvent = z.infer<typeof ProductionStageEventSchema>;
 export type ProductionRunState = z.infer<typeof ProductionRunStateSchema>;

@@ -12,10 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 
-import {
-  DEFAULT_PRODUCTION_RUN_POLICY,
-  createProductionRunManifest,
-} from "../../src/contracts";
+import { createProductionRunManifest } from "../../src/contracts";
 import {
   deleteProjectData,
   parseProjectDeleteArguments,
@@ -60,7 +57,6 @@ const writeProjectData = async ({
     storyId: projectId,
     requirementsPath: `src/projects/${projectId}/production/requirements.json`,
     requirementsFingerprint: `sha256:${"0".repeat(64)}`,
-    policy: DEFAULT_PRODUCTION_RUN_POLICY,
     createdAt: "2026-08-09T04:00:00.000Z",
   });
   await writeFile(join(runRoot, "run.json"), `${JSON.stringify(run)}\n`);

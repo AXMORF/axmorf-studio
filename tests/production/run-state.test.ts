@@ -2,8 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  DEFAULT_PRODUCTION_RUN_POLICY,
-  ProductionRunPolicySchema,
   createProductionRunManifest,
   type ProductionStageEvent,
 } from "../../src/contracts/production-run";
@@ -20,18 +18,7 @@ const run = createProductionRunManifest({
   storyId: "story-example",
   requirementsPath: "src/projects/story-example/production/requirements.json",
   requirementsFingerprint: sha("a"),
-  policy: { pollIntervalMs: 25 },
   createdAt: occurredAt,
-});
-
-test("production Run policy has one validated fingerprinted default", () => {
-  assert.deepEqual(DEFAULT_PRODUCTION_RUN_POLICY, {
-    pollIntervalMs: 1_000,
-  });
-  assert.deepEqual(
-    ProductionRunPolicySchema.parse(DEFAULT_PRODUCTION_RUN_POLICY),
-    DEFAULT_PRODUCTION_RUN_POLICY,
-  );
 });
 
 test("projects the current lifecycle through render-ready", () => {
@@ -88,7 +75,7 @@ test("projects the current lifecycle through render-ready", () => {
     type: "scene-result-accepted",
     eventId: "scene-opening-accepted",
     stageId: "scenes",
-    commandId: "production-watch",
+    commandId: "production-finalize",
     meaningId: "opening",
     sceneResultFingerprint: sha("b"),
     outputArtifacts: [
@@ -104,7 +91,7 @@ test("projects the current lifecycle through render-ready", () => {
     type: "global-visual-result-accepted",
     eventId: "global-visual-accepted",
     stageId: "scenes",
-    commandId: "production-watch",
+    commandId: "production-finalize",
     globalVisualResultFingerprint: sha("c"),
     outputArtifacts: [
       {

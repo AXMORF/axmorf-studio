@@ -24,7 +24,7 @@ deliveries/<storyId>/
 
 `publish.json` 绑定 run-independent buildId/source snapshot、实际 repository paths、SHA-256、size、
 codec、声道、尺寸、fps、frameCount 与 EOF decode。普通 Scene/GlobalVisual/Cover source 修改不创建
-ProductionRun、不派发 owner、不启动 watcher、不重做旁白。相同 snapshot 且 current delivery 完整时
+ProductionRun、不派发 owner、不执行 audited finalize、不重做旁白。相同 snapshot 且 current delivery 完整时
 no-op；失败时上一版不动，同 buildId 重试复用已验证 staged media。
 
 以下章节只适用于用户显式选择的 audited production/launch 流程，不是默认 rebuild。
@@ -42,14 +42,15 @@ CoverAssignment 只嵌入 current StorySpec、VisualStyleSpec 和固定 CoverSpe
 不得读取 PublishingIntent、SemanticTiming、Scene/GlobalVisual 输出、FinalAssembly、历史封面
 或已有 deliveries。
 
-owner 不运行 check/submit。watcher 内部的 fixed check 真实渲染临时全尺寸 PNG 并验证尺寸和完整
+owner 不运行 check/submit。foreground finalize 内部的 fixed check 真实渲染临时全尺寸 PNG 并验证尺寸和完整
 decode；随后重复验证并原子封存 package、
 exact PNG 与 result。Cover 缺失或 stale 不阻止 production render-ready，但会阻止 delivery build。
 
 ## Audited detached build
 
-Cover owner 通过 `production:owner:ready -- --run <runId> --owner cover` 发布 receipt。detached
-production 到达 render-ready 后，watcher 才串行执行 Cover check/submit；Cover current 后自动执行：
+Cover owner 通过 `production:owner:ready -- --run <runId> --owner cover` 发布 receipt。主 Agent 等待全部
+已派发子 Agent 到达宿主终态后只调用一次 `production:finalize`；脚本到达 render-ready 后串行执行
+Cover check/submit，Cover current 后自动执行：
 
 ```bash
 npm run delivery:build -- --project <storyId>

@@ -181,7 +181,7 @@ test("requires one guarded content root and rejects Scene-owned captions", async
   }
 });
 
-test("the shared submit watcher checker is check-only and byte-mtime stable", async (context) => {
+test("the shared submit/finalize checker is check-only and byte-mtime stable", async (context) => {
   const fixture = await createFixture(context);
   await fixture.write(
     fixture.rendererPath,

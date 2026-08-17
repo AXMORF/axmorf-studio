@@ -21,6 +21,10 @@ import {
 } from "../adapters/owner-inbox";
 import { assertOwnerOutputManifestCurrent } from "../adapters/owner-output-manifest";
 import { createProductionStageEvent } from "../domain/events";
+import {
+  computeExpectedOwnerReceiptIdentities,
+  sceneAssignmentRequiresOwner,
+} from "../domain/expected-owner-identities";
 import { createExpectedProductionError } from "../domain/errors";
 import { runProductionGlobalVisualSubmit } from "./global-visual-submit";
 import { runProductionGlobalVisualFail } from "./global-visual-fail";
@@ -39,24 +43,13 @@ type CurrentAssignments = Readonly<{
   assignments: readonly CurrentSceneAssignment[];
   globalVisualAssignment: GlobalVisualAssignment;
 }>;
-type WatchScheduler = Readonly<{
-  sleep: (milliseconds: number) => Promise<void>;
-}>;
-
-const defaultScheduler: WatchScheduler = {
-  sleep: (milliseconds) =>
-    new Promise((resolve) => setTimeout(resolve, milliseconds)),
-};
-
-export class ProductionWatchInterruption extends Error {}
-
 type OwnerIdentity = Readonly<{
   ownerKind: ProductionOwnerKind;
   meaningId: string | null;
   assignmentFingerprint: string;
 }>;
 
-type WatchFailure = Readonly<{
+type FinalizeFailure = Readonly<{
   code: string;
   message: string;
   meaningId: string | null;
@@ -72,7 +65,7 @@ const failure = ({
   readonly code: string;
   readonly message: string;
   readonly owner?: OwnerIdentity;
-}): WatchFailure => ({
+}): FinalizeFailure => ({
   code,
   message,
   meaningId: owner?.meaningId ?? null,
@@ -99,14 +92,6 @@ const assignmentIdentity = (
         meaningId: null,
         assignmentFingerprint: assignment.assignmentFingerprint,
       };
-
-const requiresSceneOwner = (assignment: CurrentSceneAssignment) => {
-  const beat = assignment.taskInput.storyBeat;
-  return (
-    beat.kind === "narrated-scene" ||
-    beat.preset.implementation.kind === "scene-owner"
-  );
-};
 
 const assertReceiptIdentity = ({
   receipt,
@@ -160,17 +145,17 @@ const assertReceiptIdentity = ({
   }
 };
 
-const appendWatchFailure = async ({
+const appendFinalizeFailure = async ({
   rootDir,
   runId,
   lock,
-  watchFailure,
+  finalizeFailure,
   occurredAt,
 }: {
   readonly rootDir: string;
   readonly runId: string;
   readonly lock: ProductionRunLock;
-  readonly watchFailure: WatchFailure;
+  readonly finalizeFailure: FinalizeFailure;
   readonly occurredAt: string;
 }) => {
   const loaded = await readProductionRunStore({ rootDir, runId });
@@ -181,17 +166,17 @@ const appendWatchFailure = async ({
     return loaded.state;
   }
   const error = createExpectedProductionError({
-    code: watchFailure.code,
+    code: finalizeFailure.code,
     summary: "Owner receipt processing failed.",
-    description: watchFailure.message,
+    description: finalizeFailure.message,
     stageId: "scenes",
-    scope: watchFailure.scope,
-    meaningId: watchFailure.meaningId,
+    scope: finalizeFailure.scope,
+    meaningId: finalizeFailure.meaningId,
     retryable: false,
     remediation:
       "Preserve the immutable receipt and result evidence, correct the shared workflow if needed, and start a fresh run.",
-    commandId: "production-watch-worker",
-    inputFingerprint: watchFailure.inputFingerprint,
+    commandId: "production-finalize",
+    inputFingerprint: finalizeFailure.inputFingerprint,
   });
   return (
     await appendProductionRunEvent({
@@ -208,12 +193,12 @@ const appendWatchFailure = async ({
         stageId: "scenes",
         attempt: 1,
         occurredAt,
-        commandId: "production-watch-worker",
+        commandId: "production-finalize",
         previousStateFingerprint: loaded.state.stateFingerprint,
         inputFingerprints: [
           {
             artifactId: "owner-receipt-failure-input",
-            fingerprint: watchFailure.inputFingerprint,
+            fingerprint: finalizeFailure.inputFingerprint,
           },
         ],
         error,
@@ -243,7 +228,7 @@ const processOwnerReceipt = async ({
     if (existingResult !== null) {
       throw failure({
         code: "OWNER_RESULT_WITHOUT_RECEIPT",
-        message: "Watcher-owned result exists without its owner receipt.",
+        message: "Finalize-owned result exists without its owner receipt.",
         owner,
       });
     }
@@ -280,7 +265,7 @@ const processOwnerReceipt = async ({
     ) {
       throw failure({
         code: "STALE_OWNER_RESULT",
-        message: "Watcher-owned result is stale against its receipt.",
+        message: "Finalize-owned result is stale against its receipt.",
         owner,
       });
     }
@@ -390,10 +375,11 @@ const acceptFormalResults = async ({
   );
   for (const assignment of assignments) {
     const owner = assignmentIdentity(assignment);
-    const ownerResult = requiresSceneOwner(assignment)
+    const ownerResult = sceneAssignmentRequiresOwner(assignment)
       ? await readOwnerResult({ rootDir, runId, ...owner })
       : null;
-    if (requiresSceneOwner(assignment) && ownerResult === null) continue;
+    if (sceneAssignmentRequiresOwner(assignment) && ownerResult === null)
+      continue;
     const result = await readExistingSceneResult({
       rootDir,
       runId,
@@ -420,7 +406,7 @@ const acceptFormalResults = async ({
       throw failure({
         code: "STALE_SCENE_RESULT",
         message:
-          "Formal Scene result is missing or stale against the watcher outcome.",
+          "Formal Scene result is missing or stale against the finalize outcome.",
         owner,
       });
     }
@@ -457,7 +443,7 @@ const acceptFormalResults = async ({
               stageId: "scenes",
               attempt: 1,
               occurredAt: clock().toISOString(),
-              commandId: "production-watch-worker",
+              commandId: "production-finalize",
               previousStateFingerprint: loaded.state.stateFingerprint,
               inputFingerprints: [
                 {
@@ -549,7 +535,7 @@ const acceptFormalResults = async ({
               stageId: "scenes",
               attempt: 1,
               occurredAt: clock().toISOString(),
-              commandId: "production-watch-worker",
+              commandId: "production-finalize",
               previousStateFingerprint: loaded.state.stateFingerprint,
               inputFingerprints: [
                 {
@@ -617,7 +603,7 @@ const completeScenesStage = async ({
       stageId: "scenes",
       attempt: 1,
       occurredAt: clock().toISOString(),
-      commandId: "production-watch-worker",
+      commandId: "production-finalize",
       previousStateFingerprint: loaded.state.stateFingerprint,
       inputFingerprints: [
         ...assignments.map((assignment) => ({
@@ -646,11 +632,19 @@ const completeScenesStage = async ({
   });
 };
 
-export type ProductionWatchDependencies = Readonly<{
+export type ProductionFinalizeDependencies = Readonly<{
   processOwner?: typeof processOwnerReceipt;
+  readReceipt?: (
+    request: Readonly<
+      { rootDir: string; runId: string } & OwnerIdentity
+    >,
+  ) => Promise<ProductionOwnerReceipt | null>;
   renderReady?: (request: {
     readonly rootDir: string;
     readonly runId: string;
+    readonly lock?: ProductionRunLock;
+    readonly commandId?: string;
+    readonly clock?: () => Date;
   }) => Promise<unknown>;
   deliveryBuild?: (request: {
     readonly rootDir: string;
@@ -658,7 +652,7 @@ export type ProductionWatchDependencies = Readonly<{
   }) => Promise<{
     readonly projectId: string;
     readonly deliveryId: string;
-    readonly status: string;
+    readonly status: "delivery-render-started";
     readonly noOp: boolean;
   }>;
   resolveAssignments?: (request: {
@@ -672,34 +666,121 @@ export type ProductionWatchDependencies = Readonly<{
   }) => Promise<OwnerIdentity>;
 }>;
 
-export const runProductionWatch = async ({
+export const runProductionFinalize = async ({
   rootDir,
   runId,
   clock = () => new Date(),
-  scheduler = defaultScheduler,
   dependencies = {},
 }: {
   readonly rootDir: string;
   readonly runId: string;
   readonly clock?: () => Date;
-  readonly scheduler?: WatchScheduler;
-  readonly dependencies?: ProductionWatchDependencies;
+  readonly dependencies?: ProductionFinalizeDependencies;
 }) => {
   const acquiredAt = clock();
   if (Number.isNaN(acquiredAt.getTime()))
-    throw new Error("Production watcher clock is invalid.");
-  let lock: ProductionRunLock | null = await acquireProductionRunLock({
+    throw new Error("Production finalize clock is invalid.");
+  const lock = await acquireProductionRunLock({
     rootDir,
     runId,
-    ownerId: "production-watch-worker",
+    ownerId: "production-finalize",
     acquiredAt: acquiredAt.toISOString(),
   });
   const processOwner = dependencies.processOwner ?? processOwnerReceipt;
+  const readReceipt = dependencies.readReceipt ?? readOwnerReceipt;
+  let mutationsStarted = false;
   try {
     let loaded = await readProductionRunStore({ rootDir, runId });
     if (loaded.state.state === "failed") {
-      throw new Error("Production watcher cannot restart a failed run.");
+      return {
+        runId,
+        storyId: loaded.run.storyId,
+        status: "production-failed" as const,
+        error: loaded.state.failure,
+      };
     }
+    const resolved = dependencies.resolveAssignments
+      ? await dependencies.resolveAssignments({ rootDir, runId })
+      : await resolveCurrentSceneAssignments({ rootDir, runId }).then(
+          (value) => {
+            if (value.globalVisualAssignment === null) {
+              throw new Error("GlobalVisual assignment is missing.");
+            }
+            return {
+              assignments:
+                value.assignments as readonly CurrentSceneAssignment[],
+              globalVisualAssignment: value.globalVisualAssignment,
+            };
+          },
+        );
+    if (resolved.assignments.length === 0) {
+      throw failure({
+        code: "STALE_OWNER_ASSIGNMENTS",
+        message: "Frozen owner assignments are missing.",
+      });
+    }
+    const assignments = resolved.assignments;
+    const globalVisualAssignment = resolved.globalVisualAssignment;
+    const allMeaningIds = new Set(
+      assignments.map(({ meaningId }) => meaningId),
+    );
+    if (allMeaningIds.size !== assignments.length) {
+      throw failure({
+        code: "STALE_OWNER_ASSIGNMENTS",
+        message: "Frozen Scene assignment identities conflict.",
+      });
+    }
+    const coverOwner = dependencies.resolveCoverOwner
+      ? await dependencies.resolveCoverOwner({
+          rootDir,
+          runId,
+          storyId: loaded.run.storyId,
+        })
+      : await resolveOwnerAssignment({
+          rootDir,
+          runId,
+          ownerKind: "cover",
+          meaningId: null,
+        }).then((cover) => {
+          if (cover.ownerKind !== "cover") {
+            throw new Error("Cover assignment resolution failed.");
+          }
+          return {
+            ownerKind: "cover" as const,
+            meaningId: null,
+            assignmentFingerprint: cover.assignment.assignmentFingerprint,
+          };
+        });
+    const expected = computeExpectedOwnerReceiptIdentities({
+      sceneAssignments: assignments,
+      globalVisualAssignment,
+      coverAssignment: coverOwner,
+    });
+    await assertOnlyExpectedOwnerInboxEntries({
+      rootDir,
+      runId,
+      expectedOwnerIdentities: [
+        ...expected.renderReadyRequired,
+        ...expected.deliveryOnly,
+      ],
+      sceneResultMeaningIds: allMeaningIds,
+    });
+    const missingOwnerAssignments = [];
+    for (const owner of expected.renderReadyRequired) {
+      if ((await readReceipt({ rootDir, runId, ...owner })) === null) {
+        missingOwnerAssignments.push(owner);
+      }
+    }
+    if (missingOwnerAssignments.length > 0) {
+      return {
+        runId,
+        storyId: loaded.run.storyId,
+        status: "owner-receipts-incomplete" as const,
+        missingOwnerAssignments,
+      };
+    }
+
+    mutationsStarted = true;
     if (loaded.state.state === "scene-inputs-frozen") {
       loaded = {
         ...loaded,
@@ -718,7 +799,7 @@ export const runProductionWatch = async ({
               stageId: "scenes",
               attempt: 1,
               occurredAt: acquiredAt.toISOString(),
-              commandId: "production-watch-worker",
+              commandId: "production-finalize",
               previousStateFingerprint: loaded.state.stateFingerprint,
               inputFingerprints: [
                 {
@@ -731,175 +812,105 @@ export const runProductionWatch = async ({
         ).state,
       };
     }
-    for (;;) {
-      loaded = await readProductionRunStore({ rootDir, runId });
-      const resolved = dependencies.resolveAssignments
-        ? await dependencies.resolveAssignments({ rootDir, runId })
-        : await resolveCurrentSceneAssignments({ rootDir, runId }).then(
-            (value) => {
-              if (value.globalVisualAssignment === null) {
-                throw new Error("GlobalVisual assignment is missing.");
-              }
-              return {
-                assignments:
-                  value.assignments as readonly CurrentSceneAssignment[],
-                globalVisualAssignment: value.globalVisualAssignment,
-              };
-            },
-          );
-      if (resolved.assignments.length === 0) {
-        throw failure({
-          code: "STALE_OWNER_ASSIGNMENTS",
-          message: "Frozen owner assignments are missing.",
-        });
-      }
-      const assignments =
-        resolved.assignments as readonly CurrentSceneAssignment[];
-      const globalVisualAssignment = resolved.globalVisualAssignment;
-      const allMeaningIds = new Set(
-        assignments.map(({ meaningId }) => meaningId),
-      );
-      if (allMeaningIds.size !== assignments.length) {
-        throw failure({
-          code: "STALE_OWNER_ASSIGNMENTS",
-          message: "Frozen Scene assignment identities conflict.",
-        });
-      }
-      const ownerAssignments = assignments.filter(requiresSceneOwner);
-      const meaningIds = new Set(
-        ownerAssignments.map(({ meaningId }) => meaningId),
-      );
-      await assertOnlyExpectedOwnerInboxEntries({
-        rootDir,
-        runId,
-        ownerMeaningIds: meaningIds,
-        sceneResultMeaningIds: allMeaningIds,
-      });
-
-      for (const assignment of ownerAssignments) {
-        await processOwner({
-          rootDir,
-          runId,
-          storyId: loaded.run.storyId,
-          owner: assignmentIdentity(assignment),
-          taskInputFingerprint: assignment.taskInput.taskInputFingerprint,
-          requirementsFingerprint: assignment.requirementsFingerprint,
-        });
-      }
+    for (const owner of expected.renderReadyRequired) {
       await processOwner({
         rootDir,
         runId,
         storyId: loaded.run.storyId,
-        owner: assignmentIdentity(globalVisualAssignment),
-        taskInputFingerprint: null,
-        requirementsFingerprint: globalVisualAssignment.requirementsFingerprint,
+        owner: {
+          ownerKind: owner.ownerKind,
+          meaningId: owner.meaningId,
+          assignmentFingerprint: owner.assignmentFingerprint,
+        },
+        taskInputFingerprint: owner.taskInputFingerprint,
+        requirementsFingerprint: owner.requirementsFingerprint,
+      });
+    }
+    loaded = await readProductionRunStore({ rootDir, runId });
+    if (
+      loaded.state.state === "waiting-for-owner-results" ||
+      loaded.state.state === "scene-inputs-frozen"
+    ) {
+      const accepted = await acceptFormalResults({
+        rootDir,
+        runId,
+        lock,
+        assignments,
+        globalVisualAssignment,
+        clock,
+      });
+      if (!accepted.complete) {
+        throw failure({
+          code: "OWNER_RESULTS_INCOMPLETE",
+          message: "Required owner results did not converge.",
+        });
+      }
+      await completeScenesStage({
+        rootDir,
+        runId,
+        lock,
+        assignments,
+        globalVisualAssignment,
+        clock,
       });
       loaded = await readProductionRunStore({ rootDir, runId });
-      if (
-        loaded.state.state === "waiting-for-owner-results" ||
-        loaded.state.state === "scene-inputs-frozen"
-      ) {
-        const accepted = await acceptFormalResults({
-          rootDir,
-          runId,
-          lock,
-          assignments,
-          globalVisualAssignment,
-          clock,
-        });
-        if (accepted.complete) {
-          await completeScenesStage({
-            rootDir,
-            runId,
-            lock,
-            assignments,
-            globalVisualAssignment,
-            clock,
-          });
-          await lock.release();
-          lock = null;
-          await (dependencies.renderReady ?? runProductionRenderReady)({
-            rootDir,
-            runId,
-          });
-          lock = await acquireProductionRunLock({
-            rootDir,
-            runId,
-            ownerId: "production-watch-worker",
-            acquiredAt: clock().toISOString(),
-          });
-          loaded = await readProductionRunStore({ rootDir, runId });
-        }
-      }
-      if (loaded.state.state === "render-ready-running") {
-        await lock.release();
-        lock = null;
-        await (dependencies.renderReady ?? runProductionRenderReady)({
-          rootDir,
-          runId,
-        });
-        lock = await acquireProductionRunLock({
-          rootDir,
-          runId,
-          ownerId: "production-watch-worker",
-          acquiredAt: clock().toISOString(),
-        });
-        loaded = await readProductionRunStore({ rootDir, runId });
-      }
-      if (loaded.state.state === "render-ready") {
-        const coverOwner = dependencies.resolveCoverOwner
-          ? await dependencies.resolveCoverOwner({
-              rootDir,
-              runId,
-              storyId: loaded.run.storyId,
-            })
-          : await resolveOwnerAssignment({
-              rootDir,
-              runId,
-              ownerKind: "cover",
-              meaningId: null,
-            }).then((cover) => {
-              if (cover.ownerKind !== "cover") {
-                throw new Error("Cover assignment resolution failed.");
-              }
-              return {
-                ownerKind: "cover" as const,
-                meaningId: null,
-                assignmentFingerprint: cover.assignment.assignmentFingerprint,
-              };
-            });
-        const coverOutcome = await processOwner({
-          rootDir,
-          runId,
-          storyId: loaded.run.storyId,
-          owner: coverOwner,
-          taskInputFingerprint: null,
-          requirementsFingerprint: null,
-        });
-        if (coverOutcome === null) {
-          await scheduler.sleep(loaded.run.policy.pollIntervalMs);
-          continue;
-        }
-        if (coverOutcome.receipt.status === "owner-failed") {
-          throw new Error(
-            "Cover owner failed; render-ready is preserved but automatic delivery is blocked.",
-          );
-        }
-        const delivered = await (dependencies.deliveryBuild ?? buildDelivery)({
-          rootDir,
-          projectId: loaded.run.storyId,
-        });
-        return {
-          runId,
-          storyId: loaded.run.storyId,
-          ...delivered,
-        } as const;
-      }
-      await scheduler.sleep(loaded.run.policy.pollIntervalMs);
     }
+    if (loaded.state.state === "render-ready-running") {
+      await (dependencies.renderReady ?? runProductionRenderReady)({
+        rootDir,
+        runId,
+        lock,
+        commandId: "production-finalize",
+        clock,
+      });
+      loaded = await readProductionRunStore({ rootDir, runId });
+    }
+    if (loaded.state.state !== "render-ready") {
+      throw failure({
+        code: "FINALIZE_STATE_INVALID",
+        message: "Production finalize did not reach render-ready.",
+      });
+    }
+    const coverOutcome = await processOwner({
+      rootDir,
+      runId,
+      storyId: loaded.run.storyId,
+      owner: {
+        ownerKind: expected.deliveryOnly[0].ownerKind,
+        meaningId: expected.deliveryOnly[0].meaningId,
+        assignmentFingerprint:
+          expected.deliveryOnly[0].assignmentFingerprint,
+      },
+      taskInputFingerprint: null,
+      requirementsFingerprint: null,
+    });
+    if (coverOutcome === null) {
+      return {
+        runId,
+        storyId: loaded.run.storyId,
+        status: "render-ready-delivery-blocked" as const,
+        reason: "cover-receipt-missing" as const,
+      };
+    }
+    if (coverOutcome.receipt.status === "owner-failed") {
+      return {
+        runId,
+        storyId: loaded.run.storyId,
+        status: "render-ready-delivery-blocked" as const,
+        reason: "cover-owner-failed" as const,
+      };
+    }
+    const delivered = await (dependencies.deliveryBuild ?? buildDelivery)({
+      rootDir,
+      projectId: loaded.run.storyId,
+    });
+    return {
+      runId,
+      storyId: loaded.run.storyId,
+      ...delivered,
+    } as const;
   } catch (error) {
-    if (error instanceof ProductionWatchInterruption) throw error;
-    let watchFailure =
+    let finalizeFailure =
       error !== null &&
       typeof error === "object" &&
       "code" in error &&
@@ -907,35 +918,45 @@ export const runProductionWatch = async ({
       "meaningId" in error &&
       "inputFingerprint" in error &&
       "scope" in error
-        ? (error as WatchFailure)
+        ? (error as FinalizeFailure)
         : null;
-    if (watchFailure === null && lock !== null) {
+    if (mutationsStarted) {
       const current = await readProductionRunStore({ rootDir, runId });
-      if (
-        current.state.state !== "render-ready" &&
-        current.state.state !== "failed"
-      ) {
-        watchFailure = {
-          code: "OWNER_WATCH_FAILED",
+      if (current.state.state === "failed") {
+        return {
+          runId,
+          storyId: current.run.storyId,
+          status: "production-failed" as const,
+          error: current.state.failure,
+        };
+      }
+      if (current.state.state !== "render-ready") {
+        finalizeFailure ??= {
+          code: "OWNER_FINALIZE_FAILED",
           message:
-            "Detached production watcher failed during fixed receipt processing.",
+            "Foreground production finalize failed during fixed receipt processing.",
           meaningId: null,
           inputFingerprint: current.run.requirementsFingerprint,
           scope: "run",
         };
+        await appendFinalizeFailure({
+          rootDir,
+          runId,
+          lock,
+          finalizeFailure,
+          occurredAt: clock().toISOString(),
+        });
+        const failed = await readProductionRunStore({ rootDir, runId });
+        return {
+          runId,
+          storyId: failed.run.storyId,
+          status: "production-failed" as const,
+          error: failed.state.failure,
+        };
       }
-    }
-    if (watchFailure !== null && lock !== null) {
-      await appendWatchFailure({
-        rootDir,
-        runId,
-        lock,
-        watchFailure,
-        occurredAt: clock().toISOString(),
-      });
     }
     throw error;
   } finally {
-    await lock?.release();
+    await lock.release();
   }
 };

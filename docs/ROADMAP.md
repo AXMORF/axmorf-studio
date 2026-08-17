@@ -14,8 +14,8 @@
 5. current-only render plan/render-ready handoff。
 6. independent Cover、non-MP4 delivery package、exactly-once launch intent 与 detached spawn
    acknowledgement receipt。
-7. assignment-bound owner receipt inbox、detached single-writer watcher、`create_thread` 独立任务
-   派发与 root dispatch-after-exit。
+7. assignment-bound owner receipt inbox、运行环境原生子 Agent 一 owner 一 child、root 等待全部 child
+   终态与一次 foreground finalize。
 8. unified private ProducerConfig、同一开发入口下的本地配置控制台、可配置 Scene 留白/合集/TTS
    语速与目标响度，以及对应 contracts/fingerprints/Skill 路由。
 9. production/delivery 单向脚本分层、窄 shared technical adapters、CLI/use-case 与 owner inbox/output
@@ -34,14 +34,14 @@
 任何继续开发必须保持：
 
 - 默认交付终态是 `project-build-complete`，且四个 current 文件已经实际校验；
-- ProductionRun/render-ready/detached delivery 只作为显式 audited production，不阻塞普通 rebuild；
+- ProductionRun/render-ready/foreground finalize/detached delivery 只作为显式 audited production，不阻塞普通 rebuild；
 - intent-before-spawn、receipt-after-spawn、intent-without-receipt-never-retry；
 - spawn acknowledgement 不升级为 render completion；
 - 默认 project build 必须读取、probe、完整 decode 并 checksum 最终 MP4；audited delivery 的旧
   `delivery:check` 仍只检查 launch package；
-- Cover 独立、production single-writer、Run events append-only；
-- watcher intent-only 永久 ambiguous；缺失 owner receipt 永久 waiting，无 timeout/retry/heartbeat；
-- root 只创建独立用户任务，派发后不 wait/read/poll；
+- Cover 独立、foreground finalize 是 production single-writer、Run events append-only；
+- required receipt 缺失时 finalize 无 ledger/state/result 写入并返回稳定 incomplete；
+- root 用原生子 Agent 一 owner 一 child，等待全部 child 宿主终态后只调用一次 finalize；
 - zero Project bootstrap 与隔离 deletion matrix 继续通过。
 - 相同 source snapshot 的失败续建只重做缺失/损坏 artifact，current delivery 在受控提升前保持不动；
 - build identity 不绑定 runId/assignment/receipt，且 source/public asset byte drift 必须 invalidation；

@@ -9,10 +9,6 @@ import {
 
 export const PRODUCTION_OWNER_RECEIPT_VERSION = "production-owner-receipt-v1" as const;
 export const PRODUCTION_OWNER_RESULT_VERSION = "production-owner-result-v1" as const;
-export const PRODUCTION_WATCHER_LAUNCH_INTENT_VERSION =
-  "production-watcher-launch-intent-v1" as const;
-export const PRODUCTION_WATCHER_LAUNCH_RECEIPT_VERSION =
-  "production-watcher-launch-receipt-v1" as const;
 
 export const ProductionOwnerKindSchema = z.enum(["scene", "global-visual", "cover"]);
 const IsoTimestampSchema = z.string().datetime({ offset: true });
@@ -251,83 +247,7 @@ export const buildProductionOwnerResult = (rawInput: unknown) => {
   });
 };
 
-const ProductionWatcherLaunchIntentInputObject = z.object({
-  schemaVersion: z.literal(1),
-  contractVersion: z.literal(PRODUCTION_WATCHER_LAUNCH_INTENT_VERSION),
-  runId: ProductionRunIdSchema,
-  storyId: StoryIdSchema,
-  command: z.string().min(1).max(1024),
-  args: z.array(z.string().min(1).max(1024)).min(1).max(32).readonly(),
-  cwd: z.literal("."),
-  logPath: SafeRepositoryPathSchema,
-  launchPolicy: z.literal("detached-spawn-acknowledgement-v1"),
-}).strict();
-export const ProductionWatcherLaunchIntentInputSchema =
-  ProductionWatcherLaunchIntentInputObject.readonly();
-export const computeProductionWatcherLaunchIntentFingerprint = (rawInput: unknown) => {
-  const record = { ...(rawInput as Record<string, unknown>) };
-  delete record.intentFingerprint;
-  return createFingerprint({
-    namespace: "production-watcher-launch-intent",
-    version: 1,
-    value: ProductionWatcherLaunchIntentInputSchema.parse(record),
-  });
-};
-export const ProductionWatcherLaunchIntentSchema =
-  ProductionWatcherLaunchIntentInputObject.extend({ intentFingerprint: Sha256DigestSchema })
-    .strict()
-    .superRefine((intent, context) => {
-      if (intent.intentFingerprint !== computeProductionWatcherLaunchIntentFingerprint(intent)) {
-        context.addIssue({ code: "custom", message: "ProductionWatcherLaunchIntent fingerprint is stale.", path: ["intentFingerprint"] });
-      }
-    })
-    .readonly();
-export const buildProductionWatcherLaunchIntent = (rawInput: unknown) => {
-  const record: Record<string, unknown> = { ...(rawInput as Record<string, unknown>), schemaVersion: 1, contractVersion: PRODUCTION_WATCHER_LAUNCH_INTENT_VERSION };
-  delete record.intentFingerprint;
-  const input = ProductionWatcherLaunchIntentInputSchema.parse(record);
-  return ProductionWatcherLaunchIntentSchema.parse({ ...input, intentFingerprint: computeProductionWatcherLaunchIntentFingerprint(input) });
-};
-
-const ProductionWatcherLaunchReceiptInputObject = z.object({
-  schemaVersion: z.literal(1),
-  contractVersion: z.literal(PRODUCTION_WATCHER_LAUNCH_RECEIPT_VERSION),
-  runId: ProductionRunIdSchema,
-  storyId: StoryIdSchema,
-  intentFingerprint: Sha256DigestSchema,
-  startedAt: IsoTimestampSchema,
-  acknowledgementPolicy: z.literal("os-spawn-event-v1"),
-}).strict();
-export const ProductionWatcherLaunchReceiptInputSchema =
-  ProductionWatcherLaunchReceiptInputObject.readonly();
-export const computeProductionWatcherLaunchReceiptFingerprint = (rawInput: unknown) => {
-  const record = { ...(rawInput as Record<string, unknown>) };
-  delete record.receiptFingerprint;
-  return createFingerprint({
-    namespace: "production-watcher-launch-receipt",
-    version: 1,
-    value: ProductionWatcherLaunchReceiptInputSchema.parse(record),
-  });
-};
-export const ProductionWatcherLaunchReceiptSchema =
-  ProductionWatcherLaunchReceiptInputObject.extend({ receiptFingerprint: Sha256DigestSchema })
-    .strict()
-    .superRefine((receipt, context) => {
-      if (receipt.receiptFingerprint !== computeProductionWatcherLaunchReceiptFingerprint(receipt)) {
-        context.addIssue({ code: "custom", message: "ProductionWatcherLaunchReceipt fingerprint is stale.", path: ["receiptFingerprint"] });
-      }
-    })
-    .readonly();
-export const buildProductionWatcherLaunchReceipt = (rawInput: unknown) => {
-  const record: Record<string, unknown> = { ...(rawInput as Record<string, unknown>), schemaVersion: 1, contractVersion: PRODUCTION_WATCHER_LAUNCH_RECEIPT_VERSION };
-  delete record.receiptFingerprint;
-  const input = ProductionWatcherLaunchReceiptInputSchema.parse(record);
-  return ProductionWatcherLaunchReceiptSchema.parse({ ...input, receiptFingerprint: computeProductionWatcherLaunchReceiptFingerprint(input) });
-};
-
 export type ProductionOwnerKind = z.infer<typeof ProductionOwnerKindSchema>;
 export type ProductionOwnerOutputFile = z.infer<typeof ProductionOwnerOutputFileSchema>;
 export type ProductionOwnerReceipt = z.infer<typeof ProductionOwnerReceiptSchema>;
 export type ProductionOwnerResult = z.infer<typeof ProductionOwnerResultSchema>;
-export type ProductionWatcherLaunchIntent = z.infer<typeof ProductionWatcherLaunchIntentSchema>;
-export type ProductionWatcherLaunchReceipt = z.infer<typeof ProductionWatcherLaunchReceiptSchema>;

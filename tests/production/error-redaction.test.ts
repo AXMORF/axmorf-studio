@@ -105,7 +105,7 @@ test("GlobalVisual errors are v2, scoped to scenes, and contain no Agent identit
     stageId: "scenes",
     scope: "global-visual",
     meaningId: null,
-    commandId: "production-watch",
+    commandId: "production-finalize",
     inputFingerprint: sha("b"),
     code: "GLOBAL_VISUAL_RESULT_TIMEOUT",
     summary: "Global visual result monitoring failed.",

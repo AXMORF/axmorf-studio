@@ -1,21 +1,48 @@
 import { loadCurrentDeliveryCoverAssignment } from "../../delivery/application/cover-inputs";
 import { readOwnerReceipt } from "../adapters/owner-inbox";
 import { readProductionRunStore } from "../adapters/run-store";
+import {
+  computeExpectedOwnerReceiptIdentities,
+  type ExpectedOwnerReceiptIdentity,
+} from "../domain/expected-owner-identities";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
+
+const isCurrentReceipt = (
+  receipt: Awaited<ReturnType<typeof readOwnerReceipt>>,
+  expected: ExpectedOwnerReceiptIdentity,
+) =>
+  receipt !== null &&
+  receipt.ownerKind === expected.ownerKind &&
+  receipt.meaningId === expected.meaningId &&
+  receipt.assignmentFingerprint === expected.assignmentFingerprint &&
+  receipt.taskInputFingerprint === expected.taskInputFingerprint &&
+  receipt.requirementsFingerprint === expected.requirementsFingerprint;
+
+type ProductionStatusDependencies = Readonly<{
+  readRun: typeof readProductionRunStore;
+  resolveAssignments: typeof resolveCurrentSceneAssignments;
+  resolveCover: typeof loadCurrentDeliveryCoverAssignment;
+  readReceipt: typeof readOwnerReceipt;
+}>;
 
 export const runProductionStatus = async ({
   rootDir,
   runId,
+  dependencies = {},
 }: {
   readonly rootDir: string;
   readonly runId: string;
+  readonly dependencies?: Partial<ProductionStatusDependencies>;
 }) => {
-  const loaded = await readProductionRunStore({ rootDir, runId });
-  const missingOwnerAssignments: Array<{
-    ownerKind: "scene" | "global-visual" | "cover";
-    meaningId: string | null;
-    assignmentFingerprint: string;
-  }> = [];
+  const readRun = dependencies.readRun ?? readProductionRunStore;
+  const resolveAssignments =
+    dependencies.resolveAssignments ?? resolveCurrentSceneAssignments;
+  const resolveCover =
+    dependencies.resolveCover ?? loadCurrentDeliveryCoverAssignment;
+  const readReceipt = dependencies.readReceipt ?? readOwnerReceipt;
+  const loaded = await readRun({ rootDir, runId });
+  const missingRenderReadyOwnerAssignments: ExpectedOwnerReceiptIdentity[] = [];
+  const missingDeliveryOwnerAssignments: ExpectedOwnerReceiptIdentity[] = [];
   if (
     new Set([
       "scene-inputs-frozen",
@@ -25,37 +52,30 @@ export const runProductionStatus = async ({
     ]).has(loaded.state.state)
   ) {
     const [resolved, cover] = await Promise.all([
-      resolveCurrentSceneAssignments({ rootDir, runId }),
-      loadCurrentDeliveryCoverAssignment({
+      resolveAssignments({ rootDir, runId }),
+      resolveCover({
         rootDir,
         projectId: loaded.run.storyId,
       }),
     ]);
-    const identities = [
-      ...resolved.assignments.map((assignment) => ({
-        ownerKind: "scene" as const,
-        meaningId: assignment.meaningId,
-        assignmentFingerprint: assignment.assignmentFingerprint,
-      })),
-      ...(resolved.globalVisualAssignment === null
-        ? []
-        : [
-            {
-              ownerKind: "global-visual" as const,
-              meaningId: null,
-              assignmentFingerprint:
-                resolved.globalVisualAssignment.assignmentFingerprint,
-            },
-          ]),
-      {
-        ownerKind: "cover" as const,
-        meaningId: null,
-        assignmentFingerprint: cover.assignment.assignmentFingerprint,
-      },
-    ];
-    for (const identity of identities) {
-      if ((await readOwnerReceipt({ rootDir, runId, ...identity })) === null) {
-        missingOwnerAssignments.push(identity);
+    if (resolved.globalVisualAssignment === null) {
+      throw new Error("GlobalVisual assignment is missing.");
+    }
+    const expected = computeExpectedOwnerReceiptIdentities({
+      sceneAssignments: resolved.assignments,
+      globalVisualAssignment: resolved.globalVisualAssignment,
+      coverAssignment: cover.assignment,
+    });
+    for (const identity of expected.renderReadyRequired) {
+      const receipt = await readReceipt({ rootDir, runId, ...identity });
+      if (!isCurrentReceipt(receipt, identity)) {
+        missingRenderReadyOwnerAssignments.push(identity);
+      }
+    }
+    for (const identity of expected.deliveryOnly) {
+      const receipt = await readReceipt({ rootDir, runId, ...identity });
+      if (!isCurrentReceipt(receipt, identity)) {
+        missingDeliveryOwnerAssignments.push(identity);
       }
     }
   }
@@ -65,6 +85,11 @@ export const runProductionStatus = async ({
     statePath: `.producer-runs/${loaded.run.runId}/state.generated.json`,
     requirementsFingerprint: loaded.run.requirementsFingerprint,
     lastSequence: loaded.state.lastSequence,
-    missingOwnerAssignments,
+    missingOwnerAssignments: [
+      ...missingRenderReadyOwnerAssignments,
+      ...missingDeliveryOwnerAssignments,
+    ],
+    missingRenderReadyOwnerAssignments,
+    missingDeliveryOwnerAssignments,
   } as const;
 };

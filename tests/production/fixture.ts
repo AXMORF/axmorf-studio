@@ -312,7 +312,7 @@ export const markProductionRenderReadyRunning = async ({
       stageId: "scenes",
       attempt: 1,
       occurredAt,
-      commandId: "production-watch",
+      commandId: "production-finalize",
       previousStateFingerprint: loaded.state.stateFingerprint,
       inputFingerprints: [
         {
@@ -336,7 +336,7 @@ export const markProductionRenderReadyRunning = async ({
       stageId: "scenes",
       attempt: 1,
       occurredAt,
-      commandId: "production-watch",
+      commandId: "production-finalize",
       previousStateFingerprint: loaded.state.stateFingerprint,
       inputFingerprints: [
         {
@@ -369,7 +369,7 @@ export const markProductionRenderReadyRunning = async ({
         stageId: "scenes",
         attempt: 1,
         occurredAt,
-        commandId: "production-watch",
+        commandId: "production-finalize",
         previousStateFingerprint: loaded.state.stateFingerprint,
         inputFingerprints: [
           {
@@ -403,7 +403,7 @@ export const markProductionRenderReadyRunning = async ({
       stageId: "scenes",
       attempt: 1,
       occurredAt,
-      commandId: "production-watch",
+      commandId: "production-finalize",
       previousStateFingerprint: loaded.state.stateFingerprint,
       inputFingerprints: [
         ...sceneResults.map((scene) => ({

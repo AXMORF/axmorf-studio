@@ -12,6 +12,6 @@
 - `adapters/media.ts` requires H.264/AAC metadata, configured channels/dimensions/fps/frame count and full
   FFmpeg EOF decode; Covers retain fixed PNG dimensions and EOF decode.
 
-The command never creates or replays owner assignments, starts a watcher, regenerates narration, or reads
+The command never creates or replays owner assignments, invokes audited finalize, regenerates narration, or reads
 old Run/delivery contracts. Failed builds keep the previous current delivery and may reuse already verified
 artifacts from `deliveries/.staging/project-build/<storyId>/<buildId>/`.

@@ -48,10 +48,11 @@
 - render runtime 不调用 Agent、Skill、MCP、Git、网络或目录扫描。
 - 所有 render-critical 资产 repository-local、manifest-verified；motion 使用 Remotion frame API。
 - 外部 provider receipt 只能在准入 adapter 边界存在；MCP、网络、SDK、API Key 与远程 asset URL
-  不进入 owner、watcher、delivery 或 Remotion runtime。
+  不进入 owner、finalize、delivery 或 Remotion runtime。
 - production state 只由 append-only events、immutable results 与 current fingerprints 投影。
 - Cover 独立于 production state，只消费 StorySpec、VisualStyleSpec 与 fixed CoverSpec。
-- Codex task/thread/progress/heartbeat 不进入 repository state；缺失 receipt 不触发 timeout/retry。
+- 子 Agent identity/chat/progress/heartbeat 不进入 repository state；assignment-bound receipt 是唯一
+  持久 authority，缺失 receipt 不触发 timeout/retry。
 - 全局配置只提供新 Project 默认值；Scene template 在 `project:configure` 时复制，实际合集、可读性、语速与响度策略进入 immutable
   contracts/fingerprints。Run 开始时再冻结 private-safe narration execution identity；修改配置不能
   静默改写已封存作品或切换已开始 Run 的 provider、声线、参数、语速和 LUFS。
@@ -64,7 +65,7 @@ buildId 只绑定 current authoring source snapshot、Composition/render metadat
 snapshot 且 current delivery 完整时只读 no-op；源码或 Project-owned 资源任何 byte 变化产生新
 buildId。新 build 只在 staging 全部通过后替换 current slot，失败不破坏上一版。
 
-ProductionRun、owner receipt、detached watcher 与 `delivery:build` 是显式 audited production 能力，
+ProductionRun、owner receipt、一次 foreground `production:finalize` 与 `delivery:build` 是显式 audited production 能力，
 用于缺少内容或需要严格过程证据的场景；它们不是普通 rebuild 前置条件，也不是默认成功定义。
 
 ## 工程目标

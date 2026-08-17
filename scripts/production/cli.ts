@@ -17,14 +17,14 @@ import {
   runProductionSceneCheck,
   runProductionStart,
   runProductionStatus,
-  runProductionWatch,
-  startProductionWatcher,
+  runProductionFinalize,
   publishProductionOwnerReceipt,
 } from "./application";
 
 type ProductionCliContext = Readonly<{
   rootDir: string;
   stdout: (line: string) => void;
+  exitCode?: (code: number) => void;
   preflight?: (request: {
     readonly rootDir: string;
     readonly projectId: string;
@@ -55,11 +55,7 @@ type ProductionCliContext = Readonly<{
     readonly rootDir: string;
     readonly runId: string;
   }) => Promise<unknown>;
-  watch?: (request: {
-    readonly rootDir: string;
-    readonly runId: string;
-  }) => Promise<unknown>;
-  watchStart?: (request: {
+  finalize?: (request: {
     readonly rootDir: string;
     readonly runId: string;
   }) => Promise<unknown>;
@@ -81,6 +77,9 @@ type ProductionCliContext = Readonly<{
 const defaultContext = (): ProductionCliContext => ({
   rootDir: process.cwd(),
   stdout: (line) => process.stdout.write(`${line}\n`),
+  exitCode: (code) => {
+    process.exitCode = code;
+  },
 });
 
 export const runProductionCli = async (
@@ -173,22 +172,13 @@ export const runProductionCli = async (
         });
   } else if (
     args.length === 3 &&
-    args[0] === "watch-start" &&
+    args[0] === "finalize" &&
     args[1] === "--run"
   ) {
     const runId = ProductionRunIdSchema.parse(args[2]);
-    result = context.watchStart
-      ? await context.watchStart({ rootDir: context.rootDir, runId })
-      : await startProductionWatcher({ rootDir: context.rootDir, runId });
-  } else if (
-    args.length === 3 &&
-    args[0] === "watch-worker" &&
-    args[1] === "--run"
-  ) {
-    const runId = ProductionRunIdSchema.parse(args[2]);
-    result = context.watch
-      ? await context.watch({ rootDir: context.rootDir, runId })
-      : await runProductionWatch({ rootDir: context.rootDir, runId });
+    result = context.finalize
+      ? await context.finalize({ rootDir: context.rootDir, runId })
+      : await runProductionFinalize({ rootDir: context.rootDir, runId });
   } else if (
     (args[0] === "owner-ready" || args[0] === "owner-failed") &&
     args[1] === "--run" &&
@@ -241,6 +231,17 @@ export const runProductionCli = async (
     throw new Error("Expected an exact documented production command form.");
   }
   context.stdout(JSON.stringify(result));
+  if (
+    result !== null &&
+    typeof result === "object" &&
+    new Set([
+      "owner-receipts-incomplete",
+      "production-failed",
+      "render-ready-delivery-blocked",
+    ]).has(String((result as { status?: unknown }).status))
+  ) {
+    context.exitCode?.(2);
+  }
   return result;
 };
 

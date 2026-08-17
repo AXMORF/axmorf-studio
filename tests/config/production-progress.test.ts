@@ -8,7 +8,6 @@ import { readDeliveryProgressProjection } from "../../scripts/delivery/applicati
 import { readProjectProductionProgress } from "../../settings/server/production-progress";
 import {
   buildDeliveryLaunchManifest,
-  buildProductionWatcherLaunchIntent,
   buildRenderLaunchIntent,
   buildRenderLaunchReceipt,
   createDeliveryId,
@@ -16,17 +15,9 @@ import {
 } from "../../src/contracts";
 import {
   appendProductionRunEvent,
-  getProductionRunPaths,
   initializeProductionRunStore,
 } from "../../scripts/production/adapters/run-store";
 import { createProductionStageEvent } from "../../scripts/production/domain/events";
-import {
-  createProductionFixture,
-  markProductionBaselineReady,
-  markProductionRenderReadyRunning,
-  markProductionSceneInputsFrozen,
-} from "../production/fixture";
-
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
 const createRun = ({
@@ -43,7 +34,6 @@ const createRun = ({
     storyId,
     requirementsPath: `src/projects/${storyId}/production/requirements.json`,
     requirementsFingerprint: sha("a"),
-    policy: { pollIntervalMs: 25 },
     createdAt,
   });
 
@@ -98,7 +88,7 @@ test("one Project with invalid current Run discovery does not hide healthy Proje
   await writeFile(
     join(badRunDir, "run.json"),
     JSON.stringify({
-      contractVersion: "production-run-current-v2",
+      contractVersion: "production-run-current-v3",
       runId: "story-bad-run-a",
       storyId: "story-bad",
       createdAt: "not-a-timestamp",
@@ -230,62 +220,6 @@ test("production progress selects one newest Run independently for each Project"
     ],
   );
   assert.equal(example?.run?.updatedAt, "2026-08-12T00:01:00.000-02:00");
-});
-
-test("watcher launch ambiguity overrides an already succeeded scenes stage", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-progress-watcher-"));
-  context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const fixture = await createProductionFixture(context, rootDir);
-  const assignmentFingerprint = sha("c");
-  const globalVisualAssignmentFingerprint = sha("d");
-  await markProductionBaselineReady(fixture);
-  await markProductionSceneInputsFrozen({
-    ...fixture,
-    assignmentFingerprints: [
-      { meaningId: "opening", fingerprint: assignmentFingerprint },
-    ],
-    globalVisualAssignmentFingerprint,
-  });
-  await markProductionRenderReadyRunning({
-    ...fixture,
-    sceneResults: [
-      {
-        meaningId: "opening",
-        assignmentFingerprint,
-        resultFingerprint: sha("e"),
-      },
-    ],
-    globalVisualAssignmentFingerprint,
-    globalVisualResultFingerprint: sha("f"),
-  });
-  const paths = getProductionRunPaths({
-    rootDir,
-    runId: fixture.runId,
-  });
-  const watcherIntent = buildProductionWatcherLaunchIntent({
-    runId: fixture.runId,
-    storyId: "story-example",
-    command: process.execPath,
-    args: ["scripts/production/cli.ts", "watch-worker"],
-    cwd: ".",
-    logPath: `.producer-runs/${fixture.runId}/watcher.log`,
-    launchPolicy: "detached-spawn-acknowledgement-v1",
-  });
-  await writeFile(paths.watcherLaunchIntent, JSON.stringify(watcherIntent));
-
-  const progress = await readProjectProductionProgress({ rootDir });
-  const scenes = progress.projects[0]?.run?.steps.find(
-    ({ id }) => id === "scenes",
-  );
-  assert.deepEqual(
-    scenes === undefined
-      ? undefined
-      : { status: scenes.status, detail: scenes.detail },
-    {
-      status: "attention",
-      detail: "Watcher 已写入启动意图但缺少 spawn 回执（launch-ambiguous）",
-    },
-  );
 });
 
 test("delivery progress distinguishes launch ambiguity from spawn acknowledgement", async (context) => {

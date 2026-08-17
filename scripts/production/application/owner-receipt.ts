@@ -17,6 +17,7 @@ import {
   type OwnerOutputScope,
 } from "../adapters/owner-output-manifest";
 import { readProductionRunStore } from "../adapters/run-store";
+import { sceneAssignmentRequiresOwner } from "../domain/expected-owner-identities";
 import { loadCurrentGlobalVisualAssignment } from "./global-visual-check";
 import { resolveCurrentSceneAssignments } from "./scene-freeze";
 
@@ -126,11 +127,7 @@ export const resolveOwnerAssignment = async ({
     );
     if (assignment === undefined)
       throw new Error("Scene assignment identity is unknown.");
-    if (
-      assignment.taskInput.storyBeat.kind === "silent-scene" &&
-      assignment.taskInput.storyBeat.preset.implementation.kind ===
-        "template-copy"
-    ) {
+    if (!sceneAssignmentRequiresOwner(assignment)) {
       throw new Error("Template-copied Scene does not accept an owner receipt.");
     }
     return { ownerKind, assignment };

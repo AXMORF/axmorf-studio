@@ -38,18 +38,17 @@ flowchart TD
     AssetImport --> ProductionFreeze
     Narrative --> ProductionFreeze["Freeze N Scene + GlobalVisual assignments"]
     Narrative --> CoverFreeze["Independently freeze Cover assignment"]
-    ProductionFreeze --> WatchStart["Detached watcher intent + receipt"]
-    CoverFreeze --> WatchStart
-    WatchStart --> Dispatch["create_thread N Scene + GlobalVisual + Cover"]
-    Dispatch --> RootExit["Root task exits"]
+    ProductionFreeze --> Dispatch["Runtime-native child Agents"]
+    CoverFreeze --> Dispatch
     Dispatch --> Scenes["N isolated Scene owners"]
     Dispatch --> Global["One GlobalVisual owner"]
     Dispatch --> Cover["One independent Cover owner"]
     Scenes --> Inbox["Assignment-bound receipt inbox"]
     Global --> Inbox
     Cover --> Inbox
-    Inbox --> Watcher["Single-writer detached watcher"]
-    Watcher --> Ready["ProductionRenderPlan + ProductionRenderReady"]
+    Inbox --> Wait["Root waits for all child terminal states"]
+    Wait --> Finalize["Exactly one foreground production:finalize"]
+    Finalize --> Ready["ProductionRenderPlan + ProductionRenderReady"]
     Ready --> Package["Non-MP4 delivery package + launch intent"]
     Cover --> Package
     Package --> Spawn["Detached Remotion spawn"]
@@ -187,25 +186,26 @@ exact-reference Scene 由 owner 提供 source/adaptation 正常速度预览和 p
   provider、网络或远程 URL。
 - Cover owner 只读取 assignment 内的 StorySpec、VisualStyleSpec、CoverSpec，并封存两个固定比例
   exact PNG。
-- root 运行 `production:watch:start`，收到 OS spawn acknowledgement 后用 Codex `create_thread`
-  派发独立任务并立即结束。root 不等待、读取或轮询任务，也不参与后续收口。
+- root 用运行环境原生子 Agent 一 owner 一 child 派发，等待所有 child 进入成功、明确失败或宿主失败
+  终态，然后只调用一次 `production:finalize`。root 不读 owner 输出、不逐项 submit、不轮询 Run。
 
-## 4. Receipt inbox、watcher 与 render-ready
+## 4. Receipt inbox、foreground finalize 与 render-ready
 
 每个 assignment 只有一个固定 receipt path。receipt 绑定 run/story/owner/meaningId、assignment、
 task/requirements inputs、规范化 output manifest/checksum 与自身 fingerprint；同内容重放 no-op，
 冲突、malformed、stale、symlink、path escape、unknown file 或 checksum drift fail closed。发布使用
-同目录 temporary 与 atomic rename。仓库不保存 threadId、taskId、heartbeat、progress 或聊天内容。
+同目录 temporary 与 atomic rename。仓库不保存 child identity、heartbeat、progress 或聊天内容。
 
-owner 没有 receipt 时状态保持 `waiting-for-owner-results`，不读取 deadline 猜失败，不监控
-heartbeat，不自动 retry 或创建替代任务。外部可为同一 immutable assignment 创建新线程。
+root 等待的是宿主 child 终态，不从聊天结果推断 receipt。全部 child 终态后仍只调用一次 finalize；
+required receipt 缺失时 fixed command 在任何 stage/result/event/state 写入前返回稳定 incomplete。
 
-watcher 按 assignment identity 扫描 receipts，先串行执行 fixed Scene/GlobalVisual validation 与正式
-result write；events/state、registry/projections/Composition 和 delivery 仍只有它可写。Cover receipt
-可提前出现，但 watcher 只在 production 已是 render-ready 后执行 Cover fixed check/submit，因此任何
+foreground finalize 按 expected assignment identity 校验 receipts，先串行执行 fixed
+Scene/GlobalVisual validation 与正式 result write；events/state、registry/projections/Composition 和
+delivery 仍只有它可写。Cover receipt 可提前出现，但 finalize 只在 production 已是 render-ready 后
+执行 Cover fixed check/submit，因此任何
 Cover 缺失或失败都不会把 production 变成 failed，只会阻止 automatic delivery。
 
-watcher 从 immutable N+1 results 与冻结的 ProjectSoundPlan 投影 Coverage、RendererRegistry、统一
+finalize 从 immutable N+1 results 与冻结的 ProjectSoundPlan 投影 Coverage、RendererRegistry、统一
 visual/sound projections、GlobalVisualProjection、FinalAssembly 与 current Composition。之后构建：
 
 - `production-render-plan-v5`：绑定 story/run、sealed narration、content-addressed mastered
@@ -232,7 +232,7 @@ metadata 与 delivery planned duration 都直接使用 `SemanticTiming.durationI
 
 ## 5. 默认 Project build
 
-`project:build` 只消费 current Project source 和已封存旁白。它不要求 runId、owner receipt、watcher、
+`project:build` 只消费 current Project source 和已封存旁白。它不要求 runId、owner receipt、finalize、
 CoverResult、ProductionRenderReady 或 detached launch record。Scene Renderer 改动会机械重算
 ScenePackage、coverage 与 composition-local registry；template-copy Scene 使用同一确定性投影，不进入
 通用 Scene owner/check/review。生成式 Composition 的 render runtime 直接绑定 current authoring
@@ -242,11 +242,11 @@ source snapshot 覆盖 Project source、Project-owned public media 与 shared re
 assignment、receipt、render-ready/render-plan 和旧 package result 等过程投影。`publish.json` exactly
 绑定 `video.mp4`、`cover-4x3.png`、`cover-3x4.png` 的 current 路径、checksum、size 和实测 media facts。
 
-## 6. 可选 watcher launch 与 audited delivery launch
+## 6. Foreground finalize 与 audited delivery launch
 
-`production:watch:start` exactly once 写 watcher launch intent，再用 fixed cwd/argv/log、
-`shell:false`、`detached:true` 和非继承 stdio spawn worker。只在 OS `spawn` 后写 watcher launch
-receipt；intent 无 receipt 永久 ambiguous，禁止重试。receipt 不证明 watcher 完成生产。
+`production:finalize` 是一次 foreground fixed command，不创建/等待 Agent、不 detached、不写 production
+launch intent/receipt。它返回 `delivery-render-started`、`owner-receipts-incomplete`、
+`production-failed` 或 `render-ready-delivery-blocked`。
 
 `delivery:build` 从 render plan 中实际使用的 ScenePackage/GlobalVisualPackage 资源选择解析绑定的
 ResourceCatalog，去重生成 fingerprint-bound `asset-attributions.json`；未使用的 Catalog 资源不
@@ -273,9 +273,9 @@ exactly-once 规则：
 
 ## 7. Audited production 终点与交接
 
-主 Agent 只报告 run、watcher intent/receipt、已创建任务与未派发 assignment，并立即结束。后台
-watcher 自动到达 `delivery-render-started` 后停止，不等待或监控 detached Remotion child。两层
-spawn receipt 都不是生产成功或 MP4 有效声明。
+主 Agent 报告 run、child 终态汇总与一次 finalize JSON outcome。`delivery-render-started` 是 audited
+production 成功终点，但只证明 detached Remotion spawn acknowledgement；root 不等待或监控 render
+child，也不声明 MP4 有效。
 
 ## 8. 作品删除
 

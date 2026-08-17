@@ -20,6 +20,7 @@ import {
 import { writeTextFileAtomic } from "../../shared/atomic-file";
 import { assertRegularOwnerPathChain, ownerPathState } from "./owner-paths";
 import { getProductionRunPaths } from "./run-store";
+import type { ExpectedOwnerReceiptIdentity } from "../domain/expected-owner-identities";
 
 export const getOwnerReceiptPath = ({
   rootDir,
@@ -266,17 +267,19 @@ export const writeOwnerResult = async ({
 export const assertOnlyExpectedOwnerInboxEntries = async ({
   rootDir,
   runId,
-  ownerMeaningIds,
-  sceneResultMeaningIds = ownerMeaningIds,
+  expectedOwnerIdentities,
+  sceneResultMeaningIds,
 }: {
   readonly rootDir: string;
   readonly runId: string;
-  readonly ownerMeaningIds: ReadonlySet<string>;
-  readonly sceneResultMeaningIds?: ReadonlySet<string>;
+  readonly expectedOwnerIdentities: readonly ExpectedOwnerReceiptIdentity[];
+  readonly sceneResultMeaningIds: ReadonlySet<string>;
 }) => {
   const paths = getProductionRunPaths({ rootDir, runId });
   const sceneFiles = new Set(
-    [...ownerMeaningIds].map((id) => `${id}.json`),
+    expectedOwnerIdentities.flatMap((owner) =>
+      owner.ownerKind === "scene" ? [`${owner.meaningId}.json`] : [],
+    ),
   );
   const sceneResultFiles = new Set(
     [...sceneResultMeaningIds].map((id) => `${id}.json`),
@@ -284,12 +287,22 @@ export const assertOnlyExpectedOwnerInboxEntries = async ({
   for (const [directory, allowed] of [
     [
       paths.ownerReceipts,
-      new Set(["scene", "global-visual.json", "cover.json"]),
+      new Set([
+        "scene",
+        ...expectedOwnerIdentities.flatMap((owner) =>
+          owner.ownerKind === "scene" ? [] : [`${owner.ownerKind}.json`],
+        ),
+      ]),
     ],
     [join(paths.ownerReceipts, "scene"), sceneFiles],
     [
       paths.ownerResults,
-      new Set(["scene", "global-visual.json", "cover.json"]),
+      new Set([
+        "scene",
+        ...expectedOwnerIdentities.flatMap((owner) =>
+          owner.ownerKind === "scene" ? [] : [`${owner.ownerKind}.json`],
+        ),
+      ]),
     ],
     [join(paths.ownerResults, "scene"), sceneFiles],
     [paths.sceneResults, sceneResultFiles],

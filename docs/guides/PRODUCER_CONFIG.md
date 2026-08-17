@@ -33,7 +33,7 @@ npm run dev
 
 左侧“制作进度”先列出当前所有 Project；选择一个 Project 后，只展示它按 `createdAt` 选出的最新
 current Production Run，不提供历史 Run 列表。详情按 `production:start`、`production:narrative`、
-`production:scene:freeze`、detached watcher、`production:render-ready:check` 与 `delivery:build` 六个
+`production:scene:freeze`、Owner 创作与固定收敛、`production:render-ready:check` 与 `delivery:build` 六个
 关键步骤显示状态，每 3 秒刷新。状态只由 strict Run manifest、append-only events、投影 state 以及
 与当前 render-ready fingerprint 绑定的 delivery intent/receipt 得出，不运行脚本、不读取日志、
 不检查进程/PID。`delivery:build` 的“已启动”只表示存在合法 OS spawn acknowledgement，绝不表示

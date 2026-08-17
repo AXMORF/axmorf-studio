@@ -6,14 +6,11 @@ import {
   ProductionRunIdSchema,
 } from "../../../src/contracts/production-run";
 import { StoryIdSchema } from "../../../src/contracts/primitives";
-import {
-  ProductionWatcherLaunchIntentSchema,
-  ProductionWatcherLaunchReceiptSchema,
-} from "../../../src/contracts/production-owner";
-import {
-  getProductionRunPaths,
-  readProductionRunStore,
-} from "../adapters/run-store";
+import { loadCurrentDeliveryCoverAssignment } from "../../delivery/application/cover-inputs";
+import { readOwnerReceipt } from "../adapters/owner-inbox";
+import { readProductionRunStore } from "../adapters/run-store";
+import { computeExpectedOwnerReceiptIdentities } from "../domain/expected-owner-identities";
+import { resolveCurrentSceneAssignments } from "./scene-freeze";
 
 const readOptionalJson = async (path: string, label: string) => {
   try {
@@ -114,40 +111,115 @@ export const readProductionProgressRun = async (input: {
   return { run, events, state } as const;
 };
 
-export const readProductionWatcherProgress = async ({
+export const readProductionOwnerReceiptProgress = async ({
   rootDir,
   runId,
-  storyId,
+  dependencies = {},
 }: {
   readonly rootDir: string;
   readonly runId: string;
-  readonly storyId: string;
+  readonly dependencies?: Readonly<{
+    readRun?: typeof readProductionRunStore;
+    resolveAssignments?: typeof resolveCurrentSceneAssignments;
+    resolveCover?: typeof loadCurrentDeliveryCoverAssignment;
+    readReceipt?: typeof readOwnerReceipt;
+  }>;
 }) => {
-  const paths = getProductionRunPaths({ rootDir, runId });
-  const [rawIntent, rawReceipt] = await Promise.all([
-    readOptionalJson(paths.watcherLaunchIntent, "Watcher launch intent"),
-    readOptionalJson(paths.watcherLaunchReceipt, "Watcher launch receipt"),
+  const loaded = await (dependencies.readRun ?? readProductionRunStore)({
+    rootDir,
+    runId,
+  });
+  const frozenState = new Set([
+    "scene-inputs-frozen",
+    "waiting-for-owner-results",
+    "render-ready-running",
+    "render-ready",
+  ]).has(loaded.state.state);
+  const failedAfterFreeze =
+    loaded.state.state === "failed" &&
+    loaded.events.some(
+      (event) =>
+        event.stageId === "scene-freeze" && event.type === "stage-succeeded",
+    );
+  if (!frozenState && !failedAfterFreeze) {
+    return {
+      expectedRenderReadyReceipts: 0,
+      receivedRenderReadyReceipts: 0,
+      expectedSceneReceipts: 0,
+      receivedSceneReceipts: 0,
+      globalVisualReceipt: "not-frozen" as const,
+      coverReceipt: "not-frozen" as const,
+      latestReceiptAt: null,
+    };
+  }
+  const [resolved, cover] = await Promise.all([
+    (dependencies.resolveAssignments ?? resolveCurrentSceneAssignments)({
+      rootDir,
+      runId,
+    }),
+    (dependencies.resolveCover ?? loadCurrentDeliveryCoverAssignment)({
+      rootDir,
+      projectId: loaded.run.storyId,
+    }),
   ]);
-  if (rawReceipt !== null && rawIntent === null) {
-    throw new Error("Watcher launch receipt exists without its intent.");
+  if (resolved.globalVisualAssignment === null) {
+    throw new Error("GlobalVisual assignment is missing.");
   }
-  if (rawIntent === null) {
-    return { status: "pending" as const, startedAt: null };
-  }
-  const intent = ProductionWatcherLaunchIntentSchema.parse(rawIntent);
-  if (intent.runId !== runId || intent.storyId !== storyId) {
-    throw new Error("Watcher launch intent is stale.");
-  }
-  if (rawReceipt === null) {
-    return { status: "attention" as const, startedAt: null };
-  }
-  const receipt = ProductionWatcherLaunchReceiptSchema.parse(rawReceipt);
-  if (
-    receipt.runId !== runId ||
-    receipt.storyId !== storyId ||
-    receipt.intentFingerprint !== intent.intentFingerprint
-  ) {
-    throw new Error("Watcher launch receipt is stale.");
-  }
-  return { status: "running" as const, startedAt: receipt.startedAt };
+  const expected = computeExpectedOwnerReceiptIdentities({
+    sceneAssignments: resolved.assignments,
+    globalVisualAssignment: resolved.globalVisualAssignment,
+    coverAssignment: cover.assignment,
+  });
+  const receipts = await Promise.all(
+    [...expected.renderReadyRequired, ...expected.deliveryOnly].map(
+      async (identity) => ({
+        identity,
+        receipt: await (dependencies.readReceipt ?? readOwnerReceipt)({
+          rootDir,
+          runId,
+          ...identity,
+        }),
+      }),
+    ),
+  );
+  const current = receipts.filter(
+    ({ identity, receipt }) =>
+      receipt !== null &&
+      receipt.ownerKind === identity.ownerKind &&
+      receipt.meaningId === identity.meaningId &&
+      receipt.assignmentFingerprint === identity.assignmentFingerprint &&
+      receipt.taskInputFingerprint === identity.taskInputFingerprint &&
+      receipt.requirementsFingerprint === identity.requirementsFingerprint,
+  );
+  const sceneRequired = expected.renderReadyRequired.filter(
+    ({ ownerKind }) => ownerKind === "scene",
+  );
+  const coverReceipt = current.find(
+    ({ identity }) => identity.ownerKind === "cover",
+  )?.receipt;
+  const globalVisualReceipt = current.find(
+    ({ identity }) => identity.ownerKind === "global-visual",
+  )?.receipt;
+  const latestReceiptAt = current
+    .map(({ receipt }) => receipt!.occurredAt)
+    .sort()
+    .at(-1);
+  return {
+    expectedRenderReadyReceipts: expected.renderReadyRequired.length,
+    receivedRenderReadyReceipts: current.filter(({ identity }) =>
+      expected.renderReadyRequired.some(
+        (candidate) =>
+          candidate.ownerKind === identity.ownerKind &&
+          candidate.meaningId === identity.meaningId,
+      ),
+    ).length,
+    expectedSceneReceipts: sceneRequired.length,
+    receivedSceneReceipts: current.filter(
+      ({ identity }) => identity.ownerKind === "scene",
+    ).length,
+    globalVisualReceipt:
+      globalVisualReceipt?.status ?? ("missing" as const),
+    coverReceipt: coverReceipt?.status ?? ("missing" as const),
+    latestReceiptAt: latestReceiptAt ?? null,
+  };
 };

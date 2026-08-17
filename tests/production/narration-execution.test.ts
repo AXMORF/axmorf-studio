@@ -33,13 +33,12 @@ test("Run narration execution reuses provider-attempt and mastering policy ident
   );
   const run = createProductionRunManifest({
     schemaVersion: 1,
-    contractVersion: "production-run-current-v2",
+    contractVersion: "production-run-current-v3",
     runId: "run-20260811t120000z-story-example-a1b2c3",
     storyId: "story-example",
     requirementsPath: "src/projects/story-example/production/requirements.json",
     requirementsFingerprint: sha("b"),
     narrationExecution: snapshot,
-    policy: { pollIntervalMs: 1_000 },
     createdAt: "2026-08-11T12:00:00.000Z",
   });
   assert.doesNotMatch(

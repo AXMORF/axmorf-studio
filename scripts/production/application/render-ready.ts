@@ -8,6 +8,7 @@ import {
   acquireProductionRunLock,
   appendProductionRunEvent,
   readProductionRunStore,
+  type ProductionRunLock,
 } from "../adapters/run-store";
 import { createProductionStageEvent } from "../domain/events";
 import { createUnexpectedProductionError } from "../domain/errors";
@@ -95,22 +96,29 @@ export const runProductionRenderReady = async ({
   runId,
   clock = () => new Date(),
   dependencies = createDefaultRenderReadyDependencies(),
+  lock,
+  commandId = "production-render-ready",
 }: {
   readonly rootDir: string;
   readonly runId: string;
   readonly clock?: () => Date;
   readonly dependencies?: RenderReadyDependencies;
+  readonly lock?: ProductionRunLock;
+  readonly commandId?: string;
 }) => {
   const now = clock();
   if (Number.isNaN(now.getTime())) {
     throw new Error("Production render-ready clock is invalid.");
   }
-  const lock = await acquireProductionRunLock({
-    rootDir,
-    runId,
-    ownerId: "production-render-ready",
-    acquiredAt: now.toISOString(),
-  });
+  const ownsLock = lock === undefined;
+  const runLock =
+    lock ??
+    (await acquireProductionRunLock({
+      rootDir,
+      runId,
+      ownerId: "production-render-ready",
+      acquiredAt: now.toISOString(),
+    }));
   try {
     let loaded = await readProductionRunStore({ rootDir, runId });
     const common = {
@@ -148,7 +156,7 @@ export const runProductionRenderReady = async ({
         await appendProductionRunEvent({
           rootDir,
           runId,
-          lock,
+          lock: runLock,
           event: createProductionStageEvent({
             type: "stage-started",
             runId: loaded.run.runId,
@@ -158,7 +166,7 @@ export const runProductionRenderReady = async ({
             stageId: "render-ready",
             attempt: 1,
             occurredAt: now.toISOString(),
-            commandId: "production-render-ready",
+            commandId,
             previousStateFingerprint: loaded.state.stateFingerprint,
             inputFingerprints: [
               {
@@ -216,7 +224,7 @@ export const runProductionRenderReady = async ({
     await appendProductionRunEvent({
       rootDir,
       runId,
-      lock,
+      lock: runLock,
       event: createProductionStageEvent({
         type: "render-ready",
         runId: loaded.run.runId,
@@ -226,7 +234,7 @@ export const runProductionRenderReady = async ({
         stageId: "render-ready",
         attempt: 1,
         occurredAt: now.toISOString(),
-        commandId: "production-render-ready",
+        commandId,
         previousStateFingerprint: loaded.state.stateFingerprint,
         inputFingerprints: [
           {
@@ -265,13 +273,13 @@ export const runProductionRenderReady = async ({
         stageId: "render-ready",
         scope: "render-ready",
         meaningId: null,
-        commandId: "production-render-ready",
+        commandId,
         inputFingerprint: loaded.run.requirementsFingerprint,
       });
       await appendProductionRunEvent({
         rootDir,
         runId,
-        lock,
+        lock: runLock,
         event: createProductionStageEvent({
           type: "stage-failed",
           runId: loaded.run.runId,
@@ -281,7 +289,7 @@ export const runProductionRenderReady = async ({
           stageId: "render-ready",
           attempt: 1,
           occurredAt: clock().toISOString(),
-          commandId: "production-render-ready",
+          commandId,
           previousStateFingerprint: loaded.state.stateFingerprint,
           inputFingerprints: [
             {
@@ -295,7 +303,7 @@ export const runProductionRenderReady = async ({
     }
     throw error;
   } finally {
-    await lock.release();
+    if (ownsLock) await runLock.release();
   }
 };
 

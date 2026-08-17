@@ -15,6 +15,5 @@ export {
 } from "./scene-submit";
 export { runProductionStart } from "./start";
 export { runProductionStatus } from "./status";
-export { runProductionWatch } from "./watch";
-export { startProductionWatcher } from "./watch-start";
+export { runProductionFinalize } from "./finalize";
 export { publishProductionOwnerReceipt } from "./owner-receipt";

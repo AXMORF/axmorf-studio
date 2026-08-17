@@ -59,7 +59,7 @@ snapshot，并同步运行 Remotion、ffprobe 和 ffmpeg。buildId 由 source sn
 real-directory slot 需要两次 rename，因此 host 在两步之间被强杀不属于 crash-atomic 保证。current
 slot 不包含 launch intent、spawn receipt、Run manifest 或非最终 handoff 文件。
 
-ProductionRun、owner inbox 与 detached watcher 仍组成独立 audited production 子系统。它可用于新
+ProductionRun、owner inbox 与 foreground finalize 组成独立 audited production 子系统。它可用于新
 内容创作和过程证据，但它的 state/render-ready/detached delivery 不能反向成为默认 build 依赖。
 
 ## Authority graph
@@ -81,8 +81,8 @@ flowchart LR
     Scene --> Receipts["Owner receipt inbox"]
     Global["GlobalVisual owner"] --> Receipts
     Cover["Cover owner"] --> Receipts
-    Receipts --> Watcher["Detached single writer"]
-    Watcher --> Assembly["FinalAssembly"]
+    Receipts --> Finalize["Foreground production:finalize"]
+    Finalize --> Assembly["FinalAssembly"]
     Assembly --> Plan["ProductionRenderPlan"]
     Plan --> Ready["ProductionRenderReady"]
     Story --> Cover
@@ -111,18 +111,18 @@ ProductionRun 是 append-only ledger 的派生投影：
 ├── owner-results/
 ├── scene-results/
 ├── global-visual-result.json
-├── watcher-launch-intent.json
-├── watcher-launch-receipt.json
 ├── state.generated.json
 └── lock/
 ```
 
-只有 detached watcher 写 event/state、正式 results、registry convergence 与 delivery。owner
-独立 Codex task 只写 assignment-owned source，再向固定 inbox 原子发布 ready/failed receipt。
-repo 不存 Agent lifecycle、task、thread、progress、聊天或 heartbeat。
+只有 foreground finalize 写 event/state、正式 results、registry convergence 与 delivery。运行环境
+原生子 Agent 一 owner 一 child，只写 assignment-owned source，再向固定 inbox 原子发布 ready/failed
+receipt。root 等待所有 child 成功、明确失败或宿主失败终态后只调用一次 finalize；repo 不存 Agent
+lifecycle、identity、task、thread、progress、聊天或 heartbeat。
 
 当前状态机只接受：production-start → narrative → scene-freeze → waiting-for-owner-results →
-render-ready。缺失 receipt 永久等待，不使用 assignment deadline、heartbeat、timeout 或 retry。
+render-ready。finalize 在 required receipt 缺失时于任何 ledger/result/state 写入前返回 incomplete，
+不使用 assignment deadline、heartbeat、timeout 或 retry。
 终态绑定
 `production-render-plan-v5` 与 `production-render-ready-v5`，不包含媒体渲染阶段。render plan
 同时绑定 sealed narration 与其确定性、content-addressed 响度母带。
@@ -139,7 +139,7 @@ receipt v1 映射为版本化的通用 `ExternalAssetAcquisition` discriminated 
 video/audio 是独立且当前 fail-closed 的扩展 seam。准入负责路径 containment、regular/no-symlink、
 真实媒体 identity、原子本地化、不可变来源证据和 Project manifest；ResourceCatalog 只暴露
 Project-local `runtime-approved` descriptor。MCP、provider SDK、网络和 credential 不进入 Scene
-owner、watcher、delivery 或 Remotion runtime，远程 URL 永远不是 runtime asset source。
+owner、foreground finalize、delivery 或 Remotion runtime，远程 URL 永远不是 runtime asset source。
 另有可选 ignored `private/reference-assets/assets.manifest.json`，只暴露用户已人工确认许可、位于
 `public/assets/library/` 的共享音频 `localize-asset` descriptor，并校验 fixed local license evidence。
 这些条目只供 authoring 查询，不能作为 runtime resource 或直接进入 Scene/ProjectSound plan；外部
@@ -176,10 +176,9 @@ render-ready 的 compile gate 以 current Project `Composition.tsx` 为唯一 Ty
 
 ## Automatic delivery
 
-Root 以 `production:watch:start` exactly once 写 watcher launch intent，并只在 OS `spawn` 后写
-receipt。intent-only 是 watcher-launch-ambiguous，禁止自动重试。watcher receipt 只证明 worker
-启动，不证明 production 成功。root 随后使用 `create_thread` 派发共享 checkout 的 N+2 独立任务，
-不调用 wait/read/poll，派发后立即结束。
+Root 在共享 checkout 使用运行环境原生子 Agent 派发 N Scene owner + GlobalVisual + Cover，等待全部
+child 宿主终态后调用一次 foreground `production:finalize`。子 Agent聊天终态不进入数据面；finalize
+只信任 assignment-bound receipt。Cover missing/failed 保留 render-ready 并阻塞 delivery。
 
 每个 Project 只有 `deliveries/<storyId>/` 一个 current delivery slot。slot 内 package 对其 identity
 是 immutable 的，identity 绑定 PublishingIntent、CoverResult、render plan/ready、Composition、

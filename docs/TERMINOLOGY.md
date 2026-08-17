@@ -25,13 +25,13 @@
 | Project production progress | source Project/current Run 的最新关键步骤只读投影                        | output-only 清理目标、PID 监控或 MP4 完成状态        |
 | Repository operation lock   | configure/start/delivery/delete 共用的 Project mutation 互斥边界         | 跨 checkout 锁或自动恢复策略                         |
 | OwnerReceipt                | assignment identity 与 output manifest 绑定的 ready/failed inbox 回执    | Codex task 身份、heartbeat 或正式 production result  |
-| waiting-for-owner-results   | watcher 等待缺失 assignment receipt 的无超时状态                         | task 失败、自动重试或 replacement thread 已创建      |
-| WatcherLaunchReceipt        | detached watcher 的 OS `spawn` acknowledgement                           | production 已完成或 watcher 可安全重启               |
+| owner-receipts-incomplete   | foreground finalize 在任何 ledger/result/state 写入前报告 required receipt 缺失 | child 失败推断、自动重试或已接受部分结果              |
+| ProductionFinalize         | root 等待全部 child 终态后 exactly once 调用的 foreground 固定收敛命令    | Agent 创作、Run 轮询或最终 MP4 检查                   |
 | ProductionRenderPlan        | 冻结 Composition、资料引用、正文/成片帧与启动 policy 的渲染计划          | 已渲染媒体                                           |
 | ProductionRenderReady       | 所有 current render-critical identity 已汇合                             | MP4 已生成或已检查                                   |
 | awaiting-automatic-delivery | render-ready 的固定 handoff                                              | 等待人工判断                                         |
 | PublishingIntent            | Story 阶段冻结的发布元数据及一个配置合集选择                             | 自由文本合集或平台发布行为                           |
-| CoverResult                 | 独立 Cover owner 封存的 exact PNG 结果                                   | production watcher 输入                              |
+| CoverResult                 | 独立 Cover owner 封存的 exact PNG 结果                                   | render-ready 硬门                                    |
 | DeliveryLaunchManifest      | 非 MP4 包的 current identity 与 planned media facts                      | 渲染完成报告                                         |
 | RenderLaunchIntent          | spawn 前 exactly-once 写入的启动意图                                     | 子进程已经启动                                       |
 | RenderLaunchReceipt         | OS `spawn` acknowledgement 后写入的回执                                  | exit code、完成状态或 MP4 有效性                     |

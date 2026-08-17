@@ -17,16 +17,17 @@ Agent-owned work includes:
   adaptation, Renderer source, and other assignment-owned Scene inputs;
 - continuity decisions and safe fallback authored by the responsible Agent.
 
-Before thread dispatch, correct only the root-owned authored artifact, rerun the same fixed validator,
+Before child delegation, correct only the root-owned authored artifact, rerun the same fixed validator,
 and preserve other ownership. Do not weaken validators.
 
-After dispatch the root task has ended and does not coordinate rework. An owner publishes exactly one
-assignment-bound ready or failed receipt. The detached watcher alone reruns fixed validation and
-writes formal Scene/GlobalVisual/Cover results. An owner must never call submit/fail result commands.
+After delegation the root does not coordinate owner rework. Each child publishes exactly one
+assignment-bound ready or failed receipt and returns a minimal terminal signal. After every child is terminal,
+the root calls `production:finalize` exactly once. Foreground finalize alone reruns fixed validation and writes
+formal Scene/GlobalVisual/Cover results. An owner must never call submit/fail result commands.
 
-No receipt is not failure: the Run remains `waiting-for-owner-results` indefinitely, without timeout,
-heartbeat, retry, or an automatic replacement task. A user or external automation may create another
-independent task for the same immutable assignment. Once any receipt exists it is immutable; an
+No receipt is not inferred from child chat status: finalize returns `owner-receipts-incomplete` without
+changing ledger/state/results. Do not retry finalize or create an inline replacement owner in the same
+orchestration attempt. Once any receipt exists it is immutable; an
 explicit failed receipt keeps its formal failure outcome immutable and requires a fresh Run.
 
 When Story or ttsChunks change after an earlier active narration seal exists, the fresh Run must call
@@ -44,7 +45,7 @@ delete the receipt to continue.
 
 The fixed flow includes contract implementations, production CLI parsing and dispatch, non-terminal
 Scene check, append-only
-ledger/state projection, locks, watcher behavior, Scene result ingestion, package/coverage/registry/
+ledger/state projection, locks, foreground finalize, Scene result ingestion, package/coverage/registry/
 projection generation, Composition scaffolding/listing, render-plan/render-ready writing, non-MP4
 delivery packaging, detached Remotion launch, launch intent/receipt writing, and check-only
 idempotence.
@@ -64,7 +65,7 @@ When valid current inputs expose a failure in any of those components:
 7. Prove focused Green, adjacent production tests, typecheck, lint, and any affected real media gate.
 8. Inspect secret/protected scope, stage exact paths, and create a local hardening commit.
 9. Keep the failed run terminal and immutable. Start a fresh run from `production:start`, replay the
-   fixed workflow, and continue until the common flow reaches `render-ready` without intervention.
+   fixed workflow, and continue until one foreground finalize reaches its documented outcome.
 
 Call this system hardening or common-flow completion, never failure recovery.
 
@@ -93,7 +94,7 @@ Treat these as regression requirements:
   overwrite hand-written or drifted source.
 - Bind the frozen Composition source checksum, exact fps, and exact frame count in the render plan.
 - Keep render-ready rechecks byte/mtime stable and append no new event after `render-ready`.
-- Write launch intent exactly once before detached spawn. After an intent exists, missing receipt is
+- Write delivery launch intent exactly once before detached spawn. After an intent exists, missing receipt is
   permanently ambiguous and no repository command may retry that launch.
 - Treat the OS `spawn` event only as launch acknowledgement. Never monitor the child or use MP4
   completion, checksum, probing, or decoding as part of the automatic handoff.

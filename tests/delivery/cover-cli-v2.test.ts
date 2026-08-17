@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { runDeliveryCoverCli } from "../../scripts/delivery/cover-cli";
 
-test("Cover CLI exposes freeze and diagnostic check while watcher owns submit", async () => {
+test("Cover CLI exposes freeze and diagnostic check while finalize owns submit", async () => {
   const calls: string[] = [];
   const context = {
     rootDir: process.cwd(),

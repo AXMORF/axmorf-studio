@@ -8,16 +8,16 @@
 - 默认入口是 `npm run project:build -- --project <storyId>`。它从 current 可变 Project authoring
   source 生成同一 snapshot 的 `video.mp4`、两张 Cover 与最后写入的 `publish.json`，同步等待
   Remotion 和 FFmpeg 完成后才从 staging 受控替换 current delivery。
-- 普通 rebuild 不创建 ProductionRun，不读取 owner receipt，不启动 watcher，不重做旁白；Agent 只在
+- 普通 rebuild 不创建 ProductionRun，不读取 owner receipt/finalize，不重做旁白；Agent 只在
   内容缺失或用户明确要求重新设计时参与。
-- ProductionRun/owner/watcher/`delivery:build` 保留为显式 audited production 能力，不再阻塞默认
-  Project build。其 `delivery-render-started` 仍只表示旧审计流的 detached spawn acknowledgement。
-- 显式 audited production 中，主 Agent 冻结全部 assignment 后启动 detached watcher，再用
-  `create_thread` 只派发需要创作的
-  Scene、GlobalVisual 与 Cover 独立任务；template-copy Scene 由脚本提交。全部创建成功后立即结束，
-  watcher 独立 check/submit、汇合
-  render-ready 并自动执行 `delivery:build`。
-- audited `delivery-render-started` 只证明进程启动确认，不证明渲染完成或 MP4 有效；该旧路径不等待、监控、
+- ProductionRun/owner/foreground finalize/`delivery:build` 保留为显式 audited production 能力，不再阻塞默认
+  Project build。其 `delivery-render-started` 只表示 audited flow 的 detached spawn acknowledgement。
+- 显式 audited production 中，主 Agent 冻结全部 assignment 后用运行环境原生子 Agent 派发
+  `ownerMeaningIds` Scene、GlobalVisual 与 Cover；template-copy Scene 由脚本提交。主 Agent等待全部
+  child 进入成功、明确失败或宿主失败终态后只调用一次 `production:finalize`，由固定脚本
+  check/submit、汇合 render-ready 并执行 `delivery:build`。聊天终态与 child identity 不持久化，
+  assignment-bound receipt 仍是 authority。
+- audited `delivery-render-started` 只证明进程启动确认，不证明渲染完成或 MP4 有效；该路径不等待、监控、
   读取、hash、probe 或 decode detached 输出。
 - PublishingIntent 与独立 Cover 生命周期保留；Cover 不阻止 render-ready，但会阻止自动交付。
 - ignored `private/producer.config.json` 统一管理新作品的常用画面规格、Scene 留白、首尾 Scene
@@ -35,7 +35,7 @@
   README 或 current capability 状态。
 - 外部素材服务只负责 search/preview/acquire。当前 `project:asset:import` 严格接收
   stock-assets-mcp 的 Pexels image receipt v1，把候选图片校验并本地化到 Project-owned 路径后才
-  进入 ResourceCatalog；MCP、网络、provider SDK 与 API Key 不进入 owner、watcher、delivery 或
+  进入 ResourceCatalog；MCP、网络、provider SDK 与 API Key 不进入 owner、finalize、delivery 或
   Remotion runtime。
 - 每个 Project 只有一个 `deliveries/<storyId>/` current delivery，exactly 包含 `video.mp4`、
   `cover-4x3.png`、`cover-3x4.png` 与 `publish.json`。publish 绑定 buildId、source snapshot、实际路径、
@@ -166,10 +166,10 @@ npm run production:start -- --project <story-id>
 npm run production:narrative -- --run <run-id>
 npm run production:scene:freeze -- --run <run-id>
 npm run delivery:cover:freeze -- --project <story-id>
-npm run production:watch:start -- --run <run-id>
 npm run production:owner:ready -- --run <run-id> --owner scene --scene <meaning-id>
 npm run production:owner:ready -- --run <run-id> --owner global-visual
 npm run production:owner:ready -- --run <run-id> --owner cover
+npm run production:finalize -- --run <run-id>
 npm run production:render-ready:check -- --run <run-id>
 ```
 

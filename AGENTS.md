@@ -49,7 +49,7 @@
 ## 当前 production 与 delivery 边界
 
 - 默认交付是 build-centric：`npm run project:build -- --project <storyId>` 直接消费 current 可变
-  Project authoring source，不创建/重放 ProductionRun，不读取 owner receipt/watcher/render-ready，
+  Project authoring source，不创建/重放 ProductionRun，不读取 owner receipt/finalize/render-ready，
   不重做旁白。Agent 只在缺少内容或用户明确要求重新设计时参与。
 - 默认 build 机械刷新 ScenePackage、Coverage、RendererRegistry 和生成式 Composition；
   template-copy Scene 继续直接投影，不进入通用 owner/check/review。
@@ -60,23 +60,31 @@
   恢复上一版。
 - 相同 snapshot 且 current delivery 完整时只读 no-op。资源、路径、TypeScript、codec、声道、尺寸、
   fps、frame count、checksum 和 EOF decode 检查不得关闭。
-- 以下 ProductionRun/owner/watcher/detached delivery contracts 是显式 audited production 能力；
+- 以下 ProductionRun/owner/finalize/detached delivery contracts 是显式 audited production 能力；
   不读取、迁移、回填或解释旧 Run、旧 Project、旧交付或旧媒体，也不得阻塞普通 rebuild。
 - ProductionRun 只由 append-only events、immutable Scene/GlobalVisual results 与 current
   fingerprints 投影；中央 repository CLI 是唯一 writer。
 - current freeze 同时产生 N Scene assignments 与 one GlobalVisual assignment；独立 Cover freeze
-  产生 CoverAssignment。三个 owner kind 都通过 assignment-bound receipt 进入 detached watcher，
-  但 Cover 不阻塞 production render-ready，也不进入 production state projection。
+  产生 CoverAssignment。三个 owner kind 都发布 assignment-bound receipt；Scene owner 与 GlobalVisual
+  是 render-ready 硬门，Cover 只阻塞 automatic delivery，不进入 production state projection。
 - GlobalVisual 只 owns project-local 背景、纹理、装饰和连续性 motif，不读取 Scene 输出，不
   渲染字幕/音频，不扩张为 Track、Scene DSL、自动布局或自动导演。
-- audited production 的成功终点是 `render-ready / awaiting-automatic-delivery`。它绑定
-  `production-render-plan-v5` 与 `production-render-ready-v5`，不生成或检查最终 MP4。
+- audited production 的成功终点是 `delivery-render-started`。foreground `production:finalize` 先绑定
+  `production-render-plan-v5` 与 `production-render-ready-v5`，再启动 detached delivery render；该终点
+  只证明 spawn acknowledgement，不生成或检查最终 MP4。
 - Cover missing/stale 不阻止 render-ready，但阻止自动 delivery build。
-- 主 Agent 在冻结全部 assignment 后先启动 detached watcher，再用 Codex `create_thread` 只为需要
-  Agent 创作的 Scene assignment、一个 GlobalVisual 和一个 Cover 创建独立用户任务；template-copy
-  Scene 由脚本处理。全部创建调用完成后立即结束，不等待
-  render-ready 或 delivery。
-- watcher 是 check、正式 result/event、registry convergence 与 `delivery:build` 的唯一中央 writer。
+- 主 Agent 在冻结全部 assignment 后使用运行环境原生子 Agent：每个 `ownerMeaningIds` Scene 一个、
+  GlobalVisual 一个、Cover 一个；template-copy Scene 不派发。容量受限时可分批，但一 owner 一 child。
+  无子 Agent 能力或不能共享 checkout 时 fail closed，不由主 Agent 内联替代，也不使用 worktree。
+- 每个子 Agent 自行 focused check，发布 one `owner-ready`/`owner-failed` receipt，最终只返回最小终态信号。
+  主 Agent等待全部已派发子任务进入成功、明确失败或宿主失败终态；聊天终态与子 Agent身份不持久化，
+  receipt 仍是 authority。
+- 全部子任务终态后，无论 receipt 是否齐全，主 Agent只调用一次
+  `npm run production:finalize -- --run <runId>`；不读作品、不逐项 submit、不轮询 Run、不代发 receipt。
+  foreground finalize 是 check、正式 result/event、registry convergence 与 `delivery:build` 的唯一中央 writer。
+- required receipt 缺失时 finalize 在任何 stage/result/event/state 写入前返回
+  `owner-receipts-incomplete`；Cover missing/failed 在保留 render-ready 后返回
+  `render-ready-delivery-blocked`。同一编排尝试不重复 finalize。
 - 每个 Project 只有 `deliveries/<storyId>/` 一个 current delivery slot；identity 变化时通过 staging
   受控替换旧 package，同一 identity 重复 build 仍为只读 no-op。
 - build 先准备 immutable non-MP4 package 并 exactly once 写 `render-launch-intent-v4`，再用 fixed
@@ -144,15 +152,11 @@ Shotcraft 等来源只能通过冻结 commit、准确 demo/recipe 和最小依�
 - 新实现默认留在 `src/projects/<story>/`。只有 fingerprint-bound promotion proposal 与用户对
   scope/API/files/target 的明确授权后，才移入 `src/remotion/capabilities/`。
 
-主 Agent 只使用 Codex `create_thread` 创建共享 checkout 的独立用户任务，不使用 subagent 或
-worktree。每个任务 prompt 必须自包含 runId、assignment、独占目录、必读 Skill/reference 和
-ready/failed receipt 命令。确认 watcher spawn acknowledgement 与所有 thread creation 调用后立即
-结束；不得调用 `wait_threads`、`read_thread`、轮询或参与 check/submit/delivery。部分派发失败时
-准确报告未派发 assignment，已启动 watcher 和已创建任务保持运行。
-
-repo 不创建、托管或监控 Codex task，不保存 task/thread/progress/heartbeat。owner receipt 只绑定
-assignment identity；无 receipt 时 Run 永久保持 `waiting-for-owner-results`，不超时、不猜失败、
-不自动重试或创建替代任务。用户或外部自动化可为同一 immutable assignment 再创建独立任务。
+主 Agent 使用 provider-neutral 的运行环境原生子 Agent 共享 checkout，不使用用户 task/thread API
+或 worktree。每个 child prompt 必须自包含 runId、assignment、独占目录、必读 Skill/reference、
+focused check 和 ready/failed receipt 命令。repo 不创建、托管或监控 Agent，不保存
+task/thread/progress/heartbeat 或 child identity。主 Agent只等待宿主暴露的 child 终态，然后执行一次
+fixed finalize；不把聊天成功当 receipt，不内联返工缺失 owner。
 
 ## 故障语义
 
@@ -163,8 +167,6 @@ assignment identity；无 receipt 时 Run 永久保持 `waiting-for-owner-result
 - provider、host tool、sandbox、permission 或 authorization failure 是 external blocker，不增加
   fallback、warm-up、自动重试或弱化 Chromium sandbox。
 - launch-ambiguous 是 fail-closed 终态，不归类为可恢复 workflow failure。
-- watcher launch 同样 intent-before-spawn、receipt-after-spawn；intent 无 receipt 是 ambiguous，
-  禁止自动重试。receipt 只证明 watcher 获得 OS spawn acknowledgement。
 
 ## 修改与验证
 

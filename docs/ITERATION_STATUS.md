@@ -8,12 +8,12 @@
 
 ## 当前基线
 
-默认交付路径是 `project:build`。它不创建/读取 ProductionRun、owner receipt 或 watcher，在一个
+默认交付路径是 `project:build`。它不创建/读取 ProductionRun、owner receipt 或 finalize，在一个
 可复用 staging 内同步生成并验证成片与两个 Cover，最后写 `publish.json`，然后受控替换 current
 delivery。相同 source snapshot 且四个文件完整时 no-op；捕获到的失败保留或恢复上一版，重试只补
 受影响 artifact。
 
-原有 append-only Run、owner receipt、detached watcher、render-ready 与 `delivery:build` 仍可显式使用，
+append-only Run、owner receipt、foreground finalize、render-ready 与 `delivery:build` 仍可显式使用，
 但只承担 audited production；其 `delivery-render-started` 不是媒体成功证据，也不阻塞默认 rebuild。
 
 core 与 fresh clone 是 zero-Project-safe；ignored 本地 Project、narration work、Run、media/out 和
@@ -85,9 +85,10 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   从 ignored `scene-template-sound-overrides.json` 生成 authoring-only 声音投影；当前片头从第 0 帧裁取
   60 帧 Mixkit impact，片尾从第 0 帧播放 240 帧 Deep Urban closing music contribution。配置 Project
   时仍复制为 Project-local runtime 资源，不形成共享 runtime 依赖或第二套音频所有权。
-- 每个 meaningId 一个独立 Codex task；每个 Story 一个 GlobalVisual task 与一个 Cover task；共享
-  checkout 使用不重叠 exclusive paths。owner 只发布 immutable receipt，single-writer watcher
-  串行验证并写正式 result。
+- 每个 `ownerMeaningIds` meaningId 一个运行环境原生子 Agent；每个 Story 一个 GlobalVisual child 与
+  一个 Cover child；共享 checkout 使用不重叠 exclusive paths。owner 自行 focused check，只发布
+  immutable receipt 并返回最小终态信号。主 Agent等待全部 child 终态后只调用一次 foreground
+  `production:finalize`，由唯一 Run writer 串行验证并写正式 result。
 - repository-local `remotion-best-practices` router v4.0.506 已完整纳入仓库；Scene assignment
   policy 与 owner 编排要求制作前完整读取入口，并按 Renderer 需要加载 routed references。
 - ResourceCatalog、composition-local RendererRegistry、ScenePackage、Coverage、visual/sound
@@ -97,9 +98,10 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 - current `ProductionRequirementsFreeze`、append-only events、派生 ProductionRunState。
 - fixed production-start-preflight-v2、start/narrative/Scene+GlobalVisual freeze、Cover freeze、
-  owner-ready/failed receipt、detached watch start/worker、status 与 render-ready check。
-- watcher launch intent/receipt 使用 fixed cwd/argv/log、`shell:false`、`detached:true`；intent-only
-  永久 ambiguous。缺失 owner receipt 永久 `waiting-for-owner-results`，无 timeout/retry/heartbeat。
+  owner-ready/failed receipt、foreground finalize、status 与 render-ready check。
+- finalize 先以单一 expected-owner 规则校验 inbox 和 required receipts；缺失 Scene/GlobalVisual receipt
+  在任何 stage/result/event/state 写入前返回稳定排序的 `owner-receipts-incomplete`。Cover missing/failed
+  保留 render-ready，只阻塞 automatic delivery。
 - `production-render-plan-v5` 绑定 Story/Run、sealed/mastered narration、Composition、source
   checksum、sourceReferences fingerprint、尺寸、fps、SemanticTiming 全片帧数、ScenePackage timeline、
   统一 sound projection、实际 BGM 资源、layer/mix order 和固定 Remotion policy。内容 BGM 只覆盖
@@ -136,7 +138,7 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   包含空白字符；title 由 StorySpec 独占，章节只覆盖 narrated Scene 并直接使用 SemanticTiming
   的全片绝对 frame/time。
 - 独立 Cover assignment/package/result 保留；Cover owner 只消费 StorySpec、VisualStyleSpec 和固定
-  CoverSpec，通过 receipt 进入 watcher，但不阻止 render-ready 或进入 production state。
+  CoverSpec，通过 receipt 进入 finalize，但不阻止 render-ready 或进入 production state。
 - `delivery-launch-manifest-v4`、`render-launch-intent-v4`、`render-launch-receipt-v4` 与
   `detached-spawn-acknowledgement-v1` 已实现。
 - delivery 从 render plan 实际引用的 ScenePackage/GlobalVisualPackage 资源解析绑定 Catalog，写入

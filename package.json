@@ -120,7 +120,7 @@
     "production:global-visual:check": "node --import tsx scripts/production/cli.ts global-visual-check",
     "production:owner:ready": "node --import tsx scripts/production/cli.ts owner-ready",
     "production:owner:failed": "node --import tsx scripts/production/cli.ts owner-failed",
-    "production:watch:start": "node --import tsx scripts/production/cli.ts watch-start",
+    "production:finalize": "node --import tsx scripts/production/cli.ts finalize",
     "production:render-ready:check": "node --import tsx scripts/production/cli.ts render-ready-check",
     "compositions": "remotion compositions src/index.ts",
     "precompositions": "npm run bootstrap",

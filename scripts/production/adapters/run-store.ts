@@ -51,9 +51,6 @@ export const getProductionRunPaths = ({
     globalVisualResult: join(root, "global-visual-result.json"),
     ownerReceipts: join(root, "owner-receipts"),
     ownerResults: join(root, "owner-results"),
-    watcherLaunchIntent: join(root, "watcher-launch-intent.json"),
-    watcherLaunchReceipt: join(root, "watcher-launch-receipt.json"),
-    watcherLog: join(root, "watcher.log"),
     state: join(root, "state.generated.json"),
     lock: join(root, "lock"),
   } as const;

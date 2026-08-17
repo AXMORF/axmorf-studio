@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
@@ -18,7 +19,7 @@ test("production CLI accepts only exact start and status forms", async () => {
   const statuses: string[] = [];
   const sceneChecks: string[] = [];
   const globalVisualChecks: string[] = [];
-  const watcherStarts: string[] = [];
+  const finalizes: string[] = [];
   const ownerReceipts: string[] = [];
   const context = {
     rootDir: process.cwd(),
@@ -49,9 +50,9 @@ test("production CLI accepts only exact start and status forms", async () => {
       globalVisualChecks.push(runId);
       return { runId, status: "ready-to-submit" };
     },
-    watchStart: async ({ runId }: { readonly runId: string }) => {
-      watcherStarts.push(runId);
-      return { runId, status: "watcher-started" };
+    finalize: async ({ runId }: { readonly runId: string }) => {
+      finalizes.push(runId);
+      return { runId, status: "delivery-render-started" as const };
     },
     ownerReceipt: async (request: {
       readonly runId: string;
@@ -80,7 +81,7 @@ test("production CLI accepts only exact start and status forms", async () => {
     context,
   );
   await runProductionCli(
-    ["watch-start", "--run", "story-example-run-001"],
+    ["finalize", "--run", "story-example-run-001"],
     context,
   );
   await runProductionCli(
@@ -102,7 +103,7 @@ test("production CLI accepts only exact start and status forms", async () => {
   assert.deepEqual(statuses, ["story-example-run-001"]);
   assert.deepEqual(sceneChecks, ["story-example-run-001:opening"]);
   assert.deepEqual(globalVisualChecks, ["story-example-run-001"]);
-  assert.deepEqual(watcherStarts, ["story-example-run-001"]);
+  assert.deepEqual(finalizes, ["story-example-run-001"]);
   assert.deepEqual(ownerReceipts, [
     "owner-failed:global-visual:story:GLOBAL_VISUAL_BLOCKED:Blocked.",
   ]);
@@ -121,7 +122,7 @@ test("production CLI accepts only exact start and status forms", async () => {
         runId: "story-example-run-001",
         status: "ready-to-submit",
       },
-      { runId: "story-example-run-001", status: "watcher-started" },
+      { runId: "story-example-run-001", status: "delivery-render-started" },
       { runId: "story-example-run-001", status: "owner-failed" },
     ],
   );
@@ -181,8 +182,8 @@ test("package scripts expose production commands and include production tests by
     "node --import tsx scripts/production/cli.ts scene-check",
   );
   assert.equal(
-    packageJson.scripts["production:watch:start"],
-    "node --import tsx scripts/production/cli.ts watch-start",
+    packageJson.scripts["production:finalize"],
+    "node --import tsx scripts/production/cli.ts finalize",
   );
   assert.equal(
     packageJson.scripts["production:owner:ready"],
@@ -242,4 +243,34 @@ test("production narrative accepts one exact supersede fingerprint", async () =>
       context,
     ),
   );
+});
+
+test("production finalize CLI uses exit 0, expected exit 2, and unexpected exit 1", async () => {
+  const exitCodes: number[] = [];
+  const output: string[] = [];
+  await runProductionCli(["finalize", "--run", "story-example-run-001"], {
+    rootDir: process.cwd(),
+    stdout: output.push.bind(output),
+    exitCode: (code) => exitCodes.push(code),
+    finalize: async () => ({
+      status: "owner-receipts-incomplete" as const,
+      missingOwnerAssignments: [],
+    }),
+  });
+  await runProductionCli(["finalize", "--run", "story-example-run-001"], {
+    rootDir: process.cwd(),
+    stdout: output.push.bind(output),
+    exitCode: (code) => exitCodes.push(code),
+    finalize: async () => ({ status: "delivery-render-started" as const }),
+  });
+  assert.deepEqual(exitCodes, [2]);
+
+  const unexpected = spawnSync(
+    process.execPath,
+    ["--import", "tsx", "scripts/production/cli.ts", "unknown"],
+    { cwd: process.cwd(), encoding: "utf8" },
+  );
+  assert.equal(unexpected.status, 1);
+  assert.equal(unexpected.stdout, "");
+  assert.match(unexpected.stderr, /documented production command form/iu);
 });

@@ -31,6 +31,7 @@ import {
   readProductionRunStore,
 } from "../adapters/run-store";
 import { createProductionStageEvent } from "../domain/events";
+import { sceneAssignmentRequiresOwner } from "../domain/expected-owner-identities";
 import { createUnexpectedProductionError } from "../domain/errors";
 import { loadCurrentProductionInputs } from "./start";
 import { materializeTemplateCopiedScenes } from "./template-copied-scene";
@@ -560,11 +561,7 @@ export const runProductionSceneFreeze = async ({
       ),
       templateMeaningIds,
       ownerMeaningIds: assignments
-        .filter(
-          ({ taskInput }) =>
-            taskInput.storyBeat.kind === "narrated-scene" ||
-            taskInput.storyBeat.preset.implementation.kind === "scene-owner",
-        )
+        .filter(sceneAssignmentRequiresOwner)
         .map(({ meaningId }) => meaningId),
       globalVisualAssignmentPath:
         globalVisualAssignment === null
@@ -756,11 +753,7 @@ export const runProductionSceneFreeze = async ({
         ),
         templateMeaningIds,
         ownerMeaningIds: assignments
-          .filter(
-            ({ taskInput }) =>
-              taskInput.storyBeat.kind === "narrated-scene" ||
-              taskInput.storyBeat.preset.implementation.kind === "scene-owner",
-          )
+          .filter(sceneAssignmentRequiresOwner)
           .map(({ meaningId }) => meaningId),
         globalVisualAssignmentPath:
           globalVisualAssignment === null

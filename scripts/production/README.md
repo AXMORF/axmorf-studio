@@ -14,11 +14,12 @@ delivery 不得反向 import production adapter。这些方向由
 
 For ordinary rebuilds, production is not entered: `project:build` consumes current authoring source and
 synchronously produces the verified four-file delivery. When missing content or explicit audit requirements
-need owner orchestration, the public handoff is `production:watch:start`: it writes watcher launch intent, waits only for
-OS spawn acknowledgement, writes the launch receipt, and returns. Independent owners publish
-assignment-bound receipts through `production:owner:ready` or `production:owner:failed`; only the
-detached worker calls internal submit/fail use cases, writes events/results, converges the Project,
-and invokes delivery. Missing receipts have no timeout or retry.
+need owner orchestration, the runtime dispatches one native child Agent per owner assignment. Each child
+publishes an assignment-bound receipt through `production:owner:ready` or `production:owner:failed` and
+returns only its terminal signal. After every dispatched child has reached a host terminal state, the root
+calls `production:finalize -- --run <runId>` exactly once in the foreground. That fixed use case validates
+the complete inbox, calls internal submit/fail use cases, writes events/results, converges the Project, and
+invokes delivery. Missing required receipts return `owner-receipts-incomplete` without central mutations.
 
 新增能力先判断它属于“业务规则、用例编排还是外部 I/O”，不要把新文件继续堆到
 `scripts/production/` 根目录。测试位于 `tests/production/`，按公开用例而不是内部文件数量组织。

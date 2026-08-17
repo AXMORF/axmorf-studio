@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
@@ -29,10 +29,7 @@ import {
   writeSceneProductionResult,
 } from "../../scripts/production/application/scene-submit";
 import { writeGlobalVisualProductionResult } from "../../scripts/production/application/global-visual-submit";
-import {
-  ProductionWatchInterruption,
-  runProductionWatch,
-} from "../../scripts/production/application/watch";
+import { runProductionFinalize } from "../../scripts/production/application/finalize";
 import {
   FIXED_PRODUCTION_NOW,
   createProductionFixture,
@@ -241,7 +238,7 @@ const createFixture = async (
   context: TestContext,
   options: { readonly includeTemplate?: boolean } = {},
 ) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-owner-watch-"));
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-owner-finalize-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const fixture = await createProductionFixture(context, rootDir);
   await markProductionBaselineReady(fixture);
@@ -406,17 +403,22 @@ const storeReadyOutcome = async ({
 const markRenderReady = async ({
   rootDir,
   runId,
+  lock: providedLock,
 }: {
   rootDir: string;
   runId: string;
+  lock?: Awaited<ReturnType<typeof acquireProductionRunLock>>;
 }) => {
   const loaded = await readProductionRunStore({ rootDir, runId });
-  const lock = await acquireProductionRunLock({
-    rootDir,
-    runId,
-    ownerId: "test-render-ready",
-    acquiredAt: FIXED_PRODUCTION_NOW.toISOString(),
-  });
+  const ownsLock = providedLock === undefined;
+  const lock =
+    providedLock ??
+    (await acquireProductionRunLock({
+      rootDir,
+      runId,
+      ownerId: "test-render-ready",
+      acquiredAt: FIXED_PRODUCTION_NOW.toISOString(),
+    }));
   try {
     await appendProductionRunEvent({
       rootDir,
@@ -457,7 +459,7 @@ const markRenderReady = async ({
       }),
     });
   } finally {
-    await lock.release();
+    if (ownsLock) await lock.release();
   }
   return { runId, status: "render-ready", noOp: false } as const;
 };
@@ -465,9 +467,22 @@ const markRenderReady = async ({
 const dependenciesFor = (
   fixture: Awaited<ReturnType<typeof createFixture>>,
   processOwner: NonNullable<
-    Parameters<typeof runProductionWatch>[0]["dependencies"]
+    Parameters<typeof runProductionFinalize>[0]["dependencies"]
   >["processOwner"],
 ) => ({
+  readReceipt: async ({
+    ownerKind,
+    meaningId,
+    assignmentFingerprint,
+  }: {
+    ownerKind: "scene" | "global-visual" | "cover";
+    meaningId: string | null;
+    assignmentFingerprint: string;
+  }) =>
+    readyReceipt({
+      fixture,
+      owner: { ownerKind, meaningId, assignmentFingerprint },
+    }),
   resolveAssignments: async () => ({
     assignments: fixture.assignments,
     globalVisualAssignment: fixture.globalVisualAssignment,
@@ -481,29 +496,40 @@ const dependenciesFor = (
   renderReady: markRenderReady,
 });
 
-test("missing receipts remain waiting forever without deadline failure or retry", async (context) => {
+test("missing required receipts return once with stable order and no ledger mutation", async (context) => {
   const fixture = await createFixture(context);
-  let sleeps = 0;
-  await assert.rejects(
-    runProductionWatch({
-      rootDir: fixture.rootDir,
-      runId: fixture.runId,
-      clock: () => new Date("2036-08-04T00:00:00.000Z"),
-      scheduler: {
-        sleep: async () => {
-          sleeps += 1;
-          if (sleeps === 3)
-            throw new ProductionWatchInterruption("stop test watcher");
-        },
-      },
-      dependencies: dependenciesFor(fixture, async () => null),
-    }),
-    /stop test watcher/u,
+  const runRoot = join(fixture.rootDir, `.producer-runs/${fixture.runId}`);
+  const beforeState = await readFile(join(runRoot, "state.generated.json"));
+  const beforeEvents = await readdir(join(runRoot, "events"));
+  const beforeResults = await readdir(join(runRoot, "owner-results"));
+  const result = await runProductionFinalize({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    clock: () => new Date("2036-08-04T00:00:00.000Z"),
+    dependencies: {
+      ...dependenciesFor(fixture, async () => assert.fail("must not process")),
+      readReceipt: async () => null,
+    },
+  });
+  assert.equal(result.status, "owner-receipts-incomplete");
+  assert.deepEqual(
+    "missingOwnerAssignments" in result
+      ? result.missingOwnerAssignments.map(
+          ({ ownerKind, meaningId }) =>
+            `${ownerKind}:${meaningId ?? "story"}`,
+        )
+      : [],
+    ["scene:conclusion", "scene:opening", "global-visual:story"],
   );
   const loaded = await readProductionRunStore(fixture);
-  assert.equal(loaded.state.state, "waiting-for-owner-results");
+  assert.equal(loaded.state.state, "scene-inputs-frozen");
   assert.equal(loaded.state.failure, null);
-  assert.equal(sleeps, 3);
+  assert.deepEqual(
+    await readFile(join(runRoot, "state.generated.json")),
+    beforeState,
+  );
+  assert.deepEqual(await readdir(join(runRoot, "events")), beforeEvents);
+  assert.deepEqual(await readdir(join(runRoot, "owner-results")), beforeResults);
 });
 
 test("template-copied Scene results converge without an owner task or receipt", async (context) => {
@@ -532,11 +558,10 @@ test("template-copied Scene results converge without an owner task or receipt", 
     );
     return storeReadyOutcome({ fixture, owner: request.owner });
   };
-  await runProductionWatch({
+  const finalized = await runProductionFinalize({
     rootDir: fixture.rootDir,
     runId: fixture.runId,
     clock: () => FIXED_PRODUCTION_NOW,
-    scheduler: { sleep: async () => assert.fail("must not wait") },
     dependencies: {
       ...dependenciesFor(fixture, processOwner as never),
       deliveryBuild: async () => ({
@@ -547,6 +572,7 @@ test("template-copied Scene results converge without an owner task or receipt", 
       }),
     },
   });
+  assert.equal(finalized.status, "delivery-render-started", JSON.stringify(finalized));
   assert.equal(
     processedOwners.includes("scene:configured-template-scene"),
     false,
@@ -558,18 +584,18 @@ test("template-copied Scene results converge without an owner task or receipt", 
   );
 });
 
-test("watcher remains a single writer and rejects an unknown inbox identity", async (context) => {
+test("finalize remains a single writer and rejects an unknown inbox identity", async (context) => {
   await context.test("single writer lock", async (child) => {
     const fixture = await createFixture(child);
     const lock = await acquireProductionRunLock({
       rootDir: fixture.rootDir,
       runId: fixture.runId,
-      ownerId: "competing-watcher",
+      ownerId: "competing-finalize",
       acquiredAt: FIXED_PRODUCTION_NOW.toISOString(),
     });
     try {
       await assert.rejects(
-        runProductionWatch({
+        runProductionFinalize({
           rootDir: fixture.rootDir,
           runId: fixture.runId,
           dependencies: dependenciesFor(fixture, async () => null),
@@ -590,7 +616,7 @@ test("watcher remains a single writer and rejects an unknown inbox identity", as
       "{}\n",
     );
     await assert.rejects(
-      runProductionWatch({
+      runProductionFinalize({
         rootDir: fixture.rootDir,
         runId: fixture.runId,
         clock: () => FIXED_PRODUCTION_NOW,
@@ -599,8 +625,8 @@ test("watcher remains a single writer and rejects an unknown inbox identity", as
       /unknown entry/iu,
     );
     assert.equal(
-      (await readProductionRunStore(fixture)).state.failure?.code,
-      "OWNER_WATCH_FAILED",
+      (await readProductionRunStore(fixture)).state.state,
+      "scene-inputs-frozen",
     );
   });
   await context.test("unknown formal result identity", async (child) => {
@@ -613,7 +639,7 @@ test("watcher remains a single writer and rejects an unknown inbox identity", as
       "{}\n",
     );
     await assert.rejects(
-      runProductionWatch({
+      runProductionFinalize({
         rootDir: fixture.rootDir,
         runId: fixture.runId,
         clock: () => FIXED_PRODUCTION_NOW,
@@ -622,8 +648,8 @@ test("watcher remains a single writer and rejects an unknown inbox identity", as
       /unknown entry/iu,
     );
     assert.equal(
-      (await readProductionRunStore(fixture)).state.failure?.code,
-      "OWNER_WATCH_FAILED",
+      (await readProductionRunStore(fixture)).state.state,
+      "scene-inputs-frozen",
     );
   });
   await context.test("unknown pending identity", async (child) => {
@@ -636,7 +662,7 @@ test("watcher remains a single writer and rejects an unknown inbox identity", as
       "{}\n",
     );
     await assert.rejects(
-      runProductionWatch({
+      runProductionFinalize({
         rootDir: fixture.rootDir,
         runId: fixture.runId,
         clock: () => FIXED_PRODUCTION_NOW,
@@ -645,13 +671,13 @@ test("watcher remains a single writer and rejects an unknown inbox identity", as
       /pending entry is unknown/iu,
     );
     assert.equal(
-      (await readProductionRunStore(fixture)).state.failure?.code,
-      "OWNER_WATCH_FAILED",
+      (await readProductionRunStore(fixture)).state.state,
+      "scene-inputs-frozen",
     );
   });
 });
 
-test("concurrent owner availability is processed serially and Cover gates delivery only", async (context) => {
+test("one foreground finalize processes owners serially and Cover gates delivery only", async (context) => {
   const fixture = await createFixture(context);
   const order: string[] = [];
   let coverAvailable = false;
@@ -675,20 +701,34 @@ test("concurrent owner availability is processed serially and Cover gates delive
     }
     return storeReadyOutcome({ fixture, owner: request.owner });
   };
-  const delivered = await runProductionWatch({
+  const blocked = await runProductionFinalize({
     rootDir: fixture.rootDir,
     runId: fixture.runId,
     clock: () => FIXED_PRODUCTION_NOW,
-    scheduler: {
-      sleep: async () => {
-        assert.equal(
-          (await readProductionRunStore(fixture)).state.state,
-          "render-ready",
-        );
-        assert.equal(deliveryCalls, 0);
-        coverAvailable = true;
+    dependencies: {
+      ...dependenciesFor(fixture, processOwner as never),
+      deliveryBuild: async () => {
+        deliveryCalls += 1;
+        return {
+          projectId: fixture.source.story.storyId,
+          deliveryId: "story-example-delivery-test",
+          status: "delivery-render-started" as const,
+          noOp: false as const,
+        };
       },
     },
+  });
+  assert.equal(
+    blocked.status,
+    "render-ready-delivery-blocked",
+    JSON.stringify(blocked),
+  );
+  assert.equal(deliveryCalls, 0);
+  coverAvailable = true;
+  const delivered = await runProductionFinalize({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    clock: () => FIXED_PRODUCTION_NOW,
     dependencies: {
       ...dependenciesFor(fixture, processOwner as never),
       deliveryBuild: async () => {
@@ -705,8 +745,8 @@ test("concurrent owner availability is processed serially and Cover gates delive
   assert.equal(delivered.status, "delivery-render-started");
   assert.equal(deliveryCalls, 1);
   assert.deepEqual(order.slice(0, 4), [
-    "scene:opening",
     "scene:conclusion",
+    "scene:opening",
     "global-visual:story",
     "cover:story",
   ]);
@@ -732,11 +772,10 @@ test("Cover fixed-check failure happens only after render-ready and blocks deliv
     return storeReadyOutcome({ fixture, owner: request.owner });
   };
   await assert.rejects(
-    runProductionWatch({
+    runProductionFinalize({
       rootDir: fixture.rootDir,
       runId: fixture.runId,
       clock: () => FIXED_PRODUCTION_NOW,
-      scheduler: { sleep: async () => assert.fail("must not wait") },
       dependencies: {
         ...dependenciesFor(fixture, processOwner as never),
         deliveryBuild: async () => {
@@ -753,9 +792,9 @@ test("Cover fixed-check failure happens only after render-ready and blocks deliv
   assert.equal(deliveryCalls, 0);
 });
 
-test("watcher restart resumes immutable results without duplicate acceptance", async (context) => {
+test("idempotent replay accepts results once and a later Cover can launch delivery", async (context) => {
   const fixture = await createFixture(context);
-  let firstRun = true;
+  let coverAvailable = false;
   const processOwner = async (request: {
     owner: {
       ownerKind: "scene" | "global-visual" | "cover";
@@ -763,45 +802,39 @@ test("watcher restart resumes immutable results without duplicate acceptance", a
       assignmentFingerprint: string;
     };
   }) => {
-    if (firstRun && request.owner.ownerKind !== "scene") return null;
-    if (firstRun && request.owner.meaningId === "conclusion") return null;
-    if (request.owner.ownerKind === "cover") return null;
+    if (request.owner.ownerKind === "cover" && !coverAvailable) return null;
     return storeReadyOutcome({ fixture, owner: request.owner });
   };
-  await assert.rejects(
-    runProductionWatch({
-      rootDir: fixture.rootDir,
-      runId: fixture.runId,
-      clock: () => FIXED_PRODUCTION_NOW,
-      scheduler: {
-        sleep: async () => {
-          throw new ProductionWatchInterruption("restart watcher");
-        },
-      },
-      dependencies: dependenciesFor(fixture, processOwner as never),
-    }),
-    /restart watcher/u,
-  );
+  const incomplete = await runProductionFinalize({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    clock: () => FIXED_PRODUCTION_NOW,
+    dependencies: {
+      ...dependenciesFor(fixture, processOwner as never),
+      readReceipt: async (request) =>
+        request.ownerKind === "scene" && request.meaningId === "conclusion"
+          ? null
+          : readyReceipt({
+              fixture,
+              owner: {
+                ownerKind: request.ownerKind,
+                meaningId: request.meaningId,
+                assignmentFingerprint: request.assignmentFingerprint,
+              },
+            }),
+    },
+  });
+  assert.equal(incomplete.status, "owner-receipts-incomplete");
   const partial = await readProductionRunStore(fixture);
-  assert.deepEqual(
-    partial.state.acceptedSceneResults.map(({ meaningId }) => meaningId),
-    ["opening"],
-  );
-  firstRun = false;
-  await assert.rejects(
-    runProductionWatch({
-      rootDir: fixture.rootDir,
-      runId: fixture.runId,
-      clock: () => FIXED_PRODUCTION_NOW,
-      scheduler: {
-        sleep: async () => {
-          throw new ProductionWatchInterruption("cover remains missing");
-        },
-      },
-      dependencies: dependenciesFor(fixture, processOwner as never),
-    }),
-    /cover remains missing/u,
-  );
+  assert.equal(partial.state.state, "scene-inputs-frozen");
+  assert.deepEqual(partial.state.acceptedSceneResults, []);
+  const blocked = await runProductionFinalize({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    clock: () => FIXED_PRODUCTION_NOW,
+    dependencies: dependenciesFor(fixture, processOwner as never),
+  });
+  assert.equal(blocked.status, "render-ready-delivery-blocked");
   const resumed = await readProductionRunStore(fixture);
   assert.equal(resumed.state.state, "render-ready");
   assert.equal(
@@ -811,6 +844,22 @@ test("watcher restart resumes immutable results without duplicate acceptance", a
     ).length,
     1,
   );
+  coverAvailable = true;
+  const delivered = await runProductionFinalize({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    clock: () => FIXED_PRODUCTION_NOW,
+    dependencies: {
+      ...dependenciesFor(fixture, processOwner as never),
+      deliveryBuild: async () => ({
+        projectId: fixture.source.story.storyId,
+        deliveryId: "story-example-delivery-test",
+        status: "delivery-render-started" as const,
+        noOp: false,
+      }),
+    },
+  });
+  assert.equal(delivered.status, "delivery-render-started");
 });
 
 test("explicit failed owner outcome becomes one immutable terminal failure", async (context) => {
@@ -855,15 +904,13 @@ test("explicit failed owner outcome becomes one immutable terminal failure", asy
     await writeOwnerResult({ rootDir: fixture.rootDir, result });
     return { receipt: ready, result };
   };
-  await assert.rejects(
-    runProductionWatch({
-      rootDir: fixture.rootDir,
-      runId: fixture.runId,
-      clock: () => FIXED_PRODUCTION_NOW,
-      scheduler: { sleep: async () => assert.fail("must not wait") },
-      dependencies: dependenciesFor(fixture, processOwner as never),
-    }),
-  );
+  const finalized = await runProductionFinalize({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    clock: () => FIXED_PRODUCTION_NOW,
+    dependencies: dependenciesFor(fixture, processOwner as never),
+  });
+  assert.equal(finalized.status, "production-failed");
   const loaded = await readProductionRunStore(fixture);
   assert.equal(loaded.state.state, "failed");
   assert.equal(loaded.state.failure?.code, "OWNER_EXPLICIT_FAILURE");
@@ -919,21 +966,26 @@ test("failed Cover receipt preserves render-ready and blocks automatic delivery"
     await writeOwnerResult({ rootDir: fixture.rootDir, result });
     return { receipt, result };
   };
-  await assert.rejects(
-    runProductionWatch({
-      rootDir: fixture.rootDir,
-      runId: fixture.runId,
-      clock: () => FIXED_PRODUCTION_NOW,
-      scheduler: { sleep: async () => assert.fail("must not wait") },
-      dependencies: {
-        ...dependenciesFor(fixture, processOwner as never),
-        deliveryBuild: async () => {
-          deliveryCalls += 1;
-          throw new Error("must not deliver");
-        },
+  const finalized = await runProductionFinalize({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    clock: () => FIXED_PRODUCTION_NOW,
+    dependencies: {
+      ...dependenciesFor(fixture, processOwner as never),
+      deliveryBuild: async () => {
+        deliveryCalls += 1;
+        throw new Error("must not deliver");
       },
-    }),
-    /Cover owner failed/iu,
+    },
+  });
+  assert.deepEqual(
+    "reason" in finalized
+      ? { status: finalized.status, reason: finalized.reason }
+      : null,
+    {
+      status: "render-ready-delivery-blocked",
+      reason: "cover-owner-failed",
+    },
   );
   const loaded = await readProductionRunStore(fixture);
   assert.equal(loaded.state.state, "render-ready");

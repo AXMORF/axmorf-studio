@@ -57,19 +57,20 @@ const fingerprintFileTree = async (
 
 const SkillPolicySchema = z
   .object({
-    schemaVersion: z.literal(8),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v9"),
-    rootEndpoint: z.literal("watcher-started-and-owners-dispatched"),
+    schemaVersion: z.literal(9),
+    policyVersion: z.literal("remotion-story-producer-video-policy-v10"),
+    rootEndpoint: z.literal("foreground-finalize-completed"),
     backgroundEndpoint: z.literal("delivery-render-started"),
     privateConfigPath: z.literal("private/producer.config.json"),
     requiredEntrypointHeadings: z.tuple([
       z.literal("Start directly"),
-      z.literal("Freeze inputs before dispatch"),
-      z.literal("Launch watcher and dispatch threads"),
+      z.literal("Freeze inputs before delegation"),
+      z.literal("Delegate owners to runtime-native subagents"),
+      z.literal("Wait and finalize once"),
       z.literal("Keep context bounded"),
       z.literal("Preserve production invariants"),
       z.literal("Classify failure by owner"),
-      z.literal("Finish after dispatch"),
+      z.literal("Finish after finalize"),
     ]),
     requiredReferences: z.tuple([
       z.literal("references/producer-config.md"),
@@ -85,15 +86,15 @@ const SkillPolicySchema = z
       z.literal("production:narrative"),
       z.literal("production:scene:freeze"),
       z.literal("delivery:cover:freeze"),
-      z.literal("production:watch:start"),
       z.literal("production:scene:check"),
       z.literal("production:owner:ready"),
       z.literal("production:owner:failed"),
+      z.literal("production:finalize"),
     ]),
     invariants: z
       .object({
         sceneAuthoringOwner: z.literal(
-          "one-independent-thread-per-owner-meaning-id",
+          "one-runtime-native-child-per-owner-meaning-id",
         ),
         sceneAuthoringSkill: z.literal(
           "repository-local-remotion-best-practices",
@@ -108,27 +109,31 @@ const SkillPolicySchema = z
           "assignment-readability-policy",
         ),
         globalVisualAuthoringOwner: z.literal(
-          "one-independent-thread-per-story",
+          "one-runtime-native-child-per-story",
         ),
         globalVisualDefaultRole: z.literal(
           "minimal-style-aligned-background-board",
         ),
-        coverAuthoringOwner: z.literal("one-independent-thread-per-story"),
-        threadCreationSurface: z.literal("create_thread"),
+        coverAuthoringOwner: z.literal("one-runtime-native-child-per-story"),
+        delegationSurface: z.literal("runtime-native-subagents"),
         sharedCheckout: z.literal(true),
+        capacityPolicy: z.literal("batched-one-owner-per-child"),
+        unavailableDelegationPolicy: z.literal(
+          "fail-closed-without-inline-owner",
+        ),
         rootAgentAuthorsOwnerOutputs: z.literal(false),
-        rootWaitsAfterDispatch: z.literal(false),
-        repositoryMonitorsThreadLifecycle: z.literal(false),
-        watcherInput: z.literal("assignment-bound-owner-receipts-only"),
+        rootWaitsForAllChildTerminalStates: z.literal(true),
+        repositoryMonitorsChildLifecycle: z.literal(false),
+        finalizeInput: z.literal("assignment-bound-owner-receipts-only"),
         missingReceiptPolicy: z.literal(
-          "wait-without-timeout-retry-or-heartbeat",
+          "finalize-once-and-report-incomplete",
         ),
         globalVisualReadsSceneOutputs: z.literal(false),
         coverReadsOnlyAssignmentInputs: z.literal(true),
         coverMissingBlocksRenderReady: z.literal(false),
         coverMissingBlocksAutomaticDelivery: z.literal(true),
-        centralWriter: z.literal("detached-repository-watcher-only"),
-        threadIdentityPersisted: z.literal(false),
+        centralWriter: z.literal("foreground-production-finalize-only"),
+        childIdentityPersisted: z.literal(false),
         timingPolicy: z.literal("pcm-cumulative-ceil-v1"),
         storyBeatContract: z.literal(
           "discriminated-narrated-or-silent-scene",
@@ -142,10 +147,6 @@ const SkillPolicySchema = z
         silentSceneNarrationPolicy: z.literal(
           "no-tts-no-captions-fixed-preset-frames",
         ),
-        watcherLaunchPolicy: z.literal("detached-spawn-acknowledgement-v1"),
-        watcherLaunchAmbiguityPolicy: z.literal(
-          "intent-without-receipt-never-retry",
-        ),
         deliveryLaunchPolicy: z.literal("detached-spawn-acknowledgement-v1"),
         deliveryLaunchAmbiguityPolicy: z.literal(
           "intent-without-receipt-never-retry",
@@ -154,13 +155,16 @@ const SkillPolicySchema = z
       })
       .strict(),
     forbiddenActions: z.tuple([
-      z.literal("subagent-owner"),
-      z.literal("wait_threads"),
-      z.literal("read_thread"),
+      z.literal("user-task-thread-api"),
+      z.literal("owner-worktree"),
+      z.literal("inline-owner-fallback"),
+      z.literal("root-item-submit"),
+      z.literal("repeat-finalize"),
+      z.literal("poll-production-run"),
+      z.literal("persist-child-identity"),
       z.literal("git add ."),
       z.literal("push"),
       z.literal("publish"),
-      z.literal("monitor-detached-watcher"),
       z.literal("monitor-detached-render"),
       z.literal("hand-edit-derived-state"),
     ]),
@@ -274,7 +278,7 @@ test("repository video skill exposes a structured production policy", async () =
   assert.match(sceneWorkflow, /透明 Scene/u);
   assert.match(workflow, /ProducerConfig[\s\S]*boundary Scene[\s\S]*copies/u);
   assert.match(workflow, /templateMeaningIds[\s\S]*ownerMeaningIds/u);
-  assert.match(workflow, /Do not dispatch[\s\S]*templateMeaningIds/u);
+  assert.match(workflow, /do not delegate them|Do not delegate[\s\S]*templateMeaningIds/iu);
   assert.match(sceneWorkflow, /silent-scene/u);
   assert.match(sceneWorkflow, /不得[\s\S]*TTS[\s\S]*CaptionCue/u);
   assert.match(sceneWorkflow, /顶层[\s\S]{0,40}字幕[\s\S]{0,20}旁白[\s\S]{0,20}背景/u);
@@ -329,6 +333,7 @@ test("repository video skill exposes a structured production policy", async () =
   }
 
   const executableWorkflow = `${workflow}\n${sceneWorkflow}\n${globalVisualWorkflow}\n${coverWorkflow}`;
+  const skillBundle = `${skill}\n${metadata}\n${executableWorkflow}\n${failurePolicy}\n${rawPolicy}`;
   for (const command of policy.workflowCommands) {
     assert.match(executableWorkflow, new RegExp(`npm run ${command}`, "u"));
   }
@@ -403,7 +408,7 @@ test("repository video skill exposes a structured production policy", async () =
   assert.match(globalVisualWorkflow, /DSL|automatic director|自动导演/u);
   assert.match(
     executableWorkflow,
-    /assignment-keyed receipts|assignment-bound-owner-receipts|assignment identity|receipt/u,
+    /assignment-keyed receipt|assignment-bound-owner-receipts|assignment identity|receipt/u,
   );
   assert.match(workflow, /StoryBeat/u);
   assert.match(workflow, /Agent-authored ttsChunks/u);
@@ -414,7 +419,12 @@ test("repository video skill exposes a structured production policy", async () =
     workflow,
     /scripts?\s+(?:freeze|validate|execute)[\s\S]*do not choose creative direction/iu,
   );
-  assert.match(executableWorkflow, /create_thread/u);
+  assert.match(executableWorkflow, /runtime-native child Agent/u);
+  assert.match(executableWorkflow, /production:finalize/u);
+  assert.match(executableWorkflow, /success, explicit failure, or host failure/u);
+  assert.match(executableWorkflow, /exactly\s+once/u);
+  assert.doesNotMatch(skillBundle, /create_thread|detached production watcher/u);
+  assert.doesNotMatch(skill, /end the root|exit without wait|early-exit/iu);
   assert.doesNotMatch(
     executableWorkflow,
     /production:scene:submit|delivery:cover:submit/u,
