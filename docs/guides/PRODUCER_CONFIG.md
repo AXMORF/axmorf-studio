@@ -2,7 +2,7 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-16
+> 最后复核：2026-08-18
 
 仓库使用一份 Git-ignored 的 `private/producer.config.json` 作为制作默认值与私密 TTS 连接配置。
 它不是 render runtime 输入；新作品在 authoring/freeze 时把实际选择写入 Project 合同或产物指纹，
@@ -120,10 +120,10 @@ fingerprint 不匹配或结构无效的 v1 仍然 fail closed。
 npm run project:configure -- --project <storyId> --input src/projects/<storyId>/producer-input.json
 ```
 
-`producer-input.json` 只保存单个作品的 render 非默认字段、PublishingIntent authored fields、
-StoryCheck checks 与 production requirement selections；标题、StoryBeat、旁白文案、发布描述仍是
+`producer-input.json` 只保存单个作品的 render 非默认字段、PublishingIntent authored fields 与
+production requirement selections；标题、StoryBeat、旁白文案、发布描述仍是
 Project 内容，绝不放入 ProducerConfig。命令从一次 ProducerConfig 读取生成 `narration.json`、
-`render.json`、`reviews/story-check.json`、`publishing-intent.json` 和
+`render.json`、`publishing-intent.json` 和
 `production/requirements.json`，以及 `production/scene-template-instantiation.json` 和每个复制
 Scene 的 `scene-template-instance.json`。合集必须且只能选择当前数组中的一个 ID；完整数组
 fingerprint 被封存。Project 一旦存在 instantiation，后续修改全局 Scene 选择或共享模板不会重新复制

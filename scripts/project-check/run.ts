@@ -5,12 +5,10 @@ import {
   NARRATIVE_CORE_VERSION,
   PROJECT_REGISTRY_GENERATOR_ID,
   computeRenderSpecFingerprint,
-  computeStoryCheckFingerprint,
   computeStoryFingerprint,
   createNarrativeAutoCheckEvidenceRefs,
   createNarrativeAutoCheckReport,
   validateNarrativeArtifactBundle,
-  validateStoryCheckReport,
   type NarrativeAutoCheckEvidenceId,
   type NarrativeAutoCheckId,
   type NarrativeAutoCheckReport,
@@ -20,7 +18,6 @@ import {
   type SealedNarrationManifest,
   type SemanticTiming,
   type Sha256Digest,
-  type StoryCheckReport,
 } from "../../src/contracts";
 import {
   checkNarrativeBaselineEvidence,
@@ -54,22 +51,12 @@ export const checkNarrativeSourceHealth = async ({
 }) => {
   const paths = getProjectCheckPaths({ rootDir, projectId });
   let projectSource: NarrativeProjectSource;
-  let storyCheck: StoryCheckReport;
   try {
     const loaded = await loadNarrationProjectFiles({
       rootDir,
       projectId: paths.storyId,
     });
     projectSource = loaded.projectSource;
-    storyCheck = loaded.storyCheck;
-    const validated = validateStoryCheckReport({
-      story: projectSource.story,
-      narration: projectSource.narration,
-      report: storyCheck,
-    });
-    if (validated.decision !== "proceed") {
-      throw new Error("StoryCheck identity does not match an active project.");
-    }
   } catch (error) {
     throw new Error("Narrative source contracts are invalid.", {
       cause: error,
@@ -99,7 +86,6 @@ export const checkNarrativeSourceHealth = async ({
     const m2 = await checkM2NarrationArtifacts({
       rootDir,
       projectSource: physicalCheckProjectSource,
-      storyCheck,
     });
     if (
       m2.generationInputFingerprint !==
@@ -176,7 +162,6 @@ export const runNarrativeAutoCheck = async ({
   const identity: Mutable<NarrativeAutoCheckReportInput["inputIdentity"]> = {
     storyFingerprint: null,
     renderSpecFingerprint: null,
-    storyCheckFingerprint: null,
     generationInputFingerprint: null,
     sealedNarrationFingerprint: null,
     masteredNarrationFingerprint: null,
@@ -197,7 +182,6 @@ export const runNarrativeAutoCheck = async ({
     checks.set(checkId, createNarrativeCheckItem({ checkId, status, error }));
 
   let projectSource: NarrativeProjectSource | undefined;
-  let storyCheck: StoryCheckReport | undefined;
   let sealedNarration: SealedNarrationManifest | undefined;
   let masteredNarration: MasteredNarrationManifest | undefined;
   let semanticTiming: SemanticTiming | undefined;
@@ -209,38 +193,18 @@ export const runNarrativeAutoCheck = async ({
       projectId: paths.storyId,
     });
     projectSource = loaded.projectSource;
-    storyCheck = loaded.storyCheck;
     identity.storyFingerprint = computeStoryFingerprint(projectSource.story);
     identity.renderSpecFingerprint = computeRenderSpecFingerprint(
       projectSource.render,
     );
-    identity.storyCheckFingerprint = computeStoryCheckFingerprint(storyCheck);
-    evidenceChecksums["story-check"] = await checksumFile(paths.storyCheck);
     mark("source-contracts", "pass");
   } catch (error) {
     mark("source-contracts", "fail", error);
   }
 
   try {
-    if (projectSource === undefined || storyCheck === undefined) {
+    if (projectSource === undefined) {
       throw failDependency("Source contracts");
-    }
-    const validated = validateStoryCheckReport({
-      story: projectSource.story,
-      narration: projectSource.narration,
-      report: storyCheck,
-    });
-    if (validated.decision !== "proceed") {
-      throw new Error("StoryCheck identity does not match an active project.");
-    }
-    mark("story-check", "pass");
-  } catch (error) {
-    mark("story-check", "fail", error);
-  }
-
-  try {
-    if (projectSource === undefined || storyCheck === undefined) {
-      throw failDependency("StoryCheck");
     }
     sealedNarration = await loadProjectCheckSealedNarration(
       paths.sealedNarration,
@@ -271,7 +235,6 @@ export const runNarrativeAutoCheck = async ({
     const m2 = await checkM2NarrationArtifacts({
       rootDir,
       projectSource: physicalCheckProjectSource,
-      storyCheck,
     });
     const master = await checkMasteredNarrationArtifacts({
       rootDir,

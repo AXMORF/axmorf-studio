@@ -191,7 +191,7 @@ const cases: readonly {
       }),
   },
   {
-    name: "paired evidence or normal-speed review drift invalidates fidelity/package",
+    name: "paired preview evidence drift invalidates fidelity/package",
     mutate: (fixture) =>
       expectPackageStale(fixture, {
         ...fixture.input,
@@ -310,7 +310,7 @@ const cases: readonly {
         ...fixture.input,
         fidelityReceipt: {
           ...fixture.input.fidelityReceipt,
-          checkerVersion: "reference-fidelity-checker-v2",
+          checkerVersion: "reference-fidelity-checker-v1",
         },
       });
     },

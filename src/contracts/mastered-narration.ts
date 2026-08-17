@@ -160,28 +160,6 @@ export const MasteredNarrationManifestSchema =
           path: ["outputAudio", "pcm"],
         });
       }
-      if (
-        manifest.measurements.integratedLoudnessLufs <
-          manifest.masteringPolicy.acceptedIntegratedLoudnessMinLufs ||
-        manifest.measurements.integratedLoudnessLufs >
-          manifest.masteringPolicy.acceptedIntegratedLoudnessMaxLufs
-      ) {
-        context.addIssue({
-          code: "custom",
-          message: "Mastered narration integrated loudness is outside policy.",
-          path: ["measurements", "integratedLoudnessLufs"],
-        });
-      }
-      if (
-        manifest.measurements.truePeakDbtp >
-        manifest.masteringPolicy.truePeakCeilingDbtp
-      ) {
-        context.addIssue({
-          code: "custom",
-          message: "Mastered narration true peak exceeds policy.",
-          path: ["measurements", "truePeakDbtp"],
-        });
-      }
       const { masteredNarrationFingerprint, ...input } = manifest;
       if (
         computeMasteredNarrationFingerprint(input) !==

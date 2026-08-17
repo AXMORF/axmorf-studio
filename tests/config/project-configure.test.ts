@@ -106,20 +106,6 @@ const draft = {
       name: index === 0 ? "开场" : "结论",
     })),
   },
-  storyCheck: {
-    decision: "proceed",
-    checks: [
-      "story-beat-order",
-      "narrative-completeness",
-      "authored-tts-chunks",
-      "voice-profile-selection",
-      "pronunciation-risks",
-    ].map((checkId) => ({
-      checkId,
-      status: "pass",
-      note: `Checked ${checkId}.`,
-    })),
-  },
   production: {
     enhancementSelection: {
       storyVisual: "required",

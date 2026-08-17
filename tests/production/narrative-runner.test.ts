@@ -335,42 +335,28 @@ test("repeating a current baseline is read-only and checks persisted identities"
   assert.equal((await stat(statePath)).mtimeMs, beforeMtime);
 });
 
-test("stale requirements or StoryCheck fail inside the ledger before provider work", async (context) => {
-  for (const target of ["render", "story-check"] as const) {
-    await context.test(target, async (child) => {
-      const fixture = await createFixture(child);
-      if (target === "render") {
-        await writeProductionJson(join(fixture.projectDir, "render.json"), {
-          ...fixture.source.render,
-          width: fixture.source.render.width + 2,
-        });
-      } else {
-        await writeProductionJson(
-          join(fixture.projectDir, "reviews/story-check.json"),
-          {
-            ...fixture.source.storyCheck,
-            decision: "revise",
-          },
-        );
-      }
-      const calls: string[] = [];
-      await assert.rejects(() =>
-        runProductionNarrative({
-          rootDir: fixture.rootDir,
-          runId: fixture.runId,
-          clock: () => FIXED_PRODUCTION_NOW,
-          dependencies: createDependencies(calls),
-        }),
-      );
-      assert.deepEqual(calls, []);
-      const loaded = await readProductionRunStore({
-        rootDir: fixture.rootDir,
-        runId: fixture.runId,
-      });
-      assert.equal(loaded.state.state, "failed");
-      assert.equal(loaded.events.at(-1)?.type, "stage-failed");
-    });
-  }
+test("stale requirements fail inside the ledger before provider work", async (context) => {
+  const fixture = await createFixture(context);
+  await writeProductionJson(join(fixture.projectDir, "render.json"), {
+    ...fixture.source.render,
+    width: fixture.source.render.width + 2,
+  });
+  const calls: string[] = [];
+  await assert.rejects(() =>
+    runProductionNarrative({
+      rootDir: fixture.rootDir,
+      runId: fixture.runId,
+      clock: () => FIXED_PRODUCTION_NOW,
+      dependencies: createDependencies(calls),
+    }),
+  );
+  assert.deepEqual(calls, []);
+  const loaded = await readProductionRunStore({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+  });
+  assert.equal(loaded.state.state, "failed");
+  assert.equal(loaded.events.at(-1)?.type, "stage-failed");
 });
 
 test("an over-budget chunk fails by chunkId before any provider dependency runs", async (context) => {

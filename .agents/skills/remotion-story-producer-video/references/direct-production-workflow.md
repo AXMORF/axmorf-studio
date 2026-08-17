@@ -1,6 +1,7 @@
 # Direct production workflow
 
-This is the root Agent path. The Agent designs. Scripts freeze, validate, and execute; they do not choose creative direction.
+This is the Agent path. Agent authors.
+Scripts validate; they do not choose creative direction or self-review.
 
 ## 1. Design and freeze the Project
 

@@ -13,10 +13,6 @@ import {
   SemanticTimingSchema,
 } from "../../src/contracts/semantic-timing";
 import {
-  validateStoryCheckReport,
-  type StoryCheckReport,
-} from "../../src/contracts/story-check";
-import {
   createNarrationSealFileOperations,
   removeNarrationSealStaging,
   stageNarrationSealDirectory,
@@ -99,7 +95,6 @@ export const authorizeNarrationSealPromotion = ({
 export const runNarrationSeal = async ({
   rootDir,
   projectSource,
-  storyCheck,
   progress,
   normalizedChunks,
   supersedeFingerprint,
@@ -107,7 +102,6 @@ export const runNarrationSeal = async ({
 }: {
   readonly rootDir: string;
   readonly projectSource: NarrativeProjectSource;
-  readonly storyCheck: StoryCheckReport;
   readonly progress: NarrationGenerationProgress;
   readonly normalizedChunks: ReadonlyMap<string, Buffer>;
   readonly supersedeFingerprint?: string;
@@ -130,14 +124,6 @@ export const runNarrationSeal = async ({
   return withProjectSealLock(
     { lockPath, operation: "seal-narration" },
     async () => {
-      const validatedStoryCheck = validateStoryCheckReport({
-        story: projectSource.story,
-        narration: projectSource.narration,
-        report: storyCheck,
-      });
-      if (validatedStoryCheck.decision !== "proceed") {
-        throw new Error("StoryCheck requires revision before narration seal.");
-      }
       const seal = buildNarrationSeal({
         story: projectSource.story,
         narration: projectSource.narration,
@@ -189,7 +175,6 @@ export const runNarrationSeal = async ({
       return checkM2NarrationArtifacts({
         rootDir,
         projectSource,
-        storyCheck,
       });
     },
   );

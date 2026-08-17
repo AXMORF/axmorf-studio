@@ -9,7 +9,9 @@ import {
 } from "./primitives";
 
 export const REFERENCE_FIDELITY_CHECKER_VERSION =
-  "reference-fidelity-checker-v1" as const;
+  "reference-fidelity-checker-v2" as const;
+export const REFERENCE_FIDELITY_EVIDENCE_VERSION =
+  "reference-fidelity-evidence-v1" as const;
 
 const EvidenceArtifactSchema = z
   .object({
@@ -30,16 +32,7 @@ const FidelityPhasePairSchema = z
   .strict()
   .readonly();
 
-const FidelityTraitReviewSchema = z
-  .object({
-    trait: z.string().trim().min(1).max(240),
-    conclusion: z.literal("pass"),
-    note: z.string().trim().min(1).max(1000),
-  })
-  .strict()
-  .readonly();
-
-const FidelityReviewItemObjectSchema = z
+const FidelityEvidenceItemObjectSchema = z
   .object({
     selectionIndex: NonNegativeIntegerSchema,
     normalizedFps: PositiveIntegerSchema,
@@ -48,39 +41,36 @@ const FidelityReviewItemObjectSchema = z
     sourcePreview: EvidenceArtifactSchema,
     adaptationPreview: EvidenceArtifactSchema,
     phasePairs: z.array(FidelityPhasePairSchema).min(2).max(12).readonly(),
-    traitReviews: z.array(FidelityTraitReviewSchema).min(1).max(24).readonly(),
-    recognizable: z.literal(true),
-    recognizableNote: z.string().trim().min(1).max(1000),
     itemFingerprint: Sha256DigestSchema,
   })
   .strict();
 
-type FidelityReviewItemInput = Omit<
-  z.input<typeof FidelityReviewItemObjectSchema>,
+type FidelityEvidenceItemInput = Omit<
+  z.input<typeof FidelityEvidenceItemObjectSchema>,
   "itemFingerprint"
 >;
 
-export const computeFidelityReviewItemFingerprint = (
-  rawItem: FidelityReviewItemInput & { readonly itemFingerprint?: unknown },
+export const computeFidelityEvidenceItemFingerprint = (
+  rawItem: FidelityEvidenceItemInput & { readonly itemFingerprint?: unknown },
 ) => {
   const candidate = { ...rawItem } as Record<string, unknown>;
   delete candidate.itemFingerprint;
-  const item = FidelityReviewItemObjectSchema.omit({
+  const item = FidelityEvidenceItemObjectSchema.omit({
     itemFingerprint: true,
   }).parse(candidate);
   return createFingerprint({
-    namespace: "reference-fidelity-review-item",
+    namespace: "reference-fidelity-evidence-item",
     version: 1,
     value: item,
   });
 };
 
-const FidelityReviewItemSchema = FidelityReviewItemObjectSchema.superRefine(
+const FidelityEvidenceItemSchema = FidelityEvidenceItemObjectSchema.superRefine(
   (item, context) => {
-    if (item.itemFingerprint !== computeFidelityReviewItemFingerprint(item)) {
+    if (item.itemFingerprint !== computeFidelityEvidenceItemFingerprint(item)) {
       context.addIssue({
         code: "custom",
-        message: "Fidelity review item fingerprint is stale.",
+        message: "Fidelity evidence item fingerprint is stale.",
         path: ["itemFingerprint"],
       });
     }
@@ -127,68 +117,59 @@ const FidelityReviewItemSchema = FidelityReviewItemObjectSchema.superRefine(
         path: ["phasePairs"],
       });
     }
-    if (
-      new Set(item.traitReviews.map((review) => review.trait)).size !==
-      item.traitReviews.length
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "Fidelity trait reviews must be unique.",
-        path: ["traitReviews"],
-      });
-    }
   },
 ).readonly();
 
-const ReferenceFidelityReviewInputSchema = z
+const ReferenceFidelityEvidenceInputSchema = z
   .object({
     schemaVersion: z.literal(1),
-    reviewerRole: z.literal("agent"),
+    evidenceVersion: z.literal(REFERENCE_FIDELITY_EVIDENCE_VERSION),
     selectionFingerprint: Sha256DigestSchema,
-    items: z.array(FidelityReviewItemSchema).min(1).max(24).readonly(),
+    items: z.array(FidelityEvidenceItemSchema).min(1).max(24).readonly(),
   })
   .strict();
 
-export const computeReferenceFidelityReviewFingerprint = (
-  rawReview: z.input<typeof ReferenceFidelityReviewInputSchema> & {
-    readonly reviewFingerprint?: unknown;
+export const computeReferenceFidelityEvidenceFingerprint = (
+  rawEvidence: z.input<typeof ReferenceFidelityEvidenceInputSchema> & {
+    readonly evidenceFingerprint?: unknown;
   },
 ) => {
-  const { schemaVersion, reviewerRole, selectionFingerprint, items } =
-    rawReview;
+  const { schemaVersion, evidenceVersion, selectionFingerprint, items } =
+    rawEvidence;
   return createFingerprint({
-    namespace: "reference-fidelity-review",
+    namespace: "reference-fidelity-evidence",
     version: 1,
-    value: ReferenceFidelityReviewInputSchema.parse({
+    value: ReferenceFidelityEvidenceInputSchema.parse({
       schemaVersion,
-      reviewerRole,
+      evidenceVersion,
       selectionFingerprint,
       items,
     }),
   });
 };
 
-export const ReferenceFidelityReviewSchema =
-  ReferenceFidelityReviewInputSchema.extend({
-    reviewFingerprint: Sha256DigestSchema,
+export const ReferenceFidelityEvidenceSchema =
+  ReferenceFidelityEvidenceInputSchema.extend({
+    evidenceFingerprint: Sha256DigestSchema,
   })
     .strict()
-    .superRefine((review, context) => {
+    .superRefine((evidence, context) => {
       if (
-        review.reviewFingerprint !==
-        computeReferenceFidelityReviewFingerprint(review)
+        evidence.evidenceFingerprint !==
+        computeReferenceFidelityEvidenceFingerprint(evidence)
       ) {
         context.addIssue({
           code: "custom",
-          message: "Reference fidelity review fingerprint is stale.",
-          path: ["reviewFingerprint"],
+          message: "Reference fidelity evidence fingerprint is stale.",
+          path: ["evidenceFingerprint"],
         });
       }
-      review.items.forEach((item, index) => {
+      evidence.items.forEach((item, index) => {
         if (item.selectionIndex !== index) {
           context.addIssue({
             code: "custom",
-            message: "Fidelity review items must match exact selection order.",
+            message:
+              "Fidelity evidence items must match exact selection order.",
             path: ["items", index, "selectionIndex"],
           });
         }
@@ -196,26 +177,26 @@ export const ReferenceFidelityReviewSchema =
     })
     .readonly();
 
-export const buildReferenceFidelityReview = (rawInput: {
+export const buildReferenceFidelityEvidence = (rawInput: {
   readonly selectionFingerprint: unknown;
   readonly items: readonly unknown[];
 }) => {
   const items = rawInput.items.map((rawItem) => {
-    const item = rawItem as FidelityReviewItemInput;
-    return FidelityReviewItemSchema.parse({
+    const item = rawItem as FidelityEvidenceItemInput;
+    return FidelityEvidenceItemSchema.parse({
       ...item,
-      itemFingerprint: computeFidelityReviewItemFingerprint(item),
+      itemFingerprint: computeFidelityEvidenceItemFingerprint(item),
     });
   });
-  const input = ReferenceFidelityReviewInputSchema.parse({
+  const input = ReferenceFidelityEvidenceInputSchema.parse({
     schemaVersion: 1,
-    reviewerRole: "agent",
+    evidenceVersion: REFERENCE_FIDELITY_EVIDENCE_VERSION,
     selectionFingerprint: rawInput.selectionFingerprint,
     items,
   });
-  return ReferenceFidelityReviewSchema.parse({
+  return ReferenceFidelityEvidenceSchema.parse({
     ...input,
-    reviewFingerprint: computeReferenceFidelityReviewFingerprint(input),
+    evidenceFingerprint: computeReferenceFidelityEvidenceFingerprint(input),
   });
 };
 
@@ -260,7 +241,7 @@ const ReferenceFidelityReceiptItemObjectSchema = z
     sourceLicenseEvidenceFingerprint: Sha256DigestSchema,
     previewLicenseEvidenceFingerprint: Sha256DigestSchema,
     rendererBinding: RendererBindingEvidenceSchema,
-    reviewItemFingerprint: Sha256DigestSchema,
+    evidenceItemFingerprint: Sha256DigestSchema,
     itemFingerprint: Sha256DigestSchema,
   })
   .strict();
@@ -280,7 +261,7 @@ export const computeReferenceFidelityReceiptItemFingerprint = (
   }).parse(candidate);
   return createFingerprint({
     namespace: "reference-fidelity-receipt-item",
-    version: 1,
+    version: 2,
     value: item,
   });
 };
@@ -305,7 +286,7 @@ const PassReceiptInputSchema = z
     checkerVersion: z.literal(REFERENCE_FIDELITY_CHECKER_VERSION),
     status: z.literal("pass"),
     selectionFingerprint: Sha256DigestSchema,
-    reviewFingerprint: Sha256DigestSchema,
+    evidenceFingerprint: Sha256DigestSchema,
     items: z.array(ReferenceFidelityReceiptItemSchema).min(1).readonly(),
   })
   .strict();
@@ -325,7 +306,7 @@ const computeReceiptFingerprint = (rawReceipt: Record<string, unknown>) => {
   delete receipt.receiptFingerprint;
   return createFingerprint({
     namespace: "reference-fidelity-receipt",
-    version: 1,
+    version: 2,
     value: receipt,
   });
 };
@@ -394,7 +375,7 @@ export const buildNotApplicableFidelityReceipt = (rawInput: {
 
 export const buildPassFidelityReceipt = (rawInput: {
   readonly selectionFingerprint: unknown;
-  readonly reviewFingerprint: unknown;
+  readonly evidenceFingerprint: unknown;
   readonly items: readonly unknown[];
 }) => {
   const items = rawInput.items.map((rawItem) => {
@@ -409,7 +390,7 @@ export const buildPassFidelityReceipt = (rawInput: {
     checkerVersion: REFERENCE_FIDELITY_CHECKER_VERSION,
     status: "pass",
     selectionFingerprint: rawInput.selectionFingerprint,
-    reviewFingerprint: rawInput.reviewFingerprint,
+    evidenceFingerprint: rawInput.evidenceFingerprint,
     items,
   });
   return ReferenceFidelityPassReceiptSchema.parse({
@@ -418,8 +399,8 @@ export const buildPassFidelityReceipt = (rawInput: {
   });
 };
 
-export type ReferenceFidelityReview = z.infer<
-  typeof ReferenceFidelityReviewSchema
+export type ReferenceFidelityEvidence = z.infer<
+  typeof ReferenceFidelityEvidenceSchema
 >;
 export type ReferenceFidelityReceipt = z.infer<
   typeof ReferenceFidelityReceiptSchema

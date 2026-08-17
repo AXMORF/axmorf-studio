@@ -2,7 +2,7 @@
 
 > 文档类型：执行流程权威
 >
-> 最后复核：2026-08-16
+> 最后复核：2026-08-18
 
 ## 默认 build 主链
 
@@ -65,7 +65,7 @@ scripts 读取、迁移、回填或解释。显式 `project:delete` 仅为清理
 
 Agent 先 author VideoBrief、StorySpec 与 project-local `producer-input.json`，再运行
 `npm run project:configure -- --project <storyId> --input <path>`。fixed application 只通过 strict
-ProducerConfig helper 读取一次默认值，生成 NarrationSpec/RenderSpec/StoryCheck、PublishingIntent
+ProducerConfig helper 读取一次默认值，生成 NarrationSpec/RenderSpec、PublishingIntent
 v2 与 current ProductionRequirementsFreeze。PublishingIntent 必须从合集数组选且只选一个 ID，
 包含 6–7 个唯一且不含空白字符的话题字符串，并封存名称与完整目录 fingerprint；readability 必须显式来自 ProducerConfig，创建 API 不再使用
 90px fallback。RenderSpec 不保存目标时长或字幕安全区。StorySpec v3 使用严格联合：
@@ -173,6 +173,10 @@ visual/shot/anchor/sound plans、selected resources、empty recipe 与 not-appli
 或 receipt；只有
 `ownerMeaningIds` 被派发。silent Scene brief 不接受另行注入的 snapshot card；带 exact cue 的 template 要求
 统一 `sound: allowed`，冲突在 freeze 时直接 fail closed。
+
+exact-reference Scene 由 owner 提供 source/adaptation 正常速度预览和 phase-pair 帧证据。fixed checker
+只校验文件 checksum、相位映射、来源/本地化/license lineage 与 Renderer frame binding；不读取 Agent
+自评，不判断“像不像”、trait 是否通过或正常速度是否可辨识。
 
 - Scene owner 制作前必须读取并使用 repository-local
   `.agents/skills/remotion-best-practices/SKILL.md`，同时以 AGENTS、assignment、contracts 与

@@ -9,8 +9,8 @@ import {
   FinalAssemblyPlanSchema,
   GlobalVisualPlanSchema,
   ProjectSoundPlanSchema,
+  ReferenceFidelityEvidenceSchema,
   ReferenceFidelityReceiptSchema,
-  ReferenceFidelityReviewSchema,
   ResourceCatalogSchema,
   ResourceDescriptorSchema,
   SCENE_AUDIO_RUNTIME_VERSION,
@@ -215,14 +215,14 @@ const scenePath = (
   path: string,
 ) => join(rootDir, "src/projects", storyId, "scenes", meaningId, path);
 
-const validateReviewArtifacts = async ({
+const validateFidelityEvidenceArtifacts = async ({
   rootDir,
-  review,
+  evidence,
 }: {
   readonly rootDir: string;
-  readonly review: ReturnType<typeof ReferenceFidelityReviewSchema.parse>;
+  readonly evidence: ReturnType<typeof ReferenceFidelityEvidenceSchema.parse>;
 }) => {
-  for (const item of review.items) {
+  for (const item of evidence.items) {
     const artifacts = [
       item.sourcePreview,
       item.adaptationPreview,
@@ -236,7 +236,7 @@ const validateReviewArtifacts = async ({
         (await checksumFile(join(rootDir, artifact.artifactPath))) !==
         artifact.checksum
       ) {
-        throw new Error("Reference review evidence checksum is stale.");
+        throw new Error("Reference fidelity evidence checksum is stale.");
       }
     }
   }
@@ -536,22 +536,22 @@ export const loadCurrentFinalSceneBranch = async ({
       if (fidelity.status !== "pass") {
         throw new Error("Exact Scene reference fidelity is missing.");
       }
-      const review = ReferenceFidelityReviewSchema.parse(
+      const evidence = ReferenceFidelityEvidenceSchema.parse(
         await loadProjectCheckJson(
           scenePath(
             rootDir,
             paths.storyId,
             meaningId,
-            "generated/reference-fidelity-review.generated.json",
+            "generated/reference-fidelity-evidence.generated.json",
           ),
-          "reference-fidelity-review.generated.json",
+          "reference-fidelity-evidence.generated.json",
         ),
       );
-      if (review.reviewFingerprint !== fidelity.reviewFingerprint) {
-        throw new Error("Reference fidelity review identity is stale.");
+      if (evidence.evidenceFingerprint !== fidelity.evidenceFingerprint) {
+        throw new Error("Reference fidelity evidence identity is stale.");
       }
       if (includeMediaEvidence) {
-        await validateReviewArtifacts({ rootDir, review });
+        await validateFidelityEvidenceArtifacts({ rootDir, evidence });
       }
       for (const item of fidelity.items) {
         for (const source of item.localizedSourceChecksums) {

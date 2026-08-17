@@ -7,7 +7,6 @@ import {
 
 const CHECK_EVIDENCE = {
   "source-contracts": [],
-  "story-check": ["story-check"],
   "sealed-narration": ["sealed-manifest", "complete-wav"],
   "semantic-timing": ["semantic-timing"],
   "project-registry": ["project-registry"],

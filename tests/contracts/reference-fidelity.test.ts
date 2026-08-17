@@ -1,48 +1,80 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import test from "node:test";
 
 import {
-  ReferenceFidelityReviewSchema,
+  ReferenceFidelityEvidenceSchema,
+  buildReferenceFidelityEvidence,
   buildNotApplicableFidelityReceipt,
-  computeReferenceFidelityReviewFingerprint,
+  computeReferenceFidelityEvidenceFingerprint,
 } from "../../src/contracts/reference-fidelity";
 
-const repositoryRoot = join(import.meta.dirname, "../..");
+const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
-test("Agent review record is strict current and binds paired phases normal-speed previews and traits", async () => {
-  const raw = JSON.parse(
-    await readFile(
-      join(
-        repositoryRoot,
-        "tests/fixtures/external-references/fidelity/source-adaptation-review.json",
-      ),
-      "utf8",
-    ),
-  );
-  const review = ReferenceFidelityReviewSchema.parse(raw);
+test("mechanical fidelity evidence is strict and binds paired phases without Agent conclusions", () => {
+  const evidence = buildReferenceFidelityEvidence({
+    selectionFingerprint: sha("a"),
+    items: [
+      {
+        selectionIndex: 0,
+        normalizedFps: 30,
+        sourceDurationInFrames: 100,
+        adaptationDurationInFrames: 100,
+        sourcePreview: {
+          artifactPath: "evidence/source.mp4",
+          checksum: sha("b"),
+        },
+        adaptationPreview: {
+          artifactPath: "evidence/adaptation.mp4",
+          checksum: sha("c"),
+        },
+        phasePairs: [
+          {
+            normalizedPhase: 0.2,
+            sourceFrame: 20,
+            adaptationFrame: 20,
+            sourceEvidence: {
+              artifactPath: "evidence/source-20.png",
+              checksum: sha("d"),
+            },
+            adaptationEvidence: {
+              artifactPath: "evidence/adaptation-20.png",
+              checksum: sha("e"),
+            },
+          },
+          {
+            normalizedPhase: 0.7,
+            sourceFrame: 70,
+            adaptationFrame: 70,
+            sourceEvidence: {
+              artifactPath: "evidence/source-70.png",
+              checksum: sha("f"),
+            },
+            adaptationEvidence: {
+              artifactPath: "evidence/adaptation-70.png",
+              checksum: sha("1"),
+            },
+          },
+        ],
+      },
+    ],
+  });
   assert.equal(
-    computeReferenceFidelityReviewFingerprint(review),
-    review.reviewFingerprint,
+    computeReferenceFidelityEvidenceFingerprint(evidence),
+    evidence.evidenceFingerprint,
   );
-  assert.equal(review.items[0].recognizable, true);
-  assert.equal(review.items[0].phasePairs.length, 2);
+  assert.equal(evidence.items[0].phasePairs.length, 2);
+  assert.equal("reviewerRole" in evidence, false);
+  assert.equal("recognizable" in evidence.items[0], false);
   assert.throws(() =>
-    ReferenceFidelityReviewSchema.parse({
-      ...review,
-      items: [{ ...review.items[0], recognizable: false }],
+    ReferenceFidelityEvidenceSchema.parse({
+      ...evidence,
+      reviewerRole: "agent",
     }),
   );
   assert.throws(() =>
-    ReferenceFidelityReviewSchema.parse({
-      ...review,
-      items: [
-        {
-          ...review.items[0],
-          traitReviews: [{ ...review.items[0].traitReviews[0], note: "" }],
-        },
-      ],
+    ReferenceFidelityEvidenceSchema.parse({
+      ...evidence,
+      items: [{ ...evidence.items[0], recognizable: true }],
     }),
   );
 });

@@ -68,7 +68,6 @@ test("project source identity and Composition props use the Story slug", () => {
     story: "story.json",
     narration: "narration.json",
     render: "render.json",
-    storyCheck: "reviews/story-check.json",
     sealedNarration: "generated/sealed-narration.generated.json",
     masteredNarration: "generated/mastered-narration.generated.json",
     semanticTiming: "generated/semantic-timing.generated.json",

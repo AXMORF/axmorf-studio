@@ -7,8 +7,8 @@ description: Design, freeze, and dispatch a contract-driven Remotion Story produ
 
 ## Start directly
 
-Use the request and repository as authority. Preserve unrelated changes. The Agent makes
-narrative and visual decisions; scripts only freeze, validate, and execute.
+Use the request and repository as authority. Preserve unrelated changes. The Agent authors;
+scripts mechanically freeze, validate, and execute without Agent self-review.
 
 ## Freeze inputs before dispatch
 

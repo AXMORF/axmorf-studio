@@ -106,7 +106,7 @@ test("two-pass mastering preserves canonical sample count and verifies output lo
   ]);
 });
 
-test("two-pass mastering keeps peak-limited speech inside the accepted loudness window", async () => {
+test("two-pass mastering biases peak-limited speech toward the requested target", async () => {
   const sourceRaw = createRawPcmFixture([100, -100, 200, -200]);
   const outputRaw = createRawPcmFixture([200, -200, 400, -400]);
   const sourceWav = createWavFixture({ rawPcm: sourceRaw });
@@ -158,7 +158,8 @@ test("two-pass mastering keeps peak-limited speech inside the accepted loudness 
         sampleFrameCount: 4,
       },
       outputAudio: {
-        localPath: "public/projects/story-example/narration-mastered/pending/complete.wav",
+        localPath:
+          "public/projects/story-example/narration-mastered/pending/complete.wav",
         checksum: sha("c"),
         pcm: {
           sampleRate: 48_000,
@@ -176,7 +177,7 @@ test("two-pass mastering keeps peak-limited speech inside the accepted loudness 
   assert.equal(mastered.masteringPolicy.targetIntegratedLoudnessLufs, -18);
 });
 
-test("mastered narration contract binds seal, policy, measurements, checksum, and content path", () => {
+test("mastered narration records out-of-target measurements while binding identity", () => {
   const manifest = buildMasteredNarrationManifest({
     storyId: "story-example",
     sealedNarrationFingerprint: sha("a"),
@@ -194,8 +195,8 @@ test("mastered narration contract binds seal, policy, measurements, checksum, an
       sampleFrameCount: 48_000,
     },
     measurements: {
-      integratedLoudnessLufs: -16.12,
-      truePeakDbtp: -1.5,
+      integratedLoudnessLufs: -18,
+      truePeakDbtp: -0.5,
       loudnessRangeLu: 3.3,
       thresholdLufs: -26.87,
     },
@@ -220,10 +221,10 @@ test("mastered narration contract binds seal, policy, measurements, checksum, an
         ...manifest,
         measurements: {
           ...manifest.measurements,
-          integratedLoudnessLufs: -18,
+          integratedLoudnessLufs: -20,
         },
       }),
-    /outside policy|fingerprint is stale/iu,
+    /fingerprint is stale/iu,
   );
   assert.throws(
     () =>

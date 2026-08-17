@@ -2,7 +2,7 @@
 
 > 文档类型：合同参考。可执行 schema 与 fingerprint 逻辑以 `src/contracts/` 为准。
 >
-> 最后复核：2026-08-16
+> 最后复核：2026-08-18
 
 ## Persisted source files
 
@@ -10,14 +10,13 @@
 - `story.json` → `StorySpecSchema`
 - `narration.json` → `NarrationSpecSchema`
 - `render.json` → `RenderSpecSchema`
-- `reviews/story-check.json` → `StoryCheckReportSchema`
 - `generated/sealed-narration.generated.json` → `SealedNarrationManifestSchema`
 - `generated/semantic-timing.generated.json` → `SemanticTimingSchema`
 - `generated/narrative-baseline-evidence.generated.json` →
   `NarrativeBaselineEvidenceReceiptSchema`
 - `generated/narrative-auto-check.generated.json` → `NarrativeAutoCheckReportSchema`
 
-The first five files are authored source/review inputs; the four `generated/` files are derived
+The first four files are authored source inputs; the four `generated/` files are derived
 artifacts. All objects are strict and versioned by their executable schemas.
 
 `VideoBrief.sourceReferences` 是最多 8 条的结构化资料引用，每条严格包含最长 160 字符的
@@ -72,7 +71,7 @@ its semantic artifact paths are `narrative-baseline-transparent-frame-0.png`,
 `narrative-baseline-caption-frame-<frame>.png` and `narrative-baseline.mp4`, and its fingerprint namespace
 is `narrative-baseline-evidence` version 2.
 
-`narrative-auto-check-v3` uses report schema v2 and binds the complete strict report body, including current source/StoryCheck,
+`narrative-auto-check-v4` uses report schema v2 and binds the complete strict report body, including current source,
 seal, content-addressed mastered narration, timing, registry/baseline/evidence identities, fixed
 evidence checksums and the ordered mechanical results. Unknown fields fail closed.
 
@@ -88,16 +87,11 @@ the persisted contract against the actual files.
 `MasteredNarrationManifestSchema` binds that seal to a two-pass FFmpeg loudness result. The output
 remains canonical mono 48 kHz signed 16-bit PCM with the exact sealed sample-frame count, lives under
 the separate `public/projects/<storyId>/narration-mastered/` root in an immutable directory addressed
-by its own fingerprint, targets `-16 LUFS` / `-1.5 dBTP`, and passes
-only within the fixed integrated-loudness range and true-peak ceiling. SemanticTiming continues to
+by its own fingerprint, and records the requested `-16 LUFS` / `-1.5 dBTP` policy plus measured output.
+Integrated loudness and true peak are observations, not pass/fail gates. SemanticTiming continues to
 derive exclusively from the sealed PCM; the mastered WAV is the render playback artifact.
 
-## StoryCheck and operational work
-
-`StoryCheckReportSchema` binds the current Story fingerprint, generation input fingerprint, voice
-profile selection, ordered required checks, and a `proceed` or `revise` decision. The report is authored
-by the Agent before external generation; warnings do not add a user approval gate, while failed checks
-must revise and block generation.
+## Operational work
 
 Candidate progress and the provider-attempt fingerprint are operational work records under the
 ignored `.narration-work/` tree. They identify and verify resumable provider output, but they are neither
@@ -144,20 +138,20 @@ npm run baseline:evidence -- --project <story-id>
 npm run project:check -- --project <story-id> --level narrative
 ```
 
-The narration checker validates real file bytes, checksums, sample-frame totals, current StoryCheck,
-active seal, and byte-equivalent SemanticTiming. Narrative Baseline validation additionally checks the
+The narration checker validates real file bytes, checksums, sample-frame totals, active seal, and
+byte-equivalent SemanticTiming. Narrative Baseline validation additionally checks the
 current registry, lazy Composition metadata, transparent PNG facts, render facts, and evidence
 fingerprint.
 
-`project:check` aggregates `source-contracts`, `story-check`, `sealed-narration`,
+`project:check` aggregates `source-contracts`, `sealed-narration`,
 `semantic-timing`, `project-registry`, `narrative-baseline` and `baseline-evidence`, in that order. Default mode
 recomputes read-only and rejects a missing, malformed or byte-drifted persisted AutoCheck. The optional
 `--write-auto-check` atomically writes only a passing report and skips unchanged bytes so checksum and
 mtime remain stable. Failed checks never overwrite the last valid report. The checker does not implement
 NarrativeCheck or any subjective Story, narration, caption or pacing review.
 
-Invalidation follows the existing dependency chain: source or StoryCheck identity changes invalidate
-their sealed/timing/Baseline descendants; timing RenderSpec changes leave sealed PCM valid but invalidate
+Invalidation follows the existing dependency chain: source identity changes invalidate its sealed/timing/Baseline
+descendants; timing RenderSpec changes leave sealed PCM valid but invalidate
 SemanticTiming and downstream identities; non-timing registration or Baseline changes leave sealed PCM
 and timing valid; media loss/corruption invalidates baseline evidence without rewriting upstream identities.
 The checker never repairs any of these artifacts.

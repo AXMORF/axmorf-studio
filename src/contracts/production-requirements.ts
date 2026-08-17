@@ -1,9 +1,6 @@
 import { z } from "zod";
 
-import {
-  computeRenderSpecFingerprint,
-  computeStoryCheckFingerprint,
-} from "./auto-check";
+import { computeRenderSpecFingerprint } from "./auto-check";
 import { VideoBriefSchema } from "./brief";
 import { createFingerprint, serializeCanonicalJson } from "./fingerprint";
 import { computeStoryFingerprint } from "./generation-input";
@@ -22,14 +19,10 @@ import {
   validateStoryCaptionReadability,
 } from "./production-readability";
 import { RenderSpecSchema } from "./render";
-import {
-  StoryCheckReportSchema,
-  validateStoryCheckReport,
-} from "./story-check";
 import { StorySpecSchema } from "./story";
 
 export const PRODUCTION_REQUIREMENTS_CONTRACT_VERSION =
-  "production-requirements-current-v2" as const;
+  "production-requirements-current-v3" as const;
 export const SCENE_COMPOSITION_BOUNDARY_VERSION =
   "scene-composition-boundary-v1" as const;
 
@@ -80,7 +73,6 @@ const ProductionSourceBindingsSchema = z
     storySpec: FingerprintedProductionArtifactBindingSchema,
     narrationSpec: FingerprintedProductionArtifactBindingSchema,
     renderSpec: FingerprintedProductionArtifactBindingSchema,
-    storyCheck: FingerprintedProductionArtifactBindingSchema,
     projectSound: FingerprintedProductionArtifactBindingSchema,
   })
   .strict()
@@ -231,7 +223,6 @@ const addFreezeInputIssues = (
     storySpec: `src/projects/${freeze.storyId}/story.json`,
     narrationSpec: `src/projects/${freeze.storyId}/narration.json`,
     renderSpec: `src/projects/${freeze.storyId}/render.json`,
-    storyCheck: `src/projects/${freeze.storyId}/reviews/story-check.json`,
     projectSound: `src/projects/${freeze.storyId}/sound.json`,
   } as const;
   for (const [bindingId, expectedPath] of Object.entries(expectedPaths)) {
@@ -341,14 +332,12 @@ const ProductionRequirementsSourceSchema = z
     story: StorySpecSchema,
     narration: NarrationSpecSchema,
     render: RenderSpecSchema,
-    storyCheck: StoryCheckReportSchema,
     projectSound: ProjectSoundPlanSchema,
   })
   .strict()
   .superRefine((source, context) => {
     if (
       source.brief.storyId !== source.story.storyId ||
-      source.storyCheck.storyId !== source.story.storyId ||
       source.projectSound.storyId !== source.story.storyId
     ) {
       context.addIssue({
@@ -366,7 +355,6 @@ const ProductionSourceChecksumsSchema = z
     storySpec: Sha256DigestSchema,
     narrationSpec: Sha256DigestSchema,
     renderSpec: Sha256DigestSchema,
-    storyCheck: Sha256DigestSchema,
     projectSound: Sha256DigestSchema,
   })
   .strict()
@@ -380,16 +368,7 @@ const computeNarrationSpecFingerprint = (narration: unknown) =>
   });
 
 const assertCurrentSource = (rawSource: unknown) => {
-  const source = ProductionRequirementsSourceSchema.parse(rawSource);
-  const storyCheck = validateStoryCheckReport({
-    story: source.story,
-    narration: source.narration,
-    report: source.storyCheck,
-  });
-  if (storyCheck.decision !== "proceed") {
-    throw new Error("Current StoryCheck must permit production to proceed.");
-  }
-  return { ...source, storyCheck } as const;
+  return ProductionRequirementsSourceSchema.parse(rawSource);
 };
 
 const assertCurrentRequirementTargets = ({
@@ -470,11 +449,6 @@ const buildProductionRequirementsBase = ({
         repositoryPath: `src/projects/${storyId}/render.json`,
         checksum: sourceChecksums.renderSpec,
         fingerprint: computeRenderSpecFingerprint(source.render),
-      },
-      storyCheck: {
-        repositoryPath: `src/projects/${storyId}/reviews/story-check.json`,
-        checksum: sourceChecksums.storyCheck,
-        fingerprint: computeStoryCheckFingerprint(source.storyCheck),
       },
       projectSound: {
         repositoryPath: `src/projects/${storyId}/sound.json`,

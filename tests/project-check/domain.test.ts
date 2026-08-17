@@ -17,7 +17,7 @@ test("safe failure mapping uses fixed codes and never exposes raw diagnostics", 
     ],
     ["sealed-narration", new Error("checksum is stale"), "checksum-mismatch"],
     [
-      "story-check",
+      "source-contracts",
       new Error("identity does not match endpoint"),
       "identity-mismatch",
     ],
@@ -45,7 +45,6 @@ test("fixed check items preserve order-specific evidence ownership", () => {
     ).map((item) => [item.checkId, item.evidenceIds]),
     [
       ["source-contracts", []],
-      ["story-check", ["story-check"]],
       ["sealed-narration", ["sealed-manifest", "complete-wav"]],
       ["semantic-timing", ["semantic-timing"]],
       ["project-registry", ["project-registry"]],

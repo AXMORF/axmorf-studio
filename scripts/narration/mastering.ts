@@ -175,7 +175,7 @@ export const masterNarrationBytes = async ({
 }) => {
   const masteringPolicy = buildNarrationMasteringPolicy(targetLoudnessLufs);
   // Peak-limited speech can finish slightly below loudnorm's requested target.
-  // Keep that deterministic undershoot inside the policy's existing +/-0.5 LU window.
+  // Bias processing toward that target without changing the recorded policy target.
   const processingPolicy = {
     ...masteringPolicy,
     targetIntegratedLoudnessLufs:

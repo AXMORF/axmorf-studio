@@ -135,8 +135,9 @@ Shotcraft 等来源只能通过冻结 commit、准确 demo/recipe 和最小依�
 
 ## Owner 与审核
 
-- StoryCheck：外部旁白调用前由 Agent 检查 StoryBeat、ttsChunks、叙事完整性和 voice profile。
 - AutoCheck：机械聚合 source、sealed narration、SemanticTiming、Registry 与 Narrative Baseline。
+- exact-reference Scene 只提交 preview、phase-pair、checksum、lineage、license 与 Renderer binding
+  证据，由固定脚本机械校验；不提交 Agent 自评、可辨识度结论或 trait pass/fail。
 - Scene/GlobalVisual/Cover owner 只写 assignment-exclusive 路径并用固定 CLI 发布 one immutable
   `owner-ready` 或 `owner-failed` receipt；owner/root 均不直接 submit 正式结果。
 - current 自动流程没有 NarrativeCheck、Scene aesthetic gate 或人工创意 gate。

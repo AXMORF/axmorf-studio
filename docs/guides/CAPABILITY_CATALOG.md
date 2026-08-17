@@ -2,7 +2,7 @@
 
 > 文档类型：维护指南
 >
-> 最后复核：2026-08-16
+> 最后复核：2026-08-18
 >
 > 系统结构与当前状态分别以 [ARCHITECTURE.md](../ARCHITECTURE.md) 和
 > [ITERATION_STATUS.md](../ITERATION_STATUS.md) 为准。
@@ -160,6 +160,7 @@ repository-local `remotion-best-practices` 只提供 Scene authoring guidance，
 缺失、重复、类型不匹配、路径越界或 snapshot fingerprint 漂移全部 fail closed。
 exact recipe 还必须唯一解析到 cardId/style-key、准确 demo 与 preview identities，并由独立
 reference fidelity receipt 证明最小本地化闭包、真实 Renderer/frame-state binding、配对
-证据和正常速度可辨识度；card-name-only、metadata-only 或未使用的孤儿源码不能通过。
+证据文件及其相位/checksum；receipt 不包含 Agent 自评，也不判断正常速度可辨识度。
+card-name-only、metadata-only 或未使用的孤儿源码不能通过。
 通过校验的视觉与音频选择最终共同进入对应 `ScenePackage`；Catalog 只负责发现、解析和
 校验资源，不拥有 ScenePackage，也不成为第二份 Scene 创作权威。

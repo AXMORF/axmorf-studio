@@ -9,7 +9,7 @@ import { SCENE_RUNTIME_PROOF_IDENTITY } from "../../../proofs/scene-runtime/iden
 import {
   LocalizationManifestSchema,
   VisualStyleSpecSchema,
-  buildReferenceFidelityReview,
+  buildReferenceFidelityEvidence,
   buildSceneCoverageMap,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
@@ -469,7 +469,7 @@ export const generateSceneRuntimeProof = async ({
         requiredTraits: [
           "40-frame outline trace",
           "closed-outline flash handoff",
-          "normal-speed recognizable pen",
+          "pen motion across trace",
         ],
       },
     ],
@@ -496,7 +496,7 @@ export const generateSceneRuntimeProof = async ({
       "Scene runtime proof source preview does not match the frozen card.",
     );
   }
-  const review = buildReferenceFidelityReview({
+  const evidence = buildReferenceFidelityEvidence({
     selectionFingerprint: selection.selectionFingerprint,
     items: [
       {
@@ -541,22 +541,6 @@ export const generateSceneRuntimeProof = async ({
             },
           },
         ],
-        traitReviews: (() => {
-          const exactSelection = selection.selections[0];
-          if (exactSelection.mode !== "exact-demo-localized") {
-            throw new Error(
-              "Scene runtime proof requires one exact selection.",
-            );
-          }
-          return exactSelection.requiredTraits.map((trait) => ({
-            trait,
-            conclusion: "pass" as const,
-            note: `Current paired evidence preserves ${trait}.`,
-          }));
-        })(),
-        recognizable: true,
-        recognizableNote:
-          "Agent review confirms the trace close flash and moving pen remain recognizable at normal speed.",
       },
     ],
   });
@@ -566,7 +550,7 @@ export const generateSceneRuntimeProof = async ({
     snapshot,
     localization,
     selection,
-    review,
+    evidence,
     rendererPath: graph.rendererPath,
     rendererSource: graph.rendererSource,
     adaptedShotPath: graph.shotPath,
@@ -658,7 +642,7 @@ export const rendererRegistry = {
     ],
     [`${SCENE_ROOT}/shot-recipe-selection.json`, selection],
     [`${generated}/localization-manifest.generated.json`, localization],
-    [`${generated}/reference-fidelity-review.generated.json`, review],
+    [`${generated}/reference-fidelity-evidence.generated.json`, evidence],
     [`${generated}/reference-fidelity.generated.json`, fidelityReceipt],
     [`${generated}/scene-package.generated.json`, scenePackage],
     [`${PROOF_FIXTURE_ROOT}/generated/scene-coverage.generated.json`, coverage],

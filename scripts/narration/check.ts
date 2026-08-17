@@ -12,10 +12,6 @@ import {
   type SemanticTiming,
 } from "../../src/contracts/semantic-timing";
 import {
-  validateStoryCheckReport,
-  type StoryCheckReport,
-} from "../../src/contracts/story-check";
-import {
   concatenateCanonicalPcm,
   createExplicitPausePcm,
   measureCanonicalPcmWav,
@@ -82,20 +78,10 @@ const readTiming = async (
 export const checkM2NarrationArtifacts = async ({
   rootDir,
   projectSource,
-  storyCheck,
 }: {
   readonly rootDir: string;
   readonly projectSource: NarrativeProjectSource;
-  readonly storyCheck: StoryCheckReport;
 }): Promise<M2NarrationCheckResult> => {
-  const validatedStoryCheck = validateStoryCheckReport({
-    story: projectSource.story,
-    narration: projectSource.narration,
-    report: storyCheck,
-  });
-  if (validatedStoryCheck.decision !== "proceed") {
-    throw new Error("StoryCheck must proceed for an active M2 narration seal.");
-  }
   const manifest = await readManifest(rootDir, projectSource.story.storyId);
   const timing = await readTiming(rootDir, projectSource.story.storyId);
 

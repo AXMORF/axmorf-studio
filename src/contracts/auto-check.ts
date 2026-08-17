@@ -7,13 +7,11 @@ import {
 } from "./narrative-baseline";
 import { Sha256DigestSchema, StoryIdSchema } from "./primitives";
 import { RenderSpecSchema, type RenderSpec } from "./render";
-import { StoryCheckReportSchema, type StoryCheckReport } from "./story-check";
 
-export const NARRATIVE_AUTO_CHECK_VERSION = "narrative-auto-check-v3" as const;
+export const NARRATIVE_AUTO_CHECK_VERSION = "narrative-auto-check-v4" as const;
 
 export const NARRATIVE_AUTO_CHECK_IDS = [
   "source-contracts",
-  "story-check",
   "sealed-narration",
   "semantic-timing",
   "project-registry",
@@ -22,7 +20,6 @@ export const NARRATIVE_AUTO_CHECK_IDS = [
 ] as const;
 
 export const NARRATIVE_AUTO_CHECK_EVIDENCE_IDS = [
-  "story-check",
   "sealed-manifest",
   "complete-wav",
   "semantic-timing",
@@ -80,7 +77,6 @@ const NarrativeAutoCheckInputIdentitySchema = z
   .object({
     storyFingerprint: Sha256DigestSchema.nullable(),
     renderSpecFingerprint: Sha256DigestSchema.nullable(),
-    storyCheckFingerprint: Sha256DigestSchema.nullable(),
     generationInputFingerprint: Sha256DigestSchema.nullable(),
     sealedNarrationFingerprint: Sha256DigestSchema.nullable(),
     masteredNarrationFingerprint: Sha256DigestSchema.nullable(),
@@ -150,7 +146,6 @@ const expectedEvidencePaths = ({
   const masterDirectory =
     masteredNarrationFingerprint?.slice("sha256:".length) ?? "unavailable";
   return [
-    `src/projects/${storyId}/reviews/story-check.json`,
     `src/projects/${storyId}/generated/sealed-narration.generated.json`,
     `public/projects/${storyId}/narration-mastered/${sealDirectory}/${masterDirectory}/complete.wav`,
     `src/projects/${storyId}/generated/semantic-timing.generated.json`,
@@ -161,7 +156,6 @@ const expectedEvidencePaths = ({
 
 const EXPECTED_CHECK_EVIDENCE = {
   "source-contracts": [],
-  "story-check": ["story-check"],
   "sealed-narration": ["sealed-manifest", "complete-wav"],
   "semantic-timing": ["semantic-timing"],
   "project-registry": ["project-registry"],
@@ -274,7 +268,7 @@ export const computeNarrativeAutoCheckReportFingerprint = (
   const input = NarrativeAutoCheckReportInputSchema.parse(rawInput);
   return createFingerprint({
     namespace: "narrative-auto-check-report",
-    version: 2,
+    version: 3,
     value: input,
   });
 };
@@ -307,13 +301,6 @@ export const computeRenderSpecFingerprint = (rawRender: RenderSpec) =>
     namespace: "render-spec",
     version: 1,
     value: RenderSpecSchema.parse(rawRender),
-  });
-
-export const computeStoryCheckFingerprint = (rawStoryCheck: StoryCheckReport) =>
-  createFingerprint({
-    namespace: "story-check-report",
-    version: 1,
-    value: StoryCheckReportSchema.parse(rawStoryCheck),
   });
 
 export const createNarrativeAutoCheckEvidenceRefs = ({

@@ -9,7 +9,7 @@ case. External environment failure is a blocker. Classify the failing owner befo
 
 Agent-owned work includes:
 
-- VideoBrief/Story/StoryBeat/ttsChunks and StoryCheck authoring;
+- VideoBrief/Story/StoryBeat/ttsChunks authoring;
 - VisualStyleSpec, StoryResourcePool, SceneProductionBrief, and resource choices;
 - GlobalVisualBrief, GlobalVisualPlan, selected-resource declarations, project-local source, and
   other GlobalVisual assignment-owned inputs;

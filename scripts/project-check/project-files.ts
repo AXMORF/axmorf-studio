@@ -32,7 +32,6 @@ export const getProjectCheckPaths = ({
     story: join(projectDirectory, "story.json"),
     narration: join(projectDirectory, "narration.json"),
     render: join(projectDirectory, "render.json"),
-    storyCheck: join(projectDirectory, "reviews/story-check.json"),
     sealedNarration: join(
       projectDirectory,
       "generated/sealed-narration.generated.json",

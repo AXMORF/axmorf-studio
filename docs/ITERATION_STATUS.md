@@ -2,7 +2,7 @@
 
 > 文档类型：当前事实权威
 >
-> 最后复核：2026-08-16
+> 最后复核：2026-08-18
 >
 > 当前阶段：build-centric final artifact alignment 已实现；audited production 保留为可选能力
 
@@ -43,7 +43,7 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   `npm run dev:lan` 让两者通过可信 LAN IP 访问。token 按要求完整回传、显示、可修改，同时使用
   精确同源写入、no-store、无浏览器持久化和 `0600` 原子写入。
 - `project:configure` 是新 Project 的固定冻结入口：从 Project `producer-input.json` 与一次
-  ProducerConfig 读取生成 NarrationSpec、RenderSpec、StoryCheck、PublishingIntent v2 和
+  ProducerConfig 读取生成 NarrationSpec、RenderSpec、PublishingIntent v2 和
   ProductionRequirementsFreeze；同时将可选 BGM 本地化并冻结为 Project `sound.json` 与 manifest
   资源。输出 conflict 时拒绝覆盖。
 - 配置 API 已覆盖 GET/PUT、strict validation、同源拒绝和原子写入；页面提供只读的声线来源、

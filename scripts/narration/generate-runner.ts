@@ -1,9 +1,5 @@
-import {
-  computeGenerationInputFingerprint,
-} from "../../src/contracts/generation-input";
+import { computeGenerationInputFingerprint } from "../../src/contracts/generation-input";
 import type { NarrationSpec } from "../../src/contracts/narration";
-import type { StoryCheckReport } from "../../src/contracts/story-check";
-import { validateStoryCheckReport } from "../../src/contracts/story-check";
 import { flattenTtsChunks, type StorySpec } from "../../src/contracts/story";
 import {
   CanonicalMeasuredChunkSchema,
@@ -25,10 +21,7 @@ import {
   readCandidateBytes,
   writeCandidateAndProgress,
 } from "./adapters/candidate-workspace";
-import {
-  measureCanonicalPcmWav,
-  sha256Bytes,
-} from "./domain/pcm-wav";
+import { measureCanonicalPcmWav, sha256Bytes } from "./domain/pcm-wav";
 
 const createExpectedGeneration = ({
   story,
@@ -68,7 +61,6 @@ export const runNarrationGeneration = async ({
   rootDir,
   story,
   narration,
-  storyCheck,
   providerAttemptFingerprint,
   generateChunk,
   normalizePcm,
@@ -76,19 +68,10 @@ export const runNarrationGeneration = async ({
   readonly rootDir: string;
   readonly story: StorySpec;
   readonly narration: NarrationSpec;
-  readonly storyCheck: StoryCheckReport;
   readonly providerAttemptFingerprint: string;
   readonly generateChunk: ChunkAudioGenerator;
   readonly normalizePcm: PcmNormalizer;
 }): Promise<NarrationGenerationResult> => {
-  const currentStoryCheck = validateStoryCheckReport({
-    story,
-    narration,
-    report: storyCheck,
-  });
-  if (currentStoryCheck.decision !== "proceed") {
-    throw new Error("StoryCheck requires revision before narration generation.");
-  }
   const expected = createExpectedGeneration({
     story,
     narration,
@@ -115,8 +98,7 @@ export const runNarrationGeneration = async ({
       continue;
     }
 
-    let candidate =
-      action.kind === "normalize" ? action.candidate : undefined;
+    let candidate = action.kind === "normalize" ? action.candidate : undefined;
     if (action.kind === "generate") {
       const rawBytes = await generateChunk(action.request);
       if (rawBytes.length === 0) {
@@ -149,7 +131,9 @@ export const runNarrationGeneration = async ({
       generatedChunkCount += 1;
     }
     if (candidate === undefined) {
-      throw new Error("Narration generation action did not resolve a candidate.");
+      throw new Error(
+        "Narration generation action did not resolve a candidate.",
+      );
     }
 
     const rawBytes = await readCandidateBytes({

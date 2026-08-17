@@ -17,11 +17,6 @@ import {
   buildProductionRequirementsFreeze,
   buildNarrationExecutionSnapshot,
   buildProjectSoundPlan,
-  computeGenerationInputFingerprint,
-  computeStoryFingerprint,
-  NarrationSpecSchema,
-  STORY_CHECK_IDS,
-  StoryCheckReportSchema,
   StorySpecSchema,
 } from "../../src/contracts";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
@@ -59,26 +54,8 @@ const createStartFixture = async (context: TestContext) => {
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const projectDir = join(rootDir, "src/projects/story-example");
   const story = StorySpecSchema.parse(validStorySpec);
-  const narration = NarrationSpecSchema.parse(validNarrationSpec);
-  const storyCheck = StoryCheckReportSchema.parse({
-    schemaVersion: 1,
-    storyId: story.storyId,
-    storyFingerprint: computeStoryFingerprint(story),
-    generationInputFingerprint: computeGenerationInputFingerprint(
-      story,
-      narration,
-    ),
-    voiceProfileId: narration.voiceProfileId,
-    decision: "proceed",
-    checks: STORY_CHECK_IDS.map((checkId) => ({
-      checkId,
-      status: "pass",
-      note: `Checked ${checkId}.`,
-    })),
-  });
   const source = {
     ...validProjectSource,
-    storyCheck,
     projectSound: buildProjectSoundPlan({
       storyId: story.storyId,
       contributions: [],
@@ -92,10 +69,6 @@ const createStartFixture = async (context: TestContext) => {
       source.narration,
     ),
     renderSpec: await writeJson(join(projectDir, "render.json"), source.render),
-    storyCheck: await writeJson(
-      join(projectDir, "reviews/story-check.json"),
-      source.storyCheck,
-    ),
     projectSound: await writeJson(
       join(projectDir, "sound.json"),
       source.projectSound,

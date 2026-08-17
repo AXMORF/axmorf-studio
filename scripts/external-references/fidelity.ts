@@ -5,8 +5,8 @@ import ts from "typescript";
 import {
   ExternalReferenceSnapshotSchema,
   LocalizationManifestSchema,
+  ReferenceFidelityEvidenceSchema,
   ReferenceFidelityReceiptSchema,
-  ReferenceFidelityReviewSchema,
   ShotRecipeSelectionSchema,
   buildNotApplicableFidelityReceipt,
   buildPassFidelityReceipt,
@@ -217,7 +217,7 @@ export const generateReferenceFidelityReceipt = async (rawInput: {
   readonly snapshot: unknown;
   readonly localization: unknown;
   readonly selection: unknown;
-  readonly review: unknown;
+  readonly evidence: unknown;
   readonly rendererPath: string;
   readonly rendererSource: string;
   readonly adaptedShotPath: string;
@@ -247,9 +247,9 @@ export const generateReferenceFidelityReceipt = async (rawInput: {
   }
   const snapshot = ExternalReferenceSnapshotSchema.parse(rawInput.snapshot);
   const localization = LocalizationManifestSchema.parse(rawInput.localization);
-  const review = ReferenceFidelityReviewSchema.parse(rawInput.review);
-  if (review.selectionFingerprint !== selection.selectionFingerprint) {
-    throw new Error("Fidelity review targets a stale recipe selection.");
+  const evidence = ReferenceFidelityEvidenceSchema.parse(rawInput.evidence);
+  if (evidence.selectionFingerprint !== selection.selectionFingerprint) {
+    throw new Error("Fidelity evidence targets a stale recipe selection.");
   }
   if (
     snapshot.sourceLicense.verificationStatus !== "verified" ||
@@ -262,11 +262,11 @@ export const generateReferenceFidelityReceipt = async (rawInput: {
     throw new Error("Current code and preview authorization is required.");
   }
   if (
-    review.items.length !== selection.selections.length ||
+    evidence.items.length !== selection.selections.length ||
     selection.selections.length !== 1
   ) {
     throw new Error(
-      "Reference fidelity requires one ordered review per exact selection.",
+      "Reference fidelity requires one ordered evidence item per exact selection.",
     );
   }
   const rendererBytes = await readExternalRegularFile(
@@ -330,28 +330,26 @@ export const generateReferenceFidelityReceipt = async (rawInput: {
   ) {
     throw new Error("Exact recipe lineage or localized identity is stale.");
   }
-  const reviewItem = review.items[0];
-  if (
-    reviewItem.sourcePreview.checksum !== entry.previewChecksum ||
-    JSON.stringify(reviewItem.traitReviews.map((item) => item.trait)) !==
-      JSON.stringify(entry.requiredTraits)
-  ) {
-    throw new Error("Normal-speed review does not match the exact selection.");
+  const evidenceItem = evidence.items[0];
+  if (evidenceItem.sourcePreview.checksum !== entry.previewChecksum) {
+    throw new Error(
+      "Source preview evidence does not match the exact selection.",
+    );
   }
   await Promise.all([
-    assertCurrentArtifact(rawInput.repositoryRoot, reviewItem.sourcePreview),
+    assertCurrentArtifact(rawInput.repositoryRoot, evidenceItem.sourcePreview),
     assertCurrentArtifact(
       rawInput.repositoryRoot,
-      reviewItem.adaptationPreview,
+      evidenceItem.adaptationPreview,
     ),
-    ...reviewItem.phasePairs.flatMap((pair) => [
+    ...evidenceItem.phasePairs.flatMap((pair) => [
       assertCurrentArtifact(rawInput.repositoryRoot, pair.sourceEvidence),
       assertCurrentArtifact(rawInput.repositoryRoot, pair.adaptationEvidence),
     ]),
   ]);
   return buildPassFidelityReceipt({
     selectionFingerprint: selection.selectionFingerprint,
-    reviewFingerprint: review.reviewFingerprint,
+    evidenceFingerprint: evidence.evidenceFingerprint,
     items: [
       {
         selectionIndex: 0,
@@ -375,7 +373,7 @@ export const generateReferenceFidelityReceipt = async (rawInput: {
           adaptedShotSourceChecksum: checksumExternalBytes(adaptedShotBytes),
           ...binding,
         },
-        reviewItemFingerprint: reviewItem.itemFingerprint,
+        evidenceItemFingerprint: evidenceItem.itemFingerprint,
       },
     ],
   });

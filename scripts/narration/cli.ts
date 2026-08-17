@@ -121,7 +121,7 @@ export const runCli = async (
 
   if (command === "generate") {
     const projectId = parseProjectOnly(args);
-    const { projectSource, storyCheck } = await loadNarrationProjectFiles({
+    const { projectSource } = await loadNarrationProjectFiles({
       rootDir: context.rootDir,
       projectId,
     });
@@ -138,7 +138,6 @@ export const runCli = async (
       rootDir: join(context.rootDir, ".narration-work"),
       story: projectSource.story,
       narration: projectSource.narration,
-      storyCheck,
       ...dependencies,
     });
     return printResult(context, { command, result });
@@ -147,7 +146,7 @@ export const runCli = async (
   if (command === "seal") {
     const { projectId, attemptFingerprint, supersedeFingerprint } =
       parseSealArguments(args);
-    const { projectSource, storyCheck } = await loadNarrationProjectFiles({
+    const { projectSource } = await loadNarrationProjectFiles({
       rootDir: context.rootDir,
       projectId,
     });
@@ -179,7 +178,6 @@ export const runCli = async (
     const result = await runNarrationSeal({
       rootDir: context.rootDir,
       projectSource,
-      storyCheck,
       progress,
       normalizedChunks,
       ...(supersedeFingerprint === undefined ? {} : { supersedeFingerprint }),
@@ -188,7 +186,7 @@ export const runCli = async (
   }
 
   const projectId = parseProjectOnly(args);
-  const { projectSource, storyCheck } = await loadNarrationProjectFiles({
+  const { projectSource } = await loadNarrationProjectFiles({
     rootDir: context.rootDir,
     projectId,
   });
@@ -198,7 +196,6 @@ export const runCli = async (
   const result = await checkM2NarrationArtifacts({
     rootDir: context.rootDir,
     projectSource,
-    storyCheck,
   });
   return printResult(context, { command, result });
 };

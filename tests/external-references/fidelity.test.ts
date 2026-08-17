@@ -13,7 +13,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import {
-  buildReferenceFidelityReview,
+  buildReferenceFidelityEvidence,
   buildShotRecipeSelection,
 } from "../../src/contracts";
 import {
@@ -74,7 +74,7 @@ const prepare = async (temporaryRoot: string) => {
   await write(temporaryRoot, rendererPath, rendererSource);
   await write(temporaryRoot, adaptedShotPath, adaptedShotSource);
 
-  const evidence = [
+  const evidenceFiles = [
     ["evidence/source-early.png", "source early"],
     ["evidence/adaptation-early.png", "adaptation early"],
     ["evidence/source-late.png", "source late"],
@@ -82,7 +82,7 @@ const prepare = async (temporaryRoot: string) => {
     ["evidence/adaptation-preview.mp4", "adaptation normal speed preview"],
   ] as const;
   const checksums = new Map<string, string>();
-  for (const [path, contents] of evidence) {
+  for (const [path, contents] of evidenceFiles) {
     checksums.set(path, await write(temporaryRoot, path, contents));
   }
   const card = snapshot.index.cards[0];
@@ -114,7 +114,7 @@ const prepare = async (temporaryRoot: string) => {
       },
     ],
   });
-  const review = buildReferenceFidelityReview({
+  const evidence = buildReferenceFidelityEvidence({
     selectionFingerprint: selection.selectionFingerprint,
     items: [
       {
@@ -158,21 +158,6 @@ const prepare = async (temporaryRoot: string) => {
             },
           },
         ],
-        traitReviews: [
-          {
-            trait: "closed outline handoff",
-            conclusion: "pass",
-            note: "The outline visibly closes before content takes over.",
-          },
-          {
-            trait: "visible moving pen",
-            conclusion: "pass",
-            note: "The moving pen remains recognizable at normal speed.",
-          },
-        ],
-        recognizable: true,
-        recognizableNote:
-          "The adapted motion is legible at normal playback speed.",
       },
     ],
   });
@@ -181,7 +166,7 @@ const prepare = async (temporaryRoot: string) => {
     closure,
     localization,
     selection,
-    review,
+    evidence,
     rendererPath,
     rendererSource,
     adaptedShotPath,
@@ -189,7 +174,7 @@ const prepare = async (temporaryRoot: string) => {
   };
 };
 
-test("fidelity receipt binds real Renderer JSX frame flow localized bytes evidence licenses and review", async () => {
+test("fidelity receipt binds Renderer frame flow localized bytes licenses and mechanical evidence", async () => {
   const temporaryRoot = await mkdtemp(join(tmpdir(), "rsp-fidelity-"));
   try {
     const input = await prepare(temporaryRoot);

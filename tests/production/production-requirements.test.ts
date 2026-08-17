@@ -7,16 +7,9 @@ import {
   ProductionRequirementsFreezeSchema,
   resolveCurrentProductionRequirements,
 } from "../../src/contracts/production-requirements";
-import {
-  computeGenerationInputFingerprint,
-  computeStoryFingerprint,
-} from "../../src/contracts/generation-input";
+import { computeStoryFingerprint } from "../../src/contracts/generation-input";
 import { NarrationSpecSchema } from "../../src/contracts/narration";
 import { RenderSpecSchema } from "../../src/contracts/render";
-import {
-  STORY_CHECK_IDS,
-  StoryCheckReportSchema,
-} from "../../src/contracts/story-check";
 import { StorySpecSchema } from "../../src/contracts/story";
 import { buildProjectSoundPlan } from "../../src/contracts/project-sound";
 import {
@@ -31,26 +24,8 @@ const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 const story = StorySpecSchema.parse(validStorySpec);
 const narration = NarrationSpecSchema.parse(validNarrationSpec);
 const render = RenderSpecSchema.parse(validRenderSpec);
-const storyCheck = StoryCheckReportSchema.parse({
-  schemaVersion: 1,
-  storyId: story.storyId,
-  storyFingerprint: computeStoryFingerprint(story),
-  generationInputFingerprint: computeGenerationInputFingerprint(
-    story,
-    narration,
-  ),
-  voiceProfileId: narration.voiceProfileId,
-  decision: "proceed",
-  checks: STORY_CHECK_IDS.map((checkId) => ({
-    checkId,
-    status: "pass",
-    note: `Checked ${checkId}.`,
-  })),
-});
-
 const source = {
   ...validProjectSource,
-  storyCheck,
   projectSound: buildProjectSoundPlan({
     storyId: story.storyId,
     contributions: [],
@@ -62,7 +37,6 @@ const sourceChecksums = {
   storySpec: sha("2"),
   narrationSpec: sha("3"),
   renderSpec: sha("4"),
-  storyCheck: sha("5"),
   projectSound: sha("6"),
 } as const;
 
@@ -185,7 +159,7 @@ test("builds and resolves a current production requirements freeze", () => {
   const freeze = buildValidFreeze();
 
   assert.equal(freeze.schemaVersion, 1);
-  assert.equal(freeze.contractVersion, "production-requirements-current-v2");
+  assert.equal(freeze.contractVersion, "production-requirements-current-v3");
   assert.equal(freeze.enhancementSelection.globalVisual, "required");
   assert.deepEqual(freeze.sceneBoundaryOwnership, {
     sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",

@@ -10,15 +10,11 @@ import {
   NarrationSpecSchema,
   ProjectAssetManifestSchema,
   RenderSpecSchema,
-  STORY_CHECK_IDS,
-  StoryCheckReportSchema,
   StoryIdSchema,
   StorySpecSchema,
   VideoBriefSchema,
   buildProductionRequirementsFreeze,
   buildPublishingIntent,
-  computeGenerationInputFingerprint,
-  computeStoryFingerprint,
   serializeCanonicalJson,
   ProductionRequirementSchema,
 } from "../../src/contracts";
@@ -49,22 +45,6 @@ const DraftSchema = z
       })
       .strict(),
     publishing: AuthoredPublishingIntentSchema,
-    storyCheck: z
-      .object({
-        decision: z.enum(["proceed", "revise"]),
-        checks: z
-          .array(
-            z
-              .object({
-                checkId: z.enum(STORY_CHECK_IDS),
-                status: z.enum(["pass", "warn", "fail"]),
-                note: z.string().trim().min(1),
-              })
-              .strict(),
-          )
-          .length(STORY_CHECK_IDS.length),
-      })
-      .strict(),
     production: z
       .object({
         enhancementSelection: z
@@ -189,17 +169,6 @@ const runProjectConfigureUnlocked = async ({
       audioChannels,
     },
   });
-  const storyCheck = StoryCheckReportSchema.parse({
-    schemaVersion: 1,
-    storyId: projectId,
-    storyFingerprint: computeStoryFingerprint(story),
-    generationInputFingerprint: computeGenerationInputFingerprint(
-      story,
-      narration,
-    ),
-    voiceProfileId: narration.voiceProfileId,
-    ...draft.storyCheck,
-  });
   const publishingIntent = buildPublishingIntent({
     story,
     authored: draft.publishing,
@@ -208,7 +177,6 @@ const runProjectConfigureUnlocked = async ({
   const sourceBytes = {
     narration: jsonBytes(narration),
     render: jsonBytes(render),
-    storyCheck: jsonBytes(storyCheck),
     publishingIntent: jsonBytes(publishingIntent),
     projectSound: jsonBytes(projectSound.plan),
   } as const;
@@ -218,7 +186,6 @@ const runProjectConfigureUnlocked = async ({
       story,
       narration,
       render,
-      storyCheck,
       projectSound: projectSound.plan,
     },
     sourceChecksums: {
@@ -226,7 +193,6 @@ const runProjectConfigureUnlocked = async ({
       storySpec: checksum(Buffer.from(materialized.storyBytes)),
       narrationSpec: checksum(Buffer.from(sourceBytes.narration)),
       renderSpec: checksum(Buffer.from(sourceBytes.render)),
-      storyCheck: checksum(Buffer.from(sourceBytes.storyCheck)),
       projectSound: checksum(Buffer.from(sourceBytes.projectSound)),
     },
     ...draft.production,
@@ -235,10 +201,6 @@ const runProjectConfigureUnlocked = async ({
   const files = [
     { path: join(projectDir, "narration.json"), bytes: sourceBytes.narration },
     { path: join(projectDir, "render.json"), bytes: sourceBytes.render },
-    {
-      path: join(projectDir, "reviews/story-check.json"),
-      bytes: sourceBytes.storyCheck,
-    },
     {
       path: join(projectDir, "publishing-intent.json"),
       bytes: sourceBytes.publishingIntent,

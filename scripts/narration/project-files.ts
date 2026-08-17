@@ -3,10 +3,8 @@ import { join } from "node:path";
 
 import {
   parseNarrativeProjectSource,
-  StoryCheckReportSchema,
   StoryIdSchema,
   type NarrativeProjectSource,
-  type StoryCheckReport,
 } from "../../src/contracts";
 
 export const getNarrationProjectPaths = ({
@@ -29,7 +27,6 @@ export const getNarrationProjectPaths = ({
     story: join(projectDirectory, "story.json"),
     narration: join(projectDirectory, "narration.json"),
     render: join(projectDirectory, "render.json"),
-    storyCheck: join(projectDirectory, "reviews/story-check.json"),
     sealedNarration: join(
       projectDirectory,
       "generated/sealed-narration.generated.json",
@@ -63,15 +60,13 @@ export const loadNarrationProjectFiles = async ({
   readonly projectId: string;
 }): Promise<{
   readonly projectSource: NarrativeProjectSource;
-  readonly storyCheck: StoryCheckReport;
 }> => {
   const paths = getNarrationProjectPaths({ rootDir, projectId });
-  const [brief, story, narration, render, storyCheck] = await Promise.all([
+  const [brief, story, narration, render] = await Promise.all([
     readJson(paths.brief, "brief.json"),
     readJson(paths.story, "story.json"),
     readJson(paths.narration, "narration.json"),
     readJson(paths.render, "render.json"),
-    readJson(paths.storyCheck, "reviews/story-check.json"),
   ]);
   return {
     projectSource: parseNarrativeProjectSource({
@@ -80,6 +75,5 @@ export const loadNarrationProjectFiles = async ({
       narration,
       render,
     }),
-    storyCheck: StoryCheckReportSchema.parse(storyCheck),
   };
 };

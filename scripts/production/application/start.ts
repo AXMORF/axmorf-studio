@@ -79,33 +79,23 @@ export const loadCurrentProductionInputs = async ({
     story: join(projectDir, "story.json"),
     narration: join(projectDir, "narration.json"),
     render: join(projectDir, "render.json"),
-    storyCheck: join(projectDir, "reviews/story-check.json"),
     projectSound: join(projectDir, "sound.json"),
     requirements: join(projectDir, "production/requirements.json"),
   } as const;
-  const [
-    brief,
-    story,
-    narration,
-    render,
-    storyCheck,
-    projectSound,
-    requirementsArtifact,
-  ] = await Promise.all([
-    readJsonArtifact(paths.brief, "brief.json"),
-    readJsonArtifact(paths.story, "story.json"),
-    readJsonArtifact(paths.narration, "narration.json"),
-    readJsonArtifact(paths.render, "render.json"),
-    readJsonArtifact(paths.storyCheck, "reviews/story-check.json"),
-    readJsonArtifact(paths.projectSound, "sound.json"),
-    readJsonArtifact(paths.requirements, "production/requirements.json"),
-  ]);
+  const [brief, story, narration, render, projectSound, requirementsArtifact] =
+    await Promise.all([
+      readJsonArtifact(paths.brief, "brief.json"),
+      readJsonArtifact(paths.story, "story.json"),
+      readJsonArtifact(paths.narration, "narration.json"),
+      readJsonArtifact(paths.render, "render.json"),
+      readJsonArtifact(paths.projectSound, "sound.json"),
+      readJsonArtifact(paths.requirements, "production/requirements.json"),
+    ]);
   const source = {
     brief: brief.raw,
     story: story.raw,
     narration: narration.raw,
     render: render.raw,
-    storyCheck: storyCheck.raw,
     projectSound: projectSound.raw,
   } as const;
   const parsedRequirements = ProductionRequirementsFreezeSchema.parse(
@@ -123,7 +113,6 @@ export const loadCurrentProductionInputs = async ({
       storySpec: story.checksum,
       narrationSpec: narration.checksum,
       renderSpec: render.checksum,
-      storyCheck: storyCheck.checksum,
       projectSound: projectSound.checksum,
     },
   });
@@ -158,7 +147,7 @@ const runProductionStartUnlocked = async ({
   const { projectId, requirements } = inputs;
   if (requirements.schemaVersion !== 1) {
     throw new Error(
-      "New production runs require production-requirements-current-v2.",
+      "New production runs require production-requirements-current-v3.",
     );
   }
   requireCurrentProductionReadabilityPolicy(requirements);
