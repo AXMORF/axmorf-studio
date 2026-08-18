@@ -7,7 +7,9 @@ import {
   ProductionRequirementsFreezeSchema,
   resolveCurrentProductionRequirements,
   StoryIdSchema,
+  type ProductionAgentWriteScope,
 } from "../../../src/contracts";
+import { writeAgentWriteBoundary } from "../adapters/agent-write-boundary";
 import {
   appendProductionRunEvent,
   initializeProductionRunStore,
@@ -25,6 +27,19 @@ import {
 } from "./preflight";
 
 type JsonArtifact = Readonly<{ raw: unknown; checksum: `sha256:${string}` }>;
+
+export const projectAuthoringScopes = (
+  storyId: string,
+): readonly ProductionAgentWriteScope[] => [
+  {
+    kind: "directory",
+    repositoryPath: `public/projects/${storyId}`,
+  },
+  {
+    kind: "directory",
+    repositoryPath: `src/projects/${storyId}`,
+  },
+];
 
 const readJsonArtifact = async (
   path: string,
@@ -181,6 +196,13 @@ const runProductionStartUnlocked = async ({
     createdAt: now.toISOString(),
   });
   const initialized = await initializeProductionRunStore({ rootDir, run });
+  const rootBoundary = await writeAgentWriteBoundary({
+    rootDir,
+    runId: run.runId,
+    storyId: run.storyId,
+    phase: "project-authoring",
+    allowedWriteScopes: projectAuthoringScopes(projectId),
+  });
   const event = createProductionStageEvent({
     schemaVersion: run.schemaVersion,
     type: "stage-succeeded",
@@ -204,6 +226,11 @@ const runProductionStartUnlocked = async ({
         artifactId: "run-manifest",
         repositoryPath: `.producer-runs/${run.runId}/run.json`,
         fingerprint: run.runFingerprint,
+      },
+      {
+        artifactId: "agent-write-boundary.project-authoring",
+        repositoryPath: `.producer-runs/${run.runId}/artifacts/agent-write-boundary-project-authoring.generated.json`,
+        fingerprint: rootBoundary.boundary.boundaryFingerprint,
       },
     ],
   });

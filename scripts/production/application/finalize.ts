@@ -20,6 +20,11 @@ import {
   writeOwnerResult,
 } from "../adapters/owner-inbox";
 import { assertOwnerOutputManifestCurrent } from "../adapters/owner-output-manifest";
+import {
+  checkAgentWriteBoundary,
+  writeAgentWriteBoundary,
+  type AgentWriteBoundaryChecker,
+} from "../adapters/agent-write-boundary";
 import { createProductionStageEvent } from "../domain/events";
 import {
   computeExpectedOwnerReceiptIdentities,
@@ -664,6 +669,10 @@ export type ProductionFinalizeDependencies = Readonly<{
     readonly runId: string;
     readonly storyId: string;
   }) => Promise<OwnerIdentity>;
+  checkAgentBoundary?: AgentWriteBoundaryChecker;
+  writeAgentBoundary?: (
+    request: Parameters<typeof writeAgentWriteBoundary>[0],
+  ) => Promise<unknown>;
 }>;
 
 export const runProductionFinalize = async ({
@@ -697,6 +706,25 @@ export const runProductionFinalize = async ({
         storyId: loaded.run.storyId,
         status: "production-failed" as const,
         error: loaded.state.failure,
+      };
+    }
+    const boundaryPhase =
+      loaded.state.state === "render-ready"
+        ? ("cover-authoring-after-render-ready" as const)
+        : ("owner-authoring" as const);
+    const boundary = await (
+      dependencies.checkAgentBoundary ?? checkAgentWriteBoundary
+    )({
+      rootDir,
+      runId,
+      phase: boundaryPhase,
+    });
+    if (boundary.status !== "current") {
+      return {
+        runId,
+        storyId: loaded.run.storyId,
+        status: "agent-write-boundary-violated" as const,
+        phase: boundaryPhase,
       };
     }
     const resolved = dependencies.resolveAssignments
@@ -864,6 +892,20 @@ export const runProductionFinalize = async ({
         clock,
       });
       loaded = await readProductionRunStore({ rootDir, runId });
+      if (loaded.state.state === "render-ready") {
+        await (dependencies.writeAgentBoundary ?? writeAgentWriteBoundary)({
+          rootDir,
+          runId,
+          storyId: loaded.run.storyId,
+          phase: "cover-authoring-after-render-ready",
+          allowedWriteScopes: [
+            {
+              kind: "directory",
+              repositoryPath: `src/projects/${loaded.run.storyId}/delivery/cover`,
+            },
+          ],
+        });
+      }
     }
     if (loaded.state.state !== "render-ready") {
       throw failure({

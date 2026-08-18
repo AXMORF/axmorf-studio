@@ -7,8 +7,8 @@ description: Design, freeze, delegate, and foreground-finalize a contract-driven
 
 ## Start directly
 
-Use the request and repository as authority. Preserve unrelated changes. The Agent authors; scripts
-freeze, validate, and execute without Agent self-review. Read [policy](policy.json).
+Preserve unrelated changes. Agent edits current Project paths; fixed scripts own derived writes and validation.
+Read [policy](policy.json).
 
 ## Freeze inputs before delegation
 

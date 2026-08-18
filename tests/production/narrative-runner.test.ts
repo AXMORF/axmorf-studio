@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
@@ -206,7 +206,22 @@ test("runs the fixed narrative chain and binds outputs only at baseline-ready", 
       "stage-succeeded:narrative",
     ],
   );
-  assert.equal(loaded.state.outputArtifacts.length, 12);
+  assert.equal(loaded.state.outputArtifacts.length, 14);
+  assert.equal(
+    loaded.state.outputArtifacts.some(
+      ({ artifactId }) =>
+        artifactId === "agent-write-boundary.project-authoring",
+    ),
+    true,
+  );
+  assert.equal(
+    loaded.state.outputArtifacts.some(
+      ({ artifactId }) =>
+        artifactId ===
+        "agent-write-boundary.project-authoring-after-narrative",
+    ),
+    true,
+  );
 });
 
 test("passes an explicitly authorized active seal identity to narration sealing", async (context) => {
@@ -333,6 +348,21 @@ test("repeating a current baseline is read-only and checks persisted identities"
   ]);
   assert.deepEqual(await readFile(statePath), before);
   assert.equal((await stat(statePath)).mtimeMs, beforeMtime);
+  await writeFile(
+    join(fixture.rootDir, "src/projects/project-registry.generated.ts"),
+    "export const drift = true;\n",
+  );
+  calls.length = 0;
+  await assert.rejects(
+    runProductionNarrative({
+      rootDir: fixture.rootDir,
+      runId: fixture.runId,
+      clock: () => new Date("2026-08-04T02:00:00.000Z"),
+      dependencies,
+    }),
+    /Agent write boundary/iu,
+  );
+  assert.deepEqual(calls, []);
 });
 
 test("stale requirements fail inside the ledger before provider work", async (context) => {

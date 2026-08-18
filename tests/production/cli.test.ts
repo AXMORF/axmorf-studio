@@ -261,9 +261,18 @@ test("production finalize CLI uses exit 0, expected exit 2, and unexpected exit 
     rootDir: process.cwd(),
     stdout: output.push.bind(output),
     exitCode: (code) => exitCodes.push(code),
+    finalize: async () => ({
+      status: "agent-write-boundary-violated" as const,
+      phase: "owner-authoring" as const,
+    }),
+  });
+  await runProductionCli(["finalize", "--run", "story-example-run-001"], {
+    rootDir: process.cwd(),
+    stdout: output.push.bind(output),
+    exitCode: (code) => exitCodes.push(code),
     finalize: async () => ({ status: "delivery-render-started" as const }),
   });
-  assert.deepEqual(exitCodes, [2]);
+  assert.deepEqual(exitCodes, [2, 2]);
 
   const unexpected = spawnSync(
     process.execPath,

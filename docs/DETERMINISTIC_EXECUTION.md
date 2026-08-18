@@ -71,6 +71,15 @@ run/story/assignment/task/requirements、排序后的规范化 output manifest/c
 fingerprint；同内容重放 no-op，同 identity 不同内容、malformed、stale、symlink、escape、unknown
 file 或 checksum drift fail closed。owner-receipts 不含 child identity/chat/progress/heartbeat。
 
+Agent 文件写入同样分段冻结。production start 在 fixed scaffold 后保存 project-authoring protected
+workspace fingerprint，narrative 固定生成完成后刷新一次 Project checkpoint；Scene freeze 先验证 Root authoring 未越过 current Project，再基于 Scene、
+GlobalVisual、Cover exclusive paths 保存 owner-authoring fingerprint。receipt publication 与 finalize
+复验后一份 fingerprint；render-ready 的 fixed writers 完成后再保存 Cover-only fingerprint，允许补
+Cover 时继续机械检查。普通 public 文件使用内容 checksum，private、voice 与私密 env 只使用脱敏
+metadata；不把脚本生成的 Run、Catalog、Registry、out 或 delivery 文件归因给 Agent。该机制只在
+确定性阶段门检测漂移，不是进程级预防性 sandbox；`public/projects/<storyId>/` 属于 current Project
+allowlist，`public/assets/library/` 共享素材仍受保护。
+
 receipt rename 前的 deterministic `.pending` 已包含完整 canonical bytes。publisher 中断但 receipt
 尚未出现时，处理同一 immutable assignment 的替代线程可用相同语义内容完成 atomic rename；首次
 pending 的 occurredAt/fingerprint 保持不变，不同语义内容仍冲突。这里不使用会把缺失 receipt 永久

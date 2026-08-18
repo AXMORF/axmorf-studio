@@ -21,6 +21,10 @@ npm run delivery:cover:freeze -- --project <storyId>
 记录 `ownerMeaningIds`、`templateMeaningIds`、GlobalVisualAssignment 和 CoverAssignment。template-copy
 Scene 由脚本机械验证/direct-result，不创建 child 或 receipt。
 
+Agent 写入限制是阶段 checkpoint/fingerprint 检测门，不是 OS sandbox。freeze 前只允许 current
+Project（含 fixed asset workflow 写入的 `public/projects/<storyId>/`），freeze 后只允许 assignment-exclusive
+paths；共享 `public/assets/library/`、core、其他 Project 与 protected metadata 漂移会 fail closed。
+
 ## 2. Delegate owners
 
 在同一 checkout 使用 runtime-native child Agents：
@@ -58,6 +62,7 @@ events、收敛 render-ready；Cover 在 render-ready 后处理。
 | --- | ---: | --- |
 | `delivery-render-started` | 0 | audited delivery detached spawn 已确认 |
 | `owner-receipts-incomplete` | 2 | required receipt 缺失，ledger/results/state 未改 |
+| `agent-write-boundary-violated` | 2 | Agent allowlist 外工作区发生漂移，中央状态未推进 |
 | `production-failed` | 2 | Scene/GlobalVisual 或 fixed production 已形成 terminal failure |
 | `render-ready-delivery-blocked` | 2 | Cover missing/failed，render-ready 保留 |
 | unexpected safe stderr | 1 | 合同、路径、锁或宿主异常，fail closed |

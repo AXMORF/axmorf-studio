@@ -20,6 +20,7 @@ import {
   computeVisualStyleFingerprint,
   validateSceneProductionBrief,
   validateStoryResourcePool,
+  type ProductionAgentWriteScope,
   type SceneAssignment,
 } from "../../../src/contracts";
 import { runProjectCheckCli } from "../../project-check/cli";
@@ -36,6 +37,10 @@ import { createUnexpectedProductionError } from "../domain/errors";
 import { loadCurrentProductionInputs } from "./start";
 import { materializeTemplateCopiedScenes } from "./template-copied-scene";
 import { runProductionTemplateSceneSubmit } from "./scene-submit";
+import {
+  checkAgentWriteBoundary,
+  writeAgentWriteBoundary,
+} from "../adapters/agent-write-boundary";
 
 type TemplateSceneSubmitter = (request: {
   readonly rootDir: string;
@@ -408,6 +413,54 @@ const assignmentPath = (storyId: string, meaningId: string) =>
 const globalVisualAssignmentPath = (storyId: string) =>
   `src/projects/${storyId}/production/global-visual-assignment.generated.json`;
 
+const ownerAuthoringScopes = ({
+  storyId,
+  assignments,
+  globalVisualAssignment,
+}: {
+  readonly storyId: string;
+  readonly assignments: readonly SceneAssignment[];
+  readonly globalVisualAssignment: ReturnType<
+    typeof buildGlobalVisualAssignmentForInputs
+  >;
+}): readonly ProductionAgentWriteScope[] => [
+  ...assignments.flatMap((assignment) =>
+    sceneAssignmentRequiresOwner(assignment)
+      ? ([
+          {
+            kind: "directory",
+            repositoryPath: assignment.taskInput.allowedDirectories.sceneRoot,
+          },
+          {
+            kind: "directory",
+            repositoryPath:
+              assignment.taskInput.allowedDirectories.publicAssetRoot,
+          },
+        ] as const)
+      : [],
+  ),
+  ...(globalVisualAssignment === null
+    ? []
+    : ([
+        {
+          kind: "file",
+          repositoryPath: globalVisualAssignment.exclusivePaths.plan,
+        },
+        {
+          kind: "directory",
+          repositoryPath: globalVisualAssignment.exclusivePaths.sourceDirectory,
+        },
+        {
+          kind: "directory",
+          repositoryPath: globalVisualAssignment.exclusivePaths.publicDirectory,
+        },
+      ] as const)),
+  {
+    kind: "directory",
+    repositoryPath: `src/projects/${storyId}/delivery/cover`,
+  },
+];
+
 const defaultVerifyNarrativeAutoCheck = async ({
   rootDir,
   storyId,
@@ -551,6 +604,16 @@ export const runProductionSceneFreeze = async ({
       }
       await submitTemplateScene({ rootDir, runId, meaningId, assignment });
     }
+    const boundary = await checkAgentWriteBoundary({
+      rootDir,
+      runId,
+      phase: "owner-authoring",
+    });
+    if (boundary.status !== "current") {
+      throw new Error(
+        "Agent write boundary was violated after Scene inputs were frozen.",
+      );
+    }
     return {
       runId,
       status: "scene-inputs-frozen",
@@ -568,6 +631,16 @@ export const runProductionSceneFreeze = async ({
           ? null
           : globalVisualAssignmentPath(globalVisualAssignment.storyId),
     } as const;
+  }
+  const projectBoundary = await checkAgentWriteBoundary({
+    rootDir,
+    runId,
+    phase: "project-authoring-after-narrative",
+  });
+  if (projectBoundary.status !== "current") {
+    throw new Error(
+      "Agent write boundary was violated during Project authoring.",
+    );
   }
   const now = clock();
   if (Number.isNaN(now.getTime()))
@@ -651,6 +724,17 @@ export const runProductionSceneFreeze = async ({
           mode: "check",
         });
       }
+      const ownerBoundary = await writeAgentWriteBoundary({
+        rootDir,
+        runId,
+        storyId: initial.run.storyId,
+        phase: "owner-authoring",
+        allowedWriteScopes: ownerAuthoringScopes({
+          storyId: initial.run.storyId,
+          assignments,
+          globalVisualAssignment,
+        }),
+      });
       const succeeded = createProductionStageEvent({
         schemaVersion: initial.run.schemaVersion,
         type: "stage-succeeded",
@@ -725,6 +809,11 @@ export const runProductionSceneFreeze = async ({
                   fingerprint: globalVisualAssignment.assignmentFingerprint,
                 },
               ]),
+          {
+            artifactId: "agent-write-boundary.owner-authoring",
+            repositoryPath: `.producer-runs/${runId}/artifacts/agent-write-boundary-owner-authoring.generated.json`,
+            fingerprint: ownerBoundary.boundary.boundaryFingerprint,
+          },
         ],
       });
       const appended = await appendProductionRunEvent({

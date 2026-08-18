@@ -79,6 +79,17 @@
 - 每个子 Agent 自行 focused check，发布 one `owner-ready`/`owner-failed` receipt，最终只返回最小终态信号。
   主 Agent等待全部已派发子任务进入成功、明确失败或宿主失败终态；聊天终态与子 Agent身份不持久化，
   receipt 仍是 authority。
+- Agent 直接写入与 fixed script 写入严格分开：`production:start` 在确定性 scaffold 后冻结受保护工作区，
+  narrative 固定生成完成后刷新 Project-authoring checkpoint；
+  Scene freeze 前 Root Agent 只可直接修改 current `src/projects/<storyId>/`；Project 素材只经 fixed
+  import/configure 命令进入同一 authoring allowlist 的 `public/projects/<storyId>/`，共享
+  `public/assets/library/` 不在 allowlist。Scene freeze 成功后，Scene/GlobalVisual/Cover
+  child 只可直接修改 assignment-exclusive paths。owner receipt 与 foreground finalize 都机械检查
+  Agent write boundary；core、共享素材、其他 Project、private 或 voice profile 漂移时 fail closed。
+  Project、Run、Catalog、Registry、out 与 delivery 的确定性生成仍由各 fixed script 自身合同负责，
+  不作为 Agent 直接写入；render-ready 固定生成完成后另存 Cover-only checkpoint，后续补 Cover仍复验边界。
+  该边界是阶段转换时的 checkpoint/fingerprint 检测门，不是 OS 级写入沙箱；违规在 receipt、freeze 或
+  finalize 推进前被拒绝，不声称能在写入发生前拦截进程。
 - 全部子任务终态后，无论 receipt 是否齐全，主 Agent只调用一次
   `npm run production:finalize -- --run <runId>`；不读作品、不逐项 submit、不轮询 Run、不代发 receipt。
   foreground finalize 是 check、正式 result/event、registry convergence 与 `delivery:build` 的唯一中央 writer。

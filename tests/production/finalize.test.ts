@@ -470,6 +470,8 @@ const dependenciesFor = (
     Parameters<typeof runProductionFinalize>[0]["dependencies"]
   >["processOwner"],
 ) => ({
+  checkAgentBoundary: async () => ({ status: "current" as const }),
+  writeAgentBoundary: async () => undefined,
   readReceipt: async ({
     ownerKind,
     meaningId,
@@ -494,6 +496,38 @@ const dependenciesFor = (
   }),
   processOwner,
   renderReady: markRenderReady,
+});
+
+test("agent write boundary violation returns before receipt or ledger mutation", async (context) => {
+  const fixture = await createFixture(context);
+  const runRoot = join(fixture.rootDir, `.producer-runs/${fixture.runId}`);
+  const beforeState = await readFile(join(runRoot, "state.generated.json"));
+  const beforeEvents = await readdir(join(runRoot, "events"));
+  const beforeResults = await readdir(join(runRoot, "owner-results"));
+  const result = await runProductionFinalize({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    clock: () => FIXED_PRODUCTION_NOW,
+    dependencies: {
+      ...dependenciesFor(fixture, async () => assert.fail("must not process")),
+      checkAgentBoundary: async () => ({ status: "violated" as const }),
+    },
+  });
+  assert.deepEqual(result, {
+    runId: fixture.runId,
+    storyId: fixture.source.story.storyId,
+    status: "agent-write-boundary-violated",
+    phase: "owner-authoring",
+  });
+  assert.deepEqual(
+    await readFile(join(runRoot, "state.generated.json")),
+    beforeState,
+  );
+  assert.deepEqual(await readdir(join(runRoot, "events")), beforeEvents);
+  assert.deepEqual(
+    await readdir(join(runRoot, "owner-results")),
+    beforeResults,
+  );
 });
 
 test("missing required receipts return once with stable order and no ledger mutation", async (context) => {
@@ -828,13 +862,31 @@ test("idempotent replay accepts results once and a later Cover can launch delive
   const partial = await readProductionRunStore(fixture);
   assert.equal(partial.state.state, "scene-inputs-frozen");
   assert.deepEqual(partial.state.acceptedSceneResults, []);
+  let coverCheckpoint: unknown = null;
   const blocked = await runProductionFinalize({
     rootDir: fixture.rootDir,
     runId: fixture.runId,
     clock: () => FIXED_PRODUCTION_NOW,
-    dependencies: dependenciesFor(fixture, processOwner as never),
+    dependencies: {
+      ...dependenciesFor(fixture, processOwner as never),
+      writeAgentBoundary: async (request) => {
+        coverCheckpoint = request;
+      },
+    },
   });
   assert.equal(blocked.status, "render-ready-delivery-blocked");
+  assert.deepEqual(coverCheckpoint, {
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    storyId: fixture.source.story.storyId,
+    phase: "cover-authoring-after-render-ready",
+    allowedWriteScopes: [
+      {
+        kind: "directory",
+        repositoryPath: "src/projects/story-example/delivery/cover",
+      },
+    ],
+  });
   const resumed = await readProductionRunStore(fixture);
   assert.equal(resumed.state.state, "render-ready");
   assert.equal(
@@ -844,6 +896,24 @@ test("idempotent replay accepts results once and a later Cover can launch delive
     ).length,
     1,
   );
+  const protectedReplay = await runProductionFinalize({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    clock: () => FIXED_PRODUCTION_NOW,
+    dependencies: {
+      ...dependenciesFor(fixture, processOwner as never),
+      checkAgentBoundary: async () => ({ status: "violated" as const }),
+    },
+  });
+  assert.equal(protectedReplay.status, "agent-write-boundary-violated");
+  assert.equal(
+    "phase" in protectedReplay ? protectedReplay.phase : null,
+    "cover-authoring-after-render-ready",
+  );
+  assert.equal(
+    (await readProductionRunStore(fixture)).state.state,
+    "render-ready",
+  );
   coverAvailable = true;
   const delivered = await runProductionFinalize({
     rootDir: fixture.rootDir,
@@ -851,6 +921,10 @@ test("idempotent replay accepts results once and a later Cover can launch delive
     clock: () => FIXED_PRODUCTION_NOW,
     dependencies: {
       ...dependenciesFor(fixture, processOwner as never),
+      checkAgentBoundary: async (request) => {
+        assert.equal(request.phase, "cover-authoring-after-render-ready");
+        return { status: "current" as const };
+      },
       deliveryBuild: async () => ({
         projectId: fixture.source.story.storyId,
         deliveryId: "story-example-delivery-test",

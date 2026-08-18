@@ -91,6 +91,12 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   一个 Cover child；共享 checkout 使用不重叠 exclusive paths。owner 自行 focused check，只发布
   immutable receipt 并返回最小终态信号。主 Agent等待全部 child 终态后只调用一次 foreground
   `production:finalize`，由唯一 Run writer 串行验证并写正式 result。
+- audited production 已冻结两段 Agent direct-write boundary：start 后 Root authoring 只允许 current
+  Project；Scene freeze 后 child authoring 只允许 assignments 的 exclusive paths。owner receipt 与
+  finalize 会复验 core、共享素材、其他 Project 及 protected metadata 未漂移；fixed scripts 继续按
+  原有确定性路径写 Project、Run、Catalog、Registry、out 与 delivery。render-ready 后以 Cover-only
+  checkpoint 继续约束后补 Cover，不永久放宽 fixed-owned 路径。这是阶段 checkpoint 检测门而非 OS
+  sandbox；current `public/projects/<storyId>/` 在 Project allowlist，`public/assets/library/` 仍受保护。
 - repository-local `remotion-best-practices` router v4.0.506 已完整纳入仓库；Scene assignment
   policy 与 owner 编排要求制作前完整读取入口，并按 Renderer 需要加载 routed references。
 - ResourceCatalog、composition-local RendererRegistry、ScenePackage、Coverage、visual/sound
@@ -103,7 +109,8 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   owner-ready/failed receipt、foreground finalize、status 与 render-ready check。
 - finalize 先以单一 expected-owner 规则校验 inbox 和 required receipts；缺失 Scene/GlobalVisual receipt
   在任何 stage/result/event/state 写入前返回稳定排序的 `owner-receipts-incomplete`。Cover missing/failed
-  保留 render-ready，只阻塞 automatic delivery。
+  保留 render-ready，只阻塞 automatic delivery；boundary fingerprint 漂移则返回
+  `agent-write-boundary-violated`，同样不推进中央状态。
 - `production-render-plan-v5` 绑定 Story/Run、sealed/mastered narration、Composition、source
   checksum、sourceReferences fingerprint、尺寸、fps、SemanticTiming 全片帧数、ScenePackage timeline、
   统一 sound projection、实际 BGM 资源、layer/mix order 和固定 Remotion policy。内容 BGM 只覆盖

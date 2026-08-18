@@ -19,6 +19,7 @@ import {
   buildProjectSoundPlan,
   StorySpecSchema,
 } from "../../src/contracts";
+import { readAgentWriteBoundary } from "../../scripts/production/adapters/agent-write-boundary";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
 import { runProductionStart } from "../../scripts/production/application/start";
 import {
@@ -136,6 +137,25 @@ test("starts one immutable contract-bound run and records its first event", asyn
   assert.equal(loaded.events[0]?.type, "stage-succeeded");
   assert.equal(loaded.state.state, "initialized");
   assert.equal(loaded.state.lastSequence, 1);
+  assert.deepEqual(
+    (
+      await readAgentWriteBoundary({
+        rootDir: fixture.rootDir,
+        runId: fixedRunId,
+        phase: "project-authoring",
+      })
+    ).allowedWriteScopes,
+    [
+      {
+        kind: "directory",
+        repositoryPath: "public/projects/story-example",
+      },
+      {
+        kind: "directory",
+        repositoryPath: "src/projects/story-example",
+      },
+    ],
+  );
   assert.match(
     await readFile(join(fixture.projectDir, "Composition.tsx"), "utf8"),
     /export default/u,

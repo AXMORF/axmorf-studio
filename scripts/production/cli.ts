@@ -236,6 +236,7 @@ export const runProductionCli = async (
     typeof result === "object" &&
     new Set([
       "owner-receipts-incomplete",
+      "agent-write-boundary-violated",
       "production-failed",
       "render-ready-delivery-blocked",
     ]).has(String((result as { status?: unknown }).status))

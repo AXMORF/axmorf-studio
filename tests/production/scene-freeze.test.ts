@@ -34,6 +34,7 @@ import { loadCatalogAuthorityDescriptors } from "../../scripts/catalog/project-f
 import { generateScenePackageFromProjectFiles } from "../../scripts/scene-package/generate";
 import { materializeConfiguredSceneTemplates } from "../../scripts/projects/application/instantiate-scene-templates";
 import { readProductionRunStore } from "../../scripts/production/adapters/run-store";
+import { readAgentWriteBoundary } from "../../scripts/production/adapters/agent-write-boundary";
 import { validateSceneForProductionRenderPlan } from "../../scripts/production/application/render-ready-default";
 import {
   assertSceneAssignmentIsolation,
@@ -459,6 +460,49 @@ test("freezes one assignment per StoryBeat in order and projects Scene requireme
   );
   assert.deepEqual(assignments[1].additionalRequirements, []);
   assertSceneAssignmentIsolation(assignments);
+  assert.deepEqual(
+    (
+      await readAgentWriteBoundary({
+        rootDir: fixture.rootDir,
+        runId: fixture.runId,
+        phase: "owner-authoring",
+      })
+    ).allowedWriteScopes,
+    [
+      {
+        kind: "directory",
+        repositoryPath: "public/projects/story-example/global-visual",
+      },
+      {
+        kind: "directory",
+        repositoryPath: "public/projects/story-example/scenes/conclusion",
+      },
+      {
+        kind: "directory",
+        repositoryPath: "public/projects/story-example/scenes/opening",
+      },
+      {
+        kind: "directory",
+        repositoryPath: "src/projects/story-example/delivery/cover",
+      },
+      {
+        kind: "directory",
+        repositoryPath: "src/projects/story-example/global-visual",
+      },
+      {
+        kind: "directory",
+        repositoryPath: "src/projects/story-example/scenes/conclusion",
+      },
+      {
+        kind: "directory",
+        repositoryPath: "src/projects/story-example/scenes/opening",
+      },
+      {
+        kind: "file",
+        repositoryPath: "src/projects/story-example/global-visual-plan.json",
+      },
+    ],
+  );
   const state = await readProductionRunStore({
     rootDir: fixture.rootDir,
     runId: fixture.runId,
@@ -520,6 +564,23 @@ test("configured template copies freeze and submit without Scene owners", async 
     "configured-outro-scene",
   ]);
   assert.deepEqual(result.ownerMeaningIds, ["opening", "conclusion"]);
+  const boundary = await readAgentWriteBoundary({
+    rootDir: fixture.rootDir,
+    runId: fixture.runId,
+    phase: "owner-authoring",
+  });
+  assert.equal(
+    boundary.allowedWriteScopes.some(({ repositoryPath }) =>
+      repositoryPath.includes("configured-intro-scene"),
+    ),
+    false,
+  );
+  assert.equal(
+    boundary.allowedWriteScopes.some(({ repositoryPath }) =>
+      repositoryPath.includes("configured-outro-scene"),
+    ),
+    false,
+  );
 
   const introRoot = join(fixture.projectDir, "scenes/configured-intro-scene");
   const outroRoot = join(fixture.projectDir, "scenes/configured-outro-scene");

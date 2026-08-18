@@ -17,8 +17,12 @@ import {
   appendProductionRunEvent,
   readProductionRunStore,
 } from "../../scripts/production/adapters/run-store";
+import { writeAgentWriteBoundary } from "../../scripts/production/adapters/agent-write-boundary";
 import { createProductionStageEvent } from "../../scripts/production/domain/events";
-import { runProductionStart } from "../../scripts/production/application/start";
+import {
+  projectAuthoringScopes,
+  runProductionStart,
+} from "../../scripts/production/application/start";
 import {
   validNarrationSpec,
   validProjectSource,
@@ -166,6 +170,13 @@ export const markProductionBaselineReady = async ({
   });
   await appendProductionRunEvent({ rootDir, runId, event: started });
   loaded = await readProductionRunStore({ rootDir, runId });
+  const boundary = await writeAgentWriteBoundary({
+    rootDir,
+    runId,
+    storyId: loaded.run.storyId,
+    phase: "project-authoring-after-narrative",
+    allowedWriteScopes: projectAuthoringScopes(loaded.run.storyId),
+  });
   const succeeded = createProductionStageEvent({
     schemaVersion: loaded.run.schemaVersion,
     type: "stage-succeeded",
@@ -189,6 +200,11 @@ export const markProductionBaselineReady = async ({
         artifactId: "narrative-auto-check",
         repositoryPath: `src/projects/${loaded.run.storyId}/generated/narrative-auto-check.generated.json`,
         fingerprint: sha("e"),
+      },
+      {
+        artifactId: "agent-write-boundary.project-authoring-after-narrative",
+        repositoryPath: `.producer-runs/${runId}/artifacts/agent-write-boundary-project-authoring-after-narrative.generated.json`,
+        fingerprint: boundary.boundary.boundaryFingerprint,
       },
     ],
   });

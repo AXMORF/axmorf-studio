@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 9,
-  "policyVersion": "remotion-story-producer-video-policy-v10",
+  "schemaVersion": 10,
+  "policyVersion": "remotion-story-producer-video-policy-v11",
   "rootEndpoint": "foreground-finalize-completed",
   "backgroundEndpoint": "delivery-render-started",
   "privateConfigPath": "private/producer.config.json",
@@ -47,6 +47,13 @@
     "capacityPolicy": "batched-one-owner-per-child",
     "unavailableDelegationPolicy": "fail-closed-without-inline-owner",
     "rootAgentAuthorsOwnerOutputs": false,
+    "agentDirectWriteBoundary": "current-project-before-freeze-assignment-exclusive-after-freeze",
+    "agentBoundaryMechanism": "checkpoint-fingerprint-gate-not-process-sandbox",
+    "sharedAssetBoundary": "public-assets-library-protected",
+    "fixedScriptWritePolicy": "deterministic-contract-writes-are-not-agent-authorship",
+    "agentBoundaryCheck": "start-narrative-freeze-owner-receipt-finalize",
+    "narrativeBoundaryCheckpoint": "current-project-after-fixed-narrative",
+    "renderReadyBoundaryCheckpoint": "cover-only-after-fixed-render-ready",
     "rootWaitsForAllChildTerminalStates": true,
     "repositoryMonitorsChildLifecycle": false,
     "finalizeInput": "assignment-bound-owner-receipts-only",
@@ -78,7 +85,8 @@
     "push",
     "publish",
     "monitor-detached-render",
-    "hand-edit-derived-state"
+    "hand-edit-derived-state",
+    "agent-write-outside-current-project-or-assignment"
   ],
   "contextBudgets": {
     "entrypointMaxWords": 520,

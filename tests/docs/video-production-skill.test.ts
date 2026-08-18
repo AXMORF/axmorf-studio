@@ -57,8 +57,8 @@ const fingerprintFileTree = async (
 
 const SkillPolicySchema = z
   .object({
-    schemaVersion: z.literal(9),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v10"),
+    schemaVersion: z.literal(10),
+    policyVersion: z.literal("remotion-story-producer-video-policy-v11"),
     rootEndpoint: z.literal("foreground-finalize-completed"),
     backgroundEndpoint: z.literal("delivery-render-started"),
     privateConfigPath: z.literal("private/producer.config.json"),
@@ -122,6 +122,25 @@ const SkillPolicySchema = z
           "fail-closed-without-inline-owner",
         ),
         rootAgentAuthorsOwnerOutputs: z.literal(false),
+        agentDirectWriteBoundary: z.literal(
+          "current-project-before-freeze-assignment-exclusive-after-freeze",
+        ),
+        agentBoundaryMechanism: z.literal(
+          "checkpoint-fingerprint-gate-not-process-sandbox",
+        ),
+        sharedAssetBoundary: z.literal("public-assets-library-protected"),
+        fixedScriptWritePolicy: z.literal(
+          "deterministic-contract-writes-are-not-agent-authorship",
+        ),
+        agentBoundaryCheck: z.literal(
+          "start-narrative-freeze-owner-receipt-finalize",
+        ),
+        narrativeBoundaryCheckpoint: z.literal(
+          "current-project-after-fixed-narrative",
+        ),
+        renderReadyBoundaryCheckpoint: z.literal(
+          "cover-only-after-fixed-render-ready",
+        ),
         rootWaitsForAllChildTerminalStates: z.literal(true),
         repositoryMonitorsChildLifecycle: z.literal(false),
         finalizeInput: z.literal("assignment-bound-owner-receipts-only"),
@@ -167,6 +186,7 @@ const SkillPolicySchema = z
       z.literal("publish"),
       z.literal("monitor-detached-render"),
       z.literal("hand-edit-derived-state"),
+      z.literal("agent-write-outside-current-project-or-assignment"),
     ]),
     contextBudgets: z
       .object({
@@ -421,6 +441,9 @@ test("repository video skill exposes a structured production policy", async () =
   );
   assert.match(executableWorkflow, /runtime-native child Agent/u);
   assert.match(executableWorkflow, /production:finalize/u);
+  assert.match(executableWorkflow, /Agent write boundary/u);
+  assert.match(skill, /Agent edits current Project paths/u);
+  assert.match(skill, /fixed scripts own derived/u);
   assert.match(executableWorkflow, /success, explicit failure, or host failure/u);
   assert.match(executableWorkflow, /exactly\s+once/u);
   assert.doesNotMatch(skillBundle, /create_thread|detached production watcher/u);

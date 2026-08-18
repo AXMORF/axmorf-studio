@@ -16,6 +16,10 @@ import {
   collectOwnerOutputManifest,
   type OwnerOutputScope,
 } from "../adapters/owner-output-manifest";
+import {
+  checkAgentWriteBoundary,
+  type AgentWriteBoundaryChecker,
+} from "../adapters/agent-write-boundary";
 import { readProductionRunStore } from "../adapters/run-store";
 import { sceneAssignmentRequiresOwner } from "../domain/expected-owner-identities";
 import { loadCurrentGlobalVisualAssignment } from "./global-visual-check";
@@ -241,6 +245,7 @@ export const publishProductionOwnerReceipt = async ({
   code,
   description,
   clock = () => new Date(),
+  checkAgentBoundary = checkAgentWriteBoundary,
 }: {
   readonly rootDir: string;
   readonly runId: string;
@@ -250,6 +255,7 @@ export const publishProductionOwnerReceipt = async ({
   readonly code?: string;
   readonly description?: string;
   readonly clock?: () => Date;
+  readonly checkAgentBoundary?: AgentWriteBoundaryChecker;
 }) => {
   const owner = await resolveOwnerAssignment({
     rootDir,
@@ -258,6 +264,19 @@ export const publishProductionOwnerReceipt = async ({
     meaningId,
   });
   const loaded = await readProductionRunStore({ rootDir, runId });
+  const boundary = await checkAgentBoundary({
+    rootDir,
+    runId,
+    phase:
+      loaded.state.state === "render-ready"
+        ? "cover-authoring-after-render-ready"
+        : "owner-authoring",
+  });
+  if (boundary.status !== "current") {
+    throw new Error(
+      "Agent write boundary was violated during owner authoring.",
+    );
+  }
   const scope = ownerOutputScope(owner);
   const outputManifest = await collectOwnerOutputManifest({
     rootDir,

@@ -17,6 +17,9 @@
   child 进入成功、明确失败或宿主失败终态后只调用一次 `production:finalize`，由固定脚本
   check/submit、汇合 render-ready 并执行 `delivery:build`。聊天终态与 child identity 不持久化，
   assignment-bound receipt 仍是 authority。
+- audited Agent 写入边界是阶段 checkpoint/fingerprint 检测门，不是 OS sandbox：freeze 前只放行
+  current Project，freeze 后只放行 assignment-exclusive paths；共享素材、core 和其他 Project 受保护，
+  fixed script 的确定性输出不归因给 Agent。
 - audited `delivery-render-started` 只证明进程启动确认，不证明渲染完成或 MP4 有效；该路径不等待、监控、
   读取、hash、probe 或 decode detached 输出。
 - PublishingIntent 与独立 Cover 生命周期保留；Cover 不阻止 render-ready，但会阻止自动交付。

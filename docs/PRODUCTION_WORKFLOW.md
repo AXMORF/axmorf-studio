@@ -190,6 +190,14 @@ exact-reference Scene 由 owner 提供 source/adaptation 正常速度预览和 p
   exact PNG。
 - root 用运行环境原生子 Agent 一 owner 一 child 派发，等待所有 child 进入成功、明确失败或宿主失败
   终态，然后只调用一次 `production:finalize`。root 不读 owner 输出、不逐项 submit、不轮询 Run。
+- Agent direct-write boundary 与 fixed writer 分离。`production:start` 在 scaffold 后冻结
+  project-authoring protected workspace，Narrative 固定输出完成后刷新 checkpoint；Scene freeze 先拒绝 current Project 以外的 Agent 漂移，再按
+  assignments 冻结 owner-authoring scope。owner receipt 与 finalize 复验该 scope，core、共享素材、
+  其他 Project、private 或 voice profile 漂移 fail closed。Narrative、Catalog、Registry、Run、out 与
+  delivery 仍由现有 fixed writers 决定路径，不纳入 Agent direct-write allowlist；render-ready 后写
+  Cover-only checkpoint，补 Cover 与再次 finalize 不跳过边界检查。它是阶段推进前的漂移检测而非
+  OS sandbox；Project-local 素材输出位于 current `public/projects/<storyId>/` allowlist，共享
+  `public/assets/library/` 不允许在该生产中被 Agent 修改。
 
 ## 4. Receipt inbox、foreground finalize 与 render-ready
 
@@ -248,7 +256,7 @@ assignment、receipt、render-ready/render-plan 和旧 package result 等过程�
 
 `production:finalize` 是一次 foreground fixed command，不创建/等待 Agent、不 detached、不写 production
 launch intent/receipt。它返回 `delivery-render-started`、`owner-receipts-incomplete`、
-`production-failed` 或 `render-ready-delivery-blocked`。
+`agent-write-boundary-violated`、`production-failed` 或 `render-ready-delivery-blocked`。
 
 `delivery:build` 从 render plan 中实际使用的 ScenePackage/GlobalVisualPackage 资源选择解析绑定的
 ResourceCatalog，去重生成 fingerprint-bound `asset-attributions.json`；未使用的 Catalog 资源不

@@ -30,13 +30,20 @@ import {
   resolveProductionRemotionCommand,
 } from "../adapters/remotion-process";
 import {
+  checkAgentWriteBoundary,
+  writeAgentWriteBoundary,
+} from "../adapters/agent-write-boundary";
+import {
   acquireProductionRunLock,
   appendProductionRunEvent,
   readProductionRunStore,
 } from "../adapters/run-store";
 import { createProductionStageEvent } from "../domain/events";
 import { createUnexpectedProductionError } from "../domain/errors";
-import { loadCurrentProductionInputs } from "./start";
+import {
+  loadCurrentProductionInputs,
+  projectAuthoringScopes,
+} from "./start";
 import { assertNarrationExecutionCurrent } from "./narration-execution";
 
 type GenerationResult = Readonly<{
@@ -447,6 +454,16 @@ export const runProductionNarrative = async ({
     );
   }
   if (initial.state.state === "baseline-ready") {
+    const boundary = await checkAgentWriteBoundary({
+      rootDir,
+      runId,
+      phase: "project-authoring-after-narrative",
+    });
+    if (boundary.status !== "current") {
+      throw new Error(
+        "Agent write boundary was violated after narrative production.",
+      );
+    }
     const current = await loadCurrentProductionInputs({
       rootDir,
       projectId: initial.run.storyId,
@@ -470,6 +487,16 @@ export const runProductionNarrative = async ({
   if (initial.state.state !== "initialized") {
     throw new Error(
       "Production narrative can only start from initialized state.",
+    );
+  }
+  const projectBoundary = await checkAgentWriteBoundary({
+    rootDir,
+    runId,
+    phase: "project-authoring",
+  });
+  if (projectBoundary.status !== "current") {
+    throw new Error(
+      "Agent write boundary was violated before narrative production.",
     );
   }
   const now = clock();
@@ -573,6 +600,13 @@ export const runProductionNarrative = async ({
         writtenAutoCheck.reportFingerprint,
         checkedAutoCheck.reportFingerprint,
       );
+      const authoringBoundary = await writeAgentWriteBoundary({
+        rootDir,
+        runId,
+        storyId: initial.run.storyId,
+        phase: "project-authoring-after-narrative",
+        allowedWriteScopes: projectAuthoringScopes(initial.run.storyId),
+      });
       const succeeded = createProductionStageEvent({
         schemaVersion: initial.run.schemaVersion,
         type: "stage-succeeded",
@@ -650,6 +684,11 @@ export const runProductionNarrative = async ({
             artifactId: "narrative-auto-check",
             repositoryPath: `src/projects/${initial.run.storyId}/generated/narrative-auto-check.generated.json`,
             fingerprint: writtenAutoCheck.reportFingerprint,
+          },
+          {
+            artifactId: "agent-write-boundary.project-authoring-after-narrative",
+            repositoryPath: `.producer-runs/${runId}/artifacts/agent-write-boundary-project-authoring-after-narrative.generated.json`,
+            fingerprint: authoringBoundary.boundary.boundaryFingerprint,
           },
         ],
       });

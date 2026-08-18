@@ -116,6 +116,11 @@ ProductionRun 是 append-only ledger 的派生投影：
 ├── owner-results/
 ├── scene-results/
 ├── global-visual-result.json
+├── artifacts/
+│   ├── agent-write-boundary-project-authoring.generated.json
+│   ├── agent-write-boundary-project-authoring-after-narrative.generated.json
+│   ├── agent-write-boundary-owner-authoring.generated.json
+│   └── agent-write-boundary-cover-authoring-after-render-ready.generated.json
 ├── state.generated.json
 └── lock/
 ```
@@ -124,6 +129,18 @@ ProductionRun 是 append-only ledger 的派生投影：
 原生子 Agent 一 owner 一 child，只写 assignment-owned source，再向固定 inbox 原子发布 ready/failed
 receipt。root 等待所有 child 成功、明确失败或宿主失败终态后只调用一次 finalize；repo 不存 Agent
 lifecycle、identity、task、thread、progress、聊天或 heartbeat。
+
+Agent authoring 另有窄 filesystem boundary，不替代 fixed writer contracts，也不是 OS/process sandbox。
+它在生产阶段转换时用 checkpoint/fingerprint 检测已发生的越界漂移并 fail closed。production start 在 scaffold
+后保存 project-authoring 受保护摘要，narrative 完成固定 Registry 等输出后刷新 checkpoint；Scene
+freeze 验证 Root Agent 未修改 current Project 之外的 core、`public/assets/library/` 共享素材或其他 Project，再保存
+assignment-exclusive owner-authoring 摘要。owner receipt 和
+foreground finalize 在中央 result/event/state 写入前复验；private 与 voice profile 只进入 metadata
+摘要，不读取或报告内容。普通受保护 public 文件绑定内容 checksum；current
+`public/projects/<storyId>/` 是 Project-authoring allowlist，仍只应由 fixed asset/configure workflow 写入。
+固定 render-ready 输出完成后刷新为
+Cover-only checkpoint，使补 Cover 与再次 finalize 继续检查其余工作区；固定 Project、Run、Catalog、
+Registry、out、delivery writers 不被当作 Agent authoring。
 
 当前状态机只接受：production-start → narrative → scene-freeze → waiting-for-owner-results →
 render-ready。finalize 在 required receipt 缺失时于任何 ledger/result/state 写入前返回 incomplete，

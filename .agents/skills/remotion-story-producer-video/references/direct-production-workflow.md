@@ -1,7 +1,6 @@
 # Direct production workflow
 
-Agent authors. Scripts freeze, validate, execute, and finalize; they do not choose creative direction or
-self-review.
+Agent designs. Scripts freeze; they do not choose creative direction or self-review.
 
 ## 1. Design and freeze the Project
 
@@ -41,8 +40,10 @@ npm run production:scene:freeze -- --run <runId>
 npm run delivery:cover:freeze -- --project <storyId>
 ```
 
-Record assignment paths, `templateMeaningIds`, and `ownerMeaningIds`. Templates are script-verified and
-direct-resulted; do not delegate them. Do not rewrite frozen inputs.
+Record assignment paths, `templateMeaningIds`, and `ownerMeaningIds`.
+Scripts direct-result templates; do not delegate them.
+Agent write boundary: current Project before freeze; exclusive assignment paths after. Fixed outputs
+are exempt.
 
 ## 4. Delegate, wait, and finalize
 
@@ -60,6 +61,6 @@ once, regardless of apparent receipt completeness:
 npm run production:finalize -- --run <runId>
 ```
 
-`owner-receipts-incomplete`, `production-failed`, and `render-ready-delivery-blocked` are expected exit-2
-JSON outcomes. `delivery-render-started` is exit 0 and proves only detached render spawn acknowledgement.
+`owner-receipts-incomplete`, `agent-write-boundary-violated`, `production-failed`, and
+`render-ready-delivery-blocked` are expected exit-2 JSON outcomes. `delivery-render-started` is exit 0 and proves only detached render spawn acknowledgement.
 Unexpected failures are safe stderr/exit 1. Do not repeat finalize in the same orchestration attempt.

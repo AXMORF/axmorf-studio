@@ -27,6 +27,7 @@
 | Repository operation lock   | configure/start/delivery/delete 共用的 Project mutation 互斥边界         | 跨 checkout 锁或自动恢复策略                         |
 | OwnerReceipt                | assignment identity 与 output manifest 绑定的 ready/failed inbox 回执    | Codex task 身份、heartbeat 或正式 production result  |
 | owner-receipts-incomplete   | foreground finalize 在任何 ledger/result/state 写入前报告 required receipt 缺失 | child 失败推断、自动重试或已接受部分结果              |
+| agent-write-boundary-violated | 阶段 checkpoint 检测到 Agent allowlist 外工作区漂移                    | OS sandbox、写入前拦截或 fixed-script 失败             |
 | ProductionFinalize         | root 等待全部 child 终态后 exactly once 调用的 foreground 固定收敛命令    | Agent 创作、Run 轮询或最终 MP4 检查                   |
 | ProductionRenderPlan        | 冻结 Composition、资料引用、正文/成片帧与启动 policy 的渲染计划          | 已渲染媒体                                           |
 | ProductionRenderReady       | 所有 current render-critical identity 已汇合                             | MP4 已生成或已检查                                   |
