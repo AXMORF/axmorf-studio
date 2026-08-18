@@ -5,7 +5,9 @@ import type {
   VoxcpmProviderConfig,
 } from "../../../contracts/api";
 import {
+  EDGE_TTS_VOICE_DEFINITIONS,
   SPEECH_SDK_VENDORS,
+  getEdgeTtsVoiceDefinition,
   getSpeechSdkModelMaxInputChars,
   getSpeechSdkVendorDefinition,
   type SpeechSdkVendor,
@@ -902,36 +904,37 @@ const EdgeTtsEditor = ({
               />
             </Field>
             <Field label="Edge Voice ID">
-              <input
+              <select
                 value={profile.voiceId}
                 onChange={(event) =>
                   replace({
                     ...provider,
                     voiceProfiles: provider.voiceProfiles.map(
-                      (item, itemIndex) =>
-                        itemIndex === index
-                          ? { ...item, voiceId: event.target.value }
-                          : item,
+                      (item, itemIndex) => {
+                        if (itemIndex !== index) return item;
+                        const definition = getEdgeTtsVoiceDefinition(
+                          event.target.value,
+                        );
+                        if (definition === undefined) return item;
+                        return {
+                          ...item,
+                          voiceId: definition.id,
+                          locale: definition.locale,
+                        };
+                      },
                     ),
                   })
                 }
-              />
+              >
+                {EDGE_TTS_VOICE_DEFINITIONS.map((voice) => (
+                  <option key={voice.id} value={voice.id}>
+                    {voice.label} · {voice.locale}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field label="Locale">
-              <input
-                value={profile.locale}
-                onChange={(event) =>
-                  replace({
-                    ...provider,
-                    voiceProfiles: provider.voiceProfiles.map(
-                      (item, itemIndex) =>
-                        itemIndex === index
-                          ? { ...item, locale: event.target.value }
-                          : item,
-                    ),
-                  })
-                }
-              />
+              <input value={profile.locale} readOnly aria-readonly="true" />
             </Field>
             <button
               className="icon-button"

@@ -1,3 +1,5 @@
+import { getEdgeTtsVoiceDefinition } from "../../src/contracts/tts-provider-registry";
+
 type VoiceProfile = Readonly<{
   id: string;
   voiceId?: string;
@@ -199,6 +201,18 @@ export const getConfigConsistencyError = (
         (profile.voiceId === undefined || profile.voiceId.trim() === "")
       ) {
         return `声线 ${profile.id} 必须配置云端 Voice ID。`;
+      }
+      if (provider.kind === "edge-tts") {
+        const definition =
+          profile.voiceId === undefined
+            ? undefined
+            : getEdgeTtsVoiceDefinition(profile.voiceId);
+        if (definition === undefined) {
+          return `声线 ${profile.id} 必须选择本项目支持的 Edge 声线。`;
+        }
+        if (profile.locale !== definition.locale) {
+          return `声线 ${profile.id} 的 Locale 与 Edge 声线不一致。`;
+        }
       }
     }
     if (

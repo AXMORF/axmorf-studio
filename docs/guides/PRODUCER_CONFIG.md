@@ -106,8 +106,10 @@ fingerprint 不匹配、未知字段或结构
   验证，不声称线上实测。`remote-clone`/`remote-designed` 只声明已在厂商侧存在的 voice ID 来源；
   narration generation 不创建、覆盖或删除远端声线，避免隐式计费、授权与生命周期副作用。
 - `tts.providers[].kind = "edge-tts"`：无需 Key，固定使用 Microsoft Edge Read Aloud consumer endpoint
-  与远端 voice ID/locale。它是 MIT `node-edge-tts@1.2.10` 封装的非官方客户端协议，不是 Microsoft
-  对外承诺 SLA 的公共 TTS API；依赖互联网，协议可能由上游改变。
+  与远端 voice ID/locale。配置页只允许从当前 adapter 元数据核验过的 14 个中文声线中下拉选择，
+  locale 随声线自动绑定；目录外 ID 和不匹配 locale 会被合同拒绝。它是 MIT
+  `node-edge-tts@1.2.10` 封装的非官方客户端协议，不是 Microsoft 对外承诺 SLA 的公共 TTS API；
+  依赖互联网，协议与声线目录都可能由上游改变。
 - SpeechSDK 当前固定官方开源包
   [`@speech-sdk/core@0.27.0`](https://www.npmjs.com/package/@speech-sdk/core/v/0.27.0)，许可证为
   Apache-2.0；direct factory 与 auto-chunking 行为以

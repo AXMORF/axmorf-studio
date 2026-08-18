@@ -7,7 +7,9 @@ import {
   computePublishingCollectionCatalogFingerprint,
 } from "../../src/contracts/producer-config";
 import {
+  EDGE_TTS_VOICE_DEFINITIONS,
   SPEECH_SDK_VENDORS,
+  getEdgeTtsVoiceDefinition,
   getSpeechSdkVendorDefinition,
 } from "../../src/contracts/tts-provider-registry";
 
@@ -231,6 +233,48 @@ test("all enabled SpeechSDK direct vendors and Edge keep strict model and voice 
     },
   });
   assert.equal(edge.tts.providers[0]?.kind, "edge-tts");
+
+  assert.equal(EDGE_TTS_VOICE_DEFINITIONS.length, 14);
+  assert.equal(
+    getEdgeTtsVoiceDefinition("zh-TW-HsiaoYuNeural")?.locale,
+    "zh-TW",
+  );
+  for (const profile of [
+    {
+      id: "edge-voice",
+      name: "Unknown",
+      voiceId: "zh-CN-NotARealVoiceNeural",
+      locale: "zh-CN",
+    },
+    {
+      id: "edge-voice",
+      name: "Mismatched locale",
+      voiceId: "zh-CN-XiaoxiaoNeural",
+      locale: "zh-TW",
+    },
+  ] as const) {
+    assert.throws(() =>
+      buildProducerConfig({
+        ...validProducerConfigInput,
+        tts: {
+          ...validProducerConfigInput.tts,
+          defaultProviderId: "edge-free",
+          defaultVoiceProfileId: "edge-voice",
+          providers: [
+            {
+              id: "edge-free",
+              kind: "edge-tts",
+              service: "microsoft-edge-read-aloud",
+              name: "Edge free",
+              connection: { timeoutMs: 60_000 },
+              modelId: "edge-read-aloud",
+              voiceProfiles: [profile],
+            },
+          ],
+        },
+      }),
+    );
+  }
 
   for (const vendor of ["fal", "google", "gateway"] as const) {
     assert.throws(() =>

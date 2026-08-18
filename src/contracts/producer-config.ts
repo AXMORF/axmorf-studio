@@ -8,8 +8,10 @@ import {
 } from "./primitives";
 import { SceneTemplateIdSchema } from "./scene-template";
 import {
+  EDGE_TTS_VOICE_DEFINITIONS,
   SPEECH_SDK_VENDORS,
   SPEECH_SDK_VOICE_SOURCES,
+  getEdgeTtsVoiceDefinition,
   getSpeechSdkVendorDefinition,
 } from "./tts-provider-registry";
 
@@ -236,15 +238,25 @@ export const EdgeTtsVoiceProfileSchema = z
   .object({
     id: VoiceProfileIdSchema,
     name: z.string().trim().min(1).max(96),
-    voiceId: z
-      .string()
-      .trim()
-      .min(1)
-      .max(160)
-      .regex(/^[A-Za-z0-9-]+$/u, "Edge voice ID contains unsafe characters."),
+    voiceId: z.enum(
+      EDGE_TTS_VOICE_DEFINITIONS.map(({ id }) => id) as [
+        (typeof EDGE_TTS_VOICE_DEFINITIONS)[number]["id"],
+        ...(typeof EDGE_TTS_VOICE_DEFINITIONS)[number]["id"][],
+      ],
+    ),
     locale: CanonicalLocaleSchema,
   })
   .strict()
+  .superRefine((profile, context) => {
+    const definition = getEdgeTtsVoiceDefinition(profile.voiceId);
+    if (definition?.locale !== profile.locale) {
+      context.addIssue({
+        code: "custom",
+        message: "Edge voice locale must match the selected catalog voice.",
+        path: ["locale"],
+      });
+    }
+  })
   .readonly();
 
 export const EdgeTtsProviderConfigSchema = z

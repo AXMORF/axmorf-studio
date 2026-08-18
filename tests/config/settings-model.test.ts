@@ -112,3 +112,37 @@ test("mixed provider deletion and empty-list boundaries fail closed", () => {
   config.tts.providers = [];
   assert.match(getConfigConsistencyError(config) ?? "", /至少保留一个/iu);
 });
+
+test("Edge profiles require a catalog voice and its matching locale", () => {
+  const config: EditableTtsConfig & {
+    publishingCollections: Array<{ id: string }>;
+  } = {
+    publishingCollections: [{ id: "collection-1" }],
+    tts: {
+      defaultProviderId: "edge-free",
+      defaultVoiceProfileId: "edge-voice",
+      providers: [
+        {
+          id: "edge-free",
+          kind: "edge-tts",
+          voiceProfiles: [
+            {
+              id: "edge-voice",
+              voiceId: "zh-CN-XiaoxiaoNeural",
+              locale: "zh-TW",
+            },
+          ],
+        },
+      ],
+    },
+  };
+  assert.match(getConfigConsistencyError(config) ?? "", /Locale/u);
+  config.tts.providers[0]!.voiceProfiles = [
+    {
+      id: "edge-voice",
+      voiceId: "zh-CN-UnknownNeural",
+      locale: "zh-CN",
+    },
+  ];
+  assert.match(getConfigConsistencyError(config) ?? "", /支持的 Edge 声线/u);
+});

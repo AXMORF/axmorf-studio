@@ -136,6 +136,40 @@ export const UNSUPPORTED_SPEECH_SDK_DIRECT_VENDORS = {
   gateway: "hosted routing and cross-provider behavior are outside BYOK direct mode",
 } as const;
 
+// Keep this deliberately narrower than the Azure Speech catalog. This is the
+// Chinese subset returned by Edge Read Aloud voice metadata for the protocol
+// version used by node-edge-tts@1.2.10; catalog entries that are not returned
+// by Edge are not accepted as interchangeable IDs.
+export const EDGE_TTS_VOICE_DEFINITIONS = [
+  { id: "zh-CN-XiaoxiaoNeural", locale: "zh-CN", label: "晓晓（女）" },
+  { id: "zh-CN-XiaoyiNeural", locale: "zh-CN", label: "晓伊（女）" },
+  { id: "zh-CN-YunxiNeural", locale: "zh-CN", label: "云希（男）" },
+  { id: "zh-CN-YunjianNeural", locale: "zh-CN", label: "云健（男）" },
+  { id: "zh-CN-YunyangNeural", locale: "zh-CN", label: "云扬（男）" },
+  { id: "zh-CN-YunxiaNeural", locale: "zh-CN", label: "云夏（男）" },
+  {
+    id: "zh-CN-liaoning-XiaobeiNeural",
+    locale: "zh-CN-liaoning",
+    label: "晓北（女，东北口音）",
+  },
+  {
+    id: "zh-CN-shaanxi-XiaoniNeural",
+    locale: "zh-CN-shaanxi",
+    label: "晓妮（女，陕西口音）",
+  },
+  { id: "zh-HK-HiuMaanNeural", locale: "zh-HK", label: "曉曼（女，粤语）" },
+  { id: "zh-HK-HiuGaaiNeural", locale: "zh-HK", label: "曉佳（女，粤语）" },
+  { id: "zh-HK-WanLungNeural", locale: "zh-HK", label: "雲龍（男，粤语）" },
+  { id: "zh-TW-HsiaoChenNeural", locale: "zh-TW", label: "曉臻（女，台湾）" },
+  { id: "zh-TW-HsiaoYuNeural", locale: "zh-TW", label: "曉雨（女，台湾）" },
+  { id: "zh-TW-YunJheNeural", locale: "zh-TW", label: "雲哲（男，台湾）" },
+] as const;
+
+export type EdgeTtsVoiceId = (typeof EDGE_TTS_VOICE_DEFINITIONS)[number]["id"];
+
+export const getEdgeTtsVoiceDefinition = (voiceId: string) =>
+  EDGE_TTS_VOICE_DEFINITIONS.find(({ id }) => id === voiceId);
+
 export const getSpeechSdkVendorDefinition = (vendor: SpeechSdkVendor) =>
   SPEECH_SDK_VENDOR_DEFINITIONS[vendor];
 
