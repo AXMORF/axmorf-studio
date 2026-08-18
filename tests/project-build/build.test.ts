@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import {
+  mkdir,
   mkdtemp,
   readFile,
   readdir,
   rm,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -14,7 +16,13 @@ import {
   buildDeliveryPublishing,
   createFingerprint,
 } from "../../src/contracts";
-import { buildProject } from "../../scripts/project-build/application/build";
+import {
+  buildProject,
+  type ProjectBuildDependencies,
+} from "../../scripts/project-build/application/build";
+import { readProjectBuildProgressProjection } from "../../scripts/project-build/application/progress-query";
+import type { ProjectBuildProgressReporter } from "../../scripts/project-build/adapters/progress";
+import { readProjectProductionProgress } from "../../settings/server/production-progress";
 
 const digest = (value: string) =>
   createFingerprint({ namespace: "project-build-test", version: 1, value });
@@ -106,7 +114,10 @@ const createDependencies = ({
   return {
     calls,
     dependencies: {
-      prepare: async () => prepared as never,
+      prepare: async () =>
+        prepared as Awaited<
+          ReturnType<NonNullable<ProjectBuildDependencies["prepare"]>>
+        >,
       collectSnapshot: async () => ({
         fingerprint: snapshot,
         files: [
@@ -141,7 +152,11 @@ const createDependencies = ({
         }
         await writeFile(outputPath, "cover-3x4");
       },
-      inspectVideo: async ({ absolutePath }: { readonly absolutePath: string }) => {
+      inspectVideo: async ({
+        absolutePath,
+      }: {
+        readonly absolutePath: string;
+      }) => {
         assert.equal(await readFile(absolutePath, "utf8"), "video");
         return media.video;
       },
@@ -160,13 +175,36 @@ const createDependencies = ({
         assert.equal(value, "cover-3x4");
         return media.cover3x4;
       },
-    } as never,
+    } satisfies ProjectBuildDependencies,
   };
+};
+
+const recordingProgress = () => {
+  const events: string[] = [];
+  const progress: ProjectBuildProgressReporter = {
+    bindIdentity: async () => {
+      events.push("bind");
+    },
+    start: async (step) => {
+      events.push(`start:${step}`);
+    },
+    succeed: async (step, result) => {
+      events.push(`succeed:${step}:${String(result?.reused ?? null)}`);
+    },
+    fail: async () => {
+      events.push("fail");
+    },
+    clear: async () => {
+      events.push("clear");
+    },
+  };
+  return { events, progress } as const;
 };
 
 test("Project build resumes the same source snapshot and publishes atomically", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-project-build-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
+  await mkdir(join(rootDir, "src/projects/story-example"), { recursive: true });
   const fixture = createDependencies({ failTallOnce: true });
 
   await assert.rejects(
@@ -177,7 +215,9 @@ test("Project build resumes the same source snapshot and publishes atomically", 
     }),
     /tall failed/u,
   );
-  await assert.rejects(readFile(join(rootDir, "deliveries/story-example/publish.json")));
+  await assert.rejects(
+    readFile(join(rootDir, "deliveries/story-example/publish.json")),
+  );
 
   const result = await buildProject({
     rootDir,
@@ -191,15 +231,22 @@ test("Project build resumes the same source snapshot and publishes atomically", 
     cover3x4: false,
   });
   assert.deepEqual(fixture.calls, { video: 1, cover4x3: 1, cover3x4: 2 });
-  assert.deepEqual(await readdir(join(rootDir, "deliveries/.staging")), []);
+  await assert.rejects(
+    readdir(join(rootDir, "deliveries/.staging")),
+    /ENOENT/u,
+  );
   const publish = JSON.parse(
-    await readFile(join(rootDir, "deliveries/story-example/publish.json"), "utf8"),
+    await readFile(
+      join(rootDir, "deliveries/story-example/publish.json"),
+      "utf8",
+    ),
   );
   assert.equal(publish.sourceSnapshotFingerprint, digest("source-a"));
-  assert.deepEqual(
-    Object.keys(publish.artifacts).sort(),
-    ["cover3x4", "cover4x3", "video"],
-  );
+  assert.deepEqual(Object.keys(publish.artifacts).sort(), [
+    "cover3x4",
+    "cover4x3",
+    "video",
+  ]);
 
   const noOp = await buildProject({
     rootDir,
@@ -208,6 +255,24 @@ test("Project build resumes the same source snapshot and publishes atomically", 
   });
   assert.equal(noOp.noOp, true);
   assert.deepEqual(fixture.calls, { video: 1, cover4x3: 1, cover3x4: 2 });
+
+  const progress = await readProjectProductionProgress({
+    rootDir,
+    collectSnapshot: async () => ({
+      fingerprint: digest("source-a"),
+      files: [
+        {
+          repositoryPath: "src/projects/story-example/Composition.tsx",
+          checksum: digest("composition"),
+          sizeBytes: 1,
+        },
+      ],
+    }),
+  });
+  assert.equal(progress.projects[0]?.status, "current");
+  assert.equal(progress.projects[0]?.build.delivery?.sourceCurrent, true);
+  assert.equal(progress.projects[0]?.auditedRun, null);
+  assert.equal(progress.projects[0]?.auditedRunError, null);
 });
 
 test("changed source gets a new build identity and failure preserves current delivery", async (context) => {
@@ -243,4 +308,146 @@ test("changed source gets a new build identity and failure preserves current del
     digest("source-b"),
   );
   assert.equal(completed.noOp, false);
+  const failedProgress = await readProjectBuildProgressProjection({
+    rootDir,
+    projectId: "story-example",
+    collectSnapshot: async () => ({
+      fingerprint: digest("source-b"),
+      files: [
+        {
+          repositoryPath: "src/projects/story-example/Composition.tsx",
+          checksum: digest("composition"),
+          sizeBytes: 1,
+        },
+      ],
+    }),
+  });
+  assert.equal(failedProgress.status, "failed");
+  assert.equal(failedProgress.delivery?.sourceCurrent, false);
+  assert.equal(failedProgress.steps[1]?.status, "failed");
+});
+
+test("Project build reports ordered phases and staged artifact reuse", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-project-progress-order-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const fixture = createDependencies({ failTallOnce: true });
+  const first = recordingProgress();
+  await assert.rejects(
+    buildProject({
+      rootDir,
+      projectId: "story-example",
+      dependencies: {
+        ...fixture.dependencies,
+        progress: first.progress,
+      },
+    }),
+    /tall failed/u,
+  );
+  assert.deepEqual(first.events, [
+    "bind",
+    "succeed:prepare:null",
+    "start:video",
+    "succeed:video:false",
+    "start:cover-4x3",
+    "succeed:cover-4x3:false",
+    "start:cover-3x4",
+    "fail",
+  ]);
+
+  const retry = recordingProgress();
+  await buildProject({
+    rootDir,
+    projectId: "story-example",
+    dependencies: {
+      ...fixture.dependencies,
+      progress: retry.progress,
+    },
+  });
+  assert.deepEqual(retry.events, [
+    "bind",
+    "succeed:prepare:null",
+    "start:video",
+    "succeed:video:true",
+    "start:cover-4x3",
+    "succeed:cover-4x3:true",
+    "start:cover-3x4",
+    "succeed:cover-3x4:false",
+    "start:verify",
+    "succeed:verify:null",
+    "start:promote",
+    "succeed:promote:null",
+    "clear",
+  ]);
+});
+
+test("Project progress rejects incomplete, unknown, linked, drifted, or malformed delivery files", async () => {
+  const cases = [
+    {
+      name: "missing",
+      mutate: (rootDir: string) =>
+        rm(join(rootDir, "deliveries/story-example/video.mp4")),
+    },
+    {
+      name: "unknown",
+      mutate: (rootDir: string) =>
+        writeFile(join(rootDir, "deliveries/story-example/extra.txt"), "extra"),
+    },
+    {
+      name: "symlink",
+      mutate: async (rootDir: string) => {
+        const video = join(rootDir, "deliveries/story-example/video.mp4");
+        await rm(video);
+        await symlink("publish.json", video);
+      },
+    },
+    {
+      name: "checksum",
+      mutate: (rootDir: string) =>
+        writeFile(join(rootDir, "deliveries/story-example/video.mp4"), "drift"),
+    },
+    {
+      name: "malformed",
+      mutate: (rootDir: string) =>
+        writeFile(join(rootDir, "deliveries/story-example/publish.json"), "{"),
+    },
+  ] as const;
+
+  for (const scenario of cases) {
+    const rootDir = await mkdtemp(
+      join(tmpdir(), `rsp-project-invalid-${scenario.name}-`),
+    );
+    try {
+      await mkdir(join(rootDir, "src/projects/story-example"), {
+        recursive: true,
+      });
+      const fixture = createDependencies();
+      await buildProject({
+        rootDir,
+        projectId: "story-example",
+        dependencies: fixture.dependencies,
+      });
+      await scenario.mutate(rootDir);
+      const progress = await readProjectProductionProgress({
+        rootDir,
+        collectSnapshot: async () => ({
+          fingerprint: digest("source-a"),
+          files: [
+            {
+              repositoryPath: "src/projects/story-example/Composition.tsx",
+              checksum: digest("composition"),
+              sizeBytes: 1,
+            },
+          ],
+        }),
+      });
+      assert.equal(progress.projects[0]?.status, "error", scenario.name);
+      assert.equal(
+        progress.projects[0]?.error,
+        "交付状态异常；请检查 publish.json 与四文件完整性。",
+        scenario.name,
+      );
+    } finally {
+      await rm(rootDir, { recursive: true, force: true });
+    }
+  }
 });

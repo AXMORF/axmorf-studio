@@ -20,8 +20,9 @@
    语速与目标响度，以及对应 contracts/fingerprints/Skill 路由。
 9. production/delivery 单向脚本分层、窄 shared technical adapters、CLI/use-case 与 owner inbox/output
    manifest 职责拆分，以及 executable architecture regression。
-10. 配置控制台的 Project 列表、每 Project 最新 current Run 关键进度、严格二次确认删除，以及跨
-    configure/start/delivery/delete 的 repository operation lock 与删除投影恢复。
+10. 配置控制台的 Project 列表、默认 build 六阶段与严格四文件交付主状态、折叠的最新 current
+    audited Run、严格二次确认删除，以及跨 configure/start/delivery/delete 的 repository operation
+    lock 与删除投影恢复。
 11. `scene-package-timeline-v1` 正式 Composition：片头、正文、片尾统一为 StoryBeat、普通
     SceneAssignment/ScenePackage 与 visual/sound projection；SemanticTiming 统一使用全片帧数。
 12. 全局配置选择普通 reusable Scene template；`project:configure` 复制其源码与资源到新 Project，
@@ -52,7 +53,8 @@
 - `project:delete` 继续保护 core、其他 Project、private config 与 `public/voice_profile/`，并在
   writer lock、repository operation lock、非空 delivery staging 或不安全路径出现时于首次删除前
   fail closed；源码删除前的 Registry 预发布和异常后的磁盘真实状态恢复必须保持。
-- 配置页每个 Project 只展示最新 current Run，不升级为历史任务库、进程监控或 MP4 完成检查。
+- 配置页以 current build/delivery 为主，并只附带最新 current audited Run；不升级为历史任务库、
+  脚本启动器、进程监控或重复 MP4 media probe。
 - 配置页展示 discovery 与删除 discovery 保持分离：前者只接受 source Project/current Run identity，
   后者继续覆盖全部 Project-owned 清理根。
 

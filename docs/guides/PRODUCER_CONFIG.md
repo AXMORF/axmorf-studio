@@ -31,13 +31,12 @@ npm run dev
 写入、使用 `no-store`，不把配置写入 localStorage。按产品要求，token 会完整返回并显示以便修改；
 不得通过截图、日志或 Git 泄露页面内容。
 
-左侧“制作进度”先列出当前所有 Project；选择一个 Project 后，只展示它按 `createdAt` 选出的最新
-current Production Run，不提供历史 Run 列表。详情按 `production:start`、`production:narrative`、
-`production:scene:freeze`、Owner 创作与固定收敛、`production:render-ready:check` 与 `delivery:build` 六个
-关键步骤显示状态，每 3 秒刷新。状态只由 strict Run manifest、append-only events、投影 state 以及
-与当前 render-ready fingerprint 绑定的 delivery intent/receipt 得出，不运行脚本、不读取日志、
-不检查进程/PID。`delivery:build` 的“已启动”只表示存在合法 OS spawn acknowledgement，绝不表示
-MP4 已完成。
+左侧“制作进度”先列出当前所有 Project；选择后以默认 `project:build` 的准备、视频、两个 Cover、
+四文件验证与原子提升六阶段为主状态，每 3 秒只读刷新。`publish.json`、exact 四文件的类型/size/checksum
+和 current source snapshot 共同区分完成、待重建与异常；轮询不重复执行 media probe/decode。最新
+current audited Run 仍按原六个 production/delivery 步骤投影，但默认折叠且不影响普通 build，也不提供
+历史 Run 列表。页面不运行脚本、不读取日志或 PID；audited delivery 的“已启动”仍只表示合法 OS
+spawn acknowledgement，绝不表示 MP4 已完成。
 
 Project 详情提供删除入口，必须输入完整 Project ID 二次确认。页面调用与 `project:delete` 完全相同
 的删除器：删除该 Project 的代码、媒体、narration work、全部绑定 Runs、out 与 current delivery，

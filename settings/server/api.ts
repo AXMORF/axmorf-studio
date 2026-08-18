@@ -44,7 +44,7 @@ export const createSettingsApi = ({
   return async (request: ApiRequest): Promise<ApiResponse> => {
     if (request.url === SETTINGS_API_ROUTES.productionProgress) {
       if (request.method !== "GET") {
-        return { statusCode: 405, body: { error: "生产进度只允许 GET" } };
+        return { statusCode: 405, body: { error: "Project 状态只允许 GET" } };
       }
       try {
         return {
@@ -56,7 +56,7 @@ export const createSettingsApi = ({
       } catch {
         return {
           statusCode: 500,
-          body: { error: "Project 生产进度不可用；请检查本地 Project 数据。" },
+          body: { error: "Project 构建与交付状态不可用；请检查本地数据。" },
         };
       }
     }

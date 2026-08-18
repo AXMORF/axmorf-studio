@@ -2,7 +2,7 @@
 
 > 文档类型：产品目标权威
 >
-> 最后复核：2026-08-16
+> 最后复核：2026-08-18
 
 ## 一句话目标
 
@@ -73,8 +73,9 @@ ProductionRun、owner receipt、一次 foreground `production:finalize` 与 `del
 - fresh clone 从 zero Project bootstrap；具体 Project、媒体、narration work、Run、out 和
   deliveries 均为 ignored production artifacts。
 - core 不依赖具体 storyId，Registry/Catalog 对零 Project 有效。
-- 本地配置控制台列出每个 current Project，并且每个 Project 只投影其最新一条 current Run 的关键
-  production/delivery 状态；它不保存历史任务、PID、heartbeat，也不把 spawn receipt 当作 MP4 完成。
+- 本地配置控制台列出每个 current Project，以 `project:build` 六阶段和严格四文件 current delivery
+  为主状态；源码与 publish snapshot 不一致时显示待重建，失败时保留上一版有效交付。最新 current
+  audited Run 只作为折叠的可选信息，不迁移旧 Run，也不把 spawn receipt 当作 MP4 完成。
 - 删除矩阵只在隔离副本验证，不删除真实作品。
 - 用户明确授权后，`project:delete` 可按一个、多个或全部 storyId 删除完整本地生产数据并重建
   Registry/Catalog；配置页只在完整 Project ID 二次确认后复用同一删除器。删除与 Project 配置、

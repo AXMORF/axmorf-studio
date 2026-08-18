@@ -22,7 +22,8 @@
 | ProjectBuildId              | source snapshot 与固定 Composition/build policy 导出的重建 identity      | ProductionRunId、delivery launch attempt 或媒体 checksum |
 | ProjectPublish              | 最后写入并绑定三类最终媒体路径、checksum 与 media facts 的 `publish.json` | 平台已发布、spawn receipt 或过程审计日志              |
 | project-build-complete      | 四个 current delivery 文件已同步渲染、复验并完成受控提升                 | 平台上传、crash-atomic 或 bit-for-bit 可复现           |
-| Project production progress | source Project/current Run 的最新关键步骤只读投影                        | output-only 清理目标、PID 监控或 MP4 完成状态        |
+| ProjectBuildProgress        | ignored staging 内当前 build attempt 的六阶段原子、指纹绑定状态           | buildId authority、历史日志或 current delivery       |
+| Project production progress | build/source/current delivery 主状态与可选 audited Run 的只读投影         | output-only 清理目标、脚本启动器或旧 Run 迁移        |
 | Repository operation lock   | configure/start/delivery/delete 共用的 Project mutation 互斥边界         | 跨 checkout 锁或自动恢复策略                         |
 | OwnerReceipt                | assignment identity 与 output manifest 绑定的 ready/failed inbox 回执    | Codex task 身份、heartbeat 或正式 production result  |
 | owner-receipts-incomplete   | foreground finalize 在任何 ledger/result/state 写入前报告 required receipt 缺失 | child 失败推断、自动重试或已接受部分结果              |

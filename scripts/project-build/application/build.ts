@@ -31,6 +31,10 @@ import {
   renderProjectVideo,
 } from "../adapters/media";
 import {
+  createProjectBuildProgressReporter,
+  type ProjectBuildProgressReporter,
+} from "../adapters/progress";
+import {
   collectProjectSourceSnapshot,
   type ProjectSourceSnapshot,
 } from "../adapters/source-snapshot";
@@ -45,6 +49,7 @@ export type ProjectBuildDependencies = Readonly<{
   renderCover?: typeof renderProjectCover;
   inspectVideo?: typeof inspectProjectVideo;
   inspectCover?: typeof inspectProjectCover;
+  progress?: ProjectBuildProgressReporter;
 }>;
 
 const exists = async (path: string) => {
@@ -81,7 +86,12 @@ const ensureStaging = async ({
   const projectBuilds = join(staging, "project-build");
   const projectStaging = join(projectBuilds, projectId);
   const buildStaging = join(projectStaging, buildId);
-  for (const directory of [deliveries, staging, projectBuilds, projectStaging]) {
+  for (const directory of [
+    deliveries,
+    staging,
+    projectBuilds,
+    projectStaging,
+  ]) {
     await ensureDirectory(directory);
   }
   await ensureDirectory(buildStaging);
@@ -228,7 +238,9 @@ const validateProjectDelivery = async ({
   return publish;
 };
 
-const tryCurrentNoOp = async (request: Parameters<typeof validateProjectDelivery>[0]) => {
+const tryCurrentNoOp = async (
+  request: Parameters<typeof validateProjectDelivery>[0],
+) => {
   try {
     return await validateProjectDelivery(request);
   } catch {
@@ -261,6 +273,11 @@ const buildProjectUnlocked = async ({
     policyVersion: PROJECT_BUILD_POLICY_VERSION,
   } as const;
   const buildId = createProjectBuildId(identity);
+  await dependencies.progress?.bindIdentity({
+    buildId,
+    sourceSnapshotFingerprint: snapshot.fingerprint,
+  });
+  await dependencies.progress?.succeed("prepare");
   const delivery = join(rootDir, "deliveries", prepared.projectId);
   const deliveryMetadata = await exists(delivery);
   if (
@@ -278,6 +295,15 @@ const buildProjectUnlocked = async ({
       dependencies,
     });
     if (current !== null) {
+      for (const step of ["video", "cover-4x3", "cover-3x4"] as const) {
+        await dependencies.progress?.start(step);
+        await dependencies.progress?.succeed(step, { reused: true });
+      }
+      await dependencies.progress?.start("verify");
+      await dependencies.progress?.succeed("verify");
+      await dependencies.progress?.start("promote");
+      await dependencies.progress?.succeed("promote");
+      await dependencies.progress?.clear();
       return {
         projectId: prepared.projectId,
         buildId,
@@ -301,6 +327,7 @@ const buildProjectUnlocked = async ({
   const videoPath = join(paths.staging, "video.mp4");
   const cover4x3Path = join(paths.staging, "cover-4x3.png");
   const cover3x4Path = join(paths.staging, "cover-3x4.png");
+  await dependencies.progress?.start("video");
   const video = await materializeArtifact({
     path: videoPath,
     temporarySuffix: "mp4",
@@ -317,6 +344,8 @@ const buildProjectUnlocked = async ({
         frameCount: prepared.frameCount,
       }),
   });
+  await dependencies.progress?.succeed("video", { reused: video.reused });
+  await dependencies.progress?.start("cover-4x3");
   const cover4x3 = await materializeArtifact({
     path: cover4x3Path,
     temporarySuffix: "png",
@@ -333,6 +362,10 @@ const buildProjectUnlocked = async ({
         expected: { width: 1600, height: 1200 },
       }),
   });
+  await dependencies.progress?.succeed("cover-4x3", {
+    reused: cover4x3.reused,
+  });
+  await dependencies.progress?.start("cover-3x4");
   const cover3x4 = await materializeArtifact({
     path: cover3x4Path,
     temporarySuffix: "png",
@@ -349,6 +382,10 @@ const buildProjectUnlocked = async ({
         expected: { width: 1200, height: 1600 },
       }),
   });
+  await dependencies.progress?.succeed("cover-3x4", {
+    reused: cover3x4.reused,
+  });
+  await dependencies.progress?.start("verify");
   const currentSnapshot = await collectSnapshot({ rootDir, projectId });
   if (
     currentSnapshot.fingerprint !== snapshot.fingerprint ||
@@ -395,6 +432,8 @@ const buildProjectUnlocked = async ({
     prepared,
     dependencies,
   });
+  await dependencies.progress?.succeed("verify");
+  await dependencies.progress?.start("promote");
   await promoteDeliveryStaging({
     staging: paths.staging,
     destination: paths.delivery,
@@ -406,6 +445,8 @@ const buildProjectUnlocked = async ({
     prepared,
     dependencies,
   });
+  await dependencies.progress?.succeed("promote");
+  await dependencies.progress?.clear();
   await removeEmptyDirectory(paths.projectStaging);
   await removeEmptyDirectory(paths.projectBuilds);
   return {
@@ -430,7 +471,21 @@ export const buildProject = async (
     ownerId: "project-build",
   });
   try {
-    return await buildProjectUnlocked(input);
+    const progress =
+      input.dependencies?.progress ??
+      (await createProjectBuildProgressReporter({
+        rootDir: input.rootDir,
+        projectId: input.projectId,
+      }));
+    try {
+      return await buildProjectUnlocked({
+        ...input,
+        dependencies: { ...input.dependencies, progress },
+      });
+    } catch (error) {
+      await progress.fail().catch(() => undefined);
+      throw error;
+    }
   } finally {
     await lock.release();
   }

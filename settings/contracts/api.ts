@@ -83,12 +83,77 @@ export const ProductionRunProgressSchema = z
 
 export type ProductionRunProgress = z.infer<typeof ProductionRunProgressSchema>;
 
+export const ProjectBuildStatusSchema = z.enum([
+  "not-built",
+  "building",
+  "current",
+  "stale",
+  "failed",
+  "error",
+]);
+
+export type ProjectBuildStatus = z.infer<typeof ProjectBuildStatusSchema>;
+
+export const ProjectBuildProgressStepSchema = z
+  .object({
+    id: z.enum([
+      "prepare",
+      "video",
+      "cover-4x3",
+      "cover-3x4",
+      "verify",
+      "promote",
+    ]),
+    label: z.string().min(1),
+    status: z.enum(["pending", "running", "succeeded", "failed"]),
+    detail: z.string().min(1),
+    occurredAt: z.string().nullable(),
+    reused: z.boolean().nullable(),
+  })
+  .strict();
+
+export type ProjectBuildProgressStep = z.infer<
+  typeof ProjectBuildProgressStepSchema
+>;
+
+export const ProjectDeliverySummarySchema = z
+  .object({
+    buildId: z.string().min(1),
+    sourceSnapshotFingerprint: z.string().min(1),
+    frameCount: z.number().int().positive(),
+    sourceCurrent: z.boolean(),
+    updatedAt: z.string().min(1),
+    files: z
+      .object({
+        video: z.literal(true),
+        cover4x3: z.literal(true),
+        cover3x4: z.literal(true),
+        publish: z.literal(true),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const ProjectBuildProgressSchema = z
+  .object({
+    buildId: z.string().min(1).nullable(),
+    completedSteps: z.number().int().nonnegative(),
+    detail: z.string().min(1),
+    delivery: ProjectDeliverySummarySchema.nullable(),
+    steps: z.array(ProjectBuildProgressStepSchema).length(6),
+    totalSteps: z.literal(6),
+    updatedAt: z.string().nullable(),
+  })
+  .strict();
+
 export const ProjectProductionProgressSchema = z
   .object({
     projectId: StoryIdSchema,
-    status: z.enum(["idle", "available", "error"]),
+    status: ProjectBuildStatusSchema,
     error: z.string().min(1).nullable(),
-    run: ProductionRunProgressSchema.nullable(),
+    build: ProjectBuildProgressSchema,
+    auditedRun: ProductionRunProgressSchema.nullable(),
+    auditedRunError: z.string().min(1).nullable(),
   })
   .strict();
 
@@ -98,7 +163,7 @@ export type ProjectProductionProgress = z.infer<
 
 export const ProductionProgressResponseSchema = z
   .object({
-    schemaVersion: z.literal(2),
+    schemaVersion: z.literal(3),
     projects: z.array(ProjectProductionProgressSchema),
   })
   .strict();

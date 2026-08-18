@@ -33,6 +33,8 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 - Remotion 前台完成后使用 ffprobe/ffmpeg 检查 H.264/AAC、声道、尺寸、fps、frame count 和 EOF decode；
   三类媒体全部通过后才写 publish 并提升。
 - buildId staging 可跨失败复用已验证媒体；新 identity 失败不会替换上一版 current delivery。
+- `project-build-progress-v1` 在 ignored staging 原子投影准备、视频、两个 Cover、验证与提升阶段；失败
+  保留安全阶段状态和上一版 delivery，成功后由 `publish.json` 接管完成 authority 并清理临时状态。
 
 ### 统一制作配置
 
@@ -49,10 +51,10 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 - 配置 API 已覆盖 GET/PUT、strict validation、同源拒绝和原子写入；页面提供只读的声线来源、
   VoxCPM health/ready 与 Remotion browser 诊断，并即时维护唯一 ID 与有效默认声线。
 - 配置页“制作进度”只把 `src/projects/` source directory 或 current Run manifest storyId 识别为
-  可展示 Project，不纳入 `out/`、deliveries 等 output-only 清理目标；每个 Project 只投影
-  `createdAt` 最新的一条 current Run，选择后展示六个关键 production/delivery 步骤并每 3 秒刷新。
-  它严格复用 Run events/state 与 fingerprint-bound delivery intent/receipt，不启动脚本、不追踪
-  PID、不把 spawn acknowledgement 表述为 MP4 完成，也不提供历史 Run 列表。
+  可展示 Project，不纳入 `out/`、deliveries 等 output-only 清理目标。schema v3 以默认 build 六阶段、
+  current source snapshot 与严格四文件交付为主状态，区分未构建、构建中、完成、待重建、失败和异常；
+  每 3 秒只读刷新，不重复 media probe/decode，也不启动 build。最新 current audited Run 保留为默认
+  折叠的次级投影；legacy Run 被忽略，不影响普通 build 状态。
 - Project 详情可在输入完整 Project ID 后删除；同源 API 复用 `project:delete` 的完整预检与删除语义，
   清理该 Project 代码及全部本地产物并重建 Catalog/Registry，不扩张到其他 Project、私有配置或
   受保护声线。删除与 production start、Project configure、delivery build 共享跨进程 operation

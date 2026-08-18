@@ -59,6 +59,11 @@ snapshot，并同步运行 Remotion、ffprobe 和 ffmpeg。buildId 由 source sn
 real-directory slot 需要两次 rename，因此 host 在两步之间被强杀不属于 crash-atomic 保证。current
 slot 不包含 launch intent、spawn receipt、Run manifest 或非最终 handoff 文件。
 
+`deliveries/.staging/project-build/<storyId>/progress.generated.json` 是临时、指纹绑定的
+`project-build-progress-v1` 单 attempt 状态，只记录准备、视频、两个 Cover、验证与提升阶段。普通失败
+保留它和同 buildId staging，重试覆盖当前 attempt；成功提升后删除状态并清理空 staging parent。
+它不进入 authoring snapshot 或 current delivery 四文件。
+
 ProductionRun、owner inbox 与 foreground finalize 组成独立 audited production 子系统。它可用于新
 内容创作和过程证据，但它的 state/render-ready/detached delivery 不能反向成为默认 build 依赖。
 
@@ -208,7 +213,9 @@ package/intent/receipt；exact planned MP4 path 即使存在也不被读取或�
   localStorage；LAN 端口不得暴露到公网。声线与可选 BGM 预设只接受仓库相对路径。BGM 在
   `project:configure` 时本地化并冻结；render runtime 只读 Project `sound.json` 和本地资产，不读取 ProducerConfig。
 - 配置页从 `src/projects/` 的 source Project 与 current Run manifest storyId 的并集生成展示列表；
-  `out/`、deliveries 等 output-only 清理目标不进入进度页。每个 Project 只读取其最新 current Run。
+  `out/`、deliveries 等 output-only 清理目标不进入进度页。主投影读取 build progress、当前 source
+  snapshot 与严格四文件 publish/checksum 状态；最新 current audited Run 是独立折叠的次级投影。
+  API 保持 `/api/production-progress` 路径并 clean-break 使用 schema v3，不兼容或解释旧 Run。
   删除 API 则继续使用独立的严格 ownership discovery，要求精确同源 JSON 与 Project ID 二次确认，
   并直接调用同一个 `deleteProjectData`，不复制或弱化 CLI 的预检、目标集合与 Catalog/Registry
   重建语义。

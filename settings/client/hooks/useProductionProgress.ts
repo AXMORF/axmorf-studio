@@ -8,7 +8,7 @@ export const useProductionProgress = () => {
   const [progress, setProgress] = useState<ProductionProgressResponse | null>(
     null,
   );
-  const [status, setStatus] = useState("正在读取最新生产流程…");
+  const [status, setStatus] = useState("正在读取 Project 构建与交付…");
   const [error, setError] = useState<string | null>(null);
   const request = useRef<AbortController | null>(null);
   const deletionInProgress = useRef(false);
@@ -24,12 +24,12 @@ export const useProductionProgress = () => {
       setProgress(result);
       setError(null);
       setStatus(
-        result.projects.length === 0 ? "暂无 Project" : "Project 进度已更新",
+        result.projects.length === 0 ? "暂无 Project" : "Project 状态已更新",
       );
     } catch (caught) {
       if (controller.signal.aborted) return;
       const message =
-        caught instanceof Error ? caught.message : "生产进度读取失败";
+        caught instanceof Error ? caught.message : "Project 状态读取失败";
       setProgress(null);
       setError(message);
       setStatus(message);

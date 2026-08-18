@@ -2,7 +2,7 @@
 
 > 文档类型：current contract 说明
 >
-> 最后复核：2026-08-16
+> 最后复核：2026-08-18
 
 `project-publish-v1` 是默认最终交付合同。它不读取或迁移旧 Run、旧 delivery launch manifest、
 CoverResult 或 receipt。
@@ -34,3 +34,16 @@ buildId-owned staging 允许跨失败执行复用已验证媒体。render/inspec
 都不会提前替换 current slot。只有 staging exact 四文件复验通过后才执行目录 promotion；捕获到的
 替换失败恢复上一版。固定 real-directory slot 的替换需要两次 rename，因此 host 在两步之间被强杀
 不属于 crash-atomic 保证。该合同不定义通用 DAG、后台 retry、detached PID/receipt 或平台发布。
+
+## Progress and read-only projection
+
+`project-build-progress-v1` 位于
+`deliveries/.staging/project-build/<storyId>/progress.generated.json`，以原子 rename 和自身 fingerprint
+记录单个 current attempt 的准备、视频、4:3 Cover、3:4 Cover、验证与提升阶段。普通失败保留当前
+阶段和固定安全提示，不把原始异常写入页面合同；同 buildId 重试覆盖 attempt 并标记复用媒体；成功
+提升后删除该状态，由 `publish.json` 接管完成 authority。progress 不进入 buildId、authoring snapshot
+或 current delivery。
+
+配置页只读投影严格解析 publish schema，要求 exact 四文件的真实 file/type/path/size/checksum，并与
+当前 source snapshot 比较。轮询不重复 FFmpeg/ffprobe/EOF decode；一致为 current，不一致为 stale，
+任何 malformed、missing、unknown、symlink 或 checksum drift 均为 error。

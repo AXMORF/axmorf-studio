@@ -3,6 +3,7 @@ import { useState } from "react";
 import type {
   ProductionProgressResponse,
   ProductionProgressStepStatus,
+  ProjectBuildStatus,
 } from "../../../contracts/api";
 import { Section } from "../../components/Form";
 import { projectDeletionErrorMessage } from "../../model";
@@ -14,6 +15,15 @@ const progressStatusLabels: Record<ProductionProgressStepStatus, string> = {
   failed: "失败",
   attention: "需处理",
   launched: "已启动",
+};
+
+const buildStatusLabels: Record<ProjectBuildStatus, string> = {
+  "not-built": "尚未构建",
+  building: "正在构建",
+  current: "交付完成",
+  stale: "待重新构建",
+  failed: "构建失败",
+  error: "交付状态异常",
 };
 
 const progressStateLabels: Record<string, string> = {
@@ -86,13 +96,13 @@ export const ProductionProgressPanel = ({
 
   return (
     <Section
-      eyebrow="PROJECT RUNS"
-      title="各 Project 最新视频流程"
-      description="每个 Project 独立展示最近创建的一个 Production Run。数据来自已校验的 Run events、投影状态与交付启动回执，每 3 秒自动刷新。"
+      eyebrow="PROJECT BUILDS"
+      title="各 Project 当前交付"
+      description="默认展示固定 project:build 的六个阶段与四文件交付；可选 audited production 独立折叠，每 3 秒自动刷新。"
     >
       <div className="progress-toolbar">
         <div>
-          <span>每 Project 单例</span>
+          <span>CURRENT DELIVERY</span>
           <strong>{error ?? status}</strong>
           <small>{projects.length} 个 Project</small>
         </div>
@@ -115,11 +125,11 @@ export const ProductionProgressPanel = ({
           <strong>
             {error === null
               ? "还没有可展示的 Project"
-              : "Project 生产进度暂不可用"}
+              : "Project 交付状态暂不可用"}
           </strong>
           <p>
             {error === null
-              ? "创建 Project 或执行 production:start 后，这里会自动出现。"
+              ? "创建 Project 后，这里会展示固定构建与当前交付状态。"
               : "页面不会用旧快照冒充当前状态，请检查本地 Project 数据。"}
           </p>
         </div>
@@ -149,14 +159,7 @@ export const ProductionProgressPanel = ({
                 <i className={project.status} />
                 <span>
                   <strong>{project.projectId}</strong>
-                  <small>
-                    {project.run === null
-                      ? project.status === "error"
-                        ? "状态不可用"
-                        : "尚无 Run"
-                      : (progressStateLabels[project.run.state] ??
-                        project.run.state)}
-                  </small>
+                  <small>{buildStatusLabels[project.status]}</small>
                 </span>
               </button>
             ))}
@@ -165,11 +168,11 @@ export const ProductionProgressPanel = ({
             ? null
             : (() => {
                 const project = selectedProject;
-                const run = project.run;
-                const percent =
-                  run === null
-                    ? 0
-                    : Math.round((run.completedSteps / run.totalSteps) * 100);
+                const build = project.build;
+                const run = project.auditedRun;
+                const percent = Math.round(
+                  (build.completedSteps / build.totalSteps) * 100,
+                );
                 const confirming = pendingDeleteId === project.projectId;
                 return (
                   <article
@@ -180,7 +183,9 @@ export const ProductionProgressPanel = ({
                       <div>
                         <span>PROJECT</span>
                         <h3>{project.projectId}</h3>
-                        {run === null ? null : <code>{run.runId}</code>}
+                        {build.buildId === null ? null : (
+                          <code>{build.buildId}</code>
+                        )}
                       </div>
                       <button
                         className="danger-button"
@@ -241,79 +246,154 @@ export const ProductionProgressPanel = ({
                         </div>
                       </div>
                     ) : null}
-                    {run === null ? (
-                      <div className="project-progress-empty">
-                        <strong>
-                          {project.status === "error"
-                            ? "最新 Run 状态不可用"
-                            : "尚无 current Production Run"}
-                        </strong>
-                        <p>
-                          {project.error ??
-                            "Project 已存在；执行 production:start 后会展示关键脚本进度。"}
-                        </p>
+
+                    <div className={`build-state-banner ${project.status}`}>
+                      <span>DEFAULT BUILD</span>
+                      <strong>{buildStatusLabels[project.status]}</strong>
+                      <p>{project.error ?? build.detail}</p>
+                      <code>
+                        npm run project:build -- --project {project.projectId}
+                      </code>
+                    </div>
+
+                    <div className="progress-summary">
+                      <div>
+                        <span>当前状态</span>
+                        <strong>{buildStatusLabels[project.status]}</strong>
                       </div>
-                    ) : (
-                      <>
-                        <div className="progress-summary">
-                          <div>
-                            <span>当前状态</span>
-                            <strong>
-                              {progressStateLabels[run.state] ?? run.state}
-                            </strong>
-                          </div>
-                          <div>
-                            <span>关键步骤</span>
-                            <strong>
-                              {run.completedSteps} / {run.totalSteps}
-                            </strong>
-                          </div>
-                          <div>
-                            <span>最近更新</span>
-                            <strong>{formatTimestamp(run.updatedAt)}</strong>
-                          </div>
-                        </div>
-                        <div
-                          className="progress-meter"
-                          role="progressbar"
-                          aria-label={`${project.projectId} 关键步骤已完成 ${percent}%`}
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                          aria-valuenow={percent}
+                      <div>
+                        <span>构建阶段</span>
+                        <strong>
+                          {build.completedSteps} / {build.totalSteps}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>最近更新</span>
+                        <strong>{formatTimestamp(build.updatedAt)}</strong>
+                      </div>
+                    </div>
+                    <div
+                      className="progress-meter"
+                      role="progressbar"
+                      aria-label={`${project.projectId} 构建阶段已完成 ${percent}%`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={percent}
+                    >
+                      <span style={{ width: `${percent}%` }} />
+                    </div>
+                    <div className="progress-steps">
+                      {build.steps.map((step, index) => (
+                        <article
+                          className={`progress-step ${step.status}`}
+                          key={step.id}
                         >
-                          <span style={{ width: `${percent}%` }} />
+                          <div className="progress-step-index">
+                            {String(index + 1).padStart(2, "0")}
+                          </div>
+                          <div className="progress-step-copy">
+                            <div>
+                              <strong>{step.label}</strong>
+                              <span>{progressStatusLabels[step.status]}</span>
+                              {step.reused === true ? <em>REUSED</em> : null}
+                            </div>
+                            <p>{step.detail}</p>
+                          </div>
+                          <time dateTime={step.occurredAt ?? undefined}>
+                            {formatTimestamp(step.occurredAt)}
+                          </time>
+                        </article>
+                      ))}
+                    </div>
+
+                    {build.delivery === null ? null : (
+                      <div className="delivery-stamp">
+                        <div>
+                          <span>VERIFIED DELIVERY</span>
+                          <strong>
+                            {build.delivery.sourceCurrent
+                              ? "对应当前源码"
+                              : "保留的上一版交付"}
+                          </strong>
                         </div>
-                        <div className="progress-steps">
-                          {run.steps.map((step, index) => (
-                            <article
-                              className={`progress-step ${step.status}`}
-                              key={step.id}
-                            >
-                              <div className="progress-step-index">
-                                {String(index + 1).padStart(2, "0")}
-                              </div>
-                              <div className="progress-step-copy">
-                                <div>
-                                  <strong>{step.label}</strong>
-                                  <span>
-                                    {progressStatusLabels[step.status]}
-                                  </span>
-                                </div>
-                                <p>{step.detail}</p>
-                                <code>{step.command}</code>
-                              </div>
-                              <time dateTime={step.occurredAt ?? undefined}>
-                                {formatTimestamp(step.occurredAt)}
-                              </time>
-                            </article>
-                          ))}
+                        <div className="delivery-files" aria-label="四文件完整">
+                          <span>VIDEO</span>
+                          <span>COVER 4:3</span>
+                          <span>COVER 3:4</span>
+                          <span>PUBLISH</span>
                         </div>
-                        <div className="progress-footnote">
-                          “已启动”只表示 Remotion 进程收到 OS spawn 确认，不表示
-                          MP4 已渲染完成。
-                        </div>
-                      </>
+                        <small>{build.delivery.frameCount} frames</small>
+                      </div>
                     )}
+
+                    <div className={`progress-footnote ${project.status}`}>
+                      {project.status === "stale"
+                        ? "上一版四文件交付保持有效；重新执行固定命令后才会与当前源码对齐。"
+                        : project.status === "failed"
+                          ? "上一版交付未被替换；重新运行同一命令会复用同 buildId 的已验证 staging。"
+                          : project.status === "building"
+                            ? "页面只读观察前台构建；若终端已退出而状态未更新，请按中断构建诊断。"
+                            : project.status === "current"
+                              ? "成功以当前源码对应的 video、两个 Cover 与 publish.json 全部验证并提升为准。"
+                              : project.status === "error"
+                                ? "交付合同、文件类型、大小或 checksum 未通过，页面不会显示成功。"
+                                : "执行固定 project:build 命令后，这里会显示完整阶段。"}
+                    </div>
+
+                    <details className="audited-progress">
+                      <summary>
+                        <span>AUDITED PRODUCTION · 可选</span>
+                        <strong>
+                          {project.auditedRunError ??
+                            (run === null
+                              ? "未启动，不影响普通构建"
+                              : (progressStateLabels[run.state] ?? run.state))}
+                        </strong>
+                      </summary>
+                      {project.auditedRunError !== null ? (
+                        <p className="audited-empty">
+                          {project.auditedRunError}
+                        </p>
+                      ) : run === null ? (
+                        <p className="audited-empty">
+                          仅在缺少内容或需要严格过程证据时使用 audited
+                          production。
+                        </p>
+                      ) : (
+                        <div className="audited-body">
+                          <code>{run.runId}</code>
+                          <div className="progress-steps compact">
+                            {run.steps.map((step, index) => (
+                              <article
+                                className={`progress-step ${step.status}`}
+                                key={step.id}
+                              >
+                                <div className="progress-step-index">
+                                  {String(index + 1).padStart(2, "0")}
+                                </div>
+                                <div className="progress-step-copy">
+                                  <div>
+                                    <strong>{step.label}</strong>
+                                    <span>
+                                      {progressStatusLabels[step.status]}
+                                    </span>
+                                  </div>
+                                  <p>{step.detail}</p>
+                                  <code>{step.command}</code>
+                                </div>
+                                <time dateTime={step.occurredAt ?? undefined}>
+                                  {formatTimestamp(step.occurredAt)}
+                                </time>
+                              </article>
+                            ))}
+                          </div>
+                          <div className="progress-footnote">
+                            “已启动”只表示 Remotion 收到 OS spawn 确认，不表示
+                            MP4 已渲染完成。
+                          </div>
+                        </div>
+                      )}
+                    </details>
                   </article>
                 );
               })()}

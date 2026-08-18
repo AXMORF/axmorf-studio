@@ -11,6 +11,7 @@ import {
   buildRenderLaunchIntent,
   buildRenderLaunchReceipt,
   createDeliveryId,
+  createFingerprint,
   createProductionRunManifest,
 } from "../../src/contracts";
 import {
@@ -19,6 +20,18 @@ import {
 } from "../../scripts/production/adapters/run-store";
 import { createProductionStageEvent } from "../../scripts/production/domain/events";
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
+const collectSnapshot = async ({
+  projectId,
+}: {
+  readonly projectId: string;
+}) => ({
+  fingerprint: createFingerprint({
+    namespace: "progress-test-source",
+    version: 1,
+    value: projectId,
+  }),
+  files: [],
+});
 
 const createRun = ({
   runId,
@@ -41,7 +54,7 @@ test("Project production progress is empty without Project-owned data", async (c
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-progress-empty-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   assert.deepEqual(await readProjectProductionProgress({ rootDir }), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     projects: [],
   });
 });
@@ -53,17 +66,26 @@ test("Project list includes source-only Projects without a Production Run", asyn
     recursive: true,
   });
 
-  assert.deepEqual(await readProjectProductionProgress({ rootDir }), {
-    schemaVersion: 2,
-    projects: [
-      {
-        projectId: "story-source-only",
-        status: "idle",
-        error: null,
-        run: null,
-      },
-    ],
+  const progress = await readProjectProductionProgress({
+    rootDir,
+    collectSnapshot,
   });
+  assert.equal(progress.schemaVersion, 3);
+  assert.equal(progress.projects[0]?.status, "not-built");
+  assert.equal(progress.projects[0]?.build.detail, "尚未生成四文件交付");
+  assert.deepEqual(
+    progress.projects[0]?.build.steps.map(({ id, status }) => ({ id, status })),
+    [
+      { id: "prepare", status: "pending" },
+      { id: "video", status: "pending" },
+      { id: "cover-4x3", status: "pending" },
+      { id: "cover-3x4", status: "pending" },
+      { id: "verify", status: "pending" },
+      { id: "promote", status: "pending" },
+    ],
+  );
+  assert.equal(progress.projects[0]?.auditedRun, null);
+  assert.equal(progress.projects[0]?.auditedRunError, null);
 });
 
 test("Project list excludes output-only deletion targets", async (context) => {
@@ -74,7 +96,7 @@ test("Project list excludes output-only deletion targets", async (context) => {
   });
 
   assert.deepEqual(await readProjectProductionProgress({ rootDir }), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     projects: [],
   });
 });
@@ -95,12 +117,22 @@ test("one Project with invalid current Run discovery does not hide healthy Proje
     }),
   );
 
-  const progress = await readProjectProductionProgress({ rootDir });
+  const progress = await readProjectProductionProgress({
+    rootDir,
+    collectSnapshot,
+  });
   assert.deepEqual(
-    progress.projects.map(({ projectId, status }) => ({ projectId, status })),
+    progress.projects.map(({ projectId, auditedRunError }) => ({
+      projectId,
+      auditedRunError,
+    })),
     [
-      { projectId: "story-bad", status: "error" },
-      { projectId: "story-healthy", status: "idle" },
+      {
+        projectId: "story-bad",
+        auditedRunError:
+          "Run discovery identity 无效；请检查该 Project 的 Run manifest。",
+      },
+      { projectId: "story-healthy", auditedRunError: null },
     ],
   );
 });
@@ -190,8 +222,11 @@ test("production progress selects one newest Run independently for each Project"
     }),
   });
 
-  const progress = await readProjectProductionProgress({ rootDir });
-  assert.equal(progress.schemaVersion, 2);
+  const progress = await readProjectProductionProgress({
+    rootDir,
+    collectSnapshot,
+  });
+  assert.equal(progress.schemaVersion, 3);
   assert.deepEqual(
     progress.projects.map(({ projectId }) => projectId),
     ["story-example", "story-second"],
@@ -202,14 +237,14 @@ test("production progress selects one newest Run independently for each Project"
   const second = progress.projects.find(
     ({ projectId }) => projectId === "story-second",
   );
-  assert.equal(example?.status, "available");
-  assert.equal(example?.run?.runId, latest.runId);
-  assert.equal(example?.run?.state, "narrative-running");
-  assert.equal(example?.run?.completedSteps, 1);
-  assert.equal(second?.run?.runId, secondProject.runId);
-  assert.equal(second?.run?.state, "initialized");
+  assert.equal(example?.status, "not-built");
+  assert.equal(example?.auditedRun?.runId, latest.runId);
+  assert.equal(example?.auditedRun?.state, "narrative-running");
+  assert.equal(example?.auditedRun?.completedSteps, 1);
+  assert.equal(second?.auditedRun?.runId, secondProject.runId);
+  assert.equal(second?.auditedRun?.state, "initialized");
   assert.deepEqual(
-    example?.run?.steps.map(({ id, status }) => ({ id, status })),
+    example?.auditedRun?.steps.map(({ id, status }) => ({ id, status })),
     [
       { id: "production-start", status: "succeeded" },
       { id: "narrative", status: "running" },
@@ -219,7 +254,7 @@ test("production progress selects one newest Run independently for each Project"
       { id: "delivery", status: "pending" },
     ],
   );
-  assert.equal(example?.run?.updatedAt, "2026-08-12T00:01:00.000-02:00");
+  assert.equal(example?.auditedRun?.updatedAt, "2026-08-12T00:01:00.000-02:00");
 });
 
 test("delivery progress distinguishes launch ambiguity from spawn acknowledgement", async (context) => {

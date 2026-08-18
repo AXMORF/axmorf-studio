@@ -9,6 +9,10 @@
   excluding assignment/receipt/render-plan/result process records.
 - `application/build.ts` resumes buildId-owned staging, synchronously renders video and Covers, writes
   `publish.json` last, verifies the exact four-file set, and promotes staged current delivery.
+- `adapters/progress.ts` atomically writes the current six-stage build attempt beside buildId staging; ordinary
+  failures retain it for read-only UI projection, while successful promotion removes it and empty staging parents.
+- `application/progress-query.ts` validates exact current delivery paths/types/sizes/checksums and compares the
+  current source snapshot without repeating FFmpeg/ffprobe/EOF media inspection on each UI refresh.
 - `adapters/media.ts` requires H.264/AAC metadata, configured channels/dimensions/fps/frame count and full
   FFmpeg EOF decode; Covers retain fixed PNG dimensions and EOF decode.
 

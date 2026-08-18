@@ -72,9 +72,11 @@ npm run dev
 ```
 
 该命令同时启动 `http://127.0.0.1:3100` 制作配置页和 `http://127.0.0.1:3101` Remotion Studio。
-配置页的“制作进度”列出所有 current Project；每个 Project 只展示最新一条 current Run 的六个关键
-production/delivery 步骤，并每 3 秒刷新。它不跟踪进程或 MP4 完成状态。Project 详情也可在输入完整
-Project ID 二次确认后执行与 `project:delete` 相同的完整清理。
+配置页的“制作进度”列出所有 current Project；主卡片展示默认 `project:build` 的六个阶段，并以当前
+source snapshot 对应且通过路径、类型、size/checksum 检查的四文件 delivery 为完成。源码变化显示
+待重建，失败保留上一版交付；最新 current audited Run 作为默认折叠的可选信息。页面每 3 秒只读刷新，
+不启动脚本或重复 media probe/decode。Project 详情也可在输入完整 Project ID 二次确认后执行与
+`project:delete` 相同的完整清理。
 从旧私有 VoxCPM JSON 首次迁移时运行 `npm run config:migrate`；新配置和完整 token 始终保持
 ignored，不得 stage。可信局域网内需要其他设备直接访问时运行 `npm run dev:lan`，再使用终端
 输出的 Network 地址访问 `:3100` 和 `:3101`；不要把端口暴露到公网。

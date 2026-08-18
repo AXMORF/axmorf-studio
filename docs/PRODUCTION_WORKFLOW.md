@@ -104,10 +104,12 @@ preflight；不生成测试语音、不 warm-up provider，也不修改 Chromium
 
 配置页的“制作进度”从 `src/projects/` source directory 与 current Run manifest storyId 的并集生成
 Project 列表，不把 `out/`、deliveries 等 output-only 清理目标当成 Project；删除器仍独立扫描全部
-ownership roots。进度页对每个 Project 只选择 `createdAt` 最新的一条 current Production Run。六个
-关键步骤只投影 strict manifest、append-only events、derived state 与 fingerprint-bound delivery
-intent/receipt，每 3 秒刷新；它不运行生产脚本、不读取 PID/exit 状态、不保留历史 Run，也不把
-`delivery-render-started` 表述为 MP4 完成。
+ownership roots。主状态投影 `project:build` 的准备、视频、两个 Cover、验证和提升六阶段，以及严格
+解析、路径/文件类型/size/checksum 验证后的四文件 current delivery。当前 source snapshot 一致为完成，
+不一致为待重建；轮询不重复执行 FFmpeg/ffprobe/EOF decode。build 运行态原子写入 ignored staging，
+普通失败保留阶段供同 buildId 续建，成功后删除；页面只读观察，不启动脚本。最新 current audited Run
+继续由 strict manifest、append-only events、derived state 与 delivery intent/receipt 投影，但默认折叠，
+不迁移旧 Run，也不把 `delivery-render-started` 表述为 MP4 完成。
 
 外部素材服务只在 authoring 阶段负责 search/preview/acquire。当前唯一 provider adapter 严格接收
 stock-assets-mcp 的 Pexels image acquisition receipt v1；仓库不依赖其 package、SDK 或密钥。

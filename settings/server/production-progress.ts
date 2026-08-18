@@ -1,4 +1,5 @@
 import {
+  PROJECT_BUILD_STEP_IDS,
   StoryIdSchema,
   type ProductionStageEvent,
   type ProductionStageId,
@@ -9,6 +10,12 @@ import {
   readProductionOwnerReceiptProgress,
 } from "../../scripts/production/application/progress-query";
 import { readDeliveryProgressProjection } from "../../scripts/delivery/application/progress-query";
+import {
+  PROJECT_BUILD_STEP_COPY,
+  readProjectBuildProgressProjection,
+  type ProjectBuildProgressProjection,
+  type ProjectSourceSnapshotCollector,
+} from "../../scripts/project-build/application/progress-query";
 import { readLocalProjectRoot } from "../../scripts/projects/root";
 import type {
   ProductionProgressStep,
@@ -224,8 +231,10 @@ const readRunProductionProgress = async ({
 
 export const readProjectProductionProgress = async ({
   rootDir,
+  collectSnapshot,
 }: {
   readonly rootDir: string;
+  readonly collectSnapshot?: ProjectSourceSnapshotCollector;
 }): Promise<ProductionProgressResponse> => {
   const [sourceProjectIds, discovery] = await Promise.all([
     discoverSourceProjectIds(rootDir),
@@ -240,34 +249,66 @@ export const readProjectProductionProgress = async ({
   ].sort();
   const projects = await Promise.all(
     projectIds.map(async (projectId) => {
-      if (discovery.invalidProjectIds.has(projectId)) {
-        return {
+      let build: ProjectBuildProgressProjection;
+      let buildError: string | null = null;
+      try {
+        build = await readProjectBuildProgressProjection({
+          rootDir,
           projectId,
-          status: "error",
-          error:
-            "Run discovery identity 无效；请检查该 Project 的 Run manifest。",
-          run: null,
+          ...(collectSnapshot === undefined ? {} : { collectSnapshot }),
+        });
+      } catch {
+        buildError = "交付状态异常；请检查 publish.json 与四文件完整性。";
+        build = {
+          status: "not-built",
+          buildId: null,
+          completedSteps: 0,
+          detail: buildError,
+          delivery: null,
+          steps: PROJECT_BUILD_STEP_IDS.map((id) => ({
+            id,
+            label: PROJECT_BUILD_STEP_COPY[id].label,
+            status: id === "verify" ? "failed" : "pending",
+            detail:
+              id === "verify"
+                ? "交付合同、文件类型、大小或 checksum 校验失败"
+                : PROJECT_BUILD_STEP_COPY[id].pending,
+            occurredAt: null,
+            reused: null,
+          })),
+          totalSteps: 6,
+          updatedAt: null,
         };
+      }
+      let auditedRun: ProductionRunProgress | null = null;
+      let auditedRunError: string | null = null;
+      if (discovery.invalidProjectIds.has(projectId)) {
+        auditedRunError =
+          "Run discovery identity 无效；请检查该 Project 的 Run manifest。";
       }
       const runId = discovery.latestRunIds.get(projectId);
-      if (runId === undefined) {
-        return { projectId, status: "idle", error: null, run: null };
-      }
-      try {
-        const run = await readRunProductionProgress({ rootDir, runId });
-        if (run.storyId !== projectId) {
-          throw new Error("Production run Project identity is stale.");
+      if (runId !== undefined && auditedRunError === null) {
+        try {
+          auditedRun = await readRunProductionProgress({ rootDir, runId });
+          if (auditedRun.storyId !== projectId) {
+            throw new Error("Production run Project identity is stale.");
+          }
+        } catch {
+          auditedRun = null;
+          auditedRunError =
+            "最新 audited Run 状态不可用；请检查该 Run 的 current contract 数据。";
         }
-        return { projectId, status: "available", error: null, run };
-      } catch {
-        return {
-          projectId,
-          status: "error",
-          error: "最新 Run 状态不可用；请检查该 Project 的 Run 与交付产物。",
-          run: null,
-        };
       }
+      const { status: buildStatus, ...buildView } = build;
+      return {
+        projectId,
+        status: buildError === null ? buildStatus : ("error" as const),
+        error: buildError,
+        build: buildView,
+        auditedRun,
+        auditedRunError,
+      };
     }),
   );
-  return ProductionProgressResponseSchema.parse({ schemaVersion: 2, projects });
+  return ProductionProgressResponseSchema.parse({ schemaVersion: 3, projects });
 };
