@@ -187,6 +187,19 @@ textarea:focus {
   margin: 20px 26px 0;
   border: 1px solid #d5dfe7;
 }
+
+.provider-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.inline-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
 .route-table div {
   display: flex;
   justify-content: space-between;

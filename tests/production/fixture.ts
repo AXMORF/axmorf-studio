@@ -117,7 +117,7 @@ export const createProductionFixture = async (
     clock: () => FIXED_PRODUCTION_NOW,
     createRunId: () => FIXED_PRODUCTION_RUN_ID,
     preflightDependencies: {
-      voxcpm: async () => ({
+      ttsProvider: async () => ({
         status: "pass",
         domain: "voxcpm",
         serviceState: "resident-ready",

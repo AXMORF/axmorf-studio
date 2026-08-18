@@ -40,7 +40,7 @@ test("private producer config writes atomically with owner-only permissions", as
   assert.match(await readFile(configPath, "utf8"), /visible-editable-token/u);
 });
 
-test("producer-config-v1 loads as v2 without mutating the private source file", async (context) => {
+test("producer-config-v1 loads as v3 without mutating the private source file", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-config-v1-upgrade-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const configPath = join(rootDir, "private/producer.config.json");
@@ -64,8 +64,8 @@ test("producer-config-v1 loads as v2 without mutating the private source file", 
 
   const loaded = await readProducerConfig({ configPath });
 
-  assert.equal(loaded.schemaVersion, 2);
-  assert.equal(loaded.contractVersion, "producer-config-v2");
+  assert.equal(loaded.schemaVersion, 3);
+  assert.equal(loaded.contractVersion, "producer-config-v3");
   assert.deepEqual(loaded.sceneDefaults, {
     introSceneTemplateId: "axmorf-brand-reveal-v1",
     outroSceneTemplateId: "axmorf-source-follow-v1",
@@ -101,6 +101,40 @@ test("producer-config-v1 loads as v2 without mutating the private source file", 
   await assert.rejects(
     () => readProducerConfig({ configPath }),
     /v1 contains unknown fields/u,
+  );
+});
+
+test("valid producer-config-v2 migrates losslessly to v3 in memory", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-config-v2-upgrade-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const configPath = join(rootDir, "private/producer.config.json");
+  const legacyInput = {
+    ...validProducerConfigInput,
+    schemaVersion: 2,
+    contractVersion: "producer-config-v2",
+  } as const;
+  const legacy = {
+    ...legacyInput,
+    configFingerprint: createFingerprint({
+      namespace: "producer-config",
+      version: 2,
+      value: legacyInput,
+    }),
+  };
+  await mkdir(join(rootDir, "private"), { recursive: true });
+  await writeFile(configPath, `${JSON.stringify(legacy, null, 2)}\n`, "utf8");
+
+  const loaded = await readProducerConfig({ configPath });
+
+  assert.equal(loaded.schemaVersion, 3);
+  assert.equal(loaded.contractVersion, "producer-config-v3");
+  assert.deepEqual(
+    loaded.tts.providers,
+    validProducerConfigInput.tts.providers,
+  );
+  assert.equal(
+    JSON.parse(await readFile(configPath, "utf8")).contractVersion,
+    "producer-config-v2",
   );
 });
 
@@ -187,6 +221,8 @@ test("generic config resolves repository-relative voice paths at the VoxCPM adap
     },
   });
   const provider = resolveDefaultTtsProvider(config);
+  assert.equal(provider.kind, "voxcpm");
+  if (provider.kind !== "voxcpm") throw new Error("Expected VoxCPM fixture.");
   const runtime = toVoxcpmPrivateConfig(provider, "/repo");
   assert.equal(runtime.endpointPath, "/clone");
   assert.equal(runtime.voiceProfiles[0]?.id, "my-voice");
@@ -250,9 +286,13 @@ test("legacy VoxCPM settings migrate into the generic provider without losing mo
     legacy,
     rootDir: "/private",
   });
-  assert.equal(migrated.tts.providers[0]?.connection.token, "private-token");
+  const provider = migrated.tts.providers[0];
+  assert.equal(provider?.kind, "voxcpm");
+  if (provider?.kind !== "voxcpm")
+    throw new Error("Expected VoxCPM migration.");
+  assert.equal(provider.connection.token, "private-token");
   assert.deepEqual(
-    migrated.tts.providers[0]?.voiceProfiles.map(({ mode }) => mode),
+    provider.voiceProfiles.map(({ mode }) => mode),
     ["controllable-clone", "high-fidelity-clone"],
   );
   assert.deepEqual(migrated.tts.speech, {
@@ -260,16 +300,16 @@ test("legacy VoxCPM settings migrate into the generic provider without losing mo
     targetLoudnessLufs: -16,
   });
   assert.equal(
-    migrated.tts.providers[0]?.voiceProfiles[0]?.mode === "controllable-clone"
-      ? migrated.tts.providers[0].voiceProfiles[0].referenceAudioPath
+    provider.voiceProfiles[0]?.mode === "controllable-clone"
+      ? provider.voiceProfiles[0].referenceAudioPath
       : undefined,
     "voice-a.wav",
   );
   assert.deepEqual(
-    migrated.tts.providers[0]?.voiceProfiles[1]?.mode === "high-fidelity-clone"
+    provider.voiceProfiles[1]?.mode === "high-fidelity-clone"
       ? [
-          migrated.tts.providers[0].voiceProfiles[1].promptAudioPath,
-          migrated.tts.providers[0].voiceProfiles[1].promptTextPath,
+          provider.voiceProfiles[1].promptAudioPath,
+          provider.voiceProfiles[1].promptTextPath,
         ]
       : undefined,
     ["voice-b.wav", "voice-b.txt"],

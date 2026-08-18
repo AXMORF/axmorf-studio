@@ -119,17 +119,29 @@ export const runProducerEnvironmentDiagnostics = async ({
     }
   }
   let metadata;
+  let cloudProviderValidated = false;
   try {
     const provider = resolveDefaultTtsProvider(config);
-    metadata = await resolveVoxcpmProfileMetadata({
-      config: toVoxcpmPrivateConfig(provider, rootDir),
-      narration: NarrationSpecSchema.parse({
-        schemaVersion: 2,
-        voiceProfileId: config.tts.defaultVoiceProfileId,
-        mode: "voice-clone",
-      }),
-      rootDir,
-    });
+    if (provider.kind === "voxcpm") {
+      metadata = await resolveVoxcpmProfileMetadata({
+        config: toVoxcpmPrivateConfig(provider, rootDir),
+        narration: NarrationSpecSchema.parse({
+          schemaVersion: 2,
+          voiceProfileId: config.tts.defaultVoiceProfileId,
+          mode: "voice-clone",
+        }),
+        rootDir,
+      });
+    } else {
+      cloudProviderValidated =
+        provider.vendor === "openai" &&
+        provider.voiceProfiles.filter(
+          ({ id }) => id === config.tts.defaultVoiceProfileId,
+        ).length === 1;
+      if (!cloudProviderValidated) {
+        throw new Error("Cloud voice profile is unavailable.");
+      }
+    }
     checks.push({
       id: "voice-profile",
       status: "pass",
@@ -165,6 +177,14 @@ export const runProducerEnvironmentDiagnostics = async ({
             remediation: result.remediation,
           },
     );
+  } else if (cloudProviderValidated) {
+    checks.push({
+      id: "speech-sdk-openai",
+      status: "pass",
+      summary:
+        "SpeechSDK OpenAI 直连配置已验证；凭证与网络将在真实生成时校验。",
+      remediation: null,
+    });
   }
   const browser = await browserPreflight({
     rootDir,

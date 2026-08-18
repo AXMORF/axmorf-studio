@@ -2,7 +2,7 @@
 
 > 文档类型：执行语义权威
 >
-> 最后复核：2026-08-16
+> 最后复核：2026-08-18
 
 ## 确定性的对象
 
@@ -14,11 +14,14 @@ namespace/version-bound SHA-256 fingerprint。未知字段、非 current contrac
 identity drift 或 malformed bytes fail closed。
 
 NarrationSpec 与 narration generation input 是 current-only v2；已删除的 VoxCPM `seed` 不参与
-任何合同。provider-attempt v2 绑定 adapter v2、完整 generation parameters 与安全内容 checksum，
-因此旧 provider attempt 或任一参数漂移都不能复用候选。
+任何合同。VoxCPM provider-attempt v2 继续绑定 adapter v2、完整 generation parameters 与安全内容
+checksum；SpeechSDK OpenAI provider-attempt v1 绑定 direct adapter、vendor/model/profile/voice、
+单请求限制、零重试策略与 opaque private-config fingerprint。provider-neutral chunk request v2 再绑定
+authored chunk，因此 adapter、凭证或任一参数漂移都不能复用错误候选。
 
-ProducerConfig 自身使用 `producer-config-v2` strict schema 与 fingerprint。合法 v1 只在读取时校验原
-fingerprint 并在内存中补入 Scene 默认项；GET 不改写私有文件，页面保存后才原子写成 v2。它是新
+ProducerConfig 自身使用 `producer-config-v3` strict discriminated provider schema 与 fingerprint。
+合法 v1/v2 先校验各自原 fingerprint，再只在内存中升级；GET 不改写私有文件，页面保存后才原子
+写成 v3。它是新
 authoring/freeze 的默认/选择 authority，不是已封存 Project 的可变 runtime dependency：Scene template
 在 `project:configure` 时复制为 Project-local source/assets/instance，合集选择连同 catalog fingerprint
 进入 PublishingIntent v2，边缘留白进入 production-readability-v2，语速进入 provider-attempt，目标
@@ -27,11 +30,15 @@ LUFS 进入 mastering policy。声线文件与可选 BGM 预设只接受规范�
 descriptor fingerprint、独立音量和 `sound.json` fingerprint 进入 requirements、render 与 delivery identity。
 `project:configure` 要求显式 readability，不再存在创建阶段的 90px fallback。
 
-start 的同一次 provider resolution 同时供 VoxCPM preflight 与 `NarrationExecutionSnapshot` 使用。
+start 的同一次 provider resolution 同时供 provider-aware preflight 与
+`NarrationExecutionSnapshot` v2 使用。VoxCPM 保留 loopback health/ready/info 检查；SpeechSDK OpenAI
+只做 strict config/profile 校验，明确把凭证与网络验证延迟到真实生成，不 warm-up、不产生费用。
 快照复用 provider-attempt fingerprint 与完整 mastering policy；provider-attempt 额外绑定 opaque
 private-config fingerprint，从而让 URL/token/path 变化触发 drift，但 raw token、URL、绝对路径、
 声线内容和 transcript 不进入 Project、Run、events、错误或日志。generation 在请求前重算并比较
-快照；mastering 只使用 Run policy。已冻结 Project/Run 不因全局配置变化而改变。
+快照；mastering 只使用 Run policy。云端执行只使用 `createOpenAI()` direct factory 与用户 key，
+不使用 Speechbase gateway、字符串路由、SDK timestamp/normalize 或 provider fallback。已冻结
+Project/Run 不因全局配置变化而改变。
 
 ## 时间确定性
 

@@ -7,7 +7,7 @@ import {
   StoryIdSchema,
   TtsChunkIdSchema,
 } from "../../../src/contracts/primitives";
-import type { VoxcpmChunkRequest } from "./provider-input";
+import type { ChunkAudioRequest } from "./provider-input";
 import { CANONICAL_NARRATION_PCM } from "./pcm-wav";
 
 const NonEmptyTextSchema = z
@@ -110,13 +110,13 @@ export type NarrationGenerationExpected = {
   readonly storyId: string;
   readonly generationInputFingerprint: string;
   readonly providerAttemptFingerprint: string;
-  readonly chunks: readonly VoxcpmChunkRequest[];
+  readonly chunks: readonly ChunkAudioRequest[];
 };
 
 export type ChunkGenerationAction =
   | { readonly kind: "reuse"; readonly measured: CanonicalMeasuredChunk }
   | { readonly kind: "normalize"; readonly candidate: RawNarrationCandidate }
-  | { readonly kind: "generate"; readonly request: VoxcpmChunkRequest };
+  | { readonly kind: "generate"; readonly request: ChunkAudioRequest };
 
 const assertProgressMatchesExpected = (
   expected: NarrationGenerationExpected,

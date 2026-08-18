@@ -33,6 +33,7 @@ export type SafeVoxcpmExecutionDescriptor =
     });
 
 export type ResolvedVoxcpmProfile = {
+  readonly kind: "voxcpm";
   readonly baseUrl: string;
   readonly endpointPath: "/clone" | "/clone_with_prompt";
   readonly token?: string;
@@ -55,7 +56,38 @@ export type ResolvedVoxcpmProfile = {
   readonly safeDescriptor: SafeVoxcpmExecutionDescriptor;
 };
 
-export type VoxcpmChunkRequest = {
+export type SafeSpeechSdkOpenAIExecutionDescriptor = {
+  readonly adapterId: "speech-sdk-openai-direct-v1";
+  readonly providerConfigFingerprint: string;
+  readonly vendor: "openai";
+  readonly modelId: "gpt-4o-mini-tts";
+  readonly voiceProfileId: string;
+  readonly voiceId: string;
+  readonly speechRate: number;
+  readonly maxInputChars: 4096;
+  readonly maxRetries: 0;
+};
+
+export type ResolvedSpeechSdkOpenAIProfile = {
+  readonly kind: "speech-sdk";
+  readonly vendor: "openai";
+  readonly apiKey: string;
+  readonly baseUrl?: string;
+  readonly timeoutMs: number;
+  readonly modelId: "gpt-4o-mini-tts";
+  readonly voiceId: string;
+  readonly safeDescriptor: SafeSpeechSdkOpenAIExecutionDescriptor;
+};
+
+export type SafeProviderExecutionDescriptor =
+  | SafeVoxcpmExecutionDescriptor
+  | SafeSpeechSdkOpenAIExecutionDescriptor;
+
+export type ResolvedProviderExecution =
+  | ResolvedVoxcpmProfile
+  | ResolvedSpeechSdkOpenAIProfile;
+
+export type ChunkAudioRequest = {
   readonly generationInputFingerprint: string;
   readonly providerAttemptFingerprint: string;
   readonly requestFingerprint: string;
@@ -65,17 +97,25 @@ export type VoxcpmChunkRequest = {
 };
 
 export type ChunkAudioGenerator = (
-  request: VoxcpmChunkRequest,
+  request: ChunkAudioRequest,
 ) => Promise<Buffer>;
 
 export const computeProviderAttemptFingerprint = (
-  descriptor: SafeVoxcpmExecutionDescriptor,
-) =>
-  createFingerprint({
-    namespace: "voxcpm-provider-attempt",
-    version: 2,
+  descriptor: SafeProviderExecutionDescriptor,
+) => {
+  if (descriptor.adapterId.startsWith("voxcpm-")) {
+    return createFingerprint({
+      namespace: "voxcpm-provider-attempt",
+      version: 2,
+      value: descriptor,
+    });
+  }
+  return createFingerprint({
+    namespace: "speech-sdk-provider-attempt",
+    version: 1,
     value: descriptor,
   });
+};
 
 export const computeChunkRequestFingerprint = ({
   generationInputFingerprint,
@@ -83,10 +123,10 @@ export const computeChunkRequestFingerprint = ({
   chunkId,
   meaningId,
   ttsText,
-}: Omit<VoxcpmChunkRequest, "requestFingerprint">) =>
+}: Omit<ChunkAudioRequest, "requestFingerprint">) =>
   createFingerprint({
-    namespace: "voxcpm-chunk-request",
-    version: 1,
+    namespace: "tts-chunk-request",
+    version: 2,
     value: {
       generationInputFingerprint,
       providerAttemptFingerprint,

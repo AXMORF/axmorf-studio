@@ -5,10 +5,11 @@ import test from "node:test";
 import { createVoxcpmChunkGenerator } from "../../scripts/narration/adapters/voxcpm-client";
 import type {
   ResolvedVoxcpmProfile,
-  VoxcpmChunkRequest,
+  ChunkAudioRequest,
 } from "../../scripts/narration/domain/provider-input";
 
 const resolved: ResolvedVoxcpmProfile = {
+  kind: "voxcpm",
   baseUrl: "http://127.0.0.1:9880",
   endpointPath: "/clone",
   token: "secret-token",
@@ -47,7 +48,7 @@ const resolved: ResolvedVoxcpmProfile = {
   },
 };
 
-const request: VoxcpmChunkRequest = {
+const request: ChunkAudioRequest = {
   generationInputFingerprint: `sha256:${"b".repeat(64)}`,
   providerAttemptFingerprint: `sha256:${"c".repeat(64)}`,
   requestFingerprint: `sha256:${"d".repeat(64)}`,

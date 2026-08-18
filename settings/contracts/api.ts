@@ -216,7 +216,15 @@ export type EditableConfig = Omit<
   "configFingerprint"
 > & { configFingerprint?: ProducerConfigDto["configFingerprint"] };
 
-export type VoxcpmProviderConfig = EditableConfig["tts"]["providers"][number];
+export type TtsProviderConfig = EditableConfig["tts"]["providers"][number];
+export type VoxcpmProviderConfig = Extract<
+  TtsProviderConfig,
+  { kind: "voxcpm" }
+>;
+export type SpeechSdkProviderConfig = Extract<
+  TtsProviderConfig,
+  { kind: "speech-sdk" }
+>;
 
 export const parseEditableConfig = (raw: unknown): EditableConfig =>
   ProducerConfigSchema.parse(raw) as unknown as EditableConfig;

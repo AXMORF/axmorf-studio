@@ -36,9 +36,6 @@ export const App = () => {
   const settings = useSettingsConfig();
   const environment = useEnvironmentDiagnostics();
   const production = useProductionProgress();
-  const provider = settings.config?.tts.providers.find(
-    ({ id }) => id === settings.config?.tts.defaultProviderId,
-  );
   const studioUrl = buildStudioUrl(window.location.href);
   const lanAccess = isLanAccessHostname(window.location.hostname);
   const validation = [
@@ -94,7 +91,7 @@ export const App = () => {
       </header>
 
       <aside className="sidebar">
-        <div className="sidebar-label">CONFIG / V2</div>
+        <div className="sidebar-label">CONFIG / V3</div>
         <nav>
           {tabs.map((tab) => (
             <button
@@ -146,12 +143,8 @@ export const App = () => {
             {activeTab === "collections" ? (
               <Collections config={settings.config} update={settings.update} />
             ) : null}
-            {activeTab === "tts" && provider !== undefined ? (
-              <Tts
-                config={settings.config}
-                provider={provider}
-                update={settings.update}
-              />
+            {activeTab === "tts" ? (
+              <Tts config={settings.config} update={settings.update} />
             ) : null}
           </>
         )}
@@ -178,9 +171,9 @@ export const App = () => {
           <span>{lanAccess ? "TRUSTED LAN" : "LOCAL ONLY"}</span>
           <p>
             {lanAccess
-              ? "当前通过局域网地址访问。token 会原样回传，仅应在可信网络使用。"
-              : "服务只监听 127.0.0.1。token 会原样回传到此页面。"}
-            token 不写日志，也不进入浏览器存储。
+              ? "当前通过局域网地址访问。TTS secret 会原样回传，仅应在可信网络使用。"
+              : "服务只监听 127.0.0.1。TTS secret 会原样回传到此页面。"}
+            secret 不写日志，也不进入浏览器存储。
           </p>
         </div>
       </aside>

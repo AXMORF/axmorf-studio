@@ -24,7 +24,8 @@
   读取、hash、probe 或 decode detached 输出。
 - PublishingIntent 与独立 Cover 生命周期保留；Cover 不阻止 render-ready，但会阻止自动交付。
 - ignored `private/producer.config.json` 统一管理新作品的常用画面规格、Scene 留白、首尾 Scene
-  template 选择、合集数组、通用 TTS 与可选本地 BGM 预设；声线/BGM 文件只接受仓库相对路径。
+  template 选择、合集数组、通用 TTS 与可选本地 BGM 预设；TTS 可同时配置仓库专用 VoxCPM 与
+  SpeechSDK OpenAI BYOK 直连，声线/BGM 文件只接受仓库相对路径。
   `project:configure` 把选择冻结进新 Project，并复制所选 template 的源码、资源和 BGM。BGM 作为
   一个独立音量、可循环的 `SoundContribution`，只覆盖 narrated 内容，不进入片头片尾。
 - production start 将已确认的 provider-attempt 与 mastering policy 合成为 private-safe Run 执行快照；
@@ -80,7 +81,7 @@ source snapshot 对应且通过路径、类型、size/checksum 检查的四文�
 待重建，失败保留上一版交付；最新 current audited Run 作为默认折叠的可选信息。页面每 3 秒只读刷新，
 不启动脚本或重复 media probe/decode。Project 详情也可在输入完整 Project ID 二次确认后执行与
 `project:delete` 相同的完整清理。
-从旧私有 VoxCPM JSON 首次迁移时运行 `npm run config:migrate`；新配置和完整 token 始终保持
+从旧私有 VoxCPM JSON 首次迁移时运行 `npm run config:migrate`；新配置和完整 TTS secret 始终保持
 ignored，不得 stage。可信局域网内需要其他设备直接访问时运行 `npm run dev:lan`，再使用终端
 输出的 Network 地址访问 `:3100` 和 `:3101`；不要把端口暴露到公网。
 将 `.env.example` 复制为 `.env` 后即可使用仓库内相对配置路径；`RSP_PRODUCER_CONFIG` 的相对

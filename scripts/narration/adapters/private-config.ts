@@ -112,6 +112,7 @@ export const VoxcpmPrivateConfigSchema = z
 export type VoxcpmPrivateConfig = z.infer<typeof VoxcpmPrivateConfigSchema>;
 
 export type VoxcpmProfileMetadata = Readonly<{
+  kind: "voxcpm";
   baseUrl: string;
   token?: string;
   timeoutMs: number;
@@ -163,6 +164,7 @@ export const resolveVoxcpmProfileMetadata = async ({
     });
   }
   return {
+    kind: "voxcpm",
     baseUrl: config.baseUrl.replace(/\/+$/, ""),
     ...(config.token === undefined ? {} : { token: config.token }),
     timeoutMs: config.timeoutMs,
@@ -307,6 +309,7 @@ export const resolveVoxcpmProfile = async ({
       referenceAudioChecksum: promptAudioChecksum,
     };
     return {
+      kind: "voxcpm",
       baseUrl: parsed.baseUrl.replace(/\/+$/, ""),
       endpointPath: "/clone_with_prompt",
       ...(parsed.token === undefined ? {} : { token: parsed.token }),
@@ -359,6 +362,7 @@ export const resolveVoxcpmProfile = async ({
   };
 
   return {
+    kind: "voxcpm",
     baseUrl: parsed.baseUrl.replace(/\/+$/, ""),
     endpointPath: parsed.endpointPath,
     ...(parsed.token === undefined ? {} : { token: parsed.token }),

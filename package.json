@@ -25,6 +25,7 @@
     "@remotion/tailwind-v4": "4.0.489",
     "@remotion/three": "4.0.489",
     "@remotion/transitions": "4.0.489",
+    "@speech-sdk/core": "0.27.0",
     "lottie-web": "5.13.0",
     "ogl": "1.0.11",
     "react": "19.2.3",

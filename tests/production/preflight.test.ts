@@ -7,6 +7,7 @@ import {
   buildProductionStartPreflightPass,
 } from "../../src/contracts";
 import { preflightVoxcpm } from "../../scripts/production/adapters/voxcpm-preflight";
+import { preflightSpeechSdk } from "../../scripts/production/adapters/speech-sdk-preflight";
 import {
   buildProductionBrowserPreflightArgs,
   buildProductionCompositionsArgs,
@@ -19,10 +20,14 @@ const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 test("builds bounded transient preflight pass and failure contracts", () => {
   const pass = buildProductionStartPreflightPass({
     requirementsFingerprint: sha("1"),
-    voxcpmServiceState: "offloaded-auto-reload-on-first-generation",
+    ttsProviderCheck: {
+      domain: "voxcpm",
+      status: "pass",
+      serviceState: "offloaded-auto-reload-on-first-generation",
+    },
   });
-  assert.equal(pass.schemaVersion, 2);
-  assert.equal(pass.contractVersion, "production-start-preflight-v2");
+  assert.equal(pass.schemaVersion, 3);
+  assert.equal(pass.contractVersion, "production-start-preflight-v3");
   assert.equal(ProductionStartPreflightSchema.parse(pass).status, "pass");
 
   const failure = buildProductionStartPreflightFailure({
@@ -34,7 +39,33 @@ test("builds bounded transient preflight pass and failure contracts", () => {
     requirementsFingerprint: sha("1"),
   });
   assert.equal(ProductionStartPreflightSchema.parse(failure).status, "failed");
-  assert.doesNotMatch(JSON.stringify(failure), /https?:|\/home\/|\/data\/|token/i);
+  assert.doesNotMatch(
+    JSON.stringify(failure),
+    /https?:|\/home\/|\/data\/|token/i,
+  );
+});
+
+test("SpeechSDK preflight is static and explicitly defers credential and network validation", () => {
+  const result = preflightSpeechSdk({
+    requirementsFingerprint: sha("1"),
+    metadata: {
+      kind: "speech-sdk",
+      vendor: "openai",
+      profileMatched: true,
+      validationState: "configuration-validated-generation-not-probed",
+    },
+  });
+  assert.deepEqual(result, {
+    status: "pass",
+    domain: "speech-sdk",
+    vendor: "openai",
+    validationState: "configuration-validated-generation-not-probed",
+  });
+  const contract = buildProductionStartPreflightPass({
+    requirementsFingerprint: sha("1"),
+    ttsProviderCheck: result,
+  });
+  assert.equal(ProductionStartPreflightSchema.parse(contract).status, "pass");
 });
 
 test("uses a Project-independent Remotion probe and classifies sandbox denial", async () => {
@@ -63,10 +94,12 @@ test("uses a Project-independent Remotion probe and classifies sandbox denial", 
       };
     },
   });
-  assert.deepEqual(calls, [[
-    "/repo/node_modules/.bin/remotion",
-    ["compositions", "src/remotion/preflight/index.tsx"],
-  ]]);
+  assert.deepEqual(calls, [
+    [
+      "/repo/node_modules/.bin/remotion",
+      ["compositions", "src/remotion/preflight/index.tsx"],
+    ],
+  ]);
   assert.equal(result.status, "failed");
   if (result.status === "failed") {
     assert.equal(result.code, "REMOTION_BROWSER_SANDBOX_DENIED");
@@ -86,6 +119,7 @@ test("recognizes resident loading and offloaded readiness without generation", a
     const result = await preflightVoxcpm({
       requirementsFingerprint: sha("1"),
       metadata: {
+        kind: "voxcpm",
         baseUrl: "http://127.0.0.1:9880",
         token: "private-token",
         timeoutMs: 1000,
@@ -101,14 +135,18 @@ test("recognizes resident loading and offloaded readiness without generation", a
       },
     });
     assert.deepEqual(routes, ["/health", "/ready"]);
-    assert.equal(routes.some((route) => /tts|generate|warm/iu.test(route)), false);
+    assert.equal(
+      routes.some((route) => /tts|generate|warm/iu.test(route)),
+      false,
+    );
     assert.equal(result.status, "pass");
     if (result.status === "pass") {
       assert.equal(
         result.serviceState,
         ready.status === 200
           ? "resident-ready"
-          : (ready.body as { detail: { status: string } }).detail.status === "loading"
+          : (ready.body as { detail: { status: string } }).detail.status ===
+              "loading"
             ? "loading"
             : "offloaded-auto-reload-on-first-generation",
       );
@@ -118,11 +156,14 @@ test("recognizes resident loading and offloaded readiness without generation", a
 
 test("distinguishes host permission denial from a real VoxCPM outage", async () => {
   const permissionError = Object.assign(new Error("fetch failed"), {
-    cause: Object.assign(new Error("Operation not permitted"), { code: "EPERM" }),
+    cause: Object.assign(new Error("Operation not permitted"), {
+      code: "EPERM",
+    }),
   });
   const result = await preflightVoxcpm({
     requirementsFingerprint: sha("1"),
     metadata: {
+      kind: "voxcpm",
       baseUrl: "http://127.0.0.1:9880",
       timeoutMs: 1000,
       mode: "controllable-clone",
@@ -136,7 +177,10 @@ test("distinguishes host permission denial from a real VoxCPM outage", async () 
   assert.equal(result.status, "failed");
   if (result.status === "failed") {
     assert.equal(result.code, "VOXCPM_ENVIRONMENT_PERMISSION_DENIED");
-    assert.doesNotMatch(JSON.stringify(result), /EPERM|Operation not permitted/u);
+    assert.doesNotMatch(
+      JSON.stringify(result),
+      /EPERM|Operation not permitted/u,
+    );
   }
 });
 
@@ -144,6 +188,7 @@ test("classifies readiness 500 without exposing response body", async () => {
   const result = await preflightVoxcpm({
     requirementsFingerprint: sha("1"),
     metadata: {
+      kind: "voxcpm",
       baseUrl: "http://127.0.0.1:9880",
       token: "private-token",
       timeoutMs: 1000,
@@ -182,6 +227,7 @@ test("denoise requires a resident or configured denoiser before generation", asy
     const result = await preflightVoxcpm({
       requirementsFingerprint: sha("1"),
       metadata: {
+        kind: "voxcpm",
         baseUrl: "http://127.0.0.1:9880",
         timeoutMs: 1000,
         mode: "high-fidelity-clone",
@@ -200,12 +246,16 @@ test("denoise requires a resident or configured denoiser before generation", asy
       assert.equal(result.code, "VOXCPM_DENOISER_UNAVAILABLE");
       assert.doesNotMatch(JSON.stringify(result), /https?:|\/data\/|token/i);
     }
-    assert.equal(routes.some((route) => /tts|clone|generate|warm/iu.test(route)), false);
+    assert.equal(
+      routes.some((route) => /tts|clone|generate|warm/iu.test(route)),
+      false,
+    );
   }
 
   const offloaded = await preflightVoxcpm({
     requirementsFingerprint: sha("1"),
     metadata: {
+      kind: "voxcpm",
       baseUrl: "http://127.0.0.1:9880",
       timeoutMs: 1000,
       mode: "high-fidelity-clone",
@@ -215,7 +265,10 @@ test("denoise requires a resident or configured denoiser before generation", asy
     probe: async ({ route }) => {
       if (route === "/health") return { status: 200, body: { status: "ok" } };
       if (route === "/ready") {
-        return { status: 503, body: { detail: { ready: false, status: "offloaded" } } };
+        return {
+          status: 503,
+          body: { detail: { ready: false, status: "offloaded" } },
+        };
       }
       return { status: 200, body: { load_denoiser: true } };
     },

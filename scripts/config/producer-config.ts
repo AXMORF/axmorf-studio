@@ -16,6 +16,7 @@ import {
   buildProducerConfig,
   createFingerprint,
   type ProducerConfig,
+  type TtsProviderConfig,
   type VoxcpmProviderConfig,
 } from "../../src/contracts";
 import type { VoxcpmPrivateConfig } from "../narration/adapters/private-config";
@@ -94,6 +95,27 @@ export const readProducerConfig = async ({
       cause: error,
     });
   }
+  const assertLegacyVoxcpmProviders = (legacy: Record<string, unknown>) => {
+    const tts = legacy.tts;
+    const providers =
+      tts !== null && typeof tts === "object" && !Array.isArray(tts)
+        ? (tts as Record<string, unknown>).providers
+        : undefined;
+    if (
+      !Array.isArray(providers) ||
+      providers.some(
+        (provider) =>
+          provider === null ||
+          typeof provider !== "object" ||
+          Array.isArray(provider) ||
+          (provider as Record<string, unknown>).kind !== "voxcpm",
+      )
+    ) {
+      throw new Error(
+        "Legacy Producer config contains an unsupported provider.",
+      );
+    }
+  };
   if (
     raw !== null &&
     typeof raw === "object" &&
@@ -125,16 +147,42 @@ export const readProducerConfig = async ({
     if (fingerprint !== expectedFingerprint) {
       throw new Error("Producer config v1 fingerprint is stale.");
     }
+    assertLegacyVoxcpmProviders(legacy);
     delete legacy.schemaVersion;
     delete legacy.contractVersion;
     return buildProducerConfig({
       ...legacy,
-      schemaVersion: 2,
-      contractVersion: "producer-config-v2",
+      schemaVersion: 3,
+      contractVersion: "producer-config-v3",
       sceneDefaults: {
         introSceneTemplateId: "axmorf-brand-reveal-v1",
         outroSceneTemplateId: "axmorf-source-follow-v1",
       },
+    });
+  }
+  if (
+    raw !== null &&
+    typeof raw === "object" &&
+    !Array.isArray(raw) &&
+    (raw as Record<string, unknown>).schemaVersion === 2 &&
+    (raw as Record<string, unknown>).contractVersion === "producer-config-v2"
+  ) {
+    const legacy = { ...(raw as Record<string, unknown>) };
+    const fingerprint = legacy.configFingerprint;
+    delete legacy.configFingerprint;
+    const expectedFingerprint = createFingerprint({
+      namespace: "producer-config",
+      version: 2,
+      value: legacy,
+    });
+    if (fingerprint !== expectedFingerprint) {
+      throw new Error("Producer config v2 fingerprint is stale.");
+    }
+    assertLegacyVoxcpmProviders(legacy);
+    return buildProducerConfig({
+      ...legacy,
+      schemaVersion: 3,
+      contractVersion: "producer-config-v3",
     });
   }
   return ProducerConfigSchema.parse(raw);
@@ -192,14 +240,14 @@ export const writeProducerConfig = async ({
 
 export const resolveDefaultTtsProvider = (
   config: ProducerConfig,
-): VoxcpmProviderConfig => {
+): TtsProviderConfig => {
   const matches = config.tts.providers.filter(
     ({ id }) => id === config.tts.defaultProviderId,
   );
   if (matches.length !== 1) {
     throw new Error("Default TTS provider is unavailable.");
   }
-  return matches[0] as VoxcpmProviderConfig;
+  return matches[0] as TtsProviderConfig;
 };
 
 export const toVoxcpmPrivateConfig = (

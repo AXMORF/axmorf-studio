@@ -28,9 +28,20 @@ Relative paths resolve from the repository root. The same override may be placed
 `.env` copied from `.env.example`; current config, narration, and production entrypoints load it
 automatically. An already exported shell value takes precedence over `.env`.
 
-The full schema, local UI, token boundary, speech-rate/LUFS semantics, and one-time migration command are
+The full schema, local UI, secret boundary, speech-rate/LUFS semantics, and one-time migration command are
 documented in [本地制作配置](PRODUCER_CONFIG.md). The old file below is retained only as the input to
 `npm run config:migrate`; narration runtime no longer reads it directly. Its strict legacy shape is:
+
+Current `producer-config-v3` may select either the repository-specific VoxCPM adapter or SpeechSDK
+OpenAI direct/BYOK. The cloud path imports `createOpenAI()` from `@speech-sdk/core/providers`; it never
+uses a Speechbase gateway or a `provider/model` string. The adapter rejects authored chunks over 4096
+characters and any bracketed SDK audio tag before the network, passes `maxRetries: 0`, and requests no
+SDK timestamps, volume normalization, output conversion, speed processing, or provider fallback. One
+authored chunk therefore produces exactly one direct synthesis request. The returned provider bytes
+continue through the same repository-owned normalization, measured PCM, checksum, sealing, mastering,
+and cumulative-sample timing pipeline.
+
+The strict legacy VoxCPM shape is:
 
 ```json
 {
@@ -203,12 +214,17 @@ Rerun the same `generate` command unchanged. Reuse occurs only when both the gen
 provider-attempt fingerprints match and the stored raw checksum, normalized checksum, canonical WAV,
 sample-frame count, authored identity, and request fingerprint all verify.
 
-The safe descriptor uses adapter IDs `voxcpm-controllable-clone-http-v2` and
+The VoxCPM safe descriptor uses adapter IDs `voxcpm-controllable-clone-http-v2` and
 `voxcpm-high-fidelity-clone-http-v2`. It includes all generation parameters, profile identity, and
 content checksums while excluding endpoint, token, private paths, and raw private bytes. The
 provider-attempt fingerprint also includes configured speech rate, so changing it, any generation
 parameter, or switching
 from a v1 adapter creates a new attempt and cannot reuse stale candidates.
+
+The SpeechSDK safe descriptor uses `speech-sdk-openai-direct-v1` and binds vendor, model, repository
+profile ID, remote voice ID, single-request/retry policy, speech rate, and an opaque fingerprint over
+the private API key/base URL/timeout. Raw credentials and endpoints never enter progress, Run snapshots,
+stdout, receipts, or errors.
 
 Changing the private deployment label, reference bytes, control instruction, or generation parameters
 creates a different provider-attempt fingerprint and a separate attempt directory. Stale candidates are
@@ -217,7 +233,7 @@ never mixed into the new attempt.
 If the provider stops during a batch, completed progress remains recoverable and missing chunks fail
 closed. No sealed receipt is created from an incomplete batch. A current sealed narration whose source
 and fingerprints still match remains usable during a provider outage; runtime and `narration:check` do
-not call VoxCPM.
+not call any TTS provider.
 
 ## Seal lock recovery
 

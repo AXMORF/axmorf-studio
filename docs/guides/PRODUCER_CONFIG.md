@@ -28,7 +28,7 @@ npm run dev
 - `http://127.0.0.1:3101`：Remotion Studio 预览。
 
 两者由同一个本地开发命令启动，不是两个需要部署的产品。配置 API 只监听 loopback、拒绝非同源
-写入、使用 `no-store`，不把配置写入 localStorage。按产品要求，token 会完整返回并显示以便修改；
+写入、使用 `no-store`，不把配置写入 localStorage。TTS token/API key 只在受控表单内完整返回以便修改；
 不得通过截图、日志或 Git 泄露页面内容。
 
 左侧“制作进度”先列出当前所有 Project；选择后以默认 `project:build` 的准备、视频、两个 Cover、
@@ -48,10 +48,11 @@ Run 或产物，也避免 Remotion Studio 因短暂的旧 import 终止配置 AP
 状态恢复 Registry/Catalog。若浏览器连接仍在请求中断，页面只提示“删除结果需确认”，不会把无法
 确认的网络状态误报为删除未完成。
 
-右侧“只读环境诊断”检查配置、默认声线来源、VoxCPM health/ready 与 Remotion browser preflight。
-它不生成测试语音、不 warm-up 服务、不弱化 Chromium sandbox，只显示脱敏状态和修复建议。表单会
-为新增合集/声线选择未占用 ID；切换 provider 或删除默认声线时立即选择仍有效的默认声线，重复 ID
-或无效 default 会直接阻止保存。
+右侧“只读环境诊断”检查配置、默认声线来源与 Remotion browser preflight。VoxCPM 继续检查
+health/ready/info；SpeechSDK OpenAI 只做 strict config/profile 校验，并明确显示“凭证/网络将在真实生成
+时校验”。它不生成测试语音、不 warm-up 服务、不产生云端费用、不弱化 Chromium sandbox。表单会
+为新增 provider/声线选择未占用 ID；切换或删除默认项时立即选择仍有效的 default，最后一个 provider、
+最后一条声线、重复 ID、空 secret 或跨 provider 默认声线都会 fail closed。
 
 可信局域网内需要其他设备直接访问时运行：
 
@@ -61,7 +62,7 @@ npm run dev:lan
 
 该命令让配置页监听 IPv4 所有网卡，并强制 Remotion Studio 使用 IPv4；使用命令输出的本机
 Network IP 分别访问 `http://<LAN-IP>:3100` 和 `http://<LAN-IP>:3101`。配置写入仍要求 Origin 与
-实际 Host 完全一致，页面中的 Studio 链接会沿用当前主机名。由于配置 API 会完整返回 token，
+实际 Host 完全一致，页面中的 Studio 链接会沿用当前主机名。由于配置 API 会完整返回 TTS secret，
 LAN 模式只适用于用户已确认可信的局域网，禁止端口转发到公网。
 
 首次从旧版 VoxCPM 私有配置迁移：
@@ -75,9 +76,10 @@ token 或私有声线路径。位于仓库内的声线输入会转换成仓库�
 ignored 的仓库目录，否则迁移 fail closed。目标文件已存在时命令会拒绝覆盖；迁移后应在页面中
 补充准确的合集名称/描述。
 
-已有 `producer-config-v1` 会在读取时校验原 fingerprint，并只在内存中升级为 v2：原字段保持不变，
-新增默认 Scene 选择。GET 和环境诊断不会改写私有文件；操作员在配置页确认并保存后才原子写入 v2。
-fingerprint 不匹配或结构无效的 v1 仍然 fail closed。
+已有合法 `producer-config-v1` 与 `producer-config-v2` 会先校验各自原 fingerprint，再只在内存中升级
+为 v3；v1 同时补入原既定默认 Scene 选择，v2 字段无损保留。GET 和环境诊断不会改写私有文件；
+操作员在配置页确认并保存后才原子写入 `producer-config-v3`。fingerprint 不匹配、未知字段或结构
+无效的旧配置仍然 fail closed。
 
 ## 配置语义
 
@@ -94,6 +96,20 @@ fingerprint 不匹配或结构无效的 v1 仍然 fail closed。
   fingerprint；`speech.targetLoudnessLufs` 进入两遍 loudnorm mastering policy 和母带 fingerprint。
 - `tts.providers[].kind = "voxcpm"`：当前 VoxCPM 适配器。可控克隆 POST `/clone`；高品质克隆
   POST `/clone_with_prompt`。`mode` 只在适配器内部选择请求结构，不作为 form 字段发送。
+- `tts.providers[].kind = "speech-sdk"`：当前只允许 `vendor = "openai"`、
+  `modelId = "gpt-4o-mini-tts"`。`connection.apiKey` 是用户自己的 BYOK key；`baseUrl` 可空，非空时
+  只传给 SpeechSDK 官方 `createOpenAI()` direct factory。仓库不使用 Speechbase/托管网关、字符串
+  模型路由、跨 provider fallback 或常驻 TTS 进程。voice profile 的仓库 `id` 与 OpenAI `voiceId`
+  分开保存，Project 继续只绑定稳定仓库 ID。
+- SpeechSDK 当前固定官方开源包
+  [`@speech-sdk/core@0.27.0`](https://www.npmjs.com/package/@speech-sdk/core/v/0.27.0)，许可证为
+  Apache-2.0；direct factory 与 auto-chunking 行为以
+  [Jellypod-Inc/speech-sdk](https://github.com/Jellypod-Inc/speech-sdk) 对应发布源码为准。该版本会在
+  超过 model `maxInputChars` 时自动拆分；
+  因此 adapter 对 OpenAI 的 4096 字符上限和方括号 audio tag 先 fail closed，固定 `maxRetries=0`，
+  不传 timestamps、volume/output/speed/chunking 选项。每个 authored ttsChunk 恰好调用一次 SDK；
+  SDK 返回音频仍由仓库 `normalizeProviderAudio`、canonical PCM/checksum/seal/mastering 与
+  `pcm-cumulative-ceil-v1` 掌握 authority。
 - 声线的 `referenceAudioPath`、`promptAudioPath` 和 `promptTextPath` 只保存仓库根目录相对路径，
   例如 `voxcpm/voice_profile/my-voice.wav`；绝对路径、反斜杠、URL 与 `..` 逃逸均被拒绝。Narration
   和 preflight 在进入 VoxCPM 适配器前统一解析为宿主绝对路径，配置页保存的仍是相对值。
@@ -128,8 +144,8 @@ Scene 的 `scene-template-instance.json`。合集必须且只能选择当前数�
 fingerprint 被封存。Project 一旦存在 instantiation，后续修改全局 Scene 选择或共享模板不会重新复制
 或改变该 Project；Project-local 文件漂移会 fail closed。其他冻结目标已有不同内容时命令拒绝覆盖。
 
-`production:start` 用同一次已解析 TTS 配置完成 preflight 并冻结 Run 级
-`NarrationExecutionSnapshot`。generation 会在 provider request 前重算并比较；mastering 只读取
+`production:start` 用同一次已解析 TTS 配置完成 provider-aware preflight 并冻结 Run 级
+`NarrationExecutionSnapshot` v2。generation 会在 provider request 前重算并比较；mastering 只读取
 快照中的 LUFS policy。配置页在 Run 开始后发生 provider、connection、voice、生成参数、speech
 rate 或 LUFS 变化时，该 Run 会拒绝继续并要求 fresh Run。快照与安全 projection 只含 ID、数值
-policy 和 fingerprint，不含 token、URL、绝对路径、声线内容或 transcript。
+policy 和 fingerprint，不含 token/API key、URL、绝对路径、声线内容或 transcript。

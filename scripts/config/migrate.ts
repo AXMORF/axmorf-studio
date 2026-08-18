@@ -53,8 +53,8 @@ export const migrateVoxcpmConfigToProducerConfig = ({
   readonly rootDir: string;
 }) =>
   buildProducerConfig({
-    schemaVersion: 2,
-    contractVersion: "producer-config-v2",
+    schemaVersion: 3,
+    contractVersion: "producer-config-v3",
     renderDefaults: {
       width: 1080,
       height: 1920,

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { Sha256DigestSchema } from "./primitives";
 
 export const PRODUCTION_START_PREFLIGHT_VERSION =
-  "production-start-preflight-v2" as const;
+  "production-start-preflight-v3" as const;
 
 const SafeTextSchema = z
   .string()
@@ -19,7 +19,7 @@ const SafeTextSchema = z
   );
 
 const CommonShape = {
-  schemaVersion: z.literal(2),
+  schemaVersion: z.literal(3),
   contractVersion: z.literal(PRODUCTION_START_PREFLIGHT_VERSION),
   requirementsFingerprint: Sha256DigestSchema,
   redactionApplied: z.boolean(),
@@ -36,6 +36,8 @@ const FailureCodeSchema = z.enum([
   "VOXCPM_READINESS_RESPONSE_UNRECOGNIZED",
   "VOXCPM_MODEL_LOAD_FAILED",
   "VOXCPM_DENOISER_UNAVAILABLE",
+  "SPEECH_SDK_CONFIG_UNAVAILABLE",
+  "SPEECH_SDK_PROFILE_UNAVAILABLE",
   "REMOTION_BROWSER_UNAVAILABLE",
   "REMOTION_BROWSER_PERMISSION_DENIED",
   "REMOTION_BROWSER_SANDBOX_DENIED",
@@ -47,8 +49,35 @@ const ProductionStartPreflightPassSchema = z
     ...CommonShape,
     status: z.literal("pass"),
     checks: z.tuple([
-      z.object({ domain: z.literal("voxcpm"), status: z.literal("pass"), serviceState: z.enum(["resident-ready", "loading", "offloaded-auto-reload-on-first-generation"]) }).strict(),
-      z.object({ domain: z.literal("remotion-browser"), status: z.literal("pass") }).strict(),
+      z.union([
+        z
+          .object({
+            domain: z.literal("voxcpm"),
+            status: z.literal("pass"),
+            serviceState: z.enum([
+              "resident-ready",
+              "loading",
+              "offloaded-auto-reload-on-first-generation",
+            ]),
+          })
+          .strict(),
+        z
+          .object({
+            domain: z.literal("speech-sdk"),
+            status: z.literal("pass"),
+            vendor: z.literal("openai"),
+            validationState: z.literal(
+              "configuration-validated-generation-not-probed",
+            ),
+          })
+          .strict(),
+      ]),
+      z
+        .object({
+          domain: z.literal("remotion-browser"),
+          status: z.literal("pass"),
+        })
+        .strict(),
     ]),
   })
   .strict()
@@ -58,7 +87,7 @@ const ProductionStartPreflightFailureSchema = z
   .object({
     ...CommonShape,
     status: z.literal("failed"),
-    domain: z.enum(["voxcpm", "remotion-browser"]),
+    domain: z.enum(["voxcpm", "speech-sdk", "remotion-browser"]),
     kind: z.enum(["external-blocker", "fixed-flow-defect"]),
     code: FailureCodeSchema,
     summary: SafeTextSchema,
@@ -77,16 +106,16 @@ export type ProductionStartPreflight = z.infer<
 
 export const buildProductionStartPreflightPass = (raw: {
   readonly requirementsFingerprint: unknown;
-  readonly voxcpmServiceState: unknown;
+  readonly ttsProviderCheck: unknown;
 }) =>
   ProductionStartPreflightPassSchema.parse({
-    schemaVersion: 2,
+    schemaVersion: 3,
     contractVersion: PRODUCTION_START_PREFLIGHT_VERSION,
     status: "pass",
     requirementsFingerprint: raw.requirementsFingerprint,
     redactionApplied: true,
     checks: [
-      { domain: "voxcpm", status: "pass", serviceState: raw.voxcpmServiceState },
+      raw.ttsProviderCheck,
       { domain: "remotion-browser", status: "pass" },
     ],
   });
@@ -94,7 +123,7 @@ export const buildProductionStartPreflightPass = (raw: {
 export const buildProductionStartPreflightFailure = (raw: unknown) =>
   ProductionStartPreflightFailureSchema.parse({
     ...(raw as Record<string, unknown>),
-    schemaVersion: 2,
+    schemaVersion: 3,
     contractVersion: PRODUCTION_START_PREFLIGHT_VERSION,
     status: "failed",
     redactionApplied: true,

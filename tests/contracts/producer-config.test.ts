@@ -8,8 +8,8 @@ import {
 } from "../../src/contracts/producer-config";
 
 export const validProducerConfigInput = {
-  schemaVersion: 2,
-  contractVersion: "producer-config-v2",
+  schemaVersion: 3,
+  contractVersion: "producer-config-v3",
   renderDefaults: {
     width: 1080,
     height: 1920,
@@ -102,6 +102,67 @@ test("one strict config owns render, Scene defaults, collections, and generic TT
   assert.match(config.configFingerprint, /^sha256:[a-f0-9]{64}$/u);
 });
 
+test("mixed local and SpeechSDK OpenAI providers keep strict provider and voice defaults", () => {
+  const cloud = {
+    id: "openai-direct",
+    kind: "speech-sdk",
+    vendor: "openai",
+    name: "OpenAI direct",
+    connection: {
+      apiKey: "private-openai-key",
+      baseUrl: "https://api.openai.com/v1",
+      timeoutMs: 60_000,
+    },
+    modelId: "gpt-4o-mini-tts",
+    voiceProfiles: [
+      { id: "cloud-voice", name: "Cloud voice", voiceId: "alloy" },
+    ],
+  } as const;
+  const config = buildProducerConfig({
+    ...validProducerConfigInput,
+    tts: {
+      ...validProducerConfigInput.tts,
+      defaultProviderId: cloud.id,
+      defaultVoiceProfileId: "cloud-voice",
+      providers: [validProducerConfigInput.tts.providers[0], cloud],
+    },
+  });
+  assert.deepEqual(
+    config.tts.providers.map(({ kind }) => kind),
+    ["voxcpm", "speech-sdk"],
+  );
+  assert.equal(config.tts.defaultProviderId, "openai-direct");
+  assert.throws(() =>
+    buildProducerConfig({
+      ...validProducerConfigInput,
+      tts: {
+        ...validProducerConfigInput.tts,
+        defaultProviderId: cloud.id,
+        defaultVoiceProfileId: "my-voice",
+        providers: [validProducerConfigInput.tts.providers[0], cloud],
+      },
+    }),
+  );
+  assert.throws(() =>
+    buildProducerConfig({
+      ...validProducerConfigInput,
+      tts: {
+        ...validProducerConfigInput.tts,
+        defaultProviderId: cloud.id,
+        defaultVoiceProfileId: "cloud-voice",
+        providers: [
+          validProducerConfigInput.tts.providers[0],
+          {
+            ...cloud,
+            vendor: "unsupported",
+            fallbackProviderId: "local-voxcpm",
+          },
+        ],
+      },
+    }),
+  );
+});
+
 test("voice and BGM files must use safe repository-relative paths", () => {
   assert.throws(() =>
     buildProducerConfig({
@@ -134,10 +195,10 @@ test("voice and BGM files must use safe repository-relative paths", () => {
 
 test("token remains present in the parsed config for the local settings UI", () => {
   const config = buildProducerConfig(validProducerConfigInput);
-  assert.equal(
-    config.tts.providers[0]?.connection.token,
-    "visible-editable-token",
-  );
+  const provider = config.tts.providers[0];
+  assert.equal(provider?.kind, "voxcpm");
+  if (provider?.kind !== "voxcpm") throw new Error("Expected VoxCPM fixture.");
+  assert.equal(provider.connection.token, "visible-editable-token");
 });
 
 test("defaults and identifiers fail closed when they are ambiguous", () => {

@@ -9,7 +9,7 @@ import {
   readCandidateBytes,
 } from "./adapters/candidate-workspace";
 import { resolveProducerConfigPathFromEnvironment } from "../config/producer-config";
-import { createVoxcpmChunkGenerator } from "./adapters/voxcpm-client";
+import { createChunkAudioGenerator } from "./adapters/provider-dispatcher";
 import { normalizeProviderAudio } from "./adapters/ffmpeg-normalizer";
 import { resolveProducerNarrationExecution } from "../config/narration-execution";
 import { checkM2NarrationArtifacts } from "./check";
@@ -58,7 +58,7 @@ export const createDefaultGenerationDependencies: NarrationCliContext["createGen
     return {
       providerAttemptFingerprint: snapshot.providerAttemptFingerprint,
       executionSnapshot: snapshot,
-      generateChunk: createVoxcpmChunkGenerator({ resolved }),
+      generateChunk: createChunkAudioGenerator({ resolved }),
       normalizePcm: (sourceBytes) =>
         normalizeProviderAudio({
           sourceBytes,

@@ -8,6 +8,7 @@ import {
   parseRenderSize,
   projectDeletionErrorMessage,
   selectProviderAndVoice,
+  removeProvider,
   removeVoiceProfile,
   type EditableTtsConfig,
 } from "../../settings/client/model";
@@ -76,4 +77,38 @@ test("provider switching and voice deletion keep a valid default immediately", (
     /at least one|至少一个/iu,
   );
   assert.equal(getConfigConsistencyError(config), null);
+});
+
+test("mixed provider deletion and empty-list boundaries fail closed", () => {
+  const config: EditableTtsConfig & {
+    publishingCollections: Array<{ id: string }>;
+  } = {
+    publishingCollections: [{ id: "collection-1" }],
+    tts: {
+      defaultProviderId: "cloud-provider",
+      defaultVoiceProfileId: "cloud-voice",
+      providers: [
+        {
+          id: "local-provider",
+          kind: "voxcpm",
+          voiceProfiles: [{ id: "local-voice" }],
+        },
+        {
+          id: "cloud-provider",
+          kind: "speech-sdk",
+          connection: { apiKey: "private-key" },
+          voiceProfiles: [{ id: "cloud-voice", voiceId: "alloy" }],
+        },
+      ],
+    },
+  };
+  removeProvider(config, "cloud-provider");
+  assert.equal(config.tts.defaultProviderId, "local-provider");
+  assert.equal(config.tts.defaultVoiceProfileId, "local-voice");
+  assert.throws(
+    () => removeProvider(config, "local-provider"),
+    /at least one/iu,
+  );
+  config.tts.providers = [];
+  assert.match(getConfigConsistencyError(config) ?? "", /至少保留一个/iu);
 });

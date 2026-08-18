@@ -104,7 +104,7 @@ const start = (rootDir: string) =>
     clock: () => fixedNow,
     createRunId: () => fixedRunId,
     preflightDependencies: {
-      voxcpm: async () => ({
+      ttsProvider: async () => ({
         status: "pass",
         domain: "voxcpm",
         serviceState: "resident-ready",
@@ -177,7 +177,7 @@ test("runs both preflight probes before scaffold clock and Run creation", async 
       return fixedRunId;
     },
     preflightDependencies: {
-      voxcpm: async () => {
+      ttsProvider: async () => {
         calls.push("voxcpm");
         await assert.rejects(() =>
           access(join(fixture.projectDir, "Composition.tsx")),
@@ -214,9 +214,9 @@ test("preflight failure occurs before scaffold run store or clock", async (conte
         return fixedNow;
       },
       preflightDependencies: {
-        voxcpm: async () => ({
-          schemaVersion: 2,
-          contractVersion: "production-start-preflight-v2",
+        ttsProvider: async () => ({
+          schemaVersion: 3,
+          contractVersion: "production-start-preflight-v3",
           status: "failed",
           domain: "voxcpm",
           kind: "external-blocker",

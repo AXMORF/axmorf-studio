@@ -2,7 +2,7 @@
 
 > 文档类型：架构权威
 >
-> 最后复核：2026-08-16
+> 最后复核：2026-08-18
 
 ## 分层
 
@@ -12,6 +12,8 @@ settings/contracts/            shared API DTO and runtime validation authority
 settings/client/               browser-only React features, hooks and styles
 settings/server/               same-origin local API, diagnostics and read-only progress projection
 scripts/config/                private config read/write/migration boundary
+scripts/narration/domain/      provider-neutral request/fingerprint and canonical PCM rules
+scripts/narration/adapters/    dispatcher, VoxCPM multipart and SpeechSDK OpenAI direct adapters
 src/remotion/runtime/          offline frame-driven render runtime
 src/remotion/capabilities/visual-components explicitly promoted visual components
 src/remotion/capabilities/scene-templates approved copy-on-configure Scene templates
@@ -76,6 +78,12 @@ flowchart LR
     Freeze --> Publish
     Freeze --> Requirements["ProductionRequirementsFreeze"]
     Config --> Execution["private-safe narration execution"]
+    Execution --> Dispatch["provider dispatcher"]
+    Dispatch --> Vox["VoxCPM repository adapter"]
+    Dispatch --> Cloud["SpeechSDK createOpenAI direct"]
+    Vox --> PCM["canonical PCM / checksum / seal"]
+    Cloud --> PCM
+    PCM --> Timing
     Execution --> Run["ProductionRun manifest"]
     Story["StorySpec"] --> Timing["SemanticTiming"]
     Provider["External provider receipt"] --> Import["Project asset import"]

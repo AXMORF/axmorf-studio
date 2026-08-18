@@ -134,6 +134,10 @@ test("default provider voice generation policy rate and LUFS enter the prepared 
     execution.snapshot.masteringPolicy.targetIntegratedLoudnessLufs,
     -18,
   );
+  assert.equal(execution.resolved.kind, "voxcpm");
+  if (execution.resolved.kind !== "voxcpm") {
+    throw new Error("Expected VoxCPM execution fixture.");
+  }
   assert.equal(execution.resolved.safeDescriptor.cfgValue, 2);
   assert.doesNotMatch(
     JSON.stringify(execution.snapshot),
@@ -185,5 +189,85 @@ test("default provider voice generation policy rate and LUFS enter the prepared 
       );
       return true;
     },
+  );
+});
+
+test("SpeechSDK OpenAI execution binds vendor model profile and credential drift without exposing secrets", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-cloud-execution-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const configPath = join(rootDir, "operator/config.json");
+  const cloudProvider = {
+    id: "openai-direct",
+    kind: "speech-sdk",
+    vendor: "openai",
+    name: "OpenAI direct",
+    connection: {
+      apiKey: "cloud-secret-one",
+      baseUrl: "https://api.openai.com/v1",
+      timeoutMs: 60_000,
+    },
+    modelId: "gpt-4o-mini-tts",
+    voiceProfiles: [
+      { id: "cloud-voice", name: "Cloud voice", voiceId: "alloy" },
+    ],
+  } as const;
+  const input = {
+    ...validProducerConfigInput,
+    tts: {
+      ...validProducerConfigInput.tts,
+      defaultProviderId: cloudProvider.id,
+      defaultVoiceProfileId: "cloud-voice",
+      providers: [validProducerConfigInput.tts.providers[0], cloudProvider],
+    },
+  } as const;
+  await writeProducerConfig({ configPath, value: input });
+  const narration = NarrationSpecSchema.parse({
+    schemaVersion: 2,
+    voiceProfileId: "cloud-voice",
+    mode: "voice-clone",
+  });
+
+  const execution = await resolveProducerNarrationExecution({
+    rootDir,
+    env: { RSP_PRODUCER_CONFIG: configPath },
+    narration,
+  });
+
+  assert.equal(execution.snapshot.providerKind, "speech-sdk");
+  assert.equal(execution.snapshot.providerVendor, "openai");
+  assert.equal(execution.resolved.kind, "speech-sdk");
+  assert.equal(execution.metadata.kind, "speech-sdk");
+  assert.doesNotMatch(
+    JSON.stringify(execution.snapshot),
+    /cloud-secret-one|api\.openai\.com|alloy/iu,
+  );
+
+  await writeProducerConfig({
+    configPath,
+    value: {
+      ...input,
+      tts: {
+        ...input.tts,
+        providers: [
+          input.tts.providers[0],
+          {
+            ...cloudProvider,
+            connection: {
+              ...cloudProvider.connection,
+              apiKey: "cloud-secret-two",
+            },
+          },
+        ],
+      },
+    },
+  });
+  const drifted = await resolveProducerNarrationExecution({
+    rootDir,
+    env: { RSP_PRODUCER_CONFIG: configPath },
+    narration,
+  });
+  assert.notEqual(
+    drifted.snapshot.providerAttemptFingerprint,
+    execution.snapshot.providerAttemptFingerprint,
   );
 });

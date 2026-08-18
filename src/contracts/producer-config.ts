@@ -8,7 +8,7 @@ import {
 } from "./primitives";
 import { SceneTemplateIdSchema } from "./scene-template";
 
-export const PRODUCER_CONFIG_VERSION = "producer-config-v2" as const;
+export const PRODUCER_CONFIG_VERSION = "producer-config-v3" as const;
 
 export const ProducerConfigIdSchema = z
   .string()
@@ -154,9 +154,59 @@ export const VoxcpmProviderConfigSchema = z
   })
   .readonly();
 
+export const SpeechSdkVendorSchema = z.literal("openai");
+export const SpeechSdkOpenAiModelSchema = z.literal("gpt-4o-mini-tts");
+
+export const SpeechSdkVoiceProfileSchema = z
+  .object({
+    id: VoiceProfileIdSchema,
+    name: z.string().trim().min(1).max(96),
+    voiceId: z.string().trim().min(1).max(160),
+  })
+  .strict()
+  .readonly();
+
+export const SpeechSdkProviderConfigSchema = z
+  .object({
+    id: ProducerConfigIdSchema,
+    kind: z.literal("speech-sdk"),
+    vendor: SpeechSdkVendorSchema,
+    name: z.string().trim().min(1).max(96),
+    connection: z
+      .object({
+        apiKey: z.string().trim().min(1),
+        baseUrl: HttpUrlSchema.optional(),
+        timeoutMs: z.number().int().positive().safe(),
+      })
+      .strict()
+      .readonly(),
+    modelId: SpeechSdkOpenAiModelSchema,
+    voiceProfiles: z.array(SpeechSdkVoiceProfileSchema).min(1).readonly(),
+  })
+  .strict()
+  .superRefine((provider, context) => {
+    const ids = new Set<string>();
+    provider.voiceProfiles.forEach((profile, index) => {
+      if (ids.has(profile.id)) {
+        context.addIssue({
+          code: "custom",
+          message: "Voice profile IDs must be unique within a provider.",
+          path: ["voiceProfiles", index, "id"],
+        });
+      }
+      ids.add(profile.id);
+    });
+  })
+  .readonly();
+
+export const TtsProviderConfigSchema = z.discriminatedUnion("kind", [
+  VoxcpmProviderConfigSchema,
+  SpeechSdkProviderConfigSchema,
+]);
+
 const ProducerConfigInputObject = z
   .object({
-    schemaVersion: z.literal(2),
+    schemaVersion: z.literal(3),
     contractVersion: z.literal(PRODUCER_CONFIG_VERSION),
     renderDefaults: z
       .object({
@@ -217,11 +267,7 @@ const ProducerConfigInputObject = z
           })
           .strict()
           .readonly(),
-        providers: z
-          .array(VoxcpmProviderConfigSchema)
-          .min(1)
-          .max(20)
-          .readonly(),
+        providers: z.array(TtsProviderConfigSchema).min(1).max(20).readonly(),
       })
       .strict()
       .readonly(),
@@ -282,7 +328,7 @@ export const computeProducerConfigFingerprint = (rawConfig: unknown) => {
   delete record.configFingerprint;
   return createFingerprint({
     namespace: "producer-config",
-    version: 2,
+    version: 3,
     value: ProducerConfigInputSchema.parse(record),
   });
 };
@@ -323,3 +369,7 @@ export const computePublishingCollectionCatalogFingerprint = (
 export type ProducerConfig = z.infer<typeof ProducerConfigSchema>;
 export type PublishingCollection = z.infer<typeof PublishingCollectionSchema>;
 export type VoxcpmProviderConfig = z.infer<typeof VoxcpmProviderConfigSchema>;
+export type SpeechSdkProviderConfig = z.infer<
+  typeof SpeechSdkProviderConfigSchema
+>;
+export type TtsProviderConfig = z.infer<typeof TtsProviderConfigSchema>;

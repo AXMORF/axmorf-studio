@@ -16,6 +16,10 @@ import {
   type VoxcpmPreflightResult,
   type VoxcpmProbe,
 } from "../adapters/voxcpm-preflight";
+import {
+  preflightSpeechSdk,
+  type SpeechSdkPreflightResult,
+} from "../adapters/speech-sdk-preflight";
 
 type CurrentInputs = Readonly<{
   requirements: ProductionRequirementsFreeze;
@@ -55,14 +59,14 @@ const defaultProbe: VoxcpmProbe = async ({
 };
 
 export type ProductionPreflightDependencies = Readonly<{
-  voxcpm: (
+  ttsProvider: (
     request: Readonly<{
       rootDir: string;
       requirements: ProductionRequirementsFreeze;
       narration: unknown;
     }>,
   ) => Promise<
-    VoxcpmPreflightResult &
+    (VoxcpmPreflightResult | SpeechSdkPreflightResult) &
       Readonly<{ narrationExecution?: NarrationExecutionSnapshot }>
   >;
   browser: (
@@ -74,7 +78,7 @@ export type ProductionPreflightDependencies = Readonly<{
 }>;
 
 const createDefaultDependencies = (): ProductionPreflightDependencies => ({
-  voxcpm: async ({ rootDir, requirements, narration: rawNarration }) => {
+  ttsProvider: async ({ rootDir, requirements, narration: rawNarration }) => {
     const narration = NarrationSpecSchema.parse(rawNarration);
     let execution;
     try {
@@ -85,17 +89,22 @@ const createDefaultDependencies = (): ProductionPreflightDependencies => ({
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
+      const speechSdk = /SpeechSDK/iu.test(message);
       const protectedSource = /protected/iu.test(message);
       const unavailableProfile =
         protectedSource || /profile|voice|prompt|reference/iu.test(message);
       return buildProductionStartPreflightFailure({
-        domain: "voxcpm",
+        domain: speechSdk ? "speech-sdk" : "voxcpm",
         kind: "external-blocker",
-        code: protectedSource
-          ? "VOXCPM_PROFILE_PROTECTED"
-          : unavailableProfile
-            ? "VOXCPM_PROFILE_UNAVAILABLE"
-            : "VOXCPM_PRIVATE_CONFIG_UNAVAILABLE",
+        code: speechSdk
+          ? unavailableProfile
+            ? "SPEECH_SDK_PROFILE_UNAVAILABLE"
+            : "SPEECH_SDK_CONFIG_UNAVAILABLE"
+          : protectedSource
+            ? "VOXCPM_PROFILE_PROTECTED"
+            : unavailableProfile
+              ? "VOXCPM_PROFILE_UNAVAILABLE"
+              : "VOXCPM_PRIVATE_CONFIG_UNAVAILABLE",
         summary: protectedSource
           ? "The selected speech profile uses a protected source."
           : unavailableProfile
@@ -106,6 +115,18 @@ const createDefaultDependencies = (): ProductionPreflightDependencies => ({
           : "Restore the private speech configuration before starting production.",
         requirementsFingerprint: requirements.requirementsFingerprint,
       });
+    }
+    if (execution.resolved.kind !== execution.metadata.kind) {
+      throw new Error("TTS preflight metadata does not match its adapter.");
+    }
+    if (execution.metadata.kind === "speech-sdk") {
+      return {
+        ...preflightSpeechSdk({
+          requirementsFingerprint: requirements.requirementsFingerprint,
+          metadata: execution.metadata,
+        }),
+        narrationExecution: execution.snapshot,
+      } as const;
     }
     const result = await preflightVoxcpm({
       requirementsFingerprint: requirements.requirementsFingerprint,
@@ -129,14 +150,14 @@ export const runProductionPreflightForInputs = async ({
   readonly inputs: CurrentInputs;
   readonly dependencies?: ProductionPreflightDependencies;
 }): Promise<PreparedProductionPreflight> => {
-  const voxcpm = await dependencies.voxcpm({
+  const ttsProvider = await dependencies.ttsProvider({
     rootDir,
     requirements: inputs.requirements,
     narration: inputs.source.narration,
   });
-  if (voxcpm.status === "failed") return { preflight: voxcpm };
-  if (voxcpm.narrationExecution === undefined) {
-    throw new Error("VoxCPM preflight did not bind narration execution.");
+  if (ttsProvider.status === "failed") return { preflight: ttsProvider };
+  if (ttsProvider.narrationExecution === undefined) {
+    throw new Error("TTS provider preflight did not bind narration execution.");
   }
   const browser = await dependencies.browser({
     rootDir,
@@ -146,9 +167,21 @@ export const runProductionPreflightForInputs = async ({
   return {
     preflight: buildProductionStartPreflightPass({
       requirementsFingerprint: inputs.requirements.requirementsFingerprint,
-      voxcpmServiceState: voxcpm.serviceState,
+      ttsProviderCheck:
+        ttsProvider.domain === "voxcpm"
+          ? {
+              domain: "voxcpm",
+              status: "pass",
+              serviceState: ttsProvider.serviceState,
+            }
+          : {
+              domain: "speech-sdk",
+              status: "pass",
+              vendor: ttsProvider.vendor,
+              validationState: ttsProvider.validationState,
+            },
     }),
-    narrationExecution: voxcpm.narrationExecution,
+    narrationExecution: ttsProvider.narrationExecution,
   };
 };
 

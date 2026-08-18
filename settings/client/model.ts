@@ -1,10 +1,16 @@
 type VoiceProfile = Readonly<{
   id: string;
+  voiceId?: string;
   referenceAudioPath?: string;
   promptAudioPath?: string;
   promptTextPath?: string;
 }>;
-type Provider = { id: string; voiceProfiles: VoiceProfile[] };
+type Provider = {
+  id: string;
+  kind?: "voxcpm" | "speech-sdk";
+  voiceProfiles: VoiceProfile[];
+  connection?: { apiKey?: string } | { baseUrl?: string; token?: string };
+};
 export type EditableTtsConfig = {
   sceneDefaults?: {
     introSceneTemplateId: string | null;
@@ -122,6 +128,23 @@ export const removeVoiceProfile = (
   }
 };
 
+export const removeProvider = (
+  config: EditableTtsConfig,
+  providerId: string,
+) => {
+  if (config.tts.providers.length === 1) {
+    throw new Error("TTS configuration must keep at least one provider.");
+  }
+  const remaining = config.tts.providers.filter(({ id }) => id !== providerId);
+  if (remaining.length === config.tts.providers.length) {
+    throw new Error("The selected provider does not exist.");
+  }
+  config.tts.providers = remaining;
+  if (config.tts.defaultProviderId === providerId) {
+    selectProviderAndVoice(config, remaining[0]!.id);
+  }
+};
+
 export const getConfigConsistencyError = (
   config: EditableTtsConfig & {
     publishingCollections: readonly Readonly<{ id: string }>[];
@@ -147,7 +170,13 @@ export const getConfigConsistencyError = (
   if (duplicate(config.tts.providers.map(({ id }) => id))) {
     return "Provider ID 必须唯一。";
   }
+  if (config.tts.providers.length === 0) {
+    return "至少保留一个 TTS Provider。";
+  }
   for (const provider of config.tts.providers) {
+    if (provider.voiceProfiles.length === 0) {
+      return `Provider ${provider.id} 必须至少保留一个声线。`;
+    }
     if (duplicate(provider.voiceProfiles.map(({ id }) => id))) {
       return `Provider ${provider.id} 的声线 ID 必须唯一。`;
     }
@@ -160,6 +189,21 @@ export const getConfigConsistencyError = (
       if (paths.some((path) => !isRepositoryRelativeFilePath(path))) {
         return `声线 ${profile.id} 的文件必须使用仓库相对路径。`;
       }
+      if (
+        provider.kind === "speech-sdk" &&
+        (profile.voiceId === undefined || profile.voiceId.trim() === "")
+      ) {
+        return `声线 ${profile.id} 必须配置云端 Voice ID。`;
+      }
+    }
+    if (
+      provider.kind === "speech-sdk" &&
+      (provider.connection === undefined ||
+        !("apiKey" in provider.connection) ||
+        provider.connection.apiKey === undefined ||
+        provider.connection.apiKey.trim() === "")
+    ) {
+      return `Provider ${provider.id} 必须配置 API Key。`;
     }
   }
   const bgm = config.audioDefaults?.globalBgm;

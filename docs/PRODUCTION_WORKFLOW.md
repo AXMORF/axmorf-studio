@@ -79,14 +79,17 @@ template 的完整源码与资源复制到 Project-local Scene，写入 `templat
 `scene-template-sound-overrides.json` 在 bootstrap 时选择，但只以 authoring projection 进入模板；
 配置时必须连同已验证许可证元数据一起本地化。`scene-owner` 仅表示该 Scene 需要 Agent 创作。
 
-`production:preflight` 使用 `production-start-preflight-v2` 在 Run write 前检查 VoxCPM
-liveness/readiness 与 Remotion Chromium，
+`production:preflight` 使用 `production-start-preflight-v3` 在 Run write 前按默认 TTS provider
+dispatch，再检查 Remotion Chromium。VoxCPM 继续检查 loopback liveness/readiness，
 区分 resident-ready、loading、offloaded 与 model-load-failed。offloaded 表示首个真实生成请求会
 自动重载，不触发 warm-up 或 test TTS；`denoise=true` 时还必须在真实生成前确认 denoiser
-capability，否则返回脱敏 external blocker。真实调用直接使用宿主权限。
+capability，否则返回脱敏 external blocker。SpeechSDK OpenAI 不调用生成 API，也没有伪造的通用
+ready probe；只记录 `configuration-validated-generation-not-probed`，凭证与网络由首次真实生成校验。
+真实调用直接使用宿主权限。
 
-同一次 start 的 VoxCPM preflight 从一份已解析配置构建 provider-attempt identity 与 mastering
-policy，并把组合后的 `NarrationExecutionSnapshot` 写入 immutable Run manifest。narrative generation
+同一次 start 的 provider-aware preflight 从一份已解析配置构建 provider-attempt identity 与
+mastering policy，并把组合后的 `NarrationExecutionSnapshot` v2 写入 immutable Run manifest。
+narrative generation
 重新解析当前私密输入后必须得到完全相同的快照才允许发出 provider request；mastering 只消费 Run
 中冻结的 policy，不再回读全局配置。任何 provider/connection/voice/参数/语速/LUFS 漂移都要求
 fresh Run。快照只包含安全 ID、数值 policy 与 fingerprint，不包含 token、URL、绝对路径或声线内容。
@@ -98,9 +101,9 @@ LAN 端口不得转发到公网。声线与可选 BGM 文件字段只接受仓�
 把已配置 BGM 本地化到 Project，封存 checksum、资源描述、独立音量与 `sound.json` identity；
 render-ready 将它作为一个循环 `SoundContribution`，只覆盖首个到最后一个 narrated Scene 的内容窗口。
 
-配置页的“只读环境诊断”复用 metadata-only 声线检查、VoxCPM health/ready 与固定 Remotion browser
-preflight；不生成测试语音、不 warm-up provider，也不修改 Chromium sandbox policy，只返回脱敏
-状态与修复建议。
+配置页的“只读环境诊断”复用 metadata-only 声线检查与固定 Remotion browser preflight：VoxCPM
+额外执行 health/ready，SpeechSDK OpenAI 只报告配置已验证、真实生成时再验证凭证/网络。诊断不生成
+测试语音、不 warm-up provider、不产生云端费用，也不修改 Chromium sandbox policy，只返回脱敏状态。
 
 配置页的“制作进度”从 `src/projects/` source directory 与 current Run manifest storyId 的并集生成
 Project 列表，不把 `out/`、deliveries 等 output-only 清理目标当成 Project；删除器仍独立扫描全部
@@ -145,12 +148,15 @@ SemanticTiming、narrated-only CaptionCue 与 NarrativeCore，并完成 fixed
 mechanical AutoCheck。实测音频时间不可被 Scene 或转场移动、压缩或吞掉。
 
 Narrative Baseline 使用完整 SemanticTiming；NarrativeCore 从 `narrationStartFrame` 只挂载一次
-完整旁白，CaptionLayer 只消费 narrated chunks。silent Scene 不进入 generation input、VoxCPM、
+完整旁白，CaptionLayer 只消费 narrated chunks。silent Scene 不进入 generation input、TTS provider、
 sealed manifest 或 CaptionCue，但其固定窗口计入 baseline 与最终 Composition 总帧数。
 
 TTS 语速在 provider response 后、canonical PCM 实测前处理并绑定 provider-attempt；目标 LUFS
 进入两遍 loudnorm mastering policy 与母带 fingerprint。VoxCPM 可控/高品质克隆分别使用
-`/clone` 与 `/clone_with_prompt`，内部 mode 不作为 provider 字段发送。
+`/clone` 与 `/clone_with_prompt`，内部 mode 不作为 provider 字段发送。SpeechSDK OpenAI 使用
+`@speech-sdk/core@0.27.0` 的 `createOpenAI()` direct factory；adapter 对 4096 字符上限与音频 tag
+fail closed，固定 `maxRetries=0`，且不传 timestamps、volume/output/speed/chunking/fallback 选项。
+每个 authored ttsChunk 只调用一次 SDK，返回字节继续进入仓库 canonical PCM/seal/mastering 权威链路。
 
 若 Agent-owned Story authoring 在实测时长后返工，旧 Run 保持 immutable，新 Run 必须显式使用
 `production:narrative -- --run <runId> --supersede <current-sealed-fingerprint>` 绑定当前 active

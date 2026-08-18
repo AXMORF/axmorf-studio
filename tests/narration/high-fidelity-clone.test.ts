@@ -4,7 +4,7 @@ import test from "node:test";
 import { resolveVoxcpmProfile } from "../../scripts/narration/adapters/private-config";
 import { normalizePromptAudio } from "../../scripts/narration/adapters/prompt-audio-normalizer";
 import { createVoxcpmChunkGenerator } from "../../scripts/narration/adapters/voxcpm-client";
-import type { VoxcpmChunkRequest } from "../../scripts/narration/domain/provider-input";
+import type { ChunkAudioRequest } from "../../scripts/narration/domain/provider-input";
 import {
   encodeCanonicalPcmWav,
   measureCanonicalPcmWav,
@@ -122,7 +122,7 @@ test("high fidelity client sends only the frozen clone_with_prompt fields", asyn
       });
     }) as typeof fetch,
   });
-  const request: VoxcpmChunkRequest = {
+  const request: ChunkAudioRequest = {
     generationInputFingerprint: `sha256:${"1".repeat(64)}`,
     providerAttemptFingerprint: `sha256:${"2".repeat(64)}`,
     requestFingerprint: `sha256:${"3".repeat(64)}`,

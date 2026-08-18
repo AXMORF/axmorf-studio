@@ -12,8 +12,8 @@ import {
 } from "./domain/candidate-progress";
 import {
   computeChunkRequestFingerprint,
+  type ChunkAudioRequest,
   type ChunkAudioGenerator,
-  type VoxcpmChunkRequest,
 } from "./domain/provider-input";
 import {
   getCandidateRelativePaths,
@@ -36,7 +36,7 @@ const createExpectedGeneration = ({
     story,
     narration,
   );
-  const chunks: VoxcpmChunkRequest[] = flattenTtsChunks(story).map((chunk) => {
+  const chunks: ChunkAudioRequest[] = flattenTtsChunks(story).map((chunk) => {
     const envelope = {
       generationInputFingerprint,
       providerAttemptFingerprint,

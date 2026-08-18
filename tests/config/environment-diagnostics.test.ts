@@ -131,3 +131,68 @@ test("configured BGM must resolve to a local regular file", async (context) => {
   );
   assert.doesNotMatch(JSON.stringify(diagnostics), /default-bgm\.mp3/iu);
 });
+
+test("SpeechSDK diagnostics validate configuration without generation readiness or network probes", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-cloud-diagnostics-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const configPath = join(rootDir, "operator/config.json");
+  await writeProducerConfig({
+    configPath,
+    value: {
+      ...validProducerConfigInput,
+      audioDefaults: { globalBgm: null },
+      tts: {
+        ...validProducerConfigInput.tts,
+        defaultProviderId: "openai-direct",
+        defaultVoiceProfileId: "cloud-voice",
+        providers: [
+          {
+            id: "openai-direct",
+            kind: "speech-sdk",
+            vendor: "openai",
+            name: "OpenAI direct",
+            connection: {
+              apiKey: "diagnostic-secret",
+              baseUrl: "https://api.openai.com/v1",
+              timeoutMs: 60_000,
+            },
+            modelId: "gpt-4o-mini-tts",
+            voiceProfiles: [
+              { id: "cloud-voice", name: "Cloud", voiceId: "alloy" },
+            ],
+          },
+        ],
+      },
+    },
+  });
+  let providerProbeCount = 0;
+  const diagnostics = await runProducerEnvironmentDiagnostics({
+    rootDir,
+    env: { RSP_PRODUCER_CONFIG: configPath },
+    voxcpmProbe: async () => {
+      providerProbeCount += 1;
+      throw new Error("must not probe cloud provider");
+    },
+    browserPreflight: async () => ({
+      status: "pass",
+      domain: "remotion-browser",
+    }),
+  });
+
+  assert.equal(providerProbeCount, 0);
+  assert.equal(diagnostics.status, "pass");
+  assert.deepEqual(
+    diagnostics.checks.find(({ id }) => id === "speech-sdk-openai"),
+    {
+      id: "speech-sdk-openai",
+      status: "pass",
+      summary:
+        "SpeechSDK OpenAI 直连配置已验证；凭证与网络将在真实生成时校验。",
+      remediation: null,
+    },
+  );
+  assert.doesNotMatch(
+    JSON.stringify(diagnostics),
+    /diagnostic-secret|api\.openai\.com|alloy/iu,
+  );
+});
