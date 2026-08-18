@@ -152,8 +152,8 @@ export const readProducerConfig = async ({
     delete legacy.contractVersion;
     return buildProducerConfig({
       ...legacy,
-      schemaVersion: 3,
-      contractVersion: "producer-config-v3",
+      schemaVersion: 4,
+      contractVersion: "producer-config-v4",
       sceneDefaults: {
         introSceneTemplateId: "axmorf-brand-reveal-v1",
         outroSceneTemplateId: "axmorf-source-follow-v1",
@@ -181,8 +181,69 @@ export const readProducerConfig = async ({
     assertLegacyVoxcpmProviders(legacy);
     return buildProducerConfig({
       ...legacy,
-      schemaVersion: 3,
-      contractVersion: "producer-config-v3",
+      schemaVersion: 4,
+      contractVersion: "producer-config-v4",
+    });
+  }
+  if (
+    raw !== null &&
+    typeof raw === "object" &&
+    !Array.isArray(raw) &&
+    (raw as Record<string, unknown>).schemaVersion === 3 &&
+    (raw as Record<string, unknown>).contractVersion === "producer-config-v3"
+  ) {
+    const legacy = { ...(raw as Record<string, unknown>) };
+    const fingerprint = legacy.configFingerprint;
+    delete legacy.configFingerprint;
+    const expectedFingerprint = createFingerprint({
+      namespace: "producer-config",
+      version: 3,
+      value: legacy,
+    });
+    if (fingerprint !== expectedFingerprint) {
+      throw new Error("Producer config v3 fingerprint is stale.");
+    }
+    const tts = legacy.tts as Record<string, unknown> | undefined;
+    const providers = tts?.providers;
+    if (!Array.isArray(providers)) {
+      throw new Error("Producer config v3 providers are unavailable.");
+    }
+    const migratedProviders = providers.map((provider) => {
+      if (
+        provider === null ||
+        typeof provider !== "object" ||
+        Array.isArray(provider)
+      ) {
+        throw new Error("Producer config v3 contains an invalid provider.");
+      }
+      const record = provider as Record<string, unknown>;
+      if (record.kind === "voxcpm") return record;
+      if (
+        record.kind !== "speech-sdk" ||
+        record.vendor !== "openai" ||
+        record.modelId !== "gpt-4o-mini-tts"
+      ) {
+        throw new Error("Producer config v3 contains an unsupported provider.");
+      }
+      if (!Array.isArray(record.voiceProfiles)) {
+        throw new Error("Producer config v3 voice profiles are unavailable.");
+      }
+      return {
+        ...record,
+        voiceProfiles: record.voiceProfiles.map((profile) => {
+          const profileRecord = profile as Record<string, unknown>;
+          if (Object.hasOwn(profileRecord, "source")) {
+            throw new Error("Producer config v3 contains unknown fields.");
+          }
+          return { ...profileRecord, source: "catalog" };
+        }),
+      };
+    });
+    return buildProducerConfig({
+      ...legacy,
+      schemaVersion: 4,
+      contractVersion: "producer-config-v4",
+      tts: { ...tts, providers: migratedProviders },
     });
   }
   return ProducerConfigSchema.parse(raw);

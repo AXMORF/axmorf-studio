@@ -17,9 +17,9 @@ import {
   type VoxcpmProbe,
 } from "../adapters/voxcpm-preflight";
 import {
-  preflightSpeechSdk,
-  type SpeechSdkPreflightResult,
-} from "../adapters/speech-sdk-preflight";
+  preflightRemoteTts,
+  type RemoteTtsPreflightResult,
+} from "../adapters/remote-tts-preflight";
 
 type CurrentInputs = Readonly<{
   requirements: ProductionRequirementsFreeze;
@@ -66,7 +66,7 @@ export type ProductionPreflightDependencies = Readonly<{
       narration: unknown;
     }>,
   ) => Promise<
-    (VoxcpmPreflightResult | SpeechSdkPreflightResult) &
+    (VoxcpmPreflightResult | RemoteTtsPreflightResult) &
       Readonly<{ narrationExecution?: NarrationExecutionSnapshot }>
   >;
   browser: (
@@ -90,16 +90,21 @@ const createDefaultDependencies = (): ProductionPreflightDependencies => ({
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
       const speechSdk = /SpeechSDK/iu.test(message);
+      const edgeTts = /Edge TTS/iu.test(message);
       const protectedSource = /protected/iu.test(message);
       const unavailableProfile =
         protectedSource || /profile|voice|prompt|reference/iu.test(message);
       return buildProductionStartPreflightFailure({
-        domain: speechSdk ? "speech-sdk" : "voxcpm",
+        domain: speechSdk ? "speech-sdk" : edgeTts ? "edge-tts" : "voxcpm",
         kind: "external-blocker",
         code: speechSdk
           ? unavailableProfile
             ? "SPEECH_SDK_PROFILE_UNAVAILABLE"
             : "SPEECH_SDK_CONFIG_UNAVAILABLE"
+          : edgeTts
+            ? unavailableProfile
+              ? "EDGE_TTS_PROFILE_UNAVAILABLE"
+              : "EDGE_TTS_CONFIG_UNAVAILABLE"
           : protectedSource
             ? "VOXCPM_PROFILE_PROTECTED"
             : unavailableProfile
@@ -119,9 +124,9 @@ const createDefaultDependencies = (): ProductionPreflightDependencies => ({
     if (execution.resolved.kind !== execution.metadata.kind) {
       throw new Error("TTS preflight metadata does not match its adapter.");
     }
-    if (execution.metadata.kind === "speech-sdk") {
+    if (execution.metadata.kind !== "voxcpm") {
       return {
-        ...preflightSpeechSdk({
+        ...preflightRemoteTts({
           requirementsFingerprint: requirements.requirementsFingerprint,
           metadata: execution.metadata,
         }),
@@ -175,7 +180,7 @@ export const runProductionPreflightForInputs = async ({
               serviceState: ttsProvider.serviceState,
             }
           : {
-              domain: "speech-sdk",
+              domain: ttsProvider.domain,
               status: "pass",
               vendor: ttsProvider.vendor,
               validationState: ttsProvider.validationState,

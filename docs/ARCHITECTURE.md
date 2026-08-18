@@ -13,7 +13,7 @@ settings/client/               browser-only React features, hooks and styles
 settings/server/               same-origin local API, diagnostics and read-only progress projection
 scripts/config/                private config read/write/migration boundary
 scripts/narration/domain/      provider-neutral request/fingerprint and canonical PCM rules
-scripts/narration/adapters/    dispatcher, VoxCPM multipart and SpeechSDK OpenAI direct adapters
+scripts/narration/adapters/    dispatcher, VoxCPM multipart, Edge and SpeechSDK direct adapters
 src/remotion/runtime/          offline frame-driven render runtime
 src/remotion/capabilities/visual-components explicitly promoted visual components
 src/remotion/capabilities/scene-templates approved copy-on-configure Scene templates
@@ -80,9 +80,11 @@ flowchart LR
     Config --> Execution["private-safe narration execution"]
     Execution --> Dispatch["provider dispatcher"]
     Dispatch --> Vox["VoxCPM repository adapter"]
-    Dispatch --> Cloud["SpeechSDK createOpenAI direct"]
+    Dispatch --> Edge["Edge Read Aloud one-shot WebSocket"]
+    Dispatch --> Cloud["SpeechSDK audited direct factories"]
     Vox --> PCM["canonical PCM / checksum / seal"]
     Cloud --> PCM
+    Edge --> PCM
     PCM --> Timing
     Execution --> Run["ProductionRun manifest"]
     Story["StorySpec"] --> Timing["SemanticTiming"]

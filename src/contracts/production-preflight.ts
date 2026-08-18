@@ -1,9 +1,10 @@
 import { z } from "zod";
 
 import { Sha256DigestSchema } from "./primitives";
+import { SPEECH_SDK_VENDORS } from "./tts-provider-registry";
 
 export const PRODUCTION_START_PREFLIGHT_VERSION =
-  "production-start-preflight-v3" as const;
+  "production-start-preflight-v4" as const;
 
 const SafeTextSchema = z
   .string()
@@ -19,7 +20,7 @@ const SafeTextSchema = z
   );
 
 const CommonShape = {
-  schemaVersion: z.literal(3),
+  schemaVersion: z.literal(4),
   contractVersion: z.literal(PRODUCTION_START_PREFLIGHT_VERSION),
   requirementsFingerprint: Sha256DigestSchema,
   redactionApplied: z.boolean(),
@@ -38,6 +39,8 @@ const FailureCodeSchema = z.enum([
   "VOXCPM_DENOISER_UNAVAILABLE",
   "SPEECH_SDK_CONFIG_UNAVAILABLE",
   "SPEECH_SDK_PROFILE_UNAVAILABLE",
+  "EDGE_TTS_CONFIG_UNAVAILABLE",
+  "EDGE_TTS_PROFILE_UNAVAILABLE",
   "REMOTION_BROWSER_UNAVAILABLE",
   "REMOTION_BROWSER_PERMISSION_DENIED",
   "REMOTION_BROWSER_SANDBOX_DENIED",
@@ -65,7 +68,17 @@ const ProductionStartPreflightPassSchema = z
           .object({
             domain: z.literal("speech-sdk"),
             status: z.literal("pass"),
-            vendor: z.literal("openai"),
+            vendor: z.enum(SPEECH_SDK_VENDORS),
+            validationState: z.literal(
+              "configuration-validated-generation-not-probed",
+            ),
+          })
+          .strict(),
+        z
+          .object({
+            domain: z.literal("edge-tts"),
+            status: z.literal("pass"),
+            vendor: z.literal("microsoft-edge-read-aloud"),
             validationState: z.literal(
               "configuration-validated-generation-not-probed",
             ),
@@ -87,7 +100,12 @@ const ProductionStartPreflightFailureSchema = z
   .object({
     ...CommonShape,
     status: z.literal("failed"),
-    domain: z.enum(["voxcpm", "speech-sdk", "remotion-browser"]),
+    domain: z.enum([
+      "voxcpm",
+      "speech-sdk",
+      "edge-tts",
+      "remotion-browser",
+    ]),
     kind: z.enum(["external-blocker", "fixed-flow-defect"]),
     code: FailureCodeSchema,
     summary: SafeTextSchema,
@@ -109,7 +127,7 @@ export const buildProductionStartPreflightPass = (raw: {
   readonly ttsProviderCheck: unknown;
 }) =>
   ProductionStartPreflightPassSchema.parse({
-    schemaVersion: 3,
+    schemaVersion: 4,
     contractVersion: PRODUCTION_START_PREFLIGHT_VERSION,
     status: "pass",
     requirementsFingerprint: raw.requirementsFingerprint,
@@ -123,7 +141,7 @@ export const buildProductionStartPreflightPass = (raw: {
 export const buildProductionStartPreflightFailure = (raw: unknown) =>
   ProductionStartPreflightFailureSchema.parse({
     ...(raw as Record<string, unknown>),
-    schemaVersion: 3,
+    schemaVersion: 4,
     contractVersion: PRODUCTION_START_PREFLIGHT_VERSION,
     status: "failed",
     redactionApplied: true,

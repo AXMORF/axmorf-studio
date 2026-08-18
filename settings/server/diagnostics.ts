@@ -2,6 +2,7 @@ import { lstat, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 
 import { NarrationSpecSchema } from "../../src/contracts/narration";
+import { getSpeechSdkVendorDefinition } from "../../src/contracts/tts-provider-registry";
 import {
   readProducerConfig,
   resolveDefaultTtsProvider,
@@ -119,7 +120,12 @@ export const runProducerEnvironmentDiagnostics = async ({
     }
   }
   let metadata;
-  let cloudProviderValidated = false;
+  let remoteProvider:
+    | Readonly<{
+        kind: "speech-sdk" | "edge-tts";
+        summary: string;
+      }>
+    | undefined;
   try {
     const provider = resolveDefaultTtsProvider(config);
     if (provider.kind === "voxcpm") {
@@ -133,14 +139,22 @@ export const runProducerEnvironmentDiagnostics = async ({
         rootDir,
       });
     } else {
-      cloudProviderValidated =
-        provider.vendor === "openai" &&
+      const profileMatched =
         provider.voiceProfiles.filter(
           ({ id }) => id === config.tts.defaultVoiceProfileId,
         ).length === 1;
-      if (!cloudProviderValidated) {
-        throw new Error("Cloud voice profile is unavailable.");
-      }
+      if (!profileMatched) throw new Error("Remote voice profile is unavailable.");
+      remoteProvider =
+        provider.kind === "speech-sdk"
+          ? {
+              kind: "speech-sdk",
+              summary: `SpeechSDK ${getSpeechSdkVendorDefinition(provider.vendor).label} 直连配置已验证；凭证与网络将在真实生成时校验。`,
+            }
+          : {
+              kind: "edge-tts",
+              summary:
+                "Edge Read Aloud 配置已验证；远端可用性将在真实生成时校验。",
+            };
     }
     checks.push({
       id: "voice-profile",
@@ -177,12 +191,11 @@ export const runProducerEnvironmentDiagnostics = async ({
             remediation: result.remediation,
           },
     );
-  } else if (cloudProviderValidated) {
+  } else if (remoteProvider !== undefined) {
     checks.push({
-      id: "speech-sdk-openai",
+      id: remoteProvider.kind,
       status: "pass",
-      summary:
-        "SpeechSDK OpenAI 直连配置已验证；凭证与网络将在真实生成时校验。",
+      summary: remoteProvider.summary,
       remediation: null,
     });
   }

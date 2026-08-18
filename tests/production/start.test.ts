@@ -215,8 +215,8 @@ test("preflight failure occurs before scaffold run store or clock", async (conte
       },
       preflightDependencies: {
         ttsProvider: async () => ({
-          schemaVersion: 3,
-          contractVersion: "production-start-preflight-v3",
+          schemaVersion: 4,
+          contractVersion: "production-start-preflight-v4",
           status: "failed",
           domain: "voxcpm",
           kind: "external-blocker",

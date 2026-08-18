@@ -105,11 +105,13 @@ v2, profile/model identity, content checksums, `cfgValue`, `inferenceTimesteps`,
 `retryBadcaseRatioThreshold`, without persisting provider URLs, credentials, private paths, transcripts,
 or audio bytes.
 
-SpeechSDK OpenAI direct uses provider-attempt v1. Its safe descriptor binds the direct adapter,
-vendor/model, repository profile ID, remote voice ID, speech rate, the 4096-character single-request
-limit, `maxRetries=0`, and an opaque fingerprint over private connection/credential configuration.
+SpeechSDK direct uses provider-attempt v2 and Edge uses provider-attempt v1. Their safe descriptors bind
+the direct adapter, vendor/service/model, repository profile ID, remote voice ID, voice source/locale,
+speech rate, the provider-specific single-request limit, `maxRetries=0`, and an opaque fingerprint over
+private connection/credential configuration.
 The provider-neutral chunk request is v2. Audio tags and oversized chunks fail before the network so
-SpeechSDK cannot rewrite or auto-split authored units. The adapter does not request SDK timestamps,
+SpeechSDK cannot rewrite or auto-split authored units; Edge likewise rejects escaped input over 4096
+UTF-8 bytes instead of splitting. The adapter does not request SDK timestamps,
 normalization, conversion, fallback, or speed processing; returned bytes enter the same repository-owned
 canonical PCM, checksum, sealing, mastering, and cumulative-sample timing pipeline as VoxCPM.
 

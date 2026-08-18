@@ -1,15 +1,20 @@
 type VoiceProfile = Readonly<{
   id: string;
   voiceId?: string;
+  source?: "catalog" | "remote-clone" | "remote-designed";
+  locale?: string;
   referenceAudioPath?: string;
   promptAudioPath?: string;
   promptTextPath?: string;
 }>;
 type Provider = {
   id: string;
-  kind?: "voxcpm" | "speech-sdk";
+  kind?: "voxcpm" | "speech-sdk" | "edge-tts";
   voiceProfiles: VoiceProfile[];
-  connection?: { apiKey?: string } | { baseUrl?: string; token?: string };
+  connection?:
+    | { apiKey?: string; groupId?: string }
+    | { baseUrl?: string; token?: string }
+    | { timeoutMs?: number };
 };
 export type EditableTtsConfig = {
   sceneDefaults?: {

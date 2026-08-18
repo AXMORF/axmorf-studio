@@ -24,8 +24,9 @@
   读取、hash、probe 或 decode detached 输出。
 - PublishingIntent 与独立 Cover 生命周期保留；Cover 不阻止 render-ready，但会阻止自动交付。
 - ignored `private/producer.config.json` 统一管理新作品的常用画面规格、Scene 留白、首尾 Scene
-  template 选择、合集数组、通用 TTS 与可选本地 BGM 预设；TTS 可同时配置仓库专用 VoxCPM 与
-  SpeechSDK OpenAI BYOK 直连，声线/BGM 文件只接受仓库相对路径。
+  template 选择、合集数组、通用 TTS 与可选本地 BGM 预设；TTS 可同时配置仓库专用 VoxCPM、
+  Edge Read Aloud 无 Key 在线服务与通过 SpeechSDK direct factory 接入的 BYOK 云厂商，声线/BGM
+  文件只接受仓库相对路径。Edge 不是 Microsoft 对外承诺 SLA 的公共 API；云厂商不经过网关。
   `project:configure` 把选择冻结进新 Project，并复制所选 template 的源码、资源和 BGM。BGM 作为
   一个独立音量、可循环的 `SoundContribution`，只覆盖 narrated 内容，不进入片头片尾。
 - production start 将已确认的 provider-attempt 与 mastering policy 合成为 private-safe Run 执行快照；

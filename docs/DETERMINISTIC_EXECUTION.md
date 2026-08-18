@@ -15,13 +15,14 @@ identity drift 或 malformed bytes fail closed。
 
 NarrationSpec 与 narration generation input 是 current-only v2；已删除的 VoxCPM `seed` 不参与
 任何合同。VoxCPM provider-attempt v2 继续绑定 adapter v2、完整 generation parameters 与安全内容
-checksum；SpeechSDK OpenAI provider-attempt v1 绑定 direct adapter、vendor/model/profile/voice、
-单请求限制、零重试策略与 opaque private-config fingerprint。provider-neutral chunk request v2 再绑定
+checksum；SpeechSDK provider-attempt v2 与 Edge provider-attempt v1 分别绑定 direct adapter、
+vendor/service、model/profile/voice、单请求限制、零重试策略与 opaque private-config fingerprint。
+provider-neutral chunk request v2 再绑定
 authored chunk，因此 adapter、凭证或任一参数漂移都不能复用错误候选。
 
-ProducerConfig 自身使用 `producer-config-v3` strict discriminated provider schema 与 fingerprint。
-合法 v1/v2 先校验各自原 fingerprint，再只在内存中升级；GET 不改写私有文件，页面保存后才原子
-写成 v3。它是新
+ProducerConfig 自身使用 `producer-config-v4` strict discriminated provider schema 与 fingerprint。
+合法 v1/v2/v3 先校验各自原 fingerprint，再只在内存中升级；v3 云声线迁移为显式 `catalog`
+绑定；GET 不改写私有文件，页面保存后才原子写成 v4。它是新
 authoring/freeze 的默认/选择 authority，不是已封存 Project 的可变 runtime dependency：Scene template
 在 `project:configure` 时复制为 Project-local source/assets/instance，合集选择连同 catalog fingerprint
 进入 PublishingIntent v2，边缘留白进入 production-readability-v2，语速进入 provider-attempt，目标
@@ -31,8 +32,9 @@ descriptor fingerprint、独立音量和 `sound.json` fingerprint 进入 require
 `project:configure` 要求显式 readability，不再存在创建阶段的 90px fallback。
 
 start 的同一次 provider resolution 同时供 provider-aware preflight 与
-`NarrationExecutionSnapshot` v2 使用。VoxCPM 保留 loopback health/ready/info 检查；SpeechSDK OpenAI
-只做 strict config/profile 校验，明确把凭证与网络验证延迟到真实生成，不 warm-up、不产生费用。
+`NarrationExecutionSnapshot` v3 使用。VoxCPM 保留 loopback health/ready/info 检查；SpeechSDK 与 Edge
+只做 strict config/profile 校验，明确把凭证（如适用）与网络验证延迟到真实生成，不 warm-up、不产生
+诊断费用。
 快照复用 provider-attempt fingerprint 与完整 mastering policy；provider-attempt 额外绑定 opaque
 private-config fingerprint，从而让 URL/token/path 变化触发 drift，但 raw token、URL、绝对路径、
 声线内容和 transcript 不进入 Project、Run、events、错误或日志。generation 在请求前重算并比较

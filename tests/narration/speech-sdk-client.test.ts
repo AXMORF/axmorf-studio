@@ -2,18 +2,23 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  SPEECH_SDK_OPENAI_MAX_INPUT_CHARS,
   createSpeechSdkChunkGenerator,
+  createSpeechSdkDirectModel,
 } from "../../scripts/narration/adapters/speech-sdk-client";
 import { createChunkAudioGenerator } from "../../scripts/narration/adapters/provider-dispatcher";
 import type {
   ChunkAudioRequest,
-  ResolvedSpeechSdkOpenAIProfile,
+  ResolvedSpeechSdkProfile,
 } from "../../scripts/narration/domain/provider-input";
+import {
+  SPEECH_SDK_VENDORS,
+  getSpeechSdkModelMaxInputChars,
+  getSpeechSdkVendorDefinition,
+} from "../../src/contracts/tts-provider-registry";
 
 const secret = "test-api-key-that-must-never-leak";
 
-const resolved: ResolvedSpeechSdkOpenAIProfile = {
+const resolved: ResolvedSpeechSdkProfile = {
   kind: "speech-sdk",
   vendor: "openai",
   apiKey: secret,
@@ -22,12 +27,13 @@ const resolved: ResolvedSpeechSdkOpenAIProfile = {
   modelId: "gpt-4o-mini-tts",
   voiceId: "alloy",
   safeDescriptor: {
-    adapterId: "speech-sdk-openai-direct-v1",
+    adapterId: "speech-sdk-direct-v2",
     providerConfigFingerprint: `sha256:${"0".repeat(64)}`,
     vendor: "openai",
     modelId: "gpt-4o-mini-tts",
     voiceProfileId: "cloud-narrator",
     voiceId: "alloy",
+    voiceSource: "catalog",
     speechRate: 1,
     maxInputChars: 4096,
     maxRetries: 0,
@@ -43,7 +49,7 @@ const request: ChunkAudioRequest = {
   ttsText: "一次 authored chunk 只允许一次直连请求。",
 };
 
-test("SpeechSDK OpenAI direct uses one request with retry fallback and SDK post-processing disabled", async () => {
+test("SpeechSDK OpenAI direct uses one request while retry fallback and SDK post-processing stay disabled", async () => {
   const calls: Array<{ input: string | URL | Request; init?: RequestInit }> =
     [];
   const fetchImpl = (async (
@@ -80,7 +86,8 @@ test("SpeechSDK OpenAI direct uses one request with retry fallback and SDK post-
 });
 
 test("SpeechSDK OpenAI rejects input that could activate SDK chunking", async () => {
-  assert.equal(SPEECH_SDK_OPENAI_MAX_INPUT_CHARS, 4096);
+  const maxInputChars = getSpeechSdkModelMaxInputChars("openai", resolved.modelId);
+  assert.equal(maxInputChars, 4096);
   const generate = createSpeechSdkChunkGenerator({
     resolved,
     fetchImpl: (async () => {
@@ -90,7 +97,7 @@ test("SpeechSDK OpenAI rejects input that could activate SDK chunking", async ()
   await assert.rejects(
     generate({
       ...request,
-      ttsText: "字".repeat(SPEECH_SDK_OPENAI_MAX_INPUT_CHARS + 1),
+      ttsText: "字".repeat(maxInputChars + 1),
     }),
     /single-request limit/iu,
   );
@@ -132,4 +139,24 @@ test("provider dispatcher selects the SpeechSDK adapter without fallback", async
   });
   assert.deepEqual(await generator(request), Buffer.from("cloud"));
   assert.deepEqual(calls, ["speech-sdk"]);
+});
+
+test("every supported vendor maps to its direct factory and declared default model", () => {
+  for (const vendor of SPEECH_SDK_VENDORS) {
+    const definition = getSpeechSdkVendorDefinition(vendor);
+    const vendorResolved: ResolvedSpeechSdkProfile = {
+      ...resolved,
+      vendor,
+      modelId: definition.defaultModel,
+      safeDescriptor: {
+        ...resolved.safeDescriptor,
+        vendor,
+        modelId: definition.defaultModel,
+        maxInputChars: definition.maxInputChars,
+      },
+    };
+    const model = createSpeechSdkDirectModel({ resolved: vendorResolved });
+    assert.equal(model.provider.id, vendor);
+    assert.equal(model.modelId, definition.defaultModel);
+  }
 });

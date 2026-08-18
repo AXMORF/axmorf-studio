@@ -6,10 +6,14 @@ import {
   buildProducerConfig,
   computePublishingCollectionCatalogFingerprint,
 } from "../../src/contracts/producer-config";
+import {
+  SPEECH_SDK_VENDORS,
+  getSpeechSdkVendorDefinition,
+} from "../../src/contracts/tts-provider-registry";
 
 export const validProducerConfigInput = {
-  schemaVersion: 3,
-  contractVersion: "producer-config-v3",
+  schemaVersion: 4,
+  contractVersion: "producer-config-v4",
   renderDefaults: {
     width: 1080,
     height: 1920,
@@ -115,7 +119,12 @@ test("mixed local and SpeechSDK OpenAI providers keep strict provider and voice 
     },
     modelId: "gpt-4o-mini-tts",
     voiceProfiles: [
-      { id: "cloud-voice", name: "Cloud voice", voiceId: "alloy" },
+      {
+        id: "cloud-voice",
+        name: "Cloud voice",
+        voiceId: "alloy",
+        source: "catalog",
+      },
     ],
   } as const;
   const config = buildProducerConfig({
@@ -161,6 +170,96 @@ test("mixed local and SpeechSDK OpenAI providers keep strict provider and voice 
       },
     }),
   );
+});
+
+test("all enabled SpeechSDK direct vendors and Edge keep strict model and voice bindings", () => {
+  for (const vendor of SPEECH_SDK_VENDORS) {
+    const definition = getSpeechSdkVendorDefinition(vendor);
+    const config = buildProducerConfig({
+      ...validProducerConfigInput,
+      tts: {
+        ...validProducerConfigInput.tts,
+        defaultProviderId: `${vendor}-direct`,
+        defaultVoiceProfileId: "remote-voice",
+        providers: [
+          {
+            id: `${vendor}-direct`,
+            kind: "speech-sdk",
+            vendor,
+            name: `${definition.label} direct`,
+            connection: { apiKey: "private-key", timeoutMs: 60_000 },
+            modelId: definition.defaultModel,
+            voiceProfiles: [
+              {
+                id: "remote-voice",
+                name: "Remote voice",
+                voiceId: "provider-voice-id",
+                source: "catalog",
+              },
+            ],
+          },
+        ],
+      },
+    });
+    assert.equal(config.tts.providers[0]?.kind, "speech-sdk");
+  }
+
+  const edge = buildProducerConfig({
+    ...validProducerConfigInput,
+    tts: {
+      ...validProducerConfigInput.tts,
+      defaultProviderId: "edge-free",
+      defaultVoiceProfileId: "edge-voice",
+      providers: [
+        {
+          id: "edge-free",
+          kind: "edge-tts",
+          service: "microsoft-edge-read-aloud",
+          name: "Edge free",
+          connection: { timeoutMs: 60_000 },
+          modelId: "edge-read-aloud",
+          voiceProfiles: [
+            {
+              id: "edge-voice",
+              name: "晓晓",
+              voiceId: "zh-CN-XiaoxiaoNeural",
+              locale: "zh-CN",
+            },
+          ],
+        },
+      ],
+    },
+  });
+  assert.equal(edge.tts.providers[0]?.kind, "edge-tts");
+
+  for (const vendor of ["fal", "google", "gateway"] as const) {
+    assert.throws(() =>
+      buildProducerConfig({
+        ...validProducerConfigInput,
+        tts: {
+          ...validProducerConfigInput.tts,
+          providers: [
+            {
+              id: `${vendor}-direct`,
+              kind: "speech-sdk",
+              vendor,
+              name: vendor,
+              connection: { apiKey: "private-key", timeoutMs: 60_000 },
+              modelId: "default",
+              voiceProfiles: [
+                {
+                  id: "remote-voice",
+                  name: "Remote",
+                  voiceId: "voice",
+                  source: "catalog",
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+  }
 });
 
 test("voice and BGM files must use safe repository-relative paths", () => {

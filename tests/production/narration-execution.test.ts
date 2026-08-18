@@ -208,7 +208,12 @@ test("SpeechSDK OpenAI execution binds vendor model profile and credential drift
     },
     modelId: "gpt-4o-mini-tts",
     voiceProfiles: [
-      { id: "cloud-voice", name: "Cloud voice", voiceId: "alloy" },
+      {
+        id: "cloud-voice",
+        name: "Cloud voice",
+        voiceId: "alloy",
+        source: "catalog",
+      },
     ],
   } as const;
   const input = {
@@ -269,5 +274,60 @@ test("SpeechSDK OpenAI execution binds vendor model profile and credential drift
   assert.notEqual(
     drifted.snapshot.providerAttemptFingerprint,
     execution.snapshot.providerAttemptFingerprint,
+  );
+});
+
+test("Edge execution binds service voice locale and stays private-safe", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-edge-execution-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const configPath = join(rootDir, "operator/config.json");
+  await writeProducerConfig({
+    configPath,
+    value: {
+      ...validProducerConfigInput,
+      tts: {
+        ...validProducerConfigInput.tts,
+        defaultProviderId: "edge-free",
+        defaultVoiceProfileId: "edge-voice",
+        providers: [
+          {
+            id: "edge-free",
+            kind: "edge-tts",
+            service: "microsoft-edge-read-aloud",
+            name: "Edge free",
+            connection: { timeoutMs: 60_000 },
+            modelId: "edge-read-aloud",
+            voiceProfiles: [
+              {
+                id: "edge-voice",
+                name: "晓晓",
+                voiceId: "zh-CN-XiaoxiaoNeural",
+                locale: "zh-CN",
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
+
+  const execution = await resolveProducerNarrationExecution({
+    rootDir,
+    env: { RSP_PRODUCER_CONFIG: configPath },
+    narration: NarrationSpecSchema.parse({
+      schemaVersion: 2,
+      voiceProfileId: "edge-voice",
+      mode: "voice-clone",
+    }),
+  });
+  assert.equal(execution.resolved.kind, "edge-tts");
+  assert.equal(execution.snapshot.providerKind, "edge-tts");
+  assert.equal(
+    execution.snapshot.providerVendor,
+    "microsoft-edge-read-aloud",
+  );
+  assert.doesNotMatch(
+    JSON.stringify(execution.snapshot),
+    /Xiaoxiao|zh-CN/iu,
   );
 });

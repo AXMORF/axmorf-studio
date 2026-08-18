@@ -40,7 +40,7 @@ test("private producer config writes atomically with owner-only permissions", as
   assert.match(await readFile(configPath, "utf8"), /visible-editable-token/u);
 });
 
-test("producer-config-v1 loads as v3 without mutating the private source file", async (context) => {
+test("producer-config-v1 loads as v4 without mutating the private source file", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-config-v1-upgrade-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const configPath = join(rootDir, "private/producer.config.json");
@@ -64,8 +64,8 @@ test("producer-config-v1 loads as v3 without mutating the private source file", 
 
   const loaded = await readProducerConfig({ configPath });
 
-  assert.equal(loaded.schemaVersion, 3);
-  assert.equal(loaded.contractVersion, "producer-config-v3");
+  assert.equal(loaded.schemaVersion, 4);
+  assert.equal(loaded.contractVersion, "producer-config-v4");
   assert.deepEqual(loaded.sceneDefaults, {
     introSceneTemplateId: "axmorf-brand-reveal-v1",
     outroSceneTemplateId: "axmorf-source-follow-v1",
@@ -104,7 +104,7 @@ test("producer-config-v1 loads as v3 without mutating the private source file", 
   );
 });
 
-test("valid producer-config-v2 migrates losslessly to v3 in memory", async (context) => {
+test("valid producer-config-v2 migrates losslessly to v4 in memory", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-config-v2-upgrade-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const configPath = join(rootDir, "private/producer.config.json");
@@ -126,8 +126,8 @@ test("valid producer-config-v2 migrates losslessly to v3 in memory", async (cont
 
   const loaded = await readProducerConfig({ configPath });
 
-  assert.equal(loaded.schemaVersion, 3);
-  assert.equal(loaded.contractVersion, "producer-config-v3");
+  assert.equal(loaded.schemaVersion, 4);
+  assert.equal(loaded.contractVersion, "producer-config-v4");
   assert.deepEqual(
     loaded.tts.providers,
     validProducerConfigInput.tts.providers,
@@ -135,6 +135,57 @@ test("valid producer-config-v2 migrates losslessly to v3 in memory", async (cont
   assert.equal(
     JSON.parse(await readFile(configPath, "utf8")).contractVersion,
     "producer-config-v2",
+  );
+});
+
+test("producer-config-v3 OpenAI voice profiles migrate to explicit catalog bindings", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-config-v3-upgrade-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const configPath = join(rootDir, "private/producer.config.json");
+  const legacyInput = {
+    ...validProducerConfigInput,
+    schemaVersion: 3,
+    contractVersion: "producer-config-v3",
+    tts: {
+      ...validProducerConfigInput.tts,
+      defaultProviderId: "openai-direct",
+      defaultVoiceProfileId: "cloud-voice",
+      providers: [
+        validProducerConfigInput.tts.providers[0],
+        {
+          id: "openai-direct",
+          kind: "speech-sdk",
+          vendor: "openai",
+          name: "OpenAI direct",
+          connection: { apiKey: "private-key", timeoutMs: 60_000 },
+          modelId: "gpt-4o-mini-tts",
+          voiceProfiles: [
+            { id: "cloud-voice", name: "Cloud", voiceId: "alloy" },
+          ],
+        },
+      ],
+    },
+  } as const;
+  const legacy = {
+    ...legacyInput,
+    configFingerprint: createFingerprint({
+      namespace: "producer-config",
+      version: 3,
+      value: legacyInput,
+    }),
+  };
+  await mkdir(join(rootDir, "private"), { recursive: true });
+  await writeFile(configPath, `${JSON.stringify(legacy, null, 2)}\n`, "utf8");
+
+  const loaded = await readProducerConfig({ configPath });
+  const provider = loaded.tts.providers[1];
+  assert.equal(loaded.contractVersion, "producer-config-v4");
+  assert.equal(provider?.kind, "speech-sdk");
+  if (provider?.kind !== "speech-sdk") throw new Error("Expected cloud provider.");
+  assert.equal(provider.voiceProfiles[0]?.source, "catalog");
+  assert.equal(
+    JSON.parse(await readFile(configPath, "utf8")).contractVersion,
+    "producer-config-v3",
   );
 });
 

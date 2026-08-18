@@ -7,8 +7,13 @@ import {
   VoiceProfileIdSchema,
 } from "./primitives";
 import { SceneTemplateIdSchema } from "./scene-template";
+import {
+  SPEECH_SDK_VENDORS,
+  SPEECH_SDK_VOICE_SOURCES,
+  getSpeechSdkVendorDefinition,
+} from "./tts-provider-registry";
 
-export const PRODUCER_CONFIG_VERSION = "producer-config-v3" as const;
+export const PRODUCER_CONFIG_VERSION = "producer-config-v4" as const;
 
 export const ProducerConfigIdSchema = z
   .string()
@@ -154,14 +159,15 @@ export const VoxcpmProviderConfigSchema = z
   })
   .readonly();
 
-export const SpeechSdkVendorSchema = z.literal("openai");
-export const SpeechSdkOpenAiModelSchema = z.literal("gpt-4o-mini-tts");
+export const SpeechSdkVendorSchema = z.enum(SPEECH_SDK_VENDORS);
+export const SpeechSdkVoiceSourceSchema = z.enum(SPEECH_SDK_VOICE_SOURCES);
 
 export const SpeechSdkVoiceProfileSchema = z
   .object({
     id: VoiceProfileIdSchema,
     name: z.string().trim().min(1).max(96),
     voiceId: z.string().trim().min(1).max(160),
+    source: SpeechSdkVoiceSourceSchema,
   })
   .strict()
   .readonly();
@@ -176,12 +182,83 @@ export const SpeechSdkProviderConfigSchema = z
       .object({
         apiKey: z.string().trim().min(1),
         baseUrl: HttpUrlSchema.optional(),
+        groupId: z.string().trim().min(1).max(160).optional(),
         timeoutMs: z.number().int().positive().safe(),
       })
       .strict()
       .readonly(),
-    modelId: SpeechSdkOpenAiModelSchema,
+    modelId: z.string().trim().min(1).max(160),
     voiceProfiles: z.array(SpeechSdkVoiceProfileSchema).min(1).readonly(),
+  })
+  .strict()
+  .superRefine((provider, context) => {
+    const definition = getSpeechSdkVendorDefinition(provider.vendor);
+    if (!(definition.models as readonly string[]).includes(provider.modelId)) {
+      context.addIssue({
+        code: "custom",
+        message: `Model is not supported by SpeechSDK ${definition.label}.`,
+        path: ["modelId"],
+      });
+    }
+    if (provider.vendor !== "minimax" && provider.connection.groupId !== undefined) {
+      context.addIssue({
+        code: "custom",
+        message: "groupId is only supported by the SpeechSDK MiniMax factory.",
+        path: ["connection", "groupId"],
+      });
+    }
+    const ids = new Set<string>();
+    provider.voiceProfiles.forEach((profile, index) => {
+      if (ids.has(profile.id)) {
+        context.addIssue({
+          code: "custom",
+          message: "Voice profile IDs must be unique within a provider.",
+          path: ["voiceProfiles", index, "id"],
+        });
+      }
+      ids.add(profile.id);
+      if (
+        !(definition.voiceCapabilities as readonly string[]).includes(
+          profile.source,
+        )
+      ) {
+        context.addIssue({
+          code: "custom",
+          message: `Voice source is not supported by SpeechSDK ${definition.label}.`,
+          path: ["voiceProfiles", index, "source"],
+        });
+      }
+    });
+  })
+  .readonly();
+
+export const EdgeTtsVoiceProfileSchema = z
+  .object({
+    id: VoiceProfileIdSchema,
+    name: z.string().trim().min(1).max(96),
+    voiceId: z
+      .string()
+      .trim()
+      .min(1)
+      .max(160)
+      .regex(/^[A-Za-z0-9-]+$/u, "Edge voice ID contains unsafe characters."),
+    locale: CanonicalLocaleSchema,
+  })
+  .strict()
+  .readonly();
+
+export const EdgeTtsProviderConfigSchema = z
+  .object({
+    id: ProducerConfigIdSchema,
+    kind: z.literal("edge-tts"),
+    service: z.literal("microsoft-edge-read-aloud"),
+    name: z.string().trim().min(1).max(96),
+    connection: z
+      .object({ timeoutMs: z.number().int().positive().safe() })
+      .strict()
+      .readonly(),
+    modelId: z.literal("edge-read-aloud"),
+    voiceProfiles: z.array(EdgeTtsVoiceProfileSchema).min(1).readonly(),
   })
   .strict()
   .superRefine((provider, context) => {
@@ -202,11 +279,12 @@ export const SpeechSdkProviderConfigSchema = z
 export const TtsProviderConfigSchema = z.discriminatedUnion("kind", [
   VoxcpmProviderConfigSchema,
   SpeechSdkProviderConfigSchema,
+  EdgeTtsProviderConfigSchema,
 ]);
 
 const ProducerConfigInputObject = z
   .object({
-    schemaVersion: z.literal(3),
+    schemaVersion: z.literal(4),
     contractVersion: z.literal(PRODUCER_CONFIG_VERSION),
     renderDefaults: z
       .object({
@@ -328,7 +406,7 @@ export const computeProducerConfigFingerprint = (rawConfig: unknown) => {
   delete record.configFingerprint;
   return createFingerprint({
     namespace: "producer-config",
-    version: 3,
+    version: 4,
     value: ProducerConfigInputSchema.parse(record),
   });
 };
@@ -371,5 +449,8 @@ export type PublishingCollection = z.infer<typeof PublishingCollectionSchema>;
 export type VoxcpmProviderConfig = z.infer<typeof VoxcpmProviderConfigSchema>;
 export type SpeechSdkProviderConfig = z.infer<
   typeof SpeechSdkProviderConfigSchema
+>;
+export type EdgeTtsProviderConfig = z.infer<
+  typeof EdgeTtsProviderConfigSchema
 >;
 export type TtsProviderConfig = z.infer<typeof TtsProviderConfigSchema>;

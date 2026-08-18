@@ -225,6 +225,10 @@ export type SpeechSdkProviderConfig = Extract<
   TtsProviderConfig,
   { kind: "speech-sdk" }
 >;
+export type EdgeTtsProviderConfig = Extract<
+  TtsProviderConfig,
+  { kind: "edge-tts" }
+>;
 
 export const parseEditableConfig = (raw: unknown): EditableConfig =>
   ProducerConfigSchema.parse(raw) as unknown as EditableConfig;

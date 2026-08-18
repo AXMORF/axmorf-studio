@@ -7,7 +7,7 @@ import {
   buildProductionStartPreflightPass,
 } from "../../src/contracts";
 import { preflightVoxcpm } from "../../scripts/production/adapters/voxcpm-preflight";
-import { preflightSpeechSdk } from "../../scripts/production/adapters/speech-sdk-preflight";
+import { preflightRemoteTts } from "../../scripts/production/adapters/remote-tts-preflight";
 import {
   buildProductionBrowserPreflightArgs,
   buildProductionCompositionsArgs,
@@ -26,8 +26,8 @@ test("builds bounded transient preflight pass and failure contracts", () => {
       serviceState: "offloaded-auto-reload-on-first-generation",
     },
   });
-  assert.equal(pass.schemaVersion, 3);
-  assert.equal(pass.contractVersion, "production-start-preflight-v3");
+  assert.equal(pass.schemaVersion, 4);
+  assert.equal(pass.contractVersion, "production-start-preflight-v4");
   assert.equal(ProductionStartPreflightSchema.parse(pass).status, "pass");
 
   const failure = buildProductionStartPreflightFailure({
@@ -46,7 +46,7 @@ test("builds bounded transient preflight pass and failure contracts", () => {
 });
 
 test("SpeechSDK preflight is static and explicitly defers credential and network validation", () => {
-  const result = preflightSpeechSdk({
+  const result = preflightRemoteTts({
     requirementsFingerprint: sha("1"),
     metadata: {
       kind: "speech-sdk",
@@ -66,6 +66,26 @@ test("SpeechSDK preflight is static and explicitly defers credential and network
     ttsProviderCheck: result,
   });
   assert.equal(ProductionStartPreflightSchema.parse(contract).status, "pass");
+
+  const edge = preflightRemoteTts({
+    requirementsFingerprint: sha("1"),
+    metadata: {
+      kind: "edge-tts",
+      vendor: "microsoft-edge-read-aloud",
+      profileMatched: true,
+      validationState: "configuration-validated-generation-not-probed",
+    },
+  });
+  assert.equal(edge.domain, "edge-tts");
+  assert.equal(
+    ProductionStartPreflightSchema.parse(
+      buildProductionStartPreflightPass({
+        requirementsFingerprint: sha("1"),
+        ttsProviderCheck: edge,
+      }),
+    ).status,
+    "pass",
+  );
 });
 
 test("uses a Project-independent Remotion probe and classifies sandbox denial", async () => {

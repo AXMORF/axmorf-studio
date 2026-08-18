@@ -1,8 +1,15 @@
 import type {
+  EdgeTtsProviderConfig,
   SpeechSdkProviderConfig,
   TtsProviderConfig,
   VoxcpmProviderConfig,
 } from "../../../contracts/api";
+import {
+  SPEECH_SDK_VENDORS,
+  getSpeechSdkModelMaxInputChars,
+  getSpeechSdkVendorDefinition,
+  type SpeechSdkVendor,
+} from "../../../../src/contracts/tts-provider-registry";
 import { Field, FieldRow, Section } from "../../components/Form";
 import {
   nextUniqueId,
@@ -56,7 +63,31 @@ const newSpeechSdkProvider = (id: string): SpeechSdkProviderConfig => ({
   name: "SpeechSDK · OpenAI 直连",
   connection: { apiKey: "", timeoutMs: 60_000 },
   modelId: "gpt-4o-mini-tts",
-  voiceProfiles: [{ id: "voice-1", name: "云端声线", voiceId: "alloy" }],
+  voiceProfiles: [
+    {
+      id: "voice-1",
+      name: "云端声线",
+      voiceId: "alloy",
+      source: "catalog",
+    },
+  ],
+});
+
+const newEdgeTtsProvider = (id: string): EdgeTtsProviderConfig => ({
+  id,
+  kind: "edge-tts",
+  service: "microsoft-edge-read-aloud",
+  name: "Edge 免费在线 TTS",
+  connection: { timeoutMs: 60_000 },
+  modelId: "edge-read-aloud",
+  voiceProfiles: [
+    {
+      id: "voice-1",
+      name: "晓晓",
+      voiceId: "zh-CN-XiaoxiaoNeural",
+      locale: "zh-CN",
+    },
+  ],
 });
 
 const ProviderShell = ({
@@ -76,13 +107,17 @@ const ProviderShell = ({
     eyebrow={
       provider.kind === "voxcpm"
         ? "ADAPTER / LOCAL VOXCPM"
-        : "ADAPTER / SPEECHSDK DIRECT"
+        : provider.kind === "speech-sdk"
+          ? "ADAPTER / SPEECHSDK DIRECT"
+          : "ADAPTER / EDGE READ ALOUD"
     }
     title={provider.name}
     description={
       provider.kind === "voxcpm"
         ? "仓库专用 multipart adapter；保留可控克隆与高品质克隆合同。"
-        : "BYOK 直连云厂商，不经过 Speechbase Gateway；当前仅开放 OpenAI。"
+        : provider.kind === "speech-sdk"
+          ? "BYOK 直连云厂商，不经过 Speechbase Gateway；不做跨厂商 fallback。"
+          : "无需 Key 的 Edge Read Aloud 在线端点；非 Microsoft 公共 SLA API。"
     }
   >
     <FieldRow>
@@ -95,6 +130,7 @@ const ProviderShell = ({
         >
           <option value="voxcpm">本地 VoxCPM</option>
           <option value="speech-sdk">SpeechSDK 直连云厂商</option>
+          <option value="edge-tts">Edge 免费在线 TTS</option>
         </select>
       </Field>
       <button
@@ -533,6 +569,7 @@ const SpeechSdkEditor = ({
 }>) => {
   const patch = (value: Partial<SpeechSdkProviderConfig>) =>
     replace({ ...provider, ...value });
+  const definition = getSpeechSdkVendorDefinition(provider.vendor);
   return (
     <>
       <FieldRow>
@@ -549,13 +586,43 @@ const SpeechSdkEditor = ({
           />
         </Field>
         <Field label="云厂商">
-          <select value={provider.vendor} disabled>
-            <option value="openai">OpenAI</option>
+          <select
+            value={provider.vendor}
+            onChange={(event) => {
+              const vendor = event.target.value as SpeechSdkVendor;
+              const next = getSpeechSdkVendorDefinition(vendor);
+              patch({
+                vendor,
+                name: `SpeechSDK · ${next.label} 直连`,
+                modelId: next.defaultModel,
+                connection: {
+                  apiKey: provider.connection.apiKey,
+                  timeoutMs: provider.connection.timeoutMs,
+                },
+                voiceProfiles: provider.voiceProfiles.map((profile) => ({
+                  ...profile,
+                  source: "catalog",
+                })),
+              });
+            }}
+          >
+            {SPEECH_SDK_VENDORS.map((vendor) => (
+              <option key={vendor} value={vendor}>
+                {getSpeechSdkVendorDefinition(vendor).label}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="模型">
-          <select value={provider.modelId} disabled>
-            <option value="gpt-4o-mini-tts">gpt-4o-mini-tts</option>
+          <select
+            value={provider.modelId}
+            onChange={(event) => patch({ modelId: event.target.value })}
+          >
+            {definition.models.map((model) => (
+              <option key={model} value={model}>
+                {model}
+              </option>
+            ))}
           </select>
         </Field>
       </FieldRow>
@@ -578,7 +645,7 @@ const SpeechSdkEditor = ({
             }
           />
         </Field>
-        <Field label="Base URL" hint="可空；仅 OpenAI direct factory 支持">
+        <Field label="Base URL" hint="可空；传给所选 direct factory">
           <input
             value={provider.connection.baseUrl ?? ""}
             placeholder="https://api.openai.com/v1"
@@ -608,10 +675,28 @@ const SpeechSdkEditor = ({
             }
           />
         </Field>
+        {provider.vendor === "minimax" ? (
+          <Field label="Group ID" hint="MiniMax 中国大陆端点按需填写">
+            <input
+              value={provider.connection.groupId ?? ""}
+              onChange={(event) =>
+                patch({
+                  connection: {
+                    ...provider.connection,
+                    ...(event.target.value === ""
+                      ? { groupId: undefined }
+                      : { groupId: event.target.value }),
+                  },
+                })
+              }
+            />
+          </Field>
+        ) : null}
       </FieldRow>
       <p className="inline-note">
-        单 authored ttsChunk 最多 4096 字符；maxRetries=0，不启用 SDK
-        timestamp、响度处理、自动拆分或跨厂商 fallback。
+        单 authored ttsChunk 最多 {getSpeechSdkModelMaxInputChars(provider.vendor, provider.modelId)} 字符；maxRetries=0，
+        不启用 SDK timestamp、响度处理、自动拆分或跨厂商 fallback。没有 Key
+        的厂商仅完成源码与 mock 验证，不标记为线上实测。
       </p>
       <div className="profile-list">
         {provider.voiceProfiles.map((profile, index) => (
@@ -651,7 +736,7 @@ const SpeechSdkEditor = ({
                 }
               />
             </Field>
-            <Field label="OpenAI Voice ID">
+            <Field label={`${definition.label} Voice ID`}>
               <input
                 value={profile.voiceId}
                 onChange={(event) =>
@@ -661,6 +746,187 @@ const SpeechSdkEditor = ({
                       (item, itemIndex) =>
                         itemIndex === index
                           ? { ...item, voiceId: event.target.value }
+                          : item,
+                    ),
+                  })
+                }
+              />
+            </Field>
+            <Field label="声线来源">
+              <select
+                value={profile.source}
+                onChange={(event) =>
+                  replace({
+                    ...provider,
+                    voiceProfiles: provider.voiceProfiles.map(
+                      (item, itemIndex) =>
+                        itemIndex === index
+                          ? {
+                              ...item,
+                              source: event.target.value as typeof item.source,
+                            }
+                          : item,
+                    ),
+                  })
+                }
+              >
+                {definition.voiceCapabilities.map((source) => (
+                  <option key={source} value={source}>
+                    {source === "catalog"
+                      ? "厂商预置"
+                      : source === "remote-clone"
+                        ? "云端克隆 ID"
+                        : "云端设计 ID"}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <button
+              className="icon-button"
+              aria-label={`删除 ${profile.name}`}
+              disabled={provider.voiceProfiles.length === 1}
+              onClick={() => removeProfile(profile.id)}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+      <button
+        className="secondary-button"
+        onClick={() =>
+          patch({
+            voiceProfiles: [
+              ...provider.voiceProfiles,
+              {
+                id: nextUniqueId(
+                  "voice",
+                  provider.voiceProfiles.map(({ id }) => id),
+                ),
+                name: "新云端声线",
+                voiceId: "alloy",
+                source: "catalog",
+              },
+            ],
+          })
+        }
+      >
+        ＋ 添加云端声线
+      </button>
+    </>
+  );
+};
+
+const EdgeTtsEditor = ({
+  provider,
+  replace,
+  removeProfile,
+}: Readonly<{
+  provider: EdgeTtsProviderConfig;
+  replace: (next: EdgeTtsProviderConfig) => void;
+  removeProfile: (profileId: string) => void;
+}>) => {
+  const patch = (value: Partial<EdgeTtsProviderConfig>) =>
+    replace({ ...provider, ...value });
+  return (
+    <>
+      <FieldRow>
+        <Field label="Provider ID">
+          <input
+            value={provider.id}
+            onChange={(event) => patch({ id: event.target.value })}
+          />
+        </Field>
+        <Field label="显示名称">
+          <input
+            value={provider.name}
+            onChange={(event) => patch({ name: event.target.value })}
+          />
+        </Field>
+        <Field label="服务">
+          <input value="Microsoft Edge Read Aloud" disabled />
+        </Field>
+        <Field label="超时 / ms">
+          <input
+            type="number"
+            value={provider.connection.timeoutMs}
+            onChange={(event) =>
+              patch({
+                connection: { timeoutMs: numberValue(event.target.value) },
+              })
+            }
+          />
+        </Field>
+      </FieldRow>
+      <p className="inline-note">
+        无需 API Key，但仍依赖互联网。该端点来自 Edge Read Aloud
+        客户端协议，并非 Microsoft 对外承诺 SLA 的公共 TTS API；单 chunk
+        转义后最多 4096 UTF-8 字节，不自动拆分或重试。
+      </p>
+      <div className="profile-list">
+        {provider.voiceProfiles.map((profile, index) => (
+          <div className="profile-row" key={index}>
+            <span className="row-index">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <Field label="仓库声线 ID">
+              <input
+                value={profile.id}
+                onChange={(event) =>
+                  replace({
+                    ...provider,
+                    voiceProfiles: provider.voiceProfiles.map(
+                      (item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, id: event.target.value }
+                          : item,
+                    ),
+                  })
+                }
+              />
+            </Field>
+            <Field label="显示名称">
+              <input
+                value={profile.name}
+                onChange={(event) =>
+                  replace({
+                    ...provider,
+                    voiceProfiles: provider.voiceProfiles.map(
+                      (item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, name: event.target.value }
+                          : item,
+                    ),
+                  })
+                }
+              />
+            </Field>
+            <Field label="Edge Voice ID">
+              <input
+                value={profile.voiceId}
+                onChange={(event) =>
+                  replace({
+                    ...provider,
+                    voiceProfiles: provider.voiceProfiles.map(
+                      (item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, voiceId: event.target.value }
+                          : item,
+                    ),
+                  })
+                }
+              />
+            </Field>
+            <Field label="Locale">
+              <input
+                value={profile.locale}
+                onChange={(event) =>
+                  replace({
+                    ...provider,
+                    voiceProfiles: provider.voiceProfiles.map(
+                      (item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, locale: event.target.value }
                           : item,
                     ),
                   })
@@ -689,14 +955,15 @@ const SpeechSdkEditor = ({
                   "voice",
                   provider.voiceProfiles.map(({ id }) => id),
                 ),
-                name: "新云端声线",
-                voiceId: "alloy",
+                name: "新 Edge 声线",
+                voiceId: "zh-CN-XiaoxiaoNeural",
+                locale: "zh-CN",
               },
             ],
           })
         }
       >
-        ＋ 添加云端声线
+        ＋ 添加 Edge 声线
       </button>
     </>
   );
@@ -709,11 +976,19 @@ export const Tts = ({ config, update }: EditorProps) => {
   const addProvider = (kind: TtsProviderConfig["kind"]) =>
     update((draft) => {
       const id = nextUniqueId(
-        kind === "voxcpm" ? "local-voxcpm" : "openai-direct",
+        kind === "voxcpm"
+          ? "local-voxcpm"
+          : kind === "speech-sdk"
+            ? "speech-sdk-direct"
+            : "edge-tts",
         draft.tts.providers.map(({ id: current }) => current),
       );
       draft.tts.providers.push(
-        kind === "voxcpm" ? newVoxcpmProvider(id) : newSpeechSdkProvider(id),
+        kind === "voxcpm"
+          ? newVoxcpmProvider(id)
+          : kind === "speech-sdk"
+            ? newSpeechSdkProvider(id)
+            : newEdgeTtsProvider(id),
       );
     });
   const replaceAt = (
@@ -816,7 +1091,13 @@ export const Tts = ({ config, update }: EditorProps) => {
             className="secondary-button"
             onClick={() => addProvider("speech-sdk")}
           >
-            ＋ SpeechSDK OpenAI 直连
+            ＋ SpeechSDK 云厂商直连
+          </button>
+          <button
+            className="secondary-button"
+            onClick={() => addProvider("edge-tts")}
+          >
+            ＋ Edge 免费在线 TTS
           </button>
         </div>
       </Section>
@@ -837,7 +1118,9 @@ export const Tts = ({ config, update }: EditorProps) => {
               replace(
                 kind === "voxcpm"
                   ? newVoxcpmProvider(provider.id)
-                  : newSpeechSdkProvider(provider.id),
+                  : kind === "speech-sdk"
+                    ? newSpeechSdkProvider(provider.id)
+                    : newEdgeTtsProvider(provider.id),
               )
             }
           >
@@ -847,8 +1130,14 @@ export const Tts = ({ config, update }: EditorProps) => {
                 replace={replace}
                 removeProfile={removeProfile}
               />
-            ) : (
+            ) : provider.kind === "speech-sdk" ? (
               <SpeechSdkEditor
+                provider={provider}
+                replace={replace}
+                removeProfile={removeProfile}
+              />
+            ) : (
+              <EdgeTtsEditor
                 provider={provider}
                 replace={replace}
                 removeProfile={removeProfile}

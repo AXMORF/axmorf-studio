@@ -2,7 +2,7 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-11
+> 最后复核：2026-08-19
 
 The current host-only narration workflow turns Agent-authored `ttsChunks` into measured canonical
 PCM, an immutable narration seal, `SemanticTiming`, and `CaptionCue`. Normal production invokes this
@@ -32,12 +32,14 @@ The full schema, local UI, secret boundary, speech-rate/LUFS semantics, and one-
 documented in [本地制作配置](PRODUCER_CONFIG.md). The old file below is retained only as the input to
 `npm run config:migrate`; narration runtime no longer reads it directly. Its strict legacy shape is:
 
-Current `producer-config-v3` may select either the repository-specific VoxCPM adapter or SpeechSDK
-OpenAI direct/BYOK. The cloud path imports `createOpenAI()` from `@speech-sdk/core/providers`; it never
-uses a Speechbase gateway or a `provider/model` string. The adapter rejects authored chunks over 4096
-characters and any bracketed SDK audio tag before the network, passes `maxRetries: 0`, and requests no
-SDK timestamps, volume normalization, output conversion, speed processing, or provider fallback. One
-authored chunk therefore produces exactly one direct synthesis request. The returned provider bytes
+Current `producer-config-v4` may select the repository-specific VoxCPM adapter, the no-key Edge Read
+Aloud adapter, or one of the audited SpeechSDK direct/BYOK factories. The cloud path imports named
+factories from `@speech-sdk/core/providers`; it never uses a Speechbase gateway or a `provider/model`
+string. The adapter rejects authored chunks over the registry's vendor/model limit and any bracketed
+SDK audio tag before the network, passes `maxRetries: 0`, and requests no SDK timestamps, volume
+normalization, output conversion, speed processing, or provider fallback. Edge rejects escaped UTF-8
+input over 4096 bytes before opening its one-shot WebSocket. One authored chunk therefore produces
+exactly one synthesis request. The returned provider bytes
 continue through the same repository-owned normalization, measured PCM, checksum, sealing, mastering,
 and cumulative-sample timing pipeline.
 
@@ -221,10 +223,17 @@ provider-attempt fingerprint also includes configured speech rate, so changing i
 parameter, or switching
 from a v1 adapter creates a new attempt and cannot reuse stale candidates.
 
-The SpeechSDK safe descriptor uses `speech-sdk-openai-direct-v1` and binds vendor, model, repository
-profile ID, remote voice ID, single-request/retry policy, speech rate, and an opaque fingerprint over
-the private API key/base URL/timeout. Raw credentials and endpoints never enter progress, Run snapshots,
-stdout, receipts, or errors.
+The SpeechSDK safe descriptor uses `speech-sdk-direct-v2`; the Edge descriptor uses
+`edge-read-aloud-websocket-v1`. They bind vendor/service, model, repository profile ID, remote voice ID,
+voice source/locale, single-request/retry policy, speech rate, and an opaque fingerprint over private
+connection configuration. Raw credentials and endpoints never enter progress, Run snapshots, stdout,
+receipts, or errors.
+
+SpeechSDK synthesis is enabled for Cartesia, Deepgram, ElevenLabs, Fish Audio, Gradium, Hume, Inworld,
+MiniMax, Mistral, Murf, OpenAI, Resemble, SmallestAI, Speechify, and xAI. Fal is excluded because one
+generation performs a second network fetch for the audio asset; Google is excluded because the provider
+may rewrite terse input and synthesize again; Speech Gateway is excluded because hosted routing is not
+direct BYOK. Providers without operator keys are source- and mock-validated only, not live-validated.
 
 Changing the private deployment label, reference bytes, control instruction, or generation parameters
 creates a different provider-attempt fingerprint and a separate attempt directory. Stale candidates are

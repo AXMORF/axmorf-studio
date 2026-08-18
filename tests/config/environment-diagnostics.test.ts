@@ -158,7 +158,12 @@ test("SpeechSDK diagnostics validate configuration without generation readiness 
             },
             modelId: "gpt-4o-mini-tts",
             voiceProfiles: [
-              { id: "cloud-voice", name: "Cloud", voiceId: "alloy" },
+              {
+                id: "cloud-voice",
+                name: "Cloud",
+                voiceId: "alloy",
+                source: "catalog",
+              },
             ],
           },
         ],
@@ -182,9 +187,9 @@ test("SpeechSDK diagnostics validate configuration without generation readiness 
   assert.equal(providerProbeCount, 0);
   assert.equal(diagnostics.status, "pass");
   assert.deepEqual(
-    diagnostics.checks.find(({ id }) => id === "speech-sdk-openai"),
+    diagnostics.checks.find(({ id }) => id === "speech-sdk"),
     {
-      id: "speech-sdk-openai",
+      id: "speech-sdk",
       status: "pass",
       summary:
         "SpeechSDK OpenAI 直连配置已验证；凭证与网络将在真实生成时校验。",
@@ -194,5 +199,70 @@ test("SpeechSDK diagnostics validate configuration without generation readiness 
   assert.doesNotMatch(
     JSON.stringify(diagnostics),
     /diagnostic-secret|api\.openai\.com|alloy/iu,
+  );
+});
+
+test("Edge diagnostics stay static and do not synthesize or require a key", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-edge-diagnostics-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const configPath = join(rootDir, "operator/config.json");
+  await writeProducerConfig({
+    configPath,
+    value: {
+      ...validProducerConfigInput,
+      audioDefaults: { globalBgm: null },
+      tts: {
+        ...validProducerConfigInput.tts,
+        defaultProviderId: "edge-free",
+        defaultVoiceProfileId: "edge-voice",
+        providers: [
+          {
+            id: "edge-free",
+            kind: "edge-tts",
+            service: "microsoft-edge-read-aloud",
+            name: "Edge free",
+            connection: { timeoutMs: 60_000 },
+            modelId: "edge-read-aloud",
+            voiceProfiles: [
+              {
+                id: "edge-voice",
+                name: "晓晓",
+                voiceId: "zh-CN-XiaoxiaoNeural",
+                locale: "zh-CN",
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
+  let probeCount = 0;
+  const diagnostics = await runProducerEnvironmentDiagnostics({
+    rootDir,
+    env: { RSP_PRODUCER_CONFIG: configPath },
+    voxcpmProbe: async () => {
+      probeCount += 1;
+      throw new Error("must not probe Edge");
+    },
+    browserPreflight: async () => ({
+      status: "pass",
+      domain: "remotion-browser",
+    }),
+  });
+
+  assert.equal(probeCount, 0);
+  assert.deepEqual(
+    diagnostics.checks.find(({ id }) => id === "edge-tts"),
+    {
+      id: "edge-tts",
+      status: "pass",
+      summary:
+        "Edge Read Aloud 配置已验证；远端可用性将在真实生成时校验。",
+      remediation: null,
+    },
+  );
+  assert.doesNotMatch(
+    JSON.stringify(diagnostics),
+    /Xiaoxiao|zh-CN|edge-voice/iu,
   );
 });

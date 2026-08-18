@@ -39,9 +39,10 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 ### 统一制作配置
 
 - ignored `private/producer.config.json` 是 render 默认值、Scene 基准边缘留白、合集数组、通用 TTS
-  provider/声线/语速/目标 LUFS 与可选本地 BGM 预设的唯一配置 authority；`producer-config-v3`
-  strict union 同时支持仓库专用 VoxCPM 与 SpeechSDK OpenAI direct/BYOK，合法 v1/v2 可在读取时
-  无损迁移。页面将 width/height 合为常用画面规格下拉，声线与 BGM 文件只接受仓库相对路径。
+  provider/声线/语速/目标 LUFS 与可选本地 BGM 预设的唯一配置 authority；`producer-config-v4`
+  strict union 同时支持仓库专用 VoxCPM、Edge Read Aloud 与经审计的 SpeechSDK direct/BYOK
+  factories，合法 v1/v2/v3 可在读取时迁移。页面将 width/height 合为常用画面规格下拉，声线与 BGM
+  文件只接受仓库相对路径。
 - `npm run dev` 同时启动 loopback 配置控制台 `:3100` 与 Remotion Studio `:3101`；显式
   `npm run dev:lan` 让两者通过可信 LAN IP 访问。token 按要求完整回传、显示、可修改，同时使用
   精确同源写入、no-store、无浏览器持久化和 `0600` 原子写入。
@@ -50,7 +51,7 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   ProductionRequirementsFreeze；同时将可选 BGM 本地化并冻结为 Project `sound.json` 与 manifest
   资源。输出 conflict 时拒绝覆盖。
 - 配置 API 已覆盖 GET/PUT、strict validation、同源拒绝和 `0600` 原子写入；页面可新增、删除、切换
-  mixed provider/profile，提供 VoxCPM health/ready、SpeechSDK 静态配置状态与 Remotion browser
+  mixed provider/profile，提供 VoxCPM health/ready、SpeechSDK/Edge 静态配置状态与 Remotion browser
   诊断，并即时维护唯一 ID 与有效默认项；secret 不进入浏览器持久化或日志。
 - 配置页“制作进度”只把 `src/projects/` source directory 或 current Run manifest storyId 识别为
   可展示 Project，不纳入 `out/`、deliveries 等 output-only 清理目标。schema v3 以默认 build 六阶段、
@@ -67,9 +68,9 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
   caption safe area。
 - PublishingIntent v2 只能选择配置数组中的一个合集并封存目录 fingerprint；TTS 语速进入
   provider attempt，目标 LUFS 进入 mastered narration v2 policy/fingerprint。
-- 新 Run 在同一次 provider-aware preflight 中冻结 private-safe NarrationExecutionSnapshot v2；
+- 新 Run 在同一次 provider-aware preflight 中冻结 private-safe NarrationExecutionSnapshot v3；
   generation 重算不一致时在 provider request 前拒绝，mastering 只消费 Run policy。VoxCPM 保留
-  health/ready/info，SpeechSDK OpenAI 不生成 probe 音频，只标注真实生成时再校验凭证/网络。服务连接
+  health/ready/info，SpeechSDK 与 Edge 不生成 probe 音频，只标注真实生成时再校验凭证/网络。服务连接
   只以 opaque private-config fingerprint 进入 provider-attempt，raw secret/URL/path/voice content
   不持久化。
 
@@ -77,7 +78,7 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 
 - strict VideoBrief、StorySpec v3 discriminated narrated/silent Scene、current-only NarrationSpec v2、RenderSpec、StoryBeat、
   Agent-authored ttsChunks；NarrationSpec v1/`seed` 无 runtime compatibility。
-- VoxCPM clone adapters v2 与 SpeechSDK OpenAI direct adapter v1、provider-neutral dispatcher、
+- VoxCPM clone adapters v2、SpeechSDK direct adapter v2、Edge adapter v1 与 provider-neutral dispatcher、
   完整 generation parameter/provider-attempt binding、候选、sealed PCM、checksum/fingerprint、
   `pcm-cumulative-ceil-v1`、SemanticTiming 与
   CaptionCue。
@@ -110,7 +111,7 @@ delivery 集由当前工作目录动态决定，不属于 capability 状态权�
 ### 当前 production render handoff
 
 - current `ProductionRequirementsFreeze`、append-only events、派生 ProductionRunState。
-- fixed production-start-preflight-v3、start/narrative/Scene+GlobalVisual freeze、Cover freeze、
+- fixed production-start-preflight-v4、start/narrative/Scene+GlobalVisual freeze、Cover freeze、
   owner-ready/failed receipt、foreground finalize、status 与 render-ready check。
 - finalize 先以单一 expected-owner 规则校验 inbox 和 required receipts；缺失 Scene/GlobalVisual receipt
   在任何 stage/result/event/state 写入前返回稳定排序的 `owner-receipts-incomplete`。Cover missing/failed

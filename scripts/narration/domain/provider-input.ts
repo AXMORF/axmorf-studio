@@ -1,4 +1,5 @@
 import { createFingerprint } from "../../../src/contracts/fingerprint";
+import type { SpeechSdkVendor } from "../../../src/contracts/tts-provider-registry";
 
 type SafeVoxcpmDescriptorBase = {
   readonly privateConfigFingerprint: string;
@@ -56,36 +57,62 @@ export type ResolvedVoxcpmProfile = {
   readonly safeDescriptor: SafeVoxcpmExecutionDescriptor;
 };
 
-export type SafeSpeechSdkOpenAIExecutionDescriptor = {
-  readonly adapterId: "speech-sdk-openai-direct-v1";
+export type SafeSpeechSdkExecutionDescriptor = {
+  readonly adapterId: "speech-sdk-direct-v2";
   readonly providerConfigFingerprint: string;
-  readonly vendor: "openai";
-  readonly modelId: "gpt-4o-mini-tts";
+  readonly vendor: SpeechSdkVendor;
+  readonly modelId: string;
   readonly voiceProfileId: string;
   readonly voiceId: string;
+  readonly voiceSource: "catalog" | "remote-clone" | "remote-designed";
   readonly speechRate: number;
-  readonly maxInputChars: 4096;
+  readonly maxInputChars: number;
   readonly maxRetries: 0;
 };
 
-export type ResolvedSpeechSdkOpenAIProfile = {
+export type ResolvedSpeechSdkProfile = {
   readonly kind: "speech-sdk";
-  readonly vendor: "openai";
+  readonly vendor: SpeechSdkVendor;
   readonly apiKey: string;
   readonly baseUrl?: string;
+  readonly groupId?: string;
   readonly timeoutMs: number;
-  readonly modelId: "gpt-4o-mini-tts";
+  readonly modelId: string;
   readonly voiceId: string;
-  readonly safeDescriptor: SafeSpeechSdkOpenAIExecutionDescriptor;
+  readonly safeDescriptor: SafeSpeechSdkExecutionDescriptor;
+};
+
+export type SafeEdgeTtsExecutionDescriptor = {
+  readonly adapterId: "edge-read-aloud-websocket-v1";
+  readonly providerConfigFingerprint: string;
+  readonly service: "microsoft-edge-read-aloud";
+  readonly modelId: "edge-read-aloud";
+  readonly voiceProfileId: string;
+  readonly voiceId: string;
+  readonly locale: string;
+  readonly speechRate: number;
+  readonly maxInputBytes: 4096;
+  readonly maxRetries: 0;
+};
+
+export type ResolvedEdgeTtsProfile = {
+  readonly kind: "edge-tts";
+  readonly timeoutMs: number;
+  readonly voiceId: string;
+  readonly locale: string;
+  readonly speechRate: number;
+  readonly safeDescriptor: SafeEdgeTtsExecutionDescriptor;
 };
 
 export type SafeProviderExecutionDescriptor =
   | SafeVoxcpmExecutionDescriptor
-  | SafeSpeechSdkOpenAIExecutionDescriptor;
+  | SafeSpeechSdkExecutionDescriptor
+  | SafeEdgeTtsExecutionDescriptor;
 
 export type ResolvedProviderExecution =
   | ResolvedVoxcpmProfile
-  | ResolvedSpeechSdkOpenAIProfile;
+  | ResolvedSpeechSdkProfile
+  | ResolvedEdgeTtsProfile;
 
 export type ChunkAudioRequest = {
   readonly generationInputFingerprint: string;
@@ -110,9 +137,16 @@ export const computeProviderAttemptFingerprint = (
       value: descriptor,
     });
   }
+  if (descriptor.adapterId.startsWith("edge-")) {
+    return createFingerprint({
+      namespace: "edge-tts-provider-attempt",
+      version: 1,
+      value: descriptor,
+    });
+  }
   return createFingerprint({
     namespace: "speech-sdk-provider-attempt",
-    version: 1,
+    version: 2,
     value: descriptor,
   });
 };
