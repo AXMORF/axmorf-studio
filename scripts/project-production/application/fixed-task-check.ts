@@ -24,6 +24,10 @@ import {
 } from "../../../src/contracts";
 import { measureCanonicalPcmWav, sha256Bytes } from "../../narration/domain/pcm-wav";
 import { readTaskWorkspace } from "../adapters/task-workspace";
+import {
+  expectedTemplateSceneOutputSet,
+  toTemplateSceneWorkspacePath,
+} from "../domain/template-scene-output";
 import { checkProducerTaskWorkspace } from "./task-check";
 import { checkSceneTask } from "./scene-task-check";
 
@@ -284,21 +288,6 @@ const checksum = (bytes: Uint8Array) => sha256Bytes(Buffer.from(bytes));
 
 const sceneSourcePrefix = (task: ProducerTaskSpec) =>
   `src/projects/${task.storyId}/scenes/${task.semanticId ?? ""}/`;
-const scenePublicPrefix = (task: ProducerTaskSpec) =>
-  `public/projects/${task.storyId}/scenes/${task.semanticId ?? ""}/`;
-
-const toWorkspacePath = (task: ProducerTaskSpec, repositoryPath: string) => {
-  const sourcePrefix = sceneSourcePrefix(task);
-  const publicPrefix = scenePublicPrefix(task);
-  if (repositoryPath.startsWith(sourcePrefix)) {
-    return `src/${repositoryPath.slice(sourcePrefix.length)}`;
-  }
-  if (repositoryPath.startsWith(publicPrefix)) {
-    return `public/${repositoryPath.slice(publicPrefix.length)}`;
-  }
-  throw new Error("Scene template copied path escapes its owning Scene.");
-};
-
 const relativeImports = (sourcePath: string, source: string) => {
   const sourceFile = ts.createSourceFile(
     sourcePath,
@@ -375,7 +364,11 @@ export const checkSceneTemplateWorkspaceBinding = async ({
   const copied = [...instance.copiedSourceFiles, ...instance.copiedAssetFiles];
   const mapped = new Map<string, { readonly repositoryPath: string; readonly bytes: Buffer }>();
   for (const file of copied) {
-    const logicalPath = toWorkspacePath(task, file.repositoryPath);
+    const logicalPath = toTemplateSceneWorkspacePath({
+      storyId: task.storyId,
+      meaningId: task.semanticId,
+      repositoryPath: file.repositoryPath,
+    });
     if (!task.declaredOutputSet.includes(logicalPath) || mapped.has(file.repositoryPath)) {
       throw new Error("Scene template copied file set is stale.");
     }
@@ -385,17 +378,11 @@ export const checkSceneTemplateWorkspaceBinding = async ({
     }
     mapped.set(file.repositoryPath, { repositoryPath: file.repositoryPath, bytes });
   }
-  const expectedOutputs = [
-    ...copied.map((file) => toWorkspacePath(task, file.repositoryPath)),
-    "src/generated/reference-fidelity.generated.json",
-    "src/scene-template-instance.json",
-    "src/selected-resources.json",
-    "src/shot-plan.json",
-    "src/shot-recipe-selection.json",
-    "src/sound-plan.json",
-    "src/sync-anchors.json",
-    "src/visual-plan.json",
-  ].sort();
+  const expectedOutputs = expectedTemplateSceneOutputSet({
+    storyId: task.storyId,
+    meaningId: task.semanticId,
+    copiedRepositoryPaths: copied.map(({ repositoryPath }) => repositoryPath),
+  });
   if (!same(task.declaredOutputSet, expectedOutputs)) {
     throw new Error("Scene template copied file set does not match task outputs.");
   }

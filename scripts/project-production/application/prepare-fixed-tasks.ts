@@ -42,6 +42,7 @@ import {
   checksumBytes,
   readRegularBytes,
 } from "../adapters/project-input-snapshot";
+import { isTemplateSceneLiveProjectionPath } from "../domain/template-scene-output";
 import { checkTaskByKind } from "./check-task";
 
 export type PreparedNarrationInputs = Readonly<{
@@ -498,8 +499,6 @@ export const readTemplateSceneFiles = async ({
   const source = await collectRegularFiles(
     join(rootDir, "src/projects", projectId, "scenes", meaningId),
   );
-  delete (source as Record<string, Uint8Array>)["scene-package.generated.json"];
-  delete (source as Record<string, Uint8Array>)["task-input.generated.json"];
   const publicFiles = await collectRegularFiles(
     join(rootDir, "public/projects", projectId, "scenes", meaningId),
   );
@@ -511,6 +510,8 @@ export const readTemplateSceneFiles = async ({
       ...Object.entries(publicFiles).map(
         ([path, bytes]) => [`public/${path}`, bytes] as const,
       ),
-    ].sort(([left], [right]) => left.localeCompare(right)),
+    ]
+      .filter(([path]) => !isTemplateSceneLiveProjectionPath(path))
+      .sort(([left], [right]) => left.localeCompare(right)),
   );
 };

@@ -63,7 +63,9 @@ shim。历史 `.producer-runs` 数据保持原位，但 current prepare/converge
 - read-only current-plan builder 从 current Project contracts、template instances、asset manifest/selected bytes、narration identity 和
   runtime policies 计算 Revision/Task DAG；
 - Scene、GlobalVisual、Cover workspace validators 与 commit flow；
-- template-copy Scene 固定任务，不进入 Agent dispatch；
+- template-copy Scene 固定任务，不进入 Agent dispatch；共享 canonical builder/output contract 同时物化 copied
+  source/assets 与完整 derived Scene bundle，并保证 create-only/fixed-prepared/materialized replan 的
+  TaskRevision 稳定；
 - Root-facing prepare 输出 stable reuse/dirty/blocked summary、逐任务 direct/dependency/artifact 解释和 dirty Agent
   TaskRevisions；
 - Scene child 继续受 repository-local `remotion-best-practices`、readability、安全区、resource/license 与

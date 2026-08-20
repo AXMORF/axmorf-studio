@@ -23,6 +23,10 @@ import {
 import { createProducerPlan } from "../domain/plan";
 import type { ArtifactInspection } from "../domain/invalidation";
 import type { ProducerTaskNode } from "../domain/task-graph";
+import {
+  bindTemplateTaskOutputSet,
+  expectedTemplateSceneOutputSetFromPreparedFiles,
+} from "../domain/template-scene-output";
 import { loadProjectProductionInputs } from "./load-inputs";
 import { buildCurrentProductionRevision } from "./current-revision";
 
@@ -198,17 +202,12 @@ export const artifactBinding = (
 
 export const rebindTemplateTaskOutputs = (
   task: ProducerTaskSpec,
-  outputPaths: readonly string[],
+  preparedWorkspacePaths: readonly string[],
 ) => {
-  if (task.taskKind !== "scene-template") {
-    throw new Error("Only a Scene template task can bind copied outputs.");
-  }
-  const { taskRevision, ...identity } = task;
-  void taskRevision;
-  return buildProducerTaskSpec({
-    ...identity,
-    declaredOutputSet: [...outputPaths].sort(),
-  });
+  return bindTemplateTaskOutputSet(
+    task,
+    expectedTemplateSceneOutputSetFromPreparedFiles(preparedWorkspacePaths),
+  );
 };
 
 const inspect = async ({

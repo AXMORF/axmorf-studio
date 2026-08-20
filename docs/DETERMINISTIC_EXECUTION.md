@@ -87,6 +87,10 @@ workspace/attempt。调用方 revision stale 时不采用旧 artifact。required
 逐项相同。只有通过后才生成 ScenePackage/Coverage/RendererRegistry/GlobalVisualPackage/Composition；生成步骤
 再次严格解析 upstream contracts。
 
+Template Scene 的 current-plan 读取会排除 live-only fixed projections，并将已存在的 canonical derived
+outputs 幂等归一到 shared exact output contract。因此物化本身不改变该 fixed task 的 TaskRevision；
+Artifact Store 仍通过 exact files/checksums 拒绝未知或漂移内容。
+
 ## 7. DeliveryBuild
 
 DeliveryBuildId 由 revisionId、artifact set fingerprint、Composition id/fps/frameCount/width/height 和 exact build

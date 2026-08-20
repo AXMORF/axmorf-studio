@@ -83,7 +83,8 @@ private config、voice profiles、shared media、core、other Projects 与 histo
 Scene task reads one complete StoryBeat, its SemanticTiming slice, requirements/readability, Scene brief,
 resource pool and selected resources. GlobalVisual reads Story/Timing/VisualStyle/requirements/brief/resources but
 never Scene output. Cover reads only Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the
-configured Project-local template instance.
+configured Project-local template instance. Its artifact is the exact union of immutable copied source/assets and
+the canonical derived Scene bundle; live-only fixed projections are excluded from its task identity.
 
 每个 dirty Agent task 一个 runtime-native child；repository 不创建或保存 child identity。Root 只负责派发，
 随后挂起在 bounded fixed continuation，且不轮询或推理。continuation 以 one-shot atomic claim 独占 exact
@@ -104,6 +105,8 @@ promotion 在目标同父目录准备 staging，完整验证后写 manifest，�
 convergence 在任何 live write 前通过 read-only current-plan builder 重新计算 Revision、检查全部 required
 artifacts；它不调用 provider、不创建 workspace 或 planning attempt。Scene/GlobalVisual/Cover roots
 分别 staging 并受控替换；跨 `src`/`public` 操作必须 rollback。物化后重新 hash live exact paths。
+Template Scene source normalization 使 create-only、fixed-prepared 与 materialized view 对同一 unchanged input
+产生同一 output set/TaskRevision，但 unknown file、symlink 或 byte drift 仍由 validator/store 拒绝。
 
 ScenePackage、Coverage、RendererRegistry、GlobalVisualPackage 与 Composition 是 fixed projection，不由 Agent
 workspace伪造。Composition owns global background, SceneSafeArea, CaptionLayer, narration and sound assembly；

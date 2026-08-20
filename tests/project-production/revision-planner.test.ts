@@ -139,7 +139,7 @@ test("planner dispatches only template-copy silent Scenes as fixed template task
   ]);
 });
 
-test("template-copy task rebinds the exact copied file set without losing context identity", () => {
+test("template-copy task rebinds the copied and derived file set without losing context identity", () => {
   const built = buildAgentTasks(inputs(), revisionId).find(
     ({ task }) => task.taskKind === "scene-template",
   );
@@ -152,12 +152,33 @@ test("template-copy task rebinds the exact copied file set without losing contex
   assert.deepEqual(rebound.declaredOutputSet, [
     "public/texture.bin",
     "src/Renderer.tsx",
+    "src/generated/reference-fidelity.generated.json",
     "src/scene-template-instance.json",
+    "src/selected-resources.json",
+    "src/shot-plan.json",
+    "src/shot-recipe-selection.json",
+    "src/sound-plan.json",
+    "src/sync-anchors.json",
+    "src/visual-plan.json",
   ]);
   assert.deepEqual(rebound.declaredReadSet, built.task.declaredReadSet);
   assert.deepEqual(rebound.inputFingerprints, built.task.inputFingerprints);
   assert.deepEqual(rebound.dependencyArtifacts, built.task.dependencyArtifacts);
   assert.notEqual(rebound.taskRevision, built.task.taskRevision);
+
+  const materializedReplan = rebindTemplateTaskOutputs(
+    built.task,
+    [
+      ...rebound.declaredOutputSet,
+      "src/generated/scene-package.generated.json",
+      "src/task-input.generated.json",
+    ],
+  );
+  assert.deepEqual(
+    materializedReplan.declaredOutputSet,
+    rebound.declaredOutputSet,
+  );
+  assert.equal(materializedReplan.taskRevision, rebound.taskRevision);
 });
 
 test("every Agent task binds the exact canonical context bytes it declares", () => {

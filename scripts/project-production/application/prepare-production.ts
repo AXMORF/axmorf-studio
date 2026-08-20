@@ -21,17 +21,16 @@ import {
   buildNarrationChunkTask,
   buildNarrationSealTask,
   buildSemanticTimingTask,
-  rebindTemplateTaskOutputs,
 } from "./build-current-plan";
 import { inspectProjectProduction } from "./inspect-production";
 import { loadProjectProductionInputs } from "./load-inputs";
 import {
   ensureFixedTaskArtifact,
   prepareNarrationInputs,
-  readTemplateSceneFiles,
   type PreparedNarrationInputs,
 } from "./prepare-fixed-tasks";
 import { buildCurrentProductionRevision } from "./current-revision";
+import { ensureTemplateSceneArtifact } from "./template-scene-artifacts";
 
 type LoadedInputs = Awaited<ReturnType<typeof loadProjectProductionInputs>>;
 type CurrentPlan = Awaited<ReturnType<typeof buildCurrentProductionPlan>>;
@@ -141,22 +140,18 @@ const prepareFixedTaskArtifacts = async ({
     if (built.task.semanticId === null) {
       throw new Error("Template task lost meaningId.");
     }
-    const templateFiles = await readTemplateSceneFiles({
-      rootDir,
-      projectId: inputs.projectId,
-      meaningId: built.task.semanticId,
-    });
-    const task = rebindTemplateTaskOutputs(
-      built.task,
-      Object.keys(templateFiles),
+    const sceneInput = inputs.sceneInputs.find(
+      ({ meaningId }) => meaningId === built.task.semanticId,
     );
-    await ensureFixedTaskArtifact({
+    if (sceneInput === undefined) {
+      throw new Error("Template task Scene input is unavailable.");
+    }
+    await ensureTemplateSceneArtifact({
       rootDir,
-      task,
-      files: {
-        "inputs/context.json": built.contextBytes,
-        ...templateFiles,
-      },
+      task: built.task,
+      contextBytes: built.contextBytes,
+      taskInput: sceneInput.taskInput,
+      catalog: inputs.catalog,
     });
   }
 };

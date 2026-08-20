@@ -111,6 +111,11 @@ Agent 不能直接写 live Project。Root 只将 dirty `scene-owner`、`global-v
 一个 TaskRevision。Scene child 完整读取 repository-local `remotion-best-practices`，且不能用 Skill 扩大
 TaskSpec/validator/write scope。
 
+`scene-template` fixed producer 与 validator 共用同一 exact output contract：artifact 包含 immutable
+copied source/assets，以及从 template instance、SceneTaskInput 和 ResourceCatalog 机械派生的 canonical
+Scene plans、selected-resource envelope 与 fidelity receipt。live-only
+`task-input.generated.json`/`generated/scene-package.generated.json` 不进入该 artifact identity。
+
 child 在 workspace 内循环：
 
 ```bash
@@ -140,6 +145,8 @@ terminal failure 立即写失败终态并非零退出，不调用 converge；全
 converge 只调用 read-only current-plan builder 重算 current inputs；不调用 provider、不创建 workspace 或
 ExecutionAttempt。revision 不同返回 stable stale 结果。任何 required artifact 缺失时，
 返回 incomplete 且不得写 live owner roots 或 delivery。
+对 unchanged template Scene，create-only、fixed-prepared 与 materialized source view 必须归一到相同 exact
+output set 和 TaskRevision；已声明 derived outputs 只能幂等吸收，unknown file 或 checksum drift 仍 fail closed。
 
 齐全后，materializer 从 Artifact Store 读取 bytes，分别对 Scene、GlobalVisual、Cover owned roots 使用
 staging + controlled replace + rollback。随后 fixed application 机械刷新 ScenePackage、Coverage、

@@ -25,6 +25,7 @@ import {
 import type { NarrationPreparationReceipt } from "../../../src/contracts";
 import { computeChunkRequestFingerprint } from "../../narration/domain/provider-input";
 import { loadNarrationProjectFiles } from "../../narration/project-files";
+import { isTemplateSceneLiveProjectionPath } from "../domain/template-scene-output";
 import { inspectCurrentDelivery as inspectVerifiedCurrentDelivery } from "./current-delivery-inspection";
 
 type TreeEntry = Readonly<{
@@ -590,8 +591,6 @@ export const readTemplateSceneFilesForInspection = async ({
   const source = await collectRegularFiles(
     join(rootDir, "src/projects", projectId, "scenes", meaningId),
   );
-  delete (source as Record<string, Uint8Array>)["scene-package.generated.json"];
-  delete (source as Record<string, Uint8Array>)["task-input.generated.json"];
   const publicFiles = await collectRegularFiles(
     join(rootDir, "public/projects", projectId, "scenes", meaningId),
   );
@@ -603,6 +602,8 @@ export const readTemplateSceneFilesForInspection = async ({
       ...Object.entries(publicFiles).map(
         ([path, bytes]) => [`public/${path}`, bytes] as const,
       ),
-    ].sort(([left], [right]) => left.localeCompare(right)),
+    ]
+      .filter(([path]) => !isTemplateSceneLiveProjectionPath(path))
+      .sort(([left], [right]) => left.localeCompare(right)),
   );
 };
