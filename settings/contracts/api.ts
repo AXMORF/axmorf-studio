@@ -2,9 +2,13 @@ import { z } from "zod";
 
 import { ProducerConfigSchema } from "../../src/contracts/producer-config";
 import {
-  Sha256DigestSchema,
-  StoryIdSchema,
-} from "../../src/contracts/primitives";
+  ActualProductionCostSchema,
+  EstimatedProductionCostSchema,
+  ProductionInspectionSchema,
+  TaskDecisionExplanationListSchema,
+  validateTaskExplanationStoryBinding,
+} from "../../src/contracts/production-inspection";
+import { StoryIdSchema } from "../../src/contracts/primitives";
 
 export const SETTINGS_API_ROUTES = {
   settings: "/api/settings",
@@ -59,14 +63,14 @@ export const ProjectTaskSummarySchema = z
   })
   .strict();
 
+export const ProjectEstimatedCostSchema = EstimatedProductionCostSchema;
+export const ProjectActualCostSchema = ActualProductionCostSchema;
+
 export const ProjectAttemptSummarySchema = z
   .object({
     attemptId: z.string().uuid(),
     revisionId: z.string().regex(/^revision-[0-9a-f]{64}$/u),
-    planFingerprint: Sha256DigestSchema.nullable(),
-    artifactSetFingerprint: Sha256DigestSchema.nullable(),
     state: z.enum([
-      "planning",
       "waiting-for-agent",
       "converging",
       "succeeded",
@@ -78,6 +82,9 @@ export const ProjectAttemptSummarySchema = z
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u)
       .nullable(),
     tasks: ProjectTaskSummarySchema,
+    estimatedCost: ProjectEstimatedCostSchema,
+    actualCost: ProjectActualCostSchema,
+    taskExplanations: TaskDecisionExplanationListSchema,
     taskOutcomes: z
       .object({
         committedTaskCount: z.number().int().nonnegative(),
@@ -93,7 +100,6 @@ export const ProjectDeliverySummarySchema = z
   .object({
     deliveryBuildId: z.string().regex(/^delivery-[0-9a-f]{64}$/u),
     revisionId: z.string().regex(/^revision-[0-9a-f]{64}$/u),
-    artifactSetFingerprint: Sha256DigestSchema,
     frameCount: z.number().int().positive(),
     current: z.boolean(),
     files: z
@@ -116,11 +122,31 @@ export const ProjectProductionProgressSchema = z
       .regex(/^revision-[0-9a-f]{64}$/u)
       .nullable(),
     tasks: ProjectTaskSummarySchema,
+    inspection: ProductionInspectionSchema.nullable(),
     attempt: ProjectAttemptSummarySchema.nullable(),
     delivery: ProjectDeliverySummarySchema.nullable(),
     error: z.string().min(1).nullable(),
   })
-  .strict();
+  .strict()
+  .superRefine((project, context) => {
+    if (
+      project.inspection !== null &&
+      project.inspection.storyId !== project.projectId
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Production inspection is cross-story.",
+        path: ["inspection", "storyId"],
+      });
+    }
+    if (project.attempt === null) return;
+    validateTaskExplanationStoryBinding({
+      storyId: project.projectId,
+      tasks: project.attempt.taskExplanations,
+      context,
+      path: ["attempt", "taskExplanations"],
+    });
+  });
 
 export type ProjectProductionProgress = z.infer<
   typeof ProjectProductionProgressSchema
@@ -128,7 +154,7 @@ export type ProjectProductionProgress = z.infer<
 
 export const ProductionProgressResponseSchema = z
   .object({
-    schemaVersion: z.literal(4),
+    schemaVersion: z.literal(5),
     projects: z.array(ProjectProductionProgressSchema),
   })
   .strict();

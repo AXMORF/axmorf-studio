@@ -25,7 +25,7 @@
 | 主题 | 文档 |
 | --- | --- |
 | 统一 Producer/TTS/Scene defaults 配置 | [guides/PRODUCER_CONFIG.md](guides/PRODUCER_CONFIG.md) |
-| plan、dirty task delegation、commit、converge | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md) |
+| create 后的只读 inspect、显式 prepare、dirty task delegation、commit、converge | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md) |
 | 同步 exact four-file delivery | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md) |
 | 完整 Project 数据删除 | [PRODUCTION_WORKFLOW.md#8-作品删除](PRODUCTION_WORKFLOW.md#8-作品删除) |
 | TTS generation cache、PCM seal 与 timing | [guides/NARRATION_GENERATION.md](guides/NARRATION_GENERATION.md) |

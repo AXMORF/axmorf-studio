@@ -1,17 +1,30 @@
 import { z } from "zod";
 
+import {
+  ActualProductionCostSchema,
+  DeliveryMediaListSchema,
+  DiagnosticInputIdSchema,
+  DiagnosticSubjectSchema,
+  EstimatedProductionCostSchema,
+  TaskDecisionExplanationListSchema,
+  TaskDecisionExplanationSchema,
+} from "./production-inspection";
+import { serializeCanonicalJson } from "./fingerprint";
 import { Sha256DigestSchema, StoryIdSchema } from "./primitives";
 import { ProductionRevisionIdSchema } from "./production-revision";
-import { ProducerTaskKindSchema, TaskRevisionSchema } from "./producer-task";
+import {
+  ProducerLogicalPathSchema,
+  ProducerTaskKindSchema,
+  TaskRevisionSchema,
+} from "./producer-task";
 
-export const EXECUTION_ATTEMPT_VERSION = "execution-attempt-v2" as const;
+export const EXECUTION_ATTEMPT_VERSION = "execution-attempt-v3" as const;
 export const EXECUTION_ATTEMPT_EVENT_VERSION =
-  "execution-attempt-event-v2" as const;
+  "execution-attempt-event-v3" as const;
 export const EXECUTION_ATTEMPT_PROGRESS_VERSION =
-  "execution-attempt-progress-v2" as const;
+  "execution-attempt-progress-v3" as const;
 
 export const ExecutionAttemptStateSchema = z.enum([
-  "planning",
   "waiting-for-agent",
   "converging",
   "succeeded",
@@ -34,24 +47,104 @@ export const ExecutionAttemptTaskSummarySchema = z
   .strict()
   .readonly();
 
-export const ExecutionAttemptCacheDecisionSchema = z
+const DiagnosticLogicalPathSchema = ProducerLogicalPathSchema.refine(
+  (value) =>
+    ["inputs/", "project/", "public/", "src/"].some((prefix) =>
+      value.startsWith(prefix),
+    ),
+  "Diagnostic paths must use a safe task-local prefix.",
+);
+
+export const TaskDiagnosticInputFingerprintSchema = z
+  .object({ id: DiagnosticInputIdSchema, fingerprint: Sha256DigestSchema })
+  .strict()
+  .readonly();
+
+export const TaskDiagnosticDependencySchema = z
   .object({
-    taskRevision: TaskRevisionSchema,
     taskKind: ProducerTaskKindSchema,
-    semanticId: z.string().min(1).nullable(),
-    status: z.enum(["reused", "dirty", "missing", "incompatible", "blocked"]),
-    reasonCode: z.enum([
-      "artifact-valid",
-      "artifact-missing",
-      "checksum-drift",
-      "input-changed",
-      "dependency-changed",
-      "validator-version-changed",
-      "dependency-blocked",
-    ]),
-    dependencyTaskRevisions: z.array(TaskRevisionSchema),
+    subject: DiagnosticSubjectSchema,
+    taskRevision: TaskRevisionSchema,
   })
   .strict()
+  .readonly();
+
+const snapshotDependencyKey = (
+  value: z.infer<typeof TaskDiagnosticDependencySchema>,
+) => `${value.taskKind}:${value.subject.kind}:${value.subject.id}`;
+
+export const TaskDiagnosticSnapshotSchema = z
+  .object({
+    taskKind: ProducerTaskKindSchema,
+    subject: DiagnosticSubjectSchema,
+    taskRevision: TaskRevisionSchema,
+    inputFingerprints: z.array(TaskDiagnosticInputFingerprintSchema).readonly(),
+    validatorPolicyVersion: z.string().min(1).max(160),
+    declaredReadSet: z.array(DiagnosticLogicalPathSchema).readonly(),
+    declaredOutputSet: z.array(DiagnosticLogicalPathSchema).min(1).readonly(),
+    dependencies: z.array(TaskDiagnosticDependencySchema).readonly(),
+    decision: TaskDecisionExplanationSchema,
+  })
+  .strict()
+  .superRefine((snapshot, context) => {
+    const collections = [
+      ["inputFingerprints", snapshot.inputFingerprints.map(({ id }) => id)],
+      ["declaredReadSet", snapshot.declaredReadSet],
+      ["declaredOutputSet", snapshot.declaredOutputSet],
+      ["dependencies", snapshot.dependencies.map(snapshotDependencyKey)],
+    ] as const;
+    for (const [path, values] of collections) {
+      const sorted = [...values].sort();
+      if (
+        values.some((value, index) => value !== sorted[index]) ||
+        new Set(values).size !== values.length
+      ) {
+        context.addIssue({
+          code: "custom",
+          message: `${path} must be sorted and unique.`,
+          path: [path],
+        });
+      }
+    }
+    if (
+      snapshot.decision.taskRevision !== snapshot.taskRevision ||
+      snapshot.decision.taskKind !== snapshot.taskKind ||
+      serializeCanonicalJson(snapshot.decision.subject) !==
+        serializeCanonicalJson(snapshot.subject)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Diagnostic snapshot decision is stale.",
+        path: ["decision"],
+      });
+    }
+  })
+  .readonly();
+
+export const TaskDiagnosticSnapshotListSchema = z
+  .array(TaskDiagnosticSnapshotSchema)
+  .superRefine((snapshots, context) => {
+    const revisions = snapshots.map(({ taskRevision }) => taskRevision);
+    const sorted = [...revisions].sort();
+    if (
+      revisions.some((revision, index) => revision !== sorted[index]) ||
+      new Set(revisions).size !== revisions.length
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Task diagnostic snapshots must be sorted and unique.",
+      });
+    }
+    const subjects = snapshots.map(
+      ({ taskKind, subject }) => `${taskKind}:${subject.kind}:${subject.id}`,
+    );
+    if (new Set(subjects).size !== subjects.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Task diagnostic snapshot subjects must be unique per task kind.",
+      });
+    }
+  })
   .readonly();
 
 export const ExecutionAttemptTaskOutcomeSchema = z
@@ -90,6 +183,7 @@ export const ExecutionAttemptDeliveryResultSchema = z
       .regex(/^delivery-[0-9a-f]{64}$/u)
       .nullable(),
     diagnosticCode: ExecutionDiagnosticCodeSchema.nullable(),
+    deliveryMedia: DeliveryMediaListSchema,
   })
   .strict()
   .superRefine((result, context) => {
@@ -107,24 +201,15 @@ export const ExecutionAttemptDeliveryResultSchema = z
         path: ["diagnosticCode"],
       });
     }
-  })
-  .readonly();
-
-const CacheDecisionListSchema = z
-  .array(ExecutionAttemptCacheDecisionSchema)
-  .superRefine((decisions, context) => {
-    const revisions = decisions.map(({ taskRevision }) => taskRevision);
-    const sorted = [...revisions].sort();
-    if (
-      revisions.some((revision, index) => revision !== sorted[index]) ||
-      new Set(revisions).size !== revisions.length
-    ) {
+    if (result.status === "not-verified" && result.deliveryMedia.length > 0) {
       context.addIssue({
         code: "custom",
-        message: "Attempt cache decisions must be sorted and unique.",
+        message: "Unverified delivery cannot report completed media work.",
+        path: ["deliveryMedia"],
       });
     }
-  });
+  })
+  .readonly();
 
 const ExecutionAttemptIdentityShape = {
   attemptId: z.string().uuid(),
@@ -133,43 +218,45 @@ const ExecutionAttemptIdentityShape = {
 } as const;
 
 const ExecutionAttemptPlanShape = {
-  planFingerprint: Sha256DigestSchema.nullable(),
-  artifactSetFingerprint: Sha256DigestSchema.nullable(),
-  cacheDecisions: CacheDecisionListSchema,
+  planFingerprint: Sha256DigestSchema,
+  artifactSetFingerprint: Sha256DigestSchema,
+  taskExplanations: TaskDecisionExplanationListSchema,
+  taskSnapshots: TaskDiagnosticSnapshotListSchema,
+  estimatedCost: EstimatedProductionCostSchema,
+  actualCost: ActualProductionCostSchema,
 } as const;
 
 const validatePlanBinding = (
   value: {
-    readonly planFingerprint: string | null;
-    readonly artifactSetFingerprint: string | null;
-    readonly cacheDecisions: readonly unknown[];
+    readonly taskExplanations: readonly z.infer<
+      typeof TaskDecisionExplanationSchema
+    >[];
+    readonly taskSnapshots: readonly z.infer<
+      typeof TaskDiagnosticSnapshotSchema
+    >[];
   },
   context: z.RefinementCtx,
 ) => {
-  const hasPlan = value.planFingerprint !== null;
-  if (hasPlan !== (value.artifactSetFingerprint !== null)) {
+  const snapshotExplanations = value.taskSnapshots.map(({ decision }) => decision);
+  if (
+    serializeCanonicalJson(snapshotExplanations) !==
+    serializeCanonicalJson(value.taskExplanations)
+  ) {
     context.addIssue({
       code: "custom",
-      message: "Attempt plan fingerprints must be present together.",
-      path: ["planFingerprint"],
-    });
-  }
-  if (!hasPlan && value.cacheDecisions.length > 0) {
-    context.addIssue({
-      code: "custom",
-      message: "Attempt cache decisions require a plan fingerprint.",
-      path: ["cacheDecisions"],
+      message: "Attempt task explanations and snapshots disagree.",
+      path: ["taskExplanations"],
     });
   }
 };
 
 export const ExecutionAttemptSchema = z
   .object({
-    schemaVersion: z.literal(2),
+    schemaVersion: z.literal(3),
     contractVersion: z.literal(EXECUTION_ATTEMPT_VERSION),
     ...ExecutionAttemptIdentityShape,
     ...ExecutionAttemptPlanShape,
-    state: z.enum(["planning", "waiting-for-agent", "converging"]),
+    state: z.enum(["waiting-for-agent", "converging"]),
     createdAt: z.string().datetime({ offset: true }),
     updatedAt: z.string().datetime({ offset: true }),
     dirtyTaskRevisions: z.array(TaskRevisionSchema),
@@ -184,15 +271,10 @@ export const ExecutionAttemptSchema = z
 
 export const ExecutionAttemptEventSchema = z
   .object({
-    schemaVersion: z.literal(2),
+    schemaVersion: z.literal(3),
     contractVersion: z.literal(EXECUTION_ATTEMPT_EVENT_VERSION),
     eventId: z.string().uuid(),
-    eventKind: z.enum([
-      "plan-recorded",
-      "attempt-opened",
-      "task-terminal",
-      "delivery-terminal",
-    ]),
+    eventKind: z.enum(["attempt-opened", "task-terminal", "delivery-terminal"]),
     recordedAt: z.string().datetime({ offset: true }),
     ...ExecutionAttemptIdentityShape,
     taskOutcome: ExecutionAttemptTaskOutcomeSchema.nullable(),
@@ -200,10 +282,7 @@ export const ExecutionAttemptEventSchema = z
   })
   .strict()
   .superRefine((event, context) => {
-    if (
-      (event.eventKind === "task-terminal") !==
-      (event.taskOutcome !== null)
-    ) {
+    if ((event.eventKind === "task-terminal") !== (event.taskOutcome !== null)) {
       context.addIssue({
         code: "custom",
         message: "Task terminal events require exactly one task outcome.",
@@ -216,8 +295,7 @@ export const ExecutionAttemptEventSchema = z
     ) {
       context.addIssue({
         code: "custom",
-        message:
-          "Delivery terminal events require exactly one delivery result.",
+        message: "Delivery terminal events require exactly one delivery result.",
         path: ["deliveryResult"],
       });
     }
@@ -242,7 +320,7 @@ export const ExecutionAttemptTaskOutcomeSummarySchema = z
 
 export const ExecutionAttemptProgressSchema = z
   .object({
-    schemaVersion: z.literal(2),
+    schemaVersion: z.literal(3),
     contractVersion: z.literal(EXECUTION_ATTEMPT_PROGRESS_VERSION),
     ...ExecutionAttemptIdentityShape,
     ...ExecutionAttemptPlanShape,
@@ -260,9 +338,7 @@ export const ExecutionAttemptProgressSchema = z
   .strict()
   .superRefine((progress, context) => {
     validatePlanBinding(progress, context);
-    const revisions = progress.taskOutcomes.map(
-      ({ taskRevision }) => taskRevision,
-    );
+    const revisions = progress.taskOutcomes.map(({ taskRevision }) => taskRevision);
     const sorted = [...revisions].sort();
     if (
       revisions.some((revision, index) => revision !== sorted[index]) ||
@@ -306,14 +382,24 @@ export const ExecutionAttemptProgressSchema = z
         path: ["deliveryResult"],
       });
     }
+    if (
+      serializeCanonicalJson(progress.actualCost.deliveryMedia) !==
+      serializeCanonicalJson(progress.deliveryResult.deliveryMedia)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Progress delivery cost is stale.",
+        path: ["actualCost", "deliveryMedia"],
+      });
+    }
   })
   .readonly();
 
+export type TaskDiagnosticSnapshot = z.infer<
+  typeof TaskDiagnosticSnapshotSchema
+>;
 export type ExecutionAttempt = z.infer<typeof ExecutionAttemptSchema>;
 export type ExecutionAttemptEvent = z.infer<typeof ExecutionAttemptEventSchema>;
-export type ExecutionAttemptCacheDecision = z.infer<
-  typeof ExecutionAttemptCacheDecisionSchema
->;
 export type ExecutionAttemptTaskOutcome = z.infer<
   typeof ExecutionAttemptTaskOutcomeSchema
 >;

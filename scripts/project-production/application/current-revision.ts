@@ -23,8 +23,7 @@ export const buildCurrentProductionRevision = (
     globalVisualBriefFingerprint: inputs.fingerprints.globalVisualBrief,
     storyResourcePoolFingerprint: inputs.fingerprints.resourcePool,
     projectAssetManifestFingerprint: inputs.fingerprints.assetManifest,
-    narrationGenerationFingerprint:
-      inputs.fingerprints.narrationGeneration,
+    narrationGenerationFingerprint: inputs.fingerprints.narrationGeneration,
     scenes: inputs.sceneInputs
       .map(({ revisionInput }) => revisionInput)
       .sort((left, right) => left.meaningId.localeCompare(right.meaningId)),

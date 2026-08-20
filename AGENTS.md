@@ -71,7 +71,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   完全相同的精确版本。
 - 一 Story 一个 Composition；一 StoryBeat 一个 meaningId 和 Scene，完成物化的 Scene 对应一个
   ScenePackage。StoryBeat 严格区分 narrated 与只允许位于首尾的 silent Scene。
-- `project:configure` 将选定边界 Scene template 源码与资源复制为 Project-local immutable instance；
+- `project:create` 从 strict create input 原子创建 configured authoring，并将选定边界 Scene template
+  源码与资源复制为 Project-local immutable instance；它不调用 provider、不生成媒体或生产 attempt。
   template-copy Scene 由 fixed task 验证和产出 artifact，不派发 Agent。
 - `ttsChunks` 是 Agent 已确定的原子朗读单元。sealed PCM 实测 samples 是绝对时间 authority；frame
   boundary 统一为 `ceilDiv(cumulativeSamples × fps, sampleRate)`。Scene/transition 不吞 spoken frames。
@@ -86,11 +87,13 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 
 ## 唯一 production 与 delivery 主链
 
-- `npm run project:produce:plan -- --project <storyId>` 加载显式 authoring contracts 与 selected bytes，
-  计算 ProductionRevision、content-addressed Task DAG 和 ProducerPlan，并重新检查 Artifact Store。
+- `npm run project:produce:inspect -- --project <storyId>` 是严格只读、零 provider call 的诊断入口；Root
+  必须先报告 source readiness、estimated cost、artifact reuse 与结构化失效解释，再运行有成本 preparation。
+- `npm run project:produce:prepare -- --project <storyId>` 是唯一允许调用 provider、准备 fixed artifacts、
+  计算 ProductionRevision/content-addressed Task DAG、创建 dirty workspace 与 ExecutionAttempt 的生产入口。
 - RevisionId、TaskRevision、ArtifactAttestation identity 不包含 attemptId、历史执行 ID、时间戳、PID、
   absolute path 或 Agent identity。ExecutionAttempt 只保存诊断，不拥有 artifact 或 delivery。
-- plan 只为未命中有效 artifact 的任务创建 `.producer-work/<storyId>/<taskRevision>/`。Root 只派发
+- prepare 只为未命中有效 artifact 的 Agent 任务创建 `.producer-work/<storyId>/<taskRevision>/`。Root 只派发
   dirty `scene-owner`、`global-visual-owner`、`cover-owner`；相同 Revision 的 valid artifacts 必须复用。
 - Agent child 只写自己的 task workspace，读取 immutable `task.json` 与 `inputs/context.json`，循环运行
   `project:task:check`，最后调用 `project:task:commit`。commit 必须重跑 validator；只有 fixed validator
@@ -100,7 +103,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - Root 等待全部已派发 child 到 artifact committed/current、明确 task failure 或 host failure终态，然后
   在一次编排尝试中恰好调用一次
   `npm run project:produce:converge -- --project <storyId> --revision <revisionId>`。
-- converge 重新计算 current Revision，拒绝 stale revision；全部 required artifacts 齐全前不得修改 live
+- converge 使用只读 current replan，拒绝 stale revision；不调用 provider、不创建 workspace/attempt；全部
+  required artifacts 齐全前不得修改 live
   owner roots。物化使用受控 staging/replace/rollback，随后刷新 ScenePackage、Coverage、RendererRegistry、
   GlobalVisualPackage 与生成式 Composition，并从 live paths 复验 bytes 与 attestations 一致。
 - delivery 是同一 converge 内的同步阶段。它使用 build-owned staging，可跨失败复用已验证媒体，等待
@@ -117,7 +121,9 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - `public/`、`src/projects/`、generated Registry/Catalog、`.narration-work/`、`.producer-work/`、
   `.producer-artifacts/`、`.producer-attempts/`、`.producer-runs/`、`out/` 与 `deliveries/` 都是 ignored
   本地产物，不进入 Git。
-- settings 只从 current source Projects、新 attempts/artifacts 与 current four-file delivery 投影；不得
+- settings 只从 current source Projects、新 attempts/artifacts 与 current four-file delivery 投影；结构化
+  explanation、baseline、estimate 与 attempt 只属于 diagnostic plane，不得改变 Revision、TaskRevision、
+  ArtifactAttestation、dispatch、materialization 或 DeliveryBuild identity/authority；不得
   扫描 `.producer-runs/` 来规划、构建、收敛或判定 current 状态。历史 Run 只是 deletion-only 数据。
 - 用户明确删除 Project 时，使用
   `npm run project:delete -- --project <storyId> --confirm-delete` 的完整 storyId-owned 清理语义；禁止 broad

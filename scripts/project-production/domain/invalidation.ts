@@ -1,15 +1,20 @@
-import type {
-  ArtifactAttestation,
-  ProducerReasonCodeSchema,
-  ProducerTaskSpec,
-} from "../../../src/contracts";
-import type { z } from "zod";
+import type { ArtifactAttestation, ProducerTaskSpec } from "../../../src/contracts";
+import type { ArtifactState } from "../../../src/contracts/production-inspection";
 
-export type ArtifactInspection = Readonly<{
-  attestation: ArtifactAttestation | null;
-  valid: boolean;
-  reason?: "artifact-missing" | "checksum-drift" | "incompatible";
-}>;
+export type ArtifactInspection =
+  | Readonly<{
+      artifactState: "valid";
+      attestation: ArtifactAttestation;
+    }>
+  | Readonly<{
+      artifactState: Exclude<ArtifactState, "valid">;
+      attestation: null;
+    }>;
+
+export const missingArtifactInspection = (): ArtifactInspection => ({
+  artifactState: "missing",
+  attestation: null,
+});
 
 export const classifyTaskArtifact = ({
   task,
@@ -18,24 +23,21 @@ export const classifyTaskArtifact = ({
   readonly task: ProducerTaskSpec;
   readonly inspection: ArtifactInspection;
 }): Readonly<{
-  status: "reused" | "missing" | "incompatible";
-  reasonCode: z.infer<typeof ProducerReasonCodeSchema>;
+  artifactState: ArtifactState;
+  reusable: boolean;
 }> => {
-  if (inspection.attestation === null || inspection.reason === "artifact-missing") {
-    return { status: "missing", reasonCode: "artifact-missing" };
+  if (inspection.artifactState !== "valid") {
+    return { artifactState: inspection.artifactState, reusable: false };
   }
+  const attestation = inspection.attestation;
   if (
-    !inspection.valid ||
-    inspection.attestation.taskRevision !== task.taskRevision ||
-    inspection.attestation.validatorPolicyVersion !== task.validatorPolicyVersion
+    attestation.storyId !== task.storyId ||
+    attestation.taskKind !== task.taskKind ||
+    attestation.semanticId !== task.semanticId ||
+    attestation.taskRevision !== task.taskRevision ||
+    attestation.validatorPolicyVersion !== task.validatorPolicyVersion
   ) {
-    return {
-      status: "incompatible",
-      reasonCode:
-        inspection.reason === "checksum-drift"
-          ? "checksum-drift"
-          : "validator-version-changed",
-    };
+    return { artifactState: "identity-mismatch", reusable: false };
   }
-  return { status: "reused", reasonCode: "artifact-valid" };
+  return { artifactState: "valid", reusable: true };
 };

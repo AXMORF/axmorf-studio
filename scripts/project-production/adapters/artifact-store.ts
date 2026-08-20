@@ -14,8 +14,19 @@ import {
   type ProducerTaskSpec,
   type Sha256Digest,
 } from "../../../src/contracts";
+import type { ArtifactState } from "../../../src/contracts/production-inspection";
+import type { ArtifactInspection } from "../domain/invalidation";
 
 const checksum = (bytes: Uint8Array) => `sha256:${createHash("sha256").update(bytes).digest("hex")}` as Sha256Digest;
+
+class ArtifactValidationError extends Error {
+  public constructor(
+    public readonly artifactState: Exclude<ArtifactState, "valid" | "missing">,
+    message: string,
+  ) {
+    super(message);
+  }
+}
 
 export const resolveArtifactPath = ({ rootDir, storyId, taskKind, taskRevision }: {
   readonly rootDir: string; readonly storyId: string; readonly taskKind: string; readonly taskRevision: string;
@@ -37,7 +48,10 @@ const assertArtifactParents = async ({
     try {
       const metadata = await lstat(parent);
       if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
-        throw new Error("Artifact Store parent is unsafe.");
+        throw new ArtifactValidationError(
+          "unsafe-path",
+          "Artifact Store parent is unsafe.",
+        );
       }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
@@ -48,31 +62,73 @@ const assertArtifactParents = async ({
 
 const listFiles = async (root: string, directory = root): Promise<readonly string[]> => {
   const metadata = await lstat(directory);
-  if (!metadata.isDirectory() || metadata.isSymbolicLink()) throw new Error("Artifact directory is unsafe.");
+  if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+    throw new ArtifactValidationError(
+      "unsafe-path",
+      "Artifact directory is unsafe.",
+    );
+  }
   const found: string[] = [];
   for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
     const path = join(directory, entry.name);
-    if (entry.isSymbolicLink() || (!entry.isDirectory() && !entry.isFile())) throw new Error("Artifact contains a non-regular entry.");
+    if (entry.isSymbolicLink() || (!entry.isDirectory() && !entry.isFile())) {
+      throw new ArtifactValidationError(
+        "unsafe-path",
+        "Artifact contains a non-regular entry.",
+      );
+    }
     if (entry.isDirectory()) found.push(...await listFiles(root, path));
     else found.push(relative(root, path).split(sep).join("/"));
   }
   return found.sort();
 };
 
-export const inspectArtifact = async ({ rootDir, task }: { readonly rootDir: string; readonly task: ProducerTaskSpec }): Promise<ArtifactAttestation | null> => {
+const inspectArtifactAttestation = async ({ rootDir, task }: { readonly rootDir: string; readonly task: ProducerTaskSpec }): Promise<ArtifactAttestation | null> => {
   const parsedTask = ProducerTaskSpecSchema.parse(task);
   await assertArtifactParents({ rootDir, task: parsedTask });
   const root = resolveArtifactPath({ rootDir, storyId: parsedTask.storyId, taskKind: parsedTask.taskKind, taskRevision: parsedTask.taskRevision });
   try {
     const metadata = await lstat(root);
-    if (!metadata.isDirectory() || metadata.isSymbolicLink()) throw new Error("Artifact root is unsafe.");
+    if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+      throw new ArtifactValidationError(
+        "unsafe-path",
+        "Artifact root is unsafe.",
+      );
+    }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw error;
   }
-  const attestation = ArtifactAttestationSchema.parse(JSON.parse(await readFile(join(root, "artifact-attestation.json"), "utf8")));
+  let rawAttestation: unknown;
+  try {
+    rawAttestation = JSON.parse(
+      await readFile(join(root, "artifact-attestation.json"), "utf8"),
+    );
+  } catch (error) {
+    if (
+      error instanceof SyntaxError ||
+      (error as NodeJS.ErrnoException).code === "ENOENT"
+    ) {
+      throw new ArtifactValidationError(
+        "manifest-invalid",
+        "Artifact attestation manifest is invalid.",
+      );
+    }
+    throw error;
+  }
+  const parsedAttestation = ArtifactAttestationSchema.safeParse(rawAttestation);
+  if (!parsedAttestation.success) {
+    throw new ArtifactValidationError(
+      "manifest-invalid",
+      "Artifact attestation manifest is invalid.",
+    );
+  }
+  const attestation = parsedAttestation.data;
   if (attestation.taskRevision !== parsedTask.taskRevision || attestation.taskKind !== parsedTask.taskKind || attestation.storyId !== parsedTask.storyId) {
-    throw new Error("Artifact attestation is cross-bound.");
+    throw new ArtifactValidationError(
+      "identity-mismatch",
+      "Artifact attestation is cross-bound.",
+    );
   }
   if (
     attestation.semanticId !== parsedTask.semanticId ||
@@ -80,12 +136,18 @@ export const inspectArtifact = async ({ rootDir, task }: { readonly rootDir: str
     serializeCanonicalJson(attestation.dependencyArtifacts) !==
       serializeCanonicalJson(parsedTask.dependencyArtifacts)
   ) {
-    throw new Error("Artifact attestation task binding is stale.");
+    throw new ArtifactValidationError(
+      "identity-mismatch",
+      "Artifact attestation task binding is stale.",
+    );
   }
   const actualFiles = await listFiles(root);
   const expectedFiles = ["artifact-attestation.json", ...attestation.outputManifest.map(({ logicalPath }) => `files/${logicalPath}`)].sort();
   if (actualFiles.length !== expectedFiles.length || actualFiles.some((path, index) => path !== expectedFiles[index])) {
-    throw new Error("Artifact exact file set is stale.");
+    throw new ArtifactValidationError(
+      "exact-set-drift",
+      "Artifact exact file set is stale.",
+    );
   }
   const declaredOutputs = [...parsedTask.declaredOutputSet].sort();
   const attestedOutputs = attestation.outputManifest.map(({ logicalPath }) => logicalPath);
@@ -93,16 +155,77 @@ export const inspectArtifact = async ({ rootDir, task }: { readonly rootDir: str
     declaredOutputs.length !== attestedOutputs.length ||
     declaredOutputs.some((path, index) => path !== attestedOutputs[index])
   ) {
-    throw new Error("Artifact output manifest is not bound to the TaskSpec.");
+    throw new ArtifactValidationError(
+      "exact-set-drift",
+      "Artifact output manifest is not bound to the TaskSpec.",
+    );
   }
   for (const output of attestation.outputManifest) {
     const path = join(root, "files", output.logicalPath);
-    const metadata = await lstat(path);
-    if (!metadata.isFile() || metadata.isSymbolicLink()) throw new Error("Artifact output is not a regular file.");
+    let metadata;
+    try {
+      metadata = await lstat(path);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new ArtifactValidationError(
+          "exact-set-drift",
+          "Artifact exact file set is stale.",
+        );
+      }
+      throw error;
+    }
+    if (!metadata.isFile() || metadata.isSymbolicLink()) {
+      throw new ArtifactValidationError(
+        "unsafe-path",
+        "Artifact output is not a regular file.",
+      );
+    }
     const bytes = Uint8Array.from(await readFile(path));
-    if (bytes.byteLength !== output.sizeBytes || checksum(bytes) !== output.checksum) throw new Error("Artifact output checksum drifted.");
+    if (bytes.byteLength !== output.sizeBytes || checksum(bytes) !== output.checksum) {
+      throw new ArtifactValidationError(
+        "checksum-drift",
+        "Artifact output checksum drifted.",
+      );
+    }
   }
   return attestation;
+};
+
+export const inspectArtifactState = async ({
+  rootDir,
+  task,
+}: {
+  readonly rootDir: string;
+  readonly task: ProducerTaskSpec;
+}): Promise<ArtifactInspection> => {
+  try {
+    const attestation = await inspectArtifactAttestation({ rootDir, task });
+    return attestation === null
+      ? { artifactState: "missing", attestation: null }
+      : { artifactState: "valid", attestation };
+  } catch (error) {
+    if (error instanceof ArtifactValidationError) {
+      return { artifactState: error.artifactState, attestation: null };
+    }
+    throw error;
+  }
+};
+
+export const inspectArtifact = async (input: {
+  readonly rootDir: string;
+  readonly task: ProducerTaskSpec;
+}): Promise<ArtifactAttestation | null> => {
+  const inspection = await inspectArtifactState(input);
+  if (inspection.artifactState === "valid") return inspection.attestation;
+  if (inspection.artifactState === "missing") return null;
+  const messages: Record<Exclude<ArtifactState, "valid" | "missing">, string> = {
+    "manifest-invalid": "Artifact attestation manifest is invalid.",
+    "identity-mismatch": "Artifact attestation task binding is stale.",
+    "exact-set-drift": "Artifact exact file set is stale.",
+    "checksum-drift": "Artifact output checksum drifted.",
+    "unsafe-path": "Artifact path is unsafe.",
+  };
+  throw new Error(messages[inspection.artifactState]);
 };
 
 export const commitTaskArtifact = async ({ rootDir, task, workspace }: {

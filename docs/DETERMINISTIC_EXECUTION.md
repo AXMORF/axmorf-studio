@@ -9,6 +9,10 @@ derived fingerprint 在 parse 时拒绝。以下数据永不进入 RevisionId、
 DeliveryBuildId：ExecutionAttempt ID、clock、PID、absolute path、workspace location、Agent/child identity、
 chat、heartbeat、token usage。
 
+ProductionInspection、TaskDecisionExplanation、diagnostic baseline、estimated/actual cost 和 ExecutionAttempt
+都属于 diagnostic plane。即使缺失、损坏或不可用，也只能降低解释完整度，不能改变 production identity、
+artifact classification、dispatch、materialization 或 delivery authority。
+
 TTS waveform 不要求跨 provider call bit-for-bit 可重复；一旦 provider attempt 与 canonical PCM 通过校验，
 后续以 sealed bytes、checksum、generation fingerprint 和 actual sample count 为 authority。
 
@@ -26,6 +30,10 @@ secret value 不进入 Revision，只有 private-safe provider/voice/policy iden
 每个 node key 包含 task kind、story/semantic identity、Revision reference、最小 input fingerprints、dependency
 artifact identities、declared reads/outputs 和 validator policy。Task graph stable-sort 并拒绝 cycle、duplicate、
 unknown dependency。
+
+失效解释把正交事实分开：typed `artifactState` 描述目标 artifact 的 current integrity；`directChanges`
+只比较 allowlisted input/validator/declared-I/O snapshot；`dependencyChanges` 与 `blockedBy` 只沿已验证 DAG
+edges 传播。hash 不可反解，因此 baseline 不可用时明确标记，不能把 artifact missing 猜成某个 input change。
 
 预期 invalidation：
 
@@ -61,7 +69,8 @@ Scene/CaptionCue/Composition 消费同一 timing artifact；transition 不移动
 
 ## 6. Convergence 与 materialization
 
-converge 每次重新计算 current Revision/Plan；调用方 revision stale 时不采用旧 artifact。required artifacts
+converge 每次通过 read-only current-plan builder 重新计算 current Revision/Plan；不调用 provider、不创建
+workspace/attempt。调用方 revision stale 时不采用旧 artifact。required artifacts
 齐全前零 live mutation。所有 owned roots 先 staging，再 controlled replace；跨 root 操作记录 previous targets，
 捕获失败按逆序恢复。
 
@@ -84,12 +93,14 @@ no-op。
 
 ## 8. Idempotence 与 failure
 
-- plan：同 inputs + valid store → same Revision/Task identities and reused classification；
+- create：same creation identity → read-only current；different/partial target → fail closed，不覆盖；
+- inspect：同 source/cache/artifact/delivery snapshot → byte-equivalent read model、零 provider/零写入；
+- prepare：同 inputs + valid store → same Revision/Task identities and reuse classification；新 attempt 仍只诊断；
 - check：同 workspace → same read-only result；
 - commit：same identity/bytes → no-op，different bytes → conflict；
 - converge：same revision/artifact set/materialized bytes → deterministic projection；
 - delivery：same complete DeliveryBuildId → current no-op；captured staging failure → later reuse valid media；
-- settings progress：malformed historical data 不影响 current projection；
+- settings progress：malformed diagnostic/historical data 不影响 current classification 或 projection authority；
 - delete：严格 story ownership，可重复清理 missing targets，并保护其他 roots。
 
 系统不得用自动 retry、compatibility shim、fallback output、Agent 自评或手工修复 manifest 来制造幂等。

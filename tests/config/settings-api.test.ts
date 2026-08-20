@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { SETTINGS_API_ROUTES } from "../../settings/contracts/api";
+import {
+  ProductionProgressResponseSchema,
+  SETTINGS_API_ROUTES,
+} from "../../settings/contracts/api";
 import { createSettingsApi } from "../../settings/server/api";
 import { writeProducerConfig } from "../../scripts/config/producer-config";
 import { validProducerConfigInput } from "../contracts/producer-config.test";
@@ -31,7 +34,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
       ],
     }),
     inspectProductionProgress: async () => ({
-      schemaVersion: 4,
+      schemaVersion: 5,
       projects: [],
     }),
     deleteProject: async ({ projectId }) => {
@@ -121,7 +124,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
   });
   assert.deepEqual(progress, {
     statusCode: 200,
-    body: { schemaVersion: 4, projects: [] },
+    body: { schemaVersion: 5, projects: [] },
   });
 
   const rejectedDeleteOrigin = await api({
@@ -172,4 +175,61 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
     body: { deletedProjectId: "story-example" },
   });
   assert.deepEqual(deletedProjectIds, ["story-example"]);
+});
+
+test("production progress API rejects raw diagnostic fingerprints", () => {
+  assert.throws(() =>
+    ProductionProgressResponseSchema.parse({
+      schemaVersion: 5,
+      projects: [
+        {
+          projectId: "story-example",
+          status: "needs-agent",
+          revisionId: `revision-${"a".repeat(64)}`,
+          tasks: {
+            reusedTaskCount: 0,
+            dirtyAgentTaskCount: 1,
+            dirtyFixedTaskCount: 0,
+            blockedTaskCount: 0,
+          },
+          inspection: null,
+          attempt: {
+            attemptId: "00000000-0000-4000-8000-000000000001",
+            revisionId: `revision-${"a".repeat(64)}`,
+            planFingerprint: `sha256:${"b".repeat(64)}`,
+            state: "waiting-for-agent",
+            updatedAt: "2026-08-20T08:00:00.000Z",
+            diagnosticCode: null,
+            tasks: {
+              reusedTaskCount: 0,
+              dirtyAgentTaskCount: 1,
+              dirtyFixedTaskCount: 0,
+              blockedTaskCount: 0,
+            },
+            estimatedCost: {
+              providerRequests: 0,
+              providerCacheHits: 0,
+              agentTasks: 1,
+              deliveryMedia: null,
+            },
+            actualCost: {
+              providerRequests: 0,
+              providerCacheHits: 0,
+              agentTasks: 1,
+              deliveryMedia: [],
+            },
+            taskExplanations: [],
+            taskOutcomes: {
+              committedTaskCount: 0,
+              currentTaskCount: 0,
+              failedTaskCount: 0,
+            },
+            deliveryResult: "not-verified",
+          },
+          delivery: null,
+          error: null,
+        },
+      ],
+    }),
+  );
 });

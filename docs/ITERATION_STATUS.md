@@ -11,23 +11,40 @@ ArtifactAttestation、reusable Artifact Store、fixed convergence 与 synchronou
 package scripts 只保留：
 
 ```text
-project:produce:plan
+project:create
+project:produce:inspect
+project:produce:prepare
 project:task:check
 project:task:commit
 project:produce:converge
 ```
 
 旧 production/delivery/build command surface 与对应 active contracts/implementation/tests 已移除，不提供转发
-shim。历史 `.producer-runs` 数据保持原位，但 current planning/convergence/build/settings 不读取；删除器内部只
+shim。历史 `.producer-runs` 数据保持原位，但 current prepare/convergence/build/settings 不读取；删除器内部只
 保留 strict ownership parser。
 
 ## 已实现 contracts 与 domain
 
-- `ProductionRevision`、`ProducerTaskSpec/TaskRevision`、`ArtifactAttestation`、`ProducerPlan`、
-  `ExecutionAttempt`、`DeliveryBuild/DeliveryPublish`；
+- `ProjectCreateInput`、`ProductionInspection`、`TaskDecisionExplanation`、`ProductionRevision`、
+  `ProducerTaskSpec/TaskRevision`、`ArtifactAttestation`、`ProducerPlan`、`ExecutionAttempt`、
+  `DeliveryBuild/DeliveryPublish`；
 - Revision/DAG/invalidation/plan pure domain；DAG cycle/duplicate/unknown dependency/stable ordering gates；
 - renamed Project authoring contracts `authoring-requirements` 与 `scene-readability`，不导出旧 runtime authority；
-- attempt/time/path/process identity exclusion 与 per-kind validator version invalidation tests。
+- attempt/time/path/process/explanation identity exclusion、safe diagnostic input IDs、typed artifact state、direct
+  snapshot diff 与 DAG dependency propagation tests。
+
+## 已实现 create、inspect 与 prepare
+
+- `project:create` 从 strict repository-relative input 原子创建 configured authoring；相同 creation identity
+  只读 current，existing/partial/conflicting/symlink/path escape/special file fail closed；
+- create 保留 authored Story/`ttsChunks`，复制 boundary template 与 sound/catalog projection，但零 provider、
+  零媒体生成，且不写 narration work、artifact、workspace、attempt 或 delivery；
+- `project:produce:inspect` 通过 check-only ports 返回 sourceState、baseline、unknown-safe estimated cost、
+  structured task explanations 与 nextAction；前后 snapshot drift fail closed，零 provider/零 repository mutation；
+- `project:produce:prepare` 是唯一有成本入口，负责 provider/cache/seal/master/timing、timing-bound authoring、
+  fixed artifacts、Revision/DAG、dirty Agent workspaces 与 ExecutionAttempt，并区分 estimated/actual cost；
+- explanation/baseline/attempt 只属于 diagnostic plane，不改变 Revision、TaskRevision、ArtifactAttestation、
+  dispatch、materialization 或 DeliveryBuild identity/authority。
 
 ## 已实现 workspace 与 Artifact Store
 
@@ -39,17 +56,19 @@ shim。历史 `.producer-runs` 数据保持原位，但 current planning/converg
 
 ## 已实现 planning 与 task owners
 
-- planner 从 current Project contracts、template instances、asset manifest/selected bytes、narration identity 和
+- read-only current-plan builder 从 current Project contracts、template instances、asset manifest/selected bytes、narration identity 和
   runtime policies 计算 Revision/Task DAG；
 - Scene、GlobalVisual、Cover workspace validators 与 commit flow；
 - template-copy Scene 固定任务，不进入 Agent dispatch；
-- Root-facing plan 输出 stable reused/dirty/blocked summary 和 dirty Agent TaskRevisions；
+- Root-facing prepare 输出 stable reuse/dirty/blocked summary、逐任务 direct/dependency/artifact 解释和 dirty Agent
+  TaskRevisions；
 - Scene child 继续受 repository-local `remotion-best-practices`、readability、安全区、resource/license 与
   Remotion runtime gates 约束。
 
 ## 已实现 convergence 与 delivery
 
-- stale revision/incomplete artifact 在任何 live mutation 前拒绝；
+- converge 只读 replan，零 provider/workspace/new attempt；stale revision/incomplete artifact 在任何 live mutation
+  前拒绝；
 - task-owned staging、controlled replace、rollback 和 materialized bytes revalidation；
 - ScenePackage、Coverage、RendererRegistry、GlobalVisualPackage 与生成式 Composition fixed refresh；
 - build-owned staging、validated media reuse、synchronous Remotion/FFmpeg、H.264/AAC/channels、dimensions、fps、
@@ -58,7 +77,8 @@ shim。历史 `.producer-runs` 数据保持原位，但 current planning/converg
 
 ## Settings、删除与 zero Project
 
-- settings schema v4 展示 current Revision、task summary、latest attempt diagnostic 和 four-file delivery；
+- settings schema v5 展示 sourceState、current Revision、estimated/actual cost、逐任务 structured explanation、
+  latest attempt diagnostic 和 four-file delivery；不输出 raw fingerprints/private authoring/provider data；
 - source Project enumeration 不读取 historical data，也不把 output-only roots 伪装成 Project；
 - deletion scope 增加 `.producer-work`、`.producer-artifacts`、`.producer-attempts`，继续保护 private、voice、
   shared/core 与 other Projects；
@@ -66,10 +86,11 @@ shim。历史 `.producer-runs` 数据保持原位，但 current planning/converg
 
 ## 验证边界
 
-focused contracts/domain/store/workspace/task/convergence/delivery/settings/deletion/E2E tests 保护失败后 artifact
-复用、dirty-only dispatch、精确 invalidation、安全边界、历史隔离、current no-op 与 delivery failure reuse。
+focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests 已验证原子 create、inspect
+零写入/零 provider、dirty-only dispatch、精确 direct/dependency/artifact explanation、诊断隔离、安全边界、
+历史隔离、current no-op 与 delivery failure reuse。
 
-最终验收必须按顺序运行 `npm test`、`npm run typecheck`、`npm run lint`、`npm run docs:check-links`、
+本轮 closeout 的完整验收仍必须按顺序运行 `npm test`、`npm run typecheck`、`npm run lint`、`npm run docs:check-links`、
 `npm run check:static`、`npm run compositions`、`npm run check`。如果本次工作尚未取得某项 Green，交付报告必须
 明确列出，不得仅凭本文宣称通过。
 

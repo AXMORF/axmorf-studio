@@ -2,102 +2,108 @@ import { z } from "zod";
 
 import { createFingerprint } from "./fingerprint";
 import {
-  MeaningIdSchema,
   NonNegativeIntegerSchema,
   Sha256DigestSchema,
   StoryIdSchema,
 } from "./primitives";
+import {
+  TaskDecisionExplanationListSchema,
+  validateTaskExplanationStoryBinding,
+} from "./production-inspection";
 import { ProductionRevisionIdSchema } from "./production-revision";
-import { ProducerTaskKindSchema, TaskRevisionSchema } from "./producer-task";
 
-export const PRODUCER_PLAN_VERSION = "producer-plan-v1" as const;
-export const ProducerTaskStatusSchema = z.enum([
-  "reused",
-  "dirty",
-  "missing",
-  "incompatible",
-  "blocked",
-]);
-export const ProducerReasonCodeSchema = z.enum([
-  "artifact-valid",
-  "artifact-missing",
-  "checksum-drift",
-  "input-changed",
-  "dependency-changed",
-  "validator-version-changed",
-  "dependency-blocked",
-]);
-
-const ProducerPlanTaskSchema = z
-  .object({
-    taskRevision: TaskRevisionSchema,
-    taskKind: ProducerTaskKindSchema,
-    semanticId: MeaningIdSchema.nullable(),
-    status: ProducerTaskStatusSchema,
-    reasonCode: ProducerReasonCodeSchema,
-    dependencyTaskRevisions: z.array(TaskRevisionSchema),
-  })
-  .strict()
-  .readonly();
+export const PRODUCER_PLAN_VERSION = "producer-plan-v2" as const;
 
 const PlanInputShape = {
-    schemaVersion: z.literal(1),
-    contractVersion: z.literal(PRODUCER_PLAN_VERSION),
-    storyId: StoryIdSchema,
-    revisionId: ProductionRevisionIdSchema,
-    artifactSetFingerprint: Sha256DigestSchema,
-    tasks: z.array(ProducerPlanTaskSchema),
-    summary: z
-      .object({
-        reusedTaskCount: NonNegativeIntegerSchema,
-        dirtyAgentTaskCount: NonNegativeIntegerSchema,
-        dirtyFixedTaskCount: NonNegativeIntegerSchema,
-        blockedTaskCount: NonNegativeIntegerSchema,
-      })
-      .strict()
-      .readonly(),
+  schemaVersion: z.literal(2),
+  contractVersion: z.literal(PRODUCER_PLAN_VERSION),
+  storyId: StoryIdSchema,
+  revisionId: ProductionRevisionIdSchema,
+  artifactSetFingerprint: Sha256DigestSchema,
+  tasks: TaskDecisionExplanationListSchema,
+  summary: z
+    .object({
+      reusedTaskCount: NonNegativeIntegerSchema,
+      dirtyAgentTaskCount: NonNegativeIntegerSchema,
+      dirtyFixedTaskCount: NonNegativeIntegerSchema,
+      blockedTaskCount: NonNegativeIntegerSchema,
+    })
+    .strict()
+    .readonly(),
 } as const;
 
-const validatePlanInput = (
-  plan: z.infer<ReturnType<typeof z.object<typeof PlanInputShape>>>,
-  context: z.RefinementCtx,
-) => {
-    const ids = plan.tasks.map(({ taskRevision }) => taskRevision);
-    const sorted = [...ids].sort();
-  if (ids.some((id, index) => id !== sorted[index]) || new Set(ids).size !== ids.length) {
-      context.addIssue({ code: "custom", message: "Plan tasks must be sorted and unique.", path: ["tasks"] });
-  }
-  for (const [index, task] of plan.tasks.entries()) {
-    const sceneTask =
-      task.taskKind === "scene-owner" || task.taskKind === "scene-template";
-    if (sceneTask !== (task.semanticId !== null)) {
+type PlanInput = z.infer<ReturnType<typeof z.object<typeof PlanInputShape>>>;
+
+const validatePlanInput = (plan: PlanInput, context: z.RefinementCtx) => {
+  validateTaskExplanationStoryBinding({
+    storyId: plan.storyId,
+    tasks: plan.tasks,
+    context,
+  });
+  plan.tasks.forEach((task, index) => {
+    if (task.taskRevision === null) {
       context.addIssue({
         code: "custom",
-        message: "Only Scene plan tasks have a semanticId.",
-        path: ["tasks", index, "semanticId"],
+        message: "A ProducerPlan task must bind a TaskRevision.",
+        path: ["tasks", index, "taskRevision"],
+      });
+    }
+  });
+  const agentKinds = new Set([
+    "scene-owner",
+    "global-visual-owner",
+    "cover-owner",
+  ]);
+  const expected = {
+    reusedTaskCount: plan.tasks.filter(({ action }) => action === "reuse")
+      .length,
+    dirtyAgentTaskCount: plan.tasks.filter(
+      ({ action, taskKind }) =>
+        action === "dispatch-agent" && agentKinds.has(taskKind),
+    ).length,
+    dirtyFixedTaskCount: plan.tasks.filter(({ action }) =>
+      ["prepare-fixed", "converge"].includes(action),
+    ).length,
+    blockedTaskCount: plan.tasks.filter(({ action }) => action === "blocked")
+      .length,
+  };
+  for (const key of Object.keys(expected) as Array<keyof typeof expected>) {
+    if (plan.summary[key] !== expected[key]) {
+      context.addIssue({
+        code: "custom",
+        message: "Plan summary is stale.",
+        path: ["summary", key],
       });
     }
   }
-    const agentKinds = new Set(["scene-owner", "global-visual-owner", "cover-owner"]);
-    const expected = {
-      reusedTaskCount: plan.tasks.filter(({ status }) => status === "reused").length,
-      dirtyAgentTaskCount: plan.tasks.filter(({ status, taskKind }) => status !== "reused" && agentKinds.has(taskKind)).length,
-      dirtyFixedTaskCount: plan.tasks.filter(({ status, taskKind }) => status !== "reused" && status !== "blocked" && !agentKinds.has(taskKind)).length,
-      blockedTaskCount: plan.tasks.filter(({ status }) => status === "blocked").length,
-    };
-    for (const key of Object.keys(expected) as Array<keyof typeof expected>) {
-      if (plan.summary[key] !== expected[key]) {
-        context.addIssue({ code: "custom", message: "Plan summary is stale.", path: ["summary", key] });
-      }
+  plan.tasks.forEach((task, index) => {
+    if (
+      task.action === "dispatch-agent" &&
+      !agentKinds.has(task.taskKind)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Only Agent-owned tasks can be dispatched.",
+        path: ["tasks", index, "action"],
+      });
     }
+    if (
+      task.action === "converge" &&
+      !["composition-convergence", "delivery-build"].includes(task.taskKind)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Only convergence tasks can use the converge action.",
+        path: ["tasks", index, "action"],
+      });
+    }
+  });
 };
 
 const PlanInputSchema = z
   .object(PlanInputShape)
   .strict()
-  .superRefine((plan, context) => {
-    validatePlanInput(plan, context);
-  })
+  .superRefine(validatePlanInput)
   .readonly();
 
 export const ProducerPlanSchema = z
@@ -106,22 +112,39 @@ export const ProducerPlanSchema = z
   .superRefine((plan, context) => {
     validatePlanInput(plan, context);
     const { planFingerprint, ...input } = plan;
-    const expected = createFingerprint({ namespace: "producer-plan", version: 1, value: input });
+    const expected = createFingerprint({
+      namespace: "producer-plan",
+      version: 2,
+      value: input,
+    });
     if (planFingerprint !== expected) {
-      context.addIssue({ code: "custom", message: "Producer plan fingerprint is stale.", path: ["planFingerprint"] });
+      context.addIssue({
+        code: "custom",
+        message: "Producer plan fingerprint is stale.",
+        path: ["planFingerprint"],
+      });
     }
   })
   .readonly();
 
 export const buildProducerPlan = (rawInput: unknown) => {
+  const { planFingerprint: _ignoredPlanFingerprint, ...raw } = rawInput as Record<
+    string,
+    unknown
+  >;
+  void _ignoredPlanFingerprint;
   const input = PlanInputSchema.parse({
-    ...(rawInput as Record<string, unknown>),
-    schemaVersion: 1,
+    ...raw,
+    schemaVersion: 2,
     contractVersion: PRODUCER_PLAN_VERSION,
   });
   return ProducerPlanSchema.parse({
     ...input,
-    planFingerprint: createFingerprint({ namespace: "producer-plan", version: 1, value: input }),
+    planFingerprint: createFingerprint({
+      namespace: "producer-plan",
+      version: 2,
+      value: input,
+    }),
   });
 };
 

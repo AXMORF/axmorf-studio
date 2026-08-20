@@ -7,6 +7,8 @@
 
 ```text
 Project source
+  → read-only inspection and cost/invalidation report
+  → explicit fixed preparation
   → ProductionRevision
   → content-addressed Task DAG
   → reuse valid ArtifactAttestations / dispatch dirty Agent tasks
@@ -21,6 +23,8 @@ Project source
 - Agent child 只写 `.producer-work/<storyId>/<taskRevision>/`，fixed commit 重跑 validator 后才能产生
   ArtifactAttestation；
 - 新 attempt 机械复用 valid artifacts，只派发仍 dirty 的 Scene/GlobalVisual/Cover tasks；
+- inspection、estimate、baseline、explanation 与 attempt 都只属于 diagnostic plane，不进入或改变任何
+  production/artifact/delivery identity 或 authority；
 - template-copy Scenes 由 fixed task 处理，不派发 Agent；
 - converge 重新计算 current Revision，全部 artifact 齐全才受控物化 Project；
 - delivery 同步生成并验证 `video.mp4`、两张 PNG Cover 和 `publish.json`，全部通过才替换 current slot；
@@ -55,19 +59,23 @@ npm run config:dev
 ```
 
 配置页统一维护 local/cloud TTS providers、默认 voice/render/readability/scene templates/publishing collections，
-并展示 current Revision、task reuse/dirty/blocked、latest ExecutionAttempt diagnostic 和 current four-file
-delivery。private config 保持 ignored；UI/API 不读取 protected voice contents。
+并展示 source readiness、current Revision、estimated/actual cost、逐任务 direct/dependency/artifact 解释、
+latest ExecutionAttempt diagnostic 和 current four-file delivery。private config 保持 ignored；UI/API 不读取
+protected voice contents 或 raw fingerprints。
 
-## 新建与配置 Project
+## 新建 Project
 
-新 Project 使用 `private/producer.config.json` 中的 defaults，创作 Project-local `producer-input.json`，然后：
+新 Project 使用 `private/producer.config.json` 中的 defaults；先创作一个 strict、repository-relative 的
+create input，其中包含 Story、narrated beats 的 exact `ttsChunks`、视觉与发布选择，然后：
 
 ```bash
-npm run project:configure -- --project <story-id> --input src/projects/<story-id>/producer-input.json
+npm run project:create -- --project <story-id> --input <repository-relative-json>
 ```
 
-选定 boundary Scene templates 会复制为 Project-local immutable instances。silent boundary Scenes 不创建 TTS
-或 captions。Narrated StoryBeat 的 `ttsChunks` 是一次 provider request 的 authored atomic units。
+create 在一个受控 transaction 中原子写入 configured authoring 与选定 boundary Scene template 的
+Project-local immutable instance；已存在/partial/conflicting target fail closed。它不调用 provider、不生成
+媒体，也不写 narration work、task workspace、artifact、attempt 或 delivery。成功重复相同 creation identity
+只读返回 current。Project-local 媒体只能在 Project 创建后通过下述准入命令导入。
 
 Project 外部媒体必须经固定准入命令本地化；运行时只消费 Project-owned manifest ID：
 
@@ -80,26 +88,36 @@ workspace、Artifact Store、delivery 或 Remotion runtime。
 
 ## 生产一个 Project
 
-1. 规划 current revision 和 tasks：
+1. 严格只读检查 source readiness、预计 provider/cache/Agent/delivery 成本、artifact reuse 与逐任务失效解释：
 
 ```bash
-npm run project:produce:plan -- --project <story-id>
+npm run project:produce:inspect -- --project <story-id>
 ```
 
-2. 只把输出中的 dirty Agent tasks 分别交给 runtime-native child。每个 child 在自己的 workspace 内循环：
+Root 先向用户报告 inspection。unknown estimate 保持 unknown，不把诊断推测写入 data plane。
+
+2. 明确执行唯一有成本的 preparation 入口；它才允许 provider/fixed preparation、workspace 与 attempt 写入：
+
+```bash
+npm run project:produce:prepare -- --project <story-id>
+```
+
+3. 只把 prepare 输出中的 `dirtyAgentTasks` 分别交给 runtime-native child。每个 child 在自己的 workspace 内循环：
 
 ```bash
 npm run project:task:check -- --task <task-revision>
 npm run project:task:commit -- --task <task-revision>
 ```
 
-3. 等待所有已派发 child 到达 committed/current、明确 task failure 或 host failure；一次编排尝试中只调用一次：
+4. 只在当前任务内等待所有已派发 child 到达 committed/current、明确 task failure 或 host failure；不创建
+watcher/scheduler。一次编排尝试中只调用一次：
 
 ```bash
 npm run project:produce:converge -- --project <story-id> --revision <revision-id>
 ```
 
-converge 会验证/materialize artifacts、刷新 packages/registry/Composition，并同步构建 current delivery。聊天终态
+converge 先只读重算 current Revision/plan，再验证/materialize artifacts、刷新 packages/registry/Composition，
+并同步构建 current delivery；它不调用 provider或创建 workspace/attempt。聊天终态
 不作 authority；只有 ArtifactAttestation 和验证后的 four-file package 作 authority。详细步骤见
 [生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md) 与
 [本地交付指南](docs/guides/LOCAL_DELIVERY.md)。

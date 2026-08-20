@@ -204,11 +204,15 @@ public/projects/<story>/narration/<sealed-digest>/
 
 src/projects/<story>/generated/
 ├── sealed-narration.generated.json
-└── semantic-timing.generated.json
+├── semantic-timing.generated.json
+├── mastered-narration.generated.json
+└── narration-preparation.generated.json
 ```
 
 The content-addressed directory is immutable. The generated manifest is the active receipt, and the
-generated timing artifact is derived from that receipt plus RenderSpec timing fields.
+generated timing artifact is derived from that receipt plus RenderSpec timing fields. Explicit production
+prepare also records the redaction-safe provider-attempt/seal/mastering binding used by read-only replanning;
+it contains no private provider configuration or voice material.
 
 ## Resume and provider failures
 
@@ -304,7 +308,9 @@ temporary staging directories, provider logs, or generated Project media.
 ## Current production consumption
 
 The standalone narration lifecycle ends at verified sealed narration and generated
-SemanticTiming/CaptionCue artifacts. `project:produce:plan` binds generation/seal/timing identities into
-fixed tasks and invalidates only dependent Scene/convergence/delivery tasks. Valid chunk artifacts remain
-reusable across ExecutionAttempts. Read-only checks never regenerate, reseal, supersede, or rewrite
+SemanticTiming/CaptionCue artifacts. `project:produce:inspect` only reads source/cache metadata to report
+readiness and cost; it never calls a provider or writes narration state. `project:produce:prepare` is the
+only production entrypoint that may generate, seal, master and bind timing identities into fixed tasks,
+invalidating only dependent Scene/convergence/delivery tasks. Valid chunk artifacts remain reusable across
+ExecutionAttempts. Converge and all read-only checks never regenerate, reseal, supersede, or rewrite
 SemanticTiming. NarrativeCheck and subjective aesthetic gates remain outside the current flow.

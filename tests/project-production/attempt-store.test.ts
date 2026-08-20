@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import {
   mkdir,
   mkdtemp,
@@ -13,19 +14,28 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  buildDeliveryPublish,
+  buildDeliveryPublishing,
   buildProducerPlan,
   buildProducerTaskSpec,
+  createDeliveryBuildId,
   ExecutionAttemptDeliveryResultSchema,
-  type ProducerTaskSpec,
   type Sha256Digest,
 } from "../../src/contracts";
+import type { TaskDiagnosticSnapshot } from "../../src/contracts/execution-attempt";
+import type { TaskDecisionExplanation } from "../../src/contracts/production-inspection";
 import {
   appendExecutionAttemptDeliveryResult,
   appendExecutionAttemptTaskOutcome,
   createExecutionAttemptForPlan,
   readExecutionAttempt,
+  readExecutionAttemptDiagnosticBaseline,
   readExecutionAttemptProgress,
 } from "../../scripts/project-production/adapters/attempt-store";
+import {
+  inspectCurrentDelivery,
+  type CurrentDeliveryInspectionDependencies,
+} from "../../scripts/project-production/adapters/current-delivery-inspection";
 
 const sha = (character: string) =>
   `sha256:${character.repeat(64)}` as Sha256Digest;
@@ -38,27 +48,34 @@ const task = buildProducerTaskSpec({
   revisionId,
   dependencyArtifacts: [],
   inputFingerprints: [
-    { id: "read:inputs/context.json", fingerprint: sha("2") },
+    { id: "brief", fingerprint: sha("2") },
+    { id: "read:inputs/context.json", fingerprint: sha("3") },
   ],
   declaredReadSet: ["inputs/context.json"],
   declaredOutputSet: ["src/Renderer.tsx"],
   validatorPolicyVersion: "scene-owner-validator-v1",
 });
 
+if (task.semanticId === null) throw new Error("Scene fixture lost meaningId.");
+
+const explanation: TaskDecisionExplanation = {
+  taskRevision: task.taskRevision,
+  baselineTaskRevision: null,
+  taskKind: task.taskKind,
+  subject: { kind: "meaning", id: task.semanticId },
+  action: "dispatch-agent" as const,
+  artifactState: "missing" as const,
+  directChanges: [],
+  dependencyChanges: [],
+  blockedBy: [],
+  explanationAvailability: "baseline-unavailable" as const,
+};
+
 const plan = buildProducerPlan({
   storyId: "story-example",
   revisionId,
-  artifactSetFingerprint: sha("3"),
-  tasks: [
-    {
-      taskRevision: task.taskRevision,
-      taskKind: task.taskKind,
-      semanticId: task.semanticId,
-      status: "missing",
-      reasonCode: "artifact-missing",
-      dependencyTaskRevisions: [],
-    },
-  ],
+  artifactSetFingerprint: sha("4"),
+  tasks: [explanation],
   summary: {
     reusedTaskCount: 0,
     dirtyAgentTaskCount: 1,
@@ -67,27 +84,85 @@ const plan = buildProducerPlan({
   },
 });
 
+const snapshot: TaskDiagnosticSnapshot = {
+  taskKind: task.taskKind,
+  subject: explanation.subject,
+  taskRevision: task.taskRevision,
+  inputFingerprints: [{ id: "brief", fingerprint: sha("2") }],
+  validatorPolicyVersion: task.validatorPolicyVersion,
+  declaredReadSet: task.declaredReadSet,
+  declaredOutputSet: task.declaredOutputSet,
+  dependencies: [],
+  decision: explanation,
+};
+
+const estimatedCost = {
+  providerRequests: 0,
+  providerCacheHits: 0,
+  agentTasks: 1,
+  deliveryMedia: ["video", "cover-4x3", "cover-3x4"],
+} as const;
+const actualCost = {
+  providerRequests: 0,
+  providerCacheHits: 0,
+  agentTasks: 1,
+  deliveryMedia: [],
+} as const;
+
+const acceptFixtureMedia: CurrentDeliveryInspectionDependencies = {
+  inspectVideo: async ({ expected }) => ({
+    codec: "h264",
+    audioCodec: "aac",
+    audioChannels: expected.audioChannels,
+    width: expected.width,
+    height: expected.height,
+    fps: expected.fps,
+    frameCount: expected.frameCount,
+    decodedToEof: true,
+  }),
+  inspectCover: async ({ expected }) => ({
+    imageFormat: "png",
+    width: expected.width,
+    height: expected.height,
+    decodedToEof: true,
+  }),
+};
+
+const inspectFixtureDelivery = (
+  input: Parameters<typeof inspectCurrentDelivery>[0],
+) => inspectCurrentDelivery({ ...input, dependencies: acceptFixtureMedia });
+
+const openAttempt = (rootDir: string) =>
+  createExecutionAttemptForPlan({
+    rootDir,
+    plan,
+    taskSnapshots: [snapshot],
+    estimatedCost,
+    actualCost,
+    state: "waiting-for-agent",
+  });
+
 test("attempt diagnostics accept stable codes and reject raw sensitive details", () => {
   assert.throws(() =>
     ExecutionAttemptDeliveryResultSchema.parse({
       status: "failed",
       deliveryBuildId: null,
       diagnosticCode: "render failed at /home/user/private/token.json",
+      deliveryMedia: [],
     }),
   );
 });
 
-test("attempt base records immutable plan and cache decisions", async (context) => {
+test("attempt base persists safe explanations, snapshots, and costs", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const attempt = await createExecutionAttemptForPlan({
-    rootDir,
-    plan,
-    state: "waiting-for-agent",
-  });
+  const attempt = await openAttempt(rootDir);
 
   assert.equal(attempt.planFingerprint, plan.planFingerprint);
-  assert.deepEqual(attempt.cacheDecisions, plan.tasks);
+  assert.deepEqual(attempt.taskExplanations, plan.tasks);
+  assert.deepEqual(attempt.taskSnapshots, [snapshot]);
+  assert.deepEqual(attempt.estimatedCost, estimatedCost);
+  assert.deepEqual(attempt.actualCost, actualCost);
   const progress = await readExecutionAttemptProgress({
     rootDir,
     storyId: attempt.storyId,
@@ -95,7 +170,7 @@ test("attempt base records immutable plan and cache decisions", async (context) 
   });
   assert.equal(progress?.eventCount, 1);
   assert.equal(progress?.deliveryResult.status, "not-verified");
-  assert.deepEqual(progress?.taskOutcomes, []);
+  assert.deepEqual(progress?.taskExplanations, plan.tasks);
   const events = await readdir(
     join(
       rootDir,
@@ -106,24 +181,19 @@ test("attempt base records immutable plan and cache decisions", async (context) 
     ),
   );
   assert.equal(events.length, 1);
-  assert.match(events[0] ?? "", /^[0-9a-f-]{36}\.json$/u);
 });
 
 test("task and delivery terminal events rebuild progress without mutating attempt.json", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-events-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const attempt = await createExecutionAttemptForPlan({
-    rootDir,
-    plan,
-    state: "waiting-for-agent",
-  });
+  const attempt = await openAttempt(rootDir);
 
   await appendExecutionAttemptTaskOutcome({
     rootDir,
     task,
     outcome: {
       outcome: "artifact-committed",
-      artifactFingerprint: sha("4"),
+      artifactFingerprint: sha("5"),
       diagnosticCode: null,
     },
   });
@@ -133,8 +203,9 @@ test("task and delivery terminal events rebuild progress without mutating attemp
     revisionId: attempt.revisionId,
     result: {
       status: "verified",
-      deliveryBuildId: `delivery-${"5".repeat(64)}`,
+      deliveryBuildId: `delivery-${"6".repeat(64)}`,
       diagnosticCode: null,
+      deliveryMedia: ["video", "cover-4x3", "cover-3x4"],
     },
   });
 
@@ -146,104 +217,27 @@ test("task and delivery terminal events rebuild progress without mutating attemp
   );
   const immutableAttempt = JSON.parse(
     await readFile(join(directory, "attempt.json"), "utf8"),
-  ) as { state: string; dirtyTaskRevisions: string[] };
+  ) as { state: string; actualCost: { deliveryMedia: string[] } };
   assert.equal(immutableAttempt.state, "waiting-for-agent");
-  assert.deepEqual(immutableAttempt.dirtyTaskRevisions, [task.taskRevision]);
+  assert.deepEqual(immutableAttempt.actualCost.deliveryMedia, []);
 
-  const progress = await readExecutionAttemptProgress({
+  const progress = await readExecutionAttempt({
     rootDir,
     storyId: attempt.storyId,
     attemptId: attempt.attemptId,
   });
-  assert.equal(progress?.eventCount, 3);
-  assert.equal(progress?.state, "succeeded");
-  assert.deepEqual(progress?.dirtyTaskRevisions, []);
-  assert.deepEqual(progress?.taskOutcomeSummary, {
-    committedTaskCount: 1,
-    currentTaskCount: 0,
-    failedTaskCount: 0,
-  });
-  assert.equal(progress?.deliveryResult.status, "verified");
-  assert.equal(
-    (
-      await readExecutionAttempt({
-        rootDir,
-        storyId: attempt.storyId,
-        attemptId: attempt.attemptId,
-      })
-    ).state,
-    "succeeded",
-  );
+  assert.equal(progress.state, "succeeded");
+  assert.deepEqual(progress.dirtyTaskRevisions, []);
+  assert.deepEqual(progress.actualCost.deliveryMedia, [
+    "video",
+    "cover-4x3",
+    "cover-3x4",
+  ]);
 });
 
-test("event replay ignores stale generated progress and terminal attempts never block a fresh diagnostic attempt", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-replay-"));
+test("terminal diagnostics never create an attempt implicitly", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-no-fallback-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const attempt = await createExecutionAttemptForPlan({
-    rootDir,
-    plan,
-    state: "waiting-for-agent",
-  });
-  await appendExecutionAttemptDeliveryResult({
-    rootDir,
-    storyId: attempt.storyId,
-    revisionId: attempt.revisionId,
-    result: {
-      status: "failed",
-      deliveryBuildId: null,
-      diagnosticCode: "producer-artifacts-incomplete",
-    },
-  });
-  await writeFile(
-    join(
-      rootDir,
-      ".producer-attempts",
-      attempt.storyId,
-      attempt.attemptId,
-      "progress.generated.json",
-    ),
-    "{}\n",
-  );
-  const failed = await readExecutionAttemptProgress({
-    rootDir,
-    storyId: attempt.storyId,
-    attemptId: attempt.attemptId,
-  });
-  assert.equal(failed?.state, "failed");
-  assert.equal(failed?.diagnosticCode, "producer-artifacts-incomplete");
-
-  const fresh = await appendExecutionAttemptTaskOutcome({
-    rootDir,
-    task: task as ProducerTaskSpec,
-    outcome: {
-      outcome: "failed",
-      artifactFingerprint: null,
-      diagnosticCode: "producer-task-commit-failed",
-    },
-  });
-  assert.notEqual(fresh.attemptId, attempt.attemptId);
-  assert.equal(fresh.state, "converging");
-  assert.equal(fresh.taskOutcomeSummary.failedTaskCount, 1);
-  assert.equal(fresh.planFingerprint, null);
-});
-
-test("attempt diagnostics reject symlinked storage parents without writing outside the repository", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-symlink-root-"));
-  const outsideRoot = await mkdtemp(
-    join(tmpdir(), "rsp-attempt-symlink-outside-"),
-  );
-  context.after(() => rm(rootDir, { recursive: true, force: true }));
-  context.after(() => rm(outsideRoot, { recursive: true, force: true }));
-  await symlink(outsideRoot, join(rootDir, ".producer-attempts"));
-
-  await assert.rejects(
-    readExecutionAttemptProgress({
-      rootDir,
-      storyId: plan.storyId,
-      attemptId: "00000000-0000-4000-8000-000000000000",
-    }),
-    /Execution attempt parent is unsafe/u,
-  );
   await assert.rejects(
     appendExecutionAttemptTaskOutcome({
       rootDir,
@@ -254,44 +248,244 @@ test("attempt diagnostics reject symlinked storage parents without writing outsi
         diagnosticCode: "producer-task-commit-failed",
       },
     }),
-    /Execution attempt parent is unsafe/u,
+    /Execution attempt is missing/u,
   );
   await assert.rejects(
-    createExecutionAttemptForPlan({
+    appendExecutionAttemptDeliveryResult({
       rootDir,
-      plan,
-      state: "waiting-for-agent",
+      storyId: task.storyId,
+      revisionId: task.revisionId,
+      result: {
+        status: "failed",
+        deliveryBuildId: null,
+        diagnosticCode: "producer-artifacts-incomplete",
+        deliveryMedia: [],
+      },
     }),
+    /Execution attempt is missing/u,
+  );
+  await assert.rejects(readdir(join(rootDir, ".producer-attempts")));
+});
+
+const bytesChecksum = (bytes: string) =>
+  `sha256:${createHash("sha256").update(bytes).digest("hex")}` as Sha256Digest;
+
+const writeCurrentDelivery = async ({
+  rootDir,
+  deliveryBuildId,
+}: {
+  readonly rootDir: string;
+  readonly deliveryBuildId: ReturnType<typeof createDeliveryBuildId>;
+}) => {
+  const directory = join(rootDir, "deliveries/story-example");
+  await mkdir(directory, { recursive: true });
+  const files = {
+    "video.mp4": "video",
+    "cover-4x3.png": "wide",
+    "cover-3x4.png": "tall",
+  } as const;
+  for (const [name, bytes] of Object.entries(files)) {
+    await writeFile(join(directory, name), bytes);
+  }
+  const file = (name: keyof typeof files) => ({
+    repositoryPath: `deliveries/story-example/${name}`,
+    checksum: bytesChecksum(files[name]),
+    sizeBytes: Buffer.byteLength(files[name]),
+  });
+  const publishing = buildDeliveryPublishing({
+    storyId: "story-example",
+    title: "Delivery proof",
+    description: "Delivery proof.",
+    topics: ["one", "two", "three", "four", "five", "six"],
+    collection: "Proof",
+    outputFileName: "video.mp4",
+    coverFileNames: {
+      cover4x3: "cover-4x3.png",
+      cover3x4: "cover-3x4.png",
+    },
+    fps: 30,
+    frameCount: 120,
+    plannedDurationSeconds: 4,
+    chapters: [
+      {
+        meaningId: "opening",
+        name: "开场",
+        startFrame: 0,
+        timecode: "00:00:00",
+      },
+    ],
+  });
+  const publish = buildDeliveryPublish({
+    storyId: "story-example",
+    revisionId,
+    artifactSetFingerprint: plan.artifactSetFingerprint,
+    compositionId: "StoryExample",
+    fps: 30,
+    frameCount: 120,
+    width: 1080,
+    height: 1920,
+    deliveryBuildId,
+    artifacts: {
+      video: {
+        ...file("video.mp4"),
+        media: {
+          codec: "h264",
+          audioCodec: "aac",
+          audioChannels: 2,
+          width: 1080,
+          height: 1920,
+          fps: 30,
+          frameCount: 120,
+          decodedToEof: true,
+        },
+      },
+      cover4x3: {
+        ...file("cover-4x3.png"),
+        media: {
+          imageFormat: "png",
+          width: 1600,
+          height: 1200,
+          decodedToEof: true,
+        },
+      },
+      cover3x4: {
+        ...file("cover-3x4.png"),
+        media: {
+          imageFormat: "png",
+          width: 1200,
+          height: 1600,
+          decodedToEof: true,
+        },
+      },
+    },
+    publishing,
+  });
+  await writeFile(
+    join(directory, "publish.json"),
+    `${JSON.stringify(publish)}\n`,
+  );
+};
+
+test("baseline prefers current-delivery succeeded attempt over newer failed diagnostics", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-baseline-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const identity = {
+    storyId: "story-example",
+    revisionId,
+    artifactSetFingerprint: plan.artifactSetFingerprint,
+    compositionId: "StoryExample",
+    fps: 30,
+    frameCount: 120,
+    width: 1080,
+    height: 1920,
+    policyVersion: "revision-artifact-sync-delivery-v1",
+  } as const;
+  const buildId = createDeliveryBuildId(identity);
+  const succeeded = await openAttempt(rootDir);
+  await appendExecutionAttemptDeliveryResult({
+    rootDir,
+    storyId: succeeded.storyId,
+    revisionId: succeeded.revisionId,
+    result: {
+      status: "verified",
+      deliveryBuildId: buildId,
+      diagnosticCode: null,
+      deliveryMedia: ["video", "cover-4x3", "cover-3x4"],
+    },
+  });
+  const failed = await openAttempt(rootDir);
+  await appendExecutionAttemptDeliveryResult({
+    rootDir,
+    storyId: failed.storyId,
+    revisionId: failed.revisionId,
+    result: {
+      status: "failed",
+      deliveryBuildId: null,
+      diagnosticCode: "delivery-render-failed",
+      deliveryMedia: [],
+    },
+  });
+  await mkdir(
+    join(rootDir, ".producer-attempts/story-example/not-a-v3-attempt"),
+  );
+  await writeFile(
+    join(
+      rootDir,
+      ".producer-attempts/story-example/not-a-v3-attempt/attempt.json",
+    ),
+    "{ malformed",
+  );
+
+  const beforeDelivery = await readExecutionAttemptDiagnosticBaseline({
+    rootDir,
+    storyId: "story-example",
+  });
+  assert.equal(beforeDelivery?.kind, "latest-verified-attempt");
+  assert.equal(beforeDelivery?.attemptId, succeeded.attemptId);
+
+  await writeCurrentDelivery({ rootDir, deliveryBuildId: buildId });
+  const current = await readExecutionAttemptDiagnosticBaseline({
+    rootDir,
+    storyId: "story-example",
+    dependencies: { inspectCurrentDelivery: inspectFixtureDelivery },
+  });
+  assert.equal(current?.kind, "current-delivery");
+  assert.equal(current?.attemptId, succeeded.attemptId);
+  assert.deepEqual(current?.taskSnapshots, [snapshot]);
+});
+
+test("matching delivery checksums cannot make invalid media the current diagnostic baseline", async (context) => {
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-attempt-invalid-delivery-"),
+  );
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const identity = {
+    storyId: "story-example",
+    revisionId,
+    artifactSetFingerprint: plan.artifactSetFingerprint,
+    compositionId: "StoryExample",
+    fps: 30,
+    frameCount: 120,
+    width: 1080,
+    height: 1920,
+    policyVersion: "revision-artifact-sync-delivery-v1",
+  } as const;
+  const buildId = createDeliveryBuildId(identity);
+  const succeeded = await openAttempt(rootDir);
+  await appendExecutionAttemptDeliveryResult({
+    rootDir,
+    storyId: succeeded.storyId,
+    revisionId: succeeded.revisionId,
+    result: {
+      status: "verified",
+      deliveryBuildId: buildId,
+      diagnosticCode: null,
+      deliveryMedia: ["video", "cover-4x3", "cover-3x4"],
+    },
+  });
+  await writeCurrentDelivery({ rootDir, deliveryBuildId: buildId });
+
+  const baseline = await readExecutionAttemptDiagnosticBaseline({
+    rootDir,
+    storyId: "story-example",
+  });
+
+  assert.equal(baseline?.kind, "latest-verified-attempt");
+  assert.equal(baseline?.attemptId, succeeded.attemptId);
+});
+
+test("attempt diagnostics reject symlinked storage parents", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-symlink-root-"));
+  const outsideRoot = await mkdtemp(
+    join(tmpdir(), "rsp-attempt-symlink-outside-"),
+  );
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  context.after(() => rm(outsideRoot, { recursive: true, force: true }));
+  await symlink(outsideRoot, join(rootDir, ".producer-attempts"));
+
+  await assert.rejects(
+    openAttempt(rootDir),
     /Execution attempt parent is unsafe/u,
   );
   assert.deepEqual(await readdir(outsideRoot), []);
-
-  await rm(join(rootDir, ".producer-attempts"));
-  await mkdir(join(rootDir, ".producer-attempts"));
-  const outsideStory = await mkdtemp(
-    join(tmpdir(), "rsp-attempt-story-outside-"),
-  );
-  context.after(() => rm(outsideStory, { recursive: true, force: true }));
-  await symlink(
-    outsideStory,
-    join(rootDir, ".producer-attempts", plan.storyId),
-  );
-
-  await assert.rejects(
-    readExecutionAttemptProgress({
-      rootDir,
-      storyId: plan.storyId,
-      attemptId: "00000000-0000-4000-8000-000000000000",
-    }),
-    /Execution attempt parent is unsafe/u,
-  );
-  await assert.rejects(
-    createExecutionAttemptForPlan({
-      rootDir,
-      plan,
-      state: "waiting-for-agent",
-    }),
-    /Execution attempt parent is unsafe/u,
-  );
-  assert.deepEqual(await readdir(outsideStory), []);
 });

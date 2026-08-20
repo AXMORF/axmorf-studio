@@ -43,7 +43,8 @@ flowchart LR
 - `visual-components/` 下的 backgrounds、charts、cinematic、elements、layouts、logos、
   media-layouts、scene-patterns、text 与 transition-components；
 - `scene-templates/` 下仅保存可在 configure 时复制并冻结的完整 Scene template，不与 runtime
-  media、transition preset 或 Project-local Scene 混为一类。
+  media、transition preset 或 Project-local Scene 混为一类；新 Project 只在 atomic create transaction 中
+  复制所选 instance。
 
 当前权威与生成入口：
 
@@ -75,7 +76,7 @@ npm run scene-template-audio:check
 
 `generate` 从 ignored private reference manifest 与 override 生成
 `scene-template-audio.generated.json`；`check` 只读比较 expected bytes。bootstrap 显式调用同一
-生成器，随后 `project:configure` 才把选中的声音、许可证和模板源码复制进具体 Project。
+生成器，随后 `project:create` 才把选中的声音、许可证和模板源码复制进具体 Project。
 
 fresh clone 先由 `npm install` 的 prepare hook 执行 `npm run bootstrap`；也可手动执行该命令。
 bootstrap 会先重建 catalog 所需的 core synthetic proof 资产，再生成当前本地 Project 集投影。
@@ -147,7 +148,7 @@ Scene renderer 可以调用目录中的共享能力，也可以拆分本地 Shot
 
 ## Scene 并行查询边界
 
-主 Agent 在分发 Scene 任务前由 planner 绑定同一份 ResourceCatalog snapshot 和允许的
+Root 先只读 inspect，再由 prepare 在分发 Scene 任务前绑定同一份 ResourceCatalog snapshot 和允许的
 ExternalReferenceSnapshot。每个 meaningId 子 Agent 只读查询这些快照，把最终视觉/音频
 选择写入自己的 `selected-resources.json`，把 recipe 选择写入
 `shot-recipe-selection.json`；子 Agent 不得修改 Catalog、共享 capability exports、上游

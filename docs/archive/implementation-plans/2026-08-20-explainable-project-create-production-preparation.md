@@ -1,11 +1,14 @@
-# Project Create / Inspect / Prepare / Explainability Clean-Break 实施计划
+# Project Create / Inspect / Prepare / Explainability Clean-Break 实施计划（归档）
 
-> 文档类型：待实施计划，不是 current implementation authority
+> 文档类型：已实施计划快照，不是 current implementation authority
+>
+> 归档状态：已移出 active documentation，仅保留历史实施上下文。
 >
 > 日期：2026-08-20
 >
-> 当前事实仍以 `AGENTS.md`、仓库可执行代码、测试及 `docs/` 根目录权威文档为准。本文目标只有在
-> Red → Green、完整验证和文档 closeout 后才能写入 `ITERATION_STATUS.md`。
+> 当前事实以 `AGENTS.md`、仓库可执行代码、测试及 `docs/` 根目录权威文档为准。本文保留实施时的
+> Red → Green 拆分与完成定义；focused create/inspect/prepare/explainability/converge 证据已取得，完整
+> closeout gate 结果以本次最终验证报告为准。
 
 ## 1. 结论
 

@@ -1,30 +1,30 @@
+import { createHash } from "node:crypto";
+
 import {
   COVER_SPEC_FINGERPRINT,
   FIXED_COVER_SPEC,
   buildProducerTaskSpec,
   createFingerprint,
+  serializeCanonicalJson,
   type ArtifactAttestation,
   type ProducerTaskSpec,
   type ProductionRevisionId,
   type Sha256Digest,
+  type NarrationPreparationReceipt,
 } from "../../../src/contracts";
-import { inspectArtifact } from "../adapters/artifact-store";
-import { createTaskWorkspace } from "../adapters/task-workspace";
-import { acquireRepositoryOperationLock } from "../../shared/repository-operation-lock";
+import type { DiagnosticSubject } from "../../../src/contracts/production-inspection";
+
+import { inspectArtifactState } from "../adapters/artifact-store";
+import {
+  inspectNarrationCache,
+  readProductionDiagnosticBaseline,
+  readTemplateSceneFilesForInspection,
+} from "../adapters/production-inspection";
 import { createProducerPlan } from "../domain/plan";
 import type { ArtifactInspection } from "../domain/invalidation";
 import type { ProducerTaskNode } from "../domain/task-graph";
 import { loadProjectProductionInputs } from "./load-inputs";
 import { buildCurrentProductionRevision } from "./current-revision";
-import {
-  contextFile,
-  buildNarrationChunkTask,
-  ensureFixedTaskArtifact,
-  prepareNarrationInputs,
-  readTemplateSceneFiles,
-  type PrepareNarration,
-  type PreparedNarrationInputs,
-} from "./prepare-fixed-tasks";
 
 const SCENE_OUTPUTS = [
   "src/Renderer.tsx",
@@ -49,6 +49,69 @@ const COVER_OUTPUTS = [
 ] as const;
 
 type LoadedInputs = Awaited<ReturnType<typeof loadProjectProductionInputs>>;
+
+export const contextFile = (value: unknown) => {
+  const bytes = `${serializeCanonicalJson(value)}\n`;
+  return {
+    bytes,
+    fingerprint:
+      `sha256:${createHash("sha256").update(bytes).digest("hex")}` as Sha256Digest,
+  } as const;
+};
+
+export const buildNarrationChunkTask = ({
+  storyId,
+  revisionId,
+  narrationFingerprint,
+  providerAttemptFingerprint,
+  chunk,
+}: {
+  readonly storyId: string;
+  readonly revisionId: ProductionRevisionId;
+  readonly narrationFingerprint: Sha256Digest;
+  readonly providerAttemptFingerprint: Sha256Digest;
+  readonly chunk: Readonly<{
+    chunkId: string;
+    meaningId: string;
+    ttsText: string;
+  }>;
+}) => {
+  const chunkInput = {
+    chunkId: chunk.chunkId,
+    meaningId: chunk.meaningId,
+    ttsText: chunk.ttsText,
+  };
+  const context = contextFile({
+    ...chunkInput,
+    normalizationPolicy: "pcm-s16le-normalize-v1",
+  });
+  return {
+    task: buildProducerTaskSpec({
+      taskKind: "narration-chunk",
+      storyId,
+      semanticId: null,
+      revisionId,
+      dependencyArtifacts: [],
+      inputFingerprints: [
+        { id: "narration", fingerprint: narrationFingerprint },
+        { id: "provider-attempt", fingerprint: providerAttemptFingerprint },
+        { id: "read:inputs/context.json", fingerprint: context.fingerprint },
+        {
+          id: "tts-chunk",
+          fingerprint: createFingerprint({
+            namespace: "producer-narration-chunk-input",
+            version: 1,
+            value: chunkInput,
+          }),
+        },
+      ].sort((left, right) => left.id.localeCompare(right.id)),
+      declaredReadSet: ["inputs/context.json"],
+      declaredOutputSet: ["public/chunk.wav"],
+      validatorPolicyVersion: "narration-chunk-validator-v1",
+    }),
+    contextBytes: context.bytes,
+  } as const;
+};
 
 const sortedFingerprints = (
   values: readonly Readonly<{ id: string; fingerprint: Sha256Digest }>[],
@@ -119,7 +182,7 @@ const buildContextTask = ({
   } as const;
 };
 
-const artifactBinding = (
+export const artifactBinding = (
   task: ProducerTaskSpec,
   attestation: ArtifactAttestation | null,
 ) => ({
@@ -155,19 +218,10 @@ const inspect = async ({
   readonly rootDir: string;
   readonly task: ProducerTaskSpec;
 }): Promise<ArtifactInspection> => {
-  try {
-    const attestation = await inspectArtifact({ rootDir, task });
-    return {
-      attestation,
-      valid: attestation !== null,
-      ...(attestation === null ? { reason: "artifact-missing" as const } : {}),
-    };
-  } catch {
-    return { attestation: null, valid: false, reason: "checksum-drift" };
-  }
+  return inspectArtifactState({ rootDir, task });
 };
 
-const commitNarrationTasks = async ({
+export const buildNarrationTasks = async ({
   rootDir,
   inputs,
   revisionId,
@@ -176,17 +230,18 @@ const commitNarrationTasks = async ({
   readonly rootDir: string;
   readonly inputs: LoadedInputs;
   readonly revisionId: ProductionRevisionId;
-  readonly narration: PreparedNarrationInputs;
+  readonly narration: Readonly<{
+    providerAttemptFingerprint: Sha256Digest;
+    masteringPolicy: LoadedInputs["masteredNarration"]["masteringPolicy"];
+    sealedNarration: LoadedInputs["sealedNarration"];
+  }>;
 }) => {
   const nodes: ProducerTaskNode[] = [];
   const attestations = new Map<string, ArtifactAttestation>();
   const chunkTasks: ProducerTaskSpec[] = [];
+  const subjects = new Map<string, DiagnosticSubject>();
   for (const segment of narration.sealedNarration.segments) {
     if (segment.kind !== "chunk") continue;
-    const audio = narration.chunkAudioBytes.get(segment.chunkId);
-    if (audio === undefined) {
-      throw new Error("Prepared narration chunk bytes are incomplete.");
-    }
     const built = buildNarrationChunkTask({
       storyId: inputs.projectId,
       revisionId,
@@ -198,16 +253,16 @@ const commitNarrationTasks = async ({
         ttsText: segment.ttsText,
       },
     });
-    const attestation = await ensureFixedTaskArtifact({
-      rootDir,
-      task: built.task,
-      files: {
-        "inputs/context.json": built.contextBytes,
-        "public/chunk.wav": audio,
-      },
-    });
+    const inspection = await inspect({ rootDir, task: built.task });
+    const attestation = inspection.attestation;
     chunkTasks.push(built.task);
-    attestations.set(built.task.taskRevision, attestation);
+    subjects.set(built.task.taskRevision, {
+      kind: "tts-chunk",
+      id: segment.chunkId,
+    });
+    if (attestation !== null) {
+      attestations.set(built.task.taskRevision, attestation);
+    }
     nodes.push({
       task: built.task,
       dependencyTaskRevisions: [],
@@ -216,16 +271,85 @@ const commitNarrationTasks = async ({
   const chunkDependencies = chunkTasks.map((task) =>
     artifactBinding(task, attestations.get(task.taskRevision) ?? null),
   );
-  const seal = buildContextTask({
+  const seal = buildNarrationSealTask({
+    inputs,
+    revisionId,
+    dependencies: chunkDependencies,
+    generationInputFingerprint:
+      narration.sealedNarration.generationInputFingerprint,
+  });
+  const sealInspection = await inspect({ rootDir, task: seal.task });
+  const sealAttestation = sealInspection.attestation;
+  if (sealAttestation !== null) {
+    attestations.set(seal.task.taskRevision, sealAttestation);
+  }
+  nodes.push({
+    task: seal.task,
+    dependencyTaskRevisions: seal.dependencyTaskRevisions,
+  });
+
+  const timing = buildSemanticTimingTask({
+    inputs,
+    revisionId,
+    sealTask: seal.task,
+    sealAttestation,
+    masteringPolicy: narration.masteringPolicy,
+  });
+  const timingInspection = await inspect({ rootDir, task: timing.task });
+  const timingAttestation = timingInspection.attestation;
+  if (timingAttestation !== null) {
+    attestations.set(timing.task.taskRevision, timingAttestation);
+  }
+  nodes.push({
+    task: timing.task,
+    dependencyTaskRevisions: timing.dependencyTaskRevisions,
+  });
+  return {
+    nodes,
+    attestations,
+    timingTask: timing.task,
+    timingAttestation,
+    inspections: new Map([
+      ...chunkTasks.map(
+        (task) =>
+          [
+            task.taskRevision,
+            attestations.has(task.taskRevision)
+              ? {
+                  artifactState: "valid" as const,
+                  attestation: attestations.get(task.taskRevision)!,
+                }
+              : { artifactState: "missing" as const, attestation: null },
+          ] as const,
+      ),
+      [seal.task.taskRevision, sealInspection],
+      [timing.task.taskRevision, timingInspection],
+    ]),
+    subjects,
+  } as const;
+};
+
+export const buildNarrationSealTask = ({
+  inputs,
+  revisionId,
+  dependencies,
+  generationInputFingerprint,
+}: {
+  readonly inputs: LoadedInputs;
+  readonly revisionId: ProductionRevisionId;
+  readonly dependencies: readonly ReturnType<typeof artifactBinding>[];
+  readonly generationInputFingerprint: Sha256Digest;
+}) =>
+  buildContextTask({
     taskKind: "narration-seal",
     storyId: inputs.projectId,
     semanticId: null,
     revisionId,
-    dependencies: chunkDependencies,
+    dependencies,
     inputFingerprints: [
       {
         id: "generation-input",
-        fingerprint: narration.sealedNarration.generationInputFingerprint,
+        fingerprint: generationInputFingerprint,
       },
     ],
     outputs: [
@@ -239,28 +363,26 @@ const commitNarrationTasks = async ({
       assemblyPolicy: "ordered-pcm-concat-v1",
     },
   });
-  const sealAttestation = await ensureFixedTaskArtifact({
-    rootDir,
-    task: seal.task,
-    files: {
-      "inputs/context.json": seal.contextBytes,
-      "project/generated/sealed-narration.generated.json":
-        narration.sealedManifestBytes,
-      "public/complete.wav": narration.completeAudioBytes,
-    },
-  });
-  attestations.set(seal.task.taskRevision, sealAttestation);
-  nodes.push({
-    task: seal.task,
-    dependencyTaskRevisions: seal.dependencyTaskRevisions,
-  });
 
-  const timing = buildContextTask({
+export const buildSemanticTimingTask = ({
+  inputs,
+  revisionId,
+  sealTask,
+  sealAttestation,
+  masteringPolicy,
+}: {
+  readonly inputs: LoadedInputs;
+  readonly revisionId: ProductionRevisionId;
+  readonly sealTask: ProducerTaskSpec;
+  readonly sealAttestation: ArtifactAttestation | null;
+  readonly masteringPolicy: LoadedInputs["masteredNarration"]["masteringPolicy"];
+}) =>
+  buildContextTask({
     taskKind: "semantic-timing",
     storyId: inputs.projectId,
     semanticId: null,
     revisionId,
-    dependencies: [artifactBinding(seal.task, sealAttestation)],
+    dependencies: [artifactBinding(sealTask, sealAttestation)],
     inputFingerprints: [
       { id: "render", fingerprint: inputs.fingerprints.render },
       {
@@ -268,7 +390,7 @@ const commitNarrationTasks = async ({
         fingerprint: createFingerprint({
           namespace: "producer-narration-mastering-policy",
           version: 1,
-          value: narration.masteringPolicy,
+          value: masteringPolicy,
         }),
       },
     ],
@@ -281,33 +403,9 @@ const commitNarrationTasks = async ({
     context: {
       storyId: inputs.projectId,
       render: inputs.render,
-      masteringPolicy: narration.masteringPolicy,
+      masteringPolicy,
     },
   });
-  const timingAttestation = await ensureFixedTaskArtifact({
-    rootDir,
-    task: timing.task,
-    files: {
-      "inputs/context.json": timing.contextBytes,
-      "project/generated/mastered-narration.generated.json":
-        narration.masteredManifestBytes,
-      "project/generated/semantic-timing.generated.json":
-        narration.semanticTimingBytes,
-      "public/mastered-complete.wav": narration.masteredAudioBytes,
-    },
-  });
-  attestations.set(timing.task.taskRevision, timingAttestation);
-  nodes.push({
-    task: timing.task,
-    dependencyTaskRevisions: timing.dependencyTaskRevisions,
-  });
-  return {
-    nodes,
-    attestations,
-    timingTask: timing.task,
-    timingAttestation,
-  } as const;
-};
 
 export const buildAgentTasks = (
   inputs: LoadedInputs,
@@ -423,7 +521,7 @@ export const buildDownstreamTasks = ({
   readonly inputs: LoadedInputs;
   readonly revisionId: ProductionRevisionId;
   readonly timingTask: ProducerTaskSpec;
-  readonly timingAttestation: ArtifactAttestation;
+  readonly timingAttestation: ArtifactAttestation | null;
   readonly ownerTasks: readonly ProducerTaskSpec[];
   readonly ownerInspections: ReadonlyMap<string, ArtifactInspection>;
   readonly compositionAttestation?: ArtifactAttestation | null;
@@ -499,78 +597,99 @@ export const buildDownstreamTasks = ({
   return { composition, delivery } as const;
 };
 
-export type PlanProjectProductionInput = Readonly<{
+export type BuildCurrentProductionPlanInput = Readonly<{
   rootDir: string;
   projectId: string;
-  createWorkspaces?: boolean;
-  prepareNarration?: PrepareNarration;
   env?: Readonly<Record<string, string | undefined>>;
+  inputs?: LoadedInputs;
+  narration?: Readonly<{
+    providerAttemptFingerprint?: string;
+    masteringPolicy?: LoadedInputs["masteredNarration"]["masteringPolicy"];
+    preparationReceipt?: NarrationPreparationReceipt;
+  }>;
+  baseline?: Awaited<ReturnType<typeof readProductionDiagnosticBaseline>>;
 }>;
 
-export const planProjectProductionUnlocked = async ({
+/**
+ * Rebuilds the current Revision and Task DAG using check-only readers. It does
+ * not prepare narration, commit fixed artifacts, create workspaces, acquire a
+ * mutation lock, or record an ExecutionAttempt.
+ */
+export const buildCurrentProductionPlan = async ({
   rootDir,
   projectId,
-  createWorkspaces = true,
-  prepareNarration = prepareNarrationInputs,
   env = process.env,
-}: PlanProjectProductionInput) => {
-  // Fixed prepare owns narration/cache/seal/timing and runs before the Revision
-  // loader, so a fresh Project does not require pre-existing generated timing.
-  const preparedNarration = await prepareNarration({ rootDir, projectId, env });
-  const inputs = await loadProjectProductionInputs({ rootDir, projectId });
+  inputs: suppliedInputs,
+  narration: suppliedNarration,
+  baseline: suppliedBaseline,
+}: BuildCurrentProductionPlanInput) => {
+  const inputs =
+    suppliedInputs ??
+    (await loadProjectProductionInputs({
+      rootDir,
+      projectId,
+      catalogMode: "check",
+    }));
+  const narration =
+    suppliedNarration ??
+    (await inspectNarrationCache({ rootDir, projectId, env }));
+  if (narration.providerAttemptFingerprint === undefined) {
+    throw new Error("Narration preparation identity is unavailable.");
+  }
   if (
-    inputs.timing.fingerprint !== preparedNarration.semanticTiming.fingerprint
+    narration.preparationReceipt !== undefined &&
+    (narration.preparationReceipt.storyId !== inputs.projectId ||
+      narration.preparationReceipt.generationInputFingerprint !==
+        inputs.sealedNarration.generationInputFingerprint ||
+      narration.preparationReceipt.providerAttemptFingerprint !==
+        narration.providerAttemptFingerprint ||
+      narration.preparationReceipt.sealedNarrationFingerprint !==
+        inputs.sealedNarration.sealedNarrationFingerprint ||
+      serializeCanonicalJson(narration.preparationReceipt.masteringPolicy) !==
+        serializeCanonicalJson(inputs.masteredNarration.masteringPolicy))
   ) {
-    throw new Error(
-      "Fixed narration prepare and loaded SemanticTiming disagree.",
-    );
+    throw new Error("Narration preparation receipt is stale.");
   }
   const revision = buildCurrentProductionRevision(inputs);
-  const fixed = await commitNarrationTasks({
+  const baseline =
+    suppliedBaseline ??
+    (await readProductionDiagnosticBaseline({ rootDir, projectId }));
+  const fixed = await buildNarrationTasks({
     rootDir,
     inputs,
     revisionId: revision.revisionId,
-    narration: preparedNarration,
+    narration: {
+      providerAttemptFingerprint:
+        narration.providerAttemptFingerprint as Sha256Digest,
+      masteringPolicy:
+        narration.masteringPolicy ?? inputs.masteredNarration.masteringPolicy,
+      sealedNarration: inputs.sealedNarration,
+    },
   });
   const builtOwners = buildAgentTasks(inputs, revision.revisionId);
   const ownerNodes: ProducerTaskNode[] = [];
   const ownerInspections = new Map<string, ArtifactInspection>();
+  const taskSeeds = new Map<
+    string,
+    Readonly<{ task: ProducerTaskSpec; contextBytes: string }>
+  >();
   for (const built of builtOwners) {
     let task = built.task;
     if (task.taskKind === "scene-template") {
       if (task.semanticId === null)
         throw new Error("Template task lost meaningId.");
-      const templateFiles = await readTemplateSceneFiles({
+      const templateFiles = await readTemplateSceneFilesForInspection({
         rootDir,
         projectId: inputs.projectId,
         meaningId: task.semanticId,
       });
       task = rebindTemplateTaskOutputs(task, Object.keys(templateFiles));
-      const attestation = await ensureFixedTaskArtifact({
-        rootDir,
-        task,
-        files: {
-          "inputs/context.json": built.contextBytes,
-          ...templateFiles,
-        },
-      });
-      ownerInspections.set(task.taskRevision, {
-        attestation,
-        valid: true,
-      });
-    } else {
-      ownerInspections.set(task.taskRevision, await inspect({ rootDir, task }));
-      if (
-        createWorkspaces &&
-        ownerInspections.get(task.taskRevision)?.valid !== true
-      ) {
-        await createTaskWorkspace({
-          rootDir,
-          task,
-          seedFiles: { "inputs/context.json": built.contextBytes },
-        });
-      }
     }
+    ownerInspections.set(task.taskRevision, await inspect({ rootDir, task }));
+    taskSeeds.set(task.taskRevision, {
+      task,
+      contextBytes: built.contextBytes,
+    });
     ownerNodes.push({
       task,
       dependencyTaskRevisions: task.dependencyArtifacts.map(
@@ -623,14 +742,9 @@ export const planProjectProductionUnlocked = async ({
     left.task.taskRevision.localeCompare(right.task.taskRevision),
   );
   const inspections = new Map<string, ArtifactInspection>();
-  for (const node of fixed.nodes) {
-    inspections.set(node.task.taskRevision, {
-      attestation: fixed.attestations.get(node.task.taskRevision) ?? null,
-      valid: fixed.attestations.has(node.task.taskRevision),
-      ...(fixed.attestations.has(node.task.taskRevision)
-        ? {}
-        : { reason: "artifact-missing" as const }),
-    });
+  const subjects = new Map<string, DiagnosticSubject>(fixed.subjects);
+  for (const [taskRevision, inspection] of fixed.inspections) {
+    inspections.set(taskRevision, inspection);
   }
   for (const [taskRevision, inspection] of ownerInspections) {
     inspections.set(taskRevision, inspection);
@@ -638,25 +752,25 @@ export const planProjectProductionUnlocked = async ({
   for (const [taskRevision, inspection] of downstreamInspections) {
     inspections.set(taskRevision, inspection);
   }
-  const plan = createProducerPlan({ revision, nodes, inspections });
+  const plan = createProducerPlan({
+    revision,
+    nodes,
+    inspections,
+    subjects,
+    baselineSnapshots: baseline?.taskSnapshots ?? [],
+  });
   return {
     revision,
     plan,
     tasks: nodes.map(({ task }) => task),
     inputs,
+    nodes,
+    inspections,
+    taskSeeds,
+    subjects,
+    baseline:
+      baseline === null
+        ? undefined
+        : { kind: baseline.kind, revisionId: baseline.revisionId },
   } as const;
-};
-
-export const planProjectProduction = async (
-  input: PlanProjectProductionInput,
-) => {
-  const lock = await acquireRepositoryOperationLock({
-    rootDir: input.rootDir,
-    ownerId: "project-production-plan",
-  });
-  try {
-    return await planProjectProductionUnlocked(input);
-  } finally {
-    await lock.release();
-  }
 };

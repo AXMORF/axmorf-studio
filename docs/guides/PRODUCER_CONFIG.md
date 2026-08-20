@@ -5,7 +5,7 @@
 > 最后复核：2026-08-20
 
 仓库使用一份 Git-ignored 的 `private/producer.config.json` 作为制作默认值与私密 TTS 连接配置。
-它不是 render runtime 输入；`project:configure` 把新作品的选择写入 Project contracts，后续
+它不是 render runtime 输入；`project:create` 把新作品的选择写入 Project contracts，后续
 ProductionRevision 只绑定 private-safe provider/voice/policy identity。因此修改全局配置不会静默改变
 已配置 Project，也不会把 secret 放入 artifact。
 
@@ -42,7 +42,7 @@ Project 详情提供删除入口，必须输入完整 Project ID 二次确认。
 history、out 与 current delivery，
 随后重建 Catalog/Registry；其他 Project、private config 与 `public/voice_profile/` 不受影响。
 非同源请求、非空 delivery staging、writer lock、不安全路径或不存在的 Project 会在删除前被拒绝。
-planning/convergence、Project 配置或交付构建正在改变仓库时，删除也会通过共享 operation lock 拒绝执行；删除在
+prepare/convergence、Project create/import 或交付构建正在改变仓库时，删除也会通过共享 operation lock 拒绝执行；删除在
 持锁后会重读目标集合，并在删除源码前先发布排除目标的 Registry，避免预检与实际清理之间混入新的
 task 或产物，也避免 Remotion Studio 因短暂的旧 import 终止配置 API；后续删除报错时会按磁盘真实
 状态恢复 Registry/Catalog。若浏览器连接仍在请求中断，页面只提示“删除结果需确认”，不会把无法
@@ -86,7 +86,7 @@ fingerprint 不匹配、未知字段或结构
 
 - `sceneDefaults.introSceneTemplateId` / `outroSceneTemplateId`：配置页中的首尾业务位置选择。两者都
   接受任意已登记 Scene template 或 `null`，不做位置适配判断；同一 template 可同时选择两次。
-  该选择只在新 Project 首次 `project:configure` 时使用。
+  该选择只在新 Project 首次 `project:create` 时使用。
 - `renderDefaults`：新 RenderSpec 的 width/height/fps/locale；页面用一个“画面尺寸”下拉同时设置
   width/height，提供 9:16、16:9、4:5 与 1:1 四个常用规格；没有目标时长。
 - `readability.edgeInsetPx`：以 1080 短边为基准的 Scene 边缘留白。字幕底边 = 缩放后边缘留白 × 2；
@@ -125,7 +125,7 @@ fingerprint 不匹配、未知字段或结构
   例如 `voxcpm/voice_profile/my-voice.wav`；绝对路径、反斜杠、URL 与 `..` 逃逸均被拒绝。Narration
   和 preflight 在进入 VoxCPM 适配器前统一解析为宿主绝对路径，配置页保存的仍是相对值。
 - `audioDefaults.globalBgm`：可为空，或保存一个仓库相对 `sourcePath` 与 0–1 线性 `volume`。这是
-  配置页中的本地 BGM 预设。`project:configure` 会复制并 checksum-bound 到 Project-local 资产，
+  配置页中的本地 BGM 预设。`project:create` 会复制并 checksum-bound 到 Project-local 资产，
   写入 `sound.json`；render runtime 将它作为循环 contribution 播放于 narrated 内容窗口，并保留独立音量。
   选择该本地文件即由 operator 声明其有权用于当前 Project；冻结的 manifest 记录这份 operator-provided
   授权证据，runtime 不接受 URL、symlink 或未封存字节。
@@ -133,29 +133,35 @@ fingerprint 不匹配、未知字段或结构
 `RSP_PRODUCER_CONFIG` 支持仓库根目录相对路径和绝对路径。生产脚本、preflight、迁移命令与配置页
 使用同一解析规则。
 
-## 配置新 Project
+## 创建新 Project
 
-在新 Project 已有 `brief.json`、`story.json` 与 project-local `producer-input.json` 后运行：
-
-新 `story.json` 在配置前只包含 authored content StoryBeat。`project:configure` 按 ProducerConfig 的
-`sceneDefaults` 把所选普通 Scene template 的源码和资源复制到
-`src/projects/<storyId>/scenes/` 与 `public/projects/<storyId>/scenes/`，再把对应 silent StoryBeat 写入
-时间线首尾；`null` 表示不插入。脚本同时保存 template/instance/source graph fingerprint。
+先 author 一个 strict `ProjectCreateInput`，其中包含 storyId、VideoBrief、narrated StoryBeat 与 exact ordered
+`ttsChunks`、VisualStyle authored fields、GlobalVisual brief、Scene creative briefs、resource/render/publishing/
+production choices 和 optional boundary template selections。input 必须位于 repository 内的 regular
+no-symlink JSON；不能包含 derived fingerprint、absolute/private path、provider secret 或 runtime output。
 
 ```bash
-npm run project:configure -- --project <storyId> --input src/projects/<storyId>/producer-input.json
+npm run project:create -- --project <storyId> --input <repository-relative-json>
 ```
 
-`producer-input.json` 只保存单个作品的 render 非默认字段、PublishingIntent authored fields 与
-authoring requirement selections；标题、StoryBeat、旁白文案、发布描述仍是
-Project 内容，绝不放入 ProducerConfig。命令从一次 ProducerConfig 读取生成 `narration.json`、
-`render.json`、`publishing-intent.json` 和
-`production/requirements.json`，以及 `production/scene-template-instantiation.json` 和每个复制
-Scene 的 `scene-template-instance.json`。合集必须且只能选择当前数组中的一个 ID；完整数组
-fingerprint 被保存。Project 一旦存在 instantiation，后续修改全局 Scene 选择或共享模板不会重新复制
-或改变该 Project；Project-local 文件漂移会 fail closed。其他冻结目标已有不同内容时命令拒绝覆盖。
+creator 从一次 ProducerConfig 读取派生 `narration.json`、`render.json`、`publishing-intent.json`、sound、
+requirements、Project ResourceCatalog 与 configured template instance。合集必须且只能选择当前数组中的一个
+ID；完整数组 fingerprint 被保存。选定普通 Scene template 的源码/资源会复制到 Project-local roots，并把
+对应 silent StoryBeat 写入时间线首尾；`null` 表示不插入。Project 一旦创建，后续修改全局 defaults/shared
+template 不会静默改变它。
 
-`project:produce:plan` 读取同一配置解析结果的 private-safe narration generation fingerprint。generation
+transaction 先在受控 staging 生成并严格解析 exact set，再原子提升 source/public/catalog roots；任一步失败
+恢复创建前 filesystem。existing、partial、different identity、cross-project、unknown source、symlink、path
+escape 或 special file 都在覆盖前 fail closed。相同 creation identity 再次运行只读返回 current，不改 bytes/
+mtime。create 不调用 provider、不生成媒体，也不写 `.narration-work`、artifact、workspace、attempt 或 delivery。
+
+create 返回 `configured-authoring` 和 `prepare-narration`；timing-bound SceneProductionBrief 以 story-owned
+pending authoring 保持 authored values，不填 placeholder fingerprint。只有 verified PCM/timing 后，fixed prepare
+才绑定真实 timing。Project-local media 必须在 Project root 成功创建后通过 `project:asset:import` 导入；不跨
+Project 复用旧 manifest 或媒体。
+
+`project:produce:inspect` 只读估算同一配置解析结果的 narration cache/cost；Root 报告后，
+`project:produce:prepare` 才可读取 private-safe narration generation fingerprint 并触发真实 preparation。generation
 在 provider request 前重算并比较；mastering 只读取已绑定的 LUFS policy。provider、connection、voice、
 生成参数、speech rate 或 LUFS 变化创建新的相关 TaskRevision，但不使无关 Scene/GlobalVisual/Cover
 artifact 失效。Revision/task inputs 只含 ID、数值 policy 和 fingerprint，不含 token/API key、URL、

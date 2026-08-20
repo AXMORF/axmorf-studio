@@ -12,7 +12,8 @@ scripts/project-production/
   domain/                      pure Revision, DAG, invalidation, plan rules
   application/                 orchestration/use cases and ports
   adapters/                    filesystem, Artifact Store, media, progress, host tools
-  cli.ts                       plan/check/commit/converge command surface
+  cli.ts                       inspect/prepare/check/commit/converge surface
+scripts/projects/              atomic Project create/delete use cases and adapters
 scripts/narration/             provider attempt cache, PCM validation, seal and timing
 scripts/scene-package/          deterministic ScenePackage/Coverage generation
 scripts/renderer-registry/      static composition-local registry generation
@@ -27,7 +28,10 @@ details；adapters 实现 filesystem/process/media ports，不能反向成为业
 
 ```mermaid
 flowchart TD
-  Inputs[Explicit authoring contracts + selected bytes] --> Revision[ProductionRevision]
+  Create[Atomic configured authoring] --> Inputs[Explicit authoring contracts + selected bytes]
+  Inputs --> Inspection[Read-only ProductionInspection]
+  Inspection --> Prepare[Explicit costly preparation]
+  Prepare --> Revision[ProductionRevision]
   Revision --> Tasks[ProducerTaskSpec DAG]
   Tasks --> Plan[ProducerPlan]
   Plan --> Work[Dirty task workspaces]
@@ -38,17 +42,21 @@ flowchart TD
   Converge --> Live[Materialized Project + generated packages]
   Live --> Delivery[DeliveryBuild]
   Delivery --> Current[Exact four-file current delivery]
+  Inspection -. diagnostics only .-> Explanation[Estimate + invalidation explanation]
   Plan -. diagnostics only .-> Attempt[ExecutionAttempt]
 ```
 
-ProductionRevision/TaskRevision/ArtifactAttestation/DeliveryBuildId 是内容 identities；ExecutionAttempt 不是。
-Agent chat、child identity、process lifecycle、clock 与 absolute path 都在 authority graph 之外。
+ProductionRevision/TaskRevision/ArtifactAttestation/DeliveryBuildId 是内容 identities；ProductionInspection、
+TaskDecisionExplanation、diagnostic baseline 与 ExecutionAttempt 都不是。它们不得进入或改变 dispatch、
+materialization、delivery identity/authority。Agent chat、child identity、process lifecycle、clock 与 absolute
+path 都在 authority graph 之外。
 
 ## 3. Contract boundaries
 
 - ProductionRevision 只冻结 task inputs；不包含 Agent output、workspace path 或 attempt diagnostic。
 - ProducerTaskSpec 绑定最小 complete input、dependency artifacts、declared read/output set 与 per-kind policy。
-- ProducerPlan 对 artifact inspection 结果做稳定分类；DAG 拒绝 cycle、duplicate 或 unknown dependency。
+- ProducerPlan 投影结构化 task action、typed artifact state、direct changes、dependency propagation 与 blockedBy；
+  DAG 拒绝 cycle、duplicate 或 unknown dependency。对外 explanation 只含 allowlisted input IDs 与安全 subject。
 - ArtifactAttestation 绑定 exact sorted files、bytes、dependencies 与 validator policy；manifest 最后生成。
 - DeliveryPublish 绑定 DeliveryBuildId、exact repository paths、media facts、checksums 与 publishing projection。
 
@@ -59,13 +67,14 @@ TypeScript registry 完成。
 
 | Surface | Writer | Rule |
 | --- | --- | --- |
-| Project authoring inputs | Root authoring Agent / fixed configure-import commands | planning 前可变，受 Project ownership 限制 |
+| Project create/configured authoring | fixed atomic creator | existing/partial/conflicting target fail closed；零 provider/media/attempt |
+| Existing Project authoring inputs | Root authoring Agent / fixed import command | preparation 前可变，受 Project ownership 限制 |
 | `.producer-work/<story>/<taskRevision>` | one assigned child | only declared output set; cannot edit `task.json` or inputs |
 | `.producer-artifacts` | fixed commit adapter | validator recheck + atomic promotion only |
 | materialized Scene/GlobalVisual/Cover roots | fixed materializer | all artifacts present; controlled replace/rollback |
 | generated packages/registry/Composition | fixed convergence | deterministic projection |
 | delivery staging/current | fixed synchronous builder | exact identity, media validation, controlled promotion |
-| `.producer-attempts` | fixed planner/progress adapter | diagnostic only |
+| `.producer-attempts` | fixed prepare/progress adapter | diagnostic snapshot only；不能拥有 artifact/delivery |
 
 private config、voice profiles、shared media、core、other Projects 与 historical data 不属于 Agent task write scope。
 
@@ -90,7 +99,8 @@ promotion 在目标同父目录准备 staging，完整验证后写 manifest，�
 
 ## 7. Materialization 与 runtime
 
-convergence 在任何 live write 前重新计算 Revision、检查全部 required artifacts。Scene/GlobalVisual/Cover roots
+convergence 在任何 live write 前通过 read-only current-plan builder 重新计算 Revision、检查全部 required
+artifacts；它不调用 provider、不创建 workspace 或 planning attempt。Scene/GlobalVisual/Cover roots
 分别 staging 并受控替换；跨 `src`/`public` 操作必须 rollback。物化后重新 hash live exact paths。
 
 ScenePackage、Coverage、RendererRegistry、GlobalVisualPackage 与 Composition 是 fixed projection，不由 Agent
@@ -106,12 +116,13 @@ current directory exact 只允许三份 media 加 `publish.json`，其余文件�
 
 ## 9. Progress、删除与历史隔离
 
-settings 从 source Projects、latest ExecutionAttempt 和 current delivery 投影，不扫描 historical
-`.producer-runs`。删除器是唯一允许读取 legacy manifest ownership 的 current code path；它只提取严格
+settings 从 source readiness、read-only inspection、latest ExecutionAttempt 和 current delivery 投影，不扫描
+historical `.producer-runs`，也不自行重算失效原因。删除器是唯一允许读取 legacy manifest ownership 的
+current code path；它只提取严格
 storyId/legacy ID 来安全定位删除目标，不解析或迁移旧 state。
 
-Repository operation locks 保护 Project configure/import/delete、artifact/materialization 和 delivery 的互斥
-filesystem transitions；它们不进入 content identity。
+Repository operation locks 保护 Project create/import/delete、prepare、artifact/materialization 和 delivery 的
+互斥 filesystem transitions；inspect 不取 mutation lock。锁与诊断数据都不进入 content identity。
 
 Scene authoring 仍必须使用 repository-local `remotion-best-practices`，但 Skill 不能扩大 TaskSpec 或
 validator boundary。

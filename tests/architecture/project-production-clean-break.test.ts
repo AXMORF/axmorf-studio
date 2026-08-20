@@ -3,7 +3,12 @@ import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 
+const removedConfigureCommand = ["project", "configure"].join(":");
+const removedPlanCommand = ["project", "produce", "plan"].join(":");
+
 const OLD_SCRIPTS = [
+  removedConfigureCommand,
+  removedPlanCommand,
   "project:build",
   "delivery:build",
   "delivery:check",
@@ -36,13 +41,26 @@ test("package exposes only the Revision and Artifact production workflow", async
   );
   assert.deepEqual(
     [
-      "project:produce:plan",
+      "project:create",
+      "project:produce:inspect",
+      "project:produce:prepare",
       "project:task:check",
       "project:task:commit",
       "project:produce:converge",
     ].filter((name) => packageJson.scripts[name] === undefined),
     [],
   );
+});
+
+test("removed configure and plan entrypoints cannot return as aliases or shims", async () => {
+  const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
+    scripts: Record<string, string>;
+  };
+  assert.equal(packageJson.scripts[removedConfigureCommand], undefined);
+  assert.equal(packageJson.scripts[removedPlanCommand], undefined);
+
+  const cli = await readFile("scripts/project-production/cli.ts", "utf8");
+  assert.doesNotMatch(cli, /command === "plan"|Expected plan/iu);
 });
 
 test("settings contract contains no audited ProductionRun fields", async () => {
@@ -55,6 +73,8 @@ test("removed workflow roots and contracts cannot become a second authority", as
     "scripts/production",
     "scripts/delivery",
     "scripts/project-build",
+    "scripts/projects/configure.ts",
+    "scripts/project-production/application/plan-production.ts",
     "src/contracts/production-run.ts",
     "src/contracts/production-owner.ts",
     "src/contracts/production-render.ts",

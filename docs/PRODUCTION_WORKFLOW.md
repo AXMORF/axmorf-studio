@@ -8,10 +8,12 @@
 
 ```mermaid
 flowchart LR
-  Author[Project authoring source] --> Plan[ProductionRevision + Task DAG]
-  Plan --> Inspect[Revalidate Artifact Store]
-  Inspect --> Reuse[Reuse valid artifacts]
-  Inspect --> Dirty[Create dirty task workspaces]
+  Author[Atomic create or current authoring edits] --> Inspect[Read-only readiness + cost + invalidation]
+  Inspect --> Report[Root reports before cost]
+  Report --> Prepare[Provider and fixed preparation]
+  Prepare --> Plan[ProductionRevision + Task DAG]
+  Plan --> Reuse[Reuse valid artifacts]
+  Plan --> Dirty[Create dirty Agent task workspaces]
   Dirty --> Children[Runtime-native task children]
   Children --> Check[Read-only task check]
   Check --> Commit[Validator recheck + ArtifactAttestation]
@@ -24,38 +26,65 @@ flowchart LR
   Verify --> Current[Controlled current delivery]
 ```
 
-一个新 ExecutionAttempt 可以失败或消失；已验证 artifact 仍按内容 identity 复用。历史执行目录不参与
-plan、converge、delivery 或 settings progress。
+一个新 ExecutionAttempt 可以失败或消失；已验证 artifact 仍按内容 identity 复用。inspection/explanation/
+baseline/attempt 只属于 diagnostic plane，不影响 Revision、TaskRevision、ArtifactAttestation、dispatch、
+materialization 或 DeliveryBuild。历史执行目录不参与 prepare、converge、delivery 或 settings progress。
 
 ## 2. Project authoring
 
-新 Project 使用 `project:configure` 将 ProducerConfig 的 render/readability/TTS defaults 与选定 boundary
-Scene templates 投影到 Project-local authoring source。已有 Project 不读取共享 template 的后续变化。
+新 Project 从 strict `ProjectCreateInput` 原子创建：
+
+```bash
+npm run project:create -- --project <storyId> --input <repository-relative-json>
+```
+
+fixed creator 在受控 staging 中验证完整 Project/source/public/template/sound/catalog transaction，将
+ProducerConfig 的 render/readability/TTS defaults 与选定 boundary Scene templates 投影到 Project-local
+configured authoring。已存在、partial、cross-project、symlink/path escape/special-file 或不同 creation identity
+都 fail closed；相同 identity 重复调用只读 current。create 不调用 provider、不生成媒体，也不写
+`.narration-work`、workspace、artifact、attempt 或 delivery。Project-local media 只能在创建成功后 import。
 
 StoryBeat 明确区分 narrated-scene 与 silent-scene。narrated beat 的 `ttsChunks` 是 Agent-authored atomic
 units；silent beat 只允许在首尾，使用固定 frame/template/sound，不创建 TTS、CaptionCue 或 sealed segment。
 外部媒体必须先经 `project:asset:import` 本地化为 Project-owned、runtime-approved asset，只有 manifest ID
 和校验后的 bytes fingerprint 进入 Revision/task inputs。
 
-## 3. Revision 与计划
+## 3. 只读 inspect 与显式 prepare
 
-运行：
+先运行严格只读 inspection：
 
 ```bash
-npm run project:produce:plan -- --project <storyId>
+npm run project:produce:inspect -- --project <storyId>
 ```
 
-planner 严格读取 StorySpec、NarrationSpec、RenderSpec、VisualStyleSpec、PublishingIntent、sound、authoring
-requirements/readability、SceneProductionBrief、GlobalVisualBrief、StoryResourcePool、configured template
-instances、asset manifest/selected bytes、narration generation identity 与相关 policy fingerprints。
+inspect 不获取 mutation lock、不调用 provider、不刷新 Catalog、不创建 cache/workspace/attempt/artifact，也不
+物化或交付。它在前后 snapshot 一致时返回 `configured-authoring`、`timing-ready` 或
+`production-inputs-ready`，以及 provider/cache/Agent/delivery estimate、baseline、task explanations 和
+nextAction；无法确定的 estimate 显式为 `null`。并发 source drift 返回稳定错误，不自动 retry。
 
-它生成：
+Root 先向用户报告 readiness、cost、reuse 与失效原因，之后才运行：
+
+```bash
+npm run project:produce:prepare -- --project <storyId>
+```
+
+prepare 是唯一公开的有成本 preparation 入口。它在 operation lock 内完成所有 provider request 前可做的
+只读验证，随后才允许 narration cache/provider、seal/master/timing、timing-bound authoring projection、fixed
+artifact、Revision/DAG、dirty Agent workspace 与新 ExecutionAttempt 写入。若仍缺 timing-bound authoring，
+返回 `project-authoring-required`，不创建 owner workspaces 或伪造完整 Revision。
+prepare 同时写入不含私有配置或声纹内容的 narration preparation receipt，把 active seal/mastering 与本次
+选择的 provider-attempt identity 精确绑定。VoxCPM inspect 只读取该 receipt 来重建 current DAG，未来请求成本
+仍保持 `null`，不会为了估算打开或 normalize 私有 voice material。
+
+production inputs ready 时生成：
 
 - `ProductionRevision`：只含生产输入，不含 Agent output 或过程数据；
 - `ProducerTaskSpec[]`：内容寻址 DAG nodes，具备 dependency artifacts、declared read/output set 和
   task-kind validator policy；
-- `ProducerPlan`：稳定排序的 `reused/dirty/missing/incompatible/blocked` 状态与 reason；
-- `ExecutionAttempt`：计划、等待、收敛或失败诊断，不进入任何产物 identity。
+- `ProducerPlan`：稳定排序的 action、typed artifact state、allowlisted direct changes、DAG dependency changes
+  与 blockedBy；
+- `ExecutionAttempt`：task diagnostic snapshots、estimated/actual cost、等待/收敛或失败诊断，不进入任何
+  产物 identity。
 
 Task kinds 包括 narration chunk/seal/timing、scene-template、scene-owner、global-visual-owner、cover-owner、
 composition-convergence 与 delivery-build。共享输入只进入真正依赖它的 node key，避免全局版本导致无差别失效。
@@ -66,7 +95,7 @@ composition-convergence 与 delivery-build。共享输入只进入真正依赖�
 normalized contained paths、regular files、no symlink、size 与 checksum。任何 unknown file、escape、special file、
 stale checksum 或 identity conflict 都 fail closed。
 
-planner 只为 non-reused task 建立：
+prepare 只为 action 为 `dispatch-agent` 的 non-reused task 建立：
 
 ```text
 .producer-work/<storyId>/<taskRevision>/
@@ -100,7 +129,8 @@ Root 等待全部已派发 child 达到 committed/current、明确 task failure 
 npm run project:produce:converge -- --project <storyId> --revision <revisionId>
 ```
 
-converge 先重新计划 current inputs；revision 不同返回 stable stale 结果。任何 required artifact 缺失时，
+converge 只调用 read-only current-plan builder 重算 current inputs；不调用 provider、不创建 workspace 或
+ExecutionAttempt。revision 不同返回 stable stale 结果。任何 required artifact 缺失时，
 返回 incomplete 且不得写 live owner roots 或 delivery。
 
 齐全后，materializer 从 Artifact Store 读取 bytes，分别对 Scene、GlobalVisual、Cover owned roots 使用
@@ -127,12 +157,14 @@ current files 完整，不是计划、聊天或进程启动事实。
 
 ## 7. Progress 与失败后继续
 
-settings API 从 `src/projects/` 枚举 source Projects，展示 current Revision、task counts、latest attempt
-diagnostic 和 four-file delivery。它不扫描历史执行数据，也不把 `out/` 或 delivery-only 目录伪装成 Project。
+settings API 从 `src/projects/` 枚举 source Projects，展示 sourceState、inspection estimate、current Revision、
+逐任务 direct/dependency/artifact 解释、latest attempt actual cost 和 four-file delivery。UI/API 复用同一
+structured explanation，不从错误文案或 task kind 猜 DAG。它不扫描历史执行数据，也不把 `out/` 或
+delivery-only 目录伪装成 Project；raw fingerprint、authoring text、private path/provider body 不对外投影。
 
-若三个 Agent tasks 中两个已 commit、第三个失败，新 attempt 重新 plan 时前两个必须是 reused，只派发第三个。
-delivery 若在生成 video 后失败，再次执行复用已验证 staging video，只生成缺失媒体。任何 retry 语义都由新
-attempt + content inspection 得出，而不是修改失败记录。
+若三个 Agent tasks 中两个已 commit、第三个失败，新 prepare 时前两个必须是 reuse，只派发第三个。
+delivery 若在生成 video 后失败，再次 prepare 不重跑已验证 TTS/Agent artifacts，converge 复用已验证 staging
+video，只生成缺失媒体。这不是自动 retry；每次都由显式 inspect/report/prepare 与 content inspection 得出。
 
 ## 8. 作品删除
 

@@ -1,10 +1,10 @@
-import { createHash } from "node:crypto";
-import { lstat, readFile, readdir } from "node:fs/promises";
-import { join } from "node:path";
-
-import { DeliveryPublishSchema, StoryIdSchema } from "../../src/contracts";
+import { StoryIdSchema } from "../../src/contracts";
 import { readCurrentProductionRevision } from "../../scripts/project-production/application/current-revision";
-import { readProjectProductionProgressProjection } from "../../scripts/project-production/application/progress-query";
+import { inspectProjectProduction } from "../../scripts/project-production/application/inspect-production";
+import {
+  readCurrentProjectDelivery,
+  readProjectProductionProgressProjection,
+} from "../../scripts/project-production/application/progress-query";
 import { readLocalProjectRoot } from "../../scripts/projects/root";
 import {
   ProductionProgressResponseSchema,
@@ -19,70 +19,6 @@ const emptyTasks = {
   blockedTaskCount: 0,
 } as const;
 
-const inspectFile = async (path: string) => {
-  const metadata = await lstat(path);
-  if (!metadata.isFile() || metadata.isSymbolicLink()) {
-    throw new Error("Delivery contains an unsafe file.");
-  }
-  const bytes = await readFile(path);
-  return {
-    checksum: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
-    sizeBytes: bytes.byteLength,
-  } as const;
-};
-
-const readDelivery = async (rootDir: string, projectId: string) => {
-  const directory = join(rootDir, "deliveries", projectId);
-  try {
-    const metadata = await lstat(directory);
-    if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
-      throw new Error("Delivery root is unsafe.");
-    }
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw error;
-  }
-
-  const entries = await readdir(directory, { withFileTypes: true });
-  const expected = [
-    "cover-3x4.png",
-    "cover-4x3.png",
-    "publish.json",
-    "video.mp4",
-  ];
-  const actual = entries.map(({ name }) => name).sort();
-  if (
-    actual.length !== expected.length ||
-    actual.some((name, index) => name !== expected[index]) ||
-    entries.some((entry) => !entry.isFile() || entry.isSymbolicLink())
-  ) {
-    throw new Error("Delivery does not contain exactly four regular files.");
-  }
-
-  const publish = DeliveryPublishSchema.parse(
-    JSON.parse(await readFile(join(directory, "publish.json"), "utf8")),
-  );
-  if (publish.storyId !== projectId) {
-    throw new Error("Delivery Project identity is stale.");
-  }
-  const checked = await Promise.all([
-    inspectFile(join(directory, "video.mp4")),
-    inspectFile(join(directory, "cover-4x3.png")),
-    inspectFile(join(directory, "cover-3x4.png")),
-  ]);
-  for (const [index, key] of (
-    ["video", "cover4x3", "cover3x4"] as const
-  ).entries()) {
-    if (
-      publish.artifacts[key].checksum !== checked[index]?.checksum ||
-      publish.artifacts[key].sizeBytes !== checked[index]?.sizeBytes
-    ) {
-      throw new Error("Delivery checksum is stale.");
-    }
-  }
-  return publish;
-};
-
 const attemptSummary = (
   projection: Awaited<
     ReturnType<typeof readProjectProductionProgressProjection>
@@ -94,12 +30,13 @@ const attemptSummary = (
     : {
         attemptId: attempt.attemptId,
         revisionId: attempt.revisionId,
-        planFingerprint: attempt.planFingerprint,
-        artifactSetFingerprint: attempt.artifactSetFingerprint,
         state: attempt.state,
         updatedAt: attempt.updatedAt,
         diagnosticCode: attempt.diagnosticCode,
         tasks: attempt.taskSummary,
+        estimatedCost: attempt.estimatedCost,
+        actualCost: attempt.actualCost,
+        taskExplanations: attempt.taskExplanations,
         taskOutcomes: attempt.taskOutcomeSummary,
         deliveryResult: attempt.deliveryResult.status,
       };
@@ -109,11 +46,23 @@ const readProject = async ({
   rootDir,
   projectId,
   readCurrentRevision,
+  inspectProduction,
+  readCurrentDelivery,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly readCurrentRevision: typeof readCurrentProductionRevision;
+  readonly inspectProduction: typeof inspectProjectProduction;
+  readonly readCurrentDelivery: typeof readCurrentProjectDelivery;
 }): Promise<ProjectProductionProgress> => {
+  let inspection: Awaited<ReturnType<typeof inspectProjectProduction>> | null =
+    null;
+  try {
+    inspection = await inspectProduction({ rootDir, projectId });
+  } catch {
+    // Settings diagnostics never alter production authority. A projection
+    // failure must not hide a valid attempt or delivery.
+  }
   let projection: Awaited<
     ReturnType<typeof readProjectProductionProgressProjection>
   >;
@@ -134,24 +83,27 @@ const readProject = async ({
       status: "error",
       revisionId: null,
       tasks: emptyTasks,
+      inspection,
       attempt: null,
       delivery: null,
       error: "当前 attempt 数据无效。",
     };
   }
   const attempt = attemptSummary(projection);
-  let delivery: Awaited<ReturnType<typeof readDelivery>>;
+  let delivery: Awaited<ReturnType<typeof readCurrentProjectDelivery>>;
   try {
-    delivery = await readDelivery(rootDir, projectId);
+    delivery = await readCurrentDelivery({ rootDir, storyId: projectId });
   } catch {
     return {
       projectId: StoryIdSchema.parse(projectId),
       status: "error",
       revisionId: projection.revisionId,
       tasks: projection.attempt?.taskSummary ?? emptyTasks,
+      inspection,
       attempt,
       delivery: null,
-      error: "交付合同、exact file set 或 checksum 校验失败。",
+      error:
+        "交付合同、exact file set、media probe、checksum 或 EOF 校验失败。",
     };
   }
 
@@ -166,6 +118,7 @@ const readProject = async ({
         status: "error",
         revisionId: projection.revisionId,
         tasks: projection.attempt?.taskSummary ?? emptyTasks,
+        inspection,
         attempt,
         delivery: null,
         error: "当前 Project authoring inputs 无法计算 Revision。",
@@ -204,6 +157,7 @@ const readProject = async ({
       status,
       revisionId,
       tasks: projection.attempt?.taskSummary ?? emptyTasks,
+      inspection,
       attempt,
       delivery:
         delivery === null
@@ -211,7 +165,6 @@ const readProject = async ({
           : {
               deliveryBuildId: delivery.deliveryBuildId,
               revisionId: delivery.revisionId,
-              artifactSetFingerprint: delivery.artifactSetFingerprint,
               frameCount: delivery.frameCount,
               current,
               files: {
@@ -229,24 +182,32 @@ const readProject = async ({
       status: "error",
       revisionId: projection.revisionId,
       tasks: projection.attempt?.taskSummary ?? emptyTasks,
+      inspection,
       attempt,
       delivery: null,
-      error: "交付合同、exact file set 或 checksum 校验失败。",
+      error:
+        "交付合同、exact file set、media probe、checksum 或 EOF 校验失败。",
     };
   }
 };
 
 export const readProjectProductionProgress = async ({
   rootDir,
-  dependencies = {
-    readCurrentRevision: readCurrentProductionRevision,
-  },
+  dependencies = {},
 }: {
   readonly rootDir: string;
   readonly dependencies?: Readonly<{
-    readCurrentRevision: typeof readCurrentProductionRevision;
+    readCurrentRevision?: typeof readCurrentProductionRevision;
+    inspectProduction?: typeof inspectProjectProduction;
+    readCurrentDelivery?: typeof readCurrentProjectDelivery;
   }>;
 }): Promise<ProductionProgressResponse> => {
+  const readCurrentRevision =
+    dependencies.readCurrentRevision ?? readCurrentProductionRevision;
+  const inspectProduction =
+    dependencies.inspectProduction ?? inspectProjectProduction;
+  const readCurrentDelivery =
+    dependencies.readCurrentDelivery ?? readCurrentProjectDelivery;
   const projectIds: string[] = [];
   for (const entry of await readLocalProjectRoot(rootDir)) {
     if (entry.isSymbolicLink()) {
@@ -259,12 +220,14 @@ export const readProjectProductionProgress = async ({
       readProject({
         rootDir,
         projectId,
-        readCurrentRevision: dependencies.readCurrentRevision,
+        readCurrentRevision,
+        inspectProduction,
+        readCurrentDelivery,
       }),
     ),
   );
   return ProductionProgressResponseSchema.parse({
-    schemaVersion: 4,
+    schemaVersion: 5,
     projects,
   });
 };

@@ -121,6 +121,40 @@ export type VoxcpmProfileMetadata = Readonly<{
   profileMatched: true;
 }>;
 
+export type VoxcpmProfileInspectionMetadata = Readonly<{
+  kind: "voxcpm";
+  mode: "controllable-clone" | "high-fidelity-clone";
+  profileMatched: true;
+  validationState: "configuration-validated-material-not-inspected";
+}>;
+
+/**
+ * Resolves only allowlisted configuration metadata for check-only callers.
+ * Voice source paths are parsed as private config, but their files are never
+ * opened, normalized, decoded, or measured here.
+ */
+export const resolveVoxcpmProfileInspectionMetadata = ({
+  config: rawConfig,
+  narration,
+}: {
+  readonly config: unknown;
+  readonly narration: NarrationSpec;
+}): VoxcpmProfileInspectionMetadata => {
+  const config = VoxcpmPrivateConfigSchema.parse(rawConfig);
+  const matches = config.voiceProfiles.filter(
+    ({ id }) => id === narration.voiceProfileId,
+  );
+  if (matches.length !== 1) {
+    throw new Error("The selected VoxCPM profile is unavailable.");
+  }
+  return {
+    kind: "voxcpm",
+    mode: matches[0].mode,
+    profileMatched: true,
+    validationState: "configuration-validated-material-not-inspected",
+  };
+};
+
 const isInside = (parent: string, candidate: string) => {
   const path = relative(resolve(parent), resolve(candidate));
   return path === "" || (!path.startsWith("..") && !isAbsolute(path));

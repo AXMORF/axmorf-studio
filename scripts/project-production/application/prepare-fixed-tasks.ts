@@ -7,6 +7,7 @@ import {
   computeGenerationInputFingerprint,
   createFingerprint,
   MasteredNarrationManifestSchema,
+  NarrationPreparationReceiptSchema,
   SealedNarrationManifestSchema,
   SemanticTimingSchema,
   serializeCanonicalJson,
@@ -31,9 +32,16 @@ import {
   readCandidateBytes,
 } from "../../narration/adapters/candidate-workspace";
 import { runNarrationSeal } from "../../narration/seal-runner";
-import { inspectArtifact, commitTaskArtifact } from "../adapters/artifact-store";
+import { writeJsonAtomic } from "../../narration/adapters/atomic-files";
+import {
+  inspectArtifact,
+  commitTaskArtifact,
+} from "../adapters/artifact-store";
 import { createTaskWorkspace } from "../adapters/task-workspace";
-import { checksumBytes, readRegularBytes } from "../adapters/project-input-snapshot";
+import {
+  checksumBytes,
+  readRegularBytes,
+} from "../adapters/project-input-snapshot";
 import { checkTaskByKind } from "./check-task";
 
 export type PreparedNarrationInputs = Readonly<{
@@ -48,6 +56,10 @@ export type PreparedNarrationInputs = Readonly<{
   completeAudioBytes: Uint8Array;
   masteredAudioBytes: Uint8Array;
   chunkAudioBytes: ReadonlyMap<string, Uint8Array>;
+  actualCost: Readonly<{
+    providerRequests: number;
+    providerCacheHits: number;
+  }>;
 }>;
 
 export type PrepareNarration = (input: {
@@ -101,7 +113,8 @@ export const sealedNarrationMatchesMeasuredProgress = ({
     measuredById.size === sealedChunks.length &&
     sealedChunks.every(
       (segment) =>
-        measuredById.get(segment.chunkId)?.normalizedChecksum === segment.checksum,
+        measuredById.get(segment.chunkId)?.normalizedChecksum ===
+        segment.checksum,
     )
   );
 };
@@ -173,7 +186,10 @@ export const prepareNarrationInputs: PrepareNarration = async ({
   projectId,
   env,
 }) => {
-  const { projectSource } = await loadNarrationProjectFiles({ rootDir, projectId });
+  const { projectSource } = await loadNarrationProjectFiles({
+    rootDir,
+    projectId,
+  });
   const execution = await resolveProducerNarrationExecution({
     rootDir,
     env,
@@ -181,6 +197,10 @@ export const prepareNarrationInputs: PrepareNarration = async ({
   });
   const workRoot = join(rootDir, ".narration-work");
   let current = true;
+  let actualCost = {
+    providerRequests: 0,
+    providerCacheHits: 0,
+  };
   try {
     await checkM2NarrationArtifacts({ rootDir, projectSource });
     const progress = await loadVerifiedProgress({
@@ -218,13 +238,19 @@ export const prepareNarrationInputs: PrepareNarration = async ({
       story: projectSource.story,
       narration: projectSource.narration,
       providerAttemptFingerprint: execution.snapshot.providerAttemptFingerprint,
-      generateChunk: createChunkAudioGenerator({ resolved: execution.resolved }),
+      generateChunk: createChunkAudioGenerator({
+        resolved: execution.resolved,
+      }),
       normalizePcm: (sourceBytes) =>
         normalizeProviderAudio({
           sourceBytes,
           speechRate: execution.snapshot.speechRate,
         }),
     });
+    actualCost = {
+      providerRequests: result.generatedChunkCount,
+      providerCacheHits: result.reusedChunkCount + result.normalizedChunkCount,
+    };
     const progress = await loadVerifiedProgress({
       rootDir: workRoot,
       storyId: projectId,
@@ -234,7 +260,9 @@ export const prepareNarrationInputs: PrepareNarration = async ({
     const normalizedChunks = new Map<string, Buffer>();
     for (const chunk of progress.chunks) {
       if (chunk.stage !== "measured") {
-        throw new Error("Narration fixed prepare did not produce every measured chunk.");
+        throw new Error(
+          "Narration fixed prepare did not produce every measured chunk.",
+        );
       }
       normalizedChunks.set(
         chunk.chunkId,
@@ -290,17 +318,49 @@ export const prepareNarrationInputs: PrepareNarration = async ({
     serializeCanonicalJson(mastered.value.masteringPolicy) !==
     serializeCanonicalJson(execution.snapshot.masteringPolicy)
   ) {
-    throw new Error("Mastered narration policy is stale against producer configuration.");
+    throw new Error(
+      "Mastered narration policy is stale against producer configuration.",
+    );
   }
   const chunkAudioBytes = new Map<string, Uint8Array>();
   for (const segment of sealed.value.segments) {
     if (segment.kind === "chunk") {
       chunkAudioBytes.set(
         segment.chunkId,
-        await readRegularBytes(join(rootDir, segment.localPath), segment.chunkId),
+        await readRegularBytes(
+          join(rootDir, segment.localPath),
+          segment.chunkId,
+        ),
       );
     }
   }
+  if (current) {
+    actualCost = {
+      providerRequests: 0,
+      providerCacheHits: chunkAudioBytes.size,
+    };
+  }
+  const completeAudioBytes = await readRegularBytes(
+    join(rootDir, sealed.value.completeAudio.localPath),
+    "sealed complete narration",
+  );
+  const masteredAudioBytes = await readRegularBytes(
+    join(rootDir, mastered.value.outputAudio.localPath),
+    "mastered narration audio",
+  );
+  const preparationReceipt = NarrationPreparationReceiptSchema.parse({
+    schemaVersion: 1,
+    contractVersion: "narration-preparation-v1",
+    storyId: projectId,
+    generationInputFingerprint: sealed.value.generationInputFingerprint,
+    providerAttemptFingerprint: execution.snapshot.providerAttemptFingerprint,
+    sealedNarrationFingerprint: sealed.value.sealedNarrationFingerprint,
+    masteringPolicy: mastered.value.masteringPolicy,
+  });
+  await writeJsonAtomic({
+    destination: join(generatedRoot, "narration-preparation.generated.json"),
+    value: preparationReceipt,
+  });
   return {
     providerAttemptFingerprint: execution.snapshot.providerAttemptFingerprint,
     masteringPolicy: execution.snapshot.masteringPolicy,
@@ -310,15 +370,10 @@ export const prepareNarrationInputs: PrepareNarration = async ({
     sealedManifestBytes: sealed.bytes,
     semanticTimingBytes: timing.bytes,
     masteredManifestBytes: mastered.bytes,
-    completeAudioBytes: await readRegularBytes(
-      join(rootDir, sealed.value.completeAudio.localPath),
-      "sealed complete narration",
-    ),
-    masteredAudioBytes: await readRegularBytes(
-      join(rootDir, mastered.value.outputAudio.localPath),
-      "mastered narration audio",
-    ),
+    completeAudioBytes,
+    masteredAudioBytes,
     chunkAudioBytes,
+    actualCost,
   };
 };
 
@@ -365,7 +420,11 @@ export const ensureFixedTaskArtifact = async ({
     }
     return existing;
   }
-  const workspace = await createTaskWorkspace({ rootDir, task, seedFiles: files });
+  const workspace = await createTaskWorkspace({
+    rootDir,
+    task,
+    seedFiles: files,
+  });
   for (const [logicalPath, expected] of Object.entries(files)) {
     const path = join(workspace, logicalPath);
     const current = await readWorkspaceFile(path);
@@ -379,7 +438,9 @@ export const ensureFixedTaskArtifact = async ({
   await checkTaskByKind({ rootDir, taskRevision: task.taskRevision });
   const committed = await commitTaskArtifact({ rootDir, task, workspace });
   if (committed.attestation === null) {
-    throw new Error("Fixed task artifact commit did not produce an attestation.");
+    throw new Error(
+      "Fixed task artifact commit did not produce an attestation.",
+    );
   }
   return committed.attestation;
 };
@@ -407,8 +468,8 @@ const collectRegularFiles = async (
     throw new Error("Fixed task source root is unsafe.");
   }
   const files: Record<string, Uint8Array> = {};
-  for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) =>
-    a.name.localeCompare(b.name),
+  for (const entry of (await readdir(directory, { withFileTypes: true })).sort(
+    (a, b) => a.name.localeCompare(b.name),
   )) {
     const path = join(directory, entry.name);
     if (entry.isSymbolicLink() || (!entry.isDirectory() && !entry.isFile())) {
@@ -442,8 +503,14 @@ export const readTemplateSceneFiles = async ({
   const publicFiles = await collectRegularFiles(
     join(rootDir, "public/projects", projectId, "scenes", meaningId),
   );
-  return Object.fromEntries([
-    ...Object.entries(source).map(([path, bytes]) => [`src/${path}`, bytes] as const),
-    ...Object.entries(publicFiles).map(([path, bytes]) => [`public/${path}`, bytes] as const),
-  ].sort(([left], [right]) => left.localeCompare(right)));
+  return Object.fromEntries(
+    [
+      ...Object.entries(source).map(
+        ([path, bytes]) => [`src/${path}`, bytes] as const,
+      ),
+      ...Object.entries(publicFiles).map(
+        ([path, bytes]) => [`public/${path}`, bytes] as const,
+      ),
+    ].sort(([left], [right]) => left.localeCompare(right)),
+  );
 };

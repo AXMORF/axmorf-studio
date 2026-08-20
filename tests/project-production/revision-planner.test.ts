@@ -11,7 +11,7 @@ import {
   buildAgentTasks,
   buildDownstreamTasks,
   rebindTemplateTaskOutputs,
-} from "../../scripts/project-production/application/plan-production";
+} from "../../scripts/project-production/application/build-current-plan";
 
 const sha = (character: string) =>
   `sha256:${character.repeat(64)}` as Sha256Digest;

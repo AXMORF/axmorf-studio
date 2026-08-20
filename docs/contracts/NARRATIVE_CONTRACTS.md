@@ -12,11 +12,13 @@
 - `render.json` → `RenderSpecSchema`
 - `generated/sealed-narration.generated.json` → `SealedNarrationManifestSchema`
 - `generated/semantic-timing.generated.json` → `SemanticTimingSchema`
+- `generated/mastered-narration.generated.json` → `MasteredNarrationManifestSchema`
+- `generated/narration-preparation.generated.json` → `NarrationPreparationReceiptSchema`
 - `generated/narrative-baseline-evidence.generated.json` →
   `NarrativeBaselineEvidenceReceiptSchema`
 - `generated/narrative-auto-check.generated.json` → `NarrativeAutoCheckReportSchema`
 
-The first four files are authored source inputs; the four `generated/` files are derived
+The first four files are authored source inputs; the `generated/` files are derived
 artifacts. All objects are strict and versioned by their executable schemas.
 
 `VideoBrief.sourceReferences` 是最多 8 条的结构化资料引用，每条严格包含最长 160 字符的
@@ -49,9 +51,9 @@ pause remains an owned zero-length timeline segment; a positive pause must quant
 sample frame. Pause declarations are excluded from the generation input fingerprint but included in the
 sealed narration fingerprint.
 
-Silent Scene preset v3 discriminates `template-copy` from `scene-owner`. `project:configure` copies the
-selected template source and assets into the Project, then binds the template and instance fingerprints plus
-the exact local cue list. Production verifies frozen identity, copied checksums, resources, and ScenePackage
+Silent Scene preset v3 discriminates `template-copy` from `scene-owner`. `project:create` atomically copies
+the selected template source and assets into the Project, then binds the template and instance fingerprints
+plus the exact local cue list. Production verifies frozen identity, copied checksums, resources, and ScenePackage
 bindings, then writes `template-copy` results directly without generic Scene checking, creative review, or an
 Agent owner.
 Scene task/assignment/result/package v5 also carry the exact
@@ -99,6 +101,13 @@ persisted Story source nor sealed timing authority. A raw candidate becomes a me
 after canonical PCM, checksum, authored identity, request fingerprint, and positive sample-frame checks.
 Only a complete measured batch can produce the persisted seal.
 
+Explicit production preparation also writes the redaction-safe
+`generated/narration-preparation.generated.json` receipt. It binds the active seal and mastering policy to
+the exact provider-attempt fingerprint selected by that prepare, without provider configuration, private
+paths, prompt text, or voice bytes. Read-only inspection uses this persisted binding for the current Task
+DAG when protected VoxCPM voice material makes the future provider cost unknowable; it never reopens the
+voice material. A missing or stale receipt downgrades readiness and requires a new explicit prepare.
+
 The current VoxCPM provider-attempt fingerprint is v2. Its safe descriptor binds the selected adapter
 v2, profile/model identity, content checksums, `cfgValue`, `inferenceTimesteps`, `minLen`, `maxLen`,
 `normalize`, `denoise`, `retryBadcase`, `retryBadcaseMaxTimes`, and
@@ -131,7 +140,7 @@ is the absolute frame where the one complete narration WAV begins; lead/tail rem
 Remotion metadata, delivery publishing and `publish.json` all use the same value. Intro/outro receive
 ordinary ScenePackage identities. Their selected preset fingerprint enters Revision, Task, and package
 identity, while visual, sound, duration, or resource changes invalidate the affected artifact.
-Configured reusable Scene templates are copied during `project:configure` as Project-local
+Configured reusable Scene templates are copied during `project:create` as Project-local
 `template-copy` inputs; the fixed Scene task validates and commits them without Agent dispatch. Delivery chapters
 cover only narrated StoryBeats and use their absolute SemanticTiming start frames.
 

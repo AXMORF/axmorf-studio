@@ -1,17 +1,17 @@
 {
-  "schemaVersion": 11,
-  "policyVersion": "remotion-story-producer-video-policy-v12",
+  "schemaVersion": 12,
+  "policyVersion": "remotion-story-producer-video-policy-v13",
   "rootEndpoints": [
     "project-production-complete",
     "project-production-current"
   ],
   "privateConfigPath": "private/producer.config.json",
   "requiredEntrypointHeadings": [
-    "Start directly",
-    "Plan content-addressed tasks",
+    "Create the Project when needed",
+    "Inspect before cost",
+    "Prepare content-addressed tasks",
     "Delegate dirty Agent tasks",
     "Wait and converge once",
-    "Keep context bounded",
     "Preserve production invariants",
     "Classify failure by task owner",
     "Finish with verified delivery"
@@ -25,7 +25,9 @@
     "references/agent-rework-and-system-hardening.md"
   ],
   "workflowCommands": [
-    "project:produce:plan",
+    "project:create",
+    "project:produce:inspect",
+    "project:produce:prepare",
     "project:task:check",
     "project:task:commit",
     "project:produce:converge"
@@ -42,7 +44,7 @@
     "capacityPolicy": "batched-one-task-per-child",
     "unavailableDelegationPolicy": "fail-closed-without-inline-task-authoring",
     "rootAgentAuthorsTaskOutputs": false,
-    "agentWriteBoundary": "task-workspace-only-after-plan",
+    "agentWriteBoundary": "task-workspace-only-after-prepare",
     "artifactAuthority": "validated-artifact-attestation",
     "artifactReusePolicy": "reuse-valid-content-addressed-artifacts",
     "artifactPromotionPolicy": "validator-only-atomic-promotion",
@@ -54,7 +56,7 @@
     "childIdentityPersisted": false,
     "timingPolicy": "pcm-cumulative-ceil-v1",
     "storyBeatContract": "discriminated-narrated-or-silent-scene",
-    "configuredSceneTemplates": "project-configure-copy-with-project-local-instance",
+    "configuredSceneTemplates": "project-create-copy-with-project-local-instance",
     "templateCopyPolicy": "fixed-task-artifact-without-agent",
     "silentSceneNarrationPolicy": "no-tts-no-captions-fixed-preset-frames",
     "deliveryPolicy": "synchronous-exact-four-file-controlled-promotion",

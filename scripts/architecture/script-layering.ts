@@ -53,7 +53,12 @@ const moduleReferences = (source: string, fileName: string) => {
               (element) => element.propertyName?.text ?? element.name.text,
             )
           : []
-        : [];
+        : node.exportClause !== undefined &&
+            ts.isNamedExports(node.exportClause)
+          ? node.exportClause.elements.map(
+              (element) => element.propertyName?.text ?? element.name.text,
+            )
+          : [];
       references.push({
         specifier: node.moduleSpecifier.text,
         importedNames,
@@ -85,6 +90,55 @@ const layerOf = (sourcePath: string) => {
   );
 };
 
+const READ_ONLY_PRODUCTION_ENTRYPOINTS = new Set([
+  "scripts/project-production/application/build-current-plan.ts",
+  "scripts/project-production/application/inspect-production.ts",
+]);
+
+const readOnlyWriterDependency = ({
+  target,
+  importedNames,
+}: {
+  readonly target: string;
+  readonly importedNames: readonly string[];
+}) => {
+  const writerModules = new Map<string, string>([
+    [
+      "scripts/project-production/application/prepare-production",
+      "preparation writer",
+    ],
+    [
+      "scripts/project-production/application/prepare-fixed-tasks",
+      "provider/fixed writer",
+    ],
+    ["scripts/project-production/adapters/attempt-store", "attempt writer"],
+    [
+      "scripts/project-production/adapters/project-materializer",
+      "materializer",
+    ],
+    [
+      "scripts/project-production/adapters/task-workspace",
+      "workspace writer",
+    ],
+    ["scripts/narration/generate-runner", "provider writer"],
+    ["scripts/narration/adapters/provider-dispatcher", "provider writer"],
+    ["scripts/narration/adapters/voxcpm-client", "provider writer"],
+    ["scripts/narration/adapters/edge-tts-client", "provider writer"],
+    ["scripts/narration/adapters/speech-sdk-client", "provider writer"],
+  ]);
+  const writerModule = writerModules.get(target);
+  if (writerModule !== undefined) {
+    return `${writerModule} ${importedNames.join(",") || "module"}`;
+  }
+  if (
+    target === "scripts/project-production/adapters/artifact-store" &&
+    (importedNames.includes("commitTaskArtifact") || importedNames.length === 0)
+  ) {
+    return "artifact writer commitTaskArtifact";
+  }
+  return null;
+};
+
 export const findScriptLayeringViolations = async (rootDir: string) => {
   const roots = [
     "scripts/project-production",
@@ -99,6 +153,11 @@ export const findScriptLayeringViolations = async (rootDir: string) => {
     )
   ).flat();
   const violations: string[] = [];
+  const importGraph = new Map<string, string[]>();
+  const writerDependencies = new Map<
+    string,
+    Array<{ readonly target: string; readonly writer: string }>
+  >();
   for (const absolutePath of files) {
     const sourcePath = toPosix(relative(rootDir, absolutePath));
     const sourceLayer = layerOf(sourcePath);
@@ -109,7 +168,21 @@ export const findScriptLayeringViolations = async (rootDir: string) => {
     )) {
       const target = resolveLocalImport(sourcePath, specifier);
       if (target === null) continue;
+      const targets = importGraph.get(sourcePath) ?? [];
+      targets.push(target);
+      importGraph.set(sourcePath, targets);
       const targetLayer = layerOf(target);
+      const writer = readOnlyWriterDependency({ target, importedNames });
+      if (writer !== null) {
+        const dependencies = writerDependencies.get(sourcePath) ?? [];
+        dependencies.push({ target, writer });
+        writerDependencies.set(sourcePath, dependencies);
+        if (READ_ONLY_PRODUCTION_ENTRYPOINTS.has(sourcePath)) {
+          violations.push(
+            `${sourcePath} -> ${target}: read-only planning depends on ${writer}`,
+          );
+        }
+      }
       if (
         /^scripts\/(production|delivery|project-build)(?:\/|$)/u.test(target)
       ) {
@@ -166,6 +239,38 @@ export const findScriptLayeringViolations = async (rootDir: string) => {
           `${sourcePath} -> ${target}: shared process port owned by baseline`,
         );
       }
+    }
+  }
+  const sourceCandidates = (target: string) => [
+    target,
+    `${target}.ts`,
+    `${target}.tsx`,
+    `${target}.mts`,
+    `${target}.cts`,
+    `${target}/index.ts`,
+    `${target}/index.tsx`,
+  ];
+  const importedTargets = (target: string) =>
+    sourceCandidates(target).flatMap(
+      (candidate) => importGraph.get(candidate) ?? [],
+    );
+  const importedWriters = (target: string) =>
+    sourceCandidates(target).flatMap(
+      (candidate) => writerDependencies.get(candidate) ?? [],
+    );
+  for (const entrypoint of READ_ONLY_PRODUCTION_ENTRYPOINTS) {
+    const queue = [...(importGraph.get(entrypoint) ?? [])];
+    const visited = new Set<string>();
+    while (queue.length > 0) {
+      const current = queue.shift();
+      if (current === undefined || visited.has(current)) continue;
+      visited.add(current);
+      for (const { target, writer } of importedWriters(current)) {
+        violations.push(
+          `${entrypoint} -> ${target}: read-only planning indirectly depends on ${writer}`,
+        );
+      }
+      queue.push(...importedTargets(current));
     }
   }
   return violations.sort();

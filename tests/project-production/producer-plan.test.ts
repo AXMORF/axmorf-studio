@@ -44,8 +44,8 @@ test("plan classifies dependencies topologically even when hash ordering is reve
     { task: dependency, dependencyTaskRevisions: [] },
   ].sort((left, right) => left.task.taskRevision.localeCompare(right.task.taskRevision));
   const plan = createProducerPlan({ revision, nodes, inspections: new Map() });
-  assert.equal(plan.tasks.find(({ taskRevision }) => taskRevision === dependency.taskRevision)?.status, "missing");
-  assert.equal(plan.tasks.find(({ taskRevision }) => taskRevision === dependent.taskRevision)?.status, "blocked");
+  assert.equal(plan.tasks.find(({ taskRevision }) => taskRevision === dependency.taskRevision)?.action, "prepare-fixed");
+  assert.equal(plan.tasks.find(({ taskRevision }) => taskRevision === dependent.taskRevision)?.action, "blocked");
 });
 
 test("DAG rejects dependencies that are not bound by ArtifactAttestation identity", () => {

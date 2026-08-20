@@ -8,11 +8,16 @@
 
 当前架构基线是单一 Project production 主链：ProductionRevision → content-addressed Task DAG → reusable
 ArtifactAttestation → atomic materialization → synchronous exact four-file delivery。旧执行账本与异步交付不再是
-active runtime authority。
+active runtime authority。入口已分为 atomic create、strict read-only inspect、explicit costly prepare 与
+read-only-replan converge。
 
 基线门槛包括：
 
 - identity 不含 attempt/clock/process/absolute path；
+- create existing/partial/conflicting target fail closed，相同 creation identity 只读 current，零 provider/media；
+- Root 在任何成本前报告 inspect 的 source readiness、unknown-safe estimate、reuse 与逐任务失效解释；
+- prepare 才允许 provider/fixed artifact/workspace/attempt mutation；converge 不允许这些 preparation 副作用；
+- diagnostic explanation/baseline/attempt 不进入或改变 production/artifact/delivery authority；
 - 一个 Scene/GlobalVisual/Cover dirty task 对应一个 runtime-native child；template task 不派发；
 - Agent 只写 task workspace，fixed commit 重跑 validator；
 - artifact hit 严格复验 exact file set、no-symlink、size/checksum/dependencies/policy；
@@ -27,7 +32,7 @@ active runtime authority。
 
 1. 扩展 provider-neutral TTS 配置 UI，同时保持 authored chunk → one provider attempt → canonical PCM 的
    无隐式 fallback contract。
-2. 为大型 artifact sets 增加只读诊断和容量治理，不改变本地 filesystem authority。
+2. 为大型 artifact sets 增加只读诊断的性能与容量治理，不改变本地 filesystem authority 或既有解释合同。
 3. 增加用户显式触发的 delivery export/publishing adapter；上传、账号、网络、密钥是新的独立授权边界。
 4. 基于 fingerprint-bound proposal 和用户逐项授权提升 Project-local capability；不得自动 promotion。
 
@@ -36,5 +41,7 @@ active runtime authority。
 - compatibility shim、双主链、历史执行数据迁移；
 - 远程 scheduler/database/artifact store；
 - child chat/identity/heartbeat/token persistence；
+- 常驻 Agent、watcher 或 scheduler，以及自然语言的新建/修改判断表；
 - 自动重试、provider fallback、TTS warm-up 或降低 Chromium sandbox；
+- 跨 Project TTS/Scene/media reuse 或 Project clone；
 - 主观 aesthetic approval 冒充 deterministic acceptance。

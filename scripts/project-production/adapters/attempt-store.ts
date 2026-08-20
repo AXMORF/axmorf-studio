@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { z } from "zod";
 
 import {
+  EXECUTION_ATTEMPT_VERSION,
   EXECUTION_ATTEMPT_EVENT_VERSION,
   EXECUTION_ATTEMPT_PROGRESS_VERSION,
   ExecutionAttemptDeliveryResultSchema,
@@ -22,7 +23,6 @@ import {
   ProducerPlanSchema,
   ProducerTaskSpecSchema,
   StoryIdSchema,
-  TaskRevisionSchema,
   serializeCanonicalJson,
   type ExecutionAttempt,
   type ExecutionAttemptDeliveryResult,
@@ -32,6 +32,15 @@ import {
   type ProducerPlan,
   type ProducerTaskSpec,
 } from "../../../src/contracts";
+import {
+  TaskDiagnosticSnapshotListSchema,
+  type TaskDiagnosticSnapshot,
+} from "../../../src/contracts/execution-attempt";
+import type {
+  ActualProductionCost,
+  EstimatedProductionCost,
+} from "../../../src/contracts/production-inspection";
+import { inspectCurrentDelivery } from "./current-delivery-inspection";
 
 const attemptsStorageRoot = (rootDir: string) =>
   join(rootDir, ".producer-attempts");
@@ -165,6 +174,7 @@ const notVerifiedDelivery = {
   status: "not-verified",
   deliveryBuildId: null,
   diagnosticCode: null,
+  deliveryMedia: [],
 } as const;
 
 const eventPath = (
@@ -177,11 +187,10 @@ const eventPath = (
 
 const buildOpenedEvent = (attempt: ExecutionAttempt): ExecutionAttemptEvent =>
   ExecutionAttemptEventSchema.parse({
-    schemaVersion: 2,
+    schemaVersion: 3,
     contractVersion: EXECUTION_ATTEMPT_EVENT_VERSION,
     eventId: randomUUID(),
-    eventKind:
-      attempt.planFingerprint === null ? "attempt-opened" : "plan-recorded",
+    eventKind: "attempt-opened",
     recordedAt: attempt.createdAt,
     attemptId: attempt.attemptId,
     storyId: attempt.storyId,
@@ -195,14 +204,17 @@ const baseProgress = (
   eventCount: number,
 ): ExecutionAttemptProgress =>
   ExecutionAttemptProgressSchema.parse({
-    schemaVersion: 2,
+    schemaVersion: 3,
     contractVersion: EXECUTION_ATTEMPT_PROGRESS_VERSION,
     attemptId: attempt.attemptId,
     storyId: attempt.storyId,
     revisionId: attempt.revisionId,
     planFingerprint: attempt.planFingerprint,
     artifactSetFingerprint: attempt.artifactSetFingerprint,
-    cacheDecisions: attempt.cacheDecisions,
+    taskExplanations: attempt.taskExplanations,
+    taskSnapshots: attempt.taskSnapshots,
+    estimatedCost: attempt.estimatedCost,
+    actualCost: attempt.actualCost,
     state: attempt.state,
     createdAt: attempt.createdAt,
     updatedAt: attempt.updatedAt,
@@ -314,14 +326,20 @@ const projectProgress = ({
     left.taskRevision.localeCompare(right.taskRevision),
   );
   return ExecutionAttemptProgressSchema.parse({
-    schemaVersion: 2,
+    schemaVersion: 3,
     contractVersion: EXECUTION_ATTEMPT_PROGRESS_VERSION,
     attemptId: attempt.attemptId,
     storyId: attempt.storyId,
     revisionId: attempt.revisionId,
     planFingerprint: attempt.planFingerprint,
     artifactSetFingerprint: attempt.artifactSetFingerprint,
-    cacheDecisions: attempt.cacheDecisions,
+    taskExplanations: attempt.taskExplanations,
+    taskSnapshots: attempt.taskSnapshots,
+    estimatedCost: attempt.estimatedCost,
+    actualCost: {
+      ...attempt.actualCost,
+      deliveryMedia: deliveryResult.deliveryMedia,
+    },
     state,
     createdAt: attempt.createdAt,
     updatedAt,
@@ -516,15 +534,151 @@ const readLatestActiveAttemptForRevision = async ({
   );
 };
 
-const planAttemptFields = (plan: ProducerPlan) => {
+const readCurrentDeliveryBinding = async ({
+  rootDir,
+  storyId,
+  inspectDelivery,
+}: {
+  readonly rootDir: string;
+  readonly storyId: string;
+  readonly inspectDelivery: typeof inspectCurrentDelivery;
+}) => {
+  try {
+    const publish = await inspectDelivery({ rootDir, storyId });
+    if (publish === null) return null;
+    return {
+      revisionId: publish.revisionId,
+      deliveryBuildId: publish.deliveryBuildId,
+    } as const;
+  } catch {
+    // A diagnostic baseline is optional and never repairs or reclassifies data.
+    return null;
+  }
+};
+
+const readVerifiedAttemptCandidates = async ({
+  rootDir,
+  storyId,
+}: {
+  readonly rootDir: string;
+  readonly storyId: string;
+}) => {
+  if (!(await assertAttemptParents({ rootDir, storyId, create: false }))) {
+    return [];
+  }
+  let entries;
+  try {
+    entries = await readdir(attemptsRoot(rootDir, storyId), {
+      withFileTypes: true,
+    });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+  const candidates: ExecutionAttemptProgress[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
+    try {
+      const progress = await readExecutionAttemptProgress({
+        rootDir,
+        storyId,
+        attemptId: entry.name,
+      });
+      if (
+        progress !== null &&
+        progress.state === "succeeded" &&
+        progress.deliveryResult.status === "verified"
+      ) {
+        candidates.push(progress);
+      }
+    } catch {
+      // Old, missing, or malformed diagnostics are isolated in place.
+    }
+  }
+  return candidates.sort(
+    (left, right) =>
+      right.updatedAt.localeCompare(left.updatedAt) ||
+      right.attemptId.localeCompare(left.attemptId),
+  );
+};
+
+export type ExecutionAttemptDiagnosticBaseline = Readonly<{
+  kind: "current-delivery" | "latest-verified-attempt";
+  attemptId: string;
+  revisionId: ExecutionAttemptProgress["revisionId"];
+  taskExplanations: ExecutionAttemptProgress["taskExplanations"];
+  taskSnapshots: ExecutionAttemptProgress["taskSnapshots"];
+}>;
+
+export const readExecutionAttemptDiagnosticBaseline = async ({
+  rootDir,
+  storyId: rawStoryId,
+  dependencies = {},
+}: {
+  readonly rootDir: string;
+  readonly storyId: string;
+  readonly dependencies?: Readonly<{
+    inspectCurrentDelivery?: typeof inspectCurrentDelivery;
+  }>;
+}): Promise<ExecutionAttemptDiagnosticBaseline | null> => {
+  const storyId = StoryIdSchema.parse(rawStoryId);
+  const [delivery, candidates] = await Promise.all([
+    readCurrentDeliveryBinding({
+      rootDir,
+      storyId,
+      inspectDelivery:
+        dependencies.inspectCurrentDelivery ?? inspectCurrentDelivery,
+    }),
+    readVerifiedAttemptCandidates({ rootDir, storyId }),
+  ]);
+  const current =
+    delivery === null
+      ? undefined
+      : candidates.find(
+          (candidate) =>
+            candidate.revisionId === delivery.revisionId &&
+            candidate.deliveryResult.deliveryBuildId ===
+              delivery.deliveryBuildId,
+        );
+  const selected = current ?? candidates[0];
+  if (selected === undefined) return null;
+  return {
+    kind:
+      current === undefined ? "latest-verified-attempt" : "current-delivery",
+    attemptId: selected.attemptId,
+    revisionId: selected.revisionId,
+    taskExplanations: selected.taskExplanations,
+    taskSnapshots: selected.taskSnapshots,
+  };
+};
+
+const planAttemptFields = ({
+  plan,
+  taskSnapshots,
+  estimatedCost,
+  actualCost,
+}: {
+  readonly plan: ProducerPlan;
+  readonly taskSnapshots: readonly TaskDiagnosticSnapshot[];
+  readonly estimatedCost: EstimatedProductionCost;
+  readonly actualCost: ActualProductionCost;
+}) => {
   const parsed = ProducerPlanSchema.parse(plan);
+  const parsedSnapshots = TaskDiagnosticSnapshotListSchema.parse(taskSnapshots);
   return {
     planFingerprint: parsed.planFingerprint,
     artifactSetFingerprint: parsed.artifactSetFingerprint,
-    cacheDecisions: parsed.tasks,
+    taskExplanations: parsed.tasks,
+    taskSnapshots: parsedSnapshots,
+    estimatedCost,
+    actualCost,
     dirtyTaskRevisions: parsed.tasks
-      .filter(({ status }) => status !== "reused")
+      .filter(({ action }) => action !== "reuse" && action !== "blocked")
       .map(({ taskRevision }) => taskRevision)
+      .filter(
+        (revision): revision is NonNullable<typeof revision> =>
+          revision !== null,
+      )
       .sort(),
     taskSummary: parsed.summary,
   } as const;
@@ -533,17 +687,28 @@ const planAttemptFields = (plan: ProducerPlan) => {
 export const createExecutionAttemptForPlan = async ({
   rootDir,
   plan,
+  taskSnapshots,
+  estimatedCost,
+  actualCost,
   state,
 }: {
   readonly rootDir: string;
   readonly plan: ProducerPlan;
+  readonly taskSnapshots: readonly TaskDiagnosticSnapshot[];
+  readonly estimatedCost: EstimatedProductionCost;
+  readonly actualCost: ActualProductionCost;
   readonly state: "waiting-for-agent" | "converging";
 }) => {
-  const fields = planAttemptFields(plan);
+  const fields = planAttemptFields({
+    plan,
+    taskSnapshots,
+    estimatedCost,
+    actualCost,
+  });
   const now = new Date().toISOString();
   const attempt = ExecutionAttemptSchema.parse({
-    schemaVersion: 2,
-    contractVersion: "execution-attempt-v2",
+    schemaVersion: 3,
+    contractVersion: EXECUTION_ATTEMPT_VERSION,
     attemptId: randomUUID(),
     storyId: plan.storyId,
     revisionId: plan.revisionId,
@@ -555,54 +720,6 @@ export const createExecutionAttemptForPlan = async ({
   });
   await writeExecutionAttempt({ rootDir, attempt });
   return attempt;
-};
-
-const createDiagnosticAttempt = async ({
-  rootDir,
-  storyId,
-  revisionId,
-  taskRevision,
-  plan,
-}: {
-  readonly rootDir: string;
-  readonly storyId: string;
-  readonly revisionId: string;
-  readonly taskRevision?: string;
-  readonly plan?: ProducerPlan;
-}) => {
-  const now = new Date().toISOString();
-  const planFields =
-    plan === undefined
-      ? {
-          planFingerprint: null,
-          artifactSetFingerprint: null,
-          cacheDecisions: [],
-          dirtyTaskRevisions:
-            taskRevision === undefined
-              ? []
-              : [TaskRevisionSchema.parse(taskRevision)],
-          taskSummary: {
-            reusedTaskCount: 0,
-            dirtyAgentTaskCount: 0,
-            dirtyFixedTaskCount: 0,
-            blockedTaskCount: 0,
-          },
-        }
-      : planAttemptFields(plan);
-  const attempt = ExecutionAttemptSchema.parse({
-    schemaVersion: 2,
-    contractVersion: "execution-attempt-v2",
-    attemptId: randomUUID(),
-    storyId,
-    revisionId,
-    ...planFields,
-    state: "converging",
-    createdAt: now,
-    updatedAt: now,
-    diagnosticCode: null,
-  });
-  await writeExecutionAttempt({ rootDir, attempt });
-  return baseProgress(attempt, 1);
 };
 
 const appendEvent = async ({
@@ -660,24 +777,27 @@ export const appendExecutionAttemptTaskOutcome = async ({
     taskKind: task.taskKind,
     ...rawOutcome,
   });
-  const progress =
-    (await readLatestActiveAttemptForRevision({
-      rootDir,
-      storyId: task.storyId,
-      revisionId: task.revisionId,
-    })) ??
-    (await createDiagnosticAttempt({
-      rootDir,
-      storyId: task.storyId,
-      revisionId: task.revisionId,
-      taskRevision: task.taskRevision,
-    }));
+  const progress = await readLatestActiveAttemptForRevision({
+    rootDir,
+    storyId: task.storyId,
+    revisionId: task.revisionId,
+  });
+  if (progress === null) throw missingAttemptError();
+  if (
+    !progress.taskSnapshots.some(
+      (snapshot) =>
+        snapshot.taskRevision === task.taskRevision &&
+        snapshot.taskKind === task.taskKind,
+    )
+  ) {
+    throw new Error("Execution attempt task outcome is not plan-bound.");
+  }
   const recordedAt = new Date().toISOString();
   return appendEvent({
     rootDir,
     progress,
     event: ExecutionAttemptEventSchema.parse({
-      schemaVersion: 2,
+      schemaVersion: 3,
       contractVersion: EXECUTION_ATTEMPT_EVENT_VERSION,
       eventId: randomUUID(),
       eventKind: "task-terminal",
@@ -696,7 +816,6 @@ export const appendExecutionAttemptDeliveryResult = async ({
   storyId: rawStoryId,
   revisionId,
   result: rawResult,
-  plan,
 }: {
   readonly rootDir: string;
   readonly storyId: string;
@@ -705,30 +824,23 @@ export const appendExecutionAttemptDeliveryResult = async ({
     ExecutionAttemptDeliveryResult,
     { readonly status: "not-verified" }
   >;
-  readonly plan?: ProducerPlan;
 }) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
   const result = ExecutionAttemptDeliveryResultSchema.parse(rawResult);
   if (result.status === "not-verified") {
     throw new Error("A terminal delivery result must be verified or failed.");
   }
-  const progress =
-    (await readLatestActiveAttemptForRevision({
-      rootDir,
-      storyId,
-      revisionId,
-    })) ??
-    (await createDiagnosticAttempt({
-      rootDir,
-      storyId,
-      revisionId,
-      plan,
-    }));
+  const progress = await readLatestActiveAttemptForRevision({
+    rootDir,
+    storyId,
+    revisionId,
+  });
+  if (progress === null) throw missingAttemptError();
   return appendEvent({
     rootDir,
     progress,
     event: ExecutionAttemptEventSchema.parse({
-      schemaVersion: 2,
+      schemaVersion: 3,
       contractVersion: EXECUTION_ATTEMPT_EVENT_VERSION,
       eventId: randomUUID(),
       eventKind: "delivery-terminal",

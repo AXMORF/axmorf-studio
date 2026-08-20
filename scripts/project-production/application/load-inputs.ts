@@ -41,7 +41,7 @@ const fingerprint = (namespace: string, value: unknown) =>
 export const loadProjectProductionInputs = async ({
   rootDir,
   projectId: rawProjectId,
-  catalogMode = "write",
+  catalogMode = "check",
 }: {
   readonly rootDir: string;
   readonly projectId: string;

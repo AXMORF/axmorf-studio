@@ -1,26 +1,22 @@
 import { pathToFileURL } from "node:url";
-import type {
-  ProducerPlan,
-  ProducerTaskSpec,
-  Sha256Digest,
-} from "../../src/contracts";
-import { acquireRepositoryOperationLock } from "../shared/repository-operation-lock";
-import {
-  appendExecutionAttemptTaskOutcome,
-  createExecutionAttemptForPlan,
-} from "./adapters/attempt-store";
+import type { ProducerTaskSpec, Sha256Digest } from "../../src/contracts";
+import { appendExecutionAttemptTaskOutcome } from "./adapters/attempt-store";
 import { readTaskWorkspace } from "./adapters/task-workspace";
 
 import { commitProducerTaskArtifact } from "./application/commit-task-artifact";
 import { convergeProjectProduction } from "./application/converge-artifacts";
-import { planProjectProductionUnlocked } from "./application/plan-production";
 import { checkTaskByKind } from "./application/check-task";
+import { inspectProjectProduction } from "./application/inspect-production";
+import { prepareProjectProduction } from "./application/prepare-production";
 
 type Context = Readonly<{
   rootDir: string;
   stdout: (line: string) => void;
   commitTaskArtifact?: typeof commitProducerTaskArtifact;
   readWorkspace?: typeof readTaskWorkspace;
+  inspectProduction?: typeof inspectProjectProduction;
+  prepareProduction?: typeof prepareProjectProduction;
+  convergeProduction?: typeof convergeProjectProduction;
 }>;
 const defaultContext = (): Context => ({
   rootDir: process.cwd(),
@@ -37,12 +33,6 @@ const option = (args: readonly string[], name: string) => {
     throw new Error(`Missing ${name} value.`);
   return args[index + 1] ?? "";
 };
-
-const AGENT_TASK_KINDS = new Set([
-  "scene-owner",
-  "global-visual-owner",
-  "cover-owner",
-]);
 
 const recordTaskOutcome = async ({
   rootDir,
@@ -72,55 +62,30 @@ const recordTaskOutcome = async ({
   }
 };
 
-export const selectDirtyAgentTasks = (plan: ProducerPlan) =>
-  plan.tasks.filter(
-    ({ status, taskKind }) =>
-      status !== "reused" &&
-      status !== "blocked" &&
-      AGENT_TASK_KINDS.has(taskKind),
-  );
-
 export const runProjectProductionCli = async (
   args: readonly string[],
   context: Context = defaultContext(),
 ) => {
   const command = args[0];
-  if (command === "plan") {
-    const lock = await acquireRepositoryOperationLock({
+  if (command === "inspect") {
+    const result = await (
+      context.inspectProduction ?? inspectProjectProduction
+    )({
       rootDir: context.rootDir,
-      ownerId: "project-production-plan",
+      projectId: option(args, "--project"),
     });
-    try {
-      const result = await planProjectProductionUnlocked({
-        rootDir: context.rootDir,
-        projectId: option(args, "--project"),
-      });
-      const dirtyAgentTasks = selectDirtyAgentTasks(result.plan);
-      let attemptRecorded = true;
-      try {
-        await createExecutionAttemptForPlan({
-          rootDir: context.rootDir,
-          plan: result.plan,
-          state:
-            dirtyAgentTasks.length === 0 ? "converging" : "waiting-for-agent",
-        });
-      } catch {
-        // Plan and workspace authority never depends on diagnostic persistence.
-        attemptRecorded = false;
-      }
-      const output = {
-        status: "producer-plan-ready" as const,
-        revisionId: result.revision.revisionId,
-        artifactSetFingerprint: result.plan.artifactSetFingerprint,
-        summary: result.plan.summary,
-        dirtyAgentTasks,
-        attemptRecorded,
-      };
-      context.stdout(JSON.stringify(output));
-      return output;
-    } finally {
-      await lock.release();
-    }
+    context.stdout(JSON.stringify(result));
+    return result;
+  }
+  if (command === "prepare") {
+    const result = await (
+      context.prepareProduction ?? prepareProjectProduction
+    )({
+      rootDir: context.rootDir,
+      projectId: option(args, "--project"),
+    });
+    context.stdout(JSON.stringify(result));
+    return result;
   }
   if (command === "task-check") {
     const result = await checkTaskByKind({
@@ -184,7 +149,9 @@ export const runProjectProductionCli = async (
     return output;
   }
   if (command === "converge") {
-    const result = await convergeProjectProduction({
+    const result = await (
+      context.convergeProduction ?? convergeProjectProduction
+    )({
       rootDir: context.rootDir,
       projectId: option(args, "--project"),
       revisionId: option(args, "--revision"),
@@ -192,7 +159,9 @@ export const runProjectProductionCli = async (
     context.stdout(JSON.stringify(result));
     return result;
   }
-  throw new Error("Expected plan, task-check, task-commit, or converge.");
+  throw new Error(
+    "Expected inspect, prepare, task-check, task-commit, or converge.",
+  );
 };
 
 if (

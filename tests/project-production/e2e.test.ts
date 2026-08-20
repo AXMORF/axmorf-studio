@@ -12,7 +12,7 @@ import {
 } from "../../src/contracts";
 import {
   commitTaskArtifact,
-  inspectArtifact,
+  inspectArtifactState,
   resolveArtifactPath,
 } from "../../scripts/project-production/adapters/artifact-store";
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
@@ -57,7 +57,7 @@ const buildTask = ({
     revisionId: revision.revisionId,
     dependencyArtifacts: [],
     inputFingerprints: [
-      { id: "owner-input", fingerprint: input },
+      { id: "brief", fingerprint: input },
       {
         id: "read:inputs/context.json",
         fingerprint:
@@ -89,22 +89,10 @@ const inspectTasks = async (
 ) => {
   const inspections = new Map<string, ArtifactInspection>();
   for (const task of currentTasks) {
-    try {
-      const attestation = await inspectArtifact({ rootDir, task });
-      inspections.set(task.taskRevision, {
-        attestation,
-        valid: attestation !== null,
-        ...(attestation === null
-          ? { reason: "artifact-missing" as const }
-          : {}),
-      });
-    } catch {
-      inspections.set(task.taskRevision, {
-        attestation: null,
-        valid: false,
-        reason: "checksum-drift",
-      });
-    }
+    inspections.set(
+      task.taskRevision,
+      await inspectArtifactState({ rootDir, task }),
+    );
   }
   return inspections;
 };
@@ -196,8 +184,8 @@ test("a failed attempt reuses completed artifacts and dispatches only the remain
   );
   const retryPlan = await planFromStore(rootDir, tasks);
   const dirtyAgentTasks = retryPlan.tasks.filter(
-    ({ status, taskKind }) =>
-      status !== "reused" &&
+    ({ action, taskKind }) =>
+      action === "dispatch-agent" &&
       ["scene-owner", "global-visual-owner", "cover-owner"].includes(taskKind),
   );
   assert.equal(retryPlan.summary.reusedTaskCount, 2);
@@ -226,5 +214,5 @@ test("a failed attempt reuses completed artifacts and dispatches only the remain
   const convergedPlan = await planFromStore(rootDir, tasks);
   assert.equal(convergedPlan.summary.reusedTaskCount, 3);
   assert.equal(convergedPlan.summary.dirtyAgentTaskCount, 0);
-  assert.ok(convergedPlan.tasks.every(({ status }) => status === "reused"));
+  assert.ok(convergedPlan.tasks.every(({ action }) => action === "reuse"));
 });

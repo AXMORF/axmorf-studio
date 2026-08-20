@@ -2,7 +2,10 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 
 import { StoryIdSchema } from "../../../src/contracts";
-import { readExecutionAttemptProgress } from "./attempt-store";
+import {
+  readExecutionAttemptDiagnosticBaseline,
+  readExecutionAttemptProgress,
+} from "./attempt-store";
 
 export const readLatestExecutionAttempt = async ({
   rootDir,
@@ -42,8 +45,13 @@ export const readLatestExecutionAttempt = async ({
     }
   }
   return (
-    attempts.sort((left, right) =>
-      right.updatedAt.localeCompare(left.updatedAt),
+    attempts.sort(
+      (left, right) =>
+        right.updatedAt.localeCompare(left.updatedAt) ||
+        right.attemptId.localeCompare(left.attemptId),
     )[0] ?? null
   );
 };
+
+export const readProductionDiagnosticBaseline =
+  readExecutionAttemptDiagnosticBaseline;

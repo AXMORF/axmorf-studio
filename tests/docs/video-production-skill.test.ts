@@ -9,8 +9,8 @@ const readSkillFile = (relativePath: string) => readFile(path.join(skillRoot, re
 const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 
 const PolicySchema = z.object({
-  schemaVersion: z.literal(11),
-  policyVersion: z.literal("remotion-story-producer-video-policy-v12"),
+  schemaVersion: z.literal(12),
+  policyVersion: z.literal("remotion-story-producer-video-policy-v13"),
   rootEndpoints: z.tuple([
     z.literal("project-production-complete"),
     z.literal("project-production-current"),
@@ -19,7 +19,9 @@ const PolicySchema = z.object({
   requiredEntrypointHeadings: z.array(z.string().min(1)).min(8),
   requiredReferences: z.array(z.string().min(1)).min(6),
   workflowCommands: z.tuple([
-    z.literal("project:produce:plan"),
+    z.literal("project:create"),
+    z.literal("project:produce:inspect"),
+    z.literal("project:produce:prepare"),
     z.literal("project:task:check"),
     z.literal("project:task:commit"),
     z.literal("project:produce:converge"),
@@ -29,7 +31,7 @@ const PolicySchema = z.object({
     executionAttemptRole: z.literal("diagnostics-only"),
     sceneAuthoringSkill: z.literal("repository-local-remotion-best-practices"),
     sharedCheckout: z.literal(true),
-    agentWriteBoundary: z.literal("task-workspace-only-after-plan"),
+    agentWriteBoundary: z.literal("task-workspace-only-after-prepare"),
     artifactAuthority: z.literal("validated-artifact-attestation"),
     artifactReusePolicy: z.literal("reuse-valid-content-addressed-artifacts"),
     rootWaitsForAllChildTerminalStates: z.literal(true),
@@ -87,6 +89,11 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   assert.match(workflow, /Task DAG/u);
   assert.match(workflow, /ArtifactAttestation/u);
   assert.match(workflow, /dirtyAgentTasks/u);
+  assert.match(workflow, /read-only/iu);
+  assert.ok(
+    workflow.indexOf("project:produce:inspect") <
+      workflow.indexOf("project:produce:prepare"),
+  );
   assert.match(workflow, /project-production-current/u);
   assert.match(workflow, /video\.mp4[\s\S]*cover-4x3\.png[\s\S]*cover-3x4\.png[\s\S]*publish\.json/u);
   assert.match(workflow, /checksum[\s\S]*EOF-decode/u);
@@ -132,6 +139,12 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
     bundle,
     /production:(?:start|status|narrative|scene:freeze|scene:check|owner:ready|owner:failed|finalize|render-ready:check)|delivery:(?:cover:freeze|cover:check|build|check)|project:build/u,
   );
+  for (const removedCommand of [
+    ["project", "configure"].join(":"),
+    ["project", "produce", "plan"].join(":"),
+  ]) {
+    assert.equal(bundle.includes(removedCommand), false);
+  }
   assert.doesNotMatch(bundle, /owner[- ](?:ready|failed)|render-ready|detached spawn|launch-ambiguous/u);
   assert.doesNotMatch(bundle, /create_thread/u);
 

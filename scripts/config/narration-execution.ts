@@ -1,6 +1,10 @@
 import type { NarrationSpec } from "../../src/contracts/narration";
 import { buildNarrationExecutionSnapshot } from "../../src/contracts/narration-execution";
 import { createFingerprint } from "../../src/contracts/fingerprint";
+import {
+  NarrationMasteringPolicySchema,
+  buildNarrationMasteringPolicy,
+} from "../../src/contracts/mastered-narration";
 import type {
   EdgeTtsProviderConfig,
   SpeechSdkProviderConfig,
@@ -9,7 +13,9 @@ import { getSpeechSdkModelMaxInputChars } from "../../src/contracts/tts-provider
 import type { SpeechSdkVendor } from "../../src/contracts/tts-provider-registry";
 import {
   resolveVoxcpmProfile,
+  resolveVoxcpmProfileInspectionMetadata,
   resolveVoxcpmProfileMetadata,
+  type VoxcpmProfileInspectionMetadata,
 } from "../narration/adapters/private-config";
 import {
   computeProviderAttemptFingerprint,
@@ -36,6 +42,17 @@ export type RemoteTtsProfileMetadata =
       profileMatched: true;
       validationState: "configuration-validated-generation-not-probed";
     }>;
+
+export type ProducerNarrationInspection = Readonly<{
+  providerAttemptFingerprint: string | null;
+  providerAttemptIdentityState:
+    | "exact"
+    | "unknown-protected-voice-material";
+  masteringPolicy: ReturnType<
+    typeof NarrationMasteringPolicySchema.parse
+  >;
+  metadata: VoxcpmProfileInspectionMetadata | RemoteTtsProfileMetadata;
+}>;
 
 const requireVoiceProfile = <
   T extends readonly { readonly id: string }[],
@@ -176,6 +193,58 @@ const resolveEdgeTtsProfile = ({
       profileMatched: true,
       validationState: "configuration-validated-generation-not-probed",
     },
+  };
+};
+
+/**
+ * Check-only narration metadata. In particular, VoxCPM material checksums
+ * cannot be proven without opening protected voice files, so its exact
+ * provider-attempt/cache identity is deliberately unknown instead of being
+ * replaced with a configuration-only lookalike fingerprint.
+ */
+export const resolveProducerNarrationInspection = async ({
+  rootDir,
+  env,
+  narration,
+}: {
+  readonly rootDir: string;
+  readonly env: Readonly<Record<string, string | undefined>>;
+  readonly narration: NarrationSpec;
+}): Promise<ProducerNarrationInspection> => {
+  const configPath = await resolveProducerConfigPathFromEnvironment({
+    rootDir,
+    env,
+  });
+  const producerConfig = await readProducerConfig({ configPath });
+  const provider = resolveDefaultTtsProvider(producerConfig);
+  const speechRate = producerConfig.tts.speech.rate;
+  const masteringPolicy = NarrationMasteringPolicySchema.parse(
+    buildNarrationMasteringPolicy(
+      producerConfig.tts.speech.targetLoudnessLufs,
+    ),
+  );
+  if (provider.kind === "voxcpm") {
+    return {
+      providerAttemptFingerprint: null,
+      providerAttemptIdentityState: "unknown-protected-voice-material",
+      masteringPolicy,
+      metadata: resolveVoxcpmProfileInspectionMetadata({
+        config: toVoxcpmPrivateConfig(provider, rootDir),
+        narration,
+      }),
+    };
+  }
+  const execution =
+    provider.kind === "speech-sdk"
+      ? resolveSpeechSdkProfile({ provider, narration, speechRate })
+      : resolveEdgeTtsProfile({ provider, narration, speechRate });
+  return {
+    providerAttemptFingerprint: computeProviderAttemptFingerprint(
+      execution.resolved.safeDescriptor,
+    ),
+    providerAttemptIdentityState: "exact",
+    masteringPolicy,
+    metadata: execution.metadata,
   };
 };
 

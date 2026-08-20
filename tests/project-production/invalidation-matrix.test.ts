@@ -321,16 +321,16 @@ test("delivery artifact never enters its own reusable artifact set fingerprint",
     revision,
     nodes,
     inspections: new Map([
-      [composition.taskRevision, { attestation: compositionAttestation, valid: true }],
-      [delivery.taskRevision, { attestation: null, valid: false, reason: "artifact-missing" }],
+      [composition.taskRevision, { attestation: compositionAttestation, artifactState: "valid" as const }],
+      [delivery.taskRevision, { attestation: null, artifactState: "missing" as const }],
     ]),
   });
   const after = createProducerPlan({
     revision,
     nodes,
     inspections: new Map([
-      [composition.taskRevision, { attestation: compositionAttestation, valid: true }],
-      [delivery.taskRevision, { attestation: deliveryAttestation, valid: true }],
+      [composition.taskRevision, { attestation: compositionAttestation, artifactState: "valid" as const }],
+      [delivery.taskRevision, { attestation: deliveryAttestation, artifactState: "valid" as const }],
     ]),
   });
   assert.equal(after.artifactSetFingerprint, before.artifactSetFingerprint);

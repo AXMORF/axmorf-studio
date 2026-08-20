@@ -17,6 +17,28 @@ const labels: Record<ProjectProductionStatus, string> = {
   error: "本地状态异常",
 };
 
+const taskLabel = ({
+  taskKind,
+  subjectId,
+}: {
+  readonly taskKind: string;
+  readonly subjectId: string;
+}) => `${taskKind} · ${subjectId}`;
+
+const taskActionLabels = {
+  reuse: "复用",
+  "dispatch-agent": "派发 Agent",
+  "prepare-fixed": "固定准备",
+  blocked: "阻塞",
+  converge: "收敛",
+} as const;
+
+const sourceStateLabels = {
+  "configured-authoring": "待准备旁白",
+  "timing-ready": "待补 authoring",
+  "production-inputs-ready": "生产输入已就绪",
+} as const;
+
 export const ProductionProgressPanel = ({
   progress,
   status,
@@ -43,6 +65,8 @@ export const ProductionProgressPanel = ({
     projects.find(({ projectId }) => projectId === selectedId) ??
     projects[0] ??
     null;
+  const taskExplanations =
+    selected?.inspection?.tasks ?? selected?.attempt?.taskExplanations ?? [];
   const confirmDelete = async () => {
     if (selected === null) return;
     setDeleting(true);
@@ -160,7 +184,12 @@ export const ProductionProgressPanel = ({
                     "ArtifactAttestation 是创作产物 authority；attempt 仅用于诊断。"}
                 </p>
                 <code>
-                  npm run project:produce:plan -- --project {selected.projectId}
+                  npm run project:produce:inspect -- --project{" "}
+                  {selected.projectId}
+                </code>
+                <code>
+                  npm run project:produce:prepare -- --project{" "}
+                  {selected.projectId}
                 </code>
               </div>
               <div className="progress-summary">
@@ -181,6 +210,29 @@ export const ProductionProgressPanel = ({
                   <strong>{selected.tasks.blockedTaskCount}</strong>
                 </div>
               </div>
+              {selected.inspection === null ? null : (
+                <div className="progress-footnote">
+                  <strong>只读生产检查</strong>
+                  <p>
+                    {sourceStateLabels[selected.inspection.sourceState]}
+                    {" · 下一步 "}
+                    <code>{selected.inspection.nextAction}</code>
+                  </p>
+                  <p>
+                    预计成本 · Provider requests{" "}
+                    {selected.inspection.estimatedCost.providerRequests ??
+                      "未知"}
+                    {" · "}cache hits{" "}
+                    {selected.inspection.estimatedCost.providerCacheHits}
+                    {" · "}Agent tasks{" "}
+                    {selected.inspection.estimatedCost.agentTasks ?? "未知"}
+                    {" · "}delivery{" "}
+                    {selected.inspection.estimatedCost.deliveryMedia?.join(
+                      "、",
+                    ) ?? "未知"}
+                  </p>
+                </div>
+              )}
               {selected.attempt === null ? null : (
                 <div className="progress-footnote">
                   <strong>Attempt diagnostic</strong>
@@ -196,14 +248,65 @@ export const ProductionProgressPanel = ({
                     {selected.attempt.taskOutcomes.failedTaskCount}
                     {" · "}delivery {selected.attempt.deliveryResult}
                   </p>
-                  {selected.attempt.planFingerprint === null ? null : (
-                    <code>{selected.attempt.planFingerprint}</code>
-                  )}
+                  <p>
+                    预计成本 · Provider requests{" "}
+                    {selected.attempt.estimatedCost.providerRequests ?? "未知"}
+                    {" · "}cache hits{" "}
+                    {selected.attempt.estimatedCost.providerCacheHits}
+                    {" · "}Agent tasks{" "}
+                    {selected.attempt.estimatedCost.agentTasks ?? "未知"}
+                    {" · "}delivery{" "}
+                    {selected.attempt.estimatedCost.deliveryMedia?.join("、") ??
+                      "未知"}
+                  </p>
+                  <p>
+                    实际成本 · Provider requests{" "}
+                    {selected.attempt.actualCost.providerRequests}
+                    {" · "}cache hits {selected.attempt.actualCost.providerCacheHits}
+                    {" · "}Agent tasks {selected.attempt.actualCost.agentTasks}
+                    {" · "}delivery{" "}
+                    {selected.attempt.actualCost.deliveryMedia.length === 0
+                      ? "无"
+                      : selected.attempt.actualCost.deliveryMedia.join("、")}
+                  </p>
                   {selected.attempt.diagnosticCode === null ? null : (
                     <p>{selected.attempt.diagnosticCode}</p>
                   )}
                 </div>
               )}
+              {taskExplanations.map((task) => (
+                <div
+                  className="progress-footnote"
+                  key={`${task.taskKind}:${task.subject.kind}:${task.subject.id}`}
+                >
+                  <strong>
+                    {taskLabel({
+                      taskKind: task.taskKind,
+                      subjectId: task.subject.id,
+                    })}
+                  </strong>
+                  <p>
+                    决策：{taskActionLabels[task.action]} · Artifact{" "}
+                    {task.artifactState}
+                  </p>
+                  <p>
+                    直接变化：
+                    {task.directChanges.length === 0
+                      ? "无"
+                      : task.directChanges.map(({ id }) => id).join("、")}
+                  </p>
+                  <p>
+                    被阻塞：
+                    {task.blockedBy.length === 0
+                      ? "无"
+                      : task.blockedBy
+                          .map(({ taskKind, subjectId }) =>
+                            taskLabel({ taskKind, subjectId }),
+                          )
+                          .join("、")}
+                  </p>
+                </div>
+              ))}
               {selected.delivery === null ? null : (
                 <div className="delivery-stamp">
                   <div>
