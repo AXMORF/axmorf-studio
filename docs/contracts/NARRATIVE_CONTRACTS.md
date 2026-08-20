@@ -128,13 +128,11 @@ is the absolute frame where the one complete narration WAV begins; lead/tail rem
 
 `SemanticTiming.durationInFrames` is the full timeline authority. The formal Composition uses
 `scene-package-timeline-v1`; `ProjectRegistrationDescriptor.durationInFrames`,
-`production-render-plan-v5.semanticTimingFrameCount/frameCount`, Remotion metadata, delivery publishing
-and the delivery manifest all use the same value. intro/outro receive ordinary SceneAssignment and
-ScenePackage identities. Their selected preset fingerprint enters task/package identity, while visual,
-sound, duration or resource changes invalidate the old assignment and package. Configured reusable Scene
-templates are copied during `project:configure` as ordinary Project-local `template-copy` artifacts;
-freeze mechanically verifies their frozen bindings and writes results without generic Scene checking, an
-Agent owner, or an owner receipt. Delivery chapters
+Remotion metadata, delivery publishing and `publish.json` all use the same value. Intro/outro receive
+ordinary ScenePackage identities. Their selected preset fingerprint enters Revision, Task, and package
+identity, while visual, sound, duration, or resource changes invalidate the affected artifact.
+Configured reusable Scene templates are copied during `project:configure` as Project-local
+`template-copy` inputs; the fixed Scene task validates and commits them without Agent dispatch. Delivery chapters
 cover only narrated StoryBeats and use their absolute SemanticTiming start frames.
 
 ## Implemented commands

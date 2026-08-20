@@ -1,72 +1,69 @@
 ---
 name: remotion-story-producer-video
-description: Design, freeze, delegate, and foreground-finalize a contract-driven Remotion Story production with runtime-native child Agents.
+description: Plan, delegate, converge, and synchronously deliver a content-addressed Remotion Story production.
 ---
 
 # Remotion Story Producer Video
 
 ## Start directly
 
-Preserve unrelated changes. Agent edits current Project paths; fixed scripts own derived writes and validation.
-Read [policy](policy.json).
+Preserve unrelated changes and read [policy](policy.json). Author only current Project inputs before
+planning. Once planned, Agent children write only their fixed task workspace; repository CLIs validate,
+commit, materialize, and deliver derived output.
 
-## Freeze inputs before delegation
+## Plan content-addressed tasks
 
-Read [the direct workflow](references/direct-production-workflow.md) completely. It alternates Agent-owned
-design with fixed commands. Read [Producer config](references/producer-config.md) when authoring a new
-Project; use `project:configure` instead of copying defaults. Freeze Story, timing, requirements, Scene,
-GlobalVisual, and Cover assignments before delegation.
+Read [the direct workflow](references/direct-production-workflow.md). Run `project:produce:plan` for the
+current Project. The returned ProductionRevision and TaskRevision values contain no attempt, clock, or
+absolute-path identity. Reuse every valid ArtifactAttestation and dispatch only dirty Agent tasks.
 
-## Delegate owners to runtime-native subagents
+## Delegate dirty Agent tasks
 
-Use the running environment's native child-Agent mechanism in the same checkout. Read only the prompt
-reference needed for each owner: [Scene](references/scene-agent-orchestration.md),
-[GlobalVisual](references/global-visual-agent-orchestration.md), and
-[Cover](references/cover-agent-orchestration.md). Create one child per `ownerMeaningIds` Scene and one each
-for GlobalVisual and Cover. Never delegate `templateMeaningIds`. Prompts must be self-contained with the
-immutable assignment, exclusive paths, required local Skill/reference, focused check, and exact
-`production:owner:ready` / `production:owner:failed` command.
+Use runtime-native child Agents in this shared checkout. Read only the prompt needed for each dirty task:
+[Scene](references/scene-agent-orchestration.md),
+[GlobalVisual](references/global-visual-agent-orchestration.md), or
+[Cover](references/cover-agent-orchestration.md). One task belongs to one child. Never delegate a
+`scene-template` task; fixed preparation owns it. Capacity-limited batches are allowed.
 
-Batch for capacity while preserving one owner per child. If child Agents cannot share the checkout, fail
-closed; root must not author an owner inline or use a worktree.
+Each child reads the immutable `task.json` and `inputs/context.json`, writes only the matching
+`.producer-work/<storyId>/<taskRevision>/` workspace, loops `project:task:check` until valid, then calls
+`project:task:commit`. A child terminal message is coordination only; the validated ArtifactAttestation is
+the durable authority.
 
-## Wait and finalize once
+## Wait and converge once
 
-Wait until every dispatched child reaches success, explicit failure, or host failure. Child chat status is
-transient and is never persisted; assignment-bound receipts remain authority. Do not read owner output,
-submit individual results, inspect Run progress, or publish a receipt for a child.
-
-After all children are terminal, call exactly once:
-
-`npm run production:finalize -- --run <runId>`
-
-Do this even after child failure or apparent missing receipt. Never poll or repeat finalize in this attempt.
+Wait until every dispatched child reaches artifact committed/current, explicit task failure, or host
+failure. Then call `project:produce:converge` exactly once for this orchestration attempt. Do not infer
+artifact presence from chat, recreate reused work, or have root author a dirty child task inline.
 
 ## Keep context bounded
 
-Do not preload authority docs. Use current code/tests and [policy.json](policy.json). Read
-[system hardening](references/agent-rework-and-system-hardening.md) only for a fixed-flow defect. Use
+Do not preload all authority docs. Use current code/tests, [policy.json](policy.json), and the one task
+prompt in scope. Read [Producer config](references/producer-config.md) only for a new Project. Read
+[system hardening](references/agent-rework-and-system-hardening.md) only after a fixed-flow defect. Use
 CodeGraph first when indexed.
 
 ## Preserve production invariants
 
-- Keep one Story/Composition, one meaningId/ScenePackage, one GlobalVisualPackage, and one Cover owner.
-- Template-copy Scenes are script-verified/direct-resulted without owner child or receipt.
-- Owners write only assignment-exclusive paths and publish one immutable receipt; foreground finalize alone
-  writes central results/events/state and drives delivery.
-- Required Scene and GlobalVisual receipts gate render-ready. Cover missing/failed preserves render-ready and
-  blocks only automatic delivery.
-- Keep private config and protected voice material unread, unreported, unstaged, and uncommitted.
-- Delivery launch intent without receipt remains permanently ambiguous; never retry it.
+- Keep one Story/Composition and one meaningId/ScenePackage.
+- Keep sealed PCM plus cumulative samples as timing authority; do not rewrite authored `ttsChunks`.
+- Keep Scene, GlobalVisual, and Cover tasks isolated; GlobalVisual never reads Scene output.
+- Keep template-copy Scenes fixed-produced without an Agent task owner.
+- Keep captions, narration, and full-frame background at Composition level; Scene roots remain transparent.
+- Keep private config, protected voice material, other Projects, shared assets, and historical data unread,
+  unreported, unstaged, and uncommitted.
+- Delivery is synchronous and current only after exact `video.mp4`, both PNG Covers, and `publish.json`
+  pass checksum, media probe, frame/dimension, and EOF-decode validation.
 
-## Classify failure by owner
+## Classify failure by task owner
 
-Before delegation, revise only Agent-authored inputs and rerun the validator. For a fixed-flow defect,
-follow the hardening reference. Provider, host, sandbox, permission, and authorization failures are external
-blockers. After delegation, root does no owner rework.
+An Agent-authored workspace may be corrected by its assigned child and rechecked. A validator,
+materialization, artifact-store, or delivery failure with valid inputs is a fixed-flow defect; follow the
+hardening reference. Provider, host, sandbox, permission, and authorization failures are external blockers.
+Never weaken a validator or fabricate an ArtifactAttestation.
 
-## Finish after finalize
+## Finish with verified delivery
 
-Report runId, dispatched owner identities, child terminal summary, and the one finalize JSON outcome.
-`delivery-render-started` is only detached Remotion spawn acknowledgement, not MP4 completion. Do not
-monitor, publish, push, or use `git add .`.
+Report storyId, revisionId, reused/dirty/blocked summary, dispatched TaskRevisions, child terminal summary,
+and the single converge result. Only `project-production-complete` or `project-production-current` proves a
+mechanically verified current four-file delivery. Do not publish, push, or use `git add .`.

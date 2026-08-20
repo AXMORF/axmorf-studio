@@ -1,3 +1,54 @@
+# Development Working Style
+
+Act as an autonomous software engineering agent. Optimize for correctness, simplicity, maintainability,
+and completing the task end-to-end.
+
+## Working principles
+
+* Before modifying code, inspect the relevant codebase, existing conventions, dependencies, tests, and
+  `AGENTS.md` instructions. Do not guess about code you can inspect.
+* Understand the root cause before fixing bugs. Prefer the smallest coherent change that fully solves it.
+* Follow existing architecture, naming, formatting, and abstractions. Do not refactor unrelated code.
+* Preserve existing behavior unless the requested change explicitly requires otherwise.
+
+## Planning and execution
+
+* Implement small, well-defined tasks directly. For multi-file or architectural work, form a concise plan
+  and then execute it.
+* Use skills, subagents, plugins, or specialized workflows when they materially improve correctness or
+  efficiency. Make reasonable decisions autonomously; ask only when a missing choice materially changes
+  the implementation or an action is destructive, irreversible, or high-risk.
+
+## Verification
+
+* Do not call work complete because the code looks correct. Run relevant tests, typecheck, lint, builds, and
+  runtime checks. Add regression coverage for meaningful fixes and behavior changes when practical.
+* If a check cannot run, state exactly what was not verified and why. Review the final diff for unintended
+  changes, dead code, debug artifacts, and unnecessary complexity.
+
+## Libraries, APIs, and code quality
+
+* Verify current primary documentation when behavior depends on a changing library, framework, API, model,
+  CLI, or tool. Prefer existing dependency versions; use `pnpm` only when the repository does not specify a
+  package manager.
+* Prefer clear, explicit, focused code. Comment non-obvious intent, handle errors deliberately, and consider
+  relevant edge cases, security, concurrency, cleanup, and performance.
+
+## Communication
+
+* Default to concise Chinese explanations. Keep identifiers and technical terms consistent with the repo.
+* During long work, report meaningful findings or blockers. Final responses summarize changes, decisions,
+  verification, and remaining risks, and never claim success without evidence.
+
+<!-- CODEGRAPH_START -->
+## CodeGraph
+
+When a `.codegraph/` directory exists, use CodeGraph before grep/find for code discovery:
+`codegraph explore "<question>"` or `codegraph node <symbol-or-file>`. If it does not exist, skip it.
+<!-- CODEGRAPH_END -->
+
+--- project-doc ---
+
 # Remotion Story Producer Agent Guide
 
 本文件定义仓库内 Agent 的执行规则。默认中文交流，先给结论，再给最少必要依据。
@@ -12,187 +63,107 @@
 - 确定性：`docs/DETERMINISTIC_EXECUTION.md`
 - 名词：`docs/TERMINOLOGY.md`
 
-文档冲突时先以 current 可执行代码和测试确认事实，再同步权威文档；不能把目标写成实现。
+文档冲突时先用 current 可执行代码和测试确认事实，再同步权威文档；不能把目标写成实现。
 
-## 工程边界
+## 产品不变量
 
-- 只使用宿主机 Node.js/npm 与 Remotion CLI；不新增 Docker 或容器验证。
-- 所有 `remotion` 与 `@remotion/*` 包保持完全相同的精确版本。
-- 一 Story 一个 Composition；一 StoryBeat 一个 meaningId 和 Scene；完成制作的 Scene 对应一个
-  ScenePackage。
-- StoryBeat 严格区分 narrated-scene 与 silent Scene；silent Scene 只允许位于时间线首尾边界，但合同
-  不声明 intro/outro role。新 Project 从全局配置选择边界 Scene template，也可关闭；silent preset
-  固定视觉、音效 contributions、资源与帧数，
-  不得伪造 TTS、CaptionCue 或 sealed narration segment。
-- `project:configure` 把所选 Scene template 的源码和资源复制到 Project-local Scene 并冻结独立
-  instance identity；已有 Project 不引用共享 template，也不受其后续修改影响。freeze 只机械投影
-  plans、anchors、selected resources 与 sound plan，校验冻结 identity、复制 checksum、资源和
-  ScenePackage 绑定后由脚本直接写结果；不进入通用 Scene check/审查，不创建 Scene owner、不接收
-  owner receipt。只有 Project 显式使用 `scene-owner` preset 时才交给 Agent 制作。
-- ttsChunks 是 Agent 已确定的朗读单元；工具不按标点自动拆分或重写。
-- sealed PCM 实测时间是绝对 authority；统一用
-  `ceilDiv(cumulativeSamples × fps, sampleRate)` 计算 frame boundary。
-- Scene/transition 不移动、缩短或吞掉 spoken frames。TTS 波形不假定 bit-for-bit 可重复，必须
-  经实测、checksum 和 fingerprint 封存。
-- 字幕只由顶层 CaptionLayer 渲染；Scene root 透明，只输出 Beat 语义视觉与音效 contributions。
-- 旁白独占 narration track；所有非旁白声音统一为可独立控制音量的 `SoundContribution`。Scene 音效
-  使用 Scene-local frame 创作后投影到绝对帧；Project BGM 是同一结构的循环 contribution，固定只覆盖
-  首个 narrated Scene 起点到最后一个 narrated Scene 终点，不进入首尾 silent Scene。
-- Composition exactly once owns SceneSafeArea、captions、narration 与 GlobalVisual background。
-- JSON/数据文件不包含 JSX、代码、动态模块路径或 executable expression。
-- Scene renderer 通过 composition-local 静态 registry 绑定；render runtime 不调用 Agent、Skill、
-  MCP、Git、网络服务或目录扫描。
-- 所有选中媒体位于 repository `public/`，有 manifest identity 并通过检查。
-- 所有 render-critical motion 使用 Remotion frame API；禁止 CSS animation/transition 和
-  Tailwind animation utilities。
+- 只使用宿主机 Node.js/npm 与 Remotion CLI，不新增 Docker；所有 `remotion` 与 `@remotion/*` 保持
+  完全相同的精确版本。
+- 一 Story 一个 Composition；一 StoryBeat 一个 meaningId 和 Scene，完成物化的 Scene 对应一个
+  ScenePackage。StoryBeat 严格区分 narrated 与只允许位于首尾的 silent Scene。
+- `project:configure` 将选定边界 Scene template 源码与资源复制为 Project-local immutable instance；
+  template-copy Scene 由 fixed task 验证和产出 artifact，不派发 Agent。
+- `ttsChunks` 是 Agent 已确定的原子朗读单元。sealed PCM 实测 samples 是绝对时间 authority；frame
+  boundary 统一为 `ceilDiv(cumulativeSamples × fps, sampleRate)`。Scene/transition 不吞 spoken frames。
+- 字幕只由顶层 CaptionLayer 渲染；Scene root 透明，只输出 Beat 语义视觉与音效。Composition exactly
+  once owns SceneSafeArea、captions、narration 和 GlobalVisual background。
+- 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。Project BGM 只覆盖 narrated
+  content window，不进入 silent boundary Scenes。
+- JSON/数据文件不包含 executable expression；renderer 由 composition-local static registry 绑定。
+  render runtime 不调用 Agent、Skill、MCP、Git、网络或目录扫描。
+- 所有媒体都位于 repository `public/`、具有 manifest identity 并通过检查。render-critical motion
+  只用 Remotion frame API，禁止 CSS animation/transition 和 Tailwind animation utilities。
 
-## 当前 production 与 delivery 边界
+## 唯一 production 与 delivery 主链
 
-- 默认交付是 build-centric：`npm run project:build -- --project <storyId>` 直接消费 current 可变
-  Project authoring source，不创建/重放 ProductionRun，不读取 owner receipt/finalize/render-ready，
-  不重做旁白。Agent 只在缺少内容或用户明确要求重新设计时参与。
-- 默认 build 机械刷新 ScenePackage、Coverage、RendererRegistry 和生成式 Composition；
-  template-copy Scene 继续直接投影，不进入通用 owner/check/review。
-- authoring source snapshot 排除 runId、assignment、receipt、ProductionRenderPlan/Ready 和 owner
-  result；buildId 绑定 snapshot、Composition metadata 与同步 build policy。
-- 同一 buildId 的 staging 可跨失败复用已验证媒体。同步生成并验证 `video.mp4`、4:3 Cover、3:4
-  Cover，最后写 `publish.json`；exact 四文件通过后受控替换 `deliveries/<storyId>/`，捕获到的失败保持或
-  恢复上一版。
-- 相同 snapshot 且 current delivery 完整时只读 no-op。资源、路径、TypeScript、codec、声道、尺寸、
-  fps、frame count、checksum 和 EOF decode 检查不得关闭。
-- 以下 ProductionRun/owner/finalize/detached delivery contracts 是显式 audited production 能力；
-  不读取、迁移、回填或解释旧 Run、旧 Project、旧交付或旧媒体，也不得阻塞普通 rebuild。
-- ProductionRun 只由 append-only events、immutable Scene/GlobalVisual results 与 current
-  fingerprints 投影；中央 repository CLI 是唯一 writer。
-- current freeze 同时产生 N Scene assignments 与 one GlobalVisual assignment；独立 Cover freeze
-  产生 CoverAssignment。三个 owner kind 都发布 assignment-bound receipt；Scene owner 与 GlobalVisual
-  是 render-ready 硬门，Cover 只阻塞 automatic delivery，不进入 production state projection。
-- GlobalVisual 只 owns project-local 背景、纹理、装饰和连续性 motif，不读取 Scene 输出，不
-  渲染字幕/音频，不扩张为 Track、Scene DSL、自动布局或自动导演。
-- audited production 的成功终点是 `delivery-render-started`。foreground `production:finalize` 先绑定
-  `production-render-plan-v5` 与 `production-render-ready-v5`，再启动 detached delivery render；该终点
-  只证明 spawn acknowledgement，不生成或检查最终 MP4。
-- Cover missing/stale 不阻止 render-ready，但阻止自动 delivery build。
-- 主 Agent 在冻结全部 assignment 后使用运行环境原生子 Agent：每个 `ownerMeaningIds` Scene 一个、
-  GlobalVisual 一个、Cover 一个；template-copy Scene 不派发。容量受限时可分批，但一 owner 一 child。
-  无子 Agent 能力或不能共享 checkout 时 fail closed，不由主 Agent 内联替代，也不使用 worktree。
-- 每个子 Agent 自行 focused check，发布 one `owner-ready`/`owner-failed` receipt，最终只返回最小终态信号。
-  主 Agent等待全部已派发子任务进入成功、明确失败或宿主失败终态；聊天终态与子 Agent身份不持久化，
-  receipt 仍是 authority。
-- Agent 直接写入与 fixed script 写入严格分开：`production:start` 在确定性 scaffold 后冻结受保护工作区，
-  narrative 固定生成完成后刷新 Project-authoring checkpoint；
-  Scene freeze 前 Root Agent 只可直接修改 current `src/projects/<storyId>/`；Project 素材只经 fixed
-  import/configure 命令进入同一 authoring allowlist 的 `public/projects/<storyId>/`，共享
-  `public/assets/library/` 不在 allowlist。Scene freeze 成功后，Scene/GlobalVisual/Cover
-  child 只可直接修改 assignment-exclusive paths。owner receipt 与 foreground finalize 都机械检查
-  Agent write boundary；core、共享素材、其他 Project、private 或 voice profile 漂移时 fail closed。
-  Project、Run、Catalog、Registry、out 与 delivery 的确定性生成仍由各 fixed script 自身合同负责，
-  不作为 Agent 直接写入；render-ready 固定生成完成后另存 Cover-only checkpoint，后续补 Cover仍复验边界。
-  该边界是阶段转换时的 checkpoint/fingerprint 检测门，不是 OS 级写入沙箱；违规在 receipt、freeze 或
-  finalize 推进前被拒绝，不声称能在写入发生前拦截进程。
-- 全部子任务终态后，无论 receipt 是否齐全，主 Agent只调用一次
-  `npm run production:finalize -- --run <runId>`；不读作品、不逐项 submit、不轮询 Run、不代发 receipt。
-  foreground finalize 是 check、正式 result/event、registry convergence 与 `delivery:build` 的唯一中央 writer。
-- required receipt 缺失时 finalize 在任何 stage/result/event/state 写入前返回
-  `owner-receipts-incomplete`；Cover missing/failed 在保留 render-ready 后返回
-  `render-ready-delivery-blocked`。同一编排尝试不重复 finalize。
-- 每个 Project 只有 `deliveries/<storyId>/` 一个 current delivery slot；identity 变化时通过 staging
-  受控替换旧 package，同一 identity 重复 build 仍为只读 no-op。
-- build 先准备 immutable non-MP4 package 并 exactly once 写 `render-launch-intent-v4`，再用 fixed
-  cwd/argv/log、`shell:false`、`detached:true` spawn Remotion。
-- OS 发出 `spawn` 后才写 `render-launch-receipt-v4` 并返回 `delivery-render-started`。receipt 只
-  证明 spawn acknowledgement，不证明 render completion 或 MP4 有效。
-- intent 存在而 receipt 缺失时 launch-ambiguous，current scripts 永不自动重试。
-- repository 不等待、监控、read、hash、probe 或 decode detached MP4，不保存 PID/exit 状态。
-- PublishingIntent 在 Story 阶段冻结；CoverAssignment 只消费 StorySpec、VisualStyleSpec 和
-  fixed CoverSpec。
+- `npm run project:produce:plan -- --project <storyId>` 加载显式 authoring contracts 与 selected bytes，
+  计算 ProductionRevision、content-addressed Task DAG 和 ProducerPlan，并重新检查 Artifact Store。
+- RevisionId、TaskRevision、ArtifactAttestation identity 不包含 attemptId、历史执行 ID、时间戳、PID、
+  absolute path 或 Agent identity。ExecutionAttempt 只保存诊断，不拥有 artifact 或 delivery。
+- plan 只为未命中有效 artifact 的任务创建 `.producer-work/<storyId>/<taskRevision>/`。Root 只派发
+  dirty `scene-owner`、`global-visual-owner`、`cover-owner`；相同 Revision 的 valid artifacts 必须复用。
+- Agent child 只写自己的 task workspace，读取 immutable `task.json` 与 `inputs/context.json`，循环运行
+  `project:task:check`，最后调用 `project:task:commit`。commit 必须重跑 validator；只有 fixed validator
+  能把 workspace 原子提升为 ArtifactAttestation。聊天、child status 与 Agent 自评都不是 authority。
+- Artifact hit 每次重新验证 contract、task identity、dependencies、validator version、exact sorted file
+  set、path containment、regular-file/no-symlink、size 与 checksum；目录存在不代表命中。
+- Root 等待全部已派发 child 到 artifact committed/current、明确 task failure 或 host failure终态，然后
+  在一次编排尝试中恰好调用一次
+  `npm run project:produce:converge -- --project <storyId> --revision <revisionId>`。
+- converge 重新计算 current Revision，拒绝 stale revision；全部 required artifacts 齐全前不得修改 live
+  owner roots。物化使用受控 staging/replace/rollback，随后刷新 ScenePackage、Coverage、RendererRegistry、
+  GlobalVisualPackage 与生成式 Composition，并从 live paths 复验 bytes 与 attestations 一致。
+- delivery 是同一 converge 内的同步阶段。它使用 build-owned staging，可跨失败复用已验证媒体，等待
+  Remotion/FFmpeg 完成，验证 H.264/AAC、声道、尺寸、fps、frame count、PNG、checksum 与 EOF decode，
+  最后写 `publish.json`。exact 四文件全部通过后才受控替换 `deliveries/<storyId>/`。
+- current delivery exactly 是 `video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`。相同
+  DeliveryBuildId 且完整时只读 no-op；完成终点是 `project-production-complete` 或
+  `project-production-current`，两者都表示实际四文件已复验。
 
-## Project 与产物
+## Project 与本地产物
 
-- 具体 Project 只依赖 core，core 不依赖 storyId；ProjectRegistry/ResourceCatalog 允许 zero
-  Project。
-- 配置页只从 `src/projects/` 的 source Project 与 current Run manifest 的 storyId 生成展示列表，
-  不把 `out/`、deliveries 等 output-only 清理目标伪装成 Project；每个 Project 只投影最新一条
-  current Run 的关键 production/delivery 状态。删除入口必须完整输入 Project ID，仍复用
-  `project:delete` 对全部 ownership roots 的相同语义。
-- `public/`、`src/projects/`、Registry/Catalog generated projection、`.narration-work/`、
-  `.producer-runs/`、`out/` 与 `deliveries/` 都是 ignored 本地产物，不进入 Git。
-- 用户明确要求删除一个、多个或全部已制作视频/Project 时，默认含义是删除这些 storyId 的全部
-  本地生产数据，而非只删 MP4；必须使用 `npm run project:delete -- ... --confirm-delete`，不得用
-  broad `rm`。删除范围包含 Project、匹配 public media、narration work、Runs、out 与 deliveries，
-  但不包含 core、其他 Project、private config 或 `public/voice_profile/`。
-- fresh clone 由 `npm run bootstrap` 重建 core proof assets 与 zero-safe Catalog/Registry；不得把
-  具体 Project 或媒体加入 core version control。
-- `project:delete` 可为清理从任意结构有效的 Run manifest 只提取严格 `runId/storyId` 所有权；
-  不解析旧 production contract/state/event，也不把该边界扩张为 runtime compatibility。
-- 默认 source/check 不读取历史媒体；显式 media/evidence/delivery 命令 fail closed。
-- Project 可删除性矩阵只能在明确的 `mktemp` 隔离副本中执行，不删除真实作品。
-- ProjectRegistry 在 bundle 前按固定一级目录生成静态 TypeScript；Composition 用
-  `lazyComponent` 与字面量 `import()`，`Composition.tsx` 必须 default export。
-- 目录发现只允许发生在固定生成步骤；ProjectRegistry 与 composition-local RendererRegistry
-  分离。
+- 具体 Project 只依赖 core；ProjectRegistry/ResourceCatalog 支持 zero Project。Registry 在 bundle 前
+  生成静态字面量 imports，composition-local RendererRegistry 与全局 ProjectRegistry 分离。
+- `public/`、`src/projects/`、generated Registry/Catalog、`.narration-work/`、`.producer-work/`、
+  `.producer-artifacts/`、`.producer-attempts/`、`.producer-runs/`、`out/` 与 `deliveries/` 都是 ignored
+  本地产物，不进入 Git。
+- settings 只从 current source Projects、新 attempts/artifacts 与 current four-file delivery 投影；不得
+  扫描 `.producer-runs/` 来规划、构建、收敛或判定 current 状态。历史 Run 只是 deletion-only 数据。
+- 用户明确删除 Project 时，使用
+  `npm run project:delete -- --project <storyId> --confirm-delete` 的完整 storyId-owned 清理语义；禁止 broad
+  `rm`。删除范围含 Project/public/narration/work/artifact/attempt/legacy Run/out/delivery，不含 core、其他
+  Project、private config、共享素材或 `public/voice_profile/`。
+- 删除器只为历史 `.producer-runs` 保留内部严格 `runId/storyId` ownership parser，不导出或解释旧合同。
+  删除矩阵只能在明确的 `mktemp` 隔离副本中运行。
 
-## Scene 制作来源
+## Scene 制作来源与任务所有权
 
-每个 Scene owner 制作前必须完整读取并使用 repository-local
-`.agents/skills/remotion-best-practices/SKILL.md`，再按当前 Renderer 需要读取其路由 reference。
-`AGENTS.md`、assignment、contracts 与 validators 始终拥有更高 authority；Skill 不能扩大 owner
-写入范围或 render runtime 边界。
+每个 Scene child 必须完整读取 repository-local
+`.agents/skills/remotion-best-practices/SKILL.md`，再按 Renderer 需要读取路由 reference。`AGENTS.md`、
+TaskSpec、contracts 与 validators 拥有更高 authority，不能扩大 workspace 写入范围。
 
-新 Scene 只参考：
+新 Scene 只参考 current Story/StoryBeat/timing/VisualStyle/brief、ResourceCatalog 当前登记能力和当前方案
+显式本地化的 immutable upstream source。不得搜索、比较、模仿或复制历史 Scene、Composition、still、
+contact sheet 或布局。第三方 source/media 分别校验 license/attribution；未确认音频不得进入 artifact。
 
-1. current Story/StoryBeat/timing/VisualStyleSpec/Scene plans 与相邻连续性；
-2. current ResourceCatalog 已登记能力与本地资产；
-3. 当前方案显式选择并本地化的 immutable upstream source。
-
-Shotcraft 等来源只能通过冻结 commit、准确 demo/recipe 和最小依赖闭包进入 Scene；不得按名字
-近似重写，不直接 import upstream repository/package/remote URL/global Skill。第三方代码与媒体
-分别校验 license/attribution，未确认音频不得进入 ScenePackage。
-
-不得搜索、打开、比较、模仿或复制旧生产 Scene、Composition、still、contact sheet 或历史布局
-来制作新 Scene。窄 runtime 诊断必须与 authoring 决策隔离。
-
-## Owner 与审核
-
-- AutoCheck：机械聚合 source、sealed narration、SemanticTiming、Registry 与 Narrative Baseline。
-- exact-reference Scene 只提交 preview、phase-pair、checksum、lineage、license 与 Renderer binding
-  证据，由固定脚本机械校验；不提交 Agent 自评、可辨识度结论或 trait pass/fail。
-- Scene/GlobalVisual/Cover owner 只写 assignment-exclusive 路径并用固定 CLI 发布 one immutable
-  `owner-ready` 或 `owner-failed` receipt；owner/root 均不直接 submit 正式结果。
-- current 自动流程没有 NarrativeCheck、Scene aesthetic gate 或人工创意 gate。
-- 新实现默认留在 `src/projects/<story>/`。只有 fingerprint-bound promotion proposal 与用户对
-  scope/API/files/target 的明确授权后，才移入 `src/remotion/capabilities/`。
-
-主 Agent 使用 provider-neutral 的运行环境原生子 Agent 共享 checkout，不使用用户 task/thread API
-或 worktree。每个 child prompt 必须自包含 runId、assignment、独占目录、必读 Skill/reference、
-focused check 和 ready/failed receipt 命令。repo 不创建、托管或监控 Agent，不保存
-task/thread/progress/heartbeat 或 child identity。主 Agent只等待宿主暴露的 child 终态，然后执行一次
-fixed finalize；不把聊天成功当 receipt，不内联返工缺失 owner。
+- Scene、GlobalVisual、Cover 是互相隔离的 task workspace。GlobalVisual 不读 Scene 输出；Cover 只读
+  StorySpec、VisualStyleSpec 与 fixed CoverSpec。
+- exact-reference Scene 的 lineage/license/phase/checksum 由机械 validator 检查，不使用主观自评 gate。
+- 新实现默认留在 Project-local artifact。只有 fingerprint-bound promotion proposal 且用户明确授权
+  scope/API/files/target 后，才移入 `src/remotion/capabilities/`。
+- Root 不内联替代 dirty task、不读其他 child workspace、不代 commit、不持久化 child identity/chat/
+  heartbeat/token。没有可共享 checkout 的 runtime-native child 能力时 fail closed。
 
 ## 故障语义
 
-- 只返工 Agent-owned authored artifact；修正 owning path 并重跑同一 validator，不放宽合同。
-- fixed workflow 在 valid inputs 下失败是系统缺陷：停止、不 retry/resume/skip，保存脱敏 incident，
-  Red → minimal shared Green → focused/full verification → exact local commit，再从 fresh Run 重放。
-- failed Run/event/result 保持 immutable，不手改 state、不复制 identity、不移除 live writer lock。
-- provider、host tool、sandbox、permission 或 authorization failure 是 external blocker，不增加
-  fallback、warm-up、自动重试或弱化 Chromium sandbox。
-- launch-ambiguous 是 fail-closed 终态，不归类为可恢复 workflow failure。
+- Agent-owned workspace 校验失败时，仅原 child 修正 owning paths 并重跑同一 validator；不得降低合同。
+- fixed workflow 在 valid inputs 下失败是系统缺陷：停止当前命令，保存脱敏 incident，Red → minimal
+  shared Green → focused/full verification，再从 current inputs 新建 ExecutionAttempt。已验证 artifact
+  继续复用，失败 attempt 不污染或阻塞它们。
+- provider、host tool、sandbox、permission 或 authorization failure 是 external blocker；不添加 fallback、
+  自动 retry、TTS warm-up 或降低 Chromium sandbox。
+- artifact checksum drift、unknown file、symlink、path escape、identity conflict、stale revision 与
+  materialized drift 都 fail closed。不得手改 artifact manifest 或 current delivery 来继续。
 
 ## 修改与验证
 
-- 保护用户未提交修改；不 reset、覆盖或整理无关内容。
-- 删除、覆盖、强推、生产发布、密钥或权限变更必须有明确授权。
-- 修改后先跑 focused checks，再按风险运行 `npm run check`；无法验证要说明原因。
-- `npm run check:static` 是无 Chromium 子集；`npm run check:host` 是宿主浏览器/Project gate。
-- `npm run check`、`npm run compositions`、所有 Remotion render/still/compositions 与真实
-  production preflight 首次直接使用宿主权限，不先在沙箱试跑。
-- 沙箱诊断失败不能判定 VoxCPM 不可用。
-- 不为了通过检查预热/测试 TTS、fallback 或降低 Chromium sandbox。
-- `scripts/production/` 与 `scripts/delivery/` 都只在根保留 CLI；application/domain/adapters 分层。
-- 跨 Project 配置、production/delivery 的无业务语义原子文件、技术 port/host adapter 放在窄
-  `scripts/shared/`；domain 不得依赖 application/adapters，delivery adapter 不得反向复用
-  production adapter。
-- 新 Composition 至少通过 `npm run compositions`；高风险视觉改动补真实 still/短片。
-- 完成后检查 README、status、architecture、contracts 与 Skill 是否同步，复核 final diff。
-- 精确 staging，不用 `git add .`；不 push，除非用户明确要求。
+- 保护用户未提交修改；不 reset、覆盖或整理无关内容。删除、覆盖、强推、生产发布、密钥或权限变更
+  必须有明确授权。精确 staging，不用 `git add .`，不 push，除非用户明确要求。
+- `scripts/project-production/` 采用 `domain/`、`application/`、`adapters/`、根 CLI 分层。domain 不依赖
+  filesystem/application/adapters；application 编排 ports；adapters 不反向承载业务规则。
+- 修改后先 focused checks，再按风险运行 `npm run check`。`npm run check:static` 是无 Chromium 子集；
+  `npm run check:host` 是宿主浏览器/Project gate。
+- `npm run check`、`npm run compositions`、所有 Remotion render/still/compositions 与真实 production
+  preflight 首次直接使用宿主权限。沙箱诊断失败不能判定 VoxCPM 不可用，不得降低 Chromium sandbox。
+- 新 Composition 至少通过 `npm run compositions`；高风险视觉改动补真实 still/短片。完成后检查
+  README、status、architecture、contracts、Skill、active old-authority grep 与完整 diff。

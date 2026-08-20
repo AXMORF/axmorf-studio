@@ -1,54 +1,28 @@
-# 名词与边界
+# 名词表
 
-> 文档类型：当前名词权威
->
-> 最后复核：2026-08-16
+> 文档类型：术语 authority
 
-| 名词                        | 含义                                                                     | 明确不代表                                           |
-| --------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------- |
-| StoryBeat                   | 一个有稳定 meaningId 的叙事单元                                          | 自动按标点拆分的句子                                 |
-| ttsChunks                   | Agent 已决定的朗读单元                                                   | 工具可重写的文本切片                                 |
-| ProducerConfig              | 新作品的 Scene 默认、render、可读性、合集、TTS 与可选 BGM authority      | 已封存作品的可变 runtime 输入                        |
-| NarrationExecutionSnapshot  | Run 级 provider-attempt 与 mastering policy 的 private-safe 冻结身份     | token、URL、私有路径、声线内容或 render runtime 配置 |
-| SemanticTiming              | silent preset 固定帧与 sealed PCM 累计边界共同导出的全片 frame authority | runtime 重算、伪造静音 TTS 或容器浮点时长估算        |
-| ScenePackage                | 一个 meaningId 的视觉与 Scene 音效 contributions 成品合同                | 字幕、旁白或 Project BGM authority                   |
-| SoundContribution           | 一个有资源、绝对起止帧、独立音量与循环策略的非旁白声音                   | 独立音轨文件、额外声音层级或 Remotion 强制分类       |
-| ProjectSoundPlan            | Project 级 contribution 选择；当前用于 narrated 内容窗口的循环 BGM       | 片头片尾声音、旁白或自动 ducking                     |
-| reusable Scene template     | 可复制源码、Renderer、plans/cues/frames/resources 的已批准普通 Scene     | 既有 Project 的共享 runtime dependency 或位置限定    |
-| template-copy Scene         | `project:configure` 复制冻结、由脚本验证 identity 并直写结果的 Project-local Scene | 通用 Scene check、Scene owner 或 owner receipt        |
-| GlobalVisualPackage         | Story 级背景、纹理、装饰和连续性 motif                                   | Scene DSL、自动导演或字幕层                          |
-| ProductionRun               | append-only events 与 immutable results 的一次执行                       | 可手改或恢复的任务状态                               |
-| authoring source snapshot   | current Project/source/public assets/shared runtime 的排序 byte identity | Run、assignment、receipt 或旧 delivery identity      |
-| ProjectBuildId              | source snapshot 与固定 Composition/build policy 导出的重建 identity      | ProductionRunId、delivery launch attempt 或媒体 checksum |
-| ProjectPublish              | 最后写入并绑定三类最终媒体路径、checksum 与 media facts 的 `publish.json` | 平台已发布、spawn receipt 或过程审计日志              |
-| project-build-complete      | 四个 current delivery 文件已同步渲染、复验并完成受控提升                 | 平台上传、crash-atomic 或 bit-for-bit 可复现           |
-| ProjectBuildProgress        | ignored staging 内当前 build attempt 的六阶段原子、指纹绑定状态           | buildId authority、历史日志或 current delivery       |
-| Project production progress | build/source/current delivery 主状态与可选 audited Run 的只读投影         | output-only 清理目标、脚本启动器或旧 Run 迁移        |
-| Repository operation lock   | configure/start/delivery/delete 共用的 Project mutation 互斥边界         | 跨 checkout 锁或自动恢复策略                         |
-| OwnerReceipt                | assignment identity 与 output manifest 绑定的 ready/failed inbox 回执    | Codex task 身份、heartbeat 或正式 production result  |
-| owner-receipts-incomplete   | foreground finalize 在任何 ledger/result/state 写入前报告 required receipt 缺失 | child 失败推断、自动重试或已接受部分结果              |
-| agent-write-boundary-violated | 阶段 checkpoint 检测到 Agent allowlist 外工作区漂移                    | OS sandbox、写入前拦截或 fixed-script 失败             |
-| ProductionFinalize         | root 等待全部 child 终态后 exactly once 调用的 foreground 固定收敛命令    | Agent 创作、Run 轮询或最终 MP4 检查                   |
-| ProductionRenderPlan        | 冻结 Composition、资料引用、正文/成片帧与启动 policy 的渲染计划          | 已渲染媒体                                           |
-| ProductionRenderReady       | 所有 current render-critical identity 已汇合                             | MP4 已生成或已检查                                   |
-| awaiting-automatic-delivery | render-ready 的固定 handoff                                              | 等待人工判断                                         |
-| PublishingIntent            | Story 阶段冻结的发布元数据及一个配置合集选择                             | 自由文本合集或平台发布行为                           |
-| CoverResult                 | 独立 Cover owner 封存的 exact PNG 结果                                   | render-ready 硬门                                    |
-| DeliveryLaunchManifest      | 非 MP4 包的 current identity 与 planned media facts                      | 渲染完成报告                                         |
-| RenderLaunchIntent          | spawn 前 exactly-once 写入的启动意图                                     | 子进程已经启动                                       |
-| RenderLaunchReceipt         | OS `spawn` acknowledgement 后写入的回执                                  | exit code、完成状态或 MP4 有效性                     |
-| delivery-render-started     | audited detached delivery 的启动终点                                     | render completed、published 或 quality passed        |
-| launch-ambiguous            | intent 存在而 receipt 缺失                                               | 可安全重试的失败                                     |
-| Project deletion            | 明确确认后按 storyId 删除全部本地生产数据并重建 Registry/Catalog         | 只删 MP4、删除 core/其他作品/私有声线或自动清理策略  |
-
-`deliveries/<storyId>/` 是每个 Project 唯一的默认 current slot，exactly 保存 `video.mp4`、两个 Cover 与
-`publish.json`；新 buildId 通过可续用 staging 受控替换上一版。audited production 的 launch
-manifest/intent/receipt 只属于显式旧式 `delivery:build` 能力，不是默认 slot 合同。
-
-声音业务分类固定为 `narration`、`background-music`、`sound-effect`。旁白由 NarrativeCore 独立拥有；
-背景音乐和音效都投影为 `SoundContribution`，由同一个 SoundDesignTrack 挂载，但每个 contribution
-仍有独立资源、时间窗口、音量与循环策略。Remotion render 最终把它们混入配置的输出声道，不保留
-可供剪辑软件重新拆分的物理音轨。
-`out/` 保存 Project baseline 媒体、诊断输出、detached Remotion log 与明确的 core proof 输出。
-两者都是 ignored 本地产物，不是 core source authority；`project:delete` 只删除选中 storyId 的
-Project-owned 子树，保留 core proof。
+| 名词 | 精确定义 |
+| --- | --- |
+| Project authoring source | `src/projects/<storyId>/` 与显式 Project-local selected media 中的可变创作输入。 |
+| ProductionRevision | 对一次生产所需全部显式输入与相关 policy fingerprint 的 immutable 内容快照。 |
+| RevisionId | ProductionRevision 的内容寻址 identity；不含 attempt、时钟、PID 或绝对路径。 |
+| ProducerTaskSpec | DAG node 的完整输入、依赖、declared read/output set 和 validator version。 |
+| TaskRevision | ProducerTaskSpec 的内容寻址 identity。 |
+| ProducerPlan | 当前 Revision 下每个 task 的 reused/dirty/missing/incompatible/blocked 分类与稳定 reason。 |
+| dirty Agent task | 缺少有效 artifact、且 task kind 为 scene-owner/global-visual-owner/cover-owner 的 task。 |
+| fixed task | 由确定性脚本生成或检查的 narration/template/convergence/delivery task，不委派 Agent。 |
+| task workspace | `.producer-work/<storyId>/<taskRevision>/`；一个 Agent task 的唯一直接写入范围。 |
+| ArtifactAttestation | fixed validator 成功后对 TaskRevision、dependencies、policy 和 exact output bytes 的证明。 |
+| Artifact Store | `.producer-artifacts/<storyId>/...` 中的 immutable、可跨 attempt 复用的 validated artifacts。 |
+| ExecutionAttempt | `.producer-attempts/<storyId>/...` 中的一次计划/等待/收敛诊断；不拥有 artifact。 |
+| convergence | 重新计算 Revision、要求全部 artifact、受控物化 Project、刷新 derived packages/Composition 并交付。 |
+| materialization | 把 attested bytes 从 Artifact Store 通过 staging/replace/rollback 写到 live Project-owned roots。 |
+| artifact set fingerprint | 当前所有 required ArtifactAttestation identity 的稳定聚合，用于 downstream identity。 |
+| DeliveryBuildId | revisionId、artifact set、Composition metadata 与 build policy 的内容寻址 identity。 |
+| current delivery | `deliveries/<storyId>/` 下通过 exact-four-file 与 media validation 的唯一 current package。 |
+| project-production-complete | 新 identity 已同步构建、验证并提升为 current delivery。 |
+| project-production-current | 相同 identity 的 current delivery 重新验证完整，未重写媒体。 |
+| template-copy Scene | configure 时复制到 Project-local 的 immutable template instance，由 fixed task 产出 artifact。 |
+| scene-owner Scene | 需要一个 dirty Scene task child 在独占 workspace 内创作的 Scene。 |
+| historical `.producer-runs` | 旧架构只读历史数据；current pipeline 不读取，只允许 Project 删除器按严格 ownership 清理。 |

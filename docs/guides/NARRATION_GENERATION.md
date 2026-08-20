@@ -2,13 +2,13 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-19
+> 最后复核：2026-08-20
 
 The current host-only narration workflow turns Agent-authored `ttsChunks` into measured canonical
-PCM, an immutable narration seal, `SemanticTiming`, and `CaptionCue`. Normal production invokes this
-flow through `production:narrative`; the standalone commands below are maintenance and diagnosis
-entrypoints. Downstream baseline, Scene, GlobalVisual, assembly, and delivery code consume the seal
-read-only and never call the provider.
+PCM, an immutable narration seal, `SemanticTiming`, and `CaptionCue`. Normal production represents
+chunk generation, seal, and timing as fixed content-addressed tasks; the standalone commands below are
+maintenance and diagnosis entrypoints. Downstream Scene, GlobalVisual, assembly, and delivery code
+consume validated narration artifacts read-only and never call the provider.
 
 ## Unified private producer configuration
 
@@ -25,7 +25,7 @@ export RSP_PRODUCER_CONFIG=private/producer.config.json
 ```
 
 Relative paths resolve from the repository root. The same override may be placed in a repository-root
-`.env` copied from `.env.example`; current config, narration, and production entrypoints load it
+`.env` copied from `.env.example`; current config, narration, and project-production entrypoints load it
 automatically. An already exported shell value takes precedence over `.env`.
 
 The full schema, local UI, secret boundary, speech-rate/LUFS semantics, and one-time migration command are
@@ -226,8 +226,8 @@ from a v1 adapter creates a new attempt and cannot reuse stale candidates.
 The SpeechSDK safe descriptor uses `speech-sdk-direct-v2`; the Edge descriptor uses
 `edge-read-aloud-websocket-v1`. They bind vendor/service, model, repository profile ID, remote voice ID,
 voice source/locale, single-request/retry policy, speech rate, and an opaque fingerprint over private
-connection configuration. Raw credentials and endpoints never enter progress, Run snapshots, stdout,
-receipts, or errors.
+connection configuration. Raw credentials and endpoints never enter progress, ProductionRevision,
+TaskSpec, stdout, manifests, or errors.
 
 SpeechSDK synthesis is enabled for Cartesia, Deepgram, ElevenLabs, Fish Audio, Gradium, Hume, Inworld,
 MiniMax, Mistral, Murf, OpenAI, Resemble, SmallestAI, Speechify, and xAI. Fal is excluded because one
@@ -270,7 +270,8 @@ Do not delete the generated directory, immutable narration directory, candidate 
 After the checker passes—or reports the precise incomplete state—rerun the exact seal command.
 This exact stale-lock recovery is not Project cleanup. When the user explicitly requests deletion of a
 whole Project, use [`project:delete`](../PRODUCTION_WORKFLOW.md#8-作品删除) so the Project source,
-sealed media, candidate tree, Runs, out, and deliveries are removed as one preflighted set.
+sealed media, candidate tree, work/artifact/attempt data, legacy history, out, and deliveries are removed
+as one preflighted set.
 
 ## Intentional supersede
 
@@ -303,8 +304,7 @@ temporary staging directories, provider logs, or generated Project media.
 ## Current production consumption
 
 The standalone narration lifecycle ends at verified sealed narration and generated
-SemanticTiming/CaptionCue artifacts. `production:narrative` continues with NarrativeCore,
-NarrationAudioTrack, CaptionLayer, ProjectRegistry, baseline evidence, and mechanical AutoCheck.
-Later production stages consume those exact identities for Scene/GlobalVisual results, FinalAssembly,
-render-ready, and automatic delivery. Read-only checks never regenerate, reseal, supersede, or rewrite
+SemanticTiming/CaptionCue artifacts. `project:produce:plan` binds generation/seal/timing identities into
+fixed tasks and invalidates only dependent Scene/convergence/delivery tasks. Valid chunk artifacts remain
+reusable across ExecutionAttempts. Read-only checks never regenerate, reseal, supersede, or rewrite
 SemanticTiming. NarrativeCheck and subjective aesthetic gates remain outside the current flow.

@@ -2,11 +2,12 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-19
+> 最后复核：2026-08-20
 
 仓库使用一份 Git-ignored 的 `private/producer.config.json` 作为制作默认值与私密 TTS 连接配置。
-它不是 render runtime 输入；新作品在 authoring/freeze 时把实际选择写入 Project 合同或产物指纹，
-因此之后修改全局配置不会静默改变已经封存的作品。
+它不是 render runtime 输入；`project:configure` 把新作品的选择写入 Project contracts，后续
+ProductionRevision 只绑定 private-safe provider/voice/policy identity。因此修改全局配置不会静默改变
+已配置 Project，也不会把 secret 放入 artifact。
 
 `.env.example` 可以直接复制为 `.env`：
 
@@ -15,7 +16,7 @@ cp .env.example .env
 ```
 
 示例默认使用 `private/producer.config.json`；相对路径以仓库根目录解析，也可以填写绝对路径把
-配置放到其他位置。配置页、Narration、Production/preflight 和迁移命令都会自动读取仓库根目录
+配置放到其他位置。配置页、Narration、project-production preflight 和迁移命令都会自动读取仓库根目录
 `.env`。同名 Shell 环境变量优先于 `.env`；两者都未设置时仍使用上述默认路径。
 
 ## 打开配置页
@@ -31,20 +32,19 @@ npm run dev
 写入、使用 `no-store`，不把配置写入 localStorage。TTS token/API key 只在受控表单内完整返回以便修改；
 不得通过截图、日志或 Git 泄露页面内容。
 
-左侧“制作进度”先列出当前所有 Project；选择后以默认 `project:build` 的准备、视频、两个 Cover、
-四文件验证与原子提升六阶段为主状态，每 3 秒只读刷新。`publish.json`、exact 四文件的类型/size/checksum
-和 current source snapshot 共同区分完成、待重建与异常；轮询不重复执行 media probe/decode。最新
-current audited Run 仍按原六个 production/delivery 步骤投影，但默认折叠且不影响普通 build，也不提供
-历史 Run 列表。页面不运行脚本、不读取日志或 PID；audited delivery 的“已启动”仍只表示合法 OS
-spawn acknowledgement，绝不表示 MP4 已完成。
+左侧“制作进度”列出 current source Projects；选择后展示 current Revision、task reused/dirty/blocked、
+latest ExecutionAttempt diagnostic 和 four-file delivery，每 3 秒只读刷新。页面不执行 production、不读取
+日志/PID，也不扫描历史执行数据。只有 `publish.json` 与 exact 四个 regular files 的 identity、size、
+checksum 和 media facts 完整一致才显示 current。
 
 Project 详情提供删除入口，必须输入完整 Project ID 二次确认。页面调用与 `project:delete` 完全相同
-的删除器：删除该 Project 的代码、媒体、narration work、全部绑定 Runs、out 与 current delivery，
+的删除器：删除该 Project 的代码、媒体、narration work、task workspaces、artifacts、attempts、legacy
+history、out 与 current delivery，
 随后重建 Catalog/Registry；其他 Project、private config 与 `public/voice_profile/` 不受影响。
 非同源请求、非空 delivery staging、writer lock、不安全路径或不存在的 Project 会在删除前被拒绝。
-生产启动、Project 配置或交付构建正在改变仓库时，删除也会通过共享 operation lock 拒绝执行；删除在
+planning/convergence、Project 配置或交付构建正在改变仓库时，删除也会通过共享 operation lock 拒绝执行；删除在
 持锁后会重读目标集合，并在删除源码前先发布排除目标的 Registry，避免预检与实际清理之间混入新的
-Run 或产物，也避免 Remotion Studio 因短暂的旧 import 终止配置 API；后续删除报错时会按磁盘真实
+task 或产物，也避免 Remotion Studio 因短暂的旧 import 终止配置 API；后续删除报错时会按磁盘真实
 状态恢复 Registry/Catalog。若浏览器连接仍在请求中断，页面只提示“删除结果需确认”，不会把无法
 确认的网络状态误报为删除未完成。
 
@@ -133,30 +133,30 @@ fingerprint 不匹配、未知字段或结构
 `RSP_PRODUCER_CONFIG` 支持仓库根目录相对路径和绝对路径。生产脚本、preflight、迁移命令与配置页
 使用同一解析规则。
 
-## 冻结到新 Project
+## 配置新 Project
 
 在新 Project 已有 `brief.json`、`story.json` 与 project-local `producer-input.json` 后运行：
 
 新 `story.json` 在配置前只包含 authored content StoryBeat。`project:configure` 按 ProducerConfig 的
 `sceneDefaults` 把所选普通 Scene template 的源码和资源复制到
 `src/projects/<storyId>/scenes/` 与 `public/projects/<storyId>/scenes/`，再把对应 silent StoryBeat 写入
-时间线首尾；`null` 表示不插入。脚本同时冻结 template/instance/source graph fingerprint。
+时间线首尾；`null` 表示不插入。脚本同时保存 template/instance/source graph fingerprint。
 
 ```bash
 npm run project:configure -- --project <storyId> --input src/projects/<storyId>/producer-input.json
 ```
 
 `producer-input.json` 只保存单个作品的 render 非默认字段、PublishingIntent authored fields 与
-production requirement selections；标题、StoryBeat、旁白文案、发布描述仍是
+authoring requirement selections；标题、StoryBeat、旁白文案、发布描述仍是
 Project 内容，绝不放入 ProducerConfig。命令从一次 ProducerConfig 读取生成 `narration.json`、
 `render.json`、`publishing-intent.json` 和
 `production/requirements.json`，以及 `production/scene-template-instantiation.json` 和每个复制
 Scene 的 `scene-template-instance.json`。合集必须且只能选择当前数组中的一个 ID；完整数组
-fingerprint 被封存。Project 一旦存在 instantiation，后续修改全局 Scene 选择或共享模板不会重新复制
+fingerprint 被保存。Project 一旦存在 instantiation，后续修改全局 Scene 选择或共享模板不会重新复制
 或改变该 Project；Project-local 文件漂移会 fail closed。其他冻结目标已有不同内容时命令拒绝覆盖。
 
-`production:start` 用同一次已解析 TTS 配置完成 provider-aware preflight 并冻结 Run 级
-`NarrationExecutionSnapshot` v3。generation 会在 provider request 前重算并比较；mastering 只读取
-快照中的 LUFS policy。配置页在 Run 开始后发生 provider、connection、voice、生成参数、speech
-rate 或 LUFS 变化时，该 Run 会拒绝继续并要求 fresh Run。快照与安全 projection 只含 ID、数值
-policy 和 fingerprint，不含 token/API key、URL、绝对路径、声线内容或 transcript。
+`project:produce:plan` 读取同一配置解析结果的 private-safe narration generation fingerprint。generation
+在 provider request 前重算并比较；mastering 只读取已绑定的 LUFS policy。provider、connection、voice、
+生成参数、speech rate 或 LUFS 变化创建新的相关 TaskRevision，但不使无关 Scene/GlobalVisual/Cover
+artifact 失效。Revision/task inputs 只含 ID、数值 policy 和 fingerprint，不含 token/API key、URL、
+绝对路径、声线内容或 transcript。

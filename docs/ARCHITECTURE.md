@@ -1,282 +1,117 @@
-# 系统结构
+# Architecture
 
-> 文档类型：架构权威
->
-> 最后复核：2026-08-18
+> 文档类型：架构 authority
 
-## 分层
+## 1. 模块与依赖方向
 
 ```text
-src/contracts/                 strict data contracts and pure fingerprints
-settings/contracts/            shared API DTO and runtime validation authority
-settings/client/               browser-only React features, hooks and styles
-settings/server/               same-origin local API, diagnostics and read-only progress projection
-scripts/config/                private config read/write/migration boundary
-scripts/narration/domain/      provider-neutral request/fingerprint and canonical PCM rules
-scripts/narration/adapters/    dispatcher, VoxCPM multipart, Edge and SpeechSDK direct adapters
-src/remotion/runtime/          offline frame-driven render runtime
-src/remotion/capabilities/visual-components explicitly promoted visual components
-src/remotion/capabilities/scene-templates approved copy-on-configure Scene templates
-proofs/scene-runtime/          isolated proof source, generated fixtures and evidence
-src/projects/<story>/          ignored project-local source and generated authority
-scripts/production/cli.ts      fixed CLI dispatch only
-scripts/production/application use-case orchestration
-scripts/production/domain/     pure run/event/projection rules
-scripts/production/adapters/   filesystem/provider/process boundaries
-scripts/project-assets/cli.ts  external asset import CLI dispatch
-scripts/project-assets/application Project-local import and Catalog orchestration
-scripts/project-assets/domain/ provider-neutral identity and media rules
-scripts/project-assets/adapters/ provider receipt and protected filesystem boundaries
-scripts/delivery/cli.ts        delivery build/check dispatch
-scripts/delivery/application/  input loading, package, launch, check
-scripts/delivery/domain/       deterministic delivery model and canonical bytes
-scripts/delivery/adapters/     filesystem, Cover media, detached spawn
-scripts/project-build/         default synchronous Project build application and adapters
-scripts/shared/                business-neutral atomic files, process ports and host media adapters
-scripts/projects/delete.ts     preflighted destructive Project data cleanup
-scripts/projects/configure.ts  new-Project ProducerConfig freeze application/CLI
-scripts/projects/application/  Project-local Scene template instantiation use cases
-scripts/scene-templates/       repository-wide Scene template authoring projections
+src/contracts/                 JSON-safe versioned contracts
+src/remotion/                  runtime capabilities and top-level ownership
+src/projects/<storyId>/        ignored Project authoring + materialized current source
+scripts/project-production/
+  domain/                      pure Revision, DAG, invalidation, plan rules
+  application/                 orchestration/use cases and ports
+  adapters/                    filesystem, Artifact Store, media, progress, host tools
+  cli.ts                       plan/check/commit/converge command surface
+scripts/narration/             provider attempt cache, PCM validation, seal and timing
+scripts/scene-package/          deterministic ScenePackage/Coverage generation
+scripts/renderer-registry/      static composition-local registry generation
+settings/                      config/progress API and UI
 ```
 
-CLI 入口保持薄；用例编排、纯规则和 external I/O 不平铺混合。render runtime 永远不调用
-production/delivery scripts 或外部系统。`scripts/shared/` 只接纳无业务语义的窄接口与宿主适配器，
-不得成为跨模块 service locator；`tests/architecture/script-layering.test.ts` 执行检查 domain、
-application、adapter、Project template instantiation、Scene template projection 与跨流程依赖方向。
-settings client 不依赖 Node、scripts 或 server；progress server 只消费 production/delivery 的只读
-application query，不直接读取它们的 filesystem adapters。`proofs/` 不进入正常 Root/Registry，
-其中 `source/`、`fixtures/`、`evidence/` 分别承担可执行证明、生成输入快照和真实媒体证据。
+`domain/` 不读取 filesystem 且不依赖 application/adapters/CLI。application 编排 use cases，不承载 host
+details；adapters 实现 filesystem/process/media ports，不能反向成为业务 authority。`scripts/project-production`
+是唯一 production/delivery root，不存在第二条构建链。
 
-## Build-centric delivery authority
-
-默认 delivery authority 是 current mutable `src/projects/<storyId>/` authoring source，而不是某次
-ProductionRun。`scripts/project-build/application` 机械刷新 ScenePackage/coverage/RendererRegistry、
-生成式 Composition 和静态 ProjectRegistry；adapters 收集排除 run/execution records 的 source
-snapshot，并同步运行 Remotion、ffprobe 和 ffmpeg。buildId 由 source snapshot、Composition metadata
-与固定同步 policy 导出，不包含 runId、assignment fingerprint 或 receipt。
-
-`deliveries/.staging/project-build/<storyId>/<buildId>/` 是可续用的 build-owned staging。同 identity
-重试保留已完整验证的媒体，只生成缺失或损坏项；`publish.json` 最后写入。staging exact 四文件通过
-复验后，以目录 rename 协议受控替换 `deliveries/<storyId>/`；捕获到的替换失败恢复上一版。固定
-real-directory slot 需要两次 rename，因此 host 在两步之间被强杀不属于 crash-atomic 保证。current
-slot 不包含 launch intent、spawn receipt、Run manifest 或非最终 handoff 文件。
-
-`deliveries/.staging/project-build/<storyId>/progress.generated.json` 是临时、指纹绑定的
-`project-build-progress-v1` 单 attempt 状态，只记录准备、视频、两个 Cover、验证与提升阶段。普通失败
-保留它和同 buildId staging，重试覆盖当前 attempt；成功提升后删除状态并清理空 staging parent。
-它不进入 authoring snapshot 或 current delivery 四文件。
-
-ProductionRun、owner inbox 与 foreground finalize 组成独立 audited production 子系统。它可用于新
-内容创作和过程证据，但它的 state/render-ready/detached delivery 不能反向成为默认 build 依赖。
-
-## Authority graph
+## 2. Authority graph
 
 ```mermaid
-flowchart LR
-    Config["ProducerConfig defaults"] --> Freeze["project:configure"]
-    Freeze --> Story
-    Freeze --> Publish
-    Freeze --> Requirements["ProductionRequirementsFreeze"]
-    Config --> Execution["private-safe narration execution"]
-    Execution --> Dispatch["provider dispatcher"]
-    Dispatch --> Vox["VoxCPM repository adapter"]
-    Dispatch --> Edge["Edge Read Aloud one-shot WebSocket"]
-    Dispatch --> Cloud["SpeechSDK audited direct factories"]
-    Vox --> PCM["canonical PCM / checksum / seal"]
-    Cloud --> PCM
-    Edge --> PCM
-    PCM --> Timing
-    Execution --> Run["ProductionRun manifest"]
-    Story["StorySpec"] --> Timing["SemanticTiming"]
-    Provider["External provider receipt"] --> Import["Project asset import"]
-    Import --> Catalog["ResourceCatalog"]
-    Catalog --> Scene
-    Story --> Publish["PublishingIntent"]
-    Timing --> Scene["Scene assignments/results"]
-    Scene --> Receipts["Owner receipt inbox"]
-    Global["GlobalVisual owner"] --> Receipts
-    Cover["Cover owner"] --> Receipts
-    Receipts --> Finalize["Foreground production:finalize"]
-    Finalize --> Assembly["FinalAssembly"]
-    Assembly --> Plan["ProductionRenderPlan"]
-    Plan --> Ready["ProductionRenderReady"]
-    Story --> Cover
-    Publish --> Delivery["Delivery identity/package"]
-    Cover --> Delivery
-    Ready --> Delivery
-    Catalog --> Attribution["Used asset attribution"]
-    Attribution --> Delivery
-    Delivery --> Intent["RenderLaunchIntent"]
-    Intent --> Spawn["Detached spawn"]
-    Spawn --> Receipt["RenderLaunchReceipt"]
+flowchart TD
+  Inputs[Explicit authoring contracts + selected bytes] --> Revision[ProductionRevision]
+  Revision --> Tasks[ProducerTaskSpec DAG]
+  Tasks --> Plan[ProducerPlan]
+  Plan --> Work[Dirty task workspaces]
+  Plan --> Artifacts[Reused artifacts]
+  Work --> Validator[Fixed validators]
+  Validator --> Artifacts[Artifact Store + attestations]
+  Artifacts --> Converge[Convergence]
+  Converge --> Live[Materialized Project + generated packages]
+  Live --> Delivery[DeliveryBuild]
+  Delivery --> Current[Exact four-file current delivery]
+  Plan -. diagnostics only .-> Attempt[ExecutionAttempt]
 ```
 
-任何 downstream artifact 都绑定 upstream fingerprint；current 输入漂移使其 fail closed，而不是
-被脚本修复或回填。
+ProductionRevision/TaskRevision/ArtifactAttestation/DeliveryBuildId 是内容 identities；ExecutionAttempt 不是。
+Agent chat、child identity、process lifecycle、clock 与 absolute path 都在 authority graph 之外。
 
-## Production state
+## 3. Contract boundaries
 
-ProductionRun 是 append-only ledger 的派生投影：
+- ProductionRevision 只冻结 task inputs；不包含 Agent output、workspace path 或 attempt diagnostic。
+- ProducerTaskSpec 绑定最小 complete input、dependency artifacts、declared read/output set 与 per-kind policy。
+- ProducerPlan 对 artifact inspection 结果做稳定分类；DAG 拒绝 cycle、duplicate 或 unknown dependency。
+- ArtifactAttestation 绑定 exact sorted files、bytes、dependencies 与 validator policy；manifest 最后生成。
+- DeliveryPublish 绑定 DeliveryBuildId、exact repository paths、media facts、checksums 与 publishing projection。
 
-```text
-.producer-runs/<runId>/
-├── run.json
-├── events/
-├── owner-receipts/
-├── owner-results/
-├── scene-results/
-├── global-visual-result.json
-├── artifacts/
-│   ├── agent-write-boundary-project-authoring.generated.json
-│   ├── agent-write-boundary-project-authoring-after-narrative.generated.json
-│   ├── agent-write-boundary-owner-authoring.generated.json
-│   └── agent-write-boundary-cover-authoring-after-render-ready.generated.json
-├── state.generated.json
-└── lock/
-```
+所有 JSON contracts 禁止代码、JSX、动态 module path 或 executable expression。runtime binding 由生成的静态
+TypeScript registry 完成。
 
-只有 foreground finalize 写 event/state、正式 results、registry convergence 与 delivery。运行环境
-原生子 Agent 一 owner 一 child，只写 assignment-owned source，再向固定 inbox 原子发布 ready/failed
-receipt。root 等待所有 child 成功、明确失败或宿主失败终态后只调用一次 finalize；repo 不存 Agent
-lifecycle、identity、task、thread、progress、聊天或 heartbeat。
+## 4. Write ownership
 
-Agent authoring 另有窄 filesystem boundary，不替代 fixed writer contracts，也不是 OS/process sandbox。
-它在生产阶段转换时用 checkpoint/fingerprint 检测已发生的越界漂移并 fail closed。production start 在 scaffold
-后保存 project-authoring 受保护摘要，narrative 完成固定 Registry 等输出后刷新 checkpoint；Scene
-freeze 验证 Root Agent 未修改 current Project 之外的 core、`public/assets/library/` 共享素材或其他 Project，再保存
-assignment-exclusive owner-authoring 摘要。owner receipt 和
-foreground finalize 在中央 result/event/state 写入前复验；private 与 voice profile 只进入 metadata
-摘要，不读取或报告内容。普通受保护 public 文件绑定内容 checksum；current
-`public/projects/<storyId>/` 是 Project-authoring allowlist，仍只应由 fixed asset/configure workflow 写入。
-固定 render-ready 输出完成后刷新为
-Cover-only checkpoint，使补 Cover 与再次 finalize 继续检查其余工作区；固定 Project、Run、Catalog、
-Registry、out、delivery writers 不被当作 Agent authoring。
+| Surface | Writer | Rule |
+| --- | --- | --- |
+| Project authoring inputs | Root authoring Agent / fixed configure-import commands | planning 前可变，受 Project ownership 限制 |
+| `.producer-work/<story>/<taskRevision>` | one assigned child | only declared output set; cannot edit `task.json` or inputs |
+| `.producer-artifacts` | fixed commit adapter | validator recheck + atomic promotion only |
+| materialized Scene/GlobalVisual/Cover roots | fixed materializer | all artifacts present; controlled replace/rollback |
+| generated packages/registry/Composition | fixed convergence | deterministic projection |
+| delivery staging/current | fixed synchronous builder | exact identity, media validation, controlled promotion |
+| `.producer-attempts` | fixed planner/progress adapter | diagnostic only |
 
-当前状态机只接受：production-start → narrative → scene-freeze → waiting-for-owner-results →
-render-ready。finalize 在 required receipt 缺失时于任何 ledger/result/state 写入前返回 incomplete，
-不使用 assignment deadline、heartbeat、timeout 或 retry。
-终态绑定
-`production-render-plan-v5` 与 `production-render-ready-v5`，不包含媒体渲染阶段。render plan
-同时绑定 sealed narration 与其确定性、content-addressed 响度母带。
+private config、voice profiles、shared media、core、other Projects 与 historical data 不属于 Agent task write scope。
 
-Scene authoring 期使用 repository-local `.agents/skills/remotion-best-practices/SKILL.md` router 与
-按需 references，但 AGENTS、assignment、contracts 和 validators 优先。该 Skill 不进入
-ProductionRun、ScenePackage fingerprint、ResourceCatalog 或 render runtime，也不改变 child 的
-exclusive ownership。
+## 5. Task isolation
 
-## External asset boundary
+Scene task reads one complete StoryBeat, its SemanticTiming slice, requirements/readability, Scene brief,
+resource pool and selected resources. GlobalVisual reads Story/Timing/VisualStyle/requirements/brief/resources but
+never Scene output. Cover reads only Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the
+configured Project-local template instance.
 
-Provider-specific receipt 只存在于 `scripts/project-assets/adapters/`。adapter 将当前 Pexels image
-receipt v1 映射为版本化的通用 `ExternalAssetAcquisition` discriminated union；image 已开放，
-video/audio 是独立且当前 fail-closed 的扩展 seam。准入负责路径 containment、regular/no-symlink、
-真实媒体 identity、原子本地化、不可变来源证据和 Project manifest；ResourceCatalog 只暴露
-Project-local `runtime-approved` descriptor。MCP、provider SDK、网络和 credential 不进入 Scene
-owner、foreground finalize、delivery 或 Remotion runtime，远程 URL 永远不是 runtime asset source。
-另有可选 ignored `private/reference-assets/assets.manifest.json`，只暴露用户已人工确认许可、位于
-`public/assets/library/` 的共享音频 `localize-asset` descriptor，并校验 fixed local license evidence。
-这些条目只供 authoring 查询，不能作为 runtime resource 或直接进入 Scene/ProjectSound plan；外部
-audio 的 Project-local import 仍未开放。
+每个 dirty Agent task 一个 runtime-native child；repository 不创建、追踪或保存 child lifecycle。Root 等待
+宿主终态只是 orchestration barrier，ArtifactAttestation 才进入 data plane。
 
-## Composition ownership
+## 6. Artifact Store security
 
-StorySpec v3 把 `narrated-scene` 与 `silent-scene` 作为严格联合。首尾 silent Scene 是普通 StoryBeat，
-通过 SceneAssignment、ScenePackage、RendererRegistry、StoryVisualTrack 与 SoundDesignTrack；
-不存在专用 Intro/Outro package、boundary sound track 或顶层 shell。silent preset 不保存位置 role，
-只绑定视觉意图、音效意图、固定帧数、资源 ID 与 fingerprint，SemanticTiming 按 StoryBeat 顺序把它们
-与 sealed PCM narrated windows 解析为连续全片时间轴。ProducerConfig 的首尾字段只是业务选择；
-`project:configure` 从 `src/remotion/capabilities/scene-templates/` 复制完整源码与资源到 Project-local
-Scene 并冻结 `template-copy` instance。freeze 不回读共享模板，只机械投影 plans，验证冻结 identity、
-复制 checksum、资源与 ScenePackage 绑定后直接写结果；不进入通用 Scene check 或审查；
-共享模板后续变化不会传递到既有 Project。Composition exactly once 提供
-SceneSafeArea、NarrativeCore、CaptionLayer、GlobalVisual background 与 Scene track。Scene renderer
-根透明且只画 current Beat 语义；Renderer 的 `width`/`height` 与绝对坐标始终属于 Composition 完整
-画布坐标系，SceneSafeArea 只按冻结 inset 裁剪而不移动坐标原点，避免居中坐标重复叠加左/上 inset。
-ScenePackage owns Scene 内的音效 contributions，不拥有旁白或字幕。
-Project `sound.json` owns 内容 BGM contribution。两者由同一 SoundDesignTrack 聚合、同一播放器挂载；
-区别只在绝对时间窗口、时长、循环和各自音量。GlobalVisual owns project-local 背景/纹理/装饰/motif，
-不读取 Scene output。`GlobalVisualLayers` 实现统一满足 runtime 的无 Props 组件类型；Composition
-顶层独立解析 GlobalVisual plan/projection 并做 identity 校验。
+Store/workspace paths 只由 strict storyId/task kind/taskRevision schemas 推导，不接收 arbitrary joined path。
+所有 reads 和 commits 要求 containment、regular parents/files、no symlink/special file、exact declared set、
+sorted unique logical paths、size/checksum current。相同 TaskRevision 与不同 bytes 是不可覆盖冲突。
 
-ProjectRegistry 在 bundle 前按固定一级目录生成静态 TypeScript，Composition 用字面量
-`import()` 与 `lazyComponent`；render runtime 不扫描目录或读取动态模块路径。
-Registry 发现只注册显式使用 current StorySpec schema 的 Project；明确的非 current Project
-保留在本地供配置页展示和严格删除，但不读取其旧合同、不进入 runtime import graph。根
-TypeScript 检查同样不枚举 ignored `src/projects/` 或 `out/`，current Project 只经生成 Registry
-进入真实 import graph。
-render-ready 的 compile gate 以 current Project `Composition.tsx` 为唯一 TypeScript root，让编译器
-沿真实 imports 收集依赖，不枚举或阻塞其他 ignored Projects。
+promotion 在目标同父目录准备 staging，完整验证后写 manifest，最后原子 rename。捕获到 replacement failure
+必须恢复上一有效 artifact。Attempt 写入失败不能污染 store。
 
-## Automatic delivery
+## 7. Materialization 与 runtime
 
-Root 在共享 checkout 使用运行环境原生子 Agent 派发 N Scene owner + GlobalVisual + Cover，等待全部
-child 宿主终态后调用一次 foreground `production:finalize`。子 Agent聊天终态不进入数据面；finalize
-只信任 assignment-bound receipt。Cover missing/failed 保留 render-ready 并阻塞 delivery。
+convergence 在任何 live write 前重新计算 Revision、检查全部 required artifacts。Scene/GlobalVisual/Cover roots
+分别 staging 并受控替换；跨 `src`/`public` 操作必须 rollback。物化后重新 hash live exact paths。
 
-每个 Project 只有 `deliveries/<storyId>/` 一个 current delivery slot。slot 内 package 对其 identity
-是 immutable 的，identity 绑定 PublishingIntent、CoverResult、render plan/ready、Composition、
-exact argv、launch policy 与实际使用资源的 attribution fingerprint/checksum；新 identity 通过
-staging backup + promote 受控替换旧 package，不形成
-历史 delivery 目录。manifest 只保存全片 planned frames/fps/duration，不保存实际媒体事实。
-发布章节只对应 narrated Scene，并直接使用 SemanticTiming 的绝对 startFrame。
-`delivery-publishing-v2` 投影发布文本、章节以及 package 内 MP4、4:3 Cover、3:4 Cover 的固定文件名，
-不保存媒体完成状态。
+ScenePackage、Coverage、RendererRegistry、GlobalVisualPackage 与 Composition 是 fixed projection，不由 Agent
+workspace伪造。Composition owns global background, SceneSafeArea, CaptionLayer, narration and sound assembly；
+Scene renderer 保持 transparent/full-frame coordinate system，并只用 Remotion frame API。
 
-intent-before-spawn/receipt-after-spawn 构成 exactly-once boundary。由于进程可能已经启动但 receipt
-write 尚未成功，intent-without-receipt 无法安全判断，必须永久拒绝重试。receipt 只保存 intent
-fingerprint、deliveryId、startedAt 与 spawn acknowledgement policy，不保存 PID 或 exit status。
+## 8. Synchronous delivery
 
-detached adapter 不注册 exit/close listener，不拥有 child lifecycle。delivery check 只验证
-package/intent/receipt；exact planned MP4 path 即使存在也不被读取或解释。
+Delivery builder 在一个 foreground command 内完成 render、probe、EOF decode、publish-last 和 current
+promotion。build-owned staging 允许跨捕获失败复用同 identity 已验证媒体；不同 identity 不混用。
+current directory exact 只允许三份 media 加 `publish.json`，其余文件、symlink、path drift 或 media mismatch
+均 fail closed。
 
-## Filesystem 与安全
+## 9. Progress、删除与历史隔离
 
-- Project、public media、narration work、Run、out、deliveries 是 ignored local production
-  artifacts。
-- bootstrap 从 zero Project 重建 core proof assets、Catalog 与 Registry。
-- delivery staging/target/output 路径逐级拒绝 symlink、escape、unknown entries 和覆盖。
-- protected voice profiles/private config 不被通用扫描、stage 或 commit。
-- `private/producer.config.json` 是权限 `0600` 的 ignored 文件；配置 API 默认只监听 loopback，显式
-  `dev:lan` 才监听可信局域网，并始终要求 Origin/Host 精确同源。完整 token 不写日志、不进
-  localStorage；LAN 端口不得暴露到公网。声线与可选 BGM 预设只接受仓库相对路径。BGM 在
-  `project:configure` 时本地化并冻结；render runtime 只读 Project `sound.json` 和本地资产，不读取 ProducerConfig。
-- 配置页从 `src/projects/` 的 source Project 与 current Run manifest storyId 的并集生成展示列表；
-  `out/`、deliveries 等 output-only 清理目标不进入进度页。主投影读取 build progress、当前 source
-  snapshot 与严格四文件 publish/checksum 状态；最新 current audited Run 是独立折叠的次级投影。
-  API 保持 `/api/production-progress` 路径并 clean-break 使用 schema v3，不兼容或解释旧 Run。
-  删除 API 则继续使用独立的严格 ownership discovery，要求精确同源 JSON 与 Project ID 二次确认，
-  并直接调用同一个 `deleteProjectData`，不复制或弱化 CLI 的预检、目标集合与 Catalog/Registry
-  重建语义。
-- 删除器在移除 Project 源码前先原子发布排除目标 Project 的 Registry，避免本地 Remotion Studio
-  在删除窗口读取到指向已移除 Composition 的旧 import，并终止承载删除 API 的开发进程；若后续
-  删除失败，异常路径会按磁盘真实状态重建 Registry 与 Catalog，不能隐藏仍存在的 Project。
-- `production:start`、`project:configure`、`delivery:build` 与 Project 删除共享 repository operation
-  lock；删除还会独占全部目标 Run writer locks，并在持锁后重读、比较 Project identity 与完整目标集。
-  并发 mutation、active writer 或目标漂移均在第一次 `rm` 前 fail closed。
-- 新 Project 只由 `project:configure` 将 defaults 写入 immutable Project contracts；new Run 将
-  provider-attempt 与 mastering policy 写入 private-safe execution snapshot。narrative application
-  可以为 drift check 重读私密配置，render/delivery runtime 仍只消费 Project/Run immutable inputs。
-- Project deletion proof 只在 `mktemp` 隔离副本运行。
-- 真实作品删除只通过 `project:delete`：一次预检后按 storyId 删除 `src/projects/`、
-  `public/projects/`、`.narration-work/`、`.producer-runs/`、`out/` 与 `deliveries/` 中的全部绑定数据，
-  再重建 Catalog/Registry。一个、多个与全部 Project 使用同一语义；core、其他 Project 和
-  `public/voice_profile/` 永远不属于删除目标。
-- `project:delete` 要求显式 `--confirm-delete`，并在 delivery staging 非空、目标 Run 有 writer
-  lock、路径为 symlink/非目录或指定 storyId 不存在时，于任何删除发生前 fail closed。
-- 删除器不解析旧 Run 的 production contract/state/event；它只从结构有效的 `run.json` 提取严格
-  `runId` 与 `storyId` 所有权。这是清理边界，不是旧 Run runtime compatibility。
+settings 从 source Projects、latest ExecutionAttempt 和 current delivery 投影，不扫描 historical
+`.producer-runs`。删除器是唯一允许读取 legacy manifest ownership 的 current code path；它只提取严格
+storyId/legacy ID 来安全定位删除目标，不解析或迁移旧 state。
 
-## Extension boundary
+Repository operation locks 保护 Project configure/import/delete、artifact/materialization 和 delivery 的互斥
+filesystem transitions；它们不进入 content identity。
 
-新 Scene 能力默认留在 project-local。移入 `src/remotion/capabilities/` 必须先有具体、
-fingerprint-bound promotion proposal，并获得用户对范围、API、文件与目标路径的明确授权。
-`src/remotion/capabilities/scene-templates/` 保存可供新 Project 复制的已批准 Scene template；它不是
-既有 Project 的 runtime dependency。模板 Renderer 不挂载音频；可选 ignored 本地覆盖只在 bootstrap
-由 `scripts/scene-templates/` 独立生成 `scene-template-audio.generated.json` authoring 投影，并在
-`project:configure` 时由 `scripts/projects/application/` 把已校验的
-`localize-asset` 音频及许可证元数据复制进 Project。复制后的片头/片尾声音由 preset 投影为普通
-`SoundContribution`，经 Scene sound runtime 播放。该投影可用
-`scene-template-audio:generate` / `scene-template-audio:check` 独立生成或只读复验；bootstrap 显式
-调用相同生成器，proof asset generator 不拥有该投影。
-Root 的 `System` folder 另行提供 `DefaultIntroPreview` / `DefaultOutroPreview` 演示 Composition；
-预览外壳只消费模板定义与本地 authoring 投影，不进入 Project Registry、ScenePackage 或
-production sound ownership。
+Scene authoring 仍必须使用 repository-local `remotion-best-practices`，但 Skill 不能扩大 TaskSpec 或
+validator boundary。

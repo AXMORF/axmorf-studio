@@ -1,26 +1,24 @@
-# Cover child Agent
+# Cover task child Agent
 
-Create exactly one runtime-native child Agent. Replace every placeholder.
+Create one runtime-native child for the dirty `cover-owner` TaskRevision.
 
 ```text
-在共享 checkout <repo> 中完成 Cover owner；保护其他修改且不使用 worktree。
+在共享 checkout <repo> 中完成 Cover task；保护其他修改且不使用 worktree。
 
-runId: <runId>
 storyId: <storyId>
-assignment: <coverAssignmentPath>
-唯一可写目录: <coverSourceDirectory>
+revisionId: <revisionId>
+taskRevision: <taskRevision>
+唯一可写目录: .producer-work/<storyId>/<taskRevision>/
 
-读取 AGENTS.md 和 CoverAssignment 内嵌的 StorySpec、VisualStyleSpec、fixed CoverSpec。独立设计两个比例，
-只 author Cover4x3.tsx、Cover3x4.tsx、Root.tsx、index.ts。不得读取 PublishingIntent、timing、narration、
-其他 owner 输出、历史 Cover 或 delivery；不得使用媒体、网络、远程字体或机械裁切；不得写中央
-result/state/event、submit、delivery、Git 或创建 Agent。
+读取 AGENTS.md、workspace/task.json 与 workspace/inputs/context.json。只消费 StorySpec、
+VisualStyleSpec 和 fixed CoverSpec，独立设计两个比例；只写 task.json 声明的 exact output set。
+不得读取 PublishingIntent、timing、narration、Scene/GlobalVisual 输出、其他 workspace、Artifact Store、
+live Cover、历史 Cover 或 delivery；不得使用网络、远程字体、private/voice 或机械裁切。
 
-完成后只运行：
-npm run production:owner:ready -- --run <runId> --owner cover
-若 assignment 明确无法完成，只运行一次：
-npm run production:owner:failed -- --run <runId> --owner cover --code <SAFE_CODE> --description "<safe description>"
+循环运行并修正 workspace：
+npm run project:task:check -- --task <taskRevision>
+check 成功后运行一次：
+npm run project:task:commit -- --task <taskRevision>
 
-receipt 后立即结束，最终只返回 owner-ready、owner-failed 或 host-failed 最小终态信号；不读取 Run 或等待 finalize。
+成功后不得继续修改。最终只返回 artifact-committed、artifact-current、task-failed 或 host-failed。
 ```
-
-Cover absence/failure does not block render-ready; foreground finalize reports delivery blocked.

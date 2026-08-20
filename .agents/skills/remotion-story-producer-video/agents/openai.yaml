@@ -1,4 +1,4 @@
 interface:
   display_name: "Remotion Story 视频制作"
-  short_description: "由 Agent 设计内容，以原生子 Agent 创作并前台收敛"
-  default_prompt: "使用 $remotion-story-producer-video，根据我的要求完成叙事与视觉设计，委派原生子 Agent 创作并用固定 finalize 收敛。"
+  short_description: "内容寻址任务规划、子 Agent 创作、同步四文件交付"
+  default_prompt: "使用 $remotion-story-producer-video，根据我的要求规划 ProductionRevision，只委派 dirty Agent tasks，并由固定 converge 同步生成和验证四文件交付。"

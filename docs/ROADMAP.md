@@ -1,68 +1,40 @@
 # Roadmap
 
-> 文档类型：实施顺序与阶段门槛
+> 文档类型：阶段门槛 authority
 >
-> 最后复核：2026-08-16
+> 当前完成事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。
 
-## 已完成基线
+## 当前基线
 
-1. 叙事、sealed narration、SemanticTiming、CaptionCue 与 NarrativeCore。
-2. ScenePackage、ResourceCatalog、RendererRegistry、Coverage 与统一 SoundContribution。
-3. ProjectSoundPlan、GlobalVisual、FinalAssembly、zero-project bootstrap、隔离 deletion matrix 与显式
-   `project:delete` 完整数据清理。
-4. single-writer production orchestration、N Scene + one GlobalVisual 并行 result join。
-5. current-only render plan/render-ready handoff。
-6. independent Cover、non-MP4 delivery package、exactly-once launch intent 与 detached spawn
-   acknowledgement receipt。
-7. assignment-bound owner receipt inbox、运行环境原生子 Agent 一 owner 一 child、root 等待全部 child
-   终态与一次 foreground finalize。
-8. unified private ProducerConfig、同一开发入口下的本地配置控制台、可配置 Scene 留白/合集/TTS
-   语速与目标响度，以及对应 contracts/fingerprints/Skill 路由。
-9. production/delivery 单向脚本分层、窄 shared technical adapters、CLI/use-case 与 owner inbox/output
-   manifest 职责拆分，以及 executable architecture regression。
-10. 配置控制台的 Project 列表、默认 build 六阶段与严格四文件交付主状态、折叠的最新 current
-    audited Run、严格二次确认删除，以及跨 configure/start/delivery/delete 的 repository operation
-    lock 与删除投影恢复。
-11. `scene-package-timeline-v1` 正式 Composition：片头、正文、片尾统一为 StoryBeat、普通
-    SceneAssignment/ScenePackage 与 visual/sound projection；SemanticTiming 统一使用全片帧数。
-12. 全局配置选择普通 reusable Scene template；`project:configure` 复制其源码与资源到新 Project，
-    冻结 Project-local instance identity，production 脚本机械校验并直接 submit，不派发 Agent owner。
-13. build-centric final artifact alignment：可变 Project authoring source、run-independent buildId、可续用
-    staging、同步 Remotion/FFmpeg media gate、最后写 publish 与四文件 current slot 受控替换。
+当前架构基线是单一 Project production 主链：ProductionRevision → content-addressed Task DAG → reusable
+ArtifactAttestation → atomic materialization → synchronous exact four-file delivery。旧执行账本与异步交付不再是
+active runtime authority。
 
-## 当前门槛
+基线门槛包括：
 
-任何继续开发必须保持：
+- identity 不含 attempt/clock/process/absolute path；
+- 一个 Scene/GlobalVisual/Cover dirty task 对应一个 runtime-native child；template task 不派发；
+- Agent 只写 task workspace，fixed commit 重跑 validator；
+- artifact hit 严格复验 exact file set、no-symlink、size/checksum/dependencies/policy；
+- convergence stale/incomplete/drift fail closed 且 materialization 有 rollback；
+- delivery 同步等待和验证 exact four files，current replacement 受控且同 identity no-op；
+- settings 与 progress 不扫描历史 `.producer-runs/`；Project delete 仍能安全清理其 ownership root；
+- zero Project bootstrap/Registry/Catalog/settings 可用。
 
-- 默认交付终态是 `project-build-complete`，且四个 current 文件已经实际校验；
-- ProductionRun/render-ready/foreground finalize/detached delivery 只作为显式 audited production，不阻塞普通 rebuild；
-- intent-before-spawn、receipt-after-spawn、intent-without-receipt-never-retry；
-- spawn acknowledgement 不升级为 render completion；
-- 默认 project build 必须读取、probe、完整 decode 并 checksum 最终 MP4；audited delivery 的旧
-  `delivery:check` 仍只检查 launch package；
-- Cover 独立、foreground finalize 是 production single-writer、Run events append-only；
-- required receipt 缺失时 finalize 无 ledger/state/result 写入并返回稳定 incomplete；
-- root 用原生子 Agent 一 owner 一 child，等待全部 child 宿主终态后只调用一次 finalize；
-- zero Project bootstrap 与隔离 deletion matrix 继续通过。
-- 相同 source snapshot 的失败续建只重做缺失/损坏 artifact，current delivery 在受控提升前保持不动；
-- build identity 不绑定 runId/assignment/receipt，且 source/public asset byte drift 必须 invalidation；
-- silent intro/outro 只从所选 preset 取得固定时长，不伪造 TTS、CaptionCue 或 sealed segment；
-  narrated chunk 仍保持一次 provider request、一次 CaptionCue 与 sealed PCM authority。
-- `template-copy` Scene 不得被 Scene owner 重新创作或发布 receipt；Project-local source/cue 漂移必须
-  fail closed，共享模板或全局选择后续变化不得影响既有 Project。
-- `project:delete` 继续保护 core、其他 Project、private config 与 `public/voice_profile/`，并在
-  writer lock、repository operation lock、非空 delivery staging 或不安全路径出现时于首次删除前
-  fail closed；源码删除前的 Registry 预发布和异常后的磁盘真实状态恢复必须保持。
-- 配置页以 current build/delivery 为主，并只附带最新 current audited Run；不升级为历史任务库、
-  脚本启动器、进程监控或重复 MP4 media probe。
-- 配置页展示 discovery 与删除 discovery 保持分离：前者只接受 source Project/current Run identity，
-  后者继续覆盖全部 Project-owned 清理根。
+## 下一里程碑候选
 
-## 可独立立项的后续工作
+只有在现有 focused、static、host、media 与 E2E gates 保持 Green 后才进入：
 
-- NarrativeCheck 或其他主观审核模型；
-- 用户明确批准后的 capability promotion；
-- 平台发布、账号或网络集成；
-- 用户明确要求的 detached render 观察工具。
+1. 扩展 provider-neutral TTS 配置 UI，同时保持 authored chunk → one provider attempt → canonical PCM 的
+   无隐式 fallback contract。
+2. 为大型 artifact sets 增加只读诊断和容量治理，不改变本地 filesystem authority。
+3. 增加用户显式触发的 delivery export/publishing adapter；上传、账号、网络、密钥是新的独立授权边界。
+4. 基于 fingerprint-bound proposal 和用户逐项授权提升 Project-local capability；不得自动 promotion。
 
-这些都不是当前自动交付合同的一部分，不能通过顺手扩张实现。
+## 不以里程碑名义引入
+
+- compatibility shim、双主链、历史执行数据迁移；
+- 远程 scheduler/database/artifact store；
+- child chat/identity/heartbeat/token persistence；
+- 自动重试、provider fallback、TTS warm-up 或降低 Chromium sandbox；
+- 主观 aesthetic approval 冒充 deterministic acceptance。

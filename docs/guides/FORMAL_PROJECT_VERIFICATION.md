@@ -38,13 +38,13 @@ npm run project:evidence:check -- --project <story-id>
 
 ## 维护规则
 
-- 通用生产入口只放在 `scripts/production/`；
+- 通用生产入口只放在 `scripts/project-production/`，并保持 domain/application/adapters/CLI 分层；
 - 作品专属构建期/验证工具放在 `src/projects/<story-id>/tools/`；
 - synthetic proof 放在 `scripts/proofs/<proof-id>/`；
 - profile 与 adapter 只读取 current Project 合同；不解释、迁移或回填旧 Project artifact；
 - profile 的 `check` 路径只读，不生成音频、不重签批准、不改写正式 evidence。
 - 不把具体 storyId 加回 core、package scripts 或 active 中央 manifest；新增 Project 后由 bootstrap
   重算 Registry/Catalog。删除一个、多个或全部作品时必须使用
-  `npm run project:delete -- ... --confirm-delete`，让 profile、工具、媒体、narration work、Runs、
-  out 与 deliveries 一起消失并重建聚合投影。
+  `npm run project:delete -- ... --confirm-delete`，让 profile、工具、媒体、narration work、workspaces、
+  artifacts、attempts、legacy history、out 与 deliveries 一起消失并重建聚合投影。
 - 不提交 `src/projects/`、`public/` 或当前 Project 集的聚合 Registry/Catalog。

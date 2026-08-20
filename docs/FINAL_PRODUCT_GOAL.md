@@ -1,88 +1,78 @@
 # 最终产品目标
 
-> 文档类型：产品目标权威
+> 文档类型：产品目标 authority
 >
-> 最后复核：2026-08-18
+> 当前实现事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。
 
-## 一句话目标
+## 1. 产品结论
 
-给 Agent 一份完整内容，仓库把它转成可继续编辑的 Remotion Project；此后用一个确定性同步命令
-把同一 authoring source snapshot 原子构建为最终成片、两个比例 Cover 与 `publish.json`。
+Remotion Story Producer 把一份可审计的 Project authoring source 生产为一个 Composition 和一个本地
+current delivery。唯一主链是：
 
-## 成功定义
+1. 冻结 ProductionRevision；
+2. 建立 content-addressed Task DAG；
+3. 复用有效 ArtifactAttestation，只委派 dirty Agent tasks；
+4. fixed convergence 原子物化 current Project；
+5. 同步生成、机械复验并提升 exact four-file delivery。
 
-一次默认交付必须完成：
+ExecutionAttempt 只记录一次执行诊断。它的失败或丢失不拥有产物、不改变 content identity，也不阻止
+后续 attempt 复用已经验证的 artifact。
 
-1. 从统一 ProducerConfig 选择渲染默认值、Scene 边缘留白、一个发布合集与通用 TTS 策略，使用
-   fixed `project:configure` 将其冻结进新 Project，再把内容结构化为 Story、StoryBeat、
-   Agent-authored ttsChunks、RenderSpec 与 PublishingIntent；
-2. 用 sealed PCM 实测生成 SemanticTiming 与 CaptionCue，并生成保持 PCM 格式与 sample count
-   不变的响度母带；
-3. 先查本地 ResourceCatalog；缺少内容时才派发 Scene/GlobalVisual/Cover owner，已有 source 的
-   普通 rebuild 不创建或重放 ProductionRun；
-4. template-copy Scene 继续由配置时复制的 Project-local source 与确定性投影负责，不进入 owner；
-5. `project:build` 机械刷新 ScenePackage/coverage/registry 和生成式 Composition，编译目标 import
-   graph，并冻结不含 runId 的 authoring source snapshot/buildId；
-6. 在同一可续用 staging 内同步渲染 `video.mp4`、`cover-4x3.png`、`cover-3x4.png`，验证资源、路径、
-   TypeScript、codec、声道、尺寸、fps、帧数、checksum 与完整 EOF decode；
-7. 三类媒体都通过后最后生成 `publish.json`，再原子替换 `deliveries/<storyId>/`。失败时上一版不动，
-   同 buildId 重试复用已验证的 staged artifacts。
+## 2. 必须长期保持的产品不变量
 
-默认成功终点是四个实际文件已校验并完成原子提升。平台自动发布仍不在目标内。
+- 一 Story 一个 Composition；一 StoryBeat 一个 meaningId、Scene 和完成后的 ScenePackage。
+- narrated 与 silent Scene 是 discriminated contract；silent Scene 只在时间线首尾且没有 TTS、CaptionCue
+  或 sealed narration segment。
+- Agent-authored `ttsChunks` 不被工具改写；sealed PCM sample measurement 和累计 sample frame 是时间
+  authority。
+- Scene root 透明；Composition 顶层 exactly once owns safe area、captions、narration 和 GlobalVisual。
+- template-copy Scene 是 Project-local immutable instance，由 fixed task 产出，不派发 Agent。
+- Scene、GlobalVisual、Cover authoring 相互隔离。每个 Agent 只写自己的 task workspace。
+- Scene authoring 使用 repository-local `remotion-best-practices`，但 TaskSpec/contracts/validators 始终
+  拥有更高 authority。
+- render runtime 使用静态 registry 和 repository-local media，不调用网络、Agent、Skill、MCP 或目录扫描。
+- private config 和 voice profile 不进入 identity、artifact、日志、UI 或 Git。
 
-## 不可破坏的质量边界
+## 3. 内容寻址生产目标
 
-- 一 Story 一个 Composition；一 StoryBeat 一个 meaningId 和 Scene。
-- ttsChunks 是创作决定，工具不按标点或字符自动拆分。
-- sealed PCM 的累计整数 sample-frame 边界是绝对时间 authority。
-- 每个 Scene owner 使用 repository-local `remotion-best-practices` authoring guidance；仓库
-  assignment、contracts 与 validators 拥有更高 authority。
-- Scene root 透明，只拥有 Beat 语义视觉与音效 contributions；Composition owns safe area、
-  narration、captions 与 GlobalVisual background。
-- captions 只由顶层 CaptionLayer 渲染。
-- SemanticTiming 一次性解析片头、正文与片尾的连续权威窗口；片头片尾默认无旁白和字幕，但可拥有自己的音效 contribution。内容 BGM 只覆盖 narrated Scene 窗口。
-- 配置页为首尾业务位置选择普通 reusable Scene template；新 Project 复制其源码和资源并冻结
-  Project-local instance。production 只确定性投影，验证冻结绑定后直写结果，不进入通用 Scene
-  check/审查，不派发 Agent，也不依赖共享模板。
-- JSON 不包含 JSX、代码、动态模块路径或 executable expression。
-- render runtime 不调用 Agent、Skill、MCP、Git、网络或目录扫描。
-- 所有 render-critical 资产 repository-local、manifest-verified；motion 使用 Remotion frame API。
-- 外部 provider receipt 只能在准入 adapter 边界存在；MCP、网络、SDK、API Key 与远程 asset URL
-  不进入 owner、finalize、delivery 或 Remotion runtime。
-- production state 只由 append-only events、immutable results 与 current fingerprints 投影。
-- Cover 独立于 production state，只消费 StorySpec、VisualStyleSpec 与 fixed CoverSpec。
-- 子 Agent identity/chat/progress/heartbeat 不进入 repository state；assignment-bound receipt 是唯一
-  持久 authority，缺失 receipt 不触发 timeout/retry。
-- Agent direct edits 受两段 frozen boundary 约束：Root authoring 只落 current Project，owner
-  authoring 只落 assignment-exclusive paths；fixed script 的确定性生成不混入 Agent 写入判定。边界以
-  阶段 checkpoint 检测并在推进前 fail closed，不要求 OS 级 sandbox。
-- 全局配置只提供新 Project 默认值；Scene template 在 `project:configure` 时复制，实际合集、可读性、语速与响度策略进入 immutable
-  contracts/fingerprints。Run 开始时再冻结 private-safe narration execution identity；修改配置不能
-  静默改写已封存作品或切换已开始 Run 的 provider、声线、参数、语速和 LUFS。
+ProductionRevision 绑定 Story/Narration/Render/VisualStyle/PublishingIntent、sound、authoring requirements、
+readability、Scene/GlobalVisual briefs、template instances、selected resource bytes、narration generation
+identity 与相关 policy fingerprints。它不含 Agent output 或执行过程。
 
-## 默认原子 build 边界
+每个 ProducerTaskSpec 具有最小 complete input、dependency artifacts、declared read/output set 与 task-kind
+validator version。TaskRevision 只随真正输入变化；单 Scene、Cover、TTS chunk 或 validator 变化应精确
+失效目标 task 与必要 downstream，而不是让无关工作重做。
 
-buildId 只绑定 current authoring source snapshot、Composition/render metadata 与同步 build policy，
-不绑定 runId、assignment 或 receipt。current delivery exactly 包含四个文件；`publish.json` 是最后写入
-的 commit metadata，并绑定三类实际媒体的 repository path、checksum、size 与 media facts。相同
-snapshot 且 current delivery 完整时只读 no-op；源码或 Project-owned 资源任何 byte 变化产生新
-buildId。新 build 只在 staging 全部通过后替换 current slot，失败不破坏上一版。
+ArtifactAttestation 绑定 TaskRevision、dependencies、validator policy 和 exact sorted output manifest。
+Artifact Store 命中必须重新验证路径、文件类型、size 和 checksum。相同 identity/bytes 是 no-op；相同
+identity/different bytes 是确定性冲突。
 
-ProductionRun、owner receipt、一次 foreground `production:finalize` 与 `delivery:build` 是显式 audited production 能力，
-用于缺少内容或需要严格过程证据的场景；它们不是普通 rebuild 前置条件，也不是默认成功定义。
+## 4. 交付目标
 
-## 工程目标
+converge 仅在全部 required artifacts 有效时物化 Project，并在物化后按 attestation 复验 live bytes。
+随后同步生成：
 
-- fresh clone 从 zero Project bootstrap；具体 Project、媒体、narration work、Run、out 和
-  deliveries 均为 ignored production artifacts。
-- core 不依赖具体 storyId，Registry/Catalog 对零 Project 有效。
-- 本地配置控制台列出每个 current Project，以 `project:build` 六阶段和严格四文件 current delivery
-  为主状态；源码与 publish snapshot 不一致时显示待重建，失败时保留上一版有效交付。最新 current
-  audited Run 只作为折叠的可选信息，不迁移旧 Run，也不把 spawn receipt 当作 MP4 完成。
-- 删除矩阵只在隔离副本验证，不删除真实作品。
-- 用户明确授权后，`project:delete` 可按一个、多个或全部 storyId 删除完整本地生产数据并重建
-  Registry/Catalog；配置页只在完整 Project ID 二次确认后复用同一删除器。删除与 Project 配置、
-  production start、project build、audited delivery build 共享 repository operation lock，并在源码消失前先发布安全 Registry；
-  core、其他 Project、private config 与 `public/voice_profile/` 不进入删除集合。
-- 新能力先留 project-local；只有 fingerprint-bound proposal 与用户明确批准后才 promotion。
-- 平台发布、账号、网络、密钥、主观审美 gate 和 detached render monitoring 是独立未来范围。
+```text
+deliveries/<storyId>/video.mp4
+deliveries/<storyId>/cover-4x3.png
+deliveries/<storyId>/cover-3x4.png
+deliveries/<storyId>/publish.json
+```
+
+DeliveryBuildId 绑定 revisionId、artifact set、Composition metadata 与 build policy，不绑定 attempt。
+current delivery 只有在 exact 文件集合、checksums、H.264/AAC/channels、尺寸、fps/frame count、PNG 与 EOF
+decode 全部通过后才替换。相同完整 identity 是只读 no-op。
+
+## 5. 用户体验目标
+
+- settings 列出 current source Projects，展示 Revision、task reused/dirty/blocked、latest attempt diagnostic
+  和 current four-file delivery，不把 output-only 目录伪装成 Project。
+- 局部修改只重做真正 dirty 的创作或媒体；失败后继续不重新消耗已经验证的 TTS/Agent/Render 工作。
+- Project 删除使用完整 storyId 确认并清理该 Project 的全部 ownership roots，同时保护其他 Project、
+  core、shared media、private config 与 voice profiles。
+- 每个完成状态都有机械证据；聊天成功、Agent 自评、文件存在或进程启动都不代表交付完成。
+
+## 6. 非目标
+
+不实现平台上传、账号、远程队列/Artifact Store、常驻 Agent scheduler、child identity 持久化、主观审美
+gate、自动 capability promotion、Docker 或新的 TTS Gateway。

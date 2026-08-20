@@ -1,31 +1,26 @@
-# Review Model
+# Review and acceptance model
 
-> 文档类型：当前检查边界
->
-> 最后复核：2026-08-18
+> 文档类型：操作边界
 
-当前自动流程只使用合同与机械检查，不包含主观审美 gate。检查的职责是证明 identity、结构、
-所有权、确定性和可执行边界，不替用户评价作品质量。
+Current automatic flow 只有机械 acceptance，不把 Agent 自评或主观审美当成完成 authority。
 
-| 检查                     | owner            | 证明内容                                                                  |
-| ------------------------ | ---------------- | ------------------------------------------------------------------------- |
-| AutoCheck                | repository       | narration、timing、registry、Narrative Baseline current                   |
-| Exact-reference evidence | repository       | preview、phase pair、checksum、lineage、license、Renderer binding current |
-| Owner receipt check      | foreground finalize | assignment identity、exclusive output manifest/checksum current        |
-| Scene check              | foreground finalize | assignment-owned source/package 机械有效                               |
-| GlobalVisual check       | foreground finalize | whole-film background package 机械有效                                 |
-| Cover check              | foreground finalize | 两个固定比例 Composition 和 PNG 有效                                   |
-| Render-ready check       | repository       | FinalAssembly、Composition 和 render plan identities current              |
-| Delivery check           | repository       | 非 MP4 package、intent、receipt 与 current inputs 一致                    |
+| Gate | Writer/reader | 证明 |
+| --- | --- | --- |
+| ProductionRevision parse | fixed planner | explicit inputs、selected bytes、policy identities current |
+| Task DAG validation | pure domain | no cycle/duplicate/unknown dependency; stable order |
+| `project:task:check` | read-only fixed validator | workspace exact outputs 满足 task-kind contracts |
+| `project:task:commit` | fixed Artifact Store adapter | check rerun + exact bytes + ArtifactAttestation atomic promotion |
+| artifact inspection | fixed reader | schema/dependency/policy/path/type/size/checksum current |
+| convergence | fixed application | all artifacts present, current revision, rollback-safe materialization |
+| materialized verification | fixed reader | live Project exact bytes match attestations |
+| delivery validation | fixed media/filesystem adapters | exact four files, codec/channel/dimensions/fps/frames/checksum/EOF |
 
-repository-local `remotion-best-practices` 是 Scene authoring guidance，不是新增的审美 gate，也不
-替代 assignment、contracts、validators 或 Scene check。
+Scene exact-reference checks可验证 lineage、license、source graph、phase pairing 与 renderer binding；不输出
+“正常速度可辨识”“审美通过”等 Agent 判断。Scene authoring 仍遵循 repository-local
+`remotion-best-practices`。
 
-Agent 只负责 authoring，不在完成后给自己的 Story 或 exact-reference Scene 打分。exact-reference
-evidence 不包含 reviewer、trait conclusion、recognizable 或自由文本结论；脚本也不据此推断审美质量。
+`project-production-complete` 与 `project-production-current` 都证明本地 current four-file package 完整；
+`producer-plan-ready`、workspace check 成功、child chat 成功或 artifact commit 只证明各自较早阶段。
 
-`delivery-render-started` 只证明 detached child 获得 OS spawn acknowledgement。它不证明 exit
-success、MP4 存在、媒体有效、审美质量或平台发布。
-
-NarrativeCheck、SceneVisualCheck、SceneSoundCheck、人工审美审核和 detached render 观察都必须
-作为独立后续范围明确授权，不能成为 current production/delivery 的隐式 gate。
+NarrativeCheck、SceneVisualCheck、SceneSoundCheck、人工审美审核、平台发布和 capability promotion 都不在
+current automatic acceptance 内，需要新的明确产品合同和用户授权。

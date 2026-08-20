@@ -17,3 +17,9 @@ Project-owned profile/tools/tests、source/media gate 分离、Run-owned Preview
 删除矩阵；计划快照见 `2026-08-07-project-deletability-implementation-plan.md`。其中“不新增
 `project:delete`”是当时批准边界，已被 current
 [`PRODUCTION_WORKFLOW.md`](../../PRODUCTION_WORKFLOW.md#7-作品删除) 的显式用户授权删除入口取代。
+
+2026-08-20 的 Project Revision / Task DAG / Artifact clean-break 计划完成了唯一生产主链切换：
+ProductionRevision、内容寻址 Task DAG、受控 task workspace、ArtifactAttestation、fixed/Agent artifact
+复用、原子 Project 物化与同步 exact 四文件 DeliveryBuild 成为唯一 authority；旧 Run/receipt/boundary、
+render-ready、detached delivery、旧 CLI、旧 Settings 字段和对应 tests 已删除。计划快照见
+`2026-08-20-project-revision-task-dag-clean-break.md`。

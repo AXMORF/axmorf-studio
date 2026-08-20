@@ -108,8 +108,8 @@ ResourceDescriptor
 
 外部可播放媒体与 authoring-only 镜头参考是不同边界。当前 `project:asset:import` 只准入 Pexels
 image receipt v1：校验候选 bytes 后复制到 Project-owned public 路径，把 provider receipt 映射为
-通用 acquisition evidence 和 `runtime-approved` asset descriptor。Scene freeze 后不能补导入，
-Scene/GlobalVisual owner 只消费冻结的本地 Resource ID。video/audio 分支存在于通用合同中，但当前
+通用 acquisition evidence 和 `runtime-approved` asset descriptor。ProductionRevision 建立后不能偷换
+输入；Scene/GlobalVisual tasks 只消费 Revision 绑定的本地 Resource ID。video/audio 分支存在于通用合同中，但当前
 明确 fail closed；Catalog 不把它们伪装成已支持资源。
 
 `video-shotcraft` 等上游库通过 `ExternalReferenceSnapshot` 进入制作期查询面，而不是直接
@@ -136,7 +136,7 @@ GPS 正式资源选择。
 不能从旧 evidence 反推为当前可选资源。真实删除必须通过
 [`project:delete`](../PRODUCTION_WORKFLOW.md#8-作品删除) 清理完整 Project-owned 数据并重建
 Catalog/Registry。历史 GPS 选型只保留在 evidence 中；恢复或新建 Project 时必须从 current
-Catalog、current local assets 和当次冻结 snapshot 重新选择。
+Catalog、current local assets 和当次 ProductionRevision 重新选择。
 
 ## 新能力
 
@@ -147,7 +147,7 @@ Scene renderer 可以调用目录中的共享能力，也可以拆分本地 Shot
 
 ## Scene 并行查询边界
 
-主 Agent 在分发 Scene 任务前冻结同一份 ResourceCatalog snapshot 和允许的
+主 Agent 在分发 Scene 任务前由 planner 绑定同一份 ResourceCatalog snapshot 和允许的
 ExternalReferenceSnapshot。每个 meaningId 子 Agent 只读查询这些快照，把最终视觉/音频
 选择写入自己的 `selected-resources.json`，把 recipe 选择写入
 `shot-recipe-selection.json`；子 Agent 不得修改 Catalog、共享 capability exports、上游

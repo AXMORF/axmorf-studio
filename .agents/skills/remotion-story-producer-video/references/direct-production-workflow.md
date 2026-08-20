@@ -1,66 +1,71 @@
 # Direct production workflow
 
-Agent designs. Scripts freeze; they do not choose creative direction or self-review.
+Agents choose creative direction. Fixed scripts snapshot inputs, validate outputs, commit artifacts,
+materialize current Project source, and synchronously build delivery.
 
-## 1. Design and freeze the Project
+## 1. Author Project inputs
 
-Author a concise brief and causal narrated StoryBeats. ProducerConfig selects optional boundary Scene
-templates; `project:configure` copies them into the Project. Silent Scenes have no TTS, fake text,
-CaptionCue, or sealed segment. Narrated content uses Agent-authored ttsChunks as atomic units. Choose a
-configured `publishingCollections` ID, author `producer-input.json`, then run:
+For a new Project, choose ProducerConfig defaults and optional boundary Scene templates, then run:
 
 ```bash
 npm run project:configure -- --project <storyId> --input src/projects/<storyId>/producer-input.json
 ```
 
-## 2. Produce the narrative baseline
+ProducerConfig copies boundary Scene templates into Project-local immutable instances. Silent StoryBeats
+have no TTS, CaptionCue, or sealed segment. Narrated StoryBeats preserve Agent-authored `ttsChunks` as
+atomic generation units. Author Story, VisualStyleSpec, StoryResourcePool, Scene briefs, and the minimal
+GlobalVisual brief. Import approved resources before planning.
+
+Real project-production preflight, `npm run check`, and `npm run compositions` use host permissions first.
+Sandbox diagnostics cannot establish that VoxCPM is unavailable; do not weaken Chromium sandboxing,
+warm TTS, or add fallback output.
+
+## 2. Plan the current Revision and DAG
 
 ```bash
-npm run production:preflight -- --project <storyId>
-npm run production:start -- --project <storyId>
-npm run production:narrative -- --run <runId>
-npm run production:status -- --run <runId>
+npm run project:produce:plan -- --project <storyId>
 ```
 
-Use host permissions first. Do not reproduce fixed steps, warm TTS, add fallback, or weaken the sandbox.
-Require `baseline-ready`. For implementation changes, run `npm run check` with host permissions and
-`npm run compositions` with host permissions.
+The command loads explicit Project contracts and selected bytes, derives a ProductionRevision, validates
+the Task DAG, rechecks Artifact Store entries, creates workspaces for non-reused tasks, records a diagnostic
+ExecutionAttempt, and returns `dirtyAgentTasks`. An attempt ID, clock, process, and absolute path never enter
+RevisionId, TaskRevision, or ArtifactAttestation identity.
 
-## 3. Design visuals and freeze owners
+Repeated planning with identical inputs must classify valid artifacts as `reused`. Dispatch only dirty
+`scene-owner`, `global-visual-owner`, and `cover-owner` tasks. `scene-template` is a fixed task and is never
+delegated. `templateMeaningIds` and `ownerMeaningIds` remain distinct authoring sources.
 
-From current Story/timing, author VisualStyleSpec, resource choices, Beat-specific Scene briefs, and a
-minimal continuous GlobalVisual brief. Cover remains independent and assignment-derived. Bind copied
-silent Scene briefs exactly to frozen preset visual/sound/resource identities.
+## 3. Delegate dirty Agent tasks
 
-Choose asset-led, code-led, or hybrid; query ResourceCatalog first. Import external images with
-`project:asset:import` before freeze. Only the imported Project-local ID enters plans.
+Use runtime-native child Agents in the shared checkout, one child per TaskRevision. Each child writes only:
+
+```text
+.producer-work/<storyId>/<taskRevision>/
+```
+
+The child reads `task.json` plus `inputs/context.json`, loops the focused read-only check while correcting
+its own output, and commits exactly that artifact:
 
 ```bash
-npm run production:scene:freeze -- --run <runId>
-npm run delivery:cover:freeze -- --project <storyId>
+npm run project:task:check -- --task <taskRevision>
+npm run project:task:commit -- --task <taskRevision>
 ```
 
-Record assignment paths, `templateMeaningIds`, and `ownerMeaningIds`.
-Scripts direct-result templates; do not delegate them.
-Agent write boundary: current Project before freeze; exclusive assignment paths after. Fixed outputs
-are exempt.
+The commit repeats validation and atomically promotes an exact-file-set ArtifactAttestation. Chat success
+is not authority. A new attempt after failure reuses every valid earlier artifact and dispatches only tasks
+still dirty.
 
-## 4. Delegate, wait, and finalize
+## 4. Wait and converge once
 
-Use runtime-native child Agents in the shared checkout: one per `ownerMeaningIds` Scene, one GlobalVisual,
-and one Cover. Each child runs its focused check, publishes exactly one assignment-keyed receipt, and
-returns only a minimal terminal signal. Do not use a user task/thread API or worktrees. Capacity-limited
-batches are allowed, but never combine owners in one child. If child Agents or shared checkout are
-unavailable, fail closed without root inline authoring.
-
-Wait for every dispatched child to reach success, explicit failure, or host failure. Do not inspect owner
-outputs, submit results, read Run progress, or infer receipt authority from chat status. Then invoke exactly
-once, regardless of apparent receipt completeness:
+Wait for all dispatched children to reach committed/current, explicit task failure, or host failure. Then
+invoke exactly once for this orchestration attempt:
 
 ```bash
-npm run production:finalize -- --run <runId>
+npm run project:produce:converge -- --project <storyId> --revision <revisionId>
 ```
 
-`owner-receipts-incomplete`, `agent-write-boundary-violated`, `production-failed`, and
-`render-ready-delivery-blocked` are expected exit-2 JSON outcomes. `delivery-render-started` is exit 0 and proves only detached render spawn acknowledgement.
-Unexpected failures are safe stderr/exit 1. Do not repeat finalize in the same orchestration attempt.
+Converge recomputes the current Revision, rejects stale input, requires all artifacts, materializes exact
+attested bytes with rollback, refreshes generated Project packages/registry/Composition, and synchronously
+builds `video.mp4`, `cover-4x3.png`, `cover-3x4.png`, and `publish.json`. Current delivery is replaced only
+after checksum, codec/channel, dimensions, fps/frame count, PNG, and EOF-decode validation. A matching
+complete delivery returns `project-production-current` without rewriting media.
