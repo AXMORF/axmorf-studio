@@ -16,9 +16,11 @@ flowchart LR
   Plan --> Dirty[Create dirty Agent task workspaces]
   Dirty --> Children[Runtime-native task children]
   Children --> Check[Read-only task check]
-  Check --> Commit[Validator recheck + ArtifactAttestation]
-  Reuse --> Barrier[All required artifacts]
-  Commit --> Barrier
+  Check --> Terminal[Attempt-bound commit or failure event]
+  Terminal -->|failure| Exit[Terminal nonzero exit]
+  Terminal -->|all artifacts| Continue[Fixed continuation]
+  Reuse --> Continue
+  Continue --> Barrier[All required artifacts]
   Barrier --> Materialize[Controlled materialization]
   Materialize --> Derived[Packages + Registry + Composition]
   Derived --> Build[Synchronous media build]
@@ -113,21 +115,27 @@ child 在 workspace 内循环：
 
 ```bash
 npm run project:task:check -- --task <taskRevision>
-npm run project:task:commit -- --task <taskRevision>
+npm run project:task:commit -- --task <taskRevision> --attempt <attemptId>
+npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --kind task|host
 ```
 
 check 只读；commit 必须重跑同一 validator。成功 promotion 使用同父 staging/atomic rename，manifest 最后写，
-并产生 immutable ArtifactAttestation。相同 identity/bytes no-op；冲突绝不覆盖。child chat 仅用于 barrier，
-不进入 repository state。
+并产生 immutable ArtifactAttestation。相同 identity/bytes no-op；冲突绝不覆盖。commit/fail 都写入 exact
+attempt 的机械 task-terminal event；child chat 不参与 barrier，也不进入 repository state。
 
-## 5. Convergence 与物化
+## 5. Fixed continuation、convergence 与物化
 
-Root 等待全部已派发 child 达到 committed/current、明确 task failure 或 host failure 后，在一次编排尝试中
-恰好调用一次：
+Root 派发完全部 dirty tasks 后只启动 prepare 返回的 exact command，然后挂起：
 
 ```bash
-npm run project:produce:converge -- --project <storyId> --revision <revisionId>
+npm run project:produce:continue -- --project <storyId> --revision <revisionId> --attempt <attemptId>
 ```
+
+Root 此后不轮询、读取 child 终态、推理、修复或重试。bounded fixed continuation 首先对 exact attempt
+建立 one-shot atomic claim，然后订阅 immutable event log（不是可失败的 progress projection）。任一 Agent
+terminal failure 立即写失败终态并非零退出，不调用 converge；全部 Agent artifacts committed/current 后内部
+只调用一次 converge。重复 continuation fail closed；六小时总 deadline 内仍缺 terminal 时写
+`producer-continuation-timeout` 后退出。converge 失败原样退出且不重新进入 Root。
 
 converge 只调用 read-only current-plan builder 重算 current inputs；不调用 provider、不创建 workspace 或
 ExecutionAttempt。revision 不同返回 stable stale 结果。任何 required artifact 缺失时，
@@ -162,7 +170,8 @@ settings API 从 `src/projects/` 枚举 source Projects，展示 sourceState、i
 structured explanation，不从错误文案或 task kind 猜 DAG。它不扫描历史执行数据，也不把 `out/` 或
 delivery-only 目录伪装成 Project；raw fingerprint、authoring text、private path/provider body 不对外投影。
 
-若三个 Agent tasks 中两个已 commit、第三个失败，新 prepare 时前两个必须是 reuse，只派发第三个。
+若三个 Agent tasks 中两个已 commit、第三个失败，当前 lifecycle 立即结束。用户另行启动 inspect/prepare 时，
+前两个必须是 reuse，只派发第三个。
 delivery 若在生成 video 后失败，再次 prepare 不重跑已验证 TTS/Agent artifacts，converge 复用已验证 staging
 video，只生成缺失媒体。这不是自动 retry；每次都由显式 inspect/report/prepare 与 content inspection 得出。
 
@@ -184,7 +193,7 @@ legacy data 仅在删除器内部以最小严格 `runId/storyId` parser 判定 o
 
 ## 9. 固定流程故障
 
-Agent workspace validator 失败由同一 child 修正 owning output 并重跑。validator/store/materialization/
-delivery 在 valid input 下失败是 shared system defect：停止、保存脱敏 incident、增加精确 Red、实施最小
-Green、运行 focused/full gates，然后从 current inputs 新建 attempt。不得手改 artifact/current delivery、
-增加 fallback success、自动重试 provider、预热 TTS 或降低 Chromium sandbox。
+Agent workspace validator 失败由同一 child 在宣告终态前修正 owning output 并重跑。任何 child terminal
+failure 或 validator/store/materialization/delivery fixed failure 都立即结束当前 lifecycle。系统缺陷只能在
+用户另行启动的 engineering task 中诊断、Red/Green 和验证，然后再显式创建新 attempt；不得在失败 attempt
+内修复或重试。

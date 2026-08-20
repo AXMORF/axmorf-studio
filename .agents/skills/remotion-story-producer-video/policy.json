@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 12,
-  "policyVersion": "remotion-story-producer-video-policy-v13",
+  "schemaVersion": 13,
+  "policyVersion": "remotion-story-producer-video-policy-v15",
   "rootEndpoints": [
     "project-production-complete",
     "project-production-current"
@@ -11,7 +11,7 @@
     "Inspect before cost",
     "Prepare content-addressed tasks",
     "Delegate dirty Agent tasks",
-    "Wait and converge once",
+    "Hand off to fixed continuation",
     "Preserve production invariants",
     "Classify failure by task owner",
     "Finish with verified delivery"
@@ -30,12 +30,14 @@
     "project:produce:prepare",
     "project:task:check",
     "project:task:commit",
-    "project:produce:converge"
+    "project:task:fail",
+    "project:produce:continue"
   ],
   "invariants": {
     "productionAuthority": "production-revision-task-dag-artifact-attestation",
     "executionAttemptRole": "diagnostics-only",
     "sceneAuthoringOwner": "one-runtime-native-child-per-dirty-scene-task",
+    "rootAgentRole": "dispatch-only-parent",
     "sceneAuthoringSkill": "repository-local-remotion-best-practices",
     "globalVisualAuthoringOwner": "one-runtime-native-child-per-dirty-global-visual-task",
     "coverAuthoringOwner": "one-runtime-native-child-per-dirty-cover-task",
@@ -48,9 +50,15 @@
     "artifactAuthority": "validated-artifact-attestation",
     "artifactReusePolicy": "reuse-valid-content-addressed-artifacts",
     "artifactPromotionPolicy": "validator-only-atomic-promotion",
-    "rootWaitsForAllChildTerminalStates": true,
-    "repositoryMonitorsChildLifecycle": false,
-    "convergePolicy": "exactly-once-after-child-terminal-barrier",
+    "rootWaitsForAllChildTerminalStates": false,
+    "rootPostDispatchParticipation": "none-while-runtime-suspended",
+    "fixedContinuationMonitorsTaskEvents": true,
+    "fixedContinuationClaimPolicy": "one-shot-atomic-exact-attempt",
+    "fixedContinuationEventSource": "immutable-attempt-event-log",
+    "fixedContinuationTimeoutMs": 21600000,
+    "convergePolicy": "fixed-exactly-once-after-all-agent-artifacts",
+    "agentFailurePolicy": "terminal-exit-without-converge",
+    "fixedFailurePolicy": "terminal-exit-without-root-reentry-or-retry",
     "globalVisualReadsSceneOutputs": false,
     "coverReadsOnlyTaskInputs": true,
     "childIdentityPersisted": false,
@@ -68,6 +76,9 @@
     "inline-dirty-task-fallback",
     "root-task-artifact-fabrication",
     "repeat-converge-in-one-attempt",
+    "root-child-status-polling",
+    "root-post-dispatch-reasoning",
+    "root-direct-converge",
     "persist-child-identity",
     "trust-chat-as-artifact-authority",
     "edit-artifact-store-manifest",

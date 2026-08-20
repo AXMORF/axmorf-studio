@@ -64,9 +64,11 @@ import {
   readContainedRegularFile,
 } from "../adapters/project-create-store";
 import {
-  SCENE_TEMPLATE_DEFINITIONS,
+  buildSceneTemplateDefinitions,
   getSceneTemplateDefinition,
+  type SceneTemplateDefinition,
 } from "../../../src/remotion/capabilities/scene-templates/registry";
+import { readCurrentSceneTemplateAudioProjection } from "../../scene-templates/audio-projection";
 
 const CREATION_RECEIPT_PATH = "production/project-create.json" as const;
 export const PENDING_SCENE_AUTHORING_PATH =
@@ -122,15 +124,14 @@ const copyOptionalRegular = async ({
 const copySceneTemplateAuthorities = async ({
   rootDir,
   stagingRoot,
-  enabled,
+  definitions,
 }: {
   readonly rootDir: string;
   readonly stagingRoot: string;
-  readonly enabled: boolean;
+  readonly definitions: readonly SceneTemplateDefinition[];
 }) => {
-  if (!enabled) return;
   const paths = new Set(
-    SCENE_TEMPLATE_DEFINITIONS.flatMap((definition) => [
+    definitions.flatMap((definition) => [
       ...definition.sourceFiles.map(({ sourcePath }) => sourcePath),
       ...definition.assets.map(({ sourcePath }) => sourcePath),
     ]),
@@ -571,11 +572,19 @@ const prepareCreation = async ({
   const projectRoot = `src/projects/${storyId}`;
   const publicRoot = `public/projects/${storyId}`;
   const selectedSceneTemplates = input.sceneTemplates ?? config.sceneDefaults;
+  const templatesEnabled =
+    selectedSceneTemplates.introSceneTemplateId !== null ||
+    selectedSceneTemplates.outroSceneTemplateId !== null;
+  const sceneTemplateAudioProjection = templatesEnabled
+    ? await readCurrentSceneTemplateAudioProjection(rootDir)
+    : null;
   for (const templateId of [
     selectedSceneTemplates.introSceneTemplateId,
     selectedSceneTemplates.outroSceneTemplateId,
   ]) {
-    if (templateId !== null) getSceneTemplateDefinition(templateId);
+    if (templateId !== null) {
+      getSceneTemplateDefinition(templateId, sceneTemplateAudioProjection);
+    }
   }
   await Promise.all([
     mkdir(join(stageRepositoryRoot, projectRoot), { recursive: true }),
@@ -584,9 +593,10 @@ const prepareCreation = async ({
   await copySceneTemplateAuthorities({
     rootDir,
     stagingRoot: stageRepositoryRoot,
-    enabled:
-      selectedSceneTemplates.introSceneTemplateId !== null ||
-      selectedSceneTemplates.outroSceneTemplateId !== null,
+    definitions:
+      sceneTemplateAudioProjection === null
+        ? []
+        : buildSceneTemplateDefinitions(sceneTemplateAudioProjection),
   });
   const initialManifest = buildProjectAssetManifest({
     projectId: storyId,
@@ -609,6 +619,7 @@ const prepareCreation = async ({
     projectId: storyId,
     story: input.story,
     sceneDefaults: selectedSceneTemplates,
+    sceneTemplateAudioProjection: sceneTemplateAudioProjection ?? undefined,
   });
   await commitConfiguredSceneTemplates({
     rootDir: stageRepositoryRoot,

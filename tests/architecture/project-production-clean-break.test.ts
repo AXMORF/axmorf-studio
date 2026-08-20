@@ -46,7 +46,8 @@ test("package exposes only the Revision and Artifact production workflow", async
       "project:produce:prepare",
       "project:task:check",
       "project:task:commit",
-      "project:produce:converge",
+      "project:task:fail",
+      "project:produce:continue",
     ].filter((name) => packageJson.scripts[name] === undefined),
     [],
   );

@@ -2,8 +2,8 @@
 
 > 文档类型：操作指南
 
-Delivery 是 `project:produce:converge` 的同步末段，不是独立第二主链。正常生产不单独调用 render 或 Cover
-命令。
+Delivery 是 fixed continuation 内部 converge 的同步末段，不是独立第二主链。正常生产不由 Root 单独调用
+converge、render 或 Cover 命令。
 
 ## Current package
 
@@ -42,10 +42,10 @@ builder 等待所有子进程完成后验证：
 相同 DeliveryBuildId 的 current package 若全部复验通过，返回 `project-production-current`，不重写任何媒体；
 新 identity 成功提升返回 `project-production-complete`。
 
-## Run through convergence
+## Run through fixed continuation
 
 ```bash
-npm run project:produce:converge -- --project <storyId> --revision <revisionId>
+npm run project:produce:continue -- --project <storyId> --revision <revisionId> --attempt <attemptId>
 ```
 
 只有 plan 返回的 current revisionId 可用。不能在 artifacts incomplete 或 materialized drift 状态下单独触发

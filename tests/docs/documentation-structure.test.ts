@@ -34,3 +34,59 @@ test("documentation separates active authorities, guides, and archived plans", a
     assert.match(source, /归档(?:说明|状态)/u, planFile);
   }
 });
+
+test("active production docs expose dispatch-only Root and fixed continuation", async () => {
+  const rootDir = process.cwd();
+  const operationalPaths = [
+    "README.md",
+    "docs/PRODUCTION_WORKFLOW.md",
+    "docs/guides/LOCAL_DELIVERY.md",
+    "docs/guides/PRODUCTION_ORCHESTRATION.md",
+  ] as const;
+  const authorityPaths = [
+    "docs/ARCHITECTURE.md",
+    "docs/DETERMINISTIC_EXECUTION.md",
+    "docs/FINAL_PRODUCT_GOAL.md",
+    "docs/ITERATION_STATUS.md",
+    "docs/ROADMAP.md",
+    "docs/TERMINOLOGY.md",
+  ] as const;
+  const operational = await Promise.all(
+    operationalPaths.map(async (relativePath) => ({
+      relativePath,
+      source: await readFile(path.join(rootDir, relativePath), "utf8"),
+    })),
+  );
+  const authorities = await Promise.all(
+    authorityPaths.map(async (relativePath) => ({
+      relativePath,
+      source: await readFile(path.join(rootDir, relativePath), "utf8"),
+    })),
+  );
+
+  for (const { relativePath, source } of operational) {
+    assert.match(source, /project:produce:continue/u, relativePath);
+    assert.doesNotMatch(
+      source,
+      /npm run project:produce:converge/u,
+      relativePath,
+    );
+  }
+  for (const { relativePath, source } of authorities) {
+    assert.match(source, /fixed continuation/iu, relativePath);
+    assert.match(
+      source,
+      /(?:atomic|one-shot)[\s\S]{0,40}claim|claim[\s\S]{0,40}(?:atomic|one-shot)/iu,
+      relativePath,
+    );
+    assert.match(source, /六小时|six-hour/iu, relativePath);
+  }
+  const active = [...operational, ...authorities]
+    .map(({ source }) => source)
+    .join("\n");
+  assert.doesNotMatch(
+    active,
+    /Root (?:waits for|supervises)|Root 等待全部|Root 全程监督/iu,
+  );
+  assert.match(active, /immutable (?:task-terminal )?event log/iu);
+});

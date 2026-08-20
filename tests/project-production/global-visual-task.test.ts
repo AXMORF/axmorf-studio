@@ -12,6 +12,7 @@ import {
   NarrationSpecSchema,
   RenderSpecSchema,
   resolveSceneReadabilityPolicy,
+  serializeCanonicalJson,
   StorySpecSchema,
 } from "../../src/contracts";
 import { checkGlobalVisualTask } from "../../scripts/project-production/application/global-visual-task-check";
@@ -39,10 +40,12 @@ void rootStyle;
 
 const buildFixture = ({
   planWidth = 1920,
+  planCompositionId = validRenderSpec.compositionId,
   selectedResources = [],
   source = validSource,
 }: {
   readonly planWidth?: number;
+  readonly planCompositionId?: string;
   readonly selectedResources?: readonly unknown[];
   readonly source?: string;
 } = {}) => {
@@ -59,6 +62,7 @@ const buildFixture = ({
   const catalogFingerprint = sha("a");
   const context = {
     story: { storyId: validStorySpec.storyId },
+    render: RenderSpecSchema.parse(validRenderSpec),
     timing,
     requirements: { readabilityPolicy },
     resourcePool: {
@@ -70,7 +74,7 @@ const buildFixture = ({
     schemaVersion: 1,
     planVersion: "global-visual-plan-v1",
     storyId: validStorySpec.storyId,
-    compositionId: validRenderSpec.compositionId,
+    compositionId: planCompositionId,
     width: planWidth,
     height: validRenderSpec.height,
     fps: timing.fps,
@@ -103,7 +107,7 @@ const createGlobalWorkspace = async ({
   readonly rootDir: string;
   readonly fixture?: ReturnType<typeof buildFixture>;
 }) => {
-  const contextBytes = `${JSON.stringify(fixture.context)}\n`;
+  const contextBytes = `${serializeCanonicalJson(fixture.context)}\n`;
   const task = buildProducerTaskSpec({
     taskKind: "global-visual-owner",
     storyId: validStorySpec.storyId,
@@ -158,7 +162,7 @@ const createGlobalWorkspace = async ({
   return task;
 };
 
-test("GlobalVisual task accepts a current plan, allowlisted resources, and visual-only source", async (context) => {
+test("GlobalVisual task accepts canonical context whose inset key order differs from the parsed plan", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-task-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const task = await createGlobalWorkspace({ rootDir });
@@ -180,6 +184,20 @@ test("GlobalVisual task rejects a valid plan whose dimensions cross the frozen c
   const task = await createGlobalWorkspace({
     rootDir,
     fixture: buildFixture({ planWidth: 1919 }),
+  });
+
+  await assert.rejects(
+    checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+    /plan is stale/u,
+  );
+});
+
+test("GlobalVisual task rejects a plan whose Composition identity crosses RenderSpec", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-composition-boundary-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const task = await createGlobalWorkspace({
+    rootDir,
+    fixture: buildFixture({ planCompositionId: validStorySpec.storyId }),
   });
 
   await assert.rejects(

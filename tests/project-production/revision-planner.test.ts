@@ -201,6 +201,21 @@ test("Scene task revision binds only its meaning-local timing slice", () => {
   assert.notEqual(revisionFor(first, "outro"), revisionFor(second, "outro"));
 });
 
+test("GlobalVisual task revision binds RenderSpec identity", () => {
+  const currentInputs = inputs();
+  const changedInputs = {
+    ...currentInputs,
+    render: { ...currentInputs.render, compositionId: "ChangedComposition" },
+    fingerprints: { ...currentInputs.fingerprints, render: sha("9") },
+  } as Parameters<typeof buildAgentTasks>[0];
+  const revisionFor = (loaded: Parameters<typeof buildAgentTasks>[0]) =>
+    buildAgentTasks(loaded, revisionId).find(
+      ({ task }) => task.taskKind === "global-visual-owner",
+    )?.task.taskRevision;
+
+  assert.notEqual(revisionFor(currentInputs), revisionFor(changedInputs));
+});
+
 test("task-local runtime policies invalidate only the owning branch", () => {
   const currentInputs = inputs();
   const currentOwners = buildAgentTasks(currentInputs, revisionId);

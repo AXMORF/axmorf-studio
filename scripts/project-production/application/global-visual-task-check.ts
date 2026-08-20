@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import {
   GlobalVisualPlanSchema,
+  RenderSpecSchema,
+  SceneReadabilityPolicySchema,
   SelectedResourceRefSchema,
   SemanticTimingSchema,
   StoryIdSchema,
@@ -21,6 +23,7 @@ export const checkGlobalVisualTask = async (input: Parameters<typeof checkProduc
     await readFile(join(checked.workspace, "inputs/context.json"), "utf8"),
   ) as {
     story?: { storyId?: unknown };
+    render?: unknown;
     timing?: unknown;
     requirements?: {
       readabilityPolicy?: {
@@ -35,7 +38,11 @@ export const checkGlobalVisualTask = async (input: Parameters<typeof checkProduc
     };
   };
   const storyId = StoryIdSchema.parse(context.story?.storyId);
+  const render = RenderSpecSchema.parse(context.render);
   const timing = SemanticTimingSchema.parse(context.timing);
+  const readabilityPolicy = SceneReadabilityPolicySchema.parse(
+    context.requirements?.readabilityPolicy,
+  );
   const plan = GlobalVisualPlanSchema.parse(
     JSON.parse(
       await readFile(
@@ -48,14 +55,20 @@ export const checkGlobalVisualTask = async (input: Parameters<typeof checkProduc
     storyId !== checked.task.storyId ||
     timing.storyId !== storyId ||
     plan.storyId !== storyId ||
-    plan.width !== context.requirements?.readabilityPolicy?.width ||
-    plan.height !== context.requirements?.readabilityPolicy?.height ||
+    plan.compositionId !== render.compositionId ||
+    plan.width !== readabilityPolicy.width ||
+    plan.height !== readabilityPolicy.height ||
+    plan.width !== render.width ||
+    plan.height !== render.height ||
     plan.fps !== timing.fps ||
+    plan.fps !== render.fps ||
     plan.durationInFrames !==
       getStoryCompositionDurationInFrames(timing.durationInFrames) ||
     plan.catalogFingerprint !== context.resourcePool?.resourceCatalogFingerprint ||
-    JSON.stringify(plan.captionSafeArea) !==
-      JSON.stringify(context.requirements?.readabilityPolicy?.captionSafeAreaPx)
+    plan.captionSafeArea.top !== readabilityPolicy.captionSafeAreaPx.top ||
+    plan.captionSafeArea.right !== readabilityPolicy.captionSafeAreaPx.right ||
+    plan.captionSafeArea.bottom !== readabilityPolicy.captionSafeAreaPx.bottom ||
+    plan.captionSafeArea.left !== readabilityPolicy.captionSafeAreaPx.left
   ) {
     throw new Error("GlobalVisual plan is stale against task context.");
   }

@@ -13,9 +13,10 @@ The assigned child may correct files only inside
 `project:task:commit`. Do not weaken the validator, change `task.json`, edit inputs, write live Project
 output, or fabricate the artifact manifest. Commit repeats validation and is the only promoter.
 
-A child terminal message does not prove an artifact. If a child fails before commit, a later ExecutionAttempt
-replans current inputs, reuses every valid ArtifactAttestation, and dispatches only remaining dirty tasks.
-Attempt state never invalidates or owns artifact bytes.
+A child terminal message does not prove an artifact. The child must execute its attempt-bound task failure
+command when it cannot complete. Fixed continuation then fails the attempt and exits without convergence or
+Root re-entry. A later, separately user-started ExecutionAttempt may replan current inputs, reuse every valid
+ArtifactAttestation, and dispatch only remaining dirty tasks. Attempt state never invalidates or owns bytes.
 
 ## Fixed-flow defects
 
@@ -23,7 +24,10 @@ Artifact Store inspection/promotion, fixed template preparation, convergence/mat
 ScenePackage/Coverage/RendererRegistry/Composition refresh, and synchronous delivery are fixed flow. With
 valid inputs:
 
-1. Stop the current command; do not skip the gate or hand-edit derived state.
+The production attempt never repairs these defects in place. It exits. In a separate user-started engineering
+task:
+
+1. Diagnose from the failed attempt; do not skip the gate or hand-edit derived state.
 2. Save a redacted incident containing storyId/revisionId/taskRevision where applicable, the safe symptom,
    expected invariant, and containment. Exclude secrets, endpoints, protected contents, and raw provider data.
 3. Add the smallest deterministic Red regression for the shared defect.

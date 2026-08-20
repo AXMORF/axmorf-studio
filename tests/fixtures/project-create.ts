@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 import { writeProducerConfig } from "../../scripts/config/producer-config";
+import { generateSceneTemplateAudioProjection } from "../../scripts/scene-templates/audio-projection";
 
 export const validProjectCreateInput = {
   schemaVersion: 1,
@@ -188,6 +189,7 @@ export const prepareProjectCreateFixture = async () => {
     join(rootDir, "public/assets"),
     { recursive: true },
   );
+  await generateSceneTemplateAudioProjection({ rootDir, mode: "write" });
   await mkdir(join(rootDir, "src/projects"), { recursive: true });
   await mkdir(join(rootDir, "public/projects"), { recursive: true });
   const configPath = join(rootDir, "operator/producer.config.json");

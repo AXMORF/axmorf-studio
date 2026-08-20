@@ -33,8 +33,9 @@ const prepare = async () => {
   await write(
     rootDir,
     rendererPath,
-    `import {ProofShot} from "./shots/ProofShot";
-     const Renderer = ({sceneFrame}: {sceneFrame: number}) => <ProofShot shotFrame={sceneFrame} />;
+    `import type {SceneRendererProps} from "../../../../remotion/runtime/story-visual/types";
+     import {ProofShot} from "./shots/ProofShot";
+     const Renderer = ({sceneFrame}: Pick<SceneRendererProps, "sceneFrame">) => <ProofShot shotFrame={sceneFrame} />;
      export default Renderer;
     `,
   );
@@ -92,6 +93,13 @@ test("registry discovers fixed-depth Renderer only and emits stable literal stat
     assert.equal(first.source.includes("import("), false);
     assert.equal(first.source.includes("ProofShot"), false);
     assert.equal(first.source.includes("modulePath"), false);
+    assert.deepEqual(
+      fixture.graph.files.map(({sourcePath}) => sourcePath),
+      [
+        "src/projects/synthetic-proof/scenes/meaning-one/Renderer.tsx",
+        "src/projects/synthetic-proof/scenes/meaning-one/shots/ProofShot.tsx",
+      ],
+    );
     assert.equal(first.entries.length, 1);
   } finally {
     await rm(fixture.rootDir, { recursive: true, force: true });

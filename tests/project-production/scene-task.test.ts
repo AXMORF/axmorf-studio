@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -24,9 +24,10 @@ const checksum = (value: string) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}` as const;
 
 const rendererSource = `
+import type {SceneRendererProps} from "../../../../remotion/runtime/story-visual/types";
 const SceneBackground = () => <div />;
-const SceneContentFrame = (_props: {children?: unknown; policy: unknown}) => <div />;
-const Renderer = ({readabilityPolicy}: {readabilityPolicy: unknown}) => (
+const SceneContentFrame = (_props: {children?: any; policy: unknown}) => <div />;
+const Renderer = ({readabilityPolicy}: SceneRendererProps & {readabilityPolicy?: unknown}) => (
   <>
     <SceneBackground />
     <SceneContentFrame policy={readabilityPolicy}><div /></SceneContentFrame>
@@ -135,16 +136,7 @@ const createSceneWorkspace = async ({
   await mkdir(join(workspace, "src/generated"), { recursive: true });
   await writeFile(
     join(rootDir, "tsconfig.json"),
-    `${JSON.stringify({
-      compilerOptions: {
-        target: "ES2022",
-        module: "ESNext",
-        moduleResolution: "Bundler",
-        jsx: "preserve",
-        noImplicitAny: false,
-        noEmit: true,
-      },
-    })}\n`,
+    await readFile(join(import.meta.dirname, "../../tsconfig.json"), "utf8"),
   );
   await writeFile(join(workspace, "src/Renderer.tsx"), rendererSource);
   for (const [logicalPath, value] of Object.entries(outputs)) {
@@ -198,5 +190,23 @@ test("Scene task rejects an unresolved Renderer import graph", async (context) =
   await assert.rejects(
     checkSceneTask({ rootDir, taskRevision: task.taskRevision }),
     /Scene task compile failed/u,
+  );
+});
+
+test("Scene task rejects a Renderer that narrows the shared StoryBeat contract", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-component-contract-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const {task, workspace} = await createSceneWorkspace({rootDir});
+  await writeFile(
+    join(workspace, "src/Renderer.tsx"),
+    rendererSource.replace(
+      "({readabilityPolicy}: SceneRendererProps & {readabilityPolicy?: unknown})",
+      '({readabilityPolicy}: {readabilityPolicy: unknown; storyBeat: {kind: "narrated-scene"; ttsChunks: readonly unknown[]}})',
+    ),
+  );
+
+  await assert.rejects(
+    checkSceneTask({rootDir, taskRevision: task.taskRevision}),
+    /Scene task compile failed \(TS2322,/u,
   );
 });

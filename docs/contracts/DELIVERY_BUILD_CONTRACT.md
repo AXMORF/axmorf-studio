@@ -2,7 +2,7 @@
 
 > 文档类型：current contract 说明
 >
-> 最后复核：2026-08-20
+> 最后复核：2026-08-21
 
 同步 `DeliveryBuild` 是唯一最终交付合同。它只消费当前 ProductionRevision、已验证 ArtifactSet、
 Composition metadata、build policy 与 PublishingIntent；不读取或迁移旧 Run、receipt、render-ready 或
@@ -39,6 +39,10 @@ publish/check 任一失败
 `.producer-attempts/<storyId>/<attemptId>/` 只以 immutable base、append-only events 和可重建 progress
 记录 plan/cache/task outcome 与 delivery result。普通失败只保存稳定脱敏 code；Attempt 不进入
 DeliveryBuildId、ArtifactAttestation 或 current delivery authority。
+
+fixed continuation 只在 exact attempt 的全部 Agent task terminal 为 committed/current 后调用一次 delivery 所属
+convergence；它必须先获得 one-shot atomic claim，并从 immutable event log 判定 barrier。任一 failed terminal、
+六小时 missing-terminal timeout 或 fixed failure 都直接结束该 process，不自动 retry，也不重新进入 Root。
 
 配置页只读投影严格解析 publish schema，要求 exact 四文件的真实 file/type/path/size/checksum，并与
 current Revision 比较。轮询不重复 FFmpeg/ffprobe/EOF decode；一致为 current，不一致为 stale，

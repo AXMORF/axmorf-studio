@@ -160,8 +160,46 @@ export const collectRendererSourceGraph = async ({
     if (sourcePath === rendererPath && countDefaultExports(sourceFile) !== 1) {
       throw new Error("Scene Renderer must have exactly one default export.");
     }
+    const typeOnlyRelativeImports = new Set(
+      sourceFile.statements.flatMap((statement) => {
+        if (
+          (!ts.isImportDeclaration(statement) &&
+            !ts.isExportDeclaration(statement)) ||
+          statement.moduleSpecifier === undefined ||
+          !ts.isStringLiteral(statement.moduleSpecifier) ||
+          !statement.moduleSpecifier.text.startsWith(".")
+        ) {
+          return [];
+        }
+        const isTypeOnly = ts.isImportDeclaration(statement)
+          ? statement.importClause?.isTypeOnly === true ||
+            (statement.importClause?.name === undefined &&
+              statement.importClause?.namedBindings !== undefined &&
+              ts.isNamedImports(statement.importClause.namedBindings) &&
+              statement.importClause.namedBindings.elements.every(
+                (element) => element.isTypeOnly,
+              ))
+          : statement.isTypeOnly ||
+            (statement.exportClause !== undefined &&
+              ts.isNamedExports(statement.exportClause) &&
+              statement.exportClause.elements.every(
+                (element) => element.isTypeOnly,
+              ));
+        return isTypeOnly
+          ? [
+              posix.normalize(
+                posix.join(
+                  dirname(sourcePath),
+                  statement.moduleSpecifier.text,
+                ),
+              ),
+            ]
+          : [];
+      }),
+    );
     files.set(sourcePath, bytes);
     for (const relativeImport of guarded.relativeImports) {
+      if (typeOnlyRelativeImports.has(relativeImport)) continue;
       if (
         sourcePath.startsWith("src/remotion/runtime/readability/") &&
         (relativeImport === "src/contracts" ||

@@ -157,6 +157,22 @@ test("prepare alone commits fixed tasks, creates dirty owner workspaces, and ope
   assert.equal(result.status, "project-production-prepared");
   assert.equal(result.attemptId, "00000000-0000-4000-8000-000000000001");
   assert.equal(result.dirtyAgentTasks.length, 1);
+  assert.match(
+    result.dirtyAgentTasks[0]?.commitCommand ?? "",
+    /project:task:commit[\s\S]*--attempt 00000000-0000-4000-8000-000000000001/u,
+  );
+  assert.match(
+    result.dirtyAgentTasks[0]?.taskFailureCommand ?? "",
+    /project:task:fail[\s\S]*--kind task/u,
+  );
+  assert.match(
+    result.continuationCommand,
+    /project:produce:continue[\s\S]*--attempt 00000000-0000-4000-8000-000000000001/u,
+  );
+  assert.equal(
+    result.nextAction,
+    "dispatch-agent-tasks-then-start-fixed-continuation",
+  );
   assert.deepEqual(result.actualCost, {
     providerRequests: 0,
     providerCacheHits: 3,

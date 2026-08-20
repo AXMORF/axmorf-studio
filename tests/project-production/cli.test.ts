@@ -13,7 +13,7 @@ import {
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
-test("project production CLI exposes only inspect, prepare, task check/commit, and converge", async () => {
+test("project production CLI exposes the fixed continuation and task terminal surface", async () => {
   const context = {
     rootDir: process.cwd(),
     stdout: () => undefined,
@@ -29,6 +29,8 @@ test("project production CLI exposes only inspect, prepare, task check/commit, a
     ["prepare"],
     ["task-check"],
     ["task-commit"],
+    ["task-fail"],
+    ["continue"],
     ["converge"],
   ]) {
     await assert.rejects(() => runProjectProductionCli(args, context));
@@ -51,7 +53,8 @@ test("package scripts have one honest create/inspect/prepare production surface 
       prepare: packageJson.scripts["project:produce:prepare"],
       check: packageJson.scripts["project:task:check"],
       commit: packageJson.scripts["project:task:commit"],
-      converge: packageJson.scripts["project:produce:converge"],
+      fail: packageJson.scripts["project:task:fail"],
+      continue: packageJson.scripts["project:produce:continue"],
     },
     {
       create: "node --import tsx scripts/projects/create.ts",
@@ -59,7 +62,8 @@ test("package scripts have one honest create/inspect/prepare production surface 
       prepare: "node --import tsx scripts/project-production/cli.ts prepare",
       check: "node --import tsx scripts/project-production/cli.ts task-check",
       commit: "node --import tsx scripts/project-production/cli.ts task-commit",
-      converge: "node --import tsx scripts/project-production/cli.ts converge",
+      fail: "node --import tsx scripts/project-production/cli.ts task-fail",
+      continue: "node --import tsx scripts/project-production/cli.ts continue",
     },
   );
   for (const removed of [
@@ -81,6 +85,7 @@ test("package scripts have one honest create/inspect/prepare production surface 
     "delivery:build",
     "delivery:check",
     "project:build",
+    "project:produce:converge",
   ]) {
     assert.equal(packageJson.scripts[removed], undefined, removed);
   }
@@ -147,9 +152,7 @@ test("inspect and prepare each emit one stable structured JSON document", async 
       dirtyFixedTaskCount: 0,
       blockedTaskCount: 0,
     },
-    reusedByTaskKind: [
-      { taskKind: "narration-chunk", reusedTaskCount: 2 },
-    ],
+    reusedByTaskKind: [{ taskKind: "narration-chunk", reusedTaskCount: 2 }],
     estimatedCost,
     actualCost: {
       providerRequests: 1,
@@ -167,10 +170,13 @@ test("inspect and prepare each emit one stable structured JSON document", async 
         changedInputs: ["brief"],
         blockedBy: [],
         checkCommand: `npm run project:task:check -- --task ${taskRevision}`,
-        commitCommand: `npm run project:task:commit -- --task ${taskRevision}`,
+        commitCommand: `npm run project:task:commit -- --task ${taskRevision} --attempt 00000000-0000-4000-8000-000000000001`,
+        taskFailureCommand: `npm run project:task:fail -- --task ${taskRevision} --attempt 00000000-0000-4000-8000-000000000001 --kind task`,
+        hostFailureCommand: `npm run project:task:fail -- --task ${taskRevision} --attempt 00000000-0000-4000-8000-000000000001 --kind host`,
       },
     ],
-    nextAction: "dispatch-agent-tasks",
+    continuationCommand: `npm run project:produce:continue -- --project story-example --revision ${revisionId} --attempt 00000000-0000-4000-8000-000000000001`,
+    nextAction: "dispatch-agent-tasks-then-start-fixed-continuation",
   } as const;
   const prepareLines: string[] = [];
   const output = await runProjectProductionCli(
@@ -188,14 +194,17 @@ test("inspect and prepare each emit one stable structured JSON document", async 
   ]);
   assert.deepEqual(prepared.dirtyAgentTasks[0]?.changedInputs, ["brief"]);
   assert.deepEqual(prepared.dirtyAgentTasks[0]?.blockedBy, []);
-  assert.equal(prepared.nextAction, "dispatch-agent-tasks");
+  assert.equal(
+    prepared.nextAction,
+    "dispatch-agent-tasks-then-start-fixed-continuation",
+  );
   assert.doesNotMatch(
     JSON.stringify(prepared),
     /ttsText|provider error|\/private\/|\/fixture\//iu,
   );
 });
 
-test("task-commit never creates a fallback attempt or changes artifact authority", async (context) => {
+test("task-commit binds terminal outcomes to the explicit attempt", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-task-commit-attempt-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const task = buildProducerTaskSpec({
@@ -228,15 +237,25 @@ test("task-commit never creates a fallback attempt or changes artifact authority
     ],
   });
   const readWorkspace = async () => ({ task, workspace: "/unused" });
+  const attemptId = "00000000-0000-4000-8000-000000000001";
+  const outcomes: unknown[] = [];
+  const appendTaskOutcome = async (input: unknown) => {
+    outcomes.push(input);
+    return {} as never;
+  };
   await assert.rejects(
-    runProjectProductionCli(["task-commit", "--task", task.taskRevision], {
-      rootDir,
-      stdout: () => undefined,
-      readWorkspace,
-      commitTaskArtifact: async () => {
-        throw new Error("validator rejected output");
+    runProjectProductionCli(
+      ["task-commit", "--task", task.taskRevision, "--attempt", attemptId],
+      {
+        rootDir,
+        stdout: () => undefined,
+        readWorkspace,
+        appendTaskOutcome: appendTaskOutcome as never,
+        commitTaskArtifact: async () => {
+          throw new Error("validator rejected output");
+        },
       },
-    }),
+    ),
     /validator rejected/u,
   );
   const failed = await readLatestExecutionAttempt({
@@ -246,11 +265,12 @@ test("task-commit never creates a fallback attempt or changes artifact authority
   assert.equal(failed, null);
 
   const output = await runProjectProductionCli(
-    ["task-commit", "--task", task.taskRevision],
+    ["task-commit", "--task", task.taskRevision, "--attempt", attemptId],
     {
       rootDir,
       stdout: () => undefined,
       readWorkspace,
+      appendTaskOutcome: appendTaskOutcome as never,
       commitTaskArtifact: async () => ({
         attestation: artifact,
         reused: false,
@@ -259,10 +279,80 @@ test("task-commit never creates a fallback attempt or changes artifact authority
   );
   assert.ok("attemptRecorded" in output);
   assert.equal(output.status, "producer-artifact-committed");
-  assert.equal(output.attemptRecorded, false);
+  assert.equal(output.attemptRecorded, true);
+  assert.equal(outcomes.length, 2);
   const committed = await readLatestExecutionAttempt({
     rootDir,
     storyId: task.storyId,
   });
   assert.equal(committed, null);
+});
+
+test("task-fail records a safe attempt-bound terminal and continue delegates to fixed code", async () => {
+  const task = buildProducerTaskSpec({
+    taskKind: "cover-owner",
+    storyId: "story-example",
+    semanticId: null,
+    revisionId: `revision-${"5".repeat(64)}`,
+    dependencyArtifacts: [],
+    inputFingerprints: [
+      { id: "read:inputs/context.json", fingerprint: sha("6") },
+    ],
+    declaredReadSet: ["inputs/context.json"],
+    declaredOutputSet: ["public/cover-4x3.png"],
+    validatorPolicyVersion: "cover-owner-validator-v1",
+  });
+  const attemptId = "00000000-0000-4000-8000-000000000002";
+  const recorded: unknown[] = [];
+  const failed = await runProjectProductionCli(
+    [
+      "task-fail",
+      "--task",
+      task.taskRevision,
+      "--attempt",
+      attemptId,
+      "--kind",
+      "host",
+    ],
+    {
+      rootDir: "/fixture",
+      stdout: () => undefined,
+      readWorkspace: (async () => ({ task, workspace: "/unused" })) as never,
+      appendTaskOutcome: (async (input: unknown) => {
+        recorded.push(input);
+        return {} as never;
+      }) as never,
+    },
+  );
+  assert.equal(
+    (failed as { status: string }).status,
+    "producer-task-failure-recorded",
+  );
+  assert.match(JSON.stringify(recorded), /producer-agent-host-failed/u);
+
+  const continued = await runProjectProductionCli(
+    [
+      "continue",
+      "--project",
+      task.storyId,
+      "--revision",
+      task.revisionId,
+      "--attempt",
+      attemptId,
+    ],
+    {
+      rootDir: "/fixture",
+      stdout: () => undefined,
+      continueProduction: (async (input: unknown) => ({
+        status: "project-production-current",
+        ...(input as object),
+      })) as never,
+    },
+  );
+  const continuedOutput = continued as {
+    status: string;
+    attemptId: string;
+  };
+  assert.equal(continuedOutput.status, "project-production-current");
+  assert.equal(continuedOutput.attemptId, attemptId);
 });

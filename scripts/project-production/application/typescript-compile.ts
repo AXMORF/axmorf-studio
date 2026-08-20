@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import ts from "typescript";
 
 type CompileRequest = Readonly<{
@@ -6,6 +6,7 @@ type CompileRequest = Readonly<{
   rootPath: string;
   label: string;
   virtualSource?: string;
+  virtualSources?: Readonly<Record<string, string>>;
 }>;
 
 const diagnosticCodes = (diagnostics: readonly ts.Diagnostic[]) =>
@@ -49,25 +50,54 @@ export const compileTypeScriptImportGraph = (request: CompileRequest) => {
   const rootPath = resolve(request.rootPath);
   const options = readCompilerOptions({ ...request, rootPath });
   const defaultHost = ts.createCompilerHost(options);
-  const virtualSource = request.virtualSource;
-  const isVirtualRoot = (path: string) => resolve(path) === rootPath;
+  if (
+    request.virtualSource !== undefined &&
+    request.virtualSources !== undefined
+  ) {
+    throw new Error("TypeScript compile accepts one virtual source mode.");
+  }
+  const virtualSources = new Map(
+    request.virtualSources === undefined
+      ? request.virtualSource === undefined
+        ? []
+        : [[rootPath, request.virtualSource] as const]
+      : Object.entries(request.virtualSources).map(
+          ([path, source]) => [resolve(path), source] as const,
+        ),
+  );
+  const virtualDirectories = new Set<string>();
+  for (const path of virtualSources.keys()) {
+    let directory = dirname(path);
+    while (!virtualDirectories.has(directory)) {
+      virtualDirectories.add(directory);
+      const parent = dirname(directory);
+      if (parent === directory) break;
+      directory = parent;
+    }
+  }
+  const virtualSourceFor = (path: string) => virtualSources.get(resolve(path));
   const host: ts.CompilerHost =
-    virtualSource === undefined
+    virtualSources.size === 0
       ? defaultHost
       : {
           ...defaultHost,
           fileExists: (path) =>
-            isVirtualRoot(path) || defaultHost.fileExists(path),
+            virtualSourceFor(path) !== undefined || defaultHost.fileExists(path),
+          directoryExists: (path) =>
+            virtualDirectories.has(resolve(path)) ||
+            defaultHost.directoryExists?.(path) === true,
           readFile: (path) =>
-            isVirtualRoot(path) ? virtualSource : defaultHost.readFile(path),
+            virtualSourceFor(path) ?? defaultHost.readFile(path),
           getSourceFile: (fileName, languageVersion, onError, shouldCreate) =>
-            isVirtualRoot(fileName)
+            virtualSourceFor(fileName) !== undefined
               ? ts.createSourceFile(
                   fileName,
-                  virtualSource,
+                  virtualSourceFor(fileName)!,
                   languageVersion,
                   true,
-                  ts.ScriptKind.TSX,
+                  fileName.endsWith(".tsx")
+                    ? ts.ScriptKind.TSX
+                    : ts.ScriptKind.TS,
                 )
               : defaultHost.getSourceFile(
                   fileName,

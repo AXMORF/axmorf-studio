@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   lstat,
   mkdir,
@@ -40,6 +40,10 @@ import type {
   ActualProductionCost,
   EstimatedProductionCost,
 } from "../../../src/contracts/production-inspection";
+import {
+  readOptionalTextFile,
+  writeTextFileAtomic,
+} from "../../shared/atomic-file";
 import { inspectCurrentDelivery } from "./current-delivery-inspection";
 
 const attemptsStorageRoot = (rootDir: string) =>
@@ -185,6 +189,17 @@ const eventPath = (
 ) =>
   join(attemptRoot(rootDir, storyId, attemptId), "events", `${eventId}.json`);
 
+const continuationClaimPath = (
+  rootDir: string,
+  storyId: string,
+  attemptId: string,
+) => join(attemptRoot(rootDir, storyId, attemptId), "continuation.claim.json");
+
+const deterministicEventId = (scope: string) => {
+  const hex = createHash("sha256").update(scope).digest("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+};
+
 const buildOpenedEvent = (attempt: ExecutionAttempt): ExecutionAttemptEvent =>
   ExecutionAttemptEventSchema.parse({
     schemaVersion: 3,
@@ -308,6 +323,11 @@ const projectProgress = ({
   for (const event of events) {
     if (event.recordedAt > updatedAt) updatedAt = event.recordedAt;
     if (event.taskOutcome !== null) {
+      if (outcomes.has(event.taskOutcome.taskRevision)) {
+        throw new Error(
+          "Execution attempt contains duplicate task terminal events.",
+        );
+      }
       outcomes.set(event.taskOutcome.taskRevision, event.taskOutcome);
       if (event.taskOutcome.outcome === "failed") {
         dirty.add(event.taskOutcome.taskRevision);
@@ -316,6 +336,11 @@ const projectProgress = ({
       }
     }
     if (event.deliveryResult !== null) {
+      if (deliveryResult.status !== "not-verified") {
+        throw new Error(
+          "Execution attempt contains duplicate delivery terminal events.",
+        );
+      }
       deliveryResult = event.deliveryResult;
       state =
         event.deliveryResult.status === "verified" ? "succeeded" : "failed";
@@ -483,55 +508,6 @@ export const readExecutionAttempt = async (input: {
     throw new Error("Execution attempt is missing.");
   }
   return progress;
-};
-
-const readLatestActiveAttemptForRevision = async ({
-  rootDir,
-  storyId,
-  revisionId,
-}: {
-  readonly rootDir: string;
-  readonly storyId: string;
-  readonly revisionId: string;
-}) => {
-  if (!(await assertAttemptParents({ rootDir, storyId, create: false }))) {
-    return null;
-  }
-  let entries;
-  try {
-    entries = await readdir(attemptsRoot(rootDir, storyId), {
-      withFileTypes: true,
-    });
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw error;
-  }
-  const candidates: ExecutionAttemptProgress[] = [];
-  for (const entry of entries) {
-    if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
-    try {
-      const progress = await readExecutionAttemptProgress({
-        rootDir,
-        storyId,
-        attemptId: entry.name,
-      });
-      if (
-        progress !== null &&
-        progress.revisionId === revisionId &&
-        progress.state !== "succeeded" &&
-        progress.state !== "failed"
-      ) {
-        candidates.push(progress);
-      }
-    } catch {
-      // Invalid diagnostics are ignored because they are not content authority.
-    }
-  }
-  return (
-    candidates.sort((left, right) =>
-      right.updatedAt.localeCompare(left.updatedAt),
-    )[0] ?? null
-  );
 };
 
 const readCurrentDeliveryBinding = async ({
@@ -741,30 +717,119 @@ const appendEvent = async ({
   ) {
     throw missingAttemptError();
   }
-  await writeCanonicalJson(
-    eventPath(rootDir, progress.storyId, progress.attemptId, event.eventId),
-    event,
-    "wx",
+  const path = eventPath(
+    rootDir,
+    progress.storyId,
+    progress.attemptId,
+    event.eventId,
   );
+  const eventBytes = `${serializeCanonicalJson(event)}\n`;
+  try {
+    await writeTextFileAtomic({
+      destination: path,
+      bytes: eventBytes,
+      mode: "create",
+    });
+  } catch (error) {
+    const existingBytes = await readOptionalTextFile(path);
+    if (existingBytes === null) throw error;
+    const existing = ExecutionAttemptEventSchema.parse(
+      JSON.parse(existingBytes),
+    );
+    assertEventIdentity(existing, progress);
+    const sameTerminal =
+      existing.eventKind === event.eventKind &&
+      serializeCanonicalJson(existing.taskOutcome) ===
+        serializeCanonicalJson(event.taskOutcome) &&
+      serializeCanonicalJson(existing.deliveryResult) ===
+        serializeCanonicalJson(event.deliveryResult);
+    if (!sameTerminal) {
+      throw new Error(
+        event.eventKind === "task-terminal"
+          ? "Execution attempt task terminal is immutable."
+          : "Execution attempt delivery terminal is immutable.",
+        { cause: error },
+      );
+    }
+  }
+
+  // Concurrent terminal writers may project different event snapshots. Keep
+  // refreshing until the written projection covers the complete event set.
   const attempt = await readImmutableAttempt({
     rootDir,
     storyId: progress.storyId,
     attemptId: progress.attemptId,
   });
-  const projected = projectProgress({
-    attempt,
-    events: await readEvents({ rootDir, attempt }),
+  for (;;) {
+    const before = await readEvents({ rootDir, attempt });
+    const projected = projectProgress({ attempt, events: before });
+    await writeProgress({ rootDir, progress: projected });
+    const after = await readEvents({ rootDir, attempt });
+    if (
+      before.length === after.length &&
+      before.every((value, index) => value.eventId === after[index]?.eventId)
+    ) {
+      return projected;
+    }
+  }
+};
+
+export const claimExecutionAttemptContinuation = async ({
+  rootDir,
+  storyId: rawStoryId,
+  revisionId,
+  attemptId,
+}: {
+  readonly rootDir: string;
+  readonly storyId: string;
+  readonly revisionId: string;
+  readonly attemptId: string;
+}) => {
+  const storyId = StoryIdSchema.parse(rawStoryId);
+  const progress = await readExecutionAttemptProgress({
+    rootDir,
+    storyId,
+    attemptId,
   });
-  await writeProgress({ rootDir, progress: projected });
-  return projected;
+  if (progress === null) throw missingAttemptError();
+  if (
+    progress.revisionId !== revisionId ||
+    progress.state === "succeeded" ||
+    progress.state === "failed"
+  ) {
+    throw new Error("Execution attempt is not active continuation authority.");
+  }
+  const claim = {
+    schemaVersion: 1,
+    claimId: randomUUID(),
+    attemptId: progress.attemptId,
+    storyId: progress.storyId,
+    revisionId: progress.revisionId,
+  } as const;
+  const path = continuationClaimPath(rootDir, storyId, attemptId);
+  try {
+    await writeTextFileAtomic({
+      destination: path,
+      bytes: `${serializeCanonicalJson(claim)}\n`,
+      mode: "create",
+    });
+  } catch (error) {
+    if ((await readOptionalTextFile(path)) === null) throw error;
+    throw new Error("Execution attempt continuation is already claimed.", {
+      cause: error,
+    });
+  }
+  return claim;
 };
 
 export const appendExecutionAttemptTaskOutcome = async ({
   rootDir,
+  attemptId,
   task: rawTask,
   outcome: rawOutcome,
 }: {
   readonly rootDir: string;
+  readonly attemptId: string;
   readonly task: ProducerTaskSpec;
   readonly outcome: Omit<
     ExecutionAttemptTaskOutcome,
@@ -777,12 +842,15 @@ export const appendExecutionAttemptTaskOutcome = async ({
     taskKind: task.taskKind,
     ...rawOutcome,
   });
-  const progress = await readLatestActiveAttemptForRevision({
+  const progress = await readExecutionAttemptProgress({
     rootDir,
     storyId: task.storyId,
-    revisionId: task.revisionId,
+    attemptId,
   });
   if (progress === null) throw missingAttemptError();
+  if (progress.revisionId !== task.revisionId) {
+    throw new Error("Execution attempt is not the active task authority.");
+  }
   if (
     !progress.taskSnapshots.some(
       (snapshot) =>
@@ -792,6 +860,18 @@ export const appendExecutionAttemptTaskOutcome = async ({
   ) {
     throw new Error("Execution attempt task outcome is not plan-bound.");
   }
+  const existing = progress.taskOutcomes.find(
+    ({ taskRevision }) => taskRevision === task.taskRevision,
+  );
+  if (existing !== undefined) {
+    if (serializeCanonicalJson(existing) === serializeCanonicalJson(outcome)) {
+      return progress;
+    }
+    throw new Error("Execution attempt task terminal is immutable.");
+  }
+  if (progress.state === "succeeded" || progress.state === "failed") {
+    throw new Error("Execution attempt is not the active task authority.");
+  }
   const recordedAt = new Date().toISOString();
   return appendEvent({
     rootDir,
@@ -799,7 +879,9 @@ export const appendExecutionAttemptTaskOutcome = async ({
     event: ExecutionAttemptEventSchema.parse({
       schemaVersion: 3,
       contractVersion: EXECUTION_ATTEMPT_EVENT_VERSION,
-      eventId: randomUUID(),
+      eventId: deterministicEventId(
+        `${progress.attemptId}:task-terminal:${task.taskRevision}`,
+      ),
       eventKind: "task-terminal",
       recordedAt,
       attemptId: progress.attemptId,
@@ -815,11 +897,13 @@ export const appendExecutionAttemptDeliveryResult = async ({
   rootDir,
   storyId: rawStoryId,
   revisionId,
+  attemptId,
   result: rawResult,
 }: {
   readonly rootDir: string;
   readonly storyId: string;
   readonly revisionId: string;
+  readonly attemptId: string;
   readonly result: Exclude<
     ExecutionAttemptDeliveryResult,
     { readonly status: "not-verified" }
@@ -830,19 +914,34 @@ export const appendExecutionAttemptDeliveryResult = async ({
   if (result.status === "not-verified") {
     throw new Error("A terminal delivery result must be verified or failed.");
   }
-  const progress = await readLatestActiveAttemptForRevision({
+  const progress = await readExecutionAttemptProgress({
     rootDir,
     storyId,
-    revisionId,
+    attemptId,
   });
   if (progress === null) throw missingAttemptError();
+  if (progress.revisionId !== revisionId) {
+    throw new Error("Execution attempt is not the active delivery authority.");
+  }
+  if (progress.deliveryResult.status !== "not-verified") {
+    if (
+      serializeCanonicalJson(progress.deliveryResult) ===
+      serializeCanonicalJson(result)
+    ) {
+      return progress;
+    }
+    throw new Error("Execution attempt delivery terminal is immutable.");
+  }
+  if (progress.state === "succeeded" || progress.state === "failed") {
+    throw new Error("Execution attempt is not the active delivery authority.");
+  }
   return appendEvent({
     rootDir,
     progress,
     event: ExecutionAttemptEventSchema.parse({
       schemaVersion: 3,
       contractVersion: EXECUTION_ATTEMPT_EVENT_VERSION,
-      eventId: randomUUID(),
+      eventId: deterministicEventId(`${progress.attemptId}:delivery-terminal`),
       eventKind: "delivery-terminal",
       recordedAt: new Date().toISOString(),
       attemptId: progress.attemptId,

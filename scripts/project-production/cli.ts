@@ -4,7 +4,7 @@ import { appendExecutionAttemptTaskOutcome } from "./adapters/attempt-store";
 import { readTaskWorkspace } from "./adapters/task-workspace";
 
 import { commitProducerTaskArtifact } from "./application/commit-task-artifact";
-import { convergeProjectProduction } from "./application/converge-artifacts";
+import { continueProjectProduction } from "./application/continue-production";
 import { checkTaskByKind } from "./application/check-task";
 import { inspectProjectProduction } from "./application/inspect-production";
 import { prepareProjectProduction } from "./application/prepare-production";
@@ -16,7 +16,8 @@ type Context = Readonly<{
   readWorkspace?: typeof readTaskWorkspace;
   inspectProduction?: typeof inspectProjectProduction;
   prepareProduction?: typeof prepareProjectProduction;
-  convergeProduction?: typeof convergeProjectProduction;
+  continueProduction?: typeof continueProjectProduction;
+  appendTaskOutcome?: typeof appendExecutionAttemptTaskOutcome;
 }>;
 const defaultContext = (): Context => ({
   rootDir: process.cwd(),
@@ -37,9 +38,12 @@ const option = (args: readonly string[], name: string) => {
 const recordTaskOutcome = async ({
   rootDir,
   task,
+  attemptId,
   outcome,
+  appendTaskOutcome,
 }: {
   readonly rootDir: string;
+  readonly attemptId: string;
   readonly task: ProducerTaskSpec;
   readonly outcome:
     | Readonly<{
@@ -50,17 +54,19 @@ const recordTaskOutcome = async ({
     | Readonly<{
         outcome: "failed";
         artifactFingerprint: null;
-        diagnosticCode: "producer-task-commit-failed";
+        diagnosticCode:
+          | "producer-task-commit-failed"
+          | "producer-agent-task-failed"
+          | "producer-agent-host-failed";
       }>;
-}) => {
-  try {
-    await appendExecutionAttemptTaskOutcome({ rootDir, task, outcome });
-    return true;
-  } catch {
-    // Attempt diagnostics never own or roll back a validated artifact.
-    return false;
-  }
-};
+  readonly appendTaskOutcome?: typeof appendExecutionAttemptTaskOutcome;
+}) =>
+  (appendTaskOutcome ?? appendExecutionAttemptTaskOutcome)({
+    rootDir,
+    attemptId,
+    task,
+    outcome,
+  });
 
 export const runProjectProductionCli = async (
   args: readonly string[],
@@ -101,6 +107,7 @@ export const runProjectProductionCli = async (
   }
   if (command === "task-commit") {
     const taskRevision = option(args, "--task");
+    const attemptId = option(args, "--attempt");
     const readWorkspace = context.readWorkspace ?? readTaskWorkspace;
     const commitTaskArtifact =
       context.commitTaskArtifact ?? commitProducerTaskArtifact;
@@ -114,53 +121,92 @@ export const runProjectProductionCli = async (
         rootDir: context.rootDir,
         taskRevision,
       });
+      if (result.attestation === null) {
+        throw new Error("Committed artifact attestation is missing.");
+      }
     } catch (error) {
       await recordTaskOutcome({
         rootDir: context.rootDir,
+        attemptId,
         task,
         outcome: {
           outcome: "failed",
           artifactFingerprint: null,
           diagnosticCode: "producer-task-commit-failed",
         },
+        appendTaskOutcome: context.appendTaskOutcome,
       });
       throw error;
     }
-    if (result.attestation === null) {
-      throw new Error("Committed artifact attestation is missing.");
-    }
-    const attemptRecorded = await recordTaskOutcome({
+    await recordTaskOutcome({
       rootDir: context.rootDir,
+      attemptId,
       task,
       outcome: {
         outcome: result.reused ? "artifact-current" : "artifact-committed",
         artifactFingerprint: result.attestation.artifactFingerprint,
         diagnosticCode: null,
       },
+      appendTaskOutcome: context.appendTaskOutcome,
     });
     const output = {
       status: result.reused
         ? ("producer-artifact-current" as const)
         : ("producer-artifact-committed" as const),
       artifact: result.attestation,
-      attemptRecorded,
+      attemptRecorded: true,
     };
     context.stdout(JSON.stringify(output));
     return output;
   }
-  if (command === "converge") {
+  if (command === "task-fail") {
+    const taskRevision = option(args, "--task");
+    const attemptId = option(args, "--attempt");
+    const kind = option(args, "--kind");
+    if (kind !== "task" && kind !== "host") {
+      throw new Error("Expected --kind task or host.");
+    }
+    const { task } = await (context.readWorkspace ?? readTaskWorkspace)({
+      rootDir: context.rootDir,
+      taskRevision,
+    });
+    await recordTaskOutcome({
+      rootDir: context.rootDir,
+      attemptId,
+      task,
+      outcome: {
+        outcome: "failed",
+        artifactFingerprint: null,
+        diagnosticCode:
+          kind === "task"
+            ? "producer-agent-task-failed"
+            : "producer-agent-host-failed",
+      },
+      appendTaskOutcome: context.appendTaskOutcome,
+    });
+    const output = {
+      status: "producer-task-failure-recorded" as const,
+      taskRevision,
+      attemptId,
+      kind,
+    };
+    context.stdout(JSON.stringify(output));
+    return output;
+  }
+  if (command === "continue") {
     const result = await (
-      context.convergeProduction ?? convergeProjectProduction
+      context.continueProduction ?? continueProjectProduction
     )({
       rootDir: context.rootDir,
       projectId: option(args, "--project"),
       revisionId: option(args, "--revision"),
+      attemptId: option(args, "--attempt"),
     });
     context.stdout(JSON.stringify(result));
     return result;
   }
   throw new Error(
-    "Expected inspect, prepare, task-check, task-commit, or converge.",
+    "Expected inspect, prepare, task-check, task-commit, task-fail, or continue.",
   );
 };
 

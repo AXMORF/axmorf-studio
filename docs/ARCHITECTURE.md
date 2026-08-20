@@ -85,8 +85,10 @@ resource pool and selected resources. GlobalVisual reads Story/Timing/VisualStyl
 never Scene output. Cover reads only Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the
 configured Project-local template instance.
 
-每个 dirty Agent task 一个 runtime-native child；repository 不创建、追踪或保存 child lifecycle。Root 等待
-宿主终态只是 orchestration barrier，ArtifactAttestation 才进入 data plane。
+每个 dirty Agent task 一个 runtime-native child；repository 不创建或保存 child identity。Root 只负责派发，
+随后挂起在 bounded fixed continuation，且不轮询或推理。continuation 以 one-shot atomic claim 独占 exact
+attempt，只订阅 immutable mechanical task-terminal event log；六小时总 deadline 防止无限等待。
+ArtifactAttestation 才进入 production data plane。
 
 ## 6. Artifact Store security
 

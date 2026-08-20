@@ -127,6 +127,26 @@ export const assertSceneTemplateAudioProjectionCurrent = async ({
   }
 };
 
+export const readCurrentSceneTemplateAudioProjection = async (
+  rootDir: string,
+): Promise<SceneTemplateAudioProjection> => {
+  const bytes = await readOptionalRegularFile(
+    join(rootDir, SCENE_TEMPLATE_AUDIO_PROJECTION_PATH),
+    "Scene template audio projection",
+  );
+  if (bytes === null) {
+    throw new Error("Scene template audio projection is missing; run npm run bootstrap.");
+  }
+  const projection = SceneTemplateAudioProjectionSchema.parse(
+    JSON.parse(bytes.toString("utf8")),
+  );
+  await assertSceneTemplateAudioProjectionCurrent({
+    rootDir,
+    loadedProjection: projection,
+  });
+  return projection;
+};
+
 export const generateSceneTemplateAudioProjection = async ({
   rootDir,
   mode,

@@ -96,13 +96,16 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - prepare 只为未命中有效 artifact 的 Agent 任务创建 `.producer-work/<storyId>/<taskRevision>/`。Root 只派发
   dirty `scene-owner`、`global-visual-owner`、`cover-owner`；相同 Revision 的 valid artifacts 必须复用。
 - Agent child 只写自己的 task workspace，读取 immutable `task.json` 与 `inputs/context.json`，循环运行
-  `project:task:check`，最后调用 `project:task:commit`。commit 必须重跑 validator；只有 fixed validator
-  能把 workspace 原子提升为 ArtifactAttestation。聊天、child status 与 Agent 自评都不是 authority。
+  `project:task:check`，最后调用 prepare 返回的 attempt-bound `project:task:commit` 或 `project:task:fail`。
+  commit 必须重跑 validator；只有 fixed validator 能把 workspace 原子提升为 ArtifactAttestation。聊天、
+  child status 与 Agent 自评都不是 authority。
 - Artifact hit 每次重新验证 contract、task identity、dependencies、validator version、exact sorted file
   set、path containment、regular-file/no-symlink、size 与 checksum；目录存在不代表命中。
-- Root 等待全部已派发 child 到 artifact committed/current、明确 task failure 或 host failure终态，然后
-  在一次编排尝试中恰好调用一次
-  `npm run project:produce:converge -- --project <storyId> --revision <revisionId>`。
+- Root 在派发全部 dirty tasks 后的最后一个生产动作，是启动 prepare 返回的 attempt-bound
+  `project:produce:continue`。此后 Root 挂起，不轮询 child、不读取终态、不推理或修复。fixed continuation
+  必须先获得 one-shot atomic attempt claim，再等待 immutable task-terminal event log；重复 continuation
+  fail closed。任一失败直接终止且不 converge；全部成功才内部恰好调用一次 converge；六小时总 deadline
+  内缺少终态时写 timeout failure 并退出；converge 失败也直接终止，不重新进入 Root。
 - converge 使用只读 current replan，拒绝 stale revision；不调用 provider、不创建 workspace/attempt；全部
   required artifacts 齐全前不得修改 live
   owner roots。物化使用受控 staging/replace/rollback，随后刷新 ScenePackage、Coverage、RendererRegistry、
@@ -153,9 +156,9 @@ contact sheet 或布局。第三方 source/media 分别校验 license/attributio
 ## 故障语义
 
 - Agent-owned workspace 校验失败时，仅原 child 修正 owning paths 并重跑同一 validator；不得降低合同。
-- fixed workflow 在 valid inputs 下失败是系统缺陷：停止当前命令，保存脱敏 incident，Red → minimal
-  shared Green → focused/full verification，再从 current inputs 新建 ExecutionAttempt。已验证 artifact
-  继续复用，失败 attempt 不污染或阻塞它们。
+- fixed workflow 在 valid inputs 下失败是系统缺陷：当前 production lifecycle 立即终止。只有用户另行启动的
+  engineering task 才能保存脱敏 incident，Red → minimal shared Green → focused/full verification；之后再从
+  current inputs 新建 ExecutionAttempt。不得在失败 attempt 内修复或重试。
 - provider、host tool、sandbox、permission 或 authorization failure 是 external blocker；不添加 fallback、
   自动 retry、TTS warm-up 或降低 Chromium sandbox。
 - artifact checksum drift、unknown file、symlink、path escape、identity conflict、stale revision 与

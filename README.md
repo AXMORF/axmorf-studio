@@ -12,6 +12,7 @@ Project source
   → ProductionRevision
   → content-addressed Task DAG
   → reuse valid ArtifactAttestations / dispatch dirty Agent tasks
+  → fixed attempt-bound continuation (Root suspended)
   → fixed convergence and materialization
   → synchronous exact four-file delivery
 ```
@@ -26,6 +27,8 @@ Project source
 - inspection、estimate、baseline、explanation 与 attempt 都只属于 diagnostic plane，不进入或改变任何
   production/artifact/delivery identity 或 authority；
 - template-copy Scenes 由 fixed task 处理，不派发 Agent；
+- Root 派发后不监督、不轮询、不参与成败处理；fixed continuation 以 one-shot atomic claim 独占
+  terminal barrier，并受六小时总 deadline 约束；
 - converge 重新计算 current Revision，全部 artifact 齐全才受控物化 Project；
 - delivery 同步生成并验证 `video.mp4`、两张 PNG Cover 和 `publish.json`，全部通过才替换 current slot；
 - `project-production-complete` 与 `project-production-current` 都表示实际 current four files 已机械复验。
@@ -106,18 +109,21 @@ npm run project:produce:prepare -- --project <story-id>
 
 ```bash
 npm run project:task:check -- --task <task-revision>
-npm run project:task:commit -- --task <task-revision>
+npm run project:task:commit -- --task <task-revision> --attempt <attempt-id>
+npm run project:task:fail -- --task <task-revision> --attempt <attempt-id> --kind task|host
 ```
 
-4. 只在当前任务内等待所有已派发 child 到达 committed/current、明确 task failure 或 host failure；不创建
-watcher/scheduler。一次编排尝试中只调用一次：
+4. 全部派发完成后，Root 的最后一个生产动作是启动 prepare 返回的 exact `continuationCommand`：
 
 ```bash
-npm run project:produce:converge -- --project <story-id> --revision <revision-id>
+npm run project:produce:continue -- --project <story-id> --revision <revision-id> --attempt <attempt-id>
 ```
 
-converge 先只读重算 current Revision/plan，再验证/materialize artifacts、刷新 packages/registry/Composition，
-并同步构建 current delivery；它不调用 provider或创建 workspace/attempt。聊天终态
+此后 Root 挂起且不再轮询、推理、修复或重试。fixed continuation 先原子占用 exact attempt，只读取 immutable
+task-terminal event log；重复 continuation fail closed。任一失败非零退出且不 converge；全部成功才内部调用一次
+converge；六小时内缺少终态会写 timeout failure 后退出；converge 失败同样直接退出。内部 converge 先只读
+重算 current Revision/plan，再验证/materialize artifacts、刷新 packages/registry/Composition，并同步构建
+current delivery；它不调用 provider 或创建 workspace/attempt。聊天终态
 不作 authority；只有 ArtifactAttestation 和验证后的 four-file package 作 authority。详细步骤见
 [生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md) 与
 [本地交付指南](docs/guides/LOCAL_DELIVERY.md)。

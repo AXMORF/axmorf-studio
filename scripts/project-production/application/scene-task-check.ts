@@ -38,11 +38,20 @@ export const checkSceneTask = async (input: Parameters<typeof checkProducerTaskW
     join(checked.workspace, "src/Renderer.tsx"),
     "utf8",
   );
+  const rendererPath = `src/projects/${taskInput.storyId}/scenes/${taskInput.meaningId}/Renderer.tsx`;
+  const contractCheckPath = `src/projects/${taskInput.storyId}/scenes/${taskInput.meaningId}/__scene-task-component-check.tsx`;
   compileTypeScriptImportGraph({
     rootDir: input.rootDir,
-    rootPath: `src/projects/${taskInput.storyId}/scenes/${taskInput.meaningId}/Renderer.tsx`,
+    rootPath: contractCheckPath,
     label: "Scene task compile",
-    virtualSource: rendererSource,
+    virtualSources: {
+      [rendererPath]: rendererSource,
+      [contractCheckPath]: `import Renderer from "./Renderer";
+import type {SceneRendererComponent} from "../../../../remotion/runtime/story-visual/types";
+const renderer: SceneRendererComponent = Renderer;
+void renderer;
+`,
+    },
   });
   const selectedResources = parseSceneSelectedResourcesFile(
     await readJson(join(checked.workspace, "src/selected-resources.json")),

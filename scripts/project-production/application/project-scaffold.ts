@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { StoryIdSchema } from "../../../src/contracts";
+import { Sha256DigestSchema, StoryIdSchema } from "../../../src/contracts";
 import { writeOrCheckRendererRegistry } from "../../renderer-registry/project-files";
 import { writeTextFileAtomic } from "../../shared/atomic-file";
 
@@ -28,11 +28,16 @@ const variableNameFor = (value: string) =>
 const renderProductionSceneRuntimeTemplate = ({
   storyId: rawStoryId,
   meaningIds: rawMeaningIds,
+  runtimeInputFingerprint: rawRuntimeInputFingerprint,
 }: {
   readonly storyId: string;
   readonly meaningIds: readonly string[];
+  readonly runtimeInputFingerprint: string;
 }) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
+  const runtimeInputFingerprint = Sha256DigestSchema.parse(
+    rawRuntimeInputFingerprint,
+  );
   const meaningIds = rawMeaningIds.map((meaningId) =>
     StoryIdSchema.parse(meaningId),
   );
@@ -62,6 +67,7 @@ import ${name}VisualJson from ${JSON.stringify(`${prefix}/visual-plan.json`)}; /
     })
     .join("\n");
   return `// ${PRODUCTION_RENDER_SCAFFOLD_MARKER}
+// runtime-input-fingerprint ${runtimeInputFingerprint}
 import {staticFile} from "remotion";
 import {z} from "zod";
 
@@ -186,7 +192,7 @@ export const productionSoundDesignProjection = buildSoundDesignProjection({
 });
 export const productionRendererPropsByMeaning: Readonly<Record<string, SceneRendererMountProps>> = Object.fromEntries(
   scenes.map((scene) => {
-    if (scene.scenePackage.schemaVersion !== 5 || scene.task.schemaVersion !== 5) throw new Error("Production Scene package is not current.");
+    if (scene.scenePackage.schemaVersion !== 5 || scene.task.schemaVersion !== 6) throw new Error("Production Scene package is not current.");
     const task = scene.task;
     return [task.meaningId, {
     storyId: task.storyId,
@@ -218,12 +224,23 @@ export {currentRegistry as productionRendererRegistry};
 export const renderReadabilityAwareProductionSceneRuntime = (input: {
   readonly storyId: string;
   readonly meaningIds: readonly string[];
+  readonly runtimeInputFingerprint: string;
 }) => renderProductionSceneRuntimeTemplate(input);
 
-export const renderProjectAuthoringBuildScaffold = ({ storyId: rawStoryId }: { readonly storyId: string }) => {
+export const renderProjectAuthoringBuildScaffold = ({
+  storyId: rawStoryId,
+  runtimeInputFingerprint: rawRuntimeInputFingerprint,
+}: {
+  readonly storyId: string;
+  readonly runtimeInputFingerprint: string;
+}) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
+  const runtimeInputFingerprint = Sha256DigestSchema.parse(
+    rawRuntimeInputFingerprint,
+  );
   const componentName = componentNameFor(storyId);
   return `// @generated-by project-revision-artifact-v1
+// runtime-input-fingerprint ${runtimeInputFingerprint}
 import type {FC} from "react";
 import {staticFile} from "remotion";
 import {AuthoringRequirementsSchema, GlobalVisualPlanSchema, getStoryCompositionDurationInFrames, MasteredNarrationManifestSchema, parseNarrativeProjectSource, SealedNarrationManifestSchema, SemanticTimingSchema, StoryCompositionPropsSchema, validateNarrativeArtifactBundle, type StoryCompositionProps} from "../../contracts";
@@ -266,15 +283,15 @@ export default ${componentName};
 `;
 };
 
-export const ensureProjectAuthoringBuildScaffold = async ({ rootDir, storyId, meaningIds, mode }: {
-  readonly rootDir: string; readonly storyId: string; readonly meaningIds: readonly string[]; readonly mode: "write" | "check";
+export const ensureProjectAuthoringBuildScaffold = async ({ rootDir, storyId, meaningIds, runtimeInputFingerprint, mode }: {
+  readonly rootDir: string; readonly storyId: string; readonly meaningIds: readonly string[]; readonly runtimeInputFingerprint: string; readonly mode: "write" | "check";
 }) => {
   const projectRoot = join(rootDir, "src/projects", StoryIdSchema.parse(storyId));
   const runtimeDestination = join(projectRoot, "production-scene-runtime.generated.ts");
-  const runtimeSource = renderReadabilityAwareProductionSceneRuntime({ storyId, meaningIds });
+  const runtimeSource = renderReadabilityAwareProductionSceneRuntime({ storyId, meaningIds, runtimeInputFingerprint });
   await writeOrCheckRendererRegistry({ destination: runtimeDestination, source: runtimeSource, mode });
   const destination = join(projectRoot, "Composition.tsx");
-  const expected = renderProjectAuthoringBuildScaffold({ storyId });
+  const expected = renderProjectAuthoringBuildScaffold({ storyId, runtimeInputFingerprint });
   if (mode === "check") {
     if ((await readFile(destination, "utf8")) !== expected) throw new Error("Project Composition bytes are stale.");
     return { destination, runtimeDestination, source: expected } as const;

@@ -2,8 +2,8 @@
 
 > 文档类型：操作指南
 
-Root 负责 authoring、inspect-and-report、explicit prepare、dirty-only delegation、当前任务内的 child terminal
-barrier 和一次 converge。repository 不创建或监控 Agent；聊天不持久化，ArtifactAttestation 才是 authority。
+Root 只负责 authoring、inspect-and-report、explicit prepare 与 dirty-only delegation。派发后 Root 挂起，
+attempt-bound fixed continuation 独占 child terminal barrier 和单次 converge；聊天不持久化，也不是 authority。
 
 ## 1. Inspect and report before cost
 
@@ -41,28 +41,35 @@ production inputs ready 时保存 `attemptId`、`revisionId`、summary、estimat
 child，共享当前 checkout，不使用 worktree。`scene-template` 与 narration/convergence/delivery fixed tasks
 不创建 child。
 
-每个 child prompt 必须包含 storyId、revisionId、taskRevision、唯一 workspace、必读 Skill/reference、
-focused check 和 commit command。Scene child 完整读取 repository-local `remotion-best-practices`。
+每个 child prompt 必须包含 storyId、revisionId、taskRevision、attemptId、唯一 workspace、必读 Skill/reference、
+focused check 和 prepare 返回的 commit/failure commands。Scene child 完整读取 repository-local
+`remotion-best-practices`。
 
 child 只能在自己的 workspace 循环：
 
 ```bash
 npm run project:task:check -- --task <taskRevision>
-npm run project:task:commit -- --task <taskRevision>
+npm run project:task:commit -- --task <taskRevision> --attempt <attemptId>
+npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --kind task|host
 ```
 
-check 是只读；commit 重跑同一 validator。校验失败由同一 child 修正 workspace 后重跑，不把失败状态当
-控制流。commit 成功后 child 停止写入，只返回 artifact-committed/artifact-current；明确不能完成返回
-task-failed，宿主失败返回 host-failed。Root 不读取其他 child workspace、不代 commit、不内联替代 dirty task。
+check 是只读；commit 重跑同一 validator。校验失败由同一 child 在宣告终态前修正 workspace 后重跑。
+commit 成功或 failure event 写入后 child 立即结束，不等待或通知 Root。Root 不读取 child workspace、
+不代 commit、不内联替代 dirty task。
 
-## 4. Wait, then converge once
+## 4. Hand off to fixed continuation
 
-只在当前任务内等待全部已派发 child 到达 committed/current、明确 task failure 或 host failure；不创建常驻
-Agent、watcher 或 scheduler。无论聊天暗示 artifact 是否齐全，一次编排尝试只运行一次：
+全部派发后，Root 的最后一个生产动作是启动 prepare 返回的 exact `continuationCommand`：
 
 ```bash
-npm run project:produce:converge -- --project <storyId> --revision <revisionId>
+npm run project:produce:continue -- --project <storyId> --revision <revisionId> --attempt <attemptId>
 ```
+
+这是 bounded fixed process，不是常驻 Agent/scheduler。它先对 exact attempt 原子创建 one-shot claim，再监听
+immutable event log；重复启动 fail closed，不依赖 `progress.generated.json` 通知。它保持宿主任务运行；Root
+同时挂起，不轮询、推理或消耗 token 监督。任一 child failure 直接终止且不 converge；全部成功才内部
+converge 一次；六小时总 deadline 内缺 terminal 会写 timeout failure；fixed failure 直接退出，不重试或
+重新进入 Root。
 
 converge 使用 read-only current replan 检查 Revision 与 Artifact Store；不调用 provider、不创建 workspace 或
 new attempt。stale revision 或 incomplete artifacts 在任何 live mutation 前返回；不信任聊天。齐全后 fixed

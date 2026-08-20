@@ -27,6 +27,7 @@ import type { TaskDecisionExplanation } from "../../src/contracts/production-ins
 import {
   appendExecutionAttemptDeliveryResult,
   appendExecutionAttemptTaskOutcome,
+  claimExecutionAttemptContinuation,
   createExecutionAttemptForPlan,
   readExecutionAttempt,
   readExecutionAttemptDiagnosticBaseline,
@@ -190,6 +191,7 @@ test("task and delivery terminal events rebuild progress without mutating attemp
 
   await appendExecutionAttemptTaskOutcome({
     rootDir,
+    attemptId: attempt.attemptId,
     task,
     outcome: {
       outcome: "artifact-committed",
@@ -197,10 +199,35 @@ test("task and delivery terminal events rebuild progress without mutating attemp
       diagnosticCode: null,
     },
   });
+  const idempotent = await appendExecutionAttemptTaskOutcome({
+    rootDir,
+    attemptId: attempt.attemptId,
+    task,
+    outcome: {
+      outcome: "artifact-committed",
+      artifactFingerprint: sha("5"),
+      diagnosticCode: null,
+    },
+  });
+  assert.equal(idempotent.eventCount, 2);
+  await assert.rejects(
+    appendExecutionAttemptTaskOutcome({
+      rootDir,
+      attemptId: attempt.attemptId,
+      task,
+      outcome: {
+        outcome: "failed",
+        artifactFingerprint: null,
+        diagnosticCode: "producer-agent-task-failed",
+      },
+    }),
+    /task terminal is immutable/u,
+  );
   await appendExecutionAttemptDeliveryResult({
     rootDir,
     storyId: attempt.storyId,
     revisionId: attempt.revisionId,
+    attemptId: attempt.attemptId,
     result: {
       status: "verified",
       deliveryBuildId: `delivery-${"6".repeat(64)}`,
@@ -235,12 +262,128 @@ test("task and delivery terminal events rebuild progress without mutating attemp
   ]);
 });
 
+test("one attempt continuation claim wins atomically", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-claim-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const attempt = await openAttempt(rootDir);
+  const input = {
+    rootDir,
+    storyId: attempt.storyId,
+    revisionId: attempt.revisionId,
+    attemptId: attempt.attemptId,
+  } as const;
+
+  const results = await Promise.allSettled([
+    claimExecutionAttemptContinuation(input),
+    claimExecutionAttemptContinuation(input),
+  ]);
+
+  assert.equal(
+    results.filter(({ status }) => status === "fulfilled").length,
+    1,
+  );
+  const rejected = results.find(({ status }) => status === "rejected");
+  assert.equal(rejected?.status, "rejected");
+  if (rejected?.status === "rejected") {
+    assert.match(String(rejected.reason), /continuation is already claimed/u);
+  }
+});
+
+test("concurrent conflicting task terminals preserve one immutable outcome", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-task-race-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const attempt = await openAttempt(rootDir);
+
+  const results = await Promise.allSettled([
+    appendExecutionAttemptTaskOutcome({
+      rootDir,
+      attemptId: attempt.attemptId,
+      task,
+      outcome: {
+        outcome: "artifact-committed",
+        artifactFingerprint: sha("5"),
+        diagnosticCode: null,
+      },
+    }),
+    appendExecutionAttemptTaskOutcome({
+      rootDir,
+      attemptId: attempt.attemptId,
+      task,
+      outcome: {
+        outcome: "failed",
+        artifactFingerprint: null,
+        diagnosticCode: "producer-agent-task-failed",
+      },
+    }),
+  ]);
+
+  assert.equal(
+    results.filter(({ status }) => status === "fulfilled").length,
+    1,
+  );
+  assert.equal(results.filter(({ status }) => status === "rejected").length, 1);
+  const progress = await readExecutionAttemptProgress({
+    rootDir,
+    storyId: attempt.storyId,
+    attemptId: attempt.attemptId,
+  });
+  assert.equal(progress?.taskOutcomes.length, 1);
+  assert.equal(progress?.eventCount, 2);
+});
+
+test("concurrent conflicting delivery terminals preserve one immutable result", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-delivery-race-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const attempt = await openAttempt(rootDir);
+
+  const results = await Promise.allSettled([
+    appendExecutionAttemptDeliveryResult({
+      rootDir,
+      storyId: attempt.storyId,
+      revisionId: attempt.revisionId,
+      attemptId: attempt.attemptId,
+      result: {
+        status: "verified",
+        deliveryBuildId: `delivery-${"6".repeat(64)}`,
+        diagnosticCode: null,
+        deliveryMedia: ["video", "cover-4x3", "cover-3x4"],
+      },
+    }),
+    appendExecutionAttemptDeliveryResult({
+      rootDir,
+      storyId: attempt.storyId,
+      revisionId: attempt.revisionId,
+      attemptId: attempt.attemptId,
+      result: {
+        status: "failed",
+        deliveryBuildId: null,
+        diagnosticCode: "delivery-render-failed",
+        deliveryMedia: [],
+      },
+    }),
+  ]);
+
+  assert.equal(
+    results.filter(({ status }) => status === "fulfilled").length,
+    1,
+  );
+  assert.equal(results.filter(({ status }) => status === "rejected").length, 1);
+  const progress = await readExecutionAttemptProgress({
+    rootDir,
+    storyId: attempt.storyId,
+    attemptId: attempt.attemptId,
+  });
+  assert.notEqual(progress?.deliveryResult.status, "not-verified");
+  assert.equal(progress?.eventCount, 2);
+});
+
 test("terminal diagnostics never create an attempt implicitly", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-no-fallback-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   await assert.rejects(
     appendExecutionAttemptTaskOutcome({
       rootDir,
+      attemptId: "00000000-0000-4000-8000-000000000001",
       task,
       outcome: {
         outcome: "failed",
@@ -255,6 +398,7 @@ test("terminal diagnostics never create an attempt implicitly", async (context) 
       rootDir,
       storyId: task.storyId,
       revisionId: task.revisionId,
+      attemptId: "00000000-0000-4000-8000-000000000001",
       result: {
         status: "failed",
         deliveryBuildId: null,
@@ -386,6 +530,7 @@ test("baseline prefers current-delivery succeeded attempt over newer failed diag
     rootDir,
     storyId: succeeded.storyId,
     revisionId: succeeded.revisionId,
+    attemptId: succeeded.attemptId,
     result: {
       status: "verified",
       deliveryBuildId: buildId,
@@ -398,6 +543,7 @@ test("baseline prefers current-delivery succeeded attempt over newer failed diag
     rootDir,
     storyId: failed.storyId,
     revisionId: failed.revisionId,
+    attemptId: failed.attemptId,
     result: {
       status: "failed",
       deliveryBuildId: null,
@@ -456,6 +602,7 @@ test("matching delivery checksums cannot make invalid media the current diagnost
     rootDir,
     storyId: succeeded.storyId,
     revisionId: succeeded.revisionId,
+    attemptId: succeeded.attemptId,
     result: {
       status: "verified",
       deliveryBuildId: buildId,

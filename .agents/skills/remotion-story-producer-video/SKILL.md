@@ -1,72 +1,60 @@
 ---
 name: remotion-story-producer-video
-description: Plan, delegate, converge, and synchronously deliver a content-addressed Remotion Story production.
+description: Plan and dispatch a content-addressed Remotion Story production, then hand its terminal lifecycle to a fixed continuation.
 ---
 
 # Remotion Story Producer Video
 
 ## Create the Project when needed
 
-Preserve unrelated changes. Read [policy](policy.json),
-[the direct workflow](references/direct-production-workflow.md), and
-[Producer config](references/producer-config.md) for a new Project. After the target Project and authored
-inputs are decided, `project:create` atomically creates configured authoring without provider, media,
-workspace, artifact, attempt, or delivery work. Do not encode a natural-language new-versus-existing
-decision; edit current authoring inputs for an existing Project.
+For a new Project read [policy](policy.json), [workflow](references/direct-production-workflow.md), and
+[Producer config](references/producer-config.md). Report boundary Scenes as inherited, selected, or disabled.
+User silence means inheritance: omit `sceneTemplates`, never infer `null`. Use `project:create` for new authoring;
+edit inputs for an existing Project. Preserve unrelated changes.
 
 ## Inspect before cost
 
-Run `project:produce:inspect`. It is strictly read-only and makes zero provider calls. Before preparation,
-report source readiness, estimated provider/Agent/delivery cost, artifact reuse, and available structured
-invalidation explanations. Unknown estimates remain unknown.
+Run read-only, zero-provider `project:produce:inspect`. Before preparation, report readiness, estimated cost,
+artifact reuse, and structured invalidation explanations. Unknown estimates remain unknown.
 
 ## Prepare content-addressed tasks
 
-Only after reporting inspection, run `project:produce:prepare`. This sole costly entrypoint may invoke the
-selected provider, prepare fixed artifacts, create dirty workspaces, and open an ExecutionAttempt. Revision
-and task identities contain no attempt, clock, path, explanation, or Agent identity. Reuse every valid
-artifact and dispatch only returned `dirtyAgentTasks`.
+Only after reporting, run `project:produce:prepare`. It may call the selected provider, prepare fixed
+artifacts/workspaces, and open an ExecutionAttempt. Identities exclude attempt, clock, path, explanation, and
+Agent identity. Reuse valid artifacts; dispatch only `dirtyAgentTasks`.
 
 ## Delegate dirty Agent tasks
 
-Use runtime-native children in this shared checkout, one child per task. Read only the matching prompt:
-[Scene](references/scene-agent-orchestration.md),
-[GlobalVisual](references/global-visual-agent-orchestration.md), or
-[Cover](references/cover-agent-orchestration.md). Never delegate `scene-template`.
+Use one runtime-native child per task. Read its [Scene](references/scene-agent-orchestration.md),
+[GlobalVisual](references/global-visual-agent-orchestration.md), or [Cover](references/cover-agent-orchestration.md)
+prompt. Never delegate `scene-template`.
 
-Each child reads immutable `task.json` and `inputs/context.json`, writes only
-`.producer-work/<storyId>/<taskRevision>/`, loops `project:task:check`, then calls `project:task:commit`.
-Chat is coordination; the validated ArtifactAttestation is the durable authority.
+Each child reads immutable task/context, writes only `.producer-work/<storyId>/<taskRevision>/`, loops check,
+then runs prepare's attempt-bound terminal command. Its validated ArtifactAttestation and task-terminal event
+are durable authority.
 
-## Wait and converge once
+## Hand off to fixed continuation
 
-Wait in the current task until every child reaches artifact committed/current, explicit task failure, or
-host failure. Then call `project:produce:converge` exactly once. It uses read-only current replan before live
-writes. Do not create watchers/schedulers, infer artifacts from chat, recreate reused work, or author a dirty
-child task inline.
+After dispatch, Root's final production action is the exact `continuationCommand`, then it suspends
+without polling, status reads, reasoning, or token-consuming supervision. Fixed code claims once, watches
+immutable events, and rejects duplicates. Any failure exits nonzero without converge; all-success converges exactly once; a
+missing terminal at six hours times out. No retry, Root re-entry, direct converge, or workspace edit.
 
 ## Preserve production invariants
 
-- One Story/Composition and one meaningId/ScenePackage; sealed PCM cumulative samples own timing.
-- Scene, GlobalVisual, and Cover stay isolated; template-copy Scenes are fixed-produced.
-- Explanations, estimates, baselines, and attempts are diagnostic-only and never change Revision,
-  TaskRevision, ArtifactAttestation, dispatch, materialization, or DeliveryBuild authority.
-- Captions, narration, and full-frame background remain Composition-owned; Scene roots stay transparent.
-- Private config, voice material, other Projects, shared assets, and history stay unread and uncommitted.
-- Current delivery requires exact `video.mp4`, both PNG Covers, and `publish.json` with checksum, media, and
-  EOF-decode validation.
+- Sealed PCM samples own timing; Composition owns captions, narration, and background.
+- Scene/GlobalVisual/Cover are isolated; templates are fixed-produced; Scene roots stay transparent.
+- Diagnostics do not change authority; preserve private/voice/other-Project/history data.
+- Delivery is exact `video.mp4`, two PNG Covers, and `publish.json`, mechanically validated through EOF.
 
 ## Classify failure by task owner
 
-Only the assigned child corrects an invalid Agent workspace. For validator, store, materialization, or
-delivery defects with valid inputs, read
-[system hardening](references/agent-rework-and-system-hardening.md). Provider, host, sandbox, permission,
-and authorization failures are external blockers. Never auto-retry, fall back providers, reuse across
-Projects, weaken validators, or fabricate attestations.
+Only the assigned child corrects its workspace before terminal. Any failure ends the attempt.
+For a separate user-started task, read [system hardening](references/agent-rework-and-system-hardening.md).
+Never retry, fall back, weaken validators, or fabricate attestations inside the failed lifecycle.
 
 ## Finish with verified delivery
 
-Report storyId, revisionId, inspected cost/explanations, prepared actual cost and task summary, dispatched
-TaskRevisions, child terminals, and the single converge result. Only `project-production-complete` or
-`project-production-current` proves a verified current four-file delivery. Do not publish, push, or use
-`git add .`.
+Before dispatch, report IDs, inspection, cost, summary, and TaskRevisions. After dispatch Root writes no terminal
+report. Only `project-production-complete` or `project-production-current` proves delivery. Do not publish, push,
+or use `git add .`.

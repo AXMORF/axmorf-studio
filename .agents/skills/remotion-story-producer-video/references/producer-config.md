@@ -4,6 +4,8 @@ Read this only while authoring a new Project's strict create input.
 
 - Keep reusable defaults in ignored `private/producer.config.json`; keep title, StoryBeat, authored
   `ttsChunks`, visual direction, and publishing description in the create input.
+- Omit `sceneTemplates` to inherit `sceneDefaults`. Only write explicit template IDs or `null` when the user
+  explicitly requests that override; absence of a request is not authorization to disable bookends.
 - Use the repository config helper and `project:create`. Never open, copy, print, summarize, stage, or
   commit tokens, private paths, or protected voice material.
 - Choose exactly one existing `publishingCollections` ID from its name and description. Never invent a

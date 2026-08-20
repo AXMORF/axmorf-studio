@@ -12,8 +12,9 @@ current delivery。唯一主链是：
 1. 冻结 ProductionRevision；
 2. 建立 content-addressed Task DAG；
 3. 复用有效 ArtifactAttestation，只委派 dirty Agent tasks；
-4. fixed convergence 原子物化 current Project；
-5. 同步生成、机械复验并提升 exact four-file delivery。
+4. Root 派发后挂起，由 attempt-bound fixed continuation 处理全部 child terminal；
+5. 全部成功后 fixed convergence 原子物化 current Project；
+6. 同步生成、机械复验并提升 exact four-file delivery。
 
 ExecutionAttempt 只记录一次执行诊断。它的失败或丢失不拥有产物、不改变 content identity，也不阻止
 后续 attempt 复用已经验证的 artifact。
@@ -71,6 +72,9 @@ decode 全部通过后才替换。相同完整 identity 是只读 no-op。
 - Project 删除使用完整 storyId 确认并清理该 Project 的全部 ownership roots，同时保护其他 Project、
   core、shared media、private config 与 voice profiles。
 - 每个完成状态都有机械证据；聊天成功、Agent 自评、文件存在或进程启动都不代表交付完成。
+- Root 不承担 post-dispatch 监督：不轮询、不读取 child 结果、不修复或重试；failure 直接终止，all-success
+  只由持有 exact-attempt one-shot claim 的 fixed continuation 触发一次 converge；缺失终态受六小时总
+  deadline 约束。
 
 ## 6. 非目标
 

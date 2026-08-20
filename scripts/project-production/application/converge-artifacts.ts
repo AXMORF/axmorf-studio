@@ -358,11 +358,13 @@ const convergeProjectProductionUnlocked = async ({
   rootDir,
   projectId,
   revisionId,
+  attemptId,
   dependencies = {},
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly revisionId: string;
+  readonly attemptId: string;
   readonly dependencies?: ConvergenceDependencies;
 }) => {
   const buildCurrentPlan =
@@ -432,6 +434,7 @@ const convergeProjectProductionUnlocked = async ({
         rootDir,
         storyId: terminalPlan.revision.storyId,
         revisionId: attemptRevisionId,
+        attemptId,
         result,
       });
       return true;
@@ -688,11 +691,13 @@ export const convergeProjectProduction = async ({
   rootDir,
   projectId,
   revisionId,
+  attemptId,
   dependencies = {},
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly revisionId: string;
+  readonly attemptId: string;
   readonly dependencies?: ConvergenceDependencies;
 }) => {
   const acquireLock =
@@ -706,6 +711,7 @@ export const convergeProjectProduction = async ({
       rootDir,
       projectId,
       revisionId,
+      attemptId,
       dependencies,
     });
   } finally {

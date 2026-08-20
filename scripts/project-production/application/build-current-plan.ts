@@ -470,6 +470,7 @@ export const buildAgentTasks = (
         fingerprint: inputs.requirements.readabilityPolicy.policyFingerprint,
       },
       { id: "resources", fingerprint: inputs.fingerprints.resourcePool },
+      { id: "render", fingerprint: inputs.fingerprints.render },
       {
         id: "runtime",
         fingerprint: inputs.taskPolicyFingerprints.globalVisual,
@@ -481,6 +482,7 @@ export const buildAgentTasks = (
     validatorPolicyVersion: "global-visual-owner-validator-v1",
     context: {
       story: inputs.story,
+      render: inputs.render,
       timing: inputs.timing,
       requirements: inputs.requirements,
       resourcePool: inputs.resourcePool,

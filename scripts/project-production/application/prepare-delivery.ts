@@ -3,12 +3,15 @@ import { join } from "node:path";
 
 import {
   PublishingIntentSchema,
+  ProjectSoundPlanSchema,
   RenderSpecSchema,
+  ResourceCatalogSchema,
   SemanticTimingSchema,
   StoryIdSchema,
   StorySpecSchema,
   VisualStyleSpecSchema,
   buildDeliveryPublishing,
+  createFingerprint,
   deriveCoverCompositionBaseId,
   formatDeliveryTimecode,
   getStoryCompositionDurationInFrames,
@@ -39,7 +42,15 @@ export const prepareProjectAuthoringBuild = async ({
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
   const projectRoot = join(rootDir, "src/projects", projectId);
-  const [story, render, timing, visualStyle, rawPublishingIntent] =
+  const [
+    story,
+    render,
+    timing,
+    visualStyle,
+    projectSound,
+    resourceCatalog,
+    rawPublishingIntent,
+  ] =
     await Promise.all([
       readJson(join(projectRoot, "story.json")).then(StorySpecSchema.parse),
       readJson(join(projectRoot, "render.json")).then(RenderSpecSchema.parse),
@@ -48,6 +59,12 @@ export const prepareProjectAuthoringBuild = async ({
       ).then(SemanticTimingSchema.parse),
       readJson(join(projectRoot, "visual-style.json")).then(
         VisualStyleSpecSchema.parse,
+      ),
+      readJson(join(projectRoot, "sound.json")).then(
+        ProjectSoundPlanSchema.parse,
+      ),
+      readJson(join(projectRoot, "generated/resource-catalog.generated.json")).then(
+        ResourceCatalogSchema.parse,
       ),
       readJson(join(projectRoot, "publishing-intent.json")).then(
         PublishingIntentSchema.parse,
@@ -74,7 +91,7 @@ export const prepareProjectAuthoringBuild = async ({
       mode: "write",
     });
   }
-  await generateSceneCoverageFromProjectFiles({
+  const coverage = await generateSceneCoverageFromProjectFiles({
     rootDir,
     projectId,
     mode: "write",
@@ -87,10 +104,25 @@ export const prepareProjectAuthoringBuild = async ({
   if (rendererRegistry === null) {
     throw new Error("Project build requires current Scene renderer source.");
   }
+  const runtimeInputFingerprint = createFingerprint({
+    namespace: "project-production-scene-runtime-inputs",
+    version: 1,
+    value: {
+      storyId: projectId,
+      render,
+      semanticTimingFingerprint: timing.fingerprint,
+      visualStyle,
+      projectSound,
+      resourceCatalogFingerprint: resourceCatalog.catalogFingerprint,
+      coverageFingerprint: coverage.coverageFingerprint,
+      rendererRegistryFingerprint: rendererRegistry.registryFingerprint,
+    },
+  });
   await ensureProjectAuthoringBuildScaffold({
     rootDir,
     storyId: projectId,
     meaningIds,
+    runtimeInputFingerprint,
     mode: "write",
   });
   await Promise.all([

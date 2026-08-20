@@ -30,6 +30,7 @@ import { validRenderSpec, validStorySpec } from "../fixtures/narrative";
 const SHA = `sha256:${"a".repeat(64)}`;
 const REVISION = `revision-${"1".repeat(64)}`;
 const NEXT_REVISION = `revision-${"2".repeat(64)}`;
+const ATTEMPT_ID = "00000000-0000-4000-8000-000000000001";
 const acquireTestLock: NonNullable<
   ConvergenceDependencies["acquireLock"]
 > = async () => ({ release: async () => undefined });
@@ -392,6 +393,7 @@ test("stale revision is a read-only replan with zero provider, workspace, attemp
     rootDir,
     projectId: "story-example",
     revisionId: REVISION,
+    attemptId: ATTEMPT_ID,
     dependencies: {
       acquireLock: acquireTestLock,
       buildCurrentPlan: injectedPlan(
@@ -444,6 +446,7 @@ test("an incomplete revision causes zero provider, workspace, attempt creation, 
     rootDir,
     projectId: "story-example",
     revisionId: REVISION,
+    attemptId: ATTEMPT_ID,
     dependencies: {
       acquireLock: acquireTestLock,
       buildCurrentPlan: injectedPlan(
@@ -487,6 +490,7 @@ test("a lost diagnostic write does not change stale revision authority", async (
     rootDir: "/fixture",
     projectId: "story-example",
     revisionId: REVISION,
+    attemptId: ATTEMPT_ID,
     dependencies: {
       acquireLock: acquireTestLock,
       buildCurrentPlan: injectedPlan(
@@ -528,6 +532,7 @@ test("prepare-generated ScenePackage bytes remain exact through synchronous deli
     rootDir,
     projectId: "story-example",
     revisionId: REVISION,
+    attemptId: ATTEMPT_ID,
     dependencies: {
       acquireLock: (async () => {
         order.push("acquire");
@@ -646,6 +651,7 @@ test("synchronous delivery failure is terminal and never reports completion", as
         rootDir: "/fixture",
         projectId: "story-example",
         revisionId: REVISION,
+        attemptId: ATTEMPT_ID,
         dependencies: {
           acquireLock: acquireTestLock,
           buildCurrentPlan: (async () => {
@@ -715,6 +721,7 @@ test("one repository lock covers the complete convergence orchestration", async 
     rootDir,
     projectId: "story-example",
     revisionId: REVISION,
+    attemptId: ATTEMPT_ID,
     dependencies: { buildCurrentPlan: blockingPlan, appendAttempt },
   });
   await planStarted;
@@ -725,6 +732,7 @@ test("one repository lock covers the complete convergence orchestration", async 
         rootDir,
         projectId: "story-example",
         revisionId: REVISION,
+        attemptId: ATTEMPT_ID,
         dependencies: {
           buildCurrentPlan: injectedPlan(planned),
           appendAttempt,
@@ -739,6 +747,7 @@ test("one repository lock covers the complete convergence orchestration", async 
     rootDir,
     projectId: "story-example",
     revisionId: REVISION,
+    attemptId: ATTEMPT_ID,
     dependencies: { buildCurrentPlan: injectedPlan(planned), appendAttempt },
   });
   assert.equal(afterRelease.status, "producer-revision-stale");

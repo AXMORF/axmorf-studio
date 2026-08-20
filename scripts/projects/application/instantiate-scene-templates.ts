@@ -32,12 +32,15 @@ import {
   type StorySpec,
 } from "../../../src/contracts";
 import {
-  SCENE_TEMPLATE_AUDIO_PROJECTION,
   getSceneTemplateDefinition,
   renderCopiedSceneRenderer,
   type SceneTemplateDefinition,
 } from "../../../src/remotion/capabilities/scene-templates/registry";
-import { assertSceneTemplateAudioProjectionCurrent } from "../../scene-templates/audio-projection";
+import type { SceneTemplateAudioProjection } from "../../../src/remotion/capabilities/scene-templates/template-audio";
+import {
+  assertSceneTemplateAudioProjectionCurrent,
+  readCurrentSceneTemplateAudioProjection,
+} from "../../scene-templates/audio-projection";
 import {
   checksumExternalBytes,
   readExternalRegularFile,
@@ -219,14 +222,16 @@ const instantiateOne = async ({
   projectId,
   meaningId,
   templateId,
+  audioProjection,
 }: {
   readonly sourceRootDir: string;
   readonly targetRootDir: string;
   readonly projectId: string;
   readonly meaningId: string;
   readonly templateId: string;
+  readonly audioProjection: SceneTemplateAudioProjection;
 }) => {
-  const definition = getSceneTemplateDefinition(templateId);
+  const definition = getSceneTemplateDefinition(templateId, audioProjection);
   const sourceTemplateFingerprint = await templateFingerprint({
     rootDir: sourceRootDir,
     definition,
@@ -551,11 +556,13 @@ export const prepareConfiguredSceneTemplates = async ({
   projectId,
   story: rawStory,
   sceneDefaults,
+  sceneTemplateAudioProjection,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly story: unknown;
   readonly sceneDefaults: SceneDefaults;
+  readonly sceneTemplateAudioProjection?: SceneTemplateAudioProjection;
 }) => {
   const sourceStory = StorySpecSchema.parse(rawStory);
   const projectDir = join(rootDir, "src/projects", projectId);
@@ -583,13 +590,17 @@ export const prepareConfiguredSceneTemplates = async ({
       commit: null,
     } as const;
   }
-  if (
+  const templatesEnabled =
     sceneDefaults.introSceneTemplateId !== null ||
-    sceneDefaults.outroSceneTemplateId !== null
-  ) {
+    sceneDefaults.outroSceneTemplateId !== null;
+  const audioProjection = templatesEnabled
+    ? (sceneTemplateAudioProjection ??
+      (await readCurrentSceneTemplateAudioProjection(rootDir)))
+    : null;
+  if (audioProjection !== null) {
     await assertSceneTemplateAudioProjectionCurrent({
       rootDir,
-      loadedProjection: SCENE_TEMPLATE_AUDIO_PROJECTION,
+      loadedProjection: audioProjection,
     });
   }
   const story = configuredBaseStory(sourceStory);
@@ -616,6 +627,7 @@ export const prepareConfiguredSceneTemplates = async ({
             projectId,
             meaningId: INTRO_MEANING_ID,
             templateId: sceneDefaults.introSceneTemplateId,
+            audioProjection: audioProjection!,
           }),
       sceneDefaults.outroSceneTemplateId === null
         ? null
@@ -625,6 +637,7 @@ export const prepareConfiguredSceneTemplates = async ({
             projectId,
             meaningId: OUTRO_MEANING_ID,
             templateId: sceneDefaults.outroSceneTemplateId,
+            audioProjection: audioProjection!,
           }),
     ]);
   } finally {

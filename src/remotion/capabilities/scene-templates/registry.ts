@@ -80,14 +80,16 @@ const audioAssets = (binding: TemplateAudioBinding | null) =>
 const audioCues = (binding: TemplateAudioBinding | null) =>
   binding?.soundCues.map((cue) => ({ ...cue, assetKey: "sound" })) ?? [];
 
-const BRAND_REVEAL: SceneTemplateDefinition = {
+const brandReveal = (
+  audioProjection: SceneTemplateAudioProjection,
+): SceneTemplateDefinition => ({
   templateId: "axmorf-brand-reveal-v1",
   durationInFrames: 60,
   narrativePurpose: "Render the configured opening Scene before content.",
   visualIntent:
     "Reveal the AXMORF mark and wordmark as a concise configured Scene.",
   soundIntent:
-    SCENE_TEMPLATE_AUDIO_PROJECTION.intro === null
+    audioProjection.intro === null
       ? "Render without a sound-effect contribution."
       : "Play only the configured opening impact from frame zero for the full Scene.",
   componentName: "AxmorfIntroScene",
@@ -104,8 +106,8 @@ const BRAND_REVEAL: SceneTemplateDefinition = {
       destinationName: "AxmorfIntroScene.tsx",
     },
   ],
-  assets: audioAssets(SCENE_TEMPLATE_AUDIO_PROJECTION.intro),
-  soundCues: audioCues(SCENE_TEMPLATE_AUDIO_PROJECTION.intro),
+  assets: audioAssets(audioProjection.intro),
+  soundCues: audioCues(audioProjection.intro),
   orderedShotIds: ["brand-reveal"],
   anchors: [
     {
@@ -143,15 +145,17 @@ const BRAND_REVEAL: SceneTemplateDefinition = {
     continuity: "Finish on a stable transparent frame.",
     fallbackIntent: "Fail closed rather than alter the copied Scene.",
   },
-};
+});
 
-const SOURCE_FOLLOW: SceneTemplateDefinition = {
+const sourceFollow = (
+  audioProjection: SceneTemplateAudioProjection,
+): SceneTemplateDefinition => ({
   templateId: "axmorf-source-follow-v1",
   durationInFrames: 240,
   narrativePurpose: "Render the configured closing Scene after content.",
   visualIntent: "Show source credits then resolve to the AXMORF follow lockup.",
   soundIntent:
-    SCENE_TEMPLATE_AUDIO_PROJECTION.outro === null
+    audioProjection.outro === null
       ? "Render without a sound-effect contribution."
       : "Play only the configured closing music from frame zero for the full Scene.",
   componentName: "AxmorfOutroScene",
@@ -186,8 +190,8 @@ const SOURCE_FOLLOW: SceneTemplateDefinition = {
       destinationName: "NOTICE.md",
     },
   ],
-  assets: audioAssets(SCENE_TEMPLATE_AUDIO_PROJECTION.outro),
-  soundCues: audioCues(SCENE_TEMPLATE_AUDIO_PROJECTION.outro),
+  assets: audioAssets(audioProjection.outro),
+  soundCues: audioCues(audioProjection.outro),
   orderedShotIds: ["source-credits", "brand-follow"],
   anchors: [
     {
@@ -233,15 +237,22 @@ const SOURCE_FOLLOW: SceneTemplateDefinition = {
     continuity: "Resolve on a stable transparent frame.",
     fallbackIntent: "Fail closed rather than alter the copied Scene.",
   },
+});
+
+export const buildSceneTemplateDefinitions = (rawProjection: unknown) => {
+  const audioProjection = SceneTemplateAudioProjectionSchema.parse(rawProjection);
+  return [brandReveal(audioProjection), sourceFollow(audioProjection)] as const;
 };
 
-export const SCENE_TEMPLATE_DEFINITIONS = [
-  BRAND_REVEAL,
-  SOURCE_FOLLOW,
-] as const;
+export const SCENE_TEMPLATE_DEFINITIONS = buildSceneTemplateDefinitions(
+  SCENE_TEMPLATE_AUDIO_PROJECTION,
+);
 
-export const getSceneTemplateDefinition = (templateId: string) => {
-  const definition = SCENE_TEMPLATE_DEFINITIONS.find(
+export const getSceneTemplateDefinition = (
+  templateId: string,
+  audioProjection: unknown = SCENE_TEMPLATE_AUDIO_PROJECTION,
+) => {
+  const definition = buildSceneTemplateDefinitions(audioProjection).find(
     (candidate) => candidate.templateId === templateId,
   );
   if (definition === undefined) {

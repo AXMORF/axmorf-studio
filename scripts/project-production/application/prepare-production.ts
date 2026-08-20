@@ -191,7 +191,6 @@ const dirtyAgentTasks = async ({
       changedInputs: readonly string[];
       blockedBy: TaskDecisionExplanation["blockedBy"];
       checkCommand: string;
-      commitCommand: string;
     }>
   > = [];
   for (const explanation of current.plan.tasks) {
@@ -227,7 +226,6 @@ const dirtyAgentTasks = async ({
         .map(({ id }) => id),
       blockedBy: explanation.blockedBy,
       checkCommand: `npm run project:task:check -- --task ${explanation.taskRevision}`,
-      commitCommand: `npm run project:task:commit -- --task ${explanation.taskRevision}`,
     });
   }
   return dirty;
@@ -364,11 +362,17 @@ export const prepareProjectProduction = async (
         deliveryMedia: [],
       },
       taskExplanations: current.plan.tasks,
-      dirtyAgentTasks: dirty,
+      dirtyAgentTasks: dirty.map((task) => ({
+        ...task,
+        commitCommand: `npm run project:task:commit -- --task ${task.taskRevision} --attempt ${attempt.attemptId}`,
+        taskFailureCommand: `npm run project:task:fail -- --task ${task.taskRevision} --attempt ${attempt.attemptId} --kind task`,
+        hostFailureCommand: `npm run project:task:fail -- --task ${task.taskRevision} --attempt ${attempt.attemptId} --kind host`,
+      })),
+      continuationCommand: `npm run project:produce:continue -- --project ${projectId} --revision ${current.revision.revisionId} --attempt ${attempt.attemptId}`,
       nextAction:
         dirty.length === 0
-          ? ("converge-current" as const)
-          : ("dispatch-agent-tasks" as const),
+          ? ("start-fixed-continuation" as const)
+          : ("dispatch-agent-tasks-then-start-fixed-continuation" as const),
     };
   } finally {
     await lock.release();

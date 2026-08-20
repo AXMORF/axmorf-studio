@@ -51,7 +51,9 @@ workspace roots 只由 strict storyId/taskRevision 推导。`task.json` 与 seed
 
 commit 重跑 validator，递归检查 exact entry set，拒绝 unknown/duplicate/escape/absolute/backslash path、symlink、
 FIFO/device 和 checksum drift。ArtifactAttestation 由实际 output bytes 构建；manifest 最后写。promotion 使用
-同父 staging + atomic rename，失败回滚旧 artifact。相同 identity/bytes 保持 byte/mtime 稳定；冲突 fail closed。
+同父 staging + atomic rename，失败回滚旧 artifact。commit/fail 必须写入 prepare 指定的 exact attempt；一个
+TaskRevision 的首个 task-terminal outcome 不可被相反结果覆盖，相同结果重复提交只读幂等。相同 artifact
+identity/bytes 保持 byte/mtime 稳定；冲突 fail closed。
 
 ## 5. Narration 与 timing
 
@@ -67,9 +69,16 @@ ceilDiv(cumulativeSamples × fps, sampleRate)
 
 Scene/CaptionCue/Composition 消费同一 timing artifact；transition 不移动、缩短或覆盖 spoken frames。
 
-## 6. Convergence 与 materialization
+## 6. Fixed continuation、convergence 与 materialization
 
-converge 每次通过 read-only current-plan builder 重新计算 current Revision/Plan；不调用 provider、不创建
+Root 派发全部 dirty Agent tasks 后只启动 prepare 返回的 attempt-bound fixed continuation，然后挂起。该
+bounded process 先以原子 create 建立不可重复的 attempt claim，再通过 filesystem event 等待 immutable event
+log，而不依赖 progress projection，也不由 Root 轮询。任一 Agent task failure 先把 attempt 终结为 failed，
+再非零退出且不调用 converge；全部 Agent task outcomes 为 committed/current 时，内部只调用一次 converge。
+六小时总 deadline 到期仍缺 terminal 时原子写 timeout failure 并退出。converge failure 直接退出，不 retry、
+不修复，也不重新进入 Root。
+
+内部 converge 每次通过 read-only current-plan builder 重新计算 current Revision/Plan；不调用 provider、不创建
 workspace/attempt。调用方 revision stale 时不采用旧 artifact。required artifacts
 齐全前零 live mutation。所有 owned roots 先 staging，再 controlled replace；跨 root 操作记录 previous targets，
 捕获失败按逆序恢复。
@@ -97,8 +106,11 @@ no-op。
 - inspect：同 source/cache/artifact/delivery snapshot → byte-equivalent read model、零 provider/零写入；
 - prepare：同 inputs + valid store → same Revision/Task identities and reuse classification；新 attempt 仍只诊断；
 - check：同 workspace → same read-only result；
-- commit：same identity/bytes → no-op，different bytes → conflict；
-- converge：same revision/artifact set/materialized bytes → deterministic projection；
+- task terminal：同 attempt/task/result → no-op；相反 result → immutable-terminal conflict；
+- commit：same artifact identity/bytes → no-op，different bytes → conflict；
+- continuation：同 active attempt 只有一个 atomic claim；只消费 plan-bound immutable terminal events；failure
+  不 converge，all-success 内部 converge once，六小时 deadline 到期原子失败；
+- converge：只由 fixed continuation 调用；same revision/artifact set/materialized bytes → deterministic projection；
 - delivery：same complete DeliveryBuildId → current no-op；captured staging failure → later reuse valid media；
 - settings progress：malformed diagnostic/historical data 不影响 current classification 或 projection authority；
 - delete：严格 story ownership，可重复清理 missing targets，并保护其他 roots。

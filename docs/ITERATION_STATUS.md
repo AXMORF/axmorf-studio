@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-20 clean-break implementation
+> 最后复核：2026-08-21 dispatch-only continuation implementation
 
 ## 当前结论
 
@@ -16,7 +16,8 @@ project:produce:inspect
 project:produce:prepare
 project:task:check
 project:task:commit
-project:produce:converge
+project:task:fail
+project:produce:continue
 ```
 
 旧 production/delivery/build command surface 与对应 active contracts/implementation/tests 已移除，不提供转发
@@ -52,7 +53,10 @@ shim。历史 `.producer-runs` 数据保持原位，但 current prepare/converge
 - workspace/output path containment、regular/no-symlink、unknown/special file rejection；
 - fixed check、commit-time recheck、attestation generation、same-parent staging、atomic promotion、identity conflict
   与 rollback；
-- `.producer-attempts` append-only diagnostics，写入失败不污染 artifacts。
+- `.producer-attempts` append-only diagnostics；task/delivery terminal 使用 deterministic event key 原子
+  compare-and-create，冲突不可被 projection 顺序覆盖，写入失败不污染 artifacts；
+- commit/fail terminal events 与 continuation/converge 都绑定 exact attemptId，不按 latest attempt 串线；
+  continuation 具有 one-shot atomic claim。
 
 ## 已实现 planning 与 task owners
 
@@ -64,6 +68,9 @@ shim。历史 `.producer-runs` 数据保持原位，但 current prepare/converge
   TaskRevisions；
 - Scene child 继续受 repository-local `remotion-best-practices`、readability、安全区、resource/license 与
   Remotion runtime gates 约束。
+- Root dispatch 后不参与 barrier；event-driven fixed continuation 读取 immutable event log，在 child failure
+  或六小时 terminal deadline 到期时直接退出，在全部成功后只调用一次 converge，fixed failure 不重试或
+  唤回 Root。
 
 ## 已实现 convergence 与 delivery
 
