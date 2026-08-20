@@ -8,7 +8,13 @@ const toPosix = (value: string) => value.split(sep).join(posix.sep);
 const listTypeScriptFiles = async (
   directory: string,
 ): Promise<readonly string[]> => {
-  const entries = await readdir(directory, { withFileTypes: true });
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
   const nested = await Promise.all(
     entries.map((entry) => {
       const path = join(directory, entry.name);
@@ -66,12 +72,12 @@ const resolveLocalImport = (sourcePath: string, specifier: string) =>
 
 const layerOf = (sourcePath: string) => {
   const match =
-    /^scripts\/(production|delivery|project-assets|projects)\/(application|domain|adapters)\//u.exec(
+    /^scripts\/(project-production|project-assets|projects)\/(application|domain|adapters)\//u.exec(
       sourcePath,
     );
   return (
     match?.[2] ??
-    (/^scripts\/(production|delivery|project-assets|projects)\/(?:[a-z0-9-]+-)?cli(?:\.[cm]?tsx?)?$/u.test(
+    (/^scripts\/(project-production|project-assets|projects)\/(?:[a-z0-9-]+-)?cli(?:\.[cm]?tsx?)?$/u.test(
       sourcePath,
     )
       ? "cli"
@@ -81,8 +87,7 @@ const layerOf = (sourcePath: string) => {
 
 export const findScriptLayeringViolations = async (rootDir: string) => {
   const roots = [
-    "scripts/production",
-    "scripts/delivery",
+    "scripts/project-production",
     "scripts/project-assets",
     "scripts/projects",
     "scripts/scene-templates",
@@ -105,6 +110,13 @@ export const findScriptLayeringViolations = async (rootDir: string) => {
       const target = resolveLocalImport(sourcePath, specifier);
       if (target === null) continue;
       const targetLayer = layerOf(target);
+      if (
+        /^scripts\/(production|delivery|project-build)(?:\/|$)/u.test(target)
+      ) {
+        violations.push(
+          `${sourcePath} -> ${target}: depends on removed workflow`,
+        );
+      }
       if (
         sourceLayer === "domain" &&
         (targetLayer === "application" ||
@@ -129,28 +141,6 @@ export const findScriptLayeringViolations = async (rootDir: string) => {
         );
       }
       if (
-        sourcePath.startsWith("scripts/delivery/") &&
-        target.startsWith("scripts/production/adapters/")
-      ) {
-        violations.push(
-          `${sourcePath} -> ${target}: delivery reuses production adapter`,
-        );
-      }
-      if (
-        sourcePath.startsWith("scripts/projects/") &&
-        target.startsWith("scripts/production/adapters/") &&
-        !(
-          sourcePath === "scripts/projects/delete.ts" &&
-          target === "scripts/production/adapters/run-store" &&
-          importedNames.length === 1 &&
-          importedNames[0] === "acquireProductionRunLock"
-        )
-      ) {
-        violations.push(
-          `${sourcePath} -> ${target}: Project workflow reuses production adapter`,
-        );
-      }
-      if (
         sourcePath.startsWith("scripts/scene-templates/") &&
         target.startsWith("scripts/projects/")
       ) {
@@ -160,7 +150,7 @@ export const findScriptLayeringViolations = async (rootDir: string) => {
       }
       if (
         sourcePath.startsWith("scripts/shared/") &&
-        /^scripts\/(production|delivery|project-assets|projects|scene-templates)\//u.test(
+        /^scripts\/(project-production|project-assets|projects|scene-templates)\//u.test(
           target,
         )
       ) {

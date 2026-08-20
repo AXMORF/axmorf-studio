@@ -6,6 +6,7 @@ import {
   SceneCoverageMapSchema,
   ScenePackageSchema,
   SceneTaskInputSchema,
+  SemanticTimingSchema,
   SelectedResourceRefSchema,
   StorySpecSchema,
   buildSceneCoverageMap,
@@ -103,6 +104,7 @@ export const generateScenePackageFromProjectFiles = async ({
     selection,
     fidelityReceipt,
     selectedResourceInput,
+    semanticTimingInput,
   ] = await Promise.all([
     readJsonFile(join(sceneRoot, "task-input.generated.json")),
     readJsonFile(join(sceneRoot, "visual-plan.json")),
@@ -114,8 +116,23 @@ export const generateScenePackageFromProjectFiles = async ({
       join(sceneRoot, "generated/reference-fidelity.generated.json"),
     ),
     readJsonFile(join(sceneRoot, "selected-resources.json")),
+    readJsonFile(
+      join(
+        rootDir,
+        "src/projects",
+        projectId,
+        "generated/semantic-timing.generated.json",
+      ),
+    ),
   ]);
   const taskRecord = SceneTaskInputSchema.parse(task);
+  const semanticTiming = SemanticTimingSchema.parse(semanticTimingInput);
+  const timingBeat = semanticTiming.storyBeats.find(
+    (beat) => beat.meaningId === meaningId,
+  );
+  if (semanticTiming.storyId !== projectId || timingBeat === undefined) {
+    throw new Error("Scene package SemanticTiming authority is cross-bound.");
+  }
   const selectedResources = parseSceneSelectedResourcesFile(
     selectedResourceInput,
   ).selectedResources;
@@ -143,8 +160,8 @@ export const generateScenePackageFromProjectFiles = async ({
         rendererSourceFingerprint,
       },
       current: {
-        timingBeat: taskRecord.timingBeat,
-        semanticTimingFingerprint: taskRecord.semanticTimingFingerprint,
+        timingBeat,
+        semanticTimingFingerprint: semanticTiming.fingerprint,
         visualStyleFingerprint: taskRecord.visualStyleFingerprint,
         resourceCatalogFingerprint: taskRecord.resourceCatalogFingerprint,
         snapshotFingerprints: taskRecord.allowedSnapshots.map(

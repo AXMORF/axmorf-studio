@@ -31,7 +31,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
       ],
     }),
     inspectProductionProgress: async () => ({
-      schemaVersion: 3,
+      schemaVersion: 4,
       projects: [],
     }),
     deleteProject: async ({ projectId }) => {
@@ -121,7 +121,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
   });
   assert.deepEqual(progress, {
     statusCode: 200,
-    body: { schemaVersion: 3, projects: [] },
+    body: { schemaVersion: 4, projects: [] },
   });
 
   const rejectedDeleteOrigin = await api({

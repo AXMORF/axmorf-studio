@@ -21,7 +21,7 @@ import {
   type ScenePackage,
 } from "../../src/contracts";
 
-export const buildScenePackage = (rawInput: {
+type SceneArtifactBundleInput = {
   readonly task: unknown;
   readonly visual: unknown;
   readonly shots: unknown;
@@ -33,21 +33,11 @@ export const buildScenePackage = (rawInput: {
     readonly selected: unknown;
     readonly descriptor: unknown;
   }[];
-  readonly rendererBinding: {
-    readonly rendererId: unknown;
-    readonly rendererSourceFingerprint: unknown;
-  };
-  readonly current: {
-    readonly timingBeat: unknown;
-    readonly semanticTimingFingerprint: unknown;
-    readonly visualStyleFingerprint: unknown;
-    readonly resourceCatalogFingerprint: unknown;
-    readonly snapshotFingerprints: readonly unknown[];
-    readonly rendererSourceFingerprint: unknown;
-    readonly visualRuntimeVersion: unknown;
-    readonly sceneAudioRuntimeVersion: unknown;
-  };
-}): ScenePackage => {
+};
+
+export const validateSceneArtifactBundle = (
+  rawInput: SceneArtifactBundleInput,
+) => {
   const task = SceneTaskInputSchema.parse(rawInput.task);
   const visual = SceneVisualPlanSchema.parse(rawInput.visual);
   const shots = ShotPlanSetSchema.parse(rawInput.shots);
@@ -56,12 +46,6 @@ export const buildScenePackage = (rawInput: {
   const selection = ShotRecipeSelectionSchema.parse(rawInput.selection);
   const fidelityReceipt = ReferenceFidelityReceiptSchema.parse(
     rawInput.fidelityReceipt,
-  );
-  const rendererBinding = SceneRendererBindingSchema.parse(
-    rawInput.rendererBinding,
-  );
-  const currentSnapshotFingerprints = rawInput.current.snapshotFingerprints.map(
-    (fingerprint) => Sha256DigestSchema.parse(fingerprint),
   );
   validateScenePlanBundle({
     taskInputFingerprint: task.taskInputFingerprint,
@@ -74,25 +58,6 @@ export const buildScenePackage = (rawInput: {
     syncAnchors: anchors,
     soundPlan: sound,
   });
-  if (
-    serializeCanonicalJson(rawInput.current.timingBeat) !==
-      serializeCanonicalJson(task.timingBeat) ||
-    rawInput.current.semanticTimingFingerprint !==
-      task.semanticTimingFingerprint ||
-    rawInput.current.visualStyleFingerprint !== task.visualStyleFingerprint ||
-    rawInput.current.resourceCatalogFingerprint !==
-      task.resourceCatalogFingerprint ||
-    JSON.stringify(currentSnapshotFingerprints) !==
-      JSON.stringify(
-        task.allowedSnapshots.map((snapshot) => snapshot.snapshotFingerprint),
-      ) ||
-    rawInput.current.rendererSourceFingerprint !==
-      rendererBinding.rendererSourceFingerprint ||
-    rawInput.current.visualRuntimeVersion !== STORY_VISUAL_RUNTIME_VERSION_V2 ||
-    rawInput.current.sceneAudioRuntimeVersion !== SCENE_AUDIO_RUNTIME_VERSION
-  ) {
-    throw new Error("Scene package current authority inputs are stale.");
-  }
   if (
     selection.taskInputFingerprint !== task.taskInputFingerprint ||
     fidelityReceipt.selectionFingerprint !== selection.selectionFingerprint
@@ -121,10 +86,12 @@ export const buildScenePackage = (rawInput: {
       "Scene fidelity applicability does not match its recipe mode.",
     );
   }
-  const currentSnapshots = new Set(currentSnapshotFingerprints);
+  const allowedSnapshots = new Set(
+    task.allowedSnapshots.map(({ snapshotFingerprint }) => snapshotFingerprint),
+  );
   if (
     selection.selections.some(
-      (entry) => !currentSnapshots.has(entry.snapshotFingerprint),
+      (entry) => !allowedSnapshots.has(entry.snapshotFingerprint),
     )
   ) {
     throw new Error(
@@ -167,6 +134,80 @@ export const buildScenePackage = (rawInput: {
       "Silent Scene package resources must exactly consume its selected preset.",
     );
   }
+  return {
+    task,
+    visual,
+    shots,
+    anchors,
+    sound,
+    selection,
+    fidelityReceipt,
+    selectedResources,
+  } as const;
+};
+
+export const buildScenePackage = (rawInput: SceneArtifactBundleInput & {
+  readonly rendererBinding: {
+    readonly rendererId: unknown;
+    readonly rendererSourceFingerprint: unknown;
+  };
+  readonly current: {
+    readonly timingBeat: unknown;
+    readonly semanticTimingFingerprint: unknown;
+    readonly visualStyleFingerprint: unknown;
+    readonly resourceCatalogFingerprint: unknown;
+    readonly snapshotFingerprints: readonly unknown[];
+    readonly rendererSourceFingerprint: unknown;
+    readonly visualRuntimeVersion: unknown;
+    readonly sceneAudioRuntimeVersion: unknown;
+  };
+}): ScenePackage => {
+  const {
+    task,
+    visual,
+    shots,
+    anchors,
+    sound,
+    selection,
+    fidelityReceipt,
+    selectedResources,
+  } = validateSceneArtifactBundle(rawInput);
+  const rendererBinding = SceneRendererBindingSchema.parse(
+    rawInput.rendererBinding,
+  );
+  const currentSnapshotFingerprints = rawInput.current.snapshotFingerprints.map(
+    (fingerprint) => Sha256DigestSchema.parse(fingerprint),
+  );
+  const currentSemanticTimingFingerprint = Sha256DigestSchema.parse(
+    rawInput.current.semanticTimingFingerprint,
+  );
+  if (
+    serializeCanonicalJson(rawInput.current.timingBeat) !==
+      serializeCanonicalJson(task.timingBeat) ||
+    rawInput.current.visualStyleFingerprint !== task.visualStyleFingerprint ||
+    rawInput.current.resourceCatalogFingerprint !==
+      task.resourceCatalogFingerprint ||
+    JSON.stringify(currentSnapshotFingerprints) !==
+      JSON.stringify(
+        task.allowedSnapshots.map((snapshot) => snapshot.snapshotFingerprint),
+      ) ||
+    rawInput.current.rendererSourceFingerprint !==
+      rendererBinding.rendererSourceFingerprint ||
+    rawInput.current.visualRuntimeVersion !== STORY_VISUAL_RUNTIME_VERSION_V2 ||
+    rawInput.current.sceneAudioRuntimeVersion !== SCENE_AUDIO_RUNTIME_VERSION
+  ) {
+    throw new Error("Scene package current authority inputs are stale.");
+  }
+  const currentSnapshots = new Set(currentSnapshotFingerprints);
+  if (
+    selection.selections.some(
+      (entry) => !currentSnapshots.has(entry.snapshotFingerprint),
+    )
+  ) {
+    throw new Error(
+      "Scene recipe snapshot is outside the current frozen allowlist.",
+    );
+  }
   const commonBase = {
     storyId: task.storyId,
     meaningId: task.meaningId,
@@ -175,7 +216,7 @@ export const buildScenePackage = (rawInput: {
       endFrame: task.timingBeat.endFrame,
     },
     taskInputFingerprint: task.taskInputFingerprint,
-    semanticTimingFingerprint: task.semanticTimingFingerprint,
+    semanticTimingFingerprint: currentSemanticTimingFingerprint,
     visualStyleFingerprint: task.visualStyleFingerprint,
     resourceCatalogFingerprint: task.resourceCatalogFingerprint,
     externalSnapshotFingerprints: currentSnapshotFingerprints,

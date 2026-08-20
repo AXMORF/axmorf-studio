@@ -1,7 +1,10 @@
 import { z } from "zod";
 
 import { ProducerConfigSchema } from "../../src/contracts/producer-config";
-import { StoryIdSchema } from "../../src/contracts/primitives";
+import {
+  Sha256DigestSchema,
+  StoryIdSchema,
+} from "../../src/contracts/primitives";
 
 export const SETTINGS_API_ROUTES = {
   settings: "/api/settings",
@@ -33,96 +36,66 @@ export type EnvironmentDiagnostics = z.infer<
   typeof EnvironmentDiagnosticsSchema
 >;
 
-export const ProductionProgressStepStatusSchema = z.enum([
-  "pending",
-  "running",
-  "succeeded",
-  "failed",
-  "attention",
-  "launched",
-]);
-
-export type ProductionProgressStepStatus = z.infer<
-  typeof ProductionProgressStepStatusSchema
->;
-
-export const ProductionProgressStepSchema = z
-  .object({
-    id: z.enum([
-      "production-start",
-      "narrative",
-      "scene-freeze",
-      "scenes",
-      "render-ready",
-      "delivery",
-    ]),
-    label: z.string().min(1),
-    command: z.string().min(1),
-    status: ProductionProgressStepStatusSchema,
-    detail: z.string().min(1),
-    occurredAt: z.string().nullable(),
-  })
-  .strict();
-
-export type ProductionProgressStep = z.infer<
-  typeof ProductionProgressStepSchema
->;
-
-export const ProductionRunProgressSchema = z
-  .object({
-    runId: z.string().min(1),
-    storyId: StoryIdSchema,
-    createdAt: z.string().min(1),
-    updatedAt: z.string().min(1),
-    state: z.string().min(1),
-    completedSteps: z.number().int().nonnegative(),
-    totalSteps: z.number().int().positive(),
-    steps: z.array(ProductionProgressStepSchema),
-  })
-  .strict();
-
-export type ProductionRunProgress = z.infer<typeof ProductionRunProgressSchema>;
-
-export const ProjectBuildStatusSchema = z.enum([
-  "not-built",
-  "building",
+export const ProjectProductionStatusSchema = z.enum([
+  "not-produced",
+  "needs-agent",
+  "converging",
   "current",
   "stale",
   "failed",
   "error",
 ]);
 
-export type ProjectBuildStatus = z.infer<typeof ProjectBuildStatusSchema>;
+export type ProjectProductionStatus = z.infer<
+  typeof ProjectProductionStatusSchema
+>;
 
-export const ProjectBuildProgressStepSchema = z
+export const ProjectTaskSummarySchema = z
   .object({
-    id: z.enum([
-      "prepare",
-      "video",
-      "cover-4x3",
-      "cover-3x4",
-      "verify",
-      "promote",
-    ]),
-    label: z.string().min(1),
-    status: z.enum(["pending", "running", "succeeded", "failed"]),
-    detail: z.string().min(1),
-    occurredAt: z.string().nullable(),
-    reused: z.boolean().nullable(),
+    reusedTaskCount: z.number().int().nonnegative(),
+    dirtyAgentTaskCount: z.number().int().nonnegative(),
+    dirtyFixedTaskCount: z.number().int().nonnegative(),
+    blockedTaskCount: z.number().int().nonnegative(),
   })
   .strict();
 
-export type ProjectBuildProgressStep = z.infer<
-  typeof ProjectBuildProgressStepSchema
->;
+export const ProjectAttemptSummarySchema = z
+  .object({
+    attemptId: z.string().uuid(),
+    revisionId: z.string().regex(/^revision-[0-9a-f]{64}$/u),
+    planFingerprint: Sha256DigestSchema.nullable(),
+    artifactSetFingerprint: Sha256DigestSchema.nullable(),
+    state: z.enum([
+      "planning",
+      "waiting-for-agent",
+      "converging",
+      "succeeded",
+      "failed",
+    ]),
+    updatedAt: z.string().datetime({ offset: true }),
+    diagnosticCode: z
+      .string()
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u)
+      .nullable(),
+    tasks: ProjectTaskSummarySchema,
+    taskOutcomes: z
+      .object({
+        committedTaskCount: z.number().int().nonnegative(),
+        currentTaskCount: z.number().int().nonnegative(),
+        failedTaskCount: z.number().int().nonnegative(),
+      })
+      .strict(),
+    deliveryResult: z.enum(["not-verified", "verified", "failed"]),
+  })
+  .strict();
 
 export const ProjectDeliverySummarySchema = z
   .object({
-    buildId: z.string().min(1),
-    sourceSnapshotFingerprint: z.string().min(1),
+    deliveryBuildId: z.string().regex(/^delivery-[0-9a-f]{64}$/u),
+    revisionId: z.string().regex(/^revision-[0-9a-f]{64}$/u),
+    artifactSetFingerprint: Sha256DigestSchema,
     frameCount: z.number().int().positive(),
-    sourceCurrent: z.boolean(),
-    updatedAt: z.string().min(1),
+    current: z.boolean(),
     files: z
       .object({
         video: z.literal(true),
@@ -134,26 +107,18 @@ export const ProjectDeliverySummarySchema = z
   })
   .strict();
 
-export const ProjectBuildProgressSchema = z
-  .object({
-    buildId: z.string().min(1).nullable(),
-    completedSteps: z.number().int().nonnegative(),
-    detail: z.string().min(1),
-    delivery: ProjectDeliverySummarySchema.nullable(),
-    steps: z.array(ProjectBuildProgressStepSchema).length(6),
-    totalSteps: z.literal(6),
-    updatedAt: z.string().nullable(),
-  })
-  .strict();
-
 export const ProjectProductionProgressSchema = z
   .object({
     projectId: StoryIdSchema,
-    status: ProjectBuildStatusSchema,
+    status: ProjectProductionStatusSchema,
+    revisionId: z
+      .string()
+      .regex(/^revision-[0-9a-f]{64}$/u)
+      .nullable(),
+    tasks: ProjectTaskSummarySchema,
+    attempt: ProjectAttemptSummarySchema.nullable(),
+    delivery: ProjectDeliverySummarySchema.nullable(),
     error: z.string().min(1).nullable(),
-    build: ProjectBuildProgressSchema,
-    auditedRun: ProductionRunProgressSchema.nullable(),
-    auditedRunError: z.string().min(1).nullable(),
   })
   .strict();
 
@@ -163,7 +128,7 @@ export type ProjectProductionProgress = z.infer<
 
 export const ProductionProgressResponseSchema = z
   .object({
-    schemaVersion: z.literal(3),
+    schemaVersion: z.literal(4),
     projects: z.array(ProjectProductionProgressSchema),
   })
   .strict();
@@ -214,7 +179,9 @@ type ProducerConfigDto = z.input<typeof ProducerConfigSchema>;
 export type EditableConfig = Omit<
   DeepMutable<ProducerConfigDto>,
   "configFingerprint"
-> & { configFingerprint?: ProducerConfigDto["configFingerprint"] };
+> & {
+  configFingerprint?: ProducerConfigDto["configFingerprint"];
+};
 
 export type TtsProviderConfig = EditableConfig["tts"]["providers"][number];
 export type VoxcpmProviderConfig = Extract<

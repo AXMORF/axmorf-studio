@@ -63,7 +63,7 @@ export const createScenePackageInput = () => {
     },
     current: {
       timingBeat: plans.task.timingBeat,
-      semanticTimingFingerprint: plans.task.semanticTimingFingerprint,
+      semanticTimingFingerprint: sha("2"),
       visualStyleFingerprint: plans.task.visualStyleFingerprint,
       resourceCatalogFingerprint: plans.task.resourceCatalogFingerprint,
       snapshotFingerprints: plans.task.allowedSnapshots.map(

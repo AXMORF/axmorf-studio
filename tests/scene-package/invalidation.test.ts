@@ -6,7 +6,7 @@ import test from "node:test";
 import {
   buildSceneCoverageMap,
   buildSceneSoundPlan,
-  buildSceneTaskInputV5,
+  buildSceneTaskInputV6,
   buildSceneSyncAnchors,
   buildSceneVisualPlan,
   buildSilentScenePreset,
@@ -63,7 +63,7 @@ const cases: readonly {
           resourceIds: ["asset.proof-sfx", "asset.proof-shape"],
           implementation: { kind: "scene-owner" },
         });
-        const task = buildSceneTaskInputV5({
+        const task = buildSceneTaskInputV6({
           ...taskBase,
           storyBeat: {
             kind: "silent-scene",

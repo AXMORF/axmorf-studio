@@ -29,13 +29,11 @@ const CORE_TEST_ROOTS = [
   "tests/runtime",
   "tests/registry",
   "tests/baseline",
-  "tests/project-build",
+  "tests/project-production",
   "tests/project-check",
   "tests/project-validation",
   "tests/final-assembly",
-  "tests/delivery",
   "tests/scene-runtime-proof",
-  "tests/production",
   "tests/config",
 ] as const;
 

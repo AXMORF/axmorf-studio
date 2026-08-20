@@ -20,6 +20,7 @@ import {
   loadVerifiedProgress,
   readCandidateBytes,
   writeCandidateAndProgress,
+  writeNarrationProgress,
 } from "./adapters/candidate-workspace";
 import { measureCanonicalPcmWav, sha256Bytes } from "./domain/pcm-wav";
 
@@ -169,6 +170,8 @@ export const runNarrationGeneration = async ({
     });
     normalizedChunkCount += 1;
   }
+
+  await writeNarrationProgress({ rootDir, progress });
 
   const verified = await loadVerifiedProgress({
     rootDir,

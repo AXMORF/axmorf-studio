@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 
-import { SCENE_COMPOSITION_BOUNDARY_VERSION } from "../../../contracts/production-requirements";
-import type { ProductionReadabilityPolicy } from "../../../contracts/production-readability";
+import { SCENE_COMPOSITION_BOUNDARY_VERSION } from "../../../contracts/authoring-requirements";
+import type { SceneReadabilityPolicy } from "../../../contracts/scene-readability";
 import type { Sha256Digest } from "../../../contracts/primitives";
 import type {
   SceneSyncAnchorSet,
@@ -38,7 +38,7 @@ export type SceneRendererProps = Readonly<{
 
 export type SceneRendererMountProps = Readonly<
   Omit<SceneRendererProps, "sceneFrame"> & {
-    readabilityPolicy: ProductionReadabilityPolicy;
+    readabilityPolicy: SceneReadabilityPolicy;
     sceneBoundaryVersion: typeof SCENE_COMPOSITION_BOUNDARY_VERSION;
   }
 >;

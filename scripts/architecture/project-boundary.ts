@@ -6,7 +6,7 @@ const CORE_ROOTS = [
   "src/contracts",
   "src/remotion/runtime",
   "src/remotion/capabilities",
-  "scripts/production",
+  "scripts/project-production",
   "scripts/registry",
   "scripts/catalog",
   "scripts/project-check",

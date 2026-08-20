@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { resolveProductionReadabilityPolicy } from "../../src/contracts";
+import { resolveSceneReadabilityPolicy } from "../../src/contracts";
 import {
   SceneBackground,
   SceneContentFrame,
@@ -10,7 +10,7 @@ import {
   SceneText,
 } from "../../src/remotion/runtime/readability";
 
-const policy = resolveProductionReadabilityPolicy({
+const policy = resolveSceneReadabilityPolicy({
   width: 1080,
   height: 1920,
 });

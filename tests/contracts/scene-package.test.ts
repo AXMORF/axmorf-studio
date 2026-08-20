@@ -45,16 +45,23 @@ test("ScenePackage treats semantic timing as canonical JSON instead of key order
   );
 });
 
+test("ScenePackage rebinds a changed global SemanticTiming identity when its Scene slice is unchanged", () => {
+  const input = createScenePackageInput();
+  const changed = buildScenePackage({
+    ...input,
+    current: { ...input.current, semanticTimingFingerprint: sha("b") },
+  });
+  const original = buildScenePackage(input);
+  assert.equal(changed.semanticTimingFingerprint, sha("b"));
+  assert.notEqual(changed.packageFingerprint, original.packageFingerprint);
+});
+
 test("ScenePackage fails when any current layered identity drifts", () => {
   const input = createScenePackageInput();
   const mutations = [
     {
       ...input,
       current: { ...input.current, visualStyleFingerprint: sha("b") },
-    },
-    {
-      ...input,
-      current: { ...input.current, semanticTimingFingerprint: sha("b") },
     },
     {
       ...input,

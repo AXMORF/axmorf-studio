@@ -15,12 +15,9 @@ test("layering guard detects every forbidden dependency direction", async (conte
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   await Promise.all(
     [
-      "scripts/production/domain",
-      "scripts/production/application",
-      "scripts/production/adapters",
-      "scripts/delivery/domain",
-      "scripts/delivery/application",
-      "scripts/delivery/adapters",
+      "scripts/project-production/domain",
+      "scripts/project-production/application",
+      "scripts/project-production/adapters",
       "scripts/project-assets/domain",
       "scripts/project-assets/application",
       "scripts/project-assets/adapters",
@@ -31,7 +28,7 @@ test("layering guard detects every forbidden dependency direction", async (conte
   );
   await Promise.all([
     writeFile(
-      join(rootDir, "scripts/production/domain/bad.ts"),
+      join(rootDir, "scripts/project-production/domain/bad.ts"),
       [
         'import "../application/use-case";',
         'import "../adapters/filesystem";',
@@ -39,43 +36,28 @@ test("layering guard detects every forbidden dependency direction", async (conte
       ].join("\n"),
     ),
     writeFile(
-      join(rootDir, "scripts/production/application/bad.ts"),
-      'import "../cli";\n',
-    ),
-    writeFile(
-      join(rootDir, "scripts/production/adapters/bad.ts"),
+      join(rootDir, "scripts/project-production/adapters/bad.ts"),
       'import "../application/use-case";\n',
     ),
     writeFile(
-      join(rootDir, "scripts/delivery/adapters/bad.ts"),
+      join(rootDir, "scripts/project-production/adapters/legacy.ts"),
       [
-        'import "../../production/adapters/filesystem";',
+        'import "../../delivery/adapters/filesystem";',
+        'import "../../project-build/application/build";',
         'import type {ProcessRunner} from "../../baseline/evidence";',
       ].join("\n"),
     ),
     writeFile(
-      join(rootDir, "scripts/delivery/application/bad.ts"),
-      'import "../cover-cli";\n',
+      join(rootDir, "scripts/project-production/application/legacy.ts"),
+      'import "../../production/application/start";\n',
     ),
     writeFile(
-      join(rootDir, "scripts/delivery/domain/bad.ts"),
-      'import "../cover-cli";\n',
+      join(rootDir, "scripts/project-production/application/bad.ts"),
+      'import "../cli";\n',
     ),
     writeFile(
       join(rootDir, "scripts/project-assets/domain/bad.ts"),
       'import "../application/import";\n',
-    ),
-    writeFile(
-      join(rootDir, "scripts/projects/application/bad.ts"),
-      'import "../../production/adapters/run-store";\n',
-    ),
-    writeFile(
-      join(rootDir, "scripts/projects/configure.ts"),
-      'import {writeTextFileAtomic} from "../production/adapters/run-store";\n',
-    ),
-    writeFile(
-      join(rootDir, "scripts/projects/delete.ts"),
-      'import {acquireProductionRunLock} from "../production/adapters/run-store";\n',
     ),
     writeFile(
       join(rootDir, "scripts/scene-templates/bad.ts"),
@@ -83,24 +65,22 @@ test("layering guard detects every forbidden dependency direction", async (conte
     ),
     writeFile(
       join(rootDir, "scripts/shared/bad.ts"),
-      'import "../production/application/start";\n',
+      'import "../project-production/application/plan-production";\n',
     ),
   ]);
 
   assert.deepEqual(await findScriptLayeringViolations(rootDir), [
-    "scripts/delivery/adapters/bad.ts -> scripts/baseline/evidence: shared process port owned by baseline",
-    "scripts/delivery/adapters/bad.ts -> scripts/production/adapters/filesystem: delivery reuses production adapter",
-    "scripts/delivery/application/bad.ts -> scripts/delivery/cover-cli: application depends on CLI",
-    "scripts/delivery/domain/bad.ts -> scripts/delivery/cover-cli: domain dependency inversion",
-    "scripts/production/adapters/bad.ts -> scripts/production/application/use-case: adapter dependency inversion",
-    "scripts/production/application/bad.ts -> scripts/production/cli: application depends on CLI",
-    "scripts/production/domain/bad.ts -> scripts/production/adapters/filesystem: domain dependency inversion",
-    "scripts/production/domain/bad.ts -> scripts/production/application/use-case: domain dependency inversion",
-    "scripts/production/domain/bad.ts -> scripts/production/cli: domain dependency inversion",
     "scripts/project-assets/domain/bad.ts -> scripts/project-assets/application/import: domain dependency inversion",
-    "scripts/projects/application/bad.ts -> scripts/production/adapters/run-store: Project workflow reuses production adapter",
-    "scripts/projects/configure.ts -> scripts/production/adapters/run-store: Project workflow reuses production adapter",
+    "scripts/project-production/adapters/bad.ts -> scripts/project-production/application/use-case: adapter dependency inversion",
+    "scripts/project-production/adapters/legacy.ts -> scripts/baseline/evidence: shared process port owned by baseline",
+    "scripts/project-production/adapters/legacy.ts -> scripts/delivery/adapters/filesystem: depends on removed workflow",
+    "scripts/project-production/adapters/legacy.ts -> scripts/project-build/application/build: depends on removed workflow",
+    "scripts/project-production/application/bad.ts -> scripts/project-production/cli: application depends on CLI",
+    "scripts/project-production/application/legacy.ts -> scripts/production/application/start: depends on removed workflow",
+    "scripts/project-production/domain/bad.ts -> scripts/project-production/adapters/filesystem: domain dependency inversion",
+    "scripts/project-production/domain/bad.ts -> scripts/project-production/application/use-case: domain dependency inversion",
+    "scripts/project-production/domain/bad.ts -> scripts/project-production/cli: domain dependency inversion",
     "scripts/scene-templates/bad.ts -> scripts/projects/configure: Scene template projection depends on Project workflow",
-    "scripts/shared/bad.ts -> scripts/production/application/start: shared technical module depends on business workflow",
+    "scripts/shared/bad.ts -> scripts/project-production/application/plan-production: shared technical module depends on business workflow",
   ]);
 });

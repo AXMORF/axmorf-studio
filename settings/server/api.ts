@@ -56,7 +56,7 @@ export const createSettingsApi = ({
       } catch {
         return {
           statusCode: 500,
-          body: { error: "Project 构建与交付状态不可用；请检查本地数据。" },
+          body: { error: "Project 生产与交付状态不可用；请检查本地数据。" },
         };
       }
     }

@@ -8,7 +8,7 @@ export const useProductionProgress = () => {
   const [progress, setProgress] = useState<ProductionProgressResponse | null>(
     null,
   );
-  const [status, setStatus] = useState("正在读取 Project 构建与交付…");
+  const [status, setStatus] = useState("正在读取 Project 生产与交付…");
   const [error, setError] = useState<string | null>(null);
   const request = useRef<AbortController | null>(null);
   const deletionInProgress = useRef(false);

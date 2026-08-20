@@ -127,6 +127,9 @@ export type ChunkAudioGenerator = (
   request: ChunkAudioRequest,
 ) => Promise<Buffer>;
 
+export const NARRATION_NORMALIZATION_POLICY_ID =
+  "pcm-s16le-normalize-v1" as const;
+
 export const computeProviderAttemptFingerprint = (
   descriptor: SafeProviderExecutionDescriptor,
 ) => {
@@ -152,7 +155,6 @@ export const computeProviderAttemptFingerprint = (
 };
 
 export const computeChunkRequestFingerprint = ({
-  generationInputFingerprint,
   providerAttemptFingerprint,
   chunkId,
   meaningId,
@@ -160,10 +162,10 @@ export const computeChunkRequestFingerprint = ({
 }: Omit<ChunkAudioRequest, "requestFingerprint">) =>
   createFingerprint({
     namespace: "tts-chunk-request",
-    version: 2,
+    version: 3,
     value: {
-      generationInputFingerprint,
       providerAttemptFingerprint,
+      normalizationPolicyId: NARRATION_NORMALIZATION_POLICY_ID,
       chunkId,
       meaningId,
       ttsText,

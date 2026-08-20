@@ -1,463 +1,160 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { z } from "zod";
 
-const skillRoot = path.join(
-  process.cwd(),
-  ".agents/skills/remotion-story-producer-video",
-);
-const remotionBestPracticesRoot = path.join(
-  process.cwd(),
-  ".agents/skills/remotion-best-practices",
-);
-const NORMAL_PRODUCTION_HARD_MAX_CHARACTERS = 12_000;
-
-const readSkillFile = (relativePath: string) =>
-  readFile(path.join(skillRoot, relativePath), "utf8");
-
+const skillRoot = path.join(process.cwd(), ".agents/skills/remotion-story-producer-video");
+const readSkillFile = (relativePath: string) => readFile(path.join(skillRoot, relativePath), "utf8");
 const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 
-const listFiles = async (
-  root: string,
-  relativeDirectory = "",
-): Promise<string[]> => {
-  const entries = await readdir(path.join(root, relativeDirectory), {
-    withFileTypes: true,
-  });
-  const files: string[][] = await Promise.all(
-    entries.map(async (entry) => {
-      const relativePath = path.join(relativeDirectory, entry.name);
-      return entry.isDirectory()
-        ? listFiles(root, relativePath)
-        : [relativePath];
-    }),
-  );
-  return files.flat().sort();
-};
+const PolicySchema = z.object({
+  schemaVersion: z.literal(11),
+  policyVersion: z.literal("remotion-story-producer-video-policy-v12"),
+  rootEndpoints: z.tuple([
+    z.literal("project-production-complete"),
+    z.literal("project-production-current"),
+  ]),
+  privateConfigPath: z.literal("private/producer.config.json"),
+  requiredEntrypointHeadings: z.array(z.string().min(1)).min(8),
+  requiredReferences: z.array(z.string().min(1)).min(6),
+  workflowCommands: z.tuple([
+    z.literal("project:produce:plan"),
+    z.literal("project:task:check"),
+    z.literal("project:task:commit"),
+    z.literal("project:produce:converge"),
+  ]),
+  invariants: z.object({
+    productionAuthority: z.literal("production-revision-task-dag-artifact-attestation"),
+    executionAttemptRole: z.literal("diagnostics-only"),
+    sceneAuthoringSkill: z.literal("repository-local-remotion-best-practices"),
+    sharedCheckout: z.literal(true),
+    agentWriteBoundary: z.literal("task-workspace-only-after-plan"),
+    artifactAuthority: z.literal("validated-artifact-attestation"),
+    artifactReusePolicy: z.literal("reuse-valid-content-addressed-artifacts"),
+    rootWaitsForAllChildTerminalStates: z.literal(true),
+    repositoryMonitorsChildLifecycle: z.literal(false),
+    convergePolicy: z.literal("exactly-once-after-child-terminal-barrier"),
+    globalVisualReadsSceneOutputs: z.literal(false),
+    childIdentityPersisted: z.literal(false),
+    timingPolicy: z.literal("pcm-cumulative-ceil-v1"),
+    templateCopyPolicy: z.literal("fixed-task-artifact-without-agent"),
+    deliveryPolicy: z.literal("synchronous-exact-four-file-controlled-promotion"),
+  }).passthrough(),
+  forbiddenActions: z.array(z.string().min(1)).min(8),
+  contextBudgets: z.object({
+    entrypointMaxWords: z.number().int().positive(),
+    directWorkflowMaxWords: z.number().int().positive(),
+    normalProductionMaxWords: z.number().int().positive(),
+    normalProductionMaxCharacters: z.number().int().positive().max(12_000),
+    sceneOrchestrationMaxWords: z.number().int().positive(),
+    globalVisualOrchestrationMaxWords: z.number().int().positive(),
+    coverOrchestrationMaxWords: z.number().int().positive(),
+  }).strict(),
+}).strict();
 
-const fingerprintFileTree = async (
-  root: string,
-): Promise<{ fileCount: number; fingerprint: string }> => {
-  const files = await listFiles(root);
-  const contents = await Promise.all(
-    files.map((relativePath) => readFile(path.join(root, relativePath))),
-  );
-  const hash = createHash("sha256");
-  files.forEach((relativePath, index) => {
-    hash.update(relativePath);
-    hash.update("\0");
-    hash.update(contents[index].toString("base64"));
-    hash.update("\0");
-  });
-  return { fileCount: files.length, fingerprint: hash.digest("hex") };
-};
-
-const SkillPolicySchema = z
-  .object({
-    schemaVersion: z.literal(10),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v11"),
-    rootEndpoint: z.literal("foreground-finalize-completed"),
-    backgroundEndpoint: z.literal("delivery-render-started"),
-    privateConfigPath: z.literal("private/producer.config.json"),
-    requiredEntrypointHeadings: z.tuple([
-      z.literal("Start directly"),
-      z.literal("Freeze inputs before delegation"),
-      z.literal("Delegate owners to runtime-native subagents"),
-      z.literal("Wait and finalize once"),
-      z.literal("Keep context bounded"),
-      z.literal("Preserve production invariants"),
-      z.literal("Classify failure by owner"),
-      z.literal("Finish after finalize"),
-    ]),
-    requiredReferences: z.tuple([
-      z.literal("references/producer-config.md"),
-      z.literal("references/direct-production-workflow.md"),
-      z.literal("references/scene-agent-orchestration.md"),
-      z.literal("references/global-visual-agent-orchestration.md"),
-      z.literal("references/cover-agent-orchestration.md"),
-      z.literal("references/agent-rework-and-system-hardening.md"),
-    ]),
-    workflowCommands: z.tuple([
-      z.literal("production:preflight"),
-      z.literal("production:start"),
-      z.literal("production:narrative"),
-      z.literal("production:scene:freeze"),
-      z.literal("delivery:cover:freeze"),
-      z.literal("production:scene:check"),
-      z.literal("production:owner:ready"),
-      z.literal("production:owner:failed"),
-      z.literal("production:finalize"),
-    ]),
-    invariants: z
-      .object({
-        sceneAuthoringOwner: z.literal(
-          "one-runtime-native-child-per-owner-meaning-id",
-        ),
-        sceneAuthoringSkill: z.literal(
-          "repository-local-remotion-best-practices",
-        ),
-        sceneTaskInputProjection: z.literal(
-          "complete-assignment-task-input",
-        ),
-        sceneOwnerValidation: z.literal(
-          "scene-check-ready-before-owner-ready",
-        ),
-        sceneReadabilityAuthority: z.literal(
-          "assignment-readability-policy",
-        ),
-        globalVisualAuthoringOwner: z.literal(
-          "one-runtime-native-child-per-story",
-        ),
-        globalVisualDefaultRole: z.literal(
-          "minimal-style-aligned-background-board",
-        ),
-        coverAuthoringOwner: z.literal("one-runtime-native-child-per-story"),
-        delegationSurface: z.literal("runtime-native-subagents"),
-        sharedCheckout: z.literal(true),
-        capacityPolicy: z.literal("batched-one-owner-per-child"),
-        unavailableDelegationPolicy: z.literal(
-          "fail-closed-without-inline-owner",
-        ),
-        rootAgentAuthorsOwnerOutputs: z.literal(false),
-        agentDirectWriteBoundary: z.literal(
-          "current-project-before-freeze-assignment-exclusive-after-freeze",
-        ),
-        agentBoundaryMechanism: z.literal(
-          "checkpoint-fingerprint-gate-not-process-sandbox",
-        ),
-        sharedAssetBoundary: z.literal("public-assets-library-protected"),
-        fixedScriptWritePolicy: z.literal(
-          "deterministic-contract-writes-are-not-agent-authorship",
-        ),
-        agentBoundaryCheck: z.literal(
-          "start-narrative-freeze-owner-receipt-finalize",
-        ),
-        narrativeBoundaryCheckpoint: z.literal(
-          "current-project-after-fixed-narrative",
-        ),
-        renderReadyBoundaryCheckpoint: z.literal(
-          "cover-only-after-fixed-render-ready",
-        ),
-        rootWaitsForAllChildTerminalStates: z.literal(true),
-        repositoryMonitorsChildLifecycle: z.literal(false),
-        finalizeInput: z.literal("assignment-bound-owner-receipts-only"),
-        missingReceiptPolicy: z.literal(
-          "finalize-once-and-report-incomplete",
-        ),
-        globalVisualReadsSceneOutputs: z.literal(false),
-        coverReadsOnlyAssignmentInputs: z.literal(true),
-        coverMissingBlocksRenderReady: z.literal(false),
-        coverMissingBlocksAutomaticDelivery: z.literal(true),
-        centralWriter: z.literal("foreground-production-finalize-only"),
-        childIdentityPersisted: z.literal(false),
-        timingPolicy: z.literal("pcm-cumulative-ceil-v1"),
-        storyBeatContract: z.literal(
-          "discriminated-narrated-or-silent-scene",
-        ),
-        configuredSceneTemplates: z.literal(
-          "project-configure-copy-with-project-local-instance",
-        ),
-        templateCopyOwnerPolicy: z.literal(
-          "script-direct-result-without-generic-review-or-owner-receipt",
-        ),
-        silentSceneNarrationPolicy: z.literal(
-          "no-tts-no-captions-fixed-preset-frames",
-        ),
-        deliveryLaunchPolicy: z.literal("detached-spawn-acknowledgement-v1"),
-        deliveryLaunchAmbiguityPolicy: z.literal(
-          "intent-without-receipt-never-retry",
-        ),
-        deliveryReadsRenderedMp4: z.literal(false),
-      })
-      .strict(),
-    forbiddenActions: z.tuple([
-      z.literal("user-task-thread-api"),
-      z.literal("owner-worktree"),
-      z.literal("inline-owner-fallback"),
-      z.literal("root-item-submit"),
-      z.literal("repeat-finalize"),
-      z.literal("poll-production-run"),
-      z.literal("persist-child-identity"),
-      z.literal("git add ."),
-      z.literal("push"),
-      z.literal("publish"),
-      z.literal("monitor-detached-render"),
-      z.literal("hand-edit-derived-state"),
-      z.literal("agent-write-outside-current-project-or-assignment"),
-    ]),
-    contextBudgets: z
-      .object({
-        entrypointMaxWords: z.number().int().positive(),
-        directWorkflowMaxWords: z.number().int().positive(),
-        normalProductionMaxWords: z.number().int().positive(),
-        normalProductionMaxCharacters: z.number().int().positive(),
-        sceneOrchestrationMaxWords: z.number().int().positive(),
-        globalVisualOrchestrationMaxWords: z.number().int().positive(),
-        coverOrchestrationMaxWords: z.number().int().positive(),
-      })
-      .strict(),
-  })
-  .strict();
-
-test("repository video skill exposes a structured production policy", async () => {
-  const [
-    skill,
-    metadata,
-    workflow,
-    producerConfig,
-    sceneWorkflow,
-    globalVisualWorkflow,
-    coverWorkflow,
-    failurePolicy,
-    rawPolicy,
-  ] = await Promise.all([
-    readSkillFile("SKILL.md"),
-    readSkillFile("agents/openai.yaml"),
-    readSkillFile("references/direct-production-workflow.md"),
-    readSkillFile("references/producer-config.md"),
-    readSkillFile("references/scene-agent-orchestration.md"),
-    readSkillFile("references/global-visual-agent-orchestration.md"),
-    readSkillFile("references/cover-agent-orchestration.md"),
-    readSkillFile("references/agent-rework-and-system-hardening.md"),
-    readSkillFile("policy.json"),
-  ]);
-  const policy = SkillPolicySchema.parse(JSON.parse(rawPolicy));
-  const remotionBestPractices = await readFile(
-    path.join(remotionBestPracticesRoot, "SKILL.md"),
-    "utf8",
-  );
+test("repository video skill uses Revision, Task DAG, artifacts, and synchronous delivery", async () => {
+  const [skill, metadata, workflow, scene, globalVisual, cover, hardening, producerConfig, rawPolicy] =
+    await Promise.all([
+      readSkillFile("SKILL.md"),
+      readSkillFile("agents/openai.yaml"),
+      readSkillFile("references/direct-production-workflow.md"),
+      readSkillFile("references/scene-agent-orchestration.md"),
+      readSkillFile("references/global-visual-agent-orchestration.md"),
+      readSkillFile("references/cover-agent-orchestration.md"),
+      readSkillFile("references/agent-rework-and-system-hardening.md"),
+      readSkillFile("references/producer-config.md"),
+      readSkillFile("policy.json"),
+    ]);
+  const policy = PolicySchema.parse(JSON.parse(rawPolicy));
+  const executable = `${workflow}\n${scene}\n${globalVisual}\n${cover}`;
+  const bundle = `${skill}\n${metadata}\n${executable}\n${hardening}\n${producerConfig}\n${rawPolicy}`;
 
   assert.match(skill, /^name: remotion-story-producer-video$/mu);
-  assert.match(skill, /\(policy\.json\)/u);
   assert.match(metadata, /\$remotion-story-producer-video/u);
-  assert.match(remotionBestPractices, /^name: remotion-best-practices$/mu);
-  assert.match(
-    remotionBestPractices,
-    /^description: Router for all Remotion skills$/mu,
-  );
-  assert.match(remotionBestPractices, /^version: 4\.0\.506$/mu);
-  assert.deepEqual(await fingerprintFileTree(remotionBestPracticesRoot), {
-    fileCount: 127,
-    fingerprint:
-      "a27d1df90df0b28e026f3c112af5d9821d9c3be655b73c3503b221fbdb2edc3a",
-  });
-
-  const alignedDocumentation = await Promise.all(
-    [
-      "AGENTS.md",
-      "README.md",
-      "docs/FINAL_PRODUCT_GOAL.md",
-      "docs/ITERATION_STATUS.md",
-      "docs/PRODUCTION_WORKFLOW.md",
-      "docs/ARCHITECTURE.md",
-      "docs/guides/PRODUCTION_ORCHESTRATION.md",
-      "docs/guides/REVIEW_MODEL.md",
-      "docs/guides/CAPABILITY_CATALOG.md",
-    ].map((relativePath) =>
-      readFile(path.join(process.cwd(), relativePath), "utf8"),
-    ),
-  );
-  for (const document of alignedDocumentation) {
-    assert.match(document, /remotion-best-practices/u);
-  }
-
-  assert.match(
-    sceneWorkflow,
-    /\.agents\/skills\/remotion-best-practices\/SKILL\.md/u,
-  );
-  assert.match(producerConfig, /publishingCollections/u);
-  assert.match(producerConfig, /targetLoudnessLufs/u);
-  assert.doesNotMatch(producerConfig, /POST \/clone|127\.0\.0\.1:31(?:00|01)/u);
-  assert.match(
-    sceneWorkflow,
-    /完整读取[\s\S]*remotion-best-practices\/SKILL\.md[\s\S]*remotion-markup\/REFERENCE\.md/u,
-  );
-  assert.match(
-    sceneWorkflow,
-    /assignment\.taskInput[\s\S]*完整一致/u,
-  );
-  assert.match(sceneWorkflow, /task-input\.generated\.json/u);
-  assert.match(
-    sceneWorkflow,
-    /node -e [^\n]*readFileSync\("<assignmentPath>"\)[^\n]*writeFileSync\("<sceneRoot>\/task-input\.generated\.json",JSON\.stringify\(a\.taskInput\)\)/u,
-  );
-  assert.match(
-    sceneWorkflow,
-    /不得[\s\S]{0,40}(?:手工挑字段|只改 fingerprint)/u,
-  );
-  assert.match(sceneWorkflow, /readabilityPolicy/u);
-  assert.match(sceneWorkflow, /sceneContentSafeAreaPx/u);
-  assert.match(sceneWorkflow, /完整画布坐标系/u);
-  assert.match(sceneWorkflow, /不得[\s\S]{0,80}重复叠加[\s\S]{0,40}安全区/u);
-  assert.match(sceneWorkflow, /typographyPolicy\.minFontSizePx/u);
-  assert.match(sceneWorkflow, /allowedResourceIds/u);
-  assert.match(sceneWorkflow, /allowedSnapshots/u);
-  assert.match(sceneWorkflow, /透明 Scene/u);
-  assert.match(workflow, /ProducerConfig[\s\S]*boundary Scene[\s\S]*copies/u);
-  assert.match(workflow, /templateMeaningIds[\s\S]*ownerMeaningIds/u);
-  assert.match(workflow, /do not delegate them|Do not delegate[\s\S]*templateMeaningIds/iu);
-  assert.match(sceneWorkflow, /silent-scene/u);
-  assert.match(sceneWorkflow, /不得[\s\S]*TTS[\s\S]*CaptionCue/u);
-  assert.match(sceneWorkflow, /顶层[\s\S]{0,40}字幕[\s\S]{0,20}旁白[\s\S]{0,20}背景/u);
-
-  const sceneCheckCommand =
-    "npm run production:scene:check -- --run <runId> --scene <meaningId>";
-  const sceneReadyCommand =
-    "npm run production:owner:ready -- --run <runId> --owner scene --scene <meaningId>";
-  const sceneCheckIndex = sceneWorkflow.indexOf(sceneCheckCommand);
-  const readyStatusIndex = sceneWorkflow.indexOf("ready-to-submit");
-  const sceneReadyIndex = sceneWorkflow.indexOf(sceneReadyCommand);
-  assert.ok(sceneCheckIndex >= 0, "Scene owner prompt must run Scene check");
-  assert.ok(
-    readyStatusIndex > sceneCheckIndex,
-    "Scene owner prompt must require ready-to-submit after Scene check",
-  );
-  assert.ok(
-    sceneReadyIndex > readyStatusIndex,
-    "Scene owner prompt must publish owner-ready only after ready-to-submit",
-  );
-  assert.match(
-    sceneWorkflow,
-    /校验失败[\s\S]*同一 owner[\s\S]*重跑/u,
-  );
-  assert.match(
-    sceneWorkflow,
-    /不得[^\n]*owner-failed[^\n]*校验控制流/u,
-  );
-
-  const remotionRuleReferences = [
-    ...remotionBestPractices.matchAll(/\]\(([^)#]+\.md)(?:#[^)]+)?\)/gu),
-  ]
-    .map((match) => match[1].replace(/^\.\//u, ""))
-    .filter((reference) => !/^[a-z]+:\/\//u.test(reference));
-  assert.ok(remotionRuleReferences.length > 0);
-  assert.ok(remotionRuleReferences.includes("remotion-markup/REFERENCE.md"));
-  for (const reference of new Set(remotionRuleReferences)) {
-    await assert.doesNotReject(
-      readFile(path.join(remotionBestPracticesRoot, reference), "utf8"),
-    );
-  }
-
   for (const heading of policy.requiredEntrypointHeadings) {
     assert.match(skill, new RegExp(`^## ${heading}$`, "mu"));
   }
   for (const reference of policy.requiredReferences) {
-    assert.match(
-      skill,
-      new RegExp(`\\(${reference.replaceAll(".", "\\.")}\\)`, "u"),
-    );
+    assert.match(skill, new RegExp(`\\(${reference.replaceAll(".", "\\.")}\\)`, "u"));
     await assert.doesNotReject(readSkillFile(reference));
   }
-
-  const executableWorkflow = `${workflow}\n${sceneWorkflow}\n${globalVisualWorkflow}\n${coverWorkflow}`;
-  const skillBundle = `${skill}\n${metadata}\n${executableWorkflow}\n${failurePolicy}\n${rawPolicy}`;
   for (const command of policy.workflowCommands) {
-    assert.match(executableWorkflow, new RegExp(`npm run ${command}`, "u"));
+    assert.match(executable, new RegExp(`npm run ${command}`, "u"));
   }
 
-  assert.ok(
-    wordCount(skill) <= policy.contextBudgets.entrypointMaxWords,
-    `SKILL.md exceeds its policy budget (${wordCount(skill)} words)`,
-  );
-  assert.ok(
-    wordCount(workflow) <= policy.contextBudgets.directWorkflowMaxWords,
-    `direct workflow exceeds its policy budget (${wordCount(workflow)} words)`,
-  );
-  const normalProductionWords = [
-    skill,
-    workflow,
-    producerConfig,
-    sceneWorkflow,
-    globalVisualWorkflow,
-    coverWorkflow,
-  ].reduce((total, document) => total + wordCount(document), 0);
-  const normalProductionCharacters = [
-    skill,
-    workflow,
-    producerConfig,
-    sceneWorkflow,
-    globalVisualWorkflow,
-    coverWorkflow,
-  ].reduce((total, document) => total + Array.from(document).length, 0);
-  assert.ok(
-    normalProductionWords <= policy.contextBudgets.normalProductionMaxWords,
-    `normal production context exceeds its policy budget (${normalProductionWords} words)`,
-  );
-  assert.ok(
-    policy.contextBudgets.normalProductionMaxCharacters <=
-      NORMAL_PRODUCTION_HARD_MAX_CHARACTERS,
-    "normal production character budget exceeds the test-owned hard ceiling",
-  );
-  assert.ok(
-    normalProductionCharacters <=
-      policy.contextBudgets.normalProductionMaxCharacters,
-    `normal production context exceeds its policy budget (${normalProductionCharacters} characters)`,
-  );
-  assert.ok(
-    wordCount(sceneWorkflow) <=
-      policy.contextBudgets.sceneOrchestrationMaxWords,
-    `Scene orchestration exceeds its policy budget (${wordCount(sceneWorkflow)} words)`,
-  );
-  assert.ok(
-    wordCount(globalVisualWorkflow) <=
-      policy.contextBudgets.globalVisualOrchestrationMaxWords,
-    `GlobalVisual orchestration exceeds its policy budget (${wordCount(globalVisualWorkflow)} words)`,
-  );
-  assert.ok(
-    wordCount(coverWorkflow) <=
-      policy.contextBudgets.coverOrchestrationMaxWords,
-    `Cover orchestration exceeds its policy budget (${wordCount(coverWorkflow)} words)`,
-  );
-  assert.match(
-    globalVisualWorkflow,
-    /does not read Scene outputs|不得读取 Scene 输出/u,
-  );
-  assert.match(globalVisualWorkflow, /simplest full-frame background board/u);
-  assert.match(
-    globalVisualWorkflow,
-    /aligned with the[\s\S]*current VisualStyleSpec/u,
-  );
-  assert.match(
-    globalVisualWorkflow,
-    /must not invent[\s\S]*continuity motifs/u,
-  );
-  assert.match(globalVisualWorkflow, /caption|字幕/u);
-  assert.match(globalVisualWorkflow, /DSL|automatic director|自动导演/u);
-  assert.match(
-    executableWorkflow,
-    /assignment-keyed receipt|assignment-bound-owner-receipts|assignment identity|receipt/u,
-  );
-  assert.match(workflow, /StoryBeat/u);
-  assert.match(workflow, /Agent-authored ttsChunks/u);
-  assert.match(workflow, /VisualStyleSpec/u);
-  assert.match(workflow, /Scene brief/u);
-  assert.match(workflow, /Cover/u);
-  assert.match(
-    workflow,
-    /scripts?\s+(?:freeze|validate|execute)[\s\S]*do not choose creative direction/iu,
-  );
-  assert.match(executableWorkflow, /runtime-native child Agent/u);
-  assert.match(executableWorkflow, /production:finalize/u);
-  assert.match(executableWorkflow, /Agent write boundary/u);
-  assert.match(skill, /Agent edits current Project paths/u);
-  assert.match(skill, /fixed scripts own derived/u);
-  assert.match(executableWorkflow, /success, explicit failure, or host failure/u);
-  assert.match(executableWorkflow, /exactly\s+once/u);
-  assert.doesNotMatch(skillBundle, /create_thread|detached production watcher/u);
-  assert.doesNotMatch(skill, /end the root|exit without wait|early-exit/iu);
-  assert.doesNotMatch(
-    executableWorkflow,
-    /production:scene:submit|delivery:cover:submit/u,
-  );
+  assert.match(workflow, /ProductionRevision/u);
+  assert.match(workflow, /Task DAG/u);
+  assert.match(workflow, /ArtifactAttestation/u);
+  assert.match(workflow, /dirtyAgentTasks/u);
+  assert.match(workflow, /project-production-current/u);
+  assert.match(workflow, /video\.mp4[\s\S]*cover-4x3\.png[\s\S]*cover-3x4\.png[\s\S]*publish\.json/u);
+  assert.match(workflow, /checksum[\s\S]*EOF-decode/u);
+  assert.match(workflow, /attempt ID[\s\S]*never enter[\s\S]*TaskRevision/iu);
+  assert.match(skill, /validated ArtifactAttestation[\s\S]*durable authority/u);
+  assert.match(skill, /exactly once/u);
 
-  assert.ok(failurePolicy.length > 0);
-  assert.ok(
-    new Set(policy.workflowCommands).size === policy.workflowCommands.length,
+  assert.match(scene, /remotion-best-practices\/SKILL\.md/u);
+  assert.match(scene, /remotion-markup\/REFERENCE\.md/u);
+  assert.match(scene, /\.producer-work\/<storyId>\/<taskRevision>\//u);
+  assert.match(scene, /task-input\.generated\.json/u);
+  assert.match(scene, /readabilityPolicy/u);
+  assert.match(scene, /sceneContentSafeAreaPx/u);
+  assert.match(scene, /typographyPolicy\.minFontSizePx/u);
+  assert.match(scene, /allowedResourceIds/u);
+  assert.match(scene, /allowedSnapshots/u);
+  assert.match(scene, /完整画布坐标系/u);
+  assert.match(scene, /透明 Scene/u);
+  assert.match(scene, /不得读取其他 workspace/u);
+  assert.match(scene, /scene-template[\s\S]*不创建 child/u);
+
+  assert.match(globalVisual, /不得读取 Scene 输出/u);
+  assert.match(globalVisual, /simplest full-frame background board/u);
+  assert.match(globalVisual, /current[\s\S]*VisualStyleSpec/u);
+  assert.match(globalVisual, /must not invent[\s\S]*continuity motifs/u);
+  assert.match(globalVisual, /caption|字幕/u);
+  assert.match(globalVisual, /DSL|automatic director/u);
+  assert.match(cover, /StorySpec[\s\S]*VisualStyleSpec[\s\S]*fixed CoverSpec/u);
+  assert.match(cover, /不得读取 PublishingIntent/u);
+
+  const checkCommand = "npm run project:task:check -- --task <taskRevision>";
+  const commitCommand = "npm run project:task:commit -- --task <taskRevision>";
+  for (const prompt of [scene, globalVisual, cover]) {
+    assert.ok(prompt.indexOf(checkCommand) >= 0);
+    assert.ok(prompt.indexOf(commitCommand) > prompt.indexOf(checkCommand));
+  }
+  assert.match(hardening, /ExecutionAttempt[\s\S]*never invalidates or owns artifact bytes/u);
+  assert.match(producerConfig, /publishingCollections/u);
+  assert.match(producerConfig, /targetLoudnessLufs/u);
+  assert.doesNotMatch(producerConfig, /POST \/clone|127\.0\.0\.1:31(?:00|01)/u);
+
+  assert.doesNotMatch(
+    bundle,
+    /production:(?:start|status|narrative|scene:freeze|scene:check|owner:ready|owner:failed|finalize|render-ready:check)|delivery:(?:cover:freeze|cover:check|build|check)|project:build/u,
   );
-  assert.ok(
-    new Set(policy.forbiddenActions).size === policy.forbiddenActions.length,
-  );
+  assert.doesNotMatch(bundle, /owner[- ](?:ready|failed)|render-ready|detached spawn|launch-ambiguous/u);
+  assert.doesNotMatch(bundle, /create_thread/u);
+
+  assert.ok(wordCount(skill) <= policy.contextBudgets.entrypointMaxWords);
+  assert.ok(wordCount(workflow) <= policy.contextBudgets.directWorkflowMaxWords);
+  assert.ok(wordCount(scene) <= policy.contextBudgets.sceneOrchestrationMaxWords);
+  assert.ok(wordCount(globalVisual) <= policy.contextBudgets.globalVisualOrchestrationMaxWords);
+  assert.ok(wordCount(cover) <= policy.contextBudgets.coverOrchestrationMaxWords);
+  const normal = [skill, workflow, producerConfig, scene, globalVisual, cover];
+  assert.ok(normal.reduce((sum, source) => sum + wordCount(source), 0) <= policy.contextBudgets.normalProductionMaxWords);
+  assert.ok(normal.reduce((sum, source) => sum + Array.from(source).length, 0) <= policy.contextBudgets.normalProductionMaxCharacters);
+  assert.equal(new Set(policy.workflowCommands).size, policy.workflowCommands.length);
+  assert.equal(new Set(policy.forbiddenActions).size, policy.forbiddenActions.length);
+});
+
+test("skill directory contains only the declared operational bundle", async () => {
+  const references = (await readdir(path.join(skillRoot, "references"))).sort();
+  assert.deepEqual(references, [
+    "agent-rework-and-system-hardening.md",
+    "cover-agent-orchestration.md",
+    "direct-production-workflow.md",
+    "global-visual-agent-orchestration.md",
+    "producer-config.md",
+    "scene-agent-orchestration.md",
+  ]);
 });

@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { resolveProductionReadabilityPolicy } from "../../src/contracts";
+import { resolveSceneReadabilityPolicy } from "../../src/contracts";
 import {
   SceneSafeArea,
   SceneText,
 } from "../../src/remotion/runtime/readability";
 
-const policy = resolveProductionReadabilityPolicy({ width: 1080, height: 1920 });
+const policy = resolveSceneReadabilityPolicy({ width: 1080, height: 1920 });
 
 test("SceneSafeArea directly consumes the frozen geometry and text context", () => {
   const markup = renderToStaticMarkup(

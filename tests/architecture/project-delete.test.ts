@@ -12,7 +12,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 
-import { createProductionRunManifest } from "../../src/contracts";
 import {
   deleteProjectData,
   parseProjectDeleteArguments,
@@ -42,6 +41,9 @@ const writeProjectData = async ({
     "src/projects",
     "public/projects",
     ".narration-work",
+    ".producer-attempts",
+    ".producer-work",
+    ".producer-artifacts",
     "out",
     "deliveries",
   ]) {
@@ -52,13 +54,7 @@ const writeProjectData = async ({
   const runId = `${projectId}-run-20260809120000-000000000001`;
   const runRoot = join(rootDir, ".producer-runs", runId);
   await mkdir(runRoot, { recursive: true });
-  const run = createProductionRunManifest({
-    runId,
-    storyId: projectId,
-    requirementsPath: `src/projects/${projectId}/production/requirements.json`,
-    requirementsFingerprint: `sha256:${"0".repeat(64)}`,
-    createdAt: "2026-08-09T04:00:00.000Z",
-  });
+  const run = { runId, storyId: projectId, legacy: true };
   await writeFile(join(runRoot, "run.json"), `${JSON.stringify(run)}\n`);
   return { runId, runRoot };
 };
@@ -159,6 +155,9 @@ test("selected deletion removes every owned data root and preserves other Projec
     "src/projects/alpha-story",
     "public/projects/alpha-story",
     ".narration-work/alpha-story",
+    ".producer-attempts/alpha-story",
+    ".producer-work/alpha-story",
+    ".producer-artifacts/alpha-story",
     "out/alpha-story",
     "deliveries/alpha-story",
     `.producer-runs/${alpha.runId}`,
@@ -315,6 +314,29 @@ test("deletion identifies Project ownership without parsing obsolete Run contrac
   assert.deepEqual(result.deletedProjectIds, ["legacy-story"]);
   await missing(runRoot);
   await missing(join(rootDir, "src/projects/legacy-story"));
+});
+
+test("malformed legacy ownership fails closed before deleting current data", async (context) => {
+  const rootDir = await createRoot(context);
+  const { runRoot } = await writeProjectData({
+    rootDir,
+    projectId: "legacy-story",
+  });
+  await writeFile(join(runRoot, "run.json"), "{ malformed-history");
+
+  await assert.rejects(
+    deleteProjectData({
+      rootDir,
+      selection: { kind: "projects", projectIds: ["legacy-story"] },
+      regenerate: async () => ({
+        catalogEntryCount: 17,
+        projectEntryCount: 0,
+      }),
+    }),
+    /Production run manifest is malformed/u,
+  );
+  await access(join(rootDir, "src/projects/legacy-story/sentinel.txt"));
+  await access(runRoot);
 });
 
 test("preflight rejects unsafe targets before deleting anything", async (context) => {

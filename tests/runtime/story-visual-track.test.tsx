@@ -10,7 +10,7 @@ import {
   buildSceneCoverageMap,
   buildSceneFallbackDeclaration,
   computeScenePackageFingerprint,
-  resolveProductionReadabilityPolicy,
+  resolveSceneReadabilityPolicy,
 } from "../../src/contracts";
 import {
   renderSceneRendererMount,
@@ -140,7 +140,7 @@ test("SceneSlot owns the exact Beat Sequence and resolves one current renderer",
   assert.equal(entry.status, "ready");
   const Renderer = () => <div />;
   const registry = { [entry.rendererId]: Renderer };
-  const policy = resolveProductionReadabilityPolicy({
+  const policy = resolveSceneReadabilityPolicy({
     width: 1080,
     height: 1920,
   });
@@ -166,7 +166,7 @@ test("current SceneSlot keeps boundary policy internal to the mount", () => {
   const entry = projection.entries[0];
   assert.equal(entry.status, "ready");
   const Renderer = () => <div />;
-  const policy = resolveProductionReadabilityPolicy({
+  const policy = resolveSceneReadabilityPolicy({
     width: 1080,
     height: 1920,
   });
@@ -187,7 +187,7 @@ test("Scene renderer and mount props enforce the current ownership boundary", ()
   assert.equal(rendererBoundaryIsExcluded, false);
   assert.equal(mountBoundaryIsIncluded, true);
   const Renderer = () => <div />;
-  const policy = resolveProductionReadabilityPolicy({
+  const policy = resolveSceneReadabilityPolicy({
     width: 1080,
     height: 1920,
   });
@@ -249,7 +249,7 @@ test("StoryVisualTrack mounts ready SceneSlot only and sound-only identity chang
       "meaning-one": {
         durationInFrames: 120,
         sceneBoundaryVersion: "scene-composition-boundary-v1",
-        readabilityPolicy: resolveProductionReadabilityPolicy({
+        readabilityPolicy: resolveSceneReadabilityPolicy({
           width: 1080,
           height: 1920,
         }),

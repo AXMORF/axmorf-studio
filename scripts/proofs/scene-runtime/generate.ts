@@ -13,14 +13,14 @@ import {
   buildSceneCoverageMap,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
-  buildSceneTaskInputV5,
+  buildSceneTaskInputV6,
   buildSceneVisualPlan,
   buildShotPlanSet,
   buildShotRecipeSelection,
   computeLocalizationFingerprint,
   computeVisualStyleFingerprint,
   createFingerprint,
-  resolveProductionReadabilityPolicy,
+  resolveSceneReadabilityPolicy,
   type ExternalReferenceSnapshot,
   type LocalizationManifest,
   type ResourceCatalog,
@@ -293,7 +293,7 @@ export const generateSceneRuntimeProof = async ({
     visualStyle,
     resolvedStyleDescriptorFingerprint: style.descriptorFingerprint,
   });
-  const task = buildSceneTaskInputV5({
+  const task = buildSceneTaskInputV6({
     storyId: STORY_ID,
     meaningId: MEANING_ID,
     storyBeat: {
@@ -320,15 +320,6 @@ export const generateSceneRuntimeProof = async ({
       namespace: "scene-runtime-proof-story",
       version: 1,
       value: { meaningId: MEANING_ID },
-    }),
-    semanticTimingFingerprint: createFingerprint({
-      namespace: "scene-runtime-proof-semantic-timing",
-      version: 1,
-      value: {
-        meaningId: MEANING_ID,
-        startFrame: 0,
-        endFrame: SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames,
-      },
     }),
     renderFingerprint: createFingerprint({
       namespace: "scene-runtime-proof-render",
@@ -362,7 +353,7 @@ export const generateSceneRuntimeProof = async ({
       sceneRoot: `src/projects/${STORY_ID}/scenes/${MEANING_ID}`,
       publicAssetRoot: `public/assets/library/${STORY_ID}/${MEANING_ID}`,
     },
-    readabilityPolicy: resolveProductionReadabilityPolicy({
+    readabilityPolicy: resolveSceneReadabilityPolicy({
       width: SCENE_RUNTIME_PROOF_IDENTITY.width,
       height: SCENE_RUNTIME_PROOF_IDENTITY.height,
     }),
@@ -576,7 +567,15 @@ export const generateSceneRuntimeProof = async ({
     },
     current: {
       timingBeat: task.timingBeat,
-      semanticTimingFingerprint: task.semanticTimingFingerprint,
+      semanticTimingFingerprint: createFingerprint({
+        namespace: "scene-runtime-proof-semantic-timing",
+        version: 1,
+        value: {
+          meaningId: MEANING_ID,
+          startFrame: 0,
+          endFrame: SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames,
+        },
+      }),
       visualStyleFingerprint: task.visualStyleFingerprint,
       resourceCatalogFingerprint: task.resourceCatalogFingerprint,
       snapshotFingerprints: [snapshot.snapshotFingerprint],

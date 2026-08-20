@@ -1,9 +1,9 @@
 import type { FC, ReactNode } from "react";
 
 import {
-  ProductionReadabilityPolicySchema,
-  type ProductionReadabilityPolicy,
-} from "../../../contracts/production-readability";
+  SceneReadabilityPolicySchema,
+  type SceneReadabilityPolicy,
+} from "../../../contracts/scene-readability";
 import { SceneReadabilityProvider } from "./SceneReadability";
 
 export const SCENE_SAFE_AREA_COORDINATE_SPACE =
@@ -11,11 +11,11 @@ export const SCENE_SAFE_AREA_COORDINATE_SPACE =
 
 export const SceneSafeArea: FC<
   Readonly<{
-    policy: ProductionReadabilityPolicy;
+    policy: SceneReadabilityPolicy;
     children: ReactNode;
   }>
 > = ({ policy: rawPolicy, children }) => {
-  const policy = ProductionReadabilityPolicySchema.parse(rawPolicy);
+  const policy = SceneReadabilityPolicySchema.parse(rawPolicy);
   const safeArea = policy.sceneContentSafeAreaPx;
   const clipPath = `inset(${safeArea.top}px ${safeArea.right}px ${safeArea.bottom}px ${safeArea.left}px)`;
   return (

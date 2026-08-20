@@ -16,7 +16,7 @@ import {
   PublishingIntentSchema,
   ProjectAssetManifestSchema,
   ProjectSoundPlanSchema,
-  ProductionRequirementsFreezeSchema,
+  AuthoringRequirementsSchema,
   RenderSpecSchema,
   NarrationSpecSchema,
   computeResourceDescriptorFingerprint,
@@ -179,7 +179,7 @@ test("ProducerConfig freezes every production-connected default into one new Pro
       await readFile(join(projectDir, "publishing-intent.json"), "utf8"),
     ),
   );
-  const requirements = ProductionRequirementsFreezeSchema.parse(
+  const requirements = AuthoringRequirementsSchema.parse(
     JSON.parse(
       await readFile(join(projectDir, "production/requirements.json"), "utf8"),
     ),

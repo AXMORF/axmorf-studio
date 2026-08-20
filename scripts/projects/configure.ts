@@ -13,10 +13,10 @@ import {
   StoryIdSchema,
   StorySpecSchema,
   VideoBriefSchema,
-  buildProductionRequirementsFreeze,
+  buildAuthoringRequirements,
   buildPublishingIntent,
   serializeCanonicalJson,
-  ProductionRequirementSchema,
+  AuthoringRequirementSchema,
 } from "../../src/contracts";
 import {
   readProducerConfig,
@@ -60,7 +60,7 @@ const DraftSchema = z
             unlistedThirdPartyResources: z.literal("deny"),
           })
           .strict(),
-        additionalRequirements: z.array(ProductionRequirementSchema).max(256),
+        additionalRequirements: z.array(AuthoringRequirementSchema).max(256),
       })
       .strict(),
   })
@@ -180,7 +180,7 @@ const runProjectConfigureUnlocked = async ({
     publishingIntent: jsonBytes(publishingIntent),
     projectSound: jsonBytes(projectSound.plan),
   } as const;
-  const requirements = buildProductionRequirementsFreeze({
+  const requirements = buildAuthoringRequirements({
     source: {
       brief,
       story,

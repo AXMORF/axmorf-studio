@@ -2,9 +2,9 @@ import type { CSSProperties, FC } from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 
 import {
-  ProductionReadabilityPolicySchema,
-  type ProductionReadabilityPolicy,
-} from "../../../contracts/production-readability";
+  SceneReadabilityPolicySchema,
+  type SceneReadabilityPolicy,
+} from "../../../contracts/scene-readability";
 import type { CaptionSafeArea } from "../../../contracts/render";
 import type { SemanticTiming } from "../../../contracts/semantic-timing";
 
@@ -13,7 +13,7 @@ export type CaptionCue = SemanticTiming["captionCues"][number];
 export type CaptionLayerProps = {
   readonly captionCues: SemanticTiming["captionCues"];
   readonly safeAreaPx: CaptionSafeArea;
-  readonly readabilityPolicy?: ProductionReadabilityPolicy;
+  readonly readabilityPolicy?: SceneReadabilityPolicy;
 };
 
 export const findActiveCaptionCue = (
@@ -60,11 +60,11 @@ export const resolveCaptionLayout = ({
   readonly width: number;
   readonly height: number;
   readonly safeAreaPx: CaptionSafeArea;
-  readonly readabilityPolicy?: ProductionReadabilityPolicy;
+  readonly readabilityPolicy?: SceneReadabilityPolicy;
 }) => {
   if (rawReadabilityPolicy !== undefined) {
     const readabilityPolicy =
-      ProductionReadabilityPolicySchema.parse(rawReadabilityPolicy);
+      SceneReadabilityPolicySchema.parse(rawReadabilityPolicy);
     if (
       readabilityPolicy.width !== width ||
       readabilityPolicy.height !== height

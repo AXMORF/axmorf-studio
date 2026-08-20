@@ -6,6 +6,7 @@ import { createSceneTaskInput } from "../fixtures/scene/scene-input";
 
 test("SceneTaskInput binds exact StoryBeat timing shared identities allowlists continuity and directories", () => {
   const task = createSceneTaskInput();
+  assert.equal(task.schemaVersion, 6);
   assert.equal(task.storyBeat.meaningId, task.meaningId);
   assert.equal(task.timingBeat.endFrame - task.timingBeat.startFrame, 120);
   assert.equal(
@@ -49,6 +50,12 @@ test("SceneTaskInput rejects historical Scene and arbitrary output fields", () =
     SceneTaskInputSchema.parse({
       ...task,
       historicalScenePath: "src/projects/old/scenes/meaning-one/Renderer.tsx",
+    }),
+  );
+  assert.throws(() =>
+    SceneTaskInputSchema.parse({
+      ...task,
+      semanticTimingFingerprint: `sha256:${"a".repeat(64)}`,
     }),
   );
   assert.throws(() =>

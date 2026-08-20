@@ -8,8 +8,8 @@ import {
   Sha256DigestSchema,
   StoryIdSchema,
 } from "./primitives";
-import { ProductionReadabilityPolicySchema } from "./production-readability";
-import { SCENE_COMPOSITION_BOUNDARY_VERSION } from "./production-requirements";
+import { SceneReadabilityPolicySchema } from "./scene-readability";
+import { SCENE_COMPOSITION_BOUNDARY_VERSION } from "./authoring-requirements";
 import { ResourceIdSchema } from "./resource-catalog";
 import { StoryBeatSchema } from "./story";
 
@@ -93,14 +93,13 @@ const SceneAllowedDirectoriesSchema = z
 
 const SceneTaskInputObject = z
   .object({
-    schemaVersion: z.literal(5),
+    schemaVersion: z.literal(6),
     storyId: StoryIdSchema,
     meaningId: MeaningIdSchema,
     storyBeat: StoryBeatSchema,
     sourceReferences: VideoSourceReferencesSchema,
     timingBeat: TimingBeatSchema,
     storyFingerprint: Sha256DigestSchema,
-    semanticTimingFingerprint: Sha256DigestSchema,
     renderFingerprint: Sha256DigestSchema,
     visualStyleFingerprint: Sha256DigestSchema,
     resourceCatalogFingerprint: Sha256DigestSchema,
@@ -108,7 +107,7 @@ const SceneTaskInputObject = z
     allowedResourceIds: z.array(ResourceIdSchema).max(128).readonly(),
     continuity: ContinuityBriefSchema,
     allowedDirectories: SceneAllowedDirectoriesSchema,
-    readabilityPolicy: ProductionReadabilityPolicySchema,
+    readabilityPolicy: SceneReadabilityPolicySchema,
     sceneCompositionBoundaryVersion: z.literal(
       SCENE_COMPOSITION_BOUNDARY_VERSION,
     ),
@@ -119,7 +118,7 @@ const SceneTaskInputObject = z
 type SceneTaskFingerprintInput = Omit<
   z.input<typeof SceneTaskInputObject>,
   "schemaVersion" | "taskInputFingerprint"
-> & { readonly schemaVersion?: 5 };
+> & { readonly schemaVersion?: 6 };
 
 export const computeSceneTaskInputFingerprint = (
   rawTask: SceneTaskFingerprintInput & {
@@ -130,7 +129,7 @@ export const computeSceneTaskInputFingerprint = (
   delete task.taskInputFingerprint;
   return createFingerprint({
     namespace: "scene-task-input",
-    version: 5,
+    version: 6,
     value: task,
   });
 };
@@ -214,8 +213,8 @@ const addSceneTaskIssues = (
 export const SceneTaskInputSchema =
   SceneTaskInputObject.superRefine(addSceneTaskIssues).readonly();
 
-export const buildSceneTaskInputV5 = (rawInput: SceneTaskFingerprintInput) => {
-  const input = { ...rawInput, schemaVersion: 5 as const };
+export const buildSceneTaskInputV6 = (rawInput: SceneTaskFingerprintInput) => {
+  const input = { ...rawInput, schemaVersion: 6 as const };
   return SceneTaskInputSchema.parse({
     ...input,
     taskInputFingerprint: computeSceneTaskInputFingerprint(input),

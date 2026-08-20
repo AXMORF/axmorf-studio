@@ -33,12 +33,12 @@ test("core import analysis rejects concrete Project and project-tool dependencie
   );
   await write(
     rootDir,
-    "scripts/production/bad.ts",
+    "scripts/project-production/bad.ts",
     'import "../project-tools/alpha-story/check";\n',
   );
 
   assert.deepEqual(await findCoreProjectImportViolations(rootDir), [
-    "scripts/production/bad.ts -> scripts/project-tools/alpha-story/check",
+    "scripts/project-production/bad.ts -> scripts/project-tools/alpha-story/check",
     "src/contracts/bad.ts -> src/projects/alpha-story/Composition",
   ]);
 });

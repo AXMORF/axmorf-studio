@@ -511,67 +511,6 @@
     monospace;
   text-align: center;
 }
-.audited-progress {
-  margin: 20px 26px 24px;
-  border: 1px solid #d5dfe7;
-  background: #fbfcfd;
-}
-.audited-progress summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 14px 16px;
-  cursor: pointer;
-  list-style: none;
-}
-.audited-progress summary::-webkit-details-marker {
-  display: none;
-}
-.audited-progress summary::after {
-  color: #71808d;
-  content: "+";
-  font:
-    16px/1 ui-monospace,
-    monospace;
-}
-.audited-progress[open] summary::after {
-  content: "−";
-}
-.audited-progress summary span {
-  color: #71808d;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-}
-.audited-progress summary strong {
-  margin-left: auto;
-  color: #415668;
-  font-size: 10px;
-}
-.audited-empty,
-.audited-body {
-  margin: 0;
-  padding: 16px;
-  border-top: 1px solid #dce4eb;
-}
-.audited-empty {
-  color: #71808d;
-  font-size: 11px;
-}
-.audited-body > code {
-  color: #627b91;
-  font-size: 10px;
-}
-.progress-steps.compact {
-  padding: 8px 0 0;
-}
-.progress-steps.compact .progress-step {
-  min-height: 82px;
-}
-.audited-body .progress-footnote {
-  margin: 16px 0 0;
-}
-
 @media (max-width: 1300px) {
   .delivery-stamp {
     grid-template-columns: minmax(150px, 0.8fr) minmax(0, 1.5fr);

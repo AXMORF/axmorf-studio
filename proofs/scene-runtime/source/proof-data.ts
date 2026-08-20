@@ -1,7 +1,7 @@
 import { staticFile } from "remotion";
 import { z } from "zod";
 
-import { resolveProductionReadabilityPolicy } from "../../../src/contracts/production-readability";
+import { resolveSceneReadabilityPolicy } from "../../../src/contracts/scene-readability";
 import { ReferenceFidelityReceiptSchema } from "../../../src/contracts/reference-fidelity";
 import {
   ResourceDescriptorSchema,
@@ -156,7 +156,7 @@ export const sceneRuntimeProofRendererPropsByMeaning: Readonly<
     shots,
     syncAnchors,
     visualResources,
-    readabilityPolicy: resolveProductionReadabilityPolicy({
+    readabilityPolicy: resolveSceneReadabilityPolicy({
       width: SCENE_RUNTIME_PROOF_IDENTITY.width,
       height: SCENE_RUNTIME_PROOF_IDENTITY.height,
     }),

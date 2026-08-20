@@ -3,10 +3,9 @@ import { lstat, readFile, readdir, rm } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { ProductionRunIdSchema, StoryIdSchema } from "../../src/contracts";
+import { StoryIdSchema } from "../../src/contracts";
 import { generateResourceCatalog } from "../catalog/generate";
 import { generateProjectRegistry } from "../registry/generate";
-import { acquireProductionRunLock } from "../production/adapters/run-store";
 import { acquireRepositoryOperationLock } from "../shared/repository-operation-lock";
 
 export type ProjectDeletionSelection =
@@ -26,6 +25,9 @@ const DIRECT_DATA_ROOTS = [
   "src/projects",
   "public/projects",
   ".narration-work",
+  ".producer-attempts",
+  ".producer-work",
+  ".producer-artifacts",
   "out",
   "deliveries",
 ] as const;
@@ -34,6 +36,9 @@ const PROJECT_DISCOVERY_ROOTS = [
   "src/projects",
   "public/projects",
   ".narration-work",
+  ".producer-attempts",
+  ".producer-work",
+  ".producer-artifacts",
   "out",
   "deliveries",
 ] as const;
@@ -96,6 +101,9 @@ const assertFixedParentChains = async (rootDir: string) => {
     "public/projects",
     ".narration-work",
     ".producer-runs",
+    ".producer-attempts",
+    ".producer-work",
+    ".producer-artifacts",
     "out",
     "deliveries",
     "deliveries/.staging",
@@ -134,8 +142,12 @@ const parseStoredRunOwnership = (raw: unknown) => {
     throw new Error("Production run ownership is malformed.");
   }
   const record = raw as Record<string, unknown>;
+  const runId = record.runId;
+  if (typeof runId !== "string" || runId.length > 128 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(runId)) {
+    throw new Error("Production run ownership is malformed.");
+  }
   return {
-    runId: ProductionRunIdSchema.parse(record.runId),
+    runId,
     storyId: StoryIdSchema.parse(record.storyId),
   } as const;
 };
@@ -335,7 +347,6 @@ export const deleteProjectData = async ({
   let repositoryLock: Awaited<
     ReturnType<typeof acquireRepositoryOperationLock>
   > | null = null;
-  const runLocks: Awaited<ReturnType<typeof acquireProductionRunLock>>[] = [];
   let outcome:
     | Readonly<{
         deletionVersion: 1;
@@ -362,29 +373,12 @@ export const deleteProjectData = async ({
       runs,
       requireEveryProject: selection.kind === "projects",
     });
-    const selected = new Set(projectIds);
-    for (const run of runs.filter(({ storyId }) => selected.has(storyId))) {
-      runLocks.push(
-        await acquireProductionRunLock({
-          rootDir,
-          runId: run.directoryName,
-          ownerId: "project-delete",
-          acquiredAt: new Date().toISOString(),
-        }),
-      );
-    }
-
     repositoryLock = await acquireRepositoryOperationLock({
       rootDir,
       ownerId: "project-delete",
     });
     await assertFixedParentChains(rootDir);
     await assertDeliveryStagingIdle(rootDir);
-    const lockedRunIds = new Set(
-      runs
-        .filter(({ storyId }) => selected.has(storyId))
-        .map(({ directoryName }) => directoryName),
-    );
     const currentRuns = await readStoredRuns(rootDir);
     const currentProjectIds = await resolveSelectedProjectIds({
       rootDir,
@@ -396,7 +390,6 @@ export const deleteProjectData = async ({
       projectIds: currentProjectIds,
       runs: currentRuns,
       requireEveryProject: selection.kind === "projects",
-      ownedLockRunIds: lockedRunIds,
     });
     if (
       JSON.stringify(currentProjectIds) !== JSON.stringify(projectIds) ||
@@ -451,17 +444,6 @@ export const deleteProjectData = async ({
     }
   }
   const releaseErrors: unknown[] = [];
-  for (const lock of runLocks.reverse()) {
-    await lock.release().catch((error: unknown) => {
-      const directCode = (error as NodeJS.ErrnoException).code;
-      const causeCode = (
-        (error as Error & { cause?: NodeJS.ErrnoException }).cause ?? {}
-      ).code;
-      if (directCode !== "ENOENT" && causeCode !== "ENOENT") {
-        releaseErrors.push(error);
-      }
-    });
-  }
   await repositoryLock?.release().catch((error: unknown) => {
     releaseErrors.push(error);
   });
