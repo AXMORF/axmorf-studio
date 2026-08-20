@@ -63,7 +63,6 @@ export const readCurrentProductionRevision = async (
   const inputs = await dependencies.loadInputs({
     rootDir,
     projectId,
-    catalogMode: "check",
   });
   return buildCurrentProductionRevision(inputs);
 };

@@ -25,6 +25,12 @@ const checksum = (value: string) =>
 
 const rendererSource = `
 import type {SceneRendererProps} from "../../../../remotion/runtime/story-visual/types";
+const Renderer = (_props: SceneRendererProps) => <div />;
+export default Renderer;
+`;
+
+const legacyRendererSource = `
+import type {SceneRendererProps} from "../../../../remotion/runtime/story-visual/types";
 const SceneBackground = () => <div />;
 const SceneContentFrame = (_props: {children?: any; policy: unknown}) => <div />;
 const Renderer = ({readabilityPolicy}: SceneRendererProps & {readabilityPolicy?: unknown}) => (
@@ -193,6 +199,18 @@ test("Scene task rejects an unresolved Renderer import graph", async (context) =
   );
 });
 
+test("Scene task rejects the removed Scene-owned readability boundary", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-legacy-boundary-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const { task, workspace } = await createSceneWorkspace({ rootDir });
+  await writeFile(join(workspace, "src/Renderer.tsx"), legacyRendererSource);
+
+  await assert.rejects(
+    checkSceneTask({ rootDir, taskRevision: task.taskRevision }),
+    /must not own SceneBackground/u,
+  );
+});
+
 test("Scene task rejects a Renderer that narrows the shared StoryBeat contract", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-component-contract-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
@@ -200,8 +218,8 @@ test("Scene task rejects a Renderer that narrows the shared StoryBeat contract",
   await writeFile(
     join(workspace, "src/Renderer.tsx"),
     rendererSource.replace(
-      "({readabilityPolicy}: SceneRendererProps & {readabilityPolicy?: unknown})",
-      '({readabilityPolicy}: {readabilityPolicy: unknown; storyBeat: {kind: "narrated-scene"; ttsChunks: readonly unknown[]}})',
+      "(_props: SceneRendererProps)",
+      '(_props: {storyBeat: {kind: "narrated-scene"; ttsChunks: readonly unknown[]}})',
     ),
   );
 

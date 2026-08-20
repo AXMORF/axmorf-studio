@@ -283,19 +283,15 @@ export default ${componentName};
 `;
 };
 
-export const ensureProjectAuthoringBuildScaffold = async ({ rootDir, storyId, meaningIds, runtimeInputFingerprint, mode }: {
-  readonly rootDir: string; readonly storyId: string; readonly meaningIds: readonly string[]; readonly runtimeInputFingerprint: string; readonly mode: "write" | "check";
+export const ensureProjectAuthoringBuildScaffold = async ({ rootDir, storyId, meaningIds, runtimeInputFingerprint }: {
+  readonly rootDir: string; readonly storyId: string; readonly meaningIds: readonly string[]; readonly runtimeInputFingerprint: string;
 }) => {
   const projectRoot = join(rootDir, "src/projects", StoryIdSchema.parse(storyId));
   const runtimeDestination = join(projectRoot, "production-scene-runtime.generated.ts");
   const runtimeSource = renderReadabilityAwareProductionSceneRuntime({ storyId, meaningIds, runtimeInputFingerprint });
-  await writeOrCheckRendererRegistry({ destination: runtimeDestination, source: runtimeSource, mode });
+  await writeOrCheckRendererRegistry({ destination: runtimeDestination, source: runtimeSource, mode: "write" });
   const destination = join(projectRoot, "Composition.tsx");
   const expected = renderProjectAuthoringBuildScaffold({ storyId, runtimeInputFingerprint });
-  if (mode === "check") {
-    if ((await readFile(destination, "utf8")) !== expected) throw new Error("Project Composition bytes are stale.");
-    return { destination, runtimeDestination, source: expected } as const;
-  }
   let current: string | null = null;
   try { current = await readFile(destination, "utf8"); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
   if (current !== null && current !== expected && !current.includes("@generated-by")) throw new Error("Refusing to overwrite a hand-written Composition.");

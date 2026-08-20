@@ -14,7 +14,6 @@ import type {
   ProducerTaskKind,
   TaskRevision,
 } from "../../../src/contracts/producer-task";
-import { TtsChunkIdSchema } from "../../../src/contracts/primitives";
 import type { ArtifactInspection } from "./invalidation";
 import { missingArtifactInspection } from "./invalidation";
 import { buildProducerTaskGraph, type ProducerTaskNode } from "./task-graph";
@@ -65,33 +64,19 @@ export const toDiagnosticInputId = (rawId: string): DiagnosticInputId | null => 
   return DiagnosticInputIdSchema.parse(mapped);
 };
 
-export const deriveDiagnosticSubject = (
-  node: ProducerTaskNode,
-): DiagnosticSubject => {
-  if (node.task.taskKind === "narration-chunk") {
-    // Callers building real narration tasks must override this with chunkId.
-    // The content identity remains a safe stable fallback for legacy unit fixtures.
-    return { kind: "tts-chunk", id: TtsChunkIdSchema.parse(node.task.taskRevision) };
-  }
-  if (
-    node.task.taskKind === "scene-owner" ||
-    node.task.taskKind === "scene-template"
-  ) {
-    if (node.task.semanticId === null) {
-      throw new Error("Scene diagnostic subject lost meaningId.");
-    }
-    return { kind: "meaning", id: node.task.semanticId };
-  }
-  return { kind: "project", id: node.task.storyId };
-};
-
 const resolveSubject = ({
   node,
   subjects,
 }: {
   readonly node: ProducerTaskNode;
-  readonly subjects?: ReadonlyMap<string, DiagnosticSubject>;
-}) => subjects?.get(node.task.taskRevision) ?? deriveDiagnosticSubject(node);
+  readonly subjects: ReadonlyMap<string, DiagnosticSubject>;
+}) => {
+  const subject = subjects.get(node.task.taskRevision);
+  if (subject === undefined) {
+    throw new Error("Task diagnostic subject is missing from the current plan.");
+  }
+  return subject;
+};
 
 const subjectKey = ({
   taskKind,
@@ -126,7 +111,7 @@ export const buildTaskDiagnosticSnapshots = ({
   decisions,
 }: {
   readonly nodes: readonly ProducerTaskNode[];
-  readonly subjects?: ReadonlyMap<string, DiagnosticSubject>;
+  readonly subjects: ReadonlyMap<string, DiagnosticSubject>;
   readonly decisions: readonly TaskDecisionExplanation[];
 }): readonly TaskDiagnosticSnapshot[] => {
   const nodes = buildProducerTaskGraph(rawNodes);
@@ -275,7 +260,7 @@ export const explainTaskDecisions = ({
 }: {
   readonly storyId: string;
   readonly nodes: readonly ProducerTaskNode[];
-  readonly subjects?: ReadonlyMap<string, DiagnosticSubject>;
+  readonly subjects: ReadonlyMap<string, DiagnosticSubject>;
   readonly inspections: ReadonlyMap<string, ArtifactInspection>;
   readonly baselineSnapshots?: readonly TaskDiagnosticSnapshot[];
 }): readonly TaskDecisionExplanation[] => {

@@ -58,9 +58,7 @@ test("current Revision query is catalog-check-only and creates no execution root
   );
 
   assert.match(revision.revisionId, /^revision-[0-9a-f]{64}$/u);
-  assert.deepEqual(calls, [
-    { rootDir, projectId: "story-example", catalogMode: "check" },
-  ]);
+  assert.deepEqual(calls, [{ rootDir, projectId: "story-example" }]);
   for (const root of [
     ".producer-attempts",
     ".producer-artifacts",

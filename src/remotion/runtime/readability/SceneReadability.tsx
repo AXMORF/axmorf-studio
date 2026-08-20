@@ -52,52 +52,6 @@ const assertUnscaledTextStyle = (style: CSSProperties | undefined) => {
   }
 };
 
-export const SceneBackground: FC<Readonly<{ children?: ReactNode }>> = ({
-  children,
-}) => (
-  <div
-    aria-hidden="true"
-    data-readability-background="full-bleed"
-    style={{ position: "absolute", inset: 0, overflow: "hidden" }}
-  >
-    {children}
-  </div>
-);
-
-export const SceneContentFrame: FC<
-  Readonly<{
-    policy: SceneReadabilityPolicy;
-    children: ReactNode;
-  }>
-> = ({ policy, children }) => {
-  if (
-    policy.policyId !== "production-readability-v2" ||
-    !policy.policyFingerprint.startsWith("sha256:")
-  ) {
-    throw new Error(
-      "SceneContentFrame received an invalid readability policy.",
-    );
-  }
-  const safeArea = policy.sceneContentSafeAreaPx;
-  return (
-    <ReadabilityPolicyContext.Provider value={policy}>
-      <div
-        data-readability-content-frame={policy.policyFingerprint}
-        style={{
-          position: "absolute",
-          top: safeArea.top,
-          right: safeArea.right,
-          bottom: safeArea.bottom,
-          left: safeArea.left,
-          overflow: "hidden",
-        }}
-      >
-        {children}
-      </div>
-    </ReadabilityPolicyContext.Provider>
-  );
-};
-
 export type SceneTextProps = Readonly<{
   fontSizePx: number;
   children: ReactNode;
@@ -111,7 +65,7 @@ export const SceneText: FC<SceneTextProps> = ({
 }) => {
   const policy = useContext(ReadabilityPolicyContext);
   if (policy === null) {
-    throw new Error("SceneText must render inside SceneContentFrame.");
+    throw new Error("SceneText must render inside SceneSafeArea.");
   }
   assertReadableFontSize(policy, fontSizePx);
   assertUnscaledTextStyle(style);
@@ -132,7 +86,7 @@ export const SceneSvgText: FC<SceneSvgTextProps> = ({
 }) => {
   const policy = useContext(ReadabilityPolicyContext);
   if (policy === null) {
-    throw new Error("SceneSvgText must render inside SceneContentFrame.");
+    throw new Error("SceneSvgText must render inside SceneSafeArea.");
   }
   assertReadableFontSize(policy, fontSizePx);
   assertUnscaledTextStyle(style);

@@ -7,7 +7,7 @@ import {
 } from "../../../src/contracts";
 import { validateSceneArtifactBundle } from "../../scene-package/domain";
 import { parseSceneSelectedResourcesFile } from "../../scene-package/generate";
-import { validatePolicyAwareRendererSourceGraph } from "./readability-source-validator";
+import { validateRendererReadabilitySourceGraph } from "./readability-source-validator";
 import { compileTypeScriptImportGraph } from "./typescript-compile";
 
 const readJson = async (path: string) =>
@@ -28,7 +28,7 @@ export const checkSceneTask = async (input: Parameters<typeof checkProducerTaskW
   ) {
     throw new Error("Scene workspace context is cross-bound.");
   }
-  await validatePolicyAwareRendererSourceGraph({
+  await validateRendererReadabilitySourceGraph({
     rootDir: checked.workspace,
     rendererPath: "src/Renderer.tsx",
     sourcePaths: ["src/Renderer.tsx"],

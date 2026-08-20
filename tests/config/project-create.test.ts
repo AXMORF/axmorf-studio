@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
@@ -24,6 +25,7 @@ import {
   projectPendingSceneAuthoring,
 } from "../../scripts/projects/application/create-project";
 import { runProjectCreateCli } from "../../scripts/projects/create";
+import { generateSceneTemplateAudioProjection } from "../../scripts/scene-templates/audio-projection";
 import {
   prepareProjectCreateFixture,
   validProjectCreateInput,
@@ -72,6 +74,108 @@ const snapshotCreatedRoots = async (rootDir: string) => {
       ]),
     ),
   );
+};
+
+const checksum = (bytes: Uint8Array) =>
+  `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+
+const configureTemplateAudioWithUnusedAuthority = async (rootDir: string) => {
+  const manifestPath = "private/reference-assets/assets.manifest.json";
+  const licenseBytes = Buffer.from("verified local reference license");
+  const assets = [
+    {
+      id: "asset.test.intro",
+      localPath: "public/assets/library/reference-audio/intro.wav",
+      bytes: Buffer.from("intro audio"),
+      mediaRole: "sound-effect" as const,
+      durationInSeconds: 4,
+      codec: "pcm_s16le",
+    },
+    {
+      id: "asset.test.outro",
+      localPath: "public/assets/library/reference-audio/outro.mp3",
+      bytes: Buffer.from("outro audio"),
+      mediaRole: "background-music" as const,
+      durationInSeconds: 12,
+      codec: "mp3",
+    },
+    {
+      id: "asset.test.unused",
+      localPath: "public/assets/library/reference-audio/unused.mp3",
+      bytes: Buffer.from("unused audio"),
+      mediaRole: "background-music" as const,
+      durationInSeconds: 12,
+      codec: "mp3",
+    },
+  ];
+  await Promise.all([
+    mkdir(join(rootDir, "private/reference-assets"), { recursive: true }),
+    mkdir(join(rootDir, "public/assets/library/reference-audio"), {
+      recursive: true,
+    }),
+  ]);
+  await Promise.all([
+    writeFile(
+      join(rootDir, "private/reference-assets/MIXKIT_AUDIO_LICENSE.md"),
+      licenseBytes,
+    ),
+    ...assets.map(({ localPath, bytes }) =>
+      writeFile(join(rootDir, localPath), bytes),
+    ),
+    writeFile(
+      join(
+        rootDir,
+        "private/reference-assets/scene-template-sound-overrides.json",
+      ),
+      JSON.stringify({
+        schemaVersion: 1,
+        introResourceId: "asset.test.intro",
+        outroResourceId: "asset.test.outro",
+      }),
+    ),
+  ]);
+  await writeFile(
+    join(rootDir, manifestPath),
+    JSON.stringify({
+      schemaVersion: 1,
+      assets: assets.map(
+        ({ id, localPath, bytes, mediaRole, durationInSeconds, codec }) => ({
+          schemaVersion: 1,
+          id,
+          kind: "asset",
+          status: "approved",
+          title: id,
+          description: `${id} test reference audio`,
+          useCases: ["Scene template sound"],
+          tags: ["audio", "reference"],
+          authority: {
+            kind: "repository-file",
+            repositoryPath: manifestPath,
+          },
+          allowedUse: "localize-asset",
+          assetKind: "audio",
+          mediaRole,
+          localPath,
+          checksum: checksum(bytes),
+          license: {
+            id: "local-reference-license",
+            verificationStatus: "verified",
+            sourceUrl: null,
+            attributionRequired: false,
+            attributionText: null,
+            verifiedAt: "2026-08-15T00:00:00.000Z",
+            sourceEvidenceFingerprint: checksum(licenseBytes),
+          },
+          media: {
+            durationInSeconds,
+            codec,
+            sampleRate: 44_100,
+          },
+        }),
+      ),
+    }),
+  );
+  await generateSceneTemplateAudioProjection({ rootDir, mode: "write" });
 };
 
 test("project:create atomically creates configured authoring and preserves exact TTS", async (context) => {
@@ -420,6 +524,35 @@ test("project:create reuses configured template and sound builders inside the tr
   });
   assert.equal(current.status, "project-create-current");
   assert.equal(current.creationIdentity, result.creationIdentity);
+});
+
+test("project:create stages the complete local audio authority for template validation", async (context) => {
+  const fixture = await prepareProjectCreateFixture();
+  context.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+  await configureTemplateAudioWithUnusedAuthority(fixture.rootDir);
+  await writeProducerConfig({
+    configPath: fixture.configPath,
+    value: {
+      ...validProjectCreateProducerConfig,
+      sceneDefaults: {
+        introSceneTemplateId: "axmorf-brand-reveal-v1",
+        outroSceneTemplateId: "axmorf-source-follow-v1",
+      },
+    },
+  });
+  await writeProjectCreateJson(fixture.inputPath, {
+    ...validProjectCreateInput,
+    sceneTemplates: undefined,
+  });
+
+  const result = await createProject({
+    rootDir: fixture.rootDir,
+    projectId: "story-example",
+    inputPath: fixture.inputPath,
+    env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+  });
+
+  assert.equal(result.status, "project-created");
 });
 
 test("pending Scene authoring projects only after measured semantic timing exists", async (context) => {

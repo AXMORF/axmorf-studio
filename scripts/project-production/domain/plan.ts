@@ -23,7 +23,7 @@ export const createProducerPlan = ({
   readonly revision: ProductionRevision;
   readonly nodes: readonly ProducerTaskNode[];
   readonly inspections: ReadonlyMap<string, ArtifactInspection>;
-  readonly subjects?: ReadonlyMap<string, DiagnosticSubject>;
+  readonly subjects: ReadonlyMap<string, DiagnosticSubject>;
   readonly baselineSnapshots?: readonly TaskDiagnosticSnapshot[];
 }): ProducerPlan => {
   const nodes = buildProducerTaskGraph(rawNodes);
@@ -79,7 +79,7 @@ export const createPlanDiagnosticSnapshots = ({
 }: {
   readonly nodes: readonly ProducerTaskNode[];
   readonly plan: ProducerPlan;
-  readonly subjects?: ReadonlyMap<string, DiagnosticSubject>;
+  readonly subjects: ReadonlyMap<string, DiagnosticSubject>;
 }) =>
   buildTaskDiagnosticSnapshots({
     nodes,

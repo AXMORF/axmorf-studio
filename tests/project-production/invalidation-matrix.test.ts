@@ -317,9 +317,14 @@ test("delivery artifact never enters its own reusable artifact set fingerprint",
     );
   const compositionAttestation = attestation(composition);
   const deliveryAttestation = attestation(delivery);
+  const subjects = new Map([
+    [composition.taskRevision, { kind: "project" as const, id: composition.storyId }],
+    [delivery.taskRevision, { kind: "project" as const, id: delivery.storyId }],
+  ]);
   const before = createProducerPlan({
     revision,
     nodes,
+    subjects,
     inspections: new Map([
       [composition.taskRevision, { attestation: compositionAttestation, artifactState: "valid" as const }],
       [delivery.taskRevision, { attestation: null, artifactState: "missing" as const }],
@@ -328,6 +333,7 @@ test("delivery artifact never enters its own reusable artifact set fingerprint",
   const after = createProducerPlan({
     revision,
     nodes,
+    subjects,
     inspections: new Map([
       [composition.taskRevision, { attestation: compositionAttestation, artifactState: "valid" as const }],
       [delivery.taskRevision, { attestation: deliveryAttestation, artifactState: "valid" as const }],

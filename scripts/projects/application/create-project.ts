@@ -40,7 +40,10 @@ import {
   buildResourceCatalog,
   renderResourceCatalogJson,
 } from "../../catalog/domain";
-import { loadCatalogAuthorityDescriptors } from "../../catalog/project-files";
+import {
+  loadCatalogAuthorityDescriptors,
+  loadLocalReferenceAssetDescriptors,
+} from "../../catalog/project-files";
 import { generateProjectResourceCatalog } from "../../catalog/generate";
 import {
   readProducerConfig,
@@ -130,10 +133,18 @@ const copySceneTemplateAuthorities = async ({
   readonly stagingRoot: string;
   readonly definitions: readonly SceneTemplateDefinition[];
 }) => {
+  const localReferenceAssetPaths =
+    definitions.length === 0
+      ? []
+      : (await loadLocalReferenceAssetDescriptors(rootDir)).flatMap(
+          (descriptor) =>
+            descriptor.kind === "asset" ? [descriptor.localPath] : [],
+        );
   const paths = new Set(
     definitions.flatMap((definition) => [
       ...definition.sourceFiles.map(({ sourcePath }) => sourcePath),
       ...definition.assets.map(({ sourcePath }) => sourcePath),
+      ...localReferenceAssetPaths,
     ]),
   );
   for (const relativePath of paths) {

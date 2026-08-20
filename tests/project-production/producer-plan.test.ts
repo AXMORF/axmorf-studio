@@ -5,6 +5,7 @@ import {
   buildProducerTaskSpec,
   buildProductionRevision,
   TaskRevisionSchema,
+  TtsChunkIdSchema,
 } from "../../src/contracts";
 import { createProducerPlan } from "../../scripts/project-production/domain/plan";
 
@@ -43,7 +44,18 @@ test("plan classifies dependencies topologically even when hash ordering is reve
     { task: dependent, dependencyTaskRevisions: [dependency.taskRevision] },
     { task: dependency, dependencyTaskRevisions: [] },
   ].sort((left, right) => left.task.taskRevision.localeCompare(right.task.taskRevision));
-  const plan = createProducerPlan({ revision, nodes, inspections: new Map() });
+  const plan = createProducerPlan({
+    revision,
+    nodes,
+    subjects: new Map([
+      [
+        dependency.taskRevision,
+        { kind: "tts-chunk" as const, id: TtsChunkIdSchema.parse("chunk-one") },
+      ],
+      [dependent.taskRevision, { kind: "project" as const, id: dependent.storyId }],
+    ]),
+    inspections: new Map(),
+  });
   assert.equal(plan.tasks.find(({ taskRevision }) => taskRevision === dependency.taskRevision)?.action, "prepare-fixed");
   assert.equal(plan.tasks.find(({ taskRevision }) => taskRevision === dependent.taskRevision)?.action, "blocked");
 });
@@ -62,8 +74,27 @@ test("DAG rejects dependencies that are not bound by ArtifactAttestation identit
         task,
         dependencyTaskRevisions: [TaskRevisionSchema.parse(`task-${"0".repeat(64)}`)],
       }],
+      subjects: new Map(),
       inspections: new Map(),
     }),
     /unknown dependency|not artifact-bound/,
+  );
+});
+
+test("plan rejects a missing explicit diagnostic subject", () => {
+  const task = buildProducerTaskSpec({
+    taskKind: "semantic-timing", storyId: revision.storyId, semanticId: null,
+    revisionId: revision.revisionId, dependencyArtifacts: [],
+    inputFingerprints: [{ id: "timing", fingerprint: sha("f") }],
+    declaredReadSet: [], declaredOutputSet: ["project/timing.json"], validatorPolicyVersion: "timing-v1",
+  });
+  assert.throws(
+    () => createProducerPlan({
+      revision,
+      nodes: [{ task, dependencyTaskRevisions: [] }],
+      subjects: new Map(),
+      inspections: new Map(),
+    }),
+    /diagnostic subject is missing/u,
   );
 });

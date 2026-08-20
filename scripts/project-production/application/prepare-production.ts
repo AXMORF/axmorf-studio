@@ -314,7 +314,6 @@ export const prepareProjectProduction = async (
     const inputs = await loadInputs({
       rootDir,
       projectId,
-      catalogMode: "check",
     });
     await prepareFixed({ rootDir, inputs, narration });
     const current = await buildCurrentPlan({

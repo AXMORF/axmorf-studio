@@ -299,61 +299,7 @@ const resolveRendererRoot = (sourceFile: ts.SourceFile) => {
   return unwrapExpression(rendererInitializer.body);
 };
 
-const assertSafeRendererRoot = (sourceFile: ts.SourceFile) => {
-  const root = resolveRendererRoot(sourceFile);
-  if (!ts.isJsxFragment(root)) {
-    throw new Error(
-      "Policy-aware Renderer root must contain only SceneBackground and SceneContentFrame.",
-    );
-  }
-  const children = root.children.filter(
-    (child) => !ts.isJsxText(child) || child.text.trim().length > 0,
-  );
-  if (
-    children.length !== 2 ||
-    !children.every(
-      (child) => ts.isJsxElement(child) || ts.isJsxSelfClosingElement(child),
-    )
-  ) {
-    throw new Error(
-      "Policy-aware Renderer root must contain exactly one background and one safe content frame.",
-    );
-  }
-  const elements = children as readonly (
-    | ts.JsxElement
-    | ts.JsxSelfClosingElement
-  )[];
-  const names = elements.map((child) =>
-    ts.isJsxElement(child)
-      ? jsxTagName(child.openingElement.tagName)
-      : jsxTagName(child.tagName),
-  );
-  if (
-    names.filter((name) => name === "SceneBackground").length !== 1 ||
-    names.filter((name) => name === "SceneContentFrame").length !== 1
-  ) {
-    throw new Error(
-      "Policy-aware Renderer requires one SceneBackground and one SceneContentFrame.",
-    );
-  }
-  const content = elements[names.indexOf("SceneContentFrame")];
-  const attributes = getAttributes(content);
-  const policyAttribute =
-    attributes === null ? null : findAttribute(attributes, "policy");
-  const expression =
-    policyAttribute === null ? null : attributeExpression(policyAttribute);
-  if (
-    expression === null ||
-    !ts.isIdentifier(expression) ||
-    expression.text !== "readabilityPolicy"
-  ) {
-    throw new Error(
-      "SceneContentFrame must consume the frozen readabilityPolicy prop directly.",
-    );
-  }
-};
-
-const assertSharedBoundaryRendererRoot = (sourceFile: ts.SourceFile) => {
+const assertRendererRoot = (sourceFile: ts.SourceFile) => {
   const root = resolveRendererRoot(sourceFile);
   if (
     !ts.isJsxElement(root) &&
@@ -361,7 +307,7 @@ const assertSharedBoundaryRendererRoot = (sourceFile: ts.SourceFile) => {
     !ts.isJsxFragment(root)
   ) {
     throw new Error(
-      "v3 Renderer must expose one statically inspectable semantic JSX root.",
+      "Scene Renderer must expose one statically inspectable semantic JSX root.",
     );
   }
 };
@@ -479,18 +425,16 @@ const assertTextSizes = ({
   }
 };
 
-export const validatePolicyAwareRendererSourceGraph = async ({
+export const validateRendererReadabilitySourceGraph = async ({
   rootDir,
   rendererPath,
   sourcePaths,
   policy: rawPolicy,
-  boundaryMode = "scene-owned-v2",
 }: {
   readonly rootDir: string;
   readonly rendererPath: string;
   readonly sourcePaths: readonly string[];
   readonly policy: SceneReadabilityPolicy | unknown;
-  readonly boundaryMode?: "scene-owned-v2" | "shared-v3";
 }) => {
   const policy = SceneReadabilityPolicySchema.parse(rawPolicy);
   const sortedPaths = [...sourcePaths].sort((left, right) =>
@@ -513,17 +457,13 @@ export const validatePolicyAwareRendererSourceGraph = async ({
   if (rendererSource === undefined) {
     throw new Error("Renderer source graph is missing its entry file.");
   }
-  if (boundaryMode === "shared-v3") {
-    assertSharedBoundaryRendererRoot(rendererSource);
-    assertNoSharedBoundaryOwnership(
-      sourceFiles.filter(
-        ({ fileName }) =>
-          !fileName.startsWith("src/remotion/runtime/readability/"),
-      ),
-    );
-  } else {
-    assertSafeRendererRoot(rendererSource);
-  }
+  assertRendererRoot(rendererSource);
+  assertNoSharedBoundaryOwnership(
+    sourceFiles.filter(
+      ({ fileName }) =>
+        !fileName.startsWith("src/remotion/runtime/readability/"),
+    ),
+  );
   const values = collectStaticValues(sourceFiles);
   assertNoUnreadableScale(sourceFiles, values);
   assertTextSizes({

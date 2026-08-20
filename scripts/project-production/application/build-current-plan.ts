@@ -630,7 +630,6 @@ export const buildCurrentProductionPlan = async ({
     (await loadProjectProductionInputs({
       rootDir,
       projectId,
-      catalogMode: "check",
     }));
   const narration =
     suppliedNarration ??
@@ -745,6 +744,23 @@ export const buildCurrentProductionPlan = async ({
   );
   const inspections = new Map<string, ArtifactInspection>();
   const subjects = new Map<string, DiagnosticSubject>(fixed.subjects);
+  for (const { task } of nodes) {
+    if (subjects.has(task.taskRevision)) continue;
+    if (task.taskKind === "scene-owner" || task.taskKind === "scene-template") {
+      if (task.semanticId === null) {
+        throw new Error("Scene diagnostic subject lost meaningId.");
+      }
+      subjects.set(task.taskRevision, {
+        kind: "meaning",
+        id: task.semanticId,
+      });
+      continue;
+    }
+    subjects.set(task.taskRevision, {
+      kind: "project",
+      id: task.storyId,
+    });
+  }
   for (const [taskRevision, inspection] of fixed.inspections) {
     inspections.set(taskRevision, inspection);
   }

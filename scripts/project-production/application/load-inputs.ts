@@ -41,11 +41,9 @@ const fingerprint = (namespace: string, value: unknown) =>
 export const loadProjectProductionInputs = async ({
   rootDir,
   projectId: rawProjectId,
-  catalogMode = "check",
 }: {
   readonly rootDir: string;
   readonly projectId: string;
-  readonly catalogMode?: "write" | "check";
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
   const projectRoot = join(rootDir, "src/projects", projectId);
@@ -106,7 +104,7 @@ export const loadProjectProductionInputs = async ({
       await generateProjectResourceCatalog({
         rootDir,
         projectId,
-        mode: catalogMode,
+        mode: "check",
       })
     ).catalog,
   );

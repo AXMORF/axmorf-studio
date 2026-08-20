@@ -108,6 +108,14 @@ const planFromStore = async (
   return createProducerPlan({
     revision,
     nodes,
+    subjects: new Map(
+      currentTasks.map((task) => [
+        task.taskRevision,
+        task.semanticId === null
+          ? { kind: "project" as const, id: task.storyId }
+          : { kind: "meaning" as const, id: task.semanticId },
+      ]),
+    ),
     inspections: await inspectTasks(rootDir, currentTasks),
   });
 };

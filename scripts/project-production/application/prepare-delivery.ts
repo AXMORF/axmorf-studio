@@ -123,7 +123,6 @@ export const prepareProjectAuthoringBuild = async ({
     storyId: projectId,
     meaningIds,
     runtimeInputFingerprint,
-    mode: "write",
   });
   await Promise.all([
     collectGlobalVisualSourceGraph({ rootDir, storyId: projectId }),
