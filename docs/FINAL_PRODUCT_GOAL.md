@@ -9,6 +9,10 @@
 Remotion Story Producer 把一份可审计的 Project authoring source 生产为一个 Composition 和一个本地
 current delivery。唯一主链是：
 
+在确定性主链之前，Root 可从“当前 Agent 实际 callable 的 tools”投影外部图片 MCP 插槽。该能力存在时才
+在本地 Catalog 缺少合适素材后 acquire，并经 `project:asset:import` 准入；不存在时整个阶段无错误、无占位
+地省略。这个可选 authoring 输入通道不属于 ProductionRevision/Task DAG，也不向 child/runtime 暴露 MCP。
+
 1. 冻结 ProductionRevision；
 2. 建立 content-addressed Task DAG；
 3. 复用有效 ArtifactAttestation，只委派 dirty Agent tasks；

@@ -29,6 +29,7 @@ details；adapters 实现 filesystem/process/media ports，不能反向成为业
 ```mermaid
 flowchart TD
   Create[Atomic configured authoring] --> Inputs[Explicit authoring contracts + selected bytes]
+  AgentTools[Current Root callable MCP tools] -. optional receipt import .-> Inputs
   Inputs --> Inspection[Read-only ProductionInspection]
   Inspection --> Prepare[Explicit costly preparation]
   Prepare --> Revision[ProductionRevision]
@@ -51,6 +52,11 @@ TaskDecisionExplanation、diagnostic baseline 与 ExecutionAttempt 都不是。�
 materialization、delivery identity/authority。Agent chat、child identity、process lifecycle、clock 与 absolute
 path 都在 authority graph 之外。
 
+`AgentTools` 是 create/edit 后、inspect 前的可选 capability slot，不属于 production data plane。只有当前
+Root 实际 callable 的兼容 MCP tools 才激活；缺失时不生成任何结构。它只能通过固定
+`project:asset:import` 把已验证 bytes/manifest identity 接入 `Inputs`，不能把 MCP、remote URL、credential、
+receipt 或 candidate path 投影到 Revision、TaskSpec、child workspace、Artifact Store、delivery 或 runtime。
+
 ## 3. Contract boundaries
 
 - ProductionRevision 只冻结 task inputs；不包含 Agent output、workspace path 或 attempt diagnostic。
@@ -68,6 +74,7 @@ TypeScript registry 完成。
 | Surface | Writer | Rule |
 | ------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------- |
 | Project create/configured authoring | fixed atomic creator | existing/partial/conflicting target fail closed；零 provider/media/attempt |
+| Optional external acquisition | current Root Agent + fixed import | callable compatible MCP 才出现；缺失即省略；只在 inspect 前写 Project-owned asset/evidence |
 | Existing Project authoring inputs | Root authoring Agent / fixed import command | preparation 前可变，受 Project ownership 限制 |
 | `.producer-work/<story>/<taskRevision>` | one assigned child | only declared output set; cannot edit `task.json` or inputs |
 | `.producer-artifacts` | fixed commit adapter | validator recheck + atomic promotion only |

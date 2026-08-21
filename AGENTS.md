@@ -88,6 +88,13 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 
 ## 唯一 production 与 delivery 主链
 
+- `project:create`/authoring edit 之后、`project:produce:inspect` 之前只有一个可选 Agent capability slot：若
+  当前 Root Agent 的实际 callable tool surface 暴露同一外部图片 MCP 的 `get_provider_status`、
+  `search_images`、`preview_images`、`acquire_image`，且 receipt 兼容 `project:asset:import`，则先查本地
+  Catalog，确有素材缺口时才 acquire/import；否则从本次流程完全省略该 slot，不报错、不生成占位 task、
+  prompt、estimate 或 DAG node。已安装/已配置、shell 可发现、其他 Agent 可调用都不算当前可用。
+  MCP/receipt/candidate path 不进入 child、Revision、Artifact Store、delivery 或 runtime；只有 import 后的
+  Project-owned manifest identity 与 bytes fingerprint 能成为 production input。
 - `npm run project:produce:inspect -- --project <storyId>` 是严格只读、零 provider call 的诊断入口；Root
   必须先报告 source readiness、estimated cost、artifact reuse 与结构化失效解释，再运行有成本 preparation。
 - `npm run project:produce:prepare -- --project <storyId>` 是唯一允许调用 provider、准备 fixed artifacts、

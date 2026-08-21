@@ -5,7 +5,20 @@
 Root 只负责 authoring、inspect-and-report、explicit prepare 与 dirty-only delegation。派发后 Root 挂起，
 attempt-bound fixed continuation 独占 child terminal barrier 和单次 converge；聊天不持久化，也不是 authority。
 
-## 1. Inspect and report before cost
+## 1. Project optional Agent capabilities
+
+Project 已创建或 authoring edit 完成后、inspect 之前，Root 只检查自己当前实际 callable 的 tools。若同一
+外部图片 MCP 暴露 `get_provider_status`、`search_images`、`preview_images`、`acquire_image`，并能产出
+`project:asset:import` 接受的 receipt，则启用 external-asset acquisition slot。仅本机安装/配置、shell 能
+发现或其他 Agent 可调用都不构成启用条件。
+
+启用后先用 `catalog:query` 查本地资源；确有素材缺口时才 search/preview/acquire，并在 inspect 前完成固定
+准入。若当前 Agent 没有该 MCP，整个阶段从本次编排中省略，不报错，也不生成 placeholder、child prompt、
+estimate 或 DAG node。该 slot 只属于 Root 的 pre-inspect authoring plane；Scene/GlobalVisual/Cover child、
+ProductionRevision、Artifact Store、continuation 和 runtime 都不加载 MCP。下游只看 import 后的 Project
+manifest identity 与 bytes fingerprint。
+
+## 2. Inspect and report before cost
 
 ```bash
 npm run project:produce:inspect -- --project <storyId>
@@ -21,7 +34,7 @@ artifact state 与 blockedBy。explanation/baseline 只用于诊断，不决定�
 真实 project-production preflight 首次使用宿主权限。沙箱诊断不能证明 VoxCPM 不可用，不得降低 Chromium
 sandbox、预热 TTS 或增加 fallback。
 
-## 2. Prepare explicitly
+## 3. Prepare explicitly
 
 ```bash
 npm run project:produce:prepare -- --project <storyId>
@@ -35,7 +48,7 @@ production inputs ready 时保存 `attemptId`、`revisionId`、summary、estimat
 `dirtyAgentTasks`。相同 inputs 的 valid artifact 必须显示 `reuse`。prepare 只为 dirty Agent tasks 建
 `.producer-work/<storyId>/<taskRevision>/`，其中 `task.json` 与 `inputs/context.json` 是 immutable fixed inputs。
 
-## 3. Dispatch only dirty Agent tasks
+## 4. Dispatch only dirty Agent tasks
 
 只派发 dirty `scene-owner`、`global-visual-owner`、`cover-owner`。一个 TaskRevision 一个 runtime-native
 child，共享当前 checkout，不使用 worktree。`scene-template` 与 narration/convergence/delivery fixed tasks
@@ -57,7 +70,7 @@ check 是只读；commit 重跑同一 validator。校验失败由同一 child �
 commit 成功或 failure event 写入后 child 立即结束，不等待或通知 Root。Root 不读取 child workspace、
 不代 commit、不内联替代 dirty task。
 
-## 4. Hand off to fixed continuation
+## 5. Hand off to fixed continuation
 
 全部派发后，Root 的最后一个生产动作是启动 prepare 返回的 exact `continuationCommand`：
 
@@ -86,7 +99,7 @@ code 受控物化、刷新 derived Project、复验 attested bytes，并同步�
 dirty tasks。这不是自动 retry。不要 provider fallback、跨 Project reuse、复制 identity、手改 manifest 或绕过
 validator。
 
-## 5. Host verification
+## 6. Host verification
 
 实现改动按风险运行：
 

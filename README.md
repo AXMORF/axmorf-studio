@@ -7,6 +7,7 @@
 
 ```text
 Project source
+  → optional current-Agent MCP acquisition slot (only when actually callable)
   → read-only inspection and cost/invalidation report
   → explicit fixed preparation
   → ProductionRevision
@@ -87,6 +88,11 @@ Project 外部媒体必须经固定准入命令本地化；运行时只消费 Pr
 ```bash
 npm run project:asset:import -- --project <story-id> --receipt <absolute-receipt-path> --asset <asset-id>
 ```
+
+生产 Skill 把外部图片 MCP 作为 Root 的可选 Agent capability slot：只有当前 Agent 的实际 callable tool
+surface 同时暴露兼容的 status/search/preview/acquire tools 时才启用；仅“已安装/已配置”、shell 可发现或其他
+Agent 可用都不算。没有该 MCP 时本次流程完全省略该阶段，不产生错误、占位 task、prompt、estimate 或 DAG
+node。有 MCP 时也先查询本地 Catalog，仅在确有缺口时 acquire，并通过上述 import 边界准入。
 
 provider acquisition evidence 只存在于 adapter boundary；远程 URL、SDK、MCP、token 与 API key 不进入 task
 workspace、Artifact Store、delivery 或 Remotion runtime。

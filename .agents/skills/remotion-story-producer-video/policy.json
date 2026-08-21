@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 13,
-  "policyVersion": "remotion-story-producer-video-policy-v15",
+  "schemaVersion": 14,
+  "policyVersion": "remotion-story-producer-video-policy-v16",
   "rootEndpoints": [
     "project-production-complete",
     "project-production-current"
@@ -8,6 +8,7 @@
   "privateConfigPath": "private/producer.config.json",
   "requiredEntrypointHeadings": [
     "Create the Project when needed",
+    "Load optional Agent capabilities",
     "Inspect before cost",
     "Prepare content-addressed tasks",
     "Delegate dirty Agent tasks",
@@ -33,6 +34,17 @@
     "project:task:fail",
     "project:produce:continue"
   ],
+  "optionalCapabilitySlots": {
+    "externalAssetAcquisition": {
+      "slotVersion": "external-asset-acquisition-agent-slot-v1",
+      "owner": "root-agent",
+      "activation": "current-agent-exposes-import-compatible-mcp-tools",
+      "phase": "after-project-create-before-production-inspect",
+      "absencePolicy": "omit-without-error-or-placeholder",
+      "admissionBoundary": "project-asset-import-receipt",
+      "downstreamVisibility": "none"
+    }
+  },
   "invariants": {
     "productionAuthority": "production-revision-task-dag-artifact-attestation",
     "executionAttemptRole": "diagnostics-only",

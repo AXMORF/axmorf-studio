@@ -14,8 +14,8 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 
 const PolicySchema = z
   .object({
-    schemaVersion: z.literal(13),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v15"),
+    schemaVersion: z.literal(14),
+    policyVersion: z.literal("remotion-story-producer-video-policy-v16"),
     rootEndpoints: z.tuple([
       z.literal("project-production-complete"),
       z.literal("project-production-current"),
@@ -32,6 +32,23 @@ const PolicySchema = z
       z.literal("project:task:fail"),
       z.literal("project:produce:continue"),
     ]),
+    optionalCapabilitySlots: z
+      .object({
+        externalAssetAcquisition: z
+          .object({
+            slotVersion: z.literal("external-asset-acquisition-agent-slot-v1"),
+            owner: z.literal("root-agent"),
+            activation: z.literal(
+              "current-agent-exposes-import-compatible-mcp-tools",
+            ),
+            phase: z.literal("after-project-create-before-production-inspect"),
+            absencePolicy: z.literal("omit-without-error-or-placeholder"),
+            admissionBoundary: z.literal("project-asset-import-receipt"),
+            downstreamVisibility: z.literal("none"),
+          })
+          .strict(),
+      })
+      .strict(),
     invariants: z
       .object({
         productionAuthority: z.literal(
@@ -142,6 +159,23 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   );
   assert.match(workflow, /checksum[\s\S]*EOF-decode/u);
   assert.match(workflow, /attempt ID[\s\S]*never enter[\s\S]*TaskRevision/iu);
+  assert.match(
+    skill,
+    /current Agent's actually callable tools[\s\S]*get_provider_status[\s\S]*search_images[\s\S]*preview_images[\s\S]*acquire_image/u,
+  );
+  assert.match(
+    workflow,
+    /If the MCP is absent[\s\S]*omit this entire stage without error, placeholder task,[\s\S]*DAG node/u,
+  );
+  assert.match(
+    workflow,
+    /project:asset:import[\s\S]*Project-owned manifest IDs and\s+fingerprints/u,
+  );
+  assert.ok(
+    workflow.indexOf("project:asset:import") <
+      workflow.indexOf("project:produce:inspect"),
+  );
+  assert.match(skill, /another Agent's tools do[\s\S]*not count/u);
   assert.match(skill, /validated ArtifactAttestation[\s\S]*durable authority/u);
   assert.match(skill, /exactly once/u);
   assert.match(
@@ -193,6 +227,12 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   assert.match(globalVisual, /DSL|automatic director/u);
   assert.match(cover, /StorySpec[\s\S]*VisualStyleSpec[\s\S]*fixed CoverSpec/u);
   assert.match(cover, /不得读取 PublishingIntent/u);
+  for (const taskPrompt of [scene, globalVisual, cover]) {
+    assert.doesNotMatch(
+      taskPrompt,
+      /get_provider_status|search_images|preview_images|acquire_image/u,
+    );
+  }
 
   const checkCommand = "npm run project:task:check -- --task <taskRevision>";
   const commitCommand =

@@ -8,7 +8,12 @@
 
 ```mermaid
 flowchart LR
-  Author[Atomic create or current authoring edits] --> Inspect[Read-only readiness + cost + invalidation]
+  Author[Atomic create or current authoring edits] --> MCP{Current Root exposes compatible MCP tools?}
+  MCP -->|no: omit slot| Inspect[Read-only readiness + cost + invalidation]
+  MCP -->|yes: load slot| Catalog{Local Catalog satisfies need?}
+  Catalog -->|yes| Inspect
+  Catalog -->|no| Import[MCP receipt + project asset import]
+  Import --> Inspect
   Inspect --> Report[Root reports before cost]
   Report --> Prepare[Provider and fixed preparation]
   Prepare --> Plan[ProductionRevision + Task DAG]
@@ -31,6 +36,13 @@ flowchart LR
 一个新 ExecutionAttempt 可以失败或消失；已验证 artifact 仍按内容 identity 复用。inspection/explanation/
 baseline/attempt 只属于 diagnostic plane，不影响 Revision、TaskRevision、ArtifactAttestation、dispatch、
 materialization 或 DeliveryBuild。历史执行目录不参与 prepare、converge、delivery 或 settings progress。
+
+图中的 MCP 分支是当前 Root Agent 的 pre-inspect capability slot，不是 ProductionRevision/Task DAG node。
+只有当前 Agent 实际可调用同一 MCP 的 status/search/preview/acquire tools，且 acquisition receipt 能通过
+`project:asset:import` 时才投影该阶段；安装配置、shell discovery 或其他 Agent 的 tool surface 不算可用。
+缺失时整个 slot 无错误、无占位地省略。存在时仍先查本地 Catalog，只有准入后的 Project-owned manifest ID
+与 bytes fingerprint 才进入后续确定性主链；MCP、远程 URL、凭据、receipt 和 candidate path 留在 adapter
+boundary，task children 与 runtime 不感知。
 
 ## 2. Project authoring
 

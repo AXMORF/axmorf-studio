@@ -30,6 +30,10 @@ shim。历史 `.producer-runs` 数据保持原位，但 current prepare/converge
 entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据；该本地 Project 也不改变 zero-Project
 支持合同。
 
+当前 repository video Skill policy v16 还定义了一个 pre-inspect external-asset Agent capability slot：只按
+当前 Root Agent 的实际 callable MCP tools 激活，缺失时完全省略；激活后也必须先查本地 Catalog，再通过
+`project:asset:import` 把选择准入为 Project-owned 输入。该 slot 不创建 DAG node，也不进入 child/runtime。
+
 ## 已实现 contracts 与 domain
 
 - `ProjectCreateInput`、`ProductionInspection`、`TaskDecisionExplanation`、`ProductionRevision`、
