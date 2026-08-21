@@ -36,7 +36,8 @@ attempt-bound task commit/fail 与 fixed continuation；converge 是 continuatio
 下一阶段已确定把 current Engine 产品化为 `AXMORF Studio`，不再把 Desktop shell 作为候选项。实现必须保持现有
 focused、static、host、media 与 E2E gates Green，并遵守
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
-[macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)：
+[macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)。当前执行入口是
+[Phase A 实施计划](DESKTOP_APP_PHASE_A_IMPLEMENTATION_PLAN.md)：
 
 1. unsigned prototype：建立 Electron shell、sandboxed Studio view、Engine utility process、authenticated local
    `rsp` session、默认 `~/Movies/AXMORF Studio/` 和 Codex/Hermes integration smoke；

@@ -140,3 +140,7 @@ Desktop App、binary installer、workspace-local Agent integration、workspace S
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
 [macOS 维护与发行目标](DESKTOP_APP_MACOS_MAINTENANCE.md)，并已进入 [ROADMAP.md](ROADMAP.md) 的下一里程碑；
 它们仍未进入 current production authority。
+
+2026-08-22 已批准并建立 [Desktop App Phase A 实施计划](DESKTOP_APP_PHASE_A_IMPLEMENTATION_PLAN.md)，用于实现
+repository adapter 原型、Workspace 初始化、authenticated `rsp doctor`、trusted Settings/sandboxed Studio views 和
+Agent integration smoke。当前仍没有 Electron/Desktop 实现或 native macOS evidence；计划存在不改变上述未实现状态。

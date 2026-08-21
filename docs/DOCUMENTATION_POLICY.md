@@ -32,6 +32,8 @@ evidence 只证明一次验收；archive 只保存历史。
 - `docs/evidence/`：不可替代当前状态的历史验收证据。
 - `docs/promotions/`：待明确批准的能力提升提案。
 - `docs/archive/`：已完成、已取代或不再维护的历史快照。
+- `docs/*_IMPLEMENTATION_PLAN.md`：已批准且尚未完成的 active implementation plan；必须声明基线、范围、验收、
+  anti-goals 和归档条件，完成后移入 archive。
 
 文档从 active 移入 archive 时必须在目标目录 README 说明原因。归档内容不再参与默认链接
 门禁，因为其中的路径和命令属于历史上下文；主动传入文件路径时仍可单独检查。

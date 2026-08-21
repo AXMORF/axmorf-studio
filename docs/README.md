@@ -22,6 +22,11 @@
 
 文档冲突时先用 executable code/tests 确认 repo truth，再修正文档；不能把目标写成实现。
 
+## 当前实施计划
+
+- [AXMORF Studio Desktop App Phase A 实施计划](DESKTOP_APP_PHASE_A_IMPLEMENTATION_PLAN.md)：已批准、待实施的
+  repository adapter 原型工作包；完成事实仍以 [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准。
+
 ## 操作与维护指南
 
 | 主题                                                                                                          | 文档                                                                           |
