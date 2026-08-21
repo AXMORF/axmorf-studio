@@ -86,7 +86,9 @@ fingerprint 不匹配、未知字段或结构
 
 - `sceneDefaults.introSceneTemplateId` / `outroSceneTemplateId`：配置页中的首尾业务位置选择。两者都
   接受任意已登记 Scene template 或 `null`，不做位置适配判断；同一 template 可同时选择两次。
-  该选择只在新 Project 首次 `project:create` 时使用。
+  该选择只在新 Project 首次 `project:create` 时使用。create 会生成并冻结 Project-local Renderer adapter；
+  adapter 接收 `viewportWidth`/`viewportHeight`，再把本地尺寸映射给模板组件的 `width`/`height`。共享模板、
+  generator 或 preview 的后续修复不会自动迁移既有 Project copy。
 - `renderDefaults`：新 RenderSpec 的 width/height/fps/locale；页面用一个“画面尺寸”下拉同时设置
   width/height，提供 9:16、16:9、4:5 与 1:1 四个常用规格；没有目标时长。
 - `readability.edgeInsetPx`：以 1080 短边为基准的 Scene 边缘留白。字幕底边 = 缩放后边缘留白 × 2；

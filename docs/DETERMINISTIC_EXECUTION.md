@@ -30,6 +30,10 @@ safe-area-local SceneViewport fingerprint（width/height/min font size/coordinat
 policy fingerprint/width/height/insets 均不进入 Scene workspace；Composition 在 runtime 重新从当前 policy 派生
 SceneViewport，并与 task/package 绑定的 boundary version/fingerprint fail-closed 对齐。
 
+Configured template instance 另外绑定 copied Renderer adapter 与完整 import graph。adapter 只做
+`viewportWidth`/`viewportHeight` → 模板内部 `width`/`height` 的确定性映射；adapter/layout bytes 改变会改变
+未来 instance/source-graph identity，但不会跨过 immutable copy 边界重写既有 Project。
+
 ## 3. TaskRevision 与精确失效
 
 每个 node key 包含 task kind、story/semantic identity、Revision reference、最小 input fingerprints、dependency

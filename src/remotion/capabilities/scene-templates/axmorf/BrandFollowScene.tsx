@@ -14,16 +14,43 @@ export type BrandFollowSceneProps = Readonly<{
   height: number;
 }>;
 
+export const resolveBrandFollowLockupLayout = ({
+  width,
+  height,
+}: Pick<BrandFollowSceneProps, "width" | "height">) => {
+  const isLandscape = width > height;
+  const markSize = isLandscape ? 188 : 214;
+  const wordmarkWidth = isLandscape ? 406 : 452;
+  const lockupGap = isLandscape ? 30 : 17;
+  const lockupWidth = markSize + lockupGap + wordmarkWidth;
+  return {
+    isLandscape,
+    lockupGap,
+    lockupLeft: width / 2 - lockupWidth / 2,
+    lockupWidth,
+    markCenteredLeft: (lockupWidth - markSize) / 2,
+    markSize,
+    wordmarkWidth,
+  } as const;
+};
+
 export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
   sceneFrame,
   width,
   height,
 }) => {
   const frame = sceneFrame * 1.5;
-  const isLandscape = width > height;
-  const markSize = isLandscape ? 188 : 214;
+  const {
+    isLandscape,
+    lockupGap,
+    lockupLeft,
+    lockupWidth,
+    markCenteredLeft,
+    markSize,
+    wordmarkWidth,
+  } = resolveBrandFollowLockupLayout({ width, height });
   const lockupY = height * (isLandscape ? 0.42 : 0.39);
-  const shiftX = interpolate(frame, [48, 68], [0, isLandscape ? -160 : -146], {
+  const markLeft = interpolate(frame, [48, 68], [markCenteredLeft, 0], {
     ...clamped,
     easing: Easing.inOut(Easing.cubic),
   });
@@ -36,54 +63,68 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
   return (
     <AbsoluteFill style={{ color: "#242424", overflow: "hidden" }}>
       <div
-        aria-label="AXMORF"
-        role="img"
         style={{
           height: markSize,
-          left: width / 2 - markSize / 2 + shiftX,
+          left: lockupLeft,
           position: "absolute",
-          scale: interpolate(frame, [2, 40], [isLandscape ? 6.4 : 7.2, 1], {
-            ...clamped,
-            easing: Easing.inOut(Easing.cubic),
-          }),
           top: lockupY - markSize / 2,
-          width: markSize,
+          width: lockupWidth,
         }}
       >
-        <AxmorfMark color="#242424" style={{ height: "100%", width: "100%" }} />
-      </div>
-      <div
-        aria-label={AXMORF_WORDMARK}
-        role="img"
-        style={{
-          display: "flex",
-          fontFamily: "Inter, Arial, ui-sans-serif, sans-serif",
-          fontSize: isLandscape ? 70 : 76,
-          fontWeight: 620,
-          gap: isLandscape ? 13 : 15,
-          left: width / 2 + (isLandscape ? -36 : -22),
-          letterSpacing: "0.12em",
-          position: "absolute",
-          top: lockupY - (isLandscape ? 35 : 38),
-        }}
-      >
-        {AXMORF_WORDMARK.split("").map((character, index) => (
-          <span
-            key={`${character}-${index}`}
-            aria-hidden="true"
-            style={{
-              opacity: interpolate(
-                frame,
-                [64 + index * 4, 76 + index * 4],
-                [0, 1],
-                clamped,
-              ),
-              translate: `${interpolate(frame, [64 + index * 4, 76 + index * 4], [18, 0], clamped)}px 0`,
-            }}
-          >
-            {character}
-          </span>
-        ))}
+        <div
+          aria-label="AXMORF"
+          role="img"
+          style={{
+            height: markSize,
+            left: markLeft,
+            position: "absolute",
+            scale: interpolate(frame, [2, 40], [isLandscape ? 6.4 : 7.2, 1], {
+              ...clamped,
+              easing: Easing.inOut(Easing.cubic),
+            }),
+            top: 0,
+            width: markSize,
+          }}
+        >
+          <AxmorfMark
+            color="#242424"
+            style={{ height: "100%", width: "100%" }}
+          />
+        </div>
+        <div
+          aria-label={AXMORF_WORDMARK}
+          role="img"
+          style={{
+            display: "flex",
+            fontFamily: "Inter, Arial, ui-sans-serif, sans-serif",
+            fontSize: isLandscape ? 70 : 76,
+            fontWeight: 620,
+            justifyContent: "space-between",
+            left: markSize + lockupGap,
+            letterSpacing: "0.12em",
+            position: "absolute",
+            top: markSize / 2 - (isLandscape ? 35 : 38),
+            width: wordmarkWidth,
+          }}
+        >
+          {AXMORF_WORDMARK.split("").map((character, index) => (
+            <span
+              key={`${character}-${index}`}
+              aria-hidden="true"
+              style={{
+                opacity: interpolate(
+                  frame,
+                  [64 + index * 4, 76 + index * 4],
+                  [0, 1],
+                  clamped,
+                ),
+                translate: `${interpolate(frame, [64 + index * 4, 76 + index * 4], [18, 0], clamped)}px 0`,
+              }}
+            >
+              {character}
+            </span>
+          ))}
+        </div>
       </div>
       <div
         aria-label={`AXMORF 品牌关注状态：${clickProgress >= 0.5 ? "已关注" : "关注"}`}

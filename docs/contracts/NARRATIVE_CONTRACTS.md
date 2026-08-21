@@ -143,7 +143,10 @@ Remotion metadata, delivery publishing and `publish.json` all use the same value
 ordinary ScenePackage identities. Their selected preset fingerprint enters Revision, Task, and package
 identity, while visual, sound, duration, or resource changes invalidate the affected artifact.
 Configured reusable Scene templates are copied during `project:create` as Project-local
-`template-copy` inputs; the fixed Scene task validates and commits them without Agent dispatch. Delivery chapters
+`template-copy` inputs. Their copied Renderer adapter implements the shared `viewportWidth`/`viewportHeight`
+boundary and maps those safe-area-local dimensions to the frozen template component's internal `width`/`height`
+props. The adapter and its import graph are instance-bound; later shared template changes never rewrite an existing
+Project copy. The fixed Scene task validates and commits the instance without Agent dispatch. Delivery chapters
 cover only narrated StoryBeats and use their absolute SemanticTiming start frames.
 
 ## Implemented commands

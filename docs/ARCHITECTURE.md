@@ -115,6 +115,12 @@ workspace伪造。Composition owns global background, SceneViewport, CaptionLaye
 Scene renderer 保持透明并只看到 safe-area-local SceneViewport 坐标系；Composition 把本地 `(0, 0)` 映射到
 安全区左上角，Scene 不读取或推导 full-frame 尺寸与 inset，并只用 Remotion frame API。
 
+Configured template 的复制边界由 Project-local `Renderer.tsx` adapter 承担：adapter 实现共享
+`SceneRendererComponent` 的 `viewportWidth`/`viewportHeight` props，再映射到冻结模板组件内部通用的
+`width`/`height`。模板组件不 import/安装 SceneViewport，也不读取 raw policy。adapter 与其 import graph
+都进入 template instance/source-graph fingerprint；共享 generator 变化只影响未来 create，不静默改写既有
+Project-local instance。
+
 ## 8. Synchronous delivery
 
 Delivery builder 在一个 foreground command 内完成 render、probe、EOF decode、publish-last 和 current

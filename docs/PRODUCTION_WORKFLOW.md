@@ -45,6 +45,9 @@ ProducerConfig 的 render/readability/TTS defaults 与选定 boundary Scene temp
 configured authoring。已存在、partial、cross-project、symlink/path escape/special-file 或不同 creation identity
 都 fail closed；相同 identity 重复调用只读 current。create 不调用 provider、不生成媒体，也不写
 `.narration-work`、workspace、artifact、attempt 或 delivery。Project-local media 只能在创建成功后 import。
+template instance 同时包含一个 Project-local Renderer adapter；它接收共享 runtime 的
+`viewportWidth`/`viewportHeight`，只把 safe-area-local dimensions 映射给模板内部 `width`/`height`。其源码和
+import graph 与其他 copied bytes 一起冻结；后续共享模板或 generator 修复不会隐式迁移既有 Project。
 
 StoryBeat 明确区分 narrated-scene 与 silent-scene。narrated beat 的 `ttsChunks` 是 Agent-authored atomic
 units；silent beat 只允许在首尾，使用固定 frame/template/sound，不创建 TTS、CaptionCue 或 sealed segment。

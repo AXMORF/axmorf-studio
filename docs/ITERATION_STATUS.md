@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-21 SceneViewport clean-break 与 zero-Project cleanup
+> 最后复核：2026-08-21 configured Scene template adapter 与片尾 lockup alignment
 
 ## 当前结论
 
@@ -24,10 +24,11 @@ project:produce:continue
 shim。历史 `.producer-runs` 数据保持原位，但 current prepare/convergence/build/settings 不读取；删除器内部只
 保留 strict ownership parser。
 
-当前正式 checkout 已通过受控 `project:delete` 清理全部两个本地 Project；
-`src/projects/` 为 0 Project，`deliveries/` 为 0 current delivery，ProjectRegistry 为 0 entry，
-ResourceCatalog 仅保留 23 个 core/shared 资源。这是当前 checkout 事实，不改变 zero-Project
-支持或未来重新创建 Project 的产品合同。
+当前 checkout 有一个 source Project `remotion-story-producer-handdrawn-intro`；只读 inspect 返回
+`production-inputs-ready` / `prepare-production`，但它没有 materialized Composition 或 current delivery，
+因此 ProjectRegistry 为 0 entry、`deliveries/` 为 0 current delivery。当前 ResourceCatalog 投影为 26
+entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据；该本地 Project 也不改变 zero-Project
+支持合同。
 
 ## 已实现 contracts 与 domain
 
@@ -74,6 +75,11 @@ ResourceCatalog 仅保留 23 个 core/shared 资源。这是当前 checkout 事�
 - template-copy Scene 固定任务，不进入 Agent dispatch；共享 canonical builder/output contract 同时物化 copied
   source/assets 与完整 derived Scene bundle，并保证 create-only/fixed-prepared/materialized replan 的
   TaskRevision 稳定；
+- configured template 的 Project-local `Renderer.tsx` 实现当前 `SceneRendererComponent` viewport props，并把
+  `viewportWidth`/`viewportHeight` 适配为冻结模板内部的 `width`/`height`；模板源码不拥有 SceneViewport 或
+  full-frame policy，既有 Project copy 也不会被共享模板修复静默改写；
+- `DefaultOutroPreview` 的 AXMORF mark/wordmark 使用同一个 responsive lockup box 居中，图标初始展开位置与
+  最终组合中心在 portrait/landscape 都有确定性回归；
 - Root-facing prepare 输出 stable reuse/dirty/blocked summary、逐任务 direct/dependency/artifact 解释和 dirty Agent
   TaskRevisions；
 - Scene child 继续受 repository-local `remotion-best-practices`、Scene-only requirements、本地

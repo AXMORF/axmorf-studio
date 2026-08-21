@@ -44,7 +44,8 @@ flowchart LR
   media-layouts、scene-patterns、text 与 transition-components；
 - `scene-templates/` 下仅保存可在 configure 时复制并冻结的完整 Scene template，不与 runtime
   media、transition preset 或 Project-local Scene 混为一类；新 Project 只在 atomic create transaction 中
-  复制所选 instance。
+  复制所选 instance。`DefaultIntroPreview` / `DefaultOutroPreview` 是 shared template 的 system preview，
+  不是 Project delivery；片尾 mark + wordmark 以一个 responsive lockup box 居中，关注按钮维持独立的同轴布局。
 
 当前权威与生成入口：
 

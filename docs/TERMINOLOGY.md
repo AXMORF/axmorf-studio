@@ -34,5 +34,5 @@
 | project-production-current | 相同 identity 的 current delivery 重新验证完整，未重写媒体。 |
 | template-copy Scene | create 时复制到 Project-local 的 immutable template instance，由 fixed task 产出 artifact。 |
 | scene-owner Scene | 需要一个 dirty Scene task child 在独占 workspace 内创作的 Scene。 |
-| SceneViewport | Composition 拥有的 safe-area-local Scene 容器；把本地 `(0, 0)` 映射到内容安全区左上角，并只向 Renderer 暴露 viewport width/height。 |
+| SceneViewport | Composition 拥有的 safe-area-local Scene 容器；把本地 `(0, 0)` 映射到内容安全区左上角，并只向 Renderer 暴露 `viewportWidth`/`viewportHeight`。 |
 | historical `.producer-runs` | 旧架构只读历史数据；current pipeline 不读取，只允许 Project 删除器按严格 ownership 清理。 |
