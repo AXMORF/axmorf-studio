@@ -14,8 +14,8 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 
 const PolicySchema = z
   .object({
-    schemaVersion: z.literal(15),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v17"),
+    schemaVersion: z.literal(16),
+    policyVersion: z.literal("remotion-story-producer-video-policy-v18"),
     rootEndpoints: z.tuple([
       z.literal("project-production-complete"),
       z.literal("project-production-current"),
@@ -47,8 +47,8 @@ const PolicySchema = z
         promptOverridePersistence: z.literal(
           "current-production-only-unless-explicit-save",
         ),
-        defaultMode: z.literal("subagents"),
-        defaultMaxConcurrency: z.literal(4),
+        defaultMode: z.literal("inline"),
+        defaultSubagentMaxConcurrency: z.literal(4),
         repositoryMaxConcurrency: z.literal(4),
         unknownRuntimeMaxConcurrency: z.literal(1),
         inlinePolicy: z.literal("root-sequential-one-workspace-at-a-time"),
@@ -132,7 +132,7 @@ const PolicySchema = z
 test("repository video skill uses Revision, Task DAG, artifacts, and synchronous delivery", async () => {
   const [
     skill,
-    metadata,
+    openAiMetadata,
     workflow,
     scene,
     globalVisual,
@@ -153,10 +153,11 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   ]);
   const policy = PolicySchema.parse(JSON.parse(rawPolicy));
   const executable = `${workflow}\n${scene}\n${globalVisual}\n${cover}`;
-  const bundle = `${skill}\n${metadata}\n${executable}\n${hardening}\n${producerConfig}\n${rawPolicy}`;
+  const bundle = `${skill}\n${executable}\n${hardening}\n${producerConfig}\n${rawPolicy}`;
 
   assert.match(skill, /^name: remotion-story-producer-video$/mu);
-  assert.match(metadata, /\$remotion-story-producer-video/u);
+  assert.match(openAiMetadata, /\$remotion-story-producer-video/u);
+  assert.match(openAiMetadata, /内置 inline/u);
   for (const heading of policy.requiredEntrypointHeadings) {
     assert.match(skill, new RegExp(`^## ${heading}$`, "mu"));
   }

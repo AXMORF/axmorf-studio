@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 15,
-  "policyVersion": "remotion-story-producer-video-policy-v17",
+  "schemaVersion": 16,
+  "policyVersion": "remotion-story-producer-video-policy-v18",
   "rootEndpoints": [
     "project-production-complete",
     "project-production-current"
@@ -45,8 +45,8 @@
       "builtin-default"
     ],
     "promptOverridePersistence": "current-production-only-unless-explicit-save",
-    "defaultMode": "subagents",
-    "defaultMaxConcurrency": 4,
+    "defaultMode": "inline",
+    "defaultSubagentMaxConcurrency": 4,
     "repositoryMaxConcurrency": 4,
     "unknownRuntimeMaxConcurrency": 1,
     "inlinePolicy": "root-sequential-one-workspace-at-a-time",

@@ -67,7 +67,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
     body: {
       schemaVersion: 1,
       contractVersion: "execution-preferences-v1",
-      creativeTaskExecution: { mode: "subagents", maxConcurrency: 4 },
+      creativeTaskExecution: { mode: "inline" },
     },
   });
   const rejectedExecutionOrigin = await api({
@@ -92,7 +92,7 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
     body: JSON.stringify({
       schemaVersion: 1,
       contractVersion: "execution-preferences-v1",
-      creativeTaskExecution: { mode: "inline" },
+      creativeTaskExecution: { mode: "subagents", maxConcurrency: 4 },
     }),
   });
   assert.equal(savedExecution.statusCode, 200);

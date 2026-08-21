@@ -26,7 +26,7 @@ Scene exact-reference checks可验证 lineage、license、source graph、phase p
 `remotion-best-practices`。
 
 `project-production-complete` 与 `project-production-current` 都证明本地 current four-file package 完整；
-workspace check 成功、child chat 成功或 artifact commit 只证明各自较早阶段；continuation 非零退出明确不构成
+workspace check 成功、executor chat 成功或 artifact commit 只证明各自较早阶段；continuation 非零退出明确不构成
 delivery completion。
 
 NarrativeCheck、SceneVisualCheck、SceneSoundCheck、人工审美审核、平台发布和 capability promotion 都不在

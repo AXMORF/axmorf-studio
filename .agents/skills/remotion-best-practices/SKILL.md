@@ -53,18 +53,18 @@ To find and read current Remotion documentation, load [Remotion Docs](./remotion
 To upgrade Remotion, related packages, compatible Mediabunny packages, and installed Remotion Agent Skills, load [Remotion Upgrade](./remotion-upgrade/REFERENCE.md).
 
 
-## Codex troubleshooting
+## Constrained agent host troubleshooting
 
-When running inside Codex, first try starting the Remotion Studio without opening the system browser:
+When Remotion Studio is launched through an agent host, first start it without opening the system browser:
 
 ```bash
 npx remotion studio --no-open
 ```
 
-Only if that fails with file watcher limits such as `EMFILE: too many open files, watch`, retry with polling and without opening a browser from Codex:
+Only if that fails with file watcher limits such as `EMFILE: too many open files, watch`, retry with polling:
 
 ```bash
 npx remotion studio --no-open --webpack-poll 1000
 ```
 
-If Studio still fails to start from Codex, ask the user to start it manually from their macOS Terminal and then continue using the already-running Studio. Sandbox errors while launching Chromium from Codex are likely caused by the Codex/macOS sandbox rather than the Remotion project.
+If Studio still fails to start through the agent host, ask the user to start it in a regular terminal and continue using the already-running Studio. Treat host sandbox errors while launching Chromium as environment evidence, not proof that the Remotion project is invalid.

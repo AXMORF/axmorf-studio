@@ -2,16 +2,18 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-21 configured Scene template adapter 与片尾 lockup alignment
+> 最后复核：2026-08-22 host-neutral Agent entrypoints 与内置 inline execution
 
 ## 当前结论
 
 仓库当前 production authority 已收敛为 ProductionRevision、content-addressed Task DAG、task workspace、
 ArtifactAttestation、reusable Artifact Store、fixed convergence 与 synchronous exact four-file delivery。
-package scripts 只保留：
+当前 authoring/production 主链公开 scripts 为：
 
 ```text
 project:create
+project:asset:import
+project:execution:resolve
 project:produce:inspect
 project:produce:prepare
 project:task:check
@@ -30,7 +32,7 @@ shim。历史 `.producer-runs` 数据保持原位，但 current prepare/converge
 entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据；该本地 Project 也不改变 zero-Project
 支持合同。
 
-当前 repository video Skill policy v16 还定义了一个 pre-inspect external-asset Agent capability slot：只按
+当前 repository video Skill policy schema v16 / policy v18 还定义了一个 pre-inspect external-asset Agent capability slot：只按
 当前 Root Agent 的实际 callable MCP tools 激活，缺失时完全省略；激活后也必须先查本地 Catalog，再通过
 `project:asset:import` 把选择准入为 Project-owned 输入。该 slot 不创建 DAG node，也不进入 child/runtime。
 
@@ -86,10 +88,13 @@ entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据�
   最终组合中心在 portrait/landscape 都有确定性回归；
 - Root-facing prepare 输出 stable reuse/dirty/blocked summary、逐任务 direct/dependency/artifact 解释和 dirty Agent
   TaskRevisions；
-- Scene child 继续受 repository-local `remotion-best-practices`、Scene-only requirements、本地
+- Scene executor 继续受 repository-local `remotion-best-practices`、Scene-only requirements、本地
   SceneViewport、resource/license 与 Remotion runtime gates 约束；它不感知 full-frame 安全区 inset。
-- execution resolver 已按用户提示词明确字段优先于独立 settings 默认，支持 Root inline 串行或最多四个
-  subagents 的 bounded pool；策略不进入 Revision/Task/artifact/delivery identity。
+- execution resolver 已按用户提示词明确字段、独立 settings、内置 `inline` 默认逐级解析；全新 checkout
+  只需一个 shell-capable Agent，具备 runtime-native children 的宿主可显式选择最多四个 subagents；策略
+  不进入 Revision/Task/artifact/delivery identity。
+- `AGENTS.md` 是唯一 repository Agent authority；`CLAUDE.md`/`GEMINI.md` 只导入该文件，OpenAI Skill metadata
+  只提供可选 UI 展示。生产脚本不调用任何厂商 Agent SDK。
 - continuation 启动后 Root 不参与 barrier；event-driven fixed continuation 读取 immutable event log，在 task
   failure 或 attempt 创建起一小时 terminal deadline 到期时直接退出，在全部成功后只调用一次 converge，fixed failure 不重试或
   唤回 Root。
@@ -109,7 +114,7 @@ entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据�
 - settings schema v5 展示 sourceState、current Revision、estimated/actual cost、逐任务 structured explanation、
   latest attempt diagnostic 和 four-file delivery；不输出 raw fingerprints/private authoring/provider data；
 - 独立 `private/execution-preferences.json` 以 strict contract/`0600` 原子保存 Root inline 或 subagents 最大并发
-  默认值，不改变 ProducerConfig fingerprint；当前用户提示词 override 不自动持久化；
+  偏好，文件缺失时使用内置 `inline`；它不改变 ProducerConfig fingerprint，当前用户提示词 override 不自动持久化；
 - source Project enumeration 不读取 historical data，也不把 output-only roots 伪装成 Project；
 - deletion scope 增加 `.producer-work`、`.producer-artifacts`、`.producer-attempts`，继续保护 private、voice、
   shared/core 与 other Projects；

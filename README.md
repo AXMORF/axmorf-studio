@@ -41,6 +41,18 @@ Project source
 [remotion-story-producer-video Skill](.agents/skills/remotion-story-producer-video/SKILL.md)；每个 Scene task executor
 还必须完整读取 repository-local `remotion-best-practices`。
 
+## Agent 兼容性
+
+仓库以 `AGENTS.md`、repository-local `SKILL.md`、JSON contracts 和 npm CLI 作为宿主中立接口，不依赖
+Codex、Claude、Gemini、Cursor 或 Copilot SDK。Codex、Cursor 与 GitHub Copilot 可直接读取 `AGENTS.md`；
+Claude Code 通过 `CLAUDE.md`、Gemini CLI 通过 `GEMINI.md` 导入同一文件。不会自动发现 Skill 的 Agent 仍可按
+`AGENTS.md` 指向的路径手动加载，规则没有第二份副本。
+
+全新 checkout 内置使用 `inline`：单个 Agent 即可完成 dirty tasks。`subagents` 是可选加速能力，只有宿主确实
+支持 runtime-native children 且本次解析选择该模式时才启用。OpenAI 的 `agents/openai.yaml` 只是可选 UI
+adapter，不参与生产 authority。完整入口与能力矩阵见
+[Agent 兼容性指南](docs/guides/AGENT_COMPATIBILITY.md)。
+
 ## 快速开始
 
 ```bash
@@ -101,7 +113,8 @@ workspace、Artifact Store、delivery 或 Remotion runtime。
 
 ## 生产一个 Project
 
-1. 在 inspect 前按“当前用户提示词明确字段 → 配置页 → 内置默认”解析本次执行策略。提示词 override 不自动保存：
+1. 在 inspect 前按“当前用户提示词明确字段 → 配置页 → 内置默认”解析本次执行策略。内置默认是宿主中立的
+   `inline`；提示词 override 不自动保存：
 
 ```bash
 npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>]

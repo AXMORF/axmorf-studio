@@ -31,16 +31,18 @@ fingerprints proceed.
 ## 3. Resolve execution once
 
 Interpret only explicit execution fields in the current user prompt. Omitted fields inherit the settings page;
-those settings inherit built-in defaults. Do not save a prompt override unless the user explicitly requests it.
+without saved settings the host-neutral built-in default is `inline`. Do not save a prompt override unless the user
+explicitly requests it.
 
 ```bash
 npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>]
 ```
 
-Pass current runtime capacity when known. Without it, subagent capacity safely resolves to one. The repository
-ceiling is four. A non-exact request is clamped and reported; an exact request that cannot be satisfied returns
-`blocked`; known runtime capacity zero also blocks. Production stops before prepare. Freeze the resolved result. It is
-diagnostic orchestration state and never enters ProductionRevision, TaskRevision, artifacts, or delivery.
+Inline requires only the current shell-capable Agent. When prompt/settings select subagents, pass current runtime
+capacity when known; without it, subagent capacity safely resolves to one. The repository ceiling is four. A
+non-exact request is clamped and reported; an exact request that cannot be satisfied returns `blocked`; known runtime
+capacity zero also blocks. Production stops before prepare. Freeze the resolved result. It is diagnostic orchestration
+state and never enters ProductionRevision, TaskRevision, artifacts, or delivery.
 
 ## 4. Inspect read-only, then prepare explicitly
 

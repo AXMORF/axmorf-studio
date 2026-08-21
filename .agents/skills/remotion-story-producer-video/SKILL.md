@@ -23,11 +23,11 @@ task executors, artifacts, delivery, or runtime.
 ## Resolve Agent execution
 
 Before inspect, resolve execution once with `project:execution:resolve`. Explicit user prompt fields override the
-settings page; omitted fields inherit it, then built-in defaults. Prompt overrides apply only to this production
-unless the user explicitly asks to save them. Pass known runtime capacity. Inline means Root executes dirty tasks
-sequentially; subagents use `effectiveMaxConcurrency` with the repository ceiling of four. If exact requested
-capacity or known zero runtime capacity resolves `blocked`, stop before prepare. Do not persist raw prompt text or
-put this policy in revision IDs.
+settings page; omitted fields inherit it, then the host-neutral built-in `inline` default. Prompt overrides apply only
+to this production unless the user explicitly asks to save them. Inline needs no child runtime and executes dirty
+tasks sequentially. Select subagents only through prompt/settings when the host supplies runtime-native children;
+pass known capacity and respect the repository ceiling of four. If exact requested capacity or known zero runtime
+capacity resolves `blocked`, stop before prepare. Do not persist raw prompt text or put this policy in revision IDs.
 
 ## Inspect before cost
 

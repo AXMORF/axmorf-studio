@@ -13,7 +13,7 @@ export const ExecutionSettings = ({
     <Section
       eyebrow="AGENT / EXECUTION"
       title="Agent 任务执行"
-      description="控制本机默认采用 Root 串行执行，还是受限并发派发子 Agent。用户在当前对话中的明确要求按字段覆盖这里的默认值，但不会自动回写配置。"
+      description="全新 checkout 内置采用通用的 Root 串行执行；本页可为具备原生 child runtime 的宿主保存受限并发。用户在当前对话中的明确要求按字段覆盖这里的值，但不会自动回写配置。"
     >
       <FieldRow>
         <Field label="执行模式" hint="Root 串行不创建子 Agent；受限并发使用独立 task workspace">
@@ -69,7 +69,7 @@ export const ExecutionSettings = ({
         <strong>TASK TERMINAL DEADLINE · 1H</strong>
       </div>
       <p className="execution-precedence-note">
-        生效顺序：当前用户提示词 → 本页保存值 → 内置默认值。若用户要求的精确并发超过运行时或仓库上限，生产会明确阻塞，不会静默降级为 Root 执行。
+        生效顺序：当前用户提示词 → 本页保存值 → 内置 inline。若选择子 Agent 但宿主容量为零，或精确并发超过运行时或仓库上限，生产会明确阻塞，不会伪造 child 或静默降级。
       </p>
     </Section>
   );

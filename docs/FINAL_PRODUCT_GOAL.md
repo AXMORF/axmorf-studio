@@ -16,7 +16,7 @@ current delivery。唯一主链是：
 1. 冻结 ProductionRevision；
 2. 建立 content-addressed Task DAG；
 3. 复用有效 ArtifactAttestation，只委派 dirty Agent tasks；
-4. Root 派发后挂起，由 attempt-bound fixed continuation 处理全部 child terminal；
+4. Root 完成 inline execution 或 bounded child admission 后挂起，由 attempt-bound fixed continuation 处理全部 task terminal；
 5. 全部成功后 fixed convergence 原子物化 current Project；
 6. 同步生成、机械复验并提升 exact four-file delivery。
 
@@ -77,7 +77,8 @@ decode 全部通过后才替换。相同完整 identity 是只读 no-op。
 - Project 删除使用完整 storyId 确认并清理该 Project 的全部 ownership roots，同时保护其他 Project、
   core、shared media、private config 与 voice profiles。
 - 每个完成状态都有机械证据；聊天成功、Agent 自评、文件存在或进程启动都不代表交付完成。
-- Agent 执行模式按用户提示词明确字段、配置页、内置默认逐级解析为 Root inline 串行或最多四个 subagents；
+- Agent 执行模式按用户提示词明确字段、配置页、内置 `inline` 默认逐级解析；全新 checkout 单 Agent 可用，
+  具备 runtime-native children 的宿主可显式选择最多四个 subagents；
   策略不进入 production identity。continuation 启动后 Root 不监督；failure 直接终止，all-success 只由持有
   exact-attempt one-shot claim 的 fixed continuation 触发一次 converge；缺失终态受 attempt 创建起一小时总
   deadline 约束。

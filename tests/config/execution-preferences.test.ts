@@ -18,6 +18,11 @@ test("execution preferences default, persist privately, and reject symlinks", as
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const preferencesPath = join(rootDir, "private/execution-preferences.json");
 
+  assert.deepEqual(DEFAULT_EXECUTION_PREFERENCES, {
+    schemaVersion: 1,
+    contractVersion: "execution-preferences-v1",
+    creativeTaskExecution: { mode: "inline" },
+  });
   assert.deepEqual(await loadExecutionPreferences({ preferencesPath }), {
     preferences: DEFAULT_EXECUTION_PREFERENCES,
     source: "builtin-default",

@@ -2,7 +2,7 @@
 
 > 文档类型：唯一导航入口
 >
-> 最后复核：2026-08-21
+> 最后复核：2026-08-22
 
 先按问题选择文档，不要从历史计划或 evidence 反推 current implementation。
 
@@ -24,6 +24,7 @@
 
 | 主题 | 文档 |
 | --- | --- |
+| 主流 Agent 入口、最低能力与宿主适配边界 | [guides/AGENT_COMPATIBILITY.md](guides/AGENT_COMPATIBILITY.md) |
 | 统一 Producer/TTS/Scene defaults 配置 | [guides/PRODUCER_CONFIG.md](guides/PRODUCER_CONFIG.md) |
 | create 后的只读 inspect、显式 prepare、dirty task delegation、attempt-bound commit/fail 与 fixed continuation | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md) |
 | 同步 exact four-file delivery | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md) |

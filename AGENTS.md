@@ -53,6 +53,20 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 
 本文件定义仓库内 Agent 的执行规则。默认中文交流，先给结论，再给最少必要依据。
 
+## 通用 Agent 入口
+
+- `AGENTS.md` 是唯一仓库级 Agent 指令 authority。`CLAUDE.md`、`GEMINI.md` 与任何宿主专用 metadata
+  只能作为导入或发现 adapter，不复制、覆盖或扩展这里的规则。
+- 处理视频创建、生产或交付时，即使宿主不会自动发现 Skill，也必须手动读取
+  `.agents/skills/remotion-story-producer-video/SKILL.md`；Scene task 再按该 Skill 读取 repository-local
+  `remotion-best-practices`。
+- 全新 checkout 的内置执行默认是 `inline`，只要求当前 Agent 能读写文件并运行 shell。只有用户或已保存设置
+  选择 `subagents` 且宿主确实提供 runtime-native child execution 时才使用子 Agent；不得把线程、聊天或普通
+  后台进程伪装成 child runtime。
+- `.agents/**/agents/openai.yaml` 只提供 OpenAI host 的可选 UI metadata，不属于 Skill、production contract、
+  Task identity 或完成证据。其他 Agent 直接读取 `SKILL.md`、references、JSON contracts 与 CLI 输出。
+- 宿主兼容性、最低能力与入口文件见 `docs/guides/AGENT_COMPATIBILITY.md`。
+
 ## 权威文档
 
 - 产品目标：`docs/FINAL_PRODUCT_GOAL.md`
@@ -96,7 +110,7 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   MCP/receipt/candidate path 不进入 child、Revision、Artifact Store、delivery 或 runtime；只有 import 后的
   Project-owned manifest identity 与 bytes fingerprint 能成为 production input。
 - `npm run project:execution:resolve` 在 inspect 前解析一次 Agent 执行策略：用户提示词中的明确字段优先于
-  `private/execution-preferences.json`，未明确字段继续继承配置，再继承内置默认。override 只作用于当前
+  `private/execution-preferences.json`，未明确字段继续继承配置，再继承内置 `inline` 默认。override 只作用于当前
   production，除非用户明确要求保存；解析结果不进入 Revision/Task/artifact/delivery identity。`inline` 由
   Root 一次只执行一个 dirty workspace；`subagents` 使用不超过四个且受 runtime capacity 限制的 bounded pool。
   runtime capacity 未知时按 1、明确为 0 时阻塞；用户要求 exact capacity 而无法满足时也必须在 prepare 前

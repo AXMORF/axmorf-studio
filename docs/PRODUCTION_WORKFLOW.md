@@ -9,17 +9,21 @@
 ```mermaid
 flowchart LR
   Author[Atomic create or current authoring edits] --> MCP{Current Root exposes compatible MCP tools?}
-  MCP -->|no: omit slot| Inspect[Read-only readiness + cost + invalidation]
+  MCP -->|no: omit slot| Resolve[Resolve execution policy]
   MCP -->|yes: load slot| Catalog{Local Catalog satisfies need?}
-  Catalog -->|yes| Inspect
+  Catalog -->|yes| Resolve
   Catalog -->|no| Import[MCP receipt + project asset import]
-  Import --> Inspect
+  Import --> Resolve
+  Resolve --> Inspect[Read-only readiness + cost + invalidation]
   Inspect --> Report[Root reports before cost]
   Report --> Prepare[Provider and fixed preparation]
   Prepare --> Plan[ProductionRevision + Task DAG]
   Plan --> Reuse[Reuse valid artifacts]
   Plan --> Dirty[Create dirty Agent task workspaces]
-  Dirty --> Children[Runtime-native task children]
+  Dirty --> Mode{Resolved execution mode}
+  Mode -->|inline default| Inline[Root sequential executor]
+  Mode -->|subagents| Children[Runtime-native task children]
+  Inline --> Check[Read-only task check]
   Children --> Check[Read-only task check]
   Check --> Terminal[Attempt-bound commit or failure event]
   Terminal -->|failure| Exit[Terminal nonzero exit]
@@ -42,7 +46,7 @@ materialization 或 DeliveryBuild。历史执行目录不参与 prepare、conver
 `project:asset:import` 时才投影该阶段；安装配置、shell discovery 或其他 Agent 的 tool surface 不算可用。
 缺失时整个 slot 无错误、无占位地省略。存在时仍先查本地 Catalog，只有准入后的 Project-owned manifest ID
 与 bytes fingerprint 才进入后续确定性主链；MCP、远程 URL、凭据、receipt 和 candidate path 留在 adapter
-boundary，task children 与 runtime 不感知。
+boundary，task executors 与 runtime 不感知。
 
 ## 2. Project authoring
 
@@ -122,15 +126,16 @@ prepare 只为 action 为 `dispatch-agent` 的 non-reused task 建立：
 ```
 
 Agent 不能直接写 live Project。inspect 前用 `project:execution:resolve` 按用户提示词明确字段、配置页、内置
-默认的优先级冻结本次执行策略；该诊断策略不进入 identity。inline 时 Root 一次执行一个 workspace；
+`inline` 默认的优先级冻结本次执行策略；该诊断策略不进入 identity。inline 时 Root 一次执行一个 workspace；
 subagents 时使用不超过四个且受 runtime capacity 限制的 bounded pool。`scene-template` 和其他 fixed tasks
-不由 Agent 创作。每个 TaskRevision 只归属一个 executor。Scene executor 完整读取 repository-local
+不由 Agent 创作。仓库只产出通用 workspace 与 shell command，不调用厂商 Agent SDK；每个 TaskRevision
+只归属一个 executor。Scene executor 完整读取 repository-local
 `remotion-best-practices`，且不能用 Skill 扩大
 TaskSpec/validator/write scope。
 
 SceneTask v7 是 clean-break 的最小 Scene 输入：它只包含 Scene-only requirements 与由
 Composition readability policy 确定性派生的 `sceneViewport`（safe-area-local width/height/min font
-size/fingerprint）。raw policy、full-frame width/height 和四边 inset 不进入 child workspace。Renderer
+size/fingerprint）。raw policy、full-frame width/height 和四边 inset 不进入 task workspace。Renderer
 从本地 `(0, 0)` 布局；只有 Composition 在 runtime 安装/clip SceneViewport 并拥有 CaptionLayer。
 validator 拒绝 Renderer 自建 SceneViewport/provider、读取 raw policy/inset 或调用 `useVideoConfig()`
 恢复 full-frame authority。
@@ -150,7 +155,7 @@ npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --kind 
 
 check 只读；commit 必须重跑同一 validator。成功 promotion 使用同父 staging/atomic rename，manifest 最后写，
 并产生 immutable ArtifactAttestation。相同 identity/bytes no-op；冲突绝不覆盖。commit/fail 都写入 exact
-attempt 的机械 task-terminal event；child chat 不参与 barrier，也不进入 repository state。
+attempt 的机械 task-terminal event；executor chat 不参与 barrier，也不进入 repository state。
 
 ## 5. Fixed continuation、convergence 与物化
 
@@ -160,7 +165,7 @@ Root inline 执行完或完成 bounded admission 后只启动 prepare 返回的 
 npm run project:produce:continue -- --project <storyId> --revision <revisionId> --attempt <attemptId>
 ```
 
-Root 此后不轮询、读取 child 终态、推理、修复或重试。bounded fixed continuation 首先对 exact attempt
+Root 此后不轮询、读取 executor 终态、推理、修复或重试。bounded fixed continuation 首先对 exact attempt
 建立 one-shot atomic claim，然后订阅 immutable event log（不是可失败的 progress projection）。任一 Agent
 terminal failure 立即写失败终态并非零退出，不调用 converge；全部 Agent artifacts committed/current 后内部
 只调用一次 converge。重复 continuation fail closed；从 ExecutionAttempt 创建起一小时总 deadline 内仍缺 terminal 时写
@@ -200,8 +205,8 @@ settings API 从 `src/projects/` 枚举 source Projects，展示 sourceState、i
 逐任务 direct/dependency/artifact 解释、latest attempt actual cost 和 four-file delivery。UI/API 复用同一
 structured explanation，不从错误文案或 task kind 猜 DAG。它不扫描历史执行数据，也不把 `out/` 或
 delivery-only 目录伪装成 Project；raw fingerprint、authoring text、private path/provider body 不对外投影。
-Agent execution defaults 独立保存到 `private/execution-preferences.json`，不改变 ProducerConfig fingerprint；
-当前提示词 override 只进入本次 resolver 输入，除非用户明确要求保存。
+Agent execution preferences 独立保存到 `private/execution-preferences.json`，不改变 ProducerConfig fingerprint；
+文件缺失时使用内置 `inline`，当前提示词 override 只进入本次 resolver 输入，除非用户明确要求保存。
 
 若三个 Agent tasks 中两个已 commit、第三个失败，当前 lifecycle 立即结束。用户另行启动 inspect/prepare 时，
 前两个必须是 reuse，只派发第三个。
@@ -226,7 +231,7 @@ legacy data 仅在删除器内部以最小严格 `runId/storyId` parser 判定 o
 
 ## 9. 固定流程故障
 
-Agent workspace validator 失败由同一 child 在宣告终态前修正 owning output 并重跑。任何 child terminal
+Agent workspace validator 失败由同一 task executor 在宣告终态前修正 owning output 并重跑。任何 task terminal
 failure 或 validator/store/materialization/delivery fixed failure 都立即结束当前 lifecycle。系统缺陷只能在
 用户另行启动的 engineering task 中诊断、Red/Green 和验证，然后再显式创建新 attempt；不得在失败 attempt
 内修复或重试。

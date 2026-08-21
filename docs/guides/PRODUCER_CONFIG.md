@@ -2,7 +2,7 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-20
+> 最后复核：2026-08-22
 
 仓库使用一份 Git-ignored 的 `private/producer.config.json` 作为制作默认值与私密 TTS 连接配置。
 它不是 render runtime 输入；`project:create` 把新作品的选择写入 Project contracts，后续
@@ -47,6 +47,13 @@ prepare/convergence、Project create/import 或交付构建正在改变仓库时
 task 或产物，也避免 Remotion Studio 因短暂的旧 import 终止配置 API；后续删除报错时会按磁盘真实
 状态恢复 Registry/Catalog。若浏览器连接仍在请求中断，页面只提示“删除结果需确认”，不会把无法
 确认的网络状态误报为删除未完成。
+
+“Agent 执行”设置独立保存到 Git-ignored 的 `private/execution-preferences.json`，使用 strict contract、
+原子替换和 `0600` 权限。该文件不是 ProducerConfig，也不改变 ProducerConfig、Revision、TaskRevision、
+ArtifactAttestation 或 DeliveryBuild identity；文件不存在时内置使用 `inline`，一个 shell-capable Agent 即可
+串行处理 dirty workspaces。只有宿主确实提供 runtime-native children 时才选择 `subagents` 并设置最多四个
+并发。用户提示词中的本次 override 优先于已保存设置，但不会自动写回；无法满足明确容量要求时在 prepare
+前阻塞，不回退或伪造 child execution。
 
 右侧“只读环境诊断”检查配置、默认声线来源与 Remotion browser preflight。VoxCPM 继续检查
 health/ready/info；SpeechSDK 与 Edge 只做 strict config/profile 校验，并明确显示“凭证/网络将在真实生成

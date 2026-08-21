@@ -21,14 +21,15 @@ manifest identity 与 bytes fingerprint。
 ## 2. Resolve Agent execution
 
 当前用户提示词中明确提出的 mode/max concurrency 字段优先；提示词没有的字段继承配置页，再继承内置默认。
-override 只用于当前 production，除非用户明确要求保存：
+全新 checkout 的内置默认是无需 child runtime 的 `inline`。override 只用于当前 production，除非用户明确要求保存：
 
 ```bash
 npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>]
 ```
 
-仓库安全上限为 4。已知 runtime capacity 必须传入；未知时按 1，明确为 0 时阻塞。非 exact 请求可 clamp
-但必须报告；无法满足的 exact 请求在 prepare 前阻塞。解析结果不进入 production identity。
+只有 prompt/settings 选择 subagents 时才需要 runtime capacity；已知值必须传入，未知时按 1，明确为 0 时
+阻塞。仓库安全上限为 4。非 exact 请求可 clamp 但必须报告；无法满足的 exact 请求在 prepare 前阻塞。
+解析结果不进入 production identity。
 
 ## 3. Inspect and report before cost
 

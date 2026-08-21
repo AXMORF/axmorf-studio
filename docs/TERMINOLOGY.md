@@ -24,8 +24,8 @@
 | ArtifactAttestation | fixed validator 成功后对 TaskRevision、dependencies、policy 和 exact output bytes 的证明。 |
 | Artifact Store | `.producer-artifacts/<storyId>/...` 中的 immutable、可跨 attempt 复用的 validated artifacts。 |
 | ExecutionAttempt | `.producer-attempts/<storyId>/...` 中由 prepare 创建的等待/收敛诊断；不拥有 artifact 或 delivery。 |
-| task-terminal event | child 对 exact attempt/TaskRevision 写入的首个 committed/current/failed 机械终态；同结果幂等，相反结果不可覆盖。 |
-| Agent execution policy | inspect 前按用户提示词明确字段、独立 settings、内置默认解析的当前 production 编排策略；选择 Root inline 串行或最多四个 subagents，不进入 production identity。 |
+| task-terminal event | task executor 对 exact attempt/TaskRevision 写入的首个 committed/current/failed 机械终态；同结果幂等，相反结果不可覆盖。 |
+| Agent execution policy | inspect 前按用户提示词明确字段、独立 settings、内置 `inline` 默认解析的当前 production 编排策略；选择 Root inline 串行或最多四个 subagents，不进入 production identity。 |
 | fixed continuation | Root 完成 inline execution 或 bounded admission 后启动的 attempt-bound 固定进程；one-shot atomic claim 后等待 immutable task-terminal event log，failure/attempt 创建起一小时 timeout 退出，all-success 内部 converge exactly once。 |
 | convergence | fixed continuation 内部的只读重算 Revision、要求全部 artifact、受控物化 Project、刷新 derived packages/Composition 并交付。 |
 | materialization | 把 attested bytes 从 Artifact Store 通过 staging/replace/rollback 写到 live Project-owned roots。 |
@@ -35,6 +35,6 @@
 | project-production-complete | 新 identity 已同步构建、验证并提升为 current delivery。 |
 | project-production-current | 相同 identity 的 current delivery 重新验证完整，未重写媒体。 |
 | template-copy Scene | create 时复制到 Project-local 的 immutable template instance，由 fixed task 产出 artifact。 |
-| scene-owner Scene | 需要一个 dirty Scene task child 在独占 workspace 内创作的 Scene。 |
+| scene-owner Scene | 需要一个 dirty Scene task executor 在独占 workspace 内创作的 Scene。 |
 | SceneViewport | Composition 拥有的 safe-area-local Scene 容器；把本地 `(0, 0)` 映射到内容安全区左上角，并只向 Renderer 暴露 `viewportWidth`/`viewportHeight`。 |
 | historical `.producer-runs` | 旧架构只读历史数据；current pipeline 不读取，只允许 Project 删除器按严格 ownership 清理。 |

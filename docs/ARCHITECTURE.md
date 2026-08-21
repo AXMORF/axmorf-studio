@@ -19,6 +19,9 @@ scripts/scene-package/          deterministic ScenePackage/Coverage generation
 scripts/renderer-registry/      static composition-local registry generation
 settings/                      config/progress API and UI
 private/execution-preferences.json  ignored Agent execution defaults, separate from ProducerConfig
+AGENTS.md                      single repository Agent instruction authority
+CLAUDE.md / GEMINI.md          thin host imports; no duplicated workflow
+.agents/skills/                host-neutral workflow plus optional host UI metadata
 ```
 
 `domain/` 不读取 filesystem 且不依赖 application/adapters/CLI。application 编排 use cases，不承载 host
@@ -33,6 +36,7 @@ flowchart TD
   AgentTools[Current Root callable MCP tools] -. optional receipt import .-> Inputs
   Prompt[Explicit user execution fields] --> Execution[One-run execution resolution]
   Settings[Independent execution preferences] --> Execution
+  Builtin[Built-in inline default] --> Execution
   Execution -. orchestration only .-> Inspection
   Inputs --> Inspection[Read-only ProductionInspection]
   Inspection --> Prepare[Explicit costly preparation]
@@ -80,7 +84,7 @@ TypeScript registry 完成。
 | Project create/configured authoring | fixed atomic creator | existing/partial/conflicting target fail closed；零 provider/media/attempt |
 | Optional external acquisition | current Root Agent + fixed import | callable compatible MCP 才出现；缺失即省略；只在 inspect 前写 Project-owned asset/evidence |
 | Existing Project authoring inputs | Root authoring Agent / fixed import command | preparation 前可变，受 Project ownership 限制 |
-| `.producer-work/<story>/<taskRevision>` | one assigned child | only declared output set; cannot edit `task.json` or inputs |
+| `.producer-work/<story>/<taskRevision>` | one assigned task executor | only declared output set; cannot edit `task.json` or inputs |
 | `.producer-artifacts` | fixed commit adapter | validator recheck + atomic promotion only |
 | materialized Scene/GlobalVisual/Cover roots | fixed materializer | all artifacts present; controlled replace/rollback |
 | generated packages/registry/Composition | fixed convergence | deterministic projection |
@@ -99,7 +103,7 @@ Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the config
 instance. Its artifact is the exact union of immutable copied source/assets and the canonical derived Scene bundle;
 live-only fixed projections are excluded from its task identity.
 
-inspect 前的 execution resolver 按用户提示词、settings、内置默认逐字段选择 Root inline 或 bounded
+inspect 前的 execution resolver 按用户提示词、settings、内置 `inline` 默认逐字段选择 Root inline 或 bounded
 subagents，且不进入 production identity。每个 dirty Agent task 只有一个 executor；inline 一次一个 workspace，
 subagents 最大四个并受 runtime capacity 限制。全部完成或 admission 后 Root 挂起；fixed continuation 以 one-shot
 atomic claim 独占 exact attempt，只订阅 immutable mechanical task-terminal event log；attempt 创建起一小时总
