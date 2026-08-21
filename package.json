@@ -1,5 +1,6 @@
 {
   "name": "remotion-story-producer",
+  "productName": "AXMORF Studio",
   "version": "0.1.0",
   "description": "Narration-led, story-beat-driven Remotion production system.",
   "repository": {
@@ -8,6 +9,7 @@
   },
   "license": "UNLICENSED",
   "private": true,
+  "main": ".vite/build/main.js",
   "dependencies": {
     "@react-three/fiber": "9.6.1",
     "@remotion/cli": "4.0.489",
@@ -36,6 +38,8 @@
     "zod": "4.3.6"
   },
   "devDependencies": {
+    "@electron-forge/cli": "7.11.2",
+    "@electron-forge/plugin-vite": "7.11.2",
     "@eslint/eslintrc": "3.3.5",
     "@remotion/eslint-config-flat": "4.0.489",
     "@types/node": "20.19.19",
@@ -43,6 +47,7 @@
     "@types/react-dom": "19.2.3",
     "@types/web": "0.0.166",
     "@vitejs/plugin-react": "6.0.5",
+    "electron": "43.4.1",
     "eslint": "9.19.0",
     "prettier": "3.8.1",
     "tailwindcss": "4.2.0",
@@ -60,6 +65,11 @@
     "config:migrate": "node --import tsx scripts/config/migrate.ts",
     "config:dev": "vite --config settings/vite.config.ts",
     "config:build": "vite build --config settings/vite.config.ts",
+    "desktop:icons": "node --import tsx scripts/desktop/generate-brand-assets.ts",
+    "desktop:start": "npm run desktop:icons && electron-forge start",
+    "desktop:build": "npm run desktop:icons && vite build --config vite.desktop.main.config.ts && vite build --config vite.desktop.preload.config.ts && vite build --config vite.desktop.engine.config.ts && vite build --config vite.desktop.renderer.config.ts",
+    "desktop:package": "node --import tsx scripts/desktop/package.ts",
+    "desktop:check": "node --import tsx --test tests/desktop/*.test.ts && npm run desktop:build",
     "build": "remotion bundle",
     "prebuild": "npm run bootstrap",
     "upgrade": "remotion upgrade",
