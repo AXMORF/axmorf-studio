@@ -2,23 +2,26 @@
 
 > 文档类型：治理规则
 >
-> 最后复核：2026-08-09
+> 最后复核：2026-08-22
 
 ## 单一事实来源
 
 同一个问题只由一个文档负责：
 
-| 问题                   | 权威文档                     |
-| ---------------------- | ---------------------------- |
-| 产品最终要成为什么     | `FINAL_PRODUCT_GOAL.md`      |
-| 当前系统如何分层和依赖 | `ARCHITECTURE.md`            |
-| 外部如何完成一次生产   | `PRODUCTION_WORKFLOW.md`     |
-| 确定性、指纹和失效规则 | `DETERMINISTIC_EXECUTION.md` |
-| 当前已经实现什么       | `ITERATION_STATUS.md`        |
-| 下一阶段做什么         | `ROADMAP.md`                 |
-| 名词的精确定义         | `TERMINOLOGY.md`             |
+| 问题                          | 权威文档                           |
+| ----------------------------- | ---------------------------------- |
+| 产品最终要成为什么            | `FINAL_PRODUCT_GOAL.md`            |
+| Desktop App 产品与数据边界    | `DESKTOP_APP_PRODUCT.md`           |
+| macOS v1 维护、发行与发布门槛 | `DESKTOP_APP_MACOS_MAINTENANCE.md` |
+| 当前系统如何分层和依赖        | `ARCHITECTURE.md`                  |
+| 外部如何完成一次生产          | `PRODUCTION_WORKFLOW.md`           |
+| 确定性、指纹和失效规则        | `DETERMINISTIC_EXECUTION.md`       |
+| 当前已经实现什么              | `ITERATION_STATUS.md`              |
+| 下一阶段做什么                | `ROADMAP.md`                       |
+| 名词的精确定义                | `TERMINOLOGY.md`                   |
 
-README 只做入口和快速开始；guide 只解释操作；evidence 只证明一次验收；archive 只保存历史。
+README 只做入口和快速开始；Desktop App 两份目标 authority 不声明 current implementation；guide 只解释操作；
+evidence 只证明一次验收；archive 只保存历史。
 其他文档需要当前事实时应链接到权威文档，不再复制整段里程碑清单、checksum 或状态描述。
 
 ## 目录与生命周期

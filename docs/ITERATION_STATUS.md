@@ -134,3 +134,9 @@ focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests
 
 远程 scheduler/database/artifact store、平台发布、账号、上传、child identity persistence、subjective quality
 gate、automatic capability promotion、Docker 和新的 TTS Gateway 均未实现。
+
+Desktop App、binary installer、workspace-local Agent integration、workspace Skill lifecycle、`rsp` public CLI/IPC、
+单一 Workspace Root 与 `studio-current`/optional Delivery contracts 也尚未实现；这些仅记录在
+[Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
+[macOS 维护与发行目标](DESKTOP_APP_MACOS_MAINTENANCE.md)，并已进入 [ROADMAP.md](ROADMAP.md) 的下一里程碑；
+它们仍未进入 current production authority。

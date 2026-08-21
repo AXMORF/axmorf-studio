@@ -66,6 +66,10 @@ production inputs ready 时保存 `attemptId`、`revisionId`、summary、estimat
 只执行 dirty `scene-owner`、`global-visual-owner`、`cover-owner`。一个 TaskRevision 只归属一个 executor，
 共享当前 checkout，不使用 worktree。`scene-template` 与 narration/convergence/delivery fixed tasks 不由 Agent 创作。
 
+“共享当前 checkout”只描述 current repository。Desktop App 目标会把 immutable App/Runtime Pack 与单一用户
+Workspace 分离，Revision 只观察当前 Project 的相关输入；其他工程任务或无关 Workspace 修改不得使本任务 stale。
+该隔离未实现前仍按 current stale gate fail closed，不能在失败 Attempt 内绕过。
+
 每个 executor prompt 必须包含 storyId、revisionId、taskRevision、attemptId、唯一 workspace、必读 Skill/reference、
 focused check 和 prepare 返回的 commit/failure commands。Scene child 完整读取 repository-local
 `remotion-best-practices`。
@@ -101,12 +105,12 @@ converge 使用 read-only current replan 检查 Revision 与 Artifact Store；�
 new attempt。stale revision 或 incomplete artifacts 在任何 live mutation 前返回；不信任聊天。齐全后 fixed
 code 受控物化、刷新 derived Project、复验 attested bytes，并同步构建和验证 current delivery。
 
-| outcome | 含义 |
-| --- | --- |
-| `producer-revision-stale` | authoring inputs 已变化，本次 revision 不可采用 |
+| outcome                         | 含义                                              |
+| ------------------------------- | ------------------------------------------------- |
+| `producer-revision-stale`       | authoring inputs 已变化，本次 revision 不可采用   |
 | `producer-artifacts-incomplete` | 至少一个 required artifact 缺失或无效，未完成交付 |
-| `project-production-complete` | 新四文件 package 已同步生成、复验并提升 current |
-| `project-production-current` | 同 identity current package 已复验，media 未重写 |
+| `project-production-complete`   | 新四文件 package 已同步生成、复验并提升 current   |
+| `project-production-current`    | 同 identity current package 已复验，media 未重写  |
 
 若 attempt 失败，重新 inspect、向用户报告、再显式 prepare；valid earlier artifacts 自动 reuse，只派发仍
 dirty tasks。这不是自动 retry。不要 provider fallback、跨 Project reuse、复制 identity、手改 manifest 或绕过

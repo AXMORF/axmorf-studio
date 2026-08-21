@@ -5,46 +5,48 @@ and completing the task end-to-end.
 
 ## Working principles
 
-* Before modifying code, inspect the relevant codebase, existing conventions, dependencies, tests, and
+- Before modifying code, inspect the relevant codebase, existing conventions, dependencies, tests, and
   `AGENTS.md` instructions. Do not guess about code you can inspect.
-* Understand the root cause before fixing bugs. Prefer the smallest coherent change that fully solves it.
-* Follow existing architecture, naming, formatting, and abstractions. Do not refactor unrelated code.
-* Preserve existing behavior unless the requested change explicitly requires otherwise.
+- Understand the root cause before fixing bugs. Prefer the smallest coherent change that fully solves it.
+- Follow existing architecture, naming, formatting, and abstractions. Do not refactor unrelated code.
+- Preserve existing behavior unless the requested change explicitly requires otherwise.
 
 ## Planning and execution
 
-* Implement small, well-defined tasks directly. For multi-file or architectural work, form a concise plan
+- Implement small, well-defined tasks directly. For multi-file or architectural work, form a concise plan
   and then execute it.
-* Use skills, subagents, plugins, or specialized workflows when they materially improve correctness or
+- Use skills, subagents, plugins, or specialized workflows when they materially improve correctness or
   efficiency. Make reasonable decisions autonomously; ask only when a missing choice materially changes
   the implementation or an action is destructive, irreversible, or high-risk.
 
 ## Verification
 
-* Do not call work complete because the code looks correct. Run relevant tests, typecheck, lint, builds, and
+- Do not call work complete because the code looks correct. Run relevant tests, typecheck, lint, builds, and
   runtime checks. Add regression coverage for meaningful fixes and behavior changes when practical.
-* If a check cannot run, state exactly what was not verified and why. Review the final diff for unintended
+- If a check cannot run, state exactly what was not verified and why. Review the final diff for unintended
   changes, dead code, debug artifacts, and unnecessary complexity.
 
 ## Libraries, APIs, and code quality
 
-* Verify current primary documentation when behavior depends on a changing library, framework, API, model,
+- Verify current primary documentation when behavior depends on a changing library, framework, API, model,
   CLI, or tool. Prefer existing dependency versions; use `pnpm` only when the repository does not specify a
   package manager.
-* Prefer clear, explicit, focused code. Comment non-obvious intent, handle errors deliberately, and consider
+- Prefer clear, explicit, focused code. Comment non-obvious intent, handle errors deliberately, and consider
   relevant edge cases, security, concurrency, cleanup, and performance.
 
 ## Communication
 
-* Default to concise Chinese explanations. Keep identifiers and technical terms consistent with the repo.
-* During long work, report meaningful findings or blockers. Final responses summarize changes, decisions,
+- Default to concise Chinese explanations. Keep identifiers and technical terms consistent with the repo.
+- During long work, report meaningful findings or blockers. Final responses summarize changes, decisions,
   verification, and remaining risks, and never claim success without evidence.
 
 <!-- CODEGRAPH_START -->
+
 ## CodeGraph
 
 When a `.codegraph/` directory exists, use CodeGraph before grep/find for code discovery:
 `codegraph explore "<question>"` or `codegraph node <symbol-or-file>`. If it does not exist, skip it.
+
 <!-- CODEGRAPH_END -->
 
 --- project-doc ---
@@ -70,6 +72,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 ## 权威文档
 
 - 产品目标：`docs/FINAL_PRODUCT_GOAL.md`
+- Desktop App 产品边界：`docs/DESKTOP_APP_PRODUCT.md`
+- macOS 维护与发行：`docs/DESKTOP_APP_MACOS_MAINTENANCE.md`
 - 生产流程：`docs/PRODUCTION_WORKFLOW.md`
 - 当前事实：`docs/ITERATION_STATUS.md`
 - 阶段门槛：`docs/ROADMAP.md`
@@ -77,11 +81,13 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - 确定性：`docs/DETERMINISTIC_EXECUTION.md`
 - 名词：`docs/TERMINOLOGY.md`
 
-文档冲突时先用 current 可执行代码和测试确认事实，再同步权威文档；不能把目标写成实现。
+文档冲突时先用 current 可执行代码和测试确认事实，再同步权威文档；Desktop App 两份文档定义已确认目标，
+不表示当前仓库已存在 App、installer、`rsp` 或 optional Delivery，不能把目标写成实现。
 
 ## 产品不变量
 
-- 只使用宿主机 Node.js/npm 与 Remotion CLI，不新增 Docker；所有 `remotion` 与 `@remotion/*` 保持
+- current repository 只使用宿主机 Node.js/npm 与 Remotion CLI，不新增 Docker；目标 Desktop App 改为内置
+  exact Runtime Pack，使最终用户无需 Node/npm，但仍不引入 Docker。所有 `remotion` 与 `@remotion/*` 保持
   完全相同的精确版本。
 - 一 Story 一个 Composition；一 StoryBeat 一个 meaningId 和 Scene，完成物化的 Scene 对应一个
   ScenePackage。StoryBeat 严格区分 narrated 与只允许位于首尾的 silent Scene。
@@ -145,6 +151,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - current delivery exactly 是 `video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`。相同
   DeliveryBuildId 且完整时只读 no-op；完成终点是 `project-production-complete` 或
   `project-production-current`，两者都表示实际四文件已复验。
+- 上述同步 delivery 是 current contract。Desktop App 目标会 clean-break 出 `studio-current`，默认 `manual`
+  再由用户触发 Delivery；在对应代码、contracts、tests 与 E2E 完成前，Agent 不得提前跳过 current delivery。
 
 ## Project 与本地产物
 

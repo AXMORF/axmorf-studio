@@ -1,6 +1,8 @@
 # Architecture
 
 > 文档类型：架构 authority
+>
+> 第 1–9 节描述 current repository；第 10 节描述已确认但尚未实现的 Desktop App 边界。
 
 ## 1. 模块与依赖方向
 
@@ -79,17 +81,17 @@ TypeScript registry 完成。
 
 ## 4. Write ownership
 
-| Surface | Writer | Rule |
-| ------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------- |
-| Project create/configured authoring | fixed atomic creator | existing/partial/conflicting target fail closed；零 provider/media/attempt |
-| Optional external acquisition | current Root Agent + fixed import | callable compatible MCP 才出现；缺失即省略；只在 inspect 前写 Project-owned asset/evidence |
-| Existing Project authoring inputs | Root authoring Agent / fixed import command | preparation 前可变，受 Project ownership 限制 |
-| `.producer-work/<story>/<taskRevision>` | one assigned task executor | only declared output set; cannot edit `task.json` or inputs |
-| `.producer-artifacts` | fixed commit adapter | validator recheck + atomic promotion only |
-| materialized Scene/GlobalVisual/Cover roots | fixed materializer | all artifacts present; controlled replace/rollback |
-| generated packages/registry/Composition | fixed convergence | deterministic projection |
-| delivery staging/current | fixed synchronous builder | exact identity, media validation, controlled promotion |
-| `.producer-attempts` | fixed prepare/progress adapter | diagnostic snapshot only；不能拥有 artifact/delivery |
+| Surface                                     | Writer                                      | Rule                                                                                       |
+| ------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Project create/configured authoring         | fixed atomic creator                        | existing/partial/conflicting target fail closed；零 provider/media/attempt                 |
+| Optional external acquisition               | current Root Agent + fixed import           | callable compatible MCP 才出现；缺失即省略；只在 inspect 前写 Project-owned asset/evidence |
+| Existing Project authoring inputs           | Root authoring Agent / fixed import command | preparation 前可变，受 Project ownership 限制                                              |
+| `.producer-work/<story>/<taskRevision>`     | one assigned task executor                  | only declared output set; cannot edit `task.json` or inputs                                |
+| `.producer-artifacts`                       | fixed commit adapter                        | validator recheck + atomic promotion only                                                  |
+| materialized Scene/GlobalVisual/Cover roots | fixed materializer                          | all artifacts present; controlled replace/rollback                                         |
+| generated packages/registry/Composition     | fixed convergence                           | deterministic projection                                                                   |
+| delivery staging/current                    | fixed synchronous builder                   | exact identity, media validation, controlled promotion                                     |
+| `.producer-attempts`                        | fixed prepare/progress adapter              | diagnostic snapshot only；不能拥有 artifact/delivery                                       |
 
 private config、voice profiles、shared media、core、other Projects 与 historical data 不属于 Agent task write scope。
 
@@ -159,3 +161,35 @@ Agent execution preferences 使用独立 strict contract 与 `0600` 原子存储
 
 Scene authoring 仍必须使用 repository-local `remotion-best-practices`，但 Skill 不能扩大 TaskSpec 或
 validator boundary。
+
+## 10. Desktop App 目标边界
+
+`AXMORF Studio` 不建立第二条 production 主链。App shell、workspace-local `rsp`、外部 Agent 和现有 Engine
+按以下 ownership 连接：
+
+```text
+/Applications/AXMORF Studio.app
+  Electron shell + exact Runtime Pack + Engine
+            |
+            | authenticated local session
+            v
+<Workspace Root>/.rsp/bin/rsp <--- workspace Skill <--- user Codex/Hermes
+            |
+            v
+projects / media / task workspaces / artifacts / attempts / deliveries
+```
+
+App 安装目录视为只读产品代码，Workspace Root 只保存用户数据和受管 integration；外部 Agent 只能写本次
+TaskSpec 声明的 task workspace outputs。`.rsp/bin/rsp` 是 checksum-bound launcher，不进入系统 `PATH`，App
+未运行时返回结构化 unavailable，不另起 daemon 或回退到源码 checkout。Studio 是主界面，Settings 与 Engine
+通过 narrow typed IPC 访问 Workspace；Remotion runtime 仍不感知 Agent、Skill、IPC 或文件发现。
+
+Desktop Revision 必须只绑定当前 Project 的显式生产输入、selected bytes 和实际影响渲染/校验的 pinned runtime
+policy。其他 Project、Workspace 非依赖文件、App 日志、窗口状态、安装路径或无关工程修改不得使当前 task 失效。
+App/Engine/Skill 更新在 active Attempt 期间禁止切换；Agent 写入 declared output set 之外的文件由 fixed validator
+按 exact paths 拒绝，不能被物化。
+
+当前同步 Delivery contract 在 App clean-break 前保持不变。目标 App 以 `studio-current` 作为独立可见状态，默认
+`manual`，用户明确触发后才进入同一个 fixed DeliveryBuild；`automatic` 只是允许的配置值。详细产品与发行
+authority 分别见 [DESKTOP_APP_PRODUCT.md](DESKTOP_APP_PRODUCT.md) 和
+[DESKTOP_APP_MACOS_MAINTENANCE.md](DESKTOP_APP_MACOS_MAINTENANCE.md)。

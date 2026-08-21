@@ -130,3 +130,16 @@ no-op。
 - delete：严格 story ownership，可重复清理 missing targets，并保护其他 roots。
 
 系统不得用自动 retry、compatibility shim、fallback output、Agent 自评或手工修复 manifest 来制造幂等。
+
+## 9. Desktop App 目标中的失效隔离
+
+Desktop App 必须把 immutable App/Runtime Pack 与用户 Workspace 分成不同 ownership root。一个 production
+启动后固定 App/engine/protocol/Skill compatibility；active Attempt 期间不得热切换这些版本。Workspace 中只有
+当前 Project 的显式 authoring contracts、selected media bytes、task dependency artifacts 与实际影响当前任务的
+runtime/validator policy 能进入 Revision 或 TaskRevision。
+
+以下变化不得使当前任务 stale：其他 Project 的创作、非依赖 Workspace 文件、App 日志/cache/window state、
+安装路径、Agent host metadata、Skill 文案中不影响 executable policy 的部分，以及源码仓库中的无关工程修改。
+真正相关的 Project input 或 pinned runtime policy 变化仍 fail closed，并必须持久化 changed-input ID、旧/新
+fingerprint 和受影响 task。这个目标尚未改变 current shared-checkout 行为；实现状态只由
+[ITERATION_STATUS.md](ITERATION_STATUS.md) 定义。

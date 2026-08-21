@@ -19,6 +19,17 @@ task workspace、validator、ArtifactAttestation 和 current delivery，不来�
 `AGENTS.md` 是唯一仓库级 Agent 指令 authority。宿主入口文件不得复制规则；否则更新时会形成双 authority。
 `.agents/**/agents/openai.yaml` 是可选 OpenAI UI metadata，其他宿主可以忽略。
 
+## Desktop App v1 认证目标
+
+当前 repository guide 不把“可按通用 shell 规则运行”写成已经认证。Desktop App v1 首批正式认证 Codex 与
+Hermes：Codex 使用 workspace-local `AGENTS.md`/Skill discovery；Hermes 使用同一 `AGENTS.md` authority 和 App
+生成的启动提示词。两者必须通过同一 `.rsp/bin/rsp` protocol、TaskSpec、validator 与 completion evidence 的真实
+E2E，不能为 Hermes 复制第二套生产规则。
+
+App 不安装、升级、托管或调用 Codex/Hermes SDK。它只在 Workspace 初始化或用户点击修复时写入受管 Skill、
+thin host adapter 和 checksum manifest。该 integration 尚未实现；当前入口仍是上表中的 repository 文件与 npm
+CLI。目标行为见 [Desktop App 产品架构](../DESKTOP_APP_PRODUCT.md)。
+
 ## 最低能力
 
 开箱生产只要求当前 Agent 能：

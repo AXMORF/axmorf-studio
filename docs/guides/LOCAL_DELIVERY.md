@@ -60,3 +60,13 @@ delivery。不能把文件存在、Remotion process 启动、renderer exit 0 或
 
 Project 完整删除使用 [`project:delete`](../PRODUCTION_WORKFLOW.md#8-作品删除)，不要直接删除单个 MP4 或 broad
 清理 delivery root。
+
+## Desktop App 目标迁移
+
+当前 delivery 仍是 fixed continuation 内同步且必需的终点。Desktop App 实现时会通过显式 contract
+clean-break 把 `studio-current` 与 DeliveryBuild 分开：默认 `manual` 只物化并复验 Studio source，用户点击后才
+构建本节 exact four-file package；`automatic` 才在 `studio-current` 后继续构建。两种策略都继续复用相同
+DeliveryBuildId、staging、probe、checksum 与 EOF gates，不能新增第二条 render 主链。
+
+在该 clean-break 有代码、contract、migration 和 E2E evidence 前，不能按目标文档跳过 current synchronous
+delivery。目标 authority 见 [Desktop App 产品架构](../DESKTOP_APP_PRODUCT.md)。

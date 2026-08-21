@@ -53,6 +53,18 @@ Claude Code 通过 `CLAUDE.md`、Gemini CLI 通过 `GEMINI.md` 导入同一文�
 adapter，不参与生产 authority。完整入口与能力矩阵见
 [Agent 兼容性指南](docs/guides/AGENT_COMPATIBILITY.md)。
 
+## 面向用户的产品目标
+
+普通用户最终安装并运行 `AXMORF Studio`，不需要 clone 仓库或安装 Node/npm/Git。v1 是 macOS 13+ Electron
+App，分别发布 Apple Silicon `arm64` 与 Intel `x64` 的完整离线 unsigned DMG；用户作品位于单一 Workspace
+Root，用户自己的 Codex 或 Hermes 通过 workspace-local Skill 与 `.rsp/bin/rsp` 协作，App 不内置 Agent。
+Delivery 默认由用户手动触发，App 更新与 Workspace 数据分离。完整目标见
+[Desktop App 产品架构](docs/DESKTOP_APP_PRODUCT.md) 与
+[macOS 维护与发行](docs/DESKTOP_APP_MACOS_MAINTENANCE.md)。
+
+以上是已确认目标，不是当前 checkout 能力。下面的 npm 命令仍是贡献者和当前仓库使用方式；实际完成状态只看
+[ITERATION_STATUS.md](docs/ITERATION_STATUS.md)。
+
 ## 快速开始
 
 ```bash
@@ -138,7 +150,7 @@ npm run project:produce:prepare -- --project <story-id>
 ```
 
 4. 按已解析模式执行 `dirtyAgentTasks`：inline 时 Root 一次处理一个；subagents 时以有效并发上限运行 bounded
-pool，任务多于槽位时仅 wait-any 释放 admission slot。每个 executor 在自己的 workspace 内循环：
+   pool，任务多于槽位时仅 wait-any 释放 admission slot。每个 executor 在自己的 workspace 内循环：
 
 ```bash
 npm run project:task:check -- --task <task-revision>

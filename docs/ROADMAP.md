@@ -31,20 +31,40 @@ attempt-bound task commit/fail 与 fixed continuation；converge 是 continuatio
 - settings 与 progress 不扫描历史 `.producer-runs/`；Project delete 仍能安全清理其 ownership root；
 - zero Project bootstrap/Registry/Catalog/settings 可用。
 
-## 下一里程碑候选
+## 下一里程碑：macOS Desktop App
 
-只有在现有 focused、static、host、media 与 E2E gates 保持 Green 后才进入：
+下一阶段已确定把 current Engine 产品化为 `AXMORF Studio`，不再把 Desktop shell 作为候选项。实现必须保持现有
+focused、static、host、media 与 E2E gates Green，并遵守
+[Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
+[macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)：
+
+1. unsigned prototype：建立 Electron shell、sandboxed Studio view、Engine utility process、authenticated local
+   `rsp` session、默认 `~/Movies/AXMORF Studio/` 和 Codex/Hermes integration smoke；
+2. productization：把 App/Runtime Pack 与单一 Workspace Root 正式隔离，增加 workspace-local `.rsp/bin/rsp`、
+   offline doctor、兼容性 manifest、整体迁移/rollback，并 clean-break 出独立 `studio-current`；
+3. 双架构验收：分别完成 arm64 与真实 Intel x64 的 offline install、Studio、Agent、render、manual/automatic
+   Delivery、升级不修改 Workspace 的 native E2E；
+4. unsigned public beta：取得 Remotion runtime binary redistribution 书面确认，发布同版本双原生完整 DMG、
+   SHA-256、release manifest、SBOM、third-party notices 与 Gatekeeper 手动安装说明；
+5. stable/增强：发布 Intel 支持策略；只有真实用户规模、安装失败率或支持成本证明需要时，才购买 Apple
+   Developer Program 并评估 Developer ID、notarization 与 signed auto-update。
+
+Phase 1–3 可以在公开发行许可 Gate 关闭前内部实现和验证；未取得 Remotion 书面确认不得公开包含其 runtime 的
+DMG，缺少 Intel native evidence 不得宣称 x64 支持。
+
+## 后续候选
 
 1. 扩展 provider-neutral TTS 配置 UI，同时保持 authored chunk → one provider attempt → canonical PCM 的
    无隐式 fallback contract。
 2. 为大型 artifact sets 增加只读诊断的性能与容量治理，不改变本地 filesystem authority 或既有解释合同。
-3. 增加用户显式触发的 delivery export/publishing adapter；上传、账号、网络、密钥是新的独立授权边界。
+3. 增加用户显式触发的 publishing adapter；上传、账号、网络、密钥是新的独立授权边界。
 4. 基于 fingerprint-bound proposal 和用户逐项授权提升 Project-local capability；不得自动 promotion。
 
 ## 不以里程碑名义引入
 
 - compatibility shim、双主链、历史执行数据迁移；
 - 远程 scheduler/database/artifact store；
+- App 内置、托管或自动安装用户 Agent；
 - child chat/identity/heartbeat/token persistence；
 - 常驻 Agent、child-lifecycle watcher 或 scheduler，以及自然语言的新建/修改判断表；bounded per-attempt
   filesystem event continuation 不属于常驻服务；
