@@ -18,7 +18,8 @@ import {
   VideoBriefSchema,
   VisualStyleSpecSchema,
   ResourceCatalogSchema,
-  buildSceneTaskInputV6,
+  buildSceneTaskInputV7,
+  resolveSceneViewport,
   computeRenderSpecFingerprint,
   computeStoryFingerprint,
   computeVisualStyleFingerprint,
@@ -200,7 +201,7 @@ export const loadProjectProductionInputs = async ({
         };
       },
     );
-    const taskInput = buildSceneTaskInputV6({
+    const taskInput = buildSceneTaskInputV7({
       storyId: projectId,
       meaningId: beat.meaningId,
       storyBeat: beat,
@@ -223,7 +224,21 @@ export const loadProjectProductionInputs = async ({
         sceneRoot: `src/projects/${projectId}/scenes/${beat.meaningId}`,
         publicAssetRoot: `public/projects/${projectId}/scenes/${beat.meaningId}`,
       },
-      readabilityPolicy: requirements.readabilityPolicy,
+      sceneRequirements: requirements.additionalRequirements
+        .filter(
+          (requirement) =>
+            requirement.owner === "scene-agent" &&
+            (requirement.scope === "all-scenes" ||
+              (requirement.scope === "scene" &&
+                requirement.targetMeaningIds.includes(beat.meaningId))),
+        )
+        .map(({ requirementId, category, statement, severity }) => ({
+          requirementId,
+          category,
+          statement,
+          severity,
+        })),
+      sceneViewport: resolveSceneViewport(requirements.readabilityPolicy),
       sceneCompositionBoundaryVersion:
         requirements.sceneBoundaryOwnership.sceneCompositionBoundaryVersion,
     });

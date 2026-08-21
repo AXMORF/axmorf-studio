@@ -2,7 +2,7 @@
 
 > 文档类型：合同参考。可执行 schema 与 fingerprint 逻辑以 `src/contracts/` 为准。
 >
-> 最后复核：2026-08-18
+> 最后复核：2026-08-21
 
 ## Persisted source files
 
@@ -56,9 +56,11 @@ the selected template source and assets into the Project, then binds the templat
 plus the exact local cue list. Production verifies frozen identity, copied checksums, resources, and ScenePackage
 bindings, then writes `template-copy` results directly without generic Scene checking, creative review, or an
 Agent owner.
-Scene task/assignment/result/package v5 also carry the exact
-`VideoBrief.sourceReferences` consumed by a copied credits Renderer, so changing visible credits
-invalidates the Scene task and all downstream identities.
+SceneTask v7 carries the exact `VideoBrief.sourceReferences` consumed by a copied credits Renderer, so changing
+visible credits invalidates the Scene task and all downstream identities. It also carries only Scene-specific
+requirements and a derived safe-area-local SceneViewport; the raw Composition readability policy, full-frame
+dimensions and insets remain composition-owned. ScenePackage v6 binds `scene-composition-boundary-v2` and
+`scene-visual-runtime-v3`, so an old full-frame Renderer/package cannot cross the clean-break boundary.
 
 ## Fingerprints
 

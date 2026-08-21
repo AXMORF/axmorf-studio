@@ -1,10 +1,11 @@
 import {
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
-  buildSceneTaskInputV6,
+  buildSceneTaskInputV7,
   buildSceneVisualPlan,
   buildShotPlanSet,
   resolveSceneReadabilityPolicy,
+  resolveSceneViewport,
   Sha256DigestSchema,
 } from "../../../src/contracts";
 
@@ -12,7 +13,7 @@ export const sha = (character: string) =>
   Sha256DigestSchema.parse(`sha256:${character.repeat(64)}`);
 
 export const createSceneTaskInput = () =>
-  buildSceneTaskInputV6({
+  buildSceneTaskInputV7({
     storyId: "synthetic-proof",
     meaningId: "meaning-one",
     storyBeat: {
@@ -52,11 +53,11 @@ export const createSceneTaskInput = () =>
       sceneRoot: "src/projects/synthetic-proof/scenes/meaning-one",
       publicAssetRoot: "public/assets/library/synthetic-proof/meaning-one",
     },
-    readabilityPolicy: resolveSceneReadabilityPolicy({
-      width: 1920,
-      height: 1080,
-    }),
-    sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
+    sceneRequirements: [],
+    sceneViewport: resolveSceneViewport(
+      resolveSceneReadabilityPolicy({ width: 1920, height: 1080 }),
+    ),
+    sceneCompositionBoundaryVersion: "scene-composition-boundary-v2",
   });
 
 export const createScenePlans = (

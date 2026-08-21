@@ -22,16 +22,16 @@ import { RenderSpecSchema } from "./render";
 import { StorySpecSchema } from "./story";
 
 export const AUTHORING_REQUIREMENTS_CONTRACT_VERSION =
-  "production-requirements-current-v3" as const;
+  "production-requirements-current-v4" as const;
 export const SCENE_COMPOSITION_BOUNDARY_VERSION =
-  "scene-composition-boundary-v1" as const;
+  "scene-composition-boundary-v2" as const;
 
 export const SceneBoundaryOwnershipSchema = z
   .object({
     sceneCompositionBoundaryVersion: z.literal(
       SCENE_COMPOSITION_BOUNDARY_VERSION,
     ),
-    sceneSafeAreaOwner: z.literal("composition"),
+    sceneViewportOwner: z.literal("composition"),
     captionOwner: z.literal("caption-layer"),
   })
   .strict()
@@ -92,7 +92,7 @@ const ProductionNormalizedSummarySchema = z
 const SAFE_REQUIREMENT_TEXT_PATTERN =
   /(?:^|\s)(?:\/home\/|\/data\/|\/tmp\/|[A-Za-z]:\\)|Bearer\s|\b(?:api[-_ ]?key|token|secret|private[-_ ]?config|provider[-_ ]?endpoint)\b|https?:\/\//iu;
 
-const RequirementStatementSchema = z
+export const AuthoringRequirementStatementSchema = z
   .string()
   .trim()
   .min(1)
@@ -102,29 +102,31 @@ const RequirementStatementSchema = z
     "Production requirement statements must not contain private diagnostics or absolute paths.",
   );
 
-const RequirementIdSchema = z
+export const AuthoringRequirementIdSchema = z
   .string()
   .min(1)
   .max(96)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
+export const AuthoringRequirementCategorySchema = z.enum([
+  "content",
+  "render",
+  "narration",
+  "caption",
+  "visual",
+  "resource",
+  "sound",
+  "delivery",
+  "other",
+]);
+
 const AuthoringRequirementObject = z
   .object({
-    requirementId: RequirementIdSchema,
+    requirementId: AuthoringRequirementIdSchema,
     scope: z.enum(["production", "narrative", "all-scenes", "scene"]),
     targetMeaningIds: z.array(MeaningIdSchema).max(128).readonly(),
-    category: z.enum([
-      "content",
-      "render",
-      "narration",
-      "caption",
-      "visual",
-      "resource",
-      "sound",
-      "delivery",
-      "other",
-    ]),
-    statement: RequirementStatementSchema,
+    category: AuthoringRequirementCategorySchema,
+    statement: AuthoringRequirementStatementSchema,
     owner: z.enum(["main-agent", "scene-agent", "script"]),
     verification: z.enum(["contract", "mechanical"]),
     severity: z.enum(["error", "warning"]),
@@ -494,7 +496,7 @@ export const buildAuthoringRequirements = (
     readabilityPolicy,
     sceneBoundaryOwnership: {
       sceneCompositionBoundaryVersion: SCENE_COMPOSITION_BOUNDARY_VERSION,
-      sceneSafeAreaOwner: "composition",
+      sceneViewportOwner: "composition",
       captionOwner: "caption-layer",
     },
   });
@@ -514,8 +516,7 @@ export const resolveCurrentAuthoringRequirements = ({
   readonly source: unknown;
   readonly sourceChecksums: unknown;
 }) => {
-  const requirements =
-    AuthoringRequirementsSchema.parse(rawRequirements);
+  const requirements = AuthoringRequirementsSchema.parse(rawRequirements);
   const source = assertCurrentSource(rawSource);
   const current = buildAuthoringRequirements({
     source,
@@ -559,6 +560,4 @@ export type FingerprintedProductionArtifactBinding = z.infer<
   typeof FingerprintedProductionArtifactBindingSchema
 >;
 export type AuthoringRequirement = z.infer<typeof AuthoringRequirementSchema>;
-export type AuthoringRequirements = z.infer<
-  typeof AuthoringRequirementsSchema
->;
+export type AuthoringRequirements = z.infer<typeof AuthoringRequirementsSchema>;

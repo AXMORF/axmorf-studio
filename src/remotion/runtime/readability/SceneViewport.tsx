@@ -2,36 +2,36 @@ import type { FC, ReactNode } from "react";
 
 import {
   SceneReadabilityPolicySchema,
+  resolveSceneViewport,
   type SceneReadabilityPolicy,
 } from "../../../contracts/scene-readability";
-import { SceneReadabilityProvider } from "./SceneReadability";
+import { SceneTypographyProvider } from "./SceneReadability";
 
-export const SCENE_SAFE_AREA_COORDINATE_SPACE =
-  "composition-full-frame" as const;
-
-export const SceneSafeArea: FC<
+export const SceneViewport: FC<
   Readonly<{
     policy: SceneReadabilityPolicy;
     children: ReactNode;
   }>
 > = ({ policy: rawPolicy, children }) => {
   const policy = SceneReadabilityPolicySchema.parse(rawPolicy);
+  const viewport = resolveSceneViewport(policy);
   const safeArea = policy.sceneContentSafeAreaPx;
-  const clipPath = `inset(${safeArea.top}px ${safeArea.right}px ${safeArea.bottom}px ${safeArea.left}px)`;
   return (
-    <SceneReadabilityProvider value={policy}>
+    <SceneTypographyProvider value={viewport.minFontSizePx}>
       <div
-        data-scene-safe-area={policy.policyFingerprint}
-        data-scene-safe-area-coordinate-space={SCENE_SAFE_AREA_COORDINATE_SPACE}
+        data-scene-viewport={viewport.viewportFingerprint}
+        data-scene-viewport-coordinate-space={viewport.coordinateSpace}
         style={{
           position: "absolute",
-          inset: 0,
+          top: safeArea.top,
+          left: safeArea.left,
+          width: viewport.width,
+          height: viewport.height,
           overflow: "hidden",
-          clipPath,
         }}
       >
         {children}
       </div>
-    </SceneReadabilityProvider>
+    </SceneTypographyProvider>
   );
 };

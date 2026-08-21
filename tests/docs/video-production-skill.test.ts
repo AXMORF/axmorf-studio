@@ -175,12 +175,12 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   assert.match(scene, /task-input\.generated\.json/u);
   assert.match(scene, /fixed materialization/u);
   assert.doesNotMatch(scene, /taskInput 必须完整投影/u);
-  assert.match(scene, /readabilityPolicy/u);
-  assert.match(scene, /sceneContentSafeAreaPx/u);
-  assert.match(scene, /typographyPolicy\.minFontSizePx/u);
+  assert.match(scene, /sceneViewport/u);
+  assert.doesNotMatch(scene, /完整画布坐标系/u);
+  assert.match(scene, /sceneViewport\.minFontSizePx/u);
   assert.match(scene, /allowedResourceIds/u);
   assert.match(scene, /allowedSnapshots/u);
-  assert.match(scene, /完整画布坐标系/u);
+  assert.match(scene, /不得读取、推导或重复/u);
   assert.match(scene, /透明 Scene/u);
   assert.match(scene, /不得读取其他 workspace/u);
   assert.match(scene, /scene-template[\s\S]*不创建 child/u);

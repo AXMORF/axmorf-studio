@@ -4,8 +4,8 @@ import { createFingerprint, serializeCanonicalJson } from "./fingerprint";
 import { PositiveIntegerSchema, Sha256DigestSchema } from "./primitives";
 import { StorySpecSchema, type StorySpec } from "./story";
 
-export const SCENE_READABILITY_POLICY_ID =
-  "production-readability-v2" as const;
+export const SCENE_READABILITY_POLICY_ID = "production-readability-v2" as const;
+export const SCENE_VIEWPORT_COORDINATE_SPACE = "scene-safe-area-local" as const;
 export const CAPTION_DISPLAY_UNIT_ALGORITHM_ID =
   "caption-display-unit-v1" as const;
 
@@ -207,6 +207,60 @@ export const SceneReadabilityPolicySchema =
     })
     .readonly();
 
+const SceneViewportInputObject = z
+  .object({
+    schemaVersion: z.literal(1),
+    coordinateSpace: z.literal(SCENE_VIEWPORT_COORDINATE_SPACE),
+    width: PositiveIntegerSchema,
+    height: PositiveIntegerSchema,
+    minFontSizePx: PositiveIntegerSchema,
+  })
+  .strict();
+
+export const computeSceneViewportFingerprint = (rawViewport: unknown) => {
+  const record = { ...(rawViewport as Record<string, unknown>) };
+  delete record.viewportFingerprint;
+  const viewport = SceneViewportInputObject.parse(record);
+  return createFingerprint({
+    namespace: "scene-safe-area-local-viewport",
+    version: 1,
+    value: viewport,
+  });
+};
+
+export const SceneViewportSchema = SceneViewportInputObject.extend({
+  viewportFingerprint: Sha256DigestSchema,
+})
+  .strict()
+  .superRefine((viewport, context) => {
+    if (
+      viewport.viewportFingerprint !== computeSceneViewportFingerprint(viewport)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Scene viewport fingerprint is stale.",
+        path: ["viewportFingerprint"],
+      });
+    }
+  })
+  .readonly();
+
+export const resolveSceneViewport = (rawPolicy: unknown) => {
+  const policy = SceneReadabilityPolicySchema.parse(rawPolicy);
+  const safeArea = policy.sceneContentSafeAreaPx;
+  const input = SceneViewportInputObject.parse({
+    schemaVersion: 1,
+    coordinateSpace: SCENE_VIEWPORT_COORDINATE_SPACE,
+    width: policy.width - safeArea.left - safeArea.right,
+    height: policy.height - safeArea.top - safeArea.bottom,
+    minFontSizePx: policy.typographyPolicy.minFontSizePx,
+  });
+  return SceneViewportSchema.parse({
+    ...input,
+    viewportFingerprint: computeSceneViewportFingerprint(input),
+  });
+};
+
 export const resolveSceneReadabilityPolicy = ({
   width,
   height,
@@ -319,3 +373,4 @@ export const validateStoryCaptionReadability = ({
 export type SceneReadabilityPolicy = z.infer<
   typeof SceneReadabilityPolicySchema
 >;
+export type SceneViewport = z.infer<typeof SceneViewportSchema>;

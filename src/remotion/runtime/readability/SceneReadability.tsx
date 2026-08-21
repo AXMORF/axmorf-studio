@@ -7,34 +7,17 @@ import {
   type SVGProps,
 } from "react";
 
-export type SceneReadabilityPolicy = Readonly<{
-  policyId: "production-readability-v2";
-  policyFingerprint: string;
-  typographyPolicy: Readonly<{ minFontSizePx: number }>;
-  sceneContentSafeAreaPx: Readonly<{
-    top: number;
-    right: number;
-    bottom: number;
-    left: number;
-  }>;
-}>;
+const MinimumSceneFontSizeContext = createContext<number | null>(null);
 
-const ReadabilityPolicyContext = createContext<SceneReadabilityPolicy | null>(
-  null,
-);
-
-export const SceneReadabilityProvider = ReadabilityPolicyContext.Provider;
+export const SceneTypographyProvider = MinimumSceneFontSizeContext.Provider;
 
 const assertReadableFontSize = (
-  policy: SceneReadabilityPolicy,
+  minimumFontSizePx: number,
   fontSizePx: number,
 ) => {
-  if (
-    !Number.isInteger(fontSizePx) ||
-    fontSizePx < policy.typographyPolicy.minFontSizePx
-  ) {
+  if (!Number.isInteger(fontSizePx) || fontSizePx < minimumFontSizePx) {
     throw new Error(
-      `Scene text size ${fontSizePx}px is below the frozen ${policy.typographyPolicy.minFontSizePx}px minimum.`,
+      `Scene text size ${fontSizePx}px is below the frozen ${minimumFontSizePx}px minimum.`,
     );
   }
 };
@@ -63,11 +46,11 @@ export const SceneText: FC<SceneTextProps> = ({
   children,
   style,
 }) => {
-  const policy = useContext(ReadabilityPolicyContext);
-  if (policy === null) {
-    throw new Error("SceneText must render inside SceneSafeArea.");
+  const minimumFontSizePx = useContext(MinimumSceneFontSizeContext);
+  if (minimumFontSizePx === null) {
+    throw new Error("SceneText must render inside SceneViewport.");
   }
-  assertReadableFontSize(policy, fontSizePx);
+  assertReadableFontSize(minimumFontSizePx, fontSizePx);
   assertUnscaledTextStyle(style);
   return <div style={{ ...style, fontSize: fontSizePx }}>{children}</div>;
 };
@@ -84,11 +67,11 @@ export const SceneSvgText: FC<SceneSvgTextProps> = ({
   style,
   ...props
 }) => {
-  const policy = useContext(ReadabilityPolicyContext);
-  if (policy === null) {
-    throw new Error("SceneSvgText must render inside SceneSafeArea.");
+  const minimumFontSizePx = useContext(MinimumSceneFontSizeContext);
+  if (minimumFontSizePx === null) {
+    throw new Error("SceneSvgText must render inside SceneViewport.");
   }
-  assertReadableFontSize(policy, fontSizePx);
+  assertReadableFontSize(minimumFontSizePx, fontSizePx);
   assertUnscaledTextStyle(style);
   if ((props as { readonly transform?: unknown }).transform !== undefined) {
     throw new Error("SceneSvgText must not use a scale transform.");

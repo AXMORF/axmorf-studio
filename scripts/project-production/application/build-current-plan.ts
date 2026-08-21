@@ -443,10 +443,9 @@ export const buildAgentTasks = (
       ],
       outputs: SCENE_OUTPUTS,
       validatorPolicyVersion: templateCopy
-        ? "scene-template-validator-v1"
-        : "scene-owner-validator-v1",
+        ? "scene-template-validator-v2"
+        : "scene-owner-validator-v2",
       context: {
-        requirements: inputs.requirements,
         resourcePool: inputs.resourcePool,
         scene: {
           beat: scene.beat,

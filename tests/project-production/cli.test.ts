@@ -218,7 +218,7 @@ test("task-commit binds terminal outcomes to the explicit attempt", async (conte
     ],
     declaredReadSet: ["inputs/context.json"],
     declaredOutputSet: ["src/Renderer.tsx"],
-    validatorPolicyVersion: "scene-owner-validator-v1",
+    validatorPolicyVersion: "scene-owner-validator-v2",
   });
   const artifact = buildArtifactAttestation({
     storyId: task.storyId,

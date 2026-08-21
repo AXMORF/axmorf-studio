@@ -9,7 +9,7 @@ import {
   buildAuthoringRequirements,
   buildProducerTaskSpec,
   buildProjectSoundPlan,
-  buildSceneTaskInputV6,
+  buildSceneTaskInputV7,
   buildSceneTemplateInstance,
   buildSilentScenePreset,
   computeRenderSpecFingerprint,
@@ -17,6 +17,7 @@ import {
   createFingerprint,
   RenderSpecSchema,
   resolveSceneReadabilityPolicy,
+  resolveSceneViewport,
   serializeCanonicalJson,
   StorySpecSchema,
 } from "../../src/contracts";
@@ -207,7 +208,7 @@ export default Renderer;
     readability: { edgeInsetPx: 90 },
   });
   const catalog = buildResourceCatalog([]);
-  const taskInput = buildSceneTaskInputV6({
+  const taskInput = buildSceneTaskInputV7({
     storyId,
     meaningId,
     storyBeat: story.beats[0],
@@ -237,11 +238,14 @@ export default Renderer;
       sceneRoot: `src/projects/${storyId}/scenes/${meaningId}`,
       publicAssetRoot: `public/projects/${storyId}/scenes/${meaningId}`,
     },
-    readabilityPolicy: resolveSceneReadabilityPolicy({
-      width: render.width,
-      height: render.height,
-    }),
-    sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
+    sceneRequirements: [],
+    sceneViewport: resolveSceneViewport(
+      resolveSceneReadabilityPolicy({
+        width: render.width,
+        height: render.height,
+      }),
+    ),
+    sceneCompositionBoundaryVersion: "scene-composition-boundary-v2",
   });
   const contextBytes = canonical({
     requirements,
@@ -276,7 +280,7 @@ export default Renderer;
     ],
     declaredReadSet: ["inputs/context.json"],
     declaredOutputSet: ["src/Renderer.tsx"],
-    validatorPolicyVersion: "scene-template-validator-v1",
+    validatorPolicyVersion: "scene-template-validator-v2",
   });
 
   for (const [relativePath, bytes] of [

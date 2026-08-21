@@ -91,6 +91,8 @@ fingerprint 不匹配、未知字段或结构
   width/height，提供 9:16、16:9、4:5 与 1:1 四个常用规格；没有目标时长。
 - `readability.edgeInsetPx`：以 1080 短边为基准的 Scene 边缘留白。字幕底边 = 缩放后边缘留白 × 2；
   Scene 底边 = 字幕底边 + 字幕盒高度 + gap，再向上取整到 10px。RenderSpec 不再保存字幕安全区。
+  该值由 Composition 拥有的 readability policy 解析成 full-frame inset；Scene task 只收到派生的
+  safe-area-local SceneViewport width/height/min font size，不需要、也不允许重复计算裁剪区域。
 - `publishingCollections`：有稳定 ID、名称和适用描述的数组。Agent 必须选一个最合适的已有合集；
   PublishingIntent v2 封存所选 ID/名称及当时的合集目录 fingerprint。
 - `tts`：稳定的通用边界。`speech.rate` 在 provider 返回后、PCM 实测前处理并进入 provider-attempt

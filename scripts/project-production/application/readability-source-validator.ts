@@ -3,8 +3,8 @@ import { join } from "node:path";
 import ts from "typescript";
 
 import {
-  SceneReadabilityPolicySchema,
-  type SceneReadabilityPolicy,
+  SceneViewportSchema,
+  type SceneViewport,
 } from "../../../src/contracts";
 
 type StaticValue = number | string | ts.ObjectLiteralExpression;
@@ -316,7 +316,8 @@ const assertNoSharedBoundaryOwnership = (
   sourceFiles: readonly ts.SourceFile[],
 ) => {
   const forbidden = new Set([
-    "SceneSafeArea",
+    "SceneViewport",
+    "SceneTypographyProvider",
     "SceneContentFrame",
     "SceneBackground",
     "CaptionLayer",
@@ -327,11 +328,12 @@ const assertNoSharedBoundaryOwnership = (
     "sceneBoundaryVersion",
     "sceneContentSafeAreaPx",
     "safeAreaPx",
+    "useVideoConfig",
   ]);
   for (const sourceFile of sourceFiles) {
     const visit = (node: ts.Node) => {
       if (ts.isIdentifier(node) && forbidden.has(node.text)) {
-        throw new Error(`v3 Renderer source graph must not own ${node.text}.`);
+        throw new Error(`Scene Renderer source graph must not own ${node.text}.`);
       }
       if (
         (ts.isPropertyAssignment(node) || ts.isPropertyDeclaration(node)) &&
@@ -340,7 +342,7 @@ const assertNoSharedBoundaryOwnership = (
           node.name.getText() === "transition")
       ) {
         throw new Error(
-          "v3 Renderer source graph must not use CSS animation or transition.",
+          "Scene Renderer source graph must not use CSS animation or transition.",
         );
       }
       ts.forEachChild(node, visit);
@@ -429,14 +431,14 @@ export const validateRendererReadabilitySourceGraph = async ({
   rootDir,
   rendererPath,
   sourcePaths,
-  policy: rawPolicy,
+  sceneViewport: rawSceneViewport,
 }: {
   readonly rootDir: string;
   readonly rendererPath: string;
   readonly sourcePaths: readonly string[];
-  readonly policy: SceneReadabilityPolicy | unknown;
+  readonly sceneViewport: SceneViewport | unknown;
 }) => {
-  const policy = SceneReadabilityPolicySchema.parse(rawPolicy);
+  const sceneViewport = SceneViewportSchema.parse(rawSceneViewport);
   const sortedPaths = [...sourcePaths].sort((left, right) =>
     left.localeCompare(right),
   );
@@ -472,10 +474,10 @@ export const validateRendererReadabilitySourceGraph = async ({
         !fileName.startsWith("src/remotion/runtime/readability/"),
     ),
     values,
-    minimum: policy.typographyPolicy.minFontSizePx,
+    minimum: sceneViewport.minFontSizePx,
   });
   return {
-    policyFingerprint: policy.policyFingerprint,
-    minimumEffectiveFontSizePx: policy.typographyPolicy.minFontSizePx,
+    viewportFingerprint: sceneViewport.viewportFingerprint,
+    minimumEffectiveFontSizePx: sceneViewport.minFontSizePx,
   } as const;
 };

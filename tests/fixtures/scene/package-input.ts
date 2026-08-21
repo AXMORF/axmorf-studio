@@ -70,7 +70,7 @@ export const createScenePackageInput = () => {
         (snapshot) => snapshot.snapshotFingerprint,
       ),
       rendererSourceFingerprint: sha("a"),
-      visualRuntimeVersion: "story-visual-runtime-v2",
+      visualRuntimeVersion: "scene-visual-runtime-v3",
       sceneAudioRuntimeVersion: "scene-audio-runtime-v2",
     },
   };

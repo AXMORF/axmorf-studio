@@ -14,9 +14,16 @@ test("production Scene runtime guards current package and task schema versions",
     meaningIds: ["opening"],
     runtimeInputFingerprint: sha("a"),
   });
-  assert.match(source, /scenePackage\.schemaVersion !== 5/u);
-  assert.match(source, /task\.schemaVersion !== 6/u);
-  assert.doesNotMatch(source, /task\.schemaVersion !== 5/u);
+  assert.match(source, /scenePackage\.schemaVersion !== 6/u);
+  assert.match(source, /task\.schemaVersion !== 7/u);
+  assert.doesNotMatch(source, /task\.schemaVersion !== 6/u);
+  assert.doesNotMatch(source, /width: render\.width|height: render\.height/u);
+  assert.match(source, /readabilityPolicy: requirements\.readabilityPolicy/u);
+  assert.match(
+    source,
+    /resolveSceneViewport\(requirements\.readabilityPolicy\)/u,
+  );
+  assert.match(source, /scene\.task\.sceneViewport\.viewportFingerprint/u);
 });
 
 test("production scaffold source binds the complete runtime input identity for Studio refresh", () => {

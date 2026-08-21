@@ -2,7 +2,7 @@ import {
   ReferenceFidelityReceiptSchema,
   ResourceDescriptorSchema,
   SCENE_AUDIO_RUNTIME_VERSION,
-  STORY_VISUAL_RUNTIME_VERSION_V2,
+  SCENE_VISUAL_RUNTIME_VERSION,
   ScenePackageSchema,
   SceneRendererBindingSchema,
   SceneSoundPlanSchema,
@@ -146,22 +146,24 @@ export const validateSceneArtifactBundle = (
   } as const;
 };
 
-export const buildScenePackage = (rawInput: SceneArtifactBundleInput & {
-  readonly rendererBinding: {
-    readonly rendererId: unknown;
-    readonly rendererSourceFingerprint: unknown;
-  };
-  readonly current: {
-    readonly timingBeat: unknown;
-    readonly semanticTimingFingerprint: unknown;
-    readonly visualStyleFingerprint: unknown;
-    readonly resourceCatalogFingerprint: unknown;
-    readonly snapshotFingerprints: readonly unknown[];
-    readonly rendererSourceFingerprint: unknown;
-    readonly visualRuntimeVersion: unknown;
-    readonly sceneAudioRuntimeVersion: unknown;
-  };
-}): ScenePackage => {
+export const buildScenePackage = (
+  rawInput: SceneArtifactBundleInput & {
+    readonly rendererBinding: {
+      readonly rendererId: unknown;
+      readonly rendererSourceFingerprint: unknown;
+    };
+    readonly current: {
+      readonly timingBeat: unknown;
+      readonly semanticTimingFingerprint: unknown;
+      readonly visualStyleFingerprint: unknown;
+      readonly resourceCatalogFingerprint: unknown;
+      readonly snapshotFingerprints: readonly unknown[];
+      readonly rendererSourceFingerprint: unknown;
+      readonly visualRuntimeVersion: unknown;
+      readonly sceneAudioRuntimeVersion: unknown;
+    };
+  },
+): ScenePackage => {
   const {
     task,
     visual,
@@ -193,7 +195,7 @@ export const buildScenePackage = (rawInput: SceneArtifactBundleInput & {
       ) ||
     rawInput.current.rendererSourceFingerprint !==
       rendererBinding.rendererSourceFingerprint ||
-    rawInput.current.visualRuntimeVersion !== STORY_VISUAL_RUNTIME_VERSION_V2 ||
+    rawInput.current.visualRuntimeVersion !== SCENE_VISUAL_RUNTIME_VERSION ||
     rawInput.current.sceneAudioRuntimeVersion !== SCENE_AUDIO_RUNTIME_VERSION
   ) {
     throw new Error("Scene package current authority inputs are stale.");
@@ -228,14 +230,14 @@ export const buildScenePackage = (rawInput: SceneArtifactBundleInput & {
     soundPlanFingerprint: sound.soundPlanFingerprint,
     rendererBinding,
     selectedResources,
-    visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION_V2,
+    visualRuntimeVersion: SCENE_VISUAL_RUNTIME_VERSION,
     sceneAudioRuntimeVersion: SCENE_AUDIO_RUNTIME_VERSION,
   };
   const base = {
-    schemaVersion: 5 as const,
+    schemaVersion: 6 as const,
     ...commonBase,
-    visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION_V2,
-    readabilityPolicyFingerprint: task.readabilityPolicy.policyFingerprint,
+    visualRuntimeVersion: SCENE_VISUAL_RUNTIME_VERSION,
+    sceneViewportFingerprint: task.sceneViewport.viewportFingerprint,
     sceneCompositionBoundaryVersion: task.sceneCompositionBoundaryVersion,
     scenePresetFingerprint:
       task.storyBeat.kind === "silent-scene"

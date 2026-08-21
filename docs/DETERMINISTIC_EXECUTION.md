@@ -25,6 +25,11 @@ data 不改变 Revision。
 resource manifest 不能只绑定元数据；selected bytes/checksum drift 必须改变 identity 或 fail closed。private
 secret value 不进入 Revision，只有 private-safe provider/voice/policy identity。
 
+Composition readability policy 作为 Revision policy identity，但 Scene task 只绑定由它确定性派生的
+safe-area-local SceneViewport fingerprint（width/height/min font size/coordinate space）。raw full-frame
+policy fingerprint/width/height/insets 均不进入 Scene workspace；Composition 在 runtime 重新从当前 policy 派生
+SceneViewport，并与 task/package 绑定的 boundary version/fingerprint fail-closed 对齐。
+
 ## 3. TaskRevision 与精确失效
 
 每个 node key 包含 task kind、story/semantic identity、Revision reference、最小 input fingerprints、dependency
@@ -41,6 +46,7 @@ edges 传播。hash 不可反解，因此 baseline 不可用时明确标记，�
 - Cover input 变化：Cover 与 delivery dirty；
 - 一个 TTS chunk 变化：其他 chunk reused，seal/timing 及实际受 timing 影响的 Scene dirty；
 - shared renderer runtime 变化：相关 Scene/convergence/delivery dirty；
+- readability 改变：只有派生 SceneViewport 或 caption/runtime policy 真正变化的下游 dirty；
 - 一个 validator policy 变化：只影响该 task kind；
 - attempt、历史数据或无关 Project 变化：current identities 不变。
 

@@ -21,7 +21,7 @@ import {
   StoryVisualTrack,
   buildStoryVisualProjection,
 } from "../../src/remotion/runtime/story-visual/StoryVisualTrack";
-import { SceneSafeArea } from "../../src/remotion/runtime/readability";
+import { SceneViewport } from "../../src/remotion/runtime/readability";
 import type {
   SceneRendererMountProps,
   SceneRendererProps,
@@ -41,6 +41,15 @@ type AssertTrue<Value extends true> = Value;
 const rendererBoundaryIsExcluded: AssertFalse<
   "sceneBoundaryVersion" extends keyof SceneRendererProps ? true : false
 > = false;
+const rendererPolicyIsExcluded: AssertFalse<
+  "readabilityPolicy" extends keyof SceneRendererProps ? true : false
+> = false;
+const rendererCompositionWidthIsExcluded: AssertFalse<
+  "width" extends keyof SceneRendererProps ? true : false
+> = false;
+const rendererViewportIsIncluded: AssertTrue<
+  "viewportWidth" extends keyof SceneRendererProps ? true : false
+> = true;
 const mountBoundaryIsIncluded: AssertTrue<
   "sceneBoundaryVersion" extends keyof SceneRendererMountProps ? true : false
 > = true;
@@ -151,7 +160,7 @@ test("SceneSlot owns the exact Beat Sequence and resolves one current renderer",
     registry,
     rendererProps: {
       durationInFrames: 120,
-      sceneBoundaryVersion: "scene-composition-boundary-v1",
+      sceneBoundaryVersion: "scene-composition-boundary-v2",
       readabilityPolicy: policy,
     } as SceneRendererMountProps,
   });
@@ -175,7 +184,7 @@ test("current SceneSlot keeps boundary policy internal to the mount", () => {
     registry: { [entry.rendererId]: Renderer },
     rendererProps: {
       durationInFrames: 120,
-      sceneBoundaryVersion: "scene-composition-boundary-v1",
+      sceneBoundaryVersion: "scene-composition-boundary-v2",
       readabilityPolicy: policy,
     } as SceneRendererMountProps,
   });
@@ -185,6 +194,9 @@ test("current SceneSlot keeps boundary policy internal to the mount", () => {
 
 test("Scene renderer and mount props enforce the current ownership boundary", () => {
   assert.equal(rendererBoundaryIsExcluded, false);
+  assert.equal(rendererPolicyIsExcluded, false);
+  assert.equal(rendererCompositionWidthIsExcluded, false);
+  assert.equal(rendererViewportIsIncluded, true);
   assert.equal(mountBoundaryIsIncluded, true);
   const Renderer = () => <div />;
   const policy = resolveSceneReadabilityPolicy({
@@ -195,7 +207,7 @@ test("Scene renderer and mount props enforce the current ownership boundary", ()
     Renderer,
     {
       durationInFrames: 120,
-      sceneBoundaryVersion: "scene-composition-boundary-v1",
+      sceneBoundaryVersion: "scene-composition-boundary-v2",
       readabilityPolicy: policy,
     } as SceneRendererMountProps,
     6,
@@ -206,11 +218,13 @@ test("Scene renderer and mount props enforce the current ownership boundary", ()
       readonly children: ReactNode;
     }>(current),
   );
-  assert.equal(current.type, SceneSafeArea);
+  assert.equal(current.type, SceneViewport);
   assert.equal(current.props.policy, policy);
   assert.ok(isValidElement<SceneRendererProps>(current.props.children));
   assert.equal(current.props.children.type, Renderer);
   assert.equal(current.props.children.props.sceneFrame, 6);
+  assert.equal(current.props.children.props.viewportWidth, 900);
+  assert.equal(current.props.children.props.viewportHeight, 1470);
   assert.equal(
     (current.props.children.props as Readonly<Record<string, unknown>>)
       .readabilityPolicy,
@@ -248,7 +262,7 @@ test("StoryVisualTrack mounts ready SceneSlot only and sound-only identity chang
     rendererPropsByMeaning: {
       "meaning-one": {
         durationInFrames: 120,
-        sceneBoundaryVersion: "scene-composition-boundary-v1",
+        sceneBoundaryVersion: "scene-composition-boundary-v2",
         readabilityPolicy: resolveSceneReadabilityPolicy({
           width: 1080,
           height: 1920,

@@ -27,6 +27,8 @@ Project source
 - inspection、estimate、baseline、explanation 与 attempt 都只属于 diagnostic plane，不进入或改变任何
   production/artifact/delivery identity 或 authority；
 - template-copy Scenes 由 fixed task 处理，不派发 Agent；
+- Composition exactly once 拥有 SceneViewport 与 full-frame readability policy；Scene Renderer 只接收
+  safe-area-local `viewportWidth`/`viewportHeight`，不读取或重复应用 Composition inset；
 - Root 派发后不监督、不轮询、不参与成败处理；fixed continuation 以 one-shot atomic claim 独占
   terminal barrier，并受六小时总 deadline 约束；
 - converge 重新计算 current Revision，全部 artifact 齐全才受控物化 Project；

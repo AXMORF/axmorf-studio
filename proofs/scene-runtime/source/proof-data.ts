@@ -146,8 +146,6 @@ export const sceneRuntimeProofRendererPropsByMeaning: Readonly<
     meaningId: task.meaningId,
     durationInFrames: SCENE_RUNTIME_PROOF_IDENTITY.durationInFrames,
     fps: SCENE_RUNTIME_PROOF_IDENTITY.fps,
-    width: SCENE_RUNTIME_PROOF_IDENTITY.width,
-    height: SCENE_RUNTIME_PROOF_IDENTITY.height,
     storyBeat: task.storyBeat,
     sourceReferences: task.sourceReferences,
     timingBeat: task.timingBeat,
@@ -160,7 +158,7 @@ export const sceneRuntimeProofRendererPropsByMeaning: Readonly<
       width: SCENE_RUNTIME_PROOF_IDENTITY.width,
       height: SCENE_RUNTIME_PROOF_IDENTITY.height,
     }),
-    sceneBoundaryVersion: "scene-composition-boundary-v1",
+    sceneBoundaryVersion: "scene-composition-boundary-v2",
   },
 };
 

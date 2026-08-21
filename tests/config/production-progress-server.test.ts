@@ -80,7 +80,7 @@ const writeAttempt = async (
         subject: taskExplanation.subject,
         taskRevision,
         inputFingerprints: [{ id: "brief", fingerprint: sha("f") }],
-        validatorPolicyVersion: "scene-owner-validator-v1",
+        validatorPolicyVersion: "scene-owner-validator-v2",
         declaredReadSet: ["inputs/context.json"],
         declaredOutputSet: ["src/Renderer.tsx"],
         dependencies: [],

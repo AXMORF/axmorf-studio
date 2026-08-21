@@ -7,7 +7,7 @@ import {
   buildNotApplicableFidelityReceipt,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
-  buildSceneTaskInputV6,
+  buildSceneTaskInputV7,
   buildSceneVisualPlan,
   buildShotPlanSet,
   buildShotRecipeSelection,
@@ -119,7 +119,7 @@ test("silent intro uses the ordinary ScenePackage and Scene sound projection", (
   const { taskInputFingerprint: _oldTaskFingerprint, ...taskBase } =
     fixture.task;
   void _oldTaskFingerprint;
-  const task = buildSceneTaskInputV6({
+  const task = buildSceneTaskInputV7({
     ...taskBase,
     storyBeat: {
       kind: "silent-scene",

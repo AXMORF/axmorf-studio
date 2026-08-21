@@ -111,6 +111,13 @@ Agent 不能直接写 live Project。Root 只将 dirty `scene-owner`、`global-v
 一个 TaskRevision。Scene child 完整读取 repository-local `remotion-best-practices`，且不能用 Skill 扩大
 TaskSpec/validator/write scope。
 
+SceneTask v7 是 clean-break 的最小 Scene 输入：它只包含 Scene-only requirements 与由
+Composition readability policy 确定性派生的 `sceneViewport`（safe-area-local width/height/min font
+size/fingerprint）。raw policy、full-frame width/height 和四边 inset 不进入 child workspace。Renderer
+从本地 `(0, 0)` 布局；只有 Composition 在 runtime 安装/clip SceneViewport 并拥有 CaptionLayer。
+validator 拒绝 Renderer 自建 SceneViewport/provider、读取 raw policy/inset 或调用 `useVideoConfig()`
+恢复 full-frame authority。
+
 `scene-template` fixed producer 与 validator 共用同一 exact output contract：artifact 包含 immutable
 copied source/assets，以及从 template instance、SceneTaskInput 和 ResourceCatalog 机械派生的 canonical
 Scene plans、selected-resource envelope 与 fidelity receipt。live-only

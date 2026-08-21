@@ -1,2 +1,2 @@
 export * from "./SceneReadability";
-export * from "./SceneSafeArea";
+export * from "./SceneViewport";

@@ -10,10 +10,10 @@ import {
 } from "./primitives";
 import { SelectedResourceRefSchema } from "./resource-catalog";
 import { SceneRendererIdSchema } from "./scene-primitives";
+import { SCENE_COMPOSITION_BOUNDARY_VERSION } from "./authoring-requirements";
 
 export const STORY_VISUAL_RUNTIME_VERSION = "story-visual-runtime-v1" as const;
-export const STORY_VISUAL_RUNTIME_VERSION_V2 =
-  "story-visual-runtime-v2" as const;
+export const SCENE_VISUAL_RUNTIME_VERSION = "scene-visual-runtime-v3" as const;
 export const SCENE_AUDIO_RUNTIME_VERSION = "scene-audio-runtime-v2" as const;
 
 export const SceneRendererBindingSchema = z
@@ -36,9 +36,9 @@ const AbsoluteBeatFrameRangeSchema = z
   })
   .readonly();
 
-const ScenePackageV1InputObject = z
+const ScenePackageInputObject = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(6),
     storyId: StoryIdSchema,
     meaningId: MeaningIdSchema,
     beatFrameRange: AbsoluteBeatFrameRangeSchema,
@@ -55,29 +55,19 @@ const ScenePackageV1InputObject = z
     soundPlanFingerprint: Sha256DigestSchema,
     rendererBinding: SceneRendererBindingSchema,
     selectedResources: z.array(SelectedResourceRefSchema).max(128).readonly(),
-    visualRuntimeVersion: z.literal(STORY_VISUAL_RUNTIME_VERSION),
     sceneAudioRuntimeVersion: z.literal(SCENE_AUDIO_RUNTIME_VERSION),
     sceneVisualFingerprint: Sha256DigestSchema,
     sceneSoundFingerprint: Sha256DigestSchema,
+    sceneViewportFingerprint: Sha256DigestSchema,
+    sceneCompositionBoundaryVersion: z.literal(
+      SCENE_COMPOSITION_BOUNDARY_VERSION,
+    ),
+    scenePresetFingerprint: Sha256DigestSchema.nullable(),
+    visualRuntimeVersion: z.literal(SCENE_VISUAL_RUNTIME_VERSION),
   })
   .strict();
 
-const ScenePackageV2InputObject = ScenePackageV1InputObject.extend({
-  schemaVersion: z.literal(2),
-  readabilityPolicyFingerprint: Sha256DigestSchema,
-}).strict();
-const ScenePackageV3InputObject = ScenePackageV2InputObject.extend({
-  schemaVersion: z.literal(3),
-  sceneCompositionBoundaryVersion: z.literal("scene-composition-boundary-v1"),
-  visualRuntimeVersion: z.literal(STORY_VISUAL_RUNTIME_VERSION_V2),
-}).strict();
-
-const ScenePackageV4InputObject = ScenePackageV3InputObject.extend({
-  schemaVersion: z.literal(5),
-  scenePresetFingerprint: Sha256DigestSchema.nullable(),
-}).strict();
-
-export type ScenePackageInput = z.infer<typeof ScenePackageV4InputObject>;
+export type ScenePackageInput = z.infer<typeof ScenePackageInputObject>;
 
 export const computeSceneVisualFingerprint = (
   input: Pick<
@@ -152,14 +142,14 @@ const addScenePackageIssues = (
   }
 };
 
-const ScenePackageV4Schema = ScenePackageV4InputObject.extend({
+const CurrentScenePackageSchema = ScenePackageInputObject.extend({
   packageFingerprint: Sha256DigestSchema,
 })
   .strict()
   .superRefine(addScenePackageIssues)
   .readonly();
 
-export const ScenePackageSchema = ScenePackageV4Schema;
+export const ScenePackageSchema = CurrentScenePackageSchema;
 
 const SceneFallbackInputSchema = z
   .object({

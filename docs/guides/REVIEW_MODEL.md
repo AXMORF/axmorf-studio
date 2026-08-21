@@ -17,6 +17,10 @@ Current automatic flow 只有机械 acceptance，不把 Agent 自评或主观审
 | materialized verification | fixed reader | live Project exact bytes match attestations |
 | delivery validation | fixed media/filesystem adapters | exact four files, codec/channel/dimensions/fps/frames/checksum/EOF |
 
+Scene validator 另外机械拒绝 Renderer 重新拥有 SceneViewport、raw readability/inset 或
+`useVideoConfig()` full-frame dimensions。Scene 的可接受坐标合同是 task 中已派生的
+safe-area-local viewport，裁剪、映射与 CaptionLayer 仍由 Composition exactly once 拥有。
+
 Scene exact-reference checks可验证 lineage、license、source graph、phase pairing 与 renderer binding；不输出
 “正常速度可辨识”“审美通过”等 Agent 判断。Scene authoring 仍遵循 repository-local
 `remotion-best-practices`。

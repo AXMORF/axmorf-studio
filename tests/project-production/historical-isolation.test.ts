@@ -112,7 +112,7 @@ test("settings progress ignores malformed and failed legacy Runs", async (contex
         inputFingerprints: [
           { id: "brief", fingerprint: `sha256:${"5".repeat(64)}` },
         ],
-        validatorPolicyVersion: "scene-owner-validator-v1",
+        validatorPolicyVersion: "scene-owner-validator-v2",
         declaredReadSet: ["inputs/context.json"],
         declaredOutputSet: ["src/Renderer.tsx"],
         dependencies: [],

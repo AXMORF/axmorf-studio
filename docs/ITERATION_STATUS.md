@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-21 dispatch-only continuation implementation
+> 最后复核：2026-08-21 SceneViewport clean-break 与 zero-Project cleanup
 
 ## 当前结论
 
@@ -24,6 +24,11 @@ project:produce:continue
 shim。历史 `.producer-runs` 数据保持原位，但 current prepare/convergence/build/settings 不读取；删除器内部只
 保留 strict ownership parser。
 
+当前正式 checkout 已通过受控 `project:delete` 清理全部两个本地 Project；
+`src/projects/` 为 0 Project，`deliveries/` 为 0 current delivery，ProjectRegistry 为 0 entry，
+ResourceCatalog 仅保留 23 个 core/shared 资源。这是当前 checkout 事实，不改变 zero-Project
+支持或未来重新创建 Project 的产品合同。
+
 ## 已实现 contracts 与 domain
 
 - `ProjectCreateInput`、`ProductionInspection`、`TaskDecisionExplanation`、`ProductionRevision`、
@@ -31,6 +36,9 @@ shim。历史 `.producer-runs` 数据保持原位，但 current prepare/converge
   `DeliveryBuild/DeliveryPublish`；
 - Revision/DAG/invalidation/plan pure domain；DAG cycle/duplicate/unknown dependency/stable ordering gates；
 - renamed Project authoring contracts `authoring-requirements` 与 `scene-readability`，不导出旧 runtime authority；
+- `production-requirements-current-v4` / `scene-composition-boundary-v2` clean-break：Composition 拥有
+  raw readability policy 与 inset，SceneTask v7 只接收 Scene-only requirements 和派生的
+  safe-area-local SceneViewport，ScenePackage v6 绑定 `scene-visual-runtime-v3`；
 - attempt/time/path/process/explanation identity exclusion、safe diagnostic input IDs、typed artifact state、direct
   snapshot diff 与 DAG dependency propagation tests。
 
@@ -68,8 +76,8 @@ shim。历史 `.producer-runs` 数据保持原位，但 current prepare/converge
   TaskRevision 稳定；
 - Root-facing prepare 输出 stable reuse/dirty/blocked summary、逐任务 direct/dependency/artifact 解释和 dirty Agent
   TaskRevisions；
-- Scene child 继续受 repository-local `remotion-best-practices`、readability、安全区、resource/license 与
-  Remotion runtime gates 约束。
+- Scene child 继续受 repository-local `remotion-best-practices`、Scene-only requirements、本地
+  SceneViewport、resource/license 与 Remotion runtime gates 约束；它不感知 full-frame 安全区 inset。
 - Root dispatch 后不参与 barrier；event-driven fixed continuation 读取 immutable event log，在 child failure
   或六小时 terminal deadline 到期时直接退出，在全部成功后只调用一次 converge，fixed failure 不重试或
   唤回 Root。

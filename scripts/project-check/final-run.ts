@@ -14,7 +14,7 @@ import {
   ResourceCatalogSchema,
   ResourceDescriptorSchema,
   SCENE_AUDIO_RUNTIME_VERSION,
-  STORY_VISUAL_RUNTIME_VERSION_V2,
+  SCENE_VISUAL_RUNTIME_VERSION,
   SceneCoverageMapSchema,
   ScenePackageSchema,
   SceneSoundPlanSchema,
@@ -493,7 +493,7 @@ export const loadCurrentFinalSceneBranch = async ({
           (snapshot) => snapshot.snapshotFingerprint,
         ),
         rendererSourceFingerprint: graph.sourceGraphFingerprint,
-        visualRuntimeVersion: STORY_VISUAL_RUNTIME_VERSION_V2,
+        visualRuntimeVersion: SCENE_VISUAL_RUNTIME_VERSION,
         sceneAudioRuntimeVersion: SCENE_AUDIO_RUNTIME_VERSION,
       },
     });

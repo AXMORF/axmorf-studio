@@ -8,8 +8,13 @@ import {
   Sha256DigestSchema,
   StoryIdSchema,
 } from "./primitives";
-import { SceneReadabilityPolicySchema } from "./scene-readability";
-import { SCENE_COMPOSITION_BOUNDARY_VERSION } from "./authoring-requirements";
+import { SceneViewportSchema } from "./scene-readability";
+import {
+  AuthoringRequirementCategorySchema,
+  AuthoringRequirementIdSchema,
+  AuthoringRequirementStatementSchema,
+  SCENE_COMPOSITION_BOUNDARY_VERSION,
+} from "./authoring-requirements";
 import { ResourceIdSchema } from "./resource-catalog";
 import { StoryBeatSchema } from "./story";
 
@@ -91,9 +96,19 @@ const SceneAllowedDirectoriesSchema = z
   .strict()
   .readonly();
 
+const SceneTaskRequirementSchema = z
+  .object({
+    requirementId: AuthoringRequirementIdSchema,
+    category: AuthoringRequirementCategorySchema,
+    statement: AuthoringRequirementStatementSchema,
+    severity: z.enum(["error", "warning"]),
+  })
+  .strict()
+  .readonly();
+
 const SceneTaskInputObject = z
   .object({
-    schemaVersion: z.literal(6),
+    schemaVersion: z.literal(7),
     storyId: StoryIdSchema,
     meaningId: MeaningIdSchema,
     storyBeat: StoryBeatSchema,
@@ -107,7 +122,8 @@ const SceneTaskInputObject = z
     allowedResourceIds: z.array(ResourceIdSchema).max(128).readonly(),
     continuity: ContinuityBriefSchema,
     allowedDirectories: SceneAllowedDirectoriesSchema,
-    readabilityPolicy: SceneReadabilityPolicySchema,
+    sceneRequirements: z.array(SceneTaskRequirementSchema).max(256).readonly(),
+    sceneViewport: SceneViewportSchema,
     sceneCompositionBoundaryVersion: z.literal(
       SCENE_COMPOSITION_BOUNDARY_VERSION,
     ),
@@ -118,7 +134,7 @@ const SceneTaskInputObject = z
 type SceneTaskFingerprintInput = Omit<
   z.input<typeof SceneTaskInputObject>,
   "schemaVersion" | "taskInputFingerprint"
-> & { readonly schemaVersion?: 6 };
+> & { readonly schemaVersion?: 7 };
 
 export const computeSceneTaskInputFingerprint = (
   rawTask: SceneTaskFingerprintInput & {
@@ -129,7 +145,7 @@ export const computeSceneTaskInputFingerprint = (
   delete task.taskInputFingerprint;
   return createFingerprint({
     namespace: "scene-task-input",
-    version: 6,
+    version: 7,
     value: task,
   });
 };
@@ -191,6 +207,16 @@ const addSceneTaskIssues = (
     });
   }
   if (
+    new Set(task.sceneRequirements.map(({ requirementId }) => requirementId))
+      .size !== task.sceneRequirements.length
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "Scene task requirements must contain unique identities.",
+      path: ["sceneRequirements"],
+    });
+  }
+  if (
     task.storyBeat.kind === "silent-scene" &&
     JSON.stringify(task.allowedResourceIds) !==
       JSON.stringify(task.storyBeat.preset.resourceIds)
@@ -213,8 +239,8 @@ const addSceneTaskIssues = (
 export const SceneTaskInputSchema =
   SceneTaskInputObject.superRefine(addSceneTaskIssues).readonly();
 
-export const buildSceneTaskInputV6 = (rawInput: SceneTaskFingerprintInput) => {
-  const input = { ...rawInput, schemaVersion: 6 as const };
+export const buildSceneTaskInputV7 = (rawInput: SceneTaskFingerprintInput) => {
+  const input = { ...rawInput, schemaVersion: 7 as const };
   return SceneTaskInputSchema.parse({
     ...input,
     taskInputFingerprint: computeSceneTaskInputFingerprint(input),

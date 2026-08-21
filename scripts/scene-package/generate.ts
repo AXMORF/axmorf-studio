@@ -168,7 +168,7 @@ export const generateScenePackageFromProjectFiles = async ({
           (snapshot) => snapshot.snapshotFingerprint,
         ),
         rendererSourceFingerprint,
-        visualRuntimeVersion: "story-visual-runtime-v2",
+        visualRuntimeVersion: "scene-visual-runtime-v3",
         sceneAudioRuntimeVersion: "scene-audio-runtime-v2",
       },
     },

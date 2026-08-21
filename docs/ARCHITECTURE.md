@@ -66,7 +66,7 @@ TypeScript registry 完成。
 ## 4. Write ownership
 
 | Surface | Writer | Rule |
-| --- | --- | --- |
+| ------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------- |
 | Project create/configured authoring | fixed atomic creator | existing/partial/conflicting target fail closed；零 provider/media/attempt |
 | Existing Project authoring inputs | Root authoring Agent / fixed import command | preparation 前可变，受 Project ownership 限制 |
 | `.producer-work/<story>/<taskRevision>` | one assigned child | only declared output set; cannot edit `task.json` or inputs |
@@ -80,11 +80,13 @@ private config、voice profiles、shared media、core、other Projects 与 histo
 
 ## 5. Task isolation
 
-Scene task reads one complete StoryBeat, its SemanticTiming slice, requirements/readability, Scene brief,
-resource pool and selected resources. GlobalVisual reads Story/Timing/VisualStyle/requirements/brief/resources but
-never Scene output. Cover reads only Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the
-configured Project-local template instance. Its artifact is the exact union of immutable copied source/assets and
-the canonical derived Scene bundle; live-only fixed projections are excluded from its task identity.
+Scene task reads one complete StoryBeat, its SemanticTiming slice, Scene-only requirements, a derived
+safe-area-local SceneViewport, Scene brief, resource pool and selected resources. It does not receive the raw
+Composition readability policy, full-frame dimensions or insets. GlobalVisual reads
+Story/Timing/VisualStyle/requirements/brief/resources but never Scene output. Cover reads only
+Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the configured Project-local template
+instance. Its artifact is the exact union of immutable copied source/assets and the canonical derived Scene bundle;
+live-only fixed projections are excluded from its task identity.
 
 每个 dirty Agent task 一个 runtime-native child；repository 不创建或保存 child identity。Root 只负责派发，
 随后挂起在 bounded fixed continuation，且不轮询或推理。continuation 以 one-shot atomic claim 独占 exact
@@ -109,8 +111,9 @@ Template Scene source normalization 使 create-only、fixed-prepared 与 materia
 产生同一 output set/TaskRevision，但 unknown file、symlink 或 byte drift 仍由 validator/store 拒绝。
 
 ScenePackage、Coverage、RendererRegistry、GlobalVisualPackage 与 Composition 是 fixed projection，不由 Agent
-workspace伪造。Composition owns global background, SceneSafeArea, CaptionLayer, narration and sound assembly；
-Scene renderer 保持 transparent/full-frame coordinate system，并只用 Remotion frame API。
+workspace伪造。Composition owns global background, SceneViewport, CaptionLayer, narration and sound assembly；
+Scene renderer 保持透明并只看到 safe-area-local SceneViewport 坐标系；Composition 把本地 `(0, 0)` 映射到
+安全区左上角，Scene 不读取或推导 full-frame 尺寸与 inset，并只用 Remotion frame API。
 
 ## 8. Synchronous delivery
 

@@ -8,7 +8,7 @@ import { writeTextFileAtomic } from "../../shared/atomic-file";
 export const PRODUCTION_PROJECT_SCAFFOLD_MARKER =
   "@generated-by production-project-current-v1" as const;
 export const PRODUCTION_RENDER_SCAFFOLD_MARKER =
-  "@generated-by project-production-runtime-v1" as const;
+  "@generated-by project-production-runtime-v2" as const;
 
 const componentNameFor = (storyId: string) =>
   `${storyId
@@ -72,6 +72,7 @@ import {staticFile} from "remotion";
 import {z} from "zod";
 
 import {
+  AuthoringRequirementsSchema,
   RenderSpecSchema,
   ProjectSoundPlanSchema,
   ResourceCatalogSchema,
@@ -86,6 +87,7 @@ import {
   SemanticTimingSchema,
   ShotPlanSetSchema,
   VisualStyleSpecSchema,
+  resolveSceneViewport,
 } from "../../contracts";
 import {resolveSceneSound} from "../../remotion/runtime/scene-sound";
 import {buildSoundDesignProjection} from "../../remotion/runtime/sound-design";
@@ -99,6 +101,7 @@ import resourceCatalogJson from "./generated/resource-catalog.generated.json";
 import semanticTimingJson from "./generated/semantic-timing.generated.json";
 import renderJson from "./render.json";
 import projectSoundJson from "./sound.json";
+import requirementsJson from "./production/requirements.json";
 import {
   rendererRegistry,
   rendererRegistryFingerprint,
@@ -123,6 +126,8 @@ const semanticTiming = SemanticTimingSchema.parse(semanticTimingJson);
 const render = RenderSpecSchema.parse(renderJson);
 const resourceCatalog = ResourceCatalogSchema.parse(resourceCatalogJson);
 const projectSound = ProjectSoundPlanSchema.parse(projectSoundJson);
+const requirements = AuthoringRequirementsSchema.parse(requirementsJson);
+const sceneViewport = resolveSceneViewport(requirements.readabilityPolicy);
 const projectSoundResourceIds = new Set(projectSound.contributions.map(({resourceId}) => resourceId));
 export const productionSceneCoverage = SceneCoverageMapSchema.parse(coverageJson);
 const scenes = rawScenes.map((raw) => ({
@@ -142,7 +147,9 @@ if (
     const coverage = productionSceneCoverage.entries[index];
     return coverage?.status !== "ready" ||
       coverage.meaningId !== scene.task.meaningId ||
-      coverage.packageFingerprint !== scene.scenePackage.packageFingerprint;
+      coverage.packageFingerprint !== scene.scenePackage.packageFingerprint ||
+      scene.task.sceneViewport.viewportFingerprint !== sceneViewport.viewportFingerprint ||
+      scene.task.sceneCompositionBoundaryVersion !== requirements.sceneBoundaryOwnership.sceneCompositionBoundaryVersion;
   })
 ) throw new Error("Production Scene runtime inputs are stale.");
 
@@ -192,15 +199,13 @@ export const productionSoundDesignProjection = buildSoundDesignProjection({
 });
 export const productionRendererPropsByMeaning: Readonly<Record<string, SceneRendererMountProps>> = Object.fromEntries(
   scenes.map((scene) => {
-    if (scene.scenePackage.schemaVersion !== 5 || scene.task.schemaVersion !== 6) throw new Error("Production Scene package is not current.");
+    if (scene.scenePackage.schemaVersion !== 6 || scene.task.schemaVersion !== 7) throw new Error("Production Scene package is not current.");
     const task = scene.task;
     return [task.meaningId, {
     storyId: task.storyId,
     meaningId: task.meaningId,
     durationInFrames: task.timingBeat.endFrame - task.timingBeat.startFrame,
     fps: render.fps,
-    width: render.width,
-    height: render.height,
     storyBeat: task.storyBeat,
     sourceReferences: task.sourceReferences,
     timingBeat: task.timingBeat,
@@ -208,7 +213,7 @@ export const productionRendererPropsByMeaning: Readonly<Record<string, SceneRend
     visualPlan: scene.visual,
     shots: scene.shots,
     syncAnchors: scene.anchors,
-    readabilityPolicy: task.readabilityPolicy,
+    readabilityPolicy: requirements.readabilityPolicy,
     sceneBoundaryVersion: task.sceneCompositionBoundaryVersion,
     visualResources: scene.resources.filter(({selected}) => selected.role === "scene-visual").map(({selected, descriptor}) => {
       if (descriptor.kind !== "asset" || !descriptor.localPath.startsWith("public/")) throw new Error("Production Scene visual resource is not local.");

@@ -1,10 +1,7 @@
 import { checkProducerTaskWorkspace } from "./task-check";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  AuthoringRequirementsSchema,
-  SceneTaskInputSchema,
-} from "../../../src/contracts";
+import { SceneTaskInputSchema } from "../../../src/contracts";
 import { validateSceneArtifactBundle } from "../../scene-package/domain";
 import { parseSceneSelectedResourcesFile } from "../../scene-package/generate";
 import { validateRendererReadabilitySourceGraph } from "./readability-source-validator";
@@ -13,14 +10,20 @@ import { compileTypeScriptImportGraph } from "./typescript-compile";
 const readJson = async (path: string) =>
   JSON.parse(await readFile(path, "utf8")) as unknown;
 
-export const checkSceneTask = async (input: Parameters<typeof checkProducerTaskWorkspace>[0]) => {
+export const checkSceneTask = async (
+  input: Parameters<typeof checkProducerTaskWorkspace>[0],
+) => {
   const checked = await checkProducerTaskWorkspace(input);
-  if (checked.task.taskKind !== "scene-owner" && checked.task.taskKind !== "scene-template") throw new Error("Task is not a Scene task.");
-  const context = JSON.parse(await readFile(join(checked.workspace, "inputs/context.json"), "utf8")) as {
-    requirements?: unknown;
+  if (
+    checked.task.taskKind !== "scene-owner" &&
+    checked.task.taskKind !== "scene-template"
+  )
+    throw new Error("Task is not a Scene task.");
+  const context = JSON.parse(
+    await readFile(join(checked.workspace, "inputs/context.json"), "utf8"),
+  ) as {
     scene?: { taskInput?: unknown } | null;
   };
-  const requirements = AuthoringRequirementsSchema.parse(context.requirements);
   const taskInput = SceneTaskInputSchema.parse(context.scene?.taskInput);
   if (
     taskInput.storyId !== checked.task.storyId ||
@@ -32,7 +35,7 @@ export const checkSceneTask = async (input: Parameters<typeof checkProducerTaskW
     rootDir: checked.workspace,
     rendererPath: "src/Renderer.tsx",
     sourcePaths: ["src/Renderer.tsx"],
-    policy: requirements.readabilityPolicy,
+    sceneViewport: taskInput.sceneViewport,
   });
   const rendererSource = await readFile(
     join(checked.workspace, "src/Renderer.tsx"),

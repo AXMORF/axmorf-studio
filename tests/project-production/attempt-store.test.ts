@@ -54,7 +54,7 @@ const task = buildProducerTaskSpec({
   ],
   declaredReadSet: ["inputs/context.json"],
   declaredOutputSet: ["src/Renderer.tsx"],
-  validatorPolicyVersion: "scene-owner-validator-v1",
+  validatorPolicyVersion: "scene-owner-validator-v2",
 });
 
 if (task.semanticId === null) throw new Error("Scene fixture lost meaningId.");

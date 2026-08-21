@@ -6,7 +6,20 @@ import { createSceneTaskInput } from "../fixtures/scene/scene-input";
 
 test("SceneTaskInput binds exact StoryBeat timing shared identities allowlists continuity and directories", () => {
   const task = createSceneTaskInput();
-  assert.equal(task.schemaVersion, 6);
+  assert.equal(task.schemaVersion, 7);
+  assert.equal(task.sceneViewport.coordinateSpace, "scene-safe-area-local");
+  assert.equal(task.sceneViewport.width, 1740);
+  assert.equal(task.sceneViewport.height, 630);
+  assert.equal(
+    "readabilityPolicyFingerprint" in task.sceneViewport,
+    false,
+    "Scene viewport must not expose the Composition policy identity",
+  );
+  assert.equal(
+    "readabilityPolicy" in task,
+    false,
+    "Scene task must not expose Composition-owned insets",
+  );
   assert.equal(task.storyBeat.meaningId, task.meaningId);
   assert.equal(task.timingBeat.endFrame - task.timingBeat.startFrame, 120);
   assert.equal(
@@ -39,6 +52,10 @@ test("SceneTaskInput fails closed on meaning timing snapshot directory and finge
       ],
     },
     { ...task, storyFingerprint: `sha256:${"f".repeat(64)}` },
+    {
+      ...task,
+      sceneViewport: { ...task.sceneViewport, width: 1920 },
+    },
   ]) {
     assert.throws(() => SceneTaskInputSchema.parse(mutation));
   }

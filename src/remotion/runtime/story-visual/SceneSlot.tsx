@@ -1,7 +1,8 @@
 import type { FC } from "react";
 import { Sequence, useCurrentFrame } from "remotion";
 import { SCENE_COMPOSITION_BOUNDARY_VERSION } from "../../../contracts/authoring-requirements";
-import { SceneSafeArea } from "../readability";
+import { resolveSceneViewport } from "../../../contracts/scene-readability";
+import { SceneViewport } from "../readability";
 import type {
   SceneRendererComponent,
   SceneRendererMountProps,
@@ -38,10 +39,16 @@ export const renderSceneRendererMount = (
   if (readabilityPolicy === undefined) {
     throw new Error("Scene mount requires the frozen readability policy.");
   }
+  const viewport = resolveSceneViewport(readabilityPolicy);
   return (
-    <SceneSafeArea policy={readabilityPolicy}>
-      <Renderer {...rendererOwnedProps} sceneFrame={sceneFrame} />
-    </SceneSafeArea>
+    <SceneViewport policy={readabilityPolicy}>
+      <Renderer
+        {...rendererOwnedProps}
+        sceneFrame={sceneFrame}
+        viewportWidth={viewport.width}
+        viewportHeight={viewport.height}
+      />
+    </SceneViewport>
   );
 };
 

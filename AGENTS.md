@@ -77,7 +77,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - `ttsChunks` 是 Agent 已确定的原子朗读单元。sealed PCM 实测 samples 是绝对时间 authority；frame
   boundary 统一为 `ceilDiv(cumulativeSamples × fps, sampleRate)`。Scene/transition 不吞 spoken frames。
 - 字幕只由顶层 CaptionLayer 渲染；Scene root 透明，只输出 Beat 语义视觉与音效。Composition exactly
-  once owns SceneSafeArea、captions、narration 和 GlobalVisual background。
+  once owns safe-area-local SceneViewport、captions、narration 和 GlobalVisual background；Scene 的 `(0, 0)`
+  是 viewport 左上角，只接收 viewport width/height，不感知 full-frame inset。
 - 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。Project BGM 只覆盖 narrated
   content window，不进入 silent boundary Scenes。
 - JSON/数据文件不包含 executable expression；renderer 由 composition-local static registry 绑定。

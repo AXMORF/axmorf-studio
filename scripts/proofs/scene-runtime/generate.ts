@@ -13,7 +13,7 @@ import {
   buildSceneCoverageMap,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
-  buildSceneTaskInputV6,
+  buildSceneTaskInputV7,
   buildSceneVisualPlan,
   buildShotPlanSet,
   buildShotRecipeSelection,
@@ -21,6 +21,7 @@ import {
   computeVisualStyleFingerprint,
   createFingerprint,
   resolveSceneReadabilityPolicy,
+  resolveSceneViewport,
   type ExternalReferenceSnapshot,
   type LocalizationManifest,
   type ResourceCatalog,
@@ -293,7 +294,7 @@ export const generateSceneRuntimeProof = async ({
     visualStyle,
     resolvedStyleDescriptorFingerprint: style.descriptorFingerprint,
   });
-  const task = buildSceneTaskInputV6({
+  const task = buildSceneTaskInputV7({
     storyId: STORY_ID,
     meaningId: MEANING_ID,
     storyBeat: {
@@ -353,11 +354,14 @@ export const generateSceneRuntimeProof = async ({
       sceneRoot: `src/projects/${STORY_ID}/scenes/${MEANING_ID}`,
       publicAssetRoot: `public/assets/library/${STORY_ID}/${MEANING_ID}`,
     },
-    readabilityPolicy: resolveSceneReadabilityPolicy({
+    sceneRequirements: [],
+    sceneViewport: resolveSceneViewport(
+      resolveSceneReadabilityPolicy({
       width: SCENE_RUNTIME_PROOF_IDENTITY.width,
       height: SCENE_RUNTIME_PROOF_IDENTITY.height,
     }),
-    sceneCompositionBoundaryVersion: "scene-composition-boundary-v1",
+    ),
+    sceneCompositionBoundaryVersion: "scene-composition-boundary-v2",
   });
   const shapeSelected = {
     schemaVersion: 1 as const,
@@ -580,7 +584,7 @@ export const generateSceneRuntimeProof = async ({
       resourceCatalogFingerprint: task.resourceCatalogFingerprint,
       snapshotFingerprints: [snapshot.snapshotFingerprint],
       rendererSourceFingerprint: graph.sourceGraphFingerprint,
-      visualRuntimeVersion: "story-visual-runtime-v2",
+      visualRuntimeVersion: "scene-visual-runtime-v3",
       sceneAudioRuntimeVersion: "scene-audio-runtime-v2",
     },
   });

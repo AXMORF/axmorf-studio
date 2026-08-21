@@ -24,8 +24,8 @@ export type SceneRendererProps = Readonly<{
   sceneFrame: number;
   durationInFrames: number;
   fps: number;
-  width: number;
-  height: number;
+  viewportWidth: number;
+  viewportHeight: number;
   storyBeat: StoryBeat;
   sourceReferences: readonly VideoSourceReference[];
   timingBeat: Readonly<{ startFrame: number; endFrame: number }>;
@@ -37,7 +37,10 @@ export type SceneRendererProps = Readonly<{
 }>;
 
 export type SceneRendererMountProps = Readonly<
-  Omit<SceneRendererProps, "sceneFrame"> & {
+  Omit<
+    SceneRendererProps,
+    "sceneFrame" | "viewportWidth" | "viewportHeight"
+  > & {
     readabilityPolicy: SceneReadabilityPolicy;
     sceneBoundaryVersion: typeof SCENE_COMPOSITION_BOUNDARY_VERSION;
   }

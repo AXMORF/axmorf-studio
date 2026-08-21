@@ -16,11 +16,10 @@ attemptId: <attemptId>
 .agents/skills/remotion-best-practices/remotion-markup/REFERENCE.md，再按 router 读取当前 Renderer 所需 reference。
 AGENTS、TaskSpec、contracts 与 validators 优先。
 
-必须从 immutable context.scene.taskInput 完整消费 StoryBeat、SemanticTiming slice、sceneBrief、requirements、
-readabilityPolicy、allowedResourceIds 和 allowedSnapshots，不得手工挑字段或只消费 fingerprint。
-`task-input.generated.json` 是 converge 时由 fixed materialization 投影的 live 文件；除非 task.json 将其声明为
-output（当前 Scene owner 不声明），不得在 workspace 创建。遵守 sceneContentSafeAreaPx、
-typographyPolicy.minFontSizePx；使用完整画布坐标系，不得重复叠加安全区。
+从 immutable context.scene.taskInput 完整消费 StoryBeat、SemanticTiming slice、sceneBrief、sceneRequirements、
+sceneViewport、allowedResourceIds 和 allowedSnapshots。`task-input.generated.json` 仅由 fixed materialization 投影，当前 task
+不得创建。Renderer 的 `(0, 0)` 是 SceneViewport 左上角；只按 `sceneViewport.width`、
+`sceneViewport.height` 和 `sceneViewport.minFontSizePx` 布局，不得读取、推导或重复应用 Composition 尺寸/inset。
 透明 Scene 只含 Beat 语义视觉和可选音效；顶层独占字幕、旁白和背景。不得读取其他 workspace、历史作品、
 Artifact Store、live Project owner source、网络或 private/voice 内容；不得写 registry、delivery 或 Git。
 
