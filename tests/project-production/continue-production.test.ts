@@ -8,11 +8,13 @@ import type { ExecutionAttemptProgress } from "../../src/contracts";
 const revisionId = `revision-${"1".repeat(64)}`;
 const attemptId = "00000000-0000-4000-8000-000000000001";
 const taskRevision = (character: string) => `task-${character.repeat(64)}`;
+const fixedCreatedAt = "2026-08-21T00:00:00.000Z";
 
 const progress = ({
   outcomes = [],
   state = "waiting-for-agent",
   includeFixed = false,
+  createdAt = new Date().toISOString(),
 }: {
   readonly outcomes?: readonly {
     readonly taskRevision: string;
@@ -20,11 +22,13 @@ const progress = ({
   }[];
   readonly state?: "waiting-for-agent" | "converging" | "succeeded" | "failed";
   readonly includeFixed?: boolean;
+  readonly createdAt?: string;
 }): ExecutionAttemptProgress =>
   ({
     storyId: "story-example",
     revisionId,
     attemptId,
+    createdAt,
     state,
     taskSnapshots: [
       {
@@ -246,7 +250,7 @@ test("overlapping fixed continuations allow only one convergence claimant", asyn
   assert.equal(convergeCalls, 1);
 });
 
-test("fixed continuation terminalizes a bounded wait timeout", async () => {
+test("fixed continuation terminalizes the one-hour attempt deadline", async () => {
   let current = progress({});
   let failureCalls = 0;
   await assert.rejects(
@@ -256,15 +260,21 @@ test("fixed continuation terminalizes a bounded wait timeout", async () => {
         projectId: "story-example",
         revisionId,
         attemptId,
-        timeoutMs: 1,
+        timeoutMs: 60 * 60 * 1_000,
       },
       {
         claimContinuation,
-        openEventWait: () => ({
-          changed: Promise.reject(new ExecutionAttemptEventWaitTimeoutError()),
-          close: () => undefined,
-        }),
-        readProgress: async () => current,
+        now: () => Date.parse(fixedCreatedAt) + 60 * 60 * 1_000,
+        openEventWait: ({ timeoutMs }) => {
+          assert.equal(timeoutMs, 1);
+          return {
+            changed: Promise.reject(
+              new ExecutionAttemptEventWaitTimeoutError(),
+            ),
+            close: () => undefined,
+          };
+        },
+        readProgress: async () => ({ ...current, createdAt: fixedCreatedAt }),
         appendTerminalFailure: async (input) => {
           failureCalls += 1;
           assert.equal(
@@ -279,7 +289,77 @@ test("fixed continuation terminalizes a bounded wait timeout", async () => {
         },
       },
     ),
-    /continuation timed out/u,
+    /exceeded its fixed deadline/u,
   );
   assert.equal(failureCalls, 1);
+});
+
+test("fixed continuation subtracts elapsed attempt time from the wait budget", async () => {
+  let observedTimeout = 0;
+  const current = progress({ createdAt: fixedCreatedAt });
+  await assert.rejects(
+    continueProjectProduction(
+      {
+        rootDir: "/fixture",
+        projectId: "story-example",
+        revisionId,
+        attemptId,
+      },
+      {
+        claimContinuation,
+        now: () => Date.parse(fixedCreatedAt) + 30 * 60 * 1_000,
+        openEventWait: ({ timeoutMs }) => {
+          observedTimeout = timeoutMs;
+          return {
+            changed: Promise.reject(
+              new ExecutionAttemptEventWaitTimeoutError(),
+            ),
+            close: () => undefined,
+          };
+        },
+        readProgress: async () => current,
+        appendTerminalFailure: async () => current,
+      },
+    ),
+    /exceeded its fixed deadline/u,
+  );
+  assert.equal(observedTimeout, 30 * 60 * 1_000);
+});
+
+test("fixed continuation refuses to start convergence after the task deadline", async () => {
+  let failureCalls = 0;
+  let convergeCalls = 0;
+  const current = progress({
+    createdAt: fixedCreatedAt,
+    outcomes: [
+      { taskRevision: taskRevision("2"), outcome: "artifact-current" },
+    ],
+  });
+  await assert.rejects(
+    continueProjectProduction(
+      {
+        rootDir: "/fixture",
+        projectId: "story-example",
+        revisionId,
+        attemptId,
+      },
+      {
+        claimContinuation,
+        now: () => Date.parse(fixedCreatedAt) + 60 * 60 * 1_000,
+        openEventWait: resolvedWait,
+        readProgress: async () => current,
+        appendTerminalFailure: async () => {
+          failureCalls += 1;
+          return current;
+        },
+        converge: async () => {
+          convergeCalls += 1;
+          throw new Error("unreachable");
+        },
+      },
+    ),
+    /exceeded its fixed deadline/u,
+  );
+  assert.equal(failureCalls, 1);
+  assert.equal(convergeCalls, 0);
 });

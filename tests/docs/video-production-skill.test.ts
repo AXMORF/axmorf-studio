@@ -14,17 +14,21 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 
 const PolicySchema = z
   .object({
-    schemaVersion: z.literal(14),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v16"),
+    schemaVersion: z.literal(15),
+    policyVersion: z.literal("remotion-story-producer-video-policy-v17"),
     rootEndpoints: z.tuple([
       z.literal("project-production-complete"),
       z.literal("project-production-current"),
     ]),
     privateConfigPath: z.literal("private/producer.config.json"),
+    executionPreferencesPath: z.literal(
+      "private/execution-preferences.json",
+    ),
     requiredEntrypointHeadings: z.array(z.string().min(1)).min(8),
     requiredReferences: z.array(z.string().min(1)).min(6),
     workflowCommands: z.tuple([
       z.literal("project:create"),
+      z.literal("project:execution:resolve"),
       z.literal("project:produce:inspect"),
       z.literal("project:produce:prepare"),
       z.literal("project:task:check"),
@@ -32,6 +36,28 @@ const PolicySchema = z
       z.literal("project:task:fail"),
       z.literal("project:produce:continue"),
     ]),
+    executionPolicy: z
+      .object({
+        resolutionPhase: z.literal("before-production-inspect"),
+        precedence: z.tuple([
+          z.literal("user-prompt"),
+          z.literal("settings-page"),
+          z.literal("builtin-default"),
+        ]),
+        promptOverridePersistence: z.literal(
+          "current-production-only-unless-explicit-save",
+        ),
+        defaultMode: z.literal("subagents"),
+        defaultMaxConcurrency: z.literal(4),
+        repositoryMaxConcurrency: z.literal(4),
+        unknownRuntimeMaxConcurrency: z.literal(1),
+        inlinePolicy: z.literal("root-sequential-one-workspace-at-a-time"),
+        subagentPolicy: z.literal("bounded-pool-wait-any-admission"),
+        exactCapacityFailurePolicy: z.literal("block-before-prepare"),
+        automaticModeFallback: z.literal(false),
+        identityVisibility: z.literal("none"),
+      })
+      .strict(),
     optionalCapabilitySlots: z
       .object({
         externalAssetAcquisition: z
@@ -54,7 +80,9 @@ const PolicySchema = z
         productionAuthority: z.literal(
           "production-revision-task-dag-artifact-attestation",
         ),
-        rootAgentRole: z.literal("dispatch-only-parent"),
+        rootAgentRole: z.literal(
+          "resolved-inline-sequential-or-bounded-dispatch",
+        ),
         executionAttemptRole: z.literal("diagnostics-only"),
         sceneAuthoringSkill: z.literal(
           "repository-local-remotion-best-practices",
@@ -67,7 +95,7 @@ const PolicySchema = z
         ),
         rootWaitsForAllChildTerminalStates: z.literal(false),
         rootPostDispatchParticipation: z.literal(
-          "none-while-runtime-suspended",
+          "none-after-fixed-continuation-starts",
         ),
         fixedContinuationMonitorsTaskEvents: z.literal(true),
         convergePolicy: z.literal(
@@ -92,7 +120,7 @@ const PolicySchema = z
         entrypointMaxWords: z.number().int().positive(),
         directWorkflowMaxWords: z.number().int().positive(),
         normalProductionMaxWords: z.number().int().positive(),
-        normalProductionMaxCharacters: z.number().int().positive().max(12_000),
+        normalProductionMaxCharacters: z.number().int().positive().max(16_000),
         sceneOrchestrationMaxWords: z.number().int().positive(),
         globalVisualOrchestrationMaxWords: z.number().int().positive(),
         coverOrchestrationMaxWords: z.number().int().positive(),
@@ -149,6 +177,10 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   assert.match(workflow, /dirtyAgentTasks/u);
   assert.match(workflow, /read-only/iu);
   assert.ok(
+    workflow.indexOf("project:execution:resolve") <
+      workflow.indexOf("project:produce:inspect"),
+  );
+  assert.ok(
     workflow.indexOf("project:produce:inspect") <
       workflow.indexOf("project:produce:prepare"),
   );
@@ -196,7 +228,18 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
     policy.invariants.fixedContinuationEventSource,
     "immutable-attempt-event-log",
   );
-  assert.equal(policy.invariants.fixedContinuationTimeoutMs, 21_600_000);
+  assert.equal(policy.invariants.fixedContinuationTimeoutMs, 3_600_000);
+  assert.equal(
+    policy.invariants.fixedContinuationDeadlineOrigin,
+    "execution-attempt-created-at",
+  );
+  assert.deepEqual(policy.executionPolicy.precedence, [
+    "user-prompt",
+    "settings-page",
+    "builtin-default",
+  ]);
+  assert.match(workflow, /bounded pool[\s\S]*wait-any/iu);
+  assert.match(workflow, /automatic inline fallback/iu);
   assert.match(workflow, /user silence[\s\S]*never become `null`/iu);
   assert.match(
     producerConfig,
@@ -217,7 +260,7 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   assert.match(scene, /不得读取、推导或重复/u);
   assert.match(scene, /透明 Scene/u);
   assert.match(scene, /不得读取其他 workspace/u);
-  assert.match(scene, /scene-template[\s\S]*不创建 child/u);
+  assert.match(scene, /scene-template[\s\S]*不由 Agent executor/u);
 
   assert.match(globalVisual, /不得读取 Scene 输出/u);
   assert.match(globalVisual, /simplest full-frame background board/u);

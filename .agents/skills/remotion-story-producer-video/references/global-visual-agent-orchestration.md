@@ -1,6 +1,7 @@
-# GlobalVisual task child Agent
+# GlobalVisual task executor
 
-Create one runtime-native child for the dirty `global-visual-owner` TaskRevision.
+Assign this prompt to the resolved Root or runtime-native child executor for the dirty `global-visual-owner`
+TaskRevision.
 
 ```text
 在共享 checkout <repo> 中完成 GlobalVisual task；保护其他修改且不使用 worktree。

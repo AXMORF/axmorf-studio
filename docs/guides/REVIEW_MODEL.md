@@ -12,7 +12,7 @@ Current automatic flow 只有机械 acceptance，不把 Agent 自评或主观审
 | `project:task:commit` | fixed Artifact Store adapter | check rerun + exact bytes + ArtifactAttestation atomic promotion |
 | `project:task:fail` | fixed attempt adapter | exact attempt/task 的 immutable failed terminal event |
 | artifact inspection | fixed reader | schema/dependency/policy/path/type/size/checksum current |
-| fixed continuation | fixed application | atomic single-consumer claim；immutable event log；failure/六小时 timeout 不 converge；all-success 内部 converge exactly once；Root 不参与 barrier |
+| fixed continuation | fixed application | atomic single-consumer claim；immutable event log；failure/attempt 创建起一小时 timeout 不 converge；all-success 内部 converge exactly once；Root 不参与 barrier |
 | convergence | fixed application | all artifacts present, current revision, rollback-safe materialization |
 | materialized verification | fixed reader | live Project exact bytes match attestations |
 | delivery validation | fixed media/filesystem adapters | exact four files, codec/channel/dimensions/fps/frames/checksum/EOF |

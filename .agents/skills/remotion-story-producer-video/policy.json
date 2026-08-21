@@ -1,17 +1,19 @@
 {
-  "schemaVersion": 14,
-  "policyVersion": "remotion-story-producer-video-policy-v16",
+  "schemaVersion": 15,
+  "policyVersion": "remotion-story-producer-video-policy-v17",
   "rootEndpoints": [
     "project-production-complete",
     "project-production-current"
   ],
   "privateConfigPath": "private/producer.config.json",
+  "executionPreferencesPath": "private/execution-preferences.json",
   "requiredEntrypointHeadings": [
     "Create the Project when needed",
     "Load optional Agent capabilities",
+    "Resolve Agent execution",
     "Inspect before cost",
     "Prepare content-addressed tasks",
-    "Delegate dirty Agent tasks",
+    "Execute dirty Agent tasks",
     "Hand off to fixed continuation",
     "Preserve production invariants",
     "Classify failure by task owner",
@@ -27,6 +29,7 @@
   ],
   "workflowCommands": [
     "project:create",
+    "project:execution:resolve",
     "project:produce:inspect",
     "project:produce:prepare",
     "project:task:check",
@@ -34,6 +37,24 @@
     "project:task:fail",
     "project:produce:continue"
   ],
+  "executionPolicy": {
+    "resolutionPhase": "before-production-inspect",
+    "precedence": [
+      "user-prompt",
+      "settings-page",
+      "builtin-default"
+    ],
+    "promptOverridePersistence": "current-production-only-unless-explicit-save",
+    "defaultMode": "subagents",
+    "defaultMaxConcurrency": 4,
+    "repositoryMaxConcurrency": 4,
+    "unknownRuntimeMaxConcurrency": 1,
+    "inlinePolicy": "root-sequential-one-workspace-at-a-time",
+    "subagentPolicy": "bounded-pool-wait-any-admission",
+    "exactCapacityFailurePolicy": "block-before-prepare",
+    "automaticModeFallback": false,
+    "identityVisibility": "none"
+  },
   "optionalCapabilitySlots": {
     "externalAssetAcquisition": {
       "slotVersion": "external-asset-acquisition-agent-slot-v1",
@@ -48,26 +69,27 @@
   "invariants": {
     "productionAuthority": "production-revision-task-dag-artifact-attestation",
     "executionAttemptRole": "diagnostics-only",
-    "sceneAuthoringOwner": "one-runtime-native-child-per-dirty-scene-task",
-    "rootAgentRole": "dispatch-only-parent",
+    "sceneAuthoringOwner": "resolved-root-or-one-runtime-native-child",
+    "rootAgentRole": "resolved-inline-sequential-or-bounded-dispatch",
     "sceneAuthoringSkill": "repository-local-remotion-best-practices",
-    "globalVisualAuthoringOwner": "one-runtime-native-child-per-dirty-global-visual-task",
-    "coverAuthoringOwner": "one-runtime-native-child-per-dirty-cover-task",
-    "delegationSurface": "runtime-native-subagents",
+    "globalVisualAuthoringOwner": "resolved-root-or-one-runtime-native-child",
+    "coverAuthoringOwner": "resolved-root-or-one-runtime-native-child",
+    "delegationSurface": "optional-runtime-native-subagents",
     "sharedCheckout": true,
-    "capacityPolicy": "batched-one-task-per-child",
-    "unavailableDelegationPolicy": "fail-closed-without-inline-task-authoring",
-    "rootAgentAuthorsTaskOutputs": false,
+    "capacityPolicy": "resolved-bounded-pool-max-four",
+    "unavailableDelegationPolicy": "known-zero-blocks-unknown-defaults-one",
+    "rootAgentAuthorsTaskOutputs": "only-when-resolved-inline",
     "agentWriteBoundary": "task-workspace-only-after-prepare",
     "artifactAuthority": "validated-artifact-attestation",
     "artifactReusePolicy": "reuse-valid-content-addressed-artifacts",
     "artifactPromotionPolicy": "validator-only-atomic-promotion",
     "rootWaitsForAllChildTerminalStates": false,
-    "rootPostDispatchParticipation": "none-while-runtime-suspended",
+    "rootPostDispatchParticipation": "none-after-fixed-continuation-starts",
     "fixedContinuationMonitorsTaskEvents": true,
     "fixedContinuationClaimPolicy": "one-shot-atomic-exact-attempt",
     "fixedContinuationEventSource": "immutable-attempt-event-log",
-    "fixedContinuationTimeoutMs": 21600000,
+    "fixedContinuationTimeoutMs": 3600000,
+    "fixedContinuationDeadlineOrigin": "execution-attempt-created-at",
     "convergePolicy": "fixed-exactly-once-after-all-agent-artifacts",
     "agentFailurePolicy": "terminal-exit-without-converge",
     "fixedFailurePolicy": "terminal-exit-without-root-reentry-or-retry",
@@ -85,7 +107,7 @@
   "forbiddenActions": [
     "user-task-thread-api",
     "task-worktree",
-    "inline-dirty-task-fallback",
+    "automatic-inline-dirty-task-fallback",
     "root-task-artifact-fabrication",
     "repeat-converge-in-one-attempt",
     "root-child-status-polling",
@@ -100,10 +122,10 @@
     "agent-write-outside-task-workspace"
   ],
   "contextBudgets": {
-    "entrypointMaxWords": 520,
-    "directWorkflowMaxWords": 560,
-    "normalProductionMaxWords": 1700,
-    "normalProductionMaxCharacters": 12000,
+    "entrypointMaxWords": 580,
+    "directWorkflowMaxWords": 680,
+    "normalProductionMaxWords": 1850,
+    "normalProductionMaxCharacters": 15500,
     "sceneOrchestrationMaxWords": 330,
     "globalVisualOrchestrationMaxWords": 270,
     "coverOrchestrationMaxWords": 240

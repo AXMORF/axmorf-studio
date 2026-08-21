@@ -88,8 +88,10 @@ entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据�
   TaskRevisions；
 - Scene child 继续受 repository-local `remotion-best-practices`、Scene-only requirements、本地
   SceneViewport、resource/license 与 Remotion runtime gates 约束；它不感知 full-frame 安全区 inset。
-- Root dispatch 后不参与 barrier；event-driven fixed continuation 读取 immutable event log，在 child failure
-  或六小时 terminal deadline 到期时直接退出，在全部成功后只调用一次 converge，fixed failure 不重试或
+- execution resolver 已按用户提示词明确字段优先于独立 settings 默认，支持 Root inline 串行或最多四个
+  subagents 的 bounded pool；策略不进入 Revision/Task/artifact/delivery identity。
+- continuation 启动后 Root 不参与 barrier；event-driven fixed continuation 读取 immutable event log，在 task
+  failure 或 attempt 创建起一小时 terminal deadline 到期时直接退出，在全部成功后只调用一次 converge，fixed failure 不重试或
   唤回 Root。
 
 ## 已实现 convergence 与 delivery
@@ -106,6 +108,8 @@ entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据�
 
 - settings schema v5 展示 sourceState、current Revision、estimated/actual cost、逐任务 structured explanation、
   latest attempt diagnostic 和 four-file delivery；不输出 raw fingerprints/private authoring/provider data；
+- 独立 `private/execution-preferences.json` 以 strict contract/`0600` 原子保存 Root inline 或 subagents 最大并发
+  默认值，不改变 ProducerConfig fingerprint；当前用户提示词 override 不自动持久化；
 - source Project enumeration 不读取 historical data，也不把 output-only roots 伪装成 Project；
 - deletion scope 增加 `.producer-work`、`.producer-artifacts`、`.producer-attempts`，继续保护 private、voice、
   shared/core 与 other Projects；

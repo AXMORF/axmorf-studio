@@ -95,25 +95,32 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   prompt、estimate 或 DAG node。已安装/已配置、shell 可发现、其他 Agent 可调用都不算当前可用。
   MCP/receipt/candidate path 不进入 child、Revision、Artifact Store、delivery 或 runtime；只有 import 后的
   Project-owned manifest identity 与 bytes fingerprint 能成为 production input。
+- `npm run project:execution:resolve` 在 inspect 前解析一次 Agent 执行策略：用户提示词中的明确字段优先于
+  `private/execution-preferences.json`，未明确字段继续继承配置，再继承内置默认。override 只作用于当前
+  production，除非用户明确要求保存；解析结果不进入 Revision/Task/artifact/delivery identity。`inline` 由
+  Root 一次只执行一个 dirty workspace；`subagents` 使用不超过四个且受 runtime capacity 限制的 bounded pool。
+  runtime capacity 未知时按 1、明确为 0 时阻塞；用户要求 exact capacity 而无法满足时也必须在 prepare 前
+  阻塞，不自动换模式。
 - `npm run project:produce:inspect -- --project <storyId>` 是严格只读、零 provider call 的诊断入口；Root
   必须先报告 source readiness、estimated cost、artifact reuse 与结构化失效解释，再运行有成本 preparation。
 - `npm run project:produce:prepare -- --project <storyId>` 是唯一允许调用 provider、准备 fixed artifacts、
   计算 ProductionRevision/content-addressed Task DAG、创建 dirty workspace 与 ExecutionAttempt 的生产入口。
 - RevisionId、TaskRevision、ArtifactAttestation identity 不包含 attemptId、历史执行 ID、时间戳、PID、
   absolute path 或 Agent identity。ExecutionAttempt 只保存诊断，不拥有 artifact 或 delivery。
-- prepare 只为未命中有效 artifact 的 Agent 任务创建 `.producer-work/<storyId>/<taskRevision>/`。Root 只派发
-  dirty `scene-owner`、`global-visual-owner`、`cover-owner`；相同 Revision 的 valid artifacts 必须复用。
-- Agent child 只写自己的 task workspace，读取 immutable `task.json` 与 `inputs/context.json`，循环运行
+- prepare 只为未命中有效 artifact 的 Agent 任务创建 `.producer-work/<storyId>/<taskRevision>/`。Root 按已解析
+  模式串行执行或受限派发 dirty `scene-owner`、`global-visual-owner`、`cover-owner`；valid artifacts 必须复用。
+- 每个 Root/child task executor 只写自己的 task workspace，读取 immutable `task.json` 与
+  `inputs/context.json`，循环运行
   `project:task:check`，最后调用 prepare 返回的 attempt-bound `project:task:commit` 或 `project:task:fail`。
   commit 必须重跑 validator；只有 fixed validator 能把 workspace 原子提升为 ArtifactAttestation。聊天、
   child status 与 Agent 自评都不是 authority。
 - Artifact hit 每次重新验证 contract、task identity、dependencies、validator version、exact sorted file
   set、path containment、regular-file/no-symlink、size 与 checksum；目录存在不代表命中。
-- Root 在派发全部 dirty tasks 后的最后一个生产动作，是启动 prepare 返回的 attempt-bound
-  `project:produce:continue`。此后 Root 挂起，不轮询 child、不读取终态、不推理或修复。fixed continuation
+- Root 在串行执行完或把全部 dirty tasks 纳入 bounded pool 后的最后一个生产动作，是启动 prepare 返回的
+  attempt-bound `project:produce:continue`。此后 Root 挂起，不轮询 child、不读取终态、不推理或修复。fixed continuation
   必须先获得 one-shot atomic attempt claim，再等待 immutable task-terminal event log；重复 continuation
-  fail closed。任一失败直接终止且不 converge；全部成功才内部恰好调用一次 converge；六小时总 deadline
-  内缺少终态时写 timeout failure 并退出；converge 失败也直接终止，不重新进入 Root。
+  fail closed。任一失败直接终止且不 converge；全部成功才内部恰好调用一次 converge；从 ExecutionAttempt
+  创建时刻起一小时总 deadline 内缺少终态时写 timeout failure 并退出；converge 失败也直接终止。
 - converge 使用只读 current replan，拒绝 stale revision；不调用 provider、不创建 workspace/attempt；全部
   required artifacts 齐全前不得修改 live
   owner roots。物化使用受控 staging/replace/rollback，随后刷新 ScenePackage、Coverage、RendererRegistry、
@@ -145,7 +152,7 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 
 ## Scene 制作来源与任务所有权
 
-每个 Scene child 必须完整读取 repository-local
+每个 Scene task executor 必须完整读取 repository-local
 `.agents/skills/remotion-best-practices/SKILL.md`，再按 Renderer 需要读取路由 reference。`AGENTS.md`、
 TaskSpec、contracts 与 validators 拥有更高 authority，不能扩大 workspace 写入范围。
 
@@ -158,12 +165,13 @@ contact sheet 或布局。第三方 source/media 分别校验 license/attributio
 - exact-reference Scene 的 lineage/license/phase/checksum 由机械 validator 检查，不使用主观自评 gate。
 - 新实现默认留在 Project-local artifact。只有 fingerprint-bound promotion proposal 且用户明确授权
   scope/API/files/target 后，才移入 `src/remotion/capabilities/`。
-- Root 不内联替代 dirty task、不读其他 child workspace、不代 commit、不持久化 child identity/chat/
-  heartbeat/token。没有可共享 checkout 的 runtime-native child 能力时 fail closed。
+- Root 只有在解析为 `inline` 时才能按 task prompt 串行创作；不得读其他 executor workspace、跨 task 代
+  commit 或持久化 child identity/chat/heartbeat/token。subagents 模式的 spawn failure 记录 exact
+  `hostFailureCommand`，不得自动回退 inline。
 
 ## 故障语义
 
-- Agent-owned workspace 校验失败时，仅原 child 修正 owning paths 并重跑同一 validator；不得降低合同。
+- Agent-owned workspace 校验失败时，仅原 task executor 修正 owning paths 并重跑同一 validator；不得降低合同。
 - fixed workflow 在 valid inputs 下失败是系统缺陷：当前 production lifecycle 立即终止。只有用户另行启动的
   engineering task 才能保存脱敏 incident，Red → minimal shared Green → focused/full verification；之后再从
   current inputs 新建 ExecutionAttempt。不得在失败 attempt 内修复或重试。

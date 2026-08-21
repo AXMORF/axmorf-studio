@@ -1,6 +1,7 @@
-# Scene task child Agent
+# Scene task executor
 
-Create one runtime-native child for one dirty `scene-owner` TaskRevision. Replace every placeholder.
+Assign this prompt to the resolved Root or runtime-native child executor for one dirty `scene-owner` TaskRevision.
+Replace every placeholder.
 
 ```text
 共享 checkout: <repo>；你不是唯一 Agent，保护其他修改且不使用 worktree。
@@ -33,4 +34,4 @@ commit 会重新 check；成功后不得继续修改。无法修正的 task fail
 failure 必须改用 `--kind host`。记录终态后立即结束，不等待或通知 Root，不重试新 attempt。
 ```
 
-`scene-template` 由 fixed task 产生 ArtifactAttestation，不创建 child。
+`scene-template` 由 fixed task 产生 ArtifactAttestation，不由 Agent executor 创作。

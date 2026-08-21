@@ -121,9 +121,11 @@ prepare 只为 action 为 `dispatch-agent` 的 non-reused task 建立：
 └── <declared outputs>
 ```
 
-Agent 不能直接写 live Project。Root 只将 dirty `scene-owner`、`global-visual-owner`、`cover-owner` 各自交给
-一个 runtime-native child；`scene-template` 和其他 fixed tasks 不派发。容量受限可分批，但一 child 只拥有
-一个 TaskRevision。Scene child 完整读取 repository-local `remotion-best-practices`，且不能用 Skill 扩大
+Agent 不能直接写 live Project。inspect 前用 `project:execution:resolve` 按用户提示词明确字段、配置页、内置
+默认的优先级冻结本次执行策略；该诊断策略不进入 identity。inline 时 Root 一次执行一个 workspace；
+subagents 时使用不超过四个且受 runtime capacity 限制的 bounded pool。`scene-template` 和其他 fixed tasks
+不由 Agent 创作。每个 TaskRevision 只归属一个 executor。Scene executor 完整读取 repository-local
+`remotion-best-practices`，且不能用 Skill 扩大
 TaskSpec/validator/write scope。
 
 SceneTask v7 是 clean-break 的最小 Scene 输入：它只包含 Scene-only requirements 与由
@@ -138,7 +140,7 @@ copied source/assets，以及从 template instance、SceneTaskInput 和 Resource
 Scene plans、selected-resource envelope 与 fidelity receipt。live-only
 `task-input.generated.json`/`generated/scene-package.generated.json` 不进入该 artifact identity。
 
-child 在 workspace 内循环：
+task executor 在 workspace 内循环：
 
 ```bash
 npm run project:task:check -- --task <taskRevision>
@@ -152,7 +154,7 @@ attempt 的机械 task-terminal event；child chat 不参与 barrier，也不进
 
 ## 5. Fixed continuation、convergence 与物化
 
-Root 派发完全部 dirty tasks 后只启动 prepare 返回的 exact command，然后挂起：
+Root inline 执行完或完成 bounded admission 后只启动 prepare 返回的 exact command，然后挂起：
 
 ```bash
 npm run project:produce:continue -- --project <storyId> --revision <revisionId> --attempt <attemptId>
@@ -161,7 +163,7 @@ npm run project:produce:continue -- --project <storyId> --revision <revisionId> 
 Root 此后不轮询、读取 child 终态、推理、修复或重试。bounded fixed continuation 首先对 exact attempt
 建立 one-shot atomic claim，然后订阅 immutable event log（不是可失败的 progress projection）。任一 Agent
 terminal failure 立即写失败终态并非零退出，不调用 converge；全部 Agent artifacts committed/current 后内部
-只调用一次 converge。重复 continuation fail closed；六小时总 deadline 内仍缺 terminal 时写
+只调用一次 converge。重复 continuation fail closed；从 ExecutionAttempt 创建起一小时总 deadline 内仍缺 terminal 时写
 `producer-continuation-timeout` 后退出。converge 失败原样退出且不重新进入 Root。
 
 converge 只调用 read-only current-plan builder 重算 current inputs；不调用 provider、不创建 workspace 或
@@ -198,6 +200,8 @@ settings API 从 `src/projects/` 枚举 source Projects，展示 sourceState、i
 逐任务 direct/dependency/artifact 解释、latest attempt actual cost 和 four-file delivery。UI/API 复用同一
 structured explanation，不从错误文案或 task kind 猜 DAG。它不扫描历史执行数据，也不把 `out/` 或
 delivery-only 目录伪装成 Project；raw fingerprint、authoring text、private path/provider body 不对外投影。
+Agent execution defaults 独立保存到 `private/execution-preferences.json`，不改变 ProducerConfig fingerprint；
+当前提示词 override 只进入本次 resolver 输入，除非用户明确要求保存。
 
 若三个 Agent tasks 中两个已 commit、第三个失败，当前 lifecycle 立即结束。用户另行启动 inspect/prepare 时，
 前两个必须是 reuse，只派发第三个。

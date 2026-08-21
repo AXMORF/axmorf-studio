@@ -42,13 +42,14 @@ test("project production CLI exposes the fixed continuation and task terminal su
   );
 });
 
-test("package scripts have one honest create/inspect/prepare production surface and no compatibility shims", async () => {
+test("package scripts have one honest resolve/inspect/prepare production surface and no compatibility shims", async () => {
   const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
     scripts: Record<string, string>;
   };
   assert.deepEqual(
     {
       create: packageJson.scripts["project:create"],
+      resolve: packageJson.scripts["project:execution:resolve"],
       inspect: packageJson.scripts["project:produce:inspect"],
       prepare: packageJson.scripts["project:produce:prepare"],
       check: packageJson.scripts["project:task:check"],
@@ -58,6 +59,7 @@ test("package scripts have one honest create/inspect/prepare production surface 
     },
     {
       create: "node --import tsx scripts/projects/create.ts",
+      resolve: "node --import tsx scripts/project-production/cli.ts execution-resolve",
       inspect: "node --import tsx scripts/project-production/cli.ts inspect",
       prepare: "node --import tsx scripts/project-production/cli.ts prepare",
       check: "node --import tsx scripts/project-production/cli.ts task-check",
@@ -89,6 +91,69 @@ test("package scripts have one honest create/inspect/prepare production surface 
   ]) {
     assert.equal(packageJson.scripts[removed], undefined, removed);
   }
+});
+
+test("execution-resolve passes explicit user fields and runtime capacity once", async () => {
+  const lines: string[] = [];
+  const calls: unknown[] = [];
+  const result = await runProjectProductionCli(
+    [
+      "execution-resolve",
+      "--mode",
+      "subagents",
+      "--max-concurrency",
+      "8",
+      "--require-exact-concurrency",
+      "--runtime-max-concurrency",
+      "6",
+    ],
+    {
+      rootDir: "/fixture",
+      stdout: (line) => lines.push(line),
+      resolveAgentExecution: (async (input: unknown) => {
+        calls.push(input);
+        return { status: "blocked", effectiveMaxConcurrency: 4 };
+      }) as never,
+    },
+  );
+  assert.deepEqual(calls, [
+    {
+      rootDir: "/fixture",
+      override: {
+        mode: "subagents",
+        maxConcurrency: 8,
+        requireExactConcurrency: true,
+      },
+      runtimeMaxConcurrency: 6,
+    },
+  ]);
+  assert.deepEqual(result, {
+    status: "blocked",
+    effectiveMaxConcurrency: 4,
+  });
+  assert.deepEqual(lines, [JSON.stringify(result)]);
+  await assert.rejects(
+    runProjectProductionCli(["execution-resolve", "--mode", "inline", "--max-concurrency", "2"], {
+      rootDir: "/fixture",
+      stdout: () => undefined,
+    }),
+    /does not accept/u,
+  );
+  const zeroCapacityCalls: unknown[] = [];
+  await runProjectProductionCli(
+    ["execution-resolve", "--runtime-max-concurrency", "0"],
+    {
+      rootDir: "/fixture",
+      stdout: () => undefined,
+      resolveAgentExecution: (async (input: unknown) => {
+        zeroCapacityCalls.push(input);
+        return { status: "blocked", effectiveMaxConcurrency: 0 };
+      }) as never,
+    },
+  );
+  assert.deepEqual(zeroCapacityCalls, [
+    { rootDir: "/fixture", runtimeMaxConcurrency: 0 },
+  ]);
 });
 
 test("inspect and prepare each emit one stable structured JSON document", async () => {

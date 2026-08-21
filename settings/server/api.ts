@@ -4,9 +4,15 @@ import {
   writeProducerConfig,
 } from "../../scripts/config/producer-config";
 import {
+  loadExecutionPreferences,
+  resolveExecutionPreferencesPath,
+  writeExecutionPreferences,
+} from "../../scripts/config/execution-preferences";
+import {
   DeleteProjectResponseSchema,
   DeleteProjectRequestSchema,
   EnvironmentDiagnosticsSchema,
+  ExecutionPreferencesSchema,
   ProductionProgressResponseSchema,
   SETTINGS_API_ROUTES,
   type EnvironmentDiagnostics,
@@ -42,6 +48,58 @@ export const createSettingsApi = ({
 }) => {
   let deletionInProgress = false;
   return async (request: ApiRequest): Promise<ApiResponse> => {
+    if (request.url === SETTINGS_API_ROUTES.executionPreferences) {
+      const preferencesPath = resolveExecutionPreferencesPath({ rootDir });
+      if (request.method === "GET") {
+        try {
+          const loaded = await loadExecutionPreferences({ preferencesPath });
+          return { statusCode: 200, body: loaded.preferences };
+        } catch {
+          return { statusCode: 400, body: { error: "Agent 执行配置不可用。" } };
+        }
+      }
+      if (request.method !== "PUT") {
+        return { statusCode: 405, body: { error: "只允许 GET 或 PUT" } };
+      }
+      if (
+        !isSameOriginSettingsWrite({
+          origin: request.headers.origin,
+          host: request.headers.host,
+        })
+      ) {
+        return { statusCode: 403, body: { error: "拒绝非同源执行配置写入" } };
+      }
+      if (!request.headers["content-type"]?.startsWith("application/json")) {
+        return { statusCode: 415, body: { error: "执行配置写入必须使用 JSON" } };
+      }
+      if (
+        request.body === undefined ||
+        Buffer.byteLength(request.body) > SETTINGS_API_MAX_BODY_BYTES
+      ) {
+        return { statusCode: 400, body: { error: "执行配置请求正文无效。" } };
+      }
+      let value: unknown;
+      try {
+        value = JSON.parse(request.body);
+      } catch {
+        return { statusCode: 400, body: { error: "执行配置请求正文无效。" } };
+      }
+      const parsed = ExecutionPreferencesSchema.safeParse(value);
+      if (!parsed.success) {
+        return { statusCode: 400, body: { error: "执行配置严格校验失败。" } };
+      }
+      try {
+        return {
+          statusCode: 200,
+          body: await writeExecutionPreferences({
+            preferencesPath,
+            value: parsed.data,
+          }),
+        };
+      } catch {
+        return { statusCode: 400, body: { error: "执行配置保存失败。" } };
+      }
+    }
     if (request.url === SETTINGS_API_ROUTES.productionProgress) {
       if (request.method !== "GET") {
         return { statusCode: 405, body: { error: "Project 状态只允许 GET" } };

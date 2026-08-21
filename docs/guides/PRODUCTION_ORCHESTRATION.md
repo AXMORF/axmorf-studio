@@ -2,8 +2,8 @@
 
 > 文档类型：操作指南
 
-Root 只负责 authoring、inspect-and-report、explicit prepare 与 dirty-only delegation。派发后 Root 挂起，
-attempt-bound fixed continuation 独占 child terminal barrier 和单次 converge；聊天不持久化，也不是 authority。
+Root 负责 authoring、执行策略解析、inspect-and-report、explicit prepare 与 dirty-only execution。Root 串行执行
+完或完成 bounded admission 后挂起；attempt-bound fixed continuation 独占 terminal barrier 和单次 converge。
 
 ## 1. Project optional Agent capabilities
 
@@ -18,7 +18,19 @@ estimate 或 DAG node。该 slot 只属于 Root 的 pre-inspect authoring plane�
 ProductionRevision、Artifact Store、continuation 和 runtime 都不加载 MCP。下游只看 import 后的 Project
 manifest identity 与 bytes fingerprint。
 
-## 2. Inspect and report before cost
+## 2. Resolve Agent execution
+
+当前用户提示词中明确提出的 mode/max concurrency 字段优先；提示词没有的字段继承配置页，再继承内置默认。
+override 只用于当前 production，除非用户明确要求保存：
+
+```bash
+npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>]
+```
+
+仓库安全上限为 4。已知 runtime capacity 必须传入；未知时按 1，明确为 0 时阻塞。非 exact 请求可 clamp
+但必须报告；无法满足的 exact 请求在 prepare 前阻塞。解析结果不进入 production identity。
+
+## 3. Inspect and report before cost
 
 ```bash
 npm run project:produce:inspect -- --project <storyId>
@@ -34,7 +46,7 @@ artifact state 与 blockedBy。explanation/baseline 只用于诊断，不决定�
 真实 project-production preflight 首次使用宿主权限。沙箱诊断不能证明 VoxCPM 不可用，不得降低 Chromium
 sandbox、预热 TTS 或增加 fallback。
 
-## 3. Prepare explicitly
+## 4. Prepare explicitly
 
 ```bash
 npm run project:produce:prepare -- --project <storyId>
@@ -48,17 +60,16 @@ production inputs ready 时保存 `attemptId`、`revisionId`、summary、estimat
 `dirtyAgentTasks`。相同 inputs 的 valid artifact 必须显示 `reuse`。prepare 只为 dirty Agent tasks 建
 `.producer-work/<storyId>/<taskRevision>/`，其中 `task.json` 与 `inputs/context.json` 是 immutable fixed inputs。
 
-## 4. Dispatch only dirty Agent tasks
+## 5. Execute only dirty Agent tasks
 
-只派发 dirty `scene-owner`、`global-visual-owner`、`cover-owner`。一个 TaskRevision 一个 runtime-native
-child，共享当前 checkout，不使用 worktree。`scene-template` 与 narration/convergence/delivery fixed tasks
-不创建 child。
+只执行 dirty `scene-owner`、`global-visual-owner`、`cover-owner`。一个 TaskRevision 只归属一个 executor，
+共享当前 checkout，不使用 worktree。`scene-template` 与 narration/convergence/delivery fixed tasks 不由 Agent 创作。
 
-每个 child prompt 必须包含 storyId、revisionId、taskRevision、attemptId、唯一 workspace、必读 Skill/reference、
+每个 executor prompt 必须包含 storyId、revisionId、taskRevision、attemptId、唯一 workspace、必读 Skill/reference、
 focused check 和 prepare 返回的 commit/failure commands。Scene child 完整读取 repository-local
 `remotion-best-practices`。
 
-child 只能在自己的 workspace 循环：
+executor 只能在自己的 workspace 循环：
 
 ```bash
 npm run project:task:check -- --task <taskRevision>
@@ -66,13 +77,14 @@ npm run project:task:commit -- --task <taskRevision> --attempt <attemptId>
 npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --kind task|host
 ```
 
-check 是只读；commit 重跑同一 validator。校验失败由同一 child 在宣告终态前修正 workspace 后重跑。
-commit 成功或 failure event 写入后 child 立即结束，不等待或通知 Root。Root 不读取 child workspace、
-不代 commit、不内联替代 dirty task。
+check 是只读；commit 重跑同一 validator。校验失败由同一 executor 在宣告终态前修正 workspace 后重跑。
+inline 模式下 Root 一次只处理一个 workspace。subagents 模式按 `effectiveMaxConcurrency` 维护 bounded pool；
+队列未空时仅 wait-any 释放 admission slot，不轮询全部 child。spawn hard failure 运行 exact
+`hostFailureCommand`，不自动改为 inline。聊天不是 terminal receipt。
 
-## 5. Hand off to fixed continuation
+## 6. Hand off to fixed continuation
 
-全部派发后，Root 的最后一个生产动作是启动 prepare 返回的 exact `continuationCommand`：
+inline 全部执行完或 subagents 全部 admission 后，Root 的最后一个生产动作是启动 exact `continuationCommand`：
 
 ```bash
 npm run project:produce:continue -- --project <storyId> --revision <revisionId> --attempt <attemptId>
@@ -80,8 +92,8 @@ npm run project:produce:continue -- --project <storyId> --revision <revisionId> 
 
 这是 bounded fixed process，不是常驻 Agent/scheduler。它先对 exact attempt 原子创建 one-shot claim，再监听
 immutable event log；重复启动 fail closed，不依赖 `progress.generated.json` 通知。它保持宿主任务运行；Root
-同时挂起，不轮询、推理或消耗 token 监督。任一 child failure 直接终止且不 converge；全部成功才内部
-converge 一次；六小时总 deadline 内缺 terminal 会写 timeout failure；fixed failure 直接退出，不重试或
+同时挂起，不轮询、推理或消耗 token 监督。任一 task failure 直接终止且不 converge；全部成功才内部
+converge 一次；从 ExecutionAttempt 创建起一小时总 deadline 内缺 terminal 会写 timeout failure；fixed failure 直接退出，不重试或
 重新进入 Root。
 
 converge 使用 read-only current replan 检查 Revision 与 Artifact Store；不调用 provider、不创建 workspace 或
@@ -99,7 +111,7 @@ code 受控物化、刷新 derived Project、复验 attested bytes，并同步�
 dirty tasks。这不是自动 retry。不要 provider fallback、跨 Project reuse、复制 identity、手改 manifest 或绕过
 validator。
 
-## 6. Host verification
+## 7. Host verification
 
 实现改动按风险运行：
 

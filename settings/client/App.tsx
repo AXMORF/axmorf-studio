@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { ExecutionSettings } from "./features/config/ExecutionSettings";
 import { General, SafeArea } from "./features/config/GeneralSettings";
 import {
   Collections,
@@ -8,6 +9,7 @@ import {
 import { Tts } from "./features/config/TtsSettings";
 import { ProductionProgressPanel } from "./features/progress/ProductionProgressPanel";
 import { useEnvironmentDiagnostics } from "./hooks/useEnvironmentDiagnostics";
+import { useExecutionPreferences } from "./hooks/useExecutionPreferences";
 import { useProductionProgress } from "./hooks/useProductionProgress";
 import { useSettingsConfig } from "./hooks/useSettingsConfig";
 import { buildStudioUrl, isLanAccessHostname } from "./network";
@@ -18,6 +20,7 @@ type TabId =
   | "scenes"
   | "safe-area"
   | "collections"
+  | "execution"
   | "tts";
 
 const tabs: ReadonlyArray<
@@ -28,16 +31,19 @@ const tabs: ReadonlyArray<
   { id: "scenes", label: "默认 Scene", index: "03" },
   { id: "safe-area", label: "画面安全区", index: "04" },
   { id: "collections", label: "合集", index: "05" },
-  { id: "tts", label: "TTS", index: "06" },
+  { id: "execution", label: "Agent 执行", index: "06" },
+  { id: "tts", label: "TTS", index: "07" },
 ];
 
 export const App = () => {
   const [activeTab, setActiveTab] = useState<TabId>("progress");
   const settings = useSettingsConfig();
+  const execution = useExecutionPreferences();
   const environment = useEnvironmentDiagnostics();
   const production = useProductionProgress();
   const studioUrl = buildStudioUrl(window.location.href);
   const lanAccess = isLanAccessHostname(window.location.hostname);
+  const activeSettings = activeTab === "execution" ? execution : settings;
   const validation = [
     {
       label: "表单一致性",
@@ -73,20 +79,24 @@ export const App = () => {
             <span key={frame}>{frame}</span>
           ))}
         </div>
-        <div className={`save-state ${settings.dirty ? "dirty" : ""}`}>
+        <div className={`save-state ${activeSettings.dirty ? "dirty" : ""}`}>
           <span />
-          {settings.status}
+          {activeSettings.status}
         </div>
         <button
           className="save-button"
           disabled={
-            settings.config === null ||
-            settings.isSaving ||
-            settings.consistencyError !== null
+            activeSettings.config === null ||
+            activeSettings.isSaving ||
+            activeSettings.consistencyError !== null
           }
-          onClick={() => void settings.save()}
+          onClick={() => void activeSettings.save()}
         >
-          {settings.isSaving ? "保存中" : "保存配置"}
+          {activeSettings.isSaving
+            ? "保存中"
+            : activeTab === "execution"
+              ? "保存执行配置"
+              : "保存配置"}
         </button>
       </header>
 
@@ -121,6 +131,18 @@ export const App = () => {
             refresh={production.refresh}
             deleteProject={production.deleteProject}
           />
+        ) : activeTab === "execution" ? (
+          execution.config === null ? (
+            <div className="empty-state">
+              <strong>Agent 执行配置尚未就绪</strong>
+              <p>{execution.status}</p>
+            </div>
+          ) : (
+            <ExecutionSettings
+              config={execution.config}
+              update={execution.update}
+            />
+          )
         ) : settings.config === null ? (
           <div className="empty-state">
             <strong>配置尚未就绪</strong>

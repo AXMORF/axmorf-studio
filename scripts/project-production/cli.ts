@@ -8,6 +8,7 @@ import { continueProjectProduction } from "./application/continue-production";
 import { checkTaskByKind } from "./application/check-task";
 import { inspectProjectProduction } from "./application/inspect-production";
 import { prepareProjectProduction } from "./application/prepare-production";
+import { resolveProjectAgentExecution } from "./application/resolve-agent-execution";
 
 type Context = Readonly<{
   rootDir: string;
@@ -16,6 +17,7 @@ type Context = Readonly<{
   readWorkspace?: typeof readTaskWorkspace;
   inspectProduction?: typeof inspectProjectProduction;
   prepareProduction?: typeof prepareProjectProduction;
+  resolveAgentExecution?: typeof resolveProjectAgentExecution;
   continueProduction?: typeof continueProjectProduction;
   appendTaskOutcome?: typeof appendExecutionAttemptTaskOutcome;
 }>;
@@ -33,6 +35,35 @@ const option = (args: readonly string[], name: string) => {
   )
     throw new Error(`Missing ${name} value.`);
   return args[index + 1] ?? "";
+};
+
+const optionalOption = (args: readonly string[], name: string) => {
+  const index = args.indexOf(name);
+  if (index < 0) return undefined;
+  if (index + 1 >= args.length || args[index + 1]?.startsWith("--")) {
+    throw new Error(`Missing ${name} value.`);
+  }
+  return args[index + 1] ?? "";
+};
+
+const positiveIntegerOption = (args: readonly string[], name: string) => {
+  const value = optionalOption(args, name);
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new Error(`${name} must be a positive integer.`);
+  }
+  return parsed;
+};
+
+const nonnegativeIntegerOption = (args: readonly string[], name: string) => {
+  const value = optionalOption(args, name);
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new Error(`${name} must be a non-negative integer.`);
+  }
+  return parsed;
 };
 
 const recordTaskOutcome = async ({
@@ -73,6 +104,58 @@ export const runProjectProductionCli = async (
   context: Context = defaultContext(),
 ) => {
   const command = args[0];
+  if (command === "execution-resolve") {
+    const rawMode = optionalOption(args, "--mode");
+    if (
+      rawMode !== undefined &&
+      rawMode !== "inline" &&
+      rawMode !== "subagents"
+    ) {
+      throw new Error("Expected --mode inline or subagents.");
+    }
+    const maxConcurrency = positiveIntegerOption(args, "--max-concurrency");
+    const requireExactConcurrency = args.includes(
+      "--require-exact-concurrency",
+    );
+    if (rawMode === "inline" && maxConcurrency !== undefined) {
+      throw new Error("Inline execution does not accept --max-concurrency.");
+    }
+    if (rawMode === "inline" && requireExactConcurrency) {
+      throw new Error(
+        "Inline execution does not accept --require-exact-concurrency.",
+      );
+    }
+    if (requireExactConcurrency && rawMode !== "subagents") {
+      throw new Error(
+        "Exact concurrency requires an explicit subagents mode.",
+      );
+    }
+    const override =
+      rawMode === "inline"
+        ? ({ mode: "inline" } as const)
+        : rawMode === "subagents" || maxConcurrency !== undefined
+          ? ({
+              mode: "subagents" as const,
+              ...(maxConcurrency === undefined ? {} : { maxConcurrency }),
+              ...(requireExactConcurrency
+                ? { requireExactConcurrency: true }
+                : {}),
+            } as const)
+          : undefined;
+    const runtimeMaxConcurrency = nonnegativeIntegerOption(
+      args,
+      "--runtime-max-concurrency",
+    );
+    const result = await (
+      context.resolveAgentExecution ?? resolveProjectAgentExecution
+    )({
+      rootDir: context.rootDir,
+      ...(override === undefined ? {} : { override }),
+      ...(runtimeMaxConcurrency === undefined ? {} : { runtimeMaxConcurrency }),
+    });
+    context.stdout(JSON.stringify(result));
+    return result;
+  }
   if (command === "inspect") {
     const result = await (
       context.inspectProduction ?? inspectProjectProduction
@@ -206,7 +289,7 @@ export const runProjectProductionCli = async (
     return result;
   }
   throw new Error(
-    "Expected inspect, prepare, task-check, task-commit, task-fail, or continue.",
+    "Expected execution-resolve, inspect, prepare, task-check, task-commit, task-fail, or continue.",
   );
 };
 

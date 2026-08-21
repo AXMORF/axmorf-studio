@@ -25,10 +25,24 @@ npm run project:asset:import -- --project <storyId> --receipt <absolute-receipt-
 ```
 
 If the MCP is absent, omit this entire stage without error, placeholder task, prompt, estimate, or DAG node.
-Children never receive it. Receipts/candidates stay at the adapter; only Project-owned manifest IDs and
+Task executors never receive it. Receipts/candidates stay at the adapter; only Project-owned manifest IDs and
 fingerprints proceed.
 
-## 3. Inspect read-only, then prepare explicitly
+## 3. Resolve execution once
+
+Interpret only explicit execution fields in the current user prompt. Omitted fields inherit the settings page;
+those settings inherit built-in defaults. Do not save a prompt override unless the user explicitly requests it.
+
+```bash
+npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>]
+```
+
+Pass current runtime capacity when known. Without it, subagent capacity safely resolves to one. The repository
+ceiling is four. A non-exact request is clamped and reported; an exact request that cannot be satisfied returns
+`blocked`; known runtime capacity zero also blocks. Production stops before prepare. Freeze the resolved result. It is
+diagnostic orchestration state and never enters ProductionRevision, TaskRevision, artifacts, or delivery.
+
+## 4. Inspect read-only, then prepare explicitly
 
 ```bash
 npm run project:produce:inspect -- --project <storyId>
@@ -43,12 +57,12 @@ npm run project:produce:prepare -- --project <storyId>
 Prepare derives ProductionRevision/Task DAG and returns cost/explanations/`dirtyAgentTasks`. Diagnostics never own
 identity; attempt IDs never enter TaskRevision.
 
-Reuse valid artifacts. Dispatch only dirty `scene-owner`, `global-visual-owner`, and `cover-owner`, not
+Reuse valid artifacts. Execute only dirty `scene-owner`, `global-visual-owner`, and `cover-owner`, not
 `scene-template`.
 
-## 4. Delegate dirty Agent tasks
+## 5. Execute dirty Agent tasks
 
-Use one runtime-native child per TaskRevision; it writes only:
+Each TaskRevision is assigned to exactly one executor and writes only:
 
 ```text
 .producer-work/<storyId>/<taskRevision>/
@@ -64,7 +78,17 @@ npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --kind 
 
 Commit revalidates and atomically promotes ArtifactAttestation; chat is not authority.
 
-## 5. Suspend Root in the fixed continuation
+- `inline`: Root processes one dirty task at a time using its task-kind prompt. It completes check plus the exact
+  attempt-bound commit/fail command before opening the next workspace.
+- `subagents`: maintain a bounded pool of at most `effectiveMaxConcurrency` runtime-native children. Admit one task
+  per child. If tasks remain queued, wait-any only until one child releases a slot, then admit the next. Do not poll
+  all child statuses and do not use chat as a terminal receipt.
+
+A hard spawn failure executes that task's exact `hostFailureCommand` and preserves the selected mode; there is no
+automatic inline fallback. Capacity backpressure delays admission but is not a task retry. Start the continuation
+as soon as every dirty task is either executed inline or admitted to a child.
+
+## 6. Suspend Root in the fixed continuation
 
 After dispatch, Root launches prepare's exact `continuationCommand`:
 
@@ -73,7 +97,8 @@ npm run project:produce:continue -- --project <storyId> --revision <revisionId> 
 ```
 
 It claims once while Root suspends, watches immutable events, and rejects duplicates. Failure exits without
-convergence; all success converges once; six-hour absence times out. No repair, retry, or Root re-entry.
+convergence; all success converges once. The one-hour task-terminal deadline starts at ExecutionAttempt creation,
+so admission and execution consume the same budget. No repair, retry, or Root re-entry.
 
 Convergence read-only replans, materializes attested bytes with rollback, and builds
 `video.mp4`, `cover-4x3.png`, `cover-3x4.png`, and `publish.json`. Promotion requires checksum/media/EOF-decode; a

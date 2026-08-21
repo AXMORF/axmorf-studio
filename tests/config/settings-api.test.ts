@@ -57,6 +57,51 @@ test("settings API GET PUT validation origin and diagnostics stay strict and pri
     validProducerConfigInput.audioDefaults.globalBgm,
   );
 
+  const executionDefaults = await api({
+    method: "GET",
+    url: SETTINGS_API_ROUTES.executionPreferences,
+    headers: {},
+  });
+  assert.deepEqual(executionDefaults, {
+    statusCode: 200,
+    body: {
+      schemaVersion: 1,
+      contractVersion: "execution-preferences-v1",
+      creativeTaskExecution: { mode: "subagents", maxConcurrency: 4 },
+    },
+  });
+  const rejectedExecutionOrigin = await api({
+    method: "PUT",
+    url: SETTINGS_API_ROUTES.executionPreferences,
+    headers: {
+      origin: "http://evil.example",
+      host: "127.0.0.1:3100",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(executionDefaults.body),
+  });
+  assert.equal(rejectedExecutionOrigin.statusCode, 403);
+  const savedExecution = await api({
+    method: "PUT",
+    url: SETTINGS_API_ROUTES.executionPreferences,
+    headers: {
+      origin: "http://127.0.0.1:3100",
+      host: "127.0.0.1:3100",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      schemaVersion: 1,
+      contractVersion: "execution-preferences-v1",
+      creativeTaskExecution: { mode: "inline" },
+    }),
+  });
+  assert.equal(savedExecution.statusCode, 200);
+  assert.equal(
+    (await stat(join(rootDir, "private/execution-preferences.json"))).mode &
+      0o777,
+    0o600,
+  );
+
   const rejectedOrigin = await api({
     method: "PUT",
     url: SETTINGS_API_ROUTES.settings,

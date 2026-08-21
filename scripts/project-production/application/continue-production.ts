@@ -11,7 +11,7 @@ import {
 } from "../adapters/attempt-event-wait";
 import { convergeProjectProduction } from "./converge-artifacts";
 
-export const DEFAULT_EXECUTION_CONTINUATION_TIMEOUT_MS = 6 * 60 * 60 * 1_000;
+export const DEFAULT_EXECUTION_ATTEMPT_DEADLINE_MS = 60 * 60 * 1_000;
 
 type ContinueProductionDependencies = Readonly<{
   readProgress?: typeof readExecutionAttemptProgress;
@@ -65,7 +65,7 @@ export const continueProjectProduction = async (
     projectId,
     revisionId,
     attemptId,
-    timeoutMs = DEFAULT_EXECUTION_CONTINUATION_TIMEOUT_MS,
+    timeoutMs = DEFAULT_EXECUTION_ATTEMPT_DEADLINE_MS,
   }: {
     readonly rootDir: string;
     readonly projectId: string;
@@ -86,8 +86,26 @@ export const continueProjectProduction = async (
   const converge = dependencies.converge ?? convergeProjectProduction;
   const now = dependencies.now ?? Date.now;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) {
-    throw new Error("Execution continuation timeout is invalid.");
+    throw new Error("Execution attempt deadline is invalid.");
   }
+
+  const initial = await readProgress({
+    rootDir,
+    storyId: projectId,
+    attemptId,
+  });
+  if (initial === null) throw new Error("Execution attempt is missing.");
+  assertAttemptIdentity({
+    progress: initial,
+    storyId: projectId,
+    revisionId,
+    attemptId,
+  });
+  const attemptCreatedAt = Date.parse(initial.createdAt);
+  if (!Number.isFinite(attemptCreatedAt)) {
+    throw new Error("Execution attempt createdAt is invalid.");
+  }
+  const deadline = attemptCreatedAt + timeoutMs;
 
   await claimContinuation({
     rootDir,
@@ -95,7 +113,24 @@ export const continueProjectProduction = async (
     revisionId,
     attemptId,
   });
-  const deadline = now() + timeoutMs;
+
+  const failForDeadline = async (cause?: unknown): Promise<never> => {
+    await appendTerminalFailure({
+      rootDir,
+      storyId: projectId,
+      revisionId,
+      attemptId,
+      result: {
+        status: "failed",
+        deliveryBuildId: null,
+        diagnosticCode: "producer-continuation-timeout",
+        deliveryMedia: [],
+      },
+    });
+    throw new Error("Execution attempt exceeded its fixed deadline.", {
+      ...(cause === undefined ? {} : { cause }),
+    });
+  };
 
   const handleProgress = async (progress: ExecutionAttemptProgress) => {
     assertAttemptIdentity({
@@ -136,6 +171,7 @@ export const continueProjectProduction = async (
       return outcome === "artifact-committed" || outcome === "artifact-current";
     });
     if (!allSucceeded) return { done: false as const };
+    if (now() >= deadline) await failForDeadline();
 
     const result = await converge({
       rootDir,
@@ -187,21 +223,7 @@ export const continueProjectProduction = async (
         if (latest === null) throw new Error("Execution attempt is missing.");
         const final = await handleProgress(latest);
         if (final.done) return final.result;
-        await appendTerminalFailure({
-          rootDir,
-          storyId: projectId,
-          revisionId,
-          attemptId,
-          result: {
-            status: "failed",
-            deliveryBuildId: null,
-            diagnosticCode: "producer-continuation-timeout",
-            deliveryMedia: [],
-          },
-        });
-        throw new Error("Fixed production continuation timed out.", {
-          cause: error,
-        });
+        await failForDeadline(error);
       }
     } finally {
       eventWait.close();

@@ -18,6 +18,7 @@ scripts/narration/             provider attempt cache, PCM validation, seal and 
 scripts/scene-package/          deterministic ScenePackage/Coverage generation
 scripts/renderer-registry/      static composition-local registry generation
 settings/                      config/progress API and UI
+private/execution-preferences.json  ignored Agent execution defaults, separate from ProducerConfig
 ```
 
 `domain/` 不读取 filesystem 且不依赖 application/adapters/CLI。application 编排 use cases，不承载 host
@@ -30,6 +31,9 @@ details；adapters 实现 filesystem/process/media ports，不能反向成为业
 flowchart TD
   Create[Atomic configured authoring] --> Inputs[Explicit authoring contracts + selected bytes]
   AgentTools[Current Root callable MCP tools] -. optional receipt import .-> Inputs
+  Prompt[Explicit user execution fields] --> Execution[One-run execution resolution]
+  Settings[Independent execution preferences] --> Execution
+  Execution -. orchestration only .-> Inspection
   Inputs --> Inspection[Read-only ProductionInspection]
   Inspection --> Prepare[Explicit costly preparation]
   Prepare --> Revision[ProductionRevision]
@@ -95,9 +99,11 @@ Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the config
 instance. Its artifact is the exact union of immutable copied source/assets and the canonical derived Scene bundle;
 live-only fixed projections are excluded from its task identity.
 
-每个 dirty Agent task 一个 runtime-native child；repository 不创建或保存 child identity。Root 只负责派发，
-随后挂起在 bounded fixed continuation，且不轮询或推理。continuation 以 one-shot atomic claim 独占 exact
-attempt，只订阅 immutable mechanical task-terminal event log；六小时总 deadline 防止无限等待。
+inspect 前的 execution resolver 按用户提示词、settings、内置默认逐字段选择 Root inline 或 bounded
+subagents，且不进入 production identity。每个 dirty Agent task 只有一个 executor；inline 一次一个 workspace，
+subagents 最大四个并受 runtime capacity 限制。全部完成或 admission 后 Root 挂起；fixed continuation 以 one-shot
+atomic claim 独占 exact attempt，只订阅 immutable mechanical task-terminal event log；attempt 创建起一小时总
+deadline 防止无限等待。
 ArtifactAttestation 才进入 production data plane。
 
 ## 6. Artifact Store security
@@ -144,6 +150,8 @@ storyId/legacy ID 来安全定位删除目标，不解析或迁移旧 state。
 
 Repository operation locks 保护 Project create/import/delete、prepare、artifact/materialization 和 delivery 的
 互斥 filesystem transitions；inspect 不取 mutation lock。锁与诊断数据都不进入 content identity。
+Agent execution preferences 使用独立 strict contract 与 `0600` 原子存储，不修改 ProducerConfig fingerprint；
+用户提示词 override 不自动写回该文件，解析值也不进入 content identity。
 
 Scene authoring 仍必须使用 repository-local `remotion-best-practices`，但 Skill 不能扩大 TaskSpec 或
 validator boundary。

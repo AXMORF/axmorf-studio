@@ -85,7 +85,7 @@ Root 派发全部 dirty Agent tasks 后只启动 prepare 返回的 attempt-bound
 bounded process 先以原子 create 建立不可重复的 attempt claim，再通过 filesystem event 等待 immutable event
 log，而不依赖 progress projection，也不由 Root 轮询。任一 Agent task failure 先把 attempt 终结为 failed，
 再非零退出且不调用 converge；全部 Agent task outcomes 为 committed/current 时，内部只调用一次 converge。
-六小时总 deadline 到期仍缺 terminal 时原子写 timeout failure 并退出。converge failure 直接退出，不 retry、
+从 ExecutionAttempt 创建起一小时总 deadline 到期仍缺 terminal 时原子写 timeout failure 并退出。converge failure 直接退出，不 retry、
 不修复，也不重新进入 Root。
 
 内部 converge 每次通过 read-only current-plan builder 重新计算 current Revision/Plan；不调用 provider、不创建
@@ -123,7 +123,7 @@ no-op。
 - task terminal：同 attempt/task/result → no-op；相反 result → immutable-terminal conflict；
 - commit：same artifact identity/bytes → no-op，different bytes → conflict；
 - continuation：同 active attempt 只有一个 atomic claim；只消费 plan-bound immutable terminal events；failure
-  不 converge，all-success 内部 converge once，六小时 deadline 到期原子失败；
+  不 converge，all-success 内部 converge once，attempt 创建起一小时 deadline 到期原子失败；
 - converge：只由 fixed continuation 调用；same revision/artifact set/materialized bytes → deterministic projection；
 - delivery：same complete DeliveryBuildId → current no-op；captured staging failure → later reuse valid media；
 - settings progress：malformed diagnostic/historical data 不影响 current classification 或 projection authority；

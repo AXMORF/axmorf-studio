@@ -18,11 +18,12 @@ attempt-bound task commit/fail 与 fixed continuation；converge 是 continuatio
 - Root 在任何成本前报告 inspect 的 source readiness、unknown-safe estimate、reuse 与逐任务失效解释；
 - prepare 才允许 provider/fixed artifact/workspace/attempt mutation；converge 不允许这些 preparation 副作用；
 - diagnostic explanation/baseline/attempt 不进入或改变 production/artifact/delivery authority；
-- 一个 Scene/GlobalVisual/Cover dirty task 对应一个 runtime-native child；template task 不派发；
+- execution mode 按用户提示词、settings、内置默认解析；inline 一次一个 workspace，subagents bounded pool
+  最多四个；一个 dirty task 只归属一个 executor，template task 不由 Agent 创作；
 - Composition exactly once 拥有 raw readability/insets 与 SceneViewport mount；Scene child 只看到
   safe-area-local viewport dimensions/min font size，不得恢复 full-frame authority；
 - Agent 只写 task workspace，fixed commit 重跑 validator，commit/fail 绑定 exact attempt 且首终态不可覆盖；
-- Root dispatch 后挂起且不监督；bounded fixed continuation 以 atomic claim 单消费者运行，failure/六小时
+- continuation 启动后 Root 挂起且不监督；bounded fixed continuation 以 atomic claim 单消费者运行，failure/attempt 创建起一小时
   timeout fail-fast，all-success 只 converge 一次；
 - artifact hit 严格复验 exact file set、no-symlink、size/checksum/dependencies/policy；
 - convergence stale/incomplete/drift fail closed 且 materialization 有 rollback；

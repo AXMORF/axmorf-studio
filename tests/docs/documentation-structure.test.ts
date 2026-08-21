@@ -35,7 +35,7 @@ test("documentation separates active authorities, guides, and archived plans", a
   }
 });
 
-test("active production docs expose dispatch-only Root and fixed continuation", async () => {
+test("active production docs expose resolved bounded execution and fixed continuation", async () => {
   const rootDir = process.cwd();
   const operationalPaths = [
     "README.md",
@@ -79,7 +79,7 @@ test("active production docs expose dispatch-only Root and fixed continuation", 
       /(?:atomic|one-shot)[\s\S]{0,40}claim|claim[\s\S]{0,40}(?:atomic|one-shot)/iu,
       relativePath,
     );
-    assert.match(source, /六小时|six-hour/iu, relativePath);
+    assert.match(source, /一小时|one-hour/iu, relativePath);
   }
   const active = [...operational, ...authorities]
     .map(({ source }) => source)
@@ -89,4 +89,6 @@ test("active production docs expose dispatch-only Root and fixed continuation", 
     /Root (?:waits for|supervises)|Root 等待全部|Root 全程监督/iu,
   );
   assert.match(active, /immutable (?:task-terminal )?event log/iu);
+  assert.match(active, /user prompt|用户提示词/iu);
+  assert.match(active, /bounded pool|受限并发/iu);
 });

@@ -2,10 +2,12 @@ import {
   ApiErrorSchema,
   DeleteProjectResponseSchema,
   EnvironmentDiagnosticsSchema,
+  ExecutionPreferencesSchema,
   ProductionProgressResponseSchema,
   SETTINGS_API_ROUTES,
   parseEditableConfig,
   type EditableConfig,
+  type ExecutionPreferences,
 } from "../contracts/api";
 
 const readJsonResponse = async (response: Response): Promise<unknown> => {
@@ -31,6 +33,28 @@ export const saveSettings = async (config: EditableConfig) =>
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(config),
+      }),
+    ),
+  );
+
+export const loadExecutionPreferences = async () =>
+  ExecutionPreferencesSchema.parse(
+    await readJsonResponse(
+      await fetch(SETTINGS_API_ROUTES.executionPreferences, {
+        cache: "no-store",
+      }),
+    ),
+  );
+
+export const saveExecutionPreferences = async (
+  preferences: ExecutionPreferences,
+) =>
+  ExecutionPreferencesSchema.parse(
+    await readJsonResponse(
+      await fetch(SETTINGS_API_ROUTES.executionPreferences, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(preferences),
       }),
     ),
   );

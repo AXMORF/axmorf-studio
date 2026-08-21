@@ -105,6 +105,7 @@
     "project:evidence:check": "node --import tsx scripts/project-validation/cli.ts evidence",
     "project:delete": "node --import tsx scripts/projects/delete.ts",
     "project:create": "node --import tsx scripts/projects/create.ts",
+    "project:execution:resolve": "node --import tsx scripts/project-production/cli.ts execution-resolve",
     "project:produce:inspect": "node --import tsx scripts/project-production/cli.ts inspect",
     "project:produce:prepare": "node --import tsx scripts/project-production/cli.ts prepare",
     "project:task:check": "node --import tsx scripts/project-production/cli.ts task-check",

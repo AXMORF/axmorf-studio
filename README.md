@@ -8,11 +8,12 @@
 ```text
 Project source
   → optional current-Agent MCP acquisition slot (only when actually callable)
+  → resolve user-prompt/settings Agent execution policy
   → read-only inspection and cost/invalidation report
   → explicit fixed preparation
   → ProductionRevision
   → content-addressed Task DAG
-  → reuse valid ArtifactAttestations / dispatch dirty Agent tasks
+  → reuse valid ArtifactAttestations / execute dirty Agent tasks
   → fixed attempt-bound continuation (Root suspended)
   → fixed convergence and materialization
   → synchronous exact four-file delivery
@@ -22,22 +23,22 @@ Project source
 
 - RevisionId、TaskRevision、ArtifactAttestation 与 DeliveryBuildId 不绑定 attempt、时钟、PID、绝对路径或
   Agent identity；
-- Agent child 只写 `.producer-work/<storyId>/<taskRevision>/`，fixed commit 重跑 validator 后才能产生
+- Root/child task executor 只写 `.producer-work/<storyId>/<taskRevision>/`，fixed commit 重跑 validator 后才能产生
   ArtifactAttestation；
-- 新 attempt 机械复用 valid artifacts，只派发仍 dirty 的 Scene/GlobalVisual/Cover tasks；
+- 新 attempt 机械复用 valid artifacts，只执行仍 dirty 的 Scene/GlobalVisual/Cover tasks；
 - inspection、estimate、baseline、explanation 与 attempt 都只属于 diagnostic plane，不进入或改变任何
   production/artifact/delivery identity 或 authority；
 - template-copy Scenes 由 fixed task 处理，不派发 Agent；
 - Composition exactly once 拥有 SceneViewport 与 full-frame readability policy；Scene Renderer 只接收
   safe-area-local `viewportWidth`/`viewportHeight`，不读取或重复应用 Composition inset；
-- Root 派发后不监督、不轮询、不参与成败处理；fixed continuation 以 one-shot atomic claim 独占
-  terminal barrier，并受六小时总 deadline 约束；
+- Root 串行执行完或完成受限并发 admission 后不监督、不轮询、不参与成败处理；fixed continuation 以
+  one-shot atomic claim 独占 terminal barrier，并受 attempt 创建起一小时总 deadline 约束；
 - converge 重新计算 current Revision，全部 artifact 齐全才受控物化 Project；
 - delivery 同步生成并验证 `video.mp4`、两张 PNG Cover 和 `publish.json`，全部通过才替换 current slot；
 - `project-production-complete` 与 `project-production-current` 都表示实际 current four files 已机械复验。
 
 产品目标、实现状态和精确 contract 请从 [文档导航](docs/README.md) 进入。生产 Agent 使用
-[remotion-story-producer-video Skill](.agents/skills/remotion-story-producer-video/SKILL.md)；每个 Scene child
+[remotion-story-producer-video Skill](.agents/skills/remotion-story-producer-video/SKILL.md)；每个 Scene task executor
 还必须完整读取 repository-local `remotion-best-practices`。
 
 ## 快速开始
@@ -64,7 +65,8 @@ sandbox、预热 TTS 或 fallback output 获得 Green。
 npm run config:dev
 ```
 
-配置页统一维护 local/cloud TTS providers、默认 voice/render/readability/scene templates/publishing collections，
+配置页统一维护 Agent 默认执行模式/并发上限、local/cloud TTS providers、默认 voice/render/readability/scene
+templates/publishing collections，
 并展示 source readiness、current Revision、estimated/actual cost、逐任务 direct/dependency/artifact 解释、
 latest ExecutionAttempt diagnostic 和 current four-file delivery。private config 保持 ignored；UI/API 不读取
 protected voice contents 或 raw fingerprints。
@@ -99,7 +101,16 @@ workspace、Artifact Store、delivery 或 Remotion runtime。
 
 ## 生产一个 Project
 
-1. 严格只读检查 source readiness、预计 provider/cache/Agent/delivery 成本、artifact reuse 与逐任务失效解释：
+1. 在 inspect 前按“当前用户提示词明确字段 → 配置页 → 内置默认”解析本次执行策略。提示词 override 不自动保存：
+
+```bash
+npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>]
+```
+
+仓库并发上限为 4；runtime capacity 未知按 1、明确为 0 时阻塞。非 exact 请求会明确显示 clamp，无法满足
+的 exact 请求在 prepare 前阻塞。解析结果只属于本次编排，不进入生产 identity。
+
+2. 严格只读检查 source readiness、预计 provider/cache/Agent/delivery 成本、artifact reuse 与逐任务失效解释：
 
 ```bash
 npm run project:produce:inspect -- --project <story-id>
@@ -107,13 +118,14 @@ npm run project:produce:inspect -- --project <story-id>
 
 Root 先向用户报告 inspection。unknown estimate 保持 unknown，不把诊断推测写入 data plane。
 
-2. 明确执行唯一有成本的 preparation 入口；它才允许 provider/fixed preparation、workspace 与 attempt 写入：
+3. 明确执行唯一有成本的 preparation 入口；它才允许 provider/fixed preparation、workspace 与 attempt 写入：
 
 ```bash
 npm run project:produce:prepare -- --project <story-id>
 ```
 
-3. 只把 prepare 输出中的 `dirtyAgentTasks` 分别交给 runtime-native child。每个 child 在自己的 workspace 内循环：
+4. 按已解析模式执行 `dirtyAgentTasks`：inline 时 Root 一次处理一个；subagents 时以有效并发上限运行 bounded
+pool，任务多于槽位时仅 wait-any 释放 admission slot。每个 executor 在自己的 workspace 内循环：
 
 ```bash
 npm run project:task:check -- --task <task-revision>
@@ -121,7 +133,7 @@ npm run project:task:commit -- --task <task-revision> --attempt <attempt-id>
 npm run project:task:fail -- --task <task-revision> --attempt <attempt-id> --kind task|host
 ```
 
-4. 全部派发完成后，Root 的最后一个生产动作是启动 prepare 返回的 exact `continuationCommand`：
+5. 串行执行完或全部 bounded admission 完成后，Root 的最后一个生产动作是启动 exact `continuationCommand`：
 
 ```bash
 npm run project:produce:continue -- --project <story-id> --revision <revision-id> --attempt <attempt-id>
@@ -129,7 +141,7 @@ npm run project:produce:continue -- --project <story-id> --revision <revision-id
 
 此后 Root 挂起且不再轮询、推理、修复或重试。fixed continuation 先原子占用 exact attempt，只读取 immutable
 task-terminal event log；重复 continuation fail closed。任一失败非零退出且不 converge；全部成功才内部调用一次
-converge；六小时内缺少终态会写 timeout failure 后退出；converge 失败同样直接退出。内部 converge 先只读
+converge；从 attempt 创建起一小时内缺少终态会写 timeout failure 后退出；converge 失败同样直接退出。内部 converge 先只读
 重算 current Revision/plan，再验证/materialize artifacts、刷新 packages/registry/Composition，并同步构建
 current delivery；它不调用 provider 或创建 workspace/attempt。聊天终态
 不作 authority；只有 ArtifactAttestation 和验证后的 four-file package 作 authority。详细步骤见

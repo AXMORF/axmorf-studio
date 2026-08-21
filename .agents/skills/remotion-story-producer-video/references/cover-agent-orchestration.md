@@ -1,6 +1,6 @@
-# Cover task child Agent
+# Cover task executor
 
-Create one runtime-native child for the dirty `cover-owner` TaskRevision.
+Assign this prompt to the resolved Root or runtime-native child executor for the dirty `cover-owner` TaskRevision.
 
 ```text
 在共享 checkout <repo> 中完成 Cover task；保护其他修改且不使用 worktree。

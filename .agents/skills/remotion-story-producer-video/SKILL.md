@@ -1,6 +1,6 @@
 ---
 name: remotion-story-producer-video
-description: Dispatch Remotion production and hand off to fixed continuation.
+description: Resolve inline or bounded-Agent execution, produce, and hand off to fixed continuation.
 ---
 
 # Remotion Story Producer Video
@@ -18,7 +18,16 @@ Before inspect, use only the current Agent's actually callable tools. Activate t
 MCP exposes `get_provider_status`, `search_images`, `preview_images`, and `acquire_image` with an import-compatible
 receipt; config, shell discovery, and another Agent's tools do not count. If absent, omit it without error,
 placeholder, or DAG node. If active, query local Catalog first and use `project:asset:import`. MCP data never enters
-children, artifacts, delivery, or runtime.
+task executors, artifacts, delivery, or runtime.
+
+## Resolve Agent execution
+
+Before inspect, resolve execution once with `project:execution:resolve`. Explicit user prompt fields override the
+settings page; omitted fields inherit it, then built-in defaults. Prompt overrides apply only to this production
+unless the user explicitly asks to save them. Pass known runtime capacity. Inline means Root executes dirty tasks
+sequentially; subagents use `effectiveMaxConcurrency` with the repository ceiling of four. If exact requested
+capacity or known zero runtime capacity resolves `blocked`, stop before prepare. Do not persist raw prompt text or
+put this policy in revision IDs.
 
 ## Inspect before cost
 
@@ -28,22 +37,27 @@ unknown.
 ## Prepare content-addressed tasks
 
 Only after reporting run `project:produce:prepare`; it may call providers and open an ExecutionAttempt. Identities
-exclude its diagnostics. Reuse artifacts and dispatch only `dirtyAgentTasks`.
+exclude its diagnostics. Reuse artifacts and execute only `dirtyAgentTasks`.
 
-## Delegate dirty Agent tasks
+## Execute dirty Agent tasks
 
-Use one runtime-native child per task with its [Scene](references/scene-agent-orchestration.md),
+Use the resolved mode with the task's [Scene](references/scene-agent-orchestration.md),
 [GlobalVisual](references/global-visual-agent-orchestration.md), or [Cover](references/cover-agent-orchestration.md)
-prompt; never delegate `scene-template`. It reads immutable inputs, writes only
+prompt; never Agent-author `scene-template`. Each Root or child executor reads immutable inputs, writes only
 `.producer-work/<storyId>/<taskRevision>/`, loops check, then runs prepare's attempt-bound terminal command. The
 validated ArtifactAttestation and task-terminal event are durable authority.
+
+Inline Root executes exactly one workspace at a time. Subagent mode admits at most `effectiveMaxConcurrency`
+runtime-native children; when dirty tasks exceed it, wait-any only to release an admission slot. Never poll all
+children or treat chat as completion. A hard spawn failure runs that task's exact `hostFailureCommand`; it does not
+switch modes. Once every dirty task has been executed or admitted, continue immediately.
 
 ## Hand off to fixed continuation
 
 Root's final production action is the exact `continuationCommand`; then it suspends without polling or
 token-consuming supervision. Code claims once, watches immutable events, and rejects duplicates.
-Any failure exits nonzero without converge; all-success converges exactly once; six-hour absence times out. No
-retry, Root re-entry, direct converge, or workspace edit.
+Any failure exits nonzero without converge; all-success converges exactly once; the one-hour total deadline starts
+at ExecutionAttempt creation. No retry, Root re-entry, direct converge, or workspace edit.
 
 ## Preserve production invariants
 
@@ -54,12 +68,13 @@ retry, Root re-entry, direct converge, or workspace edit.
 
 ## Classify failure by task owner
 
-Only its child corrects a workspace before terminal; failure ends the attempt. Separate engineering uses
+Only its assigned executor corrects a workspace before terminal; failure ends the attempt. Separate engineering uses
 [system hardening](references/agent-rework-and-system-hardening.md). Never retry, fallback, weaken validators, or
 fabricate attestations inside it.
 
 ## Finish with verified delivery
 
-Before dispatch report IDs, inspection, cost, summary, and TaskRevisions. After dispatch, no Root terminal report.
+Before execution report the resolved mode/capacity, IDs, inspection, cost, summary, and TaskRevisions. After the
+continuation starts, no Root terminal report.
 Only `project-production-complete` or `project-production-current` proves delivery. Do not publish, push, or use
 `git add .`.

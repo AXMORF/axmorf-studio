@@ -9,9 +9,14 @@ import {
   validateTaskExplanationStoryBinding,
 } from "../../src/contracts/production-inspection";
 import { StoryIdSchema } from "../../src/contracts/primitives";
+import {
+  ExecutionPreferencesSchema,
+  type ExecutionPreferences,
+} from "./execution-preferences";
 
 export const SETTINGS_API_ROUTES = {
   settings: "/api/settings",
+  executionPreferences: "/api/execution-preferences",
   diagnostics: "/api/diagnostics",
   productionProgress: "/api/production-progress",
   projectDeletion: "/api/projects/delete",
@@ -183,7 +188,8 @@ export const DeleteProjectResponseSchema = z
   .object({ deletedProjectId: StoryIdSchema })
   .strict();
 
-export { ProducerConfigSchema };
+export { ExecutionPreferencesSchema, ProducerConfigSchema };
+export type { ExecutionPreferences };
 
 type DeepMutable<T> = T extends
   | string

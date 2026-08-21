@@ -102,6 +102,16 @@ textarea:focus {
     monospace;
 }
 
+.execution-precedence-note {
+  margin: 18px 26px 0;
+  padding: 14px 16px;
+  border: 1px solid #d5dfe7;
+  background: #f9fbfc;
+  color: #5c6c79;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
 .formula-board {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
