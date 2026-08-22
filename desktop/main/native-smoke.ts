@@ -177,15 +177,6 @@ const rendererProbeSource = (playbackRequired: boolean) =>
     let positions = null;
     let playedTime = null;
     if (playbackRequired) {
-      probeStage = "seek";
-      positions = {
-        first: await seek(0),
-        firstSceneStart: await seek(selected.timeline.scenes[0].startFrame),
-        boundary: await seek(boundary),
-        lastSceneFrame: await seek(selected.timeline.scenes[1].endFrame - 1),
-        last: await seek(selected.frameCount - 1),
-      };
-      await seek(0);
       probeStage = "playback";
       const playbackStartTime = video.currentTime;
       let playbackRejection = null;
@@ -202,6 +193,15 @@ const rendererProbeSource = (playbackRequired: boolean) =>
       }
       playedTime = video.currentTime;
       video.pause();
+      probeStage = "seek";
+      positions = {
+        first: await seek(0),
+        firstSceneStart: await seek(selected.timeline.scenes[0].startFrame),
+        boundary: await seek(boundary),
+        lastSceneFrame: await seek(selected.timeline.scenes[1].endFrame - 1),
+        last: await seek(selected.frameCount - 1),
+      };
+      await seek(boundary);
     }
     probeStage = "popup";
     const popup = window.open("https://example.com/phase-a-popup");
