@@ -155,16 +155,17 @@ const rendererProbeSource = (playbackRequired: boolean) =>
       };
     };
     const boundary = selected.timeline.scenes[1].startFrame;
-    const positions = {
-      first: await seek(0),
-      firstSceneStart: await seek(selected.timeline.scenes[0].startFrame),
-      boundary: await seek(boundary),
-      lastSceneFrame: await seek(selected.timeline.scenes[1].endFrame - 1),
-      last: await seek(selected.frameCount - 1),
-    };
-    await seek(0);
+    let positions = null;
     let playedTime = null;
     if (playbackRequired) {
+      positions = {
+        first: await seek(0),
+        firstSceneStart: await seek(selected.timeline.scenes[0].startFrame),
+        boundary: await seek(boundary),
+        lastSceneFrame: await seek(selected.timeline.scenes[1].endFrame - 1),
+        last: await seek(selected.frameCount - 1),
+      };
+      await seek(0);
       await Promise.race([
         video.play(),
         new Promise((_, rejectPlayback) =>
@@ -198,6 +199,7 @@ const rendererProbeSource = (playbackRequired: boolean) =>
     } catch {
       permissionState = "rejected";
     }
+    await sleep(500);
     resolve({
       state: {
         status: state.status,
@@ -214,6 +216,8 @@ const rendererProbeSource = (playbackRequired: boolean) =>
         videoWidth: video.videoWidth,
         videoHeight: video.videoHeight,
         duration: video.duration,
+        errorCode: video.error?.code ?? null,
+        playerError: document.querySelector(".player-error")?.textContent ?? null,
         playbackRequired,
         playedTime,
         positions,
@@ -279,9 +283,11 @@ export const runPackagedNativeSmoke = async ({
         videoWidth: number;
         videoHeight: number;
         duration: number;
+        errorCode: number | null;
+        playerError: string | null;
         playbackRequired: boolean;
         playedTime: number | null;
-        positions: {
+        positions: null | {
           first: {
             currentTime: number;
             playhead: string;
@@ -362,6 +368,8 @@ export const runPackagedNativeSmoke = async ({
       renderer.media.videoHeight === entry.height,
       "media-height",
     );
+    requireRenderer(renderer.media.errorCode === null, "media-error");
+    requireRenderer(renderer.media.playerError === null, "player-error");
     requireRenderer(
       renderer.media.playbackRequired === (options.selection === "default"),
       "playback-requirement",
@@ -372,34 +380,42 @@ export const runPackagedNativeSmoke = async ({
         : renderer.media.playedTime === null,
       "playback-result",
     );
+    requireRenderer(
+      options.selection === "default"
+        ? renderer.media.positions !== null
+        : renderer.media.positions === null,
+      "seek-requirement",
+    );
     requireRenderer(renderer.timeline.sceneCount === 2, "scene-track");
     requireRenderer(renderer.timeline.narrationCount === 3, "narration-track");
     requireRenderer(renderer.timeline.captionCount === 2, "caption-track");
-    requireRenderer(
-      renderer.media.positions.first.activeScene === null,
-      "leading-pause",
-    );
-    requireRenderer(
-      renderer.media.positions.firstSceneStart.activeScene !== null,
-      "first-scene-start",
-    );
-    requireRenderer(
-      renderer.media.positions.boundary.activeScene !== null,
-      "scene-boundary",
-    );
-    requireRenderer(
-      renderer.media.positions.firstSceneStart.activeScene !==
-        renderer.media.positions.boundary.activeScene,
-      "scene-boundary-transition",
-    );
-    requireRenderer(
-      renderer.media.positions.lastSceneFrame.activeScene !== null,
-      "last-scene-frame",
-    );
-    requireRenderer(
-      renderer.media.positions.last.activeScene === null,
-      "trailing-pause",
-    );
+    if (renderer.media.positions !== null) {
+      requireRenderer(
+        renderer.media.positions.first.activeScene === null,
+        "leading-pause",
+      );
+      requireRenderer(
+        renderer.media.positions.firstSceneStart.activeScene !== null,
+        "first-scene-start",
+      );
+      requireRenderer(
+        renderer.media.positions.boundary.activeScene !== null,
+        "scene-boundary",
+      );
+      requireRenderer(
+        renderer.media.positions.firstSceneStart.activeScene !==
+          renderer.media.positions.boundary.activeScene,
+        "scene-boundary-transition",
+      );
+      requireRenderer(
+        renderer.media.positions.lastSceneFrame.activeScene !== null,
+        "last-scene-frame",
+      );
+      requireRenderer(
+        renderer.media.positions.last.activeScene === null,
+        "trailing-pause",
+      );
+    }
     requireRenderer(renderer.security.nodeGlobalsAbsent, "node-api");
     requireRenderer(renderer.security.popupDenied, "popup");
     requireRenderer(
