@@ -156,6 +156,10 @@ const rendererProbeSource = (playbackRequired: boolean) =>
         "seek-" + clamped,
       );
       await until(
+        () => !video.seeking && video.readyState >= 2,
+        "seeked-data-" + clamped,
+      );
+      await until(
         () =>
           (
             document.querySelector('[aria-label="当前播放位置"]')
