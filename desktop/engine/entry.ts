@@ -287,8 +287,6 @@ export const createEngineController = ({
         unavailableCount: 0,
         failureCode: "preview-catalog-failed",
       });
-      await fatal({ requestId, code: "preview-catalog-failed" });
-      return;
     }
     post({
       protocolVersion: RSP_PROTOCOL_VERSION,

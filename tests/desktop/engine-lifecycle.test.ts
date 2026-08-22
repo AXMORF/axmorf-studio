@@ -219,7 +219,7 @@ test("unknown protocol and invalid transferred token fail closed with redacted m
   }
 });
 
-test("Preview Catalog refresh failure closes rsp and never exposes repository error text", async () => {
+test("Preview Catalog refresh failure stays retryable and never exposes repository error text", async () => {
   const harness = createHarness({ failCatalog: true });
   await harness.controller.handleMessageEvent(
     tokenEvent(new Uint8Array(32).fill(4)),
@@ -228,13 +228,11 @@ test("Preview Catalog refresh failure closes rsp and never exposes repository er
     command("refresh-preview-catalog", "refresh-failed"),
   );
 
-  assert.equal(harness.getRspClosed(), 1);
-  assert.equal(harness.messages.at(-1)?.type, "fatal");
-  const fatal = harness.messages.at(-1);
-  if (fatal?.type === "fatal") {
-    assert.equal(fatal.code, "preview-catalog-failed");
-    assert.equal(fatal.message, "Desktop Preview Catalog refresh failed.");
-    assert.doesNotMatch(fatal.message, /private|repository|secret/iu);
-  }
+  assert.equal(harness.getRspClosed(), 0);
+  assert.deepEqual(
+    harness.messages.slice(-2).map(({ type }) => type),
+    ["preview-catalog", "doctor-state"],
+  );
+  assert.doesNotMatch(JSON.stringify(harness.messages), /private|secret/iu);
   assert.equal(harness.controller.doctorState().previewCatalog.state, "failed");
 });

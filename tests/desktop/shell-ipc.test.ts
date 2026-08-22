@@ -1,0 +1,107 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { DESKTOP_SHELL_IPC_CHANNELS } from "../../desktop/contracts/shell";
+import { registerDesktopShellIpc } from "../../desktop/main/register-ipc";
+import { DesktopShellController } from "../../desktop/main/shell-controller";
+
+const controller = new DesktopShellController({
+  defaultWorkspaceRoot: "/tmp/default",
+  workspace: {
+    loadSelectedRoot: async () => null,
+    chooseInitialRoot: async () => null,
+    initializeInitialRoot: async (root) => root,
+    showInFileManager: async () => undefined,
+  },
+  engine: {
+    start: async () => {
+      throw new Error("not used");
+    },
+    refreshPreviewCatalog: async () => {
+      throw new Error("not used");
+    },
+    stop: async () => undefined,
+  },
+  media: {
+    replaceCatalog: async () => undefined,
+    close: async () => undefined,
+  },
+});
+
+test("IPC validates exact main-frame sender, argument count, and argument type", async () => {
+  const handlers = new Map<
+    string,
+    (
+      event: {
+        sender: { id: number; mainFrame: unknown };
+        senderFrame: { url: string } | null;
+      },
+      ...args: readonly unknown[]
+    ) => unknown
+  >();
+  const removed: string[] = [];
+  const dispose = registerDesktopShellIpc({
+    ipcMain: {
+      handle: (channel, listener) => handlers.set(channel, listener),
+      removeHandler: (channel) => removed.push(channel),
+    },
+    trustedSenderRules: new Map([
+      [41, { shellDocumentUrl: "file:///app/index.html" }],
+    ]),
+    controller,
+  });
+  assert.deepEqual(
+    [...handlers.keys()],
+    Object.values(DESKTOP_SHELL_IPC_CHANNELS),
+  );
+
+  const getState = handlers.get(DESKTOP_SHELL_IPC_CHANNELS.getAppState);
+  const selectPreview = handlers.get(DESKTOP_SHELL_IPC_CHANNELS.selectPreview);
+  assert.ok(getState !== undefined);
+  assert.ok(selectPreview !== undefined);
+  const maliciousFrame = { url: "https://evil.test/" };
+  assert.rejects(() =>
+    Promise.resolve(
+      getState({
+        sender: { id: 999, mainFrame: maliciousFrame },
+        senderFrame: maliciousFrame,
+      }),
+    ),
+  );
+  assert.rejects(() =>
+    Promise.resolve(
+      getState({
+        sender: { id: 41, mainFrame: maliciousFrame },
+        senderFrame: { url: "file:///app/index.html" },
+      }),
+    ),
+  );
+  const shellFrame = { url: "file:///app/index.html" };
+  assert.rejects(() =>
+    Promise.resolve(
+      getState(
+        { sender: { id: 41, mainFrame: shellFrame }, senderFrame: shellFrame },
+        "unexpected",
+      ),
+    ),
+  );
+  assert.rejects(() =>
+    Promise.resolve(
+      selectPreview(
+        { sender: { id: 41, mainFrame: shellFrame }, senderFrame: shellFrame },
+        { storyId: "story-one" },
+      ),
+    ),
+  );
+  const state = await getState({
+    sender: { id: 41, mainFrame: shellFrame },
+    senderFrame: shellFrame,
+  });
+  assert.equal(
+    (state as { status: string }).status,
+    "workspace-selection-required",
+  );
+
+  dispose();
+  assert.deepEqual(removed, Object.values(DESKTOP_SHELL_IPC_CHANNELS));
+});
