@@ -31,6 +31,11 @@ import {
 import { initializeDesktopRuntimeResources } from "./initialize-runtime";
 import { registerDesktopShellIpc } from "./register-ipc";
 import { DesktopShellController } from "./shell-controller";
+import {
+  resolveNativeSmokeOptions,
+  runPackagedNativeSmoke,
+  type NativeSmokeOptions,
+} from "./native-smoke-port";
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -38,6 +43,13 @@ declare const DESKTOP_PHASE_A_REPOSITORY_ROOT: string;
 
 export const DESKTOP_MAIN_ENTRY_ID = "desktop-main-phase-a-v1" as const;
 export const DESKTOP_REPOSITORY_ROOT = DESKTOP_PHASE_A_REPOSITORY_ROOT;
+const nativeSmoke: NativeSmokeOptions | null = resolveNativeSmokeOptions({
+  isPackaged: app.isPackaged,
+});
+if (nativeSmoke !== null) {
+  app.setPath("home", nativeSmoke.homeRoot);
+  app.setPath("userData", nativeSmoke.userDataRoot);
+}
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -63,6 +75,15 @@ const shellDocumentUrl = () =>
   ).href;
 
 const chooseInitialWorkspace = async (defaultRoot: string) => {
+  if (nativeSmoke !== null) {
+    if (
+      nativeSmoke.selection === "default" &&
+      nativeSmoke.workspaceRoot !== defaultRoot
+    ) {
+      throw new Error("desktop-native-smoke-default-workspace-drift");
+    }
+    return nativeSmoke.workspaceRoot;
+  }
   const decision = await dialog.showMessageBox({
     type: "question",
     title: "选择唯一 Workspace",
@@ -100,6 +121,14 @@ const forkDesktopEngine = (modulePath: string): DesktopUtilityProcess => {
     kill: () => child.kill(),
   };
 };
+
+let nativeRuntime:
+  | Readonly<{
+      window: Awaited<ReturnType<typeof createDesktopWindow>>["window"];
+      controller: DesktopShellController;
+      media: DesktopMediaProtocol;
+    }>
+  | null = null;
 
 void startDesktopLifecycle({
   app,
@@ -154,6 +183,11 @@ void startDesktopLifecycle({
       unregisterMedia,
     });
     const desktopWindow = initialized.desktopWindow;
+    nativeRuntime = {
+      window: desktopWindow.window,
+      controller,
+      media,
+    };
     return {
       window: desktopWindow.window,
       controller,
@@ -172,6 +206,15 @@ void startDesktopLifecycle({
       dispose: initialized.dispose,
     };
   },
-}).catch(() => {
-  app.quit();
-});
+})
+  .then(async () => {
+    if (nativeSmoke === null || nativeRuntime === null) return;
+    await runPackagedNativeSmoke({
+      app,
+      ...nativeRuntime,
+      options: nativeSmoke,
+    });
+  })
+  .catch(() => {
+    app.quit();
+  });

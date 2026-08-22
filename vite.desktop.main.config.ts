@@ -1,4 +1,5 @@
 import { builtinModules } from "node:module";
+import { resolve } from "node:path";
 
 import { defineConfig } from "vite";
 
@@ -15,6 +16,19 @@ export default defineConfig({
     DESKTOP_PHASE_A_REPOSITORY_ROOT: JSON.stringify(
       DESKTOP_PHASE_A_REPOSITORY_ROOT,
     ),
+  },
+  resolve: {
+    alias: [
+      {
+        find: "./native-smoke-port",
+        replacement: resolve(
+          process.cwd(),
+          process.env.AXMORF_PHASE_A_NATIVE_GATE_BUILD === "1"
+            ? "desktop/main/native-smoke.ts"
+            : "desktop/main/native-smoke-disabled.ts",
+        ),
+      },
+    ],
   },
   build: {
     emptyOutDir: true,

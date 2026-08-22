@@ -1,0 +1,117 @@
+name: Desktop Phase A Apple Silicon native gate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-phase-a-native-gate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native-gate:
+    name: macOS 15 arm64 packaged native smoke
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      EVIDENCE_ROOT: ${{ runner.temp }}/desktop-phase-a-native-evidence
+      FIXTURE_ROOT: ${{ runner.temp }}/desktop-phase-a-repository-fixture
+    steps:
+      - name: Checkout exact validation commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Record and enforce native host identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE_ROOT"
+          test "$(uname -m)" = arm64
+          {
+            echo "commit=$GITHUB_SHA"
+            echo "runnerImage=${ImageOS:-unknown}"
+            echo "runnerImageVersion=${ImageVersion:-unknown}"
+            echo "uname=$(uname -a)"
+            echo "swVers=$(sw_vers -productVersion)"
+            echo "arch=$(uname -m)"
+            echo "node=$(node --version)"
+            echo "npm=$(npm --version)"
+          } >"$EVIDENCE_ROOT/environment.txt"
+
+      - name: Install exact repository dependencies
+        run: npm ci
+
+      - name: Run focused Desktop checks
+        run: npm run desktop:check
+
+      - name: Create isolated repository fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --no-hardlinks --no-checkout "$GITHUB_WORKSPACE" "$FIXTURE_ROOT"
+          git -C "$FIXTURE_ROOT" checkout --detach "$GITHUB_SHA"
+          cd "$FIXTURE_ROOT"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci
+          fixture_log=$(mktemp -t axmorf-native-fixture-log.XXXXXX)
+          npm run desktop:native-fixture | tee "$fixture_log"
+          tail -n 1 "$fixture_log" >"$EVIDENCE_ROOT/fixture-summary.json"
+
+      - name: Package native AXMORF Studio app from fixture locator
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$FIXTURE_ROOT"
+          package_log=$(mktemp -t axmorf-native-package-log.XXXXXX)
+          AXMORF_PHASE_A_NATIVE_GATE_BUILD=1 npm run desktop:package | tee "$package_log"
+          tail -n 1 "$package_log" >"$EVIDENCE_ROOT/package-inventory.json"
+          app="$FIXTURE_ROOT/out/AXMORF Studio-darwin-arm64/AXMORF Studio.app"
+          executable="$app/Contents/MacOS/AXMORF Studio"
+          test -x "$executable"
+          test "$(lipo -archs "$executable")" = arm64
+          {
+            echo "appPath=$app"
+            echo "executablePath=$executable"
+            echo "architectures=$(lipo -archs "$executable")"
+            echo "file=$(file "$executable")"
+            echo "sha256=$(shasum -a 256 "$executable" | awk '{print $1}')"
+            echo "electron=$(node -p 'require("./node_modules/electron/package.json").version')"
+            echo "nativeGateInstrumentation=true"
+          } >"$EVIDENCE_ROOT/package-native-identity.txt"
+
+      - name: Run real packaged app playback and security smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$FIXTURE_ROOT"
+          bash scripts/desktop/native-gate-runner.sh \
+            "$FIXTURE_ROOT/out/AXMORF Studio-darwin-arm64/AXMORF Studio.app" \
+            "$EVIDENCE_ROOT"
+
+      - name: Run repository full gate after native Green
+        run: npm run check
+
+      - name: Assert evidence is redacted and excludes fixture bytes
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e "$EVIDENCE_ROOT/video.mp4"
+          test ! -e "$EVIDENCE_ROOT/cover-4x3.png"
+          test ! -e "$EVIDENCE_ROOT/cover-3x4.png"
+          if find "$EVIDENCE_ROOT" -type f ! -name '*.png' -print0 | xargs -0 grep -El 'Bearer [A-Fa-f0-9]{32,}|visible-editable-token|private/producer|voice_profile' ; then
+            echo "desktop-native-evidence-redaction-failed" >&2
+            exit 1
+          fi
+
+      - name: Upload redacted native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-phase-a-native-evidence-${{ github.run_id }}
+          path: ${{ env.EVIDENCE_ROOT }}
+          if-no-files-found: error
+          retention-days: 14
