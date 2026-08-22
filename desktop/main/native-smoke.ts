@@ -81,8 +81,10 @@ const responseSummary = async (response: Response) => ({
     response.body === null ? 0 : (await response.arrayBuffer()).byteLength,
 });
 
-const rendererProbeSource = `(() => new Promise(async (resolve, reject) => {
+const rendererProbeSource = (playbackRequired: boolean) =>
+  `(() => new Promise(async (resolve, reject) => {
   try {
+    const playbackRequired = ${playbackRequired ? "true" : "false"};
     const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
     const until = async (predicate, label, timeout = 90000) => {
       const deadline = Date.now() + timeout;
@@ -158,18 +160,21 @@ const rendererProbeSource = `(() => new Promise(async (resolve, reject) => {
       last: await seek(selected.frameCount - 1),
     };
     await seek(0);
-    await Promise.race([
-      video.play(),
-      new Promise((_, rejectPlayback) =>
-        setTimeout(
-          () => rejectPlayback(new Error("renderer-timeout:video-play")),
-          30000,
+    let playedTime = null;
+    if (playbackRequired) {
+      await Promise.race([
+        video.play(),
+        new Promise((_, rejectPlayback) =>
+          setTimeout(
+            () => rejectPlayback(new Error("renderer-timeout:video-play")),
+            30000,
+          ),
         ),
-      ),
-    ]);
-    await sleep(800);
-    const playedTime = video.currentTime;
-    video.pause();
+      ]);
+      await sleep(800);
+      playedTime = video.currentTime;
+      video.pause();
+    }
     const popup = window.open("https://example.com/phase-a-popup");
     const beforeNavigation = location.href;
     const navigation = document.createElement("a");
@@ -206,6 +211,7 @@ const rendererProbeSource = `(() => new Promise(async (resolve, reject) => {
         videoWidth: video.videoWidth,
         videoHeight: video.videoHeight,
         duration: video.duration,
+        playbackRequired,
         playedTime,
         positions,
       },
@@ -252,7 +258,7 @@ export const runPackagedNativeSmoke = async ({
       "renderer-load",
     );
     const renderer = (await window.webContents.executeJavaScript(
-      rendererProbeSource,
+      rendererProbeSource(options.selection === "default"),
       true,
     )) as {
       state: {
@@ -270,7 +276,8 @@ export const runPackagedNativeSmoke = async ({
         videoWidth: number;
         videoHeight: number;
         duration: number;
-        playedTime: number;
+        playbackRequired: boolean;
+        playedTime: number | null;
         positions: {
           first: {
             currentTime: number;
@@ -333,7 +340,10 @@ export const runPackagedNativeSmoke = async ({
       renderer.media.readyState < 2 ||
       renderer.media.videoWidth !== entry.width ||
       renderer.media.videoHeight !== entry.height ||
-      renderer.media.playedTime <= 0 ||
+      renderer.media.playbackRequired !== (options.selection === "default") ||
+      (options.selection === "default"
+        ? renderer.media.playedTime === null || renderer.media.playedTime <= 0
+        : renderer.media.playedTime !== null) ||
       renderer.timeline.sceneCount !== 2 ||
       renderer.timeline.narrationCount !== 3 ||
       renderer.timeline.captionCount !== 2 ||
