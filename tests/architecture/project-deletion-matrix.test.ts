@@ -10,11 +10,13 @@ import {
 } from "../../scripts/architecture/project-deletion-matrix";
 
 test("deletion matrix rejects repository and broad roots", () => {
-  for (const unsafe of ["/", "/tmp", process.cwd()]) {
+  for (const unsafe of ["/", tmpdir(), process.cwd()]) {
     assert.throws(() => assertIsolatedMatrixRoot(unsafe));
   }
   assert.doesNotThrow(() =>
-    assertIsolatedMatrixRoot("/tmp/rsp-project-deletion-case-a-123456"),
+    assertIsolatedMatrixRoot(
+      join(tmpdir(), "rsp-project-deletion-case-a-123456"),
+    ),
   );
 });
 
