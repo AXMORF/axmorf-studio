@@ -15,9 +15,6 @@ jobs:
     name: macOS 15 arm64 packaged native smoke
     runs-on: macos-15
     timeout-minutes: 120
-    env:
-      EVIDENCE_ROOT: ${{ runner.temp }}/desktop-phase-a-native-evidence
-      FIXTURE_ROOT: ${{ runner.temp }}/desktop-phase-a-repository-fixture
     steps:
       - name: Checkout exact validation commit
         uses: actions/checkout@v4
@@ -28,6 +25,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          EVIDENCE_ROOT="$RUNNER_TEMP/desktop-phase-a-native-evidence"
+          FIXTURE_ROOT="$RUNNER_TEMP/desktop-phase-a-repository-fixture"
+          {
+            echo "EVIDENCE_ROOT=$EVIDENCE_ROOT"
+            echo "FIXTURE_ROOT=$FIXTURE_ROOT"
+          } >>"$GITHUB_ENV"
           mkdir -p "$EVIDENCE_ROOT"
           test "$(uname -m)" = arm64
           {
