@@ -130,6 +130,17 @@ const rendererProbeSource = (playbackRequired: boolean) =>
       throw new Error("renderer-catalog-selection-failed");
     }
     const video = document.querySelector("video");
+    let probeStage = "metadata";
+    const mediaErrors = [];
+    video.addEventListener("error", () => {
+      mediaErrors.push({
+        stage: probeStage,
+        code: video.error?.code ?? null,
+        message: video.error?.message ?? null,
+        networkState: video.networkState,
+        readyState: video.readyState,
+      });
+    });
     await until(() => video.readyState >= 1 && Number.isFinite(video.duration), "video-metadata");
     const selected = state.catalog.entries[0];
     const seek = async (frame) => {
@@ -158,6 +169,7 @@ const rendererProbeSource = (playbackRequired: boolean) =>
     let positions = null;
     let playedTime = null;
     if (playbackRequired) {
+      probeStage = "seek";
       positions = {
         first: await seek(0),
         firstSceneStart: await seek(selected.timeline.scenes[0].startFrame),
@@ -166,6 +178,7 @@ const rendererProbeSource = (playbackRequired: boolean) =>
         last: await seek(selected.frameCount - 1),
       };
       await seek(0);
+      probeStage = "playback";
       await Promise.race([
         video.play(),
         new Promise((_, rejectPlayback) =>
@@ -179,7 +192,9 @@ const rendererProbeSource = (playbackRequired: boolean) =>
       playedTime = video.currentTime;
       video.pause();
     }
+    probeStage = "popup";
     const popup = window.open("https://example.com/phase-a-popup");
+    probeStage = "navigation";
     const beforeNavigation = location.href;
     const navigation = document.createElement("a");
     navigation.href = "https://example.com/phase-a-navigation";
@@ -187,18 +202,21 @@ const rendererProbeSource = (playbackRequired: boolean) =>
     document.body.append(navigation);
     navigation.click();
     await sleep(250);
+    probeStage = "download";
     const download = document.createElement("a");
     download.href = "data:text/plain,blocked";
     download.download = "phase-a-download.txt";
     document.body.append(download);
     download.click();
     await sleep(250);
+    probeStage = "permission";
     let permissionState = "unavailable";
     try {
       permissionState = (await navigator.permissions.query({name: "geolocation"})).state;
     } catch {
       permissionState = "rejected";
     }
+    probeStage = "settle";
     await sleep(500);
     resolve({
       state: {
@@ -217,6 +235,8 @@ const rendererProbeSource = (playbackRequired: boolean) =>
         videoHeight: video.videoHeight,
         duration: video.duration,
         errorCode: video.error?.code ?? null,
+        errorMessage: video.error?.message ?? null,
+        mediaErrors,
         playerError: document.querySelector(".player-error")?.textContent ?? null,
         playbackRequired,
         playedTime,
@@ -284,6 +304,14 @@ export const runPackagedNativeSmoke = async ({
         videoHeight: number;
         duration: number;
         errorCode: number | null;
+        errorMessage: string | null;
+        mediaErrors: ReadonlyArray<{
+          stage: string;
+          code: number | null;
+          message: string | null;
+          networkState: number;
+          readyState: number;
+        }>;
         playerError: string | null;
         playbackRequired: boolean;
         playedTime: number | null;

@@ -114,6 +114,8 @@ test("native smoke drives the renderer UI and fails fast on app startup errors",
   assert.match(nativeSmoke, /playbackRequired/u);
   assert.match(nativeSmoke, /HAVE_CURRENT_DATA : HAVE_METADATA/u);
   assert.match(nativeSmoke, /playerError === null/u);
+  assert.match(nativeSmoke, /stage: probeStage/u);
+  assert.match(nativeSmoke, /errorMessage/u);
   assert.match(
     nativeSmoke,
     /options\.selection === "default"[\s\S]*positions !== null/u,
