@@ -121,7 +121,7 @@ run_app() {
     const ledger = JSON.parse(fs.readFileSync(path.join(root, ".rsp/managed-files.json"), "utf8"));
     for (const file of ledger.files) {
       const target = path.join(root, file.path);
-      const checksum = "sha256:" + crypto.createHash("sha256").update(fs.readFileSync(target)).digest("hex");
+      const checksum = crypto.createHash("sha256").update(fs.readFileSync(target)).digest("hex");
       if (checksum !== file.sha256 || (fs.statSync(target).mode & 0o777) !== file.mode) process.exit(1);
     }
     process.stdout.write(JSON.stringify({workspaceContract: "green", managedFileCount: ledger.files.length}) + "\n");
