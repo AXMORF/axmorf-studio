@@ -113,24 +113,8 @@ const rendererProbeSource = (playbackRequired: boolean) =>
       choice.click();
     }
     await until(() => document.querySelector("video") !== null, "video-element");
-    const selectionControl = document.querySelector("select");
-    if (selectionControl === null) throw new Error("renderer-preview-selection-missing");
-    const stateBeforeSelection = await window.axmorfStudio.getAppState();
-    if (
-      stateBeforeSelection.status !== "ready" ||
-      stateBeforeSelection.catalog.entries.length !== 1
-    ) {
-      throw new Error("renderer-catalog-not-ready");
-    }
-    selectionControl.value = stateBeforeSelection.catalog.entries[0].storyId;
-    selectionControl.dispatchEvent(new Event("change", {bubbles: true}));
-    await sleep(100);
-    const state = await window.axmorfStudio.getAppState();
-    if (state.status !== "ready" || state.catalog.entries.length !== 1) {
-      throw new Error("renderer-catalog-selection-failed");
-    }
     const video = document.querySelector("video");
-    let probeStage = "metadata";
+    let probeStage = "initial-load";
     const mediaErrors = [];
     video.addEventListener("error", () => {
       mediaErrors.push({
@@ -141,6 +125,26 @@ const rendererProbeSource = (playbackRequired: boolean) =>
         readyState: video.readyState,
       });
     });
+    const selectionControl = document.querySelector("select");
+    if (selectionControl === null) throw new Error("renderer-preview-selection-missing");
+    const stateBeforeSelection = await window.axmorfStudio.getAppState();
+    if (
+      stateBeforeSelection.status !== "ready" ||
+      stateBeforeSelection.catalog.entries.length !== 1
+    ) {
+      throw new Error("renderer-catalog-not-ready");
+    }
+    if (playbackRequired) {
+      probeStage = "selection";
+      selectionControl.value = stateBeforeSelection.catalog.entries[0].storyId;
+      selectionControl.dispatchEvent(new Event("change", {bubbles: true}));
+      await sleep(100);
+    }
+    const state = await window.axmorfStudio.getAppState();
+    if (state.status !== "ready" || state.catalog.entries.length !== 1) {
+      throw new Error("renderer-catalog-selection-failed");
+    }
+    probeStage = "metadata";
     await until(() => video.readyState >= 1 && Number.isFinite(video.duration), "video-metadata");
     const selected = state.catalog.entries[0];
     const seek = async (frame) => {
