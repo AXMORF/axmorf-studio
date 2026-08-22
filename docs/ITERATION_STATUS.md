@@ -137,10 +137,16 @@ focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests
 - token 只通过 owner-only file 和 MessagePort 进入 Engine，CLI 只连接 authenticated Unix-domain socket；App/Engine
   runtime 不启动 Settings、Remotion Studio 或其他 owned TCP listener；
 - 只读 repository Preview Catalog；只接受 current Revision 匹配、exact-four-file validation Green 的 Delivery，
-  timing 从同 revision canonical source 投影；
+  timing 从同 revision canonical source 投影；每个 Project 只做一次完整 Delivery validation，timing 前后用轻量
+  current Revision 读取复验，Catalog refresh 使用独立有界长超时；
 - bundled native `<video>` Player、Project selector、Scene/narration chunk-pause/caption tracks，以及不暴露 path、
   checksum/size 的 allowlisted `axmorf-media` stream protocol；
-- 实际临时 Workspace/真实 socket/安装后 CLI 的 Agent integration smoke，及显式 package inventory allowlist。
+- media ticket 在准入时做一次完整 SHA-256，后续 Range/HEAD 通过含 ctime 的 pinned descriptor/path identity 做 O(1)
+  drift gate，不随 seek 重复哈希整段视频；
+- 实际临时 Workspace/真实 socket/安装后 CLI 的 Agent integration smoke；显式 package inventory 只允许固定 bundles、
+  brand/integration resources 与 `package.json`，拒绝整个 `node_modules`、Remotion dependency tree 和 repository data；
+- window load/IPC setup 的启动失败 transaction 会停止 Engine/UDS、销毁 partial window 并撤销 media handler，正常
+  lifecycle dispose 保持幂等。
 
 Phase A 不修改 current production/delivery contracts，不提供 production/delivery `rsp` 命令，不迁移 Project/media/
 artifact/delivery，不实现 `source-current`、optional Delivery、完整 Runtime Pack、DMG/签名/发布或许可证变更。当前

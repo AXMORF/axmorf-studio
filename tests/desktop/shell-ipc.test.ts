@@ -103,5 +103,34 @@ test("IPC validates exact main-frame sender, argument count, and argument type",
   );
 
   dispose();
-  assert.deepEqual(removed, Object.values(DESKTOP_SHELL_IPC_CHANNELS));
+  dispose();
+  assert.deepEqual(
+    removed,
+    [...Object.values(DESKTOP_SHELL_IPC_CHANNELS)].reverse(),
+  );
+});
+
+test("IPC registration rolls back only handlers installed before a setup failure", () => {
+  const registered: string[] = [];
+  const removed: string[] = [];
+  assert.throws(
+    () =>
+      registerDesktopShellIpc({
+        ipcMain: {
+          handle: (channel) => {
+            if (registered.length === 3) throw new Error("ipc-setup-failed");
+            registered.push(channel);
+          },
+          removeHandler: (channel) => removed.push(channel),
+        },
+        trustedSenderRules: new Map(),
+        controller,
+      }),
+    /ipc-setup-failed/u,
+  );
+  assert.deepEqual(removed, [...registered].reverse());
+  assert.equal(
+    removed.includes(DESKTOP_SHELL_IPC_CHANNELS.refreshPreviewCatalog),
+    false,
+  );
 });

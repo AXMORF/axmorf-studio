@@ -7,7 +7,6 @@ import test from "node:test";
 import { buildRepositoryPreviewCatalog } from "../../desktop/adapters/repository-preview-catalog";
 import {
   DELIVERY_BUILD_POLICY_VERSION,
-  ProductionInspectionSchema,
   ProjectRegistrationDescriptorSchema,
   Sha256DigestSchema,
   SemanticTimingSchema,
@@ -175,28 +174,16 @@ const createProject = (publish: DeliveryPublish) => ({
   narrativeBaselineFingerprint: digest("3"),
 });
 
-const createInspection = ({
+const createRevision = ({
   storyId,
   revisionId = revision("b"),
 }: {
   readonly storyId: string;
   readonly revisionId?: `revision-${string}`;
 }) =>
-  ProductionInspectionSchema.parse({
-    schemaVersion: 1,
-    contractVersion: "production-inspection-v1",
+  ({
     storyId,
-    sourceState: "production-inputs-ready",
-    currentRevisionId: revisionId,
-    baseline: { kind: "current-delivery", revisionId },
-    estimatedCost: {
-      providerRequests: 0,
-      providerCacheHits: 1,
-      agentTasks: 0,
-      deliveryMedia: [],
-    },
-    tasks: [],
-    nextAction: "converge-current",
+    revisionId,
   });
 
 test("repository Preview Catalog exposes only current verified deliveries in stable order", async () => {
@@ -206,6 +193,8 @@ test("repository Preview Catalog exposes only current verified deliveries in sta
       createPublish({ storyId }),
     ]),
   );
+  const revisionReads = new Map<string, number>();
+  const deliveryReads = new Map<string, number>();
   const catalog = await buildRepositoryPreviewCatalog({
     repositoryRoot: "/repository",
     dependencies: {
@@ -217,9 +206,14 @@ test("repository Preview Catalog exposes only current verified deliveries in sta
         const storyId = compositionPath.split("/")[2]!;
         return createProject(publishes.get(storyId)!);
       },
-      inspectProduction: async ({ projectId }) =>
-        createInspection({ storyId: projectId }),
-      inspectDelivery: async ({ storyId }) => publishes.get(storyId)!,
+      readRevision: async ({ projectId }) => {
+        revisionReads.set(projectId, (revisionReads.get(projectId) ?? 0) + 1);
+        return createRevision({ storyId: projectId });
+      },
+      inspectDelivery: async ({ storyId }) => {
+        deliveryReads.set(storyId, (deliveryReads.get(storyId) ?? 0) + 1);
+        return publishes.get(storyId)!;
+      },
       readTiming: async ({ storyId }) => createTiming({ storyId }),
     },
   });
@@ -231,6 +225,8 @@ test("repository Preview Catalog exposes only current verified deliveries in sta
   assert.deepEqual(catalog.unavailable, []);
   assert.equal(catalog.entries[0]?.timeline.scenes[0]?.label, "开场");
   assert.equal(catalog.entries[0]?.timeline.narration[0]?.startFrame, 0);
+  assert.deepEqual([...revisionReads.values()], [2, 2]);
+  assert.deepEqual([...deliveryReads.values()], [1, 1]);
   assert.doesNotMatch(
     JSON.stringify(catalog),
     /repositoryPath|absolutePath|\/repository/iu,
@@ -250,7 +246,7 @@ test("repository Preview Catalog isolates Project failures behind fixed reason c
   const publishes = new Map(
     storyIds.map((storyId) => [storyId, createPublish({ storyId })]),
   );
-  const inspectionReads = new Map<string, number>();
+  const revisionReads = new Map<string, number>();
   const catalog = await buildRepositoryPreviewCatalog({
     repositoryRoot: "/private/repository",
     dependencies: {
@@ -265,20 +261,17 @@ test("repository Preview Catalog isolates Project failures behind fixed reason c
         }
         return createProject(publishes.get(storyId)!);
       },
-      inspectProduction: async ({ projectId }) => {
-        inspectionReads.set(
+      readRevision: async ({ projectId }) => {
+        revisionReads.set(
           projectId,
-          (inspectionReads.get(projectId) ?? 0) + 1,
+          (revisionReads.get(projectId) ?? 0) + 1,
         );
-        if (projectId === "delivery-invalid") {
-          throw new Error("ffprobe /private/repository/delivery-invalid");
-        }
-        return createInspection({
+        return createRevision({
           storyId: projectId,
           revisionId:
             projectId === "delivery-stale" ||
             (projectId === "source-race" &&
-              (inspectionReads.get(projectId) ?? 0) > 1)
+              (revisionReads.get(projectId) ?? 0) > 1)
               ? revision("9")
               : revision("b"),
         });
@@ -351,8 +344,8 @@ test("repository Preview Catalog never follows a SemanticTiming symlink", async 
         "src/projects/symlink-project/Composition.tsx",
       ],
       loadProject: async () => createProject(publish),
-      inspectProduction: async () =>
-        createInspection({ storyId: "symlink-project" }),
+      readRevision: async () =>
+        createRevision({ storyId: "symlink-project" }),
       inspectDelivery: async () => publish,
     },
   });

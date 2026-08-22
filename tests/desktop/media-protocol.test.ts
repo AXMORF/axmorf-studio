@@ -83,12 +83,12 @@ const catalogFor = (bytes: Uint8Array): PreviewCatalog =>
     unavailable: [],
   });
 
-const setup = async () => {
+const setup = async (byteLength = 192) => {
   const repositoryRoot = await mkdtemp(join(tmpdir(), "axmorf-media-"));
   const delivery = join(repositoryRoot, "deliveries/story-one");
   await mkdir(delivery, { recursive: true });
   const path = join(delivery, "video.mp4");
-  const bytes = Uint8Array.from({ length: 192 }, (_, index) => index);
+  const bytes = Uint8Array.from({ length: byteLength }, (_, index) => index);
   await writeFile(path, bytes);
   const catalog = catalogFor(bytes);
   const url = buildPreviewVideoUrl(catalog.entries[0]!);
@@ -209,6 +209,31 @@ test("refresh revokes stale URLs and pinned descriptor rejects atomic replacemen
     }),
   );
   assert.equal((await media.handleRequest(new Request(url))).status, 404);
+});
+
+test("refresh reuses an unchanged ticket while an existing response is streaming", async (context) => {
+  const { repositoryRoot, bytes, catalog, url, media } = await setup(
+    128 * 1024,
+  );
+  context.after(async () => {
+    await media.close();
+    await rm(repositoryRoot, { recursive: true, force: true });
+  });
+
+  const response = await media.handleRequest(new Request(url));
+  assert.ok(response.body !== null);
+  const reader = response.body.getReader();
+  const first = await reader.read();
+  assert.equal(first.done, false);
+  await media.replaceCatalog(catalog);
+  const chunks = [first.value!];
+  for (;;) {
+    const next = await reader.read();
+    if (next.done) break;
+    chunks.push(next.value);
+  }
+  const streamed = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
+  assert.deepEqual(streamed, Buffer.from(bytes));
 });
 
 test("in-place checksum drift and symlink media are rejected", async (context) => {

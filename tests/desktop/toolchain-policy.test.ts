@@ -84,7 +84,6 @@ test("package allowlist excludes repository data and private state", () => {
   assert.deepEqual(DESKTOP_PACKAGE_ALLOWED_ROOTS, [
     ".vite",
     "package.json",
-    "node_modules",
     "desktop/resources/brand/axmorf-studio-icon.icns",
     "desktop/resources/brand/axmorf-studio-icon.png",
     "desktop/resources/brand/axmorf-studio-icon.svg",
@@ -100,7 +99,6 @@ test("package allowlist excludes repository data and private state", () => {
   for (const path of [
     ".vite/build/main.js",
     "package.json",
-    "node_modules/zod/package.json",
     "desktop/resources/brand/axmorf-studio-icon.icns",
     "desktop/resources/workspace-integration/AGENTS.md",
   ]) {
@@ -116,6 +114,10 @@ test("package allowlist excludes repository data and private state", () => {
     ".producer-runs/story-one/run.json",
     ".narration-work/story-one/audio.wav",
     "out/story-one/video.mp4",
+    "node_modules/zod/package.json",
+    "node_modules/@remotion/cli/package.json",
+    "node_modules/@remotion/studio-server/package.json",
+    "node_modules/@remotion/renderer/package.json",
     "node_modules/.bin/remotion",
     "desktop/resources/workspace-integration/assets/library/unknown.wav",
   ]) {
@@ -125,7 +127,10 @@ test("package allowlist excludes repository data and private state", () => {
     isDesktopPackagePathAllowed("/deliveries/story-one/video.mp4"),
     false,
   );
-  assert.equal(isDesktopPackagePathAllowed("/node_modules/zod/index.js"), true);
+  assert.equal(
+    isDesktopPackagePathAllowed("/node_modules/@remotion/cli/index.js"),
+    false,
+  );
   assert.equal(
     isDesktopPackagePathAllowed("/node_modules/.bin/remotion"),
     false,

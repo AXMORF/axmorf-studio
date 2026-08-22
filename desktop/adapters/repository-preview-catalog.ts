@@ -3,10 +3,11 @@ import { dirname, join, relative, sep } from "node:path";
 
 import {
   SemanticTimingSchema,
+  ProductionRevisionIdSchema,
   StoryIdSchema,
   type SemanticTiming,
 } from "../../src/contracts";
-import { inspectProjectProduction } from "../../scripts/project-production/application/inspect-production";
+import { readCurrentProductionRevision } from "../../scripts/project-production/application/current-revision";
 import { inspectCurrentDelivery } from "../../scripts/project-production/adapters/current-delivery-inspection";
 import {
   discoverProjectEntries,
@@ -25,7 +26,10 @@ const COMPOSITION_PATH_PATTERN =
 type CatalogDependencies = Readonly<{
   discoverProjects: typeof discoverProjectEntries;
   loadProject: typeof loadProjectRegistrationEntry;
-  inspectProduction: typeof inspectProjectProduction;
+  readRevision: (input: {
+    readonly rootDir: string;
+    readonly projectId: string;
+  }) => Promise<Readonly<{ storyId: string; revisionId: string }>>;
   inspectDelivery: typeof inspectCurrentDelivery;
   readTiming: (input: {
     readonly repositoryRoot: string;
@@ -84,7 +88,13 @@ const readSafeSemanticTiming = async ({
 const defaultDependencies: CatalogDependencies = {
   discoverProjects: discoverProjectEntries,
   loadProject: loadProjectRegistrationEntry,
-  inspectProduction: inspectProjectProduction,
+  readRevision: async ({ rootDir, projectId }) => {
+    const revision = await readCurrentProductionRevision({
+      rootDir,
+      projectId,
+    });
+    return { storyId: revision.storyId, revisionId: revision.revisionId };
+  },
   inspectDelivery: inspectCurrentDelivery,
   readTiming: readSafeSemanticTiming,
 };
@@ -177,28 +187,19 @@ const inspectDiscoveredProject = async ({
     return { kind: "unavailable", storyId, code: "source-not-ready" };
   }
 
-  let inspection;
+  let revisionBeforeTiming;
   try {
-    inspection = await dependencies.inspectProduction({
+    revisionBeforeTiming = await dependencies.readRevision({
       rootDir: repositoryRoot,
       projectId: storyId,
     });
   } catch {
-    try {
-      await dependencies.inspectDelivery({
-        rootDir: repositoryRoot,
-        storyId,
-      });
-    } catch {
-      return { kind: "unavailable", storyId, code: "delivery-invalid" };
-    }
     return { kind: "unavailable", storyId, code: "source-not-ready" };
   }
-  if (
-    inspection.storyId !== storyId ||
-    inspection.sourceState !== "production-inputs-ready" ||
-    inspection.currentRevisionId === null
-  ) {
+  const beforeRevisionId = ProductionRevisionIdSchema.safeParse(
+    revisionBeforeTiming.revisionId,
+  );
+  if (revisionBeforeTiming.storyId !== storyId || !beforeRevisionId.success) {
     return { kind: "unavailable", storyId, code: "source-not-ready" };
   }
 
@@ -214,7 +215,7 @@ const inspectDiscoveredProject = async ({
   if (publish === null) {
     return { kind: "unavailable", storyId, code: "delivery-missing" };
   }
-  if (publish.revisionId !== inspection.currentRevisionId) {
+  if (publish.revisionId !== beforeRevisionId.data) {
     return { kind: "unavailable", storyId, code: "delivery-stale" };
   }
 
@@ -244,25 +245,27 @@ const inspectDiscoveredProject = async ({
     return { kind: "unavailable", storyId, code: "timing-invalid" };
   }
 
-  let inspectionAfterTiming;
+  let revisionAfterTiming;
   try {
-    inspectionAfterTiming = await dependencies.inspectProduction({
+    revisionAfterTiming = await dependencies.readRevision({
       rootDir: repositoryRoot,
       projectId: storyId,
     });
   } catch {
     return { kind: "unavailable", storyId, code: "source-not-ready" };
   }
+  const afterRevisionId = ProductionRevisionIdSchema.safeParse(
+    revisionAfterTiming.revisionId,
+  );
   if (
-    inspectionAfterTiming.storyId !== inspection.storyId ||
-    inspectionAfterTiming.sourceState !== inspection.sourceState ||
-    inspectionAfterTiming.currentRevisionId === null
+    revisionAfterTiming.storyId !== revisionBeforeTiming.storyId ||
+    !afterRevisionId.success
   ) {
     return { kind: "unavailable", storyId, code: "source-not-ready" };
   }
   if (
-    inspectionAfterTiming.currentRevisionId !== inspection.currentRevisionId ||
-    inspectionAfterTiming.currentRevisionId !== publish.revisionId
+    afterRevisionId.data !== beforeRevisionId.data ||
+    afterRevisionId.data !== publish.revisionId
   ) {
     return { kind: "unavailable", storyId, code: "delivery-stale" };
   }

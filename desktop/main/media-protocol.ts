@@ -18,6 +18,7 @@ type FileIdentity = Readonly<{
   ino: bigint;
   size: number;
   mtimeNs: bigint;
+  ctimeNs: bigint;
 }>;
 
 type MediaTicket = Readonly<{
@@ -34,19 +35,27 @@ const sameIdentity = (left: FileIdentity, right: FileIdentity) =>
   left.dev === right.dev &&
   left.ino === right.ino &&
   left.size === right.size &&
-  left.mtimeNs === right.mtimeNs;
+  left.mtimeNs === right.mtimeNs &&
+  left.ctimeNs === right.ctimeNs;
 
 const toIdentity = (stat: {
   readonly dev: bigint;
   readonly ino: bigint;
   readonly size: bigint;
   readonly mtimeNs: bigint;
+  readonly ctimeNs: bigint;
 }): FileIdentity => {
   const size = Number(stat.size);
   if (!Number.isSafeInteger(size) || size < 0) {
     throw new Error("desktop-media-size-invalid");
   }
-  return { dev: stat.dev, ino: stat.ino, size, mtimeNs: stat.mtimeNs };
+  return {
+    dev: stat.dev,
+    ino: stat.ino,
+    size,
+    mtimeNs: stat.mtimeNs,
+    ctimeNs: stat.ctimeNs,
+  };
 };
 
 const checksumHandle = async (handle: FileHandle, size: number) => {
@@ -134,7 +143,15 @@ export class DesktopMediaProtocol {
     const next = new Map<string, MediaTicket>();
     try {
       for (const entry of catalog.entries) {
-        const ticket = await this.#openTicket(entry);
+        const url = buildPreviewVideoUrl(entry);
+        const previous = this.#tickets.get(url);
+        const ticket =
+          previous !== undefined &&
+          previous.checksum === entry.video.checksum &&
+          previous.identity.size === entry.video.sizeBytes &&
+          (await this.#isCurrent(previous))
+            ? previous
+            : await this.#openTicket(entry);
         if (next.has(ticket.url)) throw new Error("desktop-media-url-conflict");
         next.set(ticket.url, ticket);
       }
@@ -263,10 +280,7 @@ export class DesktopMediaProtocol {
       ) {
         return false;
       }
-      return (
-        (await checksumHandle(ticket.handle, ticket.identity.size)) ===
-        ticket.checksum
-      );
+      return true;
     } catch {
       return false;
     }
@@ -275,8 +289,11 @@ export class DesktopMediaProtocol {
   #replaceTickets = async (next: Map<string, MediaTicket>) => {
     const previous = this.#tickets;
     this.#tickets = next;
+    const retained = new Set(next.values());
     await Promise.allSettled(
-      [...previous.values()].map(({ handle }) => handle.close()),
+      [...previous.values()]
+        .filter((ticket) => !retained.has(ticket))
+        .map(({ handle }) => handle.close()),
     );
   };
 }

@@ -48,12 +48,28 @@ export const registerDesktopShellIpc = ({
   >;
   controller: DesktopShellController;
 }>) => {
+  const registeredChannels: string[] = [];
+  let disposed = false;
+  const register = (
+    channel: string,
+    listener: (event: IpcEvent, ...args: readonly unknown[]) => unknown,
+  ) => {
+    ipcMain.handle(channel, listener);
+    registeredChannels.push(channel);
+  };
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    for (const channel of [...registeredChannels].reverse()) {
+      ipcMain.removeHandler(channel);
+    }
+  };
   const registerStateMethod = (
     channel: string,
     argumentCount: number,
     invoke: (...args: readonly unknown[]) => Promise<unknown> | unknown,
   ) => {
-    ipcMain.handle(channel, async (event, ...args) => {
+    register(channel, async (event, ...args) => {
       validateSender(event, trustedSenderRules);
       if (args.length !== argumentCount) {
         throw new Error("desktop-ipc-arguments-invalid");
@@ -62,48 +78,49 @@ export const registerDesktopShellIpc = ({
     });
   };
 
-  registerStateMethod(DESKTOP_SHELL_IPC_CHANNELS.getAppState, 0, () =>
-    controller.getState(),
-  );
-  registerStateMethod(
-    DESKTOP_SHELL_IPC_CHANNELS.chooseInitialWorkspace,
-    0,
-    controller.chooseInitialWorkspace,
-  );
-  ipcMain.handle(
-    DESKTOP_SHELL_IPC_CHANNELS.showWorkspaceInFinder,
-    async (event, ...args) => {
-      validateSender(event, trustedSenderRules);
-      if (args.length !== 0) {
-        throw new Error("desktop-ipc-arguments-invalid");
-      }
-      await controller.showWorkspaceInFinder();
-    },
-  );
-  registerStateMethod(
-    DESKTOP_SHELL_IPC_CHANNELS.refreshPreviewCatalog,
-    0,
-    controller.refreshPreviewCatalog,
-  );
-  registerStateMethod(
-    DESKTOP_SHELL_IPC_CHANNELS.selectPreview,
-    1,
-    (...args) => {
-      if (typeof args[0] !== "string") {
-        throw new Error("desktop-ipc-arguments-invalid");
-      }
-      return controller.selectPreview(args[0]);
-    },
-  );
-  registerStateMethod(
-    DESKTOP_SHELL_IPC_CHANNELS.retryEngine,
-    0,
-    controller.retryEngine,
-  );
+  try {
+    registerStateMethod(DESKTOP_SHELL_IPC_CHANNELS.getAppState, 0, () =>
+      controller.getState(),
+    );
+    registerStateMethod(
+      DESKTOP_SHELL_IPC_CHANNELS.chooseInitialWorkspace,
+      0,
+      controller.chooseInitialWorkspace,
+    );
+    register(
+      DESKTOP_SHELL_IPC_CHANNELS.showWorkspaceInFinder,
+      async (event, ...args) => {
+        validateSender(event, trustedSenderRules);
+        if (args.length !== 0) {
+          throw new Error("desktop-ipc-arguments-invalid");
+        }
+        await controller.showWorkspaceInFinder();
+      },
+    );
+    registerStateMethod(
+      DESKTOP_SHELL_IPC_CHANNELS.refreshPreviewCatalog,
+      0,
+      controller.refreshPreviewCatalog,
+    );
+    registerStateMethod(
+      DESKTOP_SHELL_IPC_CHANNELS.selectPreview,
+      1,
+      (...args) => {
+        if (typeof args[0] !== "string") {
+          throw new Error("desktop-ipc-arguments-invalid");
+        }
+        return controller.selectPreview(args[0]);
+      },
+    );
+    registerStateMethod(
+      DESKTOP_SHELL_IPC_CHANNELS.retryEngine,
+      0,
+      controller.retryEngine,
+    );
+  } catch (error) {
+    dispose();
+    throw error;
+  }
 
-  return () => {
-    for (const channel of Object.values(DESKTOP_SHELL_IPC_CHANNELS)) {
-      ipcMain.removeHandler(channel);
-    }
-  };
+  return dispose;
 };

@@ -7,7 +7,6 @@ import { listPackage, statFile } from "@electron/asar";
 export const DESKTOP_PACKAGE_ALLOWED_ROOTS = Object.freeze([
   ".vite",
   "package.json",
-  "node_modules",
   "desktop/resources/brand/axmorf-studio-icon.icns",
   "desktop/resources/brand/axmorf-studio-icon.png",
   "desktop/resources/brand/axmorf-studio-icon.svg",
@@ -26,12 +25,6 @@ export const isDesktopPackagePathAllowed = (repositoryPath: string) => {
   const normalized = toPosixPath(repositoryPath).replace(/^\/+|\/+$/gu, "");
   if (normalized === "") return true;
   if (normalized === ".." || normalized.startsWith("../")) return false;
-  if (
-    normalized === "node_modules/.bin" ||
-    normalized.startsWith("node_modules/.bin/")
-  ) {
-    return false;
-  }
   return DESKTOP_PACKAGE_ALLOWED_ROOTS.some(
     (root) =>
       normalized === root ||

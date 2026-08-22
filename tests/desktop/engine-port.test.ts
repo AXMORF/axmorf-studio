@@ -4,9 +4,16 @@ import test from "node:test";
 import { RSP_PROTOCOL_VERSION } from "../../desktop/contracts/protocol";
 import {
   UtilityProcessDesktopEnginePort,
+  desktopEngineResponseTimeout,
   type DesktopMessageChannel,
   type DesktopUtilityProcess,
 } from "../../desktop/main/engine-port";
+
+test("Preview Catalog validation has a separate bounded response budget", () => {
+  assert.equal(desktopEngineResponseTimeout("initialize"), 10_000);
+  assert.equal(desktopEngineResponseTimeout("shutdown"), 10_000);
+  assert.equal(desktopEngineResponseTimeout("refresh-preview-catalog"), 300_000);
+});
 
 const workspaceId = "26f9827f-2b31-46cc-ae3d-ab5b73f004bf";
 

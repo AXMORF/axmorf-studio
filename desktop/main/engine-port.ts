@@ -18,10 +18,16 @@ import type {
 } from "./shell-controller";
 
 const ENGINE_RESPONSE_TIMEOUT_MS = 10_000;
+const PREVIEW_CATALOG_RESPONSE_TIMEOUT_MS = 5 * 60_000;
 const SESSION_LIFETIME_MS = 12 * 60 * 60 * 1_000;
 
 type EngineRequestType = MainToEngineMessage["type"];
 type EngineResponseType = EngineToMainMessage["type"];
+
+export const desktopEngineResponseTimeout = (type: EngineRequestType) =>
+  type === "refresh-preview-catalog"
+    ? PREVIEW_CATALOG_RESPONSE_TIMEOUT_MS
+    : ENGINE_RESPONSE_TIMEOUT_MS;
 
 export type DesktopUtilityProcess = Readonly<{
   pid: number | undefined;
@@ -131,10 +137,11 @@ export class UtilityProcessDesktopEnginePort implements DesktopEnginePort {
         this.#dependencies.now() + SESSION_LIFETIME_MS,
       ).toISOString();
       const requestId = this.#nextRequestId("initialize");
-      const initialized = this.#waitFor(requestId, [
-        "initialized",
-        "doctor-state",
-      ]);
+      const initialized = this.#waitFor(
+        requestId,
+        ["initialized", "doctor-state"],
+        desktopEngineResponseTimeout("initialize"),
+      );
       child.postMessage(
         {
           protocolVersion: RSP_PROTOCOL_VERSION,
@@ -186,7 +193,11 @@ export class UtilityProcessDesktopEnginePort implements DesktopEnginePort {
     const child = this.#child;
     if (child === undefined) throw new Error("desktop-engine-not-started");
     const requestId = this.#nextRequestId(type);
-    const response = this.#waitFor(requestId, expected);
+    const response = this.#waitFor(
+      requestId,
+      expected,
+      desktopEngineResponseTimeout(type),
+    );
     child.postMessage({
       protocolVersion: RSP_PROTOCOL_VERSION,
       requestId,
@@ -195,12 +206,16 @@ export class UtilityProcessDesktopEnginePort implements DesktopEnginePort {
     return response;
   };
 
-  #waitFor = (requestId: string, expected: readonly EngineResponseType[]) =>
+  #waitFor = (
+    requestId: string,
+    expected: readonly EngineResponseType[],
+    timeoutMs: number,
+  ) =>
     new Promise<readonly EngineToMainMessage[]>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.#pending.delete(requestId);
         reject(new Error("desktop-engine-response-timeout"));
-      }, ENGINE_RESPONSE_TIMEOUT_MS);
+      }, timeoutMs);
       this.#pending.set(requestId, {
         expected: new Set(expected),
         messages: [],

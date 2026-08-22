@@ -28,6 +28,7 @@ import {
   DesktopMediaProtocol,
   registerDesktopMediaProtocol,
 } from "./media-protocol";
+import { initializeDesktopRuntimeResources } from "./initialize-runtime";
 import { registerDesktopShellIpc } from "./register-ipc";
 import { DesktopShellController } from "./shell-controller";
 
@@ -139,15 +140,20 @@ void startDesktopLifecycle({
       engine,
       media,
     });
-    await controller.bootstrap();
-    const desktopWindow = await createDesktopWindow({
-      shellDocumentUrl: shellDocumentUrl(),
+    const initialized = await initializeDesktopRuntimeResources({
+      bootstrapController: controller.bootstrap,
+      shutdownController: controller.shutdown,
+      createWindow: () =>
+        createDesktopWindow({ shellDocumentUrl: shellDocumentUrl() }),
+      registerIpc: (desktopWindow) =>
+        registerDesktopShellIpc({
+          ipcMain,
+          trustedSenderRules: desktopWindow.trustedSenderRules,
+          controller,
+        }),
+      unregisterMedia,
     });
-    const unregisterIpc = registerDesktopShellIpc({
-      ipcMain,
-      trustedSenderRules: desktopWindow.trustedSenderRules,
-      controller,
-    });
+    const desktopWindow = initialized.desktopWindow;
     return {
       window: desktopWindow.window,
       controller,
@@ -163,11 +169,7 @@ void startDesktopLifecycle({
             noLink: true,
           })
         ).response === 1,
-      dispose: () => {
-        unregisterIpc();
-        unregisterMedia();
-        if (!desktopWindow.window.isDestroyed()) desktopWindow.window.destroy();
-      },
+      dispose: initialized.dispose,
     };
   },
 }).catch(() => {

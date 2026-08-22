@@ -6,6 +6,7 @@ import {
   installNavigationPolicy,
   installSessionSecurityPolicy,
 } from "./navigation-policy";
+import { initializeDesktopWindowResources } from "./initialize-runtime";
 
 export type DesktopWindow = Readonly<{
   window: BrowserWindow;
@@ -34,15 +35,19 @@ export const createDesktopWindow = async ({
     },
   });
 
-  installNavigationPolicy({
-    webContents: window.webContents,
-    shellDocumentUrl,
-    openExternal: (url) => void shell.openExternal(url),
+  await initializeDesktopWindowResources({
+    window,
+    installPolicies: () => {
+      installNavigationPolicy({
+        webContents: window.webContents,
+        shellDocumentUrl,
+        openExternal: (url) => void shell.openExternal(url),
+      });
+      installSessionSecurityPolicy(window.webContents.session);
+      window.once("ready-to-show", () => window.show());
+    },
+    load: () => window.loadURL(shellDocumentUrl),
   });
-  installSessionSecurityPolicy(window.webContents.session);
-
-  window.once("ready-to-show", () => window.show());
-  await window.loadURL(shellDocumentUrl);
 
   return {
     window,

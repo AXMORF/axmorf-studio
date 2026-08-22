@@ -108,7 +108,8 @@ Phase A 不安装 maker。Forge Vite plugin 当前仍标记为 experimental，�
 - 提交 `package-lock.json`，不顺带升级现有依赖；
 - package 使用显式 allowlist/inventory；`.app` / `app.asar` 不得包含 `private/`、current `src/projects/`、Project
   public media、deliveries、narration/work/artifact/attempt/run/out 或用户配置。Preview smoke 不得通过把 ignored
-  Project/Delivery 打进 App 获得媒体；
+  Project/Delivery 打进 App 获得媒体；Vite 已把非 Electron/Node builtins 收入固定 bundles，Phase A package 不得
+  整体放行 `node_modules` 或意外携带 Remotion Studio/CLI/renderer dependency tree；
 - 若当前版本与 Electron/Node 实际不兼容，停止并记录具体错误，不临时替换架构。
 
 新增 npm scripts：
@@ -302,8 +303,10 @@ Desktop Engine 不调用 `npm run dev`，不启动 Settings、Remotion Studio �
   `deliveries/` 是 output plane，不能反向发现 Project；Project root 拒绝 symlink/special file/path escape；
 - 使用 current exact-four-file delivery validator 复验 manifest、checksum、H.264/AAC、dimensions/fps/frame count、PNG
   和 EOF decode；
-- 直接调用严格只读 `inspectProjectProduction` application API（不 spawn CLI）证明 `publish.revisionId` 等于 current
-  Revision；source/delivery drift 时不把视频加入可播放 Catalog；
+- 通过严格只读 `readCurrentProductionRevision` application API（不 spawn CLI）在 timing 读取前后复验 current
+  Revision，并只调用一次完整 current Delivery validator；`publish.revisionId` 必须等于两次 current Revision，
+  source/delivery drift 时不把视频加入可播放 Catalog；完整媒体 validation 使用独立有界长超时，不与 10 秒
+  initialize/shutdown control-plane timeout 共用；
 - 只有上述 current binding 成功后才读取同一 Project 的 `semantic-timing.generated.json`，并再次核对 storyId、fps、
   frameCount/duration；timeline 只投影 Scene、chunk/pause、caption 和 Scene boundary；
 - Catalog 严格分为 playable `entries` 与 unavailable Project diagnostics；只有 playable entry 进入 media allowlist。
@@ -333,8 +336,10 @@ Main 在 `app.ready` 前把 `axmorf-media` 注册为最小 privileged protocol�
 加载必须使用 `standard: true` 时才可扩大，并记录 FileSystem API 语义与理由。URL 只包含
 storyId 与 deliveryBuildId；handler 只接受 `GET`、精确 path 和当前 Catalog allowlist。Main 为每个 allowlist entry
 重新打开并校验 `<repository>/deliveries/<storyId>/video.mp4` 的 realpath、regular/non-symlink、checksum、size 与
-deliveryBuildId，保存绑定 dev/inode/size/mtime 的只读 descriptor；Range 从该 descriptor 读取，refresh/quit 受控关闭。
-同 path checksum drift、atomic rename、in-place metadata drift 或 stale opaque URL 都拒绝，不能让旧 identity 播放新 bytes。
+deliveryBuildId，保存绑定 dev/inode/size/mtime/ctime 的只读 descriptor；Range 从该 descriptor 读取，refresh/quit 受控关闭。
+准入时只计算一次完整 checksum；后续 Range/HEAD 使用含 ctime 的 descriptor/path identity 做 O(1) 重验。同 path checksum
+drift、atomic rename、in-place metadata drift 或 stale opaque URL 都拒绝，不能让旧 identity 播放新 bytes，也不能每次
+seek 重算整段视频 checksum。
 unknown/stale identity、Range 之外的方法、path encoding trick 与 traversal 一律拒绝。handler 必须支持并测试视频
 seek 所需的 byte range：initial `200`、valid/open/suffix `206`、invalid `416`，并返回正确 `Content-Type`、
 `Content-Length`、`Content-Range` 与 `Accept-Ranges`；不能因转发遗漏 `Range` header。Renderer CSP 只允许 bundled
@@ -352,6 +357,8 @@ Player 使用原生 `<video>`，因为它播放的是 final verified MP4，而�
 - 关闭窗口时，如果 Engine 报告 active work，执行纯 close-policy prompt；Phase A 永远报告 `activeWork: false`，但
   protocol 和测试先冻结；
 - `before-quit` 先停止 Engine/rsp server、撤销 media allowlist，再删除 exact owned session files；
+- Engine bootstrap 后若 window load 或 IPC setup 失败，也必须由 create-runtime transaction 关闭 Engine/socket、销毁
+  partial window 并撤销 media handler，不能等尚未安装的 `before-quit` hook；
 - force/crash recovery 只清理能由 workspaceId/session ownership 证明的 stale state；
 - 不保存 Agent token、聊天、child identity 或 production history。
 
