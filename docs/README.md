@@ -24,14 +24,16 @@
 
 ## 当前实施计划
 
-- [AXMORF Studio Desktop App Phase A 实施计划](DESKTOP_APP_PHASE_A_IMPLEMENTATION_PLAN.md)：已批准、待实施的
-  repository adapter 原型工作包；完成事实仍以 [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准。
+- [AXMORF Studio Desktop App Phase A 实施计划](DESKTOP_APP_PHASE_A_IMPLEMENTATION_PLAN.md)：repository adapter
+  实现与非原生自动化已完成，Apple Silicon native smoke 尚待执行，因此计划保持 active；完成事实仍以
+  [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准。
 
 ## 操作与维护指南
 
 | 主题                                                                                                          | 文档                                                                           |
 | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | 主流 Agent 入口、最低能力与宿主适配边界                                                                       | [guides/AGENT_COMPATIBILITY.md](guides/AGENT_COMPATIBILITY.md)                 |
+| Desktop Phase A 自动化与 Apple Silicon 原生 smoke                                                             | [guides/DESKTOP_PHASE_A_SMOKE.md](guides/DESKTOP_PHASE_A_SMOKE.md)             |
 | 统一 Producer/TTS/Scene defaults 配置                                                                         | [guides/PRODUCER_CONFIG.md](guides/PRODUCER_CONFIG.md)                         |
 | create 后的只读 inspect、显式 prepare、dirty task delegation、attempt-bound commit/fail 与 fixed continuation | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md)       |
 | 同步 exact four-file delivery                                                                                 | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md)                           |

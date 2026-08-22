@@ -2,7 +2,7 @@
 
 > 文档类型：Desktop App 产品目标 authority
 >
-> 状态：产品方向与 macOS v1 默认值已确认，尚未实现
+> 状态：产品方向与 macOS v1 默认值已确认；Phase A repository adapter 已实现，Apple Silicon native evidence pending；完整产品尚未实现
 >
 > 当前实现事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)，现有生产 authority 见
 > [ARCHITECTURE.md](ARCHITECTURE.md) 与 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
@@ -22,11 +22,11 @@ mark，不把小尺寸不可读的 `AXMORF` wordmark 塞进 icon。实现时从�
 
 App 负责：
 
-- 承载 Remotion Studio 主界面和现有设置页面；
+- 承载内置 Preview Player、只读多轨时间轴和 App Settings；不启动或嵌入 Remotion Studio；
 - 管理单一用户 Workspace Root 下的 Project、媒体、task workspace、诊断、Artifact 与 Delivery；
 - 提供稳定的生产命令和脱敏上下文；
 - 创建 Agent task workspace，并机械校验、提交和物化结果；
-- 在源码就绪后刷新 Studio；
+- 在 verified current Delivery 变化后刷新 Preview Catalog；
 - 按配置决定是否继续生成并复验 Delivery；
 - 检测环境、Agent integration、Skill 和引擎协议兼容性。
 
@@ -51,8 +51,8 @@ Skill 负责：
 App 提供的 CLI / 本地 IPC
     |
 App production engine <--- App settings
-    |-- task workspace -> validate/commit -> materialized Project -> Studio refresh
-    `-- delivery policy -----------------------------------------> optional Delivery
+    |-- task workspace -> validate/commit -> materialized Project -> source-current
+    `-- delivery policy -> verified four-file Delivery -> Preview Player / timeline
 ```
 
 ## 2. 分发与数据隔离
@@ -145,7 +145,7 @@ managedFiles + checksums
 
 `.rsp/bin/rsp` 是 App-managed、checksum-bound 的 workspace-local launcher，不依赖系统 `PATH`，也不是指向
 可变源码 checkout 的 symlink。它通过 `.rsp/workspace.json` 定位当前 App session 与 Workspace，不把 App 安装
-绝对路径写入 Skill。底层可以使用本地 IPC、loopback service 或受控进程调用，但对 Skill 保持同一 JSON
+绝对路径写入 Skill。底层使用 workspace-contained local IPC 或受控进程调用，不开放 TCP/Web service；对 Skill 保持同一 JSON
 protocol。v1 App 未打开时返回明确的
 machine-readable `rsp-app-unavailable`，不自动启动独立 headless engine，也不静默换用另一条生产链。
 
@@ -208,7 +208,7 @@ manifest identity 和 bytes checksum。
 3. fixed check/commit 重跑 validator；
 4. 通过后原子提升到 Artifact Store；
 5. 全部 required artifacts 有效后由 fixed materializer 写 Project/Media；
-6. live bytes 与 attestations 复验一致后才标记 Studio source current。
+6. live bytes 与 attestations 复验一致后才标记 `source-current`。
 
 Agent 修改未知文件、越过 workspace、写 symlink、改变 immutable input 或输出集合不一致时，task 必须失败并
 返回 exact changed paths。App 不吸收、不自动清理也不把这些修改物化为作品。App-owned installation files 默认
@@ -217,33 +217,35 @@ Agent 修改未知文件、越过 workspace、写 symlink、改变 immutable inp
 这个边界也隔离了原共享 checkout 问题：用户作品和 task workspaces 不再与 App 源码混放；Revision 只绑定
 真正影响当前 Project 的输入和 runtime policy。其他 Project 或无关文件变化不应使当前任务失效。
 
-## 7. App 主界面与 Studio 同步
+## 7. App 主界面与 Preview Player
 
-App 主界面是 Remotion Studio，外层只增加必要的产品控制：
+App 主界面是 bundled Preview Player，而不是 Remotion Studio 或另一个本地 Web App。Phase A 和最终产品都不为
+预览启动 HTTP/TCP server。主界面只提供用户实际需要的受控 surface：
 
-- 当前 Project/Composition 选择；
-- production 与 delivery 状态；
-- Settings 入口；
-- 打开输出目录、生成 Delivery 和查看失败诊断；
+- 当前 Project/video 选择；
+- verified `video.mp4` 播放、frame/timecode 和音量控制；
+- 与播放头同步的只读多轨时间轴，展示 Scene ranges、narration chunk/pause、caption cue 和 Scene boundary；
+- production 与 delivery 状态、Settings、输出目录和失败诊断；
 - Agent Workspace 状态及“复制启动提示词”。
 
-当前设置页面演进为 App Settings，不在 Studio 内建立第二套配置 authority。App 负责 Studio server lifecycle。
-materialization 成功后由 fixed controller：
+Preview Player 使用 current four-file Delivery 的 `video.mp4`，只在 exact file set、manifest identity、checksum、
+media probe 与 EOF decode 均已通过后加入 Catalog。它不动态执行 Project TSX，不加载任意 filesystem path，也不把
+packaged renderer 与运行时新增 Project 的源码耦合。Main 通过 allowlisted custom protocol 只流式提供 Catalog 中
+已验证的媒体；Renderer 只接收 opaque media URL，不接收 absolute path、checksum 或 size。
 
-1. 刷新 ProjectRegistry、ResourceCatalog、RendererRegistry 和 Composition 等静态 projection；
-2. 通知 Remotion dev server；
-3. 现有 Composition 使用 HMR 更新；Composition set 变化时受控 reload Studio；
-4. 选中对应 Project/Composition；
-5. 显示 `studio-current`，而不是谎报 MP4 已完成。
+时间轴只投影 Project 的 canonical `SemanticTiming` 与 current Delivery metadata。UI 不重新计算 narration timing、
+不写回 Project，也不建立第二套 Scene/transition authority。播放头、seek 和选中 Scene 是 transient UI state，
+不进入 ProductionRevision、TaskRevision、ArtifactAttestation 或 DeliveryBuild identity。
 
-Agent 不直接编辑 registry，不向 UI 发送自定义完成消息。Studio preview 是交互预览，不替代 validator、artifact
-或 delivery evidence。
+materialization 成功后 fixed controller 仍刷新 ProjectRegistry、ResourceCatalog、RendererRegistry 和 Composition 等
+静态 projection，并标记 `source-current`；只有 Delivery current 后视频才可播放。Agent 不直接编辑 registry，也不
+向 UI 发送自定义完成消息。Preview 是交互查看 surface，不替代 validator、artifact 或 delivery evidence。
 
-## 8. Studio-ready 与 Delivery 分离
+## 8. Source-ready 与 Delivery 分离
 
 App 产品层需要显式区分：
 
-- `studio-current`：Remotion source/media 已物化、复验并可在 Studio 展示；
+- `source-current`：Remotion source/media 已物化、复验，但还不表示有可播放视频；
 - `delivery-stale`：存在旧 Delivery，但其绑定的 source/revision 已过期；
 - `delivery-building`：fixed builder 正在生成和复验；
 - `delivery-current`：exact current delivery 已完整复验；
@@ -259,11 +261,11 @@ v1 默认配置已确定为：
 
 允许值：
 
-- `manual`：到 `studio-current` 停止，用户从 App 点击“生成 Delivery”；
-- `automatic`：`studio-current` 后自动进入 fixed DeliveryBuild。
+- `manual`：到 `source-current` 停止，用户从 App 点击“生成 Delivery”；
+- `automatic`：`source-current` 后自动进入 fixed DeliveryBuild。
 
-解析优先级为“本次提示词明确字段 > Project 设置 > App 全局默认”。例如“先在 Studio 看看”解析为本次
-`manual`，“直接制作并导出视频”解析为本次 `automatic`。override 默认不写回设置。
+解析优先级为“本次提示词明确字段 > Project 设置 > App 全局默认”。例如“先准备源码，不渲染”解析为本次
+`manual`，“直接制作并播放成片”解析为本次 `automatic`。override 默认不写回设置。
 
 默认 `manual`，避免视觉微调反复触发昂贵 render。无论策略为何，只有四文件、checksum、media probe 与
 EOF decode 全部通过才能显示 `delivery-current`。当前 production 将 converge 和 synchronous delivery 绑定为
@@ -276,7 +278,7 @@ EOF decode 全部通过才能显示 `delivery-current`。当前 production 将 c
 - OS/architecture 与 App engine compatibility；
 - Remotion/Chromium/FFmpeg runtime health；
 - Workspace 固定目录权限、containment 和剩余空间；
-- Studio 端口与本地 IPC 状态；
+- Preview Catalog、custom media protocol 与本地 IPC 状态；
 - TTS provider/config readiness，输出脱敏结果；
 - 已知 Agent 是否存在、workspace integration 是否安装、Skill/protocol 是否兼容；
 - active Attempt 是否阻止迁移或更新。
@@ -296,17 +298,19 @@ token、heartbeat 或 child lifecycle。
 storage/security/validator fields 不允许从第 4 层覆盖。App UI、CLI 和 Skill 只投影各自需要的最小视图，不能
 复制同一字段为多个 authority。
 
-## 11. 从当前仓库到目标产品的主要差距
+## 11. 从 Phase A repository adapter 到目标产品的主要差距
 
-本文不代表以下能力已经实现：
+Phase A 已实现 Electron shell、managed Workspace、doctor-only authenticated `rsp`、read-only Preview Catalog、
+bundled Delivery Player 与多轨时间轴；它仍依赖 host Node 和 build-time repository checkout，且 Apple Silicon
+native smoke 尚未完成。本文不代表以下能力已经实现：
 
-- Desktop shell、installer、code signing/notarization 和 binary release；
+- installer、DMG、code signing/notarization 和 binary release；
 - 安装目录与 Workspace Root 的正式分离；
-- `rsp` public CLI/IPC protocol 和 App-running connection lifecycle；
-- workspace integration manager 与跨宿主 Skill lifecycle；
+- production-capable `rsp` public CLI/IPC protocol；
+- 跨版本、跨宿主的 production Skill lifecycle；
 - Workspace fixed-layout contracts、整体迁移器和磁盘/权限 doctor；
-- Studio shell、自动 Project selection 和 materialization refresh protocol；
-- `studio-current` 与 optional Delivery 的 clean-break contracts；
+- production-triggered automatic Catalog refresh；
+- `source-current` 与 optional Delivery 的 clean-break contracts；
 - App/engine/Skill compatibility、update channel、rollback 和 support policy。
 
 这些差距在 macOS 维护方案按 [ROADMAP.md](ROADMAP.md) 实施并获得 executable evidence 前，都只是目标设计。
@@ -315,12 +319,12 @@ storage/security/validator fields 不允许从第 4 层覆盖。App UI、CLI 和
 
 未来实现至少需要证明：
 
-- 新用户无需 clone repo、无需修改源码即可安装和打开 Studio；
+- 新用户无需 clone repo、无需修改源码即可安装并打开 Preview Player；
 - Codex 与 Hermes 能从同一工作区协议完成等价任务；
 - App 未内置或调用厂商 Agent SDK；
 - Agent 越界修改在物化前被拒绝并给出 exact paths；
 - App 升级不会修改用户 Workspace；
-- source-ready 后 Studio 能自动更新并选中目标 Composition；
+- delivery-current 后 Preview Catalog 能自动更新并选中目标视频；
 - manual policy 不产生 Delivery，automatic policy 生成并复验 exact four files；
 - unrelated Project/App workspace 修改不会使当前 task revision 失效；
 - credential、private path 和 voice content 不进入 Agent context、日志、artifact、delivery 或 Git；

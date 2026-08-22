@@ -2,7 +2,7 @@
 
 > 文档类型：macOS 维护与发行目标 authority
 >
-> 状态：`AXMORF Studio`、单 Workspace Root、Codex/Hermes 首批支持、Electron、macOS 13+、arm64/x64、App-running lifecycle、完整离线 Runtime DMG、GitHub Releases 站外分发、首阶段无签名和手动更新已确认；尚未实现
+> 状态：`AXMORF Studio`、内置 Preview Player、单 Workspace Root、Codex/Hermes 首批支持、Electron、macOS 13+、arm64/x64、App-running lifecycle、完整离线 Runtime DMG、GitHub Releases 站外分发、首阶段无签名和手动更新已确认；Phase A repository-adapter implementation complete，Apple Silicon native evidence pending
 >
 > 产品边界见 [Desktop App 与外部 Agent 产品架构](DESKTOP_APP_PRODUCT.md)，当前实现
 > 事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。
@@ -63,11 +63,10 @@ Universal App 可在 v1 稳定后重新评估，但不得替代两个架构各�
 
 ```text
 Electron Main
-  |-- trusted App UI renderer
-  |-- sandboxed Studio WebContentsView
+  |-- trusted bundled App UI + Preview Player renderer
   |-- Engine utility process
-  |     |-- Remotion Studio server
-  |     `-- per-delivery render process
+  |     |-- read-only Preview Catalog projection
+  |     `-- per-delivery render process (Runtime Pack phase)
   `-- local authenticated rsp socket
 
 User Agent --> workspace Skill --> rsp CLI --> local socket --> Engine
@@ -80,32 +79,37 @@ Remotion render 或 provider request，避免 renderer/render crash 拖垮主进
 
 ### Trusted App UI
 
-承载 Settings、Project 状态、Runtime/Agent integration doctor、Delivery 按钮和诊断。renderer 无直接 filesystem、
-shell 或任意 process 权限，只能通过 narrow typed IPC 调用 Main/Engine。所有 IPC 验证 sender、schema 和 Project
-scope。
+承载 Preview Player、只读多轨时间轴、Settings、Project 状态、Runtime/Agent integration doctor、Delivery 按钮和
+诊断。renderer 无直接 filesystem、shell 或任意 process 权限，只能通过 narrow typed IPC 调用 Main/Engine。
+所有 IPC 验证 sender、schema 和 Project scope。Phase A 只投影 current source Project；只有 exact current、完整
+复验的四文件 Delivery 可播放，manual/source-current Project 明确显示尚无可播放预览。
 
-### Studio view
+### Preview Player
 
-App 主视图加载由 public Remotion CLI 启动的 loopback Studio URL。Agent 生成的 Composition 会在该页面执行，
-因此 Studio 必须作为低信任内容：
+App 主视图是随 App 打包的 renderer，不加载 Remotion Studio、repository Settings Vite 服务或任何 loopback
+origin。它通过 narrow preload API 获取无路径的 Preview Catalog DTO，并使用原生 `<video>` 播放经过 Main
+授权的 current Delivery：
 
 ```text
 nodeIntegration = false
 contextIsolation = true
 sandbox = true
-no App preload
-navigation allowlist = exact loopback origin
+preload = narrow typed bridge only
+navigation = bundled renderer origin only
 new-window/open-external = deny by default
+media = exact custom protocol ticket only
 ```
 
-使用 `WebContentsView`，不使用 deprecated `BrowserView` 或 Electron 不推荐的 `<webview>`。App 不 import、fork
-或 patch Remotion Studio 内部 UI；只依赖公开 `remotion studio` surface。Settings 在 trusted App UI 中保留唯一
-authority，不向 Studio 注入 privileged bridge。
+媒体 custom protocol 只接受精确 storyId、DeliveryBuildId 和固定 `video.mp4` 路径；请求时重新验证 allowlist、
+regular-file/no-symlink、size/checksum 和 pinned file identity，支持受限的 `GET`/`HEAD` 与单 Range `206`/`416`
+语义。renderer 不接收 repository path、checksum、size 或 filesystem capability。时间轴只从与 Delivery revision 完全相同的 current
+canonical SemanticTiming 投影 Scene、旁白和字幕；Scene boundary 不冒充独立 transition authority。
 
 ### Engine utility process
 
-运行现有 Node production engine、contracts、validators、Artifact/Attempt/Workspace adapters，并启动 Studio
-server。Delivery render 使用独立 child process，render crash 不应终止 Main 或破坏 current delivery。
+运行现有 Node production engine、contracts、validators、Artifact/Attempt/Workspace adapters。Phase A 只提供
+read-only Preview Catalog 和 doctor，不启动 Settings、Remotion Studio 或其他 TCP listener。Runtime Pack 阶段的
+Delivery render 使用独立 child process，render crash 不应终止 Main 或破坏 current delivery。
 
 ### rsp CLI
 
@@ -205,8 +209,8 @@ v1 采用 Electron Forge，并为每个 App version 建立两个独立 release j
 
 | Job         | Output                                 | 必须验证                                                 |
 | ----------- | -------------------------------------- | -------------------------------------------------------- |
-| `mac-arm64` | native arm64 `.app`、full unsigned DMG | Apple Silicon offline install、Studio、Agent CLI、render |
-| `mac-x64`   | native x64 `.app`、full unsigned DMG   | Intel offline install、Studio、Agent CLI、render         |
+| `mac-arm64` | native arm64 `.app`、full unsigned DMG | Apple Silicon offline install、Preview Player、Agent CLI、render |
+| `mac-x64`   | native x64 `.app`、full unsigned DMG   | Intel offline install、Preview Player、Agent CLI、render         |
 
 两个 job 使用相同 bundle ID、App version、protocol/Skill versions，但引用各自 RuntimePackId。最终 binary
 必须在对应 native hardware 上运行 E2E；能 cross-package 不等于 native verification。
@@ -238,9 +242,9 @@ notarization 状态，第一次启动存在明显的 Gatekeeper 阻力。
 7. `codesign`、`spctl`、stapler validation 和 clean-machine launch；
 8. 为 DMG、update artifact 和 Runtime Pack 发布 SHA-256/release manifest。
 
-v1 不进入 Mac App Store。MAS 要求另一套 Electron build/App Sandbox，而当前 App 需要本地 Studio、Agent CLI、
-Workspace filesystem、child render 和 provider integration；不能在未完成单独 sandbox architecture 设计时假设同一
-binary 可以直接提交商店。
+v1 不进入 Mac App Store。MAS 要求另一套 Electron build/App Sandbox，而当前 App 需要 local authenticated Agent
+CLI、用户选择的 Workspace filesystem、child render 和 provider integration；不能在未完成单独 sandbox
+architecture 设计时假设同一 binary 可以直接提交商店。
 
 ## 9. 手动更新与后续自动更新
 
@@ -299,11 +303,12 @@ Project schema migration 使用 same-parent staging、完整验证和 rollback�
 - arm64/x64 package manifest、SHA-256、fresh-download Gatekeeper 阻止和官方手动放行验证；
 - 未来 signed channel 另行验证签名、notarization、staple 和 Gatekeeper 正常打开；
 - 两种架构的 fresh user、无 Node/npm/Git 环境启动；
-- 断网环境 first-run doctor、embedded Runtime Pack verification 和最小 Studio/render smoke；
+- 断网环境 first-run doctor、embedded Runtime Pack verification 和最小 Preview Player/render smoke；
 - Codex/Hermes workspace-local integration 与 Skill install/repair/uninstall；
 - `rsp` 在 App connected/disconnected/版本不兼容时的结构化结果；
-- Studio boot、新 Composition 出现、HMR/controlled reload；
-- manual policy 到 `studio-current` 且不生成 Delivery；
+- Preview Catalog refresh 后出现新 current Project/Delivery，播放、音频、seek 和 Scene/旁白/字幕时间轴正确；
+- App-owned packaged runtime 全程没有 TCP listener；Forge Vite 开发端口不能作为该证据；
+- manual policy 到 `source-current` 且不生成 Delivery，UI 明确显示无可播放预览；
 - automatic policy 生成并复验 exact four-file delivery；
 - App 窗口关闭后 active production 继续、显式 Quit 有确认；
 - App/Engine/render crash recovery 与 incomplete staging cleanup；
@@ -317,8 +322,8 @@ Project schema migration 使用 same-parent staging、完整验证和 rollback�
 
 - Electron/Chromium：跟随 supported stable line，优先处理安全更新；若新 major 改变最低 macOS，要先更新支持
   矩阵，不能静默抛弃 Intel/旧系统；
-- Remotion：所有 `remotion`/`@remotion/*` 继续精确同版；升级产生新 RuntimePackId，并跑两架构 Studio/render
-  E2E；
+- Remotion：所有 `remotion`/`@remotion/*` 继续精确同版；升级产生新 RuntimePackId，并跑两架构 Preview
+  Player/render E2E；
 - browser/FFmpeg：只通过 Runtime Pack 升级，不运行时在线选择“最新”；
 - Node/npm：开发工具版本与发行 Engine runtime 分开记录，最终用户不需要自行安装；
 - Electron/Remotion/native dependencies 的 license、NOTICE、SBOM 与 checksum 随 release 生成；
@@ -335,11 +340,11 @@ Project schema migration 使用 same-parent staging、完整验证和 rollback�
 `remotion`、`@remotion/cli`、`@remotion/renderer` 等关键包使用 Remotion License；官方也明确说明 Remotion
 是 source-available 而不是 OSI open source。官方 FAQ 允许符合 Free License 条件的个人/三人以内组织免费使用，
 也允许 AI 生成 Remotion code 和构建 automation，但同时禁止把 Remotion 本身作为产品出售或帮助其他用户绕过
-其许可证义务。现有条款没有明确授权本项目把 Studio/CLI/renderer 打包进公开 Desktop App 后交由任意最终用户
-在本机运行。
+其许可证义务。Phase A 不打包或运行 Remotion Studio，但后续完整 Runtime Pack 仍计划把 CLI/renderer 和
+对应 browser/media runtime 交由最终用户在本机运行；现有条款没有明确授权这种 binary redistribution。
 
 因此在公开 DMG 前，仍必须取得 Remotion 官方对以下模式的书面确认：免费 Apache-2.0 项目、无内置 Agent、
-最终用户使用自己的 Agent、每个用户在自己的 Mac 上运行 Studio/CLI/renderer、维护者不提供远程渲染服务。
+最终用户使用自己的 Agent、每个用户在自己的 Mac 上运行 bundled CLI/renderer、维护者不提供远程渲染服务。
 确认必须回答 binary redistribution 是否允许、维护者和最终用户分别适用什么 License、是否需要在 App 中收集或
 配置 license key，以及大于三人的最终用户如何自行合规。未确认前可以做内部 prototype 和 unsigned 技术验证，
 但不能公开包含 Remotion runtime 的 DMG。
@@ -363,23 +368,25 @@ macOS process、Runtime Pack、Workspace、双架构、unsigned/signed channel�
 产品默认值已确认，不再阻塞实施。以下项目按对应阶段处理：
 
 1. 公开 beta 前取得 Remotion 官方书面许可证确认；
-2. 公开 x64 构建前取得真实 Intel Mac 的 install/Studio/render evidence；
+2. 公开 x64 构建前取得真实 Intel Mac 的 install/Preview Player/render evidence；
 3. Intel 最低支持年限和退场通知期在首次 stable 前发布；
 4. 用户规模、安装失败率或支持成本证明有必要时，再决定购买 Apple Developer Program；
 5. 独立官网/object storage、signed update feed 和自动更新都延后到 Developer ID 阶段评估。
 
 ## 16. 当前非事实
 
-本文是维护目标，不表示 Electron dependency、macOS App、DMG、Runtime Pack、签名、公证、auto-update、
-`studio-current` 或双架构 E2E 已存在。任何实现完成声明仍必须更新 [ITERATION_STATUS.md](ITERATION_STATUS.md)
-并附对应 executable evidence。
+本文主要是维护目标。Phase A 可实现 Electron repository-adapter prototype，但这不表示 DMG、完整 Runtime Pack、
+签名、公证、auto-update、Workspace production migration、optional Delivery 或双架构 E2E 已存在。任何实现完成
+声明仍必须更新 [ITERATION_STATUS.md](ITERATION_STATUS.md) 并附对应 executable evidence；非 macOS 宿主只能保留
+`implementation-complete-native-evidence-pending`，不得伪造 Apple Silicon、Intel、Hermes、package 或 native
+smoke evidence。
 
 ## 17. Primary references
 
 - [Electron supported architectures](https://www.electronjs.org/docs/latest/tutorial/installation)
 - [Electron process model](https://www.electronjs.org/docs/latest/tutorial/process-model)
 - [Electron security](https://www.electronjs.org/docs/latest/tutorial/security)
-- [Electron WebContentsView](https://www.electronjs.org/docs/latest/api/web-contents-view)
+- [Electron protocol](https://www.electronjs.org/docs/latest/api/protocol)
 - [Electron packaging](https://www.electronjs.org/docs/latest/tutorial/tutorial-packaging)
 - [Electron code signing and notarization](https://www.electronjs.org/docs/latest/tutorial/code-signing)
 - [Electron autoUpdater signing requirement](https://www.electronjs.org/docs/latest/api/auto-updater/)
@@ -388,7 +395,6 @@ macOS process、Runtime Pack、Workspace、双架构、unsigned/signed channel�
 - [Apple Developer ID](https://developer.apple.com/support/developer-id/)
 - [Apple Silicon executable signing requirement](https://developer.apple.com/documentation/macos-release-notes/macos-big-sur-11_0_1-universal-apps-release-notes)
 - [Apple: Open apps safely on your Mac](https://support.apple.com/en-us/102445)
-- [Remotion Studio](https://www.remotion.dev/docs/studio)
 - [Remotion renderer](https://www.remotion.dev/docs/renderer/render-media)
 - [Remotion license](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md)
 - [Remotion license FAQ](https://www.remotion.dev/docs/license/faq)

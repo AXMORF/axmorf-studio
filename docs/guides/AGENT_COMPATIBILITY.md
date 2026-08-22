@@ -19,16 +19,22 @@ task workspace、validator、ArtifactAttestation 和 current delivery，不来�
 `AGENTS.md` 是唯一仓库级 Agent 指令 authority。宿主入口文件不得复制规则；否则更新时会形成双 authority。
 `.agents/**/agents/openai.yaml` 是可选 OpenAI UI metadata，其他宿主可以忽略。
 
-## Desktop App v1 认证目标
+## Desktop App Phase A 与 v1 认证边界
 
-当前 repository guide 不把“可按通用 shell 规则运行”写成已经认证。Desktop App v1 首批正式认证 Codex 与
-Hermes：Codex 使用 workspace-local `AGENTS.md`/Skill discovery；Hermes 使用同一 `AGENTS.md` authority 和 App
-生成的启动提示词。两者必须通过同一 `.rsp/bin/rsp` protocol、TaskSpec、validator 与 completion evidence 的真实
-E2E，不能为 Hermes 复制第二套生产规则。
+Phase A repository adapter 已实现 managed Workspace integration：初始化时写入 checksum-bound `AGENTS.md`、
+repository-local Skill、thin host imports、Hermes 安装提示和 `.rsp/bin/rsp`。当前 CLI 只支持 `doctor`，通过
+owner-only session 文件和 authenticated Unix-domain socket 连接正在运行的 App；不接受 token 的 argv/env/URL
+传递，也不回退到 repository npm scripts。
 
-App 不安装、升级、托管或调用 Codex/Hermes SDK。它只在 Workspace 初始化或用户点击修复时写入受管 Skill、
-thin host adapter 和 checksum manifest。该 integration 尚未实现；当前入口仍是上表中的 repository 文件与 npm
-CLI。目标行为见 [Desktop App 产品架构](../DESKTOP_APP_PRODUCT.md)。
+`npm run desktop:integration-smoke` 已从临时 Workspace 读取真实受管入口并调用安装后的 CLI 连接真实 socket；这只
+证明 host-neutral discovery/doctor surface，不是 Codex 或 Hermes 完整生产认证。Desktop App v1 仍要求 Codex 与
+Hermes 通过同一 `.rsp/bin/rsp` protocol、TaskSpec、validator 与 completion evidence 的真实 E2E，不能为 Hermes
+复制第二套生产规则。当前没有 Hermes 稳定 CLI 的自动化证据，也没有 Apple Silicon native smoke。
+
+App 不安装、升级、托管或调用 Codex/Hermes SDK。Phase A 也不暴露 production/delivery 命令；完整 Runtime Pack、
+Workspace production migration 与正式 Agent 认证属于后续阶段。原型自动化与原生验收步骤见
+[Desktop Phase A Smoke](DESKTOP_PHASE_A_SMOKE.md)，目标行为见
+[Desktop App 产品架构](../DESKTOP_APP_PRODUCT.md)。
 
 ## 最低能力
 

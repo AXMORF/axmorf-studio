@@ -31,19 +31,24 @@ attempt-bound task commit/fail 与 fixed continuation；converge 是 continuatio
 - settings 与 progress 不扫描历史 `.producer-runs/`；Project delete 仍能安全清理其 ownership root；
 - zero Project bootstrap/Registry/Catalog/settings 可用。
 
-## 下一里程碑：macOS Desktop App
+## 当前里程碑：macOS Desktop App Phase A native gate
 
-下一阶段已确定把 current Engine 产品化为 `AXMORF Studio`，不再把 Desktop shell 作为候选项。实现必须保持现有
+当前阶段已确定把 current Engine 产品化为 `AXMORF Studio`，不再把 Desktop shell 作为候选项。实现必须保持现有
 focused、static、host、media 与 E2E gates Green，并遵守
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
 [macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)。当前执行入口是
 [Phase A 实施计划](DESKTOP_APP_PHASE_A_IMPLEMENTATION_PLAN.md)：
 
-1. unsigned prototype：建立 Electron shell、sandboxed Studio view、Engine utility process、authenticated local
+Phase A Task 0–6 repository-adapter 实现与可在 Linux 执行的自动化已经完成，状态为
+`implementation-complete-native-evidence-pending`。在 Apple Silicon native package/smoke、真实播放、custom protocol、
+process/socket cleanup、zero App-owned TCP listener 与 Agent discovery 证据逐项 Green 前，本计划保持 active，路线图
+不推进 Phase B，也不宣称 Phase A verified complete。
+
+1. unsigned prototype：建立 bundled Preview Player、只读多轨时间轴、Engine utility process、authenticated local
    `rsp` session、默认 `~/Movies/AXMORF Studio/` 和 Codex/Hermes integration smoke；
 2. productization：把 App/Runtime Pack 与单一 Workspace Root 正式隔离，增加 workspace-local `.rsp/bin/rsp`、
-   offline doctor、兼容性 manifest、整体迁移/rollback，并 clean-break 出独立 `studio-current`；
-3. 双架构验收：分别完成 arm64 与真实 Intel x64 的 offline install、Studio、Agent、render、manual/automatic
+   offline doctor、兼容性 manifest、整体迁移/rollback，并 clean-break 出独立 `source-current`；
+3. 双架构验收：分别完成 arm64 与真实 Intel x64 的 offline install、Preview Player、Agent、render、manual/automatic
    Delivery、升级不修改 Workspace 的 native E2E；
 4. unsigned public beta：取得 Remotion runtime binary redistribution 书面确认，发布同版本双原生完整 DMG、
    SHA-256、release manifest、SBOM、third-party notices 与 Gatekeeper 手动安装说明；

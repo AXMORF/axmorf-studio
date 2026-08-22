@@ -6,7 +6,7 @@
 
 ## 1. 产品结论
 
-Remotion Story Producer 把一份可审计的 Project authoring source 生产为一个可在 Studio 展示的 Composition，
+Remotion Story Producer 把一份可审计的 Project authoring source 生产为一个可复验的 Composition，
 并按 resolved Delivery policy 可选生成本地 current delivery。唯一主链是：
 
 在确定性主链之前，Root 可从“当前 Agent 实际 callable 的 tools”投影外部图片 MCP 插槽。该能力存在时才
@@ -17,8 +17,8 @@ Remotion Story Producer 把一份可审计的 Project authoring source 生产为
 2. 建立 content-addressed Task DAG；
 3. 复用有效 ArtifactAttestation，只委派 dirty Agent tasks；
 4. Root 完成 inline execution 或 bounded child admission 后挂起，由 attempt-bound fixed continuation 处理全部 task terminal；
-5. 全部成功后 fixed convergence 原子物化并复验 current Project，形成 `studio-current`；
-6. `manual` 停在 Studio，`automatic` 或用户显式点击再进入 fixed DeliveryBuild，机械复验并提升 exact
+5. 全部成功后 fixed convergence 原子物化并复验 current Project，形成 `source-current`；
+6. `manual` 停在 source-ready，`automatic` 或用户显式点击再进入 fixed DeliveryBuild，机械复验并提升 exact
    four-file delivery。
 
 ExecutionAttempt 只记录一次执行诊断。它的失败或丢失不拥有产物、不改变 content identity，也不阻止
@@ -54,10 +54,11 @@ ArtifactAttestation 绑定 TaskRevision、dependencies、validator policy 和 ex
 Artifact Store 命中必须重新验证路径、文件类型、size 和 checksum。相同 identity/bytes 是 no-op；相同
 identity/different bytes 是确定性冲突。
 
-## 4. Studio 与交付目标
+## 4. Source 与交付目标
 
 converge 仅在全部 required artifacts 有效时物化 Project，并在物化后按 attestation 复验 live bytes。
-复验通过即形成 `studio-current`；它证明 Remotion source/media 可展示，不代表 MP4 已完成。默认 `manual` 不继续
+复验通过即形成 `source-current`；它证明 Remotion source/media 可渲染，不代表 MP4 已完成或可在 Preview Player
+播放。默认 `manual` 不继续
 render，`automatic` 或用户显式触发后才由同一 fixed DeliveryBuild 生成：
 
 ```text
@@ -75,7 +76,8 @@ decode 全部通过后才替换。相同完整 identity 是只读 no-op。当前
 ## 5. 用户体验目标
 
 - App Settings 列出 current source Projects，展示 Revision、task reused/dirty/blocked、latest attempt diagnostic、
-  `studio-current` 和 current/stale Delivery，不把 output-only 目录伪装成 Project。
+  `source-current` 和 current/stale Delivery，不把 output-only 目录伪装成 Project。只有 verified current Delivery
+  进入 Preview Catalog；manual/source-current 没有视频时明确显示不可播放。
 - 局部修改只重做真正 dirty 的创作或媒体；失败后继续不重新消耗已经验证的 TTS/Agent/Render 工作。
 - Project 删除使用完整 storyId 确认并清理该 Project 的全部 ownership roots，同时保护其他 Project、
   core、shared media、private config 与 voice profiles。
@@ -88,8 +90,9 @@ decode 全部通过后才替换。相同完整 identity 是只读 no-op。当前
 
 ## 6. Desktop App 产品形态
 
-面向终端用户的目标分发形态是本地 Desktop App：Remotion Studio 是主界面，现有 settings 演进为 App
-Settings，用户自己的 Agent 通过 workspace-local Skill 和稳定 CLI/IPC 完成创作。App 不内置、不托管也不调度
+面向终端用户的目标分发形态是本地 Desktop App：bundled Preview Player、Project selector 与只读时间轴是主界面，
+现有 settings 演进为 App Settings，用户自己的 Agent 通过 workspace-local Skill 和稳定 CLI/IPC 完成创作。App
+不启动 Remotion Studio/Settings Web service，不内置、不托管也不调度
 Agent；安装目录与用户选择的单一 Workspace Root 分离，Workspace 内部使用固定目录，源码仓库不是普通用户的运行入口。详细目标见
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md)，macOS v1 的维护基线与公开发行门槛见
 [Desktop App macOS 维护与发行](DESKTOP_APP_MACOS_MAINTENANCE.md)。

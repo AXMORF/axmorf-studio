@@ -2,7 +2,7 @@
 
 > 文档类型：架构 authority
 >
-> 第 1–9 节描述 current repository；第 10 节描述已确认但尚未实现的 Desktop App 边界。
+> 第 1–9 节描述 current production repository；第 10 节同时标明已实现 Phase A repository adapter 与尚未实现的完整 Desktop 产品边界。
 
 ## 1. 模块与依赖方向
 
@@ -162,7 +162,7 @@ Agent execution preferences 使用独立 strict contract 与 `0600` 原子存储
 Scene authoring 仍必须使用 repository-local `remotion-best-practices`，但 Skill 不能扩大 TaskSpec 或
 validator boundary。
 
-## 10. Desktop App 目标边界
+## 10. Desktop App Phase A 与目标边界
 
 `AXMORF Studio` 不建立第二条 production 主链。App shell、workspace-local `rsp`、外部 Agent 和现有 Engine
 按以下 ownership 连接：
@@ -179,17 +179,23 @@ validator boundary。
 projects / media / task workspaces / artifacts / attempts / deliveries
 ```
 
-App 安装目录视为只读产品代码，Workspace Root 只保存用户数据和受管 integration；外部 Agent 只能写本次
+Phase A 已实现一个不修改 current production authority 的 repository adapter：单一 managed Workspace、
+doctor-only authenticated `rsp` session、read-only current Delivery Catalog、bundled native-video Player、canonical
+timing timeline 和 allowlisted media protocol。它使用 build-time checkout 与 host Node，不提供 production/delivery
+命令；Apple Silicon native evidence 尚待补齐。
+
+完整产品中 App 安装目录视为只读产品代码，Workspace Root 只保存用户数据和受管 integration；外部 Agent 只能写本次
 TaskSpec 声明的 task workspace outputs。`.rsp/bin/rsp` 是 checksum-bound launcher，不进入系统 `PATH`，App
-未运行时返回结构化 unavailable，不另起 daemon 或回退到源码 checkout。Studio 是主界面，Settings 与 Engine
-通过 narrow typed IPC 访问 Workspace；Remotion runtime 仍不感知 Agent、Skill、IPC 或文件发现。
+未运行时返回结构化 unavailable，不另起 daemon 或回退到源码 checkout。bundled Preview Player 是主界面，
+Settings 与 Engine 通过 narrow typed IPC 访问 Workspace；Player 只播放 verified current Delivery，时间轴只投影
+canonical timing，Remotion runtime 仍不感知 Agent、Skill、IPC 或文件发现。
 
 Desktop Revision 必须只绑定当前 Project 的显式生产输入、selected bytes 和实际影响渲染/校验的 pinned runtime
 policy。其他 Project、Workspace 非依赖文件、App 日志、窗口状态、安装路径或无关工程修改不得使当前 task 失效。
 App/Engine/Skill 更新在 active Attempt 期间禁止切换；Agent 写入 declared output set 之外的文件由 fixed validator
 按 exact paths 拒绝，不能被物化。
 
-当前同步 Delivery contract 在 App clean-break 前保持不变。目标 App 以 `studio-current` 作为独立可见状态，默认
+当前同步 Delivery contract 在 App clean-break 前保持不变。目标 App 以 `source-current` 作为独立可见状态，默认
 `manual`，用户明确触发后才进入同一个 fixed DeliveryBuild；`automatic` 只是允许的配置值。详细产品与发行
 authority 分别见 [DESKTOP_APP_PRODUCT.md](DESKTOP_APP_PRODUCT.md) 和
 [DESKTOP_APP_MACOS_MAINTENANCE.md](DESKTOP_APP_MACOS_MAINTENANCE.md)。

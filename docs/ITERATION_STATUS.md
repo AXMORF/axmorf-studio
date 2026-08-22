@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-22 host-neutral Agent entrypoints 与内置 inline execution
+> 最后复核：2026-08-22 Desktop Phase A repository-adapter implementation
 
 ## 当前结论
 
@@ -126,6 +126,28 @@ focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests
 零写入/零 provider、dirty-only dispatch、精确 direct/dependency/artifact explanation、诊断隔离、安全边界、
 历史隔离、current no-op 与 delivery failure reuse。
 
+## Desktop Phase A repository adapter
+
+基于 `4ad7e4e`，实施分支已完成 Task 0–6 的 repository-adapter 原型：
+
+- exact Electron/Forge Vite pins、单 bundled BrowserWindow、sandboxed renderer、narrow typed preload 与 Engine
+  `utilityProcess` lifecycle；
+- 单一 managed Workspace 的原子初始化/修复、strict modes/checksums/symlink gates，以及只支持 `doctor` 的
+  workspace-local `.rsp/bin/rsp`；
+- token 只通过 owner-only file 和 MessagePort 进入 Engine，CLI 只连接 authenticated Unix-domain socket；App/Engine
+  runtime 不启动 Settings、Remotion Studio 或其他 owned TCP listener；
+- 只读 repository Preview Catalog；只接受 current Revision 匹配、exact-four-file validation Green 的 Delivery，
+  timing 从同 revision canonical source 投影；
+- bundled native `<video>` Player、Project selector、Scene/narration chunk-pause/caption tracks，以及不暴露 path、
+  checksum/size 的 allowlisted `axmorf-media` stream protocol；
+- 实际临时 Workspace/真实 socket/安装后 CLI 的 Agent integration smoke，及显式 package inventory allowlist。
+
+Phase A 不修改 current production/delivery contracts，不提供 production/delivery `rsp` 命令，不迁移 Project/media/
+artifact/delivery，不实现 `source-current`、optional Delivery、完整 Runtime Pack、DMG/签名/发布或许可证变更。当前
+宿主不是 macOS，无法取得 Apple Silicon package、真实 App playback、custom protocol/process cleanup、zero App-owned
+TCP 与 Hermes native evidence；状态严格保留 `implementation-complete-native-evidence-pending`。实施计划继续 active，
+不推进 Phase B。
+
 本轮 closeout 的完整验收仍必须按顺序运行 `npm test`、`npm run typecheck`、`npm run lint`、`npm run docs:check-links`、
 `npm run check:static`、`npm run compositions`、`npm run check`。如果本次工作尚未取得某项 Green，交付报告必须
 明确列出，不得仅凭本文宣称通过。
@@ -135,12 +157,8 @@ focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests
 远程 scheduler/database/artifact store、平台发布、账号、上传、child identity persistence、subjective quality
 gate、automatic capability promotion、Docker 和新的 TTS Gateway 均未实现。
 
-Desktop App、binary installer、workspace-local Agent integration、workspace Skill lifecycle、`rsp` public CLI/IPC、
-单一 Workspace Root 与 `studio-current`/optional Delivery contracts 也尚未实现；这些仅记录在
+binary installer、production-capable `rsp`、正式跨宿主 Skill lifecycle、Workspace production migration、
+`source-current`/optional Delivery contracts、完整 offline Runtime Pack 和 public release 仍未实现；这些目标记录在
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
-[macOS 维护与发行目标](DESKTOP_APP_MACOS_MAINTENANCE.md)，并已进入 [ROADMAP.md](ROADMAP.md) 的下一里程碑；
-它们仍未进入 current production authority。
-
-2026-08-22 已批准并建立 [Desktop App Phase A 实施计划](DESKTOP_APP_PHASE_A_IMPLEMENTATION_PLAN.md)，用于实现
-repository adapter 原型、Workspace 初始化、authenticated `rsp doctor`、trusted Settings/sandboxed Studio views 和
-Agent integration smoke。当前仍没有 Electron/Desktop 实现或 native macOS evidence；计划存在不改变上述未实现状态。
+[macOS 维护与发行目标](DESKTOP_APP_MACOS_MAINTENANCE.md)。Phase A 的受限 Workspace/Skill/doctor/Preview surface
+不进入或改变 current production authority。

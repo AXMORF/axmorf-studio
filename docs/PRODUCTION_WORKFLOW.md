@@ -4,7 +4,7 @@
 >
 > 本文只描述 current Revision/DAG/Artifact 主链。
 >
-> Desktop App 目标不会绕过本文主链；`studio-current` 与默认手动 Delivery 尚未实现，必须按
+> Desktop App 目标不会绕过本文主链；`source-current` 与默认手动 Delivery 尚未实现，必须按
 > [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) clean-break 后才能成为 current contract。
 
 ## 1. 主链概览

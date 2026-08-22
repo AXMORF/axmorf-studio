@@ -151,8 +151,9 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - current delivery exactly 是 `video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`。相同
   DeliveryBuildId 且完整时只读 no-op；完成终点是 `project-production-complete` 或
   `project-production-current`，两者都表示实际四文件已复验。
-- 上述同步 delivery 是 current contract。Desktop App 目标会 clean-break 出 `studio-current`，默认 `manual`
-  再由用户触发 Delivery；在对应代码、contracts、tests 与 E2E 完成前，Agent 不得提前跳过 current delivery。
+- 上述同步 delivery 是 current contract。Desktop App 目标会 clean-break 出 `source-current`，默认 `manual`
+  再由用户触发 Delivery；Preview Player 只播放 exact current four-file Delivery，不执行 Project TSX 或启动
+  Remotion Studio/Settings Web service。在对应代码、contracts、tests 与 E2E 完成前，Agent 不得提前跳过 current delivery。
 
 ## Project 与本地产物
 
