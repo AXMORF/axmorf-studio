@@ -56,8 +56,20 @@ assert_rsp_failure() {
   local actual_exit=$?
   set -e
   [[ $actual_exit -eq $expected_exit ]]
-  grep -Fxq "$expected_code" "$output.stderr"
   [[ ! -s "$output.stdout" ]]
+  node -e '
+    const fs = require("fs");
+    const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    const keys = Object.keys(payload).sort();
+    if (
+      keys.length !== 2 ||
+      keys[0] !== "code" ||
+      keys[1] !== "message" ||
+      payload.code !== process.argv[2] ||
+      typeof payload.message !== "string" ||
+      payload.message.length === 0
+    ) process.exit(1);
+  ' "$output.stderr" "$expected_code"
 }
 
 run_app() {

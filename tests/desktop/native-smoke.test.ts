@@ -107,4 +107,6 @@ test("native smoke drives the renderer UI and fails fast on app startup errors",
   assert.match(runner, /kill -0 "\$app_pid"/u);
   assert.match(runner, /createHash\("sha256"\).*digest\("hex"\)/u);
   assert.doesNotMatch(runner, /const checksum = "sha256:"/u);
+  assert.match(runner, /JSON\.parse\(fs\.readFileSync\(process\.argv\[1\]/u);
+  assert.doesNotMatch(runner, /grep -Fxq "\$expected_code"/u);
 });
