@@ -288,6 +288,20 @@ export const App = () => {
     [selectedEntry],
   );
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (selectedEntry === null || video === null) return;
+    const sync = () => syncVideoFrame(video.currentTime);
+    video.addEventListener("seeking", sync);
+    video.addEventListener("seeked", sync);
+    video.addEventListener("timeupdate", sync);
+    return () => {
+      video.removeEventListener("seeking", sync);
+      video.removeEventListener("seeked", sync);
+      video.removeEventListener("timeupdate", sync);
+    };
+  }, [selectedEntry, syncVideoFrame]);
+
   if (state?.status !== "ready") {
     return (
       <FirstRun
@@ -458,12 +472,6 @@ export const App = () => {
                 key={selectedEntry.videoUrl}
                 onError={() =>
                   setPlayerError("视频身份已失效。请刷新 Catalog 后重新选择。")
-                }
-                onSeeked={(event) =>
-                  syncVideoFrame(event.currentTarget.currentTime)
-                }
-                onTimeUpdate={(event) =>
-                  syncVideoFrame(event.currentTarget.currentTime)
                 }
                 preload="metadata"
                 ref={videoRef}
