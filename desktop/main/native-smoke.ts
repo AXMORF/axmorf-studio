@@ -129,10 +129,20 @@ const rendererProbeSource = `(() => new Promise(async (resolve, reject) => {
     const selected = state.catalog.entries[0];
     const seek = async (frame) => {
       const clamped = Math.min(selected.frameCount - 1, Math.max(0, frame));
-      const target = clamped / selected.fps;
+      const target = (clamped + 0.25) / selected.fps;
       video.currentTime = target;
-      await until(() => Math.abs(video.currentTime - target) < 0.15, "seek");
-      await until(() => (document.querySelector('[aria-label="当前播放位置"]')?.textContent ?? "").includes("F" + clamped + " /"), "playhead");
+      await until(
+        () => Math.abs(video.currentTime - target) < 0.15,
+        "seek-" + clamped,
+      );
+      await until(
+        () =>
+          (
+            document.querySelector('[aria-label="当前播放位置"]')
+              ?.textContent ?? ""
+          ).includes("F" + clamped + " /"),
+        "playhead-" + clamped,
+      );
       return {
         currentTime: video.currentTime,
         playhead: document.querySelector('[aria-label="当前播放位置"]')?.textContent ?? "",

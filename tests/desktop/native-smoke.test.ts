@@ -97,6 +97,8 @@ test("native smoke drives the renderer UI and fails fast on app startup errors",
   assert.match(nativeSmoke, /choice\.click\(\)/u);
   assert.match(nativeSmoke, /selectionControl\.dispatchEvent/u);
   assert.match(nativeSmoke, /selectionControlValue/u);
+  assert.match(nativeSmoke, /\(clamped \+ 0\.25\) \/ selected\.fps/u);
+  assert.match(nativeSmoke, /"playhead-" \+ clamped/u);
   assert.doesNotMatch(
     nativeSmoke,
     /const state = await window\.axmorfStudio\.chooseInitialWorkspace\(\)/u,
