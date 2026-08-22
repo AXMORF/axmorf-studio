@@ -274,6 +274,20 @@ export const App = () => {
     [selectedEntry],
   );
 
+  const syncVideoFrame = useCallback(
+    (currentTime: number) => {
+      if (selectedEntry === null) return;
+      setCurrentFrame(
+        timeToPreviewFrame({
+          currentTime,
+          fps: selectedEntry.fps,
+          frameCount: selectedEntry.frameCount,
+        }),
+      );
+    },
+    [selectedEntry],
+  );
+
   if (state?.status !== "ready") {
     return (
       <FirstRun
@@ -445,14 +459,11 @@ export const App = () => {
                 onError={() =>
                   setPlayerError("视频身份已失效。请刷新 Catalog 后重新选择。")
                 }
+                onSeeked={(event) =>
+                  syncVideoFrame(event.currentTarget.currentTime)
+                }
                 onTimeUpdate={(event) =>
-                  setCurrentFrame(
-                    timeToPreviewFrame({
-                      currentTime: event.currentTarget.currentTime,
-                      fps: selectedEntry.fps,
-                      frameCount: selectedEntry.frameCount,
-                    }),
-                  )
+                  syncVideoFrame(event.currentTarget.currentTime)
                 }
                 preload="metadata"
                 ref={videoRef}

@@ -74,6 +74,8 @@ test("bundled renderer uses native video and exposes three read-only tracks", as
     readFile(join(process.cwd(), "desktop/renderer/index.html"), "utf8"),
   ]);
   assert.match(app, /<video/u);
+  assert.match(app, /onSeeked=/u);
+  assert.match(app, /onTimeUpdate=/u);
   assert.match(app, /Scene/u);
   assert.match(app, /Narration/u);
   assert.match(app, /Caption/u);
