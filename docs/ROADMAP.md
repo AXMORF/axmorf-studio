@@ -31,18 +31,19 @@ attempt-bound task commit/fail 与 fixed continuation；converge 是 continuatio
 - settings 与 progress 不扫描历史 `.producer-runs/`；Project delete 仍能安全清理其 ownership root；
 - zero Project bootstrap/Registry/Catalog/settings 可用。
 
-## 当前里程碑：macOS Desktop App Phase A native gate
+## 当前里程碑：macOS Desktop App Phase B productization 入口
 
-当前阶段已确定把 current Engine 产品化为 `AXMORF Studio`，不再把 Desktop shell 作为候选项。实现必须保持现有
-focused、static、host、media 与 E2E gates Green，并遵守
+Phase A repository adapter 与 Apple Silicon native gate 已 verified complete。精确 evidence commit 为
+`e5b9b6bd81bbe229177a64ed326ab3e46eaf2220`，manual-only GitHub Actions run
+[`32591197950`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32591197950) 在 hosted `macos-15`
+arm64 上验证真实 four-file Delivery、packaged App 播放/seek、custom media protocol、安全、Agent discovery、
+process/TCP 与退出清理，并在 native Green 后完成 609/609 repository tests。Phase A 计划已
+[归档](archive/implementation-plans/2026-08-23-desktop-app-phase-a.md)。
+
+下一入口是下列第 2 项 productization。该状态只推进路线图入口，不表示 Phase B 已开始或任何 Phase B capability
+已实现。后续实现必须保持现有 focused、static、host、media 与 E2E gates Green，并遵守
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
-[macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)。当前执行入口是
-[Phase A 实施计划](DESKTOP_APP_PHASE_A_IMPLEMENTATION_PLAN.md)：
-
-Phase A Task 0–6 repository-adapter 实现与可在 Linux 执行的自动化已经完成，状态为
-`implementation-complete-native-evidence-pending`。在 Apple Silicon native package/smoke、真实播放、custom protocol、
-process/socket cleanup、zero App-owned TCP listener 与 Agent discovery 证据逐项 Green 前，本计划保持 active，路线图
-不推进 Phase B，也不宣称 Phase A verified complete。
+[macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)。
 
 1. unsigned prototype：建立 bundled Preview Player、只读多轨时间轴、Engine utility process、authenticated local
    `rsp` session、默认 `~/Movies/AXMORF Studio/` 和 Codex/Hermes integration smoke；

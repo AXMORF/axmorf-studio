@@ -2,7 +2,7 @@
 
 > 文档类型：唯一导航入口
 >
-> 最后复核：2026-08-22
+> 最后复核：2026-08-23
 
 先按问题选择文档，不要从历史计划或 evidence 反推 current implementation。
 
@@ -22,10 +22,11 @@
 
 文档冲突时先用 executable code/tests 确认 repo truth，再修正文档；不能把目标写成实现。
 
-## 当前实施计划
+## 当前阶段入口
 
-- [AXMORF Studio Desktop App Phase A 实施计划](DESKTOP_APP_PHASE_A_IMPLEMENTATION_PLAN.md)：repository adapter
-  实现与非原生自动化已完成，Apple Silicon native smoke 尚待执行，因此计划保持 active；完成事实仍以
+- Phase A repository adapter 与 Apple Silicon native gate 已 verified complete；实施计划已移入
+  [历史计划](archive/implementation-plans/2026-08-23-desktop-app-phase-a.md)。下一入口是
+  [ROADMAP.md](ROADMAP.md) 中的 Phase B productization，但尚未开始实现；完成事实仍以
   [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准。
 
 ## 操作与维护指南

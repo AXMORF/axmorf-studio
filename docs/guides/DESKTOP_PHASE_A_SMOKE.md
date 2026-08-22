@@ -17,7 +17,7 @@ smoke 在独立临时目录初始化真实 Workspace，读取受管 `AGENTS.md` 
 token、absolute session path 或 provider/private state。Linux 可运行这项自动化检查，但不能把它冒充 macOS native
 App evidence。
 
-## Apple Silicon native smoke（待真实宿主执行）
+## Apple Silicon native smoke（已验证）
 
 仓库提供只允许 `workflow_dispatch` 的
 `.github/workflows/desktop-phase-a-native-gate.yml`。它固定使用 GitHub hosted `macos-15` arm64 runner，并在运行时
@@ -65,3 +65,17 @@ Hermes CLI 不存在时只把 Hermes-specific smoke 标为准确 pending；Phase
 非 macOS 实施宿主、未触发 workflow、run 未完成、conclusion 非 success、artifact 缺失或任一 mandatory report 非 Green
 时，都只能记录 `implementation-complete-native-evidence-pending`。必须等上述 Apple Silicon native smoke 逐项 Green
 并复核 exact commit/artifact 后，Phase A 才能从 implementation-complete 提升为 verified complete。
+
+2026-08-23 closeout 已满足该条件：exact commit
+`e5b9b6bd81bbe229177a64ed326ab3e46eaf2220` 的 manual-only Actions run
+[`32591197950`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32591197950) conclusion 为 success，
+artifact ID 为 `9480398272`。runner 是 `macos-15` 15.7.7 arm64；packaged executable 是 Mach-O arm64，SHA-256 为
+`221d5695ab9eb2263b9107e4a5bb3f5780adc35963530e322673d5535e8eeae5`。fixture 由 current builder 生成
+`delivery-0eee1fd76a38b5edbc2f14bbe8bc046dfb7eb9d2d617d06a83b52332df3622d2`，状态
+`project-production-complete` 且 exact four files；Delivery、fixture 与 `.app` 未上传。
+
+default/custom/reopen 报告与截图均无 media/UI error。default 真实播放后复验 F0、F15、F60 Scene boundary、F89、F104；
+Scene/narration/caption tracks、HEAD/open/suffix Range、拒绝矩阵、无 Node globals、popup/navigation/download/permission、
+doctor success/failures、token redaction、第二实例、zero App-owned TCP、Engine/UDS cleanup 全部 Green。native Green 后的
+完整 `npm run check` 为 609/609 tests。Codex discovery 为 Green；runner 未提供 Hermes CLI，因此仅 Hermes-specific
+smoke 保持 `pending-cli-unavailable`，符合本指南的 conditional gate，不伪造 Hermes evidence。

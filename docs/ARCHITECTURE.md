@@ -182,7 +182,8 @@ projects / media / task workspaces / artifacts / attempts / deliveries
 Phase A 已实现一个不修改 current production authority 的 repository adapter：单一 managed Workspace、
 doctor-only authenticated `rsp` session、read-only current Delivery Catalog、bundled native-video Player、canonical
 timing timeline 和 allowlisted media protocol。它使用 build-time checkout 与 host Node，不提供 production/delivery
-命令；Apple Silicon native evidence 尚待补齐。
+命令；Apple Silicon packaged App、真实播放/seek、custom protocol、安全与 lifecycle evidence 已在 manual-only
+native gate 验证完成。该结论不表示 Phase B 的 Workspace production migration 或 Runtime Pack 已实现。
 
 完整产品中 App 安装目录视为只读产品代码，Workspace Root 只保存用户数据和受管 integration；外部 Agent 只能写本次
 TaskSpec 声明的 task workspace outputs。`.rsp/bin/rsp` 是 checksum-bound launcher，不进入系统 `PATH`，App

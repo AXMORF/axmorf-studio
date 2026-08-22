@@ -62,7 +62,7 @@ Delivery 默认由用户手动触发，App 更新与 Workspace 数据分离。�
 [Desktop App 产品架构](docs/DESKTOP_APP_PRODUCT.md) 与
 [macOS 维护与发行](docs/DESKTOP_APP_MACOS_MAINTENANCE.md)。
 
-Phase A repository-adapter prototype 已实现，但完整 Runtime Pack、Workspace production migration、optional
+Phase A repository-adapter prototype 已在 Apple Silicon native gate 验证完成，但完整 Runtime Pack、Workspace production migration、optional
 Delivery、DMG/签名/发布与双架构原生证据仍不是当前能力。下面的 npm 命令仍是贡献者和当前仓库使用方式；实际
 完成状态只看 [ITERATION_STATUS.md](docs/ITERATION_STATUS.md)。
 
@@ -104,8 +104,8 @@ npm run desktop:package
 ```
 
 `desktop:package` 只生成本机架构的未签名 `.app` 开发证据，不生成 DMG。当前实现仍依赖创建 App 的 host Node 和
-build-time checkout；不提供 production/delivery 命令，也不迁移 repository 数据。非 macOS 自动化 Green 只能记为
-`implementation-complete-native-evidence-pending`；逐项原生验收见
+build-time checkout；不提供 production/delivery 命令，也不迁移 repository 数据。Phase A 的 Apple Silicon packaged
+App 证据已验证；逐项原生验收和仍 pending 的 Hermes-specific smoke 见
 [Desktop Phase A Smoke](docs/guides/DESKTOP_PHASE_A_SMOKE.md)。
 
 本地配置页：

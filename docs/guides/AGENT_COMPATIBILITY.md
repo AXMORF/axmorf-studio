@@ -29,7 +29,8 @@ owner-only session 文件和 authenticated Unix-domain socket 连接正在运行
 `npm run desktop:integration-smoke` 已从临时 Workspace 读取真实受管入口并调用安装后的 CLI 连接真实 socket；这只
 证明 host-neutral discovery/doctor surface，不是 Codex 或 Hermes 完整生产认证。Desktop App v1 仍要求 Codex 与
 Hermes 通过同一 `.rsp/bin/rsp` protocol、TaskSpec、validator 与 completion evidence 的真实 E2E，不能为 Hermes
-复制第二套生产规则。当前没有 Hermes 稳定 CLI 的自动化证据，也没有 Apple Silicon native smoke。
+复制第二套生产规则。Phase A Apple Silicon gate 已验证 Codex-compatible discovery、受管 Skill 和真实 `rsp doctor`；
+runner 未提供 Hermes CLI，因此 Hermes-specific smoke 仍准确 pending，不能据此宣称完整生产认证。
 
 App 不安装、升级、托管或调用 Codex/Hermes SDK。Phase A 也不暴露 production/delivery 命令；完整 Runtime Pack、
 Workspace production migration 与正式 Agent 认证属于后续阶段。原型自动化与原生验收步骤见

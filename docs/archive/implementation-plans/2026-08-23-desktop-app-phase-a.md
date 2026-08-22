@@ -1,17 +1,17 @@
-# AXMORF Studio Desktop App Phase A 实施计划
+# AXMORF Studio Desktop App Phase A 实施计划（归档）
 
-> 文档类型：active implementation plan
+> 文档类型：已实施计划快照，不是 current implementation authority
 >
 > 计划基线：`4ad7e4e`
 >
-> 状态：`implementation-complete-native-evidence-pending`；2026-08-22 经用户确认 clean-break 为零 TCP 端口的 bundled Preview Player
+> 归档状态：2026-08-23 `verified-complete`；evidence commit `e5b9b6bd81bbe229177a64ed326ab3e46eaf2220`，Actions run `32591197950`
 >
-> 最后复核：2026-08-22
+> 最后复核：2026-08-23
 
-本计划把 [Desktop App 产品边界](DESKTOP_APP_PRODUCT.md) 与
-[macOS 维护和发行目标](DESKTOP_APP_MACOS_MAINTENANCE.md) 的 Phase A 收敛为可直接实施、验证和提交的工作包。
-Phase A 完成后，本文件移入 `docs/archive/`；当前能力仍只由
-[ITERATION_STATUS.md](ITERATION_STATUS.md) 声明。
+本计划把 [Desktop App 产品边界](../../DESKTOP_APP_PRODUCT.md) 与
+[macOS 维护和发行目标](../../DESKTOP_APP_MACOS_MAINTENANCE.md) 的 Phase A 收敛为可直接实施、验证和提交的工作包。
+Phase A 已完成，本文件只保留实施快照；当前能力仍只由
+[ITERATION_STATUS.md](../../ITERATION_STATUS.md) 声明。
 
 ## 1. 目标与成功边界
 
@@ -56,9 +56,9 @@ Electron Main
   已按 Task 0–5 提交 `427a5fb`、`888aa4e`、`7ea7e2a`、`f975823`、`efd767e`、`02b09d1` 完成 repository-adapter
   代码与自动化，Task 6 只做 authority closeout 和最终回归。
 - current repository 使用 npm 和 `package-lock.json`，Remotion 与 `@remotion/*` 是完全一致的精确版本。
-- 当前验证分支增加了 manual-only `macos-15` arm64 native gate、独立临时 repository fixture、真实 current Delivery
-  builder 和 packaged App evidence probe；在真实 Actions run conclusion/artifact 复核前，这些 automation 仍只是
-  `implementation-complete-native-evidence-pending`，不能据此关闭本计划。
+- 验证分支增加了 manual-only `macos-15` arm64 native gate、独立临时 repository fixture、真实 current Delivery
+  builder 和 packaged App evidence probe；exact commit `e5b9b6bd81bbe229177a64ed326ab3e46eaf2220` 的 Actions run
+  `32591197950` 与 artifact `9480398272` 已复核 Green，Phase A 因此 verified complete。
 
 因此 Phase A 不迁移生产 authority，也不把 Workspace 假装成已经可生产的数据根。Preview Catalog 只读复用
 repository current Delivery 与 canonical timing；Phase B 才 clean-break 完成 Workspace production migration、

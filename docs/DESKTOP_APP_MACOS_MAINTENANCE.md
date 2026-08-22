@@ -2,7 +2,7 @@
 
 > 文档类型：macOS 维护与发行目标 authority
 >
-> 状态：`AXMORF Studio`、内置 Preview Player、单 Workspace Root、Codex/Hermes 首批支持、Electron、macOS 13+、arm64/x64、App-running lifecycle、完整离线 Runtime DMG、GitHub Releases 站外分发、首阶段无签名和手动更新已确认；Phase A repository-adapter implementation complete，Apple Silicon native evidence pending
+> 状态：`AXMORF Studio`、内置 Preview Player、单 Workspace Root、Codex/Hermes 首批支持、Electron、macOS 13+、arm64/x64、App-running lifecycle、完整离线 Runtime DMG、GitHub Releases 站外分发、首阶段无签名和手动更新已确认；Phase A repository-adapter 与 Apple Silicon native gate verified complete，Phase B 尚未开始
 >
 > 产品边界见 [Desktop App 与外部 Agent 产品架构](DESKTOP_APP_PRODUCT.md)，当前实现
 > 事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。

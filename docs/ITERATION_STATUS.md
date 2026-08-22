@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-22 Desktop Phase A repository-adapter implementation
+> 最后复核：2026-08-23 Desktop Phase A native gate verified complete
 
 ## 当前结论
 
@@ -147,21 +147,24 @@ focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests
   brand/integration resources 与 `package.json`，拒绝整个 `node_modules`、Remotion dependency tree 和 repository data；
 - window load/IPC setup 的启动失败 transaction 会停止 Engine/UDS、销毁 partial window 并撤销 media handler，正常
   lifecycle dispose 保持幂等。
-- manual-only GitHub Actions native gate 已在验证分支实现：目标为 hosted `macos-15` arm64，使用 exact commit 的独立
+- manual-only GitHub Actions native gate 已验证完成：目标为 hosted `macos-15` arm64，使用 exact commit 的独立
   临时 repository fixture 和 current Delivery builder 生成真实 four-file Delivery，再运行 packaged App playback、Range、
   security、doctor、process/TCP、cleanup、Agent discovery 与 reopen evidence；普通 package 不启用 probe，artifact allowlist
-  不包含 fixture、Delivery、完整 App 或 private data。当前尚无可复核的 Actions run conclusion/artifact，因此该条不构成
-  native Green。
+  不包含 fixture、Delivery、完整 App 或 private data。evidence commit
+  `e5b9b6bd81bbe229177a64ed326ab3e46eaf2220` 的 Actions run
+  [`32591197950`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32591197950) conclusion 为 success；
+  artifact ID `9480398272` 已复核 default/custom/reopen 三组无错误截图和报告、arm64 package identity、exact-four-file
+  fixture、真实播放/seek、协议拒绝矩阵、doctor failures/redaction、第二实例、zero owned TCP 与退出 cleanup。
 
 Phase A 不修改 current production/delivery contracts，不提供 production/delivery `rsp` 命令，不迁移 Project/media/
-artifact/delivery，不实现 `source-current`、optional Delivery、完整 Runtime Pack、DMG/签名/发布或许可证变更。当前
-宿主不是 macOS，无法取得 Apple Silicon package、真实 App playback、custom protocol/process cleanup、zero App-owned
-TCP 与 Hermes native evidence；状态严格保留 `implementation-complete-native-evidence-pending`。实施计划继续 active，
-不推进 Phase B。
+artifact/delivery，不实现 `source-current`、optional Delivery、完整 Runtime Pack、DMG/签名/发布或许可证变更。
+Apple Silicon native gate 与 609/609 full repository tests Green 后，Phase A 状态为 `verified-complete`，实施计划已归档，
+ROADMAP 下一入口推进到 Phase B；本次没有开始 Phase B。runner 没有 Hermes CLI，Hermes-specific smoke 按合同准确
+保留 pending；unconditional Agent gate 的 managed discovery、Codex-compatible discovery 和真实 `rsp doctor` 已 Green。
 
-本轮 closeout 的完整验收仍必须按顺序运行 `npm test`、`npm run typecheck`、`npm run lint`、`npm run docs:check-links`、
-`npm run check:static`、`npm run compositions`、`npm run check`。如果本次工作尚未取得某项 Green，交付报告必须
-明确列出，不得仅凭本文宣称通过。
+本轮 closeout 的完整 `npm run check` 已在上述 Apple Silicon run Green：609/609 tests、typecheck、lint、
+`docs:check-links`、static build、真实 Remotion compositions 与 source verification 均完成。文档 closeout 后仍须在
+最终精确提交重跑完整 gate；不得仅凭本文宣称通过。
 
 ## 当前非目标
 

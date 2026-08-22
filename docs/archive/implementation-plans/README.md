@@ -30,3 +30,10 @@ explanation、Settings diagnostic projection 与 converge read-only replan；旧
 surface 和 active docs/tests 删除，不保留 alias/shim。diagnostics 不进入或改变 production/artifact/delivery
 identity/authority。focused vertical tests 已取得 Green；完整 closeout gate 仍以该实施轮次的最终验证报告为准。
 计划快照见 `2026-08-20-explainable-project-create-production-preparation.md`。
+
+2026-08-23 的 AXMORF Studio Desktop App Phase A 计划完成了 repository adapter 与 Apple Silicon native gate。
+evidence commit `e5b9b6bd81bbe229177a64ed326ab3e46eaf2220` 的 manual-only Actions run
+[`32591197950`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32591197950) 验证 packaged arm64 App、
+真实 four-file Delivery playback/seek、media/security/lifecycle/Agent gates 与 609/609 full check；artifact ID 为
+`9480398272`。Hermes CLI 在 runner 不存在，因此 Hermes-specific smoke 按合同保持 pending。计划快照见
+`2026-08-23-desktop-app-phase-a.md`；Phase B 只成为下一路线入口，未在该计划中实施。
