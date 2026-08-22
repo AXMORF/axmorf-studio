@@ -112,6 +112,7 @@ test("native smoke drives the renderer UI and fails fast on app startup errors",
     /rendererProbeSource\(options\.selection === "default"\)/u,
   );
   assert.match(nativeSmoke, /playbackRequired/u);
+  assert.match(nativeSmoke, /HAVE_CURRENT_DATA : HAVE_METADATA/u);
   assert.match(nativeSmoke, /renderer-probe\.json/u);
   assert.match(nativeSmoke, /gateFailures: rendererGateFailures/u);
   assert.match(nativeSmoke, /rendererGateFailures\.join\(","\)/u);

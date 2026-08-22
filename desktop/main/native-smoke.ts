@@ -81,6 +81,9 @@ const responseSummary = async (response: Response) => ({
     response.body === null ? 0 : (await response.arrayBuffer()).byteLength,
 });
 
+const HAVE_METADATA = 1;
+const HAVE_CURRENT_DATA = 2;
+
 const rendererProbeSource = (playbackRequired: boolean) =>
   `(() => new Promise(async (resolve, reject) => {
   try {
@@ -349,7 +352,11 @@ export const runPackagedNativeSmoke = async ({
       !renderer.state.runtimePackAvailable,
       "phase-b-runtime-pack",
     );
-    requireRenderer(renderer.media.readyState >= 2, "media-ready-state");
+    requireRenderer(
+      renderer.media.readyState >=
+        (renderer.media.playbackRequired ? HAVE_CURRENT_DATA : HAVE_METADATA),
+      "media-ready-state",
+    );
     requireRenderer(renderer.media.videoWidth === entry.width, "media-width");
     requireRenderer(
       renderer.media.videoHeight === entry.height,
