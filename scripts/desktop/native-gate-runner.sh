@@ -16,10 +16,15 @@ fi
 
 mkdir -p "$evidence_root"
 
-wait_for_file() {
+wait_for_app_ready() {
   local path=$1
+  local failure_path=$2
+  local app_pid=$3
   local remaining=900
   while [[ ! -f "$path" && $remaining -gt 0 ]]; do
+    if [[ -f "$failure_path" ]] || ! kill -0 "$app_pid" 2>/dev/null; then
+      return 1
+    fi
     sleep 1
     remaining=$((remaining - 1))
   done
@@ -77,7 +82,11 @@ run_app() {
     GITHUB_SHA="${GITHUB_SHA:-local-unverified}" \
     "$app_executable" >"$app_log" 2>&1 &
   local app_pid=$!
-  if ! wait_for_file "$output_root/app-ready"; then
+  if ! wait_for_app_ready \
+    "$output_root/app-ready" \
+    "$output_root/native-failure.json" \
+    "$app_pid"; then
+    sed -n '1,80p' "$output_root/native-failure.json" >&2 2>/dev/null || true
     sed -E 's#/(Users|private|var)/[^ ]+#<redacted-path>#g' "$app_log" >&2 || true
     return 1
   fi

@@ -88,3 +88,19 @@ test("ordinary Desktop builds compile the native harness off", async () => {
   assert.match(config, /desktop\/main\/native-smoke-disabled\.ts/u);
   assert.match(config, /desktop\/main\/native-smoke\.ts/u);
 });
+
+test("native smoke drives the renderer UI and fails fast on app startup errors", async () => {
+  const [nativeSmoke, runner] = await Promise.all([
+    readFile("desktop/main/native-smoke.ts", "utf8"),
+    readFile("scripts/desktop/native-gate-runner.sh", "utf8"),
+  ]);
+  assert.match(nativeSmoke, /choice\.click\(\)/u);
+  assert.match(nativeSmoke, /selectionControl\.dispatchEvent/u);
+  assert.match(nativeSmoke, /selectionControlValue/u);
+  assert.doesNotMatch(
+    nativeSmoke,
+    /const state = await window\.axmorfStudio\.chooseInitialWorkspace\(\)/u,
+  );
+  assert.match(runner, /native-failure\.json/u);
+  assert.match(runner, /kill -0 "\$app_pid"/u);
+});

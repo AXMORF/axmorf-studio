@@ -92,11 +92,38 @@ const rendererProbeSource = `(() => new Promise(async (resolve, reject) => {
       }
       throw new Error("renderer-timeout:" + label);
     };
-    const state = await window.axmorfStudio.chooseInitialWorkspace();
-    if (state.status !== "ready" || state.catalog.entries.length !== 1) {
-      throw new Error("renderer-catalog-not-ready");
+    await until(
+      () =>
+        document.querySelector("video") !== null ||
+        Array.from(document.querySelectorAll("button")).some((button) =>
+          button.textContent?.includes("确认或选择 Workspace"),
+        ),
+      "workspace-choice",
+    );
+    if (document.querySelector("video") === null) {
+      const choice = Array.from(document.querySelectorAll("button")).find(
+        (button) => button.textContent?.includes("确认或选择 Workspace"),
+      );
+      if (choice === undefined) throw new Error("renderer-workspace-choice-missing");
+      choice.click();
     }
     await until(() => document.querySelector("video") !== null, "video-element");
+    const selectionControl = document.querySelector("select");
+    if (selectionControl === null) throw new Error("renderer-preview-selection-missing");
+    const stateBeforeSelection = await window.axmorfStudio.getAppState();
+    if (
+      stateBeforeSelection.status !== "ready" ||
+      stateBeforeSelection.catalog.entries.length !== 1
+    ) {
+      throw new Error("renderer-catalog-not-ready");
+    }
+    selectionControl.value = stateBeforeSelection.catalog.entries[0].storyId;
+    selectionControl.dispatchEvent(new Event("change", {bubbles: true}));
+    await sleep(100);
+    const state = await window.axmorfStudio.getAppState();
+    if (state.status !== "ready" || state.catalog.entries.length !== 1) {
+      throw new Error("renderer-catalog-selection-failed");
+    }
     const video = document.querySelector("video");
     await until(() => video.readyState >= 1 && Number.isFinite(video.duration), "video-metadata");
     const selected = state.catalog.entries[0];
@@ -149,6 +176,7 @@ const rendererProbeSource = `(() => new Promise(async (resolve, reject) => {
       state: {
         status: state.status,
         selectedStoryId: state.selectedStoryId,
+        selectionControlValue: selectionControl.value,
         entryCount: state.catalog.entries.length,
         productionAvailable: state.productionAvailable,
         deliveryAvailable: state.deliveryAvailable,
@@ -211,6 +239,8 @@ export const runPackagedNativeSmoke = async ({
     )) as {
       state: {
         status: string;
+        selectedStoryId: string | null;
+        selectionControlValue: string;
         entryCount: number;
         productionAvailable: boolean;
         deliveryAvailable: boolean;
@@ -224,11 +254,31 @@ export const runPackagedNativeSmoke = async ({
         duration: number;
         playedTime: number;
         positions: {
-          first: { currentTime: number; playhead: string; activeScene: string | null };
-          firstSceneStart: { currentTime: number; playhead: string; activeScene: string | null };
-          boundary: { currentTime: number; playhead: string; activeScene: string | null };
-          lastSceneFrame: { currentTime: number; playhead: string; activeScene: string | null };
-          last: { currentTime: number; playhead: string; activeScene: string | null };
+          first: {
+            currentTime: number;
+            playhead: string;
+            activeScene: string | null;
+          };
+          firstSceneStart: {
+            currentTime: number;
+            playhead: string;
+            activeScene: string | null;
+          };
+          boundary: {
+            currentTime: number;
+            playhead: string;
+            activeScene: string | null;
+          };
+          lastSceneFrame: {
+            currentTime: number;
+            playhead: string;
+            activeScene: string | null;
+          };
+          last: {
+            currentTime: number;
+            playhead: string;
+            activeScene: string | null;
+          };
         };
       };
       timeline: {
@@ -255,6 +305,8 @@ export const runPackagedNativeSmoke = async ({
     const entry = state.catalog.entries[0]!;
     if (
       renderer.state.status !== "ready" ||
+      renderer.state.selectedStoryId !== entry.storyId ||
+      renderer.state.selectionControlValue !== entry.storyId ||
       renderer.state.entryCount !== 1 ||
       renderer.state.productionAvailable ||
       renderer.state.deliveryAvailable ||
@@ -303,7 +355,9 @@ export const runPackagedNativeSmoke = async ({
         new Request(`${url}/../../private/token`),
       ),
       staleBuild: await media.handleRequest(
-        new Request(url.replace(entry.deliveryBuildId, `delivery-${"0".repeat(64)}`)),
+        new Request(
+          url.replace(entry.deliveryBuildId, `delivery-${"0".repeat(64)}`),
+        ),
       ),
       query: await media.handleRequest(new Request(`${url}?path=/tmp/private`)),
       hash: await media.handleRequest(new Request(`${url}#private`)),
@@ -334,7 +388,10 @@ export const runPackagedNativeSmoke = async ({
       throw new Error("desktop-native-smoke-media-gate-failed");
     }
     const screenshot = await window.webContents.capturePage();
-    await writeFile(join(options.outputRoot, "preview-player.png"), screenshot.toPNG());
+    await writeFile(
+      join(options.outputRoot, "preview-player.png"),
+      screenshot.toPNG(),
+    );
     const report = {
       schemaVersion: 1,
       contractVersion: "desktop-phase-a-native-evidence-v1",
@@ -374,15 +431,19 @@ export const runPackagedNativeSmoke = async ({
     await writeFile(join(options.outputRoot, "app-ready"), "ready\n", {
       mode: 0o600,
     });
-    await waitFor(async () => {
-      try {
-        await readFile(join(options.outputRoot, "continue"));
-        return true;
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
-        throw error;
-      }
-    }, "runner-continue", 300_000);
+    await waitFor(
+      async () => {
+        try {
+          await readFile(join(options.outputRoot, "continue"));
+          return true;
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+          throw error;
+        }
+      },
+      "runner-continue",
+      300_000,
+    );
     await writeFile(
       join(options.outputRoot, "lifecycle.json"),
       `${JSON.stringify({
