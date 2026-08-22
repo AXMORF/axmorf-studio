@@ -104,7 +104,9 @@ test("native smoke drives the renderer UI and fails fast on app startup errors",
     /const state = await window\.axmorfStudio\.chooseInitialWorkspace\(\)/u,
   );
   assert.match(runner, /native-failure\.json/u);
-  assert.match(runner, /kill -0 "\$app_pid"/u);
+  assert.match(runner, /app_process_running "\$app_pid"/u);
+  assert.match(runner, /appExit=timeout/u);
+  assert.match(nativeSmoke, /renderer-timeout:video-play/u);
   assert.match(runner, /createHash\("sha256"\).*digest\("hex"\)/u);
   assert.doesNotMatch(runner, /const checksum = "sha256:"/u);
   assert.match(runner, /JSON\.parse\(fs\.readFileSync\(process\.argv\[1\]/u);

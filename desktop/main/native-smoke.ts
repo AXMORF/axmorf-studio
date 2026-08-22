@@ -158,7 +158,15 @@ const rendererProbeSource = `(() => new Promise(async (resolve, reject) => {
       last: await seek(selected.frameCount - 1),
     };
     await seek(0);
-    await video.play();
+    await Promise.race([
+      video.play(),
+      new Promise((_, rejectPlayback) =>
+        setTimeout(
+          () => rejectPlayback(new Error("renderer-timeout:video-play")),
+          30000,
+        ),
+      ),
+    ]);
     await sleep(800);
     const playedTime = video.currentTime;
     video.pause();

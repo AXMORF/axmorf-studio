@@ -16,13 +16,20 @@ fi
 
 mkdir -p "$evidence_root"
 
+app_process_running() {
+  local app_pid=$1
+  local state
+  state=$(ps -p "$app_pid" -o stat= 2>/dev/null | tr -d ' ') || return 1
+  [[ -n "$state" && "$state" != Z* ]]
+}
+
 wait_for_app_ready() {
   local path=$1
   local failure_path=$2
   local app_pid=$3
-  local remaining=900
+  local remaining=180
   while [[ ! -f "$path" && $remaining -gt 0 ]]; do
-    if [[ -f "$failure_path" ]] || ! kill -0 "$app_pid" 2>/dev/null; then
+    if [[ -f "$failure_path" ]] || ! app_process_running "$app_pid"; then
       return 1
     fi
     sleep 1
@@ -173,16 +180,34 @@ run_app() {
       "$app_executable" >/dev/null 2>&1 &
     local second_pid=$!
     local remaining=60
-    while kill -0 "$second_pid" 2>/dev/null && [[ $remaining -gt 0 ]]; do
+    while app_process_running "$second_pid" && [[ $remaining -gt 0 ]]; do
       sleep 1
       remaining=$((remaining - 1))
     done
     [[ $remaining -gt 0 ]]
-    kill -0 "$app_pid"
+    app_process_running "$app_pid"
   fi
 
   printf 'continue\n' >"$output_root/continue"
+  local exit_remaining=60
+  while app_process_running "$app_pid" && [[ $exit_remaining -gt 0 ]]; do
+    sleep 1
+    exit_remaining=$((exit_remaining - 1))
+  done
+  if app_process_running "$app_pid"; then
+    echo 'appExit=timeout' >"$output_root/app-exit.txt"
+    kill "$app_pid" 2>/dev/null || true
+    sleep 2
+    kill -KILL "$app_pid" 2>/dev/null || true
+    wait "$app_pid" 2>/dev/null || true
+    return 1
+  fi
+  set +e
   wait "$app_pid"
+  local app_exit=$?
+  set -e
+  echo "appExit=$app_exit" >"$output_root/app-exit.txt"
+  [[ $app_exit -eq 0 ]]
   [[ ! -e "$session_root/rsp.sock" ]]
   [[ ! -e "$session_root/session.json" ]]
   [[ ! -e "$session_root/token" ]]
