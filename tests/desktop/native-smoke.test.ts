@@ -112,6 +112,9 @@ test("native smoke drives the renderer UI and fails fast on app startup errors",
     /rendererProbeSource\(options\.selection === "default"\)/u,
   );
   assert.match(nativeSmoke, /playbackRequired/u);
+  assert.match(nativeSmoke, /renderer-probe\.json/u);
+  assert.match(nativeSmoke, /gateFailures: rendererGateFailures/u);
+  assert.match(nativeSmoke, /rendererGateFailures\.join\(","\)/u);
   assert.match(runner, /createHash\("sha256"\).*digest\("hex"\)/u);
   assert.doesNotMatch(runner, /const checksum = "sha256:"/u);
   assert.match(runner, /JSON\.parse\(fs\.readFileSync\(process\.argv\[1\]/u);

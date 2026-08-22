@@ -328,38 +328,100 @@ export const runPackagedNativeSmoke = async ({
       throw new Error("desktop-native-smoke-state-invalid");
     }
     const entry = state.catalog.entries[0]!;
-    if (
-      renderer.state.status !== "ready" ||
-      renderer.state.selectedStoryId !== entry.storyId ||
-      renderer.state.selectionControlValue !== entry.storyId ||
-      renderer.state.entryCount !== 1 ||
-      renderer.state.productionAvailable ||
-      renderer.state.deliveryAvailable ||
-      renderer.state.distributionReady ||
-      renderer.state.runtimePackAvailable ||
-      renderer.media.readyState < 2 ||
-      renderer.media.videoWidth !== entry.width ||
-      renderer.media.videoHeight !== entry.height ||
-      renderer.media.playbackRequired !== (options.selection === "default") ||
-      (options.selection === "default"
-        ? renderer.media.playedTime === null || renderer.media.playedTime <= 0
-        : renderer.media.playedTime !== null) ||
-      renderer.timeline.sceneCount !== 2 ||
-      renderer.timeline.narrationCount !== 3 ||
-      renderer.timeline.captionCount !== 2 ||
-      renderer.media.positions.first.activeScene !== null ||
-      renderer.media.positions.firstSceneStart.activeScene === null ||
-      renderer.media.positions.boundary.activeScene === null ||
-      renderer.media.positions.firstSceneStart.activeScene ===
-        renderer.media.positions.boundary.activeScene ||
-      renderer.media.positions.lastSceneFrame.activeScene === null ||
-      renderer.media.positions.last.activeScene !== null ||
-      !renderer.security.nodeGlobalsAbsent ||
-      !renderer.security.popupDenied ||
-      !renderer.security.externalNavigationDenied ||
-      renderer.security.permissionState !== "denied"
-    ) {
-      throw new Error("desktop-native-smoke-renderer-gate-failed");
+    const rendererGateFailures: string[] = [];
+    const requireRenderer = (condition: boolean, label: string) => {
+      if (!condition) rendererGateFailures.push(label);
+    };
+    requireRenderer(renderer.state.status === "ready", "state-status");
+    requireRenderer(
+      renderer.state.selectedStoryId === entry.storyId,
+      "selected-story",
+    );
+    requireRenderer(
+      renderer.state.selectionControlValue === entry.storyId,
+      "selection-control",
+    );
+    requireRenderer(renderer.state.entryCount === 1, "entry-count");
+    requireRenderer(!renderer.state.productionAvailable, "phase-b-production");
+    requireRenderer(!renderer.state.deliveryAvailable, "phase-b-delivery");
+    requireRenderer(!renderer.state.distributionReady, "phase-b-distribution");
+    requireRenderer(
+      !renderer.state.runtimePackAvailable,
+      "phase-b-runtime-pack",
+    );
+    requireRenderer(renderer.media.readyState >= 2, "media-ready-state");
+    requireRenderer(renderer.media.videoWidth === entry.width, "media-width");
+    requireRenderer(
+      renderer.media.videoHeight === entry.height,
+      "media-height",
+    );
+    requireRenderer(
+      renderer.media.playbackRequired === (options.selection === "default"),
+      "playback-requirement",
+    );
+    requireRenderer(
+      options.selection === "default"
+        ? renderer.media.playedTime !== null && renderer.media.playedTime > 0
+        : renderer.media.playedTime === null,
+      "playback-result",
+    );
+    requireRenderer(renderer.timeline.sceneCount === 2, "scene-track");
+    requireRenderer(renderer.timeline.narrationCount === 3, "narration-track");
+    requireRenderer(renderer.timeline.captionCount === 2, "caption-track");
+    requireRenderer(
+      renderer.media.positions.first.activeScene === null,
+      "leading-pause",
+    );
+    requireRenderer(
+      renderer.media.positions.firstSceneStart.activeScene !== null,
+      "first-scene-start",
+    );
+    requireRenderer(
+      renderer.media.positions.boundary.activeScene !== null,
+      "scene-boundary",
+    );
+    requireRenderer(
+      renderer.media.positions.firstSceneStart.activeScene !==
+        renderer.media.positions.boundary.activeScene,
+      "scene-boundary-transition",
+    );
+    requireRenderer(
+      renderer.media.positions.lastSceneFrame.activeScene !== null,
+      "last-scene-frame",
+    );
+    requireRenderer(
+      renderer.media.positions.last.activeScene === null,
+      "trailing-pause",
+    );
+    requireRenderer(renderer.security.nodeGlobalsAbsent, "node-api");
+    requireRenderer(renderer.security.popupDenied, "popup");
+    requireRenderer(
+      renderer.security.externalNavigationDenied,
+      "external-navigation",
+    );
+    requireRenderer(
+      renderer.security.permissionState === "denied",
+      "permission",
+    );
+    await writeFile(
+      join(options.outputRoot, "renderer-probe.json"),
+      `${JSON.stringify(
+        {
+          exactCommit: process.env.GITHUB_SHA ?? "local-unverified",
+          capturedAt: new Date().toISOString(),
+          selection: options.selection,
+          renderer,
+          gateFailures: rendererGateFailures,
+        },
+        null,
+        2,
+      )}\n`,
+      { mode: 0o600 },
+    );
+    if (rendererGateFailures.length > 0) {
+      throw new Error(
+        `desktop-native-smoke-renderer-gate-failed:${rendererGateFailures.join(",")}`,
+      );
     }
     const url = entry.videoUrl;
     const [head, openRange, suffixRange, invalidRange, multiRange] =
