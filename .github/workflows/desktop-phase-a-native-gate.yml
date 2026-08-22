@@ -53,6 +53,22 @@ jobs:
       - name: Run focused Desktop checks
         run: npm run desktop:check
 
+      - name: Install native media verification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install ffmpeg
+          ffmpeg_path=$(command -v ffmpeg)
+          ffprobe_path=$(command -v ffprobe)
+          {
+            echo "ffmpegPath=$ffmpeg_path"
+            echo "ffmpegFile=$(file "$ffmpeg_path")"
+            echo "ffmpegVersion=$(ffmpeg -version | sed -n '1p')"
+            echo "ffprobePath=$ffprobe_path"
+            echo "ffprobeFile=$(file "$ffprobe_path")"
+            echo "ffprobeVersion=$(ffprobe -version | sed -n '1p')"
+          } >"$EVIDENCE_ROOT/media-tools.txt"
+
       - name: Create isolated repository fixture
         shell: bash
         run: |
