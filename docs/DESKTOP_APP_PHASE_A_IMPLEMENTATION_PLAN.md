@@ -56,6 +56,9 @@ Electron Main
   已按 Task 0–5 提交 `427a5fb`、`888aa4e`、`7ea7e2a`、`f975823`、`efd767e`、`02b09d1` 完成 repository-adapter
   代码与自动化，Task 6 只做 authority closeout 和最终回归。
 - current repository 使用 npm 和 `package-lock.json`，Remotion 与 `@remotion/*` 是完全一致的精确版本。
+- 当前验证分支增加了 manual-only `macos-15` arm64 native gate、独立临时 repository fixture、真实 current Delivery
+  builder 和 packaged App evidence probe；在真实 Actions run conclusion/artifact 复核前，这些 automation 仍只是
+  `implementation-complete-native-evidence-pending`，不能据此关闭本计划。
 
 因此 Phase A 不迁移生产 authority，也不把 Workspace 假装成已经可生产的数据根。Preview Catalog 只读复用
 repository current Delivery 与 canonical timing；Phase B 才 clean-break 完成 Workspace production migration、

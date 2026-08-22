@@ -19,6 +19,11 @@ App evidence。
 
 ## Apple Silicon native smoke（待真实宿主执行）
 
+仓库提供只允许 `workflow_dispatch` 的
+`.github/workflows/desktop-phase-a-native-gate.yml`。它固定使用 GitHub hosted `macos-15` arm64 runner，并在运行时
+再次以 `uname -m` fail closed。workflow 必须从待验证分支手动触发；普通 push、PR、tag 和 release 都不会触发。
+触发 acknowledgement 不是完成证据，必须等 run conclusion 为 success 并读取 artifact 中的逐项报告。
+
 1. 从 clean checkout 执行 `npm ci`、`npm run desktop:check` 与 `npm run desktop:package`，保存 Node/npm、macOS、
    Electron 和 `uname -m` 原始输出。
 2. 在独立临时 repository fixture 中用 current production builder 生成一个真实、exact-four-file、current Revision
@@ -40,7 +45,23 @@ App evidence。
 10. 完成 Codex discovery；Hermes 只按 `.rsp/hermes/INSTALL_PROMPT.md` 人工执行，并保留原始输出。没有稳定 Hermes
     CLI 时状态必须是 pending，不能伪造 automated evidence。
 
+workflow 在 `$RUNNER_TEMP` 中 clone exact `GITHUB_SHA` 为独立 repository fixture，重新执行 `npm ci`，由
+`desktop:native-fixture` 调用 current Delivery builder 生成并复验真实短时 H.264/AAC MP4、两张 PNG Cover 和
+`publish.json`。package 的 build-time repository locator 只指向该 fixture；fixture、Delivery、`.app` 和 private
+config 都不上传。native gate package 使用 build-time-only probe instrumentation；普通 Desktop build 将该 probe 编译为
+关闭状态，不能仅靠 runtime environment 激活。
+
+上传 artifact 只允许包含 environment/package identity、fixture 的无路径摘要、`rsp doctor` 脱敏结果、Workspace
+managed-file checksum/mode 摘要、Preview screenshot、Player/timeline/protocol/security/lifecycle JSON 和 App-owned
+process/TCP 摘要。不得包含 token、absolute session path、fixture repository、四文件 Delivery、完整 `.app`、private
+config、Project source/media 或 provider/voice 数据。
+
+Hermes CLI 不存在时只把 Hermes-specific smoke 标为准确 pending；Phase A 的 unconditional Agent gate 仍要求 managed
+`AGENTS.md`/Skill discovery、真实 workspace-local `rsp doctor` invocation 与 Codex-compatible discovery Green。若 runner
+实际暴露 Hermes，则不能自动宣称 Green：必须按安装提示完成真实人工 smoke，否则该 run 不足以关闭 gate。
+
 ## 证据状态
 
-非 macOS 实施宿主只能记录 `implementation-complete-native-evidence-pending`。必须等上述 Apple Silicon native
-smoke 逐项 Green 后，Phase A 才能从 implementation-complete 提升为 verified complete。
+非 macOS 实施宿主、未触发 workflow、run 未完成、conclusion 非 success、artifact 缺失或任一 mandatory report 非 Green
+时，都只能记录 `implementation-complete-native-evidence-pending`。必须等上述 Apple Silicon native smoke 逐项 Green
+并复核 exact commit/artifact 后，Phase A 才能从 implementation-complete 提升为 verified complete。

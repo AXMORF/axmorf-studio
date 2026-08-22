@@ -147,6 +147,11 @@ focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests
   brand/integration resources 与 `package.json`，拒绝整个 `node_modules`、Remotion dependency tree 和 repository data；
 - window load/IPC setup 的启动失败 transaction 会停止 Engine/UDS、销毁 partial window 并撤销 media handler，正常
   lifecycle dispose 保持幂等。
+- manual-only GitHub Actions native gate 已在验证分支实现：目标为 hosted `macos-15` arm64，使用 exact commit 的独立
+  临时 repository fixture 和 current Delivery builder 生成真实 four-file Delivery，再运行 packaged App playback、Range、
+  security、doctor、process/TCP、cleanup、Agent discovery 与 reopen evidence；普通 package 不启用 probe，artifact allowlist
+  不包含 fixture、Delivery、完整 App 或 private data。当前尚无可复核的 Actions run conclusion/artifact，因此该条不构成
+  native Green。
 
 Phase A 不修改 current production/delivery contracts，不提供 production/delivery `rsp` 命令，不迁移 Project/media/
 artifact/delivery，不实现 `source-current`、optional Delivery、完整 Runtime Pack、DMG/签名/发布或许可证变更。当前
