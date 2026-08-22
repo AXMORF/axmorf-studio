@@ -116,6 +116,7 @@ const rangeStream = (
         }
         position += bytesRead;
         controller.enqueue(buffer.subarray(0, bytesRead));
+        if (position > end) controller.close();
       } catch (error) {
         controller.error(error);
       }
