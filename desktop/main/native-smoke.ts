@@ -203,29 +203,34 @@ const rendererProbeSource = (playbackRequired: boolean) =>
       };
       await seek(boundary);
     }
-    probeStage = "popup";
-    const popup = window.open("https://example.com/phase-a-popup");
-    probeStage = "navigation";
-    const beforeNavigation = location.href;
-    const navigation = document.createElement("a");
-    navigation.href = "https://example.com/phase-a-navigation";
-    navigation.textContent = "blocked navigation";
-    document.body.append(navigation);
-    navigation.click();
-    await sleep(250);
-    probeStage = "download";
-    const download = document.createElement("a");
-    download.href = "data:text/plain,blocked";
-    download.download = "phase-a-download.txt";
-    document.body.append(download);
-    download.click();
-    await sleep(250);
-    probeStage = "permission";
-    let permissionState = "unavailable";
-    try {
-      permissionState = (await navigator.permissions.query({name: "geolocation"})).state;
-    } catch {
-      permissionState = "rejected";
+    let popupDenied = null;
+    let externalNavigationDenied = null;
+    let permissionState = null;
+    if (playbackRequired) {
+      probeStage = "popup";
+      popupDenied = window.open("https://example.com/phase-a-popup") === null;
+      probeStage = "navigation";
+      const beforeNavigation = location.href;
+      const navigation = document.createElement("a");
+      navigation.href = "https://example.com/phase-a-navigation";
+      navigation.textContent = "blocked navigation";
+      document.body.append(navigation);
+      navigation.click();
+      await sleep(250);
+      externalNavigationDenied = location.href === beforeNavigation;
+      probeStage = "download";
+      const download = document.createElement("a");
+      download.href = "data:text/plain,blocked";
+      download.download = "phase-a-download.txt";
+      document.body.append(download);
+      download.click();
+      await sleep(250);
+      probeStage = "permission";
+      try {
+        permissionState = (await navigator.permissions.query({name: "geolocation"})).state;
+      } catch {
+        permissionState = "rejected";
+      }
     }
     probeStage = "settle";
     await sleep(500);
@@ -260,9 +265,10 @@ const rendererProbeSource = (playbackRequired: boolean) =>
         boundaryFrame: boundary,
       },
       security: {
+        securityTested: playbackRequired,
         nodeGlobalsAbsent: ["require", "process", "Buffer", "module"].every((name) => typeof window[name] === "undefined"),
-        popupDenied: popup === null,
-        externalNavigationDenied: location.href === beforeNavigation,
+        popupDenied,
+        externalNavigationDenied,
         permissionState,
       },
     });
@@ -361,10 +367,11 @@ export const runPackagedNativeSmoke = async ({
         boundaryFrame: number;
       };
       security: {
+        securityTested: boolean;
         nodeGlobalsAbsent: boolean;
-        popupDenied: boolean;
-        externalNavigationDenied: boolean;
-        permissionState: string;
+        popupDenied: boolean | null;
+        externalNavigationDenied: boolean | null;
+        permissionState: string | null;
       };
     };
     if (!downloadAttempted) {
@@ -456,15 +463,31 @@ export const runPackagedNativeSmoke = async ({
       );
     }
     requireRenderer(renderer.security.nodeGlobalsAbsent, "node-api");
-    requireRenderer(renderer.security.popupDenied, "popup");
     requireRenderer(
-      renderer.security.externalNavigationDenied,
-      "external-navigation",
+      renderer.security.securityTested === (options.selection === "default"),
+      "security-requirement",
     );
-    requireRenderer(
-      renderer.security.permissionState === "denied",
-      "permission",
-    );
+    if (renderer.security.securityTested) {
+      requireRenderer(renderer.security.popupDenied === true, "popup");
+      requireRenderer(
+        renderer.security.externalNavigationDenied === true,
+        "external-navigation",
+      );
+      requireRenderer(
+        renderer.security.permissionState === "denied",
+        "permission",
+      );
+    } else {
+      requireRenderer(renderer.security.popupDenied === null, "popup-skipped");
+      requireRenderer(
+        renderer.security.externalNavigationDenied === null,
+        "external-navigation-skipped",
+      );
+      requireRenderer(
+        renderer.security.permissionState === null,
+        "permission-skipped",
+      );
+    }
     await writeFile(
       join(options.outputRoot, "renderer-probe.json"),
       `${JSON.stringify(
