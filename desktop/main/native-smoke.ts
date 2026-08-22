@@ -183,16 +183,19 @@ const rendererProbeSource = (playbackRequired: boolean) =>
       };
       await seek(0);
       probeStage = "playback";
-      await Promise.race([
-        video.play(),
-        new Promise((_, rejectPlayback) =>
-          setTimeout(
-            () => rejectPlayback(new Error("renderer-timeout:video-play")),
-            30000,
-          ),
-        ),
-      ]);
-      await sleep(800);
+      const playbackStartTime = video.currentTime;
+      let playbackRejection = null;
+      void video.play().catch((error) => {
+        playbackRejection = error instanceof Error ? error.name : "playback-rejected";
+      });
+      await until(
+        () => video.currentTime > playbackStartTime + 0.05 || playbackRejection !== null,
+        "video-play",
+        30000,
+      );
+      if (playbackRejection !== null) {
+        throw new Error("renderer-video-play-rejected:" + playbackRejection);
+      }
       playedTime = video.currentTime;
       video.pause();
     }
