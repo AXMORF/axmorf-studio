@@ -473,7 +473,7 @@ export const App = () => {
                 onError={() =>
                   setPlayerError("视频身份已失效。请刷新 Catalog 后重新选择。")
                 }
-                preload="metadata"
+                preload="auto"
                 ref={videoRef}
                 src={selectedEntry.videoUrl}
               />

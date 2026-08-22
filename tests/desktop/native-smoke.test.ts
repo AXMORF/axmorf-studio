@@ -90,8 +90,9 @@ test("ordinary Desktop builds compile the native harness off", async () => {
 });
 
 test("native smoke drives the renderer UI and fails fast on app startup errors", async () => {
-  const [nativeSmoke, runner] = await Promise.all([
+  const [nativeSmoke, renderer, runner] = await Promise.all([
     readFile("desktop/main/native-smoke.ts", "utf8"),
+    readFile("desktop/renderer/App.tsx", "utf8"),
     readFile("scripts/desktop/native-gate-runner.sh", "utf8"),
   ]);
   assert.match(nativeSmoke, /choice\.click\(\)/u);
@@ -126,6 +127,8 @@ test("native smoke drives the renderer UI and fails fast on app startup errors",
   assert.match(nativeSmoke, /renderer-probe\.json/u);
   assert.match(nativeSmoke, /gateFailures: rendererGateFailures/u);
   assert.match(nativeSmoke, /rendererGateFailures\.join\(","\)/u);
+  assert.match(renderer, /preload="auto"/u);
+  assert.doesNotMatch(renderer, /preload="metadata"/u);
   assert.match(runner, /createHash\("sha256"\).*digest\("hex"\)/u);
   assert.doesNotMatch(runner, /const checksum = "sha256:"/u);
   assert.match(runner, /JSON\.parse\(fs\.readFileSync\(process\.argv\[1\]/u);
