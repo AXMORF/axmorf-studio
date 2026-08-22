@@ -27,9 +27,11 @@ jobs:
           set -euo pipefail
           EVIDENCE_ROOT="$RUNNER_TEMP/desktop-phase-a-native-evidence"
           FIXTURE_ROOT="$RUNNER_TEMP/desktop-phase-a-repository-fixture"
+          export TMPDIR="$RUNNER_TEMP"
           {
             echo "EVIDENCE_ROOT=$EVIDENCE_ROOT"
             echo "FIXTURE_ROOT=$FIXTURE_ROOT"
+            echo "TMPDIR=$TMPDIR"
           } >>"$GITHUB_ENV"
           mkdir -p "$EVIDENCE_ROOT"
           test "$(uname -m)" = arm64
@@ -42,6 +44,7 @@ jobs:
             echo "arch=$(uname -m)"
             echo "node=$(node --version)"
             echo "npm=$(npm --version)"
+            echo "tempRoot=$TMPDIR"
           } >"$EVIDENCE_ROOT/environment.txt"
 
       - name: Install exact repository dependencies
