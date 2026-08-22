@@ -141,7 +141,15 @@ run_app() {
   mv "$session_root/session.native-smoke-backup" "$session_root/session.json"
 
   if [[ "$second_instance" == "yes" ]]; then
-    env HOME="$home_root" "$app_executable" >/dev/null 2>&1 &
+    env \
+      HOME="$home_root" \
+      AXMORF_PHASE_A_NATIVE_GATE=1 \
+      AXMORF_PHASE_A_SMOKE_HOME="$home_root" \
+      AXMORF_PHASE_A_SMOKE_OUTPUT="$output_root" \
+      AXMORF_PHASE_A_SMOKE_SELECTION="$selection" \
+      AXMORF_PHASE_A_SMOKE_USER_DATA="$user_data_root" \
+      AXMORF_PHASE_A_SMOKE_WORKSPACE="$workspace_root" \
+      "$app_executable" >/dev/null 2>&1 &
     local second_pid=$!
     local remaining=60
     while kill -0 "$second_pid" 2>/dev/null && [[ $remaining -gt 0 ]]; do
