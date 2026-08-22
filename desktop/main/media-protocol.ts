@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { lstat, open, realpath, type FileHandle } from "node:fs/promises";
 import { join } from "node:path";
+import { Readable } from "node:stream";
 
 import {
   buildPreviewVideoUrl,
@@ -98,31 +99,10 @@ const parseRange = (header: string | null, size: number): ByteRange | null => {
 const rangeStream = (
   handle: FileHandle,
   { start, end }: ByteRange,
-): ReadableStream<Uint8Array> => {
-  let position = start;
-  return new ReadableStream<Uint8Array>({
-    async pull(controller) {
-      if (position > end) {
-        controller.close();
-        return;
-      }
-      try {
-        const length = Math.min(READ_CHUNK_BYTES, end - position + 1);
-        const buffer = Buffer.allocUnsafe(length);
-        const { bytesRead } = await handle.read(buffer, 0, length, position);
-        if (bytesRead === 0) {
-          controller.error(new Error("desktop-media-truncated"));
-          return;
-        }
-        position += bytesRead;
-        controller.enqueue(buffer.subarray(0, bytesRead));
-        if (position > end) controller.close();
-      } catch (error) {
-        controller.error(error);
-      }
-    },
-  });
-};
+): ReadableStream<Uint8Array> =>
+  Readable.toWeb(
+    handle.createReadStream({ autoClose: false, start, end }),
+  ) as ReadableStream<Uint8Array>;
 
 const unavailable = (status: number) =>
   new Response(null, {
