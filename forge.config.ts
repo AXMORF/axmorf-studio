@@ -1,8 +1,24 @@
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import type { ForgeConfig } from "@electron-forge/shared-types";
+import { dirname, relative, sep } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { isDesktopPackagePathAllowed } from "./scripts/desktop/package-inventory";
+
+export { DESKTOP_PACKAGE_ALLOWED_ROOTS } from "./scripts/desktop/package-inventory";
 
 export const DESKTOP_PRODUCT_NAME = "AXMORF Studio" as const;
 export const DESKTOP_BUNDLE_ID = "com.axmorf.studio" as const;
+
+const desktopPackageRoot = dirname(fileURLToPath(import.meta.url));
+const toPosixPath = (path: string) => path.split(sep).join("/");
+
+export const desktopPackageIgnore = (absolutePath: string) => {
+  const repositoryPath = absolutePath.startsWith(`${desktopPackageRoot}${sep}`)
+    ? toPosixPath(relative(desktopPackageRoot, absolutePath))
+    : toPosixPath(absolutePath).replace(/^\/+|\/+$/gu, "");
+  return !isDesktopPackagePathAllowed(repositoryPath);
+};
 
 export const desktopVitePluginConfig = {
   build: [
@@ -39,6 +55,7 @@ const config: ForgeConfig = {
     appBundleId: DESKTOP_BUNDLE_ID,
     appCategoryType: "public.app-category.video",
     icon: "desktop/resources/brand/axmorf-studio-icon",
+    ignore: desktopPackageIgnore,
   },
   rebuildConfig: {},
   makers: [],

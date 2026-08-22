@@ -5,13 +5,14 @@ import test from "node:test";
 
 import forgeConfig, {
   DESKTOP_BUNDLE_ID,
+  DESKTOP_PACKAGE_ALLOWED_ROOTS,
   DESKTOP_PRODUCT_NAME,
+  desktopPackageIgnore,
   desktopVitePluginConfig,
 } from "../../forge.config";
-import {
-  STUDIO_WEB_PREFERENCES,
-  TRUSTED_SHELL_WEB_PREFERENCES,
-} from "../../desktop/contracts/security-policy";
+import { TRUSTED_SHELL_WEB_PREFERENCES } from "../../desktop/contracts/security-policy";
+import { DESKTOP_PHASE_A_REPOSITORY_ROOT } from "../../scripts/desktop/repository-locator";
+import { isDesktopPackagePathAllowed } from "../../scripts/desktop/package-inventory";
 
 test("Phase A desktop toolchain and product identity are exact", async () => {
   const packageJson = JSON.parse(
@@ -69,18 +70,72 @@ test("Forge config has explicit entries and no release machinery", () => {
   assert.equal(forgeConfig.packagerConfig?.appBundleId, DESKTOP_BUNDLE_ID);
   assert.equal(forgeConfig.packagerConfig?.name, DESKTOP_PRODUCT_NAME);
   assert.equal(forgeConfig.packagerConfig?.asar, true);
+  assert.equal(forgeConfig.packagerConfig?.ignore, desktopPackageIgnore);
 });
 
-test("trusted shell and Studio policies deny renderer privilege", () => {
-  for (const preferences of [
-    TRUSTED_SHELL_WEB_PREFERENCES,
-    STUDIO_WEB_PREFERENCES,
+test("trusted bundled renderer denies privilege", () => {
+  assert.equal(TRUSTED_SHELL_WEB_PREFERENCES.nodeIntegration, false);
+  assert.equal(TRUSTED_SHELL_WEB_PREFERENCES.contextIsolation, true);
+  assert.equal(TRUSTED_SHELL_WEB_PREFERENCES.sandbox, true);
+  assert.equal(TRUSTED_SHELL_WEB_PREFERENCES.webSecurity, true);
+});
+
+test("package allowlist excludes repository data and private state", () => {
+  assert.deepEqual(DESKTOP_PACKAGE_ALLOWED_ROOTS, [
+    ".vite",
+    "package.json",
+    "node_modules",
+    "desktop/resources/brand/axmorf-studio-icon.icns",
+    "desktop/resources/brand/axmorf-studio-icon.png",
+    "desktop/resources/brand/axmorf-studio-icon.svg",
+    "desktop/resources/workspace-integration/AGENTS.md",
+    "desktop/resources/workspace-integration/CLAUDE.md",
+    "desktop/resources/workspace-integration/GEMINI.md",
+    "desktop/resources/workspace-integration/hermes/INSTALL_PROMPT.md",
+    "desktop/resources/workspace-integration/rsp",
+    "desktop/resources/workspace-integration/rsp-client.cjs",
+    "desktop/resources/workspace-integration/skills/remotion-story-producer-video/SKILL.md",
+  ]);
+  const root = process.cwd();
+  for (const path of [
+    ".vite/build/main.js",
+    "package.json",
+    "node_modules/zod/package.json",
+    "desktop/resources/brand/axmorf-studio-icon.icns",
+    "desktop/resources/workspace-integration/AGENTS.md",
   ]) {
-    assert.equal(preferences.nodeIntegration, false);
-    assert.equal(preferences.contextIsolation, true);
-    assert.equal(preferences.sandbox, true);
-    assert.equal(preferences.webSecurity, true);
+    assert.equal(desktopPackageIgnore(join(root, path)), false, path);
   }
+  for (const path of [
+    "private/producer.private.json",
+    "src/projects/story-one/story.json",
+    "public/projects/story-one/video.png",
+    "deliveries/story-one/video.mp4",
+    ".producer-artifacts/story-one/artifact.json",
+    ".producer-attempts/story-one/attempt.json",
+    ".producer-runs/story-one/run.json",
+    ".narration-work/story-one/audio.wav",
+    "out/story-one/video.mp4",
+    "node_modules/.bin/remotion",
+    "desktop/resources/workspace-integration/assets/library/unknown.wav",
+  ]) {
+    assert.equal(desktopPackageIgnore(join(root, path)), true, path);
+  }
+  assert.equal(
+    isDesktopPackagePathAllowed("/deliveries/story-one/video.mp4"),
+    false,
+  );
+  assert.equal(isDesktopPackagePathAllowed("/node_modules/zod/index.js"), true);
+  assert.equal(
+    isDesktopPackagePathAllowed("/node_modules/.bin/remotion"),
+    false,
+  );
+  assert.equal(desktopPackageIgnore("/package.json"), false);
+  assert.equal(desktopPackageIgnore("/private/producer.private.json"), true);
+});
+
+test("Phase A repository locator is the config checkout, not runtime cwd fallback", () => {
+  assert.equal(DESKTOP_PHASE_A_REPOSITORY_ROOT, process.cwd());
 });
 
 test("desktop package configuration has no maker, signing, notarization, or updater policy", async () => {
