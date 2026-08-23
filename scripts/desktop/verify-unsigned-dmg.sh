@@ -146,11 +146,7 @@ wait_for_window() {
 
 quit_app() {
   local pid=$1
-  /usr/bin/osascript \
-    -e 'ignoring application responses' \
-    -e 'tell application id "com.axmorf.studio" to quit' \
-    -e 'end ignoring' \
-    >/dev/null
+  /bin/kill -TERM "$pid"
   local remaining=300
   while app_running "$pid" && [[ $remaining -gt 0 ]]; do
     sleep 0.1

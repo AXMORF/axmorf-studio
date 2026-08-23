@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { startDesktopLifecycle } from "../../desktop/main/lifecycle";
+import {
+  registerDesktopTerminationSignal,
+  startDesktopLifecycle,
+} from "../../desktop/main/lifecycle";
 import { DesktopShellController } from "../../desktop/main/shell-controller";
 
 const createController = (events: string[]) =>
@@ -78,6 +81,19 @@ const createController = (events: string[]) =>
       },
     },
   });
+
+test("SIGTERM requests the ordinary graceful App quit path", () => {
+  const listeners = new Map<string, () => void>();
+  const events: string[] = [];
+  registerDesktopTerminationSignal({
+    app: { quit: () => events.push("app-quit") },
+    signal: {
+      once: (event, listener) => listeners.set(event, listener),
+    },
+  });
+  listeners.get("SIGTERM")?.();
+  assert.deepEqual(events, ["app-quit"]);
+});
 
 test("Main creates Engine and views only after app ready", async () => {
   const events: string[] = [];

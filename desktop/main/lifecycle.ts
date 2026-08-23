@@ -33,6 +33,18 @@ export type DesktopLifecycleRuntime = Readonly<{
   dispose: () => void;
 }>;
 
+export const registerDesktopTerminationSignal = ({
+  app,
+  signal,
+}: Readonly<{
+  app: Pick<DesktopLifecycleApp, "quit">;
+  signal: Readonly<{
+    once: (event: "SIGTERM", listener: () => void) => void;
+  }>;
+}>) => {
+  signal.once("SIGTERM", () => app.quit());
+};
+
 export const startDesktopLifecycle = async ({
   app,
   createRuntime,

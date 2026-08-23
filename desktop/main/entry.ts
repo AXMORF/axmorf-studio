@@ -49,7 +49,10 @@ import {
   desktopEngineForkOptions,
   type DesktopUtilityProcess,
 } from "./engine-port";
-import { startDesktopLifecycle } from "./lifecycle";
+import {
+  registerDesktopTerminationSignal,
+  startDesktopLifecycle,
+} from "./lifecycle";
 import {
   DesktopMediaProtocol,
   registerDesktopMediaProtocol,
@@ -72,6 +75,7 @@ import {
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
 export const DESKTOP_MAIN_ENTRY_ID = "desktop-main-phase-b-v1" as const;
+registerDesktopTerminationSignal({ app, signal: process });
 const nativeSmoke: NativeSmokeOptions | null = resolveNativeSmokeOptions({
   isPackaged: app.isPackaged,
 });
