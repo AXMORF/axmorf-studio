@@ -434,6 +434,9 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
   );
   assert.match(runner, /native-failure\.json/u);
   assert.match(runner, /command-failure\.json/u);
+  assert.match(runner, /desktop-native-attempt-terminal-v1/u);
+  assert.match(runner, /attempt-terminal\.json/u);
+  assert.match(runner, /terminalDiagnosticCode/u);
   assert.match(runner, /app_process_running "\$app_pid"/u);
   assert.match(runner, /desktop-phase-b-native-gate-requires-darwin-arm64/u);
   assert.match(runner, /\.rsp\/bin\/rsp/u);

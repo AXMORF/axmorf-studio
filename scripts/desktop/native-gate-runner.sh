@@ -650,6 +650,47 @@ cleanup_gate_runtime_root() {
     if [[ -n "$workspace" && -f "$diagnostic" && ! -L "$diagnostic" ]]; then
       cp "$diagnostic" "$evidence_root/$label-command-failure.json"
     fi
+    if [[ -n "$workspace" ]]; then
+      local attempt_root="$workspace/.rsp/attempts/desktop-native-fixture"
+      local progress_paths=()
+      if [[ -d "$attempt_root" && ! -L "$attempt_root" ]]; then
+        while IFS= read -r progress_path; do
+          progress_paths+=("$progress_path")
+        done < <(
+          find "$attempt_root" \
+            -mindepth 2 \
+            -maxdepth 2 \
+            -name progress.generated.json \
+            -type f \
+            -print | LC_ALL=C sort
+        )
+        if [[ ${#progress_paths[@]} -eq 1 ]]; then
+          "$host_node" -e '
+            const fs = require("fs");
+            const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            const terminal = value.terminalResult;
+            const summary = value.taskOutcomeSummary;
+            const output = {
+              contractVersion: "desktop-native-attempt-terminal-v1",
+              state: value.state,
+              diagnosticCode: value.diagnosticCode,
+              terminalStatus: terminal?.status ?? null,
+              terminalDiagnosticCode: terminal?.diagnosticCode ?? null,
+              taskOutcomeSummary: summary === undefined ? null : {
+                committedTaskCount: summary.committedTaskCount,
+                currentTaskCount: summary.currentTaskCount,
+                failedTaskCount: summary.failedTaskCount,
+              },
+            };
+            fs.writeFileSync(process.argv[2], `${JSON.stringify(output)}\n`, {
+              encoding: "utf8",
+              flag: "wx",
+              mode: 0o600,
+            });
+          ' "${progress_paths[0]}" "$evidence_root/$label-attempt-terminal.json"
+        fi
+      fi
+    fi
   done
   rm -rf -- "$gate_runtime_root"
 }
