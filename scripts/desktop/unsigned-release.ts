@@ -519,6 +519,8 @@ const buildReleaseArtifact = async (args: readonly string[]) => {
     exactCommit,
     "--app-version",
     appVersion,
+    "--user-data-directory",
+    DESKTOP_PRODUCT_NAME,
     "--dmg",
     dmgPath,
     "--ordinary-app",

@@ -57,10 +57,13 @@ const releaseManifest = (architecture: "arm64" | "x64") =>
   });
 
 test("Phase D configures only the official unsigned DMG maker", async () => {
-  const [packageJsonSource, releaseBuilder] = await Promise.all([
-    readFile("package.json", "utf8"),
-    readFile("scripts/desktop/unsigned-release.ts", "utf8"),
-  ]);
+  const [packageJsonSource, releaseBuilder, installerVerifier, smokePreparer] =
+    await Promise.all([
+      readFile("package.json", "utf8"),
+      readFile("scripts/desktop/unsigned-release.ts", "utf8"),
+      readFile("scripts/desktop/verify-unsigned-dmg.sh", "utf8"),
+      readFile("scripts/desktop/prepare-installer-smoke.ts", "utf8"),
+    ]);
   const packageJson = JSON.parse(packageJsonSource) as {
     devDependencies: Record<string, string>;
     scripts: Record<string, string>;
@@ -82,6 +85,16 @@ test("Phase D configures only the official unsigned DMG maker", async () => {
   });
   assert.match(releaseBuilder, /electron-forge[\s\S]*"make"/u);
   assert.doesNotMatch(releaseBuilder, /--targets/u);
+  assert.match(
+    releaseBuilder,
+    /--user-data-directory[\s\S]*DESKTOP_PRODUCT_NAME/u,
+  );
+  assert.match(
+    installerVerifier,
+    /Application Support\/\$user_data_directory/u,
+  );
+  assert.match(smokePreparer, /--application-support-root/u);
+  assert.doesNotMatch(smokePreparer, /com\.axmorf\.studio/u);
 });
 
 test("Phase D installer identity is native, versioned, and explicitly unsigned", () => {

@@ -14,12 +14,8 @@ const requiredOption = (name: string) => {
   return resolve(value);
 };
 
-const homeRoot = requiredOption("--home");
 const workspaceRoot = requiredOption("--workspace");
-const applicationSupportRoot = resolve(
-  homeRoot,
-  "Library/Application Support/com.axmorf.studio",
-);
+const applicationSupportRoot = requiredOption("--application-support-root");
 
 void persistInitialWorkspacePreference({
   preferencesPath: resolveDesktopPreferencesPath({ applicationSupportRoot }),

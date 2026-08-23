@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 architecture=""
 expected_commit=""
 app_version=""
+user_data_directory=""
 dmg_path=""
 ordinary_app=""
 native_evidence_root=""
@@ -13,6 +14,7 @@ while [[ $# -gt 0 ]]; do
     --architecture) architecture=${2:?}; shift 2 ;;
     --expected-commit) expected_commit=${2:?}; shift 2 ;;
     --app-version) app_version=${2:?}; shift 2 ;;
+    --user-data-directory) user_data_directory=${2:?}; shift 2 ;;
     --dmg) dmg_path=${2:?}; shift 2 ;;
     --ordinary-app) ordinary_app=${2:?}; shift 2 ;;
     --native-evidence-root) native_evidence_root=${2:?}; shift 2 ;;
@@ -25,12 +27,17 @@ if [[
   -z "$architecture" ||
   -z "$expected_commit" ||
   -z "$app_version" ||
+  -z "$user_data_directory" ||
   -z "$dmg_path" ||
   -z "$ordinary_app" ||
   -z "$native_evidence_root" ||
   -z "$output_root"
 ]]; then
   echo "desktop-unsigned-dmg-options-required" >&2
+  exit 1
+fi
+if [[ ! "$user_data_directory" =~ ^[A-Za-z0-9][A-Za-z0-9._\ -]*$ || "$user_data_directory" == "." || "$user_data_directory" == ".." ]]; then
+  echo "desktop-unsigned-dmg-user-data-directory-invalid" >&2
   exit 1
 fi
 if [[ "${AXMORF_DESKTOP_NATIVE_GATE_BUILD:-}" == "1" ]]; then
@@ -41,6 +48,18 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   echo "desktop-unsigned-dmg-native-macos-required" >&2
   exit 1
 fi
+
+verification_stage="setup"
+set_verification_stage() {
+  verification_stage=$1
+  printf 'desktop-unsigned-dmg-stage:%s\n' "$verification_stage"
+}
+report_verification_failure() {
+  local status=$?
+  printf 'desktop-unsigned-dmg-stage-failed:%s\n' "$verification_stage" >&2
+  return "$status"
+}
+trap report_verification_failure ERR
 
 repository_root=$(git rev-parse --show-toplevel)
 host_node=$(command -v node)
@@ -100,6 +119,7 @@ cleanup() {
 trap cleanup EXIT
 mkdir -p "$mount_root" "$applications_root" "$empty_path" "$first_home" "$doctor_home"
 
+set_verification_stage compile-window-probe
 /usr/bin/xcrun swiftc "$repository_root/scripts/desktop/window-probe.swift" \
   -o "$window_probe"
 
@@ -149,9 +169,13 @@ launch_ordinary_app() {
     TMPDIR="$verification_runtime_root" \
     "$executable" >"$log_path" 2>&1 &
   LAUNCHED_PID=$!
-  wait_for_window "$LAUNCHED_PID"
+  if ! wait_for_window "$LAUNCHED_PID"; then
+    echo "desktop-unsigned-dmg-window-unavailable" >&2
+    return 1
+  fi
 }
 
+set_verification_stage verify-and-mount
 hdiutil verify "$dmg_path" >"$output_root/hdiutil-verify.txt"
 hdiutil attach "$dmg_path" -readonly -nobrowse -mountpoint "$mount_root" \
   >"$output_root/hdiutil-attach.txt"
@@ -170,16 +194,17 @@ if [[ "$(find "$mount_root" -mindepth 1 -maxdepth 1 -name '*.app' -type d | wc -
   exit 1
 fi
 
-for marker in \
-  desktop-native-test-pcm-v3 \
-  desktop-native-command-failure-v1 \
-  'Native Delivery action sequence does not match.'; do
-  if grep -R -Fq "$marker" "$mounted_app"; then
-    echo "desktop-unsigned-dmg-native-harness-leaked:$marker" >&2
-    exit 1
-  fi
-done
+set_verification_stage reject-native-harness
+if grep -R -Fq \
+  -e desktop-native-test-pcm-v3 \
+  -e desktop-native-command-failure-v1 \
+  -e 'Native Delivery action sequence does not match.' \
+  "$mounted_app"; then
+  echo "desktop-unsigned-dmg-native-harness-leaked" >&2
+  exit 1
+fi
 
+set_verification_stage verify-mounted-native-identity
 "$host_node" --import tsx "$architecture_evidence" assert-package \
   --architecture "$architecture" \
   --app "$mounted_app" \
@@ -189,6 +214,7 @@ npm run desktop:runtime:check -- \
   --architecture "$architecture" \
   >"$output_root/mounted-runtime-check.json"
 
+set_verification_stage copy-to-isolated-applications
 /usr/bin/ditto "$mounted_app" "$applications_root/AXMORF Studio.app"
 installed_app="$applications_root/AXMORF Studio.app"
 "$host_node" --import tsx "$architecture_evidence" assert-package \
@@ -198,6 +224,7 @@ installed_app="$applications_root/AXMORF Studio.app"
 hdiutil detach "$mount_root" -quiet
 mounted=false
 
+set_verification_stage verify-installed-metadata
 info_plist="$installed_app/Contents/Info.plist"
 if [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info_plist")" != "com.axmorf.studio" ]]; then
   echo "desktop-unsigned-dmg-bundle-id-invalid" >&2
@@ -228,16 +255,19 @@ if grep -Eq '^Authority=|^TeamIdentifier=[A-Z0-9]+' "$output_root/codesign.stder
   exit 1
 fi
 
+set_verification_stage first-run
 installed_executable="$installed_app/Contents/MacOS/AXMORF Studio"
 launch_ordinary_app "$first_home" "$installed_executable" "$output_root/first-run.log"
 first_pid=$LAUNCHED_PID
-test ! -e "$first_home/Library/Application Support/com.axmorf.studio/preferences.json"
+test ! -e "$first_home/Library/Application Support/$user_data_directory/preferences.json"
 quit_app "$first_pid"
 
+set_verification_stage prepare-doctor-workspace
 "$host_node" --import tsx "$repository_root/scripts/desktop/prepare-installer-smoke.ts" \
-  --home "$doctor_home" \
   --workspace "$doctor_workspace" \
+  --application-support-root "$doctor_home/Library/Application Support/$user_data_directory" \
   >"$output_root/doctor-preference.json"
+set_verification_stage launch-doctor-workspace
 launch_ordinary_app "$doctor_home" "$installed_executable" "$output_root/doctor-launch.log"
 doctor_pid=$LAUNCHED_PID
 printf '%s\n' idle >"$output_root/network-phase"
@@ -260,6 +290,7 @@ if [[ ! -x "$rsp" || ! -S "$doctor_workspace/.rsp/session/rsp.sock" ]]; then
   echo "desktop-unsigned-dmg-doctor-session-unavailable" >&2
   exit 1
 fi
+set_verification_stage run-doctor
 env HOME="$doctor_home" PATH="$empty_path" TMPDIR="$verification_runtime_root" \
   "$rsp" doctor >"$output_root/doctor.json"
 "$host_node" -e '
@@ -278,6 +309,7 @@ env HOME="$doctor_home" PATH="$empty_path" TMPDIR="$verification_runtime_root" \
   ) process.exit(1);
 ' "$output_root/doctor.json" "$architecture"
 
+set_verification_stage verify-cleanup
 quit_app "$doctor_pid"
 sleep 1
 printf '%s\n' stop >"$output_root/network-stop"
@@ -309,6 +341,7 @@ fi
 runtime_pack_id=$("$host_node" -p \
   'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).runtimePackId' \
   "$output_root/installed-native-identity.json")
+set_verification_stage write-verification
 "$host_node" -e '
   const fs = require("fs");
   const output = {
