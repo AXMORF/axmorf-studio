@@ -67,6 +67,31 @@ export type NativeSmokeOptions = Readonly<{
   workspaceRoot: string;
 }>;
 
+export const writeNativeSmokeFailure = async ({
+  error,
+  options,
+}: {
+  readonly error: unknown;
+  readonly options: NativeSmokeOptions;
+}) => {
+  await mkdir(options.outputRoot, { recursive: true });
+  const raw = error instanceof Error ? error.message : "native-smoke-failed";
+  const redacted = [
+    options.outputRoot,
+    options.workspaceRoot,
+    options.userDataRoot,
+    options.homeRoot,
+  ].reduce(
+    (message, privateRoot) => message.replaceAll(privateRoot, "<private-root>"),
+    raw,
+  );
+  await writeFile(
+    join(options.outputRoot, "native-failure.json"),
+    `${JSON.stringify({ code: "desktop-native-smoke-failed", message: redacted })}\n`,
+    { mode: 0o600 },
+  );
+};
+
 export const ensureNativeSmokeProducerConfig = async ({
   applicationSupportRoot,
   crypto,
@@ -703,15 +728,7 @@ export const runPackagedNativeSmoke = async ({
     }
     app.quit();
   } catch (error) {
-    const raw = error instanceof Error ? error.message : "native-smoke-failed";
-    const redacted = raw
-      .replaceAll(options.outputRoot, "<evidence-root>")
-      .replaceAll(options.workspaceRoot, "<workspace-root>");
-    await writeFile(
-      join(options.outputRoot, "native-failure.json"),
-      `${JSON.stringify({ code: "desktop-native-smoke-failed", message: redacted })}\n`,
-      { mode: 0o600 },
-    );
+    await writeNativeSmokeFailure({ error, options });
     await controller.shutdown().catch(() => undefined);
     app.exit(1);
   }

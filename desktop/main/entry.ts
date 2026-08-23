@@ -61,6 +61,7 @@ import {
   ensureNativeSmokeProducerConfig,
   resolveNativeSmokeOptions,
   runPackagedNativeSmoke,
+  writeNativeSmokeFailure,
   type NativeSmokeOptions,
 } from "./native-smoke-port";
 
@@ -408,6 +409,11 @@ void startDesktopLifecycle({
       options: nativeSmoke,
     });
   })
-  .catch(() => {
+  .catch(async (error: unknown) => {
+    if (nativeSmoke !== null) {
+      await writeNativeSmokeFailure({ error, options: nativeSmoke });
+      app.exit(1);
+      return;
+    }
     app.quit();
   });

@@ -9,3 +9,7 @@ export const ensureNativeSmokeProducerConfig = async () => {
 export const runPackagedNativeSmoke = async () => {
   throw new Error("desktop-native-smoke-not-in-build");
 };
+
+export const writeNativeSmokeFailure = async () => {
+  throw new Error("desktop-native-smoke-not-in-build");
+};

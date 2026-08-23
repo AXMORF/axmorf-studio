@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
-import { resolveNativeSmokeOptions } from "../../desktop/main/native-smoke";
+import {
+  resolveNativeSmokeOptions,
+  writeNativeSmokeFailure,
+} from "../../desktop/main/native-smoke";
 import { ProjectCreateInputSchema } from "../../src/contracts";
 import { createDesktopNativeProjectInput } from "../../scripts/desktop/native-fixture";
 
@@ -70,6 +75,34 @@ test("native smoke activation is packaged Apple Silicon CI only", () => {
         }),
       /desktop-native-smoke-host-invalid/u,
     );
+  }
+});
+
+test("native smoke records redacted failures before runtime bootstrap", async () => {
+  const root = await mkdtemp(join(tmpdir(), "desktop-native-failure-"));
+  const options = {
+    homeRoot: join(root, "home"),
+    outputRoot: join(root, "evidence"),
+    selection: "custom" as const,
+    userDataRoot: join(root, "user-data"),
+    workspaceRoot: join(root, "workspace"),
+  };
+  try {
+    await writeNativeSmokeFailure({
+      error: new Error(`bootstrap failed in ${options.workspaceRoot}`),
+      options,
+    });
+    const failure = await readFile(
+      join(options.outputRoot, "native-failure.json"),
+      "utf8",
+    );
+    assert.deepEqual(JSON.parse(failure), {
+      code: "desktop-native-smoke-failed",
+      message: "bootstrap failed in <private-root>",
+    });
+    assert.doesNotMatch(failure, new RegExp(root, "u"));
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
 
