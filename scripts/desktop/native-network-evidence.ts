@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { appendFile, readFile, readdir, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { basename, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
@@ -42,6 +42,14 @@ export type NativeNetworkEvidenceSample = Readonly<{
 
 const evidenceError = (code: string) =>
   new Error(`native-network-evidence-${code}`);
+
+export const nativeProcessCommandIdentity = (command: string) => {
+  const identity = basename(command.trim());
+  if (identity === "" || identity.length > 160) {
+    throw evidenceError("process-command-invalid");
+  }
+  return identity;
+};
 
 const parseEndpoint = (raw: string) => {
   const value = raw.replace(/^TCP\s+/u, "").replace(/\s+\(LISTEN\)$/u, "");
@@ -122,7 +130,7 @@ const parseProcessIdentity = (raw: string): NativeProcessIdentity | null => {
     pid: Number(match[1]!),
     parentPid: Number(match[2]!),
     startedAt: match[3]!,
-    command: match[4]!,
+    command: nativeProcessCommandIdentity(match[4]!),
   };
 };
 

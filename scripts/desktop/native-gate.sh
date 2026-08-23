@@ -147,11 +147,12 @@ if find "$evidence_root" -type f -iname '*token*' \
 fi
 if find "$evidence_root" -type f ! -name '*.png' -print0 | \
   xargs -0 grep -El \
-    'Bearer [A-Fa-f0-9]{32,}|visible-editable-token|voice_profile'; then
+    'Bearer [A-Fa-f0-9]{32,}|visible-editable-token|voice_profile' \
+    >/dev/null; then
   echo "desktop-native-evidence-redaction-failed" >&2
   exit 1
 fi
-if grep -R -F "$repository_root" "$evidence_root"; then
+if grep -R -Fq "$repository_root" "$evidence_root"; then
   echo "desktop-native-repository-path-leaked-into-evidence" >&2
   exit 1
 fi

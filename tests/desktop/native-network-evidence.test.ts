@@ -4,10 +4,21 @@ import test from "node:test";
 import {
   assertNativeIdleNetworkEvidence,
   assertNativeNetworkEvidence,
+  nativeProcessCommandIdentity,
   parseLsofConnectionOutput,
   parseLsofListenerOutput,
   type NativeNetworkEvidenceSample,
 } from "../../scripts/desktop/native-network-evidence";
+
+test("native process identity strips checkout paths before evidence is written", () => {
+  assert.equal(
+    nativeProcessCommandIdentity(
+      "/private/checkout/out/AXMORF Studio.app/Contents/MacOS/AXMORF Studio",
+    ),
+    "AXMORF Studio",
+  );
+  assert.throws(() => nativeProcessCommandIdentity(""));
+});
 
 const processIdentity = {
   pid: 42,
