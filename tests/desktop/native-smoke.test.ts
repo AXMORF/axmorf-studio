@@ -240,6 +240,10 @@ test("ordinary Desktop builds compile the native harness off", async () => {
   );
   assert.match(engineConfig, /find: "\.\/workspace-narration-port"/u);
   assert.match(engineConfig, /scripts\/desktop\/native-test-provider\.ts/u);
+  assert.match(
+    engineConfig,
+    /"import\.meta\.url": 'require\("node:url"\)\.pathToFileURL\(__filename\)\.href'/u,
+  );
   assert.match(provider, /export const prepareWorkspaceNarration/u);
   assert.match(provider, /desktop-native-test-pcm-v1/u);
 });

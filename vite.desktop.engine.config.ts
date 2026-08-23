@@ -11,6 +11,9 @@ const nodeExternals = [
 
 export default defineConfig({
   publicDir: false,
+  define: {
+    "import.meta.url": 'require("node:url").pathToFileURL(__filename).href',
+  },
   resolve: {
     alias:
       process.env.AXMORF_PHASE_B_NATIVE_GATE_BUILD === "1"
