@@ -65,10 +65,17 @@ redaction 和 package 后完整 repository gate 均 Green。该证据使用 test
 `externalCreativeAgentTested: false`；它不冒充外部 Codex/Hermes creative E2E，也不表示 DMG 或公开发行已完成。
 精确命令与边界见 [Desktop Phase C native gate](guides/DESKTOP_PHASE_C_NATIVE_GATE.md)。
 
-Roadmap 现进入第 4 项。公开 beta 的入口 Gate 是取得 Remotion runtime binary redistribution 书面确认；许可未关闭前
-不得公开发布包含该 runtime 的 DMG。维护者可在明确授权下生成 internal/manual-only unsigned installer 技术证据，但
-该授权不满足许可 Gate、不产生 GitHub Release，也不能把 artifact 写成公开 beta。当前 Phase D installer implementation
-已完成、真实双架构 workflow artifact evidence pending；精确入口见
+Phase D internal/manual-only installer artifact closeout 已 `verified-complete`。exact evidence commit
+`e82dd2b90d291ba87a26a1a2d1cc4d327dbaea9c` 的 Actions run
+[`32671348209`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32671348209) 在 hosted
+`macos-15` arm64 与 `macos-15-intel` x64 上完成 native production gate、ordinary unsigned DMG、挂载/安装、
+first-run、doctor/Preview、no-host-tools 与 cleanup 验证；dual artifact ID `9501762840`、digest
+`sha256:f2abedc9a37481009f11b9848c91937eddb6853b484956d055e5eafe8edf0d9c` 已下载并通过 strict manifest、checksum、
+exact file set 与 redaction 人工复核。
+
+Roadmap 仍位于第 4 项的公开 beta Gate。公开 beta 的入口 Gate 是取得 Remotion runtime binary redistribution 书面确认；
+许可未关闭前不得公开发布包含该 runtime 的 DMG。本轮授权和 internal artifact 不满足许可 Gate、不产生 GitHub Release，
+也不能把 artifact 写成公开 beta。精确入口见
 [Desktop Phase D internal unsigned DMG](guides/DESKTOP_PHASE_D_UNSIGNED_DMG.md)。阶段继续遵守 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
 [macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)。
 

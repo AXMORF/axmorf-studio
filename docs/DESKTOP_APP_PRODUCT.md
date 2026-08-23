@@ -2,7 +2,7 @@
 
 > 文档类型：Desktop App 产品目标 authority
 >
-> 状态：产品方向与 macOS v1 默认值已确认；Phase A、Phase B 与 Phase C 已 verified complete；当前路线进入 Phase D unsigned public beta Gate
+> 状态：产品方向与 macOS v1 默认值已确认；Phase A、Phase B、Phase C 与 Phase D internal installer artifact 已 verified complete；unsigned public beta Gate 仍 pending
 >
 > 当前实现事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)，现有生产 authority 见
 > [ARCHITECTURE.md](ARCHITECTURE.md) 与 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
@@ -321,11 +321,11 @@ Apple Silicon 与真实 x86_64 runner 上完成目标原生 App/Runtime Pack/pro
 commit、workflow、artifact digest 与人工复核范围见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。该证据完成内部双架构
 native contract，不等于安装外部 Codex/Hermes 的 creative Workspace production proof，也不等于 installer 或公开发行。
 
-Phase D 已加入 internal/manual-only ordinary unsigned DMG builder、strict release manifest/SBOM input、安装说明与
-双架构 native workflow，但真实 artifact evidence 尚 pending；它不满足 Remotion runtime redistribution 许可 Gate，也不
-创建 public Release。剩余产品差距包括外部 Codex/Hermes creative E2E、Remotion 书面许可、Phase D 真实双架构 artifact
-closeout、code signing/notarization、binary release、update channel 和长期 support policy。Phase A、Phase B 与 Phase C
-均为 `verified-complete`；后续路由以 [ROADMAP.md](ROADMAP.md) 为准。
+Phase D internal/manual-only ordinary unsigned DMG artifact 已在 hosted arm64 与真实 x64 runner 上完成 native gate、挂载、
+安装、first-run、doctor/Preview、no-host-tools、cleanup 与双架构 release-set evidence；exact commit、run、artifact digest、
+DMG checksum 和人工下载复核见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。它不满足 Remotion runtime redistribution
+许可 Gate，也不创建 public Release。剩余产品差距包括外部 Codex/Hermes creative E2E、Remotion 书面许可、code
+signing/notarization、公开 binary release、update channel 和长期 support policy。后续路由以 [ROADMAP.md](ROADMAP.md) 为准。
 
 ## 12. 后续产品完成门槛
 

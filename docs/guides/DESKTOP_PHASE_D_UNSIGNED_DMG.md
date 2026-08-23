@@ -2,7 +2,7 @@
 
 > 文档类型：internal/manual-only installer 构建与验证入口
 >
-> 当前状态：implementation complete，真实双架构 workflow artifact evidence pending
+> 当前状态：internal/manual-only 双架构 workflow artifact verified complete；公开发行 Gate pending
 
 ## 1. 边界
 
@@ -99,3 +99,21 @@ dispatch。
 
 不得要求用户全局关闭 Gatekeeper，也不把 `xattr` 删除 quarantine 作为标准步骤。受 MDM 限制而没有 Open Anyway 的 Mac
 不属于 unsigned test channel 支持范围。
+
+## 6. verified evidence
+
+exact commit `e82dd2b90d291ba87a26a1a2d1cc4d327dbaea9c` 的 manual-only Actions run
+[`32671348209`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32671348209) 已完成 hosted
+`macos-15` arm64、`macos-15-intel` x64 与 complete dual-set 三个 Green jobs。最终可下载 artifact 为
+`desktop-phase-d-dual-unsigned-dmg-32671348209`，artifact ID `9501762840`，GitHub digest
+`sha256:f2abedc9a37481009f11b9848c91937eddb6853b484956d055e5eafe8edf0d9c`。
+
+下载后的 release set 已复跑 strict validators、checksum、exact regular-file inventory 与 redaction：
+
+| Architecture | DMG | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| arm64 | `AXMORF-Studio-0.1.0-mac-arm64-full-unsigned.dmg` | 356232619 | `00a8a62909c1ab3df978ff4dd1a63b01f3a65d487321597a462b655958b1abf3` |
+| x64 | `AXMORF-Studio-0.1.0-mac-x64-full-unsigned.dmg` | 370199416 | `ef334455bbf6bba6a7075fb48c6b0e1d0723b424775e5df3facdde07b6ec7f16` |
+
+这只关闭 internal installer artifact evidence。Remotion runtime redistribution permission 继续为 `not-satisfied`；
+Developer ID signing、notarization、auto-update 与 public GitHub Release 均未执行。

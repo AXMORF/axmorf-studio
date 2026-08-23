@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-24 Desktop Phase D internal unsigned DMG implementation complete，native artifact evidence pending
+> 最后复核：2026-08-24 Desktop Phase D internal unsigned DMG artifact verified complete
 
 ## 当前结论
 
@@ -242,7 +242,7 @@ provider/task executor，`runner-summary.json` 明确记录 `deterministicFixtur
 `externalCreativeAgentTested: false`；安装外部 Codex/Hermes 的 creative E2E 是独立待补产品证据，不由本次 native
 evidence 推断。
 
-## Desktop Phase D internal unsigned DMG（native artifact evidence pending）
+## Desktop Phase D internal unsigned DMG（verified-complete）
 
 当前 implementation 已加入 Electron Forge 7.11.2 官方 DMG maker、严格 version/architecture/unsigned 文件名、
 ordinary package-only installer builder、mounted DMG/isolated Applications/first-run/doctor/Preview/cleanup verifier、
@@ -255,9 +255,25 @@ manual-only Phase D workflow 在 hosted `macos-15` arm64 与 `macos-15-intel` x6
 final job 才上传带 `dual-release-manifest.json` 的完整双架构 artifact。workflow 没有 push/release/publisher 权限或 trigger，
 不创建 GitHub Release。
 
-当前状态只能写作 `implementation-complete-native-installer-evidence-pending`，直到 exact commit 的两个原生 jobs、下载 artifact
-和人工审计全部完成。Remotion runtime binary redistribution permission 仍为 `not-satisfied`；用户对本轮 internal/manual-only
-构建的授权不等于许可已满足，也不授权公开发布。精确入口与 artifact contract 见
+exact evidence commit `e82dd2b90d291ba87a26a1a2d1cc4d327dbaea9c` 的 manual-only Actions run
+[`32671348209`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32671348209) 已整体 success。arm64 job
+`97272565221` 与真实 x64 job `97272565147` 均完成 Phase C native production gate 和 ordinary installer gate；release-set job
+`97275379558` 仅在同一 `0.1.0` appVersion、同一 exact commit 与两个 native manifest 均 Green 后完成。
+
+arm64 artifact ID `9501625959`、digest
+`sha256:f90b80b2818052c3edcde3b8a774121f3144dd15c75ef6f06f4c060a6cd2b2a1`；x64 artifact ID `9501750841`、digest
+`sha256:40d34620a08ea91a432a09b57c2dbc03c26253eef9476d0b1aea1cb966ae172b`；complete dual artifact ID
+`9501762840`、digest `sha256:f2abedc9a37481009f11b9848c91937eddb6853b484956d055e5eafe8edf0d9c`。下载后的 dual artifact 已人工复跑
+两架构 strict release verifier、fresh dual-set generation/byte comparison、checksum、13-file regular-only inventory 与 workflow
+redaction 规则。DMG evidence 为：
+
+- arm64：`AXMORF-Studio-0.1.0-mac-arm64-full-unsigned.dmg`，`356232619` bytes，SHA-256
+  `00a8a62909c1ab3df978ff4dd1a63b01f3a65d487321597a462b655958b1abf3`；
+- x64：`AXMORF-Studio-0.1.0-mac-x64-full-unsigned.dmg`，`370199416` bytes，SHA-256
+  `ef334455bbf6bba6a7075fb48c6b0e1d0723b424775e5df3facdde07b6ec7f16`。
+
+因此 Phase D internal installer artifact 状态为 `verified-complete`。Remotion runtime binary redistribution permission 仍为
+`not-satisfied`；用户对本轮 internal/manual-only 构建的授权不等于许可已满足，也不授权公开发布。精确入口与 artifact contract 见
 [Desktop Phase D internal unsigned DMG](guides/DESKTOP_PHASE_D_UNSIGNED_DMG.md)。
 
 ## 当前非目标
@@ -266,7 +282,7 @@ final job 才上传带 `dual-release-manifest.json` 的完整双架构 artifact�
 gate、automatic capability promotion、Docker 和新的 TTS Gateway 均未实现。
 
 公开 DMG 发行、签名/公证、外部 Codex/Hermes creative E2E 和 public release 仍未验证；Phase C 的内部
-darwin arm64/x64 native evidence 与 Phase D internal installer implementation 都不等于许可满足、公开 distribution 或
+darwin arm64/x64 native evidence 与 Phase D internal installer artifact 都不等于许可满足、公开 distribution 或
 公开支持政策。这些目标记录在
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
 [macOS 维护与发行目标](DESKTOP_APP_MACOS_MAINTENANCE.md)。Phase A 的受限 Workspace/Skill/doctor/Preview surface
