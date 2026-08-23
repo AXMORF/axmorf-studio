@@ -98,8 +98,7 @@ test("Phase D installer identity is native, versioned, and explicitly unsigned",
       architecture: "arm64",
     }),
   );
-  const expected =
-    "AXMORF-Studio-0.1.0-mac-arm64-full-unsigned.dmg";
+  const expected = "AXMORF-Studio-0.1.0-mac-arm64-full-unsigned.dmg";
   assert.equal(
     selectDesktopUnsignedDmgOutputPath({
       expectedFileName: expected,
