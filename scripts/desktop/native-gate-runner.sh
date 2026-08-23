@@ -514,6 +514,8 @@ drive_production() {
     "$rsp" task commit --task "$task_revision" --attempt "$attempt_id" \
       >>"$output_root/task-commits.jsonl"
   done <"$output_root/task-revisions.txt"
+  "$rsp" inspect --project desktop-native-fixture \
+    >"$output_root/inspect-after-tasks.json"
 
   if [[ "$policy" = manual ]]; then
     set_network_phase "$output_root" manual-source-current
