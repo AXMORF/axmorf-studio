@@ -222,6 +222,10 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
     readFile("scripts/desktop/native-gate-runner.sh", "utf8"),
   ]);
   assert.match(nativeSmoke, /choice\.click\(\)/u);
+  assert.match(
+    nativeSmoke,
+    /executeJavaScript\(\s*workspaceSelectionProbeSource,[\s\S]*writeFile\(join\(options\.outputRoot, "app-ready"\)/u,
+  );
   assert.match(nativeSmoke, /selectionControl\.dispatchEvent/u);
   assert.match(nativeSmoke, /selectionControlValue/u);
   assert.match(nativeSmoke, /\(clamped \+ 0\.25\) \/ selected\.fps/u);

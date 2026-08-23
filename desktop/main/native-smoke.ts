@@ -256,6 +256,39 @@ const responseSummary = async (response: Response) => ({
 const HAVE_METADATA = 1;
 const HAVE_CURRENT_DATA = 2;
 
+const workspaceSelectionProbeSource = `(() => new Promise(async (resolve, reject) => {
+  try {
+    const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+    const until = async (predicate, label, timeout = 90000) => {
+      const deadline = Date.now() + timeout;
+      while (Date.now() < deadline) {
+        if (predicate()) return;
+        await sleep(100);
+      }
+      throw new Error("renderer-timeout:" + label);
+    };
+    await until(
+      () =>
+        document.querySelector("video") !== null ||
+        Array.from(document.querySelectorAll("button")).some((button) =>
+          button.textContent?.includes("确认或选择 Workspace"),
+        ),
+      "workspace-choice",
+    );
+    if (document.querySelector("video") === null) {
+      const choice = Array.from(document.querySelectorAll("button")).find(
+        (button) => button.textContent?.includes("确认或选择 Workspace"),
+      );
+      if (choice === undefined) throw new Error("renderer-workspace-choice-missing");
+      choice.click();
+    }
+    await until(() => document.querySelector("video") !== null, "workspace-ready");
+    resolve(true);
+  } catch (error) {
+    reject(error);
+  }
+}))()`;
+
 const rendererProbeSource = (playbackRequired: boolean) =>
   `(() => new Promise(async (resolve, reject) => {
   try {
@@ -482,6 +515,10 @@ export const runPackagedNativeSmoke = async ({
     await waitFor(
       () => !window.webContents.isLoadingMainFrame(),
       "renderer-load",
+    );
+    await window.webContents.executeJavaScript(
+      workspaceSelectionProbeSource,
+      true,
     );
     await writeFile(join(options.outputRoot, "app-ready"), "ready\n", {
       mode: 0o600,
