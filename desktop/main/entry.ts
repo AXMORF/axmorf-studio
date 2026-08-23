@@ -58,6 +58,7 @@ import { initializeDesktopRuntimeResources } from "./initialize-runtime";
 import { registerDesktopShellIpc } from "./register-ipc";
 import { DesktopShellController } from "./shell-controller";
 import {
+  createNativeSmokePrivateConfigCrypto,
   ensureNativeSmokeProducerConfig,
   resolveNativeSmokeOptions,
   runPackagedNativeSmoke,
@@ -205,9 +206,11 @@ void startDesktopLifecycle({
         },
       } as const;
     };
+    await recordNativeStartupStage("recovery-read-start");
     const pendingRecovery = await loadWorkspaceMigrationRecoveryPointer({
       applicationSupportRoot,
     });
+    await recordNativeStartupStage("recovery-read-complete");
     if (pendingRecovery !== null) {
       const runtime = await migrationRuntime();
       await recoverWorkspaceMigration({
@@ -224,17 +227,22 @@ void startDesktopLifecycle({
     }
     const media = new DesktopMediaProtocol();
     const unregisterMedia = registerDesktopMediaProtocol({ protocol, media });
-    const privateConfigCrypto = {
-      available: () => safeStorage.isEncryptionAvailable(),
-      encrypt: (plaintext: string) => safeStorage.encryptString(plaintext),
-      decrypt: (ciphertext: Uint8Array) =>
-        safeStorage.decryptString(Buffer.from(ciphertext)),
-    };
+    const privateConfigCrypto =
+      nativeSmoke === null
+        ? {
+            available: () => safeStorage.isEncryptionAvailable(),
+            encrypt: (plaintext: string) => safeStorage.encryptString(plaintext),
+            decrypt: (ciphertext: Uint8Array) =>
+              safeStorage.decryptString(Buffer.from(ciphertext)),
+          }
+        : createNativeSmokePrivateConfigCrypto();
     if (nativeSmoke !== null) {
+      await recordNativeStartupStage("private-config-start");
       await ensureNativeSmokeProducerConfig({
         applicationSupportRoot,
         crypto: privateConfigCrypto,
       });
+      await recordNativeStartupStage("private-config-complete");
     }
     const loadProducerConfig = async () => {
       if (!privateConfigCrypto.available()) {

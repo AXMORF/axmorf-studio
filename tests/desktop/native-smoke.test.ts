@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  createNativeSmokePrivateConfigCrypto,
   resolveNativeSmokeOptions,
   writeNativeSmokeFailure,
   writeNativeSmokeStartupStage,
@@ -131,6 +132,18 @@ test("native smoke records the last packaged startup stage", async () => {
   }
 });
 
+test("native smoke private config crypto is authenticated and credential-free", () => {
+  const crypto = createNativeSmokePrivateConfigCrypto();
+  const plaintext = JSON.stringify({ provider: "native-gate-no-credentials" });
+  const encrypted = crypto.encrypt(plaintext);
+  assert.equal(crypto.available(), true);
+  assert.notEqual(Buffer.from(encrypted).toString("utf8"), plaintext);
+  assert.equal(crypto.decrypt(encrypted), plaintext);
+  const tampered = Uint8Array.from(encrypted);
+  tampered[tampered.length - 1] ^= 1;
+  assert.throws(() => crypto.decrypt(tampered));
+});
+
 test("native gate workflow is manual-only to dispatch and uploads evidence only", async () => {
   const workflow = await readFile(
     ".github/workflows/desktop-phase-b-native-gate.yml",
@@ -190,6 +203,8 @@ test("ordinary Desktop builds compile the native harness off", async () => {
   assert.match(config, /desktop\/main\/native-smoke\.ts/u);
   assert.doesNotMatch(entry, /native-test-provider/u);
   assert.match(entry, /await ensureNativeSmokeProducerConfig/u);
+  assert.match(entry, /createNativeSmokePrivateConfigCrypto/u);
+  assert.match(config, /desktop\/main\/native-smoke-disabled\.ts/u);
   assert.match(
     engineConfig,
     /process\.env\.AXMORF_PHASE_B_NATIVE_GATE_BUILD === "1"/u,

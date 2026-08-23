@@ -1,3 +1,9 @@
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+} from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -70,6 +76,10 @@ export type NativeSmokeOptions = Readonly<{
 export type NativeSmokeStartupStage =
   | "main-loaded"
   | "lifecycle-create-runtime"
+  | "recovery-read-start"
+  | "recovery-read-complete"
+  | "private-config-start"
+  | "private-config-complete"
   | "bootstrap-start"
   | "bootstrap-complete"
   | "window-load-start"
@@ -77,6 +87,49 @@ export type NativeSmokeStartupStage =
   | "runtime-created"
   | "lifecycle-ready"
   | "native-smoke-started";
+
+const NATIVE_GATE_CONFIG_KEY = createHash("sha256")
+  .update("axmorf-desktop-native-gate-private-config-v1", "utf8")
+  .digest();
+
+// The hosted native gate has no credentials and cannot depend on an
+// interactive login Keychain prompt. This test-only crypto port still drives
+// the real owner-only, atomic Application Support store and is compiled out of
+// ordinary packages with the rest of the native harness.
+export const createNativeSmokePrivateConfigCrypto = (): PrivateConfigCrypto =>
+  ({
+    available: () => true,
+    encrypt: (plaintext) => {
+      const iv = randomBytes(12);
+      const cipher = createCipheriv("aes-256-gcm", NATIVE_GATE_CONFIG_KEY, iv);
+      const encrypted = Buffer.concat([
+        cipher.update(plaintext, "utf8"),
+        cipher.final(),
+      ]);
+      return Buffer.concat([
+        Buffer.from([1]),
+        iv,
+        cipher.getAuthTag(),
+        encrypted,
+      ]);
+    },
+    decrypt: (ciphertext) => {
+      const bytes = Buffer.from(ciphertext);
+      if (bytes.byteLength < 29 || bytes[0] !== 1) {
+        throw new Error("desktop-native-smoke-private-config-invalid");
+      }
+      const decipher = createDecipheriv(
+        "aes-256-gcm",
+        NATIVE_GATE_CONFIG_KEY,
+        bytes.subarray(1, 13),
+      );
+      decipher.setAuthTag(bytes.subarray(13, 29));
+      return Buffer.concat([
+        decipher.update(bytes.subarray(29)),
+        decipher.final(),
+      ]).toString("utf8");
+    },
+  }) satisfies PrivateConfigCrypto;
 
 export const writeNativeSmokeStartupStage = async ({
   options,
