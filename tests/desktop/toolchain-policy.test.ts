@@ -275,6 +275,40 @@ test("Desktop build inventory is exact and rejects copied repository public data
   assert.doesNotThrow(() =>
     assertPackagedApplicationInventory(packagedFiles),
   );
+  const nativeGateTypescriptChunk = ".vite/build/typescript-native-gate.js";
+  await writeFile(join(checkoutRoot, nativeGateTypescriptChunk), "fixture");
+  assert.equal(
+    isDesktopPackagePathAllowed(nativeGateTypescriptChunk, false),
+    false,
+  );
+  assert.equal(
+    isDesktopPackagePathAllowed(nativeGateTypescriptChunk, true),
+    true,
+  );
+  assert.throws(
+    () => verifyDesktopBuildInventory(checkoutRoot, false),
+    /desktop-main-build-inventory-exact-file-drift/u,
+  );
+  assert.deepEqual(verifyDesktopBuildInventory(checkoutRoot, true), {
+    mainFiles: 10,
+    rspFiles: 1,
+    rendererFiles: 3,
+  });
+  assert.throws(
+    () =>
+      assertPackagedApplicationInventory(
+        [...packagedFiles, nativeGateTypescriptChunk],
+        false,
+      ),
+    /desktop-asar-inventory-exact-file-drift/u,
+  );
+  assert.doesNotThrow(() =>
+    assertPackagedApplicationInventory(
+      [...packagedFiles, nativeGateTypescriptChunk],
+      true,
+    ),
+  );
+  await rm(join(checkoutRoot, nativeGateTypescriptChunk));
   assert.throws(
     () =>
       assertPackagedApplicationInventory([
