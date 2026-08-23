@@ -132,7 +132,7 @@ export const checkGlobalVisualTask = async (
       : join(input.locations.runtimeResources, "source");
   const futurePath = join(runtimeSourceRoot, logicalFuturePath);
   compileTypeScriptImportGraph({
-    rootDir: input.locations.runtimeResources,
+    rootDir: runtimeSourceRoot,
     rootPath: futurePath,
     label: "GlobalVisual task compile",
     virtualSource: source,

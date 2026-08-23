@@ -20,6 +20,7 @@ import { createTaskWorkspace } from "../../scripts/project-production/adapters/t
 import {
   createProductionLocations,
   createRepositoryProductionLocations,
+  createWorkspaceProductionLocations,
 } from "../../scripts/project-production/application/production-locations";
 import {
   buildValidSealedNarrationManifest,
@@ -107,14 +108,15 @@ const buildFixture = ({
 const createGlobalWorkspace = async ({
   rootDir,
   fixture = buildFixture(),
+  locations = createProductionLocations({
+    ...createRepositoryProductionLocations({ repositoryRoot: rootDir }),
+    runtimeResources: join(import.meta.dirname, "../.."),
+  }),
 }: {
   readonly rootDir: string;
   readonly fixture?: ReturnType<typeof buildFixture>;
+  readonly locations?: ReturnType<typeof createProductionLocations>;
 }) => {
-  const locations = createProductionLocations({
-    ...createRepositoryProductionLocations({ repositoryRoot: rootDir }),
-    runtimeResources: join(import.meta.dirname, "../.."),
-  });
   const contextBytes = `${serializeCanonicalJson(fixture.context)}\n`;
   const task = buildProducerTaskSpec({
     taskKind: "global-visual-owner",
@@ -173,6 +175,39 @@ test("GlobalVisual task accepts canonical context whose inset key order differs 
         taskRevision: task.taskRevision,
       })
     ).status,
+    "task-workspace-valid",
+  );
+});
+
+test("Workspace GlobalVisual task compiles against the Runtime Pack source root", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-pack-source-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const runtimeResources = join(rootDir, "runtime-pack");
+  await mkdir(join(runtimeResources, "source"), { recursive: true });
+  await writeFile(
+    join(runtimeResources, "source/tsconfig.json"),
+    `${JSON.stringify({
+      compilerOptions: {
+        target: "ES2022",
+        module: "Preserve",
+        moduleResolution: "Bundler",
+        jsx: "preserve",
+        strict: true,
+        noEmit: true,
+      },
+    })}\n`,
+  );
+  const locations = createWorkspaceProductionLocations({
+    workspaceRoot: join(rootDir, "workspace"),
+    applicationSupportRoot: join(rootDir, "support"),
+    runtimeResources,
+    cacheRoot: join(rootDir, "cache"),
+  });
+  const { task } = await createGlobalWorkspace({ rootDir, locations });
+
+  assert.equal(
+    (await checkGlobalVisualTask({ locations, taskRevision: task.taskRevision }))
+      .status,
     "task-workspace-valid",
   );
 });

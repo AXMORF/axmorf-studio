@@ -75,7 +75,7 @@ test("Workspace authoring helpers use only the explicitly injected source and ru
   );
 
   await write(
-    join(runtimeResources, "tsconfig.json"),
+    join(runtimeResources, "source/tsconfig.json"),
     `${JSON.stringify({ compilerOptions: { jsx: "react-jsx", strict: true } })}\n`,
   );
   await write(
@@ -172,7 +172,7 @@ test("Workspace GlobalVisual source uses only injected Project and Runtime Pack 
       "export type GlobalVisualLayersComponent<T> = T;\n",
     ),
     write(
-      join(runtimeResources, "tsconfig.json"),
+      join(runtimeResources, "source/tsconfig.json"),
       `${JSON.stringify({ compilerOptions: { jsx: "preserve", strict: true } })}\n`,
     ),
     write(

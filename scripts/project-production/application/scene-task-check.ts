@@ -54,7 +54,7 @@ export const checkSceneTask = async (
     `src/projects/${taskInput.storyId}/scenes/${taskInput.meaningId}/__scene-task-component-check.tsx`,
   );
   compileTypeScriptImportGraph({
-    rootDir: input.locations.runtimeResources,
+    rootDir: runtimeSourceRoot,
     rootPath: contractCheckPath,
     label: "Scene task compile",
     virtualSources: {

@@ -175,7 +175,7 @@ test("Scene task reads compiler sources only from the explicit Workspace Runtime
     { recursive: true },
   );
   await writeFile(
-    join(runtimeResources, "tsconfig.json"),
+    join(runtimeResources, "source/tsconfig.json"),
     `${JSON.stringify({
       compilerOptions: {
         target: "ES2022",
@@ -203,7 +203,7 @@ test("Scene task reads compiler sources only from the explicit Workspace Runtime
 
   await assert.rejects(
     checkSceneTask({ locations, taskRevision: task.taskRevision }),
-    /Scene task compile failed/u,
+    /Scene task compile failed \(TS1110(?:,|\))/u,
   );
 });
 

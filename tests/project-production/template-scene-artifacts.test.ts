@@ -159,7 +159,7 @@ test("fixed template preparation derives and commits the complete canonical Scen
     recursive: true,
   });
   await writeFile(
-    join(runtimeResources, "tsconfig.json"),
+    join(runtimeResources, "source/tsconfig.json"),
     `${JSON.stringify({
       compilerOptions: {
         target: "ES2022",

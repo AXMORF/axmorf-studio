@@ -80,7 +80,7 @@ export const compileTargetProjectComposition = async ({
       storyId,
     );
     compileTypeScriptImportGraph({
-      rootDir: locations.runtimeResources,
+      rootDir: join(locations.runtimeResources, "source"),
       rootPath: join(virtualProjectRoot, "Composition.tsx"),
       label: "Target Project Composition TypeScript compile",
       virtualSources: await collectProjectVirtualSources({

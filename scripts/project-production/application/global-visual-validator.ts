@@ -93,7 +93,7 @@ export const GlobalVisualLayersInterfaceProof = CheckedGlobalVisualLayers;
 `;
   if (locations.layoutKind === "repository") {
     compileTypeScriptImportGraph({
-      rootDir: locations.runtimeResources,
+      rootDir: globalVisualRuntimeSourceRoot(locations),
       rootPath,
       label: "GlobalVisualLayers component interface compile",
       virtualSource,
@@ -113,7 +113,7 @@ export const GlobalVisualLayersInterfaceProof = CheckedGlobalVisualLayers;
     "utf8",
   );
   compileTypeScriptImportGraph({
-    rootDir: locations.runtimeResources,
+    rootDir: globalVisualRuntimeSourceRoot(locations),
     rootPath,
     label: "GlobalVisualLayers component interface compile",
     virtualSources: {
