@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 
 import {
   NARRATION_MASTERING_POLICY,
+  NarrationPreparationReceiptSchema,
   NarrationSpecSchema,
   RenderSpecSchema,
   NarrationMasteringPolicySchema,
@@ -234,6 +235,15 @@ export const prepareWorkspaceNarration: WorkspacePrepareNarration = async ({
   const masteredManifestBytes = new TextEncoder().encode(
     json(masteredNarration),
   );
+  const preparationReceipt = NarrationPreparationReceiptSchema.parse({
+    schemaVersion: 1,
+    contractVersion: "narration-preparation-v1",
+    storyId: projectId,
+    generationInputFingerprint,
+    providerAttemptFingerprint,
+    sealedNarrationFingerprint: sealedNarration.sealedNarrationFingerprint,
+    masteringPolicy: masteredNarration.masteringPolicy,
+  });
   await Promise.all([
     write(join(mediaRoot, "narration/complete.wav"), completeAudioBytes),
     write(
@@ -251,6 +261,10 @@ export const prepareWorkspaceNarration: WorkspacePrepareNarration = async ({
     write(
       join(sourceRoot, "generated/mastered-narration.generated.json"),
       masteredManifestBytes,
+    ),
+    write(
+      join(sourceRoot, "generated/narration-preparation.generated.json"),
+      json(preparationReceipt),
     ),
   ]);
   return {

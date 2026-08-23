@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -11,8 +11,21 @@ import {
   writeNativeSmokeEngineDiagnostic,
   writeNativeSmokeStartupStage,
 } from "../../desktop/main/native-smoke";
-import { ProjectCreateInputSchema } from "../../src/contracts";
+import {
+  NarrationPreparationReceiptSchema,
+  NarrationSpecSchema,
+  ProjectCreateInputSchema,
+  RenderSpecSchema,
+  buildProducerConfig,
+  serializeCanonicalJson,
+} from "../../src/contracts";
+import { prepareDesktopNativeTestNarration } from "../../scripts/desktop/native-test-provider";
+import {
+  createRuntimeExecutionResources,
+  createWorkspaceProductionLocations,
+} from "../../scripts/project-production/application/production-locations";
 import { createDesktopNativeProjectInput } from "../../scripts/desktop/native-fixture";
+import { validProjectCreateProducerConfig } from "../fixtures/project-create";
 
 test("native fixture starts at the public project-create boundary", () => {
   const input = ProjectCreateInputSchema.parse(
@@ -24,6 +37,97 @@ test("native fixture starts at the public project-create boundary", () => {
     introSceneTemplateId: null,
     outroSceneTemplateId: null,
   });
+});
+
+test("native test provider writes the source-local narration preparation receipt", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "desktop-native-provider-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const workspaceRoot = join(root, "workspace");
+  const applicationSupportRoot = join(root, "support");
+  const runtimeResources = join(root, "runtime");
+  const cacheRoot = join(root, "cache");
+  const locations = createWorkspaceProductionLocations({
+    workspaceRoot,
+    applicationSupportRoot,
+    runtimeResources,
+    cacheRoot,
+  });
+  const input = ProjectCreateInputSchema.parse(
+    createDesktopNativeProjectInput(),
+  );
+  const config = buildProducerConfig(validProjectCreateProducerConfig);
+  const narration = NarrationSpecSchema.parse({
+    schemaVersion: 2,
+    voiceProfileId: config.tts.defaultVoiceProfileId,
+    mode: "voice-clone",
+  });
+  const render = RenderSpecSchema.parse({
+    schemaVersion: 1,
+    compositionId: input.render.compositionId,
+    leadInFrames: input.render.leadInFrames,
+    tailFrames: input.render.tailFrames,
+    ...config.renderDefaults,
+    output: {
+      container: "mp4",
+      videoCodec: "h264",
+      audioCodec: "aac",
+      audioChannels: input.render.audioChannels,
+    },
+  });
+  const sourceRoot = join(locations.projectSourceRoot, input.storyId);
+  await Promise.all([
+    mkdir(sourceRoot, { recursive: true }),
+    mkdir(join(locations.projectMediaRoot, input.storyId), { recursive: true }),
+    mkdir(applicationSupportRoot, { recursive: true }),
+    mkdir(runtimeResources, { recursive: true }),
+    mkdir(cacheRoot, { recursive: true }),
+  ]);
+  await Promise.all(
+    [
+      ["story.json", input.story],
+      ["narration.json", narration],
+      ["render.json", render],
+    ].map(([name, value]) =>
+      writeFile(
+        join(sourceRoot, String(name)),
+        `${serializeCanonicalJson(value)}\n`,
+      ),
+    ),
+  );
+
+  const prepared = await prepareDesktopNativeTestNarration({
+    locations,
+    runtime: createRuntimeExecutionResources({
+      rendererRuntimeFingerprint: `sha256:${"1".repeat(64)}`,
+      browserExecutable: join(runtimeResources, "browser"),
+      binariesDirectory: join(runtimeResources, "bin"),
+      ffmpegExecutable: join(runtimeResources, "bin/ffmpeg"),
+      ffprobeExecutable: join(runtimeResources, "bin/ffprobe"),
+    }),
+    config,
+    projectId: input.storyId,
+  });
+  const receipt = NarrationPreparationReceiptSchema.parse(
+    JSON.parse(
+      await readFile(
+        join(sourceRoot, "generated/narration-preparation.generated.json"),
+        "utf8",
+      ),
+    ),
+  );
+  assert.equal(
+    receipt.generationInputFingerprint,
+    prepared.sealedNarration.generationInputFingerprint,
+  );
+  assert.equal(
+    receipt.providerAttemptFingerprint,
+    prepared.providerAttemptFingerprint,
+  );
+  assert.equal(
+    receipt.sealedNarrationFingerprint,
+    prepared.sealedNarration.sealedNarrationFingerprint,
+  );
+  assert.deepEqual(receipt.masteringPolicy, prepared.masteringPolicy);
 });
 
 test("native smoke activation is packaged Apple Silicon CI only", () => {
