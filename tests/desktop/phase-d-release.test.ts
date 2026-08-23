@@ -6,6 +6,7 @@ import forgeConfig from "../../forge.config";
 import {
   buildDesktopUnsignedReleaseManifest,
   createDesktopUnsignedDmgFileName,
+  createDesktopUnsignedDmgVolumeName,
   createDesktopUnsignedInstallInstructions,
   selectDesktopUnsignedDmgOutputPath,
   validateDesktopDualArchitectureRelease,
@@ -104,6 +105,15 @@ test("Phase D installer identity is native, versioned, and explicitly unsigned",
       architecture: "arm64",
     }),
   );
+  assert.equal(
+    createDesktopUnsignedDmgVolumeName("arm64"),
+    "AXMORF Studio arm64",
+  );
+  assert.equal(createDesktopUnsignedDmgVolumeName("x64"), "AXMORF Studio x64");
+  assert.ok(
+    Buffer.byteLength(createDesktopUnsignedDmgVolumeName("arm64")) <= 27,
+  );
+  assert.ok(Buffer.byteLength(createDesktopUnsignedDmgVolumeName("x64")) <= 27);
   const expected = "AXMORF-Studio-0.1.0-mac-arm64-full-unsigned.dmg";
   assert.equal(
     selectDesktopUnsignedDmgOutputPath({

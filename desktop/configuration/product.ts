@@ -25,3 +25,10 @@ export const createDesktopUnsignedDmgFileName = ({
   const architecture = DesktopDarwinArchitectureSchema.parse(rawArchitecture);
   return `${DESKTOP_PRODUCT_FILE_STEM}-${appVersion}-mac-${architecture}-full-unsigned.dmg`;
 };
+
+export const createDesktopUnsignedDmgVolumeName = (
+  rawArchitecture: DesktopDarwinArchitecture | string,
+) => {
+  const architecture = DesktopDarwinArchitectureSchema.parse(rawArchitecture);
+  return `${DESKTOP_PRODUCT_NAME} ${architecture}`;
+};

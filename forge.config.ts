@@ -11,6 +11,7 @@ import {
   DESKTOP_MINIMUM_MACOS_VERSION,
   DESKTOP_PRODUCT_NAME,
   createDesktopUnsignedDmgFileName,
+  createDesktopUnsignedDmgVolumeName,
 } from "./desktop/configuration/product";
 
 import { isDesktopPackagePathAllowed } from "./scripts/desktop/package-inventory";
@@ -120,7 +121,7 @@ const config: ForgeConfig = {
       });
       return {
         name: fileName.slice(0, -".dmg".length),
-        title: `${DESKTOP_PRODUCT_NAME} ${desktopAppVersion} ${architecture} unsigned`,
+        title: createDesktopUnsignedDmgVolumeName(architecture),
         format: "ULFO",
         overwrite: true,
       };

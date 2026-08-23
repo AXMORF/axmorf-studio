@@ -35,7 +35,10 @@ import {
 import { verifyDesktopPackageInventory } from "./package-inventory";
 import { createDesktopSbomInput } from "./sbom-input";
 
-export { createDesktopUnsignedDmgFileName } from "../../desktop/configuration/product";
+export {
+  createDesktopUnsignedDmgFileName,
+  createDesktopUnsignedDmgVolumeName,
+} from "../../desktop/configuration/product";
 
 export const selectDesktopUnsignedDmgOutputPath = ({
   expectedFileName,
