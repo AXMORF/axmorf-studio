@@ -2,7 +2,6 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import {
-  NARRATION_MASTERING_POLICY,
   NarrationPreparationReceiptSchema,
   NarrationSpecSchema,
   RenderSpecSchema,
@@ -27,9 +26,12 @@ import {
   encodeCanonicalPcmWav,
   sha256Bytes,
 } from "../narration/domain/pcm-wav";
+import { createExecutableProcessRunner } from "../narration/adapters/ffmpeg-normalizer";
+import { masterNarrationBytes } from "../narration/mastering";
+import { resolveNarrationMediaLogicalPath } from "../narration/production-paths";
 
 export const DESKTOP_NATIVE_TEST_PROVIDER_VERSION =
-  "desktop-native-test-pcm-v1" as const;
+  "desktop-native-test-pcm-v2" as const;
 
 const SAMPLE_RATE = 48_000;
 
@@ -80,6 +82,8 @@ export type WorkspacePrepareNarration = (input: {
 
 export const prepareWorkspaceNarration: WorkspacePrepareNarration = async ({
   locations,
+  runtime,
+  config,
   projectId,
 }): Promise<PreparedNarrationInputs> => {
   if (locations.layoutKind !== "workspace") {
@@ -205,24 +209,30 @@ export const prepareWorkspaceNarration: WorkspacePrepareNarration = async ({
     ...sealInput,
     sealedNarrationFingerprint: computeSealedNarrationFingerprint(sealInput),
   });
+  const completeAudioPath = join(mediaRoot, "narration/complete.wav");
+  await write(completeAudioPath, completeAudioBytes);
+  const mastered = await masterNarrationBytes({
+    sourcePath: completeAudioPath,
+    sourceWav: completeAudioBytes,
+    targetLoudnessLufs: config.tts.speech.targetLoudnessLufs,
+    runProcess: createExecutableProcessRunner(runtime.ffmpegExecutable),
+    temporaryRoot: locations.disposableBuildRoot,
+  });
   const masteredAudio = {
-    ...completeAudio,
-    localPath: `public/projects/${projectId}/narration-mastered/complete.wav`,
+    localPath: `public/projects/${projectId}/narration-mastered/pending/complete.wav`,
+    checksum: sha256Bytes(mastered.outputWav),
+    pcm,
+    sampleFrameCount: completePcm.length / 2,
   } as const;
   const masteredNarration = buildMasteredNarrationManifest({
     storyId: projectId,
     sealedNarrationFingerprint: sealedNarration.sealedNarrationFingerprint,
     sourceAudio: completeAudio,
     masteringPolicy: NarrationMasteringPolicySchema.parse(
-      NARRATION_MASTERING_POLICY,
+      mastered.masteringPolicy,
     ),
     outputAudio: masteredAudio,
-    measurements: {
-      integratedLoudnessLufs: -16,
-      truePeakDbtp: -2,
-      loudnessRangeLu: 1,
-      thresholdLufs: -26,
-    },
+    measurements: mastered.measurements,
   });
   const semanticTiming = generateSemanticTiming({
     story,
@@ -245,10 +255,13 @@ export const prepareWorkspaceNarration: WorkspacePrepareNarration = async ({
     masteringPolicy: masteredNarration.masteringPolicy,
   });
   await Promise.all([
-    write(join(mediaRoot, "narration/complete.wav"), completeAudioBytes),
     write(
-      join(mediaRoot, "narration-mastered/complete.wav"),
-      completeAudioBytes,
+      resolveNarrationMediaLogicalPath({
+        locations,
+        storyId: projectId,
+        logicalPath: masteredNarration.outputAudio.localPath,
+      }),
+      mastered.outputWav,
     ),
     write(
       join(sourceRoot, "generated/sealed-narration.generated.json"),
@@ -277,7 +290,7 @@ export const prepareWorkspaceNarration: WorkspacePrepareNarration = async ({
     semanticTimingBytes,
     masteredManifestBytes,
     completeAudioBytes,
-    masteredAudioBytes: completeAudioBytes,
+    masteredAudioBytes: mastered.outputWav,
     chunkAudioBytes,
     actualCost: {
       providerRequests: chunkAudioBytes.size,

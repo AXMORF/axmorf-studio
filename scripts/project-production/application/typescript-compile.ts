@@ -106,7 +106,9 @@ export const compileTypeScriptImportGraph = (request: CompileRequest) => {
                   true,
                   fileName.endsWith(".tsx")
                     ? ts.ScriptKind.TSX
-                    : ts.ScriptKind.TS,
+                    : fileName.endsWith(".json")
+                      ? ts.ScriptKind.JSON
+                      : ts.ScriptKind.TS,
                 )
               : defaultHost.getSourceFile(
                   fileName,

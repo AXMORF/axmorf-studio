@@ -76,7 +76,7 @@ test("Workspace authoring helpers use only the explicitly injected source and ru
 
   await write(
     join(runtimeResources, "source/tsconfig.json"),
-    `${JSON.stringify({ compilerOptions: { jsx: "react-jsx", strict: true } })}\n`,
+    `${JSON.stringify({ compilerOptions: { jsx: "react-jsx", strict: true, resolveJsonModule: true, esModuleInterop: true } })}\n`,
   );
   await cp(
     join(import.meta.dirname, "../../node_modules/typescript/lib"),
@@ -85,8 +85,9 @@ test("Workspace authoring helpers use only the explicitly injected source and ru
   );
   await write(
     join(projectRoot, "Composition.tsx"),
-    "export default () => null;\n",
+    'import value from "./fixture.json"; export const enabled = value.enabled; export default () => null;\n',
   );
+  await write(join(projectRoot, "fixture.json"), '{"enabled":true}\n');
   assert.deepEqual(
     await compileTargetProjectComposition({ locations, storyId }),
     {

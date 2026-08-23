@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import test from "node:test";
 
 import {
@@ -20,12 +21,24 @@ import {
   serializeCanonicalJson,
 } from "../../src/contracts";
 import { prepareDesktopNativeTestNarration } from "../../scripts/desktop/native-test-provider";
+import { resolveNarrationMediaLogicalPath } from "../../scripts/narration/production-paths";
 import {
   createRuntimeExecutionResources,
   createWorkspaceProductionLocations,
 } from "../../scripts/project-production/application/production-locations";
 import { createDesktopNativeProjectInput } from "../../scripts/desktop/native-fixture";
 import { validProjectCreateProducerConfig } from "../fixtures/project-create";
+
+const require = createRequire(import.meta.url);
+
+const resolveTestCompositorRoot = () =>
+  dirname(
+    require.resolve(
+      process.platform === "darwin"
+        ? "@remotion/compositor-darwin-arm64/package.json"
+        : "@remotion/compositor-linux-x64-gnu/package.json",
+    ),
+  );
 
 test("native fixture starts at the public project-create boundary", () => {
   const input = ProjectCreateInputSchema.parse(
@@ -100,9 +113,9 @@ test("native test provider writes the source-local narration preparation receipt
     runtime: createRuntimeExecutionResources({
       rendererRuntimeFingerprint: `sha256:${"1".repeat(64)}`,
       browserExecutable: join(runtimeResources, "browser"),
-      binariesDirectory: join(runtimeResources, "bin"),
-      ffmpegExecutable: join(runtimeResources, "bin/ffmpeg"),
-      ffprobeExecutable: join(runtimeResources, "bin/ffprobe"),
+      binariesDirectory: resolveTestCompositorRoot(),
+      ffmpegExecutable: join(resolveTestCompositorRoot(), "ffmpeg"),
+      ffprobeExecutable: join(resolveTestCompositorRoot(), "ffprobe"),
     }),
     config,
     projectId: input.storyId,
@@ -128,6 +141,25 @@ test("native test provider writes the source-local narration preparation receipt
     prepared.sealedNarration.sealedNarrationFingerprint,
   );
   assert.deepEqual(receipt.masteringPolicy, prepared.masteringPolicy);
+  assert.deepEqual(
+    await readFile(
+      resolveNarrationMediaLogicalPath({
+        locations,
+        storyId: input.storyId,
+        logicalPath: prepared.masteredNarration.outputAudio.localPath,
+      }),
+    ),
+    prepared.masteredAudioBytes,
+  );
+  await assert.rejects(
+    readFile(
+      join(
+        locations.projectMediaRoot,
+        input.storyId,
+        "narration-mastered/complete.wav",
+      ),
+    ),
+  );
 });
 
 test("native smoke activation is packaged Apple Silicon CI only", () => {
@@ -296,7 +328,7 @@ test("native gate workflow is manual-only to dispatch and uploads evidence only"
   assert.match(workflow, /scripts\/desktop\/native-gate-runner\.sh/u);
   assert.match(workflow, /npm run desktop:package/u);
   assert.match(workflow, /AXMORF_PHASE_B_NATIVE_GATE_BUILD=1/u);
-  assert.match(workflow, /grep -R -Fq 'desktop-native-test-pcm-v1' out/u);
+  assert.match(workflow, /grep -R -Fq 'desktop-native-test-pcm-v2' out/u);
   assert.match(
     workflow,
     /Native Delivery action sequence does not match\./u,
@@ -347,7 +379,7 @@ test("ordinary Desktop builds compile the native harness off", async () => {
   assert.match(engineConfig, /name: "desktop-prettier-cjs-entry"/u);
   assert.match(engineConfig, /__prettierCreateRequire\(__filename\)/u);
   assert.match(provider, /export const prepareWorkspaceNarration/u);
-  assert.match(provider, /desktop-native-test-pcm-v1/u);
+  assert.match(provider, /desktop-native-test-pcm-v2/u);
 });
 
 test("native smoke drives real manual and automatic Delivery with network cleanup evidence", async () => {

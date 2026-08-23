@@ -23,6 +23,7 @@ import {
   type ProcessRunner,
 } from "./adapters/ffmpeg-normalizer";
 import {
+  decodeCanonicalPcmWav,
   encodeCanonicalPcmWav,
   measureCanonicalPcmWav,
   sha256Bytes,
@@ -198,32 +199,43 @@ export const masterNarrationBytes = async ({
     runProcess,
     masteringPolicy: processingPolicy,
   });
-  const result = await runProcess("ffmpeg", [
-    "-nostdin",
-    "-hide_banner",
-    "-loglevel",
-    "error",
-    "-i",
-    sourcePath,
-    "-af",
-    masterFilter(sourceAnalysis, processingPolicy),
-    "-map_metadata",
-    "-1",
-    "-vn",
-    "-ac",
-    "1",
-    "-ar",
-    String(sourceMeasurement.pcm.sampleRate),
-    "-acodec",
-    "pcm_s16le",
-    "-f",
-    "s16le",
-    "pipe:1",
-  ]);
-  if (result.exitCode !== 0 || result.stdout.length === 0) {
-    throw new Error("FFmpeg narration mastering failed.");
+  await mkdir(temporaryRoot, { recursive: true });
+  const masteringDirectory = await mkdtemp(
+    join(temporaryRoot, "rsp-narration-output-"),
+  );
+  let outputWav: Buffer;
+  try {
+    const outputPath = join(masteringDirectory, "mastered.wav");
+    const result = await runProcess("ffmpeg", [
+      "-nostdin",
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-i",
+      sourcePath,
+      "-af",
+      masterFilter(sourceAnalysis, processingPolicy),
+      "-map_metadata",
+      "-1",
+      "-vn",
+      "-ac",
+      "1",
+      "-ar",
+      String(sourceMeasurement.pcm.sampleRate),
+      "-acodec",
+      "pcm_s16le",
+      "-f",
+      "wav",
+      outputPath,
+    ]);
+    if (result.exitCode !== 0) {
+      throw new Error("FFmpeg narration mastering failed.");
+    }
+    const decodedOutput = decodeCanonicalPcmWav(await readFile(outputPath));
+    outputWav = encodeCanonicalPcmWav(decodedOutput.rawPcm);
+  } finally {
+    await rm(masteringDirectory, { recursive: true, force: true });
   }
-  const outputWav = encodeCanonicalPcmWav(result.stdout);
   const outputMeasurement = measureCanonicalPcmWav(outputWav);
   if (
     outputMeasurement.sampleFrameCount !== sourceMeasurement.sampleFrameCount

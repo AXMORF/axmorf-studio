@@ -28,6 +28,9 @@ const isContained = (root: string, candidate: string) => {
   return result === "" || (result !== ".." && !result.startsWith(`..${sep}`));
 };
 
+const compareCanonicalText = (left: string, right: string) =>
+  left < right ? -1 : left > right ? 1 : 0;
+
 const currentPath = (locations: ProductionLocations, storyId: string) => {
   const root = resolve(locations.sourceCurrentRoot);
   const path = join(root, `${storyId}.json`);
@@ -127,7 +130,9 @@ export const collectSourceCurrentFiles = async ({
     ])
   )
     .flat()
-    .sort((left, right) => left.logicalPath.localeCompare(right.logicalPath));
+    .sort((left, right) =>
+      compareCanonicalText(left.logicalPath, right.logicalPath),
+    );
   return files;
 };
 
@@ -150,7 +155,9 @@ export const createSourceCurrentAttestation = async ({
         taskRevision,
         artifactFingerprint,
       }))
-      .sort((left, right) => left.taskRevision.localeCompare(right.taskRevision)),
+      .sort((left, right) =>
+        compareCanonicalText(left.taskRevision, right.taskRevision),
+      ),
     files: await collectSourceCurrentFiles({ locations, storyId }),
     validators: [
       {

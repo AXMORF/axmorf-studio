@@ -25,6 +25,10 @@ const fixture = async () => {
   });
   await mkdir(join(locations.projectSourceRoot, "story"), { recursive: true });
   await mkdir(join(locations.projectMediaRoot, "story"), { recursive: true });
+  await writeFile(
+    join(locations.projectSourceRoot, "story/Composition.tsx"),
+    "export default () => null;\n",
+  );
   await writeFile(join(locations.projectSourceRoot, "story/story.json"), "{}\n");
   await writeFile(join(locations.projectMediaRoot, "story/audio.wav"), "pcm");
   return { root, locations };
@@ -50,6 +54,10 @@ const artifact = () =>
 
 test("source current store writes canonically and revalidates live bytes", async () => {
   const { locations } = await fixture();
+  const logicalPaths = (
+    await collectSourceCurrentFiles({ locations, storyId: "story" })
+  ).map(({ logicalPath }) => logicalPath);
+  assert.deepEqual(logicalPaths, [...logicalPaths].sort());
   const attestation = await createSourceCurrentAttestation({
     locations,
     storyId: "story",
