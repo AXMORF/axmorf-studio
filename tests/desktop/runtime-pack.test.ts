@@ -392,6 +392,7 @@ test("Runtime Pack source closure is explicit and excludes native fixtures", () 
   assert.equal(DESKTOP_RENDER_SOURCE_PACKAGES.includes("@remotion/cli" as never), false);
   assert.ok(DESKTOP_RENDER_SOURCE_PACKAGES.includes("@remotion/bundler"));
   assert.ok(DESKTOP_RENDER_SOURCE_PACKAGES.includes("@remotion/renderer"));
+  assert.ok(DESKTOP_RENDER_SOURCE_PACKAGES.includes("typescript"));
   assert.equal(DESKTOP_RENDER_SOURCE_PACKAGES.includes("@remotion/studio" as never), false);
 });
 

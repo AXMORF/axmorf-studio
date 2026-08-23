@@ -103,6 +103,7 @@ export const DESKTOP_RENDER_SOURCE_PACKAGES = Object.freeze([
   "react-dom",
   "remotion",
   "three",
+  "typescript",
   "zod",
 ] as const);
 

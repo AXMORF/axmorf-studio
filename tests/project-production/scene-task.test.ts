@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -18,6 +18,13 @@ import { createScenePackageInput } from "../fixtures/scene/package-input";
 
 const checksum = (value: string) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}` as const;
+
+const installRuntimeTypeScriptLibrary = (runtimeResources: string) =>
+  cp(
+    join(import.meta.dirname, "../../node_modules/typescript/lib"),
+    join(runtimeResources, "node_modules/typescript/lib"),
+    { recursive: true },
+  );
 
 const rendererSource = `
 import type {SceneRendererProps} from "../../../../remotion/runtime/story-visual/types";
@@ -186,6 +193,7 @@ test("Scene task reads compiler sources only from the explicit Workspace Runtime
       },
     })}\n`,
   );
+  await installRuntimeTypeScriptLibrary(runtimeResources);
   await writeFile(
     join(runtimeResources, "source/src/remotion/runtime/story-visual/types.ts"),
     "export type SceneRendererComponent = ;\n",
@@ -204,6 +212,59 @@ test("Scene task reads compiler sources only from the explicit Workspace Runtime
   await assert.rejects(
     checkSceneTask({ locations, taskRevision: task.taskRevision }),
     /Scene task compile failed \(TS1110(?:,|\))/u,
+  );
+});
+
+test("Scene task reads TypeScript libraries only from the explicit Workspace Runtime Pack", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-runtime-libs-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const runtimeResources = join(rootDir, "runtime-pack");
+  await mkdir(
+    join(runtimeResources, "source/src/remotion/runtime/story-visual"),
+    { recursive: true },
+  );
+  await writeFile(
+    join(runtimeResources, "source/tsconfig.json"),
+    `${JSON.stringify({
+      compilerOptions: {
+        target: "ES2022",
+        module: "Preserve",
+        moduleResolution: "Bundler",
+        jsx: "preserve",
+        strict: true,
+        noEmit: true,
+        lib: ["ES2022", "DOM", "DOM.Iterable"],
+      },
+    })}\n`,
+  );
+  await installRuntimeTypeScriptLibrary(runtimeResources);
+  await writeFile(
+    join(runtimeResources, "source/src/remotion/runtime/story-visual/types.ts"),
+    "declare global { namespace JSX { interface IntrinsicElements { div: unknown } } }\nexport type SceneRendererProps = Readonly<{viewportWidth: number; viewportHeight: number}>;\nexport type SceneRendererComponent = (props: SceneRendererProps) => unknown;\n",
+  );
+  const locations = createWorkspaceProductionLocations({
+    workspaceRoot: join(rootDir, "workspace"),
+    applicationSupportRoot: join(rootDir, "application-support"),
+    runtimeResources,
+    cacheRoot: join(rootDir, "cache"),
+  });
+  const { task } = await createSceneWorkspace({
+    rootDir,
+    locations,
+  });
+
+  assert.equal(
+    (await checkSceneTask({ locations, taskRevision: task.taskRevision }))
+      .status,
+    "task-workspace-valid",
+  );
+  await writeFile(
+    join(runtimeResources, "node_modules/typescript/lib/lib.es2022.d.ts"),
+    "type = ;\n",
+  );
+  await assert.rejects(
+    checkSceneTask({ locations, taskRevision: task.taskRevision }),
+    /Scene task compile failed/u,
   );
 });
 

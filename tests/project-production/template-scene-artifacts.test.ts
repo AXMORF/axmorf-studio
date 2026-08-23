@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -158,6 +158,11 @@ test("fixed template preparation derives and commits the complete canonical Scen
   await mkdir(join(runtimeResources, "node_modules/react"), {
     recursive: true,
   });
+  await cp(
+    join(import.meta.dirname, "../../node_modules/typescript/lib"),
+    join(runtimeResources, "node_modules/typescript/lib"),
+    { recursive: true },
+  );
   await writeFile(
     join(runtimeResources, "source/tsconfig.json"),
     `${JSON.stringify({

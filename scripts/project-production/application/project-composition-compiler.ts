@@ -71,6 +71,10 @@ export const compileTargetProjectComposition = async ({
     compileTypeScriptImportGraph({
       rootDir: locations.runtimeResources,
       rootPath: compositionPath,
+      typescriptLibRoot: join(
+        locations.runtimeResources,
+        "node_modules/typescript/lib",
+      ),
       label: "Target Project Composition TypeScript compile",
     });
   } else {
@@ -82,6 +86,10 @@ export const compileTargetProjectComposition = async ({
     compileTypeScriptImportGraph({
       rootDir: join(locations.runtimeResources, "source"),
       rootPath: join(virtualProjectRoot, "Composition.tsx"),
+      typescriptLibRoot: join(
+        locations.runtimeResources,
+        "node_modules/typescript/lib",
+      ),
       label: "Target Project Composition TypeScript compile",
       virtualSources: await collectProjectVirtualSources({
         sourceRoot: projectRoot,

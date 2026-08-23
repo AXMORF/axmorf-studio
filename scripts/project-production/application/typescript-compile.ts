@@ -1,9 +1,10 @@
-import { dirname, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import ts from "typescript";
 
 type CompileRequest = Readonly<{
   rootDir: string;
   rootPath: string;
+  typescriptLibRoot: string;
   label: string;
   virtualSource?: string;
   virtualSources?: Readonly<Record<string, string>>;
@@ -49,7 +50,15 @@ const readCompilerOptions = ({ rootDir, rootPath, label }: CompileRequest) => {
 export const compileTypeScriptImportGraph = (request: CompileRequest) => {
   const rootPath = resolve(request.rootPath);
   const options = readCompilerOptions({ ...request, rootPath });
-  const defaultHost = ts.createCompilerHost(options);
+  const defaultHost = {
+    ...ts.createCompilerHost(options),
+    getDefaultLibFileName: (compilerOptions: ts.CompilerOptions) =>
+      join(
+        resolve(request.typescriptLibRoot),
+        basename(ts.getDefaultLibFilePath(compilerOptions)),
+      ),
+    getDefaultLibLocation: () => resolve(request.typescriptLibRoot),
+  };
   if (
     request.virtualSource !== undefined &&
     request.virtualSources !== undefined

@@ -56,6 +56,10 @@ export const checkSceneTask = async (
   compileTypeScriptImportGraph({
     rootDir: runtimeSourceRoot,
     rootPath: contractCheckPath,
+    typescriptLibRoot: join(
+      input.locations.runtimeResources,
+      "node_modules/typescript/lib",
+    ),
     label: "Scene task compile",
     virtualSources: {
       [rendererPath]: rendererSource,

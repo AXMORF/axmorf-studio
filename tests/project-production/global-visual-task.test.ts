@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -196,6 +196,11 @@ test("Workspace GlobalVisual task compiles against the Runtime Pack source root"
         noEmit: true,
       },
     })}\n`,
+  );
+  await cp(
+    join(import.meta.dirname, "../../node_modules/typescript/lib"),
+    join(runtimeResources, "node_modules/typescript/lib"),
+    { recursive: true },
   );
   const locations = createWorkspaceProductionLocations({
     workspaceRoot: join(rootDir, "workspace"),

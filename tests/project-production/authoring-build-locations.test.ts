@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -77,6 +77,11 @@ test("Workspace authoring helpers use only the explicitly injected source and ru
   await write(
     join(runtimeResources, "source/tsconfig.json"),
     `${JSON.stringify({ compilerOptions: { jsx: "react-jsx", strict: true } })}\n`,
+  );
+  await cp(
+    join(import.meta.dirname, "../../node_modules/typescript/lib"),
+    join(runtimeResources, "node_modules/typescript/lib"),
+    { recursive: true },
   );
   await write(
     join(projectRoot, "Composition.tsx"),
@@ -183,6 +188,11 @@ test("Workspace GlobalVisual source uses only injected Project and Runtime Pack 
         "global-visual/GlobalVisualLayers.tsx",
       ),
       "throw new Error('repository probing');\n",
+    ),
+    cp(
+      join(import.meta.dirname, "../../node_modules/typescript/lib"),
+      join(runtimeResources, "node_modules/typescript/lib"),
+      { recursive: true },
     ),
   ]);
 

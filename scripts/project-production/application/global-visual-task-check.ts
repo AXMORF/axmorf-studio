@@ -134,6 +134,10 @@ export const checkGlobalVisualTask = async (
   compileTypeScriptImportGraph({
     rootDir: runtimeSourceRoot,
     rootPath: futurePath,
+    typescriptLibRoot: join(
+      input.locations.runtimeResources,
+      "node_modules/typescript/lib",
+    ),
     label: "GlobalVisual task compile",
     virtualSource: source,
   });

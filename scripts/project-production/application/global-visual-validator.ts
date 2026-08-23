@@ -95,6 +95,10 @@ export const GlobalVisualLayersInterfaceProof = CheckedGlobalVisualLayers;
     compileTypeScriptImportGraph({
       rootDir: globalVisualRuntimeSourceRoot(locations),
       rootPath,
+      typescriptLibRoot: join(
+        locations.runtimeResources,
+        "node_modules/typescript/lib",
+      ),
       label: "GlobalVisualLayers component interface compile",
       virtualSource,
     });
@@ -115,6 +119,10 @@ export const GlobalVisualLayersInterfaceProof = CheckedGlobalVisualLayers;
   compileTypeScriptImportGraph({
     rootDir: globalVisualRuntimeSourceRoot(locations),
     rootPath,
+    typescriptLibRoot: join(
+      locations.runtimeResources,
+      "node_modules/typescript/lib",
+    ),
     label: "GlobalVisualLayers component interface compile",
     virtualSources: {
       [rootPath]: virtualSource,
