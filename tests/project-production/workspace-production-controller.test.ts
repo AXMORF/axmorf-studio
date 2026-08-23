@@ -121,6 +121,9 @@ const deliveryRuntime = () => ({
   build: async () => {
     throw new Error("fixture-workspace-delivery-build-invoked");
   },
+  buildUnlocked: async () => {
+    throw new Error("fixture-workspace-delivery-build-unlocked-invoked");
+  },
   shutdown: async () => undefined,
 });
 

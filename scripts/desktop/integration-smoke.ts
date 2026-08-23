@@ -417,6 +417,9 @@ export const runDesktopIntegrationSmoke =
                 build: async () => {
                   throw new Error("host-functional-fixture-has-no-native-media");
                 },
+                buildUnlocked: async () => {
+                  throw new Error("host-functional-fixture-has-no-native-media");
+                },
                 shutdown: async () => undefined,
               },
               loadProducerConfig: async () => config,

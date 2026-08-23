@@ -119,6 +119,7 @@ export const DESKTOP_PRODUCER_CONFIG_REQUIRED =
 
 export type WorkspaceProductionDeliveryPort = Readonly<{
   build: DeliveryBuildPort;
+  buildUnlocked: DeliveryBuildPort;
   shutdown: () => Promise<void>;
 }>;
 
@@ -261,7 +262,7 @@ const createWorkspaceCommands = (
         convergeProjectProduction({
           ...convergeInput,
           dependencies: {
-            buildDelivery: delivery.build,
+            buildDelivery: delivery.buildUnlocked,
             buildCurrentPlan: (planInput) =>
               workspaceBuildCurrentPlan(planInput, input.runtime),
             prepareProject: (input) =>

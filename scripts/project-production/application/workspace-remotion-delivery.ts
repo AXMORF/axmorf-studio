@@ -6,6 +6,7 @@ import {
 } from "../adapters/workspace-remotion-renderer";
 import {
   buildDelivery,
+  buildDeliveryUnlocked,
   type DeliveryBuildDependencies,
   type DeliveryBuildPort,
 } from "./build-delivery";
@@ -20,10 +21,12 @@ type WorkspaceRemotionDeliveryDependencies = Readonly<{
     runtimePackRoot: string,
   ) => Promise<WorkspaceRemotionToolchain>;
   buildDelivery?: typeof buildDelivery;
+  buildDeliveryUnlocked?: typeof buildDeliveryUnlocked;
 }>;
 
 export type WorkspaceDeliveryRuntime = Readonly<{
   build: DeliveryBuildPort;
+  buildUnlocked: DeliveryBuildPort;
   shutdown: () => Promise<void>;
 }>;
 
@@ -48,8 +51,9 @@ export const createWorkspaceRemotionDeliveryRuntime = ({
         : { loadToolchain: dependencies.loadToolchain }),
     },
   });
-  const invokeBuild = dependencies.buildDelivery ?? buildDelivery;
-  const build: DeliveryBuildPort = (input) =>
+  const createBuild = (
+    invokeBuild: typeof buildDelivery | typeof buildDeliveryUnlocked,
+  ): DeliveryBuildPort => (input) =>
     renderer.execute({
       locations: input.locations,
       runtime: input.runtime,
@@ -74,6 +78,10 @@ export const createWorkspaceRemotionDeliveryRuntime = ({
         return invokeBuild(input, deliveryPorts);
       },
     });
+  const build = createBuild(dependencies.buildDelivery ?? buildDelivery);
+  const buildUnlocked = createBuild(
+    dependencies.buildDeliveryUnlocked ?? buildDeliveryUnlocked,
+  );
 
-  return Object.freeze({ build, shutdown: renderer.shutdown });
+  return Object.freeze({ build, buildUnlocked, shutdown: renderer.shutdown });
 };

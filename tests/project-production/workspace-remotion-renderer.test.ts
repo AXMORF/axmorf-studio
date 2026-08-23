@@ -160,6 +160,53 @@ const requestLoopback = ({
     },
   );
 
+test("Workspace Delivery separates explicit locked builds from convergence builds", async (context) => {
+  const value = await fixture(context);
+  const invoked: string[] = [];
+  const buildResult = {
+    projectId: value.storyId,
+    deliveryBuildId: `delivery-${"b".repeat(64)}`,
+    status: "project-production-complete",
+    noOp: false,
+    deliveryPath: `deliveries/${value.storyId}`,
+    reused: { video: false, cover4x3: false, cover3x4: false },
+  } as never;
+  const delivery = createWorkspaceRemotionDeliveryRuntime({
+    locations: value.locations,
+    runtime: value.runtime,
+    lifecycle: {
+      onListenerReady: async () => "continue",
+      onListenerClosed: async () => undefined,
+    },
+    dependencies: {
+      loadToolchain: async () => {
+        throw new Error("fixture-build-does-not-render");
+      },
+      buildDelivery: async () => {
+        invoked.push("locked");
+        return buildResult;
+      },
+      buildDeliveryUnlocked: async () => {
+        invoked.push("unlocked");
+        return buildResult;
+      },
+    },
+  });
+  const input = {
+    locations: value.locations,
+    runtime: value.runtime,
+    projectId: value.storyId,
+    revisionId: `revision-${"c".repeat(64)}`,
+    sourceCurrentId: `source-current-${"d".repeat(64)}`,
+    config: {} as never,
+  };
+
+  await delivery.build(input);
+  await delivery.buildUnlocked(input);
+  assert.deepEqual(invoked, ["locked", "unlocked"]);
+  await delivery.shutdown();
+});
+
 test("Workspace Remotion renderer confines proxy requests to the current loopback listener", async (context) => {
   const value = await fixture(context);
   const originalListen = HttpServer.prototype.listen;
