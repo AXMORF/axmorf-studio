@@ -2,7 +2,7 @@
 
 > 文档类型：macOS 维护与发行目标 authority
 >
-> 状态：`AXMORF Studio`、内置 Preview Player、单 Workspace Root、Codex/Hermes 首批支持、Electron、macOS 13+、arm64/x64、App-running lifecycle、完整离线 Runtime DMG、GitHub Releases 站外分发、首阶段无签名和手动更新已确认；Phase A repository-adapter 与 Apple Silicon native gate verified complete，Phase B 为 `implementation-complete-native-evidence-pending`
+> 状态：`AXMORF Studio`、内置 Preview Player、单 Workspace Root、Codex/Hermes 首批支持、Electron、macOS 13+、arm64/x64、App-running lifecycle、完整离线 Runtime DMG、GitHub Releases 站外分发、首阶段无签名和手动更新已确认；Phase A repository-adapter 与 Phase B Apple Silicon packaged production gate 均 verified complete，当前进入 Phase C 双架构验收
 >
 > 产品边界见 [Desktop App 与外部 Agent 产品架构](DESKTOP_APP_PRODUCT.md)，当前实现
 > 事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。
@@ -378,13 +378,13 @@ macOS process、Runtime Pack、Workspace、双架构、unsigned/signed channel�
 
 ## 16. 当前非事实
 
-本文主要是维护目标。Phase A 已实现 Electron repository-adapter prototype；Phase B implementation 已进入
-working tree。经确认的实现只允许 DeliveryBuild 范围内 `127.0.0.1` OS-ephemeral renderer listener，Runtime Pack 仅携带
-checksum-bound 的 exact 内部渲染依赖且无 CLI/Studio Server/launch surface；当前状态为
-`implementation-complete-native-evidence-pending`。这不表示 DMG、签名、公证、auto-update、Apple Silicon packaged
-production evidence 或双架构 E2E 已存在。任何 verified-complete 声明仍必须更新
-[ITERATION_STATUS.md](ITERATION_STATUS.md) 并附对应 executable evidence；不得伪造 Apple Silicon、Intel、Hermes、
-package、Delivery 或 native smoke evidence。
+本文主要是维护目标。Phase A Electron repository-adapter prototype 与 Phase B Workspace production implementation 已
+完成。Phase B 只允许 DeliveryBuild 范围内 `127.0.0.1` OS-ephemeral renderer listener，Runtime Pack 仅携带
+checksum-bound 的 exact 内部渲染依赖且无 CLI/Studio Server/launch surface；exact commit
+`04ca57ed5b6469eb9bc4acd8c86829ca0222576a` 已通过 hosted macOS 15 arm64 packaged production gate。
+这不表示 DMG、签名、公证、auto-update、Intel x64、Hermes external-Agent production 或双架构 E2E 已存在。
+精确 executable evidence 见 [ITERATION_STATUS.md](ITERATION_STATUS.md)；不得用 arm64、cross-package、Rosetta 或
+deterministic fixture 伪造 Intel/Hermes/发行证据。
 
 ## 17. Primary references
 

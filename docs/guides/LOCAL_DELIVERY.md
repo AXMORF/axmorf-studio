@@ -2,8 +2,9 @@
 
 > 文档类型：操作指南
 
-Delivery 是 fixed continuation 内部 converge 的同步末段，不是独立第二主链。正常生产不由 Root 单独调用
-converge、render 或 Cover 命令。
+Delivery 是 `source-current` 之后的 fixed use case，不是 Agent task，也不是独立第二主链。`automatic` policy 在 fixed
+continuation 内同步进入 DeliveryBuild；`manual` policy 在 source-current 停止，用户可稍后通过 Desktop public `rsp`
+surface 显式生成 Delivery。Root 不单独调用 converge、render 或 Cover 命令。
 
 ## Current package
 
@@ -21,7 +22,8 @@ DeliveryBuildId、Composition metadata、publishing projection 以及三个 medi
 
 ## Build identity and staging
 
-DeliveryBuildId 由 `revisionId + artifactSetFingerprint + Composition metadata + build policy` 计算，不包含
+DeliveryBuildId 由 source-current、`rendererRuntimeFingerprint`、Composition metadata、publishing projection 与 build
+policy 计算，不包含
 ExecutionAttempt、时钟或绝对路径。builder 在 render 前后复验 materialized Project bytes 与
 ArtifactAttestation。
 
@@ -42,14 +44,22 @@ builder 等待所有子进程完成后验证：
 相同 DeliveryBuildId 的 current package 若全部复验通过，返回 `project-production-current`，不重写任何媒体；
 新 identity 成功提升返回 `project-production-complete`。
 
-## Run through fixed continuation
+## Run through fixed controller
 
 ```bash
 npm run project:produce:continue -- --project <storyId> --revision <revisionId> --attempt <attemptId>
 ```
 
-只有 plan 返回的 current revisionId 可用。不能在 artifacts incomplete 或 materialized drift 状态下单独触发
-delivery。不能把文件存在、Remotion process 启动、renderer exit 0 或聊天消息当成完成事实。
+repository contributor 命令显式采用 `automatic` policy；只有 plan 返回的 current revisionId 可用。Desktop manual
+production 到 source-current 后，later explicit build 使用：
+
+```bash
+./.rsp/bin/rsp delivery build --project <storyId>
+```
+
+显式 build 必须从 current source attestation 开始，不创建 provider call、Agent task、task workspace 或
+ExecutionAttempt。不能在 artifacts incomplete、source stale 或 materialized drift 状态下触发 delivery。不能把文件
+存在、Remotion process 启动、renderer exit 0 或聊天消息当成完成事实。
 
 ## Failure and inspection
 
@@ -61,13 +71,13 @@ delivery。不能把文件存在、Remotion process 启动、renderer exit 0 或
 Project 完整删除使用 [`project:delete`](../PRODUCTION_WORKFLOW.md#8-作品删除)，不要直接删除单个 MP4 或 broad
 清理 delivery root。
 
-## Desktop App 目标迁移
+## Desktop App current split
 
-当前 delivery 仍是 fixed continuation 内同步且必需的终点。Desktop App 实现时会通过显式 contract
-clean-break 把 `source-current` 与 DeliveryBuild 分开：默认 `manual` 只物化并复验 source，用户点击后才
-构建本节 exact four-file package；`automatic` 才在 `source-current` 后继续构建。Preview Player 只播放 verified
-current Delivery，manual 阶段没有视频时明确显示 unavailable。两种策略都继续复用相同
-DeliveryBuildId、staging、probe、checksum 与 EOF gates，不能新增第二条 render 主链。
+Phase B 已通过显式 contract 把 `source-current` 与 DeliveryBuild clean-break：默认 `manual` 只物化并复验 source，
+用户点击后才构建本节 exact four-file package；`automatic` 在 source-current 后继续构建。Preview Player 只播放
+verified current Delivery，manual 阶段没有视频时明确显示 unavailable。两种策略复用相同 DeliveryBuild identity、
+staging、probe、checksum 与 EOF gates，不新增第二条 render 主链。
 
-在该 clean-break 有代码、contract、migration 和 E2E evidence 前，不能按目标文档跳过 current synchronous
-delivery。目标 authority 见 [Desktop App 产品架构](../DESKTOP_APP_PRODUCT.md)。
+hosted macOS 15 arm64 packaged gate 已真实验证 manual source-current 无 Delivery、later explicit Delivery、automatic
+Delivery、Preview playback 以及 success/failure/Quit/reopen cleanup。产品与剩余发行边界见
+[Desktop App 产品架构](../DESKTOP_APP_PRODUCT.md) 和 [Iteration Status](../ITERATION_STATUS.md)。

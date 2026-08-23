@@ -2,7 +2,7 @@
 
 > 文档类型：Desktop App 产品目标 authority
 >
-> 状态：产品方向与 macOS v1 默认值已确认；Phase A 已 verified complete；Phase B 当前为 `implementation-complete-native-evidence-pending`
+> 状态：产品方向与 macOS v1 默认值已确认；Phase A 与 Phase B 已 verified complete；当前路线进入 Phase C 双架构验收
 >
 > 当前实现事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)，现有生产 authority 见
 > [ARCHITECTURE.md](ARCHITECTURE.md) 与 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
@@ -299,9 +299,9 @@ token、heartbeat 或 child lifecycle。
 storage/security/validator fields 不允许从第 4 层覆盖。App UI、CLI 和 Skill 只投影各自需要的最小视图，不能
 复制同一字段为多个 authority。
 
-## 11. Phase B 当前实现与剩余差距
+## 11. Phase B verified 实现与剩余产品差距
 
-Phase B working tree 已把 Phase A repository adapter clean-break 为显式 Workspace production：安装资源、Application
+Phase B 已把 Phase A repository adapter clean-break 为显式 Workspace production：安装资源、Application
 Support、Cache 与 Workspace ownership 分离；Workspace v2、整体迁移/rollback、immutable Runtime Pack、
 production-capable `rsp-local-v2`、managed Skill、`source-current`/optional Delivery contracts、active-work lifecycle 与
 automatic Preview Catalog refresh 已有 executable implementation 和 focused tests。普通 Engine bundle 不再携带
@@ -310,18 +310,19 @@ repository、npm、Settings Web 或 Remotion Studio runtime authority。
 当前 implementation 已加入：checksum-bound exact Remotion bundler/renderer 内部依赖、Workspace-only disposable bundle、
 DeliveryBuild 范围内严格 `127.0.0.1`/OS-ephemeral listener、manual/automatic exact-four-file Delivery 与退出清理。UDS
 仍是唯一 control plane；App 不启动 Remotion Studio UI、Studio Server、Settings Web service，也不暴露 CLI/Studio launch
-surface。当前尚未取得证据的部分是：
+surface。exact commit `04ca57ed5b6469eb9bc4acd8c86829ca0222576a` 已在 hosted macOS 15 arm64 packaged
+native gate 验证 manual source-current + explicit Delivery、automatic Delivery、Preview playback/timeline、loopback
+listener scope 和 terminal/failure/Quit/reopen cleanup；精确 run/artifact 与复核范围见
+[ITERATION_STATUS.md](ITERATION_STATUS.md)。该证据使用 test-only deterministic task executor，不构成 Hermes 或其他
+已安装外部创作 Agent 的 production proof。
 
-- Apple Silicon packaged production、真实 temporary-listener/process-tree/cleanup 与 Preview E2E；
-- installer、DMG、code signing/notarization、binary release、update channel 和长期 support policy；
-- Hermes Workspace production proof；当前宿主只确认 CLI invoked，不能替代真实 proof。
+剩余产品差距是 Intel x64 native E2E、Hermes Workspace production proof、DMG/installer、code signing/notarization、
+binary release、update channel 和长期 support policy。Phase B 状态为 `verified-complete`；后续路由以
+[ROADMAP.md](ROADMAP.md) 为准。
 
-因此当前状态是 `implementation-complete-native-evidence-pending`，不是 Phase B verified complete。状态与后续路由以
-[ITERATION_STATUS.md](ITERATION_STATUS.md) 和 [ROADMAP.md](ROADMAP.md) 为准。
+## 12. 后续产品完成门槛
 
-## 12. 实施完成门槛
-
-未来实现至少需要证明：
+最终 v1 在 Phase B 已验证能力之外仍至少需要证明：
 
 - 新用户无需 clone repo、无需修改源码即可安装并打开 Preview Player；
 - Codex 与 Hermes 能从同一工作区协议完成等价任务；

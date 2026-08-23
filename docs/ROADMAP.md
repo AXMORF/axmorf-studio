@@ -33,7 +33,7 @@ attempt-bound task commit/fail 与 fixed continuation；converge 是 continuatio
 - settings 与 progress 不扫描历史 `.producer-runs/`；Project delete 仍能安全清理其 ownership root；
 - zero Project bootstrap/Registry/Catalog/settings 可用。
 
-## 当前里程碑：macOS Desktop App Phase B productization 入口
+## 当前里程碑：macOS Desktop App Phase C 双架构验收入口
 
 Phase A repository adapter 与 Apple Silicon native gate 已 verified complete。精确 evidence commit 为
 `e5b9b6bd81bbe229177a64ed326ab3e46eaf2220`，manual-only GitHub Actions run
@@ -42,14 +42,20 @@ arm64 上验证真实 four-file Delivery、packaged App 播放/seek、custom med
 process/TCP 与退出清理，并在 native Green 后完成 609/609 repository tests。Phase A 计划已
 [归档](archive/implementation-plans/2026-08-23-desktop-app-phase-a.md)。
 
-当前仍停留在下列第 2 项 productization。Phase B implementation 已进入 working tree：exact Runtime Pack 携带
-checksum-bound bundler/renderer及其必要 Studio内部依赖但无 CLI/Studio Server/launch surface；真实 DeliveryBuild只在
-`127.0.0.1` 使用 OS-ephemeral 临时 listener，UDS仍是唯一 control plane。当前 Linux 宿主无法取得 Apple Silicon
-packaged production E2E，状态为 `implementation-complete-native-evidence-pending`，不是 Phase B verified complete。
-后续验收必须保持现有 focused、static、host、media 与 E2E gates Green，并遵守
+Phase B productization 已 `verified-complete`。evidence commit
+`04ca57ed5b6469eb9bc4acd8c86829ca0222576a` 的 hosted `macos-15` arm64 Actions run
+[`32648089941`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32648089941) conclusion 为 success；
+artifact ID `9495509231` 已人工复核 ordinary/gate package inventory、arm64 Runtime/App identity、manual
+`source-current` 后 explicit Delivery、automatic Delivery、exact-four-file probes、Preview Player、第二实例、失败/Quit/reopen
+后的 process/TCP/session/staging cleanup 与 MP4/Cover/credential exclusion。该 gate 使用 public `rsp-local-v2` surface 和
+test-only deterministic task executor，不等同于安装外部创作 Agent 的真实创意生产证明。Phase B 计划已
+[归档](archive/implementation-plans/2026-08-23-desktop-app-phase-b.md)。
+
+当前推进到下列第 3 项双架构验收。Phase C 必须保持现有 focused、static、host、media 与 E2E gates Green，并在
+真实 Intel x64 环境补齐等价 offline App/Runtime Pack/Agent/render/manual/automatic Delivery native evidence；arm64
+Phase B Green、cross-package 或 Rosetta 都不能替代 x64 native proof。阶段仍遵守
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
-[macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)。当前执行入口是
-[Phase B 实施计划](DESKTOP_APP_PHASE_B_IMPLEMENTATION_PLAN.md)。
+[macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)。
 
 1. unsigned prototype：建立 bundled Preview Player、只读多轨时间轴、Engine utility process、authenticated local
    `rsp` session、默认 `~/Movies/AXMORF Studio/` 和 Codex/Hermes integration smoke；

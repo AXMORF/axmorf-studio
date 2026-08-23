@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-23 Desktop Phase B implementation complete, native evidence pending
+> 最后复核：2026-08-23 Desktop Phase B verified complete on hosted Apple Silicon native gate
 
 ## 当前结论
 
@@ -169,9 +169,9 @@ discovery 和真实 `rsp doctor` 已 Green。
 `docs:check-links`、static build、真实 Remotion compositions 与 source verification 均完成。文档 closeout 后仍须在
 最终精确提交重跑完整 gate；不得仅凭本文宣称通过。
 
-## Desktop Phase B 当前实现与 evidence gate
+## Desktop Phase B verified closeout
 
-当前 working tree 已实现并以 focused tests 覆盖 Phase B：显式 repository/Workspace
+当前实现以 focused tests 覆盖 Phase B：显式 repository/Workspace
 `ProductionLocations`、runtime-bound `source-current`/Delivery identity split、Workspace v2 upgrade 与 root migration
 rollback、immutable arm64 Runtime Pack manifest/builder/verifier、自包含 Node SEA `rsp-local-v2`、Workspace-owned
 Project/media/private config、完整 public command surface、exact-attempt terminal/one-shot continuation、Engine active-work、
@@ -186,11 +186,27 @@ Workspace/Runtime Pack roots 构建 disposable bundle，并在单次 DeliveryBui
 `127.0.0.1` 的 OS-ephemeral 端口；success/failure/cancel/shutdown 都恢复私有 adapter、关闭 listener 并清理 staging。
 Desktop doctor 返回 `deliveryAvailable: true`、`deliveryBlocker: null` 与结构化 UDS-only-control/loopback-render policy。
 
-当前宿主是 Linux，无法生成或执行 Apple Silicon Runtime Pack、unsigned `.app` package 与 packaged production E2E；没有
-伪造 Hermes、provider、Delivery、最终 MP4、package 或 native evidence。因此当前状态严格为
-`implementation-complete-native-evidence-pending`，不是 Phase B verified complete。Phase B 计划保持 active，Task 12
-closeout 不执行，Roadmap 不推进到 Phase C，等待真实 Apple Silicon manual/automatic Delivery、listener/process cleanup
-和 Preview Player native gate。
+Phase B 已在 exact evidence commit `04ca57ed5b6469eb9bc4acd8c86829ca0222576a` 上取得 hosted Apple Silicon
+packaged production Green。GitHub Actions run
+[`32648089941`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32648089941) 在 `macos-15`
+arm64 / macOS 15.7.7 完整成功；evidence artifact ID `9495509231`，digest
+`sha256:fe61c7de405a0e860a3669178cefeb462c2798d55879260fc92995fe863fdf55`。人工复核确认：
+
+- ordinary package 与 gate-only package inventory 分离，ordinary package 不携带 native fixture/probe；Runtime Pack、
+  Electron/Node SEA、browser 与 FFmpeg/FFprobe 均为 arm64/manifest-bound identity；
+- public `rsp-local-v2` manual 流程先到真实 `source-current` 且 deliveries 为空，later explicit Delivery 与 automatic
+  流程均真实生成并复验 exact `video.mp4`、两张 Cover 和 `publish.json`；视频为 H.264/AAC、1080x1920、30fps、
+  90 frames，封面为 1600x1200 与 1200x1600 PNG，全部 EOF decode Green；
+- packaged Preview Player 在 manual/automatic/reopen 三组均完成播放、seek 与 timeline 检查；DeliveryBuild 只使用
+  `127.0.0.1` OS-ephemeral listeners，失败、显式 Quit、automatic terminal 与 reopen 后 listener/process/session/
+  operation lock/staging 均归零；第二实例复用同一 lock scope 并有界退出；
+- artifact 只含脱敏 JSON/log 与三张 Preview Player 截图，不含 MP4、Cover、token、Bearer credential、private key 或
+  protected voice data；workflow 在 package 后再次完成 747/747 repository tests、typecheck、lint、docs、static、
+  compositions 与 host checks。
+
+因此 Phase B 状态为 `verified-complete`，计划已归档，Roadmap 进入 Phase C。native gate 使用 test-only deterministic
+task executor 完成 dirty Agent task outputs，并未安装或调用外部创作 Agent；Hermes Workspace production、真实外部
+Agent creative E2E、Intel x64、DMG、签名、公证、distribution 与公开发布仍不在该证据范围。
 
 ## 当前非目标
 

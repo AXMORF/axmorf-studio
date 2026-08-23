@@ -149,5 +149,5 @@ runtime/validator policy 能进入 Revision 或 TaskRevision。
 fingerprint 和受影响 task。Phase B 已把这些 ownership 与 identity 规则落实到显式 Repository/Workspace
 composition roots；Desktop control plane 只使用 authenticated Unix-domain socket，DeliveryBuild 的 exact 4.0.489
 private adapter 只在当前 renderer scope 将 HTTP listener 绑定到 `127.0.0.1` OS-ephemeral 端口并在终态恢复。
-当前状态仍是 `implementation-complete-native-evidence-pending`，实现事实只由
+上述边界已由 hosted macOS 15 arm64 packaged production gate 验证；精确证据、架构覆盖和剩余边界只由
 [ITERATION_STATUS.md](ITERATION_STATUS.md) 定义。

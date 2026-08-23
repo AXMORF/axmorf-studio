@@ -39,9 +39,9 @@ CLI、Studio Server、Studio UI 或 launch surface。App/Engine 不启动 Remoti
 
 `npm run desktop:integration-smoke` 证明 host-neutral managed discovery、完整 CLI invocation 与真实 socket contract，
 但不是 Codex 或 Hermes 完整生产认证。Codex/Hermes 必须通过同一 `.rsp/bin/rsp` protocol、TaskSpec、validator 与
-completion evidence 的真实 E2E，不能复制第二套规则。当前 Hermes Workspace production proof 与 Apple Silicon
-packaged Phase B production evidence 仍 pending；状态是 `implementation-complete-native-evidence-pending`，不是 Phase B
-verified complete。
+completion evidence 的真实 E2E，不能复制第二套规则。Phase B 的 hosted Apple Silicon packaged gate 已通过 public
+surface 验证 deterministic task execution、manual/automatic Delivery、Preview 与 cleanup；它没有安装或调用外部创作
+Agent。Phase B 因此 verified complete，但 Hermes Workspace production proof 与外部 Agent creative E2E 仍 pending。
 
 App 不安装、升级、托管或调用 Codex/Hermes SDK。目标行为见
 [Desktop App 产品架构](../DESKTOP_APP_PRODUCT.md)。

@@ -24,13 +24,11 @@
 
 ## 当前阶段入口
 
-- Phase A repository adapter 与 Apple Silicon native gate 已 verified complete；实施计划已移入
-  [历史计划](archive/implementation-plans/2026-08-23-desktop-app-phase-a.md)。下一入口是
-  [Phase B 实施计划](DESKTOP_APP_PHASE_B_IMPLEMENTATION_PLAN.md)。Phase B implementation 已完成，但缺少当前宿主
-  无法提供的 Apple Silicon packaged production evidence，状态保持
-  `implementation-complete-native-evidence-pending`，计划仍 active 且 Roadmap 不推进；阶段边界见
-  [ROADMAP.md](ROADMAP.md)，完成事实仍以
-  [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准。
+- Phase A repository adapter 与 Phase B Workspace production 均已在 hosted Apple Silicon native gates
+  `verified-complete`；实施计划分别归档为
+  [Phase A](archive/implementation-plans/2026-08-23-desktop-app-phase-a.md) 和
+  [Phase B](archive/implementation-plans/2026-08-23-desktop-app-phase-b.md)。下一入口是 Phase C 双架构验收；阶段边界见
+  [ROADMAP.md](ROADMAP.md)，完成事实仍以 [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准。
 
 ## 操作与维护指南
 
@@ -40,7 +38,7 @@
 | Desktop Phase A 自动化与 Apple Silicon 原生 smoke                                                             | [guides/DESKTOP_PHASE_A_SMOKE.md](guides/DESKTOP_PHASE_A_SMOKE.md)             |
 | 统一 Producer/TTS/Scene defaults 配置                                                                         | [guides/PRODUCER_CONFIG.md](guides/PRODUCER_CONFIG.md)                         |
 | create 后的只读 inspect、显式 prepare、dirty task delegation、attempt-bound commit/fail 与 fixed continuation | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md)       |
-| 同步 exact four-file delivery                                                                                 | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md)                           |
+| source-current 与 optional exact four-file DeliveryBuild                                                      | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md)                           |
 | 完整 Project 数据删除                                                                                         | [PRODUCTION_WORKFLOW.md#8-作品删除](PRODUCTION_WORKFLOW.md#8-作品删除)         |
 | TTS generation cache、PCM seal 与 timing                                                                      | [guides/NARRATION_GENERATION.md](guides/NARRATION_GENERATION.md)               |
 | 机械 acceptance 与完成事实                                                                                    | [guides/REVIEW_MODEL.md](guides/REVIEW_MODEL.md)                               |

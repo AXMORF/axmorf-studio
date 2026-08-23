@@ -1,7 +1,8 @@
 # Remotion Story Producer
 
 一个以 Remotion 为渲染运行时、以 Project authoring revision 和内容寻址 artifacts 为生产 authority 的本地
-视频生产仓库。Agent 负责创意任务；固定脚本负责输入快照、验证、artifact promotion、Project 物化和同步交付。
+视频生产仓库。Agent 负责创意任务；固定脚本负责输入快照、验证、artifact promotion、Project 物化、`source-current`
+与可选的 exact-four-file Delivery。
 
 ## 当前主链
 
@@ -16,7 +17,8 @@ Project source
   → reuse valid ArtifactAttestations / execute dirty Agent tasks
   → fixed attempt-bound continuation (Root suspended)
   → fixed convergence and materialization
-  → synchronous exact four-file delivery
+  → attested source-current
+  → manual stop / automatic or later explicit exact four-file DeliveryBuild
 ```
 
 核心性质：
@@ -33,9 +35,11 @@ Project source
   safe-area-local `viewportWidth`/`viewportHeight`，不读取或重复应用 Composition inset；
 - Root 串行执行完或完成受限并发 admission 后不监督、不轮询、不参与成败处理；fixed continuation 以
   one-shot atomic claim 独占 terminal barrier，并受 attempt 创建起一小时总 deadline 约束；
-- converge 重新计算 current Revision，全部 artifact 齐全才受控物化 Project；
-- delivery 同步生成并验证 `video.mp4`、两张 PNG Cover 和 `publish.json`，全部通过才替换 current slot；
-- `project-production-complete` 与 `project-production-current` 都表示实际 current four files 已机械复验。
+- converge 重新计算 current Revision，全部 artifact 齐全才受控物化 Project 并写入、复验 `source-current`；
+- `manual` 在 source-current 停止；`automatic` 或 later explicit DeliveryBuild 才生成并验证 `video.mp4`、两张 PNG
+  Cover 和 `publish.json`，全部通过才替换 current slot；
+- `project-production-source-current` 只证明 source ready；`project-production-complete` 与
+  `project-production-current` 才表示 actual current four files 已机械复验。
 
 产品目标、实现状态和精确 contract 请从 [文档导航](docs/README.md) 进入。生产 Agent 使用
 [remotion-story-producer-video Skill](.agents/skills/remotion-story-producer-video/SKILL.md)；每个 Scene task executor
@@ -62,9 +66,10 @@ Delivery 默认由用户手动触发，App 更新与 Workspace 数据分离。�
 [Desktop App 产品架构](docs/DESKTOP_APP_PRODUCT.md) 与
 [macOS 维护与发行](docs/DESKTOP_APP_MACOS_MAINTENANCE.md)。
 
-Phase A repository-adapter prototype 已在 Apple Silicon native gate 验证完成，但完整 Runtime Pack、Workspace production migration、optional
-Delivery、DMG/签名/发布与双架构原生证据仍不是当前能力。下面的 npm 命令仍是贡献者和当前仓库使用方式；实际
-完成状态只看 [ITERATION_STATUS.md](docs/ITERATION_STATUS.md)。
+Phase B Workspace production 与 embedded Runtime Pack 已在 hosted Apple Silicon native gate 验证完成；该 gate 使用
+deterministic task executor，不等于已安装外部创作 Agent 的真实创意生产证明。当前能力仍不包括 Intel x64 native
+evidence、DMG、签名、公证或公开发行。下面的 npm 命令继续服务 repository contributor；精确完成状态只看
+[ITERATION_STATUS.md](docs/ITERATION_STATUS.md)。
 
 ## 快速开始
 
@@ -84,12 +89,11 @@ npm run check
 真实 Remotion、FFmpeg、Chromium 和 production preflight 首次直接使用宿主权限。不要通过降低 Chromium
 sandbox、预热 TTS 或 fallback output 获得 Green。
 
-## Desktop Phase A 开发验证
+## Desktop Phase B 开发验证
 
-当前 `AXMORF Studio` 原型使用 bundled renderer、原生 `<video>` 和只读 Scene/narration/caption 时间轴；它不启动
-或嵌入 Remotion Studio/Settings Web service。Engine 只读当前 repository，经 authenticated Unix-domain socket
-提供 workspace-local `rsp doctor`；只有与 current Revision 匹配且 exact-four-file 复验通过的 Delivery 才进入
-Preview Catalog。
+当前 `AXMORF Studio` 使用 embedded Runtime Pack、Workspace-owned production、authenticated `rsp-local-v2`、原生
+`<video>` 和只读 Scene/narration/caption 时间轴；它不启动或嵌入 Remotion Studio/Settings Web service。只有与
+current source 匹配且 exact-four-file 复验通过的 Delivery 才进入 Preview Catalog。
 
 ```bash
 npm run desktop:check
@@ -103,10 +107,9 @@ npm run desktop:start
 npm run desktop:package
 ```
 
-`desktop:package` 只生成本机架构的未签名 `.app` 开发证据，不生成 DMG。当前实现仍依赖创建 App 的 host Node 和
-build-time checkout；不提供 production/delivery 命令，也不迁移 repository 数据。Phase A 的 Apple Silicon packaged
-App 证据已验证；逐项原生验收和仍 pending 的 Hermes-specific smoke 见
-[Desktop Phase A Smoke](docs/guides/DESKTOP_PHASE_A_SMOKE.md)。
+`desktop:package` 只生成本机架构的内部未签名 `.app` 开发证据，不生成 DMG。Phase B 的 Apple Silicon packaged
+production、manual/automatic Delivery、Preview Player 和 lifecycle cleanup 已验证；精确证据与未覆盖边界见
+[Iteration Status](docs/ITERATION_STATUS.md)。
 
 本地配置页：
 
@@ -192,9 +195,10 @@ npm run project:produce:continue -- --project <story-id> --revision <revision-id
 此后 Root 挂起且不再轮询、推理、修复或重试。fixed continuation 先原子占用 exact attempt，只读取 immutable
 task-terminal event log；重复 continuation fail closed。任一失败非零退出且不 converge；全部成功才内部调用一次
 converge；从 attempt 创建起一小时内缺少终态会写 timeout failure 后退出；converge 失败同样直接退出。内部 converge 先只读
-重算 current Revision/plan，再验证/materialize artifacts、刷新 packages/registry/Composition，并同步构建
-current delivery；它不调用 provider 或创建 workspace/attempt。聊天终态
-不作 authority；只有 ArtifactAttestation 和验证后的 four-file package 作 authority。详细步骤见
+重算 current Revision/plan，再验证/materialize artifacts、刷新 packages/registry/Composition 并写入
+`source-current`。repository contributor 命令显式采用 `automatic` policy，随后同步构建 current Delivery；Desktop
+`manual` policy 则在 source-current 返回，later explicit Delivery 不会创建 provider、Agent task 或新 attempt。聊天终态
+不作 authority；只有 ArtifactAttestation、复验后的 source-current 和 exact-four-file package 作 authority。详细步骤见
 [生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md) 与
 [本地交付指南](docs/guides/LOCAL_DELIVERY.md)。
 

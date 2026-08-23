@@ -66,9 +66,9 @@ production inputs ready 时保存 `attemptId`、`revisionId`、summary、estimat
 只执行 dirty `scene-owner`、`global-visual-owner`、`cover-owner`。一个 TaskRevision 只归属一个 executor，
 共享当前 checkout，不使用 worktree。`scene-template` 与 narration/convergence/delivery fixed tasks 不由 Agent 创作。
 
-“共享当前 checkout”只描述 current repository。Desktop App 目标会把 immutable App/Runtime Pack 与单一用户
-Workspace 分离，Revision 只观察当前 Project 的相关输入；其他工程任务或无关 Workspace 修改不得使本任务 stale。
-该隔离未实现前仍按 current stale gate fail closed，不能在失败 Attempt 内绕过。
+“共享当前 checkout”只描述 repository contributor workflow。Phase B Desktop App 已把 immutable App/Runtime Pack 与
+单一用户 Workspace 分离，Revision 只观察当前 Project 的相关输入；其他工程任务或无关 Workspace 修改不得使本任务
+stale。repository 与 Workspace adapters 都继续按 current stale gate fail closed，不能在失败 Attempt 内绕过。
 
 每个 executor prompt 必须包含 storyId、revisionId、taskRevision、attemptId、唯一 workspace、必读 Skill/reference、
 focused check 和 prepare 返回的 commit/failure commands。Scene child 完整读取 repository-local

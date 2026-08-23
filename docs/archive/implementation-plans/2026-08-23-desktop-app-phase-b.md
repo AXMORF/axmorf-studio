@@ -1,27 +1,31 @@
-# AXMORF Studio Desktop App Phase B 实施计划
+# AXMORF Studio Desktop App Phase B 实施计划（归档）
 
-> 文档类型：已批准、implementation complete / native evidence pending 的 active implementation plan，不是 current implementation authority
+> 文档类型：已实施计划快照，不是 current implementation authority
 >
 > 计划基线：`19f6cb4`
 >
-> 当前状态：`implementation-complete-native-evidence-pending`
+> 归档状态：2026-08-23 `verified-complete`；evidence commit `04ca57ed5b6469eb9bc4acd8c86829ca0222576a`，Actions run `32648089941`，artifact ID `9495509231`
 >
 > 最后复核：2026-08-23
 
-本计划把 [Desktop App 产品边界](DESKTOP_APP_PRODUCT.md)、
-[macOS 维护和发行目标](DESKTOP_APP_MACOS_MAINTENANCE.md) 与 current repository production authority 收敛为
-Phase B 可直接实施、验证和交付的工作包。Phase B 完成前，当前能力仍只由
-[ITERATION_STATUS.md](ITERATION_STATUS.md) 声明；计划文字、Red test、build artifact 或单个 `rsp` 命令都不是完成证据。
+本计划把 [Desktop App 产品边界](../../DESKTOP_APP_PRODUCT.md)、
+[macOS 维护和发行目标](../../DESKTOP_APP_MACOS_MAINTENANCE.md) 与 current repository production authority 收敛为
+Phase B 实施、验证和交付工作包。Phase B 已完成，本文件只保留实施快照；当前能力仍只由
+[ITERATION_STATUS.md](../../ITERATION_STATUS.md) 声明。计划文字、Red test、build artifact 或单个 `rsp` 命令都不是完成证据。
 
-Phase B 完成并取得全部证据后，本文件移入 `docs/archive/implementation-plans/`，Roadmap 才能推进到 Phase C。
-
-2026-08-23 的实现已完成 contracts、explicit locations、`source-current`、Workspace v2、Runtime Pack、Workspace-owned
-Project/private config、`rsp-local-v2`、Engine/UI、managed Skill 与真实 Workspace Delivery adapter。经用户确认，Remotion
-4.0.489 只可在单个 DeliveryBuild 内使用 `127.0.0.1` 的 OS-ephemeral 临时 HTTP listener；UDS 仍是唯一 control plane。
+2026-08-23 的实现完成 contracts、explicit locations、`source-current`、Workspace v2、Runtime Pack、Workspace-owned
+Project/private config、`rsp-local-v2`、Engine/UI、managed Skill 与真实 Workspace Delivery adapter。Remotion 4.0.489
+只在单个 DeliveryBuild 内使用 `127.0.0.1` 的 OS-ephemeral 临时 HTTP listener；UDS 仍是唯一 control plane。
 Runtime Pack 携带 bundler/renderer 所需、checksum-bound 的 exact Studio/Studio Shared 内部包，但不携带或启动 Remotion
-CLI、Studio Server、Studio UI、Settings service 或相应 launch surface。当前 Linux 宿主不能取得 Apple Silicon packaged
-production E2E，因此状态只能是 `implementation-complete-native-evidence-pending`；本计划保持 active，Task 12 不执行，
-Roadmap 不推进。
+CLI、Studio Server、Studio UI、Settings service 或相应 launch surface。
+
+exact commit `04ca57ed5b6469eb9bc4acd8c86829ca0222576a` 的 hosted `macos-15` arm64 Actions run
+[`32648089941`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32648089941) conclusion 为 success；
+artifact ID `9495509231` 已人工复核 ordinary/gate package inventory、arm64 Runtime/App identity、manual source-current
+后 explicit Delivery、automatic Delivery、真实 four-file media facts、Preview Player 和失败/Quit/reopen 后的 process/TCP/
+session/staging cleanup。artifact 不含 MP4、Cover 或 credential。native fixture 通过 public `rsp-local-v2` 执行
+test-only deterministic task outputs，不代表安装外部创作 Agent 的真实 creative E2E，也不覆盖 x64、DMG、签名、
+公证、distribution 或公开发行。Task 12 完成后 Roadmap 推进到 Phase C。
 
 ## 1. 目标与成功边界
 

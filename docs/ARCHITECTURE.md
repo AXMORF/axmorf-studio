@@ -2,7 +2,7 @@
 
 > 文档类型：架构 authority
 >
-> 第 1–9 节描述 current repository/Workspace 共用 production 主链；第 10 节描述 Phase B Desktop 实现与仍待取得的 native evidence。
+> 第 1–9 节描述 current repository/Workspace 共用 production 主链；第 10 节描述已验证的 Phase B Desktop 实现边界。
 
 ## 1. 模块与依赖方向
 
@@ -187,7 +187,7 @@ validator boundary。
 projects / media / task workspaces / artifacts / attempts / deliveries
 ```
 
-Phase B working tree 已把 Project/media/work/artifact/attempt/source/delivery authority 迁入显式 Workspace locations，
+Phase B 已把 Project/media/work/artifact/attempt/source/delivery authority 迁入显式 Workspace locations，
 以启动时 manifest/checksum 验证的 embedded Runtime Pack、自包含 `rsp-local-v2`、managed Skill、Engine controller 和
 bundled Player 连接。
 App 不探测源码 checkout、不依赖系统 Node/npm/Git；Renderer 只接收脱敏状态和 opaque media URL。
@@ -206,7 +206,8 @@ App/Engine/Skill 更新在 active Attempt 期间禁止切换；Agent 写入 decl
 Desktop 当前报告 `productionAvailable: true`、`deliveryAvailable: true`。Runtime Pack checksum-bound 地携带 exact
 bundler/renderer 与必要的 Studio内部包，但不含 CLI、Studio Server或 launch surface；App不启动Studio。Delivery adapter
 只在单次 build 中为当前 disposable bundle/media 打开 `127.0.0.1` OS-ephemeral listener，UDS仍是唯一 control plane，
-并在 success/failure/cancel/shutdown 后关闭 listener、Chromium/FFmpeg与 staging。Apple Silicon packaged证据仍 pending；见
-[ITERATION_STATUS.md](ITERATION_STATUS.md)，产品与发行边界见
+并在 success/failure/cancel/shutdown 后关闭 listener、Chromium/FFmpeg 与 staging。exact commit
+`04ca57ed5b6469eb9bc4acd8c86829ca0222576a` 已通过 hosted macOS 15 arm64 packaged native gate；见
+[ITERATION_STATUS.md](ITERATION_STATUS.md)。该证据不覆盖 x64、DMG 或公开发行；产品与发行边界见
 [DESKTOP_APP_PRODUCT.md](DESKTOP_APP_PRODUCT.md) 和
 [DESKTOP_APP_MACOS_MAINTENANCE.md](DESKTOP_APP_MACOS_MAINTENANCE.md)。

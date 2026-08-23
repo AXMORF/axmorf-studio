@@ -2,17 +2,17 @@
 
 > 文档类型：操作指南
 >
-> 最后复核：2026-08-22
+> 最后复核：2026-08-23
 
 仓库使用一份 Git-ignored 的 `private/producer.config.json` 作为制作默认值与私密 TTS 连接配置。
 它不是 render runtime 输入；`project:create` 把新作品的选择写入 Project contracts，后续
 ProductionRevision 只绑定 private-safe provider/voice/policy identity。因此修改全局配置不会静默改变
 已配置 Project，也不会把 secret 放入 artifact。
 
-本指南描述 current repository 配置。Desktop App 目标中，现有页面演进为 App Settings：用户只配置一个
-Workspace Root，公开 defaults 由 App/Project settings 管理，credential 使用 macOS Keychain/Application
-Support，不写入 Agent 可见 Workspace；App 再通过 `rsp context` 投影脱敏任务配置。该迁移尚未实现，不能提前
-改变本指南的 current 路径和命令。目标 authority 见 [Desktop App 产品架构](../DESKTOP_APP_PRODUCT.md)。
+本指南描述 current repository contributor 配置。Phase B Desktop App 已提供独立 App Settings：用户只配置一个
+Workspace Root，公开 defaults 由 App/Project settings 管理，credential 使用 App-private config port，不写入 Agent
+可见 Workspace；App 再通过 `rsp context` 投影脱敏任务配置。下面的 repository 路径和 npm 命令仍只服务 contributor
+workflow，不是 packaged App fallback。产品 authority 见 [Desktop App 产品架构](../DESKTOP_APP_PRODUCT.md)。
 
 `.env.example` 可以直接复制为 `.env`：
 

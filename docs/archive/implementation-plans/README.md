@@ -37,3 +37,11 @@ evidence commit `e5b9b6bd81bbe229177a64ed326ab3e46eaf2220` 的 manual-only Actio
 真实 four-file Delivery playback/seek、media/security/lifecycle/Agent gates 与 609/609 full check；artifact ID 为
 `9480398272`。Hermes CLI 在 runner 不存在，因此 Hermes-specific smoke 按合同保持 pending。计划快照见
 `2026-08-23-desktop-app-phase-a.md`；Phase B 只成为下一路线入口，未在该计划中实施。
+
+2026-08-23 的 AXMORF Studio Desktop App Phase B 计划完成了 Workspace-owned production、embedded Runtime Pack、
+`rsp-local-v2`、attested source-current、manual/automatic exact-four-file Delivery、bundled Preview Player 与 lifecycle
+cleanup。evidence commit `04ca57ed5b6469eb9bc4acd8c86829ca0222576a` 的 hosted macOS 15 arm64 Actions run
+[`32648089941`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32648089941) conclusion 为 success；
+artifact ID `9495509231` 已人工复核 package/runtime identity、manual/automatic Delivery、Preview、loopback listener 与
+failure/Quit/reopen cleanup。该 deterministic fixture 不等于外部创作 Agent、Intel x64、DMG、签名、公证或发行证据。
+计划快照见 `2026-08-23-desktop-app-phase-b.md`；Roadmap 下一入口推进到 Phase C 双架构验收。

@@ -40,5 +40,6 @@ media/checksum/EOF gates 全部通过才是 `delivery-current`，也只有该状
 不能因 source-ready 就显示可播放，也不能因旧 Delivery 存在就掩盖 `delivery-stale`。
 
 这个 split 已由 contracts、controller 与 tests 固定；`source-current` 是 manual production 的有效 source-only 终态，
-但只有通过上述 exact-four-file gates 的 `delivery-current` 才证明可播放交付完成。Apple Silicon packaged production
-E2E 仍是 Phase B 的未决 native evidence，不能由实现或 host fixture 替代。
+但只有通过上述 exact-four-file gates 的 `delivery-current` 才证明可播放交付完成。hosted Apple Silicon packaged
+production E2E 已验证 manual/automatic terminal、真实 media probe、Preview 与 cleanup；该 deterministic native fixture
+不替代 Hermes 或其他已安装外部创作 Agent 的 production proof。
