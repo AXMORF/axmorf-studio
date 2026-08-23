@@ -28,6 +28,9 @@ const MAX_COMPATIBILITY_MANIFEST_BYTES = 64 * 1024;
 const sha256 = (bytes: Uint8Array) =>
   createHash("sha256").update(bytes).digest("hex");
 
+const compareCanonicalText = (left: string, right: string) =>
+  left < right ? -1 : left > right ? 1 : 0;
+
 const contained = (root: string, path: string) => {
   const value = relative(root, path);
   return value === "" || (value !== ".." && !value.startsWith(`..${sep}`));
@@ -204,7 +207,9 @@ export const buildRuntimePack = async (input: RuntimePackBuildInput) => {
   await rm(staging, { recursive: true, force: true });
   await rm(backup, { recursive: true, force: true });
   await mkdir(staging, { recursive: true, mode: 0o700 });
-  const bindings = Object.entries(input.binaries).sort(([a], [b]) => a.localeCompare(b));
+  const bindings = Object.entries(input.binaries).sort(([left], [right]) =>
+    compareCanonicalText(left, right),
+  );
   const sources = [
     ...bindings.map(([name, value]) => ({ name, ...value, executable: true })),
     ...(input.additionalFiles ?? []).map((value) => ({ name: null, version: null, executable: value.executable ?? false, ...value })),
@@ -212,7 +217,9 @@ export const buildRuntimePack = async (input: RuntimePackBuildInput) => {
   const identities = new Map<string, { relativePath: string; version: string; sha256: string }>();
   const files: Array<{ path: string; sizeBytes: number; sha256: string; executable: boolean }> = [];
   try {
-    for (const source of sources.sort((a, b) => a.relativePath.localeCompare(b.relativePath))) {
+    for (const source of sources.sort((left, right) =>
+      compareCanonicalText(left.relativePath, right.relativePath),
+    )) {
       if (files.some(({ path }) => path === source.relativePath)) throw new Error("Runtime Pack contains duplicate paths.");
       const bytes = await readFile(source.source);
       const destination = resolve(staging, source.relativePath);
@@ -227,7 +234,9 @@ export const buildRuntimePack = async (input: RuntimePackBuildInput) => {
     const manifest = buildRuntimePackManifest({
       platform: "darwin",
       architecture: input.architecture,
-      remotionPackages: [...input.remotionPackages].sort((a, b) => a.name.localeCompare(b.name)),
+      remotionPackages: [...input.remotionPackages].sort((left, right) =>
+        compareCanonicalText(left.name, right.name),
+      ),
       rendererBrowser: identities.get("rendererBrowser"), ffmpeg: identities.get("ffmpeg"),
       ffprobe: identities.get("ffprobe"), node: identities.get("node"), rspClient: identities.get("rspClient"),
       files,
