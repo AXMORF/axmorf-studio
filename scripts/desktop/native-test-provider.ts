@@ -7,11 +7,11 @@ import {
   RenderSpecSchema,
   NarrationMasteringPolicySchema,
   SealedNarrationManifestSchema,
+  Sha256DigestSchema,
   StorySpecSchema,
   buildMasteredNarrationManifest,
   computeGenerationInputFingerprint,
   computeSealedNarrationFingerprint,
-  createFingerprint,
   generateSemanticTiming,
   serializeCanonicalJson,
   type Sha256Digest,
@@ -29,9 +29,10 @@ import {
 import { createExecutableProcessRunner } from "../narration/adapters/ffmpeg-normalizer";
 import { masterNarrationBytes } from "../narration/mastering";
 import { resolveNarrationMediaLogicalPath } from "../narration/production-paths";
+import { resolveProducerNarrationInspection } from "../config/narration-execution";
 
 export const DESKTOP_NATIVE_TEST_PROVIDER_VERSION =
-  "desktop-native-test-pcm-v2" as const;
+  "desktop-native-test-pcm-v3" as const;
 
 const SAMPLE_RATE = 48_000;
 
@@ -107,14 +108,19 @@ export const prepareWorkspaceNarration: WorkspacePrepareNarration = async ({
     story,
     narration,
   );
-  const providerAttemptFingerprint = createFingerprint({
-    namespace: "desktop-native-test-provider-attempt",
-    version: 1,
-    value: {
-      adapterVersion: DESKTOP_NATIVE_TEST_PROVIDER_VERSION,
-      generationInputFingerprint,
-    },
+  const narrationInspection = await resolveProducerNarrationInspection({
+    config,
+    privateConfigRoot: locations.providerMaterialRoot,
+    narration,
   });
+  if (narrationInspection.providerAttemptFingerprint === null) {
+    throw new Error(
+      `${DESKTOP_NATIVE_TEST_PROVIDER_VERSION}-exact-provider-identity-required`,
+    );
+  }
+  const providerAttemptFingerprint = Sha256DigestSchema.parse(
+    narrationInspection.providerAttemptFingerprint,
+  );
   const pcm = {
     sampleRate: SAMPLE_RATE,
     channelLayout: "mono",

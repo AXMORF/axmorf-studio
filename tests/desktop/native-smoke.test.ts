@@ -17,18 +17,18 @@ import {
   NarrationSpecSchema,
   ProjectCreateInputSchema,
   RenderSpecSchema,
-  buildProducerConfig,
   serializeCanonicalJson,
 } from "../../src/contracts";
 import { prepareDesktopNativeTestNarration } from "../../scripts/desktop/native-test-provider";
 import { recordWorkspaceCommandFailure } from "../../scripts/desktop/native-command-diagnostic";
+import { resolveProducerNarrationInspection } from "../../scripts/config/narration-execution";
 import { resolveNarrationMediaLogicalPath } from "../../scripts/narration/production-paths";
 import {
   createRuntimeExecutionResources,
   createWorkspaceProductionLocations,
 } from "../../scripts/project-production/application/production-locations";
 import { createDesktopNativeProjectInput } from "../../scripts/desktop/native-fixture";
-import { validProjectCreateProducerConfig } from "../fixtures/project-create";
+import { desktopProducerConfigFixture } from "./producer-config-fixture";
 
 const require = createRequire(import.meta.url);
 
@@ -69,7 +69,7 @@ test("native test provider writes the source-local narration preparation receipt
   const input = ProjectCreateInputSchema.parse(
     createDesktopNativeProjectInput(),
   );
-  const config = buildProducerConfig(validProjectCreateProducerConfig);
+  const config = desktopProducerConfigFixture;
   const narration = NarrationSpecSchema.parse({
     schemaVersion: 2,
     voiceProfileId: config.tts.defaultVoiceProfileId,
@@ -136,6 +136,15 @@ test("native test provider writes the source-local narration preparation receipt
   assert.equal(
     receipt.providerAttemptFingerprint,
     prepared.providerAttemptFingerprint,
+  );
+  const inspection = await resolveProducerNarrationInspection({
+    config,
+    privateConfigRoot: locations.providerMaterialRoot,
+    narration,
+  });
+  assert.equal(
+    prepared.providerAttemptFingerprint,
+    inspection.providerAttemptFingerprint,
   );
   assert.equal(
     receipt.sealedNarrationFingerprint,
@@ -352,7 +361,7 @@ test("native gate workflow is manual-only to dispatch and uploads evidence only"
   assert.match(workflow, /scripts\/desktop\/native-gate-runner\.sh/u);
   assert.match(workflow, /npm run desktop:package/u);
   assert.match(workflow, /AXMORF_PHASE_B_NATIVE_GATE_BUILD=1/u);
-  assert.match(workflow, /grep -R -Fq 'desktop-native-test-pcm-v2' out/u);
+  assert.match(workflow, /grep -R -Fq 'desktop-native-test-pcm-v3' out/u);
   assert.match(
     workflow,
     /grep -R -Fq 'desktop-native-command-failure-v1' out/u,
@@ -408,7 +417,7 @@ test("ordinary Desktop builds compile the native harness off", async () => {
   assert.match(engineConfig, /name: "desktop-prettier-cjs-entry"/u);
   assert.match(engineConfig, /__prettierCreateRequire\(__filename\)/u);
   assert.match(provider, /export const prepareWorkspaceNarration/u);
-  assert.match(provider, /desktop-native-test-pcm-v2/u);
+  assert.match(provider, /desktop-native-test-pcm-v3/u);
 });
 
 test("native smoke drives real manual and automatic Delivery with network cleanup evidence", async () => {
