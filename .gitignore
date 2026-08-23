@@ -1,5 +1,6 @@
 node_modules
 .vite/
+.desktop-package-resources/
 dist
 build
 .DS_Store

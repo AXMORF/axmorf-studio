@@ -10,7 +10,7 @@ import {
 import { dirname, join, relative, resolve, sep } from "node:path";
 
 export const DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT =
-  ".vite/package-resources/workspace-integration" as const;
+  ".desktop-package-resources/workspace-integration" as const;
 
 export const DESKTOP_WORKSPACE_INTEGRATION_RESOURCE_FILES = Object.freeze([
   "AGENTS.md",

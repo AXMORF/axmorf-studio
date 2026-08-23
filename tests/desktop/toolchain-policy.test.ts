@@ -78,6 +78,10 @@ test("every Desktop Vite entry disables repository public copying", () => {
 });
 
 test("Forge config has explicit entries and no release machinery", () => {
+  assert.equal(
+    DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT,
+    ".desktop-package-resources/workspace-integration",
+  );
   assert.deepEqual(
     desktopVitePluginConfig.build.map(({ entry, config, target }) => ({
       entry,
