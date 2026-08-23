@@ -3,6 +3,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  readdir,
   rm,
   symlink,
   writeFile,
@@ -19,6 +20,10 @@ import forgeConfig, {
   desktopVitePluginConfig,
 } from "../../forge.config";
 import { TRUSTED_SHELL_WEB_PREFERENCES } from "../../desktop/contracts/security-policy";
+import {
+  DESKTOP_ELECTRON_LOCALES,
+  pruneDesktopElectronLocales,
+} from "../../scripts/desktop/electron-locales";
 import {
   assertDesktopEngineAuthorityBoundary,
   assertDesktopResourcesTopLevel,
@@ -121,7 +126,26 @@ test("Forge config has explicit entries and no release machinery", () => {
     "desktop/compatibility.json",
     DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT,
   ]);
+  assert.equal(
+    forgeConfig.packagerConfig?.afterCopyExtraResources?.length,
+    1,
+  );
   assert.equal(typeof forgeConfig.hooks?.generateAssets, "function");
+});
+
+test("packaging keeps only the exact English and Simplified Chinese Electron locales", async (context) => {
+  assert.deepEqual(DESKTOP_ELECTRON_LOCALES, ["en.lproj", "zh_CN.lproj"]);
+  const root = await mkdtemp(join(tmpdir(), "desktop-electron-locales-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  for (const locale of ["af.lproj", ...DESKTOP_ELECTRON_LOCALES]) {
+    await mkdir(join(root, locale));
+    await writeFile(join(root, locale, "locale.pak"), locale);
+  }
+  await pruneDesktopElectronLocales(root);
+  assert.deepEqual(
+    (await readdir(root)).sort(),
+    [...DESKTOP_ELECTRON_LOCALES],
+  );
 });
 
 test("trusted bundled renderer denies privilege", () => {
@@ -195,6 +219,7 @@ test("packaged macOS Resources has an exact top-level inventory", () => {
     "app.asar",
     "compatibility.json",
     "electron.icns",
+    ...DESKTOP_ELECTRON_LOCALES,
     "runtime-pack",
     "workspace-integration",
   ];

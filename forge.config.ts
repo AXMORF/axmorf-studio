@@ -1,9 +1,10 @@
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import type { ForgeConfig } from "@electron-forge/shared-types";
-import { dirname, relative, sep } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { isDesktopPackagePathAllowed } from "./scripts/desktop/package-inventory";
+import { pruneDesktopElectronLocales } from "./scripts/desktop/electron-locales";
 import {
   DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT,
   stageDesktopWorkspaceIntegration,
@@ -64,6 +65,11 @@ const config: ForgeConfig = {
       "desktop/compatibility.json",
       DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT,
     ],
+    afterCopyExtraResources: [async (buildPath) => {
+      await pruneDesktopElectronLocales(
+        join(buildPath, "Contents", "Resources"),
+      );
+    }],
     ignore: desktopPackageIgnore,
   },
   rebuildConfig: {},

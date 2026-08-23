@@ -4,6 +4,7 @@ import { join, relative, resolve, sep } from "node:path";
 
 import { listPackage, statFile } from "@electron/asar";
 import { DesktopCompatibilityManifestSchema, RuntimePackManifestSchema, assertDesktopRuntimeCompatibility } from "../../desktop/contracts/runtime-pack";
+import { DESKTOP_ELECTRON_LOCALES } from "./electron-locales";
 import { DESKTOP_WORKSPACE_INTEGRATION_RESOURCE_FILES } from "./workspace-integration-package";
 
 export const DESKTOP_PACKAGE_ALLOWED_ROOTS = Object.freeze([
@@ -56,6 +57,7 @@ const DESKTOP_RESOURCES_REQUIRED_TOP_LEVEL = Object.freeze([
   "app.asar",
   "compatibility.json",
   "electron.icns",
+  ...DESKTOP_ELECTRON_LOCALES,
   "runtime-pack",
   "workspace-integration",
 ]);
@@ -456,6 +458,7 @@ export const verifyDesktopPackageInventory = (
     const expectsDirectory =
       entry.name === "runtime-pack" ||
       entry.name === "workspace-integration" ||
+      DESKTOP_ELECTRON_LOCALES.includes(entry.name as never) ||
       entry.name === "app.asar.unpacked";
     if (
       (expectsDirectory && !entry.isDirectory()) ||
