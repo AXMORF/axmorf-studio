@@ -93,6 +93,9 @@ test("Phase D configures only the official unsigned DMG maker", async () => {
     installerVerifier,
     /Application Support\/\$user_data_directory/u,
   );
+  assert.match(installerVerifier, /ignoring application responses/u);
+  assert.match(installerVerifier, /if \/usr\/sbin\/spctl[\s\S]*; then/u);
+  assert.doesNotMatch(installerVerifier, /set \+e\n\/usr\/sbin\/spctl/u);
   assert.match(smokePreparer, /--application-support-root/u);
   assert.doesNotMatch(smokePreparer, /com\.axmorf\.studio/u);
 });

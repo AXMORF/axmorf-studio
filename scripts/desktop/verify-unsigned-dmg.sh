@@ -146,7 +146,11 @@ wait_for_window() {
 
 quit_app() {
   local pid=$1
-  /usr/bin/osascript -e 'tell application id "com.axmorf.studio" to quit' >/dev/null
+  /usr/bin/osascript \
+    -e 'ignoring application responses' \
+    -e 'tell application id "com.axmorf.studio" to quit' \
+    -e 'end ignoring' \
+    >/dev/null
   local remaining=300
   while app_running "$pid" && [[ $remaining -gt 0 ]]; do
     sleep 0.1
@@ -239,12 +243,8 @@ if [[ "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$info_plist
   exit 1
 fi
 
-set +e
-/usr/sbin/spctl -a -t exec -vv "$installed_app" \
-  >"$output_root/spctl.stdout" 2>"$output_root/spctl.stderr"
-spctl_exit=$?
-set -e
-if [[ $spctl_exit -eq 0 ]]; then
+if /usr/sbin/spctl -a -t exec -vv "$installed_app" \
+  >"$output_root/spctl.stdout" 2>"$output_root/spctl.stderr"; then
   echo "desktop-unsigned-dmg-unexpected-gatekeeper-acceptance" >&2
   exit 1
 fi
