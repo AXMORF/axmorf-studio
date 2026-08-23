@@ -67,7 +67,12 @@ const config: ForgeConfig = {
     ],
     afterCopyExtraResources: [async (buildPath) => {
       await pruneDesktopElectronLocales(
-        join(buildPath, "Contents", "Resources"),
+        join(
+          buildPath,
+          `${DESKTOP_PRODUCT_NAME}.app`,
+          "Contents",
+          "Resources",
+        ),
       );
     }],
     ignore: desktopPackageIgnore,
