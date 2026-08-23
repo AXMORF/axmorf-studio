@@ -18,6 +18,13 @@ export class ExecutionAttemptEventWaitTimeoutError extends Error {
   }
 }
 
+export const isExecutionAttemptEventLogChange = (
+  eventType: string,
+  filename: string | null,
+) =>
+  (eventType === "rename" || eventType === "change") &&
+  (filename === null || filename.endsWith(".json"));
+
 export const openExecutionAttemptEventWait = (input: {
   readonly locations: ProductionLocations;
   readonly storyId: string;
@@ -55,10 +62,7 @@ export const openExecutionAttemptEventWait = (input: {
     else rejectChanged?.(error);
   };
   const watcher = watch(directory, (eventType, filename) => {
-    if (
-      filename?.endsWith(".json") === true &&
-      (eventType === "rename" || eventType === "change")
-    ) {
+    if (isExecutionAttemptEventLogChange(eventType, filename)) {
       settle();
     }
   });

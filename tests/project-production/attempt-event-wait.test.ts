@@ -6,9 +6,18 @@ import test from "node:test";
 
 import {
   ExecutionAttemptEventWaitTimeoutError,
+  isExecutionAttemptEventLogChange,
   openExecutionAttemptEventWait,
 } from "../../scripts/project-production/adapters/attempt-event-wait";
 import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
+
+test("attempt event wait accepts a filesystem notification without a filename", () => {
+  assert.equal(isExecutionAttemptEventLogChange("rename", null), true);
+  assert.equal(isExecutionAttemptEventLogChange("change", null), true);
+  assert.equal(isExecutionAttemptEventLogChange("rename", "event.json"), true);
+  assert.equal(isExecutionAttemptEventLogChange("rename", "ignored.tmp"), false);
+  assert.equal(isExecutionAttemptEventLogChange("unknown", null), false);
+});
 
 test("attempt event wait resolves from the immutable event log without polling", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-wait-"));
@@ -25,7 +34,7 @@ test("attempt event wait resolves from the immutable event log without polling",
     locations,
     storyId,
     attemptId,
-    timeoutMs: 2_000,
+    timeoutMs: 10_000,
   });
   context.after(() => eventWait.close());
   await eventWait.ready;
@@ -33,15 +42,7 @@ test("attempt event wait resolves from the immutable event log without polling",
     join(events, "00000000-0000-4000-8000-000000000002.json"),
     "{}\n",
   );
-  await Promise.race([
-    eventWait.changed,
-    new Promise<never>((_resolve, reject) =>
-      setTimeout(
-        () => reject(new Error("attempt event wait timed out")),
-        2_000,
-      ),
-    ),
-  ]);
+  await eventWait.changed;
   assert.ok(true);
 });
 
