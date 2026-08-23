@@ -282,7 +282,18 @@ const workspaceSelectionProbeSource = `(() => new Promise(async (resolve, reject
       if (choice === undefined) throw new Error("renderer-workspace-choice-missing");
       choice.click();
     }
-    await until(() => document.querySelector("video") !== null, "workspace-ready");
+    const workspaceDeadline = Date.now() + 90000;
+    while (Date.now() < workspaceDeadline) {
+      const state = await window.axmorfStudio.getAppState();
+      if (state.status === "fatal") {
+        throw new Error("renderer-workspace-fatal:" + (state.error ?? "unknown"));
+      }
+      if (document.querySelector("video") !== null) break;
+      await sleep(100);
+    }
+    if (document.querySelector("video") === null) {
+      throw new Error("renderer-timeout:workspace-ready");
+    }
     resolve(true);
   } catch (error) {
     reject(error);
