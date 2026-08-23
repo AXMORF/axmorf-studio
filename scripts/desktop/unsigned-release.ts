@@ -492,13 +492,7 @@ const buildReleaseArtifact = async (args: readonly string[]) => {
   });
   await run(
     join(process.cwd(), "node_modules/.bin/electron-forge"),
-    [
-      "make",
-      "--skip-package",
-      "--platform=darwin",
-      `--arch=${architecture}`,
-      "--targets=@electron-forge/maker-dmg",
-    ],
+    ["make", "--skip-package", "--platform=darwin", `--arch=${architecture}`],
     ordinaryEnvironment,
   );
   const { version: appVersion } = await readRootPackage();

@@ -56,7 +56,11 @@ const releaseManifest = (architecture: "arm64" | "x64") =>
   });
 
 test("Phase D configures only the official unsigned DMG maker", async () => {
-  const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
+  const [packageJsonSource, releaseBuilder] = await Promise.all([
+    readFile("package.json", "utf8"),
+    readFile("scripts/desktop/unsigned-release.ts", "utf8"),
+  ]);
+  const packageJson = JSON.parse(packageJsonSource) as {
     devDependencies: Record<string, string>;
     scripts: Record<string, string>;
   };
@@ -75,6 +79,8 @@ test("Phase D configures only the official unsigned DMG maker", async () => {
   assert.deepEqual(forgeConfig.packagerConfig?.extendInfo, {
     LSMinimumSystemVersion: "13.0",
   });
+  assert.match(releaseBuilder, /electron-forge[\s\S]*"make"/u);
+  assert.doesNotMatch(releaseBuilder, /--targets/u);
 });
 
 test("Phase D installer identity is native, versioned, and explicitly unsigned", () => {
