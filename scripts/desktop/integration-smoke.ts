@@ -87,13 +87,17 @@ const producerConfig = buildProducerConfig({
   },
 });
 
-const run = async (command: string, args: readonly string[]) => {
+const run = async (
+  command: string,
+  args: readonly string[],
+  { timeoutMs = 30_000 }: { readonly timeoutMs?: number } = {},
+) => {
   try {
     await execFileAsync(command, [...args], {
       cwd: checkoutRoot,
       encoding: "utf8",
       maxBuffer: 1024 * 1024,
-      timeout: 30_000,
+      timeout: timeoutMs,
     });
   } catch (error) {
     const failure = error as Error & {
@@ -141,16 +145,20 @@ const buildRspSea = async (temporaryRoot: string) => {
   if (process.platform === "darwin") {
     await run("codesign", ["--remove-signature", executable]);
   }
-  await run(join(checkoutRoot, "node_modules/.bin/postject"), [
-    executable,
-    "NODE_SEA_BLOB",
-    blob,
-    "--sentinel-fuse",
-    "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2",
-    ...(process.platform === "darwin"
-      ? ["--macho-segment-name", "NODE_SEA"]
-      : []),
-  ]);
+  await run(
+    join(checkoutRoot, "node_modules/.bin/postject"),
+    [
+      executable,
+      "NODE_SEA_BLOB",
+      blob,
+      "--sentinel-fuse",
+      "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2",
+      ...(process.platform === "darwin"
+        ? ["--macho-segment-name", "NODE_SEA"]
+        : []),
+    ],
+    { timeoutMs: 120_000 },
+  );
   return executable;
 };
 
