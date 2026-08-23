@@ -16,9 +16,12 @@ import { assertGuardedSource } from "../../external-references/source-guard";
 import { assertGlobalVisualSource } from "./global-visual-validator";
 import { compileTypeScriptImportGraph } from "./typescript-compile";
 
-export const checkGlobalVisualTask = async (input: Parameters<typeof checkProducerTaskWorkspace>[0]) => {
+export const checkGlobalVisualTask = async (
+  input: Parameters<typeof checkProducerTaskWorkspace>[0],
+) => {
   const checked = await checkProducerTaskWorkspace(input);
-  if (checked.task.taskKind !== "global-visual-owner") throw new Error("Task is not a GlobalVisual task.");
+  if (checked.task.taskKind !== "global-visual-owner")
+    throw new Error("Task is not a GlobalVisual task.");
   const context = JSON.parse(
     await readFile(join(checked.workspace, "inputs/context.json"), "utf8"),
   ) as {
@@ -64,10 +67,12 @@ export const checkGlobalVisualTask = async (input: Parameters<typeof checkProduc
     plan.fps !== render.fps ||
     plan.durationInFrames !==
       getStoryCompositionDurationInFrames(timing.durationInFrames) ||
-    plan.catalogFingerprint !== context.resourcePool?.resourceCatalogFingerprint ||
+    plan.catalogFingerprint !==
+      context.resourcePool?.resourceCatalogFingerprint ||
     plan.captionSafeArea.top !== readabilityPolicy.captionSafeAreaPx.top ||
     plan.captionSafeArea.right !== readabilityPolicy.captionSafeAreaPx.right ||
-    plan.captionSafeArea.bottom !== readabilityPolicy.captionSafeAreaPx.bottom ||
+    plan.captionSafeArea.bottom !==
+      readabilityPolicy.captionSafeAreaPx.bottom ||
     plan.captionSafeArea.left !== readabilityPolicy.captionSafeAreaPx.left
   ) {
     throw new Error("GlobalVisual plan is stale against task context.");
@@ -89,20 +94,27 @@ export const checkGlobalVisualTask = async (input: Parameters<typeof checkProduc
   const allowed = new Set(context.resourcePool?.allowedResourceIds ?? []);
   if (
     envelope.selectedResources.some(
-      ({ resourceId, role }) => role !== "global-visual" || !allowed.has(resourceId),
+      ({ resourceId, role }) =>
+        role !== "global-visual" || !allowed.has(resourceId),
     )
   ) {
-    throw new Error("GlobalVisual resource selection is outside the task allowlist.");
+    throw new Error(
+      "GlobalVisual resource selection is outside the task allowlist.",
+    );
   }
   const source = await readFile(
     join(checked.workspace, "src/GlobalVisualLayers.tsx"),
     "utf8",
   );
-  const futurePath = `src/projects/${storyId}/global-visual/GlobalVisualLayers.tsx`;
-  assertGlobalVisualSource({ source, sourcePath: futurePath, entryPath: futurePath });
+  const logicalFuturePath = `src/projects/${storyId}/global-visual/GlobalVisualLayers.tsx`;
+  assertGlobalVisualSource({
+    source,
+    sourcePath: logicalFuturePath,
+    entryPath: logicalFuturePath,
+  });
   const guarded = assertGuardedSource({
     source,
-    sourcePath: futurePath,
+    sourcePath: logicalFuturePath,
     allowedBarePackages: new Map([
       ["react", "19.2.3"],
       ["remotion", "4.0.489"],
@@ -110,10 +122,17 @@ export const checkGlobalVisualTask = async (input: Parameters<typeof checkProduc
     relativeRoot: "src",
   });
   if (guarded.relativeImports.length > 0) {
-    throw new Error("GlobalVisual task must declare every relative source as an output.");
+    throw new Error(
+      "GlobalVisual task must declare every relative source as an output.",
+    );
   }
+  const runtimeSourceRoot =
+    input.locations.layoutKind === "repository"
+      ? input.locations.runtimeResources
+      : join(input.locations.runtimeResources, "source");
+  const futurePath = join(runtimeSourceRoot, logicalFuturePath);
   compileTypeScriptImportGraph({
-    rootDir: input.rootDir,
+    rootDir: input.locations.runtimeResources,
     rootPath: futurePath,
     label: "GlobalVisual task compile",
     virtualSource: source,

@@ -20,8 +20,8 @@ ArtifactAttestation, and dispatch only remaining dirty tasks. Attempt state neve
 
 ## Fixed-flow defects
 
-Artifact Store inspection/promotion, fixed template preparation, convergence/materialization, generated
-ScenePackage/Coverage/RendererRegistry/Composition refresh, and synchronous delivery are fixed flow. With
+Artifact Store inspection/promotion, fixed template preparation, source-current convergence/materialization,
+generated ScenePackage/Coverage/RendererRegistry/Composition refresh, and any requested DeliveryBuild are fixed flow. With
 valid inputs:
 
 The production attempt never repairs these defects in place. It exits. In a separate user-started engineering

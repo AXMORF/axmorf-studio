@@ -25,7 +25,6 @@ const AGENT_TASK_KINDS = new Set<ProducerTaskKind>([
 ]);
 const CONVERGE_TASK_KINDS = new Set<ProducerTaskKind>([
   "composition-convergence",
-  "delivery-build",
 ]);
 
 const diagnosticInputAliases: Readonly<Record<string, DiagnosticInputId>> = {
@@ -38,7 +37,6 @@ const diagnosticInputAliases: Readonly<Record<string, DiagnosticInputId>> = {
   "mastering-policy": "mastering-policy",
   narration: "narration",
   "provider-attempt": "provider-attempt",
-  publishing: "publishing",
   readability: "readability",
   render: "render",
   requirements: "requirements",

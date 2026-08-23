@@ -1,34 +1,36 @@
 import type { ExecutionAttemptProgress } from "../../../src/contracts";
+import type { DeliveryPolicy, ProducerConfig } from "../../../src/contracts";
 import {
-  appendExecutionAttemptDeliveryResult,
+  appendExecutionAttemptTerminalResult,
   claimExecutionAttemptContinuation,
   readExecutionAttemptProgress,
 } from "../adapters/attempt-store";
 import {
   ExecutionAttemptEventWaitTimeoutError,
   openExecutionAttemptEventWait,
-  type ExecutionAttemptEventWait,
 } from "../adapters/attempt-event-wait";
-import { convergeProjectProduction } from "./converge-artifacts";
+import type { ProductionConvergencePort } from "./converge-artifacts";
+import type { ProductionLocations } from "./production-locations";
+import type { RuntimeExecutionResources } from "./production-locations";
 
 export const DEFAULT_EXECUTION_ATTEMPT_DEADLINE_MS = 60 * 60 * 1_000;
 
 type ContinueProductionDependencies = Readonly<{
+  converge: ProductionConvergencePort;
   readProgress?: typeof readExecutionAttemptProgress;
   openEventWait?: (input: {
-    readonly rootDir: string;
+    readonly locations: ProductionLocations;
     readonly storyId: string;
     readonly attemptId: string;
     readonly timeoutMs: number;
-  }) => ExecutionAttemptEventWait;
+  }) => ReturnType<typeof openExecutionAttemptEventWait>;
   claimContinuation?: (input: {
-    readonly rootDir: string;
+    readonly locations: ProductionLocations;
     readonly storyId: string;
     readonly revisionId: string;
     readonly attemptId: string;
   }) => Promise<unknown>;
-  appendTerminalFailure?: typeof appendExecutionAttemptDeliveryResult;
-  converge?: typeof convergeProjectProduction;
+  appendTerminalFailure?: typeof appendExecutionAttemptTerminalResult;
   now?: () => number;
 }>;
 
@@ -61,19 +63,25 @@ const assertAttemptIdentity = ({
 
 export const continueProjectProduction = async (
   {
-    rootDir,
     projectId,
     revisionId,
     attemptId,
+    locations,
+    deliveryPolicy,
+    config,
+    runtime,
     timeoutMs = DEFAULT_EXECUTION_ATTEMPT_DEADLINE_MS,
   }: {
-    readonly rootDir: string;
     readonly projectId: string;
     readonly revisionId: string;
     readonly attemptId: string;
+    readonly locations: ProductionLocations;
+    readonly deliveryPolicy: DeliveryPolicy;
+    readonly config: ProducerConfig;
+    readonly runtime?: RuntimeExecutionResources;
     readonly timeoutMs?: number;
   },
-  dependencies: ContinueProductionDependencies = {},
+  dependencies: ContinueProductionDependencies,
 ) => {
   const readProgress =
     dependencies.readProgress ?? readExecutionAttemptProgress;
@@ -82,15 +90,15 @@ export const continueProjectProduction = async (
   const claimContinuation =
     dependencies.claimContinuation ?? claimExecutionAttemptContinuation;
   const appendTerminalFailure =
-    dependencies.appendTerminalFailure ?? appendExecutionAttemptDeliveryResult;
-  const converge = dependencies.converge ?? convergeProjectProduction;
+    dependencies.appendTerminalFailure ?? appendExecutionAttemptTerminalResult;
+  const converge = dependencies.converge;
   const now = dependencies.now ?? Date.now;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) {
     throw new Error("Execution attempt deadline is invalid.");
   }
 
   const initial = await readProgress({
-    rootDir,
+    locations,
     storyId: projectId,
     attemptId,
   });
@@ -108,7 +116,7 @@ export const continueProjectProduction = async (
   const deadline = attemptCreatedAt + timeoutMs;
 
   await claimContinuation({
-    rootDir,
+    locations,
     storyId: projectId,
     revisionId,
     attemptId,
@@ -116,12 +124,13 @@ export const continueProjectProduction = async (
 
   const failForDeadline = async (cause?: unknown): Promise<never> => {
     await appendTerminalFailure({
-      rootDir,
+      locations,
       storyId: projectId,
       revisionId,
       attemptId,
       result: {
         status: "failed",
+        sourceCurrentId: null,
         deliveryBuildId: null,
         diagnosticCode: "producer-continuation-timeout",
         deliveryMedia: [],
@@ -147,23 +156,31 @@ export const continueProjectProduction = async (
     const outcomes = new Map(
       progress.taskOutcomes.map((outcome) => [outcome.taskRevision, outcome]),
     );
-    const failed = [...expected].find(
+    const failedTaskRevision = [...expected].find(
       (taskRevision) => outcomes.get(taskRevision)?.outcome === "failed",
     );
-    if (failed !== undefined) {
+    if (failedTaskRevision !== undefined) {
+      const failedOutcome = outcomes.get(failedTaskRevision);
+      if (
+        failedOutcome?.outcome !== "failed" ||
+        failedOutcome.diagnosticCode === null
+      ) {
+        throw new Error("Agent task failure diagnostic is missing.");
+      }
       await appendTerminalFailure({
-        rootDir,
+        locations,
         storyId: projectId,
         revisionId,
         attemptId,
         result: {
           status: "failed",
+          sourceCurrentId: null,
           deliveryBuildId: null,
-          diagnosticCode: "producer-agent-task-failed",
+          diagnosticCode: failedOutcome.diagnosticCode,
           deliveryMedia: [],
         },
       });
-      throw new Error(`Agent task failed: ${failed}`);
+      throw new Error(`Agent task failed: ${failedTaskRevision}`);
     }
 
     const allSucceeded = [...expected].every((taskRevision) => {
@@ -174,13 +191,16 @@ export const continueProjectProduction = async (
     if (now() >= deadline) await failForDeadline();
 
     const result = await converge({
-      rootDir,
       projectId,
       revisionId,
       attemptId,
+      locations,
+      deliveryPolicy,
+      config,
+      ...(runtime === undefined ? {} : { runtime }),
     });
     const terminal = await readProgress({
-      rootDir,
+      locations,
       storyId: projectId,
       attemptId,
     });
@@ -194,14 +214,14 @@ export const continueProjectProduction = async (
     // Subscribe before reading so an outcome committed during the read cannot
     // be missed. The fixed process blocks here; no Agent polling is involved.
     const eventWait = openEventWait({
-      rootDir,
+      locations,
       storyId: projectId,
       attemptId,
       timeoutMs: Math.max(1, deadline - now()),
     });
     try {
       const progress = await readProgress({
-        rootDir,
+        locations,
         storyId: projectId,
         attemptId,
       });
@@ -216,7 +236,7 @@ export const continueProjectProduction = async (
           throw error;
         }
         const latest = await readProgress({
-          rootDir,
+          locations,
           storyId: projectId,
           attemptId,
         });

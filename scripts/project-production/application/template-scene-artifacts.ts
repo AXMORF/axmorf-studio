@@ -24,6 +24,7 @@ import {
   ensureFixedTaskArtifact,
   readTemplateSceneFiles,
 } from "./prepare-fixed-tasks";
+import type { ProductionLocations } from "./production-locations";
 
 type TemplateFiles = Readonly<Record<string, Uint8Array | string>>;
 
@@ -90,14 +91,14 @@ export const buildTemplateSceneArtifactFiles = ({
     const visual = visualResourceIds.has(resourceId);
     const sound = soundResourceIds.has(resourceId);
     if (visual === sound) {
-      throw new Error("Scene template resource must have exactly one runtime role.");
+      throw new Error(
+        "Scene template resource must have exactly one runtime role.",
+      );
     }
     const role = visual ? "scene-visual" : entry.descriptor.mediaRole;
     if (
       (visual && entry.descriptor.mediaRole !== "scene-visual") ||
-      (!visual &&
-        role !== "sound-effect" &&
-        role !== "background-music")
+      (!visual && role !== "sound-effect" && role !== "background-music")
     ) {
       throw new Error("Scene template resource role is incompatible.");
     }
@@ -206,9 +207,11 @@ export const buildTemplateSceneArtifactFiles = ({
   if (JSON.stringify(actualOutputs) !== JSON.stringify(expectedOutputs)) {
     throw new Error("Scene template producer output set is not canonical.");
   }
-  return Object.fromEntries(Object.entries(files).sort(([left], [right]) =>
-    left < right ? -1 : left > right ? 1 : 0,
-  ));
+  return Object.fromEntries(
+    Object.entries(files).sort(([left], [right]) =>
+      left < right ? -1 : left > right ? 1 : 0,
+    ),
+  );
 };
 
 export const bindTemplateSceneTask = ({
@@ -234,13 +237,13 @@ export const bindTemplateSceneTask = ({
 };
 
 export const ensureTemplateSceneArtifact = async ({
-  rootDir,
+  locations,
   task,
   contextBytes,
   taskInput,
   catalog,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly task: ProducerTaskSpec;
   readonly contextBytes: string;
   readonly taskInput: SceneTaskInput;
@@ -250,7 +253,7 @@ export const ensureTemplateSceneArtifact = async ({
     throw new Error("Task is not a fixed Scene template task.");
   }
   const templateFiles = await readTemplateSceneFiles({
-    rootDir,
+    locations,
     projectId: task.storyId,
     meaningId: task.semanticId,
   });
@@ -261,7 +264,7 @@ export const ensureTemplateSceneArtifact = async ({
     templateFiles,
   });
   const attestation = await ensureFixedTaskArtifact({
-    rootDir,
+    locations,
     task: prepared.task,
     files: { "inputs/context.json": contextBytes, ...prepared.files },
   });

@@ -4,6 +4,8 @@ import { join, posix, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { discoverProjectEntries } from "../registry/project-files";
+import { createRepositoryProductionLocations } from "../project-production/application/production-locations";
+import { createRepositoryProjectStorageFromProductionLocations } from "../projects/repository-project-locations";
 
 export const PROJECT_TEST_RUNNER_ID = "project-test-runner-current-v1" as const;
 
@@ -125,11 +127,16 @@ export const runRepositoryTests = async (
   rootDir: string,
   scope: RepositoryTestScope = "source",
 ) => {
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
+  const storage =
+    createRepositoryProjectStorageFromProductionLocations(locations);
   const testFiles = await discoverRepositoryTests(rootDir, scope);
   if (testFiles.length === 0) {
     if (
       scope === "media" &&
-      (await discoverProjectEntries(rootDir)).length === 0
+      (await discoverProjectEntries({ storage })).length === 0
     ) {
       return;
     }

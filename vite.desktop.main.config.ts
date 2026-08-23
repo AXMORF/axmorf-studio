@@ -3,8 +3,6 @@ import { resolve } from "node:path";
 
 import { defineConfig } from "vite";
 
-import { DESKTOP_PHASE_A_REPOSITORY_ROOT } from "./scripts/desktop/repository-locator";
-
 const nodeExternals = [
   "electron",
   ...builtinModules,
@@ -12,18 +10,14 @@ const nodeExternals = [
 ];
 
 export default defineConfig({
-  define: {
-    DESKTOP_PHASE_A_REPOSITORY_ROOT: JSON.stringify(
-      DESKTOP_PHASE_A_REPOSITORY_ROOT,
-    ),
-  },
+  publicDir: false,
   resolve: {
     alias: [
       {
         find: "./native-smoke-port",
         replacement: resolve(
           process.cwd(),
-          process.env.AXMORF_PHASE_A_NATIVE_GATE_BUILD === "1"
+          process.env.AXMORF_PHASE_B_NATIVE_GATE_BUILD === "1"
             ? "desktop/main/native-smoke.ts"
             : "desktop/main/native-smoke-disabled.ts",
         ),

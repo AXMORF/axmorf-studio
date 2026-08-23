@@ -1,25 +1,92 @@
 import { pathToFileURL } from "node:url";
-import type { ProducerTaskSpec, Sha256Digest } from "../../src/contracts";
-import { appendExecutionAttemptTaskOutcome } from "./adapters/attempt-store";
+import type {
+  ProducerConfig,
+  ProducerTaskSpec,
+  Sha256Digest,
+} from "../../src/contracts";
+import {
+  readProducerConfig,
+  resolveProducerConfigPathFromEnvironment,
+} from "../config/producer-config";
+import {
+  appendExecutionAttemptTaskOutcome,
+  assertExecutionAttemptTaskAuthority,
+} from "./adapters/attempt-store";
 import { readTaskWorkspace } from "./adapters/task-workspace";
 
 import { commitProducerTaskArtifact } from "./application/commit-task-artifact";
 import { continueProjectProduction } from "./application/continue-production";
+import { convergeProjectProduction } from "./application/converge-artifacts";
 import { checkTaskByKind } from "./application/check-task";
 import { inspectProjectProduction } from "./application/inspect-production";
 import { prepareProjectProduction } from "./application/prepare-production";
 import { resolveProjectAgentExecution } from "./application/resolve-agent-execution";
+import { createRepositoryProductionLocations } from "./application/production-locations";
+import {
+  buildCurrentRepositoryDelivery,
+  buildRepositoryDeliveryUnlocked,
+} from "./application/repository-delivery";
+import { resolveRepositoryRuntimeExecutionResources } from "./adapters/repository-runtime-resources";
+import { repositoryProductionCommandFormatter } from "./adapters/repository-production-command-formatter";
+import { prepareProjectAuthoringBuild } from "./application/prepare-delivery";
+import { createRepositoryProjectStorageFromProductionLocations } from "../projects/repository-project-locations";
+import { generateRepositoryProjectCatalog } from "./adapters/repository-project-catalog";
+import { projectPendingSceneAuthoring } from "../projects/application/project-pending-authoring";
+import { loadProjectProductionInputs } from "./application/load-inputs";
+import { buildCurrentProductionPlan } from "./application/build-current-plan";
+import {
+  captureProductionInspectionSnapshot,
+  inspectProductionSourceReadiness,
+} from "./adapters/production-inspection";
+
+const repositoryLoadInputs = (
+  input: Parameters<typeof loadProjectProductionInputs>[0],
+) => loadProjectProductionInputs(input, generateRepositoryProjectCatalog);
+
+const repositoryBuildCurrentPlan = (
+  input: Parameters<typeof buildCurrentProductionPlan>[0],
+) => buildCurrentProductionPlan({ ...input, loadInputs: repositoryLoadInputs });
+
+const repositoryInspectProduction = (
+  input: Parameters<typeof inspectProjectProduction>[0],
+) =>
+  inspectProjectProduction(input, {
+    captureSnapshot: ({ locations, projectId }) =>
+      captureProductionInspectionSnapshot({
+        locations,
+        projectId,
+        catalogProjectionPath:
+          createRepositoryProjectStorageFromProductionLocations(locations)
+            .catalogProjectionPath,
+      }),
+    inspectReadiness: (readinessInput) =>
+      inspectProductionSourceReadiness(
+        readinessInput,
+        generateRepositoryProjectCatalog,
+      ),
+    buildCurrentPlan: repositoryBuildCurrentPlan,
+  });
+
+const repositoryProjectPendingAuthoring = (
+  input: Parameters<typeof projectPendingSceneAuthoring>[0],
+) => projectPendingSceneAuthoring(input, generateRepositoryProjectCatalog);
 
 type Context = Readonly<{
   rootDir: string;
   stdout: (line: string) => void;
   commitTaskArtifact?: typeof commitProducerTaskArtifact;
   readWorkspace?: typeof readTaskWorkspace;
-  inspectProduction?: typeof inspectProjectProduction;
+  inspectProduction?: typeof repositoryInspectProduction;
   prepareProduction?: typeof prepareProjectProduction;
   resolveAgentExecution?: typeof resolveProjectAgentExecution;
   continueProduction?: typeof continueProjectProduction;
+  buildDelivery?: typeof buildCurrentRepositoryDelivery;
   appendTaskOutcome?: typeof appendExecutionAttemptTaskOutcome;
+  assertTaskAuthority?: typeof assertExecutionAttemptTaskAuthority;
+  resolveRuntime?: typeof resolveRepositoryRuntimeExecutionResources;
+  loadProducerConfig?: (input: {
+    readonly repositoryRoot: string;
+  }) => Promise<ProducerConfig>;
 }>;
 const defaultContext = (): Context => ({
   rootDir: process.cwd(),
@@ -67,13 +134,13 @@ const nonnegativeIntegerOption = (args: readonly string[], name: string) => {
 };
 
 const recordTaskOutcome = async ({
-  rootDir,
+  locations,
   task,
   attemptId,
   outcome,
   appendTaskOutcome,
 }: {
-  readonly rootDir: string;
+  readonly locations: ReturnType<typeof createRepositoryProductionLocations>;
   readonly attemptId: string;
   readonly task: ProducerTaskSpec;
   readonly outcome:
@@ -93,7 +160,7 @@ const recordTaskOutcome = async ({
   readonly appendTaskOutcome?: typeof appendExecutionAttemptTaskOutcome;
 }) =>
   (appendTaskOutcome ?? appendExecutionAttemptTaskOutcome)({
-    rootDir,
+    locations,
     attemptId,
     task,
     outcome,
@@ -126,9 +193,7 @@ export const runProjectProductionCli = async (
       );
     }
     if (requireExactConcurrency && rawMode !== "subagents") {
-      throw new Error(
-        "Exact concurrency requires an explicit subagents mode.",
-      );
+      throw new Error("Exact concurrency requires an explicit subagents mode.");
     }
     const override =
       rawMode === "inline"
@@ -156,29 +221,62 @@ export const runProjectProductionCli = async (
     context.stdout(JSON.stringify(result));
     return result;
   }
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: context.rootDir,
+  });
+  const loadConfig = async () =>
+    context.loadProducerConfig?.({ repositoryRoot: context.rootDir }) ??
+    readProducerConfig({
+      configPath: await resolveProducerConfigPathFromEnvironment({
+        rootDir: context.rootDir,
+        env: process.env,
+      }),
+    });
   if (command === "inspect") {
+    const config = await loadConfig();
+    const runtime = await (
+      context.resolveRuntime ?? resolveRepositoryRuntimeExecutionResources
+    )({ mode: "read-only" });
     const result = await (
-      context.inspectProduction ?? inspectProjectProduction
+      context.inspectProduction ?? repositoryInspectProduction
     )({
-      rootDir: context.rootDir,
+      locations,
+      runtime,
+      config,
       projectId: option(args, "--project"),
     });
     context.stdout(JSON.stringify(result));
     return result;
   }
   if (command === "prepare") {
+    const config = await loadConfig();
+    const runtime = await (
+      context.resolveRuntime ?? resolveRepositoryRuntimeExecutionResources
+    )({ mode: "ensure" });
     const result = await (
       context.prepareProduction ?? prepareProjectProduction
-    )({
-      rootDir: context.rootDir,
-      projectId: option(args, "--project"),
-    });
+    )(
+      {
+        locations,
+        runtime,
+        config,
+        projectId: option(args, "--project"),
+        deliveryPolicy: "automatic",
+      },
+      {
+        commandFormatter: repositoryProductionCommandFormatter,
+        inspect: repositoryInspectProduction,
+        projectPendingAuthoring: repositoryProjectPendingAuthoring,
+        loadInputs: repositoryLoadInputs,
+        buildCurrentPlan: repositoryBuildCurrentPlan,
+      },
+    );
     context.stdout(JSON.stringify(result));
     return result;
   }
   if (command === "task-check") {
     const result = await checkTaskByKind({
-      rootDir: context.rootDir,
+      locations,
       taskRevision: option(args, "--task"),
     });
     const output = {
@@ -195,13 +293,18 @@ export const runProjectProductionCli = async (
     const commitTaskArtifact =
       context.commitTaskArtifact ?? commitProducerTaskArtifact;
     const { task } = await readWorkspace({
-      rootDir: context.rootDir,
+      locations,
       taskRevision,
+    });
+    await (context.assertTaskAuthority ?? assertExecutionAttemptTaskAuthority)({
+      locations,
+      attemptId,
+      task,
     });
     let result: Awaited<ReturnType<typeof commitTaskArtifact>>;
     try {
       result = await commitTaskArtifact({
-        rootDir: context.rootDir,
+        locations,
         taskRevision,
       });
       if (result.attestation === null) {
@@ -209,7 +312,7 @@ export const runProjectProductionCli = async (
       }
     } catch (error) {
       await recordTaskOutcome({
-        rootDir: context.rootDir,
+        locations,
         attemptId,
         task,
         outcome: {
@@ -222,7 +325,7 @@ export const runProjectProductionCli = async (
       throw error;
     }
     await recordTaskOutcome({
-      rootDir: context.rootDir,
+      locations,
       attemptId,
       task,
       outcome: {
@@ -250,11 +353,16 @@ export const runProjectProductionCli = async (
       throw new Error("Expected --kind task or host.");
     }
     const { task } = await (context.readWorkspace ?? readTaskWorkspace)({
-      rootDir: context.rootDir,
+      locations,
       taskRevision,
     });
+    await (context.assertTaskAuthority ?? assertExecutionAttemptTaskAuthority)({
+      locations,
+      attemptId,
+      task,
+    });
     await recordTaskOutcome({
-      rootDir: context.rootDir,
+      locations,
       attemptId,
       task,
       outcome: {
@@ -277,19 +385,62 @@ export const runProjectProductionCli = async (
     return output;
   }
   if (command === "continue") {
+    const config = await loadConfig();
+    const runtime = await (
+      context.resolveRuntime ?? resolveRepositoryRuntimeExecutionResources
+    )({ mode: "ensure" });
     const result = await (
       context.continueProduction ?? continueProjectProduction
+    )(
+      {
+        projectId: option(args, "--project"),
+        revisionId: option(args, "--revision"),
+        attemptId: option(args, "--attempt"),
+        locations,
+        deliveryPolicy: "automatic",
+        runtime,
+        config,
+      },
+      {
+        converge: (input) =>
+          convergeProjectProduction({
+            ...input,
+            dependencies: {
+              buildDelivery: buildRepositoryDeliveryUnlocked,
+              buildCurrentPlan: repositoryBuildCurrentPlan,
+              prepareProject: (prepareInput) =>
+                prepareProjectAuthoringBuild({
+                  ...prepareInput,
+                  storage:
+                    createRepositoryProjectStorageFromProductionLocations(
+                      prepareInput.locations,
+                    ),
+                }),
+            },
+          }),
+      },
+    );
+    context.stdout(JSON.stringify(result));
+    return result;
+  }
+  if (command === "delivery-build") {
+    const config = await loadConfig();
+    const runtime = await (
+      context.resolveRuntime ?? resolveRepositoryRuntimeExecutionResources
+    )({ mode: "ensure" });
+    const result = await (
+      context.buildDelivery ?? buildCurrentRepositoryDelivery
     )({
-      rootDir: context.rootDir,
+      locations,
+      runtime,
+      config,
       projectId: option(args, "--project"),
-      revisionId: option(args, "--revision"),
-      attemptId: option(args, "--attempt"),
     });
     context.stdout(JSON.stringify(result));
     return result;
   }
   throw new Error(
-    "Expected execution-resolve, inspect, prepare, task-check, task-commit, task-fail, or continue.",
+    "Expected execution-resolve, inspect, prepare, task-check, task-commit, task-fail, continue, or delivery-build.",
   );
 };
 

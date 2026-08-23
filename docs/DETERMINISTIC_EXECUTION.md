@@ -5,9 +5,9 @@
 ## 1. Identity 原则
 
 所有 content identity 使用 canonical JSON 和 SHA-256。数组在 contract 指定处排序且唯一；任何 stale
-derived fingerprint 在 parse 时拒绝。以下数据永不进入 RevisionId、TaskRevision、ArtifactAttestation 或
-DeliveryBuildId：ExecutionAttempt ID、clock、PID、absolute path、workspace location、Agent/child identity、
-chat、heartbeat、token usage。
+derived fingerprint 在 parse 时拒绝。以下数据永不进入 RevisionId、TaskRevision、ArtifactAttestation、
+SourceCurrentId 或 DeliveryBuildId：ExecutionAttempt ID、clock、PID、absolute path、workspace location、
+Agent/child identity、chat、heartbeat、token usage。Delivery policy 也不进入 Revision/Task/Artifact/source identity。
 
 ProductionInspection、TaskDecisionExplanation、diagnostic baseline、estimated/actual cost 和 ExecutionAttempt
 都属于 diagnostic plane。即使缺失、损坏或不可用，也只能降低解释完整度，不能改变 production identity、
@@ -46,10 +46,11 @@ edges 传播。hash 不可反解，因此 baseline 不可用时明确标记，�
 
 预期 invalidation：
 
-- 一个 Scene brief 变化：该 Scene 与必要 convergence/delivery dirty，其他 Scene/TTS/GlobalVisual/Cover reused；
-- Cover input 变化：Cover 与 delivery dirty；
+- 一个 Scene brief 变化：该 Scene 与必要 convergence/source-current dirty，其他 Scene/TTS/GlobalVisual/Cover reused；
+- Cover input 变化：Cover 与 source-current dirty；
 - 一个 TTS chunk 变化：其他 chunk reused，seal/timing 及实际受 timing 影响的 Scene dirty；
-- shared renderer runtime 变化：相关 Scene/convergence/delivery dirty；
+- renderer Runtime Pack 变化：source tasks/current 保持不变，只有 Delivery stale；真正的 source validator policy
+  变化仍只失效绑定它的 task branch；
 - readability 改变：只有派生 SceneViewport 或 caption/runtime policy 真正变化的下游 dirty；
 - 一个 validator policy 变化：只影响该 task kind；
 - attempt、历史数据或无关 Project 变化：current identities 不变。
@@ -103,8 +104,12 @@ Artifact Store 仍通过 exact files/checksums 拒绝未知或漂移内容。
 
 ## 7. DeliveryBuild
 
-DeliveryBuildId 由 revisionId、artifact set fingerprint、Composition id/fps/frameCount/width/height 和 exact build
-policy 计算。build 前后复验 materialized bytes，防止 manual drift。
+SourceCurrentId 由 revisionId、required artifact identities、materialized exact files 和 validator policies 计算；
+不含 Delivery policy、renderer runtime、attempt、clock 或 absolute path。
+
+DeliveryBuildId 由 revisionId、SourceCurrentId、rendererRuntimeFingerprint、publishingFingerprint、Composition
+id/fps/frameCount/width/height 和 exact build policy 计算。build 前后复验 source-current/materialized bytes，防止
+manual drift。Runtime/architecture 变化只使 Delivery stale，不重跑 TTS 或 Agent source tasks。
 
 同 identity staging 中已经通过 inspect 的 media 可复用；损坏或不匹配 media 删除后只重做该项。render 输出
 先写 temporary，inspect 成功后 rename；`publish.json` 在全部媒体通过后最后写。current package promotion 使用
@@ -141,5 +146,8 @@ runtime/validator policy 能进入 Revision 或 TaskRevision。
 以下变化不得使当前任务 stale：其他 Project 的创作、非依赖 Workspace 文件、App 日志/cache/window state、
 安装路径、Agent host metadata、Skill 文案中不影响 executable policy 的部分，以及源码仓库中的无关工程修改。
 真正相关的 Project input 或 pinned runtime policy 变化仍 fail closed，并必须持久化 changed-input ID、旧/新
-fingerprint 和受影响 task。这个目标尚未改变 current shared-checkout 行为；实现状态只由
+fingerprint 和受影响 task。Phase B 已把这些 ownership 与 identity 规则落实到显式 Repository/Workspace
+composition roots；Desktop control plane 只使用 authenticated Unix-domain socket，DeliveryBuild 的 exact 4.0.489
+private adapter 只在当前 renderer scope 将 HTTP listener 绑定到 `127.0.0.1` OS-ephemeral 端口并在终态恢复。
+当前状态仍是 `implementation-complete-native-evidence-pending`，实现事实只由
 [ITERATION_STATUS.md](ITERATION_STATUS.md) 定义。

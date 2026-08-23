@@ -30,3 +30,7 @@ public/voice_profile/
 # Ignore the output video from Git but not videos you import into src/.
 out
 deliveries/
+
+# Native Desktop Runtime Pack and compatibility files are reproducible package inputs.
+/desktop/runtime-pack/
+/desktop/compatibility.json

@@ -19,12 +19,16 @@ import {
   type NarrativeBaselineEvidenceReceiptInput,
 } from "../../src/contracts";
 import { writeJsonAtomic } from "../narration/adapters/atomic-files";
+import type { ProductionLocations } from "../project-production/application/production-locations";
+import { createRepositoryProductionLocations } from "../project-production/application/production-locations";
 import { generateProjectRegistry } from "../registry/generate";
 import type { ValidatedProjectRegistrationEntry } from "../registry/domain";
 import {
   discoverProjectEntries,
   loadProjectRegistrationEntry,
 } from "../registry/project-files";
+import { createWorkspaceProjectStorageLocations } from "../projects/project-locations";
+import { createRepositoryProjectStorageFromProductionLocations } from "../projects/repository-project-locations";
 import type { ProcessRunner } from "../shared/process";
 
 export type { ProcessResult, ProcessRunner } from "../shared/process";
@@ -237,39 +241,69 @@ const sortJsonValue = (value: unknown): unknown => {
 const serializeReceipt = (receipt: NarrativeBaselineEvidenceReceipt) =>
   `${JSON.stringify(sortJsonValue(receipt), null, 2)}\n`;
 
-export const resolveCurrentNarrativeBaselineEntry = async (
-  rootDir: string,
-  rawStoryId: string,
-) => {
+const projectGeneratedPath = ({
+  locations,
+  storyId,
+  fileName,
+}: {
+  readonly locations: ProductionLocations;
+  readonly storyId: string;
+  readonly fileName: string;
+}) => join(locations.projectSourceRoot, storyId, "generated", fileName);
+
+const baselineEvidenceArtifactPath = ({
+  locations,
+  storyId,
+  fileName,
+}: {
+  readonly locations: ProductionLocations;
+  readonly storyId: string;
+  readonly fileName: string;
+}) => join(locations.evidenceRoot, storyId, fileName);
+
+const projectStorageFrom = (locations: ProductionLocations) =>
+  locations.layoutKind === "repository"
+    ? createRepositoryProjectStorageFromProductionLocations(locations)
+    : createWorkspaceProjectStorageLocations(locations);
+
+export const resolveCurrentNarrativeBaselineEntry = async ({
+  locations,
+  storyId: rawStoryId,
+}: {
+  readonly locations: ProductionLocations;
+  readonly storyId: string;
+}) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
-  await generateProjectRegistry({ rootDir, mode: "check" });
+  const storage = projectStorageFrom(locations);
+  await generateProjectRegistry({ storage, mode: "check" });
   const expectedCompositionPath =
     `src/projects/${storyId}/Composition.tsx` as const;
-  const compositionPaths = await discoverProjectEntries(rootDir);
+  const compositionPaths = await discoverProjectEntries({ storage });
   if (!compositionPaths.includes(expectedCompositionPath)) {
     throw new Error(`Unknown project: ${storyId}.`);
   }
   return loadProjectRegistrationEntry({
-    rootDir,
+    storage,
     compositionPath: expectedCompositionPath,
   });
 };
 
 export const resolveNarrativeBaselineGeneratedRegistryChecksum = async ({
-  rootDir,
+  locations,
   storyId,
   entry,
   allowStaleEvidence = false,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly storyId: string;
   readonly entry: ValidatedProjectRegistrationEntry;
   readonly allowStaleEvidence?: boolean;
 }) => {
-  const currentReceiptPath = join(
-    rootDir,
-    `src/projects/${storyId}/generated/narrative-baseline-evidence.generated.json`,
-  );
+  const currentReceiptPath = projectGeneratedPath({
+    locations,
+    storyId,
+    fileName: "narrative-baseline-evidence.generated.json",
+  });
   try {
     const currentReceipt = NarrativeBaselineEvidenceReceiptSchema.parse(
       JSON.parse(await readFile(currentReceiptPath, "utf8")),
@@ -294,23 +328,35 @@ export const resolveNarrativeBaselineGeneratedRegistryChecksum = async ({
 };
 
 export const collectCurrentNarrativeBaselineEvidence = async ({
-  rootDir,
+  locations,
   storyId: rawStoryId,
   runProcess = defaultProcessRunner,
   allowStaleEvidence = false,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly storyId: string;
   readonly runProcess?: ProcessRunner;
   readonly allowStaleEvidence?: boolean;
 }): Promise<NarrativeBaselineEvidenceReceipt> => {
   const storyId = StoryIdSchema.parse(rawStoryId);
-  const entry = await resolveCurrentNarrativeBaselineEntry(rootDir, storyId);
+  const entry = await resolveCurrentNarrativeBaselineEntry({
+    locations,
+    storyId,
+  });
 
   const timingPath =
     `src/projects/${storyId}/generated/semantic-timing.generated.json` as const;
   const semanticTiming = SemanticTimingSchema.parse(
-    JSON.parse(await readFile(join(rootDir, timingPath), "utf8")),
+    JSON.parse(
+      await readFile(
+        projectGeneratedPath({
+          locations,
+          storyId,
+          fileName: "semantic-timing.generated.json",
+        }),
+        "utf8",
+      ),
+    ),
   );
   const firstCaption = semanticTiming.captionCues.find(
     (cue) => cue.text.trim().length > 0 && cue.endFrame > cue.startFrame,
@@ -330,7 +376,10 @@ export const collectCurrentNarrativeBaselineEvidence = async ({
     render: `out/${storyId}/narrative-baseline.mp4`,
     receipt: `src/projects/${storyId}/generated/narrative-baseline-evidence.generated.json`,
   } as const;
-  const absolute = (path: string) => join(rootDir, path);
+  const absoluteGenerated = (fileName: string) =>
+    projectGeneratedPath({ locations, storyId, fileName });
+  const absoluteEvidence = (fileName: string) =>
+    baselineEvidenceArtifactPath({ locations, storyId, fileName });
   const [
     manifestBytes,
     timingBytes,
@@ -338,11 +387,13 @@ export const collectCurrentNarrativeBaselineEvidence = async ({
     captionStillBytes,
     renderBytes,
   ] = await Promise.all([
-    readFile(absolute(paths.manifest)),
-    readFile(absolute(paths.timing)),
-    readFile(absolute(paths.transparentStill)),
-    readFile(absolute(paths.captionStill)),
-    readFile(absolute(paths.render)),
+    readFile(absoluteGenerated("sealed-narration.generated.json")),
+    readFile(absoluteGenerated("semantic-timing.generated.json")),
+    readFile(absoluteEvidence("narrative-baseline-transparent-frame-0.png")),
+    readFile(
+      absoluteEvidence(`narrative-baseline-caption-frame-${captionFrame}.png`),
+    ),
+    readFile(absoluteEvidence("narrative-baseline.mp4")),
   ]);
   const sealedNarration = SealedNarrationManifestSchema.parse(
     JSON.parse(manifestBytes.toString("utf8")),
@@ -364,18 +415,29 @@ export const collectCurrentNarrativeBaselineEvidence = async ({
   }
   const generatedRegistryChecksum =
     await resolveNarrativeBaselineGeneratedRegistryChecksum({
-      rootDir,
+      locations,
       storyId,
       entry,
       allowStaleEvidence,
     });
   const [transparentAlpha, captionAlpha, renderFacts] = await Promise.all([
-    inspectAlphaStill(absolute(paths.transparentStill), runProcess),
-    inspectAlphaStill(absolute(paths.captionStill), runProcess, true),
-    inspectBaselineRender(absolute(paths.render), runProcess, {
-      fps: entry.descriptor.fps,
-      durationInFrames: semanticTiming.durationInFrames,
-    }),
+    inspectAlphaStill(
+      absoluteEvidence("narrative-baseline-transparent-frame-0.png"),
+      runProcess,
+    ),
+    inspectAlphaStill(
+      absoluteEvidence(`narrative-baseline-caption-frame-${captionFrame}.png`),
+      runProcess,
+      true,
+    ),
+    inspectBaselineRender(
+      absoluteEvidence("narrative-baseline.mp4"),
+      runProcess,
+      {
+        fps: entry.descriptor.fps,
+        durationInFrames: semanticTiming.durationInFrames,
+      },
+    ),
   ]);
 
   const receipt = createNarrativeBaselineEvidenceReceipt({
@@ -418,23 +480,24 @@ export const collectCurrentNarrativeBaselineEvidence = async ({
 };
 
 export const checkNarrativeBaselineEvidence = async ({
-  rootDir,
+  locations,
   storyId,
   runProcess = defaultProcessRunner,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly storyId: string;
   readonly runProcess?: ProcessRunner;
 }): Promise<NarrativeBaselineEvidenceReceipt> => {
   const current = await collectCurrentNarrativeBaselineEvidence({
-    rootDir,
+    locations,
     storyId,
     runProcess,
   });
-  const receiptPath = join(
-    rootDir,
-    `src/projects/${current.storyId}/generated/narrative-baseline-evidence.generated.json`,
-  );
+  const receiptPath = projectGeneratedPath({
+    locations,
+    storyId: current.storyId,
+    fileName: "narrative-baseline-evidence.generated.json",
+  });
   let persistedBytes: Buffer;
   try {
     persistedBytes = await readFile(receiptPath);
@@ -470,24 +533,25 @@ export const checkNarrativeBaselineEvidence = async ({
 };
 
 export const writeNarrativeBaselineEvidence = async ({
-  rootDir,
+  locations,
   storyId,
   runProcess = defaultProcessRunner,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly storyId: string;
   readonly runProcess?: ProcessRunner;
 }): Promise<NarrativeBaselineEvidenceReceipt> => {
   const receipt = await collectCurrentNarrativeBaselineEvidence({
-    rootDir,
+    locations,
     storyId,
     runProcess,
     allowStaleEvidence: true,
   });
-  const receiptPath = join(
-    rootDir,
-    `src/projects/${receipt.storyId}/generated/narrative-baseline-evidence.generated.json`,
-  );
+  const receiptPath = projectGeneratedPath({
+    locations,
+    storyId: receipt.storyId,
+    fileName: "narrative-baseline-evidence.generated.json",
+  });
   await writeJsonAtomic({
     destination: receiptPath,
     value: receipt,
@@ -496,13 +560,15 @@ export const writeNarrativeBaselineEvidence = async ({
 };
 
 export type BaselineEvidenceCliContext = {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly runProcess: ProcessRunner;
   readonly stdout: (line: string) => void;
 };
 
 const defaultCliContext = (): BaselineEvidenceCliContext => ({
-  rootDir: process.cwd(),
+  locations: createRepositoryProductionLocations({
+    repositoryRoot: process.cwd(),
+  }),
   runProcess: defaultProcessRunner,
   stdout: (line) => process.stdout.write(`${line}\n`),
 });
@@ -516,7 +582,7 @@ export const runBaselineEvidenceCli = async (
   }
   const storyId = args[1] ?? "";
   const receipt = await writeNarrativeBaselineEvidence({
-    rootDir: context.rootDir,
+    locations: context.locations,
     storyId,
     runProcess: context.runProcess,
   });

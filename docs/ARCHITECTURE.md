@@ -2,7 +2,7 @@
 
 > 文档类型：架构 authority
 >
-> 第 1–9 节描述 current production repository；第 10 节同时标明已实现 Phase A repository adapter 与尚未实现的完整 Desktop 产品边界。
+> 第 1–9 节描述 current repository/Workspace 共用 production 主链；第 10 节描述 Phase B Desktop 实现与仍待取得的 native evidence。
 
 ## 1. 模块与依赖方向
 
@@ -14,7 +14,7 @@ scripts/project-production/
   domain/                      pure Revision, DAG, invalidation, plan rules
   application/                 orchestration/use cases and ports
   adapters/                    filesystem, Artifact Store, media, progress, host tools
-  cli.ts                       inspect/prepare/check/commit/converge surface
+  cli.ts                       inspect/prepare/check/commit/continue/delivery surface
 scripts/projects/              atomic Project create/delete use cases and adapters
 scripts/narration/             provider attempt cache, PCM validation, seal and timing
 scripts/scene-package/          deterministic ScenePackage/Coverage generation
@@ -51,7 +51,9 @@ flowchart TD
   Validator --> Artifacts[Artifact Store + attestations]
   Artifacts --> Converge[Convergence]
   Converge --> Live[Materialized Project + generated packages]
-  Live --> Delivery[DeliveryBuild]
+  Live --> SourceCurrent[Attested source-current]
+  SourceCurrent -->|manual stop or later explicit build| Delivery[DeliveryBuild]
+  SourceCurrent -->|automatic| Delivery
   Delivery --> Current[Exact four-file current delivery]
   Inspection -. diagnostics only .-> Explanation[Estimate + invalidation explanation]
   Plan -. diagnostics only .-> Attempt[ExecutionAttempt]
@@ -74,7 +76,7 @@ receipt 或 candidate path 投影到 Revision、TaskSpec、child workspace、Art
 - ProducerPlan 投影结构化 task action、typed artifact state、direct changes、dependency propagation 与 blockedBy；
   DAG 拒绝 cycle、duplicate 或 unknown dependency。对外 explanation 只含 allowlisted input IDs 与安全 subject。
 - ArtifactAttestation 绑定 exact sorted files、bytes、dependencies 与 validator policy；manifest 最后生成。
-- DeliveryPublish 绑定 DeliveryBuildId、exact repository paths、media facts、checksums 与 publishing projection。
+- DeliveryPublish 绑定 DeliveryBuildId、source-current、renderer runtime、exact logical paths、media facts、checksums 与 publishing projection。
 
 所有 JSON contracts 禁止代码、JSX、动态 module path 或 executable expression。runtime binding 由生成的静态
 TypeScript registry 完成。
@@ -90,7 +92,8 @@ TypeScript registry 完成。
 | `.producer-artifacts`                       | fixed commit adapter                        | validator recheck + atomic promotion only                                                  |
 | materialized Scene/GlobalVisual/Cover roots | fixed materializer                          | all artifacts present; controlled replace/rollback                                         |
 | generated packages/registry/Composition     | fixed convergence                           | deterministic projection                                                                   |
-| delivery staging/current                    | fixed synchronous builder                   | exact identity, media validation, controlled promotion                                     |
+| source-current                              | fixed convergence                           | attested materialized source；不表示已有可播放 Delivery                                    |
+| delivery staging/current                    | fixed explicit builder                      | exact source/runtime identity, media validation, controlled promotion                      |
 | `.producer-attempts`                        | fixed prepare/progress adapter              | diagnostic snapshot only；不能拥有 artifact/delivery                                       |
 
 private config、voice profiles、shared media、core、other Projects 与 historical data 不属于 Agent task write scope。
@@ -140,10 +143,15 @@ Configured template 的复制边界由 Project-local `Renderer.tsx` adapter 承�
 都进入 template instance/source-graph fingerprint；共享 generator 变化只影响未来 create，不静默改写既有
 Project-local instance。
 
-## 8. Synchronous delivery
+## 8. Source current 与 explicit Delivery
+
+convergence 成功后先写入并复验 `source-current`。`manual` 在这里停止，不创建 Delivery staging/render/publish；
+`automatic` 才在同一 fixed continuation 内调用 Delivery builder，用户也可之后通过独立 delivery command 对当前
+source 构建。Delivery policy 不进入 Revision、TaskRevision 或 ArtifactAttestation。
 
 Delivery builder 在一个 foreground command 内完成 render、probe、EOF decode、publish-last 和 current
-promotion。build-owned staging 允许跨捕获失败复用同 identity 已验证媒体；不同 identity 不混用。
+promotion。DeliveryBuildId 绑定 source-current、renderer runtime、publishing 与 Composition metadata；build-owned
+staging 允许跨捕获失败复用同 identity 已验证媒体，不同 identity 不混用。
 current directory exact 只允许三份 media 加 `publish.json`，其余文件、symlink、path drift 或 media mismatch
 均 fail closed。
 
@@ -162,7 +170,7 @@ Agent execution preferences 使用独立 strict contract 与 `0600` 原子存储
 Scene authoring 仍必须使用 repository-local `remotion-best-practices`，但 Skill 不能扩大 TaskSpec 或
 validator boundary。
 
-## 10. Desktop App Phase A 与目标边界
+## 10. Desktop App Phase B 实现边界
 
 `AXMORF Studio` 不建立第二条 production 主链。App shell、workspace-local `rsp`、外部 Agent 和现有 Engine
 按以下 ownership 连接：
@@ -179,11 +187,10 @@ validator boundary。
 projects / media / task workspaces / artifacts / attempts / deliveries
 ```
 
-Phase A 已实现一个不修改 current production authority 的 repository adapter：单一 managed Workspace、
-doctor-only authenticated `rsp` session、read-only current Delivery Catalog、bundled native-video Player、canonical
-timing timeline 和 allowlisted media protocol。它使用 build-time checkout 与 host Node，不提供 production/delivery
-命令；Apple Silicon packaged App、真实播放/seek、custom protocol、安全与 lifecycle evidence 已在 manual-only
-native gate 验证完成。该结论不表示 Phase B 的 Workspace production migration 或 Runtime Pack 已实现。
+Phase B working tree 已把 Project/media/work/artifact/attempt/source/delivery authority 迁入显式 Workspace locations，
+以启动时 manifest/checksum 验证的 embedded Runtime Pack、自包含 `rsp-local-v2`、managed Skill、Engine controller 和
+bundled Player 连接。
+App 不探测源码 checkout、不依赖系统 Node/npm/Git；Renderer 只接收脱敏状态和 opaque media URL。
 
 完整产品中 App 安装目录视为只读产品代码，Workspace Root 只保存用户数据和受管 integration；外部 Agent 只能写本次
 TaskSpec 声明的 task workspace outputs。`.rsp/bin/rsp` 是 checksum-bound launcher，不进入系统 `PATH`，App
@@ -196,7 +203,10 @@ policy。其他 Project、Workspace 非依赖文件、App 日志、窗口状态�
 App/Engine/Skill 更新在 active Attempt 期间禁止切换；Agent 写入 declared output set 之外的文件由 fixed validator
 按 exact paths 拒绝，不能被物化。
 
-当前同步 Delivery contract 在 App clean-break 前保持不变。目标 App 以 `source-current` 作为独立可见状态，默认
-`manual`，用户明确触发后才进入同一个 fixed DeliveryBuild；`automatic` 只是允许的配置值。详细产品与发行
-authority 分别见 [DESKTOP_APP_PRODUCT.md](DESKTOP_APP_PRODUCT.md) 和
+Desktop 当前报告 `productionAvailable: true`、`deliveryAvailable: true`。Runtime Pack checksum-bound 地携带 exact
+bundler/renderer 与必要的 Studio内部包，但不含 CLI、Studio Server或 launch surface；App不启动Studio。Delivery adapter
+只在单次 build 中为当前 disposable bundle/media 打开 `127.0.0.1` OS-ephemeral listener，UDS仍是唯一 control plane，
+并在 success/failure/cancel/shutdown 后关闭 listener、Chromium/FFmpeg与 staging。Apple Silicon packaged证据仍 pending；见
+[ITERATION_STATUS.md](ITERATION_STATUS.md)，产品与发行边界见
+[DESKTOP_APP_PRODUCT.md](DESKTOP_APP_PRODUCT.md) 和
 [DESKTOP_APP_MACOS_MAINTENANCE.md](DESKTOP_APP_MACOS_MAINTENANCE.md)。

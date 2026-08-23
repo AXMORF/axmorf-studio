@@ -4,8 +4,10 @@ import { join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { StoryIdSchema } from "../../src/contracts";
-import { generateResourceCatalog } from "../catalog/generate";
+import { generateResourceCatalog } from "../catalog/repository-generate";
 import { generateProjectRegistry } from "../registry/generate";
+import { createRepositoryProductionLocations } from "../project-production/application/production-locations";
+import { createRepositoryProjectStorageFromProductionLocations } from "./repository-project-locations";
 import { acquireRepositoryOperationLock } from "../shared/repository-operation-lock";
 
 export type ProjectDeletionSelection =
@@ -143,7 +145,11 @@ const parseStoredRunOwnership = (raw: unknown) => {
   }
   const record = raw as Record<string, unknown>;
   const runId = record.runId;
-  if (typeof runId !== "string" || runId.length > 128 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(runId)) {
+  if (
+    typeof runId !== "string" ||
+    runId.length > 128 ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(runId)
+  ) {
     throw new Error("Production run ownership is malformed.");
   }
   return {
@@ -323,8 +329,14 @@ const collectDeletionTargets = async ({
 const defaultRegenerator =
   (rootDir: string): ProjectDataRegenerator =>
   async () => {
+    const locations = createRepositoryProductionLocations({
+      repositoryRoot: rootDir,
+    });
     const catalog = await generateResourceCatalog({ rootDir, mode: "write" });
-    const registry = await generateProjectRegistry({ rootDir, mode: "write" });
+    const registry = await generateProjectRegistry({
+      storage: createRepositoryProjectStorageFromProductionLocations(locations),
+      mode: "write",
+    });
     return {
       catalogEntryCount: catalog.entryCount,
       projectEntryCount: registry.entryCount,
@@ -343,6 +355,9 @@ export const deleteProjectData = async ({
   readonly remove?: (path: string) => Promise<void>;
 }) => {
   const rootDir = resolve(rawRootDir);
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
   await assertRealRoot(rootDir);
   let repositoryLock: Awaited<
     ReturnType<typeof acquireRepositoryOperationLock>
@@ -399,7 +414,7 @@ export const deleteProjectData = async ({
     }
 
     await generateProjectRegistry({
-      rootDir,
+      storage: createRepositoryProjectStorageFromProductionLocations(locations),
       mode: "write",
       excludeProjectIds: projectIds,
     });
@@ -427,9 +442,10 @@ export const deleteProjectData = async ({
       operationError = error;
     } else {
       const recoveryErrors: unknown[] = [];
-      await generateProjectRegistry({ rootDir, mode: "write" }).catch(
-        (recoveryError: unknown) => recoveryErrors.push(recoveryError),
-      );
+      await generateProjectRegistry({
+        storage: createRepositoryProjectStorageFromProductionLocations(locations),
+        mode: "write",
+      }).catch((recoveryError: unknown) => recoveryErrors.push(recoveryError));
       await generateResourceCatalog({ rootDir, mode: "write" }).catch(
         (recoveryError: unknown) => recoveryErrors.push(recoveryError),
       );

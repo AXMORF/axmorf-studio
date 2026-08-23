@@ -8,6 +8,8 @@ import {
 } from "./primitives";
 import { ProductionRevisionIdSchema } from "./production-revision";
 import { ProducerTaskKindSchema, TaskRevisionSchema } from "./producer-task";
+import { SourceCurrentIdSchema } from "./source-current";
+import { DeliveryBuildIdSchema } from "./delivery-build";
 
 export const PRODUCTION_INSPECTION_VERSION = "production-inspection-v1" as const;
 
@@ -306,9 +308,11 @@ export const ProductionInspectionSchema = z
       "production-inputs-ready",
     ]),
     currentRevisionId: ProductionRevisionIdSchema.nullable(),
+    sourceCurrentId: SourceCurrentIdSchema.nullable(),
+    deliveryBuildId: DeliveryBuildIdSchema.nullable(),
     baseline: z
       .object({
-        kind: z.enum(["current-delivery", "latest-verified-attempt", "none"]),
+        kind: z.enum(["current-delivery", "latest-successful-attempt", "none"]),
         revisionId: ProductionRevisionIdSchema.nullable(),
       })
       .strict()
@@ -319,6 +323,7 @@ export const ProductionInspectionSchema = z
       "complete-authoring",
       "prepare-narration",
       "prepare-production",
+      "build-delivery",
       "converge-current",
     ]),
   })
@@ -342,6 +347,16 @@ export const ProductionInspectionSchema = z
         code: "custom",
         message: "Ready production inputs require a current Revision.",
         path: ["currentRevisionId"],
+      });
+    }
+    if (
+      inspection.deliveryBuildId !== null &&
+      inspection.sourceCurrentId === null
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "A current Delivery requires current source.",
+        path: ["deliveryBuildId"],
       });
     }
     validateTaskExplanationStoryBinding({

@@ -3,6 +3,7 @@ import { builtinModules } from "node:module";
 import { defineConfig } from "vite";
 
 export default defineConfig({
+  publicDir: false,
   plugins: [
     {
       name: "desktop-rsp-trim-generated-whitespace",
@@ -16,20 +17,20 @@ export default defineConfig({
     },
   ],
   build: {
-    emptyOutDir: false,
+    emptyOutDir: true,
     lib: {
       entry: "desktop/rsp/cli.ts",
       formats: ["cjs"],
-      fileName: () => "rsp-client.cjs",
+      fileName: () => "rsp-sea.cjs",
     },
     minify: "oxc",
-    outDir: "desktop/resources/workspace-integration",
+    outDir: ".vite/rsp",
     rollupOptions: {
       external: [
         ...builtinModules,
         ...builtinModules.map((module) => `node:${module}`),
       ],
     },
-    target: "node22",
+    target: "node24",
   },
 });

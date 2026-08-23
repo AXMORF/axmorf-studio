@@ -4,6 +4,7 @@ import {
   computeCoverSourceGraphFingerprint,
   Sha256DigestSchema,
 } from "../../../src/contracts";
+import type { ProductionLocations } from "../domain/production-locations";
 import {
   validateDeliveryCoverSource,
   type CoverCompositionDeclaration,
@@ -27,20 +28,27 @@ const FIXED_FILES = [
 }>[];
 
 export const collectDeliveryCoverSourceGraph = async ({
-  rootDir,
+  locations,
   storyId,
   compositionId,
 }: {
-  readonly rootDir: string;
+  readonly locations: Pick<ProductionLocations, "projectSourceRoot">;
   readonly storyId: string;
   readonly compositionId: string;
 }) => {
   const sourceRoot = `src/projects/${storyId}/delivery/cover`;
+  const physicalSourceRoot = `${storyId}/delivery/cover`;
   let compositions: readonly CoverCompositionDeclaration[] = [];
-  const files: Array<{ relativePath: string; checksum: ReturnType<typeof checksum> }> = [];
+  const files: Array<{
+    relativePath: string;
+    checksum: ReturnType<typeof checksum>;
+  }> = [];
   for (const { fileName, role } of FIXED_FILES) {
     const relativePath = `${sourceRoot}/${fileName}`;
-    const { bytes } = await readCoverRegularFile({ rootDir, relativePath });
+    const { bytes } = await readCoverRegularFile({
+      rootDir: locations.projectSourceRoot,
+      relativePath: `${physicalSourceRoot}/${fileName}`,
+    });
     const validated = validateDeliveryCoverSource({
       sourcePath: relativePath,
       source: new TextDecoder().decode(bytes),

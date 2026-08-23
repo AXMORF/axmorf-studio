@@ -11,6 +11,7 @@ const labels: Record<ProjectProductionStatus, string> = {
   "not-produced": "尚未生产",
   "needs-agent": "等待 Agent 任务",
   converging: "正在收敛",
+  "source-current": "Source 已就绪",
   current: "交付完成",
   stale: "Revision 已变化",
   failed: "本次 attempt 失败",
@@ -246,7 +247,7 @@ export const ProductionProgressPanel = ({
                     {selected.attempt.taskOutcomes.currentTaskCount}
                     {" · "}failed{" "}
                     {selected.attempt.taskOutcomes.failedTaskCount}
-                    {" · "}delivery {selected.attempt.deliveryResult}
+                    {" · "}terminal {selected.attempt.terminalResult}
                   </p>
                   <p>
                     预计成本 · Provider requests{" "}

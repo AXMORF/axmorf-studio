@@ -4,23 +4,49 @@ import {
   dialog,
   ipcMain,
   protocol,
+  safeStorage,
   shell,
   utilityProcess,
   type MessagePortMain,
 } from "electron";
-import { join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+
+import { buildProducerConfig } from "../../src/contracts";
 
 import {
   loadAppPreferences,
   persistInitialWorkspacePreference,
   resolveDesktopPreferencesPath,
 } from "../adapters/app-preferences";
+import {
+  loadWorkspaceMigrationRecoveryPointer,
+  removeWorkspaceMigrationRecoveryPointer,
+  writeWorkspaceMigrationRecoveryPointer,
+} from "../adapters/workspace-migration-recovery";
+import { createWorkspacePreferenceSwitcher } from "../adapters/workspace-preference-switch";
+import { workspaceHasActiveProduction } from "../adapters/workspace-migration-filesystem";
+import {
+  locateEmbeddedRuntimePack,
+  verifyRuntimePack,
+} from "../adapters/runtime-pack-filesystem";
+import {
+  readPrivateProducerConfig,
+  writePrivateProducerConfig,
+} from "../adapters/private-config-store";
+import { DesktopProviderSettingsSchema } from "../contracts/shell";
 import { resolveDefaultWorkspaceRoot } from "../application/resolve-workspace-selection";
+import {
+  completeWorkspaceRootMigration,
+  migrateWorkspaceRoot,
+  recoverWorkspaceMigration,
+  rollbackWorkspaceRootMigration,
+} from "../application/migrate-workspace";
 import { DESKTOP_MEDIA_SCHEME } from "../contracts/preview";
 import { createDesktopWindow } from "./create-window";
 import {
   createUtilityProcessDesktopEnginePort,
+  desktopEngineForkOptions,
   type DesktopUtilityProcess,
 } from "./engine-port";
 import { startDesktopLifecycle } from "./lifecycle";
@@ -32,6 +58,7 @@ import { initializeDesktopRuntimeResources } from "./initialize-runtime";
 import { registerDesktopShellIpc } from "./register-ipc";
 import { DesktopShellController } from "./shell-controller";
 import {
+  ensureNativeSmokeProducerConfig,
   resolveNativeSmokeOptions,
   runPackagedNativeSmoke,
   type NativeSmokeOptions,
@@ -39,10 +66,7 @@ import {
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
-declare const DESKTOP_PHASE_A_REPOSITORY_ROOT: string;
-
-export const DESKTOP_MAIN_ENTRY_ID = "desktop-main-phase-a-v1" as const;
-export const DESKTOP_REPOSITORY_ROOT = DESKTOP_PHASE_A_REPOSITORY_ROOT;
+export const DESKTOP_MAIN_ENTRY_ID = "desktop-main-phase-b-v1" as const;
 const nativeSmoke: NativeSmokeOptions | null = resolveNativeSmokeOptions({
   isPackaged: app.isPackaged,
 });
@@ -87,7 +111,7 @@ const chooseInitialWorkspace = async (defaultRoot: string) => {
   const decision = await dialog.showMessageBox({
     type: "question",
     title: "选择唯一 Workspace",
-    message: "AXMORF Studio Phase A 只使用一个 Workspace Root。",
+    message: "AXMORF Studio 只使用一个 Workspace Root。",
     detail: defaultRoot,
     buttons: ["使用默认位置", "选择其他文件夹", "取消"],
     defaultId: 0,
@@ -105,11 +129,11 @@ const chooseInitialWorkspace = async (defaultRoot: string) => {
 };
 
 const forkDesktopEngine = (modulePath: string): DesktopUtilityProcess => {
-  const child = utilityProcess.fork(modulePath, [], {
-    cwd: DESKTOP_REPOSITORY_ROOT,
-    serviceName: "AXMORF Studio Engine",
-    stdio: "ignore",
-  });
+  const child = utilityProcess.fork(
+    modulePath,
+    [],
+    desktopEngineForkOptions(process.resourcesPath),
+  );
   return {
     get pid() {
       return child.pid;
@@ -122,29 +146,123 @@ const forkDesktopEngine = (modulePath: string): DesktopUtilityProcess => {
   };
 };
 
-let nativeRuntime:
-  | Readonly<{
-      window: Awaited<ReturnType<typeof createDesktopWindow>>["window"];
-      controller: DesktopShellController;
-      media: DesktopMediaProtocol;
-    }>
-  | null = null;
+let nativeRuntime: Readonly<{
+  window: Awaited<ReturnType<typeof createDesktopWindow>>["window"];
+  controller: DesktopShellController;
+  media: DesktopMediaProtocol;
+}> | null = null;
 
 void startDesktopLifecycle({
   app,
   createRuntime: async () => {
-    const repositoryRoot = DESKTOP_REPOSITORY_ROOT;
+    const appResourcesRoot = process.resourcesPath;
+    const applicationSupportRoot = app.getPath("userData");
+    const cacheRoot = resolve(
+      app.getPath("appData"),
+      "../Caches/com.axmorf.studio",
+    );
     const defaultWorkspaceRoot = resolveDefaultWorkspaceRoot({
       homeDirectory: app.getPath("home"),
     });
     const preferencesPath = resolveDesktopPreferencesPath({
       applicationSupportRoot: app.getPath("userData"),
     });
-    const media = new DesktopMediaProtocol(repositoryRoot);
+    const integrationResourcesRoot = join(
+      appResourcesRoot,
+      "workspace-integration",
+    );
+    const runtimePackRoot = locateEmbeddedRuntimePack(appResourcesRoot);
+    const preferenceSwitcher = createWorkspacePreferenceSwitcher({
+      preferencesPath,
+    });
+    const readWorkspacePreference = async () => {
+      const preferences = await loadAppPreferences({ preferencesPath });
+      if (preferences === null) {
+        throw new Error("Workspace preference is unavailable.");
+      }
+      return preferences.workspaceRoot;
+    };
+    const clearMigrationRecovery = (migrationId: string) =>
+      removeWorkspaceMigrationRecoveryPointer({
+        applicationSupportRoot,
+        migrationId,
+      });
+    const migrationRuntime = async () => {
+      const runtimePack = await verifyRuntimePack({ runtimePackRoot });
+      return {
+        rspExecutable: {
+          path: join(runtimePackRoot, runtimePack.rspClient.relativePath),
+          sha256: runtimePack.rspClient.sha256,
+        },
+      } as const;
+    };
+    const pendingRecovery = await loadWorkspaceMigrationRecoveryPointer({
+      applicationSupportRoot,
+    });
+    if (pendingRecovery !== null) {
+      const runtime = await migrationRuntime();
+      await recoverWorkspaceMigration({
+        parentRoot: pendingRecovery.parentRoot,
+        migrationRoot: pendingRecovery.migrationRoot,
+        sourceWorkspaceRoot: pendingRecovery.sourceWorkspaceRoot,
+        targetWorkspaceRoot: pendingRecovery.targetWorkspaceRoot,
+        integrationResourcesRoot,
+        rspExecutable: runtime.rspExecutable,
+        readPreference: readWorkspacePreference,
+        switchPreference: preferenceSwitcher,
+        clearRecovery: clearMigrationRecovery,
+      });
+    }
+    const media = new DesktopMediaProtocol();
     const unregisterMedia = registerDesktopMediaProtocol({ protocol, media });
+    const privateConfigCrypto = {
+      available: () => safeStorage.isEncryptionAvailable(),
+      encrypt: (plaintext: string) => safeStorage.encryptString(plaintext),
+      decrypt: (ciphertext: Uint8Array) =>
+        safeStorage.decryptString(Buffer.from(ciphertext)),
+    };
+    if (nativeSmoke !== null) {
+      await ensureNativeSmokeProducerConfig({
+        applicationSupportRoot,
+        crypto: privateConfigCrypto,
+      });
+    }
+    const loadProducerConfig = async () => {
+      if (!privateConfigCrypto.available()) {
+        return { config: null, provider: "unavailable" as const };
+      }
+      try {
+        const config = await readPrivateProducerConfig({
+          applicationSupportRoot,
+          crypto: privateConfigCrypto,
+        });
+        return config === null
+          ? { config: null, provider: "not-configured" as const }
+          : { config, provider: "ready" as const };
+      } catch {
+        return { config: null, provider: "unavailable" as const };
+      }
+    };
+    const summarizeProviderSettings = async () => {
+      const loaded = await loadProducerConfig();
+      return DesktopProviderSettingsSchema.parse({
+        schemaVersion: 1,
+        status: loaded.provider,
+        defaultProviderId: loaded.config?.tts.defaultProviderId ?? null,
+        providers:
+          loaded.config?.tts.providers.map(({ id, kind, name }) => ({
+            id,
+            kind,
+            name,
+          })) ?? [],
+      });
+    };
     const engine = createUtilityProcessDesktopEnginePort({
-      repositoryRoot,
+      appResourcesRoot,
+      applicationSupportRoot,
+      cacheRoot,
       modulePath: join(__dirname, "engine.js"),
+      loadProducerConfig,
       utilityProcess: { fork: forkDesktopEngine },
       MessageChannelMain,
     });
@@ -162,8 +280,83 @@ void startDesktopLifecycle({
               workspaceRoot,
             })
           ).preferences.workspaceRoot,
+        chooseMigrationTarget: async (workspaceRoot) => {
+          const selected = await dialog.showOpenDialog({
+            title: "选择新 Workspace 的父文件夹",
+            defaultPath: dirname(workspaceRoot),
+            buttonLabel: "迁移到这里",
+            properties: ["openDirectory", "createDirectory"],
+          });
+          if (selected.canceled || selected.filePaths[0] === undefined) {
+            return null;
+          }
+          return join(resolve(selected.filePaths[0]), basename(workspaceRoot));
+        },
+        migrateRoot: async (sourceWorkspaceRoot, targetWorkspaceRoot) => {
+          const runtime = await migrationRuntime();
+          const result = await migrateWorkspaceRoot({
+            sourceWorkspaceRoot,
+            targetWorkspaceRoot,
+            integrationResourcesRoot,
+            rspExecutable: runtime.rspExecutable,
+            activeWork: workspaceHasActiveProduction,
+            homeDirectory: app.getPath("home"),
+            forbiddenRoots: [
+              appResourcesRoot,
+              applicationSupportRoot,
+              cacheRoot,
+              runtimePackRoot,
+            ],
+            readPreference: readWorkspacePreference,
+            switchPreference: preferenceSwitcher,
+            writeRecovery: async (pointer) =>
+              writeWorkspaceMigrationRecoveryPointer({
+                applicationSupportRoot,
+                pointer: {
+                  schemaVersion: 1,
+                  contractVersion: "desktop-workspace-migration-recovery-v1",
+                  ...pointer,
+                },
+              }),
+            removeRecovery: clearMigrationRecovery,
+          });
+          if (result.pending === null) {
+            return {
+              workspaceRoot: sourceWorkspaceRoot,
+              complete: async () => undefined,
+              rollback: async () => undefined,
+            };
+          }
+          return {
+            workspaceRoot: result.pending.targetWorkspaceRoot,
+            complete: () =>
+              completeWorkspaceRootMigration({
+                pending: result.pending!,
+                removeRecovery: clearMigrationRecovery,
+              }),
+            rollback: () =>
+              rollbackWorkspaceRootMigration({
+                pending: result.pending!,
+                readPreference: readWorkspacePreference,
+                switchPreference: preferenceSwitcher,
+                removeRecovery: clearMigrationRecovery,
+              }),
+          };
+        },
         showInFileManager: async (workspaceRoot) => {
           shell.showItemInFolder(workspaceRoot);
+        },
+      },
+      providerSettings: {
+        get: summarizeProviderSettings,
+        save: async (value) => {
+          const config = buildProducerConfig(value);
+          await writePrivateProducerConfig({
+            applicationSupportRoot,
+            crypto: privateConfigCrypto,
+            value: config,
+          });
+          return summarizeProviderSettings();
         },
       },
       engine,

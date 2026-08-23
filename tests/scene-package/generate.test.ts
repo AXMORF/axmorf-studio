@@ -16,6 +16,9 @@ test("file-backed package generation fingerprints the complete Renderer source g
     "utf8",
   );
   assert.match(source, /collectRendererSourceGraph/u);
+  assert.match(source, /generateScenePackageFromProjectFiles/u);
+  assert.match(source, /generateSceneCoverageFromProjectFiles/u);
+  assert.doesNotMatch(source, /FromLocations|rootDir/u);
   assert.doesNotMatch(
     source,
     /readFile\(join\(sceneRoot, "Renderer\.tsx"\)\)/u,

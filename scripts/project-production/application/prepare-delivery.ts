@@ -20,28 +20,40 @@ import {
 } from "../../../src/contracts";
 import { collectDeliveryCoverSourceGraph } from "../adapters/cover-source";
 import { checkMasteredNarrationArtifacts } from "../../narration/mastering";
+import { createExecutableProcessRunner } from "../../narration/adapters/ffmpeg-normalizer";
 import { collectGlobalVisualSourceGraph } from "./global-visual-validator";
 import { compileTargetProjectComposition } from "./project-composition-compiler";
 import { ensureProjectAuthoringBuildScaffold } from "./project-scaffold";
 import { generateProjectRegistry } from "../../registry/generate";
-import { generateRendererRegistryFromProjectFiles } from "../../renderer-registry/generate";
+import type { ProjectStorageLocations } from "../../projects/project-locations";
+import { generateRendererRegistry } from "../../renderer-registry/generate";
 import {
   generateSceneCoverageFromProjectFiles,
   generateScenePackageFromProjectFiles,
 } from "../../scene-package/generate";
+import type {
+  ProductionLocations,
+  RuntimeExecutionResources,
+} from "./production-locations";
 
 const readJson = async (path: string) =>
   JSON.parse(await readFile(path, "utf8")) as unknown;
 
 export const prepareProjectAuthoringBuild = async ({
-  rootDir,
+  locations,
+  storage,
+  runtime,
   projectId: rawProjectId,
+  mode = "write",
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
+  readonly storage: ProjectStorageLocations;
+  readonly runtime: RuntimeExecutionResources;
   readonly projectId: string;
+  readonly mode?: "write" | "check";
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
-  const projectRoot = join(rootDir, "src/projects", projectId);
+  const projectRoot = join(locations.projectSourceRoot, projectId);
   const [
     story,
     render,
@@ -50,26 +62,25 @@ export const prepareProjectAuthoringBuild = async ({
     projectSound,
     resourceCatalog,
     rawPublishingIntent,
-  ] =
-    await Promise.all([
-      readJson(join(projectRoot, "story.json")).then(StorySpecSchema.parse),
-      readJson(join(projectRoot, "render.json")).then(RenderSpecSchema.parse),
-      readJson(
-        join(projectRoot, "generated/semantic-timing.generated.json"),
-      ).then(SemanticTimingSchema.parse),
-      readJson(join(projectRoot, "visual-style.json")).then(
-        VisualStyleSpecSchema.parse,
-      ),
-      readJson(join(projectRoot, "sound.json")).then(
-        ProjectSoundPlanSchema.parse,
-      ),
-      readJson(join(projectRoot, "generated/resource-catalog.generated.json")).then(
-        ResourceCatalogSchema.parse,
-      ),
-      readJson(join(projectRoot, "publishing-intent.json")).then(
-        PublishingIntentSchema.parse,
-      ),
-    ]);
+  ] = await Promise.all([
+    readJson(join(projectRoot, "story.json")).then(StorySpecSchema.parse),
+    readJson(join(projectRoot, "render.json")).then(RenderSpecSchema.parse),
+    readJson(
+      join(projectRoot, "generated/semantic-timing.generated.json"),
+    ).then(SemanticTimingSchema.parse),
+    readJson(join(projectRoot, "visual-style.json")).then(
+      VisualStyleSpecSchema.parse,
+    ),
+    readJson(join(projectRoot, "sound.json")).then(
+      ProjectSoundPlanSchema.parse,
+    ),
+    readJson(
+      join(projectRoot, "generated/resource-catalog.generated.json"),
+    ).then(ResourceCatalogSchema.parse),
+    readJson(join(projectRoot, "publishing-intent.json")).then(
+      PublishingIntentSchema.parse,
+    ),
+  ]);
   if (
     story.storyId !== projectId ||
     timing.storyId !== projectId ||
@@ -85,21 +96,21 @@ export const prepareProjectAuthoringBuild = async ({
   const meaningIds = story.beats.map(({ meaningId }) => meaningId);
   for (const meaningId of meaningIds) {
     await generateScenePackageFromProjectFiles({
-      rootDir,
+      locations,
       projectId,
       meaningId,
-      mode: "write",
+      mode,
     });
   }
   const coverage = await generateSceneCoverageFromProjectFiles({
-    rootDir,
+    locations,
     projectId,
-    mode: "write",
+    mode,
   });
-  const rendererRegistry = await generateRendererRegistryFromProjectFiles({
-    rootDir,
+  const rendererRegistry = await generateRendererRegistry({
+    locations,
     projectId,
-    mode: "write",
+    mode,
   });
   if (rendererRegistry === null) {
     throw new Error("Project build requires current Scene renderer source.");
@@ -119,22 +130,33 @@ export const prepareProjectAuthoringBuild = async ({
     },
   });
   await ensureProjectAuthoringBuildScaffold({
-    rootDir,
+    locations,
     storyId: projectId,
     meaningIds,
     runtimeInputFingerprint,
+    mode,
   });
   await Promise.all([
-    collectGlobalVisualSourceGraph({ rootDir, storyId: projectId }),
+    collectGlobalVisualSourceGraph({
+      locations,
+      storyId: projectId,
+    }),
     collectDeliveryCoverSourceGraph({
-      rootDir,
+      locations,
       storyId: projectId,
       compositionId: deriveCoverCompositionBaseId(projectId),
     }),
-    checkMasteredNarrationArtifacts({ rootDir, storyId: projectId }),
+    checkMasteredNarrationArtifacts({
+      locations,
+      storyId: projectId,
+      runProcess: createExecutableProcessRunner(runtime.ffmpegExecutable),
+    }),
   ]);
-  await generateProjectRegistry({ rootDir, mode: "write" });
-  await compileTargetProjectComposition({ rootDir, storyId: projectId });
+  await generateProjectRegistry({ storage, mode });
+  await compileTargetProjectComposition({
+    locations,
+    storyId: projectId,
+  });
 
   const frameCount = getStoryCompositionDurationInFrames(
     timing.durationInFrames,
@@ -158,7 +180,9 @@ export const prepareProjectAuthoringBuild = async ({
         ({ meaningId }) => meaningId === chapter.meaningId,
       );
       if (beat === undefined || beat.kind !== "narrated-scene") {
-        throw new Error("Publishing chapters are stale against SemanticTiming.");
+        throw new Error(
+          "Publishing chapters are stale against SemanticTiming.",
+        );
       }
       const startFrame = toStoryCompositionFrame(beat.startFrame);
       return {

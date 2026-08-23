@@ -1,57 +1,66 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { lstat, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import {
-  DeliveryPublishSchema,
   ProjectSoundPlanSchema,
-  PublishingIntentSchema,
   RenderSpecSchema,
   serializeCanonicalJson,
   type ArtifactAttestation,
+  type DeliveryPolicy,
+  type ProducerConfig,
   type ProducerTaskSpec,
 } from "../../../src/contracts";
 import {
   commitTaskArtifact,
   inspectArtifact as inspectArtifactFromStore,
 } from "../adapters/artifact-store";
-import { appendExecutionAttemptDeliveryResult } from "../adapters/attempt-store";
+import { appendExecutionAttemptTerminalResult } from "../adapters/attempt-store";
 import {
   materializeOwnerArtifacts as materializeArtifacts,
   verifyMaterializedOwnerArtifacts as verifyMaterializedArtifacts,
   type AdditionalSceneFileManifest,
 } from "../adapters/project-materializer";
+import { acquireProductionOperationLock } from "../adapters/production-operation-lock";
 import {
   checksumBytes,
   readRegularBytes,
 } from "../adapters/project-input-snapshot";
-import { acquireRepositoryOperationLock } from "../../shared/repository-operation-lock";
-import { buildDeliveryUnlocked as buildSynchronousDelivery } from "./build-delivery";
+import {
+  createSourceCurrentAttestation as createCurrentAttestation,
+  inspectSourceCurrent as inspectCurrentSource,
+  writeSourceCurrent as writeCurrentSource,
+} from "../adapters/source-current-store";
+import type { DeliveryBuildPort } from "./build-delivery";
 import { buildCurrentProductionPlan, contextFile } from "./build-current-plan";
-import { prepareProjectAuthoringBuild } from "./prepare-delivery";
+import type { prepareProjectAuthoringBuild } from "./prepare-delivery";
+import type {
+  ProductionLocations,
+  RuntimeExecutionResources,
+} from "./production-locations";
 
 type PlannedProduction = Awaited<ReturnType<typeof buildCurrentProductionPlan>>;
-type MaterializedArtifact = Readonly<{
+type BoundArtifact = Readonly<{
   task: ProducerTaskSpec;
   attestation: ArtifactAttestation;
 }>;
 
 export type ConvergenceDependencies = Readonly<{
+  buildDelivery: DeliveryBuildPort;
   buildCurrentPlan?: typeof buildCurrentProductionPlan;
   inspectArtifact?: typeof inspectArtifactFromStore;
   materializeOwnerArtifacts?: typeof materializeArtifacts;
   verifyMaterializedOwnerArtifacts?: typeof verifyMaterializedArtifacts;
-  buildDelivery?: typeof buildSynchronousDelivery;
-  appendAttempt?: typeof appendExecutionAttemptDeliveryResult;
-  acquireLock?: typeof acquireRepositoryOperationLock;
-  prepareProject?: typeof prepareProjectAuthoringBuild;
+  appendAttempt?: typeof appendExecutionAttemptTerminalResult;
+  acquireLock?: typeof acquireProductionOperationLock;
+  prepareProject: (
+    input: Omit<Parameters<typeof prepareProjectAuthoringBuild>[0], "storage">,
+  ) => ReturnType<typeof prepareProjectAuthoringBuild>;
   commitFixedArtifact?: typeof commitConvergenceFixedArtifact;
-  readDeliveryPublish?: (input: {
-    readonly rootDir: string;
-    readonly projectId: string;
-  }) => Promise<Uint8Array>;
+  createSourceCurrent?: typeof createCurrentAttestation;
+  writeSourceCurrent?: typeof writeCurrentSource;
+  inspectSourceCurrent?: typeof inspectCurrentSource;
   readPreparedScenePackage?: (input: {
-    readonly rootDir: string;
+    readonly locations: ProductionLocations;
     readonly projectId: string;
     readonly meaningId: string;
   }) => Promise<Uint8Array>;
@@ -63,15 +72,6 @@ const MATERIALIZED_TASK_KINDS = new Set<ProducerTaskSpec["taskKind"]>([
   "global-visual-owner",
   "cover-owner",
 ]);
-
-const selectMaterializedTasks = (planned: PlannedProduction) =>
-  planned.tasks.filter(({ taskKind }) => MATERIALIZED_TASK_KINDS.has(taskKind));
-
-const selectPreConvergenceTasks = (planned: PlannedProduction) =>
-  planned.tasks.filter(
-    ({ taskKind }) =>
-      taskKind !== "composition-convergence" && taskKind !== "delivery-build",
-  );
 
 const same = (left: unknown, right: unknown) =>
   serializeCanonicalJson(left) === serializeCanonicalJson(right);
@@ -92,77 +92,6 @@ const parseCanonical = <T>(
   return parsed;
 };
 
-const assertFixedTaskShape = (
-  task: ProducerTaskSpec,
-  kind: "composition-convergence" | "delivery-build",
-) => {
-  const expected = {
-    "composition-convergence": {
-      output: "project/convergence.json",
-      policy: "composition-convergence-validator-v1",
-      inputs: [
-        "read:inputs/context.json",
-        "render",
-        "runtime",
-        "sound",
-        "story",
-        "style",
-      ],
-    },
-    "delivery-build": {
-      output: "project/publish.json",
-      policy: "delivery-build-validator-v1",
-      inputs: ["publishing", "read:inputs/context.json", "render", "runtime"],
-    },
-  } as const;
-  const shape = expected[kind];
-  if (
-    task.taskKind !== kind ||
-    task.semanticId !== null ||
-    task.validatorPolicyVersion !== shape.policy ||
-    !same(task.declaredReadSet, ["inputs/context.json"]) ||
-    !same(task.declaredOutputSet, [shape.output]) ||
-    !same(
-      task.inputFingerprints.map(({ id }) => id),
-      [...shape.inputs].sort(),
-    )
-  ) {
-    throw new Error("Convergence fixed task shape is invalid.");
-  }
-  if (
-    (kind === "delivery-build" && task.dependencyArtifacts.length !== 2) ||
-    (kind === "composition-convergence" && task.dependencyArtifacts.length < 2)
-  ) {
-    throw new Error("Convergence fixed task dependencies are incomplete.");
-  }
-};
-
-const assertCandidateFileSet = (
-  task: ProducerTaskSpec,
-  files: Readonly<Record<string, Uint8Array | string>>,
-) => {
-  const expectedPaths = [
-    ...task.declaredReadSet,
-    ...task.declaredOutputSet,
-  ].sort();
-  if (!same(Object.keys(files).sort(), expectedPaths)) {
-    throw new Error(
-      "Convergence fixed artifact candidate has an invalid file set.",
-    );
-  }
-  const context = files["inputs/context.json"];
-  const binding = task.inputFingerprints.find(
-    ({ id }) => id === "read:inputs/context.json",
-  );
-  if (
-    context === undefined ||
-    binding === undefined ||
-    checksumBytes(asBytes(context)) !== binding.fingerprint
-  ) {
-    throw new Error("Convergence fixed artifact context is stale.");
-  }
-};
-
 const validateCompositionCandidate = ({
   task,
   files,
@@ -170,10 +99,32 @@ const validateCompositionCandidate = ({
   readonly task: ProducerTaskSpec;
   readonly files: Readonly<Record<string, Uint8Array | string>>;
 }) => {
-  assertFixedTaskShape(task, "composition-convergence");
-  assertCandidateFileSet(task, files);
+  if (
+    task.taskKind !== "composition-convergence" ||
+    task.semanticId !== null ||
+    task.validatorPolicyVersion !== "composition-convergence-validator-v1" ||
+    !same(task.declaredReadSet, ["inputs/context.json"]) ||
+    !same(task.declaredOutputSet, ["project/convergence.json"]) ||
+    !same(Object.keys(files).sort(), [
+      "inputs/context.json",
+      "project/convergence.json",
+    ])
+  ) {
+    throw new Error("Composition convergence task shape is invalid.");
+  }
+  const contextBytes = files["inputs/context.json"];
+  const contextBinding = task.inputFingerprints.find(
+    ({ id }) => id === "read:inputs/context.json",
+  );
+  if (
+    contextBytes === undefined ||
+    contextBinding === undefined ||
+    checksumBytes(asBytes(contextBytes)) !== contextBinding.fingerprint
+  ) {
+    throw new Error("Composition convergence context is stale.");
+  }
   const context = parseCanonical(
-    files["inputs/context.json"]!,
+    contextBytes,
     {
       parse: (raw: unknown) => {
         const value = raw as Record<string, unknown>;
@@ -235,90 +186,24 @@ const validateCompositionCandidate = ({
   }
 };
 
-const validateDeliveryCandidate = ({
-  task,
-  files,
-}: {
-  readonly task: ProducerTaskSpec;
-  readonly files: Readonly<Record<string, Uint8Array | string>>;
-}) => {
-  assertFixedTaskShape(task, "delivery-build");
-  assertCandidateFileSet(task, files);
-  const context = parseCanonical(
-    files["inputs/context.json"]!,
-    {
-      parse: (raw: unknown) => {
-        const value = raw as Record<string, unknown>;
-        if (
-          !same(Object.keys(value).sort(), [
-            "publishingIntent",
-            "render",
-            "revisionId",
-            "storyId",
-          ])
-        ) {
-          throw new Error("Delivery context is invalid.");
-        }
-        return {
-          storyId: String(value.storyId),
-          revisionId: String(value.revisionId),
-          render: RenderSpecSchema.parse(value.render),
-          publishingIntent: PublishingIntentSchema.parse(
-            value.publishingIntent,
-          ),
-        };
-      },
-    },
-    "Delivery context",
-  );
-  const publish = parseCanonical(
-    files["project/publish.json"]!,
-    DeliveryPublishSchema,
-    "Delivery publish",
-  );
-  if (
-    context.storyId !== task.storyId ||
-    context.revisionId !== task.revisionId ||
-    context.publishingIntent.storyId !== task.storyId ||
-    publish.storyId !== task.storyId ||
-    publish.revisionId !== task.revisionId ||
-    publish.compositionId !== context.render.compositionId ||
-    publish.fps !== context.render.fps ||
-    publish.width !== context.render.width ||
-    publish.height !== context.render.height ||
-    publish.publishing.description !== context.publishingIntent.description ||
-    publish.publishing.collection !==
-      context.publishingIntent.collection.name ||
-    !same(publish.publishing.topics, context.publishingIntent.topics) ||
-    !same(
-      publish.publishing.chapters.map(({ meaningId, name }) => ({
-        meaningId,
-        name,
-      })),
-      context.publishingIntent.chapters,
-    )
-  ) {
-    throw new Error("Delivery publish output is cross-bound.");
-  }
-};
-
 export const commitConvergenceFixedArtifact = async ({
-  rootDir,
+  locations,
   task,
   files,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly task: ProducerTaskSpec;
   readonly files: Readonly<Record<string, Uint8Array | string>>;
 }): Promise<ArtifactAttestation> => {
-  if (task.taskKind === "composition-convergence") {
-    validateCompositionCandidate({ task, files });
-  } else if (task.taskKind === "delivery-build") {
-    validateDeliveryCandidate({ task, files });
-  } else {
-    throw new Error("Only converge-owned fixed tasks can be committed here.");
+  validateCompositionCandidate({ task, files });
+  await mkdir(locations.disposableBuildRoot, { recursive: true });
+  const disposableRoot = await lstat(locations.disposableBuildRoot);
+  if (!disposableRoot.isDirectory() || disposableRoot.isSymbolicLink()) {
+    throw new Error("Convergence disposable build root is unsafe.");
   }
-  const staging = await mkdtemp(join(tmpdir(), "rsp-converge-fixed-"));
+  const staging = await mkdtemp(
+    join(locations.disposableBuildRoot, "rsp-converge-fixed-"),
+  );
   try {
     for (const [logicalPath, bytes] of Object.entries(files).sort(
       ([left], [right]) => left.localeCompare(right),
@@ -328,13 +213,13 @@ export const commitConvergenceFixedArtifact = async ({
       await writeFile(path, bytes, { flag: "wx" });
     }
     const committed = await commitTaskArtifact({
-      rootDir,
+      locations,
       task,
       workspace: staging,
     });
     if (committed.attestation === null) {
       throw new Error(
-        "Convergence fixed artifact commit produced no attestation.",
+        "Composition convergence commit produced no attestation.",
       );
     }
     return committed.attestation;
@@ -343,29 +228,34 @@ export const commitConvergenceFixedArtifact = async ({
   }
 };
 
-const requireTask = (
-  planned: PlannedProduction,
-  taskKind: "composition-convergence" | "delivery-build",
-) => {
-  const matches = planned.tasks.filter((task) => task.taskKind === taskKind);
+const requireCompositionTask = (planned: PlannedProduction) => {
+  const matches = planned.tasks.filter(
+    ({ taskKind }) => taskKind === "composition-convergence",
+  );
   if (matches.length !== 1 || matches[0] === undefined) {
-    throw new Error(`Producer DAG requires exactly one ${taskKind} task.`);
+    throw new Error("Producer DAG requires exactly one composition task.");
   }
   return matches[0];
 };
 
 const convergeProjectProductionUnlocked = async ({
-  rootDir,
+  locations,
   projectId,
   revisionId,
   attemptId,
-  dependencies = {},
+  deliveryPolicy,
+  config,
+  runtime,
+  dependencies,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
   readonly revisionId: string;
   readonly attemptId: string;
-  readonly dependencies?: ConvergenceDependencies;
+  readonly deliveryPolicy: DeliveryPolicy;
+  readonly config: ProducerConfig;
+  readonly runtime?: RuntimeExecutionResources;
+  readonly dependencies: ConvergenceDependencies;
 }) => {
   const buildCurrentPlan =
     dependencies.buildCurrentPlan ?? buildCurrentProductionPlan;
@@ -376,28 +266,23 @@ const convergeProjectProductionUnlocked = async ({
   const verifyMaterializedOwnerArtifacts =
     dependencies.verifyMaterializedOwnerArtifacts ??
     verifyMaterializedArtifacts;
-  const buildDelivery = dependencies.buildDelivery ?? buildSynchronousDelivery;
   const appendAttempt =
-    dependencies.appendAttempt ?? appendExecutionAttemptDeliveryResult;
-  const prepareProject =
-    dependencies.prepareProject ?? prepareProjectAuthoringBuild;
+    dependencies.appendAttempt ?? appendExecutionAttemptTerminalResult;
+  const prepareProject = dependencies.prepareProject;
   const commitFixedArtifact =
     dependencies.commitFixedArtifact ?? commitConvergenceFixedArtifact;
-  const readDeliveryPublish =
-    dependencies.readDeliveryPublish ??
-    (async ({ rootDir: repositoryRoot, projectId: storyId }) =>
-      Uint8Array.from(
-        await readFile(
-          join(repositoryRoot, "deliveries", storyId, "publish.json"),
-        ),
-      ));
+  const createSourceCurrent =
+    dependencies.createSourceCurrent ?? createCurrentAttestation;
+  const writeSourceCurrent =
+    dependencies.writeSourceCurrent ?? writeCurrentSource;
+  const inspectSourceCurrent =
+    dependencies.inspectSourceCurrent ?? inspectCurrentSource;
   const readPreparedScenePackage =
     dependencies.readPreparedScenePackage ??
-    (async ({ rootDir: repositoryRoot, projectId: storyId, meaningId }) =>
+    (async ({ locations: boundLocations, projectId: storyId, meaningId }) =>
       readRegularBytes(
         join(
-          repositoryRoot,
-          "src/projects",
+          boundLocations.projectSourceRoot,
           storyId,
           "scenes",
           meaningId,
@@ -406,53 +291,31 @@ const convergeProjectProductionUnlocked = async ({
         `ScenePackage ${meaningId}`,
       ));
 
-  // Convergence never trusts the plan emitted by an earlier command. This is the
-  // authority check that prevents an old revision from materializing current paths.
-  const planned = await buildCurrentPlan({
-    rootDir,
-    projectId,
-  });
-  let terminalPlan = planned;
+  const planned = await buildCurrentPlan({ locations, projectId, config });
   const appendTerminal = async (
-    result:
-      | Readonly<{
-          status: "verified";
-          deliveryBuildId: string;
-          diagnosticCode: null;
-          deliveryMedia: readonly ("video" | "cover-4x3" | "cover-3x4")[];
-        }>
-      | Readonly<{
-          status: "failed";
-          deliveryBuildId: null;
-          diagnosticCode: string;
-          deliveryMedia: readonly [];
-        }>,
+    result: Parameters<typeof appendAttempt>[0]["result"],
     attemptRevisionId = revisionId,
   ) => {
-    try {
-      await appendAttempt({
-        rootDir,
-        storyId: terminalPlan.revision.storyId,
-        revisionId: attemptRevisionId,
-        attemptId,
-        result,
-      });
-      return true;
-    } catch {
-      // ExecutionAttempt is diagnostic-only. A lost diagnostic write cannot
-      // alter revision, artifact, materialization, or delivery authority.
-      return false;
-    }
+    await appendAttempt({
+      locations,
+      storyId: planned.revision.storyId,
+      revisionId: attemptRevisionId,
+      attemptId,
+      result,
+    });
+    return true;
   };
+  const failed = (diagnosticCode: string) => ({
+    status: "failed" as const,
+    sourceCurrentId: null,
+    deliveryBuildId: null,
+    diagnosticCode,
+    deliveryMedia: [] as const,
+  });
 
   if (planned.revision.revisionId !== revisionId) {
     const attemptRecorded = await appendTerminal(
-      {
-        status: "failed",
-        deliveryBuildId: null,
-        diagnosticCode: "producer-revision-stale",
-        deliveryMedia: [],
-      },
+      failed("producer-revision-stale"),
       revisionId,
     );
     return {
@@ -462,33 +325,21 @@ const convergeProjectProductionUnlocked = async ({
     };
   }
 
-  // Complete the full read phase before touching a live owner root. A single
-  // missing or invalid attestation therefore guarantees zero materialization and
-  // zero delivery work.
-  const artifacts: MaterializedArtifact[] = [];
-  const materializedTaskRevisions = new Set(
-    selectMaterializedTasks(planned).map(({ taskRevision }) => taskRevision),
-  );
-  for (const task of selectPreConvergenceTasks(planned)) {
+  const allArtifacts: BoundArtifact[] = [];
+  for (const task of planned.tasks.filter(
+    ({ taskKind }) => taskKind !== "composition-convergence",
+  )) {
     let attestation: ArtifactAttestation | null;
     try {
-      attestation = await inspectArtifact({ rootDir, task });
+      attestation = await inspectArtifact({ locations, task });
     } catch (error) {
-      await appendTerminal({
-        status: "failed",
-        deliveryBuildId: null,
-        diagnosticCode: "producer-artifact-invalid",
-        deliveryMedia: [],
-      });
+      await appendTerminal(failed("producer-artifact-invalid"));
       throw error;
     }
     if (attestation === null) {
-      const attemptRecorded = await appendTerminal({
-        status: "failed",
-        deliveryBuildId: null,
-        diagnosticCode: "producer-artifacts-incomplete",
-        deliveryMedia: [],
-      });
+      const attemptRecorded = await appendTerminal(
+        failed("producer-artifacts-incomplete"),
+      );
       return {
         status: "producer-artifacts-incomplete" as const,
         revisionId,
@@ -496,40 +347,49 @@ const convergeProjectProductionUnlocked = async ({
         attemptRecorded,
       };
     }
-    if (materializedTaskRevisions.has(task.taskRevision)) {
-      artifacts.push({ task, attestation });
-    }
+    allArtifacts.push({ task, attestation });
   }
-
+  const materializedArtifacts = allArtifacts.filter(({ task }) =>
+    MATERIALIZED_TASK_KINDS.has(task.taskKind),
+  );
   const sceneTaskInputs = new Map(
     planned.inputs.sceneInputs.map(({ meaningId, taskInput }) => [
       meaningId,
       taskInput,
     ]),
   );
+
   try {
+    if (runtime === undefined) {
+      throw new Error("Source convergence requires a verified runtime.");
+    }
     await materializeOwnerArtifacts({
-      rootDir,
+      locations,
       projectId,
-      artifacts,
+      artifacts: materializedArtifacts,
       sceneTaskInputs,
     });
     const verifyOwnerMaterialized = () =>
       verifyMaterializedOwnerArtifacts({
-        rootDir,
+        locations,
         projectId,
-        artifacts,
+        artifacts: materializedArtifacts,
         sceneTaskInputs,
       });
     await verifyOwnerMaterialized();
-    const prepared = await prepareProject({ rootDir, projectId });
+    const prepared = await prepareProject({
+      locations,
+      runtime,
+      projectId,
+      mode: "write",
+    });
     const additionalSceneEntries: Array<
       readonly [
         string,
         ReadonlyMap<string, { checksum: string; sizeBytes: number }>,
       ]
     > = [];
-    for (const { task } of artifacts) {
+    for (const { task } of materializedArtifacts) {
       if (
         (task.taskKind !== "scene-owner" &&
           task.taskKind !== "scene-template") ||
@@ -538,7 +398,7 @@ const convergeProjectProductionUnlocked = async ({
         continue;
       }
       const bytes = await readPreparedScenePackage({
-        rootDir,
+        locations,
         projectId,
         meaningId: task.semanticId,
       });
@@ -547,10 +407,7 @@ const convergeProjectProductionUnlocked = async ({
         new Map([
           [
             "generated/scene-package.generated.json",
-            {
-              checksum: checksumBytes(bytes),
-              sizeBytes: bytes.byteLength,
-            },
+            { checksum: checksumBytes(bytes), sizeBytes: bytes.byteLength },
           ],
         ]),
       ]);
@@ -560,15 +417,15 @@ const convergeProjectProductionUnlocked = async ({
     );
     const verifyPreparedMaterialized = () =>
       verifyMaterializedOwnerArtifacts({
-        rootDir,
+        locations,
         projectId,
-        artifacts,
+        artifacts: materializedArtifacts,
         sceneTaskInputs,
         additionalSceneFiles,
       });
     await verifyPreparedMaterialized();
 
-    const compositionTask = requireTask(planned, "composition-convergence");
+    const compositionTask = requireCompositionTask(planned);
     const compositionContext = contextFile({
       storyId: planned.inputs.projectId,
       revisionId,
@@ -576,7 +433,7 @@ const convergeProjectProductionUnlocked = async ({
       sound: planned.inputs.sound,
     });
     const compositionAttestation = await commitFixedArtifact({
-      rootDir,
+      locations,
       task: compositionTask,
       files: {
         "inputs/context.json": compositionContext.bytes,
@@ -590,131 +447,105 @@ const convergeProjectProductionUnlocked = async ({
         })}\n`,
       },
     });
-
-    const withComposition = await buildCurrentPlan({
-      rootDir,
-      projectId,
-    });
-    terminalPlan = withComposition;
-    if (withComposition.revision.revisionId !== revisionId) {
-      throw new Error("Production revision changed during locked convergence.");
-    }
-    const deliveryTask = requireTask(withComposition, "delivery-build");
+    const completed = await buildCurrentPlan({ locations, projectId, config });
     if (
-      !deliveryTask.dependencyArtifacts.some(
-        ({ taskRevision, artifactFingerprint }) =>
-          taskRevision === compositionTask.taskRevision &&
-          artifactFingerprint === compositionAttestation.artifactFingerprint,
-      )
+      completed.revision.revisionId !== revisionId ||
+      completed.plan.tasks.some(({ action }) => action !== "reuse")
     ) {
       throw new Error(
-        "Delivery task is not bound to the committed convergence artifact.",
+        "Source production DAG did not converge to a reused plan.",
       );
     }
-    const delivery = await buildDelivery({
-      rootDir,
+    await verifyPreparedMaterialized();
+    const sourceCurrent = await createSourceCurrent({
+      locations,
+      storyId: projectId,
+      revisionId,
+      artifacts: [
+        ...allArtifacts.map(({ attestation }) => attestation),
+        compositionAttestation,
+      ],
+    });
+    await writeSourceCurrent({ locations, attestation: sourceCurrent });
+    if (
+      (await inspectSourceCurrent({ locations, expected: sourceCurrent })) ===
+      null
+    ) {
+      throw new Error("Source current write was not durable.");
+    }
+    await verifyPreparedMaterialized();
+
+    if (deliveryPolicy === "manual") {
+      const attemptRecorded = await appendTerminal({
+        status: "source-current",
+        sourceCurrentId: sourceCurrent.sourceCurrentId,
+        deliveryBuildId: null,
+        diagnosticCode: null,
+        deliveryMedia: [],
+      });
+      return {
+        status: "project-production-source-current" as const,
+        revisionId,
+        sourceCurrent,
+        attemptRecorded,
+      };
+    }
+    const delivery = await dependencies.buildDelivery({
+      locations,
+      runtime,
+      config,
       projectId,
       revisionId,
-      artifactSetFingerprint: withComposition.plan.artifactSetFingerprint,
+      sourceCurrentId: sourceCurrent.sourceCurrentId,
       dependencies: {
         verifyMaterialized: verifyPreparedMaterialized,
         prepare: async () => prepared,
       },
     });
-    // The delivery builder verifies live materialized bytes before and after
-    // rendering. A final check also binds the terminal result to the promoted
-    // current owner roots.
-    await verifyPreparedMaterialized();
-    const deliveryContext = contextFile({
-      storyId: withComposition.inputs.projectId,
-      revisionId,
-      render: withComposition.inputs.render,
-      publishingIntent: withComposition.inputs.publishingIntent,
-    });
-    await commitFixedArtifact({
-      rootDir,
-      task: deliveryTask,
-      files: {
-        "inputs/context.json": deliveryContext.bytes,
-        "project/publish.json": await readDeliveryPublish({
-          rootDir,
-          projectId,
-        }),
-      },
-    });
-    const completed = await buildCurrentPlan({
-      rootDir,
-      projectId,
-    });
-    terminalPlan = completed;
-    if (
-      completed.revision.revisionId !== revisionId ||
-      completed.plan.artifactSetFingerprint !==
-        withComposition.plan.artifactSetFingerprint ||
-      completed.plan.tasks.some(({ action }) => action !== "reuse")
-    ) {
-      throw new Error(
-        "Completed production DAG did not converge to a stable reused plan.",
-      );
-    }
     await verifyPreparedMaterialized();
     const attemptRecorded = await appendTerminal({
-      status: "verified",
+      status: "delivery-current",
+      sourceCurrentId: sourceCurrent.sourceCurrentId,
       deliveryBuildId: delivery.deliveryBuildId,
       diagnosticCode: null,
-      deliveryMedia: delivery.noOp
-        ? []
-        : [
-            ...(delivery.reused.video ? [] : ["video" as const]),
-            ...(delivery.reused.cover4x3 ? [] : ["cover-4x3" as const]),
-            ...(delivery.reused.cover3x4 ? [] : ["cover-3x4" as const]),
-          ],
+      deliveryMedia:
+        delivery.reused !== undefined
+          ? [
+              ...(delivery.reused.video ? [] : ["video" as const]),
+              ...(delivery.reused.cover4x3 ? [] : ["cover-4x3" as const]),
+              ...(delivery.reused.cover3x4 ? [] : ["cover-3x4" as const]),
+            ]
+          : [],
     });
     return {
       status: delivery.status,
       revisionId,
+      sourceCurrent,
       delivery,
       attemptRecorded,
     } as const;
   } catch (error) {
-    await appendTerminal({
-      status: "failed",
-      deliveryBuildId: null,
-      diagnosticCode: "project-production-convergence-failed",
-      deliveryMedia: [],
-    });
+    await appendTerminal(failed("project-production-convergence-failed"));
     throw error;
   }
 };
 
-export const convergeProjectProduction = async ({
-  rootDir,
-  projectId,
-  revisionId,
-  attemptId,
-  dependencies = {},
-}: {
-  readonly rootDir: string;
-  readonly projectId: string;
-  readonly revisionId: string;
-  readonly attemptId: string;
-  readonly dependencies?: ConvergenceDependencies;
-}) => {
+export const convergeProjectProduction = async (
+  input: Parameters<typeof convergeProjectProductionUnlocked>[0],
+) => {
   const acquireLock =
-    dependencies.acquireLock ?? acquireRepositoryOperationLock;
+    input.dependencies?.acquireLock ?? acquireProductionOperationLock;
   const lock = await acquireLock({
-    rootDir,
-    ownerId: "project-production-convergence",
+    locations: input.locations,
+    ownerId: "project-production-converge",
   });
   try {
-    return await convergeProjectProductionUnlocked({
-      rootDir,
-      projectId,
-      revisionId,
-      attemptId,
-      dependencies,
-    });
+    return await convergeProjectProductionUnlocked(input);
   } finally {
     await lock.release();
   }
 };
+
+export type ProductionConvergencePort = (
+  input: Omit<Parameters<typeof convergeProjectProduction>[0], "dependencies">,
+) => ReturnType<typeof convergeProjectProduction>;

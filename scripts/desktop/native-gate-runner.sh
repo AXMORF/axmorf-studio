@@ -2,18 +2,27 @@
 set -euo pipefail
 
 if [[ "$(uname -s)" != "Darwin" || "$(uname -m)" != "arm64" ]]; then
-  echo "desktop-native-gate-host-invalid" >&2
+  echo "desktop-phase-b-native-gate-requires-darwin-arm64" >&2
   exit 1
 fi
 
 app_path=${1:?packaged .app path is required}
 evidence_root=${2:?evidence root is required}
+repository_root=${3:-$(pwd)}
 app_executable="$app_path/Contents/MacOS/AXMORF Studio"
-if [[ ! -x "$app_executable" ]]; then
-  echo "desktop-native-gate-app-missing" >&2
+host_node=$(command -v node)
+runtime_bin="$app_path/Contents/Resources/runtime-pack/bin"
+network_evidence="$repository_root/scripts/desktop/native-network-evidence.ts"
+if [[
+  ! -x "$app_executable" ||
+  ! -x "$host_node" ||
+  ! -x "$runtime_bin/ffmpeg" ||
+  ! -x "$runtime_bin/ffprobe" ||
+  ! -f "$network_evidence"
+]]; then
+  echo "desktop-phase-b-native-gate-input-missing" >&2
   exit 1
 fi
-
 mkdir -p "$evidence_root"
 
 app_process_running() {
@@ -23,34 +32,19 @@ app_process_running() {
   [[ -n "$state" && "$state" != Z* ]]
 }
 
-wait_for_app_ready() {
-  local path=$1
-  local failure_path=$2
+wait_for_file() {
+  local wanted=$1
+  local failure=$2
   local app_pid=$3
-  local remaining=180
-  while [[ ! -f "$path" && $remaining -gt 0 ]]; do
-    if [[ -f "$failure_path" ]] || ! app_process_running "$app_pid"; then
+  local remaining=${4:-300}
+  while [[ ! -f "$wanted" && $remaining -gt 0 ]]; do
+    if [[ -f "$failure" ]] || ! app_process_running "$app_pid"; then
       return 1
     fi
     sleep 1
     remaining=$((remaining - 1))
   done
-  [[ -f "$path" ]]
-}
-
-process_tree() {
-  local root_pid=$1
-  local pending=("$root_pid")
-  local result=()
-  while [[ ${#pending[@]} -gt 0 ]]; do
-    local pid=${pending[0]}
-    pending=("${pending[@]:1}")
-    result+=("$pid")
-    while IFS= read -r child; do
-      [[ -n "$child" ]] && pending+=("$child")
-    done < <(pgrep -P "$pid" || true)
-  done
-  printf '%s\n' "${result[@]}"
+  [[ -f "$wanted" ]]
 }
 
 assert_rsp_failure() {
@@ -62,186 +56,626 @@ assert_rsp_failure() {
   "$@" >"$output.stdout" 2>"$output.stderr"
   local actual_exit=$?
   set -e
-  [[ $actual_exit -eq $expected_exit ]]
-  [[ ! -s "$output.stdout" ]]
-  node -e '
+  test "$actual_exit" -eq "$expected_exit"
+  test ! -s "$output.stdout"
+  "$host_node" -e '
     const fs = require("fs");
     const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-    const keys = Object.keys(payload).sort();
-    if (
-      keys.length !== 2 ||
-      keys[0] !== "code" ||
-      keys[1] !== "message" ||
-      payload.code !== process.argv[2] ||
-      typeof payload.message !== "string" ||
-      payload.message.length === 0
-    ) process.exit(1);
+    if (payload.code !== process.argv[2] || typeof payload.message !== "string") process.exit(1);
   ' "$output.stderr" "$expected_code"
 }
 
-run_app() {
-  local label=$1
-  local home_root=$2
-  local workspace_root=$3
-  local second_instance=$4
-  local selection=$5
-  local output_root="$evidence_root/$label"
-  local user_data_root="$home_root/Library/Application Support/com.axmorf.studio"
-  local app_log
-  app_log=$(mktemp -t axmorf-native-app-log.XXXXXX)
-  mkdir -p "$home_root" "$workspace_root" "$output_root" "$user_data_root"
-  env \
-    HOME="$home_root" \
-    AXMORF_PHASE_A_NATIVE_GATE=1 \
-    AXMORF_PHASE_A_SMOKE_HOME="$home_root" \
-    AXMORF_PHASE_A_SMOKE_OUTPUT="$output_root" \
-    AXMORF_PHASE_A_SMOKE_SELECTION="$selection" \
-    AXMORF_PHASE_A_SMOKE_USER_DATA="$user_data_root" \
-    AXMORF_PHASE_A_SMOKE_WORKSPACE="$workspace_root" \
-    GITHUB_SHA="${GITHUB_SHA:-local-unverified}" \
-    "$app_executable" >"$app_log" 2>&1 &
-  local app_pid=$!
-  if ! wait_for_app_ready \
-    "$output_root/app-ready" \
-    "$output_root/native-failure.json" \
-    "$app_pid"; then
-    sed -n '1,80p' "$output_root/native-failure.json" >&2 2>/dev/null || true
-    sed -E 's#/(Users|private|var)/[^ ]+#<redacted-path>#g' "$app_log" >&2 || true
-    return 1
-  fi
-  kill -0 "$app_pid"
+set_network_phase() {
+  local output_root=$1
+  local phase=$2
+  printf '%s\n' "$phase" >"$output_root/network-phase"
+}
 
-  owned_pids=()
-  while IFS= read -r owned_pid; do
-    [[ -n "$owned_pid" ]] && owned_pids+=("$owned_pid")
-  done < <(process_tree "$app_pid")
-  : >"$output_root/process-tree.txt"
-  : >"$output_root/tcp-listeners.txt"
-  for pid in "${owned_pids[@]}"; do
-    ps -p "$pid" -o pid=,ppid=,comm= >>"$output_root/process-tree.txt"
-    lsof -nP -a -p "$pid" -iTCP -sTCP:LISTEN >>"$output_root/tcp-listeners.txt" || true
+start_network_monitor() {
+  local app_pid=$1
+  local output_root=$2
+  set_network_phase "$output_root" idle-before
+  "$host_node" --import tsx "$network_evidence" monitor \
+    --root-pid "$app_pid" \
+    --phase-file "$output_root/network-phase" \
+    --stop-file "$output_root/network-monitor-stop" \
+    --output "$output_root/network-samples.jsonl" &
+  NETWORK_MONITOR_PID=$!
+  sleep 1
+  app_process_running "$app_pid"
+}
+
+stop_network_monitor() {
+  local output_root=$1
+  local monitor_pid=$2
+  printf 'stop\n' >"$output_root/network-monitor-stop"
+  wait "$monitor_pid"
+}
+
+assert_network_evidence() {
+  local output_root=$1
+  local required_active_phase=$2
+  local ephemeral_first
+  local ephemeral_last
+  ephemeral_first=$(sysctl -n net.inet.ip.portrange.first)
+  ephemeral_last=$(sysctl -n net.inet.ip.portrange.last)
+  "$host_node" --import tsx "$network_evidence" assert \
+    --input "$output_root/network-samples.jsonl" \
+    --required-active-phases "$required_active_phase" \
+    --ephemeral-first "$ephemeral_first" \
+    --ephemeral-last "$ephemeral_last" \
+    --listener-events-directory "$output_root" \
+    >"$output_root/network-summary.json"
+}
+
+assert_process_cleanup() {
+  local output_root=$1
+  local remaining=300
+  while ! "$host_node" --import tsx "$network_evidence" \
+    assert-process-cleanup \
+    --input "$output_root/network-samples.jsonl" \
+    >"$output_root/process-cleanup.json" 2>"$output_root/process-cleanup.stderr"; do
+    remaining=$((remaining - 1))
+    if [[ $remaining -le 0 ]]; then
+      sed -n '1,80p' "$output_root/process-cleanup.stderr" >&2
+      return 1
+    fi
+    sleep 0.1
   done
-  [[ ! -s "$output_root/tcp-listeners.txt" ]]
+  rm -f "$output_root/process-cleanup.stderr"
+}
 
-  local rsp="$workspace_root/.rsp/bin/rsp"
-  "$rsp" doctor >"$output_root/doctor-success.json"
-  grep -Fq '"desktopTcpListeners":false' "$output_root/doctor-success.json"
-  if grep -Eqi 'bearer|authorization|token|private/|provider' "$output_root/doctor-success.json"; then
-    echo "desktop-native-gate-doctor-redaction-failed" >&2
+assert_session_cleanup() {
+  local workspace_root=$1
+  local output_root=$2
+  local session_root="$workspace_root/.rsp/session"
+  local lock_root="$workspace_root/.rsp/locks"
+  for path in \
+    "$session_root/rsp.sock" \
+    "$session_root/session.json" \
+    "$session_root/token"; do
+    test ! -e "$path"
+  done
+  if [[ -d "$session_root" ]] && \
+    find "$session_root" -mindepth 1 -maxdepth 1 -print -quit | grep -q .; then
+    echo "desktop-native-session-cleanup-incomplete" >&2
     return 1
   fi
-  test "$(stat -f '%Lp' "$workspace_root/.rsp/workspace.json")" = 600
-  test "$(stat -f '%Lp' "$workspace_root/.rsp/managed-files.json")" = 600
-  node -e '
+  if [[ -d "$lock_root" ]] && \
+    find "$lock_root" -mindepth 1 -maxdepth 1 -print -quit | grep -q .; then
+    echo "desktop-native-operation-lock-cleanup-incomplete" >&2
+    return 1
+  fi
+  printf '%s\n' \
+    '{"sessionSocketAbsent":true,"sessionMetadataAbsent":true,"sessionTokenAbsent":true,"sessionDirectoryEmpty":true,"operationLocksEmpty":true}' \
+    >"$output_root/session-cleanup.json"
+}
+
+assert_disposable_staging_cleanup() {
+  local home_root=$1
+  local output_root=$2
+  local cache_root="$home_root/Library/Caches/com.axmorf.studio"
+  if [[ -L "$cache_root" ]]; then
+    echo "desktop-native-cache-root-symlink" >&2
+    return 1
+  fi
+  if [[ -d "$cache_root" ]] && \
+    find "$cache_root" -mindepth 1 -maxdepth 1 \
+      -name 'workspace-delivery-*' -print -quit | grep -q .; then
+    echo "desktop-native-disposable-staging-cleanup-incomplete" >&2
+    return 1
+  fi
+  printf '%s\n' \
+    '{"disposableBuildPrefix":"workspace-delivery-","remainingDisposableBuildDirectories":[],"clean":true}' \
+    >"$output_root/staging-cleanup.json"
+}
+
+assert_exact_delivery() {
+  local workspace_root=$1
+  local output_root=$2
+  local delivery="$workspace_root/deliveries/desktop-native-fixture"
+  local entries
+  entries=$(find "$delivery" -mindepth 1 -maxdepth 1 -print | \
+    sed 's#.*/##' | LC_ALL=C sort)
+  test "$entries" = $'cover-3x4.png\ncover-4x3.png\npublish.json\nvideo.mp4'
+  while IFS= read -r path; do
+    test -f "$path" && test ! -L "$path"
+  done < <(find "$delivery" -mindepth 1 -maxdepth 1 -print)
+
+  "$runtime_bin/ffprobe" -v error -count_frames \
+    -show_entries stream=codec_type,codec_name,channels,width,height,r_frame_rate,nb_read_frames \
+    -of json "$delivery/video.mp4" >"$output_root/video-probe.json"
+  "$runtime_bin/ffmpeg" -v error -xerror -i "$delivery/video.mp4" \
+    -f null -
+  "$runtime_bin/ffmpeg" -v error -xerror -i "$delivery/cover-4x3.png" \
+    -f null -
+  "$runtime_bin/ffmpeg" -v error -xerror -i "$delivery/cover-3x4.png" \
+    -f null -
+  "$host_node" -e '
     const crypto = require("crypto");
     const fs = require("fs");
     const path = require("path");
     const root = process.argv[1];
-    const ledger = JSON.parse(fs.readFileSync(path.join(root, ".rsp/managed-files.json"), "utf8"));
-    for (const file of ledger.files) {
-      const target = path.join(root, file.path);
-      const checksum = crypto.createHash("sha256").update(fs.readFileSync(target)).digest("hex");
-      if (checksum !== file.sha256 || (fs.statSync(target).mode & 0o777) !== file.mode) process.exit(1);
+    const probe = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+    const publish = JSON.parse(fs.readFileSync(path.join(root, "publish.json"), "utf8"));
+    const streams = probe.streams ?? [];
+    const video = streams.find((stream) => stream.codec_type === "video");
+    const audio = streams.find((stream) => stream.codec_type === "audio");
+    if (streams.length !== 2 || video?.codec_name !== "h264" || audio?.codec_name !== "aac") process.exit(1);
+    if (audio.channels !== publish.artifacts?.video?.media?.audioChannels || ![1, 2].includes(audio.channels)) process.exit(1);
+    if (video.width !== publish.width || video.height !== publish.height || video.r_frame_rate !== `${publish.fps}/1` || Number(video.nb_read_frames) !== publish.frameCount) process.exit(1);
+    const publishedVideo = publish.artifacts.video.media;
+    if (publishedVideo.codec !== "h264" || publishedVideo.audioCodec !== "aac" || publishedVideo.width !== video.width || publishedVideo.height !== video.height || publishedVideo.fps !== publish.fps || publishedVideo.frameCount !== Number(video.nb_read_frames) || publishedVideo.decodedToEof !== true) process.exit(1);
+    const files = {video: "video.mp4", cover4x3: "cover-4x3.png", cover3x4: "cover-3x4.png"};
+    for (const [key, name] of Object.entries(files)) {
+      const bytes = fs.readFileSync(path.join(root, name));
+      const checksum = `sha256:${crypto.createHash("sha256").update(bytes).digest("hex")}`;
+      if (publish.artifacts?.[key]?.logicalPath !== `deliveries/desktop-native-fixture/${name}` || publish.artifacts[key].checksum !== checksum || publish.artifacts[key].sizeBytes !== bytes.length || publish.artifacts[key].media?.decodedToEof !== true) process.exit(1);
     }
-    process.stdout.write(JSON.stringify({workspaceContract: "green", managedFileCount: ledger.files.length}) + "\n");
-  ' "$workspace_root" >"$output_root/workspace-integrity.json"
-
-  local session_root="$workspace_root/.rsp/session"
-  local credential_backup session_backup
-  credential_backup=$(mktemp -t axmorf-token-backup.XXXXXX)
-  session_backup=$(mktemp -t axmorf-session-backup.XXXXXX)
-  cp "$session_root/token" "$credential_backup"
-  cp "$session_root/session.json" "$session_backup"
-  chmod 600 "$credential_backup" "$session_backup"
-  printf '%064d\n' 0 >"$session_root/token"
-  chmod 600 "$session_root/token"
-  assert_rsp_failure 4 rsp-unauthorized "$output_root/doctor-wrong-token" "$rsp" doctor
-  cp "$credential_backup" "$session_root/token"
-  chmod 600 "$session_root/token"
-
-  node -e 'const fs=require("fs"); const p=process.argv[1]; const v=JSON.parse(fs.readFileSync(p,"utf8")); v.expiresAt="2000-01-01T00:00:00.000Z"; fs.writeFileSync(p, JSON.stringify(v)+"\n", {mode:0o600});' "$session_root/session.json"
-  assert_rsp_failure 1 rsp-app-unavailable "$output_root/doctor-expired-session" "$rsp" doctor
-  cp "$session_backup" "$session_root/session.json"
-  chmod 600 "$session_root/session.json"
-
-  mv "$session_root/session.json" "$session_root/session.native-smoke-backup"
-  assert_rsp_failure 1 rsp-app-unavailable "$output_root/doctor-missing-session" "$rsp" doctor
-  mv "$session_root/session.native-smoke-backup" "$session_root/session.json"
-
-  if [[ "$second_instance" == "yes" ]]; then
-    env \
-      HOME="$home_root" \
-      AXMORF_PHASE_A_NATIVE_GATE=1 \
-      AXMORF_PHASE_A_SMOKE_HOME="$home_root" \
-      AXMORF_PHASE_A_SMOKE_OUTPUT="$output_root" \
-      AXMORF_PHASE_A_SMOKE_SELECTION="$selection" \
-      AXMORF_PHASE_A_SMOKE_USER_DATA="$user_data_root" \
-      AXMORF_PHASE_A_SMOKE_WORKSPACE="$workspace_root" \
-      "$app_executable" >/dev/null 2>&1 &
-    local second_pid=$!
-    local remaining=60
-    while app_process_running "$second_pid" && [[ $remaining -gt 0 ]]; do
-      sleep 1
-      remaining=$((remaining - 1))
-    done
-    [[ $remaining -gt 0 ]]
-    app_process_running "$app_pid"
-  fi
-
-  printf 'continue\n' >"$output_root/continue"
-  local exit_remaining=60
-  while app_process_running "$app_pid" && [[ $exit_remaining -gt 0 ]]; do
-    sleep 1
-    exit_remaining=$((exit_remaining - 1))
-  done
-  if app_process_running "$app_pid"; then
-    echo 'appExit=timeout' >"$output_root/app-exit.txt"
-    kill "$app_pid" 2>/dev/null || true
-    sleep 2
-    kill -KILL "$app_pid" 2>/dev/null || true
-    wait "$app_pid" 2>/dev/null || true
-    return 1
-  fi
-  set +e
-  wait "$app_pid"
-  local app_exit=$?
-  set -e
-  echo "appExit=$app_exit" >"$output_root/app-exit.txt"
-  [[ $app_exit -eq 0 ]]
-  [[ ! -e "$session_root/rsp.sock" ]]
-  [[ ! -e "$session_root/session.json" ]]
-  [[ ! -e "$session_root/token" ]]
-  for pid in "${owned_pids[@]:1}"; do
-    if kill -0 "$pid" 2>/dev/null; then
-      echo "desktop-native-gate-orphan-process:$pid" >&2
-      return 1
-    fi
-  done
-  assert_rsp_failure 1 rsp-app-unavailable "$output_root/doctor-app-offline" "$rsp" doctor
-  rm -f "$credential_backup" "$session_backup" "$app_log"
+    const pngSize = (name) => {
+      const bytes = fs.readFileSync(path.join(root, name));
+      if (bytes.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a" || bytes.subarray(12, 16).toString("ascii") !== "IHDR") process.exit(1);
+      return [bytes.readUInt32BE(16), bytes.readUInt32BE(20)];
+    };
+    if (String(pngSize("cover-4x3.png")) !== "1600,1200" || String(pngSize("cover-3x4.png")) !== "1200,1600") process.exit(1);
+    const cover4x3 = publish.artifacts.cover4x3.media;
+    const cover3x4 = publish.artifacts.cover3x4.media;
+    if (cover4x3.imageFormat !== "png" || cover4x3.width !== 1600 || cover4x3.height !== 1200 || cover4x3.decodedToEof !== true || cover3x4.imageFormat !== "png" || cover3x4.width !== 1200 || cover3x4.height !== 1600 || cover3x4.decodedToEof !== true) process.exit(1);
+    process.stdout.write(JSON.stringify({deliveryBuildId: publish.deliveryBuildId, revisionId: publish.revisionId, sourceCurrentId: publish.sourceCurrentId, rendererRuntimeFingerprint: publish.rendererRuntimeFingerprint, artifacts: publish.artifacts}) + "\n");
+  ' "$delivery" "$output_root/video-probe.json" >"$output_root/delivery-evidence.json"
 }
 
-default_home="$RUNNER_TEMP/axmorf-native-default-home"
-default_workspace="$default_home/Movies/AXMORF Studio"
-custom_home="$RUNNER_TEMP/axmorf-native-custom-home"
-custom_workspace="$RUNNER_TEMP/axmorf-native-custom-workspace"
-
-run_app default-selection "$default_home" "$default_workspace" yes default
-grep -Fq '"secondInstanceFocused":true' "$evidence_root/default-selection/lifecycle.json"
-grep -Fq '"windowVisibleAfterSecondInstance":true' "$evidence_root/default-selection/lifecycle.json"
-run_app custom-selection "$custom_home" "$custom_workspace" no custom
-run_app reopen "$custom_home" "$custom_workspace" no reopen
-
-for required in AGENTS.md CLAUDE.md GEMINI.md .agents/skills/remotion-story-producer-video/SKILL.md .rsp/hermes/INSTALL_PROMPT.md; do
-  test -f "$custom_workspace/$required"
-done
-{
-  echo 'codexDiscovery=green'
-  if command -v hermes >/dev/null 2>&1; then
-    echo 'hermes=available-manual-smoke-required'
-  else
-    echo 'hermes=pending-cli-unavailable'
+launch_app() {
+  local home_root=$1
+  local workspace_root=$2
+  local output_root=$3
+  local selection=$4
+  local user_data_root="$home_root/Library/Application Support/com.axmorf.studio"
+  local app_log
+  app_log=$(mktemp -t axmorf-phase-b-native-app.XXXXXX)
+  mkdir -p "$home_root" "$workspace_root" "$output_root" "$user_data_root"
+  env \
+    HOME="$home_root" \
+    PATH=/usr/bin:/bin \
+    AXMORF_PHASE_B_NATIVE_GATE=1 \
+    AXMORF_PHASE_B_SMOKE_HOME="$home_root" \
+    AXMORF_PHASE_B_SMOKE_OUTPUT="$output_root" \
+    AXMORF_PHASE_B_SMOKE_SELECTION="$selection" \
+    AXMORF_PHASE_B_SMOKE_USER_DATA="$user_data_root" \
+    AXMORF_PHASE_B_SMOKE_WORKSPACE="$workspace_root" \
+    GITHUB_SHA="${GITHUB_SHA:-local-unverified}" \
+    "$app_executable" >"$app_log" 2>&1 &
+  LAUNCHED_APP_PID=$!
+  if ! wait_for_file \
+    "$output_root/app-ready" \
+    "$output_root/native-failure.json" \
+    "$LAUNCHED_APP_PID" 300; then
+    sed -n '1,120p' "$output_root/native-failure.json" >&2 2>/dev/null || true
+    sed -n '1,120p' "$app_log" >&2 || true
+    return 1
   fi
-} >"$evidence_root/agent-discovery.txt"
+  start_network_monitor "$LAUNCHED_APP_PID" "$output_root"
+}
 
-echo '{"nativeGateRunner":"green","fixtureOrDeliveryUploaded":false}' >"$evidence_root/runner-summary.json"
+assert_native_listener_request_surface() {
+  local port=$1
+  local output_root=$2
+  "$host_node" -e '
+    const fs = require("fs");
+    const http = require("http");
+    const port = Number(process.argv[1]);
+    const output = process.argv[2];
+    const privatePaths = [
+      "/private",
+      "/private/producer-config.json",
+      "/config",
+      "/.rsp",
+      "/.rsp/session/token",
+      "/settings",
+      "/api",
+    ];
+    const proxyPath = `/proxy?src=${encodeURIComponent("http://127.0.0.1:1/native-sentinel")}`;
+    const request = (path) => new Promise((resolve, reject) => {
+      const startedAt = Date.now();
+      const client = http.request({host: "127.0.0.1", port, path, method: "GET"}, (response) => {
+        let sizeBytes = 0;
+        response.on("data", (chunk) => { sizeBytes += chunk.length; });
+        response.once("end", () => resolve({
+          path,
+          statusCode: response.statusCode,
+          sizeBytes,
+          durationMs: Date.now() - startedAt,
+        }));
+      });
+      client.setTimeout(3000, () => client.destroy(new Error("native-listener-request-timeout")));
+      client.once("error", reject);
+      client.end();
+    });
+    Promise.all([...privatePaths, proxyPath].map(request)).then((results) => {
+      const privateResults = results.slice(0, privatePaths.length);
+      const proxyResult = results.at(-1);
+      if (privateResults.some(({statusCode}) => !Number.isInteger(statusCode) || (statusCode >= 200 && statusCode < 300))) {
+        throw new Error("native-listener-exposed-private-request-surface");
+      }
+      if (!Number.isInteger(proxyResult?.statusCode) || proxyResult.statusCode < 400 || proxyResult.statusCode >= 500) {
+        throw new Error("native-listener-accepted-remote-proxy-source");
+      }
+      fs.writeFileSync(output, `${JSON.stringify({host: "127.0.0.1", port, results})}\n`, {flag: "wx"});
+    }).catch((error) => {
+      process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+      process.exitCode = 1;
+    });
+  ' "$port" "$output_root/listener-request-surface.json"
+}
+
+wait_for_native_delivery_listener() {
+  local workspace_root=$1
+  local output_root=$2
+  local app_pid=$3
+  local label=$4
+  local gate_root="$workspace_root/.rsp/native-gate"
+  local ready="$gate_root/listener-ready.json"
+  local last_sequence=""
+  local sequence=""
+  local remaining=12000
+  if [[ -f "$output_root/listener-sequence" ]]; then
+    last_sequence=$(<"$output_root/listener-sequence")
+  fi
+  while [[ $remaining -gt 0 ]]; do
+    if [[ -f "$output_root/native-failure.json" ]] || ! app_process_running "$app_pid"; then
+      return 1
+    fi
+    if [[ -f "$ready" ]]; then
+      sequence=$("$host_node" -e '
+        try {
+          const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+          if (Number.isInteger(value.sequence) && value.sequence > 0) process.stdout.write(String(value.sequence));
+        } catch {}
+      ' "$ready")
+      if [[
+        -n "$sequence" &&
+        ( -z "$last_sequence" || "$sequence" -gt "$last_sequence" )
+      ]]; then
+        break
+      fi
+    fi
+    sleep 0.05
+    remaining=$((remaining - 1))
+  done
+  if [[
+    -z "$sequence" ||
+    ( -n "$last_sequence" && "$sequence" -le "$last_sequence" )
+  ]]; then
+    echo "desktop-native-listener-ready-missing" >&2
+    return 1
+  fi
+  local captured="$output_root/listener-ready-$label-$sequence.json"
+  cp "$ready" "$captured"
+  "$host_node" -e '
+    const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    if (Object.keys(value).sort().join(",") !== "host,port,sequence,storyId" || value.storyId !== "desktop-native-fixture" || value.host !== "127.0.0.1" || !Number.isInteger(value.port) || value.port <= 0 || value.port > 65535 || value.sequence !== Number(process.argv[2])) process.exit(1);
+  ' "$captured" "$sequence"
+  NATIVE_LISTENER_PORT=$("$host_node" -e '
+    const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    process.stdout.write(String(value.port));
+  ' "$captured")
+  printf '%s\n' "$sequence" >"$output_root/listener-sequence"
+  if [[ "$label" = "manual-1" ]]; then
+    assert_native_listener_request_surface "$NATIVE_LISTENER_PORT" "$output_root"
+  fi
+  # Keep each real socket open across multiple independent lsof tree samples.
+  sleep 2
+  NATIVE_LISTENER_SEQUENCE=$sequence
+}
+
+write_native_delivery_action() {
+  local workspace_root=$1
+  local sequence=$2
+  local action=$3
+  local gate_root="$workspace_root/.rsp/native-gate"
+  test "$action" = continue || test "$action" = fail
+  test ! -e "$gate_root/action"
+  printf '{"sequence":%s,"action":"%s"}\n' \
+    "$sequence" "$action" >"$gate_root/action.tmp"
+  chmod 600 "$gate_root/action.tmp"
+  mv "$gate_root/action.tmp" "$gate_root/action"
+}
+
+wait_for_native_listener_closed() {
+  local workspace_root=$1
+  local output_root=$2
+  local sequence=$3
+  local label=$4
+  local gate_root="$workspace_root/.rsp/native-gate"
+  local closed="$gate_root/listener-closed.json"
+  local remaining=12000
+  while [[ $remaining -gt 0 ]]; do
+    if [[ -f "$closed" ]] && "$host_node" -e '
+      try {
+        const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+        if (value.sequence === Number(process.argv[2])) process.exit(0);
+      } catch {}
+      process.exit(1);
+    ' "$closed" "$sequence"; then
+      break
+    fi
+    sleep 0.05
+    remaining=$((remaining - 1))
+  done
+  if [[ $remaining -le 0 ]]; then
+    echo "desktop-native-listener-closed-missing" >&2
+    return 1
+  fi
+  local captured="$output_root/listener-closed-$label-$sequence.json"
+  cp "$closed" "$captured"
+  "$host_node" -e '
+    const fs = require("fs");
+    const ready = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    const closed = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+    const expected = {...ready, closed: true};
+    if (JSON.stringify(closed) !== JSON.stringify(expected)) process.exit(1);
+  ' "$output_root/listener-ready-$label-$sequence.json" "$captured"
+}
+
+release_native_delivery_listeners() {
+  local workspace_root=$1
+  local output_root=$2
+  local app_pid=$3
+  local label=$4
+  local listener_count=${5:-6}
+  local index
+  for ((index = 1; index <= listener_count; index += 1)); do
+    wait_for_native_delivery_listener \
+      "$workspace_root" "$output_root" "$app_pid" "$label-$index"
+    write_native_delivery_action \
+      "$workspace_root" "$NATIVE_LISTENER_SEQUENCE" continue
+    wait_for_native_listener_closed \
+      "$workspace_root" "$output_root" "$NATIVE_LISTENER_SEQUENCE" \
+      "$label-$index"
+  done
+}
+
+reject_native_delivery_listener() {
+  local workspace_root=$1
+  local output_root=$2
+  local app_pid=$3
+  wait_for_native_delivery_listener \
+    "$workspace_root" "$output_root" "$app_pid" failure
+  write_native_delivery_action \
+    "$workspace_root" "$NATIVE_LISTENER_SEQUENCE" fail
+  wait_for_native_listener_closed \
+    "$workspace_root" "$output_root" "$NATIVE_LISTENER_SEQUENCE" failure
+}
+
+drive_production() {
+  local label=$1
+  local home_root=$2
+  local workspace_root=$3
+  local policy=$4
+  local output_root="$evidence_root/$label"
+  launch_app "$home_root" "$workspace_root" "$output_root" custom
+  local app_pid=$LAUNCHED_APP_PID
+  local monitor_pid=$NETWORK_MONITOR_PID
+  local rsp="$workspace_root/.rsp/bin/rsp"
+  test -x "$rsp"
+
+  "$rsp" doctor >"$output_root/doctor.json"
+  "$host_node" -e '
+    const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    const expectedNetwork = {controlPlane:"authenticated-unix-domain-socket-only",persistentTcpListeners:false,deliveryBuildListener:{transport:"http",host:"127.0.0.1",portAllocation:"os-ephemeral",scope:"delivery-build"}};
+    if (value.protocolVersion !== "rsp-local-v2" || value.adapterMode !== "workspace" || value.runtimePackMode !== "embedded" || value.runtimePack.architecture !== "arm64" || JSON.stringify(value.network) !== JSON.stringify(expectedNetwork) || !value.productionAvailable || !value.deliveryAvailable || value.deliveryBlocker !== null || !value.runtimePackAvailable || value.distributionReady || value.provider !== "ready") process.exit(1);
+  ' "$output_root/doctor.json"
+
+  local token="$workspace_root/.rsp/session/token"
+  local saved_token="$gate_runtime_root/$label-session-token.backup"
+  cp "$token" "$saved_token"
+  printf '%064d\n' 0 >"$token"
+  chmod 600 "$token"
+  assert_rsp_failure 4 rsp-unauthorized "$output_root/auth-reject" "$rsp" doctor
+  cp "$saved_token" "$token"
+  chmod 600 "$token"
+  rm "$saved_token"
+
+  local outside="$output_root/outside-rsp"
+  cp "$rsp" "$outside"
+  chmod 755 "$outside"
+  assert_rsp_failure 3 rsp-workspace-invalid "$output_root/path-reject" "$outside" doctor
+  rm "$outside"
+
+  "$host_node" --import tsx \
+    "$repository_root/scripts/desktop/native-fixture.ts" create-input \
+    >"$output_root/project-create-input.json"
+  "$rsp" project create <"$output_root/project-create-input.json" \
+    >"$output_root/project-create.json"
+  rm "$output_root/project-create-input.json"
+  "$rsp" context --project desktop-native-fixture >"$output_root/context.json"
+
+  test ! -e "$workspace_root/.rsp/attempts/desktop-native-fixture"
+  "$rsp" inspect --project desktop-native-fixture >"$output_root/inspect-before.json"
+  test ! -e "$workspace_root/.rsp/attempts/desktop-native-fixture"
+
+  "$rsp" prepare --project desktop-native-fixture --delivery-policy "$policy" \
+    >"$output_root/prepare.json"
+  "$host_node" --import tsx \
+    "$repository_root/scripts/desktop/native-fixture.ts" execute-agent-tasks \
+    --workspace "$workspace_root" <"$output_root/prepare.json" \
+    >"$output_root/agent-tasks.json"
+
+  local attempt_id
+  local revision_id
+  attempt_id=$("$host_node" -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).attemptId' "$output_root/prepare.json")
+  revision_id=$("$host_node" -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).revisionId' "$output_root/prepare.json")
+  "$host_node" -e '
+    const p=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));
+    for (const task of p.dirtyAgentTasks) process.stdout.write(task.taskRevision+"\n");
+  ' "$output_root/prepare.json" >"$output_root/task-revisions.txt"
+  while IFS= read -r task_revision; do
+    "$rsp" task check --task "$task_revision" >>"$output_root/task-checks.jsonl"
+    "$rsp" task commit --task "$task_revision" --attempt "$attempt_id" \
+      >>"$output_root/task-commits.jsonl"
+  done <"$output_root/task-revisions.txt"
+
+  if [[ "$policy" = manual ]]; then
+    set_network_phase "$output_root" manual-source-current
+    "$rsp" continue \
+      --project desktop-native-fixture \
+      --revision "$revision_id" \
+      --attempt "$attempt_id" \
+      --delivery-policy manual >"$output_root/continuation.json"
+    test -s "$workspace_root/.rsp/current/source/desktop-native-fixture.json"
+    test ! -e "$workspace_root/deliveries/desktop-native-fixture"
+    set_network_phase "$output_root" manual-delivery
+    release_native_delivery_listeners \
+      "$workspace_root" "$output_root" "$app_pid" manual &
+    local release_pid=$!
+    "$rsp" delivery build --project desktop-native-fixture \
+      >"$output_root/delivery-build.json"
+    wait "$release_pid"
+    set_network_phase "$output_root" idle-after-manual
+  else
+    test "$policy" = automatic
+    set_network_phase "$output_root" automatic-delivery
+    release_native_delivery_listeners \
+      "$workspace_root" "$output_root" "$app_pid" automatic &
+    local release_pid=$!
+    "$rsp" continue \
+      --project desktop-native-fixture \
+      --revision "$revision_id" \
+      --attempt "$attempt_id" \
+      --delivery-policy automatic >"$output_root/continuation.json"
+    wait "$release_pid"
+    set_network_phase "$output_root" idle-after-automatic
+  fi
+  test -s "$workspace_root/.rsp/current/source/desktop-native-fixture.json"
+  assert_exact_delivery "$workspace_root" "$output_root"
+  "$rsp" inspect --project desktop-native-fixture >"$output_root/inspect-current.json"
+  "$rsp" doctor >"$output_root/doctor-current.json"
+  "$host_node" -e '
+    const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    if (!value.deliveryAvailable || value.deliveryBlocker !== null || value.previewCatalog.entryCount !== 1 || value.activeWork !== null) process.exit(1);
+  ' "$output_root/doctor-current.json"
+
+  if [[ "$policy" = manual ]]; then
+    local delivery="$workspace_root/deliveries/desktop-native-fixture"
+    local delivery_backup="$workspace_root/deliveries/.native-gate-success-backup"
+    test ! -e "$delivery_backup"
+    mv "$delivery" "$delivery_backup"
+    set_network_phase "$output_root" failure-delivery
+    reject_native_delivery_listener \
+      "$workspace_root" "$output_root" "$app_pid" &
+    local reject_pid=$!
+    assert_rsp_failure 6 rsp-command-failed \
+      "$output_root/delivery-failure" \
+      "$rsp" delivery build --project desktop-native-fixture
+    wait "$reject_pid"
+    test ! -e "$delivery"
+    set_network_phase "$output_root" idle-after-failure
+    sleep 1
+    mv "$delivery_backup" "$delivery"
+    assert_exact_delivery "$workspace_root" "$output_root"
+  fi
+
+  printf 'ready\n' >"$output_root/delivery-ready"
+  wait_for_file "$output_root/native-report.json" "$output_root/native-failure.json" "$app_pid" 600
+  "$app_executable" --phase-b-second-instance >/dev/null 2>&1 || true
+  sleep 2
+  if [[ "$policy" = manual ]]; then
+    local delivery="$workspace_root/deliveries/desktop-native-fixture"
+    local quit_backup="$workspace_root/deliveries/.native-gate-quit-backup"
+    test ! -e "$quit_backup"
+    mv "$delivery" "$quit_backup"
+    set_network_phase "$output_root" quit-delivery
+    set +e
+    "$rsp" delivery build --project desktop-native-fixture \
+      >"$output_root/quit-delivery.stdout" \
+      2>"$output_root/quit-delivery.stderr" &
+    local quit_build_pid=$!
+    set -e
+    wait_for_native_delivery_listener \
+      "$workspace_root" "$output_root" "$app_pid" quit
+    printf 'quit\n' >"$output_root/request-quit"
+    wait "$app_pid"
+    wait_for_native_listener_closed \
+      "$workspace_root" "$output_root" "$NATIVE_LISTENER_SEQUENCE" quit
+    set +e
+    wait "$quit_build_pid"
+    local quit_build_exit=$?
+    set -e
+    test "$quit_build_exit" -ne 0
+    test -f "$output_root/quit-request-observed"
+    test ! -e "$delivery"
+    set_network_phase "$output_root" idle-after-quit
+    sleep 1
+  else
+    printf 'continue\n' >"$output_root/continue"
+    wait "$app_pid"
+  fi
+  stop_network_monitor "$output_root" "$monitor_pid"
+  if [[ "$policy" = manual ]]; then
+    assert_network_evidence \
+      "$output_root" "manual-delivery,failure-delivery,quit-delivery"
+  else
+    assert_network_evidence "$output_root" automatic-delivery
+  fi
+  assert_process_cleanup "$output_root"
+  assert_session_cleanup "$workspace_root" "$output_root"
+  assert_disposable_staging_cleanup "$home_root" "$output_root"
+  if [[ "$policy" = manual ]]; then
+    mv \
+      "$workspace_root/deliveries/.native-gate-quit-backup" \
+      "$workspace_root/deliveries/desktop-native-fixture"
+    assert_exact_delivery "$workspace_root" "$output_root"
+  fi
+  "$host_node" -e '
+    const value=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));
+    if (!value.secondInstanceFocused || !value.windowVisibleAfterSecondInstance) process.exit(1);
+  ' "$output_root/lifecycle.json"
+}
+
+gate_runtime_root=$(mktemp -d "${TMPDIR:-/tmp}/axmorf-phase-b-native.XXXXXX")
+case "$gate_runtime_root" in
+  "${TMPDIR:-/tmp}"/axmorf-phase-b-native.*) ;;
+  *)
+    echo "desktop-phase-b-native-gate-temp-root-invalid" >&2
+    exit 1
+    ;;
+esac
+cleanup_gate_runtime_root() {
+  rm -rf -- "$gate_runtime_root"
+}
+trap cleanup_gate_runtime_root EXIT
+manual_home="$gate_runtime_root/manual-home"
+manual_workspace="$gate_runtime_root/manual-workspace"
+drive_production manual "$manual_home" "$manual_workspace" manual
+
+automatic_home="$gate_runtime_root/automatic-home"
+automatic_workspace="$gate_runtime_root/automatic-workspace"
+drive_production automatic "$automatic_home" "$automatic_workspace" automatic
+
+reopen_output="$evidence_root/reopen"
+launch_app "$manual_home" "$manual_workspace" "$reopen_output" reopen
+reopen_pid=$LAUNCHED_APP_PID
+reopen_monitor_pid=$NETWORK_MONITOR_PID
+printf 'ready\n' >"$reopen_output/delivery-ready"
+wait_for_file "$reopen_output/native-report.json" "$reopen_output/native-failure.json" "$reopen_pid" 600
+set_network_phase "$reopen_output" idle-after-reopen
+printf 'continue\n' >"$reopen_output/continue"
+wait "$reopen_pid"
+stop_network_monitor "$reopen_output" "$reopen_monitor_pid"
+"$host_node" --import tsx "$network_evidence" assert-idle \
+  --input "$reopen_output/network-samples.jsonl" \
+  >"$reopen_output/network-summary.json"
+assert_process_cleanup "$reopen_output"
+assert_session_cleanup "$manual_workspace" "$reopen_output"
+assert_disposable_staging_cleanup "$manual_home" "$reopen_output"
+
+for required in \
+  AGENTS.md CLAUDE.md GEMINI.md \
+  .agents/skills/remotion-story-producer-video/SKILL.md \
+  .rsp/hermes/INSTALL_PROMPT.md; do
+  test -f "$manual_workspace/$required"
+done
+
+printf '%s\n' \
+  '{"contractVersion":"desktop-phase-b-native-runner-v1","status":"native-evidence-complete","sourceCurrent":true,"nativeProductionEvidence":true,"deliveryBuilt":true,"manualDeliveryTested":true,"automaticDeliveryTested":true,"failureCleanupTested":true,"quitCleanupTested":true,"loopbackListenerVerified":true,"processCleanupVerified":true,"sessionCleanupVerified":true,"stagingCleanupVerified":true,"reopen":true,"fixtureOrDeliveryUploaded":false}' \
+  >"$evidence_root/runner-summary.json"

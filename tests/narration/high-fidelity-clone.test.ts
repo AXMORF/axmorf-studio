@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, relative } from "node:path";
 import test from "node:test";
 
 import { resolveVoxcpmProfile } from "../../scripts/narration/adapters/private-config";
@@ -58,11 +61,18 @@ const readFile = async (path: string) => {
   throw new Error("missing fixture");
 };
 
-test("prompt M4A normalizes to canonical WAV without modifying source bytes", async () => {
+test("prompt M4A normalizes in the explicit cache root without modifying source bytes", async (context) => {
+  const temporaryRoot = await mkdtemp(join(tmpdir(), "rsp-prompt-root-"));
+  context.after(() => rm(temporaryRoot, { recursive: true, force: true }));
   const before = Buffer.from(Uint8Array.from(sourceBytes));
   const normalized = await normalizePromptAudio({
     sourceBytes,
+    temporaryRoot,
     runProcess: async (_command, args) => {
+      assert.match(
+        relative(temporaryRoot, args[5] ?? ""),
+        /^rsp-voxcpm-prompt-/u,
+      );
       assert.deepEqual(args.slice(-5), [
         "-acodec",
         "pcm_s16le",

@@ -8,11 +8,11 @@ import {
 } from "../../src/contracts";
 import { queryResourceCatalog, type ResourceCatalogQuery } from "./domain";
 import {
-  generateResourceCatalog,
   type CatalogGenerationMode,
   type CatalogGenerationResult,
 } from "./generate";
-import { readGeneratedResourceCatalog } from "./project-files";
+import { generateResourceCatalog } from "./repository-generate";
+import { readGeneratedResourceCatalog } from "./repository-project-files";
 
 const QueryKindSchema = z.enum([
   "asset",

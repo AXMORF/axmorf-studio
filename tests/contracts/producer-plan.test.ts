@@ -20,10 +20,10 @@ const sceneDecision = {
   blockedBy: [],
   explanationAvailability: "complete" as const,
 };
-const deliveryDecision = {
+const convergenceDecision = {
   taskRevision: taskB,
   baselineTaskRevision: null,
-  taskKind: "delivery-build" as const,
+  taskKind: "composition-convergence" as const,
   subject: { kind: "project" as const, id: "story-example" },
   action: "blocked" as const,
   artifactState: "missing" as const,
@@ -40,10 +40,14 @@ test("plan is stable, sorted, and derives mechanical summary from explanations",
     storyId: "story-example",
     revisionId,
     artifactSetFingerprint: sha("3"),
-    tasks: [sceneDecision, deliveryDecision],
+    tasks: [sceneDecision, convergenceDecision],
     summary: { reusedTaskCount: 0, dirtyAgentTaskCount: 1, dirtyFixedTaskCount: 0, blockedTaskCount: 1 },
   });
   assert.equal(plan.tasks.length, 2);
+  assert.deepEqual(
+    plan.tasks.map(({ taskKind }) => taskKind),
+    ["scene-owner", "composition-convergence"],
+  );
   assert.throws(() => buildProducerPlan({
     ...plan,
     tasks: [...plan.tasks].reverse(),
@@ -59,14 +63,14 @@ test("plan explanation metadata is diagnostic-only", () => {
     storyId: "story-example",
     revisionId,
     artifactSetFingerprint: sha("3"),
-    tasks: [sceneDecision, deliveryDecision],
+    tasks: [sceneDecision, convergenceDecision],
     summary: { reusedTaskCount: 0, dirtyAgentTaskCount: 1, dirtyFixedTaskCount: 0, blockedTaskCount: 1 },
   });
   const explainedFromAnotherBaseline = buildProducerPlan({
     ...first,
     tasks: [
       { ...sceneDecision, explanationAvailability: "complete", baselineTaskRevision: `task-${"4".repeat(64)}` },
-      { ...deliveryDecision, explanationAvailability: "complete", baselineTaskRevision: `task-${"5".repeat(64)}` },
+      { ...convergenceDecision, explanationAvailability: "complete", baselineTaskRevision: `task-${"5".repeat(64)}` },
     ],
   });
   assert.equal(explainedFromAnotherBaseline.revisionId, first.revisionId);

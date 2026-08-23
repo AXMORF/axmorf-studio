@@ -3,17 +3,19 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { runScenePackageCli } from "../../scripts/scene-package/cli";
+import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
 
 const repositoryRoot = join(import.meta.dirname, "../..");
 
 test("scene package CLI accepts only exact package and coverage write/check forms", async () => {
   const calls: unknown[] = [];
   const context = {
-    rootDir: repositoryRoot,
+    locations: createRepositoryProductionLocations({ repositoryRoot }),
     stdout: () => undefined,
     generatePackage: async (input: unknown) => calls.push(input),
     generateCoverage: async (input: unknown) => calls.push(input),
   };
+  assert.equal(context.locations.layoutKind, "repository");
   await runScenePackageCli(
     [
       "package",

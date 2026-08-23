@@ -2,12 +2,13 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-23 Desktop Phase A native gate verified complete
+> 最后复核：2026-08-23 Desktop Phase B implementation complete, native evidence pending
 
 ## 当前结论
 
 仓库当前 production authority 已收敛为 ProductionRevision、content-addressed Task DAG、task workspace、
-ArtifactAttestation、reusable Artifact Store、fixed convergence 与 synchronous exact four-file delivery。
+ArtifactAttestation、reusable Artifact Store、fixed convergence、attested `source-current` 与独立 fixed
+DeliveryBuild。`manual` 在 source-current 停止；`automatic` 或 later explicit action 才生成 exact four-file Delivery。
 当前 authoring/production 主链公开 scripts 为：
 
 ```text
@@ -26,11 +27,9 @@ project:produce:continue
 shim。历史 `.producer-runs` 数据保持原位，但 current prepare/convergence/build/settings 不读取；删除器内部只
 保留 strict ownership parser。
 
-当前 checkout 有一个 source Project `remotion-story-producer-handdrawn-intro`；只读 inspect 返回
-`production-inputs-ready` / `prepare-production`，但它没有 materialized Composition 或 current delivery，
-因此 ProjectRegistry 为 0 entry、`deliveries/` 为 0 current delivery。当前 ResourceCatalog 投影为 26
-entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据；该本地 Project 也不改变 zero-Project
-支持合同。
+当前 checkout 为 zero Project：ProjectRegistry 是 0 entry，`deliveries/` 是 0 current delivery，ResourceCatalog
+投影为 19 entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据；zero-Project
+bootstrap/Registry/Catalog/settings 合同保持有效。
 
 当前 repository video Skill policy schema v16 / policy v18 还定义了一个 pre-inspect external-asset Agent capability slot：只按
 当前 Root Agent 的实际 callable MCP tools 激活，缺失时完全省略；激活后也必须先查本地 Catalog，再通过
@@ -99,13 +98,16 @@ entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据�
   failure 或 attempt 创建起一小时 terminal deadline 到期时直接退出，在全部成功后只调用一次 converge，fixed failure 不重试或
   唤回 Root。
 
-## 已实现 convergence 与 delivery
+## 已实现 convergence、source-current 与 explicit delivery
 
 - converge 只读 replan，零 provider/workspace/new attempt；stale revision/incomplete artifact 在任何 live mutation
   前拒绝；
 - task-owned staging、controlled replace、rollback 和 materialized bytes revalidation；
 - ScenePackage、Coverage、RendererRegistry、GlobalVisualPackage 与生成式 Composition fixed refresh；
-- build-owned staging、validated media reuse、synchronous Remotion/FFmpeg、H.264/AAC/channels、dimensions、fps、
+- converge 从 live bytes 复验后写入 attested source-current；manual 在这里返回 source terminal，automatic 才继续，
+  delivery policy 不进入 Revision/Task/Artifact/source identity；
+- later explicit DeliveryBuild 不创建 provider call、Agent task、workspace 或 ExecutionAttempt；build-owned staging、
+  validated media reuse、synchronous Remotion/FFmpeg、H.264/AAC/channels、dimensions、fps、
   frame count、PNG、checksums 与 EOF decode；
 - `publish.json` 最后写、exact four files、controlled current replacement 与 same identity no-op。
 
@@ -126,7 +128,7 @@ focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests
 零写入/零 provider、dirty-only dispatch、精确 direct/dependency/artifact explanation、诊断隔离、安全边界、
 历史隔离、current no-op 与 delivery failure reuse。
 
-## Desktop Phase A repository adapter
+## Desktop Phase A repository adapter（历史 closeout）
 
 基于 `4ad7e4e`，实施分支已完成 Task 0–6 的 repository-adapter 原型：
 
@@ -134,8 +136,8 @@ focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests
   `utilityProcess` lifecycle；
 - 单一 managed Workspace 的原子初始化/修复、strict modes/checksums/symlink gates，以及只支持 `doctor` 的
   workspace-local `.rsp/bin/rsp`；
-- token 只通过 owner-only file 和 MessagePort 进入 Engine，CLI 只连接 authenticated Unix-domain socket；App/Engine
-  runtime 不启动 Settings、Remotion Studio 或其他 owned TCP listener；
+- token 只通过 owner-only file 和 MessagePort 进入 Engine，CLI 只连接 authenticated Unix-domain socket；Phase A
+  App/Engine runtime 不启动 Settings、Remotion Studio 或 App-owned TCP listener；
 - 只读 repository Preview Catalog；只接受 current Revision 匹配、exact-four-file validation Green 的 Delivery，
   timing 从同 revision canonical source 投影；每个 Project 只做一次完整 Delivery validation，timing 前后用轻量
   current Revision 读取复验，Catalog refresh 使用独立有界长超时；
@@ -159,20 +161,44 @@ focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests
 Phase A 不修改 current production/delivery contracts，不提供 production/delivery `rsp` 命令，不迁移 Project/media/
 artifact/delivery，不实现 `source-current`、optional Delivery、完整 Runtime Pack、DMG/签名/发布或许可证变更。
 Apple Silicon native gate 与 609/609 full repository tests Green 后，Phase A 状态为 `verified-complete`，实施计划已归档，
-ROADMAP 下一入口推进到 Phase B；本次没有开始 Phase B。runner 没有 Hermes CLI，Hermes-specific smoke 按合同准确
-保留 pending；unconditional Agent gate 的 managed discovery、Codex-compatible discovery 和真实 `rsp doctor` 已 Green。
+ROADMAP 当时的下一入口推进到 Phase B；该次 Phase A closeout 没有实施 Phase B。runner 没有 Hermes CLI，
+Hermes-specific smoke 按合同准确保留 pending；unconditional Agent gate 的 managed discovery、Codex-compatible
+discovery 和真实 `rsp doctor` 已 Green。
 
 本轮 closeout 的完整 `npm run check` 已在上述 Apple Silicon run Green：609/609 tests、typecheck、lint、
 `docs:check-links`、static build、真实 Remotion compositions 与 source verification 均完成。文档 closeout 后仍须在
 最终精确提交重跑完整 gate；不得仅凭本文宣称通过。
+
+## Desktop Phase B 当前实现与 evidence gate
+
+当前 working tree 已实现并以 focused tests 覆盖 Phase B：显式 repository/Workspace
+`ProductionLocations`、runtime-bound `source-current`/Delivery identity split、Workspace v2 upgrade 与 root migration
+rollback、immutable arm64 Runtime Pack manifest/builder/verifier、自包含 Node SEA `rsp-local-v2`、Workspace-owned
+Project/media/private config、完整 public command surface、exact-attempt terminal/one-shot continuation、Engine active-work、
+Preview Catalog refresh、exact-four-file-only Player、Provider Settings 与 managed Skill。Desktop runtime 的 control plane
+只有 authenticated Unix-domain socket；无配置时 doctor 仍可启动并结构化报告 provider not configured，Delivery
+capability 仍独立报告为 available。
+
+Phase B implementation 已完成。经 primary-source 与 exact 4.0.489 本地源码复核、并由用户确认安全边界，Runtime Pack
+现在携带 checksum-bound 的 bundler/renderer 及其 exact Studio/Studio Shared 内部依赖，但继续拒绝 Remotion CLI、
+Studio Server、`.bin/remotion` 与 launch surface；App 不启动 Studio UI/Server。Workspace Delivery adapter 只从显式
+Workspace/Runtime Pack roots 构建 disposable bundle，并在单次 DeliveryBuild 内将 Remotion listener 强制绑定
+`127.0.0.1` 的 OS-ephemeral 端口；success/failure/cancel/shutdown 都恢复私有 adapter、关闭 listener 并清理 staging。
+Desktop doctor 返回 `deliveryAvailable: true`、`deliveryBlocker: null` 与结构化 UDS-only-control/loopback-render policy。
+
+当前宿主是 Linux，无法生成或执行 Apple Silicon Runtime Pack、unsigned `.app` package 与 packaged production E2E；没有
+伪造 Hermes、provider、Delivery、最终 MP4、package 或 native evidence。因此当前状态严格为
+`implementation-complete-native-evidence-pending`，不是 Phase B verified complete。Phase B 计划保持 active，Task 12
+closeout 不执行，Roadmap 不推进到 Phase C，等待真实 Apple Silicon manual/automatic Delivery、listener/process cleanup
+和 Preview Player native gate。
 
 ## 当前非目标
 
 远程 scheduler/database/artifact store、平台发布、账号、上传、child identity persistence、subjective quality
 gate、automatic capability promotion、Docker 和新的 TTS Gateway 均未实现。
 
-binary installer、production-capable `rsp`、正式跨宿主 Skill lifecycle、Workspace production migration、
-`source-current`/optional Delivery contracts、完整 offline Runtime Pack 和 public release 仍未实现；这些目标记录在
+公开 DMG/installer 发行、签名/公证、完整跨宿主 native evidence、x64 native support evidence 和 public release
+仍未实现或验证；这些目标记录在
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
 [macOS 维护与发行目标](DESKTOP_APP_MACOS_MAINTENANCE.md)。Phase A 的受限 Workspace/Skill/doctor/Preview surface
 不进入或改变 current production authority。

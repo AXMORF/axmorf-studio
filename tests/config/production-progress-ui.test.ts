@@ -88,11 +88,13 @@ test("progress UI renders Revision task reuse attempt diagnostics and four-file 
             currentTaskCount: 5,
             failedTaskCount: 0,
           },
-          deliveryResult: "verified",
+          terminalResult: "delivery-current",
         },
         delivery: {
           deliveryBuildId: `delivery-${"b".repeat(64)}`,
           revisionId: `revision-${"a".repeat(64)}`,
+          sourceCurrentId: `source-current-${"c".repeat(64)}`,
+          rendererRuntimeFingerprint: `sha256:${"d".repeat(64)}`,
           frameCount: 120,
           current: true,
           files: {
@@ -132,7 +134,7 @@ test("progress UI renders Revision task reuse attempt diagnostics and four-file 
   assert.match(markup, /brief/u);
   assert.match(markup, /被阻塞/u);
   assert.match(markup, /scene-owner.*opening/u);
-  assert.match(markup, /delivery verified/u);
+  assert.match(markup, /terminal delivery-current/u);
   assert.match(markup, /VERIFIED DELIVERY/u);
   assert.match(markup, /VIDEO/u);
   assert.match(markup, /COVER 4:3/u);
@@ -163,6 +165,8 @@ test("configured authoring renders read-only readiness and estimated cost before
           storyId: "story-fresh",
           sourceState: "configured-authoring",
           currentRevisionId: null,
+          sourceCurrentId: null,
+          deliveryBuildId: null,
           baseline: { kind: "none", revisionId: null },
           estimatedCost: {
             providerRequests: 1,

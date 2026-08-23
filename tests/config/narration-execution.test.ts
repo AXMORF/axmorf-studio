@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { resolveProducerNarrationInspection } from "../../scripts/config/narration-execution";
+import {
+  resolveProducerNarrationExecution,
+  resolveProducerNarrationInspection,
+} from "../../scripts/config/narration-execution";
 import { writeProducerConfig } from "../../scripts/config/producer-config";
+import { encodeCanonicalPcmWav } from "../../scripts/narration/domain/pcm-wav";
 import { NarrationSpecSchema } from "../../src/contracts/narration";
 import { validProjectCreateProducerConfig } from "../fixtures/project-create";
 
@@ -19,14 +23,14 @@ test("inspection metadata does not open the selected VoxCPM voice material", asy
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-narration-inspection-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const configPath = join(rootDir, "private/producer.config.json");
-  await writeProducerConfig({
+  const config = await writeProducerConfig({
     configPath,
     value: validProjectCreateProducerConfig,
   });
 
   const inspection = await resolveProducerNarrationInspection({
-    rootDir,
-    env: { RSP_PRODUCER_CONFIG: configPath },
+    config,
+    privateConfigRoot: rootDir,
     narration,
   });
 
@@ -35,10 +39,7 @@ test("inspection metadata does not open the selected VoxCPM voice material", asy
     inspection.providerAttemptIdentityState,
     "unknown-protected-voice-material",
   );
-  assert.equal(
-    inspection.masteringPolicy.targetIntegratedLoudnessLufs,
-    -16,
-  );
+  assert.equal(inspection.masteringPolicy.targetIntegratedLoudnessLufs, -16);
   assert.deepEqual(inspection.metadata, {
     kind: "voxcpm",
     mode: "controllable-clone",
@@ -56,7 +57,7 @@ test("high-fidelity VoxCPM inspection does not read normalize or measure protect
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const configPath = join(rootDir, "private/producer.config.json");
   const provider = validProjectCreateProducerConfig.tts.providers[0];
-  await writeProducerConfig({
+  const config = await writeProducerConfig({
     configPath,
     value: {
       ...validProjectCreateProducerConfig,
@@ -83,8 +84,8 @@ test("high-fidelity VoxCPM inspection does not read normalize or measure protect
   });
 
   const inspection = await resolveProducerNarrationInspection({
-    rootDir,
-    env: { RSP_PRODUCER_CONFIG: configPath },
+    config,
+    privateConfigRoot: rootDir,
     narration: NarrationSpecSchema.parse({
       schemaVersion: 2,
       voiceProfileId: "prompt-voice",
@@ -105,7 +106,7 @@ test("SpeechSDK inspection exposes an exact safe fingerprint without exposing it
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-speech-sdk-inspection-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const configPath = join(rootDir, "private/producer.config.json");
-  await writeProducerConfig({
+  const config = await writeProducerConfig({
     configPath,
     value: {
       ...validProjectCreateProducerConfig,
@@ -140,8 +141,8 @@ test("SpeechSDK inspection exposes an exact safe fingerprint without exposing it
   });
 
   const inspection = await resolveProducerNarrationInspection({
-    rootDir,
-    env: { RSP_PRODUCER_CONFIG: configPath },
+    config,
+    privateConfigRoot: rootDir,
     narration: NarrationSpecSchema.parse({
       schemaVersion: 2,
       voiceProfileId: "cloud-voice",
@@ -149,7 +150,10 @@ test("SpeechSDK inspection exposes an exact safe fingerprint without exposing it
     }),
   });
 
-  assert.match(inspection.providerAttemptFingerprint ?? "", /^sha256:[a-f0-9]{64}$/u);
+  assert.match(
+    inspection.providerAttemptFingerprint ?? "",
+    /^sha256:[a-f0-9]{64}$/u,
+  );
   assert.equal(inspection.providerAttemptIdentityState, "exact");
   assert.deepEqual(inspection.metadata, {
     kind: "speech-sdk",
@@ -161,4 +165,67 @@ test("SpeechSDK inspection exposes an exact safe fingerprint without exposing it
     JSON.stringify(inspection),
     /inspection-must-redact-this-key|api\.openai\.com/u,
   );
+});
+
+test("high-fidelity execution uses only the injected prompt normalization port", async (context) => {
+  const privateConfigRoot = await mkdtemp(
+    join(tmpdir(), "rsp-prompt-execution-"),
+  );
+  context.after(() => rm(privateConfigRoot, { recursive: true, force: true }));
+  const providerRoot = join(privateConfigRoot, "provider-material");
+  const promptAudioPath = join(providerRoot, "prompt.m4a");
+  const promptTextPath = join(providerRoot, "prompt.txt");
+  await mkdir(providerRoot, { recursive: true });
+  const sourceBytes = Buffer.from("runtime-bound-prompt-source");
+  await Promise.all([
+    writeFile(promptAudioPath, sourceBytes),
+    writeFile(promptTextPath, "confirmed transcript\n"),
+  ]);
+  const provider = validProjectCreateProducerConfig.tts.providers[0];
+  const config = await writeProducerConfig({
+    configPath: join(privateConfigRoot, "producer.config.json"),
+    value: {
+      ...validProjectCreateProducerConfig,
+      tts: {
+        ...validProjectCreateProducerConfig.tts,
+        defaultVoiceProfileId: "prompt-voice",
+        providers: [
+          {
+            ...provider,
+            voiceProfiles: [
+              {
+                id: "prompt-voice",
+                name: "Prompt voice",
+                mode: "high-fidelity-clone",
+                promptAudioPath: "provider-material/prompt.m4a",
+                promptTextPath: "provider-material/prompt.txt",
+                promptTranscriptConfirmed: true,
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
+  const canonicalPrompt = encodeCanonicalPcmWav(Buffer.alloc(3_200));
+  let normalizationCalls = 0;
+
+  const execution = await resolveProducerNarrationExecution({
+    config,
+    privateConfigRoot,
+    narration: NarrationSpecSchema.parse({
+      schemaVersion: 2,
+      voiceProfileId: "prompt-voice",
+      mode: "voice-clone",
+    }),
+    normalizePromptAudio: async ({ sourceBytes: actual }) => {
+      normalizationCalls += 1;
+      assert.deepEqual(actual, sourceBytes);
+      return canonicalPrompt;
+    },
+  });
+
+  assert.equal(normalizationCalls, 1);
+  assert.equal(execution.resolved.kind, "voxcpm");
+  assert.equal(execution.resolved.safeDescriptor.mode, "high-fidelity-clone");
 });

@@ -11,7 +11,22 @@ const createController = (events: string[]) =>
       loadSelectedRoot: async () => "/tmp/workspace",
       chooseInitialRoot: async () => null,
       initializeInitialRoot: async (root) => root,
+      chooseMigrationTarget: async () => null,
+      migrateRoot: async () => {
+        throw new Error("not used");
+      },
       showInFileManager: async () => undefined,
+    },
+    providerSettings: {
+      get: async () => ({
+        schemaVersion: 1,
+        status: "not-configured",
+        defaultProviderId: null,
+        providers: [],
+      }),
+      save: async () => {
+        throw new Error("not used");
+      },
     },
     engine: {
       start: async () => {
@@ -29,17 +44,34 @@ const createController = (events: string[]) =>
             unavailableCount: 0,
             failureCode: null,
           },
-          activeWork: false,
+          projects: [],
+          activeWork: null,
+          runtimePack: {
+            runtimePackId: `runtime-pack-${"a".repeat(64)}`,
+            architecture: "arm64",
+          },
+          agentIntegration: "ready",
+          provider: "unknown",
+          deliveryAvailable: false,
+          deliveryBlocker: {
+            code: "desktop-delivery-runtime-unavailable",
+            message: "Embedded Delivery runtime is unavailable.",
+          },
         } as const;
       },
       refreshPreviewCatalog: async () => {
         throw new Error("not used");
       },
+      buildDelivery: async () => {
+        throw new Error("not used");
+      },
+      subscribe: () => () => undefined,
       stop: async () => {
         events.push("engine-stop");
       },
     },
     media: {
+      selectWorkspace: async () => undefined,
       replaceCatalog: async () => undefined,
       close: async () => {
         events.push("media-close");

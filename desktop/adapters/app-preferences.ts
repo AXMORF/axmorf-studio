@@ -215,7 +215,7 @@ export const persistInitialWorkspacePreference = async ({
   if (existing !== null) {
     if (resolve(existing.workspaceRoot) !== workspaceRoot) {
       throw new Error(
-        "Workspace switching is unavailable in Phase A; a Workspace authority already exists.",
+        "Workspace switching is unavailable after initial selection; a Workspace authority already exists.",
       );
     }
     return { preferences: existing, written: false };

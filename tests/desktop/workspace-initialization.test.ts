@@ -11,7 +11,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 
 import {
@@ -36,12 +36,20 @@ const createFixture = async () => {
   const root = await mkdtemp(join(tmpdir(), "axmorf-workspace-init-"));
   const homeDirectory = join(root, "home");
   const repositoryRoot = join(root, "repository");
+  const rspPath = join(root, "runtime-rsp");
   await mkdir(join(homeDirectory, "Movies"), { recursive: true });
   await mkdir(repositoryRoot);
+  const rspBytes = Buffer.from("test runtime rsp\n", "utf8");
+  await writeFile(rspPath, rspBytes, { mode: 0o755 });
+  await chmod(rspPath, 0o755);
   return {
     root,
     homeDirectory,
     repositoryRoot,
+    rspExecutable: {
+      path: rspPath,
+      sha256: checksumWorkspaceBytes(rspBytes),
+    },
     workspaceRoot: join(homeDirectory, "Movies", "AXMORF Studio"),
   };
 };
@@ -50,8 +58,10 @@ const initialize = (fixture: Awaited<ReturnType<typeof createFixture>>) =>
   initializeWorkspace({
     workspaceRoot: fixture.workspaceRoot,
     homeDirectory: fixture.homeDirectory,
-    repositoryRoot: fixture.repositoryRoot,
     integrationResourcesRoot,
+    rspExecutable: fixture.rspExecutable,
+    forbiddenRoots: [],
+    activeWork: async () => false,
   });
 
 const readJson = async (path: string) =>
@@ -89,6 +99,10 @@ test("fresh initialization creates exact managed layout, checksums, and permissi
       record.sha256,
     );
   }
+  assert.equal(
+    await readFile(join(fixture.workspaceRoot, ".rsp/bin/rsp"), "utf8"),
+    "test runtime rsp\n",
+  );
   assert.equal(
     (await lstat(join(fixture.workspaceRoot, ".rsp/workspace.json"))).mode &
       0o777,
@@ -221,8 +235,10 @@ test("Workspace validation rejects symlinks, path escape, and forbidden ownershi
     initializeWorkspace({
       workspaceRoot: fixture.repositoryRoot,
       homeDirectory: fixture.homeDirectory,
-      repositoryRoot: fixture.repositoryRoot,
       integrationResourcesRoot,
+      rspExecutable: fixture.rspExecutable,
+      forbiddenRoots: [fixture.repositoryRoot],
+      activeWork: async () => false,
     }),
     /forbidden ownership root/iu,
   );
@@ -230,8 +246,10 @@ test("Workspace validation rejects symlinks, path escape, and forbidden ownershi
     initializeWorkspace({
       workspaceRoot: fixture.homeDirectory,
       homeDirectory: fixture.homeDirectory,
-      repositoryRoot: fixture.repositoryRoot,
       integrationResourcesRoot,
+      rspExecutable: fixture.rspExecutable,
+      forbiddenRoots: [],
+      activeWork: async () => false,
     }),
     /home directory itself/iu,
   );
@@ -239,8 +257,10 @@ test("Workspace validation rejects symlinks, path escape, and forbidden ownershi
     initializeWorkspace({
       workspaceRoot: "/",
       homeDirectory: fixture.homeDirectory,
-      repositoryRoot: fixture.repositoryRoot,
       integrationResourcesRoot,
+      rspExecutable: fixture.rspExecutable,
+      forbiddenRoots: [],
+      activeWork: async () => false,
     }),
     /Filesystem root/iu,
   );
@@ -250,8 +270,10 @@ test("Workspace validation rejects symlinks, path escape, and forbidden ownershi
     initializeWorkspace({
       workspaceRoot: join(appBundleRoot, "Workspace"),
       homeDirectory: fixture.homeDirectory,
-      repositoryRoot: fixture.repositoryRoot,
       integrationResourcesRoot,
+      rspExecutable: fixture.rspExecutable,
+      forbiddenRoots: [],
+      activeWork: async () => false,
     }),
     /App bundle/iu,
   );
@@ -294,5 +316,109 @@ test("atomic managed writes do not clobber and remove temporary files on failure
   assert.deepEqual(
     (await readdir(fixture.root)).filter((entry) => entry.includes(".tmp")),
     [],
+  );
+});
+
+test("Workspace initialization requires the exact verified Runtime Pack rsp executable", async (context) => {
+  const fixture = await createFixture();
+  context.after(() => rm(fixture.root, { recursive: true, force: true }));
+  await assert.rejects(
+    initializeWorkspace({
+      workspaceRoot: fixture.workspaceRoot,
+      homeDirectory: fixture.homeDirectory,
+      integrationResourcesRoot,
+      rspExecutable: {
+        ...fixture.rspExecutable,
+        sha256: "0".repeat(64),
+      },
+      forbiddenRoots: [],
+      activeWork: async () => false,
+    }),
+    /verified Runtime Pack/iu,
+  );
+  await chmod(fixture.rspExecutable.path, 0o644);
+  await assert.rejects(
+    initializeWorkspace({
+      workspaceRoot: fixture.workspaceRoot,
+      homeDirectory: fixture.homeDirectory,
+      integrationResourcesRoot,
+      rspExecutable: fixture.rspExecutable,
+      forbiddenRoots: [],
+      activeWork: async () => false,
+    }),
+    /Runtime Pack executable/iu,
+  );
+});
+
+test("managed integration update is atomic, inactive-only, and rejects user drift", async (context) => {
+  const fixture = await createFixture();
+  context.after(() => rm(fixture.root, { recursive: true, force: true }));
+  await initialize(fixture);
+  const nextRspPath = join(fixture.root, "next-runtime-rsp");
+  const nextRspBytes = Buffer.from("next runtime rsp\n", "utf8");
+  await writeFile(nextRspPath, nextRspBytes, { mode: 0o755 });
+  await chmod(nextRspPath, 0o755);
+  const nextRsp = {
+    path: nextRspPath,
+    sha256: checksumWorkspaceBytes(nextRspBytes),
+  };
+  await assert.rejects(
+    initializeWorkspace({
+      workspaceRoot: fixture.workspaceRoot,
+      homeDirectory: fixture.homeDirectory,
+      integrationResourcesRoot,
+      rspExecutable: nextRsp,
+      forbiddenRoots: [],
+      activeWork: async () => true,
+    }),
+    /active work/iu,
+  );
+  assert.equal(
+    await readFile(join(fixture.workspaceRoot, ".rsp/bin/rsp"), "utf8"),
+    "test runtime rsp\n",
+  );
+
+  const updated = await initializeWorkspace({
+    workspaceRoot: fixture.workspaceRoot,
+    homeDirectory: fixture.homeDirectory,
+    integrationResourcesRoot,
+    rspExecutable: nextRsp,
+    forbiddenRoots: [],
+    activeWork: async () => false,
+  });
+  assert.equal(updated.initialized, true);
+  assert.equal(
+    await readFile(join(fixture.workspaceRoot, ".rsp/bin/rsp"), "utf8"),
+    "next runtime rsp\n",
+  );
+  assert.equal(
+    (await readdir(dirname(fixture.workspaceRoot))).filter((entry) =>
+      entry.startsWith(".axmorf-workspace-preserved-"),
+    ).length,
+    1,
+  );
+
+  const thirdRspPath = join(fixture.root, "third-runtime-rsp");
+  const thirdRspBytes = Buffer.from("third runtime rsp\n", "utf8");
+  await writeFile(thirdRspPath, thirdRspBytes, { mode: 0o755 });
+  await chmod(thirdRspPath, 0o755);
+  await writeFile(join(fixture.workspaceRoot, "AGENTS.md"), "user drift\n");
+  await assert.rejects(
+    initializeWorkspace({
+      workspaceRoot: fixture.workspaceRoot,
+      homeDirectory: fixture.homeDirectory,
+      integrationResourcesRoot,
+      rspExecutable: {
+        path: thirdRspPath,
+        sha256: checksumWorkspaceBytes(thirdRspBytes),
+      },
+      forbiddenRoots: [],
+      activeWork: async () => false,
+    }),
+    /Managed Workspace file drifted/iu,
+  );
+  assert.equal(
+    await readFile(join(fixture.workspaceRoot, "AGENTS.md"), "utf8"),
+    "user drift\n",
   );
 });

@@ -55,11 +55,11 @@ test("Root keeps System capability and Scene template previews when the ProjectR
   const systemFolderElement = asElement(systemFolder);
   const storiesFolderElement = asElement(storiesFolder);
 
-  const systemCompositions = elementChildren(systemFolderElement).map(asElement);
+  const systemCompositions =
+    elementChildren(systemFolderElement).map(asElement);
   const systemComposition = systemCompositions.find(
     (entry) =>
-      entry.type === Composition &&
-      entry.props.id === "CapabilityGallery",
+      entry.type === Composition && entry.props.id === "CapabilityGallery",
   );
   const systemCompositionElement = asElement(systemComposition);
   assert.notEqual(systemCompositionElement.props.component, undefined);
@@ -71,15 +71,13 @@ test("Root keeps System capability and Scene template previews when the ProjectR
   const introPreview = asElement(
     systemCompositions.find(
       (entry) =>
-        entry.type === Composition &&
-        entry.props.id === "DefaultIntroPreview",
+        entry.type === Composition && entry.props.id === "DefaultIntroPreview",
     ),
   );
   const outroPreview = asElement(
     systemCompositions.find(
       (entry) =>
-        entry.type === Composition &&
-        entry.props.id === "DefaultOutroPreview",
+        entry.type === Composition && entry.props.id === "DefaultOutroPreview",
     ),
   );
   assert.deepEqual(

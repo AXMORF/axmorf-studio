@@ -17,7 +17,7 @@ import {
   buildResourceCatalog,
   renderResourceCatalogJson,
 } from "../../scripts/catalog/domain";
-import { loadProjectResourceDescriptors } from "../../scripts/catalog/project-files";
+import { loadProjectResourceDescriptors } from "../../scripts/catalog/repository-project-files";
 import {
   importProjectAsset,
   type ProjectAssetCatalogSync,

@@ -51,14 +51,20 @@ export const renderProjectVideo = async ({
   rootDir,
   compositionId,
   outputPath,
+  remotionCommand = resolveRemotionCommand(rootDir),
+  browserExecutable,
+  binariesDirectory,
   runProcess = runMediaProcess,
 }: {
   readonly rootDir: string;
   readonly compositionId: string;
   readonly outputPath: string;
+  readonly remotionCommand?: string;
+  readonly browserExecutable?: string;
+  readonly binariesDirectory?: string;
   readonly runProcess?: ProcessRunner;
 }) => {
-  const result = await runProcess(resolveRemotionCommand(rootDir), [
+  const result = await runProcess(remotionCommand, [
     "render",
     "src/index.ts",
     compositionId,
@@ -67,6 +73,12 @@ export const renderProjectVideo = async ({
     "--audio-codec=aac",
     "--pixel-format=yuv420p",
     "--log=error",
+    ...(browserExecutable === undefined
+      ? []
+      : [`--browser-executable=${browserExecutable}`]),
+    ...(binariesDirectory === undefined
+      ? []
+      : [`--binaries-directory=${binariesDirectory}`]),
   ]);
   if (result.status !== 0) {
     throw new Error(`Remotion could not render Project video: ${basename(outputPath)}.`);
@@ -78,21 +90,33 @@ export const renderProjectCover = async ({
   projectId,
   compositionId,
   outputPath,
+  remotionCommand = resolveRemotionCommand(rootDir),
+  browserExecutable,
+  binariesDirectory,
   runProcess = runMediaProcess,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly compositionId: string;
   readonly outputPath: string;
+  readonly remotionCommand?: string;
+  readonly browserExecutable?: string;
+  readonly binariesDirectory?: string;
   readonly runProcess?: ProcessRunner;
 }) => {
-  const result = await runProcess(resolveRemotionCommand(rootDir), [
+  const result = await runProcess(remotionCommand, [
     "still",
     join("src/projects", projectId, "delivery/cover/index.ts"),
     compositionId,
     outputPath,
     "--image-format=png",
     "--log=error",
+    ...(browserExecutable === undefined
+      ? []
+      : [`--browser-executable=${browserExecutable}`]),
+    ...(binariesDirectory === undefined
+      ? []
+      : [`--binaries-directory=${binariesDirectory}`]),
   ]);
   if (result.status !== 0) {
     throw new Error(`Remotion could not render Project Cover: ${basename(outputPath)}.`);
@@ -103,18 +127,20 @@ export const inspectProjectVideo = async ({
   absolutePath,
   render,
   frameCount,
+  ffprobeExecutable = "ffprobe",
   runProcess = runMediaProcess,
 }: {
   readonly absolutePath: string;
   readonly render: RenderSpec;
   readonly frameCount: number;
+  readonly ffprobeExecutable?: string;
   readonly runProcess?: ProcessRunner;
 }) => {
   const metadata = await lstat(absolutePath);
   if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size <= 0) {
     throw new Error("Project video must be a non-empty regular MP4.");
   }
-  const videoProbe = await runProcess("ffprobe", [
+  const videoProbe = await runProcess(ffprobeExecutable, [
     "-v",
     "error",
     "-count_frames",
@@ -144,7 +170,7 @@ export const inspectProjectVideo = async ({
   ) {
     throw new Error("Project video stream metadata drifted from RenderSpec.");
   }
-  const audioProbe = await runProcess("ffprobe", [
+  const audioProbe = await runProcess(ffprobeExecutable, [
     "-v",
     "error",
     "-select_streams",

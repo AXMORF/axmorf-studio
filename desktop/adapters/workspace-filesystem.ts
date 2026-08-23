@@ -6,10 +6,12 @@ import {
   mkdir,
   open,
   readFile,
+  readdir,
   realpath,
   rename,
   rm,
   stat,
+  statfs,
   unlink,
 } from "node:fs/promises";
 import {
@@ -32,7 +34,7 @@ export const WORKSPACE_MANIFEST_PATH = ".rsp/workspace.json" as const;
 export const MANAGED_FILES_LEDGER_PATH = ".rsp/managed-files.json" as const;
 
 const MANAGED_RESOURCE_PATHS: Readonly<
-  Record<(typeof DESKTOP_MANAGED_FILE_PATHS)[number], string>
+  Record<(typeof DESKTOP_MANAGED_FILE_PATHS)[number], string | null>
 > = Object.freeze({
   "AGENTS.md": "AGENTS.md",
   "CLAUDE.md": "CLAUDE.md",
@@ -40,8 +42,7 @@ const MANAGED_RESOURCE_PATHS: Readonly<
   ".agents/skills/remotion-story-producer-video/SKILL.md":
     "skills/remotion-story-producer-video/SKILL.md",
   ".rsp/hermes/INSTALL_PROMPT.md": "hermes/INSTALL_PROMPT.md",
-  ".rsp/bin/rsp": "rsp",
-  ".rsp/lib/rsp-client.cjs": "rsp-client.cjs",
+  ".rsp/bin/rsp": null,
 });
 
 const MANAGED_FILE_MODES: Readonly<
@@ -53,7 +54,6 @@ const MANAGED_FILE_MODES: Readonly<
   ".agents/skills/remotion-story-producer-video/SKILL.md": 0o644,
   ".rsp/hermes/INSTALL_PROMPT.md": 0o600,
   ".rsp/bin/rsp": 0o755,
-  ".rsp/lib/rsp-client.cjs": 0o600,
 });
 
 const PRIVATE_WORKSPACE_DIRECTORIES = new Set<string>([
@@ -64,6 +64,10 @@ const PRIVATE_WORKSPACE_DIRECTORIES = new Set<string>([
   ".rsp/work",
   ".rsp/artifacts",
   ".rsp/attempts",
+  ".rsp/current",
+  ".rsp/current/source",
+  ".rsp/locks",
+  ".rsp/migrations",
   ".rsp/session",
 ]);
 
@@ -79,10 +83,23 @@ export type ManagedIntegrationFile = Readonly<{
   sha256: string;
 }>;
 
+export type ManagedRspExecutable = Readonly<{
+  path: string;
+  sha256: string;
+}>;
+
 export type WorkspaceRootValidation = Readonly<{
   workspaceRoot: string;
   parentRoot: string;
   exists: boolean;
+}>;
+
+export type WorkspaceTreeEntry = Readonly<{
+  relativePath: string;
+  kind: "directory" | "file";
+  mode: number;
+  sizeBytes: number;
+  sha256: string | null;
 }>;
 
 const pathMetadata = async (path: string): Promise<PathMetadata> => {
@@ -133,11 +150,244 @@ const syncDirectory = async (directory: string): Promise<void> => {
   }
 };
 
+export const syncWorkspaceDirectory = syncDirectory;
+
 export const checksumWorkspaceBytes = (bytes: Uint8Array) =>
   createHash("sha256").update(bytes).digest("hex");
 
 export const serializeWorkspaceJson = (value: unknown) =>
   `${JSON.stringify(value, null, 2)}\n`;
+
+const inspectWorkspaceTreeDirectory = async ({
+  root,
+  relativeDirectory,
+  entries,
+  excludedTopLevelPaths,
+}: {
+  readonly root: string;
+  readonly relativeDirectory: string;
+  readonly entries: WorkspaceTreeEntry[];
+  readonly excludedTopLevelPaths: ReadonlySet<string>;
+}): Promise<void> => {
+  const directory =
+    relativeDirectory === ""
+      ? root
+      : await assertWorkspaceManagedPath({
+          workspaceRoot: root,
+          relativePath: relativeDirectory,
+          kind: "directory",
+          allowMissing: false,
+        });
+  const children = await readdir(directory, { withFileTypes: true });
+  children.sort((left, right) => left.name.localeCompare(right.name));
+  for (const child of children) {
+    if (relativeDirectory === "" && excludedTopLevelPaths.has(child.name)) {
+      continue;
+    }
+    const relativePath =
+      relativeDirectory === ""
+        ? child.name
+        : `${relativeDirectory}/${child.name}`;
+    assertNormalizedRelativePath(relativePath);
+    const sourcePath = join(root, ...relativePath.split("/"));
+    const metadata = await lstat(sourcePath);
+    if (metadata.isSymbolicLink()) {
+      throw new Error(`Workspace migration rejects symlink: ${relativePath}.`);
+    }
+    if (metadata.isDirectory()) {
+      entries.push({
+        relativePath,
+        kind: "directory",
+        mode: modeBits(metadata.mode),
+        sizeBytes: 0,
+        sha256: null,
+      });
+      await inspectWorkspaceTreeDirectory({
+        root,
+        relativeDirectory: relativePath,
+        entries,
+        excludedTopLevelPaths,
+      });
+      continue;
+    }
+    if (!metadata.isFile()) {
+      throw new Error(
+        `Workspace migration rejects special file: ${relativePath}.`,
+      );
+    }
+    const bytes = await readFile(sourcePath);
+    const afterRead = await lstat(sourcePath);
+    if (
+      afterRead.isSymbolicLink() ||
+      !afterRead.isFile() ||
+      afterRead.size !== metadata.size ||
+      afterRead.mtimeMs !== metadata.mtimeMs
+    ) {
+      throw new Error(`Workspace changed during migration: ${relativePath}.`);
+    }
+    entries.push({
+      relativePath,
+      kind: "file",
+      mode: modeBits(metadata.mode),
+      sizeBytes: bytes.byteLength,
+      sha256: checksumWorkspaceBytes(bytes),
+    });
+  }
+};
+
+export const inspectWorkspaceTree = async (
+  workspaceRoot: string,
+  {
+    excludedTopLevelPaths = [],
+  }: { readonly excludedTopLevelPaths?: readonly string[] } = {},
+): Promise<readonly WorkspaceTreeEntry[]> => {
+  const rootMetadata = await lstat(workspaceRoot);
+  if (rootMetadata.isSymbolicLink() || !rootMetadata.isDirectory()) {
+    throw new Error("Workspace migration source must be a real directory.");
+  }
+  const canonicalRoot = await realpath(workspaceRoot);
+  if (canonicalRoot !== resolve(workspaceRoot)) {
+    throw new Error("Workspace migration source must be canonical.");
+  }
+  const entries: WorkspaceTreeEntry[] = [];
+  await inspectWorkspaceTreeDirectory({
+    root: canonicalRoot,
+    relativeDirectory: "",
+    entries,
+    excludedTopLevelPaths: new Set(excludedTopLevelPaths),
+  });
+  return entries;
+};
+
+export const workspaceTreeSizeBytes = (
+  entries: readonly WorkspaceTreeEntry[],
+) => entries.reduce((total, entry) => total + entry.sizeBytes, 0);
+
+export const availableWorkspaceBytes = async (parentRoot: string) => {
+  const information = await statfs(parentRoot, { bigint: true });
+  const available = information.bavail * information.bsize;
+  return available > BigInt(Number.MAX_SAFE_INTEGER)
+    ? Number.MAX_SAFE_INTEGER
+    : Number(available);
+};
+
+export type WorkspaceTreeFileCopier = (request: {
+  readonly source: string;
+  readonly destination: string;
+  readonly entry: WorkspaceTreeEntry;
+}) => Promise<void>;
+
+const copyWorkspaceTreeFile: WorkspaceTreeFileCopier = async ({
+  source,
+  destination,
+  entry,
+}) => {
+  const bytes = await readFile(source);
+  if (
+    bytes.byteLength !== entry.sizeBytes ||
+    checksumWorkspaceBytes(bytes) !== entry.sha256
+  ) {
+    throw new Error(
+      `Workspace changed during migration: ${entry.relativePath}.`,
+    );
+  }
+  const handle = await open(destination, "wx", entry.mode);
+  try {
+    await handle.writeFile(bytes);
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+  await chmod(destination, entry.mode);
+};
+
+export const copyWorkspaceTree = async ({
+  sourceRoot,
+  destinationRoot,
+  sourceEntries,
+  copyFile = copyWorkspaceTreeFile,
+}: {
+  readonly sourceRoot: string;
+  readonly destinationRoot: string;
+  readonly sourceEntries: readonly WorkspaceTreeEntry[];
+  readonly copyFile?: WorkspaceTreeFileCopier;
+}) => {
+  const destinationMetadata = await pathMetadata(destinationRoot);
+  if (destinationMetadata !== null) {
+    throw new Error("Workspace migration staging already exists.");
+  }
+  await mkdir(destinationRoot, { mode: 0o700 });
+  await chmod(destinationRoot, 0o700);
+  for (const entry of sourceEntries) {
+    const segments = assertNormalizedRelativePath(entry.relativePath);
+    const source = join(sourceRoot, ...segments);
+    const destination = join(destinationRoot, ...segments);
+    if (entry.kind === "directory") {
+      await mkdir(destination, { mode: entry.mode });
+      await chmod(destination, entry.mode);
+      continue;
+    }
+    await copyFile({ source, destination, entry });
+  }
+  const copiedEntries = await inspectWorkspaceTree(destinationRoot);
+  if (JSON.stringify(copiedEntries) !== JSON.stringify(sourceEntries)) {
+    throw new Error("Workspace migration copy checksum verification failed.");
+  }
+};
+
+export const removeLegacyManagedFile = async ({
+  workspaceRoot,
+  relativePath,
+}: {
+  readonly workspaceRoot: string;
+  readonly relativePath: ".rsp/lib/rsp-client.cjs";
+}) => {
+  const destination = await assertWorkspaceManagedPath({
+    workspaceRoot,
+    relativePath,
+    kind: "file",
+    allowMissing: false,
+  });
+  await unlink(destination);
+};
+
+export const renameWorkspaceRoot = async ({
+  sourceRoot,
+  destinationRoot,
+}: {
+  readonly sourceRoot: string;
+  readonly destinationRoot: string;
+}) => {
+  if (dirname(sourceRoot) !== dirname(destinationRoot)) {
+    throw new Error("Atomic Workspace switch requires same-parent paths.");
+  }
+  if ((await pathMetadata(destinationRoot)) !== null) {
+    throw new Error("Atomic Workspace switch destination already exists.");
+  }
+  await rename(sourceRoot, destinationRoot);
+  await syncDirectory(dirname(sourceRoot));
+};
+
+export const removeWorkspaceMigrationPath = async ({
+  parentRoot,
+  migrationPath,
+  migrationId,
+}: {
+  readonly parentRoot: string;
+  readonly migrationPath: string;
+  readonly migrationId: string;
+}) => {
+  const canonicalParent = resolve(parentRoot);
+  const candidate = resolve(migrationPath);
+  if (
+    dirname(candidate) !== canonicalParent ||
+    basename(candidate) !== `.axmorf-workspace-staging-${migrationId}`
+  ) {
+    throw new Error("Refusing to clean an unowned Workspace migration path.");
+  }
+  await rm(candidate, { recursive: true, force: true });
+  await syncDirectory(canonicalParent);
+};
 
 export const validateWorkspaceRoot = async ({
   workspaceRoot: rawWorkspaceRoot,
@@ -328,8 +578,10 @@ export const inspectWorkspaceDirectories = async (workspaceRoot: string) => {
 
 export const loadManagedIntegration = async ({
   integrationResourcesRoot: rawIntegrationResourcesRoot,
+  rspExecutable,
 }: {
   readonly integrationResourcesRoot: string;
+  readonly rspExecutable: ManagedRspExecutable;
 }): Promise<readonly ManagedIntegrationFile[]> => {
   const integrationResourcesRoot = resolve(rawIntegrationResourcesRoot);
   const rootMetadata = await lstat(integrationResourcesRoot);
@@ -341,6 +593,44 @@ export const loadManagedIntegration = async ({
   const files: ManagedIntegrationFile[] = [];
   for (const relativePath of DESKTOP_MANAGED_FILE_PATHS) {
     const sourceRelativePath = MANAGED_RESOURCE_PATHS[relativePath];
+    if (sourceRelativePath === null) {
+      const source = resolve(rspExecutable.path);
+      const metadata = await lstat(source);
+      if (
+        metadata.isSymbolicLink() ||
+        !metadata.isFile() ||
+        (metadata.mode & 0o111) === 0 ||
+        (await realpath(source)) !== source
+      ) {
+        throw new Error(
+          "Managed rsp must be a canonical Runtime Pack executable.",
+        );
+      }
+      const bytes = await readFile(source);
+      const afterRead = await lstat(source);
+      if (
+        afterRead.isSymbolicLink() ||
+        !afterRead.isFile() ||
+        afterRead.dev !== metadata.dev ||
+        afterRead.ino !== metadata.ino ||
+        afterRead.size !== metadata.size
+      ) {
+        throw new Error("Managed rsp changed while it was being installed.");
+      }
+      const checksum = checksumWorkspaceBytes(bytes);
+      if (checksum !== rspExecutable.sha256) {
+        throw new Error(
+          "Managed rsp does not match the verified Runtime Pack.",
+        );
+      }
+      files.push({
+        relativePath,
+        bytes,
+        mode: MANAGED_FILE_MODES[relativePath],
+        sha256: checksum,
+      });
+      continue;
+    }
     const source = await assertWorkspaceManagedPath({
       workspaceRoot: integrationResourcesRoot,
       relativePath: sourceRelativePath,
@@ -471,6 +761,34 @@ export const installManagedFile = async ({
     );
   }
   return true;
+};
+
+export const replaceManagedFile = async ({
+  workspaceRoot,
+  file,
+  writeAtomic = writeWorkspaceFileAtomic,
+}: {
+  readonly workspaceRoot: string;
+  readonly file: ManagedIntegrationFile;
+  readonly writeAtomic?: AtomicWorkspaceFileWriter;
+}) => {
+  const destination = await assertWorkspaceManagedPath({
+    workspaceRoot,
+    relativePath: file.relativePath,
+    kind: "file",
+  });
+  await writeAtomic({
+    destination,
+    bytes: file.bytes,
+    mode: file.mode,
+    replace: true,
+  });
+  const installed = await inspectManagedFile({ workspaceRoot, file });
+  if (installed.state !== "current") {
+    throw new Error(
+      `Managed Workspace file verification failed: ${file.relativePath}.`,
+    );
+  }
 };
 
 export const createWorkspaceStaging = async (parentRoot: string) => {

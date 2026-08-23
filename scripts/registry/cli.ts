@@ -1,14 +1,21 @@
 import { pathToFileURL } from "node:url";
 
+import {
+  createRepositoryProductionLocations,
+  type ProductionLocations,
+} from "../project-production/application/production-locations";
 import { generateProjectRegistry } from "./generate";
+import { createRepositoryProjectStorageFromProductionLocations } from "../projects/repository-project-locations";
 
 export type RegistryCliContext = {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly stdout: (line: string) => void;
 };
 
 const defaultContext = (): RegistryCliContext => ({
-  rootDir: process.cwd(),
+  locations: createRepositoryProductionLocations({
+    repositoryRoot: process.cwd(),
+  }),
   stdout: (line) => process.stdout.write(`${line}\n`),
 });
 
@@ -24,7 +31,9 @@ export const runRegistryCli = async (
     throw new Error("Registry command must be generate or check.");
   }
   const result = await generateProjectRegistry({
-    rootDir: context.rootDir,
+    storage: createRepositoryProjectStorageFromProductionLocations(
+      context.locations,
+    ),
     mode: command === "generate" ? "write" : "check",
   });
   context.stdout(

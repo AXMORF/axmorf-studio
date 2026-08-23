@@ -9,6 +9,7 @@ const nodeExternals = [
 ];
 
 export default defineConfig({
+  publicDir: false,
   build: {
     emptyOutDir: false,
     outDir: ".vite/build",

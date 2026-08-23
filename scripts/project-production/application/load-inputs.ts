@@ -29,25 +29,29 @@ import {
   validateStoryResourcePool,
   validateNarrativeArtifactBundle,
 } from "../../../src/contracts";
-import { generateProjectResourceCatalog } from "../../catalog/generate";
+import type { ProjectCatalogProjectionPort } from "../../catalog/generate";
 import {
   readRegularJson,
   snapshotPolicyRoots,
   snapshotTaskPolicyFingerprints,
 } from "../adapters/project-input-snapshot";
+import type { ProductionLocations } from "./production-locations";
 
 const fingerprint = (namespace: string, value: unknown) =>
   createFingerprint({ namespace, version: 1, value });
 
-export const loadProjectProductionInputs = async ({
-  rootDir,
-  projectId: rawProjectId,
-}: {
-  readonly rootDir: string;
-  readonly projectId: string;
-}) => {
+export const loadProjectProductionInputs = async (
+  {
+    locations,
+    projectId: rawProjectId,
+  }: {
+    readonly locations: ProductionLocations;
+    readonly projectId: string;
+  },
+  projectCatalog: ProjectCatalogProjectionPort,
+) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
-  const projectRoot = join(rootDir, "src/projects", projectId);
+  const projectRoot = join(locations.projectSourceRoot, projectId);
   const read = (path: string, label: string) =>
     readRegularJson(join(projectRoot, path), label);
   const [
@@ -84,8 +88,8 @@ export const loadProjectProductionInputs = async ({
     read("generated/semantic-timing.generated.json", "SemanticTiming"),
     read("generated/sealed-narration.generated.json", "SealedNarration"),
     read("generated/mastered-narration.generated.json", "MasteredNarration"),
-    snapshotPolicyRoots({ rootDir }),
-    snapshotTaskPolicyFingerprints({ rootDir }),
+    snapshotPolicyRoots({ locations }),
+    snapshotTaskPolicyFingerprints({ locations }),
   ]);
   const brief = VideoBriefSchema.parse(briefFile.raw);
   const story = StorySpecSchema.parse(storyFile.raw);
@@ -102,8 +106,8 @@ export const loadProjectProductionInputs = async ({
   );
   const catalog = ResourceCatalogSchema.parse(
     (
-      await generateProjectResourceCatalog({
-        rootDir,
+      await projectCatalog({
+        locations,
         projectId,
         mode: "check",
       })

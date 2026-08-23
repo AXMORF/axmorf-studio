@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -11,15 +11,18 @@ import { runHostProcess, type ProcessRunner } from "./ffmpeg-normalizer";
 export const normalizePromptAudio = async ({
   sourceBytes,
   runProcess = runHostProcess,
+  temporaryRoot = tmpdir(),
 }: {
   readonly sourceBytes: Buffer;
   readonly runProcess?: ProcessRunner;
+  readonly temporaryRoot?: string;
 }): Promise<Buffer> => {
   if (sourceBytes.length === 0) {
     throw new Error("Cannot normalize empty prompt audio.");
   }
+  await mkdir(temporaryRoot, { recursive: true });
   const temporaryDirectory = await mkdtemp(
-    join(tmpdir(), "rsp-voxcpm-prompt-"),
+    join(temporaryRoot, "rsp-voxcpm-prompt-"),
   );
   const sourcePath = join(temporaryDirectory, "protected-source");
   try {

@@ -2,7 +2,7 @@
 
 > 文档类型：Desktop App 产品目标 authority
 >
-> 状态：产品方向与 macOS v1 默认值已确认；Phase A repository adapter 已实现，Apple Silicon native evidence pending；完整产品尚未实现
+> 状态：产品方向与 macOS v1 默认值已确认；Phase A 已 verified complete；Phase B 当前为 `implementation-complete-native-evidence-pending`
 >
 > 当前实现事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)，现有生产 authority 见
 > [ARCHITECTURE.md](ARCHITECTURE.md) 与 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
@@ -145,7 +145,8 @@ managedFiles + checksums
 
 `.rsp/bin/rsp` 是 App-managed、checksum-bound 的 workspace-local launcher，不依赖系统 `PATH`，也不是指向
 可变源码 checkout 的 symlink。它通过 `.rsp/workspace.json` 定位当前 App session 与 Workspace，不把 App 安装
-绝对路径写入 Skill。底层使用 workspace-contained local IPC 或受控进程调用，不开放 TCP/Web service；对 Skill 保持同一 JSON
+绝对路径写入 Skill。底层 control plane 只使用 workspace-contained authenticated UDS，不开放 TCP/Web service；唯一例外是
+真实 DeliveryBuild 内 renderer 自用的 `127.0.0.1` OS-ephemeral 临时数据 listener；对 Skill 保持同一 JSON
 protocol。v1 App 未打开时返回明确的
 machine-readable `rsp-app-unavailable`，不自动启动独立 headless engine，也不静默换用另一条生产链。
 
@@ -268,8 +269,8 @@ v1 默认配置已确定为：
 `manual`，“直接制作并播放成片”解析为本次 `automatic`。override 默认不写回设置。
 
 默认 `manual`，避免视觉微调反复触发昂贵 render。无论策略为何，只有四文件、checksum、media probe 与
-EOF decode 全部通过才能显示 `delivery-current`。当前 production 将 converge 和 synchronous delivery 绑定为
-一个终点；实现本文目标时必须进行显式 contract 变更，不能仅在 UI 隐藏 delivery 调用。
+EOF decode 全部通过才能显示 `delivery-current`。Phase B 已把 converge/source-current 与 DeliveryBuild
+clean-break 为两个 fixed use case；UI 只投影这个 contract，不隐藏或伪造 delivery 调用。
 
 ## 9. First-run 与 Settings 诊断
 
@@ -298,22 +299,25 @@ token、heartbeat 或 child lifecycle。
 storage/security/validator fields 不允许从第 4 层覆盖。App UI、CLI 和 Skill 只投影各自需要的最小视图，不能
 复制同一字段为多个 authority。
 
-## 11. 从 Phase A repository adapter 到目标产品的主要差距
+## 11. Phase B 当前实现与剩余差距
 
-Phase A 已实现 Electron shell、managed Workspace、doctor-only authenticated `rsp`、read-only Preview Catalog、
-bundled Delivery Player 与多轨时间轴；它仍依赖 host Node 和 build-time repository checkout，且 Apple Silicon
-native smoke 尚未完成。本文不代表以下能力已经实现：
+Phase B working tree 已把 Phase A repository adapter clean-break 为显式 Workspace production：安装资源、Application
+Support、Cache 与 Workspace ownership 分离；Workspace v2、整体迁移/rollback、immutable Runtime Pack、
+production-capable `rsp-local-v2`、managed Skill、`source-current`/optional Delivery contracts、active-work lifecycle 与
+automatic Preview Catalog refresh 已有 executable implementation 和 focused tests。普通 Engine bundle 不再携带
+repository、npm、Settings Web 或 Remotion Studio runtime authority。
 
-- installer、DMG、code signing/notarization 和 binary release；
-- 安装目录与 Workspace Root 的正式分离；
-- production-capable `rsp` public CLI/IPC protocol；
-- 跨版本、跨宿主的 production Skill lifecycle；
-- Workspace fixed-layout contracts、整体迁移器和磁盘/权限 doctor；
-- production-triggered automatic Catalog refresh；
-- `source-current` 与 optional Delivery 的 clean-break contracts；
-- App/engine/Skill compatibility、update channel、rollback 和 support policy。
+当前 implementation 已加入：checksum-bound exact Remotion bundler/renderer 内部依赖、Workspace-only disposable bundle、
+DeliveryBuild 范围内严格 `127.0.0.1`/OS-ephemeral listener、manual/automatic exact-four-file Delivery 与退出清理。UDS
+仍是唯一 control plane；App 不启动 Remotion Studio UI、Studio Server、Settings Web service，也不暴露 CLI/Studio launch
+surface。当前尚未取得证据的部分是：
 
-这些差距在 macOS 维护方案按 [ROADMAP.md](ROADMAP.md) 实施并获得 executable evidence 前，都只是目标设计。
+- Apple Silicon packaged production、真实 temporary-listener/process-tree/cleanup 与 Preview E2E；
+- installer、DMG、code signing/notarization、binary release、update channel 和长期 support policy；
+- Hermes Workspace production proof；当前宿主只确认 CLI invoked，不能替代真实 proof。
+
+因此当前状态是 `implementation-complete-native-evidence-pending`，不是 Phase B verified complete。状态与后续路由以
+[ITERATION_STATUS.md](ITERATION_STATUS.md) 和 [ROADMAP.md](ROADMAP.md) 为准。
 
 ## 12. 实施完成门槛
 

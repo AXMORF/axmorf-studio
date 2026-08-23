@@ -14,7 +14,6 @@ export const PRODUCER_TASK_KINDS = [
   "global-visual-owner",
   "cover-owner",
   "composition-convergence",
-  "delivery-build",
 ] as const;
 
 export const ProducerTaskKindSchema = z.enum(PRODUCER_TASK_KINDS);

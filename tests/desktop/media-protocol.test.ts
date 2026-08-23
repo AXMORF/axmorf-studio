@@ -92,7 +92,8 @@ const setup = async (byteLength = 192) => {
   await writeFile(path, bytes);
   const catalog = catalogFor(bytes);
   const url = buildPreviewVideoUrl(catalog.entries[0]!);
-  const media = new DesktopMediaProtocol(repositoryRoot);
+  const media = new DesktopMediaProtocol();
+  await media.selectWorkspace(repositoryRoot);
   await media.replaceCatalog(catalog);
   return { repositoryRoot, path, bytes, catalog, url, media };
 };
@@ -255,13 +256,14 @@ test("in-place checksum drift and symlink media are rejected", async (context) =
   await writeFile(path, bytes);
   await rename(path, join(repositoryRoot, "old-video.mp4"));
   await symlink(target, path);
-  const symlinkMedia = new DesktopMediaProtocol(repositoryRoot);
+  const symlinkMedia = new DesktopMediaProtocol();
+  await symlinkMedia.selectWorkspace(repositoryRoot);
   await assert.rejects(() => symlinkMedia.replaceCatalog(catalogFor(bytes)));
   await symlinkMedia.close();
 });
 
 test("registration owns only the axmorf-media handler", async () => {
-  const media = new DesktopMediaProtocol("/tmp/repository");
+  const media = new DesktopMediaProtocol();
   const events: string[] = [];
   const dispose = registerDesktopMediaProtocol({
     protocol: {

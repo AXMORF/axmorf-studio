@@ -37,7 +37,7 @@ export const resolveWorkspaceSelection = async ({
         resolve(requestedWorkspaceRoot) !== resolve(saved.workspaceRoot))
     ) {
       throw new Error(
-        "Workspace switching is unavailable in Phase A; the saved Workspace remains authoritative.",
+        "Workspace switching is unavailable after initial selection; the saved Workspace remains authoritative.",
       );
     }
     return {

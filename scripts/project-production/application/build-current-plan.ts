@@ -11,6 +11,7 @@ import {
   type ProductionRevisionId,
   type Sha256Digest,
   type NarrationPreparationReceipt,
+  type ProducerConfig,
 } from "../../../src/contracts";
 import type { DiagnosticSubject } from "../../../src/contracts/production-inspection";
 
@@ -27,8 +28,9 @@ import {
   bindTemplateTaskOutputSet,
   expectedTemplateSceneOutputSetFromPreparedFiles,
 } from "../domain/template-scene-output";
-import { loadProjectProductionInputs } from "./load-inputs";
+import type { loadProjectProductionInputs } from "./load-inputs";
 import { buildCurrentProductionRevision } from "./current-revision";
+import type { ProductionLocations } from "./production-locations";
 
 const SCENE_OUTPUTS = [
   "src/Renderer.tsx",
@@ -211,22 +213,22 @@ export const rebindTemplateTaskOutputs = (
 };
 
 const inspect = async ({
-  rootDir,
+  locations,
   task,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly task: ProducerTaskSpec;
 }): Promise<ArtifactInspection> => {
-  return inspectArtifactState({ rootDir, task });
+  return inspectArtifactState({ locations, task });
 };
 
 export const buildNarrationTasks = async ({
-  rootDir,
+  locations,
   inputs,
   revisionId,
   narration,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly inputs: LoadedInputs;
   readonly revisionId: ProductionRevisionId;
   readonly narration: Readonly<{
@@ -252,7 +254,7 @@ export const buildNarrationTasks = async ({
         ttsText: segment.ttsText,
       },
     });
-    const inspection = await inspect({ rootDir, task: built.task });
+    const inspection = await inspect({ locations, task: built.task });
     const attestation = inspection.attestation;
     chunkTasks.push(built.task);
     subjects.set(built.task.taskRevision, {
@@ -277,7 +279,7 @@ export const buildNarrationTasks = async ({
     generationInputFingerprint:
       narration.sealedNarration.generationInputFingerprint,
   });
-  const sealInspection = await inspect({ rootDir, task: seal.task });
+  const sealInspection = await inspect({ locations, task: seal.task });
   const sealAttestation = sealInspection.attestation;
   if (sealAttestation !== null) {
     attestations.set(seal.task.taskRevision, sealAttestation);
@@ -294,7 +296,7 @@ export const buildNarrationTasks = async ({
     sealAttestation,
     masteringPolicy: narration.masteringPolicy,
   });
-  const timingInspection = await inspect({ rootDir, task: timing.task });
+  const timingInspection = await inspect({ locations, task: timing.task });
   const timingAttestation = timingInspection.attestation;
   if (timingAttestation !== null) {
     attestations.set(timing.task.taskRevision, timingAttestation);
@@ -516,7 +518,6 @@ export const buildDownstreamTasks = ({
   timingAttestation,
   ownerTasks,
   ownerInspections,
-  compositionAttestation = null,
 }: {
   readonly inputs: LoadedInputs;
   readonly revisionId: ProductionRevisionId;
@@ -524,7 +525,6 @@ export const buildDownstreamTasks = ({
   readonly timingAttestation: ArtifactAttestation | null;
   readonly ownerTasks: readonly ProducerTaskSpec[];
   readonly ownerInspections: ReadonlyMap<string, ArtifactInspection>;
-  readonly compositionAttestation?: ArtifactAttestation | null;
 }) => {
   const sceneAndGlobal = ownerTasks.filter(({ taskKind }) =>
     ["scene-owner", "scene-template", "global-visual-owner"].includes(taskKind),
@@ -563,45 +563,18 @@ export const buildDownstreamTasks = ({
       sound: inputs.sound,
     },
   });
-  const cover = ownerTasks.find(({ taskKind }) => taskKind === "cover-owner");
-  if (cover === undefined) throw new Error("Producer DAG lost its Cover task.");
-  const delivery = buildContextTask({
-    taskKind: "delivery-build",
-    storyId: inputs.projectId,
-    semanticId: null,
-    revisionId,
-    dependencies: [
-      artifactBinding(composition.task, compositionAttestation),
-      artifactBinding(
-        cover,
-        ownerInspections.get(cover.taskRevision)?.attestation ?? null,
-      ),
-    ],
-    inputFingerprints: [
-      { id: "publishing", fingerprint: inputs.fingerprints.publishingIntent },
-      { id: "render", fingerprint: inputs.fingerprints.render },
-      {
-        id: "runtime",
-        fingerprint: inputs.taskPolicyFingerprints.delivery,
-      },
-    ],
-    outputs: ["project/publish.json"],
-    validatorPolicyVersion: "delivery-build-validator-v1",
-    context: {
-      storyId: inputs.projectId,
-      revisionId,
-      render: inputs.render,
-      publishingIntent: inputs.publishingIntent,
-    },
-  });
-  return { composition, delivery } as const;
+  return { composition } as const;
 };
 
 export type BuildCurrentProductionPlanInput = Readonly<{
-  rootDir: string;
+  locations: ProductionLocations;
   projectId: string;
-  env?: Readonly<Record<string, string | undefined>>;
+  config: ProducerConfig;
   inputs?: LoadedInputs;
+  loadInputs?: (input: {
+    readonly locations: ProductionLocations;
+    readonly projectId: string;
+  }) => Promise<LoadedInputs>;
   narration?: Readonly<{
     providerAttemptFingerprint?: string;
     masteringPolicy?: LoadedInputs["masteredNarration"]["masteringPolicy"];
@@ -616,22 +589,26 @@ export type BuildCurrentProductionPlanInput = Readonly<{
  * mutation lock, or record an ExecutionAttempt.
  */
 export const buildCurrentProductionPlan = async ({
-  rootDir,
+  locations,
   projectId,
-  env = process.env,
+  config,
   inputs: suppliedInputs,
+  loadInputs,
   narration: suppliedNarration,
   baseline: suppliedBaseline,
 }: BuildCurrentProductionPlanInput) => {
-  const inputs =
-    suppliedInputs ??
-    (await loadProjectProductionInputs({
-      rootDir,
-      projectId,
-    }));
+  let inputs: LoadedInputs;
+  if (suppliedInputs !== undefined) {
+    inputs = suppliedInputs;
+  } else {
+    if (loadInputs === undefined) {
+      throw new Error("Project production input port is required.");
+    }
+    inputs = await loadInputs({ locations, projectId });
+  }
   const narration =
     suppliedNarration ??
-    (await inspectNarrationCache({ rootDir, projectId, env }));
+    (await inspectNarrationCache({ locations, projectId, config }));
   if (narration.providerAttemptFingerprint === undefined) {
     throw new Error("Narration preparation identity is unavailable.");
   }
@@ -652,9 +629,9 @@ export const buildCurrentProductionPlan = async ({
   const revision = buildCurrentProductionRevision(inputs);
   const baseline =
     suppliedBaseline ??
-    (await readProductionDiagnosticBaseline({ rootDir, projectId }));
+    (await readProductionDiagnosticBaseline({ locations, projectId }));
   const fixed = await buildNarrationTasks({
-    rootDir,
+    locations,
     inputs,
     revisionId: revision.revisionId,
     narration: {
@@ -678,13 +655,13 @@ export const buildCurrentProductionPlan = async ({
       if (task.semanticId === null)
         throw new Error("Template task lost meaningId.");
       const templateFiles = await readTemplateSceneFilesForInspection({
-        rootDir,
+        locations,
         projectId: inputs.projectId,
         meaningId: task.semanticId,
       });
       task = rebindTemplateTaskOutputs(task, Object.keys(templateFiles));
     }
-    ownerInspections.set(task.taskRevision, await inspect({ rootDir, task }));
+    ownerInspections.set(task.taskRevision, await inspect({ locations, task }));
     taskSeeds.set(task.taskRevision, {
       task,
       contextBytes: built.contextBytes,
@@ -697,7 +674,7 @@ export const buildCurrentProductionPlan = async ({
     });
   }
   const ownerTasks = ownerNodes.map(({ task }) => task);
-  const initialDownstream = buildDownstreamTasks({
+  const downstream = buildDownstreamTasks({
     inputs,
     revisionId: revision.revisionId,
     timingTask: fixed.timingTask,
@@ -706,27 +683,14 @@ export const buildCurrentProductionPlan = async ({
     ownerInspections,
   });
   const compositionInspection = await inspect({
-    rootDir,
-    task: initialDownstream.composition.task,
+    locations,
+    task: downstream.composition.task,
   });
-  const downstream = buildDownstreamTasks({
-    inputs,
-    revisionId: revision.revisionId,
-    timingTask: fixed.timingTask,
-    timingAttestation: fixed.timingAttestation,
-    ownerTasks,
-    ownerInspections,
-    compositionAttestation: compositionInspection.attestation,
-  });
-  const downstreamTasks = [downstream.composition, downstream.delivery];
+  const downstreamTasks = [downstream.composition];
   const downstreamInspections = new Map<string, ArtifactInspection>();
   downstreamInspections.set(
     downstream.composition.task.taskRevision,
     compositionInspection,
-  );
-  downstreamInspections.set(
-    downstream.delivery.task.taskRevision,
-    await inspect({ rootDir, task: downstream.delivery.task }),
   );
   const nodes = [
     ...fixed.nodes,

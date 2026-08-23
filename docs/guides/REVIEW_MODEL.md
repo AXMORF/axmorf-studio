@@ -32,11 +32,13 @@ delivery completion。
 NarrativeCheck、SceneVisualCheck、SceneSoundCheck、人工审美审核、平台发布和 capability promotion 都不在
 current automatic acceptance 内，需要新的明确产品合同和用户授权。
 
-## Desktop App 目标状态
+## Desktop App current split
 
-目标 App 会新增机械 `source-current` gate：current Revision、全部 required ArtifactAttestation、materialized exact
+Desktop App 已实现机械 `source-current` gate：current Revision、全部 required ArtifactAttestation、materialized exact
 bytes 和 derived packages/registry/Composition 全部一致；它不证明 MP4 已生成。之后只有现有 DeliveryBuild
 media/checksum/EOF gates 全部通过才是 `delivery-current`，也只有该状态进入 Preview Catalog。UI 必须分别显示两者，
 不能因 source-ready 就显示可播放，也不能因旧 Delivery 存在就掩盖 `delivery-stale`。
 
-这个 split 尚未实现；在 contracts/tests/E2E 完成前，current completion 仍只认上述 exact four-file package。
+这个 split 已由 contracts、controller 与 tests 固定；`source-current` 是 manual production 的有效 source-only 终态，
+但只有通过上述 exact-four-file gates 的 `delivery-current` 才证明可播放交付完成。Apple Silicon packaged production
+E2E 仍是 Phase B 的未决 native evidence，不能由实现或 host fixture 替代。

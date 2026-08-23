@@ -28,6 +28,8 @@ import {
 import { checkM2NarrationArtifacts } from "../narration/check";
 import { checkMasteredNarrationArtifacts } from "../narration/mastering";
 import { loadNarrationProjectFiles } from "../narration/project-files";
+import { resolveNarrationMediaLogicalPath } from "../narration/production-paths";
+import type { ProductionLocations } from "../project-production/application/production-locations";
 import type { ValidatedProjectRegistrationEntry } from "../registry/domain";
 import { createNarrativeCheckItem, orderNarrativeCheckItems } from "./domain";
 import {
@@ -43,17 +45,17 @@ const failDependency = (label: string) =>
   new Error(`${label} identity does not match.`);
 
 export const checkNarrativeSourceHealth = async ({
-  rootDir,
+  locations,
   projectId,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
 }) => {
-  const paths = getProjectCheckPaths({ rootDir, projectId });
+  const paths = getProjectCheckPaths({ locations, projectId });
   let projectSource: NarrativeProjectSource;
   try {
     const loaded = await loadNarrationProjectFiles({
-      rootDir,
+      locations,
       projectId: paths.storyId,
     });
     projectSource = loaded.projectSource;
@@ -84,7 +86,7 @@ export const checkNarrativeSourceHealth = async ({
       },
     };
     const m2 = await checkM2NarrationArtifacts({
-      rootDir,
+      locations,
       projectSource: physicalCheckProjectSource,
     });
     if (
@@ -97,7 +99,7 @@ export const checkNarrativeSourceHealth = async ({
       throw new Error("M2 checker identity does not match sealed narration.");
     }
     const master = await checkMasteredNarrationArtifacts({
-      rootDir,
+      locations,
       storyId: paths.storyId,
     });
     if (
@@ -118,12 +120,12 @@ export const checkNarrativeSourceHealth = async ({
   }
 
   try {
-    const entry = await resolveCurrentNarrativeBaselineEntry(
-      rootDir,
-      paths.storyId,
-    );
+    const entry = await resolveCurrentNarrativeBaselineEntry({
+      locations,
+      storyId: paths.storyId,
+    });
     await resolveNarrativeBaselineGeneratedRegistryChecksum({
-      rootDir,
+      locations,
       storyId: paths.storyId,
       entry,
     });
@@ -140,15 +142,15 @@ export const checkNarrativeSourceHealth = async ({
 type Mutable<Input> = { -readonly [Key in keyof Input]: Input[Key] };
 
 export const runNarrativeAutoCheck = async ({
-  rootDir,
+  locations,
   projectId,
   runNarrativeBaselineEvidenceProcess,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
   readonly runNarrativeBaselineEvidenceProcess?: ProcessRunner;
 }): Promise<NarrativeAutoCheckReport> => {
-  const paths = getProjectCheckPaths({ rootDir, projectId });
+  const paths = getProjectCheckPaths({ locations, projectId });
   const checks = new Map<
     NarrativeAutoCheckId,
     NarrativeAutoCheckReportInput["checks"][number]
@@ -189,7 +191,7 @@ export const runNarrativeAutoCheck = async ({
 
   try {
     const loaded = await loadNarrationProjectFiles({
-      rootDir,
+      locations,
       projectId: paths.storyId,
     });
     projectSource = loaded.projectSource;
@@ -233,11 +235,11 @@ export const runNarrativeAutoCheck = async ({
       },
     };
     const m2 = await checkM2NarrationArtifacts({
-      rootDir,
+      locations,
       projectSource: physicalCheckProjectSource,
     });
     const master = await checkMasteredNarrationArtifacts({
-      rootDir,
+      locations,
       storyId: paths.storyId,
       ...(runNarrativeBaselineEvidenceProcess === undefined
         ? {}
@@ -256,7 +258,11 @@ export const runNarrativeAutoCheck = async ({
           }),
     });
     evidenceChecksums["complete-wav"] = await checksumFile(
-      `${rootDir}/${master.outputAudioPath}`,
+      resolveNarrationMediaLogicalPath({
+        locations,
+        storyId: paths.storyId,
+        logicalPath: master.outputAudioPath,
+      }),
     );
     if (
       m2.generationInputFingerprint !==
@@ -301,10 +307,13 @@ export const runNarrativeAutoCheck = async ({
   }
 
   try {
-    entry = await resolveCurrentNarrativeBaselineEntry(rootDir, paths.storyId);
+    entry = await resolveCurrentNarrativeBaselineEntry({
+      locations,
+      storyId: paths.storyId,
+    });
     identity.generatedRegistryChecksum =
       await resolveNarrativeBaselineGeneratedRegistryChecksum({
-        rootDir,
+        locations,
         storyId: paths.storyId,
         entry,
       });
@@ -342,7 +351,7 @@ export const runNarrativeAutoCheck = async ({
 
   try {
     const receipt = await checkNarrativeBaselineEvidence({
-      rootDir,
+      locations,
       storyId: paths.storyId,
       runProcess: runNarrativeBaselineEvidenceProcess,
     });

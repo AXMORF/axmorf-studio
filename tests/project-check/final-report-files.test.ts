@@ -1,7 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -15,6 +13,7 @@ import {
   serializeFinalMechanicalCheckReport,
   writeFinalMechanicalCheckIfPassed,
 } from "../../scripts/project-check/final-report-files";
+import { createProjectCheckTestLocations } from "./locations";
 
 const sha = (value: string) => `sha256:${value.repeat(64)}`;
 const passReport = () =>
@@ -47,35 +46,41 @@ const passReport = () =>
     })),
   });
 
-test("final writer is pass-only atomic canonical and mtime stable", async () => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-final-report-"));
+test("final writer is pass-only atomic canonical and mtime stable", async (context) => {
+  const locations = await createProjectCheckTestLocations(context);
   const report = passReport();
-  const first = await writeFinalMechanicalCheckIfPassed({ rootDir, report });
+  const first = await writeFinalMechanicalCheckIfPassed({ locations, report });
   const bytes = await readFile(first.destination, "utf8");
   const mtime = (await stat(first.destination)).mtimeMs;
   assert.equal(bytes, serializeFinalMechanicalCheckReport(report));
-  const second = await writeFinalMechanicalCheckIfPassed({ rootDir, report });
+  const second = await writeFinalMechanicalCheckIfPassed({ locations, report });
   assert.equal(second.written, false);
   assert.equal((await stat(first.destination)).mtimeMs, mtime);
-  await checkPersistedFinalMechanicalCheck({ rootDir, expectedReport: report });
+  await checkPersistedFinalMechanicalCheck({
+    locations,
+    expectedReport: report,
+  });
 });
 
-test("final read-only check rejects malformed and byte drift without repair", async () => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-final-read-"));
+test("final read-only check rejects malformed and byte drift without repair", async (context) => {
+  const locations = await createProjectCheckTestLocations(context);
   const report = passReport();
   await assert.rejects(() =>
-    checkPersistedFinalMechanicalCheck({ rootDir, expectedReport: report }),
+    checkPersistedFinalMechanicalCheck({ locations, expectedReport: report }),
   );
-  const written = await writeFinalMechanicalCheckIfPassed({ rootDir, report });
+  const written = await writeFinalMechanicalCheckIfPassed({
+    locations,
+    report,
+  });
   await writeFile(written.destination, "{malformed");
   await assert.rejects(() =>
-    checkPersistedFinalMechanicalCheck({ rootDir, expectedReport: report }),
+    checkPersistedFinalMechanicalCheck({ locations, expectedReport: report }),
   );
   assert.equal(await readFile(written.destination, "utf8"), "{malformed");
 });
 
-test("v2 final writer preserves the same pass-only canonical byte boundary", async () => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-final-v2-report-"));
+test("v2 final writer preserves the same pass-only canonical byte boundary", async (context) => {
+  const locations = await createProjectCheckTestLocations(context);
   const v1 = passReport();
   const report = createFinalMechanicalCheckV2Report({
     schemaVersion: 2,
@@ -97,12 +102,18 @@ test("v2 final writer preserves the same pass-only canonical byte boundary", asy
       failureReasons: [],
     })),
   });
-  const written = await writeFinalMechanicalCheckIfPassed({ rootDir, report });
-  await checkPersistedFinalMechanicalCheck({ rootDir, expectedReport: report });
+  const written = await writeFinalMechanicalCheckIfPassed({
+    locations,
+    report,
+  });
+  await checkPersistedFinalMechanicalCheck({
+    locations,
+    expectedReport: report,
+  });
   const before = await readFile(written.destination, "utf8");
   await assert.rejects(() =>
     writeFinalMechanicalCheckIfPassed({
-      rootDir,
+      locations,
       report: { ...report, aggregateStatus: "fail" },
     }),
   );

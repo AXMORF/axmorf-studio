@@ -11,6 +11,7 @@ import {
   writeExecutionAttempt,
 } from "../../scripts/project-production/adapters/attempt-store";
 import { snapshotPolicyRoots } from "../../scripts/project-production/adapters/project-input-snapshot";
+import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
 import { readProjectProductionProgress } from "../../settings/server/production-progress";
 
 const write = async (path: string, bytes: string) => {
@@ -33,9 +34,13 @@ test("malformed legacy .producer-runs cannot affect planner policy inputs", asyn
   );
   await write(join(rootDir, "package.json"), "{}\n");
   await write(join(rootDir, "package-lock.json"), "{}\n");
+  await write(join(rootDir, "tsconfig.json"), "{}\n");
   await write(join(rootDir, "remotion.config.ts"), "export {};\n");
 
-  const before = await snapshotPolicyRoots({ rootDir });
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
+  const before = await snapshotPolicyRoots({ locations });
   await write(
     join(rootDir, ".producer-runs/not-even-a-run/run.json"),
     "{ definitely not json",
@@ -44,7 +49,7 @@ test("malformed legacy .producer-runs cannot affect planner policy inputs", asyn
     join(rootDir, ".producer-runs/failed-run/events/0001.json"),
     JSON.stringify({ state: "failed", ownerReceipt: "legacy-only" }),
   );
-  const after = await snapshotPolicyRoots({ rootDir });
+  const after = await snapshotPolicyRoots({ locations });
   assert.equal(after, before);
 });
 
@@ -54,6 +59,7 @@ test("settings progress ignores malformed and failed legacy Runs", async (contex
   );
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   await mkdir(join(rootDir, "src/projects/story-example"), { recursive: true });
+  await mkdir(join(rootDir, "deliveries"), { recursive: true });
   await write(
     join(rootDir, ".producer-runs/malformed/run.json"),
     "{ malformed legacy run",
@@ -96,8 +102,8 @@ test("settings progress ignores malformed and failed legacy Runs", async (contex
     explanationAvailability: "baseline-unavailable" as const,
   };
   const attempt = ExecutionAttemptSchema.parse({
-    schemaVersion: 3,
-    contractVersion: "execution-attempt-v3",
+    schemaVersion: 4,
+    contractVersion: "execution-attempt-v4",
     attemptId: randomUUID(),
     storyId: "story-example",
     revisionId: `revision-${"1".repeat(64)}`,
@@ -143,7 +149,10 @@ test("settings progress ignores malformed and failed legacy Runs", async (contex
     },
     diagnosticCode: null,
   });
-  await writeExecutionAttempt({ rootDir, attempt });
+  await writeExecutionAttempt({
+    locations: createRepositoryProductionLocations({ repositoryRoot: rootDir }),
+    attempt,
+  });
   await write(
     join(rootDir, ".producer-runs/failed/run.json"),
     JSON.stringify({ schemaVersion: 999, state: "failed" }),
@@ -176,7 +185,9 @@ test("malformed and old attempts only make diagnostic baseline unavailable", asy
 
   assert.equal(
     await readExecutionAttemptDiagnosticBaseline({
-      rootDir,
+      locations: createRepositoryProductionLocations({
+        repositoryRoot: rootDir,
+      }),
       storyId: "story-example",
     }),
     null,
@@ -191,7 +202,9 @@ test("diagnostic baseline inspection never creates delivery or attempt storage",
 
   assert.equal(
     await readExecutionAttemptDiagnosticBaseline({
-      rootDir,
+      locations: createRepositoryProductionLocations({
+        repositoryRoot: rootDir,
+      }),
       storyId: "story-example",
     }),
     null,

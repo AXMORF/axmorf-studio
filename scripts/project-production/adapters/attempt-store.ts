@@ -15,7 +15,7 @@ import {
   EXECUTION_ATTEMPT_VERSION,
   EXECUTION_ATTEMPT_EVENT_VERSION,
   EXECUTION_ATTEMPT_PROGRESS_VERSION,
-  ExecutionAttemptDeliveryResultSchema,
+  ExecutionAttemptTerminalResultSchema,
   ExecutionAttemptEventSchema,
   ExecutionAttemptProgressSchema,
   ExecutionAttemptSchema,
@@ -25,7 +25,7 @@ import {
   StoryIdSchema,
   serializeCanonicalJson,
   type ExecutionAttempt,
-  type ExecutionAttemptDeliveryResult,
+  type ExecutionAttemptTerminalResult,
   type ExecutionAttemptEvent,
   type ExecutionAttemptProgress,
   type ExecutionAttemptTaskOutcome,
@@ -44,16 +44,21 @@ import {
   readOptionalTextFile,
   writeTextFileAtomic,
 } from "../../shared/atomic-file";
+import type { ProductionLocations } from "../domain/production-locations";
 import { inspectCurrentDelivery } from "./current-delivery-inspection";
 
-const attemptsStorageRoot = (rootDir: string) =>
-  join(rootDir, ".producer-attempts");
+const attemptsRoot = (attemptStoreRoot: string, storyId: string) =>
+  join(attemptStoreRoot, StoryIdSchema.parse(storyId));
 
-const attemptsRoot = (rootDir: string, storyId: string) =>
-  join(attemptsStorageRoot(rootDir), StoryIdSchema.parse(storyId));
-
-const attemptRoot = (rootDir: string, storyId: string, attemptId: string) =>
-  join(attemptsRoot(rootDir, storyId), z.string().uuid().parse(attemptId));
+const attemptRoot = (
+  attemptStoreRoot: string,
+  storyId: string,
+  attemptId: string,
+) =>
+  join(
+    attemptsRoot(attemptStoreRoot, storyId),
+    z.string().uuid().parse(attemptId),
+  );
 
 const inspectRealDirectory = async (directory: string) => {
   try {
@@ -69,16 +74,16 @@ const inspectRealDirectory = async (directory: string) => {
 };
 
 const assertAttemptParents = async ({
-  rootDir,
+  attemptStoreRoot,
   storyId: rawStoryId,
   create,
 }: {
-  readonly rootDir: string;
+  readonly attemptStoreRoot: string;
   readonly storyId: string;
   readonly create: boolean;
 }) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
-  const storage = attemptsStorageRoot(rootDir);
+  const storage = attemptStoreRoot;
   if (!(await inspectRealDirectory(storage))) {
     if (!create) return false;
     try {
@@ -91,7 +96,7 @@ const assertAttemptParents = async ({
     }
   }
 
-  const story = attemptsRoot(rootDir, storyId);
+  const story = attemptsRoot(attemptStoreRoot, storyId);
   if (!(await inspectRealDirectory(story))) {
     if (!create) return false;
     try {
@@ -107,18 +112,20 @@ const assertAttemptParents = async ({
 };
 
 const assertAttemptDirectory = async ({
-  rootDir,
+  attemptStoreRoot,
   storyId,
   attemptId,
 }: {
-  readonly rootDir: string;
+  readonly attemptStoreRoot: string;
   readonly storyId: string;
   readonly attemptId: string;
 }) => {
-  if (!(await assertAttemptParents({ rootDir, storyId, create: false }))) {
+  if (
+    !(await assertAttemptParents({ attemptStoreRoot, storyId, create: false }))
+  ) {
     return false;
   }
-  const directory = attemptRoot(rootDir, storyId, attemptId);
+  const directory = attemptRoot(attemptStoreRoot, storyId, attemptId);
   try {
     const metadata = await lstat(directory);
     if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
@@ -132,20 +139,22 @@ const assertAttemptDirectory = async ({
 };
 
 const assertAttemptEventsDirectory = async ({
-  rootDir,
+  attemptStoreRoot,
   storyId,
   attemptId,
 }: {
-  readonly rootDir: string;
+  readonly attemptStoreRoot: string;
   readonly storyId: string;
   readonly attemptId: string;
 }) => {
-  if (!(await assertAttemptDirectory({ rootDir, storyId, attemptId }))) {
+  if (
+    !(await assertAttemptDirectory({ attemptStoreRoot, storyId, attemptId }))
+  ) {
     return false;
   }
   try {
     const metadata = await lstat(
-      join(attemptRoot(rootDir, storyId, attemptId), "events"),
+      join(attemptRoot(attemptStoreRoot, storyId, attemptId), "events"),
     );
     if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
       throw new Error("Execution attempt events directory is unsafe.");
@@ -174,26 +183,35 @@ const emptyTaskOutcomeSummary = {
   failedTaskCount: 0,
 } as const;
 
-const notVerifiedDelivery = {
-  status: "not-verified",
+const pendingTerminal = {
+  status: "pending",
+  sourceCurrentId: null,
   deliveryBuildId: null,
   diagnosticCode: null,
   deliveryMedia: [],
 } as const;
 
 const eventPath = (
-  rootDir: string,
+  attemptStoreRoot: string,
   storyId: string,
   attemptId: string,
   eventId: string,
 ) =>
-  join(attemptRoot(rootDir, storyId, attemptId), "events", `${eventId}.json`);
+  join(
+    attemptRoot(attemptStoreRoot, storyId, attemptId),
+    "events",
+    `${eventId}.json`,
+  );
 
 const continuationClaimPath = (
-  rootDir: string,
+  attemptStoreRoot: string,
   storyId: string,
   attemptId: string,
-) => join(attemptRoot(rootDir, storyId, attemptId), "continuation.claim.json");
+) =>
+  join(
+    attemptRoot(attemptStoreRoot, storyId, attemptId),
+    "continuation.claim.json",
+  );
 
 const deterministicEventId = (scope: string) => {
   const hex = createHash("sha256").update(scope).digest("hex");
@@ -202,7 +220,7 @@ const deterministicEventId = (scope: string) => {
 
 const buildOpenedEvent = (attempt: ExecutionAttempt): ExecutionAttemptEvent =>
   ExecutionAttemptEventSchema.parse({
-    schemaVersion: 3,
+    schemaVersion: 4,
     contractVersion: EXECUTION_ATTEMPT_EVENT_VERSION,
     eventId: randomUUID(),
     eventKind: "attempt-opened",
@@ -211,7 +229,7 @@ const buildOpenedEvent = (attempt: ExecutionAttempt): ExecutionAttemptEvent =>
     storyId: attempt.storyId,
     revisionId: attempt.revisionId,
     taskOutcome: null,
-    deliveryResult: null,
+    terminalResult: null,
   });
 
 const baseProgress = (
@@ -219,7 +237,7 @@ const baseProgress = (
   eventCount: number,
 ): ExecutionAttemptProgress =>
   ExecutionAttemptProgressSchema.parse({
-    schemaVersion: 3,
+    schemaVersion: 4,
     contractVersion: EXECUTION_ATTEMPT_PROGRESS_VERSION,
     attemptId: attempt.attemptId,
     storyId: attempt.storyId,
@@ -239,7 +257,7 @@ const baseProgress = (
     eventCount,
     taskOutcomes: [],
     taskOutcomeSummary: emptyTaskOutcomeSummary,
-    deliveryResult: notVerifiedDelivery,
+    terminalResult: pendingTerminal,
   });
 
 const assertEventIdentity = (
@@ -256,15 +274,15 @@ const assertEventIdentity = (
 };
 
 const readEvents = async ({
-  rootDir,
+  attemptStoreRoot,
   attempt,
 }: {
-  readonly rootDir: string;
+  readonly attemptStoreRoot: string;
   readonly attempt: ExecutionAttempt;
 }) => {
   if (
     !(await assertAttemptEventsDirectory({
-      rootDir,
+      attemptStoreRoot,
       storyId: attempt.storyId,
       attemptId: attempt.attemptId,
     }))
@@ -272,7 +290,7 @@ const readEvents = async ({
     return [];
   }
   const directory = join(
-    attemptRoot(rootDir, attempt.storyId, attempt.attemptId),
+    attemptRoot(attemptStoreRoot, attempt.storyId, attempt.attemptId),
     "events",
   );
   let entries;
@@ -319,10 +337,15 @@ const projectProgress = ({
   let state: ExecutionAttemptProgress["state"] = attempt.state;
   let updatedAt = attempt.updatedAt;
   let diagnosticCode = attempt.diagnosticCode;
-  let deliveryResult: ExecutionAttemptDeliveryResult = notVerifiedDelivery;
+  let terminalResult: ExecutionAttemptTerminalResult = pendingTerminal;
   for (const event of events) {
     if (event.recordedAt > updatedAt) updatedAt = event.recordedAt;
     if (event.taskOutcome !== null) {
+      assertPlanBoundDirtyAgentTask({
+        authority: attempt,
+        taskRevision: event.taskOutcome.taskRevision,
+        taskKind: event.taskOutcome.taskKind,
+      });
       if (outcomes.has(event.taskOutcome.taskRevision)) {
         throw new Error(
           "Execution attempt contains duplicate task terminal events.",
@@ -335,23 +358,22 @@ const projectProgress = ({
         dirty.delete(event.taskOutcome.taskRevision);
       }
     }
-    if (event.deliveryResult !== null) {
-      if (deliveryResult.status !== "not-verified") {
+    if (event.terminalResult !== null) {
+      if (terminalResult.status !== "pending") {
         throw new Error(
-          "Execution attempt contains duplicate delivery terminal events.",
+          "Execution attempt contains duplicate terminal events.",
         );
       }
-      deliveryResult = event.deliveryResult;
-      state =
-        event.deliveryResult.status === "verified" ? "succeeded" : "failed";
-      diagnosticCode = event.deliveryResult.diagnosticCode;
+      terminalResult = event.terminalResult;
+      state = event.terminalResult.status === "failed" ? "failed" : "succeeded";
+      diagnosticCode = event.terminalResult.diagnosticCode;
     }
   }
   const taskOutcomes = [...outcomes.values()].sort((left, right) =>
     left.taskRevision.localeCompare(right.taskRevision),
   );
   return ExecutionAttemptProgressSchema.parse({
-    schemaVersion: 3,
+    schemaVersion: 4,
     contractVersion: EXECUTION_ATTEMPT_PROGRESS_VERSION,
     attemptId: attempt.attemptId,
     storyId: attempt.storyId,
@@ -363,7 +385,7 @@ const projectProgress = ({
     estimatedCost: attempt.estimatedCost,
     actualCost: {
       ...attempt.actualCost,
-      deliveryMedia: deliveryResult.deliveryMedia,
+      deliveryMedia: terminalResult.deliveryMedia,
     },
     state,
     createdAt: attempt.createdAt,
@@ -384,27 +406,57 @@ const projectProgress = ({
         ({ outcome }) => outcome === "failed",
       ).length,
     },
-    deliveryResult,
+    terminalResult,
   });
 };
 
+const assertPlanBoundDirtyAgentTask = ({
+  authority,
+  taskRevision,
+  taskKind,
+}: {
+  readonly authority: Pick<
+    ExecutionAttempt | ExecutionAttemptProgress,
+    "taskSnapshots" | "dirtyTaskRevisions"
+  >;
+  readonly taskRevision: string;
+  readonly taskKind: string;
+}) => {
+  const snapshot = authority.taskSnapshots.find(
+    (candidate) =>
+      candidate.taskRevision === taskRevision && candidate.taskKind === taskKind,
+  );
+  if (snapshot === undefined || snapshot.decision.action !== "dispatch-agent") {
+    throw new Error(
+      "Execution attempt task outcome is not bound to a dispatched Agent task.",
+    );
+  }
+  if (!authority.dirtyTaskRevisions.includes(snapshot.taskRevision)) {
+    throw new Error("Execution attempt task outcome is not dirty.");
+  }
+};
+
 const writeProgress = async ({
-  rootDir,
+  attemptStoreRoot,
   progress,
 }: {
-  readonly rootDir: string;
+  readonly attemptStoreRoot: string;
   readonly progress: ExecutionAttemptProgress;
 }) => {
   if (
     !(await assertAttemptDirectory({
-      rootDir,
+      attemptStoreRoot,
       storyId: progress.storyId,
       attemptId: progress.attemptId,
     }))
   ) {
     throw missingAttemptError();
   }
-  const directory = attemptRoot(rootDir, progress.storyId, progress.attemptId);
+  const directory = attemptRoot(
+    attemptStoreRoot,
+    progress.storyId,
+    progress.attemptId,
+  );
   const temporary = join(directory, `.progress.generated-${randomUUID()}.json`);
   try {
     await writeCanonicalJson(temporary, progress, "wx");
@@ -415,21 +467,25 @@ const writeProgress = async ({
   }
 };
 
-export const writeExecutionAttempt = async ({
-  rootDir,
+const writeExecutionAttemptAtRoot = async ({
+  attemptStoreRoot,
   attempt,
 }: {
-  readonly rootDir: string;
+  readonly attemptStoreRoot: string;
   readonly attempt: ExecutionAttempt;
 }) => {
   const parsed = ExecutionAttemptSchema.parse(attempt);
   await assertAttemptParents({
-    rootDir,
+    attemptStoreRoot,
     storyId: parsed.storyId,
     create: true,
   });
-  const parent = attemptsRoot(rootDir, parsed.storyId);
-  const directory = attemptRoot(rootDir, parsed.storyId, parsed.attemptId);
+  const parent = attemptsRoot(attemptStoreRoot, parsed.storyId);
+  const directory = attemptRoot(
+    attemptStoreRoot,
+    parsed.storyId,
+    parsed.attemptId,
+  );
   const staging = join(parent, `.${parsed.attemptId}.staging-${randomUUID()}`);
   const opened = buildOpenedEvent(parsed);
   try {
@@ -453,44 +509,59 @@ export const writeExecutionAttempt = async ({
   return directory;
 };
 
+export const writeExecutionAttempt = async (input: {
+  readonly locations: ProductionLocations;
+  readonly attempt: ExecutionAttempt;
+}) =>
+  writeExecutionAttemptAtRoot({
+    attemptStoreRoot: input.locations.attemptStoreRoot,
+    attempt: input.attempt,
+  });
+
 const readImmutableAttempt = async ({
-  rootDir,
+  attemptStoreRoot,
   storyId,
   attemptId,
 }: {
-  readonly rootDir: string;
+  readonly attemptStoreRoot: string;
   readonly storyId: string;
   readonly attemptId: string;
 }) => {
-  if (!(await assertAttemptDirectory({ rootDir, storyId, attemptId }))) {
+  if (
+    !(await assertAttemptDirectory({ attemptStoreRoot, storyId, attemptId }))
+  ) {
     throw missingAttemptError();
   }
   return ExecutionAttemptSchema.parse(
     JSON.parse(
       await readFile(
-        join(attemptRoot(rootDir, storyId, attemptId), "attempt.json"),
+        join(attemptRoot(attemptStoreRoot, storyId, attemptId), "attempt.json"),
         "utf8",
       ),
     ),
   );
 };
 
-export const readExecutionAttemptProgress = async ({
-  rootDir,
+const readExecutionAttemptProgressAtRoot = async ({
+  attemptStoreRoot,
   storyId: rawStoryId,
   attemptId,
 }: {
-  readonly rootDir: string;
+  readonly attemptStoreRoot: string;
   readonly storyId: string;
   readonly attemptId: string;
 }) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
   try {
-    const attempt = await readImmutableAttempt({ rootDir, storyId, attemptId });
+    const attempt = await readImmutableAttempt({
+      attemptStoreRoot,
+      storyId,
+      attemptId,
+    });
     if (attempt.storyId !== storyId || attempt.attemptId !== attemptId) {
       throw new Error("Execution attempt identity is cross-bound.");
     }
-    const events = await readEvents({ rootDir, attempt });
+    const events = await readEvents({ attemptStoreRoot, attempt });
     return projectProgress({ attempt, events });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
@@ -498,8 +569,19 @@ export const readExecutionAttemptProgress = async ({
   }
 };
 
+export const readExecutionAttemptProgress = async (input: {
+  readonly locations: ProductionLocations;
+  readonly storyId: string;
+  readonly attemptId: string;
+}) =>
+  readExecutionAttemptProgressAtRoot({
+    attemptStoreRoot: input.locations.attemptStoreRoot,
+    storyId: input.storyId,
+    attemptId: input.attemptId,
+  });
+
 export const readExecutionAttempt = async (input: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly storyId: string;
   readonly attemptId: string;
 }) => {
@@ -510,17 +592,17 @@ export const readExecutionAttempt = async (input: {
   return progress;
 };
 
-const readCurrentDeliveryBinding = async ({
-  rootDir,
-  storyId,
-  inspectDelivery,
-}: {
-  readonly rootDir: string;
+const readCurrentDeliveryBinding = async (input: {
+  readonly locations: ProductionLocations;
   readonly storyId: string;
   readonly inspectDelivery: typeof inspectCurrentDelivery;
 }) => {
+  const { storyId, inspectDelivery } = input;
   try {
-    const publish = await inspectDelivery({ rootDir, storyId });
+    const publish = await inspectDelivery({
+      locations: input.locations,
+      storyId,
+    });
     if (publish === null) return null;
     return {
       revisionId: publish.revisionId,
@@ -533,18 +615,20 @@ const readCurrentDeliveryBinding = async ({
 };
 
 const readVerifiedAttemptCandidates = async ({
-  rootDir,
+  attemptStoreRoot,
   storyId,
 }: {
-  readonly rootDir: string;
+  readonly attemptStoreRoot: string;
   readonly storyId: string;
 }) => {
-  if (!(await assertAttemptParents({ rootDir, storyId, create: false }))) {
+  if (
+    !(await assertAttemptParents({ attemptStoreRoot, storyId, create: false }))
+  ) {
     return [];
   }
   let entries;
   try {
-    entries = await readdir(attemptsRoot(rootDir, storyId), {
+    entries = await readdir(attemptsRoot(attemptStoreRoot, storyId), {
       withFileTypes: true,
     });
   } catch (error) {
@@ -555,15 +639,16 @@ const readVerifiedAttemptCandidates = async ({
   for (const entry of entries) {
     if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
     try {
-      const progress = await readExecutionAttemptProgress({
-        rootDir,
+      const progress = await readExecutionAttemptProgressAtRoot({
+        attemptStoreRoot,
         storyId,
         attemptId: entry.name,
       });
       if (
         progress !== null &&
         progress.state === "succeeded" &&
-        progress.deliveryResult.status === "verified"
+        (progress.terminalResult.status === "source-current" ||
+          progress.terminalResult.status === "delivery-current")
       ) {
         candidates.push(progress);
       }
@@ -579,33 +664,31 @@ const readVerifiedAttemptCandidates = async ({
 };
 
 export type ExecutionAttemptDiagnosticBaseline = Readonly<{
-  kind: "current-delivery" | "latest-verified-attempt";
+  kind: "current-delivery" | "latest-successful-attempt";
   attemptId: string;
   revisionId: ExecutionAttemptProgress["revisionId"];
   taskExplanations: ExecutionAttemptProgress["taskExplanations"];
   taskSnapshots: ExecutionAttemptProgress["taskSnapshots"];
 }>;
 
-export const readExecutionAttemptDiagnosticBaseline = async ({
-  rootDir,
-  storyId: rawStoryId,
-  dependencies = {},
-}: {
-  readonly rootDir: string;
+export const readExecutionAttemptDiagnosticBaseline = async (input: {
+  readonly locations: ProductionLocations;
   readonly storyId: string;
   readonly dependencies?: Readonly<{
     inspectCurrentDelivery?: typeof inspectCurrentDelivery;
   }>;
 }): Promise<ExecutionAttemptDiagnosticBaseline | null> => {
+  const { storyId: rawStoryId, dependencies = {} } = input;
   const storyId = StoryIdSchema.parse(rawStoryId);
+  const attemptStoreRoot = input.locations.attemptStoreRoot;
   const [delivery, candidates] = await Promise.all([
     readCurrentDeliveryBinding({
-      rootDir,
+      locations: input.locations,
       storyId,
       inspectDelivery:
         dependencies.inspectCurrentDelivery ?? inspectCurrentDelivery,
     }),
-    readVerifiedAttemptCandidates({ rootDir, storyId }),
+    readVerifiedAttemptCandidates({ attemptStoreRoot, storyId }),
   ]);
   const current =
     delivery === null
@@ -613,14 +696,14 @@ export const readExecutionAttemptDiagnosticBaseline = async ({
       : candidates.find(
           (candidate) =>
             candidate.revisionId === delivery.revisionId &&
-            candidate.deliveryResult.deliveryBuildId ===
+            candidate.terminalResult.deliveryBuildId ===
               delivery.deliveryBuildId,
         );
   const selected = current ?? candidates[0];
   if (selected === undefined) return null;
   return {
     kind:
-      current === undefined ? "latest-verified-attempt" : "current-delivery",
+      current === undefined ? "latest-successful-attempt" : "current-delivery",
     attemptId: selected.attemptId,
     revisionId: selected.revisionId,
     taskExplanations: selected.taskExplanations,
@@ -660,21 +743,16 @@ const planAttemptFields = ({
   } as const;
 };
 
-export const createExecutionAttemptForPlan = async ({
-  rootDir,
-  plan,
-  taskSnapshots,
-  estimatedCost,
-  actualCost,
-  state,
-}: {
-  readonly rootDir: string;
+export const createExecutionAttemptForPlan = async (input: {
+  readonly locations: ProductionLocations;
   readonly plan: ProducerPlan;
   readonly taskSnapshots: readonly TaskDiagnosticSnapshot[];
   readonly estimatedCost: EstimatedProductionCost;
   readonly actualCost: ActualProductionCost;
   readonly state: "waiting-for-agent" | "converging";
 }) => {
+  const { plan, taskSnapshots, estimatedCost, actualCost, state } = input;
+  const attemptStoreRoot = input.locations.attemptStoreRoot;
   const fields = planAttemptFields({
     plan,
     taskSnapshots,
@@ -683,7 +761,7 @@ export const createExecutionAttemptForPlan = async ({
   });
   const now = new Date().toISOString();
   const attempt = ExecutionAttemptSchema.parse({
-    schemaVersion: 3,
+    schemaVersion: 4,
     contractVersion: EXECUTION_ATTEMPT_VERSION,
     attemptId: randomUUID(),
     storyId: plan.storyId,
@@ -694,23 +772,23 @@ export const createExecutionAttemptForPlan = async ({
     updatedAt: now,
     diagnosticCode: null,
   });
-  await writeExecutionAttempt({ rootDir, attempt });
+  await writeExecutionAttemptAtRoot({ attemptStoreRoot, attempt });
   return attempt;
 };
 
 const appendEvent = async ({
-  rootDir,
+  attemptStoreRoot,
   progress,
   event,
 }: {
-  readonly rootDir: string;
+  readonly attemptStoreRoot: string;
   readonly progress: ExecutionAttemptProgress;
   readonly event: ExecutionAttemptEvent;
 }) => {
   assertEventIdentity(event, progress);
   if (
     !(await assertAttemptEventsDirectory({
-      rootDir,
+      attemptStoreRoot,
       storyId: progress.storyId,
       attemptId: progress.attemptId,
     }))
@@ -718,7 +796,7 @@ const appendEvent = async ({
     throw missingAttemptError();
   }
   const path = eventPath(
-    rootDir,
+    attemptStoreRoot,
     progress.storyId,
     progress.attemptId,
     event.eventId,
@@ -741,13 +819,13 @@ const appendEvent = async ({
       existing.eventKind === event.eventKind &&
       serializeCanonicalJson(existing.taskOutcome) ===
         serializeCanonicalJson(event.taskOutcome) &&
-      serializeCanonicalJson(existing.deliveryResult) ===
-        serializeCanonicalJson(event.deliveryResult);
+      serializeCanonicalJson(existing.terminalResult) ===
+        serializeCanonicalJson(event.terminalResult);
     if (!sameTerminal) {
       throw new Error(
         event.eventKind === "task-terminal"
           ? "Execution attempt task terminal is immutable."
-          : "Execution attempt delivery terminal is immutable.",
+          : "Execution attempt terminal is immutable.",
         { cause: error },
       );
     }
@@ -756,15 +834,15 @@ const appendEvent = async ({
   // Concurrent terminal writers may project different event snapshots. Keep
   // refreshing until the written projection covers the complete event set.
   const attempt = await readImmutableAttempt({
-    rootDir,
+    attemptStoreRoot,
     storyId: progress.storyId,
     attemptId: progress.attemptId,
   });
   for (;;) {
-    const before = await readEvents({ rootDir, attempt });
+    const before = await readEvents({ attemptStoreRoot, attempt });
     const projected = projectProgress({ attempt, events: before });
-    await writeProgress({ rootDir, progress: projected });
-    const after = await readEvents({ rootDir, attempt });
+    await writeProgress({ attemptStoreRoot, progress: projected });
+    const after = await readEvents({ attemptStoreRoot, attempt });
     if (
       before.length === after.length &&
       before.every((value, index) => value.eventId === after[index]?.eventId)
@@ -774,20 +852,17 @@ const appendEvent = async ({
   }
 };
 
-export const claimExecutionAttemptContinuation = async ({
-  rootDir,
-  storyId: rawStoryId,
-  revisionId,
-  attemptId,
-}: {
-  readonly rootDir: string;
+export const claimExecutionAttemptContinuation = async (input: {
+  readonly locations: ProductionLocations;
   readonly storyId: string;
   readonly revisionId: string;
   readonly attemptId: string;
 }) => {
+  const { storyId: rawStoryId, revisionId, attemptId } = input;
+  const attemptStoreRoot = input.locations.attemptStoreRoot;
   const storyId = StoryIdSchema.parse(rawStoryId);
-  const progress = await readExecutionAttemptProgress({
-    rootDir,
+  const progress = await readExecutionAttemptProgressAtRoot({
+    attemptStoreRoot,
     storyId,
     attemptId,
   });
@@ -806,7 +881,7 @@ export const claimExecutionAttemptContinuation = async ({
     storyId: progress.storyId,
     revisionId: progress.revisionId,
   } as const;
-  const path = continuationClaimPath(rootDir, storyId, attemptId);
+  const path = continuationClaimPath(attemptStoreRoot, storyId, attemptId);
   try {
     await writeTextFileAtomic({
       destination: path,
@@ -822,13 +897,43 @@ export const claimExecutionAttemptContinuation = async ({
   return claim;
 };
 
-export const appendExecutionAttemptTaskOutcome = async ({
-  rootDir,
-  attemptId,
-  task: rawTask,
-  outcome: rawOutcome,
-}: {
-  readonly rootDir: string;
+export const assertExecutionAttemptTaskAuthority = async (input: {
+  readonly locations: ProductionLocations;
+  readonly attemptId: string;
+  readonly task: ProducerTaskSpec;
+}) => {
+  const task = ProducerTaskSpecSchema.parse(input.task);
+  const progress = await readExecutionAttemptProgressAtRoot({
+    attemptStoreRoot: input.locations.attemptStoreRoot,
+    storyId: task.storyId,
+    attemptId: input.attemptId,
+  });
+  if (progress === null) throw missingAttemptError();
+  if (
+    progress.revisionId !== task.revisionId ||
+    progress.state === "succeeded" ||
+    progress.state === "failed" ||
+    progress.terminalResult.status !== "pending"
+  ) {
+    throw new Error("Execution attempt is not the active task authority.");
+  }
+  assertPlanBoundDirtyAgentTask({
+    authority: progress,
+    taskRevision: task.taskRevision,
+    taskKind: task.taskKind,
+  });
+  if (
+    progress.taskOutcomes.some(
+      ({ taskRevision }) => taskRevision === task.taskRevision,
+    )
+  ) {
+    throw new Error("Execution attempt task terminal is immutable.");
+  }
+  return progress;
+};
+
+export const appendExecutionAttemptTaskOutcome = async (input: {
+  readonly locations: ProductionLocations;
   readonly attemptId: string;
   readonly task: ProducerTaskSpec;
   readonly outcome: Omit<
@@ -836,48 +941,25 @@ export const appendExecutionAttemptTaskOutcome = async ({
     "taskRevision" | "taskKind"
   >;
 }) => {
+  const { attemptId, task: rawTask, outcome: rawOutcome } = input;
+  const attemptStoreRoot = input.locations.attemptStoreRoot;
   const task = ProducerTaskSpecSchema.parse(rawTask);
   const outcome = ExecutionAttemptTaskOutcomeSchema.parse({
     taskRevision: task.taskRevision,
     taskKind: task.taskKind,
     ...rawOutcome,
   });
-  const progress = await readExecutionAttemptProgress({
-    rootDir,
-    storyId: task.storyId,
+  const progress = await assertExecutionAttemptTaskAuthority({
+    locations: input.locations,
     attemptId,
+    task,
   });
-  if (progress === null) throw missingAttemptError();
-  if (progress.revisionId !== task.revisionId) {
-    throw new Error("Execution attempt is not the active task authority.");
-  }
-  if (
-    !progress.taskSnapshots.some(
-      (snapshot) =>
-        snapshot.taskRevision === task.taskRevision &&
-        snapshot.taskKind === task.taskKind,
-    )
-  ) {
-    throw new Error("Execution attempt task outcome is not plan-bound.");
-  }
-  const existing = progress.taskOutcomes.find(
-    ({ taskRevision }) => taskRevision === task.taskRevision,
-  );
-  if (existing !== undefined) {
-    if (serializeCanonicalJson(existing) === serializeCanonicalJson(outcome)) {
-      return progress;
-    }
-    throw new Error("Execution attempt task terminal is immutable.");
-  }
-  if (progress.state === "succeeded" || progress.state === "failed") {
-    throw new Error("Execution attempt is not the active task authority.");
-  }
   const recordedAt = new Date().toISOString();
   return appendEvent({
-    rootDir,
+    attemptStoreRoot,
     progress,
     event: ExecutionAttemptEventSchema.parse({
-      schemaVersion: 3,
+      schemaVersion: 4,
       contractVersion: EXECUTION_ATTEMPT_EVENT_VERSION,
       eventId: deterministicEventId(
         `${progress.attemptId}:task-terminal:${task.taskRevision}`,
@@ -888,67 +970,68 @@ export const appendExecutionAttemptTaskOutcome = async ({
       storyId: progress.storyId,
       revisionId: progress.revisionId,
       taskOutcome: outcome,
-      deliveryResult: null,
+      terminalResult: null,
     }),
   });
 };
 
-export const appendExecutionAttemptDeliveryResult = async ({
-  rootDir,
-  storyId: rawStoryId,
-  revisionId,
-  attemptId,
-  result: rawResult,
-}: {
-  readonly rootDir: string;
+export const appendExecutionAttemptTerminalResult = async (input: {
+  readonly locations: ProductionLocations;
   readonly storyId: string;
   readonly revisionId: string;
   readonly attemptId: string;
   readonly result: Exclude<
-    ExecutionAttemptDeliveryResult,
-    { readonly status: "not-verified" }
+    ExecutionAttemptTerminalResult,
+    { readonly status: "pending" }
   >;
 }) => {
+  const {
+    storyId: rawStoryId,
+    revisionId,
+    attemptId,
+    result: rawResult,
+  } = input;
+  const attemptStoreRoot = input.locations.attemptStoreRoot;
   const storyId = StoryIdSchema.parse(rawStoryId);
-  const result = ExecutionAttemptDeliveryResultSchema.parse(rawResult);
-  if (result.status === "not-verified") {
-    throw new Error("A terminal delivery result must be verified or failed.");
+  const result = ExecutionAttemptTerminalResultSchema.parse(rawResult);
+  if (result.status === "pending") {
+    throw new Error("An attempt terminal result cannot be pending.");
   }
-  const progress = await readExecutionAttemptProgress({
-    rootDir,
+  const progress = await readExecutionAttemptProgressAtRoot({
+    attemptStoreRoot,
     storyId,
     attemptId,
   });
   if (progress === null) throw missingAttemptError();
   if (progress.revisionId !== revisionId) {
-    throw new Error("Execution attempt is not the active delivery authority.");
+    throw new Error("Execution attempt is not the active terminal authority.");
   }
-  if (progress.deliveryResult.status !== "not-verified") {
+  if (progress.terminalResult.status !== "pending") {
     if (
-      serializeCanonicalJson(progress.deliveryResult) ===
+      serializeCanonicalJson(progress.terminalResult) ===
       serializeCanonicalJson(result)
     ) {
       return progress;
     }
-    throw new Error("Execution attempt delivery terminal is immutable.");
+    throw new Error("Execution attempt terminal is immutable.");
   }
   if (progress.state === "succeeded" || progress.state === "failed") {
-    throw new Error("Execution attempt is not the active delivery authority.");
+    throw new Error("Execution attempt is not the active terminal authority.");
   }
   return appendEvent({
-    rootDir,
+    attemptStoreRoot,
     progress,
     event: ExecutionAttemptEventSchema.parse({
-      schemaVersion: 3,
+      schemaVersion: 4,
       contractVersion: EXECUTION_ATTEMPT_EVENT_VERSION,
-      eventId: deterministicEventId(`${progress.attemptId}:delivery-terminal`),
-      eventKind: "delivery-terminal",
+      eventId: deterministicEventId(`${progress.attemptId}:attempt-terminal`),
+      eventKind: "attempt-terminal",
       recordedAt: new Date().toISOString(),
       attemptId: progress.attemptId,
       storyId: progress.storyId,
       revisionId: progress.revisionId,
       taskOutcome: null,
-      deliveryResult: result,
+      terminalResult: result,
     }),
   });
 };

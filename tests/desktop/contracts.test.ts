@@ -125,16 +125,18 @@ test("Workspace and managed integration schemas are strict and fixed", () => {
     ".agents/skills/remotion-story-producer-video/SKILL.md",
     ".rsp/hermes/INSTALL_PROMPT.md",
     ".rsp/bin/rsp",
-    ".rsp/lib/rsp-client.cjs",
   ]);
   const manifest = WorkspaceManifestSchema.parse({
-    schemaVersion: 1,
-    contractVersion: "desktop-workspace-v1",
+    schemaVersion: 2,
+    contractVersion: "desktop-workspace-v2",
     productId: "com.axmorf.studio",
     workspaceId,
-    layoutVersion: 1,
-    integrationVersion: 1,
+    layoutVersion: 2,
+    integrationVersion: 2,
     createdBy: "AXMORF Studio",
+    engineVersion: "desktop-engine-phase-b-v1",
+    protocolVersion: "rsp-local-v2",
+    skillVersion: "workspace-production-skill-v1",
   });
   assert.equal(manifest.workspaceId, workspaceId);
   assert.throws(() =>
@@ -142,9 +144,9 @@ test("Workspace and managed integration schemas are strict and fixed", () => {
   );
   assert.throws(() =>
     ManagedFilesLedgerSchema.parse({
-      schemaVersion: 1,
-      contractVersion: "desktop-managed-files-v1",
-      integrationVersion: 1,
+      schemaVersion: 2,
+      contractVersion: "desktop-managed-files-v2",
+      integrationVersion: 2,
       workspaceId,
       state: "ready",
       files: [],
@@ -188,9 +190,9 @@ test("Preview Catalog preserves canonical timing and contains no filesystem path
   );
 });
 
-test("rsp session and doctor contain no token and expose zero Desktop TCP listeners", () => {
+test("rsp session and doctor expose the clean-break Desktop network policy", () => {
   const session = SessionRecordSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
     protocolVersion: RSP_PROTOCOL_VERSION,
     workspaceId,
     socketPath: "/tmp/workspace/.rsp/session/rsp.sock",
@@ -200,29 +202,56 @@ test("rsp session and doctor contain no token and expose zero Desktop TCP listen
   });
   assert.doesNotMatch(JSON.stringify(session), /token|secret/iu);
   const doctor = DoctorResponseSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
     protocolVersion: RSP_PROTOCOL_VERSION,
     workspaceId,
-    adapterMode: "repository",
-    repositoryMode: "build-time-checkout",
-    runtimePackMode: "host-node-prototype",
+    adapterMode: "workspace",
+    runtimePackMode: "embedded",
     previewCatalog: {
       state: "ready",
       entryCount: 1,
       unavailableCount: 1,
       failureCode: null,
     },
-    desktopTcpListeners: false,
-    productionAvailable: false,
+    network: {
+      controlPlane: "authenticated-unix-domain-socket-only",
+      persistentTcpListeners: false,
+      deliveryBuildListener: {
+        transport: "http",
+        host: "127.0.0.1",
+        portAllocation: "os-ephemeral",
+        scope: "delivery-build",
+      },
+    },
+    productionAvailable: true,
     deliveryAvailable: false,
+    deliveryBlocker: {
+      code: "desktop-delivery-runtime-unavailable",
+      message: "Embedded Delivery runtime is unavailable.",
+    },
     distributionReady: false,
-    runtimePackAvailable: false,
-    activeWork: false,
+    runtimePackAvailable: true,
+    runtimePack: {
+      runtimePackId: `runtime-pack-${"d".repeat(64)}`,
+      architecture: "arm64",
+    },
+    provider: "not-configured",
+    activeWork: null,
     process: { appPid: 41, enginePid: 42 },
     session: { active: true, expiresAt: "2026-08-22T12:00:00.000Z" },
   });
-  assert.equal(doctor.desktopTcpListeners, false);
-  assert.equal(doctor.productionAvailable, false);
+  assert.deepEqual(doctor.network, {
+    controlPlane: "authenticated-unix-domain-socket-only",
+    persistentTcpListeners: false,
+    deliveryBuildListener: {
+      transport: "http",
+      host: "127.0.0.1",
+      portAllocation: "os-ephemeral",
+      scope: "delivery-build",
+    },
+  });
+  assert.equal("desktopTcpListeners" in doctor, false);
+  assert.equal(doctor.productionAvailable, true);
   assert.throws(() =>
     PreviewCatalogReadinessSchema.parse({
       state: "failed",
@@ -239,7 +268,9 @@ test("Main and Engine protocols reject service commands, unknown versions, and f
     requestId: "request-1",
     type: "initialize",
     workspaceRoot: "/tmp/workspace",
-    repositoryRoot: "/tmp/repository",
+    appResourcesRoot: "/tmp/app-resources",
+    applicationSupportRoot: "/tmp/app-support",
+    cacheRoot: "/tmp/cache",
     appPid: 41,
     sessionExpiresAt: "2026-08-22T12:00:00.000Z",
   } as const;
@@ -273,21 +304,32 @@ test("CLI failures and preload surface are exact", () => {
     protocolIncompatible: { code: "rsp-protocol-incompatible", exitCode: 2 },
     workspaceInvalid: { code: "rsp-workspace-invalid", exitCode: 3 },
     unauthorized: { code: "rsp-unauthorized", exitCode: 4 },
+    requestInvalid: { code: "rsp-request-invalid", exitCode: 5 },
+    commandFailed: { code: "rsp-command-failed", exitCode: 6 },
+    conflict: { code: "rsp-conflict", exitCode: 7 },
   });
   assert.deepEqual(DESKTOP_PRELOAD_METHODS, [
     "getAppState",
     "chooseInitialWorkspace",
     "showWorkspaceInFinder",
+    "migrateWorkspace",
     "refreshPreviewCatalog",
     "selectPreview",
+    "buildDelivery",
+    "getProviderSettings",
+    "saveProviderSettings",
     "retryEngine",
   ]);
   assert.deepEqual(Object.values(DESKTOP_SHELL_IPC_CHANNELS), [
     "desktop:get-app-state",
     "desktop:choose-initial-workspace",
     "desktop:show-workspace-in-finder",
+    "desktop:migrate-workspace",
     "desktop:refresh-preview-catalog",
     "desktop:select-preview",
+    "desktop:build-delivery",
+    "desktop:get-provider-settings",
+    "desktop:save-provider-settings",
     "desktop:retry-engine",
   ]);
 });

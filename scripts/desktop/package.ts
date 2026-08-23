@@ -34,10 +34,10 @@ if (process.platform !== "darwin") {
       "tsx",
       join(process.cwd(), "scripts/desktop/generate-brand-assets.ts"),
     ]);
-    await run(join(process.cwd(), "node_modules/.bin/vite"), [
-      "build",
-      "--config",
-      "vite.desktop.rsp.config.ts",
+    await run(process.execPath, [
+      "--import",
+      "tsx",
+      join(process.cwd(), "scripts/desktop/build-runtime-pack.ts"),
     ]);
     await run(join(process.cwd(), "node_modules/.bin/electron-forge"), [
       "package",

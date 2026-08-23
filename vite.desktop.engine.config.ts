@@ -1,4 +1,5 @@
 import { builtinModules } from "node:module";
+import { resolve } from "node:path";
 
 import { defineConfig } from "vite";
 
@@ -9,6 +10,28 @@ const nodeExternals = [
 ];
 
 export default defineConfig({
+  publicDir: false,
+  resolve: {
+    alias:
+      process.env.AXMORF_PHASE_B_NATIVE_GATE_BUILD === "1"
+        ? [
+            {
+              find: "./workspace-narration-port",
+              replacement: resolve(
+                process.cwd(),
+                "scripts/desktop/native-test-provider.ts",
+              ),
+            },
+            {
+              find: "./workspace-delivery-lifecycle",
+              replacement: resolve(
+                process.cwd(),
+                "scripts/desktop/native-delivery-lifecycle.ts",
+              ),
+            },
+          ]
+        : [],
+  },
   build: {
     emptyOutDir: false,
     lib: {

@@ -45,6 +45,7 @@ import {
   checksumExternalBytes,
   readExternalRegularFile,
 } from "../../external-references/project-files";
+import { createRepositoryProductionLocations } from "../../project-production/application/production-locations";
 import { collectRendererSourceGraph } from "../../renderer-registry/domain";
 import { writeTextFileAtomic } from "../../shared/atomic-file";
 
@@ -329,7 +330,9 @@ const instantiateOne = async ({
     .map(({ resourceId }) => resourceId)
     .sort((left, right) => left.localeCompare(right));
   const graph = await collectRendererSourceGraph({
-    rootDir: targetRootDir,
+    locations: createRepositoryProductionLocations({
+      repositoryRoot: targetRootDir,
+    }),
     projectId,
     rendererPath,
   });
@@ -458,7 +461,9 @@ const verifyExistingInstantiation = async ({
       }
     }
     const graph = await collectRendererSourceGraph({
-      rootDir,
+      locations: createRepositoryProductionLocations({
+        repositoryRoot: rootDir,
+      }),
       projectId,
       rendererPath: `src/projects/${projectId}/scenes/${selection.meaningId}/Renderer.tsx`,
     });

@@ -9,21 +9,91 @@ import {
   unlink,
   writeFile,
 } from "node:fs/promises";
-import { createServer, type Server } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
 import {
-  DoctorResponseSchema,
+  RSP_MAX_REQUEST_BYTES,
   RSP_PROTOCOL_VERSION,
+  RspCommandRequestSchema,
+  RspCommandResponseSchema,
   SessionRecordSchema,
   type DoctorResponse,
+  type RspCommandRequest,
   type SessionRecord,
 } from "../contracts/protocol";
 
 const SESSION_FILE_NAME = "session.json";
 const TOKEN_FILE_NAME = "token";
 const SOCKET_FILE_NAME = "rsp.sock";
+const COMMAND_PATH = "/v2/command";
 const MAX_RESPONSE_BYTES = 1024 * 1024;
+const INVALID_REQUEST_ID = "rsp-invalid-request";
+
+type PublicCommandFailureCode = "rsp-command-failed" | "rsp-conflict";
+
+export class RspCommandFailure extends Error {
+  readonly code: PublicCommandFailureCode;
+
+  constructor(code: PublicCommandFailureCode, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+class RspRequestFailure extends Error {
+  readonly code:
+    | "rsp-request-invalid"
+    | "rsp-workspace-invalid"
+    | "rsp-request-body-too-large";
+
+  constructor(code: RspRequestFailure["code"]) {
+    super(code);
+    this.code = code;
+  }
+}
+
+const readJsonBody = (request: IncomingMessage) =>
+  new Promise<unknown>((resolvePromise, reject) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    let settled = false;
+    const rejectOnce = (failure: RspRequestFailure) => {
+      if (settled) return;
+      settled = true;
+      reject(failure);
+    };
+    request.on("data", (chunk: Buffer) => {
+      if (settled) return;
+      size += chunk.length;
+      if (size > RSP_MAX_REQUEST_BYTES) {
+        chunks.length = 0;
+        rejectOnce(new RspRequestFailure("rsp-request-body-too-large"));
+        return;
+      }
+      chunks.push(Buffer.from(chunk));
+    });
+    request.on("end", () => {
+      if (settled) return;
+      settled = true;
+      try {
+        resolvePromise(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+      } catch {
+        reject(new RspRequestFailure("rsp-request-invalid"));
+      }
+    });
+    request.on("aborted", () =>
+      rejectOnce(new RspRequestFailure("rsp-request-invalid")),
+    );
+    request.on("error", () =>
+      rejectOnce(new RspRequestFailure("rsp-request-invalid")),
+    );
+  });
 
 const isContained = (parent: string, candidate: string) => {
   const path = relative(parent, candidate);
@@ -59,22 +129,21 @@ const tokenMatches = (authorization: string | undefined, token: Uint8Array) => {
     return false;
   }
   const provided = Buffer.from(authorization.slice("Bearer ".length), "utf8");
-  const expected = Buffer.from(token).toString("hex");
-  const expectedBytes = Buffer.from(expected, "utf8");
+  const expected = Buffer.from(Buffer.from(token).toString("hex"), "utf8");
   return (
-    provided.length === expectedBytes.length &&
-    timingSafeEqual(provided, expectedBytes)
+    provided.length === expected.length && timingSafeEqual(provided, expected)
   );
 };
 
 const respond = (
-  response: import("node:http").ServerResponse,
+  response: ServerResponse,
   statusCode: number,
   value: unknown,
 ) => {
+  if (response.destroyed || response.writableEnded) return;
   const bytes = Buffer.from(`${JSON.stringify(value)}\n`);
   if (bytes.length > MAX_RESPONSE_BYTES) {
-    throw new Error("rsp doctor response exceeded the fixed size limit.");
+    throw new Error("rsp-response-too-large");
   }
   response.statusCode = statusCode;
   response.setHeader("content-type", "application/json; charset=utf-8");
@@ -82,6 +151,30 @@ const respond = (
   response.setHeader("x-content-type-options", "nosniff");
   response.end(bytes);
 };
+
+const errorResponse = ({
+  response,
+  requestId,
+  statusCode,
+  code,
+  message,
+}: {
+  readonly response: ServerResponse;
+  readonly requestId: string;
+  readonly statusCode: number;
+  readonly code: string;
+  readonly message: string;
+}) =>
+  respond(
+    response,
+    statusCode,
+    RspCommandResponseSchema.parse({
+      protocolVersion: RSP_PROTOCOL_VERSION,
+      requestId,
+      ok: false,
+      error: { code, message },
+    }),
+  );
 
 const listen = (server: Server, socketPath: string) =>
   new Promise<void>((resolvePromise, reject) => {
@@ -212,6 +305,12 @@ export type RspDoctorServerHandle = Readonly<{
   close: () => Promise<void>;
 }>;
 
+export type RspCommandExecutor = (
+  request: RspCommandRequest,
+) => Promise<unknown>;
+
+export type RspCommandAuthorizer = (request: RspCommandRequest) => void;
+
 export const startRspDoctorServer = async ({
   workspaceRoot,
   workspaceId,
@@ -220,6 +319,8 @@ export const startRspDoctorServer = async ({
   expiresAt,
   token,
   getDoctorState,
+  authorizeCommand,
+  executeCommand,
   now = () => new Date(),
   isPidRunning = (pid: number) => {
     try {
@@ -237,6 +338,8 @@ export const startRspDoctorServer = async ({
   readonly expiresAt: string;
   readonly token: Uint8Array;
   readonly getDoctorState: () => DoctorResponse;
+  readonly authorizeCommand?: RspCommandAuthorizer;
+  readonly executeCommand?: RspCommandExecutor;
   readonly now?: () => Date;
   readonly isPidRunning?: (pid: number) => boolean;
 }): Promise<RspDoctorServerHandle> => {
@@ -282,7 +385,7 @@ export const startRspDoctorServer = async ({
     now: now(),
   });
   const record = SessionRecordSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
     protocolVersion: RSP_PROTOCOL_VERSION,
     workspaceId,
     socketPath,
@@ -290,29 +393,164 @@ export const startRspDoctorServer = async ({
     enginePid,
     expiresAt,
   });
+  let mutatingQueue = Promise.resolve();
+  const readonlyCommands = new Set<RspCommandRequest["command"]>([
+    "doctor",
+    "context",
+    "inspect",
+    "task-check",
+  ]);
+  const runCommand = (command: RspCommandRequest) => {
+    if (command.command === "doctor") return Promise.resolve(getDoctorState());
+    if (executeCommand === undefined) {
+      return Promise.reject(
+        new RspCommandFailure(
+          "rsp-command-failed",
+          "The requested command is unavailable.",
+        ),
+      );
+    }
+    try {
+      authorizeCommand?.(command);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    if (readonlyCommands.has(command.command)) return executeCommand(command);
+    const queued = mutatingQueue.then(() => executeCommand(command));
+    mutatingQueue = queued.then(
+      () => undefined,
+      () => undefined,
+    );
+    return queued;
+  };
   const server = createServer((request, response) => {
-    if (request.method !== "GET" || request.url !== "/v1/doctor") {
+    let responseRequestId = INVALID_REQUEST_ID;
+    if (request.method !== "POST" || request.url !== COMMAND_PATH) {
       respond(response, 404, { code: "rsp-not-found" });
       return;
     }
     if (request.headers["x-rsp-protocol-version"] !== RSP_PROTOCOL_VERSION) {
-      respond(response, 426, { code: "rsp-protocol-incompatible" });
+      errorResponse({
+        response,
+        requestId: INVALID_REQUEST_ID,
+        statusCode: 426,
+        code: "rsp-protocol-incompatible",
+        message: "App protocol is incompatible.",
+      });
       return;
     }
     if (!tokenMatches(request.headers.authorization, token)) {
-      respond(response, 401, { code: "rsp-unauthorized" });
+      errorResponse({
+        response,
+        requestId: INVALID_REQUEST_ID,
+        statusCode: 401,
+        code: "rsp-unauthorized",
+        message: "Session authorization failed.",
+      });
       return;
     }
     if (Date.parse(expiresAt) <= now().getTime()) {
-      respond(response, 503, { code: "rsp-app-unavailable" });
+      errorResponse({
+        response,
+        requestId: INVALID_REQUEST_ID,
+        statusCode: 503,
+        code: "rsp-app-unavailable",
+        message: "App session is stale.",
+      });
       return;
     }
-    try {
-      respond(response, 200, DoctorResponseSchema.parse(getDoctorState()));
-    } catch {
-      respond(response, 503, { code: "rsp-app-unavailable" });
+    if (request.headers["content-type"] !== "application/json") {
+      errorResponse({
+        response,
+        requestId: INVALID_REQUEST_ID,
+        statusCode: 400,
+        code: "rsp-request-invalid",
+        message: "Request content type must be application/json.",
+      });
+      request.resume();
+      return;
     }
+    const contentLength = Number(request.headers["content-length"] ?? 0);
+    if (
+      !Number.isSafeInteger(contentLength) ||
+      contentLength < 0 ||
+      contentLength > RSP_MAX_REQUEST_BYTES
+    ) {
+      errorResponse({
+        response,
+        requestId: INVALID_REQUEST_ID,
+        statusCode: 413,
+        code: "rsp-request-invalid",
+        message: "Request body exceeds the fixed size limit.",
+      });
+      request.resume();
+      return;
+    }
+    void readJsonBody(request)
+      .then((raw) => {
+        const parsed = RspCommandRequestSchema.safeParse(raw);
+        if (!parsed.success) {
+          throw new RspRequestFailure("rsp-request-invalid");
+        }
+        if (parsed.data.workspaceId !== workspaceId) {
+          throw new RspRequestFailure("rsp-workspace-invalid");
+        }
+        responseRequestId = parsed.data.requestId;
+        return runCommand(parsed.data).then((result) => ({
+          command: parsed.data,
+          result,
+        }));
+      })
+      .then(({ command, result }) =>
+        respond(
+          response,
+          200,
+          RspCommandResponseSchema.parse({
+            protocolVersion: RSP_PROTOCOL_VERSION,
+            requestId: command.requestId,
+            ok: true,
+            result: result ?? null,
+          }),
+        ),
+      )
+      .catch((error: unknown) => {
+        if (response.headersSent || response.destroyed) return;
+        if (error instanceof RspRequestFailure) {
+          const bodyTooLarge = error.code === "rsp-request-body-too-large";
+          const workspaceInvalid = error.code === "rsp-workspace-invalid";
+          errorResponse({
+            response,
+            requestId: responseRequestId,
+            statusCode: bodyTooLarge ? 413 : workspaceInvalid ? 403 : 400,
+            code: workspaceInvalid
+              ? "rsp-workspace-invalid"
+              : "rsp-request-invalid",
+            message: bodyTooLarge
+              ? "Request body exceeds the fixed size limit."
+              : workspaceInvalid
+                ? "Request Workspace does not match the active session."
+                : "Request does not match rsp-local-v2.",
+          });
+          return;
+        }
+        const failure =
+          error instanceof RspCommandFailure
+            ? error
+            : new RspCommandFailure(
+                "rsp-command-failed",
+                "The requested command failed.",
+              );
+        errorResponse({
+          response,
+          requestId: responseRequestId,
+          statusCode: failure.code === "rsp-conflict" ? 409 : 422,
+          code: failure.code,
+          message: failure.message,
+        });
+      });
   });
+  server.requestTimeout = 0;
+  server.headersTimeout = 10_000;
   let socketOwned = false;
   try {
     await writeAtomicOwnerOnly(

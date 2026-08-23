@@ -20,7 +20,7 @@ const build = ({
   value,
   dependencies = [],
 }: {
-  readonly taskKind: "scene-owner" | "composition-convergence" | "delivery-build";
+  readonly taskKind: "scene-owner" | "composition-convergence";
   readonly semanticId?: string | null;
   readonly input?: string;
   readonly value: string;
@@ -50,13 +50,7 @@ test("one Scene brief change is direct while downstream blocking follows exact D
     value: "4",
     dependencies: [sceneA, sceneB],
   });
-  const delivery = build({
-    taskKind: "delivery-build",
-    input: "publishing",
-    value: "5",
-    dependencies: [composition],
-  });
-  const nodes = [sceneA, sceneB, composition, delivery]
+  const nodes = [sceneA, sceneB, composition]
     .map((task) => ({
       task,
       dependencyTaskRevisions: task.dependencyArtifacts.map(({ taskRevision }) => taskRevision),
@@ -72,7 +66,6 @@ test("one Scene brief change is direct while downstream blocking follows exact D
     [sceneA.taskRevision, { kind: "meaning" as const, id: sceneA.semanticId! }],
     [sceneB.taskRevision, { kind: "meaning" as const, id: sceneB.semanticId! }],
     [composition.taskRevision, { kind: "project" as const, id: composition.storyId }],
-    [delivery.taskRevision, { kind: "project" as const, id: delivery.storyId }],
   ]);
   const baselineSubjects = new Map([
     [oldSceneA.taskRevision, { kind: "meaning" as const, id: oldSceneA.semanticId! }],
@@ -111,8 +104,9 @@ test("one Scene brief change is direct while downstream blocking follows exact D
        `${left.taskKind}:${left.subjectId}`.localeCompare(`${right.taskKind}:${right.subjectId}`),
      ),
   );
-  assert.deepEqual(
-    decisions.find(({ taskKind }) => taskKind === "delivery-build")?.blockedBy,
-    [{ taskKind: "composition-convergence", subjectId: "story-example", taskRevision: composition.taskRevision }],
+  assert.equal(
+    decisions.some(({ taskKind }) => taskKind === "composition-convergence"),
+    true,
   );
+  assert.equal(decisions.length, 3);
 });

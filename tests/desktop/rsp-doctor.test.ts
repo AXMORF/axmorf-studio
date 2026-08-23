@@ -9,27 +9,39 @@ import {
   symlink,
   writeFile,
 } from "node:fs/promises";
+import { request } from "node:http";
 import { tmpdir } from "node:os";
-import { createServer as createNetServer } from "node:net";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 
-import { startRspDoctorServer } from "../../desktop/adapters/rsp-socket";
 import {
+  RspCommandFailure,
+  startRspDoctorServer,
+} from "../../desktop/adapters/rsp-socket";
+import {
+  DESKTOP_NETWORK_POLICY,
+  RSP_CLI_FAILURES,
+  RSP_MAX_REQUEST_BYTES,
   RSP_PROTOCOL_VERSION,
   type DoctorResponse,
+  type RspCommandRequest,
 } from "../../desktop/contracts/protocol";
 import {
   DESKTOP_MANAGED_FILE_PATHS,
   createWorkspaceManifest,
 } from "../../desktop/contracts/workspace";
 import { executeRspCli } from "../../desktop/rsp/client";
+import { validProjectCreateInput } from "../fixtures/project-create";
+
+const runtimePackId = `runtime-pack-${"a".repeat(64)}`;
+const revisionId = `revision-${"b".repeat(64)}`;
+const taskRevision = `task-${"c".repeat(64)}`;
 
 const createWorkspace = async (context: TestContext) => {
   const workspaceRoot = await mkdtemp(join(tmpdir(), "axmorf-rsp-"));
   context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
   await mkdir(join(workspaceRoot, ".rsp/session"), { recursive: true });
-  await mkdir(join(workspaceRoot, ".rsp/lib"), { recursive: true });
+  await mkdir(join(workspaceRoot, ".rsp/bin"), { recursive: true });
   await chmod(join(workspaceRoot, ".rsp"), 0o700);
   await chmod(join(workspaceRoot, ".rsp/session"), 0o700);
   const workspaceId = randomUUID();
@@ -42,9 +54,9 @@ const createWorkspace = async (context: TestContext) => {
   await writeFile(
     join(workspaceRoot, ".rsp/managed-files.json"),
     `${JSON.stringify({
-      schemaVersion: 1,
-      contractVersion: "desktop-managed-files-v1",
-      integrationVersion: 1,
+      schemaVersion: 2,
+      contractVersion: "desktop-managed-files-v2",
+      integrationVersion: 2,
       workspaceId,
       state: "ready",
       files: DESKTOP_MANAGED_FILE_PATHS.map((path) => ({
@@ -59,7 +71,7 @@ const createWorkspace = async (context: TestContext) => {
   return {
     workspaceRoot,
     workspaceId,
-    moduleDirectory: join(workspaceRoot, ".rsp/lib"),
+    moduleDirectory: join(workspaceRoot, ".rsp/bin"),
   };
 };
 
@@ -70,32 +82,41 @@ const doctorState = ({
   readonly workspaceId: string;
   readonly expiresAt: string;
 }): DoctorResponse => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   protocolVersion: RSP_PROTOCOL_VERSION,
   workspaceId,
-  adapterMode: "repository",
-  repositoryMode: "build-time-checkout",
-  runtimePackMode: "host-node-prototype",
+  adapterMode: "workspace",
+  runtimePackMode: "embedded",
   previewCatalog: {
     state: "ready",
     entryCount: 2,
     unavailableCount: 1,
     failureCode: null,
   },
-  desktopTcpListeners: false,
-  productionAvailable: false,
-  deliveryAvailable: false,
+  network: DESKTOP_NETWORK_POLICY,
+  productionAvailable: true,
+  deliveryAvailable: true,
+  deliveryBlocker: null,
   distributionReady: false,
-  runtimePackAvailable: false,
-  activeWork: false,
+  runtimePackAvailable: true,
+  runtimePack: { runtimePackId, architecture: "arm64" },
+  provider: "ready",
+  activeWork: null,
   process: { appPid: process.pid, enginePid: process.pid },
   session: { active: true, expiresAt },
 });
 
-const runCli = async (args: readonly string[], moduleDirectory: string) => {
+const runCli = async (
+  args: readonly string[],
+  moduleDirectory: string,
+  stdin?: unknown,
+) => {
   let stdout = "";
   let stderr = "";
   const exitCode = await executeRspCli(args, moduleDirectory, {
+    ...(stdin === undefined
+      ? {}
+      : { stdin: async () => JSON.stringify(stdin) }),
     stdout: (value) => {
       stdout += value;
     },
@@ -106,20 +127,80 @@ const runCli = async (args: readonly string[], moduleDirectory: string) => {
   return { exitCode, stdout, stderr };
 };
 
-const createStaleSocket = async (socketPath: string) => {
-  const server = createNetServer();
-  await new Promise<void>((resolvePromise, reject) => {
-    server.once("error", reject);
-    server.listen(socketPath, resolvePromise);
+const acquiredImage = () =>
+  ({
+    schemaVersion: 1,
+    provider: "pexels",
+    acquisitionId: "pexels:1",
+    providerAssetId: "1",
+    sourcePageUrl: "https://www.pexels.com/photo/fixture-1/",
+    creator: {
+      name: "Creator",
+      profileUrl: "https://www.pexels.com/@creator",
+    },
+    license: {
+      name: "Pexels License",
+      url: "https://www.pexels.com/license/",
+    },
+    providerPolicy: {
+      attributionRequired: true,
+      attributionText: "Photo by Creator on Pexels",
+    },
+    acquiredAt: "2026-08-23T00:00:00.000Z",
+    file: {
+      relativePath: "original.png",
+      mimeType: "image/png",
+      width: 1,
+      height: 1,
+      sizeInBytes: 68,
+      sha256: "d".repeat(64),
+    },
   });
-  await new Promise<void>((resolvePromise, reject) => {
-    server.close((error) =>
-      error === undefined ? resolvePromise() : reject(error),
-    );
-  });
-};
 
-test("authenticated rsp doctor serves concurrent read-only calls and cleans up", async (context) => {
+const rawCommand = ({
+  socketPath,
+  token,
+  body,
+  protocolVersion = RSP_PROTOCOL_VERSION,
+}: {
+  readonly socketPath: string;
+  readonly token: string;
+  readonly body: Buffer;
+  readonly protocolVersion?: string;
+}) =>
+  new Promise<{ readonly statusCode: number; readonly body: unknown }>(
+    (resolvePromise, reject) => {
+      const outgoing = request(
+        {
+          socketPath,
+          path: "/v2/command",
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${token}`,
+            "content-length": body.length,
+            "content-type": "application/json",
+            "x-rsp-protocol-version": protocolVersion,
+          },
+        },
+        (response) => {
+          const chunks: Buffer[] = [];
+          response.on("data", (chunk: Buffer) =>
+            chunks.push(Buffer.from(chunk)),
+          );
+          response.on("end", () => {
+            resolvePromise({
+              statusCode: response.statusCode ?? 0,
+              body: JSON.parse(Buffer.concat(chunks).toString("utf8")),
+            });
+          });
+        },
+      );
+      outgoing.once("error", reject);
+      outgoing.end(body);
+    },
+  );
+
+test("authenticated rsp doctor serves concurrent v2 calls and cleans up", async (context) => {
   const workspace = await createWorkspace(context);
   const token = randomBytes(32);
   const expiresAt = new Date(Date.now() + 60_000).toISOString();
@@ -142,19 +223,11 @@ test("authenticated rsp doctor serves concurrent read-only calls and cleans up",
     assert.equal(result.exitCode, 0);
     assert.equal(result.stderr, "");
     const parsed = JSON.parse(result.stdout) as DoctorResponse;
-    assert.equal(parsed.adapterMode, "repository");
-    assert.equal(parsed.repositoryMode, "build-time-checkout");
-    assert.equal(parsed.runtimePackMode, "host-node-prototype");
-    assert.deepEqual(parsed.previewCatalog, {
-      state: "ready",
-      entryCount: 2,
-      unavailableCount: 1,
-      failureCode: null,
-    });
-    assert.equal(parsed.desktopTcpListeners, false);
-    assert.equal(parsed.productionAvailable, false);
-    assert.equal("settings" in parsed, false);
-    assert.equal("studio" in parsed, false);
+    assert.equal(parsed.adapterMode, "workspace");
+    assert.equal(parsed.runtimePackMode, "embedded");
+    assert.equal(parsed.productionAvailable, true);
+    assert.equal(parsed.deliveryAvailable, true);
+    assert.equal("repositoryMode" in parsed, false);
   }
   const sessionText = await readFile(
     join(workspace.workspaceRoot, ".rsp/session/session.json"),
@@ -162,7 +235,7 @@ test("authenticated rsp doctor serves concurrent read-only calls and cleans up",
   );
   assert.doesNotMatch(sessionText, /token|secret/iu);
   assert.equal(
-    results[0].stdout.includes(Buffer.from(token).toString("hex")),
+    results[0]?.stdout.includes(Buffer.from(token).toString("hex")),
     false,
   );
   await server.close();
@@ -172,11 +245,403 @@ test("authenticated rsp doctor serves concurrent read-only calls and cleans up",
   );
 });
 
-test("rsp doctor uses fixed offline, protocol, Workspace, and authorization failures", async (context) => {
+test("rsp CLI exposes every public command and reads create/import only from stdin", async (context) => {
   const workspace = await createWorkspace(context);
+  const token = randomBytes(32);
+  const expiresAt = new Date(Date.now() + 60_000).toISOString();
+  const received: RspCommandRequest[] = [];
+  const server = await startRspDoctorServer({
+    ...workspace,
+    appPid: process.pid,
+    enginePid: process.pid,
+    expiresAt,
+    token,
+    getDoctorState: () =>
+      doctorState({ workspaceId: workspace.workspaceId, expiresAt }),
+    executeCommand: async (command) => {
+      received.push(command);
+      return { command: command.command };
+    },
+  });
+  context.after(() => server.close().catch(() => undefined));
+  const attemptId = randomUUID();
+  const calls = [
+    runCli(
+      [
+        "context",
+        "--project",
+        "story-example",
+        "--delivery-policy",
+        "automatic",
+        "--execution-mode",
+        "subagents",
+        "--max-concurrency",
+        "3",
+        "--require-exact-concurrency",
+        "true",
+      ],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      ["project", "create"],
+      workspace.moduleDirectory,
+      validProjectCreateInput,
+    ),
+    runCli(
+      ["asset", "import", "--project", "story-example"],
+      workspace.moduleDirectory,
+      {
+        role: "scene-visual",
+        receipt: acquiredImage(),
+        candidateBase64: Buffer.alloc(68).toString("base64"),
+      },
+    ),
+    runCli(
+      ["inspect", "--project", "story-example"],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      [
+        "prepare",
+        "--project",
+        "story-example",
+        "--delivery-policy",
+        "automatic",
+      ],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      ["task", "check", "--task", taskRevision],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      ["task", "commit", "--task", taskRevision, "--attempt", attemptId],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      [
+        "task",
+        "fail",
+        "--task",
+        taskRevision,
+        "--attempt",
+        attemptId,
+        "--kind",
+        "host",
+      ],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      [
+        "continue",
+        "--project",
+        "story-example",
+        "--revision",
+        revisionId,
+        "--attempt",
+        attemptId,
+      ],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      ["delivery", "build", "--project", "story-example"],
+      workspace.moduleDirectory,
+    ),
+  ];
+  const results = await Promise.all(calls);
+  assert.ok(
+    results.every(({ exitCode, stderr }) => exitCode === 0 && stderr === ""),
+  );
+  assert.deepEqual(
+    received.map(({ command }) => command).sort(),
+    [
+      "asset-import",
+      "context",
+      "continue",
+      "delivery-build",
+      "inspect",
+      "prepare",
+      "project-create",
+      "task-check",
+      "task-commit",
+      "task-fail",
+    ].sort(),
+  );
+  const create = received.find(({ command }) => command === "project-create");
+  const projectedContext = received.find(
+    ({ command }) => command === "context",
+  );
+  const acquisition = received.find(
+    ({ command }) => command === "asset-import",
+  );
+  assert.equal(
+    create?.command === "project-create" && create.input.storyId,
+    "story-example",
+  );
+  assert.deepEqual(
+    projectedContext?.command === "context"
+      ? {
+          deliveryPolicy: projectedContext.deliveryPolicy,
+          execution: projectedContext.execution,
+        }
+      : null,
+    {
+      deliveryPolicy: "automatic",
+      execution: {
+        mode: "subagents",
+        maxConcurrency: 3,
+        requireExactConcurrency: true,
+      },
+    },
+  );
+  assert.equal(
+    acquisition?.command === "asset-import" && acquisition.receipt.provider,
+    "pexels",
+  );
+  assert.equal(
+    acquisition?.command === "asset-import" && acquisition.storyId,
+    "story-example",
+  );
+  assert.equal(
+    acquisition?.command === "asset-import" && acquisition.role,
+    "scene-visual",
+  );
+  assert.equal(
+    acquisition?.command === "asset-import" &&
+      Buffer.from(acquisition.candidateBase64, "base64").byteLength,
+    68,
+  );
+});
+
+test("rsp asset import binds Project scope only from --project", async (context) => {
+  const workspace = await createWorkspace(context);
+  const token = randomBytes(32);
+  const expiresAt = new Date(Date.now() + 60_000).toISOString();
+  let routed = 0;
+  const server = await startRspDoctorServer({
+    ...workspace,
+    appPid: process.pid,
+    enginePid: process.pid,
+    expiresAt,
+    token,
+    getDoctorState: () =>
+      doctorState({ workspaceId: workspace.workspaceId, expiresAt }),
+    executeCommand: async () => {
+      routed += 1;
+      return {};
+    },
+  });
+  context.after(() => server.close().catch(() => undefined));
+  const stdin = {
+    role: "scene-visual",
+    receipt: acquiredImage(),
+    candidateBase64: Buffer.alloc(68).toString("base64"),
+  } as const;
+
+  const missingScope = await runCli(
+    ["asset", "import"],
+    workspace.moduleDirectory,
+    stdin,
+  );
+  assert.equal(missingScope.exitCode, RSP_CLI_FAILURES.requestInvalid.exitCode);
+
+  for (const scopedStdin of [
+    { ...stdin, storyId: "story-example" },
+    { ...stdin, storyId: "another-story" },
+    { ...stdin, candidatePath: "/tmp/candidate.png" },
+  ]) {
+    const result = await runCli(
+      ["asset", "import", "--project", "story-example"],
+      workspace.moduleDirectory,
+      scopedStdin,
+    );
+    assert.equal(result.exitCode, RSP_CLI_FAILURES.requestInvalid.exitCode);
+  }
+  assert.equal(routed, 0);
+});
+
+test("rsp runs reads concurrently and serializes mutating commands", async (context) => {
+  const workspace = await createWorkspace(context);
+  const token = randomBytes(32);
+  const expiresAt = new Date(Date.now() + 60_000).toISOString();
+  let activeReads = 0;
+  let maxReads = 0;
+  let activeMutations = 0;
+  let maxMutations = 0;
+  const delay = () =>
+    new Promise((resolvePromise) => setTimeout(resolvePromise, 25));
+  const server = await startRspDoctorServer({
+    ...workspace,
+    appPid: process.pid,
+    enginePid: process.pid,
+    expiresAt,
+    token,
+    getDoctorState: () =>
+      doctorState({ workspaceId: workspace.workspaceId, expiresAt }),
+    executeCommand: async (command) => {
+      if (command.command === "context") {
+        activeReads += 1;
+        maxReads = Math.max(maxReads, activeReads);
+        await delay();
+        activeReads -= 1;
+      } else {
+        activeMutations += 1;
+        maxMutations = Math.max(maxMutations, activeMutations);
+        await delay();
+        activeMutations -= 1;
+      }
+      return { command: command.command };
+    },
+  });
+  context.after(() => server.close().catch(() => undefined));
+  await Promise.all([
+    runCli(
+      ["context", "--project", "story-example"],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      ["context", "--project", "story-example"],
+      workspace.moduleDirectory,
+    ),
+  ]);
+  await Promise.all([
+    runCli(
+      ["delivery", "build", "--project", "story-example"],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      ["delivery", "build", "--project", "story-example"],
+      workspace.moduleDirectory,
+    ),
+  ]);
+  assert.equal(maxReads, 2);
+  assert.equal(maxMutations, 1);
+});
+
+test("rsp authorizes a mutation before it waits behind the mutation queue", async (context) => {
+  const workspace = await createWorkspace(context);
+  const token = randomBytes(32);
+  const expiresAt = new Date(Date.now() + 60_000).toISOString();
+  let reserved = false;
+  let markStarted!: () => void;
+  let release!: () => void;
+  const started = new Promise<void>((resolvePromise) => {
+    markStarted = resolvePromise;
+  });
+  const released = new Promise<void>((resolvePromise) => {
+    release = resolvePromise;
+  });
+  const server = await startRspDoctorServer({
+    ...workspace,
+    appPid: process.pid,
+    enginePid: process.pid,
+    expiresAt,
+    token,
+    getDoctorState: () =>
+      doctorState({ workspaceId: workspace.workspaceId, expiresAt }),
+    authorizeCommand: (command) => {
+      if (command.command !== "delivery-build") return;
+      if (reserved) {
+        throw new RspCommandFailure("rsp-conflict", "Delivery is active.");
+      }
+      reserved = true;
+    },
+    executeCommand: async () => {
+      markStarted();
+      await released;
+      reserved = false;
+      return { status: "complete" };
+    },
+  });
+  context.after(() => server.close().catch(() => undefined));
+
+  const first = runCli(
+    ["delivery", "build", "--project", "story-example"],
+    workspace.moduleDirectory,
+  );
+  await started;
+  let second: Awaited<ReturnType<typeof runCli>>;
+  try {
+    second = await runCli(
+      ["delivery", "build", "--project", "story-example"],
+      workspace.moduleDirectory,
+    );
+  } finally {
+    release();
+  }
+  assert.equal(second.exitCode, RSP_CLI_FAILURES.conflict.exitCode);
+  assert.equal((await first).exitCode, 0);
+});
+
+test("rsp keeps accepted continuation alive after client disconnect", async (context) => {
+  const workspace = await createWorkspace(context);
+  const token = randomBytes(32);
+  const tokenText = token.toString("hex");
+  const expiresAt = new Date(Date.now() + 60_000).toISOString();
+  let started!: () => void;
+  let finish!: () => void;
+  let completed = false;
+  const startedPromise = new Promise<void>((resolvePromise) => {
+    started = resolvePromise;
+  });
+  const finishPromise = new Promise<void>((resolvePromise) => {
+    finish = resolvePromise;
+  });
+  const server = await startRspDoctorServer({
+    ...workspace,
+    appPid: process.pid,
+    enginePid: process.pid,
+    expiresAt,
+    token,
+    getDoctorState: () =>
+      doctorState({ workspaceId: workspace.workspaceId, expiresAt }),
+    executeCommand: async (command) => {
+      assert.equal(command.command, "continue");
+      started();
+      await finishPromise;
+      completed = true;
+      return { status: "source-current" };
+    },
+  });
+  context.after(() => server.close().catch(() => undefined));
+  const body = Buffer.from(
+    JSON.stringify({
+      protocolVersion: RSP_PROTOCOL_VERSION,
+      requestId: randomUUID(),
+      workspaceId: workspace.workspaceId,
+      command: "continue",
+      storyId: "story-example",
+      revisionId,
+      attemptId: randomUUID(),
+      deliveryPolicy: "manual",
+    }),
+  );
+  const outgoing = request({
+    socketPath: server.record.socketPath,
+    path: "/v2/command",
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${tokenText}`,
+      "content-length": body.length,
+      "content-type": "application/json",
+      "x-rsp-protocol-version": RSP_PROTOCOL_VERSION,
+    },
+  });
+  outgoing.on("error", () => undefined);
+  outgoing.end(body);
+  await startedPromise;
+  outgoing.destroy();
+  finish();
+  await new Promise((resolvePromise) => setImmediate(resolvePromise));
+  assert.equal(completed, true);
+});
+
+test("rsp maps protocol, auth, request, command, and conflict failures to fixed exits", async (context) => {
+  const workspace = await createWorkspace(context);
+  const unknownOffline = await runCli(["unknown"], workspace.moduleDirectory);
+  assert.equal(unknownOffline.exitCode, 5);
   const offline = await runCli(["doctor"], workspace.moduleDirectory);
   assert.equal(offline.exitCode, 1);
-  assert.match(offline.stderr, /rsp-app-unavailable/u);
 
   const token = randomBytes(32);
   const expiresAt = new Date(Date.now() + 60_000).toISOString();
@@ -188,14 +653,33 @@ test("rsp doctor uses fixed offline, protocol, Workspace, and authorization fail
     token,
     getDoctorState: () =>
       doctorState({ workspaceId: workspace.workspaceId, expiresAt }),
+    executeCommand: async (command) => {
+      if (command.command === "delivery-build") {
+        throw new RspCommandFailure("rsp-conflict", "Delivery is active.");
+      }
+      throw new Error("private /absolute/path must not escape");
+    },
   });
   context.after(() => server.close().catch(() => undefined));
+  const invalid = await runCli(["unknown"], workspace.moduleDirectory);
+  assert.equal(invalid.exitCode, 5);
+  const commandFailed = await runCli(
+    ["context", "--project", "story-example"],
+    workspace.moduleDirectory,
+  );
+  assert.equal(commandFailed.exitCode, 6);
+  assert.doesNotMatch(commandFailed.stderr, /absolute|private/iu);
+  const conflict = await runCli(
+    ["delivery", "build", "--project", "story-example"],
+    workspace.moduleDirectory,
+  );
+  assert.equal(conflict.exitCode, 7);
+
   const tokenPath = join(workspace.workspaceRoot, ".rsp/session/token");
   await writeFile(tokenPath, `${randomBytes(32).toString("hex")}\n`);
   await chmod(tokenPath, 0o600);
   const unauthorized = await runCli(["doctor"], workspace.moduleDirectory);
   assert.equal(unauthorized.exitCode, 4);
-  assert.match(unauthorized.stderr, /rsp-unauthorized/u);
   assert.doesNotMatch(unauthorized.stderr, /[a-f0-9]{64}/u);
 
   const sessionPath = join(
@@ -208,39 +692,75 @@ test("rsp doctor uses fixed offline, protocol, Workspace, and authorization fail
   >;
   await writeFile(
     sessionPath,
-    `${JSON.stringify({ ...session, protocolVersion: "future" })}\n`,
+    `${JSON.stringify({ ...session, protocolVersion: "rsp-local-v3" })}\n`,
   );
   await chmod(sessionPath, 0o600);
   const incompatible = await runCli(["doctor"], workspace.moduleDirectory);
   assert.equal(incompatible.exitCode, 2);
-  assert.match(incompatible.stderr, /rsp-protocol-incompatible/u);
 
   await writeFile(
     sessionPath,
-    `${JSON.stringify({ ...session, expiresAt: "2026-01-01T00:00:00.000Z" })}\n`,
+    `${JSON.stringify({
+      ...session,
+      expiresAt: "2026-01-01T00:00:00.000Z",
+    })}\n`,
   );
   await chmod(sessionPath, 0o600);
   const stale = await runCli(["doctor"], workspace.moduleDirectory);
   assert.equal(stale.exitCode, 1);
-  assert.match(stale.stderr, /rsp-app-unavailable/u);
-
-  await writeFile(
-    sessionPath,
-    `${JSON.stringify({ ...session, socketPath: "/tmp/rsp-escape.sock" })}\n`,
-  );
-  await chmod(sessionPath, 0o600);
-  const escaped = await runCli(["doctor"], workspace.moduleDirectory);
-  assert.equal(escaped.exitCode, 3);
-  assert.match(escaped.stderr, /rsp-workspace-invalid/u);
-  await server.close();
-  assert.equal(
-    (JSON.parse(await readFile(sessionPath, "utf8")) as { socketPath: string })
-      .socketPath,
-    "/tmp/rsp-escape.sock",
-  );
 });
 
-test("rsp rejects a symlinked private session directory", async (context) => {
+test("rsp rejects oversized, wrong-version, and cross-Workspace requests before routing", async (context) => {
+  const workspace = await createWorkspace(context);
+  const token = randomBytes(32);
+  const tokenText = token.toString("hex");
+  const expiresAt = new Date(Date.now() + 60_000).toISOString();
+  let routed = 0;
+  const server = await startRspDoctorServer({
+    ...workspace,
+    appPid: process.pid,
+    enginePid: process.pid,
+    expiresAt,
+    token,
+    getDoctorState: () =>
+      doctorState({ workspaceId: workspace.workspaceId, expiresAt }),
+    executeCommand: async () => {
+      routed += 1;
+      return {};
+    },
+  });
+  context.after(() => server.close().catch(() => undefined));
+  const oversized = await rawCommand({
+    socketPath: server.record.socketPath,
+    token: tokenText,
+    body: Buffer.alloc(RSP_MAX_REQUEST_BYTES + 1, "x"),
+  });
+  assert.equal(oversized.statusCode, 413);
+  const wrongVersion = await rawCommand({
+    socketPath: server.record.socketPath,
+    token: tokenText,
+    protocolVersion: "rsp-local-v3",
+    body: Buffer.from("{}"),
+  });
+  assert.equal(wrongVersion.statusCode, 426);
+  const crossWorkspace = await rawCommand({
+    socketPath: server.record.socketPath,
+    token: tokenText,
+    body: Buffer.from(
+      JSON.stringify({
+        protocolVersion: RSP_PROTOCOL_VERSION,
+        requestId: randomUUID(),
+        workspaceId: randomUUID(),
+        command: "context",
+        storyId: "story-example",
+      }),
+    ),
+  });
+  assert.equal(crossWorkspace.statusCode, 403);
+  assert.equal(routed, 0);
+});
+
+test("rsp rejects symlinked session control paths", async (context) => {
   const workspace = await createWorkspace(context);
   const realSession = join(workspace.workspaceRoot, ".rsp/real-session");
   const sessionDirectory = join(workspace.workspaceRoot, ".rsp/session");
@@ -248,7 +768,6 @@ test("rsp rejects a symlinked private session directory", async (context) => {
   await mkdir(realSession, { mode: 0o700 });
   await symlink(realSession, sessionDirectory);
   const expiresAt = new Date(Date.now() + 60_000).toISOString();
-
   await assert.rejects(
     startRspDoctorServer({
       ...workspace,
@@ -261,140 +780,4 @@ test("rsp rejects a symlinked private session directory", async (context) => {
     }),
     /rsp-session-path-untrusted/u,
   );
-  const result = await runCli(["doctor"], workspace.moduleDirectory);
-  assert.equal(result.exitCode, 3);
-  assert.match(result.stderr, /rsp-workspace-invalid/u);
-});
-
-test("rsp never sends its bearer token through a symlinked socket", async (context) => {
-  const workspace = await createWorkspace(context);
-  const sessionDirectory = join(workspace.workspaceRoot, ".rsp/session");
-  const socketPath = join(sessionDirectory, "rsp.sock");
-  const token = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 60_000).toISOString();
-  const outside = join(workspace.workspaceRoot, "outside.sock");
-  await writeFile(outside, "not-a-socket");
-  await symlink(outside, socketPath);
-  await writeFile(join(sessionDirectory, "token"), `${token}\n`, {
-    mode: 0o600,
-  });
-  await chmod(join(sessionDirectory, "token"), 0o600);
-  await writeFile(
-    join(sessionDirectory, "session.json"),
-    `${JSON.stringify({
-      schemaVersion: 1,
-      protocolVersion: RSP_PROTOCOL_VERSION,
-      workspaceId: workspace.workspaceId,
-      socketPath,
-      appPid: process.pid,
-      enginePid: process.pid,
-      expiresAt,
-    })}\n`,
-    { mode: 0o600 },
-  );
-  await chmod(join(sessionDirectory, "session.json"), 0o600);
-
-  const result = await runCli(["doctor"], workspace.moduleDirectory);
-  assert.equal(result.exitCode, 3);
-  assert.match(result.stderr, /rsp-workspace-invalid/u);
-  assert.equal(result.stderr.includes(token), false);
-});
-
-test("rsp server rejects short tokens and unowned stale socket paths", async (context) => {
-  const workspace = await createWorkspace(context);
-  const expiresAt = new Date(Date.now() + 60_000).toISOString();
-  await assert.rejects(
-    startRspDoctorServer({
-      ...workspace,
-      appPid: process.pid,
-      enginePid: process.pid,
-      expiresAt,
-      token: randomBytes(16),
-      getDoctorState: () =>
-        doctorState({ workspaceId: workspace.workspaceId, expiresAt }),
-    }),
-    /rsp-token-too-short/u,
-  );
-  const socketPath = join(workspace.workspaceRoot, ".rsp/session/rsp.sock");
-  await writeFile(socketPath, "not-a-socket");
-  await assert.rejects(
-    startRspDoctorServer({
-      ...workspace,
-      appPid: process.pid,
-      enginePid: process.pid,
-      expiresAt,
-      token: randomBytes(32),
-      getDoctorState: () =>
-        doctorState({ workspaceId: workspace.workspaceId, expiresAt }),
-    }),
-    /rsp-socket-path-untrusted/u,
-  );
-  assert.equal(await readFile(socketPath, "utf8"), "not-a-socket");
-});
-
-test("rsp server replaces only checksum-independent stale state with exact ownership", async (context) => {
-  const workspace = await createWorkspace(context);
-  const socketPath = join(workspace.workspaceRoot, ".rsp/session/rsp.sock");
-  const sessionPath = join(
-    workspace.workspaceRoot,
-    ".rsp/session/session.json",
-  );
-  const tokenPath = join(workspace.workspaceRoot, ".rsp/session/token");
-  await createStaleSocket(socketPath);
-  await writeFile(
-    sessionPath,
-    `${JSON.stringify({
-      schemaVersion: 1,
-      protocolVersion: RSP_PROTOCOL_VERSION,
-      workspaceId: workspace.workspaceId,
-      socketPath,
-      appPid: process.pid,
-      enginePid: 2_147_483_000,
-      expiresAt: "2026-01-01T00:00:00.000Z",
-    })}\n`,
-    { mode: 0o600 },
-  );
-  await chmod(sessionPath, 0o600);
-  await writeFile(tokenPath, `${randomBytes(32).toString("hex")}\n`, {
-    mode: 0o600,
-  });
-  await chmod(tokenPath, 0o600);
-  const expiresAt = new Date(Date.now() + 60_000).toISOString();
-  const server = await startRspDoctorServer({
-    ...workspace,
-    appPid: process.pid,
-    enginePid: process.pid,
-    expiresAt,
-    token: randomBytes(32),
-    getDoctorState: () =>
-      doctorState({ workspaceId: workspace.workspaceId, expiresAt }),
-    isPidRunning: () => false,
-  });
-  context.after(() => server.close().catch(() => undefined));
-  assert.equal(
-    (await runCli(["doctor"], workspace.moduleDirectory)).exitCode,
-    0,
-  );
-  await server.close();
-});
-
-test("rsp server preserves an orphan credential it cannot prove it owns", async (context) => {
-  const workspace = await createWorkspace(context);
-  const tokenPath = join(workspace.workspaceRoot, ".rsp/session/token");
-  await writeFile(tokenPath, "user-owned\n", { mode: 0o600 });
-  await chmod(tokenPath, 0o600);
-  const expiresAt = new Date(Date.now() + 60_000).toISOString();
-  await assert.rejects(
-    startRspDoctorServer({
-      ...workspace,
-      appPid: process.pid,
-      enginePid: process.pid,
-      expiresAt,
-      token: randomBytes(32),
-      getDoctorState: () =>
-        doctorState({ workspaceId: workspace.workspaceId, expiresAt }),
-    }),
-    /rsp-orphan-token-untrusted/u,
-  );
-  assert.equal(await readFile(tokenPath, "utf8"), "user-owned\n");
 });

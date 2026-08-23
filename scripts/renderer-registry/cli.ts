@@ -1,11 +1,15 @@
 import { pathToFileURL } from "node:url";
 
 import { StoryIdSchema } from "../../src/contracts";
-import { generateRendererRegistryFromProjectFiles } from "./generate";
+import {
+  createRepositoryProductionLocations,
+  type ProductionLocations,
+} from "../project-production/application/production-locations";
+import { generateRendererRegistry } from "./generate";
 import type { RendererRegistryMode } from "./project-files";
 
 export type RendererRegistryCliContext = {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly stdout: (line: string) => void;
   readonly generate?: (request: {
     readonly projectId: string;
@@ -14,7 +18,9 @@ export type RendererRegistryCliContext = {
 };
 
 const defaultContext = (): RendererRegistryCliContext => ({
-  rootDir: process.cwd(),
+  locations: createRepositoryProductionLocations({
+    repositoryRoot: process.cwd(),
+  }),
   stdout: (line) => process.stdout.write(`${line}\n`),
 });
 
@@ -35,8 +41,8 @@ export const runRendererRegistryCli = async (
   };
   const result = context.generate
     ? await context.generate(request)
-    : await generateRendererRegistryFromProjectFiles({
-        rootDir: context.rootDir,
+    : await generateRendererRegistry({
+        locations: context.locations,
         ...request,
       });
   context.stdout("RendererRegistry is current.");

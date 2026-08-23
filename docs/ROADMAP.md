@@ -7,8 +7,9 @@
 ## 当前基线
 
 当前架构基线是单一 Project production 主链：ProductionRevision → content-addressed Task DAG → reusable
-ArtifactAttestation → atomic materialization → synchronous exact four-file delivery。旧执行账本与异步交付不再是
-active runtime authority。公开入口已分为 atomic create、strict read-only inspect、explicit costly prepare、
+ArtifactAttestation → atomic materialization → attested source-current → manual stop、automatic 或 later explicit
+exact four-file DeliveryBuild。旧执行账本与异步交付不再是 active runtime authority。公开入口已分为 atomic create、
+strict read-only inspect、explicit costly prepare、
 attempt-bound task commit/fail 与 fixed continuation；converge 是 continuation 内部 application，不是 Root 命令。
 
 基线门槛包括：
@@ -27,7 +28,8 @@ attempt-bound task commit/fail 与 fixed continuation；converge 是 continuatio
   timeout fail-fast，all-success 只 converge 一次；
 - artifact hit 严格复验 exact file set、no-symlink、size/checksum/dependencies/policy；
 - convergence stale/incomplete/drift fail closed 且 materialization 有 rollback；
-- delivery 同步等待和验证 exact four files，current replacement 受控且同 identity no-op；
+- convergence 写入并复验 source-current；delivery policy 不进入 source identity；DeliveryBuild 同步等待和验证 exact
+  four files，current replacement 受控且同 identity no-op；
 - settings 与 progress 不扫描历史 `.producer-runs/`；Project delete 仍能安全清理其 ownership root；
 - zero Project bootstrap/Registry/Catalog/settings 可用。
 
@@ -40,10 +42,14 @@ arm64 上验证真实 four-file Delivery、packaged App 播放/seek、custom med
 process/TCP 与退出清理，并在 native Green 后完成 609/609 repository tests。Phase A 计划已
 [归档](archive/implementation-plans/2026-08-23-desktop-app-phase-a.md)。
 
-下一入口是下列第 2 项 productization。该状态只推进路线图入口，不表示 Phase B 已开始或任何 Phase B capability
-已实现。后续实现必须保持现有 focused、static、host、media 与 E2E gates Green，并遵守
+当前仍停留在下列第 2 项 productization。Phase B implementation 已进入 working tree：exact Runtime Pack 携带
+checksum-bound bundler/renderer及其必要 Studio内部依赖但无 CLI/Studio Server/launch surface；真实 DeliveryBuild只在
+`127.0.0.1` 使用 OS-ephemeral 临时 listener，UDS仍是唯一 control plane。当前 Linux 宿主无法取得 Apple Silicon
+packaged production E2E，状态为 `implementation-complete-native-evidence-pending`，不是 Phase B verified complete。
+后续验收必须保持现有 focused、static、host、media 与 E2E gates Green，并遵守
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
-[macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)。
+[macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)。当前执行入口是
+[Phase B 实施计划](DESKTOP_APP_PHASE_B_IMPLEMENTATION_PLAN.md)。
 
 1. unsigned prototype：建立 bundled Preview Player、只读多轨时间轴、Engine utility process、authenticated local
    `rsp` session、默认 `~/Movies/AXMORF Studio/` 和 Codex/Hermes integration smoke；

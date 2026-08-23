@@ -14,6 +14,8 @@ import { basename, dirname, join, relative } from "node:path";
 
 import type { NarrationSeal } from "../domain/seal";
 import { sha256Bytes } from "../domain/pcm-wav";
+import type { ProductionLocations } from "../../project-production/domain/production-locations";
+import { resolveNarrationMediaLogicalPath } from "../production-paths";
 
 export type NarrationSealFileOperations = {
   readonly commitImmutableDirectory: (input: {
@@ -95,7 +97,9 @@ const listFiles = async (
     } else if (entry.isFile()) {
       files.push(relative(root, path));
     } else {
-      throw new Error("Immutable narration directories may contain files only.");
+      throw new Error(
+        "Immutable narration directories may contain files only.",
+      );
     }
   }
   return files;
@@ -120,9 +124,7 @@ const assertDirectoriesEqual = async (
       readFile(join(destinationDir, file)),
     ]);
     if (sha256Bytes(sourceBytes) !== sha256Bytes(destinationBytes)) {
-      throw new Error(
-        `Existing immutable narration file differs: ${file}.`,
-      );
+      throw new Error(`Existing immutable narration file differs: ${file}.`);
     }
   }
 };
@@ -186,15 +188,21 @@ export const withProjectSealLock = async <Result>(
 };
 
 export const stageNarrationSealDirectory = async ({
-  rootDir,
+  locations,
   seal,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly seal: NarrationSeal;
-}): Promise<{ readonly stagingDirectory: string; readonly destinationDir: string }> => {
-  const destinationDir = join(
-    rootDir,
-    dirname(seal.manifest.completeAudio.localPath),
+}): Promise<{
+  readonly stagingDirectory: string;
+  readonly destinationDir: string;
+}> => {
+  const destinationDir = dirname(
+    resolveNarrationMediaLogicalPath({
+      locations,
+      storyId: seal.manifest.storyId,
+      logicalPath: seal.manifest.completeAudio.localPath,
+    }),
   );
   const parent = dirname(destinationDir);
   await mkdir(parent, { recursive: true });

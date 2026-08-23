@@ -18,11 +18,11 @@ import {
   TaskRevisionSchema,
 } from "./producer-task";
 
-export const EXECUTION_ATTEMPT_VERSION = "execution-attempt-v3" as const;
+export const EXECUTION_ATTEMPT_VERSION = "execution-attempt-v4" as const;
 export const EXECUTION_ATTEMPT_EVENT_VERSION =
-  "execution-attempt-event-v3" as const;
+  "execution-attempt-event-v4" as const;
 export const EXECUTION_ATTEMPT_PROGRESS_VERSION =
-  "execution-attempt-progress-v3" as const;
+  "execution-attempt-progress-v4" as const;
 
 export const ExecutionAttemptStateSchema = z.enum([
   "waiting-for-agent",
@@ -175,9 +175,13 @@ export const ExecutionAttemptTaskOutcomeSchema = z
   })
   .readonly();
 
-export const ExecutionAttemptDeliveryResultSchema = z
+export const ExecutionAttemptTerminalResultSchema = z
   .object({
-    status: z.enum(["not-verified", "verified", "failed"]),
+    status: z.enum(["pending", "source-current", "delivery-current", "failed"]),
+    sourceCurrentId: z
+      .string()
+      .regex(/^source-current-[0-9a-f]{64}$/u)
+      .nullable(),
     deliveryBuildId: z
       .string()
       .regex(/^delivery-[0-9a-f]{64}$/u)
@@ -187,10 +191,23 @@ export const ExecutionAttemptDeliveryResultSchema = z
   })
   .strict()
   .superRefine((result, context) => {
-    if ((result.status === "verified") !== (result.deliveryBuildId !== null)) {
+    if (
+      (result.status === "source-current" || result.status === "delivery-current") !==
+      (result.sourceCurrentId !== null)
+    ) {
       context.addIssue({
         code: "custom",
-        message: "Only a verified delivery binds a DeliveryBuildId.",
+        message: "Only current source terminals bind a SourceCurrentId.",
+        path: ["sourceCurrentId"],
+      });
+    }
+    if (
+      (result.status === "delivery-current") !==
+      (result.deliveryBuildId !== null)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Only a current delivery binds a DeliveryBuildId.",
         path: ["deliveryBuildId"],
       });
     }
@@ -201,10 +218,10 @@ export const ExecutionAttemptDeliveryResultSchema = z
         path: ["diagnosticCode"],
       });
     }
-    if (result.status === "not-verified" && result.deliveryMedia.length > 0) {
+    if (result.status !== "delivery-current" && result.deliveryMedia.length > 0) {
       context.addIssue({
         code: "custom",
-        message: "Unverified delivery cannot report completed media work.",
+        message: "Only a current delivery can report completed media work.",
         path: ["deliveryMedia"],
       });
     }
@@ -252,7 +269,7 @@ const validatePlanBinding = (
 
 export const ExecutionAttemptSchema = z
   .object({
-    schemaVersion: z.literal(3),
+    schemaVersion: z.literal(4),
     contractVersion: z.literal(EXECUTION_ATTEMPT_VERSION),
     ...ExecutionAttemptIdentityShape,
     ...ExecutionAttemptPlanShape,
@@ -271,14 +288,14 @@ export const ExecutionAttemptSchema = z
 
 export const ExecutionAttemptEventSchema = z
   .object({
-    schemaVersion: z.literal(3),
+    schemaVersion: z.literal(4),
     contractVersion: z.literal(EXECUTION_ATTEMPT_EVENT_VERSION),
     eventId: z.string().uuid(),
-    eventKind: z.enum(["attempt-opened", "task-terminal", "delivery-terminal"]),
+    eventKind: z.enum(["attempt-opened", "task-terminal", "attempt-terminal"]),
     recordedAt: z.string().datetime({ offset: true }),
     ...ExecutionAttemptIdentityShape,
     taskOutcome: ExecutionAttemptTaskOutcomeSchema.nullable(),
-    deliveryResult: ExecutionAttemptDeliveryResultSchema.nullable(),
+    terminalResult: ExecutionAttemptTerminalResultSchema.nullable(),
   })
   .strict()
   .superRefine((event, context) => {
@@ -290,20 +307,20 @@ export const ExecutionAttemptEventSchema = z
       });
     }
     if (
-      (event.eventKind === "delivery-terminal") !==
-      (event.deliveryResult !== null)
+      (event.eventKind === "attempt-terminal") !==
+      (event.terminalResult !== null)
     ) {
       context.addIssue({
         code: "custom",
-        message: "Delivery terminal events require exactly one delivery result.",
-        path: ["deliveryResult"],
+        message: "Attempt terminal events require exactly one terminal result.",
+        path: ["terminalResult"],
       });
     }
-    if (event.deliveryResult?.status === "not-verified") {
+    if (event.terminalResult?.status === "pending") {
       context.addIssue({
         code: "custom",
-        message: "A terminal delivery event cannot be not-verified.",
-        path: ["deliveryResult", "status"],
+        message: "An attempt terminal event cannot be pending.",
+        path: ["terminalResult", "status"],
       });
     }
   })
@@ -320,7 +337,7 @@ export const ExecutionAttemptTaskOutcomeSummarySchema = z
 
 export const ExecutionAttemptProgressSchema = z
   .object({
-    schemaVersion: z.literal(3),
+    schemaVersion: z.literal(4),
     contractVersion: z.literal(EXECUTION_ATTEMPT_PROGRESS_VERSION),
     ...ExecutionAttemptIdentityShape,
     ...ExecutionAttemptPlanShape,
@@ -333,7 +350,7 @@ export const ExecutionAttemptProgressSchema = z
     eventCount: z.number().int().nonnegative(),
     taskOutcomes: z.array(ExecutionAttemptTaskOutcomeSchema),
     taskOutcomeSummary: ExecutionAttemptTaskOutcomeSummarySchema,
-    deliveryResult: ExecutionAttemptDeliveryResultSchema,
+    terminalResult: ExecutionAttemptTerminalResultSchema,
   })
   .strict()
   .superRefine((progress, context) => {
@@ -371,20 +388,20 @@ export const ExecutionAttemptProgressSchema = z
       }
     }
     if (
-      (progress.deliveryResult.status === "verified") !==
+      (["source-current", "delivery-current"].includes(progress.terminalResult.status)) !==
         (progress.state === "succeeded") ||
-      (progress.deliveryResult.status === "failed") !==
+      (progress.terminalResult.status === "failed") !==
         (progress.state === "failed")
     ) {
       context.addIssue({
         code: "custom",
-        message: "Execution attempt delivery result does not match its state.",
-        path: ["deliveryResult"],
+        message: "Execution attempt terminal result does not match its state.",
+        path: ["terminalResult"],
       });
     }
     if (
       serializeCanonicalJson(progress.actualCost.deliveryMedia) !==
-      serializeCanonicalJson(progress.deliveryResult.deliveryMedia)
+      serializeCanonicalJson(progress.terminalResult.deliveryMedia)
     ) {
       context.addIssue({
         code: "custom",
@@ -403,8 +420,8 @@ export type ExecutionAttemptEvent = z.infer<typeof ExecutionAttemptEventSchema>;
 export type ExecutionAttemptTaskOutcome = z.infer<
   typeof ExecutionAttemptTaskOutcomeSchema
 >;
-export type ExecutionAttemptDeliveryResult = z.infer<
-  typeof ExecutionAttemptDeliveryResultSchema
+export type ExecutionAttemptTerminalResult = z.infer<
+  typeof ExecutionAttemptTerminalResultSchema
 >;
 export type ExecutionAttemptProgress = z.infer<
   typeof ExecutionAttemptProgressSchema

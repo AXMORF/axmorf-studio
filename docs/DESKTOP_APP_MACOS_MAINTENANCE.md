@@ -2,7 +2,7 @@
 
 > 文档类型：macOS 维护与发行目标 authority
 >
-> 状态：`AXMORF Studio`、内置 Preview Player、单 Workspace Root、Codex/Hermes 首批支持、Electron、macOS 13+、arm64/x64、App-running lifecycle、完整离线 Runtime DMG、GitHub Releases 站外分发、首阶段无签名和手动更新已确认；Phase A repository-adapter 与 Apple Silicon native gate verified complete，Phase B 尚未开始
+> 状态：`AXMORF Studio`、内置 Preview Player、单 Workspace Root、Codex/Hermes 首批支持、Electron、macOS 13+、arm64/x64、App-running lifecycle、完整离线 Runtime DMG、GitHub Releases 站外分发、首阶段无签名和手动更新已确认；Phase A repository-adapter 与 Apple Silicon native gate verified complete，Phase B 为 `implementation-complete-native-evidence-pending`
 >
 > 产品边界见 [Desktop App 与外部 Agent 产品架构](DESKTOP_APP_PRODUCT.md)，当前实现
 > 事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。
@@ -107,9 +107,10 @@ canonical SemanticTiming 投影 Scene、旁白和字幕；Scene boundary 不冒�
 
 ### Engine utility process
 
-运行现有 Node production engine、contracts、validators、Artifact/Attempt/Workspace adapters。Phase A 只提供
-read-only Preview Catalog 和 doctor，不启动 Settings、Remotion Studio 或其他 TCP listener。Runtime Pack 阶段的
-Delivery render 使用独立 child process，render crash 不应终止 Main 或破坏 current delivery。
+运行现有 Node production engine、contracts、validators、Artifact/Attempt/Workspace adapters。它不启动 Settings、
+Remotion Studio UI/Server 或常驻 TCP listener；control plane 只有 authenticated Unix-domain socket。真实
+DeliveryBuild 可临时绑定 `127.0.0.1` OS-ephemeral renderer listener，并必须在终态清理。Delivery render 使用
+独立 child process，render crash 不应终止 Main 或破坏 current delivery。
 
 ### rsp CLI
 
@@ -207,8 +208,8 @@ credentials 优先进入 macOS Keychain-backed secret storage；不得进入 Wor
 
 v1 采用 Electron Forge，并为每个 App version 建立两个独立 release jobs：
 
-| Job         | Output                                 | 必须验证                                                 |
-| ----------- | -------------------------------------- | -------------------------------------------------------- |
+| Job         | Output                                 | 必须验证                                                         |
+| ----------- | -------------------------------------- | ---------------------------------------------------------------- |
 | `mac-arm64` | native arm64 `.app`、full unsigned DMG | Apple Silicon offline install、Preview Player、Agent CLI、render |
 | `mac-x64`   | native x64 `.app`、full unsigned DMG   | Intel offline install、Preview Player、Agent CLI、render         |
 
@@ -307,7 +308,8 @@ Project schema migration 使用 same-parent staging、完整验证和 rollback�
 - Codex/Hermes workspace-local integration 与 Skill install/repair/uninstall；
 - `rsp` 在 App connected/disconnected/版本不兼容时的结构化结果；
 - Preview Catalog refresh 后出现新 current Project/Delivery，播放、音频、seek 和 Scene/旁白/字幕时间轴正确；
-- App-owned packaged runtime 全程没有 TCP listener；Forge Vite 开发端口不能作为该证据；
+- App-owned packaged runtime 没有常驻 TCP listener；DeliveryBuild期间唯一listener精确为`127.0.0.1` OS-ephemeral，
+  终态/退出后归零；Forge Vite 开发端口不能作为该证据；
 - manual policy 到 `source-current` 且不生成 Delivery，UI 明确显示无可播放预览；
 - automatic policy 生成并复验 exact four-file delivery；
 - App 窗口关闭后 active production 继续、显式 Quit 有确认；
@@ -340,11 +342,12 @@ Project schema migration 使用 same-parent staging、完整验证和 rollback�
 `remotion`、`@remotion/cli`、`@remotion/renderer` 等关键包使用 Remotion License；官方也明确说明 Remotion
 是 source-available 而不是 OSI open source。官方 FAQ 允许符合 Free License 条件的个人/三人以内组织免费使用，
 也允许 AI 生成 Remotion code 和构建 automation，但同时禁止把 Remotion 本身作为产品出售或帮助其他用户绕过
-其许可证义务。Phase A 不打包或运行 Remotion Studio，但后续完整 Runtime Pack 仍计划把 CLI/renderer 和
-对应 browser/media runtime 交由最终用户在本机运行；现有条款没有明确授权这种 binary redistribution。
+其许可证义务。Phase A 不打包或运行 Remotion Studio；Phase B Runtime Pack 携带 renderer/bundler、其必要的 exact
+Studio/Studio Shared 内部依赖和对应 browser/media runtime，但明确排除 Remotion CLI、Studio Server、Studio UI 与
+launch surface。现有条款没有明确授权这种 binary redistribution。
 
 因此在公开 DMG 前，仍必须取得 Remotion 官方对以下模式的书面确认：免费 Apache-2.0 项目、无内置 Agent、
-最终用户使用自己的 Agent、每个用户在自己的 Mac 上运行 bundled CLI/renderer、维护者不提供远程渲染服务。
+最终用户使用自己的 Agent、每个用户在自己的 Mac 上运行 bundled renderer/runtime、维护者不提供远程渲染服务。
 确认必须回答 binary redistribution 是否允许、维护者和最终用户分别适用什么 License、是否需要在 App 中收集或
 配置 license key，以及大于三人的最终用户如何自行合规。未确认前可以做内部 prototype 和 unsigned 技术验证，
 但不能公开包含 Remotion runtime 的 DMG。
@@ -375,11 +378,13 @@ macOS process、Runtime Pack、Workspace、双架构、unsigned/signed channel�
 
 ## 16. 当前非事实
 
-本文主要是维护目标。Phase A 可实现 Electron repository-adapter prototype，但这不表示 DMG、完整 Runtime Pack、
-签名、公证、auto-update、Workspace production migration、optional Delivery 或双架构 E2E 已存在。任何实现完成
-声明仍必须更新 [ITERATION_STATUS.md](ITERATION_STATUS.md) 并附对应 executable evidence；非 macOS 宿主只能保留
-`implementation-complete-native-evidence-pending`，不得伪造 Apple Silicon、Intel、Hermes、package 或 native
-smoke evidence。
+本文主要是维护目标。Phase A 已实现 Electron repository-adapter prototype；Phase B implementation 已进入
+working tree。经确认的实现只允许 DeliveryBuild 范围内 `127.0.0.1` OS-ephemeral renderer listener，Runtime Pack 仅携带
+checksum-bound 的 exact 内部渲染依赖且无 CLI/Studio Server/launch surface；当前状态为
+`implementation-complete-native-evidence-pending`。这不表示 DMG、签名、公证、auto-update、Apple Silicon packaged
+production evidence 或双架构 E2E 已存在。任何 verified-complete 声明仍必须更新
+[ITERATION_STATUS.md](ITERATION_STATUS.md) 并附对应 executable evidence；不得伪造 Apple Silicon、Intel、Hermes、
+package、Delivery 或 native smoke evidence。
 
 ## 17. Primary references
 

@@ -35,3 +35,20 @@ test("explicit active-work quit needs an affirmative confirmation", () => {
   assert.equal(shouldQuitAfterConfirmation("shutdown-and-quit", false), true);
   assert.equal(shouldQuitAfterConfirmation("hide-window", true), false);
 });
+
+test("preparing production uses the active-work close and quit policy", () => {
+  const preparing = {
+    storyId: "story-one",
+    kind: "production",
+    attemptId: null,
+    phase: "preparing-production",
+  };
+  assert.equal(
+    resolveClosePolicy({ activeWork: preparing, intent: "window-close" }),
+    "hide-window",
+  );
+  assert.equal(
+    resolveClosePolicy({ activeWork: preparing, intent: "explicit-quit" }),
+    "confirm-quit",
+  );
+});

@@ -5,14 +5,17 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { readCurrentProductionRevision } from "../../scripts/project-production/application/current-revision";
+import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
 
-const sha = (character: string) =>
-  `sha256:${character.repeat(64)}` as const;
+const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
 test("current Revision query is catalog-check-only and creates no execution roots", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-current-revision-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const calls: unknown[] = [];
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
   const inputs = {
     projectId: "story-example",
     fingerprints: {
@@ -48,7 +51,7 @@ test("current Revision query is catalog-check-only and creates no execution root
   };
 
   const revision = await readCurrentProductionRevision(
-    { rootDir, projectId: "story-example" },
+    { locations, projectId: "story-example" },
     {
       loadInputs: (async (input: unknown) => {
         calls.push(input);
@@ -58,7 +61,7 @@ test("current Revision query is catalog-check-only and creates no execution root
   );
 
   assert.match(revision.revisionId, /^revision-[0-9a-f]{64}$/u);
-  assert.deepEqual(calls, [{ rootDir, projectId: "story-example" }]);
+  assert.deepEqual(calls, [{ locations, projectId: "story-example" }]);
   for (const root of [
     ".producer-attempts",
     ".producer-artifacts",

@@ -6,23 +6,18 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import {
-  DELIVERY_BUILD_POLICY_VERSION,
   NARRATION_MASTERING_POLICY,
   NarrationSpecSchema,
   RenderSpecSchema,
   SealedNarrationManifestSchema,
   StorySpecSchema,
-  buildDeliveryPublish,
-  buildDeliveryPublishing,
   buildMasteredNarrationManifest,
   buildProducerTaskSpec,
   buildProjectSoundPlan,
-  buildPublishingIntent,
   buildSceneTemplateInstance,
   buildSilentScenePreset,
   computeGenerationInputFingerprint,
   computeSealedNarrationFingerprint,
-  createDeliveryBuildId,
   createFingerprint,
   generateSemanticTiming,
   serializeCanonicalJson,
@@ -31,6 +26,7 @@ import {
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
 import { checkTaskByKind } from "../../scripts/project-production/application/check-task";
 import { checkSceneTemplateWorkspaceBinding } from "../../scripts/project-production/application/fixed-task-check";
+import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
 import {
   encodeCanonicalPcmWav,
   sha256Bytes,
@@ -39,7 +35,8 @@ import { validNarrationSpec, validRenderSpec } from "../fixtures/narrative";
 
 const digest = (value: string) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}` as const;
-const fakeDigest = (character: string) => `sha256:${character.repeat(64)}` as const;
+const fakeDigest = (character: string) =>
+  `sha256:${character.repeat(64)}` as const;
 const revisionId = `revision-${"1".repeat(64)}` as const;
 
 const story = StorySpecSchema.parse({
@@ -117,7 +114,8 @@ const mastered = buildMasteredNarrationManifest({
   masteringPolicy: NARRATION_MASTERING_POLICY,
   outputAudio: {
     ...sealed.completeAudio,
-    localPath: "public/projects/fixed-task-proof/narration-mastered/pending/complete.wav",
+    localPath:
+      "public/projects/fixed-task-proof/narration-mastered/pending/complete.wav",
   },
   measurements: {
     integratedLoudnessLufs: -16,
@@ -135,8 +133,16 @@ const timing = generateSemanticTiming({
 
 const fixedDefinition: Readonly<
   Record<
-    Exclude<ProducerTaskKind, "scene-owner" | "scene-template" | "global-visual-owner" | "cover-owner">,
-    { readonly policy: string; readonly inputIds: readonly string[]; readonly outputs: readonly string[]; readonly dependencyCount: number }
+    Exclude<
+      ProducerTaskKind,
+      "scene-owner" | "scene-template" | "global-visual-owner" | "cover-owner"
+    >,
+    {
+      readonly policy: string;
+      readonly inputIds: readonly string[];
+      readonly outputs: readonly string[];
+      readonly dependencyCount: number;
+    }
   >
 > = {
   "narration-chunk": {
@@ -170,12 +176,6 @@ const fixedDefinition: Readonly<
     outputs: ["project/convergence.json"],
     dependencyCount: 2,
   },
-  "delivery-build": {
-    policy: "delivery-build-validator-v1",
-    inputIds: ["publishing", "render", "runtime"],
-    outputs: ["project/publish.json"],
-    dependencyCount: 2,
-  },
 };
 
 const canonical = (value: unknown) => `${serializeCanonicalJson(value)}\n`;
@@ -191,12 +191,16 @@ const createFixedWorkspace = async ({
   readonly context: unknown;
   readonly files: Readonly<Record<string, string | Uint8Array>>;
 }) => {
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
   const definition = fixedDefinition[kind];
   const contextBytes = canonical(context);
   const dependencyArtifacts = Array.from(
     { length: definition.dependencyCount },
     (_, index) => ({
-      taskRevision: `task-${(index + 2).toString(16).repeat(64).slice(0, 64)}` as const,
+      taskRevision:
+        `task-${(index + 2).toString(16).repeat(64).slice(0, 64)}` as const,
       artifactFingerprint: fakeDigest((index + 2).toString(16)),
     }),
   ).sort((left, right) => left.taskRevision.localeCompare(right.taskRevision));
@@ -218,7 +222,7 @@ const createFixedWorkspace = async ({
     validatorPolicyVersion: definition.policy,
   });
   const workspace = await createTaskWorkspace({
-    rootDir,
+    locations,
     task,
     seedFiles: { "inputs/context.json": contextBytes },
   });
@@ -227,7 +231,7 @@ const createFixedWorkspace = async ({
     await mkdir(dirname(path), { recursive: true });
     await writeFile(path, bytes);
   }
-  return { task, workspace } as const;
+  return { locations, task, workspace } as const;
 };
 
 test("fixed narration tasks validate canonical PCM, sealed manifests, mastering and timing bindings", async (context) => {
@@ -244,7 +248,15 @@ test("fixed narration tasks validate canonical PCM, sealed manifests, mastering 
     },
     files: { "public/chunk.wav": wav },
   });
-  assert.equal((await checkTaskByKind({ rootDir, taskRevision: chunk.task.taskRevision })).status, "task-workspace-valid");
+  assert.equal(
+    (
+      await checkTaskByKind({
+        locations: chunk.locations,
+        taskRevision: chunk.task.taskRevision,
+      })
+    ).status,
+    "task-workspace-valid",
+  );
 
   const seal = await createFixedWorkspace({
     rootDir,
@@ -255,32 +267,67 @@ test("fixed narration tasks validate canonical PCM, sealed manifests, mastering 
       "public/complete.wav": wav,
     },
   });
-  assert.equal((await checkTaskByKind({ rootDir, taskRevision: seal.task.taskRevision })).status, "task-workspace-valid");
+  assert.equal(
+    (
+      await checkTaskByKind({
+        locations: seal.locations,
+        taskRevision: seal.task.taskRevision,
+      })
+    ).status,
+    "task-workspace-valid",
+  );
 
   const semantic = await createFixedWorkspace({
     rootDir,
     kind: "semantic-timing",
-    context: { storyId: story.storyId, render, masteringPolicy: NARRATION_MASTERING_POLICY },
+    context: {
+      storyId: story.storyId,
+      render,
+      masteringPolicy: NARRATION_MASTERING_POLICY,
+    },
     files: {
-      "project/generated/mastered-narration.generated.json": canonical(mastered),
+      "project/generated/mastered-narration.generated.json":
+        canonical(mastered),
       "project/generated/semantic-timing.generated.json": canonical(timing),
       "public/mastered-complete.wav": wav,
     },
   });
-  assert.equal((await checkTaskByKind({ rootDir, taskRevision: semantic.task.taskRevision })).status, "task-workspace-valid");
+  assert.equal(
+    (
+      await checkTaskByKind({
+        locations: semantic.locations,
+        taskRevision: semantic.task.taskRevision,
+      })
+    ).status,
+    "task-workspace-valid",
+  );
 
-  await writeFile(join(semantic.workspace, "public/mastered-complete.wav"), Buffer.from("not-wav"));
+  await writeFile(
+    join(semantic.workspace, "public/mastered-complete.wav"),
+    Buffer.from("not-wav"),
+  );
   await assert.rejects(
-    checkTaskByKind({ rootDir, taskRevision: semantic.task.taskRevision }),
+    checkTaskByKind({
+      locations: semantic.locations,
+      taskRevision: semantic.task.taskRevision,
+    }),
     /WAV|PCM/u,
   );
 });
 
-test("fixed convergence and delivery tasks reject arbitrary JSON in authority outputs", async (context) => {
+test("fixed convergence rejects arbitrary JSON in its source authority output", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-fixed-convergence-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const sound = buildProjectSoundPlan({ storyId: story.storyId, contributions: [] });
-  const convergenceContext = { storyId: story.storyId, revisionId, render, sound };
+  const sound = buildProjectSoundPlan({
+    storyId: story.storyId,
+    contributions: [],
+  });
+  const convergenceContext = {
+    storyId: story.storyId,
+    revisionId,
+    render,
+    sound,
+  };
   const convergenceSeed = await createFixedWorkspace({
     rootDir,
     kind: "composition-convergence",
@@ -295,82 +342,37 @@ test("fixed convergence and delivery tasks reject arbitrary JSON in authority ou
     taskRevision: convergenceSeed.task.taskRevision,
     dependencyArtifacts: convergenceSeed.task.dependencyArtifacts,
   };
-  await writeFile(join(convergenceSeed.workspace, "project/convergence.json"), canonical(convergenceResult));
-  assert.equal((await checkTaskByKind({ rootDir, taskRevision: convergenceSeed.task.taskRevision })).status, "task-workspace-valid");
-  await writeFile(join(convergenceSeed.workspace, "project/convergence.json"), "{}\n");
-  await assert.rejects(
-    checkTaskByKind({ rootDir, taskRevision: convergenceSeed.task.taskRevision }),
+  await writeFile(
+    join(convergenceSeed.workspace, "project/convergence.json"),
+    canonical(convergenceResult),
   );
-
-  const publishingIntent = buildPublishingIntent({
-    story,
-    authored: {
-      description: "A synchronous fixed task delivery.",
-      topics: ["one", "two", "three", "four", "five", "six"],
-      collectionId: "engineering",
-      chapters: [{ meaningId: "opening", name: "开场" }],
-    },
-    publishingCollections: [{ id: "engineering", name: "Engineering", description: "Engineering videos." }],
-  });
-  const identity = {
-    storyId: story.storyId,
-    revisionId,
-    artifactSetFingerprint: fakeDigest("a"),
-    compositionId: render.compositionId,
-    fps: render.fps,
-    frameCount: 90,
-    width: render.width,
-    height: render.height,
-    policyVersion: DELIVERY_BUILD_POLICY_VERSION,
-  } as const;
-  const publishing = buildDeliveryPublishing({
-    storyId: story.storyId,
-    title: story.title,
-    description: publishingIntent.description,
-    topics: publishingIntent.topics,
-    collection: publishingIntent.collection.name,
-    outputFileName: "video.mp4",
-    coverFileNames: { cover4x3: "cover-4x3.png", cover3x4: "cover-3x4.png" },
-    fps: render.fps,
-    frameCount: identity.frameCount,
-    plannedDurationSeconds: identity.frameCount / render.fps,
-    chapters: [{ meaningId: "opening", name: "开场", startFrame: 0, timecode: "00:00:00" }],
-  });
-  const publish = buildDeliveryPublish({
-    ...identity,
-    deliveryBuildId: createDeliveryBuildId(identity),
-    artifacts: {
-      video: {
-        repositoryPath: `deliveries/${story.storyId}/video.mp4`, checksum: fakeDigest("b"), sizeBytes: 1,
-        media: { codec: "h264", audioCodec: "aac", audioChannels: 2, width: render.width, height: render.height, fps: render.fps, frameCount: identity.frameCount, decodedToEof: true },
-      },
-      cover4x3: {
-        repositoryPath: `deliveries/${story.storyId}/cover-4x3.png`, checksum: fakeDigest("c"), sizeBytes: 1,
-        media: { imageFormat: "png", width: 1600, height: 1200, decodedToEof: true },
-      },
-      cover3x4: {
-        repositoryPath: `deliveries/${story.storyId}/cover-3x4.png`, checksum: fakeDigest("d"), sizeBytes: 1,
-        media: { imageFormat: "png", width: 1200, height: 1600, decodedToEof: true },
-      },
-    },
-    publishing,
-  });
-  const delivery = await createFixedWorkspace({
-    rootDir,
-    kind: "delivery-build",
-    context: { storyId: story.storyId, revisionId, render, publishingIntent },
-    files: { "project/publish.json": canonical(publish) },
-  });
-  assert.equal((await checkTaskByKind({ rootDir, taskRevision: delivery.task.taskRevision })).status, "task-workspace-valid");
-  await writeFile(join(delivery.workspace, "project/publish.json"), "{}\n");
-  await assert.rejects(checkTaskByKind({ rootDir, taskRevision: delivery.task.taskRevision }));
+  assert.equal(
+    (
+      await checkTaskByKind({
+        locations: convergenceSeed.locations,
+        taskRevision: convergenceSeed.task.taskRevision,
+      })
+    ).status,
+    "task-workspace-valid",
+  );
+  await writeFile(
+    join(convergenceSeed.workspace, "project/convergence.json"),
+    "{}\n",
+  );
+  await assert.rejects(
+    checkTaskByKind({
+      locations: convergenceSeed.locations,
+      taskRevision: convergenceSeed.task.taskRevision,
+    }),
+  );
 });
 
 test("Scene template binding rejects copied-byte and Renderer graph tampering using workspace files only", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-fixed-template-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const scenePrefix = `src/projects/${story.storyId}/scenes/intro/`;
-  const renderer = "import {value} from './value'; export default () => value;\n";
+  const renderer =
+    "import {value} from './value'; export default () => value;\n";
   const value = "export const value = null;\n";
   const graphFiles = [
     { sourcePath: `${scenePrefix}Renderer.tsx`, checksum: digest(renderer) },
@@ -393,14 +395,37 @@ test("Scene template binding rejects copied-byte and Renderer graph tampering us
     soundIntent: "Remain silent.",
     resourceIds: [],
     soundCues: [],
-    copiedSourceFiles: graphFiles.map(({ sourcePath: repositoryPath, checksum }) => ({ repositoryPath, checksum })),
+    copiedSourceFiles: graphFiles.map(
+      ({ sourcePath: repositoryPath, checksum }) => ({
+        repositoryPath,
+        checksum,
+      }),
+    ),
     copiedAssetFiles: [],
     visual: {
-      semanticObjective: "Introduce the story.", subject: "Title", primaryAction: "Reveal", causalLink: "Start", primaryComposition: "Center",
-      styleRealization: ["Clean"], continuity: "Lead into content", fallbackIntent: "Keep title", orderedShotIds: ["shot-one"], visualResourceIds: [],
+      semanticObjective: "Introduce the story.",
+      subject: "Title",
+      primaryAction: "Reveal",
+      causalLink: "Start",
+      primaryComposition: "Center",
+      styleRealization: ["Clean"],
+      continuity: "Lead into content",
+      fallbackIntent: "Keep title",
+      orderedShotIds: ["shot-one"],
+      visualResourceIds: [],
     },
     anchors: [],
-    shots: [{ shotId: "shot-one", order: 0, primaryRange: { startFrame: 0, endFrame: 30 }, purpose: "Reveal", action: "Fade", syncAnchorIds: [], visualResourceIds: [] }],
+    shots: [
+      {
+        shotId: "shot-one",
+        order: 0,
+        primaryRange: { startFrame: 0, endFrame: 30 },
+        purpose: "Reveal",
+        action: "Fade",
+        syncAnchorIds: [],
+        visualResourceIds: [],
+      },
+    ],
   });
   const instanceBytes = canonical(instance);
   const preset = buildSilentScenePreset({
@@ -424,7 +449,9 @@ test("Scene template binding rejects copied-byte and Renderer graph tampering us
     semanticId: "intro",
     revisionId,
     dependencyArtifacts: [],
-    inputFingerprints: [{ id: "read:inputs/context.json", fingerprint: digest("{}\n") }],
+    inputFingerprints: [
+      { id: "read:inputs/context.json", fingerprint: digest("{}\n") },
+    ],
     declaredReadSet: ["inputs/context.json"],
     declaredOutputSet: [
       "src/Renderer.tsx",
@@ -458,9 +485,13 @@ test("Scene template binding rejects copied-byte and Renderer graph tampering us
   );
   await writeFile(join(workspace, "src/Renderer.tsx"), renderer);
   await writeFile(join(workspace, "src/value.ts"), value);
-  await writeFile(join(workspace, "src/scene-template-instance.json"), instanceBytes);
+  await writeFile(
+    join(workspace, "src/scene-template-instance.json"),
+    instanceBytes,
+  );
   assert.equal(
-    (await checkSceneTemplateWorkspaceBinding({ workspace, task })).instanceFingerprint,
+    (await checkSceneTemplateWorkspaceBinding({ workspace, task }))
+      .instanceFingerprint,
     instance.instanceFingerprint,
   );
   await writeFile(join(workspace, "src/value.ts"), "export const value = 1;\n");

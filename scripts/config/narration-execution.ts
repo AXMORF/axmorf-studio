@@ -7,6 +7,7 @@ import {
 } from "../../src/contracts/mastered-narration";
 import type {
   EdgeTtsProviderConfig,
+  ProducerConfig,
   SpeechSdkProviderConfig,
 } from "../../src/contracts/producer-config";
 import { getSpeechSdkModelMaxInputChars } from "../../src/contracts/tts-provider-registry";
@@ -23,9 +24,7 @@ import {
   type ResolvedSpeechSdkProfile,
 } from "../narration/domain/provider-input";
 import {
-  readProducerConfig,
   resolveDefaultTtsProvider,
-  resolveProducerConfigPathFromEnvironment,
   toVoxcpmPrivateConfig,
 } from "./producer-config";
 
@@ -45,27 +44,25 @@ export type RemoteTtsProfileMetadata =
 
 export type ProducerNarrationInspection = Readonly<{
   providerAttemptFingerprint: string | null;
-  providerAttemptIdentityState:
-    | "exact"
-    | "unknown-protected-voice-material";
-  masteringPolicy: ReturnType<
-    typeof NarrationMasteringPolicySchema.parse
-  >;
+  providerAttemptIdentityState: "exact" | "unknown-protected-voice-material";
+  masteringPolicy: ReturnType<typeof NarrationMasteringPolicySchema.parse>;
   metadata: VoxcpmProfileInspectionMetadata | RemoteTtsProfileMetadata;
 }>;
 
-const requireVoiceProfile = <
-  T extends readonly { readonly id: string }[],
->(
+export type NormalizeProducerPromptAudio = (input: {
+  readonly sourceBytes: Buffer;
+}) => Promise<Buffer>;
+
+const requireVoiceProfile = <T extends readonly { readonly id: string }[]>(
   profiles: T,
   narration: NarrationSpec,
   providerLabel: string,
 ) => {
-  const matches = profiles.filter(
-    ({ id }) => id === narration.voiceProfileId,
-  );
+  const matches = profiles.filter(({ id }) => id === narration.voiceProfileId);
   if (matches.length !== 1) {
-    throw new Error(`The selected ${providerLabel} voice profile is unavailable.`);
+    throw new Error(
+      `The selected ${providerLabel} voice profile is unavailable.`,
+    );
   }
   return matches[0] as T[number];
 };
@@ -203,25 +200,18 @@ const resolveEdgeTtsProfile = ({
  * replaced with a configuration-only lookalike fingerprint.
  */
 export const resolveProducerNarrationInspection = async ({
-  rootDir,
-  env,
+  config,
+  privateConfigRoot,
   narration,
 }: {
-  readonly rootDir: string;
-  readonly env: Readonly<Record<string, string | undefined>>;
+  readonly config: ProducerConfig;
+  readonly privateConfigRoot: string;
   readonly narration: NarrationSpec;
 }): Promise<ProducerNarrationInspection> => {
-  const configPath = await resolveProducerConfigPathFromEnvironment({
-    rootDir,
-    env,
-  });
-  const producerConfig = await readProducerConfig({ configPath });
-  const provider = resolveDefaultTtsProvider(producerConfig);
-  const speechRate = producerConfig.tts.speech.rate;
+  const provider = resolveDefaultTtsProvider(config);
+  const speechRate = config.tts.speech.rate;
   const masteringPolicy = NarrationMasteringPolicySchema.parse(
-    buildNarrationMasteringPolicy(
-      producerConfig.tts.speech.targetLoudnessLufs,
-    ),
+    buildNarrationMasteringPolicy(config.tts.speech.targetLoudnessLufs),
   );
   if (provider.kind === "voxcpm") {
     return {
@@ -229,7 +219,7 @@ export const resolveProducerNarrationInspection = async ({
       providerAttemptIdentityState: "unknown-protected-voice-material",
       masteringPolicy,
       metadata: resolveVoxcpmProfileInspectionMetadata({
-        config: toVoxcpmPrivateConfig(provider, rootDir),
+        config: toVoxcpmPrivateConfig(provider, privateConfigRoot),
         narration,
       }),
     };
@@ -249,33 +239,31 @@ export const resolveProducerNarrationInspection = async ({
 };
 
 export const resolveProducerNarrationExecution = async ({
-  rootDir,
-  env,
+  config,
+  privateConfigRoot,
   narration,
+  normalizePromptAudio,
 }: {
-  readonly rootDir: string;
-  readonly env: Readonly<Record<string, string | undefined>>;
+  readonly config: ProducerConfig;
+  readonly privateConfigRoot: string;
   readonly narration: NarrationSpec;
+  readonly normalizePromptAudio: NormalizeProducerPromptAudio;
 }) => {
-  const configPath = await resolveProducerConfigPathFromEnvironment({
-    rootDir,
-    env,
-  });
-  const producerConfig = await readProducerConfig({ configPath });
-  const provider = resolveDefaultTtsProvider(producerConfig);
-  const speechRate = producerConfig.tts.speech.rate;
+  const provider = resolveDefaultTtsProvider(config);
+  const speechRate = config.tts.speech.rate;
   const execution =
     provider.kind === "voxcpm"
       ? {
           resolved: await resolveVoxcpmProfile({
-            config: toVoxcpmPrivateConfig(provider, rootDir),
+            config: toVoxcpmPrivateConfig(provider, privateConfigRoot),
             narration,
             speechRate,
+            normalizePromptAudio,
           }),
           metadata: await resolveVoxcpmProfileMetadata({
-            config: toVoxcpmPrivateConfig(provider, rootDir),
+            config: toVoxcpmPrivateConfig(provider, privateConfigRoot),
             narration,
-            rootDir,
+            rootDir: privateConfigRoot,
           }),
         }
       : provider.kind === "speech-sdk"
@@ -298,7 +286,7 @@ export const resolveProducerNarrationExecution = async ({
       voiceProfileId: narration.voiceProfileId,
       speechRate,
       providerAttemptFingerprint,
-      targetLoudnessLufs: producerConfig.tts.speech.targetLoudnessLufs,
+      targetLoudnessLufs: config.tts.speech.targetLoudnessLufs,
     }),
     resolved,
     metadata,

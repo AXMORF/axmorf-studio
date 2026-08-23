@@ -13,6 +13,7 @@ import {
   type SceneCoverageMap,
   type ScenePackage,
 } from "../../src/contracts";
+import type { ProductionLocations } from "../project-production/application/production-locations";
 import { collectRendererSourceGraph } from "../renderer-registry/domain";
 import { buildScenePackage } from "./domain";
 import {
@@ -78,19 +79,18 @@ export const generateSceneCoverage = async ({
 };
 
 export const generateScenePackageFromProjectFiles = async ({
-  rootDir,
+  locations,
   projectId,
   meaningId,
   mode,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
   readonly meaningId: string;
   readonly mode: SceneArtifactMode;
 }) => {
   const sceneRoot = join(
-    rootDir,
-    "src/projects",
+    locations.projectSourceRoot,
     projectId,
     "scenes",
     meaningId,
@@ -118,8 +118,7 @@ export const generateScenePackageFromProjectFiles = async ({
     readJsonFile(join(sceneRoot, "selected-resources.json")),
     readJsonFile(
       join(
-        rootDir,
-        "src/projects",
+        locations.projectSourceRoot,
         projectId,
         "generated/semantic-timing.generated.json",
       ),
@@ -138,7 +137,7 @@ export const generateScenePackageFromProjectFiles = async ({
   ).selectedResources;
   const rendererSourceFingerprint = (
     await collectRendererSourceGraph({
-      rootDir,
+      locations,
       projectId,
       rendererPath: `src/projects/${projectId}/scenes/${meaningId}/Renderer.tsx`,
     })
@@ -176,15 +175,15 @@ export const generateScenePackageFromProjectFiles = async ({
 };
 
 export const generateSceneCoverageFromProjectFiles = async ({
-  rootDir,
+  locations,
   projectId,
   mode,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
   readonly mode: SceneArtifactMode;
 }) => {
-  const projectRoot = join(rootDir, "src/projects", projectId);
+  const projectRoot = join(locations.projectSourceRoot, projectId);
   const story = StorySpecSchema.parse(
     await readJsonFile(join(projectRoot, "story.json")),
   );
@@ -196,7 +195,7 @@ export const generateSceneCoverageFromProjectFiles = async ({
   for (const meaningId of storyBeatOrder) {
     packages.push(
       await generateScenePackageFromProjectFiles({
-        rootDir,
+        locations,
         projectId,
         meaningId,
         mode: "check",

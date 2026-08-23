@@ -11,7 +11,22 @@ const controller = new DesktopShellController({
     loadSelectedRoot: async () => null,
     chooseInitialRoot: async () => null,
     initializeInitialRoot: async (root) => root,
+    chooseMigrationTarget: async () => null,
+    migrateRoot: async () => {
+      throw new Error("not used");
+    },
     showInFileManager: async () => undefined,
+  },
+  providerSettings: {
+    get: async () => ({
+      schemaVersion: 1,
+      status: "not-configured",
+      defaultProviderId: null,
+      providers: [],
+    }),
+    save: async () => {
+      throw new Error("not used");
+    },
   },
   engine: {
     start: async () => {
@@ -20,9 +35,14 @@ const controller = new DesktopShellController({
     refreshPreviewCatalog: async () => {
       throw new Error("not used");
     },
+    buildDelivery: async () => {
+      throw new Error("not used");
+    },
+    subscribe: () => () => undefined,
     stop: async () => undefined,
   },
   media: {
+    selectWorkspace: async () => undefined,
     replaceCatalog: async () => undefined,
     close: async () => undefined,
   },
@@ -57,8 +77,21 @@ test("IPC validates exact main-frame sender, argument count, and argument type",
 
   const getState = handlers.get(DESKTOP_SHELL_IPC_CHANNELS.getAppState);
   const selectPreview = handlers.get(DESKTOP_SHELL_IPC_CHANNELS.selectPreview);
+  const migrateWorkspace = handlers.get(
+    DESKTOP_SHELL_IPC_CHANNELS.migrateWorkspace,
+  );
+  const getProviderSettings = handlers.get(
+    DESKTOP_SHELL_IPC_CHANNELS.getProviderSettings,
+  );
+  const saveProviderSettings = handlers.get(
+    DESKTOP_SHELL_IPC_CHANNELS.saveProviderSettings,
+  );
   assert.ok(getState !== undefined);
   assert.ok(selectPreview !== undefined);
+  assert.ok(migrateWorkspace !== undefined);
+  assert.ok(getProviderSettings !== undefined);
+  assert.ok(saveProviderSettings !== undefined);
+  const shellFrame = { url: "file:///app/index.html" };
   const maliciousFrame = { url: "https://evil.test/" };
   assert.rejects(() =>
     Promise.resolve(
@@ -70,13 +103,30 @@ test("IPC validates exact main-frame sender, argument count, and argument type",
   );
   assert.rejects(() =>
     Promise.resolve(
+      saveProviderSettings(
+        { sender: { id: 41, mainFrame: shellFrame }, senderFrame: shellFrame },
+        { token: "must-not-cross-unvalidated" },
+      ),
+    ),
+  );
+  const providerSummary = await getProviderSettings({
+    sender: { id: 41, mainFrame: shellFrame },
+    senderFrame: shellFrame,
+  });
+  assert.deepEqual(providerSummary, {
+    schemaVersion: 1,
+    status: "not-configured",
+    defaultProviderId: null,
+    providers: [],
+  });
+  assert.rejects(() =>
+    Promise.resolve(
       getState({
         sender: { id: 41, mainFrame: maliciousFrame },
         senderFrame: { url: "file:///app/index.html" },
       }),
     ),
   );
-  const shellFrame = { url: "file:///app/index.html" };
   assert.rejects(() =>
     Promise.resolve(
       getState(
@@ -90,6 +140,14 @@ test("IPC validates exact main-frame sender, argument count, and argument type",
       selectPreview(
         { sender: { id: 41, mainFrame: shellFrame }, senderFrame: shellFrame },
         { storyId: "story-one" },
+      ),
+    ),
+  );
+  assert.rejects(() =>
+    Promise.resolve(
+      migrateWorkspace(
+        { sender: { id: 41, mainFrame: shellFrame }, senderFrame: shellFrame },
+        "/tmp/renderer-controlled-path",
       ),
     ),
   );

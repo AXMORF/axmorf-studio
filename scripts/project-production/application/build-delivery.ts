@@ -14,9 +14,12 @@ import {
   DELIVERY_BUILD_POLICY_VERSION,
   DeliveryPublishSchema,
   buildDeliveryPublish,
+  createFingerprint,
   createDeliveryBuildId,
   serializeCanonicalJson,
+  type ArtifactAttestation,
   type DeliveryPublish,
+  type ProducerConfig,
 } from "../../../src/contracts";
 import {
   assertDeliveryPath,
@@ -24,24 +27,46 @@ import {
   inspectDeliveryFile,
   promoteDeliveryStaging,
 } from "../adapters/delivery-filesystem";
-import { acquireRepositoryOperationLock } from "../../shared/repository-operation-lock";
-import {
+import { acquireProductionOperationLock } from "../adapters/production-operation-lock";
+import type {
   inspectProjectCover,
   inspectProjectVideo,
   renderProjectCover,
   renderProjectVideo,
 } from "../adapters/media";
-import { prepareProjectAuthoringBuild } from "./prepare-delivery";
+import { inspectArtifact as inspectArtifactFromStore } from "../adapters/artifact-store";
+import {
+  createSourceCurrentAttestation,
+  inspectSourceCurrent,
+  readSourceCurrent,
+} from "../adapters/source-current-store";
+import { buildCurrentProductionPlan } from "./build-current-plan";
+import type { prepareProjectAuthoringBuild } from "./prepare-delivery";
+import type {
+  ProductionLocations,
+  RuntimeExecutionResources,
+} from "./production-locations";
 
 type PreparedBuild = Awaited<ReturnType<typeof prepareProjectAuthoringBuild>>;
 
 export type DeliveryBuildDependencies = Readonly<{
-  prepare?: typeof prepareProjectAuthoringBuild;
-  renderVideo?: typeof renderProjectVideo;
-  renderCover?: typeof renderProjectCover;
-  inspectVideo?: typeof inspectProjectVideo;
-  inspectCover?: typeof inspectProjectCover;
+  prepare: (input: {
+    readonly locations: ProductionLocations;
+    readonly runtime: RuntimeExecutionResources;
+    readonly config: ProducerConfig;
+    readonly projectId: string;
+    readonly mode: "check";
+  }) => ReturnType<typeof prepareProjectAuthoringBuild>;
+  renderVideo: typeof renderProjectVideo;
+  renderCover: typeof renderProjectCover;
+  inspectVideo: typeof inspectProjectVideo;
+  inspectCover: typeof inspectProjectCover;
   verifyMaterialized?: () => Promise<void>;
+}>;
+
+export type DeliveryBuildRequestDependencies = Readonly<{
+  prepare?: DeliveryBuildDependencies["prepare"];
+  verifyMaterialized?: DeliveryBuildDependencies["verifyMaterialized"];
 }>;
 
 const exists = async (path: string) => {
@@ -54,15 +79,17 @@ const exists = async (path: string) => {
 };
 
 const ensureStaging = async ({
-  rootDir,
+  locations,
+  deliveryRoot,
   projectId,
   buildId,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
+  readonly deliveryRoot: string;
   readonly projectId: string;
   readonly buildId: string;
 }) => {
-  const deliveries = join(rootDir, "deliveries");
+  const deliveries = deliveryRoot;
   const staging = join(deliveries, ".staging");
   const projectBuilds = join(staging, "project-production");
   const projectStaging = join(projectBuilds, projectId);
@@ -73,9 +100,9 @@ const ensureStaging = async ({
     projectBuilds,
     projectStaging,
   ]) {
-    await ensureDeliveryDirectory({ rootDir, directory });
+    await ensureDeliveryDirectory({ locations, directory });
   }
-  await ensureDeliveryDirectory({ rootDir, directory: buildStaging });
+  await ensureDeliveryDirectory({ locations, directory: buildStaging });
   return {
     staging: buildStaging,
     delivery: join(deliveries, projectId),
@@ -84,10 +111,13 @@ const ensureStaging = async ({
   } as const;
 };
 
-const removeEmptyDirectory = async (rootDir: string, path: string) => {
+const removeEmptyDirectory = async (
+  locations: ProductionLocations,
+  path: string,
+) => {
   try {
     await assertDeliveryPath({
-      rootDir,
+      locations,
       path,
       kind: "directory",
     });
@@ -99,59 +129,59 @@ const removeEmptyDirectory = async (rootDir: string, path: string) => {
 };
 
 const writePublishLast = async ({
-  rootDir,
+  locations,
   path,
   publish,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly path: string;
   readonly publish: DeliveryPublish;
 }) => {
   const temporary = `${path}.${randomUUID()}.tmp`;
   try {
-    await assertDeliveryPath({ rootDir, path: temporary, kind: "file" });
+    await assertDeliveryPath({ locations, path: temporary, kind: "file" });
     await writeFile(temporary, `${serializeCanonicalJson(publish)}\n`, {
       flag: "wx",
     });
     await assertDeliveryPath({
-      rootDir,
+      locations,
       path: temporary,
       kind: "file",
       mustExist: true,
     });
-    await assertDeliveryPath({ rootDir, path, kind: "file" });
+    await assertDeliveryPath({ locations, path, kind: "file" });
     await rename(temporary, path);
     await assertDeliveryPath({
-      rootDir,
+      locations,
       path,
       kind: "file",
       mustExist: true,
     });
   } finally {
-    await assertDeliveryPath({ rootDir, path: temporary, kind: "file" });
+    await assertDeliveryPath({ locations, path: temporary, kind: "file" });
     await rm(temporary, { force: true });
   }
 };
 
 const materializeArtifact = async <T>({
-  rootDir,
+  locations,
   path,
   temporarySuffix,
   render,
   inspect,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly path: string;
   readonly temporarySuffix: string;
   readonly render: (temporary: string) => Promise<void>;
   readonly inspect: (path: string) => Promise<T>;
 }) => {
-  await assertDeliveryPath({ rootDir, path, kind: "file" });
+  await assertDeliveryPath({ locations, path, kind: "file" });
   if ((await exists(path)) !== null) {
     try {
       const media = await inspect(path);
       await assertDeliveryPath({
-        rootDir,
+        locations,
         path,
         kind: "file",
         mustExist: true,
@@ -159,7 +189,7 @@ const materializeArtifact = async <T>({
       return { media, reused: true as const };
     } catch {
       await assertDeliveryPath({
-        rootDir,
+        locations,
         path,
         kind: "file",
         mustExist: true,
@@ -169,42 +199,42 @@ const materializeArtifact = async <T>({
   }
   const temporary = `${path}.${randomUUID()}.${temporarySuffix}`;
   try {
-    await assertDeliveryPath({ rootDir, path: temporary, kind: "file" });
+    await assertDeliveryPath({ locations, path: temporary, kind: "file" });
     await render(temporary);
     await assertDeliveryPath({
-      rootDir,
+      locations,
       path: temporary,
       kind: "file",
       mustExist: true,
     });
     const media = await inspect(temporary);
     await assertDeliveryPath({
-      rootDir,
+      locations,
       path: temporary,
       kind: "file",
       mustExist: true,
     });
-    await assertDeliveryPath({ rootDir, path, kind: "file" });
+    await assertDeliveryPath({ locations, path, kind: "file" });
     await rename(temporary, path);
     await assertDeliveryPath({
-      rootDir,
+      locations,
       path,
       kind: "file",
       mustExist: true,
     });
     return { media, reused: false as const };
   } finally {
-    await assertDeliveryPath({ rootDir, path: temporary, kind: "file" });
+    await assertDeliveryPath({ locations, path: temporary, kind: "file" });
     await rm(temporary, { force: true });
   }
 };
 
 const assertExactDeliveryEntries = async (
-  rootDir: string,
+  locations: ProductionLocations,
   directory: string,
 ) => {
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: directory,
     kind: "directory",
     mustExist: true,
@@ -229,7 +259,7 @@ const assertExactDeliveryEntries = async (
     throw new Error("Project delivery contains missing or unknown artifacts.");
   }
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: directory,
     kind: "directory",
     mustExist: true,
@@ -238,25 +268,29 @@ const assertExactDeliveryEntries = async (
 
 const validateProjectDelivery = async ({
   directory,
-  rootDir,
+  locations,
   expectedBuildId,
   revisionId,
-  artifactSetFingerprint,
+  sourceCurrentId,
+  rendererRuntimeFingerprint,
+  runtime,
   prepared,
   dependencies,
 }: {
   readonly directory: string;
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly expectedBuildId: string;
   readonly revisionId: string;
-  readonly artifactSetFingerprint: string;
+  readonly sourceCurrentId: string;
+  readonly rendererRuntimeFingerprint: string;
+  readonly runtime: RuntimeExecutionResources;
   readonly prepared: PreparedBuild;
   readonly dependencies: DeliveryBuildDependencies;
 }) => {
-  await assertExactDeliveryEntries(rootDir, directory);
+  await assertExactDeliveryEntries(locations, directory);
   const publishPath = join(directory, "publish.json");
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: publishPath,
     kind: "file",
     mustExist: true,
@@ -265,7 +299,7 @@ const validateProjectDelivery = async ({
     JSON.parse(await readFile(publishPath, "utf8")),
   );
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: publishPath,
     kind: "file",
     mustExist: true,
@@ -273,26 +307,26 @@ const validateProjectDelivery = async ({
   if (
     publish.deliveryBuildId !== expectedBuildId ||
     publish.revisionId !== revisionId ||
-    publish.artifactSetFingerprint !== artifactSetFingerprint
+    publish.sourceCurrentId !== sourceCurrentId ||
+    publish.rendererRuntimeFingerprint !== rendererRuntimeFingerprint
   ) {
     throw new Error("Project delivery belongs to another source snapshot.");
   }
-  const inspectVideo = dependencies.inspectVideo ?? inspectProjectVideo;
-  const inspectCover = dependencies.inspectCover ?? inspectProjectCover;
+  const { inspectVideo, inspectCover } = dependencies;
   const videoPath = join(directory, "video.mp4");
   const cover4x3Path = join(directory, "cover-4x3.png");
   const cover3x4Path = join(directory, "cover-3x4.png");
-  const videoFile = await inspectDeliveryFile({ rootDir, path: videoPath });
+  const videoFile = await inspectDeliveryFile({ locations, path: videoPath });
   const cover4x3File = await inspectDeliveryFile({
-    rootDir,
+    locations,
     path: cover4x3Path,
   });
   const cover3x4File = await inspectDeliveryFile({
-    rootDir,
+    locations,
     path: cover3x4Path,
   });
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: videoPath,
     kind: "file",
     mustExist: true,
@@ -301,15 +335,16 @@ const validateProjectDelivery = async ({
     absolutePath: videoPath,
     render: prepared.render,
     frameCount: prepared.frameCount,
+    ffprobeExecutable: runtime.ffprobeExecutable,
   });
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: videoPath,
     kind: "file",
     mustExist: true,
   });
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: cover4x3Path,
     kind: "file",
     mustExist: true,
@@ -319,13 +354,13 @@ const validateProjectDelivery = async ({
     expected: { width: 1600, height: 1200 },
   });
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: cover4x3Path,
     kind: "file",
     mustExist: true,
   });
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: cover3x4Path,
     kind: "file",
     mustExist: true,
@@ -335,7 +370,7 @@ const validateProjectDelivery = async ({
     expected: { width: 1200, height: 1600 },
   });
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: cover3x4Path,
     kind: "file",
     mustExist: true,
@@ -356,7 +391,7 @@ const validateProjectDelivery = async ({
     }
   }
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: directory,
     kind: "directory",
     mustExist: true,
@@ -374,26 +409,45 @@ const tryCurrentNoOp = async (
   }
 };
 
-export const buildDeliveryUnlocked = async ({
-  rootDir,
-  projectId,
-  revisionId,
-  artifactSetFingerprint,
-  dependencies = {},
-}: {
-  readonly rootDir: string;
-  readonly projectId: string;
-  readonly revisionId: string;
-  readonly artifactSetFingerprint: string;
-  readonly dependencies?: DeliveryBuildDependencies;
-}) => {
-  const prepare = dependencies.prepare ?? prepareProjectAuthoringBuild;
-  const prepared = await prepare({ rootDir, projectId });
+export const buildDeliveryUnlocked = async (
+  {
+    locations,
+    runtime,
+    projectId,
+    revisionId,
+    sourceCurrentId,
+    config,
+  }: {
+    readonly locations: ProductionLocations;
+    readonly runtime: RuntimeExecutionResources;
+    readonly projectId: string;
+    readonly revisionId: string;
+    readonly sourceCurrentId: string;
+    readonly config: ProducerConfig;
+    readonly dependencies?: DeliveryBuildRequestDependencies;
+  },
+  dependencies: DeliveryBuildDependencies,
+) => {
+  const repositoryRuntimeRoot = locations.runtimeResources;
+  const rendererRuntimeFingerprint = runtime.rendererRuntimeFingerprint;
+  const prepared = await dependencies.prepare({
+    locations,
+    runtime,
+    config,
+    projectId,
+    mode: "check",
+  });
   await dependencies.verifyMaterialized?.();
   const identity = {
     storyId: prepared.projectId,
     revisionId,
-    artifactSetFingerprint,
+    sourceCurrentId,
+    rendererRuntimeFingerprint,
+    publishingFingerprint: createFingerprint({
+      namespace: "delivery-publishing-input",
+      version: 1,
+      value: prepared.publishing,
+    }),
     compositionId: prepared.render.compositionId,
     fps: prepared.render.fps,
     frameCount: prepared.frameCount,
@@ -402,8 +456,8 @@ export const buildDeliveryUnlocked = async ({
     policyVersion: DELIVERY_BUILD_POLICY_VERSION,
   } as const;
   const buildId = createDeliveryBuildId(identity);
-  const delivery = join(rootDir, "deliveries", prepared.projectId);
-  await assertDeliveryPath({ rootDir, path: delivery, kind: "directory" });
+  const delivery = join(locations.deliveryRoot, prepared.projectId);
+  await assertDeliveryPath({ locations, path: delivery, kind: "directory" });
   const deliveryMetadata = await exists(delivery);
   if (
     deliveryMetadata !== null &&
@@ -413,11 +467,13 @@ export const buildDeliveryUnlocked = async ({
   }
   if (deliveryMetadata !== null) {
     const current = await tryCurrentNoOp({
-      rootDir,
+      locations,
       directory: delivery,
       expectedBuildId: buildId,
       revisionId,
-      artifactSetFingerprint,
+      sourceCurrentId,
+      rendererRuntimeFingerprint,
+      runtime,
       prepared,
       dependencies,
     });
@@ -435,52 +491,55 @@ export const buildDeliveryUnlocked = async ({
     }
   }
   const paths = await ensureStaging({
-    rootDir,
+    locations,
+    deliveryRoot: locations.deliveryRoot,
     projectId: prepared.projectId,
     buildId,
   });
 
   const stagingPublishPath = join(paths.staging, "publish.json");
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: stagingPublishPath,
     kind: "file",
   });
   await rm(stagingPublishPath, { force: true });
-  const renderVideo = dependencies.renderVideo ?? renderProjectVideo;
-  const renderCover = dependencies.renderCover ?? renderProjectCover;
-  const inspectVideo = dependencies.inspectVideo ?? inspectProjectVideo;
-  const inspectCover = dependencies.inspectCover ?? inspectProjectCover;
+  const { renderVideo, renderCover, inspectVideo, inspectCover } = dependencies;
   const videoPath = join(paths.staging, "video.mp4");
   const cover4x3Path = join(paths.staging, "cover-4x3.png");
   const cover3x4Path = join(paths.staging, "cover-3x4.png");
   const video = await materializeArtifact({
-    rootDir,
+    locations,
     path: videoPath,
     temporarySuffix: "mp4",
     render: (outputPath) =>
       renderVideo({
-        rootDir,
+        rootDir: repositoryRuntimeRoot,
         compositionId: prepared.render.compositionId,
         outputPath,
+        browserExecutable: runtime.browserExecutable,
+        binariesDirectory: runtime.binariesDirectory,
       }),
     inspect: (absolutePath) =>
       inspectVideo({
         absolutePath,
         render: prepared.render,
         frameCount: prepared.frameCount,
+        ffprobeExecutable: runtime.ffprobeExecutable,
       }),
   });
   const cover4x3 = await materializeArtifact({
-    rootDir,
+    locations,
     path: cover4x3Path,
     temporarySuffix: "png",
     render: (outputPath) =>
       renderCover({
-        rootDir,
+        rootDir: repositoryRuntimeRoot,
         projectId: prepared.projectId,
         compositionId: `${prepared.coverCompositionBaseId}DeliveryCover4x3V2`,
         outputPath,
+        browserExecutable: runtime.browserExecutable,
+        binariesDirectory: runtime.binariesDirectory,
       }),
     inspect: (absolutePath) =>
       inspectCover({
@@ -489,15 +548,17 @@ export const buildDeliveryUnlocked = async ({
       }),
   });
   const cover3x4 = await materializeArtifact({
-    rootDir,
+    locations,
     path: cover3x4Path,
     temporarySuffix: "png",
     render: (outputPath) =>
       renderCover({
-        rootDir,
+        rootDir: repositoryRuntimeRoot,
         projectId: prepared.projectId,
         compositionId: `${prepared.coverCompositionBaseId}DeliveryCover3x4V2`,
         outputPath,
+        browserExecutable: runtime.browserExecutable,
+        binariesDirectory: runtime.binariesDirectory,
       }),
     inspect: (absolutePath) =>
       inspectCover({
@@ -507,18 +568,21 @@ export const buildDeliveryUnlocked = async ({
   });
   await dependencies.verifyMaterialized?.();
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: paths.staging,
     kind: "directory",
     mustExist: true,
   });
-  const videoFile = await inspectDeliveryFile({ rootDir, path: videoPath });
+  const videoFile = await inspectDeliveryFile({
+    locations,
+    path: videoPath,
+  });
   const cover4x3File = await inspectDeliveryFile({
-    rootDir,
+    locations,
     path: cover4x3Path,
   });
   const cover3x4File = await inspectDeliveryFile({
-    rootDir,
+    locations,
     path: cover3x4Path,
   });
   const publish = buildDeliveryPublish({
@@ -526,19 +590,19 @@ export const buildDeliveryUnlocked = async ({
     deliveryBuildId: buildId,
     artifacts: {
       video: {
-        repositoryPath: `deliveries/${prepared.projectId}/video.mp4`,
+        logicalPath: `deliveries/${prepared.projectId}/video.mp4`,
         checksum: videoFile.checksum,
         sizeBytes: videoFile.sizeBytes,
         media: video.media,
       },
       cover4x3: {
-        repositoryPath: `deliveries/${prepared.projectId}/cover-4x3.png`,
+        logicalPath: `deliveries/${prepared.projectId}/cover-4x3.png`,
         checksum: cover4x3File.checksum,
         sizeBytes: cover4x3File.sizeBytes,
         media: cover4x3.media,
       },
       cover3x4: {
-        repositoryPath: `deliveries/${prepared.projectId}/cover-3x4.png`,
+        logicalPath: `deliveries/${prepared.projectId}/cover-3x4.png`,
         checksum: cover3x4File.checksum,
         sizeBytes: cover3x4File.sizeBytes,
         media: cover3x4.media,
@@ -546,34 +610,42 @@ export const buildDeliveryUnlocked = async ({
     },
     publishing: prepared.publishing,
   });
-  await writePublishLast({ rootDir, path: stagingPublishPath, publish });
+  await writePublishLast({
+    locations,
+    path: stagingPublishPath,
+    publish,
+  });
   await validateProjectDelivery({
-    rootDir,
+    locations,
     directory: paths.staging,
     expectedBuildId: buildId,
     revisionId,
-    artifactSetFingerprint,
+    sourceCurrentId,
+    rendererRuntimeFingerprint,
+    runtime,
     prepared,
     dependencies,
   });
   await promoteDeliveryStaging({
-    rootDir,
+    locations,
     staging: paths.staging,
     destination: paths.delivery,
     validate: async (directory) => {
       await validateProjectDelivery({
-        rootDir,
+        locations,
         directory,
         expectedBuildId: buildId,
         revisionId,
-        artifactSetFingerprint,
+        sourceCurrentId,
+        rendererRuntimeFingerprint,
+        runtime,
         prepared,
         dependencies,
       });
     },
   });
-  await removeEmptyDirectory(rootDir, paths.projectStaging);
-  await removeEmptyDirectory(rootDir, paths.projectBuilds);
+  await removeEmptyDirectory(locations, paths.projectStaging);
+  await removeEmptyDirectory(locations, paths.projectBuilds);
   return {
     projectId: prepared.projectId,
     deliveryBuildId: buildId,
@@ -588,16 +660,99 @@ export const buildDeliveryUnlocked = async ({
   };
 };
 
+export type DeliveryBuildPort = (
+  input: Parameters<typeof buildDeliveryUnlocked>[0],
+) => ReturnType<typeof buildDeliveryUnlocked>;
+
 export const buildDelivery = async (
   input: Parameters<typeof buildDeliveryUnlocked>[0],
+  dependencies: DeliveryBuildDependencies,
 ) => {
-  const lock = await acquireRepositoryOperationLock({
-    rootDir: input.rootDir,
+  const lock = await acquireProductionOperationLock({
+    locations: input.locations,
     ownerId: "project-production-delivery",
   });
   try {
-    return await buildDeliveryUnlocked(input);
+    return await buildDeliveryUnlocked(input, dependencies);
   } finally {
     await lock.release();
   }
+};
+
+export type CurrentDeliveryBuildDependencies = Readonly<{
+  buildCurrentPlan?: (input: {
+    readonly locations: ProductionLocations;
+    readonly projectId: string;
+    readonly config: ProducerConfig;
+  }) => ReturnType<typeof buildCurrentProductionPlan>;
+  inspectArtifact?: (input: {
+    readonly locations: ProductionLocations;
+    readonly task: Parameters<typeof inspectArtifactFromStore>[0]["task"];
+  }) => ReturnType<typeof inspectArtifactFromStore>;
+  build: DeliveryBuildPort;
+}>;
+
+/**
+ * Builds Delivery strictly from the current materialized source. This path is
+ * intentionally outside ExecutionAttempt and never prepares providers, tasks,
+ * or Agent workspaces.
+ */
+export const buildCurrentDelivery = async (
+  {
+    locations,
+    runtime,
+    config,
+    projectId,
+  }: {
+    readonly locations: ProductionLocations;
+    readonly runtime: RuntimeExecutionResources;
+    readonly config: ProducerConfig;
+    readonly projectId: string;
+  },
+  dependencies: CurrentDeliveryBuildDependencies,
+) => {
+  const recorded = await readSourceCurrent({ locations, storyId: projectId });
+  if (recorded === null) {
+    throw new Error("Current source attestation is missing.");
+  }
+  const buildCurrentPlan =
+    dependencies.buildCurrentPlan ?? buildCurrentProductionPlan;
+  const planned = await buildCurrentPlan({ locations, projectId, config });
+  if (
+    planned.revision.revisionId !== recorded.revisionId ||
+    planned.plan.tasks.some(({ action }) => action !== "reuse")
+  ) {
+    throw new Error("Current source revision is stale.");
+  }
+  const inspectArtifact =
+    dependencies.inspectArtifact ?? inspectArtifactFromStore;
+  const artifacts: ArtifactAttestation[] = [];
+  for (const task of planned.tasks) {
+    const attestation = await inspectArtifact({ locations, task });
+    if (attestation === null) {
+      throw new Error("Current source artifact is missing.");
+    }
+    artifacts.push(attestation);
+  }
+  const expected = await createSourceCurrentAttestation({
+    locations,
+    storyId: projectId,
+    revisionId: recorded.revisionId,
+    artifacts,
+  });
+  const verifySourceCurrent = async () => {
+    if ((await inspectSourceCurrent({ locations, expected })) === null) {
+      throw new Error("Current source attestation is missing.");
+    }
+  };
+  await verifySourceCurrent();
+  return dependencies.build({
+    locations,
+    runtime,
+    config,
+    projectId,
+    revisionId: recorded.revisionId,
+    sourceCurrentId: recorded.sourceCurrentId,
+    dependencies: { verifyMaterialized: verifySourceCurrent },
+  });
 };

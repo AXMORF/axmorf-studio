@@ -16,6 +16,11 @@ import {
 } from "../../../src/contracts";
 import type { ArtifactState } from "../../../src/contracts/production-inspection";
 import type { ArtifactInspection } from "../domain/invalidation";
+import type { ProductionLocations } from "../domain/production-locations";
+
+type ArtifactStoreLocation = Readonly<{
+  locations: ProductionLocations;
+}>;
 
 const checksum = (bytes: Uint8Array) => `sha256:${createHash("sha256").update(bytes).digest("hex")}` as Sha256Digest;
 
@@ -28,21 +33,21 @@ class ArtifactValidationError extends Error {
   }
 }
 
-export const resolveArtifactPath = ({ rootDir, storyId, taskKind, taskRevision }: {
-  readonly rootDir: string; readonly storyId: string; readonly taskKind: string; readonly taskRevision: string;
-}) => join(rootDir, ".producer-artifacts", StoryIdSchema.parse(storyId), ProducerTaskKindSchema.parse(taskKind), TaskRevisionSchema.parse(taskRevision));
+export const resolveArtifactPath = (input: ArtifactStoreLocation & {
+  readonly storyId: string; readonly taskKind: string; readonly taskRevision: string;
+}) => join(input.locations.artifactStoreRoot, StoryIdSchema.parse(input.storyId), ProducerTaskKindSchema.parse(input.taskKind), TaskRevisionSchema.parse(input.taskRevision));
 
 const assertArtifactParents = async ({
-  rootDir,
+  locations,
   task,
-}: {
-  readonly rootDir: string;
+}: ArtifactStoreLocation & {
   readonly task: ProducerTaskSpec;
 }) => {
+  const storage = locations.artifactStoreRoot;
   const parents = [
-    join(rootDir, ".producer-artifacts"),
-    join(rootDir, ".producer-artifacts", task.storyId),
-    join(rootDir, ".producer-artifacts", task.storyId, task.taskKind),
+    storage,
+    join(storage, task.storyId),
+    join(storage, task.storyId, task.taskKind),
   ];
   for (const parent of parents) {
     try {
@@ -83,10 +88,11 @@ const listFiles = async (root: string, directory = root): Promise<readonly strin
   return found.sort();
 };
 
-const inspectArtifactAttestation = async ({ rootDir, task }: { readonly rootDir: string; readonly task: ProducerTaskSpec }): Promise<ArtifactAttestation | null> => {
+const inspectArtifactAttestation = async (input: ArtifactStoreLocation & { readonly task: ProducerTaskSpec }): Promise<ArtifactAttestation | null> => {
+  const { task } = input;
   const parsedTask = ProducerTaskSpecSchema.parse(task);
-  await assertArtifactParents({ rootDir, task: parsedTask });
-  const root = resolveArtifactPath({ rootDir, storyId: parsedTask.storyId, taskKind: parsedTask.taskKind, taskRevision: parsedTask.taskRevision });
+  await assertArtifactParents({ ...input, task: parsedTask });
+  const root = resolveArtifactPath({ ...input, storyId: parsedTask.storyId, taskKind: parsedTask.taskKind, taskRevision: parsedTask.taskRevision });
   try {
     const metadata = await lstat(root);
     if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
@@ -191,15 +197,11 @@ const inspectArtifactAttestation = async ({ rootDir, task }: { readonly rootDir:
   return attestation;
 };
 
-export const inspectArtifactState = async ({
-  rootDir,
-  task,
-}: {
-  readonly rootDir: string;
+export const inspectArtifactState = async (input: ArtifactStoreLocation & {
   readonly task: ProducerTaskSpec;
 }): Promise<ArtifactInspection> => {
   try {
-    const attestation = await inspectArtifactAttestation({ rootDir, task });
+    const attestation = await inspectArtifactAttestation(input);
     return attestation === null
       ? { artifactState: "missing", attestation: null }
       : { artifactState: "valid", attestation };
@@ -211,8 +213,7 @@ export const inspectArtifactState = async ({
   }
 };
 
-export const inspectArtifact = async (input: {
-  readonly rootDir: string;
+export const inspectArtifact = async (input: ArtifactStoreLocation & {
   readonly task: ProducerTaskSpec;
 }): Promise<ArtifactAttestation | null> => {
   const inspection = await inspectArtifactState(input);
@@ -228,11 +229,12 @@ export const inspectArtifact = async (input: {
   throw new Error(messages[inspection.artifactState]);
 };
 
-export const commitTaskArtifact = async ({ rootDir, task, workspace }: {
-  readonly rootDir: string; readonly task: ProducerTaskSpec; readonly workspace: string;
+export const commitTaskArtifact = async (input: ArtifactStoreLocation & {
+  readonly task: ProducerTaskSpec; readonly workspace: string;
 }) => {
+  const { task, workspace } = input;
   const parsedTask = ProducerTaskSpecSchema.parse(task);
-  await assertArtifactParents({ rootDir, task: parsedTask });
+  await assertArtifactParents({ ...input, task: parsedTask });
   const workspaceFiles = (await listFiles(workspace)).filter((path) => path !== "task.json");
   const allowedInputs = new Set(parsedTask.declaredReadSet);
   const outputs = parsedTask.declaredOutputSet;
@@ -256,8 +258,8 @@ export const commitTaskArtifact = async ({ rootDir, task, workspace }: {
     dependencyArtifacts: parsedTask.dependencyArtifacts,
     outputManifest,
   });
-  const target = resolveArtifactPath({ rootDir, storyId: parsedTask.storyId, taskKind: parsedTask.taskKind, taskRevision: parsedTask.taskRevision });
-  const existing = await inspectArtifact({ rootDir, task: parsedTask }).catch((error) => {
+  const target = resolveArtifactPath({ ...input, storyId: parsedTask.storyId, taskKind: parsedTask.taskKind, taskRevision: parsedTask.taskRevision });
+  const existing = await inspectArtifact({ ...input, task: parsedTask }).catch((error) => {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw error;
   });
@@ -279,7 +281,7 @@ export const commitTaskArtifact = async ({ rootDir, task, workspace }: {
     try {
       await rename(staging, target);
     } catch (error) {
-      const raced = await inspectArtifact({ rootDir, task: parsedTask }).catch(() => null);
+      const raced = await inspectArtifact({ ...input, task: parsedTask }).catch(() => null);
       if (raced?.artifactFingerprint === attestation.artifactFingerprint) {
         return { attestation: raced, reused: true as const };
       }
@@ -293,5 +295,5 @@ export const commitTaskArtifact = async ({ rootDir, task, workspace }: {
   } finally {
     await rm(staging, { recursive: true, force: true });
   }
-  return { attestation: await inspectArtifact({ rootDir, task: parsedTask }), reused: false as const };
+  return { attestation: await inspectArtifact({ ...input, task: parsedTask }), reused: false as const };
 };

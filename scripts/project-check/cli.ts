@@ -2,6 +2,12 @@ import { pathToFileURL } from "node:url";
 
 import { StoryIdSchema } from "../../src/contracts";
 import type { ProcessRunner } from "../baseline/evidence";
+import {
+  createRepositoryProductionLocations,
+  type ProductionLocations,
+} from "../project-production/application/production-locations";
+import { createWorkspaceProjectStorageLocations } from "../projects/project-locations";
+import { createRepositoryProjectStorageFromProductionLocations } from "../projects/repository-project-locations";
 import { discoverProjectEntries } from "../registry/project-files";
 import {
   checkPersistedNarrativeAutoCheck,
@@ -15,13 +21,15 @@ import { checkFinalSourceHealth, runFinalMechanicalCheck } from "./final-run";
 import { checkNarrativeSourceHealth, runNarrativeAutoCheck } from "./run";
 
 export type ProjectCheckCliContext = {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly runNarrativeBaselineEvidenceProcess?: ProcessRunner;
   readonly stdout: (line: string) => void;
 };
 
 const defaultContext = (): ProjectCheckCliContext => ({
-  rootDir: process.cwd(),
+  locations: createRepositoryProductionLocations({
+    repositoryRoot: process.cwd(),
+  }),
   stdout: (line) => process.stdout.write(`${line}\n`),
 });
 
@@ -82,9 +90,13 @@ export const runProjectCheckCli = async (
 ) => {
   const parsed = parseProjectCheckArgs(args);
   const expectedCompositionPath = `src/projects/${parsed.storyId}/Composition.tsx`;
+  const storage =
+    context.locations.layoutKind === "repository"
+      ? createRepositoryProjectStorageFromProductionLocations(context.locations)
+      : createWorkspaceProjectStorageLocations(context.locations);
   let discovered: readonly string[];
   try {
-    discovered = await discoverProjectEntries(context.rootDir);
+    discovered = await discoverProjectEntries({ storage });
   } catch {
     throw new Error("Project discovery failed.");
   }
@@ -95,11 +107,11 @@ export const runProjectCheckCli = async (
     const source =
       parsed.level === "narrative"
         ? await checkNarrativeSourceHealth({
-            rootDir: context.rootDir,
+            locations: context.locations,
             projectId: parsed.storyId,
           })
         : await checkFinalSourceHealth({
-            rootDir: context.rootDir,
+            locations: context.locations,
             projectId: parsed.storyId,
           });
     context.stdout(
@@ -115,13 +127,13 @@ export const runProjectCheckCli = async (
   const report =
     parsed.level === "narrative"
       ? await runNarrativeAutoCheck({
-          rootDir: context.rootDir,
+          locations: context.locations,
           projectId: parsed.storyId,
           runNarrativeBaselineEvidenceProcess:
             context.runNarrativeBaselineEvidenceProcess,
         })
       : await runFinalMechanicalCheck({
-          rootDir: context.rootDir,
+          locations: context.locations,
           projectId: parsed.storyId,
           runNarrativeBaselineEvidenceProcess:
             context.runNarrativeBaselineEvidenceProcess,
@@ -135,22 +147,22 @@ export const runProjectCheckCli = async (
   }
   if (parsed.level === "narrative" && parsed.write) {
     await writeNarrativeAutoCheckIfPassed({
-      rootDir: context.rootDir,
+      locations: context.locations,
       report,
     });
   } else if (parsed.level === "narrative") {
     await checkPersistedNarrativeAutoCheck({
-      rootDir: context.rootDir,
+      locations: context.locations,
       expectedReport: report,
     });
   } else if (parsed.write) {
     await writeFinalMechanicalCheckIfPassed({
-      rootDir: context.rootDir,
+      locations: context.locations,
       report,
     });
   } else {
     await checkPersistedFinalMechanicalCheck({
-      rootDir: context.rootDir,
+      locations: context.locations,
       expectedReport: report,
     });
   }

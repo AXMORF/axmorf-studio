@@ -1,17 +1,12 @@
 import { randomUUID } from "node:crypto";
-import {
-  mkdir,
-  open,
-  readFile,
-  rename,
-  unlink,
-} from "node:fs/promises";
+import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
 import {
   NarrativeAutoCheckReportSchema,
   type NarrativeAutoCheckReport,
 } from "../../src/contracts";
+import type { ProductionLocations } from "../project-production/application/production-locations";
 import { getProjectCheckPaths } from "./project-files";
 
 const sortJsonValue = (value: unknown): unknown => {
@@ -81,11 +76,11 @@ export const writeNarrativeAutoCheckAtomic: NarrativeAutoCheckAtomicWriter =
   };
 
 export const writeNarrativeAutoCheckIfPassed = async ({
-  rootDir,
+  locations,
   report: rawReport,
   writeAtomic = writeNarrativeAutoCheckAtomic,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly report: unknown;
   readonly writeAtomic?: NarrativeAutoCheckAtomicWriter;
 }): Promise<{ readonly destination: string; readonly written: boolean }> => {
@@ -95,7 +90,7 @@ export const writeNarrativeAutoCheckIfPassed = async ({
   }
   const bytes = serializeNarrativeAutoCheckReport(report);
   const destination = getProjectCheckPaths({
-    rootDir,
+    locations,
     projectId: report.storyId,
   }).autoCheck;
   try {
@@ -110,18 +105,19 @@ export const writeNarrativeAutoCheckIfPassed = async ({
 };
 
 export const checkPersistedNarrativeAutoCheck = async ({
-  rootDir,
+  locations,
   expectedReport: rawExpectedReport,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly expectedReport: unknown;
 }): Promise<NarrativeAutoCheckReport> => {
-  const expectedReport = NarrativeAutoCheckReportSchema.parse(rawExpectedReport);
+  const expectedReport =
+    NarrativeAutoCheckReportSchema.parse(rawExpectedReport);
   if (expectedReport.aggregateStatus !== "pass") {
     throw new Error("Current Narrative AutoCheck did not pass.");
   }
   const destination = getProjectCheckPaths({
-    rootDir,
+    locations,
     projectId: expectedReport.storyId,
   }).autoCheck;
   let persistedBytes: string;

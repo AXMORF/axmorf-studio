@@ -1,13 +1,11 @@
-import { lstat } from "node:fs/promises";
+import { lstat, readFile } from "node:fs/promises";
 import { dirname, join, posix } from "node:path";
 import ts from "typescript";
 import { createFingerprint } from "../../../src/contracts";
-import {
-  checksumExternalBytes,
-  readExternalRegularFile,
-} from "../../external-references/project-files";
+import { checksumExternalBytes } from "../../external-references/project-files";
 import { assertGuardedSource } from "../../external-references/source-guard";
 import { compileTypeScriptImportGraph } from "./typescript-compile";
+import type { ProductionLocations } from "./production-locations";
 
 export type GlobalVisualSourceGraph = Readonly<{
   entryPath: string;
@@ -15,34 +13,119 @@ export type GlobalVisualSourceGraph = Readonly<{
   sourceGraphFingerprint: string;
 }>;
 
-export const assertGlobalVisualLayersComponentInterface = ({
-  rootDir,
+type GlobalVisualSourceLocations = Pick<
+  ProductionLocations,
+  "layoutKind" | "projectSourceRoot" | "runtimeResources"
+>;
+
+const globalVisualRuntimeSourceRoot = (
+  locations: GlobalVisualSourceLocations,
+) =>
+  locations.layoutKind === "repository"
+    ? locations.runtimeResources
+    : join(locations.runtimeResources, "source");
+
+const resolveGlobalVisualLogicalPath = ({
+  locations,
+  storyId,
+  sourcePath,
+}: {
+  readonly locations: GlobalVisualSourceLocations;
+  readonly storyId: string;
+  readonly sourcePath: string;
+}) => {
+  const projectPrefix = `src/projects/${storyId}/`;
+  if (sourcePath.startsWith(projectPrefix)) {
+    return join(
+      locations.projectSourceRoot,
+      storyId,
+      sourcePath.slice(projectPrefix.length),
+    );
+  }
+  if (sourcePath.startsWith("src/remotion/capabilities/")) {
+    return join(globalVisualRuntimeSourceRoot(locations), sourcePath);
+  }
+  throw new Error("GlobalVisual source path is outside explicit source roots.");
+};
+
+const readGlobalVisualRegularFile = async ({
+  locations,
+  storyId,
+  sourcePath,
+}: {
+  readonly locations: GlobalVisualSourceLocations;
+  readonly storyId: string;
+  readonly sourcePath: string;
+}) => {
+  const absolutePath = resolveGlobalVisualLogicalPath({
+    locations,
+    storyId,
+    sourcePath,
+  });
+  const metadata = await lstat(absolutePath);
+  if (!metadata.isFile() || metadata.isSymbolicLink()) {
+    throw new Error("GlobalVisual source must be a regular non-symbolic file.");
+  }
+  return readFile(absolutePath);
+};
+
+export const assertGlobalVisualLayersComponentInterface = async ({
+  locations,
   storyId,
 }: {
-  readonly rootDir: string;
+  readonly locations: GlobalVisualSourceLocations;
   readonly storyId: string;
 }) => {
-  const rootPath = join(
-    rootDir,
-    "src/projects",
-    storyId,
-    "global-visual/global-visual-interface.generated.tsx",
-  );
-  compileTypeScriptImportGraph({
-    rootDir,
-    rootPath,
-    label: "GlobalVisualLayers component interface compile",
-    virtualSource: `import type {GlobalVisualLayersComponent} from "../../../remotion/runtime/global-visual";
+  const logicalRootPath = `src/projects/${storyId}/global-visual/global-visual-interface.generated.tsx`;
+  const rootPath =
+    locations.layoutKind === "repository"
+      ? join(
+          locations.projectSourceRoot,
+          storyId,
+          "global-visual/global-visual-interface.generated.tsx",
+        )
+      : join(globalVisualRuntimeSourceRoot(locations), logicalRootPath);
+  const virtualSource = `import type {GlobalVisualLayersComponent} from "../../../remotion/runtime/global-visual";
 import {GlobalVisualLayers} from "./GlobalVisualLayers";
 
 const CheckedGlobalVisualLayers: GlobalVisualLayersComponent<typeof GlobalVisualLayers> = GlobalVisualLayers;
 export const GlobalVisualLayersInterfaceProof = CheckedGlobalVisualLayers;
-`,
+`;
+  if (locations.layoutKind === "repository") {
+    compileTypeScriptImportGraph({
+      rootDir: locations.runtimeResources,
+      rootPath,
+      label: "GlobalVisualLayers component interface compile",
+      virtualSource,
+    });
+    return;
+  }
+  const entryPath = join(
+    globalVisualRuntimeSourceRoot(locations),
+    `src/projects/${storyId}/global-visual/GlobalVisualLayers.tsx`,
+  );
+  const entrySource = await readFile(
+    join(
+      locations.projectSourceRoot,
+      storyId,
+      "global-visual/GlobalVisualLayers.tsx",
+    ),
+    "utf8",
+  );
+  compileTypeScriptImportGraph({
+    rootDir: locations.runtimeResources,
+    rootPath,
+    label: "GlobalVisualLayers component interface compile",
+    virtualSources: {
+      [rootPath]: virtualSource,
+      [entryPath]: entrySource,
+    },
   });
 };
 
 const resolveSourceFile = async (
-  rootDir: string,
+  locations: GlobalVisualSourceLocations,
+  storyId: string,
   importerPath: string,
   specifier: string,
 ) => {
@@ -55,9 +138,19 @@ const resolveSourceFile = async (
     `${base}/index.tsx`,
   ]) {
     try {
-      const metadata = await lstat(join(rootDir, candidate));
+      const metadata = await lstat(
+        resolveGlobalVisualLogicalPath({
+          locations,
+          storyId,
+          sourcePath: candidate,
+        }),
+      );
       if (metadata.isDirectory()) continue;
-      await readExternalRegularFile(rootDir, candidate);
+      await readGlobalVisualRegularFile({
+        locations,
+        storyId,
+        sourcePath: candidate,
+      });
       return candidate;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
@@ -169,10 +262,10 @@ export const assertGlobalVisualSource = ({
 };
 
 export const collectGlobalVisualSourceGraph = async ({
-  rootDir,
+  locations,
   storyId,
 }: {
-  readonly rootDir: string;
+  readonly locations: GlobalVisualSourceLocations;
   readonly storyId: string;
 }): Promise<GlobalVisualSourceGraph> => {
   const entryPath = `src/projects/${storyId}/global-visual/GlobalVisualLayers.tsx`;
@@ -182,7 +275,11 @@ export const collectGlobalVisualSourceGraph = async ({
   while (pending.length > 0) {
     const sourcePath = pending.pop();
     if (sourcePath === undefined || files.has(sourcePath)) continue;
-    const bytes = await readExternalRegularFile(rootDir, sourcePath);
+    const bytes = await readGlobalVisualRegularFile({
+      locations,
+      storyId,
+      sourcePath,
+    });
     const source = bytes.toString("utf8");
     assertGlobalVisualSource({ source, sourcePath, entryPath });
     const guarded = assertGuardedSource({
@@ -198,7 +295,8 @@ export const collectGlobalVisualSourceGraph = async ({
     for (const relativeImport of guarded.relativeImports) {
       const specifier = posix.relative(dirname(sourcePath), relativeImport);
       const dependencyPath = await resolveSourceFile(
-        rootDir,
+        locations,
+        storyId,
         sourcePath,
         specifier,
       );
@@ -222,7 +320,10 @@ export const collectGlobalVisualSourceGraph = async ({
       sourcePath,
       checksum: checksumExternalBytes(bytes),
     }));
-  assertGlobalVisualLayersComponentInterface({ rootDir, storyId });
+  await assertGlobalVisualLayersComponentInterface({
+    locations,
+    storyId,
+  });
   return {
     entryPath,
     files: graphFiles,

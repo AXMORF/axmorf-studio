@@ -2,6 +2,10 @@ import { pathToFileURL } from "node:url";
 
 import { StoryIdSchema } from "../../src/contracts";
 import {
+  createRepositoryProductionLocations,
+  type ProductionLocations,
+} from "../project-production/application/production-locations";
+import {
   generateSceneCoverageFromProjectFiles,
   generateScenePackageFromProjectFiles,
 } from "./generate";
@@ -21,14 +25,16 @@ type CoverageRequest = {
 };
 
 export type ScenePackageCliContext = {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly stdout: (line: string) => void;
   readonly generatePackage?: (request: PackageRequest) => Promise<unknown>;
   readonly generateCoverage?: (request: CoverageRequest) => Promise<unknown>;
 };
 
 const defaultContext = (): ScenePackageCliContext => ({
-  rootDir: process.cwd(),
+  locations: createRepositoryProductionLocations({
+    repositoryRoot: process.cwd(),
+  }),
   stdout: (line) => process.stdout.write(`${line}\n`),
 });
 
@@ -57,7 +63,7 @@ export const runScenePackageCli = async (
     const result = context.generatePackage
       ? await context.generatePackage(request)
       : await generateScenePackageFromProjectFiles({
-          rootDir: context.rootDir,
+          locations: context.locations,
           projectId: request.projectId,
           meaningId: request.meaningId,
           mode: request.mode,
@@ -74,7 +80,7 @@ export const runScenePackageCli = async (
     const result = context.generateCoverage
       ? await context.generateCoverage(request)
       : await generateSceneCoverageFromProjectFiles({
-          rootDir: context.rootDir,
+          locations: context.locations,
           projectId: request.projectId,
           mode: request.mode,
         });

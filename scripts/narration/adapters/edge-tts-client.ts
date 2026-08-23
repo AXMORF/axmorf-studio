@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -43,14 +43,18 @@ const escapeXml = (value: string) =>
 const containsUnsupportedXmlControl = (value: string) =>
   Array.from(value).some((character) => {
     const code = character.codePointAt(0)!;
-    return code <= 8 || (code >= 11 && code <= 12) || (code >= 14 && code <= 31);
+    return (
+      code <= 8 || (code >= 11 && code <= 12) || (code >= 14 && code <= 31)
+    );
   });
 
 export const createEdgeTtsChunkGenerator = ({
   resolved,
+  temporaryRoot = tmpdir(),
   clientFactory = (options) => new EdgeTTS(options),
 }: {
   readonly resolved: ResolvedEdgeTtsProfile;
+  readonly temporaryRoot?: string;
   readonly clientFactory?: (options: EdgeTtsClientOptions) => EdgeTtsClient;
 }): ChunkAudioGenerator => {
   const client = clientFactory({
@@ -76,7 +80,8 @@ export const createEdgeTtsChunkGenerator = ({
         `Edge TTS single-request limit exceeded for chunk ${request.chunkId}.`,
       );
     }
-    const workDir = await mkdtemp(join(tmpdir(), "rsp-edge-tts-"));
+    await mkdir(temporaryRoot, { recursive: true });
+    const workDir = await mkdtemp(join(temporaryRoot, "rsp-edge-tts-"));
     const outputPath = join(workDir, "provider.mp3");
     try {
       await client.ttsPromise(request.ttsText, outputPath);

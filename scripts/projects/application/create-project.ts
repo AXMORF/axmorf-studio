@@ -43,8 +43,9 @@ import {
 import {
   loadCatalogAuthorityDescriptors,
   loadLocalReferenceAssetDescriptors,
-} from "../../catalog/project-files";
-import { generateProjectResourceCatalog } from "../../catalog/generate";
+} from "../../catalog/repository-project-files";
+import { generateWorkspaceProjectResourceCatalog } from "../../catalog/generate";
+import { generateProjectResourceCatalog } from "../../catalog/repository-generate";
 import {
   readProducerConfig,
   resolveProducerConfigPathFromEnvironment,
@@ -72,6 +73,7 @@ import {
   type SceneTemplateDefinition,
 } from "../../../src/remotion/capabilities/scene-templates/registry";
 import { readCurrentSceneTemplateAudioProjection } from "../../scene-templates/audio-projection";
+import type { ProductionLocations } from "../../project-production/application/production-locations";
 
 const CREATION_RECEIPT_PATH = "production/project-create.json" as const;
 export const PENDING_SCENE_AUTHORING_PATH =
@@ -985,29 +987,28 @@ export const createProject = async ({
 };
 
 const readProjectJson = async ({
-  rootDir,
+  locations,
   projectId,
   relativePath,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
   readonly relativePath: string;
 }) =>
   JSON.parse(
     await readFile(
-      join(rootDir, "src/projects", projectId, relativePath),
+      join(locations.projectSourceRoot, projectId, relativePath),
       "utf8",
     ),
   ) as unknown;
 
 export const projectPendingSceneAuthoring = async ({
-  rootDir: rawRootDir,
+  locations,
   projectId: rawProjectId,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
 }) => {
-  const rootDir = resolve(rawRootDir);
   const projectId = StoryIdSchema.parse(rawProjectId);
   const required = [
     PENDING_SCENE_AUTHORING_PATH,
@@ -1021,7 +1022,9 @@ export const projectPendingSceneAuthoring = async ({
   const missing: string[] = [];
   for (const relativePath of required) {
     try {
-      values.push(await readProjectJson({ rootDir, projectId, relativePath }));
+      values.push(
+        await readProjectJson({ locations, projectId, relativePath }),
+      );
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         missing.push(`src/projects/${projectId}/${relativePath}`);
@@ -1041,11 +1044,17 @@ export const projectPendingSceneAuthoring = async ({
   const visualStyle = VisualStyleSpecSchema.parse(values[4]);
   const catalog = ResourceCatalogSchema.parse(
     (
-      await generateProjectResourceCatalog({
-        rootDir,
-        projectId,
-        mode: "write",
-      })
+      await (locations.layoutKind === "workspace"
+        ? generateWorkspaceProjectResourceCatalog({
+            locations,
+            projectId,
+            mode: "write",
+          })
+        : generateProjectResourceCatalog({
+            rootDir: locations.runtimeResources,
+            projectId,
+            mode: "write",
+          }))
     ).catalog,
   );
   const pool = validateStoryResourcePool({
@@ -1092,8 +1101,7 @@ export const projectPendingSceneAuthoring = async ({
     pool,
   });
   const destination = join(
-    rootDir,
-    "src/projects",
+    locations.projectSourceRoot,
     projectId,
     "production/scene-production-brief.json",
   );

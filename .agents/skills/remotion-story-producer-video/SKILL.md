@@ -74,7 +74,8 @@ fabricate attestations inside it.
 
 ## Finish with verified delivery
 
-Before execution report the resolved mode/capacity, IDs, inspection, cost, summary, and TaskRevisions. After the
-continuation starts, no Root terminal report.
-Only `project-production-complete` or `project-production-current` proves delivery. Do not publish, push, or use
-`git add .`.
+Report mode/capacity, IDs, inspection, cost, summary, and TaskRevisions before execution. After continuation starts,
+Root gives no terminal report. `project-production-source-current` is a valid manual source-only terminal, not
+playable. Only `project-production-complete` or `project-production-current` proves revalidated exact-four-file
+Delivery.
+Do not publish, push, or use `git add .`.

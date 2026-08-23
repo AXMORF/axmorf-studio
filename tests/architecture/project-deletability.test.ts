@@ -4,14 +4,25 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { generateProjectRegistry } from "../../scripts/registry/generate";
+import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
+import { createRepositoryProjectStorageFromProductionLocations } from "../../scripts/projects/repository-project-locations";
 import {
   createRemovableProjectRoot,
   writeRemovableProject,
 } from "../fixtures/removable-project";
 
+const locationsFor = (rootDir: string) =>
+  createRepositoryProductionLocations({ repositoryRoot: rootDir });
+
+const storageFor = (rootDir: string) =>
+  createRepositoryProjectStorageFromProductionLocations(locationsFor(rootDir));
+
 test("ProjectRegistry generation accepts zero Projects", async (context) => {
   const rootDir = await createRemovableProjectRoot(context);
-  const result = await generateProjectRegistry({ rootDir, mode: "write" });
+  const result = await generateProjectRegistry({
+    storage: storageFor(rootDir),
+    mode: "write",
+  });
   const source = await readFile(result.destination, "utf8");
 
   assert.equal(result.entryCount, 0);
@@ -22,7 +33,10 @@ test("ProjectRegistry bootstraps when the local Projects root is absent", async 
   const rootDir = await createRemovableProjectRoot(context);
   await rm(join(rootDir, "src/projects"), { recursive: true });
 
-  const result = await generateProjectRegistry({ rootDir, mode: "write" });
+  const result = await generateProjectRegistry({
+    storage: storageFor(rootDir),
+    mode: "write",
+  });
   const source = await readFile(result.destination, "utf8");
 
   assert.equal(result.entryCount, 0);
@@ -42,11 +56,12 @@ test("regeneration removes a deleted Project literal import", async (context) =>
     compositionId: "BetaStory",
   });
 
-  const first = await generateProjectRegistry({ rootDir, mode: "write" });
+  const storage = storageFor(rootDir);
+  const first = await generateProjectRegistry({ storage, mode: "write" });
   assert.match(await readFile(first.destination, "utf8"), /alpha-story/);
 
   await rm(alpha, { recursive: true });
-  const second = await generateProjectRegistry({ rootDir, mode: "write" });
+  const second = await generateProjectRegistry({ storage, mode: "write" });
   const source = await readFile(second.destination, "utf8");
   assert.doesNotMatch(source, /alpha-story/);
   assert.match(source, /beta-story/);
@@ -70,7 +85,7 @@ test("deletion can publish a Registry without the target before removing source"
   });
 
   const result = await generateProjectRegistry({
-    rootDir,
+    storage: storageFor(rootDir),
     mode: "write",
     excludeProjectIds: ["alpha-story"],
   });

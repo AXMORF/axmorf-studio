@@ -111,13 +111,15 @@ const unavailable = (status: number) =>
   });
 
 export class DesktopMediaProtocol {
-  readonly #repositoryRoot: string;
+  #deliveryRoot: string | null = null;
   #tickets = new Map<string, MediaTicket>();
   #closed = false;
 
-  constructor(repositoryRoot: string) {
-    this.#repositoryRoot = repositoryRoot;
-  }
+  selectWorkspace = async (workspaceRoot: string) => {
+    if (this.#closed) throw new Error("desktop-media-protocol-closed");
+    await this.#replaceTickets(new Map());
+    this.#deliveryRoot = join(workspaceRoot, "deliveries");
+  };
 
   replaceCatalog = async (catalog: PreviewCatalog) => {
     if (this.#closed) throw new Error("desktop-media-protocol-closed");
@@ -208,9 +210,11 @@ export class DesktopMediaProtocol {
   };
 
   #openTicket = async (entry: PreviewCatalogEntry): Promise<MediaTicket> => {
+    if (this.#deliveryRoot === null) {
+      throw new Error("desktop-media-workspace-not-selected");
+    }
     const path = join(
-      this.#repositoryRoot,
-      "deliveries",
+      this.#deliveryRoot,
       entry.storyId,
       "video.mp4",
     );

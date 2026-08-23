@@ -47,7 +47,7 @@ import {
 } from "../../scene-package/project-files";
 import { generateSceneRuntimeProofAssets } from "./generate-assets";
 import { buildResourceCatalog } from "../../catalog/domain";
-import { loadCoreCatalogAuthorityDescriptors } from "../../catalog/project-files";
+import { loadCoreCatalogAuthorityDescriptors } from "../../catalog/repository-project-files";
 
 const STORY_ID = SCENE_RUNTIME_PROOF_IDENTITY.storyId;
 const MEANING_ID = SCENE_RUNTIME_PROOF_IDENTITY.meaningId;

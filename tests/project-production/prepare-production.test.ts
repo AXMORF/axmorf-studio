@@ -2,6 +2,25 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { prepareProjectProduction } from "../../scripts/project-production/application/prepare-production";
+import { repositoryProductionCommandFormatter } from "../../scripts/project-production/adapters/repository-production-command-formatter";
+import { buildProducerConfig } from "../../src/contracts";
+import {
+  createRepositoryProductionLocations,
+  createRuntimeExecutionResources,
+} from "../../scripts/project-production/application/production-locations";
+import { validProjectCreateProducerConfig } from "../fixtures/project-create";
+
+const locations = createRepositoryProductionLocations({
+  repositoryRoot: "/fixture",
+});
+const runtime = createRuntimeExecutionResources({
+  rendererRuntimeFingerprint: `sha256:${"1".repeat(64)}`,
+  browserExecutable: "/runtime/browser",
+  binariesDirectory: "/runtime/bin",
+  ffmpegExecutable: "/runtime/bin/ffmpeg",
+  ffprobeExecutable: "/runtime/bin/ffprobe",
+});
+const config = buildProducerConfig(validProjectCreateProducerConfig);
 
 const inspection = (
   sourceState:
@@ -35,29 +54,48 @@ test("prepare validates read-only inputs before provider work and stops before o
   let attemptCalls = 0;
   let inspectionCalls = 0;
   const result = await prepareProjectProduction(
-    { rootDir: "/fixture", projectId: "story-example", env: {} },
     {
+      locations,
+      runtime,
+      config,
+      projectId: "story-example",
+      deliveryPolicy: "automatic",
+    },
+    {
+      commandFormatter: repositoryProductionCommandFormatter,
       acquireLock: async () => ({
         release: async () => {
           order.push("release");
         },
       }),
-      inspect: async () => {
+      inspect: async (input) => {
+        assert.equal(input.locations, locations);
+        assert.equal(input.config, config);
         order.push("inspect");
         inspectionCalls += 1;
         return inspection(
           inspectionCalls === 1 ? "configured-authoring" : "timing-ready",
         ) as never;
       },
-      prepareNarration: async () => {
+      prepareNarration: async (input) => {
+        assert.equal(input.locations, locations);
+        assert.equal(input.runtime, runtime);
+        assert.equal(input.config, config);
         order.push("provider");
         return {
           actualCost: { providerRequests: 1, providerCacheHits: 2 },
         } as never;
       },
-      projectPendingAuthoring: async () => {
+      projectPendingAuthoring: async (input) => {
+        assert.equal(input.locations, locations);
         order.push("project-authoring");
         return {} as never;
+      },
+      loadInputs: async () => {
+        throw new Error("unreachable");
+      },
+      buildCurrentPlan: async () => {
+        throw new Error("unreachable");
       },
       createWorkspace: async () => {
         workspaceCalls += 1;
@@ -100,20 +138,41 @@ test("prepare alone commits fixed tasks, creates dirty owner workspaces, and ope
     explanationAvailability: "baseline-unavailable",
   } as const;
   const result = await prepareProjectProduction(
-    { rootDir: "/fixture", projectId: "story-example", env: {} },
     {
+      locations,
+      runtime,
+      config,
+      projectId: "story-example",
+      deliveryPolicy: "automatic",
+    },
+    {
+      commandFormatter: repositoryProductionCommandFormatter,
       acquireLock: async () => ({ release: async () => undefined }),
       inspect: async () => inspection("production-inputs-ready") as never,
-      prepareNarration: async () =>
-        ({
+      projectPendingAuthoring: async (input) => {
+        assert.equal(input.locations, locations);
+        return {} as never;
+      },
+      prepareNarration: async (input) => {
+        assert.equal(input.locations, locations);
+        assert.equal(input.runtime, runtime);
+        assert.equal(input.config, config);
+        return {
           actualCost: { providerRequests: 0, providerCacheHits: 3 },
-        }) as never,
-      loadInputs: async () => ({ projectId: "story-example" }) as never,
-      prepareFixedTasks: async () => {
+        } as never;
+      },
+      loadInputs: async (input) => {
+        assert.equal(input.locations, locations);
+        return { projectId: "story-example" } as never;
+      },
+      prepareFixedTasks: async (input) => {
+        assert.equal(input.locations, locations);
         calls.fixed += 1;
       },
-      buildCurrentPlan: async () =>
-        ({
+      buildCurrentPlan: async (input) => {
+        assert.equal(input.locations, locations);
+        assert.equal(input.config, config);
+        return {
           revision: {
             storyId: "story-example",
             revisionId: `revision-${"4".repeat(64)}`,
@@ -141,13 +200,16 @@ test("prepare alone commits fixed tasks, creates dirty owner workspaces, and ope
               },
             ],
           ]),
-        }) as never,
-      createWorkspace: async () => {
+        } as never;
+      },
+      createWorkspace: async (input) => {
+        assert.equal(input.locations, locations);
         calls.workspace += 1;
-        return `.producer-work/story-example/${dirtyTask.taskRevision}`;
+        return `${locations.taskWorkspaceRoot}/story-example/${dirtyTask.taskRevision}`;
       },
       buildTaskSnapshots: () => [] as never,
-      createAttempt: async () => {
+      createAttempt: async (input) => {
+        assert.equal(input.locations, locations);
         calls.attempt += 1;
         return { attemptId: "00000000-0000-4000-8000-000000000001" } as never;
       },
@@ -157,6 +219,10 @@ test("prepare alone commits fixed tasks, creates dirty owner workspaces, and ope
   assert.equal(result.status, "project-production-prepared");
   assert.equal(result.attemptId, "00000000-0000-4000-8000-000000000001");
   assert.equal(result.dirtyAgentTasks.length, 1);
+  assert.equal(
+    result.dirtyAgentTasks[0]?.workspace,
+    `story-example/${dirtyTask.taskRevision}`,
+  );
   assert.match(
     result.dirtyAgentTasks[0]?.commitCommand ?? "",
     /project:task:commit[\s\S]*--attempt 00000000-0000-4000-8000-000000000001/u,

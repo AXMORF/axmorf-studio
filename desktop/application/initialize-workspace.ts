@@ -17,11 +17,18 @@ import {
   verifyWorkspaceFileMode,
   writeWorkspaceFileAtomic,
   type ManagedIntegrationFile,
+  type ManagedRspExecutable,
 } from "../adapters/workspace-filesystem";
+import {
+  migrateLegacyWorkspaceV1,
+  updateManagedWorkspaceIntegration,
+  type WorkspaceActiveWorkProbe,
+} from "./migrate-workspace";
 import {
   DESKTOP_INTEGRATION_VERSION,
   DESKTOP_MANAGED_FILES_CONTRACT_VERSION,
   ManagedFilesLedgerSchema,
+  LegacyWorkspaceV1ManifestSchema,
   WorkspaceManifestSchema,
   createWorkspaceManifest,
   type ManagedFilesLedger,
@@ -81,7 +88,7 @@ const expectedLedger = ({
   readonly state: ManagedFilesLedger["state"];
 }): ManagedFilesLedger =>
   ManagedFilesLedgerSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
     contractVersion: DESKTOP_MANAGED_FILES_CONTRACT_VERSION,
     integrationVersion: DESKTOP_INTEGRATION_VERSION,
     workspaceId,
@@ -107,7 +114,7 @@ const assertLedgerMatchesIntegration = ({
   });
   if (serializeWorkspaceJson(ledger) !== serializeWorkspaceJson(expected)) {
     throw new Error(
-      "Managed files ledger does not match the Phase A integration.",
+      "Managed files ledger does not match integration v2.",
     );
   }
 };
@@ -350,15 +357,17 @@ const recoverExistingWorkspace = async ({
 export const initializeWorkspace = async ({
   workspaceRoot: rawWorkspaceRoot,
   homeDirectory,
-  repositoryRoot,
   integrationResourcesRoot,
-  forbiddenRoots = [],
+  rspExecutable,
+  forbiddenRoots,
+  activeWork,
 }: {
   readonly workspaceRoot: string;
   readonly homeDirectory: string;
-  readonly repositoryRoot: string;
   readonly integrationResourcesRoot: string;
-  readonly forbiddenRoots?: readonly string[];
+  readonly rspExecutable: ManagedRspExecutable;
+  readonly forbiddenRoots: readonly string[];
+  readonly activeWork: WorkspaceActiveWorkProbe;
 }): Promise<
   Readonly<{
     workspaceRoot: string;
@@ -370,9 +379,9 @@ export const initializeWorkspace = async ({
     validateWorkspaceRoot({
       workspaceRoot: rawWorkspaceRoot,
       homeDirectory,
-      forbiddenRoots: [repositoryRoot, ...forbiddenRoots],
+      forbiddenRoots,
     }),
-    loadManagedIntegration({ integrationResourcesRoot }),
+    loadManagedIntegration({ integrationResourcesRoot, rspExecutable }),
   ]);
 
   if (!root.exists) {
@@ -384,6 +393,47 @@ export const initializeWorkspace = async ({
       files,
     });
     return { workspaceRoot: root.workspaceRoot, manifest, initialized: true };
+  }
+
+  const rawExistingManifest = await readOptionalStrictJson({
+    workspaceRoot: root.workspaceRoot,
+    relativePath: WORKSPACE_MANIFEST_PATH,
+    label: "Workspace manifest",
+  });
+  if (
+    rawExistingManifest !== null &&
+    LegacyWorkspaceV1ManifestSchema.safeParse(rawExistingManifest).success
+  ) {
+    const migrated = await migrateLegacyWorkspaceV1({
+      workspaceRoot: root.workspaceRoot,
+      integrationResourcesRoot,
+      rspExecutable,
+      activeWork,
+    });
+    return {
+      workspaceRoot: root.workspaceRoot,
+      manifest: migrated.manifest,
+      initialized: true,
+    };
+  }
+
+  if (
+    rawExistingManifest !== null &&
+    WorkspaceManifestSchema.safeParse(rawExistingManifest).success
+  ) {
+    const integration = await updateManagedWorkspaceIntegration({
+      workspaceRoot: root.workspaceRoot,
+      integrationResourcesRoot,
+      rspExecutable,
+      activeWork,
+    });
+    if (integration.updated) {
+      return {
+        workspaceRoot: root.workspaceRoot,
+        manifest: integration.manifest,
+        initialized: true,
+      };
+    }
   }
 
   const existing = await inspectExistingWorkspace({

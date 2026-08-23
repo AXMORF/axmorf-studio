@@ -1,0 +1,154 @@
+name: Desktop Phase B Apple Silicon native gate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-phase-b-native-gate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native-gate:
+    name: macOS 15 arm64 packaged production and Delivery lifecycle
+    runs-on: macos-15
+    timeout-minutes: 180
+    steps:
+      - name: Checkout exact validation commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Record and enforce native host identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          EVIDENCE_ROOT="$RUNNER_TEMP/desktop-phase-b-native-evidence"
+          export TMPDIR="$RUNNER_TEMP"
+          {
+            echo "EVIDENCE_ROOT=$EVIDENCE_ROOT"
+            echo "TMPDIR=$TMPDIR"
+          } >>"$GITHUB_ENV"
+          mkdir -p "$EVIDENCE_ROOT"
+          test "$(uname -m)" = arm64
+          {
+            echo "commit=$GITHUB_SHA"
+            echo "runnerImage=${ImageOS:-unknown}"
+            echo "runnerImageVersion=${ImageVersion:-unknown}"
+            echo "uname=$(uname -a)"
+            echo "swVers=$(sw_vers -productVersion)"
+            echo "arch=$(uname -m)"
+            echo "node=$(node --version)"
+            echo "npm=$(npm --version)"
+          } >"$EVIDENCE_ROOT/environment.txt"
+
+      - name: Install exact repository dependencies
+        run: npm ci
+
+      - name: Run focused Desktop checks
+        run: npm run desktop:check
+
+      - name: Prove ordinary package excludes native gate provider
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run desktop:package >"$EVIDENCE_ROOT/ordinary-package.log"
+          if grep -R -F 'desktop-native-test-pcm-v1' out; then
+            echo "desktop-native-test-provider-leaked-into-ordinary-package" >&2
+            exit 1
+          fi
+          if grep -R -F 'Native Delivery action sequence does not match.' out; then
+            echo "desktop-native-delivery-lifecycle-leaked-into-ordinary-package" >&2
+            exit 1
+          fi
+          tail -n 1 "$EVIDENCE_ROOT/ordinary-package.log" \
+            >"$EVIDENCE_ROOT/ordinary-package-inventory.json"
+
+      - name: Package the gate-only native app
+        shell: bash
+        run: |
+          set -euo pipefail
+          AXMORF_PHASE_B_NATIVE_GATE_BUILD=1 npm run desktop:package \
+            >"$EVIDENCE_ROOT/gate-package.log"
+          grep -R -Fq 'desktop-native-test-pcm-v1' out
+          grep -R -Fq 'Native Delivery action sequence does not match.' out
+          tail -n 1 "$EVIDENCE_ROOT/gate-package.log" \
+            >"$EVIDENCE_ROOT/gate-package-inventory.json"
+          app="$GITHUB_WORKSPACE/out/AXMORF Studio-darwin-arm64/AXMORF Studio.app"
+          executable="$app/Contents/MacOS/AXMORF Studio"
+          test -x "$executable"
+          test "$(lipo -archs "$executable")" = arm64
+          {
+            echo "architectures=$(lipo -archs "$executable")"
+            echo "file=$(file "$executable")"
+            echo "sha256=$(shasum -a 256 "$executable" | awk '{print $1}')"
+            echo "electron=$(node -p 'require("./node_modules/electron/package.json").version')"
+            echo "nativeGateInstrumentation=true"
+          } >"$EVIDENCE_ROOT/package-native-identity.txt"
+
+      - name: Run packaged manual and automatic Delivery lifecycle gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/desktop/native-gate-runner.sh \
+            "$GITHUB_WORKSPACE/out/AXMORF Studio-darwin-arm64/AXMORF Studio.app" \
+            "$EVIDENCE_ROOT" \
+            "$GITHUB_WORKSPACE"
+          node -e '
+            const fs = require("fs");
+            const value = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            const required = [
+              "sourceCurrent",
+              "nativeProductionEvidence",
+              "deliveryBuilt",
+              "manualDeliveryTested",
+              "automaticDeliveryTested",
+              "failureCleanupTested",
+              "quitCleanupTested",
+              "loopbackListenerVerified",
+              "processCleanupVerified",
+              "sessionCleanupVerified",
+              "stagingCleanupVerified",
+              "reopen",
+            ];
+            if (value.contractVersion !== "desktop-phase-b-native-runner-v1" || value.status !== "native-evidence-complete" || required.some((key) => value[key] !== true) || value.fixtureOrDeliveryUploaded !== false) process.exit(1);
+          ' "$EVIDENCE_ROOT/runner-summary.json"
+
+      - name: Run full repository gate after packaged native evidence
+        run: npm run check
+
+      - name: Assert uploaded evidence excludes delivery and credentials
+        id: evidence-redaction
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find "$EVIDENCE_ROOT" -type f \( \
+            -name 'video.mp4' -o \
+            -name 'cover-4x3.png' -o \
+            -name 'cover-3x4.png' \
+          \) -print -quit | grep -q .; then
+            echo "desktop-native-delivery-media-leaked-into-evidence" >&2
+            exit 1
+          fi
+          if find "$EVIDENCE_ROOT" -type f -iname '*token*' \
+            -print -quit | grep -q .; then
+            echo "desktop-native-token-file-leaked-into-evidence" >&2
+            exit 1
+          fi
+          if find "$EVIDENCE_ROOT" -type f ! -name '*.png' -print0 | \
+            xargs -0 grep -El 'Bearer [A-Fa-f0-9]{32,}|visible-editable-token|voice_profile'; then
+            echo "desktop-native-evidence-redaction-failed" >&2
+            exit 1
+          fi
+
+      - name: Upload redacted native evidence
+        if: ${{ always() && steps.evidence-redaction.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-phase-b-native-evidence-${{ github.run_id }}
+          path: ${{ env.EVIDENCE_ROOT }}
+          if-no-files-found: error
+          retention-days: 14

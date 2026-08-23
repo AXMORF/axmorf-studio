@@ -38,7 +38,6 @@ const RevisionIdentityShape = {
     narrationFingerprint: Sha256DigestSchema,
     renderFingerprint: Sha256DigestSchema,
     visualStyleFingerprint: Sha256DigestSchema,
-    publishingIntentFingerprint: Sha256DigestSchema,
     projectSoundFingerprint: Sha256DigestSchema,
     authoringRequirementsFingerprint: Sha256DigestSchema,
     globalVisualBriefFingerprint: Sha256DigestSchema,

@@ -24,11 +24,22 @@ import {
 } from "../../src/contracts";
 import { renderProjectRegistrySource } from "../../scripts/registry/domain";
 import {
-  discoverProjectEntries,
-  loadProjectRegistrationEntry,
+  discoverProjectEntries as discoverProjectEntriesForStorage,
+  loadProjectRegistrationEntry as loadProjectRegistrationEntryForStorage,
 } from "../../scripts/registry/project-files";
-import { generateProjectRegistry } from "../../scripts/registry/generate";
+import { generateProjectRegistry as generateProjectRegistryForStorage } from "../../scripts/registry/generate";
+import {
+  discoverRepositoryProjectEntries as discoverProjectEntries,
+  generateRepositoryProjectRegistry as generateProjectRegistry,
+  loadRepositoryProjectRegistrationEntry as loadProjectRegistrationEntry,
+} from "../../scripts/registry/repository-registry";
 import { runRegistryCli } from "../../scripts/registry/cli";
+import { createWorkspaceProjectStorageLocations } from "../../scripts/projects/project-locations";
+import {
+  createRepositoryProductionLocations,
+  createWorkspaceProductionLocations,
+  type ProductionLocations,
+} from "../../scripts/project-production/application/production-locations";
 import {
   validNarrationSpec,
   validRenderSpec,
@@ -43,6 +54,9 @@ const createRoot = async (context: TestContext) => {
   return rootDir;
 };
 
+const repositoryLocations = (rootDir: string) =>
+  createRepositoryProductionLocations({ repositoryRoot: rootDir });
+
 const writeJson = async (path: string, value: unknown) => {
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
@@ -50,16 +64,21 @@ const writeJson = async (path: string, value: unknown) => {
 
 const createProject = async ({
   rootDir,
+  projectSourceRoot,
   slug,
   compositionId,
   compositionSource = "const Composition = () => null; export default Composition;\n",
 }: {
   readonly rootDir: string;
+  readonly projectSourceRoot?: string;
   readonly slug: string;
   readonly compositionId: string;
   readonly compositionSource?: string;
 }) => {
-  const projectDir = join(rootDir, "src/projects", slug);
+  const projectDir = join(
+    projectSourceRoot ?? join(rootDir, "src/projects"),
+    slug,
+  );
   const brief = { ...validVideoBrief, storyId: slug, title: slug };
   const story = {
     ...validStorySpec,
@@ -153,10 +172,10 @@ const createProject = async ({
   return projectDir;
 };
 
-const loadAll = async (rootDir: string) =>
+const loadAll = async (locations: ProductionLocations) =>
   Promise.all(
-    (await discoverProjectEntries(rootDir)).map((compositionPath) =>
-      loadProjectRegistrationEntry({ rootDir, compositionPath }),
+    (await discoverProjectEntries(locations)).map((compositionPath) =>
+      loadProjectRegistrationEntry({ locations, compositionPath }),
     ),
   );
 
@@ -164,13 +183,14 @@ test("discovery considers only exact first-level Composition.tsx files", async (
   const rootDir = await createRoot(context);
   await createProject({ rootDir, slug: "zeta", compositionId: "Zeta" });
   await createProject({ rootDir, slug: "alpha", compositionId: "Alpha" });
+  const locations = repositoryLocations(rootDir);
   await mkdir(join(rootDir, "src/projects/group/nested"), { recursive: true });
   await writeFile(
     join(rootDir, "src/projects/group/nested/Composition.tsx"),
     "export default () => null;\n",
   );
 
-  assert.deepEqual(await discoverProjectEntries(rootDir), [
+  assert.deepEqual(await discoverProjectEntries(locations), [
     "src/projects/alpha/Composition.tsx",
     "src/projects/zeta/Composition.tsx",
   ]);
@@ -178,6 +198,7 @@ test("discovery considers only exact first-level Composition.tsx files", async (
 
 test("registry excludes explicitly non-current StorySpec projects", async (context) => {
   const rootDir = await createRoot(context);
+  const locations = repositoryLocations(rootDir);
   await createProject({ rootDir, slug: "current", compositionId: "Current" });
   const legacyProjectDir = await createProject({
     rootDir,
@@ -205,10 +226,10 @@ test("registry excludes explicitly non-current StorySpec projects", async (conte
     beats: legacyBeats,
   });
 
-  assert.deepEqual(await discoverProjectEntries(rootDir), [
+  assert.deepEqual(await discoverProjectEntries(locations), [
     "src/projects/current/Composition.tsx",
   ]);
-  await generateProjectRegistry({ rootDir, mode: "write" });
+  await generateProjectRegistry({ locations, mode: "write" });
   const generated = await readFile(
     join(rootDir, "src/projects/project-registry.generated.ts"),
     "utf8",
@@ -219,9 +240,10 @@ test("registry excludes explicitly non-current StorySpec projects", async (conte
 
 test("generated entries are stably sorted and use literal import expressions", async (context) => {
   const rootDir = await createRoot(context);
+  const locations = repositoryLocations(rootDir);
   await createProject({ rootDir, slug: "zeta", compositionId: "Zeta" });
   await createProject({ rootDir, slug: "alpha", compositionId: "Alpha" });
-  const entries = await loadAll(rootDir);
+  const entries = await loadAll(locations);
   const first = await renderProjectRegistrySource(entries);
   const second = await renderProjectRegistrySource([...entries].reverse());
   assert.equal(first, second);
@@ -253,27 +275,29 @@ test("generated entries are stably sorted and use literal import expressions", a
 
 test("read-only check detects one-byte registry drift", async (context) => {
   const rootDir = await createRoot(context);
+  const locations = repositoryLocations(rootDir);
   await createProject({ rootDir, slug: "alpha", compositionId: "Alpha" });
-  await generateProjectRegistry({ rootDir, mode: "write" });
+  await generateProjectRegistry({ locations, mode: "write" });
   const generatedPath = join(
     rootDir,
     "src/projects/project-registry.generated.ts",
   );
   await appendFile(generatedPath, " ");
   await assert.rejects(
-    () => generateProjectRegistry({ rootDir, mode: "check" }),
+    () => generateProjectRegistry({ locations, mode: "check" }),
     /ProjectRegistry drift/i,
   );
 });
 
 test("an invalid project leaves the previous registry byte-identical", async (context) => {
   const rootDir = await createRoot(context);
+  const locations = repositoryLocations(rootDir);
   const projectDir = await createProject({
     rootDir,
     slug: "alpha",
     compositionId: "Alpha",
   });
-  await generateProjectRegistry({ rootDir, mode: "write" });
+  await generateProjectRegistry({ locations, mode: "write" });
   const generatedPath = join(
     rootDir,
     "src/projects/project-registry.generated.ts",
@@ -284,7 +308,7 @@ test("an invalid project leaves the previous registry byte-identical", async (co
     "export const Composition = () => null;\n",
   );
   await assert.rejects(
-    () => generateProjectRegistry({ rootDir, mode: "write" }),
+    () => generateProjectRegistry({ locations, mode: "write" }),
     /default export/i,
   );
   assert.deepEqual(await readFile(generatedPath), before);
@@ -292,6 +316,7 @@ test("an invalid project leaves the previous registry byte-identical", async (co
 
 test("invalid projects and duplicate IDs fail closed", async (context) => {
   const duplicateRoot = await createRoot(context);
+  const duplicateLocations = repositoryLocations(duplicateRoot);
   await createProject({
     rootDir: duplicateRoot,
     slug: "alpha",
@@ -303,18 +328,20 @@ test("invalid projects and duplicate IDs fail closed", async (context) => {
     compositionId: "SameId",
   });
   await assert.rejects(
-    () => generateProjectRegistry({ rootDir: duplicateRoot, mode: "write" }),
+    () =>
+      generateProjectRegistry({ locations: duplicateLocations, mode: "write" }),
     /duplicate Composition ID/i,
   );
 
   const invalidSlugRoot = await createRoot(context);
+  const invalidSlugLocations = repositoryLocations(invalidSlugRoot);
   await mkdir(join(invalidSlugRoot, "src/projects/Bad_Slug"));
   await writeFile(
     join(invalidSlugRoot, "src/projects/Bad_Slug/Composition.tsx"),
     "export default () => null;\n",
   );
   await assert.rejects(
-    () => discoverProjectEntries(invalidSlugRoot),
+    () => discoverProjectEntries(invalidSlugLocations),
     /invalid project slug/i,
   );
 
@@ -325,11 +352,12 @@ test("invalid projects and duplicate IDs fail closed", async (context) => {
     compositionId: "Missing",
   });
   await rm(join(missingDir, "story.json"));
-  await assert.rejects(() => loadAll(missingRoot));
+  await assert.rejects(() => loadAll(repositoryLocations(missingRoot)));
 });
 
 test("project directory symlinks are rejected and nested entries stay ignored", async (context) => {
   const rootDir = await createRoot(context);
+  const locations = repositoryLocations(rootDir);
   const external = join(rootDir, "external-project");
   await mkdir(external);
   await writeFile(
@@ -337,36 +365,81 @@ test("project directory symlinks are rejected and nested entries stay ignored", 
     "export default () => null;\n",
   );
   await symlink(external, join(rootDir, "src/projects/linked"));
-  await assert.rejects(() => discoverProjectEntries(rootDir), /symbolic link/i);
+  await assert.rejects(
+    () => discoverProjectEntries(locations),
+    /symbolic link/i,
+  );
 });
 
 test("registry CLI accepts only fixed generate or check commands", async (context) => {
   const rootDir = await createRoot(context);
+  const locations = repositoryLocations(rootDir);
   await createProject({ rootDir, slug: "alpha", compositionId: "Alpha" });
   const output: string[] = [];
   await assert.rejects(
     () =>
       runRegistryCli(["generate", "--root", "/tmp"], {
-        rootDir,
+        locations,
         stdout: output.push.bind(output),
       }),
     /exactly one/i,
   );
   await assert.rejects(
     () =>
-      runRegistryCli(["repair"], { rootDir, stdout: output.push.bind(output) }),
+      runRegistryCli(["repair"], {
+        locations,
+        stdout: output.push.bind(output),
+      }),
     /generate or check/i,
   );
   await runRegistryCli(["generate"], {
-    rootDir,
+    locations,
     stdout: output.push.bind(output),
   });
   await runRegistryCli(["check"], {
-    rootDir,
+    locations,
     stdout: output.push.bind(output),
   });
   assert.deepEqual(output, [
     "Generated ProjectRegistry with 1 entry.",
     "ProjectRegistry is current with 1 entry.",
   ]);
+});
+
+test("Workspace Registry uses the same locations-only API without repository probing", async (context) => {
+  const rootDir = await createRoot(context);
+  const workspaceRoot = join(rootDir, "workspace");
+  const locations = createWorkspaceProductionLocations({
+    workspaceRoot,
+    applicationSupportRoot: join(rootDir, "application-support"),
+    runtimeResources: join(rootDir, "runtime-pack"),
+    cacheRoot: join(rootDir, "cache"),
+  });
+  await createProject({
+    rootDir,
+    projectSourceRoot: locations.projectSourceRoot,
+    slug: "workspace-story",
+    compositionId: "WorkspaceStory",
+  });
+  const storage = createWorkspaceProjectStorageLocations(locations);
+
+  assert.deepEqual(await discoverProjectEntriesForStorage({ storage }), [
+    "src/projects/workspace-story/Composition.tsx",
+  ]);
+  await loadProjectRegistrationEntryForStorage({
+    storage,
+    compositionPath: "src/projects/workspace-story/Composition.tsx",
+  });
+  const result = await generateProjectRegistryForStorage({
+    storage,
+    mode: "write",
+  });
+  assert.equal(
+    result.destination,
+    join(workspaceRoot, ".rsp/current/project-registry.generated.ts"),
+  );
+  assert.match(await readFile(result.destination, "utf8"), /WorkspaceStory/u);
+  await assert.rejects(
+    readFile(join(rootDir, "src/projects/project-registry.generated.ts")),
+  );
 });

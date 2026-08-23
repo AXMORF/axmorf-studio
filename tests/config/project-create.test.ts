@@ -17,8 +17,9 @@ import { ProjectCreateInputSchema } from "../../src/contracts/project-create";
 import {
   generateProjectResourceCatalog,
   generateResourceCatalog,
-} from "../../scripts/catalog/generate";
+} from "../../scripts/catalog/repository-generate";
 import { writeProducerConfig } from "../../scripts/config/producer-config";
+import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
 import { commitStagedProjectCreate } from "../../scripts/projects/adapters/project-create-store";
 import {
   createProject,
@@ -566,7 +567,9 @@ test("pending Scene authoring projects only after measured semantic timing exist
   });
   assert.deepEqual(
     await projectPendingSceneAuthoring({
-      rootDir: fixture.rootDir,
+      locations: createRepositoryProductionLocations({
+        repositoryRoot: fixture.rootDir,
+      }),
       projectId: "story-example",
     }),
     {
@@ -639,7 +642,9 @@ test("pending Scene authoring projects only after measured semantic timing exist
   );
 
   const projection = await projectPendingSceneAuthoring({
-    rootDir: fixture.rootDir,
+    locations: createRepositoryProductionLocations({
+      repositoryRoot: fixture.rootDir,
+    }),
     projectId: "story-example",
   });
   assert.equal(projection.projected, true);
@@ -652,7 +657,9 @@ test("pending Scene authoring projects only after measured semantic timing exist
   );
   assert.deepEqual(sceneBrief.scenes, validProjectCreateInput.scenes);
   const currentProjection = await projectPendingSceneAuthoring({
-    rootDir: fixture.rootDir,
+    locations: createRepositoryProductionLocations({
+      repositoryRoot: fixture.rootDir,
+    }),
     projectId: "story-example",
   });
   assert.equal(currentProjection.projected, true);

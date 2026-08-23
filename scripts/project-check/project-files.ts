@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, posix } from "node:path";
 
 import {
   NarrativeBaselineEvidenceReceiptSchema,
@@ -15,16 +15,31 @@ import {
   type SemanticTiming,
   type Sha256Digest,
 } from "../../src/contracts";
+import type { ProductionLocations } from "../project-production/application/production-locations";
+import {
+  createWorkspaceProjectStorageLocations,
+  resolveProjectOwnedLogicalPath,
+  type ProjectStorageLocations,
+} from "../projects/project-locations";
+import { createRepositoryProjectStorageFromProductionLocations } from "../projects/repository-project-locations";
+
+export const getProjectCheckStorage = (
+  locations: ProductionLocations,
+): ProjectStorageLocations =>
+  locations.layoutKind === "workspace"
+    ? createWorkspaceProjectStorageLocations(locations)
+    : createRepositoryProjectStorageFromProductionLocations(locations);
 
 export const getProjectCheckPaths = ({
-  rootDir,
+  locations,
   projectId,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
 }) => {
   const storyId = StoryIdSchema.parse(projectId);
-  const projectDirectory = join(rootDir, "src/projects", storyId);
+  const storage = getProjectCheckStorage(locations);
+  const projectDirectory = join(locations.projectSourceRoot, storyId);
   return {
     storyId,
     projectDirectory,
@@ -64,8 +79,53 @@ export const getProjectCheckPaths = ({
     rendererRegistry: join(projectDirectory, "renderer-registry.generated.ts"),
     composition: join(projectDirectory, "Composition.tsx"),
     scenesDirectory: join(projectDirectory, "scenes"),
-    registry: join(rootDir, "src/projects/project-registry.generated.ts"),
+    registry: storage.registryProjectionPath,
+    catalog: storage.catalogProjectionPath,
   } as const;
+};
+
+export const resolveProjectCheckLogicalPath = ({
+  locations,
+  storyId: rawStoryId,
+  logicalPath,
+}: {
+  readonly locations: ProductionLocations;
+  readonly storyId: string;
+  readonly logicalPath: string;
+}) => {
+  const storyId = StoryIdSchema.parse(rawStoryId);
+  if (
+    logicalPath.length === 0 ||
+    logicalPath.includes("\\") ||
+    posix.normalize(logicalPath) !== logicalPath ||
+    posix.isAbsolute(logicalPath) ||
+    logicalPath.split("/").some((segment) => !segment || segment === "..")
+  ) {
+    throw new Error("Project check logical path is unsafe.");
+  }
+  if (locations.layoutKind === "repository") {
+    return join(locations.runtimeResources, ...logicalPath.split("/"));
+  }
+  const evidencePrefix = `out/${storyId}/`;
+  if (logicalPath.startsWith(evidencePrefix)) {
+    return join(
+      locations.evidenceRoot,
+      storyId,
+      ...logicalPath.slice(evidencePrefix.length).split("/"),
+    );
+  }
+  if (
+    !logicalPath.startsWith(`src/projects/${storyId}/`) &&
+    !logicalPath.startsWith(`public/projects/${storyId}/`)
+  ) {
+    throw new Error(
+      "Project check logical path is outside its Workspace Project.",
+    );
+  }
+  return resolveProjectOwnedLogicalPath({
+    storage: getProjectCheckStorage(locations),
+    logicalPath,
+  });
 };
 
 const readJson = async (path: string, label: string): Promise<unknown> => {

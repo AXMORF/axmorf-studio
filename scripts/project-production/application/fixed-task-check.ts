@@ -5,12 +5,10 @@ import { z } from "zod";
 import ts from "typescript";
 
 import {
-  DeliveryPublishSchema,
   MasteredNarrationManifestSchema,
   NarrationMasteringPolicySchema,
   NarrationSpecSchema,
   ProjectSoundPlanSchema,
-  PublishingIntentSchema,
   RenderSpecSchema,
   SceneTemplateInstanceSchema,
   SealedNarrationManifestSchema,
@@ -22,7 +20,10 @@ import {
   serializeCanonicalJson,
   type ProducerTaskSpec,
 } from "../../../src/contracts";
-import { measureCanonicalPcmWav, sha256Bytes } from "../../narration/domain/pcm-wav";
+import {
+  measureCanonicalPcmWav,
+  sha256Bytes,
+} from "../../narration/domain/pcm-wav";
 import { readTaskWorkspace } from "../adapters/task-workspace";
 import {
   expectedTemplateSceneOutputSet,
@@ -36,7 +37,6 @@ const FIXED_TASK_KINDS = [
   "narration-seal",
   "semantic-timing",
   "composition-convergence",
-  "delivery-build",
 ] as const;
 
 type FixedTaskKind = (typeof FIXED_TASK_KINDS)[number];
@@ -46,7 +46,6 @@ const policies: Readonly<Record<FixedTaskKind, string>> = {
   "narration-seal": "narration-seal-validator-v1",
   "semantic-timing": "semantic-timing-validator-v1",
   "composition-convergence": "composition-convergence-validator-v1",
-  "delivery-build": "delivery-build-validator-v1",
 };
 
 const outputs: Readonly<Record<FixedTaskKind, readonly string[]>> = {
@@ -61,7 +60,6 @@ const outputs: Readonly<Record<FixedTaskKind, readonly string[]>> = {
     "public/mastered-complete.wav",
   ],
   "composition-convergence": ["project/convergence.json"],
-  "delivery-build": ["project/publish.json"],
 };
 
 const requiredInputIds: Readonly<Record<FixedTaskKind, readonly string[]>> = {
@@ -72,11 +70,7 @@ const requiredInputIds: Readonly<Record<FixedTaskKind, readonly string[]>> = {
     "tts-chunk",
   ],
   "narration-seal": ["generation-input", "read:inputs/context.json"],
-  "semantic-timing": [
-    "mastering-policy",
-    "read:inputs/context.json",
-    "render",
-  ],
+  "semantic-timing": ["mastering-policy", "read:inputs/context.json", "render"],
   "composition-convergence": [
     "read:inputs/context.json",
     "render",
@@ -84,12 +78,6 @@ const requiredInputIds: Readonly<Record<FixedTaskKind, readonly string[]>> = {
     "sound",
     "story",
     "style",
-  ],
-  "delivery-build": [
-    "publishing",
-    "read:inputs/context.json",
-    "render",
-    "runtime",
   ],
 };
 
@@ -127,15 +115,6 @@ const CompositionContextSchema = z
   })
   .strict();
 
-const DeliveryContextSchema = z
-  .object({
-    storyId: z.string().min(1),
-    revisionId: z.string().min(1),
-    render: RenderSpecSchema,
-    publishingIntent: PublishingIntentSchema,
-  })
-  .strict();
-
 const ConvergenceResultSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -154,8 +133,10 @@ const ConvergenceResultSchema = z
   })
   .strict();
 
-const parseJson = async <T>(path: string, schema: { readonly parse: (raw: unknown) => T }) =>
-  schema.parse(JSON.parse(await readFile(path, "utf8")));
+const parseJson = async <T>(
+  path: string,
+  schema: { readonly parse: (raw: unknown) => T },
+) => schema.parse(JSON.parse(await readFile(path, "utf8")));
 
 const assertCanonicalContext = async <T>(
   path: string,
@@ -204,7 +185,10 @@ const assertDependencyCount = (
 
 const checkChunk = async (workspace: string, task: ProducerTaskSpec) => {
   assertDependencyCount(task, 0);
-  await assertCanonicalContext(join(workspace, "inputs/context.json"), ChunkContextSchema);
+  await assertCanonicalContext(
+    join(workspace, "inputs/context.json"),
+    ChunkContextSchema,
+  );
   const wav = await readFile(join(workspace, "public/chunk.wav"));
   const measured = measureCanonicalPcmWav(wav);
   if (measured.sampleFrameCount <= 0) {
@@ -224,7 +208,9 @@ const checkSeal = async (workspace: string, task: ProducerTaskSpec) => {
     join(workspace, "project/generated/sealed-narration.generated.json"),
     SealedNarrationManifestSchema,
   );
-  const chunkCount = manifest.segments.filter(({ kind }) => kind === "chunk").length;
+  const chunkCount = manifest.segments.filter(
+    ({ kind }) => kind === "chunk",
+  ).length;
   assertDependencyCount(task, chunkCount);
   if (
     manifest.storyId !== task.storyId ||
@@ -237,7 +223,9 @@ const checkSeal = async (workspace: string, task: ProducerTaskSpec) => {
   }
   const expectedSegments = context.story.beats.flatMap((beat) => {
     if (beat.kind === "silent-scene") return [];
-    const pauses = new Map(beat.explicitPauses.map((pause) => [pause.afterChunkId, pause]));
+    const pauses = new Map(
+      beat.explicitPauses.map((pause) => [pause.afterChunkId, pause]),
+    );
     return beat.ttsChunks.flatMap((chunk) => [
       {
         kind: "chunk" as const,
@@ -246,12 +234,14 @@ const checkSeal = async (workspace: string, task: ProducerTaskSpec) => {
         ttsText: chunk.ttsText,
       },
       ...(pauses.has(chunk.chunkId)
-        ? [{
-            kind: "pause" as const,
-            afterChunkId: chunk.chunkId,
-            meaningId: beat.meaningId,
-            pauseMs: pauses.get(chunk.chunkId)?.pauseMs,
-          }]
+        ? [
+            {
+              kind: "pause" as const,
+              afterChunkId: chunk.chunkId,
+              meaningId: beat.meaningId,
+              pauseMs: pauses.get(chunk.chunkId)?.pauseMs,
+            },
+          ]
         : []),
     ]);
   });
@@ -271,7 +261,9 @@ const checkSeal = async (workspace: string, task: ProducerTaskSpec) => {
         },
   );
   if (!same(actualSegments, expectedSegments)) {
-    throw new Error("Narration seal segments do not match authored TTS chunks.");
+    throw new Error(
+      "Narration seal segments do not match authored TTS chunks.",
+    );
   }
   const wav = await readFile(join(workspace, "public/complete.wav"));
   const measured = measureCanonicalPcmWav(wav);
@@ -299,7 +291,8 @@ const relativeImports = (sourcePath: string, source: string) => {
   const imports: string[] = [];
   for (const statement of sourceFile.statements) {
     if (
-      (ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)) &&
+      (ts.isImportDeclaration(statement) ||
+        ts.isExportDeclaration(statement)) &&
       statement.moduleSpecifier !== undefined &&
       ts.isStringLiteral(statement.moduleSpecifier) &&
       statement.moduleSpecifier.text.startsWith(".")
@@ -316,10 +309,17 @@ const resolveTemplateImport = (
   available: ReadonlySet<string>,
 ) => {
   const base = posix.normalize(posix.join(dirname(importer), specifier));
-  const match = [base, `${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`]
-    .find((candidate) => available.has(candidate));
+  const match = [
+    base,
+    `${base}.ts`,
+    `${base}.tsx`,
+    `${base}/index.ts`,
+    `${base}/index.tsx`,
+  ].find((candidate) => available.has(candidate));
   if (match === undefined) {
-    throw new Error("Scene template Renderer import is not bound inside its workspace.");
+    throw new Error(
+      "Scene template Renderer import is not bound inside its workspace.",
+    );
   }
   return match;
 };
@@ -338,7 +338,10 @@ export const checkSceneTemplateWorkspaceBinding = async ({
     join(workspace, "src/scene-template-instance.json"),
     SceneTemplateInstanceSchema,
   );
-  if (instance.storyId !== task.storyId || instance.meaningId !== task.semanticId) {
+  if (
+    instance.storyId !== task.storyId ||
+    instance.meaningId !== task.semanticId
+  ) {
     throw new Error("Scene template instance is cross-bound.");
   }
   const rawContext = JSON.parse(
@@ -354,29 +357,45 @@ export const checkSceneTemplateWorkspaceBinding = async ({
     beat.preset.soundIntent !== instance.soundIntent ||
     !same(beat.preset.resourceIds, instance.resourceIds) ||
     beat.preset.implementation.templateId !== instance.templateId ||
-    beat.preset.implementation.templateFingerprint !== instance.templateFingerprint ||
-    beat.preset.implementation.instanceFingerprint !== instance.instanceFingerprint ||
-    beat.preset.implementation.rendererSourceFingerprint !== instance.rendererSourceGraphFingerprint ||
+    beat.preset.implementation.templateFingerprint !==
+      instance.templateFingerprint ||
+    beat.preset.implementation.instanceFingerprint !==
+      instance.instanceFingerprint ||
+    beat.preset.implementation.rendererSourceFingerprint !==
+      instance.rendererSourceGraphFingerprint ||
     !same(beat.preset.implementation.soundCues, instance.soundCues)
   ) {
-    throw new Error("Scene template instance does not match its frozen StoryBeat.");
+    throw new Error(
+      "Scene template instance does not match its frozen StoryBeat.",
+    );
   }
   const copied = [...instance.copiedSourceFiles, ...instance.copiedAssetFiles];
-  const mapped = new Map<string, { readonly repositoryPath: string; readonly bytes: Buffer }>();
+  const mapped = new Map<
+    string,
+    { readonly repositoryPath: string; readonly bytes: Buffer }
+  >();
   for (const file of copied) {
     const logicalPath = toTemplateSceneWorkspacePath({
       storyId: task.storyId,
       meaningId: task.semanticId,
       repositoryPath: file.repositoryPath,
     });
-    if (!task.declaredOutputSet.includes(logicalPath) || mapped.has(file.repositoryPath)) {
+    if (
+      !task.declaredOutputSet.includes(logicalPath) ||
+      mapped.has(file.repositoryPath)
+    ) {
       throw new Error("Scene template copied file set is stale.");
     }
     const bytes = await readFile(join(workspace, logicalPath));
     if (checksum(bytes) !== file.checksum) {
-      throw new Error(`Scene template copied file checksum drifted: ${logicalPath}.`);
+      throw new Error(
+        `Scene template copied file checksum drifted: ${logicalPath}.`,
+      );
     }
-    mapped.set(file.repositoryPath, { repositoryPath: file.repositoryPath, bytes });
+    mapped.set(file.repositoryPath, {
+      repositoryPath: file.repositoryPath,
+      bytes,
+    });
   }
   const expectedOutputs = expectedTemplateSceneOutputSet({
     storyId: task.storyId,
@@ -384,13 +403,19 @@ export const checkSceneTemplateWorkspaceBinding = async ({
     copiedRepositoryPaths: copied.map(({ repositoryPath }) => repositoryPath),
   });
   if (!same(task.declaredOutputSet, expectedOutputs)) {
-    throw new Error("Scene template copied file set does not match task outputs.");
+    throw new Error(
+      "Scene template copied file set does not match task outputs.",
+    );
   }
   const rendererPath = `${sceneSourcePrefix(task)}Renderer.tsx`;
   if (!mapped.has(rendererPath)) {
-    throw new Error("Scene template Renderer is missing from copied source files.");
+    throw new Error(
+      "Scene template Renderer is missing from copied source files.",
+    );
   }
-  const available = new Set(instance.copiedSourceFiles.map(({ repositoryPath }) => repositoryPath));
+  const available = new Set(
+    instance.copiedSourceFiles.map(({ repositoryPath }) => repositoryPath),
+  );
   const pending = [rendererPath];
   const graph = new Map<string, Buffer>();
   while (pending.length > 0) {
@@ -398,7 +423,9 @@ export const checkSceneTemplateWorkspaceBinding = async ({
     if (sourcePath === undefined || graph.has(sourcePath)) continue;
     const file = mapped.get(sourcePath);
     if (file === undefined) {
-      throw new Error("Scene template Renderer graph escapes copied source files.");
+      throw new Error(
+        "Scene template Renderer graph escapes copied source files.",
+      );
     }
     graph.set(sourcePath, file.bytes);
     const source = file.bytes.toString("utf8");
@@ -420,10 +447,9 @@ export const checkSceneTemplateWorkspaceBinding = async ({
   return instance;
 };
 
-export const checkSceneTemplateTask = async (input: {
-  readonly rootDir: string;
-  readonly taskRevision: string;
-}) => {
+export const checkSceneTemplateTask = async (
+  input: Parameters<typeof checkProducerTaskWorkspace>[0],
+) => {
   const checked = await checkSceneTask(input);
   await checkSceneTemplateWorkspaceBinding({
     workspace: checked.workspace,
@@ -461,7 +487,8 @@ const checkTiming = async (workspace: string, task: ProducerTaskSpec) => {
   const lastSegment = timing.segments.at(-1);
   if (
     lastSegment === undefined ||
-    lastSegment.sampleRange.endSampleFrame !== mastered.outputAudio.sampleFrameCount
+    lastSegment.sampleRange.endSampleFrame !==
+      mastered.outputAudio.sampleFrameCount
   ) {
     throw new Error("Semantic timing sample authority is stale.");
   }
@@ -499,42 +526,9 @@ const checkComposition = async (workspace: string, task: ProducerTaskSpec) => {
   }
 };
 
-const checkDelivery = async (workspace: string, task: ProducerTaskSpec) => {
-  assertDependencyCount(task, 2);
-  const context = await assertCanonicalContext(
-    join(workspace, "inputs/context.json"),
-    DeliveryContextSchema,
-  );
-  const publish = await parseJson(
-    join(workspace, "project/publish.json"),
-    DeliveryPublishSchema,
-  );
-  if (
-    context.storyId !== task.storyId ||
-    context.revisionId !== task.revisionId ||
-    context.publishingIntent.storyId !== task.storyId ||
-    publish.storyId !== task.storyId ||
-    publish.revisionId !== task.revisionId ||
-    publish.compositionId !== context.render.compositionId ||
-    publish.fps !== context.render.fps ||
-    publish.width !== context.render.width ||
-    publish.height !== context.render.height ||
-    publish.publishing.description !== context.publishingIntent.description ||
-    publish.publishing.collection !== context.publishingIntent.collection.name ||
-    !same(publish.publishing.topics, context.publishingIntent.topics) ||
-    !same(
-      publish.publishing.chapters.map(({ meaningId, name }) => ({ meaningId, name })),
-      context.publishingIntent.chapters,
-    )
-  ) {
-    throw new Error("Delivery publish output is cross-bound.");
-  }
-};
-
-export const checkFixedTask = async (input: {
-  readonly rootDir: string;
-  readonly taskRevision: string;
-}) => {
+export const checkFixedTask = async (
+  input: Parameters<typeof checkProducerTaskWorkspace>[0],
+) => {
   const checked = await checkProducerTaskWorkspace(input);
   const { task, workspace } = await readTaskWorkspace(input);
   if (!FIXED_TASK_KINDS.includes(task.taskKind as FixedTaskKind)) {
@@ -545,7 +539,6 @@ export const checkFixedTask = async (input: {
   if (kind === "narration-chunk") await checkChunk(workspace, task);
   else if (kind === "narration-seal") await checkSeal(workspace, task);
   else if (kind === "semantic-timing") await checkTiming(workspace, task);
-  else if (kind === "composition-convergence") await checkComposition(workspace, task);
-  else await checkDelivery(workspace, task);
+  else await checkComposition(workspace, task);
   return checked;
 };

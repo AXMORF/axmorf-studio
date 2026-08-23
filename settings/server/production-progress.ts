@@ -1,11 +1,12 @@
 import { StoryIdSchema } from "../../src/contracts";
-import { readCurrentProductionRevision } from "../../scripts/project-production/application/current-revision";
-import { inspectProjectProduction } from "../../scripts/project-production/application/inspect-production";
 import {
   readCurrentProjectDelivery,
+  readCurrentProjectSource,
   readProjectProductionProgressProjection,
+  readRepositoryCurrentProductionRevision,
 } from "../../scripts/project-production/application/progress-query";
 import { readLocalProjectRoot } from "../../scripts/projects/root";
+import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
 import {
   ProductionProgressResponseSchema,
   type ProductionProgressResponse,
@@ -18,6 +19,14 @@ const emptyTasks = {
   dirtyFixedTaskCount: 0,
   blockedTaskCount: 0,
 } as const;
+
+type ReadCurrentRevision = (input: {
+  readonly locations: ReturnType<typeof createRepositoryProductionLocations>;
+  readonly projectId: string;
+}) => Promise<Readonly<{ revisionId: string }>>;
+
+const readRepositoryCurrentRevision: ReadCurrentRevision = (input) =>
+  readRepositoryCurrentProductionRevision(input);
 
 const attemptSummary = (
   projection: Awaited<
@@ -38,7 +47,7 @@ const attemptSummary = (
         actualCost: attempt.actualCost,
         taskExplanations: attempt.taskExplanations,
         taskOutcomes: attempt.taskOutcomeSummary,
-        deliveryResult: attempt.deliveryResult.status,
+        terminalResult: attempt.terminalResult.status,
       };
 };
 
@@ -51,24 +60,31 @@ const readProject = async ({
 }: {
   readonly rootDir: string;
   readonly projectId: string;
-  readonly readCurrentRevision: typeof readCurrentProductionRevision;
-  readonly inspectProduction: typeof inspectProjectProduction;
+  readonly readCurrentRevision: ReadCurrentRevision;
+  readonly inspectProduction?: (input: {
+    readonly locations: ReturnType<typeof createRepositoryProductionLocations>;
+    readonly projectId: string;
+  }) => Promise<NonNullable<ProjectProductionProgress["inspection"]>>;
   readonly readCurrentDelivery: typeof readCurrentProjectDelivery;
 }): Promise<ProjectProductionProgress> => {
-  let inspection: Awaited<ReturnType<typeof inspectProjectProduction>> | null =
-    null;
-  try {
-    inspection = await inspectProduction({ rootDir, projectId });
-  } catch {
-    // Settings diagnostics never alter production authority. A projection
-    // failure must not hide a valid attempt or delivery.
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
+  let inspection: ProjectProductionProgress["inspection"] = null;
+  if (inspectProduction !== undefined) {
+    try {
+      inspection = await inspectProduction({ locations, projectId });
+    } catch {
+      // Settings diagnostics never alter production authority. A projection
+      // failure must not hide a valid attempt or delivery.
+    }
   }
   let projection: Awaited<
     ReturnType<typeof readProjectProductionProgressProjection>
   >;
   try {
     projection = await readProjectProductionProgressProjection({
-      rootDir,
+      locations,
       storyId: projectId,
     });
     if (
@@ -92,7 +108,7 @@ const readProject = async ({
   const attempt = attemptSummary(projection);
   let delivery: Awaited<ReturnType<typeof readCurrentProjectDelivery>>;
   try {
-    delivery = await readCurrentDelivery({ rootDir, storyId: projectId });
+    delivery = await readCurrentDelivery({ locations, storyId: projectId });
   } catch {
     return {
       projectId: StoryIdSchema.parse(projectId),
@@ -109,8 +125,9 @@ const readProject = async ({
 
   let currentRevisionId: string | null;
   try {
-    currentRevisionId = (await readCurrentRevision({ rootDir, projectId }))
-      .revisionId;
+    currentRevisionId = (
+      await readCurrentRevision({ locations, projectId })
+    ).revisionId;
   } catch {
     if (delivery !== null) {
       return {
@@ -131,6 +148,10 @@ const readProject = async ({
   }
 
   try {
+    const sourceCurrent = await readCurrentProjectSource({
+      locations,
+      storyId: projectId,
+    });
     const revisionId =
       currentRevisionId ??
       projection.revisionId ??
@@ -138,8 +159,10 @@ const readProject = async ({
       null;
     const current =
       delivery !== null &&
+      sourceCurrent !== null &&
       currentRevisionId !== null &&
-      currentRevisionId === delivery.revisionId;
+      currentRevisionId === delivery.revisionId &&
+      sourceCurrent.sourceCurrentId === delivery.sourceCurrentId;
     const status =
       delivery !== null
         ? current
@@ -149,9 +172,12 @@ const readProject = async ({
           ? "needs-agent"
           : projection.status === "failed"
             ? "failed"
-            : projection.status === "not-produced"
-              ? "not-produced"
-              : "converging";
+            : projection.attempt?.terminalResult.status === "source-current" &&
+                sourceCurrent !== null
+              ? "source-current"
+              : projection.status === "not-produced"
+                ? "not-produced"
+                : "converging";
     return {
       projectId: StoryIdSchema.parse(projectId),
       status,
@@ -165,6 +191,8 @@ const readProject = async ({
           : {
               deliveryBuildId: delivery.deliveryBuildId,
               revisionId: delivery.revisionId,
+              sourceCurrentId: delivery.sourceCurrentId,
+              rendererRuntimeFingerprint: delivery.rendererRuntimeFingerprint,
               frameCount: delivery.frameCount,
               current,
               files: {
@@ -197,15 +225,17 @@ export const readProjectProductionProgress = async ({
 }: {
   readonly rootDir: string;
   readonly dependencies?: Readonly<{
-    readCurrentRevision?: typeof readCurrentProductionRevision;
-    inspectProduction?: typeof inspectProjectProduction;
+    readCurrentRevision?: ReadCurrentRevision;
+    inspectProduction?: (input: {
+      readonly locations: ReturnType<typeof createRepositoryProductionLocations>;
+      readonly projectId: string;
+    }) => Promise<NonNullable<ProjectProductionProgress["inspection"]>>;
     readCurrentDelivery?: typeof readCurrentProjectDelivery;
   }>;
 }): Promise<ProductionProgressResponse> => {
   const readCurrentRevision =
-    dependencies.readCurrentRevision ?? readCurrentProductionRevision;
-  const inspectProduction =
-    dependencies.inspectProduction ?? inspectProjectProduction;
+    dependencies.readCurrentRevision ?? readRepositoryCurrentRevision;
+  const inspectProduction = dependencies.inspectProduction;
   const readCurrentDelivery =
     dependencies.readCurrentDelivery ?? readCurrentProjectDelivery;
   const projectIds: string[] = [];

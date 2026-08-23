@@ -17,6 +17,7 @@ import {
   persistInitialWorkspacePreference,
   resolveDesktopPreferencesPath,
 } from "../../desktop/adapters/app-preferences";
+import { createWorkspacePreferenceSwitcher } from "../../desktop/adapters/workspace-preference-switch";
 import {
   resolveDefaultWorkspaceRoot,
   resolveWorkspaceSelection,
@@ -145,5 +146,47 @@ test("preferences reject symlink parents and non-normalized escape paths", async
       workspaceRoot: join(fixture.homeDirectory, "Movies", "AXMORF Studio"),
     }),
     /normalized and absolute/iu,
+  );
+});
+
+test("Workspace migration preference switch is atomic and compare-and-swap guarded", async (context) => {
+  const fixture = await createFixture();
+  context.after(() => rm(fixture.root, { recursive: true, force: true }));
+  const firstRoot = join(
+    fixture.homeDirectory,
+    "Movies",
+    "AXMORF Studio",
+  );
+  const secondRoot = join(fixture.homeDirectory, "Movies", "Moved Studio");
+  await persistInitialWorkspacePreference({
+    preferencesPath: fixture.preferencesPath,
+    workspaceRoot: firstRoot,
+  });
+  const switchPreference = createWorkspacePreferenceSwitcher({
+    preferencesPath: fixture.preferencesPath,
+  });
+  await switchPreference({
+    expectedWorkspaceRoot: firstRoot,
+    nextWorkspaceRoot: secondRoot,
+  });
+  assert.equal(
+    (await loadAppPreferences({ preferencesPath: fixture.preferencesPath }))
+      ?.workspaceRoot,
+    secondRoot,
+  );
+  assert.deepEqual(await readdir(fixture.applicationSupportRoot), [
+    "preferences.json",
+  ]);
+  await assert.rejects(
+    switchPreference({
+      expectedWorkspaceRoot: firstRoot,
+      nextWorkspaceRoot: join(fixture.homeDirectory, "Movies", "Third Studio"),
+    }),
+    /authority changed/iu,
+  );
+  assert.equal(
+    (await loadAppPreferences({ preferencesPath: fixture.preferencesPath }))
+      ?.workspaceRoot,
+    secondRoot,
   );
 });

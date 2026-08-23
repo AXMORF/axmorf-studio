@@ -1,9 +1,23 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { buildRepositoryPreviewCatalog } from "../adapters/repository-preview-catalog";
+import { buildWorkspacePreviewCatalog } from "../adapters/workspace-preview-catalog";
 import {
+  readWorkspaceActiveProduction,
+  workspaceHasActiveProduction,
+} from "../adapters/workspace-migration-filesystem";
+import { resolveEmbeddedRuntimeExecutionResources } from "../adapters/runtime-execution-resources";
+import { createWorkspaceDeliveryLifecycle } from "./workspace-delivery-lifecycle";
+import {
+  locateEmbeddedRuntimePack,
+  readDesktopCompatibilityManifest,
+  verifyRuntimePack,
+} from "../adapters/runtime-pack-filesystem";
+import {
+  RspCommandFailure,
   startRspDoctorServer,
+  type RspCommandAuthorizer,
+  type RspCommandExecutor,
   type RspDoctorServerHandle,
 } from "../adapters/rsp-socket";
 import { initializeWorkspace } from "../application/initialize-workspace";
@@ -11,19 +25,34 @@ import {
   DESKTOP_PREVIEW_CATALOG_VERSION,
   PreviewCatalogReadinessSchema,
   PreviewCatalogSchema,
+  type DesktopProjectStatus,
   type PreviewCatalog,
   type PreviewCatalogReadiness,
 } from "../contracts/preview";
 import {
+  DESKTOP_NETWORK_POLICY,
   DoctorResponseSchema,
   RSP_PROTOCOL_VERSION,
   parseMainToEngineMessage,
   type DoctorResponse,
   type EngineToMainMessage,
   type MainToEngineMessage,
+  type RspCommandRequest,
 } from "../contracts/protocol";
+import {
+  assertDesktopRuntimeCompatibility,
+  type RuntimePackManifest,
+} from "../contracts/runtime-pack";
+import { ProducerConfigSchema, type ProducerConfig } from "../../src/contracts";
+import {
+  createWorkspaceProductionLocations,
+  type ProductionLocations,
+  type RuntimeExecutionResources,
+} from "../../scripts/project-production/application/production-locations";
+import { createWorkspaceProductionController } from "../../scripts/project-production/application/workspace-production-controller";
+import { createWorkspaceRemotionDeliveryRuntime } from "../../scripts/project-production/application/workspace-remotion-delivery";
 
-export const DESKTOP_ENGINE_ENTRY_ID = "desktop-engine-phase-a-v1" as const;
+export const DESKTOP_ENGINE_ENTRY_ID = "desktop-engine-phase-b-v1" as const;
 
 type TokenPort = {
   readonly on: (
@@ -47,18 +76,72 @@ export type EngineParentPort = {
   readonly postMessage: (message: EngineToMainMessage) => void;
 };
 
+export type WorkspaceCommandRuntime = Readonly<{
+  executeCommand: RspCommandExecutor;
+  shutdown: () => Promise<void>;
+  activeWork: DoctorResponse["activeWork"];
+  deliveryAvailable: boolean;
+  deliveryBlocker: DoctorResponse["deliveryBlocker"];
+}>;
+
 export type EngineDependencies = Readonly<{
   initializeWorkspace: typeof initializeWorkspace;
-  buildPreviewCatalog: typeof buildRepositoryPreviewCatalog;
+  verifyRuntimePack: typeof verifyRuntimePack;
+  readCompatibility: typeof readDesktopCompatibilityManifest;
+  resolveRuntime: typeof resolveEmbeddedRuntimeExecutionResources;
+  buildPreviewCatalog: typeof buildWorkspacePreviewCatalog;
+  createCommandRuntime: (input: {
+    readonly locations: ProductionLocations;
+    readonly runtime: RuntimeExecutionResources;
+    readonly workspaceId: string;
+    readonly workspaceRoot: string;
+    readonly config: ProducerConfig | null;
+    readonly provider: DoctorResponse["provider"];
+  }) => Promise<WorkspaceCommandRuntime>;
   startRspDoctorServer: typeof startRspDoctorServer;
   homeDirectory: () => string;
   enginePid: () => number;
   tokenTimeoutMs: number;
 }>;
 
+const createWorkspaceCommandRuntime: EngineDependencies["createCommandRuntime"] =
+  async ({ locations, runtime, workspaceRoot, config, provider }) => {
+    const delivery = createWorkspaceRemotionDeliveryRuntime({
+      locations,
+      runtime,
+      lifecycle: createWorkspaceDeliveryLifecycle(),
+    });
+    try {
+      const [controller, activeWork] = await Promise.all([
+        createWorkspaceProductionController({
+          locations,
+          runtime,
+          delivery,
+          loadProducerConfig: async () => config,
+          providerReadiness: provider,
+        }),
+        readWorkspaceActiveProduction(workspaceRoot),
+      ]);
+      return {
+        executeCommand: (request) => controller.execute(request),
+        shutdown: controller.shutdown,
+        activeWork,
+        deliveryAvailable: true,
+        deliveryBlocker: null,
+      };
+    } catch (error) {
+      await delivery.shutdown();
+      throw error;
+    }
+  };
+
 const defaultDependencies: EngineDependencies = {
   initializeWorkspace,
-  buildPreviewCatalog: buildRepositoryPreviewCatalog,
+  verifyRuntimePack,
+  readCompatibility: readDesktopCompatibilityManifest,
+  resolveRuntime: resolveEmbeddedRuntimeExecutionResources,
+  buildPreviewCatalog: buildWorkspacePreviewCatalog,
+  createCommandRuntime: createWorkspaceCommandRuntime,
   startRspDoctorServer,
   homeDirectory: homedir,
   enginePid: () => process.pid,
@@ -81,7 +164,7 @@ const notLoaded = (): PreviewCatalogReadiness =>
     failureCode: null,
   });
 
-const receiveSessionToken = ({
+const receiveSessionMaterial = ({
   ports,
   timeoutMs,
 }: {
@@ -92,23 +175,62 @@ const receiveSessionToken = ({
     return Promise.reject(new Error("engine-session-token-port-required"));
   }
   const port = ports[0]!;
-  return new Promise<Uint8Array>((resolve, reject) => {
+  return new Promise<
+    Readonly<{
+      token: Uint8Array;
+      config: ProducerConfig | null;
+      provider: "ready" | "not-configured" | "unavailable";
+    }>
+  >((resolve, reject) => {
     let settled = false;
-    const finish = (error: Error | null, token?: Uint8Array) => {
+    const finish = (
+      error: Error | null,
+      material?: Readonly<{
+        token: Uint8Array;
+        config: ProducerConfig | null;
+        provider: "ready" | "not-configured" | "unavailable";
+      }>,
+    ) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
       port.off("message", onMessage);
       port.close();
-      if (error === null && token !== undefined) resolve(token);
+      if (error === null && material !== undefined) resolve(material);
       else reject(error ?? new Error("engine-session-token-invalid"));
     };
     const onMessage = (event: MessageEvent<unknown>) => {
-      if (!(event.data instanceof Uint8Array) || event.data.byteLength < 32) {
+      if (
+        typeof event.data !== "object" ||
+        event.data === null ||
+        !("token" in event.data) ||
+        !(event.data.token instanceof Uint8Array) ||
+        event.data.token.byteLength < 32 ||
+        !("producerConfig" in event.data) ||
+        !("provider" in event.data) ||
+        (event.data.provider !== "ready" &&
+          event.data.provider !== "not-configured" &&
+          event.data.provider !== "unavailable")
+      ) {
         finish(new Error("engine-session-token-invalid"));
         return;
       }
-      finish(null, Uint8Array.from(event.data));
+      try {
+        const config =
+          event.data.producerConfig === null
+            ? null
+            : ProducerConfigSchema.parse(event.data.producerConfig);
+        if ((event.data.provider === "ready") !== (config !== null)) {
+          throw new Error("engine-session-provider-state-invalid");
+        }
+        finish(null, {
+          token: Uint8Array.from(event.data.token),
+          config,
+          provider: event.data.provider,
+        });
+      } catch {
+        finish(new Error("engine-session-config-invalid"));
+      }
     };
     const timer = setTimeout(
       () => finish(new Error("engine-session-token-timeout")),
@@ -141,11 +263,28 @@ const fatalMessage = (code: FatalCode) => {
       return "Desktop Engine rejected an incompatible message.";
     case "engine-initialization-failed":
       return "Desktop Engine initialization failed.";
+    case "runtime-pack-invalid":
+      return "Embedded Runtime Pack verification failed.";
     case "preview-catalog-failed":
       return "Desktop Preview Catalog refresh failed.";
     case "rsp-server-failed":
       return "Workspace rsp server failed.";
   }
+};
+
+const attemptIdFromResult = (value: unknown) => {
+  if (
+    value !== null &&
+    typeof value === "object" &&
+    "attemptId" in value &&
+    typeof value.attemptId === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(
+      value.attemptId,
+    )
+  ) {
+    return value.attemptId;
+  }
+  return null;
 };
 
 export const createEngineController = ({
@@ -156,12 +295,24 @@ export const createEngineController = ({
   readonly dependencies?: EngineDependencies;
 }) => {
   let workspace: Awaited<ReturnType<typeof initializeWorkspace>> | undefined;
-  let repositoryRoot: string | undefined;
+  let locations: ProductionLocations | undefined;
+  let runtime: RuntimeExecutionResources | undefined;
+  let runtimePack: RuntimePackManifest | undefined;
   let appPid: number | undefined;
   let sessionExpiresAt: string | undefined;
   let rspServer: RspDoctorServerHandle | undefined;
   let catalog = emptyCatalog();
+  let projects: readonly DesktopProjectStatus[] = [];
   let catalogReadiness = notLoaded();
+  let activeWork: DoctorResponse["activeWork"] = null;
+  let provider: DoctorResponse["provider"] = "not-configured";
+  let deliveryAvailable = false;
+  let deliveryBlocker: DoctorResponse["deliveryBlocker"] = {
+    code: "delivery-runtime-not-verified",
+    message: "Delivery runtime capability has not been verified.",
+  };
+  let rawExecuteCommand: RspCommandExecutor | undefined;
+  let shutdownCommandRuntime: (() => Promise<void>) | undefined;
   let terminal = false;
 
   const post = (message: EngineToMainMessage) =>
@@ -170,31 +321,49 @@ export const createEngineController = ({
   const doctorState = (): DoctorResponse => {
     if (
       workspace === undefined ||
+      runtimePack === undefined ||
+      rawExecuteCommand === undefined ||
       appPid === undefined ||
       sessionExpiresAt === undefined
     ) {
       throw new Error("engine-not-initialized");
     }
     return DoctorResponseSchema.parse({
-      schemaVersion: 1,
+      schemaVersion: 2,
       protocolVersion: RSP_PROTOCOL_VERSION,
       workspaceId: workspace.manifest.workspaceId,
-      adapterMode: "repository",
-      repositoryMode: "build-time-checkout",
-      runtimePackMode: "host-node-prototype",
+      adapterMode: "workspace",
+      runtimePackMode: "embedded",
       previewCatalog: catalogReadiness,
-      desktopTcpListeners: false,
-      productionAvailable: false,
-      deliveryAvailable: false,
+      network: DESKTOP_NETWORK_POLICY,
+      productionAvailable: true,
+      deliveryAvailable,
+      deliveryBlocker,
       distributionReady: false,
-      runtimePackAvailable: false,
-      activeWork: false,
+      runtimePackAvailable: true,
+      runtimePack: {
+        runtimePackId: runtimePack.runtimePackId,
+        architecture: runtimePack.architecture,
+      },
+      provider,
+      activeWork,
       process: { appPid, enginePid: dependencies.enginePid() },
       session: { active: true, expiresAt: sessionExpiresAt },
     });
   };
 
+  const postActiveWork = (requestId: string) => {
+    post({
+      protocolVersion: RSP_PROTOCOL_VERSION,
+      requestId,
+      type: "active-work-state",
+      activeWork,
+    });
+  };
+
   const stopOwnedResources = async () => {
+    await shutdownCommandRuntime?.().catch(() => undefined);
+    shutdownCommandRuntime = undefined;
     await rspServer?.close().catch(() => undefined);
     rspServer = undefined;
   };
@@ -218,26 +387,238 @@ export const createEngineController = ({
     });
   };
 
+  const refreshPreviewCatalog = async (requestId: string) => {
+    if (locations === undefined || runtime === undefined) {
+      throw new Error("engine-not-initialized");
+    }
+    try {
+      const snapshot = await dependencies.buildPreviewCatalog({
+        locations,
+        rendererRuntimeFingerprint: runtime.rendererRuntimeFingerprint,
+      });
+      catalog = snapshot.catalog;
+      projects = snapshot.projects;
+      catalogReadiness = PreviewCatalogReadinessSchema.parse({
+        state: "ready",
+        entryCount: catalog.entries.length,
+        unavailableCount: catalog.unavailable.length,
+        failureCode: null,
+      });
+    } catch {
+      catalog = emptyCatalog();
+      projects = [];
+      catalogReadiness = PreviewCatalogReadinessSchema.parse({
+        state: "failed",
+        entryCount: 0,
+        unavailableCount: 0,
+        failureCode: "preview-catalog-failed",
+      });
+    }
+    post({
+      protocolVersion: RSP_PROTOCOL_VERSION,
+      requestId,
+      type: "preview-catalog",
+      catalog,
+    });
+    post({
+      protocolVersion: RSP_PROTOCOL_VERSION,
+      requestId,
+      type: "workspace-projects",
+      projects,
+    });
+    post({
+      protocolVersion: RSP_PROTOCOL_VERSION,
+      requestId,
+      type: "doctor-state",
+      doctor: doctorState(),
+    });
+  };
+
+  const authorizeCommand: RspCommandAuthorizer = (request) => {
+    const readonlyDuringActive =
+      request.command === "doctor" ||
+      request.command === "context" ||
+      request.command === "inspect" ||
+      request.command === "task-check";
+    const exactAttemptTerminal =
+      (request.command === "task-commit" || request.command === "task-fail") &&
+      activeWork?.kind === "production" &&
+      activeWork.attemptId !== null &&
+      request.attemptId === activeWork.attemptId;
+    const exactContinuation =
+      request.command === "continue" &&
+      activeWork?.kind === "production" &&
+      activeWork.attemptId !== null &&
+      request.storyId === activeWork.storyId &&
+      request.attemptId === activeWork.attemptId;
+    const attemptCommand =
+      request.command === "task-commit" ||
+      request.command === "task-fail" ||
+      request.command === "continue";
+    if (
+      (!readonlyDuringActive &&
+        activeWork !== null &&
+        !exactAttemptTerminal &&
+        !exactContinuation) ||
+      (attemptCommand && activeWork === null)
+    ) {
+      throw new RspCommandFailure(
+        "rsp-conflict",
+        "The command conflicts with the active Workspace operation.",
+      );
+    }
+    if (
+      !deliveryAvailable &&
+      (request.command === "delivery-build" ||
+        (request.command === "continue" &&
+          request.deliveryPolicy === "automatic"))
+    ) {
+      throw new Error(
+        deliveryBlocker?.code ?? "desktop-delivery-runtime-unavailable",
+      );
+    }
+    if (request.command === "prepare") {
+      activeWork = {
+        storyId: request.storyId,
+        kind: "production",
+        attemptId: null,
+        phase: "preparing-production",
+      };
+      postActiveWork(request.requestId);
+    } else if (request.command === "delivery-build") {
+      activeWork = {
+        storyId: request.storyId,
+        kind: "delivery",
+        attemptId: null,
+        phase: "building-delivery",
+      };
+      postActiveWork(request.requestId);
+    } else if (exactContinuation && request.command === "continue") {
+      activeWork = {
+        storyId: request.storyId,
+        kind: "production",
+        attemptId: request.attemptId,
+        phase: "continuing-production",
+      };
+      postActiveWork(request.requestId);
+    }
+  };
+
+  const runCommand = async (request: RspCommandRequest) => {
+    if (rawExecuteCommand === undefined)
+      throw new Error("engine-not-initialized");
+    const terminalCommand =
+      request.command === "continue" || request.command === "delivery-build";
+    const ownsPreparingState =
+      request.command === "prepare" &&
+      activeWork?.kind === "production" &&
+      activeWork.storyId === request.storyId &&
+      activeWork.attemptId === null &&
+      activeWork.phase === "preparing-production";
+    let prepareReachedAwaiting = false;
+    try {
+      const result = await rawExecuteCommand(request);
+      if (request.command === "prepare") {
+        const attemptId = attemptIdFromResult(result);
+        if (attemptId !== null) {
+          activeWork = {
+            storyId: request.storyId,
+            kind: "production",
+            attemptId,
+            phase: "awaiting-task-terminals",
+          };
+          prepareReachedAwaiting = true;
+          postActiveWork(request.requestId);
+        }
+      }
+      if (
+        request.command === "project-create" ||
+        request.command === "asset-import" ||
+        request.command === "prepare"
+      ) {
+        await refreshPreviewCatalog(request.requestId);
+      }
+      return result;
+    } finally {
+      if (ownsPreparingState && !prepareReachedAwaiting) {
+        activeWork = null;
+        postActiveWork(request.requestId);
+      }
+      if (terminalCommand) {
+        activeWork = null;
+        postActiveWork(request.requestId);
+        await refreshPreviewCatalog(request.requestId);
+      }
+    }
+  };
+
   const initialize = async (
     message: Extract<MainToEngineMessage, { readonly type: "initialize" }>,
     event: EngineMessageEvent,
   ) => {
     if (workspace !== undefined) throw new Error("engine-already-initialized");
-    const token = await receiveSessionToken({
+    const sessionMaterial = await receiveSessionMaterial({
       ports: event.ports,
       timeoutMs: dependencies.tokenTimeoutMs,
     });
+    const runtimePackRoot = locateEmbeddedRuntimePack(message.appResourcesRoot);
+    try {
+      runtimePack = await dependencies.verifyRuntimePack({
+        runtimePackRoot,
+        expectedResourcesRoot: message.appResourcesRoot,
+      });
+      assertDesktopRuntimeCompatibility({
+        compatibility: await dependencies.readCompatibility(
+          message.appResourcesRoot,
+        ),
+        runtimePack,
+      });
+      runtime = await dependencies.resolveRuntime({ runtimePackRoot });
+    } catch {
+      await fatal({
+        requestId: message.requestId,
+        code: "runtime-pack-invalid",
+      });
+      return;
+    }
     workspace = await dependencies.initializeWorkspace({
       workspaceRoot: message.workspaceRoot,
       homeDirectory: dependencies.homeDirectory(),
-      repositoryRoot: message.repositoryRoot,
       integrationResourcesRoot: join(
-        message.repositoryRoot,
-        "desktop/resources/workspace-integration",
+        message.appResourcesRoot,
+        "workspace-integration",
       ),
-      forbiddenRoots: [],
+      rspExecutable: {
+        path: join(runtimePackRoot, runtimePack.rspClient.relativePath),
+        sha256: runtimePack.rspClient.sha256,
+      },
+      forbiddenRoots: [
+        message.appResourcesRoot,
+        message.applicationSupportRoot,
+        message.cacheRoot,
+      ],
+      activeWork: () => workspaceHasActiveProduction(message.workspaceRoot),
     });
-    repositoryRoot = message.repositoryRoot;
+    locations = createWorkspaceProductionLocations({
+      workspaceRoot: workspace.workspaceRoot,
+      applicationSupportRoot: message.applicationSupportRoot,
+      runtimeResources: runtimePackRoot,
+      cacheRoot: message.cacheRoot,
+    });
+    const commandRuntime = await dependencies.createCommandRuntime({
+      locations,
+      runtime,
+      workspaceId: workspace.manifest.workspaceId,
+      workspaceRoot: workspace.workspaceRoot,
+      config: sessionMaterial.config,
+      provider: sessionMaterial.provider,
+    });
+    rawExecuteCommand = commandRuntime.executeCommand;
+    shutdownCommandRuntime = commandRuntime.shutdown;
+    activeWork = commandRuntime.activeWork;
+    deliveryAvailable = commandRuntime.deliveryAvailable;
+    deliveryBlocker = commandRuntime.deliveryBlocker;
+    provider = sessionMaterial.provider;
     appPid = message.appPid;
     sessionExpiresAt = message.sessionExpiresAt;
     try {
@@ -247,8 +628,10 @@ export const createEngineController = ({
         appPid,
         enginePid: dependencies.enginePid(),
         expiresAt: sessionExpiresAt,
-        token,
+        token: sessionMaterial.token,
         getDoctorState: doctorState,
+        authorizeCommand,
+        executeCommand: runCommand,
       });
     } catch {
       await fatal({ requestId: message.requestId, code: "rsp-server-failed" });
@@ -269,36 +652,16 @@ export const createEngineController = ({
     });
   };
 
-  const refreshPreviewCatalog = async (requestId: string) => {
-    if (repositoryRoot === undefined) throw new Error("engine-not-initialized");
-    try {
-      catalog = await dependencies.buildPreviewCatalog({ repositoryRoot });
-      catalogReadiness = PreviewCatalogReadinessSchema.parse({
-        state: "ready",
-        entryCount: catalog.entries.length,
-        unavailableCount: catalog.unavailable.length,
-        failureCode: null,
-      });
-    } catch {
-      catalog = emptyCatalog();
-      catalogReadiness = PreviewCatalogReadinessSchema.parse({
-        state: "failed",
-        entryCount: 0,
-        unavailableCount: 0,
-        failureCode: "preview-catalog-failed",
-      });
-    }
-    post({
+  const buildDelivery = async (
+    message: Extract<MainToEngineMessage, { readonly type: "build-delivery" }>,
+  ) => {
+    if (workspace === undefined) throw new Error("engine-not-initialized");
+    await runCommand({
       protocolVersion: RSP_PROTOCOL_VERSION,
-      requestId,
-      type: "preview-catalog",
-      catalog,
-    });
-    post({
-      protocolVersion: RSP_PROTOCOL_VERSION,
-      requestId,
-      type: "doctor-state",
-      doctor: doctorState(),
+      requestId: message.requestId,
+      workspaceId: workspace.manifest.workspaceId,
+      command: "delivery-build",
+      storyId: message.storyId,
     });
   };
 
@@ -326,6 +689,10 @@ export const createEngineController = ({
         await refreshPreviewCatalog(message.requestId);
         return;
       }
+      if (message.type === "build-delivery") {
+        await buildDelivery(message).catch(() => undefined);
+        return;
+      }
       terminal = true;
       await stopOwnedResources();
       post({
@@ -349,6 +716,7 @@ export const createEngineController = ({
     doctorState,
     stopOwnedResources,
     snapshotCatalog: () => catalog,
+    snapshotProjects: () => projects,
   };
 };
 
@@ -356,11 +724,19 @@ if (process.parentPort !== undefined) {
   const controller = createEngineController({ parentPort: process.parentPort });
   let queue = Promise.resolve();
   process.parentPort.on("message", (event) => {
-    queue = queue.then(() =>
-      controller.handleMessageEvent({
-        data: event.data,
-        ports: event.ports as unknown as readonly TokenPort[],
-      }),
-    );
+    const incoming = {
+      data: event.data,
+      ports: event.ports as unknown as readonly TokenPort[],
+    };
+    if (
+      typeof event.data === "object" &&
+      event.data !== null &&
+      "type" in event.data &&
+      event.data.type === "shutdown"
+    ) {
+      void controller.handleMessageEvent(incoming);
+      return;
+    }
+    queue = queue.then(() => controller.handleMessageEvent(incoming));
   });
 }

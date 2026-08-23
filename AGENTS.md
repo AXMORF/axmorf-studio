@@ -145,15 +145,21 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   required artifacts 齐全前不得修改 live
   owner roots。物化使用受控 staging/replace/rollback，随后刷新 ScenePackage、Coverage、RendererRegistry、
   GlobalVisualPackage 与生成式 Composition，并从 live paths 复验 bytes 与 attestations 一致。
-- delivery 是同一 converge 内的同步阶段。它使用 build-owned staging，可跨失败复用已验证媒体，等待
-  Remotion/FFmpeg 完成，验证 H.264/AAC、声道、尺寸、fps、frame count、PNG、checksum 与 EOF decode，
-  最后写 `publish.json`。exact 四文件全部通过后才受控替换 `deliveries/<storyId>/`。
+- converge 在物化与 derived refresh 复验成功后写入 `source-current`。`manual` 在这里返回
+  `project-production-source-current`，不创建 Delivery staging/render/publish；`automatic` 才在同一 fixed
+  continuation 内调用 Delivery builder。用户也可稍后从 current source 显式构建 Delivery；该动作不创建
+  provider call、Agent task、workspace 或 ExecutionAttempt。
+- Delivery builder 使用 build-owned staging，可跨捕获失败复用同 identity 已验证媒体，等待 Remotion/FFmpeg
+  完成，验证 H.264/AAC、声道、尺寸、fps、frame count、PNG、checksum 与 EOF decode，最后写
+  `publish.json`。exact 四文件全部通过后才受控替换 `deliveries/<storyId>/`。
 - current delivery exactly 是 `video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`。相同
   DeliveryBuildId 且完整时只读 no-op；完成终点是 `project-production-complete` 或
   `project-production-current`，两者都表示实际四文件已复验。
-- 上述同步 delivery 是 current contract。Desktop App 目标会 clean-break 出 `source-current`，默认 `manual`
-  再由用户触发 Delivery；Preview Player 只播放 exact current four-file Delivery，不执行 Project TSX 或启动
-  Remotion Studio/Settings Web service。在对应代码、contracts、tests 与 E2E 完成前，Agent 不得提前跳过 current delivery。
+- delivery policy 只控制 source-current 后是否继续，不进入 ProductionRevision、TaskRevision、
+  ArtifactAttestation 或 SourceCurrent identity；renderer/runtime fingerprint 只影响 DeliveryBuild。Desktop
+  Preview Player 只播放 exact current four-file Delivery，不执行 Project TSX，也不启动 Remotion Studio、Studio
+  Server 或 Settings Web service。Desktop control plane 只有 authenticated Unix-domain socket；真实
+  DeliveryBuild 可在当前 build 范围内临时监听 `127.0.0.1` OS-ephemeral HTTP 端口，终态与退出后必须清理。
 
 ## Project 与本地产物
 

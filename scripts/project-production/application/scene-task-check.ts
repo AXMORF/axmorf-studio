@@ -41,10 +41,20 @@ export const checkSceneTask = async (
     join(checked.workspace, "src/Renderer.tsx"),
     "utf8",
   );
-  const rendererPath = `src/projects/${taskInput.storyId}/scenes/${taskInput.meaningId}/Renderer.tsx`;
-  const contractCheckPath = `src/projects/${taskInput.storyId}/scenes/${taskInput.meaningId}/__scene-task-component-check.tsx`;
+  const runtimeSourceRoot =
+    input.locations.layoutKind === "repository"
+      ? input.locations.runtimeResources
+      : join(input.locations.runtimeResources, "source");
+  const rendererPath = join(
+    runtimeSourceRoot,
+    `src/projects/${taskInput.storyId}/scenes/${taskInput.meaningId}/Renderer.tsx`,
+  );
+  const contractCheckPath = join(
+    runtimeSourceRoot,
+    `src/projects/${taskInput.storyId}/scenes/${taskInput.meaningId}/__scene-task-component-check.tsx`,
+  );
   compileTypeScriptImportGraph({
-    rootDir: input.rootDir,
+    rootDir: input.locations.runtimeResources,
     rootPath: contractCheckPath,
     label: "Scene task compile",
     virtualSources: {

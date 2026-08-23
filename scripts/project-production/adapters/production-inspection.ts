@@ -14,8 +14,9 @@ import {
   flattenTtsChunks,
   serializeCanonicalJson,
   validateNarrativeArtifactBundle,
+  type ProducerConfig,
 } from "../../../src/contracts";
-import { generateProjectResourceCatalog } from "../../catalog/generate";
+import type { ProjectCatalogProjectionPort } from "../../catalog/generate";
 import { resolveProducerNarrationInspection } from "../../config/narration-execution";
 import { loadVerifiedProgress } from "../../narration/adapters/candidate-workspace";
 import {
@@ -27,6 +28,7 @@ import { computeChunkRequestFingerprint } from "../../narration/domain/provider-
 import { loadNarrationProjectFiles } from "../../narration/project-files";
 import { isTemplateSceneLiveProjectionPath } from "../domain/template-scene-output";
 import { inspectCurrentDelivery as inspectVerifiedCurrentDelivery } from "./current-delivery-inspection";
+import type { ProductionLocations } from "../domain/production-locations";
 
 type TreeEntry = Readonly<{
   path: string;
@@ -105,18 +107,21 @@ export type ProductionInspectionSnapshot = Readonly<{
   artifacts: string;
   workspaces: string;
   attempts: string;
+  sourceCurrent: string;
   delivery: string;
 }>;
 
 export const captureProductionInspectionSnapshot = async ({
-  rootDir,
+  locations,
   projectId: rawProjectId,
+  catalogProjectionPath,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
+  readonly catalogProjectionPath: string;
 }): Promise<ProductionInspectionSnapshot> => {
   const projectId = StoryIdSchema.parse(rawProjectId);
-  const projectRoot = join(rootDir, "src/projects", projectId);
+  const projectRoot = join(locations.projectSourceRoot, projectId);
   const generatedRoot = join(projectRoot, "generated");
   const [
     source,
@@ -127,20 +132,25 @@ export const captureProductionInspectionSnapshot = async ({
     artifacts,
     workspaces,
     attempts,
+    sourceCurrent,
     delivery,
   ] = await Promise.all([
     fingerprintTrees([projectRoot]),
-    fingerprintTrees([join(rootDir, "public/projects", projectId)]),
+    fingerprintTrees([join(locations.projectMediaRoot, projectId)]),
     fingerprintTrees([generatedRoot]),
     fingerprintTrees([
-      join(rootDir, "src/remotion/catalog/resource-catalog.generated.json"),
+      catalogProjectionPath,
       join(generatedRoot, "resource-catalog.generated.json"),
     ]),
-    fingerprintTrees([join(rootDir, ".narration-work", projectId)]),
-    fingerprintTrees([join(rootDir, ".producer-artifacts", projectId)]),
-    fingerprintTrees([join(rootDir, ".producer-work", projectId)]),
-    fingerprintTrees([join(rootDir, ".producer-attempts", projectId)]),
-    fingerprintTrees([join(rootDir, "deliveries", projectId)]),
+    fingerprintTrees([
+      join(locations.taskWorkspaceRoot, projectId, "generations-v2"),
+      join(locations.taskWorkspaceRoot, projectId, "chunk-cache-v1"),
+    ]),
+    fingerprintTrees([join(locations.artifactStoreRoot, projectId)]),
+    fingerprintTrees([join(locations.taskWorkspaceRoot, projectId)]),
+    fingerprintTrees([join(locations.attemptStoreRoot, projectId)]),
+    fingerprintTrees([join(locations.sourceCurrentRoot, `${projectId}.json`)]),
+    fingerprintTrees([join(locations.deliveryRoot, projectId)]),
   ]);
   return {
     source,
@@ -151,6 +161,7 @@ export const captureProductionInspectionSnapshot = async ({
     artifacts,
     workspaces,
     attempts,
+    sourceCurrent,
     delivery,
   };
 };
@@ -211,15 +222,18 @@ export type ProductionSourceReadiness = Readonly<{
   missingAuthoringInputs: readonly string[];
 }>;
 
-export const inspectProductionSourceReadiness = async ({
-  rootDir,
-  projectId: rawProjectId,
-}: {
-  readonly rootDir: string;
-  readonly projectId: string;
-}): Promise<ProductionSourceReadiness> => {
+export const inspectProductionSourceReadiness = async (
+  {
+    locations,
+    projectId: rawProjectId,
+  }: {
+    readonly locations: ProductionLocations;
+    readonly projectId: string;
+  },
+  projectCatalog: ProjectCatalogProjectionPort,
+): Promise<ProductionSourceReadiness> => {
   const projectId = StoryIdSchema.parse(rawProjectId);
-  const projectRoot = join(rootDir, "src/projects", projectId);
+  const projectRoot = join(locations.projectSourceRoot, projectId);
   const configured = await Promise.all(
     CONFIGURED_FILES.map((path) => isRegularFile(join(projectRoot, path))),
   );
@@ -232,10 +246,10 @@ export const inspectProductionSourceReadiness = async ({
     );
   }
   const { projectSource } = await loadNarrationProjectFiles({
-    rootDir,
+    locations,
     projectId,
   });
-  await generateProjectResourceCatalog({ rootDir, projectId, mode: "check" });
+  await projectCatalog({ locations, projectId, mode: "check" });
 
   const timing = await Promise.all(
     TIMING_FILES.map((path) => isRegularFile(join(projectRoot, path))),
@@ -383,27 +397,26 @@ export type NarrationCacheInspection = Readonly<{
 }>;
 
 export const inspectNarrationCache = async ({
-  rootDir,
+  locations,
   projectId,
-  env,
+  config,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
-  readonly env: Readonly<Record<string, string | undefined>>;
+  readonly config: ProducerConfig;
 }): Promise<NarrationCacheInspection> => {
   const { projectSource } = await loadNarrationProjectFiles({
-    rootDir,
+    locations,
     projectId,
   });
   const inspection = await resolveProducerNarrationInspection({
-    rootDir,
-    env,
+    config,
+    privateConfigRoot: locations.providerMaterialRoot,
     narration: projectSource.narration,
   });
   if (inspection.providerAttemptFingerprint === null) {
     const receiptPath = join(
-      rootDir,
-      "src/projects",
+      locations.projectSourceRoot,
       projectId,
       NARRATION_PREPARATION_RECEIPT,
     );
@@ -434,7 +447,7 @@ export const inspectNarrationCache = async ({
     providerAttemptFingerprint: inspection.providerAttemptFingerprint,
   });
   const progress = await loadVerifiedProgress({
-    rootDir: join(rootDir, ".narration-work"),
+    rootDir: locations.taskWorkspaceRoot,
     storyId: projectId,
     generationInputFingerprint: expected.generationInputFingerprint,
     providerAttemptFingerprint: expected.providerAttemptFingerprint,
@@ -451,39 +464,43 @@ export const inspectNarrationCache = async ({
 };
 
 export const inspectCurrentDelivery = async ({
-  rootDir,
+  locations,
   projectId: rawProjectId,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
   const publish = await inspectVerifiedCurrentDelivery({
-    rootDir,
+    locations,
     storyId: projectId,
   });
   return publish === null
     ? ({
         current: false,
         revisionId: null,
+        sourceCurrentId: null,
         deliveryBuildId: null,
+        rendererRuntimeFingerprint: null,
       } as const)
     : ({
         current: true,
         revisionId: publish.revisionId,
+        sourceCurrentId: publish.sourceCurrentId,
         deliveryBuildId: publish.deliveryBuildId,
+        rendererRuntimeFingerprint: publish.rendererRuntimeFingerprint,
       } as const);
 };
 
 export const readProductionDiagnosticBaseline = async ({
-  rootDir,
+  locations,
   projectId: rawProjectId,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
-  const attemptsRoot = join(rootDir, ".producer-attempts", projectId);
+  const attemptsRoot = join(locations.attemptStoreRoot, projectId);
   let entries;
   try {
     const metadata = await lstat(attemptsRoot);
@@ -510,7 +527,8 @@ export const readProductionDiagnosticBaseline = async ({
       if (
         progress.storyId === projectId &&
         progress.state === "succeeded" &&
-        progress.deliveryResult.status === "verified"
+        (progress.terminalResult.status === "source-current" ||
+          progress.terminalResult.status === "delivery-current")
       ) {
         candidates.push(progress);
       }
@@ -523,13 +541,13 @@ export const readProductionDiagnosticBaseline = async ({
       right.updatedAt.localeCompare(left.updatedAt) ||
       right.attemptId.localeCompare(left.attemptId),
   );
-  const delivery = await inspectCurrentDelivery({ rootDir, projectId });
+  const delivery = await inspectCurrentDelivery({ locations, projectId });
   const selected =
     (delivery.current
       ? candidates.find(
           (candidate) =>
             candidate.revisionId === delivery.revisionId &&
-            candidate.deliveryResult.deliveryBuildId ===
+            candidate.terminalResult.deliveryBuildId ===
               delivery.deliveryBuildId,
         )
       : undefined) ?? candidates[0];
@@ -538,9 +556,9 @@ export const readProductionDiagnosticBaseline = async ({
     kind:
       delivery.current &&
       selected.revisionId === delivery.revisionId &&
-      selected.deliveryResult.deliveryBuildId === delivery.deliveryBuildId
+      selected.terminalResult.deliveryBuildId === delivery.deliveryBuildId
         ? ("current-delivery" as const)
-        : ("latest-verified-attempt" as const),
+        : ("latest-successful-attempt" as const),
     revisionId: selected.revisionId,
     taskSnapshots: selected.taskSnapshots,
   };
@@ -580,19 +598,19 @@ const collectRegularFiles = async (
 };
 
 export const readTemplateSceneFilesForInspection = async ({
-  rootDir,
+  locations,
   projectId,
   meaningId,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
   readonly meaningId: string;
 }) => {
   const source = await collectRegularFiles(
-    join(rootDir, "src/projects", projectId, "scenes", meaningId),
+    join(locations.projectSourceRoot, projectId, "scenes", meaningId),
   );
   const publicFiles = await collectRegularFiles(
-    join(rootDir, "public/projects", projectId, "scenes", meaningId),
+    join(locations.projectMediaRoot, projectId, "scenes", meaningId),
   );
   return Object.fromEntries(
     [

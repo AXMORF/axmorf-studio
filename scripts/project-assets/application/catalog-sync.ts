@@ -3,7 +3,7 @@ import { join } from "node:path";
 import {
   generateProjectResourceCatalog,
   generateResourceCatalog,
-} from "../../catalog/generate";
+} from "../../catalog/repository-generate";
 import { assertSafeTargetParent } from "../adapters/filesystem";
 import type { ProjectAssetCatalogSync } from "./import";
 

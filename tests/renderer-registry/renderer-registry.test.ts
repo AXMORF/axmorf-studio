@@ -18,6 +18,7 @@ import {
   collectRendererSourceGraph,
 } from "../../scripts/renderer-registry/domain";
 import { generateRendererRegistry } from "../../scripts/renderer-registry/generate";
+import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
 import { createScenePackageInput } from "../fixtures/scene/package-input";
 
@@ -28,6 +29,9 @@ const write = async (root: string, path: string, source: string) => {
 
 const prepare = async () => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-renderer-registry-"));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
   const projectRoot = "src/projects/synthetic-proof";
   const rendererPath = `${projectRoot}/scenes/meaning-one/Renderer.tsx`;
   await write(
@@ -50,7 +54,7 @@ const prepare = async () => {
     `export default () => <div />;`,
   );
   const graph = await collectRendererSourceGraph({
-    rootDir,
+    locations,
     projectId: "synthetic-proof",
     rendererPath,
   });
@@ -66,20 +70,20 @@ const prepare = async () => {
     fallbacks: [],
     stalePackages: [],
   });
-  return { rootDir, rendererPath, graph, scenePackage, coverage };
+  return { rootDir, locations, rendererPath, graph, scenePackage, coverage };
 };
 
 test("registry discovers fixed-depth Renderer only and emits stable literal static imports", async () => {
   const fixture = await prepare();
   try {
     const first = await buildRendererRegistry({
-      rootDir: fixture.rootDir,
+      locations: fixture.locations,
       projectId: "synthetic-proof",
       coverage: fixture.coverage,
       packages: [fixture.scenePackage],
     });
     const second = await buildRendererRegistry({
-      rootDir: fixture.rootDir,
+      locations: fixture.locations,
       projectId: "synthetic-proof",
       coverage: fixture.coverage,
       packages: [fixture.scenePackage],
@@ -94,7 +98,7 @@ test("registry discovers fixed-depth Renderer only and emits stable literal stat
     assert.equal(first.source.includes("ProofShot"), false);
     assert.equal(first.source.includes("modulePath"), false);
     assert.deepEqual(
-      fixture.graph.files.map(({sourcePath}) => sourcePath),
+      fixture.graph.files.map(({ sourcePath }) => sourcePath),
       [
         "src/projects/synthetic-proof/scenes/meaning-one/Renderer.tsx",
         "src/projects/synthetic-proof/scenes/meaning-one/shots/ProofShot.tsx",
@@ -120,7 +124,7 @@ test("registry rejects missing default export Audio violations stale package IDs
       await writeFile(rendererAbsolute, invalid, "utf8");
       await assert.rejects(() =>
         collectRendererSourceGraph({
-          rootDir: fixture.rootDir,
+          locations: fixture.locations,
           projectId: "synthetic-proof",
           rendererPath: fixture.rendererPath,
         }),
@@ -129,7 +133,7 @@ test("registry rejects missing default export Audio violations stale package IDs
     await writeFile(rendererAbsolute, original, "utf8");
     await assert.rejects(() =>
       buildRendererRegistry({
-        rootDir: fixture.rootDir,
+        locations: fixture.locations,
         projectId: "synthetic-proof",
         coverage: fixture.coverage,
         packages: [
@@ -156,7 +160,7 @@ test("registry rejects missing default export Audio violations stale package IDs
     );
     await assert.rejects(() =>
       buildRendererRegistry({
-        rootDir: fixture.rootDir,
+        locations: fixture.locations,
         projectId: "synthetic-proof",
         coverage: fixture.coverage,
         packages: [fixture.scenePackage],
@@ -174,34 +178,35 @@ test("registry generation is atomic byte-stable and check detects one-byte drift
     "src/projects/synthetic-proof/renderer-registry.generated.ts",
   );
   try {
+    await write(
+      fixture.rootDir,
+      "src/projects/synthetic-proof/generated/scene-coverage.generated.json",
+      JSON.stringify(fixture.coverage),
+    );
+    await write(
+      fixture.rootDir,
+      "src/projects/synthetic-proof/scenes/meaning-one/generated/scene-package.generated.json",
+      JSON.stringify(fixture.scenePackage),
+    );
     await generateRendererRegistry({
       mode: "write",
-      destination,
-      rootDir: fixture.rootDir,
+      locations: fixture.locations,
       projectId: "synthetic-proof",
-      coverage: fixture.coverage,
-      packages: [fixture.scenePackage],
     });
     const before = await readFile(destination, "utf8");
     const beforeMtime = (await stat(destination)).mtimeMs;
     await generateRendererRegistry({
       mode: "write",
-      destination,
-      rootDir: fixture.rootDir,
+      locations: fixture.locations,
       projectId: "synthetic-proof",
-      coverage: fixture.coverage,
-      packages: [fixture.scenePackage],
     });
     assert.equal((await stat(destination)).mtimeMs, beforeMtime);
     await writeFile(destination, `${before}// drift\n`, "utf8");
     await assert.rejects(() =>
       generateRendererRegistry({
         mode: "check",
-        destination,
-        rootDir: fixture.rootDir,
+        locations: fixture.locations,
         projectId: "synthetic-proof",
-        coverage: fixture.coverage,
-        packages: [fixture.scenePackage],
       }),
     );
   } finally {
@@ -219,7 +224,9 @@ test("no ready package returns no registry requirement", async () => {
   });
   assert.equal(
     await buildRendererRegistry({
-      rootDir: "/unused",
+      locations: createRepositoryProductionLocations({
+        repositoryRoot: "/unused",
+      }),
       projectId: "synthetic-proof",
       coverage,
       packages: [],

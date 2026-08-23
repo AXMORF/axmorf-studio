@@ -9,13 +9,17 @@ import {
   DESKTOP_SHELL_IPC_CHANNELS,
 } from "../../desktop/contracts/shell";
 
-test("trusted preload exposes exactly the six frozen preview methods", async () => {
+test("trusted preload exposes exactly the ten frozen Phase B methods", async () => {
   assert.deepEqual(DESKTOP_PRELOAD_METHODS, [
     "getAppState",
     "chooseInitialWorkspace",
     "showWorkspaceInFinder",
+    "migrateWorkspace",
     "refreshPreviewCatalog",
     "selectPreview",
+    "buildDelivery",
+    "getProviderSettings",
+    "saveProviderSettings",
     "retryEngine",
   ]);
   const preload = await readFile(
@@ -53,4 +57,18 @@ test("bundled shell is sandboxed and no WebContentsView or remote service remain
     /WebContentsView|127\.0\.0\.1|localhost|3100|3101/u,
   );
   assert.doesNotMatch(source, /nodeIntegration:\s*true|webSecurity:\s*false/u);
+});
+
+test("Workspace migration recovery runs from its fixed pointer before Engine construction", async () => {
+  const main = await readFile(
+    join(process.cwd(), "desktop/main/entry.ts"),
+    "utf8",
+  );
+  const pointerLoad = main.indexOf("loadWorkspaceMigrationRecoveryPointer");
+  const recovery = main.indexOf("await recoverWorkspaceMigration");
+  const controller = main.indexOf("new DesktopShellController");
+  assert.ok(pointerLoad >= 0);
+  assert.ok(recovery > pointerLoad);
+  assert.ok(controller > recovery);
+  assert.doesNotMatch(main, /readdir.*migration/iu);
 });

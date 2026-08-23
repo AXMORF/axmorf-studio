@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   root: "desktop/renderer",
+  publicDir: false,
   plugins: [react()],
   base: "./",
   build: {

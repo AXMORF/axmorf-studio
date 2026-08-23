@@ -6,12 +6,14 @@ import {
   StoryIdSchema,
   type NarrativeProjectSource,
 } from "../../src/contracts";
+import type { ProductionLocations } from "../project-production/application/production-locations";
+import { resolveNarrationProjectRoot } from "./production-paths";
 
 export const getNarrationProjectPaths = ({
-  rootDir,
+  locations,
   projectId,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
 }) => {
   let storyId: string;
@@ -20,7 +22,7 @@ export const getNarrationProjectPaths = ({
   } catch (error) {
     throw new Error("Invalid project slug.", { cause: error });
   }
-  const projectDirectory = join(rootDir, "src/projects", storyId);
+  const projectDirectory = resolveNarrationProjectRoot({ locations, storyId });
   return {
     projectDirectory,
     brief: join(projectDirectory, "brief.json"),
@@ -53,15 +55,15 @@ const readJson = async (path: string, label: string): Promise<unknown> => {
 };
 
 export const loadNarrationProjectFiles = async ({
-  rootDir,
+  locations,
   projectId,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
 }): Promise<{
   readonly projectSource: NarrativeProjectSource;
 }> => {
-  const paths = getNarrationProjectPaths({ rootDir, projectId });
+  const paths = getNarrationProjectPaths({ locations, projectId });
   const [brief, story, narration, render] = await Promise.all([
     readJson(paths.brief, "brief.json"),
     readJson(paths.story, "story.json"),

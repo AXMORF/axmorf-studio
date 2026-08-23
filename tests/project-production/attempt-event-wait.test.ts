@@ -8,17 +8,21 @@ import {
   ExecutionAttemptEventWaitTimeoutError,
   openExecutionAttemptEventWait,
 } from "../../scripts/project-production/adapters/attempt-event-wait";
+import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
 
 test("attempt event wait resolves from the immutable event log without polling", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-wait-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
   const storyId = "story-example";
   const attemptId = "00000000-0000-4000-8000-000000000001";
   const directory = join(rootDir, ".producer-attempts", storyId, attemptId);
   const events = join(directory, "events");
   await mkdir(events, { recursive: true });
   const eventWait = openExecutionAttemptEventWait({
-    rootDir,
+    locations,
     storyId,
     attemptId,
     timeoutMs: 2_000,
@@ -43,6 +47,9 @@ test("attempt event wait resolves from the immutable event log without polling",
 test("attempt event wait rejects at its bounded deadline", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-wait-timeout-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
   const storyId = "story-example";
   const attemptId = "00000000-0000-4000-8000-000000000001";
   await mkdir(
@@ -50,7 +57,7 @@ test("attempt event wait rejects at its bounded deadline", async (context) => {
     { recursive: true },
   );
   const eventWait = openExecutionAttemptEventWait({
-    rootDir,
+    locations,
     storyId,
     attemptId,
     timeoutMs: 10,

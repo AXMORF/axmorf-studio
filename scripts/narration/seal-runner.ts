@@ -22,6 +22,8 @@ import {
 import { checkM2NarrationArtifacts } from "./check";
 import type { NarrationGenerationProgress } from "./domain/candidate-progress";
 import { buildNarrationSeal } from "./domain/seal";
+import type { ProductionLocations } from "../project-production/application/production-locations";
+import { resolveNarrationProjectRoot } from "./production-paths";
 
 const readExistingManifest = async (
   path: string,
@@ -93,14 +95,14 @@ export const authorizeNarrationSealPromotion = ({
 };
 
 export const runNarrationSeal = async ({
-  rootDir,
+  locations,
   projectSource,
   progress,
   normalizedChunks,
   supersedeFingerprint,
   fileOperations = createNarrationSealFileOperations(),
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectSource: NarrativeProjectSource;
   readonly progress: NarrationGenerationProgress;
   readonly normalizedChunks: ReadonlyMap<string, Buffer>;
@@ -109,9 +111,7 @@ export const runNarrationSeal = async ({
 }) => {
   const storyId = projectSource.story.storyId;
   const generatedDirectory = join(
-    rootDir,
-    "src/projects",
-    storyId,
+    resolveNarrationProjectRoot({ locations, storyId }),
     "generated",
   );
   const activeManifestPath = join(
@@ -150,7 +150,7 @@ export const runNarrationSeal = async ({
       });
 
       const { stagingDirectory, destinationDir } =
-        await stageNarrationSealDirectory({ rootDir, seal });
+        await stageNarrationSealDirectory({ locations, seal });
       try {
         await fileOperations.commitImmutableDirectory({
           sourceDir: stagingDirectory,
@@ -173,7 +173,7 @@ export const runNarrationSeal = async ({
       }
 
       return checkM2NarrationArtifacts({
-        rootDir,
+        locations,
         projectSource,
       });
     },

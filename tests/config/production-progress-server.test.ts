@@ -6,16 +6,19 @@ import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 
 import { readProjectProductionProgress } from "../../settings/server/production-progress";
-import { readCurrentProductionRevision } from "../../scripts/project-production/application/current-revision";
-import { inspectProjectProduction } from "../../scripts/project-production/application/inspect-production";
 import { readCurrentProjectDelivery } from "../../scripts/project-production/application/progress-query";
 import type { CurrentDeliveryInspectionDependencies } from "../../scripts/project-production/adapters/current-delivery-inspection";
+import { writeSourceCurrent } from "../../scripts/project-production/adapters/source-current-store";
+import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
 import {
   DELIVERY_BUILD_POLICY_VERSION,
+  buildSourceCurrentAttestation,
   buildDeliveryPublish,
   buildDeliveryPublishing,
+  createFingerprint,
   createDeliveryBuildId,
   ExecutionAttemptSchema,
+  ProductionInspectionSchema,
   StoryIdSchema,
   type ExecutionAttempt,
 } from "../../src/contracts";
@@ -24,6 +27,8 @@ const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 const revisionId = `revision-${"a".repeat(64)}` as const;
 const changedRevisionId = `revision-${"c".repeat(64)}` as const;
 const taskRevision = `task-${"1".repeat(64)}` as const;
+const projectSource = "fixture-project-source";
+const projectMedia = "fixture-project-media";
 const taskExplanation = {
   taskKind: "scene-owner" as const,
   subject: { kind: "meaning" as const, id: "opening" },
@@ -37,6 +42,20 @@ const taskExplanation = {
   explanationAvailability: "complete" as const,
 };
 
+type ReadCurrentRevision = NonNullable<
+  NonNullable<
+    Parameters<typeof readProjectProductionProgress>[0]["dependencies"]
+  >["readCurrentRevision"]
+>;
+
+const readFixtureRevision = (
+  currentRevisionId: string,
+): ReadCurrentRevision =>
+  async ({ projectId }) => {
+    StoryIdSchema.parse(projectId);
+    return { revisionId: currentRevisionId };
+  };
+
 const readProgress = (
   rootDir: string,
   currentRevisionId: string = revisionId,
@@ -44,9 +63,7 @@ const readProgress = (
   readProjectProductionProgress({
     rootDir,
     dependencies: {
-      readCurrentRevision: (async () => ({
-        revisionId: currentRevisionId,
-      })) as unknown as typeof readCurrentProductionRevision,
+      readCurrentRevision: readFixtureRevision(currentRevisionId),
       readCurrentDelivery: readFixtureDelivery,
     },
   });
@@ -58,7 +75,16 @@ const createRoot = async (context: TestContext) => {
 };
 
 const writeProject = async (rootDir: string, projectId: string) => {
-  await mkdir(join(rootDir, "src/projects", projectId), { recursive: true });
+  const projectRoot = join(rootDir, "src/projects", projectId);
+  const mediaRoot = join(rootDir, "public/projects", projectId);
+  await Promise.all([
+    mkdir(projectRoot, { recursive: true }),
+    mkdir(mediaRoot, { recursive: true }),
+  ]);
+  await Promise.all([
+    writeFile(join(projectRoot, "source.txt"), projectSource),
+    writeFile(join(mediaRoot, "media.txt"), projectMedia),
+  ]);
 };
 
 const writeAttempt = async (
@@ -66,8 +92,8 @@ const writeAttempt = async (
   overrides: Partial<ExecutionAttempt> = {},
 ) => {
   const attempt = ExecutionAttemptSchema.parse({
-    schemaVersion: 3,
-    contractVersion: "execution-attempt-v3",
+    schemaVersion: 4,
+    contractVersion: "execution-attempt-v4",
     attemptId: "00000000-0000-4000-8000-000000000001",
     storyId: "story-example",
     revisionId,
@@ -155,20 +181,39 @@ const writeDelivery = async (rootDir: string) => {
   const video = "verified-video";
   const cover4x3 = "verified-cover-4x3";
   const cover3x4 = "verified-cover-3x4";
-  const identity = {
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
+  const sourceCurrent = buildSourceCurrentAttestation({
     storyId: "story-example",
     revisionId,
-    artifactSetFingerprint: sha("b"),
-    compositionId: "StoryExample",
-    fps: 30,
-    frameCount: 120,
-    width: 1080,
-    height: 1920,
-    policyVersion: DELIVERY_BUILD_POLICY_VERSION,
-  } as const;
-  const deliveryBuildId = createDeliveryBuildId(identity);
+    artifacts: [{ taskRevision, artifactFingerprint: sha("a") }],
+    files: [
+      {
+        logicalPath: "project/source.txt",
+        checksum: checksum(projectSource),
+        sizeBytes: Buffer.byteLength(projectSource),
+      },
+      {
+        logicalPath: "public/media.txt",
+        checksum: checksum(projectMedia),
+        sizeBytes: Buffer.byteLength(projectMedia),
+      },
+    ],
+    validators: [
+      {
+        id: "artifact-attestation",
+        version: "producer-artifact-v1",
+      },
+      {
+        id: "source-materialization",
+        version: "source-materialization-v1",
+      },
+    ],
+  });
+  await writeSourceCurrent({ locations, attestation: sourceCurrent });
   const publishing = buildDeliveryPublishing({
-    storyId: identity.storyId,
+    storyId: "story-example",
     title: "测试视频",
     description: "用于验证同步四文件交付。",
     topics: ["测试", "视频", "工作流", "Remotion", "AI", "工程"],
@@ -178,8 +223,8 @@ const writeDelivery = async (rootDir: string) => {
       cover4x3: "cover-4x3.png",
       cover3x4: "cover-3x4.png",
     },
-    fps: identity.fps,
-    frameCount: identity.frameCount,
+    fps: 30,
+    frameCount: 120,
     plannedDurationSeconds: 4,
     chapters: [
       {
@@ -190,12 +235,30 @@ const writeDelivery = async (rootDir: string) => {
       },
     ],
   });
+  const identity = {
+    storyId: "story-example",
+    revisionId,
+    sourceCurrentId: sourceCurrent.sourceCurrentId,
+    rendererRuntimeFingerprint: sha("b"),
+    publishingFingerprint: createFingerprint({
+      namespace: "delivery-publishing-input",
+      version: 1,
+      value: publishing,
+    }),
+    compositionId: "StoryExample",
+    fps: 30,
+    frameCount: 120,
+    width: 1080,
+    height: 1920,
+    policyVersion: DELIVERY_BUILD_POLICY_VERSION,
+  } as const;
+  const deliveryBuildId = createDeliveryBuildId(identity);
   const publish = buildDeliveryPublish({
     ...identity,
     deliveryBuildId,
     artifacts: {
       video: {
-        repositoryPath: "deliveries/story-example/video.mp4",
+        logicalPath: "deliveries/story-example/video.mp4",
         checksum: checksum(video),
         sizeBytes: Buffer.byteLength(video),
         media: {
@@ -210,7 +273,7 @@ const writeDelivery = async (rootDir: string) => {
         },
       },
       cover4x3: {
-        repositoryPath: "deliveries/story-example/cover-4x3.png",
+        logicalPath: "deliveries/story-example/cover-4x3.png",
         checksum: checksum(cover4x3),
         sizeBytes: Buffer.byteLength(cover4x3),
         media: {
@@ -221,7 +284,7 @@ const writeDelivery = async (rootDir: string) => {
         },
       },
       cover3x4: {
-        repositoryPath: "deliveries/story-example/cover-3x4.png",
+        logicalPath: "deliveries/story-example/cover-3x4.png",
         checksum: checksum(cover3x4),
         sizeBytes: Buffer.byteLength(cover3x4),
         media: {
@@ -242,7 +305,11 @@ const writeDelivery = async (rootDir: string) => {
     writeFile(join(directory, "cover-3x4.png"), cover3x4),
     writeFile(join(directory, "publish.json"), JSON.stringify(publish)),
   ]);
-  return { deliveryBuildId };
+  return {
+    deliveryBuildId,
+    sourceCurrentId: sourceCurrent.sourceCurrentId,
+    rendererRuntimeFingerprint: identity.rendererRuntimeFingerprint,
+  };
 };
 
 test("production progress is zero-safe and excludes output-only roots", async (context) => {
@@ -299,12 +366,14 @@ test("malformed historical runs never affect current Project progress", async (c
 test("progress projects the shared read-only inspection without recomputing task causes", async (context) => {
   const rootDir = await createRoot(context);
   await writeProject(rootDir, "story-example");
-  const inspection = {
+  const inspection = ProductionInspectionSchema.parse({
     schemaVersion: 1,
     contractVersion: "production-inspection-v1",
     storyId: "story-example",
     sourceState: "configured-authoring",
     currentRevisionId: null,
+    sourceCurrentId: null,
+    deliveryBuildId: null,
     baseline: { kind: "none", revisionId: null },
     estimatedCost: {
       providerRequests: 1,
@@ -314,15 +383,12 @@ test("progress projects the shared read-only inspection without recomputing task
     },
     tasks: [],
     nextAction: "prepare-narration",
-  } as const;
+  });
   const progress = await readProjectProductionProgress({
     rootDir,
     dependencies: {
-      readCurrentRevision: (async () => ({
-        revisionId,
-      })) as unknown as typeof readCurrentProductionRevision,
-      inspectProduction: (async () =>
-        inspection) as unknown as typeof inspectProjectProduction,
+      readCurrentRevision: readFixtureRevision(revisionId),
+      inspectProduction: async () => inspection,
     },
   });
 
@@ -353,12 +419,15 @@ test("progress exposes latest attempt task summary and current four-file deliver
     "00000000-0000-4000-8000-000000000001",
   );
 
-  const { deliveryBuildId } = await writeDelivery(rootDir);
+  const { deliveryBuildId, sourceCurrentId, rendererRuntimeFingerprint } =
+    await writeDelivery(rootDir);
   const delivered = await readProgress(rootDir);
   assert.equal(delivered.projects[0]?.status, "current");
   assert.deepEqual(delivered.projects[0]?.delivery, {
     deliveryBuildId,
     revisionId,
+    sourceCurrentId,
+    rendererRuntimeFingerprint,
     frameCount: 120,
     current: true,
     files: {
@@ -368,7 +437,7 @@ test("progress exposes latest attempt task summary and current four-file deliver
       publish: true,
     },
   });
-  assert.doesNotMatch(JSON.stringify(delivered), /sha256:|ttsText|private/iu);
+  assert.doesNotMatch(JSON.stringify(delivered), /ttsText|private/iu);
 });
 
 test("live authoring revision makes a delivery stale without a new attempt", async (context) => {
@@ -415,9 +484,7 @@ test("matching checksums cannot make invalid media current in Settings", async (
   const progress = await readProjectProductionProgress({
     rootDir,
     dependencies: {
-      readCurrentRevision: (async () => ({
-        revisionId,
-      })) as unknown as typeof readCurrentProductionRevision,
+      readCurrentRevision: readFixtureRevision(revisionId),
     },
   });
 

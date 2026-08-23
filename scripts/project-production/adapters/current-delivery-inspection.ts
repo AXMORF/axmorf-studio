@@ -9,6 +9,7 @@ import {
 } from "../../../src/contracts";
 import { assertDeliveryPath, inspectDeliveryFile } from "./delivery-filesystem";
 import { inspectProjectCover, inspectProjectVideo } from "./media";
+import type { ProductionLocations } from "../domain/production-locations";
 
 type ExpectedVideo = Readonly<{
   width: number;
@@ -46,14 +47,14 @@ const expectedEntries = [
 ] as const;
 
 const assertExactRegularFiles = async ({
-  rootDir,
+  locations,
   directory,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly directory: string;
 }) => {
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: directory,
     kind: "directory",
     mustExist: true,
@@ -100,12 +101,12 @@ const sameFile = (
 ) => left.checksum === right.checksum && left.sizeBytes === right.sizeBytes;
 
 const inspectBoundArtifact = async <T>({
-  rootDir,
+  locations,
   path,
   recorded,
   inspectMedia,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly path: string;
   readonly recorded: Readonly<{
     checksum: string;
@@ -114,12 +115,12 @@ const inspectBoundArtifact = async <T>({
   }>;
   readonly inspectMedia: () => Promise<T>;
 }) => {
-  const before = await inspectDeliveryFile({ rootDir, path });
+  const before = await inspectDeliveryFile({ locations, path });
   if (!sameFile(before, recorded)) {
     throw new Error("Current delivery checksum or size binding is stale.");
   }
   const media = await inspectMedia();
-  const after = await inspectDeliveryFile({ rootDir, path });
+  const after = await inspectDeliveryFile({ locations, path });
   if (
     !sameFile(before, after) ||
     JSON.stringify(media) !== JSON.stringify(recorded.media)
@@ -129,17 +130,26 @@ const inspectBoundArtifact = async <T>({
 };
 
 export const inspectCurrentDelivery = async ({
-  rootDir,
+  locations,
   storyId: rawStoryId,
   dependencies = {},
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly storyId: string;
   readonly dependencies?: CurrentDeliveryInspectionDependencies;
 }): Promise<DeliveryPublish | null> => {
   const storyId = StoryIdSchema.parse(rawStoryId);
-  const directory = join(rootDir, "deliveries", storyId);
-  await assertDeliveryPath({ rootDir, path: directory, kind: "directory" });
+  try {
+    const root = await lstat(locations.deliveryRoot);
+    if (!root.isDirectory() || root.isSymbolicLink()) {
+      throw new Error("Configured delivery root is unsafe.");
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+  const directory = join(locations.deliveryRoot, storyId);
+  await assertDeliveryPath({ locations, path: directory, kind: "directory" });
   try {
     const metadata = await lstat(directory);
     if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
@@ -150,10 +160,10 @@ export const inspectCurrentDelivery = async ({
     throw error;
   }
 
-  await assertExactRegularFiles({ rootDir, directory });
+  await assertExactRegularFiles({ locations, directory });
   const publishPath = join(directory, "publish.json");
   const publishFile = await inspectDeliveryFile({
-    rootDir,
+    locations,
     path: publishPath,
   });
   let rawPublish: unknown;
@@ -172,7 +182,7 @@ export const inspectCurrentDelivery = async ({
   const inspectVideo = dependencies.inspectVideo ?? defaultInspectVideo;
   const inspectCover = dependencies.inspectCover ?? defaultInspectCover;
   await inspectBoundArtifact({
-    rootDir,
+    locations,
     path: join(directory, "video.mp4"),
     recorded: publish.artifacts.video,
     inspectMedia: () =>
@@ -188,7 +198,7 @@ export const inspectCurrentDelivery = async ({
       }),
   });
   await inspectBoundArtifact({
-    rootDir,
+    locations,
     path: join(directory, "cover-4x3.png"),
     recorded: publish.artifacts.cover4x3,
     inspectMedia: () =>
@@ -198,7 +208,7 @@ export const inspectCurrentDelivery = async ({
       }),
   });
   await inspectBoundArtifact({
-    rootDir,
+    locations,
     path: join(directory, "cover-3x4.png"),
     recorded: publish.artifacts.cover3x4,
     inspectMedia: () =>
@@ -209,7 +219,7 @@ export const inspectCurrentDelivery = async ({
   });
 
   const publishAfter = await inspectDeliveryFile({
-    rootDir,
+    locations,
     path: publishPath,
   });
   if (!sameFile(publishFile, publishAfter)) {
@@ -217,6 +227,6 @@ export const inspectCurrentDelivery = async ({
       "Current delivery publish manifest changed during inspection.",
     );
   }
-  await assertExactRegularFiles({ rootDir, directory });
+  await assertExactRegularFiles({ locations, directory });
   return publish;
 };

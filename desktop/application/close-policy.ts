@@ -9,11 +9,15 @@ export const resolveClosePolicy = ({
   activeWork,
   intent,
 }: Readonly<{
-  activeWork: boolean;
+  activeWork: unknown;
   intent: CloseIntent;
 }>): ClosePolicyDecision => {
-  if (activeWork && intent === "window-close") return "hide-window";
-  if (activeWork && intent === "explicit-quit") return "confirm-quit";
+  if (Boolean(activeWork) && intent === "window-close") {
+    return "hide-window";
+  }
+  if (Boolean(activeWork) && intent === "explicit-quit") {
+    return "confirm-quit";
+  }
   return "shutdown-and-quit";
 };
 

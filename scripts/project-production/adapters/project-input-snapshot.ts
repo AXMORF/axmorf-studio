@@ -3,6 +3,12 @@ import { lstat, readFile, readdir } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
 
 import { Sha256DigestSchema, createFingerprint } from "../../../src/contracts";
+import type { ProductionLocations } from "../domain/production-locations";
+
+const runtimePolicyRoot = (locations: ProductionLocations) =>
+  locations.layoutKind === "workspace"
+    ? join(locations.runtimeResources, "source")
+    : locations.runtimeResources;
 
 export const checksumBytes = (bytes: Uint8Array) =>
   Sha256DigestSchema.parse(
@@ -57,25 +63,33 @@ const collectTree = async (
   return files;
 };
 
+export const RUNTIME_POLICY_ROOT_PATHS = Object.freeze([
+  "package.json",
+  "package-lock.json",
+  "remotion.config.ts",
+  "tsconfig.json",
+  "src/contracts",
+  "src/remotion",
+] as const);
+
 export const snapshotPolicyRoots = async ({
-  rootDir,
+  locations,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
 }) => {
+  const rootDir = runtimePolicyRoot(locations);
   const files = (
     await Promise.all(
-      ["src/contracts", "src/remotion"].map((path) =>
-        collectTree(rootDir, join(rootDir, path)),
+      RUNTIME_POLICY_ROOT_PATHS.filter((path) => path.startsWith("src/")).map(
+        (path) => collectTree(rootDir, join(rootDir, path)),
       ),
     )
   )
     .flat()
     .sort((a, b) => a.path.localeCompare(b.path));
-  for (const path of [
-    "package.json",
-    "package-lock.json",
-    "remotion.config.ts",
-  ]) {
+  for (const path of RUNTIME_POLICY_ROOT_PATHS.filter(
+    (path) => !path.startsWith("src/"),
+  )) {
     const bytes = await readRegularBytes(join(rootDir, path), path);
     files.push({
       path,
@@ -91,7 +105,7 @@ export const snapshotPolicyRoots = async ({
   });
 };
 
-export const snapshotExplicitPolicyPaths = async ({
+const snapshotExplicitPolicyPaths = async ({
   rootDir,
   paths,
   namespace,
@@ -143,7 +157,7 @@ export const snapshotExplicitPolicyPaths = async ({
   return createFingerprint({ namespace, version: 1, value: files });
 };
 
-const TASK_POLICY_PATHS = {
+export const TASK_POLICY_PATHS = {
   scene: [
     "scripts/project-production/application/readability-source-validator.ts",
     "scripts/project-production/application/scene-task-check.ts",
@@ -196,26 +210,15 @@ const TASK_POLICY_PATHS = {
     "src/remotion/runtime/sound-design",
     "src/remotion/runtime/story-visual",
   ],
-  delivery: [
-    "remotion.config.ts",
-    "scripts/project-production/adapters/delivery-filesystem.ts",
-    "scripts/project-production/adapters/media.ts",
-    "scripts/project-production/adapters/remotion-preflight.ts",
-    "scripts/project-production/application/build-delivery.ts",
-    "scripts/shared/media-process.ts",
-    "scripts/shared/process.ts",
-    "scripts/shared/remotion-command.ts",
-    "src/contracts/delivery-build.ts",
-    "src/contracts/delivery-publishing.ts",
-  ],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
 export const snapshotTaskPolicyFingerprints = async ({
-  rootDir,
+  locations,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
 }) => {
-  const [scene, globalVisual, composition, delivery] = await Promise.all([
+  const rootDir = runtimePolicyRoot(locations);
+  const [scene, globalVisual, composition] = await Promise.all([
     snapshotExplicitPolicyPaths({
       rootDir,
       paths: TASK_POLICY_PATHS.scene,
@@ -231,11 +234,6 @@ export const snapshotTaskPolicyFingerprints = async ({
       paths: TASK_POLICY_PATHS.composition,
       namespace: "project-production-composition-policy",
     }),
-    snapshotExplicitPolicyPaths({
-      rootDir,
-      paths: TASK_POLICY_PATHS.delivery,
-      namespace: "project-production-delivery-policy",
-    }),
   ]);
-  return { scene, globalVisual, composition, delivery } as const;
+  return { scene, globalVisual, composition } as const;
 };

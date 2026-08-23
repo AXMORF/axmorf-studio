@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { lstat, readFile } from "node:fs/promises";
-import { join, posix, relative, sep } from "node:path";
+import { join } from "node:path";
 import ts from "typescript";
 
 import {
@@ -17,24 +17,20 @@ import {
 import { capabilityDescriptorDeclarations } from "../../src/remotion/catalog/capability-descriptors";
 import { styleDescriptorDeclarations } from "../../src/remotion/catalog/style-descriptors";
 import { producerStyleProfileIds } from "../../src/remotion/capabilities/styles";
-import { readLocalProjectRoot } from "../projects/root";
+import { readProjectSourceRoot } from "../projects/root";
+import {
+  createWorkspaceProjectStorageLocations,
+  resolveProjectOwnedLogicalPath,
+  type ProjectStorageLocations,
+} from "../projects/project-locations";
+import type { ProductionLocations } from "../project-production/application/production-locations";
 
-export const LOCAL_REFERENCE_ASSET_MANIFEST_PATH =
-  "private/reference-assets/assets.manifest.json";
-export const LOCAL_REFERENCE_ASSET_LICENSE_EVIDENCE_PATH =
-  "private/reference-assets/MIXKIT_AUDIO_LICENSE.md";
-
-const LOCAL_REFERENCE_AUDIO_ROLES = new Set([
-  "sound-effect",
-  "background-music",
-]);
-
-const checksumBytes = (bytes: Buffer) =>
+export const checksumBytes = (bytes: Buffer) =>
   Sha256DigestSchema.parse(
     `sha256:${createHash("sha256").update(bytes.toString("latin1"), "latin1").digest("hex")}`,
   );
 
-const readRegularFile = async (path: string): Promise<Buffer> => {
+export const readRegularFile = async (path: string): Promise<Buffer> => {
   const stat = await lstat(path);
   if (stat.isSymbolicLink() || !stat.isFile()) {
     throw new Error("Catalog authority must be a regular non-symbolic file.");
@@ -99,26 +95,28 @@ export const validateCapabilityDescriptorExports = async (
   }
 };
 
-export const validateAssetDescriptorFiles = async (
-  rootDir: string,
+const validateAssetDescriptorFilesWithResolver = async (
   rawDescriptors: readonly unknown[],
+  resolveLogicalPath: (logicalPath: string) => string,
 ): Promise<void> => {
   for (const rawDescriptor of rawDescriptors) {
     const descriptor = ResourceAssetDescriptorSchema.parse(rawDescriptor);
-    const bytes = await readRegularFile(join(rootDir, descriptor.localPath));
+    const bytes = await readRegularFile(
+      resolveLogicalPath(descriptor.localPath),
+    );
     if (checksumBytes(bytes) !== descriptor.checksum) {
       throw new Error(`Catalog asset checksum is stale: ${descriptor.id}.`);
     }
   }
 };
 
-const withAuthorityChecksum = async (
-  rootDir: string,
+const withAuthorityChecksumAt = async (
   rawDescriptor: unknown,
+  resolveLogicalPath: (logicalPath: string) => string,
 ): Promise<ResourceDescriptor> => {
   const descriptor = ResourceDescriptorSchema.parse(rawDescriptor);
   const bytes = await readRegularFile(
-    join(rootDir, descriptor.authority.repositoryPath),
+    resolveLogicalPath(descriptor.authority.repositoryPath),
   );
   return ResourceDescriptorSchema.parse({
     ...descriptor,
@@ -129,15 +127,15 @@ const withAuthorityChecksum = async (
   });
 };
 
-const toRepositoryPath = (rootDir: string, path: string) =>
-  relative(rootDir, path).split(sep).join(posix.sep);
-
-export const loadProjectResourceDescriptors = async (
-  rootDir: string,
-  projectId?: string,
-): Promise<readonly ResourceDescriptor[]> => {
-  const projectsRoot = join(rootDir, "src/projects");
-  const projects = await readLocalProjectRoot(rootDir);
+export const loadProjectResourceDescriptorsFromStorage = async ({
+  storage,
+  projectId,
+}: {
+  readonly storage: ProjectStorageLocations;
+  readonly projectId?: string;
+}): Promise<readonly ResourceDescriptor[]> => {
+  const projectsRoot = storage.projectSourceRoot;
+  const projects = await readProjectSourceRoot(projectsRoot);
   const descriptors: ResourceDescriptor[] = [];
   for (const project of projects) {
     if (projectId !== undefined && project.name !== projectId) continue;
@@ -186,7 +184,7 @@ export const loadProjectResourceDescriptors = async (
       if (!Array.isArray(declarations)) {
         throw new Error("Project Catalog descriptor list is missing.");
       }
-      const repositoryPath = toRepositoryPath(rootDir, manifestPath);
+      const repositoryPath = `src/projects/${project.name}/${fileName}`;
       for (const declaration of declarations) {
         const descriptor = ResourceDescriptorSchema.parse(declaration);
         if (descriptor.authority.repositoryPath !== repositoryPath) {
@@ -198,84 +196,44 @@ export const loadProjectResourceDescriptors = async (
       }
     }
   }
-  await validateAssetDescriptorFiles(
-    rootDir,
+  await validateAssetDescriptorFilesWithResolver(
     descriptors.filter(({ kind }) => kind === "asset"),
+    (logicalPath) => resolveProjectOwnedLogicalPath({ storage, logicalPath }),
   );
   return descriptors;
 };
 
-export const loadLocalReferenceAssetDescriptors = async (
-  rootDir: string,
-): Promise<readonly ResourceDescriptor[]> => {
-  const manifestPath = join(rootDir, LOCAL_REFERENCE_ASSET_MANIFEST_PATH);
-  let metadata;
-  try {
-    metadata = await lstat(manifestPath);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw error;
+export const loadWorkspaceCatalogAuthorityDescriptors = async ({
+  locations,
+  projectId,
+}: {
+  readonly locations: ProductionLocations;
+  readonly projectId?: string;
+}): Promise<readonly ResourceDescriptor[]> => {
+  if (locations.layoutKind !== "workspace") {
+    throw new Error("Workspace Catalog requires Workspace locations.");
   }
-  if (!metadata.isFile() || metadata.isSymbolicLink()) {
-    throw new Error(
-      "Local reference asset manifest must be a regular non-symbolic file.",
-    );
-  }
-  const manifest = ProducerAssetManifestSchema.parse(
-    JSON.parse((await readFile(manifestPath, "utf8")).toString()),
+  const runtimeSourceRoot = join(locations.runtimeResources, "source");
+  const runtimeSharedAssetsRoot = join(
+    locations.runtimeResources,
+    "shared-assets",
   );
-  const licenseEvidenceChecksum = checksumBytes(
-    await readRegularFile(
-      join(rootDir, LOCAL_REFERENCE_ASSET_LICENSE_EVIDENCE_PATH),
+  const storage = createWorkspaceProjectStorageLocations(locations);
+  const [coreDescriptors, projectDescriptors] = await Promise.all([
+    loadCoreCatalogAuthorityDescriptorsFromRuntimePack({
+      sourceRoot: runtimeSourceRoot,
+      sharedAssetsRoot: runtimeSharedAssetsRoot,
+    }),
+    loadProjectResourceDescriptorsFromStorage({ storage, projectId }),
+  ]);
+  const enrichedProjects = await Promise.all(
+    projectDescriptors.map((descriptor) =>
+      withAuthorityChecksumAt(descriptor, (logicalPath) =>
+        resolveProjectOwnedLogicalPath({ storage, logicalPath }),
+      ),
     ),
   );
-  for (const descriptor of manifest.assets) {
-    if (
-      descriptor.authority.repositoryPath !==
-      LOCAL_REFERENCE_ASSET_MANIFEST_PATH
-    ) {
-      throw new Error(
-        `Local reference asset authority is stale: ${descriptor.id}.`,
-      );
-    }
-    if (
-      descriptor.assetKind !== "audio" ||
-      !LOCAL_REFERENCE_AUDIO_ROLES.has(descriptor.mediaRole) ||
-      descriptor.allowedUse !== "localize-asset" ||
-      !descriptor.localPath.startsWith("public/assets/library/")
-    ) {
-      throw new Error(
-        `Local reference asset scope is invalid: ${descriptor.id}.`,
-      );
-    }
-    if (
-      descriptor.license.sourceEvidenceFingerprint !== licenseEvidenceChecksum
-    ) {
-      throw new Error(
-        `Local reference asset license evidence is stale: ${descriptor.id}.`,
-      );
-    }
-  }
-  await validateAssetDescriptorFiles(rootDir, manifest.assets);
-  return manifest.assets;
-};
-
-export const loadCatalogAuthorityDescriptors = async (
-  rootDir: string,
-  projectId?: string,
-): Promise<readonly ResourceDescriptor[]> => {
-  const [coreDescriptors, localReferenceDescriptors, projectDescriptors] =
-    await Promise.all([
-      loadCoreCatalogAuthorityDescriptors(rootDir),
-      loadLocalReferenceAssetDescriptors(rootDir),
-      loadProjectResourceDescriptors(rootDir, projectId),
-    ]);
-  const enrichedLocalDescriptors = await Promise.all(
-    [...localReferenceDescriptors, ...projectDescriptors].map((descriptor) =>
-      withAuthorityChecksum(rootDir, descriptor),
-    ),
-  );
-  const descriptors = [...coreDescriptors, ...enrichedLocalDescriptors];
+  const descriptors = [...coreDescriptors, ...enrichedProjects];
   const ids = new Set<string>();
   for (const descriptor of descriptors) {
     ResourceIdSchema.parse(descriptor.id);
@@ -287,19 +245,31 @@ export const loadCatalogAuthorityDescriptors = async (
   return descriptors;
 };
 
-export const loadCoreCatalogAuthorityDescriptors = async (
-  rootDir: string,
-): Promise<readonly ResourceDescriptor[]> => {
+export const loadCoreCatalogAuthorityDescriptorsFromRuntimePack = async ({
+  sourceRoot,
+  sharedAssetsRoot,
+}: {
+  readonly sourceRoot: string;
+  readonly sharedAssetsRoot: string;
+}): Promise<readonly ResourceDescriptor[]> => {
   const manifestPath = join(
-    rootDir,
+    sourceRoot,
     "src/remotion/catalog/assets.manifest.json",
   );
-  const rawManifest = JSON.parse(
-    (await readRegularFile(manifestPath)).toString("utf8"),
+  const manifest = ProducerAssetManifestSchema.parse(
+    JSON.parse((await readRegularFile(manifestPath)).toString("utf8")),
   );
-  const manifest = ProducerAssetManifestSchema.parse(rawManifest);
-  await validateAssetDescriptorFiles(rootDir, manifest.assets);
-  await validateCapabilityDescriptorExports(rootDir, [
+  await validateAssetDescriptorFilesWithResolver(
+    manifest.assets,
+    (logicalPath) => {
+      const prefix = "public/assets/";
+      if (!logicalPath.startsWith(prefix)) {
+        throw new Error("Runtime Pack asset path is outside shared assets.");
+      }
+      return join(sharedAssetsRoot, logicalPath.slice(prefix.length));
+    },
+  );
+  await validateCapabilityDescriptorExports(sourceRoot, [
     ...styleDescriptorDeclarations,
     ...capabilityDescriptorDeclarations,
   ]);
@@ -312,25 +282,31 @@ export const loadCoreCatalogAuthorityDescriptors = async (
   ) {
     throw new Error("Catalog style profile identities are stale.");
   }
-  const descriptors = [
-    ...manifest.assets,
-    ...styleDescriptorDeclarations,
-    ...capabilityDescriptorDeclarations,
-  ];
-  const enriched = await Promise.all(
-    descriptors.map((descriptor) => withAuthorityChecksum(rootDir, descriptor)),
+  return Promise.all(
+    [
+      ...manifest.assets,
+      ...styleDescriptorDeclarations,
+      ...capabilityDescriptorDeclarations,
+    ].map((descriptor) =>
+      withAuthorityChecksumAt(descriptor, (logicalPath) =>
+        join(sourceRoot, logicalPath),
+      ),
+    ),
   );
-  return enriched;
 };
 
-export const readGeneratedResourceCatalog = async (
-  rootDir: string,
+export const readGeneratedResourceCatalogFromStorage = async (
+  storage: ProjectStorageLocations,
 ): Promise<ResourceCatalog> => {
-  const path = join(
-    rootDir,
-    "src/remotion/catalog/resource-catalog.generated.json",
-  );
+  const path = storage.catalogProjectionPath;
   return ResourceCatalogSchema.parse(
     JSON.parse((await readRegularFile(path)).toString("utf8")),
   );
 };
+
+export const readWorkspaceGeneratedResourceCatalog = async (
+  locations: ProductionLocations,
+) =>
+  readGeneratedResourceCatalogFromStorage(
+    createWorkspaceProjectStorageLocations(locations),
+  );

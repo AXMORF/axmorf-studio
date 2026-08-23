@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
 import { runRendererRegistryCli } from "../../scripts/renderer-registry/cli";
 
 test("renderer registry CLI accepts only fixed generate/check project forms", async () => {
   const calls: unknown[] = [];
   const context = {
-    rootDir: "/unused",
+    locations: createRepositoryProductionLocations({
+      repositoryRoot: "/unused",
+    }),
     stdout: () => undefined,
     generate: async (request: unknown) => calls.push(request),
   };

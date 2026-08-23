@@ -71,6 +71,8 @@ test("production inspection validates baseline, estimates, task order, and proje
     storyId: "story-example",
     sourceState: "production-inputs-ready",
     currentRevisionId: revision,
+    sourceCurrentId: null,
+    deliveryBuildId: null,
     baseline: { kind: "none", revisionId: null },
     estimatedCost: {
       providerRequests: null,
@@ -80,7 +82,7 @@ test("production inspection validates baseline, estimates, task order, and proje
     },
     tasks: [
       {
-        taskKind: "delivery-build",
+        taskKind: "composition-convergence",
         subject: { kind: "project", id: "story-example" },
         taskRevision: task,
         baselineTaskRevision: null,
@@ -101,10 +103,18 @@ test("production inspection validates baseline, estimates, task order, and proje
     nextAction: "prepare-production",
   });
   assert.equal(inspection.estimatedCost.providerRequests, null);
+  assert.equal(inspection.sourceCurrentId, null);
+  assert.equal(inspection.deliveryBuildId, null);
   assert.throws(() =>
     ProductionInspectionSchema.parse({
       ...inspection,
       baseline: { kind: "current-delivery", revisionId: null },
+    }),
+  );
+  assert.throws(() =>
+    ProductionInspectionSchema.parse({
+      ...inspection,
+      deliveryBuildId: `delivery-${"5".repeat(64)}`,
     }),
   );
   assert.throws(() =>

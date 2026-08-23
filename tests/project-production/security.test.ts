@@ -11,6 +11,7 @@ import {
   resolveArtifactPath,
 } from "../../scripts/project-production/adapters/artifact-store";
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
+import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
@@ -50,7 +51,9 @@ test("task and artifact paths reject escapes, absolute paths, and duplicate logi
   assert.throws(
     () =>
       resolveArtifactPath({
-        rootDir: "/tmp/isolated-test-root",
+        locations: createRepositoryProductionLocations({
+          repositoryRoot: "/tmp/isolated-test-root",
+        }),
         storyId: "../escape",
         taskKind: "cover-owner",
         taskRevision: `task-${"3".repeat(64)}`,
@@ -62,9 +65,12 @@ test("task and artifact paths reject escapes, absolute paths, and duplicate logi
 test("workspace symlinks and undeclared files fail closed", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-production-security-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
   const task = buildTask();
   const workspace = await createTaskWorkspace({
-    rootDir,
+    locations,
     task,
     seedFiles: { "inputs/context.json": "{}\n" },
   });
@@ -73,7 +79,7 @@ test("workspace symlinks and undeclared files fail closed", async (context) => {
   await writeFile(outside, "outside");
   await symlink(outside, join(workspace, "src/Cover.tsx"));
   await assert.rejects(
-    commitTaskArtifact({ rootDir, task, workspace }),
+    commitTaskArtifact({ locations, task, workspace }),
     /non-regular entry/u,
   );
 
@@ -81,7 +87,7 @@ test("workspace symlinks and undeclared files fail closed", async (context) => {
   await writeFile(join(workspace, "src/Cover.tsx"), "export default null;\n");
   await writeFile(join(workspace, "src/unknown.ts"), "unknown\n");
   await assert.rejects(
-    commitTaskArtifact({ rootDir, task, workspace }),
+    commitTaskArtifact({ locations, task, workspace }),
     /missing or unknown files/u,
   );
 });
@@ -89,43 +95,56 @@ test("workspace symlinks and undeclared files fail closed", async (context) => {
 test("checksum drift and same task identity with different bytes fail closed", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-production-integrity-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
   const task = buildTask();
   const workspace = await createTaskWorkspace({
-    rootDir,
+    locations,
     task,
     seedFiles: { "inputs/context.json": "{}\n" },
   });
   await mkdir(join(workspace, "src"), { recursive: true });
   await writeFile(join(workspace, "src/Cover.tsx"), "version-one\n");
-  const committed = await commitTaskArtifact({ rootDir, task, workspace });
+  const committed = await commitTaskArtifact({ locations, task, workspace });
   assert.equal(committed.reused, false);
 
   await writeFile(join(workspace, "src/Cover.tsx"), "version-two\n");
   await assert.rejects(
-    commitTaskArtifact({ rootDir, task, workspace }),
+    commitTaskArtifact({ locations, task, workspace }),
     /conflicting output bytes/u,
   );
 
   const artifact = resolveArtifactPath({
-    rootDir,
+    locations,
     storyId: task.storyId,
     taskKind: task.taskKind,
     taskRevision: task.taskRevision,
   });
   await writeFile(join(artifact, "files/src/Cover.tsx"), "tampered\n");
-  await assert.rejects(inspectArtifact({ rootDir, task }), /checksum drifted/u);
+  await assert.rejects(
+    inspectArtifact({ locations, task }),
+    /checksum drifted/u,
+  );
 });
 
 test("Artifact Store refuses symlinked storage parents", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-production-artifact-parent-"));
-  const outside = await mkdtemp(join(tmpdir(), "rsp-production-artifact-outside-"));
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-production-artifact-parent-"),
+  );
+  const outside = await mkdtemp(
+    join(tmpdir(), "rsp-production-artifact-outside-"),
+  );
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   context.after(() => rm(outside, { recursive: true, force: true }));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
   await symlink(outside, join(rootDir, ".producer-artifacts"));
 
   const task = buildTask();
   const workspace = await createTaskWorkspace({
-    rootDir,
+    locations,
     task,
     seedFiles: { "inputs/context.json": "{}\n" },
   });
@@ -133,7 +152,7 @@ test("Artifact Store refuses symlinked storage parents", async (context) => {
   await writeFile(join(workspace, "src/Cover.tsx"), "export default null;\n");
 
   await assert.rejects(
-    commitTaskArtifact({ rootDir, task, workspace }),
+    commitTaskArtifact({ locations, task, workspace }),
     /Artifact Store parent is unsafe/u,
   );
 });

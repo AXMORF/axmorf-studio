@@ -2,22 +2,23 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 
 import { StoryIdSchema } from "../../../src/contracts";
+import type { ProductionLocations } from "../domain/production-locations";
 import {
   readExecutionAttemptDiagnosticBaseline,
   readExecutionAttemptProgress,
 } from "./attempt-store";
 
 export const readLatestExecutionAttempt = async ({
-  rootDir,
+  locations,
   storyId: rawStoryId,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly storyId: string;
 }) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
   let entries;
   try {
-    entries = await readdir(join(rootDir, ".producer-attempts", storyId), {
+    entries = await readdir(join(locations.attemptStoreRoot, storyId), {
       withFileTypes: true,
     });
   } catch (error) {
@@ -29,7 +30,7 @@ export const readLatestExecutionAttempt = async ({
     if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
     try {
       const progress = await readExecutionAttemptProgress({
-        rootDir,
+        locations,
         storyId,
         attemptId: entry.name,
       });

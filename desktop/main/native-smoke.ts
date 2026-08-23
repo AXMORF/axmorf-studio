@@ -6,6 +6,58 @@ import type { App, BrowserWindow } from "electron";
 import type { DesktopShellController } from "./shell-controller";
 import type { DesktopMediaProtocol } from "./media-protocol";
 import { TRUSTED_SHELL_WEB_PREFERENCES } from "../contracts/security-policy";
+import {
+  writePrivateProducerConfig,
+  type PrivateConfigCrypto,
+} from "../adapters/private-config-store";
+import { buildProducerConfig } from "../../src/contracts";
+
+const NATIVE_GATE_PRODUCER_CONFIG = buildProducerConfig({
+  schemaVersion: 4,
+  contractVersion: "producer-config-v4",
+  renderDefaults: {
+    width: 1080,
+    height: 1920,
+    fps: 30,
+    locale: "zh-CN",
+  },
+  readability: { edgeInsetPx: 90 },
+  sceneDefaults: {
+    introSceneTemplateId: null,
+    outroSceneTemplateId: null,
+  },
+  audioDefaults: { globalBgm: null },
+  publishingCollections: [
+    {
+      id: "ai-workflow",
+      name: "Native gate",
+      description: "Gate-only publishing collection without credentials.",
+    },
+  ],
+  tts: {
+    defaultProviderId: "native-gate-edge",
+    defaultVoiceProfileId: "native-gate-voice",
+    speech: { rate: 1, targetLoudnessLufs: -16 },
+    providers: [
+      {
+        id: "native-gate-edge",
+        kind: "edge-tts",
+        service: "microsoft-edge-read-aloud",
+        name: "Native gate schema provider",
+        connection: { timeoutMs: 1_000 },
+        modelId: "edge-read-aloud",
+        voiceProfiles: [
+          {
+            id: "native-gate-voice",
+            name: "Native gate voice",
+            voiceId: "zh-CN-XiaoxiaoNeural",
+            locale: "zh-CN",
+          },
+        ],
+      },
+    ],
+  },
+});
 
 export type NativeSmokeOptions = Readonly<{
   homeRoot: string;
@@ -14,6 +66,19 @@ export type NativeSmokeOptions = Readonly<{
   userDataRoot: string;
   workspaceRoot: string;
 }>;
+
+export const ensureNativeSmokeProducerConfig = async ({
+  applicationSupportRoot,
+  crypto,
+}: {
+  readonly applicationSupportRoot: string;
+  readonly crypto: PrivateConfigCrypto;
+}) =>
+  writePrivateProducerConfig({
+    applicationSupportRoot,
+    crypto,
+    value: NATIVE_GATE_PRODUCER_CONFIG,
+  });
 
 export const resolveNativeSmokeOptions = ({
   isPackaged,
@@ -26,15 +91,15 @@ export const resolveNativeSmokeOptions = ({
   readonly arch?: string;
   readonly env?: NodeJS.ProcessEnv;
 }): NativeSmokeOptions | null => {
-  if (env.AXMORF_PHASE_A_NATIVE_GATE !== "1") return null;
+  if (env.AXMORF_PHASE_B_NATIVE_GATE !== "1") return null;
   if (!isPackaged || platform !== "darwin" || arch !== "arm64") {
     throw new Error("desktop-native-smoke-host-invalid");
   }
-  const outputRoot = env.AXMORF_PHASE_A_SMOKE_OUTPUT;
-  const homeRoot = env.AXMORF_PHASE_A_SMOKE_HOME;
-  const userDataRoot = env.AXMORF_PHASE_A_SMOKE_USER_DATA;
-  const workspaceRoot = env.AXMORF_PHASE_A_SMOKE_WORKSPACE;
-  const selection = env.AXMORF_PHASE_A_SMOKE_SELECTION;
+  const outputRoot = env.AXMORF_PHASE_B_SMOKE_OUTPUT;
+  const homeRoot = env.AXMORF_PHASE_B_SMOKE_HOME;
+  const userDataRoot = env.AXMORF_PHASE_B_SMOKE_USER_DATA;
+  const workspaceRoot = env.AXMORF_PHASE_B_SMOKE_WORKSPACE;
+  const selection = env.AXMORF_PHASE_B_SMOKE_SELECTION;
   if (
     homeRoot === undefined ||
     homeRoot === "" ||
@@ -208,11 +273,11 @@ const rendererProbeSource = (playbackRequired: boolean) =>
     let permissionState = null;
     if (playbackRequired) {
       probeStage = "popup";
-      popupDenied = window.open("https://example.com/phase-a-popup") === null;
+      popupDenied = window.open("https://example.com/phase-b-popup") === null;
       probeStage = "navigation";
       const beforeNavigation = location.href;
       const navigation = document.createElement("a");
-      navigation.href = "https://example.com/phase-a-navigation";
+      navigation.href = "https://example.com/phase-b-navigation";
       navigation.textContent = "blocked navigation";
       document.body.append(navigation);
       navigation.click();
@@ -221,7 +286,7 @@ const rendererProbeSource = (playbackRequired: boolean) =>
       probeStage = "download";
       const download = document.createElement("a");
       download.href = "data:text/plain,blocked";
-      download.download = "phase-a-download.txt";
+      download.download = "phase-b-download.txt";
       document.body.append(download);
       download.click();
       await sleep(250);
@@ -277,6 +342,16 @@ const rendererProbeSource = (playbackRequired: boolean) =>
   }
 }))()`;
 
+const fileExists = async (path: string) => {
+  try {
+    await readFile(path);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
+  }
+};
+
 export const runPackagedNativeSmoke = async ({
   app,
   window,
@@ -301,8 +376,17 @@ export const runPackagedNativeSmoke = async ({
       () => !window.webContents.isLoadingMainFrame(),
       "renderer-load",
     );
+    await writeFile(join(options.outputRoot, "app-ready"), "ready\n", {
+      mode: 0o600,
+    });
+    await waitFor(
+      () => fileExists(join(options.outputRoot, "delivery-ready")),
+      "runner-delivery",
+      3_600_000,
+    );
+    await controller.refreshPreviewCatalog();
     const renderer = (await window.webContents.executeJavaScript(
-      rendererProbeSource(options.selection === "default"),
+      rendererProbeSource(true),
       true,
     )) as {
       state: {
@@ -397,11 +481,11 @@ export const runPackagedNativeSmoke = async ({
       "selection-control",
     );
     requireRenderer(renderer.state.entryCount === 1, "entry-count");
-    requireRenderer(!renderer.state.productionAvailable, "phase-b-production");
-    requireRenderer(!renderer.state.deliveryAvailable, "phase-b-delivery");
+    requireRenderer(renderer.state.productionAvailable, "phase-b-production");
+    requireRenderer(renderer.state.deliveryAvailable, "phase-b-delivery");
     requireRenderer(!renderer.state.distributionReady, "phase-b-distribution");
     requireRenderer(
-      !renderer.state.runtimePackAvailable,
+      renderer.state.runtimePackAvailable,
       "phase-b-runtime-pack",
     );
     requireRenderer(
@@ -416,22 +500,12 @@ export const runPackagedNativeSmoke = async ({
     );
     requireRenderer(renderer.media.errorCode === null, "media-error");
     requireRenderer(renderer.media.playerError === null, "player-error");
+    requireRenderer(renderer.media.playbackRequired, "playback-requirement");
     requireRenderer(
-      renderer.media.playbackRequired === (options.selection === "default"),
-      "playback-requirement",
-    );
-    requireRenderer(
-      options.selection === "default"
-        ? renderer.media.playedTime !== null && renderer.media.playedTime > 0
-        : renderer.media.playedTime === null,
+      renderer.media.playedTime !== null && renderer.media.playedTime > 0,
       "playback-result",
     );
-    requireRenderer(
-      options.selection === "default"
-        ? renderer.media.positions !== null
-        : renderer.media.positions === null,
-      "seek-requirement",
-    );
+    requireRenderer(renderer.media.positions !== null, "seek-requirement");
     requireRenderer(renderer.timeline.sceneCount === 2, "scene-track");
     requireRenderer(renderer.timeline.narrationCount === 3, "narration-track");
     requireRenderer(renderer.timeline.captionCount === 2, "caption-track");
@@ -463,10 +537,7 @@ export const runPackagedNativeSmoke = async ({
       );
     }
     requireRenderer(renderer.security.nodeGlobalsAbsent, "node-api");
-    requireRenderer(
-      renderer.security.securityTested === (options.selection === "default"),
-      "security-requirement",
-    );
+    requireRenderer(renderer.security.securityTested, "security-requirement");
     if (renderer.security.securityTested) {
       requireRenderer(renderer.security.popupDenied === true, "popup");
       requireRenderer(
@@ -569,7 +640,10 @@ export const runPackagedNativeSmoke = async ({
     );
     const report = {
       schemaVersion: 1,
-      contractVersion: "desktop-phase-a-native-evidence-v1",
+      contractVersion: "desktop-phase-b-native-evidence-v1",
+      status: "native-delivery-and-preview-verified",
+      sourceCurrent: true,
+      deliveryBuilt: true,
       exactCommit: process.env.GITHUB_SHA ?? "local-unverified",
       capturedAt: new Date().toISOString(),
       selection: options.selection,
@@ -603,20 +677,11 @@ export const runPackagedNativeSmoke = async ({
       secondInstanceFocused = true;
     });
     window.hide();
-    await writeFile(join(options.outputRoot, "app-ready"), "ready\n", {
-      mode: 0o600,
-    });
     await waitFor(
-      async () => {
-        try {
-          await readFile(join(options.outputRoot, "continue"));
-          return true;
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
-          throw error;
-        }
-      },
-      "runner-continue",
+      async () =>
+        (await fileExists(join(options.outputRoot, "continue"))) ||
+        (await fileExists(join(options.outputRoot, "request-quit"))),
+      "runner-directive",
       300_000,
     );
     await writeFile(
@@ -627,6 +692,15 @@ export const runPackagedNativeSmoke = async ({
       })}\n`,
       { mode: 0o600 },
     );
+    if (await fileExists(join(options.outputRoot, "request-quit"))) {
+      await writeFile(
+        join(options.outputRoot, "quit-request-observed"),
+        "observed\n",
+        { mode: 0o600 },
+      );
+      app.quit();
+      return;
+    }
     app.quit();
   } catch (error) {
     const raw = error instanceof Error ? error.message : "native-smoke-failed";

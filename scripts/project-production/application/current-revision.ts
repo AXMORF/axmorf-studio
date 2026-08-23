@@ -2,7 +2,8 @@ import {
   buildProductionRevision,
   type ProductionRevision,
 } from "../../../src/contracts";
-import { loadProjectProductionInputs } from "./load-inputs";
+import type { loadProjectProductionInputs } from "./load-inputs";
+import type { ProductionLocations } from "./production-locations";
 
 type LoadedProjectProductionInputs = Awaited<
   ReturnType<typeof loadProjectProductionInputs>
@@ -17,7 +18,6 @@ export const buildCurrentProductionRevision = (
     narrationFingerprint: inputs.fingerprints.narration,
     renderFingerprint: inputs.fingerprints.render,
     visualStyleFingerprint: inputs.fingerprints.visualStyle,
-    publishingIntentFingerprint: inputs.fingerprints.publishingIntent,
     projectSoundFingerprint: inputs.fingerprints.sound,
     authoringRequirementsFingerprint: inputs.fingerprints.requirements,
     globalVisualBriefFingerprint: inputs.fingerprints.globalVisualBrief,
@@ -39,12 +39,10 @@ export const buildCurrentProductionRevision = (
   });
 
 type CurrentRevisionDependencies = Readonly<{
-  loadInputs: typeof loadProjectProductionInputs;
+  loadInputs: (
+    input: Parameters<typeof loadProjectProductionInputs>[0],
+  ) => ReturnType<typeof loadProjectProductionInputs>;
 }>;
-
-const defaultDependencies: CurrentRevisionDependencies = {
-  loadInputs: loadProjectProductionInputs,
-};
 
 /**
  * Computes the live authoring revision without preparing providers, artifacts,
@@ -52,16 +50,16 @@ const defaultDependencies: CurrentRevisionDependencies = {
  */
 export const readCurrentProductionRevision = async (
   {
-    rootDir,
+    locations,
     projectId,
   }: {
-    readonly rootDir: string;
+    readonly locations: ProductionLocations;
     readonly projectId: string;
   },
-  dependencies: CurrentRevisionDependencies = defaultDependencies,
+  dependencies: CurrentRevisionDependencies,
 ) => {
   const inputs = await dependencies.loadInputs({
-    rootDir,
+    locations,
     projectId,
   });
   return buildCurrentProductionRevision(inputs);

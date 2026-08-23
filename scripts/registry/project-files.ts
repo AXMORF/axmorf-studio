@@ -1,5 +1,5 @@
 import { lstat, readFile } from "node:fs/promises";
-import { join, posix, relative, sep } from "node:path";
+import { join } from "node:path";
 import ts from "typescript";
 
 import {
@@ -14,14 +14,12 @@ import {
   createValidatedProjectRegistrationEntry,
   type ValidatedProjectRegistrationEntry,
 } from "./domain";
-import { readLocalProjectRoot } from "../projects/root";
+import { readProjectSourceRoot } from "../projects/root";
+import type { ProjectStorageLocations } from "../projects/project-locations";
 
 const PROJECT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const PROJECT_COMPOSITION_PATTERN =
   /^src\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)\/Composition\.tsx$/;
-
-const toPosixRelative = (rootDir: string, path: string) =>
-  relative(rootDir, path).split(sep).join(posix.sep);
 
 const hasExplicitlyNonCurrentStorySpecVersion = async (
   projectDirectory: string,
@@ -49,11 +47,13 @@ const hasExplicitlyNonCurrentStorySpecVersion = async (
   return false;
 };
 
-export const discoverProjectEntries = async (
-  rootDir: string,
-): Promise<readonly string[]> => {
-  const projectsDirectory = join(rootDir, "src/projects");
-  const directoryEntries = await readLocalProjectRoot(rootDir);
+export const discoverProjectEntries = async ({
+  storage,
+}: {
+  readonly storage: ProjectStorageLocations;
+}): Promise<readonly string[]> => {
+  const projectsDirectory = storage.projectSourceRoot;
+  const directoryEntries = await readProjectSourceRoot(projectsDirectory);
   const discovered: string[] = [];
   for (const entry of directoryEntries) {
     if (entry.isSymbolicLink()) {
@@ -87,7 +87,7 @@ export const discoverProjectEntries = async (
     ) {
       continue;
     }
-    discovered.push(toPosixRelative(rootDir, compositionPath));
+    discovered.push(`src/projects/${entry.name}/Composition.tsx`);
   }
   return discovered;
 };
@@ -131,10 +131,10 @@ const countDefaultExports = (source: string, fileName: string): number => {
 };
 
 export const loadProjectRegistrationEntry = async ({
-  rootDir,
+  storage,
   compositionPath,
 }: {
-  readonly rootDir: string;
+  readonly storage: ProjectStorageLocations;
   readonly compositionPath: string;
 }): Promise<ValidatedProjectRegistrationEntry> => {
   const match = PROJECT_COMPOSITION_PATTERN.exec(compositionPath);
@@ -144,7 +144,7 @@ export const loadProjectRegistrationEntry = async ({
     );
   }
   const slug = match[1];
-  const projectDirectory = join(rootDir, "src/projects", slug);
+  const projectDirectory = join(storage.projectSourceRoot, slug);
   const absoluteCompositionPath = join(projectDirectory, "Composition.tsx");
   const compositionStat = await lstat(absoluteCompositionPath);
   if (compositionStat.isSymbolicLink() || !compositionStat.isFile()) {

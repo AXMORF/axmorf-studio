@@ -7,11 +7,27 @@ import test from "node:test";
 import { runProjectProductionCli } from "../../scripts/project-production/cli";
 import { readLatestExecutionAttempt } from "../../scripts/project-production/adapters/progress";
 import {
+  createRepositoryProductionLocations,
+  createRuntimeExecutionResources,
+} from "../../scripts/project-production/application/production-locations";
+import {
   buildArtifactAttestation,
+  buildProducerConfig,
   buildProducerTaskSpec,
 } from "../../src/contracts";
+import { validProjectCreateProducerConfig } from "../fixtures/project-create";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
+const producerConfig = buildProducerConfig(validProjectCreateProducerConfig);
+const runtime = createRuntimeExecutionResources({
+  rendererRuntimeFingerprint: sha("f"),
+  browserExecutable: "/runtime/browser",
+  binariesDirectory: "/runtime/bin",
+  ffmpegExecutable: "/runtime/bin/ffmpeg",
+  ffprobeExecutable: "/runtime/bin/ffprobe",
+});
+const loadProducerConfig = async () => producerConfig;
+const resolveRuntime = async () => runtime;
 
 test("project production CLI exposes the fixed continuation and task terminal surface", async () => {
   const context = {
@@ -59,7 +75,8 @@ test("package scripts have one honest resolve/inspect/prepare production surface
     },
     {
       create: "node --import tsx scripts/projects/create.ts",
-      resolve: "node --import tsx scripts/project-production/cli.ts execution-resolve",
+      resolve:
+        "node --import tsx scripts/project-production/cli.ts execution-resolve",
       inspect: "node --import tsx scripts/project-production/cli.ts inspect",
       prepare: "node --import tsx scripts/project-production/cli.ts prepare",
       check: "node --import tsx scripts/project-production/cli.ts task-check",
@@ -91,6 +108,65 @@ test("package scripts have one honest resolve/inspect/prepare production surface
   ]) {
     assert.equal(packageJson.scripts[removed], undefined, removed);
   }
+});
+
+test("application production orchestration has no repository command or Delivery default", async () => {
+  const [
+    prepareSource,
+    continueSource,
+    convergeSource,
+    deliverySource,
+    repositoryDeliverySource,
+    cliSource,
+    repositoryCommands,
+  ] = await Promise.all([
+    readFile(
+      "scripts/project-production/application/prepare-production.ts",
+      "utf8",
+    ),
+    readFile(
+      "scripts/project-production/application/continue-production.ts",
+      "utf8",
+    ),
+    readFile(
+      "scripts/project-production/application/converge-artifacts.ts",
+      "utf8",
+    ),
+    readFile(
+      "scripts/project-production/application/build-delivery.ts",
+      "utf8",
+    ),
+    readFile(
+      "scripts/project-production/application/repository-delivery.ts",
+      "utf8",
+    ),
+    readFile("scripts/project-production/cli.ts", "utf8"),
+    readFile(
+      "scripts/project-production/adapters/repository-production-command-formatter.ts",
+      "utf8",
+    ),
+  ]);
+  const applicationSource = `${prepareSource}\n${continueSource}\n${convergeSource}`;
+  assert.doesNotMatch(applicationSource, /npm run project:/u);
+  assert.doesNotMatch(convergeSource, /import\s*\{[^}]*buildDeliveryUnlocked/u);
+  assert.match(convergeSource, /import type \{ DeliveryBuildPort \}/u);
+  assert.doesNotMatch(convergeSource, /node:os|tmpdir\(/u);
+  assert.match(convergeSource, /locations\.disposableBuildRoot/u);
+  assert.match(continueSource, /converge: ProductionConvergencePort/u);
+  assert.match(prepareSource, /commandFormatter: ProductionCommandFormatter/u);
+  assert.doesNotMatch(
+    deliverySource,
+    /createRepositoryProjectStorage|\?\?\s*(?:render|inspect)Project/u,
+  );
+  assert.match(
+    repositoryDeliverySource,
+    /createRepositoryProjectStorageFromProductionLocations/u,
+  );
+  assert.match(repositoryDeliverySource, /renderProjectVideo/u);
+  assert.match(repositoryDeliverySource, /inspectProjectCover/u);
+  assert.match(cliSource, /buildRepositoryDeliveryUnlocked/u);
+  assert.match(cliSource, /buildCurrentRepositoryDelivery/u);
+  assert.match(repositoryCommands, /npm run project:task:check/u);
 });
 
 test("execution-resolve passes explicit user fields and runtime capacity once", async () => {
@@ -133,10 +209,13 @@ test("execution-resolve passes explicit user fields and runtime capacity once", 
   });
   assert.deepEqual(lines, [JSON.stringify(result)]);
   await assert.rejects(
-    runProjectProductionCli(["execution-resolve", "--mode", "inline", "--max-concurrency", "2"], {
-      rootDir: "/fixture",
-      stdout: () => undefined,
-    }),
+    runProjectProductionCli(
+      ["execution-resolve", "--mode", "inline", "--max-concurrency", "2"],
+      {
+        rootDir: "/fixture",
+        stdout: () => undefined,
+      },
+    ),
     /does not accept/u,
   );
   const zeroCapacityCalls: unknown[] = [];
@@ -157,6 +236,11 @@ test("execution-resolve passes explicit user fields and runtime capacity once", 
 });
 
 test("inspect and prepare each emit one stable structured JSON document", async () => {
+  const runtimeModes: string[] = [];
+  const resolveCommandRuntime = async (input: { readonly mode: string }) => {
+    runtimeModes.push(input.mode);
+    return runtime;
+  };
   const taskRevision = `task-${"1".repeat(64)}` as const;
   const revisionId = `revision-${"2".repeat(64)}` as const;
   const taskExplanation = {
@@ -183,6 +267,8 @@ test("inspect and prepare each emit one stable structured JSON document", async 
     storyId: "story-example",
     sourceState: "production-inputs-ready",
     currentRevisionId: revisionId,
+    sourceCurrentId: null,
+    deliveryBuildId: null,
     baseline: { kind: "none", revisionId: null },
     estimatedCost,
     tasks: [taskExplanation],
@@ -192,6 +278,8 @@ test("inspect and prepare each emit one stable structured JSON document", async 
   const inspectContext = {
     rootDir: "/fixture",
     stdout: (line: string) => inspectLines.push(line),
+    loadProducerConfig,
+    resolveRuntime: resolveCommandRuntime,
     inspectProduction: (async () => inspection) as never,
   };
   await runProjectProductionCli(
@@ -249,6 +337,8 @@ test("inspect and prepare each emit one stable structured JSON document", async 
     {
       rootDir: "/fixture",
       stdout: (line) => prepareLines.push(line),
+      loadProducerConfig,
+      resolveRuntime: resolveCommandRuntime,
       prepareProduction: (async () => prepared) as never,
     },
   );
@@ -259,6 +349,7 @@ test("inspect and prepare each emit one stable structured JSON document", async 
   ]);
   assert.deepEqual(prepared.dirtyAgentTasks[0]?.changedInputs, ["brief"]);
   assert.deepEqual(prepared.dirtyAgentTasks[0]?.blockedBy, []);
+  assert.deepEqual(runtimeModes, ["read-only", "read-only", "ensure"]);
   assert.equal(
     prepared.nextAction,
     "dispatch-agent-tasks-then-start-fixed-continuation",
@@ -304,6 +395,12 @@ test("task-commit binds terminal outcomes to the explicit attempt", async (conte
   const readWorkspace = async () => ({ task, workspace: "/unused" });
   const attemptId = "00000000-0000-4000-8000-000000000001";
   const outcomes: unknown[] = [];
+  let authorityChecks = 0;
+  let commitCalls = 0;
+  const assertTaskAuthority = async () => {
+    authorityChecks += 1;
+    return {} as never;
+  };
   const appendTaskOutcome = async (input: unknown) => {
     outcomes.push(input);
     return {} as never;
@@ -315,8 +412,10 @@ test("task-commit binds terminal outcomes to the explicit attempt", async (conte
         rootDir,
         stdout: () => undefined,
         readWorkspace,
+        assertTaskAuthority,
         appendTaskOutcome: appendTaskOutcome as never,
         commitTaskArtifact: async () => {
+          commitCalls += 1;
           throw new Error("validator rejected output");
         },
       },
@@ -324,7 +423,9 @@ test("task-commit binds terminal outcomes to the explicit attempt", async (conte
     /validator rejected/u,
   );
   const failed = await readLatestExecutionAttempt({
-    rootDir,
+    locations: createRepositoryProductionLocations({
+      repositoryRoot: rootDir,
+    }),
     storyId: task.storyId,
   });
   assert.equal(failed, null);
@@ -335,6 +436,7 @@ test("task-commit binds terminal outcomes to the explicit attempt", async (conte
       rootDir,
       stdout: () => undefined,
       readWorkspace,
+      assertTaskAuthority,
       appendTaskOutcome: appendTaskOutcome as never,
       commitTaskArtifact: async () => ({
         attestation: artifact,
@@ -345,12 +447,45 @@ test("task-commit binds terminal outcomes to the explicit attempt", async (conte
   assert.ok("attemptRecorded" in output);
   assert.equal(output.status, "producer-artifact-committed");
   assert.equal(output.attemptRecorded, true);
+  assert.equal(authorityChecks, 2);
+  assert.equal(commitCalls, 1);
   assert.equal(outcomes.length, 2);
   const committed = await readLatestExecutionAttempt({
-    rootDir,
+    locations: createRepositoryProductionLocations({
+      repositoryRoot: rootDir,
+    }),
     storyId: task.storyId,
   });
   assert.equal(committed, null);
+
+  let unauthorizedCommitCalls = 0;
+  let unauthorizedOutcomeCalls = 0;
+  await assert.rejects(
+    runProjectProductionCli(
+      ["task-commit", "--task", task.taskRevision, "--attempt", attemptId],
+      {
+        rootDir,
+        stdout: () => undefined,
+        readWorkspace,
+        assertTaskAuthority: async () => {
+          throw new Error(
+            "Execution attempt is not the active task authority.",
+          );
+        },
+        commitTaskArtifact: async () => {
+          unauthorizedCommitCalls += 1;
+          return { attestation: artifact, reused: false };
+        },
+        appendTaskOutcome: (async () => {
+          unauthorizedOutcomeCalls += 1;
+          return {} as never;
+        }) as never,
+      },
+    ),
+    /not the active task authority/u,
+  );
+  assert.equal(unauthorizedCommitCalls, 0);
+  assert.equal(unauthorizedOutcomeCalls, 0);
 });
 
 test("task-fail records a safe attempt-bound terminal and continue delegates to fixed code", async () => {
@@ -383,6 +518,7 @@ test("task-fail records a safe attempt-bound terminal and continue delegates to 
       rootDir: "/fixture",
       stdout: () => undefined,
       readWorkspace: (async () => ({ task, workspace: "/unused" })) as never,
+      assertTaskAuthority: (async () => ({})) as never,
       appendTaskOutcome: (async (input: unknown) => {
         recorded.push(input);
         return {} as never;
@@ -394,6 +530,37 @@ test("task-fail records a safe attempt-bound terminal and continue delegates to 
     "producer-task-failure-recorded",
   );
   assert.match(JSON.stringify(recorded), /producer-agent-host-failed/u);
+
+  let unauthorizedOutcomeCalls = 0;
+  await assert.rejects(
+    runProjectProductionCli(
+      [
+        "task-fail",
+        "--task",
+        task.taskRevision,
+        "--attempt",
+        attemptId,
+        "--kind",
+        "task",
+      ],
+      {
+        rootDir: "/fixture",
+        stdout: () => undefined,
+        readWorkspace: (async () => ({ task, workspace: "/unused" })) as never,
+        assertTaskAuthority: async () => {
+          throw new Error(
+            "Execution attempt is not the active task authority.",
+          );
+        },
+        appendTaskOutcome: (async () => {
+          unauthorizedOutcomeCalls += 1;
+          return {} as never;
+        }) as never,
+      },
+    ),
+    /not the active task authority/u,
+  );
+  assert.equal(unauthorizedOutcomeCalls, 0);
 
   const continued = await runProjectProductionCli(
     [
@@ -408,6 +575,8 @@ test("task-fail records a safe attempt-bound terminal and continue delegates to 
     {
       rootDir: "/fixture",
       stdout: () => undefined,
+      loadProducerConfig,
+      resolveRuntime,
       continueProduction: (async (input: unknown) => ({
         status: "project-production-current",
         ...(input as object),
@@ -420,4 +589,30 @@ test("task-fail records a safe attempt-bound terminal and continue delegates to 
   };
   assert.equal(continuedOutput.status, "project-production-current");
   assert.equal(continuedOutput.attemptId, attemptId);
+
+  const deliveryCalls: unknown[] = [];
+  const delivery = await runProjectProductionCli(
+    ["delivery-build", "--project", task.storyId],
+    {
+      rootDir: "/fixture",
+      stdout: () => undefined,
+      loadProducerConfig,
+      resolveRuntime,
+      buildDelivery: (async (input: unknown) => {
+        deliveryCalls.push(input);
+        return { status: "project-production-current" };
+      }) as never,
+    },
+  );
+  assert.deepEqual(delivery, { status: "project-production-current" });
+  assert.deepEqual(deliveryCalls, [
+    {
+      locations: createRepositoryProductionLocations({
+        repositoryRoot: "/fixture",
+      }),
+      runtime,
+      config: producerConfig,
+      projectId: task.storyId,
+    },
+  ]);
 });

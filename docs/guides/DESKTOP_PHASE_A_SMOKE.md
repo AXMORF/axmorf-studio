@@ -19,8 +19,9 @@ App evidence。
 
 ## Apple Silicon native smoke（已验证）
 
-仓库提供只允许 `workflow_dispatch` 的
-`.github/workflows/desktop-phase-a-native-gate.yml`。它固定使用 GitHub hosted `macos-15` arm64 runner，并在运行时
+Phase A evidence commit `e5b9b6bd81bbe229177a64ed326ab3e46eaf2220` 提供了只允许 `workflow_dispatch` 的历史
+`.github/workflows/desktop-phase-a-native-gate.yml`；current checkout 已由 Phase B native gate 取代该文件。历史 workflow
+固定使用 GitHub hosted `macos-15` arm64 runner，并在运行时
 再次以 `uname -m` fail closed。workflow 必须从待验证分支手动触发；普通 push、PR、tag 和 release 都不会触发。
 触发 acknowledgement 不是完成证据，必须等 run conclusion 为 success 并读取 artifact 中的逐项报告。
 

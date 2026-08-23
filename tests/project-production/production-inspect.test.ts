@@ -7,29 +7,60 @@ import { inspectProjectProduction } from "../../scripts/project-production/appli
 import { createProject } from "../../scripts/projects/application/create-project";
 import {
   NARRATION_MASTERING_POLICY,
+  buildProducerConfig,
   computeGenerationInputFingerprint,
 } from "../../src/contracts";
-import { inspectNarrationCache } from "../../scripts/project-production/adapters/production-inspection";
+import {
+  captureProductionInspectionSnapshot,
+  inspectNarrationCache,
+  inspectProductionSourceReadiness,
+} from "../../scripts/project-production/adapters/production-inspection";
+import { generateRepositoryProjectCatalog } from "../../scripts/project-production/adapters/repository-project-catalog";
 import { loadNarrationProjectFiles } from "../../scripts/narration/project-files";
 import {
+  createRepositoryProductionLocations,
+  createRuntimeExecutionResources,
+} from "../../scripts/project-production/application/production-locations";
+import { createRepositoryProjectStorageFromProductionLocations } from "../../scripts/projects/repository-project-locations";
+import {
   prepareProjectCreateFixture,
+  validProjectCreateProducerConfig,
   writeProjectCreateJson,
 } from "../fixtures/project-create";
 
 const sameSnapshot = {
   source: "source-a",
+  public: "public-a",
+  generated: "generated-a",
   catalog: "catalog-a",
   narrationCache: "cache-a",
   artifacts: "artifacts-a",
   workspaces: "workspaces-a",
   attempts: "attempts-a",
+  sourceCurrent: "source-current-a",
   delivery: "delivery-a",
 } as const;
+const fixtureLocations = createRepositoryProductionLocations({
+  repositoryRoot: "/fixture",
+});
+const producerConfig = buildProducerConfig(validProjectCreateProducerConfig);
+const fixtureRuntime = createRuntimeExecutionResources({
+  rendererRuntimeFingerprint: `sha256:${"f".repeat(64)}`,
+  browserExecutable: "/fixture/runtime/browser",
+  binariesDirectory: "/fixture/runtime/bin",
+  ffmpegExecutable: "/fixture/runtime/bin/ffmpeg",
+  ffprobeExecutable: "/fixture/runtime/bin/ffprobe",
+});
 
 test("configured authoring inspection reports narration cost without building a fake Revision", async () => {
   let planCalls = 0;
   const result = await inspectProjectProduction(
-    { rootDir: "/fixture", projectId: "story-example" },
+    {
+      locations: fixtureLocations,
+      projectId: "story-example",
+      config: producerConfig,
+      runtime: fixtureRuntime,
+    },
     {
       captureSnapshot: async () => sameSnapshot,
       inspectReadiness: async () => ({
@@ -61,7 +92,12 @@ test("configured authoring inspection reports narration cost without building a 
 
 test("timing-ready inspection reports incomplete timing-bound authoring", async () => {
   const result = await inspectProjectProduction(
-    { rootDir: "/fixture", projectId: "story-example" },
+    {
+      locations: fixtureLocations,
+      projectId: "story-example",
+      config: producerConfig,
+      runtime: fixtureRuntime,
+    },
     {
       captureSnapshot: async () => sameSnapshot,
       inspectReadiness: async () => ({
@@ -72,6 +108,9 @@ test("timing-ready inspection reports incomplete timing-bound authoring", async 
         providerRequests: 0,
         providerCacheHits: 3,
       }),
+      buildCurrentPlan: async () => {
+        throw new Error("timing-ready inspection must not build a plan");
+      },
     },
   );
 
@@ -94,7 +133,12 @@ test("production-ready inspection exposes the read-only plan and explicit unknow
     explanationAvailability: "baseline-unavailable",
   } as const;
   const result = await inspectProjectProduction(
-    { rootDir: "/fixture", projectId: "story-example" },
+    {
+      locations: fixtureLocations,
+      projectId: "story-example",
+      config: producerConfig,
+      runtime: fixtureRuntime,
+    },
     {
       captureSnapshot: async () => sameSnapshot,
       inspectReadiness: async () => ({
@@ -118,7 +162,9 @@ test("production-ready inspection exposes the read-only plan and explicit unknow
       inspectDelivery: async () => ({
         current: false,
         revisionId: null,
+        sourceCurrentId: null,
         deliveryBuildId: null,
+        rendererRuntimeFingerprint: null,
       }),
     },
   );
@@ -133,7 +179,12 @@ test("production-ready inspection exposes the read-only plan and explicit unknow
 
 test("production-ready inspection reports known cache, Agent, and delivery estimates", async () => {
   const result = await inspectProjectProduction(
-    { rootDir: "/fixture", projectId: "story-example" },
+    {
+      locations: fixtureLocations,
+      projectId: "story-example",
+      config: producerConfig,
+      runtime: fixtureRuntime,
+    },
     {
       captureSnapshot: async () => sameSnapshot,
       inspectReadiness: async () => ({
@@ -158,7 +209,9 @@ test("production-ready inspection reports known cache, Agent, and delivery estim
       inspectDelivery: async () => ({
         current: false,
         revisionId: null,
+        sourceCurrentId: null,
         deliveryBuildId: null,
+        rendererRuntimeFingerprint: null,
       }),
     },
   );
@@ -171,11 +224,67 @@ test("production-ready inspection reports known cache, Agent, and delivery estim
   });
 });
 
+test("a verified Source Current rejects a Delivery built by another renderer runtime", async () => {
+  const sourceCurrentId = `source-current-${"a".repeat(64)}` as const;
+  const result = await inspectProjectProduction(
+    {
+      locations: fixtureLocations,
+      projectId: "story-example",
+      config: producerConfig,
+      runtime: fixtureRuntime,
+    },
+    {
+      captureSnapshot: async () => sameSnapshot,
+      inspectReadiness: async () => ({
+        sourceState: "production-inputs-ready",
+        missingAuthoringInputs: [],
+      }),
+      inspectNarrationCache: async () => ({
+        providerRequests: 0,
+        providerCacheHits: 3,
+        narrationReady: true,
+      }),
+      buildCurrentPlan: (async () => ({
+        revision: {
+          storyId: "story-example",
+          revisionId: `revision-${"6".repeat(64)}`,
+        },
+        plan: {
+          tasks: [],
+          summary: { dirtyAgentTaskCount: 0 },
+        },
+      })) as never,
+      inspectCurrentSource: (async () => ({ sourceCurrentId })) as never,
+      inspectDelivery: (async () => ({
+        current: true,
+        revisionId: `revision-${"6".repeat(64)}` as const,
+        sourceCurrentId,
+        deliveryBuildId: `delivery-${"b".repeat(64)}` as const,
+        rendererRuntimeFingerprint: `sha256:${"e".repeat(64)}` as const,
+      })) as never,
+    },
+  );
+
+  assert.equal(result.sourceCurrentId, sourceCurrentId);
+  assert.equal(result.deliveryBuildId, null);
+  assert.equal(result.nextAction, "build-delivery");
+  assert.deepEqual(result.estimatedCost.deliveryMedia, [
+    "video",
+    "cover-4x3",
+    "cover-3x4",
+  ]);
+});
+
 test("inspection rejects a mixed-time snapshot without retrying", async () => {
   let snapshots = 0;
   await assert.rejects(
     inspectProjectProduction(
-      { rootDir: "/fixture", projectId: "story-example" },
+      {
+        locations: fixtureLocations,
+        projectId: "story-example",
+        config: producerConfig,
+        runtime: fixtureRuntime,
+      },
       {
         captureSnapshot: async () => ({
           ...sameSnapshot,
@@ -189,6 +298,9 @@ test("inspection rejects a mixed-time snapshot without retrying", async () => {
           providerRequests: null,
           providerCacheHits: 0,
         }),
+        buildCurrentPlan: async () => {
+          throw new Error("configured inspection must not build a plan");
+        },
       },
     ),
     /inspection-source-drift/u,
@@ -205,11 +317,36 @@ test("a freshly created Project is inspected from real source and Catalog bytes 
     inputPath: fixture.inputPath,
     env: { RSP_PRODUCER_CONFIG: fixture.configPath },
   });
-  const result = await inspectProjectProduction({
-    rootDir: fixture.rootDir,
-    projectId: "story-example",
-    env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: fixture.rootDir,
   });
+  const result = await inspectProjectProduction(
+    {
+      locations,
+      projectId: "story-example",
+      config: producerConfig,
+      runtime: fixtureRuntime,
+    },
+    {
+      captureSnapshot: ({ locations: currentLocations, projectId }) =>
+        captureProductionInspectionSnapshot({
+          locations: currentLocations,
+          projectId,
+          catalogProjectionPath:
+            createRepositoryProjectStorageFromProductionLocations(
+              currentLocations,
+            ).catalogProjectionPath,
+        }),
+      inspectReadiness: (input) =>
+        inspectProductionSourceReadiness(
+          input,
+          generateRepositoryProjectCatalog,
+        ),
+      buildCurrentPlan: async () => {
+        throw new Error("configured inspection must not build a plan");
+      },
+    },
+  );
   assert.equal(result.sourceState, "configured-authoring");
   assert.equal(result.nextAction, "prepare-narration");
   assert.equal(result.estimatedCost.providerRequests, null);
@@ -237,7 +374,9 @@ test("VoxCPM inspection reuses the prepared provider identity without reading pr
     env: { RSP_PRODUCER_CONFIG: fixture.configPath },
   });
   const { projectSource } = await loadNarrationProjectFiles({
-    rootDir: fixture.rootDir,
+    locations: createRepositoryProductionLocations({
+      repositoryRoot: fixture.rootDir,
+    }),
     projectId: "story-example",
   });
   const generatedRoot = join(
@@ -263,9 +402,11 @@ test("VoxCPM inspection reuses the prepared provider identity without reading pr
   );
 
   const result = await inspectNarrationCache({
-    rootDir: fixture.rootDir,
+    locations: createRepositoryProductionLocations({
+      repositoryRoot: fixture.rootDir,
+    }),
     projectId: "story-example",
-    env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+    config: producerConfig,
   });
   assert.equal(result.providerRequests, null);
   assert.equal(result.providerAttemptFingerprint, providerAttemptFingerprint);

@@ -258,6 +258,35 @@ export const PreviewUnavailableEntrySchema = z
   })
   .readonly();
 
+export const DesktopProjectStatusSchema = z
+  .strictObject({
+    storyId: StoryIdSchema,
+    title: z.string().trim().min(1).max(256),
+    source: z.enum(["missing", "current", "stale"]),
+    delivery: z.enum(["missing", "current", "stale", "invalid"]),
+    invalidation: z
+      .array(
+        z
+          .strictObject({
+            code: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u),
+            cause: z.string().trim().min(1).max(240),
+          })
+          .readonly(),
+      )
+      .max(32)
+      .readonly(),
+  })
+  .superRefine((project, context) => {
+    if (project.delivery === "current" && project.source !== "current") {
+      context.addIssue({
+        code: "custom",
+        message: "A current Delivery requires current source.",
+        path: ["delivery"],
+      });
+    }
+  })
+  .readonly();
+
 export const PreviewCatalogSchema = z
   .strictObject({
     schemaVersion: z.literal(1),
@@ -362,6 +391,9 @@ export type PreviewCatalogReadiness = z.infer<
 >;
 export type PreviewPlayerCatalog = z.infer<typeof PreviewPlayerCatalogSchema>;
 export type PreviewPlayerEntry = z.infer<typeof PreviewPlayerEntrySchema>;
+export type DesktopProjectStatus = z.infer<
+  typeof DesktopProjectStatusSchema
+>;
 
 export const buildPreviewVideoUrl = ({
   storyId,

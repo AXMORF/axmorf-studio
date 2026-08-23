@@ -1,5 +1,5 @@
-import { lstat } from "node:fs/promises";
-import { dirname, posix } from "node:path";
+import { lstat, readFile } from "node:fs/promises";
+import { dirname, join, posix } from "node:path";
 import ts from "typescript";
 
 import {
@@ -10,11 +10,9 @@ import {
   type Sha256Digest,
   type ScenePackage,
 } from "../../src/contracts";
-import {
-  checksumExternalBytes,
-  readExternalRegularFile,
-} from "../external-references/project-files";
+import { checksumExternalBytes } from "../external-references/project-files";
 import { assertGuardedSource } from "../external-references/source-guard";
+import type { ProductionLocations } from "../project-production/application/production-locations";
 
 export const RENDERER_REGISTRY_GENERATOR_ID =
   "composition-local-renderer-registry-v1" as const;
@@ -37,8 +35,61 @@ const assertDirectory = async (absolutePath: string): Promise<void> => {
   }
 };
 
+const runtimeSourceRoot = (locations: ProductionLocations) =>
+  locations.layoutKind === "repository"
+    ? locations.runtimeResources
+    : join(locations.runtimeResources, "source");
+
+const resolveLogicalSourcePath = ({
+  locations,
+  projectId,
+  sourcePath,
+}: {
+  readonly locations: ProductionLocations;
+  readonly projectId: string;
+  readonly sourcePath: string;
+}) => {
+  const projectPrefix = `src/projects/${projectId}/`;
+  if (sourcePath.startsWith(projectPrefix)) {
+    return join(
+      locations.projectSourceRoot,
+      projectId,
+      sourcePath.slice(projectPrefix.length),
+    );
+  }
+  if (
+    sourcePath.startsWith("src/remotion/capabilities/") ||
+    sourcePath.startsWith("src/remotion/runtime/readability/")
+  ) {
+    return join(runtimeSourceRoot(locations), sourcePath);
+  }
+  throw new Error("Renderer source path is outside explicit source roots.");
+};
+
+const readRendererRegularFile = async ({
+  locations,
+  projectId,
+  sourcePath,
+}: {
+  readonly locations: ProductionLocations;
+  readonly projectId: string;
+  readonly sourcePath: string;
+}) => {
+  const absolutePath = resolveLogicalSourcePath({
+    locations,
+    projectId,
+    sourcePath,
+  });
+  const metadata = await lstat(absolutePath);
+  if (!metadata.isFile() || metadata.isSymbolicLink()) {
+    throw new Error("Renderer source must be a regular non-symbolic file.");
+  }
+  return readFile(absolutePath);
+};
+
 const resolveSourceFile = async (
-  rootDir: string,
+  locations: ProductionLocations,
+  projectId: string,
   importerPath: string,
   specifier: string,
 ): Promise<string> => {
@@ -51,9 +102,19 @@ const resolveSourceFile = async (
     `${base}/index.tsx`,
   ]) {
     try {
-      const candidateStat = await lstat(`${rootDir}/${candidate}`);
+      const candidateStat = await lstat(
+        resolveLogicalSourcePath({
+          locations,
+          projectId,
+          sourcePath: candidate,
+        }),
+      );
       if (candidateStat.isDirectory()) continue;
-      await readExternalRegularFile(rootDir, candidate);
+      await readRendererRegularFile({
+        locations,
+        projectId,
+        sourcePath: candidate,
+      });
       return candidate;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
@@ -108,11 +169,11 @@ const assertVisualOnlySource = (
 };
 
 export const collectRendererSourceGraph = async ({
-  rootDir,
+  locations,
   projectId: rawProjectId,
   rendererPath,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: unknown;
   readonly rendererPath: string;
 }): Promise<RendererSourceGraph> => {
@@ -127,14 +188,24 @@ export const collectRendererSourceGraph = async ({
   ) {
     throw new Error("Renderer entry must use the fixed project Scene depth.");
   }
-  await assertDirectory(`${rootDir}/${projectRoot}`);
-  await assertDirectory(`${rootDir}/${dirname(rendererPath)}`);
+  await assertDirectory(join(locations.projectSourceRoot, projectId));
+  await assertDirectory(
+    resolveLogicalSourcePath({
+      locations,
+      projectId,
+      sourcePath: dirname(rendererPath),
+    }),
+  );
   const pending = [rendererPath];
   const files = new Map<string, Buffer>();
   while (pending.length > 0) {
     const sourcePath = pending.pop();
     if (sourcePath === undefined || files.has(sourcePath)) continue;
-    const bytes = await readExternalRegularFile(rootDir, sourcePath);
+    const bytes = await readRendererRegularFile({
+      locations,
+      projectId,
+      sourcePath,
+    });
     const source = bytes.toString("utf8");
     const sourceFile = ts.createSourceFile(
       sourcePath,
@@ -188,10 +259,7 @@ export const collectRendererSourceGraph = async ({
         return isTypeOnly
           ? [
               posix.normalize(
-                posix.join(
-                  dirname(sourcePath),
-                  statement.moduleSpecifier.text,
-                ),
+                posix.join(dirname(sourcePath), statement.moduleSpecifier.text),
               ),
             ]
           : [];
@@ -209,7 +277,8 @@ export const collectRendererSourceGraph = async ({
       }
       const specifier = posix.relative(dirname(sourcePath), relativeImport);
       const dependencyPath = await resolveSourceFile(
-        rootDir,
+        locations,
+        projectId,
         sourcePath,
         specifier,
       );
@@ -255,12 +324,12 @@ export type BuiltRendererRegistry = {
 };
 
 export const buildRendererRegistry = async ({
-  rootDir,
+  locations,
   projectId: rawProjectId,
   coverage: rawCoverage,
   packages: rawPackages,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: unknown;
   readonly coverage: unknown;
   readonly packages: readonly unknown[];
@@ -303,7 +372,7 @@ export const buildRendererRegistry = async ({
     rendererIds.add(coverageEntry.rendererId);
     const rendererPath = `src/projects/${projectId}/scenes/${coverageEntry.meaningId}/Renderer.tsx`;
     const graph = await collectRendererSourceGraph({
-      rootDir,
+      locations,
       projectId,
       rendererPath,
     });

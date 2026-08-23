@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { z } from "zod";
 
 import { StoryIdSchema } from "../../../src/contracts";
+import type { ProductionLocations } from "../domain/production-locations";
 
 export type ExecutionAttemptEventWait = Readonly<{
   changed: Promise<void>;
@@ -16,25 +17,20 @@ export class ExecutionAttemptEventWaitTimeoutError extends Error {
   }
 }
 
-export const openExecutionAttemptEventWait = ({
-  rootDir,
-  storyId: rawStoryId,
-  attemptId: rawAttemptId,
-  timeoutMs,
-}: {
-  readonly rootDir: string;
+export const openExecutionAttemptEventWait = (input: {
+  readonly locations: ProductionLocations;
   readonly storyId: string;
   readonly attemptId: string;
   readonly timeoutMs: number;
 }): ExecutionAttemptEventWait => {
+  const { storyId: rawStoryId, attemptId: rawAttemptId, timeoutMs } = input;
   const storyId = StoryIdSchema.parse(rawStoryId);
   const attemptId = z.string().uuid().parse(rawAttemptId);
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) {
     throw new Error("Execution attempt event wait timeout is invalid.");
   }
   const directory = join(
-    rootDir,
-    ".producer-attempts",
+    input.locations.attemptStoreRoot,
     storyId,
     attemptId,
     "events",

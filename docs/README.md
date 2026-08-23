@@ -26,7 +26,10 @@
 
 - Phase A repository adapter 与 Apple Silicon native gate 已 verified complete；实施计划已移入
   [历史计划](archive/implementation-plans/2026-08-23-desktop-app-phase-a.md)。下一入口是
-  [ROADMAP.md](ROADMAP.md) 中的 Phase B productization，但尚未开始实现；完成事实仍以
+  [Phase B 实施计划](DESKTOP_APP_PHASE_B_IMPLEMENTATION_PLAN.md)。Phase B implementation 已完成，但缺少当前宿主
+  无法提供的 Apple Silicon packaged production evidence，状态保持
+  `implementation-complete-native-evidence-pending`，计划仍 active 且 Roadmap 不推进；阶段边界见
+  [ROADMAP.md](ROADMAP.md)，完成事实仍以
   [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准。
 
 ## 操作与维护指南

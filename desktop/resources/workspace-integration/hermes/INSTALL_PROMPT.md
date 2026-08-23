@@ -4,7 +4,9 @@ AXMORF Studio does not modify a global Hermes installation. To use Hermes with t
 it in the Workspace root and provide this prompt:
 
 > Read `AGENTS.md` and `.agents/skills/remotion-story-producer-video/SKILL.md` from the current Workspace. Follow
-> their Phase A boundary, then run `./.rsp/bin/rsp doctor` and report the structured result without exposing any
-> session files or credentials.
+> their Phase B rsp-only workflow. Begin with `./.rsp/bin/rsp doctor`; use only the strict Workspace-local rsp v2
+> commands it authorizes, and never expose session files, credentials, private paths, or provider bodies. Do not
+> use repository npm scripts or host tools as a fallback.
 
-Keep the original Hermes output as manual smoke evidence. Agent detection alone is not support evidence.
+Keep the original Hermes output as manual smoke evidence. Agent detection alone is not support evidence. If a
+Hermes CLI is unavailable, record that exact capability as pending; do not claim discovery or invocation support.

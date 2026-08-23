@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -9,6 +8,7 @@ import {
   checkFinalSourceHealth,
   type FinalSceneBranchResult,
 } from "../../scripts/project-check/final-run";
+import { createProjectCheckTestLocations } from "./locations";
 
 const passingSceneBranch = (): FinalSceneBranchResult => ({
   referenceModes: ["exact-demo-localized"],
@@ -31,11 +31,10 @@ const passingSceneBranch = (): FinalSceneBranchResult => ({
 });
 
 test("final source health disables Scene review media byte verification", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-source-media-boundary-"));
-  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = await createProjectCheckTestLocations(context);
   let includeMediaEvidence: boolean | undefined;
   await checkFinalSourceHealth({
-    rootDir,
+    locations,
     projectId: "alpha-story",
     loadSceneBranch: async (input) => {
       includeMediaEvidence = input.includeMediaEvidence;

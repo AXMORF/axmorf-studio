@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, relative } from "node:path";
 import test from "node:test";
 
 import {
@@ -45,11 +47,14 @@ test("Edge TTS default client constructs without opening a connection", () => {
   assert.equal(typeof createEdgeTtsChunkGenerator({ resolved }), "function");
 });
 
-test("Edge TTS sends one authored chunk once and returns provider bytes", async () => {
+test("Edge TTS sends one authored chunk once inside the explicit cache root", async (context) => {
+  const temporaryRoot = await mkdtemp(join(tmpdir(), "rsp-edge-root-"));
+  context.after(() => rm(temporaryRoot, { recursive: true, force: true }));
   const calls: Array<{ text: string; outputPath: string }> = [];
   let options: Record<string, unknown> | undefined;
   const generate = createEdgeTtsChunkGenerator({
     resolved,
+    temporaryRoot,
     clientFactory: (value) => {
       options = value;
       return {
@@ -64,6 +69,10 @@ test("Edge TTS sends one authored chunk once and returns provider bytes", async 
   assert.deepEqual(await generate(request), Buffer.from([1, 2, 3]));
   assert.equal(calls.length, 1);
   assert.equal(calls[0]?.text, request.ttsText);
+  assert.match(
+    relative(temporaryRoot, calls[0]?.outputPath ?? ""),
+    /^rsp-edge-tts-/u,
+  );
   assert.deepEqual(options, {
     voice: "zh-CN-XiaoxiaoNeural",
     lang: "zh-CN",

@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { computeGenerationInputFingerprint } from "../../src/contracts/generation-input";
@@ -8,9 +7,16 @@ import {
   loadVerifiedProgress,
   readCandidateBytes,
 } from "./adapters/candidate-workspace";
-import { resolveProducerConfigPathFromEnvironment } from "../config/producer-config";
+import {
+  readProducerConfig,
+  resolveProducerConfigPathFromEnvironment,
+} from "../config/producer-config";
 import { createChunkAudioGenerator } from "./adapters/provider-dispatcher";
-import { normalizeProviderAudio } from "./adapters/ffmpeg-normalizer";
+import {
+  normalizeProviderAudio,
+  runHostProcess,
+} from "./adapters/ffmpeg-normalizer";
+import { normalizePromptAudio } from "./adapters/prompt-audio-normalizer";
 import { resolveProducerNarrationExecution } from "../config/narration-execution";
 import { checkM2NarrationArtifacts } from "./check";
 import type {
@@ -22,6 +28,10 @@ import { runNarrationGeneration } from "./generate-runner";
 import { loadNarrationProjectFiles } from "./project-files";
 import { runNarrationSeal } from "./seal-runner";
 import type { M2NarrationCheckResult } from "./check";
+import {
+  createRepositoryProductionLocations,
+  type ProductionLocations,
+} from "../project-production/application/production-locations";
 
 type GenerationDependencies = {
   readonly providerAttemptFingerprint: string;
@@ -31,13 +41,15 @@ type GenerationDependencies = {
 };
 
 export type NarrationCliContext = {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
+  readonly configurationRoot: string;
   readonly env: Readonly<Record<string, string | undefined>>;
   readonly stdout: (line: string) => void;
   readonly stderr: (line: string) => void;
   readonly createGenerationDependencies: (input: {
-    readonly rootDir: string;
+    readonly configurationRoot: string;
     readonly configPath: string;
+    readonly temporaryRoot: string;
     readonly narration: NarrationSpec;
   }) => Promise<GenerationDependencies>;
 };
@@ -48,32 +60,44 @@ export type NarrationCliResult =
   | { readonly command: "check"; readonly result: M2NarrationCheckResult };
 
 export const createDefaultGenerationDependencies: NarrationCliContext["createGenerationDependencies"] =
-  async ({ rootDir, configPath, narration }) => {
+  async ({ configurationRoot, configPath, temporaryRoot, narration }) => {
     const resolvedExecution = await resolveProducerNarrationExecution({
-      rootDir,
-      env: { RSP_PRODUCER_CONFIG: configPath },
+      config: await readProducerConfig({ configPath }),
+      privateConfigRoot: configurationRoot,
       narration,
+      normalizePromptAudio: ({ sourceBytes }) =>
+        normalizePromptAudio({
+          sourceBytes,
+          runProcess: runHostProcess,
+          temporaryRoot,
+        }),
     });
     const { resolved, snapshot } = resolvedExecution;
     return {
       providerAttemptFingerprint: snapshot.providerAttemptFingerprint,
       executionSnapshot: snapshot,
-      generateChunk: createChunkAudioGenerator({ resolved }),
+      generateChunk: createChunkAudioGenerator({ resolved, temporaryRoot }),
       normalizePcm: (sourceBytes) =>
         normalizeProviderAudio({
           sourceBytes,
           speechRate: snapshot.speechRate,
+          runProcess: runHostProcess,
+          temporaryRoot,
         }),
     };
   };
 
-const createDefaultContext = (): NarrationCliContext => ({
-  rootDir: process.cwd(),
-  env: process.env,
-  stdout: (line) => process.stdout.write(`${line}\n`),
-  stderr: (line) => process.stderr.write(`${line}\n`),
-  createGenerationDependencies: createDefaultGenerationDependencies,
-});
+const createDefaultContext = (): NarrationCliContext => {
+  const repositoryRoot = process.cwd();
+  return {
+    locations: createRepositoryProductionLocations({ repositoryRoot }),
+    configurationRoot: repositoryRoot,
+    env: process.env,
+    stdout: (line) => process.stdout.write(`${line}\n`),
+    stderr: (line) => process.stderr.write(`${line}\n`),
+    createGenerationDependencies: createDefaultGenerationDependencies,
+  };
+};
 
 const parseProjectOnly = (args: readonly string[]) => {
   if (args.length !== 3 || args[1] !== "--project") {
@@ -122,20 +146,24 @@ export const runCli = async (
   if (command === "generate") {
     const projectId = parseProjectOnly(args);
     const { projectSource } = await loadNarrationProjectFiles({
-      rootDir: context.rootDir,
+      locations: context.locations,
       projectId,
     });
-    const configPath = await resolveProducerConfigPathFromEnvironment(context);
+    const configPath = await resolveProducerConfigPathFromEnvironment({
+      rootDir: context.configurationRoot,
+      env: context.env,
+    });
     const dependencies = await context.createGenerationDependencies({
-      rootDir: context.rootDir,
+      configurationRoot: context.configurationRoot,
       configPath,
+      temporaryRoot: context.locations.disposableBuildRoot,
       narration: projectSource.narration,
     });
     context.stderr(
       `Generating narration candidates for ${projectSource.story.storyId}.`,
     );
     const result = await runNarrationGeneration({
-      rootDir: join(context.rootDir, ".narration-work"),
+      rootDir: context.locations.taskWorkspaceRoot,
       story: projectSource.story,
       narration: projectSource.narration,
       ...dependencies,
@@ -147,14 +175,14 @@ export const runCli = async (
     const { projectId, attemptFingerprint, supersedeFingerprint } =
       parseSealArguments(args);
     const { projectSource } = await loadNarrationProjectFiles({
-      rootDir: context.rootDir,
+      locations: context.locations,
       projectId,
     });
     const generationInputFingerprint = computeGenerationInputFingerprint(
       projectSource.story,
       projectSource.narration,
     );
-    const workRoot = join(context.rootDir, ".narration-work");
+    const workRoot = context.locations.taskWorkspaceRoot;
     const progress = await loadVerifiedProgress({
       rootDir: workRoot,
       storyId: projectSource.story.storyId,
@@ -176,7 +204,7 @@ export const runCli = async (
     }
     context.stderr(`Sealing narration for ${projectSource.story.storyId}.`);
     const result = await runNarrationSeal({
-      rootDir: context.rootDir,
+      locations: context.locations,
       projectSource,
       progress,
       normalizedChunks,
@@ -187,14 +215,14 @@ export const runCli = async (
 
   const projectId = parseProjectOnly(args);
   const { projectSource } = await loadNarrationProjectFiles({
-    rootDir: context.rootDir,
+    locations: context.locations,
     projectId,
   });
   context.stderr(
     `Checking sealed narration for ${projectSource.story.storyId}.`,
   );
   const result = await checkM2NarrationArtifacts({
-    rootDir: context.rootDir,
+    locations: context.locations,
     projectSource,
   });
   return printResult(context, { command, result });

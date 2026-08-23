@@ -4,8 +4,9 @@
 >
 > 本文只描述 current Revision/DAG/Artifact 主链。
 >
-> Desktop App 目标不会绕过本文主链；`source-current` 与默认手动 Delivery 尚未实现，必须按
-> [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) clean-break 后才能成为 current contract。
+> Repository CLI 与 Desktop Workspace 都在 composition root 注入显式 locations/runtime；Desktop control plane
+> 只使用 authenticated Unix-domain socket，单次 DeliveryBuild 仅允许 `127.0.0.1` OS-ephemeral 临时 HTTP data plane，
+> 终态必须关闭，详见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。
 
 ## 1. 主链概览
 
@@ -35,7 +36,10 @@ flowchart LR
   Continue --> Barrier[All required artifacts]
   Barrier --> Materialize[Controlled materialization]
   Materialize --> Derived[Packages + Registry + Composition]
-  Derived --> Build[Synchronous media build]
+  Derived --> SourceCurrent[Attested source-current]
+  SourceCurrent --> Policy{Delivery policy}
+  Policy -->|manual| Stop[Source current terminal]
+  Policy -->|automatic or later explicit action| Build[Synchronous media build]
   Build --> Verify[Exact four-file validation]
   Verify --> Current[Controlled current delivery]
 ```
@@ -110,8 +114,9 @@ production inputs ready 时生成：
 - `ExecutionAttempt`：task diagnostic snapshots、estimated/actual cost、等待/收敛或失败诊断，不进入任何
   产物 identity。
 
-Task kinds 包括 narration chunk/seal/timing、scene-template、scene-owner、global-visual-owner、cover-owner、
-composition-convergence 与 delivery-build。共享输入只进入真正依赖它的 node key，避免全局版本导致无差别失效。
+Task kinds 包括 narration chunk/seal/timing、scene-template、scene-owner、global-visual-owner、cover-owner 与
+composition-convergence。DeliveryBuild 不属于 Producer DAG；共享输入只进入真正依赖它的 node key，避免全局版本
+导致无差别失效。
 
 ## 4. Artifact reuse 与 task workspace
 
@@ -176,7 +181,7 @@ terminal failure 立即写失败终态并非零退出，不调用 converge；全
 
 converge 只调用 read-only current-plan builder 重算 current inputs；不调用 provider、不创建 workspace 或
 ExecutionAttempt。revision 不同返回 stable stale 结果。任何 required artifact 缺失时，
-返回 incomplete 且不得写 live owner roots 或 delivery。
+返回 incomplete 且不得写 live owner roots、source-current 或 delivery。
 对 unchanged template Scene，create-only、fixed-prepared 与 materialized source view 必须归一到相同 exact
 output set 和 TaskRevision；已声明 derived outputs 只能幂等吸收，unknown file 或 checksum drift 仍 fail closed。
 
@@ -185,17 +190,21 @@ staging + controlled replace + rollback。随后 fixed application 机械刷新 
 RendererRegistry、GlobalVisualPackage 与生成式 Composition。它必须从 live paths 重读 exact outputs，并证明
 与 ArtifactAttestation 的 path/size/checksum 一致，人工漂移不能进入 build。
 
-## 6. 同步四文件 delivery
+artifact/materialized bytes 复验后，converge 写入 canonical `source-current` attestation。`manual` 到此成功终结且
+deliveries 保持不变；`automatic` 才继续 Delivery。该 policy 只控制 terminal flow，不进入 Revision、TaskRevision、
+ArtifactAttestation 或 source-current identity。
 
-DeliveryBuildId 绑定 `revisionId + artifactSetFingerprint + Composition metadata + build policy`。build 前后都
-复验 materialized bytes。每个 Project 有一个 build-owned staging，可复用同 identity 已验证的 video 或 Cover；
+## 6. Explicit 四文件 delivery
+
+DeliveryBuildId 绑定 `revisionId + sourceCurrentId + rendererRuntimeFingerprint + publishingFingerprint + Composition metadata + build policy`。
+build 前后都复验 source-current/materialized bytes。每个 Project 有一个 build-owned staging，可复用同 identity 已验证的 video 或 Cover；
 捕获到的失败不替换 current package。
 
 build 同步等待 Remotion/FFmpeg，依次验证：
 
 - video 是 H.264/AAC，声道、尺寸、fps、frame count 与 RenderSpec 一致并 EOF-decode；
 - Covers 是 exact 1600×1200 和 1200×1600 PNG 且可完整 decode；
-- 三个媒体的 repository path、size、checksum 与 `publish.json` 一致；
+- 三个媒体的 logical path、size、checksum 与 `publish.json` 一致；
 - directory exact 只有 `video.mp4`、`cover-4x3.png`、`cover-3x4.png`、`publish.json`。
 
 `publish.json` 最后写。四文件全部通过才 controlled replace `deliveries/<storyId>/`。相同完整 identity 返回
@@ -213,8 +222,9 @@ Agent execution preferences 独立保存到 `private/execution-preferences.json`
 
 若三个 Agent tasks 中两个已 commit、第三个失败，当前 lifecycle 立即结束。用户另行启动 inspect/prepare 时，
 前两个必须是 reuse，只派发第三个。
-delivery 若在生成 video 后失败，再次 prepare 不重跑已验证 TTS/Agent artifacts，converge 复用已验证 staging
-video，只生成缺失媒体。这不是自动 retry；每次都由显式 inspect/report/prepare 与 content inspection 得出。
+delivery 若在生成 video 后失败，后续显式 Delivery 不重跑 provider、Agent task、workspace 或 ExecutionAttempt，并
+复用同 identity 已验证 staging media。这不是自动 retry；每次都由显式用户/automatic policy action 与 current
+source inspection 得出。
 
 ## 8. 作品删除
 

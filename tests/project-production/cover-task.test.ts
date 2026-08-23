@@ -11,6 +11,7 @@ import {
 } from "../../src/contracts";
 import { checkCoverTask } from "../../scripts/project-production/application/cover-task-check";
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
+import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
 
 const checksum = (value: string) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}` as const;
@@ -25,7 +26,9 @@ const cover3x4 = `
 const Cover3x4 = () => <div style={{width: 1200, height: 1600}} />;
 export default Cover3x4;
 `;
-const rootSource = ({ width4x3 = 1600 }: { readonly width4x3?: number } = {}) => `
+const rootSource = ({
+  width4x3 = 1600,
+}: { readonly width4x3?: number } = {}) => `
 import {Composition} from "remotion";
 import Cover4x3 from "./Cover4x3";
 import Cover3x4 from "./Cover3x4";
@@ -63,6 +66,9 @@ const createCoverWorkspace = async ({
   readonly rootDir: string;
   readonly sources?: CoverSources;
 }) => {
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
   const contextBytes = "{}\n";
   const task = buildProducerTaskSpec({
     taskKind: "cover-owner",
@@ -86,7 +92,7 @@ const createCoverWorkspace = async ({
     validatorPolicyVersion: "cover-owner-validator-v1",
   });
   const workspace = await createTaskWorkspace({
-    rootDir,
+    locations,
     task,
     seedFiles: { "inputs/context.json": contextBytes },
   });
@@ -94,16 +100,17 @@ const createCoverWorkspace = async ({
   for (const [fileName, source] of Object.entries(sources)) {
     await writeFile(join(workspace, "src", fileName), source);
   }
-  return task;
+  return { locations, task } as const;
 };
 
 test("Cover task accepts two independent fixed-size Composition sources", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-cover-task-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const task = await createCoverWorkspace({ rootDir });
+  const { locations, task } = await createCoverWorkspace({ rootDir });
 
   assert.equal(
-    (await checkCoverTask({ rootDir, taskRevision: task.taskRevision })).status,
+    (await checkCoverTask({ locations, taskRevision: task.taskRevision }))
+      .status,
     "task-workspace-valid",
   );
 });
@@ -111,7 +118,7 @@ test("Cover task accepts two independent fixed-size Composition sources", async 
 test("Cover task rejects asset-backed source", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-cover-asset-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const task = await createCoverWorkspace({
+  const { locations, task } = await createCoverWorkspace({
     rootDir,
     sources: {
       ...validSources(),
@@ -120,7 +127,7 @@ test("Cover task rejects asset-backed source", async (context) => {
   });
 
   await assert.rejects(
-    checkCoverTask({ rootDir, taskRevision: task.taskRevision }),
+    checkCoverTask({ locations, taskRevision: task.taskRevision }),
     /code-only boundary|code-only graphics/iu,
   );
 });
@@ -128,7 +135,7 @@ test("Cover task rejects asset-backed source", async (context) => {
 test("Cover task rejects network-backed source", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-cover-network-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const task = await createCoverWorkspace({
+  const { locations, task } = await createCoverWorkspace({
     rootDir,
     sources: {
       ...validSources(),
@@ -137,7 +144,7 @@ test("Cover task rejects network-backed source", async (context) => {
   });
 
   await assert.rejects(
-    checkCoverTask({ rootDir, taskRevision: task.taskRevision }),
+    checkCoverTask({ locations, taskRevision: task.taskRevision }),
     /network access|remote resources/iu,
   );
 });
@@ -145,13 +152,13 @@ test("Cover task rejects network-backed source", async (context) => {
 test("Cover task rejects a Composition with the wrong fixed dimensions", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-cover-dimensions-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const task = await createCoverWorkspace({
+  const { locations, task } = await createCoverWorkspace({
     rootDir,
     sources: { ...validSources(), "Root.tsx": rootSource({ width4x3: 1599 }) },
   });
 
   await assert.rejects(
-    checkCoverTask({ rootDir, taskRevision: task.taskRevision }),
+    checkCoverTask({ locations, taskRevision: task.taskRevision }),
     /two independent fixed one-frame Compositions/u,
   );
 });

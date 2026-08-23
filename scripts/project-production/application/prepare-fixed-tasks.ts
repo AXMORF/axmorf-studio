@@ -14,6 +14,7 @@ import {
   type ArtifactAttestation,
   type MasteredNarrationManifest,
   type ProducerTaskSpec,
+  type ProducerConfig,
   type ProductionRevisionId,
   type SealedNarrationManifest,
   type SemanticTiming,
@@ -26,13 +27,21 @@ import type { NarrationGenerationProgress } from "../../narration/domain/candida
 import { writeMasteredNarrationArtifacts } from "../../narration/mastering";
 import { loadNarrationProjectFiles } from "../../narration/project-files";
 import { createChunkAudioGenerator } from "../../narration/adapters/provider-dispatcher";
-import { normalizeProviderAudio } from "../../narration/adapters/ffmpeg-normalizer";
+import {
+  createExecutableProcessRunner,
+  normalizeProviderAudio,
+} from "../../narration/adapters/ffmpeg-normalizer";
+import { normalizePromptAudio } from "../../narration/adapters/prompt-audio-normalizer";
 import {
   loadVerifiedProgress,
   readCandidateBytes,
 } from "../../narration/adapters/candidate-workspace";
 import { runNarrationSeal } from "../../narration/seal-runner";
 import { writeJsonAtomic } from "../../narration/adapters/atomic-files";
+import {
+  resolveNarrationMediaLogicalPath,
+  resolveNarrationProjectRoot,
+} from "../../narration/production-paths";
 import {
   inspectArtifact,
   commitTaskArtifact,
@@ -44,6 +53,10 @@ import {
 } from "../adapters/project-input-snapshot";
 import { isTemplateSceneLiveProjectionPath } from "../domain/template-scene-output";
 import { checkTaskByKind } from "./check-task";
+import type {
+  ProductionLocations,
+  RuntimeExecutionResources,
+} from "./production-locations";
 
 export type PreparedNarrationInputs = Readonly<{
   providerAttemptFingerprint: Sha256Digest;
@@ -64,9 +77,10 @@ export type PreparedNarrationInputs = Readonly<{
 }>;
 
 export type PrepareNarration = (input: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
+  readonly runtime: RuntimeExecutionResources;
+  readonly config: ProducerConfig;
   readonly projectId: string;
-  readonly env: Readonly<Record<string, string | undefined>>;
 }) => Promise<PreparedNarrationInputs>;
 
 const readJsonBytes = async <T>(
@@ -183,27 +197,37 @@ export const buildNarrationChunkTask = ({
  * provider request/cache entry already defined by scripts/narration.
  */
 export const prepareNarrationInputs: PrepareNarration = async ({
-  rootDir,
+  locations,
+  runtime,
+  config,
   projectId,
-  env,
 }) => {
+  const runMediaProcess = createExecutableProcessRunner(
+    runtime.ffmpegExecutable,
+  );
   const { projectSource } = await loadNarrationProjectFiles({
-    rootDir,
+    locations,
     projectId,
   });
   const execution = await resolveProducerNarrationExecution({
-    rootDir,
-    env,
+    config,
+    privateConfigRoot: locations.providerMaterialRoot,
     narration: projectSource.narration,
+    normalizePromptAudio: ({ sourceBytes }) =>
+      normalizePromptAudio({
+        sourceBytes,
+        runProcess: runMediaProcess,
+        temporaryRoot: locations.disposableBuildRoot,
+      }),
   });
-  const workRoot = join(rootDir, ".narration-work");
+  const workRoot = locations.taskWorkspaceRoot;
   let current = true;
   let actualCost = {
     providerRequests: 0,
     providerCacheHits: 0,
   };
   try {
-    await checkM2NarrationArtifacts({ rootDir, projectSource });
+    await checkM2NarrationArtifacts({ locations, projectSource });
     const progress = await loadVerifiedProgress({
       rootDir: workRoot,
       storyId: projectId,
@@ -215,9 +239,7 @@ export const prepareNarrationInputs: PrepareNarration = async ({
     });
     const activeSeal = await readExistingSeal(
       join(
-        rootDir,
-        "src/projects",
-        projectId,
+        resolveNarrationProjectRoot({ locations, storyId: projectId }),
         "generated/sealed-narration.generated.json",
       ),
     );
@@ -241,11 +263,14 @@ export const prepareNarrationInputs: PrepareNarration = async ({
       providerAttemptFingerprint: execution.snapshot.providerAttemptFingerprint,
       generateChunk: createChunkAudioGenerator({
         resolved: execution.resolved,
+        temporaryRoot: locations.disposableBuildRoot,
       }),
       normalizePcm: (sourceBytes) =>
         normalizeProviderAudio({
           sourceBytes,
           speechRate: execution.snapshot.speechRate,
+          runProcess: runMediaProcess,
+          temporaryRoot: locations.disposableBuildRoot,
         }),
     });
     actualCost = {
@@ -275,14 +300,12 @@ export const prepareNarrationInputs: PrepareNarration = async ({
       );
     }
     const sealPath = join(
-      rootDir,
-      "src/projects",
-      projectId,
+      resolveNarrationProjectRoot({ locations, storyId: projectId }),
       "generated/sealed-narration.generated.json",
     );
     const existing = await readExistingSeal(sealPath);
     await runNarrationSeal({
-      rootDir,
+      locations,
       projectSource,
       progress,
       normalizedChunks,
@@ -292,14 +315,18 @@ export const prepareNarrationInputs: PrepareNarration = async ({
     });
   }
   await writeMasteredNarrationArtifacts({
-    rootDir,
+    locations,
     storyId: projectId,
     targetLoudnessLufs:
       execution.snapshot.masteringPolicy.targetIntegratedLoudnessLufs,
+    runProcess: runMediaProcess,
   });
-  await checkM2NarrationArtifacts({ rootDir, projectSource });
+  await checkM2NarrationArtifacts({ locations, projectSource });
 
-  const generatedRoot = join(rootDir, "src/projects", projectId, "generated");
+  const generatedRoot = join(
+    resolveNarrationProjectRoot({ locations, storyId: projectId }),
+    "generated",
+  );
   const sealed = await readJsonBytes(
     join(generatedRoot, "sealed-narration.generated.json"),
     SealedNarrationManifestSchema,
@@ -329,7 +356,11 @@ export const prepareNarrationInputs: PrepareNarration = async ({
       chunkAudioBytes.set(
         segment.chunkId,
         await readRegularBytes(
-          join(rootDir, segment.localPath),
+          resolveNarrationMediaLogicalPath({
+            locations,
+            storyId: projectId,
+            logicalPath: segment.localPath,
+          }),
           segment.chunkId,
         ),
       );
@@ -342,11 +373,19 @@ export const prepareNarrationInputs: PrepareNarration = async ({
     };
   }
   const completeAudioBytes = await readRegularBytes(
-    join(rootDir, sealed.value.completeAudio.localPath),
+    resolveNarrationMediaLogicalPath({
+      locations,
+      storyId: projectId,
+      logicalPath: sealed.value.completeAudio.localPath,
+    }),
     "sealed complete narration",
   );
   const masteredAudioBytes = await readRegularBytes(
-    join(rootDir, mastered.value.outputAudio.localPath),
+    resolveNarrationMediaLogicalPath({
+      locations,
+      storyId: projectId,
+      logicalPath: mastered.value.outputAudio.localPath,
+    }),
     "mastered narration audio",
   );
   const preparationReceipt = NarrationPreparationReceiptSchema.parse({
@@ -392,15 +431,15 @@ const readWorkspaceFile = async (path: string) => {
 
 /** Commit a deterministic fixed task without overwriting a raced workspace. */
 export const ensureFixedTaskArtifact = async ({
-  rootDir,
+  locations,
   task,
   files,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly task: ProducerTaskSpec;
   readonly files: Readonly<Record<string, Uint8Array | string>>;
 }): Promise<ArtifactAttestation> => {
-  const existing = await inspectArtifact({ rootDir, task });
+  const existing = await inspectArtifact({ locations, task });
   if (existing !== null) {
     const expectedOutputs = new Map(
       task.declaredOutputSet.map((logicalPath) => {
@@ -422,7 +461,7 @@ export const ensureFixedTaskArtifact = async ({
     return existing;
   }
   const workspace = await createTaskWorkspace({
-    rootDir,
+    locations,
     task,
     seedFiles: files,
   });
@@ -436,8 +475,8 @@ export const ensureFixedTaskArtifact = async ({
       throw new Error("Fixed task workspace has conflicting bytes.");
     }
   }
-  await checkTaskByKind({ rootDir, taskRevision: task.taskRevision });
-  const committed = await commitTaskArtifact({ rootDir, task, workspace });
+  await checkTaskByKind({ locations, taskRevision: task.taskRevision });
+  const committed = await commitTaskArtifact({ locations, task, workspace });
   if (committed.attestation === null) {
     throw new Error(
       "Fixed task artifact commit did not produce an attestation.",
@@ -488,19 +527,19 @@ const collectRegularFiles = async (
 };
 
 export const readTemplateSceneFiles = async ({
-  rootDir,
+  locations,
   projectId,
   meaningId,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
   readonly meaningId: string;
 }) => {
   const source = await collectRegularFiles(
-    join(rootDir, "src/projects", projectId, "scenes", meaningId),
+    join(locations.projectSourceRoot, projectId, "scenes", meaningId),
   );
   const publicFiles = await collectRegularFiles(
-    join(rootDir, "public/projects", projectId, "scenes", meaningId),
+    join(locations.projectMediaRoot, projectId, "scenes", meaningId),
   );
   return Object.fromEntries(
     [

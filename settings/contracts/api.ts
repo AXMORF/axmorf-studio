@@ -49,6 +49,7 @@ export const ProjectProductionStatusSchema = z.enum([
   "not-produced",
   "needs-agent",
   "converging",
+  "source-current",
   "current",
   "stale",
   "failed",
@@ -97,7 +98,12 @@ export const ProjectAttemptSummarySchema = z
         failedTaskCount: z.number().int().nonnegative(),
       })
       .strict(),
-    deliveryResult: z.enum(["not-verified", "verified", "failed"]),
+    terminalResult: z.enum([
+      "pending",
+      "source-current",
+      "delivery-current",
+      "failed",
+    ]),
   })
   .strict();
 
@@ -105,6 +111,8 @@ export const ProjectDeliverySummarySchema = z
   .object({
     deliveryBuildId: z.string().regex(/^delivery-[0-9a-f]{64}$/u),
     revisionId: z.string().regex(/^revision-[0-9a-f]{64}$/u),
+    sourceCurrentId: z.string().regex(/^source-current-[0-9a-f]{64}$/u),
+    rendererRuntimeFingerprint: z.string().regex(/^sha256:[0-9a-f]{64}$/u),
     frameCount: z.number().int().positive(),
     current: z.boolean(),
     files: z

@@ -17,6 +17,11 @@ import {
   measureCanonicalPcmWav,
   sha256Bytes,
 } from "./domain/pcm-wav";
+import type { ProductionLocations } from "../project-production/application/production-locations";
+import {
+  resolveNarrationMediaLogicalPath,
+  resolveNarrationProjectRoot,
+} from "./production-paths";
 
 export type M2NarrationCheckResult = {
   readonly storyId: string;
@@ -44,15 +49,13 @@ const readJson = async (path: string, label: string): Promise<unknown> => {
 };
 
 const readManifest = async (
-  rootDir: string,
+  locations: ProductionLocations,
   storyId: string,
 ): Promise<SealedNarrationManifest> =>
   SealedNarrationManifestSchema.parse(
     await readJson(
       join(
-        rootDir,
-        "src/projects",
-        storyId,
+        resolveNarrationProjectRoot({ locations, storyId }),
         "generated/sealed-narration.generated.json",
       ),
       "sealed-narration.generated.json",
@@ -60,15 +63,13 @@ const readManifest = async (
   );
 
 const readTiming = async (
-  rootDir: string,
+  locations: ProductionLocations,
   storyId: string,
 ): Promise<SemanticTiming> =>
   SemanticTimingSchema.parse(
     await readJson(
       join(
-        rootDir,
-        "src/projects",
-        storyId,
+        resolveNarrationProjectRoot({ locations, storyId }),
         "generated/semantic-timing.generated.json",
       ),
       "semantic-timing.generated.json",
@@ -76,14 +77,14 @@ const readTiming = async (
   );
 
 export const checkM2NarrationArtifacts = async ({
-  rootDir,
+  locations,
   projectSource,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectSource: NarrativeProjectSource;
 }): Promise<M2NarrationCheckResult> => {
-  const manifest = await readManifest(rootDir, projectSource.story.storyId);
-  const timing = await readTiming(rootDir, projectSource.story.storyId);
+  const manifest = await readManifest(locations, projectSource.story.storyId);
+  const timing = await readTiming(locations, projectSource.story.storyId);
 
   const reconstructedParts: Buffer[] = [];
   let chunkCount = 0;
@@ -98,7 +99,13 @@ export const checkM2NarrationArtifacts = async ({
     }
     let wav: Buffer;
     try {
-      wav = await readFile(join(rootDir, segment.localPath));
+      wav = await readFile(
+        resolveNarrationMediaLogicalPath({
+          locations,
+          storyId: manifest.storyId,
+          logicalPath: segment.localPath,
+        }),
+      );
     } catch (error) {
       throw new Error(`Narration chunk audio is missing: ${segment.chunkId}.`, {
         cause: error,
@@ -121,7 +128,11 @@ export const checkM2NarrationArtifacts = async ({
   let completeWav: Buffer;
   try {
     completeWav = await readFile(
-      join(rootDir, manifest.completeAudio.localPath),
+      resolveNarrationMediaLogicalPath({
+        locations,
+        storyId: manifest.storyId,
+        logicalPath: manifest.completeAudio.localPath,
+      }),
     );
   } catch (error) {
     throw new Error("Complete narration audio is missing.", { cause: error });

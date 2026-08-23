@@ -5,7 +5,7 @@ import {
   type DesktopShellApi,
 } from "../contracts/shell";
 
-export const DESKTOP_PRELOAD_ENTRY_ID = "desktop-preload-phase-a-v1" as const;
+export const DESKTOP_PRELOAD_ENTRY_ID = "desktop-preload-phase-b-v1" as const;
 
 export const createDesktopShellApi = (
   invoke: (channel: string, ...args: readonly unknown[]) => Promise<unknown>,
@@ -23,6 +23,10 @@ export const createDesktopShellApi = (
       invoke(DESKTOP_SHELL_IPC_CHANNELS.showWorkspaceInFinder) as ReturnType<
         DesktopShellApi["showWorkspaceInFinder"]
       >,
+    migrateWorkspace: () =>
+      invoke(DESKTOP_SHELL_IPC_CHANNELS.migrateWorkspace) as ReturnType<
+        DesktopShellApi["migrateWorkspace"]
+      >,
     refreshPreviewCatalog: () =>
       invoke(DESKTOP_SHELL_IPC_CHANNELS.refreshPreviewCatalog) as ReturnType<
         DesktopShellApi["refreshPreviewCatalog"]
@@ -31,6 +35,19 @@ export const createDesktopShellApi = (
       invoke(DESKTOP_SHELL_IPC_CHANNELS.selectPreview, storyId) as ReturnType<
         DesktopShellApi["selectPreview"]
       >,
+    buildDelivery: (storyId) =>
+      invoke(DESKTOP_SHELL_IPC_CHANNELS.buildDelivery, storyId) as ReturnType<
+        DesktopShellApi["buildDelivery"]
+      >,
+    getProviderSettings: () =>
+      invoke(DESKTOP_SHELL_IPC_CHANNELS.getProviderSettings) as ReturnType<
+        DesktopShellApi["getProviderSettings"]
+      >,
+    saveProviderSettings: (value) =>
+      invoke(
+        DESKTOP_SHELL_IPC_CHANNELS.saveProviderSettings,
+        value,
+      ) as ReturnType<DesktopShellApi["saveProviderSettings"]>,
     retryEngine: () =>
       invoke(DESKTOP_SHELL_IPC_CHANNELS.retryEngine) as ReturnType<
         DesktopShellApi["retryEngine"]

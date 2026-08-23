@@ -3,7 +3,12 @@ import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
 import { buildResourceCatalog, renderResourceCatalogJson } from "./domain";
-import { loadCatalogAuthorityDescriptors } from "./project-files";
+import { loadWorkspaceCatalogAuthorityDescriptors } from "./project-files";
+import {
+  createWorkspaceProjectStorageLocations,
+  type ProjectStorageLocations,
+} from "../projects/project-locations";
+import type { ProductionLocations } from "../project-production/application/production-locations";
 
 export type CatalogGenerationMode = "write" | "check";
 
@@ -12,6 +17,16 @@ export type CatalogGenerationResult = {
   readonly entryCount: number;
   readonly destination: string;
 };
+
+export type ProjectCatalogProjectionPort = (input: {
+  readonly locations: ProductionLocations;
+  readonly projectId: string;
+  readonly mode: CatalogGenerationMode;
+}) => Promise<
+  Readonly<{
+    catalog: import("../../src/contracts").ResourceCatalog;
+  }>
+>;
 
 const syncDirectory = async (directory: string): Promise<void> => {
   let handle;
@@ -85,21 +100,20 @@ const writeOrCheckCatalog = async ({
   }
 };
 
-export const generateResourceCatalog = async ({
-  rootDir,
+export const generateResourceCatalogForStorage = async ({
+  storage,
   mode,
-  loadDescriptors = loadCatalogAuthorityDescriptors,
+  loadDescriptors,
 }: {
-  readonly rootDir: string;
+  readonly storage: ProjectStorageLocations;
   readonly mode: CatalogGenerationMode;
-  readonly loadDescriptors?: typeof loadCatalogAuthorityDescriptors;
+  readonly loadDescriptors: () => Promise<
+    readonly import("../../src/contracts").ResourceDescriptor[]
+  >;
 }): Promise<CatalogGenerationResult> => {
-  const catalog = buildResourceCatalog(await loadDescriptors(rootDir));
+  const catalog = buildResourceCatalog(await loadDescriptors());
   const expected = renderResourceCatalogJson(catalog);
-  const destination = join(
-    rootDir,
-    "src/remotion/catalog/resource-catalog.generated.json",
-  );
+  const destination = storage.catalogProjectionPath;
   await writeOrCheckCatalog({
     destination,
     expected,
@@ -109,23 +123,38 @@ export const generateResourceCatalog = async ({
   return { mode, entryCount: catalog.entries.length, destination };
 };
 
-export const generateProjectResourceCatalog = async ({
-  rootDir,
+export const generateWorkspaceResourceCatalog = async ({
+  locations,
+  mode,
+}: {
+  readonly locations: ProductionLocations;
+  readonly mode: CatalogGenerationMode;
+}) =>
+  generateResourceCatalogForStorage({
+    storage: createWorkspaceProjectStorageLocations(locations),
+    mode,
+    loadDescriptors: () =>
+      loadWorkspaceCatalogAuthorityDescriptors({ locations }),
+  });
+
+export const generateProjectResourceCatalogForStorage = async ({
+  storage,
   projectId,
   mode,
-  loadDescriptors = loadCatalogAuthorityDescriptors,
+  loadDescriptors,
 }: {
-  readonly rootDir: string;
+  readonly storage: ProjectStorageLocations;
   readonly projectId: string;
   readonly mode: CatalogGenerationMode;
-  readonly loadDescriptors?: typeof loadCatalogAuthorityDescriptors;
+  readonly loadDescriptors: () => Promise<
+    readonly import("../../src/contracts").ResourceDescriptor[]
+  >;
 }) => {
-  const catalog = buildResourceCatalog(
-    await loadDescriptors(rootDir, projectId),
-  );
+  const catalog = buildResourceCatalog(await loadDescriptors());
   const destination = join(
-    rootDir,
-    `src/projects/${projectId}/generated/resource-catalog.generated.json`,
+    storage.projectSourceRoot,
+    projectId,
+    "generated/resource-catalog.generated.json",
   );
   await writeOrCheckCatalog({
     destination,
@@ -140,3 +169,20 @@ export const generateProjectResourceCatalog = async ({
     catalog,
   } as const;
 };
+
+export const generateWorkspaceProjectResourceCatalog = async ({
+  locations,
+  projectId,
+  mode,
+}: {
+  readonly locations: ProductionLocations;
+  readonly projectId: string;
+  readonly mode: CatalogGenerationMode;
+}) =>
+  generateProjectResourceCatalogForStorage({
+    storage: createWorkspaceProjectStorageLocations(locations),
+    projectId,
+    mode,
+    loadDescriptors: () =>
+      loadWorkspaceCatalogAuthorityDescriptors({ locations, projectId }),
+  });

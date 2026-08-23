@@ -100,7 +100,6 @@ const inputs = ({
       scene: sha("1"),
       globalVisual: sha("2"),
       composition: sha("3"),
-      delivery: sha("4"),
     },
     fingerprints: {
       story: sha("e"),
@@ -166,14 +165,11 @@ test("template-copy task rebinds the copied and derived file set without losing 
   assert.deepEqual(rebound.dependencyArtifacts, built.task.dependencyArtifacts);
   assert.notEqual(rebound.taskRevision, built.task.taskRevision);
 
-  const materializedReplan = rebindTemplateTaskOutputs(
-    built.task,
-    [
-      ...rebound.declaredOutputSet,
-      "src/generated/scene-package.generated.json",
-      "src/task-input.generated.json",
-    ],
-  );
+  const materializedReplan = rebindTemplateTaskOutputs(built.task, [
+    ...rebound.declaredOutputSet,
+    "src/generated/scene-package.generated.json",
+    "src/task-input.generated.json",
+  ]);
   assert.deepEqual(
     materializedReplan.declaredOutputSet,
     rebound.declaredOutputSet,
@@ -291,34 +287,18 @@ test("task-local runtime policies invalidate only the owning branch", () => {
       ownerInspections: new Map(),
     });
   const currentDownstream = downstream(currentInputs);
-  const deliveryChanged = downstream({
-    ...currentInputs,
-    taskPolicyFingerprints: {
-      ...currentInputs.taskPolicyFingerprints,
-      delivery: sha("7"),
-    },
-  });
-  assert.equal(
-    currentDownstream.composition.task.taskRevision,
-    deliveryChanged.composition.task.taskRevision,
-  );
-  assert.notEqual(
-    currentDownstream.delivery.task.taskRevision,
-    deliveryChanged.delivery.task.taskRevision,
-  );
+  assert.deepEqual(Object.keys(currentDownstream), ["composition"]);
+  assert.deepEqual(Object.keys(currentInputs.taskPolicyFingerprints).sort(), [
+    "composition",
+    "globalVisual",
+    "scene",
+  ]);
   assert.deepEqual(
     buildAgentTasks(currentInputs, revisionId).map(
       ({ task }) => task.taskRevision,
     ),
-    buildAgentTasks(
-      {
-        ...currentInputs,
-        taskPolicyFingerprints: {
-          ...currentInputs.taskPolicyFingerprints,
-          delivery: sha("7"),
-        },
-      },
-      revisionId,
-    ).map(({ task }) => task.taskRevision),
+    buildAgentTasks(currentInputs, revisionId).map(
+      ({ task }) => task.taskRevision,
+    ),
   );
 });

@@ -80,7 +80,13 @@ test("bundled renderer uses native video and exposes three read-only tracks", as
   assert.match(app, /Scene/u);
   assert.match(app, /Narration/u);
   assert.match(app, /Caption/u);
+  assert.match(app, /尚无可播放成片/u);
+  assert.match(app, /buildDelivery/u);
   assert.doesNotMatch(app, /@remotion\/player|<Player/u);
+  assert.doesNotMatch(
+    app,
+    /node:(?:fs|path|child_process)|process\.env|credential|producerConfig/u,
+  );
   assert.match(html, /media-src 'self' axmorf-media:/u);
   assert.doesNotMatch(html, /https?:\/\//u);
 });

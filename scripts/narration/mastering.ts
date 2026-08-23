@@ -27,6 +27,11 @@ import {
   measureCanonicalPcmWav,
   sha256Bytes,
 } from "./domain/pcm-wav";
+import type { ProductionLocations } from "../project-production/application/production-locations";
+import {
+  resolveNarrationMediaLogicalPath,
+  resolveNarrationProjectRoot,
+} from "./production-paths";
 
 type LoudnormPass = Readonly<{
   inputI: number;
@@ -145,12 +150,15 @@ const analyzeWavBytes = async ({
   wav,
   runProcess,
   masteringPolicy,
+  temporaryRoot = tmpdir(),
 }: {
   readonly wav: Buffer;
   readonly runProcess: ProcessRunner;
   readonly masteringPolicy: NarrationMasteringPolicy;
+  readonly temporaryRoot?: string;
 }) => {
-  const directory = await mkdtemp(join(tmpdir(), "rsp-narration-master-"));
+  await mkdir(temporaryRoot, { recursive: true });
+  const directory = await mkdtemp(join(temporaryRoot, "rsp-narration-master-"));
   const path = join(directory, "complete.wav");
   try {
     await writeBytesSynced(path, wav);
@@ -167,11 +175,13 @@ export const masterNarrationBytes = async ({
   sourceWav,
   targetLoudnessLufs = -16,
   runProcess = runHostProcess,
+  temporaryRoot = tmpdir(),
 }: {
   readonly sourcePath: string;
   readonly sourceWav: Buffer;
   readonly targetLoudnessLufs?: number;
   readonly runProcess?: ProcessRunner;
+  readonly temporaryRoot?: string;
 }) => {
   const masteringPolicy = buildNarrationMasteringPolicy(targetLoudnessLufs);
   // Peak-limited speech can finish slightly below loudnorm's requested target.
@@ -224,6 +234,7 @@ export const masterNarrationBytes = async ({
     wav: outputWav,
     runProcess,
     masteringPolicy,
+    temporaryRoot,
   });
   return { outputWav, measurements, masteringPolicy } as const;
 };
@@ -238,23 +249,17 @@ const readJson = async (path: string, label: string) => {
   }
 };
 
-const projectPaths = (rootDir: string, storyId: string) => ({
+const projectPaths = (locations: ProductionLocations, storyId: string) => ({
   seal: join(
-    rootDir,
-    "src/projects",
-    storyId,
+    resolveNarrationProjectRoot({ locations, storyId }),
     "generated/sealed-narration.generated.json",
   ),
   master: join(
-    rootDir,
-    "src/projects",
-    storyId,
+    resolveNarrationProjectRoot({ locations, storyId }),
     "generated/mastered-narration.generated.json",
   ),
   lock: join(
-    rootDir,
-    "src/projects",
-    storyId,
+    resolveNarrationProjectRoot({ locations, storyId }),
     "generated/.narration-seal.lock",
   ),
 });
@@ -298,15 +303,15 @@ export type MasteredNarrationCheckResult = Readonly<{
 }>;
 
 export const checkMasteredNarrationArtifacts = async ({
-  rootDir,
+  locations,
   storyId,
   runProcess = runHostProcess,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly storyId: string;
   readonly runProcess?: ProcessRunner;
 }): Promise<MasteredNarrationCheckResult> => {
-  const paths = projectPaths(rootDir, storyId);
+  const paths = projectPaths(locations, storyId);
   const [seal, master] = await Promise.all([
     readJson(paths.seal, "sealed narration").then(
       SealedNarrationManifestSchema.parse,
@@ -328,7 +333,11 @@ export const checkMasteredNarrationArtifacts = async ({
   ) {
     throw new Error("Mastered narration source binding is stale.");
   }
-  const outputPath = join(rootDir, master.outputAudio.localPath);
+  const outputPath = resolveNarrationMediaLogicalPath({
+    locations,
+    storyId,
+    logicalPath: master.outputAudio.localPath,
+  });
   let outputWav: Buffer;
   try {
     outputWav = await readFile(outputPath);
@@ -350,6 +359,7 @@ export const checkMasteredNarrationArtifacts = async ({
     wav: outputWav,
     runProcess,
     masteringPolicy: master.masteringPolicy,
+    temporaryRoot: locations.disposableBuildRoot,
   });
   if (
     serializeCanonicalJson(measurements) !==
@@ -370,17 +380,17 @@ export const checkMasteredNarrationArtifacts = async ({
 };
 
 export const writeMasteredNarrationArtifacts = async ({
-  rootDir,
+  locations,
   storyId,
   targetLoudnessLufs = -16,
   runProcess = runHostProcess,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly storyId: string;
   readonly targetLoudnessLufs?: number;
   readonly runProcess?: ProcessRunner;
 }): Promise<MasteredNarrationCheckResult> => {
-  const paths = projectPaths(rootDir, storyId);
+  const paths = projectPaths(locations, storyId);
   return withProjectSealLock(
     { lockPath: paths.lock, operation: "master-narration" },
     async () => {
@@ -400,12 +410,16 @@ export const writeMasteredNarrationArtifacts = async ({
         })
       ) {
         return checkMasteredNarrationArtifacts({
-          rootDir,
+          locations,
           storyId,
           runProcess,
         });
       }
-      const sourcePath = join(rootDir, seal.completeAudio.localPath);
+      const sourcePath = resolveNarrationMediaLogicalPath({
+        locations,
+        storyId,
+        logicalPath: seal.completeAudio.localPath,
+      });
       const sourceWav = await readFile(sourcePath);
       if (sha256Bytes(sourceWav) !== seal.completeAudio.checksum) {
         throw new Error("Sealed complete narration checksum is stale.");
@@ -422,6 +436,7 @@ export const writeMasteredNarrationArtifacts = async ({
         sourceWav,
         runProcess,
         targetLoudnessLufs: requestedPolicy.targetIntegratedLoudnessLufs,
+        temporaryRoot: locations.disposableBuildRoot,
       });
       const manifest = buildMasteredNarrationManifest({
         storyId,
@@ -436,9 +451,12 @@ export const writeMasteredNarrationArtifacts = async ({
         measurements: mastered.measurements,
         masteringPolicy: mastered.masteringPolicy,
       });
-      const destinationDir = join(
-        rootDir,
-        dirname(manifest.outputAudio.localPath),
+      const destinationDir = dirname(
+        resolveNarrationMediaLogicalPath({
+          locations,
+          storyId,
+          logicalPath: manifest.outputAudio.localPath,
+        }),
       );
       const parent = dirname(destinationDir);
       await mkdir(parent, { recursive: true });
@@ -459,7 +477,7 @@ export const writeMasteredNarrationArtifacts = async ({
         await rm(stagingDirectory, { recursive: true, force: true });
       }
       return checkMasteredNarrationArtifacts({
-        rootDir,
+        locations,
         storyId,
         runProcess,
       });

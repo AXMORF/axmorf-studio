@@ -11,6 +11,7 @@ import {
 } from "node:path";
 
 import { checksumDeliveryBytes } from "../domain/checksum";
+import type { ProductionLocations } from "../domain/production-locations";
 
 type DeliveryPathKind = "directory" | "file";
 
@@ -23,7 +24,7 @@ const state = async (path: string) => {
   }
 };
 
-const assertRepositoryRoot = async (rootDir: string) => {
+const assertDeliveryAuthorityRoot = async (rootDir: string) => {
   const root = resolve(rootDir);
   const metadata = await state(root);
   if (
@@ -31,16 +32,16 @@ const assertRepositoryRoot = async (rootDir: string) => {
     metadata.isSymbolicLink() ||
     !metadata.isDirectory()
   ) {
-    throw new Error("Delivery repository root is unsafe.");
+    throw new Error("Delivery filesystem authority root is unsafe.");
   }
   return root;
 };
 
-const deliveryRelativePath = (rootDir: string, path: string) => {
-  const root = resolve(rootDir);
+const deliveryRelativePath = (locations: ProductionLocations, path: string) => {
+  const root = resolve(locations.deliveryRoot);
+  const deliveries = root;
   const target = resolve(path);
   const fromRoot = relative(root, target);
-  const deliveries = resolve(root, "deliveries");
   const fromDeliveries = relative(deliveries, target);
   if (
     isAbsolute(fromRoot) ||
@@ -50,24 +51,24 @@ const deliveryRelativePath = (rootDir: string, path: string) => {
     fromDeliveries === ".." ||
     fromDeliveries.startsWith(`..${sep}`)
   ) {
-    throw new Error("Delivery path escapes the repository delivery root.");
+    throw new Error("Delivery path escapes its configured delivery root.");
   }
   return { root, target, fromRoot } as const;
 };
 
 export const assertDeliveryPath = async ({
-  rootDir,
+  locations,
   path,
   kind,
   mustExist = false,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly path: string;
   readonly kind: DeliveryPathKind;
   readonly mustExist?: boolean;
 }) => {
-  const { root, target, fromRoot } = deliveryRelativePath(rootDir, path);
-  await assertRepositoryRoot(root);
+  const { root, target, fromRoot } = deliveryRelativePath(locations, path);
+  await assertDeliveryAuthorityRoot(root);
   const parts = fromRoot === "" ? [] : fromRoot.split(sep);
   let current = root;
   for (const [index, part] of parts.entries()) {
@@ -93,24 +94,24 @@ export const assertDeliveryPath = async ({
 };
 
 export const ensureDeliveryDirectory = async ({
-  rootDir,
+  locations,
   directory,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly directory: string;
 }) => {
-  const { root, fromRoot } = deliveryRelativePath(rootDir, directory);
-  await assertDeliveryPath({ rootDir, path: directory, kind: "directory" });
+  const { root, fromRoot } = deliveryRelativePath(locations, directory);
+  await assertDeliveryPath({ locations, path: directory, kind: "directory" });
   let current = root;
   for (const part of fromRoot.split(sep)) {
     current = join(current, part);
     const metadata = await state(current);
     if (metadata === null) {
       const parent = dirname(current);
-      if (parent === root) await assertRepositoryRoot(root);
+      if (parent === root) await assertDeliveryAuthorityRoot(root);
       else {
         await assertDeliveryPath({
-          rootDir,
+          locations,
           path: parent,
           kind: "directory",
           mustExist: true,
@@ -123,7 +124,7 @@ export const ensureDeliveryDirectory = async ({
       }
     }
     await assertDeliveryPath({
-      rootDir,
+      locations,
       path: current,
       kind: "directory",
       mustExist: true,
@@ -132,13 +133,13 @@ export const ensureDeliveryDirectory = async ({
 };
 
 export const inspectDeliveryFile = async ({
-  rootDir,
+  locations,
   path,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly path: string;
 }) => {
-  await assertDeliveryPath({ rootDir, path, kind: "file", mustExist: true });
+  await assertDeliveryPath({ locations, path, kind: "file", mustExist: true });
   const metadata = await lstat(path);
   if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size <= 0) {
     throw new Error(
@@ -146,7 +147,7 @@ export const inspectDeliveryFile = async ({
     );
   }
   const bytes = Uint8Array.from(await readFile(path));
-  await assertDeliveryPath({ rootDir, path, kind: "file", mustExist: true });
+  await assertDeliveryPath({ locations, path, kind: "file", mustExist: true });
   return {
     checksum: checksumDeliveryBytes(bytes),
     sizeBytes: metadata.size,
@@ -155,31 +156,31 @@ export const inspectDeliveryFile = async ({
 };
 
 const guardedRename = async ({
-  rootDir,
+  locations,
   source,
   destination,
   kind,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly source: string;
   readonly destination: string;
   readonly kind: DeliveryPathKind;
 }) => {
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: source,
     kind,
     mustExist: true,
   });
-  await assertDeliveryPath({ rootDir, path: destination, kind });
+  await assertDeliveryPath({ locations, path: destination, kind });
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: dirname(destination),
     kind: "directory",
     mustExist: true,
   });
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: source,
     kind,
     mustExist: true,
@@ -189,7 +190,7 @@ const guardedRename = async ({
   }
   await rename(source, destination);
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: destination,
     kind,
     mustExist: true,
@@ -197,16 +198,16 @@ const guardedRename = async ({
 };
 
 const guardedRemoveDirectory = async ({
-  rootDir,
+  locations,
   directory,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly directory: string;
 }) => {
-  await assertDeliveryPath({ rootDir, path: directory, kind: "directory" });
+  await assertDeliveryPath({ locations, path: directory, kind: "directory" });
   if ((await state(directory)) === null) return;
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: directory,
     kind: "directory",
     mustExist: true,
@@ -215,34 +216,34 @@ const guardedRemoveDirectory = async ({
 };
 
 export const promoteDeliveryStaging = async ({
-  rootDir,
+  locations,
   staging,
   destination,
   validate,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly staging: string;
   readonly destination: string;
   readonly validate: (destination: string) => Promise<void>;
 }) => {
   await assertDeliveryPath({
-    rootDir,
+    locations,
     path: staging,
     kind: "directory",
     mustExist: true,
   });
-  await assertDeliveryPath({ rootDir, path: destination, kind: "directory" });
+  await assertDeliveryPath({ locations, path: destination, kind: "directory" });
   const current = await state(destination);
   if (current === null) {
     await guardedRename({
-      rootDir,
+      locations,
       source: staging,
       destination,
       kind: "directory",
     });
     try {
       await assertDeliveryPath({
-        rootDir,
+        locations,
         path: destination,
         kind: "directory",
         mustExist: true,
@@ -251,7 +252,7 @@ export const promoteDeliveryStaging = async ({
     } catch (error) {
       try {
         await guardedRename({
-          rootDir,
+          locations,
           source: destination,
           destination: staging,
           kind: "directory",
@@ -273,22 +274,22 @@ export const promoteDeliveryStaging = async ({
     dirname(staging),
     `.replaced-${basename(destination)}-${randomUUID()}`,
   );
-  await assertDeliveryPath({ rootDir, path: backup, kind: "directory" });
+  await assertDeliveryPath({ locations, path: backup, kind: "directory" });
   await guardedRename({
-    rootDir,
+    locations,
     source: destination,
     destination: backup,
     kind: "directory",
   });
   try {
     await guardedRename({
-      rootDir,
+      locations,
       source: staging,
       destination,
       kind: "directory",
     });
     await assertDeliveryPath({
-      rootDir,
+      locations,
       path: destination,
       kind: "directory",
       mustExist: true,
@@ -300,7 +301,7 @@ export const promoteDeliveryStaging = async ({
       const promoted = await state(destination);
       if (promoted !== null) {
         await guardedRename({
-          rootDir,
+          locations,
           source: destination,
           destination: staging,
           kind: "directory",
@@ -311,7 +312,7 @@ export const promoteDeliveryStaging = async ({
     }
     try {
       await guardedRename({
-        rootDir,
+        locations,
         source: backup,
         destination,
         kind: "directory",
@@ -327,5 +328,5 @@ export const promoteDeliveryStaging = async ({
     }
     throw error;
   }
-  await guardedRemoveDirectory({ rootDir, directory: backup });
+  await guardedRemoveDirectory({ locations, directory: backup });
 };

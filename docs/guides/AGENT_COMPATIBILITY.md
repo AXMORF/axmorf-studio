@@ -19,22 +19,31 @@ task workspace、validator、ArtifactAttestation 和 current delivery，不来�
 `AGENTS.md` 是唯一仓库级 Agent 指令 authority。宿主入口文件不得复制规则；否则更新时会形成双 authority。
 `.agents/**/agents/openai.yaml` 是可选 OpenAI UI metadata，其他宿主可以忽略。
 
-## Desktop App Phase A 与 v1 认证边界
+## Desktop App Phase A 历史与 Phase B current 边界
 
-Phase A repository adapter 已实现 managed Workspace integration：初始化时写入 checksum-bound `AGENTS.md`、
-repository-local Skill、thin host imports、Hermes 安装提示和 `.rsp/bin/rsp`。当前 CLI 只支持 `doctor`，通过
-owner-only session 文件和 authenticated Unix-domain socket 连接正在运行的 App；不接受 token 的 argv/env/URL
-传递，也不回退到 repository npm scripts。
+Phase A repository adapter 的历史范围是 checksum-bound managed Workspace、doctor-only `rsp-local-v1`、read-only
+repository Preview Catalog 与 authenticated Unix-domain socket；它不暴露 production/delivery 命令。Phase A 的原型
+自动化和已完成 native evidence 见 [Desktop Phase A Smoke](DESKTOP_PHASE_A_SMOKE.md)，不能把该历史 surface 当作
+current Desktop runtime authority。
 
-`npm run desktop:integration-smoke` 已从临时 Workspace 读取真实受管入口并调用安装后的 CLI 连接真实 socket；这只
-证明 host-neutral discovery/doctor surface，不是 Codex 或 Hermes 完整生产认证。Desktop App v1 仍要求 Codex 与
-Hermes 通过同一 `.rsp/bin/rsp` protocol、TaskSpec、validator 与 completion evidence 的真实 E2E，不能为 Hermes
-复制第二套生产规则。Phase A Apple Silicon gate 已验证 Codex-compatible discovery、受管 Skill 和真实 `rsp doctor`；
-runner 未提供 Hermes CLI，因此 Hermes-specific smoke 仍准确 pending，不能据此宣称完整生产认证。
+Phase B current implementation 已 clean-break 为 Workspace-owned `rsp-local-v2`：`.rsp/bin/rsp` 是 embedded Runtime
+Pack 安装的 self-contained client，只连接 App-running authenticated Unix-domain socket，不依赖 host Node/npm/Git、
+源码 checkout 或 repository npm fallback。public surface 覆盖 `doctor`、`project create`、`asset import`、`context`、
+`inspect`、`prepare`、`task check/commit/fail`、one-shot `continue` 与 `delivery build`。`manual` 可在
+`project-production-source-current` 终结且没有可播放视频；`automatic` 或 later explicit Delivery 才能产生复验后的
+exact four-file current package。
 
-App 不安装、升级、托管或调用 Codex/Hermes SDK。Phase A 也不暴露 production/delivery 命令；完整 Runtime Pack、
-Workspace production migration 与正式 Agent 认证属于后续阶段。原型自动化与原生验收步骤见
-[Desktop Phase A Smoke](DESKTOP_PHASE_A_SMOKE.md)，目标行为见
+Runtime Pack 只携带 renderer/bundler 所需的 checksum-bound exact Studio/Studio Shared 内部依赖，不包含 Remotion
+CLI、Studio Server、Studio UI 或 launch surface。App/Engine 不启动 Remotion Studio 或 Settings Web service；UDS 是
+唯一 control plane，DeliveryBuild 期间 renderer 可临时绑定 `127.0.0.1` OS-ephemeral data listener，终态与退出后归零。
+
+`npm run desktop:integration-smoke` 证明 host-neutral managed discovery、完整 CLI invocation 与真实 socket contract，
+但不是 Codex 或 Hermes 完整生产认证。Codex/Hermes 必须通过同一 `.rsp/bin/rsp` protocol、TaskSpec、validator 与
+completion evidence 的真实 E2E，不能复制第二套规则。当前 Hermes Workspace production proof 与 Apple Silicon
+packaged Phase B production evidence 仍 pending；状态是 `implementation-complete-native-evidence-pending`，不是 Phase B
+verified complete。
+
+App 不安装、升级、托管或调用 Codex/Hermes SDK。目标行为见
 [Desktop App 产品架构](../DESKTOP_APP_PRODUCT.md)。
 
 ## 最低能力

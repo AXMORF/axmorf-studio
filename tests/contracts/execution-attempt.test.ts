@@ -60,10 +60,10 @@ test("diagnostic task snapshot is strict, sorted, and decision-bound", () => {
   );
 });
 
-test("execution attempt v3 persists chunk-distinct diagnostic snapshots", () => {
+test("execution attempt v4 persists chunk-distinct diagnostic snapshots", () => {
   const attempt = ExecutionAttemptSchema.parse({
-    schemaVersion: 3,
-    contractVersion: "execution-attempt-v3",
+    schemaVersion: 4,
+    contractVersion: "execution-attempt-v4",
     attemptId: "00000000-0000-4000-8000-000000000000",
     storyId: "story-example",
     revisionId,

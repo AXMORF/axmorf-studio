@@ -1,6 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { open, readFile, unlink, type FileHandle } from "node:fs/promises";
-import { join } from "node:path";
+import {
+  lstat,
+  open,
+  readFile,
+  realpath,
+  unlink,
+  type FileHandle,
+} from "node:fs/promises";
+import { join, resolve } from "node:path";
 
 const lockPath = (rootDir: string) => join(rootDir, ".project-operation.lock");
 
@@ -28,7 +35,16 @@ export const acquireRepositoryOperationLock = async ({
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(ownerId)) {
     throw new Error("Repository operation lock owner is invalid.");
   }
-  const path = lockPath(rootDir);
+  const canonicalRoot = resolve(rootDir);
+  const rootMetadata = await lstat(canonicalRoot);
+  if (
+    rootMetadata.isSymbolicLink() ||
+    !rootMetadata.isDirectory() ||
+    (await realpath(canonicalRoot)) !== canonicalRoot
+  ) {
+    throw new Error("Repository operation lock root must be canonical.");
+  }
+  const path = lockPath(canonicalRoot);
   const token = randomUUID();
   const bytes = `${JSON.stringify({ schemaVersion: 1, ownerId, token })}\n`;
   let handle;

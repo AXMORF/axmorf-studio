@@ -18,6 +18,10 @@ import {
 import { checkGlobalVisualTask } from "../../scripts/project-production/application/global-visual-task-check";
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
 import {
+  createProductionLocations,
+  createRepositoryProductionLocations,
+} from "../../scripts/project-production/application/production-locations";
+import {
   buildValidSealedNarrationManifest,
   validNarrationSpec,
   validRenderSpec,
@@ -107,6 +111,10 @@ const createGlobalWorkspace = async ({
   readonly rootDir: string;
   readonly fixture?: ReturnType<typeof buildFixture>;
 }) => {
+  const locations = createProductionLocations({
+    ...createRepositoryProductionLocations({ repositoryRoot: rootDir }),
+    runtimeResources: join(import.meta.dirname, "../.."),
+  });
   const contextBytes = `${serializeCanonicalJson(fixture.context)}\n`;
   const task = buildProducerTaskSpec({
     taskKind: "global-visual-owner",
@@ -129,7 +137,7 @@ const createGlobalWorkspace = async ({
     validatorPolicyVersion: "global-visual-owner-validator-v1",
   });
   const workspace = await createTaskWorkspace({
-    rootDir,
+    locations,
     task,
     seedFiles: { "inputs/context.json": contextBytes },
   });
@@ -139,7 +147,10 @@ const createGlobalWorkspace = async ({
     join(workspace, "project/global-visual-plan.json"),
     `${JSON.stringify(fixture.plan)}\n`,
   );
-  await writeFile(join(workspace, "src/GlobalVisualLayers.tsx"), fixture.source);
+  await writeFile(
+    join(workspace, "src/GlobalVisualLayers.tsx"),
+    fixture.source,
+  );
   await writeFile(
     join(workspace, "src/selected-resources.json"),
     `${JSON.stringify({
@@ -147,30 +158,18 @@ const createGlobalWorkspace = async ({
       selectedResources: fixture.selectedResources,
     })}\n`,
   );
-  await writeFile(
-    join(rootDir, "tsconfig.json"),
-    `${JSON.stringify({
-      compilerOptions: {
-        target: "ES2022",
-        module: "ESNext",
-        moduleResolution: "Bundler",
-        strict: true,
-        noEmit: true,
-      },
-    })}\n`,
-  );
-  return task;
+  return { locations, task } as const;
 };
 
 test("GlobalVisual task accepts canonical context whose inset key order differs from the parsed plan", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-task-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const task = await createGlobalWorkspace({ rootDir });
+  const { locations, task } = await createGlobalWorkspace({ rootDir });
 
   assert.equal(
     (
       await checkGlobalVisualTask({
-        rootDir,
+        locations,
         taskRevision: task.taskRevision,
       })
     ).status,
@@ -181,35 +180,39 @@ test("GlobalVisual task accepts canonical context whose inset key order differs 
 test("GlobalVisual task rejects a valid plan whose dimensions cross the frozen context", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-plan-boundary-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const task = await createGlobalWorkspace({
+  const { locations, task } = await createGlobalWorkspace({
     rootDir,
     fixture: buildFixture({ planWidth: 1919 }),
   });
 
   await assert.rejects(
-    checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+    checkGlobalVisualTask({ locations, taskRevision: task.taskRevision }),
     /plan is stale/u,
   );
 });
 
 test("GlobalVisual task rejects a plan whose Composition identity crosses RenderSpec", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-composition-boundary-"));
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-global-composition-boundary-"),
+  );
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const task = await createGlobalWorkspace({
+  const { locations, task } = await createGlobalWorkspace({
     rootDir,
     fixture: buildFixture({ planCompositionId: validStorySpec.storyId }),
   });
 
   await assert.rejects(
-    checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+    checkGlobalVisualTask({ locations, taskRevision: task.taskRevision }),
     /plan is stale/u,
   );
 });
 
 test("GlobalVisual task rejects resources outside its exact role and allowlist", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-resource-boundary-"));
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-global-resource-boundary-"),
+  );
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const task = await createGlobalWorkspace({
+  const { locations, task } = await createGlobalWorkspace({
     rootDir,
     fixture: buildFixture({
       selectedResources: [
@@ -226,7 +229,7 @@ test("GlobalVisual task rejects resources outside its exact role and allowlist",
   });
 
   await assert.rejects(
-    checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+    checkGlobalVisualTask({ locations, taskRevision: task.taskRevision }),
     /outside the task allowlist/u,
   );
 });
@@ -234,7 +237,7 @@ test("GlobalVisual task rejects resources outside its exact role and allowlist",
 test("GlobalVisual task rejects source that crosses into audio ownership", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-source-boundary-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const task = await createGlobalWorkspace({
+  const { locations, task } = await createGlobalWorkspace({
     rootDir,
     fixture: buildFixture({
       source: `${validSource}\nconst Audio = null;\nvoid Audio;\n`,
@@ -242,7 +245,7 @@ test("GlobalVisual task rejects source that crosses into audio ownership", async
   });
 
   await assert.rejects(
-    checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+    checkGlobalVisualTask({ locations, taskRevision: task.taskRevision }),
     /visual-only boundary/u,
   );
 });

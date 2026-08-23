@@ -17,6 +17,7 @@ import {
   ensureFixedTaskArtifact,
   sealedNarrationMatchesMeasuredProgress,
 } from "../../scripts/project-production/application/prepare-fixed-tasks";
+import { createRepositoryProductionLocations } from "../../scripts/project-production/application/production-locations";
 import { createProducerPlan } from "../../scripts/project-production/domain/plan";
 import { createRawPcmFixture, createWavFixture } from "../fixtures/wav";
 
@@ -37,8 +38,7 @@ const task = ({
     | "semantic-timing"
     | "scene-owner"
     | "cover-owner"
-    | "composition-convergence"
-    | "delivery-build";
+    | "composition-convergence";
   readonly semanticId?: string | null;
   readonly inputs: readonly Readonly<{
     id: string;
@@ -129,7 +129,6 @@ test("sealed or mastered narration byte identity changes ProductionRevision", ()
     narrationFingerprint: sha("2"),
     renderFingerprint: sha("3"),
     visualStyleFingerprint: sha("4"),
-    publishingIntentFingerprint: sha("5"),
     projectSoundFingerprint: sha("6"),
     authoringRequirementsFingerprint: sha("7"),
     globalVisualBriefFingerprint: sha("8"),
@@ -227,6 +226,9 @@ test("runtime and validator changes invalidate only tasks that bind those polici
 test("same fixed TaskRevision with different output bytes fails closed", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-fixed-conflict-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
   const fixed = buildNarrationChunkTask({
     storyId: "story-example",
     revisionId: ProductionRevisionIdSchema.parse(
@@ -244,7 +246,7 @@ test("same fixed TaskRevision with different output bytes fails closed", async (
     rawPcm: createRawPcmFixture([1, 2, 3]),
   });
   await ensureFixedTaskArtifact({
-    rootDir,
+    locations,
     task: fixed.task,
     files: {
       "inputs/context.json": fixed.contextBytes,
@@ -256,7 +258,7 @@ test("same fixed TaskRevision with different output bytes fails closed", async (
   });
   await assert.rejects(
     ensureFixedTaskArtifact({
-      rootDir,
+      locations,
       task: fixed.task,
       files: {
         "inputs/context.json": fixed.contextBytes,
@@ -267,14 +269,13 @@ test("same fixed TaskRevision with different output bytes fails closed", async (
   );
 });
 
-test("delivery artifact never enters its own reusable artifact set fingerprint", () => {
+test("composition convergence is the terminal reusable artifact in the Producer DAG", () => {
   const revision = buildProductionRevision({
     storyId: "story-example",
     storyFingerprint: sha("1"),
     narrationFingerprint: sha("2"),
     renderFingerprint: sha("3"),
     visualStyleFingerprint: sha("4"),
-    publishingIntentFingerprint: sha("5"),
     projectSoundFingerprint: sha("6"),
     authoringRequirementsFingerprint: sha("7"),
     globalVisualBriefFingerprint: sha("8"),
@@ -289,10 +290,6 @@ test("delivery artifact never enters its own reusable artifact set fingerprint",
     kind: "composition-convergence",
     inputs: [{ id: "runtime", fingerprint: sha("c") }],
   });
-  const delivery = task({
-    kind: "delivery-build",
-    inputs: [{ id: "publishing", fingerprint: sha("d") }],
-  });
   const attestation = (current: typeof composition) =>
     buildArtifactAttestation({
       storyId: current.storyId,
@@ -304,30 +301,27 @@ test("delivery artifact never enters its own reusable artifact set fingerprint",
       outputManifest: [
         {
           logicalPath: "project/output.json",
-          checksum: sha(current.taskKind === "delivery-build" ? "e" : "f"),
+          checksum: sha("f"),
           sizeBytes: 1,
           kind: "file",
         },
       ],
     });
-  const nodes = [composition, delivery]
+  const nodes = [composition]
     .map((current) => ({ task: current, dependencyTaskRevisions: [] }))
     .sort((left, right) =>
       left.task.taskRevision.localeCompare(right.task.taskRevision),
     );
   const compositionAttestation = attestation(composition);
-  const deliveryAttestation = attestation(delivery);
   const subjects = new Map([
     [composition.taskRevision, { kind: "project" as const, id: composition.storyId }],
-    [delivery.taskRevision, { kind: "project" as const, id: delivery.storyId }],
   ]);
   const before = createProducerPlan({
     revision,
     nodes,
     subjects,
     inspections: new Map([
-      [composition.taskRevision, { attestation: compositionAttestation, artifactState: "valid" as const }],
-      [delivery.taskRevision, { attestation: null, artifactState: "missing" as const }],
+      [composition.taskRevision, { attestation: null, artifactState: "missing" as const }],
     ]),
   });
   const after = createProducerPlan({
@@ -336,10 +330,10 @@ test("delivery artifact never enters its own reusable artifact set fingerprint",
     subjects,
     inspections: new Map([
       [composition.taskRevision, { attestation: compositionAttestation, artifactState: "valid" as const }],
-      [delivery.taskRevision, { attestation: deliveryAttestation, artifactState: "valid" as const }],
     ]),
   });
-  assert.equal(after.artifactSetFingerprint, before.artifactSetFingerprint);
+  assert.notEqual(after.artifactSetFingerprint, before.artifactSetFingerprint);
+  assert.equal(after.tasks.at(-1)?.taskKind, "composition-convergence");
 });
 
 test("active seal is not current against another provider-attempt cache", () => {

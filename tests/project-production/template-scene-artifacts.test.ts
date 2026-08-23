@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -26,7 +26,15 @@ import { inspectArtifact } from "../../scripts/project-production/adapters/artif
 import { readTemplateSceneFilesForInspection } from "../../scripts/project-production/adapters/production-inspection";
 import { ensureTemplateSceneArtifact } from "../../scripts/project-production/application/template-scene-artifacts";
 import { readTemplateSceneFiles } from "../../scripts/project-production/application/prepare-fixed-tasks";
-import { validNarrationSpec, validRenderSpec, validVideoBrief } from "../fixtures/narrative";
+import {
+  createRepositoryProductionLocations,
+  createWorkspaceProductionLocations,
+} from "../../scripts/project-production/application/production-locations";
+import {
+  validNarrationSpec,
+  validRenderSpec,
+  validVideoBrief,
+} from "../fixtures/narrative";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 const digest = (value: string | Uint8Array) =>
@@ -36,17 +44,38 @@ const canonical = (value: unknown) => `${serializeCanonicalJson(value)}\n`;
 test("template readers exclude live-only Scene projections after materialization", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-template-live-view-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
   const storyId = "template-live-view";
   const meaningId = "intro";
-  const sourceRoot = join(rootDir, "src/projects", storyId, "scenes", meaningId);
-  const publicRoot = join(rootDir, "public/projects", storyId, "scenes", meaningId);
+  const sourceRoot = join(
+    rootDir,
+    "src/projects",
+    storyId,
+    "scenes",
+    meaningId,
+  );
+  const publicRoot = join(
+    rootDir,
+    "public/projects",
+    storyId,
+    "scenes",
+    meaningId,
+  );
   await mkdir(join(sourceRoot, "generated"), { recursive: true });
   await mkdir(publicRoot, { recursive: true });
   await Promise.all([
-    writeFile(join(sourceRoot, "Renderer.tsx"), "export default () => <div />;\n"),
+    writeFile(
+      join(sourceRoot, "Renderer.tsx"),
+      "export default () => <div />;\n",
+    ),
     writeFile(join(sourceRoot, "scene-template-instance.json"), "{}\n"),
     writeFile(join(sourceRoot, "selected-resources.json"), "{}\n"),
-    writeFile(join(sourceRoot, "generated/scene-package.generated.json"), "{}\n"),
+    writeFile(
+      join(sourceRoot, "generated/scene-package.generated.json"),
+      "{}\n",
+    ),
     writeFile(join(sourceRoot, "task-input.generated.json"), "{}\n"),
     writeFile(join(publicRoot, "effect.wav"), "sound"),
   ]);
@@ -58,14 +87,18 @@ test("template readers exclude live-only Scene projections after materialization
   ];
   assert.deepEqual(
     Object.keys(
-      await readTemplateSceneFiles({ rootDir, projectId: storyId, meaningId }),
+      await readTemplateSceneFiles({
+        locations,
+        projectId: storyId,
+        meaningId,
+      }),
     ),
     expected,
   );
   assert.deepEqual(
     Object.keys(
       await readTemplateSceneFilesForInspection({
-        rootDir,
+        locations,
         projectId: storyId,
         meaningId,
       }),
@@ -74,13 +107,94 @@ test("template readers exclude live-only Scene projections after materialization
   );
 });
 
+test("template reader maps Workspace-owned source and media roots", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-template-workspace-view-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = createWorkspaceProductionLocations({
+    workspaceRoot: join(rootDir, "workspace"),
+    applicationSupportRoot: join(rootDir, "application-support"),
+    runtimeResources: join(import.meta.dirname, "../.."),
+    cacheRoot: join(rootDir, "cache"),
+  });
+  const storyId = "template-workspace-view";
+  const meaningId = "intro";
+  const sourceRoot = join(
+    locations.projectSourceRoot,
+    storyId,
+    "scenes",
+    meaningId,
+  );
+  const mediaRoot = join(
+    locations.projectMediaRoot,
+    storyId,
+    "scenes",
+    meaningId,
+  );
+  await mkdir(sourceRoot, { recursive: true });
+  await mkdir(mediaRoot, { recursive: true });
+  await writeFile(join(sourceRoot, "Renderer.tsx"), "renderer\n");
+  await writeFile(join(mediaRoot, "effect.wav"), "sound");
+
+  assert.deepEqual(
+    Object.keys(
+      await readTemplateSceneFiles({
+        locations,
+        projectId: storyId,
+        meaningId,
+      }),
+    ),
+    ["public/effect.wav", "src/Renderer.tsx"],
+  );
+});
+
 test("fixed template preparation derives and commits the complete canonical Scene bundle", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-template-fixed-artifact-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  await writeFile(
-    join(rootDir, "tsconfig.json"),
-    await readFile(join(import.meta.dirname, "../../tsconfig.json"), "utf8"),
+  const runtimeResources = join(rootDir, "runtime-pack");
+  await mkdir(
+    join(runtimeResources, "source/src/remotion/runtime/story-visual"),
+    { recursive: true },
   );
+  await mkdir(join(runtimeResources, "node_modules/react"), {
+    recursive: true,
+  });
+  await writeFile(
+    join(runtimeResources, "tsconfig.json"),
+    `${JSON.stringify({
+      compilerOptions: {
+        target: "ES2022",
+        module: "Preserve",
+        moduleResolution: "Bundler",
+        jsx: "react-jsx",
+        strict: true,
+        noEmit: true,
+        skipLibCheck: true,
+      },
+    })}\n`,
+  );
+  await writeFile(
+    join(runtimeResources, "source/src/remotion/runtime/story-visual/types.ts"),
+    "export type SceneRendererComponent = () => unknown;\n",
+  );
+  await writeFile(
+    join(runtimeResources, "node_modules/react/jsx-runtime.d.ts"),
+    `export const Fragment: unique symbol;
+export const jsx: (...args: unknown[]) => unknown;
+export const jsxs: (...args: unknown[]) => unknown;
+declare global {
+  namespace JSX {
+    type Element = unknown;
+    interface IntrinsicElements { div: Record<string, unknown>; }
+  }
+}
+`,
+  );
+  const locations = createWorkspaceProductionLocations({
+    workspaceRoot: join(rootDir, "workspace"),
+    applicationSupportRoot: join(rootDir, "application-support"),
+    runtimeResources,
+    cacheRoot: join(rootDir, "cache"),
+  });
 
   const storyId = "template-fixed-proof";
   const meaningId = "configured-intro-scene";
@@ -284,48 +398,45 @@ export default Renderer;
   });
 
   for (const [relativePath, bytes] of [
-    [rendererRepositoryPath, renderer],
-    [
-      `src/projects/${storyId}/scenes/${meaningId}/scene-template-instance.json`,
-      canonical(instance),
-    ],
+    [`scenes/${meaningId}/Renderer.tsx`, renderer],
+    [`scenes/${meaningId}/scene-template-instance.json`, canonical(instance)],
   ] as const) {
-    const destination = join(rootDir, relativePath);
+    const destination = join(
+      locations.projectSourceRoot,
+      storyId,
+      relativePath,
+    );
     await mkdir(dirname(destination), { recursive: true });
     await writeFile(destination, bytes);
   }
-  await mkdir(
-    join(rootDir, `public/projects/${storyId}/scenes/${meaningId}`),
-    { recursive: true },
-  );
+  await mkdir(join(locations.projectMediaRoot, storyId, "scenes", meaningId), {
+    recursive: true,
+  });
 
   const prepared = await ensureTemplateSceneArtifact({
-    rootDir,
+    locations,
     task,
     contextBytes,
     taskInput,
     catalog,
   });
-  assert.deepEqual(
-    prepared.task.declaredOutputSet,
-    [
-      "src/Renderer.tsx",
-      "src/generated/reference-fidelity.generated.json",
-      "src/scene-template-instance.json",
-      "src/selected-resources.json",
-      "src/shot-plan.json",
-      "src/shot-recipe-selection.json",
-      "src/sound-plan.json",
-      "src/sync-anchors.json",
-      "src/visual-plan.json",
-    ],
-  );
+  assert.deepEqual(prepared.task.declaredOutputSet, [
+    "src/Renderer.tsx",
+    "src/generated/reference-fidelity.generated.json",
+    "src/scene-template-instance.json",
+    "src/selected-resources.json",
+    "src/shot-plan.json",
+    "src/shot-recipe-selection.json",
+    "src/sound-plan.json",
+    "src/sync-anchors.json",
+    "src/visual-plan.json",
+  ]);
   assert.deepEqual(
     prepared.attestation.outputManifest.map(({ logicalPath }) => logicalPath),
     prepared.task.declaredOutputSet,
   );
   assert.equal(
-    (await inspectArtifact({ rootDir, task: prepared.task }))?.taskRevision,
+    (await inspectArtifact({ locations, task: prepared.task }))?.taskRevision,
     prepared.task.taskRevision,
   );
 });

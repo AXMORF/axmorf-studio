@@ -1,62 +1,71 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
 import {
-  DELIVERY_BUILD_POLICY_VERSION,
   RenderSpecSchema,
-  StorySpecSchema,
   buildArtifactAttestation,
-  buildDeliveryPublish,
-  buildDeliveryPublishing,
+  buildProducerConfig,
   buildProducerTaskSpec,
   buildProjectSoundPlan,
-  buildPublishingIntent,
-  createDeliveryBuildId,
+  buildSourceCurrentAttestation,
   serializeCanonicalJson,
   type ArtifactAttestation,
   type ProducerTaskSpec,
+  type SourceCurrentAttestation,
 } from "../../src/contracts";
 import {
   commitConvergenceFixedArtifact,
   convergeProjectProduction,
   type ConvergenceDependencies,
 } from "../../scripts/project-production/application/converge-artifacts";
+import {
+  createRepositoryProductionLocations,
+  createRuntimeExecutionResources,
+} from "../../scripts/project-production/application/production-locations";
 import { checksumBytes } from "../../scripts/project-production/adapters/project-input-snapshot";
-import { validRenderSpec, validStorySpec } from "../fixtures/narrative";
+import { validProjectCreateProducerConfig } from "../fixtures/project-create";
+import { validRenderSpec } from "../fixtures/narrative";
 
 const SHA = `sha256:${"a".repeat(64)}`;
+const RUNTIME_FINGERPRINT = `sha256:${"b".repeat(64)}`;
+const RUNTIME = createRuntimeExecutionResources({
+  rendererRuntimeFingerprint: RUNTIME_FINGERPRINT,
+  browserExecutable: "/fixture/runtime/chrome",
+  binariesDirectory: "/fixture/runtime/bin",
+  ffmpegExecutable: "/fixture/runtime/bin/ffmpeg",
+  ffprobeExecutable: "/fixture/runtime/bin/ffprobe",
+});
+const CONFIG = buildProducerConfig(validProjectCreateProducerConfig);
 const REVISION = `revision-${"1".repeat(64)}`;
 const NEXT_REVISION = `revision-${"2".repeat(64)}`;
 const ATTEMPT_ID = "00000000-0000-4000-8000-000000000001";
 const acquireTestLock: NonNullable<
   ConvergenceDependencies["acquireLock"]
-> = async () => ({ release: async () => undefined });
+> = async ({ locations, ownerId }) => {
+  assert.equal(locations.layoutKind, "repository");
+  assert.equal(ownerId, "project-production-converge");
+  return { release: async () => undefined };
+};
 
 const task = (
-  taskKind:
-    | "scene-owner"
-    | "global-visual-owner"
-    | "semantic-timing"
-    | "composition-convergence"
-    | "delivery-build",
-  dependencyArtifacts: ProducerTaskSpec["dependencyArtifacts"] = [],
+  taskKind: "scene-owner" | "semantic-timing" | "composition-convergence",
 ): ProducerTaskSpec =>
   buildProducerTaskSpec({
     taskKind,
     storyId: "story-example",
     semanticId: taskKind === "scene-owner" ? "scene-one" : null,
     revisionId: REVISION,
-    dependencyArtifacts,
+    dependencyArtifacts: [],
     inputFingerprints: [{ id: "read:inputs/context.json", fingerprint: SHA }],
     declaredReadSet: ["inputs/context.json"],
     declaredOutputSet: [
       taskKind === "composition-convergence"
         ? "project/convergence.json"
-        : taskKind === "delivery-build"
-          ? "project/publish.json"
+        : taskKind === "semantic-timing"
+          ? "project/timing.json"
           : "src/Renderer.tsx",
     ],
     validatorPolicyVersion: `${taskKind}-validator-v1`,
@@ -121,38 +130,125 @@ const injectedPlan = (planned: ReturnType<typeof plannedProduction>) =>
     ConvergenceDependencies["buildCurrentPlan"]
   >;
 
-const convergenceStages = (ownerTask: ProducerTaskSpec) => {
-  const compositionTask = task("composition-convergence");
+const sourceCurrent = (
+  artifacts: readonly ArtifactAttestation[],
+): SourceCurrentAttestation =>
+  buildSourceCurrentAttestation({
+    storyId: "story-example",
+    revisionId: REVISION,
+    artifacts: artifacts
+      .map(({ taskRevision, artifactFingerprint }) => ({
+        taskRevision,
+        artifactFingerprint,
+      }))
+      .sort((left, right) =>
+        left.taskRevision.localeCompare(right.taskRevision),
+      ),
+    files: [
+      {
+        logicalPath: "project/Composition.generated.tsx",
+        checksum: SHA,
+        sizeBytes: 1,
+      },
+    ],
+    validators: [
+      { id: "source-materialization", version: "source-materialization-v1" },
+    ],
+  });
+
+const successfulDependencies = ({
+  ownerTask,
+  compositionTask,
+  terminal,
+  buildDelivery,
+  inspectSourceCurrent,
+}: {
+  readonly ownerTask: ProducerTaskSpec;
+  readonly compositionTask: ProducerTaskSpec;
+  readonly terminal: unknown[];
+  readonly buildDelivery?: NonNullable<
+    ConvergenceDependencies["buildDelivery"]
+  >;
+  readonly inspectSourceCurrent?: NonNullable<
+    ConvergenceDependencies["inspectSourceCurrent"]
+  >;
+}): ConvergenceDependencies => {
+  const ownerArtifact = attestation(ownerTask);
   const compositionArtifact = attestation(compositionTask);
-  const initialDeliveryTask = task("delivery-build");
-  const boundDeliveryTask = task("delivery-build", [
-    {
-      taskRevision: compositionTask.taskRevision,
-      artifactFingerprint: compositionArtifact.artifactFingerprint,
-    },
-  ]);
+  const current = sourceCurrent([ownerArtifact, compositionArtifact]);
   return {
-    compositionTask,
-    initial: plannedProduction([
-      ownerTask,
-      compositionTask,
-      initialDeliveryTask,
-    ]),
-    withComposition: plannedProduction([
-      ownerTask,
-      compositionTask,
-      boundDeliveryTask,
-    ]),
-  } as const;
+    acquireLock: acquireTestLock,
+    buildCurrentPlan: injectedPlan(
+      plannedProduction([ownerTask, compositionTask]),
+    ),
+    inspectArtifact: (async ({ task: inspected }) => {
+      assert.equal(inspected.taskRevision, ownerTask.taskRevision);
+      return ownerArtifact;
+    }) as NonNullable<ConvergenceDependencies["inspectArtifact"]>,
+    materializeOwnerArtifacts: (async () => undefined) as NonNullable<
+      ConvergenceDependencies["materializeOwnerArtifacts"]
+    >,
+    verifyMaterializedOwnerArtifacts: (async () => undefined) as NonNullable<
+      ConvergenceDependencies["verifyMaterializedOwnerArtifacts"]
+    >,
+    prepareProject: (async ({
+      locations,
+      runtime,
+      mode,
+    }: Parameters<
+      NonNullable<ConvergenceDependencies["prepareProject"]>
+    >[0]) => {
+      assert.equal(locations.layoutKind, "repository");
+      assert.equal(runtime, RUNTIME);
+      assert.equal(mode, "write");
+      return {};
+    }) as unknown as NonNullable<ConvergenceDependencies["prepareProject"]>,
+    readPreparedScenePackage: async ({ locations }) => {
+      assert.equal(locations.layoutKind, "repository");
+      return new TextEncoder().encode("scene-package\n");
+    },
+    commitFixedArtifact: (async ({ task: fixedTask }) => {
+      assert.equal(fixedTask.taskRevision, compositionTask.taskRevision);
+      return compositionArtifact;
+    }) as NonNullable<ConvergenceDependencies["commitFixedArtifact"]>,
+    createSourceCurrent: (async ({ locations, artifacts }) => {
+      assert.equal(locations.layoutKind, "repository");
+      assert.deepEqual(
+        artifacts.map(({ taskRevision }) => taskRevision).sort(),
+        [ownerTask.taskRevision, compositionTask.taskRevision].sort(),
+      );
+      return current;
+    }) as NonNullable<ConvergenceDependencies["createSourceCurrent"]>,
+    writeSourceCurrent: (async ({ locations, attestation: written }) => {
+      assert.equal(locations.layoutKind, "repository");
+      assert.equal(written.sourceCurrentId, current.sourceCurrentId);
+      return written;
+    }) as NonNullable<ConvergenceDependencies["writeSourceCurrent"]>,
+    inspectSourceCurrent:
+      inspectSourceCurrent ??
+      ((async ({ locations, expected }) => {
+        assert.equal(locations.layoutKind, "repository");
+        assert.equal(expected.sourceCurrentId, current.sourceCurrentId);
+        return current;
+      }) as NonNullable<ConvergenceDependencies["inspectSourceCurrent"]>),
+    buildDelivery:
+      buildDelivery ??
+      (async () => {
+        throw new Error("Delivery port must not be called by this scenario.");
+      }),
+    appendAttempt: (async ({ result }) => {
+      terminal.push(result);
+      return {};
+    }) as NonNullable<ConvergenceDependencies["appendAttempt"]>,
+  };
 };
 
-const fakePrepareProject = (async () => ({})) as unknown as NonNullable<
-  ConvergenceDependencies["prepareProject"]
->;
-
-test("converge-owned fixed promotion validates directly without a task workspace", async (context) => {
+test("converge-owned fixed promotion validates only composition output", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-converge-fixed-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
   const render = RenderSpecSchema.parse(validRenderSpec);
   const sound = buildProjectSoundPlan({
     storyId: "story-example",
@@ -169,16 +265,7 @@ test("converge-owned fixed promotion validates directly without a task workspace
     storyId: "story-example",
     semanticId: null,
     revisionId: REVISION,
-    dependencyArtifacts: [
-      {
-        taskRevision: `task-${"2".repeat(64)}`,
-        artifactFingerprint: `sha256:${"2".repeat(64)}`,
-      },
-      {
-        taskRevision: `task-${"3".repeat(64)}`,
-        artifactFingerprint: `sha256:${"3".repeat(64)}`,
-      },
-    ],
+    dependencyArtifacts: [],
     inputFingerprints: [
       {
         id: "read:inputs/context.json",
@@ -204,7 +291,7 @@ test("converge-owned fixed promotion validates directly without a task workspace
   })}\n`;
 
   const committed = await commitConvergenceFixedArtifact({
-    rootDir,
+    locations,
     task: fixedTask,
     files: {
       "inputs/context.json": contextBytes,
@@ -213,9 +300,10 @@ test("converge-owned fixed promotion validates directly without a task workspace
   });
 
   assert.equal(committed.taskRevision, fixedTask.taskRevision);
+  assert.deepEqual(await readdir(locations.disposableBuildRoot), []);
   await assert.rejects(
     commitConvergenceFixedArtifact({
-      rootDir,
+      locations,
       task: fixedTask,
       files: {
         "inputs/context.json": contextBytes,
@@ -224,176 +312,233 @@ test("converge-owned fixed promotion validates directly without a task workspace
     }),
     /result is invalid/u,
   );
-
-  const story = StorySpecSchema.parse(validStorySpec);
-  const publishingIntent = buildPublishingIntent({
-    story,
-    authored: {
-      description: "A synchronously verified delivery.",
-      topics: ["one", "two", "three", "four", "five", "six"],
-      collectionId: "engineering",
-      chapters: [
-        { meaningId: "opening", name: "开场" },
-        { meaningId: "conclusion", name: "结论" },
-      ],
-    },
-    publishingCollections: [
-      {
-        id: "engineering",
-        name: "Engineering",
-        description: "Engineering videos.",
-      },
-    ],
-  });
-  const deliveryContextBytes = `${serializeCanonicalJson({
-    storyId: "story-example",
-    revisionId: REVISION,
-    render,
-    publishingIntent,
-  })}\n`;
-  const deliveryTask = buildProducerTaskSpec({
-    taskKind: "delivery-build",
-    storyId: "story-example",
-    semanticId: null,
-    revisionId: REVISION,
-    dependencyArtifacts: [
-      {
-        taskRevision: fixedTask.taskRevision,
-        artifactFingerprint: committed.artifactFingerprint,
-      },
-      {
-        taskRevision: `task-${"4".repeat(64)}`,
-        artifactFingerprint: `sha256:${"4".repeat(64)}`,
-      },
-    ].sort((left, right) =>
-      left.taskRevision.localeCompare(right.taskRevision),
-    ),
-    inputFingerprints: [
-      { id: "publishing", fingerprint: SHA },
-      {
-        id: "read:inputs/context.json",
-        fingerprint: checksumBytes(
-          new TextEncoder().encode(deliveryContextBytes),
-        ),
-      },
-      { id: "render", fingerprint: SHA },
-      { id: "runtime", fingerprint: SHA },
-    ],
-    declaredReadSet: ["inputs/context.json"],
-    declaredOutputSet: ["project/publish.json"],
-    validatorPolicyVersion: "delivery-build-validator-v1",
-  });
-  const identity = {
-    storyId: "story-example",
-    revisionId: REVISION,
-    artifactSetFingerprint: SHA,
-    compositionId: render.compositionId,
-    fps: render.fps,
-    frameCount: 90,
-    width: render.width,
-    height: render.height,
-    policyVersion: DELIVERY_BUILD_POLICY_VERSION,
-  } as const;
-  const publishing = buildDeliveryPublishing({
-    storyId: story.storyId,
-    title: story.title,
-    description: publishingIntent.description,
-    topics: publishingIntent.topics,
-    collection: publishingIntent.collection.name,
-    outputFileName: "video.mp4",
-    coverFileNames: {
-      cover4x3: "cover-4x3.png",
-      cover3x4: "cover-3x4.png",
-    },
-    fps: render.fps,
-    frameCount: identity.frameCount,
-    plannedDurationSeconds: identity.frameCount / render.fps,
-    chapters: [
-      {
-        meaningId: "opening",
-        name: "开场",
-        startFrame: 0,
-        timecode: "00:00:00",
-      },
-      {
-        meaningId: "conclusion",
-        name: "结论",
-        startFrame: 45,
-        timecode: "00:00:01",
-      },
-    ],
-  });
-  const publish = buildDeliveryPublish({
-    ...identity,
-    deliveryBuildId: createDeliveryBuildId(identity),
-    artifacts: {
-      video: {
-        repositoryPath: "deliveries/story-example/video.mp4",
-        checksum: SHA,
-        sizeBytes: 1,
-        media: {
-          codec: "h264",
-          audioCodec: "aac",
-          audioChannels: 2,
-          width: render.width,
-          height: render.height,
-          fps: render.fps,
-          frameCount: identity.frameCount,
-          decodedToEof: true,
-        },
-      },
-      cover4x3: {
-        repositoryPath: "deliveries/story-example/cover-4x3.png",
-        checksum: SHA,
-        sizeBytes: 1,
-        media: {
-          imageFormat: "png",
-          width: 1600,
-          height: 1200,
-          decodedToEof: true,
-        },
-      },
-      cover3x4: {
-        repositoryPath: "deliveries/story-example/cover-3x4.png",
-        checksum: SHA,
-        sizeBytes: 1,
-        media: {
-          imageFormat: "png",
-          width: 1200,
-          height: 1600,
-          decodedToEof: true,
-        },
-      },
-    },
-    publishing,
-  });
-  const deliveryCommitted = await commitConvergenceFixedArtifact({
-    rootDir,
-    task: deliveryTask,
-    files: {
-      "inputs/context.json": deliveryContextBytes,
-      "project/publish.json": `${serializeCanonicalJson(publish)}\n`,
-    },
-  });
-  assert.equal(deliveryCommitted.taskRevision, deliveryTask.taskRevision);
-  assert.deepEqual(await readdir(rootDir), [".producer-artifacts"]);
+  assert.deepEqual(await readdir(rootDir), [".producer-artifacts", "out"]);
 });
 
-test("stale revision is a read-only replan with zero provider, workspace, attempt creation, or live write", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-converge-stale-"));
+test("manual policy seals source-current without building delivery", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-converge-manual-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const calls = {
-    inspect: 0,
-    materialize: 0,
-    delivery: 0,
-    provider: 0,
-    workspace: 0,
-  };
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
+  const ownerTask = task("scene-owner");
+  const compositionTask = task("composition-convergence");
+  const terminal: unknown[] = [];
+  let deliveryCalls = 0;
+
   const result = await convergeProjectProduction({
-    rootDir,
+    locations,
     projectId: "story-example",
     revisionId: REVISION,
     attemptId: ATTEMPT_ID,
+    deliveryPolicy: "manual",
+    config: CONFIG,
+    runtime: RUNTIME,
+    dependencies: successfulDependencies({
+      ownerTask,
+      compositionTask,
+      terminal,
+      buildDelivery: (async () => {
+        deliveryCalls += 1;
+        throw new Error("manual policy must not build delivery");
+      }) as NonNullable<ConvergenceDependencies["buildDelivery"]>,
+    }),
+  });
+
+  assert.equal(result.status, "project-production-source-current");
+  assert.equal(deliveryCalls, 0);
+  assert.deepEqual(terminal, [
+    {
+      status: "source-current",
+      sourceCurrentId: result.sourceCurrent.sourceCurrentId,
+      deliveryBuildId: null,
+      diagnosticCode: null,
+      deliveryMedia: [],
+    },
+  ]);
+});
+
+test("automatic policy builds runtime-bound delivery and records delivery-current", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-converge-automatic-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
+  const ownerTask = task("scene-owner");
+  const compositionTask = task("composition-convergence");
+  const terminal: unknown[] = [];
+  const deliveryBuildId = `delivery-${"3".repeat(64)}`;
+  let deliveryCalls = 0;
+
+  const result = await convergeProjectProduction({
+    locations,
+    projectId: "story-example",
+    revisionId: REVISION,
+    attemptId: ATTEMPT_ID,
+    deliveryPolicy: "automatic",
+    config: CONFIG,
+    runtime: RUNTIME,
+    dependencies: successfulDependencies({
+      ownerTask,
+      compositionTask,
+      terminal,
+      buildDelivery: (async (input) => {
+        deliveryCalls += 1;
+        assert.equal(input.sourceCurrentId.startsWith("source-current-"), true);
+        assert.equal(input.locations, locations);
+        assert.equal(input.runtime, RUNTIME);
+        assert.equal(input.config, CONFIG);
+        return {
+          projectId: "story-example",
+          deliveryBuildId,
+          status: "project-production-complete",
+          noOp: false,
+          deliveryPath: "deliveries/story-example",
+          reused: { video: false, cover4x3: false, cover3x4: false },
+        };
+      }) as NonNullable<ConvergenceDependencies["buildDelivery"]>,
+    }),
+  });
+
+  assert.equal(result.status, "project-production-complete");
+  assert.equal(deliveryCalls, 1);
+  assert.equal(result.delivery.deliveryBuildId, deliveryBuildId);
+  assert.deepEqual(terminal, [
+    {
+      status: "delivery-current",
+      sourceCurrentId: result.sourceCurrent.sourceCurrentId,
+      deliveryBuildId,
+      diagnosticCode: null,
+      deliveryMedia: ["video", "cover-4x3", "cover-3x4"],
+    },
+  ]);
+});
+
+test("source-current drift fails closed after write", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-converge-source-drift-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
+  const ownerTask = task("scene-owner");
+  const compositionTask = task("composition-convergence");
+  const terminal: unknown[] = [];
+
+  await assert.rejects(
+    () =>
+      convergeProjectProduction({
+        locations,
+        projectId: "story-example",
+        revisionId: REVISION,
+        attemptId: ATTEMPT_ID,
+        deliveryPolicy: "manual",
+        config: CONFIG,
+        runtime: RUNTIME,
+        dependencies: successfulDependencies({
+          ownerTask,
+          compositionTask,
+          terminal,
+          inspectSourceCurrent: (async () => {
+            throw new Error("Source current materialized bytes drifted.");
+          }) as NonNullable<ConvergenceDependencies["inspectSourceCurrent"]>,
+        }),
+      }),
+    /materialized bytes drifted/u,
+  );
+  assert.deepEqual(terminal, [
+    {
+      status: "failed",
+      sourceCurrentId: null,
+      deliveryBuildId: null,
+      diagnosticCode: "project-production-convergence-failed",
+      deliveryMedia: [],
+    },
+  ]);
+});
+
+test("invalid artifact fails before materialization or delivery", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-converge-artifact-drift-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
+  const ownerTask = task("scene-owner");
+  const compositionTask = task("composition-convergence");
+  const terminal: unknown[] = [];
+  let materializeCalls = 0;
+  let prepareCalls = 0;
+  let deliveryCalls = 0;
+
+  await assert.rejects(
+    () =>
+      convergeProjectProduction({
+        locations,
+        projectId: "story-example",
+        revisionId: REVISION,
+        attemptId: ATTEMPT_ID,
+        deliveryPolicy: "automatic",
+        config: CONFIG,
+        runtime: RUNTIME,
+        dependencies: {
+          acquireLock: acquireTestLock,
+          buildCurrentPlan: injectedPlan(
+            plannedProduction([ownerTask, compositionTask]),
+          ),
+          inspectArtifact: (async () => {
+            throw new Error("Artifact checksum drifted.");
+          }) as NonNullable<ConvergenceDependencies["inspectArtifact"]>,
+          materializeOwnerArtifacts: (async () => {
+            materializeCalls += 1;
+          }) as NonNullable<
+            ConvergenceDependencies["materializeOwnerArtifacts"]
+          >,
+          prepareProject: (async () => {
+            prepareCalls += 1;
+            throw new Error("unreachable");
+          }) as NonNullable<ConvergenceDependencies["prepareProject"]>,
+          buildDelivery: (async () => {
+            deliveryCalls += 1;
+            throw new Error("unreachable");
+          }) as NonNullable<ConvergenceDependencies["buildDelivery"]>,
+          appendAttempt: (async ({ result }) => {
+            terminal.push(result);
+            return {};
+          }) as NonNullable<ConvergenceDependencies["appendAttempt"]>,
+        },
+      }),
+    /Artifact checksum drifted/u,
+  );
+  assert.equal(materializeCalls, 0);
+  assert.equal(prepareCalls, 0);
+  assert.equal(deliveryCalls, 0);
+  assert.deepEqual(terminal, [
+    {
+      status: "failed",
+      sourceCurrentId: null,
+      deliveryBuildId: null,
+      diagnosticCode: "producer-artifact-invalid",
+      deliveryMedia: [],
+    },
+  ]);
+});
+
+test("stale revision remains read-only and records a failed terminal", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-converge-stale-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
+  const terminal: unknown[] = [];
+  const calls = { inspect: 0, materialize: 0, prepare: 0, delivery: 0 };
+
+  const result = await convergeProjectProduction({
+    locations,
+    projectId: "story-example",
+    revisionId: REVISION,
+    attemptId: ATTEMPT_ID,
+    deliveryPolicy: "automatic",
+    config: CONFIG,
+    runtime: RUNTIME,
     dependencies: {
       acquireLock: acquireTestLock,
       buildCurrentPlan: injectedPlan(
@@ -406,349 +551,40 @@ test("stale revision is a read-only replan with zero provider, workspace, attemp
       materializeOwnerArtifacts: (async () => {
         calls.materialize += 1;
       }) as NonNullable<ConvergenceDependencies["materializeOwnerArtifacts"]>,
+      prepareProject: (async () => {
+        calls.prepare += 1;
+        throw new Error("unreachable");
+      }) as NonNullable<ConvergenceDependencies["prepareProject"]>,
       buildDelivery: (async () => {
         calls.delivery += 1;
         throw new Error("unreachable");
       }) as NonNullable<ConvergenceDependencies["buildDelivery"]>,
-      prepareNarration: async () => {
-        calls.provider += 1;
-        throw new Error("converge must not call a provider");
-      },
-      createWorkspace: async () => {
-        calls.workspace += 1;
-        throw new Error("converge must not create a task workspace");
-      },
-    } as ConvergenceDependencies,
+      appendAttempt: (async ({ result: terminalResult }) => {
+        terminal.push(terminalResult);
+        return {};
+      }) as NonNullable<ConvergenceDependencies["appendAttempt"]>,
+    },
   });
 
   assert.deepEqual(result, {
     status: "producer-revision-stale",
     currentRevisionId: NEXT_REVISION,
-    attemptRecorded: false,
+    attemptRecorded: true,
   });
   assert.deepEqual(calls, {
     inspect: 0,
     materialize: 0,
+    prepare: 0,
     delivery: 0,
-    provider: 0,
-    workspace: 0,
   });
-  assert.deepEqual(await readdir(rootDir), []);
-});
-
-test("an incomplete revision causes zero provider, workspace, attempt creation, or live write", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-converge-incomplete-"));
-  context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const sceneTask = task("scene-owner");
-  const timingTask = task("semantic-timing");
-  const calls = { materialize: 0, delivery: 0, provider: 0, workspace: 0 };
-  const result = await convergeProjectProduction({
-    rootDir,
-    projectId: "story-example",
-    revisionId: REVISION,
-    attemptId: ATTEMPT_ID,
-    dependencies: {
-      acquireLock: acquireTestLock,
-      buildCurrentPlan: injectedPlan(
-        plannedProduction([sceneTask, timingTask]),
-      ),
-      inspectArtifact: (async ({ task: inspected }) =>
-        inspected.taskRevision === sceneTask.taskRevision
-          ? attestation(sceneTask)
-          : null) as NonNullable<ConvergenceDependencies["inspectArtifact"]>,
-      materializeOwnerArtifacts: (async () => {
-        calls.materialize += 1;
-      }) as NonNullable<ConvergenceDependencies["materializeOwnerArtifacts"]>,
-      buildDelivery: (async () => {
-        calls.delivery += 1;
-        throw new Error("unreachable");
-      }) as NonNullable<ConvergenceDependencies["buildDelivery"]>,
-      prepareNarration: async () => {
-        calls.provider += 1;
-        throw new Error("converge must not call a provider");
-      },
-      createWorkspace: async () => {
-        calls.workspace += 1;
-        throw new Error("converge must not create a task workspace");
-      },
-    } as ConvergenceDependencies,
-  });
-
-  assert.equal(result.status, "producer-artifacts-incomplete");
-  assert.equal(result.missingTaskRevision, timingTask.taskRevision);
-  assert.deepEqual(calls, {
-    materialize: 0,
-    delivery: 0,
-    provider: 0,
-    workspace: 0,
-  });
-  assert.deepEqual(await readdir(rootDir), []);
-});
-
-test("a lost diagnostic write does not change stale revision authority", async () => {
-  const result = await convergeProjectProduction({
-    rootDir: "/fixture",
-    projectId: "story-example",
-    revisionId: REVISION,
-    attemptId: ATTEMPT_ID,
-    dependencies: {
-      acquireLock: acquireTestLock,
-      buildCurrentPlan: injectedPlan(
-        plannedProduction([task("scene-owner")], NEXT_REVISION),
-      ),
-      appendAttempt: (async () => {
-        throw new Error("diagnostic store unavailable");
-      }) as NonNullable<ConvergenceDependencies["appendAttempt"]>,
-    },
-  });
-
-  assert.equal(result.status, "producer-revision-stale");
-  assert.equal(result.attemptRecorded, false);
-});
-
-test("prepare-generated ScenePackage bytes remain exact through synchronous delivery", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-converge-prepare-"));
-  context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const sceneTask = task("scene-owner");
-  const stages = convergenceStages(sceneTask);
-  let planCall = 0;
-  const calls = {
-    materialize: 0,
-    verify: 0,
-    delivery: 0,
-    provider: 0,
-    workspace: 0,
-  };
-  const terminal: Array<{
-    status: string;
-    diagnosticCode: string | null;
-    deliveryMedia: readonly string[];
-  }> = [];
-  const order: string[] = [];
-  const scenePackageBytes = new TextEncoder().encode(
-    '{"contractVersion":"scene-package-current"}\n',
-  );
-  const result = await convergeProjectProduction({
-    rootDir,
-    projectId: "story-example",
-    revisionId: REVISION,
-    attemptId: ATTEMPT_ID,
-    dependencies: {
-      acquireLock: (async () => {
-        order.push("acquire");
-        return {
-          release: async () => {
-            order.push("release");
-          },
-        };
-      }) as NonNullable<ConvergenceDependencies["acquireLock"]>,
-      buildCurrentPlan: (async () => {
-        planCall += 1;
-        return planCall === 1 ? stages.initial : stages.withComposition;
-      }) as NonNullable<ConvergenceDependencies["buildCurrentPlan"]>,
-      inspectArtifact: (async () => attestation(sceneTask)) as NonNullable<
-        ConvergenceDependencies["inspectArtifact"]
-      >,
-      materializeOwnerArtifacts: (async ({ artifacts }) => {
-        order.push("materialize");
-        calls.materialize += 1;
-        assert.equal(artifacts.length, 1);
-      }) as NonNullable<ConvergenceDependencies["materializeOwnerArtifacts"]>,
-      verifyMaterializedOwnerArtifacts: (async ({ additionalSceneFiles }) => {
-        calls.verify += 1;
-        if (calls.verify === 1) {
-          assert.equal(additionalSceneFiles, undefined);
-        } else {
-          const manifest = additionalSceneFiles
-            ?.get("scene-one")
-            ?.get("generated/scene-package.generated.json");
-          assert.equal(manifest?.sizeBytes, scenePackageBytes.byteLength);
-          assert.equal(manifest?.checksum, checksumBytes(scenePackageBytes));
-        }
-      }) as NonNullable<
-        ConvergenceDependencies["verifyMaterializedOwnerArtifacts"]
-      >,
-      prepareProject: (async () => {
-        const generated = join(
-          rootDir,
-          "src/projects/story-example/scenes/scene-one/generated",
-        );
-        await mkdir(generated, { recursive: true });
-        await writeFile(
-          join(generated, "scene-package.generated.json"),
-          scenePackageBytes,
-        );
-        return {};
-      }) as unknown as NonNullable<ConvergenceDependencies["prepareProject"]>,
-      commitFixedArtifact: (async ({ task: fixedTask }) =>
-        attestation(fixedTask)) as NonNullable<
-        ConvergenceDependencies["commitFixedArtifact"]
-      >,
-      readDeliveryPublish: async () => new TextEncoder().encode("{}\n"),
-      buildDelivery: (async ({ dependencies }) => {
-        order.push("delivery");
-        calls.delivery += 1;
-        await dependencies?.verifyMaterialized?.();
-        await dependencies?.verifyMaterialized?.();
-        return {
-          projectId: "story-example",
-          deliveryBuildId: `delivery-${"3".repeat(64)}`,
-          status: "project-production-complete",
-          noOp: false,
-          deliveryPath: "deliveries/story-example",
-          reused: { video: false, cover4x3: false, cover3x4: false },
-        };
-      }) as NonNullable<ConvergenceDependencies["buildDelivery"]>,
-      appendAttempt: (async ({ result: terminalResult }) => {
-        terminal.push({
-          status: terminalResult.status,
-          diagnosticCode: terminalResult.diagnosticCode,
-          deliveryMedia: terminalResult.deliveryMedia,
-        });
-        return {};
-      }) as NonNullable<ConvergenceDependencies["appendAttempt"]>,
-      prepareNarration: async () => {
-        calls.provider += 1;
-        throw new Error("converge must not call a provider");
-      },
-      createWorkspace: async () => {
-        calls.workspace += 1;
-        throw new Error("converge must not create a task workspace");
-      },
-    } as ConvergenceDependencies,
-  });
-
-  assert.equal(result.status, "project-production-complete");
-  assert.equal(planCall, 3);
-  assert.deepEqual(calls, {
-    materialize: 1,
-    verify: 6,
-    delivery: 1,
-    provider: 0,
-    workspace: 0,
-  });
-  assert.deepEqual(order, ["acquire", "materialize", "delivery", "release"]);
-  assert.deepEqual(terminal, [
-    {
-      status: "verified",
-      diagnosticCode: null,
-      deliveryMedia: ["video", "cover-4x3", "cover-3x4"],
-    },
-  ]);
-});
-
-test("synchronous delivery failure is terminal and never reports completion", async () => {
-  const sceneTask = task("scene-owner");
-  const stages = convergenceStages(sceneTask);
-  let planCall = 0;
-  const terminal: Array<{
-    status: string;
-    diagnosticCode: string | null;
-  }> = [];
-  await assert.rejects(
-    () =>
-      convergeProjectProduction({
-        rootDir: "/fixture",
-        projectId: "story-example",
-        revisionId: REVISION,
-        attemptId: ATTEMPT_ID,
-        dependencies: {
-          acquireLock: acquireTestLock,
-          buildCurrentPlan: (async () => {
-            planCall += 1;
-            return planCall === 1 ? stages.initial : stages.withComposition;
-          }) as NonNullable<ConvergenceDependencies["buildCurrentPlan"]>,
-          inspectArtifact: (async () => attestation(sceneTask)) as NonNullable<
-            ConvergenceDependencies["inspectArtifact"]
-          >,
-          materializeOwnerArtifacts: (async () => undefined) as NonNullable<
-            ConvergenceDependencies["materializeOwnerArtifacts"]
-          >,
-          verifyMaterializedOwnerArtifacts: (async () =>
-            undefined) as NonNullable<
-            ConvergenceDependencies["verifyMaterializedOwnerArtifacts"]
-          >,
-          prepareProject: fakePrepareProject,
-          readPreparedScenePackage: async () =>
-            new TextEncoder().encode("scene-package\n"),
-          commitFixedArtifact: (async ({ task: fixedTask }) =>
-            attestation(fixedTask)) as NonNullable<
-            ConvergenceDependencies["commitFixedArtifact"]
-          >,
-          buildDelivery: (async () => {
-            throw new Error("render failed");
-          }) as NonNullable<ConvergenceDependencies["buildDelivery"]>,
-          appendAttempt: (async ({ result: terminalResult }) => {
-            terminal.push({
-              status: terminalResult.status,
-              diagnosticCode: terminalResult.diagnosticCode,
-            });
-            return {};
-          }) as NonNullable<ConvergenceDependencies["appendAttempt"]>,
-        },
-      }),
-    /render failed/u,
-  );
   assert.deepEqual(terminal, [
     {
       status: "failed",
-      diagnosticCode: "project-production-convergence-failed",
+      sourceCurrentId: null,
+      deliveryBuildId: null,
+      diagnosticCode: "producer-revision-stale",
+      deliveryMedia: [],
     },
   ]);
-});
-
-test("one repository lock covers the complete convergence orchestration", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-converge-lock-"));
-  context.after(() => rm(rootDir, { recursive: true, force: true }));
-  let unblockPlan: (() => void) | undefined;
-  let markPlanStarted: (() => void) | undefined;
-  const planStarted = new Promise<void>((resolve) => {
-    markPlanStarted = resolve;
-  });
-  const planGate = new Promise<void>((resolve) => {
-    unblockPlan = resolve;
-  });
-  const planned = plannedProduction([task("scene-owner")], NEXT_REVISION);
-  const blockingPlan = (async () => {
-    markPlanStarted?.();
-    await planGate;
-    return planned;
-  }) as NonNullable<ConvergenceDependencies["buildCurrentPlan"]>;
-  const appendAttempt = (async () => ({})) as unknown as NonNullable<
-    ConvergenceDependencies["appendAttempt"]
-  >;
-  const first = convergeProjectProduction({
-    rootDir,
-    projectId: "story-example",
-    revisionId: REVISION,
-    attemptId: ATTEMPT_ID,
-    dependencies: { buildCurrentPlan: blockingPlan, appendAttempt },
-  });
-  await planStarted;
-
-  await assert.rejects(
-    () =>
-      convergeProjectProduction({
-        rootDir,
-        projectId: "story-example",
-        revisionId: REVISION,
-        attemptId: ATTEMPT_ID,
-        dependencies: {
-          buildCurrentPlan: injectedPlan(planned),
-          appendAttempt,
-        },
-      }),
-    /Another Project operation is already active/u,
-  );
-  unblockPlan?.();
-  assert.equal((await first).status, "producer-revision-stale");
-
-  const afterRelease = await convergeProjectProduction({
-    rootDir,
-    projectId: "story-example",
-    revisionId: REVISION,
-    attemptId: ATTEMPT_ID,
-    dependencies: { buildCurrentPlan: injectedPlan(planned), appendAttempt },
-  });
-  assert.equal(afterRelease.status, "producer-revision-stale");
+  assert.deepEqual(await readdir(rootDir), []);
 });

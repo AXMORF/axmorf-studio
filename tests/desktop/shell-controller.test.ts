@@ -11,6 +11,10 @@ import {
 const digest = `sha256:${"a".repeat(64)}`;
 const revisionId = `revision-${"b".repeat(64)}`;
 const deliveryBuildId = `delivery-${"c".repeat(64)}`;
+const runtimePack = {
+  runtimePackId: `runtime-pack-${"d".repeat(64)}`,
+  architecture: "arm64" as const,
+};
 
 const catalog = (storyId = "story-one") =>
   PreviewCatalogSchema.parse({
@@ -75,12 +79,63 @@ const snapshot = (storyId = "story-one"): DesktopEngineSnapshot => ({
     unavailableCount: 0,
     failureCode: null,
   },
-  activeWork: false,
+  projects: [
+    {
+      storyId: storyId as never,
+      title: "Story one",
+      source: "current",
+      delivery: "current",
+      invalidation: [],
+    },
+  ],
+  activeWork: null,
+  runtimePack,
+  agentIntegration: "ready",
+  provider: "unknown",
+  deliveryAvailable: true,
+  deliveryBlocker: null,
+});
+
+const manualSnapshot = (): DesktopEngineSnapshot => ({
+  catalog: PreviewCatalogSchema.parse({
+    schemaVersion: 1,
+    contractVersion: "desktop-preview-catalog-v1",
+    entries: [],
+    unavailable: [{ storyId: "story-one", code: "delivery-missing" }],
+  }),
+  previewCatalog: {
+    state: "ready",
+    entryCount: 0,
+    unavailableCount: 1,
+    failureCode: null,
+  },
+  projects: [
+    {
+      storyId: "story-one" as never,
+      title: "Story one",
+      source: "current",
+      delivery: "missing",
+      invalidation: [
+        {
+          code: "delivery-missing",
+          cause: "Source is current, but no Delivery has been built.",
+        },
+      ],
+    },
+  ],
+  activeWork: null,
+  runtimePack,
+  agentIntegration: "ready",
+  provider: "not-configured",
+  deliveryAvailable: true,
+  deliveryBlocker: null,
 });
 
 const createHarness = (selectedRoot: string | null) => {
   const calls: string[] = [];
   let currentSnapshot = snapshot();
+  const failedEngineRoots = new Set<string>();
+  let listener: ((snapshot: DesktopEngineSnapshot) => void) | undefined;
   const workspace: DesktopWorkspacePort = {
     loadSelectedRoot: async () => selectedRoot,
     chooseInitialRoot: async (defaultRoot) => {
@@ -91,6 +146,22 @@ const createHarness = (selectedRoot: string | null) => {
       calls.push(`initialize:${root}`);
       return root;
     },
+    chooseMigrationTarget: async (root) => {
+      calls.push(`migration-choose:${root}`);
+      return "/tmp/moved-workspace";
+    },
+    migrateRoot: async (source, target) => {
+      calls.push(`migration-copy:${source}:${target}`);
+      return {
+        workspaceRoot: target,
+        complete: async () => {
+          calls.push("migration-complete");
+        },
+        rollback: async () => {
+          calls.push("migration-rollback");
+        },
+      };
+    },
     showInFileManager: async (root) => {
       calls.push(`reveal:${root}`);
     },
@@ -98,20 +169,54 @@ const createHarness = (selectedRoot: string | null) => {
   const controller = new DesktopShellController({
     defaultWorkspaceRoot: "/Users/test/Movies/AXMORF Studio",
     workspace,
+    providerSettings: {
+      get: async () => ({
+        schemaVersion: 1,
+        status: "not-configured",
+        defaultProviderId: null,
+        providers: [],
+      }),
+      save: async () => {
+        calls.push("settings-save");
+        return {
+          schemaVersion: 1,
+          status: "ready",
+          defaultProviderId: "edge",
+          providers: [{ id: "edge", name: "Edge", kind: "edge-tts" }],
+        };
+      },
+    },
     engine: {
       start: async (root) => {
         calls.push(`engine-start:${root}`);
+        if (failedEngineRoots.delete(root)) {
+          throw new Error(`engine failed:${root}`);
+        }
         return currentSnapshot;
       },
       refreshPreviewCatalog: async () => {
         calls.push("engine-refresh");
         return currentSnapshot;
       },
+      buildDelivery: async (storyId) => {
+        calls.push(`engine-delivery:${storyId}`);
+        currentSnapshot = snapshot(storyId);
+        return currentSnapshot;
+      },
+      subscribe: (next) => {
+        listener = next;
+        return () => {
+          listener = undefined;
+        };
+      },
       stop: async () => {
         calls.push("engine-stop");
       },
     },
     media: {
+      selectWorkspace: async (root) => {
+        calls.push(`media-workspace:${root}`);
+      },
       replaceCatalog: async (next) => {
         calls.push(
           `media:${next.entries.map(({ storyId }) => storyId).join(",")}`,
@@ -128,132 +233,196 @@ const createHarness = (selectedRoot: string | null) => {
     setSnapshot: (next: DesktopEngineSnapshot) => {
       currentSnapshot = next;
     },
+    failNextEngineStart: (root: string) => {
+      failedEngineRoots.add(root);
+    },
+    publishSnapshot: async (next: DesktopEngineSnapshot) => {
+      currentSnapshot = next;
+      listener?.(next);
+      await new Promise((resolve) => setImmediate(resolve));
+    },
   };
 };
 
-test("first run waits for explicit Workspace confirmation before Engine start", async () => {
+test("first run binds one Workspace before Engine and media start", async () => {
   const { controller, calls } = createHarness(null);
-  const initial = await controller.bootstrap();
-  assert.equal(initial.status, "workspace-selection-required");
-  assert.equal(initial.workspaceRoot, null);
-  assert.deepEqual(calls, []);
-
+  assert.equal((await controller.bootstrap()).workspaceRoot, null);
   const ready = await controller.chooseInitialWorkspace();
   assert.equal(ready.status, "ready");
-  assert.equal(ready.workspaceRoot, "/tmp/AXMORF Studio");
-  assert.equal(ready.selectedStoryId, "story-one");
-  assert.deepEqual(calls, [
+  assert.equal(ready.phase, "B");
+  assert.equal(ready.adapterMode, "workspace");
+  assert.equal(ready.runtimePackMode, "embedded");
+  assert.equal(ready.runtimePack?.runtimePackId, runtimePack.runtimePackId);
+  assert.deepEqual(calls.slice(0, 5), [
     "choose:/Users/test/Movies/AXMORF Studio",
     "initialize:/tmp/AXMORF Studio",
+    "media-workspace:/tmp/AXMORF Studio",
     "engine-start:/tmp/AXMORF Studio",
     "media:story-one",
   ]);
 });
 
-test("saved Workspace starts Engine and exposes exact Phase A capabilities", async () => {
-  const { controller, calls } = createHarness("/tmp/saved-workspace");
-  const ready = await controller.bootstrap();
-  assert.equal(ready.adapterMode, "repository");
-  assert.equal(ready.repositoryMode, "build-time-checkout");
-  assert.equal(ready.runtimePackMode, "host-node-prototype");
-  assert.equal(ready.productionAvailable, false);
-  assert.equal(ready.deliveryAvailable, false);
-  assert.equal(ready.distributionReady, false);
-  assert.equal(ready.runtimePackAvailable, false);
-  assert.equal(calls.includes("initialize:/tmp/saved-workspace"), false);
-  await controller.bootstrap();
-  assert.equal(
-    calls.filter((call) => call === "engine-start:/tmp/saved-workspace").length,
-    1,
-  );
+test("manual source-current is selectable and Delivery is an explicit action", async () => {
+  const harness = createHarness("/tmp/workspace");
+  harness.setSnapshot(manualSnapshot());
+  const ready = await harness.controller.bootstrap();
+  assert.equal(ready.selectedStoryId, "story-one");
+  assert.equal(ready.catalog.entries.length, 0);
+  assert.equal(ready.projects[0]?.source, "current");
+  assert.equal(ready.projects[0]?.delivery, "missing");
 
-  await controller.showWorkspaceInFinder();
-  assert.equal(calls.at(-1), "reveal:/tmp/saved-workspace");
+  const delivered = await harness.controller.buildDelivery("story-one");
+  assert.equal(delivered.projects[0]?.delivery, "current");
+  assert.equal(delivered.catalog.entries[0]?.storyId, "story-one");
+  assert.equal(harness.calls.includes("engine-delivery:story-one"), true);
 });
 
-test("refresh preserves a playable selection and otherwise selects the first entry", async () => {
-  const { controller, calls, setSnapshot } = createHarness("/tmp/workspace");
-  await controller.bootstrap();
-  await controller.selectPreview("story-one");
-  assert.equal(
-    (await controller.refreshPreviewCatalog()).selectedStoryId,
-    "story-one",
-  );
-
-  setSnapshot(snapshot("story-two"));
-  const refreshed = await controller.refreshPreviewCatalog();
-  assert.equal(refreshed.selectedStoryId, "story-two");
-  assert.deepEqual(calls.slice(-2), ["engine-refresh", "media:story-two"]);
-  await assert.rejects(() => controller.selectPreview("story-one"));
-});
-
-test("Catalog refresh failure clears stale media tickets without killing Engine", async () => {
-  const { controller, calls } = createHarness("/tmp/workspace");
-  await controller.bootstrap();
-  // The media port is exercised through a second harness whose Engine fails.
-  const failingCalls: string[] = [];
-  const failed = new DesktopShellController({
-    defaultWorkspaceRoot: "/tmp/default",
-    workspace: {
-      loadSelectedRoot: async () => "/tmp/workspace",
-      chooseInitialRoot: async () => null,
-      initializeInitialRoot: async (root) => root,
-      showInFileManager: async () => undefined,
-    },
-    engine: {
-      start: async () => snapshot(),
-      refreshPreviewCatalog: async () => {
-        throw new Error("refresh failed");
-      },
-      stop: async () => undefined,
-    },
-    media: {
-      replaceCatalog: async (next) => {
-        failingCalls.push(`media:${next.entries.length}`);
-      },
-      close: async () => undefined,
+test("Delivery action rejects an explicitly unavailable runtime", async () => {
+  const harness = createHarness("/tmp/workspace");
+  harness.setSnapshot({
+    ...manualSnapshot(),
+    deliveryAvailable: false,
+    deliveryBlocker: {
+      code: "desktop-delivery-runtime-unavailable",
+      message: "Embedded Delivery runtime is unavailable.",
     },
   });
-  await failed.bootstrap();
-  const state = await failed.refreshPreviewCatalog();
-  assert.equal(state.status, "ready");
-  assert.equal(state.previewCatalog.state, "failed");
-  assert.equal(state.selectedStoryId, null);
-  assert.deepEqual(failingCalls, ["media:1", "media:0"]);
-  assert.equal(calls.includes("engine-stop"), false);
+  await harness.controller.bootstrap();
+  await assert.rejects(
+    () => harness.controller.buildDelivery("story-one"),
+    /desktop-delivery-build-denied/u,
+  );
+  assert.equal(harness.calls.includes("engine-delivery:story-one"), false);
 });
 
-test("fatal Engine can retry once and shutdown orders Engine before media", async () => {
-  let attempts = 0;
-  const calls: string[] = [];
-  const controller = new DesktopShellController({
-    defaultWorkspaceRoot: "/tmp/default",
-    workspace: {
-      loadSelectedRoot: async () => "/tmp/workspace",
-      chooseInitialRoot: async () => null,
-      initializeInitialRoot: async (root) => root,
-      showInFileManager: async () => undefined,
-    },
-    engine: {
-      start: async () => {
-        attempts += 1;
-        if (attempts === 1) throw new Error("engine-start-failed");
-        return snapshot();
-      },
-      refreshPreviewCatalog: async () => snapshot(),
-      stop: async () => {
-        calls.push("engine-stop");
-      },
-    },
-    media: {
-      replaceCatalog: async () => undefined,
-      close: async () => {
-        calls.push("media-close");
-      },
+test("Engine terminal events automatically refresh media and preserve target", async () => {
+  const harness = createHarness("/tmp/workspace");
+  await harness.controller.bootstrap();
+  await harness.publishSnapshot(snapshot("story-two"));
+  const state = harness.controller.getState();
+  assert.equal(state.selectedStoryId, "story-two");
+  assert.equal(harness.calls.at(-1), "media:story-two");
+});
+
+test("saving write-only Provider Settings restarts and rebinds Engine", async () => {
+  const harness = createHarness("/tmp/workspace");
+  await harness.controller.bootstrap();
+  harness.setSnapshot({ ...manualSnapshot(), provider: "ready" });
+  const state = await harness.controller.saveProviderSettings({
+    schemaVersion: 4,
+  });
+  assert.equal(state.health.provider, "ready");
+  assert.deepEqual(
+    harness.calls.filter((call) =>
+      ["settings-save", "engine-stop", "engine-start:/tmp/workspace"].includes(
+        call,
+      ),
+    ),
+    [
+      "engine-start:/tmp/workspace",
+      "settings-save",
+      "engine-stop",
+      "engine-start:/tmp/workspace",
+    ],
+  );
+});
+
+test("active work blocks Delivery and shutdown orders Engine before media", async () => {
+  const harness = createHarness("/tmp/workspace");
+  await harness.controller.bootstrap();
+  await harness.publishSnapshot({
+    ...manualSnapshot(),
+    activeWork: {
+      storyId: "story-one" as never,
+      kind: "production",
+      attemptId: "11111111-1111-4111-8111-111111111111",
+      phase: "awaiting-task-terminals",
     },
   });
-  assert.equal((await controller.bootstrap()).status, "fatal");
-  assert.equal((await controller.retryEngine()).status, "ready");
-  await controller.shutdown();
-  assert.deepEqual(calls.slice(-2), ["engine-stop", "media-close"]);
+  await assert.rejects(
+    () => harness.controller.buildDelivery("story-one"),
+    /desktop-delivery-build-denied/u,
+  );
+  await harness.controller.shutdown();
+  assert.deepEqual(harness.calls.slice(-2), ["engine-stop", "media-close"]);
+});
+
+test("preparing production blocks Provider Settings restart", async () => {
+  const harness = createHarness("/tmp/workspace");
+  await harness.controller.bootstrap();
+  const publishing = harness.publishSnapshot({
+    ...manualSnapshot(),
+    activeWork: {
+      storyId: "story-one" as never,
+      kind: "production",
+      attemptId: null,
+      phase: "preparing-production",
+    },
+  });
+  assert.equal(
+    harness.controller.getState().activeWork?.phase,
+    "preparing-production",
+  );
+  await assert.rejects(
+    () => harness.controller.saveProviderSettings({ schemaVersion: 4 }),
+    /desktop-provider-settings-active-work/u,
+  );
+  await publishing;
+  assert.equal(harness.calls.includes("settings-save"), false);
+  assert.equal(harness.calls.slice(1).includes("engine-stop"), false);
+});
+
+test("Workspace migration stops Engine, rebinds the target, then completes", async () => {
+  const harness = createHarness("/tmp/workspace");
+  await harness.controller.bootstrap();
+  const migrationStart = harness.calls.length;
+  const migrated = await harness.controller.migrateWorkspace();
+  assert.equal(migrated.status, "ready");
+  assert.equal(migrated.workspaceRoot, "/tmp/moved-workspace");
+  assert.deepEqual(harness.calls.slice(migrationStart), [
+    "migration-choose:/tmp/workspace",
+    "engine-stop",
+    "media:",
+    "migration-copy:/tmp/workspace:/tmp/moved-workspace",
+    "media-workspace:/tmp/moved-workspace",
+    "engine-start:/tmp/moved-workspace",
+    "media:story-one",
+    "migration-complete",
+  ]);
+  assert.equal(harness.calls.at(-1), "migration-complete");
+});
+
+test("Workspace migration rolls back and restarts the old root when target Engine fails", async () => {
+  const harness = createHarness("/tmp/workspace");
+  await harness.controller.bootstrap();
+  harness.failNextEngineStart("/tmp/moved-workspace");
+  const restored = await harness.controller.migrateWorkspace();
+  assert.equal(restored.status, "ready");
+  assert.equal(restored.workspaceRoot, "/tmp/workspace");
+  assert.match(restored.error ?? "", /迁移已回滚/u);
+  assert.equal(harness.calls.includes("migration-rollback"), true);
+  assert.equal(harness.calls.at(-2), "engine-start:/tmp/workspace");
+  assert.equal(harness.calls.at(-1), "media:story-one");
+});
+
+test("active work blocks Workspace migration before opening the directory dialog", async () => {
+  const harness = createHarness("/tmp/workspace");
+  await harness.controller.bootstrap();
+  await harness.publishSnapshot({
+    ...manualSnapshot(),
+    activeWork: {
+      storyId: "story-one" as never,
+      kind: "delivery",
+      attemptId: null,
+      phase: "building-delivery",
+    },
+  });
+  await assert.rejects(
+    () => harness.controller.migrateWorkspace(),
+    /desktop-workspace-migration-denied/u,
+  );
+  assert.equal(
+    harness.calls.some((call) => call.startsWith("migration-choose:")),
+    false,
+  );
 });

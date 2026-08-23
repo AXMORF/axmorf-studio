@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 
 import {
   CANONICAL_NARRATION_PCM,
@@ -19,7 +19,7 @@ export type ProcessRunner = (
   args: readonly string[],
 ) => Promise<ProcessResult>;
 
-export const runHostProcess: ProcessRunner = (command, args) =>
+const runProcess: ProcessRunner = (command, args) =>
   new Promise((resolve, reject) => {
     const child = spawn(command, [...args], { shell: false });
     const stdout: Buffer[] = [];
@@ -40,14 +40,27 @@ export const runHostProcess: ProcessRunner = (command, args) =>
     });
   });
 
+export const runHostProcess: ProcessRunner = runProcess;
+
+export const createExecutableProcessRunner = (
+  executable: string,
+): ProcessRunner => {
+  if (!isAbsolute(executable)) {
+    throw new Error("Media process executable must be absolute.");
+  }
+  return (_command, args) => runProcess(executable, args);
+};
+
 export const normalizeProviderAudio = async ({
   sourceBytes,
   speechRate = 1,
   runProcess = runHostProcess,
+  temporaryRoot = tmpdir(),
 }: {
   readonly sourceBytes: Buffer;
   readonly speechRate?: number;
   readonly runProcess?: ProcessRunner;
+  readonly temporaryRoot?: string;
 }): Promise<Buffer> => {
   if (sourceBytes.length === 0) {
     throw new Error("Cannot normalize empty provider audio.");
@@ -55,8 +68,9 @@ export const normalizeProviderAudio = async ({
   if (!Number.isFinite(speechRate) || speechRate < 0.5 || speechRate > 2) {
     throw new Error("Narration speech rate must be between 0.5 and 2.");
   }
+  await mkdir(temporaryRoot, { recursive: true });
   const temporaryDirectory = await mkdtemp(
-    join(tmpdir(), "rsp-voxcpm-normalize-"),
+    join(temporaryRoot, "rsp-voxcpm-normalize-"),
   );
   const inputPath = join(temporaryDirectory, "provider-audio");
   try {

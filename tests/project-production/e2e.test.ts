@@ -16,6 +16,10 @@ import {
   resolveArtifactPath,
 } from "../../scripts/project-production/adapters/artifact-store";
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
+import {
+  createRepositoryProductionLocations,
+  type ProductionLocations,
+} from "../../scripts/project-production/application/production-locations";
 import { createProducerPlan } from "../../scripts/project-production/domain/plan";
 import type { ArtifactInspection } from "../../scripts/project-production/domain/invalidation";
 import type { ProducerTaskNode } from "../../scripts/project-production/domain/task-graph";
@@ -84,21 +88,21 @@ const tasks = [
 ].sort((left, right) => left.taskRevision.localeCompare(right.taskRevision));
 
 const inspectTasks = async (
-  rootDir: string,
+  locations: ProductionLocations,
   currentTasks: readonly ProducerTaskSpec[],
 ) => {
   const inspections = new Map<string, ArtifactInspection>();
   for (const task of currentTasks) {
     inspections.set(
       task.taskRevision,
-      await inspectArtifactState({ rootDir, task }),
+      await inspectArtifactState({ locations, task }),
     );
   }
   return inspections;
 };
 
 const planFromStore = async (
-  rootDir: string,
+  locations: ProductionLocations,
   currentTasks: readonly ProducerTaskSpec[],
 ) => {
   const nodes: ProducerTaskNode[] = currentTasks.map((task) => ({
@@ -116,21 +120,21 @@ const planFromStore = async (
           : { kind: "meaning" as const, id: task.semanticId },
       ]),
     ),
-    inspections: await inspectTasks(rootDir, currentTasks),
+    inspections: await inspectTasks(locations, currentTasks),
   });
 };
 
 const writeTaskOutput = async ({
-  rootDir,
+  locations,
   task,
   content,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly task: ProducerTaskSpec;
   readonly content: string;
 }) => {
   const workspace = await createTaskWorkspace({
-    rootDir,
+    locations,
     task,
     seedFiles: { "inputs/context.json": "{}\n" },
   });
@@ -142,8 +146,11 @@ const writeTaskOutput = async ({
 test("a failed attempt reuses completed artifacts and dispatches only the remaining dirty Agent task", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-production-e2e-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
 
-  const firstPlan = await planFromStore(rootDir, tasks);
+  const firstPlan = await planFromStore(locations, tasks);
   assert.deepEqual(firstPlan.summary, {
     reusedTaskCount: 0,
     dirtyAgentTaskCount: 3,
@@ -153,24 +160,24 @@ test("a failed attempt reuses completed artifacts and dispatches only the remain
 
   for (const [index, task] of tasks.slice(0, 2).entries()) {
     const workspace = await writeTaskOutput({
-      rootDir,
+      locations,
       task,
       content: `completed-owner-${index}`,
     });
     assert.equal(
-      (await commitTaskArtifact({ rootDir, task, workspace })).reused,
+      (await commitTaskArtifact({ locations, task, workspace })).reused,
       false,
     );
   }
   const failedTask = tasks[2]!;
   const failedWorkspace = await createTaskWorkspace({
-    rootDir,
+    locations,
     task: failedTask,
     seedFiles: { "inputs/context.json": "{}\n" },
   });
   await assert.rejects(
     commitTaskArtifact({
-      rootDir,
+      locations,
       task: failedTask,
       workspace: failedWorkspace,
     }),
@@ -182,7 +189,7 @@ test("a failed attempt reuses completed artifacts and dispatches only the remain
   );
 
   const completedArtifactRoot = resolveArtifactPath({
-    rootDir,
+    locations,
     storyId: tasks[0]!.storyId,
     taskKind: tasks[0]!.taskKind,
     taskRevision: tasks[0]!.taskRevision,
@@ -190,7 +197,7 @@ test("a failed attempt reuses completed artifacts and dispatches only the remain
   const before = await stat(
     join(completedArtifactRoot, "artifact-attestation.json"),
   );
-  const retryPlan = await planFromStore(rootDir, tasks);
+  const retryPlan = await planFromStore(locations, tasks);
   const dirtyAgentTasks = retryPlan.tasks.filter(
     ({ action, taskKind }) =>
       action === "dispatch-agent" &&
@@ -215,11 +222,11 @@ test("a failed attempt reuses completed artifacts and dispatches only the remain
     "completed-on-retry",
   );
   await commitTaskArtifact({
-    rootDir,
+    locations,
     task: failedTask,
     workspace: failedWorkspace,
   });
-  const convergedPlan = await planFromStore(rootDir, tasks);
+  const convergedPlan = await planFromStore(locations, tasks);
   assert.equal(convergedPlan.summary.reusedTaskCount, 3);
   assert.equal(convergedPlan.summary.dirtyAgentTaskCount, 0);
   assert.ok(convergedPlan.tasks.every(({ action }) => action === "reuse"));

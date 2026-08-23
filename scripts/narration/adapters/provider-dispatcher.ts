@@ -8,6 +8,7 @@ import { createEdgeTtsChunkGenerator } from "./edge-tts-client";
 
 export const createChunkAudioGenerator = ({
   resolved,
+  temporaryRoot,
   adapters = {
     voxcpm: createVoxcpmChunkGenerator,
     speechSdk: createSpeechSdkChunkGenerator,
@@ -15,6 +16,7 @@ export const createChunkAudioGenerator = ({
   },
 }: {
   readonly resolved: ResolvedProviderExecution;
+  readonly temporaryRoot?: string;
   readonly adapters?: Readonly<{
     voxcpm: typeof createVoxcpmChunkGenerator;
     speechSdk: typeof createSpeechSdkChunkGenerator;
@@ -25,4 +27,7 @@ export const createChunkAudioGenerator = ({
     ? adapters.voxcpm({ resolved })
     : resolved.kind === "speech-sdk"
       ? adapters.speechSdk({ resolved })
-      : (adapters.edgeTts ?? createEdgeTtsChunkGenerator)({ resolved });
+      : (adapters.edgeTts ?? createEdgeTtsChunkGenerator)({
+          resolved,
+          ...(temporaryRoot === undefined ? {} : { temporaryRoot }),
+        });

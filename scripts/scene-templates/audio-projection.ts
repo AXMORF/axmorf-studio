@@ -9,7 +9,7 @@ import {
   SceneTemplateAudioProjectionSchema,
   type SceneTemplateAudioProjection,
 } from "../../src/remotion/capabilities/scene-templates/template-audio";
-import { loadLocalReferenceAssetDescriptors } from "../catalog/project-files";
+import { loadLocalReferenceAssetDescriptors } from "../catalog/repository-project-files";
 import { writeTextFileAtomic } from "../shared/atomic-file";
 
 const readOptionalRegularFile = async (path: string, label: string) => {

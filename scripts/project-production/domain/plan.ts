@@ -41,9 +41,6 @@ export const createProducerPlan = ({
       namespace: "producer-artifact-set",
       version: 1,
       value: nodes
-        // A delivery attests the package built from this set; including the
-        // delivery artifact itself creates a DeliveryBuildId self-cycle.
-        .filter(({ task }) => task.taskKind !== "delivery-build")
         .flatMap(({ task }) => {
           const inspection = inspections.get(task.taskRevision);
           return inspection?.artifactState === "valid"

@@ -89,7 +89,7 @@ const validatePlanInput = (plan: PlanInput, context: z.RefinementCtx) => {
     }
     if (
       task.action === "converge" &&
-      !["composition-convergence", "delivery-build"].includes(task.taskKind)
+      task.taskKind !== "composition-convergence"
     ) {
       context.addIssue({
         code: "custom",

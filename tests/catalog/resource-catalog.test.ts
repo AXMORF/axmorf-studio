@@ -21,6 +21,7 @@ import {
   queryResourceCatalog,
   renderResourceCatalogJson,
 } from "../../scripts/catalog/domain";
+import { validateCapabilityDescriptorExports } from "../../scripts/catalog/project-files";
 import {
   LOCAL_REFERENCE_ASSET_LICENSE_EVIDENCE_PATH,
   LOCAL_REFERENCE_ASSET_MANIFEST_PATH,
@@ -29,12 +30,11 @@ import {
   loadLocalReferenceAssetDescriptors,
   loadProjectResourceDescriptors,
   validateAssetDescriptorFiles,
-  validateCapabilityDescriptorExports,
-} from "../../scripts/catalog/project-files";
+} from "../../scripts/catalog/repository-project-files";
 import {
   generateProjectResourceCatalog,
   generateResourceCatalog,
-} from "../../scripts/catalog/generate";
+} from "../../scripts/catalog/repository-generate";
 
 const repositoryRoot = join(import.meta.dirname, "../..");
 

@@ -1,5 +1,7 @@
+import { ProducerConfigInputSchema } from "../../src/contracts";
 import {
   DesktopAppStateSchema,
+  DesktopProviderSettingsSchema,
   DESKTOP_SHELL_IPC_CHANNELS,
 } from "../contracts/shell";
 import { isAllowedNavigation } from "./navigation-policy";
@@ -98,6 +100,11 @@ export const registerDesktopShellIpc = ({
       },
     );
     registerStateMethod(
+      DESKTOP_SHELL_IPC_CHANNELS.migrateWorkspace,
+      0,
+      controller.migrateWorkspace,
+    );
+    registerStateMethod(
       DESKTOP_SHELL_IPC_CHANNELS.refreshPreviewCatalog,
       0,
       controller.refreshPreviewCatalog,
@@ -111,6 +118,36 @@ export const registerDesktopShellIpc = ({
         }
         return controller.selectPreview(args[0]);
       },
+    );
+    registerStateMethod(
+      DESKTOP_SHELL_IPC_CHANNELS.buildDelivery,
+      1,
+      (...args) => {
+        if (typeof args[0] !== "string") {
+          throw new Error("desktop-ipc-arguments-invalid");
+        }
+        return controller.buildDelivery(args[0]);
+      },
+    );
+    register(
+      DESKTOP_SHELL_IPC_CHANNELS.getProviderSettings,
+      async (event, ...args) => {
+        validateSender(event, trustedSenderRules);
+        if (args.length !== 0) {
+          throw new Error("desktop-ipc-arguments-invalid");
+        }
+        return DesktopProviderSettingsSchema.parse(
+          await controller.getProviderSettings(),
+        );
+      },
+    );
+    registerStateMethod(
+      DESKTOP_SHELL_IPC_CHANNELS.saveProviderSettings,
+      1,
+      (...args) =>
+        controller.saveProviderSettings(
+          ProducerConfigInputSchema.parse(args[0]),
+        ),
     );
     registerStateMethod(
       DESKTOP_SHELL_IPC_CHANNELS.retryEngine,

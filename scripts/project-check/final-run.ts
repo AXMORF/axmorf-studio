@@ -47,19 +47,25 @@ import {
   buildResourceCatalog,
   deriveCatalogWithoutProjectOwnedDescriptors,
 } from "../catalog/domain";
-import { generateResourceCatalog } from "../catalog/generate";
-import { readGeneratedResourceCatalog } from "../catalog/project-files";
+import { generateResourceCatalogForStorage } from "../catalog/generate";
+import {
+  loadWorkspaceCatalogAuthorityDescriptors,
+} from "../catalog/project-files";
+import { loadCatalogAuthorityDescriptors } from "../catalog/repository-project-files";
 import { checksumExternalBytes } from "../external-references/project-files";
 import { loadNarrationProjectFiles } from "../narration/project-files";
+import type { ProductionLocations } from "../project-production/application/production-locations";
 import { collectRendererSourceGraph } from "../renderer-registry/domain";
-import { generateRendererRegistryFromProjectFiles } from "../renderer-registry/generate";
+import { generateRendererRegistry } from "../renderer-registry/generate";
 import { buildScenePackage } from "../scene-package/domain";
 import {
   checksumFile,
   getProjectCheckPaths,
+  getProjectCheckStorage,
   loadProjectCheckJson,
   loadProjectCheckSemanticTiming,
   loadProjectCheckText,
+  resolveProjectCheckLogicalPath,
 } from "./project-files";
 
 type SceneCheckId = Exclude<FinalMechanicalCheckId, "narrative">;
@@ -209,17 +215,19 @@ export const deduplicateCatalogCandidates = <
   );
 
 const scenePath = (
-  rootDir: string,
+  locations: ProductionLocations,
   storyId: string,
   meaningId: string,
   path: string,
-) => join(rootDir, "src/projects", storyId, "scenes", meaningId, path);
+) => join(locations.projectSourceRoot, storyId, "scenes", meaningId, path);
 
 const validateFidelityEvidenceArtifacts = async ({
-  rootDir,
+  locations,
+  storyId,
   evidence,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
+  readonly storyId: string;
   readonly evidence: ReturnType<typeof ReferenceFidelityEvidenceSchema.parse>;
 }) => {
   for (const item of evidence.items) {
@@ -233,8 +241,13 @@ const validateFidelityEvidenceArtifacts = async ({
     ];
     for (const artifact of artifacts) {
       if (
-        (await checksumFile(join(rootDir, artifact.artifactPath))) !==
-        artifact.checksum
+        (await checksumFile(
+          resolveProjectCheckLogicalPath({
+            locations,
+            storyId,
+            logicalPath: artifact.artifactPath,
+          }),
+        )) !== artifact.checksum
       ) {
         throw new Error("Reference fidelity evidence checksum is stale.");
       }
@@ -243,22 +256,33 @@ const validateFidelityEvidenceArtifacts = async ({
 };
 
 export const loadCurrentFinalSceneBranch = async ({
-  rootDir,
+  locations,
   projectId,
   includeMediaEvidence = true,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
   readonly includeMediaEvidence?: boolean;
 }): Promise<FinalSceneBranchResult> => {
   const result = failedSceneBranch();
-  const paths = getProjectCheckPaths({ rootDir, projectId });
-  await generateResourceCatalog({ rootDir, mode: "check" });
+  const paths = getProjectCheckPaths({ locations, projectId });
+  const storage = getProjectCheckStorage(locations);
+  await generateResourceCatalogForStorage({
+    storage,
+    mode: "check",
+    loadDescriptors: () =>
+      locations.layoutKind === "workspace"
+        ? loadWorkspaceCatalogAuthorityDescriptors({ locations })
+        : loadCatalogAuthorityDescriptors(locations.runtimeResources),
+  });
   const baseCatalog = ResourceCatalogSchema.parse(
-    await readGeneratedResourceCatalog(rootDir),
+    await loadProjectCheckJson(
+      paths.catalog,
+      "resource-catalog.generated.json",
+    ),
   );
   const [{ projectSource }, semanticTiming, coverage] = await Promise.all([
-    loadNarrationProjectFiles({ rootDir, projectId: paths.storyId }),
+    loadNarrationProjectFiles({ locations, projectId: paths.storyId }),
     loadProjectCheckSemanticTiming(paths.semanticTiming),
     loadProjectCheckJson(
       paths.sceneCoverage,
@@ -287,7 +311,7 @@ export const loadCurrentFinalSceneBranch = async ({
         SceneTaskInputSchema.parse(
           await loadProjectCheckJson(
             scenePath(
-              rootDir,
+              locations,
               paths.storyId,
               meaningId,
               "task-input.generated.json",
@@ -299,7 +323,7 @@ export const loadCurrentFinalSceneBranch = async ({
   );
   const rawCatalogCandidates = [baseCatalog];
   const projectCatalogPath = projectArtifactPath(
-    rootDir,
+    locations,
     paths.storyId,
     "generated/resource-catalog.generated.json",
   );
@@ -399,7 +423,7 @@ export const loadCurrentFinalSceneBranch = async ({
     ] = await Promise.all([
       loadProjectCheckJson(
         scenePath(
-          rootDir,
+          locations,
           paths.storyId,
           meaningId,
           "task-input.generated.json",
@@ -407,24 +431,24 @@ export const loadCurrentFinalSceneBranch = async ({
         "task-input.generated.json",
       ),
       loadProjectCheckJson(
-        scenePath(rootDir, paths.storyId, meaningId, "visual-plan.json"),
+        scenePath(locations, paths.storyId, meaningId, "visual-plan.json"),
         "visual-plan.json",
       ),
       loadProjectCheckJson(
-        scenePath(rootDir, paths.storyId, meaningId, "shot-plan.json"),
+        scenePath(locations, paths.storyId, meaningId, "shot-plan.json"),
         "shot-plan.json",
       ),
       loadProjectCheckJson(
-        scenePath(rootDir, paths.storyId, meaningId, "sync-anchors.json"),
+        scenePath(locations, paths.storyId, meaningId, "sync-anchors.json"),
         "sync-anchors.json",
       ),
       loadProjectCheckJson(
-        scenePath(rootDir, paths.storyId, meaningId, "sound-plan.json"),
+        scenePath(locations, paths.storyId, meaningId, "sound-plan.json"),
         "sound-plan.json",
       ),
       loadProjectCheckJson(
         scenePath(
-          rootDir,
+          locations,
           paths.storyId,
           meaningId,
           "shot-recipe-selection.json",
@@ -433,7 +457,7 @@ export const loadCurrentFinalSceneBranch = async ({
       ),
       loadProjectCheckJson(
         scenePath(
-          rootDir,
+          locations,
           paths.storyId,
           meaningId,
           "generated/reference-fidelity.generated.json",
@@ -441,12 +465,17 @@ export const loadCurrentFinalSceneBranch = async ({
         "reference-fidelity.generated.json",
       ),
       loadProjectCheckJson(
-        scenePath(rootDir, paths.storyId, meaningId, "selected-resources.json"),
+        scenePath(
+          locations,
+          paths.storyId,
+          meaningId,
+          "selected-resources.json",
+        ),
         "selected-resources.json",
       ),
       loadProjectCheckJson(
         scenePath(
-          rootDir,
+          locations,
           paths.storyId,
           meaningId,
           "generated/scene-package.generated.json",
@@ -465,7 +494,7 @@ export const loadCurrentFinalSceneBranch = async ({
       SelectedResourcesFileSchema.parse(rawSelectedResources).selectedResources;
     const persistedPackage = ScenePackageSchema.parse(rawPersistedPackage);
     const graph = await collectRendererSourceGraph({
-      rootDir,
+      locations,
       projectId: paths.storyId,
       rendererPath: `src/projects/${paths.storyId}/scenes/${meaningId}/Renderer.tsx`,
     });
@@ -539,7 +568,7 @@ export const loadCurrentFinalSceneBranch = async ({
       const evidence = ReferenceFidelityEvidenceSchema.parse(
         await loadProjectCheckJson(
           scenePath(
-            rootDir,
+            locations,
             paths.storyId,
             meaningId,
             "generated/reference-fidelity-evidence.generated.json",
@@ -551,13 +580,22 @@ export const loadCurrentFinalSceneBranch = async ({
         throw new Error("Reference fidelity evidence identity is stale.");
       }
       if (includeMediaEvidence) {
-        await validateFidelityEvidenceArtifacts({ rootDir, evidence });
+        await validateFidelityEvidenceArtifacts({
+          locations,
+          storyId: paths.storyId,
+          evidence,
+        });
       }
       for (const item of fidelity.items) {
         for (const source of item.localizedSourceChecksums) {
           if (
-            (await checksumFile(join(rootDir, source.sourcePath))) !==
-            source.checksum
+            (await checksumFile(
+              resolveProjectCheckLogicalPath({
+                locations,
+                storyId: paths.storyId,
+                logicalPath: source.sourcePath,
+              }),
+            )) !== source.checksum
           ) {
             throw new Error("Localized reference source checksum is stale.");
           }
@@ -573,7 +611,13 @@ export const loadCurrentFinalSceneBranch = async ({
           },
         ]) {
           if (
-            (await checksumFile(join(rootDir, source.path))) !== source.checksum
+            (await checksumFile(
+              resolveProjectCheckLogicalPath({
+                locations,
+                storyId: paths.storyId,
+                logicalPath: source.path,
+              }),
+            )) !== source.checksum
           ) {
             throw new Error("Reference Renderer binding checksum is stale.");
           }
@@ -612,8 +656,8 @@ export const loadCurrentFinalSceneBranch = async ({
         : "not-applicable",
       "scene-packages": "pass",
     };
-    const registry = await generateRendererRegistryFromProjectFiles({
-      rootDir,
+    const registry = await generateRendererRegistry({
+      locations,
       projectId: paths.storyId,
       mode: "check",
     });
@@ -644,7 +688,7 @@ export const loadCurrentFinalSceneBranch = async ({
     });
     const projectSound = ProjectSoundPlanSchema.parse(
       await loadProjectCheckJson(
-        projectArtifactPath(rootDir, paths.storyId, "sound.json"),
+        projectArtifactPath(locations, paths.storyId, "sound.json"),
         "sound.json",
       ),
     );
@@ -747,10 +791,10 @@ const failedAssemblyBranch = (): FinalAssemblyBranchResult => {
 };
 
 const projectArtifactPath = (
-  rootDir: string,
+  locations: ProductionLocations,
   projectId: string,
   path: string,
-) => join(rootDir, "src", "projects", projectId, path);
+) => join(locations.projectSourceRoot, projectId, path);
 
 const pathExists = async (path: string) => {
   try {
@@ -762,11 +806,11 @@ const pathExists = async (path: string) => {
 };
 
 export const loadCurrentFinalAssemblyBranch = async ({
-  rootDir,
+  locations,
   projectId,
   sceneBranch,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
   readonly sceneBranch: FinalSceneBranchResult;
   readonly includeMediaEvidence?: boolean;
@@ -784,7 +828,7 @@ export const loadCurrentFinalAssemblyBranch = async ({
     assemblyCatalog = ResourceCatalogSchema.parse(
       await loadProjectCheckJson(
         projectArtifactPath(
-          rootDir,
+          locations,
           projectId,
           "generated/resource-catalog.generated.json",
         ),
@@ -798,7 +842,7 @@ export const loadCurrentFinalAssemblyBranch = async ({
   try {
     globalVisual = GlobalVisualPlanSchema.parse(
       await loadProjectCheckJson(
-        projectArtifactPath(rootDir, projectId, "global-visual-plan.json"),
+        projectArtifactPath(locations, projectId, "global-visual-plan.json"),
         "global-visual-plan.json",
       ),
     );
@@ -820,7 +864,7 @@ export const loadCurrentFinalAssemblyBranch = async ({
     assembly = FinalAssemblyPlanSchema.parse(
       await loadProjectCheckJson(
         projectArtifactPath(
-          rootDir,
+          locations,
           projectId,
           "generated/final-assembly.generated.json",
         ),
@@ -844,7 +888,7 @@ export const loadCurrentFinalAssemblyBranch = async ({
         sceneBranch.soundDesignProjectionFingerprint ||
       assembly.compositionSourceChecksum !==
         (await checksumFile(
-          projectArtifactPath(rootDir, projectId, "Composition.tsx"),
+          projectArtifactPath(locations, projectId, "Composition.tsx"),
         ))
     ) {
       throw new Error("FinalAssembly identity does not match current inputs.");
@@ -865,20 +909,20 @@ export const loadCurrentFinalAssemblyBranch = async ({
 };
 
 export const checkFinalSourceHealth = async ({
-  rootDir,
+  locations,
   projectId,
   loadSceneBranch = loadCurrentFinalSceneBranch,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
   readonly loadSceneBranch?: (input: {
-    readonly rootDir: string;
+    readonly locations: ProductionLocations;
     readonly projectId: string;
     readonly includeMediaEvidence?: boolean;
   }) => Promise<FinalSceneBranchResult>;
 }) => {
   const sceneBranch = await loadSceneBranch({
-    rootDir,
+    locations,
     projectId,
     includeMediaEvidence: false,
   });
@@ -890,13 +934,13 @@ export const checkFinalSourceHealth = async ({
   }
   if (
     !(await pathExists(
-      projectArtifactPath(rootDir, projectId, "final-assembly-plan.json"),
+      projectArtifactPath(locations, projectId, "final-assembly-plan.json"),
     ))
   ) {
     return { storyId: projectId, aggregateStatus: "pass" as const };
   }
   const assemblyBranch = await loadCurrentFinalAssemblyBranch({
-    rootDir,
+    locations,
     projectId,
     sceneBranch,
     includeMediaEvidence: false,
@@ -912,21 +956,21 @@ export const checkFinalSourceHealth = async ({
 };
 
 export const runFinalMechanicalCheck = async ({
-  rootDir,
+  locations,
   projectId,
   runNarrativeBaselineEvidenceProcess,
   loadSceneBranch = loadCurrentFinalSceneBranch,
   loadAssemblyBranch = loadCurrentFinalAssemblyBranch,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly projectId: string;
   readonly runNarrativeBaselineEvidenceProcess?: ProcessRunner;
   readonly loadSceneBranch?: (input: {
-    readonly rootDir: string;
+    readonly locations: ProductionLocations;
     readonly projectId: string;
   }) => Promise<FinalSceneBranchResult>;
   readonly loadAssemblyBranch?: (input: {
-    readonly rootDir: string;
+    readonly locations: ProductionLocations;
     readonly projectId: string;
     readonly sceneBranch: FinalSceneBranchResult;
   }) => Promise<FinalAssemblyBranchResult>;
@@ -936,7 +980,7 @@ export const runFinalMechanicalCheck = async ({
   let narrativeError: unknown;
   try {
     const narrative = await runNarrativeAutoCheck({
-      rootDir,
+      locations,
       projectId,
       runNarrativeBaselineEvidenceProcess,
     });
@@ -944,7 +988,7 @@ export const runFinalMechanicalCheck = async ({
       throw new Error("Narrative project check is stale.");
     }
     await checkPersistedNarrativeAutoCheck({
-      rootDir,
+      locations,
       expectedReport: narrative,
     });
     narrativeReportFingerprint = narrative.reportFingerprint;
@@ -955,7 +999,7 @@ export const runFinalMechanicalCheck = async ({
   let sceneBranch = failedSceneBranch();
   let sceneError: unknown;
   try {
-    sceneBranch = { ...(await loadSceneBranch({ rootDir, projectId })) };
+    sceneBranch = { ...(await loadSceneBranch({ locations, projectId })) };
   } catch (error) {
     sceneError = error;
   }
@@ -982,7 +1026,7 @@ export const runFinalMechanicalCheck = async ({
   let assemblyDeclared = false;
   try {
     await access(
-      projectArtifactPath(rootDir, projectId, "final-assembly-plan.json"),
+      projectArtifactPath(locations, projectId, "final-assembly-plan.json"),
     );
     assemblyDeclared = true;
   } catch (error) {
@@ -1019,7 +1063,7 @@ export const runFinalMechanicalCheck = async ({
   let assemblyBranch = failedAssemblyBranch();
   try {
     assemblyBranch = await loadAssemblyBranch({
-      rootDir,
+      locations,
       projectId,
       sceneBranch,
     });

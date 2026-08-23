@@ -4,6 +4,7 @@ import {
   AnyFinalMechanicalCheckReportSchema,
   type AnyFinalMechanicalCheckReport,
 } from "../../src/contracts";
+import type { ProductionLocations } from "../project-production/application/production-locations";
 import { getProjectCheckPaths } from "./project-files";
 import { writeNarrativeAutoCheckAtomic } from "./report-files";
 
@@ -25,10 +26,10 @@ export const serializeFinalMechanicalCheckReport = (rawReport: unknown) => {
 };
 
 export const writeFinalMechanicalCheckIfPassed = async ({
-  rootDir,
+  locations,
   report: rawReport,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly report: unknown;
 }): Promise<{ readonly destination: string; readonly written: boolean }> => {
   const report = AnyFinalMechanicalCheckReportSchema.parse(rawReport);
@@ -36,7 +37,7 @@ export const writeFinalMechanicalCheckIfPassed = async ({
     throw new Error("Only a passing final mechanical check may be persisted.");
   }
   const destination = getProjectCheckPaths({
-    rootDir,
+    locations,
     projectId: report.storyId,
   }).finalCheck;
   const bytes = serializeFinalMechanicalCheckReport(report);
@@ -52,10 +53,10 @@ export const writeFinalMechanicalCheckIfPassed = async ({
 };
 
 export const checkPersistedFinalMechanicalCheck = async ({
-  rootDir,
+  locations,
   expectedReport: rawExpectedReport,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly expectedReport: unknown;
 }): Promise<AnyFinalMechanicalCheckReport> => {
   const expectedReport =
@@ -64,7 +65,7 @@ export const checkPersistedFinalMechanicalCheck = async ({
     throw new Error("Current final mechanical check did not pass.");
   }
   const destination = getProjectCheckPaths({
-    rootDir,
+    locations,
     projectId: expectedReport.storyId,
   }).finalCheck;
   let persistedBytes: string;

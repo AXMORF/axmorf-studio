@@ -68,10 +68,11 @@ deliveries/<storyId>/cover-3x4.png
 deliveries/<storyId>/publish.json
 ```
 
-DeliveryBuildId 绑定 revisionId、artifact set、Composition metadata 与 build policy，不绑定 attempt。
+DeliveryBuildId 绑定 revisionId、sourceCurrentId、rendererRuntimeFingerprint、publishingFingerprint、Composition
+metadata 与 build policy，不绑定 attempt；artifact exact bytes 已由 sourceCurrentId 闭包绑定。
 current delivery 只有在 exact 文件集合、checksums、H.264/AAC/channels、尺寸、fps/frame count、PNG 与 EOF
-decode 全部通过后才替换。相同完整 identity 是只读 no-op。当前 repository 仍把 converge 与同步 Delivery
-绑定；切换到上述目标必须是显式 contract clean-break。
+decode 全部通过后才替换。相同完整 identity 是只读 no-op。实现必须保持 `source-current` 与 optional
+DeliveryBuild 的显式 contract clean-break，不得重新把 converge 与同步 Delivery 绑定为唯一终点。
 
 ## 5. 用户体验目标
 

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  mkdir,
   mkdtemp,
   readFile,
   readdir,
@@ -13,19 +14,42 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  buildProducerConfig,
   buildDeliveryPublishing,
   type ProductionRevisionId,
   type Sha256Digest,
+  type SourceCurrentId,
 } from "../../src/contracts";
 import {
   buildDelivery,
   type DeliveryBuildDependencies,
 } from "../../scripts/project-production/application/build-delivery";
+import {
+  createRepositoryProductionLocations,
+  createRuntimeExecutionResources,
+} from "../../scripts/project-production/application/production-locations";
+import { validProjectCreateProducerConfig } from "../fixtures/project-create";
 
 const revision = (character: string) =>
   `revision-${character.repeat(64)}` as ProductionRevisionId;
 const sha = (character: string) =>
   `sha256:${character.repeat(64)}` as Sha256Digest;
+const sourceCurrent = (character: string) =>
+  `source-current-${character.repeat(64)}` as SourceCurrentId;
+const config = buildProducerConfig(validProjectCreateProducerConfig);
+
+const locations = (rootDir: string) =>
+  createRepositoryProductionLocations({ repositoryRoot: rootDir });
+const initializeDeliveryRoot = (rootDir: string) =>
+  mkdir(locations(rootDir).deliveryRoot, { recursive: true });
+const runtime = (rootDir: string, rendererRuntimeFingerprint: Sha256Digest) =>
+  createRuntimeExecutionResources({
+    rendererRuntimeFingerprint,
+    browserExecutable: join(rootDir, "bin/browser"),
+    binariesDirectory: join(rootDir, "bin"),
+    ffmpegExecutable: join(rootDir, "bin/ffmpeg"),
+    ffprobeExecutable: join(rootDir, "bin/ffprobe"),
+  });
 
 const media = {
   video: {
@@ -166,16 +190,21 @@ const createDependencies = ({
 test("synchronous delivery resumes verified staging media and publishes exactly four files", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-production-delivery-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
+  await initializeDeliveryRoot(rootDir);
   const fixture = createDependencies({ failTallOnce: true });
 
   await assert.rejects(
-    buildDelivery({
-      rootDir,
-      projectId: "story-example",
-      revisionId: revision("1"),
-      artifactSetFingerprint: sha("2"),
-      dependencies: fixture.dependencies,
-    }),
+    buildDelivery(
+      {
+        locations: locations(rootDir),
+        projectId: "story-example",
+        config,
+        revisionId: revision("1"),
+        sourceCurrentId: sourceCurrent("2"),
+        runtime: runtime(rootDir, sha("3")),
+      },
+      fixture.dependencies,
+    ),
     /synthetic tall cover failure/u,
   );
   await assert.rejects(
@@ -183,13 +212,17 @@ test("synchronous delivery resumes verified staging media and publishes exactly 
     /ENOENT/u,
   );
 
-  const completed = await buildDelivery({
-    rootDir,
-    projectId: "story-example",
-    revisionId: revision("1"),
-    artifactSetFingerprint: sha("2"),
-    dependencies: fixture.dependencies,
-  });
+  const completed = await buildDelivery(
+    {
+      locations: locations(rootDir),
+      projectId: "story-example",
+      config,
+      revisionId: revision("1"),
+      sourceCurrentId: sourceCurrent("2"),
+      runtime: runtime(rootDir, sha("3")),
+    },
+    fixture.dependencies,
+  );
   assert.equal(completed.status, "project-production-complete");
   assert.deepEqual(completed.reused, {
     video: true,
@@ -211,17 +244,28 @@ test("synchronous delivery resumes verified staging media and publishes exactly 
       join(rootDir, "deliveries/story-example/publish.json"),
       "utf8",
     ),
-  ) as { revisionId: string; artifactSetFingerprint: string };
+  ) as {
+    revisionId: string;
+    sourceCurrentId: string;
+    rendererRuntimeFingerprint: string;
+    publishingFingerprint: string;
+  };
   assert.equal(publish.revisionId, revision("1"));
-  assert.equal(publish.artifactSetFingerprint, sha("2"));
+  assert.equal(publish.sourceCurrentId, sourceCurrent("2"));
+  assert.equal(publish.rendererRuntimeFingerprint, sha("3"));
+  assert.match(publish.publishingFingerprint, /^sha256:[0-9a-f]{64}$/u);
 
-  const current = await buildDelivery({
-    rootDir,
-    projectId: "story-example",
-    revisionId: revision("1"),
-    artifactSetFingerprint: sha("2"),
-    dependencies: fixture.dependencies,
-  });
+  const current = await buildDelivery(
+    {
+      locations: locations(rootDir),
+      projectId: "story-example",
+      config,
+      revisionId: revision("1"),
+      sourceCurrentId: sourceCurrent("2"),
+      runtime: runtime(rootDir, sha("3")),
+    },
+    fixture.dependencies,
+  );
   assert.equal(current.status, "project-production-current");
   assert.equal(current.noOp, true);
   assert.deepEqual(fixture.calls, {
@@ -232,17 +276,117 @@ test("synchronous delivery resumes verified staging media and publishes exactly 
   });
 });
 
+test("source, renderer runtime, and publishing drift invalidate the current DeliveryBuild", async (context) => {
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-production-identity-drift-"),
+  );
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  await initializeDeliveryRoot(rootDir);
+  const revisionId = revision("0");
+  const initial = await buildDelivery(
+    {
+      locations: locations(rootDir),
+      projectId: "story-example",
+      config,
+      revisionId,
+      sourceCurrentId: sourceCurrent("1"),
+      runtime: runtime(rootDir, sha("2")),
+    },
+    createDependencies().dependencies,
+  );
+
+  const sourceDrift = await buildDelivery(
+    {
+      locations: locations(rootDir),
+      projectId: "story-example",
+      config,
+      revisionId,
+      sourceCurrentId: sourceCurrent("3"),
+      runtime: runtime(rootDir, sha("2")),
+    },
+    createDependencies().dependencies,
+  );
+  assert.equal(sourceDrift.status, "project-production-complete");
+  assert.notEqual(sourceDrift.deliveryBuildId, initial.deliveryBuildId);
+
+  const runtimeDrift = await buildDelivery(
+    {
+      locations: locations(rootDir),
+      projectId: "story-example",
+      config,
+      revisionId,
+      sourceCurrentId: sourceCurrent("3"),
+      runtime: runtime(rootDir, sha("4")),
+    },
+    createDependencies().dependencies,
+  );
+  assert.equal(runtimeDrift.status, "project-production-complete");
+  assert.notEqual(runtimeDrift.deliveryBuildId, sourceDrift.deliveryBuildId);
+
+  const publishing = buildDeliveryPublishing({
+    storyId: "story-example",
+    title: "Changed publishing input",
+    description: "A changed payload must make the old DeliveryBuild stale.",
+    topics: ["one", "two", "three", "four", "five", "six"],
+    collection: "Delivery proof",
+    outputFileName: "video.mp4",
+    coverFileNames: {
+      cover4x3: "cover-4x3.png",
+      cover3x4: "cover-3x4.png",
+    },
+    fps: 30,
+    frameCount: 120,
+    plannedDurationSeconds: 4,
+    chapters: [
+      {
+        meaningId: "opening",
+        name: "开场",
+        startFrame: 0,
+        timecode: "00:00:00",
+      },
+    ],
+  });
+  const publishingDependencies = createDependencies().dependencies;
+  const publishingDrift = await buildDelivery(
+    {
+      locations: locations(rootDir),
+      projectId: "story-example",
+      config,
+      revisionId,
+      sourceCurrentId: sourceCurrent("3"),
+      runtime: runtime(rootDir, sha("4")),
+    },
+    {
+      ...publishingDependencies,
+      prepare: async () =>
+        ({ ...prepared, publishing }) as Awaited<
+          ReturnType<NonNullable<DeliveryBuildDependencies["prepare"]>>
+        >,
+    },
+  );
+  assert.equal(publishingDrift.status, "project-production-complete");
+  assert.notEqual(
+    publishingDrift.deliveryBuildId,
+    runtimeDrift.deliveryBuildId,
+  );
+});
+
 test("a failed new DeliveryBuild preserves the complete current package", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-production-preserve-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
+  await initializeDeliveryRoot(rootDir);
   const first = createDependencies();
-  await buildDelivery({
-    rootDir,
-    projectId: "story-example",
-    revisionId: revision("3"),
-    artifactSetFingerprint: sha("4"),
-    dependencies: first.dependencies,
-  });
+  await buildDelivery(
+    {
+      locations: locations(rootDir),
+      projectId: "story-example",
+      config,
+      revisionId: revision("3"),
+      sourceCurrentId: sourceCurrent("4"),
+      runtime: runtime(rootDir, sha("5")),
+    },
+    first.dependencies,
+  );
   const deliveryRoot = join(rootDir, "deliveries/story-example");
   const before = await Promise.all(
     ["video.mp4", "cover-4x3.png", "cover-3x4.png", "publish.json"].map(
@@ -252,13 +396,17 @@ test("a failed new DeliveryBuild preserves the complete current package", async 
 
   const changed = createDependencies({ failVideo: true });
   await assert.rejects(
-    buildDelivery({
-      rootDir,
-      projectId: "story-example",
-      revisionId: revision("5"),
-      artifactSetFingerprint: sha("6"),
-      dependencies: changed.dependencies,
-    }),
+    buildDelivery(
+      {
+        locations: locations(rootDir),
+        projectId: "story-example",
+        config,
+        revisionId: revision("6"),
+        sourceCurrentId: sourceCurrent("7"),
+        runtime: runtime(rootDir, sha("8")),
+      },
+      changed.dependencies,
+    ),
     /synthetic video failure/u,
   );
   const after = await Promise.all(
@@ -276,13 +424,18 @@ test("a failed new DeliveryBuild preserves the complete current package", async 
 test("post-promotion validation failure rolls back to the previous current package", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-production-rollback-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
-  await buildDelivery({
-    rootDir,
-    projectId: "story-example",
-    revisionId: revision("7"),
-    artifactSetFingerprint: sha("8"),
-    dependencies: createDependencies().dependencies,
-  });
+  await initializeDeliveryRoot(rootDir);
+  await buildDelivery(
+    {
+      locations: locations(rootDir),
+      projectId: "story-example",
+      config,
+      revisionId: revision("9"),
+      sourceCurrentId: sourceCurrent("a"),
+      runtime: runtime(rootDir, sha("b")),
+    },
+    createDependencies().dependencies,
+  );
   const deliveryRoot = join(rootDir, "deliveries/story-example");
   const before = await Promise.all(
     ["video.mp4", "cover-4x3.png", "cover-3x4.png", "publish.json"].map(
@@ -294,13 +447,17 @@ test("post-promotion validation failure rolls back to the previous current packa
     failPromotedVideoInspectionOnce: true,
   });
   await assert.rejects(
-    buildDelivery({
-      rootDir,
-      projectId: "story-example",
-      revisionId: revision("9"),
-      artifactSetFingerprint: sha("a"),
-      dependencies: changed.dependencies,
-    }),
+    buildDelivery(
+      {
+        locations: locations(rootDir),
+        projectId: "story-example",
+        config,
+        revisionId: revision("c"),
+        sourceCurrentId: sourceCurrent("d"),
+        runtime: runtime(rootDir, sha("e")),
+      },
+      changed.dependencies,
+    ),
     /post-promotion probe failure/u,
   );
   const after = await Promise.all(
@@ -311,16 +468,20 @@ test("post-promotion validation failure rolls back to the previous current packa
   assert.deepEqual(after, before);
   assert.equal(
     JSON.parse(after[3]?.toString("utf8") ?? "null").revisionId,
-    revision("7"),
+    revision("9"),
   );
 
-  const retried = await buildDelivery({
-    rootDir,
-    projectId: "story-example",
-    revisionId: revision("9"),
-    artifactSetFingerprint: sha("a"),
-    dependencies: changed.dependencies,
-  });
+  const retried = await buildDelivery(
+    {
+      locations: locations(rootDir),
+      projectId: "story-example",
+      config,
+      revisionId: revision("c"),
+      sourceCurrentId: sourceCurrent("d"),
+      runtime: runtime(rootDir, sha("e")),
+    },
+    changed.dependencies,
+  );
   assert.equal(retried.status, "project-production-complete");
   assert.deepEqual(retried.reused, {
     video: true,
@@ -345,16 +506,21 @@ for (const hasCurrent of [false, true] as const) {
     );
     context.after(() => rm(rootDir, { recursive: true, force: true }));
     context.after(() => rm(outside, { recursive: true, force: true }));
+    await initializeDeliveryRoot(rootDir);
 
     let previous: readonly Buffer[] = [];
     if (hasCurrent) {
-      await buildDelivery({
-        rootDir,
-        projectId: "story-example",
-        revisionId: revision("b"),
-        artifactSetFingerprint: sha("c"),
-        dependencies: createDependencies().dependencies,
-      });
+      await buildDelivery(
+        {
+          locations: locations(rootDir),
+          projectId: "story-example",
+          config,
+          revisionId: revision("b"),
+          sourceCurrentId: sourceCurrent("c"),
+          runtime: runtime(rootDir, sha("d")),
+        },
+        createDependencies().dependencies,
+      );
       previous = await Promise.all(
         ["video.mp4", "cover-4x3.png", "cover-3x4.png", "publish.json"].map(
           (name) => readFile(join(rootDir, "deliveries/story-example", name)),
@@ -366,12 +532,16 @@ for (const hasCurrent of [false, true] as const) {
     const swapped = createDependencies().dependencies;
     let videoInspections = 0;
     await assert.rejects(
-      buildDelivery({
-        rootDir,
-        projectId: "story-example",
-        revisionId: revision("d"),
-        artifactSetFingerprint: sha("e"),
-        dependencies: {
+      buildDelivery(
+        {
+          locations: locations(rootDir),
+          projectId: "story-example",
+          config,
+          revisionId: revision("e"),
+          sourceCurrentId: sourceCurrent("f"),
+          runtime: runtime(rootDir, sha("0")),
+        },
+        {
           ...swapped,
           inspectVideo: async () => {
             videoInspections += 1;
@@ -382,7 +552,7 @@ for (const hasCurrent of [false, true] as const) {
             return media.video;
           },
         },
-      }),
+      ),
       /unsafe/u,
     );
 
@@ -407,14 +577,19 @@ test("delivery rejects a deliveries-parent symlink swap before the first media w
   );
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   context.after(() => rm(outside, { recursive: true, force: true }));
+  await initializeDeliveryRoot(rootDir);
 
   await assert.rejects(
-    buildDelivery({
-      rootDir,
-      projectId: "story-example",
-      revisionId: revision("f"),
-      artifactSetFingerprint: sha("0"),
-      dependencies: {
+    buildDelivery(
+      {
+        locations: locations(rootDir),
+        projectId: "story-example",
+        config,
+        revisionId: revision("f"),
+        sourceCurrentId: sourceCurrent("0"),
+        runtime: runtime(rootDir, sha("1")),
+      },
+      {
         ...createDependencies().dependencies,
         renderVideo: async () => {
           await rename(
@@ -424,7 +599,7 @@ test("delivery rejects a deliveries-parent symlink swap before the first media w
           await symlink(outside, join(rootDir, "deliveries"));
         },
       },
-    }),
+    ),
     /unsafe/u,
   );
   assert.deepEqual(await readdir(outside), []);

@@ -1,17 +1,19 @@
 import type {
+  DeliveryPolicy,
   ArtifactAttestation,
   ProducerPlan,
   ProducerTaskKind,
   ProducerTaskSpec,
+  ProducerConfig,
 } from "../../../src/contracts";
 import type {
   ProductionInspection,
   TaskDecisionExplanation,
 } from "../../../src/contracts/production-inspection";
 import { isAbsolute, relative } from "node:path";
-import { projectPendingSceneAuthoring } from "../../projects/application/create-project";
-import { acquireRepositoryOperationLock } from "../../shared/repository-operation-lock";
+import type { projectPendingSceneAuthoring } from "../../projects/application/project-pending-authoring";
 import { createExecutionAttemptForPlan } from "../adapters/attempt-store";
+import { acquireProductionOperationLock } from "../adapters/production-operation-lock";
 import { createTaskWorkspace } from "../adapters/task-workspace";
 import { buildTaskDiagnosticSnapshots } from "../domain/task-explanation";
 import {
@@ -22,42 +24,57 @@ import {
   buildNarrationSealTask,
   buildSemanticTimingTask,
 } from "./build-current-plan";
-import { inspectProjectProduction } from "./inspect-production";
-import { loadProjectProductionInputs } from "./load-inputs";
+import type { inspectProjectProduction } from "./inspect-production";
+import type { loadProjectProductionInputs } from "./load-inputs";
 import {
   ensureFixedTaskArtifact,
   prepareNarrationInputs,
   type PreparedNarrationInputs,
 } from "./prepare-fixed-tasks";
 import { buildCurrentProductionRevision } from "./current-revision";
+import type {
+  ProductionLocations,
+  RuntimeExecutionResources,
+} from "./production-locations";
+import type { ProductionCommandFormatter } from "../domain/production-command-formatter";
 import { ensureTemplateSceneArtifact } from "./template-scene-artifacts";
 
 type LoadedInputs = Awaited<ReturnType<typeof loadProjectProductionInputs>>;
 type CurrentPlan = Awaited<ReturnType<typeof buildCurrentProductionPlan>>;
+type InspectProductionPort = (
+  input: Parameters<typeof inspectProjectProduction>[0],
+) => ReturnType<typeof inspectProjectProduction>;
+type ProjectPendingAuthoringPort = (
+  input: Parameters<typeof projectPendingSceneAuthoring>[0],
+) => ReturnType<typeof projectPendingSceneAuthoring>;
+type LoadInputsPort = (
+  input: Parameters<typeof loadProjectProductionInputs>[0],
+) => ReturnType<typeof loadProjectProductionInputs>;
 
 type PrepareProductionDependencies = Readonly<{
-  acquireLock?: typeof acquireRepositoryOperationLock;
-  inspect?: typeof inspectProjectProduction;
+  commandFormatter: ProductionCommandFormatter;
+  inspect: InspectProductionPort;
+  projectPendingAuthoring: ProjectPendingAuthoringPort;
+  loadInputs: LoadInputsPort;
+  buildCurrentPlan: typeof buildCurrentProductionPlan;
+  acquireLock?: typeof acquireProductionOperationLock;
   prepareNarration?: typeof prepareNarrationInputs;
-  projectPendingAuthoring?: typeof projectPendingSceneAuthoring;
-  loadInputs?: typeof loadProjectProductionInputs;
   prepareFixedTasks?: (input: {
-    readonly rootDir: string;
+    readonly locations: ProductionLocations;
     readonly inputs: LoadedInputs;
     readonly narration: PreparedNarrationInputs;
   }) => Promise<void>;
-  buildCurrentPlan?: typeof buildCurrentProductionPlan;
   createWorkspace?: typeof createTaskWorkspace;
   buildTaskSnapshots?: typeof buildTaskDiagnosticSnapshots;
   createAttempt?: typeof createExecutionAttemptForPlan;
 }>;
 
 const prepareFixedTaskArtifacts = async ({
-  rootDir,
+  locations,
   inputs,
   narration,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly inputs: LoadedInputs;
   readonly narration: PreparedNarrationInputs;
 }) => {
@@ -87,7 +104,7 @@ const prepareFixedTaskArtifacts = async ({
     chunkArtifacts.push({
       task: built.task,
       attestation: await ensureFixedTaskArtifact({
-        rootDir,
+        locations,
         task: built.task,
         files: {
           "inputs/context.json": built.contextBytes,
@@ -106,7 +123,7 @@ const prepareFixedTaskArtifacts = async ({
       narration.sealedNarration.generationInputFingerprint,
   });
   const sealAttestation = await ensureFixedTaskArtifact({
-    rootDir,
+    locations,
     task: seal.task,
     files: {
       "inputs/context.json": seal.contextBytes,
@@ -123,7 +140,7 @@ const prepareFixedTaskArtifacts = async ({
     masteringPolicy: narration.masteringPolicy,
   });
   await ensureFixedTaskArtifact({
-    rootDir,
+    locations,
     task: timing.task,
     files: {
       "inputs/context.json": timing.contextBytes,
@@ -147,7 +164,7 @@ const prepareFixedTaskArtifacts = async ({
       throw new Error("Template task Scene input is unavailable.");
     }
     await ensureTemplateSceneArtifact({
-      rootDir,
+      locations,
       task: built.task,
       contextBytes: built.contextBytes,
       taskInput: sceneInput.taskInput,
@@ -169,13 +186,15 @@ const reusedByTaskKind = (tasks: readonly TaskDecisionExplanation[]) => {
 };
 
 const dirtyAgentTasks = async ({
-  rootDir,
+  locations,
   current,
   createWorkspace,
+  commandFormatter,
 }: {
-  readonly rootDir: string;
+  readonly locations: ProductionLocations;
   readonly current: CurrentPlan;
   readonly createWorkspace: typeof createTaskWorkspace;
+  readonly commandFormatter: ProductionCommandFormatter;
 }) => {
   const dirty: Array<
     Readonly<{
@@ -200,14 +219,18 @@ const dirtyAgentTasks = async ({
       throw new Error("Dirty Agent task seed is unavailable.");
     }
     const workspace = await createWorkspace({
-      rootDir,
+      locations,
       task: seed.task,
       seedFiles: { "inputs/context.json": seed.contextBytes },
     });
-    const logicalWorkspace = isAbsolute(workspace)
-      ? relative(rootDir, workspace).replaceAll("\\", "/")
-      : workspace.replaceAll("\\", "/");
-    const expectedWorkspace = `.producer-work/${seed.task.storyId}/${seed.task.taskRevision}`;
+    if (!isAbsolute(workspace)) {
+      throw new Error("Dirty Agent workspace must be absolute.");
+    }
+    const logicalWorkspace = relative(
+      locations.taskWorkspaceRoot,
+      workspace,
+    ).replaceAll("\\", "/");
+    const expectedWorkspace = `${seed.task.storyId}/${seed.task.taskRevision}`;
     if (logicalWorkspace !== expectedWorkspace) {
       throw new Error("Dirty Agent workspace is outside its task authority.");
     }
@@ -220,7 +243,9 @@ const dirtyAgentTasks = async ({
         .filter(({ kind }) => kind === "input")
         .map(({ id }) => id),
       blockedBy: explanation.blockedBy,
-      checkCommand: `npm run project:task:check -- --task ${explanation.taskRevision}`,
+      checkCommand: commandFormatter.checkTask({
+        taskRevision: explanation.taskRevision,
+      }),
     });
   }
   return dirty;
@@ -256,47 +281,55 @@ const missingAuthoringResult = ({
 
 export const prepareProjectProduction = async (
   {
-    rootDir,
+    locations,
+    runtime,
+    config,
     projectId,
-    env = process.env,
+    deliveryPolicy,
   }: {
-    readonly rootDir: string;
+    readonly locations: ProductionLocations;
+    readonly runtime: RuntimeExecutionResources;
+    readonly config: ProducerConfig;
     readonly projectId: string;
-    readonly env?: Readonly<Record<string, string | undefined>>;
+    readonly deliveryPolicy: DeliveryPolicy;
   },
-  dependencies: PrepareProductionDependencies = {},
+  dependencies: PrepareProductionDependencies,
 ) => {
+  const commandFormatter = dependencies.commandFormatter;
   const acquireLock =
-    dependencies.acquireLock ?? acquireRepositoryOperationLock;
-  const inspect = dependencies.inspect ?? inspectProjectProduction;
+    dependencies.acquireLock ?? acquireProductionOperationLock;
+  const inspect = dependencies.inspect;
   const prepareNarration =
     dependencies.prepareNarration ?? prepareNarrationInputs;
-  const projectAuthoring =
-    dependencies.projectPendingAuthoring ?? projectPendingSceneAuthoring;
-  const loadInputs = dependencies.loadInputs ?? loadProjectProductionInputs;
+  const projectAuthoring = dependencies.projectPendingAuthoring;
+  const loadInputs = dependencies.loadInputs;
   const prepareFixed =
     dependencies.prepareFixedTasks ?? prepareFixedTaskArtifacts;
-  const buildCurrentPlan =
-    dependencies.buildCurrentPlan ?? buildCurrentProductionPlan;
+  const buildCurrentPlan = dependencies.buildCurrentPlan;
   const createWorkspace = dependencies.createWorkspace ?? createTaskWorkspace;
   const buildTaskSnapshots =
     dependencies.buildTaskSnapshots ?? buildTaskDiagnosticSnapshots;
   const createAttempt =
     dependencies.createAttempt ?? createExecutionAttemptForPlan;
   const lock = await acquireLock({
-    rootDir,
+    locations,
     ownerId: "project-production-prepare",
   });
   try {
     // This check-only phase validates every fact available before a provider
     // request. It also proves the cost estimate was obtained without mutation.
-    const estimated = await inspect({ rootDir, projectId, env });
+    const estimated = await inspect({ locations, runtime, projectId, config });
     let narration: PreparedNarrationInputs | null = null;
     if (estimated.sourceState !== "timing-ready") {
-      narration = await prepareNarration({ rootDir, projectId, env });
+      narration = await prepareNarration({
+        locations,
+        runtime,
+        config,
+        projectId,
+      });
     }
-    await projectAuthoring({ rootDir, projectId });
-    const ready = await inspect({ rootDir, projectId, env });
+    await projectAuthoring({ locations, projectId });
+    const ready = await inspect({ locations, runtime, projectId, config });
     if (ready.sourceState !== "production-inputs-ready") {
       return missingAuthoringResult({
         projectId,
@@ -305,23 +338,29 @@ export const prepareProjectProduction = async (
         missingAuthoringInputs: ["production/scene-production-brief.json"],
       });
     }
-    narration ??= await prepareNarration({ rootDir, projectId, env });
-    const inputs = await loadInputs({
-      rootDir,
+    narration ??= await prepareNarration({
+      locations,
+      runtime,
+      config,
       projectId,
     });
-    await prepareFixed({ rootDir, inputs, narration });
-    const current = await buildCurrentPlan({
-      rootDir,
+    const inputs = await loadInputs({
+      locations,
       projectId,
-      env,
+    });
+    await prepareFixed({ locations, inputs, narration });
+    const current = await buildCurrentPlan({
+      locations,
+      projectId,
+      config,
       inputs,
       narration,
     });
     const dirty = await dirtyAgentTasks({
-      rootDir,
+      locations,
       current,
       createWorkspace,
+      commandFormatter,
     });
     const taskSnapshots = buildTaskSnapshots({
       nodes: current.nodes,
@@ -329,7 +368,7 @@ export const prepareProjectProduction = async (
       decisions: current.plan.tasks,
     });
     const attempt = await createAttempt({
-      rootDir,
+      locations,
       plan: current.plan as ProducerPlan,
       taskSnapshots,
       estimatedCost: estimated.estimatedCost,
@@ -358,11 +397,27 @@ export const prepareProjectProduction = async (
       taskExplanations: current.plan.tasks,
       dirtyAgentTasks: dirty.map((task) => ({
         ...task,
-        commitCommand: `npm run project:task:commit -- --task ${task.taskRevision} --attempt ${attempt.attemptId}`,
-        taskFailureCommand: `npm run project:task:fail -- --task ${task.taskRevision} --attempt ${attempt.attemptId} --kind task`,
-        hostFailureCommand: `npm run project:task:fail -- --task ${task.taskRevision} --attempt ${attempt.attemptId} --kind host`,
+        commitCommand: commandFormatter.commitTask({
+          taskRevision: task.taskRevision,
+          attemptId: attempt.attemptId,
+        }),
+        taskFailureCommand: commandFormatter.failTask({
+          taskRevision: task.taskRevision,
+          attemptId: attempt.attemptId,
+          kind: "task",
+        }),
+        hostFailureCommand: commandFormatter.failTask({
+          taskRevision: task.taskRevision,
+          attemptId: attempt.attemptId,
+          kind: "host",
+        }),
       })),
-      continuationCommand: `npm run project:produce:continue -- --project ${projectId} --revision ${current.revision.revisionId} --attempt ${attempt.attemptId}`,
+      continuationCommand: commandFormatter.continueProduction({
+        projectId,
+        revisionId: current.revision.revisionId,
+        attemptId: attempt.attemptId,
+        deliveryPolicy,
+      }),
       nextAction:
         dirty.length === 0
           ? ("start-fixed-continuation" as const)

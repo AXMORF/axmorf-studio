@@ -8,7 +8,11 @@ import {
 } from "react";
 
 import type { PreviewPlayerEntry } from "../contracts/preview";
-import type { DesktopAppState, DesktopShellApi } from "../contracts/shell";
+import type {
+  DesktopAppState,
+  DesktopProviderSettings,
+  DesktopShellApi,
+} from "../contracts/shell";
 
 declare global {
   interface Window {
@@ -183,11 +187,11 @@ const FirstRun = ({
 }>) => (
   <main className="first-run-shell">
     <section className="hero-card">
-      <p className="section-kicker">Repository adapter · Phase A</p>
-      <h1>把当前成片放上剪辑台。</h1>
+      <p className="section-kicker">Workspace production · Phase B</p>
+      <h1>从作品到成片，都在一个 Workspace。</h1>
       <p className="status-copy">
-        AXMORF Studio 只读取经过验证的 current Delivery，并把
-        Scene、旁白与字幕时序投影到一个只读时间轴。
+        AXMORF Studio 使用内置 Runtime Pack 生产作品；播放器只读取经过验证的
+        current four-file Delivery。
       </p>
       {state?.status === "workspace-selection-required" ? (
         <div className="workspace-choice">
@@ -205,8 +209,13 @@ const FirstRun = ({
       ) : null}
       {state === null ||
       state.status === "initializing" ||
-      state.status === "loading-catalog" ? (
-        <p className="loading-state">正在读取 Workspace…</p>
+      state.status === "loading-catalog" ||
+      state.status === "migrating-workspace" ? (
+        <p className="loading-state">
+          {state?.status === "migrating-workspace"
+            ? "正在复制、验证并切换 Workspace；旧位置会保留。"
+            : "正在读取 Workspace…"}
+        </p>
       ) : null}
     </section>
   </main>
@@ -218,21 +227,48 @@ export const App = () => {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [playerError, setPlayerError] = useState<string | null>(null);
+  const [providerSettings, setProviderSettings] =
+    useState<DesktopProviderSettings | null>(null);
+  const [providerConfigJson, setProviderConfigJson] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     let active = true;
-    void window.axmorfStudio.getAppState().then((next) => {
-      if (active) setState(next);
-    });
+    const refresh = () =>
+      void window.axmorfStudio.getAppState().then((next) => {
+        if (active) setState(next);
+      });
+    refresh();
+    const timer = window.setInterval(refresh, 1_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    void window.axmorfStudio
+      .getProviderSettings()
+      .then((summary) => {
+        if (active) setProviderSettings(summary);
+      })
+      .catch(() => undefined);
     return () => {
       active = false;
     };
-  }, []);
+  }, [state?.health.provider]);
 
   const selectedEntry = useMemo(
     () =>
       state?.catalog.entries.find(
+        ({ storyId }) => storyId === state.selectedStoryId,
+      ) ?? null,
+    [state],
+  );
+  const selectedProject = useMemo(
+    () =>
+      state?.projects.find(
         ({ storyId }) => storyId === state.selectedStoryId,
       ) ?? null,
     [state],
@@ -337,14 +373,28 @@ export const App = () => {
           >
             {state.workspaceRoot}
           </button>
+          <button
+            className="migration-button"
+            disabled={busy || state.activeWork !== null}
+            onClick={() =>
+              void runStateAction(() => window.axmorfStudio.migrateWorkspace())
+            }
+            title={
+              state.activeWork === null
+                ? "迁移整个 Workspace Root"
+                : "存在 active work，暂不能迁移"
+            }
+          >
+            迁移 Workspace
+          </button>
         </div>
-        <div className="prototype-badge">Phase A · 只读</div>
+        <div className="prototype-badge">Phase B · Workspace</div>
       </header>
 
       <aside className="project-rail">
         <div className="rail-heading">
           <div>
-            <span className="section-kicker">Current delivery</span>
+            <span className="section-kicker">Workspace Projects</span>
             <h2>项目</h2>
           </div>
           <button
@@ -361,9 +411,9 @@ export const App = () => {
           </button>
         </div>
 
-        {state.catalog.entries.length > 0 ? (
+        {state.projects.length > 0 ? (
           <label className="project-select">
-            <span>选择视频</span>
+            <span>选择项目</span>
             <select
               disabled={busy}
               onChange={(event) =>
@@ -373,17 +423,17 @@ export const App = () => {
               }
               value={state.selectedStoryId ?? ""}
             >
-              {state.catalog.entries.map((entry) => (
-                <option key={entry.storyId} value={entry.storyId}>
-                  {entry.title}
+              {state.projects.map((project) => (
+                <option key={project.storyId} value={project.storyId}>
+                  {project.title}
                 </option>
               ))}
             </select>
           </label>
         ) : (
           <div className="empty-catalog">
-            <strong>没有可播放成片</strong>
-            <p>完成并验证 current four-file Delivery 后，再刷新这里。</p>
+            <strong>Workspace 中还没有项目</strong>
+            <p>使用 rsp project create 创建第一个 Project。</p>
           </div>
         )}
 
@@ -406,13 +456,56 @@ export const App = () => {
           </dl>
         ) : null}
 
-        {state.catalog.unavailable.length > 0 ? (
-          <section className="unavailable-list" aria-label="不可播放项目">
-            <h3>尚不可播放</h3>
+        {selectedProject !== null ? (
+          <section className="project-status" aria-label="Project生产状态">
+            <div>
+              <span>Source</span>
+              <strong data-state={selectedProject.source}>
+                {selectedProject.source}
+              </strong>
+            </div>
+            <div>
+              <span>Delivery</span>
+              <strong data-state={selectedProject.delivery}>
+                {selectedProject.delivery}
+              </strong>
+            </div>
+            {selectedProject.source === "current" &&
+            selectedProject.delivery !== "current" ? (
+              <p>Source 已就绪，尚无可播放成片。</p>
+            ) : null}
+            <button
+              disabled={
+                busy ||
+                state.activeWork !== null ||
+                !state.deliveryAvailable ||
+                selectedProject.source !== "current" ||
+                selectedProject.delivery === "current"
+              }
+              onClick={() =>
+                void runStateAction(() =>
+                  window.axmorfStudio.buildDelivery(selectedProject.storyId),
+                )
+              }
+            >
+              生成 Delivery
+            </button>
+            {!state.deliveryAvailable && state.deliveryBlocker !== null ? (
+              <p role="status">
+                {state.deliveryBlocker.message}
+                <code>{state.deliveryBlocker.code}</code>
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
+        {selectedProject?.invalidation.length ? (
+          <section className="unavailable-list" aria-label="结构化失效原因">
+            <h3>失效原因</h3>
             <ul>
-              {state.catalog.unavailable.map((entry) => (
-                <li key={entry.storyId}>
-                  <span>{entry.storyId}</span>
+              {selectedProject.invalidation.map((entry) => (
+                <li key={entry.code}>
+                  <span>{entry.cause}</span>
                   <code>{entry.code}</code>
                 </li>
               ))}
@@ -423,37 +516,99 @@ export const App = () => {
         <dl className="runtime-facts">
           <div>
             <dt>Adapter</dt>
-            <dd>repository</dd>
+            <dd>workspace</dd>
           </div>
           <div>
             <dt>Runtime</dt>
-            <dd>host-node-prototype</dd>
+            <dd>embedded</dd>
           </div>
-          {[
-            ["Production", state.productionAvailable],
-            ["Delivery", state.deliveryAvailable],
-            ["Distribution", state.distributionReady],
-            ["Runtime Pack", state.runtimePackAvailable],
-          ].map(([label]) => (
-            <div key={String(label)}>
-              <dt>{label}</dt>
-              <dd className="unavailable">unavailable</dd>
-            </div>
-          ))}
+          <div>
+            <dt>Runtime Pack</dt>
+            <dd>{state.health.runtime}</dd>
+          </div>
+          <div>
+            <dt>Agent</dt>
+            <dd>{state.health.agentIntegration}</dd>
+          </div>
+          <div>
+            <dt>Provider</dt>
+            <dd>{state.health.provider}</dd>
+          </div>
+          <div>
+            <dt>Active work</dt>
+            <dd>{state.activeWork?.phase ?? "idle"}</dd>
+          </div>
         </dl>
+
+        <section className="provider-settings" aria-label="Provider Settings">
+          <div>
+            <span className="section-kicker">Provider Settings</span>
+            <strong>{providerSettings?.status ?? state.health.provider}</strong>
+          </div>
+          {providerSettings?.providers.length ? (
+            <ul>
+              {providerSettings.providers.map((provider) => (
+                <li key={provider.id}>
+                  {provider.name} · {provider.kind}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>尚未配置 Provider。保存后 Engine 会受控重启。</p>
+          )}
+          <label>
+            <span>完整 ProducerConfig JSON（敏感字段只写，不回显）</span>
+            <textarea
+              autoComplete="off"
+              onChange={(event) => setProviderConfigJson(event.target.value)}
+              placeholder='{"schemaVersion":4,"contractVersion":"producer-config-v4",...}'
+              spellCheck={false}
+              value={providerConfigJson}
+            />
+          </label>
+          <button
+            disabled={
+              busy ||
+              state.activeWork !== null ||
+              providerConfigJson.trim().length === 0
+            }
+            onClick={() =>
+              void runStateAction(async () => {
+                const next = await window.axmorfStudio.saveProviderSettings(
+                  JSON.parse(providerConfigJson) as unknown,
+                );
+                setProviderConfigJson("");
+                setProviderSettings(
+                  await window.axmorfStudio.getProviderSettings(),
+                );
+                return next;
+              })
+            }
+          >
+            保存并重启 Engine
+          </button>
+        </section>
       </aside>
 
       <section className="viewer-stage">
-        {actionError !== null ? (
+        {actionError !== null || state.error !== null ? (
           <div className="action-error" role="alert">
-            {actionError}
+            {actionError ?? state.error}
           </div>
         ) : null}
         {selectedEntry === null ? (
           <div className="viewer-empty">
             <span className="empty-frame" aria-hidden="true" />
-            <strong>选择一个 current video</strong>
-            <p>播放器不会执行 Project TSX，只读取通过校验的最终 MP4。</p>
+            <strong>
+              {selectedProject?.source === "current"
+                ? "尚无可播放成片"
+                : "选择一个 Workspace Project"}
+            </strong>
+            <p>
+              {selectedProject?.source === "current"
+                ? "点击“生成 Delivery”；播放器不会执行 Project TSX。"
+                : "Preview Player 只接受 exact current four-file Delivery。"}
+            </p>
           </div>
         ) : (
           <>

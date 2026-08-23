@@ -5,7 +5,12 @@ import { join } from "node:path";
 export const readLocalProjectRoot = async (
   rootDir: string,
 ): Promise<readonly Dirent[]> => {
-  const projectsRoot = join(rootDir, "src/projects");
+  return readProjectSourceRoot(join(rootDir, "src/projects"));
+};
+
+export const readProjectSourceRoot = async (
+  projectsRoot: string,
+): Promise<readonly Dirent[]> => {
   let metadata;
   try {
     metadata = await lstat(projectsRoot);

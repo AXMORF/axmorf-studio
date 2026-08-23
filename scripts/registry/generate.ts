@@ -9,6 +9,7 @@ import {
   discoverProjectEntries,
   loadProjectRegistrationEntry,
 } from "./project-files";
+import type { ProjectStorageLocations } from "../projects/project-locations";
 
 export type RegistryGenerationMode = "write" | "check";
 
@@ -62,11 +63,11 @@ const writeAtomic = async (destination: string, source: string) => {
 };
 
 export const generateProjectRegistry = async ({
-  rootDir,
+  storage,
   mode,
   excludeProjectIds = [],
 }: {
-  readonly rootDir: string;
+  readonly storage: ProjectStorageLocations;
   readonly mode: RegistryGenerationMode;
   readonly excludeProjectIds?: readonly string[];
 }): Promise<ProjectRegistryGenerationResult> => {
@@ -76,19 +77,16 @@ export const generateProjectRegistry = async ({
         `src/projects/${StoryIdSchema.parse(projectId)}/Composition.tsx`,
     ),
   );
-  const compositionPaths = (await discoverProjectEntries(rootDir)).filter(
+  const compositionPaths = (await discoverProjectEntries({ storage })).filter(
     (compositionPath) => !excludedCompositionPaths.has(compositionPath),
   );
   const entries = await Promise.all(
     compositionPaths.map((compositionPath) =>
-      loadProjectRegistrationEntry({ rootDir, compositionPath }),
+      loadProjectRegistrationEntry({ storage, compositionPath }),
     ),
   );
   const expected = await renderProjectRegistrySource(entries);
-  const destination = join(
-    rootDir,
-    "src/projects/project-registry.generated.ts",
-  );
+  const destination = storage.registryProjectionPath;
   if (mode === "check") {
     let actual: string;
     try {

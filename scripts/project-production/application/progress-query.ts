@@ -3,6 +3,17 @@ import {
   readProductionDiagnosticBaseline,
 } from "../adapters/progress";
 import { inspectCurrentDelivery } from "../adapters/current-delivery-inspection";
+import {
+  inspectSourceCurrent,
+  readSourceCurrent,
+} from "../adapters/source-current-store";
+import { generateRepositoryProjectCatalog } from "../adapters/repository-project-catalog";
+import { readCurrentProductionRevision } from "./current-revision";
+import { loadProjectProductionInputs } from "./load-inputs";
+
+const loadRepositoryInputs = (
+  input: Parameters<typeof loadProjectProductionInputs>[0],
+) => loadProjectProductionInputs(input, generateRepositoryProjectCatalog);
 
 export const readProjectProductionProgressProjection = async (
   input: Parameters<typeof readLatestExecutionAttempt>[0],
@@ -31,3 +42,19 @@ export const readProjectProductionDiagnosticBaselineProjection = (
 export const readCurrentProjectDelivery = (
   input: Parameters<typeof inspectCurrentDelivery>[0],
 ) => inspectCurrentDelivery(input);
+
+export const readCurrentProjectSource = async (
+  input: Parameters<typeof readSourceCurrent>[0],
+) => {
+  const recorded = await readSourceCurrent(input);
+  return recorded === null
+    ? null
+    : inspectSourceCurrent({ locations: input.locations, expected: recorded });
+};
+
+export const readRepositoryCurrentProductionRevision = (
+  input: Parameters<typeof readCurrentProductionRevision>[0],
+) =>
+  readCurrentProductionRevision(input, {
+    loadInputs: loadRepositoryInputs,
+  });

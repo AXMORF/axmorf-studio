@@ -4,6 +4,10 @@ import { dirname, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { isDesktopPackagePathAllowed } from "./scripts/desktop/package-inventory";
+import {
+  DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT,
+  stageDesktopWorkspaceIntegration,
+} from "./scripts/desktop/workspace-integration-package";
 
 export { DESKTOP_PACKAGE_ALLOWED_ROOTS } from "./scripts/desktop/package-inventory";
 
@@ -55,11 +59,21 @@ const config: ForgeConfig = {
     appBundleId: DESKTOP_BUNDLE_ID,
     appCategoryType: "public.app-category.video",
     icon: "desktop/resources/brand/axmorf-studio-icon",
+    extraResource: [
+      "desktop/runtime-pack",
+      "desktop/compatibility.json",
+      DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT,
+    ],
     ignore: desktopPackageIgnore,
   },
   rebuildConfig: {},
   makers: [],
   publishers: [],
+  hooks: {
+    generateAssets: async () => {
+      await stageDesktopWorkspaceIntegration({ checkoutRoot: desktopPackageRoot });
+    },
+  },
   plugins: [new VitePlugin(desktopVitePluginConfig)],
 };
 
