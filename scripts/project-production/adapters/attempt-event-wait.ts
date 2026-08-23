@@ -67,15 +67,23 @@ export const openExecutionAttemptEventWait = (input: {
     }
   });
   watcher.once("error", (error) => settle(error));
-  const timeout = setTimeout(
-    () => settle(new ExecutionAttemptEventWaitTimeoutError()),
-    timeoutMs,
-  );
+  let deadlineSettlement: NodeJS.Immediate | undefined;
+  const timeout = setTimeout(() => {
+    // A filesystem notification can already be queued when a busy process
+    // reaches the timers phase after the deadline. Give that same event-loop
+    // turn's poll phase priority before rejecting at the bounded deadline.
+    deadlineSettlement = setImmediate(() =>
+      settle(new ExecutionAttemptEventWaitTimeoutError()),
+    );
+  }, timeoutMs);
   return {
     ready,
     changed,
     close: () => {
       clearTimeout(timeout);
+      if (deadlineSettlement !== undefined) {
+        clearImmediate(deadlineSettlement);
+      }
       watcher.close();
     },
   };

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { writeFileSync } from "node:fs";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,7 +16,10 @@ test("attempt event wait accepts a filesystem notification without a filename", 
   assert.equal(isExecutionAttemptEventLogChange("rename", null), true);
   assert.equal(isExecutionAttemptEventLogChange("change", null), true);
   assert.equal(isExecutionAttemptEventLogChange("rename", "event.json"), true);
-  assert.equal(isExecutionAttemptEventLogChange("rename", "ignored.tmp"), false);
+  assert.equal(
+    isExecutionAttemptEventLogChange("rename", "ignored.tmp"),
+    false,
+  );
   assert.equal(isExecutionAttemptEventLogChange("unknown", null), false);
 });
 
@@ -44,6 +48,44 @@ test("attempt event wait resolves from the immutable event log without polling",
   );
   await eventWait.changed;
   assert.ok(true);
+});
+
+test("attempt event wait accepts an already-written event at the deadline turn", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-wait-boundary-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const locations = createRepositoryProductionLocations({
+    repositoryRoot: rootDir,
+  });
+  const storyId = "story-example";
+  const attemptId = "00000000-0000-4000-8000-000000000001";
+  const events = join(
+    rootDir,
+    ".producer-attempts",
+    storyId,
+    attemptId,
+    "events",
+  );
+  await mkdir(events, { recursive: true });
+  const eventWait = openExecutionAttemptEventWait({
+    locations,
+    storyId,
+    attemptId,
+    timeoutMs: 10,
+  });
+  context.after(() => eventWait.close());
+  await eventWait.ready;
+
+  writeFileSync(
+    join(events, "00000000-0000-4000-8000-000000000002.json"),
+    "{}\n",
+  );
+  const blockedUntil = Date.now() + 25;
+  while (Date.now() < blockedUntil) {
+    // Keep both the filesystem notification and deadline callback pending so
+    // the adapter must resolve their same-turn ordering deliberately.
+  }
+
+  await eventWait.changed;
 });
 
 test("attempt event wait rejects at its bounded deadline", async (context) => {
