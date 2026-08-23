@@ -368,11 +368,22 @@ test("native command failures are bounded and redact the Workspace root", async 
 });
 
 test("native gate workflow is manual-only and runs one gate on both native architectures", async () => {
-  const [workflow, gate] = await Promise.all([
+  const [dispatchWorkflow, workflow, gate] = await Promise.all([
+    readFile(".github/workflows/desktop-phase-b-native-gate.yml", "utf8"),
     readFile(".github/workflows/desktop-phase-c-native-gate.yml", "utf8"),
     readFile("scripts/desktop/native-gate.sh", "utf8"),
   ]);
+  assert.match(dispatchWorkflow, /^on:\n {2}workflow_dispatch:\s*$/mu);
+  assert.match(
+    dispatchWorkflow,
+    /uses: \.\/\.github\/workflows\/desktop-phase-c-native-gate\.yml/u,
+  );
+  assert.doesNotMatch(
+    dispatchWorkflow,
+    /pull_request:|push:|release:|publishers?:/u,
+  );
   assert.match(workflow, /^on:\n {2}workflow_dispatch:\s*$/mu);
+  assert.match(workflow, /^ {2}workflow_call:\s*$/mu);
   assert.match(workflow, /architecture: arm64[\s\S]*runner: macos-15/u);
   assert.match(workflow, /architecture: x64[\s\S]*runner: macos-15-intel/u);
   assert.match(workflow, /runs-on: \$\{\{ matrix\.runner \}\}/u);

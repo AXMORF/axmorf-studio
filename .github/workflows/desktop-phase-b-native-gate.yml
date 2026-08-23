@@ -1,0 +1,11 @@
+name: Desktop Phase C native gate dispatch
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase-c-native-gate:
+    uses: ./.github/workflows/desktop-phase-c-native-gate.yml

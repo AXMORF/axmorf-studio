@@ -29,8 +29,10 @@ staged diff；它不 reset、clean、删除 Project/Workspace/Delivery，也不�
 临时 Workspace 与 evidence 仍是本机构建/验证产物，不进入 Git。
 
 manual-only workflow [desktop-phase-c-native-gate.yml](../../.github/workflows/desktop-phase-c-native-gate.yml) 使用完全相同
-的入口，分别路由到 GitHub 当前原生 `macos-15` arm64 和 `macos-15-intel` x64 runner。能够 cross-package、在 Rosetta 下
-启动，或只让其中一个 matrix job Green，都不能替代另一架构的 native evidence。
+的入口，分别路由到 GitHub 当前原生 `macos-15` arm64 和 `macos-15-intel` x64 runner。默认分支已有的
+[desktop-phase-b-native-gate.yml](../../.github/workflows/desktop-phase-b-native-gate.yml) 仅保留为 pre-merge manual dispatch
+adapter，并通过 reusable-workflow call 路由到同一 Phase C gate，不复制任何 package/production/evidence 步骤。能够
+cross-package、在 Rosetta 下启动，或只让其中一个 matrix job Green，都不能替代另一架构的 native evidence。
 
 ## 2. gate 验证什么
 

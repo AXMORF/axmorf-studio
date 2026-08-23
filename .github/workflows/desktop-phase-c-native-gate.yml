@@ -2,6 +2,7 @@ name: Desktop Phase C dual-architecture native gate
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
