@@ -62,6 +62,7 @@ import {
   ensureNativeSmokeProducerConfig,
   resolveNativeSmokeOptions,
   runPackagedNativeSmoke,
+  writeNativeSmokeEngineDiagnostic,
   writeNativeSmokeFailure,
   writeNativeSmokeStartupStage,
   type NativeSmokeOptions,
@@ -138,11 +139,32 @@ const chooseInitialWorkspace = async (defaultRoot: string) => {
 };
 
 const forkDesktopEngine = (modulePath: string): DesktopUtilityProcess => {
+  const standardOptions = desktopEngineForkOptions(process.resourcesPath);
   const child = utilityProcess.fork(
     modulePath,
     [],
-    desktopEngineForkOptions(process.resourcesPath),
+    nativeSmoke === null
+      ? standardOptions
+      : { ...standardOptions, stdio: ["ignore", "ignore", "pipe"] },
   );
+  if (nativeSmoke !== null && child.stderr !== null) {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    child.stderr.on("data", (rawChunk: Buffer | string) => {
+      if (size >= 16_384) return;
+      const chunk = Buffer.from(rawChunk);
+      const retained = chunk.subarray(0, 16_384 - size);
+      chunks.push(retained);
+      size += retained.byteLength;
+    });
+    child.once("exit", (code) => {
+      void writeNativeSmokeEngineDiagnostic({
+        code,
+        options: nativeSmoke,
+        stderr: Buffer.concat(chunks).toString("utf8"),
+      });
+    });
+  }
   return {
     get pid() {
       return child.pid;

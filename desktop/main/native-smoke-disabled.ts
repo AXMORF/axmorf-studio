@@ -21,3 +21,7 @@ export const writeNativeSmokeStartupStage = async () => {
 export const createNativeSmokePrivateConfigCrypto = () => {
   throw new Error("desktop-native-smoke-not-in-build");
 };
+
+export const writeNativeSmokeEngineDiagnostic = async () => {
+  throw new Error("desktop-native-smoke-not-in-build");
+};

@@ -174,6 +174,32 @@ export const writeNativeSmokeFailure = async ({
   );
 };
 
+export const writeNativeSmokeEngineDiagnostic = async ({
+  code,
+  options,
+  stderr,
+}: {
+  readonly code: number;
+  readonly options: NativeSmokeOptions;
+  readonly stderr: string;
+}) => {
+  await mkdir(options.outputRoot, { recursive: true });
+  const redacted = [
+    options.outputRoot,
+    options.workspaceRoot,
+    options.userDataRoot,
+    options.homeRoot,
+  ].reduce(
+    (message, privateRoot) => message.replaceAll(privateRoot, "<private-root>"),
+    stderr.slice(0, 16_384),
+  );
+  await writeFile(
+    join(options.outputRoot, "engine-diagnostic.json"),
+    `${JSON.stringify({ code, stderr: redacted })}\n`,
+    { mode: 0o600 },
+  );
+};
+
 export const ensureNativeSmokeProducerConfig = async ({
   applicationSupportRoot,
   crypto,

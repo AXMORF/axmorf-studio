@@ -8,6 +8,7 @@ import {
   createNativeSmokePrivateConfigCrypto,
   resolveNativeSmokeOptions,
   writeNativeSmokeFailure,
+  writeNativeSmokeEngineDiagnostic,
   writeNativeSmokeStartupStage,
 } from "../../desktop/main/native-smoke";
 import { ProjectCreateInputSchema } from "../../src/contracts";
@@ -142,6 +143,34 @@ test("native smoke private config crypto is authenticated and credential-free", 
   const tampered = Uint8Array.from(encrypted);
   tampered[tampered.length - 1] ^= 1;
   assert.throws(() => crypto.decrypt(tampered));
+});
+
+test("native smoke redacts bounded Engine diagnostics", async () => {
+  const root = await mkdtemp(join(tmpdir(), "desktop-native-engine-"));
+  const options = {
+    homeRoot: join(root, "home"),
+    outputRoot: join(root, "evidence"),
+    selection: "custom" as const,
+    userDataRoot: join(root, "user-data"),
+    workspaceRoot: join(root, "workspace"),
+  };
+  try {
+    await writeNativeSmokeEngineDiagnostic({
+      code: 1,
+      options,
+      stderr: `load failed at ${options.workspaceRoot}`,
+    });
+    const diagnostic = await readFile(
+      join(options.outputRoot, "engine-diagnostic.json"),
+      "utf8",
+    );
+    assert.deepEqual(JSON.parse(diagnostic), {
+      code: 1,
+      stderr: "load failed at <private-root>",
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test("native gate workflow is manual-only to dispatch and uploads evidence only", async () => {
