@@ -450,6 +450,10 @@ test("Runtime Pack Remotion identities exactly match copied module roots", async
     architecture: process.arch,
     libc: process.platform === "linux" ? "glibc" : undefined,
   });
+  assert.equal(
+    new Set(closure.files.map(({ relativePath }) => relativePath)).size,
+    closure.files.length,
+  );
   const copiedRoots = [
     ...new Set(
       closure.files.flatMap(({ relativePath }) => {

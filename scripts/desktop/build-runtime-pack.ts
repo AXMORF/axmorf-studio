@@ -32,21 +32,21 @@ const collectFiles = async (
   root: string,
   prefix: string,
   current = root,
-  omitPackageBinLinks = false,
+  omitNestedNodeModules = false,
 ): Promise<AdditionalFile[]> => {
   const output: Array<{ source: string; relativePath: string; executable: boolean }> = [];
   for (const entry of (await readdir(current, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
     const source = join(current, entry.name);
     if (
-      omitPackageBinLinks &&
-      entry.name === ".bin" &&
+      omitNestedNodeModules &&
+      entry.name === "node_modules" &&
       entry.isDirectory() &&
-      current.split("\\").join("/").includes("/node_modules")
+      current === root
     ) {
       continue;
     }
     if (entry.isSymbolicLink()) throw new Error("Browser bundle cannot contain symlinks.");
-    if (entry.isDirectory()) output.push(...(await collectFiles(root, prefix, source, omitPackageBinLinks)));
+    if (entry.isDirectory()) output.push(...(await collectFiles(root, prefix, source, omitNestedNodeModules)));
     else if (entry.isFile()) output.push({ source, relativePath: `${prefix}/${relative(root, source)}`, executable: ((await lstat(source)).mode & 0o111) !== 0 });
     else throw new Error("Browser bundle cannot contain special files.");
   }
