@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-24 Desktop Phase C dual-architecture native evidence verified complete
+> 最后复核：2026-08-24 Desktop Phase D internal unsigned DMG implementation complete，native artifact evidence pending
 
 ## 当前结论
 
@@ -242,13 +242,32 @@ provider/task executor，`runner-summary.json` 明确记录 `deterministicFixtur
 `externalCreativeAgentTested: false`；安装外部 Codex/Hermes 的 creative E2E 是独立待补产品证据，不由本次 native
 evidence 推断。
 
+## Desktop Phase D internal unsigned DMG（native artifact evidence pending）
+
+当前 implementation 已加入 Electron Forge 7.11.2 官方 DMG maker、严格 version/architecture/unsigned 文件名、
+ordinary package-only installer builder、mounted DMG/isolated Applications/first-run/doctor/Preview/cleanup verifier、
+checksum-bound release manifest、runtime SBOM input、Gatekeeper UI 安装说明与 dual-architecture set validator。
+`AXMORF_DESKTOP_NATIVE_GATE_BUILD=1` 仍只属于 Phase C gate；installer 在 gate 后重新构建 ordinary package，并拒绝
+gate-only provider、diagnostic 与 lifecycle marker。
+
+manual-only Phase D workflow 在 hosted `macos-15` arm64 与 `macos-15-intel` x64 上分别重跑现有 native production gate，
+再构建和挂载对应 DMG。每架构 upload exact six-file release root；只有 exact commit 与 appVersion 一致且两边均 Green，
+final job 才上传带 `dual-release-manifest.json` 的完整双架构 artifact。workflow 没有 push/release/publisher 权限或 trigger，
+不创建 GitHub Release。
+
+当前状态只能写作 `implementation-complete-native-installer-evidence-pending`，直到 exact commit 的两个原生 jobs、下载 artifact
+和人工审计全部完成。Remotion runtime binary redistribution permission 仍为 `not-satisfied`；用户对本轮 internal/manual-only
+构建的授权不等于许可已满足，也不授权公开发布。精确入口与 artifact contract 见
+[Desktop Phase D internal unsigned DMG](guides/DESKTOP_PHASE_D_UNSIGNED_DMG.md)。
+
 ## 当前非目标
 
 远程 scheduler/database/artifact store、平台发布、账号、上传、child identity persistence、subjective quality
 gate、automatic capability promotion、Docker 和新的 TTS Gateway 均未实现。
 
-公开 DMG/installer 发行、签名/公证、外部 Codex/Hermes creative E2E 和 public release 仍未验证；Phase C 的内部
-darwin arm64/x64 native evidence 不等于 installer、distribution 或公开支持政策。这些目标记录在
+公开 DMG 发行、签名/公证、外部 Codex/Hermes creative E2E 和 public release 仍未验证；Phase C 的内部
+darwin arm64/x64 native evidence 与 Phase D internal installer implementation 都不等于许可满足、公开 distribution 或
+公开支持政策。这些目标记录在
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
 [macOS 维护与发行目标](DESKTOP_APP_MACOS_MAINTENANCE.md)。Phase A 的受限 Workspace/Skill/doctor/Preview surface
 不进入或改变 current production authority。

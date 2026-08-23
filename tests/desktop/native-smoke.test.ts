@@ -367,7 +367,7 @@ test("native command failures are bounded and redact the Workspace root", async 
   });
 });
 
-test("native gate workflow is manual-only and runs one gate on both native architectures", async () => {
+test("native gate workflow remains manual-only and runs one gate on both native architectures", async () => {
   const [dispatchWorkflow, workflow, gate] = await Promise.all([
     readFile(".github/workflows/desktop-phase-b-native-gate.yml", "utf8"),
     readFile(".github/workflows/desktop-phase-c-native-gate.yml", "utf8"),
@@ -376,7 +376,7 @@ test("native gate workflow is manual-only and runs one gate on both native archi
   assert.match(dispatchWorkflow, /^on:\n {2}workflow_dispatch:\s*$/mu);
   assert.match(
     dispatchWorkflow,
-    /uses: \.\/\.github\/workflows\/desktop-phase-c-native-gate\.yml/u,
+    /uses: \.\/\.github\/workflows\/desktop-phase-d-unsigned-dmg\.yml/u,
   );
   assert.doesNotMatch(
     dispatchWorkflow,

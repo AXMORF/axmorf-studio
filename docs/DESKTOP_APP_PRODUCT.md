@@ -321,9 +321,11 @@ Apple Silicon 与真实 x86_64 runner 上完成目标原生 App/Runtime Pack/pro
 commit、workflow、artifact digest 与人工复核范围见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。该证据完成内部双架构
 native contract，不等于安装外部 Codex/Hermes 的 creative Workspace production proof，也不等于 installer 或公开发行。
 
-剩余产品差距包括外部 Codex/Hermes creative E2E、Remotion runtime binary redistribution 书面许可、DMG/installer、
-code signing/notarization、binary release、update channel 和长期 support policy。Phase A、Phase B 与 Phase C 均为
-`verified-complete`；后续路由以 [ROADMAP.md](ROADMAP.md) 为准。
+Phase D 已加入 internal/manual-only ordinary unsigned DMG builder、strict release manifest/SBOM input、安装说明与
+双架构 native workflow，但真实 artifact evidence 尚 pending；它不满足 Remotion runtime redistribution 许可 Gate，也不
+创建 public Release。剩余产品差距包括外部 Codex/Hermes creative E2E、Remotion 书面许可、Phase D 真实双架构 artifact
+closeout、code signing/notarization、binary release、update channel 和长期 support policy。Phase A、Phase B 与 Phase C
+均为 `verified-complete`；后续路由以 [ROADMAP.md](ROADMAP.md) 为准。
 
 ## 12. 后续产品完成门槛
 

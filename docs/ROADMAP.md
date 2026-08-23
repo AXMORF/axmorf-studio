@@ -66,7 +66,10 @@ redaction 和 package 后完整 repository gate 均 Green。该证据使用 test
 精确命令与边界见 [Desktop Phase C native gate](guides/DESKTOP_PHASE_C_NATIVE_GATE.md)。
 
 Roadmap 现进入第 4 项。公开 beta 的入口 Gate 是取得 Remotion runtime binary redistribution 书面确认；许可未关闭前
-不构建或发布公开 DMG。阶段继续遵守 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
+不得公开发布包含该 runtime 的 DMG。维护者可在明确授权下生成 internal/manual-only unsigned installer 技术证据，但
+该授权不满足许可 Gate、不产生 GitHub Release，也不能把 artifact 写成公开 beta。当前 Phase D installer implementation
+已完成、真实双架构 workflow artifact evidence pending；精确入口见
+[Desktop Phase D internal unsigned DMG](guides/DESKTOP_PHASE_D_UNSIGNED_DMG.md)。阶段继续遵守 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
 [macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)。
 
 1. unsigned prototype：建立 bundled Preview Player、只读多轨时间轴、Engine utility process、authenticated local
@@ -81,7 +84,8 @@ Roadmap 现进入第 4 项。公开 beta 的入口 Gate 是取得 Remotion runti
    Developer Program 并评估 Developer ID、notarization 与 signed auto-update。
 
 Phase 1–3 已在公开发行许可 Gate 关闭前完成内部实现和验证；未取得 Remotion 书面确认不得公开包含其 runtime 的
-DMG。Phase C 的内部 x64 native support evidence 不等于 installer、distribution 或公开支持政策。
+DMG。Phase C 的内部 x64 native support evidence 不等于 installer、distribution 或公开支持政策；Phase D 的
+internal installer artifact 也不等于许可、签名、公证或公开 Release。
 
 ## 后续候选
 

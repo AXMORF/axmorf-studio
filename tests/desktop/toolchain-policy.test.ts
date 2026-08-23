@@ -98,7 +98,7 @@ test("every Desktop Vite entry disables repository public copying", () => {
   );
 });
 
-test("Forge config has explicit entries and no release machinery", () => {
+test("Forge config has explicit entries and only the official DMG maker", () => {
   assert.equal(
     DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT,
     ".desktop-package-resources/workspace-integration",
@@ -131,7 +131,11 @@ test("Forge config has explicit entries and no release machinery", () => {
     { name: "main_window", config: "vite.desktop.renderer.config.ts" },
   ]);
   assert.equal(desktopVitePluginConfig.concurrent, false);
-  assert.deepEqual(forgeConfig.makers, []);
+  assert.equal(forgeConfig.makers?.length, 1);
+  assert.equal(
+    (forgeConfig.makers?.[0] as { readonly name?: string } | undefined)?.name,
+    "dmg",
+  );
   assert.deepEqual(forgeConfig.publishers, []);
   assert.equal(forgeConfig.packagerConfig?.appBundleId, DESKTOP_BUNDLE_ID);
   assert.equal(forgeConfig.packagerConfig?.name, DESKTOP_PRODUCT_NAME);
@@ -142,10 +146,7 @@ test("Forge config has explicit entries and no release machinery", () => {
     "desktop/compatibility.json",
     DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT,
   ]);
-  assert.equal(
-    forgeConfig.packagerConfig?.afterCopyExtraResources?.length,
-    1,
-  );
+  assert.equal(forgeConfig.packagerConfig?.afterCopyExtraResources?.length, 1);
   assert.equal(typeof forgeConfig.hooks?.generateAssets, "function");
 });
 
@@ -158,10 +159,7 @@ test("packaging keeps only the exact English and Simplified Chinese Electron loc
     await writeFile(join(root, locale, "locale.pak"), locale);
   }
   await pruneDesktopElectronLocales(root);
-  assert.deepEqual(
-    (await readdir(root)).sort(),
-    [...DESKTOP_ELECTRON_LOCALES],
-  );
+  assert.deepEqual((await readdir(root)).sort(), [...DESKTOP_ELECTRON_LOCALES]);
 });
 
 test("trusted bundled renderer denies privilege", () => {
@@ -282,9 +280,7 @@ test("Desktop build inventory is exact and rejects copied repository public data
     "desktop/resources/brand/axmorf-studio-icon.png",
     "desktop/resources/brand/axmorf-studio-icon.svg",
   ];
-  assert.doesNotThrow(() =>
-    assertPackagedApplicationInventory(packagedFiles),
-  );
+  assert.doesNotThrow(() => assertPackagedApplicationInventory(packagedFiles));
   assert.throws(
     () =>
       assertPackagedApplicationInventory([
@@ -396,17 +392,27 @@ test("packaged Workspace integration is an external exact curated tree", async (
 });
 
 test("Desktop build has no source-checkout locator or public release machinery", async () => {
-  await assert.rejects(() => readFile(join(process.cwd(), "scripts/desktop/repository-locator.ts"), "utf8"), /ENOENT/u);
-  assert.deepEqual(forgeConfig.makers, []);
+  await assert.rejects(
+    () =>
+      readFile(
+        join(process.cwd(), "scripts/desktop/repository-locator.ts"),
+        "utf8",
+      ),
+    /ENOENT/u,
+  );
+  assert.equal(forgeConfig.makers?.length, 1);
+  assert.equal(
+    (forgeConfig.makers?.[0] as { readonly name?: string } | undefined)?.name,
+    "dmg",
+  );
   assert.deepEqual(forgeConfig.publishers, []);
 });
 
-test("desktop package configuration has no maker, signing, notarization, or updater policy", async () => {
+test("desktop package configuration has no signing, notarization, updater, or publisher", async () => {
   const source = await readFile(join(process.cwd(), "forge.config.ts"), "utf8");
-  assert.doesNotMatch(
-    source,
-    /Maker[A-Z]|notari[sz]|osxSign|autoUpdater|publishers:\s*\[[^\]]+\]/u,
-  );
+  assert.match(source, /MakerDMG/u);
+  assert.doesNotMatch(source, /notari[sz]|osxSign|autoUpdater/u);
+  assert.match(source, /publishers:\s*\[\]/u);
 });
 
 test("managed production Skill uses UDS control and verified loopback-scoped Delivery", async () => {

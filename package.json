@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "@electron-forge/cli": "7.11.2",
+    "@electron-forge/maker-dmg": "7.11.2",
     "@electron-forge/plugin-vite": "7.11.2",
     "@eslint/eslintrc": "3.3.5",
     "@remotion/eslint-config-flat": "4.0.489",
@@ -73,6 +74,9 @@
     "desktop:runtime:inventory": "node --import tsx scripts/desktop/runtime-pack.ts inventory",
     "desktop:build:inventory": "node --import tsx scripts/desktop/build-inventory.ts",
     "desktop:sbom:input": "node --import tsx scripts/desktop/sbom-input.ts",
+    "desktop:dmg": "node --import tsx scripts/desktop/unsigned-release.ts build",
+    "desktop:release:verify": "node --import tsx scripts/desktop/unsigned-release.ts verify",
+    "desktop:release:validate-set": "node --import tsx scripts/desktop/unsigned-release.ts validate-set",
     "desktop:integration-smoke": "node --import tsx scripts/desktop/integration-smoke.ts",
     "desktop:native-fixture": "node --import tsx scripts/desktop/native-fixture.ts",
     "desktop:native:gate": "bash scripts/desktop/native-gate.sh",

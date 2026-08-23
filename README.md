@@ -66,9 +66,10 @@ Delivery 默认由用户手动触发，App 更新与 Workspace 数据分离。�
 [Desktop App 产品架构](docs/DESKTOP_APP_PRODUCT.md) 与
 [macOS 维护与发行](docs/DESKTOP_APP_MACOS_MAINTENANCE.md)。
 
-Phase B Workspace production 与 embedded Runtime Pack 已在 hosted Apple Silicon native gate 验证完成；该 gate 使用
-deterministic task executor，不等于已安装外部创作 Agent 的真实创意生产证明。当前能力仍不包括 Intel x64 native
-evidence、DMG、签名、公证或公开发行。下面的 npm 命令继续服务 repository contributor；精确完成状态只看
+Phase B Workspace production 与 Phase C arm64/真实 Intel x64 native gate 已验证完成；gate 使用 deterministic task
+executor，不等于已安装外部创作 Agent 的真实创意生产证明。Phase D 已实现 internal/manual-only ordinary unsigned DMG
+入口，但真实双架构 installer artifact evidence pending；Remotion redistribution 许可、签名、公证和公开发行仍未完成。
+下面的 npm 命令继续服务 repository contributor；精确完成状态只看
 [ITERATION_STATUS.md](docs/ITERATION_STATUS.md)。
 
 ## 快速开始
@@ -89,7 +90,7 @@ npm run check
 真实 Remotion、FFmpeg、Chromium 和 production preflight 首次直接使用宿主权限。不要通过降低 Chromium
 sandbox、预热 TTS 或 fallback output 获得 Green。
 
-## Desktop Phase B 开发验证
+## Desktop 开发与 installer 验证
 
 当前 `AXMORF Studio` 使用 embedded Runtime Pack、Workspace-owned production、authenticated `rsp-local-v2`、原生
 `<video>` 和只读 Scene/narration/caption 时间轴；它不启动或嵌入 Remotion Studio/Settings Web service。只有与
@@ -108,8 +109,10 @@ npm run desktop:package
 ```
 
 `desktop:package` 只生成本机架构的内部未签名 `.app` 开发证据，不生成 DMG。Phase B 的 Apple Silicon packaged
-production、manual/automatic Delivery、Preview Player 和 lifecycle cleanup 已验证；精确证据与未覆盖边界见
-[Iteration Status](docs/ITERATION_STATUS.md)。
+production 与 Phase C 双架构原生证据已验证。Phase D `desktop:dmg` 必须先取得同一 exact commit/architecture 的
+native gate evidence，随后重新构建 ordinary package、生成 DMG 并完成挂载/隔离安装验证；精确命令、artifact contract
+与未满足的许可/签名/公开发行边界见
+[Desktop Phase D internal unsigned DMG](docs/guides/DESKTOP_PHASE_D_UNSIGNED_DMG.md)。
 
 本地配置页：
 

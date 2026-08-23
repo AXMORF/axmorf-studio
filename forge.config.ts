@@ -1,7 +1,17 @@
+import MakerDMG from "@electron-forge/maker-dmg";
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import type { ForgeConfig } from "@electron-forge/shared-types";
+import { readFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { DesktopDarwinArchitectureSchema } from "./desktop/configuration/darwin-target";
+import {
+  DESKTOP_BUNDLE_ID,
+  DESKTOP_MINIMUM_MACOS_VERSION,
+  DESKTOP_PRODUCT_NAME,
+  createDesktopUnsignedDmgFileName,
+} from "./desktop/configuration/product";
 
 import { isDesktopPackagePathAllowed } from "./scripts/desktop/package-inventory";
 import { pruneDesktopElectronLocales } from "./scripts/desktop/electron-locales";
@@ -12,11 +22,20 @@ import {
 
 export { DESKTOP_PACKAGE_ALLOWED_ROOTS } from "./scripts/desktop/package-inventory";
 
-export const DESKTOP_PRODUCT_NAME = "AXMORF Studio" as const;
-export const DESKTOP_BUNDLE_ID = "com.axmorf.studio" as const;
+export {
+  DESKTOP_BUNDLE_ID,
+  DESKTOP_PRODUCT_NAME,
+} from "./desktop/configuration/product";
 
 const desktopPackageRoot = dirname(fileURLToPath(import.meta.url));
 const toPosixPath = (path: string) => path.split(sep).join("/");
+const desktopAppVersion = (
+  JSON.parse(
+    readFileSync(join(desktopPackageRoot, "package.json"), "utf8"),
+  ) as {
+    readonly version: string;
+  }
+).version;
 
 export const desktopPackageIgnore = (absolutePath: string) => {
   const repositoryPath = absolutePath.startsWith(`${desktopPackageRoot}${sep}`)
@@ -59,6 +78,9 @@ const config: ForgeConfig = {
     executableName: DESKTOP_PRODUCT_NAME,
     appBundleId: DESKTOP_BUNDLE_ID,
     appCategoryType: "public.app-category.video",
+    extendInfo: {
+      LSMinimumSystemVersion: DESKTOP_MINIMUM_MACOS_VERSION,
+    },
     icon: "desktop/resources/brand/axmorf-studio-icon",
     extraResource: [
       "desktop/runtime-pack",
@@ -88,11 +110,28 @@ const config: ForgeConfig = {
     ignore: desktopPackageIgnore,
   },
   rebuildConfig: {},
-  makers: [],
+  makers: [
+    new MakerDMG((rawArchitecture) => {
+      const architecture =
+        DesktopDarwinArchitectureSchema.parse(rawArchitecture);
+      const fileName = createDesktopUnsignedDmgFileName({
+        appVersion: desktopAppVersion,
+        architecture,
+      });
+      return {
+        name: fileName.slice(0, -".dmg".length),
+        title: `${DESKTOP_PRODUCT_NAME} ${desktopAppVersion} ${architecture} unsigned`,
+        format: "ULFO",
+        overwrite: true,
+      };
+    }),
+  ],
   publishers: [],
   hooks: {
     generateAssets: async () => {
-      await stageDesktopWorkspaceIntegration({ checkoutRoot: desktopPackageRoot });
+      await stageDesktopWorkspaceIntegration({
+        checkoutRoot: desktopPackageRoot,
+      });
     },
   },
   plugins: [new VitePlugin(desktopVitePluginConfig)],

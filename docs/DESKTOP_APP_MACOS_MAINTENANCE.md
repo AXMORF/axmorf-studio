@@ -2,7 +2,7 @@
 
 > 文档类型：macOS 维护与发行目标 authority
 >
-> 状态：`AXMORF Studio`、内置 Preview Player、单 Workspace Root、Codex/Hermes 首批支持、Electron、macOS 13+、arm64/x64、App-running lifecycle、完整离线 Runtime DMG、GitHub Releases 站外分发、首阶段无签名和手动更新已确认；Phase A、Phase B 与 Phase C native gates 均 verified complete，当前进入 Phase D unsigned public beta Gate
+> 状态：`AXMORF Studio`、内置 Preview Player、单 Workspace Root、Codex/Hermes 首批支持、Electron、macOS 13+、arm64/x64、App-running lifecycle、完整离线 Runtime DMG、GitHub Releases 站外分发、首阶段无签名和手动更新已确认；Phase A、Phase B 与 Phase C native gates 均 verified complete；Phase D internal installer implementation complete、native artifact evidence pending，公开发行许可 Gate 仍未满足
 >
 > 产品边界见 [Desktop App 与外部 Agent 产品架构](DESKTOP_APP_PRODUCT.md)，当前实现
 > 事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。
@@ -388,6 +388,10 @@ Phase C 已配置化支持 darwin arm64/x64 Runtime Pack、package 与 native ga
 App/production/Delivery/Preview/cleanup evidence，状态为 `verified-complete`。这表示 exact evidence commit 的内部
 darwin x64 native contract 已验证；不表示 DMG、签名、公证、auto-update、Hermes external-Agent production、
 distribution 或公开支持政策已完成。
+Phase D 当前代码已提供 ordinary unsigned DMG、strict manifest/SBOM input、挂载/隔离安装验证和 manual-only 双架构
+workflow，但在真实两个 native jobs 与 artifact 审计完成前只能写
+`implementation-complete-native-installer-evidence-pending`。即使 internal artifact Green，也不表示 Remotion
+redistribution 许可、Developer ID 签名、notarization、auto-update 或 public GitHub Release 已完成。
 精确 executable evidence 见 [ITERATION_STATUS.md](ITERATION_STATUS.md)；不得用 deterministic fixture 伪造
 Codex/Hermes creative E2E，也不得把内部 native evidence 写成发行证据。
 

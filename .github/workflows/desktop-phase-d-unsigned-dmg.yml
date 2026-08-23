@@ -1,0 +1,183 @@
+name: Desktop Phase D dual-architecture unsigned DMG
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-phase-d-unsigned-dmg-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native-installer:
+    name: macOS 15 ${{ matrix.architecture }} ordinary unsigned DMG
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: arm64
+            runner: macos-15
+          - architecture: x64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 300
+    steps:
+      - name: Checkout exact validation commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Install exact SEA-capable Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.1
+          cache: npm
+
+      - name: Configure architecture-scoped build roots
+        shell: bash
+        run: |
+          set -euo pipefail
+          gate_root="$RUNNER_TEMP/desktop-phase-d-${{ matrix.architecture }}-native-gate"
+          verification_root="$RUNNER_TEMP/desktop-phase-d-${{ matrix.architecture }}-installer-verification"
+          release_root="$RUNNER_TEMP/desktop-phase-d-${{ matrix.architecture }}-release"
+          {
+            echo "GATE_EVIDENCE_ROOT=$gate_root"
+            echo "INSTALLER_VERIFICATION_ROOT=$verification_root"
+            echo "RELEASE_ROOT=$release_root"
+            echo "TMPDIR=$RUNNER_TEMP"
+          } >>"$GITHUB_ENV"
+
+      - name: Install exact repository dependencies
+        run: npm ci
+
+      - name: Re-run exact native App, Runtime Pack, production, and repository gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/desktop/native-gate.sh \
+            --architecture "${{ matrix.architecture }}" \
+            --expected-commit "$GITHUB_SHA" \
+            --evidence-root "$GATE_EVIDENCE_ROOT"
+
+      - name: Rebuild and verify ordinary full unsigned DMG
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "${AXMORF_DESKTOP_NATIVE_GATE_BUILD:-}"
+          npm run desktop:dmg -- \
+            --architecture "${{ matrix.architecture }}" \
+            --expected-commit "$GITHUB_SHA" \
+            --native-evidence-root "$GATE_EVIDENCE_ROOT" \
+            --verification-root "$INSTALLER_VERIFICATION_ROOT" \
+            --release-root "$RELEASE_ROOT"
+          npm run desktop:release:verify -- --root "$RELEASE_ROOT"
+
+      - name: Assert release upload is installer-only and redacted
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find "$RELEASE_ROOT" -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ')" = 6
+          test -z "$(find "$RELEASE_ROOT" -mindepth 1 -maxdepth 1 ! -type f -print -quit)"
+          if find "$RELEASE_ROOT" -type f \( \
+            -name 'video.mp4' -o \
+            -name 'cover-4x3.png' -o \
+            -name 'cover-3x4.png' -o \
+            -iname '*token*' -o \
+            -iname '*credential*' -o \
+            -iname '*voice*' \
+          \) -print -quit | grep -q .; then
+            echo "desktop-phase-d-protected-file-leaked" >&2
+            exit 1
+          fi
+          if find "$RELEASE_ROOT" -type f \( -name '*.json' -o -name '*.md' -o -name '*.sha256' \) -print0 | \
+            xargs -0 grep -El \
+              'Bearer [A-Fa-f0-9]{32,}|visible-editable-token|voice_profile|/Users/runner/' \
+              >/dev/null; then
+            echo "desktop-phase-d-release-redaction-failed" >&2
+            exit 1
+          fi
+
+      - name: Upload architecture installer artifact
+        id: upload-architecture
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-phase-d-${{ matrix.architecture }}-unsigned-dmg-${{ github.run_id }}
+          path: ${{ env.RELEASE_ROOT }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+      - name: Record uploaded architecture artifact identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "artifact-id=${{ steps.upload-architecture.outputs.artifact-id }}"
+            echo "artifact-digest=${{ steps.upload-architecture.outputs.artifact-digest }}"
+            echo "artifact-url=${{ steps.upload-architecture.outputs.artifact-url }}"
+          } >>"$GITHUB_STEP_SUMMARY"
+
+  release-set:
+    name: Validate complete dual-architecture installer set
+    needs: native-installer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact validation commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Install exact SEA-capable Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.1
+          cache: npm
+
+      - name: Install exact repository dependencies
+        run: npm ci
+
+      - name: Download arm64 installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-phase-d-arm64-unsigned-dmg-${{ github.run_id }}
+          path: ${{ runner.temp }}/desktop-phase-d-release-set/arm64
+
+      - name: Download x64 installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-phase-d-x64-unsigned-dmg-${{ github.run_id }}
+          path: ${{ runner.temp }}/desktop-phase-d-release-set/x64
+
+      - name: Validate one commit, one appVersion, and both native architectures
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run desktop:release:validate-set -- \
+            --root "$RUNNER_TEMP/desktop-phase-d-release-set" \
+            --expected-commit "$GITHUB_SHA"
+
+      - name: Upload complete dual-architecture installer artifact
+        id: upload-release-set
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-phase-d-dual-unsigned-dmg-${{ github.run_id }}
+          path: ${{ runner.temp }}/desktop-phase-d-release-set
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+      - name: Record uploaded release-set identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "artifact-id=${{ steps.upload-release-set.outputs.artifact-id }}"
+            echo "artifact-digest=${{ steps.upload-release-set.outputs.artifact-digest }}"
+            echo "artifact-url=${{ steps.upload-release-set.outputs.artifact-url }}"
+          } >>"$GITHUB_STEP_SUMMARY"

@@ -170,7 +170,7 @@ Agent execution preferences 使用独立 strict contract 与 `0600` 原子存储
 Scene authoring 仍必须使用 repository-local `remotion-best-practices`，但 Skill 不能扩大 TaskSpec 或
 validator boundary。
 
-## 10. Desktop App Phase B 实现边界
+## 10. Desktop App Phase B/C 实现与 Phase D installer 边界
 
 `AXMORF Studio` 不建立第二条 production 主链。App shell、workspace-local `rsp`、外部 Agent 和现有 Engine
 按以下 ownership 连接：
@@ -206,8 +206,9 @@ App/Engine/Skill 更新在 active Attempt 期间禁止切换；Agent 写入 decl
 Desktop 当前报告 `productionAvailable: true`、`deliveryAvailable: true`。Runtime Pack checksum-bound 地携带 exact
 bundler/renderer 与必要的 Studio内部包，但不含 CLI、Studio Server或 launch surface；App不启动Studio。Delivery adapter
 只在单次 build 中为当前 disposable bundle/media 打开 `127.0.0.1` OS-ephemeral listener，UDS仍是唯一 control plane，
-并在 success/failure/cancel/shutdown 后关闭 listener、Chromium/FFmpeg 与 staging。exact commit
-`04ca57ed5b6469eb9bc4acd8c86829ca0222576a` 已通过 hosted macOS 15 arm64 packaged native gate；见
-[ITERATION_STATUS.md](ITERATION_STATUS.md)。该证据不覆盖 x64、DMG 或公开发行；产品与发行边界见
+并在 success/failure/cancel/shutdown 后关闭 listener、Chromium/FFmpeg 与 staging。Phase C 已在 hosted macOS 15
+arm64 与真实 Intel x64 runners 完成 packaged native gate；见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。Phase D
+installer 只把 ordinary package 装入对应单架构 unsigned DMG，并在不复制 production 主链的前提下复用该 gate；它不改变
+Workspace/production/Delivery authority。internal DMG implementation 不等于许可、签名、公证或公开发行；产品与发行边界见
 [DESKTOP_APP_PRODUCT.md](DESKTOP_APP_PRODUCT.md) 和
 [DESKTOP_APP_MACOS_MAINTENANCE.md](DESKTOP_APP_MACOS_MAINTENANCE.md)。
