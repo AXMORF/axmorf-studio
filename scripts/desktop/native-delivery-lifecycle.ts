@@ -327,7 +327,7 @@ export const createWorkspaceDeliveryLifecycle =
           "Stale Native Delivery ready evidence",
         );
         const changes = watch(gateRoot, {
-          persistent: false,
+          persistent: true,
           signal: event.signal,
         });
         const iterator = changes[Symbol.asyncIterator]();

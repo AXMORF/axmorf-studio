@@ -80,11 +80,13 @@ const writeAction = async (
 };
 
 test("ordinary Workspace Delivery lifecycle immediately continues without native gate surface", async () => {
-  const [source, engineBuild] = await Promise.all([
+  const [source, nativeSource, engineBuild] = await Promise.all([
     readFile("desktop/engine/workspace-delivery-lifecycle.ts", "utf8"),
+    readFile("scripts/desktop/native-delivery-lifecycle.ts", "utf8"),
     readFile("vite.desktop.engine.config.ts", "utf8"),
   ]);
   assert.equal(source.includes("native-gate"), false);
+  assert.match(nativeSource, /persistent:\s*true/u);
   assert.match(engineBuild, /\.\/workspace-delivery-lifecycle/u);
   assert.match(engineBuild, /scripts\/desktop\/native-delivery-lifecycle\.ts/u);
   const lifecycle = createOrdinaryLifecycle();
