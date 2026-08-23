@@ -25,6 +25,9 @@ import type {
 } from "./shell-controller";
 
 const ENGINE_RESPONSE_TIMEOUT_MS = 10_000;
+// Packaged initialization checksum-verifies the complete embedded Runtime Pack
+// before it can advertise capabilities, so it has a separate cold-start budget.
+const ENGINE_INITIALIZE_RESPONSE_TIMEOUT_MS = 60_000;
 const PREVIEW_CATALOG_RESPONSE_TIMEOUT_MS = 5 * 60_000;
 const DELIVERY_BUILD_RESPONSE_TIMEOUT_MS = 60 * 60_000;
 const SESSION_LIFETIME_MS = 12 * 60 * 60 * 1_000;
@@ -33,11 +36,13 @@ type EngineRequestType = MainToEngineMessage["type"];
 type EngineResponseType = EngineToMainMessage["type"];
 
 export const desktopEngineResponseTimeout = (type: EngineRequestType) =>
-  type === "refresh-preview-catalog"
-    ? PREVIEW_CATALOG_RESPONSE_TIMEOUT_MS
-    : type === "build-delivery"
-      ? DELIVERY_BUILD_RESPONSE_TIMEOUT_MS
-      : ENGINE_RESPONSE_TIMEOUT_MS;
+  type === "initialize"
+    ? ENGINE_INITIALIZE_RESPONSE_TIMEOUT_MS
+    : type === "refresh-preview-catalog"
+      ? PREVIEW_CATALOG_RESPONSE_TIMEOUT_MS
+      : type === "build-delivery"
+        ? DELIVERY_BUILD_RESPONSE_TIMEOUT_MS
+        : ENGINE_RESPONSE_TIMEOUT_MS;
 
 export type DesktopUtilityProcess = Readonly<{
   pid: number | undefined;
