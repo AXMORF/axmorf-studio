@@ -200,6 +200,7 @@ test("Workspace Remotion renderer confines proxy requests to the current loopbac
   const requestPrepare = async () => ({}) as never;
   const requestVerifyMaterialized = async () => undefined;
   const toolchain: WorkspaceRemotionToolchain = {
+    openBrowser: async () => ({ close: async () => undefined }),
     bundle: async ({ rootDir }) => join(rootDir, ".bundle"),
     selectComposition: async ({ id, port }) => {
       const originalRequestListener = (
@@ -414,6 +415,7 @@ test("Workspace Remotion renderer stages exact Workspace inputs and only binds t
     await listenOnce(config.host, port);
   };
   const toolchain: WorkspaceRemotionToolchain = {
+    openBrowser: async () => ({ close: async () => undefined }),
     bundle: async (options) => {
       bundles.push(options as Record<string, unknown>);
       assert.equal(options.enableCaching, false);
@@ -569,7 +571,17 @@ test("Workspace Remotion renderer restores the private port adapter and removes 
       hostsToTry: ["::"],
     });
   const portConfig = { getPortConfig: originalPortConfig };
+  let openedBrowsers = 0;
+  let closedBrowsers = 0;
   const toolchain: WorkspaceRemotionToolchain = {
+    openBrowser: async () => {
+      openedBrowsers += 1;
+      return {
+        close: async () => {
+          closedBrowsers += 1;
+        },
+      };
+    },
     bundle: async ({ rootDir }) => join(rootDir, ".bundle"),
     selectComposition: async ({ id }) => ({
       id,
@@ -625,6 +637,8 @@ test("Workspace Remotion renderer restores the private port adapter and removes 
     }),
     /fixture-render-failure/u,
   );
+  assert.equal(openedBrowsers, 2);
+  assert.equal(closedBrowsers, openedBrowsers);
   assert.equal(portConfig.getPortConfig, originalPortConfig);
   assert.deepEqual(await readdir(value.cacheRoot), []);
   await delivery.shutdown();
@@ -642,6 +656,7 @@ test("Workspace Remotion renderer fails closed after lifecycle rejects an actual
   const ready: number[] = [];
   const closed: number[] = [];
   const toolchain: WorkspaceRemotionToolchain = {
+    openBrowser: async () => ({ close: async () => undefined }),
     bundle: async ({ rootDir }) => join(rootDir, ".bundle"),
     selectComposition: async ({ id, port }) => {
       const config = portConfig.getPortConfig(false);
@@ -724,6 +739,7 @@ test("Workspace Remotion renderer shutdown aborts a listener before lifecycle re
   });
   let closedPort: number | null = null;
   const toolchain: WorkspaceRemotionToolchain = {
+    openBrowser: async () => ({ close: async () => undefined }),
     bundle: async ({ rootDir }) => join(rootDir, ".bundle"),
     selectComposition: async ({ id, port }) => {
       const config = portConfig.getPortConfig(false);

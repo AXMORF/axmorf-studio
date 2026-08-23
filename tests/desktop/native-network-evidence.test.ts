@@ -78,6 +78,30 @@ test("native network evidence permits one build-scoped loopback endpoint", () =>
   assert.equal(result.expectedListenerCount, 3);
 });
 
+test("native network evidence permits simultaneous ephemeral runtime listeners only during Delivery", () => {
+  const result = assertNativeNetworkEvidence({
+    samples: [
+      sample("idle-before"),
+      sample(
+        "manual-delivery",
+        [
+          { pid: 42, host: "127.0.0.1", port: 53_123 },
+          { pid: 42, host: "127.0.0.1", port: 53_124 },
+        ],
+        "2026-08-23T04:00:01.000Z",
+      ),
+      sample("idle-after-manual", [], "2026-08-23T04:00:02.000Z"),
+    ],
+    requiredActivePhases: ["manual-delivery"],
+    ephemeralPortRange: { first: 49_152, last: 65_535 },
+    expectedListenerEndpoints: [
+      { host: "127.0.0.1", port: 53_123 },
+    ],
+  });
+  assert.deepEqual(result.listenerPorts, [53_123, 53_124]);
+  assert.equal(result.expectedListenerCount, 1);
+});
+
 test("native network evidence rejects public, IPv6, fixed-range and out-of-scope listeners", () => {
   for (const listener of [
     { pid: 42, host: "0.0.0.0", port: 53123 },

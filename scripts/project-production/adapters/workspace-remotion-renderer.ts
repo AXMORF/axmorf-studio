@@ -70,9 +70,42 @@ type RendererOptions = Readonly<{
   binariesDirectory: string;
   logLevel: "error";
   chromeMode: "headless-shell";
+  puppeteerInstance: WorkspaceRemotionBrowser;
 }>;
 
 type CancelSignal = (callback: () => void) => void;
+
+type WorkspaceRemotionBrowser = Readonly<{
+  close: (options: Readonly<{ silent: true }>) => Promise<void>;
+}>;
+
+const cleanupWorkspaceRemotionScope = async ({
+  browser,
+  server,
+  listenerClosed,
+}: Readonly<{
+  browser: WorkspaceRemotionBrowser | null;
+  server: HttpServer | null;
+  listenerClosed: Promise<void>;
+}>) => {
+  const cleanupResults = await Promise.allSettled([
+    browser?.close({ silent: true }) ?? Promise.resolve(),
+    (async () => {
+      if (server?.listening) {
+        await new Promise<void>((resolvePromise) =>
+          server.close(() => resolvePromise()),
+        );
+      }
+      await listenerClosed;
+    })(),
+  ]);
+  const cleanupFailure = cleanupResults.find(
+    (result) => result.status === "rejected",
+  );
+  if (cleanupFailure?.status === "rejected") {
+    throw cleanupFailure.reason;
+  }
+};
 
 type WorkspaceVideoConfig = Readonly<{
   id: string;
@@ -85,6 +118,14 @@ type WorkspaceVideoConfig = Readonly<{
 }>;
 
 export type WorkspaceRemotionToolchain = Readonly<{
+  openBrowser: (
+    browser: "chrome",
+    options: Readonly<{
+      browserExecutable: string;
+      chromeMode: "headless-shell";
+      logLevel: "error";
+    }>,
+  ) => Promise<WorkspaceRemotionBrowser>;
   bundle: (options: BundleOptions) => Promise<string>;
   selectComposition: (
     options: RendererOptions,
@@ -288,7 +329,11 @@ const loadWorkspaceRemotionToolchain = async (
   const renderer = requireFromRuntime(rendererEntry) as Partial<
     Pick<
       WorkspaceRemotionToolchain,
-      "selectComposition" | "renderMedia" | "renderStill" | "makeCancelSignal"
+      | "openBrowser"
+      | "selectComposition"
+      | "renderMedia"
+      | "renderStill"
+      | "makeCancelSignal"
     >
   >;
   const portConfigPath = join(rendererRoot, "dist/port-config.js");
@@ -301,6 +346,7 @@ const loadWorkspaceRemotionToolchain = async (
   ) as WorkspaceRemotionToolchain["portConfig"];
   if (
     typeof bundler.bundle !== "function" ||
+    typeof renderer.openBrowser !== "function" ||
     typeof renderer.selectComposition !== "function" ||
     typeof renderer.renderMedia !== "function" ||
     typeof renderer.renderStill !== "function" ||
@@ -310,6 +356,7 @@ const loadWorkspaceRemotionToolchain = async (
     throw new Error("Runtime Pack Remotion tooling surface is incomplete.");
   }
   return {
+    openBrowser: renderer.openBrowser,
     bundle: bundler.bundle,
     selectComposition: renderer.selectComposition,
     renderMedia: renderer.renderMedia,
@@ -624,6 +671,7 @@ export const createWorkspaceRemotionRenderer = ({
           toolchain: WorkspaceRemotionToolchain,
           port: number,
           cancelSignal: CancelSignal,
+          browser: WorkspaceRemotionBrowser,
         ) => Promise<T>,
       ) => {
         if (stopped) throw new Error("Workspace Delivery runtime is stopped.");
@@ -640,6 +688,7 @@ export const createWorkspaceRemotionRenderer = ({
         activeAbortControllers.add(lifecycleAbort);
         activeScopeSettlements.add(scopeSettlement);
         const originalListen = HttpServer.prototype.listen;
+        let browser: WorkspaceRemotionBrowser | null = null;
         let matchingServer: HttpServer | null = null;
         const matchingServerRestorers: Array<() => void> = [];
         let listenerClosed: Promise<void> = Promise.resolve();
@@ -800,18 +849,27 @@ export const createWorkspaceRemotionRenderer = ({
             }) as typeof server.emit;
             return Reflect.apply(originalListen, server, args as never);
           } as typeof HttpServer.prototype.listen;
-          return await run(toolchain, port, cancellation.cancelSignal);
+          browser = await toolchain.openBrowser("chrome", {
+            browserExecutable: runtime.browserExecutable,
+            chromeMode: "headless-shell",
+            logLevel: "error",
+          });
+          return await run(
+            toolchain,
+            port,
+            cancellation.cancelSignal,
+            browser,
+          );
         } finally {
           try {
             lifecycleAbort.abort();
             cancellation.cancel();
             const server = matchingServer as HttpServer | null;
-            if (server?.listening) {
-              await new Promise<void>((resolvePromise) =>
-                server.close(() => resolvePromise()),
-              );
-            }
-            await listenerClosed;
+            await cleanupWorkspaceRemotionScope({
+              browser,
+              server,
+              listenerClosed,
+            });
           } finally {
             for (const restore of matchingServerRestorers) restore();
             activeCancels.delete(cancellation.cancel);
@@ -827,6 +885,7 @@ export const createWorkspaceRemotionRenderer = ({
         serveUrl: string,
         id: string,
         port: number,
+        browser: WorkspaceRemotionBrowser,
       ) => ({
         serveUrl,
         id,
@@ -836,11 +895,12 @@ export const createWorkspaceRemotionRenderer = ({
         binariesDirectory: runtime.binariesDirectory,
         logLevel: "error" as const,
         chromeMode: "headless-shell" as const,
+        puppeteerInstance: browser,
       });
       const select = (serveUrl: string, id: string) =>
-        withLoopback((toolchain, port) =>
+        withLoopback((toolchain, port, _cancelSignal, browser) =>
           toolchain.selectComposition(
-            commonRendererOptions(serveUrl, id, port),
+            commonRendererOptions(serveUrl, id, port, browser),
           ),
         );
       const renderVideo = async ({
@@ -854,9 +914,9 @@ export const createWorkspaceRemotionRenderer = ({
           join(root, "src", VIDEO_ENTRY_NAME),
         );
         const composition = await select(serveUrl, compositionId);
-        await withLoopback((toolchain, port, cancelSignal) =>
+        await withLoopback((toolchain, port, cancelSignal, browser) =>
           toolchain.renderMedia({
-            ...commonRendererOptions(serveUrl, compositionId, port),
+            ...commonRendererOptions(serveUrl, compositionId, port, browser),
             composition,
             outputLocation: outputPath,
             codec: "h264",
@@ -883,9 +943,9 @@ export const createWorkspaceRemotionRenderer = ({
           ),
         );
         const composition = await select(serveUrl, compositionId);
-        await withLoopback((toolchain, port, cancelSignal) =>
+        await withLoopback((toolchain, port, cancelSignal, browser) =>
           toolchain.renderStill({
-            ...commonRendererOptions(serveUrl, compositionId, port),
+            ...commonRendererOptions(serveUrl, compositionId, port, browser),
             composition,
             output: outputPath,
             imageFormat: "png",

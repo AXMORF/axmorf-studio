@@ -213,8 +213,11 @@ const assertSample = (sample: NativeNetworkEvidenceSample) => {
   if (processIds.size !== sample.processes.length) {
     throw evidenceError("process-duplicate");
   }
-  if (sample.listeners.length > 1) {
-    throw evidenceError("listener-count-invalid");
+  const listeners = new Set(
+    sample.listeners.map(({ pid, host, port }) => `${pid}:${host}:${port}`),
+  );
+  if (listeners.size !== sample.listeners.length) {
+    throw evidenceError("listener-duplicate");
   }
   for (const listener of sample.listeners) {
     if (!processIds.has(listener.pid)) {
