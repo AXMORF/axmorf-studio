@@ -333,6 +333,14 @@ test("Runtime executable probe is bounded and does not inherit host environment"
   await writeFile(executable, '#!/bin/sh\nif [ -n "${RSP_PROBE_SECRET:-}" ]; then exit 9; fi\necho runtime-v1\n');
   await chmod(executable, 0o755);
   assert.equal(await probeRuntimeExecutable({ executable }), "runtime-v1");
+
+  const failed = join(root, "failed-probe");
+  await writeFile(failed, "#!/bin/sh\necho incompatible-runtime >&2\nexit 9\n");
+  await chmod(failed, 0o755);
+  await assert.rejects(
+    () => probeRuntimeExecutable({ executable: failed }),
+    /failed-probe \(exit 9; incompatible-runtime\)/u,
+  );
 });
 
 test("native Runtime Pack build refuses a non-Apple-Silicon host", async () => {

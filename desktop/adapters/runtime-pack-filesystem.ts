@@ -11,7 +11,7 @@ import {
   rm,
   writeFile,
 } from "node:fs/promises";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 
 import {
   DesktopCompatibilityManifestSchema,
@@ -287,10 +287,18 @@ export const probeRuntimeExecutable = ({
       else chunks.push(Buffer.from(chunk));
     });
     child.once("error", (error) => { clearTimeout(timer); reject(error); });
-    child.once("exit", (code) => {
+    child.once("exit", (code, signal) => {
       clearTimeout(timer);
       const output = Buffer.concat(chunks).toString("utf8").trim();
-      if (code !== 0 || output === "" || size > 64 * 1024) reject(new Error("Runtime executable identity probe failed."));
+      if (code !== 0 || output === "" || size > 64 * 1024) {
+        const status = signal === null ? `exit ${code}` : `signal ${signal}`;
+        const detail = output.split(/\r?\n/u)[0]?.slice(0, 160) || "no output";
+        reject(
+          new Error(
+            `Runtime executable identity probe failed for ${basename(executable)} (${status}; ${detail}).`,
+          ),
+        );
+      }
       else resolvePromise(output.split(/\r?\n/u)[0]!.slice(0, 160));
     });
   });
