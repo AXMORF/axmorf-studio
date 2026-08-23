@@ -109,6 +109,17 @@ export const DESKTOP_RENDER_SOURCE_PACKAGES = Object.freeze([
 export const DESKTOP_FORBIDDEN_RUNTIME_PACKAGES =
   DESKTOP_UNSUPPORTED_REMOTION_PACKAGES;
 
+export const DESKTOP_COMPOSITOR_RUNTIME_FILES = Object.freeze([
+  "libavcodec.dylib",
+  "libavdevice.dylib",
+  "libavfilter.dylib",
+  "libavformat.dylib",
+  "libavutil.dylib",
+  "libswresample.dylib",
+  "libswscale.dylib",
+  "remotion",
+] as const);
+
 const forbiddenRuntimePackages = new Set<string>(
   DESKTOP_FORBIDDEN_RUNTIME_PACKAGES,
 );
@@ -358,8 +369,8 @@ export const buildDesktopRuntimePack = async ({ outputRoot = join(process.cwd(),
     const ffmpeg = join(compositorRoot, "ffmpeg"); const ffprobe = join(compositorRoot, "ffprobe");
     const [browserVersion, ffmpegVersion, ffprobeVersion, nodeVersion] = await Promise.all([
       probeRuntimeExecutable({ executable: browserExecutable }),
-      probeRuntimeExecutable({ executable: ffmpeg, args: ["-version"] }),
-      probeRuntimeExecutable({ executable: ffprobe, args: ["-version"] }),
+      probeRuntimeExecutable({ executable: ffmpeg, args: ["-version"], dynamicLibraryDirectory: compositorRoot }),
+      probeRuntimeExecutable({ executable: ffprobe, args: ["-version"], dynamicLibraryDirectory: compositorRoot }),
       probeRuntimeExecutable({ executable: process.execPath }),
     ]);
     const rsp = await buildRspSea(temporary);
@@ -374,8 +385,23 @@ export const buildDesktopRuntimePack = async ({ outputRoot = join(process.cwd(),
       ...(await collectFiles(join(process.cwd(), "desktop/resources/workspace-integration/assets"), "shared-assets")),
       ...moduleClosure.files,
     ];
+    const compositorFiles = await Promise.all(
+      DESKTOP_COMPOSITOR_RUNTIME_FILES.map(async (name) => {
+        const source = join(compositorRoot, name);
+        const metadata = await lstat(source);
+        if (!metadata.isFile() || metadata.isSymbolicLink()) {
+          throw new Error(`Runtime compositor file is unsafe: ${name}.`);
+        }
+        return {
+          source,
+          relativePath: `bin/${name}`,
+          executable: (metadata.mode & 0o111) !== 0,
+        };
+      }),
+    );
     const additionalFiles = [
       ...browserFiles.filter(({ relativePath }) => relativePath !== browserExecutableRelative),
+      ...compositorFiles,
       ...sourceFiles,
     ]
       .sort((a, b) => a.relativePath.localeCompare(b.relativePath));

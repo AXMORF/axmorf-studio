@@ -18,7 +18,7 @@ import {
 } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
-import { runMediaProcess } from "../../shared/media-process";
+import { runMediaProcessWithEnvironment } from "../../shared/media-process";
 import type { ProcessRunner } from "../../shared/process";
 import type {
   ProductionLocations,
@@ -363,7 +363,9 @@ const createEmbeddedProcessRunner =
         : command === "ffprobe"
           ? runtime.ffprobeExecutable
           : command;
-    return runMediaProcess(executable, args);
+    return runMediaProcessWithEnvironment(executable, args, {
+      DYLD_LIBRARY_PATH: runtime.binariesDirectory,
+    });
   };
 
 const assertBoundAuthority = ({

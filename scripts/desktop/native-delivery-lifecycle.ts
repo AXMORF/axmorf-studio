@@ -331,7 +331,6 @@ export const createWorkspaceDeliveryLifecycle =
           signal: event.signal,
         });
         const iterator = changes[Symbol.asyncIterator]();
-        let pendingChange = iterator.next();
         active = { event, gateRoot, identity };
         try {
           await atomicWriteJson({
@@ -343,11 +342,10 @@ export const createWorkspaceDeliveryLifecycle =
           while (true) {
             const decision = await readAction(actionPath, identity.sequence);
             if (decision !== null) return decision;
-            const change = await pendingChange;
+            const change = await iterator.next();
             if (change.done) {
               throw new Error("Native Delivery action watcher closed.");
             }
-            pendingChange = iterator.next();
           }
         } finally {
           await iterator.return?.();

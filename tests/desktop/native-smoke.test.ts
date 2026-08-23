@@ -168,6 +168,7 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
   assert.match(runner, /task commit/u);
   assert.match(runner, /delivery build/u);
   assert.match(runner, /assert_exact_delivery/u);
+  assert.match(runner, /DYLD_LIBRARY_PATH="\$runtime_bin"/u);
   assert.match(runner, /\.rsp\/current\/source\/desktop-native-fixture\.json/u);
   assert.match(runner, /drive_production manual[\s\S]*manual/u);
   assert.match(runner, /drive_production automatic[\s\S]*automatic/u);

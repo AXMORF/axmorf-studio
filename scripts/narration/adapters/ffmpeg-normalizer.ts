@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { isAbsolute, join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 
 import {
   CANONICAL_NARRATION_PCM,
@@ -19,9 +19,16 @@ export type ProcessRunner = (
   args: readonly string[],
 ) => Promise<ProcessResult>;
 
-const runProcess: ProcessRunner = (command, args) =>
-  new Promise((resolve, reject) => {
-    const child = spawn(command, [...args], { shell: false });
+const runProcess = (
+  command: string,
+  args: readonly string[],
+  environment: NodeJS.ProcessEnv | undefined,
+) =>
+  new Promise<ProcessResult>((resolve, reject) => {
+    const child = spawn(command, [...args], {
+      env: environment,
+      shell: false,
+    });
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
     child.stdout.on("data", (chunk: Buffer | Uint8Array) => {
@@ -40,7 +47,8 @@ const runProcess: ProcessRunner = (command, args) =>
     });
   });
 
-export const runHostProcess: ProcessRunner = runProcess;
+export const runHostProcess: ProcessRunner = (command, args) =>
+  runProcess(command, args, undefined);
 
 export const createExecutableProcessRunner = (
   executable: string,
@@ -48,7 +56,14 @@ export const createExecutableProcessRunner = (
   if (!isAbsolute(executable)) {
     throw new Error("Media process executable must be absolute.");
   }
-  return (_command, args) => runProcess(executable, args);
+  return (_command, args) =>
+    runProcess(
+      executable,
+      args,
+      process.platform === "darwin"
+        ? { DYLD_LIBRARY_PATH: dirname(executable) }
+        : undefined,
+    );
 };
 
 export const normalizeProviderAudio = async ({

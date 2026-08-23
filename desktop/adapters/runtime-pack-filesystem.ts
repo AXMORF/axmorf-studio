@@ -262,15 +262,20 @@ export const locateEmbeddedRuntimePack = (appResourcesRoot: string) =>
 export const probeRuntimeExecutable = ({
   executable,
   args = ["--version"],
+  dynamicLibraryDirectory,
   timeoutMs = 10_000,
 }: {
   readonly executable: string;
   readonly args?: readonly string[];
+  readonly dynamicLibraryDirectory?: string;
   readonly timeoutMs?: number;
 }) =>
   new Promise<string>((resolvePromise, reject) => {
     const child = spawn(resolve(executable), [...args], {
-      env: {},
+      env:
+        dynamicLibraryDirectory === undefined
+          ? {}
+          : { DYLD_LIBRARY_PATH: resolve(dynamicLibraryDirectory) },
       stdio: ["ignore", "pipe", "pipe"],
     });
     const chunks: Buffer[] = [];

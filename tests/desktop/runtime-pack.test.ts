@@ -27,6 +27,7 @@ import {
 } from "../../desktop/contracts/runtime-pack";
 import {
   DESKTOP_FORBIDDEN_RUNTIME_PACKAGES,
+  DESKTOP_COMPOSITOR_RUNTIME_FILES,
   DESKTOP_RENDER_SOURCE_PACKAGES,
   buildDesktopRuntimePack,
   collectDesktopProductionModuleClosure,
@@ -341,6 +342,21 @@ test("Runtime executable probe is bounded and does not inherit host environment"
     () => probeRuntimeExecutable({ executable: failed }),
     /failed-probe \(exit 9; incompatible-runtime\)/u,
   );
+
+  const dynamic = join(root, "dynamic-probe");
+  await writeFile(
+    dynamic,
+    '#!/bin/sh\nif [ "$DYLD_LIBRARY_PATH" != "$1" ] || [ -n "${RSP_PROBE_SECRET:-}" ]; then exit 8; fi\necho dynamic-runtime\n',
+  );
+  await chmod(dynamic, 0o755);
+  assert.equal(
+    await probeRuntimeExecutable({
+      executable: dynamic,
+      args: [root],
+      dynamicLibraryDirectory: root,
+    }),
+    "dynamic-runtime",
+  );
 });
 
 test("native Runtime Pack build refuses a non-Apple-Silicon host", async () => {
@@ -349,6 +365,16 @@ test("native Runtime Pack build refuses a non-Apple-Silicon host", async () => {
 });
 
 test("Runtime Pack source closure is explicit and excludes native fixtures", () => {
+  assert.deepEqual(DESKTOP_COMPOSITOR_RUNTIME_FILES, [
+    "libavcodec.dylib",
+    "libavdevice.dylib",
+    "libavfilter.dylib",
+    "libavformat.dylib",
+    "libavutil.dylib",
+    "libswresample.dylib",
+    "libswscale.dylib",
+    "remotion",
+  ]);
   const paths = listDesktopRuntimeSourcePaths();
   const pathSet = new Set<string>(paths);
   for (const required of [

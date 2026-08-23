@@ -182,14 +182,14 @@ assert_exact_delivery() {
     test -f "$path" && test ! -L "$path"
   done < <(find "$delivery" -mindepth 1 -maxdepth 1 -print)
 
-  "$runtime_bin/ffprobe" -v error -count_frames \
+  DYLD_LIBRARY_PATH="$runtime_bin" "$runtime_bin/ffprobe" -v error -count_frames \
     -show_entries stream=codec_type,codec_name,channels,width,height,r_frame_rate,nb_read_frames \
     -of json "$delivery/video.mp4" >"$output_root/video-probe.json"
-  "$runtime_bin/ffmpeg" -v error -xerror -i "$delivery/video.mp4" \
+  DYLD_LIBRARY_PATH="$runtime_bin" "$runtime_bin/ffmpeg" -v error -xerror -i "$delivery/video.mp4" \
     -f null -
-  "$runtime_bin/ffmpeg" -v error -xerror -i "$delivery/cover-4x3.png" \
+  DYLD_LIBRARY_PATH="$runtime_bin" "$runtime_bin/ffmpeg" -v error -xerror -i "$delivery/cover-4x3.png" \
     -f null -
-  "$runtime_bin/ffmpeg" -v error -xerror -i "$delivery/cover-3x4.png" \
+  DYLD_LIBRARY_PATH="$runtime_bin" "$runtime_bin/ffmpeg" -v error -xerror -i "$delivery/cover-3x4.png" \
     -f null -
   "$host_node" -e '
     const crypto = require("crypto");

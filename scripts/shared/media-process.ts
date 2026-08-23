@@ -1,18 +1,23 @@
 import { spawn } from "node:child_process";
 import { basename } from "node:path";
 
-import type { ProcessRunner } from "./process";
+import type { ProcessResult, ProcessRunner } from "./process";
 
 const ALLOWED_MEDIA_EXECUTABLES = new Set(["ffmpeg", "ffprobe", "remotion"]);
 
-export const runMediaProcess: ProcessRunner = (command, args) => {
+export const runMediaProcessWithEnvironment = (
+  command: string,
+  args: readonly string[],
+  environment: NodeJS.ProcessEnv | undefined,
+) => {
   if (!ALLOWED_MEDIA_EXECUTABLES.has(basename(command))) {
     throw new Error(
       "Media process adapter only permits Remotion and FFmpeg tools.",
     );
   }
-  return new Promise((resolve, reject) => {
+  return new Promise<ProcessResult>((resolve, reject) => {
     const child = spawn(command, [...args], {
+      env: environment,
       shell: false,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -32,3 +37,6 @@ export const runMediaProcess: ProcessRunner = (command, args) => {
     );
   });
 };
+
+export const runMediaProcess: ProcessRunner = (command, args) =>
+  runMediaProcessWithEnvironment(command, args, undefined);
