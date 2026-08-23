@@ -9,7 +9,10 @@ const nodeExternals = [
   ...builtinModules.map((module) => `node:${module}`),
 ];
 
-const prettierEsmEntry = resolve(process.cwd(), "node_modules/prettier/index.mjs");
+const prettierEsmEntry = resolve(
+  process.cwd(),
+  "node_modules/prettier/index.mjs",
+);
 const prettierEsmHeader = `import { createRequire as __prettierCreateRequire } from "module";
 import { fileURLToPath as __prettierFileUrlToPath } from "url";
 import { dirname as __prettierDirname } from "path";
@@ -38,7 +41,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: [
-      ...(process.env.AXMORF_PHASE_B_NATIVE_GATE_BUILD === "1"
+      ...(process.env.AXMORF_DESKTOP_NATIVE_GATE_BUILD === "1"
         ? [
             {
               find: "./workspace-command-diagnostic-port",

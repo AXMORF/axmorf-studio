@@ -1,29 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ "$(uname -s)" != "Darwin" || "$(uname -m)" != "arm64" ]]; then
-  echo "desktop-phase-b-native-gate-requires-darwin-arm64" >&2
-  exit 1
-fi
-
 app_path=${1:?packaged .app path is required}
 evidence_root=${2:?evidence root is required}
 repository_root=${3:-$(pwd)}
+expected_architecture=${4:?expected architecture is required}
 app_executable="$app_path/Contents/MacOS/AXMORF Studio"
 host_node=$(command -v node)
 runtime_bin="$app_path/Contents/Resources/runtime-pack/bin"
 network_evidence="$repository_root/scripts/desktop/native-network-evidence.ts"
+architecture_evidence="$repository_root/scripts/desktop/native-architecture-evidence.ts"
 if [[
+  "$(uname -s)" != "Darwin" ||
   ! -x "$app_executable" ||
   ! -x "$host_node" ||
   ! -x "$runtime_bin/ffmpeg" ||
   ! -x "$runtime_bin/ffprobe" ||
-  ! -f "$network_evidence"
+  ! -f "$network_evidence" ||
+  ! -f "$architecture_evidence"
 ]]; then
-  echo "desktop-phase-b-native-gate-input-missing" >&2
+  echo "desktop-native-gate-input-invalid" >&2
   exit 1
 fi
 mkdir -p "$evidence_root"
+"$host_node" --import tsx "$architecture_evidence" assert-host \
+  --architecture "$expected_architecture" \
+  --output "$evidence_root/host-native-identity.json"
+"$host_node" --import tsx "$architecture_evidence" assert-package \
+  --architecture "$expected_architecture" \
+  --app "$app_path" \
+  --output "$evidence_root/package-native-identity.json"
 
 app_process_running() {
   local app_pid=$1
@@ -245,17 +251,17 @@ launch_app() {
   local selection=$4
   local user_data_root="$home_root/Library/Application Support/com.axmorf.studio"
   local app_log
-  app_log=$(mktemp -t axmorf-phase-b-native-app.XXXXXX)
+  app_log=$(mktemp -t axmorf-desktop-native-app.XXXXXX)
   mkdir -p "$home_root" "$workspace_root" "$output_root" "$user_data_root"
   env \
     HOME="$home_root" \
-    PATH=/usr/bin:/bin \
-    AXMORF_PHASE_B_NATIVE_GATE=1 \
-    AXMORF_PHASE_B_SMOKE_HOME="$home_root" \
-    AXMORF_PHASE_B_SMOKE_OUTPUT="$output_root" \
-    AXMORF_PHASE_B_SMOKE_SELECTION="$selection" \
-    AXMORF_PHASE_B_SMOKE_USER_DATA="$user_data_root" \
-    AXMORF_PHASE_B_SMOKE_WORKSPACE="$workspace_root" \
+    PATH="$runtime_host_tools_path" \
+    AXMORF_DESKTOP_NATIVE_GATE=1 \
+    AXMORF_DESKTOP_SMOKE_HOME="$home_root" \
+    AXMORF_DESKTOP_SMOKE_OUTPUT="$output_root" \
+    AXMORF_DESKTOP_SMOKE_SELECTION="$selection" \
+    AXMORF_DESKTOP_SMOKE_USER_DATA="$user_data_root" \
+    AXMORF_DESKTOP_SMOKE_WORKSPACE="$workspace_root" \
     GITHUB_SHA="${GITHUB_SHA:-local-unverified}" \
     "$app_executable" >"$app_log" 2>&1 &
   LAUNCHED_APP_PID=$!
@@ -276,18 +282,18 @@ run_second_instance_probe() {
   local output_root=$3
   local user_data_root="$home_root/Library/Application Support/com.axmorf.studio"
   local second_instance_log
-  second_instance_log=$(mktemp -t axmorf-phase-b-second-instance.XXXXXX)
+  second_instance_log=$(mktemp -t axmorf-desktop-second-instance.XXXXXX)
   env \
     HOME="$home_root" \
-    PATH=/usr/bin:/bin \
-    AXMORF_PHASE_B_NATIVE_GATE=1 \
-    AXMORF_PHASE_B_SMOKE_HOME="$home_root" \
-    AXMORF_PHASE_B_SMOKE_OUTPUT="$output_root" \
-    AXMORF_PHASE_B_SMOKE_SELECTION=custom \
-    AXMORF_PHASE_B_SMOKE_USER_DATA="$user_data_root" \
-    AXMORF_PHASE_B_SMOKE_WORKSPACE="$workspace_root" \
+    PATH="$runtime_host_tools_path" \
+    AXMORF_DESKTOP_NATIVE_GATE=1 \
+    AXMORF_DESKTOP_SMOKE_HOME="$home_root" \
+    AXMORF_DESKTOP_SMOKE_OUTPUT="$output_root" \
+    AXMORF_DESKTOP_SMOKE_SELECTION=custom \
+    AXMORF_DESKTOP_SMOKE_USER_DATA="$user_data_root" \
+    AXMORF_DESKTOP_SMOKE_WORKSPACE="$workspace_root" \
     GITHUB_SHA="${GITHUB_SHA:-local-unverified}" \
-    "$app_executable" --phase-b-second-instance \
+    "$app_executable" --desktop-native-second-instance \
       >"$second_instance_log" 2>&1 &
   local second_instance_pid=$!
   local remaining=300
@@ -521,8 +527,8 @@ drive_production() {
   "$host_node" -e '
     const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
     const expectedNetwork = {controlPlane:"authenticated-unix-domain-socket-only",persistentTcpListeners:false,deliveryBuildListener:{transport:"http",host:"127.0.0.1",portAllocation:"os-ephemeral",scope:"delivery-build"}};
-    if (value.protocolVersion !== "rsp-local-v2" || value.adapterMode !== "workspace" || value.runtimePackMode !== "embedded" || value.runtimePack.architecture !== "arm64" || JSON.stringify(value.network) !== JSON.stringify(expectedNetwork) || !value.productionAvailable || !value.deliveryAvailable || value.deliveryBlocker !== null || !value.runtimePackAvailable || value.distributionReady || value.provider !== "ready") process.exit(1);
-  ' "$output_root/doctor.json"
+    if (value.protocolVersion !== "rsp-local-v2" || value.adapterMode !== "workspace" || value.runtimePackMode !== "embedded" || value.runtimePack.architecture !== process.argv[2] || JSON.stringify(value.network) !== JSON.stringify(expectedNetwork) || !value.productionAvailable || !value.deliveryAvailable || value.deliveryBlocker !== null || !value.runtimePackAvailable || value.distributionReady || value.provider !== "ready") process.exit(1);
+  ' "$output_root/doctor.json" "$expected_architecture"
 
   local token="$workspace_root/.rsp/session/token"
   local saved_token="$gate_runtime_root/$label-session-token.backup"
@@ -692,14 +698,16 @@ drive_production() {
   ' "$output_root/lifecycle.json"
 }
 
-gate_runtime_root=$(mktemp -d "${TMPDIR:-/tmp}/axmorf-phase-b-native.XXXXXX")
+gate_runtime_root=$(mktemp -d "${TMPDIR:-/tmp}/axmorf-desktop-native.XXXXXX")
 case "$gate_runtime_root" in
-  "${TMPDIR:-/tmp}"/axmorf-phase-b-native.*) ;;
+  "${TMPDIR:-/tmp}"/axmorf-desktop-native.*) ;;
   *)
-    echo "desktop-phase-b-native-gate-temp-root-invalid" >&2
+    echo "desktop-native-gate-temp-root-invalid" >&2
     exit 1
     ;;
 esac
+runtime_host_tools_path="$gate_runtime_root/no-host-tools"
+mkdir -p "$runtime_host_tools_path"
 cleanup_gate_runtime_root() {
   for pair in \
     "manual:${manual_workspace:-}" \
@@ -787,6 +795,28 @@ for required in \
   test -f "$manual_workspace/$required"
 done
 
-printf '%s\n' \
-  '{"contractVersion":"desktop-phase-b-native-runner-v1","status":"native-evidence-complete","sourceCurrent":true,"nativeProductionEvidence":true,"deliveryBuilt":true,"manualDeliveryTested":true,"automaticDeliveryTested":true,"failureCleanupTested":true,"quitCleanupTested":true,"loopbackListenerVerified":true,"processCleanupVerified":true,"sessionCleanupVerified":true,"stagingCleanupVerified":true,"reopen":true,"fixtureOrDeliveryUploaded":false}' \
-  >"$evidence_root/runner-summary.json"
+"$host_node" -e '
+  const fs = require("fs");
+  fs.writeFileSync(process.argv[1], `${JSON.stringify({
+    contractVersion: "desktop-native-runner-v2",
+    status: "native-evidence-complete",
+    architecture: process.argv[2],
+    sourceCurrent: true,
+    nativeProductionEvidence: true,
+    deterministicFixture: true,
+    externalCreativeAgentTested: false,
+    offlineRuntimeTested: true,
+    hostToolsRequiredAtRuntime: false,
+    deliveryBuilt: true,
+    manualDeliveryTested: true,
+    automaticDeliveryTested: true,
+    failureCleanupTested: true,
+    quitCleanupTested: true,
+    loopbackListenerVerified: true,
+    processCleanupVerified: true,
+    sessionCleanupVerified: true,
+    stagingCleanupVerified: true,
+    reopen: true,
+    fixtureOrDeliveryUploaded: false,
+  })}\n`, {flag: "wx", mode: 0o600});
+' "$evidence_root/runner-summary.json" "$expected_architecture"

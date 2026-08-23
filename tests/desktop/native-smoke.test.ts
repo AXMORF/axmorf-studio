@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
+import { getDesktopDarwinTarget } from "../../desktop/configuration/darwin-target";
 import {
   createNativeSmokePrivateConfigCrypto,
   resolveNativeSmokeOptions,
@@ -36,7 +37,7 @@ const resolveTestCompositorRoot = () =>
   dirname(
     require.resolve(
       process.platform === "darwin"
-        ? "@remotion/compositor-darwin-arm64/package.json"
+        ? getDesktopDarwinTarget(process.arch).compositorPackageJson
         : "@remotion/compositor-linux-x64-gnu/package.json",
     ),
   );
@@ -172,7 +173,7 @@ test("native test provider writes the source-local narration preparation receipt
   );
 });
 
-test("native smoke activation is packaged Apple Silicon CI only", () => {
+test("native smoke activation is packaged native macOS only for either supported architecture", () => {
   assert.equal(
     resolveNativeSmokeOptions({
       isPackaged: true,
@@ -188,12 +189,34 @@ test("native smoke activation is packaged Apple Silicon CI only", () => {
       platform: "darwin",
       arch: "arm64",
       env: {
-        AXMORF_PHASE_B_NATIVE_GATE: "1",
-        AXMORF_PHASE_B_SMOKE_HOME: "/tmp/home",
-        AXMORF_PHASE_B_SMOKE_OUTPUT: "/tmp/evidence",
-        AXMORF_PHASE_B_SMOKE_SELECTION: "custom",
-        AXMORF_PHASE_B_SMOKE_USER_DATA: "/tmp/user-data",
-        AXMORF_PHASE_B_SMOKE_WORKSPACE: "/tmp/workspace",
+        AXMORF_DESKTOP_NATIVE_GATE: "1",
+        AXMORF_DESKTOP_SMOKE_HOME: "/tmp/home",
+        AXMORF_DESKTOP_SMOKE_OUTPUT: "/tmp/evidence",
+        AXMORF_DESKTOP_SMOKE_SELECTION: "custom",
+        AXMORF_DESKTOP_SMOKE_USER_DATA: "/tmp/user-data",
+        AXMORF_DESKTOP_SMOKE_WORKSPACE: "/tmp/workspace",
+      },
+    }),
+    {
+      homeRoot: "/tmp/home",
+      outputRoot: "/tmp/evidence",
+      selection: "custom",
+      userDataRoot: "/tmp/user-data",
+      workspaceRoot: "/tmp/workspace",
+    },
+  );
+  assert.deepEqual(
+    resolveNativeSmokeOptions({
+      isPackaged: true,
+      platform: "darwin",
+      arch: "x64",
+      env: {
+        AXMORF_DESKTOP_NATIVE_GATE: "1",
+        AXMORF_DESKTOP_SMOKE_HOME: "/tmp/home",
+        AXMORF_DESKTOP_SMOKE_OUTPUT: "/tmp/evidence",
+        AXMORF_DESKTOP_SMOKE_SELECTION: "custom",
+        AXMORF_DESKTOP_SMOKE_USER_DATA: "/tmp/user-data",
+        AXMORF_DESKTOP_SMOKE_WORKSPACE: "/tmp/workspace",
       },
     }),
     {
@@ -207,19 +230,19 @@ test("native smoke activation is packaged Apple Silicon CI only", () => {
   for (const input of [
     { isPackaged: false, platform: "darwin" as const, arch: "arm64" },
     { isPackaged: true, platform: "linux" as const, arch: "arm64" },
-    { isPackaged: true, platform: "darwin" as const, arch: "x64" },
+    { isPackaged: true, platform: "darwin" as const, arch: "ia32" },
   ]) {
     assert.throws(
       () =>
         resolveNativeSmokeOptions({
           ...input,
           env: {
-            AXMORF_PHASE_B_NATIVE_GATE: "1",
-            AXMORF_PHASE_B_SMOKE_HOME: "/tmp/home",
-            AXMORF_PHASE_B_SMOKE_OUTPUT: "/tmp/evidence",
-            AXMORF_PHASE_B_SMOKE_SELECTION: "custom",
-            AXMORF_PHASE_B_SMOKE_USER_DATA: "/tmp/user-data",
-            AXMORF_PHASE_B_SMOKE_WORKSPACE: "/tmp/workspace",
+            AXMORF_DESKTOP_NATIVE_GATE: "1",
+            AXMORF_DESKTOP_SMOKE_HOME: "/tmp/home",
+            AXMORF_DESKTOP_SMOKE_OUTPUT: "/tmp/evidence",
+            AXMORF_DESKTOP_SMOKE_SELECTION: "custom",
+            AXMORF_DESKTOP_SMOKE_USER_DATA: "/tmp/user-data",
+            AXMORF_DESKTOP_SMOKE_WORKSPACE: "/tmp/workspace",
           },
         }),
       /desktop-native-smoke-host-invalid/u,
@@ -320,7 +343,9 @@ test("native smoke redacts bounded Engine diagnostics", async () => {
 });
 
 test("native command failures are bounded and redact the Workspace root", async (context) => {
-  const workspaceRoot = await mkdtemp(join(tmpdir(), "desktop-native-command-"));
+  const workspaceRoot = await mkdtemp(
+    join(tmpdir(), "desktop-native-command-"),
+  );
   context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
   await recordWorkspaceCommandFailure({
     workspaceRoot,
@@ -342,39 +367,36 @@ test("native command failures are bounded and redact the Workspace root", async 
   });
 });
 
-test("native gate workflow is manual-only to dispatch and uploads evidence only", async () => {
-  const workflow = await readFile(
-    ".github/workflows/desktop-phase-b-native-gate.yml",
-    "utf8",
-  );
+test("native gate workflow is manual-only and runs one gate on both native architectures", async () => {
+  const [workflow, gate] = await Promise.all([
+    readFile(".github/workflows/desktop-phase-c-native-gate.yml", "utf8"),
+    readFile("scripts/desktop/native-gate.sh", "utf8"),
+  ]);
   assert.match(workflow, /^on:\n {2}workflow_dispatch:\s*$/mu);
-  assert.match(workflow, /runs-on: macos-15/u);
-  assert.match(workflow, /test "\$\(uname -m\)" = arm64/u);
+  assert.match(workflow, /architecture: arm64[\s\S]*runner: macos-15/u);
+  assert.match(workflow, /architecture: x64[\s\S]*runner: macos-15-intel/u);
+  assert.match(workflow, /runs-on: \$\{\{ matrix\.runner \}\}/u);
   assert.match(workflow, /actions\/setup-node@v4/u);
   assert.match(workflow, /node-version: 22\.23\.1/u);
-  assert.match(
-    workflow,
-    /NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2:0/u,
-  );
-  assert.match(workflow, /nodeSeaSentinel=true/u);
   assert.match(workflow, /npm ci/u);
-  assert.match(workflow, /scripts\/desktop\/native-gate-runner\.sh/u);
-  assert.match(workflow, /npm run desktop:package/u);
-  assert.match(workflow, /AXMORF_PHASE_B_NATIVE_GATE_BUILD=1/u);
-  assert.match(workflow, /grep -R -Fq 'desktop-native-test-pcm-v3' out/u);
-  assert.match(
-    workflow,
-    /grep -R -Fq 'desktop-native-command-failure-v1' out/u,
-  );
-  assert.match(
-    workflow,
-    /Native Delivery action sequence does not match\./u,
-  );
-  assert.match(workflow, /manualDeliveryTested/u);
-  assert.match(workflow, /automaticDeliveryTested/u);
-  assert.match(workflow, /loopbackListenerVerified/u);
-  assert.match(workflow, /sessionCleanupVerified/u);
-  assert.match(workflow, /stagingCleanupVerified/u);
+  assert.match(workflow, /scripts\/desktop\/native-gate\.sh/u);
+  assert.match(workflow, /--architecture "\$\{\{ matrix\.architecture \}\}"/u);
+  assert.match(workflow, /--expected-commit "\$GITHUB_SHA"/u);
+  assert.match(gate, /scripts\/desktop\/native-gate-runner\.sh/u);
+  assert.match(gate, /npm run desktop:package -- --architecture/u);
+  assert.match(gate, /AXMORF_DESKTOP_NATIVE_GATE_BUILD=1/u);
+  assert.match(gate, /grep -R -Fq 'desktop-native-test-pcm-v3' out/u);
+  assert.match(gate, /grep -R -Fq 'desktop-native-command-failure-v1' out/u);
+  assert.match(gate, /Native Delivery action sequence does not match\./u);
+  assert.match(gate, /manualDeliveryTested/u);
+  assert.match(gate, /automaticDeliveryTested/u);
+  assert.match(gate, /loopbackListenerVerified/u);
+  assert.match(gate, /sessionCleanupVerified/u);
+  assert.match(gate, /stagingCleanupVerified/u);
+  assert.match(gate, /externalCreativeAgentTested !== false/u);
+  assert.match(gate, /hostToolsRequiredAtRuntime !== false/u);
+  assert.match(gate, /npm run check/u);
+  assert.match(gate, /git diff --check/u);
   assert.match(workflow, /find "\$EVIDENCE_ROOT" -type f/u);
   assert.match(workflow, /id: evidence-redaction/u);
   assert.match(workflow, /-iname '\*token\*'/u);
@@ -382,7 +404,6 @@ test("native gate workflow is manual-only to dispatch and uploads evidence only"
     workflow,
     /if: \$\{\{ always\(\) && steps\.evidence-redaction\.outcome == 'success' \}\}/u,
   );
-  assert.match(workflow, /npm run check/u);
   assert.match(workflow, /path: \$\{\{ env\.EVIDENCE_ROOT \}\}/u);
   assert.doesNotMatch(workflow, /pull_request:|push:|release:|publishers?:/u);
   assert.doesNotMatch(workflow, /Delivery blocker/u);
@@ -398,7 +419,7 @@ test("ordinary Desktop builds compile the native harness off", async () => {
   ]);
   assert.match(
     config,
-    /process\.env\.AXMORF_PHASE_B_NATIVE_GATE_BUILD === "1"/u,
+    /process\.env\.AXMORF_DESKTOP_NATIVE_GATE_BUILD === "1"/u,
   );
   assert.match(entry, /from "\.\/native-smoke-port"/u);
   assert.match(config, /desktop\/main\/native-smoke-disabled\.ts/u);
@@ -411,11 +432,14 @@ test("ordinary Desktop builds compile the native harness off", async () => {
   assert.match(config, /desktop\/main\/native-smoke-disabled\.ts/u);
   assert.match(
     engineConfig,
-    /process\.env\.AXMORF_PHASE_B_NATIVE_GATE_BUILD === "1"/u,
+    /process\.env\.AXMORF_DESKTOP_NATIVE_GATE_BUILD === "1"/u,
   );
   assert.match(engineConfig, /find: "\.\/workspace-narration-port"/u);
   assert.match(engineConfig, /scripts\/desktop\/native-test-provider\.ts/u);
-  assert.match(engineConfig, /scripts\/desktop\/native-command-diagnostic\.ts/u);
+  assert.match(
+    engineConfig,
+    /scripts\/desktop\/native-command-diagnostic\.ts/u,
+  );
   assert.match(engineConfig, /name: "desktop-prettier-cjs-entry"/u);
   assert.match(engineConfig, /__prettierCreateRequire\(__filename\)/u);
   assert.match(provider, /export const prepareWorkspaceNarration/u);
@@ -423,11 +447,13 @@ test("ordinary Desktop builds compile the native harness off", async () => {
 });
 
 test("native smoke drives real manual and automatic Delivery with network cleanup evidence", async () => {
-  const [nativeSmoke, renderer, runner] = await Promise.all([
-    readFile("desktop/main/native-smoke.ts", "utf8"),
-    readFile("desktop/renderer/App.tsx", "utf8"),
-    readFile("scripts/desktop/native-gate-runner.sh", "utf8"),
-  ]);
+  const [nativeSmoke, renderer, runner, architectureEvidence] =
+    await Promise.all([
+      readFile("desktop/main/native-smoke.ts", "utf8"),
+      readFile("desktop/renderer/App.tsx", "utf8"),
+      readFile("scripts/desktop/native-gate-runner.sh", "utf8"),
+      readFile("scripts/desktop/native-architecture-evidence.ts", "utf8"),
+    ]);
   assert.match(nativeSmoke, /choice\.click\(\)/u);
   assert.match(
     nativeSmoke,
@@ -449,7 +475,23 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
   assert.match(runner, /attempt-terminal\.json/u);
   assert.match(runner, /terminalDiagnosticCode/u);
   assert.match(runner, /app_process_running "\$app_pid"/u);
-  assert.match(runner, /desktop-phase-b-native-gate-requires-darwin-arm64/u);
+  assert.match(runner, /native-architecture-evidence\.ts/u);
+  assert.match(runner, /expected_architecture/u);
+  for (const label of [
+    "electron-app",
+    "renderer-browser",
+    "ffmpeg",
+    "ffprobe",
+    "node",
+    "rsp-sea",
+    "remotion-compositor",
+  ]) {
+    assert.match(architectureEvidence, new RegExp(`"${label}"`, "u"));
+  }
+  assert.match(architectureEvidence, /\/usr\/bin\/lipo/u);
+  assert.match(architectureEvidence, /\/usr\/bin\/file/u);
+  assert.match(architectureEvidence, /rspSeaInjected: true/u);
+  assert.match(architectureEvidence, /runtimeNodeSeaCapable: true/u);
   assert.match(runner, /\.rsp\/bin\/rsp/u);
   assert.match(runner, /project create/u);
   assert.match(runner, /inspect --project desktop-native-fixture/u);
@@ -486,13 +528,16 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
   assert.match(runner, /request-quit/u);
   assert.match(runner, /run_second_instance_probe/u);
   assert.match(runner, /HOME="\$home_root"/u);
-  assert.match(runner, /AXMORF_PHASE_B_SMOKE_USER_DATA="\$user_data_root"/u);
-  assert.match(runner, /AXMORF_PHASE_B_SMOKE_WORKSPACE="\$workspace_root"/u);
+  assert.match(runner, /AXMORF_DESKTOP_SMOKE_USER_DATA="\$user_data_root"/u);
+  assert.match(runner, /AXMORF_DESKTOP_SMOKE_WORKSPACE="\$workspace_root"/u);
+  assert.match(runner, /PATH="\$runtime_host_tools_path"/u);
+  assert.match(runner, /offlineRuntimeTested: true/u);
+  assert.match(runner, /externalCreativeAgentTested: false/u);
   assert.match(runner, /desktop-native-second-instance-timeout/u);
   assert.match(runner, /second-instance\.json/u);
   assert.doesNotMatch(
     runner,
-    /"\$app_executable" --phase-b-second-instance >\/dev\/null 2>&1 \|\| true/u,
+    /"\$app_executable" --desktop-native-second-instance >\/dev\/null 2>&1 \|\| true/u,
   );
   assert.match(nativeSmoke, /request-quit/u);
   assert.match(nativeSmoke, /quit-request-observed/u);

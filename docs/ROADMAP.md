@@ -57,6 +57,11 @@ Phase B Green、cross-package 或 Rosetta 都不能替代 x64 native proof。阶
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
 [macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)。
 
+当前 Phase C enablement implementation 已提供统一的 darwin arm64/x64 Runtime Pack/package/native gate 配置和真实
+Intel 可执行入口，但尚无 Intel native artifact。状态是 `implementation-complete-native-evidence-pending`；Roadmap
+没有推进到第 4 项。精确命令和 deterministic fixture/外部 creative Agent 证据边界见
+[Desktop Phase C native gate](guides/DESKTOP_PHASE_C_NATIVE_GATE.md)。
+
 1. unsigned prototype：建立 bundled Preview Player、只读多轨时间轴、Engine utility process、authenticated local
    `rsp` session、默认 `~/Movies/AXMORF Studio/` 和 Codex/Hermes integration smoke；
 2. productization：把 App/Runtime Pack 与单一 Workspace Root 正式隔离，增加 workspace-local `.rsp/bin/rsp`、

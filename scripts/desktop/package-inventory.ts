@@ -3,7 +3,12 @@ import { lstatSync, readdirSync, readFileSync, type Stats } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 
 import { listPackage, statFile } from "@electron/asar";
-import { DesktopCompatibilityManifestSchema, RuntimePackManifestSchema, assertDesktopRuntimeCompatibility } from "../../desktop/contracts/runtime-pack";
+import {
+  DesktopCompatibilityManifestSchema,
+  RuntimePackManifestSchema,
+  assertDesktopRuntimeCompatibility,
+} from "../../desktop/contracts/runtime-pack";
+import type { DesktopDarwinArchitecture } from "../../desktop/configuration/darwin-target";
 import { DESKTOP_ELECTRON_LOCALES } from "./electron-locales";
 import { DESKTOP_WORKSPACE_INTEGRATION_RESOURCE_FILES } from "./workspace-integration-package";
 
@@ -218,10 +223,7 @@ export const verifyDesktopBuildInventory = (
     patterns: DESKTOP_BUILD_DYNAMIC_FILE_PATTERNS.map(
       (pattern) =>
         new RegExp(
-          pattern.source.replace(
-            "^\\.vite\\/renderer\\/main_window\\/",
-            "^",
-          ),
+          pattern.source.replace("^\\.vite\\/renderer\\/main_window\\/", "^"),
           "u",
         ),
     ),
@@ -303,7 +305,7 @@ const inspectUnpackedTree = (root: string, current = root): number => {
 };
 
 export type DesktopPackageInventory = Readonly<{
-  appPath: string;
+  architecture: DesktopDarwinArchitecture;
   asarEntries: number;
   unpackedFiles: number;
   asarSha256: string;
@@ -315,10 +317,7 @@ export type DesktopPackageInventory = Readonly<{
 
 export const inspectPackagedWorkspaceIntegration = ({
   resourcesPath,
-  sourceRoot = join(
-    process.cwd(),
-    "desktop/resources/workspace-integration",
-  ),
+  sourceRoot = join(process.cwd(), "desktop/resources/workspace-integration"),
 }: {
   readonly resourcesPath: string;
   readonly sourceRoot?: string;
@@ -415,7 +414,8 @@ const inspectPackagedRuntime = (resourcesPath: string) => {
     for (const name of readdirSync(directory).sort()) {
       const path = join(directory, name);
       const stat = lstatSync(path);
-      if (stat.isSymbolicLink()) throw new Error(`desktop-runtime-pack-symlink:${path}`);
+      if (stat.isSymbolicLink())
+        throw new Error(`desktop-runtime-pack-symlink:${path}`);
       if (stat.isDirectory()) walk(path);
       else {
         assertRegularFile(path, stat);
@@ -425,19 +425,33 @@ const inspectPackagedRuntime = (resourcesPath: string) => {
     }
   };
   walk(root);
-  if (actual.size !== manifest.files.length) throw new Error("desktop-runtime-pack-inventory-drift");
+  if (actual.size !== manifest.files.length)
+    throw new Error("desktop-runtime-pack-inventory-drift");
   for (const file of manifest.files) {
     const stat = actual.get(file.path);
     const path = join(root, file.path);
-    if (stat === undefined || stat.size !== file.sizeBytes || createHash("sha256").update(readFileSync(path)).digest("hex") !== file.sha256 || (((stat.mode & 0o111) !== 0) !== file.executable)) {
+    if (
+      stat === undefined ||
+      stat.size !== file.sizeBytes ||
+      createHash("sha256").update(readFileSync(path)).digest("hex") !==
+        file.sha256 ||
+      ((stat.mode & 0o111) !== 0) !== file.executable
+    ) {
       throw new Error(`desktop-runtime-pack-file-drift:${file.path}`);
     }
   }
-  return { runtimePackId: manifest.runtimePackId, runtimePackFiles: manifest.files.length };
+  return {
+    architecture: manifest.architecture,
+    runtimePackId: manifest.runtimePackId,
+    runtimePackFiles: manifest.files.length,
+  };
 };
 
 export const verifyDesktopPackageInventory = (
   appPath: string,
+  {
+    expectedArchitecture,
+  }: { readonly expectedArchitecture?: DesktopDarwinArchitecture } = {},
 ): DesktopPackageInventory => {
   const resourcesPath = join(appPath, "Contents", "Resources");
   assertRealDirectory(resourcesPath, "resources-root");
@@ -460,6 +474,12 @@ export const verifyDesktopPackageInventory = (
     }
   }
   const runtime = inspectPackagedRuntime(resourcesPath);
+  if (
+    expectedArchitecture !== undefined &&
+    runtime.architecture !== expectedArchitecture
+  ) {
+    throw new Error("desktop-package-runtime-architecture-mismatch");
+  }
   const integration = inspectPackagedWorkspaceIntegration({ resourcesPath });
   const runtimeManifest = RuntimePackManifestSchema.parse(
     readBoundedStrictJson(
@@ -517,7 +537,6 @@ export const verifyDesktopPackageInventory = (
   }
 
   return {
-    appPath,
     asarEntries: entries.length,
     unpackedFiles,
     asarSha256: createHash("sha256")

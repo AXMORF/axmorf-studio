@@ -17,7 +17,7 @@ export default defineConfig({
         find: "./native-smoke-port",
         replacement: resolve(
           process.cwd(),
-          process.env.AXMORF_PHASE_B_NATIVE_GATE_BUILD === "1"
+          process.env.AXMORF_DESKTOP_NATIVE_GATE_BUILD === "1"
             ? "desktop/main/native-smoke.ts"
             : "desktop/main/native-smoke-disabled.ts",
         ),

@@ -2,6 +2,10 @@ import { z } from "zod";
 
 import { createFingerprint } from "../../src/contracts/fingerprint";
 import { Sha256DigestSchema } from "../../src/contracts/primitives";
+import {
+  DesktopDarwinArchitectureSchema,
+  getDesktopDarwinTarget,
+} from "../configuration/darwin-target";
 
 export const DESKTOP_RUNTIME_PACK_CONTRACT_VERSION =
   "desktop-runtime-pack-v1" as const;
@@ -37,7 +41,9 @@ const RelativeFilePathSchema = z
     (value) =>
       !value.startsWith("/") &&
       !value.includes("\\") &&
-      value.split("/").every((part) => part !== "" && part !== "." && part !== ".."),
+      value
+        .split("/")
+        .every((part) => part !== "" && part !== "." && part !== ".."),
     "Runtime Pack paths must be normalized and relative.",
   );
 
@@ -70,7 +76,7 @@ const RuntimePackIdentityShape = {
   contractVersion: z.literal(DESKTOP_RUNTIME_PACK_CONTRACT_VERSION),
   runtimePackVersion: z.literal(DESKTOP_RUNTIME_PACK_VERSION),
   platform: z.literal("darwin"),
-  architecture: z.literal("arm64"),
+  architecture: DesktopDarwinArchitectureSchema,
   engineVersion: z.literal(DESKTOP_ENGINE_VERSION),
   protocolVersion: z.literal("rsp-local-v2"),
   skillVersion: z.literal(DESKTOP_SKILL_VERSION),
@@ -111,21 +117,22 @@ const validateRuntimePackOrdering = (
   }
 };
 
-const remotionPackageRoots = (
-  files: readonly Readonly<{ path: string }>[],
-) =>
+const remotionPackageRoots = (files: readonly Readonly<{ path: string }>[]) =>
   [
     ...new Set(
       files.flatMap(({ path }) => {
-        const match = /^node_modules\/(remotion|@remotion\/[^/]+)\//u.exec(path);
+        const match = /^node_modules\/(remotion|@remotion\/[^/]+)\//u.exec(
+          path,
+        );
         return match?.[1] === undefined ? [] : [match[1]];
       }),
     ),
   ].sort();
 
 const unsupportedNestedRemotionPackage = (path: string) => {
-  const match =
-    /(?:^|\/)node_modules\/(remotion|@remotion\/[^/]+)\//u.exec(path);
+  const match = /(?:^|\/)node_modules\/(remotion|@remotion\/[^/]+)\//u.exec(
+    path,
+  );
   if (match?.index === undefined || match.index === 0) return null;
   return match[1] ?? null;
 };
@@ -177,7 +184,11 @@ export const RuntimePackManifestSchema = z
     const recordedRemotionPackages = value.remotionPackages.map(
       ({ name }) => name,
     );
-    for (const required of DESKTOP_REQUIRED_REMOTION_PACKAGES) {
+    const target = getDesktopDarwinTarget(value.architecture);
+    for (const required of [
+      ...DESKTOP_REQUIRED_REMOTION_PACKAGES,
+      target.compositorPackageName,
+    ]) {
       if (!recordedRemotionPackages.includes(required)) {
         context.addIssue({
           code: "custom",
@@ -204,6 +215,20 @@ export const RuntimePackManifestSchema = z
         context.addIssue({
           code: "custom",
           message: `Unsupported Runtime Pack package: ${name}.`,
+          path: ["remotionPackages"],
+        });
+      }
+    }
+    for (const architecture of DesktopDarwinArchitectureSchema.options) {
+      const compositor =
+        getDesktopDarwinTarget(architecture).compositorPackageName;
+      if (
+        architecture !== value.architecture &&
+        recordedRemotionPackages.includes(compositor)
+      ) {
+        context.addIssue({
+          code: "custom",
+          message: `Runtime Pack contains a foreign-architecture compositor: ${compositor}.`,
           path: ["remotionPackages"],
         });
       }
@@ -255,7 +280,11 @@ export const RuntimePackManifestSchema = z
       rspClient: value.rspClient,
     })) {
       const file = fileMap.get(binary.relativePath);
-      if (file === undefined || file.sha256 !== binary.sha256 || !file.executable) {
+      if (
+        file === undefined ||
+        file.sha256 !== binary.sha256 ||
+        !file.executable
+      ) {
         context.addIssue({
           code: "custom",
           message: `${label} must bind an executable Runtime Pack file.`,
@@ -320,7 +349,7 @@ export const DesktopCompatibilityManifestSchema = z
     projectSchemaWriteVersion: z.number().int().positive(),
     runtimePackId: z.string().regex(/^runtime-pack-[a-f0-9]{64}$/u),
     platform: z.literal("darwin"),
-    architecture: z.literal("arm64"),
+    architecture: DesktopDarwinArchitectureSchema,
     minimumMacOSVersion: z.literal("13.0"),
   })
   .superRefine((value, context) => {

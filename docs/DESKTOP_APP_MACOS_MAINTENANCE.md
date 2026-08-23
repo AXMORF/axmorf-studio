@@ -382,7 +382,10 @@ macOS process、Runtime Pack、Workspace、双架构、unsigned/signed channel�
 完成。Phase B 只允许 DeliveryBuild 范围内 `127.0.0.1` OS-ephemeral renderer listener，Runtime Pack 仅携带
 checksum-bound 的 exact 内部渲染依赖且无 CLI/Studio Server/launch surface；exact commit
 `04ca57ed5b6469eb9bc4acd8c86829ca0222576a` 已通过 hosted macOS 15 arm64 packaged production gate。
-这不表示 DMG、签名、公证、auto-update、Intel x64、Hermes external-Agent production 或双架构 E2E 已存在。
+Phase C 当前代码已配置化支持 darwin arm64/x64 Runtime Pack、package 与 native gate，并为 x64 精确选择
+`@remotion/compositor-darwin-x64`；没有真实 Intel evidence 时状态仍是
+`implementation-complete-native-evidence-pending`。这不表示 DMG、签名、公证、auto-update、Intel x64 verified support、
+Hermes external-Agent production 或双架构 E2E 已完成。
 精确 executable evidence 见 [ITERATION_STATUS.md](ITERATION_STATUS.md)；不得用 arm64、cross-package、Rosetta 或
 deterministic fixture 伪造 Intel/Hermes/发行证据。
 

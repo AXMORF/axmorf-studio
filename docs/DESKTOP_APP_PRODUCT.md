@@ -316,8 +316,11 @@ listener scope 和 terminal/failure/Quit/reopen cleanup；精确 run/artifact �
 [ITERATION_STATUS.md](ITERATION_STATUS.md)。该证据使用 test-only deterministic task executor，不构成 Hermes 或其他
 已安装外部创作 Agent 的 production proof。
 
-剩余产品差距是 Intel x64 native E2E、Hermes Workspace production proof、DMG/installer、code signing/notarization、
-binary release、update channel 和长期 support policy。Phase B 状态为 `verified-complete`；后续路由以
+Phase C 已提供同一 Runtime Pack/package/native gate implementation 的 darwin arm64/x64 configuration；这只把 Intel
+build 与验收入口实现到可执行状态，不是 native proof。剩余产品差距仍包括真实 Intel x64 native E2E、Hermes
+Workspace production proof、DMG/installer、code signing/notarization、binary release、update channel 和长期 support
+policy。Phase B 状态为 `verified-complete`，Phase C 状态为
+`implementation-complete-native-evidence-pending`；后续路由以
 [ROADMAP.md](ROADMAP.md) 为准。
 
 ## 12. 后续产品完成门槛

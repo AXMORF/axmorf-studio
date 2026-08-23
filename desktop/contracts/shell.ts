@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { StoryIdSchema } from "../../src/contracts";
+import { DesktopDarwinArchitectureSchema } from "../configuration/darwin-target";
 import {
   DesktopProjectStatusSchema,
   PreviewCatalogReadinessSchema,
@@ -95,7 +96,7 @@ export const DesktopAppStateSchema = z
     runtimePack: z
       .strictObject({
         runtimePackId: z.string().regex(/^runtime-pack-[a-f0-9]{64}$/u),
-        architecture: z.literal("arm64"),
+        architecture: DesktopDarwinArchitectureSchema,
       })
       .nullable(),
     health: DesktopHealthSchema,

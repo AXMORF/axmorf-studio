@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
+import { getDesktopDarwinTarget } from "../../desktop/configuration/darwin-target";
 import {
   buildRuntimePack,
   probeRuntimeExecutable,
@@ -36,40 +37,81 @@ import {
   resolveDesktopRuntimeModuleNames,
 } from "../../scripts/desktop/build-runtime-pack";
 
-const fixture = async (t: test.TestContext) => {
+const fixture = async (
+  t: test.TestContext,
+  architecture: "arm64" | "x64" = "arm64",
+) => {
   const root = await mkdtemp(join(tmpdir(), "rsp-runtime-"));
-  t.after(async () => { await import("node:fs/promises").then(({ rm }) => rm(root, { recursive: true, force: true })); });
-  const sources = join(root, "sources"); await mkdir(sources);
-  const make = async (name: string) => { const path = join(sources, name); await writeFile(path, `#!/bin/sh\necho ${name}\n`); await chmod(path, 0o755); return path; };
+  t.after(async () => {
+    await import("node:fs/promises").then(({ rm }) =>
+      rm(root, { recursive: true, force: true }),
+    );
+  });
+  const sources = join(root, "sources");
+  await mkdir(sources);
+  const make = async (name: string) => {
+    const path = join(sources, name);
+    await writeFile(path, `#!/bin/sh\necho ${name}\n`);
+    await chmod(path, 0o755);
+    return path;
+  };
   const pack = join(root, "pack");
+  const compositorPackage =
+    getDesktopDarwinTarget(architecture).compositorPackageName;
   const packageFiles = await Promise.all(
-    ["remotion", ...DESKTOP_REQUIRED_REMOTION_PACKAGES].map(async (name) => {
-      const source = join(
-        sources,
-        `${name.replaceAll("/", "-").replaceAll("@", "")}-package.json`,
-      );
-      await writeFile(
-        source,
-        `${JSON.stringify({ name, version: "4.0.489" })}\n`,
-      );
-      return {
-        source,
-        relativePath: `node_modules/${name}/package.json`,
-      };
-    }),
+    ["remotion", ...DESKTOP_REQUIRED_REMOTION_PACKAGES, compositorPackage].map(
+      async (name) => {
+        const source = join(
+          sources,
+          `${name.replaceAll("/", "-").replaceAll("@", "")}-package.json`,
+        );
+        await writeFile(
+          source,
+          `${JSON.stringify({ name, version: "4.0.489" })}\n`,
+        );
+        return {
+          source,
+          relativePath: `node_modules/${name}/package.json`,
+        };
+      },
+    ),
   );
   const input = {
     outputRoot: pack,
-    architecture: "arm64",
-    remotionPackages: ["remotion", ...DESKTOP_REQUIRED_REMOTION_PACKAGES]
+    architecture,
+    remotionPackages: [
+      "remotion",
+      ...DESKTOP_REQUIRED_REMOTION_PACKAGES,
+      compositorPackage,
+    ]
       .sort()
       .map((name) => ({ name, version: "4.0.489" })),
     binaries: {
-      rendererBrowser: { source: await make("browser"), relativePath: "bin/browser", version: "1" },
-      ffmpeg: { source: await make("ffmpeg"), relativePath: "bin/ffmpeg", version: "1" },
-      ffprobe: { source: await make("ffprobe"), relativePath: "bin/ffprobe", version: "1" },
-      node: { source: await make("node"), relativePath: "bin/node", version: "24" },
-      rspClient: { source: await make("rsp"), relativePath: "bin/rsp", version: "1" },
+      rendererBrowser: {
+        source: await make("browser"),
+        relativePath: "bin/browser",
+        version: "1",
+      },
+      ffmpeg: {
+        source: await make("ffmpeg"),
+        relativePath: "bin/ffmpeg",
+        version: "1",
+      },
+      ffprobe: {
+        source: await make("ffprobe"),
+        relativePath: "bin/ffprobe",
+        version: "1",
+      },
+      node: {
+        source: await make("node"),
+        relativePath: "bin/node",
+        version: "24",
+      },
+      rspClient: {
+        source: await make("rsp"),
+        relativePath: "bin/rsp",
+        version: "1",
+      },
     },
     additionalFiles: packageFiles,
   } as const;
@@ -79,32 +121,100 @@ const fixture = async (t: test.TestContext) => {
 
 test("Runtime Pack build is exact and deterministic", async (t) => {
   const { pack, manifest, input } = await fixture(t);
-  const verified = await verifyRuntimePack({ runtimePackRoot: pack, expectedArchitecture: "arm64", expectedPlatform: "darwin" });
+  const verified = await verifyRuntimePack({
+    runtimePackRoot: pack,
+    expectedArchitecture: "arm64",
+    expectedPlatform: "darwin",
+  });
   assert.equal(verified.runtimePackId, manifest.runtimePackId);
-  assert.deepEqual(verified.files.map(({ path }) => path), [
-    "bin/browser",
-    "bin/ffmpeg",
-    "bin/ffprobe",
-    "bin/node",
-    "bin/rsp",
-    "node_modules/@remotion/bundler/package.json",
-    "node_modules/@remotion/renderer/package.json",
-    "node_modules/@remotion/studio-shared/package.json",
-    "node_modules/@remotion/studio/package.json",
-    "node_modules/remotion/package.json",
-  ]);
-  assert.equal((await buildRuntimePack(input)).runtimePackId, manifest.runtimePackId);
+  assert.deepEqual(
+    verified.files.map(({ path }) => path),
+    [
+      "bin/browser",
+      "bin/ffmpeg",
+      "bin/ffprobe",
+      "bin/node",
+      "bin/rsp",
+      "node_modules/@remotion/bundler/package.json",
+      "node_modules/@remotion/compositor-darwin-arm64/package.json",
+      "node_modules/@remotion/renderer/package.json",
+      "node_modules/@remotion/studio-shared/package.json",
+      "node_modules/@remotion/studio/package.json",
+      "node_modules/remotion/package.json",
+    ],
+  );
+  assert.equal(
+    (await buildRuntimePack(input)).runtimePackId,
+    manifest.runtimePackId,
+  );
+});
+
+test("Runtime Pack and compatibility identities support both native macOS architectures", async (t) => {
+  const arm64 = await fixture(t, "arm64");
+  const x64 = await fixture(t, "x64");
+  const verified = await verifyRuntimePack({
+    runtimePackRoot: x64.pack,
+    expectedArchitecture: "x64",
+    expectedPlatform: "darwin",
+  });
+  const compatibility = buildDesktopCompatibilityManifest({
+    appVersion: "0.1.0",
+    runtimePack: verified,
+  });
+
+  assert.equal(verified.architecture, "x64");
+  assert.equal(compatibility.architecture, "x64");
+  assert.notEqual(verified.runtimePackId, arm64.manifest.runtimePackId);
+  assert.notEqual(
+    createRendererRuntimeFingerprint(verified),
+    createRendererRuntimeFingerprint(arm64.manifest),
+  );
 });
 
 test("Runtime Pack rejects unknown files, symlinks, checksum and architecture drift", async (t) => {
-  const unknown = await fixture(t); await writeFile(join(unknown.pack, "unknown"), "x");
-  await assert.rejects(() => verifyRuntimePack({ runtimePackRoot: unknown.pack, expectedArchitecture: "arm64", expectedPlatform: "darwin" }), /inventory drifted/u);
-  const link = await fixture(t); await symlink("bin/rsp", join(link.pack, "alias"));
-  await assert.rejects(() => verifyRuntimePack({ runtimePackRoot: link.pack, expectedArchitecture: "arm64", expectedPlatform: "darwin" }), /symlinks/u);
-  const checksum = await fixture(t); await writeFile(join(checksum.pack, "bin/rsp"), "drift");
-  await assert.rejects(() => verifyRuntimePack({ runtimePackRoot: checksum.pack, expectedArchitecture: "arm64", expectedPlatform: "darwin" }), /checksum|mode/u);
+  const unknown = await fixture(t);
+  await writeFile(join(unknown.pack, "unknown"), "x");
+  await assert.rejects(
+    () =>
+      verifyRuntimePack({
+        runtimePackRoot: unknown.pack,
+        expectedArchitecture: "arm64",
+        expectedPlatform: "darwin",
+      }),
+    /inventory drifted/u,
+  );
+  const link = await fixture(t);
+  await symlink("bin/rsp", join(link.pack, "alias"));
+  await assert.rejects(
+    () =>
+      verifyRuntimePack({
+        runtimePackRoot: link.pack,
+        expectedArchitecture: "arm64",
+        expectedPlatform: "darwin",
+      }),
+    /symlinks/u,
+  );
+  const checksum = await fixture(t);
+  await writeFile(join(checksum.pack, "bin/rsp"), "drift");
+  await assert.rejects(
+    () =>
+      verifyRuntimePack({
+        runtimePackRoot: checksum.pack,
+        expectedArchitecture: "arm64",
+        expectedPlatform: "darwin",
+      }),
+    /checksum|mode/u,
+  );
   const arch = await fixture(t);
-  await assert.rejects(() => verifyRuntimePack({ runtimePackRoot: arch.pack, expectedArchitecture: "x64", expectedPlatform: "darwin" }), /incompatible/u);
+  await assert.rejects(
+    () =>
+      verifyRuntimePack({
+        runtimePackRoot: arch.pack,
+        expectedArchitecture: "x64",
+        expectedPlatform: "darwin",
+      }),
+    /incompatible/u,
+  );
 });
 
 test("Runtime Pack verifier binds Remotion identities to copied package manifests", async (t) => {
@@ -137,7 +247,12 @@ test("Runtime Pack root is a canonical real directory at the expected Resources 
     /real directory/u,
   );
 
-  const resourcesRoot = join(source.root, "AXMORF.app", "Contents", "Resources");
+  const resourcesRoot = join(
+    source.root,
+    "AXMORF.app",
+    "Contents",
+    "Resources",
+  );
   await mkdir(resourcesRoot, { recursive: true });
   const embeddedRoot = join(resourcesRoot, "runtime-pack");
   await buildRuntimePack({ ...source.input, outputRoot: embeddedRoot });
@@ -169,17 +284,39 @@ test("Runtime Pack root is a canonical real directory at the expected Resources 
 
 test("Compatibility and renderer identity bind only the verified Runtime Pack", async (t) => {
   const { manifest } = await fixture(t);
-  const compatibility = buildDesktopCompatibilityManifest({ appVersion: "0.1.0", runtimePack: manifest });
-  assert.equal(assertDesktopRuntimeCompatibility({ compatibility, runtimePack: manifest }).runtimePackId, manifest.runtimePackId);
-  assert.match(createRendererRuntimeFingerprint(manifest), /^sha256:[a-f0-9]{64}$/u);
-  assert.throws(() => assertDesktopRuntimeCompatibility({ compatibility: { ...compatibility, runtimePackId: `runtime-pack-${"f".repeat(64)}` }, runtimePack: manifest }), /incompatible/u);
+  const compatibility = buildDesktopCompatibilityManifest({
+    appVersion: "0.1.0",
+    runtimePack: manifest,
+  });
+  assert.equal(
+    assertDesktopRuntimeCompatibility({ compatibility, runtimePack: manifest })
+      .runtimePackId,
+    manifest.runtimePackId,
+  );
+  assert.match(
+    createRendererRuntimeFingerprint(manifest),
+    /^sha256:[a-f0-9]{64}$/u,
+  );
+  assert.throws(
+    () =>
+      assertDesktopRuntimeCompatibility({
+        compatibility: {
+          ...compatibility,
+          runtimePackId: `runtime-pack-${"f".repeat(64)}`,
+        },
+        runtimePack: manifest,
+      }),
+    /incompatible/u,
+  );
 });
 
 test("Runtime Pack requires the render-only Remotion toolchain and rejects launch surfaces", async (t) => {
   const { manifest } = await fixture(t);
   assert.deepEqual(
     manifest.remotionPackages
-      .filter(({ name }) => DESKTOP_REQUIRED_REMOTION_PACKAGES.includes(name as never))
+      .filter(({ name }) =>
+        DESKTOP_REQUIRED_REMOTION_PACKAGES.includes(name as never),
+      )
       .map(({ name }) => name),
     [...DESKTOP_REQUIRED_REMOTION_PACKAGES].sort(),
   );
@@ -204,7 +341,8 @@ test("Runtime Pack requires the render-only Remotion toolchain and rejects launc
         ),
         files: [
           ...manifest.files.filter(
-            ({ path }) => path !== "node_modules/@remotion/renderer/package.json",
+            ({ path }) =>
+              path !== "node_modules/@remotion/renderer/package.json",
           ),
         ],
       }),
@@ -276,6 +414,29 @@ test("Runtime Pack requires the render-only Remotion toolchain and rejects launc
       }),
     /Remotion CLI launch surface/u,
   );
+  assert.throws(
+    () =>
+      RuntimePackManifestSchema.parse({
+        ...manifest,
+        remotionPackages: [
+          ...manifest.remotionPackages,
+          {
+            name: "@remotion/compositor-darwin-x64",
+            version: "4.0.489",
+          },
+        ].sort((left, right) => left.name.localeCompare(right.name)),
+        files: [
+          ...manifest.files,
+          {
+            path: "node_modules/@remotion/compositor-darwin-x64/package.json",
+            sizeBytes: 1,
+            sha256: "e".repeat(64),
+            executable: false,
+          },
+        ].sort((left, right) => left.path.localeCompare(right.path)),
+      }),
+    /foreign-architecture compositor/u,
+  );
 });
 
 test("Compatibility manifest is bounded strict JSON under a real Resources root", async (t) => {
@@ -308,11 +469,7 @@ test("Compatibility manifest is bounded strict JSON under a real Resources root"
   );
   await rm(manifestPath);
   await writeFile(join(root, "compatibility-target.json"), "{}\n");
-  await symlink(
-    join(root, "compatibility-target.json"),
-    manifestPath,
-    "file",
-  );
+  await symlink(join(root, "compatibility-target.json"), manifestPath, "file");
   await assert.rejects(
     () => readDesktopCompatibilityManifest(resourcesRoot),
     /not a regular file/u,
@@ -330,8 +487,13 @@ test("Runtime executable probe is bounded and does not inherit host environment"
   const { root } = await fixture(t);
   const executable = join(root, "probe");
   process.env.RSP_PROBE_SECRET = "must-not-leak";
-  t.after(() => { delete process.env.RSP_PROBE_SECRET; });
-  await writeFile(executable, '#!/bin/sh\nif [ -n "${RSP_PROBE_SECRET:-}" ]; then exit 9; fi\necho runtime-v1\n');
+  t.after(() => {
+    delete process.env.RSP_PROBE_SECRET;
+  });
+  await writeFile(
+    executable,
+    '#!/bin/sh\nif [ -n "${RSP_PROBE_SECRET:-}" ]; then exit 9; fi\necho runtime-v1\n',
+  );
   await chmod(executable, 0o755);
   assert.equal(await probeRuntimeExecutable({ executable }), "runtime-v1");
 
@@ -359,9 +521,17 @@ test("Runtime executable probe is bounded and does not inherit host environment"
   );
 });
 
-test("native Runtime Pack build refuses a non-Apple-Silicon host", async () => {
-  if (process.platform === "darwin" && process.arch === "arm64") return;
-  await assert.rejects(() => buildDesktopRuntimePack(), /native-host-required/u);
+test("native Runtime Pack build refuses a non-macOS or unsupported host", async () => {
+  if (
+    process.platform === "darwin" &&
+    (process.arch === "arm64" || process.arch === "x64")
+  ) {
+    return;
+  }
+  await assert.rejects(
+    () => buildDesktopRuntimePack(),
+    /native-host-required/u,
+  );
 });
 
 test("Runtime Pack source closure is explicit and excludes native fixtures", () => {
@@ -388,12 +558,21 @@ test("Runtime Pack source closure is explicit and excludes native fixtures", () 
   ]) {
     assert.ok(pathSet.has(required), required);
   }
-  assert.equal(paths.some((path) => path.startsWith("scripts/desktop/")), false);
-  assert.equal(DESKTOP_RENDER_SOURCE_PACKAGES.includes("@remotion/cli" as never), false);
+  assert.equal(
+    paths.some((path) => path.startsWith("scripts/desktop/")),
+    false,
+  );
+  assert.equal(
+    DESKTOP_RENDER_SOURCE_PACKAGES.includes("@remotion/cli" as never),
+    false,
+  );
   assert.ok(DESKTOP_RENDER_SOURCE_PACKAGES.includes("@remotion/bundler"));
   assert.ok(DESKTOP_RENDER_SOURCE_PACKAGES.includes("@remotion/renderer"));
   assert.ok(DESKTOP_RENDER_SOURCE_PACKAGES.includes("typescript"));
-  assert.equal(DESKTOP_RENDER_SOURCE_PACKAGES.includes("@remotion/studio" as never), false);
+  assert.equal(
+    DESKTOP_RENDER_SOURCE_PACKAGES.includes("@remotion/studio" as never),
+    false,
+  );
 });
 
 test("Runtime Pack lock closure preserves nested packages and filters target-native optional packages", () => {
@@ -405,6 +584,7 @@ test("Runtime Pack lock closure preserves nested packages and filters target-nat
         peerDependencies: { react: ">=18" },
         optionalDependencies: {
           "@rspack/binding-darwin-arm64": "1",
+          "@rspack/binding-darwin-x64": "1",
           "@rspack/binding-linux-x64-gnu": "1",
         },
       },
@@ -416,6 +596,11 @@ test("Runtime Pack lock closure preserves nested packages and filters target-nat
         os: ["darwin"],
         cpu: ["arm64"],
       },
+      "node_modules/@rspack/binding-darwin-x64": {
+        version: "1",
+        os: ["darwin"],
+        cpu: ["x64"],
+      },
       "node_modules/@rspack/binding-linux-x64-gnu": {
         version: "1",
         os: ["linux"],
@@ -425,11 +610,26 @@ test("Runtime Pack lock closure preserves nested packages and filters target-nat
     },
   } as const;
   assert.deepEqual(
-    resolveDesktopRuntimeModuleLocations(lock, ["@remotion/bundler"]),
+    resolveDesktopRuntimeModuleLocations(lock, ["@remotion/bundler"], {
+      platform: "darwin",
+      architecture: "arm64",
+    }),
     [
       "node_modules/@remotion/bundler",
       "node_modules/@remotion/bundler/node_modules/esbuild",
       "node_modules/@rspack/binding-darwin-arm64",
+      "node_modules/react",
+    ],
+  );
+  assert.deepEqual(
+    resolveDesktopRuntimeModuleLocations(lock, ["@remotion/bundler"], {
+      platform: "darwin",
+      architecture: "x64",
+    }),
+    [
+      "node_modules/@remotion/bundler",
+      "node_modules/@remotion/bundler/node_modules/esbuild",
+      "node_modules/@rspack/binding-darwin-x64",
       "node_modules/react",
     ],
   );
@@ -458,8 +658,9 @@ test("Runtime Pack Remotion identities exactly match copied module roots", async
   const copiedRoots = [
     ...new Set(
       closure.files.flatMap(({ relativePath }) => {
-        const match =
-          /^node_modules\/(remotion|@remotion\/[^/]+)\//u.exec(relativePath);
+        const match = /^node_modules\/(remotion|@remotion\/[^/]+)\//u.exec(
+          relativePath,
+        );
         return match?.[1] === undefined ? [] : [match[1]];
       }),
     ),

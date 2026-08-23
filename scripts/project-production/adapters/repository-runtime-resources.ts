@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 
 import { ensureBrowser } from "@remotion/renderer";
 
+import { getDesktopDarwinTarget } from "../../../desktop/configuration/darwin-target";
 import { createFingerprint } from "../../../src/contracts";
 import {
   createRuntimeExecutionResources,
@@ -17,8 +18,8 @@ const sha256File = async (path: string) =>
     .digest("hex")}` as const;
 
 const compositorPackage = () => {
-  if (process.platform === "darwin" && process.arch === "arm64") {
-    return "@remotion/compositor-darwin-arm64/package.json";
+  if (process.platform === "darwin") {
+    return getDesktopDarwinTarget(process.arch).compositorPackageJson;
   }
   if (process.platform === "linux" && process.arch === "x64") {
     return "@remotion/compositor-linux-x64-gnu/package.json";

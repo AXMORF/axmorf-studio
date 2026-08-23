@@ -19,6 +19,7 @@ import {
   buildRuntimePackManifest,
   type RuntimePackManifest,
 } from "../contracts/runtime-pack";
+import type { DesktopDarwinArchitecture } from "../configuration/darwin-target";
 
 export const RUNTIME_PACK_MANIFEST = "runtime-pack.json" as const;
 export const DESKTOP_COMPATIBILITY_MANIFEST = "compatibility.json" as const;
@@ -88,9 +89,11 @@ const walk = async (root: string, current = root): Promise<string[]> => {
   const files: string[] = [];
   for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
     const path = join(current, entry.name);
-    if (entry.isSymbolicLink()) throw new Error("Runtime Pack cannot contain symlinks.");
+    if (entry.isSymbolicLink())
+      throw new Error("Runtime Pack cannot contain symlinks.");
     if (entry.isDirectory()) files.push(...(await walk(root, path)));
-    else if (entry.isFile()) files.push(relative(root, path).split(sep).join("/"));
+    else if (entry.isFile())
+      files.push(relative(root, path).split(sep).join("/"));
     else throw new Error("Runtime Pack cannot contain special files.");
   }
   return files;
@@ -125,7 +128,9 @@ export const verifyRuntimePack = async ({
     }
     const expectedRoot = join(resources.canonical, "runtime-pack");
     if (root !== expectedRoot || !contained(resources.canonical, root)) {
-      throw new Error("Runtime Pack root is outside the expected App Resources.");
+      throw new Error(
+        "Runtime Pack root is outside the expected App Resources.",
+      );
     }
   }
   const manifestPath = join(root, RUNTIME_PACK_MANIFEST);
@@ -136,7 +141,10 @@ export const verifyRuntimePack = async ({
       maximumBytes: MAX_RUNTIME_MANIFEST_BYTES,
     }),
   );
-  if (manifest.platform !== expectedPlatform || manifest.architecture !== expectedArchitecture) {
+  if (
+    manifest.platform !== expectedPlatform ||
+    manifest.architecture !== expectedArchitecture
+  ) {
     throw new Error("Runtime Pack platform or architecture is incompatible.");
   }
   const actual = (await walk(root))
@@ -148,12 +156,18 @@ export const verifyRuntimePack = async ({
   }
   for (const file of manifest.files) {
     const path = resolve(root, file.path);
-    if (!contained(root, path)) throw new Error("Runtime Pack path escaped its root.");
+    if (!contained(root, path))
+      throw new Error("Runtime Pack path escaped its root.");
     const before = await lstat(path);
-    if (!before.isFile() || before.isSymbolicLink()) throw new Error("Runtime Pack file is unsafe.");
+    if (!before.isFile() || before.isSymbolicLink())
+      throw new Error("Runtime Pack file is unsafe.");
     const bytes = await readFile(path);
     const after = await lstat(path);
-    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size) {
+    if (
+      before.dev !== after.dev ||
+      before.ino !== after.ino ||
+      before.size !== after.size
+    ) {
       throw new Error("Runtime Pack file changed during verification.");
     }
     if (bytes.byteLength !== file.sizeBytes || sha256(bytes) !== file.sha256) {
@@ -164,7 +178,12 @@ export const verifyRuntimePack = async ({
     }
   }
   for (const identity of manifest.remotionPackages) {
-    const packagePath = join(root, "node_modules", identity.name, "package.json");
+    const packagePath = join(
+      root,
+      "node_modules",
+      identity.name,
+      "package.json",
+    );
     const packageJson = await readBoundedRegularJson({
       path: packagePath,
       label: `Runtime package ${identity.name}`,
@@ -177,9 +196,7 @@ export const verifyRuntimePack = async ({
       (packageJson as { name?: unknown }).name !== identity.name ||
       (packageJson as { version?: unknown }).version !== identity.version
     ) {
-      throw new Error(
-        `Runtime package identity drifted: ${identity.name}.`,
-      );
+      throw new Error(`Runtime package identity drifted: ${identity.name}.`);
     }
   }
   return manifest;
@@ -187,7 +204,7 @@ export const verifyRuntimePack = async ({
 
 export type RuntimePackBuildInput = Readonly<{
   outputRoot: string;
-  architecture: "arm64";
+  architecture: DesktopDarwinArchitecture;
   remotionPackages: readonly Readonly<{ name: string; version: string }>[];
   binaries: Readonly<{
     rendererBrowser: { source: string; relativePath: string; version: string };
@@ -196,12 +213,17 @@ export type RuntimePackBuildInput = Readonly<{
     node: { source: string; relativePath: string; version: string };
     rspClient: { source: string; relativePath: string; version: string };
   }>;
-  additionalFiles?: readonly Readonly<{ source: string; relativePath: string; executable?: boolean }>[];
+  additionalFiles?: readonly Readonly<{
+    source: string;
+    relativePath: string;
+    executable?: boolean;
+  }>[];
 }>;
 
 export const buildRuntimePack = async (input: RuntimePackBuildInput) => {
   const target = resolve(input.outputRoot);
-  if (dirname(target) === target) throw new Error("Filesystem root cannot be a Runtime Pack target.");
+  if (dirname(target) === target)
+    throw new Error("Filesystem root cannot be a Runtime Pack target.");
   const staging = `${target}.staging-${process.pid}`;
   const backup = `${target}.previous-${process.pid}`;
   await rm(staging, { recursive: true, force: true });
@@ -212,24 +234,52 @@ export const buildRuntimePack = async (input: RuntimePackBuildInput) => {
   );
   const sources = [
     ...bindings.map(([name, value]) => ({ name, ...value, executable: true })),
-    ...(input.additionalFiles ?? []).map((value) => ({ name: null, version: null, executable: value.executable ?? false, ...value })),
+    ...(input.additionalFiles ?? []).map((value) => ({
+      name: null,
+      version: null,
+      executable: value.executable ?? false,
+      ...value,
+    })),
   ];
-  const identities = new Map<string, { relativePath: string; version: string; sha256: string }>();
-  const files: Array<{ path: string; sizeBytes: number; sha256: string; executable: boolean }> = [];
+  const identities = new Map<
+    string,
+    { relativePath: string; version: string; sha256: string }
+  >();
+  const files: Array<{
+    path: string;
+    sizeBytes: number;
+    sha256: string;
+    executable: boolean;
+  }> = [];
   try {
     for (const source of sources.sort((left, right) =>
       compareCanonicalText(left.relativePath, right.relativePath),
     )) {
-      if (files.some(({ path }) => path === source.relativePath)) throw new Error("Runtime Pack contains duplicate paths.");
+      if (files.some(({ path }) => path === source.relativePath))
+        throw new Error("Runtime Pack contains duplicate paths.");
       const bytes = await readFile(source.source);
       const destination = resolve(staging, source.relativePath);
-      if (!contained(staging, destination)) throw new Error("Runtime Pack source path escaped.");
+      if (!contained(staging, destination))
+        throw new Error("Runtime Pack source path escaped.");
       await mkdir(dirname(destination), { recursive: true });
-      await writeFile(destination, bytes, { flag: "wx", mode: source.executable ? 0o755 : 0o644 });
+      await writeFile(destination, bytes, {
+        flag: "wx",
+        mode: source.executable ? 0o755 : 0o644,
+      });
       await chmod(destination, source.executable ? 0o755 : 0o644);
       const checksum = sha256(bytes);
-      files.push({ path: source.relativePath, sizeBytes: bytes.byteLength, sha256: checksum, executable: source.executable });
-      if (source.name !== null && source.version !== null) identities.set(source.name, { relativePath: source.relativePath, version: source.version, sha256: checksum });
+      files.push({
+        path: source.relativePath,
+        sizeBytes: bytes.byteLength,
+        sha256: checksum,
+        executable: source.executable,
+      });
+      if (source.name !== null && source.version !== null)
+        identities.set(source.name, {
+          relativePath: source.relativePath,
+          version: source.version,
+          sha256: checksum,
+        });
     }
     const manifest = buildRuntimePackManifest({
       platform: "darwin",
@@ -237,11 +287,18 @@ export const buildRuntimePack = async (input: RuntimePackBuildInput) => {
       remotionPackages: [...input.remotionPackages].sort((left, right) =>
         compareCanonicalText(left.name, right.name),
       ),
-      rendererBrowser: identities.get("rendererBrowser"), ffmpeg: identities.get("ffmpeg"),
-      ffprobe: identities.get("ffprobe"), node: identities.get("node"), rspClient: identities.get("rspClient"),
+      rendererBrowser: identities.get("rendererBrowser"),
+      ffmpeg: identities.get("ffmpeg"),
+      ffprobe: identities.get("ffprobe"),
+      node: identities.get("node"),
+      rspClient: identities.get("rspClient"),
       files,
     });
-    await writeFile(join(staging, RUNTIME_PACK_MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`, { flag: "wx", mode: 0o644 });
+    await writeFile(
+      join(staging, RUNTIME_PACK_MANIFEST),
+      `${JSON.stringify(manifest, null, 2)}\n`,
+      { flag: "wx", mode: 0o644 },
+    );
     let replaced = false;
     try {
       await rename(target, backup);
@@ -251,7 +308,11 @@ export const buildRuntimePack = async (input: RuntimePackBuildInput) => {
     }
     try {
       await rename(staging, target);
-      const verified = await verifyRuntimePack({ runtimePackRoot: target, expectedArchitecture: input.architecture, expectedPlatform: "darwin" });
+      const verified = await verifyRuntimePack({
+        runtimePackRoot: target,
+        expectedArchitecture: input.architecture,
+        expectedPlatform: "darwin",
+      });
       if (replaced) await rm(backup, { recursive: true, force: true });
       return verified;
     } catch (error) {
@@ -300,7 +361,10 @@ export const probeRuntimeExecutable = ({
       if (size > 64 * 1024) child.kill("SIGKILL");
       else chunks.push(Buffer.from(chunk));
     });
-    child.once("error", (error) => { clearTimeout(timer); reject(error); });
+    child.once("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
     child.once("exit", (code, signal) => {
       clearTimeout(timer);
       const output = Buffer.concat(chunks).toString("utf8").trim();
@@ -312,8 +376,7 @@ export const probeRuntimeExecutable = ({
             `Runtime executable identity probe failed for ${basename(executable)} (${status}; ${detail}).`,
           ),
         );
-      }
-      else resolvePromise(output.split(/\r?\n/u)[0]!.slice(0, 160));
+      } else resolvePromise(output.split(/\r?\n/u)[0]!.slice(0, 160));
     });
   });
 

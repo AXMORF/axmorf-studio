@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   assertNativeIdleNetworkEvidence,
   assertNativeNetworkEvidence,
+  parseLsofConnectionOutput,
   parseLsofListenerOutput,
   type NativeNetworkEvidenceSample,
 } from "../../scripts/desktop/native-network-evidence";
@@ -24,6 +25,7 @@ const sample = (
   phase,
   processes: [processIdentity],
   listeners,
+  connections: [],
 });
 
 test("lsof listener parser retains the owning pid and exact bound address", () => {
@@ -39,6 +41,30 @@ test("lsof listener parser retains the owning pid and exact bound address", () =
       ].join("\n"),
     ),
     [{ pid: 42, host: "127.0.0.1", port: 53123 }],
+  );
+});
+
+test("lsof connection parser retains both endpoints for offline proof", () => {
+  assert.deepEqual(
+    parseLsofConnectionOutput(
+      [
+        "p42",
+        "cAXMORF Studio Engine",
+        "f20",
+        "n127.0.0.1:53123->127.0.0.1:53124",
+        "TST=ESTABLISHED",
+        "",
+      ].join("\n"),
+    ),
+    [
+      {
+        pid: 42,
+        localHost: "127.0.0.1",
+        localPort: 53123,
+        remoteHost: "127.0.0.1",
+        remotePort: 53124,
+      },
+    ],
   );
 });
 
@@ -76,6 +102,7 @@ test("native network evidence permits one build-scoped loopback endpoint", () =>
   assert.deepEqual(result.listenerPorts, [53123, 53124, 54123]);
   assert.equal(result.persistentTcpListeners, false);
   assert.equal(result.expectedListenerCount, 3);
+  assert.equal(result.offlineRuntimeObserved, true);
 });
 
 test("native network evidence permits simultaneous ephemeral runtime listeners only during Delivery", () => {
@@ -94,9 +121,7 @@ test("native network evidence permits simultaneous ephemeral runtime listeners o
     ],
     requiredActivePhases: ["manual-delivery"],
     ephemeralPortRange: { first: 49_152, last: 65_535 },
-    expectedListenerEndpoints: [
-      { host: "127.0.0.1", port: 53_123 },
-    ],
+    expectedListenerEndpoints: [{ host: "127.0.0.1", port: 53_123 }],
   });
   assert.deepEqual(result.listenerPorts, [53_123, 53_124]);
   assert.equal(result.expectedListenerCount, 1);
@@ -114,7 +139,10 @@ test("native network evidence rejects public, IPv6, fixed-range and out-of-scope
     assert.throws(
       () =>
         assertNativeNetworkEvidence({
-          samples: [sample("idle-before"), sample("manual-delivery", [listener])],
+          samples: [
+            sample("idle-before"),
+            sample("manual-delivery", [listener]),
+          ],
           requiredActivePhases: ["manual-delivery"],
           ephemeralPortRange: { first: 49_152, last: 65_535 },
         }),
@@ -125,15 +153,42 @@ test("native network evidence rejects public, IPv6, fixed-range and out-of-scope
     () =>
       assertNativeNetworkEvidence({
         samples: [
-          sample("idle-before", [
-            { pid: 42, host: "127.0.0.1", port: 53123 },
-          ]),
+          sample("idle-before", [{ pid: 42, host: "127.0.0.1", port: 53123 }]),
           sample("manual-delivery"),
         ],
         requiredActivePhases: ["manual-delivery"],
         ephemeralPortRange: { first: 49_152, last: 65_535 },
       }),
     /native-network-evidence/u,
+  );
+});
+
+test("native network evidence rejects every external TCP connection", () => {
+  assert.throws(
+    () =>
+      assertNativeNetworkEvidence({
+        samples: [
+          sample("idle-before"),
+          {
+            ...sample("manual-delivery", [
+              { pid: 42, host: "127.0.0.1", port: 53123 },
+            ]),
+            connections: [
+              {
+                pid: 42,
+                localHost: "10.0.0.2",
+                localPort: 55123,
+                remoteHost: "203.0.113.10",
+                remotePort: 443,
+              },
+            ],
+          },
+          sample("idle-after-manual"),
+        ],
+        requiredActivePhases: ["manual-delivery"],
+        ephemeralPortRange: { first: 49_152, last: 65_535 },
+      }),
+    /native-network-evidence-external-connection-observed/u,
   );
 });
 
@@ -171,9 +226,7 @@ test("native network evidence requires an observed listener and terminal cleanup
         ],
         requiredActivePhases: ["manual-delivery"],
         ephemeralPortRange: { first: 49_152, last: 65_535 },
-        expectedListenerEndpoints: [
-          { host: "127.0.0.1", port: 53124 },
-        ],
+        expectedListenerEndpoints: [{ host: "127.0.0.1", port: 53124 }],
       }),
     /native-network-evidence-listener-event-not-observed/u,
   );
@@ -182,14 +235,14 @@ test("native network evidence requires an observed listener and terminal cleanup
 test("idle-only evidence rejects any persistent listener", () => {
   assert.deepEqual(assertNativeIdleNetworkEvidence([sample("idle-before")]), {
     persistentTcpListeners: false,
+    externalTcpConnections: 0,
+    offlineRuntimeObserved: true,
     sampleCount: 1,
   });
   assert.throws(
     () =>
       assertNativeIdleNetworkEvidence([
-        sample("idle-before", [
-          { pid: 42, host: "127.0.0.1", port: 53123 },
-        ]),
+        sample("idle-before", [{ pid: 42, host: "127.0.0.1", port: 53123 }]),
       ]),
     /native-network-evidence-persistent-listener-observed/u,
   );

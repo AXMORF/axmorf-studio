@@ -2,7 +2,7 @@
 
 > 文档类型：唯一导航入口
 >
-> 最后复核：2026-08-23
+> 最后复核：2026-08-24
 
 先按问题选择文档，不要从历史计划或 evidence 反推 current implementation。
 
@@ -36,6 +36,7 @@
 | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | 主流 Agent 入口、最低能力与宿主适配边界                                                                       | [guides/AGENT_COMPATIBILITY.md](guides/AGENT_COMPATIBILITY.md)                 |
 | Desktop Phase A 自动化与 Apple Silicon 原生 smoke                                                             | [guides/DESKTOP_PHASE_A_SMOKE.md](guides/DESKTOP_PHASE_A_SMOKE.md)             |
+| Desktop Phase C arm64/x64 本地与 manual-only CI native gate                                                   | [guides/DESKTOP_PHASE_C_NATIVE_GATE.md](guides/DESKTOP_PHASE_C_NATIVE_GATE.md) |
 | 统一 Producer/TTS/Scene defaults 配置                                                                         | [guides/PRODUCER_CONFIG.md](guides/PRODUCER_CONFIG.md)                         |
 | create 后的只读 inspect、显式 prepare、dirty task delegation、attempt-bound commit/fail 与 fixed continuation | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md)       |
 | source-current 与 optional exact four-file DeliveryBuild                                                      | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md)                           |

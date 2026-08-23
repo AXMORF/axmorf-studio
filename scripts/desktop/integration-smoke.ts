@@ -37,15 +37,18 @@ import {
   createRendererRuntimeFingerprint,
 } from "../../desktop/contracts/runtime-pack";
 import {
+  DesktopDarwinArchitectureSchema,
+  getDesktopDarwinTarget,
+  type DesktopDarwinArchitecture,
+} from "../../desktop/configuration/darwin-target";
+import {
   createEngineController,
   type EngineDependencies,
   type EngineMessageEvent,
 } from "../../desktop/engine/entry";
 import { buildRuntimePack } from "../../desktop/adapters/runtime-pack-filesystem";
 import { createRuntimeExecutionResources } from "../project-production/application/production-locations";
-import {
-  createWorkspaceProductionController,
-} from "../project-production/application/workspace-production-controller";
+import { createWorkspaceProductionController } from "../project-production/application/workspace-production-controller";
 import { buildProducerConfig } from "../../src/contracts";
 
 const execFileAsync = promisify(execFile);
@@ -173,20 +176,33 @@ const installIntegrationResources = async (appResourcesRoot: string) => {
 
 const buildFixtureAppResources = async ({
   appResourcesRoot,
+  architecture,
   temporaryRoot,
 }: {
   readonly appResourcesRoot: string;
+  readonly architecture: DesktopDarwinArchitecture;
   readonly temporaryRoot: string;
 }) => {
   await mkdir(appResourcesRoot, { recursive: true });
   await installIntegrationResources(appResourcesRoot);
   const rsp = await buildRspSea(temporaryRoot);
   const runtimePackRoot = join(appResourcesRoot, "runtime-pack");
+  const compositorPackage =
+    getDesktopDarwinTarget(architecture).compositorPackageName;
+  const compositorPackageJson = join(
+    temporaryRoot,
+    `${compositorPackage.replaceAll("/", "-").replaceAll("@", "")}.json`,
+  );
+  await writeFile(
+    compositorPackageJson,
+    `${JSON.stringify({ name: compositorPackage, version: "4.0.489" })}\n`,
+  );
   const manifest = await buildRuntimePack({
     outputRoot: runtimePackRoot,
-    architecture: "arm64",
+    architecture,
     remotionPackages: [
       { name: "@remotion/bundler", version: "4.0.489" },
+      { name: compositorPackage, version: "4.0.489" },
       { name: "@remotion/renderer", version: "4.0.489" },
       { name: "@remotion/studio", version: "4.0.489" },
       { name: "@remotion/studio-shared", version: "4.0.489" },
@@ -232,6 +248,10 @@ const buildFixtureAppResources = async ({
       {
         source: join(checkoutRoot, "node_modules/remotion/package.json"),
         relativePath: "node_modules/remotion/package.json",
+      },
+      {
+        source: compositorPackageJson,
+        relativePath: `node_modules/${compositorPackage}/package.json`,
       },
     ],
   });
@@ -381,6 +401,7 @@ export const runDesktopIntegrationSmoke =
       ]);
       const { manifest, runtimePackRoot } = await buildFixtureAppResources({
         appResourcesRoot,
+        architecture: DesktopDarwinArchitectureSchema.parse(process.arch),
         temporaryRoot: fixtureRoot,
       });
       const dependencies: EngineDependencies = {
@@ -388,7 +409,7 @@ export const runDesktopIntegrationSmoke =
         verifyRuntimePack: (options) =>
           verifyRuntimePack({
             ...options,
-            expectedArchitecture: "arm64",
+            expectedArchitecture: manifest.architecture,
             expectedPlatform: "darwin",
           }),
         readCompatibility: readDesktopCompatibilityManifest,
@@ -415,10 +436,14 @@ export const runDesktopIntegrationSmoke =
               runtime,
               delivery: {
                 build: async () => {
-                  throw new Error("host-functional-fixture-has-no-native-media");
+                  throw new Error(
+                    "host-functional-fixture-has-no-native-media",
+                  );
                 },
                 buildUnlocked: async () => {
-                  throw new Error("host-functional-fixture-has-no-native-media");
+                  throw new Error(
+                    "host-functional-fixture-has-no-native-media",
+                  );
                 },
                 shutdown: async () => undefined,
               },

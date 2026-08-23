@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-23 Desktop Phase B verified complete on hosted Apple Silicon native gate
+> 最后复核：2026-08-24 Desktop Phase C dual-architecture enablement implementation; Intel native evidence pending
 
 ## 当前结论
 
@@ -208,13 +208,35 @@ arm64 / macOS 15.7.7 完整成功；evidence artifact ID `9495509231`，digest
 task executor 完成 dirty Agent task outputs，并未安装或调用外部创作 Agent；Hermes Workspace production、真实外部
 Agent creative E2E、Intel x64、DMG、签名、公证、distribution 与公开发布仍不在该证据范围。
 
+## Desktop Phase C 双架构 enablement（native evidence pending）
+
+当前实现已把 Desktop Runtime Pack、compatibility manifest、doctor/shell DTO、package target、repository compositor
+resolution 与 native smoke 从 arm64 literal 收敛为唯一 darwin architecture configuration，只允许 `arm64`/`x64`。两种
+target 分别绑定原生 `@remotion/compositor-darwin-arm64` 或 `@remotion/compositor-darwin-x64`；package-lock 的 Remotion、
+Rspack 与 esbuild optional dependency closure 对两种目标都有 executable focused coverage，且拒绝 foreign-architecture
+compositor。architecture 继续只进入 RuntimePackId/rendererRuntimeFingerprint/DeliveryBuild，不进入 ProductionRevision、
+TaskRevision、TTS 或 Agent Artifact identity。
+
+`desktop:native:gate` 和 manual-only Phase C workflow 共用一个架构参数化入口。gate 会分别复验 host
+`process.arch`/`uname -m`、ordinary/gate package isolation、Runtime Pack/package inventory，以及 Electron、Chromium、
+FFmpeg/FFprobe、Node、SEA `rsp` 和 compositor 的单一 Mach-O identity；随后执行 public `rsp-local-v2` manual
+source-current + explicit Delivery、automatic Delivery、exact four-file media probes、Preview playback/seek/timeline、
+failure/Quit/reopen cleanup、空 host-tools `PATH`、无 external TCP connection、evidence redaction 和 package 后完整 repository
+gate。精确本地命令与 evidence contract 见
+[Desktop Phase C native gate](guides/DESKTOP_PHASE_C_NATIVE_GATE.md)。
+
+当前环境不是 Intel Mac，本轮没有 x64 packaged production evidence，也没有运行或上传 workflow。因此 Phase C 状态只能是
+`implementation-complete-native-evidence-pending`，不能标记 `verified-complete`，Roadmap 仍停在 Phase C。native gate
+仍使用 test-only deterministic provider/task executor，并明确记录 `externalCreativeAgentTested: false`；安装外部
+Codex/Hermes 的 creative E2E 是另一条待补证据。
+
 ## 当前非目标
 
 远程 scheduler/database/artifact store、平台发布、账号、上传、child identity persistence、subjective quality
 gate、automatic capability promotion、Docker 和新的 TTS Gateway 均未实现。
 
 公开 DMG/installer 发行、签名/公证、完整跨宿主 native evidence、x64 native support evidence 和 public release
-仍未实现或验证；这些目标记录在
+仍未验证；x64 配置化 build/gate implementation 不等于真实 Intel support evidence。这些目标记录在
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
 [macOS 维护与发行目标](DESKTOP_APP_MACOS_MAINTENANCE.md)。Phase A 的受限 Workspace/Skill/doctor/Preview surface
 不进入或改变 current production authority。

@@ -9,6 +9,7 @@ import {
   TaskRevisionSchema,
 } from "../../src/contracts";
 import { AgentExecutionOverrideSchema } from "../../settings/contracts/execution-preferences";
+import { DesktopDarwinArchitectureSchema } from "../configuration/darwin-target";
 import {
   DesktopProjectStatusSchema,
   PreviewCatalogReadinessSchema,
@@ -147,7 +148,7 @@ export const DoctorResponseSchema = z
     runtimePackAvailable: z.literal(true),
     runtimePack: z.strictObject({
       runtimePackId: z.string().regex(/^runtime-pack-[a-f0-9]{64}$/u),
-      architecture: z.literal("arm64"),
+      architecture: DesktopDarwinArchitectureSchema,
     }),
     provider: z.enum(["ready", "not-configured", "unavailable"]),
     activeWork: ActiveWorkSummarySchema.nullable(),

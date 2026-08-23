@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  getDesktopDarwinTarget,
+  type DesktopDarwinArchitecture,
+} from "../../desktop/configuration/darwin-target";
+import {
   DESKTOP_NETWORK_POLICY,
   DoctorResponseSchema,
   RSP_PROTOCOL_VERSION,
@@ -22,7 +26,9 @@ import {
 const workspaceId = "26f9827f-2b31-46cc-ae3d-ab5b73f004bf";
 const hex = (value: string) => value.repeat(64);
 
-const runtimePack = () => {
+const runtimePack = (architecture: DesktopDarwinArchitecture = "arm64") => {
+  const compositorPackage =
+    getDesktopDarwinTarget(architecture).compositorPackageName;
   const binaries = {
     ffmpeg: { relativePath: "bin/ffmpeg", version: "7.1", sha256: hex("a") },
     ffprobe: { relativePath: "bin/ffprobe", version: "7.1", sha256: hex("b") },
@@ -36,9 +42,10 @@ const runtimePack = () => {
   } as const;
   return buildRuntimePackManifest({
     platform: "darwin",
-    architecture: "arm64",
+    architecture,
     remotionPackages: [
       { name: "@remotion/bundler", version: "4.0.489" },
+      { name: compositorPackage, version: "4.0.489" },
       { name: "@remotion/effects", version: "4.0.489" },
       { name: "@remotion/renderer", version: "4.0.489" },
       { name: "@remotion/studio", version: "4.0.489" },
@@ -57,6 +64,12 @@ const runtimePack = () => {
         path: "node_modules/@remotion/bundler/package.json",
         sizeBytes: 1,
         sha256: hex("1"),
+        executable: false,
+      },
+      {
+        path: `node_modules/${compositorPackage}/package.json`,
+        sizeBytes: 1,
+        sha256: hex("9"),
         executable: false,
       },
       {
@@ -89,8 +102,7 @@ const runtimePack = () => {
         sha256: hex("0"),
         executable: false,
       },
-    ]
-      .sort((left, right) => left.path.localeCompare(right.path)),
+    ].sort((left, right) => left.path.localeCompare(right.path)),
   });
 };
 
@@ -130,7 +142,7 @@ test("Phase B doctor is workspace/embedded and removes Phase A fields", () => {
   );
 });
 
-test("Runtime Pack is strict, checksum-bound, and owns Delivery runtime identity", () => {
+test("Runtime Pack is strict, checksum-bound, dual-architecture, and owns Delivery runtime identity", () => {
   const pack = runtimePack();
   assert.match(pack.runtimePackId, /^runtime-pack-[a-f0-9]{64}$/u);
   assert.match(
@@ -145,9 +157,9 @@ test("Runtime Pack is strict, checksum-bound, and owns Delivery runtime identity
       ),
     }),
   );
-  assert.throws(() =>
-    RuntimePackManifestSchema.parse({ ...pack, architecture: "x64" }),
-  );
+  const x64 = runtimePack("x64");
+  assert.equal(x64.architecture, "x64");
+  assert.notEqual(x64.runtimePackId, pack.runtimePackId);
 });
 
 test("Workspace v2 is the only runtime schema and v1 is migration-only", () => {

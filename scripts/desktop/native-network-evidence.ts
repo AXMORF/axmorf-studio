@@ -19,6 +19,14 @@ export type NativeTcpListener = Readonly<{
   port: number;
 }>;
 
+export type NativeTcpConnection = Readonly<{
+  pid: number;
+  localHost: string;
+  localPort: number;
+  remoteHost: string;
+  remotePort: number;
+}>;
+
 export type NativeExpectedListenerEndpoint = Readonly<{
   host: "127.0.0.1";
   port: number;
@@ -29,6 +37,7 @@ export type NativeNetworkEvidenceSample = Readonly<{
   phase: string;
   processes: readonly NativeProcessIdentity[];
   listeners: readonly NativeTcpListener[];
+  connections: readonly NativeTcpConnection[];
 }>;
 
 const evidenceError = (code: string) =>
@@ -69,6 +78,38 @@ export const parseLsofListenerOutput = (
     }
   }
   return listeners;
+};
+
+export const parseLsofConnectionOutput = (
+  output: string,
+): readonly NativeTcpConnection[] => {
+  const connections: NativeTcpConnection[] = [];
+  let pid: number | null = null;
+  for (const line of output.split(/\r?\n/u)) {
+    if (line.startsWith("p")) {
+      const parsed = Number(line.slice(1));
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        throw evidenceError("lsof-pid-invalid");
+      }
+      pid = parsed;
+    } else if (line.startsWith("n")) {
+      if (pid === null) throw evidenceError("lsof-owner-missing");
+      const endpoints = line.slice(1).split("->");
+      if (endpoints.length !== 2) {
+        throw evidenceError("lsof-connection-invalid");
+      }
+      const local = parseEndpoint(endpoints[0]!);
+      const remote = parseEndpoint(endpoints[1]!);
+      connections.push({
+        pid,
+        localHost: local.host,
+        localPort: local.port,
+        remoteHost: remote.host,
+        remotePort: remote.port,
+      });
+    }
+  }
+  return connections;
 };
 
 const parseProcessIdentity = (raw: string): NativeProcessIdentity | null => {
@@ -134,23 +175,37 @@ const captureSample = async ({
 }): Promise<NativeNetworkEvidenceSample> => {
   const processes = await inspectProcessTree(rootPid);
   const listeners: NativeTcpListener[] = [];
+  const connections: NativeTcpConnection[] = [];
   for (const process of processes) {
-    const output = await runOptional("lsof", [
-      "-nP",
-      "-a",
-      "-p",
-      String(process.pid),
-      "-iTCP",
-      "-sTCP:LISTEN",
-      "-FpcfnT",
+    const [listenerOutput, connectionOutput] = await Promise.all([
+      runOptional("lsof", [
+        "-nP",
+        "-a",
+        "-p",
+        String(process.pid),
+        "-iTCP",
+        "-sTCP:LISTEN",
+        "-FpcfnT",
+      ]),
+      runOptional("lsof", [
+        "-nP",
+        "-a",
+        "-p",
+        String(process.pid),
+        "-iTCP",
+        "-sTCP:ESTABLISHED",
+        "-FpcfnT",
+      ]),
     ]);
-    listeners.push(...parseLsofListenerOutput(output));
+    listeners.push(...parseLsofListenerOutput(listenerOutput));
+    connections.push(...parseLsofConnectionOutput(connectionOutput));
   }
   return {
     capturedAt: new Date().toISOString(),
     phase,
     processes,
     listeners,
+    connections,
   };
 };
 
@@ -198,7 +253,9 @@ export const monitorNativeNetworkEvidence = async ({
       phase: await readPhase(phaseFile),
     });
     await appendFile(output, `${JSON.stringify(sample)}\n`);
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, intervalMs));
+    await new Promise((resolvePromise) =>
+      setTimeout(resolvePromise, intervalMs),
+    );
   }
 };
 
@@ -219,9 +276,27 @@ const assertSample = (sample: NativeNetworkEvidenceSample) => {
   if (listeners.size !== sample.listeners.length) {
     throw evidenceError("listener-duplicate");
   }
+  const connections = new Set(
+    sample.connections.map(
+      ({ pid, localHost, localPort, remoteHost, remotePort }) =>
+        `${pid}:${localHost}:${localPort}->${remoteHost}:${remotePort}`,
+    ),
+  );
+  if (connections.size !== sample.connections.length) {
+    throw evidenceError("connection-duplicate");
+  }
   for (const listener of sample.listeners) {
     if (!processIds.has(listener.pid)) {
       throw evidenceError("listener-owner-invalid");
+    }
+  }
+  for (const connection of sample.connections) {
+    if (
+      !processIds.has(connection.pid) ||
+      connection.localHost !== "127.0.0.1" ||
+      connection.remoteHost !== "127.0.0.1"
+    ) {
+      throw evidenceError("external-connection-observed");
     }
   }
 };
@@ -291,7 +366,10 @@ export const assertNativeNetworkEvidence = ({
     }
   }
   const terminal = samples.at(-1)!;
-  if (!terminal.phase.startsWith("idle-after-") || terminal.listeners.length > 0) {
+  if (
+    !terminal.phase.startsWith("idle-after-") ||
+    terminal.listeners.length > 0
+  ) {
     throw evidenceError("terminal-idle-missing");
   }
   return {
@@ -304,6 +382,8 @@ export const assertNativeNetworkEvidence = ({
     },
     listenerPorts: [...ports].sort((left, right) => left - right),
     expectedListenerCount: expectedListenerEndpoints.length,
+    externalTcpConnections: 0 as const,
+    offlineRuntimeObserved: true as const,
     sampleCount: samples.length,
   };
 };
@@ -344,12 +424,14 @@ export const assertNativeIdleNetworkEvidence = (
   if (samples.length === 0) throw evidenceError("idle-samples-missing");
   for (const sample of samples) {
     assertSample(sample);
-    if (sample.listeners.length > 0) {
+    if (sample.listeners.length > 0 || sample.connections.length > 0) {
       throw evidenceError("persistent-listener-observed");
     }
   }
   return {
     persistentTcpListeners: false as const,
+    externalTcpConnections: 0 as const,
+    offlineRuntimeObserved: true as const,
     sampleCount: samples.length,
   };
 };

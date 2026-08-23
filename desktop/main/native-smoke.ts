@@ -17,6 +17,7 @@ import {
   type PrivateConfigCrypto,
 } from "../adapters/private-config-store";
 import { buildProducerConfig } from "../../src/contracts";
+import { DesktopDarwinArchitectureSchema } from "../configuration/darwin-target";
 
 const NATIVE_GATE_PRODUCER_CONFIG = buildProducerConfig({
   schemaVersion: 4,
@@ -224,15 +225,19 @@ export const resolveNativeSmokeOptions = ({
   readonly arch?: string;
   readonly env?: NodeJS.ProcessEnv;
 }): NativeSmokeOptions | null => {
-  if (env.AXMORF_PHASE_B_NATIVE_GATE !== "1") return null;
-  if (!isPackaged || platform !== "darwin" || arch !== "arm64") {
+  if (env.AXMORF_DESKTOP_NATIVE_GATE !== "1") return null;
+  if (
+    !isPackaged ||
+    platform !== "darwin" ||
+    !DesktopDarwinArchitectureSchema.safeParse(arch).success
+  ) {
     throw new Error("desktop-native-smoke-host-invalid");
   }
-  const outputRoot = env.AXMORF_PHASE_B_SMOKE_OUTPUT;
-  const homeRoot = env.AXMORF_PHASE_B_SMOKE_HOME;
-  const userDataRoot = env.AXMORF_PHASE_B_SMOKE_USER_DATA;
-  const workspaceRoot = env.AXMORF_PHASE_B_SMOKE_WORKSPACE;
-  const selection = env.AXMORF_PHASE_B_SMOKE_SELECTION;
+  const outputRoot = env.AXMORF_DESKTOP_SMOKE_OUTPUT;
+  const homeRoot = env.AXMORF_DESKTOP_SMOKE_HOME;
+  const userDataRoot = env.AXMORF_DESKTOP_SMOKE_USER_DATA;
+  const workspaceRoot = env.AXMORF_DESKTOP_SMOKE_WORKSPACE;
+  const selection = env.AXMORF_DESKTOP_SMOKE_SELECTION;
   if (
     homeRoot === undefined ||
     homeRoot === "" ||
@@ -662,12 +667,12 @@ export const runPackagedNativeSmoke = async ({
       "selection-control",
     );
     requireRenderer(renderer.state.entryCount === 1, "entry-count");
-    requireRenderer(renderer.state.productionAvailable, "phase-b-production");
-    requireRenderer(renderer.state.deliveryAvailable, "phase-b-delivery");
-    requireRenderer(!renderer.state.distributionReady, "phase-b-distribution");
+    requireRenderer(renderer.state.productionAvailable, "desktop-production");
+    requireRenderer(renderer.state.deliveryAvailable, "desktop-delivery");
+    requireRenderer(!renderer.state.distributionReady, "desktop-distribution");
     requireRenderer(
       renderer.state.runtimePackAvailable,
-      "phase-b-runtime-pack",
+      "desktop-runtime-pack",
     );
     requireRenderer(
       renderer.media.readyState >=
@@ -821,7 +826,7 @@ export const runPackagedNativeSmoke = async ({
     );
     const report = {
       schemaVersion: 1,
-      contractVersion: "desktop-phase-b-native-evidence-v1",
+      contractVersion: "desktop-native-evidence-v2",
       status: "native-delivery-and-preview-verified",
       sourceCurrent: true,
       deliveryBuilt: true,

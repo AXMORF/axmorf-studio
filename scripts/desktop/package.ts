@@ -1,6 +1,10 @@
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 
+import {
+  assertDesktopDarwinNativeHost,
+  DesktopDarwinArchitectureSchema,
+} from "../../desktop/configuration/darwin-target";
 import { verifyDesktopPackageInventory } from "./package-inventory";
 
 const run = (command: string, args: readonly string[]) =>
@@ -22,13 +26,23 @@ const run = (command: string, args: readonly string[]) =>
     });
   });
 
-if (process.platform !== "darwin") {
+const architectureOption = process.argv.indexOf("--architecture");
+const requestedArchitecture = DesktopDarwinArchitectureSchema.safeParse(
+  architectureOption === -1
+    ? process.arch
+    : process.argv[architectureOption + 1],
+);
+
+if (process.platform !== "darwin" || !requestedArchitecture.success) {
   process.stderr.write(
     "desktop-native-package-unavailable: desktop:package requires a native macOS host.\n",
   );
   process.exitCode = 1;
 } else {
   void (async () => {
+    const target = assertDesktopDarwinNativeHost({
+      expectedArchitecture: requestedArchitecture.data,
+    });
     await run(process.execPath, [
       "--import",
       "tsx",
@@ -38,19 +52,22 @@ if (process.platform !== "darwin") {
       "--import",
       "tsx",
       join(process.cwd(), "scripts/desktop/build-runtime-pack.ts"),
+      "--architecture",
+      target.architecture,
     ]);
     await run(join(process.cwd(), "node_modules/.bin/electron-forge"), [
       "package",
       "--platform=darwin",
-      `--arch=${process.arch}`,
+      `--arch=${target.architecture}`,
     ]);
     const inventory = verifyDesktopPackageInventory(
       join(
         process.cwd(),
         "out",
-        `AXMORF Studio-darwin-${process.arch}`,
+        target.forgeOutputDirectory,
         "AXMORF Studio.app",
       ),
+      { expectedArchitecture: target.architecture },
     );
     process.stdout.write(`${JSON.stringify(inventory)}\n`);
   })().catch((error: unknown) => {
