@@ -293,15 +293,15 @@ const workspaceSelectionProbeSource = `(() => new Promise(async (resolve, reject
       }
       throw new Error("renderer-timeout:" + label);
     };
-    await until(
-      () =>
-        document.querySelector("video") !== null ||
-        Array.from(document.querySelectorAll("button")).some((button) =>
-          button.textContent?.includes("确认或选择 Workspace"),
-        ),
-      "workspace-choice",
-    );
-    if (document.querySelector("video") === null) {
+    let state = await window.axmorfStudio.getAppState();
+    if (state.status !== "ready") {
+      await until(
+        () =>
+          Array.from(document.querySelectorAll("button")).some((button) =>
+            button.textContent?.includes("确认或选择 Workspace"),
+          ),
+        "workspace-choice",
+      );
       const choice = Array.from(document.querySelectorAll("button")).find(
         (button) => button.textContent?.includes("确认或选择 Workspace"),
       );
@@ -310,17 +310,17 @@ const workspaceSelectionProbeSource = `(() => new Promise(async (resolve, reject
     }
     const workspaceDeadline = Date.now() + 90000;
     while (Date.now() < workspaceDeadline) {
-      const state = await window.axmorfStudio.getAppState();
+      state = await window.axmorfStudio.getAppState();
       if (state.status === "fatal") {
         throw new Error("renderer-workspace-fatal:" + (state.error ?? "unknown"));
       }
-      if (document.querySelector("video") !== null) break;
+      if (state.status === "ready") {
+        resolve(true);
+        return;
+      }
       await sleep(100);
     }
-    if (document.querySelector("video") === null) {
-      throw new Error("renderer-timeout:workspace-ready");
-    }
-    resolve(true);
+    throw new Error("renderer-timeout:workspace-ready");
   } catch (error) {
     reject(error);
   }

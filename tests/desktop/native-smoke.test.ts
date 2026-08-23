@@ -258,6 +258,7 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
     /executeJavaScript\(\s*workspaceSelectionProbeSource,[\s\S]*writeFile\(join\(options\.outputRoot, "app-ready"\)/u,
   );
   assert.match(nativeSmoke, /renderer-workspace-fatal:/u);
+  assert.match(nativeSmoke, /if \(state\.status === "ready"\)/u);
   assert.match(nativeSmoke, /selectionControl\.dispatchEvent/u);
   assert.match(nativeSmoke, /selectionControlValue/u);
   assert.match(nativeSmoke, /\(clamped \+ 0\.25\) \/ selected\.fps/u);
