@@ -80,6 +80,12 @@ test("every Desktop Vite entry disables repository public copying", () => {
   ]) {
     assert.equal(config.publicDir, false);
   }
+  const engineOutput = engineViteConfig.build?.rollupOptions?.output;
+  assert.equal(Array.isArray(engineOutput), false);
+  assert.equal(
+    (engineOutput as { readonly codeSplitting?: boolean }).codeSplitting,
+    false,
+  );
 });
 
 test("Forge config has explicit entries and no release machinery", () => {
@@ -244,12 +250,6 @@ test("Desktop build inventory is exact and rejects copied repository public data
     ".vite/build/engine.js",
     ".vite/build/main.js",
     ".vite/build/preload.js",
-    ".vite/build/audio-decode-a.js",
-    ".vite/build/audio-utils-a.js",
-    ".vite/build/custom-coder-a.js",
-    ".vite/build/mediabunny-mp3-encoder-a.js",
-    ".vite/build/pcm-concat-a.js",
-    ".vite/build/volume-adjust-a.js",
     ".vite/rsp/rsp-sea.cjs",
     ".vite/renderer/main_window/index.html",
     ".vite/renderer/main_window/assets/index-a.css",
@@ -261,7 +261,7 @@ test("Desktop build inventory is exact and rejects copied repository public data
     await writeFile(path, "fixture");
   }
   assert.deepEqual(verifyDesktopBuildInventory(checkoutRoot), {
-    mainFiles: 9,
+    mainFiles: 3,
     rspFiles: 1,
     rendererFiles: 3,
   });
@@ -275,40 +275,6 @@ test("Desktop build inventory is exact and rejects copied repository public data
   assert.doesNotThrow(() =>
     assertPackagedApplicationInventory(packagedFiles),
   );
-  const nativeGateTypescriptChunk = ".vite/build/typescript-native-gate.js";
-  await writeFile(join(checkoutRoot, nativeGateTypescriptChunk), "fixture");
-  assert.equal(
-    isDesktopPackagePathAllowed(nativeGateTypescriptChunk, false),
-    false,
-  );
-  assert.equal(
-    isDesktopPackagePathAllowed(nativeGateTypescriptChunk, true),
-    true,
-  );
-  assert.throws(
-    () => verifyDesktopBuildInventory(checkoutRoot, false),
-    /desktop-main-build-inventory-exact-file-drift/u,
-  );
-  assert.deepEqual(verifyDesktopBuildInventory(checkoutRoot, true), {
-    mainFiles: 10,
-    rspFiles: 1,
-    rendererFiles: 3,
-  });
-  assert.throws(
-    () =>
-      assertPackagedApplicationInventory(
-        [...packagedFiles, nativeGateTypescriptChunk],
-        false,
-      ),
-    /desktop-asar-inventory-exact-file-drift/u,
-  );
-  assert.doesNotThrow(() =>
-    assertPackagedApplicationInventory(
-      [...packagedFiles, nativeGateTypescriptChunk],
-      true,
-    ),
-  );
-  await rm(join(checkoutRoot, nativeGateTypescriptChunk));
   assert.throws(
     () =>
       assertPackagedApplicationInventory([

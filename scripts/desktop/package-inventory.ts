@@ -31,31 +31,10 @@ const DESKTOP_PACKAGE_STATIC_FILES = Object.freeze([
   "desktop/resources/brand/axmorf-studio-icon.svg",
 ]);
 
-const DESKTOP_ENGINE_DYNAMIC_FILE_PATTERNS = Object.freeze([
-  /^\.vite\/build\/audio-decode-[A-Za-z0-9_-]+\.js$/u,
-  /^\.vite\/build\/audio-utils-[A-Za-z0-9_-]+\.js$/u,
-  /^\.vite\/build\/custom-coder-[A-Za-z0-9_-]+\.js$/u,
-  /^\.vite\/build\/mediabunny-mp3-encoder-[A-Za-z0-9_-]+\.js$/u,
-  /^\.vite\/build\/pcm-concat-[A-Za-z0-9_-]+\.js$/u,
-  /^\.vite\/build\/volume-adjust-[A-Za-z0-9_-]+\.js$/u,
-]);
-
-const DESKTOP_NATIVE_GATE_ENGINE_DYNAMIC_FILE_PATTERNS = Object.freeze([
-  /^\.vite\/build\/typescript-[A-Za-z0-9_-]+\.js$/u,
-]);
-
-const DESKTOP_RENDERER_DYNAMIC_FILE_PATTERNS = Object.freeze([
+const DESKTOP_BUILD_DYNAMIC_FILE_PATTERNS = Object.freeze([
   /^\.vite\/renderer\/main_window\/assets\/index-[A-Za-z0-9_-]+\.css$/u,
   /^\.vite\/renderer\/main_window\/assets\/index-[A-Za-z0-9_-]+\.js$/u,
 ]);
-
-const desktopBuildDynamicFilePatterns = (nativeGateBuild: boolean) => [
-  ...DESKTOP_ENGINE_DYNAMIC_FILE_PATTERNS,
-  ...(nativeGateBuild
-    ? DESKTOP_NATIVE_GATE_ENGINE_DYNAMIC_FILE_PATTERNS
-    : []),
-  ...DESKTOP_RENDERER_DYNAMIC_FILE_PATTERNS,
-];
 
 const DESKTOP_PACKAGE_ALLOWED_DIRECTORIES = new Set([
   ".vite",
@@ -129,10 +108,7 @@ export const assertDesktopEngineAuthorityBoundary = (enginePath: string) => {
   }
 };
 
-export const isDesktopPackagePathAllowed = (
-  repositoryPath: string,
-  nativeGateBuild = process.env.AXMORF_PHASE_B_NATIVE_GATE_BUILD === "1",
-) => {
+export const isDesktopPackagePathAllowed = (repositoryPath: string) => {
   const normalized = toPosixPath(repositoryPath).replace(/^\/+|\/+$/gu, "");
   if (normalized === "") return true;
   if (normalized === ".." || normalized.startsWith("../")) return false;
@@ -141,7 +117,7 @@ export const isDesktopPackagePathAllowed = (
     DESKTOP_PACKAGE_STATIC_FILES.includes(
       normalized as (typeof DESKTOP_PACKAGE_STATIC_FILES)[number],
     ) ||
-    desktopBuildDynamicFilePatterns(nativeGateBuild).some((pattern) =>
+    DESKTOP_BUILD_DYNAMIC_FILE_PATTERNS.some((pattern) =>
       pattern.test(normalized),
     )
   );
@@ -217,7 +193,6 @@ export type DesktopBuildInventory = Readonly<{
 
 export const verifyDesktopBuildInventory = (
   checkoutRoot = process.cwd(),
-  nativeGateBuild = process.env.AXMORF_PHASE_B_NATIVE_GATE_BUILD === "1",
 ): DesktopBuildInventory => {
   const viteRoot = resolve(checkoutRoot, ".vite");
   const mainFiles = collectRegularFiles(join(viteRoot, "build"));
@@ -228,14 +203,7 @@ export const verifyDesktopBuildInventory = (
   assertExactPatternInventory({
     files: mainFiles,
     exact: ["engine.js", "main.js", "preload.js"],
-    patterns: [
-      ...DESKTOP_ENGINE_DYNAMIC_FILE_PATTERNS,
-      ...(nativeGateBuild
-        ? DESKTOP_NATIVE_GATE_ENGINE_DYNAMIC_FILE_PATTERNS
-        : []),
-    ].map(
-      (pattern) => new RegExp(pattern.source.replace("^\\.vite\\/build\\/", "^"), "u"),
-    ),
+    patterns: [],
     label: "desktop-main-build-inventory",
   });
   assertExactPatternInventory({
@@ -247,7 +215,7 @@ export const verifyDesktopBuildInventory = (
   assertExactPatternInventory({
     files: rendererFiles,
     exact: ["index.html"],
-    patterns: DESKTOP_RENDERER_DYNAMIC_FILE_PATTERNS.map(
+    patterns: DESKTOP_BUILD_DYNAMIC_FILE_PATTERNS.map(
       (pattern) =>
         new RegExp(
           pattern.source.replace(
@@ -269,12 +237,11 @@ export const verifyDesktopBuildInventory = (
 
 export const assertPackagedApplicationInventory = (
   files: readonly string[],
-  nativeGateBuild = process.env.AXMORF_PHASE_B_NATIVE_GATE_BUILD === "1",
 ) => {
   assertExactPatternInventory({
     files,
     exact: DESKTOP_PACKAGE_STATIC_FILES,
-    patterns: desktopBuildDynamicFilePatterns(nativeGateBuild),
+    patterns: DESKTOP_BUILD_DYNAMIC_FILE_PATTERNS,
     label: "desktop-asar-inventory",
   });
 };

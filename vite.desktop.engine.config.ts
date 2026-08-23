@@ -73,7 +73,10 @@ export default defineConfig({
       fileName: () => "engine.js",
     },
     outDir: ".vite/build",
-    rollupOptions: { external: nodeExternals },
+    rollupOptions: {
+      external: nodeExternals,
+      output: { codeSplitting: false },
+    },
     target: "node22",
   },
 });
