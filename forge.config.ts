@@ -65,16 +65,26 @@ const config: ForgeConfig = {
       "desktop/compatibility.json",
       DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT,
     ],
-    afterCopyExtraResources: [async (buildPath) => {
-      await pruneDesktopElectronLocales(
-        join(
-          buildPath,
-          `${DESKTOP_PRODUCT_NAME}.app`,
-          "Contents",
-          "Resources",
-        ),
-      );
-    }],
+    afterCopyExtraResources: [
+      (buildPath, _electronVersion, _platform, _arch, done) => {
+        void pruneDesktopElectronLocales(
+          join(
+            buildPath,
+            `${DESKTOP_PRODUCT_NAME}.app`,
+            "Contents",
+            "Resources",
+          ),
+        ).then(
+          () => done(),
+          (error: unknown) =>
+            done(
+              error instanceof Error
+                ? error
+                : new Error("Desktop Electron locale pruning failed."),
+            ),
+        );
+      },
+    ],
     ignore: desktopPackageIgnore,
   },
   rebuildConfig: {},
