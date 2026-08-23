@@ -182,15 +182,18 @@ assert_exact_delivery() {
     test -f "$path" && test ! -L "$path"
   done < <(find "$delivery" -mindepth 1 -maxdepth 1 -print)
 
-  DYLD_LIBRARY_PATH="$runtime_bin" "$runtime_bin/ffprobe" -v error -count_frames \
+  DYLD_LIBRARY_PATH="$runtime_bin" "$runtime_bin/ffprobe" -v error \
+    -err_detect explode -count_frames \
     -show_entries stream=codec_type,codec_name,channels,width,height,r_frame_rate,nb_read_frames \
     -of json "$delivery/video.mp4" >"$output_root/video-probe.json"
-  DYLD_LIBRARY_PATH="$runtime_bin" "$runtime_bin/ffmpeg" -v error -xerror -i "$delivery/video.mp4" \
-    -f null -
-  DYLD_LIBRARY_PATH="$runtime_bin" "$runtime_bin/ffmpeg" -v error -xerror -i "$delivery/cover-4x3.png" \
-    -f null -
-  DYLD_LIBRARY_PATH="$runtime_bin" "$runtime_bin/ffmpeg" -v error -xerror -i "$delivery/cover-3x4.png" \
-    -f null -
+  DYLD_LIBRARY_PATH="$runtime_bin" "$runtime_bin/ffprobe" -v error \
+    -err_detect explode -count_frames -select_streams v:0 \
+    -show_entries stream=codec_name,width,height,nb_read_frames \
+    -of json "$delivery/cover-4x3.png" >"$output_root/cover-4x3-probe.json"
+  DYLD_LIBRARY_PATH="$runtime_bin" "$runtime_bin/ffprobe" -v error \
+    -err_detect explode -count_frames -select_streams v:0 \
+    -show_entries stream=codec_name,width,height,nb_read_frames \
+    -of json "$delivery/cover-3x4.png" >"$output_root/cover-3x4-probe.json"
   "$host_node" -e '
     const crypto = require("crypto");
     const fs = require("fs");
@@ -202,7 +205,7 @@ assert_exact_delivery() {
     const video = streams.find((stream) => stream.codec_type === "video");
     const audio = streams.find((stream) => stream.codec_type === "audio");
     if (streams.length !== 2 || video?.codec_name !== "h264" || audio?.codec_name !== "aac") process.exit(1);
-    if (audio.channels !== publish.artifacts?.video?.media?.audioChannels || ![1, 2].includes(audio.channels)) process.exit(1);
+    if (audio.channels !== publish.artifacts?.video?.media?.audioChannels || ![1, 2].includes(audio.channels) || !Number.isSafeInteger(Number(audio.nb_read_frames)) || Number(audio.nb_read_frames) <= 0) process.exit(1);
     if (video.width !== publish.width || video.height !== publish.height || video.r_frame_rate !== `${publish.fps}/1` || Number(video.nb_read_frames) !== publish.frameCount) process.exit(1);
     const publishedVideo = publish.artifacts.video.media;
     if (publishedVideo.codec !== "h264" || publishedVideo.audioCodec !== "aac" || publishedVideo.width !== video.width || publishedVideo.height !== video.height || publishedVideo.fps !== publish.fps || publishedVideo.frameCount !== Number(video.nb_read_frames) || publishedVideo.decodedToEof !== true) process.exit(1);
@@ -221,8 +224,18 @@ assert_exact_delivery() {
     const cover4x3 = publish.artifacts.cover4x3.media;
     const cover3x4 = publish.artifacts.cover3x4.media;
     if (cover4x3.imageFormat !== "png" || cover4x3.width !== 1600 || cover4x3.height !== 1200 || cover4x3.decodedToEof !== true || cover3x4.imageFormat !== "png" || cover3x4.width !== 1200 || cover3x4.height !== 1600 || cover3x4.decodedToEof !== true) process.exit(1);
+    const coverProbes = [
+      [JSON.parse(fs.readFileSync(process.argv[3], "utf8")), 1600, 1200],
+      [JSON.parse(fs.readFileSync(process.argv[4], "utf8")), 1200, 1600],
+    ];
+    for (const [coverProbe, width, height] of coverProbes) {
+      const [stream] = coverProbe.streams ?? [];
+      if (coverProbe.streams?.length !== 1 || stream?.codec_name !== "png" || stream.width !== width || stream.height !== height || Number(stream.nb_read_frames) !== 1) process.exit(1);
+    }
     process.stdout.write(JSON.stringify({deliveryBuildId: publish.deliveryBuildId, revisionId: publish.revisionId, sourceCurrentId: publish.sourceCurrentId, rendererRuntimeFingerprint: publish.rendererRuntimeFingerprint, artifacts: publish.artifacts}) + "\n");
-  ' "$delivery" "$output_root/video-probe.json" >"$output_root/delivery-evidence.json"
+  ' "$delivery" "$output_root/video-probe.json" \
+    "$output_root/cover-4x3-probe.json" "$output_root/cover-3x4-probe.json" \
+    >"$output_root/delivery-evidence.json"
 }
 
 launch_app() {
