@@ -81,6 +81,13 @@ test("native gate workflow is manual-only to dispatch and uploads evidence only"
   assert.match(workflow, /^on:\n {2}workflow_dispatch:\s*$/mu);
   assert.match(workflow, /runs-on: macos-15/u);
   assert.match(workflow, /test "\$\(uname -m\)" = arm64/u);
+  assert.match(workflow, /actions\/setup-node@v4/u);
+  assert.match(workflow, /node-version: 22\.23\.1/u);
+  assert.match(
+    workflow,
+    /NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2:0/u,
+  );
+  assert.match(workflow, /nodeSeaSentinel=true/u);
   assert.match(workflow, /npm ci/u);
   assert.match(workflow, /scripts\/desktop\/native-gate-runner\.sh/u);
   assert.match(workflow, /npm run desktop:package/u);

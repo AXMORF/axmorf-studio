@@ -21,6 +21,12 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install exact SEA-capable Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.1
+          cache: npm
+
       - name: Record and enforce native host identity
         shell: bash
         run: |
@@ -33,6 +39,14 @@ jobs:
           } >>"$GITHUB_ENV"
           mkdir -p "$EVIDENCE_ROOT"
           test "$(uname -m)" = arm64
+          node -e '
+            const fs = require("fs");
+            const sentinel = Buffer.from("NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2:0");
+            if (!fs.readFileSync(process.execPath).includes(sentinel)) {
+              process.stderr.write("desktop-native-node-sea-sentinel-missing\n");
+              process.exit(1);
+            }
+          '
           {
             echo "commit=$GITHUB_SHA"
             echo "runnerImage=${ImageOS:-unknown}"
@@ -42,6 +56,7 @@ jobs:
             echo "arch=$(uname -m)"
             echo "node=$(node --version)"
             echo "npm=$(npm --version)"
+            echo "nodeSeaSentinel=true"
           } >"$EVIDENCE_ROOT/environment.txt"
 
       - name: Install exact repository dependencies
