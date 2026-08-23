@@ -47,6 +47,17 @@ const parseFrameRate = (value: unknown) => {
   return numerator / denominator;
 };
 
+const parseReadFrames = (value: unknown, label: string) => {
+  if (typeof value !== "string" || !/^\d+$/u.test(value)) {
+    throw new Error(`${label} frame count is malformed.`);
+  }
+  const readFrames = Number.parseInt(value, 10);
+  if (!Number.isSafeInteger(readFrames) || readFrames <= 0) {
+    throw new Error(`${label} frame count must be positive.`);
+  }
+  return readFrames;
+};
+
 const boundedProcessFailure = ({
   absolutePath,
   status,
@@ -160,6 +171,8 @@ export const inspectProjectVideo = async ({
   const videoProbe = await runProcess(ffprobeExecutable, [
     "-v",
     "error",
+    "-err_detect",
+    "explode",
     "-count_frames",
     "-select_streams",
     "v:0",
@@ -170,14 +183,13 @@ export const inspectProjectVideo = async ({
     absolutePath,
   ]);
   if (videoProbe.status !== 0) {
-    throw new Error("Project video metadata could not be inspected.");
+    throw new Error(
+      `Project video could not be decoded to EOF (${boundedProcessFailure({ absolutePath, ...videoProbe })}).`,
+    );
   }
   const video = oneStream(parseProbe(videoProbe.stdout, "Video probe"), "Video probe");
   const fps = parseFrameRate(video.r_frame_rate);
-  const readFrames =
-    typeof video.nb_read_frames === "string"
-      ? Number.parseInt(video.nb_read_frames, 10)
-      : Number.NaN;
+  const readFrames = parseReadFrames(video.nb_read_frames, "Project video");
   if (
     video.codec_name !== "h264" ||
     video.width !== render.width ||
@@ -190,38 +202,29 @@ export const inspectProjectVideo = async ({
   const audioProbe = await runProcess(ffprobeExecutable, [
     "-v",
     "error",
+    "-err_detect",
+    "explode",
+    "-count_frames",
     "-select_streams",
     "a:0",
     "-show_entries",
-    "stream=codec_name,channels",
+    "stream=codec_name,channels,nb_read_frames",
     "-of",
     "json",
     absolutePath,
   ]);
   if (audioProbe.status !== 0) {
-    throw new Error("Project video audio metadata could not be inspected.");
+    throw new Error(
+      `Project video audio could not be decoded to EOF (${boundedProcessFailure({ absolutePath, ...audioProbe })}).`,
+    );
   }
   const audio = oneStream(parseProbe(audioProbe.stdout, "Audio probe"), "Audio probe");
+  parseReadFrames(audio.nb_read_frames, "Project video audio");
   if (
     audio.codec_name !== "aac" ||
     audio.channels !== render.output.audioChannels
   ) {
     throw new Error("Project video audio stream drifted from RenderSpec.");
-  }
-  const decoded = await runProcess("ffmpeg", [
-    "-v",
-    "error",
-    "-xerror",
-    "-i",
-    absolutePath,
-    "-f",
-    "null",
-    "-",
-  ]);
-  if (decoded.status !== 0) {
-    throw new Error(
-      `Project video did not decode completely to EOF (${boundedProcessFailure({ absolutePath, ...decoded })}).`,
-    );
   }
   return {
     codec: "h264" as const,
@@ -237,8 +240,16 @@ export const inspectProjectVideo = async ({
 
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const;
 
-export const inspectProjectCover = async ({ absolutePath, expected, runProcess = runMediaProcess }: {
-  readonly absolutePath: string; readonly expected: Readonly<{ width: number; height: number }>; readonly runProcess?: ProcessRunner;
+export const inspectProjectCover = async ({
+  absolutePath,
+  expected,
+  ffprobeExecutable = "ffprobe",
+  runProcess = runMediaProcess,
+}: {
+  readonly absolutePath: string;
+  readonly expected: Readonly<{ width: number; height: number }>;
+  readonly ffprobeExecutable?: string;
+  readonly runProcess?: ProcessRunner;
 }) => {
   const metadata = await lstat(absolutePath);
   if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size < 24) throw new Error("Delivery cover must be a non-empty regular PNG.");
@@ -247,11 +258,33 @@ export const inspectProjectCover = async ({ absolutePath, expected, runProcess =
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const width = view.getUint32(16); const height = view.getUint32(20);
   if (width !== expected.width || height !== expected.height) throw new Error("Delivery cover dimensions drifted.");
-  const decoded = await runProcess("ffmpeg", ["-v", "error", "-xerror", "-i", absolutePath, "-f", "null", "-"]);
+  const decoded = await runProcess(ffprobeExecutable, [
+    "-v",
+    "error",
+    "-err_detect",
+    "explode",
+    "-count_frames",
+    "-select_streams",
+    "v:0",
+    "-show_entries",
+    "stream=codec_name,width,height,nb_read_frames",
+    "-of",
+    "json",
+    absolutePath,
+  ]);
   if (decoded.status !== 0) {
     throw new Error(
       `Delivery cover did not decode completely to EOF (${boundedProcessFailure({ absolutePath, ...decoded })}).`,
     );
+  }
+  const stream = oneStream(parseProbe(decoded.stdout, "Cover probe"), "Cover probe");
+  if (
+    stream.codec_name !== "png" ||
+    stream.width !== expected.width ||
+    stream.height !== expected.height ||
+    parseReadFrames(stream.nb_read_frames, "Delivery cover") !== 1
+  ) {
+    throw new Error("Delivery cover decoded stream metadata drifted.");
   }
   return { imageFormat: "png" as const, width, height, decodedToEof: true as const };
 };
