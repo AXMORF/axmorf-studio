@@ -27,7 +27,7 @@ import type {
 const ENGINE_RESPONSE_TIMEOUT_MS = 10_000;
 // Packaged initialization checksum-verifies the complete embedded Runtime Pack
 // before it can advertise capabilities, so it has a separate cold-start budget.
-const ENGINE_INITIALIZE_RESPONSE_TIMEOUT_MS = 60_000;
+const ENGINE_INITIALIZE_RESPONSE_TIMEOUT_MS = 3 * 60_000;
 const PREVIEW_CATALOG_RESPONSE_TIMEOUT_MS = 5 * 60_000;
 const DELIVERY_BUILD_RESPONSE_TIMEOUT_MS = 60 * 60_000;
 const SESSION_LIFETIME_MS = 12 * 60 * 60 * 1_000;

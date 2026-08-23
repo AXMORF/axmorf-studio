@@ -15,7 +15,7 @@ import {
 import { desktopProducerConfigFixture } from "./producer-config-fixture";
 
 test("Initialize, Delivery, and Catalog requests have separate bounded budgets", () => {
-  assert.equal(desktopEngineResponseTimeout("initialize"), 60_000);
+  assert.equal(desktopEngineResponseTimeout("initialize"), 180_000);
   assert.equal(desktopEngineResponseTimeout("shutdown"), 10_000);
   assert.equal(
     desktopEngineResponseTimeout("refresh-preview-catalog"),
