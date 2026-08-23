@@ -641,6 +641,16 @@ case "$gate_runtime_root" in
     ;;
 esac
 cleanup_gate_runtime_root() {
+  for pair in \
+    "manual:${manual_workspace:-}" \
+    "automatic:${automatic_workspace:-}"; do
+    local label=${pair%%:*}
+    local workspace=${pair#*:}
+    local diagnostic="$workspace/.rsp/native-gate/command-failure.json"
+    if [[ -n "$workspace" && -f "$diagnostic" && ! -L "$diagnostic" ]]; then
+      cp "$diagnostic" "$evidence_root/$label-command-failure.json"
+    fi
+  done
   rm -rf -- "$gate_runtime_root"
 }
 trap cleanup_gate_runtime_root EXIT

@@ -41,6 +41,13 @@ export default defineConfig({
       ...(process.env.AXMORF_PHASE_B_NATIVE_GATE_BUILD === "1"
         ? [
             {
+              find: "./workspace-command-diagnostic-port",
+              replacement: resolve(
+                process.cwd(),
+                "scripts/desktop/native-command-diagnostic.ts",
+              ),
+            },
+            {
               find: "./workspace-narration-port",
               replacement: resolve(
                 process.cwd(),

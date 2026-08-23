@@ -21,6 +21,7 @@ import {
   serializeCanonicalJson,
 } from "../../src/contracts";
 import { prepareDesktopNativeTestNarration } from "../../scripts/desktop/native-test-provider";
+import { recordWorkspaceCommandFailure } from "../../scripts/desktop/native-command-diagnostic";
 import { resolveNarrationMediaLogicalPath } from "../../scripts/narration/production-paths";
 import {
   createRuntimeExecutionResources,
@@ -309,6 +310,29 @@ test("native smoke redacts bounded Engine diagnostics", async () => {
   }
 });
 
+test("native command failures are bounded and redact the Workspace root", async (context) => {
+  const workspaceRoot = await mkdtemp(join(tmpdir(), "desktop-native-command-"));
+  context.after(() => rm(workspaceRoot, { recursive: true, force: true }));
+  await recordWorkspaceCommandFailure({
+    workspaceRoot,
+    command: "continue",
+    storyId: "desktop-native-fixture",
+    error: new Error(`compile failed under ${workspaceRoot}`),
+  });
+  const diagnostic = JSON.parse(
+    await readFile(
+      join(workspaceRoot, ".rsp/native-gate/command-failure.json"),
+      "utf8",
+    ),
+  );
+  assert.deepEqual(diagnostic, {
+    contractVersion: "desktop-native-command-failure-v1",
+    command: "continue",
+    storyId: "desktop-native-fixture",
+    message: "compile failed under <workspace-root>",
+  });
+});
+
 test("native gate workflow is manual-only to dispatch and uploads evidence only", async () => {
   const workflow = await readFile(
     ".github/workflows/desktop-phase-b-native-gate.yml",
@@ -329,6 +353,10 @@ test("native gate workflow is manual-only to dispatch and uploads evidence only"
   assert.match(workflow, /npm run desktop:package/u);
   assert.match(workflow, /AXMORF_PHASE_B_NATIVE_GATE_BUILD=1/u);
   assert.match(workflow, /grep -R -Fq 'desktop-native-test-pcm-v2' out/u);
+  assert.match(
+    workflow,
+    /grep -R -Fq 'desktop-native-command-failure-v1' out/u,
+  );
   assert.match(
     workflow,
     /Native Delivery action sequence does not match\./u,
@@ -376,6 +404,7 @@ test("ordinary Desktop builds compile the native harness off", async () => {
   );
   assert.match(engineConfig, /find: "\.\/workspace-narration-port"/u);
   assert.match(engineConfig, /scripts\/desktop\/native-test-provider\.ts/u);
+  assert.match(engineConfig, /scripts\/desktop\/native-command-diagnostic\.ts/u);
   assert.match(engineConfig, /name: "desktop-prettier-cjs-entry"/u);
   assert.match(engineConfig, /__prettierCreateRequire\(__filename\)/u);
   assert.match(provider, /export const prepareWorkspaceNarration/u);
@@ -404,6 +433,7 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
     /const state = await window\.axmorfStudio\.chooseInitialWorkspace\(\)/u,
   );
   assert.match(runner, /native-failure\.json/u);
+  assert.match(runner, /command-failure\.json/u);
   assert.match(runner, /app_process_running "\$app_pid"/u);
   assert.match(runner, /desktop-phase-b-native-gate-requires-darwin-arm64/u);
   assert.match(runner, /\.rsp\/bin\/rsp/u);

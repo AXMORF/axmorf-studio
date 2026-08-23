@@ -74,6 +74,10 @@ jobs:
             echo "desktop-native-test-provider-leaked-into-ordinary-package" >&2
             exit 1
           fi
+          if grep -R -F 'desktop-native-command-failure-v1' out; then
+            echo "desktop-native-command-diagnostic-leaked-into-ordinary-package" >&2
+            exit 1
+          fi
           if grep -R -F 'Native Delivery action sequence does not match.' out; then
             echo "desktop-native-delivery-lifecycle-leaked-into-ordinary-package" >&2
             exit 1
@@ -88,6 +92,7 @@ jobs:
           AXMORF_PHASE_B_NATIVE_GATE_BUILD=1 npm run desktop:package \
             >"$EVIDENCE_ROOT/gate-package.log"
           grep -R -Fq 'desktop-native-test-pcm-v2' out
+          grep -R -Fq 'desktop-native-command-failure-v1' out
           grep -R -Fq 'Native Delivery action sequence does not match.' out
           tail -n 1 "$EVIDENCE_ROOT/gate-package.log" \
             >"$EVIDENCE_ROOT/gate-package-inventory.json"

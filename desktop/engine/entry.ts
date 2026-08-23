@@ -51,6 +51,7 @@ import {
 } from "../../scripts/project-production/application/production-locations";
 import { createWorkspaceProductionController } from "../../scripts/project-production/application/workspace-production-controller";
 import { createWorkspaceRemotionDeliveryRuntime } from "../../scripts/project-production/application/workspace-remotion-delivery";
+import { recordWorkspaceCommandFailure } from "./workspace-command-diagnostic-port";
 
 export const DESKTOP_ENGINE_ENTRY_ID = "desktop-engine-phase-b-v1" as const;
 
@@ -539,6 +540,17 @@ export const createEngineController = ({
         await refreshPreviewCatalog(request.requestId);
       }
       return result;
+    } catch (error) {
+      if (workspace !== undefined) {
+        // Gate-only evidence must never replace the public rsp failure or mask it.
+        await recordWorkspaceCommandFailure({
+          workspaceRoot: workspace.workspaceRoot,
+          command: request.command,
+          storyId: "storyId" in request ? request.storyId : null,
+          error,
+        }).catch(() => undefined);
+      }
+      throw error;
     } finally {
       if (ownsPreparingState && !prepareReachedAwaiting) {
         activeWork = null;
