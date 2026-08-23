@@ -37,6 +37,21 @@ import { createDesktopSbomInput } from "./sbom-input";
 
 export { createDesktopUnsignedDmgFileName } from "../../desktop/configuration/product";
 
+export const resolveDesktopUnsignedDmgOutputPath = ({
+  checkoutRoot,
+  appVersion,
+  architecture,
+}: {
+  readonly checkoutRoot: string;
+  readonly appVersion: string;
+  readonly architecture: DesktopDarwinArchitecture;
+}) =>
+  join(
+    resolve(checkoutRoot),
+    "out/make",
+    createDesktopUnsignedDmgFileName({ appVersion, architecture }),
+  );
+
 const RELEASE_EXACT_STATIC_FILES = Object.freeze([
   "INSTALL.md",
   "installer-verification.json",
@@ -460,12 +475,11 @@ const buildReleaseArtifact = async (args: readonly string[]) => {
     appVersion,
     architecture,
   });
-  const dmgPath = join(
-    process.cwd(),
-    "out/make/dmg/darwin",
+  const dmgPath = resolveDesktopUnsignedDmgOutputPath({
+    checkoutRoot: process.cwd(),
+    appVersion,
     architecture,
-    dmgFileName,
-  );
+  });
   const verificationPath = join(
     verificationRoot,
     "installer-verification.json",

@@ -7,6 +7,7 @@ import {
   buildDesktopUnsignedReleaseManifest,
   createDesktopUnsignedDmgFileName,
   createDesktopUnsignedInstallInstructions,
+  resolveDesktopUnsignedDmgOutputPath,
   validateDesktopDualArchitectureRelease,
 } from "../../scripts/desktop/unsigned-release";
 
@@ -96,6 +97,14 @@ test("Phase D installer identity is native, versioned, and explicitly unsigned",
       appVersion: "0.1.0/escape",
       architecture: "arm64",
     }),
+  );
+  assert.equal(
+    resolveDesktopUnsignedDmgOutputPath({
+      checkoutRoot: "/checkout",
+      appVersion: "0.1.0",
+      architecture: "arm64",
+    }),
+    "/checkout/out/make/AXMORF-Studio-0.1.0-mac-arm64-full-unsigned.dmg",
   );
 });
 
