@@ -51,6 +51,10 @@ import {
 } from "../../scripts/project-production/application/production-locations";
 import { createWorkspaceProductionController } from "../../scripts/project-production/application/workspace-production-controller";
 import { createWorkspaceRemotionDeliveryRuntime } from "../../scripts/project-production/application/workspace-remotion-delivery";
+import {
+  createRuntimeDeliveryInspectionDependencies,
+  inspectCurrentDelivery,
+} from "../../scripts/project-production/adapters/current-delivery-inspection";
 import { recordWorkspaceCommandFailure } from "./workspace-command-diagnostic-port";
 
 export const DESKTOP_ENGINE_ENTRY_ID = "desktop-engine-phase-b-v1" as const;
@@ -392,10 +396,21 @@ export const createEngineController = ({
     if (locations === undefined || runtime === undefined) {
       throw new Error("engine-not-initialized");
     }
+    const currentRuntime = runtime;
     try {
       const snapshot = await dependencies.buildPreviewCatalog({
         locations,
-        rendererRuntimeFingerprint: runtime.rendererRuntimeFingerprint,
+        rendererRuntimeFingerprint:
+          currentRuntime.rendererRuntimeFingerprint,
+        dependencies: {
+          inspectDelivery: ({ locations, storyId }) =>
+            inspectCurrentDelivery({
+              locations,
+              storyId,
+              dependencies:
+                createRuntimeDeliveryInspectionDependencies(currentRuntime),
+            }),
+        },
       });
       catalog = snapshot.catalog;
       projects = snapshot.projects;

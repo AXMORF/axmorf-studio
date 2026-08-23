@@ -27,7 +27,10 @@ import type { NarrationPreparationReceipt } from "../../../src/contracts";
 import { computeChunkRequestFingerprint } from "../../narration/domain/provider-input";
 import { loadNarrationProjectFiles } from "../../narration/project-files";
 import { isTemplateSceneLiveProjectionPath } from "../domain/template-scene-output";
-import { inspectCurrentDelivery as inspectVerifiedCurrentDelivery } from "./current-delivery-inspection";
+import {
+  inspectCurrentDelivery as inspectVerifiedCurrentDelivery,
+  type CurrentDeliveryInspectionDependencies,
+} from "./current-delivery-inspection";
 import type { ProductionLocations } from "../domain/production-locations";
 
 type TreeEntry = Readonly<{
@@ -466,14 +469,17 @@ export const inspectNarrationCache = async ({
 export const inspectCurrentDelivery = async ({
   locations,
   projectId: rawProjectId,
+  dependencies,
 }: {
   readonly locations: ProductionLocations;
   readonly projectId: string;
+  readonly dependencies?: CurrentDeliveryInspectionDependencies;
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
   const publish = await inspectVerifiedCurrentDelivery({
     locations,
     storyId: projectId,
+    ...(dependencies === undefined ? {} : { dependencies }),
   });
   return publish === null
     ? ({

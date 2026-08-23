@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
 import type { RenderSpec } from "../../src/contracts";
+import { createRuntimeDeliveryInspectionDependencies } from "../../scripts/project-production/adapters/current-delivery-inspection";
 import {
   inspectProjectCover,
   inspectProjectVideo,
 } from "../../scripts/project-production/adapters/media";
+import { createRuntimeExecutionResources } from "../../scripts/project-production/application/production-locations";
 
 const render = {
   width: 1080,
@@ -159,4 +161,47 @@ test("cover EOF inspection requires one fully decoded PNG frame", async (context
     "explode",
     "-count_frames",
   ]);
+});
+
+test("Workspace delivery inspection uses the exact Runtime Pack probe and library path", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "producer-runtime-probe-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const binariesDirectory = join(root, "runtime/bin");
+  const ffprobeExecutable = join(binariesDirectory, "ffprobe");
+  await mkdir(binariesDirectory, { recursive: true });
+  await writeFile(
+    ffprobeExecutable,
+    `#!/bin/sh
+test "$DYLD_LIBRARY_PATH" = "${binariesDirectory}" || exit 9
+case "$*" in
+  *"a:0"*) printf '%s\\n' '{"streams":[{"codec_name":"aac","channels":2,"nb_read_frames":"188"}]}' ;;
+  *) printf '%s\\n' '{"streams":[{"codec_name":"h264","width":1080,"height":1920,"r_frame_rate":"30/1","nb_read_frames":"120"}]}' ;;
+esac
+`,
+  );
+  await chmod(ffprobeExecutable, 0o755);
+  const absolutePath = join(root, "video.mp4");
+  await writeFile(absolutePath, "fixture");
+  const dependencies = createRuntimeDeliveryInspectionDependencies(
+    createRuntimeExecutionResources({
+      rendererRuntimeFingerprint: `sha256:${"a".repeat(64)}`,
+      browserExecutable: join(root, "runtime/browser"),
+      binariesDirectory,
+      ffmpegExecutable: join(binariesDirectory, "ffmpeg"),
+      ffprobeExecutable,
+    }),
+  );
+
+  const inspected = await dependencies.inspectVideo?.({
+    absolutePath,
+    expected: {
+      width: 1080,
+      height: 1920,
+      fps: 30,
+      frameCount: 120,
+      audioChannels: 2,
+    },
+  });
+
+  assert.equal(inspected?.decodedToEof, true);
 });

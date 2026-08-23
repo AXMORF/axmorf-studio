@@ -51,8 +51,10 @@ import { buildCurrentProductionPlan } from "./build-current-plan";
 import { buildCurrentDelivery, type DeliveryBuildPort } from "./build-delivery";
 import {
   captureProductionInspectionSnapshot,
+  inspectCurrentDelivery,
   inspectProductionSourceReadiness,
 } from "../adapters/production-inspection";
+import { createRuntimeDeliveryInspectionDependencies } from "../adapters/current-delivery-inspection";
 
 const workspaceLoadInputs = (
   input: Parameters<typeof loadProjectProductionInputs>[0],
@@ -80,6 +82,14 @@ const workspaceInspectProduction = (
         readinessInput,
         generateWorkspaceProjectResourceCatalog,
       ),
+    inspectDelivery: ({ locations, projectId }) =>
+      inspectCurrentDelivery({
+        locations,
+        projectId,
+        dependencies: createRuntimeDeliveryInspectionDependencies(
+          input.runtime,
+        ),
+      }),
     buildCurrentPlan: workspaceBuildCurrentPlan,
   });
 

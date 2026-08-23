@@ -9,7 +9,11 @@ import {
 } from "../../../src/contracts";
 import { assertDeliveryPath, inspectDeliveryFile } from "./delivery-filesystem";
 import { inspectProjectCover, inspectProjectVideo } from "./media";
-import type { ProductionLocations } from "../domain/production-locations";
+import { runMediaProcessWithEnvironment } from "../../shared/media-process";
+import type {
+  ProductionLocations,
+  RuntimeExecutionResources,
+} from "../domain/production-locations";
 
 type ExpectedVideo = Readonly<{
   width: number;
@@ -38,6 +42,37 @@ export type CurrentDeliveryInspectionDependencies = Readonly<{
     }>,
   ) => Promise<DeliveryPublish["artifacts"]["cover4x3"]["media"]>;
 }>;
+
+export const createRuntimeDeliveryInspectionDependencies = (
+  runtime: RuntimeExecutionResources,
+): CurrentDeliveryInspectionDependencies => {
+  const runProcess = (command: string, args: readonly string[]) =>
+    runMediaProcessWithEnvironment(command, args, {
+      DYLD_LIBRARY_PATH: runtime.binariesDirectory,
+    });
+  return {
+    inspectVideo: ({ absolutePath, expected }) =>
+      inspectProjectVideo({
+        absolutePath,
+        render: {
+          width: expected.width,
+          height: expected.height,
+          fps: expected.fps,
+          output: { audioChannels: expected.audioChannels },
+        } as RenderSpec,
+        frameCount: expected.frameCount,
+        ffprobeExecutable: runtime.ffprobeExecutable,
+        runProcess,
+      }),
+    inspectCover: ({ absolutePath, expected }) =>
+      inspectProjectCover({
+        absolutePath,
+        expected,
+        ffprobeExecutable: runtime.ffprobeExecutable,
+        runProcess,
+      }),
+  };
+};
 
 const expectedEntries = [
   "cover-3x4.png",
