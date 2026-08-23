@@ -482,6 +482,16 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
     /write_native_delivery_action[\s\S]*"\$NATIVE_LISTENER_SEQUENCE" fail/u,
   );
   assert.match(runner, /request-quit/u);
+  assert.match(runner, /run_second_instance_probe/u);
+  assert.match(runner, /HOME="\$home_root"/u);
+  assert.match(runner, /AXMORF_PHASE_B_SMOKE_USER_DATA="\$user_data_root"/u);
+  assert.match(runner, /AXMORF_PHASE_B_SMOKE_WORKSPACE="\$workspace_root"/u);
+  assert.match(runner, /desktop-native-second-instance-timeout/u);
+  assert.match(runner, /second-instance\.json/u);
+  assert.doesNotMatch(
+    runner,
+    /"\$app_executable" --phase-b-second-instance >\/dev\/null 2>&1 \|\| true/u,
+  );
   assert.match(nativeSmoke, /request-quit/u);
   assert.match(nativeSmoke, /quit-request-observed/u);
   assert.match(nativeSmoke, /"video-play",\s*30000/u);

@@ -270,6 +270,51 @@ launch_app() {
   start_network_monitor "$LAUNCHED_APP_PID" "$output_root"
 }
 
+run_second_instance_probe() {
+  local home_root=$1
+  local workspace_root=$2
+  local output_root=$3
+  local user_data_root="$home_root/Library/Application Support/com.axmorf.studio"
+  local second_instance_log
+  second_instance_log=$(mktemp -t axmorf-phase-b-second-instance.XXXXXX)
+  env \
+    HOME="$home_root" \
+    PATH=/usr/bin:/bin \
+    AXMORF_PHASE_B_NATIVE_GATE=1 \
+    AXMORF_PHASE_B_SMOKE_HOME="$home_root" \
+    AXMORF_PHASE_B_SMOKE_OUTPUT="$output_root" \
+    AXMORF_PHASE_B_SMOKE_SELECTION=custom \
+    AXMORF_PHASE_B_SMOKE_USER_DATA="$user_data_root" \
+    AXMORF_PHASE_B_SMOKE_WORKSPACE="$workspace_root" \
+    GITHUB_SHA="${GITHUB_SHA:-local-unverified}" \
+    "$app_executable" --phase-b-second-instance \
+      >"$second_instance_log" 2>&1 &
+  local second_instance_pid=$!
+  local remaining=300
+  while app_process_running "$second_instance_pid" && [[ $remaining -gt 0 ]]; do
+    sleep 0.1
+    remaining=$((remaining - 1))
+  done
+  if app_process_running "$second_instance_pid"; then
+    kill "$second_instance_pid" 2>/dev/null || true
+    wait "$second_instance_pid" 2>/dev/null || true
+    echo "desktop-native-second-instance-timeout" >&2
+    return 1
+  fi
+  local second_instance_exit=0
+  set +e
+  wait "$second_instance_pid"
+  second_instance_exit=$?
+  set -e
+  if [[ $second_instance_exit -ne 0 ]]; then
+    sed -n '1,120p' "$second_instance_log" >&2
+    return 1
+  fi
+  printf '%s\n' \
+    '{"sharedHome":true,"sharedUserData":true,"boundedExit":true,"exitCode":0}' \
+    >"$output_root/second-instance.json"
+}
+
 assert_native_listener_request_surface() {
   local port=$1
   local output_root=$2
@@ -592,7 +637,7 @@ drive_production() {
 
   printf 'ready\n' >"$output_root/delivery-ready"
   wait_for_file "$output_root/native-report.json" "$output_root/native-failure.json" "$app_pid" 600
-  "$app_executable" --phase-b-second-instance >/dev/null 2>&1 || true
+  run_second_instance_probe "$home_root" "$workspace_root" "$output_root"
   sleep 2
   if [[ "$policy" = manual ]]; then
     local delivery="$workspace_root/deliveries/desktop-native-fixture"
