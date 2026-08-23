@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   resolveNativeSmokeOptions,
   writeNativeSmokeFailure,
+  writeNativeSmokeStartupStage,
 } from "../../desktop/main/native-smoke";
 import { ProjectCreateInputSchema } from "../../src/contracts";
 import { createDesktopNativeProjectInput } from "../../scripts/desktop/native-fixture";
@@ -101,6 +102,30 @@ test("native smoke records redacted failures before runtime bootstrap", async ()
       message: "bootstrap failed in <private-root>",
     });
     assert.doesNotMatch(failure, new RegExp(root, "u"));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("native smoke records the last packaged startup stage", async () => {
+  const root = await mkdtemp(join(tmpdir(), "desktop-native-stage-"));
+  const options = {
+    homeRoot: join(root, "home"),
+    outputRoot: join(root, "evidence"),
+    selection: "custom" as const,
+    userDataRoot: join(root, "user-data"),
+    workspaceRoot: join(root, "workspace"),
+  };
+  try {
+    await writeNativeSmokeStartupStage({
+      options,
+      stage: "window-load-start",
+    });
+    const stage = JSON.parse(
+      await readFile(join(options.outputRoot, "startup-stage.json"), "utf8"),
+    ) as Record<string, unknown>;
+    assert.equal(stage.stage, "window-load-start");
+    assert.equal(typeof stage.exactCommit, "string");
   } finally {
     await rm(root, { recursive: true, force: true });
   }

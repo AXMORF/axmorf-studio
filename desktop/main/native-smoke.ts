@@ -67,6 +67,35 @@ export type NativeSmokeOptions = Readonly<{
   workspaceRoot: string;
 }>;
 
+export type NativeSmokeStartupStage =
+  | "main-loaded"
+  | "lifecycle-create-runtime"
+  | "bootstrap-start"
+  | "bootstrap-complete"
+  | "window-load-start"
+  | "window-load-complete"
+  | "runtime-created"
+  | "lifecycle-ready"
+  | "native-smoke-started";
+
+export const writeNativeSmokeStartupStage = async ({
+  options,
+  stage,
+}: {
+  readonly options: NativeSmokeOptions;
+  readonly stage: NativeSmokeStartupStage;
+}) => {
+  await mkdir(options.outputRoot, { recursive: true });
+  await writeFile(
+    join(options.outputRoot, "startup-stage.json"),
+    `${JSON.stringify({
+      exactCommit: process.env.GITHUB_SHA ?? "local-unverified",
+      stage,
+    })}\n`,
+    { mode: 0o600 },
+  );
+};
+
 export const writeNativeSmokeFailure = async ({
   error,
   options,

@@ -62,7 +62,9 @@ import {
   resolveNativeSmokeOptions,
   runPackagedNativeSmoke,
   writeNativeSmokeFailure,
+  writeNativeSmokeStartupStage,
   type NativeSmokeOptions,
+  type NativeSmokeStartupStage,
 } from "./native-smoke-port";
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -75,6 +77,11 @@ if (nativeSmoke !== null) {
   app.setPath("home", nativeSmoke.homeRoot);
   app.setPath("userData", nativeSmoke.userDataRoot);
 }
+const recordNativeStartupStage = async (stage: NativeSmokeStartupStage) => {
+  if (nativeSmoke === null) return;
+  await writeNativeSmokeStartupStage({ options: nativeSmoke, stage });
+};
+void recordNativeStartupStage("main-loaded");
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -156,6 +163,7 @@ let nativeRuntime: Readonly<{
 void startDesktopLifecycle({
   app,
   createRuntime: async () => {
+    await recordNativeStartupStage("lifecycle-create-runtime");
     const appResourcesRoot = process.resourcesPath;
     const applicationSupportRoot = app.getPath("userData");
     const cacheRoot = resolve(
@@ -364,10 +372,20 @@ void startDesktopLifecycle({
       media,
     });
     const initialized = await initializeDesktopRuntimeResources({
-      bootstrapController: controller.bootstrap,
+      bootstrapController: async () => {
+        await recordNativeStartupStage("bootstrap-start");
+        await controller.bootstrap();
+        await recordNativeStartupStage("bootstrap-complete");
+      },
       shutdownController: controller.shutdown,
-      createWindow: () =>
-        createDesktopWindow({ shellDocumentUrl: shellDocumentUrl() }),
+      createWindow: async () => {
+        await recordNativeStartupStage("window-load-start");
+        const desktopWindow = await createDesktopWindow({
+          shellDocumentUrl: shellDocumentUrl(),
+        });
+        await recordNativeStartupStage("window-load-complete");
+        return desktopWindow;
+      },
       registerIpc: (desktopWindow) =>
         registerDesktopShellIpc({
           ipcMain,
@@ -382,6 +400,7 @@ void startDesktopLifecycle({
       controller,
       media,
     };
+    await recordNativeStartupStage("runtime-created");
     return {
       window: desktopWindow.window,
       controller,
@@ -403,6 +422,8 @@ void startDesktopLifecycle({
 })
   .then(async () => {
     if (nativeSmoke === null || nativeRuntime === null) return;
+    await recordNativeStartupStage("lifecycle-ready");
+    await recordNativeStartupStage("native-smoke-started");
     await runPackagedNativeSmoke({
       app,
       ...nativeRuntime,
