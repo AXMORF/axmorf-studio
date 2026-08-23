@@ -47,6 +47,23 @@ const parseFrameRate = (value: unknown) => {
   return numerator / denominator;
 };
 
+const boundedProcessFailure = ({
+  absolutePath,
+  status,
+  stderr,
+}: {
+  readonly absolutePath: string;
+  readonly status: number;
+  readonly stderr: string;
+}) => {
+  const detail = stderr
+    .replaceAll(absolutePath, "<media>")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, 512);
+  return detail === "" ? `exit ${status}` : `exit ${status}; ${detail}`;
+};
+
 export const renderProjectVideo = async ({
   rootDir,
   compositionId,
@@ -202,7 +219,9 @@ export const inspectProjectVideo = async ({
     "-",
   ]);
   if (decoded.status !== 0) {
-    throw new Error("Project video did not decode completely to EOF.");
+    throw new Error(
+      `Project video did not decode completely to EOF (${boundedProcessFailure({ absolutePath, ...decoded })}).`,
+    );
   }
   return {
     codec: "h264" as const,
@@ -229,6 +248,10 @@ export const inspectProjectCover = async ({ absolutePath, expected, runProcess =
   const width = view.getUint32(16); const height = view.getUint32(20);
   if (width !== expected.width || height !== expected.height) throw new Error("Delivery cover dimensions drifted.");
   const decoded = await runProcess("ffmpeg", ["-v", "error", "-xerror", "-i", absolutePath, "-f", "null", "-"]);
-  if (decoded.status !== 0) throw new Error("Delivery cover did not decode completely to EOF.");
+  if (decoded.status !== 0) {
+    throw new Error(
+      `Delivery cover did not decode completely to EOF (${boundedProcessFailure({ absolutePath, ...decoded })}).`,
+    );
+  }
   return { imageFormat: "png" as const, width, height, decodedToEof: true as const };
 };
