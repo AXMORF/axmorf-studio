@@ -53,6 +53,7 @@ import {
   captureProductionInspectionSnapshot,
   inspectCurrentDelivery,
   inspectProductionSourceReadiness,
+  readProductionDiagnosticBaseline,
 } from "../adapters/production-inspection";
 import { createRuntimeDeliveryInspectionDependencies } from "../adapters/current-delivery-inspection";
 
@@ -61,9 +62,23 @@ const workspaceLoadInputs = (
 ) =>
   loadProjectProductionInputs(input, generateWorkspaceProjectResourceCatalog);
 
-const workspaceBuildCurrentPlan = (
+const workspaceBuildCurrentPlan = async (
   input: Parameters<typeof buildCurrentProductionPlan>[0],
-) => buildCurrentProductionPlan({ ...input, loadInputs: workspaceLoadInputs });
+  runtime: RuntimeExecutionResources,
+) =>
+  buildCurrentProductionPlan({
+    ...input,
+    loadInputs: workspaceLoadInputs,
+    baseline:
+      input.baseline === undefined
+        ? await readProductionDiagnosticBaseline({
+            locations: input.locations,
+            projectId: input.projectId,
+            dependencies:
+              createRuntimeDeliveryInspectionDependencies(runtime),
+          })
+        : input.baseline,
+  });
 
 const workspaceInspectProduction = (
   input: Parameters<typeof inspectProjectProduction>[0],
@@ -90,7 +105,8 @@ const workspaceInspectProduction = (
           input.runtime,
         ),
       }),
-    buildCurrentPlan: workspaceBuildCurrentPlan,
+    buildCurrentPlan: (planInput) =>
+      workspaceBuildCurrentPlan(planInput, input.runtime),
   });
 
 const workspaceProjectPendingAuthoring = (
@@ -168,7 +184,8 @@ const createWorkspaceCommands = (
         prepareNarration: prepareWorkspaceNarration,
         projectPendingAuthoring: workspaceProjectPendingAuthoring,
         loadInputs: workspaceLoadInputs,
-        buildCurrentPlan: workspaceBuildCurrentPlan,
+        buildCurrentPlan: (planInput) =>
+          workspaceBuildCurrentPlan(planInput, runtime),
       },
     ),
   checkTask: ({ locations, taskRevision }) =>
@@ -245,7 +262,8 @@ const createWorkspaceCommands = (
           ...convergeInput,
           dependencies: {
             buildDelivery: delivery.build,
-            buildCurrentPlan: workspaceBuildCurrentPlan,
+            buildCurrentPlan: (planInput) =>
+              workspaceBuildCurrentPlan(planInput, input.runtime),
             prepareProject: (input) =>
               prepareProjectAuthoringBuild({
                 ...input,
@@ -258,7 +276,8 @@ const createWorkspaceCommands = (
     }),
   buildDelivery: (input) =>
     buildCurrentDelivery(input, {
-      buildCurrentPlan: workspaceBuildCurrentPlan,
+      buildCurrentPlan: (planInput) =>
+        workspaceBuildCurrentPlan(planInput, input.runtime),
       build: delivery.build,
     }),
 });
