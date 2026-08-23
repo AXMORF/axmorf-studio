@@ -434,8 +434,9 @@ void startDesktopLifecycle({
     return {
       window: desktopWindow.window,
       controller,
-      confirmQuit: async () =>
-        (
+      confirmQuit: async () => {
+        if (nativeSmoke !== null) return true;
+        return (
           await dialog.showMessageBox(desktopWindow.window, {
             type: "warning",
             title: "退出 AXMORF Studio？",
@@ -445,7 +446,8 @@ void startDesktopLifecycle({
             cancelId: 0,
             noLink: true,
           })
-        ).response === 1,
+        ).response === 1;
+      },
       dispose: initialized.dispose,
     };
   },

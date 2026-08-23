@@ -404,6 +404,8 @@ test("ordinary Desktop builds compile the native harness off", async () => {
   assert.match(config, /desktop\/main\/native-smoke-disabled\.ts/u);
   assert.match(config, /desktop\/main\/native-smoke\.ts/u);
   assert.doesNotMatch(entry, /native-test-provider/u);
+  assert.match(entry, /if \(nativeSmoke !== null\) return true;/u);
+  assert.match(entry, /dialog\.showMessageBox/u);
   assert.match(entry, /await ensureNativeSmokeProducerConfig/u);
   assert.match(entry, /createNativeSmokePrivateConfigCrypto/u);
   assert.match(config, /desktop\/main\/native-smoke-disabled\.ts/u);
