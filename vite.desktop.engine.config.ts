@@ -9,14 +9,36 @@ const nodeExternals = [
   ...builtinModules.map((module) => `node:${module}`),
 ];
 
+const prettierEsmEntry = resolve(process.cwd(), "node_modules/prettier/index.mjs");
+const prettierEsmHeader = `import { createRequire as __prettierCreateRequire } from "module";
+import { fileURLToPath as __prettierFileUrlToPath } from "url";
+import { dirname as __prettierDirname } from "path";
+const require = __prettierCreateRequire(import.meta.url);
+const __filename = __prettierFileUrlToPath(import.meta.url);
+const __dirname = __prettierDirname(__filename);`;
+const prettierCjsHeader = `import { createRequire as __prettierCreateRequire } from "module";
+import { dirname as __prettierDirname } from "path";
+const require = __prettierCreateRequire(__filename);
+const __dirname = __prettierDirname(__filename);`;
+
 export default defineConfig({
   publicDir: false,
-  define: {
-    "import.meta.url": 'require("node:url").pathToFileURL(__filename).href',
-  },
+  plugins: [
+    {
+      name: "desktop-prettier-cjs-entry",
+      enforce: "pre",
+      transform(source, id) {
+        if (id !== prettierEsmEntry) return null;
+        if (!source.startsWith(prettierEsmHeader)) {
+          throw new Error("desktop-prettier-entry-header-drift");
+        }
+        return source.replace(prettierEsmHeader, prettierCjsHeader);
+      },
+    },
+  ],
   resolve: {
-    alias:
-      process.env.AXMORF_PHASE_B_NATIVE_GATE_BUILD === "1"
+    alias: [
+      ...(process.env.AXMORF_PHASE_B_NATIVE_GATE_BUILD === "1"
         ? [
             {
               find: "./workspace-narration-port",
@@ -33,7 +55,8 @@ export default defineConfig({
               ),
             },
           ]
-        : [],
+        : []),
+    ],
   },
   build: {
     emptyOutDir: false,
