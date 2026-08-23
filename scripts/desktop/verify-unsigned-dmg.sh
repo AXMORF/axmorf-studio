@@ -54,14 +54,20 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "desktop-unsigned-dmg-tracked-worktree-dirty" >&2
   exit 1
 fi
-for path in \
-  "$dmg_path" \
-  "$ordinary_app/Contents/MacOS/AXMORF Studio" \
-  "$native_evidence_root/source.json" \
-  "$native_evidence_root/runner-summary.json" \
-  "$native_evidence_root/repository-gate.json"; do
-  if [[ ! -e "$path" || -L "$path" ]]; then
-    echo "desktop-unsigned-dmg-input-invalid" >&2
+for input in \
+  "dmg:$dmg_path" \
+  "ordinary-app-executable:$ordinary_app/Contents/MacOS/AXMORF Studio" \
+  "native-source:$native_evidence_root/source.json" \
+  "native-runner:$native_evidence_root/runner-summary.json" \
+  "native-repository:$native_evidence_root/repository-gate.json"; do
+  input_name=${input%%:*}
+  path=${input#*:}
+  if [[ ! -e "$path" ]]; then
+    echo "desktop-unsigned-dmg-input-missing:$input_name" >&2
+    exit 1
+  fi
+  if [[ -L "$path" ]]; then
+    echo "desktop-unsigned-dmg-input-symlink:$input_name" >&2
     exit 1
   fi
 done

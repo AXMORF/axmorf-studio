@@ -37,20 +37,51 @@ import { createDesktopSbomInput } from "./sbom-input";
 
 export { createDesktopUnsignedDmgFileName } from "../../desktop/configuration/product";
 
-export const resolveDesktopUnsignedDmgOutputPath = ({
+export const selectDesktopUnsignedDmgOutputPath = ({
+  expectedFileName,
+  candidates,
+}: {
+  readonly expectedFileName: string;
+  readonly candidates: readonly string[];
+}) => {
+  const sorted = [...candidates].sort();
+  if (sorted.length !== 1) {
+    throw new Error("desktop-release-dmg-output-inventory-invalid");
+  }
+  const output = sorted[0]!;
+  if (basename(output) !== expectedFileName) {
+    throw new Error("desktop-release-dmg-output-name-invalid");
+  }
+  return output;
+};
+
+const discoverDesktopUnsignedDmgOutputPath = async ({
   checkoutRoot,
-  appVersion,
-  architecture,
+  expectedFileName,
 }: {
   readonly checkoutRoot: string;
-  readonly appVersion: string;
-  readonly architecture: DesktopDarwinArchitecture;
-}) =>
-  join(
-    resolve(checkoutRoot),
-    "out/make",
-    createDesktopUnsignedDmgFileName({ appVersion, architecture }),
-  );
+  readonly expectedFileName: string;
+}) => {
+  const makeRoot = join(resolve(checkoutRoot), "out/make");
+  const candidates: string[] = [];
+  const walk = async (root: string) => {
+    for (const entry of await readdir(root, { withFileTypes: true })) {
+      const path = join(root, entry.name);
+      if (entry.isSymbolicLink()) {
+        throw new Error("desktop-release-dmg-output-symlink-forbidden");
+      }
+      if (entry.isDirectory()) await walk(path);
+      else if (entry.isFile() && entry.name.endsWith(".dmg")) {
+        candidates.push(path);
+      }
+    }
+  };
+  await walk(makeRoot);
+  return selectDesktopUnsignedDmgOutputPath({
+    expectedFileName,
+    candidates,
+  });
+};
 
 const RELEASE_EXACT_STATIC_FILES = Object.freeze([
   "INSTALL.md",
@@ -475,10 +506,9 @@ const buildReleaseArtifact = async (args: readonly string[]) => {
     appVersion,
     architecture,
   });
-  const dmgPath = resolveDesktopUnsignedDmgOutputPath({
+  const dmgPath = await discoverDesktopUnsignedDmgOutputPath({
     checkoutRoot: process.cwd(),
-    appVersion,
-    architecture,
+    expectedFileName: dmgFileName,
   });
   const verificationPath = join(
     verificationRoot,

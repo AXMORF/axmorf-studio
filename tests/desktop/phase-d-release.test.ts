@@ -7,7 +7,7 @@ import {
   buildDesktopUnsignedReleaseManifest,
   createDesktopUnsignedDmgFileName,
   createDesktopUnsignedInstallInstructions,
-  resolveDesktopUnsignedDmgOutputPath,
+  selectDesktopUnsignedDmgOutputPath,
   validateDesktopDualArchitectureRelease,
 } from "../../scripts/desktop/unsigned-release";
 
@@ -98,13 +98,29 @@ test("Phase D installer identity is native, versioned, and explicitly unsigned",
       architecture: "arm64",
     }),
   );
+  const expected =
+    "AXMORF-Studio-0.1.0-mac-arm64-full-unsigned.dmg";
   assert.equal(
-    resolveDesktopUnsignedDmgOutputPath({
-      checkoutRoot: "/checkout",
-      appVersion: "0.1.0",
-      architecture: "arm64",
+    selectDesktopUnsignedDmgOutputPath({
+      expectedFileName: expected,
+      candidates: [`/checkout/out/make/dmg/darwin/arm64/${expected}`],
     }),
-    "/checkout/out/make/AXMORF-Studio-0.1.0-mac-arm64-full-unsigned.dmg",
+    `/checkout/out/make/dmg/darwin/arm64/${expected}`,
+  );
+  assert.throws(() =>
+    selectDesktopUnsignedDmgOutputPath({
+      expectedFileName: expected,
+      candidates: [
+        `/checkout/out/make/${expected}`,
+        `/checkout/out/make/other/${expected}`,
+      ],
+    }),
+  );
+  assert.throws(() =>
+    selectDesktopUnsignedDmgOutputPath({
+      expectedFileName: expected,
+      candidates: ["/checkout/out/make/unexpected.dmg"],
+    }),
   );
 });
 
