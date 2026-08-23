@@ -13,7 +13,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { delimiter, dirname, join, resolve } from "node:path";
+import { basename, delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
@@ -85,12 +85,30 @@ const producerConfig = buildProducerConfig({
 });
 
 const run = async (command: string, args: readonly string[]) => {
-  await execFileAsync(command, [...args], {
-    cwd: checkoutRoot,
-    encoding: "utf8",
-    maxBuffer: 1024 * 1024,
-    timeout: 30_000,
-  });
+  try {
+    await execFileAsync(command, [...args], {
+      cwd: checkoutRoot,
+      encoding: "utf8",
+      maxBuffer: 1024 * 1024,
+      timeout: 30_000,
+    });
+  } catch (error) {
+    const failure = error as Error & {
+      readonly stderr?: string;
+      readonly stdout?: string;
+    };
+    const output = [failure.stdout, failure.stderr]
+      .filter((value): value is string => value !== undefined)
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .join("\n");
+    throw new Error(
+      `Desktop integration command failed: ${basename(command)}.${
+        output.length === 0 ? "" : `\n${output}`
+      }`,
+      { cause: error },
+    );
+  }
 };
 
 const buildRspSea = async (temporaryRoot: string) => {
