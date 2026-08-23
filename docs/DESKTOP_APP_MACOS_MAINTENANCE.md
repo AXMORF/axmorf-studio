@@ -2,7 +2,7 @@
 
 > 文档类型：macOS 维护与发行目标 authority
 >
-> 状态：`AXMORF Studio`、内置 Preview Player、单 Workspace Root、Codex/Hermes 首批支持、Electron、macOS 13+、arm64/x64、App-running lifecycle、完整离线 Runtime DMG、GitHub Releases 站外分发、首阶段无签名和手动更新已确认；Phase A repository-adapter 与 Phase B Apple Silicon packaged production gate 均 verified complete，当前进入 Phase C 双架构验收
+> 状态：`AXMORF Studio`、内置 Preview Player、单 Workspace Root、Codex/Hermes 首批支持、Electron、macOS 13+、arm64/x64、App-running lifecycle、完整离线 Runtime DMG、GitHub Releases 站外分发、首阶段无签名和手动更新已确认；Phase A、Phase B 与 Phase C native gates 均 verified complete，当前进入 Phase D unsigned public beta Gate
 >
 > 产品边界见 [Desktop App 与外部 Agent 产品架构](DESKTOP_APP_PRODUCT.md)，当前实现
 > 事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。
@@ -371,7 +371,8 @@ macOS process、Runtime Pack、Workspace、双架构、unsigned/signed channel�
 产品默认值已确认，不再阻塞实施。以下项目按对应阶段处理：
 
 1. 公开 beta 前取得 Remotion 官方书面许可证确认；
-2. 公开 x64 构建前取得真实 Intel Mac 的 install/Preview Player/render evidence；
+2. 真实 Intel x64 packaged App/Preview Player/render evidence 已在 Phase C 取得；公开 x64 构建仍与 arm64 一样受第 1 项
+   许可 Gate 约束；
 3. Intel 最低支持年限和退场通知期在首次 stable 前发布；
 4. 用户规模、安装失败率或支持成本证明有必要时，再决定购买 Apple Developer Program；
 5. 独立官网/object storage、signed update feed 和自动更新都延后到 Developer ID 阶段评估。
@@ -382,12 +383,13 @@ macOS process、Runtime Pack、Workspace、双架构、unsigned/signed channel�
 完成。Phase B 只允许 DeliveryBuild 范围内 `127.0.0.1` OS-ephemeral renderer listener，Runtime Pack 仅携带
 checksum-bound 的 exact 内部渲染依赖且无 CLI/Studio Server/launch surface；exact commit
 `04ca57ed5b6469eb9bc4acd8c86829ca0222576a` 已通过 hosted macOS 15 arm64 packaged production gate。
-Phase C 当前代码已配置化支持 darwin arm64/x64 Runtime Pack、package 与 native gate，并为 x64 精确选择
-`@remotion/compositor-darwin-x64`；没有真实 Intel evidence 时状态仍是
-`implementation-complete-native-evidence-pending`。这不表示 DMG、签名、公证、auto-update、Intel x64 verified support、
-Hermes external-Agent production 或双架构 E2E 已完成。
-精确 executable evidence 见 [ITERATION_STATUS.md](ITERATION_STATUS.md)；不得用 arm64、cross-package、Rosetta 或
-deterministic fixture 伪造 Intel/Hermes/发行证据。
+Phase C 已配置化支持 darwin arm64/x64 Runtime Pack、package 与 native gate，并为 x64 精确选择
+`@remotion/compositor-darwin-x64`；两种架构已在 exact hosted native runner 上完成 packaged
+App/production/Delivery/Preview/cleanup evidence，状态为 `verified-complete`。这表示 exact evidence commit 的内部
+darwin x64 native contract 已验证；不表示 DMG、签名、公证、auto-update、Hermes external-Agent production、
+distribution 或公开支持政策已完成。
+精确 executable evidence 见 [ITERATION_STATUS.md](ITERATION_STATUS.md)；不得用 deterministic fixture 伪造
+Codex/Hermes creative E2E，也不得把内部 native evidence 写成发行证据。
 
 ## 17. Primary references
 

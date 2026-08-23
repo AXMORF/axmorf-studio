@@ -2,7 +2,7 @@
 
 > 文档类型：Desktop App 产品目标 authority
 >
-> 状态：产品方向与 macOS v1 默认值已确认；Phase A 与 Phase B 已 verified complete；当前路线进入 Phase C 双架构验收
+> 状态：产品方向与 macOS v1 默认值已确认；Phase A、Phase B 与 Phase C 已 verified complete；当前路线进入 Phase D unsigned public beta Gate
 >
 > 当前实现事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)，现有生产 authority 见
 > [ARCHITECTURE.md](ARCHITECTURE.md) 与 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
@@ -299,7 +299,7 @@ token、heartbeat 或 child lifecycle。
 storage/security/validator fields 不允许从第 4 层覆盖。App UI、CLI 和 Skill 只投影各自需要的最小视图，不能
 复制同一字段为多个 authority。
 
-## 11. Phase B verified 实现与剩余产品差距
+## 11. Phase C verified 实现与剩余产品差距
 
 Phase B 已把 Phase A repository adapter clean-break 为显式 Workspace production：安装资源、Application
 Support、Cache 与 Workspace ownership 分离；Workspace v2、整体迁移/rollback、immutable Runtime Pack、
@@ -316,12 +316,14 @@ listener scope 和 terminal/failure/Quit/reopen cleanup；精确 run/artifact �
 [ITERATION_STATUS.md](ITERATION_STATUS.md)。该证据使用 test-only deterministic task executor，不构成 Hermes 或其他
 已安装外部创作 Agent 的 production proof。
 
-Phase C 已提供同一 Runtime Pack/package/native gate implementation 的 darwin arm64/x64 configuration；这只把 Intel
-build 与验收入口实现到可执行状态，不是 native proof。剩余产品差距仍包括真实 Intel x64 native E2E、Hermes
-Workspace production proof、DMG/installer、code signing/notarization、binary release、update channel 和长期 support
-policy。Phase B 状态为 `verified-complete`，Phase C 状态为
-`implementation-complete-native-evidence-pending`；后续路由以
-[ROADMAP.md](ROADMAP.md) 为准。
+Phase C 已把同一 Runtime Pack/package/native gate implementation 收敛为 darwin arm64/x64 configuration，并在 hosted
+Apple Silicon 与真实 x86_64 runner 上完成目标原生 App/Runtime Pack/production/Delivery evidence。exact
+commit、workflow、artifact digest 与人工复核范围见 [ITERATION_STATUS.md](ITERATION_STATUS.md)。该证据完成内部双架构
+native contract，不等于安装外部 Codex/Hermes 的 creative Workspace production proof，也不等于 installer 或公开发行。
+
+剩余产品差距包括外部 Codex/Hermes creative E2E、Remotion runtime binary redistribution 书面许可、DMG/installer、
+code signing/notarization、binary release、update channel 和长期 support policy。Phase A、Phase B 与 Phase C 均为
+`verified-complete`；后续路由以 [ROADMAP.md](ROADMAP.md) 为准。
 
 ## 12. 后续产品完成门槛
 

@@ -2,7 +2,7 @@
 
 > 文档类型：本地与 manual-only CI 验证入口
 >
-> 当前状态：darwin arm64/x64 enablement 已有配置化实现与 executable focused coverage；真实 Intel x64 evidence 尚未取得，Phase C 不能 close out
+> 当前状态：darwin arm64/x64 native evidence 已在 exact hosted runners Green 并完成人工复核；Phase C `verified-complete`
 
 ## 1. 唯一入口
 
@@ -65,7 +65,13 @@ test-only deterministic fixture。它证明 App/Runtime Pack/production/Delivery
 }
 ```
 
-因此 Intel gate 未在 exact commit Green 且 evidence 未人工复核前，只能写
-`implementation-complete-native-evidence-pending`；不得宣称 x64 verified complete、Phase C complete、DMG ready、
-distribution ready，也不得推进 Roadmap/Iteration 的 Phase C closeout。外部 Codex/Hermes creative E2E 是独立产品证据，
-不能由 deterministic fixture 推断。
+Phase C acceptance 已在 exact evidence commit `54a6c12699eb56b02051f0b47eb2568e9bf3f716` 完成：manual-only Actions run
+[`32656883032`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32656883032) 的 x64 与 arm64 jobs 均为
+success。x64 artifact ID `9497965091`、digest
+`sha256:0f0c089a5de5299d98b034abee68a37cf3eb803b855e78efcde3547866945a28`；arm64 artifact ID `9497817568`、digest
+`sha256:e3622d812958ac9f2ffc69e0e72aeef23bcede153dc9fd34c6e6ccc1ad8c191d`。两份脱敏 evidence 已人工复核，Phase C
+状态为 `verified-complete`，Roadmap 已进入 Phase D。
+
+该 closeout 只证明 exact commit 的 darwin arm64/x64 native App/Runtime Pack/production/Delivery contract。它不证明已安装
+Codex/Hermes 完成新的 creative E2E，也不表示 DMG ready、distribution ready、签名、公证或 public release 已完成；这些
+证据不能由 deterministic fixture 推断。

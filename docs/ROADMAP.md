@@ -33,7 +33,7 @@ attempt-bound task commit/fail 与 fixed continuation；converge 是 continuatio
 - settings 与 progress 不扫描历史 `.producer-runs/`；Project delete 仍能安全清理其 ownership root；
 - zero Project bootstrap/Registry/Catalog/settings 可用。
 
-## 当前里程碑：macOS Desktop App Phase C 双架构验收入口
+## 当前里程碑：macOS Desktop App Phase D unsigned public beta 入口
 
 Phase A repository adapter 与 Apple Silicon native gate 已 verified complete。精确 evidence commit 为
 `e5b9b6bd81bbe229177a64ed326ab3e46eaf2220`，manual-only GitHub Actions run
@@ -51,30 +51,37 @@ artifact ID `9495509231` 已人工复核 ordinary/gate package inventory、arm64
 test-only deterministic task executor，不等同于安装外部创作 Agent 的真实创意生产证明。Phase B 计划已
 [归档](archive/implementation-plans/2026-08-23-desktop-app-phase-b.md)。
 
-当前推进到下列第 3 项双架构验收。Phase C 必须保持现有 focused、static、host、media 与 E2E gates Green，并在
-真实 Intel x64 环境补齐等价 offline App/Runtime Pack/Agent/render/manual/automatic Delivery native evidence；arm64
-Phase B Green、cross-package 或 Rosetta 都不能替代 x64 native proof。阶段仍遵守
-[Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
-[macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)。
+Phase C 双架构验收已 `verified-complete`。exact evidence commit
+`54a6c12699eb56b02051f0b47eb2568e9bf3f716` 的 manual-only Actions run
+[`32656883032`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32656883032) 在原生
+`macos-15` arm64 与 `macos-15-intel` x64 runner 上均为 success。x64 artifact ID `9497965091`、digest
+`sha256:0f0c089a5de5299d98b034abee68a37cf3eb803b855e78efcde3547866945a28`；arm64 artifact ID
+`9497817568`、digest `sha256:e3622d812958ac9f2ffc69e0e72aeef23bcede153dc9fd34c6e6ccc1ad8c191d`。
 
-当前 Phase C enablement implementation 已提供统一的 darwin arm64/x64 Runtime Pack/package/native gate 配置和真实
-Intel 可执行入口，但尚无 Intel native artifact。状态是 `implementation-complete-native-evidence-pending`；Roadmap
-没有推进到第 4 项。精确命令和 deterministic fixture/外部 creative Agent 证据边界见
-[Desktop Phase C native gate](guides/DESKTOP_PHASE_C_NATIVE_GATE.md)。
+人工复核确认两种架构的 host、Electron/Chromium、FFmpeg/FFprobe、Node、SEA `rsp` 与 compositor 都是目标原生
+Mach-O identity；ordinary/gate package 隔离、manual source-current + explicit Delivery、automatic Delivery、exact
+four-file media probes、Preview playback/seek/timeline、failure/Quit/reopen cleanup、offline/no-host-tools、evidence
+redaction 和 package 后完整 repository gate 均 Green。该证据使用 test-only deterministic fixture，并明确记录
+`externalCreativeAgentTested: false`；它不冒充外部 Codex/Hermes creative E2E，也不表示 DMG 或公开发行已完成。
+精确命令与边界见 [Desktop Phase C native gate](guides/DESKTOP_PHASE_C_NATIVE_GATE.md)。
+
+Roadmap 现进入第 4 项。公开 beta 的入口 Gate 是取得 Remotion runtime binary redistribution 书面确认；许可未关闭前
+不构建或发布公开 DMG。阶段继续遵守 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
+[macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)。
 
 1. unsigned prototype：建立 bundled Preview Player、只读多轨时间轴、Engine utility process、authenticated local
    `rsp` session、默认 `~/Movies/AXMORF Studio/` 和 Codex/Hermes integration smoke；
 2. productization：把 App/Runtime Pack 与单一 Workspace Root 正式隔离，增加 workspace-local `.rsp/bin/rsp`、
    offline doctor、兼容性 manifest、整体迁移/rollback，并 clean-break 出独立 `source-current`；
-3. 双架构验收：分别完成 arm64 与真实 Intel x64 的 offline install、Preview Player、Agent、render、manual/automatic
-   Delivery、升级不修改 Workspace 的 native E2E；
+3. 双架构验收：分别完成 arm64 与真实 Intel x64 的 offline packaged App/Runtime Pack、Preview Player、Agent fixture、
+   render、manual/automatic Delivery、退出清理与 package 后 repository gate native E2E；
 4. unsigned public beta：取得 Remotion runtime binary redistribution 书面确认，发布同版本双原生完整 DMG、
    SHA-256、release manifest、SBOM、third-party notices 与 Gatekeeper 手动安装说明；
 5. stable/增强：发布 Intel 支持策略；只有真实用户规模、安装失败率或支持成本证明需要时，才购买 Apple
    Developer Program 并评估 Developer ID、notarization 与 signed auto-update。
 
-Phase 1–3 可以在公开发行许可 Gate 关闭前内部实现和验证；未取得 Remotion 书面确认不得公开包含其 runtime 的
-DMG，缺少 Intel native evidence 不得宣称 x64 支持。
+Phase 1–3 已在公开发行许可 Gate 关闭前完成内部实现和验证；未取得 Remotion 书面确认不得公开包含其 runtime 的
+DMG。Phase C 的内部 x64 native support evidence 不等于 installer、distribution 或公开支持政策。
 
 ## 后续候选
 

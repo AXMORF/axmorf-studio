@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-24 Desktop Phase C dual-architecture enablement implementation; Intel native evidence pending
+> 最后复核：2026-08-24 Desktop Phase C dual-architecture native evidence verified complete
 
 ## 当前结论
 
@@ -204,11 +204,11 @@ arm64 / macOS 15.7.7 完整成功；evidence artifact ID `9495509231`，digest
   protected voice data；workflow 在 package 后再次完成 747/747 repository tests、typecheck、lint、docs、static、
   compositions 与 host checks。
 
-因此 Phase B 状态为 `verified-complete`，计划已归档，Roadmap 进入 Phase C。native gate 使用 test-only deterministic
-task executor 完成 dirty Agent task outputs，并未安装或调用外部创作 Agent；Hermes Workspace production、真实外部
-Agent creative E2E、Intel x64、DMG、签名、公证、distribution 与公开发布仍不在该证据范围。
+因此 Phase B 状态为 `verified-complete`，计划已归档；其 closeout 后 Roadmap 进入 Phase C。Phase B native gate 使用
+test-only deterministic task executor 完成 dirty Agent task outputs，并未安装或调用外部创作 Agent；Hermes Workspace
+production、真实外部 Agent creative E2E、Intel x64、DMG、签名、公证、distribution 与公开发布不在该次证据范围。
 
-## Desktop Phase C 双架构 enablement（native evidence pending）
+## Desktop Phase C 双架构 enablement（verified-complete）
 
 当前实现已把 Desktop Runtime Pack、compatibility manifest、doctor/shell DTO、package target、repository compositor
 resolution 与 native smoke 从 arm64 literal 收敛为唯一 darwin architecture configuration，只允许 `arm64`/`x64`。两种
@@ -225,18 +225,30 @@ failure/Quit/reopen cleanup、空 host-tools `PATH`、无 external TCP connectio
 gate。精确本地命令与 evidence contract 见
 [Desktop Phase C native gate](guides/DESKTOP_PHASE_C_NATIVE_GATE.md)。
 
-当前环境不是 Intel Mac，本轮没有 x64 packaged production evidence，也没有运行或上传 workflow。因此 Phase C 状态只能是
-`implementation-complete-native-evidence-pending`，不能标记 `verified-complete`，Roadmap 仍停在 Phase C。native gate
-仍使用 test-only deterministic provider/task executor，并明确记录 `externalCreativeAgentTested: false`；安装外部
-Codex/Hermes 的 creative E2E 是另一条待补证据。
+exact evidence commit `54a6c12699eb56b02051f0b47eb2568e9bf3f716` 的 manual-only Actions run
+[`32656883032`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32656883032) 已在 hosted
+`macos-15-intel` x64 job `97236894640` 与 `macos-15` arm64 job `97236894857` 同时 Green。x64 evidence artifact ID
+`9497965091`、digest `sha256:0f0c089a5de5299d98b034abee68a37cf3eb803b855e78efcde3547866945a28`；arm64 artifact ID
+`9497817568`、digest `sha256:e3622d812958ac9f2ffc69e0e72aeef23bcede153dc9fd34c6e6ccc1ad8c191d`。
+
+人工复核确认 x64 `process.arch=x64`、`uname=x86_64`、`@remotion/compositor-darwin-x64` 与全部 packaged runtime
+binary 都是单一 x86_64 Mach-O；arm64 job 对应复验单一 arm64 identity。两种架构均完成 ordinary/gate package inventory
+隔离、SEA injection、manual source-current + explicit Delivery、automatic Delivery、exact four-file H.264/AAC/PNG/EOF
+probes、Preview playback/五位置 seek/timeline、failure/Quit/reopen 后 process/TCP/session/operation lock/staging cleanup、
+offline/no-host-tools 与 evidence redaction。package 后 repository gates 全部 Green，完整测试为 754/754。
+
+因此 Phase C 状态为 `verified-complete`，Roadmap 进入 Phase D。native gate 仍使用 test-only deterministic
+provider/task executor，`runner-summary.json` 明确记录 `deterministicFixture: true`、
+`externalCreativeAgentTested: false`；安装外部 Codex/Hermes 的 creative E2E 是独立待补产品证据，不由本次 native
+evidence 推断。
 
 ## 当前非目标
 
 远程 scheduler/database/artifact store、平台发布、账号、上传、child identity persistence、subjective quality
 gate、automatic capability promotion、Docker 和新的 TTS Gateway 均未实现。
 
-公开 DMG/installer 发行、签名/公证、完整跨宿主 native evidence、x64 native support evidence 和 public release
-仍未验证；x64 配置化 build/gate implementation 不等于真实 Intel support evidence。这些目标记录在
+公开 DMG/installer 发行、签名/公证、外部 Codex/Hermes creative E2E 和 public release 仍未验证；Phase C 的内部
+darwin arm64/x64 native evidence 不等于 installer、distribution 或公开支持政策。这些目标记录在
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
 [macOS 维护与发行目标](DESKTOP_APP_MACOS_MAINTENANCE.md)。Phase A 的受限 Workspace/Skill/doctor/Preview surface
 不进入或改变 current production authority。

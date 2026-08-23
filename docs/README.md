@@ -24,11 +24,12 @@
 
 ## 当前阶段入口
 
-- Phase A repository adapter 与 Phase B Workspace production 均已在 hosted Apple Silicon native gates
-  `verified-complete`；实施计划分别归档为
+- Phase A repository adapter、Phase B Workspace production 与 Phase C darwin arm64/x64 native gate 均已
+  `verified-complete`；Phase A/Phase B 实施计划分别归档为
   [Phase A](archive/implementation-plans/2026-08-23-desktop-app-phase-a.md) 和
-  [Phase B](archive/implementation-plans/2026-08-23-desktop-app-phase-b.md)。下一入口是 Phase C 双架构验收；阶段边界见
-  [ROADMAP.md](ROADMAP.md)，完成事实仍以 [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准。
+  [Phase B](archive/implementation-plans/2026-08-23-desktop-app-phase-b.md)。Phase C exact workflow/artifact evidence 见
+  [ITERATION_STATUS.md](ITERATION_STATUS.md)；下一入口是 Phase D unsigned public beta 许可与发行 Gate，阶段边界见
+  [ROADMAP.md](ROADMAP.md)。
 
 ## 操作与维护指南
 
