@@ -28,6 +28,7 @@ test("attempt event wait resolves from the immutable event log without polling",
     timeoutMs: 2_000,
   });
   context.after(() => eventWait.close());
+  await eventWait.ready;
   await writeFile(
     join(events, "00000000-0000-4000-8000-000000000002.json"),
     "{}\n",
@@ -63,6 +64,7 @@ test("attempt event wait rejects at its bounded deadline", async (context) => {
     timeoutMs: 10,
   });
   context.after(() => eventWait.close());
+  await eventWait.ready;
 
   await assert.rejects(
     eventWait.changed,

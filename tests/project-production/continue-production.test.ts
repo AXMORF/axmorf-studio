@@ -89,6 +89,7 @@ const progress = ({
   }) as unknown as ExecutionAttemptProgress;
 
 const resolvedWait = () => ({
+  ready: Promise.resolve(),
   changed: Promise.resolve(),
   close: () => undefined,
 });
@@ -325,6 +326,7 @@ test("fixed continuation terminalizes the one-hour attempt deadline", async () =
       openEventWait: ({ timeoutMs }) => {
         assert.equal(timeoutMs, 1);
         return {
+          ready: Promise.resolve(),
           changed: Promise.reject(new ExecutionAttemptEventWaitTimeoutError()),
           close: () => undefined,
         };
@@ -358,6 +360,7 @@ test("fixed continuation subtracts elapsed attempt time from the wait budget", a
       openEventWait: ({ timeoutMs }) => {
         observedTimeout = timeoutMs;
         return {
+          ready: Promise.resolve(),
           changed: Promise.reject(new ExecutionAttemptEventWaitTimeoutError()),
           close: () => undefined,
         };

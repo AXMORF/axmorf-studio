@@ -6,6 +6,7 @@ import { StoryIdSchema } from "../../../src/contracts";
 import type { ProductionLocations } from "../domain/production-locations";
 
 export type ExecutionAttemptEventWait = Readonly<{
+  ready: Promise<void>;
   changed: Promise<void>;
   close: () => void;
 }>;
@@ -38,10 +39,15 @@ export const openExecutionAttemptEventWait = (input: {
   let settled = false;
   let resolveChanged: (() => void) | undefined;
   let rejectChanged: ((error: Error) => void) | undefined;
+  // Cross one event-loop turn after fs.watch registration. Continuation reads
+  // progress only after this barrier, closing the subscribe/read race.
+  const ready = new Promise<void>((resolve) => setImmediate(resolve));
   const changed = new Promise<void>((resolve, reject) => {
     resolveChanged = resolve;
     rejectChanged = reject;
   });
+  // The original promise still rejects for its consumer after the ready barrier.
+  void changed.catch(() => undefined);
   const settle = (error?: Error) => {
     if (settled) return;
     settled = true;
@@ -62,6 +68,7 @@ export const openExecutionAttemptEventWait = (input: {
     timeoutMs,
   );
   return {
+    ready,
     changed,
     close: () => {
       clearTimeout(timeout);

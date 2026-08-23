@@ -220,6 +220,7 @@ export const continueProjectProduction = async (
       timeoutMs: Math.max(1, deadline - now()),
     });
     try {
+      await eventWait.ready;
       const progress = await readProgress({
         locations,
         storyId: projectId,

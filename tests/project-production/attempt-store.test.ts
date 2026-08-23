@@ -840,6 +840,7 @@ test("Workspace attempt APIs use only the explicit attemptStoreRoot", async (con
     timeoutMs: 1_000,
   });
   try {
+    await eventWait.ready;
     await appendExecutionAttemptTaskOutcome({
       locations,
       attemptId: attempt.attemptId,
