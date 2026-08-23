@@ -104,20 +104,65 @@ esac
 mount_root="$verification_runtime_root/mount"
 applications_root="$verification_runtime_root/Applications"
 empty_path="$verification_runtime_root/no-host-tools"
-first_home="$verification_runtime_root/first-run-home"
-doctor_home="$verification_runtime_root/doctor-home"
 doctor_workspace="$verification_runtime_root/doctor-workspace"
 window_probe="$verification_runtime_root/window-probe"
 mounted=false
+first_pid=""
+doctor_pid=""
+network_pid=""
+ordinary_user_data_owned=false
+
+ordinary_home=${HOME:?}
+if [[ "$ordinary_home" != /* ]]; then
+  echo "desktop-unsigned-dmg-home-invalid" >&2
+  exit 1
+fi
+ordinary_user_data_root="$ordinary_home/Library/Application Support/$user_data_directory"
+case "$ordinary_user_data_root" in
+  "$ordinary_home/Library/Application Support/"*) ;;
+  *) echo "desktop-unsigned-dmg-user-data-root-invalid" >&2; exit 1 ;;
+esac
+if [[ -e "$ordinary_user_data_root" || -L "$ordinary_user_data_root" ]]; then
+  echo "desktop-unsigned-dmg-user-data-root-not-isolated" >&2
+  exit 1
+fi
+ordinary_user_data_owned=true
 
 cleanup() {
+  local status=$?
+  trap - ERR
+  set +Ee
+  if [[ -n "$network_pid" ]]; then
+    printf '%s\n' stop >"$output_root/network-stop"
+    wait "$network_pid" >/dev/null 2>&1
+  fi
+  for pid in "$doctor_pid" "$first_pid"; do
+    if [[ -n "$pid" ]] && app_running "$pid"; then
+      /bin/kill -TERM "$pid" >/dev/null 2>&1
+      local remaining=300
+      while app_running "$pid" && [[ $remaining -gt 0 ]]; do
+        sleep 0.1
+        remaining=$((remaining - 1))
+      done
+      if app_running "$pid"; then
+        /bin/kill -KILL "$pid" >/dev/null 2>&1
+      fi
+    fi
+    if [[ -n "$pid" ]]; then
+      wait "$pid" >/dev/null 2>&1
+    fi
+  done
   if [[ "$mounted" == true ]]; then
     hdiutil detach "$mount_root" -quiet >/dev/null 2>&1 || true
   fi
-  rm -rf -- "$verification_runtime_root"
+  if [[ "$ordinary_user_data_owned" == true ]]; then
+    /bin/rm -rf -- "$ordinary_user_data_root"
+  fi
+  /bin/rm -rf -- "$verification_runtime_root"
+  return "$status"
 }
 trap cleanup EXIT
-mkdir -p "$mount_root" "$applications_root" "$empty_path" "$first_home" "$doctor_home"
+mkdir -p "$mount_root" "$applications_root" "$empty_path"
 
 set_verification_stage compile-window-probe
 /usr/bin/xcrun swiftc "$repository_root/scripts/desktop/window-probe.swift" \
@@ -126,8 +171,11 @@ set_verification_stage compile-window-probe
 app_running() {
   local pid=$1
   local state
-  state=$(ps -p "$pid" -o stat= 2>/dev/null | tr -d ' ') || return 1
-  [[ -n "$state" && "$state" != Z* ]]
+  if state=$(ps -p "$pid" -o stat= 2>/dev/null | tr -d ' '); then
+    [[ -n "$state" && "$state" != Z* ]]
+    return
+  fi
+  return 1
 }
 
 wait_for_window() {
@@ -160,11 +208,10 @@ quit_app() {
 }
 
 launch_ordinary_app() {
-  local home_root=$1
-  local executable=$2
-  local log_path=$3
+  local executable=$1
+  local log_path=$2
   env \
-    HOME="$home_root" \
+    HOME="$ordinary_home" \
     PATH="$empty_path" \
     TMPDIR="$verification_runtime_root" \
     "$executable" >"$log_path" 2>&1 &
@@ -253,18 +300,18 @@ fi
 
 set_verification_stage first-run
 installed_executable="$installed_app/Contents/MacOS/AXMORF Studio"
-launch_ordinary_app "$first_home" "$installed_executable" "$output_root/first-run.log"
+launch_ordinary_app "$installed_executable" "$output_root/first-run.log"
 first_pid=$LAUNCHED_PID
-test ! -e "$first_home/Library/Application Support/$user_data_directory/preferences.json"
+test ! -e "$ordinary_user_data_root/preferences.json"
 quit_app "$first_pid"
 
 set_verification_stage prepare-doctor-workspace
 "$host_node" --import tsx "$repository_root/scripts/desktop/prepare-installer-smoke.ts" \
   --workspace "$doctor_workspace" \
-  --application-support-root "$doctor_home/Library/Application Support/$user_data_directory" \
+  --application-support-root "$ordinary_user_data_root" \
   >"$output_root/doctor-preference.json"
 set_verification_stage launch-doctor-workspace
-launch_ordinary_app "$doctor_home" "$installed_executable" "$output_root/doctor-launch.log"
+launch_ordinary_app "$installed_executable" "$output_root/doctor-launch.log"
 doctor_pid=$LAUNCHED_PID
 printf '%s\n' idle >"$output_root/network-phase"
 "$host_node" --import tsx "$network_evidence" monitor \
@@ -287,7 +334,7 @@ if [[ ! -x "$rsp" || ! -S "$doctor_workspace/.rsp/session/rsp.sock" ]]; then
   exit 1
 fi
 set_verification_stage run-doctor
-env HOME="$doctor_home" PATH="$empty_path" TMPDIR="$verification_runtime_root" \
+env HOME="$ordinary_home" PATH="$empty_path" TMPDIR="$verification_runtime_root" \
   "$rsp" doctor >"$output_root/doctor.json"
 "$host_node" -e '
   const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
