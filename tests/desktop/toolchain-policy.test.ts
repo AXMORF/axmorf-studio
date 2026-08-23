@@ -70,6 +70,16 @@ test("Phase B desktop toolchain and product identity are exact", async () => {
   );
 });
 
+test("repository checks exclude the generated Runtime Pack tree", async () => {
+  const [tsconfigSource, eslintSource] = await Promise.all([
+    readFile(join(process.cwd(), "tsconfig.json"), "utf8"),
+    readFile(join(process.cwd(), "eslint.config.mjs"), "utf8"),
+  ]);
+  const tsconfig = JSON.parse(tsconfigSource) as { exclude?: string[] };
+  assert.equal(tsconfig.exclude?.includes("desktop/runtime-pack"), true);
+  assert.match(eslintSource, /"desktop\/runtime-pack\/\*\*"/u);
+});
+
 test("every Desktop Vite entry disables repository public copying", () => {
   for (const config of [
     mainViteConfig,

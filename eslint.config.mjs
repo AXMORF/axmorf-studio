@@ -5,6 +5,7 @@ export default [
     ignores: [
       ".vite/**",
       ".agents/skills/remotion-best-practices/**",
+      "desktop/runtime-pack/**",
       "src/projects/*/scenes/configured-intro-scene/**",
       "src/projects/*/scenes/configured-outro-scene/**",
     ],

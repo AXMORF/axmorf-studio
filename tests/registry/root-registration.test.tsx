@@ -197,6 +197,7 @@ test("root typecheck reaches current Projects only through the generated Registr
   assert.deepEqual(tsconfig.exclude, [
     "remotion.config.ts",
     "build",
+    "desktop/runtime-pack",
     "dist",
     "out",
     "src/projects/*",
