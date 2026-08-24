@@ -1,10 +1,6 @@
 import { randomBytes } from "node:crypto";
 
-import {
-  ProducerConfigSchema,
-  StoryIdSchema,
-  type ProducerConfig,
-} from "../../src/contracts";
+import { StoryIdSchema } from "../../src/contracts";
 import {
   PreviewCatalogReadinessSchema,
   PreviewCatalogSchema,
@@ -19,6 +15,10 @@ import {
   type EngineToMainMessage,
   type MainToEngineMessage,
 } from "../contracts/protocol";
+import {
+  DesktopPrivateConfigSchema,
+  type DesktopPrivateConfig,
+} from "../contracts/settings";
 import type {
   DesktopEnginePort,
   DesktopEngineSnapshot,
@@ -73,11 +73,11 @@ export type DesktopEngineProcessDependencies = Readonly<{
   now: () => number;
   token: () => Uint8Array;
   appPid: () => number;
-  loadProducerConfig: () => Promise<DesktopProducerConfigSession>;
+  loadDesktopConfiguration: () => Promise<DesktopConfigurationSession>;
 }>;
 
-export type DesktopProducerConfigSession = Readonly<{
-  config: ProducerConfig | null;
+export type DesktopConfigurationSession = Readonly<{
+  privateConfig: DesktopPrivateConfig | null;
   provider: "ready" | "not-configured" | "unavailable";
 }>;
 
@@ -154,10 +154,12 @@ export class UtilityProcessDesktopEnginePort implements DesktopEnginePort {
     if (this.#child !== undefined) {
       throw new Error("desktop-engine-already-started");
     }
-    const loaded = await this.#dependencies.loadProducerConfig();
-    const producerConfig =
-      loaded.config === null ? null : ProducerConfigSchema.parse(loaded.config);
-    if ((loaded.provider === "ready") !== (producerConfig !== null)) {
+    const loaded = await this.#dependencies.loadDesktopConfiguration();
+    const privateConfig =
+      loaded.privateConfig === null
+        ? null
+        : DesktopPrivateConfigSchema.parse(loaded.privateConfig);
+    if ((loaded.provider === "ready") !== (privateConfig !== null)) {
       throw new Error("desktop-producer-config-state-invalid");
     }
     const child = this.#dependencies.fork(this.#modulePath);
@@ -196,7 +198,7 @@ export class UtilityProcessDesktopEnginePort implements DesktopEnginePort {
       );
       channel.port2.postMessage({
         token: Uint8Array.from(this.#dependencies.token()),
-        producerConfig,
+        privateConfig,
         provider: loaded.provider,
       });
       channel.port2.close();
@@ -405,7 +407,7 @@ export const createUtilityProcessDesktopEnginePort = ({
   applicationSupportRoot,
   cacheRoot,
   modulePath,
-  loadProducerConfig,
+  loadDesktopConfiguration,
   utilityProcess,
   MessageChannelMain,
   appPid = () => process.pid,
@@ -414,7 +416,7 @@ export const createUtilityProcessDesktopEnginePort = ({
   applicationSupportRoot: string;
   cacheRoot: string;
   modulePath: string;
-  loadProducerConfig: () => Promise<DesktopProducerConfigSession>;
+  loadDesktopConfiguration: () => Promise<DesktopConfigurationSession>;
   utilityProcess: Readonly<{
     fork: (modulePath: string) => DesktopUtilityProcess;
   }>;
@@ -432,7 +434,7 @@ export const createUtilityProcessDesktopEnginePort = ({
       now: Date.now,
       token: () => randomBytes(32),
       appPid,
-      loadProducerConfig,
+      loadDesktopConfiguration,
     },
   });
 

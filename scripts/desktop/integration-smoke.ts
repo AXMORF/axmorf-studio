@@ -36,6 +36,7 @@ import {
   buildDesktopCompatibilityManifest,
   createRendererRuntimeFingerprint,
 } from "../../desktop/contracts/runtime-pack";
+import { createDesktopPrivateConfig } from "../../desktop/contracts/settings";
 import {
   DesktopDarwinArchitectureSchema,
   getDesktopDarwinTarget,
@@ -86,6 +87,7 @@ const producerConfig = buildProducerConfig({
     ],
   },
 });
+const privateConfig = createDesktopPrivateConfig({ producerConfig });
 
 const run = async (
   command: string,
@@ -316,7 +318,7 @@ const tokenEvent = ({
           queueMicrotask(() => {
             if (!closed) {
               listener?.({
-                data: { token, producerConfig, provider: "ready" },
+                data: { token, privateConfig, provider: "ready" },
               } as MessageEvent<unknown>);
             }
           });
@@ -435,7 +437,7 @@ export const runDesktopIntegrationSmoke =
           locations,
           runtime,
           workspaceRoot: initializedWorkspaceRoot,
-          config,
+          privateConfig: loadedPrivateConfig,
           provider,
         }) => {
           const [production, activeWork] = await Promise.all([
@@ -455,8 +457,20 @@ export const runDesktopIntegrationSmoke =
                 },
                 shutdown: async () => undefined,
               },
-              loadProducerConfig: async () => config,
+              loadProducerConfig: async () =>
+                loadedPrivateConfig?.producerConfig ?? null,
               providerReadiness: provider,
+              appDefaultDeliveryPolicy:
+                loadedPrivateConfig?.deliveryPolicy ?? "manual",
+              loadExecutionPreferences: async () => ({
+                preferences:
+                  loadedPrivateConfig?.executionPreferences ??
+                  privateConfig.executionPreferences,
+                source:
+                  loadedPrivateConfig === null
+                    ? "builtin-default"
+                    : "settings",
+              }),
             }),
             readWorkspaceActiveProduction(initializedWorkspaceRoot),
           ]);

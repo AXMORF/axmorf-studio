@@ -25,6 +25,7 @@ import {
   buildDesktopCompatibilityManifest,
   type RuntimePackManifest,
 } from "../../desktop/contracts/runtime-pack";
+import { createDesktopPrivateConfig } from "../../desktop/contracts/settings";
 import { createWorkspaceManifest } from "../../desktop/contracts/workspace";
 import {
   createEngineController,
@@ -99,7 +100,9 @@ const assetImportRequest = (requestId: string) =>
 
 const tokenEvent = (
   token: Uint8Array,
-  producerConfig: unknown = desktopProducerConfigFixture,
+  privateConfig: unknown = createDesktopPrivateConfig({
+    producerConfig: desktopProducerConfigFixture,
+  }),
 ): EngineMessageEvent => {
   let listener: ((event: MessageEvent<unknown>) => void) | undefined;
   let closed = false;
@@ -129,9 +132,9 @@ const tokenEvent = (
               listener?.({
                 data: {
                   token,
-                  producerConfig,
+                  privateConfig,
                   provider:
-                    producerConfig === null ? "not-configured" : "ready",
+                    privateConfig === null ? "not-configured" : "ready",
                 },
               } as MessageEvent<unknown>);
             }

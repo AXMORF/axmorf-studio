@@ -522,6 +522,12 @@ drive_production() {
   local monitor_pid=$NETWORK_MONITOR_PID
   local rsp="$workspace_root/.rsp/bin/rsp"
   test -x "$rsp"
+  "$host_node" -e '
+    const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    const settings = value.settings;
+    if (settings.initialStatus !== "not-configured" || settings.savedStatus !== "ready" || settings.providerId !== "native-gate-edge" || !settings.providerFormVisible || !settings.rawJsonEditorAbsent || !settings.secretValuesAbsent || !settings.encryptedAuthorityVisible) process.exit(1);
+  ' "$output_root/settings-probe.json"
+  test -s "$output_root/desktop-settings.png"
 
   "$rsp" doctor >"$output_root/doctor.json"
   "$host_node" -e '
@@ -546,12 +552,30 @@ drive_production() {
   assert_rsp_failure 3 rsp-workspace-invalid "$output_root/path-reject" "$outside" doctor
   rm "$outside"
 
+  "$rsp" schema project-create >"$output_root/project-create-schema.json"
+  "$host_node" -e '
+    const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    const forbidden = ["command", "input", "protocolVersion", "requestId", "workspaceId"];
+    if (value.protocolVersion !== "rsp-local-v2" || value.stdin !== "raw-project-create-input" || value.sceneTemplatesOmission !== "inherit-producer-config-defaults" || JSON.stringify(value.forbiddenWrapperFields) !== JSON.stringify(forbidden) || value.jsonSchema.additionalProperties !== false || "sceneTemplates" in value.example) process.exit(1);
+  ' "$output_root/project-create-schema.json"
   "$host_node" --import tsx \
     "$repository_root/scripts/desktop/native-fixture.ts" create-input \
     >"$output_root/project-create-input.json"
+  "$host_node" -e '
+    const fs = require("fs");
+    const input = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    fs.writeFileSync(process.argv[2], JSON.stringify({command:"project-create",input,protocolVersion:"rsp-local-v2"}));
+  ' "$output_root/project-create-input.json" "$output_root/project-create-wrapper.json"
+  assert_rsp_failure 5 rsp-request-invalid \
+    "$output_root/project-create-wrapper-reject" \
+    "$rsp" project create <"$output_root/project-create-wrapper.json"
+  "$host_node" -e '
+    const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    if (!Array.isArray(value.issues) || value.issues[0]?.path !== "$" || value.issues[0]?.code !== "rsp-project-create-wrapper-forbidden") process.exit(1);
+  ' "$output_root/project-create-wrapper-reject.stderr"
   "$rsp" project create <"$output_root/project-create-input.json" \
     >"$output_root/project-create.json"
-  rm "$output_root/project-create-input.json"
+  rm "$output_root/project-create-input.json" "$output_root/project-create-wrapper.json"
   "$rsp" context --project desktop-native-fixture >"$output_root/context.json"
 
   test ! -e "$workspace_root/.rsp/attempts/desktop-native-fixture"

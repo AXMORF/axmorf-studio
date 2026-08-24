@@ -316,8 +316,8 @@ test("CLI failures and preload surface are exact", () => {
     "refreshPreviewCatalog",
     "selectPreview",
     "buildDelivery",
-    "getProviderSettings",
-    "saveProviderSettings",
+    "getSettings",
+    "saveSettings",
     "retryEngine",
   ]);
   assert.deepEqual(Object.values(DESKTOP_SHELL_IPC_CHANNELS), [
@@ -328,8 +328,8 @@ test("CLI failures and preload surface are exact", () => {
     "desktop:refresh-preview-catalog",
     "desktop:select-preview",
     "desktop:build-delivery",
-    "desktop:get-provider-settings",
-    "desktop:save-provider-settings",
+    "desktop:get-settings",
+    "desktop:save-settings",
     "desktop:retry-engine",
   ]);
 });

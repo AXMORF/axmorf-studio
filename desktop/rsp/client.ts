@@ -3,6 +3,12 @@ import { lstat, readFile, realpath } from "node:fs/promises";
 import { request } from "node:http";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
+import { ProjectCreateInputSchema } from "../../src/contracts";
+import {
+  buildRspProjectCreateSchemaResponse,
+  projectCreateFieldIssues,
+  type RspFieldIssue,
+} from "../contracts/project-create-surface";
 import {
   DoctorResponseSchema,
   RSP_CLI_FAILURES,
@@ -25,10 +31,16 @@ type CliFailureKey = keyof typeof RSP_CLI_FAILURES;
 
 class RspCliFailure extends Error {
   readonly failure: (typeof RSP_CLI_FAILURES)[CliFailureKey];
+  readonly issues: readonly RspFieldIssue[];
 
-  constructor(key: CliFailureKey, message: string) {
+  constructor(
+    key: CliFailureKey,
+    message: string,
+    issues: readonly RspFieldIssue[] = [],
+  ) {
     super(message);
     this.failure = RSP_CLI_FAILURES[key];
+    this.issues = issues;
   }
 }
 
@@ -440,7 +452,7 @@ const parseExecutionOverride = (options: Map<string, string>) => {
       };
 };
 
-const buildCommand = async ({
+export const buildRspCommand = async ({
   args,
   workspaceId,
   io,
@@ -482,10 +494,19 @@ const buildCommand = async ({
         "Command arguments are invalid.",
       );
     }
+    const rawInput = await readStdinJson(io);
+    const input = ProjectCreateInputSchema.safeParse(rawInput);
+    if (!input.success) {
+      throw new RspCliFailure(
+        "requestInvalid",
+        "Project create stdin does not match the strict raw ProjectCreateInput contract.",
+        projectCreateFieldIssues({ error: input.error, raw: rawInput }),
+      );
+    }
     requestValue = {
       ...base,
       command: "project-create",
-      input: await readStdinJson(io),
+      input: input.data,
     };
   } else if (noun === "asset" && verb === "import") {
     const options = parseOptions(rest, ["--project"]);
@@ -593,7 +614,15 @@ export const executeRspCli = async (
   io: RspCliIo,
 ) => {
   try {
-    const commandTemplate = await buildCommand({
+    if (
+      args.length === 2 &&
+      args[0] === "schema" &&
+      args[1] === "project-create"
+    ) {
+      io.stdout(`${JSON.stringify(buildRspProjectCreateSchemaResponse())}\n`);
+      return 0;
+    }
+    const commandTemplate = await buildRspCommand({
       args,
       workspaceId: "00000000-0000-4000-8000-000000000000",
       io,
@@ -621,7 +650,11 @@ export const executeRspCli = async (
         ? error
         : new RspCliFailure("appUnavailable", "App session is unavailable.");
     io.stderr(
-      `${JSON.stringify({ code: failure.failure.code, message: failure.message })}\n`,
+      `${JSON.stringify({
+        code: failure.failure.code,
+        message: failure.message,
+        ...(failure.issues.length === 0 ? {} : { issues: failure.issues }),
+      })}\n`,
     );
     return failure.failure.exitCode;
   }

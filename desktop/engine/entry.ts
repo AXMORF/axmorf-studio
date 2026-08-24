@@ -43,7 +43,11 @@ import {
   assertDesktopRuntimeCompatibility,
   type RuntimePackManifest,
 } from "../contracts/runtime-pack";
-import { ProducerConfigSchema, type ProducerConfig } from "../../src/contracts";
+import {
+  DesktopPrivateConfigSchema,
+  type DesktopPrivateConfig,
+} from "../contracts/settings";
+import { DEFAULT_EXECUTION_PREFERENCES } from "../../settings/contracts/execution-preferences";
 import {
   createWorkspaceProductionLocations,
   type ProductionLocations,
@@ -100,7 +104,7 @@ export type EngineDependencies = Readonly<{
     readonly runtime: RuntimeExecutionResources;
     readonly workspaceId: string;
     readonly workspaceRoot: string;
-    readonly config: ProducerConfig | null;
+    readonly privateConfig: DesktopPrivateConfig | null;
     readonly provider: DoctorResponse["provider"];
   }) => Promise<WorkspaceCommandRuntime>;
   startRspDoctorServer: typeof startRspDoctorServer;
@@ -110,7 +114,7 @@ export type EngineDependencies = Readonly<{
 }>;
 
 const createWorkspaceCommandRuntime: EngineDependencies["createCommandRuntime"] =
-  async ({ locations, runtime, workspaceRoot, config, provider }) => {
+  async ({ locations, runtime, workspaceRoot, privateConfig, provider }) => {
     const delivery = createWorkspaceRemotionDeliveryRuntime({
       locations,
       runtime,
@@ -122,8 +126,15 @@ const createWorkspaceCommandRuntime: EngineDependencies["createCommandRuntime"] 
           locations,
           runtime,
           delivery,
-          loadProducerConfig: async () => config,
+          loadProducerConfig: async () => privateConfig?.producerConfig ?? null,
           providerReadiness: provider,
+          appDefaultDeliveryPolicy: privateConfig?.deliveryPolicy ?? "manual",
+          loadExecutionPreferences: async () => ({
+            preferences:
+              privateConfig?.executionPreferences ??
+              DEFAULT_EXECUTION_PREFERENCES,
+            source: privateConfig === null ? "builtin-default" : "settings",
+          }),
         }),
         readWorkspaceActiveProduction(workspaceRoot),
       ]);
@@ -183,7 +194,7 @@ const receiveSessionMaterial = ({
   return new Promise<
     Readonly<{
       token: Uint8Array;
-      config: ProducerConfig | null;
+      privateConfig: DesktopPrivateConfig | null;
       provider: "ready" | "not-configured" | "unavailable";
     }>
   >((resolve, reject) => {
@@ -192,7 +203,7 @@ const receiveSessionMaterial = ({
       error: Error | null,
       material?: Readonly<{
         token: Uint8Array;
-        config: ProducerConfig | null;
+        privateConfig: DesktopPrivateConfig | null;
         provider: "ready" | "not-configured" | "unavailable";
       }>,
     ) => {
@@ -211,7 +222,7 @@ const receiveSessionMaterial = ({
         !("token" in event.data) ||
         !(event.data.token instanceof Uint8Array) ||
         event.data.token.byteLength < 32 ||
-        !("producerConfig" in event.data) ||
+        !("privateConfig" in event.data) ||
         !("provider" in event.data) ||
         (event.data.provider !== "ready" &&
           event.data.provider !== "not-configured" &&
@@ -221,16 +232,16 @@ const receiveSessionMaterial = ({
         return;
       }
       try {
-        const config =
-          event.data.producerConfig === null
+        const privateConfig =
+          event.data.privateConfig === null
             ? null
-            : ProducerConfigSchema.parse(event.data.producerConfig);
-        if ((event.data.provider === "ready") !== (config !== null)) {
+            : DesktopPrivateConfigSchema.parse(event.data.privateConfig);
+        if ((event.data.provider === "ready") !== (privateConfig !== null)) {
           throw new Error("engine-session-provider-state-invalid");
         }
         finish(null, {
           token: Uint8Array.from(event.data.token),
-          config,
+          privateConfig,
           provider: event.data.provider,
         });
       } catch {
@@ -637,7 +648,7 @@ export const createEngineController = ({
       runtime,
       workspaceId: workspace.manifest.workspaceId,
       workspaceRoot: workspace.workspaceRoot,
-      config: sessionMaterial.config,
+      privateConfig: sessionMaterial.privateConfig,
       provider: sessionMaterial.provider,
     });
     rawExecuteCommand = commandRuntime.executeCommand;

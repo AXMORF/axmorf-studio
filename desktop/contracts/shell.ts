@@ -8,6 +8,11 @@ import {
   PreviewPlayerCatalogSchema,
 } from "./preview";
 import { ActiveWorkSummarySchema } from "./protocol";
+import type {
+  DesktopSettingsSaveRequest,
+  DesktopSettingsSaveResult,
+  DesktopSettingsSnapshot,
+} from "./settings";
 
 export const DESKTOP_SHELL_IPC_CHANNELS = Object.freeze({
   getAppState: "desktop:get-app-state",
@@ -17,8 +22,8 @@ export const DESKTOP_SHELL_IPC_CHANNELS = Object.freeze({
   refreshPreviewCatalog: "desktop:refresh-preview-catalog",
   selectPreview: "desktop:select-preview",
   buildDelivery: "desktop:build-delivery",
-  getProviderSettings: "desktop:get-provider-settings",
-  saveProviderSettings: "desktop:save-provider-settings",
+  getSettings: "desktop:get-settings",
+  saveSettings: "desktop:save-settings",
   retryEngine: "desktop:retry-engine",
 });
 
@@ -30,33 +35,10 @@ export const DESKTOP_PRELOAD_METHODS = [
   "refreshPreviewCatalog",
   "selectPreview",
   "buildDelivery",
-  "getProviderSettings",
-  "saveProviderSettings",
+  "getSettings",
+  "saveSettings",
   "retryEngine",
 ] as const;
-
-export const DesktopProviderSettingsSchema = z
-  .strictObject({
-    schemaVersion: z.literal(1),
-    status: z.enum(["ready", "not-configured", "unavailable"]),
-    defaultProviderId: z.string().min(1).nullable(),
-    providers: z
-      .array(
-        z
-          .strictObject({
-            id: z.string().min(1),
-            name: z.string().min(1),
-            kind: z.enum(["voxcpm", "edge-tts", "speech-sdk"]),
-          })
-          .readonly(),
-      )
-      .readonly(),
-  })
-  .readonly();
-
-export type DesktopProviderSettings = z.infer<
-  typeof DesktopProviderSettingsSchema
->;
 
 const DesktopHealthSchema = z
   .strictObject({
@@ -172,7 +154,9 @@ export type DesktopShellApi = Readonly<{
   refreshPreviewCatalog: () => Promise<DesktopAppState>;
   selectPreview: (storyId: string) => Promise<DesktopAppState>;
   buildDelivery: (storyId: string) => Promise<DesktopAppState>;
-  getProviderSettings: () => Promise<DesktopProviderSettings>;
-  saveProviderSettings: (value: unknown) => Promise<DesktopAppState>;
+  getSettings: () => Promise<DesktopSettingsSnapshot>;
+  saveSettings: (
+    value: DesktopSettingsSaveRequest,
+  ) => Promise<DesktopSettingsSaveResult>;
   retryEngine: () => Promise<DesktopAppState>;
 }>;

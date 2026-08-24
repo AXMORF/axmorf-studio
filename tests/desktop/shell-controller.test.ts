@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { PreviewCatalogSchema } from "../../desktop/contracts/preview";
+import { createDesktopSettingsSnapshot } from "../../desktop/application/manage-settings";
 import {
+  DesktopSettingsEngineRestartError,
   DesktopShellController,
   type DesktopEngineSnapshot,
   type DesktopWorkspacePort,
@@ -15,6 +17,14 @@ const runtimePack = {
   runtimePackId: `runtime-pack-${"d".repeat(64)}`,
   architecture: "arm64" as const,
 };
+const settingsSnapshot = createDesktopSettingsSnapshot({ privateConfig: null });
+const settingsSaveRequest = {
+  schemaVersion: 1,
+  config: settingsSnapshot.config,
+  executionPreferences: settingsSnapshot.executionPreferences,
+  deliveryPolicy: settingsSnapshot.deliveryPolicy,
+  clearedSecrets: [],
+} as const;
 
 const catalog = (storyId = "story-one") =>
   PreviewCatalogSchema.parse({
@@ -169,21 +179,11 @@ const createHarness = (selectedRoot: string | null) => {
   const controller = new DesktopShellController({
     defaultWorkspaceRoot: "/Users/test/Movies/AXMORF Studio",
     workspace,
-    providerSettings: {
-      get: async () => ({
-        schemaVersion: 1,
-        status: "not-configured",
-        defaultProviderId: null,
-        providers: [],
-      }),
+    settings: {
+      get: async () => settingsSnapshot,
       save: async () => {
         calls.push("settings-save");
-        return {
-          schemaVersion: 1,
-          status: "ready",
-          defaultProviderId: "edge",
-          providers: [{ id: "edge", name: "Edge", kind: "edge-tts" }],
-        };
+        return { ...settingsSnapshot, status: "ready" };
       },
     },
     engine: {
@@ -304,13 +304,12 @@ test("Engine terminal events automatically refresh media and preserve target", a
   assert.equal(harness.calls.at(-1), "media:story-two");
 });
 
-test("saving write-only Provider Settings restarts and rebinds Engine", async () => {
+test("saving structured Desktop Settings restarts and rebinds Engine", async () => {
   const harness = createHarness("/tmp/workspace");
   await harness.controller.bootstrap();
   harness.setSnapshot({ ...manualSnapshot(), provider: "ready" });
-  const state = await harness.controller.saveProviderSettings({
-    schemaVersion: 4,
-  });
+  await harness.controller.saveSettings(settingsSaveRequest);
+  const state = harness.controller.getState();
   assert.equal(state.health.provider, "ready");
   assert.deepEqual(
     harness.calls.filter((call) =>
@@ -325,6 +324,26 @@ test("saving write-only Provider Settings restarts and rebinds Engine", async ()
       "engine-start:/tmp/workspace",
     ],
   );
+});
+
+test("saved Desktop Settings keep a structured restart failure and fatal Engine state", async () => {
+  const harness = createHarness("/tmp/workspace");
+  await harness.controller.bootstrap();
+  harness.failNextEngineStart("/tmp/workspace");
+  await assert.rejects(
+    () => harness.controller.saveSettings(settingsSaveRequest),
+    DesktopSettingsEngineRestartError,
+  );
+  const state = harness.controller.getState();
+  assert.equal(state.status, "fatal");
+  assert.equal(state.health.runtime, "unavailable");
+  assert.equal(harness.calls.includes("settings-save"), true);
+  assert.deepEqual(harness.calls.slice(-4), [
+    "settings-save",
+    "engine-stop",
+    "media:",
+    "engine-start:/tmp/workspace",
+  ]);
 });
 
 test("active work blocks Delivery and shutdown orders Engine before media", async () => {
@@ -347,7 +366,7 @@ test("active work blocks Delivery and shutdown orders Engine before media", asyn
   assert.deepEqual(harness.calls.slice(-2), ["engine-stop", "media-close"]);
 });
 
-test("preparing production blocks Provider Settings restart", async () => {
+test("preparing production blocks Desktop Settings restart", async () => {
   const harness = createHarness("/tmp/workspace");
   await harness.controller.bootstrap();
   const publishing = harness.publishSnapshot({
@@ -364,8 +383,8 @@ test("preparing production blocks Provider Settings restart", async () => {
     "preparing-production",
   );
   await assert.rejects(
-    () => harness.controller.saveProviderSettings({ schemaVersion: 4 }),
-    /desktop-provider-settings-active-work/u,
+    () => harness.controller.saveSettings(settingsSaveRequest),
+    /desktop-settings-active-work/u,
   );
   await publishing;
   assert.equal(harness.calls.includes("settings-save"), false);

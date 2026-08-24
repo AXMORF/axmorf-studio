@@ -12,6 +12,7 @@ import {
   type DesktopMessageChannel,
   type DesktopUtilityProcess,
 } from "../../desktop/main/engine-port";
+import { createDesktopPrivateConfig } from "../../desktop/contracts/settings";
 import { desktopProducerConfigFixture } from "./producer-config-fixture";
 
 test("Initialize, Delivery, and Catalog requests have separate bounded budgets", () => {
@@ -193,8 +194,10 @@ test("Main injects explicit App roots and starts/stops utility Engine without ex
       now: () => Date.parse("2026-08-22T00:00:00.000Z"),
       token: () => new Uint8Array(32).fill(7),
       appPid: () => 41,
-      loadProducerConfig: async () => ({
-        config: desktopProducerConfigFixture,
+      loadDesktopConfiguration: async () => ({
+        privateConfig: createDesktopPrivateConfig({
+          producerConfig: desktopProducerConfigFixture,
+        }),
         provider: "ready",
       }),
     },
@@ -211,19 +214,21 @@ test("Main injects explicit App roots and starts/stops utility Engine without ex
   assert.equal(portClosed, true);
   const sessionMaterial = tokenMessages[0] as Readonly<{
     token: Uint8Array;
-    producerConfig: unknown;
+    privateConfig: unknown;
     provider: string;
   }>;
   assert.equal(sessionMaterial.token.byteLength, 32);
   assert.deepEqual(
-    sessionMaterial.producerConfig,
-    desktopProducerConfigFixture,
+    sessionMaterial.privateConfig,
+    createDesktopPrivateConfig({
+      producerConfig: desktopProducerConfigFixture,
+    }),
   );
   assert.equal(sessionMaterial.provider, "ready");
   assert.doesNotMatch(JSON.stringify(child.messages), /07070707|token|Bearer/u);
   assert.doesNotMatch(
     JSON.stringify(child.messages),
-    /Xiaoxiao|producerConfig/u,
+    /Xiaoxiao|privateConfig/u,
   );
 
   await engine.stop();

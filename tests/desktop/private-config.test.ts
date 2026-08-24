@@ -14,12 +14,16 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import {
-  readPrivateProducerConfig,
-  resolvePrivateConfigPath,
-  writePrivateProducerConfig,
+  readDesktopPrivateConfig,
+  resolveDesktopPrivateConfigPath,
+  writeDesktopPrivateConfig,
 } from "../../desktop/adapters/private-config-store";
 import { buildProducerConfig } from "../../src/contracts";
-import { DesktopProviderSettingsSchema } from "../../desktop/contracts/shell";
+import { createDesktopSettingsSnapshot } from "../../desktop/application/manage-settings";
+import {
+  DesktopSettingsSnapshotSchema,
+  createDesktopPrivateConfig,
+} from "../../desktop/contracts/settings";
 
 const crypto = {
   available: () => true,
@@ -61,23 +65,36 @@ const config = buildProducerConfig({
     ],
   },
 });
+const privateConfig = createDesktopPrivateConfig({ producerConfig: config });
 
 test("Desktop private config stays encrypted under Application Support", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "rsp-private-"));
   t.after(() => rm(root, { recursive: true, force: true }));
-  await writePrivateProducerConfig({
+  await writeDesktopPrivateConfig({
     applicationSupportRoot: root,
     crypto,
-    value: config,
+    value: privateConfig,
   });
-  const privateConfigPath = resolvePrivateConfigPath(root);
+  const privateConfigPath = resolveDesktopPrivateConfigPath(root);
   const bytes = await readFile(privateConfigPath, "utf8");
   assert.doesNotMatch(bytes, /Xiaoxiao/u);
   assert.equal((await lstat(dirname(privateConfigPath))).mode & 0o777, 0o700);
   assert.equal((await lstat(privateConfigPath)).mode & 0o777, 0o600);
   assert.deepEqual(
-    await readPrivateProducerConfig({ applicationSupportRoot: root, crypto }),
-    config,
+    await readDesktopPrivateConfig({ applicationSupportRoot: root, crypto }),
+    privateConfig,
+  );
+});
+
+test("Desktop private config reads the legacy encrypted ProducerConfig as one envelope", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "rsp-private-legacy-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const path = resolveDesktopPrivateConfigPath(root);
+  await mkdir(dirname(path), { mode: 0o700 });
+  await writeFile(path, crypto.encrypt(JSON.stringify(config)), { mode: 0o600 });
+  assert.deepEqual(
+    await readDesktopPrivateConfig({ applicationSupportRoot: root, crypto }),
+    privateConfig,
   );
 });
 
@@ -92,28 +109,28 @@ test("Desktop private config rejects symlinked Application Support and private p
   await symlink(realRoot, linkedRoot);
 
   await assert.rejects(
-    writePrivateProducerConfig({
+    writeDesktopPrivateConfig({
       applicationSupportRoot: linkedRoot,
       crypto,
-      value: config,
+      value: privateConfig,
     }),
     /canonical real directory|canonical/u,
   );
   await assert.rejects(
-    readPrivateProducerConfig({ applicationSupportRoot: linkedRoot, crypto }),
+    readDesktopPrivateConfig({ applicationSupportRoot: linkedRoot, crypto }),
     /canonical real directory|canonical/u,
   );
   await symlink(external, join(realRoot, "private"));
   await assert.rejects(
-    writePrivateProducerConfig({
+    writeDesktopPrivateConfig({
       applicationSupportRoot: realRoot,
       crypto,
-      value: config,
+      value: privateConfig,
     }),
     /owner-only real directory|canonical/u,
   );
   await assert.rejects(
-    readPrivateProducerConfig({ applicationSupportRoot: realRoot, crypto }),
+    readDesktopPrivateConfig({ applicationSupportRoot: realRoot, crypto }),
     /owner-only real directory|canonical/u,
   );
   await assert.rejects(readFile(join(external, "producer-config.enc")));
@@ -122,10 +139,10 @@ test("Desktop private config rejects symlinked Application Support and private p
 test("Desktop private config fails closed after its private directory is swapped", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "rsp-private-swap-"));
   t.after(() => rm(root, { recursive: true, force: true }));
-  await writePrivateProducerConfig({
+  await writeDesktopPrivateConfig({
     applicationSupportRoot: root,
     crypto,
-    value: config,
+    value: privateConfig,
   });
   const privateDirectory = join(root, "private");
   const parkedDirectory = join(root, "private-before-swap");
@@ -137,38 +154,70 @@ test("Desktop private config fails closed after its private directory is swapped
   await symlink(external, privateDirectory);
 
   await assert.rejects(
-    readPrivateProducerConfig({ applicationSupportRoot: root, crypto }),
+    readDesktopPrivateConfig({ applicationSupportRoot: root, crypto }),
     /owner-only real directory|canonical/u,
   );
   await assert.rejects(
-    writePrivateProducerConfig({
+    writeDesktopPrivateConfig({
       applicationSupportRoot: root,
       crypto,
-      value: config,
+      value: privateConfig,
     }),
     /owner-only real directory|canonical/u,
   );
   assert.equal(await readFile(sentinel, "utf8"), "external-must-not-change");
 });
 
-test("Provider Settings summary cannot carry credentials or connection details", () => {
-  const summary = {
-    schemaVersion: 1,
-    status: "ready",
-    defaultProviderId: "edge",
-    providers: [{ id: "edge", name: "Edge", kind: "edge-tts" }],
-  } as const;
-  assert.deepEqual(DesktopProviderSettingsSchema.parse(summary), summary);
+test("Desktop Settings snapshot is strict and never echoes credentials", () => {
+  const configInput = createDesktopSettingsSnapshot({
+    privateConfig,
+  }).config;
+  const speechConfig = buildProducerConfig({
+    ...configInput,
+    tts: {
+      ...config.tts,
+      defaultProviderId: "cloud",
+      defaultVoiceProfileId: "alloy",
+      providers: [
+        {
+          id: "cloud",
+          kind: "speech-sdk",
+          vendor: "openai",
+          name: "Cloud",
+          connection: { apiKey: "must-not-echo", timeoutMs: 1_000 },
+          modelId: "gpt-4o-mini-tts",
+          voiceProfiles: [
+            {
+              id: "alloy",
+              name: "Alloy",
+              voiceId: "alloy",
+              source: "catalog",
+            },
+          ],
+        },
+      ],
+    },
+  });
+  const summary = createDesktopSettingsSnapshot({
+    privateConfig: createDesktopPrivateConfig({ producerConfig: speechConfig }),
+  });
+  assert.deepEqual(DesktopSettingsSnapshotSchema.parse(summary), summary);
+  assert.doesNotMatch(JSON.stringify(summary), /must-not-echo/u);
+  assert.equal(
+    summary.secrets.find(({ field }) => field === "apiKey")?.configured,
+    true,
+  );
+  const leaked = structuredClone(summary);
+  const leakedProvider = leaked.config.tts.providers[0];
+  assert.equal(leakedProvider?.kind, "speech-sdk");
+  if (leakedProvider?.kind === "speech-sdk") {
+    leakedProvider.connection.apiKey = "must-not-be-readable";
+  }
+  assert.throws(() => DesktopSettingsSnapshotSchema.parse(leaked));
   assert.throws(() =>
-    DesktopProviderSettingsSchema.parse({
+    DesktopSettingsSnapshotSchema.parse({
       ...summary,
       token: "must-not-be-readable",
-    }),
-  );
-  assert.throws(() =>
-    DesktopProviderSettingsSchema.parse({
-      ...summary,
-      providers: [{ ...summary.providers[0], baseUrl: "https://secret.test" }],
     }),
   );
 });

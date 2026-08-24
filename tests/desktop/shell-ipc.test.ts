@@ -2,8 +2,19 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { DESKTOP_SHELL_IPC_CHANNELS } from "../../desktop/contracts/shell";
-import { registerDesktopShellIpc } from "../../desktop/main/register-ipc";
-import { DesktopShellController } from "../../desktop/main/shell-controller";
+import {
+  DesktopSettingsSecureStoreError,
+  createDesktopSettingsSnapshot,
+} from "../../desktop/application/manage-settings";
+import { DesktopSettingsSaveRequestSchema } from "../../desktop/contracts/settings";
+import {
+  mapDesktopSettingsFailure,
+  registerDesktopShellIpc,
+} from "../../desktop/main/register-ipc";
+import {
+  DesktopSettingsEngineRestartError,
+  DesktopShellController,
+} from "../../desktop/main/shell-controller";
 
 const controller = new DesktopShellController({
   defaultWorkspaceRoot: "/tmp/default",
@@ -17,13 +28,8 @@ const controller = new DesktopShellController({
     },
     showInFileManager: async () => undefined,
   },
-  providerSettings: {
-    get: async () => ({
-      schemaVersion: 1,
-      status: "not-configured",
-      defaultProviderId: null,
-      providers: [],
-    }),
+  settings: {
+    get: async () => createDesktopSettingsSnapshot({ privateConfig: null }),
     save: async () => {
       throw new Error("not used");
     },
@@ -80,17 +86,17 @@ test("IPC validates exact main-frame sender, argument count, and argument type",
   const migrateWorkspace = handlers.get(
     DESKTOP_SHELL_IPC_CHANNELS.migrateWorkspace,
   );
-  const getProviderSettings = handlers.get(
-    DESKTOP_SHELL_IPC_CHANNELS.getProviderSettings,
+  const getSettings = handlers.get(
+    DESKTOP_SHELL_IPC_CHANNELS.getSettings,
   );
-  const saveProviderSettings = handlers.get(
-    DESKTOP_SHELL_IPC_CHANNELS.saveProviderSettings,
+  const saveSettings = handlers.get(
+    DESKTOP_SHELL_IPC_CHANNELS.saveSettings,
   );
   assert.ok(getState !== undefined);
   assert.ok(selectPreview !== undefined);
   assert.ok(migrateWorkspace !== undefined);
-  assert.ok(getProviderSettings !== undefined);
-  assert.ok(saveProviderSettings !== undefined);
+  assert.ok(getSettings !== undefined);
+  assert.ok(saveSettings !== undefined);
   const shellFrame = { url: "file:///app/index.html" };
   const maliciousFrame = { url: "https://evil.test/" };
   assert.rejects(() =>
@@ -101,24 +107,23 @@ test("IPC validates exact main-frame sender, argument count, and argument type",
       }),
     ),
   );
-  assert.rejects(() =>
-    Promise.resolve(
-      saveProviderSettings(
-        { sender: { id: 41, mainFrame: shellFrame }, senderFrame: shellFrame },
-        { token: "must-not-cross-unvalidated" },
-      ),
-    ),
+  const invalidSettings = await saveSettings(
+    { sender: { id: 41, mainFrame: shellFrame }, senderFrame: shellFrame },
+    { token: "must-not-cross-unvalidated" },
   );
-  const providerSummary = await getProviderSettings({
+  assert.deepEqual(
+    (invalidSettings as { ok: boolean; error: { code: string } }).error.code,
+    "desktop-settings-validation-failed",
+  );
+  assert.doesNotMatch(JSON.stringify(invalidSettings), /must-not-cross/u);
+  const settings = await getSettings({
     sender: { id: 41, mainFrame: shellFrame },
     senderFrame: shellFrame,
   });
-  assert.deepEqual(providerSummary, {
-    schemaVersion: 1,
-    status: "not-configured",
-    defaultProviderId: null,
-    providers: [],
-  });
+  assert.deepEqual(
+    settings,
+    createDesktopSettingsSnapshot({ privateConfig: null }),
+  );
   assert.rejects(() =>
     Promise.resolve(
       getState({
@@ -165,6 +170,52 @@ test("IPC validates exact main-frame sender, argument count, and argument type",
   assert.deepEqual(
     removed,
     [...Object.values(DESKTOP_SHELL_IPC_CHANNELS)].reverse(),
+  );
+});
+
+test("Desktop Settings errors distinguish validation, secure storage, and Engine restart", () => {
+  const validation = DesktopSettingsSaveRequestSchema.safeParse({
+    schemaVersion: 1,
+    config: { privateValue: "must-not-echo" },
+  });
+  assert.equal(validation.success, false);
+  if (validation.success) return;
+  const validationError = mapDesktopSettingsFailure(validation.error);
+  assert.equal(validationError.code, "desktop-settings-validation-failed");
+  assert.ok(validationError.issues.length > 0);
+  assert.doesNotMatch(JSON.stringify(validationError), /must-not-echo/u);
+
+  const storageError = mapDesktopSettingsFailure(
+    new Error("Desktop credential encryption is unavailable: secret-detail"),
+  );
+  assert.equal(
+    storageError.code,
+    "desktop-settings-encryption-unavailable",
+  );
+  assert.doesNotMatch(JSON.stringify(storageError), /secret-detail/u);
+
+  const restartError = mapDesktopSettingsFailure(
+    new DesktopSettingsEngineRestartError({
+      cause: new Error("provider endpoint private detail"),
+    }),
+  );
+  assert.equal(
+    restartError.code,
+    "desktop-settings-engine-restart-failed",
+  );
+  assert.match(restartError.message, /已安全保存/u);
+  assert.doesNotMatch(JSON.stringify(restartError), /private detail/u);
+
+  const storeError = mapDesktopSettingsFailure(
+    new DesktopSettingsSecureStoreError("read", {
+      cause: new Error("private path and credential detail"),
+    }),
+  );
+  assert.equal(storeError.code, "desktop-settings-secure-store-read-failed");
+  assert.match(storeError.message, /没有覆盖/u);
+  assert.doesNotMatch(
+    JSON.stringify(storeError),
+    /private path|credential detail/u,
   );
 });
 

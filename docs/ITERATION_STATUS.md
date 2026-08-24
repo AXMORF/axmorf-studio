@@ -175,7 +175,7 @@ discovery 和真实 `rsp doctor` 已 Green。
 `ProductionLocations`、runtime-bound `source-current`/Delivery identity split、Workspace v2 upgrade 与 root migration
 rollback、immutable arm64 Runtime Pack manifest/builder/verifier、自包含 Node SEA `rsp-local-v2`、Workspace-owned
 Project/media/private config、完整 public command surface、exact-attempt terminal/one-shot continuation、Engine active-work、
-Preview Catalog refresh、exact-four-file-only Player、Provider Settings 与 managed Skill。Desktop runtime 的 control plane
+Preview Catalog refresh、exact-four-file-only Player、Desktop Settings 与 managed Skill。Desktop runtime 的 control plane
 只有 authenticated Unix-domain socket；无配置时 doctor 仍可启动并结构化报告 provider not configured，Delivery
 capability 仍独立报告为 available。
 
@@ -275,6 +275,28 @@ redaction 规则。DMG evidence 为：
 因此 Phase D internal installer artifact 状态为 `verified-complete`。Remotion runtime binary redistribution permission 仍为
 `not-satisfied`；用户对本轮 internal/manual-only 构建的授权不等于许可已满足，也不授权公开发布。精确入口与 artifact contract 见
 [Desktop Phase D internal unsigned DMG](guides/DESKTOP_PHASE_D_UNSIGNED_DMG.md)。
+
+## Desktop Settings / Project create contract repair（implemented，new native artifact pending）
+
+当前 implementation 已把 Desktop rail 中的 raw ProducerConfig JSON 主路径替换为独立“Preview / 配置”导航，并复用
+Web Settings 的纯 General、SafeArea、SceneDefaults、Collections、Execution 与 TTS form/model。Desktop 不启动或嵌入
+Settings Vite/HTTP 服务；Provider/voice/render/readability/Scene/collection、execution 与 Delivery default 只进入 macOS
+Application Support 的单一 encrypted private-config envelope。旧 encrypted ProducerConfig 可按原值读入 envelope；secret
+只以 configured bit 投影，留空保持、显式替换，optional VoxCPM token 可显式清除。Main/IPC 保存保持 strict schema 与
+active-work gate，并对 validation、safeStorage/private-file authority 与 saved-but-Engine-restart-failed 返回不同的脱敏
+code/message/action/issues，不再统一显示“操作未完成”。
+
+Workspace `rsp-local-v2` 新增无需 App session 的 read-only `rsp schema project-create`，返回 complete JSON Schema、raw
+example、forbidden wrapper list 与 sceneTemplates omission semantics。`rsp project create` 在连接 UDS 前验证 raw
+`ProjectCreateInput`，明确拒绝 `command/input/protocolVersion/requestId/workspaceId` wrapper，并返回不带字段值的
+`issues[].path/code/message`。managed Skill 内含完整 contract reference 与一个机械验证通过的 raw example；native gate
+也先验证 schema/wrapper rejection，再走 valid raw create → context/inspect/prepare → deterministic task executor →
+source-current → manual explicit 或 automatic Delivery → exact four-file Preview。
+
+这里的 packaged path 仍准确标记 `externalCreativeAgentTested: false`：deterministic executor 证明 fixed controller、Runtime
+Pack、Delivery 与 Preview，不证明真实外部 Codex/Hermes 的创意质量或行为。上述 repair 尚需在 exact implementation
+commit 上通过双架构 native Phase D workflow 并重新生成 internal unsigned DMG；前一 Phase D DMG 不包含本修复，不能
+作为本轮 Mac 验证 artifact。
 
 ## 当前非目标
 

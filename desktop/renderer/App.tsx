@@ -8,11 +8,8 @@ import {
 } from "react";
 
 import type { PreviewPlayerEntry } from "../contracts/preview";
-import type {
-  DesktopAppState,
-  DesktopProviderSettings,
-  DesktopShellApi,
-} from "../contracts/shell";
+import type { DesktopAppState, DesktopShellApi } from "../contracts/shell";
+import { SettingsPage } from "./SettingsPage";
 
 declare global {
   interface Window {
@@ -180,10 +177,12 @@ const FirstRun = ({
   state,
   onChoose,
   onRetry,
+  onSettings,
 }: Readonly<{
   state: DesktopAppState | null;
   onChoose: () => void;
   onRetry: () => void;
+  onSettings: () => void;
 }>) => (
   <main className="first-run-shell">
     <section className="hero-card">
@@ -217,6 +216,9 @@ const FirstRun = ({
             : "正在读取 Workspace…"}
         </p>
       ) : null}
+      <button className="first-run-settings" onClick={onSettings}>
+        打开独立配置页面
+      </button>
     </section>
   </main>
 );
@@ -227,9 +229,7 @@ export const App = () => {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [playerError, setPlayerError] = useState<string | null>(null);
-  const [providerSettings, setProviderSettings] =
-    useState<DesktopProviderSettings | null>(null);
-  const [providerConfigJson, setProviderConfigJson] = useState("");
+  const [view, setView] = useState<"preview" | "settings">("preview");
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -245,19 +245,6 @@ export const App = () => {
       window.clearInterval(timer);
     };
   }, []);
-
-  useEffect(() => {
-    let active = true;
-    void window.axmorfStudio
-      .getProviderSettings()
-      .then((summary) => {
-        if (active) setProviderSettings(summary);
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, [state?.health.provider]);
 
   const selectedEntry = useMemo(
     () =>
@@ -338,10 +325,36 @@ export const App = () => {
     };
   }, [selectedEntry, syncVideoFrame]);
 
+  if (view === "settings") {
+    return (
+      <main className="settings-shell">
+        <header className="top-bar settings-top-bar">
+          <div className="wordmark">
+            <span aria-hidden="true">AX</span>
+            <div>
+              <strong>AXMORF Studio</strong>
+              <small>Desktop configuration</small>
+            </div>
+          </div>
+          <div className="settings-top-context">
+            <span>Single encrypted authority</span>
+            <strong>{state?.health.provider ?? "loading"}</strong>
+          </div>
+          <nav className="app-navigation" aria-label="Desktop 页面">
+            <button onClick={() => setView("preview")}>Preview</button>
+            <button aria-current="page">配置</button>
+          </nav>
+        </header>
+        <SettingsPage appState={state} onAppState={setState} />
+      </main>
+    );
+  }
+
   if (state?.status !== "ready") {
     return (
       <FirstRun
         state={state}
+        onSettings={() => setView("settings")}
         onChoose={() =>
           void runStateAction(() =>
             window.axmorfStudio.chooseInitialWorkspace(),
@@ -388,7 +401,10 @@ export const App = () => {
             迁移 Workspace
           </button>
         </div>
-        <div className="prototype-badge">Phase B · Workspace</div>
+        <nav className="app-navigation" aria-label="Desktop 页面">
+          <button aria-current="page">Preview</button>
+          <button onClick={() => setView("settings")}>配置</button>
+        </nav>
       </header>
 
       <aside className="project-rail">
@@ -540,54 +556,6 @@ export const App = () => {
           </div>
         </dl>
 
-        <section className="provider-settings" aria-label="Provider Settings">
-          <div>
-            <span className="section-kicker">Provider Settings</span>
-            <strong>{providerSettings?.status ?? state.health.provider}</strong>
-          </div>
-          {providerSettings?.providers.length ? (
-            <ul>
-              {providerSettings.providers.map((provider) => (
-                <li key={provider.id}>
-                  {provider.name} · {provider.kind}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>尚未配置 Provider。保存后 Engine 会受控重启。</p>
-          )}
-          <label>
-            <span>完整 ProducerConfig JSON（敏感字段只写，不回显）</span>
-            <textarea
-              autoComplete="off"
-              onChange={(event) => setProviderConfigJson(event.target.value)}
-              placeholder='{"schemaVersion":4,"contractVersion":"producer-config-v4",...}'
-              spellCheck={false}
-              value={providerConfigJson}
-            />
-          </label>
-          <button
-            disabled={
-              busy ||
-              state.activeWork !== null ||
-              providerConfigJson.trim().length === 0
-            }
-            onClick={() =>
-              void runStateAction(async () => {
-                const next = await window.axmorfStudio.saveProviderSettings(
-                  JSON.parse(providerConfigJson) as unknown,
-                );
-                setProviderConfigJson("");
-                setProviderSettings(
-                  await window.axmorfStudio.getProviderSettings(),
-                );
-                return next;
-              })
-            }
-          >
-            保存并重启 Engine
-          </button>
-        </section>
       </aside>
 
       <section className="viewer-stage">

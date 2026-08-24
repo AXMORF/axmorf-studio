@@ -12,8 +12,6 @@ import {
 import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { buildProducerConfig } from "../../src/contracts";
-
 import {
   loadAppPreferences,
   persistInitialWorkspacePreference,
@@ -31,10 +29,14 @@ import {
   verifyRuntimePack,
 } from "../adapters/runtime-pack-filesystem";
 import {
-  readPrivateProducerConfig,
-  writePrivateProducerConfig,
+  readDesktopPrivateConfig,
+  writeDesktopPrivateConfig,
 } from "../adapters/private-config-store";
-import { DesktopProviderSettingsSchema } from "../contracts/shell";
+import {
+  DesktopSettingsSecureStoreError,
+  createDesktopSettingsSnapshot,
+  mergeDesktopSettingsSaveRequest,
+} from "../application/manage-settings";
 import { resolveDefaultWorkspaceRoot } from "../application/resolve-workspace-selection";
 import {
   completeWorkspaceRootMigration,
@@ -62,7 +64,6 @@ import { registerDesktopShellIpc } from "./register-ipc";
 import { DesktopShellController } from "./shell-controller";
 import {
   createNativeSmokePrivateConfigCrypto,
-  ensureNativeSmokeProducerConfig,
   resolveNativeSmokeOptions,
   runPackagedNativeSmoke,
   writeNativeSmokeEngineDiagnostic,
@@ -262,42 +263,27 @@ void startDesktopLifecycle({
               safeStorage.decryptString(Buffer.from(ciphertext)),
           }
         : createNativeSmokePrivateConfigCrypto();
-    if (nativeSmoke !== null) {
-      await recordNativeStartupStage("private-config-start");
-      await ensureNativeSmokeProducerConfig({
-        applicationSupportRoot,
-        crypto: privateConfigCrypto,
-      });
-      await recordNativeStartupStage("private-config-complete");
-    }
-    const loadProducerConfig = async () => {
+    const loadDesktopConfiguration = async () => {
       if (!privateConfigCrypto.available()) {
-        return { config: null, provider: "unavailable" as const };
+        return { privateConfig: null, provider: "unavailable" as const };
       }
       try {
-        const config = await readPrivateProducerConfig({
+        const privateConfig = await readDesktopPrivateConfig({
           applicationSupportRoot,
           crypto: privateConfigCrypto,
         });
-        return config === null
-          ? { config: null, provider: "not-configured" as const }
-          : { config, provider: "ready" as const };
+        return privateConfig === null
+          ? { privateConfig: null, provider: "not-configured" as const }
+          : { privateConfig, provider: "ready" as const };
       } catch {
-        return { config: null, provider: "unavailable" as const };
+        return { privateConfig: null, provider: "unavailable" as const };
       }
     };
-    const summarizeProviderSettings = async () => {
-      const loaded = await loadProducerConfig();
-      return DesktopProviderSettingsSchema.parse({
-        schemaVersion: 1,
+    const loadSettingsSnapshot = async () => {
+      const loaded = await loadDesktopConfiguration();
+      return createDesktopSettingsSnapshot({
+        privateConfig: loaded.privateConfig,
         status: loaded.provider,
-        defaultProviderId: loaded.config?.tts.defaultProviderId ?? null,
-        providers:
-          loaded.config?.tts.providers.map(({ id, kind, name }) => ({
-            id,
-            kind,
-            name,
-          })) ?? [],
       });
     };
     const engine = createUtilityProcessDesktopEnginePort({
@@ -305,7 +291,7 @@ void startDesktopLifecycle({
       applicationSupportRoot,
       cacheRoot,
       modulePath: join(__dirname, "engine.js"),
-      loadProducerConfig,
+      loadDesktopConfiguration,
       utilityProcess: { fork: forkDesktopEngine },
       MessageChannelMain,
     });
@@ -390,16 +376,39 @@ void startDesktopLifecycle({
           shell.showItemInFolder(workspaceRoot);
         },
       },
-      providerSettings: {
-        get: summarizeProviderSettings,
-        save: async (value) => {
-          const config = buildProducerConfig(value);
-          await writePrivateProducerConfig({
-            applicationSupportRoot,
-            crypto: privateConfigCrypto,
-            value: config,
+      settings: {
+        get: loadSettingsSnapshot,
+        save: async (request) => {
+          if (!privateConfigCrypto.available()) {
+            throw new Error("Desktop credential encryption is unavailable.");
+          }
+          let current: Awaited<ReturnType<typeof readDesktopPrivateConfig>>;
+          try {
+            current = await readDesktopPrivateConfig({
+              applicationSupportRoot,
+              crypto: privateConfigCrypto,
+            });
+          } catch (error) {
+            throw new DesktopSettingsSecureStoreError("read", {
+              cause: error,
+            });
+          }
+          const privateConfig = mergeDesktopSettingsSaveRequest({
+            current,
+            request,
           });
-          return summarizeProviderSettings();
+          try {
+            await writeDesktopPrivateConfig({
+              applicationSupportRoot,
+              crypto: privateConfigCrypto,
+              value: privateConfig,
+            });
+          } catch (error) {
+            throw new DesktopSettingsSecureStoreError("write", {
+              cause: error,
+            });
+          }
+          return createDesktopSettingsSnapshot({ privateConfig });
         },
       },
       engine,

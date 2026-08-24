@@ -50,6 +50,7 @@ npm run desktop:release:verify -- --root "$release_root"
 `desktop:dmg` 依次复验 Phase C gate、重新构建 ordinary `.app`、调用 Electron Forge 7.11.2 官方 DMG maker、挂载 DMG、
 复验单一目标架构 App/Runtime Pack/Electron/Chromium/FFmpeg/FFprobe/Node SEA/`rsp`/compositor、复制到隔离
 Applications 目录，并以空 host-tools `PATH` 完成 first-run window、workspace-local `rsp doctor`、Preview shell launch、
+独立 Settings form/加密 save/Engine restart、local `rsp schema project-create`、wrapper rejection、valid raw create、
 无外部 TCP 和退出 cleanup。
 
 ## 3. release artifact contract

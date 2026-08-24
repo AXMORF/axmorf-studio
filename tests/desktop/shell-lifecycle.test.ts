@@ -5,6 +5,7 @@ import {
   registerDesktopTerminationSignal,
   startDesktopLifecycle,
 } from "../../desktop/main/lifecycle";
+import { createDesktopSettingsSnapshot } from "../../desktop/application/manage-settings";
 import { DesktopShellController } from "../../desktop/main/shell-controller";
 
 const createController = (events: string[]) =>
@@ -20,13 +21,8 @@ const createController = (events: string[]) =>
       },
       showInFileManager: async () => undefined,
     },
-    providerSettings: {
-      get: async () => ({
-        schemaVersion: 1,
-        status: "not-configured",
-        defaultProviderId: null,
-        providers: [],
-      }),
+    settings: {
+      get: async () => createDesktopSettingsSnapshot({ privateConfig: null }),
       save: async () => {
         throw new Error("not used");
       },

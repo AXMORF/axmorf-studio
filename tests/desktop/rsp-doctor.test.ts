@@ -27,6 +27,9 @@ import {
   type RspCommandRequest,
 } from "../../desktop/contracts/protocol";
 import {
+  RspProjectCreateSchemaResponseSchema,
+} from "../../desktop/contracts/project-create-surface";
+import {
   DESKTOP_MANAGED_FILE_PATHS,
   createWorkspaceManifest,
 } from "../../desktop/contracts/workspace";
@@ -199,6 +202,77 @@ const rawCommand = ({
       outgoing.end(body);
     },
   );
+
+test("rsp project-create schema is local, complete, and demonstrates raw stdin", async () => {
+  const result = await runCli(
+    ["schema", "project-create"],
+    "/workspace-does-not-need-an-active-app/.rsp/bin",
+  );
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.stderr, "");
+  const schema = RspProjectCreateSchemaResponseSchema.parse(
+    JSON.parse(result.stdout),
+  );
+  assert.equal(schema.stdin, "raw-project-create-input");
+  assert.equal(schema.sceneTemplatesOmission, "inherit-producer-config-defaults");
+  assert.deepEqual(schema.forbiddenWrapperFields, [
+    "command",
+    "input",
+    "protocolVersion",
+    "requestId",
+    "workspaceId",
+  ]);
+  assert.equal("sceneTemplates" in schema.example, false);
+  assert.equal(schema.example.storyId, "story-example");
+  assert.equal(schema.jsonSchema.additionalProperties, false);
+  assert.ok(
+    typeof schema.jsonSchema.properties === "object" &&
+      schema.jsonSchema.properties !== null,
+  );
+});
+
+test("rsp project create rejects wrappers and reports redacted field paths", async () => {
+  const moduleDirectory = "/workspace-does-not-need-an-active-app/.rsp/bin";
+  const wrapped = await runCli(["project", "create"], moduleDirectory, {
+    command: "project-create",
+    protocolVersion: RSP_PROTOCOL_VERSION,
+    input: validProjectCreateInput,
+  });
+  assert.equal(wrapped.exitCode, RSP_CLI_FAILURES.requestInvalid.exitCode);
+  const wrapperFailure = JSON.parse(wrapped.stderr) as {
+    readonly code: string;
+    readonly issues: readonly Readonly<{
+      path: string;
+      code: string;
+      message: string;
+    }>[];
+  };
+  assert.equal(wrapperFailure.code, "rsp-request-invalid");
+  assert.equal(wrapperFailure.issues[0]?.path, "$");
+  assert.equal(
+    wrapperFailure.issues[0]?.code,
+    "rsp-project-create-wrapper-forbidden",
+  );
+  assert.doesNotMatch(wrapped.stderr, /must-not-leak/u);
+
+  const invalid = await runCli(["project", "create"], moduleDirectory, {
+    ...validProjectCreateInput,
+    storyId: "INVALID STORY",
+    render: {
+      ...validProjectCreateInput.render,
+      leadInFrames: "must-not-leak",
+    },
+  });
+  assert.equal(invalid.exitCode, RSP_CLI_FAILURES.requestInvalid.exitCode);
+  const fieldFailure = JSON.parse(invalid.stderr) as {
+    readonly issues: readonly Readonly<{ path: string; code: string }>[];
+  };
+  assert.ok(fieldFailure.issues.some(({ path }) => path === "$.storyId"));
+  assert.ok(
+    fieldFailure.issues.some(({ path }) => path === "$.render.leadInFrames"),
+  );
+  assert.doesNotMatch(invalid.stderr, /must-not-leak/u);
+});
 
 test("authenticated rsp doctor serves concurrent v2 calls and cleans up", async (context) => {
   const workspace = await createWorkspace(context);

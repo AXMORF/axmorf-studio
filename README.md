@@ -68,7 +68,7 @@ Delivery 默认由用户手动触发，App 更新与 Workspace 数据分离。�
 
 Phase B Workspace production 与 Phase C arm64/真实 Intel x64 native gate 已验证完成；gate 使用 deterministic task
 executor，不等于已安装外部创作 Agent 的真实创意生产证明。Phase D 已实现 internal/manual-only ordinary unsigned DMG
-入口，但真实双架构 installer artifact evidence pending；Remotion redistribution 许可、签名、公证和公开发行仍未完成。
+并完成双架构 installer artifact evidence；Remotion redistribution 许可、签名、公证和公开发行仍未完成。
 下面的 npm 命令继续服务 repository contributor；精确完成状态只看
 [ITERATION_STATUS.md](docs/ITERATION_STATUS.md)。
 
@@ -125,6 +125,21 @@ templates/publishing collections，
 并展示 source readiness、current Revision、estimated/actual cost、逐任务 direct/dependency/artifact 解释、
 latest ExecutionAttempt diagnostic 和 current four-file delivery。private config 保持 ignored；UI/API 不读取
 protected voice contents 或 raw fingerprints。
+
+packaged Desktop 另有独立“Preview / 配置”导航，复用上述纯表单和校验模型，但不启动或嵌入 Settings Web
+service。Desktop 的 Provider/voice/render/readability/Scene/collection/Agent execution/Delivery defaults 只写入 macOS
+Application Support 的单一加密 private config；token/API Key 只写不回显，保存错误按字段、加密存储与 Engine restart
+分类显示。
+
+Workspace 外部 Agent 创建 Project 前可直接读取 packaged contract，无需源码 checkout：
+
+```bash
+./.rsp/bin/rsp schema project-create
+./.rsp/bin/rsp project create < project-create-input.json
+```
+
+stdin 必须是 raw `ProjectCreateInput`，禁止 `command/input/protocolVersion/requestId/workspaceId` wrapper；用户未指定
+边界模板时省略 `sceneTemplates` 以继承当前配置。无效输入返回脱敏字段级 `issues[]`。
 
 ## 新建 Project
 

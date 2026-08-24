@@ -265,6 +265,50 @@ test("Workspace context resolves command over Project over manual App default an
   assert.equal(configLoads, 2);
 });
 
+test("Workspace context accepts Desktop-encrypted execution and Delivery defaults without a second store", async (context) => {
+  const value = await fixture(context);
+  await createWorkspaceProject({
+    locations: value.locations,
+    runtime: value.runtime,
+    config: value.config,
+    input: validProjectCreateInput,
+  });
+  let preferenceLoads = 0;
+  const controller = await createWorkspaceProductionController({
+    locations: value.locations,
+    runtime: value.runtime,
+    delivery: deliveryRuntime(),
+    loadProducerConfig: async () => value.config,
+    appDefaultDeliveryPolicy: "automatic",
+    runtimeMaxConcurrency: 4,
+    loadExecutionPreferences: async () => {
+      preferenceLoads += 1;
+      return {
+        preferences: {
+          schemaVersion: 1,
+          contractVersion: "execution-preferences-v1",
+          creativeTaskExecution: {
+            mode: "subagents",
+            maxConcurrency: 2,
+          },
+        },
+        source: "settings",
+      };
+    },
+  });
+
+  const projected = await controller.context("story-example");
+  assert.deepEqual(projected.controlPlane.deliveryPolicy, {
+    value: "automatic",
+    source: "app-default",
+  });
+  assert.equal(projected.controlPlane.execution.mode, "subagents");
+  assert.equal(projected.controlPlane.execution.requestedMaxConcurrency, 2);
+  assert.equal(projected.controlPlane.execution.effectiveMaxConcurrency, 2);
+  assert.equal(projected.controlPlane.execution.source.mode, "settings");
+  assert.equal(preferenceLoads, 1);
+});
+
 test("automatic production and explicit Delivery cross the injected Workspace port instead of a blocker", async (context) => {
   const value = await fixture(context);
   let configLoads = 0;

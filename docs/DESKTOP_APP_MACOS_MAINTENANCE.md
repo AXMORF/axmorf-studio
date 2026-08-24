@@ -84,6 +84,13 @@ Remotion render 或 provider request，避免 renderer/render crash 拖垮主进
 所有 IPC 验证 sender、schema 和 Project scope。Phase A 只投影 current source Project；只有 exact current、完整
 复验的四文件 Delivery 可播放，manual/source-current Project 明确显示尚无可播放预览。
 
+bundled Settings 是与 Preview 独立导航的 renderer 页面，复用纯表单/model/validation，但不加载 repository Settings
+Vite/HTTP service，也不建立 App-owned persistent TCP。唯一持久化 authority 是 Application Support 下的 owner-only
+加密 private config；Provider/voice/render/collection/execution/delivery preference 在一次 Main-controlled save 中更新，
+随后受控重启 Engine。renderer 只能获得 write-only secret 的 `configured` bit，不能读回 token/API Key。IPC 对
+schema/一致性、safeStorage、private file identity/permission 与 Engine restart 分别返回脱敏结构化错误；错误内容不
+包含提交值、endpoint、private path 或底层 credential detail。
+
 ### Preview Player
 
 App 主视图是随 App 打包的 renderer，不加载 Remotion Studio、repository Settings Vite 服务或任何 loopback
@@ -116,6 +123,9 @@ DeliveryBuild 可临时绑定 `127.0.0.1` OS-ephemeral renderer listener，并�
 
 CLI 是外部 Agent 的薄 client，只连接当前用户 session 的 authenticated local socket。v1 在 App 未运行时返回
 machine-readable `rsp-app-unavailable`；不自动安装或启动后台 daemon，也不回退到源码 npm scripts。
+`rsp schema project-create` 是唯一不需要 session 的 read-only exception：它从 packaged strict contract 返回完整
+JSON Schema 与有效 raw example，不读取 Workspace/private config，也不建立 socket。`rsp project create` 只接受 raw
+`ProjectCreateInput` stdin，拒绝 protocol/command/input wrapper，并用脱敏 field path/code/message 解释无效字段。
 
 ## 4. App lifecycle
 

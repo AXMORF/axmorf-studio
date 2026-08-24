@@ -195,8 +195,11 @@ App 不探测源码 checkout、不依赖系统 Node/npm/Git；Renderer 只接收
 完整产品中 App 安装目录视为只读产品代码，Workspace Root 只保存用户数据和受管 integration；外部 Agent 只能写本次
 TaskSpec 声明的 task workspace outputs。`.rsp/bin/rsp` 是 checksum-bound launcher，不进入系统 `PATH`，App
 未运行时返回结构化 unavailable，不另起 daemon 或回退到源码 checkout。bundled Preview Player 是主界面，
-Settings 与 Engine 通过 narrow typed IPC 访问 Workspace；Player 只播放 verified current Delivery，时间轴只投影
-canonical timing，Remotion runtime 仍不感知 Agent、Skill、IPC 或文件发现。
+bundled Settings 与 Engine 通过 narrow typed IPC 协作，但配置只有一个 Application Support owner-only encrypted
+envelope authority，不写 Workspace，也不启动 Settings HTTP store。Renderer 只能获得 write-only secret 的 configured
+bit；Player 只播放 verified current Delivery，时间轴只投影 canonical timing，Remotion runtime 仍不感知 Agent、Skill、
+IPC 或文件发现。workspace-local `rsp schema project-create` 只读投影 packaged contract；create stdin 是 raw strict input，
+不是第二条 protocol wrapper 或 production authority。
 
 Desktop Revision 必须只绑定当前 Project 的显式生产输入、selected bytes 和实际影响渲染/校验的 pinned runtime
 policy。其他 Project、Workspace 非依赖文件、App 日志、窗口状态、安装路径或无关工程修改不得使当前 task 失效。

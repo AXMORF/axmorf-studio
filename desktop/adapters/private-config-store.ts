@@ -3,7 +3,12 @@ import { constants } from "node:fs";
 import { lstat, mkdir, open, realpath, rename, rm } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
-import { ProducerConfigSchema, type ProducerConfig } from "../../src/contracts";
+import { ProducerConfigSchema } from "../../src/contracts";
+import {
+  DesktopPrivateConfigSchema,
+  createDesktopPrivateConfig,
+  type DesktopPrivateConfig,
+} from "../contracts/settings";
 
 export type PrivateConfigCrypto = Readonly<{
   encrypt: (plaintext: string) => Uint8Array;
@@ -22,7 +27,9 @@ type PrivateDirectoryChain = Readonly<{
   privateDirectory: FilesystemIdentity;
 }>;
 
-export const resolvePrivateConfigPath = (applicationSupportRoot: string) =>
+export const resolveDesktopPrivateConfigPath = (
+  applicationSupportRoot: string,
+) =>
   join(resolve(applicationSupportRoot), "private", "producer-config.enc");
 
 const assertContained = (root: string, candidate: string) => {
@@ -155,18 +162,18 @@ const removeTemporaryIfStillOwned = async (
   }
 };
 
-export const readPrivateProducerConfig = async ({
+export const readDesktopPrivateConfig = async ({
   applicationSupportRoot,
   crypto,
 }: {
   readonly applicationSupportRoot: string;
   readonly crypto: PrivateConfigCrypto;
-}): Promise<ProducerConfig | null> => {
+}): Promise<DesktopPrivateConfig | null> => {
   if (!crypto.available())
     throw new Error("Desktop credential encryption is unavailable.");
   const root = resolve(applicationSupportRoot);
   const expectedRoot = await verifyDirectory({ path: root, ownerOnly: false });
-  const path = resolvePrivateConfigPath(root);
+  const path = resolveDesktopPrivateConfigPath(root);
   let chain: PrivateDirectoryChain;
   try {
     chain = await verifyPrivateDirectoryChain(root);
@@ -198,13 +205,19 @@ export const readPrivateProducerConfig = async ({
     const bytes = await handle.readFile();
     await revalidatePrivateDirectoryChain(chain);
     await verifyExpectedFileIdentity(expectedFile);
-    return ProducerConfigSchema.parse(JSON.parse(crypto.decrypt(bytes)));
+    const raw = JSON.parse(crypto.decrypt(bytes)) as unknown;
+    const current = DesktopPrivateConfigSchema.safeParse(raw);
+    if (current.success) return current.data;
+    const legacyProducerConfig = ProducerConfigSchema.parse(raw);
+    return createDesktopPrivateConfig({
+      producerConfig: legacyProducerConfig,
+    });
   } finally {
     await handle.close();
   }
 };
 
-export const writePrivateProducerConfig = async ({
+export const writeDesktopPrivateConfig = async ({
   applicationSupportRoot,
   crypto,
   value,
@@ -215,8 +228,8 @@ export const writePrivateProducerConfig = async ({
 }) => {
   if (!crypto.available())
     throw new Error("Desktop credential encryption is unavailable.");
-  const config = ProducerConfigSchema.parse(value);
-  const path = resolvePrivateConfigPath(applicationSupportRoot);
+  const config = DesktopPrivateConfigSchema.parse(value);
+  const path = resolveDesktopPrivateConfigPath(applicationSupportRoot);
   const temporaryPath = `${path}.${randomUUID()}.tmp`;
   let chain: PrivateDirectoryChain | null = null;
   let temporary: FilesystemIdentity | null = null;

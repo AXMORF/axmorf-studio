@@ -133,6 +133,8 @@ managedFiles + checksums
 
 ```text
 ./.rsp/bin/rsp doctor
+./.rsp/bin/rsp schema project-create
+./.rsp/bin/rsp project create < project-create-input.json
 ./.rsp/bin/rsp context --project <storyId>
 ./.rsp/bin/rsp inspect --project <storyId>
 ./.rsp/bin/rsp prepare --project <storyId>
@@ -142,6 +144,14 @@ managedFiles + checksums
 ./.rsp/bin/rsp continue --project <storyId> --revision <revisionId> --attempt <attemptId>
 ./.rsp/bin/rsp delivery build --project <storyId>
 ```
+
+`rsp schema project-create` 是不依赖 active App session 的本地只读 surface，返回当前 packaged
+`ProjectCreateInput` 的完整 JSON Schema、wrapper 禁止列表与有效 raw stdin 示例。`rsp project create` 的 stdin
+就是 raw `ProjectCreateInput`；`command`、`input`、`protocolVersion`、`requestId`、`workspaceId` wrapper 全部禁止。
+无效输入返回脱敏 `issues[]`（`path`、`code`、`message`），不包含字段值、provider body 或 private data。用户未
+明确指定边界 Scene 时省略 `sceneTemplates`，继续继承 encrypted ProducerConfig 的现有 defaults；显式 ID 或
+`null` 才覆盖该语义。managed Workspace Skill 必须同时携带这份命令说明、完整 contract reference 和至少一个
+可直接送入 stdin 的有效例子，外部 Agent 不需要源码 checkout 或 tests 才能创建 Project。
 
 `.rsp/bin/rsp` 是 App-managed、checksum-bound 的 workspace-local launcher，不依赖系统 `PATH`，也不是指向
 可变源码 checkout 的 symlink。它通过 `.rsp/workspace.json` 定位当前 App session 与 Workspace，不把 App 安装
@@ -298,6 +308,14 @@ token、heartbeat 或 child lifecycle。
 
 storage/security/validator fields 不允许从第 4 层覆盖。App UI、CLI 和 Skill 只投影各自需要的最小视图，不能
 复制同一字段为多个 authority。
+
+Desktop 的 App private config 与 production preferences 在实现上是同一个 macOS Application Support 加密 envelope：
+Provider/voice/render/readability/Scene defaults/publishing collections、Agent execution 与 Delivery default 由独立
+bundled Settings 页面编辑，Main/IPC 仍用 shared contracts 严格校验，保存后受控重启 Engine。Web Settings 表单只
+提供可复用的纯 form/model/validation；Desktop 不启动、不嵌入、不双写 Settings Vite/HTTP store。token 与 API Key
+只写不回显：renderer 只得到 `configured` 状态，留空保持、显式替换，VoxCPM optional token 可显式清除；值不进入
+日志、Workspace、Agent context、artifact、Delivery 或 Git。schema、一致性、加密存储与 Engine restart 失败分别
+返回安全、可行动的结构化错误，不能压成统一的“操作未完成”。
 
 ## 11. Phase C verified 实现与剩余产品差距
 

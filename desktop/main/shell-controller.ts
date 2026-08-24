@@ -11,8 +11,11 @@ import type { DoctorResponse } from "../contracts/protocol";
 import {
   DesktopAppStateSchema,
   type DesktopAppState,
-  type DesktopProviderSettings,
 } from "../contracts/shell";
+import type {
+  DesktopSettingsSaveRequest,
+  DesktopSettingsSnapshot,
+} from "../contracts/settings";
 
 const emptyCatalog = (): PreviewCatalog => ({
   schemaVersion: 1,
@@ -49,10 +52,17 @@ export type DesktopEngineSnapshot = Readonly<{
   deliveryBlocker: Readonly<{ code: string; message: string }> | null;
 }>;
 
-export type DesktopProviderSettingsPort = Readonly<{
-  get: () => Promise<DesktopProviderSettings>;
-  save: (value: unknown) => Promise<DesktopProviderSettings>;
+export type DesktopSettingsPort = Readonly<{
+  get: () => Promise<DesktopSettingsSnapshot>;
+  save: (value: DesktopSettingsSaveRequest) => Promise<DesktopSettingsSnapshot>;
 }>;
+
+export class DesktopSettingsEngineRestartError extends Error {
+  constructor(options?: ErrorOptions) {
+    super("desktop-settings-engine-restart-failed", options);
+    this.name = "DesktopSettingsEngineRestartError";
+  }
+}
 
 export type DesktopWorkspacePort = Readonly<{
   loadSelectedRoot: () => Promise<string | null>;
@@ -93,7 +103,7 @@ export class DesktopShellController {
   readonly #workspace: DesktopWorkspacePort;
   readonly #engine: DesktopEnginePort;
   readonly #media: DesktopMediaPort;
-  readonly #providerSettings: DesktopProviderSettingsPort;
+  readonly #settings: DesktopSettingsPort;
   readonly #unsubscribeEngine: () => void;
   #operation: Promise<void> = Promise.resolve();
   #state: DesktopAppState;
@@ -103,19 +113,19 @@ export class DesktopShellController {
     workspace,
     engine,
     media,
-    providerSettings,
+    settings,
   }: Readonly<{
     defaultWorkspaceRoot: string;
     workspace: DesktopWorkspacePort;
     engine: DesktopEnginePort;
     media: DesktopMediaPort;
-    providerSettings: DesktopProviderSettingsPort;
+    settings: DesktopSettingsPort;
   }>) {
     this.#defaultWorkspaceRoot = defaultWorkspaceRoot;
     this.#workspace = workspace;
     this.#engine = engine;
     this.#media = media;
-    this.#providerSettings = providerSettings;
+    this.#settings = settings;
     this.#state = DesktopAppStateSchema.parse({
       phase: "B",
       status: "workspace-selection-required",
@@ -330,17 +340,18 @@ export class DesktopShellController {
     return this.getState();
   };
 
-  getProviderSettings = () => this.#providerSettings.get();
+  getSettings = () => this.#settings.get();
 
-  saveProviderSettings = async (value: unknown) => {
+  saveSettings = async (value: DesktopSettingsSaveRequest) => {
+    let saved: DesktopSettingsSnapshot | undefined;
     await this.#enqueue(async () => {
       if (
         this.#state.activeWork !== null ||
         this.#state.status === "stopping"
       ) {
-        throw new Error("desktop-provider-settings-active-work");
+        throw new Error("desktop-settings-active-work");
       }
-      await this.#providerSettings.save(value);
+      saved = await this.#settings.save(value);
       const workspaceRoot = this.#state.workspaceRoot;
       if (workspaceRoot === null) return;
       await this.#engine.stop();
@@ -371,9 +382,13 @@ export class DesktopShellController {
           error:
             error instanceof Error ? error.message : "Desktop Engine failed.",
         });
+        throw new DesktopSettingsEngineRestartError({ cause: error });
       }
     });
-    return this.getState();
+    if (saved === undefined) {
+      throw new Error("desktop-settings-save-result-missing");
+    }
+    return saved;
   };
 
   refreshPreviewCatalog = async () => {

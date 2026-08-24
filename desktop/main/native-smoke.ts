@@ -12,11 +12,10 @@ import type { App, BrowserWindow } from "electron";
 import type { DesktopShellController } from "./shell-controller";
 import type { DesktopMediaProtocol } from "./media-protocol";
 import { TRUSTED_SHELL_WEB_PREFERENCES } from "../contracts/security-policy";
-import {
-  writePrivateProducerConfig,
-  type PrivateConfigCrypto,
-} from "../adapters/private-config-store";
+import type { PrivateConfigCrypto } from "../adapters/private-config-store";
 import { buildProducerConfig } from "../../src/contracts";
+import { createDesktopPrivateConfig } from "../contracts/settings";
+import { createDesktopSettingsSnapshot } from "../application/manage-settings";
 import { DesktopDarwinArchitectureSchema } from "../configuration/darwin-target";
 
 const NATIVE_GATE_PRODUCER_CONFIG = buildProducerConfig({
@@ -65,6 +64,11 @@ const NATIVE_GATE_PRODUCER_CONFIG = buildProducerConfig({
     ],
   },
 });
+const NATIVE_GATE_SETTINGS = createDesktopSettingsSnapshot({
+  privateConfig: createDesktopPrivateConfig({
+    producerConfig: NATIVE_GATE_PRODUCER_CONFIG,
+  }),
+});
 
 export type NativeSmokeOptions = Readonly<{
   homeRoot: string;
@@ -79,8 +83,6 @@ export type NativeSmokeStartupStage =
   | "lifecycle-create-runtime"
   | "recovery-read-start"
   | "recovery-read-complete"
-  | "private-config-start"
-  | "private-config-complete"
   | "bootstrap-start"
   | "bootstrap-complete"
   | "window-load-start"
@@ -201,19 +203,6 @@ export const writeNativeSmokeEngineDiagnostic = async ({
   );
 };
 
-export const ensureNativeSmokeProducerConfig = async ({
-  applicationSupportRoot,
-  crypto,
-}: {
-  readonly applicationSupportRoot: string;
-  readonly crypto: PrivateConfigCrypto;
-}) =>
-  writePrivateProducerConfig({
-    applicationSupportRoot,
-    crypto,
-    value: NATIVE_GATE_PRODUCER_CONFIG,
-  });
-
 export const resolveNativeSmokeOptions = ({
   isPackaged,
   platform = process.platform,
@@ -293,7 +282,7 @@ const workspaceSelectionProbeSource = `(() => new Promise(async (resolve, reject
     const until = async (predicate, label, timeout = 90000) => {
       const deadline = Date.now() + timeout;
       while (Date.now() < deadline) {
-        if (predicate()) return;
+        if (await predicate()) return;
         await sleep(100);
       }
       throw new Error("renderer-timeout:" + label);
@@ -326,6 +315,88 @@ const workspaceSelectionProbeSource = `(() => new Promise(async (resolve, reject
       await sleep(100);
     }
     throw new Error("renderer-timeout:workspace-ready");
+  } catch (error) {
+    reject(error);
+  }
+}))()`;
+
+const settingsProbeSource = `(() => new Promise(async (resolve, reject) => {
+  try {
+    const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+    const until = async (predicate, label, timeout = 90000) => {
+      const deadline = Date.now() + timeout;
+      while (Date.now() < deadline) {
+        if (await predicate()) return;
+        await sleep(100);
+      }
+      throw new Error("renderer-timeout:" + label);
+    };
+    const before = await window.axmorfStudio.getSettings();
+    const result = await window.axmorfStudio.saveSettings({
+      schemaVersion: 1,
+      config: ${JSON.stringify(NATIVE_GATE_SETTINGS.config)},
+      executionPreferences: before.executionPreferences,
+      deliveryPolicy: "manual",
+      clearedSecrets: [],
+    });
+    if (!result.ok) {
+      throw new Error("renderer-settings-save-failed:" + result.error.code);
+    }
+    await until(async () => (await window.axmorfStudio.getAppState()).status === "ready", "settings-engine-restart");
+    const after = await window.axmorfStudio.getSettings();
+    await until(
+      () => Array.from(document.querySelectorAll("button")).some(
+        (button) => button.textContent?.trim() === "配置",
+      ),
+      "settings-navigation",
+    );
+    const settingsButton = Array.from(document.querySelectorAll("button")).find(
+      (button) => button.textContent?.trim() === "配置",
+    );
+    if (settingsButton === undefined) throw new Error("renderer-settings-navigation-missing");
+    settingsButton.click();
+    await until(() => document.querySelector(".desktop-settings") !== null, "settings-page");
+    const providerButton = Array.from(document.querySelectorAll(".settings-navigation button")).find(
+      (button) => button.textContent?.includes("Provider 与声线"),
+    );
+    if (providerButton === undefined) throw new Error("renderer-provider-form-navigation-missing");
+    providerButton.click();
+    await until(
+      () => Array.from(document.querySelectorAll(".config-section h2")).some((heading) => heading.textContent?.includes("TTS 默认策略")),
+      "provider-form",
+    );
+    const text = document.body.textContent ?? "";
+    resolve({
+      initialStatus: before.status,
+      savedStatus: after.status,
+      providerId: after.config.tts.defaultProviderId,
+      providerFormVisible: text.includes("TTS 默认策略") && text.includes("Native gate schema provider"),
+      rawJsonEditorAbsent: !text.includes("完整 ProducerConfig JSON") && !text.includes("providerConfigJson"),
+      secretValuesAbsent: !text.includes("local-private-token") && !text.includes("cloud-private-key"),
+      encryptedAuthorityVisible: text.includes("macOS encrypted private config"),
+    });
+  } catch (error) {
+    reject(error);
+  }
+}))()`;
+
+const returnToPreviewProbeSource = `(() => new Promise(async (resolve, reject) => {
+  try {
+    const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+    const deadline = Date.now() + 90000;
+    const preview = Array.from(document.querySelectorAll("button")).find(
+      (button) => button.textContent?.trim() === "Preview",
+    );
+    if (preview === undefined) throw new Error("renderer-preview-navigation-missing");
+    preview.click();
+    while (Date.now() < deadline) {
+      if (document.querySelector(".edit-suite") !== null) {
+        resolve(true);
+        return;
+      }
+      await sleep(100);
+    }
+    throw new Error("renderer-timeout:preview-page");
   } catch (error) {
     reject(error);
   }
@@ -562,6 +633,42 @@ export const runPackagedNativeSmoke = async ({
       workspaceSelectionProbeSource,
       true,
     );
+    const settings = (await window.webContents.executeJavaScript(
+      settingsProbeSource,
+      true,
+    )) as {
+      initialStatus: string;
+      savedStatus: string;
+      providerId: string;
+      providerFormVisible: boolean;
+      rawJsonEditorAbsent: boolean;
+      secretValuesAbsent: boolean;
+      encryptedAuthorityVisible: boolean;
+    };
+    if (
+      settings.savedStatus !== "ready" ||
+      settings.providerId !== "native-gate-edge" ||
+      !settings.providerFormVisible ||
+      !settings.rawJsonEditorAbsent ||
+      !settings.secretValuesAbsent ||
+      !settings.encryptedAuthorityVisible
+    ) {
+      throw new Error("desktop-native-smoke-settings-gate-failed");
+    }
+    const settingsScreenshot = await window.webContents.capturePage();
+    await writeFile(
+      join(options.outputRoot, "desktop-settings.png"),
+      settingsScreenshot.toPNG(),
+    );
+    await writeFile(
+      join(options.outputRoot, "settings-probe.json"),
+      `${JSON.stringify({
+        exactCommit: process.env.GITHUB_SHA ?? "local-unverified",
+        settings,
+      }, null, 2)}\n`,
+      { mode: 0o600 },
+    );
+    await window.webContents.executeJavaScript(returnToPreviewProbeSource, true);
     await writeFile(join(options.outputRoot, "app-ready"), "ready\n", {
       mode: 0o600,
     });
@@ -841,6 +948,7 @@ export const runPackagedNativeSmoke = async ({
         chrome: process.versions.chrome,
       },
       renderer,
+      settings,
       mediaProtocol: {
         ...summaries,
         arbitraryPathStatus: invalidUrls.arbitraryPath.status,

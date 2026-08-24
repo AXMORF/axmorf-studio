@@ -10,6 +10,8 @@ import {
 import {
   resolveAgentExecution,
   type AgentExecutionOverride,
+  type ExecutionPreferenceSource,
+  type ExecutionPreferences,
 } from "../../../settings/contracts/execution-preferences";
 import {
   loadWorkspaceExecutionPreferences,
@@ -291,6 +293,7 @@ export const createWorkspaceProductionController = async ({
   providerReadiness,
   appDefaultDeliveryPolicy = "manual",
   runtimeMaxConcurrency,
+  loadExecutionPreferences,
 }: {
   readonly locations: ProductionLocations;
   readonly runtime: RuntimeExecutionResources;
@@ -299,6 +302,12 @@ export const createWorkspaceProductionController = async ({
   readonly providerReadiness?: "ready" | "not-configured" | "unavailable";
   readonly appDefaultDeliveryPolicy?: DeliveryPolicy;
   readonly runtimeMaxConcurrency?: number;
+  readonly loadExecutionPreferences?: () => Promise<
+    Readonly<{
+      preferences: ExecutionPreferences;
+      source: ExecutionPreferenceSource;
+    }>
+  >;
 }) => {
   if (locations.layoutKind !== "workspace") {
     throw new Error(
@@ -311,6 +320,12 @@ export const createWorkspaceProductionController = async ({
     return config === null ? null : ProducerConfigSchema.parse(config);
   };
   const appDefault = DeliveryPolicySchema.parse(appDefaultDeliveryPolicy);
+  const readExecutionPreferences =
+    loadExecutionPreferences ??
+    (() =>
+      loadWorkspaceExecutionPreferences({
+        privateConfigRoot: locations.privateConfigRoot,
+      }));
   const resolveProjectDeliveryPolicy = async ({
     projectId,
     override,
@@ -350,9 +365,7 @@ export const createWorkspaceProductionController = async ({
         workspaceCommands.context({ locations, projectId }),
         readConfig(),
         resolveProjectDeliveryPolicy({ projectId, override: deliveryPolicy }),
-        loadWorkspaceExecutionPreferences({
-          privateConfigRoot: locations.privateConfigRoot,
-        }),
+        readExecutionPreferences(),
       ]);
     const readiness =
       providerReadiness ?? (config === null ? "not-configured" : "ready");

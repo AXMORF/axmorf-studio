@@ -438,7 +438,7 @@ test("ordinary Desktop builds compile the native harness off", async () => {
   assert.doesNotMatch(entry, /native-test-provider/u);
   assert.match(entry, /if \(nativeSmoke !== null\) return true;/u);
   assert.match(entry, /dialog\.showMessageBox/u);
-  assert.match(entry, /await ensureNativeSmokeProducerConfig/u);
+  assert.doesNotMatch(entry, /ensureNativeSmokeProducerConfig/u);
   assert.match(entry, /createNativeSmokePrivateConfigCrypto/u);
   assert.match(config, /desktop\/main\/native-smoke-disabled\.ts/u);
   assert.match(
@@ -466,6 +466,12 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
       readFile("scripts/desktop/native-architecture-evidence.ts", "utf8"),
     ]);
   assert.match(nativeSmoke, /choice\.click\(\)/u);
+  assert.match(nativeSmoke, /window\.axmorfStudio\.saveSettings/u);
+  assert.match(nativeSmoke, /settings-engine-restart/u);
+  assert.match(nativeSmoke, /providerFormVisible/u);
+  assert.match(nativeSmoke, /rawJsonEditorAbsent/u);
+  assert.match(nativeSmoke, /desktop-settings\.png/u);
+  assert.match(nativeSmoke, /settings-probe\.json/u);
   assert.match(
     nativeSmoke,
     /executeJavaScript\(\s*workspaceSelectionProbeSource,[\s\S]*writeFile\(join\(options\.outputRoot, "app-ready"\)/u,
@@ -504,7 +510,10 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
   assert.match(architectureEvidence, /rspSeaInjected: true/u);
   assert.match(architectureEvidence, /runtimeNodeSeaCapable: true/u);
   assert.match(runner, /\.rsp\/bin\/rsp/u);
+  assert.match(runner, /schema project-create/u);
   assert.match(runner, /project create/u);
+  assert.match(runner, /project-create-wrapper-reject/u);
+  assert.match(runner, /rsp-project-create-wrapper-forbidden/u);
   assert.match(runner, /inspect --project desktop-native-fixture/u);
   assert.match(runner, /prepare --project desktop-native-fixture/u);
   assert.match(runner, /task check/u);

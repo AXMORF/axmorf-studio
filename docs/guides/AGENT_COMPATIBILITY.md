@@ -28,10 +28,15 @@ current Desktop runtime authority。
 
 Phase B current implementation 已 clean-break 为 Workspace-owned `rsp-local-v2`：`.rsp/bin/rsp` 是 embedded Runtime
 Pack 安装的 self-contained client，只连接 App-running authenticated Unix-domain socket，不依赖 host Node/npm/Git、
-源码 checkout 或 repository npm fallback。public surface 覆盖 `doctor`、`project create`、`asset import`、`context`、
+源码 checkout 或 repository npm fallback。public surface 覆盖 `doctor`、read-only `schema project-create`、
+`project create`、`asset import`、`context`、
 `inspect`、`prepare`、`task check/commit/fail`、one-shot `continue` 与 `delivery build`。`manual` 可在
 `project-production-source-current` 终结且没有可播放视频；`automatic` 或 later explicit Delivery 才能产生复验后的
 exact four-file current package。
+
+`schema project-create` 不需要 active App session，返回完整 JSON Schema 与有效 raw example；`project create` stdin
+禁止 command/input/protocol wrapper，并以脱敏 field path/code/message 返回 strict contract issues。managed Skill 已
+携带同一 contract reference，Agent 不需要源码 checkout 或 tests 推导字段。
 
 Runtime Pack 只携带 renderer/bundler 所需的 checksum-bound exact Studio/Studio Shared 内部依赖，不包含 Remotion
 CLI、Studio Server、Studio UI 或 launch surface。App/Engine 不启动 Remotion Studio 或 Settings Web service；UDS 是

@@ -18,8 +18,8 @@ test("trusted preload exposes exactly the ten frozen Phase B methods", async () 
     "refreshPreviewCatalog",
     "selectPreview",
     "buildDelivery",
-    "getProviderSettings",
-    "saveProviderSettings",
+    "getSettings",
+    "saveSettings",
     "retryEngine",
   ]);
   const preload = await readFile(

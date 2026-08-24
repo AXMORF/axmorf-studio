@@ -38,7 +38,8 @@ ExecutionAttempt 只记录一次执行诊断。它的失败或丢失不拥有产
 - Scene authoring 使用 repository-local `remotion-best-practices`，但 TaskSpec/contracts/validators 始终
   拥有更高 authority。
 - render runtime 使用静态 registry 和 repository-local media，不调用网络、Agent、Skill、MCP 或目录扫描。
-- private config 和 voice profile 不进入 identity、artifact、日志、UI 或 Git。
+- private config 密文、secret 值和受保护 voice profile 不进入 identity、artifact、日志、UI、Workspace 或 Git；
+  App Settings 只投影非敏感字段和 write-only secret configured bit。
 
 ## 3. 内容寻址生产目标
 

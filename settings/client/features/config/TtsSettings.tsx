@@ -23,6 +23,17 @@ import type { EditorProps } from "./types";
 
 const numberValue = (value: string) => Number(value);
 
+type SecretField = "token" | "apiKey";
+type SecretEditorProps = Readonly<{
+  secretConfigured?: (providerId: string, field: SecretField) => boolean;
+  onSecretChange?: (
+    providerId: string,
+    field: SecretField,
+    value: string,
+  ) => void;
+  onSecretClear?: (providerId: string, field: SecretField) => void;
+}>;
+
 const newVoxcpmProvider = (id: string): VoxcpmProviderConfig => ({
   id,
   kind: "voxcpm",
@@ -152,11 +163,14 @@ const VoxcpmEditor = ({
   provider,
   replace,
   removeProfile,
+  secretConfigured,
+  onSecretChange,
+  onSecretClear,
 }: Readonly<{
   provider: VoxcpmProviderConfig;
   replace: (next: VoxcpmProviderConfig) => void;
   removeProfile: (profileId: string) => void;
-}>) => {
+}> & SecretEditorProps) => {
   const patch = (value: Partial<VoxcpmProviderConfig>) =>
     replace({ ...provider, ...value });
   const parameters = provider.parameters;
@@ -188,22 +202,51 @@ const VoxcpmEditor = ({
             }
           />
         </Field>
-        <Field label="Token" hint="仅保存在 private 配置；不写浏览器存储或日志">
-          <input
-            type="password"
-            autoComplete="off"
-            value={provider.connection.token ?? ""}
-            onChange={(event) =>
-              patch({
-                connection: {
-                  ...provider.connection,
-                  ...(event.target.value === ""
-                    ? { token: undefined }
-                    : { token: event.target.value }),
-                },
-              })
-            }
-          />
+        <Field
+          label="Token"
+          hint={
+            secretConfigured?.(provider.id, "token") === true
+              ? "已安全保存且不会回显；留空保持原值"
+              : "仅保存在 private 配置；不写浏览器存储或日志"
+          }
+        >
+          <div className="secret-control">
+            <input
+              type="password"
+              autoComplete="new-password"
+              placeholder={
+                secretConfigured?.(provider.id, "token") === true
+                  ? "已配置 · 输入新值可替换"
+                  : "可选"
+              }
+              value={provider.connection.token ?? ""}
+              onChange={(event) => {
+                onSecretChange?.(provider.id, "token", event.target.value);
+                patch({
+                  connection: {
+                    ...provider.connection,
+                    ...(event.target.value === ""
+                      ? { token: undefined }
+                      : { token: event.target.value }),
+                  },
+                });
+              }}
+            />
+            {secretConfigured?.(provider.id, "token") === true ? (
+              <button
+                className="secret-clear-button"
+                type="button"
+                onClick={() => {
+                  onSecretClear?.(provider.id, "token");
+                  patch({
+                    connection: { ...provider.connection, token: undefined },
+                  });
+                }}
+              >
+                清除
+              </button>
+            ) : null}
+          </div>
         </Field>
       </FieldRow>
       <FieldRow>
@@ -564,11 +607,13 @@ const SpeechSdkEditor = ({
   provider,
   replace,
   removeProfile,
+  secretConfigured,
+  onSecretChange,
 }: Readonly<{
   provider: SpeechSdkProviderConfig;
   replace: (next: SpeechSdkProviderConfig) => void;
   removeProfile: (profileId: string) => void;
-}>) => {
+}> & SecretEditorProps) => {
   const patch = (value: Partial<SpeechSdkProviderConfig>) =>
     replace({ ...provider, ...value });
   const definition = getSpeechSdkVendorDefinition(provider.vendor);
@@ -631,20 +676,34 @@ const SpeechSdkEditor = ({
       <FieldRow>
         <Field
           label="API Key"
-          hint="BYOK，仅保存在 private 配置；不写浏览器存储或日志"
+          hint={
+            secretConfigured?.(provider.id, "apiKey") === true
+              ? "已安全保存且不会回显；留空保持原值"
+              : "BYOK，仅保存在 private 配置；不写浏览器存储或日志"
+          }
         >
           <input
             type="password"
-            autoComplete="off"
+            autoComplete="new-password"
+            placeholder={
+              secretConfigured?.(provider.id, "apiKey") === true
+                ? "已配置 · 输入新值可替换"
+                : "必填"
+            }
             value={provider.connection.apiKey}
-            onChange={(event) =>
+            onChange={(event) => {
+              onSecretChange?.(
+                provider.id,
+                "apiKey",
+                event.target.value,
+              );
               patch({
                 connection: {
                   ...provider.connection,
                   apiKey: event.target.value,
                 },
-              })
-            }
+              });
+            }}
           />
         </Field>
         <Field label="Base URL" hint="可空；传给所选 direct factory">
@@ -972,7 +1031,13 @@ const EdgeTtsEditor = ({
   );
 };
 
-export const Tts = ({ config, update }: EditorProps) => {
+export const Tts = ({
+  config,
+  update,
+  secretConfigured,
+  onSecretChange,
+  onSecretClear,
+}: EditorProps & SecretEditorProps) => {
   const defaultProvider = config.tts.providers.find(
     ({ id }) => id === config.tts.defaultProviderId,
   );
@@ -1132,12 +1197,17 @@ export const Tts = ({ config, update }: EditorProps) => {
                 provider={provider}
                 replace={replace}
                 removeProfile={removeProfile}
+                secretConfigured={secretConfigured}
+                onSecretChange={onSecretChange}
+                onSecretClear={onSecretClear}
               />
             ) : provider.kind === "speech-sdk" ? (
               <SpeechSdkEditor
                 provider={provider}
                 replace={replace}
                 removeProfile={removeProfile}
+                secretConfigured={secretConfigured}
+                onSecretChange={onSecretChange}
               />
             ) : (
               <EdgeTtsEditor
