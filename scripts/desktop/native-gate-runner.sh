@@ -552,11 +552,14 @@ drive_production() {
   assert_rsp_failure 3 rsp-workspace-invalid "$output_root/path-reject" "$outside" doctor
   rm "$outside"
 
+  "$rsp" help --json >"$output_root/rsp-help.json"
   "$rsp" schema project-create >"$output_root/project-create-schema.json"
+  "$rsp" schema asset-import >"$output_root/asset-import-schema.json"
+  "$rsp" project create-context >"$output_root/project-create-context.json"
   "$host_node" -e '
     const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
     const forbidden = ["command", "input", "protocolVersion", "requestId", "workspaceId"];
-    if (value.protocolVersion !== "rsp-local-v2" || value.stdin !== "raw-project-create-input" || value.sceneTemplatesOmission !== "inherit-producer-config-defaults" || JSON.stringify(value.forbiddenWrapperFields) !== JSON.stringify(forbidden) || value.jsonSchema.additionalProperties !== false || "sceneTemplates" in value.example) process.exit(1);
+    if (value.protocolVersion !== "rsp-local-v2" || value.stdin !== "raw-project-create-input" || value.schemaScope !== "structural-and-cross-field-static" || value.operationalValidation?.contextCommand !== "./.rsp/bin/rsp project create-context" || value.sceneTemplatesOmission !== "inherit-producer-config-defaults" || JSON.stringify(value.forbiddenWrapperFields) !== JSON.stringify(forbidden) || value.jsonSchema.additionalProperties !== false || "sceneTemplates" in value.example) process.exit(1);
   ' "$output_root/project-create-schema.json"
   "$host_node" --import tsx \
     "$repository_root/scripts/desktop/native-fixture.ts" create-input \
@@ -566,6 +569,12 @@ drive_production() {
     const input = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
     fs.writeFileSync(process.argv[2], JSON.stringify({command:"project-create",input,protocolVersion:"rsp-local-v2"}));
   ' "$output_root/project-create-input.json" "$output_root/project-create-wrapper.json"
+  "$rsp" project validate <"$output_root/project-create-input.json" \
+    >"$output_root/project-create-validation.json"
+  "$host_node" -e '
+    const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    if (value.status !== "project-create-valid" || value.storyId !== "desktop-native-fixture" || value.issues.length !== 0) process.exit(1);
+  ' "$output_root/project-create-validation.json"
   assert_rsp_failure 5 rsp-request-invalid \
     "$output_root/project-create-wrapper-reject" \
     "$rsp" project create <"$output_root/project-create-wrapper.json"
@@ -598,6 +607,7 @@ drive_production() {
     for (const task of p.dirtyAgentTasks) process.stdout.write(task.taskRevision+"\n");
   ' "$output_root/prepare.json" >"$output_root/task-revisions.txt"
   while IFS= read -r task_revision; do
+    "$rsp" task finalize --task "$task_revision" >>"$output_root/task-finalizes.jsonl"
     "$rsp" task check --task "$task_revision" >>"$output_root/task-checks.jsonl"
     "$rsp" task commit --task "$task_revision" --attempt "$attempt_id" \
       >>"$output_root/task-commits.jsonl"

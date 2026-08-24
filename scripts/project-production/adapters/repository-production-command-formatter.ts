@@ -2,6 +2,8 @@ import type { ProductionCommandFormatter } from "../domain/production-command-fo
 
 export const repositoryProductionCommandFormatter: ProductionCommandFormatter =
   Object.freeze({
+    finalizeTask: ({ taskRevision }) =>
+      `npm run project:task:finalize -- --task ${taskRevision}`,
     checkTask: ({ taskRevision }) =>
       `npm run project:task:check -- --task ${taskRevision}`,
     commitTask: ({ taskRevision, attemptId }) =>

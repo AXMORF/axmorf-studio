@@ -12,6 +12,7 @@ import {
   type Sha256Digest,
   type NarrationPreparationReceipt,
   type ProducerConfig,
+  type TaskExecutionContract,
 } from "../../../src/contracts";
 import type { DiagnosticSubject } from "../../../src/contracts/production-inspection";
 
@@ -31,6 +32,7 @@ import {
 import type { loadProjectProductionInputs } from "./load-inputs";
 import { buildCurrentProductionRevision } from "./current-revision";
 import type { ProductionLocations } from "./production-locations";
+import { buildTaskExecutionContract } from "./task-execution-contract";
 
 const SCENE_OUTPUTS = [
   "src/Renderer.tsx",
@@ -143,6 +145,7 @@ const buildContextTask = ({
   outputs,
   validatorPolicyVersion,
   context,
+  taskContract,
 }: {
   readonly taskKind: ProducerTaskSpec["taskKind"];
   readonly storyId: string;
@@ -159,8 +162,18 @@ const buildContextTask = ({
   readonly outputs: readonly string[];
   readonly validatorPolicyVersion: string;
   readonly context: unknown;
+  readonly taskContract?: TaskExecutionContract;
 }) => {
+  if (
+    taskContract !== undefined &&
+    serializeCanonicalJson(taskContract.outputs.map(({ path }) => path).sort()) !==
+      serializeCanonicalJson([...outputs].sort())
+  ) {
+    throw new Error("Task execution contract output set does not match task authority.");
+  }
   const contextSeed = contextFile(context);
+  const taskContractSeed =
+    taskContract === undefined ? null : contextFile(taskContract);
   const dependencyArtifacts = sortedDependencies(dependencies);
   const task = buildProducerTaskSpec({
     taskKind,
@@ -174,14 +187,28 @@ const buildContextTask = ({
         id: "read:inputs/context.json",
         fingerprint: contextSeed.fingerprint,
       },
+      ...(taskContractSeed === null
+        ? []
+        : [
+            {
+              id: "read:inputs/task-contract.json",
+              fingerprint: taskContractSeed.fingerprint,
+            },
+          ]),
     ]),
-    declaredReadSet: ["inputs/context.json"],
+    declaredReadSet:
+      taskContractSeed === null
+        ? ["inputs/context.json"]
+        : ["inputs/context.json", "inputs/task-contract.json"],
     declaredOutputSet: [...outputs].sort(),
     validatorPolicyVersion,
   });
   return {
     task,
     contextBytes: contextSeed.bytes,
+    ...(taskContractSeed === null
+      ? {}
+      : { taskContractBytes: taskContractSeed.bytes }),
     dependencyTaskRevisions: dependencyArtifacts.map(
       ({ taskRevision }) => taskRevision,
     ),
@@ -411,16 +438,31 @@ export const buildSemanticTimingTask = ({
 export const buildAgentTasks = (
   inputs: LoadedInputs,
   revisionId: ProductionRevisionId,
+  dependencies: Readonly<{
+    buildTaskExecutionContract?: typeof buildTaskExecutionContract;
+  }> = {},
 ) => {
+  const buildExecutionContract =
+    dependencies.buildTaskExecutionContract ?? buildTaskExecutionContract;
   const tasks: Readonly<{
     task: ProducerTaskSpec;
     contextBytes: string;
+    taskContractBytes?: string;
     dependencyTaskRevisions: readonly ProducerTaskSpec["taskRevision"][];
   }>[] = inputs.sceneInputs.map((scene) => {
     const r = scene.revisionInput;
     const templateCopy =
       scene.beat.kind === "silent-scene" &&
       scene.beat.preset.implementation.kind === "template-copy";
+    const context = {
+      resourcePool: inputs.resourcePool,
+      scene: {
+        beat: scene.beat,
+        timingBeat: scene.timingBeat,
+        brief: scene.brief,
+        taskInput: scene.taskInput,
+      },
+    };
     return buildContextTask({
       taskKind: templateCopy ? "scene-template" : "scene-owner",
       storyId: inputs.projectId,
@@ -447,17 +489,26 @@ export const buildAgentTasks = (
       validatorPolicyVersion: templateCopy
         ? "scene-template-validator-v2"
         : "scene-owner-validator-v2",
-      context: {
-        resourcePool: inputs.resourcePool,
-        scene: {
-          beat: scene.beat,
-          timingBeat: scene.timingBeat,
-          brief: scene.brief,
-          taskInput: scene.taskInput,
-        },
-      },
+      context,
+      ...(templateCopy
+        ? {}
+        : {
+            taskContract: buildExecutionContract({
+              taskKind: "scene-owner",
+              context,
+            }),
+          }),
     });
   });
+  const globalContext = {
+    story: inputs.story,
+    render: inputs.render,
+    timing: inputs.timing,
+    requirements: inputs.requirements,
+    resourcePool: inputs.resourcePool,
+    visualStyle: inputs.visualStyle,
+    globalVisualBrief: inputs.globalVisualBrief,
+  };
   const global = buildContextTask({
     taskKind: "global-visual-owner",
     storyId: inputs.projectId,
@@ -480,16 +531,17 @@ export const buildAgentTasks = (
     ],
     outputs: GLOBAL_OUTPUTS,
     validatorPolicyVersion: "global-visual-owner-validator-v1",
-    context: {
-      story: inputs.story,
-      render: inputs.render,
-      timing: inputs.timing,
-      requirements: inputs.requirements,
-      resourcePool: inputs.resourcePool,
-      visualStyle: inputs.visualStyle,
-      globalVisualBrief: inputs.globalVisualBrief,
-    },
+    context: globalContext,
+    taskContract: buildExecutionContract({
+      taskKind: "global-visual-owner",
+      context: globalContext,
+    }),
   });
+  const coverContext = {
+    story: inputs.story,
+    visualStyle: inputs.visualStyle,
+    coverSpec: FIXED_COVER_SPEC,
+  };
   const cover = buildContextTask({
     taskKind: "cover-owner",
     storyId: inputs.projectId,
@@ -502,11 +554,11 @@ export const buildAgentTasks = (
     ],
     outputs: COVER_OUTPUTS,
     validatorPolicyVersion: "cover-owner-validator-v1",
-    context: {
-      story: inputs.story,
-      visualStyle: inputs.visualStyle,
-      coverSpec: FIXED_COVER_SPEC,
-    },
+    context: coverContext,
+    taskContract: buildExecutionContract({
+      taskKind: "cover-owner",
+      context: coverContext,
+    }),
   });
   return [...tasks, global, cover];
 };
@@ -647,7 +699,11 @@ export const buildCurrentProductionPlan = async ({
   const ownerInspections = new Map<string, ArtifactInspection>();
   const taskSeeds = new Map<
     string,
-    Readonly<{ task: ProducerTaskSpec; contextBytes: string }>
+    Readonly<{
+      task: ProducerTaskSpec;
+      contextBytes: string;
+      taskContractBytes?: string;
+    }>
   >();
   for (const built of builtOwners) {
     let task = built.task;
@@ -665,6 +721,9 @@ export const buildCurrentProductionPlan = async ({
     taskSeeds.set(task.taskRevision, {
       task,
       contextBytes: built.contextBytes,
+      ...(built.taskContractBytes === undefined
+        ? {}
+        : { taskContractBytes: built.taskContractBytes }),
     });
     ownerNodes.push({
       task,

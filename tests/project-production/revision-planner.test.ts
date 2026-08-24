@@ -4,6 +4,7 @@ import test from "node:test";
 
 import {
   ProductionRevisionIdSchema,
+  TaskExecutionContractSchema,
   buildProducerTaskSpec,
   type Sha256Digest,
 } from "../../src/contracts";
@@ -18,6 +19,70 @@ const sha = (character: string) =>
 const revisionId = ProductionRevisionIdSchema.parse(
   `revision-${"1".repeat(64)}`,
 );
+
+const taskOutputs = {
+  "scene-owner": [
+    "src/Renderer.tsx",
+    "src/generated/reference-fidelity.generated.json",
+    "src/selected-resources.json",
+    "src/shot-plan.json",
+    "src/shot-recipe-selection.json",
+    "src/sound-plan.json",
+    "src/sync-anchors.json",
+    "src/visual-plan.json",
+  ],
+  "global-visual-owner": [
+    "project/global-visual-plan.json",
+    "src/GlobalVisualLayers.tsx",
+    "src/selected-resources.json",
+  ],
+  "cover-owner": [
+    "src/Cover3x4.tsx",
+    "src/Cover4x3.tsx",
+    "src/Root.tsx",
+    "src/index.ts",
+  ],
+} as const;
+
+const buildTestTaskExecutionContract = ({
+  taskKind,
+}: {
+  readonly taskKind: keyof typeof taskOutputs;
+  readonly context: unknown;
+}) =>
+  TaskExecutionContractSchema.parse({
+    schemaVersion: 1,
+    contractVersion: "agent-task-execution-contract-v1",
+    taskKind,
+    purpose: "Planner identity fixture.",
+    workflow: ["Use the immutable planner fixture."],
+    immutableInputs: ["inputs/context.json", "inputs/task-contract.json"],
+    outputs: taskOutputs[taskKind].map((path) => ({
+      path,
+      owner: "agent",
+      format: path.endsWith(".json") ? "json" : path.endsWith(".ts") ? "ts" : "tsx",
+      instructions: ["Write the declared fixture output."],
+      derivedFields: [],
+    })),
+    componentSignatures: [],
+    constraints: ["Stay inside the task workspace."],
+    commands: {
+      finalize: "./.rsp/bin/rsp task finalize --task <taskRevision>",
+      check: "./.rsp/bin/rsp task check --task <taskRevision>",
+    },
+  });
+
+const buildTasks = (
+  loaded: Parameters<typeof buildAgentTasks>[0],
+  revision: Parameters<typeof buildAgentTasks>[1] = revisionId,
+) =>
+  buildAgentTasks(loaded, revision, {
+    buildTaskExecutionContract: buildTestTaskExecutionContract,
+  });
+
+test("planner refuses to synthesize an Agent task contract from malformed context", () => {
+  assert.throws(() => buildAgentTasks(inputs(), revisionId));
+});
 
 const sceneInput = ({
   meaningId,
@@ -127,7 +192,7 @@ const inputs = ({
   }) as unknown as Parameters<typeof buildAgentTasks>[0];
 
 test("planner dispatches only template-copy silent Scenes as fixed template tasks", () => {
-  const built = buildAgentTasks(inputs(), revisionId);
+  const built = buildTasks(inputs());
   const scenes = built
     .filter(({ task }) => task.semanticId !== null)
     .map(({ task }) => [task.semanticId, task.taskKind]);
@@ -139,7 +204,7 @@ test("planner dispatches only template-copy silent Scenes as fixed template task
 });
 
 test("template-copy task rebinds the copied and derived file set without losing context identity", () => {
-  const built = buildAgentTasks(inputs(), revisionId).find(
+  const built = buildTasks(inputs()).find(
     ({ task }) => task.taskKind === "scene-template",
   );
   assert.ok(built !== undefined);
@@ -178,8 +243,14 @@ test("template-copy task rebinds the copied and derived file set without losing 
 });
 
 test("every Agent task binds the exact canonical context bytes it declares", () => {
-  for (const built of buildAgentTasks(inputs(), revisionId)) {
-    assert.deepEqual(built.task.declaredReadSet, ["inputs/context.json"]);
+  for (const built of buildTasks(inputs())) {
+    const agentOwned = built.task.taskKind !== "scene-template";
+    assert.deepEqual(
+      built.task.declaredReadSet,
+      agentOwned
+        ? ["inputs/context.json", "inputs/task-contract.json"]
+        : ["inputs/context.json"],
+    );
     const binding = built.task.inputFingerprints.find(
       ({ id }) => id === "read:inputs/context.json",
     );
@@ -187,12 +258,24 @@ test("every Agent task binds the exact canonical context bytes it declares", () 
       binding?.fingerprint,
       `sha256:${createHash("sha256").update(built.contextBytes).digest("hex")}`,
     );
+    if (agentOwned) {
+      assert.ok(built.taskContractBytes !== undefined);
+      const contractBinding = built.task.inputFingerprints.find(
+        ({ id }) => id === "read:inputs/task-contract.json",
+      );
+      assert.equal(
+        contractBinding?.fingerprint,
+        `sha256:${createHash("sha256").update(built.taskContractBytes).digest("hex")}`,
+      );
+    } else {
+      assert.equal(built.taskContractBytes, undefined);
+    }
   }
 });
 
 test("full Project revision identity does not enter taskRevision", () => {
-  const first = buildAgentTasks(inputs(), revisionId);
-  const second = buildAgentTasks(
+  const first = buildTasks(inputs());
+  const second = buildTasks(
     inputs(),
     ProductionRevisionIdSchema.parse(`revision-${"2".repeat(64)}`),
   );
@@ -203,13 +286,13 @@ test("full Project revision identity does not enter taskRevision", () => {
 });
 
 test("Scene task revision binds only its meaning-local timing slice", () => {
-  const first = buildAgentTasks(inputs(), revisionId);
-  const second = buildAgentTasks(
+  const first = buildTasks(inputs());
+  const second = buildTasks(
     inputs({ globalTimingMarker: "a", outroTimingMarker: "e" }),
     revisionId,
   );
   const revisionFor = (
-    tasks: ReturnType<typeof buildAgentTasks>,
+    tasks: ReturnType<typeof buildTasks>,
     meaningId: string,
   ) =>
     tasks.find(({ task }) => task.semanticId === meaningId)?.task.taskRevision;
@@ -226,7 +309,7 @@ test("GlobalVisual task revision binds RenderSpec identity", () => {
     fingerprints: { ...currentInputs.fingerprints, render: sha("9") },
   } as Parameters<typeof buildAgentTasks>[0];
   const revisionFor = (loaded: Parameters<typeof buildAgentTasks>[0]) =>
-    buildAgentTasks(loaded, revisionId).find(
+    buildTasks(loaded).find(
       ({ task }) => task.taskKind === "global-visual-owner",
     )?.task.taskRevision;
 
@@ -235,7 +318,7 @@ test("GlobalVisual task revision binds RenderSpec identity", () => {
 
 test("task-local runtime policies invalidate only the owning branch", () => {
   const currentInputs = inputs();
-  const currentOwners = buildAgentTasks(currentInputs, revisionId);
+  const currentOwners = buildTasks(currentInputs);
   const sceneChangedInputs = {
     ...currentInputs,
     taskPolicyFingerprints: {
@@ -243,8 +326,8 @@ test("task-local runtime policies invalidate only the owning branch", () => {
       scene: sha("5"),
     },
   } as Parameters<typeof buildAgentTasks>[0];
-  const sceneChangedOwners = buildAgentTasks(sceneChangedInputs, revisionId);
-  const revisions = (built: ReturnType<typeof buildAgentTasks>) =>
+  const sceneChangedOwners = buildTasks(sceneChangedInputs);
+  const revisions = (built: ReturnType<typeof buildTasks>) =>
     Object.fromEntries(
       built.map(({ task }) => [
         task.taskKind === "scene-owner" || task.taskKind === "scene-template"
@@ -294,10 +377,10 @@ test("task-local runtime policies invalidate only the owning branch", () => {
     "scene",
   ]);
   assert.deepEqual(
-    buildAgentTasks(currentInputs, revisionId).map(
+    buildTasks(currentInputs).map(
       ({ task }) => task.taskRevision,
     ),
-    buildAgentTasks(currentInputs, revisionId).map(
+    buildTasks(currentInputs).map(
       ({ task }) => task.taskRevision,
     ),
   );

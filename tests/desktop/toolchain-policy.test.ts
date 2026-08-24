@@ -42,7 +42,6 @@ import mainViteConfig from "../../vite.desktop.main.config";
 import preloadViteConfig from "../../vite.desktop.preload.config";
 import rendererViteConfig from "../../vite.desktop.renderer.config";
 import rspViteConfig from "../../vite.desktop.rsp.config";
-import { ProjectCreateInputSchema } from "../../src/contracts";
 
 test("Phase B desktop toolchain and product identity are exact", async () => {
   const packageJson = JSON.parse(
@@ -431,27 +430,21 @@ test("managed production Skill uses UDS control and verified loopback-scoped Del
   assert.match(skill, /"127\.0\.0\.1"/u);
   assert.match(skill, /temporary loopback HTTP listener/u);
   assert.match(skill, /project-production-source-current/u);
+  assert.match(skill, /\.\/\.rsp\/bin\/rsp help --json/u);
   assert.match(skill, /\.\/\.rsp\/bin\/rsp schema project-create/u);
-  assert.match(skill, /strict raw `ProjectCreateInput` JSON/u);
+  assert.match(skill, /\.\/\.rsp\/bin\/rsp project create-context/u);
+  assert.match(skill, /\.\/\.rsp\/bin\/rsp project validate/u);
+  assert.match(skill, /one strict raw `ProjectCreateInput` object/u);
   assert.match(skill, /Never wrap it in `command`/u);
-  assert.match(skill, /omit `sceneTemplates`/u);
-  assert.match(skill, /redacted `issues\[\]` with `path`, `code`, and `message`/u);
-  const example = /Valid raw stdin example[\s\S]*?```json\n([\s\S]*?)\n```/u.exec(
-    skill,
-  )?.[1];
-  assert.ok(example !== undefined);
-  const createInput = ProjectCreateInputSchema.parse(JSON.parse(example));
-  assert.equal(createInput.storyId, "story-example");
-  assert.equal("sceneTemplates" in createInput, false);
-  for (const wrapperField of [
-    "command",
-    "input",
-    "protocolVersion",
-    "requestId",
-    "workspaceId",
-  ]) {
-    assert.equal(wrapperField in createInput, false);
-  }
+  assert.match(skill, /Omit `sceneTemplates`/u);
+  assert.match(skill, /`issues\[\]`/u);
+  assert.match(skill, /`inputs\/task-contract\.json`/u);
+  assert.match(skill, /task describe/u);
+  assert.match(skill, /task finalize/u);
+  assert.match(skill, /`ownerAction`/u);
+  assert.match(skill, /attempt status/u);
+  assert.doesNotMatch(skill, /Valid raw stdin example/u);
+  assert.doesNotMatch(skill, /```json/u);
   assert.doesNotMatch(
     skill,
     /true production\/delivery\/runtime capabilities/u,

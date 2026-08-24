@@ -4,7 +4,14 @@ import {
   PROJECT_CREATE_INPUT_VERSION,
   ProjectCreateInputSchema,
 } from "../../src/contracts";
+import {
+  RspFieldIssueSchema,
+  rspIssuePath,
+  type RspFieldIssue,
+} from "./issues";
 import { RSP_PROTOCOL_VERSION } from "./protocol";
+
+export { RspFieldIssueSchema, type RspFieldIssue } from "./issues";
 
 export const PROJECT_CREATE_RAW_STDIN_EXAMPLE = ProjectCreateInputSchema.parse({
   schemaVersion: 1,
@@ -101,23 +108,6 @@ export const PROJECT_CREATE_RAW_STDIN_EXAMPLE = ProjectCreateInputSchema.parse({
   },
 });
 
-export const RspFieldIssueSchema = z
-  .strictObject({
-    path: z.string().min(1).max(512),
-    code: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u),
-    message: z.string().min(1).max(500),
-  })
-  .readonly();
-
-export type RspFieldIssue = z.infer<typeof RspFieldIssueSchema>;
-
-const pathText = (path: readonly PropertyKey[]) =>
-  path.reduce<string>((result, segment) => {
-    if (typeof segment === "number") return `${result}[${segment}]`;
-    const value = String(segment);
-    return result === "$" ? `$.${value}` : `${result}.${value}`;
-  }, "$" as string);
-
 const wrapperFields = [
   "command",
   "input",
@@ -149,7 +139,7 @@ export const projectCreateFieldIssues = ({
         ]
       : [];
   const issues = error.issues.slice(0, 50 - wrapperIssue.length).map((issue) => ({
-    path: pathText(issue.path),
+    path: rspIssuePath(issue.path),
     code: `rsp-project-create-${issue.code.replaceAll("_", "-")}`,
     message:
       issue.code === "unrecognized_keys"
@@ -174,6 +164,14 @@ export const RspProjectCreateSchemaResponseSchema = z
       z.literal("workspaceId"),
     ]),
     sceneTemplatesOmission: z.literal("inherit-producer-config-defaults"),
+    schemaScope: z.literal("structural-and-cross-field-static"),
+    operationalValidation: z
+      .strictObject({
+        contextCommand: z.literal("./.rsp/bin/rsp project create-context"),
+        validateCommand: z.literal("./.rsp/bin/rsp project validate"),
+        authority: z.literal("active-app-config-and-runtime-pack"),
+      })
+      .readonly(),
     jsonSchema: z.record(z.string(), z.unknown()),
     example: ProjectCreateInputSchema,
   })
@@ -193,6 +191,12 @@ export const buildRspProjectCreateSchemaResponse =
       stdin: "raw-project-create-input",
       forbiddenWrapperFields: wrapperFields,
       sceneTemplatesOmission: "inherit-producer-config-defaults",
+      schemaScope: "structural-and-cross-field-static",
+      operationalValidation: {
+        contextCommand: "./.rsp/bin/rsp project create-context",
+        validateCommand: "./.rsp/bin/rsp project validate",
+        authority: "active-app-config-and-runtime-pack",
+      },
       jsonSchema: z.toJSONSchema(ProjectCreateInputSchema),
       example: PROJECT_CREATE_RAW_STDIN_EXAMPLE,
     });

@@ -2,6 +2,8 @@ import type { ProductionCommandFormatter } from "../domain/production-command-fo
 
 export const rspLocalProductionCommandFormatter: ProductionCommandFormatter =
   Object.freeze({
+    finalizeTask: ({ taskRevision }) =>
+      `./.rsp/bin/rsp task finalize --task ${taskRevision}`,
     checkTask: ({ taskRevision }) =>
       `./.rsp/bin/rsp task check --task ${taskRevision}`,
     commitTask: ({ taskRevision, attemptId }) =>

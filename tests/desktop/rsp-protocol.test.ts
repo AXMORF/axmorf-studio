@@ -61,7 +61,18 @@ test("rsp v2 response and session records reject legacy or extra fields", () => 
     protocolVersion: RSP_PROTOCOL_VERSION,
     requestId: "request-1",
     ok: false,
-    error: { code: "rsp-conflict", message: "Attempt is already claimed." },
+    error: {
+      code: "rsp-conflict",
+      message: "Attempt is already claimed.",
+      issues: [
+        {
+          path: "$.attemptId",
+          code: "rsp-attempt-claimed",
+          message: "The attempt is already claimed.",
+          ownerAction: "Read attempt status instead of starting another continuation.",
+        },
+      ],
+    },
   } as const;
   assert.equal(RspCommandResponseSchema.parse(response).ok, false);
   assert.throws(() =>
@@ -176,6 +187,7 @@ test("rsp context accepts only explicit delivery and execution overrides", () =>
         maxConcurrency: 3,
         requireExactConcurrency: true,
       },
+      runtimeMaxConcurrency: 4,
     }).command,
     "context",
   );
@@ -186,6 +198,49 @@ test("rsp context accepts only explicit delivery and execution overrides", () =>
       executionMode: "subagents",
     }),
   );
+});
+
+test("rsp discovery, lifecycle, task, and attempt requests remain strict", () => {
+  const request = (command: Record<string, unknown>) =>
+    RspCommandRequestSchema.parse({
+      protocolVersion: RSP_PROTOCOL_VERSION,
+      requestId: "surface-1",
+      workspaceId,
+      ...command,
+    });
+  assert.equal(request({ command: "project-create-context" }).command, "project-create-context");
+  assert.equal(
+    request({ command: "project-validate", input: { schemaVersion: 1 } }).command,
+    "project-validate",
+  );
+  assert.equal(request({ command: "project-list" }).command, "project-list");
+  assert.equal(
+    request({
+      command: "project-delete",
+      storyId: "story-example",
+      confirmDelete: true,
+    }).command,
+    "project-delete",
+  );
+  assert.equal(
+    request({ command: "task-describe", taskRevision: `task-${"c".repeat(64)}` })
+      .command,
+    "task-describe",
+  );
+  assert.equal(
+    request({ command: "task-finalize", taskRevision: `task-${"c".repeat(64)}` })
+      .command,
+    "task-finalize",
+  );
+  assert.equal(
+    request({
+      command: "attempt-status",
+      storyId: "story-example",
+      attemptId: "00000000-0000-4000-8000-000000000001",
+    }).command,
+    "attempt-status",
+  );
+  assert.throws(() => request({ command: "project-delete", storyId: "story-example" }));
 });
 
 test("rsp prepare omits policy when no command override was supplied", () => {

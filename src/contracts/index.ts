@@ -27,6 +27,7 @@ export * from "./producer-config";
 export * from "./producer-artifact";
 export * from "./producer-plan";
 export * from "./producer-task";
+export * from "./task-execution-contract";
 export * from "./production-inspection";
 export * from "./production-revision";
 export * from "./project-create";

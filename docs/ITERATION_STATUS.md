@@ -286,15 +286,18 @@ Application Support 的单一 encrypted private-config envelope。旧 encrypted 
 active-work gate，并对 validation、safeStorage/private-file authority 与 saved-but-Engine-restart-failed 返回不同的脱敏
 code/message/action/issues，不再统一显示“操作未完成”。
 
-Workspace `rsp-local-v2` 新增无需 App session 的 read-only `rsp schema project-create`，返回 complete JSON Schema、raw
-example、forbidden wrapper list 与 sceneTemplates omission semantics。`rsp project create` 在连接 UDS 前验证 raw
-`ProjectCreateInput`，明确拒绝 `command/input/protocolVersion/requestId/workspaceId` wrapper，并返回不带字段值的
-`issues[].path/code/message`。managed Skill 内含完整 contract reference 与一个机械验证通过的 raw example；native gate
-也先验证 schema/wrapper rejection，再走 valid raw create → context/inspect/prepare → deterministic task executor →
-source-current → manual explicit 或 automatic Delivery → exact four-file Preview。
+Workspace `rsp-local-v2` 现提供无需 App session 的 `help --json`、project-create/asset-import structural schemas；active
+`project create-context` 投影 exact style/collection/template/resource choices，`project validate` 在 create 前合并 strict
+static 与 config/Runtime Pack operational checks。`rsp project create` 明确拒绝
+`command/input/protocolVersion/requestId/workspaceId` wrapper；公开创建与 task 失败返回不带字段值的
+`issues[].path/code/message/ownerAction`。managed Skill 已收缩为 discovery/router，dirty Agent workspace 增加 immutable
+`inputs/task-contract.json`，逐 output 提供 JSON Schema/example/component signature/derived ownership；fixed
+`task finalize` 统一计算 fingerprint/receipt。native gate 的 deterministic executor 不再调用私有 output builder，只消费
+task contract 后走 finalize/check/commit，再验证 source-current、manual/automatic Delivery 与 exact-four-file Preview。
 
-这里的 packaged path 仍准确标记 `externalCreativeAgentTested: false`：deterministic executor 证明 fixed controller、Runtime
-Pack、Delivery 与 Preview，不证明真实外部 Codex/Hermes 的创意质量或行为。上述 repair 尚需在 exact implementation
+这里的 packaged path 仍准确标记 `externalCreativeAgentTested: false`：host-neutral contract consumer 证明 fixed controller、
+task self-description/finalization、Runtime Pack、Delivery 与 Preview，不证明真实外部 Codex/Hermes 的创意质量或行为。
+上述 repair 尚需在 exact implementation
 commit 上通过双架构 native Phase D workflow 并重新生成 internal unsigned DMG；前一 Phase D DMG 不包含本修复，不能
 作为本轮 Mac 验证 artifact。
 

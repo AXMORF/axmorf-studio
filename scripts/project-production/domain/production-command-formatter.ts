@@ -2,6 +2,7 @@ import type { DeliveryPolicy } from "../../../src/contracts";
 
 /** Port for rendering host-specific commands into immutable task prompts. */
 export type ProductionCommandFormatter = Readonly<{
+  finalizeTask: (input: { readonly taskRevision: string }) => string;
   checkTask: (input: { readonly taskRevision: string }) => string;
   commitTask: (input: {
     readonly taskRevision: string;

@@ -27,6 +27,10 @@ import {
   type RspCommandRequest,
   type SessionRecord,
 } from "../contracts/protocol";
+import {
+  RspPublicCommandError,
+  type RspFieldIssue,
+} from "../contracts/issues";
 
 const SESSION_FILE_NAME = "session.json";
 const TOKEN_FILE_NAME = "token";
@@ -35,16 +39,7 @@ const COMMAND_PATH = "/v2/command";
 const MAX_RESPONSE_BYTES = 1024 * 1024;
 const INVALID_REQUEST_ID = "rsp-invalid-request";
 
-type PublicCommandFailureCode = "rsp-command-failed" | "rsp-conflict";
-
-export class RspCommandFailure extends Error {
-  readonly code: PublicCommandFailureCode;
-
-  constructor(code: PublicCommandFailureCode, message: string) {
-    super(message);
-    this.code = code;
-  }
-}
+export { RspPublicCommandError as RspCommandFailure } from "../contracts/issues";
 
 class RspRequestFailure extends Error {
   readonly code:
@@ -158,12 +153,14 @@ const errorResponse = ({
   statusCode,
   code,
   message,
+  issues = [],
 }: {
   readonly response: ServerResponse;
   readonly requestId: string;
   readonly statusCode: number;
   readonly code: string;
   readonly message: string;
+  readonly issues?: readonly RspFieldIssue[];
 }) =>
   respond(
     response,
@@ -172,7 +169,7 @@ const errorResponse = ({
       protocolVersion: RSP_PROTOCOL_VERSION,
       requestId,
       ok: false,
-      error: { code, message },
+      error: { code, message, ...(issues.length === 0 ? {} : { issues }) },
     }),
   );
 
@@ -396,15 +393,20 @@ export const startRspDoctorServer = async ({
   let mutatingQueue = Promise.resolve();
   const readonlyCommands = new Set<RspCommandRequest["command"]>([
     "doctor",
+    "project-create-context",
+    "project-validate",
+    "project-list",
     "context",
     "inspect",
+    "attempt-status",
+    "task-describe",
     "task-check",
   ]);
   const runCommand = (command: RspCommandRequest) => {
     if (command.command === "doctor") return Promise.resolve(getDoctorState());
     if (executeCommand === undefined) {
       return Promise.reject(
-        new RspCommandFailure(
+        new RspPublicCommandError(
           "rsp-command-failed",
           "The requested command is unavailable.",
         ),
@@ -534,9 +536,9 @@ export const startRspDoctorServer = async ({
           return;
         }
         const failure =
-          error instanceof RspCommandFailure
+          error instanceof RspPublicCommandError
             ? error
-            : new RspCommandFailure(
+            : new RspPublicCommandError(
                 "rsp-command-failed",
                 "The requested command failed.",
               );
@@ -546,6 +548,7 @@ export const startRspDoctorServer = async ({
           statusCode: failure.code === "rsp-conflict" ? 409 : 422,
           code: failure.code,
           message: failure.message,
+          issues: failure.issues,
         });
       });
   });

@@ -4,18 +4,8 @@ import { pathToFileURL } from "node:url";
 
 import {
   ProducerTaskSpecSchema,
-  SceneTaskInputSchema,
-  SemanticTimingSchema,
   StoryIdSchema,
-  buildNotApplicableFidelityReceipt,
-  buildSceneSoundPlan,
-  buildSceneSyncAnchors,
-  buildSceneVisualPlan,
-  buildShotPlanSet,
-  buildShotRecipeSelection,
-  createGlobalVisualPlan,
-  deriveCoverCompositionBaseId,
-  getStoryCompositionDurationInFrames,
+  TaskExecutionContractSchema,
   serializeCanonicalJson,
 } from "../../src/contracts";
 import { validProjectCreateInput } from "../../tests/fixtures/project-create";
@@ -93,152 +83,18 @@ export const createDesktopNativeProjectInput = () => ({
   },
 });
 
-const sceneRenderer = `import type {SceneRendererProps} from "../../../../remotion/runtime/story-visual/types";
-
-const Renderer = ({viewportWidth, viewportHeight, storyBeat}: SceneRendererProps) => (
-  <div style={{width: viewportWidth, height: viewportHeight, display: "flex", alignItems: "center", justifyContent: "center", color: "#fffdf9"}}>
-    <div style={{fontSize: 56, fontWeight: 700, letterSpacing: 4}}>{storyBeat.meaningId}</div>
-  </div>
-);
-
-export default Renderer;
-`;
-
-const sceneOutputs = (context: unknown) => {
-  const input = SceneTaskInputSchema.parse(
-    (context as { scene?: { taskInput?: unknown } }).scene?.taskInput,
-  );
-  const durationInFrames =
-    input.timingBeat.endFrame - input.timingBeat.startFrame;
-  const shots = buildShotPlanSet({
-    taskInputFingerprint: input.taskInputFingerprint,
-    meaningId: input.meaningId,
-    sceneDurationInFrames: durationInFrames,
-    shots: [
-      {
-        shotId: "native-gate-shot",
-        order: 0,
-        primaryRange: { startFrame: 0, endFrame: durationInFrames },
-        purpose: "Expose a deterministic native gate Scene.",
-        action: "Hold the semantic label in the Scene viewport.",
-        visualResourceIds: [],
-        syncAnchorIds: [],
-      },
-    ],
-  });
-  const visual = buildSceneVisualPlan({
-    taskInputFingerprint: input.taskInputFingerprint,
-    meaningId: input.meaningId,
-    semanticObjective: input.storyBeat.narrativePurpose,
-    subject: "The current native production state.",
-    primaryAction: "Present the Scene meaning as a stable title.",
-    causalLink: "The title change makes the Scene boundary observable.",
-    primaryComposition: "A single centered title inside the provided viewport.",
-    styleRealization: ["High contrast typography", "Restrained warm accent"],
-    continuity: "Keep the native proof centered across the hard cut.",
-    orderedShotIds: ["native-gate-shot"],
-    visualResourceIds: [],
-    recipeDecision: "empty",
-    fallbackIntent: "Fail closed instead of loading an undeclared resource.",
-  });
-  const anchors = buildSceneSyncAnchors({
-    taskInputFingerprint: input.taskInputFingerprint,
-    meaningId: input.meaningId,
-    sceneDurationInFrames: durationInFrames,
-    anchors: [],
-  });
-  const sound = buildSceneSoundPlan({
-    taskInputFingerprint: input.taskInputFingerprint,
-    meaningId: input.meaningId,
-    sceneDurationInFrames: durationInFrames,
-    contributions: [],
-  });
-  const selection = buildShotRecipeSelection({
-    taskInputFingerprint: input.taskInputFingerprint,
-    selections: [],
-  });
-  const fidelity = buildNotApplicableFidelityReceipt({
-    selectionFingerprint: selection.selectionFingerprint,
-    reason: "empty",
-  });
-  return {
-    "src/Renderer.tsx": sceneRenderer,
-    "src/generated/reference-fidelity.generated.json": json(fidelity),
-    "src/selected-resources.json": json({
-      schemaVersion: 1,
-      selectedResources: [],
-    }),
-    "src/shot-plan.json": json(shots),
-    "src/shot-recipe-selection.json": json(selection),
-    "src/sound-plan.json": json(sound),
-    "src/sync-anchors.json": json(anchors),
-    "src/visual-plan.json": json(visual),
-  } as const;
-};
-
-const globalOutputs = (raw: unknown) => {
-  const context = raw as {
-    story?: { storyId?: unknown };
-    render?: {
-      compositionId?: unknown;
-      width?: unknown;
-      height?: unknown;
-      fps?: unknown;
-    };
-    timing?: unknown;
-    requirements?: { readabilityPolicy?: { captionSafeAreaPx?: unknown } };
-    resourcePool?: { resourceCatalogFingerprint?: unknown };
-  };
-  const storyId = StoryIdSchema.parse(context.story?.storyId);
-  const timing = SemanticTimingSchema.parse(context.timing);
-  const render = context.render;
-  const plan = createGlobalVisualPlan({
-    schemaVersion: 1,
-    planVersion: "global-visual-plan-v1",
-    storyId,
-    compositionId: render?.compositionId,
-    width: render?.width,
-    height: render?.height,
-    fps: render?.fps,
-    durationInFrames: getStoryCompositionDurationInFrames(
-      timing.durationInFrames,
-    ),
-    captionSafeArea: context.requirements?.readabilityPolicy?.captionSafeAreaPx,
-    catalogFingerprint: context.resourcePool?.resourceCatalogFingerprint,
-    frameTreatment: {
-      inset: 24,
-      borderWidth: 2,
-      borderColor: "#fffdf9",
-      borderOpacity: 0.2,
-      vignetteOpacity: 0.08,
-      grainOpacity: 0,
-    },
-    continuityMotif: {
-      color: "#a37d5c",
-      strokeWidth: 3,
-      opacity: 0.25,
-      motionPolicy: "linear-frame-progress-v1",
-      windows: [],
-    },
-  });
-  return {
-    "project/global-visual-plan.json": json(plan),
-    "src/GlobalVisualLayers.tsx": `import {useCurrentFrame} from "remotion";\n\nexport const GlobalVisualLayers = () => {\n  const frame = useCurrentFrame();\n  return <div style={{position: "absolute", inset: 24, border: "2px solid rgba(255,253,249,0.2)", pointerEvents: "none", opacity: frame >= 0 ? 1 : 0}} />;\n};\n`,
-    "src/selected-resources.json": json({
-      schemaVersion: 1,
-      selectedResources: [],
-    }),
-  } as const;
-};
-
-const coverOutputs = (storyId: string) => {
-  const compositionId = deriveCoverCompositionBaseId(storyId);
-  return {
-    "src/Cover4x3.tsx": `const Cover4x3 = () => <div style={{width: 1600, height: 1200, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#fffdf9", color: "#242424", fontSize: 88, fontWeight: 700}}>AXMORF</div>;\nexport default Cover4x3;\n`,
-    "src/Cover3x4.tsx": `const Cover3x4 = () => <div style={{width: 1200, height: 1600, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#242424", color: "#fffdf9", fontSize: 88, fontWeight: 700}}>AXMORF</div>;\nexport default Cover3x4;\n`,
-    "src/Root.tsx": `import {Composition} from "remotion";\nimport Cover4x3 from "./Cover4x3";\nimport Cover3x4 from "./Cover3x4";\nexport const CoverRoot = () => (<>\n  <Composition id="${compositionId}DeliveryCover4x3V2" component={Cover4x3} width={1600} height={1200} fps={30} durationInFrames={1} />\n  <Composition id="${compositionId}DeliveryCover3x4V2" component={Cover3x4} width={1200} height={1600} fps={30} durationInFrames={1} />\n</>);\n`,
-    "src/index.ts": `import {registerRoot} from "remotion";\nimport {CoverRoot} from "./Root";\nregisterRoot(CoverRoot);\n`,
-  } as const;
+const outputBytes = ({
+  format,
+  example,
+}: {
+  readonly format: "json" | "tsx" | "ts";
+  readonly example: unknown;
+}) => {
+  if (format === "json") return json(example);
+  if (typeof example !== "string") {
+    throw new Error("desktop-native-fixture-source-example-required");
+  }
+  return example.endsWith("\n") ? example : `${example}\n`;
 };
 
 type DirtyTask = Readonly<{
@@ -291,29 +147,28 @@ export const executeDesktopNativeAgentTasks = async ({
     ) {
       throw new Error("desktop-native-fixture-task-cross-bound");
     }
-    const context = JSON.parse(
-      await readFile(join(taskRoot, "inputs/context.json"), "utf8"),
-    ) as unknown;
-    const outputs =
-      task.taskKind === "scene-owner"
-        ? sceneOutputs(context)
-        : task.taskKind === "global-visual-owner"
-          ? globalOutputs(context)
-          : task.taskKind === "cover-owner"
-            ? coverOutputs(task.storyId)
-            : null;
-    if (outputs === null) {
-      throw new Error(
-        `desktop-native-fixture-task-kind-unsupported:${task.taskKind}`,
-      );
+    const contract = TaskExecutionContractSchema.parse(
+      JSON.parse(
+        await readFile(join(taskRoot, "inputs/task-contract.json"), "utf8"),
+      ),
+    );
+    if (contract.taskKind !== task.taskKind) {
+      throw new Error("desktop-native-fixture-task-contract-cross-bound");
     }
-    const actual = Object.keys(outputs).sort();
+    const actual = contract.outputs.map(({ path }) => path).sort();
     const declared = [...task.declaredOutputSet].sort();
     if (json(actual) !== json(declared)) {
       throw new Error("desktop-native-fixture-output-authority-mismatch");
     }
-    for (const [logicalPath, bytes] of Object.entries(outputs)) {
-      await write(join(taskRoot, logicalPath), bytes);
+    for (const output of contract.outputs) {
+      if (output.owner === "rsp-finalize") continue;
+      if (output.example === undefined) {
+        throw new Error("desktop-native-fixture-output-example-required");
+      }
+      await write(
+        join(taskRoot, output.path),
+        outputBytes({ format: output.format, example: output.example }),
+      );
     }
     completed.push(task.taskRevision);
   }

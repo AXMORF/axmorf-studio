@@ -21,6 +21,7 @@ import {
   serializeCanonicalJson,
   type Sha256Digest,
 } from "../../src/contracts";
+import { RspPublicCommandError } from "../../desktop/contracts/issues";
 import type { TaskDiagnosticSnapshot } from "../../src/contracts/execution-attempt";
 import {
   createExecutionAttemptForPlan,
@@ -185,6 +186,47 @@ test("Workspace controller constructs without config and keeps context plus insp
     errorCode(DESKTOP_PRODUCER_CONFIG_REQUIRED),
   );
   assert.equal(configLoads, 4);
+});
+
+test("public Project create rejects unavailable runtime choices with actionable field issues", async (context) => {
+  const value = await fixture(context);
+  const controller = await createWorkspaceProductionController({
+    locations: value.locations,
+    runtime: value.runtime,
+    delivery: deliveryRuntime(),
+    loadProducerConfig: async () =>
+      buildProducerConfig(validProjectCreateProducerConfig),
+  });
+  await assert.rejects(
+    controller.execute({
+      command: "project-create",
+      input: {
+        ...validProjectCreateInput,
+        visualStyle: {
+          ...validProjectCreateInput.visualStyle,
+          styleProfileId: "warm-handdrawn-storybook",
+        },
+      },
+    }),
+    (error: unknown) => {
+      assert.ok(error instanceof RspPublicCommandError);
+      assert.equal(error.code, "rsp-command-failed");
+      assert.equal(
+        error.issues[0]?.path,
+        "$.visualStyle.styleProfileId",
+      );
+      assert.equal(
+        error.issues[0]?.code,
+        "rsp-project-create-style-unavailable",
+      );
+      assert.match(error.issues[0]?.ownerAction ?? "", /create-context/u);
+      return true;
+    },
+  );
+  assert.deepEqual(await controller.listProjects(), {
+    status: "workspace-project-list",
+    projectIds: [],
+  });
 });
 
 test("Workspace context resolves command over Project over manual App default and projects saved execution", async (context) => {
@@ -573,6 +615,7 @@ test("Workspace prepare returns rsp-only task and continuation commands", async 
   );
   assert.equal(result.status, "project-production-prepared");
   const commands = [
+    result.dirtyAgentTasks[0]?.finalizeCommand,
     result.dirtyAgentTasks[0]?.checkCommand,
     result.dirtyAgentTasks[0]?.commitCommand,
     result.dirtyAgentTasks[0]?.taskFailureCommand,
@@ -583,6 +626,7 @@ test("Workspace prepare returns rsp-only task and continuation commands", async 
     assert.equal(command?.startsWith("./.rsp/bin/rsp "), true);
     assert.doesNotMatch(command ?? "", /\bnpm\b/u);
   }
+  assert.match(result.dirtyAgentTasks[0]?.finalizeCommand ?? "", /task finalize/u);
   assert.match(result.continuationCommand, /--delivery-policy manual$/u);
 });
 
@@ -625,7 +669,14 @@ test("task commit and fail routes preserve the caller's exact attempt binding", 
       taskRevision: built.task.taskRevision,
       attemptId: wrongAttemptId,
     }),
-    /Execution attempt is missing/u,
+    (error: unknown) => {
+      assert.ok(error instanceof RspPublicCommandError);
+      assert.equal(error.code, "rsp-command-failed");
+      assert.equal(error.issues[0]?.code, "rsp-task-workspace-invalid");
+      assert.equal(error.issues[0]?.path, "$.workspace");
+      assert.doesNotMatch(error.message, /Execution attempt/u);
+      return true;
+    },
   );
   const failed = (await controller.execute({
     command: "task-fail",
@@ -649,4 +700,21 @@ test("task commit and fail routes preserve the caller's exact attempt binding", 
       diagnosticCode: "producer-agent-host-failed",
     },
   ]);
+  const status = (await controller.execute({
+    command: "attempt-status",
+    storyId: built.task.storyId,
+    attemptId: attempt.attemptId,
+  })) as {
+    readonly state: string;
+    readonly diagnosticCode: string | null;
+    readonly taskOutcomeSummary: { readonly failedTaskCount: number };
+    readonly taskOutcomes: readonly { readonly diagnosticCode: string | null }[];
+  };
+  assert.equal(status.state, "waiting-for-agent");
+  assert.equal(status.diagnosticCode, null);
+  assert.equal(status.taskOutcomeSummary.failedTaskCount, 1);
+  assert.equal(
+    status.taskOutcomes[0]?.diagnosticCode,
+    "producer-agent-host-failed",
+  );
 });

@@ -133,6 +133,7 @@
     "project:produce:inspect": "node --import tsx scripts/project-production/cli.ts inspect",
     "project:produce:prepare": "node --import tsx scripts/project-production/cli.ts prepare",
     "project:task:check": "node --import tsx scripts/project-production/cli.ts task-check",
+    "project:task:finalize": "node --import tsx scripts/project-production/cli.ts task-finalize",
     "project:task:commit": "node --import tsx scripts/project-production/cli.ts task-commit",
     "project:task:fail": "node --import tsx scripts/project-production/cli.ts task-fail",
     "project:produce:continue": "node --import tsx scripts/project-production/cli.ts continue",

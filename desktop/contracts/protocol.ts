@@ -15,6 +15,7 @@ import {
   PreviewCatalogReadinessSchema,
   PreviewCatalogSchema,
 } from "./preview";
+import { RspFieldIssueSchema } from "./issues";
 
 export const RSP_PROTOCOL_VERSION = "rsp-local-v2" as const;
 export const RSP_SESSION_SCHEMA_VERSION = 2 as const;
@@ -191,15 +192,35 @@ export const RspCommandRequestSchema = z
     z.strictObject({ ...RspRequestBaseShape, command: z.literal("doctor") }),
     z.strictObject({
       ...RspRequestBaseShape,
+      command: z.literal("project-create-context"),
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
+      command: z.literal("project-validate"),
+      input: z.unknown(),
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
       command: z.literal("context"),
       storyId: StoryIdSchema,
       deliveryPolicy: DeliveryPolicySchema.optional(),
       execution: AgentExecutionOverrideSchema.optional(),
+      runtimeMaxConcurrency: z.number().int().nonnegative().safe().optional(),
     }),
     z.strictObject({
       ...RspRequestBaseShape,
       command: z.literal("project-create"),
       input: ProjectCreateInputSchema,
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
+      command: z.literal("project-list"),
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
+      command: z.literal("project-delete"),
+      storyId: StoryIdSchema,
+      confirmDelete: z.literal(true),
     }),
     AssetImportRequestSchema,
     z.strictObject({
@@ -216,6 +237,16 @@ export const RspCommandRequestSchema = z
     z.strictObject({
       ...RspRequestBaseShape,
       command: z.literal("task-check"),
+      taskRevision: TaskRevisionSchema,
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
+      command: z.literal("task-describe"),
+      taskRevision: TaskRevisionSchema,
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
+      command: z.literal("task-finalize"),
       taskRevision: TaskRevisionSchema,
     }),
     z.strictObject({
@@ -238,6 +269,12 @@ export const RspCommandRequestSchema = z
       revisionId: ProductionRevisionIdSchema,
       attemptId: AttemptIdSchema,
       deliveryPolicy: DeliveryPolicySchema,
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
+      command: z.literal("attempt-status"),
+      storyId: StoryIdSchema,
+      attemptId: AttemptIdSchema,
     }),
     z.strictObject({
       ...RspRequestBaseShape,
@@ -267,6 +304,7 @@ export const RspCommandResponseSchema = z.discriminatedUnion("ok", [
     error: z.strictObject({
       code: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u),
       message: z.string().min(1).max(500),
+      issues: z.array(RspFieldIssueSchema).max(50).readonly().optional(),
     }),
   }),
 ]);

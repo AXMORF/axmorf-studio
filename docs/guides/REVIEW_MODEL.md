@@ -42,4 +42,5 @@ media/checksum/EOF gates 全部通过才是 `delivery-current`，也只有该状
 这个 split 已由 contracts、controller 与 tests 固定；`source-current` 是 manual production 的有效 source-only 终态，
 但只有通过上述 exact-four-file gates 的 `delivery-current` 才证明可播放交付完成。hosted Apple Silicon packaged
 production E2E 已验证 manual/automatic terminal、真实 media probe、Preview 与 cleanup；该 deterministic native fixture
-不替代 Hermes 或其他已安装外部创作 Agent 的 production proof。
+只消费 task 随附 schemas/examples 并经 fixed finalize/check/commit，不依赖私有 output builder，但仍不替代 Hermes 或
+其他已安装外部创作 Agent 的 creative production proof。

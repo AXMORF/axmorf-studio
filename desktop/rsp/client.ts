@@ -10,6 +10,10 @@ import {
   type RspFieldIssue,
 } from "../contracts/project-create-surface";
 import {
+  buildRspAssetImportSchemaResponse,
+  buildRspCommandCatalog,
+} from "../contracts/command-surface";
+import {
   DoctorResponseSchema,
   RSP_CLI_FAILURES,
   RSP_MAX_REQUEST_BYTES,
@@ -222,7 +226,11 @@ const requestCommand = async ({
   }
   if (!parsed.data.ok) {
     const key = failureKeyForCode(parsed.data.error.code);
-    throw new RspCliFailure(key, parsed.data.error.message);
+    throw new RspCliFailure(
+      key,
+      parsed.data.error.message,
+      parsed.data.error.issues ?? [],
+    );
   }
   if (parsed.data.requestId !== command.requestId) {
     throw new RspCliFailure(
@@ -452,6 +460,18 @@ const parseExecutionOverride = (options: Map<string, string>) => {
       };
 };
 
+const parseRuntimeMaxConcurrency = (options: Map<string, string>) => {
+  const raw = options.get("--runtime-max-concurrency");
+  if (raw === undefined) return undefined;
+  if (!/^(?:0|[1-9][0-9]*)$/u.test(raw) || !Number.isSafeInteger(Number(raw))) {
+    throw new RspCliFailure(
+      "requestInvalid",
+      "Runtime concurrency must be a non-negative safe integer.",
+    );
+  }
+  return Number(raw);
+};
+
 export const buildRspCommand = async ({
   args,
   workspaceId,
@@ -470,6 +490,26 @@ export const buildRspCommand = async ({
   let requestValue: unknown;
   if (noun === "doctor" && verb === undefined) {
     requestValue = { ...base, command: "doctor" };
+  } else if (noun === "project" && verb === "create-context") {
+    if (rest.length !== 0) {
+      throw new RspCliFailure(
+        "requestInvalid",
+        "Command arguments are invalid.",
+      );
+    }
+    requestValue = { ...base, command: "project-create-context" };
+  } else if (noun === "project" && verb === "validate") {
+    if (rest.length !== 0) {
+      throw new RspCliFailure(
+        "requestInvalid",
+        "Command arguments are invalid.",
+      );
+    }
+    requestValue = {
+      ...base,
+      command: "project-validate",
+      input: await readStdinJson(io),
+    };
   } else if (noun === "context") {
     const options = parseOptions(args.slice(1), [
       "--project",
@@ -477,15 +517,20 @@ export const buildRspCommand = async ({
       "--execution-mode",
       "--max-concurrency",
       "--require-exact-concurrency",
+      "--runtime-max-concurrency",
     ]);
     const deliveryPolicy = parseOptionalDeliveryPolicy(options);
     const execution = parseExecutionOverride(options);
+    const runtimeMaxConcurrency = parseRuntimeMaxConcurrency(options);
     requestValue = {
       ...base,
       command: "context",
       storyId: requiredOption(options, "--project"),
       ...(deliveryPolicy === undefined ? {} : { deliveryPolicy }),
       ...(execution === undefined ? {} : { execution }),
+      ...(runtimeMaxConcurrency === undefined
+        ? {}
+        : { runtimeMaxConcurrency }),
     };
   } else if (noun === "project" && verb === "create") {
     if (rest.length !== 0) {
@@ -507,6 +552,33 @@ export const buildRspCommand = async ({
       ...base,
       command: "project-create",
       input: input.data,
+    };
+  } else if (noun === "project" && verb === "list") {
+    if (rest.length !== 0) {
+      throw new RspCliFailure(
+        "requestInvalid",
+        "Command arguments are invalid.",
+      );
+    }
+    requestValue = { ...base, command: "project-list" };
+  } else if (noun === "project" && verb === "delete") {
+    if (
+      rest.length !== 3 ||
+      rest[0] !== "--project" ||
+      rest[1] === undefined ||
+      rest[1].startsWith("--") ||
+      rest[2] !== "--confirm-delete"
+    ) {
+      throw new RspCliFailure(
+        "requestInvalid",
+        "Project delete requires --project <storyId> --confirm-delete.",
+      );
+    }
+    requestValue = {
+      ...base,
+      command: "project-delete",
+      storyId: rest[1],
+      confirmDelete: true,
     };
   } else if (noun === "asset" && verb === "import") {
     const options = parseOptions(rest, ["--project"]);
@@ -550,6 +622,20 @@ export const buildRspCommand = async ({
       command: "task-check",
       taskRevision: requiredOption(options, "--task"),
     };
+  } else if (noun === "task" && verb === "describe") {
+    const options = parseOptions(rest, ["--task"]);
+    requestValue = {
+      ...base,
+      command: "task-describe",
+      taskRevision: requiredOption(options, "--task"),
+    };
+  } else if (noun === "task" && verb === "finalize") {
+    const options = parseOptions(rest, ["--task"]);
+    requestValue = {
+      ...base,
+      command: "task-finalize",
+      taskRevision: requiredOption(options, "--task"),
+    };
   } else if (noun === "task" && verb === "commit") {
     const options = parseOptions(rest, ["--task", "--attempt"]);
     requestValue = {
@@ -581,6 +667,14 @@ export const buildRspCommand = async ({
       revisionId: requiredOption(options, "--revision"),
       attemptId: requiredOption(options, "--attempt"),
       deliveryPolicy: parseDeliveryPolicy(options),
+    };
+  } else if (noun === "attempt" && verb === "status") {
+    const options = parseOptions(rest, ["--project", "--attempt"]);
+    requestValue = {
+      ...base,
+      command: "attempt-status",
+      storyId: requiredOption(options, "--project"),
+      attemptId: requiredOption(options, "--attempt"),
     };
   } else if (noun === "delivery" && verb === "build") {
     const options = parseOptions(rest, ["--project"]);
@@ -614,12 +708,24 @@ export const executeRspCli = async (
   io: RspCliIo,
 ) => {
   try {
+    if (args.length === 2 && args[0] === "help" && args[1] === "--json") {
+      io.stdout(`${JSON.stringify(buildRspCommandCatalog())}\n`);
+      return 0;
+    }
     if (
       args.length === 2 &&
       args[0] === "schema" &&
       args[1] === "project-create"
     ) {
       io.stdout(`${JSON.stringify(buildRspProjectCreateSchemaResponse())}\n`);
+      return 0;
+    }
+    if (
+      args.length === 2 &&
+      args[0] === "schema" &&
+      args[1] === "asset-import"
+    ) {
+      io.stdout(`${JSON.stringify(buildRspAssetImportSchemaResponse())}\n`);
       return 0;
     }
     const commandTemplate = await buildRspCommand({

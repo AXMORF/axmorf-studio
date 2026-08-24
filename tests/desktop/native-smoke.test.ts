@@ -458,12 +458,13 @@ test("ordinary Desktop builds compile the native harness off", async () => {
 });
 
 test("native smoke drives real manual and automatic Delivery with network cleanup evidence", async () => {
-  const [nativeSmoke, renderer, runner, architectureEvidence] =
+  const [nativeSmoke, renderer, runner, architectureEvidence, nativeFixture] =
     await Promise.all([
       readFile("desktop/main/native-smoke.ts", "utf8"),
       readFile("desktop/renderer/App.tsx", "utf8"),
       readFile("scripts/desktop/native-gate-runner.sh", "utf8"),
       readFile("scripts/desktop/native-architecture-evidence.ts", "utf8"),
+      readFile("scripts/desktop/native-fixture.ts", "utf8"),
     ]);
   assert.match(nativeSmoke, /choice\.click\(\)/u);
   assert.match(nativeSmoke, /window\.axmorfStudio\.saveSettings/u);
@@ -511,13 +512,22 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
   assert.match(architectureEvidence, /runtimeNodeSeaCapable: true/u);
   assert.match(runner, /\.rsp\/bin\/rsp/u);
   assert.match(runner, /schema project-create/u);
+  assert.match(runner, /schema asset-import/u);
+  assert.match(runner, /project create-context/u);
+  assert.match(runner, /project validate/u);
+  assert.match(runner, /project-create-valid/u);
   assert.match(runner, /project create/u);
   assert.match(runner, /project-create-wrapper-reject/u);
   assert.match(runner, /rsp-project-create-wrapper-forbidden/u);
   assert.match(runner, /inspect --project desktop-native-fixture/u);
   assert.match(runner, /prepare --project desktop-native-fixture/u);
+  assert.match(runner, /task finalize/u);
   assert.match(runner, /task check/u);
   assert.match(runner, /task commit/u);
+  assert.match(nativeFixture, /inputs\/task-contract\.json/u);
+  assert.match(nativeFixture, /TaskExecutionContractSchema/u);
+  assert.doesNotMatch(nativeFixture, /buildSceneVisualPlan/u);
+  assert.doesNotMatch(nativeFixture, /createGlobalVisualPlan/u);
   assert.match(runner, /inspect-after-tasks\.json/u);
   assert.match(runner, /delivery build/u);
   assert.match(runner, /assert_exact_delivery/u);

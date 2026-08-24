@@ -19,6 +19,10 @@ import {
   startRspDoctorServer,
 } from "../../desktop/adapters/rsp-socket";
 import {
+  RspAssetImportSchemaResponseSchema,
+  RspCommandCatalogSchema,
+} from "../../desktop/contracts/command-surface";
+import {
   DESKTOP_NETWORK_POLICY,
   RSP_CLI_FAILURES,
   RSP_MAX_REQUEST_BYTES,
@@ -203,7 +207,7 @@ const rawCommand = ({
     },
   );
 
-test("rsp project-create schema is local, complete, and demonstrates raw stdin", async () => {
+test("rsp local discovery exposes structural schemas and the complete command catalog", async () => {
   const result = await runCli(
     ["schema", "project-create"],
     "/workspace-does-not-need-an-active-app/.rsp/bin",
@@ -214,6 +218,15 @@ test("rsp project-create schema is local, complete, and demonstrates raw stdin",
     JSON.parse(result.stdout),
   );
   assert.equal(schema.stdin, "raw-project-create-input");
+  assert.equal(schema.schemaScope, "structural-and-cross-field-static");
+  assert.equal(
+    schema.operationalValidation.contextCommand,
+    "./.rsp/bin/rsp project create-context",
+  );
+  assert.equal(
+    schema.operationalValidation.validateCommand,
+    "./.rsp/bin/rsp project validate",
+  );
   assert.equal(schema.sceneTemplatesOmission, "inherit-producer-config-defaults");
   assert.deepEqual(schema.forbiddenWrapperFields, [
     "command",
@@ -228,6 +241,37 @@ test("rsp project-create schema is local, complete, and demonstrates raw stdin",
   assert.ok(
     typeof schema.jsonSchema.properties === "object" &&
       schema.jsonSchema.properties !== null,
+  );
+  const help = await runCli(
+    ["help", "--json"],
+    "/workspace-does-not-need-an-active-app/.rsp/bin",
+  );
+  const asset = await runCli(
+    ["schema", "asset-import"],
+    "/workspace-does-not-need-an-active-app/.rsp/bin",
+  );
+  assert.equal(help.exitCode, 0);
+  assert.equal(asset.exitCode, 0);
+  const catalog = RspCommandCatalogSchema.parse(JSON.parse(help.stdout));
+  const commands = catalog.commands.map(({ command }) => command);
+  assert.ok(commands.includes("help --json"));
+  assert.ok(commands.includes("project create-context"));
+  assert.ok(commands.includes("project validate"));
+  assert.ok(commands.includes("task describe"));
+  assert.ok(commands.includes("task finalize"));
+  assert.ok(commands.includes("attempt status"));
+  const assetSchema = RspAssetImportSchemaResponseSchema.parse(
+    JSON.parse(asset.stdout),
+  );
+  assert.equal(assetSchema.stdin, "raw-asset-import-input");
+  const create = catalog.commands.find(
+    ({ command }) => command === "project create",
+  );
+  assert.equal(create?.stdin, "raw-project-create-input");
+  assert.equal(create?.usage, "./.rsp/bin/rsp project create");
+  assert.match(
+    catalog.commands.find(({ command }) => command === "context")?.usage ?? "",
+    /--runtime-max-concurrency/u,
   );
 });
 
@@ -353,13 +397,26 @@ test("rsp CLI exposes every public command and reads create/import only from std
         "3",
         "--require-exact-concurrency",
         "true",
+        "--runtime-max-concurrency",
+        "4",
       ],
       workspace.moduleDirectory,
+    ),
+    runCli(["project", "create-context"], workspace.moduleDirectory),
+    runCli(
+      ["project", "validate"],
+      workspace.moduleDirectory,
+      validProjectCreateInput,
     ),
     runCli(
       ["project", "create"],
       workspace.moduleDirectory,
       validProjectCreateInput,
+    ),
+    runCli(["project", "list"], workspace.moduleDirectory),
+    runCli(
+      ["project", "delete", "--project", "story-example", "--confirm-delete"],
+      workspace.moduleDirectory,
     ),
     runCli(
       ["asset", "import", "--project", "story-example"],
@@ -382,6 +439,14 @@ test("rsp CLI exposes every public command and reads create/import only from std
         "--delivery-policy",
         "automatic",
       ],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      ["task", "describe", "--task", taskRevision],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      ["task", "finalize", "--task", taskRevision],
       workspace.moduleDirectory,
     ),
     runCli(
@@ -418,6 +483,10 @@ test("rsp CLI exposes every public command and reads create/import only from std
       workspace.moduleDirectory,
     ),
     runCli(
+      ["attempt", "status", "--project", "story-example", "--attempt", attemptId],
+      workspace.moduleDirectory,
+    ),
+    runCli(
       ["delivery", "build", "--project", "story-example"],
       workspace.moduleDirectory,
     ),
@@ -436,9 +505,16 @@ test("rsp CLI exposes every public command and reads create/import only from std
       "inspect",
       "prepare",
       "project-create",
+      "project-create-context",
+      "project-delete",
+      "project-list",
+      "project-validate",
+      "attempt-status",
       "task-check",
       "task-commit",
+      "task-describe",
       "task-fail",
+      "task-finalize",
     ].sort(),
   );
   const create = received.find(({ command }) => command === "project-create");
@@ -457,6 +533,7 @@ test("rsp CLI exposes every public command and reads create/import only from std
       ? {
           deliveryPolicy: projectedContext.deliveryPolicy,
           execution: projectedContext.execution,
+          runtimeMaxConcurrency: projectedContext.runtimeMaxConcurrency,
         }
       : null,
     {
@@ -466,6 +543,7 @@ test("rsp CLI exposes every public command and reads create/import only from std
         maxConcurrency: 3,
         requireExactConcurrency: true,
       },
+      runtimeMaxConcurrency: 4,
     },
   );
   assert.equal(
@@ -731,6 +809,20 @@ test("rsp maps protocol, auth, request, command, and conflict failures to fixed 
       if (command.command === "delivery-build") {
         throw new RspCommandFailure("rsp-conflict", "Delivery is active.");
       }
+      if (command.command === "context") {
+        throw new RspCommandFailure(
+          "rsp-command-failed",
+          "Context is not ready.",
+          [
+            {
+              path: "$.visualStyle.styleProfileId",
+              code: "rsp-project-style-profile-unavailable",
+              message: "The requested style profile is not available.",
+              ownerAction: "Choose a styleProfileId returned by project create-context.",
+            },
+          ],
+        );
+      }
       throw new Error("private /absolute/path must not escape");
     },
   });
@@ -742,7 +834,21 @@ test("rsp maps protocol, auth, request, command, and conflict failures to fixed 
     workspace.moduleDirectory,
   );
   assert.equal(commandFailed.exitCode, 6);
-  assert.doesNotMatch(commandFailed.stderr, /absolute|private/iu);
+  const structured = JSON.parse(commandFailed.stderr) as {
+    issues: readonly { path: string; code: string; ownerAction?: string }[];
+  };
+  assert.equal(structured.issues[0]?.path, "$.visualStyle.styleProfileId");
+  assert.equal(
+    structured.issues[0]?.code,
+    "rsp-project-style-profile-unavailable",
+  );
+  assert.match(structured.issues[0]?.ownerAction ?? "", /create-context/u);
+  const privateFailure = await runCli(
+    ["prepare", "--project", "story-example"],
+    workspace.moduleDirectory,
+  );
+  assert.equal(privateFailure.exitCode, 6);
+  assert.doesNotMatch(privateFailure.stderr, /absolute|private/iu);
   const conflict = await runCli(
     ["delivery", "build", "--project", "story-example"],
     workspace.moduleDirectory,

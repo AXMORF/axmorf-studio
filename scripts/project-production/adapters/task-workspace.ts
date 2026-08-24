@@ -28,6 +28,15 @@ const taskWorkspaceRoot = ({ locations }: TaskWorkspaceLocation) =>
 const checksum = (bytes: Uint8Array | string) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 
+const readStoredTask = async (workspace: string) => {
+  const path = join(workspace, "task.json");
+  const metadata = await lstat(path);
+  if (!metadata.isFile() || metadata.isSymbolicLink()) {
+    throw new Error("Task workspace authority must be a regular file.");
+  }
+  return ProducerTaskSpecSchema.parse(JSON.parse(await readFile(path, "utf8")));
+};
+
 const assertDeclaredReadsCurrent = async (
   workspace: string,
   task: ProducerTaskSpec,
@@ -109,9 +118,7 @@ export const createTaskWorkspace = async (
     const metadata = await lstat(workspace);
     if (!metadata.isDirectory() || metadata.isSymbolicLink())
       throw new Error("Task workspace path is unsafe.");
-    const stored = ProducerTaskSpecSchema.parse(
-      JSON.parse(await readFile(join(workspace, "task.json"), "utf8")),
-    );
+    const stored = await readStoredTask(workspace);
     if (stored.taskRevision !== parsed.taskRevision)
       throw new Error("Task workspace identity is stale.");
     await assertDeclaredReadsCurrent(workspace, stored);
@@ -154,9 +161,7 @@ export const createTaskWorkspace = async (
     try {
       const metadata = await lstat(workspace);
       if (metadata.isDirectory() && !metadata.isSymbolicLink()) {
-        const stored = ProducerTaskSpecSchema.parse(
-          JSON.parse(await readFile(join(workspace, "task.json"), "utf8")),
-        );
+        const stored = await readStoredTask(workspace);
         if (stored.taskRevision === parsed.taskRevision) {
           await assertDeclaredReadsCurrent(workspace, stored);
           return workspace;
@@ -188,9 +193,7 @@ export const readTaskWorkspace = async (
       if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
         throw new Error("Task workspace path is unsafe.");
       }
-      const task = ProducerTaskSpecSchema.parse(
-        JSON.parse(await readFile(join(workspace, "task.json"), "utf8")),
-      );
+      const task = await readStoredTask(workspace);
       await assertDeclaredReadsCurrent(workspace, task);
       matches.push({ task, workspace });
     } catch (error) {

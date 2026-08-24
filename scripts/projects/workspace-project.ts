@@ -32,6 +32,7 @@ import {
   verifyWorkspaceProjectCreation,
 } from "./workspace-project-create";
 import { assertWorkspaceOwnedDirectoryChain } from "./workspace-owned-root";
+import { readProjectSourceRoot } from "./root";
 export { importWorkspaceProjectAsset } from "./workspace-project-asset";
 
 type Metadata = Awaited<ReturnType<typeof lstat>> | null;
@@ -150,6 +151,27 @@ export const readWorkspaceProjectContext = async ({
     assets,
     catalog,
   } as const;
+};
+
+export const listWorkspaceProjects = async ({
+  locations,
+}: {
+  readonly locations: ProductionLocations;
+}) => {
+  assertWorkspaceLocations(locations);
+  const entries = await readProjectSourceRoot(locations.projectSourceRoot);
+  const projectIds: string[] = [];
+  for (const entry of entries) {
+    if (entry.isSymbolicLink()) {
+      throw new Error("Workspace Project list contains a symbolic entry.");
+    }
+    if (!entry.isDirectory()) continue;
+    projectIds.push(StoryIdSchema.parse(entry.name));
+  }
+  return {
+    status: "workspace-project-list" as const,
+    projectIds: projectIds.sort((left, right) => left.localeCompare(right)),
+  };
 };
 
 const ownedTargets = ({

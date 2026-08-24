@@ -123,9 +123,12 @@ DeliveryBuild 可临时绑定 `127.0.0.1` OS-ephemeral renderer listener，并�
 
 CLI 是外部 Agent 的薄 client，只连接当前用户 session 的 authenticated local socket。v1 在 App 未运行时返回
 machine-readable `rsp-app-unavailable`；不自动安装或启动后台 daemon，也不回退到源码 npm scripts。
-`rsp schema project-create` 是唯一不需要 session 的 read-only exception：它从 packaged strict contract 返回完整
-JSON Schema 与有效 raw example，不读取 Workspace/private config，也不建立 socket。`rsp project create` 只接受 raw
-`ProjectCreateInput` stdin，拒绝 protocol/command/input wrapper，并用脱敏 field path/code/message 解释无效字段。
+`rsp help --json`、`rsp schema project-create` 与 `rsp schema asset-import` 是不需要 session 的本地 read-only
+discovery surface，不读取 Workspace/private config，也不建立 socket。project-create schema 返回 structural/static
+contract 与有效 raw example；active `project create-context` 返回 exact config/Runtime Pack choices，`project validate`
+在写入前完成 operational checks。`rsp project create` 只接受已验证的同一 raw `ProjectCreateInput` stdin，拒绝
+protocol/command/input wrapper，并用脱敏 field path/code/message/ownerAction 解释无效字段。dirty task 的 immutable
+`inputs/task-contract.json` 定义 exact outputs，fixed `task finalize` 负责派生 fingerprint/receipt。
 
 ## 4. App lifecycle
 

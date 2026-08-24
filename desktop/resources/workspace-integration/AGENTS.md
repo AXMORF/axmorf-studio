@@ -5,10 +5,11 @@ This Workspace is the only production-data authority for AXMORF Studio Desktop A
 - Read `.agents/skills/remotion-story-producer-video/SKILL.md` before interacting with the App.
 - Use only the Workspace-local `./.rsp/bin/rsp` v2 command surface. It is installed from the verified embedded
   Runtime Pack and never depends on host Node, npm, Git, a source checkout, or `PATH` discovery.
-- Begin with `./.rsp/bin/rsp doctor`, use the local read-only `./.rsp/bin/rsp schema project-create` contract before
-  creating a Project, then follow the managed Skill's create/context/inspect/prepare/task/continue sequence. Create
-  stdin is the raw strict `ProjectCreateInput`, never a command/protocol wrapper. Use `delivery build` only for a
-  current source when Delivery policy is manual.
+- Begin with `./.rsp/bin/rsp doctor`; discover the structural schema, active `project create-context`, and
+  `project validate` result before creating a Project. Create stdin is the same validated raw strict
+  `ProjectCreateInput`, never a command/protocol wrapper. For each dirty task, consume its immutable
+  `inputs/task-contract.json`, then use exact finalize/check/attempt-bound commit commands. Use `delivery build` only
+  for a current source when Delivery policy is manual.
 - Never run repository npm scripts, Remotion Studio, Settings Web services, or another CLI as a fallback.
 - Do not edit `.rsp/`, this file, the host adapters, or the managed Skill. Their exact bytes are checksum-bound.
 - An external Agent writes only the exact dirty task workspace returned by `prepare`. It does not write Project,

@@ -133,25 +133,37 @@ managedFiles + checksums
 
 ```text
 ./.rsp/bin/rsp doctor
+./.rsp/bin/rsp help --json
 ./.rsp/bin/rsp schema project-create
+./.rsp/bin/rsp schema asset-import
+./.rsp/bin/rsp project create-context
+./.rsp/bin/rsp project validate < project-create-input.json
 ./.rsp/bin/rsp project create < project-create-input.json
+./.rsp/bin/rsp project list
+./.rsp/bin/rsp project delete --project <storyId> --confirm-delete
 ./.rsp/bin/rsp context --project <storyId>
 ./.rsp/bin/rsp inspect --project <storyId>
 ./.rsp/bin/rsp prepare --project <storyId>
+./.rsp/bin/rsp task describe --task <taskRevision>
+./.rsp/bin/rsp task finalize --task <taskRevision>
 ./.rsp/bin/rsp task check --task <taskRevision>
 ./.rsp/bin/rsp task commit --task <taskRevision> --attempt <attemptId>
 ./.rsp/bin/rsp task fail --task <taskRevision> --attempt <attemptId> --kind <task|host>
+./.rsp/bin/rsp attempt status --project <storyId> --attempt <attemptId>
 ./.rsp/bin/rsp continue --project <storyId> --revision <revisionId> --attempt <attemptId>
 ./.rsp/bin/rsp delivery build --project <storyId>
 ```
 
 `rsp schema project-create` 是不依赖 active App session 的本地只读 surface，返回当前 packaged
-`ProjectCreateInput` 的完整 JSON Schema、wrapper 禁止列表与有效 raw stdin 示例。`rsp project create` 的 stdin
-就是 raw `ProjectCreateInput`；`command`、`input`、`protocolVersion`、`requestId`、`workspaceId` wrapper 全部禁止。
-无效输入返回脱敏 `issues[]`（`path`、`code`、`message`），不包含字段值、provider body 或 private data。用户未
+`ProjectCreateInput` structural/static-cross-field JSON Schema、wrapper 禁止列表与有效 raw stdin 示例；
+`project create-context` 从 active App 投影 exact style/collection/template/resource choices，`project validate` 合并
+config/Runtime Pack operational checks。`project create` 的 stdin 就是通过验证的同一 raw `ProjectCreateInput`；
+`command`、`input`、`protocolVersion`、`requestId`、`workspaceId` wrapper 全部禁止。无效输入返回脱敏
+`issues[]`（`path`、`code`、`message`、可选 `ownerAction`），不包含字段值、provider body 或 private data。用户未
 明确指定边界 Scene 时省略 `sceneTemplates`，继续继承 encrypted ProducerConfig 的现有 defaults；显式 ID 或
-`null` 才覆盖该语义。managed Workspace Skill 必须同时携带这份命令说明、完整 contract reference 和至少一个
-可直接送入 stdin 的有效例子，外部 Agent 不需要源码 checkout 或 tests 才能创建 Project。
+`null` 才覆盖该语义。managed Workspace Skill 只路由这些 discoverable contracts；dirty task 的 exact schemas、
+examples、component signatures 和 derived-field ownership 位于 immutable `inputs/task-contract.json`，由
+`task finalize` 计算 fingerprint/receipt，外部 Agent 不需要源码 checkout、私有 builder 或 tests。
 
 `.rsp/bin/rsp` 是 App-managed、checksum-bound 的 workspace-local launcher，不依赖系统 `PATH`，也不是指向
 可变源码 checkout 的 symlink。它通过 `.rsp/workspace.json` 定位当前 App session 与 Workspace，不把 App 安装

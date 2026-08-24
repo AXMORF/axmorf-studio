@@ -21,11 +21,14 @@ import { WorkspaceContextProjectionSchema } from "../../../desktop/contracts/wor
 import { importWorkspaceProjectAsset } from "../../projects/workspace-project";
 import {
   createWorkspaceProject,
+  deleteWorkspaceProject,
+  listWorkspaceProjects,
   readWorkspaceProjectContext,
 } from "../../projects/workspace-project";
 import {
   appendExecutionAttemptTaskOutcome,
   assertExecutionAttemptTaskAuthority,
+  readExecutionAttemptProgress,
 } from "../adapters/attempt-store";
 import { rspLocalProductionCommandFormatter } from "../adapters/rsp-local-command-formatter";
 import { readTaskWorkspace } from "../adapters/task-workspace";
@@ -58,6 +61,16 @@ import {
   readProductionDiagnosticBaseline,
 } from "../adapters/production-inspection";
 import { createRuntimeDeliveryInspectionDependencies } from "../adapters/current-delivery-inspection";
+import {
+  finalizeAgentTaskWorkspace,
+  readAgentTaskExecutionContract,
+} from "./finalize-agent-task";
+import {
+  buildRspProjectCreateContext,
+  validateRspProjectCreate,
+} from "../../../desktop/application/project-create-contract";
+import { RspPublicCommandError } from "../../../desktop/contracts/issues";
+import { publicTaskCommandError } from "../../../desktop/application/public-command-errors";
 
 const workspaceLoadInputs = (
   input: Parameters<typeof loadProjectProductionInputs>[0],
@@ -355,10 +368,12 @@ export const createWorkspaceProductionController = async ({
     projectId,
     deliveryPolicy,
     execution,
+    commandRuntimeMaxConcurrency,
   }: {
     readonly projectId: string;
     readonly deliveryPolicy?: DeliveryPolicy;
     readonly execution?: AgentExecutionOverride;
+    readonly commandRuntimeMaxConcurrency?: number;
   }) => {
     const [project, config, resolvedDeliveryPolicy, executionPreferences] =
       await Promise.all([
@@ -397,9 +412,12 @@ export const createWorkspaceProductionController = async ({
           preferences: executionPreferences.preferences,
           preferenceSource: executionPreferences.source,
           ...(execution === undefined ? {} : { override: execution }),
-          ...(runtimeMaxConcurrency === undefined
+          ...((commandRuntimeMaxConcurrency ?? runtimeMaxConcurrency) === undefined
             ? {}
-            : { runtimeMaxConcurrency }),
+            : {
+                runtimeMaxConcurrency:
+                  commandRuntimeMaxConcurrency ?? runtimeMaxConcurrency,
+              }),
         }),
       },
     });
@@ -412,6 +430,32 @@ export const createWorkspaceProductionController = async ({
     };
     error.code = DESKTOP_PRODUCER_CONFIG_REQUIRED;
     throw error;
+  };
+  const projectCreateContext = async () => {
+    const config = await readConfig();
+    return buildRspProjectCreateContext({
+      locations,
+      config,
+      providerReadiness:
+        providerReadiness ?? (config === null ? "not-configured" : "ready"),
+    });
+  };
+  const validateProjectCreate = async (input: unknown) =>
+    validateRspProjectCreate({
+      locations,
+      config: await readConfig(),
+      input,
+    });
+  const createProjectPublic = async (input: unknown) => {
+    const validation = await validateProjectCreate(input);
+    if (validation.status === "project-create-invalid") {
+      throw new RspPublicCommandError(
+        "rsp-command-failed",
+        "Project create input failed operational validation.",
+        validation.issues,
+      );
+    }
+    return (await withConfig()).createProject(input);
   };
   const withConfig = async () =>
     createProjectProductionController({
@@ -440,36 +484,79 @@ export const createWorkspaceProductionController = async ({
     });
     return (await withConfig()).prepare(projectId, resolved.value);
   };
+  const publicTaskOperation = async <Result>(
+    operation: "describe" | "finalize" | "check" | "commit",
+    run: () => Promise<Result>,
+  ) => {
+    try {
+      return await run();
+    } catch (error) {
+      if (error instanceof RspPublicCommandError) throw error;
+      throw publicTaskCommandError({ operation, error });
+    }
+  };
   const execute = async (request: Readonly<Record<string, unknown>>) => {
     switch (request.command) {
+      case "project-create-context":
+        return projectCreateContext();
+      case "project-validate":
+        return validateProjectCreate(request.input);
+      case "project-list":
+        return listWorkspaceProjects({ locations });
+      case "project-delete":
+        return deleteWorkspaceProject({
+          locations,
+          projectId: String(request.storyId),
+        });
       case "context":
         return context({
           projectId: String(request.storyId),
           deliveryPolicy: request.deliveryPolicy as DeliveryPolicy | undefined,
           execution: request.execution as AgentExecutionOverride | undefined,
+          commandRuntimeMaxConcurrency: request.runtimeMaxConcurrency as
+            | number
+            | undefined,
         });
       case "asset-import":
         return workspaceCommands.importAsset({ locations, request });
       case "inspect":
         return inspect(String(request.storyId));
       case "project-create":
-        return (await withConfig()).createProject(request.input);
+        return createProjectPublic(request.input);
       case "prepare":
         return prepare(
           String(request.storyId),
           request.deliveryPolicy as DeliveryPolicy | undefined,
         );
       case "task-check":
-        return workspaceCommands.checkTask({
-          locations,
-          taskRevision: String(request.taskRevision),
-        });
+        return publicTaskOperation("check", () =>
+          workspaceCommands.checkTask({
+            locations,
+            taskRevision: String(request.taskRevision),
+          }),
+        );
+      case "task-describe":
+        return publicTaskOperation("describe", () =>
+          readAgentTaskExecutionContract({
+            locations,
+            taskRevision: String(request.taskRevision),
+          }),
+        );
+      case "task-finalize":
+        return publicTaskOperation("finalize", () =>
+          finalizeAgentTaskWorkspace({
+            locations,
+            taskRevision: String(request.taskRevision),
+          }),
+        );
       case "task-commit":
-        return workspaceCommands.commitTask({
-          locations,
-          taskRevision: String(request.taskRevision),
-          attemptId: String(request.attemptId),
-        });
+        return publicTaskOperation("commit", () =>
+          workspaceCommands.commitTask({
+            locations,
+            taskRevision: String(request.taskRevision),
+            attemptId: String(request.attemptId),
+          }),
+        );
       case "task-fail":
         return workspaceCommands.failTask({
           locations,
@@ -484,6 +571,43 @@ export const createWorkspaceProductionController = async ({
           attemptId: String(request.attemptId),
           deliveryPolicy: request.deliveryPolicy as DeliveryPolicy,
         });
+      case "attempt-status": {
+        const attempt = await readExecutionAttemptProgress({
+          locations,
+          storyId: String(request.storyId),
+          attemptId: String(request.attemptId),
+        });
+        if (attempt === null) {
+          throw new RspPublicCommandError(
+            "rsp-command-failed",
+            "Execution attempt was not found.",
+            [
+              {
+                path: "$.attemptId",
+                code: "rsp-attempt-not-found",
+                message: "No execution attempt exists for this Project and attemptId.",
+                ownerAction: "Use the exact attemptId returned by rsp prepare.",
+              },
+            ],
+          );
+        }
+        return {
+          status: "execution-attempt-status" as const,
+          storyId: attempt.storyId,
+          revisionId: attempt.revisionId,
+          attemptId: attempt.attemptId,
+          state: attempt.state,
+          createdAt: attempt.createdAt,
+          updatedAt: attempt.updatedAt,
+          dirtyTaskRevisions: attempt.dirtyTaskRevisions,
+          taskSummary: attempt.taskSummary,
+          taskOutcomeSummary: attempt.taskOutcomeSummary,
+          eventCount: attempt.eventCount,
+          taskOutcomes: attempt.taskOutcomes,
+          terminalResult: attempt.terminalResult,
+          diagnosticCode: attempt.diagnosticCode,
+        };
+      }
       case "delivery-build":
         return (await withConfig()).buildDelivery(String(request.storyId));
       default:
@@ -496,20 +620,32 @@ export const createWorkspaceProductionController = async ({
       overrides: Readonly<{
         deliveryPolicy?: DeliveryPolicy;
         execution?: AgentExecutionOverride;
+        runtimeMaxConcurrency?: number;
       }> = {},
     ) =>
       context({
         projectId,
-        ...overrides,
+        deliveryPolicy: overrides.deliveryPolicy,
+        execution: overrides.execution,
+        commandRuntimeMaxConcurrency: overrides.runtimeMaxConcurrency,
       }),
     createProject: async (request: unknown) =>
       (await withConfig()).createProject(request),
+    projectCreateContext,
+    validateProjectCreate,
+    listProjects: () => listWorkspaceProjects({ locations }),
+    deleteProject: (projectId: string) =>
+      deleteWorkspaceProject({ locations, projectId }),
     importAsset: (request: unknown) =>
       workspaceCommands.importAsset({ locations, request }),
     inspect,
     prepare,
     checkTask: (taskRevision: string) =>
       workspaceCommands.checkTask({ locations, taskRevision }),
+    describeTask: (taskRevision: string) =>
+      readAgentTaskExecutionContract({ locations, taskRevision }),
+    finalizeTask: (taskRevision: string) =>
+      finalizeAgentTaskWorkspace({ locations, taskRevision }),
     commitTask: (taskRevision: string, attemptId: string) =>
       workspaceCommands.commitTask({ locations, taskRevision, attemptId }),
     failTask: (
@@ -526,6 +662,8 @@ export const createWorkspaceProductionController = async ({
     }) => (await withConfig()).continueProduction(input),
     buildDelivery: async (projectId: string) =>
       (await withConfig()).buildDelivery(projectId),
+    attemptStatus: (projectId: string, attemptId: string) =>
+      readExecutionAttemptProgress({ locations, storyId: projectId, attemptId }),
     shutdown: delivery.shutdown,
     execute,
   });

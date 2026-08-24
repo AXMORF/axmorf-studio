@@ -96,8 +96,8 @@ internal installer artifact 也不等于许可、签名、公证或公开 Releas
 
 ## 后续候选
 
-1. 继续补真实已安装 Codex/Hermes creative E2E；当前 native gate 的 deterministic executor evidence 不冒充创意
-   Agent 证据。provider-neutral Desktop 配置表单与 packaged ProjectCreateInput contract 已进入 implementation。
+1. 继续补真实已安装 Codex/Hermes creative E2E；当前 native gate 已改为消费 self-describing task contract 并调用
+   fixed finalize/check/commit，但 deterministic contract evidence 不冒充创意 Agent 证据。
 2. 为大型 artifact sets 增加只读诊断的性能与容量治理，不改变本地 filesystem authority 或既有解释合同。
 3. 增加用户显式触发的 publishing adapter；上传、账号、网络、密钥是新的独立授权边界。
 4. 基于 fingerprint-bound proposal 和用户逐项授权提升 Project-local capability；不得自动 promotion。

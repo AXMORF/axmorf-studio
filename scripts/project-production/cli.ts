@@ -18,6 +18,7 @@ import { commitProducerTaskArtifact } from "./application/commit-task-artifact";
 import { continueProjectProduction } from "./application/continue-production";
 import { convergeProjectProduction } from "./application/converge-artifacts";
 import { checkTaskByKind } from "./application/check-task";
+import { finalizeAgentTaskWorkspace } from "./application/finalize-agent-task";
 import { inspectProjectProduction } from "./application/inspect-production";
 import { prepareProjectProduction } from "./application/prepare-production";
 import { resolveProjectAgentExecution } from "./application/resolve-agent-execution";
@@ -84,6 +85,7 @@ type Context = Readonly<{
   appendTaskOutcome?: typeof appendExecutionAttemptTaskOutcome;
   assertTaskAuthority?: typeof assertExecutionAttemptTaskAuthority;
   resolveRuntime?: typeof resolveRepositoryRuntimeExecutionResources;
+  finalizeTask?: typeof finalizeAgentTaskWorkspace;
   loadProducerConfig?: (input: {
     readonly repositoryRoot: string;
   }) => Promise<ProducerConfig>;
@@ -285,6 +287,16 @@ export const runProjectProductionCli = async (
     };
     context.stdout(JSON.stringify(output));
     return output;
+  }
+  if (command === "task-finalize") {
+    const result = await (
+      context.finalizeTask ?? finalizeAgentTaskWorkspace
+    )({
+      locations,
+      taskRevision: option(args, "--task"),
+    });
+    context.stdout(JSON.stringify(result));
+    return result;
   }
   if (command === "task-commit") {
     const taskRevision = option(args, "--task");

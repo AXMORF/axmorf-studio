@@ -204,6 +204,7 @@ const dirtyAgentTasks = async ({
       workspace: string;
       changedInputs: readonly string[];
       blockedBy: TaskDecisionExplanation["blockedBy"];
+      finalizeCommand: string;
       checkCommand: string;
     }>
   > = [];
@@ -221,7 +222,12 @@ const dirtyAgentTasks = async ({
     const workspace = await createWorkspace({
       locations,
       task: seed.task,
-      seedFiles: { "inputs/context.json": seed.contextBytes },
+      seedFiles: {
+        "inputs/context.json": seed.contextBytes,
+        ...(seed.taskContractBytes === undefined
+          ? {}
+          : { "inputs/task-contract.json": seed.taskContractBytes }),
+      },
     });
     if (!isAbsolute(workspace)) {
       throw new Error("Dirty Agent workspace must be absolute.");
@@ -243,6 +249,9 @@ const dirtyAgentTasks = async ({
         .filter(({ kind }) => kind === "input")
         .map(({ id }) => id),
       blockedBy: explanation.blockedBy,
+      finalizeCommand: commandFormatter.finalizeTask({
+        taskRevision: explanation.taskRevision,
+      }),
       checkCommand: commandFormatter.checkTask({
         taskRevision: explanation.taskRevision,
       }),
