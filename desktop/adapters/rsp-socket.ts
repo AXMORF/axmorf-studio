@@ -23,6 +23,7 @@ import {
   RspCommandRequestSchema,
   RspCommandResponseSchema,
   SessionRecordSchema,
+  isRspReadOnlyCommand,
   type DoctorResponse,
   type RspCommandRequest,
   type SessionRecord,
@@ -391,17 +392,6 @@ export const startRspDoctorServer = async ({
     expiresAt,
   });
   let mutatingQueue = Promise.resolve();
-  const readonlyCommands = new Set<RspCommandRequest["command"]>([
-    "doctor",
-    "project-create-context",
-    "project-validate",
-    "project-list",
-    "context",
-    "inspect",
-    "attempt-status",
-    "task-describe",
-    "task-check",
-  ]);
   const runCommand = (command: RspCommandRequest) => {
     if (command.command === "doctor") return Promise.resolve(getDoctorState());
     if (executeCommand === undefined) {
@@ -417,7 +407,7 @@ export const startRspDoctorServer = async ({
     } catch (error) {
       return Promise.reject(error);
     }
-    if (readonlyCommands.has(command.command)) return executeCommand(command);
+    if (isRspReadOnlyCommand(command.command)) return executeCommand(command);
     const queued = mutatingQueue.then(() => executeCommand(command));
     mutatingQueue = queued.then(
       () => undefined,

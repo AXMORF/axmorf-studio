@@ -33,6 +33,7 @@ import {
   DESKTOP_NETWORK_POLICY,
   DoctorResponseSchema,
   RSP_PROTOCOL_VERSION,
+  isRspReadOnlyCommand,
   parseMainToEngineMessage,
   type DoctorResponse,
   type EngineToMainMessage,
@@ -462,11 +463,12 @@ export const createEngineController = ({
   };
 
   const authorizeCommand: RspCommandAuthorizer = (request) => {
-    const readonlyDuringActive =
-      request.command === "doctor" ||
-      request.command === "context" ||
-      request.command === "inspect" ||
-      request.command === "task-check";
+    const readonlyDuringActive = isRspReadOnlyCommand(request.command);
+    const activeTaskWorkspaceMutation =
+      request.command === "task-finalize" &&
+      activeWork?.kind === "production" &&
+      activeWork.attemptId !== null &&
+      activeWork.phase === "awaiting-task-terminals";
     const exactAttemptTerminal =
       (request.command === "task-commit" || request.command === "task-fail") &&
       activeWork?.kind === "production" &&
@@ -486,7 +488,8 @@ export const createEngineController = ({
       (!readonlyDuringActive &&
         activeWork !== null &&
         !exactAttemptTerminal &&
-        !exactContinuation) ||
+        !exactContinuation &&
+        !activeTaskWorkspaceMutation) ||
       (attemptCommand && activeWork === null)
     ) {
       throw new RspCommandFailure(

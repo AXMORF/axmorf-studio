@@ -290,6 +290,22 @@ export const RspCommandRequestSchema = z
 
 export type RspCommandRequest = z.infer<typeof RspCommandRequestSchema>;
 
+const RSP_READ_ONLY_COMMANDS = new Set<RspCommandRequest["command"]>([
+  "doctor",
+  "project-create-context",
+  "project-validate",
+  "project-list",
+  "context",
+  "inspect",
+  "attempt-status",
+  "task-describe",
+  "task-check",
+]);
+
+export const isRspReadOnlyCommand = (
+  command: RspCommandRequest["command"],
+) => RSP_READ_ONLY_COMMANDS.has(command);
+
 export const RspCommandResponseSchema = z.discriminatedUnion("ok", [
   z.strictObject({
     protocolVersion: z.literal(RSP_PROTOCOL_VERSION),

@@ -434,6 +434,13 @@ test("active work rejects conflicting mutations and only admits its exact attemp
     command: "delivery-build",
     storyId: StoryIdSchema.parse("story-one"),
   });
+  await expectConflict({
+    protocolVersion: RSP_PROTOCOL_VERSION,
+    requestId: "rsp-finalize-before-attempt",
+    workspaceId,
+    command: "task-finalize",
+    taskRevision: TaskRevisionSchema.parse(`task-${"b".repeat(64)}`),
+  });
   assert.deepEqual(harness.commands, ["prepare"]);
   assert.equal(
     harness.controller.doctorState().activeWork?.phase,
@@ -478,6 +485,20 @@ test("active work rejects conflicting mutations and only admits its exact attemp
 
   await harness.executeFromRsp({
     protocolVersion: RSP_PROTOCOL_VERSION,
+    requestId: "rsp-active-task-describe",
+    workspaceId,
+    command: "task-describe",
+    taskRevision: TaskRevisionSchema.parse(`task-${"b".repeat(64)}`),
+  });
+  await harness.executeFromRsp({
+    protocolVersion: RSP_PROTOCOL_VERSION,
+    requestId: "rsp-active-task-finalize",
+    workspaceId,
+    command: "task-finalize",
+    taskRevision: TaskRevisionSchema.parse(`task-${"b".repeat(64)}`),
+  });
+  await harness.executeFromRsp({
+    protocolVersion: RSP_PROTOCOL_VERSION,
     requestId: "rsp-exact-attempt-commit",
     workspaceId,
     command: "task-commit",
@@ -494,7 +515,13 @@ test("active work rejects conflicting mutations and only admits its exact attemp
     attemptId,
     deliveryPolicy: "manual",
   });
-  assert.deepEqual(harness.commands, ["prepare", "task-commit", "continue"]);
+  assert.deepEqual(harness.commands, [
+    "prepare",
+    "task-describe",
+    "task-finalize",
+    "task-commit",
+    "continue",
+  ]);
   assert.equal(harness.controller.doctorState().activeWork, null);
 });
 
