@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import test from "node:test";
@@ -77,12 +77,17 @@ test("prompt M4A normalizes in the explicit cache root without modifying source 
         "-acodec",
         "pcm_s16le",
         "-f",
-        "s16le",
-        "pipe:1",
+        "wav",
+        args.at(-1),
       ]);
+      assert.match(
+        relative(temporaryRoot, args.at(-1) ?? ""),
+        /^rsp-voxcpm-prompt-.*\/normalized\.wav$/u,
+      );
+      await writeFile(args.at(-1)!, canonicalPromptWav);
       return {
         exitCode: 0,
-        stdout: Buffer.from([0, 0, 1, 0]),
+        stdout: Buffer.alloc(0),
         stderr: Buffer.alloc(0),
       };
     },

@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { normalizeProviderAudio } from "../../scripts/narration/adapters/ffmpeg-normalizer";
+import { getDesktopDarwinTarget } from "../../desktop/configuration/darwin-target";
+import {
+  createExecutableProcessRunner,
+  normalizeProviderAudio,
+} from "../../scripts/narration/adapters/ffmpeg-normalizer";
 import {
   CANONICAL_NARRATION_PCM,
   concatenateCanonicalPcm,
@@ -12,6 +20,20 @@ import {
   sha256Bytes,
 } from "../../scripts/narration/domain/pcm-wav";
 import { createRawPcmFixture, createWavFixture } from "../fixtures/wav";
+
+const require = createRequire(import.meta.url);
+
+const resolveRemotionFfmpeg = () => {
+  const packageJson =
+    process.platform === "darwin"
+      ? getDesktopDarwinTarget(process.arch).compositorPackageJson
+      : process.platform === "linux" && process.arch === "x64"
+        ? "@remotion/compositor-linux-x64-gnu/package.json"
+        : null;
+  return packageJson === null
+    ? null
+    : join(dirname(require.resolve(packageJson)), "ffmpeg");
+};
 
 test("sampleFrameCount counts channel frames rather than interleaved samples", () => {
   const wav = encodeCanonicalPcmWav(Buffer.alloc(48_000 * 2));
@@ -60,7 +82,12 @@ test("normalizer applies provider-neutral speech rate before canonical PCM", asy
     runProcess: async (command, args) => {
       captured.command = command;
       captured.args = args;
-      return { exitCode: 0, stdout: rawPcm, stderr: Buffer.alloc(0) };
+      await writeFile(args.at(-1)!, encodeCanonicalPcmWav(rawPcm));
+      return {
+        exitCode: 0,
+        stdout: Buffer.alloc(0),
+        stderr: Buffer.alloc(0),
+      };
     },
   });
 
@@ -75,15 +102,40 @@ test("normalizer applies provider-neutral speech rate before canonical PCM", asy
     "-acodec",
     "pcm_s16le",
     "-f",
-    "s16le",
-    "pipe:1",
+    "wav",
+    captured.args?.at(-1),
   ]);
+  assert.match(captured.args?.at(-1) ?? "", /normalized\.wav$/u);
   assert.equal(
     captured.args?.some((argument) => /silenceremove|atrim/.test(argument)),
     false,
   );
   assert.deepEqual(decodeCanonicalPcmWav(wav).rawPcm, rawPcm);
 });
+
+test(
+  "normalizer runs against the exact Remotion compositor FFmpeg capability",
+  { skip: resolveRemotionFfmpeg() === null },
+  async (context) => {
+    const temporaryRoot = await mkdtemp(join(tmpdir(), "rsp-remotion-ffmpeg-"));
+    context.after(() => rm(temporaryRoot, { recursive: true, force: true }));
+    const rawPcm = Buffer.alloc(CANONICAL_NARRATION_PCM.sampleRate * 2);
+    for (let index = 0; index < CANONICAL_NARRATION_PCM.sampleRate; index += 1) {
+      rawPcm.writeInt16LE(index % 2 === 0 ? 240 : -240, index * 2);
+    }
+    const normalized = await normalizeProviderAudio({
+      sourceBytes: encodeCanonicalPcmWav(rawPcm),
+      runProcess: createExecutableProcessRunner(resolveRemotionFfmpeg()!),
+      temporaryRoot,
+    });
+
+    assert.ok(decodeCanonicalPcmWav(normalized).sampleFrameCount > 0);
+    assert.deepEqual(
+      decodeCanonicalPcmWav(normalized).pcm,
+      CANONICAL_NARRATION_PCM,
+    );
+  },
+);
 
 test("WAV decoding rejects malformed and noncanonical audio", () => {
   assert.throws(() => encodeCanonicalPcmWav(Buffer.alloc(3)), /even/i);
@@ -114,7 +166,7 @@ test("WAV decoding rejects malformed and noncanonical audio", () => {
   assert.throws(() => decodeCanonicalPcmWav(truncated), /truncated/i);
 });
 
-test("normalizer rejects empty input process failures and empty PCM", async () => {
+test("normalizer rejects empty input, process failures, and invalid output", async () => {
   await assert.rejects(
     () =>
       normalizeProviderAudio({
@@ -157,7 +209,22 @@ test("normalizer rejects empty input process failures and empty PCM", async () =
           stderr: Buffer.alloc(0),
         }),
       }),
-    /empty PCM/i,
+    /did not create WAV output/i,
+  );
+  await assert.rejects(
+    () =>
+      normalizeProviderAudio({
+        sourceBytes: Buffer.from("provider"),
+        runProcess: async (_command, args) => {
+          await writeFile(args.at(-1)!, "not a WAV");
+          return {
+            exitCode: 0,
+            stdout: Buffer.alloc(0),
+            stderr: Buffer.alloc(0),
+          };
+        },
+      }),
+    /invalid canonical WAV output/i,
   );
 });
 

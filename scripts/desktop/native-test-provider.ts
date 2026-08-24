@@ -23,10 +23,14 @@ import type {
   RuntimeExecutionResources,
 } from "../project-production/application/production-locations";
 import {
+  decodeCanonicalPcmWav,
   encodeCanonicalPcmWav,
   sha256Bytes,
 } from "../narration/domain/pcm-wav";
-import { createExecutableProcessRunner } from "../narration/adapters/ffmpeg-normalizer";
+import {
+  createExecutableProcessRunner,
+  normalizeProviderAudio,
+} from "../narration/adapters/ffmpeg-normalizer";
 import { masterNarrationBytes } from "../narration/mastering";
 import { resolveNarrationMediaLogicalPath } from "../narration/production-paths";
 import { resolveProducerNarrationInspection } from "../config/narration-execution";
@@ -128,6 +132,9 @@ export const prepareWorkspaceNarration: WorkspacePrepareNarration = async ({
   } as const;
   const segmentPcm: Buffer[] = [];
   const chunkAudioBytes = new Map<string, Uint8Array>();
+  const runMediaProcess = createExecutableProcessRunner(
+    runtime.ffmpegExecutable,
+  );
   const segments: Array<
     | Readonly<{
         kind: "chunk";
@@ -157,17 +164,24 @@ export const prepareWorkspaceNarration: WorkspacePrepareNarration = async ({
       ]),
     );
     for (const chunk of beat.ttsChunks) {
-      const sampleFrameCount = 36_000;
-      const rawPcm = tone({ sampleFrameCount, frequency });
+      const sourceSampleFrameCount = 36_000;
+      const sourceWav = encodeCanonicalPcmWav(
+        tone({ sampleFrameCount: sourceSampleFrameCount, frequency }),
+      );
       frequency += 90;
-      const wav = encodeCanonicalPcmWav(rawPcm);
+      const wav = await normalizeProviderAudio({
+        sourceBytes: sourceWav,
+        runProcess: runMediaProcess,
+        temporaryRoot: locations.disposableBuildRoot,
+      });
+      const normalized = decodeCanonicalPcmWav(wav);
       const logicalPath = `public/projects/${projectId}/narration/chunks/${chunk.chunkId}.wav`;
       await write(
         join(mediaRoot, "narration/chunks", `${chunk.chunkId}.wav`),
         wav,
       );
       chunkAudioBytes.set(chunk.chunkId, wav);
-      segmentPcm.push(rawPcm);
+      segmentPcm.push(normalized.rawPcm);
       segments.push({
         kind: "chunk",
         chunkId: chunk.chunkId,
@@ -176,7 +190,7 @@ export const prepareWorkspaceNarration: WorkspacePrepareNarration = async ({
         localPath: logicalPath,
         checksum: sha256Bytes(wav),
         pcm,
-        sampleFrameCount,
+        sampleFrameCount: normalized.sampleFrameCount,
       });
       const pauseMs = pauses.get(chunk.chunkId);
       if (pauseMs !== undefined) {
@@ -221,7 +235,7 @@ export const prepareWorkspaceNarration: WorkspacePrepareNarration = async ({
     sourcePath: completeAudioPath,
     sourceWav: completeAudioBytes,
     targetLoudnessLufs: config.tts.speech.targetLoudnessLufs,
-    runProcess: createExecutableProcessRunner(runtime.ffmpegExecutable),
+    runProcess: runMediaProcess,
     temporaryRoot: locations.disposableBuildRoot,
   });
   const masteredAudio = {

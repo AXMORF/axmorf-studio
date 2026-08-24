@@ -455,6 +455,7 @@ test("ordinary Desktop builds compile the native harness off", async () => {
   assert.match(engineConfig, /__prettierCreateRequire\(__filename\)/u);
   assert.match(provider, /export const prepareWorkspaceNarration/u);
   assert.match(provider, /desktop-native-test-pcm-v3/u);
+  assert.match(provider, /normalizeProviderAudio/u);
 });
 
 test("native smoke drives real manual and automatic Delivery with network cleanup evidence", async () => {

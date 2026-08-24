@@ -1,10 +1,11 @@
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 
 import {
   CANONICAL_NARRATION_PCM,
+  decodeCanonicalPcmWav,
   encodeCanonicalPcmWav,
 } from "../domain/pcm-wav";
 
@@ -66,6 +67,80 @@ export const createExecutableProcessRunner = (
     );
 };
 
+export const normalizeFfmpegAudioToCanonicalWav = async ({
+  sourceBytes,
+  audioFilter,
+  normalizationKind,
+  runProcess = runHostProcess,
+  temporaryRoot = tmpdir(),
+}: {
+  readonly sourceBytes: Buffer;
+  readonly audioFilter?: string;
+  readonly normalizationKind: "narration" | "prompt";
+  readonly runProcess?: ProcessRunner;
+  readonly temporaryRoot?: string;
+}): Promise<Buffer> => {
+  const label =
+    normalizationKind === "narration"
+      ? "FFmpeg normalization"
+      : "FFmpeg prompt normalization";
+  await mkdir(temporaryRoot, { recursive: true });
+  const temporaryDirectory = await mkdtemp(
+    join(
+      temporaryRoot,
+      normalizationKind === "narration"
+        ? "rsp-narration-normalize-"
+        : "rsp-voxcpm-prompt-",
+    ),
+  );
+  const inputPath = join(temporaryDirectory, "provider-audio");
+  const outputPath = join(temporaryDirectory, "normalized.wav");
+  try {
+    await writeFile(inputPath, Uint8Array.from(sourceBytes), { flag: "wx" });
+    const result = await runProcess("ffmpeg", [
+      "-nostdin",
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-i",
+      inputPath,
+      ...(audioFilter === undefined ? [] : ["-af", audioFilter]),
+      "-map_metadata",
+      "-1",
+      "-vn",
+      "-ac",
+      "1",
+      "-ar",
+      String(CANONICAL_NARRATION_PCM.sampleRate),
+      "-acodec",
+      "pcm_s16le",
+      "-f",
+      "wav",
+      outputPath,
+    ]);
+    if (result.exitCode !== 0) {
+      throw new Error(`${label} failed with exit code ${result.exitCode}.`);
+    }
+    let outputBytes: Buffer;
+    try {
+      outputBytes = await readFile(outputPath);
+    } catch (error) {
+      throw new Error(`${label} did not create WAV output.`, { cause: error });
+    }
+    try {
+      return encodeCanonicalPcmWav(
+        decodeCanonicalPcmWav(outputBytes).rawPcm,
+      );
+    } catch (error) {
+      throw new Error(`${label} produced invalid canonical WAV output.`, {
+        cause: error,
+      });
+    }
+  } finally {
+    await rm(temporaryDirectory, { recursive: true, force: true });
+  }
+};
+
 export const normalizeProviderAudio = async ({
   sourceBytes,
   speechRate = 1,
@@ -83,45 +158,11 @@ export const normalizeProviderAudio = async ({
   if (!Number.isFinite(speechRate) || speechRate < 0.5 || speechRate > 2) {
     throw new Error("Narration speech rate must be between 0.5 and 2.");
   }
-  await mkdir(temporaryRoot, { recursive: true });
-  const temporaryDirectory = await mkdtemp(
-    join(temporaryRoot, "rsp-voxcpm-normalize-"),
-  );
-  const inputPath = join(temporaryDirectory, "provider-audio");
-  try {
-    await writeFile(inputPath, Uint8Array.from(sourceBytes), { flag: "wx" });
-    const result = await runProcess("ffmpeg", [
-      "-nostdin",
-      "-hide_banner",
-      "-loglevel",
-      "error",
-      "-i",
-      inputPath,
-      "-af",
-      `atempo=${speechRate}`,
-      "-map_metadata",
-      "-1",
-      "-vn",
-      "-ac",
-      "1",
-      "-ar",
-      String(CANONICAL_NARRATION_PCM.sampleRate),
-      "-acodec",
-      "pcm_s16le",
-      "-f",
-      "s16le",
-      "pipe:1",
-    ]);
-    if (result.exitCode !== 0) {
-      throw new Error(
-        `FFmpeg normalization failed with exit code ${result.exitCode}.`,
-      );
-    }
-    if (result.stdout.length === 0) {
-      throw new Error("FFmpeg normalization returned empty PCM.");
-    }
-    return encodeCanonicalPcmWav(result.stdout);
-  } finally {
-    await rm(temporaryDirectory, { recursive: true, force: true });
-  }
+  return normalizeFfmpegAudioToCanonicalWav({
+    sourceBytes,
+    audioFilter: `atempo=${speechRate}`,
+    normalizationKind: "narration",
+    runProcess,
+    temporaryRoot,
+  });
 };
