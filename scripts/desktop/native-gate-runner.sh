@@ -60,10 +60,12 @@ assert_rsp_failure() {
   local expected_code=$2
   local output=$3
   shift 3
-  set +e
-  "$@" >"$output.stdout" 2>"$output.stderr"
-  local actual_exit=$?
-  set -e
+  local actual_exit
+  if "$@" >"$output.stdout" 2>"$output.stderr"; then
+    actual_exit=0
+  else
+    actual_exit=$?
+  fi
   test "$actual_exit" -eq "$expected_exit"
   test ! -s "$output.stdout"
   "$host_node" -e '
@@ -309,11 +311,12 @@ run_second_instance_probe() {
     echo "desktop-native-second-instance-timeout" >&2
     return 1
   fi
-  local second_instance_exit=0
-  set +e
-  wait "$second_instance_pid"
-  second_instance_exit=$?
-  set -e
+  local second_instance_exit
+  if wait "$second_instance_pid"; then
+    second_instance_exit=0
+  else
+    second_instance_exit=$?
+  fi
   if [[ $second_instance_exit -ne 0 ]]; then
     sed -n '1,120p' "$second_instance_log" >&2
     return 1
@@ -687,22 +690,22 @@ drive_production() {
     test ! -e "$quit_backup"
     mv "$delivery" "$quit_backup"
     set_network_phase "$output_root" quit-delivery
-    set +e
     "$rsp" delivery build --project desktop-native-fixture \
       >"$output_root/quit-delivery.stdout" \
       2>"$output_root/quit-delivery.stderr" &
     local quit_build_pid=$!
-    set -e
     wait_for_native_delivery_listener \
       "$workspace_root" "$output_root" "$app_pid" quit
     printf 'quit\n' >"$output_root/request-quit"
     wait "$app_pid"
     wait_for_native_listener_closed \
       "$workspace_root" "$output_root" "$NATIVE_LISTENER_SEQUENCE" quit
-    set +e
-    wait "$quit_build_pid"
-    local quit_build_exit=$?
-    set -e
+    local quit_build_exit
+    if wait "$quit_build_pid"; then
+      quit_build_exit=0
+    else
+      quit_build_exit=$?
+    fi
     test "$quit_build_exit" -ne 0
     test -f "$output_root/quit-request-observed"
     test ! -e "$delivery"
