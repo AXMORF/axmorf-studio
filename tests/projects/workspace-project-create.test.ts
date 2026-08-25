@@ -65,36 +65,6 @@ const fixture = async (context: { after: (callback: () => Promise<void>) => void
 
 test("Workspace create atomically writes scoped authoring without provider or attempt output", async (context) => {
   const value = await fixture(context);
-  const runtimeAssetManifest = JSON.parse(
-    await readFile(
-      join(value.runtimeRoot, "source/src/remotion/catalog/assets.manifest.json"),
-      "utf8",
-    ),
-  ) as { assets: readonly unknown[] };
-  await writeFile(
-    join(
-      value.runtimeRoot,
-      "source/src/remotion/catalog/scene-template-audio.generated.json",
-    ),
-    `${JSON.stringify({
-      schemaVersion: 1,
-      intro: {
-        source: runtimeAssetManifest.assets[0],
-        targetMediaRole: "sound-effect",
-        destinationName: "brand-reveal.wav",
-        soundCues: [
-          {
-            cueId: "reveal-impact",
-            anchorId: "intro-sound-start",
-            offsetFrames: 0,
-            durationInFrames: 60,
-            volume: 0.82,
-          },
-        ],
-      },
-      outro: null,
-    })}\n`,
-  );
   const runtimeTemplatePath = join(
     value.runtimeRoot,
     "source/src/remotion/capabilities/scene-templates/axmorf/AxmorfBrand.tsx",
@@ -132,24 +102,35 @@ test("Workspace create atomically writes scoped authoring without provider or at
     access(
       join(
         value.workspace,
-        "media/story-example/scenes/configured-intro-scene/brand-reveal.wav",
+        "media/story-example/scenes/configured-intro-scene/axmorf-brand-reveal-chime.wav",
+      ),
+    ),
+    access(
+      join(
+        value.workspace,
+        "media/story-example/scenes/configured-outro-scene/axmorf-source-follow-chime.wav",
       ),
     ),
   ]);
-  assert.deepEqual(
-    await readFile(
-      join(
-        value.workspace,
-        "media/story-example/scenes/configured-intro-scene/brand-reveal.wav",
+  for (const [meaningId, assetName] of [
+    ["configured-intro-scene", "axmorf-brand-reveal-chime.wav"],
+    ["configured-outro-scene", "axmorf-source-follow-chime.wav"],
+  ] as const) {
+    assert.deepEqual(
+      await readFile(
+        join(
+          value.workspace,
+          `media/story-example/scenes/${meaningId}/${assetName}`,
+        ),
       ),
-    ),
-    await readFile(
-      join(
-        value.runtimeRoot,
-        "shared-assets/library/scene-templates/axmorf-brand-reveal-chime.wav",
+      await readFile(
+        join(
+          value.runtimeRoot,
+          `shared-assets/library/scene-templates/${assetName}`,
+        ),
       ),
-    ),
-  );
+    );
+  }
   for (const forbidden of [
     "src/projects",
     "public/projects",

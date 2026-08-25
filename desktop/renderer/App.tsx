@@ -39,6 +39,45 @@ export const isFrameInEndExclusiveRange = (
   endFrame: number,
 ) => frame >= startFrame && frame < endFrame;
 
+type PreviewPlayerError = Readonly<{
+  videoUrl: string;
+  message: string;
+}>;
+
+export const currentPreviewPlayerError = ({
+  error,
+  videoUrl,
+}: Readonly<{
+  error: PreviewPlayerError | null;
+  videoUrl: string | null;
+}>) => (error?.videoUrl === videoUrl ? error.message : null);
+
+export const previewPlayerAspectRatio = ({
+  width,
+  height,
+}: Readonly<{ width: number; height: number }>) => `${width} / ${height}`;
+
+export const fitPreviewPlayerSize = ({
+  containerWidth,
+  containerHeight,
+  videoWidth,
+  videoHeight,
+}: Readonly<{
+  containerWidth: number;
+  containerHeight: number;
+  videoWidth: number;
+  videoHeight: number;
+}>) => {
+  const scale = Math.min(
+    containerWidth / videoWidth,
+    containerHeight / videoHeight,
+  );
+  return {
+    width: Math.max(0, videoWidth * scale),
+    height: Math.max(0, videoHeight * scale),
+  } as const;
+};
+
 const percent = (frame: number, frameCount: number) =>
   `${(frame / frameCount) * 100}%`;
 
@@ -228,9 +267,17 @@ export const App = () => {
   const [currentFrame, setCurrentFrame] = useState(0);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [playerError, setPlayerError] = useState<string | null>(null);
+  const [playerError, setPlayerError] = useState<PreviewPlayerError | null>(
+    null,
+  );
+  const [playerReloadVersion, setPlayerReloadVersion] = useState(0);
   const [view, setView] = useState<"preview" | "settings">("preview");
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoWellRef = useRef<HTMLDivElement>(null);
+  const [playerSize, setPlayerSize] = useState<Readonly<{
+    width: number;
+    height: number;
+  }> | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -260,11 +307,44 @@ export const App = () => {
       ) ?? null,
     [state],
   );
+  const visiblePlayerError = currentPreviewPlayerError({
+    error: playerError,
+    videoUrl: selectedEntry?.videoUrl ?? null,
+  });
+  const selectedVideoWidth = selectedEntry?.width ?? null;
+  const selectedVideoHeight = selectedEntry?.height ?? null;
 
   useEffect(() => {
     setCurrentFrame(0);
     setPlayerError(null);
   }, [selectedEntry?.storyId, selectedEntry?.deliveryBuildId]);
+
+  useEffect(() => {
+    const well = videoWellRef.current;
+    if (
+      well === null ||
+      selectedVideoWidth === null ||
+      selectedVideoHeight === null
+    ) {
+      setPlayerSize(null);
+      return;
+    }
+    const update = () => {
+      const bounds = well.getBoundingClientRect();
+      setPlayerSize(
+        fitPreviewPlayerSize({
+          containerWidth: bounds.width,
+          containerHeight: bounds.height,
+          videoWidth: selectedVideoWidth,
+          videoHeight: selectedVideoHeight,
+        }),
+      );
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(well);
+    return () => observer.disconnect();
+  }, [selectedVideoHeight, selectedVideoWidth]);
 
   const runStateAction = useCallback(
     async (action: () => Promise<DesktopAppState>) => {
@@ -272,8 +352,10 @@ export const App = () => {
       setActionError(null);
       try {
         setState(await action());
+        return true;
       } catch {
         setActionError("操作未完成。请刷新 Catalog 或重试 Engine。");
+        return false;
       } finally {
         setBusy(false);
       }
@@ -417,11 +499,15 @@ export const App = () => {
             aria-label="刷新 Preview Catalog"
             className="icon-button"
             disabled={busy}
-            onClick={() =>
+            onClick={() => {
               void runStateAction(() =>
                 window.axmorfStudio.refreshPreviewCatalog(),
-              )
-            }
+              ).then((refreshed) => {
+                if (!refreshed) return;
+                setPlayerError(null);
+                setPlayerReloadVersion((version) => version + 1);
+              });
+            }}
           >
             ↻
           </button>
@@ -587,22 +673,32 @@ export const App = () => {
               </div>
               <code>{selectedEntry.storyId}</code>
             </header>
-            <div className="video-well">
+            <div className="video-well" ref={videoWellRef}>
               {/* Desktop Preview plays a verified final MP4 outside a Remotion composition. */}
               {/* eslint-disable-next-line @remotion/warn-native-media-tag */}
               <video
                 controls
-                key={selectedEntry.videoUrl}
+                height={selectedEntry.height}
+                key={`${selectedEntry.videoUrl}:${playerReloadVersion}`}
                 onError={() =>
-                  setPlayerError("视频身份已失效。请刷新 Catalog 后重新选择。")
+                  setPlayerError({
+                    videoUrl: selectedEntry.videoUrl,
+                    message: "视频身份已失效。请刷新 Catalog 后重新选择。",
+                  })
                 }
                 preload="auto"
                 ref={videoRef}
                 src={selectedEntry.videoUrl}
+                style={{
+                  aspectRatio: previewPlayerAspectRatio(selectedEntry),
+                  height: playerSize?.height ?? "100%",
+                  width: playerSize?.width ?? "100%",
+                }}
+                width={selectedEntry.width}
               />
-              {playerError !== null ? (
+              {visiblePlayerError !== null ? (
                 <div className="player-error" role="alert">
-                  {playerError}
+                  {visiblePlayerError}
                 </div>
               ) : null}
             </div>

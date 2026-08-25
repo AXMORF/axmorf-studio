@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import {
   cp,
@@ -11,7 +12,6 @@ import {
   rm,
   stat,
   symlink,
-  writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -41,6 +41,79 @@ const enabled =
   process.platform === "linux" &&
   process.arch === "x64" &&
   process.env.AXMORF_UBUNTU_WORKSPACE_E2E === "1";
+
+const decodeMonoPcmWindow = async ({
+  ffmpeg,
+  video,
+  startSeconds,
+  durationSeconds,
+}: {
+  readonly ffmpeg: string;
+  readonly video: string;
+  readonly startSeconds: number;
+  readonly durationSeconds: number;
+}) =>
+  new Promise<Buffer>((resolvePromise, rejectPromise) => {
+    const child = spawn(
+      ffmpeg,
+      [
+        "-nostdin",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-ss",
+        String(startSeconds),
+        "-t",
+        String(durationSeconds),
+        "-i",
+        video,
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "48000",
+        "-acodec",
+        "pcm_s16le",
+        "-f",
+        "wav",
+        "-",
+      ],
+      { stdio: ["ignore", "pipe", "pipe"] },
+    );
+    const stdout: Buffer[] = [];
+    const stderr: Buffer[] = [];
+    child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
+    child.stderr.on("data", (chunk: Buffer) => stderr.push(chunk));
+    child.on("error", rejectPromise);
+    child.on("close", (code) => {
+      if (code !== 0) {
+        rejectPromise(
+          new Error(
+            `Audio window decode failed: ${Buffer.concat(stderr).toString("utf8")}`,
+          ),
+        );
+        return;
+      }
+      resolvePromise(Buffer.concat(stdout));
+    });
+  });
+
+const wavPcmPeak = (wav: Buffer) => {
+  let offset = 12;
+  while (offset + 8 <= wav.length) {
+    const chunkId = wav.toString("ascii", offset, offset + 4);
+    const chunkSize = wav.readUInt32LE(offset + 4);
+    if (chunkId === "data") {
+      let peak = 0;
+      for (let index = offset + 8; index + 1 < wav.length; index += 2) {
+        peak = Math.max(peak, Math.abs(wav.readInt16LE(index)));
+      }
+      return peak;
+    }
+    offset += 8 + chunkSize + (chunkSize % 2);
+  }
+  throw new Error("Decoded audio window is not a PCM WAV.");
+};
 
 const config = buildProducerConfig({
   schemaVersion: 4,
@@ -180,13 +253,6 @@ test(
         recursive: true,
       });
     }
-    await writeFile(
-      join(
-        runtimeRoot,
-        "source/src/remotion/catalog/scene-template-audio.generated.json",
-      ),
-      `${JSON.stringify({ schemaVersion: 1, intro: null, outro: null }, null, 2)}\n`,
-    );
     await symlink(
       join(checkoutRoot, "node_modules"),
       join(runtimeRoot, "node_modules"),
@@ -337,7 +403,55 @@ test(
     }
     const publish = JSON.parse(
       await readFile(join(deliveryRoot, "publish.json"), "utf8"),
-    ) as { readonly storyId?: unknown };
+    ) as {
+      readonly storyId?: unknown;
+      readonly fps?: unknown;
+      readonly artifacts?: {
+        readonly video?: { readonly media?: { readonly frameCount?: unknown } };
+      };
+    };
     assert.equal(publish.storyId, createInput.storyId);
+    assert.equal(publish.fps, 30);
+    const frameCount = publish.artifacts?.video?.media?.frameCount;
+    assert.equal(typeof frameCount, "number");
+    const introSound = JSON.parse(
+      await readFile(
+        join(
+          workspaceRoot,
+          "projects",
+          createInput.storyId,
+          "scenes/configured-intro-scene/sound-plan.json",
+        ),
+        "utf8",
+      ),
+    ) as { readonly contributions?: readonly unknown[] };
+    const outroSound = JSON.parse(
+      await readFile(
+        join(
+          workspaceRoot,
+          "projects",
+          createInput.storyId,
+          "scenes/configured-outro-scene/sound-plan.json",
+        ),
+        "utf8",
+      ),
+    ) as { readonly contributions?: readonly unknown[] };
+    assert.equal(introSound.contributions?.length, 1);
+    assert.equal(outroSound.contributions?.length, 1);
+    const video = join(deliveryRoot, "video.mp4");
+    const introPcm = await decodeMonoPcmWindow({
+      ffmpeg: runtimeFfmpeg,
+      video,
+      startSeconds: 0,
+      durationSeconds: 1,
+    });
+    const outroPcm = await decodeMonoPcmWindow({
+      ffmpeg: runtimeFfmpeg,
+      video,
+      startSeconds: (frameCount as number) / 30 - 8,
+      durationSeconds: 1,
+    });
+    assert.ok(wavPcmPeak(introPcm) > 500, "intro template audio is silent");
+    assert.ok(wavPcmPeak(outroPcm) > 500, "outro template audio is silent");
   },
 );

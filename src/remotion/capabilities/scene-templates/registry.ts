@@ -153,7 +153,9 @@ const sourceFollow = (
   soundIntent:
     audioProjection.outro === null
       ? "Render without a sound-effect contribution."
-      : "Play only the configured closing music from frame zero for the full Scene.",
+      : audioProjection.outro.targetMediaRole === "background-music"
+        ? "Play only the configured closing music from frame zero for the full Scene."
+        : "Play only the configured closing chime from frame zero.",
   componentName: "AxmorfOutroScene",
   sourceReferencesProp: true,
   sourceFiles: [
