@@ -47,6 +47,74 @@ const taskIssue = ({
   const message = error instanceof Error ? error.message : "";
   const ownerAction =
     "Read inputs/task-contract.json, correct only declared output paths, then rerun rsp task finalize and rsp task check.";
+  if (/Renderer transform must be statically provable/iu.test(message)) {
+    return {
+      path: "$.outputs[src/Renderer.tsx]",
+      code: "rsp-task-renderer-transform-unprovable",
+      message:
+        "Renderer transform or scale is computed dynamically and cannot be proven readable.",
+      ownerAction:
+        "Remove frame-computed transform and scale values. Use frame-driven opacity, top, left, width, or height for motion, then rerun finalize and check.",
+    };
+  }
+  if (/Renderer scale must be statically proven not to shrink/iu.test(message)) {
+    return {
+      path: "$.outputs[src/Renderer.tsx]",
+      code: "rsp-task-renderer-scale-unreadable",
+      message: "Renderer scale can shrink readable content below its frozen size.",
+      ownerAction:
+        "Remove the shrinking scale or use a static scale of at least 1, then rerun finalize and check.",
+    };
+  }
+  if (/Visible text font size .*not statically provable/iu.test(message)) {
+    return {
+      path: "$.outputs[src/Renderer.tsx]",
+      code: "rsp-task-text-size-unprovable",
+      message: "Visible text must declare a statically provable pixel font size.",
+      ownerAction:
+        "Set an explicit numeric pixel fontSize on every visible native text element, then rerun finalize and check.",
+    };
+  }
+  const undersizedText = message.match(
+    /Visible text size ([0-9.]+)px is below the frozen ([0-9.]+)px minimum/iu,
+  );
+  if (undersizedText !== null) {
+    return {
+      path: "$.outputs[src/Renderer.tsx]",
+      code: "rsp-task-text-size-below-minimum",
+      message: `Visible text size ${undersizedText[1]}px is below the frozen ${undersizedText[2]}px minimum.`,
+      ownerAction:
+        "Increase that visible text fontSize to the stated minimum or larger, then rerun finalize and check.",
+    };
+  }
+  if (/GlobalVisual source crosses its visual-only boundary/iu.test(message)) {
+    return {
+      path: "$.outputs[src/GlobalVisualLayers.tsx]",
+      code: "rsp-task-global-visual-boundary-invalid",
+      message:
+        "GlobalVisualLayers contains visible text or shared Scene, caption, narration, audio, or network ownership.",
+      ownerAction:
+        "Keep GlobalVisualLayers decorative and text-free; remove the named shared-boundary usage, then rerun finalize and check.",
+    };
+  }
+  if (/GlobalVisual entry must use the Remotion frame API/iu.test(message)) {
+    return {
+      path: "$.outputs[src/GlobalVisualLayers.tsx]",
+      code: "rsp-task-global-visual-frame-api-missing",
+      message: "GlobalVisualLayers must use useCurrentFrame for motion.",
+      ownerAction:
+        "Import and call useCurrentFrame in GlobalVisualLayers, then rerun finalize and check.",
+    };
+  }
+  if (/GlobalVisual root must declare pointerEvents none/iu.test(message)) {
+    return {
+      path: "$.outputs[src/GlobalVisualLayers.tsx]",
+      code: "rsp-task-global-visual-pointer-events-missing",
+      message: "GlobalVisualLayers root must declare pointerEvents none.",
+      ownerAction:
+        "Set pointerEvents: \"none\" on the root style, then rerun finalize and check.",
+    };
+  }
   if (/missing|ambiguous|unsafe|exact file set/iu.test(message)) {
     return {
       path: "$.workspace",

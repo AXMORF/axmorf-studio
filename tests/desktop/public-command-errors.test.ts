@@ -41,3 +41,57 @@ test("task errors keep their existing operation-specific public mapping", () => 
     "rsp-task-source-invalid",
   );
 });
+
+test("task readability errors expose actionable safe Renderer diagnostics", () => {
+  const transform = publicTaskCommandError({
+    operation: "check",
+    error: new Error(
+      "Renderer transform must be statically provable in src/Renderer.tsx.",
+    ),
+  });
+  assert.deepEqual(transform.issues, [
+    {
+      path: "$.outputs[src/Renderer.tsx]",
+      code: "rsp-task-renderer-transform-unprovable",
+      message:
+        "Renderer transform or scale is computed dynamically and cannot be proven readable.",
+      ownerAction:
+        "Remove frame-computed transform and scale values. Use frame-driven opacity, top, left, width, or height for motion, then rerun finalize and check.",
+    },
+  ]);
+
+  const undersized = publicTaskCommandError({
+    operation: "check",
+    error: new Error(
+      "Visible text size 22px is below the frozen 32px minimum in /Users/private/Renderer.tsx.",
+    ),
+  });
+  assert.equal(
+    undersized.issues[0]?.code,
+    "rsp-task-text-size-below-minimum",
+  );
+  assert.equal(
+    undersized.issues[0]?.message,
+    "Visible text size 22px is below the frozen 32px minimum.",
+  );
+  assert.doesNotMatch(JSON.stringify(undersized), /Users|private/u);
+});
+
+test("GlobalVisual policy errors identify the owning output safely", () => {
+  const boundary = publicTaskCommandError({
+    operation: "check",
+    error: new Error(
+      "GlobalVisual source crosses its visual-only boundary: visible text.",
+    ),
+  });
+  assert.deepEqual(boundary.issues, [
+    {
+      path: "$.outputs[src/GlobalVisualLayers.tsx]",
+      code: "rsp-task-global-visual-boundary-invalid",
+      message:
+        "GlobalVisualLayers contains visible text or shared Scene, caption, narration, audio, or network ownership.",
+      ownerAction:
+        "Keep GlobalVisualLayers decorative and text-free; remove the named shared-boundary usage, then rerun finalize and check.",
+    },
+  ]);
+});

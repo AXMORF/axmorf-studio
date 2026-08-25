@@ -35,6 +35,18 @@ const checksum = (value: string) =>
 
 const validSource = `
 const useCurrentFrame = () => 0;
+export const GlobalVisualLayers = () => {
+  const frame = useCurrentFrame();
+  return (
+    <div style={{position: "absolute", inset: 0, opacity: frame >= 0 ? 1 : 0, pointerEvents: "none"}}>
+      <div style={{position: "absolute", inset: 24, border: "2px solid #ffffff"}} />
+    </div>
+  );
+};
+`;
+
+const workspaceCompileSource = `
+const useCurrentFrame = () => 0;
 const rootStyle = {pointerEvents: "none"};
 export const GlobalVisualLayers = () => {
   const frame = useCurrentFrame();
@@ -208,7 +220,11 @@ test("Workspace GlobalVisual task compiles against the Runtime Pack source root"
     runtimeResources,
     cacheRoot: join(rootDir, "cache"),
   });
-  const { task } = await createGlobalWorkspace({ rootDir, locations });
+  const { task } = await createGlobalWorkspace({
+    rootDir,
+    locations,
+    fixture: buildFixture({ source: workspaceCompileSource }),
+  });
 
   assert.equal(
     (await checkGlobalVisualTask({ locations, taskRevision: task.taskRevision }))

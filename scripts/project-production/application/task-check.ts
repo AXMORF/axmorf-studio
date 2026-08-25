@@ -77,27 +77,6 @@ export const checkProducerTaskWorkspace = async (
     if (logicalPath.endsWith(".json")) JSON.parse(await readFile(path, "utf8"));
     if (/\.[cm]?tsx?$/u.test(logicalPath)) await parseSource(path);
   }
-  if (task.taskKind === "global-visual-owner") {
-    const source = await readFile(
-      join(workspace, "src/GlobalVisualLayers.tsx"),
-      "utf8",
-    );
-    if (
-      /\b(?:Audio|CaptionLayer|NarrationAudioTrack|ScenePackage|StoryBeat)\b|<text\b|>\s*[^<{\s][^<{]*</u.test(
-        source,
-      )
-    ) {
-      throw new Error("GlobalVisual source crosses its visual-only boundary.");
-    }
-    if (
-      !/\buseCurrentFrame\b/u.test(source) ||
-      !/pointerEvents\s*:\s*["']none["']/u.test(source)
-    ) {
-      throw new Error(
-        "GlobalVisual source must use frame motion and a pointer-transparent root.",
-      );
-    }
-  }
   if (task.taskKind === "cover-owner") {
     for (const file of [
       "Cover3x4.tsx",

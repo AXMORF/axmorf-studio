@@ -134,6 +134,7 @@ export default Renderer;
         instructions: [
           "Default-export a component assignable to SceneRendererComponent.",
           "Use sceneFrame, durationInFrames, fps, viewportWidth, and viewportHeight; never assume full-frame coordinates.",
+          "Keep every JSX transform and scale value statically provable and never shrink readable content; use frame-driven opacity, top, left, width, or height for motion instead of a dynamic transform or scale.",
           "Keep the root transparent and do not own captions, narration, or global decoration.",
         ],
         example: renderer,

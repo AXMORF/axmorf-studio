@@ -39,6 +39,14 @@ test("Agent Scene task contract is immutable, self-describing, and finalize comp
     taskKind: "scene-owner",
     context: taskContext,
   });
+  const rendererOutput = taskContract.outputs.find(
+    ({ path }) => path === "src/Renderer.tsx",
+  );
+  assert.ok(
+    rendererOutput?.instructions.some((instruction) =>
+      /transform and scale value statically provable/u.test(instruction),
+    ),
+  );
   const contextBytes = `${serializeCanonicalJson(taskContext)}\n`;
   const contractBytes = `${serializeCanonicalJson(taskContract)}\n`;
   const task = buildProducerTaskSpec({
