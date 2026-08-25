@@ -2,10 +2,13 @@ import { z } from "zod";
 
 import { createFingerprint } from "../../src/contracts/fingerprint";
 import { Sha256DigestSchema } from "../../src/contracts/primitives";
+import { DesktopDarwinArchitectureSchema } from "../configuration/darwin-target";
 import {
-  DesktopDarwinArchitectureSchema,
-  getDesktopDarwinTarget,
-} from "../configuration/darwin-target";
+  DESKTOP_NATIVE_TARGETS,
+  DesktopNativePlatformSchema,
+  getDesktopNativeTarget,
+  type DesktopNativeTarget,
+} from "../configuration/native-target";
 
 export const DESKTOP_RUNTIME_PACK_CONTRACT_VERSION =
   "desktop-runtime-pack-v1" as const;
@@ -75,7 +78,7 @@ const RuntimePackIdentityShape = {
   schemaVersion: z.literal(1),
   contractVersion: z.literal(DESKTOP_RUNTIME_PACK_CONTRACT_VERSION),
   runtimePackVersion: z.literal(DESKTOP_RUNTIME_PACK_VERSION),
-  platform: z.literal("darwin"),
+  platform: DesktopNativePlatformSchema,
   architecture: DesktopDarwinArchitectureSchema,
   engineVersion: z.literal(DESKTOP_ENGINE_VERSION),
   protocolVersion: z.literal("rsp-local-v2"),
@@ -152,7 +155,18 @@ const unsupportedRemotionLaunchSurface = (path: string) => {
 
 const RuntimePackIdentitySchema = z
   .strictObject(RuntimePackIdentityShape)
-  .superRefine(validateRuntimePackOrdering)
+  .superRefine((value, context) => {
+    validateRuntimePackOrdering(value, context);
+    try {
+      getDesktopNativeTarget(value);
+    } catch {
+      context.addIssue({
+        code: "custom",
+        message: "Runtime Pack native target is unsupported.",
+        path: ["architecture"],
+      });
+    }
+  })
   .readonly();
 
 const runtimePackId = (identity: RuntimePackIdentity) => {
@@ -184,7 +198,12 @@ export const RuntimePackManifestSchema = z
     const recordedRemotionPackages = value.remotionPackages.map(
       ({ name }) => name,
     );
-    const target = getDesktopDarwinTarget(value.architecture);
+    let target: DesktopNativeTarget;
+    try {
+      target = getDesktopNativeTarget(value);
+    } catch {
+      return;
+    }
     for (const required of [
       ...DESKTOP_REQUIRED_REMOTION_PACKAGES,
       target.compositorPackageName,
@@ -219,11 +238,10 @@ export const RuntimePackManifestSchema = z
         });
       }
     }
-    for (const architecture of DesktopDarwinArchitectureSchema.options) {
-      const compositor =
-        getDesktopDarwinTarget(architecture).compositorPackageName;
+    for (const candidate of DESKTOP_NATIVE_TARGETS) {
+      const compositor = candidate.compositorPackageName;
       if (
-        architecture !== value.architecture &&
+        compositor !== target.compositorPackageName &&
         recordedRemotionPackages.includes(compositor)
       ) {
         context.addIssue({
@@ -348,9 +366,10 @@ export const DesktopCompatibilityManifestSchema = z
     }),
     projectSchemaWriteVersion: z.number().int().positive(),
     runtimePackId: z.string().regex(/^runtime-pack-[a-f0-9]{64}$/u),
-    platform: z.literal("darwin"),
+    platform: DesktopNativePlatformSchema,
     architecture: DesktopDarwinArchitectureSchema,
-    minimumMacOSVersion: z.literal("13.0"),
+    minimumMacOSVersion: z.literal("13.0").nullable(),
+    minimumUbuntuVersion: z.literal("24.04").nullable(),
   })
   .superRefine((value, context) => {
     if (
@@ -363,6 +382,25 @@ export const DesktopCompatibilityManifestSchema = z
         code: "custom",
         message: "Project schema compatibility range is invalid.",
         path: ["projectSchemaReadRange"],
+      });
+    }
+    try {
+      getDesktopNativeTarget(value);
+    } catch {
+      context.addIssue({
+        code: "custom",
+        message: "Desktop compatibility native target is unsupported.",
+        path: ["architecture"],
+      });
+    }
+    if (
+      (value.platform === "darwin") !== (value.minimumMacOSVersion !== null) ||
+      (value.platform === "linux") !== (value.minimumUbuntuVersion !== null)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Desktop minimum operating system version is inconsistent.",
+        path: ["platform"],
       });
     }
   })
@@ -392,7 +430,8 @@ export const buildDesktopCompatibilityManifest = ({
     runtimePackId: runtimePack.runtimePackId,
     platform: runtimePack.platform,
     architecture: runtimePack.architecture,
-    minimumMacOSVersion: "13.0",
+    minimumMacOSVersion: runtimePack.platform === "darwin" ? "13.0" : null,
+    minimumUbuntuVersion: runtimePack.platform === "linux" ? "24.04" : null,
   });
 
 export const assertDesktopRuntimeCompatibility = ({

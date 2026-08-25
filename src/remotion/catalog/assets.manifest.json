@@ -3,46 +3,46 @@
   "assets": [
     {
       "schemaVersion": 1,
-      "id": "asset.axmorf-brand-reveal-chime",
+      "id": "asset.axmorf.default-outro-music",
       "kind": "asset",
       "status": "approved",
-      "title": "AXMORF brand reveal chime",
-      "description": "Project-authored mono PCM chime for the AXMORF brand reveal Scene template.",
-      "useCases": ["AXMORF brand reveal Scene template preview"],
-      "tags": ["brand-reveal", "scene-template", "sfx"],
+      "title": "Mixkit Deep Urban",
+      "description": "Deep Urban by Eugenio Mininni, used by the default outro preview and copied outro Scene.",
+      "useCases": ["AXMORF default outro Scene template"],
+      "tags": ["background", "mixkit", "music", "outro", "scene-template"],
       "authority": {
         "kind": "repository-file",
         "repositoryPath": "src/remotion/catalog/assets.manifest.json"
       },
       "allowedUse": "runtime-approved",
       "assetKind": "audio",
-      "mediaRole": "sound-effect",
-      "localPath": "public/assets/library/scene-templates/axmorf-brand-reveal-chime.wav",
-      "checksum": "sha256:739069dd51389ebac5704cdcd4b16ef43abc458a268931ab5817b834c1f2c475",
+      "mediaRole": "background-music",
+      "localPath": "public/assets/library/mixkit/music/mixkit-deep-urban-623.mp3",
+      "checksum": "sha256:ac7e28f0cdd6c607df199c759f34ca66cfebd881ea61c26473fb4cecebe64fa8",
       "license": {
-        "id": "Project-Authored",
+        "id": "Mixkit Stock Music Free License",
         "verificationStatus": "verified",
-        "sourceUrl": null,
+        "sourceUrl": "https://mixkit.co/license/",
         "attributionRequired": false,
         "attributionText": null,
         "verifiedAt": "2026-08-15T00:00:00.000Z",
-        "sourceEvidenceFingerprint": "sha256:739069dd51389ebac5704cdcd4b16ef43abc458a268931ab5817b834c1f2c475"
+        "sourceEvidenceFingerprint": "sha256:9adfb1591192763fcbcb86dc3afe451a419d79aa90548e142aec3e8527664e01"
       },
       "media": {
-        "durationInSeconds": 0.6,
-        "codec": "pcm_s16le",
-        "sampleRate": 48000
+        "durationInSeconds": 288.731429,
+        "codec": "mp3",
+        "sampleRate": 44100
       }
     },
     {
       "schemaVersion": 1,
-      "id": "asset.axmorf-source-follow-chime",
+      "id": "asset.axmorf.default-intro-impact",
       "kind": "asset",
       "status": "approved",
-      "title": "AXMORF source follow chime",
-      "description": "Project-authored mono PCM chime for the AXMORF source follow Scene template.",
-      "useCases": ["AXMORF source follow Scene template preview"],
-      "tags": ["scene-template", "sfx", "source-follow"],
+      "title": "Mixkit Movie Trailer Epic Impact",
+      "description": "Cinematic impact used by the default intro preview and copied intro Scene.",
+      "useCases": ["AXMORF default intro Scene template"],
+      "tags": ["impact", "intro", "mixkit", "scene-template", "sfx"],
       "authority": {
         "kind": "repository-file",
         "repositoryPath": "src/remotion/catalog/assets.manifest.json"
@@ -50,21 +50,21 @@
       "allowedUse": "runtime-approved",
       "assetKind": "audio",
       "mediaRole": "sound-effect",
-      "localPath": "public/assets/library/scene-templates/axmorf-source-follow-chime.wav",
-      "checksum": "sha256:7140b3c599b3656e5c3ee26c9c127a5d6a8deb26a336c67574114e4fdbe355b0",
+      "localPath": "public/assets/library/mixkit/sound-effects/mixkit-movie-trailer-epic-impact-2908.wav",
+      "checksum": "sha256:dd0afbaffa7837c2eb0ec50191e9dcceb09da51e07b8bc565a87afe616d36ad6",
       "license": {
-        "id": "Project-Authored",
+        "id": "Mixkit Sound Effects Free License",
         "verificationStatus": "verified",
-        "sourceUrl": null,
+        "sourceUrl": "https://mixkit.co/license/",
         "attributionRequired": false,
         "attributionText": null,
         "verifiedAt": "2026-08-15T00:00:00.000Z",
-        "sourceEvidenceFingerprint": "sha256:7140b3c599b3656e5c3ee26c9c127a5d6a8deb26a336c67574114e4fdbe355b0"
+        "sourceEvidenceFingerprint": "sha256:9adfb1591192763fcbcb86dc3afe451a419d79aa90548e142aec3e8527664e01"
       },
       "media": {
-        "durationInSeconds": 1,
+        "durationInSeconds": 4.865941,
         "codec": "pcm_s16le",
-        "sampleRate": 48000
+        "sampleRate": 44100
       }
     },
     {

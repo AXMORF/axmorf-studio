@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import type { PreviewPlayerEntry } from "../contracts/preview";
+import type { DesktopProductionProgress } from "../contracts/production-progress";
 import type { DesktopAppState, DesktopShellApi } from "../contracts/shell";
 import { SettingsPage } from "./SettingsPage";
 
@@ -96,6 +97,89 @@ const formatTime = (frame: number, fps: number) => {
   return `${String(minutes).padStart(2, "0")}:${(seconds % 60)
     .toFixed(2)
     .padStart(5, "0")}`;
+};
+
+export const productionTaskPercent = (progress: DesktopProductionProgress) => {
+  if (progress.state === "succeeded") return 100;
+  const completed =
+    progress.committedTaskCount +
+    progress.currentTaskCount +
+    progress.failedTaskCount;
+  return progress.dirtyAgentTaskCount === 0
+    ? progress.state === "converging"
+      ? 100
+      : 0
+    : Math.min(
+        100,
+        Math.round((completed / progress.dirtyAgentTaskCount) * 100),
+      );
+};
+
+const productionStateLabel = {
+  "waiting-for-agent": "等待 Agent 任务",
+  converging: "正在收敛并构建 Delivery",
+  succeeded: "制作完成",
+  failed: "制作失败",
+} as const;
+
+export const ProductionProgressSummary = ({
+  progress,
+}: Readonly<{ progress: DesktopProductionProgress }>) => {
+  const completed = progress.committedTaskCount + progress.currentTaskCount;
+  const percentComplete = productionTaskPercent(progress);
+  return (
+    <section className="production-progress" aria-label="制作进度">
+      <header>
+        <div>
+          <span>Production</span>
+          <strong data-state={progress.state}>
+            {productionStateLabel[progress.state]}
+          </strong>
+        </div>
+        <output>{percentComplete}%</output>
+      </header>
+      <div
+        aria-label={`Agent 任务 ${completed}/${progress.dirtyAgentTaskCount}`}
+        aria-valuemax={100}
+        aria-valuemin={0}
+        aria-valuenow={percentComplete}
+        className="production-progress-track"
+        role="progressbar"
+      >
+        <span style={{ width: `${percentComplete}%` }} />
+      </div>
+      <dl>
+        <div>
+          <dt>Agent tasks</dt>
+          <dd>
+            {completed}/{progress.dirtyAgentTaskCount} · failed{" "}
+            {progress.failedTaskCount}
+          </dd>
+        </div>
+        <div>
+          <dt>Attempt</dt>
+          <dd>{progress.state}</dd>
+        </div>
+        <div>
+          <dt>Terminal</dt>
+          <dd>{progress.terminalResult}</dd>
+        </div>
+        <div>
+          <dt>Diagnostic</dt>
+          <dd>{progress.diagnosticCode ?? "null"}</dd>
+        </div>
+      </dl>
+      {progress.deliveryBuildId !== null ? (
+        <div className="delivery-summary">
+          <span>Current Delivery</span>
+          <code>{progress.deliveryBuildId}</code>
+          {progress.deliveryFilesComplete ? (
+            <small>video · cover 4:3 · cover 3:4 · publish</small>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
 };
 
 type TimelineProps = Readonly<{
@@ -271,9 +355,12 @@ export const App = () => {
     null,
   );
   const [playerReloadVersion, setPlayerReloadVersion] = useState(0);
+  const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [view, setView] = useState<"preview" | "settings">("preview");
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoWellRef = useRef<HTMLDivElement>(null);
+  const playerRecoveryAttempted = useRef(new Set<string>());
   const [playerSize, setPlayerSize] = useState<Readonly<{
     width: number;
     height: number;
@@ -307,6 +394,13 @@ export const App = () => {
       ) ?? null,
     [state],
   );
+  const selectedProgress = useMemo(
+    () =>
+      state?.productionProgress.find(
+        ({ storyId }) => storyId === state.selectedStoryId,
+      ) ?? null,
+    [state],
+  );
   const visiblePlayerError = currentPreviewPlayerError({
     error: playerError,
     videoUrl: selectedEntry?.videoUrl ?? null,
@@ -317,7 +411,10 @@ export const App = () => {
   useEffect(() => {
     setCurrentFrame(0);
     setPlayerError(null);
-  }, [selectedEntry?.storyId, selectedEntry?.deliveryBuildId]);
+    playerRecoveryAttempted.current.clear();
+    setDeleteCandidate(null);
+    setDeleteConfirmation("");
+  }, [state?.selectedStoryId, selectedEntry?.deliveryBuildId]);
 
   useEffect(() => {
     const well = videoWellRef.current;
@@ -362,6 +459,26 @@ export const App = () => {
     },
     [],
   );
+
+  useEffect(() => {
+    const videoUrl = selectedEntry?.videoUrl;
+    if (
+      videoUrl === undefined ||
+      playerError?.videoUrl !== videoUrl ||
+      state?.activeWork !== null ||
+      playerRecoveryAttempted.current.has(videoUrl)
+    ) {
+      return;
+    }
+    playerRecoveryAttempted.current.add(videoUrl);
+    void runStateAction(() => window.axmorfStudio.refreshPreviewCatalog()).then(
+      (refreshed) => {
+        if (!refreshed) return;
+        setPlayerError(null);
+        setPlayerReloadVersion((version) => version + 1);
+      },
+    );
+  }, [playerError, runStateAction, selectedEntry?.videoUrl, state?.activeWork]);
 
   const seek = useCallback(
     (frame: number) => {
@@ -464,7 +581,7 @@ export const App = () => {
           <button
             className="path-button"
             onClick={() => void window.axmorfStudio.showWorkspaceInFinder()}
-            title="在 Finder 中显示"
+            title="在文件管理器中显示"
           >
             {state.workspaceRoot}
           </button>
@@ -576,28 +693,104 @@ export const App = () => {
             selectedProject.delivery !== "current" ? (
               <p>Source 已就绪，尚无可播放成片。</p>
             ) : null}
-            <button
-              disabled={
-                busy ||
-                state.activeWork !== null ||
-                !state.deliveryAvailable ||
-                selectedProject.source !== "current" ||
-                selectedProject.delivery === "current"
-              }
-              onClick={() =>
-                void runStateAction(() =>
-                  window.axmorfStudio.buildDelivery(selectedProject.storyId),
-                )
-              }
-            >
-              生成 Delivery
-            </button>
+            <div className="project-actions">
+              <button
+                disabled={
+                  busy ||
+                  state.activeWork !== null ||
+                  !state.deliveryAvailable ||
+                  selectedProject.source !== "current" ||
+                  selectedProject.delivery === "current"
+                }
+                onClick={() =>
+                  void runStateAction(() =>
+                    window.axmorfStudio.buildDelivery(selectedProject.storyId),
+                  )
+                }
+              >
+                生成 Delivery
+              </button>
+              <button
+                className="delete-project-button"
+                disabled={busy || state.activeWork !== null}
+                onClick={() => {
+                  setDeleteCandidate(selectedProject.storyId);
+                  setDeleteConfirmation("");
+                }}
+              >
+                删除项目
+              </button>
+            </div>
+            {deleteCandidate === selectedProject.storyId ? (
+              <div className="delete-project-confirmation" role="group">
+                <p>
+                  此操作会删除该 Project 的 source、attempt、artifact 与
+                  Delivery。 输入完整 Project ID 确认。
+                </p>
+                <code>{selectedProject.storyId}</code>
+                <input
+                  aria-label="输入完整 Project ID 确认删除"
+                  onChange={(event) =>
+                    setDeleteConfirmation(event.target.value)
+                  }
+                  placeholder={selectedProject.storyId}
+                  value={deleteConfirmation}
+                />
+                <div>
+                  <button
+                    className="delete-project-button"
+                    disabled={
+                      busy ||
+                      state.activeWork !== null ||
+                      deleteConfirmation !== selectedProject.storyId
+                    }
+                    onClick={() =>
+                      void runStateAction(() =>
+                        window.axmorfStudio.deleteProject(
+                          selectedProject.storyId,
+                        ),
+                      ).then((deleted) => {
+                        if (!deleted) return;
+                        setDeleteCandidate(null);
+                        setDeleteConfirmation("");
+                        setPlayerError(null);
+                      })
+                    }
+                  >
+                    确认删除
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDeleteCandidate(null);
+                      setDeleteConfirmation("");
+                    }}
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            ) : null}
             {!state.deliveryAvailable && state.deliveryBlocker !== null ? (
               <p role="status">
                 {state.deliveryBlocker.message}
                 <code>{state.deliveryBlocker.code}</code>
               </p>
             ) : null}
+          </section>
+        ) : null}
+
+        {selectedProgress !== null ? (
+          <ProductionProgressSummary progress={selectedProgress} />
+        ) : state.activeWork !== null &&
+          state.activeWork.storyId === selectedProject?.storyId ? (
+          <section className="production-progress" aria-label="制作进度">
+            <header>
+              <div>
+                <span>Production</span>
+                <strong>{state.activeWork.phase}</strong>
+              </div>
+            </header>
+            <p>正在创建并绑定本次 Execution Attempt…</p>
           </section>
         ) : null}
 
@@ -641,7 +834,6 @@ export const App = () => {
             <dd>{state.activeWork?.phase ?? "idle"}</dd>
           </div>
         </dl>
-
       </aside>
 
       <section className="viewer-stage">
@@ -683,7 +875,10 @@ export const App = () => {
                 onError={() =>
                   setPlayerError({
                     videoUrl: selectedEntry.videoUrl,
-                    message: "视频身份已失效。请刷新 Catalog 后重新选择。",
+                    message:
+                      state.activeWork === null
+                        ? "视频身份正在自动同步；若仍失败请刷新 Catalog。"
+                        : "Delivery 正在更新，完成后会自动重新载入。",
                   })
                 }
                 preload="auto"

@@ -1,4 +1,4 @@
-import { StoryIdSchema } from "../../src/contracts";
+import { serializeCanonicalJson, StoryIdSchema } from "../../src/contracts";
 import type { RuntimePackManifest } from "../contracts/runtime-pack";
 import type {
   DesktopProjectStatus,
@@ -44,6 +44,7 @@ export type DesktopEngineSnapshot = Readonly<{
   catalog: PreviewCatalog;
   previewCatalog: PreviewCatalogReadiness;
   projects: readonly DesktopProjectStatus[];
+  productionProgress: DesktopAppState["productionProgress"];
   activeWork: DoctorResponse["activeWork"];
   runtimePack: Pick<RuntimePackManifest, "runtimePackId" | "architecture">;
   agentIntegration: "ready" | "needs-update";
@@ -86,6 +87,7 @@ export type DesktopEnginePort = Readonly<{
   start: (workspaceRoot: string) => Promise<DesktopEngineSnapshot>;
   refreshPreviewCatalog: () => Promise<DesktopEngineSnapshot>;
   buildDelivery: (storyId: string) => Promise<DesktopEngineSnapshot>;
+  deleteProject: (storyId: string) => Promise<DesktopEngineSnapshot>;
   subscribe: (
     listener: (snapshot: DesktopEngineSnapshot) => void,
   ) => () => void;
@@ -106,6 +108,7 @@ export class DesktopShellController {
   readonly #settings: DesktopSettingsPort;
   readonly #unsubscribeEngine: () => void;
   #operation: Promise<void> = Promise.resolve();
+  #mediaCatalogIdentity = serializeCanonicalJson(emptyCatalog());
   #state: DesktopAppState;
 
   constructor({
@@ -147,6 +150,7 @@ export class DesktopShellController {
       previewCatalog: notLoadedCatalog(),
       catalog: emptyPlayerCatalog(),
       projects: [],
+      productionProgress: [],
       selectedStoryId: null,
       activeWork: null,
       error: null,
@@ -226,7 +230,7 @@ export class DesktopShellController {
         error: null,
       });
       await this.#engine.stop();
-      await this.#media.replaceCatalog(emptyCatalog());
+      await this.#replaceMediaCatalog(emptyCatalog());
       let migration:
         | Awaited<ReturnType<DesktopWorkspacePort["migrateRoot"]>>
         | undefined;
@@ -266,6 +270,7 @@ export class DesktopShellController {
             previewCatalog: failedCatalog(),
             catalog: emptyPlayerCatalog(),
             projects: [],
+            productionProgress: [],
             selectedStoryId: null,
             activeWork: null,
             error: error.message,
@@ -288,6 +293,7 @@ export class DesktopShellController {
               previewCatalog: failedCatalog(),
               catalog: emptyPlayerCatalog(),
               projects: [],
+              productionProgress: [],
               selectedStoryId: null,
               activeWork: null,
               error:
@@ -327,6 +333,7 @@ export class DesktopShellController {
             previewCatalog: failedCatalog(),
             catalog: emptyPlayerCatalog(),
             projects: [],
+            productionProgress: [],
             selectedStoryId: null,
             activeWork: null,
             error:
@@ -355,7 +362,7 @@ export class DesktopShellController {
       const workspaceRoot = this.#state.workspaceRoot;
       if (workspaceRoot === null) return;
       await this.#engine.stop();
-      await this.#media.replaceCatalog(emptyCatalog());
+      await this.#replaceMediaCatalog(emptyCatalog());
       this.#state = DesktopAppStateSchema.parse({
         ...this.#state,
         status: "initializing",
@@ -378,6 +385,7 @@ export class DesktopShellController {
           previewCatalog: failedCatalog(),
           catalog: emptyPlayerCatalog(),
           projects: [],
+          productionProgress: [],
           selectedStoryId: null,
           error:
             error instanceof Error ? error.message : "Desktop Engine failed.",
@@ -403,7 +411,7 @@ export class DesktopShellController {
         const snapshot = await this.#engine.refreshPreviewCatalog();
         await this.#applySnapshot(snapshot, this.#state.selectedStoryId);
       } catch {
-        await this.#media.replaceCatalog(emptyCatalog());
+        await this.#replaceMediaCatalog(emptyCatalog());
         this.#state = DesktopAppStateSchema.parse({
           ...this.#state,
           status: "ready",
@@ -452,13 +460,44 @@ export class DesktopShellController {
     return this.getState();
   };
 
+  deleteProject = async (storyId: string) => {
+    const parsedStoryId = StoryIdSchema.parse(storyId);
+    if (
+      this.#state.status !== "ready" ||
+      this.#state.activeWork !== null ||
+      !this.#state.projects.some(
+        (candidate) => candidate.storyId === parsedStoryId,
+      )
+    ) {
+      throw new Error("desktop-project-delete-denied");
+    }
+    await this.#enqueue(async () => {
+      if (
+        this.#state.status !== "ready" ||
+        this.#state.activeWork !== null ||
+        !this.#state.projects.some(
+          (candidate) => candidate.storyId === parsedStoryId,
+        )
+      ) {
+        throw new Error("desktop-project-delete-denied");
+      }
+      const preferredStoryId =
+        this.#state.selectedStoryId === parsedStoryId
+          ? null
+          : this.#state.selectedStoryId;
+      const snapshot = await this.#engine.deleteProject(parsedStoryId);
+      await this.#applySnapshot(snapshot, preferredStoryId);
+    });
+    return this.getState();
+  };
+
   retryEngine = async () => {
     const workspaceRoot = this.#state.workspaceRoot;
     if (workspaceRoot === null || this.#state.status !== "fatal") {
       return this.getState();
     }
     await this.#engine.stop();
-    await this.#media.replaceCatalog(emptyCatalog());
+    await this.#replaceMediaCatalog(emptyCatalog());
     return this.#start(workspaceRoot);
   };
 
@@ -484,6 +523,7 @@ export class DesktopShellController {
           ? await this.#workspace.initializeInitialRoot(selectedRoot)
           : selectedRoot;
         await this.#media.selectWorkspace(workspaceRoot);
+        this.#mediaCatalogIdentity = serializeCanonicalJson(emptyCatalog());
         this.#state = DesktopAppStateSchema.parse({
           ...this.#state,
           workspaceRoot,
@@ -493,6 +533,7 @@ export class DesktopShellController {
         await this.#applySnapshot(snapshot, null);
       } catch (error) {
         await this.#media.replaceCatalog(emptyCatalog()).catch(() => undefined);
+        this.#mediaCatalogIdentity = serializeCanonicalJson(emptyCatalog());
         this.#state = DesktopAppStateSchema.parse({
           ...this.#state,
           status: "fatal",
@@ -505,6 +546,7 @@ export class DesktopShellController {
           previewCatalog: failedCatalog(),
           catalog: emptyPlayerCatalog(),
           projects: [],
+          productionProgress: [],
           selectedStoryId: null,
           activeWork: null,
           error:
@@ -524,7 +566,7 @@ export class DesktopShellController {
     )
       ? preferredStoryId
       : (snapshot.projects[0]?.storyId ?? null);
-    await this.#media.replaceCatalog(snapshot.catalog);
+    await this.#replaceMediaCatalog(snapshot.catalog);
     this.#state = DesktopAppStateSchema.parse({
       ...this.#state,
       status: "ready",
@@ -541,6 +583,7 @@ export class DesktopShellController {
       previewCatalog: snapshot.previewCatalog,
       catalog: projectPreviewCatalogForPlayer(snapshot.catalog),
       projects: snapshot.projects,
+      productionProgress: snapshot.productionProgress,
       selectedStoryId,
       activeWork: snapshot.activeWork,
       error: null,
@@ -551,5 +594,12 @@ export class DesktopShellController {
     const next = this.#operation.then(operation, operation);
     this.#operation = next.catch(() => undefined);
     await next;
+  };
+
+  #replaceMediaCatalog = async (catalog: PreviewCatalog) => {
+    const identity = serializeCanonicalJson(catalog);
+    if (identity === this.#mediaCatalogIdentity) return;
+    await this.#media.replaceCatalog(catalog);
+    this.#mediaCatalogIdentity = identity;
   };
 }

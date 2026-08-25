@@ -373,7 +373,7 @@ const settingsProbeSource = `(() => new Promise(async (resolve, reject) => {
       providerFormVisible: text.includes("TTS 默认策略") && text.includes("Native gate schema provider"),
       rawJsonEditorAbsent: !text.includes("完整 ProducerConfig JSON") && !text.includes("providerConfigJson"),
       secretValuesAbsent: !text.includes("local-private-token") && !text.includes("cloud-private-key"),
-      encryptedAuthorityVisible: text.includes("macOS encrypted private config"),
+      encryptedAuthorityVisible: text.includes("system encrypted private config"),
     });
   } catch (error) {
     reject(error);

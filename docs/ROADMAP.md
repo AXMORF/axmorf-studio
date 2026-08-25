@@ -75,9 +75,11 @@ exact file set 与 redaction 人工复核。
 
 Roadmap 仍位于第 4 项的公开 beta Gate。公开 beta 的入口 Gate 是取得 Remotion runtime binary redistribution 书面确认；
 许可未关闭前不得公开发布包含该 runtime 的 DMG。本轮授权和 internal artifact 不满足许可 Gate、不产生 GitHub Release，
-也不能把 artifact 写成公开 beta。精确入口见
+也不能把 artifact 写成公开 beta。Ubuntu local/internal `.deb` 复用同一公开发行 Gate，不替换 Mac 双架构流程。
+精确入口见
 [Desktop Phase D internal unsigned DMG](guides/DESKTOP_PHASE_D_UNSIGNED_DMG.md)。阶段继续遵守 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与
-[macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)。
+[macOS 维护和发行 authority](DESKTOP_APP_MACOS_MAINTENANCE.md)；Ubuntu 平台命令和验证矩阵见
+[Ubuntu 维护与打包 authority](DESKTOP_APP_UBUNTU_MAINTENANCE.md)。
 
 1. unsigned prototype：建立 bundled Preview Player、只读多轨时间轴、Engine utility process、authenticated local
    `rsp` session、默认 `~/Movies/AXMORF Studio/` 和 Codex/Hermes integration smoke；

@@ -1,4 +1,5 @@
 import MakerDMG from "@electron-forge/maker-dmg";
+import MakerDeb from "@electron-forge/maker-deb";
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { readFileSync } from "node:fs";
@@ -72,6 +73,14 @@ export const desktopVitePluginConfig = {
   concurrent: false,
 };
 
+export const desktopResourcesPathForPackage = (
+  buildPath: string,
+  platform: string,
+) =>
+  platform === "darwin"
+    ? join(buildPath, `${DESKTOP_PRODUCT_NAME}.app`, "Contents", "Resources")
+    : join(buildPath, "resources");
+
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
@@ -89,15 +98,16 @@ const config: ForgeConfig = {
       DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT,
     ],
     afterCopyExtraResources: [
-      (buildPath, _electronVersion, _platform, _arch, done) => {
-        void pruneDesktopElectronLocales(
-          join(
-            buildPath,
-            `${DESKTOP_PRODUCT_NAME}.app`,
-            "Contents",
-            "Resources",
-          ),
-        ).then(
+      (buildPath, _electronVersion, platform, _arch, done) => {
+        if (platform === "linux") {
+          done();
+          return;
+        }
+        const resourcesPath = desktopResourcesPathForPackage(
+          buildPath,
+          platform,
+        );
+        void pruneDesktopElectronLocales(resourcesPath).then(
           () => done(),
           (error: unknown) =>
             done(
@@ -125,6 +135,26 @@ const config: ForgeConfig = {
         format: "ULFO",
         overwrite: true,
       };
+    }),
+    new MakerDeb({
+      options: {
+        name: "axmorf-studio",
+        productName: DESKTOP_PRODUCT_NAME,
+        bin: DESKTOP_PRODUCT_NAME,
+        genericName: "AI Video Studio",
+        description:
+          "Agent-first local workspace for producing Remotion videos.",
+        productDescription:
+          "AXMORF Studio creates, produces, previews, and manages local Remotion video projects.",
+        section: "video",
+        priority: "optional",
+        maintainer: "AXMORF",
+        categories: ["AudioVideo", "Video"],
+        icon: join(
+          desktopPackageRoot,
+          "desktop/resources/brand/axmorf-studio-icon.png",
+        ),
+      },
     }),
   ],
   publishers: [],

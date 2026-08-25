@@ -7,6 +7,7 @@ import {
   PreviewCatalogReadinessSchema,
   PreviewPlayerCatalogSchema,
 } from "./preview";
+import { DesktopProductionProgressSchema } from "./production-progress";
 import { ActiveWorkSummarySchema } from "./protocol";
 import type {
   DesktopSettingsSaveRequest,
@@ -22,6 +23,7 @@ export const DESKTOP_SHELL_IPC_CHANNELS = Object.freeze({
   refreshPreviewCatalog: "desktop:refresh-preview-catalog",
   selectPreview: "desktop:select-preview",
   buildDelivery: "desktop:build-delivery",
+  deleteProject: "desktop:delete-project",
   getSettings: "desktop:get-settings",
   saveSettings: "desktop:save-settings",
   retryEngine: "desktop:retry-engine",
@@ -35,6 +37,7 @@ export const DESKTOP_PRELOAD_METHODS = [
   "refreshPreviewCatalog",
   "selectPreview",
   "buildDelivery",
+  "deleteProject",
   "getSettings",
   "saveSettings",
   "retryEngine",
@@ -85,6 +88,7 @@ export const DesktopAppStateSchema = z
     previewCatalog: PreviewCatalogReadinessSchema,
     catalog: PreviewPlayerCatalogSchema,
     projects: z.array(DesktopProjectStatusSchema).readonly(),
+    productionProgress: z.array(DesktopProductionProgressSchema).readonly(),
     selectedStoryId: StoryIdSchema.nullable(),
     activeWork: ActiveWorkSummarySchema.nullable(),
     error: z.string().min(1).nullable(),
@@ -110,6 +114,23 @@ export const DesktopAppStateSchema = z
         code: "custom",
         message: "Selected Project must exist in Workspace state.",
         path: ["selectedStoryId"],
+      });
+    }
+    const progressStoryIds = state.productionProgress.map(
+      ({ storyId }) => storyId,
+    );
+    if (
+      new Set(progressStoryIds).size !== progressStoryIds.length ||
+      progressStoryIds.some(
+        (storyId) =>
+          !state.projects.some((project) => project.storyId === storyId),
+      )
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Production progress must be unique and bound to Workspace Projects.",
+        path: ["productionProgress"],
       });
     }
     if (state.runtimePackAvailable !== (state.runtimePack !== null)) {
@@ -154,6 +175,7 @@ export type DesktopShellApi = Readonly<{
   refreshPreviewCatalog: () => Promise<DesktopAppState>;
   selectPreview: (storyId: string) => Promise<DesktopAppState>;
   buildDelivery: (storyId: string) => Promise<DesktopAppState>;
+  deleteProject: (storyId: string) => Promise<DesktopAppState>;
   getSettings: () => Promise<DesktopSettingsSnapshot>;
   saveSettings: (
     value: DesktopSettingsSaveRequest,

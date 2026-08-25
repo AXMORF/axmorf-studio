@@ -48,6 +48,11 @@ import {
   DesktopPrivateConfigSchema,
   type DesktopPrivateConfig,
 } from "../contracts/settings";
+import {
+  DesktopProductionProgressSchema,
+  projectDesktopProductionProgress,
+  type DesktopProductionProgress,
+} from "../contracts/production-progress";
 import { DEFAULT_EXECUTION_PREFERENCES } from "../../settings/contracts/execution-preferences";
 import {
   createWorkspaceProductionLocations,
@@ -88,6 +93,7 @@ export type EngineParentPort = {
 
 export type WorkspaceCommandRuntime = Readonly<{
   executeCommand: RspCommandExecutor;
+  latestAttempt: (storyId: string) => Promise<unknown | null>;
   shutdown: () => Promise<void>;
   activeWork: DoctorResponse["activeWork"];
   deliveryAvailable: boolean;
@@ -141,6 +147,7 @@ const createWorkspaceCommandRuntime: EngineDependencies["createCommandRuntime"] 
       ]);
       return {
         executeCommand: (request) => controller.execute(request),
+        latestAttempt: (storyId) => controller.latestAttempt(storyId),
         shutdown: controller.shutdown,
         activeWork,
         deliveryAvailable: true,
@@ -320,6 +327,7 @@ export const createEngineController = ({
   let rspServer: RspDoctorServerHandle | undefined;
   let catalog = emptyCatalog();
   let projects: readonly DesktopProjectStatus[] = [];
+  let productionProgress: readonly DesktopProductionProgress[] = [];
   let catalogReadiness = notLoaded();
   let activeWork: DoctorResponse["activeWork"] = null;
   let provider: DoctorResponse["provider"] = "not-configured";
@@ -329,7 +337,10 @@ export const createEngineController = ({
     message: "Delivery runtime capability has not been verified.",
   };
   let rawExecuteCommand: RspCommandExecutor | undefined;
+  let readLatestAttempt: WorkspaceCommandRuntime["latestAttempt"] | undefined;
   let shutdownCommandRuntime: (() => Promise<void>) | undefined;
+  let progressTimer: NodeJS.Timeout | undefined;
+  let progressReadPending = false;
   let terminal = false;
 
   const post = (message: EngineToMainMessage) =>
@@ -378,7 +389,61 @@ export const createEngineController = ({
     });
   };
 
+  const stopProgressPolling = () => {
+    if (progressTimer === undefined) return;
+    clearInterval(progressTimer);
+    progressTimer = undefined;
+  };
+
+  const refreshProductionProgress = async (requestId: string) => {
+    if (readLatestAttempt === undefined) {
+      throw new Error("engine-not-initialized");
+    }
+    const next = (
+      await Promise.all(
+        projects.map(async ({ storyId }) => {
+          try {
+            const attempt = await readLatestAttempt!(storyId);
+            return attempt === null
+              ? null
+              : projectDesktopProductionProgress(attempt);
+          } catch {
+            return null;
+          }
+        }),
+      )
+    ).filter((entry): entry is DesktopProductionProgress => entry !== null);
+    productionProgress = DesktopProductionProgressSchema.array()
+      .readonly()
+      .parse(next);
+    post({
+      protocolVersion: RSP_PROTOCOL_VERSION,
+      requestId,
+      type: "production-progress",
+      progress: productionProgress,
+    });
+  };
+
+  const startProgressPolling = (requestId: string) => {
+    stopProgressPolling();
+    const poll = async () => {
+      if (progressReadPending || terminal) return;
+      progressReadPending = true;
+      try {
+        await refreshProductionProgress(requestId);
+      } catch {
+        // Progress is diagnostic-only. Command and artifact authority stay intact.
+      } finally {
+        progressReadPending = false;
+      }
+    };
+    void poll();
+    progressTimer = setInterval(() => void poll(), 1_000);
+    progressTimer.unref();
+  };
+
   const stopOwnedResources = async () => {
+    stopProgressPolling();
     await shutdownCommandRuntime?.().catch(() => undefined);
     shutdownCommandRuntime = undefined;
     await rspServer?.close().catch(() => undefined);
@@ -412,8 +477,7 @@ export const createEngineController = ({
     try {
       const snapshot = await dependencies.buildPreviewCatalog({
         locations,
-        rendererRuntimeFingerprint:
-          currentRuntime.rendererRuntimeFingerprint,
+        rendererRuntimeFingerprint: currentRuntime.rendererRuntimeFingerprint,
         dependencies: {
           inspectDelivery: ({ locations, storyId }) =>
             inspectCurrentDelivery({
@@ -454,6 +518,7 @@ export const createEngineController = ({
       type: "workspace-projects",
       projects,
     });
+    await refreshProductionProgress(requestId);
     post({
       protocolVersion: RSP_PROTOCOL_VERSION,
       requestId,
@@ -559,14 +624,21 @@ export const createEngineController = ({
           };
           prepareReachedAwaiting = true;
           postActiveWork(request.requestId);
+          startProgressPolling(request.requestId);
         }
       }
       if (
         request.command === "project-create" ||
+        request.command === "project-delete" ||
         request.command === "asset-import" ||
         request.command === "prepare"
       ) {
         await refreshPreviewCatalog(request.requestId);
+      } else if (
+        request.command === "task-commit" ||
+        request.command === "task-fail"
+      ) {
+        await refreshProductionProgress(request.requestId);
       }
       return result;
     } catch (error) {
@@ -586,9 +658,15 @@ export const createEngineController = ({
         postActiveWork(request.requestId);
       }
       if (terminalCommand) {
-        activeWork = null;
-        postActiveWork(request.requestId);
-        await refreshPreviewCatalog(request.requestId);
+        stopProgressPolling();
+        try {
+          // Publish the replacement Delivery and its media tickets before idle.
+          // Otherwise Main can briefly expose the old Catalog against a new inode.
+          await refreshPreviewCatalog(request.requestId);
+        } finally {
+          activeWork = null;
+          postActiveWork(request.requestId);
+        }
       }
     }
   };
@@ -655,10 +733,14 @@ export const createEngineController = ({
       provider: sessionMaterial.provider,
     });
     rawExecuteCommand = commandRuntime.executeCommand;
+    readLatestAttempt = commandRuntime.latestAttempt;
     shutdownCommandRuntime = commandRuntime.shutdown;
     activeWork = commandRuntime.activeWork;
     deliveryAvailable = commandRuntime.deliveryAvailable;
     deliveryBlocker = commandRuntime.deliveryBlocker;
+    if (activeWork?.kind === "production" && activeWork.attemptId !== null) {
+      startProgressPolling(message.requestId);
+    }
     provider = sessionMaterial.provider;
     appPid = message.appPid;
     sessionExpiresAt = message.sessionExpiresAt;
@@ -706,6 +788,20 @@ export const createEngineController = ({
     });
   };
 
+  const deleteProject = async (
+    message: Extract<MainToEngineMessage, { readonly type: "delete-project" }>,
+  ) => {
+    if (workspace === undefined) throw new Error("engine-not-initialized");
+    await runCommand({
+      protocolVersion: RSP_PROTOCOL_VERSION,
+      requestId: message.requestId,
+      workspaceId: workspace.manifest.workspaceId,
+      command: "project-delete",
+      storyId: message.storyId,
+      confirmDelete: true,
+    });
+  };
+
   const handleMessageEvent = async (event: EngineMessageEvent) => {
     if (terminal) return;
     let message: MainToEngineMessage;
@@ -732,6 +828,10 @@ export const createEngineController = ({
       }
       if (message.type === "build-delivery") {
         await buildDelivery(message).catch(() => undefined);
+        return;
+      }
+      if (message.type === "delete-project") {
+        await deleteProject(message).catch(() => undefined);
         return;
       }
       terminal = true;

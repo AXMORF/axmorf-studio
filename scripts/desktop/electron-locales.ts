@@ -1,9 +1,14 @@
 import { lstat, readdir, rm } from "node:fs/promises";
-import { relative, resolve, sep } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 
 export const DESKTOP_ELECTRON_LOCALES = Object.freeze([
   "en.lproj",
   "zh_CN.lproj",
+] as const);
+
+export const DESKTOP_ELECTRON_LINUX_LOCALES = Object.freeze([
+  "en-US.pak",
+  "zh-CN.pak",
 ] as const);
 
 const contained = (root: string, candidate: string) => {
@@ -41,5 +46,35 @@ export const pruneDesktopElectronLocales = async (resourcesRoot: string) => {
     .sort();
   if (JSON.stringify(actual) !== JSON.stringify(DESKTOP_ELECTRON_LOCALES)) {
     throw new Error("Desktop Electron locale inventory drifted.");
+  }
+};
+
+export const pruneDesktopLinuxElectronLocales = async (
+  applicationRoot: string,
+) => {
+  const localesRoot = resolve(applicationRoot, "locales");
+  const rootMetadata = await lstat(localesRoot);
+  if (!rootMetadata.isDirectory() || rootMetadata.isSymbolicLink()) {
+    throw new Error("Desktop Linux locales root must be a real directory.");
+  }
+  for (const entry of await readdir(localesRoot, { withFileTypes: true })) {
+    const path = join(localesRoot, entry.name);
+    if (
+      !contained(localesRoot, path) ||
+      entry.isSymbolicLink() ||
+      !entry.isFile()
+    ) {
+      throw new Error(`Desktop Linux locale is unsafe: ${entry.name}.`);
+    }
+    if (!DESKTOP_ELECTRON_LINUX_LOCALES.includes(entry.name as never)) {
+      await rm(path);
+    }
+  }
+  const actual = (await readdir(localesRoot)).sort();
+  if (
+    JSON.stringify(actual) !==
+    JSON.stringify([...DESKTOP_ELECTRON_LINUX_LOCALES].sort())
+  ) {
+    throw new Error("Desktop Linux Electron locale inventory drifted.");
   }
 };

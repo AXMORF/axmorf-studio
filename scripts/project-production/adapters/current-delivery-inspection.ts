@@ -47,9 +47,13 @@ export const createRuntimeDeliveryInspectionDependencies = (
   runtime: RuntimeExecutionResources,
 ): CurrentDeliveryInspectionDependencies => {
   const runProcess = (command: string, args: readonly string[]) =>
-    runMediaProcessWithEnvironment(command, args, {
-      DYLD_LIBRARY_PATH: runtime.binariesDirectory,
-    });
+    runMediaProcessWithEnvironment(
+      command,
+      args,
+      process.platform === "darwin"
+        ? { DYLD_LIBRARY_PATH: runtime.binariesDirectory }
+        : { LD_LIBRARY_PATH: runtime.binariesDirectory },
+    );
   return {
     inspectVideo: ({ absolutePath, expected }) =>
       inspectProjectVideo({

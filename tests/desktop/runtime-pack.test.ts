@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   chmod,
+  lstat,
   mkdir,
   mkdtemp,
   readFile,
@@ -27,8 +28,9 @@ import {
   createRendererRuntimeFingerprint,
 } from "../../desktop/contracts/runtime-pack";
 import {
+  DESKTOP_DARWIN_COMPOSITOR_RUNTIME_FILES,
   DESKTOP_FORBIDDEN_RUNTIME_PACKAGES,
-  DESKTOP_COMPOSITOR_RUNTIME_FILES,
+  DESKTOP_LINUX_COMPOSITOR_RUNTIME_FILES,
   DESKTOP_RENDER_SOURCE_PACKAGES,
   buildDesktopRuntimePack,
   collectDesktopProductionModuleClosure,
@@ -126,6 +128,7 @@ test("Runtime Pack build is exact and deterministic", async (t) => {
     expectedArchitecture: "arm64",
     expectedPlatform: "darwin",
   });
+  assert.equal((await lstat(pack)).mode & 0o777, 0o755);
   assert.equal(verified.runtimePackId, manifest.runtimePackId);
   assert.deepEqual(
     verified.files.map(({ path }) => path),
@@ -508,7 +511,7 @@ test("Runtime executable probe is bounded and does not inherit host environment"
   const dynamic = join(root, "dynamic-probe");
   await writeFile(
     dynamic,
-    '#!/bin/sh\nif [ "$DYLD_LIBRARY_PATH" != "$1" ] || [ -n "${RSP_PROBE_SECRET:-}" ]; then exit 8; fi\necho dynamic-runtime\n',
+    `#!/bin/sh\nif [ "$${process.platform === "darwin" ? "DYLD_LIBRARY_PATH" : "LD_LIBRARY_PATH"}" != "$1" ] || [ -n "\${RSP_PROBE_SECRET:-}" ]; then exit 8; fi\necho dynamic-runtime\n`,
   );
   await chmod(dynamic, 0o755);
   assert.equal(
@@ -521,10 +524,11 @@ test("Runtime executable probe is bounded and does not inherit host environment"
   );
 });
 
-test("native Runtime Pack build refuses a non-macOS or unsupported host", async () => {
+test("native Runtime Pack build refuses only unsupported hosts", async () => {
   if (
-    process.platform === "darwin" &&
-    (process.arch === "arm64" || process.arch === "x64")
+    (process.platform === "darwin" &&
+      (process.arch === "arm64" || process.arch === "x64")) ||
+    (process.platform === "linux" && process.arch === "x64")
   ) {
     return;
   }
@@ -535,7 +539,7 @@ test("native Runtime Pack build refuses a non-macOS or unsupported host", async 
 });
 
 test("Runtime Pack source closure is explicit and excludes native fixtures", () => {
-  assert.deepEqual(DESKTOP_COMPOSITOR_RUNTIME_FILES, [
+  assert.deepEqual(DESKTOP_DARWIN_COMPOSITOR_RUNTIME_FILES, [
     "libavcodec.dylib",
     "libavdevice.dylib",
     "libavfilter.dylib",
@@ -543,6 +547,16 @@ test("Runtime Pack source closure is explicit and excludes native fixtures", () 
     "libavutil.dylib",
     "libswresample.dylib",
     "libswscale.dylib",
+    "remotion",
+  ]);
+  assert.deepEqual(DESKTOP_LINUX_COMPOSITOR_RUNTIME_FILES, [
+    "libavcodec.so",
+    "libavdevice.so",
+    "libavfilter.so",
+    "libavformat.so",
+    "libavutil.so",
+    "libswresample.so",
+    "libswscale.so",
     "remotion",
   ]);
   const paths = listDesktopRuntimeSourcePaths();

@@ -44,6 +44,7 @@ const createController = (events: string[]) =>
             failureCode: null,
           },
           projects: [],
+          productionProgress: [],
           activeWork: null,
           runtimePack: {
             runtimePackId: `runtime-pack-${"a".repeat(64)}`,
@@ -62,6 +63,9 @@ const createController = (events: string[]) =>
         throw new Error("not used");
       },
       buildDelivery: async () => {
+        throw new Error("not used");
+      },
+      deleteProject: async () => {
         throw new Error("not used");
       },
       subscribe: () => () => undefined,

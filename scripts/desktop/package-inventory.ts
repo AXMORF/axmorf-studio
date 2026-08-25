@@ -8,8 +8,14 @@ import {
   RuntimePackManifestSchema,
   assertDesktopRuntimeCompatibility,
 } from "../../desktop/contracts/runtime-pack";
-import type { DesktopDarwinArchitecture } from "../../desktop/configuration/darwin-target";
-import { DESKTOP_ELECTRON_LOCALES } from "./electron-locales";
+import type {
+  DesktopNativeArchitecture,
+  DesktopNativePlatform,
+} from "../../desktop/configuration/native-target";
+import {
+  DESKTOP_ELECTRON_LINUX_LOCALES,
+  DESKTOP_ELECTRON_LOCALES,
+} from "./electron-locales";
 import { DESKTOP_WORKSPACE_INTEGRATION_RESOURCE_FILES } from "./workspace-integration-package";
 
 export const DESKTOP_PACKAGE_ALLOWED_ROOTS = Object.freeze([
@@ -52,11 +58,9 @@ const DESKTOP_PACKAGE_ALLOWED_DIRECTORIES = new Set([
   "desktop/resources/brand",
 ]);
 
-const DESKTOP_RESOURCES_REQUIRED_TOP_LEVEL = Object.freeze([
+const DESKTOP_RESOURCES_COMMON_TOP_LEVEL = Object.freeze([
   "app.asar",
   "compatibility.json",
-  "electron.icns",
-  ...DESKTOP_ELECTRON_LOCALES,
   "runtime-pack",
   "workspace-integration",
 ]);
@@ -67,18 +71,25 @@ const DESKTOP_RESOURCES_OPTIONAL_TOP_LEVEL = Object.freeze([
 
 export const assertDesktopResourcesTopLevel = (
   rawEntries: readonly string[],
+  platform: DesktopNativePlatform = "darwin",
 ) => {
   const entries = [...rawEntries].sort();
   if (new Set(entries).size !== entries.length) {
     throw new Error("desktop-resources-top-level-duplicate");
   }
-  for (const required of DESKTOP_RESOURCES_REQUIRED_TOP_LEVEL) {
+  const requiredEntries = [
+    ...DESKTOP_RESOURCES_COMMON_TOP_LEVEL,
+    ...(platform === "darwin"
+      ? ["electron.icns", ...DESKTOP_ELECTRON_LOCALES]
+      : []),
+  ];
+  for (const required of requiredEntries) {
     if (!entries.includes(required)) {
       throw new Error(`desktop-resources-top-level-missing:${required}`);
     }
   }
   const allowed = new Set([
-    ...DESKTOP_RESOURCES_REQUIRED_TOP_LEVEL,
+    ...requiredEntries,
     ...DESKTOP_RESOURCES_OPTIONAL_TOP_LEVEL,
   ]);
   const unknown = entries.find((entry) => !allowed.has(entry));
@@ -138,6 +149,13 @@ const assertRealDirectory = (path: string, label: string) => {
   const metadata = lstatSync(path);
   if (metadata.isSymbolicLink() || !metadata.isDirectory()) {
     throw new Error(`desktop-package-inventory-invalid-${label}:${path}`);
+  }
+};
+
+export const assertDesktopRuntimePackRootPermissions = (root: string) => {
+  assertRealDirectory(root, "runtime-pack-root");
+  if ((lstatSync(root).mode & 0o777) !== 0o755) {
+    throw new Error("desktop-runtime-pack-root-mode-invalid");
   }
 };
 
@@ -305,7 +323,8 @@ const inspectUnpackedTree = (root: string, current = root): number => {
 };
 
 export type DesktopPackageInventory = Readonly<{
-  architecture: DesktopDarwinArchitecture;
+  platform: DesktopNativePlatform;
+  architecture: DesktopNativeArchitecture;
   asarEntries: number;
   unpackedFiles: number;
   asarSha256: string;
@@ -401,7 +420,7 @@ export const inspectPackagedWorkspaceIntegration = ({
 
 const inspectPackagedRuntime = (resourcesPath: string) => {
   const root = join(resourcesPath, "runtime-pack");
-  assertRealDirectory(root, "runtime-pack-root");
+  assertDesktopRuntimePackRootPermissions(root);
   const manifest = RuntimePackManifestSchema.parse(
     readBoundedStrictJson(
       join(root, "runtime-pack.json"),
@@ -441,6 +460,7 @@ const inspectPackagedRuntime = (resourcesPath: string) => {
     }
   }
   return {
+    platform: manifest.platform,
     architecture: manifest.architecture,
     runtimePackId: manifest.runtimePackId,
     runtimePackFiles: manifest.files.length,
@@ -450,13 +470,23 @@ const inspectPackagedRuntime = (resourcesPath: string) => {
 export const verifyDesktopPackageInventory = (
   appPath: string,
   {
+    expectedPlatform = "darwin",
     expectedArchitecture,
-  }: { readonly expectedArchitecture?: DesktopDarwinArchitecture } = {},
+  }: {
+    readonly expectedPlatform?: DesktopNativePlatform;
+    readonly expectedArchitecture?: DesktopNativeArchitecture;
+  } = {},
 ): DesktopPackageInventory => {
-  const resourcesPath = join(appPath, "Contents", "Resources");
+  const resourcesPath =
+    expectedPlatform === "darwin"
+      ? join(appPath, "Contents", "Resources")
+      : join(appPath, "resources");
   assertRealDirectory(resourcesPath, "resources-root");
   const resourceEntries = readdirSync(resourcesPath, { withFileTypes: true });
-  assertDesktopResourcesTopLevel(resourceEntries.map(({ name }) => name));
+  assertDesktopResourcesTopLevel(
+    resourceEntries.map(({ name }) => name),
+    expectedPlatform,
+  );
   for (const entry of resourceEntries) {
     if (entry.isSymbolicLink()) {
       throw new Error(`desktop-resources-top-level-symlink:${entry.name}`);
@@ -475,10 +505,25 @@ export const verifyDesktopPackageInventory = (
   }
   const runtime = inspectPackagedRuntime(resourcesPath);
   if (
-    expectedArchitecture !== undefined &&
-    runtime.architecture !== expectedArchitecture
+    runtime.platform !== expectedPlatform ||
+    (expectedArchitecture !== undefined &&
+      runtime.architecture !== expectedArchitecture)
   ) {
-    throw new Error("desktop-package-runtime-architecture-mismatch");
+    throw new Error("desktop-package-runtime-target-mismatch");
+  }
+  if (expectedPlatform === "linux") {
+    const localeEntries = readdirSync(join(appPath, "locales"), {
+      withFileTypes: true,
+    });
+    if (
+      localeEntries.some(
+        (entry) => entry.isSymbolicLink() || !entry.isFile(),
+      ) ||
+      JSON.stringify(localeEntries.map(({ name }) => name).sort()) !==
+        JSON.stringify([...DESKTOP_ELECTRON_LINUX_LOCALES].sort())
+    ) {
+      throw new Error("desktop-linux-locales-inventory-drift");
+    }
   }
   const integration = inspectPackagedWorkspaceIntegration({ resourcesPath });
   const runtimeManifest = RuntimePackManifestSchema.parse(

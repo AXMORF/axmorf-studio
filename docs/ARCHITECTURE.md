@@ -214,4 +214,6 @@ arm64 与真实 Intel x64 runners 完成 packaged native gate；见 [ITERATION_S
 installer 只把 ordinary package 装入对应单架构 unsigned DMG，并在不复制 production 主链的前提下复用该 gate；它不改变
 Workspace/production/Delivery authority。internal DMG implementation 不等于许可、签名、公证或公开发行；产品与发行边界见
 [DESKTOP_APP_PRODUCT.md](DESKTOP_APP_PRODUCT.md) 和
-[DESKTOP_APP_MACOS_MAINTENANCE.md](DESKTOP_APP_MACOS_MAINTENANCE.md)。
+[DESKTOP_APP_MACOS_MAINTENANCE.md](DESKTOP_APP_MACOS_MAINTENANCE.md)。Ubuntu x64 使用同一 App/Engine/Workspace
+authority，但采用独立 Linux Runtime Pack 与 `.deb` maker；见
+[DESKTOP_APP_UBUNTU_MAINTENANCE.md](DESKTOP_APP_UBUNTU_MAINTENANCE.md)。

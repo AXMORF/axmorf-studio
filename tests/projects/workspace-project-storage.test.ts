@@ -139,12 +139,12 @@ test("Workspace Catalog resolves immutable Runtime Pack source and shared assets
     locations,
   });
   assert.ok(
-    descriptors.some(({ id }) => id === "asset.axmorf-brand-reveal-chime"),
+    descriptors.some(({ id }) => id === "asset.axmorf.default-intro-impact"),
   );
   await rm(
     join(
       runtime,
-      "shared-assets/library/scene-templates/axmorf-brand-reveal-chime.wav",
+      "shared-assets/library/mixkit/sound-effects/mixkit-movie-trailer-epic-impact-2908.wav",
     ),
   );
   await assert.rejects(

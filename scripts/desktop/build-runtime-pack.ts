@@ -19,10 +19,12 @@ import {
   probeRuntimeExecutable,
 } from "../../desktop/adapters/runtime-pack-filesystem";
 import {
-  assertDesktopDarwinNativeHost,
-  DesktopDarwinArchitectureSchema,
-  type DesktopDarwinArchitecture,
-} from "../../desktop/configuration/darwin-target";
+  assertDesktopNativeHost,
+  DesktopNativeArchitectureSchema,
+  DesktopNativePlatformSchema,
+  type DesktopNativeArchitecture,
+  type DesktopNativePlatform,
+} from "../../desktop/configuration/native-target";
 import {
   DESKTOP_REQUIRED_REMOTION_PACKAGES,
   DESKTOP_UNSUPPORTED_REMOTION_PACKAGES,
@@ -155,7 +157,7 @@ export const DESKTOP_RENDER_SOURCE_PACKAGES = Object.freeze([
 export const DESKTOP_FORBIDDEN_RUNTIME_PACKAGES =
   DESKTOP_UNSUPPORTED_REMOTION_PACKAGES;
 
-export const DESKTOP_COMPOSITOR_RUNTIME_FILES = Object.freeze([
+export const DESKTOP_DARWIN_COMPOSITOR_RUNTIME_FILES = Object.freeze([
   "libavcodec.dylib",
   "libavdevice.dylib",
   "libavfilter.dylib",
@@ -165,6 +167,24 @@ export const DESKTOP_COMPOSITOR_RUNTIME_FILES = Object.freeze([
   "libswscale.dylib",
   "remotion",
 ] as const);
+
+export const DESKTOP_LINUX_COMPOSITOR_RUNTIME_FILES = Object.freeze([
+  "libavcodec.so",
+  "libavdevice.so",
+  "libavfilter.so",
+  "libavformat.so",
+  "libavutil.so",
+  "libswresample.so",
+  "libswscale.so",
+  "remotion",
+] as const);
+
+export const desktopCompositorRuntimeFiles = (
+  platform: DesktopNativePlatform,
+) =>
+  platform === "darwin"
+    ? DESKTOP_DARWIN_COMPOSITOR_RUNTIME_FILES
+    : DESKTOP_LINUX_COMPOSITOR_RUNTIME_FILES;
 
 const forbiddenRuntimePackages = new Set<string>(
   DESKTOP_FORBIDDEN_RUNTIME_PACKAGES,
@@ -414,7 +434,10 @@ export const collectDesktopProductionModuleClosure = async ({
   } as const;
 };
 
-const buildRspSea = async (temporary: string) => {
+const buildRspSea = async (
+  temporary: string,
+  platform: DesktopNativePlatform,
+) => {
   await run(join(process.cwd(), "node_modules/.bin/vite"), [
     "build",
     "--config",
@@ -431,29 +454,36 @@ const buildRspSea = async (temporary: string) => {
   await run(process.execPath, ["--experimental-sea-config", config]);
   await copyFile(process.execPath, output);
   await chmod(output, 0o755);
-  await run("codesign", ["--remove-signature", output]);
+  if (platform === "darwin") {
+    await run("codesign", ["--remove-signature", output]);
+  }
   await run(join(process.cwd(), "node_modules/.bin/postject"), [
     output,
     "NODE_SEA_BLOB",
     blob,
     "--sentinel-fuse",
     "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2",
-    "--macho-segment-name",
-    "NODE_SEA",
+    ...(platform === "darwin"
+      ? (["--macho-segment-name", "NODE_SEA"] as const)
+      : []),
   ]);
   return output;
 };
 
 export const buildDesktopRuntimePack = async ({
   outputRoot = join(process.cwd(), "desktop/runtime-pack"),
+  platform = process.platform,
   architecture = process.arch,
 }: {
   readonly outputRoot?: string;
-  readonly architecture?: DesktopDarwinArchitecture | string;
+  readonly platform?: DesktopNativePlatform | string;
+  readonly architecture?: DesktopNativeArchitecture | string;
 } = {}) => {
+  const parsedPlatform = DesktopNativePlatformSchema.parse(platform);
   const parsedArchitecture =
-    DesktopDarwinArchitectureSchema.parse(architecture);
-  const target = assertDesktopDarwinNativeHost({
+    DesktopNativeArchitectureSchema.parse(architecture);
+  const target = assertDesktopNativeHost({
+    expectedPlatform: parsedPlatform,
     expectedArchitecture: parsedArchitecture,
   });
   const temporary = await mkdtemp(join(tmpdir(), "rsp-runtime-build-"));
@@ -487,12 +517,13 @@ export const buildDesktopRuntimePack = async ({
         }),
         probeRuntimeExecutable({ executable: process.execPath }),
       ]);
-    const rsp = await buildRspSea(temporary);
+    const rsp = await buildRspSea(temporary, target.platform);
     const browserFiles = await collectFiles(browserRoot, "browser");
     const browserExecutableRelative = `browser/${relative(browserRoot, browserExecutable)}`;
     const moduleClosure = await collectDesktopProductionModuleClosure({
       platform: target.platform,
       architecture: target.architecture,
+      ...(target.platform === "linux" ? { libc: target.libc } : {}),
     });
     const sourceFiles = [
       ...(await collectRuntimeSourceFiles()),
@@ -503,7 +534,7 @@ export const buildDesktopRuntimePack = async ({
       ...moduleClosure.files,
     ];
     const compositorFiles = await Promise.all(
-      DESKTOP_COMPOSITOR_RUNTIME_FILES.map(async (name) => {
+      desktopCompositorRuntimeFiles(target.platform).map(async (name) => {
         const source = join(compositorRoot, name);
         const metadata = await lstat(source);
         if (!metadata.isFile() || metadata.isSymbolicLink()) {
@@ -525,6 +556,7 @@ export const buildDesktopRuntimePack = async ({
     ].sort((a, b) => a.relativePath.localeCompare(b.relativePath));
     const manifest = await buildRuntimePack({
       outputRoot: resolve(outputRoot),
+      platform: target.platform,
       architecture: target.architecture,
       remotionPackages: moduleClosure.remotionPackages,
       binaries: {
@@ -578,11 +610,14 @@ export const buildDesktopRuntimePack = async ({
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const architectureIndex = process.argv.indexOf("--architecture");
+  const platformIndex = process.argv.indexOf("--platform");
+  const platform =
+    platformIndex === -1 ? process.platform : process.argv[platformIndex + 1];
   const architecture =
     architectureIndex === -1
       ? process.arch
       : process.argv[architectureIndex + 1];
-  buildDesktopRuntimePack({ architecture })
+  buildDesktopRuntimePack({ platform, architecture })
     .then((manifest) => process.stdout.write(`${JSON.stringify(manifest)}\n`))
     .catch((error) => {
       process.stderr.write(

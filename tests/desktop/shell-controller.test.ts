@@ -98,6 +98,7 @@ const snapshot = (storyId = "story-one"): DesktopEngineSnapshot => ({
       invalidation: [],
     },
   ],
+  productionProgress: [],
   activeWork: null,
   runtimePack,
   agentIntegration: "ready",
@@ -133,6 +134,7 @@ const manualSnapshot = (): DesktopEngineSnapshot => ({
       ],
     },
   ],
+  productionProgress: [],
   activeWork: null,
   runtimePack,
   agentIntegration: "ready",
@@ -201,6 +203,26 @@ const createHarness = (selectedRoot: string | null) => {
       buildDelivery: async (storyId) => {
         calls.push(`engine-delivery:${storyId}`);
         currentSnapshot = snapshot(storyId);
+        return currentSnapshot;
+      },
+      deleteProject: async (storyId) => {
+        calls.push(`engine-delete:${storyId}`);
+        currentSnapshot = {
+          ...manualSnapshot(),
+          projects: [],
+          catalog: PreviewCatalogSchema.parse({
+            schemaVersion: 1,
+            contractVersion: "desktop-preview-catalog-v1",
+            entries: [],
+            unavailable: [],
+          }),
+          previewCatalog: {
+            state: "ready",
+            entryCount: 0,
+            unavailableCount: 0,
+            failureCode: null,
+          },
+        };
         return currentSnapshot;
       },
       subscribe: (next) => {
@@ -277,6 +299,19 @@ test("manual source-current is selectable and Delivery is an explicit action", a
   assert.equal(harness.calls.includes("engine-delivery:story-one"), true);
 });
 
+test("Project deletion removes the selected Project and clears its media identity", async () => {
+  const harness = createHarness("/tmp/workspace");
+  await harness.controller.bootstrap();
+  const deleted = await harness.controller.deleteProject("story-one");
+  assert.deepEqual(deleted.projects, []);
+  assert.equal(deleted.selectedStoryId, null);
+  assert.equal(deleted.catalog.entries.length, 0);
+  assert.deepEqual(harness.calls.slice(-2), [
+    "engine-delete:story-one",
+    "media:",
+  ]);
+});
+
 test("Delivery action rejects an explicitly unavailable runtime", async () => {
   const harness = createHarness("/tmp/workspace");
   harness.setSnapshot({
@@ -302,6 +337,16 @@ test("Engine terminal events automatically refresh media and preserve target", a
   const state = harness.controller.getState();
   assert.equal(state.selectedStoryId, "story-two");
   assert.equal(harness.calls.at(-1), "media:story-two");
+});
+
+test("progress-only Engine snapshots preserve current media tickets", async () => {
+  const harness = createHarness("/tmp/workspace");
+  await harness.controller.bootstrap();
+  await harness.publishSnapshot(snapshot());
+  assert.equal(
+    harness.calls.filter((call) => call === "media:story-one").length,
+    1,
+  );
 });
 
 test("saving structured Desktop Settings restarts and rebinds Engine", async () => {
@@ -361,6 +406,10 @@ test("active work blocks Delivery and shutdown orders Engine before media", asyn
   await assert.rejects(
     () => harness.controller.buildDelivery("story-one"),
     /desktop-delivery-build-denied/u,
+  );
+  await assert.rejects(
+    () => harness.controller.deleteProject("story-one"),
+    /desktop-project-delete-denied/u,
   );
   await harness.controller.shutdown();
   assert.deepEqual(harness.calls.slice(-2), ["engine-stop", "media-close"]);

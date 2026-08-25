@@ -3,7 +3,6 @@ import { lstat, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, normalize, relative, sep } from "node:path";
 
 import {
-  ProducerAssetManifestSchema,
   ProjectAssetManifestSchema,
   ResourceIdSchema,
   StorySpecSchema,
@@ -18,7 +17,10 @@ import {
   type ResourceAssetDescriptor,
   type Sha256Digest,
 } from "../../src/contracts";
-import { SceneTemplateAudioProjectionSchema } from "../../src/remotion/capabilities/scene-templates/template-audio";
+import {
+  SceneTemplateAudioProjectionSchema,
+  buildDefaultSceneTemplateAudioProjection,
+} from "../../src/remotion/capabilities/scene-templates/template-audio";
 import {
   getSceneTemplateDefinition,
   renderCopiedSceneRenderer,
@@ -29,8 +31,6 @@ import type { ProductionLocations } from "../project-production/application/prod
 
 const INTRO_MEANING_ID = "configured-intro-scene";
 const OUTRO_MEANING_ID = "configured-outro-scene";
-const INTRO_AUDIO_RESOURCE_ID = "asset.axmorf-brand-reveal-chime";
-const OUTRO_AUDIO_RESOURCE_ID = "asset.axmorf-source-follow-chime";
 
 const checksum = (bytes: Uint8Array) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}` as Sha256Digest;
@@ -39,60 +39,7 @@ const jsonBytes = (value: unknown) => `${serializeCanonicalJson(value)}\n`;
 
 export const buildWorkspaceSceneTemplateAudioProjection = (
   rawManifest: unknown,
-) => {
-  const manifest = ProducerAssetManifestSchema.parse(rawManifest);
-  const select = (resourceId: string) => {
-    const descriptor = manifest.assets.find(({ id }) => id === resourceId);
-    if (
-      descriptor === undefined ||
-      descriptor.assetKind !== "audio" ||
-      descriptor.mediaRole !== "sound-effect" ||
-      descriptor.allowedUse !== "runtime-approved" ||
-      descriptor.status !== "approved" ||
-      descriptor.license.verificationStatus !== "verified" ||
-      descriptor.media?.durationInSeconds === undefined ||
-      descriptor.media.durationInSeconds < 0.5
-    ) {
-      throw new Error(
-        `Workspace Scene template audio is unavailable: ${resourceId}.`,
-      );
-    }
-    return descriptor;
-  };
-  const intro = select(INTRO_AUDIO_RESOURCE_ID);
-  const outro = select(OUTRO_AUDIO_RESOURCE_ID);
-  return SceneTemplateAudioProjectionSchema.parse({
-    schemaVersion: 1,
-    intro: {
-      source: intro,
-      targetMediaRole: "sound-effect",
-      destinationName: "axmorf-brand-reveal-chime.wav",
-      soundCues: [
-        {
-          cueId: "reveal-impact",
-          anchorId: "intro-sound-start",
-          offsetFrames: 0,
-          durationInFrames: 60,
-          volume: 0.82,
-        },
-      ],
-    },
-    outro: {
-      source: outro,
-      targetMediaRole: "sound-effect",
-      destinationName: "axmorf-source-follow-chime.wav",
-      soundCues: [
-        {
-          cueId: "closing-chime",
-          anchorId: "closing-music-start",
-          offsetFrames: 0,
-          durationInFrames: 240,
-          volume: 0.82,
-        },
-      ],
-    },
-  });
-};
+) => buildDefaultSceneTemplateAudioProjection(rawManifest);
 
 const safeRelativePath = (value: string, label: string) => {
   if (

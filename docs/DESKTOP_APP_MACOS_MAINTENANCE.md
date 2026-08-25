@@ -9,12 +9,15 @@
 
 ## 1. 已确认范围与发行基线
 
-已经确认：v1 只支持 macOS，使用 Electron，不同时实现 Windows、Linux 或 Tauri；Apple Silicon `arm64` 与
+本文只定义 macOS 原生发行；Ubuntu x64 由独立维护文档和打包命令负责，不替换本流程。macOS 使用 Electron，Apple Silicon `arm64` 与
 Intel `x64` 都必须获得正式支持；App 必须运行，关闭主窗口时 active production 继续驻留，用户显式 Quit 才
 终止 App；v1 不安装 launch daemon、login item、常驻 scheduler 或独立 headless service；用户继续使用自己的
 Agent，App 不内置 Agent SDK；首阶段从项目维护的下载渠道直接提供无签名、未 notarize 的 DMG，不购买 Apple
 Developer Program，不进入 Mac App Store，也不启用 macOS auto-update。Developer ID 签名和 Apple
 notarization 是以后降低 Gatekeeper 安装阻力时的发行增强，不是 prototype、alpha 或首个可用版本的前置条件。
+
+Ubuntu 的加入不改变以下双架构 DMG、native runner、签名/公证或 release-set contract；详情见
+[Desktop App Ubuntu 维护与打包](DESKTOP_APP_UBUNTU_MAINTENANCE.md)。
 
 正式产品名为 `AXMORF Studio`，bundle ID 为 `com.axmorf.studio`。App icon 复用 repository canonical AXMORF
 mark 和现有深灰/暖棕/暖白品牌色；`remotion-story-producer` 只保留为 repository/engine identifier。

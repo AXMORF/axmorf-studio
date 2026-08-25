@@ -15,6 +15,7 @@ import {
   PreviewCatalogReadinessSchema,
   PreviewCatalogSchema,
 } from "./preview";
+import { DesktopProductionProgressSchema } from "./production-progress";
 import { RspFieldIssueSchema } from "./issues";
 
 export const RSP_PROTOCOL_VERSION = "rsp-local-v2" as const;
@@ -302,9 +303,8 @@ const RSP_READ_ONLY_COMMANDS = new Set<RspCommandRequest["command"]>([
   "task-check",
 ]);
 
-export const isRspReadOnlyCommand = (
-  command: RspCommandRequest["command"],
-) => RSP_READ_ONLY_COMMANDS.has(command);
+export const isRspReadOnlyCommand = (command: RspCommandRequest["command"]) =>
+  RSP_READ_ONLY_COMMANDS.has(command);
 
 export const RspCommandResponseSchema = z.discriminatedUnion("ok", [
   z.strictObject({
@@ -349,6 +349,10 @@ export const MainToEngineMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("build-delivery"),
     storyId: StoryIdSchema,
   }),
+  EngineRequestBaseSchema.extend({
+    type: z.literal("delete-project"),
+    storyId: StoryIdSchema,
+  }),
   EngineRequestBaseSchema.extend({ type: z.literal("shutdown") }),
 ]);
 
@@ -372,6 +376,10 @@ export const EngineToMainMessageSchema = z.discriminatedUnion("type", [
   EngineResponseBaseSchema.extend({
     type: z.literal("workspace-projects"),
     projects: z.array(DesktopProjectStatusSchema).readonly(),
+  }),
+  EngineResponseBaseSchema.extend({
+    type: z.literal("production-progress"),
+    progress: z.array(DesktopProductionProgressSchema).readonly(),
   }),
   EngineResponseBaseSchema.extend({
     type: z.literal("doctor-state"),

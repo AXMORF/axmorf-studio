@@ -9,7 +9,7 @@ import {
   DESKTOP_SHELL_IPC_CHANNELS,
 } from "../../desktop/contracts/shell";
 
-test("trusted preload exposes exactly the ten frozen Phase B methods", async () => {
+test("trusted preload exposes exactly the eleven frozen Desktop methods", async () => {
   assert.deepEqual(DESKTOP_PRELOAD_METHODS, [
     "getAppState",
     "chooseInitialWorkspace",
@@ -18,6 +18,7 @@ test("trusted preload exposes exactly the ten frozen Phase B methods", async () 
     "refreshPreviewCatalog",
     "selectPreview",
     "buildDelivery",
+    "deleteProject",
     "getSettings",
     "saveSettings",
     "retryEngine",

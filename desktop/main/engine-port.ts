@@ -9,6 +9,10 @@ import {
   type PreviewCatalogReadiness,
 } from "../contracts/preview";
 import {
+  DesktopProductionProgressSchema,
+  type DesktopProductionProgress,
+} from "../contracts/production-progress";
+import {
   RSP_PROTOCOL_VERSION,
   parseEngineToMainMessage,
   type DoctorResponse,
@@ -40,9 +44,11 @@ export const desktopEngineResponseTimeout = (type: EngineRequestType) =>
     ? ENGINE_INITIALIZE_RESPONSE_TIMEOUT_MS
     : type === "refresh-preview-catalog"
       ? PREVIEW_CATALOG_RESPONSE_TIMEOUT_MS
-      : type === "build-delivery"
-        ? DELIVERY_BUILD_RESPONSE_TIMEOUT_MS
-        : ENGINE_RESPONSE_TIMEOUT_MS;
+      : type === "delete-project"
+        ? PREVIEW_CATALOG_RESPONSE_TIMEOUT_MS
+        : type === "build-delivery"
+          ? DELIVERY_BUILD_RESPONSE_TIMEOUT_MS
+          : ENGINE_RESPONSE_TIMEOUT_MS;
 
 export type DesktopUtilityProcess = Readonly<{
   pid: number | undefined;
@@ -122,6 +128,7 @@ export class UtilityProcessDesktopEnginePort implements DesktopEnginePort {
     unavailable: [],
   });
   #projects: readonly DesktopProjectStatus[] = [];
+  #productionProgress: readonly DesktopProductionProgress[] = [];
   #readiness: PreviewCatalogReadiness = PreviewCatalogReadinessSchema.parse({
     state: "not-loaded",
     entryCount: 0,
@@ -214,6 +221,7 @@ export class UtilityProcessDesktopEnginePort implements DesktopEnginePort {
     await this.#send({ type: "refresh-preview-catalog" }, [
       "preview-catalog",
       "workspace-projects",
+      "production-progress",
       "doctor-state",
     ]);
     return this.#snapshot();
@@ -226,6 +234,7 @@ export class UtilityProcessDesktopEnginePort implements DesktopEnginePort {
     await this.#send({ type: "build-delivery", storyId }, [
       "preview-catalog",
       "workspace-projects",
+      "production-progress",
       "doctor-state",
     ]);
     const snapshot = this.#snapshot();
@@ -234,6 +243,23 @@ export class UtilityProcessDesktopEnginePort implements DesktopEnginePort {
         ?.delivery !== "current"
     ) {
       throw new Error("desktop-delivery-build-failed");
+    }
+    return snapshot;
+  };
+
+  deleteProject = async (
+    rawStoryId: string,
+  ): Promise<DesktopEngineSnapshot> => {
+    const storyId = StoryIdSchema.parse(rawStoryId);
+    await this.#send({ type: "delete-project", storyId }, [
+      "preview-catalog",
+      "workspace-projects",
+      "production-progress",
+      "doctor-state",
+    ]);
+    const snapshot = this.#snapshot();
+    if (snapshot.projects.some((project) => project.storyId === storyId)) {
+      throw new Error("desktop-project-delete-failed");
     }
     return snapshot;
   };
@@ -260,6 +286,7 @@ export class UtilityProcessDesktopEnginePort implements DesktopEnginePort {
       catalog: this.#catalog,
       previewCatalog: this.#readiness,
       projects: this.#projects,
+      productionProgress: this.#productionProgress,
       activeWork: doctor.activeWork,
       runtimePack: doctor.runtimePack,
       agentIntegration: "ready",
@@ -280,6 +307,10 @@ export class UtilityProcessDesktopEnginePort implements DesktopEnginePort {
       | Readonly<{ type: "refresh-preview-catalog" }>
       | Readonly<{
           type: "build-delivery";
+          storyId: ReturnType<typeof StoryIdSchema.parse>;
+        }>
+      | Readonly<{
+          type: "delete-project";
           storyId: ReturnType<typeof StoryIdSchema.parse>;
         }>
       | Readonly<{ type: "shutdown" }>,
@@ -332,6 +363,11 @@ export class UtilityProcessDesktopEnginePort implements DesktopEnginePort {
     if (message.type === "preview-catalog") this.#catalog = message.catalog;
     if (message.type === "workspace-projects")
       this.#projects = message.projects;
+    if (message.type === "production-progress") {
+      this.#productionProgress = DesktopProductionProgressSchema.array()
+        .readonly()
+        .parse(message.progress);
+    }
     if (message.type === "doctor-state") {
       this.#doctor = message.doctor;
       this.#readiness = message.doctor.previewCatalog;
@@ -347,7 +383,12 @@ export class UtilityProcessDesktopEnginePort implements DesktopEnginePort {
     }
     const pending = this.#pending.get(message.requestId);
     if (pending === undefined) {
-      if (message.type === "doctor-state") this.#emitSnapshot();
+      if (
+        message.type === "doctor-state" ||
+        message.type === "production-progress"
+      ) {
+        this.#emitSnapshot();
+      }
       return;
     }
     if (!pending.expected.has(message.type)) return;
@@ -446,11 +487,10 @@ export const desktopEngineForkOptions = (
   execArgv: string[];
   serviceName: string;
   stdio: "ignore";
-}> =>
-  ({
-    cwd: resourcesPath,
-    env: {},
-    execArgv: [],
-    serviceName: "AXMORF Studio Engine",
-    stdio: "ignore",
-  });
+}> => ({
+  cwd: resourcesPath,
+  env: {},
+  execArgv: [],
+  serviceName: "AXMORF Studio Engine",
+  stdio: "ignore",
+});

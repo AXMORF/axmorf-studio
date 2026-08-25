@@ -23,6 +23,7 @@ test("Initialize, Delivery, and Catalog requests have separate bounded budgets",
     300_000,
   );
   assert.equal(desktopEngineResponseTimeout("build-delivery"), 3_600_000);
+  assert.equal(desktopEngineResponseTimeout("delete-project"), 300_000);
 });
 
 test("Electron utility Engine starts with an explicit empty environment", () => {
@@ -30,8 +31,11 @@ test("Electron utility Engine starts with an explicit empty environment", () => 
   const previousNodeOptions = process.env.NODE_OPTIONS;
   process.env.AXMORF_HOST_CREDENTIAL = "must-not-reach-engine";
   process.env.NODE_OPTIONS = "--inspect=9229";
-  const options = desktopEngineForkOptions("/Applications/AXMORF.app/Contents/Resources");
-  if (previousCredential === undefined) delete process.env.AXMORF_HOST_CREDENTIAL;
+  const options = desktopEngineForkOptions(
+    "/Applications/AXMORF.app/Contents/Resources",
+  );
+  if (previousCredential === undefined)
+    delete process.env.AXMORF_HOST_CREDENTIAL;
   else process.env.AXMORF_HOST_CREDENTIAL = previousCredential;
   if (previousNodeOptions === undefined) delete process.env.NODE_OPTIONS;
   else process.env.NODE_OPTIONS = previousNodeOptions;
@@ -87,7 +91,8 @@ class FakeUtilityProcess {
         this.#emit("message", this.#doctor(message.requestId, "not-loaded"));
       } else if (
         message.type === "refresh-preview-catalog" ||
-        message.type === "build-delivery"
+        message.type === "build-delivery" ||
+        message.type === "delete-project"
       ) {
         this.#emit("message", {
           protocolVersion: RSP_PROTOCOL_VERSION,
@@ -105,6 +110,12 @@ class FakeUtilityProcess {
           requestId: message.requestId,
           type: "workspace-projects",
           projects: [],
+        });
+        this.#emit("message", {
+          protocolVersion: RSP_PROTOCOL_VERSION,
+          requestId: message.requestId,
+          type: "production-progress",
+          progress: [],
         });
         this.#emit("message", this.#doctor(message.requestId, "ready"));
       } else {

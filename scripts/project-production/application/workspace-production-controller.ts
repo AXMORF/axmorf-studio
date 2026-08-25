@@ -30,6 +30,7 @@ import {
   assertExecutionAttemptTaskAuthority,
   readExecutionAttemptProgress,
 } from "../adapters/attempt-store";
+import { readLatestExecutionAttempt } from "../adapters/progress";
 import { rspLocalProductionCommandFormatter } from "../adapters/rsp-local-command-formatter";
 import { readTaskWorkspace } from "../adapters/task-workspace";
 import { commitProducerTaskArtifact } from "./commit-task-artifact";
@@ -95,8 +96,7 @@ const workspaceBuildCurrentPlan = async (
         ? await readProductionDiagnosticBaseline({
             locations: input.locations,
             projectId: input.projectId,
-            dependencies:
-              createRuntimeDeliveryInspectionDependencies(runtime),
+            dependencies: createRuntimeDeliveryInspectionDependencies(runtime),
           })
         : input.baseline,
   });
@@ -421,7 +421,8 @@ export const createWorkspaceProductionController = async ({
           preferences: executionPreferences.preferences,
           preferenceSource: executionPreferences.source,
           ...(execution === undefined ? {} : { override: execution }),
-          ...((commandRuntimeMaxConcurrency ?? runtimeMaxConcurrency) === undefined
+          ...((commandRuntimeMaxConcurrency ?? runtimeMaxConcurrency) ===
+          undefined
             ? {}
             : {
                 runtimeMaxConcurrency:
@@ -606,7 +607,8 @@ export const createWorkspaceProductionController = async ({
               {
                 path: "$.attemptId",
                 code: "rsp-attempt-not-found",
-                message: "No execution attempt exists for this Project and attemptId.",
+                message:
+                  "No execution attempt exists for this Project and attemptId.",
                 ownerAction: "Use the exact attemptId returned by rsp prepare.",
               },
             ],
@@ -684,7 +686,13 @@ export const createWorkspaceProductionController = async ({
     buildDelivery: async (projectId: string) =>
       (await withConfig()).buildDelivery(projectId),
     attemptStatus: (projectId: string, attemptId: string) =>
-      readExecutionAttemptProgress({ locations, storyId: projectId, attemptId }),
+      readExecutionAttemptProgress({
+        locations,
+        storyId: projectId,
+        attemptId,
+      }),
+    latestAttempt: (projectId: string) =>
+      readLatestExecutionAttempt({ locations, storyId: projectId }),
     shutdown: delivery.shutdown,
     execute,
   });

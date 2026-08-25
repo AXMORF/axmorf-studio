@@ -2,7 +2,7 @@
 
 > 文档类型：唯一导航入口
 >
-> 最后复核：2026-08-24
+> 最后复核：2026-08-26
 
 先按问题选择文档，不要从历史计划或 evidence 反推 current implementation。
 
@@ -13,6 +13,7 @@
 | 最终产品目标与不可偷换边界          | [FINAL_PRODUCT_GOAL.md](FINAL_PRODUCT_GOAL.md)                       |
 | Desktop App 产品、Agent 与数据边界  | [DESKTOP_APP_PRODUCT.md](DESKTOP_APP_PRODUCT.md)                     |
 | macOS v1 维护、发行与公开发布门槛   | [DESKTOP_APP_MACOS_MAINTENANCE.md](DESKTOP_APP_MACOS_MAINTENANCE.md) |
+| Ubuntu x64 维护、打包与安装验证     | [DESKTOP_APP_UBUNTU_MAINTENANCE.md](DESKTOP_APP_UBUNTU_MAINTENANCE.md) |
 | 模块、依赖方向与写入所有权          | [ARCHITECTURE.md](ARCHITECTURE.md)                                   |
 | Revision/DAG/Artifact/Delivery 流程 | [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)                     |
 | identity、失效、原子性与幂等        | [DETERMINISTIC_EXECUTION.md](DETERMINISTIC_EXECUTION.md)             |

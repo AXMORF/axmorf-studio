@@ -1,5 +1,15 @@
 import assert from "node:assert/strict";
-import { access, cp, mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  access,
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rename,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -19,7 +29,9 @@ import {
   validProjectCreateProducerConfig,
 } from "../fixtures/project-create";
 
-const fixture = async (context: { after: (callback: () => Promise<void>) => void }) => {
+const fixture = async (context: {
+  after: (callback: () => Promise<void>) => void;
+}) => {
   const root = await mkdtemp(join(tmpdir(), "workspace-project-create-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const workspace = join(root, "workspace");
@@ -37,14 +49,26 @@ const fixture = async (context: { after: (callback: () => Promise<void>) => void
     mkdir(cache, { recursive: true }),
   ]);
   await Promise.all([
-    cp(join(import.meta.dirname, "../../src"), join(runtimeRoot, "source/src"), { recursive: true }),
     cp(
-      join(import.meta.dirname, "../../desktop/resources/workspace-integration/assets"),
+      join(import.meta.dirname, "../../src"),
+      join(runtimeRoot, "source/src"),
+      { recursive: true },
+    ),
+    cp(
+      join(
+        import.meta.dirname,
+        "../../desktop/resources/workspace-integration/assets",
+      ),
       join(runtimeRoot, "shared-assets"),
       { recursive: true },
     ),
   ]);
-  for (const path of ["bin/remotion", "browser/headless", "bin/ffmpeg", "bin/ffprobe"]) {
+  for (const path of [
+    "bin/remotion",
+    "browser/headless",
+    "bin/ffmpeg",
+    "bin/ffprobe",
+  ]) {
     await writeFile(join(runtimeRoot, path), "runtime\n");
   }
   const locations = createWorkspaceProductionLocations({
@@ -88,33 +112,47 @@ test("Workspace create atomically writes scoped authoring without provider or at
     "configured-outro-scene",
   ]);
   const story = JSON.parse(
-    await readFile(join(value.workspace, "projects/story-example/story.json"), "utf8"),
+    await readFile(
+      join(value.workspace, "projects/story-example/story.json"),
+      "utf8",
+    ),
   ) as { beats: readonly { meaningId: string }[] };
-  assert.deepEqual(story.beats.map(({ meaningId }) => meaningId), [
-    "configured-intro-scene",
-    "opening",
-    "configured-outro-scene",
-  ]);
+  assert.deepEqual(
+    story.beats.map(({ meaningId }) => meaningId),
+    ["configured-intro-scene", "opening", "configured-outro-scene"],
+  );
   await Promise.all([
-    access(join(value.workspace, "projects/story-example/scenes/configured-intro-scene/Renderer.tsx")),
-    access(join(value.workspace, "projects/story-example/production/project-create.json")),
-    access(join(value.workspace, ".rsp/current/resource-catalog.generated.json")),
     access(
       join(
         value.workspace,
-        "media/story-example/scenes/configured-intro-scene/axmorf-brand-reveal-chime.wav",
+        "projects/story-example/scenes/configured-intro-scene/Renderer.tsx",
       ),
     ),
     access(
       join(
         value.workspace,
-        "media/story-example/scenes/configured-outro-scene/axmorf-source-follow-chime.wav",
+        "projects/story-example/production/project-create.json",
+      ),
+    ),
+    access(
+      join(value.workspace, ".rsp/current/resource-catalog.generated.json"),
+    ),
+    access(
+      join(
+        value.workspace,
+        "media/story-example/scenes/configured-intro-scene/mixkit-movie-trailer-epic-impact-2908.wav",
+      ),
+    ),
+    access(
+      join(
+        value.workspace,
+        "media/story-example/scenes/configured-outro-scene/mixkit-deep-urban-623.mp3",
       ),
     ),
   ]);
   for (const [meaningId, assetName] of [
-    ["configured-intro-scene", "axmorf-brand-reveal-chime.wav"],
-    ["configured-outro-scene", "axmorf-source-follow-chime.wav"],
+    ["configured-intro-scene", "mixkit-movie-trailer-epic-impact-2908.wav"],
+    ["configured-outro-scene", "mixkit-deep-urban-623.mp3"],
   ] as const) {
     assert.deepEqual(
       await readFile(
@@ -126,7 +164,7 @@ test("Workspace create atomically writes scoped authoring without provider or at
       await readFile(
         join(
           value.runtimeRoot,
-          `shared-assets/library/scene-templates/${assetName}`,
+          `shared-assets/library/mixkit/${meaningId === "configured-intro-scene" ? "sound-effects" : "music"}/${assetName}`,
         ),
       ),
     );
@@ -137,7 +175,8 @@ test("Workspace create atomically writes scoped authoring without provider or at
     ".rsp/attempts/story-example",
     ".rsp/artifacts/story-example",
     "deliveries/story-example",
-  ]) await assert.rejects(access(join(value.workspace, forbidden)));
+  ])
+    await assert.rejects(access(join(value.workspace, forbidden)));
 
   const current = await createWorkspaceProject({
     locations: value.locations,
@@ -191,9 +230,15 @@ test("Workspace create supports explicit null templates without creating media o
   assert.equal(result.status, "project-created");
   assert.deepEqual(result.copiedSceneMeaningIds, []);
   const story = JSON.parse(
-    await readFile(join(value.workspace, "projects/story-example/story.json"), "utf8"),
+    await readFile(
+      join(value.workspace, "projects/story-example/story.json"),
+      "utf8",
+    ),
   ) as { beats: readonly { meaningId: string }[] };
-  assert.deepEqual(story.beats.map(({ meaningId }) => meaningId), ["opening"]);
+  assert.deepEqual(
+    story.beats.map(({ meaningId }) => meaningId),
+    ["opening"],
+  );
   await assert.rejects(access(join(value.workspace, "src")));
   await assert.rejects(access(join(value.workspace, "public")));
 });
@@ -225,7 +270,10 @@ test("Workspace create rejects a symlinked Runtime Pack template without partial
   );
   await assert.rejects(access(join(value.workspace, "projects/story-example")));
   await assert.rejects(access(join(value.workspace, "media/story-example")));
-  assert.equal(await readFile(outside, "utf8"), "export const Outside = true;\n");
+  assert.equal(
+    await readFile(outside, "utf8"),
+    "export const Outside = true;\n",
+  );
 });
 
 test("Workspace create rejects a symlinked Workspace ancestor without external writes", async (context) => {
@@ -281,7 +329,10 @@ test("Workspace create promotion restores all roots when Catalog commit fails", 
   const staging = join(value.root, "staging");
   const projectRoot = join(staging, "project/story-example");
   const mediaRoot = join(staging, "media/story-example");
-  const projectionPath = join(staging, "projection/resource-catalog.generated.json");
+  const projectionPath = join(
+    staging,
+    "projection/resource-catalog.generated.json",
+  );
   const catalogTarget = join(
     value.workspace,
     ".rsp/current/resource-catalog.generated.json",
@@ -313,7 +364,10 @@ test("Workspace create promotion restores all roots when Catalog commit fails", 
     /injected Catalog promotion failure/u,
   );
   assert.equal(await readFile(catalogTarget, "utf8"), "old catalog\n");
-  assert.equal(await readFile(join(projectRoot, "sentinel"), "utf8"), "project\n");
+  assert.equal(
+    await readFile(join(projectRoot, "sentinel"), "utf8"),
+    "project\n",
+  );
   assert.equal(await readFile(join(mediaRoot, "sentinel"), "utf8"), "media\n");
   await assert.rejects(access(join(value.workspace, "projects/story-example")));
   await assert.rejects(access(join(value.workspace, "media/story-example")));

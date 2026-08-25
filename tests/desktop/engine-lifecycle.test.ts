@@ -133,8 +133,7 @@ const tokenEvent = (
                 data: {
                   token,
                   privateConfig,
-                  provider:
-                    privateConfig === null ? "not-configured" : "ready",
+                  provider: privateConfig === null ? "not-configured" : "ready",
                 },
               } as MessageEvent<unknown>);
             }
@@ -208,6 +207,7 @@ const createHarness = ({
       deliveryAvailable: true,
       deliveryBlocker: null,
       shutdown: async () => undefined,
+      latestAttempt: async () => null,
       executeCommand: async (request) => {
         commands.push(request.command);
         if (executeCommand !== undefined) return executeCommand(request);
@@ -219,7 +219,10 @@ const createHarness = ({
     startRspDoctorServer: async (options) => {
       receivedToken = Uint8Array.from(options.token);
       assert.equal(options.workspaceId, workspaceId);
-      assert.deepEqual(options.getDoctorState().network, DESKTOP_NETWORK_POLICY);
+      assert.deepEqual(
+        options.getDoctorState().network,
+        DESKTOP_NETWORK_POLICY,
+      );
       assert.ok(options.executeCommand !== undefined);
       assert.ok(options.authorizeCommand !== undefined);
       authorizeFromRsp = options.authorizeCommand;
@@ -383,7 +386,9 @@ test("failed deferred prepare clears its preparing active work", async () => {
           message.type === "active-work-state",
       )
       .map((message) =>
-        message.type === "active-work-state" ? message.activeWork?.phase ?? null : null,
+        message.type === "active-work-state"
+          ? (message.activeWork?.phase ?? null)
+          : null,
       ),
     ["preparing-production", null],
   );
@@ -535,8 +540,13 @@ test("Engine refresh emits exact Catalog, Project state, and doctor", async () =
   );
   assert.equal(harness.getCatalogReads(), 1);
   assert.deepEqual(
-    harness.messages.slice(-3).map(({ type }) => type),
-    ["preview-catalog", "workspace-projects", "doctor-state"],
+    harness.messages.slice(-4).map(({ type }) => type),
+    [
+      "preview-catalog",
+      "workspace-projects",
+      "production-progress",
+      "doctor-state",
+    ],
   );
   await harness.controller.handleMessageEvent(
     command("shutdown", "shutdown-1"),
@@ -588,6 +598,12 @@ test("RSP production terminals publish active work and automatically refresh Cat
         message.type === "active-work-state" && message.activeWork === null,
     ),
   );
+  const messageTypes = harness.messages.map(({ type }) => type);
+  const idleIndex = messageTypes.lastIndexOf("active-work-state");
+  const catalogIndex = messageTypes.lastIndexOf("preview-catalog");
+  const progressIndex = messageTypes.lastIndexOf("production-progress");
+  assert.ok(catalogIndex >= 0 && catalogIndex < idleIndex);
+  assert.ok(progressIndex >= 0 && progressIndex < idleIndex);
 });
 
 test("missing private ProducerConfig keeps inspect available without provider readiness", async () => {

@@ -74,6 +74,7 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - 产品目标：`docs/FINAL_PRODUCT_GOAL.md`
 - Desktop App 产品边界：`docs/DESKTOP_APP_PRODUCT.md`
 - macOS 维护与发行：`docs/DESKTOP_APP_MACOS_MAINTENANCE.md`
+- Ubuntu 维护与打包：`docs/DESKTOP_APP_UBUNTU_MAINTENANCE.md`
 - 生产流程：`docs/PRODUCTION_WORKFLOW.md`
 - 当前事实：`docs/ITERATION_STATUS.md`
 - 阶段门槛：`docs/ROADMAP.md`
@@ -81,7 +82,7 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - 确定性：`docs/DETERMINISTIC_EXECUTION.md`
 - 名词：`docs/TERMINOLOGY.md`
 
-文档冲突时先用 current 可执行代码和测试确认事实，再同步权威文档；Desktop App 两份文档定义已确认目标，
+文档冲突时先用 current 可执行代码和测试确认事实，再同步权威文档；Desktop App 平台文档定义已确认目标，
 不表示当前仓库已存在 App、installer、`rsp` 或 optional Delivery，不能把目标写成实现。
 
 ## 产品不变量

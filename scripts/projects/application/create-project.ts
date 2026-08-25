@@ -40,10 +40,7 @@ import {
   buildResourceCatalog,
   renderResourceCatalogJson,
 } from "../../catalog/domain";
-import {
-  loadCatalogAuthorityDescriptors,
-  loadLocalReferenceAssetDescriptors,
-} from "../../catalog/repository-project-files";
+import { loadCatalogAuthorityDescriptors } from "../../catalog/repository-project-files";
 import { generateWorkspaceProjectResourceCatalog } from "../../catalog/generate";
 import { generateProjectResourceCatalog } from "../../catalog/repository-generate";
 import {
@@ -72,6 +69,7 @@ import {
   getSceneTemplateDefinition,
   type SceneTemplateDefinition,
 } from "../../../src/remotion/capabilities/scene-templates/registry";
+import { SCENE_TEMPLATE_AUDIO_MANIFEST_PATH } from "../../../src/remotion/capabilities/scene-templates/template-audio";
 import { readCurrentSceneTemplateAudioProjection } from "../../scene-templates/audio-projection";
 import type { ProductionLocations } from "../../project-production/application/production-locations";
 
@@ -135,28 +133,16 @@ const copySceneTemplateAuthorities = async ({
   readonly stagingRoot: string;
   readonly definitions: readonly SceneTemplateDefinition[];
 }) => {
-  const localReferenceAssetPaths =
-    definitions.length === 0
-      ? []
-      : (await loadLocalReferenceAssetDescriptors(rootDir)).flatMap(
-          (descriptor) =>
-            descriptor.kind === "asset" ? [descriptor.localPath] : [],
-        );
   const paths = new Set(
     definitions.flatMap((definition) => [
       ...definition.sourceFiles.map(({ sourcePath }) => sourcePath),
       ...definition.assets.map(({ sourcePath }) => sourcePath),
-      ...localReferenceAssetPaths,
     ]),
   );
-  for (const relativePath of paths) {
-    await copyOptionalRegular({ rootDir, stagingRoot, relativePath });
+  if (definitions.length > 0) {
+    paths.add(SCENE_TEMPLATE_AUDIO_MANIFEST_PATH);
   }
-  for (const relativePath of [
-    "private/reference-assets/scene-template-sound-overrides.json",
-    "private/reference-assets/assets.manifest.json",
-    "private/reference-assets/MIXKIT_AUDIO_LICENSE.md",
-  ]) {
+  for (const relativePath of paths) {
     await copyOptionalRegular({ rootDir, stagingRoot, relativePath });
   }
 };

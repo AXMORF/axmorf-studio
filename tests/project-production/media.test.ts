@@ -172,7 +172,7 @@ test("Workspace delivery inspection uses the exact Runtime Pack probe and librar
   await writeFile(
     ffprobeExecutable,
     `#!/bin/sh
-test "$DYLD_LIBRARY_PATH" = "${binariesDirectory}" || exit 9
+test "$${process.platform === "darwin" ? "DYLD_LIBRARY_PATH" : "LD_LIBRARY_PATH"}" = "${binariesDirectory}" || exit 9
 case "$*" in
   *"a:0"*) printf '%s\\n' '{"streams":[{"codec_name":"aac","channels":2,"nb_read_frames":"188"}]}' ;;
   *) printf '%s\\n' '{"streams":[{"codec_name":"h264","width":1080,"height":1920,"r_frame_rate":"30/1","nb_read_frames":"120"}]}' ;;

@@ -39,46 +39,6 @@ const createPulseWav = (): Uint8Array => {
   return Uint8Array.from(wav);
 };
 
-const createSceneTemplateChimeWav = ({
-  frequencies,
-  sampleCount,
-}: {
-  readonly frequencies: readonly number[];
-  readonly sampleCount: number;
-}): Uint8Array => {
-  const sampleRate = 48_000;
-  const pcm = Buffer.alloc(sampleCount * 2);
-  for (let index = 0; index < sampleCount; index += 1) {
-    const progress = index / sampleCount;
-    const attack = Math.min(1, progress / 0.035);
-    const release = Math.max(0, 1 - progress) ** 2;
-    const chord = frequencies.reduce(
-      (sum, frequency) =>
-        sum + Math.sin((2 * Math.PI * frequency * index) / sampleRate),
-      0,
-    );
-    const sample = (chord / frequencies.length) * attack * release;
-    pcm.writeInt16LE(Math.round(sample * 7_000), index * 2);
-  }
-  const wav = Buffer.alloc(44 + pcm.length);
-  wav.write("RIFF", 0, "ascii");
-  wav.writeUInt32LE(wav.length - 8, 4);
-  wav.write("WAVEfmt ", 8, "ascii");
-  wav.writeUInt32LE(16, 16);
-  wav.writeUInt16LE(1, 20);
-  wav.writeUInt16LE(1, 22);
-  wav.writeUInt32LE(sampleRate, 24);
-  wav.writeUInt32LE(sampleRate * 2, 28);
-  wav.writeUInt16LE(2, 32);
-  wav.writeUInt16LE(16, 34);
-  wav.write("data", 36, "ascii");
-  wav.writeUInt32LE(pcm.length, 40);
-  for (let index = 0; index < pcm.length; index += 1) {
-    wav[44 + index] = pcm[index] ?? 0;
-  }
-  return Uint8Array.from(wav);
-};
-
 const writeBytesAtomic = async (
   destination: string,
   bytes: Uint8Array,
@@ -121,6 +81,20 @@ export const generateSceneRuntimeProofAssets = async ({
   readonly rootDir: string;
   readonly mode: "write" | "check";
 }) => {
+  const [introAudio, outroAudio] = await Promise.all([
+    readFile(
+      join(
+        rootDir,
+        "desktop/resources/workspace-integration/assets/library/mixkit/sound-effects/mixkit-movie-trailer-epic-impact-2908.wav",
+      ),
+    ),
+    readFile(
+      join(
+        rootDir,
+        "desktop/resources/workspace-integration/assets/library/mixkit/music/mixkit-deep-urban-623.mp3",
+      ),
+    ),
+  ]);
   await Promise.all([
     writeBytesAtomic(
       join(rootDir, SCENE_RUNTIME_PROOF_IDENTITY.publicAssetPaths.pulse),
@@ -135,23 +109,17 @@ export const generateSceneRuntimeProofAssets = async ({
     writeBytesAtomic(
       join(
         rootDir,
-        "public/assets/library/scene-templates/axmorf-brand-reveal-chime.wav",
+        "public/assets/library/mixkit/sound-effects/mixkit-movie-trailer-epic-impact-2908.wav",
       ),
-      createSceneTemplateChimeWav({
-        frequencies: [440, 554.365, 659.255],
-        sampleCount: 28_800,
-      }),
+      introAudio,
       mode,
     ),
     writeBytesAtomic(
       join(
         rootDir,
-        "public/assets/library/scene-templates/axmorf-source-follow-chime.wav",
+        "public/assets/library/mixkit/music/mixkit-deep-urban-623.mp3",
       ),
-      createSceneTemplateChimeWav({
-        frequencies: [659.255, 554.365, 440],
-        sampleCount: 48_000,
-      }),
+      outroAudio,
       mode,
     ),
   ]);

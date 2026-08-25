@@ -63,7 +63,8 @@ export const mapDesktopSettingsFailure = (error: unknown) => {
     return desktopSettingsError({
       code: "desktop-settings-engine-restart-failed",
       message: "配置已安全保存，但 Desktop Engine 未能重新启动。",
-      action: "检查 Runtime 与 Provider 配置后点击“重试 Engine”；配置页面仍可继续修改。",
+      action:
+        "检查 Runtime 与 Provider 配置后点击“重试 Engine”；配置页面仍可继续修改。",
     });
   }
   const message = error instanceof Error ? error.message : "";
@@ -77,7 +78,7 @@ export const mapDesktopSettingsFailure = (error: unknown) => {
   if (/encryption is unavailable/iu.test(message)) {
     return desktopSettingsError({
       code: "desktop-settings-encryption-unavailable",
-      message: "macOS 安全存储当前不可用，配置没有写入。",
+      message: "系统安全存储当前不可用，配置没有写入。",
       action: "解锁当前登录会话并重新打开 AXMORF Studio 后再试。",
     });
   }
@@ -203,18 +204,25 @@ export const registerDesktopShellIpc = ({
         return controller.buildDelivery(args[0]);
       },
     );
-    register(
-      DESKTOP_SHELL_IPC_CHANNELS.getSettings,
-      async (event, ...args) => {
-        validateSender(event, trustedSenderRules);
-        if (args.length !== 0) {
+    registerStateMethod(
+      DESKTOP_SHELL_IPC_CHANNELS.deleteProject,
+      1,
+      (...args) => {
+        if (typeof args[0] !== "string") {
           throw new Error("desktop-ipc-arguments-invalid");
         }
-        return DesktopSettingsSnapshotSchema.parse(
-          await controller.getSettings(),
-        );
+        return controller.deleteProject(args[0]);
       },
     );
+    register(DESKTOP_SHELL_IPC_CHANNELS.getSettings, async (event, ...args) => {
+      validateSender(event, trustedSenderRules);
+      if (args.length !== 0) {
+        throw new Error("desktop-ipc-arguments-invalid");
+      }
+      return DesktopSettingsSnapshotSchema.parse(
+        await controller.getSettings(),
+      );
+    });
     register(
       DESKTOP_SHELL_IPC_CHANNELS.saveSettings,
       async (event, ...args) => {

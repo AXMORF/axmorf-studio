@@ -2,7 +2,7 @@
 
 > 文档类型：Desktop App 产品目标 authority
 >
-> 状态：产品方向与 macOS v1 默认值已确认；Phase A、Phase B、Phase C 与 Phase D internal installer artifact 已 verified complete；unsigned public beta Gate 仍 pending
+> 状态：产品方向、macOS arm64/x64 与 Ubuntu 24.04 x64 原生目标已确认；macOS Phase A-D internal installer artifact 与 Ubuntu local package gate 已 verified complete；unsigned public beta Gate 仍 pending
 >
 > 当前实现事实见 [ITERATION_STATUS.md](ITERATION_STATUS.md)，现有生产 authority 见
 > [ARCHITECTURE.md](ARCHITECTURE.md) 与 [PRODUCTION_WORKFLOW.md](PRODUCTION_WORKFLOW.md)。
@@ -62,21 +62,23 @@ App production engine <--- App settings
 
 用户数据位于用户选择的 Workspace Root。App 更新不得覆盖 Project、媒体、Artifact、Attempt 或 Delivery。
 App 安装目录与 Workspace Root 必须是两个不同 ownership root；credential、Runtime Pack 和 disposable cache
-继续使用 macOS Keychain/Application Support/Caches，不作为第二个用户可配置目录。
+使用当前系统的安全存储、Application Support/config 与 cache 目录，不作为第二个用户可配置目录。
 
-长期目标可以包括 Windows、macOS 与 Linux，但 v1 已确定只实现 Electron macOS App，并正式支持 Apple
-Silicon `arm64` 和 Intel `x64`；维护方案固定分别发布两个原生构建。进程、Runtime Pack、签名、公证、更新和支持矩阵由
-[Desktop App macOS 维护与发行](DESKTOP_APP_MACOS_MAINTENANCE.md) 负责。
+Desktop App 当前正式维护三个原生目标：macOS Apple Silicon `arm64`、macOS Intel `x64` 与 Ubuntu 24.04+
+`x64`/glibc。macOS 继续分别发布两个原生 DMG；Ubuntu 由独立命令发布 `amd64` Debian package，不能用 Linux
+逻辑替换 Mac 打包或把不同 native closure 混入同一包。进程、Runtime Pack、安装与支持矩阵分别由
+[Desktop App macOS 维护与发行](DESKTOP_APP_MACOS_MAINTENANCE.md) 和
+[Desktop App Ubuntu 维护与打包](DESKTOP_APP_UBUNTU_MAINTENANCE.md) 负责。Windows 尚未声明支持。
 
 首阶段已确定使用明确标记为 unsigned 的站外 DMG，不购买 Apple Developer Program、不做 Apple notarization、
 不启用 macOS auto-update；用户按官方 Gatekeeper 手动放行流程安装。以后是否升级为 Developer ID 签名发行，
 根据真实用户规模、安装失败率和支持成本决定。这只改变 App 的安装信任体验，不改变 App/Workspace/Agent task workspace
 的隔离边界。
 
-v1 只发布完整离线 DMG。每个架构的安装包内置匹配的 App Engine、Node runtime、精确同版 Remotion package
+各平台只发布完整离线安装包。每个架构的 DMG 或 `.deb` 内置匹配的 App Engine、Node runtime、精确同版 Remotion package
 set、renderer browser、FFmpeg/FFprobe 和 workspace Skill；首次启动不访问 npm、不选择镜像源，也不下载 Runtime
 Pack。用户无需预装 Node/npm/Git，网络不可用或地区 package source 不一致不能改变实际运行版本。这个选择会增加
-DMG 体积，并明确构成 Remotion runtime binary redistribution；真正公开下载仍受 macOS 维护方案的许可证 Gate 0
+安装包体积，并明确构成 Remotion runtime binary redistribution；真正公开下载仍受平台维护方案的许可证 Gate 0
 约束。
 
 ## 3. Agent integration 安装生命周期
@@ -321,7 +323,7 @@ token、heartbeat 或 child lifecycle。
 storage/security/validator fields 不允许从第 4 层覆盖。App UI、CLI 和 Skill 只投影各自需要的最小视图，不能
 复制同一字段为多个 authority。
 
-Desktop 的 App private config 与 production preferences 在实现上是同一个 macOS Application Support 加密 envelope：
+Desktop 的 App private config 与 production preferences 在实现上是同一个 system Application Support/config 加密 envelope：
 Provider/voice/render/readability/Scene defaults/publishing collections、Agent execution 与 Delivery default 由独立
 bundled Settings 页面编辑，Main/IPC 仍用 shared contracts 严格校验，保存后受控重启 Engine。Web Settings 表单只
 提供可复用的纯 form/model/validation；Desktop 不启动、不嵌入、不双写 Settings Vite/HTTP store。token 与 API Key
@@ -372,11 +374,13 @@ signing/notarization、公开 binary release、update channel 和长期 support 
 - credential、private path 和 voice content 不进入 Agent context、日志、artifact、delivery 或 Git；
 - installer、uninstaller、迁移、升级失败和 rollback 都有可恢复验证。
 
-## 13. macOS 维护方案
+## 13. 原生平台维护方案
 
-已确认 v1 使用 Electron、只做 macOS、同时支持 Apple Silicon `arm64` 与 Intel `x64`；App 必须运行，active
-production 时关闭主窗口继续驻留，不实现独立 daemon。维护方案固定双原生发行；精确架构、Runtime Pack、跨架构 identity、
+已确认使用 Electron，支持 macOS Apple Silicon `arm64`、Intel `x64` 与 Ubuntu 24.04+ `x64`；App 必须运行，active
+production 时关闭主窗口继续驻留，不实现独立 daemon。macOS 维护方案固定双原生发行；精确架构、Runtime Pack、跨架构 identity、
 首阶段无签名 DMG、Gatekeeper 手动安装、后续可选 Developer ID 签名/公证、更新、验证矩阵、公开发行门槛和延后事项见
-[Desktop App macOS 维护与发行](DESKTOP_APP_MACOS_MAINTENANCE.md)。
+[Desktop App macOS 维护与发行](DESKTOP_APP_MACOS_MAINTENANCE.md)。Ubuntu 独立 `.deb` 命令、x64/glibc Runtime
+Pack、安装和验证矩阵见 [Desktop App Ubuntu 维护与打包](DESKTOP_APP_UBUNTU_MAINTENANCE.md)。三者共享一条
+production authority，但绝不共享或混装 platform-native binaries。
 
 维护方案不得建立第二条 production 主链，也不能把目标设计写进 current implementation 状态。

@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-24 Desktop Phase D internal unsigned DMG artifact verified complete
+> 最后复核：2026-08-26 Ubuntu x64 Desktop package、安装启动与完整 Workspace production gate verified complete
 
 ## 当前结论
 
@@ -275,6 +275,29 @@ redaction 规则。DMG evidence 为：
 因此 Phase D internal installer artifact 状态为 `verified-complete`。Remotion runtime binary redistribution permission 仍为
 `not-satisfied`；用户对本轮 internal/manual-only 构建的授权不等于许可已满足，也不授权公开发布。精确入口与 artifact contract 见
 [Desktop Phase D internal unsigned DMG](guides/DESKTOP_PHASE_D_UNSIGNED_DMG.md)。
+
+## Desktop Ubuntu x64 package 与 production UX（verified-complete）
+
+当前 implementation 保留 macOS arm64/x64 Forge DMG maker、native Runtime Pack 和双架构 release-set 流程，同时新增
+Ubuntu 24.04 x64/glibc 原生目标。`desktop:package:mac` 显式进入 Mac package-only 路径，原 `desktop:package` 保持
+兼容；`desktop:package:ubuntu` 使用固定 Node `22.23.1` 构建 Linux-only Runtime Pack、strict package inventory 和
+完整离线 `amd64` Debian package。Linux 包只携带对应 compositor、Chromium、FFmpeg/FFprobe 与 `.so` closure，Mac
+逻辑和 `.dylib` closure 未删除或降级。
+
+Preview Catalog terminal refresh 已改为先原子刷新 verified Delivery identity，再发布 idle state；progress-only snapshot
+不再轮换未变化的 media ticket，player 在 current Delivery change 上另有一次受控 Catalog recovery，因此 production
+成功后无需重启 App。Desktop 同步投影 latest ExecutionAttempt 的 dirty/reused/committed/current/failed task 数、attempt
+state、terminal、diagnostic、DeliveryBuildId 与 exact-four-file completeness；界面加入进度条、最终摘要和带 exact Project
+ID 二次确认的完整 `project:delete` 操作。
+
+两个 built-in boundary Scene template 不再维护 Desktop-only synthetic chime。Workspace integration 和 Remotion preview
+共同消费 checksum-bound `DefaultIntroPreview` / `DefaultOutroPreview` 音频 authority；固定 template import 会把相同 bytes
+与 cue/volume 投影到 Project-owned Catalog，private override 不能改变产品默认音效。
+
+Ubuntu 本机已通过完整 Workspace lifecycle gate，覆盖两个 boundary Scene templates、真实 Runtime Pack production 与
+exact-four-file Delivery；`.deb` 已完成本机安装、隔离 first-run、Preview/Settings renderer 和 preload surface 验收。
+该 artifact 仍是 local/internal unsigned package，不等于公开发行或 Remotion redistribution Gate 已满足。平台命令、安装
+步骤和验证矩阵见 [Desktop App Ubuntu 维护与打包](DESKTOP_APP_UBUNTU_MAINTENANCE.md)。
 
 ## Desktop Settings / Project create contract repair（implemented，new native artifact pending）
 

@@ -6,6 +6,7 @@ import {
   DesktopDarwinArchitectureSchema,
 } from "../../desktop/configuration/darwin-target";
 import { verifyDesktopPackageInventory } from "./package-inventory";
+import { desktopReleaseToolchain } from "./release-toolchain";
 
 const run = (command: string, args: readonly string[]) =>
   new Promise<void>((resolvePromise, reject) => {
@@ -40,22 +41,24 @@ if (process.platform !== "darwin" || !requestedArchitecture.success) {
   process.exitCode = 1;
 } else {
   void (async () => {
+    const toolchain = desktopReleaseToolchain();
     const target = assertDesktopDarwinNativeHost({
       expectedArchitecture: requestedArchitecture.data,
     });
-    await run(process.execPath, [
+    await run(toolchain.node, [
       "--import",
       "tsx",
       join(process.cwd(), "scripts/desktop/generate-brand-assets.ts"),
     ]);
-    await run(process.execPath, [
+    await run(toolchain.node, [
       "--import",
       "tsx",
       join(process.cwd(), "scripts/desktop/build-runtime-pack.ts"),
       "--architecture",
       target.architecture,
     ]);
-    await run(join(process.cwd(), "node_modules/.bin/electron-forge"), [
+    await run(toolchain.node, [
+      toolchain.forgeCli,
       "package",
       "--platform=darwin",
       `--arch=${target.architecture}`,

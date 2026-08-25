@@ -410,9 +410,13 @@ const createEmbeddedProcessRunner =
         : command === "ffprobe"
           ? runtime.ffprobeExecutable
           : command;
-    return runMediaProcessWithEnvironment(executable, args, {
-      DYLD_LIBRARY_PATH: runtime.binariesDirectory,
-    });
+    return runMediaProcessWithEnvironment(
+      executable,
+      args,
+      process.platform === "darwin"
+        ? { DYLD_LIBRARY_PATH: runtime.binariesDirectory }
+        : { LD_LIBRARY_PATH: runtime.binariesDirectory },
+    );
   };
 
 const assertBoundAuthority = ({

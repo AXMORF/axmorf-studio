@@ -56,11 +56,17 @@ const releaseManifest = (architecture: "arm64" | "x64") =>
     },
   });
 
-test("Phase D configures only the official unsigned DMG maker", async () => {
-  const [packageJsonSource, releaseBuilder, installerVerifier, smokePreparer] =
-    await Promise.all([
+test("Phase D preserves the official unsigned DMG maker alongside Ubuntu DEB", async () => {
+  const [
+    packageJsonSource,
+    releaseBuilder,
+    ubuntuBuilder,
+    installerVerifier,
+    smokePreparer,
+  ] = await Promise.all([
       readFile("package.json", "utf8"),
       readFile("scripts/desktop/unsigned-release.ts", "utf8"),
+      readFile("scripts/desktop/package-ubuntu.ts", "utf8"),
       readFile("scripts/desktop/verify-unsigned-dmg.sh", "utf8"),
       readFile("scripts/desktop/prepare-installer-smoke.ts", "utf8"),
     ]);
@@ -73,18 +79,32 @@ test("Phase D configures only the official unsigned DMG maker", async () => {
     "7.11.2",
   );
   assert.equal(
+    packageJson.devDependencies["@electron-forge/maker-deb"],
+    "7.11.2",
+  );
+  assert.equal(
     packageJson.scripts["desktop:dmg"],
     "node --import tsx scripts/desktop/unsigned-release.ts build",
   );
-  assert.equal(forgeConfig.makers?.length, 1);
+  assert.deepEqual(
+    forgeConfig.makers?.map(
+      (maker) => (maker as { readonly name?: string }).name,
+    ),
+    ["dmg", "deb"],
+  );
   assert.equal(forgeConfig.publishers?.length, 0);
   assert.equal(forgeConfig.packagerConfig?.osxSign, undefined);
   assert.equal(forgeConfig.packagerConfig?.osxNotarize, undefined);
   assert.deepEqual(forgeConfig.packagerConfig?.extendInfo, {
     LSMinimumSystemVersion: "13.0",
   });
-  assert.match(releaseBuilder, /electron-forge[\s\S]*"make"/u);
+  assert.match(releaseBuilder, /toolchain\.forgeCli[\s\S]*"make"/u);
   assert.doesNotMatch(releaseBuilder, /--targets/u);
+  assert.match(ubuntuBuilder, /"dpkg-deb"[\s\S]*"-x"/u);
+  assert.match(
+    ubuntuBuilder,
+    /resources\/runtime-pack\/bin\/rsp[\s\S]*"help", "--json"/u,
+  );
   assert.match(
     releaseBuilder,
     /--user-data-directory[\s\S]*DESKTOP_PRODUCT_NAME/u,

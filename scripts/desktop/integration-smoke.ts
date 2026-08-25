@@ -467,9 +467,7 @@ export const runDesktopIntegrationSmoke =
                   loadedPrivateConfig?.executionPreferences ??
                   privateConfig.executionPreferences,
                 source:
-                  loadedPrivateConfig === null
-                    ? "builtin-default"
-                    : "settings",
+                  loadedPrivateConfig === null ? "builtin-default" : "settings",
               }),
             }),
             readWorkspaceActiveProduction(initializedWorkspaceRoot),
@@ -480,6 +478,7 @@ export const runDesktopIntegrationSmoke =
             deliveryBlocker: null,
             shutdown: production.shutdown,
             executeCommand: (request) => production.execute(request),
+            latestAttempt: (storyId) => production.latestAttempt(storyId),
           };
         },
         startRspDoctorServer,

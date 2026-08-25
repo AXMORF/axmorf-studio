@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  chmod,
   mkdir,
   mkdtemp,
   readFile,
@@ -21,17 +22,24 @@ import forgeConfig, {
 } from "../../forge.config";
 import { TRUSTED_SHELL_WEB_PREFERENCES } from "../../desktop/contracts/security-policy";
 import {
+  DESKTOP_ELECTRON_LINUX_LOCALES,
   DESKTOP_ELECTRON_LOCALES,
   pruneDesktopElectronLocales,
+  pruneDesktopLinuxElectronLocales,
 } from "../../scripts/desktop/electron-locales";
 import {
   assertDesktopEngineAuthorityBoundary,
+  assertDesktopRuntimePackRootPermissions,
   assertDesktopResourcesTopLevel,
   assertPackagedApplicationInventory,
   inspectPackagedWorkspaceIntegration,
   isDesktopPackagePathAllowed,
   verifyDesktopBuildInventory,
 } from "../../scripts/desktop/package-inventory";
+import {
+  DESKTOP_RELEASE_NODE_VERSION,
+  desktopReleaseToolchain,
+} from "../../scripts/desktop/release-toolchain";
 import {
   DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT,
   DESKTOP_WORKSPACE_INTEGRATION_RESOURCE_FILES,
@@ -63,6 +71,29 @@ test("Phase B desktop toolchain and product identity are exact", async () => {
       vite: packageJson.devDependencies["@electron-forge/plugin-vite"],
     },
     { electron: "43.4.1", forge: "7.11.2", vite: "7.11.2" },
+  );
+  assert.equal(DESKTOP_RELEASE_NODE_VERSION, "22.23.1");
+  assert.equal(
+    packageJson.devDependencies.node,
+    DESKTOP_RELEASE_NODE_VERSION,
+  );
+  assert.equal(
+    packageJson.scripts["desktop:package"],
+    "node --import tsx scripts/desktop/package.ts",
+  );
+  assert.equal(
+    packageJson.scripts["desktop:package:mac"],
+    packageJson.scripts["desktop:package"],
+  );
+  assert.equal(
+    packageJson.scripts["desktop:package:ubuntu"],
+    "node --import tsx scripts/desktop/package-ubuntu.ts",
+  );
+  const releaseToolchain = desktopReleaseToolchain("/checkout");
+  assert.equal(releaseToolchain.node, "/checkout/node_modules/node/bin/node");
+  assert.equal(
+    releaseToolchain.forgeCli,
+    "/checkout/node_modules/@electron-forge/cli/dist/electron-forge.js",
   );
   assert.match(
     packageJson.scripts["desktop:build"]!,
@@ -98,7 +129,7 @@ test("every Desktop Vite entry disables repository public copying", () => {
   );
 });
 
-test("Forge config has explicit entries and only the official DMG maker", () => {
+test("Forge config has explicit entries and separate DMG and DEB makers", () => {
   assert.equal(
     DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT,
     ".desktop-package-resources/workspace-integration",
@@ -131,10 +162,11 @@ test("Forge config has explicit entries and only the official DMG maker", () => 
     { name: "main_window", config: "vite.desktop.renderer.config.ts" },
   ]);
   assert.equal(desktopVitePluginConfig.concurrent, false);
-  assert.equal(forgeConfig.makers?.length, 1);
-  assert.equal(
-    (forgeConfig.makers?.[0] as { readonly name?: string } | undefined)?.name,
-    "dmg",
+  assert.deepEqual(
+    forgeConfig.makers?.map(
+      (maker) => (maker as { readonly name?: string }).name,
+    ),
+    ["dmg", "deb"],
   );
   assert.deepEqual(forgeConfig.publishers, []);
   assert.equal(forgeConfig.packagerConfig?.appBundleId, DESKTOP_BUNDLE_ID);
@@ -160,6 +192,21 @@ test("packaging keeps only the exact English and Simplified Chinese Electron loc
   }
   await pruneDesktopElectronLocales(root);
   assert.deepEqual((await readdir(root)).sort(), [...DESKTOP_ELECTRON_LOCALES]);
+});
+
+test("Ubuntu packaging keeps only exact English and Simplified Chinese locale packs", async (context) => {
+  assert.deepEqual(DESKTOP_ELECTRON_LINUX_LOCALES, ["en-US.pak", "zh-CN.pak"]);
+  const root = await mkdtemp(join(tmpdir(), "desktop-linux-locales-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(join(root, "locales"));
+  for (const locale of ["af.pak", ...DESKTOP_ELECTRON_LINUX_LOCALES]) {
+    await writeFile(join(root, "locales", locale), locale);
+  }
+  await pruneDesktopLinuxElectronLocales(root);
+  assert.deepEqual(
+    (await readdir(join(root, "locales"))).sort(),
+    [...DESKTOP_ELECTRON_LINUX_LOCALES].sort(),
+  );
 });
 
 test("trusted bundled renderer denies privilege", () => {
@@ -249,6 +296,33 @@ test("packaged macOS Resources has an exact top-level inventory", () => {
     () => assertDesktopResourcesTopLevel([...required, "private.json"]),
     /desktop-resources-top-level-forbidden:private\.json/u,
   );
+});
+
+test("packaged Ubuntu Resources has an exact platform-specific inventory", () => {
+  const required = [
+    "app.asar",
+    "compatibility.json",
+    "runtime-pack",
+    "workspace-integration",
+  ];
+  assert.doesNotThrow(() => assertDesktopResourcesTopLevel(required, "linux"));
+  assert.throws(
+    () =>
+      assertDesktopResourcesTopLevel([...required, "electron.icns"], "linux"),
+    /desktop-resources-top-level-forbidden:electron\.icns/u,
+  );
+});
+
+test("packaged Runtime Pack remains readable after a system install", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "axmorf-runtime-mode-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await chmod(root, 0o700);
+  assert.throws(
+    () => assertDesktopRuntimePackRootPermissions(root),
+    /desktop-runtime-pack-root-mode-invalid/u,
+  );
+  await chmod(root, 0o755);
+  assert.doesNotThrow(() => assertDesktopRuntimePackRootPermissions(root));
 });
 
 test("Desktop build inventory is exact and rejects copied repository public data", async (t) => {
@@ -400,10 +474,11 @@ test("Desktop build has no source-checkout locator or public release machinery",
       ),
     /ENOENT/u,
   );
-  assert.equal(forgeConfig.makers?.length, 1);
-  assert.equal(
-    (forgeConfig.makers?.[0] as { readonly name?: string } | undefined)?.name,
-    "dmg",
+  assert.deepEqual(
+    forgeConfig.makers?.map(
+      (maker) => (maker as { readonly name?: string }).name,
+    ),
+    ["dmg", "deb"],
   );
   assert.deepEqual(forgeConfig.publishers, []);
 });

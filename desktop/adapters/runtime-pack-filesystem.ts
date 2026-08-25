@@ -19,7 +19,10 @@ import {
   buildRuntimePackManifest,
   type RuntimePackManifest,
 } from "../contracts/runtime-pack";
-import type { DesktopDarwinArchitecture } from "../configuration/darwin-target";
+import type {
+  DesktopNativeArchitecture,
+  DesktopNativePlatform,
+} from "../configuration/native-target";
 
 export const RUNTIME_PACK_MANIFEST = "runtime-pack.json" as const;
 export const DESKTOP_COMPATIBILITY_MANIFEST = "compatibility.json" as const;
@@ -204,7 +207,8 @@ export const verifyRuntimePack = async ({
 
 export type RuntimePackBuildInput = Readonly<{
   outputRoot: string;
-  architecture: DesktopDarwinArchitecture;
+  platform?: DesktopNativePlatform;
+  architecture: DesktopNativeArchitecture;
   remotionPackages: readonly Readonly<{ name: string; version: string }>[];
   binaries: Readonly<{
     rendererBrowser: { source: string; relativePath: string; version: string };
@@ -228,7 +232,11 @@ export const buildRuntimePack = async (input: RuntimePackBuildInput) => {
   const backup = `${target}.previous-${process.pid}`;
   await rm(staging, { recursive: true, force: true });
   await rm(backup, { recursive: true, force: true });
-  await mkdir(staging, { recursive: true, mode: 0o700 });
+  // The packaged App may be installed by root while running as a desktop user.
+  // Runtime bytes contain no private state, so the immutable root must remain
+  // traversable after a system package manager preserves its ownership.
+  await mkdir(staging, { recursive: true, mode: 0o755 });
+  await chmod(staging, 0o755);
   const bindings = Object.entries(input.binaries).sort(([left], [right]) =>
     compareCanonicalText(left, right),
   );
@@ -282,7 +290,7 @@ export const buildRuntimePack = async (input: RuntimePackBuildInput) => {
         });
     }
     const manifest = buildRuntimePackManifest({
-      platform: "darwin",
+      platform: input.platform ?? "darwin",
       architecture: input.architecture,
       remotionPackages: [...input.remotionPackages].sort((left, right) =>
         compareCanonicalText(left.name, right.name),
@@ -311,7 +319,7 @@ export const buildRuntimePack = async (input: RuntimePackBuildInput) => {
       const verified = await verifyRuntimePack({
         runtimePackRoot: target,
         expectedArchitecture: input.architecture,
-        expectedPlatform: "darwin",
+        expectedPlatform: input.platform ?? "darwin",
       });
       if (replaced) await rm(backup, { recursive: true, force: true });
       return verified;
@@ -345,7 +353,9 @@ export const probeRuntimeExecutable = ({
       env:
         dynamicLibraryDirectory === undefined
           ? {}
-          : { DYLD_LIBRARY_PATH: resolve(dynamicLibraryDirectory) },
+          : process.platform === "darwin"
+            ? { DYLD_LIBRARY_PATH: resolve(dynamicLibraryDirectory) }
+            : { LD_LIBRARY_PATH: resolve(dynamicLibraryDirectory) },
       stdio: ["ignore", "pipe", "pipe"],
     });
     const chunks: Buffer[] = [];
@@ -365,7 +375,9 @@ export const probeRuntimeExecutable = ({
       clearTimeout(timer);
       reject(error);
     });
-    child.once("exit", (code, signal) => {
+    // `exit` may precede the final stdout/stderr data event. Wait for `close`
+    // so a fast executable such as `node --version` cannot be misread as empty.
+    child.once("close", (code, signal) => {
       clearTimeout(timer);
       const output = Buffer.concat(chunks).toString("utf8").trim();
       if (code !== 0 || output === "" || size > 64 * 1024) {

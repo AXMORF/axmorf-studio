@@ -208,7 +208,7 @@ export const SettingsPage = ({
       .catch(() => {
         if (active) {
           setLoadError(
-            "无法读取加密配置。请确认当前 macOS 登录会话已解锁，然后重新打开 App。",
+            "无法读取加密配置。请确认当前系统登录会话已解锁，然后重新打开 App。",
           );
         }
       });
@@ -324,7 +324,7 @@ export const SettingsPage = ({
         <span className="section-kicker">Private configuration</span>
         <h1>配置中心</h1>
         <p role={loadError === null ? "status" : "alert"}>
-          {loadError ?? "正在从 macOS 安全存储读取配置…"}
+          {loadError ?? "正在从系统安全存储读取配置…"}
         </p>
       </section>
     );
@@ -353,7 +353,7 @@ export const SettingsPage = ({
         </nav>
         <div className="settings-authority">
           <span>Storage</span>
-          <strong>macOS encrypted private config</strong>
+          <strong>system encrypted private config</strong>
           <span>Secrets</span>
           <strong>write-only · never echoed</strong>
         </div>
@@ -402,7 +402,7 @@ export const SettingsPage = ({
           ) : null}
           {snapshot.status === "unavailable" ? (
             <div className="settings-notice danger" role="alert">
-              macOS 安全存储当前不可用；表单可以查看，但保存会保持 fail closed。
+              系统安全存储当前不可用；表单可以查看，但保存会保持 fail closed。
             </div>
           ) : null}
           {saveError === null ? null : <SettingsErrorPanel error={saveError} />}

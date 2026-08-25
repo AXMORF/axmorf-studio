@@ -63,7 +63,7 @@ export const createExecutableProcessRunner = (
       args,
       process.platform === "darwin"
         ? { DYLD_LIBRARY_PATH: dirname(executable) }
-        : undefined,
+        : { LD_LIBRARY_PATH: dirname(executable) },
     );
 };
 

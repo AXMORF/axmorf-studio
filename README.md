@@ -59,12 +59,13 @@ adapter，不参与生产 authority。完整入口与能力矩阵见
 
 ## 面向用户的产品目标
 
-普通用户最终安装并运行 `AXMORF Studio`，不需要 clone 仓库或安装 Node/npm/Git。v1 是 macOS 13+ Electron
-App，分别发布 Apple Silicon `arm64` 与 Intel `x64` 的完整离线 unsigned DMG；用户作品位于单一 Workspace
+普通用户最终安装并运行 `AXMORF Studio`，不需要 clone 仓库或安装 Node/npm/Git。当前原生目标是 macOS 13+
+Apple Silicon `arm64`、macOS Intel `x64` 的完整离线 unsigned DMG，以及 Ubuntu 24.04+ x64 的完整离线 `.deb`；用户作品位于单一 Workspace
 Root，用户自己的 Codex 或 Hermes 通过 workspace-local Skill 与 `.rsp/bin/rsp` 协作，App 不内置 Agent。
 Delivery 默认由用户手动触发，App 更新与 Workspace 数据分离。完整目标见
 [Desktop App 产品架构](docs/DESKTOP_APP_PRODUCT.md) 与
-[macOS 维护与发行](docs/DESKTOP_APP_MACOS_MAINTENANCE.md)。
+[macOS 维护与发行](docs/DESKTOP_APP_MACOS_MAINTENANCE.md)和
+[Ubuntu 维护与打包](docs/DESKTOP_APP_UBUNTU_MAINTENANCE.md)。
 
 Phase B Workspace production 与 Phase C arm64/真实 Intel x64 native gate 已验证完成；gate 使用 deterministic task
 executor，不等于已安装外部创作 Agent 的真实创意生产证明。Phase D 已实现 internal/manual-only ordinary unsigned DMG
@@ -105,14 +106,26 @@ macOS 开发机可继续运行：
 
 ```bash
 npm run desktop:start
-npm run desktop:package
+npm run desktop:package:mac
 ```
 
-`desktop:package` 只生成本机架构的内部未签名 `.app` 开发证据，不生成 DMG。Phase B 的 Apple Silicon packaged
+`desktop:package` 仍是 `desktop:package:mac` 的兼容入口，只生成指定 Mac 架构的内部未签名 `.app` 开发证据，
+不生成 DMG。Phase B 的 Apple Silicon packaged
 production 与 Phase C 双架构原生证据已验证。Phase D `desktop:dmg` 必须先取得同一 exact commit/architecture 的
 native gate evidence，随后重新构建 ordinary package、生成 DMG 并完成挂载/隔离安装验证；精确命令、artifact contract
 与未满足的许可/签名/公开发行边界见
 [Desktop Phase D internal unsigned DMG](docs/guides/DESKTOP_PHASE_D_UNSIGNED_DMG.md)。
+
+Ubuntu 24.04 x64 本机打包、安装与完整 Workspace production gate：
+
+```bash
+npm run desktop:package:ubuntu
+sudo apt-get install ./out/make/deb/x64/axmorf-studio_0.1.0_amd64.deb
+npm run desktop:ubuntu-workspace-gate
+```
+
+该命令不会修改 Mac Forge maker 或双架构 DMG 流程；平台矩阵、固定 release Node 与验证边界见
+[Ubuntu 维护与打包](docs/DESKTOP_APP_UBUNTU_MAINTENANCE.md)。
 
 本地配置页：
 
@@ -127,8 +140,8 @@ latest ExecutionAttempt diagnostic 和 current four-file delivery。private conf
 protected voice contents 或 raw fingerprints。
 
 packaged Desktop 另有独立“Preview / 配置”导航，复用上述纯表单和校验模型，但不启动或嵌入 Settings Web
-service。Desktop 的 Provider/voice/render/readability/Scene/collection/Agent execution/Delivery defaults 只写入 macOS
-Application Support 的单一加密 private config；token/API Key 只写不回显，保存错误按字段、加密存储与 Engine restart
+service。Desktop 的 Provider/voice/render/readability/Scene/collection/Agent execution/Delivery defaults 只写入系统
+Application Support/config 的单一加密 private config；token/API Key 只写不回显，保存错误按字段、加密存储与 Engine restart
 分类显示。
 
 Workspace 外部 Agent 创建 Project 前可直接读取 packaged contract，无需源码 checkout：

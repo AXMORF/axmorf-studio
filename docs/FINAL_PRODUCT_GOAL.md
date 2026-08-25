@@ -96,8 +96,9 @@ DeliveryBuild 的显式 contract clean-break，不得重新把 converge 与同�
 现有 settings 演进为 App Settings，用户自己的 Agent 通过 workspace-local Skill 和稳定 CLI/IPC 完成创作。App
 不启动 Remotion Studio/Settings Web service，不内置、不托管也不调度
 Agent；安装目录与用户选择的单一 Workspace Root 分离，Workspace 内部使用固定目录，源码仓库不是普通用户的运行入口。详细目标见
-[Desktop App 产品架构](DESKTOP_APP_PRODUCT.md)，macOS v1 的维护基线与公开发行门槛见
-[Desktop App macOS 维护与发行](DESKTOP_APP_MACOS_MAINTENANCE.md)。
+[Desktop App 产品架构](DESKTOP_APP_PRODUCT.md)，macOS 双架构维护基线与公开发行门槛见
+[Desktop App macOS 维护与发行](DESKTOP_APP_MACOS_MAINTENANCE.md)，Ubuntu x64 原生包的维护与安装验证见
+[Desktop App Ubuntu 维护与打包](DESKTOP_APP_UBUNTU_MAINTENANCE.md)。
 
 这属于目标设计而非当前实现；当前事实仍只由 [ITERATION_STATUS.md](ITERATION_STATUS.md) 定义。
 

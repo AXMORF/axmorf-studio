@@ -39,15 +39,18 @@ export const createDesktopShellApi = (
       invoke(DESKTOP_SHELL_IPC_CHANNELS.buildDelivery, storyId) as ReturnType<
         DesktopShellApi["buildDelivery"]
       >,
+    deleteProject: (storyId) =>
+      invoke(DESKTOP_SHELL_IPC_CHANNELS.deleteProject, storyId) as ReturnType<
+        DesktopShellApi["deleteProject"]
+      >,
     getSettings: () =>
       invoke(DESKTOP_SHELL_IPC_CHANNELS.getSettings) as ReturnType<
         DesktopShellApi["getSettings"]
       >,
     saveSettings: (value) =>
-      invoke(
-        DESKTOP_SHELL_IPC_CHANNELS.saveSettings,
-        value,
-      ) as ReturnType<DesktopShellApi["saveSettings"]>,
+      invoke(DESKTOP_SHELL_IPC_CHANNELS.saveSettings, value) as ReturnType<
+        DesktopShellApi["saveSettings"]
+      >,
     retryEngine: () =>
       invoke(DESKTOP_SHELL_IPC_CHANNELS.retryEngine) as ReturnType<
         DesktopShellApi["retryEngine"]

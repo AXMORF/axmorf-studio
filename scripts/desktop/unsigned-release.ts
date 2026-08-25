@@ -34,6 +34,7 @@ import {
 } from "../../desktop/configuration/product";
 import { verifyDesktopPackageInventory } from "./package-inventory";
 import { createDesktopSbomInput } from "./sbom-input";
+import { desktopReleaseToolchain } from "./release-toolchain";
 
 export {
   createDesktopUnsignedDmgFileName,
@@ -478,9 +479,16 @@ const buildReleaseArtifact = async (args: readonly string[]) => {
   }
   const ordinaryEnvironment = { ...process.env };
   delete ordinaryEnvironment.AXMORF_DESKTOP_NATIVE_GATE_BUILD;
+  const toolchain = desktopReleaseToolchain();
   await run(
-    "npm",
-    ["run", "desktop:package", "--", "--architecture", architecture],
+    toolchain.node,
+    [
+      "--import",
+      "tsx",
+      join(process.cwd(), "scripts/desktop/package.ts"),
+      "--architecture",
+      architecture,
+    ],
     ordinaryEnvironment,
   );
   const appPath = join(
@@ -494,8 +502,14 @@ const buildReleaseArtifact = async (args: readonly string[]) => {
     expectedArchitecture: architecture,
   });
   await run(
-    join(process.cwd(), "node_modules/.bin/electron-forge"),
-    ["make", "--skip-package", "--platform=darwin", `--arch=${architecture}`],
+    toolchain.node,
+    [
+      toolchain.forgeCli,
+      "make",
+      "--skip-package",
+      "--platform=darwin",
+      `--arch=${architecture}`,
+    ],
     ordinaryEnvironment,
   );
   const { version: appVersion } = await readRootPackage();

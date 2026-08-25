@@ -44,6 +44,9 @@ const controller = new DesktopShellController({
     buildDelivery: async () => {
       throw new Error("not used");
     },
+    deleteProject: async () => {
+      throw new Error("not used");
+    },
     subscribe: () => () => undefined,
     stop: async () => undefined,
   },
@@ -86,12 +89,8 @@ test("IPC validates exact main-frame sender, argument count, and argument type",
   const migrateWorkspace = handlers.get(
     DESKTOP_SHELL_IPC_CHANNELS.migrateWorkspace,
   );
-  const getSettings = handlers.get(
-    DESKTOP_SHELL_IPC_CHANNELS.getSettings,
-  );
-  const saveSettings = handlers.get(
-    DESKTOP_SHELL_IPC_CHANNELS.saveSettings,
-  );
+  const getSettings = handlers.get(DESKTOP_SHELL_IPC_CHANNELS.getSettings);
+  const saveSettings = handlers.get(DESKTOP_SHELL_IPC_CHANNELS.saveSettings);
   assert.ok(getState !== undefined);
   assert.ok(selectPreview !== undefined);
   assert.ok(migrateWorkspace !== undefined);
@@ -188,10 +187,7 @@ test("Desktop Settings errors distinguish validation, secure storage, and Engine
   const storageError = mapDesktopSettingsFailure(
     new Error("Desktop credential encryption is unavailable: secret-detail"),
   );
-  assert.equal(
-    storageError.code,
-    "desktop-settings-encryption-unavailable",
-  );
+  assert.equal(storageError.code, "desktop-settings-encryption-unavailable");
   assert.doesNotMatch(JSON.stringify(storageError), /secret-detail/u);
 
   const restartError = mapDesktopSettingsFailure(
@@ -199,10 +195,7 @@ test("Desktop Settings errors distinguish validation, secure storage, and Engine
       cause: new Error("provider endpoint private detail"),
     }),
   );
-  assert.equal(
-    restartError.code,
-    "desktop-settings-engine-restart-failed",
-  );
+  assert.equal(restartError.code, "desktop-settings-engine-restart-failed");
   assert.match(restartError.message, /已安全保存/u);
   assert.doesNotMatch(JSON.stringify(restartError), /private detail/u);
 
