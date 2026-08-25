@@ -4,10 +4,12 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
 
 import { getDesktopDarwinTarget } from "../../desktop/configuration/darwin-target";
 import {
   createNativeSmokePrivateConfigCrypto,
+  rendererProbeSource,
   resolveNativeSmokeOptions,
   writeNativeSmokeFailure,
   writeNativeSmokeEngineDiagnostic,
@@ -41,6 +43,92 @@ const resolveTestCompositorRoot = () =>
         : "@remotion/compositor-linux-x64-gnu/package.json",
     ),
   );
+
+test("native renderer probe follows the remounted current video after ticket refresh", async () => {
+  const entry = {
+    storyId: "native-probe",
+    frameCount: 31,
+    fps: 30,
+    timeline: {
+      scenes: [
+        { startFrame: 0, endFrame: 15 },
+        { startFrame: 15, endFrame: 31 },
+      ],
+    },
+  };
+  const state = {
+    status: "ready",
+    selectedStoryId: entry.storyId,
+    catalog: { entries: [entry] },
+    productionAvailable: true,
+    deliveryAvailable: true,
+    distributionReady: false,
+    runtimePackAvailable: true,
+  };
+  const video = {
+    currentTime: 0,
+    duration: 31 / 30,
+    error: null,
+    networkState: 1,
+    readyState: 2,
+    seeking: false,
+    videoHeight: 1920,
+    videoWidth: 1080,
+    addEventListener: () => undefined,
+    pause: () => undefined,
+    play() {
+      this.currentTime += 0.1;
+      return Promise.resolve();
+    },
+  };
+  const staleVideo = { ...video, currentTime: 0 };
+  let ticketRefreshed = false;
+  const selection = {
+    value: entry.storyId,
+    dispatchEvent: () => {
+      ticketRefreshed = true;
+      return true;
+    },
+  };
+  const playhead = {
+    get textContent() {
+      return `F${Math.floor(video.currentTime * entry.fps)} / 30`;
+    },
+  };
+  const document = {
+    body: { append: () => undefined },
+    createElement: () => ({ click: () => undefined }),
+    querySelector: (selector: string) => {
+      if (selector === "video") return ticketRefreshed ? video : staleVideo;
+      if (selector === "select") return selection;
+      if (selector === '[aria-label="当前播放位置"]') return playhead;
+      if (selector === ".scene-segment.active") return { textContent: "Scene" };
+      return null;
+    },
+    querySelectorAll: (selector: string) => {
+      if (selector === ".scene-segment") return [{}, {}];
+      if (selector === ".narration-segment") return [{}];
+      if (selector === ".caption-segment") return [{}];
+      return [];
+    },
+  };
+  const result = (await runInNewContext(rendererProbeSource(true), {
+    document,
+    Event: class {},
+    location: { href: "file:///app/index.html" },
+    navigator: { permissions: { query: async () => ({ state: "denied" }) } },
+    setTimeout,
+    window: {
+      axmorfStudio: { getAppState: async () => state },
+      open: () => null,
+    },
+  })) as {
+    media: { positions: { boundary: { playhead: string } } | null };
+  };
+
+  assert.equal(ticketRefreshed, true);
+  assert.match(result.media.positions?.boundary.playhead ?? "", /F15 \/ 30/u);
+});
 
 test("native fixture starts at the public project-create boundary", () => {
   const input = ProjectCreateInputSchema.parse(

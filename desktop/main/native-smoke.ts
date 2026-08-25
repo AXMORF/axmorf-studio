@@ -402,7 +402,7 @@ const returnToPreviewProbeSource = `(() => new Promise(async (resolve, reject) =
   }
 }))()`;
 
-const rendererProbeSource = (playbackRequired: boolean) =>
+export const rendererProbeSource = (playbackRequired: boolean) =>
   `(() => new Promise(async (resolve, reject) => {
   try {
     const playbackRequired = ${playbackRequired ? "true" : "false"};
