@@ -431,6 +431,8 @@ const rendererProbeSource = (playbackRequired: boolean) =>
       choice.click();
     }
     await until(() => document.querySelector("video") !== null, "video-element");
+    let probeStage = "initial-load";
+    const mediaErrors = [];
     const selectionControl = document.querySelector("select");
     if (selectionControl === null) throw new Error("renderer-preview-selection-missing");
     const stateBeforeSelection = await window.axmorfStudio.getAppState();
@@ -454,8 +456,6 @@ const rendererProbeSource = (playbackRequired: boolean) =>
     // the player. Probe the current node, never the detached pre-selection one.
     const video = document.querySelector("video");
     if (video === null) throw new Error("renderer-video-after-selection-missing");
-    let probeStage = "initial-load";
-    const mediaErrors = [];
     video.addEventListener("error", () => {
       mediaErrors.push({
         stage: probeStage,

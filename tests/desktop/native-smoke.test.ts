@@ -477,6 +477,10 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
   );
   assert.match(nativeSmoke, /renderer-workspace-fatal:/u);
   assert.match(nativeSmoke, /if \(state\.status === "ready"\)/u);
+  assert.match(
+    nativeSmoke,
+    /let probeStage = "initial-load";[\s\S]*probeStage = "selection";/u,
+  );
   assert.match(nativeSmoke, /selectionControl\.dispatchEvent/u);
   assert.match(
     nativeSmoke,
