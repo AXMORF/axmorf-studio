@@ -19,69 +19,74 @@ const write = async (path: string, value: string) => {
   await writeFile(path, value, { flag: "wx" });
 };
 
-export const createDesktopNativeProjectInput = () => ({
-  ...validProjectCreateInput,
-  storyId: DESKTOP_NATIVE_STORY_ID,
-  brief: {
-    ...validProjectCreateInput.brief,
+export const createDesktopNativeProjectInput = () => {
+  const { sceneTemplates: _fixtureTemplates, ...baseInput } =
+    validProjectCreateInput;
+  void _fixtureTemplates;
+  return {
+    ...baseInput,
     storyId: DESKTOP_NATIVE_STORY_ID,
-    title: "AXMORF native production proof",
-    targetDurationSeconds: 4,
-  },
-  story: {
-    schemaVersion: 3,
-    storyId: DESKTOP_NATIVE_STORY_ID,
-    title: "AXMORF native production proof",
-    beats: [
+    brief: {
+      ...validProjectCreateInput.brief,
+      storyId: DESKTOP_NATIVE_STORY_ID,
+      title: "AXMORF native production proof",
+      targetDurationSeconds: 4,
+    },
+    story: {
+      schemaVersion: 3,
+      storyId: DESKTOP_NATIVE_STORY_ID,
+      title: "AXMORF native production proof",
+      beats: [
+        {
+          kind: "narrated-scene",
+          meaningId: "opening",
+          narrativePurpose: "Prove the first native production Scene.",
+          ttsChunks: [
+            { chunkId: "opening-01", ttsText: "Native production starts." },
+          ],
+          explicitPauses: [{ afterChunkId: "opening-01", pauseMs: 500 }],
+        },
+        {
+          kind: "narrated-scene",
+          meaningId: "closing",
+          narrativePurpose: "Prove the current Delivery boundary.",
+          ttsChunks: [
+            { chunkId: "closing-01", ttsText: "Native delivery is current." },
+          ],
+          explicitPauses: [],
+        },
+      ],
+    },
+    scenes: [
       {
-        kind: "narrated-scene",
+        ...validProjectCreateInput.scenes[0],
         meaningId: "opening",
-        narrativePurpose: "Prove the first native production Scene.",
-        ttsChunks: [
-          { chunkId: "opening-01", ttsText: "Native production starts." },
-        ],
-        explicitPauses: [{ afterChunkId: "opening-01", pauseMs: 500 }],
+        visualIntent: "Show a restrained native production state.",
       },
       {
-        kind: "narrated-scene",
+        ...validProjectCreateInput.scenes[0],
         meaningId: "closing",
-        narrativePurpose: "Prove the current Delivery boundary.",
-        ttsChunks: [
-          { chunkId: "closing-01", ttsText: "Native delivery is current." },
-        ],
-        explicitPauses: [],
+        visualIntent: "Show a distinct current Delivery state.",
+        continuityBrief: "Cut cleanly from the opening proof.",
       },
     ],
-  },
-  scenes: [
-    {
-      ...validProjectCreateInput.scenes[0],
-      meaningId: "opening",
-      visualIntent: "Show a restrained native production state.",
+    render: {
+      ...validProjectCreateInput.render,
+      compositionId: "DesktopNativeFixture",
+      leadInFrames: 15,
+      tailFrames: 15,
     },
-    {
-      ...validProjectCreateInput.scenes[0],
-      meaningId: "closing",
-      visualIntent: "Show a distinct current Delivery state.",
-      continuityBrief: "Cut cleanly from the opening proof.",
+    publishing: {
+      ...validProjectCreateInput.publishing,
+      description:
+        "A real four-file Delivery produced by the packaged native gate.",
+      chapters: [
+        { meaningId: "opening", name: "开场" },
+        { meaningId: "closing", name: "交付" },
+      ],
     },
-  ],
-  render: {
-    ...validProjectCreateInput.render,
-    compositionId: "DesktopNativeFixture",
-    leadInFrames: 15,
-    tailFrames: 15,
-  },
-  publishing: {
-    ...validProjectCreateInput.publishing,
-    description:
-      "A real four-file Delivery produced by the packaged native gate.",
-    chapters: [
-      { meaningId: "opening", name: "开场" },
-      { meaningId: "closing", name: "交付" },
-    ],
-  },
-});
+  };
+};
 
 const outputBytes = ({
   format,

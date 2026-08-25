@@ -8,9 +8,14 @@ import {
 } from "../../src/remotion/capabilities/scene-templates/axmorf";
 import { resolveBrandFollowLockupLayout } from "../../src/remotion/capabilities/scene-templates/axmorf/BrandFollowScene";
 import {
-  SCENE_TEMPLATE_DEFINITIONS,
+  buildSceneTemplateDefinitions,
   renderCopiedSceneRenderer,
 } from "../../src/remotion/capabilities/scene-templates/registry";
+import sceneTemplateAudioJson from "../../src/remotion/catalog/scene-template-audio.generated.json";
+
+const sceneTemplateDefinitions = buildSceneTemplateDefinitions(
+  sceneTemplateAudioJson,
+);
 
 test("reusable Scene template renderers remain visual-only", async () => {
   assert.equal(typeof AxmorfIntroScene, "function");
@@ -32,7 +37,7 @@ test("reusable Scene template renderers remain visual-only", async () => {
 });
 
 test("copied Scene template renderers adapt the local SceneViewport to template dimensions", () => {
-  for (const definition of SCENE_TEMPLATE_DEFINITIONS) {
+  for (const definition of sceneTemplateDefinitions) {
     const source = renderCopiedSceneRenderer(definition);
     assert.match(source, /viewportWidth: number;/u);
     assert.match(source, /viewportHeight: number;/u);

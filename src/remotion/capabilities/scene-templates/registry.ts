@@ -1,13 +1,9 @@
 import type { ResourceAssetDescriptor } from "../../../contracts";
-import sceneTemplateAudioJson from "../../catalog/scene-template-audio.generated.json";
 import type { SceneTemplateId } from "./catalog";
 import {
   SceneTemplateAudioProjectionSchema,
   type SceneTemplateAudioProjection,
 } from "./template-audio";
-
-export const SCENE_TEMPLATE_AUDIO_PROJECTION =
-  SceneTemplateAudioProjectionSchema.parse(sceneTemplateAudioJson);
 
 type TemplateAudioBinding = NonNullable<SceneTemplateAudioProjection["intro"]>;
 
@@ -244,13 +240,9 @@ export const buildSceneTemplateDefinitions = (rawProjection: unknown) => {
   return [brandReveal(audioProjection), sourceFollow(audioProjection)] as const;
 };
 
-export const SCENE_TEMPLATE_DEFINITIONS = buildSceneTemplateDefinitions(
-  SCENE_TEMPLATE_AUDIO_PROJECTION,
-);
-
 export const getSceneTemplateDefinition = (
   templateId: string,
-  audioProjection: unknown = SCENE_TEMPLATE_AUDIO_PROJECTION,
+  audioProjection: unknown,
 ) => {
   const definition = buildSceneTemplateDefinitions(audioProjection).find(
     (candidate) => candidate.templateId === templateId,

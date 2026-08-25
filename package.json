@@ -78,6 +78,7 @@
     "desktop:release:verify": "node --import tsx scripts/desktop/unsigned-release.ts verify",
     "desktop:release:validate-set": "node --import tsx scripts/desktop/unsigned-release.ts validate-set",
     "desktop:integration-smoke": "node --import tsx scripts/desktop/integration-smoke.ts",
+    "desktop:ubuntu-workspace-gate": "AXMORF_UBUNTU_WORKSPACE_E2E=1 node --import tsx --test tests/desktop/ubuntu-workspace-lifecycle.test.ts",
     "desktop:native-fixture": "node --import tsx scripts/desktop/native-fixture.ts",
     "desktop:native:gate": "bash scripts/desktop/native-gate.sh",
     "desktop:start": "npm run desktop:icons && npm run desktop:rsp-client && electron-forge start",

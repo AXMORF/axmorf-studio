@@ -46,7 +46,10 @@ import type {
   ProductionLocations,
   RuntimeExecutionResources,
 } from "./production-locations";
-import { prepareWorkspaceNarration } from "./workspace-narration-port";
+import {
+  prepareWorkspaceNarration,
+  type WorkspacePrepareNarration,
+} from "./workspace-narration-port";
 import { prepareProjectAuthoringBuild } from "./prepare-delivery";
 import { createWorkspaceProjectStorageLocations } from "../../projects/project-locations";
 import { generateWorkspaceProjectResourceCatalog } from "../../catalog/generate";
@@ -70,7 +73,10 @@ import {
   validateRspProjectCreate,
 } from "../../../desktop/application/project-create-contract";
 import { RspPublicCommandError } from "../../../desktop/contracts/issues";
-import { publicTaskCommandError } from "../../../desktop/application/public-command-errors";
+import {
+  publicPrepareCommandError,
+  publicTaskCommandError,
+} from "../../../desktop/application/public-command-errors";
 
 const workspaceLoadInputs = (
   input: Parameters<typeof loadProjectProductionInputs>[0],
@@ -166,6 +172,7 @@ const recordTaskOutcome = async ({
 
 const createWorkspaceCommands = (
   delivery: WorkspaceProductionDeliveryPort,
+  prepareNarration: WorkspacePrepareNarration,
 ): ProductionControllerCommandPorts => ({
   context: ({ locations, projectId }) =>
     readWorkspaceProjectContext({ locations, projectId }),
@@ -197,7 +204,7 @@ const createWorkspaceCommands = (
       {
         commandFormatter: rspLocalProductionCommandFormatter,
         inspect: workspaceInspectProduction,
-        prepareNarration: prepareWorkspaceNarration,
+        prepareNarration,
         projectPendingAuthoring: workspaceProjectPendingAuthoring,
         loadInputs: workspaceLoadInputs,
         buildCurrentPlan: (planInput) =>
@@ -307,6 +314,7 @@ export const createWorkspaceProductionController = async ({
   appDefaultDeliveryPolicy = "manual",
   runtimeMaxConcurrency,
   loadExecutionPreferences,
+  prepareNarration = prepareWorkspaceNarration,
 }: {
   readonly locations: ProductionLocations;
   readonly runtime: RuntimeExecutionResources;
@@ -321,13 +329,14 @@ export const createWorkspaceProductionController = async ({
       source: ExecutionPreferenceSource;
     }>
   >;
+  readonly prepareNarration?: WorkspacePrepareNarration;
 }) => {
   if (locations.layoutKind !== "workspace") {
     throw new Error(
       "Workspace production controller requires Workspace locations.",
     );
   }
-  const workspaceCommands = createWorkspaceCommands(delivery);
+  const workspaceCommands = createWorkspaceCommands(delivery, prepareNarration);
   const readConfig = async () => {
     const config = await loadProducerConfig();
     return config === null ? null : ProducerConfigSchema.parse(config);
@@ -478,11 +487,23 @@ export const createWorkspaceProductionController = async ({
     projectId: string,
     deliveryPolicy?: DeliveryPolicy,
   ) => {
-    const resolved = await resolveProjectDeliveryPolicy({
-      projectId,
-      override: deliveryPolicy,
-    });
-    return (await withConfig()).prepare(projectId, resolved.value);
+    try {
+      const resolved = await resolveProjectDeliveryPolicy({
+        projectId,
+        override: deliveryPolicy,
+      });
+      return await (await withConfig()).prepare(projectId, resolved.value);
+    } catch (error) {
+      if (error instanceof RspPublicCommandError) throw error;
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === DESKTOP_PRODUCER_CONFIG_REQUIRED
+      ) {
+        throw error;
+      }
+      throw publicPrepareCommandError(error);
+    }
   };
   const publicTaskOperation = async <Result>(
     operation: "describe" | "finalize" | "check" | "commit",

@@ -14,6 +14,7 @@ import {
 } from "../../capabilities/scene-templates/axmorf";
 import { AXMORF_SCENE_TEMPLATE_TIMING } from "../../capabilities/scene-templates/axmorf/timing";
 import { getSceneTemplateDefinition } from "../../capabilities/scene-templates/registry";
+import sceneTemplateAudioJson from "../../catalog/scene-template-audio.generated.json";
 
 const PREVIEW_FPS = 30;
 
@@ -24,7 +25,10 @@ const buildPreviewSpec = ({
   readonly templateId: "axmorf-brand-reveal-v1" | "axmorf-source-follow-v1";
   readonly timingId: keyof typeof AXMORF_SCENE_TEMPLATE_TIMING;
 }) => {
-  const definition = getSceneTemplateDefinition(templateId);
+  const definition = getSceneTemplateDefinition(
+    templateId,
+    sceneTemplateAudioJson,
+  );
   const timing = AXMORF_SCENE_TEMPLATE_TIMING[timingId];
   if (
     definition.assets.length > 1 ||

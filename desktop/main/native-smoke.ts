@@ -29,8 +29,8 @@ const NATIVE_GATE_PRODUCER_CONFIG = buildProducerConfig({
   },
   readability: { edgeInsetPx: 90 },
   sceneDefaults: {
-    introSceneTemplateId: null,
-    outroSceneTemplateId: null,
+    introSceneTemplateId: "axmorf-brand-reveal-v1",
+    outroSceneTemplateId: "axmorf-source-follow-v1",
   },
   audioDefaults: { globalBgm: null },
   publishingCollections: [

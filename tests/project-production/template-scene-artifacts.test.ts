@@ -204,11 +204,16 @@ declare global {
   const storyId = "template-fixed-proof";
   const meaningId = "configured-intro-scene";
   const durationInFrames = 30;
+  const sceneBody = `
+export const SceneBody = () => <div />;
+`;
   const renderer = `
-const Renderer = () => <div />;
+import {SceneBody} from "./SceneBody";
+const Renderer = () => <SceneBody />;
 export default Renderer;
 `;
   const rendererRepositoryPath = `src/projects/${storyId}/scenes/${meaningId}/Renderer.tsx`;
+  const sceneBodyRepositoryPath = `src/projects/${storyId}/scenes/${meaningId}/SceneBody.tsx`;
   const instance = buildSceneTemplateInstance({
     schemaVersion: 1,
     storyId,
@@ -222,6 +227,7 @@ export default Renderer;
         rendererPath: rendererRepositoryPath,
         files: [
           { sourcePath: rendererRepositoryPath, checksum: digest(renderer) },
+          { sourcePath: sceneBodyRepositoryPath, checksum: digest(sceneBody) },
         ],
       },
     }),
@@ -232,6 +238,7 @@ export default Renderer;
     soundCues: [],
     copiedSourceFiles: [
       { repositoryPath: rendererRepositoryPath, checksum: digest(renderer) },
+      { repositoryPath: sceneBodyRepositoryPath, checksum: digest(sceneBody) },
     ],
     copiedAssetFiles: [],
     visual: {
@@ -404,6 +411,7 @@ export default Renderer;
 
   for (const [relativePath, bytes] of [
     [`scenes/${meaningId}/Renderer.tsx`, renderer],
+    [`scenes/${meaningId}/SceneBody.tsx`, sceneBody],
     [`scenes/${meaningId}/scene-template-instance.json`, canonical(instance)],
   ] as const) {
     const destination = join(
@@ -427,6 +435,7 @@ export default Renderer;
   });
   assert.deepEqual(prepared.task.declaredOutputSet, [
     "src/Renderer.tsx",
+    "src/SceneBody.tsx",
     "src/generated/reference-fidelity.generated.json",
     "src/scene-template-instance.json",
     "src/selected-resources.json",

@@ -1,6 +1,6 @@
 import { checkProducerTaskWorkspace } from "./task-check";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { SceneTaskInputSchema } from "../../../src/contracts";
 import { validateSceneArtifactBundle } from "../../scene-package/domain";
 import { parseSceneSelectedResourcesFile } from "../../scene-package/generate";
@@ -37,10 +37,6 @@ export const checkSceneTask = async (
     sourcePaths: ["src/Renderer.tsx"],
     sceneViewport: taskInput.sceneViewport,
   });
-  const rendererSource = await readFile(
-    join(checked.workspace, "src/Renderer.tsx"),
-    "utf8",
-  );
   const runtimeSourceRoot =
     input.locations.layoutKind === "repository"
       ? input.locations.runtimeResources
@@ -53,6 +49,19 @@ export const checkSceneTask = async (
     runtimeSourceRoot,
     `src/projects/${taskInput.storyId}/scenes/${taskInput.meaningId}/__scene-task-component-check.tsx`,
   );
+  const virtualSceneSources = Object.fromEntries(
+    await Promise.all(
+      checked.task.declaredOutputSet
+        .filter(
+          (logicalPath) =>
+            logicalPath.startsWith("src/") && /\.[cm]?tsx?$/u.test(logicalPath),
+        )
+        .map(async (logicalPath) => [
+          join(dirname(rendererPath), ...logicalPath.slice("src/".length).split("/")),
+          await readFile(join(checked.workspace, logicalPath), "utf8"),
+        ] as const),
+    ),
+  );
   compileTypeScriptImportGraph({
     rootDir: runtimeSourceRoot,
     rootPath: contractCheckPath,
@@ -62,7 +71,7 @@ export const checkSceneTask = async (
     ),
     label: "Scene task compile",
     virtualSources: {
-      [rendererPath]: rendererSource,
+      ...virtualSceneSources,
       [contractCheckPath]: `import Renderer from "./Renderer";
 import type {SceneRendererComponent} from "../../../../remotion/runtime/story-visual/types";
 const renderer: SceneRendererComponent = Renderer;

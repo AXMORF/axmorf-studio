@@ -48,10 +48,7 @@ test("native fixture starts at the public project-create boundary", () => {
   );
   assert.equal(input.storyId, "desktop-native-fixture");
   assert.equal(input.story.beats.length, 2);
-  assert.deepEqual(input.sceneTemplates, {
-    introSceneTemplateId: null,
-    outroSceneTemplateId: null,
-  });
+  assert.equal(input.sceneTemplates, undefined);
 });
 
 test("native test provider writes the source-local narration preparation receipt", async (context) => {

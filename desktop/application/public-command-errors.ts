@@ -8,6 +8,35 @@ import {
 
 type TaskOperation = "describe" | "finalize" | "check" | "commit";
 
+const prepareIssue = (error: unknown): RspFieldIssue => {
+  const message = error instanceof Error ? error.message : "";
+  if (/scene template|scene task compile/iu.test(message)) {
+    return {
+      path: "$.storyId",
+      code: "rsp-prepare-scene-template-failed",
+      message: "A configured Scene template failed fixed preparation.",
+      ownerAction:
+        "Do not retry this stopped lifecycle. Update AXMORF Studio to a compatible Runtime Pack, then start a new prepare attempt.",
+    };
+  }
+  if (/narration|audio|ffmpeg|ffprobe|pcm|wav/iu.test(message)) {
+    return {
+      path: "$.storyId",
+      code: "rsp-prepare-narration-failed",
+      message: "Narration failed fixed preparation or validation.",
+      ownerAction:
+        "Do not retry this stopped lifecycle. Preserve rsp inspect output and verify the installed Runtime Pack before starting a new prepare attempt.",
+    };
+  }
+  return {
+    path: "$.storyId",
+    code: "rsp-prepare-internal-failed",
+    message: "Production preparation failed before completion.",
+    ownerAction:
+      "Do not retry this stopped lifecycle. Preserve rsp inspect output and report this issue code before starting a new prepare attempt.",
+  };
+};
+
 const taskIssue = ({
   operation,
   error,
@@ -79,4 +108,19 @@ export const publicTaskCommandError = ({
     `Task ${operation} failed fixed validation.`,
     issues,
   );
+};
+
+export const publicPrepareCommandError = (error: unknown) => {
+  const failure = new RspPublicCommandError(
+    "rsp-command-failed",
+    "Production preparation failed.",
+    [prepareIssue(error)],
+  );
+  Object.defineProperty(failure, "cause", {
+    value: error,
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
+  return failure;
 };
