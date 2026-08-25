@@ -492,6 +492,10 @@ const rendererProbeSource = (playbackRequired: boolean) =>
       };
     };
     const boundary = selected.timeline.scenes[1].startFrame;
+    const lastScene = selected.timeline.scenes[selected.timeline.scenes.length - 1];
+    if (lastScene === undefined) {
+      throw new Error("renderer-timeline-scenes-missing");
+    }
     let positions = null;
     let playedTime = null;
     if (playbackRequired) {
@@ -516,7 +520,7 @@ const rendererProbeSource = (playbackRequired: boolean) =>
         first: await seek(0),
         firstSceneStart: await seek(selected.timeline.scenes[0].startFrame),
         boundary: await seek(boundary),
-        lastSceneFrame: await seek(selected.timeline.scenes[1].endFrame - 1),
+        lastSceneFrame: await seek(lastScene.endFrame - 1),
         last: await seek(selected.frameCount - 1),
       };
       await seek(boundary);
@@ -799,9 +803,18 @@ export const runPackagedNativeSmoke = async ({
       "playback-result",
     );
     requireRenderer(renderer.media.positions !== null, "seek-requirement");
-    requireRenderer(renderer.timeline.sceneCount === 2, "scene-track");
-    requireRenderer(renderer.timeline.narrationCount === 3, "narration-track");
-    requireRenderer(renderer.timeline.captionCount === 2, "caption-track");
+    requireRenderer(
+      renderer.timeline.sceneCount === 4,
+      `scene-track:${renderer.timeline.sceneCount}:expected-4`,
+    );
+    requireRenderer(
+      renderer.timeline.narrationCount === 3,
+      `narration-track:${renderer.timeline.narrationCount}:expected-3`,
+    );
+    requireRenderer(
+      renderer.timeline.captionCount === 2,
+      `caption-track:${renderer.timeline.captionCount}:expected-2`,
+    );
     if (renderer.media.positions !== null) {
       requireRenderer(
         renderer.media.positions.first.activeScene === null,

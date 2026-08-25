@@ -481,6 +481,8 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
   assert.match(nativeSmoke, /selectionControlValue/u);
   assert.match(nativeSmoke, /\(clamped \+ 0\.25\) \/ selected\.fps/u);
   assert.match(nativeSmoke, /"playhead-" \+ clamped/u);
+  assert.match(nativeSmoke, /renderer\.timeline\.sceneCount === 4/u);
+  assert.match(nativeSmoke, /lastScene\.endFrame - 1/u);
   assert.doesNotMatch(
     nativeSmoke,
     /const state = await window\.axmorfStudio\.chooseInitialWorkspace\(\)/u,
