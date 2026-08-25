@@ -25,6 +25,15 @@ export const isExecutionAttemptEventLogChange = (
   (eventType === "rename" || eventType === "change") &&
   (filename === null || filename.endsWith(".json"));
 
+export const hasNewExecutionAttemptEventFile = (
+  baselineEventFiles: ReadonlySet<string>,
+  filenames: readonly string[],
+) =>
+  filenames.some(
+    (filename) =>
+      filename.endsWith(".json") && !baselineEventFiles.has(filename),
+  );
+
 export const openExecutionAttemptEventWait = (input: {
   readonly locations: ProductionLocations;
   readonly storyId: string;
@@ -79,9 +88,9 @@ export const openExecutionAttemptEventWait = (input: {
     // if the host delays its fs.watch notification.
     deadlineSettlement = setImmediate(() => {
       try {
-        const newEventExists = readdirSync(directory).some(
-          (filename) =>
-            filename.endsWith(".json") && !baselineEventFiles.has(filename),
+        const newEventExists = hasNewExecutionAttemptEventFile(
+          baselineEventFiles,
+          readdirSync(directory),
         );
         settle(
           newEventExists

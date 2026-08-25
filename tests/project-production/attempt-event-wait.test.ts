@@ -7,6 +7,7 @@ import test from "node:test";
 
 import {
   ExecutionAttemptEventWaitTimeoutError,
+  hasNewExecutionAttemptEventFile,
   isExecutionAttemptEventLogChange,
   openExecutionAttemptEventWait,
 } from "../../scripts/project-production/adapters/attempt-event-wait";
@@ -115,37 +116,23 @@ test("attempt event wait rejects at its bounded deadline", async (context) => {
   );
 });
 
-test("attempt event wait does not treat a baseline event as a new change", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-wait-baseline-"));
-  context.after(() => rm(rootDir, { recursive: true, force: true }));
-  const locations = createRepositoryProductionLocations({
-    repositoryRoot: rootDir,
-  });
-  const storyId = "story-example";
-  const attemptId = "00000000-0000-4000-8000-000000000001";
-  const events = join(
-    rootDir,
-    ".producer-attempts",
-    storyId,
-    attemptId,
-    "events",
+test("attempt event deadline snapshot recognizes only new JSON event files", () => {
+  const baseline = new Set([
+    "00000000-0000-4000-8000-000000000001.json",
+    "ignored.tmp",
+  ]);
+  assert.equal(
+    hasNewExecutionAttemptEventFile(baseline, [
+      "00000000-0000-4000-8000-000000000001.json",
+      "new.tmp",
+    ]),
+    false,
   );
-  await mkdir(events, { recursive: true });
-  await writeFile(
-    join(events, "00000000-0000-4000-8000-000000000002.json"),
-    "{}\n",
-  );
-  const eventWait = openExecutionAttemptEventWait({
-    locations,
-    storyId,
-    attemptId,
-    timeoutMs: 10,
-  });
-  context.after(() => eventWait.close());
-  await eventWait.ready;
-
-  await assert.rejects(
-    eventWait.changed,
-    ExecutionAttemptEventWaitTimeoutError,
+  assert.equal(
+    hasNewExecutionAttemptEventFile(baseline, [
+      "00000000-0000-4000-8000-000000000001.json",
+      "00000000-0000-4000-8000-000000000002.json",
+    ]),
+    true,
   );
 });
