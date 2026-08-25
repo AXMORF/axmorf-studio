@@ -1,4 +1,4 @@
-import { watch } from "node:fs";
+import { readdirSync, watch } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 
@@ -43,6 +43,9 @@ export const openExecutionAttemptEventWait = (input: {
     attemptId,
     "events",
   );
+  const baselineEventFiles = new Set(
+    readdirSync(directory).filter((filename) => filename.endsWith(".json")),
+  );
   let settled = false;
   let resolveChanged: (() => void) | undefined;
   let rejectChanged: ((error: Error) => void) | undefined;
@@ -71,10 +74,24 @@ export const openExecutionAttemptEventWait = (input: {
   const timeout = setTimeout(() => {
     // A filesystem notification can already be queued when a busy process
     // reaches the timers phase after the deadline. Give that same event-loop
-    // turn's poll phase priority before rejecting at the bounded deadline.
-    deadlineSettlement = setImmediate(() =>
-      settle(new ExecutionAttemptEventWaitTimeoutError()),
-    );
+    // turn's poll phase priority, then take one final immutable-log snapshot
+    // so an event already written before the deadline wins over timeout even
+    // if the host delays its fs.watch notification.
+    deadlineSettlement = setImmediate(() => {
+      try {
+        const newEventExists = readdirSync(directory).some(
+          (filename) =>
+            filename.endsWith(".json") && !baselineEventFiles.has(filename),
+        );
+        settle(
+          newEventExists
+            ? undefined
+            : new ExecutionAttemptEventWaitTimeoutError(),
+        );
+      } catch (error) {
+        settle(error instanceof Error ? error : new Error(String(error)));
+      }
+    });
   }, timeoutMs);
   return {
     ready,
