@@ -431,18 +431,6 @@ const rendererProbeSource = (playbackRequired: boolean) =>
       choice.click();
     }
     await until(() => document.querySelector("video") !== null, "video-element");
-    const video = document.querySelector("video");
-    let probeStage = "initial-load";
-    const mediaErrors = [];
-    video.addEventListener("error", () => {
-      mediaErrors.push({
-        stage: probeStage,
-        code: video.error?.code ?? null,
-        message: video.error?.message ?? null,
-        networkState: video.networkState,
-        readyState: video.readyState,
-      });
-    });
     const selectionControl = document.querySelector("select");
     if (selectionControl === null) throw new Error("renderer-preview-selection-missing");
     const stateBeforeSelection = await window.axmorfStudio.getAppState();
@@ -462,6 +450,21 @@ const rendererProbeSource = (playbackRequired: boolean) =>
     if (state.status !== "ready" || state.catalog.entries.length !== 1) {
       throw new Error("renderer-catalog-selection-failed");
     }
+    // Selection refreshes the signed media ticket and intentionally remounts
+    // the player. Probe the current node, never the detached pre-selection one.
+    const video = document.querySelector("video");
+    if (video === null) throw new Error("renderer-video-after-selection-missing");
+    let probeStage = "initial-load";
+    const mediaErrors = [];
+    video.addEventListener("error", () => {
+      mediaErrors.push({
+        stage: probeStage,
+        code: video.error?.code ?? null,
+        message: video.error?.message ?? null,
+        networkState: video.networkState,
+        readyState: video.readyState,
+      });
+    });
     probeStage = "metadata";
     await until(() => video.readyState >= 1 && Number.isFinite(video.duration), "video-metadata");
     const selected = state.catalog.entries[0];

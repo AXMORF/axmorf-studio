@@ -807,6 +807,14 @@ const appendEvent = async ({
       destination: path,
       bytes: eventBytes,
       mode: "create",
+      // readEvents treats every entry in events/ as immutable authority. Stage
+      // outside that strict directory so a concurrent reader never observes
+      // another writer's temporary file as an unsafe event.
+      temporaryDirectory: attemptRoot(
+        attemptStoreRoot,
+        progress.storyId,
+        progress.attemptId,
+      ),
     });
   } catch (error) {
     const existingBytes = await readOptionalTextFile(path);

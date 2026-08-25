@@ -478,6 +478,11 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
   assert.match(nativeSmoke, /renderer-workspace-fatal:/u);
   assert.match(nativeSmoke, /if \(state\.status === "ready"\)/u);
   assert.match(nativeSmoke, /selectionControl\.dispatchEvent/u);
+  assert.match(
+    nativeSmoke,
+    /selectionControl\.dispatchEvent[\s\S]*const video = document\.querySelector\("video"\)/u,
+  );
+  assert.match(nativeSmoke, /renderer-video-after-selection-missing/u);
   assert.match(nativeSmoke, /selectionControlValue/u);
   assert.match(nativeSmoke, /\(clamped \+ 0\.25\) \/ selected\.fps/u);
   assert.match(nativeSmoke, /"playhead-" \+ clamped/u);
