@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+
+trap 'status=$?; printf "desktop-native-gate-failed:line=%s:command=%s:exit=%s\n" "$LINENO" "$BASH_COMMAND" "$status" >&2; exit "$status"' ERR
 
 architecture=""
 expected_commit=""

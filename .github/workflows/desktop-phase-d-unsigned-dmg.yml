@@ -63,6 +63,25 @@ jobs:
             --expected-commit "$GITHUB_SHA" \
             --evidence-root "$GATE_EVIDENCE_ROOT"
 
+      - name: Print bounded redacted native failure evidence
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -d "$GATE_EVIDENCE_ROOT" ]]; then
+            exit 0
+          fi
+          while IFS= read -r -d '' evidence; do
+            printf 'native-failure-evidence:%s\n' "${evidence#"$GATE_EVIDENCE_ROOT"/}"
+            sed -n '1,160p' "$evidence"
+          done < <(
+            find "$GATE_EVIDENCE_ROOT" -type f \( \
+              -name 'native-failure.json' -o \
+              -name '*command-failure.json' -o \
+              -name 'runner-summary.json' \
+            \) -print0 | LC_ALL=C sort -z
+          )
+
       - name: Rebuild and verify ordinary full unsigned DMG
         shell: bash
         run: |

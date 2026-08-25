@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+
+trap 'status=$?; printf "desktop-native-gate-runner-failed:line=%s:function=%s:command=%s:exit=%s\n" "$LINENO" "${FUNCNAME[0]:-main}" "$BASH_COMMAND" "$status" >&2; exit "$status"' ERR
 
 app_path=${1:?packaged .app path is required}
 evidence_root=${2:?evidence root is required}
