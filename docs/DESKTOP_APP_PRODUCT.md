@@ -88,7 +88,7 @@ Pack。用户无需预装 Node/npm/Git，网络不可用或地区 package source
 | 时机         | App 行为                                                                                            |
 | ------------ | --------------------------------------------------------------------------------------------------- |
 | 安装 App     | 安装 App、引擎和 CLI；不修改 Agent home，不安装或升级用户的 Agent                                   |
-| 第一次启动   | 只读检测环境与已知 Agent；默认创建 `~/Movies/AXMORF Studio/`，也允许初始化前改选 Workspace Root     |
+| 第一次启动   | 只读检测环境与已知 Agent；在系统视频目录创建 `AXMORF Studio/`，也允许初始化前改选 Workspace Root    |
 | 初始化工作区 | 写入 workspace-local Skill、`AGENTS.md` 和必要的 thin host adapters，并记录版本 manifest            |
 | 每次启动     | 检查 App/engine/protocol/Skill compatibility；没有 active production 时才允许原子更新 managed Skill |
 | 设置页面     | 提供重新检测、安装/更新、修复、显示目录、卸载和复制启动提示词                                       |
@@ -187,7 +187,9 @@ validator 或安全策略。
 
 ## 5. 单 Workspace Root 与固定目录
 
-Settings 只允许用户选择一个 Workspace Root，首次启动默认创建 `~/Movies/AXMORF Studio/`。没有 Project Root、Media Root、Delivery Root 或 private root
+Settings 只允许用户选择一个 Workspace Root，首次启动默认在 Electron 返回的系统视频目录创建 `AXMORF Studio/`
+（macOS 通常为 `~/Movies/AXMORF Studio/`，Ubuntu 通常为 `~/Videos/AXMORF Studio/`）。首选项只在 Engine
+完成 Workspace 初始化后持久化；Linux 旧版本错误写入且实际不存在的 `~/Movies/AXMORF Studio/` 会一次性迁移到系统视频目录。没有 Project Root、Media Root、Delivery Root 或 private root
 高级覆盖；所有子目录名称和职责由 App contract 固定，避免路径组合、迁移和 task containment 重新出现多重
 authority。
 

@@ -68,7 +68,7 @@ export class DesktopSettingsEngineRestartError extends Error {
 export type DesktopWorkspacePort = Readonly<{
   loadSelectedRoot: () => Promise<string | null>;
   chooseInitialRoot: (defaultRoot: string) => Promise<string | null>;
-  initializeInitialRoot: (workspaceRoot: string) => Promise<string>;
+  persistInitialRoot: (workspaceRoot: string) => Promise<string>;
   chooseMigrationTarget: (workspaceRoot: string) => Promise<string | null>;
   migrateRoot: (
     sourceWorkspaceRoot: string,
@@ -513,15 +513,14 @@ export class DesktopShellController {
 
   #start = async (selectedRoot: string, initialize = false) => {
     await this.#enqueue(async () => {
+      let engineStarted = false;
       try {
         this.#state = DesktopAppStateSchema.parse({
           ...this.#state,
           status: "initializing",
           error: null,
         });
-        const workspaceRoot = initialize
-          ? await this.#workspace.initializeInitialRoot(selectedRoot)
-          : selectedRoot;
+        const workspaceRoot = selectedRoot;
         await this.#media.selectWorkspace(workspaceRoot);
         this.#mediaCatalogIdentity = serializeCanonicalJson(emptyCatalog());
         this.#state = DesktopAppStateSchema.parse({
@@ -530,8 +529,20 @@ export class DesktopShellController {
           status: "loading-catalog",
         });
         const snapshot = await this.#engine.start(workspaceRoot);
+        engineStarted = true;
+        if (initialize) {
+          const persistedRoot = await this.#workspace.persistInitialRoot(
+            workspaceRoot,
+          );
+          if (persistedRoot !== workspaceRoot) {
+            throw new Error("desktop-workspace-preference-mismatch");
+          }
+        }
         await this.#applySnapshot(snapshot, null);
       } catch (error) {
+        if (engineStarted) {
+          await this.#engine.stop().catch(() => undefined);
+        }
         await this.#media.replaceCatalog(emptyCatalog()).catch(() => undefined);
         this.#mediaCatalogIdentity = serializeCanonicalJson(emptyCatalog());
         this.#state = DesktopAppStateSchema.parse({

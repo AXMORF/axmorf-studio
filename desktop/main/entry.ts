@@ -37,7 +37,10 @@ import {
   createDesktopSettingsSnapshot,
   mergeDesktopSettingsSaveRequest,
 } from "../application/manage-settings";
-import { resolveDefaultWorkspaceRoot } from "../application/resolve-workspace-selection";
+import {
+  repairMissingLegacyLinuxWorkspacePreference,
+  resolveDefaultWorkspaceRoot,
+} from "../application/resolve-workspace-selection";
 import {
   completeWorkspaceRootMigration,
   migrateWorkspaceRoot,
@@ -198,8 +201,10 @@ void startDesktopLifecycle({
       app.getPath("appData"),
       "../Caches/com.axmorf.studio",
     );
+    const homeDirectory = app.getPath("home");
+    const videosDirectory = app.getPath("videos");
     const defaultWorkspaceRoot = resolveDefaultWorkspaceRoot({
-      homeDirectory: app.getPath("home"),
+      videosDirectory,
     });
     const preferencesPath = resolveDesktopPreferencesPath({
       applicationSupportRoot: app.getPath("userData"),
@@ -212,6 +217,14 @@ void startDesktopLifecycle({
     const preferenceSwitcher = createWorkspacePreferenceSwitcher({
       preferencesPath,
     });
+    if (process.platform === "linux") {
+      await repairMissingLegacyLinuxWorkspacePreference({
+        homeDirectory,
+        videosDirectory,
+        preferencesPath,
+        switchPreference: preferenceSwitcher,
+      });
+    }
     const readWorkspacePreference = async () => {
       const preferences = await loadAppPreferences({ preferencesPath });
       if (preferences === null) {
@@ -302,7 +315,7 @@ void startDesktopLifecycle({
           (await loadAppPreferences({ preferencesPath }))?.workspaceRoot ??
           null,
         chooseInitialRoot: chooseInitialWorkspace,
-        initializeInitialRoot: async (workspaceRoot) =>
+        persistInitialRoot: async (workspaceRoot) =>
           (
             await persistInitialWorkspacePreference({
               preferencesPath,

@@ -21,7 +21,7 @@ const controller = new DesktopShellController({
   workspace: {
     loadSelectedRoot: async () => null,
     chooseInitialRoot: async () => null,
-    initializeInitialRoot: async (root) => root,
+    persistInitialRoot: async (root) => root,
     chooseMigrationTarget: async () => null,
     migrateRoot: async () => {
       throw new Error("not used");

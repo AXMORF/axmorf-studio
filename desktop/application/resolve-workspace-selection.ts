@@ -1,8 +1,21 @@
+import { lstat } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 
 import { loadAppPreferences } from "../adapters/app-preferences";
+import type { WorkspacePreferenceSwitcher } from "./migrate-workspace";
 
 export const resolveDefaultWorkspaceRoot = ({
+  videosDirectory,
+}: {
+  readonly videosDirectory: string;
+}) => {
+  if (!isAbsolute(videosDirectory)) {
+    throw new Error("Videos directory must be absolute.");
+  }
+  return join(resolve(videosDirectory), "AXMORF Studio");
+};
+
+export const resolveLegacyDefaultWorkspaceRoot = ({
   homeDirectory,
 }: {
   readonly homeDirectory: string;
@@ -13,6 +26,50 @@ export const resolveDefaultWorkspaceRoot = ({
   return join(resolve(homeDirectory), "Movies", "AXMORF Studio");
 };
 
+const pathExists = async (path: string) => {
+  try {
+    await lstat(path);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
+  }
+};
+
+export const repairMissingLegacyLinuxWorkspacePreference = async ({
+  homeDirectory,
+  videosDirectory,
+  preferencesPath,
+  switchPreference,
+  exists = pathExists,
+}: {
+  readonly homeDirectory: string;
+  readonly videosDirectory: string;
+  readonly preferencesPath: string;
+  readonly switchPreference: WorkspacePreferenceSwitcher;
+  readonly exists?: (path: string) => Promise<boolean>;
+}) => {
+  const preferences = await loadAppPreferences({ preferencesPath });
+  if (preferences === null) return null;
+  const legacyWorkspaceRoot = resolveLegacyDefaultWorkspaceRoot({
+    homeDirectory,
+  });
+  const workspaceRoot = resolveDefaultWorkspaceRoot({ videosDirectory });
+  if (
+    workspaceRoot === legacyWorkspaceRoot ||
+    resolve(preferences.workspaceRoot) !== legacyWorkspaceRoot ||
+    (await exists(legacyWorkspaceRoot)) ||
+    (await exists(workspaceRoot))
+  ) {
+    return preferences.workspaceRoot;
+  }
+  await switchPreference({
+    expectedWorkspaceRoot: legacyWorkspaceRoot,
+    nextWorkspaceRoot: workspaceRoot,
+  });
+  return workspaceRoot;
+};
+
 export type WorkspaceSelection = Readonly<{
   workspaceRoot: string;
   source: "saved" | "custom-initial" | "builtin-default";
@@ -21,11 +78,11 @@ export type WorkspaceSelection = Readonly<{
 }>;
 
 export const resolveWorkspaceSelection = async ({
-  homeDirectory,
+  videosDirectory,
   preferencesPath,
   requestedWorkspaceRoot,
 }: {
-  readonly homeDirectory: string;
+  readonly videosDirectory: string;
   readonly preferencesPath: string;
   readonly requestedWorkspaceRoot?: string;
 }): Promise<WorkspaceSelection> => {
@@ -61,7 +118,7 @@ export const resolveWorkspaceSelection = async ({
   }
 
   return {
-    workspaceRoot: resolveDefaultWorkspaceRoot({ homeDirectory }),
+    workspaceRoot: resolveDefaultWorkspaceRoot({ videosDirectory }),
     source: "builtin-default",
     initialized: false,
     canChooseInitialWorkspace: true,

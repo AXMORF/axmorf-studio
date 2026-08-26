@@ -17,6 +17,7 @@ import {
 
 import { isDesktopPackagePathAllowed } from "./scripts/desktop/package-inventory";
 import { pruneDesktopElectronLocales } from "./scripts/desktop/electron-locales";
+import { DESKTOP_UBUNTU_POSTINSTALL_SCRIPT } from "./scripts/desktop/ubuntu-package-contract";
 import {
   DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT,
   stageDesktopWorkspaceIntegration,
@@ -154,6 +155,12 @@ const config: ForgeConfig = {
           desktopPackageRoot,
           "desktop/resources/brand/axmorf-studio-icon.png",
         ),
+        scripts: {
+          postinst: join(
+            desktopPackageRoot,
+            DESKTOP_UBUNTU_POSTINSTALL_SCRIPT,
+          ),
+        },
       },
     }),
   ],

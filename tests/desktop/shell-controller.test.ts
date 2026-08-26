@@ -154,8 +154,8 @@ const createHarness = (selectedRoot: string | null) => {
       calls.push(`choose:${defaultRoot}`);
       return "/tmp/AXMORF Studio";
     },
-    initializeInitialRoot: async (root) => {
-      calls.push(`initialize:${root}`);
+    persistInitialRoot: async (root) => {
+      calls.push(`persist:${root}`);
       return root;
     },
     chooseMigrationTarget: async (root) => {
@@ -266,7 +266,7 @@ const createHarness = (selectedRoot: string | null) => {
   };
 };
 
-test("first run binds one Workspace before Engine and media start", async () => {
+test("first run persists one Workspace only after Engine initialization", async () => {
   const { controller, calls } = createHarness(null);
   assert.equal((await controller.bootstrap()).workspaceRoot, null);
   const ready = await controller.chooseInitialWorkspace();
@@ -277,11 +277,22 @@ test("first run binds one Workspace before Engine and media start", async () => 
   assert.equal(ready.runtimePack?.runtimePackId, runtimePack.runtimePackId);
   assert.deepEqual(calls.slice(0, 5), [
     "choose:/Users/test/Movies/AXMORF Studio",
-    "initialize:/tmp/AXMORF Studio",
     "media-workspace:/tmp/AXMORF Studio",
     "engine-start:/tmp/AXMORF Studio",
+    "persist:/tmp/AXMORF Studio",
     "media:story-one",
   ]);
+});
+
+test("first run does not persist a Workspace when Engine initialization fails", async () => {
+  const harness = createHarness(null);
+  harness.failNextEngineStart("/tmp/AXMORF Studio");
+  const failed = await harness.controller.chooseInitialWorkspace();
+  assert.equal(failed.status, "fatal");
+  assert.equal(
+    harness.calls.includes("persist:/tmp/AXMORF Studio"),
+    false,
+  );
 });
 
 test("manual source-current is selectable and Delivery is an explicit action", async () => {

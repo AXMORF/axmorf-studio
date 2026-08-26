@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  chmod,
   lstat,
   mkdir,
   readFile,
@@ -90,6 +91,30 @@ const inspectExactTree = async (root: string) => {
   return actual.sort();
 };
 
+const normalizeStagedTreePermissions = async (root: string) => {
+  const walk = async (path: string): Promise<void> => {
+    const metadata = await lstat(path);
+    if (metadata.isSymbolicLink()) {
+      throw new Error("Packaged Workspace integration cannot contain symlinks.");
+    }
+    if (metadata.isDirectory()) {
+      await chmod(path, 0o755);
+      for (const entry of await readdir(path)) {
+        await walk(join(path, entry));
+      }
+      return;
+    }
+    if (metadata.isFile()) {
+      await chmod(path, 0o644);
+      return;
+    }
+    throw new Error(
+      "Packaged Workspace integration cannot contain special files.",
+    );
+  };
+  await walk(root);
+};
+
 export const stageDesktopWorkspaceIntegration = async ({
   checkoutRoot = process.cwd(),
   outputRoot = resolve(
@@ -117,7 +142,7 @@ export const stageDesktopWorkspaceIntegration = async ({
     throw new Error("Workspace integration staging target is unsafe.");
   }
   await rm(targetRoot, { recursive: true, force: true });
-  await mkdir(targetRoot, { recursive: true, mode: 0o700 });
+  await mkdir(targetRoot, { recursive: true, mode: 0o755 });
   const identities: WorkspaceIntegrationFileIdentity[] = [];
   try {
     for (const relativePath of DESKTOP_WORKSPACE_INTEGRATION_RESOURCE_FILES) {
@@ -131,7 +156,7 @@ export const stageDesktopWorkspaceIntegration = async ({
         source,
         `Workspace integration source ${relativePath}`,
       );
-      await mkdir(dirname(destination), { recursive: true, mode: 0o700 });
+      await mkdir(dirname(destination), { recursive: true, mode: 0o755 });
       await writeFile(destination, bytes, { flag: "wx", mode: 0o644 });
       identities.push({
         path: relativePath,
@@ -139,6 +164,7 @@ export const stageDesktopWorkspaceIntegration = async ({
         sha256: sha256(bytes),
       });
     }
+    await normalizeStagedTreePermissions(targetRoot);
     const actual = await inspectExactTree(targetRoot);
     const expected = [...DESKTOP_WORKSPACE_INTEGRATION_RESOURCE_FILES].sort();
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {

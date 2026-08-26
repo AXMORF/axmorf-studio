@@ -296,6 +296,11 @@ ID 二次确认的完整 `project:delete` 操作。
 
 Ubuntu 本机已通过完整 Workspace lifecycle gate，覆盖两个 boundary Scene templates、真实 Runtime Pack production 与
 exact-four-file Delivery；`.deb` 已完成本机安装、隔离 first-run、Preview/Settings renderer 和 preload surface 验收。
+平台默认 Workspace 改由 Electron 系统视频目录决定，macOS 仍为 Movies、Ubuntu 为 Videos；首次选择只在 Engine
+初始化成功后持久化。Linux 旧包错误保存且不存在的 Movies 默认路径会在不覆盖任何现有目录的前提下原子修复。
+Workspace integration package tree 的目录/文件权限分别固定为 `0755`/`0644` 并纳入 package inventory，系统安装后
+Debian `postinst` 会一并修复旧版 root-only 目录。Engine 只能从 App Resources 的内置 Runtime Pack 和集成资源初始化
+Workspace，不允许源码或宿主 toolchain fallback。
 该 artifact 仍是 local/internal unsigned package，不等于公开发行或 Remotion redistribution Gate 已满足。平台命令、安装
 步骤和验证矩阵见 [Desktop App Ubuntu 维护与打包](DESKTOP_APP_UBUNTU_MAINTENANCE.md)。
 

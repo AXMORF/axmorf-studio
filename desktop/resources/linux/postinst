@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+
+integration_root="/usr/lib/axmorf-studio/resources/workspace-integration"
+
+chmod 0755 \
+  "$integration_root" \
+  "$integration_root/hermes" \
+  "$integration_root/skills" \
+  "$integration_root/skills/remotion-story-producer-video"
+chmod 0644 \
+  "$integration_root/AGENTS.md" \
+  "$integration_root/CLAUDE.md" \
+  "$integration_root/GEMINI.md" \
+  "$integration_root/hermes/INSTALL_PROMPT.md" \
+  "$integration_root/skills/remotion-story-producer-video/SKILL.md"
+
+exit 0

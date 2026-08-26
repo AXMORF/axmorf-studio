@@ -19,6 +19,7 @@ import {
 } from "../../desktop/adapters/app-preferences";
 import { createWorkspacePreferenceSwitcher } from "../../desktop/adapters/workspace-preference-switch";
 import {
+  repairMissingLegacyLinuxWorkspacePreference,
   resolveDefaultWorkspaceRoot,
   resolveWorkspaceSelection,
 } from "../../desktop/application/resolve-workspace-selection";
@@ -34,6 +35,7 @@ const createFixture = async () => {
   return {
     root,
     homeDirectory,
+    videosDirectory: join(homeDirectory, "Movies"),
     applicationSupportRoot,
     preferencesPath: resolveDesktopPreferencesPath({ applicationSupportRoot }),
   };
@@ -44,10 +46,10 @@ test("initial selection uses the default or one custom Workspace before persiste
   context.after(() => rm(fixture.root, { recursive: true, force: true }));
 
   const defaultRoot = resolveDefaultWorkspaceRoot({
-    homeDirectory: fixture.homeDirectory,
+    videosDirectory: fixture.videosDirectory,
   });
   const initial = await resolveWorkspaceSelection({
-    homeDirectory: fixture.homeDirectory,
+    videosDirectory: fixture.videosDirectory,
     preferencesPath: fixture.preferencesPath,
   });
   assert.deepEqual(initial, {
@@ -59,7 +61,7 @@ test("initial selection uses the default or one custom Workspace before persiste
 
   const customRoot = join(fixture.homeDirectory, "Movies", "Custom Studio");
   const custom = await resolveWorkspaceSelection({
-    homeDirectory: fixture.homeDirectory,
+    videosDirectory: fixture.videosDirectory,
     preferencesPath: fixture.preferencesPath,
     requestedWorkspaceRoot: customRoot,
   });
@@ -113,7 +115,7 @@ test("preferences are atomic, strict, owner-only, and reject a second authority"
   );
   await assert.rejects(
     resolveWorkspaceSelection({
-      homeDirectory: fixture.homeDirectory,
+      videosDirectory: fixture.videosDirectory,
       preferencesPath: fixture.preferencesPath,
       requestedWorkspaceRoot: join(
         fixture.homeDirectory,
@@ -122,6 +124,87 @@ test("preferences are atomic, strict, owner-only, and reject a second authority"
       ),
     }),
     /saved Workspace remains authoritative/iu,
+  );
+});
+
+test("Linux repairs only the missing legacy default Workspace preference", async (context) => {
+  const fixture = await createFixture();
+  context.after(() => rm(fixture.root, { recursive: true, force: true }));
+  const videosDirectory = join(fixture.homeDirectory, "Videos");
+  await mkdir(videosDirectory);
+  const legacyWorkspaceRoot = join(
+    fixture.homeDirectory,
+    "Movies",
+    "AXMORF Studio",
+  );
+  const workspaceRoot = join(videosDirectory, "AXMORF Studio");
+  await persistInitialWorkspacePreference({
+    preferencesPath: fixture.preferencesPath,
+    workspaceRoot: legacyWorkspaceRoot,
+  });
+  const switchPreference = createWorkspacePreferenceSwitcher({
+    preferencesPath: fixture.preferencesPath,
+  });
+
+  assert.equal(
+    await repairMissingLegacyLinuxWorkspacePreference({
+      homeDirectory: fixture.homeDirectory,
+      videosDirectory,
+      preferencesPath: fixture.preferencesPath,
+      switchPreference,
+    }),
+    workspaceRoot,
+  );
+  assert.equal(
+    (await loadAppPreferences({ preferencesPath: fixture.preferencesPath }))
+      ?.workspaceRoot,
+    workspaceRoot,
+  );
+});
+
+test("Linux preserves existing legacy and occupied target Workspace authorities", async (context) => {
+  const fixture = await createFixture();
+  context.after(() => rm(fixture.root, { recursive: true, force: true }));
+  const videosDirectory = join(fixture.homeDirectory, "Videos");
+  const legacyWorkspaceRoot = join(
+    fixture.homeDirectory,
+    "Movies",
+    "AXMORF Studio",
+  );
+  await mkdir(videosDirectory);
+  await mkdir(legacyWorkspaceRoot);
+  await persistInitialWorkspacePreference({
+    preferencesPath: fixture.preferencesPath,
+    workspaceRoot: legacyWorkspaceRoot,
+  });
+  const switchPreference = createWorkspacePreferenceSwitcher({
+    preferencesPath: fixture.preferencesPath,
+  });
+  assert.equal(
+    await repairMissingLegacyLinuxWorkspacePreference({
+      homeDirectory: fixture.homeDirectory,
+      videosDirectory,
+      preferencesPath: fixture.preferencesPath,
+      switchPreference,
+    }),
+    legacyWorkspaceRoot,
+  );
+
+  await rm(legacyWorkspaceRoot, { recursive: true });
+  await mkdir(join(videosDirectory, "AXMORF Studio"));
+  assert.equal(
+    await repairMissingLegacyLinuxWorkspacePreference({
+      homeDirectory: fixture.homeDirectory,
+      videosDirectory,
+      preferencesPath: fixture.preferencesPath,
+      switchPreference,
+    }),
+    legacyWorkspaceRoot,
+  );
+  assert.equal(
+    (await loadAppPreferences({ preferencesPath: fixture.preferencesPath }))
+      ?.workspaceRoot,
+    legacyWorkspaceRoot,
   );
 });
 

@@ -25,6 +25,11 @@ Ubuntu 是 macOS 之外的独立原生目标，不替换或合并 macOS 打包�
 当前 Ubuntu 支持范围固定为 x64 glibc；ARM64、其他发行版与 Windows 尚未声明支持。私有配置使用 Electron
 `safeStorage` 对接当前系统的安全存储；无可用安全存储时保存必须 fail closed，不能回退到明文。
 
+Ubuntu 默认 Workspace Root 使用 Electron/XDG 返回的系统视频目录，通常为 `~/Videos/AXMORF Studio/`；macOS
+继续使用系统 Movies 目录。App 必须先完成 Engine Workspace 初始化再保存首选项。Linux 旧包若曾保存固定的
+`~/Movies/AXMORF Studio/`，仅当旧路径和新目标都不存在时才原子迁移首选项；真实存在的旧 Workspace 或已占用的
+新目标都保持原 authority，不自动覆盖或认领。
+
 ## 2. 构建命令
 
 仓库把 release toolchain 固定为 Node `22.23.1`，避免开发机的全局 Node 版本改变 Electron/SEA 打包结果。
@@ -40,6 +45,9 @@ npm run desktop:package:ubuntu
 
 Ubuntu 输出位于 `out/make/deb/x64/axmorf-studio_<version>_amd64.deb`。脚本按顺序完成品牌资源、Linux Runtime
 Pack、Forge package、locale 收缩、严格 package inventory 与 Debian maker；任一步失败都不交付安装包。
+Workspace integration 在 staging 和 package inventory 两端都固定校验目录 `0755`、文件 `0644`，确保 system install
+后的普通用户可以读取 App 内置集成资源；Debian `postinst` 还会修复旧版安装遗留的 root-only 目录权限。不能借用
+源码 checkout 或宿主 Node/npm 补救。
 macOS DMG 的 native gate、挂载安装验证、checksum/release manifest 与双架构 set 仍由既有
 `desktop:dmg` / `desktop:release:*` 流程管理。
 

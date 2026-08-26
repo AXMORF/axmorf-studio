@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   chmod,
+  lstat,
   mkdir,
   mkdtemp,
   readFile,
@@ -40,6 +41,7 @@ import {
   DESKTOP_RELEASE_NODE_VERSION,
   desktopReleaseToolchain,
 } from "../../scripts/desktop/release-toolchain";
+import { DESKTOP_UBUNTU_POSTINSTALL_SCRIPT } from "../../scripts/desktop/ubuntu-package-contract";
 import {
   DESKTOP_PACKAGED_WORKSPACE_INTEGRATION_ROOT,
   DESKTOP_WORKSPACE_INTEGRATION_RESOURCE_FILES,
@@ -169,6 +171,10 @@ test("Forge config has explicit entries and separate DMG and DEB makers", () => 
     ["dmg", "deb"],
   );
   assert.deepEqual(forgeConfig.publishers, []);
+  assert.equal(
+    DESKTOP_UBUNTU_POSTINSTALL_SCRIPT,
+    "desktop/resources/linux/postinst",
+  );
   assert.equal(forgeConfig.packagerConfig?.appBundleId, DESKTOP_BUNDLE_ID);
   assert.equal(forgeConfig.packagerConfig?.name, DESKTOP_PRODUCT_NAME);
   assert.equal(forgeConfig.packagerConfig?.asar, true);
@@ -180,6 +186,18 @@ test("Forge config has explicit entries and separate DMG and DEB makers", () => 
   ]);
   assert.equal(forgeConfig.packagerConfig?.afterCopyExtraResources?.length, 1);
   assert.equal(typeof forgeConfig.hooks?.generateAssets, "function");
+});
+
+test("Ubuntu postinstall repairs Workspace integration permissions on upgrades", async () => {
+  const source = await readFile(
+    join(process.cwd(), DESKTOP_UBUNTU_POSTINSTALL_SCRIPT),
+    "utf8",
+  );
+  assert.match(source, /^#!\/bin\/sh\nset -eu\n/u);
+  assert.match(source, /workspace-integration/u);
+  assert.match(source, /chmod 0755/u);
+  assert.match(source, /chmod 0644/u);
+  assert.doesNotMatch(source, /node|npm|checkout/u);
 });
 
 test("packaging keeps only the exact English and Simplified Chinese Electron locales", async (context) => {
@@ -438,6 +456,26 @@ test("packaged Workspace integration is an external exact curated tree", async (
     assert.match(identity.sha256, /^[a-f0-9]{64}$/u);
     assert.ok(identity.sizeBytes > 0);
   }
+  assert.equal((await lstat(outputRoot)).mode & 0o777, 0o755);
+  assert.equal(
+    (await lstat(join(outputRoot, "skills/remotion-story-producer-video")))
+      .mode & 0o777,
+    0o755,
+  );
+  assert.equal((await lstat(join(outputRoot, "AGENTS.md"))).mode & 0o777, 0o644);
+
+  await chmod(outputRoot, 0o700);
+  assert.throws(
+    () => inspectPackagedWorkspaceIntegration({ resourcesPath }),
+    /directory-mode-invalid/u,
+  );
+  await chmod(outputRoot, 0o755);
+  await chmod(join(outputRoot, "AGENTS.md"), 0o600);
+  assert.throws(
+    () => inspectPackagedWorkspaceIntegration({ resourcesPath }),
+    /file-mode-invalid/u,
+  );
+  await chmod(join(outputRoot, "AGENTS.md"), 0o644);
   await assert.rejects(
     () => readFile(join(outputRoot, "assets/library/unknown.wav")),
     /ENOENT/u,

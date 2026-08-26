@@ -14,6 +14,7 @@ import { assertDesktopNativeHost } from "../../desktop/configuration/native-targ
 import { pruneDesktopLinuxElectronLocales } from "./electron-locales";
 import { verifyDesktopPackageInventory } from "./package-inventory";
 import { desktopReleaseToolchain } from "./release-toolchain";
+import { DESKTOP_UBUNTU_POSTINSTALL_SCRIPT } from "./ubuntu-package-contract";
 
 const run = (command: string, args: readonly string[]) =>
   new Promise<void>((resolvePromise, reject) => {
@@ -106,8 +107,12 @@ void (async () => {
   const extractedRoot = await mkdtemp(
     join(tmpdir(), "axmorf-ubuntu-package-verify-"),
   );
+  const controlRoot = await mkdtemp(
+    join(tmpdir(), "axmorf-ubuntu-package-control-"),
+  );
   try {
     await run("dpkg-deb", ["-x", packagePath, extractedRoot]);
+    await run("dpkg-deb", ["-e", packagePath, controlRoot]);
     const extractedAppPath = join(
       extractedRoot,
       "usr/lib/axmorf-studio",
@@ -126,8 +131,25 @@ void (async () => {
       join(extractedAppPath, "resources/runtime-pack/bin/rsp"),
       ["help", "--json"],
     );
+    const postinstallPath = join(controlRoot, "postinst");
+    const postinstallMetadata = await lstat(postinstallPath);
+    const [packagedPostinstall, expectedPostinstall] = await Promise.all([
+      readFile(postinstallPath),
+      readFile(join(process.cwd(), DESKTOP_UBUNTU_POSTINSTALL_SCRIPT)),
+    ]);
+    if (
+      postinstallMetadata.isSymbolicLink() ||
+      !postinstallMetadata.isFile() ||
+      (postinstallMetadata.mode & 0o777) !== 0o755 ||
+      !packagedPostinstall.equals(expectedPostinstall)
+    ) {
+      throw new Error("desktop-ubuntu-postinstall-invalid");
+    }
   } finally {
-    await rm(extractedRoot, { recursive: true, force: true });
+    await Promise.all([
+      rm(extractedRoot, { recursive: true, force: true }),
+      rm(controlRoot, { recursive: true, force: true }),
+    ]);
   }
   const sha256 = createHash("sha256")
     .update(await readFile(packagePath))

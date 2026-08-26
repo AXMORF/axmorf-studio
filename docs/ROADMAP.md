@@ -82,7 +82,7 @@ Roadmap 仍位于第 4 项的公开 beta Gate。公开 beta 的入口 Gate 是�
 [Ubuntu 维护与打包 authority](DESKTOP_APP_UBUNTU_MAINTENANCE.md)。
 
 1. unsigned prototype：建立 bundled Preview Player、只读多轨时间轴、Engine utility process、authenticated local
-   `rsp` session、默认 `~/Movies/AXMORF Studio/` 和 Codex/Hermes integration smoke；
+   `rsp` session、平台系统视频目录中的默认 `AXMORF Studio/` 和 Codex/Hermes integration smoke；
 2. productization：把 App/Runtime Pack 与单一 Workspace Root 正式隔离，增加 workspace-local `.rsp/bin/rsp`、
    offline doctor、兼容性 manifest、整体迁移/rollback，并 clean-break 出独立 `source-current`；
 3. 双架构验收：分别完成 arm64 与真实 Intel x64 的 offline packaged App/Runtime Pack、Preview Player、Agent fixture、

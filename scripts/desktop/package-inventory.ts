@@ -353,6 +353,20 @@ export const inspectPackagedWorkspaceIntegration = ({
       );
     }
   }
+  const assertMode = (
+    path: string,
+    metadata: Stats,
+    expected: number,
+    kind: "directory" | "file",
+  ) => {
+    const actualMode = metadata.mode & 0o777;
+    if (actualMode !== expected) {
+      throw new Error(
+        `desktop-workspace-integration-${kind}-mode-invalid:${path}:${actualMode.toString(8)}`,
+      );
+    }
+  };
+  assertMode(packagedRoot, lstatSync(packagedRoot), 0o755, "directory");
   const actual = new Map<string, Stats>();
   const walk = (directory: string) => {
     for (const name of readdirSync(directory).sort()) {
@@ -361,7 +375,10 @@ export const inspectPackagedWorkspaceIntegration = ({
       if (metadata.isSymbolicLink()) {
         throw new Error(`desktop-workspace-integration-symlink:${path}`);
       }
-      if (metadata.isDirectory()) walk(path);
+      if (metadata.isDirectory()) {
+        assertMode(path, metadata, 0o755, "directory");
+        walk(path);
+      }
       else {
         assertRegularFile(path, metadata);
         actual.set(toPosixPath(relative(packagedRoot, path)), metadata);
@@ -381,6 +398,7 @@ export const inspectPackagedWorkspaceIntegration = ({
     const packaged = join(packagedRoot, relativePath);
     const sourceMetadata = lstatSync(source);
     const packagedMetadata = actual.get(relativePath)!;
+    assertMode(packaged, packagedMetadata, 0o644, "file");
     assertRealParentChain(sourceRoot, relativePath);
     if (sourceMetadata.isSymbolicLink()) {
       throw new Error(
