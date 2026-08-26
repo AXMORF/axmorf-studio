@@ -33,6 +33,8 @@ Project source
 - template-copy Scenes 由 fixed task 处理，不派发 Agent；
 - Composition exactly once 拥有 SceneViewport 与 full-frame readability policy；Scene Renderer 只接收
   safe-area-local `viewportWidth`/`viewportHeight`，不读取或重复应用 Composition inset；
+- GlobalVisual base layer 覆盖完整 Composition；decoration layers 只在首个至末个 narrated Scene 的连续窗口
+  挂载，并以该窗口起点作为 local frame 0，不进入 silent boundary Scenes；
 - Root 串行执行完或完成受限并发 admission 后不监督、不轮询、不参与成败处理；fixed continuation 以
   one-shot atomic claim 独占 terminal barrier，并受 attempt 创建起一小时总 deadline 约束；
 - converge 重新计算 current Revision，全部 artifact 齐全才受控物化 Project 并写入、复验 `source-current`；
@@ -95,7 +97,8 @@ sandbox、预热 TTS 或 fallback output 获得 Green。
 
 当前 `AXMORF Studio` 使用 embedded Runtime Pack、Workspace-owned production、authenticated `rsp-local-v2`、原生
 `<video>` 和只读 Scene/narration/caption 时间轴；它不启动或嵌入 Remotion Studio/Settings Web service。只有与
-current source 匹配且 exact-four-file 复验通过的 Delivery 才进入 Preview Catalog。
+current source 匹配且 exact-four-file 复验通过的 Delivery 才进入 Preview Catalog。Catalog refresh 只同步该投影；
+播放器“恢复播放”独立轮换媒体 request nonce、Ticket 与 FileHandle，保持 `storyId + deliveryBuildId` 身份不变。
 
 ```bash
 npm run desktop:check
@@ -120,7 +123,7 @@ Ubuntu 24.04 x64 本机打包、安装与完整 Workspace production gate：
 
 ```bash
 npm run desktop:package:ubuntu
-sudo apt-get install ./out/make/deb/x64/axmorf-studio_0.1.0_amd64.deb
+sudo apt-get install ./out/make/deb/x64/axmorf-studio_<version>_amd64.deb
 npm run desktop:ubuntu-workspace-gate
 ```
 

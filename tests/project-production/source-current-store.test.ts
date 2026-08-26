@@ -29,7 +29,10 @@ const fixture = async () => {
     join(locations.projectSourceRoot, "story/Composition.tsx"),
     "export default () => null;\n",
   );
-  await writeFile(join(locations.projectSourceRoot, "story/story.json"), "{}\n");
+  await writeFile(
+    join(locations.projectSourceRoot, "story/story.json"),
+    "{}\n",
+  );
   await writeFile(join(locations.projectMediaRoot, "story/audio.wav"), "pcm");
   return { root, locations };
 };
@@ -40,7 +43,7 @@ const artifact = () =>
     taskKind: "global-visual-owner",
     semanticId: null,
     taskRevision: `task-${"a".repeat(64)}`,
-    validatorPolicyVersion: "global-visual-owner-validator-v1",
+    validatorPolicyVersion: "global-visual-owner-validator-v2",
     dependencyArtifacts: [],
     outputManifest: [
       {

@@ -52,7 +52,12 @@ const controller = new DesktopShellController({
   },
   media: {
     selectWorkspace: async () => undefined,
-    replaceCatalog: async () => undefined,
+    replaceCatalog: async () => {
+      throw new Error("not used");
+    },
+    recoverPlayback: async () => {
+      throw new Error("not used");
+    },
     close: async () => undefined,
   },
 });
@@ -86,6 +91,9 @@ test("IPC validates exact main-frame sender, argument count, and argument type",
 
   const getState = handlers.get(DESKTOP_SHELL_IPC_CHANNELS.getAppState);
   const selectPreview = handlers.get(DESKTOP_SHELL_IPC_CHANNELS.selectPreview);
+  const recoverPreviewPlayback = handlers.get(
+    DESKTOP_SHELL_IPC_CHANNELS.recoverPreviewPlayback,
+  );
   const migrateWorkspace = handlers.get(
     DESKTOP_SHELL_IPC_CHANNELS.migrateWorkspace,
   );
@@ -93,6 +101,7 @@ test("IPC validates exact main-frame sender, argument count, and argument type",
   const saveSettings = handlers.get(DESKTOP_SHELL_IPC_CHANNELS.saveSettings);
   assert.ok(getState !== undefined);
   assert.ok(selectPreview !== undefined);
+  assert.ok(recoverPreviewPlayback !== undefined);
   assert.ok(migrateWorkspace !== undefined);
   assert.ok(getSettings !== undefined);
   assert.ok(saveSettings !== undefined);
@@ -142,6 +151,14 @@ test("IPC validates exact main-frame sender, argument count, and argument type",
   assert.rejects(() =>
     Promise.resolve(
       selectPreview(
+        { sender: { id: 41, mainFrame: shellFrame }, senderFrame: shellFrame },
+        { storyId: "story-one" },
+      ),
+    ),
+  );
+  assert.rejects(() =>
+    Promise.resolve(
+      recoverPreviewPlayback(
         { sender: { id: 41, mainFrame: shellFrame }, senderFrame: shellFrame },
         { storyId: "story-one" },
       ),

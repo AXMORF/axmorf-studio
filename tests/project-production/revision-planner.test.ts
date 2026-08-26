@@ -3,9 +3,13 @@ import { createHash } from "node:crypto";
 import test from "node:test";
 
 import {
+  NarrationSpecSchema,
   ProductionRevisionIdSchema,
+  RenderSpecSchema,
+  StorySpecSchema,
   TaskExecutionContractSchema,
   buildProducerTaskSpec,
+  generateSemanticTiming,
   type Sha256Digest,
 } from "../../src/contracts";
 import {
@@ -13,12 +17,24 @@ import {
   buildDownstreamTasks,
   rebindTemplateTaskOutputs,
 } from "../../scripts/project-production/application/build-current-plan";
+import {
+  buildValidSealedNarrationManifest,
+  validNarrationSpec,
+  validRenderSpec,
+  validStorySpec,
+} from "../fixtures/narrative";
 
 const sha = (character: string) =>
   `sha256:${character.repeat(64)}` as Sha256Digest;
 const revisionId = ProductionRevisionIdSchema.parse(
   `revision-${"1".repeat(64)}`,
 );
+const semanticTiming = generateSemanticTiming({
+  story: StorySpecSchema.parse(validStorySpec),
+  narration: NarrationSpecSchema.parse(validNarrationSpec),
+  render: RenderSpecSchema.parse(validRenderSpec),
+  sealedNarration: buildValidSealedNarrationManifest(),
+});
 
 const taskOutputs = {
   "scene-owner": [
@@ -60,7 +76,11 @@ const buildTestTaskExecutionContract = ({
     outputs: taskOutputs[taskKind].map((path) => ({
       path,
       owner: "agent",
-      format: path.endsWith(".json") ? "json" : path.endsWith(".ts") ? "ts" : "tsx",
+      format: path.endsWith(".json")
+        ? "json"
+        : path.endsWith(".ts")
+          ? "ts"
+          : "tsx",
       instructions: ["Write the declared fixture output."],
       derivedFields: [],
     })),
@@ -148,7 +168,7 @@ const inputs = ({
     projectId: "story-example",
     story: { storyId: "story-example", title: "Story" },
     timing: {
-      storyId: "story-example",
+      ...semanticTiming,
       fingerprint: sha(globalTimingMarker),
     },
     render: { fps: 30 },
@@ -377,11 +397,7 @@ test("task-local runtime policies invalidate only the owning branch", () => {
     "scene",
   ]);
   assert.deepEqual(
-    buildTasks(currentInputs).map(
-      ({ task }) => task.taskRevision,
-    ),
-    buildTasks(currentInputs).map(
-      ({ task }) => task.taskRevision,
-    ),
+    buildTasks(currentInputs).map(({ task }) => task.taskRevision),
+    buildTasks(currentInputs).map(({ task }) => task.taskRevision),
   );
 });

@@ -21,6 +21,7 @@ export const DESKTOP_SHELL_IPC_CHANNELS = Object.freeze({
   showWorkspaceInFinder: "desktop:show-workspace-in-finder",
   migrateWorkspace: "desktop:migrate-workspace",
   refreshPreviewCatalog: "desktop:refresh-preview-catalog",
+  recoverPreviewPlayback: "desktop:recover-preview-playback",
   selectPreview: "desktop:select-preview",
   buildDelivery: "desktop:build-delivery",
   deleteProject: "desktop:delete-project",
@@ -35,6 +36,7 @@ export const DESKTOP_PRELOAD_METHODS = [
   "showWorkspaceInFinder",
   "migrateWorkspace",
   "refreshPreviewCatalog",
+  "recoverPreviewPlayback",
   "selectPreview",
   "buildDelivery",
   "deleteProject",
@@ -173,6 +175,7 @@ export type DesktopShellApi = Readonly<{
   showWorkspaceInFinder: () => Promise<void>;
   migrateWorkspace: () => Promise<DesktopAppState>;
   refreshPreviewCatalog: () => Promise<DesktopAppState>;
+  recoverPreviewPlayback: (storyId: string) => Promise<DesktopAppState>;
   selectPreview: (storyId: string) => Promise<DesktopAppState>;
   buildDelivery: (storyId: string) => Promise<DesktopAppState>;
   deleteProject: (storyId: string) => Promise<DesktopAppState>;

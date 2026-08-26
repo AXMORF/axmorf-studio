@@ -4,6 +4,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  buildPreviewVideoUrl,
   PreviewCatalogSchema,
   projectPreviewCatalogForPlayer,
 } from "../../desktop/contracts/preview";
@@ -62,7 +63,9 @@ test("renderer receives an opaque URL and no path, checksum, or byte size", () =
     ],
     unavailable: [],
   });
-  const playerCatalog = projectPreviewCatalogForPlayer(engineCatalog);
+  const playerCatalog = projectPreviewCatalogForPlayer(engineCatalog, (entry) =>
+    buildPreviewVideoUrl({ ...entry, requestNonce: "d".repeat(32) }),
+  );
   const serialized = JSON.stringify(playerCatalog);
   assert.match(serialized, /axmorf-media:\/\/delivery\/story-one\//u);
   assert.doesNotMatch(serialized, /checksum|sizeBytes|\/deliveries\//u);

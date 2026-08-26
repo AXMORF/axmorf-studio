@@ -45,4 +45,9 @@ test("production scaffold source binds the complete runtime input identity for S
   assert.notEqual(first, second);
   assert.match(first, new RegExp(sha("a"), "u"));
   assert.match(composition, new RegExp(sha("a"), "u"));
+  assert.match(composition, /<ProductionGlobalVisualBaseLayer\/>/u);
+  assert.match(
+    composition,
+    /<Sequence from=\{globalVisualLayerPolicy\.decorationLayerFrameRange\.startFrame\}[^>]+layout="none"><ProductionGlobalVisualDecorationLayers\/><\/Sequence>/u,
+  );
 });

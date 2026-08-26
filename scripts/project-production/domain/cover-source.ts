@@ -37,7 +37,8 @@ const importSpecifiers = (sourceFile: ts.SourceFile) =>
 
 const hasDefaultExport = (sourceFile: ts.SourceFile) =>
   sourceFile.statements.some((statement) => {
-    if (ts.isExportAssignment(statement) && !statement.isExportEquals) return true;
+    if (ts.isExportAssignment(statement) && !statement.isExportEquals)
+      return true;
     if (!ts.canHaveModifiers(statement)) return false;
     const modifiers = ts.getModifiers(statement) ?? [];
     return (
@@ -56,7 +57,8 @@ const jsxAttribute = (
       ts.isJsxAttribute(property) && property.name.getText(sourceFile) === name,
   );
   if (attribute?.initializer === undefined) return null;
-  if (ts.isStringLiteral(attribute.initializer)) return attribute.initializer.text;
+  if (ts.isStringLiteral(attribute.initializer))
+    return attribute.initializer.text;
   if (
     ts.isJsxExpression(attribute.initializer) &&
     attribute.initializer.expression !== undefined
@@ -236,6 +238,8 @@ const assertForbiddenSource = (
     "ScenePackage",
     "SceneProductionResult",
     "GlobalVisualLayers",
+    "GlobalVisualBaseLayer",
+    "GlobalVisualDecorationLayers",
     "GlobalVisualPackage",
     "FinalAssembly",
     "SemanticTiming",
@@ -436,7 +440,9 @@ const assertForbiddenSource = (
   };
   visit(sourceFile);
   if (violation !== null) {
-    throw new Error(`Cover source crosses its code-only boundary: ${violation}.`);
+    throw new Error(
+      `Cover source crosses its code-only boundary: ${violation}.`,
+    );
   }
 };
 
@@ -465,7 +471,9 @@ export const validateDeliveryCoverSource = ({
   const imports = importSpecifiers(sourceFile);
   if (role === "cover-4x3" || role === "cover-3x4") {
     if (!hasDefaultExport(sourceFile)) {
-      throw new Error("Each Cover variant must own a default component export.");
+      throw new Error(
+        "Each Cover variant must own a default component export.",
+      );
     }
     if (guarded.relativeImports.length > 0) {
       throw new Error(
@@ -479,15 +487,15 @@ export const validateDeliveryCoverSource = ({
       JSON.stringify(imports) !==
       JSON.stringify(["remotion", "./Cover4x3", "./Cover3x4"])
     ) {
-      throw new Error("Cover Root must import the two independent components directly.");
+      throw new Error(
+        "Cover Root must import the two independent components directly.",
+      );
     }
     return {
       compositions: collectCompositions({ sourceFile, compositionId }),
     };
   }
-  if (
-    JSON.stringify(imports) !== JSON.stringify(["remotion", "./Root"])
-  ) {
+  if (JSON.stringify(imports) !== JSON.stringify(["remotion", "./Root"])) {
     throw new Error("Cover entry must register only the fixed Cover Root.");
   }
   let registersRoot = false;

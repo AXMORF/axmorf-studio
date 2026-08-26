@@ -31,6 +31,11 @@ export const createDesktopShellApi = (
       invoke(DESKTOP_SHELL_IPC_CHANNELS.refreshPreviewCatalog) as ReturnType<
         DesktopShellApi["refreshPreviewCatalog"]
       >,
+    recoverPreviewPlayback: (storyId) =>
+      invoke(
+        DESKTOP_SHELL_IPC_CHANNELS.recoverPreviewPlayback,
+        storyId,
+      ) as ReturnType<DesktopShellApi["recoverPreviewPlayback"]>,
     selectPreview: (storyId) =>
       invoke(DESKTOP_SHELL_IPC_CHANNELS.selectPreview, storyId) as ReturnType<
         DesktopShellApi["selectPreview"]

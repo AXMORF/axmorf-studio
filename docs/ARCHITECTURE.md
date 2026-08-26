@@ -103,7 +103,8 @@ private config、voice profiles、shared media、core、other Projects 与 histo
 Scene task reads one complete StoryBeat, its SemanticTiming slice, Scene-only requirements, a derived
 safe-area-local SceneViewport, Scene brief, resource pool and selected resources. It does not receive the raw
 Composition readability policy, full-frame dimensions or insets. GlobalVisual reads
-Story/Timing/VisualStyle/requirements/brief/resources but never Scene output. Cover reads only
+Story/Timing/VisualStyle/requirements/brief/resources but never Scene output；其 base layer 是完整 Composition
+底板，decoration layers 由生成式 Composition 机械限制在首个至末个 narrated Scene。Cover reads only
 Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the configured Project-local template
 instance. Its artifact is the exact union of immutable copied source/assets and the canonical derived Scene bundle;
 live-only fixed projections are excluded from its task identity.

@@ -4,13 +4,16 @@ import { join } from "node:path";
 import { z } from "zod";
 
 import {
+  GlobalVisualLayerPolicySchema,
   GlobalVisualPlanSchema,
   RenderSpecSchema,
   SceneReadabilityPolicySchema,
   SelectedResourceRefSchema,
   SemanticTimingSchema,
   StoryIdSchema,
+  deriveGlobalVisualLayerPolicy,
   getStoryCompositionDurationInFrames,
+  serializeCanonicalJson,
 } from "../../../src/contracts";
 import { assertGuardedSource } from "../../external-references/source-guard";
 import { assertGlobalVisualSource } from "./global-visual-validator";
@@ -28,6 +31,7 @@ export const checkGlobalVisualTask = async (
     story?: { storyId?: unknown };
     render?: unknown;
     timing?: unknown;
+    layerPolicy?: unknown;
     requirements?: {
       readabilityPolicy?: {
         width?: unknown;
@@ -43,6 +47,8 @@ export const checkGlobalVisualTask = async (
   const storyId = StoryIdSchema.parse(context.story?.storyId);
   const render = RenderSpecSchema.parse(context.render);
   const timing = SemanticTimingSchema.parse(context.timing);
+  const layerPolicy = GlobalVisualLayerPolicySchema.parse(context.layerPolicy);
+  const expectedLayerPolicy = deriveGlobalVisualLayerPolicy(timing);
   const readabilityPolicy = SceneReadabilityPolicySchema.parse(
     context.requirements?.readabilityPolicy,
   );
@@ -73,7 +79,14 @@ export const checkGlobalVisualTask = async (
     plan.captionSafeArea.right !== readabilityPolicy.captionSafeAreaPx.right ||
     plan.captionSafeArea.bottom !==
       readabilityPolicy.captionSafeAreaPx.bottom ||
-    plan.captionSafeArea.left !== readabilityPolicy.captionSafeAreaPx.left
+    plan.captionSafeArea.left !== readabilityPolicy.captionSafeAreaPx.left ||
+    serializeCanonicalJson(layerPolicy) !==
+      serializeCanonicalJson(expectedLayerPolicy) ||
+    plan.continuityMotif.windows.some(
+      ({ startFrame, endFrame }) =>
+        startFrame < layerPolicy.decorationLayerFrameRange.startFrame ||
+        endFrame > layerPolicy.decorationLayerFrameRange.endFrame,
+    )
   ) {
     throw new Error("GlobalVisual plan is stale against task context.");
   }

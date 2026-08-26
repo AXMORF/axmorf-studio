@@ -247,8 +247,8 @@ export const renderProjectAuthoringBuildScaffold = ({
   return `// @generated-by project-revision-artifact-v1
 // runtime-input-fingerprint ${runtimeInputFingerprint}
 import type {FC} from "react";
-import {staticFile} from "remotion";
-import {AuthoringRequirementsSchema, GlobalVisualPlanSchema, getStoryCompositionDurationInFrames, MasteredNarrationManifestSchema, parseNarrativeProjectSource, SealedNarrationManifestSchema, SemanticTimingSchema, StoryCompositionPropsSchema, validateNarrativeArtifactBundle, type StoryCompositionProps} from "../../contracts";
+import {Sequence, staticFile} from "remotion";
+import {AuthoringRequirementsSchema, deriveGlobalVisualLayerPolicy, GlobalVisualPlanSchema, getStoryCompositionDurationInFrames, MasteredNarrationManifestSchema, parseNarrativeProjectSource, SealedNarrationManifestSchema, SemanticTimingSchema, StoryCompositionPropsSchema, validateNarrativeArtifactBundle, type StoryCompositionProps} from "../../contracts";
 import {CompositionAssembly} from "../../remotion/runtime/composition-assembly";
 import type {GlobalVisualLayersComponent} from "../../remotion/runtime/global-visual";
 import {NarrativeCore, type NarrativeCoreProps} from "../../remotion/runtime/narrative-core";
@@ -258,7 +258,7 @@ import briefJson from "./brief.json";
 import masteredNarrationJson from "./generated/mastered-narration.generated.json";
 import sealedNarrationJson from "./generated/sealed-narration.generated.json";
 import semanticTimingJson from "./generated/semantic-timing.generated.json";
-import {GlobalVisualLayers} from "./global-visual/GlobalVisualLayers";
+import {GlobalVisualBaseLayer, GlobalVisualDecorationLayers} from "./global-visual/GlobalVisualLayers";
 import globalVisualPlanJson from "./global-visual-plan.json";
 import narrationJson from "./narration.json";
 import {productionRendererPropsByMeaning, productionRendererRegistry, productionSoundDesignProjection, productionStoryVisualProjection} from "./production-scene-runtime.generated";
@@ -275,15 +275,17 @@ const artifactBundle = validateNarrativeArtifactBundle({projectSource, sealedNar
 const storyId = artifactBundle.projectSource.story.storyId;
 const render = artifactBundle.projectSource.render;
 const timing = artifactBundle.semanticTiming;
+const globalVisualLayerPolicy = deriveGlobalVisualLayerPolicy(timing);
 const globalVisualPlan = GlobalVisualPlanSchema.parse(globalVisualPlanJson);
 if (storyId !== ${JSON.stringify(storyId)} || render.fps !== timing.fps || requirements.readabilityPolicy.width !== render.width || requirements.readabilityPolicy.height !== render.height || globalVisualPlan.storyId !== storyId || globalVisualPlan.compositionId !== render.compositionId || masteredNarration.storyId !== storyId || masteredNarration.sealedNarrationFingerprint !== sealedNarration.sealedNarrationFingerprint) throw new Error("Project production Composition identity is stale.");
 const completeAudioLocalPath = masteredNarration.outputAudio.localPath;
 if (!completeAudioLocalPath.startsWith("public/projects/" + storyId + "/narration-mastered/")) throw new Error("Mastered narration path is outside the Project.");
-const ProductionGlobalVisualLayers: GlobalVisualLayersComponent<typeof GlobalVisualLayers> = GlobalVisualLayers;
+const ProductionGlobalVisualBaseLayer: GlobalVisualLayersComponent<typeof GlobalVisualBaseLayer> = GlobalVisualBaseLayer;
+const ProductionGlobalVisualDecorationLayers: GlobalVisualLayersComponent<typeof GlobalVisualDecorationLayers> = GlobalVisualDecorationLayers;
 const completeNarrationSrc = staticFile(completeAudioLocalPath.slice("public/".length));
 export const productionNarrativeCompositionMetadata = {id: render.compositionId, fps: render.fps, width: render.width, height: render.height, durationInFrames: getStoryCompositionDurationInFrames(timing.durationInFrames), defaultProps: {projectId: storyId}} as const;
 export const createProductionNarrativeCoreProps = (input: unknown): NarrativeCoreProps => { const props = StoryCompositionPropsSchema.parse(input); if (props.projectId !== storyId) throw new Error("Composition only accepts its own Project."); return {src: completeNarrationSrc, narrationStartFrame: timing.narrationStartFrame, captionCues: timing.captionCues, safeAreaPx: requirements.readabilityPolicy.captionSafeAreaPx, readabilityPolicy: requirements.readabilityPolicy}; };
-const ${componentName}: FC<StoryCompositionProps> = (props) => <CompositionAssembly storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning}/>} globalVisualBackgroundLayers={<ProductionGlobalVisualLayers/>} narrativeCore={<NarrativeCore {...createProductionNarrativeCoreProps(props)}/>} soundDesignTrack={<SoundDesignTrack projection={productionSoundDesignProjection}/>}/>;
+const ${componentName}: FC<StoryCompositionProps> = (props) => <CompositionAssembly storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning}/>} globalVisualBackgroundLayers={<><ProductionGlobalVisualBaseLayer/><Sequence from={globalVisualLayerPolicy.decorationLayerFrameRange.startFrame} durationInFrames={globalVisualLayerPolicy.decorationLayerFrameRange.endFrame - globalVisualLayerPolicy.decorationLayerFrameRange.startFrame} layout="none"><ProductionGlobalVisualDecorationLayers/></Sequence></>} narrativeCore={<NarrativeCore {...createProductionNarrativeCoreProps(props)}/>} soundDesignTrack={<SoundDesignTrack projection={productionSoundDesignProjection}/>}/>;
 export default ${componentName};
 `;
 };

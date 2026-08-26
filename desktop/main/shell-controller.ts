@@ -3,7 +3,9 @@ import type { RuntimePackManifest } from "../contracts/runtime-pack";
 import type {
   DesktopProjectStatus,
   PreviewCatalog,
+  PreviewCatalogEntry,
   PreviewCatalogReadiness,
+  PreviewPlayerCatalog,
 } from "../contracts/preview";
 import { projectPreviewCatalogForPlayer } from "../contracts/preview";
 import { WorkspaceMigrationAuthorityError } from "../application/migrate-workspace";
@@ -24,7 +26,10 @@ const emptyCatalog = (): PreviewCatalog => ({
   unavailable: [],
 });
 
-const emptyPlayerCatalog = () => projectPreviewCatalogForPlayer(emptyCatalog());
+const emptyPlayerCatalog = () =>
+  projectPreviewCatalogForPlayer(emptyCatalog(), () => {
+    throw new Error("desktop-empty-catalog-video-url");
+  });
 
 const notLoadedCatalog = (): PreviewCatalogReadiness => ({
   state: "not-loaded",
@@ -96,7 +101,11 @@ export type DesktopEnginePort = Readonly<{
 
 export type DesktopMediaPort = Readonly<{
   selectWorkspace: (workspaceRoot: string) => Promise<void>;
-  replaceCatalog: (catalog: PreviewCatalog) => Promise<void>;
+  replaceCatalog: (catalog: PreviewCatalog) => Promise<PreviewPlayerCatalog>;
+  recoverPlayback: (
+    catalog: PreviewCatalog,
+    storyId: PreviewCatalogEntry["storyId"],
+  ) => Promise<PreviewPlayerCatalog>;
   close: () => Promise<void>;
 }>;
 
@@ -108,7 +117,9 @@ export class DesktopShellController {
   readonly #settings: DesktopSettingsPort;
   readonly #unsubscribeEngine: () => void;
   #operation: Promise<void> = Promise.resolve();
+  #mediaCatalog = emptyCatalog();
   #mediaCatalogIdentity = serializeCanonicalJson(emptyCatalog());
+  #playerCatalog = emptyPlayerCatalog();
   #state: DesktopAppState;
 
   constructor({
@@ -424,6 +435,40 @@ export class DesktopShellController {
     return this.getState();
   };
 
+  recoverPreviewPlayback = async (storyId: string) => {
+    const parsedStoryId = StoryIdSchema.parse(storyId);
+    if (
+      this.#state.status !== "ready" ||
+      this.#state.activeWork !== null ||
+      this.#state.selectedStoryId !== parsedStoryId ||
+      !this.#mediaCatalog.entries.some(
+        (entry) => entry.storyId === parsedStoryId,
+      )
+    ) {
+      throw new Error("desktop-media-recovery-denied");
+    }
+    await this.#enqueue(async () => {
+      if (
+        this.#state.status !== "ready" ||
+        this.#state.activeWork !== null ||
+        this.#state.selectedStoryId !== parsedStoryId
+      ) {
+        throw new Error("desktop-media-recovery-denied");
+      }
+      const playerCatalog = await this.#media.recoverPlayback(
+        this.#mediaCatalog,
+        parsedStoryId,
+      );
+      this.#playerCatalog = playerCatalog;
+      this.#state = DesktopAppStateSchema.parse({
+        ...this.#state,
+        catalog: playerCatalog,
+        error: null,
+      });
+    });
+    return this.getState();
+  };
+
   selectPreview = async (storyId: string) => {
     const parsedStoryId = StoryIdSchema.parse(storyId);
     if (
@@ -522,7 +567,9 @@ export class DesktopShellController {
         });
         const workspaceRoot = selectedRoot;
         await this.#media.selectWorkspace(workspaceRoot);
+        this.#mediaCatalog = emptyCatalog();
         this.#mediaCatalogIdentity = serializeCanonicalJson(emptyCatalog());
+        this.#playerCatalog = emptyPlayerCatalog();
         this.#state = DesktopAppStateSchema.parse({
           ...this.#state,
           workspaceRoot,
@@ -531,9 +578,8 @@ export class DesktopShellController {
         const snapshot = await this.#engine.start(workspaceRoot);
         engineStarted = true;
         if (initialize) {
-          const persistedRoot = await this.#workspace.persistInitialRoot(
-            workspaceRoot,
-          );
+          const persistedRoot =
+            await this.#workspace.persistInitialRoot(workspaceRoot);
           if (persistedRoot !== workspaceRoot) {
             throw new Error("desktop-workspace-preference-mismatch");
           }
@@ -544,7 +590,9 @@ export class DesktopShellController {
           await this.#engine.stop().catch(() => undefined);
         }
         await this.#media.replaceCatalog(emptyCatalog()).catch(() => undefined);
+        this.#mediaCatalog = emptyCatalog();
         this.#mediaCatalogIdentity = serializeCanonicalJson(emptyCatalog());
+        this.#playerCatalog = emptyPlayerCatalog();
         this.#state = DesktopAppStateSchema.parse({
           ...this.#state,
           status: "fatal",
@@ -577,7 +625,7 @@ export class DesktopShellController {
     )
       ? preferredStoryId
       : (snapshot.projects[0]?.storyId ?? null);
-    await this.#replaceMediaCatalog(snapshot.catalog);
+    const playerCatalog = await this.#replaceMediaCatalog(snapshot.catalog);
     this.#state = DesktopAppStateSchema.parse({
       ...this.#state,
       status: "ready",
@@ -592,7 +640,7 @@ export class DesktopShellController {
         provider: snapshot.provider,
       },
       previewCatalog: snapshot.previewCatalog,
-      catalog: projectPreviewCatalogForPlayer(snapshot.catalog),
+      catalog: playerCatalog,
       projects: snapshot.projects,
       productionProgress: snapshot.productionProgress,
       selectedStoryId,
@@ -609,8 +657,11 @@ export class DesktopShellController {
 
   #replaceMediaCatalog = async (catalog: PreviewCatalog) => {
     const identity = serializeCanonicalJson(catalog);
-    if (identity === this.#mediaCatalogIdentity) return;
-    await this.#media.replaceCatalog(catalog);
+    if (identity === this.#mediaCatalogIdentity) return this.#playerCatalog;
+    const playerCatalog = await this.#media.replaceCatalog(catalog);
+    this.#mediaCatalog = catalog;
     this.#mediaCatalogIdentity = identity;
+    this.#playerCatalog = playerCatalog;
+    return playerCatalog;
   };
 }

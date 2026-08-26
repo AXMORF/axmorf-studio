@@ -32,7 +32,8 @@ ExecutionAttempt 只记录一次执行诊断。它的失败或丢失不拥有产
 - Agent-authored `ttsChunks` 不被工具改写；sealed PCM sample measurement 和累计 sample frame 是时间
   authority。
 - Scene root 透明；Composition 顶层 exactly once owns safe-area-local SceneViewport、captions、narration 和
-  GlobalVisual。Scene 只在本地 viewport 内布局，不感知 full-frame inset。
+  GlobalVisual。GlobalVisual base layer 覆盖完整 Composition；decoration layers 仅覆盖首个至末个 narrated
+  Scene 的连续窗口，不进入 silent boundary Scenes。Scene 只在本地 viewport 内布局，不感知 full-frame inset。
 - template-copy Scene 是 Project-local immutable instance，由 fixed task 产出，不派发 Agent。
 - Scene、GlobalVisual、Cover authoring 相互隔离。每个 Agent 只写自己的 task workspace。
 - Scene authoring 使用 repository-local `remotion-best-practices`，但 TaskSpec/contracts/validators 始终

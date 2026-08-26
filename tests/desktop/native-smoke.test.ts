@@ -10,6 +10,7 @@ import { getDesktopDarwinTarget } from "../../desktop/configuration/darwin-targe
 import {
   createNativeSmokePrivateConfigCrypto,
   rendererProbeSource,
+  rendererRecoveryProbeSource,
   resolveNativeSmokeOptions,
   writeNativeSmokeFailure,
   writeNativeSmokeEngineDiagnostic,
@@ -44,7 +45,7 @@ const resolveTestCompositorRoot = () =>
     ),
   );
 
-test("native renderer probe follows the remounted current video after ticket refresh", async () => {
+test("native renderer probe reads the current video after controlled selection", async () => {
   const entry = {
     storyId: "native-probe",
     frameCount: 31,
@@ -82,11 +83,11 @@ test("native renderer probe follows the remounted current video after ticket ref
     },
   };
   const staleVideo = { ...video, currentTime: 0 };
-  let ticketRefreshed = false;
+  let selectionDispatched = false;
   const selection = {
     value: entry.storyId,
     dispatchEvent: () => {
-      ticketRefreshed = true;
+      selectionDispatched = true;
       return true;
     },
   };
@@ -99,7 +100,7 @@ test("native renderer probe follows the remounted current video after ticket ref
     body: { append: () => undefined },
     createElement: () => ({ click: () => undefined }),
     querySelector: (selector: string) => {
-      if (selector === "video") return ticketRefreshed ? video : staleVideo;
+      if (selector === "video") return selectionDispatched ? video : staleVideo;
       if (selector === "select") return selection;
       if (selector === '[aria-label="当前播放位置"]') return playhead;
       if (selector === ".scene-segment.active") return { textContent: "Scene" };
@@ -126,8 +127,23 @@ test("native renderer probe follows the remounted current video after ticket ref
     media: { positions: { boundary: { playhead: string } } | null };
   };
 
-  assert.equal(ticketRefreshed, true);
+  assert.equal(selectionDispatched, true);
   assert.match(result.media.positions?.boundary.playhead ?? "", /F15 \/ 30/u);
+});
+
+test("native recovery probe drives the rendered error action through metadata, canplay, and playback", () => {
+  assert.match(rendererRecoveryProbeSource, /"request-" \+ "0"\.repeat\(32\)/u);
+  assert.match(rendererRecoveryProbeSource, /videoBefore\.load\(\)/u);
+  assert.match(rendererRecoveryProbeSource, /\.player-error button/u);
+  assert.match(rendererRecoveryProbeSource, /恢复播放/u);
+  assert.match(
+    rendererRecoveryProbeSource,
+    /current\?\.videoUrl !== entryBefore\.videoUrl/u,
+  );
+  assert.match(rendererRecoveryProbeSource, /"loadedmetadata"/u);
+  assert.match(rendererRecoveryProbeSource, /"canplay"/u);
+  assert.match(rendererRecoveryProbeSource, /videoAfter\.play\(\)/u);
+  assert.match(rendererRecoveryProbeSource, /sameRendererProcess: true/u);
 });
 
 test("native fixture starts at the public project-create boundary", () => {
@@ -587,7 +603,10 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
   assert.match(runner, /native-failure\.json/u);
   assert.match(runner, /command-failure\.json/u);
   assert.match(runner, /desktop-native-attempt-terminal-v1/u);
-  assert.match(runner, /if "\$@" >"\$output\.stdout" 2>"\$output\.stderr"; then/u);
+  assert.match(
+    runner,
+    /if "\$@" >"\$output\.stdout" 2>"\$output\.stderr"; then/u,
+  );
   assert.doesNotMatch(runner, /set \+e/u);
   assert.match(runner, /attempt-terminal\.json/u);
   assert.match(runner, /terminalDiagnosticCode/u);
@@ -672,6 +691,11 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
   assert.match(nativeSmoke, /quit-request-observed/u);
   assert.match(nativeSmoke, /"video-play",\s*30000/u);
   assert.match(nativeSmoke, /rendererProbeSource\(true\)/u);
+  assert.match(nativeSmoke, /rendererRecoveryProbeSource/u);
+  assert.match(nativeSmoke, /firstInFlightChunk/u);
+  assert.match(nativeSmoke, /recovery-in-flight-range/u);
+  assert.match(nativeSmoke, /recovery-ticket-revocation/u);
+  assert.match(nativeSmoke, /recovery-request-generation/u);
   assert.match(nativeSmoke, /playbackRequired/u);
   assert.match(nativeSmoke, /HAVE_CURRENT_DATA : HAVE_METADATA/u);
   assert.match(nativeSmoke, /playerError === null/u);

@@ -5,6 +5,7 @@ import {
   FIXED_COVER_SPEC,
   buildProducerTaskSpec,
   createFingerprint,
+  deriveGlobalVisualLayerPolicy,
   serializeCanonicalJson,
   type ArtifactAttestation,
   type ProducerTaskSpec,
@@ -166,10 +167,13 @@ const buildContextTask = ({
 }) => {
   if (
     taskContract !== undefined &&
-    serializeCanonicalJson(taskContract.outputs.map(({ path }) => path).sort()) !==
-      serializeCanonicalJson([...outputs].sort())
+    serializeCanonicalJson(
+      taskContract.outputs.map(({ path }) => path).sort(),
+    ) !== serializeCanonicalJson([...outputs].sort())
   ) {
-    throw new Error("Task execution contract output set does not match task authority.");
+    throw new Error(
+      "Task execution contract output set does not match task authority.",
+    );
   }
   const contextSeed = contextFile(context);
   const taskContractSeed =
@@ -504,6 +508,7 @@ export const buildAgentTasks = (
     story: inputs.story,
     render: inputs.render,
     timing: inputs.timing,
+    layerPolicy: deriveGlobalVisualLayerPolicy(inputs.timing),
     requirements: inputs.requirements,
     resourcePool: inputs.resourcePool,
     visualStyle: inputs.visualStyle,
@@ -530,7 +535,7 @@ export const buildAgentTasks = (
       { id: "timing", fingerprint: inputs.timing.fingerprint },
     ],
     outputs: GLOBAL_OUTPUTS,
-    validatorPolicyVersion: "global-visual-owner-validator-v1",
+    validatorPolicyVersion: "global-visual-owner-validator-v2",
     context: globalContext,
     taskContract: buildExecutionContract({
       taskKind: "global-visual-owner",

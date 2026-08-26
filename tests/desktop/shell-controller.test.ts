@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { PreviewCatalogSchema } from "../../desktop/contracts/preview";
+import {
+  buildPreviewVideoUrl,
+  PreviewCatalogSchema,
+  projectPreviewCatalogForPlayer,
+} from "../../desktop/contracts/preview";
 import { createDesktopSettingsSnapshot } from "../../desktop/application/manage-settings";
 import {
   DesktopSettingsEngineRestartError,
@@ -145,6 +149,7 @@ const manualSnapshot = (): DesktopEngineSnapshot => ({
 
 const createHarness = (selectedRoot: string | null) => {
   const calls: string[] = [];
+  let mediaRequestGeneration = 0;
   let currentSnapshot = snapshot();
   const failedEngineRoots = new Set<string>();
   let listener: ((snapshot: DesktopEngineSnapshot) => void) | undefined;
@@ -243,6 +248,23 @@ const createHarness = (selectedRoot: string | null) => {
         calls.push(
           `media:${next.entries.map(({ storyId }) => storyId).join(",")}`,
         );
+        mediaRequestGeneration += 1;
+        return projectPreviewCatalogForPlayer(next, (entry) =>
+          buildPreviewVideoUrl({
+            ...entry,
+            requestNonce: mediaRequestGeneration.toString(16).padStart(32, "0"),
+          }),
+        );
+      },
+      recoverPlayback: async (next, storyId) => {
+        calls.push(`media-recover:${storyId}`);
+        mediaRequestGeneration += 1;
+        return projectPreviewCatalogForPlayer(next, (entry) =>
+          buildPreviewVideoUrl({
+            ...entry,
+            requestNonce: mediaRequestGeneration.toString(16).padStart(32, "0"),
+          }),
+        );
       },
       close: async () => {
         calls.push("media-close");
@@ -289,10 +311,7 @@ test("first run does not persist a Workspace when Engine initialization fails", 
   harness.failNextEngineStart("/tmp/AXMORF Studio");
   const failed = await harness.controller.chooseInitialWorkspace();
   assert.equal(failed.status, "fatal");
-  assert.equal(
-    harness.calls.includes("persist:/tmp/AXMORF Studio"),
-    false,
-  );
+  assert.equal(harness.calls.includes("persist:/tmp/AXMORF Studio"), false);
 });
 
 test("manual source-current is selectable and Delivery is an explicit action", async () => {
@@ -358,6 +377,35 @@ test("progress-only Engine snapshots preserve current media tickets", async () =
     harness.calls.filter((call) => call === "media:story-one").length,
     1,
   );
+});
+
+test("explicit Catalog refresh does not masquerade as playback recovery", async () => {
+  const harness = createHarness("/tmp/workspace");
+  const initial = await harness.controller.bootstrap();
+  await harness.controller.refreshPreviewCatalog();
+  assert.equal(
+    harness.calls.filter((call) => call === "media:story-one").length,
+    1,
+  );
+  assert.equal(harness.calls.includes("media-recover:story-one"), false);
+  assert.equal(
+    harness.controller.getState().catalog.entries[0]?.videoUrl,
+    initial.catalog.entries[0]?.videoUrl,
+  );
+});
+
+test("playback recovery rotates only the request identity in the same App state", async () => {
+  const harness = createHarness("/tmp/workspace");
+  const initial = await harness.controller.bootstrap();
+  const before = initial.catalog.entries[0]!;
+  const recovered =
+    await harness.controller.recoverPreviewPlayback("story-one");
+  const after = recovered.catalog.entries[0]!;
+  assert.equal(after.storyId, before.storyId);
+  assert.equal(after.deliveryBuildId, before.deliveryBuildId);
+  assert.notEqual(after.videoUrl, before.videoUrl);
+  assert.equal(harness.calls.at(-1), "media-recover:story-one");
+  assert.equal(harness.calls.includes("engine-refresh"), false);
 });
 
 test("saving structured Desktop Settings restarts and rebinds Engine", async () => {

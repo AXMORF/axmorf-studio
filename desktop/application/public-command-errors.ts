@@ -57,11 +57,14 @@ const taskIssue = ({
         "Remove frame-computed transform and scale values. Use frame-driven opacity, top, left, width, or height for motion, then rerun finalize and check.",
     };
   }
-  if (/Renderer scale must be statically proven not to shrink/iu.test(message)) {
+  if (
+    /Renderer scale must be statically proven not to shrink/iu.test(message)
+  ) {
     return {
       path: "$.outputs[src/Renderer.tsx]",
       code: "rsp-task-renderer-scale-unreadable",
-      message: "Renderer scale can shrink readable content below its frozen size.",
+      message:
+        "Renderer scale can shrink readable content below its frozen size.",
       ownerAction:
         "Remove the shrinking scale or use a static scale of at least 1, then rerun finalize and check.",
     };
@@ -70,7 +73,8 @@ const taskIssue = ({
     return {
       path: "$.outputs[src/Renderer.tsx]",
       code: "rsp-task-text-size-unprovable",
-      message: "Visible text must declare a statically provable pixel font size.",
+      message:
+        "Visible text must declare a statically provable pixel font size.",
       ownerAction:
         "Set an explicit numeric pixel fontSize on every visible native text element, then rerun finalize and check.",
     };
@@ -92,27 +96,29 @@ const taskIssue = ({
       path: "$.outputs[src/GlobalVisualLayers.tsx]",
       code: "rsp-task-global-visual-boundary-invalid",
       message:
-        "GlobalVisualLayers contains visible text or shared Scene, caption, narration, audio, or network ownership.",
+        "A GlobalVisual base or decoration layer contains visible text or shared Scene, caption, narration, audio, or network ownership.",
       ownerAction:
-        "Keep GlobalVisualLayers decorative and text-free; remove the named shared-boundary usage, then rerun finalize and check.",
+        "Keep GlobalVisualBaseLayer and GlobalVisualDecorationLayers visual-only and text-free; remove the named shared-boundary usage, then rerun finalize and check.",
     };
   }
   if (/GlobalVisual entry must use the Remotion frame API/iu.test(message)) {
     return {
       path: "$.outputs[src/GlobalVisualLayers.tsx]",
       code: "rsp-task-global-visual-frame-api-missing",
-      message: "GlobalVisualLayers must use useCurrentFrame for motion.",
+      message:
+        "GlobalVisualDecorationLayers must use useCurrentFrame for motion.",
       ownerAction:
-        "Import and call useCurrentFrame in GlobalVisualLayers, then rerun finalize and check.",
+        "Import and call useCurrentFrame in GlobalVisualDecorationLayers, then rerun finalize and check.",
     };
   }
   if (/GlobalVisual root must declare pointerEvents none/iu.test(message)) {
     return {
       path: "$.outputs[src/GlobalVisualLayers.tsx]",
       code: "rsp-task-global-visual-pointer-events-missing",
-      message: "GlobalVisualLayers root must declare pointerEvents none.",
+      message:
+        "GlobalVisualBaseLayer and GlobalVisualDecorationLayers roots must declare pointerEvents none.",
       ownerAction:
-        "Set pointerEvents: \"none\" on the root style, then rerun finalize and check.",
+        'Set pointerEvents: "none" on both root styles, then rerun finalize and check.',
     };
   }
   if (/missing|ambiguous|unsafe|exact file set/iu.test(message)) {
@@ -123,7 +129,9 @@ const taskIssue = ({
       ownerAction,
     };
   }
-  if (/network|css animation|css transition|forbidden|boundary/iu.test(message)) {
+  if (
+    /network|css animation|css transition|forbidden|boundary/iu.test(message)
+  ) {
     return {
       path: "$.outputs",
       code: "rsp-task-policy-invalid",
@@ -135,15 +143,21 @@ const taskIssue = ({
     return {
       path: "$.outputs",
       code: "rsp-task-source-invalid",
-      message: "Task source does not satisfy its fixed component or source contract.",
+      message:
+        "Task source does not satisfy its fixed component or source contract.",
       ownerAction,
     };
   }
-  if (/fingerprint|stale|identity|order|resource|plan|receipt|selection/iu.test(message)) {
+  if (
+    /fingerprint|stale|identity|order|resource|plan|receipt|selection/iu.test(
+      message,
+    )
+  ) {
     return {
       path: "$.outputs",
       code: "rsp-task-contract-invalid",
-      message: "Task artifacts do not satisfy their frozen identity or cross-file contract.",
+      message:
+        "Task artifacts do not satisfy their frozen identity or cross-file contract.",
       ownerAction,
     };
   }

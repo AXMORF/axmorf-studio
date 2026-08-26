@@ -30,6 +30,11 @@ safe-area-local SceneViewport fingerprint（width/height/min font size/coordinat
 policy fingerprint/width/height/insets 均不进入 Scene workspace；Composition 在 runtime 重新从当前 policy 派生
 SceneViewport，并与 task/package 绑定的 boundary version/fingerprint fail-closed 对齐。
 
+GlobalVisual layer policy 同样不是 Agent-authored field：fixed planner 从 canonical SemanticTiming 派生完整
+Composition base range、首个至末个 narrated Scene 的 decoration range，以及 `window-local-zero` frame origin。
+GlobalVisual TaskRevision 绑定 timing、该派生 policy 与 validator policy；生成式 Composition重新派生并机械安装
+相同窗口，silent boundary Scenes 不接受 decoration。
+
 Configured template instance 另外绑定 copied Renderer adapter 与完整 import graph。adapter 只做
 `viewportWidth`/`viewportHeight` → 模板内部 `width`/`height` 的确定性映射；adapter/layout bytes 改变会改变
 未来 instance/source-graph identity，但不会跨过 immutable copy 边界重写既有 Project。
@@ -48,7 +53,7 @@ edges 传播。hash 不可反解，因此 baseline 不可用时明确标记，�
 
 - 一个 Scene brief 变化：该 Scene 与必要 convergence/source-current dirty，其他 Scene/TTS/GlobalVisual/Cover reused；
 - Cover input 变化：Cover 与 source-current dirty；
-- 一个 TTS chunk 变化：其他 chunk reused，seal/timing 及实际受 timing 影响的 Scene dirty；
+- 一个 TTS chunk 变化：其他 chunk reused，seal/timing、实际受 timing 影响的 Scene 与 GlobalVisual dirty；
 - renderer Runtime Pack 变化：source tasks/current 保持不变，只有 Delivery stale；真正的 source validator policy
   变化仍只失效绑定它的 task branch；
 - readability 改变：只有派生 SceneViewport 或 caption/runtime policy 真正变化的下游 dirty；

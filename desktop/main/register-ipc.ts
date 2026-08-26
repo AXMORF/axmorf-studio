@@ -185,6 +185,16 @@ export const registerDesktopShellIpc = ({
       controller.refreshPreviewCatalog,
     );
     registerStateMethod(
+      DESKTOP_SHELL_IPC_CHANNELS.recoverPreviewPlayback,
+      1,
+      (...args) => {
+        if (typeof args[0] !== "string") {
+          throw new Error("desktop-ipc-arguments-invalid");
+        }
+        return controller.recoverPreviewPlayback(args[0]);
+      },
+    );
+    registerStateMethod(
       DESKTOP_SHELL_IPC_CHANNELS.selectPreview,
       1,
       (...args) => {

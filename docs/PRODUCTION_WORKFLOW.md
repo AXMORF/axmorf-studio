@@ -148,6 +148,12 @@ size/fingerprint）。raw policy、full-frame width/height 和四边 inset 不�
 validator 拒绝 Renderer 自建 SceneViewport/provider、读取 raw policy/inset 或调用 `useVideoConfig()`
 恢复 full-frame authority。
 
+GlobalVisual task context 另外包含从 canonical SemanticTiming 确定性派生的 `GlobalVisualLayerPolicy`：base range
+固定为完整 Composition，decoration range 固定为首个至末个 narrated Scene 的连续窗口，decoration frame origin
+固定为窗口 local zero。`global-visual-owner-validator-v2` 要求 `GlobalVisualBaseLayer` 与
+`GlobalVisualDecorationLayers` 两个 no-Props export，并拒绝越出 decoration range 的 continuity windows；Agent
+不能把 silent boundary Scene 的项目装饰重新放回 base layer。
+
 `scene-template` fixed producer 与 validator 共用同一 exact output contract：artifact 包含 immutable
 copied source/assets，以及从 template instance、SceneTaskInput 和 ResourceCatalog 机械派生的 canonical
 Scene plans、selected-resource envelope 与 fidelity receipt。live-only
@@ -187,8 +193,9 @@ output set 和 TaskRevision；已声明 derived outputs 只能幂等吸收，unk
 
 齐全后，materializer 从 Artifact Store 读取 bytes，分别对 Scene、GlobalVisual、Cover owned roots 使用
 staging + controlled replace + rollback。随后 fixed application 机械刷新 ScenePackage、Coverage、
-RendererRegistry、GlobalVisualPackage 与生成式 Composition。它必须从 live paths 重读 exact outputs，并证明
-与 ArtifactAttestation 的 path/size/checksum 一致，人工漂移不能进入 build。
+RendererRegistry、GlobalVisualPackage 与生成式 Composition。生成式 Composition 全程挂载 GlobalVisual base，并用
+`Sequence` 只在派生 narrated window 挂载 decoration；这是 fixed projection，不由 Agent 输出决定。它必须从 live
+paths 重读 exact outputs，并证明与 ArtifactAttestation 的 path/size/checksum 一致，人工漂移不能进入 build。
 
 artifact/materialized bytes 复验后，converge 写入 canonical `source-current` attestation。`manual` 到此成功终结且
 deliveries 保持不变；`automatic` 才继续 Delivery。该 policy 只控制 terminal flow，不进入 Revision、TaskRevision、

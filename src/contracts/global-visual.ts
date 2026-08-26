@@ -8,12 +8,16 @@ import {
   Sha256DigestSchema,
   StoryIdSchema,
 } from "./primitives";
+import { SemanticTimingSchema } from "./semantic-timing";
+import { getStoryCompositionDurationInFrames } from "./story-composition";
 
 export const GLOBAL_VISUAL_PLAN_VERSION = "global-visual-plan-v1" as const;
 export const GLOBAL_VISUAL_PROJECTION_VERSION =
   "global-visual-projection-v1" as const;
 export const GLOBAL_VISUAL_PROJECTION_VERSION_V2 =
   "global-visual-projection-v2" as const;
+export const GLOBAL_VISUAL_LAYER_POLICY_VERSION =
+  "global-visual-layer-policy-v1" as const;
 
 const HexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const UnitIntervalSchema = z.number().finite().min(0).max(1);
@@ -26,6 +30,68 @@ const InsetSchema = z
   })
   .strict()
   .readonly();
+
+const GlobalVisualFrameRangeSchema = z
+  .object({
+    startFrame: NonNegativeIntegerSchema,
+    endFrame: PositiveIntegerSchema,
+  })
+  .strict()
+  .refine(({ startFrame, endFrame }) => endFrame > startFrame, {
+    message: "GlobalVisual layer frame range must be non-empty.",
+  })
+  .readonly();
+
+export const GlobalVisualLayerPolicySchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    policyVersion: z.literal(GLOBAL_VISUAL_LAYER_POLICY_VERSION),
+    baseLayerFrameRange: GlobalVisualFrameRangeSchema,
+    decorationLayerFrameRange: GlobalVisualFrameRangeSchema,
+    decorationFrameOrigin: z.literal("window-local-zero"),
+  })
+  .strict()
+  .superRefine((policy, context) => {
+    if (
+      policy.baseLayerFrameRange.startFrame !== 0 ||
+      policy.decorationLayerFrameRange.startFrame <
+        policy.baseLayerFrameRange.startFrame ||
+      policy.decorationLayerFrameRange.endFrame >
+        policy.baseLayerFrameRange.endFrame
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "GlobalVisual decoration range must be contained in the full Composition base range.",
+      });
+    }
+  })
+  .readonly();
+
+export const deriveGlobalVisualLayerPolicy = (rawTiming: unknown) => {
+  const timing = SemanticTimingSchema.parse(rawTiming);
+  const narratedBeats = timing.storyBeats.filter(
+    (beat) => beat.kind === "narrated-scene",
+  );
+  const firstNarratedBeat = narratedBeats[0];
+  const lastNarratedBeat = narratedBeats.at(-1);
+  if (firstNarratedBeat === undefined || lastNarratedBeat === undefined) {
+    throw new Error("GlobalVisual requires at least one narrated Scene.");
+  }
+  return GlobalVisualLayerPolicySchema.parse({
+    schemaVersion: 1,
+    policyVersion: GLOBAL_VISUAL_LAYER_POLICY_VERSION,
+    baseLayerFrameRange: {
+      startFrame: 0,
+      endFrame: getStoryCompositionDurationInFrames(timing.durationInFrames),
+    },
+    decorationLayerFrameRange: {
+      startFrame: firstNarratedBeat.startFrame,
+      endFrame: lastNarratedBeat.endFrame,
+    },
+    decorationFrameOrigin: "window-local-zero",
+  });
+};
 
 const MotifWindowSchema = z
   .object({

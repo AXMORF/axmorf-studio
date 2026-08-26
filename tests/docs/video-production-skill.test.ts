@@ -21,9 +21,7 @@ const PolicySchema = z
       z.literal("project-production-current"),
     ]),
     privateConfigPath: z.literal("private/producer.config.json"),
-    executionPreferencesPath: z.literal(
-      "private/execution-preferences.json",
-    ),
+    executionPreferencesPath: z.literal("private/execution-preferences.json"),
     requiredEntrypointHeadings: z.array(z.string().min(1)).min(8),
     requiredReferences: z.array(z.string().min(1)).min(6),
     workflowCommands: z.tuple([
@@ -266,6 +264,10 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   assert.match(globalVisual, /不得读取 Scene 输出/u);
   assert.match(globalVisual, /simplest full-frame background board/u);
   assert.match(globalVisual, /current[\s\S]*VisualStyleSpec/u);
+  assert.match(globalVisual, /GlobalVisualBaseLayer/u);
+  assert.match(globalVisual, /GlobalVisualDecorationLayers/u);
+  assert.match(globalVisual, /local frame 0/u);
+  assert.match(globalVisual, /silent[\s\S]*boundary Scenes/u);
   assert.match(globalVisual, /must not invent[\s\S]*continuity motifs/u);
   assert.match(globalVisual, /caption|字幕/u);
   assert.match(globalVisual, /DSL|automatic director/u);

@@ -8,6 +8,7 @@ import test from "node:test";
 import {
   buildProducerTaskSpec,
   createGlobalVisualPlan,
+  deriveGlobalVisualLayerPolicy,
   generateSemanticTiming,
   NarrationSpecSchema,
   RenderSpecSchema,
@@ -35,7 +36,10 @@ const checksum = (value: string) =>
 
 const validSource = `
 const useCurrentFrame = () => 0;
-export const GlobalVisualLayers = () => {
+export const GlobalVisualBaseLayer = () => (
+  <div style={{position: "absolute", inset: 0, pointerEvents: "none"}} />
+);
+export const GlobalVisualDecorationLayers = () => {
   const frame = useCurrentFrame();
   return (
     <div style={{position: "absolute", inset: 0, opacity: frame >= 0 ? 1 : 0, pointerEvents: "none"}}>
@@ -48,7 +52,8 @@ export const GlobalVisualLayers = () => {
 const workspaceCompileSource = `
 const useCurrentFrame = () => 0;
 const rootStyle = {pointerEvents: "none"};
-export const GlobalVisualLayers = () => {
+export const GlobalVisualBaseLayer = () => null;
+export const GlobalVisualDecorationLayers = () => {
   const frame = useCurrentFrame();
   return frame >= 0 ? null : null;
 };
@@ -58,11 +63,18 @@ void rootStyle;
 const buildFixture = ({
   planWidth = 1920,
   planCompositionId = validRenderSpec.compositionId,
+  motifWindows = [],
   selectedResources = [],
   source = validSource,
 }: {
   readonly planWidth?: number;
   readonly planCompositionId?: string;
+  readonly motifWindows?: readonly Readonly<{
+    startFrame: number;
+    endFrame: number;
+    axis: "x" | "y";
+    direction: -1 | 1;
+  }>[];
   readonly selectedResources?: readonly unknown[];
   readonly source?: string;
 } = {}) => {
@@ -81,6 +93,7 @@ const buildFixture = ({
     story: { storyId: validStorySpec.storyId },
     render: RenderSpecSchema.parse(validRenderSpec),
     timing,
+    layerPolicy: deriveGlobalVisualLayerPolicy(timing),
     requirements: { readabilityPolicy },
     resourcePool: {
       allowedResourceIds: ["asset.allowed-global"],
@@ -111,7 +124,7 @@ const buildFixture = ({
       strokeWidth: 3,
       opacity: 0.3,
       motionPolicy: "linear-frame-progress-v1",
-      windows: [],
+      windows: motifWindows,
     },
   });
   return { context, plan, selectedResources, source } as const;
@@ -148,7 +161,7 @@ const createGlobalWorkspace = async ({
       "src/GlobalVisualLayers.tsx",
       "src/selected-resources.json",
     ],
-    validatorPolicyVersion: "global-visual-owner-validator-v1",
+    validatorPolicyVersion: "global-visual-owner-validator-v2",
   });
   const workspace = await createTaskWorkspace({
     locations,
@@ -227,8 +240,12 @@ test("Workspace GlobalVisual task compiles against the Runtime Pack source root"
   });
 
   assert.equal(
-    (await checkGlobalVisualTask({ locations, taskRevision: task.taskRevision }))
-      .status,
+    (
+      await checkGlobalVisualTask({
+        locations,
+        taskRevision: task.taskRevision,
+      })
+    ).status,
     "task-workspace-valid",
   );
 });
@@ -303,5 +320,43 @@ test("GlobalVisual task rejects source that crosses into audio ownership", async
   await assert.rejects(
     checkGlobalVisualTask({ locations, taskRevision: task.taskRevision }),
     /visual-only boundary/u,
+  );
+});
+
+test("GlobalVisual task rejects decoration plan windows outside narrated content", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-window-boundary-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const { locations, task } = await createGlobalWorkspace({
+    rootDir,
+    fixture: buildFixture({
+      motifWindows: [{ startFrame: 0, endFrame: 10, axis: "x", direction: 1 }],
+    }),
+  });
+
+  await assert.rejects(
+    checkGlobalVisualTask({ locations, taskRevision: task.taskRevision }),
+    /plan is stale/u,
+  );
+});
+
+test("GlobalVisual task rejects the legacy single-layer component boundary", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-layer-boundary-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const { locations, task } = await createGlobalWorkspace({
+    rootDir,
+    fixture: buildFixture({
+      source: `
+const useCurrentFrame = () => 0;
+export const GlobalVisualLayers = () => {
+  const frame = useCurrentFrame();
+  return <div style={{opacity: frame >= 0 ? 1 : 0, pointerEvents: "none"}} />;
+};
+`,
+    }),
+  });
+
+  await assert.rejects(
+    checkGlobalVisualTask({ locations, taskRevision: task.taskRevision }),
+    /GlobalVisualBaseLayer and GlobalVisualDecorationLayers/u,
   );
 });

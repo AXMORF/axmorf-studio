@@ -354,13 +354,11 @@ export const App = () => {
   const [playerError, setPlayerError] = useState<PreviewPlayerError | null>(
     null,
   );
-  const [playerReloadVersion, setPlayerReloadVersion] = useState(0);
   const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [view, setView] = useState<"preview" | "settings">("preview");
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoWellRef = useRef<HTMLDivElement>(null);
-  const playerRecoveryAttempted = useRef(new Set<string>());
   const [playerSize, setPlayerSize] = useState<Readonly<{
     width: number;
     height: number;
@@ -411,10 +409,9 @@ export const App = () => {
   useEffect(() => {
     setCurrentFrame(0);
     setPlayerError(null);
-    playerRecoveryAttempted.current.clear();
     setDeleteCandidate(null);
     setDeleteConfirmation("");
-  }, [state?.selectedStoryId, selectedEntry?.deliveryBuildId]);
+  }, [state?.selectedStoryId, selectedEntry?.videoUrl]);
 
   useEffect(() => {
     const well = videoWellRef.current;
@@ -444,14 +441,17 @@ export const App = () => {
   }, [selectedVideoHeight, selectedVideoWidth]);
 
   const runStateAction = useCallback(
-    async (action: () => Promise<DesktopAppState>) => {
+    async (
+      action: () => Promise<DesktopAppState>,
+      failureMessage = "操作未完成。请重试；若 Engine 不可用，请点击重试 Engine。",
+    ) => {
       setBusy(true);
       setActionError(null);
       try {
         setState(await action());
         return true;
       } catch {
-        setActionError("操作未完成。请刷新 Catalog 或重试 Engine。");
+        setActionError(failureMessage);
         return false;
       } finally {
         setBusy(false);
@@ -460,25 +460,15 @@ export const App = () => {
     [],
   );
 
-  useEffect(() => {
-    const videoUrl = selectedEntry?.videoUrl;
-    if (
-      videoUrl === undefined ||
-      playerError?.videoUrl !== videoUrl ||
-      state?.activeWork !== null ||
-      playerRecoveryAttempted.current.has(videoUrl)
-    ) {
-      return;
-    }
-    playerRecoveryAttempted.current.add(videoUrl);
-    void runStateAction(() => window.axmorfStudio.refreshPreviewCatalog()).then(
-      (refreshed) => {
-        if (!refreshed) return;
-        setPlayerError(null);
-        setPlayerReloadVersion((version) => version + 1);
-      },
+  const recoverPlayback = useCallback(async () => {
+    const storyId = selectedEntry?.storyId;
+    if (storyId === undefined) return;
+    const recovered = await runStateAction(
+      () => window.axmorfStudio.recoverPreviewPlayback(storyId),
+      "媒体播放恢复失败。Delivery 与 Catalog 未改变；请再次点击“恢复播放”，若仍失败再重新打开 App。",
     );
-  }, [playerError, runStateAction, selectedEntry?.videoUrl, state?.activeWork]);
+    if (recovered) setPlayerError(null);
+  }, [runStateAction, selectedEntry?.storyId]);
 
   const seek = useCallback(
     (frame: number) => {
@@ -617,13 +607,10 @@ export const App = () => {
             className="icon-button"
             disabled={busy}
             onClick={() => {
-              void runStateAction(() =>
-                window.axmorfStudio.refreshPreviewCatalog(),
-              ).then((refreshed) => {
-                if (!refreshed) return;
-                setPlayerError(null);
-                setPlayerReloadVersion((version) => version + 1);
-              });
+              void runStateAction(
+                () => window.axmorfStudio.refreshPreviewCatalog(),
+                "Preview Catalog 同步失败。请重试 Catalog 刷新或重试 Engine。",
+              );
             }}
           >
             ↻
@@ -871,14 +858,21 @@ export const App = () => {
               <video
                 controls
                 height={selectedEntry.height}
-                key={`${selectedEntry.videoUrl}:${playerReloadVersion}`}
+                key={selectedEntry.videoUrl}
+                onCanPlay={() =>
+                  setPlayerError((current) =>
+                    current?.videoUrl === selectedEntry.videoUrl
+                      ? null
+                      : current,
+                  )
+                }
                 onError={() =>
                   setPlayerError({
                     videoUrl: selectedEntry.videoUrl,
                     message:
                       state.activeWork === null
-                        ? "视频身份正在自动同步；若仍失败请刷新 Catalog。"
-                        : "Delivery 正在更新，完成后会自动重新载入。",
+                        ? "媒体播放连接已失效；Delivery 仍有效。请点击“恢复播放”重新签发媒体请求。"
+                        : "Delivery 正在更新；完成后如仍失败，请点击“恢复播放”。",
                   })
                 }
                 preload="auto"
@@ -893,7 +887,13 @@ export const App = () => {
               />
               {visiblePlayerError !== null ? (
                 <div className="player-error" role="alert">
-                  {visiblePlayerError}
+                  <span>{visiblePlayerError}</span>
+                  <button
+                    disabled={busy || state.activeWork !== null}
+                    onClick={() => void recoverPlayback()}
+                  >
+                    恢复播放
+                  </button>
                 </div>
               ) : null}
             </div>

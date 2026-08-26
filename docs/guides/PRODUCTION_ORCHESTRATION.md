@@ -74,6 +74,10 @@ stale。repository 与 Workspace adapters 都继续按 current stale gate fail c
 focused check 和 prepare 返回的 commit/failure commands。Scene child 完整读取 repository-local
 `remotion-best-practices`。
 
+GlobalVisual executor 还必须服从 `inputs/context.json` 中 fixed 派生的 `layerPolicy`：只让
+`GlobalVisualBaseLayer` 提供全片稳定底板，让 `GlobalVisualDecorationLayers` 以 narrated window 起点为 local frame 0；
+不能把 decoration、continuity motif 或 Beat-specific 变化塞入 base 以绕过 silent boundary gate。
+
 executor 只能在自己的 workspace 循环：
 
 ```bash

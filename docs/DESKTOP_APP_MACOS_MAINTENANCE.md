@@ -324,6 +324,8 @@ Project schema migration 使用 same-parent staging、完整验证和 rollback�
 - Codex/Hermes workspace-local integration 与 Skill install/repair/uninstall；
 - `rsp` 在 App connected/disconnected/版本不兼容时的结构化结果；
 - Preview Catalog refresh 后出现新 current Project/Delivery，播放、音频、seek 和 Scene/旁白/字幕时间轴正确；
+- 同一 App 进程内制造真实 custom-protocol 媒体失败后，“恢复播放”轮换 request nonce 与 MediaTicket/FileHandle，
+  保持 DeliveryBuildId 不变，并恢复 `loadedmetadata`、`canplay` 与实际播放；轮换前的并发 Range 响应必须完整结束；
 - App-owned packaged runtime 没有常驻 TCP listener；DeliveryBuild期间唯一listener精确为`127.0.0.1` OS-ephemeral，
   终态/退出后归零；Forge Vite 开发端口不能作为该证据；
 - manual policy 到 `source-current` 且不生成 Delivery，UI 明确显示无可播放预览；

@@ -341,6 +341,11 @@ production-capable `rsp-local-v2`、managed Skill、`source-current`/optional De
 automatic Preview Catalog refresh 已有 executable implementation 和 focused tests。普通 Engine bundle 不再携带
 repository、npm、Settings Web 或 Remotion Studio runtime authority。
 
+Preview Player 的故障恢复与 Catalog 同步是两条独立语义：Catalog refresh 只同步 Engine 投影；播放器 `onError`
+触发的“恢复播放”不调用 Engine，而由 Main 为当前 Story 撤销并重签 MediaTicket/FileHandle。新的 opaque URL 使用独立
+request nonce，`storyId + deliveryBuildId` 的 Delivery 身份保持不变；轮换前已取得租约的 Range 响应允许安全读完，旧
+URL 随 Ticket 撤销而拒绝新请求。
+
 当前 implementation 已加入：checksum-bound exact Remotion bundler/renderer 内部依赖、Workspace-only disposable bundle、
 DeliveryBuild 范围内严格 `127.0.0.1`/OS-ephemeral listener、manual/automatic exact-four-file Delivery 与退出清理。UDS
 仍是唯一 control plane；App 不启动 Remotion Studio UI、Studio Server、Settings Web service，也不暴露 CLI/Studio launch

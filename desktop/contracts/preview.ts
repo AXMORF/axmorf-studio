@@ -15,6 +15,9 @@ export const DESKTOP_PREVIEW_CATALOG_VERSION =
 export const DESKTOP_PREVIEW_PLAYER_VERSION =
   "desktop-preview-player-v1" as const;
 export const DESKTOP_MEDIA_SCHEME = "axmorf-media" as const;
+export const PreviewMediaRequestNonceSchema = z
+  .string()
+  .regex(/^[a-f0-9]{32}$/u);
 
 const FrameSchema = z.number().int().nonnegative().safe();
 const PositiveFrameSchema = z.number().int().positive().safe();
@@ -217,7 +220,7 @@ export const PreviewCatalogEntrySchema = z
 const PreviewVideoUrlSchema = z
   .string()
   .regex(
-    /^axmorf-media:\/\/delivery\/[a-z0-9]+(?:-[a-z0-9]+)*\/delivery-[0-9a-f]{64}\/video\.mp4$/u,
+    /^axmorf-media:\/\/delivery\/[a-z0-9]+(?:-[a-z0-9]+)*\/delivery-[0-9a-f]{64}\/request-[a-f0-9]{32}\/video\.mp4$/u,
   );
 
 export const PreviewPlayerEntrySchema = z
@@ -391,18 +394,46 @@ export type PreviewCatalogReadiness = z.infer<
 >;
 export type PreviewPlayerCatalog = z.infer<typeof PreviewPlayerCatalogSchema>;
 export type PreviewPlayerEntry = z.infer<typeof PreviewPlayerEntrySchema>;
-export type DesktopProjectStatus = z.infer<
-  typeof DesktopProjectStatusSchema
->;
+export type DesktopProjectStatus = z.infer<typeof DesktopProjectStatusSchema>;
+
+export type PreviewMediaRequest = Readonly<{
+  storyId: PreviewCatalogEntry["storyId"];
+  deliveryBuildId: PreviewCatalogEntry["deliveryBuildId"];
+  requestNonce: z.infer<typeof PreviewMediaRequestNonceSchema>;
+}>;
 
 export const buildPreviewVideoUrl = ({
   storyId,
   deliveryBuildId,
-}: Pick<PreviewCatalogEntry, "storyId" | "deliveryBuildId">) =>
-  `${DESKTOP_MEDIA_SCHEME}://delivery/${encodeURIComponent(storyId)}/${encodeURIComponent(deliveryBuildId)}/video.mp4`;
+  requestNonce,
+}: PreviewMediaRequest) =>
+  `${DESKTOP_MEDIA_SCHEME}://delivery/${storyId}/${deliveryBuildId}/request-${requestNonce}/video.mp4`;
+
+export const parsePreviewVideoUrl = (
+  value: string,
+): PreviewMediaRequest | null => {
+  const match =
+    /^axmorf-media:\/\/delivery\/([a-z0-9]+(?:-[a-z0-9]+)*)\/(delivery-[0-9a-f]{64})\/request-([a-f0-9]{32})\/video\.mp4$/u.exec(
+      value,
+    );
+  if (match === null) return null;
+  const parsed = z
+    .strictObject({
+      storyId: StoryIdSchema,
+      deliveryBuildId: DeliveryBuildIdSchema,
+      requestNonce: PreviewMediaRequestNonceSchema,
+    })
+    .safeParse({
+      storyId: match[1],
+      deliveryBuildId: match[2],
+      requestNonce: match[3],
+    });
+  return parsed.success ? parsed.data : null;
+};
 
 export const projectPreviewCatalogForPlayer = (
   catalog: PreviewCatalog,
+  resolveVideoUrl: (entry: PreviewCatalogEntry) => string,
 ): PreviewPlayerCatalog =>
   PreviewPlayerCatalogSchema.parse({
     schemaVersion: 1,
@@ -410,7 +441,7 @@ export const projectPreviewCatalogForPlayer = (
     entries: catalog.entries.map((catalogEntry) => {
       const { video, ...entry } = catalogEntry;
       void video;
-      return { ...entry, videoUrl: buildPreviewVideoUrl(entry) };
+      return { ...entry, videoUrl: resolveVideoUrl(catalogEntry) };
     }),
     unavailable: catalog.unavailable,
   });

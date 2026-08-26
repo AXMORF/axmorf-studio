@@ -172,7 +172,7 @@ test("owner materialization atomically replaces src/public/file roots and verifi
     commit(rootDir, global, {
       "project/global-visual-plan.json": "{}\n",
       "src/GlobalVisualLayers.tsx":
-        "export const GlobalVisualLayers = () => null;",
+        "export const GlobalVisualBaseLayer = () => null; export const GlobalVisualDecorationLayers = () => null;",
     }),
   ]);
   const oldScene = join(rootDir, "src/projects/story-example/scenes/opening");

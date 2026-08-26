@@ -678,12 +678,24 @@ button:disabled {
 
 .player-error {
   position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
   inset: auto 18px 18px;
   border-left: 3px solid var(--danger);
   padding: 12px;
   background: rgb(29 28 26 / 92%);
   color: #f3c4bb;
   font-size: 12px;
+}
+
+.player-error button {
+  flex: none;
+  border: 1px solid #c88778;
+  padding: 7px 10px;
+  background: transparent;
+  color: #f3c4bb;
 }
 
 .viewer-empty {

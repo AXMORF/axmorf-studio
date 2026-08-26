@@ -51,7 +51,8 @@ npm run desktop:release:verify -- --root "$release_root"
 复验单一目标架构 App/Runtime Pack/Electron/Chromium/FFmpeg/FFprobe/Node SEA/`rsp`/compositor、复制到隔离
 Applications 目录，并以空 host-tools `PATH` 完成 first-run window、workspace-local `rsp doctor`、Preview shell launch、
 独立 Settings form/加密 save/Engine restart、local `rsp schema project-create`、wrapper rejection、valid raw create、
-无外部 TCP 和退出 cleanup。
+无外部 TCP 和退出 cleanup。前置 Phase C gate 还必须包含同一 App 进程内的真实媒体失败与“恢复播放”证据，不能用
+DMG 首次启动或普通 Catalog refresh 替代 Ticket/FileHandle/request nonce 轮换。
 
 ## 3. release artifact contract
 
@@ -111,10 +112,14 @@ exact commit `e82dd2b90d291ba87a26a1a2d1cc4d327dbaea9c` 的 manual-only Actions 
 
 下载后的 release set 已复跑 strict validators、checksum、exact regular-file inventory 与 redaction：
 
-| Architecture | DMG | Bytes | SHA-256 |
-| --- | --- | ---: | --- |
-| arm64 | `AXMORF-Studio-0.1.0-mac-arm64-full-unsigned.dmg` | 356232619 | `00a8a62909c1ab3df978ff4dd1a63b01f3a65d487321597a462b655958b1abf3` |
-| x64 | `AXMORF-Studio-0.1.0-mac-x64-full-unsigned.dmg` | 370199416 | `ef334455bbf6bba6a7075fb48c6b0e1d0723b424775e5df3facdde07b6ec7f16` |
+| Architecture | DMG                                               |     Bytes | SHA-256                                                            |
+| ------------ | ------------------------------------------------- | --------: | ------------------------------------------------------------------ |
+| arm64        | `AXMORF-Studio-0.1.0-mac-arm64-full-unsigned.dmg` | 356232619 | `00a8a62909c1ab3df978ff4dd1a63b01f3a65d487321597a462b655958b1abf3` |
+| x64          | `AXMORF-Studio-0.1.0-mac-x64-full-unsigned.dmg`   | 370199416 | `ef334455bbf6bba6a7075fb48c6b0e1d0723b424775e5df3facdde07b6ec7f16` |
 
 这只关闭 internal installer artifact evidence。Remotion runtime redistribution permission 继续为 `not-satisfied`；
 Developer ID signing、notarization、auto-update 与 public GitHub Release 均未执行。
+
+该历史 release set 早于当前 Settings/create contract/playback recovery repair，不包含“恢复播放”的 request
+nonce/Ticket/FileHandle 轮换，也不能作为本轮 native 或 installer evidence。重新交付 Mac 包必须在 exact current commit
+上重跑第 2 节的 native gate、DMG、挂载安装与 release-set 验证。

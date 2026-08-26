@@ -452,8 +452,8 @@ export const rendererProbeSource = (playbackRequired: boolean) =>
     if (state.status !== "ready" || state.catalog.entries.length !== 1) {
       throw new Error("renderer-catalog-selection-failed");
     }
-    // Selection refreshes the signed media ticket and intentionally remounts
-    // the player. Probe the current node, never the detached pre-selection one.
+    // Selection can rerender the shell. Probe the current node after the
+    // controlled selection boundary, never a previously captured node.
     const video = document.querySelector("video");
     if (video === null) throw new Error("renderer-video-after-selection-missing");
     video.addEventListener("error", () => {
@@ -602,6 +602,131 @@ export const rendererProbeSource = (playbackRequired: boolean) =>
   }
 }))()`;
 
+export const rendererRecoveryProbeSource = `(() => new Promise(async (resolve, reject) => {
+  const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+  const until = async (predicate, label, timeout = 30000) => {
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      if (await predicate()) return;
+      await sleep(50);
+    }
+    throw new Error("renderer-recovery-timeout:" + label);
+  };
+  const mediaEvents = [];
+  const recordMediaEvent = (event) => {
+    if (event.target instanceof HTMLVideoElement) mediaEvents.push(event.type);
+  };
+  document.addEventListener("loadedmetadata", recordMediaEvent, true);
+  document.addEventListener("canplay", recordMediaEvent, true);
+  try {
+    const stateBefore = await window.axmorfStudio.getAppState();
+    const entryBefore = stateBefore.catalog.entries.find(
+      (entry) => entry.storyId === stateBefore.selectedStoryId,
+    );
+    const videoBefore = document.querySelector("video");
+    if (entryBefore === undefined || videoBefore === null) {
+      throw new Error("renderer-recovery-player-missing");
+    }
+    const failedRequestUrl = entryBefore.videoUrl.replace(
+      /request-[a-f0-9]{32}/,
+      "request-" + "0".repeat(32),
+    );
+    if (failedRequestUrl === entryBefore.videoUrl) {
+      throw new Error("renderer-recovery-failure-url-invalid");
+    }
+    let failureErrorCode = null;
+    videoBefore.addEventListener(
+      "error",
+      () => {
+        failureErrorCode = videoBefore.error?.code ?? -1;
+      },
+      {once: true},
+    );
+    videoBefore.src = failedRequestUrl;
+    videoBefore.load();
+    await until(
+      () => failureErrorCode !== null && document.querySelector(".player-error") !== null,
+      "player-error",
+    );
+    const recovery = Array.from(
+      document.querySelectorAll(".player-error button"),
+    ).find((button) => button.textContent?.includes("恢复播放"));
+    if (recovery === undefined) {
+      throw new Error("renderer-recovery-action-missing");
+    }
+    recovery.click();
+    let stateAfter = stateBefore;
+    await until(async () => {
+      stateAfter = await window.axmorfStudio.getAppState();
+      const current = stateAfter.catalog.entries.find(
+        (entry) => entry.storyId === entryBefore.storyId,
+      );
+      return current?.videoUrl !== entryBefore.videoUrl;
+    }, "request-generation");
+    const entryAfter = stateAfter.catalog.entries.find(
+      (entry) => entry.storyId === entryBefore.storyId,
+    );
+    if (entryAfter === undefined) {
+      throw new Error("renderer-recovery-entry-missing");
+    }
+    await until(
+      () => {
+        const current = document.querySelector("video");
+        return (
+          current !== null &&
+          current !== videoBefore &&
+          current.getAttribute("src") === entryAfter.videoUrl
+        );
+      },
+      "video-remount",
+    );
+    const videoAfter = document.querySelector("video");
+    if (videoAfter === null) {
+      throw new Error("renderer-recovery-video-missing");
+    }
+    await until(
+      () => videoAfter.readyState >= 2 && Number.isFinite(videoAfter.duration),
+      "canplay",
+    );
+    await until(
+      () => mediaEvents.includes("loadedmetadata") && mediaEvents.includes("canplay"),
+      "media-events",
+    );
+    const playbackStart = videoAfter.currentTime;
+    let playbackRejection = null;
+    void videoAfter.play().catch((error) => {
+      playbackRejection = error instanceof Error ? error.name : "playback-rejected";
+    });
+    await until(
+      () => videoAfter.currentTime > playbackStart + 0.05 || playbackRejection !== null,
+      "playback",
+    );
+    videoAfter.pause();
+    if (playbackRejection !== null) {
+      throw new Error("renderer-recovery-playback-rejected:" + playbackRejection);
+    }
+    resolve({
+      storyId: entryAfter.storyId,
+      deliveryBuildIdBefore: entryBefore.deliveryBuildId,
+      deliveryBuildIdAfter: entryAfter.deliveryBuildId,
+      failedRequestUrl,
+      failureErrorCode,
+      videoUrlBefore: entryBefore.videoUrl,
+      videoUrlAfter: entryAfter.videoUrl,
+      mediaEvents,
+      readyState: videoAfter.readyState,
+      playedTime: videoAfter.currentTime,
+      playerError: document.querySelector(".player-error")?.textContent ?? null,
+      sameRendererProcess: true,
+    });
+  } catch (error) {
+    reject(error);
+  } finally {
+    document.removeEventListener("loadedmetadata", recordMediaEvent, true);
+    document.removeEventListener("canplay", recordMediaEvent, true);
+  }
+}))()`;
+
 const fileExists = async (path: string) => {
   try {
     await readFile(path);
@@ -669,13 +794,20 @@ export const runPackagedNativeSmoke = async ({
     );
     await writeFile(
       join(options.outputRoot, "settings-probe.json"),
-      `${JSON.stringify({
-        exactCommit: process.env.GITHUB_SHA ?? "local-unverified",
-        settings,
-      }, null, 2)}\n`,
+      `${JSON.stringify(
+        {
+          exactCommit: process.env.GITHUB_SHA ?? "local-unverified",
+          settings,
+        },
+        null,
+        2,
+      )}\n`,
       { mode: 0o600 },
     );
-    await window.webContents.executeJavaScript(returnToPreviewProbeSource, true);
+    await window.webContents.executeJavaScript(
+      returnToPreviewProbeSource,
+      true,
+    );
     await writeFile(join(options.outputRoot, "app-ready"), "ready\n", {
       mode: 0o600,
     });
@@ -762,11 +894,67 @@ export const runPackagedNativeSmoke = async ({
       window.webContents.downloadURL("data:text/plain,blocked-native-download");
     }
     await waitFor(() => downloadAttempted, "download-policy");
-    const state = controller.getState();
-    if (state.status !== "ready" || state.catalog.entries.length !== 1) {
+    const stateBeforeRecovery = controller.getState();
+    if (
+      stateBeforeRecovery.status !== "ready" ||
+      stateBeforeRecovery.catalog.entries.length !== 1
+    ) {
       throw new Error("desktop-native-smoke-state-invalid");
     }
+    const entryBeforeRecovery = stateBeforeRecovery.catalog.entries[0]!;
+    const inFlightResponse = await media.handleRequest(
+      new Request(entryBeforeRecovery.videoUrl, {
+        headers: { range: "bytes=0-" },
+      }),
+    );
+    if (inFlightResponse.status !== 206 || inFlightResponse.body === null) {
+      throw new Error("desktop-native-smoke-recovery-range-missing");
+    }
+    const inFlightLength = Number(
+      inFlightResponse.headers.get("content-length"),
+    );
+    if (!Number.isSafeInteger(inFlightLength) || inFlightLength <= 64 * 1024) {
+      throw new Error("desktop-native-smoke-recovery-range-too-small");
+    }
+    const inFlightReader = inFlightResponse.body.getReader();
+    const firstInFlightChunk = await inFlightReader.read();
+    if (firstInFlightChunk.done || firstInFlightChunk.value === undefined) {
+      throw new Error("desktop-native-smoke-recovery-range-empty");
+    }
+    const rendererProcessBeforeRecovery = window.webContents.getOSProcessId();
+    const recovery = (await window.webContents.executeJavaScript(
+      rendererRecoveryProbeSource,
+      true,
+    )) as {
+      storyId: string;
+      deliveryBuildIdBefore: string;
+      deliveryBuildIdAfter: string;
+      failedRequestUrl: string;
+      failureErrorCode: number | null;
+      videoUrlBefore: string;
+      videoUrlAfter: string;
+      mediaEvents: readonly string[];
+      readyState: number;
+      playedTime: number;
+      playerError: string | null;
+      sameRendererProcess: boolean;
+    };
+    const rendererProcessAfterRecovery = window.webContents.getOSProcessId();
+    let inFlightBytes = firstInFlightChunk.value.byteLength;
+    for (;;) {
+      const chunk = await inFlightReader.read();
+      if (chunk.done) break;
+      inFlightBytes += chunk.value.byteLength;
+    }
+    const state = controller.getState();
+    if (state.status !== "ready" || state.catalog.entries.length !== 1) {
+      throw new Error("desktop-native-smoke-recovery-state-invalid");
+    }
     const entry = state.catalog.entries[0]!;
+    const [retiredRequest, recoveredRequest] = await Promise.all([
+      media.handleRequest(new Request(entryBeforeRecovery.videoUrl)),
+      media.handleRequest(new Request(entry.videoUrl, { method: "HEAD" })),
+    ]);
     const rendererGateFailures: string[] = [];
     const requireRenderer = (condition: boolean, label: string) => {
       if (!condition) rendererGateFailures.push(label);
@@ -806,6 +994,49 @@ export const runPackagedNativeSmoke = async ({
       "playback-result",
     );
     requireRenderer(renderer.media.positions !== null, "seek-requirement");
+    requireRenderer(
+      recovery.storyId === entry.storyId,
+      "recovery-story-identity",
+    );
+    requireRenderer(
+      recovery.deliveryBuildIdBefore === recovery.deliveryBuildIdAfter &&
+        recovery.deliveryBuildIdAfter === entry.deliveryBuildId,
+      "recovery-delivery-identity",
+    );
+    requireRenderer(
+      recovery.videoUrlBefore === entryBeforeRecovery.videoUrl &&
+        recovery.videoUrlAfter === entry.videoUrl &&
+        recovery.videoUrlAfter !== recovery.videoUrlBefore,
+      "recovery-request-generation",
+    );
+    requireRenderer(
+      recovery.mediaEvents.includes("loadedmetadata") &&
+        recovery.mediaEvents.includes("canplay"),
+      "recovery-media-events",
+    );
+    requireRenderer(
+      recovery.failedRequestUrl !== recovery.videoUrlBefore &&
+        recovery.failureErrorCode !== null,
+      "recovery-real-media-failure",
+    );
+    requireRenderer(
+      recovery.readyState >= HAVE_CURRENT_DATA && recovery.playedTime > 0,
+      "recovery-playback",
+    );
+    requireRenderer(recovery.playerError === null, "recovery-player-error");
+    requireRenderer(
+      recovery.sameRendererProcess &&
+        rendererProcessBeforeRecovery === rendererProcessAfterRecovery,
+      "recovery-process",
+    );
+    requireRenderer(
+      retiredRequest.status === 404 && recoveredRequest.status === 200,
+      "recovery-ticket-revocation",
+    );
+    requireRenderer(
+      inFlightBytes === inFlightLength,
+      "recovery-in-flight-range",
+    );
     requireRenderer(
       renderer.timeline.sceneCount === 4,
       `scene-track:${renderer.timeline.sceneCount}:expected-4`,
@@ -876,6 +1107,15 @@ export const runPackagedNativeSmoke = async ({
           capturedAt: new Date().toISOString(),
           selection: options.selection,
           renderer,
+          recovery: {
+            ...recovery,
+            retiredRequestStatus: retiredRequest.status,
+            recoveredRequestStatus: recoveredRequest.status,
+            inFlightBytes,
+            inFlightLength,
+            rendererProcessBeforeRecovery,
+            rendererProcessAfterRecovery,
+          },
           gateFailures: rendererGateFailures,
         },
         null,

@@ -149,6 +149,23 @@ test("Cover task rejects network-backed source", async (context) => {
   );
 });
 
+test("Cover task rejects GlobalVisual layer ownership", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-cover-global-visual-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const { locations, task } = await createCoverWorkspace({
+    rootDir,
+    sources: {
+      ...validSources(),
+      "Cover4x3.tsx": `const GlobalVisualBaseLayer = () => <div />; const Cover4x3 = () => <GlobalVisualBaseLayer />; export default Cover4x3;`,
+    },
+  });
+
+  await assert.rejects(
+    checkCoverTask({ locations, taskRevision: task.taskRevision }),
+    /code-only boundary: GlobalVisualBaseLayer/u,
+  );
+});
+
 test("Cover task rejects a Composition with the wrong fixed dimensions", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-cover-dimensions-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));

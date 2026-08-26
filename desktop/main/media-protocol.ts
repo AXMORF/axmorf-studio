@@ -1,14 +1,16 @@
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { constants } from "node:fs";
 import { lstat, open, realpath, type FileHandle } from "node:fs/promises";
 import { join } from "node:path";
-import { Readable } from "node:stream";
 
 import {
   buildPreviewVideoUrl,
   DESKTOP_MEDIA_SCHEME,
+  parsePreviewVideoUrl,
+  projectPreviewCatalogForPlayer,
   type PreviewCatalog,
   type PreviewCatalogEntry,
+  type PreviewPlayerCatalog,
 } from "../contracts/preview";
 
 const VIDEO_CONTENT_TYPE = "video/mp4";
@@ -22,13 +24,19 @@ type FileIdentity = Readonly<{
   ctimeNs: bigint;
 }>;
 
-type MediaTicket = Readonly<{
+type MediaTicket = {
+  readonly storyId: PreviewCatalogEntry["storyId"];
+  readonly deliveryBuildId: PreviewCatalogEntry["deliveryBuildId"];
+  readonly requestNonce: string;
   url: string;
   path: string;
   handle: FileHandle;
   checksum: string;
   identity: FileIdentity;
-}>;
+  activeRequests: number;
+  retired: boolean;
+  closePromise: Promise<void> | null;
+};
 
 type ByteRange = Readonly<{ start: number; end: number }>;
 
@@ -99,10 +107,41 @@ const parseRange = (header: string | null, size: number): ByteRange | null => {
 const rangeStream = (
   handle: FileHandle,
   { start, end }: ByteRange,
-): ReadableStream<Uint8Array> =>
-  Readable.toWeb(
-    handle.createReadStream({ autoClose: false, start, end }),
-  ) as ReadableStream<Uint8Array>;
+  release: () => void,
+): ReadableStream<Uint8Array> => {
+  let position = start;
+  let released = false;
+  const releaseOnce = () => {
+    if (released) return;
+    released = true;
+    release();
+  };
+  return new ReadableStream<Uint8Array>({
+    pull: async (controller) => {
+      if (position > end) {
+        controller.close();
+        releaseOnce();
+        return;
+      }
+      const length = Math.min(READ_CHUNK_BYTES, end - position + 1);
+      const buffer = Buffer.allocUnsafe(length);
+      try {
+        const { bytesRead } = await handle.read(buffer, 0, length, position);
+        if (bytesRead === 0) throw new Error("desktop-media-truncated");
+        position += bytesRead;
+        controller.enqueue(buffer.subarray(0, bytesRead));
+        if (position > end) {
+          controller.close();
+          releaseOnce();
+        }
+      } catch (error) {
+        controller.error(error);
+        releaseOnce();
+      }
+    },
+    cancel: () => releaseOnce(),
+  });
+};
 
 const unavailable = (status: number) =>
   new Response(null, {
@@ -121,37 +160,27 @@ export class DesktopMediaProtocol {
     this.#deliveryRoot = join(workspaceRoot, "deliveries");
   };
 
-  replaceCatalog = async (catalog: PreviewCatalog) => {
+  replaceCatalog = async (
+    catalog: PreviewCatalog,
+  ): Promise<PreviewPlayerCatalog> => {
     if (this.#closed) throw new Error("desktop-media-protocol-closed");
-    const next = new Map<string, MediaTicket>();
     try {
-      for (const entry of catalog.entries) {
-        const url = buildPreviewVideoUrl(entry);
-        const previous = this.#tickets.get(url);
-        const ticket =
-          previous !== undefined &&
-          previous.checksum === entry.video.checksum &&
-          previous.identity.size === entry.video.sizeBytes &&
-          (await this.#isCurrent(previous))
-            ? previous
-            : await this.#openTicket(entry);
-        if (next.has(ticket.url)) throw new Error("desktop-media-url-conflict");
-        next.set(ticket.url, ticket);
-      }
+      return await this.#bindCatalog(catalog, null);
     } catch (error) {
-      await Promise.allSettled(
-        [...next.values()].map(({ handle }) => handle.close()),
-      );
       await this.#replaceTickets(new Map());
       throw error;
     }
-    if (this.#closed) {
-      await Promise.allSettled(
-        [...next.values()].map(({ handle }) => handle.close()),
-      );
-      throw new Error("desktop-media-protocol-closed");
+  };
+
+  recoverPlayback = async (
+    catalog: PreviewCatalog,
+    storyId: PreviewCatalogEntry["storyId"],
+  ): Promise<PreviewPlayerCatalog> => {
+    if (this.#closed) throw new Error("desktop-media-protocol-closed");
+    if (!catalog.entries.some((entry) => entry.storyId === storyId)) {
+      throw new Error("desktop-media-recovery-entry-missing");
     }
-    await this.#replaceTickets(next);
+    return this.#bindCatalog(catalog, storyId);
   };
 
   handleRequest = async (request: Request) => {
@@ -166,13 +195,28 @@ export class DesktopMediaProtocol {
         },
       });
     }
-    const ticket = this.#tickets.get(request.url);
+    const mediaRequest = parsePreviewVideoUrl(request.url);
+    if (mediaRequest === null) return unavailable(404);
+    const ticket = this.#tickets.get(mediaRequest.storyId);
     if (ticket === undefined) return unavailable(404);
-    if (!(await this.#isCurrent(ticket))) return unavailable(409);
+    if (
+      ticket.deliveryBuildId !== mediaRequest.deliveryBuildId ||
+      ticket.requestNonce !== mediaRequest.requestNonce ||
+      ticket.url !== request.url
+    ) {
+      return unavailable(404);
+    }
+    const release = this.#acquire(ticket);
+    if (release === null) return unavailable(404);
+    if (!(await this.#isCurrent(ticket))) {
+      release();
+      return unavailable(409);
+    }
 
     const rangeHeader = request.headers.get("range");
     const range = parseRange(rangeHeader, ticket.identity.size);
     if (range === null) {
+      release();
       return new Response(null, {
         status: 416,
         headers: {
@@ -197,8 +241,11 @@ export class DesktopMediaProtocol {
         `bytes ${range.start}-${range.end}/${ticket.identity.size}`,
       );
     }
+    if (request.method === "HEAD") release();
     return new Response(
-      request.method === "HEAD" ? null : rangeStream(ticket.handle, range),
+      request.method === "HEAD"
+        ? null
+        : rangeStream(ticket.handle, range, release),
       { status: isPartial ? 206 : 200, headers },
     );
   };
@@ -213,11 +260,7 @@ export class DesktopMediaProtocol {
     if (this.#deliveryRoot === null) {
       throw new Error("desktop-media-workspace-not-selected");
     }
-    const path = join(
-      this.#deliveryRoot,
-      entry.storyId,
-      "video.mp4",
-    );
+    const path = join(this.#deliveryRoot, entry.storyId, "video.mp4");
     const pathStat = await lstat(path, { bigint: true });
     if (!pathStat.isFile() || pathStat.isSymbolicLink()) {
       throw new Error("desktop-media-file-invalid");
@@ -235,12 +278,23 @@ export class DesktopMediaProtocol {
       ) {
         throw new Error("desktop-media-identity-invalid");
       }
+      const requestNonce = randomBytes(16).toString("hex");
       return {
-        url: buildPreviewVideoUrl(entry),
+        storyId: entry.storyId,
+        deliveryBuildId: entry.deliveryBuildId,
+        requestNonce,
+        url: buildPreviewVideoUrl({
+          storyId: entry.storyId,
+          deliveryBuildId: entry.deliveryBuildId,
+          requestNonce,
+        }),
         path,
         handle,
         checksum: entry.video.checksum,
         identity,
+        activeRequests: 0,
+        retired: false,
+        closePromise: null,
       };
     } catch (error) {
       await handle.close();
@@ -271,6 +325,84 @@ export class DesktopMediaProtocol {
     }
   };
 
+  #bindCatalog = async (
+    catalog: PreviewCatalog,
+    recoveryStoryId: PreviewCatalogEntry["storyId"] | null,
+  ) => {
+    const next = new Map<string, MediaTicket>();
+    const opened: MediaTicket[] = [];
+    try {
+      for (const entry of catalog.entries) {
+        const previous = this.#tickets.get(entry.storyId);
+        const ticket =
+          entry.storyId !== recoveryStoryId &&
+          previous !== undefined &&
+          previous.deliveryBuildId === entry.deliveryBuildId &&
+          previous.checksum === entry.video.checksum &&
+          previous.identity.size === entry.video.sizeBytes &&
+          (await this.#isCurrent(previous))
+            ? previous
+            : await this.#openTicket(entry);
+        if (ticket !== previous) opened.push(ticket);
+        if (next.has(entry.storyId)) {
+          throw new Error("desktop-media-story-conflict");
+        }
+        next.set(entry.storyId, ticket);
+      }
+      if (this.#closed) throw new Error("desktop-media-protocol-closed");
+      const playerCatalog = projectPreviewCatalogForPlayer(catalog, (entry) => {
+        const ticket = next.get(entry.storyId);
+        if (
+          ticket === undefined ||
+          ticket.deliveryBuildId !== entry.deliveryBuildId
+        ) {
+          throw new Error("desktop-media-ticket-missing");
+        }
+        return ticket.url;
+      });
+      await this.#replaceTickets(next);
+      return playerCatalog;
+    } catch (error) {
+      await Promise.allSettled(opened.map(({ handle }) => handle.close()));
+      throw error;
+    }
+  };
+
+  #acquire = (ticket: MediaTicket) => {
+    if (ticket.retired) return null;
+    ticket.activeRequests += 1;
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      ticket.activeRequests -= 1;
+      if (ticket.activeRequests < 0) {
+        throw new Error("desktop-media-ticket-lease-invalid");
+      }
+      void this.#closeIfIdle(ticket)?.catch(() => undefined);
+    };
+  };
+
+  #closeIfIdle = (ticket: MediaTicket) => {
+    if (
+      !ticket.retired ||
+      ticket.activeRequests !== 0 ||
+      ticket.closePromise !== null
+    ) {
+      return ticket.closePromise;
+    }
+    ticket.closePromise = ticket.handle.close();
+    return ticket.closePromise;
+  };
+
+  #retire = (ticket: MediaTicket) => {
+    // Removing the ticket blocks new lookups immediately. A response that
+    // acquired its lease before rotation keeps the descriptor alive until its
+    // body finishes or is cancelled.
+    ticket.retired = true;
+    return this.#closeIfIdle(ticket);
+  };
+
   #replaceTickets = async (next: Map<string, MediaTicket>) => {
     const previous = this.#tickets;
     this.#tickets = next;
@@ -278,7 +410,7 @@ export class DesktopMediaProtocol {
     await Promise.allSettled(
       [...previous.values()]
         .filter((ticket) => !retained.has(ticket))
-        .map(({ handle }) => handle.close()),
+        .map((ticket) => this.#retire(ticket)),
     );
   };
 }

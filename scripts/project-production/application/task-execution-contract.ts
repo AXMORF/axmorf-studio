@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  GlobalVisualLayerPolicySchema,
   GlobalVisualPlanSchema,
   ReferenceFidelityReceiptSchema,
   SceneSoundPlanSchema,
@@ -40,10 +41,7 @@ const jsonOutput = ({
   readonly instructions: readonly string[];
   readonly derivedFields?: readonly string[];
   readonly example?: unknown;
-  readonly owner?:
-    | "agent"
-    | "rsp-finalize"
-    | "agent-draft-rsp-finalize";
+  readonly owner?: "agent" | "rsp-finalize" | "agent-draft-rsp-finalize";
 }) => ({
   path,
   owner,
@@ -155,13 +153,17 @@ export default Renderer;
           subject: `The subject of ${meaningId}.`,
           primaryAction: "Show one clear meaning-local action.",
           causalLink: "The action visibly advances the narrated idea.",
-          primaryComposition: "Use one readable focal composition inside the Scene viewport.",
-          styleRealization: ["Apply the exact current VisualStyle art direction."],
+          primaryComposition:
+            "Use one readable focal composition inside the Scene viewport.",
+          styleRealization: [
+            "Apply the exact current VisualStyle art direction.",
+          ],
           continuity: continuityBrief,
           orderedShotIds: [shotId],
           visualResourceIds: [],
           recipeDecision: "empty",
-          fallbackIntent: "Fail closed rather than load an undeclared resource.",
+          fallbackIntent:
+            "Fail closed rather than load an undeclared resource.",
         },
       }),
       jsonOutput({
@@ -278,6 +280,7 @@ const globalVisualContract = (rawContext: unknown): TaskExecutionContract => {
       readabilityPolicy?: { captionSafeAreaPx?: unknown };
     };
     resourcePool?: { resourceCatalogFingerprint?: unknown };
+    layerPolicy?: unknown;
   };
   const storyId = StoryIdSchema.parse(context.story?.storyId);
   const render = z
@@ -302,14 +305,15 @@ const globalVisualContract = (rawContext: unknown): TaskExecutionContract => {
   const catalogFingerprint = Sha256DigestSchema.parse(
     context.resourcePool?.resourceCatalogFingerprint,
   );
+  const layerPolicy = GlobalVisualLayerPolicySchema.parse(context.layerPolicy);
   return TaskExecutionContractSchema.parse({
     schemaVersion: 1,
     contractVersion: "agent-task-execution-contract-v1",
     taskKind: "global-visual-owner",
     purpose:
-      "Author visual-only full-composition background, texture, decoration, and continuity layers without taking Scene or text ownership.",
+      "Author one visual-only full-Composition base treatment plus narrated-content-only decoration and continuity layers without taking Scene or text ownership.",
     workflow: [
-      "Read the full Story, timing, render, readability, resource pool, VisualStyle, and GlobalVisual brief from inputs/context.json.",
+      "Read the full Story, timing, layer policy, render, readability, resource pool, VisualStyle, and GlobalVisual brief from inputs/context.json.",
       "Write the three declared outputs and replace examples with current creative decisions.",
       "Run rsp task finalize to canonicalize the plan and compute its fingerprint, then run rsp task check.",
       "Correct only this workspace until valid, then run the attempt-bound commit command.",
@@ -320,15 +324,21 @@ const globalVisualContract = (rawContext: unknown): TaskExecutionContract => {
         path: "src/GlobalVisualLayers.tsx",
         format: "tsx",
         instructions: [
-          "Export a zero-prop named component GlobalVisualLayers.",
-          "Use useCurrentFrame for motion and set pointerEvents: none on the root.",
+          "Export zero-prop named components GlobalVisualBaseLayer and GlobalVisualDecorationLayers.",
+          `GlobalVisualBaseLayer owns only the stable background board/texture for Composition frames ${layerPolicy.baseLayerFrameRange.startFrame}-${layerPolicy.baseLayerFrameRange.endFrame}; do not put Story-specific progress marks or continuity decoration in it.`,
+          `GlobalVisualDecorationLayers is mechanically mounted only for Composition frames ${layerPolicy.decorationLayerFrameRange.startFrame}-${layerPolicy.decorationLayerFrameRange.endFrame}; its useCurrentFrame origin is local frame 0 at the start of that window.`,
+          "Use useCurrentFrame for decoration motion and set pointerEvents: none on both component roots.",
           "Do not render visible text, Scene semantics, captions, narration, or audio.",
         ],
-        example: `import {useCurrentFrame} from "remotion";
+        example: `import {AbsoluteFill, useCurrentFrame} from "remotion";
 
-export const GlobalVisualLayers = () => {
+export const GlobalVisualBaseLayer = () => (
+  <AbsoluteFill style={{backgroundColor: "#fffdf9", pointerEvents: "none"}} />
+);
+
+export const GlobalVisualDecorationLayers = () => {
   const frame = useCurrentFrame();
-  return <div style={{position: "absolute", inset: 24, border: "2px solid rgba(255,253,249,0.2)", opacity: frame >= 0 ? 1 : 0, pointerEvents: "none"}} />;
+  return <div style={{position: "absolute", inset: 24, border: "2px solid rgba(163,125,92,0.2)", opacity: frame >= 0 ? 1 : 0, pointerEvents: "none"}} />;
 };
 `,
       }),
@@ -337,7 +347,7 @@ export const GlobalVisualLayers = () => {
         schema: GlobalVisualPlanSchema,
         instructions: [
           "Bind exact render, timing, caption safe-area, and catalog identities from context.",
-          "Keep frame treatment and continuity motif decorative and text-free.",
+          "Keep frame treatment and continuity motif decorative and text-free; continuity motif windows must stay inside layerPolicy.decorationLayerFrameRange.",
         ],
         derivedFields: ["planFingerprint"],
         example: {
@@ -380,7 +390,8 @@ export const GlobalVisualLayers = () => {
       }),
     ],
     componentSignatures: [
-      "export const GlobalVisualLayers: () => ReactElement; // zero props only",
+      "export const GlobalVisualBaseLayer: () => ReactElement; // zero props, full Composition base only",
+      "export const GlobalVisualDecorationLayers: () => ReactElement; // zero props, narrated-window decoration only",
     ],
     constraints: sharedConstraints,
     commands: {

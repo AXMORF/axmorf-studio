@@ -23,6 +23,8 @@ attempt-bound task commit/fail 与 fixed continuation；converge 是 continuatio
   最多四个；一个 dirty task 只归属一个 executor，template task 不由 Agent 创作；
 - Composition exactly once 拥有 raw readability/insets 与 SceneViewport mount；Scene child 只看到
   safe-area-local viewport dimensions/min font size，不得恢复 full-frame authority；
+- GlobalVisual base layer 覆盖完整 Composition；decoration 由 fixed timing policy 仅挂载在首个至末个 narrated
+  Scene 的连续窗口，silent boundary Scenes 不接收项目装饰；
 - Agent 只写 task workspace，fixed commit 重跑 validator，commit/fail 绑定 exact attempt 且首终态不可覆盖；
 - continuation 启动后 Root 挂起且不监督；bounded fixed continuation 以 atomic claim 单消费者运行，failure/attempt 创建起一小时
   timeout fail-fast，all-success 只 converge 一次；
@@ -30,6 +32,8 @@ attempt-bound task commit/fail 与 fixed continuation；converge 是 continuatio
 - convergence stale/incomplete/drift fail closed 且 materialization 有 rollback；
 - convergence 写入并复验 source-current；delivery policy 不进入 source identity；DeliveryBuild 同步等待和验证 exact
   four files，current replacement 受控且同 identity no-op；
+- Preview Catalog 同步与播放器恢复是独立 use cases；恢复播放轮换 request nonce、MediaTicket/FileHandle，但不改变
+  `storyId + deliveryBuildId`，且不截断已租约的并发 Range response；
 - settings 与 progress 不扫描历史 `.producer-runs/`；Project delete 仍能安全清理其 ownership root；
 - zero Project bootstrap/Registry/Catalog/settings 可用。
 

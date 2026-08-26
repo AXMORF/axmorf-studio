@@ -11,6 +11,7 @@ import {
 } from "../../desktop/contracts/protocol";
 import {
   buildPreviewVideoUrl,
+  parsePreviewVideoUrl,
   PreviewCatalogReadinessSchema,
   PreviewCatalogSchema,
   projectPreviewCatalogForPlayer,
@@ -156,17 +157,25 @@ test("Workspace and managed integration schemas are strict and fixed", () => {
 
 test("Preview Catalog preserves canonical timing and contains no filesystem path", () => {
   const catalog = previewCatalog();
+  const requestNonce = "d".repeat(32);
+  const videoUrl = buildPreviewVideoUrl({
+    ...catalog.entries[0]!,
+    requestNonce,
+  });
   assert.equal(catalog.entries[0]?.timeline.scenes.length, 2);
   assert.doesNotMatch(JSON.stringify(catalog), /repositoryPath|absolutePath/iu);
   assert.equal(
-    buildPreviewVideoUrl(catalog.entries[0]!),
-    `axmorf-media://delivery/story-one/${deliveryBuildId}/video.mp4`,
+    videoUrl,
+    `axmorf-media://delivery/story-one/${deliveryBuildId}/request-${requestNonce}/video.mp4`,
   );
-  const player = projectPreviewCatalogForPlayer(catalog);
-  assert.equal(
-    player.entries[0]?.videoUrl,
-    `axmorf-media://delivery/story-one/${deliveryBuildId}/video.mp4`,
-  );
+  assert.deepEqual(parsePreviewVideoUrl(videoUrl), {
+    storyId: "story-one",
+    deliveryBuildId,
+    requestNonce,
+  });
+  assert.equal(parsePreviewVideoUrl(`${videoUrl}?v=2`), null);
+  const player = projectPreviewCatalogForPlayer(catalog, () => videoUrl);
+  assert.equal(player.entries[0]?.videoUrl, videoUrl);
   assert.equal("video" in player.entries[0]!, false);
   assert.doesNotMatch(JSON.stringify(player), /checksum|sizeBytes/u);
   assert.throws(() =>
@@ -314,6 +323,7 @@ test("CLI failures and preload surface are exact", () => {
     "showWorkspaceInFinder",
     "migrateWorkspace",
     "refreshPreviewCatalog",
+    "recoverPreviewPlayback",
     "selectPreview",
     "buildDelivery",
     "deleteProject",
@@ -327,6 +337,7 @@ test("CLI failures and preload surface are exact", () => {
     "desktop:show-workspace-in-finder",
     "desktop:migrate-workspace",
     "desktop:refresh-preview-catalog",
+    "desktop:recover-preview-playback",
     "desktop:select-preview",
     "desktop:build-delivery",
     "desktop:delete-project",

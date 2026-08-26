@@ -46,7 +46,8 @@ cross-package、在 Rosetta 下启动，或只让其中一个 matrix job Green�
 - public `rsp-local-v2` manual 流程先得到 source-current 且没有 Delivery，later explicit Delivery 和 automatic 流程分别
   生成并复验 exact four files；
 - H.264/AAC/channel/dimension/fps/frame count、两张 PNG、checksum 与 EOF decode；
-- Preview playback、seek、Scene/narration/caption timeline、media protocol/security；
+- Preview playback、seek、Scene/narration/caption timeline、media protocol/security，以及同一 App 进程内真实媒体失败后
+  request nonce/Ticket/FileHandle 轮换、Delivery identity 稳定、`loadedmetadata`/`canplay`/播放恢复和旧并发 Range 完成；
 - failure、显式 Quit、automatic terminal 与 reopen 后的 process、TCP、session、operation lock 与 disposable staging cleanup；
 - evidence 不含 MP4、Cover、token、credential、voice material、repository absolute path；
 - package 后依次运行 `desktop:check`、typecheck、lint、docs、`check:static`、compositions、完整 `npm run check` 与
@@ -64,6 +65,10 @@ test-only deterministic fixture。它证明 App/Runtime Pack/production/Delivery
   "externalCreativeAgentTested": false
 }
 ```
+
+上述 playback recovery 是 current gate requirement；下面引用的 Phase C closeout 早于该修复，只证明当时的
+playback/seek/protocol contract，不能作为 request nonce/Ticket/FileHandle 轮换证据。current implementation 仍需在
+exact commit 上重新执行双架构 native gate。
 
 Phase C acceptance 已在 exact evidence commit `54a6c12699eb56b02051f0b47eb2568e9bf3f716` 完成：manual-only Actions run
 [`32656883032`](https://github.com/agenticnoob/remotion-story-producer/actions/runs/32656883032) 的 x64 与 arm64 jobs 均为

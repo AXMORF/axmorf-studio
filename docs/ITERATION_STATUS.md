@@ -76,7 +76,8 @@ bootstrap/Registry/Catalog/settings 合同保持有效。
 
 - read-only current-plan builder 从 current Project contracts、template instances、asset manifest/selected bytes、narration identity 和
   runtime policies 计算 Revision/Task DAG；
-- Scene、GlobalVisual、Cover workspace validators 与 commit flow；
+- Scene、GlobalVisual、Cover workspace validators 与 commit flow；GlobalVisual validator v2 要求完整 Composition 的
+  no-Props base layer 与 narrated-window-only decoration layer，窗口由 canonical timing 派生且以 local frame 0 开始；
 - template-copy Scene 固定任务，不进入 Agent dispatch；共享 canonical builder/output contract 同时物化 copied
   source/assets 与完整 derived Scene bundle，并保证 create-only/fixed-prepared/materialized replan 的
   TaskRevision 稳定；
@@ -103,7 +104,8 @@ bootstrap/Registry/Catalog/settings 合同保持有效。
 - converge 只读 replan，零 provider/workspace/new attempt；stale revision/incomplete artifact 在任何 live mutation
   前拒绝；
 - task-owned staging、controlled replace、rollback 和 materialized bytes revalidation；
-- ScenePackage、Coverage、RendererRegistry、GlobalVisualPackage 与生成式 Composition fixed refresh；
+- ScenePackage、Coverage、RendererRegistry、GlobalVisualPackage 与生成式 Composition fixed refresh；Composition
+  全程挂载 GlobalVisual base，并以 fixed `Sequence` 将 decoration 限制在首个至末个 narrated Scene；
 - converge 从 live bytes 复验后写入 attested source-current；manual 在这里返回 source terminal，automatic 才继续，
   delivery policy 不进入 Revision/Task/Artifact/source identity；
 - later explicit DeliveryBuild 不创建 provider call、Agent task、workspace 或 ExecutionAttempt；build-owned staging、
@@ -284,11 +286,14 @@ Ubuntu 24.04 x64/glibc 原生目标。`desktop:package:mac` 显式进入 Mac pac
 完整离线 `amd64` Debian package。Linux 包只携带对应 compositor、Chromium、FFmpeg/FFprobe 与 `.so` closure，Mac
 逻辑和 `.dylib` closure 未删除或降级。
 
-Preview Catalog terminal refresh 已改为先原子刷新 verified Delivery identity，再发布 idle state；progress-only snapshot
-不再轮换未变化的 media ticket，player 在 current Delivery change 上另有一次受控 Catalog recovery，因此 production
-成功后无需重启 App。Desktop 同步投影 latest ExecutionAttempt 的 dirty/reused/committed/current/failed task 数、attempt
-state、terminal、diagnostic、DeliveryBuildId 与 exact-four-file completeness；界面加入进度条、最终摘要和带 exact Project
-ID 二次确认的完整 `project:delete` 操作。
+Preview Catalog terminal refresh 已改为先原子刷新 verified Delivery identity，再发布 idle state；普通 Catalog refresh
+在投影未变化时复用 media ticket。播放器 `onError` 后的“恢复播放”是独立 Main/IPC use case：不刷新 Engine/Catalog，
+而是为当前 Story 撤销并重签 MediaTicket/FileHandle，生成独立 request nonce，同时保持
+`storyId + deliveryBuildId` 不变。旧 URL 立即拒绝新请求，轮换前已取得租约的并发 Range response 可安全读完再关闭旧
+handle；Renderer 以新 URL 重新挂载 `<video>`。真实 Electron harness 覆盖同一 App/Renderer 进程内实际媒体失败、点击
+恢复、`loadedmetadata`/`canplay`、播放推进与旧并发 Range 完成。Desktop 同步投影 latest ExecutionAttempt 的
+dirty/reused/committed/current/failed task 数、attempt state、terminal、diagnostic、DeliveryBuildId 与 exact-four-file
+completeness；界面加入进度条、最终摘要和带 exact Project ID 二次确认的完整 `project:delete` 操作。
 
 两个 built-in boundary Scene template 不再维护 Desktop-only synthetic chime。Workspace integration 和 Remotion preview
 共同消费 checksum-bound `DefaultIntroPreview` / `DefaultOutroPreview` 音频 authority；固定 template import 会把相同 bytes
@@ -304,7 +309,7 @@ Workspace，不允许源码或宿主 toolchain fallback。
 该 artifact 仍是 local/internal unsigned package，不等于公开发行或 Remotion redistribution Gate 已满足。平台命令、安装
 步骤和验证矩阵见 [Desktop App Ubuntu 维护与打包](DESKTOP_APP_UBUNTU_MAINTENANCE.md)。
 
-## Desktop Settings / Project create contract repair（implemented，new native artifact pending）
+## Desktop Settings / Project create / playback recovery repair（implemented，new native artifact pending）
 
 当前 implementation 已把 Desktop rail 中的 raw ProducerConfig JSON 主路径替换为独立“Preview / 配置”导航，并复用
 Web Settings 的纯 General、SafeArea、SceneDefaults、Collections、Execution 与 TTS form/model。Desktop 不启动或嵌入
@@ -325,7 +330,7 @@ task contract 后走 finalize/check/commit，再验证 source-current、manual/a
 
 这里的 packaged path 仍准确标记 `externalCreativeAgentTested: false`：host-neutral contract consumer 证明 fixed controller、
 task self-description/finalization、Runtime Pack、Delivery 与 Preview，不证明真实外部 Codex/Hermes 的创意质量或行为。
-上述 repair 尚需在 exact implementation
+上述 settings、create contract 与 playback recovery repair 尚需在 exact implementation
 commit 上通过双架构 native Phase D workflow 并重新生成 internal unsigned DMG；前一 Phase D DMG 不包含本修复，不能
 作为本轮 Mac 验证 artifact。
 

@@ -164,7 +164,8 @@ test("Workspace GlobalVisual source uses only injected Project and Runtime Pack 
   await Promise.all([
     write(
       entryPath,
-      `export const GlobalVisualLayers = () => {
+      `export const GlobalVisualBaseLayer = () => null;
+export const GlobalVisualDecorationLayers = () => {
   const useCurrentFrame = () => 0;
   useCurrentFrame();
   const style = {pointerEvents: "none"};

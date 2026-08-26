@@ -6,7 +6,20 @@ import {
   GlobalVisualProjectionSchema,
   createGlobalVisualPlan,
   createGlobalVisualProjection,
+  deriveGlobalVisualLayerPolicy,
 } from "../../src/contracts/global-visual";
+import {
+  NarrationSpecSchema,
+  RenderSpecSchema,
+  StorySpecSchema,
+  generateSemanticTiming,
+} from "../../src/contracts";
+import {
+  buildValidSealedNarrationManifest,
+  validNarrationSpec,
+  validRenderSpec,
+  validStorySpec,
+} from "../fixtures/narrative";
 
 const sha = (value: string) => `sha256:${value.repeat(64)}`;
 
@@ -61,6 +74,25 @@ test("GlobalVisualPlan only accepts frame treatment and continuity motif semanti
       captionSafeArea: { ...input().captionSafeArea, bottom: 161 },
     }).planFingerprint,
   );
+});
+
+test("GlobalVisual layer policy keeps the base full-length and decoration inside narrated content", () => {
+  const timing = generateSemanticTiming({
+    story: StorySpecSchema.parse(validStorySpec),
+    narration: NarrationSpecSchema.parse(validNarrationSpec),
+    render: RenderSpecSchema.parse(validRenderSpec),
+    sealedNarration: buildValidSealedNarrationManifest(),
+  });
+  const policy = deriveGlobalVisualLayerPolicy(timing);
+  assert.deepEqual(policy.baseLayerFrameRange, {
+    startFrame: 0,
+    endFrame: timing.durationInFrames,
+  });
+  assert.deepEqual(policy.decorationLayerFrameRange, {
+    startFrame: validRenderSpec.leadInFrames,
+    endFrame: timing.durationInFrames - validRenderSpec.tailFrames,
+  });
+  assert.equal(policy.decorationFrameOrigin, "window-local-zero");
 });
 
 test("GlobalVisualPlan rejects DSL executable caption and invalid windows", () => {

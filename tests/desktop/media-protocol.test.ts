@@ -13,7 +13,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
-  buildPreviewVideoUrl,
+  parsePreviewVideoUrl,
   PreviewCatalogSchema,
   type PreviewCatalog,
 } from "../../desktop/contracts/preview";
@@ -91,10 +91,10 @@ const setup = async (byteLength = 192) => {
   const bytes = Uint8Array.from({ length: byteLength }, (_, index) => index);
   await writeFile(path, bytes);
   const catalog = catalogFor(bytes);
-  const url = buildPreviewVideoUrl(catalog.entries[0]!);
   const media = new DesktopMediaProtocol();
   await media.selectWorkspace(repositoryRoot);
-  await media.replaceCatalog(catalog);
+  const playerCatalog = await media.replaceCatalog(catalog);
+  const url = playerCatalog.entries[0]!.videoUrl;
   return { repositoryRoot, path, bytes, catalog, url, media };
 };
 
@@ -212,7 +212,18 @@ test("refresh revokes stale URLs and pinned descriptor rejects atomic replacemen
   assert.equal((await media.handleRequest(new Request(url))).status, 404);
 });
 
-test("refresh reuses an unchanged ticket while an existing response is streaming", async (context) => {
+test("Catalog refresh reuses an unchanged request generation", async (context) => {
+  const { repositoryRoot, catalog, url, media } = await setup();
+  context.after(async () => {
+    await media.close();
+    await rm(repositoryRoot, { recursive: true, force: true });
+  });
+
+  const refreshed = await media.replaceCatalog(catalog);
+  assert.equal(refreshed.entries[0]?.videoUrl, url);
+});
+
+test("playback recovery rotates the request generation without interrupting an existing Range response", async (context) => {
   const { repositoryRoot, bytes, catalog, url, media } = await setup(
     128 * 1024,
   );
@@ -226,7 +237,30 @@ test("refresh reuses an unchanged ticket while an existing response is streaming
   const reader = response.body.getReader();
   const first = await reader.read();
   assert.equal(first.done, false);
-  await media.replaceCatalog(catalog);
+  const recoveredCatalog = await media.recoverPlayback(
+    catalog,
+    catalog.entries[0]!.storyId,
+  );
+  const recoveredUrl = recoveredCatalog.entries[0]!.videoUrl;
+  assert.notEqual(recoveredUrl, url);
+  assert.equal(
+    recoveredCatalog.entries[0]?.deliveryBuildId,
+    catalog.entries[0]?.deliveryBuildId,
+  );
+  assert.equal(parsePreviewVideoUrl(url)?.storyId, "story-one");
+  assert.notEqual(
+    parsePreviewVideoUrl(url)?.requestNonce,
+    parsePreviewVideoUrl(recoveredUrl)?.requestNonce,
+  );
+  assert.equal((await media.handleRequest(new Request(url))).status, 404);
+  const recoveredResponse = await media.handleRequest(
+    new Request(recoveredUrl),
+  );
+  assert.equal(recoveredResponse.status, 200);
+  assert.deepEqual(
+    Buffer.from(await recoveredResponse.arrayBuffer()),
+    Buffer.from(bytes),
+  );
   const chunks = [first.value!];
   for (;;) {
     const next = await reader.read();
@@ -235,6 +269,30 @@ test("refresh reuses an unchanged ticket while an existing response is streaming
   }
   const streamed = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
   assert.deepEqual(streamed, Buffer.from(bytes));
+});
+
+test("Catalog refresh rotates an atomically replaced file even when Delivery identity is unchanged", async (context) => {
+  const { repositoryRoot, path, bytes, catalog, url, media } = await setup();
+  context.after(async () => {
+    await media.close();
+    await rm(repositoryRoot, { recursive: true, force: true });
+  });
+
+  const replacement = join(path, "..", "replacement.mp4");
+  await writeFile(replacement, bytes);
+  await rename(replacement, path);
+  assert.equal((await media.handleRequest(new Request(url))).status, 409);
+
+  const rebound = await media.replaceCatalog(catalog);
+  const reboundUrl = rebound.entries[0]!.videoUrl;
+  assert.notEqual(reboundUrl, url);
+  assert.equal((await media.handleRequest(new Request(url))).status, 404);
+  const refreshed = await media.handleRequest(new Request(reboundUrl));
+  assert.equal(refreshed.status, 200);
+  assert.deepEqual(
+    Buffer.from(await refreshed.arrayBuffer()),
+    Buffer.from(bytes),
+  );
 });
 
 test("in-place checksum drift and symlink media are rejected", async (context) => {

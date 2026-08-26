@@ -75,7 +75,12 @@ const createController = (events: string[]) =>
     },
     media: {
       selectWorkspace: async () => undefined,
-      replaceCatalog: async () => undefined,
+      replaceCatalog: async () => {
+        throw new Error("not used");
+      },
+      recoverPlayback: async () => {
+        throw new Error("not used");
+      },
       close: async () => {
         events.push("media-close");
       },

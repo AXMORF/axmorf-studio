@@ -12,11 +12,11 @@
 
 Ubuntu 是 macOS 之外的独立原生目标，不替换或合并 macOS 打包逻辑：
 
-| 目标 | 架构 | 安装包 | Runtime Pack native closure |
-| --- | --- | --- | --- |
-| macOS | `arm64` | unsigned DMG | Darwin arm64 |
-| macOS | `x64` | unsigned DMG | Darwin x64 |
-| Ubuntu 24.04+ | `x64` / `amd64` | Debian package | Linux x64 glibc |
+| 目标          | 架构            | 安装包         | Runtime Pack native closure |
+| ------------- | --------------- | -------------- | --------------------------- |
+| macOS         | `arm64`         | unsigned DMG   | Darwin arm64                |
+| macOS         | `x64`           | unsigned DMG   | Darwin x64                  |
+| Ubuntu 24.04+ | `x64` / `amd64` | Debian package | Linux x64 glibc             |
 
 每个安装包只携带与目标平台和架构匹配的 Electron、Node、Remotion compositor、Chromium、FFmpeg/FFprobe 与
 动态库闭包。禁止在 Linux 包中携带 Darwin compositor，反之亦然；不发布把三套 native closure 合并到一起的通用包。
@@ -62,12 +62,16 @@ axmorf-studio
 
 ```bash
 npm run desktop:check
+npm run desktop:media-recovery:electron
 npm run desktop:ubuntu-workspace-gate
 ```
 
 安装验收需确认：package architecture 为 `amd64`；入口 `/usr/bin/axmorf-studio` 可启动；Chromium sandbox 权限
 正确；内置 Workspace 能创建 Project、使用两个 boundary Scene templates、完成生产并生成 exact-four-file
-Delivery；Preview、生产进度和 Project 删除操作可用；退出后没有遗留 Engine、Runtime Pack、TCP listener 或 lock。
+Delivery；Preview、生产进度和 Project 删除操作可用。播放器恢复验收必须在不重启 App 的前提下制造真实媒体错误，
+点击“恢复播放”后确认 request nonce/Ticket/FileHandle 已轮换而 DeliveryBuildId 未改变，并恢复
+`loadedmetadata`、`canplay` 与实际播放；轮换前已开始的 Range response 必须完整结束。退出后没有遗留 Engine、
+Runtime Pack、TCP listener 或 lock。
 
 `.deb` 当前是本地/internal unsigned artifact，不等于公开发行。Remotion runtime binary redistribution、第三方许可证、
 provenance/SBOM、下载渠道和长期支持政策仍必须满足与 macOS 相同的公开发行 Gate。

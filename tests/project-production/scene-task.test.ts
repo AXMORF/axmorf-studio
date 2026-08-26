@@ -54,6 +54,12 @@ const Renderer = () => {
 export default Renderer;
 `;
 
+const globalVisualBoundaryRendererSource = `
+const GlobalVisualDecorationLayers = () => <div />;
+const Renderer = () => <GlobalVisualDecorationLayers />;
+export default Renderer;
+`;
+
 const createSceneWorkspace = async ({
   rootDir,
   semanticId = "meaning-one",
@@ -293,6 +299,23 @@ test("Scene task rejects access to Composition dimensions", async (context) => {
   await assert.rejects(
     checkSceneTask({ locations, taskRevision: task.taskRevision }),
     /must not own useVideoConfig/u,
+  );
+});
+
+test("Scene task rejects GlobalVisual layer ownership", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-global-visual-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const { locations, task, workspace } = await createSceneWorkspace({
+    rootDir,
+  });
+  await writeFile(
+    join(workspace, "src/Renderer.tsx"),
+    globalVisualBoundaryRendererSource,
+  );
+
+  await assert.rejects(
+    checkSceneTask({ locations, taskRevision: task.taskRevision }),
+    /must not own GlobalVisualDecorationLayers/u,
   );
 });
 

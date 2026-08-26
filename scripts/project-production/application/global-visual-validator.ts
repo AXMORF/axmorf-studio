@@ -86,10 +86,11 @@ export const assertGlobalVisualLayersComponentInterface = async ({
         )
       : join(globalVisualRuntimeSourceRoot(locations), logicalRootPath);
   const virtualSource = `import type {GlobalVisualLayersComponent} from "../../../remotion/runtime/global-visual";
-import {GlobalVisualLayers} from "./GlobalVisualLayers";
+import {GlobalVisualBaseLayer, GlobalVisualDecorationLayers} from "./GlobalVisualLayers";
 
-const CheckedGlobalVisualLayers: GlobalVisualLayersComponent<typeof GlobalVisualLayers> = GlobalVisualLayers;
-export const GlobalVisualLayersInterfaceProof = CheckedGlobalVisualLayers;
+const CheckedGlobalVisualBaseLayer: GlobalVisualLayersComponent<typeof GlobalVisualBaseLayer> = GlobalVisualBaseLayer;
+const CheckedGlobalVisualDecorationLayers: GlobalVisualLayersComponent<typeof GlobalVisualDecorationLayers> = GlobalVisualDecorationLayers;
+export const GlobalVisualLayersInterfaceProof = [CheckedGlobalVisualBaseLayer, CheckedGlobalVisualDecorationLayers] as const;
 `;
   if (locations.layoutKind === "repository") {
     compileTypeScriptImportGraph({
@@ -236,34 +237,47 @@ export const assertGlobalVisualSource = ({
     );
   }
   if (sourcePath === entryPath) {
-    const namedEntryExports = sourceFile.statements.filter((statement) => {
+    const namedEntryExports = new Map([
+      ["GlobalVisualBaseLayer", 0],
+      ["GlobalVisualDecorationLayers", 0],
+    ]);
+    sourceFile.statements.forEach((statement) => {
       const exported =
         ts.canHaveModifiers(statement) &&
         ts
           .getModifiers(statement)
           ?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword);
-      if (!exported) return false;
+      if (!exported) return;
       if (ts.isFunctionDeclaration(statement)) {
-        return statement.name?.text === "GlobalVisualLayers";
+        const name = statement.name?.text;
+        if (name !== undefined && namedEntryExports.has(name)) {
+          namedEntryExports.set(name, (namedEntryExports.get(name) ?? 0) + 1);
+        }
+        return;
       }
       if (ts.isVariableStatement(statement)) {
-        return statement.declarationList.declarations.some(
-          (declaration) =>
+        for (const declaration of statement.declarationList.declarations) {
+          if (
             ts.isIdentifier(declaration.name) &&
-            declaration.name.text === "GlobalVisualLayers",
-        );
+            namedEntryExports.has(declaration.name.text)
+          ) {
+            namedEntryExports.set(
+              declaration.name.text,
+              (namedEntryExports.get(declaration.name.text) ?? 0) + 1,
+            );
+          }
+        }
       }
-      return false;
-    }).length;
+    });
     if (!usesFrameApi) {
       throw new Error("GlobalVisual entry must use the Remotion frame API.");
     }
     if (!pointerEventsNone) {
       throw new Error("GlobalVisual root must declare pointerEvents none.");
     }
-    if (namedEntryExports !== 1) {
+    if ([...namedEntryExports.values()].some((count) => count !== 1)) {
       throw new Error(
-        "GlobalVisual entry must export GlobalVisualLayers exactly once.",
+        "GlobalVisual entry must export GlobalVisualBaseLayer and GlobalVisualDecorationLayers exactly once each.",
       );
     }
   }

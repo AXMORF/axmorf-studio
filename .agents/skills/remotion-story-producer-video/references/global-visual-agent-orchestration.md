@@ -12,13 +12,14 @@ taskRevision: <taskRevision>
 attemptId: <attemptId>
 唯一可写目录: .producer-work/<storyId>/<taskRevision>/
 
-读取 AGENTS.md、workspace/task.json 和 workspace/inputs/context.json。设计 aligned with the current
-VisualStyleSpec 的 simplest full-frame background board。Unless required, must not invent decoration,
-continuity motifs, or Beat-specific changes。
+读取 AGENTS.md、task.json 和 inputs/context.json，按 current VisualStyleSpec 设计
+simplest full-frame background board。`GlobalVisualBaseLayer` 仅含全片稳定底板/纹理；
+`GlobalVisualDecorationLayers` 仅含 narrated window 装饰，以窗口起点为 local frame 0，不进入 silent
+boundary Scenes。Unless required, must not invent decoration, continuity motifs, or Beat changes。
 
-GlobalVisualLayers 必须 no-Props、无可见文字、caption、音频、Scene DSL 或 automatic director，只使用
-Remotion frame APIs。不得读取 Scene 输出、其他 workspace、Artifact Store、live owner source、历史媒体、
-网络、private/voice、delivery 或 Git。
+两者须 no-Props、无可见文字、caption、音频、Scene DSL 或 automatic director；decoration motion 只用
+Remotion frame APIs。不得读取 Scene 输出、其他 workspace/Artifact Store、live source、历史媒体、网络、
+private/voice、delivery/Git。
 
 循环运行并修正 workspace：
 npm run project:task:check -- --task <taskRevision>
