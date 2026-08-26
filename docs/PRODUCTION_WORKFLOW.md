@@ -130,6 +130,11 @@ production inputs ready 时生成：
 - `ExecutionAttempt`：task diagnostic snapshots、estimated/actual cost、等待/收敛或失败诊断，不进入任何
   产物 identity。
 
+diagnostic snapshot 的公开 input ID 是显式 allowlist，必须覆盖 current TaskSpec 的全部
+`inputFingerprints[].id`，包括 Scene originality policy 使用的 `originality-baseline`。该 ID 只投影稳定的
+fingerprint，不暴露 baseline 内容；缺少安全映射时 prepare 在创建 ExecutionAttempt 前 fail closed，属于需要另行
+工程修复的 fixed workflow defect，不得归因于视频 brief、Provider 配置或通过新建 Project 重试规避。
+
 Task kinds 包括 narration chunk/seal/timing、scene-template、scene-owner、global-visual-owner、cover-owner 与
 composition-convergence。DeliveryBuild 不属于 Producer DAG；共享输入只进入真正依赖它的 node key，避免全局版本
 导致无差别失效。

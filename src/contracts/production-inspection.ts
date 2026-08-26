@@ -20,6 +20,7 @@ export const DiagnosticInputIdSchema = z.enum([
   "generation-input",
   "mastering-policy",
   "narration",
+  "originality-baseline",
   "provider-attempt",
   "publishing",
   "readability",

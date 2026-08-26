@@ -36,6 +36,7 @@ const diagnosticInputAliases: Readonly<Record<string, DiagnosticInputId>> = {
   "generation-input": "generation-input",
   "mastering-policy": "mastering-policy",
   narration: "narration",
+  "originality-baseline": "originality-baseline",
   "provider-attempt": "provider-attempt",
   readability: "readability",
   render: "render",

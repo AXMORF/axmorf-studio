@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-26 Ubuntu x64 Desktop package、安装启动与完整 Workspace production gate verified complete
+> 最后复核：2026-08-27 Ubuntu x64 Desktop 重装、真实外部 Agent production 与 exact-four-file Delivery verified complete
 
 ## 当前结论
 
@@ -45,8 +45,8 @@ bootstrap/Registry/Catalog/settings 合同保持有效。
 - `production-requirements-current-v4` / `scene-composition-boundary-v2` clean-break：Composition 拥有
   raw readability policy 与 inset，SceneTask v7 只接收 Scene-only requirements 和派生的
   safe-area-local SceneViewport，ScenePackage v6 绑定 `scene-visual-runtime-v3`；
-- attempt/time/path/process/explanation identity exclusion、safe diagnostic input IDs、typed artifact state、direct
-  snapshot diff 与 DAG dependency propagation tests。
+- attempt/time/path/process/explanation identity exclusion、safe diagnostic input IDs（含 Scene
+  `originality-baseline`）、typed artifact state、direct snapshot diff 与 DAG dependency propagation tests；
 
 ## 已实现 create、inspect 与 prepare
 
@@ -58,6 +58,8 @@ bootstrap/Registry/Catalog/settings 合同保持有效。
   structured task explanations 与 nextAction；前后 snapshot drift fail closed，零 provider/零 repository mutation；
 - `project:produce:prepare` 是唯一有成本入口，负责 provider/cache/seal/master/timing、timing-bound authoring、
   fixed artifacts、Revision/DAG、dirty Agent workspaces 与 ExecutionAttempt，并区分 estimated/actual cost；
+- diagnostic snapshot allowlist 必须覆盖 current TaskSpec 的全部 `inputFingerprints[].id`；无法安全投影的 ID
+  在 attempt 创建前 fail closed，不能把已完成的 provider/fixed preparation 误报成配置或创意错误；
 - explanation/baseline/attempt 只属于 diagnostic plane，不改变 Revision、TaskRevision、ArtifactAttestation、
   dispatch、materialization 或 DeliveryBuild identity/authority。
 
@@ -301,6 +303,10 @@ completeness；界面加入进度条、最终摘要和带 exact Project ID 二�
 
 Ubuntu 本机已通过完整 Workspace lifecycle gate，覆盖两个 boundary Scene templates、真实 Runtime Pack production 与
 exact-four-file Delivery；`.deb` 已完成本机安装、隔离 first-run、Preview/Settings renderer 和 preload surface 验收。
+2026-08-27 对包含 current diagnostic-input contract 的 `.deb` 做同版本覆盖重装后，installed Workspace 的 doctor/provider
+恢复 ready；真实外部 Agent 仅凭一句自由创作提示新建 Project，prepare 创建 attempt、三个 dirty owner artifacts 全部通过
+fixed validator，automatic continuation 返回 `project-production-complete`，并生成全新 H.264/AAC MP4、两张 PNG Cover 与
+`publish.json`。这项人工 E2E 证据独立于 deterministic native gate，不改变公开发行许可状态。
 平台默认 Workspace 改由 Electron 系统视频目录决定，macOS 仍为 Movies、Ubuntu 为 Videos；首次选择只在 Engine
 初始化成功后持久化。Linux 旧包错误保存且不存在的 Movies 默认路径会在不覆盖任何现有目录的前提下原子修复。
 Workspace integration package tree 的目录/文件权限分别固定为 `0755`/`0644` 并纳入 package inventory，系统安装后
@@ -309,7 +315,7 @@ Workspace，不允许源码或宿主 toolchain fallback。
 该 artifact 仍是 local/internal unsigned package，不等于公开发行或 Remotion redistribution Gate 已满足。平台命令、安装
 步骤和验证矩阵见 [Desktop App Ubuntu 维护与打包](DESKTOP_APP_UBUNTU_MAINTENANCE.md)。
 
-## Desktop Settings / Project create / playback recovery repair（implemented，new native artifact pending）
+## Desktop Settings / Project create / playback recovery repair（implemented，Ubuntu reverified；Mac artifacts pending）
 
 当前 implementation 已把 Desktop rail 中的 raw ProducerConfig JSON 主路径替换为独立“Preview / 配置”导航，并复用
 Web Settings 的纯 General、SafeArea、SceneDefaults、Collections、Execution 与 TTS form/model。Desktop 不启动或嵌入
@@ -337,18 +343,18 @@ Desktop 每次启动还会校验 Workspace managed ledger；没有 active work �
 原子同步 root instructions、managed production Skill、Hermes prompt 与 `.rsp/bin/rsp`，不会改写 Project、media、
 Delivery 或 Application Support private config。
 
-这里的 packaged path 仍准确标记 `externalCreativeAgentTested: false`：host-neutral contract consumer 证明 fixed controller、
-task self-description/finalization、Runtime Pack、Delivery 与 Preview，不证明真实外部 Codex/Hermes 的创意质量或行为。
-上述 settings、create contract 与 playback recovery repair 尚需在 exact implementation
-commit 上通过双架构 native Phase D workflow 并重新生成 internal unsigned DMG；前一 Phase D DMG 不包含本修复，不能
-作为本轮 Mac 验证 artifact。
+deterministic packaged native gate 仍准确标记 `externalCreativeAgentTested: false`：它只证明 host-neutral contract
+consumer、fixed controller、task self-description/finalization、Runtime Pack、Delivery 与 Preview，不把人工结果伪装成
+自动 gate。独立的 Ubuntu installed-Workspace 人工 E2E 已由真实外部 Agent 完成；Hermes 以及 macOS 外部 Agent 仍未验证。
+上述 settings、create contract 与 playback recovery repair 尚需在 exact implementation commit 上通过双架构 native
+Phase D workflow 并重新生成 internal unsigned DMG；前一 Phase D DMG 不包含本修复，不能作为本轮 Mac 验证 artifact。
 
 ## 当前非目标
 
 远程 scheduler/database/artifact store、平台发布、账号、上传、child identity persistence、subjective quality
 gate、automatic capability promotion、Docker 和新的 TTS Gateway 均未实现。
 
-公开 DMG 发行、签名/公证、外部 Codex/Hermes creative E2E 和 public release 仍未验证；Phase C 的内部
+公开 DMG 发行、签名/公证、Hermes 与 macOS 外部 Agent creative E2E 和 public release 仍未验证；Phase C 的内部
 darwin arm64/x64 native evidence 与 Phase D internal installer artifact 都不等于许可满足、公开 distribution 或
 公开支持政策。这些目标记录在
 [Desktop App 产品架构](DESKTOP_APP_PRODUCT.md) 与

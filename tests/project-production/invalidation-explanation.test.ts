@@ -110,3 +110,26 @@ test("one Scene brief change is direct while downstream blocking follows exact D
   );
   assert.equal(decisions.length, 3);
 });
+
+test("Scene originality baseline remains a safe diagnostic input", () => {
+  const scene = build({
+    taskKind: "scene-owner",
+    semanticId: "scene-a",
+    input: "originality-baseline",
+    value: "1",
+  });
+  const snapshots = buildTaskDiagnosticSnapshots({
+    nodes: [{ task: scene, dependencyTaskRevisions: [] }],
+    subjects: new Map([
+      [
+        scene.taskRevision,
+        { kind: "meaning" as const, id: scene.semanticId! },
+      ],
+    ]),
+    decisions: [],
+  });
+
+  assert.deepEqual(snapshots[0]?.inputFingerprints, [
+    { id: "originality-baseline", fingerprint: sha("1") },
+  ]);
+});

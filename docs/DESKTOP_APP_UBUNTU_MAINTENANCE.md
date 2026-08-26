@@ -74,6 +74,10 @@ Workspace 的 root instructions、managed Skill、Hermes prompt 与 `.rsp/bin/rs
 而 Project、media、Delivery 与 private config 保持不变。内置 Workspace 必须能从本地 schema 创建 Project，使用
 same-Project candidate Revision 修改现有作品、使用两个 boundary Scene templates、完成生产并生成 exact-four-file
 Delivery；`schema project-revision`、`revise-context/revise-validate/revise` 与带 `--candidate` 的生产命令必须可发现。
+生产合同或 Runtime Pack 变更后还应由真实外部 Agent 仅使用 installed Workspace 的 managed instructions、Skill、schema
+和 `.rsp/bin/rsp` 完成一个全新 automatic Project；验收终点必须是 fixed terminal
+`project-production-complete` 或 `project-production-current`，并复验 H.264/AAC MP4、两张 exact-size PNG Cover 与
+`publish.json` 四文件，不能把 doctor、inspect、prepare、task commit 或 render started 当成视频完成。
 Preview、生产进度和 Project 删除操作可用。播放器恢复验收必须在不重启 App 的前提下制造真实媒体错误，
 点击“恢复播放”后确认 request nonce/Ticket/FileHandle 已轮换而 DeliveryBuildId 未改变，并恢复
 `loadedmetadata`、`canplay` 与实际播放；轮换前已开始的 Range response 必须完整结束。退出后没有遗留 Engine、
