@@ -32,6 +32,7 @@ import { prepareProjectSound } from "./application/localize-project-sound";
 import { createWorkspaceProjectStorageLocations } from "./project-locations";
 import { assertWorkspaceOwnedDirectoryChain } from "./workspace-owned-root";
 import { materializeWorkspaceSceneTemplates } from "./workspace-scene-templates";
+import { snapshotWorkspaceSceneOriginalityBaseline } from "./application/scene-originality-baseline";
 
 export const WORKSPACE_PROJECT_CREATE_RECEIPT = "production/project-create.json";
 export const WORKSPACE_PENDING_SCENE_AUTHORING =
@@ -369,6 +370,11 @@ export const prepareWorkspaceProjectCreate = async ({
     storyId: input.storyId,
     scenes: pendingScenes(story, input),
   });
+  const originalityBaseline =
+    await snapshotWorkspaceSceneOriginalityBaseline({
+      locations,
+      projectId: input.storyId,
+    });
   for (const [path, value] of [
     ["story.json", story],
     ["narration.json", narration],
@@ -380,6 +386,7 @@ export const prepareWorkspaceProjectCreate = async ({
     ["production/requirements.json", requirements],
     ["production/story-resource-pool.json", resourcePool],
     ["production/global-visual-brief.json", globalVisual],
+    ["production/scene-originality-baseline.json", originalityBaseline],
     [WORKSPACE_PENDING_SCENE_AUTHORING, pending],
     ["generated/resource-catalog.generated.json", projectCatalog],
   ] as const) {

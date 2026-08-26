@@ -544,6 +544,7 @@ export const createEngineController = ({
       activeWork?.kind === "production" &&
       activeWork.attemptId !== null &&
       request.storyId === activeWork.storyId &&
+      (request.candidateId ?? null) === (activeWork.candidateId ?? null) &&
       request.attemptId === activeWork.attemptId;
     const attemptCommand =
       request.command === "task-commit" ||
@@ -565,6 +566,7 @@ export const createEngineController = ({
     if (
       !deliveryAvailable &&
       (request.command === "delivery-build" ||
+        (request.command === "prepare" && request.candidateId !== undefined) ||
         (request.command === "continue" &&
           request.deliveryPolicy === "automatic"))
     ) {
@@ -575,6 +577,9 @@ export const createEngineController = ({
     if (request.command === "prepare") {
       activeWork = {
         storyId: request.storyId,
+        ...(request.candidateId === undefined
+          ? {}
+          : { candidateId: request.candidateId }),
         kind: "production",
         attemptId: null,
         phase: "preparing-production",
@@ -583,6 +588,9 @@ export const createEngineController = ({
     } else if (request.command === "delivery-build") {
       activeWork = {
         storyId: request.storyId,
+        ...(request.candidateId === undefined
+          ? {}
+          : { candidateId: request.candidateId }),
         kind: "delivery",
         attemptId: null,
         phase: "building-delivery",
@@ -591,6 +599,9 @@ export const createEngineController = ({
     } else if (exactContinuation && request.command === "continue") {
       activeWork = {
         storyId: request.storyId,
+        ...(request.candidateId === undefined
+          ? {}
+          : { candidateId: request.candidateId }),
         kind: "production",
         attemptId: request.attemptId,
         phase: "continuing-production",
@@ -618,6 +629,9 @@ export const createEngineController = ({
         if (attemptId !== null) {
           activeWork = {
             storyId: request.storyId,
+            ...(request.candidateId === undefined
+              ? {}
+              : { candidateId: request.candidateId }),
             kind: "production",
             attemptId,
             phase: "awaiting-task-terminals",

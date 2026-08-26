@@ -1,5 +1,5 @@
 import { lstat, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
-import { join, relative, resolve, sep } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 
 import {
   ProjectAssetManifestSchema,
@@ -222,6 +222,28 @@ const ownedTargets = ({
       root: locations.deliveryRoot,
       path: join(locations.deliveryRoot, projectId),
       logicalPath: `deliveries/${projectId}`,
+      kind: "directory",
+    },
+    {
+      root: join(dirname(locations.taskWorkspaceRoot), "revisions"),
+      path: join(dirname(locations.taskWorkspaceRoot), "revisions", projectId),
+      logicalPath: `.rsp/revisions/${projectId}`,
+      kind: "directory",
+    },
+    {
+      root: join(locations.disposableBuildRoot, "revision-candidates"),
+      path: join(
+        locations.disposableBuildRoot,
+        "revision-candidates",
+        projectId,
+      ),
+      logicalPath: `disposable-build/revision-candidates/${projectId}`,
+      kind: "directory",
+    },
+    {
+      root: join(locations.evidenceRoot, "revision-candidates"),
+      path: join(locations.evidenceRoot, "revision-candidates", projectId),
+      logicalPath: `evidence/revision-candidates/${projectId}`,
       kind: "directory",
     },
     {

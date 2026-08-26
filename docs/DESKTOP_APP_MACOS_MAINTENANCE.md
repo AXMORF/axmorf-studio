@@ -126,12 +126,14 @@ DeliveryBuild 可临时绑定 `127.0.0.1` OS-ephemeral renderer listener，并�
 
 CLI 是外部 Agent 的薄 client，只连接当前用户 session 的 authenticated local socket。v1 在 App 未运行时返回
 machine-readable `rsp-app-unavailable`；不自动安装或启动后台 daemon，也不回退到源码 npm scripts。
-`rsp help --json`、`rsp schema project-create` 与 `rsp schema asset-import` 是不需要 session 的本地 read-only
-discovery surface，不读取 Workspace/private config，也不建立 socket。project-create schema 返回 structural/static
-contract 与有效 raw example；active `project create-context` 返回 exact config/Runtime Pack choices，`project validate`
-在写入前完成 operational checks。`rsp project create` 只接受已验证的同一 raw `ProjectCreateInput` stdin，拒绝
-protocol/command/input wrapper，并用脱敏 field path/code/message/ownerAction 解释无效字段。dirty task 的 immutable
-`inputs/task-contract.json` 定义 exact outputs，fixed `task finalize` 负责派生 fingerprint/receipt。
+`rsp help --json`、`rsp schema project-create`、`rsp schema project-revision` 与 `rsp schema asset-import` 是不需要
+session 的本地 read-only discovery surface，不读取 Workspace/private config，也不建立 socket。create/revision
+schema 返回 structural contract；active `project create-context` / `project revise-context` 返回 exact current choices
+或 base。`project validate` / `project revise-validate` 在写入前完成 operational checks。create/revise 只接受对应
+raw strict stdin，拒绝 protocol/command/input wrapper，并用脱敏 field path/code/message/ownerAction 解释无效字段。
+revision 创建 same-Project candidate，后续生产命令绑定 `--candidate`，只有 exact-four-file Delivery 验证成功才
+晋升。dirty task 的 immutable `inputs/task-contract.json` 定义 exact outputs，fixed `task finalize` 负责派生
+fingerprint/receipt。
 
 ## 4. App lifecycle
 
@@ -214,8 +216,8 @@ Delivery 显示 stale，并使用新 rendererRuntimeFingerprint 构建新的 cur
 
 Settings 只有一个 Workspace Root 选择项；`projects/`、`media/`、`deliveries/` 和 `.rsp/` 使用产品方案定义的
 固定名称，不能分别覆盖。App installation、Application Support、Cache 和 Workspace 不能形成重叠 ownership。
-App update 只能替换 `.app`，不得扫描或迁移 Workspace；Workspace/schema migration 必须是独立、显式、
-可恢复的整体操作。
+App update 只替换 `.app`；下一次启动可校验并刷新 checksum-bound managed integration，但不得借此改写 Project、
+media、Delivery 或 private config。Project/schema migration 必须是独立、显式、可恢复的整体操作。
 
 credentials 优先进入 macOS Keychain-backed secret storage；不得进入 Workspace、Agent task workspace、Runtime Pack、
 日志或 release artifact。现有 private config 迁移前仍按 strict `0600` 和原子写保护。
@@ -267,7 +269,8 @@ architecture 设计时假设同一 binary 可以直接提交商店。
 
 首阶段 unsigned channel 不调用 Electron `autoUpdater`。App 可以显示当前版本并打开项目维护的下载页，但不在
 后台下载或安装新 `.app`；用户下载对应架构的新 DMG 后手动替换 App。App installation 与 Workspace Root 隔离，
-因此手动替换 `.app` 不得修改 Project、媒体、Artifact、Attempt、private config 或 Delivery。
+因此手动替换 `.app` 本身不得修改 Project、媒体、Artifact、Attempt、private config 或 Delivery；新 App 下一次
+启动可以在没有 active work 时校验并原子刷新 checksum-bound Workspace managed integration。
 
 首阶段 release/download hosting 使用公开 GitHub Releases：beta 使用 GitHub prerelease 标记，stable 使用普通
 release。App 只打开对应 release page，不实现自己的更新 feed、后台下载或静默安装；每个 release 同时发布两种
@@ -287,7 +290,8 @@ release。App 只打开对应 release page，不实现自己的更新 feed、后
 - 安装前持久化脱敏 update intent、current version 和 compatibility result；
 - 新 App 第一次启动先 doctor，不自动迁移 Project；
 - 新 App/Runtime Pack doctor 失败时继续使用上一已验证完整版本；
-- Skill 只在没有 active production 且 managed files 未被用户修改时原子更新；
+- root instructions、managed Skill、Hermes prompt 与 `.rsp/bin/rsp` 作为一组 checksum-bound managed files，只在
+  没有 active work 时经 staging/verify/rollback 原子更新；对这些受管文件的手改会恢复为 packaged bytes；
 - x64 与 arm64 release 必须是同一 product version；任一架构 release gate 失败则该版本整体不发布；
 - Intel support 的终止只能发生在 major release，并提前给出支持窗口和 Workspace 迁移说明。
 
@@ -333,7 +337,8 @@ Project schema migration 使用 same-parent staging、完整验证和 rollback�
 - App 窗口关闭后 active production 继续、显式 Quit 有确认；
 - App/Engine/render crash recovery 与 incomplete staging cleanup；
 - Workspace 在两种架构间迁移时创作 Artifact 复用、Delivery renderer 精确失效；
-- App update 不修改 Workspace，active production 阻止切换；
+- App update 不改写 Project/media/Delivery/private config；无 active work 时只原子刷新 managed integration，
+  active production 阻止切换；
 - credentials/private paths 不进入 Agent context、diagnostic bundle 或 release artifact。
 
 不存在 Intel CI/hardware evidence 时不能宣称 x64 支持；Rosetta smoke 不替代 Intel native verification。

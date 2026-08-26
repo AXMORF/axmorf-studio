@@ -80,6 +80,7 @@ const sharedConstraints = [
   "Do not use network access, external URLs, credentials, CSS animation, or CSS transition.",
   "Use Remotion frame values for render-critical motion and keep Scene roots transparent.",
   "Do not render captions or narration inside Scene, GlobalVisual, or Cover outputs.",
+  "Do not inspect, copy, or adapt Renderer source from any existing Project; historical and same-Revision duplicate Renderers are rejected by fixed validation.",
 ] as const;
 
 const sceneContract = (rawContext: unknown): TaskExecutionContract => {
@@ -131,6 +132,7 @@ export default Renderer;
         format: "tsx",
         instructions: [
           "Default-export a component assignable to SceneRendererComponent.",
+          "Author this Renderer from the current immutable Scene context; never reuse another Project or another meaningId Renderer to satisfy validation.",
           "Use sceneFrame, durationInFrames, fps, viewportWidth, and viewportHeight; never assume full-frame coordinates.",
           "Keep every JSX transform and scale value statically provable and never shrink readable content; use frame-driven opacity, top, left, width, or height for motion instead of a dynamic transform or scale.",
           "Keep the root transparent and do not own captions, narration, or global decoration.",

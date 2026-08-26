@@ -186,6 +186,13 @@ const inputs = ({
       globalVisual: sha("2"),
       composition: sha("3"),
     },
+    originalityBaseline: {
+      schemaVersion: 1,
+      contractVersion: "scene-originality-baseline-v1",
+      storyId: "story-example",
+      rendererFingerprints: [],
+      baselineFingerprint: sha("a"),
+    },
     fingerprints: {
       story: sha("e"),
       narration: sha("f"),
@@ -197,6 +204,7 @@ const inputs = ({
       globalVisualBrief: sha("5"),
       resourcePool: sha("6"),
       assetManifest: sha("7"),
+      originalityBaseline: sha("a"),
       narrationGeneration: sha("8"),
     },
     sceneInputs: [

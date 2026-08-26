@@ -4,6 +4,7 @@ import {
   RSP_PROTOCOL_VERSION,
   RspAssetImportInputSchema,
 } from "./protocol";
+import { buildRspProjectRevisionSchemaResponse } from "./project-revision-surface";
 
 const CommandMutabilitySchema = z.enum([
   "read-only",
@@ -16,6 +17,7 @@ const CommandSessionSchema = z.enum(["required", "not-required"]);
 const CommandStdinSchema = z.enum([
   "none",
   "raw-project-create-input",
+  "raw-project-revision-input",
   "raw-asset-import-input",
 ]);
 
@@ -77,6 +79,8 @@ export const buildRspAssetImportSchemaResponse = () =>
     jsonSchema: z.toJSONSchema(RspAssetImportInputSchema),
   });
 
+export { buildRspProjectRevisionSchemaResponse };
+
 export const buildRspCommandCatalog = () =>
   RspCommandCatalogSchema.parse({
     schemaVersion: 1,
@@ -100,6 +104,13 @@ export const buildRspCommandCatalog = () =>
       command({
         command: "schema project-create",
         usage: "./.rsp/bin/rsp schema project-create",
+        mutability: "read-only",
+        session: "not-required",
+        stdin: "none",
+      }),
+      command({
+        command: "schema project-revision",
+        usage: "./.rsp/bin/rsp schema project-revision",
         mutability: "read-only",
         session: "not-required",
         stdin: "none",
@@ -133,6 +144,28 @@ export const buildRspCommandCatalog = () =>
         stdin: "raw-project-create-input",
       }),
       command({
+        command: "project revise-context",
+        usage:
+          "./.rsp/bin/rsp project revise-context --project <storyId>",
+        mutability: "read-only",
+        session: "required",
+        stdin: "none",
+      }),
+      command({
+        command: "project revise-validate",
+        usage: "./.rsp/bin/rsp project revise-validate",
+        mutability: "read-only",
+        session: "required",
+        stdin: "raw-project-revision-input",
+      }),
+      command({
+        command: "project revise",
+        usage: "./.rsp/bin/rsp project revise",
+        mutability: "write",
+        session: "required",
+        stdin: "raw-project-revision-input",
+      }),
+      command({
         command: "project list",
         usage: "./.rsp/bin/rsp project list",
         mutability: "read-only",
@@ -157,14 +190,15 @@ export const buildRspCommandCatalog = () =>
       command({
         command: "context",
         usage:
-          "./.rsp/bin/rsp context --project <storyId> [--delivery-policy <manual|automatic>] [--execution-mode <inline|subagents>] [--max-concurrency <n>] [--require-exact-concurrency <true|false>] [--runtime-max-concurrency <n>]",
+          "./.rsp/bin/rsp context --project <storyId> [--candidate <candidateId>] [--delivery-policy <manual|automatic>] [--execution-mode <inline|subagents>] [--max-concurrency <n>] [--require-exact-concurrency <true|false>] [--runtime-max-concurrency <n>]",
         mutability: "read-only",
         session: "required",
         stdin: "none",
       }),
       command({
         command: "inspect",
-        usage: "./.rsp/bin/rsp inspect --project <storyId>",
+        usage:
+          "./.rsp/bin/rsp inspect --project <storyId> [--candidate <candidateId>]",
         mutability: "read-only",
         session: "required",
         stdin: "none",
@@ -172,7 +206,7 @@ export const buildRspCommandCatalog = () =>
       command({
         command: "prepare",
         usage:
-          "./.rsp/bin/rsp prepare --project <storyId> [--delivery-policy <manual|automatic>]",
+          "./.rsp/bin/rsp prepare --project <storyId> [--candidate <candidateId>] [--delivery-policy <manual|automatic>]",
         mutability: "provider-write",
         session: "required",
         stdin: "none",
@@ -225,14 +259,15 @@ export const buildRspCommandCatalog = () =>
       command({
         command: "continue",
         usage:
-          "./.rsp/bin/rsp continue --project <storyId> --revision <revisionId> --attempt <attemptId> [--delivery-policy <manual|automatic>]",
+          "./.rsp/bin/rsp continue --project <storyId> --revision <revisionId> --attempt <attemptId> [--candidate <candidateId>] [--delivery-policy <manual|automatic>]",
         mutability: "write",
         session: "required",
         stdin: "none",
       }),
       command({
         command: "delivery build",
-        usage: "./.rsp/bin/rsp delivery build --project <storyId>",
+        usage:
+          "./.rsp/bin/rsp delivery build --project <storyId> [--candidate <candidateId>]",
         mutability: "write",
         session: "required",
         stdin: "none",

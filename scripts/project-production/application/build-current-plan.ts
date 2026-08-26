@@ -466,6 +466,9 @@ export const buildAgentTasks = (
         brief: scene.brief,
         taskInput: scene.taskInput,
       },
+      ...(templateCopy
+        ? {}
+        : { originalityBaseline: inputs.originalityBaseline }),
     };
     return buildContextTask({
       taskKind: templateCopy ? "scene-template" : "scene-owner",
@@ -478,6 +481,14 @@ export const buildAgentTasks = (
         { id: "readability", fingerprint: r.readabilityFingerprint },
         { id: "requirements", fingerprint: r.requirementsFingerprint },
         { id: "resources", fingerprint: r.selectedResourcesFingerprint },
+        ...(templateCopy
+          ? []
+          : [
+              {
+                id: "originality-baseline",
+                fingerprint: inputs.fingerprints.originalityBaseline,
+              },
+            ]),
         { id: "runtime", fingerprint: inputs.taskPolicyFingerprints.scene },
         { id: "timing", fingerprint: r.timingFingerprint },
         ...(r.templateInstanceFingerprint === null
@@ -492,7 +503,7 @@ export const buildAgentTasks = (
       outputs: SCENE_OUTPUTS,
       validatorPolicyVersion: templateCopy
         ? "scene-template-validator-v2"
-        : "scene-owner-validator-v2",
+        : "scene-owner-validator-v3",
       context,
       ...(templateCopy
         ? {}

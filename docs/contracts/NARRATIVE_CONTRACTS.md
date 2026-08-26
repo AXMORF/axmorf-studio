@@ -2,7 +2,7 @@
 
 > 文档类型：合同参考。可执行 schema 与 fingerprint 逻辑以 `src/contracts/` 为准。
 >
-> 最后复核：2026-08-21
+> 最后复核：2026-08-27
 
 ## Persisted source files
 
@@ -10,6 +10,7 @@
 - `story.json` → `StorySpecSchema`
 - `narration.json` → `NarrationSpecSchema`
 - `render.json` → `RenderSpecSchema`
+- `production/scene-originality-baseline.json` → `SceneOriginalityBaselineSchema`
 - `generated/sealed-narration.generated.json` → `SealedNarrationManifestSchema`
 - `generated/semantic-timing.generated.json` → `SemanticTimingSchema`
 - `generated/mastered-narration.generated.json` → `MasteredNarrationManifestSchema`
@@ -18,8 +19,9 @@
   `NarrativeBaselineEvidenceReceiptSchema`
 - `generated/narrative-auto-check.generated.json` → `NarrativeAutoCheckReportSchema`
 
-The first four files are authored source inputs; the `generated/` files are derived
-artifacts. All objects are strict and versioned by their executable schemas.
+The first four files are authored source inputs; `scene-originality-baseline.json` is a fixed snapshot created only
+with Project/revision candidate authoring, and the `generated/` files are derived artifacts. All objects are strict
+and versioned by their executable schemas.
 
 `VideoBrief.sourceReferences` 是最多 8 条的结构化资料引用，每条严格包含最长 160 字符的
 `title` 与最长 240 字符的 HTTP(S) `url`。显示合同会完整换行渲染这些合法值，不用省略号截断。
@@ -61,6 +63,11 @@ visible credits invalidates the Scene task and all downstream identities. It als
 requirements and a derived safe-area-local SceneViewport; the raw Composition readability policy, full-frame
 dimensions and insets remain composition-owned. ScenePackage v6 binds `scene-composition-boundary-v2` and
 `scene-visual-runtime-v3`, so an old full-frame Renderer/package cannot cross the clean-break boundary.
+`scene-owner-validator-v3` binds the frozen originality baseline fingerprint into each scene-owner task. Task check
+rejects a Renderer whose TypeScript token normalized fingerprint matches another Project captured at Project create
+or revision-candidate time. Before materialization, convergence also rejects exact checksum or normalized fingerprint
+duplicates between narrated meaningIds in the same Revision; whitespace/comment edits and plan JSON cannot convert a
+copied Renderer into a valid meaning-local implementation.
 
 ## Fingerprints
 

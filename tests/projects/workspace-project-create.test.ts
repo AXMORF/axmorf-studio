@@ -24,6 +24,8 @@ import {
   readWorkspaceProjectContext,
 } from "../../scripts/projects/workspace-project";
 import { commitWorkspaceProjectCreate } from "../../scripts/projects/workspace-project-create";
+import { createProjectRevisionCandidate } from "../../scripts/projects/application/project-revision";
+import { createProjectRevisionCandidateLocations } from "../../scripts/project-production/application/project-revision-locations";
 import {
   validProjectCreateInput,
   validProjectCreateProducerConfig,
@@ -217,6 +219,69 @@ test("Workspace create atomically writes scoped authoring without provider or at
     /identity conflicts/u,
   );
   assert.deepEqual(await readFile(receiptPath), receiptBefore);
+});
+
+test("Workspace revision creates an isolated same-Project candidate without changing live authoring", async (context) => {
+  const value = await fixture(context);
+  const config = buildProducerConfig(validProjectCreateProducerConfig);
+  await createWorkspaceProject({
+    locations: value.locations,
+    runtime: value.runtime,
+    config,
+    input: validProjectCreateInput,
+  });
+  const liveStoryPath = join(
+    value.locations.projectSourceRoot,
+    validProjectCreateInput.storyId,
+    "story.json",
+  );
+  const liveBefore = await readFile(liveStoryPath, "utf8");
+  const result = await createProjectRevisionCandidate({
+    locations: value.locations,
+    config,
+    input: {
+      schemaVersion: 1,
+      contractVersion: "project-revision-input-v1",
+      storyId: validProjectCreateInput.storyId,
+      baseRevisionId: `revision-${"1".repeat(64)}`,
+      patch: {
+        story: {
+          ...validProjectCreateInput.story,
+          title: "A revised deterministic narration example",
+        },
+      },
+    },
+    current: {
+      currentRevisionId: `revision-${"1".repeat(64)}`,
+      sourceCurrentId: `source-current-${"2".repeat(64)}`,
+      deliveryBuildId: `delivery-${"3".repeat(64)}`,
+    },
+  });
+  assert.equal(result.status, "project-revision-candidate-created");
+  assert.equal(await readFile(liveStoryPath, "utf8"), liveBefore);
+  const candidateLocations = createProjectRevisionCandidateLocations({
+    locations: value.locations,
+    storyId: validProjectCreateInput.storyId,
+    candidateId: result.candidateId,
+  });
+  const candidateStory = JSON.parse(
+    await readFile(
+      join(
+        candidateLocations.projectSourceRoot,
+        validProjectCreateInput.storyId,
+        "story.json",
+      ),
+      "utf8",
+    ),
+  ) as { title: string };
+  assert.equal(candidateStory.title, "A revised deterministic narration example");
+  await access(
+    join(
+      candidateLocations.projectSourceRoot,
+      validProjectCreateInput.storyId,
+      "production/scene-originality-baseline.json",
+    ),
+  );
 });
 
 test("Workspace create supports explicit null templates without creating media or repository-shaped roots", async (context) => {

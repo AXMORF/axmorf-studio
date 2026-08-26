@@ -31,6 +31,8 @@ export * from "./task-execution-contract";
 export * from "./production-inspection";
 export * from "./production-revision";
 export * from "./project-create";
+export * from "./project-revision";
+export * from "./scene-originality";
 export * from "./execution-attempt";
 export * from "./publishing-intent";
 export * from "./project";

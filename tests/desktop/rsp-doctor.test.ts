@@ -33,6 +33,7 @@ import {
 import {
   RspProjectCreateSchemaResponseSchema,
 } from "../../desktop/contracts/project-create-surface";
+import { RspProjectRevisionSchemaResponseSchema } from "../../desktop/contracts/project-revision-surface";
 import {
   DESKTOP_MANAGED_FILE_PATHS,
   createWorkspaceManifest,
@@ -43,6 +44,21 @@ import { validProjectCreateInput } from "../fixtures/project-create";
 const runtimePackId = `runtime-pack-${"a".repeat(64)}`;
 const revisionId = `revision-${"b".repeat(64)}`;
 const taskRevision = `task-${"c".repeat(64)}`;
+const candidateId = `revision-candidate-${"d".repeat(64)}`;
+const validProjectRevisionInput = {
+  schemaVersion: 1,
+  contractVersion: "project-revision-input-v1",
+  storyId: "story-example",
+  baseRevisionId: revisionId,
+  patch: {
+    scenes: [
+      {
+        ...validProjectCreateInput.scenes[0],
+        visualIntent: "Show the revised measured timeline.",
+      },
+    ],
+  },
+} as const;
 
 const createWorkspace = async (context: TestContext) => {
   const workspaceRoot = await mkdtemp(join(tmpdir(), "axmorf-rsp-"));
@@ -250,13 +266,21 @@ test("rsp local discovery exposes structural schemas and the complete command ca
     ["schema", "asset-import"],
     "/workspace-does-not-need-an-active-app/.rsp/bin",
   );
+  const revision = await runCli(
+    ["schema", "project-revision"],
+    "/workspace-does-not-need-an-active-app/.rsp/bin",
+  );
   assert.equal(help.exitCode, 0);
   assert.equal(asset.exitCode, 0);
+  assert.equal(revision.exitCode, 0);
   const catalog = RspCommandCatalogSchema.parse(JSON.parse(help.stdout));
   const commands = catalog.commands.map(({ command }) => command);
   assert.ok(commands.includes("help --json"));
   assert.ok(commands.includes("project create-context"));
   assert.ok(commands.includes("project validate"));
+  assert.ok(commands.includes("project revise-context"));
+  assert.ok(commands.includes("project revise-validate"));
+  assert.ok(commands.includes("project revise"));
   assert.ok(commands.includes("task describe"));
   assert.ok(commands.includes("task finalize"));
   assert.ok(commands.includes("attempt status"));
@@ -264,6 +288,14 @@ test("rsp local discovery exposes structural schemas and the complete command ca
     JSON.parse(asset.stdout),
   );
   assert.equal(assetSchema.stdin, "raw-asset-import-input");
+  const revisionSchema = RspProjectRevisionSchemaResponseSchema.parse(
+    JSON.parse(revision.stdout),
+  );
+  assert.equal(revisionSchema.stdin, "raw-project-revision-input");
+  assert.equal(
+    revisionSchema.candidatePolicy,
+    "same-project-candidate-auto-promote-after-verified-delivery",
+  );
   const create = catalog.commands.find(
     ({ command }) => command === "project create",
   );
@@ -413,6 +445,20 @@ test("rsp CLI exposes every public command and reads create/import only from std
       workspace.moduleDirectory,
       validProjectCreateInput,
     ),
+    runCli(
+      ["project", "revise-context", "--project", "story-example"],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      ["project", "revise-validate"],
+      workspace.moduleDirectory,
+      validProjectRevisionInput,
+    ),
+    runCli(
+      ["project", "revise"],
+      workspace.moduleDirectory,
+      validProjectRevisionInput,
+    ),
     runCli(["project", "list"], workspace.moduleDirectory),
     runCli(
       ["project", "delete", "--project", "story-example", "--confirm-delete"],
@@ -429,6 +475,10 @@ test("rsp CLI exposes every public command and reads create/import only from std
     ),
     runCli(
       ["inspect", "--project", "story-example"],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      ["inspect", "--project", "story-example", "--candidate", candidateId],
       workspace.moduleDirectory,
     ),
     runCli(
@@ -508,7 +558,11 @@ test("rsp CLI exposes every public command and reads create/import only from std
       "project-create-context",
       "project-delete",
       "project-list",
+      "project-revise",
+      "project-revise-context",
+      "project-revise-validate",
       "project-validate",
+      "inspect",
       "attempt-status",
       "task-check",
       "task-commit",

@@ -1,6 +1,8 @@
 import type { ProductionCommandFormatter } from "../domain/production-command-formatter";
 
-export const rspLocalProductionCommandFormatter: ProductionCommandFormatter =
+export const createRspLocalProductionCommandFormatter = (
+  candidateId?: string,
+): ProductionCommandFormatter =>
   Object.freeze({
     finalizeTask: ({ taskRevision }) =>
       `./.rsp/bin/rsp task finalize --task ${taskRevision}`,
@@ -16,5 +18,8 @@ export const rspLocalProductionCommandFormatter: ProductionCommandFormatter =
       attemptId,
       deliveryPolicy,
     }) =>
-      `./.rsp/bin/rsp continue --project ${projectId} --revision ${revisionId} --attempt ${attemptId} --delivery-policy ${deliveryPolicy}`,
+      `./.rsp/bin/rsp continue --project ${projectId} --revision ${revisionId} --attempt ${attemptId}${candidateId === undefined ? "" : ` --candidate ${candidateId}`} --delivery-policy ${deliveryPolicy}`,
   });
+
+export const rspLocalProductionCommandFormatter =
+  createRspLocalProductionCommandFormatter();

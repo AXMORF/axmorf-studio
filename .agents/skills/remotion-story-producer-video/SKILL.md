@@ -5,29 +5,28 @@ description: Resolve inline or bounded-Agent execution, produce, and hand off to
 
 # Remotion Story Producer Video
 
-## Create the Project when needed
+## Create or revise Project authoring
 
 Read [policy](policy.json), [workflow](references/direct-production-workflow.md), and
-[Producer config](references/producer-config.md). Report boundary Scenes as inherited, selected, or disabled.
-User silence means inheritance: omit `sceneTemplates`, never infer `null`. Use `project:create` for new authoring;
-edit existing inputs and preserve unrelated changes.
+[Producer config](references/producer-config.md). Report boundary Scenes as inherited/selected/disabled.
+User silence means inheritance: omit `sceneTemplates`, never infer `null`. Use `project:create` for new authoring. Installed Workspace revision:
+packaged `schema project-revision`, `project revise-context/revise-validate/revise`, then bind `candidateId` to production.
+Never clone an MP4, Project, or historical Scene; current stays until verified candidate promotion.
 
 ## Load optional Agent capabilities
 
-Before inspect, use only the current Agent's actually callable tools. Activate the external-asset MCP slot when one
-MCP exposes `get_provider_status`, `search_images`, `preview_images`, and `acquire_image` with an import-compatible
-receipt; config, shell discovery, and another Agent's tools do not count. If absent, omit it without error,
-placeholder, or DAG node. If active, query local Catalog first and use `project:asset:import`. MCP data never enters
-task executors, artifacts, delivery, or runtime.
+Only the current Agent's actually callable tools count. Activate the external-asset MCP slot when one MCP exposes
+`get_provider_status`, `search_images`, `preview_images`, and `acquire_image` with an import-compatible receipt.
+Config, shell discovery, and another Agent's tools do not count. If absent, omit without error or DAG node. If active, query
+local Catalog first and use `project:asset:import`. MCP data never enters tasks or runtime.
 
 ## Resolve Agent execution
 
-Before inspect, resolve execution once with `project:execution:resolve`. Explicit user prompt fields override the
-settings page; omitted fields inherit it, then the host-neutral built-in `inline` default. Prompt overrides apply only
-to this production unless the user explicitly asks to save them. Inline needs no child runtime and executes dirty
-tasks sequentially. Select subagents only through prompt/settings when the host supplies runtime-native children;
-pass known capacity and respect the repository ceiling of four. If exact requested capacity or known zero runtime
-capacity resolves `blocked`, stop before prepare. Do not persist raw prompt text or put this policy in revision IDs.
+Resolve once with `project:execution:resolve`. Explicit prompt fields override settings; omissions inherit settings,
+then built-in `inline`. Overrides are one-production unless explicitly saved. Inline needs no child runtime and is
+sequential. Select subagents only through prompt/settings with runtime-native children; pass known capacity, maximum
+four. If exact capacity or known zero resolves `blocked`, stop before prepare. Do not persist prompts or put policy in
+revision IDs.
 
 ## Inspect before cost
 
@@ -41,16 +40,16 @@ exclude its diagnostics. Reuse artifacts and execute only `dirtyAgentTasks`.
 
 ## Execute dirty Agent tasks
 
-Use the resolved mode with the task's [Scene](references/scene-agent-orchestration.md),
+Use the resolved mode with [Scene](references/scene-agent-orchestration.md),
 [GlobalVisual](references/global-visual-agent-orchestration.md), or [Cover](references/cover-agent-orchestration.md)
 prompt; never Agent-author `scene-template`. Each Root or child executor reads immutable inputs, writes only
 `.producer-work/<storyId>/<taskRevision>/`, loops check, then runs prepare's attempt-bound terminal command. The
 validated ArtifactAttestation and task-terminal event are durable authority.
 
-Inline Root executes exactly one workspace at a time. Subagent mode admits at most `effectiveMaxConcurrency`
-runtime-native children; when dirty tasks exceed it, wait-any only to release an admission slot. Never poll all
-children or treat chat as completion. A hard spawn failure runs that task's exact `hostFailureCommand`; it does not
-switch modes. Once every dirty task has been executed or admitted, continue immediately.
+Inline Root executes one workspace at a time. Subagent mode admits at most `effectiveMaxConcurrency` native
+children; when tasks exceed it, wait-any only for admission. Never poll all children or treat chat as completion. A
+hard spawn failure runs exact `hostFailureCommand`, without switching modes. Continue after every task is executed
+or admitted.
 
 ## Hand off to fixed continuation
 
@@ -62,13 +61,14 @@ at ExecutionAttempt creation. No retry, Root re-entry, direct converge, or works
 ## Preserve production invariants
 
 - Sealed PCM samples own timing; Composition owns captions, narration, and background.
-- Scene/GlobalVisual/Cover are isolated; templates are fixed-produced; Scene roots stay transparent.
+- Scene/GlobalVisual/Cover are isolated; templates are fixed-produced; Scene roots stay transparent and
+  meaning-local. Historical normalized and same-Revision exact/normalized Renderer duplicates fail fixed validation.
 - Diagnostics do not change authority; protect private/voice/other-Project/history.
 - Delivery is exact `video.mp4`, two PNG Covers, and `publish.json`, validated through EOF.
 
 ## Classify failure by task owner
 
-Only its assigned executor corrects a workspace before terminal; failure ends the attempt. Separate engineering uses
+Only its executor corrects a workspace before terminal; failure ends the attempt. Separate engineering uses
 [system hardening](references/agent-rework-and-system-hardening.md). Never retry, fallback, weaken validators, or
 fabricate attestations inside it.
 

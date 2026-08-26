@@ -13,6 +13,10 @@ Remotion Story Producer 把一份可审计的 Project authoring source 生产为
 在本地 Catalog 缺少合适素材后 acquire，并经 `project:asset:import` 准入；不存在时整个阶段无错误、无占位
 地省略。这个可选 authoring 输入通道不属于 ProductionRevision/Task DAG，也不向 child/runtime 暴露 MCP。
 
+现有 installed Workspace Project 的用户修改先形成 same-Project candidate：strict patch 绑定 exact current base，
+旧 source/Delivery 保持唯一 current authority；候选沿同一主链生成并验证 exact four-file Delivery 后才原子晋升，
+失败完整回滚。产品不通过克隆 MP4、Project 目录或历史 Scene source 建立修改流程。
+
 1. 冻结 ProductionRevision；
 2. 建立 content-addressed Task DAG；
 3. 复用有效 ArtifactAttestation，只委派 dirty Agent tasks；
@@ -36,6 +40,8 @@ ExecutionAttempt 只记录一次执行诊断。它的失败或丢失不拥有产
   Scene 的连续窗口，不进入 silent boundary Scenes。Scene 只在本地 viewport 内布局，不感知 full-frame inset。
 - template-copy Scene 是 Project-local immutable instance，由 fixed task 产出，不派发 Agent。
 - Scene、GlobalVisual、Cover authoring 相互隔离。每个 Agent 只写自己的 task workspace。
+- 每个 scene-owner Renderer 必须由自己的 immutable meaning context 创作；Project 创建/修订时冻结的历史 normalized
+  fingerprint 与同 Revision exact/normalized Renderer duplicate 都由 fixed validator 拒绝，plan JSON 不能绕过。
 - Scene authoring 使用 repository-local `remotion-best-practices`，但 TaskSpec/contracts/validators 始终
   拥有更高 authority。
 - render runtime 使用静态 registry 和 repository-local media，不调用网络、Agent、Skill、MCP 或目录扫描。
@@ -81,7 +87,8 @@ DeliveryBuild 的显式 contract clean-break，不得重新把 converge 与同�
 - App Settings 列出 current source Projects，展示 Revision、task reused/dirty/blocked、latest attempt diagnostic、
   `source-current` 和 current/stale Delivery，不把 output-only 目录伪装成 Project。只有 verified current Delivery
   进入 Preview Catalog；manual/source-current 没有视频时明确显示不可播放。
-- 局部修改只重做真正 dirty 的创作或媒体；失败后继续不重新消耗已经验证的 TTS/Agent/Render 工作。
+- 局部修改使用 same-Project candidate，只重做真正 dirty 的创作或媒体；候选失败不替换 current，下一次显式
+  production 可复用仍有效的 TTS/Agent/Render artifact。
 - Project 删除使用完整 storyId 确认并清理该 Project 的全部 ownership roots，同时保护其他 Project、
   core、shared media、private config 与 voice profiles。
 - 每个完成状态都有机械证据；聊天成功、Agent 自评、文件存在或进程启动都不代表交付完成。

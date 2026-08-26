@@ -15,7 +15,7 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 const PolicySchema = z
   .object({
     schemaVersion: z.literal(16),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v18"),
+    policyVersion: z.literal("remotion-story-producer-video-policy-v19"),
     rootEndpoints: z.tuple([
       z.literal("project-production-complete"),
       z.literal("project-production-current"),
@@ -215,6 +215,14 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   );
   assert.match(
     skill,
+    /schema project-revision[\s\S]*project revise-context\/revise-validate\/revise[\s\S]*candidateId/u,
+  );
+  assert.match(
+    skill,
+    /Never clone an MP4[\s\S]*verified candidate promotion/u,
+  );
+  assert.match(
+    skill,
     /Root's final production action[\s\S]*continuationCommand/u,
   );
   assert.match(skill, /without polling[\s\S]*token-consuming supervision/u);
@@ -228,6 +236,10 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
     "immutable-attempt-event-log",
   );
   assert.equal(policy.invariants.fixedContinuationTimeoutMs, 3_600_000);
+  assert.equal(
+    policy.invariants.sceneOriginalityPolicy,
+    "historical-normalized-fingerprint-and-same-revision-exact-or-normalized-duplicate-rejected",
+  );
   assert.equal(
     policy.invariants.fixedContinuationDeadlineOrigin,
     "execution-attempt-created-at",
@@ -259,6 +271,8 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   assert.match(scene, /不得读取、推导或重复/u);
   assert.match(scene, /透明 Scene/u);
   assert.match(scene, /不得读取其他 workspace/u);
+  assert.match(scene, /历史normalized指纹/u);
+  assert.match(scene, /plan-JSON绕过/u);
   assert.match(scene, /scene-template[\s\S]*不由 Agent executor/u);
 
   assert.match(globalVisual, /不得读取 Scene 输出/u);

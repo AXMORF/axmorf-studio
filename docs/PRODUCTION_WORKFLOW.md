@@ -12,7 +12,7 @@
 
 ```mermaid
 flowchart LR
-  Author[Atomic create or current authoring edits] --> MCP{Current Root exposes compatible MCP tools?}
+  Author[Atomic create or isolated same-Project candidate] --> MCP{Current Root exposes compatible MCP tools?}
   MCP -->|no: omit slot| Resolve[Resolve execution policy]
   MCP -->|yes: load slot| Catalog{Local Catalog satisfies need?}
   Catalog -->|yes| Resolve
@@ -71,6 +71,22 @@ configured authoring。已存在、partial、cross-project、symlink/path escape
 template instance 同时包含一个 Project-local Renderer adapter；它接收共享 runtime 的
 `viewportWidth`/`viewportHeight`，只把 safe-area-local dimensions 映射给模板内部 `width`/`height`。其源码和
 import graph 与其他 copied bytes 一起冻结；后续共享模板或 generator 修复不会隐式迁移既有 Project。
+
+installed Workspace 修改现有作品时使用 public candidate surface，不直接写 live Project：
+
+```bash
+./.rsp/bin/rsp schema project-revision
+./.rsp/bin/rsp project revise-context --project <storyId>
+./.rsp/bin/rsp project revise-validate < project-revision-input.json
+./.rsp/bin/rsp project revise < project-revision-input.json
+./.rsp/bin/rsp inspect --project <storyId> --candidate <candidateId>
+./.rsp/bin/rsp prepare --project <storyId> --candidate <candidateId>
+```
+
+raw `ProjectRevisionInput` 绑定 `storyId`、exact current `baseRevisionId` 与非空实际 patch，保持 narrated
+meaningIds/order 和 boundary Scenes。fixed creator 在 `.rsp/revisions/<storyId>/<candidateId>/` 隔离复制 current
+Project/media 并应用 patch；base revision/source-current/Delivery 任一漂移都 fail closed。候选强制 automatic
+Delivery，并通过 command 返回的 exact task/continuation commands 进入下述同一主链。
 
 StoryBeat 明确区分 narrated-scene 与 silent-scene。narrated beat 的 `ttsChunks` 是 Agent-authored atomic
 units；silent beat 只允许在首尾，使用固定 frame/template/sound，不创建 TTS、CaptionCue 或 sealed segment。
@@ -147,6 +163,10 @@ size/fingerprint）。raw policy、full-frame width/height 和四边 inset 不�
 从本地 `(0, 0)` 布局；只有 Composition 在 runtime 安装/clip SceneViewport 并拥有 CaptionLayer。
 validator 拒绝 Renderer 自建 SceneViewport/provider、读取 raw policy/inset 或调用 `useVideoConfig()`
 恢复 full-frame authority。
+`scene-owner-validator-v3` 还绑定 Project 创建/修订时冻结的历史 Renderer normalized fingerprint baseline；命中
+历史 Project 实现时 task check 失败。converge 在物化前同时比较 narrated `scene-owner` 的 exact checksum 与
+normalized fingerprint；两个 meaningId 的 Renderer bytes 相同或仅靠空白/注释改写时整次 attempt fail closed。
+改变 visual/shot plan JSON 不能绕过这两道门槛。
 
 GlobalVisual task context 另外包含从 canonical SemanticTiming 确定性派生的 `GlobalVisualLayerPolicy`：base range
 固定为完整 Composition，decoration range 固定为首个至末个 narrated Scene 的连续窗口，decoration frame origin
@@ -217,6 +237,10 @@ build 同步等待 Remotion/FFmpeg，依次验证：
 `publish.json` 最后写。四文件全部通过才 controlled replace `deliveries/<storyId>/`。相同完整 identity 返回
 `project-production-current`；新 package 成功提升返回 `project-production-complete`。这两个状态均证明实际
 current files 完整，不是计划、聊天或进程启动事实。
+
+普通 production 只提升本 Project 的 current Delivery；candidate production 在 candidate exact-four-file package
+复验后，另由 fixed promotion 在 operation lock 下替换 live Project/media/source-current/Delivery 并重新生成/复验
+Registry/Catalog。promotion 任一步失败按逆序恢复旧 current，candidate 不能留下半晋升的第二 authority。
 
 ## 7. Progress 与失败后继续
 

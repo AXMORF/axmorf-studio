@@ -5,6 +5,13 @@
 Root 负责 authoring、执行策略解析、inspect-and-report、explicit prepare 与 dirty-only execution。Root 串行执行
 完或完成 bounded admission 后挂起；attempt-bound fixed continuation 独占 terminal barrier 和单次 converge。
 
+installed Workspace 修改现有 Project 时，不直接编辑 live authoring，也不克隆 MP4/Project/Scene。先用
+`./.rsp/bin/rsp project revise-context --project <storyId>` 与 `schema project-revision` 取得 exact base/contract，
+将 raw patch 依次传给 `project revise-validate`、`project revise`，再把返回的 `candidateId` 绑定到
+`context/inspect/prepare/continue`。候选强制 automatic Delivery；verified exact-four-file promotion 前旧 current
+保持不变。下文 npm 命令描述 repository-checkout production；installed Workspace 只执行 managed Skill 返回的 rsp
+命令，不回退到源码脚本。
+
 ## 1. Project optional Agent capabilities
 
 Project 已创建或 authoring edit 完成后、inspect 之前，Root 只检查自己当前实际 callable 的 tools。若同一
@@ -72,7 +79,8 @@ stale。repository 与 Workspace adapters 都继续按 current stale gate fail c
 
 每个 executor prompt 必须包含 storyId、revisionId、taskRevision、attemptId、唯一 workspace、必读 Skill/reference、
 focused check 和 prepare 返回的 commit/failure commands。Scene child 完整读取 repository-local
-`remotion-best-practices`。
+`remotion-best-practices`，只从自己的 immutable context 创作 meaning-local Renderer；历史 normalized fingerprint
+以及同 Revision exact/normalized duplicate 都由 fixed validation 拒绝，改 plan JSON 不能绕过。
 
 GlobalVisual executor 还必须服从 `inputs/context.json` 中 fixed 派生的 `layerPolicy`：只让
 `GlobalVisualBaseLayer` 提供全片稳定底板，让 `GlobalVisualDecorationLayers` 以 narrated window 起点为 local frame 0；

@@ -29,10 +29,16 @@ current Desktop runtime authority。
 Phase B current implementation 已 clean-break 为 Workspace-owned `rsp-local-v2`：`.rsp/bin/rsp` 是 embedded Runtime
 Pack 安装的 self-contained client，只连接 App-running authenticated Unix-domain socket，不依赖 host Node/npm/Git、
 源码 checkout 或 repository npm fallback。public surface 覆盖 `doctor`、`help --json`、read-only schemas、
-`project create-context/validate/create/list/delete`、`asset import`、`context`、`inspect`、`prepare`、
+`project create-context/validate/create/list/delete`、`project revise-context/revise-validate/revise`、`asset import`、`context`、`inspect`、`prepare`、
 `task describe/finalize/check/commit/fail`、`attempt status`、one-shot `continue` 与 `delivery build`。`manual` 可在
 `project-production-source-current` 终结且没有可播放视频；`automatic` 或 later explicit Delivery 才能产生复验后的
 exact four-file current package。
+
+现有作品修订不要求源码 checkout，也不复制 MP4 或 Project。Agent 读取 packaged `schema project-revision` 与 active
+`revise-context`，提交 raw patch 后使用返回的 `candidateId` 调用带 `--candidate` 的生产命令；旧 current Delivery
+保持不变，直到候选 exact-four-file Delivery 验证并原子晋升。Scene task 只能从自己的 immutable context 创作，
+历史 normalized Renderer fingerprint 和同 Revision narrated Renderer exact/normalized duplicate 均由 fixed
+validator 拒绝。
 
 `schema project-create` 不需要 active App session，返回 structural/static-cross-field JSON Schema 与有效 raw example；
 active `project create-context` 投影 exact style/collection/template/resource choices，`project validate` 在写入前执行完整
@@ -44,6 +50,9 @@ Agent 不需要源码 checkout、私有 builder 或 tests 推导输入与输出�
 Runtime Pack 只携带 renderer/bundler 所需的 checksum-bound exact Studio/Studio Shared 内部依赖，不包含 Remotion
 CLI、Studio Server、Studio UI 或 launch surface。App/Engine 不启动 Remotion Studio 或 Settings Web service；UDS 是
 唯一 control plane，DeliveryBuild 期间 renderer 可临时绑定 `127.0.0.1` OS-ephemeral data listener，终态与退出后归零。
+App 启动时校验 managed ledger；没有 active work 才通过 staging/verify/rollback 同步 root instructions、managed
+Skill、Hermes prompt 与 `.rsp/bin/rsp`。外部 Agent 不应手改这些受管路径；Project/media/Delivery/private config
+不属于该自动更新集合。
 
 `npm run desktop:integration-smoke` 证明 host-neutral managed discovery、完整 CLI invocation 与真实 socket contract，
 但不是 Codex 或 Hermes 完整生产认证。packaged native gate 的 deterministic executor 现只消费 task 随附合同/examples，

@@ -2,7 +2,7 @@
 
 Agents choose creative direction; fixed scripts snapshot, validate, commit, materialize, and build.
 
-## 1. Create or edit Project inputs
+## 1. Create repository Project inputs
 
 Author one strict repository-relative input. Omit `sceneTemplates` to inherit ProducerConfig; user silence must
 never become `null`. Report inherited, explicit, or disabled:

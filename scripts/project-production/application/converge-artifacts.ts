@@ -1,4 +1,4 @@
-import { lstat, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import {
@@ -13,6 +13,7 @@ import {
 import {
   commitTaskArtifact,
   inspectArtifact as inspectArtifactFromStore,
+  resolveArtifactPath,
 } from "../adapters/artifact-store";
 import { appendExecutionAttemptTerminalResult } from "../adapters/attempt-store";
 import {
@@ -37,6 +38,7 @@ import type {
   ProductionLocations,
   RuntimeExecutionResources,
 } from "./production-locations";
+import { fingerprintSceneRendererSource } from "../domain/scene-originality";
 
 type PlannedProduction = Awaited<ReturnType<typeof buildCurrentProductionPlan>>;
 type BoundArtifact = Readonly<{
@@ -64,6 +66,10 @@ export type ConvergenceDependencies = Readonly<{
     readonly projectId: string;
     readonly meaningId: string;
   }) => Promise<Uint8Array>;
+  readSceneRendererSource?: (input: {
+    readonly locations: ProductionLocations;
+    readonly task: ProducerTaskSpec;
+  }) => Promise<string>;
 }>;
 
 const MATERIALIZED_TASK_KINDS = new Set<ProducerTaskSpec["taskKind"]>([
@@ -72,6 +78,77 @@ const MATERIALIZED_TASK_KINDS = new Set<ProducerTaskSpec["taskKind"]>([
   "global-visual-owner",
   "cover-owner",
 ]);
+
+export const assertMeaningLocalSceneRenderers = (
+  artifacts: readonly BoundArtifact[],
+) => {
+  const rendererOwners = new Map<string, string>();
+  for (const { task, attestation } of artifacts.filter(
+    ({ task }) => task.taskKind === "scene-owner",
+  )) {
+    const rendererChecksum = attestation.outputManifest.find(
+      ({ logicalPath }) => logicalPath === "src/Renderer.tsx",
+    )?.checksum;
+    if (rendererChecksum === undefined) {
+      throw new Error("Scene Renderer attestation is missing.");
+    }
+    const existingMeaningId = rendererOwners.get(rendererChecksum);
+    if (existingMeaningId !== undefined) {
+      throw new Error(
+        `Scene Renderers must be meaning-local; ${existingMeaningId} and ${task.semanticId} are duplicates.`,
+      );
+    }
+    rendererOwners.set(rendererChecksum, String(task.semanticId));
+  }
+};
+
+const readAttestedSceneRendererSource = async ({
+  locations,
+  task,
+}: {
+  readonly locations: ProductionLocations;
+  readonly task: ProducerTaskSpec;
+}) =>
+  readFile(
+    join(
+      resolveArtifactPath({
+        locations,
+        storyId: task.storyId,
+        taskKind: task.taskKind,
+        taskRevision: task.taskRevision,
+      }),
+      "files/src/Renderer.tsx",
+    ),
+    "utf8",
+  );
+
+export const assertNormalizedMeaningLocalSceneRenderers = async ({
+  locations,
+  artifacts,
+  readSource,
+}: {
+  readonly locations: ProductionLocations;
+  readonly artifacts: readonly BoundArtifact[];
+  readonly readSource: NonNullable<
+    ConvergenceDependencies["readSceneRendererSource"]
+  >;
+}) => {
+  const rendererOwners = new Map<string, string>();
+  for (const { task } of artifacts.filter(
+    ({ task }) => task.taskKind === "scene-owner",
+  )) {
+    const fingerprint = fingerprintSceneRendererSource(
+      await readSource({ locations, task }),
+    );
+    const existingMeaningId = rendererOwners.get(fingerprint);
+    if (existingMeaningId !== undefined) {
+      throw new Error(
+        `Scene Renderers must be meaning-local; ${existingMeaningId} and ${task.semanticId} normalize to duplicates.`,
+      );
+    }
+    rendererOwners.set(fingerprint, String(task.semanticId));
+  }
+};
 
 const same = (left: unknown, right: unknown) =>
   serializeCanonicalJson(left) === serializeCanonicalJson(right);
@@ -363,6 +440,14 @@ const convergeProjectProductionUnlocked = async ({
     if (runtime === undefined) {
       throw new Error("Source convergence requires a verified runtime.");
     }
+    assertMeaningLocalSceneRenderers(allArtifacts);
+    await assertNormalizedMeaningLocalSceneRenderers({
+      locations,
+      artifacts: allArtifacts,
+      readSource:
+        dependencies.readSceneRendererSource ??
+        readAttestedSceneRendererSource,
+    });
     await materializeOwnerArtifacts({
       locations,
       projectId,

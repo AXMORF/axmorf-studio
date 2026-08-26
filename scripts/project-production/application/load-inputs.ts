@@ -18,7 +18,9 @@ import {
   VideoBriefSchema,
   VisualStyleSpecSchema,
   ResourceCatalogSchema,
+  SceneOriginalityBaselineSchema,
   buildSceneTaskInputV7,
+  buildSceneOriginalityBaseline,
   resolveSceneViewport,
   computeRenderSpecFingerprint,
   computeStoryFingerprint,
@@ -54,6 +56,24 @@ export const loadProjectProductionInputs = async (
   const projectRoot = join(locations.projectSourceRoot, projectId);
   const read = (path: string, label: string) =>
     readRegularJson(join(projectRoot, path), label);
+  const readOriginalityBaseline = async () => {
+    try {
+      return SceneOriginalityBaselineSchema.parse(
+        (
+          await read(
+            "production/scene-originality-baseline.json",
+            "Scene originality baseline",
+          )
+        ).raw,
+      );
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      return buildSceneOriginalityBaseline({
+        storyId: projectId,
+        rendererFingerprints: [],
+      });
+    }
+  };
   const [
     briefFile,
     storyFile,
@@ -72,6 +92,7 @@ export const loadProjectProductionInputs = async (
     masteredFile,
     runtimePolicyFingerprint,
     taskPolicyFingerprints,
+    originalityBaseline,
   ] = await Promise.all([
     read("brief.json", "VideoBrief"),
     read("story.json", "StorySpec"),
@@ -90,6 +111,7 @@ export const loadProjectProductionInputs = async (
     read("generated/mastered-narration.generated.json", "MasteredNarration"),
     snapshotPolicyRoots({ locations }),
     snapshotTaskPolicyFingerprints({ locations }),
+    readOriginalityBaseline(),
   ]);
   const brief = VideoBriefSchema.parse(briefFile.raw);
   const story = StorySpecSchema.parse(storyFile.raw);
@@ -309,6 +331,7 @@ export const loadProjectProductionInputs = async (
     sceneInputs,
     runtimePolicyFingerprint,
     taskPolicyFingerprints,
+    originalityBaseline,
     fingerprints: {
       story: fingerprint("revision-story", story),
       narration: fingerprint("revision-narration", narration),
@@ -323,6 +346,7 @@ export const loadProjectProductionInputs = async (
       ),
       resourcePool: resourcePool.poolFingerprint,
       assetManifest: assetManifest.manifestFingerprint,
+      originalityBaseline: originalityBaseline.baselineFingerprint,
       narrationGeneration: generationFingerprint,
       canonicalInputFingerprint: fingerprint(
         "revision-canonical-inputs",

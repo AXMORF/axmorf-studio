@@ -94,7 +94,7 @@ const ProjectCreateNarratedBeatSchema = z
   })
   .readonly();
 
-const ProjectCreateStorySchema = z
+export const ProjectCreateStorySchema = z
   .object({
     schemaVersion: z.literal(STORY_SPEC_SCHEMA_VERSION),
     storyId: StoryIdSchema,
@@ -124,7 +124,7 @@ const ProjectCreateStorySchema = z
   })
   .readonly();
 
-const VisualStyleAuthoredSchema = z
+export const ProjectCreateVisualStyleSchema = z
   .object({
     styleProfileId: StyleProfileIdSchema,
     artDirection: VisualStyleArtDirectionSchema,
@@ -187,7 +187,7 @@ const ResourceSelectionsSchema = z
   })
   .readonly();
 
-const GlobalVisualAuthoredSchema = z
+export const ProjectCreateGlobalVisualSchema = z
   .object({
     visualIntent: z
       .array(
@@ -276,10 +276,10 @@ const ProjectCreateInputObject = z.object({
   storyId: StoryIdSchema,
   brief: VideoBriefSchema,
   story: ProjectCreateStorySchema,
-  visualStyle: VisualStyleAuthoredSchema,
+  visualStyle: ProjectCreateVisualStyleSchema,
   resources: ResourceSelectionsSchema,
   scenes: z.array(SceneProductionBriefItemSchema).min(1).max(256).readonly(),
-  globalVisual: GlobalVisualAuthoredSchema,
+  globalVisual: ProjectCreateGlobalVisualSchema,
   render: RenderChoicesSchema,
   publishing: AuthoredPublishingIntentSchema,
   production: ProductionChoicesSchema,

@@ -319,7 +319,7 @@ Application Support 的单一 encrypted private-config envelope。旧 encrypted 
 active-work gate，并对 validation、safeStorage/private-file authority 与 saved-but-Engine-restart-failed 返回不同的脱敏
 code/message/action/issues，不再统一显示“操作未完成”。
 
-Workspace `rsp-local-v2` 现提供无需 App session 的 `help --json`、project-create/asset-import structural schemas；active
+Workspace `rsp-local-v2` 现提供无需 App session 的 `help --json`、project-create/project-revision/asset-import structural schemas；active
 `project create-context` 投影 exact style/collection/template/resource choices，`project validate` 在 create 前合并 strict
 static 与 config/Runtime Pack operational checks。`rsp project create` 明确拒绝
 `command/input/protocolVersion/requestId/workspaceId` wrapper；公开创建与 task 失败返回不带字段值的
@@ -327,6 +327,15 @@ static 与 config/Runtime Pack operational checks。`rsp project create` 明确�
 `inputs/task-contract.json`，逐 output 提供 JSON Schema/example/component signature/derived ownership；fixed
 `task finalize` 统一计算 fingerprint/receipt。native gate 的 deterministic executor 不再调用私有 output builder，只消费
 task contract 后走 finalize/check/commit，再验证 source-current、manual/automatic Delivery 与 exact-four-file Preview。
+
+现有 Project 修改使用 same-Project candidate Revision：`revise-context/validate/revise` 创建隔离候选，后续
+`context/inspect/prepare/continue/delivery build` 以 `--candidate` 绑定；候选强制 automatic Delivery，exact-four-file
+验证成功后才原子晋升，旧 current source/Delivery 在此之前不变，晋升失败回滚。Scene owner policy 已升级为 v3：
+Project 创建/修订记录其他 Project Renderer 的不可逆 normalized fingerprint baseline，task check 拒绝历史复制，
+converge 再拒绝一个 Revision 内 narrated Scenes 的 exact bytes 或 normalized fingerprint 重复。
+Desktop 每次启动还会校验 Workspace managed ledger；没有 active work 时以 same-parent staging/verify/rollback
+原子同步 root instructions、managed production Skill、Hermes prompt 与 `.rsp/bin/rsp`，不会改写 Project、media、
+Delivery 或 Application Support private config。
 
 这里的 packaged path 仍准确标记 `externalCreativeAgentTested: false`：host-neutral contract consumer 证明 fixed controller、
 task self-description/finalization、Runtime Pack、Delivery 与 Preview，不证明真实外部 Codex/Hermes 的创意质量或行为。

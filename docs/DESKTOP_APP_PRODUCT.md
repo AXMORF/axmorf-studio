@@ -89,8 +89,8 @@ Pack。用户无需预装 Node/npm/Git，网络不可用或地区 package source
 | ------------ | --------------------------------------------------------------------------------------------------- |
 | 安装 App     | 安装 App、引擎和 CLI；不修改 Agent home，不安装或升级用户的 Agent                                   |
 | 第一次启动   | 只读检测环境与已知 Agent；在系统视频目录创建 `AXMORF Studio/`，也允许初始化前改选 Workspace Root    |
-| 初始化工作区 | 写入 workspace-local Skill、`AGENTS.md` 和必要的 thin host adapters，并记录版本 manifest            |
-| 每次启动     | 检查 App/engine/protocol/Skill compatibility；没有 active production 时才允许原子更新 managed Skill |
+| 初始化工作区 | 写入 workspace-local Skill、`AGENTS.md`、thin host adapters 与 `.rsp/bin/rsp`，并记录 managed ledger |
+| 每次启动     | 校验 App/engine/protocol 与 managed checksums；没有 active work 时原子更新整组 managed integration   |
 | 设置页面     | 提供重新检测、安装/更新、修复、显示目录、卸载和复制启动提示词                                       |
 | 用户级 Skill | 仅在用户明确点击后安装；不得静默覆盖用户修改或其他版本                                              |
 
@@ -110,11 +110,14 @@ v1 对 Codex 使用原生 `AGENTS.md`/Skill discovery；Hermes 使用同一 `AGE
   GEMINI.md
   .agents/skills/remotion-story-producer-video/
   .rsp/bin/rsp
+  .rsp/hermes/INSTALL_PROMPT.md
   .rsp/workspace.json
 ```
 
 `AGENTS.md` 是 host-neutral instruction authority；宿主 adapter 只负责导入或发现，不复制生产规则。App-managed
-Skill 可更新，用户自己维护的 Skill 不自动覆盖。每个 manifest 至少记录：
+paths 包括根 instructions、workspace-local production Skill、Hermes 安装提示与 `.rsp/bin/rsp`，checksum drift
+会在下一次无 active work 的启动中恢复为当前 App bytes；用户自建且不在 managed ledger 的 Skill 不自动覆盖。
+每个 manifest 至少记录：
 
 ```text
 workspaceSchemaVersion
@@ -125,8 +128,9 @@ skillVersion
 managedFiles + checksums
 ```
 
-兼容升级可原子替换 managed files；不兼容升级必须在开始新 production 前迁移或阻塞。进行中的 Attempt 固定
-使用启动时的协议和输入，不在中途切换 Skill/engine policy。
+兼容升级先复制用户 Workspace 数据到 same-parent staging，只替换 managed files，完整验证后原子交换并保留
+previous Workspace root；Project、media、Delivery 与 private config 不由该更新改写。不兼容升级必须在开始新
+production 前迁移或阻塞。进行中的 Attempt 固定使用启动时的协议和输入，不在中途切换 Skill/engine policy。
 
 ## 4. 稳定 CLI 与配置投影
 
@@ -137,23 +141,27 @@ managedFiles + checksums
 ./.rsp/bin/rsp doctor
 ./.rsp/bin/rsp help --json
 ./.rsp/bin/rsp schema project-create
+./.rsp/bin/rsp schema project-revision
 ./.rsp/bin/rsp schema asset-import
 ./.rsp/bin/rsp project create-context
 ./.rsp/bin/rsp project validate < project-create-input.json
 ./.rsp/bin/rsp project create < project-create-input.json
+./.rsp/bin/rsp project revise-context --project <storyId>
+./.rsp/bin/rsp project revise-validate < project-revision-input.json
+./.rsp/bin/rsp project revise < project-revision-input.json
 ./.rsp/bin/rsp project list
 ./.rsp/bin/rsp project delete --project <storyId> --confirm-delete
-./.rsp/bin/rsp context --project <storyId>
-./.rsp/bin/rsp inspect --project <storyId>
-./.rsp/bin/rsp prepare --project <storyId>
+./.rsp/bin/rsp context --project <storyId> [--candidate <candidateId>]
+./.rsp/bin/rsp inspect --project <storyId> [--candidate <candidateId>]
+./.rsp/bin/rsp prepare --project <storyId> [--candidate <candidateId>]
 ./.rsp/bin/rsp task describe --task <taskRevision>
 ./.rsp/bin/rsp task finalize --task <taskRevision>
 ./.rsp/bin/rsp task check --task <taskRevision>
 ./.rsp/bin/rsp task commit --task <taskRevision> --attempt <attemptId>
 ./.rsp/bin/rsp task fail --task <taskRevision> --attempt <attemptId> --kind <task|host>
 ./.rsp/bin/rsp attempt status --project <storyId> --attempt <attemptId>
-./.rsp/bin/rsp continue --project <storyId> --revision <revisionId> --attempt <attemptId>
-./.rsp/bin/rsp delivery build --project <storyId>
+./.rsp/bin/rsp continue --project <storyId> --revision <revisionId> --attempt <attemptId> [--candidate <candidateId>]
+./.rsp/bin/rsp delivery build --project <storyId> [--candidate <candidateId>]
 ```
 
 `rsp schema project-create` 是不依赖 active App session 的本地只读 surface，返回当前 packaged
@@ -166,6 +174,11 @@ config/Runtime Pack operational checks。`project create` 的 stdin 就是通过
 `null` 才覆盖该语义。managed Workspace Skill 只路由这些 discoverable contracts；dirty task 的 exact schemas、
 examples、component signatures 和 derived-field ownership 位于 immutable `inputs/task-contract.json`，由
 `task finalize` 计算 fingerprint/receipt，外部 Agent 不需要源码 checkout、私有 builder 或 tests。
+
+修改现有作品走 same-Project candidate Revision，不克隆 MP4、Project 目录或历史 Scene source。Agent 从
+`project revise-context` 取得 exact current base 与可编辑 authoring，只提交需要修改的 strict patch；候选版本使用
+`--candidate` 进入同一 inspect/prepare/task/continue 主链，并强制 automatic Delivery。旧 current source 与
+exact-four-file Delivery 在候选完整复验前保持可播放；候选 Delivery 验证成功后才事务式替换，失败则回滚。
 
 `.rsp/bin/rsp` 是 App-managed、checksum-bound 的 workspace-local launcher，不依赖系统 `PATH`，也不是指向
 可变源码 checkout 的 symlink。它通过 `.rsp/workspace.json` 定位当前 App session 与 Workspace，不把 App 安装
@@ -374,7 +387,8 @@ signing/notarization、公开 binary release、update channel 和长期 support 
 - Codex 与 Hermes 能从同一工作区协议完成等价任务；
 - App 未内置或调用厂商 Agent SDK；
 - Agent 越界修改在物化前被拒绝并给出 exact paths；
-- App 升级不会修改用户 Workspace；
+- App 升级不会改写 Project、media、Delivery 或 private config；下一次无 active work 的启动只允许原子刷新
+  checksum-bound managed integration；
 - delivery-current 后 Preview Catalog 能自动更新并选中目标视频；
 - manual policy 不产生 Delivery，automatic policy 生成并复验 exact four files；
 - unrelated Project/App workspace 修改不会使当前 task revision 失效；

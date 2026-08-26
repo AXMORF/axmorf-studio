@@ -207,6 +207,8 @@ const successfulDependencies = ({
       assert.equal(locations.layoutKind, "repository");
       return new TextEncoder().encode("scene-package\n");
     },
+    readSceneRendererSource: async ({ task }) =>
+      `const Renderer${task.semanticId ?? "Fixed"} = () => null;`,
     commitFixedArtifact: (async ({ task: fixedTask }) => {
       assert.equal(fixedTask.taskRevision, compositionTask.taskRevision);
       return compositionArtifact;

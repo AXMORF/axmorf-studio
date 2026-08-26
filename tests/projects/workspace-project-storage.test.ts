@@ -175,6 +175,14 @@ test("Workspace deletion removes only exact Project-owned roots and ignores lega
       join(locations.sourceCurrentRoot, `${projectId}.json`),
       "{}\n",
     );
+    for (const root of [
+      join(workspace, ".rsp/revisions"),
+      join(cache, "revision-candidates"),
+      join(cache, "evidence/revision-candidates"),
+    ]) {
+      await mkdir(join(root, projectId), { recursive: true });
+      await writeFile(join(root, projectId, "candidate"), projectId);
+    }
   }
   await mkdir(join(workspace, ".producer-runs/alpha"), { recursive: true });
   await writeFile(join(workspace, ".producer-runs/alpha/run.json"), "{}\n");
@@ -198,6 +206,8 @@ test("Workspace deletion removes only exact Project-owned roots and ignores lega
   assert.equal(result.projectEntryCount, 1);
   await assert.rejects(access(join(locations.projectSourceRoot, "alpha")));
   await assert.rejects(access(join(locations.evidenceRoot, "alpha")));
+  await assert.rejects(access(join(workspace, ".rsp/revisions/alpha")));
+  await access(join(workspace, ".rsp/revisions/beta/candidate"));
   assert.ok(result.deletedPaths.includes("evidence/alpha"));
   await access(join(locations.projectSourceRoot, "beta/sentinel"));
   await access(join(locations.evidenceRoot, "beta/sentinel"));

@@ -15,7 +15,7 @@ scripts/project-production/
   application/                 orchestration/use cases and ports
   adapters/                    filesystem, Artifact Store, media, progress, host tools
   cli.ts                       inspect/prepare/check/commit/continue/delivery surface
-scripts/projects/              atomic Project create/delete use cases and adapters
+scripts/projects/              atomic Project create/revise/promote/delete use cases and adapters
 scripts/narration/             provider attempt cache, PCM validation, seal and timing
 scripts/scene-package/          deterministic ScenePackage/Coverage generation
 scripts/renderer-registry/      static composition-local registry generation
@@ -35,6 +35,8 @@ details；adapters 实现 filesystem/process/media ports，不能反向成为业
 ```mermaid
 flowchart TD
   Create[Atomic configured authoring] --> Inputs[Explicit authoring contracts + selected bytes]
+  Current -->|explicit same-Project revision patch| Candidate[Isolated candidate authoring]
+  Candidate --> Inputs
   AgentTools[Current Root callable MCP tools] -. optional receipt import .-> Inputs
   Prompt[Explicit user execution fields] --> Execution[One-run execution resolution]
   Settings[Independent execution preferences] --> Execution
@@ -54,7 +56,8 @@ flowchart TD
   Live --> SourceCurrent[Attested source-current]
   SourceCurrent -->|manual stop or later explicit build| Delivery[DeliveryBuild]
   SourceCurrent -->|automatic| Delivery
-  Delivery --> Current[Exact four-file current delivery]
+  Delivery -->|ordinary current promotion| Current[Exact four-file current delivery]
+  Delivery -->|candidate verified then atomic promote| Current
   Inspection -. diagnostics only .-> Explanation[Estimate + invalidation explanation]
   Plan -. diagnostics only .-> Attempt[ExecutionAttempt]
 ```
@@ -69,6 +72,12 @@ Root 实际 callable 的兼容 MCP tools 才激活；缺失时不生成任何结
 `project:asset:import` 把已验证 bytes/manifest identity 接入 `Inputs`，不能把 MCP、remote URL、credential、
 receipt 或 candidate path 投影到 Revision、TaskSpec、child workspace、Artifact Store、delivery 或 runtime。
 
+installed Workspace 的现有 Project 不直接改 live current roots，也不创建 clone authority。strict raw
+`ProjectRevisionInput` 绑定 exact current `baseRevisionId`，fixed creator 把 current Project/media 复制到
+`.rsp/revisions/<storyId>/<candidateId>/` 并只在隔离 candidate 上应用 patch。候选使用同一 inspect/prepare/task/
+continuation/Delivery 主链且强制 automatic Delivery；只有 exact-four-file candidate 完整复验后，fixed promotion
+才在 repository operation lock 下受控替换 Project、media、source-current 与 Delivery，失败按逆序 rollback。
+
 ## 3. Contract boundaries
 
 - ProductionRevision 只冻结 task inputs；不包含 Agent output、workspace path 或 attempt diagnostic。
@@ -77,6 +86,8 @@ receipt 或 candidate path 投影到 Revision、TaskSpec、child workspace、Art
   DAG 拒绝 cycle、duplicate 或 unknown dependency。对外 explanation 只含 allowlisted input IDs 与安全 subject。
 - ArtifactAttestation 绑定 exact sorted files、bytes、dependencies 与 validator policy；manifest 最后生成。
 - DeliveryPublish 绑定 DeliveryBuildId、source-current、renderer runtime、exact logical paths、media facts、checksums 与 publishing projection。
+- ProjectRevisionCandidate 绑定 raw patch、base revision/source-current/Delivery 与 changed sections；`createdAt` 仅为
+  诊断记录，不进入 candidate identity。candidate 不成为第二个 current authority。
 
 所有 JSON contracts 禁止代码、JSX、动态 module path 或 executable expression。runtime binding 由生成的静态
 TypeScript registry 完成。
@@ -86,8 +97,9 @@ TypeScript registry 完成。
 | Surface                                     | Writer                                      | Rule                                                                                       |
 | ------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | Project create/configured authoring         | fixed atomic creator                        | existing/partial/conflicting target fail closed；零 provider/media/attempt                 |
+| same-Project revision candidate             | fixed candidate creator                     | strict base/patch；隔离 `.rsp/revisions`；不修改 live current roots                         |
 | Optional external acquisition               | current Root Agent + fixed import           | callable compatible MCP 才出现；缺失即省略；只在 inspect 前写 Project-owned asset/evidence |
-| Existing Project authoring inputs           | Root authoring Agent / fixed import command | preparation 前可变，受 Project ownership 限制                                              |
+| Repository-checkout authoring inputs        | Root authoring Agent / fixed import command | preparation 前可变；installed Workspace 修订必须走隔离 candidate                            |
 | `.producer-work/<story>/<taskRevision>`     | one assigned task executor                  | only declared output set; cannot edit `task.json` or inputs                                |
 | `.producer-artifacts`                       | fixed commit adapter                        | validator recheck + atomic promotion only                                                  |
 | materialized Scene/GlobalVisual/Cover roots | fixed materializer                          | all artifacts present; controlled replace/rollback                                         |
@@ -108,6 +120,11 @@ Story/Timing/VisualStyle/requirements/brief/resources but never Scene output；�
 Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the configured Project-local template
 instance. Its artifact is the exact union of immutable copied source/assets and the canonical derived Scene bundle;
 live-only fixed projections are excluded from its task identity.
+
+Workspace create/revise 时 fixed creator 对其他 Project 的 `Renderer.tsx` 进行 TypeScript token normalized
+fingerprint snapshot，并把排序唯一的 baseline 固定到当前 Project 输入；它不是对其他 Project 的动态依赖。v3 Scene
+validator 拒绝命中该 frozen historical baseline，convergence 在任何 live write 前同时拒绝同 Revision narrated
+Renderers 的 exact checksum 或 normalized fingerprint 重复。plan/shot JSON 改动不能替代 meaning-local Renderer。
 
 inspect 前的 execution resolver 按用户提示词、settings、内置 `inline` 默认逐字段选择 Root inline 或 bounded
 subagents，且不进入 production identity。每个 dirty Agent task 只有一个 executor；inline 一次一个 workspace，
@@ -163,8 +180,9 @@ historical `.producer-runs`，也不自行重算失效原因。删除器是唯�
 current code path；它只提取严格
 storyId/legacy ID 来安全定位删除目标，不解析或迁移旧 state。
 
-Repository operation locks 保护 Project create/import/delete、prepare、artifact/materialization 和 delivery 的
-互斥 filesystem transitions；inspect 不取 mutation lock。锁与诊断数据都不进入 content identity。
+Repository operation locks 保护 Project create/import/revision-create/revision-promote/delete、prepare、artifact/
+materialization 和 delivery 的互斥 filesystem transitions；inspect 不取 mutation lock。锁与诊断数据都不进入
+content identity。
 Agent execution preferences 使用独立 strict contract 与 `0600` 原子存储，不修改 ProducerConfig fingerprint；
 用户提示词 override 不自动写回该文件，解析值也不进入 content identity。
 
@@ -199,8 +217,10 @@ TaskSpec 声明的 task workspace outputs。`.rsp/bin/rsp` 是 checksum-bound la
 bundled Settings 与 Engine 通过 narrow typed IPC 协作，但配置只有一个 Application Support owner-only encrypted
 envelope authority，不写 Workspace，也不启动 Settings HTTP store。Renderer 只能获得 write-only secret 的 configured
 bit；Player 只播放 verified current Delivery，时间轴只投影 canonical timing，Remotion runtime 仍不感知 Agent、Skill、
-IPC 或文件发现。workspace-local `rsp schema project-create` 只读投影 packaged contract；create stdin 是 raw strict input，
-不是第二条 protocol wrapper 或 production authority。
+IPC 或文件发现。workspace-local `rsp schema project-create` / `schema project-revision` 只读投影 packaged contracts；
+create/revise stdin 是对应 raw strict input，不是第二条 protocol wrapper 或 production authority。App 每次启动校验
+root instructions、managed production Skill、Hermes prompt 与 `.rsp/bin/rsp` 的 managed ledger；无 active work 时
+只原子刷新这组 integration files，Project/media/Delivery/private config 不随 App managed update 改写。
 
 Desktop Revision 必须只绑定当前 Project 的显式生产输入、selected bytes 和实际影响渲染/校验的 pinned runtime
 policy。其他 Project、Workspace 非依赖文件、App 日志、窗口状态、安装路径或无关工程修改不得使当前 task 失效。

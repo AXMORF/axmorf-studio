@@ -1,11 +1,15 @@
 import { checkProducerTaskWorkspace } from "./task-check";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { SceneTaskInputSchema } from "../../../src/contracts";
+import {
+  SceneOriginalityBaselineSchema,
+  SceneTaskInputSchema,
+} from "../../../src/contracts";
 import { validateSceneArtifactBundle } from "../../scene-package/domain";
 import { parseSceneSelectedResourcesFile } from "../../scene-package/generate";
 import { validateRendererReadabilitySourceGraph } from "./readability-source-validator";
 import { compileTypeScriptImportGraph } from "./typescript-compile";
+import { fingerprintSceneRendererSource } from "../domain/scene-originality";
 
 const readJson = async (path: string) =>
   JSON.parse(await readFile(path, "utf8")) as unknown;
@@ -23,6 +27,7 @@ export const checkSceneTask = async (
     await readFile(join(checked.workspace, "inputs/context.json"), "utf8"),
   ) as {
     scene?: { taskInput?: unknown } | null;
+    originalityBaseline?: unknown;
   };
   const taskInput = SceneTaskInputSchema.parse(context.scene?.taskInput);
   if (
@@ -30,6 +35,25 @@ export const checkSceneTask = async (
     taskInput.meaningId !== checked.task.semanticId
   ) {
     throw new Error("Scene workspace context is cross-bound.");
+  }
+  if (
+    checked.task.taskKind === "scene-owner" &&
+    checked.task.validatorPolicyVersion === "scene-owner-validator-v3"
+  ) {
+    const baseline = SceneOriginalityBaselineSchema.parse(
+      context.originalityBaseline,
+    );
+    if (baseline.storyId !== checked.task.storyId) {
+      throw new Error("Scene originality baseline is cross-bound.");
+    }
+    const rendererFingerprint = fingerprintSceneRendererSource(
+      await readFile(join(checked.workspace, "src/Renderer.tsx"), "utf8"),
+    );
+    if (baseline.rendererFingerprints.includes(rendererFingerprint)) {
+      throw new Error(
+        "Scene Renderer duplicates a historical Project Renderer.",
+      );
+    }
   }
   await validateRendererReadabilitySourceGraph({
     rootDir: checked.workspace,

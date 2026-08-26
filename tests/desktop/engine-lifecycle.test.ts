@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   ProductionRevisionIdSchema,
+  ProjectRevisionCandidateIdSchema,
   StoryIdSchema,
   TaskRevisionSchema,
 } from "../../src/contracts";
@@ -463,6 +464,19 @@ test("active work rejects conflicting mutations and only admits its exact attemp
     revisionId,
     attemptId,
     deliveryPolicy: "manual",
+  });
+  await expectConflict({
+    protocolVersion: RSP_PROTOCOL_VERSION,
+    requestId: "rsp-wrong-candidate-continue",
+    workspaceId,
+    command: "continue",
+    storyId: StoryIdSchema.parse("story-one"),
+    revisionId,
+    attemptId,
+    candidateId: ProjectRevisionCandidateIdSchema.parse(
+      `revision-candidate-${"c".repeat(64)}`,
+    ),
+    deliveryPolicy: "automatic",
   });
   await expectConflict({
     protocolVersion: RSP_PROTOCOL_VERSION,

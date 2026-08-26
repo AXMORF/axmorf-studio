@@ -95,6 +95,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - `project:create` 从 strict create input 原子创建 configured authoring，并将选定边界 Scene template
   源码与资源复制为 Project-local immutable instance；它不调用 provider、不生成媒体或生产 attempt。
   template-copy Scene 由 fixed task 验证和产出 artifact，不派发 Agent。
+- installed Workspace 的现有作品修改使用 same-Project candidate Revision：old current source/Delivery 在候选
+  exact-four-file 验证成功前保持不变，成功后受控晋升，失败回滚；不得用 MP4/Project/历史 Scene clone 形成第二 authority。
 - `ttsChunks` 是 Agent 已确定的原子朗读单元。sealed PCM 实测 samples 是绝对时间 authority；frame
   boundary 统一为 `ceilDiv(cumulativeSamples × fps, sampleRate)`。Scene/transition 不吞 spoken frames。
 - 字幕只由顶层 CaptionLayer 渲染；Scene root 透明，只输出 Beat 语义视觉与音效。Composition exactly
@@ -195,6 +197,9 @@ contact sheet 或布局。第三方 source/media 分别校验 license/attributio
 - Scene、GlobalVisual、Cover 是互相隔离的 task workspace。GlobalVisual 不读 Scene 输出；Cover 只读
   StorySpec、VisualStyleSpec 与 fixed CoverSpec。
 - exact-reference Scene 的 lineage/license/phase/checksum 由机械 validator 检查，不使用主观自评 gate。
+- `scene-owner-validator-v3` 拒绝 Project 创建/修订时冻结的历史 Renderer normalized fingerprint；converge 拒绝
+  一个 Revision 内 narrated Scenes 的 exact bytes 或 normalized fingerprint 重复。改 plan JSON 不能替代
+  meaning-local Renderer 创作。
 - 新实现默认留在 Project-local artifact。只有 fingerprint-bound promotion proposal 且用户明确授权
   scope/API/files/target 后，才移入 `src/remotion/capabilities/`。
 - Root 只有在解析为 `inline` 时才能按 task prompt 串行创作；不得读其他 executor workspace、跨 task 代

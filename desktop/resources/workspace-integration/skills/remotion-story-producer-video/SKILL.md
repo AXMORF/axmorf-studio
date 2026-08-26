@@ -18,8 +18,9 @@ Remotion Studio, a Settings server, a background engine, or another executable.
    `deliveryBlocker: null`. The temporary loopback HTTP listener is one DeliveryBuild's renderer data plane, not a
    command, Settings, Studio, or credential endpoint. Report any structured blocker exactly; do not retry or downgrade.
 2. Run `./.rsp/bin/rsp help --json` when command discovery is needed. Local structural contracts are available with
-   `./.rsp/bin/rsp schema project-create` and `./.rsp/bin/rsp schema asset-import`; these commands do not require an
-   active App session. Do not infer unsupported commands or fields.
+   `./.rsp/bin/rsp schema project-create`, `./.rsp/bin/rsp schema project-revision`, and
+   `./.rsp/bin/rsp schema asset-import`; these commands do not require an active App session. Do not infer
+   unsupported commands or fields.
 
 ## Create or select a Project
 
@@ -40,6 +41,23 @@ For a new Project:
 Use `./.rsp/bin/rsp project list` for discovery. Run
 `./.rsp/bin/rsp project delete --project <storyId> --confirm-delete` only when the user explicitly requests deletion;
 never replace it with broad filesystem deletion.
+
+## Revise an existing Project
+
+Do not clone an MP4, clone a Project directory, or edit controller-owned Project files. Keep the current Project and
+its playable Delivery stable while a same-Project candidate revision is produced:
+
+1. Run `./.rsp/bin/rsp project revise-context --project <storyId>`. It returns the exact current
+   `baseRevisionId` and the editable authored sections. Preserve narrated meaningIds/order and boundary Scenes.
+2. Read `./.rsp/bin/rsp schema project-revision`, author one strict raw `ProjectRevisionInput`, and include only the
+   sections the user asked to change. Pipe the same raw object to `project revise-validate`, then to `project revise`.
+3. Use the returned `candidateId` with `context --candidate`, `inspect --candidate`, and `prepare --candidate`.
+   Candidate production always uses automatic Delivery; follow its exact task and continuation commands.
+4. Only a verified exact four-file candidate Delivery promotes the candidate atomically. Until then the previous
+   current source and Delivery remain authoritative and playable; a failed promotion rolls them back.
+
+Never inspect or reuse an existing Project's Scene source while revising. Artifact reuse is decided only by fixed
+content-addressed task identity; unchanged valid tasks are reused without copying their source into an Agent task.
 
 ## Optional external image acquisition
 
@@ -70,6 +88,11 @@ Each executor is bound to one TaskRevision and may read only its `task.json`, `i
 `inputs/task-contract.json`. `./.rsp/bin/rsp task describe --task <taskRevision>` returns the same redacted task
 contract when discovery through the command surface is preferable. The task contract is the authority for exact
 output paths, JSON Schemas, component signatures, examples, constraints, and which fields are derived by rsp.
+
+Every `scene-owner` Renderer must be authored from its own immutable Scene context. Never read, copy, adapt, or
+reformat a Renderer from another Project or another meaningId. Fixed validation rejects historical normalized
+Renderer fingerprints and same-Revision exact or normalized narrated Renderer duplicates; changing plan JSON does
+not make copied TSX valid.
 
 Write only outputs whose contract owner is `agent` or `agent-draft-rsp-finalize`; the latter is a draft that fixed
 finalization replaces. Never write an `rsp-finalize`-only output. Then:

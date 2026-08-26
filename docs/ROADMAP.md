@@ -9,13 +9,15 @@
 当前架构基线是单一 Project production 主链：ProductionRevision → content-addressed Task DAG → reusable
 ArtifactAttestation → atomic materialization → attested source-current → manual stop、automatic 或 later explicit
 exact four-file DeliveryBuild。旧执行账本与异步交付不再是 active runtime authority。公开入口已分为 atomic create、
-strict read-only inspect、explicit costly prepare、
+same-Project candidate revise、strict read-only inspect、explicit costly prepare、
 attempt-bound task commit/fail 与 fixed continuation；converge 是 continuation 内部 application，不是 Root 命令。
 
 基线门槛包括：
 
 - identity 不含 attempt/clock/process/absolute path；
 - create existing/partial/conflicting target fail closed，相同 creation identity 只读 current，零 provider/media；
+- installed Workspace revision 绑定 exact current base 并隔离到 `.rsp/revisions`；候选强制 automatic Delivery，
+  exact-four-file 验证成功才原子晋升，失败 rollback 且旧 current 不变；
 - Root 在任何成本前报告 inspect 的 source readiness、unknown-safe estimate、reuse 与逐任务失效解释；
 - prepare 才允许 provider/fixed artifact/workspace/attempt mutation；converge 不允许这些 preparation 副作用；
 - diagnostic explanation/baseline/attempt 不进入或改变 production/artifact/delivery authority；
@@ -23,6 +25,8 @@ attempt-bound task commit/fail 与 fixed continuation；converge 是 continuatio
   最多四个；一个 dirty task 只归属一个 executor，template task 不由 Agent 创作；
 - Composition exactly once 拥有 raw readability/insets 与 SceneViewport mount；Scene child 只看到
   safe-area-local viewport dimensions/min font size，不得恢复 full-frame authority；
+- scene-owner v3 拒绝冻结的历史 normalized Renderer fingerprint；convergence 在 live write 前拒绝同 Revision
+  narrated Renderer 的 exact 或 normalized duplicate；
 - GlobalVisual base layer 覆盖完整 Composition；decoration 由 fixed timing policy 仅挂载在首个至末个 narrated
   Scene 的连续窗口，silent boundary Scenes 不接收项目装饰；
 - Agent 只写 task workspace，fixed commit 重跑 validator，commit/fail 绑定 exact attempt 且首终态不可覆盖；

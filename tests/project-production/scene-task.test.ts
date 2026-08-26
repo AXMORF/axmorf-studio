@@ -5,7 +5,10 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { buildProducerTaskSpec } from "../../src/contracts";
+import {
+  buildProducerTaskSpec,
+  buildSceneOriginalityBaseline,
+} from "../../src/contracts";
 import { checkSceneTask } from "../../scripts/project-production/application/scene-task-check";
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
 import {
@@ -15,6 +18,7 @@ import {
   type ProductionLocations,
 } from "../../scripts/project-production/application/production-locations";
 import { createScenePackageInput } from "../fixtures/scene/package-input";
+import { fingerprintSceneRendererSource } from "../../scripts/project-production/domain/scene-originality";
 
 const checksum = (value: string) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}` as const;
@@ -64,10 +68,12 @@ const createSceneWorkspace = async ({
   rootDir,
   semanticId = "meaning-one",
   locations: explicitLocations,
+  originalityRendererSource,
 }: {
   readonly rootDir: string;
   readonly semanticId?: string;
   readonly locations?: ProductionLocations;
+  readonly originalityRendererSource?: string;
 }) => {
   const locations =
     explicitLocations ??
@@ -78,6 +84,16 @@ const createSceneWorkspace = async ({
   const fixture = createScenePackageInput();
   const context = `${JSON.stringify({
     scene: { taskInput: fixture.task },
+    ...(originalityRendererSource === undefined
+      ? {}
+      : {
+          originalityBaseline: buildSceneOriginalityBaseline({
+            storyId: fixture.task.storyId,
+            rendererFingerprints: [
+              fingerprintSceneRendererSource(originalityRendererSource),
+            ],
+          }),
+        }),
   })}\n`;
   const task = buildProducerTaskSpec({
     taskKind: "scene-owner",
@@ -99,7 +115,10 @@ const createSceneWorkspace = async ({
       "src/sync-anchors.json",
       "src/visual-plan.json",
     ],
-    validatorPolicyVersion: "scene-owner-validator-v2",
+    validatorPolicyVersion:
+      originalityRendererSource === undefined
+        ? "scene-owner-validator-v2"
+        : "scene-owner-validator-v3",
   });
   const workspace = await createTaskWorkspace({
     locations,
@@ -145,6 +164,20 @@ test("Scene task accepts the complete Renderer and plan bundle, then rejects mal
   await assert.rejects(
     checkSceneTask({ locations, taskRevision: task.taskRevision }),
     /JSON|Unexpected|property name/iu,
+  );
+});
+
+test("Scene task rejects a Renderer copied from the historical Project baseline", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-originality-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const { locations, task } = await createSceneWorkspace({
+    rootDir,
+    originalityRendererSource: `// historical comment\n${rendererSource}`,
+  });
+
+  await assert.rejects(
+    checkSceneTask({ locations, taskRevision: task.taskRevision }),
+    /duplicates a historical Project Renderer/u,
   );
 });
 

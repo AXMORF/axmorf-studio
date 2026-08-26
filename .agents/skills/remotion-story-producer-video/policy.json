@@ -1,6 +1,6 @@
 {
   "schemaVersion": 16,
-  "policyVersion": "remotion-story-producer-video-policy-v18",
+  "policyVersion": "remotion-story-producer-video-policy-v19",
   "rootEndpoints": [
     "project-production-complete",
     "project-production-current"
@@ -8,7 +8,7 @@
   "privateConfigPath": "private/producer.config.json",
   "executionPreferencesPath": "private/execution-preferences.json",
   "requiredEntrypointHeadings": [
-    "Create the Project when needed",
+    "Create or revise Project authoring",
     "Load optional Agent capabilities",
     "Resolve Agent execution",
     "Inspect before cost",
@@ -72,6 +72,7 @@
     "sceneAuthoringOwner": "resolved-root-or-one-runtime-native-child",
     "rootAgentRole": "resolved-inline-sequential-or-bounded-dispatch",
     "sceneAuthoringSkill": "repository-local-remotion-best-practices",
+    "sceneOriginalityPolicy": "historical-normalized-fingerprint-and-same-revision-exact-or-normalized-duplicate-rejected",
     "globalVisualAuthoringOwner": "resolved-root-or-one-runtime-native-child",
     "coverAuthoringOwner": "resolved-root-or-one-runtime-native-child",
     "delegationSurface": "optional-runtime-native-subagents",
@@ -115,6 +116,7 @@
     "root-direct-converge",
     "persist-child-identity",
     "trust-chat-as-artifact-authority",
+    "copy-historical-project-scene-renderer",
     "edit-artifact-store-manifest",
     "git add .",
     "push",

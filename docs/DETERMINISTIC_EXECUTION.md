@@ -8,6 +8,8 @@
 derived fingerprint 在 parse 时拒绝。以下数据永不进入 RevisionId、TaskRevision、ArtifactAttestation、
 SourceCurrentId 或 DeliveryBuildId：ExecutionAttempt ID、clock、PID、absolute path、workspace location、
 Agent/child identity、chat、heartbeat、token usage。Delivery policy 也不进入 Revision/Task/Artifact/source identity。
+ProjectRevisionCandidateId 只由 strict `ProjectRevisionInput`（storyId、exact baseRevisionId、非空 authored patch）
+计算；candidate record 的 `createdAt`、filesystem path 与 promotion attempt 不进入该 identity。
 
 ProductionInspection、TaskDecisionExplanation、diagnostic baseline、estimated/actual cost 和 ExecutionAttempt
 都属于 diagnostic plane。即使缺失、损坏或不可用，也只能降低解释完整度，不能改变 production identity、
@@ -39,6 +41,11 @@ Configured template instance 另外绑定 copied Renderer adapter 与完整 impo
 `viewportWidth`/`viewportHeight` → 模板内部 `width`/`height` 的确定性映射；adapter/layout bytes 改变会改变
 未来 instance/source-graph identity，但不会跨过 immutable copy 边界重写既有 Project。
 
+Workspace Project 创建或显式 revision candidate 创建时，fixed creator 只读扫描其他 Project 的
+`Renderer.tsx`，以 TypeScript token stream 计算 sorted unique normalized fingerprint baseline，并把 baseline
+fingerprint 冻结进当前 Project/Revision/scene-owner input。之后其他 Project 的变化不会回溯改变已冻结 baseline，
+因此不形成 live cross-Project dependency。
+
 ## 3. TaskRevision 与精确失效
 
 每个 node key 包含 task kind、story/semantic identity、Revision reference、最小 input fingerprints、dependency
@@ -58,12 +65,18 @@ edges 传播。hash 不可反解，因此 baseline 不可用时明确标记，�
   变化仍只失效绑定它的 task branch；
 - readability 改变：只有派生 SceneViewport 或 caption/runtime policy 真正变化的下游 dirty；
 - 一个 validator policy 变化：只影响该 task kind；
+- originality baseline 只在 Project 创建或新 revision candidate 创建时冻结；其 fingerprint 变化只失效该
+  candidate 的 scene-owner branch，不让已存在 current Project 随其他 Project 漂移；
 - attempt、历史数据或无关 Project 变化：current identities 不变。
 
 ## 4. Workspace 与 Artifact Store
 
 workspace roots 只由 strict storyId/taskRevision 推导。`task.json` 与 seed inputs 是 immutable fixed writes；Agent
 只写 declared outputs。read-only check 可重复且不写 authority。
+
+same-Project candidate root 只由 strict storyId/ProjectRevisionCandidateId 推导为
+`.rsp/revisions/<storyId>/<candidateId>/`。candidate creator 在 repository operation lock 下用 staging 复制 current
+Project/media、应用 strict patch 并原子发布 candidate；active current roots 在该阶段保持 byte-stable。
 
 commit 重跑 validator，递归检查 exact entry set，拒绝 unknown/duplicate/escape/absolute/backslash path、symlink、
 FIFO/device 和 checksum drift。ArtifactAttestation 由实际 output bytes 构建；manifest 最后写。promotion 使用
@@ -103,6 +116,10 @@ workspace/attempt。调用方 revision stale 时不采用旧 artifact。required
 逐项相同。只有通过后才生成 ScenePackage/Coverage/RendererRegistry/GlobalVisualPackage/Composition；生成步骤
 再次严格解析 upstream contracts。
 
+对 scene-owner artifacts，convergence 在任何 live mutation 前先按 attestation manifest 比较 exact Renderer
+checksum，再读取 attested source 计算 normalized token fingerprint；任一 meaningId pair 重复都 fail closed。
+单改 whitespace/comment 或另写 visual/shot plan JSON 不改变这项判定。
+
 Template Scene 的 current-plan 读取会排除 live-only fixed projections，并将已存在的 canonical derived
 outputs 幂等归一到 shared exact output contract。因此物化本身不改变该 fixed task 的 TaskRevision；
 Artifact Store 仍通过 exact files/checksums 拒绝未知或漂移内容。
@@ -127,6 +144,8 @@ no-op。
 ## 8. Idempotence 与 failure
 
 - create：same creation identity → read-only current；different/partial target → fail closed，不覆盖；
+- revise：same raw patch + same base → same candidate identity/current candidate；base revision/source-current/Delivery
+  任一漂移 → fail closed；只有 candidate exact-four-file Delivery verified 后才受控晋升，晋升异常逆序 rollback；
 - inspect：同 source/cache/artifact/delivery snapshot → byte-equivalent read model、零 provider/零写入；
 - prepare：同 inputs + valid store → same Revision/Task identities and reuse classification；新 attempt 仍只诊断；
 - check：同 workspace → same read-only result；
@@ -148,7 +167,7 @@ Desktop App 必须把 immutable App/Runtime Pack 与用户 Workspace 分成不�
 当前 Project 的显式 authoring contracts、selected media bytes、task dependency artifacts 与实际影响当前任务的
 runtime/validator policy 能进入 Revision 或 TaskRevision。
 
-以下变化不得使当前任务 stale：其他 Project 的创作、非依赖 Workspace 文件、App 日志/cache/window state、
+以下变化不得使当前任务 stale：frozen originality baseline 之后其他 Project 的创作、非依赖 Workspace 文件、App 日志/cache/window state、
 安装路径、Agent host metadata、Skill 文案中不影响 executable policy 的部分，以及源码仓库中的无关工程修改。
 真正相关的 Project input 或 pinned runtime policy 变化仍 fail closed，并必须持久化 changed-input ID、旧/新
 fingerprint 和受影响 task。Phase B 已把这些 ownership 与 identity 规则落实到显式 Repository/Workspace

@@ -3,15 +3,20 @@ import { lstat, readFile, realpath } from "node:fs/promises";
 import { request } from "node:http";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
-import { ProjectCreateInputSchema } from "../../src/contracts";
+import {
+  ProjectCreateInputSchema,
+  ProjectRevisionInputSchema,
+} from "../../src/contracts";
 import {
   buildRspProjectCreateSchemaResponse,
   projectCreateFieldIssues,
   type RspFieldIssue,
 } from "../contracts/project-create-surface";
+import { rspZodIssues } from "../contracts/issues";
 import {
   buildRspAssetImportSchemaResponse,
   buildRspCommandCatalog,
+  buildRspProjectRevisionSchemaResponse,
 } from "../contracts/command-surface";
 import {
   DoctorResponseSchema,
@@ -510,9 +515,29 @@ export const buildRspCommand = async ({
       command: "project-validate",
       input: await readStdinJson(io),
     };
+  } else if (noun === "project" && verb === "revise-context") {
+    const options = parseOptions(rest, ["--project"]);
+    requestValue = {
+      ...base,
+      command: "project-revise-context",
+      storyId: requiredOption(options, "--project"),
+    };
+  } else if (noun === "project" && verb === "revise-validate") {
+    if (rest.length !== 0) {
+      throw new RspCliFailure(
+        "requestInvalid",
+        "Command arguments are invalid.",
+      );
+    }
+    requestValue = {
+      ...base,
+      command: "project-revise-validate",
+      input: await readStdinJson(io),
+    };
   } else if (noun === "context") {
     const options = parseOptions(args.slice(1), [
       "--project",
+      "--candidate",
       "--delivery-policy",
       "--execution-mode",
       "--max-concurrency",
@@ -526,6 +551,9 @@ export const buildRspCommand = async ({
       ...base,
       command: "context",
       storyId: requiredOption(options, "--project"),
+      ...(options.get("--candidate") === undefined
+        ? {}
+        : { candidateId: options.get("--candidate") }),
       ...(deliveryPolicy === undefined ? {} : { deliveryPolicy }),
       ...(execution === undefined ? {} : { execution }),
       ...(runtimeMaxConcurrency === undefined
@@ -551,6 +579,30 @@ export const buildRspCommand = async ({
     requestValue = {
       ...base,
       command: "project-create",
+      input: input.data,
+    };
+  } else if (noun === "project" && verb === "revise") {
+    if (rest.length !== 0) {
+      throw new RspCliFailure(
+        "requestInvalid",
+        "Command arguments are invalid.",
+      );
+    }
+    const rawInput = await readStdinJson(io);
+    const input = ProjectRevisionInputSchema.safeParse(rawInput);
+    if (!input.success) {
+      throw new RspCliFailure(
+        "requestInvalid",
+        "Project revise stdin does not match the strict raw ProjectRevisionInput contract.",
+        rspZodIssues({
+          error: input.error,
+          codePrefix: "rsp-project-revision",
+        }),
+      );
+    }
+    requestValue = {
+      ...base,
+      command: "project-revise",
       input: input.data,
     };
   } else if (noun === "project" && verb === "list") {
@@ -597,15 +649,19 @@ export const buildRspCommand = async ({
       ...parsedInput.data,
     };
   } else if (noun === "inspect") {
-    const options = parseOptions(args.slice(1), ["--project"]);
+    const options = parseOptions(args.slice(1), ["--project", "--candidate"]);
     requestValue = {
       ...base,
       command: "inspect",
       storyId: requiredOption(options, "--project"),
+      ...(options.get("--candidate") === undefined
+        ? {}
+        : { candidateId: options.get("--candidate") }),
     };
   } else if (noun === "prepare") {
     const options = parseOptions(args.slice(1), [
       "--project",
+      "--candidate",
       "--delivery-policy",
     ]);
     const deliveryPolicy = parseOptionalDeliveryPolicy(options);
@@ -613,6 +669,9 @@ export const buildRspCommand = async ({
       ...base,
       command: "prepare",
       storyId: requiredOption(options, "--project"),
+      ...(options.get("--candidate") === undefined
+        ? {}
+        : { candidateId: options.get("--candidate") }),
       ...(deliveryPolicy === undefined ? {} : { deliveryPolicy }),
     };
   } else if (noun === "task" && verb === "check") {
@@ -658,6 +717,7 @@ export const buildRspCommand = async ({
       "--project",
       "--revision",
       "--attempt",
+      "--candidate",
       "--delivery-policy",
     ]);
     requestValue = {
@@ -666,6 +726,9 @@ export const buildRspCommand = async ({
       storyId: requiredOption(options, "--project"),
       revisionId: requiredOption(options, "--revision"),
       attemptId: requiredOption(options, "--attempt"),
+      ...(options.get("--candidate") === undefined
+        ? {}
+        : { candidateId: options.get("--candidate") }),
       deliveryPolicy: parseDeliveryPolicy(options),
     };
   } else if (noun === "attempt" && verb === "status") {
@@ -677,11 +740,14 @@ export const buildRspCommand = async ({
       attemptId: requiredOption(options, "--attempt"),
     };
   } else if (noun === "delivery" && verb === "build") {
-    const options = parseOptions(rest, ["--project"]);
+    const options = parseOptions(rest, ["--project", "--candidate"]);
     requestValue = {
       ...base,
       command: "delivery-build",
       storyId: requiredOption(options, "--project"),
+      ...(options.get("--candidate") === undefined
+        ? {}
+        : { candidateId: options.get("--candidate") }),
     };
   } else {
     throw new RspCliFailure("requestInvalid", "Unknown rsp command.");
@@ -718,6 +784,14 @@ export const executeRspCli = async (
       args[1] === "project-create"
     ) {
       io.stdout(`${JSON.stringify(buildRspProjectCreateSchemaResponse())}\n`);
+      return 0;
+    }
+    if (
+      args.length === 2 &&
+      args[0] === "schema" &&
+      args[1] === "project-revision"
+    ) {
+      io.stdout(`${JSON.stringify(buildRspProjectRevisionSchemaResponse())}\n`);
       return 0;
     }
     if (

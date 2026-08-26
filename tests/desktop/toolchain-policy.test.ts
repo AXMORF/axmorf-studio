@@ -529,13 +529,22 @@ test("desktop package configuration has no signing, notarization, updater, or pu
 });
 
 test("managed production Skill uses UDS control and verified loopback-scoped Delivery", async () => {
-  const skill = await readFile(
-    join(
-      process.cwd(),
-      "desktop/resources/workspace-integration/skills/remotion-story-producer-video/SKILL.md",
+  const [skill, hermesPrompt] = await Promise.all([
+    readFile(
+      join(
+        process.cwd(),
+        "desktop/resources/workspace-integration/skills/remotion-story-producer-video/SKILL.md",
+      ),
+      "utf8",
     ),
-    "utf8",
-  );
+    readFile(
+      join(
+        process.cwd(),
+        "desktop/resources/workspace-integration/hermes/INSTALL_PROMPT.md",
+      ),
+      "utf8",
+    ),
+  ]);
   assert.match(skill, /`productionAvailable: true`/u);
   assert.match(skill, /`runtimePackAvailable: true`/u);
   assert.match(skill, /`deliveryAvailable: true`/u);
@@ -545,8 +554,13 @@ test("managed production Skill uses UDS control and verified loopback-scoped Del
   assert.match(skill, /project-production-source-current/u);
   assert.match(skill, /\.\/\.rsp\/bin\/rsp help --json/u);
   assert.match(skill, /\.\/\.rsp\/bin\/rsp schema project-create/u);
+  assert.match(skill, /\.\/\.rsp\/bin\/rsp schema project-revision/u);
   assert.match(skill, /\.\/\.rsp\/bin\/rsp project create-context/u);
   assert.match(skill, /\.\/\.rsp\/bin\/rsp project validate/u);
+  assert.match(skill, /project revise-context/u);
+  assert.match(skill, /project revise-validate/u);
+  assert.match(skill, /same-Project candidate revision/u);
+  assert.match(skill, /same-Revision exact or normalized/u);
   assert.match(skill, /one strict raw `ProjectCreateInput` object/u);
   assert.match(skill, /Never wrap it in `command`/u);
   assert.match(skill, /Omit `sceneTemplates`/u);
@@ -563,4 +577,7 @@ test("managed production Skill uses UDS control and verified loopback-scoped Del
     /true production\/delivery\/runtime capabilities/u,
   );
   assert.doesNotMatch(skill, /`npm run|node_modules/u);
+  assert.match(hermesPrompt, /schema project-revision/u);
+  assert.match(hermesPrompt, /revise-validate\/revise/u);
+  assert.match(hermesPrompt, /never[\s\S]*clone an MP4/u);
 });

@@ -1,5 +1,6 @@
 import {
   DeliveryPolicySchema,
+  ProjectRevisionInputSchema,
   ProducerConfigSchema,
   resolveDeliveryPolicy,
   type DeliveryPolicy,
@@ -31,8 +32,15 @@ import {
   readExecutionAttemptProgress,
 } from "../adapters/attempt-store";
 import { readLatestExecutionAttempt } from "../adapters/progress";
-import { rspLocalProductionCommandFormatter } from "../adapters/rsp-local-command-formatter";
+import {
+  createRspLocalProductionCommandFormatter,
+  rspLocalProductionCommandFormatter,
+} from "../adapters/rsp-local-command-formatter";
 import { readTaskWorkspace } from "../adapters/task-workspace";
+import {
+  inspectSourceCurrent,
+  readSourceCurrent,
+} from "../adapters/source-current-store";
 import { commitProducerTaskArtifact } from "./commit-task-artifact";
 import { continueProjectProduction } from "./continue-production";
 import { convergeProjectProduction } from "./converge-artifacts";
@@ -54,7 +62,16 @@ import {
 import { prepareProjectAuthoringBuild } from "./prepare-delivery";
 import { createWorkspaceProjectStorageLocations } from "../../projects/project-locations";
 import { generateWorkspaceProjectResourceCatalog } from "../../catalog/generate";
+import { generateProjectRegistry } from "../../registry/generate";
 import { projectPendingSceneAuthoring } from "../../projects/application/project-pending-authoring";
+import {
+  createProjectRevisionCandidate,
+  promoteProjectRevisionCandidate,
+  readProjectRevisionCandidateRecord,
+  readProjectRevisionContext,
+  validateProjectRevisionAuthoring,
+} from "../../projects/application/project-revision";
+import { createProjectRevisionCandidateLocations } from "./project-revision-locations";
 import { loadProjectProductionInputs } from "./load-inputs";
 import { buildCurrentProductionPlan } from "./build-current-plan";
 import { buildCurrentDelivery, type DeliveryBuildPort } from "./build-delivery";
@@ -74,6 +91,7 @@ import {
   validateRspProjectCreate,
 } from "../../../desktop/application/project-create-contract";
 import { RspPublicCommandError } from "../../../desktop/contracts/issues";
+import { rspZodIssues } from "../../../desktop/contracts/issues";
 import {
   publicPrepareCommandError,
   publicTaskCommandError,
@@ -173,6 +191,7 @@ const recordTaskOutcome = async ({
 const createWorkspaceCommands = (
   delivery: WorkspaceProductionDeliveryPort,
   prepareNarration: WorkspacePrepareNarration,
+  commandFormatter = rspLocalProductionCommandFormatter,
 ): ProductionControllerCommandPorts => ({
   context: ({ locations, projectId }) =>
     readWorkspaceProjectContext({ locations, projectId }),
@@ -202,7 +221,7 @@ const createWorkspaceCommands = (
     prepareProjectProduction(
       { locations, runtime, config, projectId, deliveryPolicy },
       {
-        commandFormatter: rspLocalProductionCommandFormatter,
+        commandFormatter,
         inspect: workspaceInspectProduction,
         prepareNarration,
         projectPendingAuthoring: workspaceProjectPendingAuthoring,
@@ -375,18 +394,23 @@ export const createWorkspaceProductionController = async ({
   };
   const context = async ({
     projectId,
+    productionLocations = locations,
     deliveryPolicy,
     execution,
     commandRuntimeMaxConcurrency,
   }: {
     readonly projectId: string;
+    readonly productionLocations?: ProductionLocations;
     readonly deliveryPolicy?: DeliveryPolicy;
     readonly execution?: AgentExecutionOverride;
     readonly commandRuntimeMaxConcurrency?: number;
   }) => {
     const [project, config, resolvedDeliveryPolicy, executionPreferences] =
       await Promise.all([
-        workspaceCommands.context({ locations, projectId }),
+        workspaceCommands.context({
+          locations: productionLocations,
+          projectId,
+        }),
         readConfig(),
         resolveProjectDeliveryPolicy({ projectId, override: deliveryPolicy }),
         readExecutionPreferences(),
@@ -441,6 +465,102 @@ export const createWorkspaceProductionController = async ({
     error.code = DESKTOP_PRODUCER_CONFIG_REQUIRED;
     throw error;
   };
+  const requireCurrentDelivery = async ({
+    projectId,
+    productionLocations = locations,
+  }: {
+    readonly projectId: string;
+    readonly productionLocations?: ProductionLocations;
+  }) => {
+    const delivery = await inspectCurrentDelivery({
+      locations: productionLocations,
+      projectId,
+      dependencies: createRuntimeDeliveryInspectionDependencies(runtime),
+    });
+    const sourceCurrent = await readSourceCurrent({
+      locations: productionLocations,
+      storyId: projectId,
+    });
+    if (
+      !delivery.current ||
+      delivery.revisionId === null ||
+      delivery.sourceCurrentId === null ||
+      delivery.deliveryBuildId === null ||
+      sourceCurrent === null ||
+      sourceCurrent.revisionId !== delivery.revisionId ||
+      sourceCurrent.sourceCurrentId !== delivery.sourceCurrentId ||
+      (await inspectSourceCurrent({
+        locations: productionLocations,
+        expected: sourceCurrent,
+      })) === null
+    ) {
+      throw new RspPublicCommandError(
+        "rsp-command-failed",
+        "Project revision requires an exact current Delivery.",
+        [
+          {
+            path: "$.storyId",
+            code: "rsp-project-revision-current-delivery-required",
+            message:
+              "The selected Project does not have a verified current four-file Delivery.",
+            ownerAction:
+              "Finish the current Project production before starting a revision.",
+          },
+        ],
+      );
+    }
+    return {
+      currentRevisionId: delivery.revisionId,
+      sourceCurrentId: delivery.sourceCurrentId,
+      deliveryBuildId: delivery.deliveryBuildId,
+    };
+  };
+  const candidateScope = async ({
+    projectId,
+    candidateId,
+  }: {
+    readonly projectId: string;
+    readonly candidateId: string;
+  }) => {
+    const record = await readProjectRevisionCandidateRecord({
+      locations,
+      storyId: projectId,
+      candidateId,
+    });
+    if (record.input.storyId !== projectId) {
+      throw new Error("Project revision candidate Project binding is stale.");
+    }
+    return createProjectRevisionCandidateLocations({
+      locations,
+      storyId: projectId,
+      candidateId,
+    });
+  };
+  const promoteCandidate = async ({
+    projectId,
+    candidateId,
+  }: {
+    readonly projectId: string;
+    readonly candidateId: string;
+  }) =>
+    promoteProjectRevisionCandidate({
+      locations,
+      storyId: projectId,
+      candidateId,
+      readCurrent: () => requireCurrentDelivery({ projectId }),
+      regenerate: async () => {
+        await generateWorkspaceProjectResourceCatalog({
+          locations,
+          projectId,
+          mode: "write",
+        });
+        await generateProjectRegistry({
+          storage: createWorkspaceProjectStorageLocations(locations),
+          mode: "write",
+        });
+      },
+      verify: () => requireCurrentDelivery({ projectId }),
+    });
   const projectCreateContext = async () => {
     const config = await readConfig();
     return buildRspProjectCreateContext({
@@ -467,6 +587,136 @@ export const createWorkspaceProductionController = async ({
     }
     return (await withConfig()).createProject(input);
   };
+  const projectRevisionContext = async (projectId: string) => {
+    return readProjectRevisionContext({
+      locations,
+      projectId,
+      current: await requireCurrentDelivery({ projectId }),
+    });
+  };
+  const validateProjectRevision = async (input: unknown) => {
+    const parsed = ProjectRevisionInputSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        schemaVersion: 1,
+        contractVersion: "rsp-project-revision-validation-v1",
+        status: "project-revision-invalid" as const,
+        storyId: null,
+        issues: rspZodIssues({
+          error: parsed.error,
+          codePrefix: "rsp-project-revision",
+          ownerAction:
+            "Use the exact raw contract returned by rsp schema project-revision.",
+        }),
+      };
+    }
+    try {
+      const current = await requireCurrentDelivery({
+        projectId: parsed.data.storyId,
+      });
+      if (current.currentRevisionId !== parsed.data.baseRevisionId) {
+        return {
+          schemaVersion: 1,
+          contractVersion: "rsp-project-revision-validation-v1",
+          status: "project-revision-invalid" as const,
+          storyId: parsed.data.storyId,
+          issues: [
+            {
+              path: "$.baseRevisionId",
+              code: "rsp-project-revision-base-stale",
+              message:
+                "baseRevisionId does not match the exact current Project revision.",
+              ownerAction:
+                "Read a fresh revise-context and rebuild the raw revision input.",
+            },
+          ],
+        };
+      }
+      try {
+        await validateProjectRevisionAuthoring({
+          locations,
+          input: parsed.data,
+        });
+      } catch {
+        return {
+          schemaVersion: 1,
+          contractVersion: "rsp-project-revision-validation-v1",
+          status: "project-revision-invalid" as const,
+          storyId: parsed.data.storyId,
+          issues: [
+            {
+              path: "$.patch",
+              code: "rsp-project-revision-authoring-invalid",
+              message:
+                "Project revision patch does not preserve current authored Project constraints or does not change current authoring.",
+              ownerAction:
+                "Preserve narrated meaningIds and order, and change at least one authored section from revise-context.",
+            },
+          ],
+        };
+      }
+      return {
+        schemaVersion: 1,
+        contractVersion: "rsp-project-revision-validation-v1",
+        status: "project-revision-valid" as const,
+        storyId: parsed.data.storyId,
+        issues: [] as const,
+      };
+    } catch (error) {
+      if (error instanceof RspPublicCommandError) {
+        return {
+          schemaVersion: 1,
+          contractVersion: "rsp-project-revision-validation-v1",
+          status: "project-revision-invalid" as const,
+          storyId: parsed.data.storyId,
+          issues: error.issues,
+        };
+      }
+      throw error;
+    }
+  };
+  const createProjectRevisionPublic = async (input: unknown) => {
+    const validation = await validateProjectRevision(input);
+    if (validation.status === "project-revision-invalid") {
+      throw new RspPublicCommandError(
+        "rsp-command-failed",
+        "Project revision input failed operational validation.",
+        validation.issues,
+      );
+    }
+    const parsed = ProjectRevisionInputSchema.parse(input);
+    const config = await requireConfig();
+    try {
+      return await createProjectRevisionCandidate({
+        locations,
+        config,
+        input: parsed,
+        current: await requireCurrentDelivery({
+          projectId: parsed.storyId,
+        }),
+        verifyCurrent: () =>
+          requireCurrentDelivery({
+            projectId: parsed.storyId,
+          }),
+      });
+    } catch (error) {
+      if (error instanceof RspPublicCommandError) throw error;
+      throw new RspPublicCommandError(
+        "rsp-command-failed",
+        "Project revision candidate could not be created.",
+        [
+          {
+            path: "$.patch",
+            code: "rsp-project-revision-candidate-invalid",
+            message:
+              "Project revision candidate does not satisfy current Project, Catalog, or ProducerConfig constraints.",
+            ownerAction:
+              "Read a fresh revise-context, run revise-validate, then retry with corrected authored fields.",
+          },
+        ],
+      );
+    }
+  };
   const withConfig = async () =>
     createProjectProductionController({
       locations,
@@ -474,21 +724,65 @@ export const createWorkspaceProductionController = async ({
       config: await requireConfig(),
       commands: workspaceCommands,
     });
-  const inspect = async (projectId: string) => {
+  const inspect = async (projectId: string, candidateId?: string) => {
     const config = await readConfig();
+    const productionLocations =
+      candidateId === undefined
+        ? locations
+        : await candidateScope({ projectId, candidateId });
     return config === null
       ? {
           status: DESKTOP_PRODUCER_CONFIG_REQUIRED,
           storyId: projectId,
           nextAction: "configure-provider" as const,
         }
-      : workspaceCommands.inspect({ locations, runtime, config, projectId });
+      : workspaceCommands.inspect({
+          locations: productionLocations,
+          runtime,
+          config,
+          projectId,
+        });
   };
   const prepare = async (
     projectId: string,
     deliveryPolicy?: DeliveryPolicy,
+    candidateId?: string,
   ) => {
     try {
+      if (candidateId !== undefined && deliveryPolicy === "manual") {
+        throw new RspPublicCommandError(
+          "rsp-command-failed",
+          "Project revision candidates require automatic Delivery.",
+          [
+            {
+              path: "$.deliveryPolicy",
+              code: "rsp-project-revision-automatic-delivery-required",
+              message:
+                "A candidate may replace current only after its complete Delivery is verified.",
+              ownerAction: "Use --delivery-policy automatic or omit the option.",
+            },
+          ],
+        );
+      }
+      if (candidateId !== undefined) {
+        const config = await requireConfig();
+        const productionLocations = await candidateScope({
+          projectId,
+          candidateId,
+        });
+        const candidateCommands = createWorkspaceCommands(
+          delivery,
+          prepareNarration,
+          createRspLocalProductionCommandFormatter(candidateId),
+        );
+        return await candidateCommands.prepare({
+          locations: productionLocations,
+          runtime,
+          config,
+          projectId,
+          deliveryPolicy: "automatic",
+        });
+      }
       const resolved = await resolveProjectDeliveryPolicy({
         projectId,
         override: deliveryPolicy,
@@ -505,6 +799,91 @@ export const createWorkspaceProductionController = async ({
       }
       throw publicPrepareCommandError(error);
     }
+  };
+  const continueCandidate = async ({
+    projectId,
+    revisionId,
+    attemptId,
+    candidateId,
+    deliveryPolicy,
+  }: {
+    readonly projectId: string;
+    readonly revisionId: string;
+    readonly attemptId: string;
+    readonly candidateId: string;
+    readonly deliveryPolicy: DeliveryPolicy;
+  }) => {
+    if (deliveryPolicy !== "automatic") {
+      throw new RspPublicCommandError(
+        "rsp-command-failed",
+        "Project revision candidates require automatic Delivery.",
+      );
+    }
+    const config = await requireConfig();
+    const productionLocations = await candidateScope({
+      projectId,
+      candidateId,
+    });
+    const candidateCommands = createWorkspaceCommands(
+      delivery,
+      prepareNarration,
+      createRspLocalProductionCommandFormatter(candidateId),
+    );
+    const production = await candidateCommands.continueProduction({
+      locations: productionLocations,
+      runtime,
+      config,
+      projectId,
+      revisionId,
+      attemptId,
+      deliveryPolicy: "automatic",
+    });
+    const promotion = await promoteCandidate({
+      projectId,
+      candidateId,
+    });
+    return {
+      status: "project-revision-complete" as const,
+      storyId: projectId,
+      candidateId,
+      production,
+      promotion,
+    };
+  };
+  const buildCandidateDelivery = async ({
+    projectId,
+    candidateId,
+  }: {
+    readonly projectId: string;
+    readonly candidateId: string;
+  }) => {
+    const config = await requireConfig();
+    const productionLocations = await candidateScope({
+      projectId,
+      candidateId,
+    });
+    const candidateCommands = createWorkspaceCommands(
+      delivery,
+      prepareNarration,
+      createRspLocalProductionCommandFormatter(candidateId),
+    );
+    const production = await candidateCommands.buildDelivery({
+      locations: productionLocations,
+      runtime,
+      config,
+      projectId,
+    });
+    const promotion = await promoteCandidate({
+      projectId,
+      candidateId,
+    });
+    return {
+      status: "project-revision-complete" as const,
+      storyId: projectId,
+      candidateId,
+      production,
+      promotion,
+    };
   };
   const publicTaskOperation = async <Result>(
     operation: "describe" | "finalize" | "check" | "commit",
@@ -523,6 +902,12 @@ export const createWorkspaceProductionController = async ({
         return projectCreateContext();
       case "project-validate":
         return validateProjectCreate(request.input);
+      case "project-revise-context":
+        return projectRevisionContext(String(request.storyId));
+      case "project-revise-validate":
+        return validateProjectRevision(request.input);
+      case "project-revise":
+        return createProjectRevisionPublic(request.input);
       case "project-list":
         return listWorkspaceProjects({ locations });
       case "project-delete":
@@ -533,7 +918,18 @@ export const createWorkspaceProductionController = async ({
       case "context":
         return context({
           projectId: String(request.storyId),
-          deliveryPolicy: request.deliveryPolicy as DeliveryPolicy | undefined,
+          ...(request.candidateId === undefined
+            ? {}
+            : {
+                productionLocations: await candidateScope({
+                  projectId: String(request.storyId),
+                  candidateId: String(request.candidateId),
+                }),
+              }),
+          deliveryPolicy:
+            request.candidateId === undefined
+              ? (request.deliveryPolicy as DeliveryPolicy | undefined)
+              : "automatic",
           execution: request.execution as AgentExecutionOverride | undefined,
           commandRuntimeMaxConcurrency: request.runtimeMaxConcurrency as
             | number
@@ -542,13 +938,21 @@ export const createWorkspaceProductionController = async ({
       case "asset-import":
         return workspaceCommands.importAsset({ locations, request });
       case "inspect":
-        return inspect(String(request.storyId));
+        return inspect(
+          String(request.storyId),
+          request.candidateId === undefined
+            ? undefined
+            : String(request.candidateId),
+        );
       case "project-create":
         return createProjectPublic(request.input);
       case "prepare":
         return prepare(
           String(request.storyId),
           request.deliveryPolicy as DeliveryPolicy | undefined,
+          request.candidateId === undefined
+            ? undefined
+            : String(request.candidateId),
         );
       case "task-check":
         return publicTaskOperation("check", () =>
@@ -587,12 +991,20 @@ export const createWorkspaceProductionController = async ({
           kind: request.kind as "task" | "host",
         });
       case "continue":
-        return (await withConfig()).continueProduction({
-          projectId: String(request.storyId),
-          revisionId: String(request.revisionId),
-          attemptId: String(request.attemptId),
-          deliveryPolicy: request.deliveryPolicy as DeliveryPolicy,
-        });
+        return request.candidateId === undefined
+          ? (await withConfig()).continueProduction({
+              projectId: String(request.storyId),
+              revisionId: String(request.revisionId),
+              attemptId: String(request.attemptId),
+              deliveryPolicy: request.deliveryPolicy as DeliveryPolicy,
+            })
+          : continueCandidate({
+              projectId: String(request.storyId),
+              revisionId: String(request.revisionId),
+              attemptId: String(request.attemptId),
+              candidateId: String(request.candidateId),
+              deliveryPolicy: request.deliveryPolicy as DeliveryPolicy,
+            });
       case "attempt-status": {
         const attempt = await readExecutionAttemptProgress({
           locations,
@@ -632,7 +1044,12 @@ export const createWorkspaceProductionController = async ({
         };
       }
       case "delivery-build":
-        return (await withConfig()).buildDelivery(String(request.storyId));
+        return request.candidateId === undefined
+          ? (await withConfig()).buildDelivery(String(request.storyId))
+          : buildCandidateDelivery({
+              projectId: String(request.storyId),
+              candidateId: String(request.candidateId),
+            });
       default:
         throw new Error("Unsupported Workspace production command.");
     }

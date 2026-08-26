@@ -4,6 +4,8 @@ import {
   DeliveryPolicySchema,
   PexelsAcquisitionReceiptV1Schema,
   ProjectCreateInputSchema,
+  ProjectRevisionCandidateIdSchema,
+  ProjectRevisionInputSchema,
   ProductionRevisionIdSchema,
   StoryIdSchema,
   TaskRevisionSchema,
@@ -96,6 +98,7 @@ export type SessionRecord = z.infer<typeof SessionRecordSchema>;
 export const ActiveWorkSummarySchema = z
   .strictObject({
     storyId: StoryIdSchema,
+    candidateId: ProjectRevisionCandidateIdSchema.nullable().optional(),
     kind: z.enum(["production", "delivery", "workspace-migration"]),
     attemptId: AttemptIdSchema.nullable(),
     phase: z.string().min(1).max(80),
@@ -202,8 +205,24 @@ export const RspCommandRequestSchema = z
     }),
     z.strictObject({
       ...RspRequestBaseShape,
+      command: z.literal("project-revise-context"),
+      storyId: StoryIdSchema,
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
+      command: z.literal("project-revise-validate"),
+      input: z.unknown(),
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
+      command: z.literal("project-revise"),
+      input: ProjectRevisionInputSchema,
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
       command: z.literal("context"),
       storyId: StoryIdSchema,
+      candidateId: ProjectRevisionCandidateIdSchema.optional(),
       deliveryPolicy: DeliveryPolicySchema.optional(),
       execution: AgentExecutionOverrideSchema.optional(),
       runtimeMaxConcurrency: z.number().int().nonnegative().safe().optional(),
@@ -228,11 +247,13 @@ export const RspCommandRequestSchema = z
       ...RspRequestBaseShape,
       command: z.literal("inspect"),
       storyId: StoryIdSchema,
+      candidateId: ProjectRevisionCandidateIdSchema.optional(),
     }),
     z.strictObject({
       ...RspRequestBaseShape,
       command: z.literal("prepare"),
       storyId: StoryIdSchema,
+      candidateId: ProjectRevisionCandidateIdSchema.optional(),
       deliveryPolicy: DeliveryPolicySchema.optional(),
     }),
     z.strictObject({
@@ -269,6 +290,7 @@ export const RspCommandRequestSchema = z
       storyId: StoryIdSchema,
       revisionId: ProductionRevisionIdSchema,
       attemptId: AttemptIdSchema,
+      candidateId: ProjectRevisionCandidateIdSchema.optional(),
       deliveryPolicy: DeliveryPolicySchema,
     }),
     z.strictObject({
@@ -281,6 +303,7 @@ export const RspCommandRequestSchema = z
       ...RspRequestBaseShape,
       command: z.literal("delivery-build"),
       storyId: StoryIdSchema,
+      candidateId: ProjectRevisionCandidateIdSchema.optional(),
     }),
   ])
   .superRefine((request, context) => {
@@ -295,6 +318,8 @@ const RSP_READ_ONLY_COMMANDS = new Set<RspCommandRequest["command"]>([
   "doctor",
   "project-create-context",
   "project-validate",
+  "project-revise-context",
+  "project-revise-validate",
   "project-list",
   "context",
   "inspect",

@@ -55,6 +55,8 @@ macOS DMG 的 native gate、挂载安装验证、checksum/release manifest 与�
 
 ```bash
 sudo apt-get install ./out/make/deb/x64/axmorf-studio_<version>_amd64.deb
+# 内容已变化但版本号相同时必须显式覆盖安装
+sudo apt-get install --reinstall ./out/make/deb/x64/axmorf-studio_<version>_amd64.deb
 axmorf-studio
 ```
 
@@ -67,8 +69,12 @@ npm run desktop:ubuntu-workspace-gate
 ```
 
 安装验收需确认：package architecture 为 `amd64`；入口 `/usr/bin/axmorf-studio` 可启动；Chromium sandbox 权限
-正确；内置 Workspace 能创建 Project、使用两个 boundary Scene templates、完成生产并生成 exact-four-file
-Delivery；Preview、生产进度和 Project 删除操作可用。播放器恢复验收必须在不重启 App 的前提下制造真实媒体错误，
+正确；`./.rsp/bin/rsp doctor` 报告 embedded Runtime Pack/provider/session ready；启动时在无 active work 条件下将
+Workspace 的 root instructions、managed Skill、Hermes prompt 与 `.rsp/bin/rsp` 自动同步为 package checksums，
+而 Project、media、Delivery 与 private config 保持不变。内置 Workspace 必须能从本地 schema 创建 Project，使用
+same-Project candidate Revision 修改现有作品、使用两个 boundary Scene templates、完成生产并生成 exact-four-file
+Delivery；`schema project-revision`、`revise-context/revise-validate/revise` 与带 `--candidate` 的生产命令必须可发现。
+Preview、生产进度和 Project 删除操作可用。播放器恢复验收必须在不重启 App 的前提下制造真实媒体错误，
 点击“恢复播放”后确认 request nonce/Ticket/FileHandle 已轮换而 DeliveryBuildId 未改变，并恢复
 `loadedmetadata`、`canplay` 与实际播放；轮换前已开始的 Range response 必须完整结束。退出后没有遗留 Engine、
 Runtime Pack、TCP listener 或 lock。

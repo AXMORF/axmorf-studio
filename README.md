@@ -64,7 +64,8 @@ adapter，不参与生产 authority。完整入口与能力矩阵见
 普通用户最终安装并运行 `AXMORF Studio`，不需要 clone 仓库或安装 Node/npm/Git。当前原生目标是 macOS 13+
 Apple Silicon `arm64`、macOS Intel `x64` 的完整离线 unsigned DMG，以及 Ubuntu 24.04+ x64 的完整离线 `.deb`；用户作品位于单一 Workspace
 Root，用户自己的 Codex 或 Hermes 通过 workspace-local Skill 与 `.rsp/bin/rsp` 协作，App 不内置 Agent。
-Delivery 默认由用户手动触发，App 更新与 Workspace 数据分离。完整目标见
+Delivery 默认由用户手动触发。App 更新不改写 Workspace 的 Project/Delivery/private data；下一次无 active work
+的启动会原子同步 checksum-bound `AGENTS.md`/host adapters、managed Skill、Hermes prompt 与 `.rsp/bin/rsp`。完整目标见
 [Desktop App 产品架构](docs/DESKTOP_APP_PRODUCT.md) 与
 [macOS 维护与发行](docs/DESKTOP_APP_MACOS_MAINTENANCE.md)和
 [Ubuntu 维护与打包](docs/DESKTOP_APP_UBUNTU_MAINTENANCE.md)。
@@ -152,10 +153,17 @@ Workspace 外部 Agent 创建 Project 前可直接读取 packaged contract，无
 ```bash
 ./.rsp/bin/rsp schema project-create
 ./.rsp/bin/rsp project create < project-create-input.json
+./.rsp/bin/rsp schema project-revision
+./.rsp/bin/rsp project revise-context --project <story-id>
+./.rsp/bin/rsp project revise-validate < project-revision-input.json
+./.rsp/bin/rsp project revise < project-revision-input.json
 ```
 
-stdin 必须是 raw `ProjectCreateInput`，禁止 `command/input/protocolVersion/requestId/workspaceId` wrapper；用户未指定
-边界模板时省略 `sceneTemplates` 以继承当前配置。无效输入返回脱敏字段级 `issues[]`。
+create stdin 必须是 raw `ProjectCreateInput`，revision stdin 必须是 raw `ProjectRevisionInput`；两者都禁止
+`command/input/protocolVersion/requestId/workspaceId` wrapper。用户未指定边界模板时省略 `sceneTemplates` 以继承
+当前配置。无效输入返回脱敏字段级 `issues[]`。
+现有作品使用 same-Project candidate Revision；带返回的 `candidateId` 运行 inspect/prepare/continue，旧 Delivery 在候选
+exact-four-file 验证并原子晋升前保持不变。不要克隆 MP4、Project 目录或历史 Scene source。
 
 ## 新建 Project
 
