@@ -131,6 +131,8 @@ session 的本地 read-only discovery surface，不读取 Workspace/private conf
 schema 返回 structural contract；active `project create-context` / `project revise-context` 返回 exact current choices
 或 base。`project validate` / `project revise-validate` 在写入前完成 operational checks。create/revise 只接受对应
 raw strict stdin，拒绝 protocol/command/input wrapper，并用脱敏 field path/code/message/ownerAction 解释无效字段。
+两条 validation surface 共用固定的每 chunk 72 display half-units 字幕预算；含 Story patch 的 revision 在 current
+base 检查和 candidate 写入前即返回超限 `ttsText` path，要求 Agent 保持顺序拆成相邻 chunks。
 revision 创建 same-Project candidate，后续生产命令绑定 `--candidate`，只有 exact-four-file Delivery 验证成功才
 晋升。dirty task 的 immutable `inputs/task-contract.json` 定义 exact outputs，fixed `task finalize` 负责派生
 fingerprint/receipt。

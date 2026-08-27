@@ -664,13 +664,13 @@ export const App = () => {
 
         {selectedProject !== null ? (
           <section className="project-status" aria-label="Project生产状态">
-            <div>
+            <div className="project-status-row">
               <span>Source</span>
               <strong data-state={selectedProject.source}>
                 {selectedProject.source}
               </strong>
             </div>
-            <div>
+            <div className="project-status-row">
               <span>Delivery</span>
               <strong data-state={selectedProject.delivery}>
                 {selectedProject.delivery}

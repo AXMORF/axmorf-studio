@@ -97,8 +97,10 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   template-copy Scene 由 fixed task 验证和产出 artifact，不派发 Agent。
 - installed Workspace 的现有作品修改使用 same-Project candidate Revision：old current source/Delivery 在候选
   exact-four-file 验证成功前保持不变，成功后受控晋升，失败回滚；不得用 MP4/Project/历史 Scene clone 形成第二 authority。
-- `ttsChunks` 是 Agent 已确定的原子朗读单元。sealed PCM 实测 samples 是绝对时间 authority；frame
-  boundary 统一为 `ceilDiv(cumulativeSamples × fps, sampleRate)`。Scene/transition 不吞 spoken frames。
+- `ttsChunks` 是 Agent 已确定的原子朗读单元，不由工具机械拆分或截断；每个 chunk 必须满足固定的
+  `caption-display-unit-v1` 预算（最多 72 display half-units）。public create/revise validation 在任何写入前返回
+  脱敏字段级 issue，Agent 应保持顺序拆成相邻 chunks 后重新验证。sealed PCM 实测 samples 是绝对时间
+  authority；frame boundary 统一为 `ceilDiv(cumulativeSamples × fps, sampleRate)`。Scene/transition 不吞 spoken frames。
 - 字幕只由顶层 CaptionLayer 渲染；Scene root 透明，只输出 Beat 语义视觉与音效。Composition exactly
   once owns safe-area-local SceneViewport、captions、narration 和 GlobalVisual background；GlobalVisual 的
   base layer 覆盖完整 Composition，decoration layers 只挂载于首个至末个 narrated Scene 的连续窗口，silent

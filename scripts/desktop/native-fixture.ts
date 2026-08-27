@@ -91,15 +91,24 @@ export const createDesktopNativeProjectInput = () => {
 const outputBytes = ({
   format,
   example,
+  sceneMeaningId,
 }: {
   readonly format: "json" | "tsx" | "ts";
   readonly example: unknown;
+  readonly sceneMeaningId?: string;
 }) => {
   if (format === "json") return json(example);
   if (typeof example !== "string") {
     throw new Error("desktop-native-fixture-source-example-required");
   }
-  return example.endsWith("\n") ? example : `${example}\n`;
+  const source =
+    sceneMeaningId === undefined
+      ? example
+      : example.replace(
+          "<div style=",
+          `<div aria-label="${sceneMeaningId}" style=`,
+        );
+  return source.endsWith("\n") ? source : `${source}\n`;
 };
 
 type DirtyTask = Readonly<{
@@ -172,7 +181,16 @@ export const executeDesktopNativeAgentTasks = async ({
       }
       await write(
         join(taskRoot, output.path),
-        outputBytes({ format: output.format, example: output.example }),
+        outputBytes({
+          format: output.format,
+          example: output.example,
+          sceneMeaningId:
+            task.taskKind === "scene-owner" &&
+            output.path === "src/Renderer.tsx" &&
+            task.semanticId !== null
+              ? task.semanticId
+              : undefined,
+        }),
       );
     }
     completed.push(task.taskRevision);

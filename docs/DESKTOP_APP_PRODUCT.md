@@ -85,14 +85,14 @@ Pack。用户无需预装 Node/npm/Git，网络不可用或地区 package source
 
 采用“工作区自动安装，用户级安装可选”，不在操作系统安装阶段静默修改 Agent 配置。
 
-| 时机         | App 行为                                                                                            |
-| ------------ | --------------------------------------------------------------------------------------------------- |
-| 安装 App     | 安装 App、引擎和 CLI；不修改 Agent home，不安装或升级用户的 Agent                                   |
-| 第一次启动   | 只读检测环境与已知 Agent；在系统视频目录创建 `AXMORF Studio/`，也允许初始化前改选 Workspace Root    |
+| 时机         | App 行为                                                                                             |
+| ------------ | ---------------------------------------------------------------------------------------------------- |
+| 安装 App     | 安装 App、引擎和 CLI；不修改 Agent home，不安装或升级用户的 Agent                                    |
+| 第一次启动   | 只读检测环境与已知 Agent；在系统视频目录创建 `AXMORF Studio/`，也允许初始化前改选 Workspace Root     |
 | 初始化工作区 | 写入 workspace-local Skill、`AGENTS.md`、thin host adapters 与 `.rsp/bin/rsp`，并记录 managed ledger |
 | 每次启动     | 校验 App/engine/protocol 与 managed checksums；没有 active work 时原子更新整组 managed integration   |
-| 设置页面     | 提供重新检测、安装/更新、修复、显示目录、卸载和复制启动提示词                                       |
-| 用户级 Skill | 仅在用户明确点击后安装；不得静默覆盖用户修改或其他版本                                              |
+| 设置页面     | 提供重新检测、安装/更新、修复、显示目录、卸载和复制启动提示词                                        |
+| 用户级 Skill | 仅在用户明确点击后安装；不得静默覆盖用户修改或其他版本                                               |
 
 不在 installer 阶段安装 Skill 的原因：installer 可能运行在错误用户或提升权限下，用户可能尚未安装 Agent，
 不同 Agent 的 discovery 规则和版本也可能变化。Project 首次创建时才安装又过晚，并会让每个 Project 重复
@@ -174,6 +174,10 @@ config/Runtime Pack operational checks。`project create` 的 stdin 就是通过
 `null` 才覆盖该语义。managed Workspace Skill 只路由这些 discoverable contracts；dirty task 的 exact schemas、
 examples、component signatures 和 derived-field ownership 位于 immutable `inputs/task-contract.json`，由
 `task finalize` 计算 fingerprint/receipt，外部 Agent 不需要源码 checkout、私有 builder 或 tests。
+
+create 与包含 Story patch 的 revise 共用固定字幕可读性校验：每个 narrated `ttsChunk` 最多 72 display
+half-units。超限输入在 Project mutation、current base 检查或 candidate 创建前返回精确 `ttsText` path 和拆分
+建议；App/CLI 不机械截断或自动重写文案。
 
 修改现有作品走 same-Project candidate Revision，不克隆 MP4、Project 目录或历史 Scene source。Agent 从
 `project revise-context` 取得 exact current base 与可编辑 authoring，只提交需要修改的 strict patch；候选版本使用
@@ -266,6 +270,7 @@ App 主界面是 bundled Preview Player，而不是 Remotion Studio 或另一个
 - verified `video.mp4` 播放、frame/timecode 和音量控制；
 - 与播放头同步的只读多轨时间轴，展示 Scene ranges、narration chunk/pause、caption cue 和 Scene boundary；
 - production 与 delivery 状态、Settings、输出目录和失败诊断；
+- Project 删除是状态卡内的二阶段操作：进入独立确认布局、输入 exact Project ID 后才能执行完整 ownership 清理；
 - Agent Workspace 状态及“复制启动提示词”。
 
 Preview Player 使用 current four-file Delivery 的 `video.mp4`，只在 exact file set、manifest identity、checksum、

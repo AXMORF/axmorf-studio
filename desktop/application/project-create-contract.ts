@@ -16,6 +16,7 @@ import {
   projectCreateFieldIssues,
   type RspFieldIssue,
 } from "../contracts/project-create-surface";
+import { rspCaptionReadabilityIssues } from "./caption-readability-contract";
 
 type ProviderReadiness = "ready" | "not-configured" | "unavailable";
 
@@ -143,6 +144,12 @@ export const validateRspProjectCreate = async ({
   }
 
   const input = parsed.data;
+  issues.push(
+    ...rspCaptionReadabilityIssues({
+      story: input.story,
+      pathPrefix: "$.story",
+    }),
+  );
   const descriptors = await loadDescriptors({ locations });
   const styleIds = new Set(
     availableStyleProfiles(descriptors).map(({ styleProfileId }) =>

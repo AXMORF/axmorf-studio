@@ -33,8 +33,9 @@ ExecutionAttempt 只记录一次执行诊断。它的失败或丢失不拥有产
 - 一 Story 一个 Composition；一 StoryBeat 一个 meaningId、Scene 和完成后的 ScenePackage。
 - narrated 与 silent Scene 是 discriminated contract；silent Scene 只在时间线首尾且没有 TTS、CaptionCue
   或 sealed narration segment。
-- Agent-authored `ttsChunks` 不被工具改写；sealed PCM sample measurement 和累计 sample frame 是时间
-  authority。
+- Agent-authored `ttsChunks` 不被工具机械拆分、截断或改写；每个 chunk 必须满足固定的 72 display half-units
+  字幕预算，public create/revise validation 在任何 mutation 前以脱敏字段 issue 拒绝超限输入。sealed PCM sample
+  measurement 和累计 sample frame 是时间 authority。
 - Scene root 透明；Composition 顶层 exactly once owns safe-area-local SceneViewport、captions、narration 和
   GlobalVisual。GlobalVisual base layer 覆盖完整 Composition；decoration layers 仅覆盖首个至末个 narrated
   Scene 的连续窗口，不进入 silent boundary Scenes。Scene 只在本地 viewport 内布局，不感知 full-frame inset。

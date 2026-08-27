@@ -48,7 +48,7 @@ import {
   projectRevisionCandidateRoot,
 } from "../../project-production/application/project-revision-locations";
 import type { ProductionLocations } from "../../project-production/application/production-locations";
-import { projectPendingSceneAuthoring } from "./create-project";
+import { projectPendingSceneAuthoring } from "./project-pending-authoring";
 import { snapshotWorkspaceSceneOriginalityBaseline } from "./scene-originality-baseline";
 
 const jsonBytes = (value: unknown) => `${serializeCanonicalJson(value)}\n`;
@@ -511,10 +511,10 @@ const applyRevisionPatch = async ({
       await removeFileIfPresent(project.root, path);
     }
   } else {
-    const projected = await projectPendingSceneAuthoring({
-      locations,
-      projectId,
-    });
+    const projected = await projectPendingSceneAuthoring(
+      { locations, projectId },
+      generateWorkspaceProjectResourceCatalog,
+    );
     if (!projected.projected) {
       throw new Error("Project revision could not project current Scene authoring.");
     }

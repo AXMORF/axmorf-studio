@@ -16,6 +16,8 @@ attempt-bound task commit/fail 与 fixed continuation；converge 是 continuatio
 
 - identity 不含 attempt/clock/process/absolute path；
 - create existing/partial/conflicting target fail closed，相同 creation identity 只读 current，零 provider/media；
+- create/revise 对 narrated `ttsChunks` 共用 mutation 前的固定 72 display half-units 字幕预算校验，返回脱敏字段
+  issue 且不机械改写 authored units；
 - installed Workspace revision 绑定 exact current base 并隔离到 `.rsp/revisions`；候选强制 automatic Delivery，
   exact-four-file 验证成功才原子晋升，失败 rollback 且旧 current 不变；
 - Root 在任何成本前报告 inspect 的 source readiness、unknown-safe estimate、reuse 与逐任务失效解释；

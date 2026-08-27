@@ -78,6 +78,44 @@ test("Project validate reports style and collection paths before mutation", asyn
   );
 });
 
+test("Project validate rejects TTS chunks that exceed the caption display budget", async () => {
+  const result = await validateRspProjectCreate({
+    locations,
+    config,
+    input: {
+      ...validProjectCreateInput,
+      story: {
+        ...validProjectCreateInput.story,
+        beats: [
+          {
+            ...validProjectCreateInput.story.beats[0],
+            ttsChunks: [
+              {
+                chunkId: "opening-01",
+                ttsText: "专".repeat(37),
+              },
+            ],
+          },
+        ],
+      },
+    },
+    loadDescriptors,
+  });
+
+  assert.equal(result.status, "project-create-invalid");
+  assert.deepEqual(
+    result.issues.map(({ path, code }) => ({ path, code })),
+    [
+      {
+        path: "$.story.beats[0].ttsChunks[0].ttsText",
+        code: "rsp-caption-display-budget-exceeded",
+      },
+    ],
+  );
+  assert.match(result.issues[0]?.message ?? "", /74 half-units.*72/u);
+  assert.match(result.issues[0]?.ownerAction ?? "", /Split.*ttsChunks/u);
+});
+
 test("Project validate reports ProducerConfig as a structured blocker", async () => {
   const result = await validateRspProjectCreate({
     locations,

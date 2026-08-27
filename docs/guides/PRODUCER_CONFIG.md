@@ -107,6 +107,8 @@ fingerprint 不匹配、未知字段或结构
   Scene 底边 = 字幕底边 + 字幕盒高度 + gap，再向上取整到 10px。RenderSpec 不再保存字幕安全区。
   该值由 Composition 拥有的 readability policy 解析成 full-frame inset；Scene task 只收到派生的
   safe-area-local SceneViewport width/height/min font size，不需要、也不允许重复计算裁剪区域。
+  `ttsChunk` 的 72 display half-units 上限是固定 authoring contract，不是可配置项；create/revise 在任何写入前
+  返回字段级 issue，Agent 保持 narration order 拆成相邻 chunks 后重新验证。
 - `publishingCollections`：有稳定 ID、名称和适用描述的数组。Agent 必须选一个最合适的已有合集；
   PublishingIntent v2 封存所选 ID/名称及当时的合集目录 fingerprint。
 - `tts`：稳定的通用边界。`speech.rate` 在 provider 返回后、PCM 实测前处理并进入 provider-attempt

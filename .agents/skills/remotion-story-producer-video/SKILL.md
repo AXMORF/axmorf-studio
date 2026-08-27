@@ -12,6 +12,7 @@ Read [policy](policy.json), [workflow](references/direct-production-workflow.md)
 User silence means inheritance: omit `sceneTemplates`, never infer `null`. Use `project:create` for new authoring. Installed Workspace revision:
 packaged `schema project-revision`, `project revise-context/revise-validate/revise`, then bind `candidateId` to production.
 Never clone an MP4, Project, or historical Scene; current stays until verified candidate promotion.
+`ttsChunk`: max 72 display half-units; split in order.
 
 ## Load optional Agent capabilities
 

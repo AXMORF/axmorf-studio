@@ -18,6 +18,10 @@ artifact classification、dispatch、materialization 或 delivery authority。
 TTS waveform 不要求跨 provider call bit-for-bit 可重复；一旦 provider attempt 与 canonical PCM 通过校验，
 后续以 sealed bytes、checksum、generation fingerprint 和 actual sample count 为 authority。
 
+Agent-authored `ttsChunks` 在 create/revise 前使用固定 `caption-display-unit-v1` 计量：ASCII grapheme 计 1、其他
+grapheme 计 2 个 display half-units，每个 chunk 上限 72。validation 只返回稳定 path/code/message/ownerAction，
+不机械拆分或截断文本，也不进入 candidate、Revision 或任何 content identity；Agent 必须保持顺序提交新的相邻 chunks。
+
 ## 2. ProductionRevision
 
 Revision 绑定显式 contract fingerprints、configured template identities、selected resource bytes、narration
@@ -143,8 +147,10 @@ no-op。
 
 ## 8. Idempotence 与 failure
 
-- create：same creation identity → read-only current；different/partial target → fail closed，不覆盖；
-- revise：same raw patch + same base → same candidate identity/current candidate；base revision/source-current/Delivery
+- create：caption budget invalid → mutation 前字段级拒绝；same creation identity → read-only current；
+  different/partial target → fail closed，不覆盖；
+- revise：Story patch caption budget invalid → current-state/candidate mutation 前字段级拒绝；same raw patch + same base →
+  same candidate identity/current candidate；base revision/source-current/Delivery
   任一漂移 → fail closed；只有 candidate exact-four-file Delivery verified 后才受控晋升，晋升异常逆序 rollback；
 - inspect：同 source/cache/artifact/delivery snapshot → byte-equivalent read model、零 provider/零写入；
 - prepare：同 inputs + valid store → same Revision/Task identities and reuse classification；新 attempt 仍只诊断；

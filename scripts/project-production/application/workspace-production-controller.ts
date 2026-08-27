@@ -90,6 +90,7 @@ import {
   buildRspProjectCreateContext,
   validateRspProjectCreate,
 } from "../../../desktop/application/project-create-contract";
+import { rspCaptionReadabilityIssues } from "../../../desktop/application/caption-readability-contract";
 import { RspPublicCommandError } from "../../../desktop/contracts/issues";
 import { rspZodIssues } from "../../../desktop/contracts/issues";
 import {
@@ -609,6 +610,21 @@ export const createWorkspaceProductionController = async ({
             "Use the exact raw contract returned by rsp schema project-revision.",
         }),
       };
+    }
+    if (parsed.data.patch.story !== undefined) {
+      const readabilityIssues = rspCaptionReadabilityIssues({
+        story: parsed.data.patch.story,
+        pathPrefix: "$.patch.story",
+      });
+      if (readabilityIssues.length > 0) {
+        return {
+          schemaVersion: 1,
+          contractVersion: "rsp-project-revision-validation-v1",
+          status: "project-revision-invalid" as const,
+          storyId: parsed.data.storyId,
+          issues: readabilityIssues,
+        };
+      }
     }
     try {
       const current = await requireCurrentDelivery({

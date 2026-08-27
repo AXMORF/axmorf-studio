@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-27 Ubuntu x64 Desktop 重装、真实外部 Agent production 与 exact-four-file Delivery verified complete
+> 最后复核：2026-08-27 current Desktop contracts/full gate 与 Ubuntu x64 package/install reverified
 
 ## 当前结论
 
@@ -53,7 +53,9 @@ bootstrap/Registry/Catalog/settings 合同保持有效。
 - `project:create` 从 strict repository-relative input 原子创建 configured authoring；相同 creation identity
   只读 current，existing/partial/conflicting/symlink/path escape/special file fail closed；
 - create 保留 authored Story/`ttsChunks`，复制 boundary template 与 sound/catalog projection，但零 provider、
-  零媒体生成，且不写 narration work、artifact、workspace、attempt 或 delivery；
+  零媒体生成，且不写 narration work、artifact、workspace、attempt 或 delivery；public create 与 Story-patching
+  revise 共用 mutation 前的 `caption-display-unit-v1` 校验，每个 chunk 最多 72 display half-units，超限返回精确
+  `ttsText` path/code/ownerAction 且不会机械拆分 authored units；
 - `project:produce:inspect` 通过 check-only ports 返回 sourceState、baseline、unknown-safe estimated cost、
   structured task explanations 与 nextAction；前后 snapshot drift fail closed，零 provider/零 repository mutation；
 - `project:produce:prepare` 是唯一有成本入口，负责 provider/cache/seal/master/timing、timing-bound authoring、
@@ -295,7 +297,8 @@ Preview Catalog terminal refresh 已改为先原子刷新 verified Delivery iden
 handle；Renderer 以新 URL 重新挂载 `<video>`。真实 Electron harness 覆盖同一 App/Renderer 进程内实际媒体失败、点击
 恢复、`loadedmetadata`/`canplay`、播放推进与旧并发 Range 完成。Desktop 同步投影 latest ExecutionAttempt 的
 dirty/reused/committed/current/failed task 数、attempt state、terminal、diagnostic、DeliveryBuildId 与 exact-four-file
-completeness；界面加入进度条、最终摘要和带 exact Project ID 二次确认的完整 `project:delete` 操作。
+completeness；界面加入进度条、最终摘要和带 exact Project ID 二次确认的完整 `project:delete` 操作。删除确认和按钮区
+现在使用自己的 grid layout，Source/Delivery 状态行改为显式 class，避免宽选择器在普通或窄窗口中覆盖确认布局。
 
 两个 built-in boundary Scene template 不再维护 Desktop-only synthetic chime。Workspace integration 和 Remotion preview
 共同消费 checksum-bound `DefaultIntroPreview` / `DefaultOutroPreview` 音频 authority；固定 template import 会把相同 bytes
@@ -329,16 +332,20 @@ Workspace `rsp-local-v2` 现提供无需 App session 的 `help --json`、project
 `project create-context` 投影 exact style/collection/template/resource choices，`project validate` 在 create 前合并 strict
 static 与 config/Runtime Pack operational checks。`rsp project create` 明确拒绝
 `command/input/protocolVersion/requestId/workspaceId` wrapper；公开创建与 task 失败返回不带字段值的
-`issues[].path/code/message/ownerAction`。managed Skill 已收缩为 discovery/router，dirty Agent workspace 增加 immutable
+`issues[].path/code/message/ownerAction`。create/revise validation 现在共用固定的 72 display half-units 字幕预算；
+revision Story patch 在 current-state 检查和 candidate mutation 前返回相同字段级错误。managed Skill 已收缩为
+discovery/router，dirty Agent workspace 增加 immutable
 `inputs/task-contract.json`，逐 output 提供 JSON Schema/example/component signature/derived ownership；fixed
 `task finalize` 统一计算 fingerprint/receipt。native gate 的 deterministic executor 不再调用私有 output builder，只消费
-task contract 后走 finalize/check/commit，再验证 source-current、manual/automatic Delivery 与 exact-four-file Preview。
+task contract，并把 exact Scene meaningId 绑定进示例 Renderer source 后走 finalize/check/commit，再验证
+source-current、manual/automatic Delivery 与 exact-four-file Preview。
 
 现有 Project 修改使用 same-Project candidate Revision：`revise-context/validate/revise` 创建隔离候选，后续
 `context/inspect/prepare/continue/delivery build` 以 `--candidate` 绑定；候选强制 automatic Delivery，exact-four-file
 验证成功后才原子晋升，旧 current source/Delivery 在此之前不变，晋升失败回滚。Scene owner policy 已升级为 v3：
 Project 创建/修订记录其他 Project Renderer 的不可逆 normalized fingerprint baseline，task check 拒绝历史复制，
-converge 再拒绝一个 Revision 内 narrated Scenes 的 exact bytes 或 normalized fingerprint 重复。
+converge 再拒绝一个 Revision 内 narrated Scenes 的 exact bytes 或 normalized fingerprint 重复。candidate 的 pending
+Scene authoring projection 现通过显式 Workspace ResourceCatalog port 注入，不再反向依赖 repository create adapter。
 Desktop 每次启动还会校验 Workspace managed ledger；没有 active work 时以 same-parent staging/verify/rollback
 原子同步 root instructions、managed production Skill、Hermes prompt 与 `.rsp/bin/rsp`，不会改写 Project、media、
 Delivery 或 Application Support private config。

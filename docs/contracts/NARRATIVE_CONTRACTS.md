@@ -47,7 +47,9 @@ StorySpec v3 discriminates `narrated-scene` from `silent-scene`. Every Story sti
 real narrated Scene. A silent Scene may appear only at a timeline boundary, carries no intro/outro role,
 binds a fixed-duration preset and never synthesizes an empty TTS
 chunk, sealed segment, CaptionCue, narration file or caption text. `ttsChunks` are authored units and are
-never split mechanically. An explicit pause is declared by
+never split mechanically or truncated. Each narrated chunk is measured by `caption-display-unit-v1` and must not
+exceed 72 display half-units. Public create/revise validation returns a redaction-safe field issue before mutation;
+the author preserves narration order by submitting adjacent chunks. An explicit pause is declared by
 `{afterChunkId, pauseMs}` in its owning StoryBeat, where `pauseMs` is a non-negative integer. A zero
 pause remains an owned zero-length timeline segment; a positive pause must quantize to at least one PCM
 sample frame. Pause declarations are excluded from the generation input fingerprint but included in the

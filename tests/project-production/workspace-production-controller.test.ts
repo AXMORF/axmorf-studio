@@ -211,15 +211,84 @@ test("public Project create rejects unavailable runtime choices with actionable 
     (error: unknown) => {
       assert.ok(error instanceof RspPublicCommandError);
       assert.equal(error.code, "rsp-command-failed");
-      assert.equal(
-        error.issues[0]?.path,
-        "$.visualStyle.styleProfileId",
-      );
+      assert.equal(error.issues[0]?.path, "$.visualStyle.styleProfileId");
       assert.equal(
         error.issues[0]?.code,
         "rsp-project-create-style-unavailable",
       );
       assert.match(error.issues[0]?.ownerAction ?? "", /create-context/u);
+      return true;
+    },
+  );
+  assert.deepEqual(await controller.listProjects(), {
+    status: "workspace-project-list",
+    projectIds: [],
+  });
+});
+
+test("public Project revision validation rejects unreadable TTS chunks before current-state checks", async (context) => {
+  const value = await fixture(context);
+  const controller = await createWorkspaceProductionController({
+    locations: value.locations,
+    runtime: value.runtime,
+    delivery: deliveryRuntime(),
+    loadProducerConfig: async () => value.config,
+  });
+  const input = {
+    schemaVersion: 1,
+    contractVersion: "project-revision-input-v1",
+    storyId: validProjectCreateInput.storyId,
+    baseRevisionId: `revision-${"1".repeat(64)}`,
+    patch: {
+      story: {
+        ...validProjectCreateInput.story,
+        beats: [
+          {
+            ...validProjectCreateInput.story.beats[0],
+            ttsChunks: [
+              {
+                chunkId: "opening-01",
+                ttsText: "专".repeat(37),
+              },
+            ],
+          },
+        ],
+      },
+    },
+  } as const;
+
+  const validation = (await controller.execute({
+    command: "project-revise-validate",
+    input,
+  })) as {
+    readonly status: string;
+    readonly issues: readonly { readonly path: string; readonly code: string }[];
+  };
+  assert.equal(validation.status, "project-revision-invalid");
+  assert.deepEqual(validation.issues, [
+    {
+      path: "$.patch.story.beats[0].ttsChunks[0].ttsText",
+      code: "rsp-caption-display-budget-exceeded",
+      message:
+        "TTS chunk opening-01 uses 74 half-units and exceeds the 72 half-units caption budget.",
+      ownerAction:
+        "Split this text into adjacent ttsChunks while preserving narration order, then validate the same raw input again.",
+    },
+  ]);
+
+  await assert.rejects(
+    controller.execute({ command: "project-revise", input }),
+    (error: unknown) => {
+      assert.ok(error instanceof RspPublicCommandError);
+      assert.equal(error.code, "rsp-command-failed");
+      assert.equal(
+        error.issues[0]?.path,
+        "$.patch.story.beats[0].ttsChunks[0].ttsText",
+      );
+      assert.equal(
+        error.issues[0]?.code,
+        "rsp-caption-display-budget-exceeded",
+      );
       return true;
     },
   );

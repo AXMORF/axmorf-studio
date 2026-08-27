@@ -77,6 +77,9 @@ installed Workspace 的现有 Project 不直接改 live current roots，也不�
 `.rsp/revisions/<storyId>/<candidateId>/` 并只在隔离 candidate 上应用 patch。候选使用同一 inspect/prepare/task/
 continuation/Delivery 主链且强制 automatic Delivery；只有 exact-four-file candidate 完整复验后，fixed promotion
 才在 repository operation lock 下受控替换 Project、media、source-current 与 Delivery，失败按逆序 rollback。
+candidate 的 pending Scene authoring projection 只依赖显式传入的 Workspace ResourceCatalog port，不反向依赖
+repository create adapter；create/revise 的 shared public contract adapter 在任何 Project/candidate mutation 前对
+Story 执行相同的固定字幕预算校验。
 
 ## 3. Contract boundaries
 
@@ -88,6 +91,8 @@ continuation/Delivery 主链且强制 automatic Delivery；只有 exact-four-fil
 - DeliveryPublish 绑定 DeliveryBuildId、source-current、renderer runtime、exact logical paths、media facts、checksums 与 publishing projection。
 - ProjectRevisionCandidate 绑定 raw patch、base revision/source-current/Delivery 与 changed sections；`createdAt` 仅为
   诊断记录，不进入 candidate identity。candidate 不成为第二个 current authority。
+- narrated `ttsChunk` 使用 `caption-display-unit-v1` 固定计量并限制为 72 display half-units；public create/revise
+  validation 返回脱敏字段 issue，不自动更改 authored units，也不把诊断结果加入 content identity。
 
 所有 JSON contracts 禁止代码、JSX、动态 module path 或 executable expression。runtime binding 由生成的静态
 TypeScript registry 完成。
@@ -97,9 +102,9 @@ TypeScript registry 完成。
 | Surface                                     | Writer                                      | Rule                                                                                       |
 | ------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | Project create/configured authoring         | fixed atomic creator                        | existing/partial/conflicting target fail closed；零 provider/media/attempt                 |
-| same-Project revision candidate             | fixed candidate creator                     | strict base/patch；隔离 `.rsp/revisions`；不修改 live current roots                         |
+| same-Project revision candidate             | fixed candidate creator                     | strict base/patch；隔离 `.rsp/revisions`；不修改 live current roots                        |
 | Optional external acquisition               | current Root Agent + fixed import           | callable compatible MCP 才出现；缺失即省略；只在 inspect 前写 Project-owned asset/evidence |
-| Repository-checkout authoring inputs        | Root authoring Agent / fixed import command | preparation 前可变；installed Workspace 修订必须走隔离 candidate                            |
+| Repository-checkout authoring inputs        | Root authoring Agent / fixed import command | preparation 前可变；installed Workspace 修订必须走隔离 candidate                           |
 | `.producer-work/<story>/<taskRevision>`     | one assigned task executor                  | only declared output set; cannot edit `task.json` or inputs                                |
 | `.producer-artifacts`                       | fixed commit adapter                        | validator recheck + atomic promotion only                                                  |
 | materialized Scene/GlobalVisual/Cover roots | fixed materializer                          | all artifacts present; controlled replace/rollback                                         |

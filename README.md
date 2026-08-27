@@ -161,14 +161,17 @@ Workspace 外部 Agent 创建 Project 前可直接读取 packaged contract，无
 
 create stdin 必须是 raw `ProjectCreateInput`，revision stdin 必须是 raw `ProjectRevisionInput`；两者都禁止
 `command/input/protocolVersion/requestId/workspaceId` wrapper。用户未指定边界模板时省略 `sceneTemplates` 以继承
-当前配置。无效输入返回脱敏字段级 `issues[]`。
+当前配置。无效输入返回脱敏字段级 `issues[]`。create 与包含 Story patch 的 revise 会在任何写入或 current-state
+检查前拒绝超过 72 display half-units 的单个 `ttsChunk`；按 `ownerAction` 保持旁白顺序拆成相邻 chunks 后，用同一
+raw input 重新验证，工具不会机械拆分或截断文案。
 现有作品使用 same-Project candidate Revision；带返回的 `candidateId` 运行 inspect/prepare/continue，旧 Delivery 在候选
 exact-four-file 验证并原子晋升前保持不变。不要克隆 MP4、Project 目录或历史 Scene source。
 
 ## 新建 Project
 
 新 Project 使用 `private/producer.config.json` 中的 defaults；先创作一个 strict、repository-relative 的
-create input，其中包含 Story、narrated beats 的 exact `ttsChunks`、视觉与发布选择，然后：
+create input，其中包含 Story、narrated beats 的 exact `ttsChunks`、视觉与发布选择；每个 chunk 必须满足固定的
+72 display half-units 字幕预算，然后：
 
 ```bash
 npm run project:create -- --project <story-id> --input <repository-relative-json>

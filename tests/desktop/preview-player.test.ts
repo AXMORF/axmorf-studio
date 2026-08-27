@@ -93,3 +93,17 @@ test("bundled renderer uses native video and exposes three read-only tracks", as
   assert.match(html, /media-src 'self' axmorf-media:/u);
   assert.doesNotMatch(html, /https?:\/\//u);
 });
+
+test("project deletion confirmation keeps its grid layout isolated from status rows", async () => {
+  const [app, styles] = await Promise.all([
+    readFile(join(process.cwd(), "desktop/renderer/App.tsx"), "utf8"),
+    readFile(join(process.cwd(), "desktop/renderer/styles.css"), "utf8"),
+  ]);
+  assert.match(app, /className="project-status-row"/u);
+  assert.match(styles, /\.project-status-row\s*\{[^}]*display:\s*flex;/su);
+  assert.match(
+    styles,
+    /\.delete-project-confirmation\s*\{[^}]*display:\s*grid;/su,
+  );
+  assert.doesNotMatch(styles, /\.project-status\s*>\s*div\s*\{/u);
+});
