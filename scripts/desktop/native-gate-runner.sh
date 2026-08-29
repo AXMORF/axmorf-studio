@@ -598,10 +598,6 @@ drive_production() {
 
   "$rsp" prepare --project desktop-native-fixture --delivery-policy "$policy" \
     >"$output_root/prepare.json"
-  "$host_node" --import tsx \
-    "$repository_root/scripts/desktop/native-fixture.ts" execute-agent-tasks \
-    --workspace "$workspace_root" <"$output_root/prepare.json" \
-    >"$output_root/agent-tasks.json"
 
   local attempt_id
   local revision_id
@@ -609,14 +605,36 @@ drive_production() {
   revision_id=$("$host_node" -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).revisionId' "$output_root/prepare.json")
   "$host_node" -e '
     const p=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));
-    for (const task of p.dirtyAgentTasks) process.stdout.write(task.taskRevision+"\n");
-  ' "$output_root/prepare.json" >"$output_root/task-revisions.txt"
-  while IFS= read -r task_revision; do
-    "$rsp" task finalize --task "$task_revision" >>"$output_root/task-finalizes.jsonl"
-    "$rsp" task check --task "$task_revision" >>"$output_root/task-checks.jsonl"
-    "$rsp" task commit --task "$task_revision" --attempt "$attempt_id" \
+    for (const task of p.dirtyAgentTasks) process.stdout.write(task.taskRevision+"\t"+task.bindingId+"\n");
+  ' "$output_root/prepare.json" >"$output_root/task-bindings.tsv"
+  while IFS=$'\t' read -r task_revision binding_id; do
+    "$rsp" task bind \
+      --task "$task_revision" \
+      --attempt "$attempt_id" \
+      --binding "$binding_id" \
+      --transport shared-workspace >>"$output_root/task-binds.jsonl"
+  done <"$output_root/task-bindings.tsv"
+
+  "$host_node" --import tsx \
+    "$repository_root/scripts/desktop/native-fixture.ts" execute-agent-tasks \
+    --workspace "$workspace_root" <"$output_root/prepare.json" \
+    >"$output_root/agent-tasks.json"
+
+  while IFS=$'\t' read -r task_revision binding_id; do
+    "$rsp" task finalize \
+      --task "$task_revision" \
+      --attempt "$attempt_id" \
+      --binding "$binding_id" >>"$output_root/task-finalizes.jsonl"
+    "$rsp" task check \
+      --task "$task_revision" \
+      --attempt "$attempt_id" \
+      --binding "$binding_id" >>"$output_root/task-checks.jsonl"
+    "$rsp" task commit \
+      --task "$task_revision" \
+      --attempt "$attempt_id" \
+      --binding "$binding_id" \
       >>"$output_root/task-commits.jsonl"
-  done <"$output_root/task-revisions.txt"
+  done <"$output_root/task-bindings.tsv"
   "$rsp" inspect --project desktop-native-fixture \
     >"$output_root/inspect-after-tasks.json"
 
