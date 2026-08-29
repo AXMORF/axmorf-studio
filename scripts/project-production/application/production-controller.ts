@@ -48,7 +48,7 @@ export type ProductionControllerCommandPorts = Readonly<{
     readonly locations: ProductionLocations;
     readonly taskRevision: string;
     readonly attemptId: string;
-    readonly kind: "task" | "host";
+    readonly kind: "task" | "host" | "fixed";
   }) => Promise<unknown>;
   continueProduction: (input: {
     readonly locations: ProductionLocations;
@@ -107,7 +107,7 @@ export const createProjectProductionController = ({
     failTask: (
       taskRevision: string,
       attemptId: string,
-      kind: "task" | "host",
+      kind: "task" | "host" | "fixed",
     ) => commands.failTask({ locations, taskRevision, attemptId, kind }),
     continueProduction: (input: {
       readonly projectId: string;
@@ -170,7 +170,7 @@ export const createProjectProductionController = ({
             locations,
             taskRevision: String(request.taskRevision),
             attemptId: String(request.attemptId),
-            kind: request.kind as "task" | "host",
+            kind: request.kind as "task" | "host" | "fixed",
           });
         case "continue": {
           const deliveryPolicy = request.deliveryPolicy as DeliveryPolicy;

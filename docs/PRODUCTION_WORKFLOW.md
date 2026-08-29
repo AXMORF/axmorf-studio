@@ -158,12 +158,15 @@ prepare 只为 action 为 `dispatch-agent` 的 non-reused task 建立：
 .producer-work/<storyId>/<taskRevision>/
 ├── task.json
 ├── inputs/context.json
+├── inputs/task-contract.json
 └── <declared outputs>
 ```
 
 Agent 不能直接写 live Project。inspect 前用 `project:execution:resolve` 按用户提示词明确字段、配置页、内置
 `inline` 默认的优先级冻结本次执行策略；该诊断策略不进入 identity。inline 时 Root 一次执行一个 workspace；
-subagents 时使用不超过四个且受 runtime capacity 限制的 bounded pool。`scene-template` 和其他 fixed tasks
+subagents 时使用不超过四个且受 runtime capacity 限制的 bounded pool，并要求宿主验证
+`shared-workspace` 或 `controller-io` worker transport；普通 delegate/thread/chat 不算 native child，未验证
+transport 时在 prepare 前阻塞。`scene-template` 和其他 fixed tasks
 不由 Agent 创作。仓库只产出通用 workspace 与 shell command，不调用厂商 Agent SDK；每个 TaskRevision
 只归属一个 executor。Scene executor 完整读取 repository-local
 `remotion-best-practices`，且不能用 Skill 扩大
@@ -191,17 +194,22 @@ copied source/assets，以及从 template instance、SceneTaskInput 和 Resource
 Scene plans、selected-resource envelope 与 fidelity receipt。live-only
 `task-input.generated.json`/`generated/scene-package.generated.json` 不进入该 artifact identity。
 
-task executor 在 workspace 内循环：
+task executor 在任何 task 读写前先运行 prepare 返回的 exact attempt-bound bind command。只有
+`task-worker-bound` 返回的 shared path 或 controller-IO commands 可用；Task/attempt identity、immutable input、
+checksum 或 transport 验证失败必须零写入停止，禁止猜路径。绑定后只写 declared outputs，并循环：
 
 ```bash
-npm run project:task:check -- --task <taskRevision>
-npm run project:task:commit -- --task <taskRevision> --attempt <attemptId>
-npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --kind task|host
+npm run project:task:finalize -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:check -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:commit -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --kind task|host|fixed
 ```
 
 check 只读；commit 必须重跑同一 validator。成功 promotion 使用同父 staging/atomic rename，manifest 最后写，
 并产生 immutable ArtifactAttestation。相同 identity/bytes no-op；冲突绝不覆盖。commit/fail 都写入 exact
 attempt 的机械 task-terminal event；executor chat 不参与 barrier，也不进入 repository state。
+finalize/check 的 structured `agent-output` issues 由同一 executor 修复；不得调用 host failure。host 仅限真实
+spawn/mount/controller-IO/sandbox/permission 故障，immutable authority fault 记录为 fixed-controller。
 
 ## 5. Fixed continuation、convergence 与物化
 
@@ -216,6 +224,10 @@ Root 此后不轮询、读取 executor 终态、推理、修复或重试。bound
 terminal failure 立即写失败终态并非零退出，不调用 converge；全部 Agent artifacts committed/current 后内部
 只调用一次 converge。重复 continuation fail closed；从 ExecutionAttempt 创建起一小时总 deadline 内仍缺 terminal 时写
 `producer-continuation-timeout` 后退出。converge 失败原样退出且不重新进入 Root。
+
+terminal failed attempt 保持不可变。显式 `attempt recover-inspect` 只读确认同一 current Revision、无 active attempt
+且 fixed dependencies current；随后 `attempt reissue` 创建 fresh attempt/binding，零 provider request、无需 current
+Delivery、保留有效 draft 并复用 valid artifacts。candidate revision 的 current Delivery 前置门不变。
 
 converge 只调用 read-only current-plan builder 重算 current inputs；不调用 provider、不创建 workspace 或
 ExecutionAttempt。revision 不同返回 stable stale 结果。任何 required artifact 缺失时，
@@ -290,4 +302,5 @@ legacy data 仅在删除器内部以最小严格 `runId/storyId` parser 判定 o
 Agent workspace validator 失败由同一 task executor 在宣告终态前修正 owning output 并重跑。任何 task terminal
 failure 或 validator/store/materialization/delivery fixed failure 都立即结束当前 lifecycle。系统缺陷只能在
 用户另行启动的 engineering task 中诊断、Red/Green 和验证，然后再显式创建新 attempt；不得在失败 attempt
-内修复或重试。
+内修复或重试。若 shared fixed flow 本身正常且失败来自 task，用户可显式运行 recover-inspect/reissue 创建 fresh
+attempt；这不是 reopen，也不改变旧 attempt。

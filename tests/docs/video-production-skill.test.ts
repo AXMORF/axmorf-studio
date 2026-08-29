@@ -14,8 +14,8 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 
 const PolicySchema = z
   .object({
-    schemaVersion: z.literal(16),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v19"),
+    schemaVersion: z.literal(17),
+    policyVersion: z.literal("remotion-story-producer-video-policy-v20"),
     rootEndpoints: z.tuple([
       z.literal("project-production-complete"),
       z.literal("project-production-current"),
@@ -29,9 +29,13 @@ const PolicySchema = z
       z.literal("project:execution:resolve"),
       z.literal("project:produce:inspect"),
       z.literal("project:produce:prepare"),
+      z.literal("project:task:bind"),
+      z.literal("project:task:describe"),
       z.literal("project:task:check"),
       z.literal("project:task:commit"),
       z.literal("project:task:fail"),
+      z.literal("project:attempt:recover-inspect"),
+      z.literal("project:attempt:reissue"),
       z.literal("project:produce:continue"),
     ]),
     executionPolicy: z
@@ -51,6 +55,10 @@ const PolicySchema = z
         unknownRuntimeMaxConcurrency: z.literal(1),
         inlinePolicy: z.literal("root-sequential-one-workspace-at-a-time"),
         subagentPolicy: z.literal("bounded-pool-wait-any-admission"),
+        subagentWorkerTransport: z.literal(
+          "verified-shared-workspace-or-controller-io",
+        ),
+        unverifiedWorkerTransportPolicy: z.literal("block-before-prepare"),
         exactCapacityFailurePolicy: z.literal("block-before-prepare"),
         automaticModeFallback: z.literal(false),
         identityVisibility: z.literal("none"),
@@ -86,7 +94,9 @@ const PolicySchema = z
           "repository-local-remotion-best-practices",
         ),
         sharedCheckout: z.literal(true),
-        agentWriteBoundary: z.literal("task-workspace-only-after-prepare"),
+        agentWriteBoundary: z.literal(
+          "declared-task-outputs-only-after-successful-attempt-bound-bind",
+        ),
         artifactAuthority: z.literal("validated-artifact-attestation"),
         artifactReusePolicy: z.literal(
           "reuse-valid-content-addressed-artifacts",
@@ -118,7 +128,7 @@ const PolicySchema = z
         entrypointMaxWords: z.number().int().positive(),
         directWorkflowMaxWords: z.number().int().positive(),
         normalProductionMaxWords: z.number().int().positive(),
-        normalProductionMaxCharacters: z.number().int().positive().max(16_000),
+        normalProductionMaxCharacters: z.number().int().positive().max(18_000),
         sceneOrchestrationMaxWords: z.number().int().positive(),
         globalVisualOrchestrationMaxWords: z.number().int().positive(),
         coverOrchestrationMaxWords: z.number().int().positive(),
@@ -136,6 +146,7 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
     globalVisual,
     cover,
     hardening,
+    workerProtocol,
     producerConfig,
     rawPolicy,
   ] = await Promise.all([
@@ -146,12 +157,13 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
     readSkillFile("references/global-visual-agent-orchestration.md"),
     readSkillFile("references/cover-agent-orchestration.md"),
     readSkillFile("references/agent-rework-and-system-hardening.md"),
+    readSkillFile("references/task-worker-protocol.md"),
     readSkillFile("references/producer-config.md"),
     readSkillFile("policy.json"),
   ]);
   const policy = PolicySchema.parse(JSON.parse(rawPolicy));
   const executable = `${workflow}\n${scene}\n${globalVisual}\n${cover}`;
-  const bundle = `${skill}\n${executable}\n${hardening}\n${producerConfig}\n${rawPolicy}`;
+  const bundle = `${skill}\n${executable}\n${hardening}\n${workerProtocol}\n${producerConfig}\n${rawPolicy}`;
 
   assert.match(skill, /^name: remotion-story-producer-video$/mu);
   assert.match(openAiMetadata, /\$remotion-story-producer-video/u);
@@ -259,7 +271,8 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
 
   assert.match(scene, /remotion-best-practices\/SKILL\.md/u);
   assert.match(scene, /remotion-markup\/REFERENCE\.md/u);
-  assert.match(scene, /\.producer-work\/<storyId>\/<taskRevision>\//u);
+  assert.match(scene, /bindingId: <bindingId>/u);
+  assert.match(scene, /shared-workspace[\s\S]*controller-io capability/iu);
   assert.match(scene, /task-input\.generated\.json/u);
   assert.match(scene, /fixed materialization/u);
   assert.doesNotMatch(scene, /taskInput 必须完整投影/u);
@@ -294,16 +307,13 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
     );
   }
 
-  const checkCommand = "npm run project:task:check -- --task <taskRevision>";
-  const commitCommand =
-    "npm run project:task:commit -- --task <taskRevision> --attempt <attemptId>";
   for (const prompt of [scene, globalVisual, cover]) {
-    assert.ok(prompt.indexOf(checkCommand) >= 0);
-    assert.ok(prompt.indexOf(commitCommand) > prompt.indexOf(checkCommand));
-    assert.match(
-      prompt,
-      /npm run project:task:fail[\s\S]*--attempt <attemptId>/u,
-    );
+    assert.match(prompt, /exact task bind command|exact task bind/iu);
+    assert.match(prompt, /task-worker-bound/u);
+    assert.match(prompt, /exact finalize\/check command/iu);
+    assert.match(prompt, /exact commit command/iu);
+    assert.match(prompt, /taskFailureCommand/u);
+    assert.match(prompt, /不得.*host failure|host failure/iu);
   }
   assert.match(
     workflow,
@@ -312,7 +322,7 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   assert.doesNotMatch(workflow, /npm run project:produce:converge/u);
   assert.match(
     hardening,
-    /ExecutionAttempt[\s\S]*Attempt state never invalidates or owns bytes/u,
+    /attempt recover-inspect[\s\S]*attempt reissue[\s\S]*never reopened/iu,
   );
   assert.match(producerConfig, /publishingCollections/u);
   assert.match(producerConfig, /targetLoudnessLufs/u);
@@ -376,5 +386,6 @@ test("skill directory contains only the declared operational bundle", async () =
     "global-visual-agent-orchestration.md",
     "producer-config.md",
     "scene-agent-orchestration.md",
+    "task-worker-protocol.md",
   ]);
 });

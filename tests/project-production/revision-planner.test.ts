@@ -67,11 +67,16 @@ const buildTestTaskExecutionContract = ({
   readonly context: unknown;
 }) =>
   TaskExecutionContractSchema.parse({
-    schemaVersion: 1,
-    contractVersion: "agent-task-execution-contract-v1",
+    schemaVersion: 2,
+    contractVersion: "agent-task-execution-contract-v2",
     taskKind,
     purpose: "Planner identity fixture.",
     workflow: ["Use the immutable planner fixture."],
+    preflight: {
+      bindingRequiredBeforeWrites: true,
+      immutableInputFailurePolicy: "abort-zero-write",
+      repairableValidationOwner: "agent-output",
+    },
     immutableInputs: ["inputs/context.json", "inputs/task-contract.json"],
     outputs: taskOutputs[taskKind].map((path) => ({
       path,
@@ -87,8 +92,11 @@ const buildTestTaskExecutionContract = ({
     componentSignatures: [],
     constraints: ["Stay inside the task workspace."],
     commands: {
-      finalize: "./.rsp/bin/rsp task finalize --task <taskRevision>",
-      check: "./.rsp/bin/rsp task check --task <taskRevision>",
+      bind: "./.rsp/bin/rsp task bind --task <taskRevision> --attempt <attemptId> --binding <bindingId> --transport <shared-workspace|controller-io>",
+      finalize:
+        "./.rsp/bin/rsp task finalize --task <taskRevision> --attempt <attemptId> --binding <bindingId>",
+      check:
+        "./.rsp/bin/rsp task check --task <taskRevision> --attempt <attemptId> --binding <bindingId>",
     },
   });
 

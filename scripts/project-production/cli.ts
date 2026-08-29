@@ -1,8 +1,10 @@
 import { pathToFileURL } from "node:url";
-import type {
-  ProducerConfig,
-  ProducerTaskSpec,
-  Sha256Digest,
+import {
+  TaskWorkerFileWriteInputSchema,
+  type TaskWorkerTransport,
+  type ProducerConfig,
+  type ProducerTaskSpec,
+  type Sha256Digest,
 } from "../../src/contracts";
 import {
   readProducerConfig,
@@ -12,13 +14,15 @@ import {
   appendExecutionAttemptTaskOutcome,
   assertExecutionAttemptTaskAuthority,
 } from "./adapters/attempt-store";
-import { readTaskWorkspace } from "./adapters/task-workspace";
 
 import { commitProducerTaskArtifact } from "./application/commit-task-artifact";
 import { continueProjectProduction } from "./application/continue-production";
 import { convergeProjectProduction } from "./application/converge-artifacts";
 import { checkTaskByKind } from "./application/check-task";
-import { finalizeAgentTaskWorkspace } from "./application/finalize-agent-task";
+import {
+  finalizeAgentTaskWorkspace,
+  readAgentTaskExecutionContract,
+} from "./application/finalize-agent-task";
 import { inspectProjectProduction } from "./application/inspect-production";
 import { prepareProjectProduction } from "./application/prepare-production";
 import { resolveProjectAgentExecution } from "./application/resolve-agent-execution";
@@ -39,6 +43,18 @@ import {
   captureProductionInspectionSnapshot,
   inspectProductionSourceReadiness,
 } from "./adapters/production-inspection";
+import {
+  assertTaskWorkerBinding,
+  assertTaskWorkerBindingIdentity,
+  bindTaskWorker,
+  readTaskWorkerFile,
+  writeTaskWorkerFile,
+} from "./application/task-worker-binding";
+import { readTaskWorkspaceIdentity } from "./adapters/task-workspace";
+import {
+  inspectAttemptRecovery,
+  reissueAttempt,
+} from "./application/reissue-attempt";
 
 const repositoryLoadInputs = (
   input: Parameters<typeof loadProjectProductionInputs>[0],
@@ -75,15 +91,15 @@ const repositoryProjectPendingAuthoring = (
 type Context = Readonly<{
   rootDir: string;
   stdout: (line: string) => void;
+  stdin?: () => Promise<string>;
   commitTaskArtifact?: typeof commitProducerTaskArtifact;
-  readWorkspace?: typeof readTaskWorkspace;
   inspectProduction?: typeof repositoryInspectProduction;
   prepareProduction?: typeof prepareProjectProduction;
   resolveAgentExecution?: typeof resolveProjectAgentExecution;
   continueProduction?: typeof continueProjectProduction;
   buildDelivery?: typeof buildCurrentRepositoryDelivery;
   appendTaskOutcome?: typeof appendExecutionAttemptTaskOutcome;
-  assertTaskAuthority?: typeof assertExecutionAttemptTaskAuthority;
+  assertTaskBinding?: typeof assertTaskWorkerBinding;
   resolveRuntime?: typeof resolveRepositoryRuntimeExecutionResources;
   finalizeTask?: typeof finalizeAgentTaskWorkspace;
   loadProducerConfig?: (input: {
@@ -93,6 +109,11 @@ type Context = Readonly<{
 const defaultContext = (): Context => ({
   rootDir: process.cwd(),
   stdout: (line) => process.stdout.write(`${line}\n`),
+  stdin: async () => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of process.stdin) chunks.push(Buffer.from(chunk));
+    return Buffer.concat(chunks).toString("utf8");
+  },
 });
 
 const option = (args: readonly string[], name: string) => {
@@ -157,7 +178,8 @@ const recordTaskOutcome = async ({
         diagnosticCode:
           | "producer-task-commit-failed"
           | "producer-agent-task-failed"
-          | "producer-agent-host-failed";
+          | "producer-agent-host-failed"
+          | "producer-agent-fixed-failed";
       }>;
   readonly appendTaskOutcome?: typeof appendExecutionAttemptTaskOutcome;
 }) =>
@@ -213,12 +235,28 @@ export const runProjectProductionCli = async (
       args,
       "--runtime-max-concurrency",
     );
+    const rawWorkerTransport = optionalOption(args, "--worker-transport");
+    if (
+      rawWorkerTransport !== undefined &&
+      rawWorkerTransport !== "shared-workspace" &&
+      rawWorkerTransport !== "controller-io"
+    ) {
+      throw new Error(
+        "Expected --worker-transport shared-workspace or controller-io.",
+      );
+    }
+    const runtimeWorkerTransport = rawWorkerTransport as
+      | TaskWorkerTransport
+      | undefined;
     const result = await (
       context.resolveAgentExecution ?? resolveProjectAgentExecution
     )({
       rootDir: context.rootDir,
       ...(override === undefined ? {} : { override }),
       ...(runtimeMaxConcurrency === undefined ? {} : { runtimeMaxConcurrency }),
+      ...(runtimeWorkerTransport === undefined
+        ? {}
+        : { runtimeWorkerTransport }),
     });
     context.stdout(JSON.stringify(result));
     return result;
@@ -226,6 +264,7 @@ export const runProjectProductionCli = async (
   const locations = createRepositoryProductionLocations({
     repositoryRoot: context.rootDir,
   });
+  const assertBinding = context.assertTaskBinding ?? assertTaskWorkerBinding;
   const loadConfig = async () =>
     context.loadProducerConfig?.({ repositoryRoot: context.rootDir }) ??
     readProducerConfig({
@@ -276,10 +315,35 @@ export const runProjectProductionCli = async (
     context.stdout(JSON.stringify(result));
     return result;
   }
-  if (command === "task-check") {
-    const result = await checkTaskByKind({
+  if (command === "task-bind") {
+    const transport = option(args, "--transport");
+    if (transport !== "shared-workspace" && transport !== "controller-io") {
+      throw new Error(
+        "Expected --transport shared-workspace or controller-io.",
+      );
+    }
+    const result = await bindTaskWorker({
       locations,
       taskRevision: option(args, "--task"),
+      attemptId: option(args, "--attempt"),
+      bindingId: option(args, "--binding"),
+      transport,
+      commandFormatter: repositoryProductionCommandFormatter,
+    });
+    context.stdout(JSON.stringify(result));
+    return result;
+  }
+  if (command === "task-check") {
+    const taskRevision = option(args, "--task");
+    await assertBinding({
+      locations,
+      taskRevision,
+      attemptId: option(args, "--attempt"),
+      bindingId: option(args, "--binding"),
+    });
+    const result = await checkTaskByKind({
+      locations,
+      taskRevision,
     });
     const output = {
       status: result.status,
@@ -288,12 +352,34 @@ export const runProjectProductionCli = async (
     context.stdout(JSON.stringify(output));
     return output;
   }
+  if (command === "task-describe") {
+    const taskRevision = option(args, "--task");
+    await assertBinding({
+      locations,
+      taskRevision,
+      attemptId: option(args, "--attempt"),
+      bindingId: option(args, "--binding"),
+    });
+    const result = await readAgentTaskExecutionContract({
+      locations,
+      taskRevision,
+    });
+    context.stdout(JSON.stringify(result));
+    return result;
+  }
   if (command === "task-finalize") {
+    const taskRevision = option(args, "--task");
+    await assertBinding({
+      locations,
+      taskRevision,
+      attemptId: option(args, "--attempt"),
+      bindingId: option(args, "--binding"),
+    });
     const result = await (
       context.finalizeTask ?? finalizeAgentTaskWorkspace
     )({
       locations,
-      taskRevision: option(args, "--task"),
+      taskRevision,
     });
     context.stdout(JSON.stringify(result));
     return result;
@@ -301,17 +387,14 @@ export const runProjectProductionCli = async (
   if (command === "task-commit") {
     const taskRevision = option(args, "--task");
     const attemptId = option(args, "--attempt");
-    const readWorkspace = context.readWorkspace ?? readTaskWorkspace;
+    const bindingId = option(args, "--binding");
     const commitTaskArtifact =
       context.commitTaskArtifact ?? commitProducerTaskArtifact;
-    const { task } = await readWorkspace({
+    const { task } = await assertBinding({
       locations,
       taskRevision,
-    });
-    await (context.assertTaskAuthority ?? assertExecutionAttemptTaskAuthority)({
-      locations,
       attemptId,
-      task,
+      bindingId,
     });
     let result: Awaited<ReturnType<typeof commitTaskArtifact>>;
     try {
@@ -360,19 +443,44 @@ export const runProjectProductionCli = async (
   if (command === "task-fail") {
     const taskRevision = option(args, "--task");
     const attemptId = option(args, "--attempt");
+    const bindingId = option(args, "--binding");
     const kind = option(args, "--kind");
-    if (kind !== "task" && kind !== "host") {
-      throw new Error("Expected --kind task or host.");
+    if (kind !== "task" && kind !== "host" && kind !== "fixed") {
+      throw new Error("Expected --kind task, host, or fixed.");
     }
-    const { task } = await (context.readWorkspace ?? readTaskWorkspace)({
-      locations,
-      taskRevision,
-    });
-    await (context.assertTaskAuthority ?? assertExecutionAttemptTaskAuthority)({
-      locations,
-      attemptId,
-      task,
-    });
+    const { task } =
+      kind === "task"
+        ? await assertBinding({
+            locations,
+            taskRevision,
+            attemptId,
+            bindingId,
+          })
+        : await (async () => {
+            assertTaskWorkerBindingIdentity({
+              taskRevision,
+              attemptId,
+              bindingId,
+            });
+            if (context.assertTaskBinding !== undefined) {
+              return assertBinding({
+                locations,
+                taskRevision,
+                attemptId,
+                bindingId,
+              });
+            }
+            const identity = await readTaskWorkspaceIdentity({
+              locations,
+              taskRevision,
+            });
+            await assertExecutionAttemptTaskAuthority({
+              locations,
+              attemptId,
+              task: identity.task,
+            });
+            return identity;
+          })();
     await recordTaskOutcome({
       locations,
       attemptId,
@@ -383,7 +491,9 @@ export const runProjectProductionCli = async (
         diagnosticCode:
           kind === "task"
             ? "producer-agent-task-failed"
-            : "producer-agent-host-failed",
+            : kind === "host"
+              ? "producer-agent-host-failed"
+              : "producer-agent-fixed-failed",
       },
       appendTaskOutcome: context.appendTaskOutcome,
     });
@@ -395,6 +505,72 @@ export const runProjectProductionCli = async (
     };
     context.stdout(JSON.stringify(output));
     return output;
+  }
+  if (command === "task-file-read") {
+    const result = await readTaskWorkerFile({
+      locations,
+      taskRevision: option(args, "--task"),
+      attemptId: option(args, "--attempt"),
+      bindingId: option(args, "--binding"),
+      logicalPath: option(args, "--path"),
+    });
+    context.stdout(JSON.stringify(result));
+    return result;
+  }
+  if (command === "task-file-write") {
+    const raw = await (context.stdin ?? defaultContext().stdin!)();
+    let input: unknown;
+    try {
+      input = JSON.parse(raw);
+    } catch {
+      throw new Error("task-file-write stdin must contain valid JSON.");
+    }
+    const parsed = TaskWorkerFileWriteInputSchema.parse(input);
+    const result = await writeTaskWorkerFile({
+      locations,
+      taskRevision: option(args, "--task"),
+      attemptId: option(args, "--attempt"),
+      bindingId: option(args, "--binding"),
+      logicalPath: option(args, "--path"),
+      contentBase64: parsed.contentBase64,
+    });
+    context.stdout(JSON.stringify(result));
+    return result;
+  }
+  if (command === "attempt-recover-inspect" || command === "attempt-reissue") {
+    const config = await loadConfig();
+    const dependencies = {
+      commandFormatter: repositoryProductionCommandFormatter,
+      buildCurrentPlan: ({
+        locations: productionLocations,
+        projectId,
+      }: {
+        readonly locations: ReturnType<
+          typeof createRepositoryProductionLocations
+        >;
+        readonly projectId: string;
+      }) =>
+        repositoryBuildCurrentPlan({
+          locations: productionLocations,
+          projectId,
+          config,
+        }),
+    };
+    const recoveryInput = {
+      locations,
+      projectId: option(args, "--project"),
+      failedAttemptId: option(args, "--attempt"),
+      dependencies,
+    } as const;
+    const result =
+      command === "attempt-recover-inspect"
+        ? await inspectAttemptRecovery(recoveryInput)
+        : await reissueAttempt({
+            ...recoveryInput,
+            deliveryPolicy: "automatic",
+          });
+    context.stdout(JSON.stringify(result));
+    return result;
   }
   if (command === "continue") {
     const config = await loadConfig();
@@ -452,7 +628,7 @@ export const runProjectProductionCli = async (
     return result;
   }
   throw new Error(
-    "Expected execution-resolve, inspect, prepare, task-check, task-commit, task-fail, continue, or delivery-build.",
+    "Expected execution-resolve, inspect, prepare, a task command, attempt recovery, continue, or delivery-build.",
   );
 };
 

@@ -5,8 +5,18 @@ import {
   rspZodIssues,
   type RspFieldIssue,
 } from "../contracts/issues";
+import { TaskWorkspaceAuthorityError } from "../../scripts/project-production/adapters/task-workspace";
+import { TaskWorkerBindingError } from "../../scripts/project-production/application/task-worker-binding";
 
-type TaskOperation = "describe" | "finalize" | "check" | "commit";
+type TaskOperation =
+  | "bind"
+  | "describe"
+  | "finalize"
+  | "check"
+  | "commit"
+  | "fail"
+  | "file-read"
+  | "file-write";
 
 const prepareIssue = (error: unknown): RspFieldIssue => {
   const message = error instanceof Error ? error.message : "";
@@ -176,7 +186,11 @@ export const publicTaskCommandError = ({
   readonly operation: TaskOperation;
   readonly error: unknown;
 }) => {
-  const issues =
+  const fixedController =
+    operation === "bind" ||
+    error instanceof TaskWorkerBindingError ||
+    error instanceof TaskWorkspaceAuthorityError;
+  const baseIssues =
     error instanceof z.ZodError
       ? rspZodIssues({
           error,
@@ -185,6 +199,22 @@ export const publicTaskCommandError = ({
             "Correct the named output field, rerun rsp task finalize, then rerun rsp task check.",
         })
       : [taskIssue({ operation, error })];
+  const issues = baseIssues.map((issue) => ({
+    ...issue,
+    owner: fixedController
+      ? ("fixed-controller" as const)
+      : ("agent-output" as const),
+    disposition: fixedController
+      ? ("abort-zero-write" as const)
+      : ("repair-and-recheck" as const),
+    writeAllowed: !fixedController,
+    ...(fixedController
+      ? {
+          ownerAction:
+            "Stop without writing task outputs. Return this structured issue to the controller; do not run a host failure command.",
+        }
+      : {}),
+  }));
   return new RspPublicCommandError(
     "rsp-command-failed",
     `Task ${operation} failed fixed validation.`,

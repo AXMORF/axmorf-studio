@@ -8,15 +8,17 @@ failing owner before acting.
 
 ## Agent task rework
 
-The assigned child may correct files only inside
-`.producer-work/<storyId>/<taskRevision>/`, rerun the same `project:task:check`, and then call
-`project:task:commit`. Do not weaken the validator, change `task.json`, edit inputs, write live Project
+The assigned executor first binds the exact attempt and may correct only declared outputs through its returned
+workspace capability, rerun the same bound finalize/check commands, and then call the bound commit. Any immutable
+input or identity failure is an `abort-zero-write` fixed-controller stop. Do not weaken the validator, change
+`task.json`, edit inputs, write live Project
 output, or fabricate the artifact manifest. Commit repeats validation and is the only promoter.
 
 A child terminal message does not prove an artifact. The child must execute its attempt-bound task failure
 command when it cannot complete. Fixed continuation then fails the attempt and exits without convergence or
-Root re-entry. A later, separately user-started ExecutionAttempt may replan current inputs, reuse every valid
-ArtifactAttestation, and dispatch only remaining dirty tasks. Attempt state never invalidates or owns bytes.
+Root re-entry. A later explicit `attempt recover-inspect` plus `attempt reissue` may create a fresh same-Revision
+ExecutionAttempt, reuse every valid ArtifactAttestation, preserve a valid task draft, and dispatch only remaining
+dirty tasks without current Delivery or provider calls. The failed attempt is never reopened.
 
 ## Fixed-flow defects
 

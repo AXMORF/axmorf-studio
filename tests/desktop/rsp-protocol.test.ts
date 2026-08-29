@@ -12,6 +12,7 @@ import {
   RspCommandResponseSchema,
   SessionRecordSchema,
 } from "../../desktop/contracts/protocol";
+import { buildTaskWorkerBindingId } from "../../src/contracts";
 
 const workspaceId = "26f9827f-2b31-46cc-ae3d-ab5b73f004bf";
 
@@ -201,6 +202,9 @@ test("rsp context accepts only explicit delivery and execution overrides", () =>
 });
 
 test("rsp discovery, lifecycle, task, and attempt requests remain strict", () => {
+  const taskRevision = `task-${"c".repeat(64)}`;
+  const attemptId = "00000000-0000-4000-8000-000000000001";
+  const bindingId = buildTaskWorkerBindingId({ taskRevision, attemptId });
   const request = (command: Record<string, unknown>) =>
     RspCommandRequestSchema.parse({
       protocolVersion: RSP_PROTOCOL_VERSION,
@@ -223,20 +227,38 @@ test("rsp discovery, lifecycle, task, and attempt requests remain strict", () =>
     "project-delete",
   );
   assert.equal(
-    request({ command: "task-describe", taskRevision: `task-${"c".repeat(64)}` })
-      .command,
+    request({
+      command: "task-describe",
+      taskRevision,
+      attemptId,
+      bindingId,
+    }).command,
     "task-describe",
   );
   assert.equal(
-    request({ command: "task-finalize", taskRevision: `task-${"c".repeat(64)}` })
-      .command,
+    request({
+      command: "task-finalize",
+      taskRevision,
+      attemptId,
+      bindingId,
+    }).command,
     "task-finalize",
+  );
+  assert.equal(
+    request({
+      command: "task-bind",
+      taskRevision,
+      attemptId,
+      bindingId,
+      transport: "controller-io",
+    }).command,
+    "task-bind",
   );
   assert.equal(
     request({
       command: "attempt-status",
       storyId: "story-example",
-      attemptId: "00000000-0000-4000-8000-000000000001",
+      attemptId,
     }).command,
     "attempt-status",
   );

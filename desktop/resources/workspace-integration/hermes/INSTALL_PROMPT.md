@@ -9,6 +9,12 @@ it in the Workspace root and provide this prompt:
 > Before revising an existing Project, read `schema project-revision` plus active `project revise-context`, submit only
 > the requested raw patch through `revise-validate/revise`, and produce the returned same-Project candidate; never
 > clone an MP4, Project directory, or Scene source.
+> A normal Hermes `delegate_task` is not a runtime-native worker. Use subagents only when the host exposes bounded
+> child execution and a verified `shared-workspace` or `controller-io` transport. Read `schema task-worker`, pass the
+> transport to `context`, and run each prepare-returned exact bind command before any task read/write. If binding or
+> immutable input validation fails, stop with zero writes and report the structured issue; never guess a path. Repair
+> `agent-output` validation issues in declared outputs and never execute host failure for them. A terminal failed
+> attempt may only use explicit `attempt recover-inspect` then `attempt reissue`; never reopen it.
 > Use only the strict Workspace-local rsp v2 commands it authorizes, and never expose session files, credentials,
 > private paths, or provider bodies. Do not
 > use repository npm scripts or host tools as a fallback.

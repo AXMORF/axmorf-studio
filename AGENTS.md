@@ -128,6 +128,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   Root 一次只执行一个 dirty workspace；`subagents` 使用不超过四个且受 runtime capacity 限制的 bounded pool。
   runtime capacity 未知时按 1、明确为 0 时阻塞；用户要求 exact capacity 而无法满足时也必须在 prepare 前
   阻塞，不自动换模式。
+- `subagents` 还必须声明宿主已验证的 `shared-workspace` 或 `controller-io` worker transport；普通 delegate、
+  thread、chat 或后台进程不等于 runtime-native child。transport 未验证时在 prepare 前阻塞；inline 不要求该能力。
 - `npm run project:produce:inspect -- --project <storyId>` 是严格只读、零 provider call 的诊断入口；Root
   必须先报告 source readiness、estimated cost、artifact reuse 与结构化失效解释，再运行有成本 preparation。
 - `npm run project:produce:prepare -- --project <storyId>` 是唯一允许调用 provider、准备 fixed artifacts、
@@ -136,9 +138,11 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   absolute path 或 Agent identity。ExecutionAttempt 只保存诊断，不拥有 artifact 或 delivery。
 - prepare 只为未命中有效 artifact 的 Agent 任务创建 `.producer-work/<storyId>/<taskRevision>/`。Root 按已解析
   模式串行执行或受限派发 dirty `scene-owner`、`global-visual-owner`、`cover-owner`；valid artifacts 必须复用。
-- 每个 Root/child task executor 只写自己的 task workspace，读取 immutable `task.json` 与
-  `inputs/context.json`，循环运行
-  `project:task:check`，最后调用 prepare 返回的 attempt-bound `project:task:commit` 或 `project:task:fail`。
+- 每个 Root/child task executor 在任何 task 读写前必须运行 prepare 返回的 exact attempt-bound `task bind`；
+  只有 `task-worker-bound` 返回的 shared workspace capability 或 controller-IO commands 可用，不得猜路径。
+  bind 会验证 immutable `task.json`、`inputs/context.json`、`inputs/task-contract.json`、Task/attempt identity 与
+  checksum；任一失败零写入退出并上报 structured fixed issue。之后只写 declared outputs，循环运行 bound
+  finalize/check，最后调用 bound commit 或 typed fail。
   commit 必须重跑 validator；只有 fixed validator 能把 workspace 原子提升为 ArtifactAttestation。聊天、
   child status 与 Agent 自评都不是 authority。
 - Artifact hit 每次重新验证 contract、task identity、dependencies、validator version、exact sorted file
@@ -206,11 +210,17 @@ contact sheet 或布局。第三方 source/media 分别校验 license/attributio
   scope/API/files/target 后，才移入 `src/remotion/capabilities/`。
 - Root 只有在解析为 `inline` 时才能按 task prompt 串行创作；不得读其他 executor workspace、跨 task 代
   commit 或持久化 child identity/chat/heartbeat/token。subagents 模式的 spawn failure 记录 exact
-  `hostFailureCommand`，不得自动回退 inline。
+  `spawnFailureCommand`，不得自动回退 inline。
 
 ## 故障语义
 
 - Agent-owned workspace 校验失败时，仅原 task executor 修正 owning paths 并重跑同一 validator；不得降低合同。
+- finalize/check 返回的 `agent-output` structured issue 默认都是可修复任务问题，禁止调用 host failure；
+  host failure 只限 child spawn、workspace mount、controller-IO、sandbox、permission/authorization 等基础设施。
+  immutable input/identity fault 属于 `fixed-controller` 且必须零写入。
+- terminal failed attempt 永不 reopen。用户显式恢复时先 `attempt recover-inspect`，再 `attempt reissue`；仅在同一
+  current Revision、无 active attempt、fixed dependencies current 时创建 fresh attempt，零 provider call、无需
+  current Delivery、保留有效 draft 并复用 valid artifacts。candidate revision 的 current Delivery 门不变。
 - fixed workflow 在 valid inputs 下失败是系统缺陷：当前 production lifecycle 立即终止。只有用户另行启动的
   engineering task 才能保存脱敏 incident，Red → minimal shared Green → focused/full verification；之后再从
   current inputs 新建 ExecutionAttempt。不得在失败 attempt 内修复或重试。

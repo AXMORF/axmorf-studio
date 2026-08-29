@@ -57,6 +57,9 @@ test("task readability errors expose actionable safe Renderer diagnostics", () =
         "Renderer transform or scale is computed dynamically and cannot be proven readable.",
       ownerAction:
         "Remove frame-computed transform and scale values. Use frame-driven opacity, top, left, width, or height for motion, then rerun finalize and check.",
+      owner: "agent-output",
+      disposition: "repair-and-recheck",
+      writeAllowed: true,
     },
   ]);
 
@@ -89,6 +92,9 @@ test("GlobalVisual policy errors identify the owning output safely", () => {
         "A GlobalVisual base or decoration layer contains visible text or shared Scene, caption, narration, audio, or network ownership.",
       ownerAction:
         "Keep GlobalVisualBaseLayer and GlobalVisualDecorationLayers visual-only and text-free; remove the named shared-boundary usage, then rerun finalize and check.",
+      owner: "agent-output",
+      disposition: "repair-and-recheck",
+      writeAllowed: true,
     },
   ]);
 });

@@ -6,6 +6,17 @@ export const RspFieldIssueSchema = z
     code: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u),
     message: z.string().min(1).max(500),
     ownerAction: z.string().min(1).max(500).optional(),
+    owner: z
+      .enum(["agent-output", "worker-host", "fixed-controller"])
+      .optional(),
+    disposition: z
+      .enum([
+        "repair-and-recheck",
+        "record-host-failure",
+        "abort-zero-write",
+      ])
+      .optional(),
+    writeAllowed: z.boolean().optional(),
   })
   .readonly();
 

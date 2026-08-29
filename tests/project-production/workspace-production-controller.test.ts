@@ -14,6 +14,7 @@ import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 
 import {
+  buildTaskWorkerBindingId,
   buildProducerConfig,
   buildProducerPlan,
   buildProducerTaskSpec,
@@ -351,8 +352,10 @@ test("Workspace context resolves command over Project over manual App default an
   assert.equal(saved.controlPlane.execution.requestedMaxConcurrency, 3);
   assert.equal(saved.controlPlane.execution.effectiveMaxConcurrency, 1);
   assert.deepEqual(saved.controlPlane.execution.limitedBy, [
+    "worker-transport-unverified",
     "runtime-unknown-default",
   ]);
+  assert.equal(saved.controlPlane.execution.status, "blocked");
   assert.equal(saved.controlPlane.execution.source.mode, "settings");
   assert.equal(saved.controlPlane.provider.readiness, "ready");
   assert.equal(saved.controlPlane.provider.configState, "configured");
@@ -559,6 +562,39 @@ test("asset route preserves the exact Workspace authority and request payload", 
 
 const taskFixture = () => {
   const contextBytes = "{}\n";
+  const taskContractBytes = `${serializeCanonicalJson({
+    schemaVersion: 2,
+    contractVersion: "agent-task-execution-contract-v2",
+    taskKind: "scene-owner",
+    purpose: "Fixture Scene task.",
+    workflow: [
+      "Bind the exact attempt before reading immutable inputs or writing outputs.",
+    ],
+    preflight: {
+      bindingRequiredBeforeWrites: true,
+      immutableInputFailurePolicy: "abort-zero-write",
+      repairableValidationOwner: "agent-output",
+    },
+    immutableInputs: ["inputs/context.json", "inputs/task-contract.json"],
+    outputs: [
+      {
+        path: "src/Renderer.tsx",
+        owner: "agent",
+        format: "tsx",
+        instructions: ["Write the fixture Renderer."],
+        derivedFields: [],
+      },
+    ],
+    componentSignatures: [],
+    constraints: ["Write only declared outputs."],
+    commands: {
+      bind: "./.rsp/bin/rsp task bind --task <taskRevision> --attempt <attemptId> --binding <bindingId> --transport <shared-workspace|controller-io>",
+      finalize:
+        "./.rsp/bin/rsp task finalize --task <taskRevision> --attempt <attemptId> --binding <bindingId>",
+      check:
+        "./.rsp/bin/rsp task check --task <taskRevision> --attempt <attemptId> --binding <bindingId>",
+    },
+  })}\n`;
   const revisionId = `revision-${"1".repeat(64)}` as const;
   const task = buildProducerTaskSpec({
     taskKind: "scene-owner",
@@ -574,8 +610,14 @@ const taskFixture = () => {
           .update(contextBytes)
           .digest("hex")}`,
       },
+      {
+        id: "read:inputs/task-contract.json",
+        fingerprint: `sha256:${createHash("sha256")
+          .update(taskContractBytes)
+          .digest("hex")}`,
+      },
     ],
-    declaredReadSet: ["inputs/context.json"],
+    declaredReadSet: ["inputs/context.json", "inputs/task-contract.json"],
     declaredOutputSet: ["src/Renderer.tsx"],
     validatorPolicyVersion: "scene-owner-validator-v2",
   });
@@ -616,7 +658,15 @@ const taskFixture = () => {
     dependencies: [],
     decision,
   };
-  return { contextBytes, revisionId, task, decision, plan, snapshot } as const;
+  return {
+    contextBytes,
+    taskContractBytes,
+    revisionId,
+    task,
+    decision,
+    plan,
+    snapshot,
+  } as const;
 };
 
 test("Workspace prepare returns rsp-only task and continuation commands", async (context) => {
@@ -688,7 +738,8 @@ test("Workspace prepare returns rsp-only task and continuation commands", async 
     result.dirtyAgentTasks[0]?.checkCommand,
     result.dirtyAgentTasks[0]?.commitCommand,
     result.dirtyAgentTasks[0]?.taskFailureCommand,
-    result.dirtyAgentTasks[0]?.hostFailureCommand,
+    result.dirtyAgentTasks[0]?.spawnFailureCommand,
+    result.dirtyAgentTasks[0]?.fixedFailureCommand,
     result.continuationCommand,
   ];
   for (const command of commands) {
@@ -702,10 +753,13 @@ test("Workspace prepare returns rsp-only task and continuation commands", async 
 test("task commit and fail routes preserve the caller's exact attempt binding", async (context) => {
   const value = await fixture(context);
   const built = taskFixture();
-  await createTaskWorkspace({
+  const workspace = await createTaskWorkspace({
     locations: value.locations,
     task: built.task,
-    seedFiles: { "inputs/context.json": built.contextBytes },
+    seedFiles: {
+      "inputs/context.json": built.contextBytes,
+      "inputs/task-contract.json": built.taskContractBytes,
+    },
   });
   const attempt = await createExecutionAttemptForPlan({
     locations: value.locations,
@@ -732,26 +786,40 @@ test("task commit and fail routes preserve the caller's exact attempt binding", 
     loadProducerConfig: async () => null,
   });
   const wrongAttemptId = "00000000-0000-4000-8000-000000000002";
+  const wrongBindingId = buildTaskWorkerBindingId({
+    taskRevision: built.task.taskRevision,
+    attemptId: wrongAttemptId,
+  });
+  const bindingId = buildTaskWorkerBindingId({
+    taskRevision: built.task.taskRevision,
+    attemptId: attempt.attemptId,
+  });
   await assert.rejects(
     controller.execute({
       command: "task-commit",
       taskRevision: built.task.taskRevision,
       attemptId: wrongAttemptId,
+      bindingId: wrongBindingId,
     }),
     (error: unknown) => {
       assert.ok(error instanceof RspPublicCommandError);
       assert.equal(error.code, "rsp-command-failed");
       assert.equal(error.issues[0]?.code, "rsp-task-workspace-invalid");
       assert.equal(error.issues[0]?.path, "$.workspace");
+      assert.equal(error.issues[0]?.owner, "fixed-controller");
+      assert.equal(error.issues[0]?.disposition, "abort-zero-write");
+      assert.equal(error.issues[0]?.writeAllowed, false);
       assert.doesNotMatch(error.message, /Execution attempt/u);
       return true;
     },
   );
+  await writeFile(join(workspace, "inputs/context.json"), "{\"drift\":true}\n");
   const failed = (await controller.execute({
     command: "task-fail",
     taskRevision: built.task.taskRevision,
     attemptId: attempt.attemptId,
-    kind: "host",
+    bindingId,
+    kind: "fixed",
   })) as { attemptId: string; taskRevision: string };
   assert.equal(failed.attemptId, attempt.attemptId);
   assert.equal(failed.taskRevision, built.task.taskRevision);
@@ -766,7 +834,7 @@ test("task commit and fail routes preserve the caller's exact attempt binding", 
       taskKind: built.task.taskKind,
       outcome: "failed",
       artifactFingerprint: null,
-      diagnosticCode: "producer-agent-host-failed",
+      diagnosticCode: "producer-agent-fixed-failed",
     },
   ]);
   const status = (await controller.execute({
@@ -784,6 +852,6 @@ test("task commit and fail routes preserve the caller's exact attempt binding", 
   assert.equal(status.taskOutcomeSummary.failedTaskCount, 1);
   assert.equal(
     status.taskOutcomes[0]?.diagnosticCode,
-    "producer-agent-host-failed",
+    "producer-agent-fixed-failed",
   );
 });

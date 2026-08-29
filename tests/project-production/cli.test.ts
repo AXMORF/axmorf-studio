@@ -11,6 +11,7 @@ import {
   createRuntimeExecutionResources,
 } from "../../scripts/project-production/application/production-locations";
 import {
+  buildTaskWorkerBindingId,
   buildArtifactAttestation,
   buildProducerConfig,
   buildProducerTaskSpec,
@@ -54,7 +55,7 @@ test("project production CLI exposes the fixed continuation and task terminal su
   await assert.rejects(
     () =>
       runProjectProductionCli(["task-check", "--task", "../escape"], context),
-    /Invalid|string|task/iu,
+    /Invalid|string|task|attempt/iu,
   );
 });
 
@@ -182,6 +183,8 @@ test("execution-resolve passes explicit user fields and runtime capacity once", 
       "--require-exact-concurrency",
       "--runtime-max-concurrency",
       "6",
+      "--worker-transport",
+      "controller-io",
     ],
     {
       rootDir: "/fixture",
@@ -201,6 +204,7 @@ test("execution-resolve passes explicit user fields and runtime capacity once", 
         requireExactConcurrency: true,
       },
       runtimeMaxConcurrency: 6,
+      runtimeWorkerTransport: "controller-io",
     },
   ]);
   assert.deepEqual(result, {
@@ -294,10 +298,15 @@ test("inspect and prepare each emit one stable structured JSON document", async 
   assert.equal(inspectLines[0], inspectLines[1]);
   assert.deepEqual(JSON.parse(inspectLines[0] ?? "null"), inspection);
 
+  const preparedAttemptId = "00000000-0000-4000-8000-000000000001";
+  const preparedBindingId = buildTaskWorkerBindingId({
+    taskRevision,
+    attemptId: preparedAttemptId,
+  });
   const prepared = {
     status: "project-production-prepared",
     storyId: "story-example",
-    attemptId: "00000000-0000-4000-8000-000000000001",
+    attemptId: preparedAttemptId,
     revisionId,
     summary: {
       reusedTaskCount: 2,
@@ -320,12 +329,20 @@ test("inspect and prepare each emit one stable structured JSON document", async 
         subject: taskExplanation.subject,
         taskRevision,
         workspace: `.producer-work/story-example/${taskRevision}`,
+        bindingId: preparedBindingId,
+        bindCommands: {
+          sharedWorkspace: `npm run project:task:bind -- --task ${taskRevision} --attempt ${preparedAttemptId} --binding ${preparedBindingId} --transport shared-workspace`,
+          controllerIo: `npm run project:task:bind -- --task ${taskRevision} --attempt ${preparedAttemptId} --binding ${preparedBindingId} --transport controller-io`,
+        },
         changedInputs: ["brief"],
         blockedBy: [],
-        checkCommand: `npm run project:task:check -- --task ${taskRevision}`,
-        commitCommand: `npm run project:task:commit -- --task ${taskRevision} --attempt 00000000-0000-4000-8000-000000000001`,
-        taskFailureCommand: `npm run project:task:fail -- --task ${taskRevision} --attempt 00000000-0000-4000-8000-000000000001 --kind task`,
-        hostFailureCommand: `npm run project:task:fail -- --task ${taskRevision} --attempt 00000000-0000-4000-8000-000000000001 --kind host`,
+        describeCommand: `npm run project:task:describe -- --task ${taskRevision} --attempt ${preparedAttemptId} --binding ${preparedBindingId}`,
+        finalizeCommand: `npm run project:task:finalize -- --task ${taskRevision} --attempt ${preparedAttemptId} --binding ${preparedBindingId}`,
+        checkCommand: `npm run project:task:check -- --task ${taskRevision} --attempt ${preparedAttemptId} --binding ${preparedBindingId}`,
+        commitCommand: `npm run project:task:commit -- --task ${taskRevision} --attempt ${preparedAttemptId} --binding ${preparedBindingId}`,
+        taskFailureCommand: `npm run project:task:fail -- --task ${taskRevision} --attempt ${preparedAttemptId} --binding ${preparedBindingId} --kind task`,
+        fixedFailureCommand: `npm run project:task:fail -- --task ${taskRevision} --attempt ${preparedAttemptId} --binding ${preparedBindingId} --kind fixed`,
+        spawnFailureCommand: `npm run project:task:fail -- --task ${taskRevision} --attempt ${preparedAttemptId} --binding ${preparedBindingId} --kind host`,
       },
     ],
     continuationCommand: `npm run project:produce:continue -- --project story-example --revision ${revisionId} --attempt 00000000-0000-4000-8000-000000000001`,
@@ -392,14 +409,17 @@ test("task-commit binds terminal outcomes to the explicit attempt", async (conte
       },
     ],
   });
-  const readWorkspace = async () => ({ task, workspace: "/unused" });
   const attemptId = "00000000-0000-4000-8000-000000000001";
+  const bindingId = buildTaskWorkerBindingId({
+    taskRevision: task.taskRevision,
+    attemptId,
+  });
   const outcomes: unknown[] = [];
   let authorityChecks = 0;
   let commitCalls = 0;
-  const assertTaskAuthority = async () => {
+  const assertTaskBinding = async () => {
     authorityChecks += 1;
-    return {} as never;
+    return { task, workspace: "/unused" } as never;
   };
   const appendTaskOutcome = async (input: unknown) => {
     outcomes.push(input);
@@ -407,12 +427,19 @@ test("task-commit binds terminal outcomes to the explicit attempt", async (conte
   };
   await assert.rejects(
     runProjectProductionCli(
-      ["task-commit", "--task", task.taskRevision, "--attempt", attemptId],
+      [
+        "task-commit",
+        "--task",
+        task.taskRevision,
+        "--attempt",
+        attemptId,
+        "--binding",
+        bindingId,
+      ],
       {
         rootDir,
         stdout: () => undefined,
-        readWorkspace,
-        assertTaskAuthority,
+        assertTaskBinding,
         appendTaskOutcome: appendTaskOutcome as never,
         commitTaskArtifact: async () => {
           commitCalls += 1;
@@ -431,12 +458,19 @@ test("task-commit binds terminal outcomes to the explicit attempt", async (conte
   assert.equal(failed, null);
 
   const output = await runProjectProductionCli(
-    ["task-commit", "--task", task.taskRevision, "--attempt", attemptId],
+    [
+      "task-commit",
+      "--task",
+      task.taskRevision,
+      "--attempt",
+      attemptId,
+      "--binding",
+      bindingId,
+    ],
     {
       rootDir,
       stdout: () => undefined,
-      readWorkspace,
-      assertTaskAuthority,
+      assertTaskBinding,
       appendTaskOutcome: appendTaskOutcome as never,
       commitTaskArtifact: async () => ({
         attestation: artifact,
@@ -462,12 +496,19 @@ test("task-commit binds terminal outcomes to the explicit attempt", async (conte
   let unauthorizedOutcomeCalls = 0;
   await assert.rejects(
     runProjectProductionCli(
-      ["task-commit", "--task", task.taskRevision, "--attempt", attemptId],
+      [
+        "task-commit",
+        "--task",
+        task.taskRevision,
+        "--attempt",
+        attemptId,
+        "--binding",
+        bindingId,
+      ],
       {
         rootDir,
         stdout: () => undefined,
-        readWorkspace,
-        assertTaskAuthority: async () => {
+        assertTaskBinding: async () => {
           throw new Error(
             "Execution attempt is not the active task authority.",
           );
@@ -503,6 +544,10 @@ test("task-fail records a safe attempt-bound terminal and continue delegates to 
     validatorPolicyVersion: "cover-owner-validator-v1",
   });
   const attemptId = "00000000-0000-4000-8000-000000000002";
+  const bindingId = buildTaskWorkerBindingId({
+    taskRevision: task.taskRevision,
+    attemptId,
+  });
   const recorded: unknown[] = [];
   const failed = await runProjectProductionCli(
     [
@@ -511,14 +556,18 @@ test("task-fail records a safe attempt-bound terminal and continue delegates to 
       task.taskRevision,
       "--attempt",
       attemptId,
+      "--binding",
+      bindingId,
       "--kind",
       "host",
     ],
     {
       rootDir: "/fixture",
       stdout: () => undefined,
-      readWorkspace: (async () => ({ task, workspace: "/unused" })) as never,
-      assertTaskAuthority: (async () => ({})) as never,
+      assertTaskBinding: (async () => ({
+        task,
+        workspace: "/unused",
+      })) as never,
       appendTaskOutcome: (async (input: unknown) => {
         recorded.push(input);
         return {} as never;
@@ -540,14 +589,15 @@ test("task-fail records a safe attempt-bound terminal and continue delegates to 
         task.taskRevision,
         "--attempt",
         attemptId,
+        "--binding",
+        bindingId,
         "--kind",
         "task",
       ],
       {
         rootDir: "/fixture",
         stdout: () => undefined,
-        readWorkspace: (async () => ({ task, workspace: "/unused" })) as never,
-        assertTaskAuthority: async () => {
+        assertTaskBinding: async () => {
           throw new Error(
             "Execution attempt is not the active task authority.",
           );

@@ -21,7 +21,9 @@ import {
 import {
   RspAssetImportSchemaResponseSchema,
   RspCommandCatalogSchema,
+  RspTaskWorkerSchemaResponseSchema,
 } from "../../desktop/contracts/command-surface";
+import { buildTaskWorkerBindingId } from "../../src/contracts";
 import {
   DESKTOP_NETWORK_POLICY,
   RSP_CLI_FAILURES,
@@ -270,9 +272,14 @@ test("rsp local discovery exposes structural schemas and the complete command ca
     ["schema", "project-revision"],
     "/workspace-does-not-need-an-active-app/.rsp/bin",
   );
+  const worker = await runCli(
+    ["schema", "task-worker"],
+    "/workspace-does-not-need-an-active-app/.rsp/bin",
+  );
   assert.equal(help.exitCode, 0);
   assert.equal(asset.exitCode, 0);
   assert.equal(revision.exitCode, 0);
+  assert.equal(worker.exitCode, 0);
   const catalog = RspCommandCatalogSchema.parse(JSON.parse(help.stdout));
   const commands = catalog.commands.map(({ command }) => command);
   assert.ok(commands.includes("help --json"));
@@ -282,8 +289,11 @@ test("rsp local discovery exposes structural schemas and the complete command ca
   assert.ok(commands.includes("project revise-validate"));
   assert.ok(commands.includes("project revise"));
   assert.ok(commands.includes("task describe"));
+  assert.ok(commands.includes("task bind"));
+  assert.ok(commands.includes("task file-write"));
   assert.ok(commands.includes("task finalize"));
   assert.ok(commands.includes("attempt status"));
+  assert.ok(commands.includes("attempt reissue"));
   const assetSchema = RspAssetImportSchemaResponseSchema.parse(
     JSON.parse(asset.stdout),
   );
@@ -291,6 +301,11 @@ test("rsp local discovery exposes structural schemas and the complete command ca
   const revisionSchema = RspProjectRevisionSchemaResponseSchema.parse(
     JSON.parse(revision.stdout),
   );
+  const workerSchema = RspTaskWorkerSchemaResponseSchema.parse(
+    JSON.parse(worker.stdout),
+  );
+  assert.equal(workerSchema.preflight.bindBeforeWrites, true);
+  assert.equal(workerSchema.preflight.immutableInputFailure, "abort-zero-write");
   assert.equal(revisionSchema.stdin, "raw-project-revision-input");
   assert.equal(
     revisionSchema.candidatePolicy,
@@ -415,6 +430,7 @@ test("rsp CLI exposes every public command and reads create/import only from std
   });
   context.after(() => server.close().catch(() => undefined));
   const attemptId = randomUUID();
+  const bindingId = buildTaskWorkerBindingId({ taskRevision, attemptId });
   const calls = [
     runCli(
       [
@@ -431,6 +447,8 @@ test("rsp CLI exposes every public command and reads create/import only from std
         "true",
         "--runtime-max-concurrency",
         "4",
+        "--worker-transport",
+        "controller-io",
       ],
       workspace.moduleDirectory,
     ),
@@ -492,19 +510,70 @@ test("rsp CLI exposes every public command and reads create/import only from std
       workspace.moduleDirectory,
     ),
     runCli(
-      ["task", "describe", "--task", taskRevision],
+      [
+        "task",
+        "bind",
+        "--task",
+        taskRevision,
+        "--attempt",
+        attemptId,
+        "--binding",
+        bindingId,
+        "--transport",
+        "controller-io",
+      ],
       workspace.moduleDirectory,
     ),
     runCli(
-      ["task", "finalize", "--task", taskRevision],
+      [
+        "task",
+        "describe",
+        "--task",
+        taskRevision,
+        "--attempt",
+        attemptId,
+        "--binding",
+        bindingId,
+      ],
       workspace.moduleDirectory,
     ),
     runCli(
-      ["task", "check", "--task", taskRevision],
+      [
+        "task",
+        "finalize",
+        "--task",
+        taskRevision,
+        "--attempt",
+        attemptId,
+        "--binding",
+        bindingId,
+      ],
       workspace.moduleDirectory,
     ),
     runCli(
-      ["task", "commit", "--task", taskRevision, "--attempt", attemptId],
+      [
+        "task",
+        "check",
+        "--task",
+        taskRevision,
+        "--attempt",
+        attemptId,
+        "--binding",
+        bindingId,
+      ],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      [
+        "task",
+        "commit",
+        "--task",
+        taskRevision,
+        "--attempt",
+        attemptId,
+        "--binding",
+        bindingId,
+      ],
       workspace.moduleDirectory,
     ),
     runCli(
@@ -515,10 +584,43 @@ test("rsp CLI exposes every public command and reads create/import only from std
         taskRevision,
         "--attempt",
         attemptId,
+        "--binding",
+        bindingId,
         "--kind",
         "host",
       ],
       workspace.moduleDirectory,
+    ),
+    runCli(
+      [
+        "task",
+        "file-read",
+        "--task",
+        taskRevision,
+        "--attempt",
+        attemptId,
+        "--binding",
+        bindingId,
+        "--path",
+        "inputs/context.json",
+      ],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      [
+        "task",
+        "file-write",
+        "--task",
+        taskRevision,
+        "--attempt",
+        attemptId,
+        "--binding",
+        bindingId,
+        "--path",
+        "src/Renderer.tsx",
+      ],
+      workspace.moduleDirectory,
+      { contentBase64: Buffer.from("fixture").toString("base64") },
     ),
     runCli(
       [
@@ -534,6 +636,28 @@ test("rsp CLI exposes every public command and reads create/import only from std
     ),
     runCli(
       ["attempt", "status", "--project", "story-example", "--attempt", attemptId],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      [
+        "attempt",
+        "recover-inspect",
+        "--project",
+        "story-example",
+        "--attempt",
+        attemptId,
+      ],
+      workspace.moduleDirectory,
+    ),
+    runCli(
+      [
+        "attempt",
+        "reissue",
+        "--project",
+        "story-example",
+        "--attempt",
+        attemptId,
+      ],
       workspace.moduleDirectory,
     ),
     runCli(
@@ -564,10 +688,15 @@ test("rsp CLI exposes every public command and reads create/import only from std
       "project-validate",
       "inspect",
       "attempt-status",
+      "attempt-recover-inspect",
+      "attempt-reissue",
+      "task-bind",
       "task-check",
       "task-commit",
       "task-describe",
       "task-fail",
+      "task-file-read",
+      "task-file-write",
       "task-finalize",
     ].sort(),
   );
@@ -588,6 +717,7 @@ test("rsp CLI exposes every public command and reads create/import only from std
           deliveryPolicy: projectedContext.deliveryPolicy,
           execution: projectedContext.execution,
           runtimeMaxConcurrency: projectedContext.runtimeMaxConcurrency,
+          runtimeWorkerTransport: projectedContext.runtimeWorkerTransport,
         }
       : null,
     {
@@ -598,6 +728,7 @@ test("rsp CLI exposes every public command and reads create/import only from std
         requireExactConcurrency: true,
       },
       runtimeMaxConcurrency: 4,
+      runtimeWorkerTransport: "controller-io",
     },
   );
   assert.equal(

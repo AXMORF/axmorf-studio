@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import {
+  TaskWorkerBindingSchema,
+  TaskWorkerFileWriteInputSchema,
+} from "../../src/contracts";
+import {
   RSP_PROTOCOL_VERSION,
   RspAssetImportInputSchema,
 } from "./protocol";
@@ -19,6 +23,7 @@ const CommandStdinSchema = z.enum([
   "raw-project-create-input",
   "raw-project-revision-input",
   "raw-asset-import-input",
+  "task-worker-file-write-input",
 ]);
 
 const RspCommandDiscoverySchema = z
@@ -53,6 +58,30 @@ export const RspCommandCatalogSchema = z
   })
   .readonly();
 
+export const RspTaskWorkerSchemaResponseSchema = z
+  .strictObject({
+    schemaVersion: z.literal(1),
+    contractVersion: z.literal("rsp-task-worker-schema-v1"),
+    protocolVersion: z.literal(RSP_PROTOCOL_VERSION),
+    command: z.literal("schema task-worker"),
+    transports: z
+      .tuple([z.literal("shared-workspace"), z.literal("controller-io")])
+      .readonly(),
+    preflight: z.strictObject({
+      bindBeforeWrites: z.literal(true),
+      immutableInputFailure: z.literal("abort-zero-write"),
+      genericDelegateIsRuntimeNative: z.literal(false),
+    }),
+    validationOwnership: z.strictObject({
+      repairable: z.literal("agent-output"),
+      infrastructure: z.literal("worker-host"),
+      immutableAuthority: z.literal("fixed-controller"),
+    }),
+    bindingJsonSchema: z.record(z.string(), z.unknown()),
+    fileWriteInputJsonSchema: z.record(z.string(), z.unknown()),
+  })
+  .readonly();
+
 const command = ({
   command,
   usage,
@@ -77,6 +106,27 @@ export const buildRspAssetImportSchemaResponse = () =>
     projectBinding: "--project",
     candidateEncoding: "canonical-base64",
     jsonSchema: z.toJSONSchema(RspAssetImportInputSchema),
+  });
+
+export const buildRspTaskWorkerSchemaResponse = () =>
+  RspTaskWorkerSchemaResponseSchema.parse({
+    schemaVersion: 1,
+    contractVersion: "rsp-task-worker-schema-v1",
+    protocolVersion: RSP_PROTOCOL_VERSION,
+    command: "schema task-worker",
+    transports: ["shared-workspace", "controller-io"],
+    preflight: {
+      bindBeforeWrites: true,
+      immutableInputFailure: "abort-zero-write",
+      genericDelegateIsRuntimeNative: false,
+    },
+    validationOwnership: {
+      repairable: "agent-output",
+      infrastructure: "worker-host",
+      immutableAuthority: "fixed-controller",
+    },
+    bindingJsonSchema: z.toJSONSchema(TaskWorkerBindingSchema),
+    fileWriteInputJsonSchema: z.toJSONSchema(TaskWorkerFileWriteInputSchema),
   });
 
 export { buildRspProjectRevisionSchemaResponse };
@@ -118,6 +168,13 @@ export const buildRspCommandCatalog = () =>
       command({
         command: "schema asset-import",
         usage: "./.rsp/bin/rsp schema asset-import",
+        mutability: "read-only",
+        session: "not-required",
+        stdin: "none",
+      }),
+      command({
+        command: "schema task-worker",
+        usage: "./.rsp/bin/rsp schema task-worker",
         mutability: "read-only",
         session: "not-required",
         stdin: "none",
@@ -190,7 +247,7 @@ export const buildRspCommandCatalog = () =>
       command({
         command: "context",
         usage:
-          "./.rsp/bin/rsp context --project <storyId> [--candidate <candidateId>] [--delivery-policy <manual|automatic>] [--execution-mode <inline|subagents>] [--max-concurrency <n>] [--require-exact-concurrency <true|false>] [--runtime-max-concurrency <n>]",
+          "./.rsp/bin/rsp context --project <storyId> [--candidate <candidateId>] [--delivery-policy <manual|automatic>] [--execution-mode <inline|subagents>] [--max-concurrency <n>] [--require-exact-concurrency <true|false>] [--runtime-max-concurrency <n>] [--worker-transport <shared-workspace|controller-io>]",
         mutability: "read-only",
         session: "required",
         stdin: "none",
@@ -212,22 +269,33 @@ export const buildRspCommandCatalog = () =>
         stdin: "none",
       }),
       command({
+        command: "task bind",
+        usage:
+          "./.rsp/bin/rsp task bind --task <taskRevision> --attempt <attemptId> --binding <bindingId> --transport <shared-workspace|controller-io>",
+        mutability: "read-only",
+        session: "required",
+        stdin: "none",
+      }),
+      command({
         command: "task describe",
-        usage: "./.rsp/bin/rsp task describe --task <taskRevision>",
+        usage:
+          "./.rsp/bin/rsp task describe --task <taskRevision> --attempt <attemptId> --binding <bindingId>",
         mutability: "read-only",
         session: "required",
         stdin: "none",
       }),
       command({
         command: "task finalize",
-        usage: "./.rsp/bin/rsp task finalize --task <taskRevision>",
+        usage:
+          "./.rsp/bin/rsp task finalize --task <taskRevision> --attempt <attemptId> --binding <bindingId>",
         mutability: "task-write",
         session: "required",
         stdin: "none",
       }),
       command({
         command: "task check",
-        usage: "./.rsp/bin/rsp task check --task <taskRevision>",
+        usage:
+          "./.rsp/bin/rsp task check --task <taskRevision> --attempt <attemptId> --binding <bindingId>",
         mutability: "read-only",
         session: "required",
         stdin: "none",
@@ -235,7 +303,7 @@ export const buildRspCommandCatalog = () =>
       command({
         command: "task commit",
         usage:
-          "./.rsp/bin/rsp task commit --task <taskRevision> --attempt <attemptId>",
+          "./.rsp/bin/rsp task commit --task <taskRevision> --attempt <attemptId> --binding <bindingId>",
         mutability: "write",
         session: "required",
         stdin: "none",
@@ -243,16 +311,48 @@ export const buildRspCommandCatalog = () =>
       command({
         command: "task fail",
         usage:
-          "./.rsp/bin/rsp task fail --task <taskRevision> --attempt <attemptId> --kind <task|host>",
+          "./.rsp/bin/rsp task fail --task <taskRevision> --attempt <attemptId> --binding <bindingId> --kind <task|host|fixed>",
         mutability: "write",
         session: "required",
         stdin: "none",
+      }),
+      command({
+        command: "task file-read",
+        usage:
+          "./.rsp/bin/rsp task file-read --task <taskRevision> --attempt <attemptId> --binding <bindingId> --path <logicalPath>",
+        mutability: "read-only",
+        session: "required",
+        stdin: "none",
+      }),
+      command({
+        command: "task file-write",
+        usage:
+          "./.rsp/bin/rsp task file-write --task <taskRevision> --attempt <attemptId> --binding <bindingId> --path <logicalPath>",
+        mutability: "task-write",
+        session: "required",
+        stdin: "task-worker-file-write-input",
       }),
       command({
         command: "attempt status",
         usage:
           "./.rsp/bin/rsp attempt status --project <storyId> --attempt <attemptId>",
         mutability: "read-only",
+        session: "required",
+        stdin: "none",
+      }),
+      command({
+        command: "attempt recover-inspect",
+        usage:
+          "./.rsp/bin/rsp attempt recover-inspect --project <storyId> --attempt <failedAttemptId> [--candidate <candidateId>]",
+        mutability: "read-only",
+        session: "required",
+        stdin: "none",
+      }),
+      command({
+        command: "attempt reissue",
+        usage:
+          "./.rsp/bin/rsp attempt reissue --project <storyId> --attempt <failedAttemptId> [--candidate <candidateId>] [--delivery-policy <manual|automatic>]",
+        mutability: "write",
         session: "required",
         stdin: "none",
       }),

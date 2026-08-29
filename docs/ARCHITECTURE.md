@@ -133,7 +133,10 @@ Renderers 的 exact checksum 或 normalized fingerprint 重复。plan/shot JSON 
 
 inspect 前的 execution resolver 按用户提示词、settings、内置 `inline` 默认逐字段选择 Root inline 或 bounded
 subagents，且不进入 production identity。每个 dirty Agent task 只有一个 executor；inline 一次一个 workspace，
-subagents 最大四个并受 runtime capacity 限制。全部完成或 admission 后 Root 挂起；fixed continuation 以 one-shot
+subagents 最大四个并受 runtime capacity 限制，且宿主必须声明已验证的 shared-workspace 或 controller-IO
+transport；generic delegate 不自动获得 child/workspace authority。每个 executor 先通过 deterministic
+attempt-bound bindingId 验证 Task/attempt/immutable inputs，再获得 exact workspace capability 与 bound commands；
+失败零写入。全部完成或 admission 后 Root 挂起；fixed continuation 以 one-shot
 atomic claim 独占 exact attempt，只订阅 immutable mechanical task-terminal event log；attempt 创建起一小时总
 deadline 防止无限等待。
 ArtifactAttestation 才进入 production data plane。
@@ -146,6 +149,10 @@ sorted unique logical paths、size/checksum current。相同 TaskRevision 与不
 
 promotion 在目标同父目录准备 staging，完整验证后写 manifest，最后原子 rename。捕获到 replacement failure
 必须恢复上一有效 artifact。Attempt 写入失败不能污染 store。
+
+failed attempt 是 append-only immutable diagnostic。Recovery 不 reopen：只读 recover-inspect 在 current Revision
+和 fixed dependency 仍一致时允许 reissue 创建 fresh attempt，复用 artifact/有效 task draft，不调用 provider，也不
+要求 current Delivery；revision candidate 的 Delivery promotion authority 与该恢复通道分离。
 
 ## 7. Materialization 与 runtime
 

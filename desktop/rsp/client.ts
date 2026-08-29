@@ -6,6 +6,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import {
   ProjectCreateInputSchema,
   ProjectRevisionInputSchema,
+  TaskWorkerFileWriteInputSchema,
 } from "../../src/contracts";
 import {
   buildRspProjectCreateSchemaResponse,
@@ -17,6 +18,7 @@ import {
   buildRspAssetImportSchemaResponse,
   buildRspCommandCatalog,
   buildRspProjectRevisionSchemaResponse,
+  buildRspTaskWorkerSchemaResponse,
 } from "../contracts/command-surface";
 import {
   DoctorResponseSchema,
@@ -477,6 +479,18 @@ const parseRuntimeMaxConcurrency = (options: Map<string, string>) => {
   return Number(raw);
 };
 
+const parseRuntimeWorkerTransport = (options: Map<string, string>) => {
+  const transport = options.get("--worker-transport");
+  if (transport === undefined) return undefined;
+  if (transport !== "shared-workspace" && transport !== "controller-io") {
+    throw new RspCliFailure(
+      "requestInvalid",
+      "Worker transport must be shared-workspace or controller-io.",
+    );
+  }
+  return transport;
+};
+
 export const buildRspCommand = async ({
   args,
   workspaceId,
@@ -543,10 +557,12 @@ export const buildRspCommand = async ({
       "--max-concurrency",
       "--require-exact-concurrency",
       "--runtime-max-concurrency",
+      "--worker-transport",
     ]);
     const deliveryPolicy = parseOptionalDeliveryPolicy(options);
     const execution = parseExecutionOverride(options);
     const runtimeMaxConcurrency = parseRuntimeMaxConcurrency(options);
+    const runtimeWorkerTransport = parseRuntimeWorkerTransport(options);
     requestValue = {
       ...base,
       command: "context",
@@ -559,6 +575,9 @@ export const buildRspCommand = async ({
       ...(runtimeMaxConcurrency === undefined
         ? {}
         : { runtimeMaxConcurrency }),
+      ...(runtimeWorkerTransport === undefined
+        ? {}
+        : { runtimeWorkerTransport }),
     };
   } else if (noun === "project" && verb === "create") {
     if (rest.length !== 0) {
@@ -674,43 +693,115 @@ export const buildRspCommand = async ({
         : { candidateId: options.get("--candidate") }),
       ...(deliveryPolicy === undefined ? {} : { deliveryPolicy }),
     };
+  } else if (noun === "task" && verb === "bind") {
+    const options = parseOptions(rest, [
+      "--task",
+      "--attempt",
+      "--binding",
+      "--transport",
+    ]);
+    requestValue = {
+      ...base,
+      command: "task-bind",
+      taskRevision: requiredOption(options, "--task"),
+      attemptId: requiredOption(options, "--attempt"),
+      bindingId: requiredOption(options, "--binding"),
+      transport: requiredOption(options, "--transport"),
+    };
   } else if (noun === "task" && verb === "check") {
-    const options = parseOptions(rest, ["--task"]);
+    const options = parseOptions(rest, ["--task", "--attempt", "--binding"]);
     requestValue = {
       ...base,
       command: "task-check",
       taskRevision: requiredOption(options, "--task"),
+      attemptId: requiredOption(options, "--attempt"),
+      bindingId: requiredOption(options, "--binding"),
     };
   } else if (noun === "task" && verb === "describe") {
-    const options = parseOptions(rest, ["--task"]);
+    const options = parseOptions(rest, ["--task", "--attempt", "--binding"]);
     requestValue = {
       ...base,
       command: "task-describe",
       taskRevision: requiredOption(options, "--task"),
+      attemptId: requiredOption(options, "--attempt"),
+      bindingId: requiredOption(options, "--binding"),
     };
   } else if (noun === "task" && verb === "finalize") {
-    const options = parseOptions(rest, ["--task"]);
+    const options = parseOptions(rest, ["--task", "--attempt", "--binding"]);
     requestValue = {
       ...base,
       command: "task-finalize",
       taskRevision: requiredOption(options, "--task"),
+      attemptId: requiredOption(options, "--attempt"),
+      bindingId: requiredOption(options, "--binding"),
     };
   } else if (noun === "task" && verb === "commit") {
-    const options = parseOptions(rest, ["--task", "--attempt"]);
+    const options = parseOptions(rest, [
+      "--task",
+      "--attempt",
+      "--binding",
+    ]);
     requestValue = {
       ...base,
       command: "task-commit",
       taskRevision: requiredOption(options, "--task"),
       attemptId: requiredOption(options, "--attempt"),
+      bindingId: requiredOption(options, "--binding"),
     };
   } else if (noun === "task" && verb === "fail") {
-    const options = parseOptions(rest, ["--task", "--attempt", "--kind"]);
+    const options = parseOptions(rest, [
+      "--task",
+      "--attempt",
+      "--binding",
+      "--kind",
+    ]);
     requestValue = {
       ...base,
       command: "task-fail",
       taskRevision: requiredOption(options, "--task"),
       attemptId: requiredOption(options, "--attempt"),
+      bindingId: requiredOption(options, "--binding"),
       kind: requiredOption(options, "--kind"),
+    };
+  } else if (noun === "task" && verb === "file-read") {
+    const options = parseOptions(rest, [
+      "--task",
+      "--attempt",
+      "--binding",
+      "--path",
+    ]);
+    requestValue = {
+      ...base,
+      command: "task-file-read",
+      taskRevision: requiredOption(options, "--task"),
+      attemptId: requiredOption(options, "--attempt"),
+      bindingId: requiredOption(options, "--binding"),
+      logicalPath: requiredOption(options, "--path"),
+    };
+  } else if (noun === "task" && verb === "file-write") {
+    const options = parseOptions(rest, [
+      "--task",
+      "--attempt",
+      "--binding",
+      "--path",
+    ]);
+    const input = TaskWorkerFileWriteInputSchema.safeParse(
+      await readStdinJson(io),
+    );
+    if (!input.success) {
+      throw new RspCliFailure(
+        "requestInvalid",
+        "Task file-write stdin must contain canonical base64 bytes.",
+      );
+    }
+    requestValue = {
+      ...base,
+      command: "task-file-write",
+      taskRevision: requiredOption(options, "--task"),
+      attemptId: requiredOption(options, "--attempt"),
+      bindingId: requiredOption(options, "--binding"),
+      logicalPath: requiredOption(options, "--path"),
+      contentBase64: input.data.contentBase64,
     };
   } else if (noun === "continue") {
     const options = parseOptions(args.slice(1), [
@@ -738,6 +829,39 @@ export const buildRspCommand = async ({
       command: "attempt-status",
       storyId: requiredOption(options, "--project"),
       attemptId: requiredOption(options, "--attempt"),
+    };
+  } else if (noun === "attempt" && verb === "recover-inspect") {
+    const options = parseOptions(rest, [
+      "--project",
+      "--attempt",
+      "--candidate",
+    ]);
+    requestValue = {
+      ...base,
+      command: "attempt-recover-inspect",
+      storyId: requiredOption(options, "--project"),
+      attemptId: requiredOption(options, "--attempt"),
+      ...(options.get("--candidate") === undefined
+        ? {}
+        : { candidateId: options.get("--candidate") }),
+    };
+  } else if (noun === "attempt" && verb === "reissue") {
+    const options = parseOptions(rest, [
+      "--project",
+      "--attempt",
+      "--candidate",
+      "--delivery-policy",
+    ]);
+    const deliveryPolicy = parseOptionalDeliveryPolicy(options);
+    requestValue = {
+      ...base,
+      command: "attempt-reissue",
+      storyId: requiredOption(options, "--project"),
+      attemptId: requiredOption(options, "--attempt"),
+      ...(options.get("--candidate") === undefined
+        ? {}
+        : { candidateId: options.get("--candidate") }),
+      ...(deliveryPolicy === undefined ? {} : { deliveryPolicy }),
     };
   } else if (noun === "delivery" && verb === "build") {
     const options = parseOptions(rest, ["--project", "--candidate"]);
@@ -800,6 +924,14 @@ export const executeRspCli = async (
       args[1] === "asset-import"
     ) {
       io.stdout(`${JSON.stringify(buildRspAssetImportSchemaResponse())}\n`);
+      return 0;
+    }
+    if (
+      args.length === 2 &&
+      args[0] === "schema" &&
+      args[1] === "task-worker"
+    ) {
+      io.stdout(`${JSON.stringify(buildRspTaskWorkerSchemaResponse())}\n`);
       return 0;
     }
     const commandTemplate = await buildRspCommand({

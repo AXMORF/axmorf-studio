@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 16,
-  "policyVersion": "remotion-story-producer-video-policy-v19",
+  "schemaVersion": 17,
+  "policyVersion": "remotion-story-producer-video-policy-v20",
   "rootEndpoints": [
     "project-production-complete",
     "project-production-current"
@@ -25,6 +25,7 @@
     "references/scene-agent-orchestration.md",
     "references/global-visual-agent-orchestration.md",
     "references/cover-agent-orchestration.md",
+    "references/task-worker-protocol.md",
     "references/agent-rework-and-system-hardening.md"
   ],
   "workflowCommands": [
@@ -32,9 +33,13 @@
     "project:execution:resolve",
     "project:produce:inspect",
     "project:produce:prepare",
+    "project:task:bind",
+    "project:task:describe",
     "project:task:check",
     "project:task:commit",
     "project:task:fail",
+    "project:attempt:recover-inspect",
+    "project:attempt:reissue",
     "project:produce:continue"
   ],
   "executionPolicy": {
@@ -51,6 +56,8 @@
     "unknownRuntimeMaxConcurrency": 1,
     "inlinePolicy": "root-sequential-one-workspace-at-a-time",
     "subagentPolicy": "bounded-pool-wait-any-admission",
+    "subagentWorkerTransport": "verified-shared-workspace-or-controller-io",
+    "unverifiedWorkerTransportPolicy": "block-before-prepare",
     "exactCapacityFailurePolicy": "block-before-prepare",
     "automaticModeFallback": false,
     "identityVisibility": "none"
@@ -75,12 +82,16 @@
     "sceneOriginalityPolicy": "historical-normalized-fingerprint-and-same-revision-exact-or-normalized-duplicate-rejected",
     "globalVisualAuthoringOwner": "resolved-root-or-one-runtime-native-child",
     "coverAuthoringOwner": "resolved-root-or-one-runtime-native-child",
-    "delegationSurface": "optional-runtime-native-subagents",
+    "delegationSurface": "optional-runtime-native-subagents-with-bound-worker-transport",
     "sharedCheckout": true,
     "capacityPolicy": "resolved-bounded-pool-max-four",
     "unavailableDelegationPolicy": "known-zero-blocks-unknown-defaults-one",
     "rootAgentAuthorsTaskOutputs": "only-when-resolved-inline",
-    "agentWriteBoundary": "task-workspace-only-after-prepare",
+    "agentWriteBoundary": "declared-task-outputs-only-after-successful-attempt-bound-bind",
+    "immutableInputFailurePolicy": "abort-zero-write",
+    "repairableValidationOwner": "agent-output",
+    "hostFailureScope": "worker-spawn-mount-controller-io-sandbox-permission-only",
+    "failedAttemptRecovery": "fresh-attempt-reissue-same-revision-no-current-delivery-required",
     "artifactAuthority": "validated-artifact-attestation",
     "artifactReusePolicy": "reuse-valid-content-addressed-artifacts",
     "artifactPromotionPolicy": "validator-only-atomic-promotion",
@@ -124,10 +135,10 @@
     "agent-write-outside-task-workspace"
   ],
   "contextBudgets": {
-    "entrypointMaxWords": 580,
-    "directWorkflowMaxWords": 680,
-    "normalProductionMaxWords": 1850,
-    "normalProductionMaxCharacters": 15500,
+    "entrypointMaxWords": 620,
+    "directWorkflowMaxWords": 850,
+    "normalProductionMaxWords": 2100,
+    "normalProductionMaxCharacters": 18000,
     "sceneOrchestrationMaxWords": 330,
     "globalVisualOrchestrationMaxWords": 270,
     "coverOrchestrationMaxWords": 240

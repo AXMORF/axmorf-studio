@@ -35,11 +35,12 @@ without saved settings the host-neutral built-in default is `inline`. Do not sav
 explicitly requests it.
 
 ```bash
-npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>]
+npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>] [--worker-transport shared-workspace|controller-io]
 ```
 
 Inline requires only the current shell-capable Agent. When prompt/settings select subagents, pass current runtime
-capacity when known; without it, subagent capacity safely resolves to one. The repository ceiling is four. A
+capacity and a verified worker transport; without capacity it safely resolves to one, but without a transport it
+blocks. The repository ceiling is four. A
 non-exact request is clamped and reported; an exact request that cannot be satisfied returns `blocked`; known runtime
 capacity zero also blocks. Production stops before prepare. Freeze the resolved result. It is diagnostic orchestration
 state and never enters ProductionRevision, TaskRevision, artifacts, or delivery.
@@ -70,12 +71,18 @@ Each TaskRevision is assigned to exactly one executor and writes only:
 .producer-work/<storyId>/<taskRevision>/
 ```
 
-It reads `task.json` and `inputs/context.json`, corrects its output, then runs:
+First run prepare's exact `task:bind` command with `shared-workspace` or `controller-io`. Do not read or write until it
+returns `task-worker-bound`; use only its returned capability and exact bound commands. It validates `task.json`,
+`inputs/context.json`, `inputs/task-contract.json`, identity, attempt authority, and checksums. Any failure is a
+zero-write stop, never a guessed path. Then read immutable inputs, author declared outputs, and run:
 
 ```bash
-npm run project:task:check -- --task <taskRevision>
-npm run project:task:commit -- --task <taskRevision> --attempt <attemptId>
-npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --kind task|host
+npm run project:task:bind -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --transport shared-workspace|controller-io
+npm run project:task:describe -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:finalize -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:check -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:commit -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --kind task|host|fixed
 ```
 
 Commit revalidates and atomically promotes ArtifactAttestation; chat is not authority.
@@ -86,8 +93,9 @@ Commit revalidates and atomically promotes ArtifactAttestation; chat is not auth
   per child. If tasks remain queued, wait-any only until one child releases a slot, then admit the next. Do not poll
   all child statuses and do not use chat as a terminal receipt.
 
-A hard spawn failure executes that task's exact `hostFailureCommand` and preserves the selected mode; there is no
-automatic inline fallback. Capacity backpressure delays admission but is not a task retry. Start the continuation
+A hard spawn/transport failure executes that task's exact Root-only `spawnFailureCommand` and preserves the selected
+mode. Structured finalize/check issues owned by `agent-output` are corrected in the task workspace; they never invoke
+host failure. There is no automatic inline fallback. Capacity backpressure delays admission but is not a task retry. Start the continuation
 as soon as every dirty task is either executed inline or admitted to a child.
 
 ## 6. Suspend Root in the fixed continuation
@@ -105,6 +113,15 @@ so admission and execution consume the same budget. No repair, retry, or Root re
 Convergence read-only replans, materializes attested bytes with rollback, and builds
 `video.mp4`, `cover-4x3.png`, `cover-3x4.png`, and `publish.json`. Promotion requires checksum/media/EOF-decode; a
 matching delivery returns `project-production-current` without rewrite.
+
+A terminal failed attempt is immutable. On explicit recovery, run `project:attempt:recover-inspect`, then
+`project:attempt:reissue`. Reissue creates a fresh same-Revision attempt, makes zero provider requests, needs no current
+Delivery, preserves valid drafts, and reuses valid artifacts. It refuses active/stale/fixed-flow recovery.
+
+```bash
+npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failedAttemptId>
+npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>
+```
 
 Run `npm run compositions` and `npm run check` with host permissions first. Sandbox failures cannot prove VoxCPM
 unavailable or justify weakening Chromium sandbox.

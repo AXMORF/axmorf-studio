@@ -7,6 +7,7 @@ import {
   type ProducerConfig,
   type ProducerTaskSpec,
   type Sha256Digest,
+  type TaskWorkerTransport,
 } from "../../../src/contracts";
 import {
   resolveAgentExecution,
@@ -36,7 +37,10 @@ import {
   createRspLocalProductionCommandFormatter,
   rspLocalProductionCommandFormatter,
 } from "../adapters/rsp-local-command-formatter";
-import { readTaskWorkspace } from "../adapters/task-workspace";
+import {
+  readTaskWorkspace,
+  readTaskWorkspaceIdentity,
+} from "../adapters/task-workspace";
 import {
   inspectSourceCurrent,
   readSourceCurrent,
@@ -97,6 +101,17 @@ import {
   publicPrepareCommandError,
   publicTaskCommandError,
 } from "../../../desktop/application/public-command-errors";
+import {
+  assertTaskWorkerBinding,
+  assertTaskWorkerBindingIdentity,
+  bindTaskWorker,
+  readTaskWorkerFile,
+  writeTaskWorkerFile,
+} from "./task-worker-binding";
+import {
+  inspectAttemptRecovery,
+  reissueAttempt,
+} from "./reissue-attempt";
 
 const workspaceLoadInputs = (
   input: Parameters<typeof loadProjectProductionInputs>[0],
@@ -184,7 +199,8 @@ const recordTaskOutcome = async ({
         diagnosticCode:
           | "producer-task-commit-failed"
           | "producer-agent-task-failed"
-          | "producer-agent-host-failed";
+          | "producer-agent-host-failed"
+          | "producer-agent-fixed-failed";
       }>;
 }) =>
   appendExecutionAttemptTaskOutcome({ locations, attemptId, task, outcome });
@@ -276,7 +292,9 @@ const createWorkspaceCommands = (
     }
   },
   failTask: async ({ locations, taskRevision, attemptId, kind }) => {
-    const { task } = await readTaskWorkspace({ locations, taskRevision });
+    const { task } = await (kind === "task"
+      ? readTaskWorkspace({ locations, taskRevision })
+      : readTaskWorkspaceIdentity({ locations, taskRevision }));
     await assertExecutionAttemptTaskAuthority({ locations, attemptId, task });
     await recordTaskOutcome({
       locations,
@@ -288,7 +306,9 @@ const createWorkspaceCommands = (
         diagnosticCode:
           kind === "task"
             ? "producer-agent-task-failed"
-            : "producer-agent-host-failed",
+            : kind === "host"
+              ? "producer-agent-host-failed"
+              : "producer-agent-fixed-failed",
       },
     });
     return {
@@ -333,6 +353,7 @@ export const createWorkspaceProductionController = async ({
   providerReadiness,
   appDefaultDeliveryPolicy = "manual",
   runtimeMaxConcurrency,
+  runtimeWorkerTransport,
   loadExecutionPreferences,
   prepareNarration = prepareWorkspaceNarration,
 }: {
@@ -343,6 +364,7 @@ export const createWorkspaceProductionController = async ({
   readonly providerReadiness?: "ready" | "not-configured" | "unavailable";
   readonly appDefaultDeliveryPolicy?: DeliveryPolicy;
   readonly runtimeMaxConcurrency?: number;
+  readonly runtimeWorkerTransport?: TaskWorkerTransport;
   readonly loadExecutionPreferences?: () => Promise<
     Readonly<{
       preferences: ExecutionPreferences;
@@ -399,12 +421,14 @@ export const createWorkspaceProductionController = async ({
     deliveryPolicy,
     execution,
     commandRuntimeMaxConcurrency,
+    commandRuntimeWorkerTransport,
   }: {
     readonly projectId: string;
     readonly productionLocations?: ProductionLocations;
     readonly deliveryPolicy?: DeliveryPolicy;
     readonly execution?: AgentExecutionOverride;
     readonly commandRuntimeMaxConcurrency?: number;
+    readonly commandRuntimeWorkerTransport?: TaskWorkerTransport;
   }) => {
     const [project, config, resolvedDeliveryPolicy, executionPreferences] =
       await Promise.all([
@@ -452,6 +476,13 @@ export const createWorkspaceProductionController = async ({
             : {
                 runtimeMaxConcurrency:
                   commandRuntimeMaxConcurrency ?? runtimeMaxConcurrency,
+              }),
+          ...((commandRuntimeWorkerTransport ?? runtimeWorkerTransport) ===
+          undefined
+            ? {}
+            : {
+                runtimeWorkerTransport:
+                  commandRuntimeWorkerTransport ?? runtimeWorkerTransport,
               }),
         }),
       },
@@ -901,8 +932,67 @@ export const createWorkspaceProductionController = async ({
       promotion,
     };
   };
+  const recoveryDependencies = (candidateId?: string) => ({
+    commandFormatter: createRspLocalProductionCommandFormatter(candidateId),
+    buildCurrentPlan: async ({
+      locations: productionLocations,
+      projectId,
+    }: {
+      readonly locations: ProductionLocations;
+      readonly projectId: string;
+    }) =>
+      workspaceBuildCurrentPlan(
+        {
+          locations: productionLocations,
+          projectId,
+          config: await requireConfig(),
+        },
+        runtime,
+      ),
+  });
+  const attemptRecoveryScope = async ({
+    projectId,
+    candidateId,
+  }: {
+    readonly projectId: string;
+    readonly candidateId?: string;
+  }) =>
+    candidateId === undefined
+      ? locations
+      : candidateScope({ projectId, candidateId });
+  const publicAttemptRecovery = async <Result>(run: () => Promise<Result>) => {
+    try {
+      return await run();
+    } catch (error) {
+      if (error instanceof RspPublicCommandError) throw error;
+      throw new RspPublicCommandError(
+        "rsp-command-failed",
+        "Execution attempt cannot be recovered.",
+        [
+          {
+            path: "$.attemptId",
+            code: "rsp-attempt-recovery-blocked",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Execution attempt recovery is unavailable.",
+            ownerAction:
+              "Keep the failed attempt immutable. Resolve the reported blocker, then run recover-inspect again.",
+          },
+        ],
+      );
+    }
+  };
   const publicTaskOperation = async <Result>(
-    operation: "describe" | "finalize" | "check" | "commit",
+    operation:
+      | "bind"
+      | "describe"
+      | "finalize"
+      | "check"
+      | "commit"
+      | "fail"
+      | "file-read"
+      | "file-write",
     run: () => Promise<Result>,
   ) => {
     try {
@@ -950,6 +1040,9 @@ export const createWorkspaceProductionController = async ({
           commandRuntimeMaxConcurrency: request.runtimeMaxConcurrency as
             | number
             | undefined,
+          commandRuntimeWorkerTransport: request.runtimeWorkerTransport as
+            | TaskWorkerTransport
+            | undefined,
         });
       case "asset-import":
         return workspaceCommands.importAsset({ locations, request });
@@ -970,42 +1063,110 @@ export const createWorkspaceProductionController = async ({
             ? undefined
             : String(request.candidateId),
         );
-      case "task-check":
-        return publicTaskOperation("check", () =>
-          workspaceCommands.checkTask({
-            locations,
-            taskRevision: String(request.taskRevision),
-          }),
-        );
-      case "task-describe":
-        return publicTaskOperation("describe", () =>
-          readAgentTaskExecutionContract({
-            locations,
-            taskRevision: String(request.taskRevision),
-          }),
-        );
-      case "task-finalize":
-        return publicTaskOperation("finalize", () =>
-          finalizeAgentTaskWorkspace({
-            locations,
-            taskRevision: String(request.taskRevision),
-          }),
-        );
-      case "task-commit":
-        return publicTaskOperation("commit", () =>
-          workspaceCommands.commitTask({
+      case "task-bind":
+        return publicTaskOperation("bind", () =>
+          bindTaskWorker({
             locations,
             taskRevision: String(request.taskRevision),
             attemptId: String(request.attemptId),
+            bindingId: String(request.bindingId),
+            transport: request.transport as TaskWorkerTransport,
+            commandFormatter: rspLocalProductionCommandFormatter,
           }),
         );
-      case "task-fail":
-        return workspaceCommands.failTask({
-          locations,
-          taskRevision: String(request.taskRevision),
-          attemptId: String(request.attemptId),
-          kind: request.kind as "task" | "host",
+      case "task-check":
+        return publicTaskOperation("check", async () => {
+          await assertTaskWorkerBinding({
+            locations,
+            taskRevision: String(request.taskRevision),
+            attemptId: String(request.attemptId),
+            bindingId: String(request.bindingId),
+          });
+          return workspaceCommands.checkTask({
+            locations,
+            taskRevision: String(request.taskRevision),
+          });
         });
+      case "task-describe":
+        return publicTaskOperation("describe", async () => {
+          await assertTaskWorkerBinding({
+            locations,
+            taskRevision: String(request.taskRevision),
+            attemptId: String(request.attemptId),
+            bindingId: String(request.bindingId),
+          });
+          return readAgentTaskExecutionContract({
+            locations,
+            taskRevision: String(request.taskRevision),
+          });
+        });
+      case "task-finalize":
+        return publicTaskOperation("finalize", async () => {
+          await assertTaskWorkerBinding({
+            locations,
+            taskRevision: String(request.taskRevision),
+            attemptId: String(request.attemptId),
+            bindingId: String(request.bindingId),
+          });
+          return finalizeAgentTaskWorkspace({
+            locations,
+            taskRevision: String(request.taskRevision),
+          });
+        });
+      case "task-commit":
+        return publicTaskOperation("commit", async () => {
+          await assertTaskWorkerBinding({
+            locations,
+            taskRevision: String(request.taskRevision),
+            attemptId: String(request.attemptId),
+            bindingId: String(request.bindingId),
+          });
+          return workspaceCommands.commitTask({
+            locations,
+            taskRevision: String(request.taskRevision),
+            attemptId: String(request.attemptId),
+          });
+        });
+      case "task-fail":
+        return publicTaskOperation("fail", async () => {
+          const bindingInput = {
+            taskRevision: String(request.taskRevision),
+            attemptId: String(request.attemptId),
+            bindingId: String(request.bindingId),
+          } as const;
+          if (request.kind === "task") {
+            await assertTaskWorkerBinding({ locations, ...bindingInput });
+          } else {
+            assertTaskWorkerBindingIdentity(bindingInput);
+          }
+          return workspaceCommands.failTask({
+            locations,
+            taskRevision: String(request.taskRevision),
+            attemptId: String(request.attemptId),
+            kind: request.kind as "task" | "host" | "fixed",
+          });
+        });
+      case "task-file-read":
+        return publicTaskOperation("file-read", () =>
+          readTaskWorkerFile({
+            locations,
+            taskRevision: String(request.taskRevision),
+            attemptId: String(request.attemptId),
+            bindingId: String(request.bindingId),
+            logicalPath: String(request.logicalPath),
+          }),
+        );
+      case "task-file-write":
+        return publicTaskOperation("file-write", () =>
+          writeTaskWorkerFile({
+            locations,
+            taskRevision: String(request.taskRevision),
+            attemptId: String(request.attemptId),
+            bindingId: String(request.bindingId),
+            logicalPath: String(request.logicalPath),
+            contentBase64: String(request.contentBase64),
+          }),
+        );
       case "continue":
         return request.candidateId === undefined
           ? (await withConfig()).continueProduction({
@@ -1059,6 +1220,62 @@ export const createWorkspaceProductionController = async ({
           diagnosticCode: attempt.diagnosticCode,
         };
       }
+      case "attempt-recover-inspect": {
+        const projectId = String(request.storyId);
+        const candidateId =
+          request.candidateId === undefined
+            ? undefined
+            : String(request.candidateId);
+        return publicAttemptRecovery(() =>
+          inspectAttemptRecovery({
+            locations: locations,
+            projectId,
+            failedAttemptId: String(request.attemptId),
+            dependencies: {
+              ...recoveryDependencies(candidateId),
+              buildCurrentPlan: async () =>
+                recoveryDependencies(candidateId).buildCurrentPlan({
+                  locations: await attemptRecoveryScope({
+                    projectId,
+                    candidateId,
+                  }),
+                  projectId,
+                }),
+            },
+          }),
+        );
+      }
+      case "attempt-reissue": {
+        const projectId = String(request.storyId);
+        const candidateId =
+          request.candidateId === undefined
+            ? undefined
+            : String(request.candidateId);
+        const productionLocations = await attemptRecoveryScope({
+          projectId,
+          candidateId,
+        });
+        const deliveryPolicy =
+          candidateId === undefined
+            ? (
+                await resolveProjectDeliveryPolicy({
+                  projectId,
+                  override: request.deliveryPolicy as
+                    | DeliveryPolicy
+                    | undefined,
+                })
+              ).value
+            : "automatic";
+        return publicAttemptRecovery(() =>
+          reissueAttempt({
+            locations: productionLocations,
+            projectId,
+            failedAttemptId: String(request.attemptId),
+            deliveryPolicy,
+            dependencies: recoveryDependencies(candidateId),
+          }),
+        );
+      }
       case "delivery-build":
         return request.candidateId === undefined
           ? (await withConfig()).buildDelivery(String(request.storyId))
@@ -1077,6 +1294,7 @@ export const createWorkspaceProductionController = async ({
         deliveryPolicy?: DeliveryPolicy;
         execution?: AgentExecutionOverride;
         runtimeMaxConcurrency?: number;
+        workerTransport?: TaskWorkerTransport;
       }> = {},
     ) =>
       context({
@@ -1084,6 +1302,7 @@ export const createWorkspaceProductionController = async ({
         deliveryPolicy: overrides.deliveryPolicy,
         execution: overrides.execution,
         commandRuntimeMaxConcurrency: overrides.runtimeMaxConcurrency,
+        commandRuntimeWorkerTransport: overrides.workerTransport,
       }),
     createProject: async (request: unknown) =>
       (await withConfig()).createProject(request),
@@ -1107,7 +1326,7 @@ export const createWorkspaceProductionController = async ({
     failTask: (
       taskRevision: string,
       attemptId: string,
-      kind: "task" | "host",
+      kind: "task" | "host" | "fixed",
     ) =>
       workspaceCommands.failTask({ locations, taskRevision, attemptId, kind }),
     continueProduction: async (input: {
