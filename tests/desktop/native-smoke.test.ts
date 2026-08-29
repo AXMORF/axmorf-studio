@@ -639,9 +639,18 @@ test("native smoke drives real manual and automatic Delivery with network cleanu
   assert.match(runner, /rsp-project-create-wrapper-forbidden/u);
   assert.match(runner, /inspect --project desktop-native-fixture/u);
   assert.match(runner, /prepare --project desktop-native-fixture/u);
+  assert.match(runner, /task bind/u);
+  assert.match(runner, /--transport shared-workspace/u);
+  assert.match(runner, /task\.bindingId/u);
   assert.match(runner, /task finalize/u);
   assert.match(runner, /task check/u);
   assert.match(runner, /task commit/u);
+  assert.match(runner, /--attempt "\$attempt_id"/u);
+  assert.match(runner, /--binding "\$binding_id"/u);
+  assert.ok(
+    runner.indexOf('"$rsp" task bind') <
+      runner.indexOf("execute-agent-tasks"),
+  );
   assert.match(nativeFixture, /inputs\/task-contract\.json/u);
   assert.match(nativeFixture, /TaskExecutionContractSchema/u);
   assert.doesNotMatch(nativeFixture, /buildSceneVisualPlan/u);
