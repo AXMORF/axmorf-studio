@@ -1,10 +1,11 @@
-import type {
-  DeliveryPolicy,
-  ArtifactAttestation,
-  ProducerPlan,
-  ProducerTaskKind,
-  ProducerTaskSpec,
-  ProducerConfig,
+import {
+  buildTaskWorkerBindingId,
+  type DeliveryPolicy,
+  type ArtifactAttestation,
+  type ProducerPlan,
+  type ProducerTaskKind,
+  type ProducerTaskSpec,
+  type ProducerConfig,
 } from "../../../src/contracts";
 import type {
   ProductionInspection,
@@ -185,16 +186,14 @@ const reusedByTaskKind = (tasks: readonly TaskDecisionExplanation[]) => {
     .sort((left, right) => left.taskKind.localeCompare(right.taskKind));
 };
 
-const dirtyAgentTasks = async ({
+export const createDirtyAgentTaskWorkspaces = async ({
   locations,
   current,
   createWorkspace,
-  commandFormatter,
 }: {
   readonly locations: ProductionLocations;
   readonly current: CurrentPlan;
   readonly createWorkspace: typeof createTaskWorkspace;
-  readonly commandFormatter: ProductionCommandFormatter;
 }) => {
   const dirty: Array<
     Readonly<{
@@ -204,8 +203,6 @@ const dirtyAgentTasks = async ({
       workspace: string;
       changedInputs: readonly string[];
       blockedBy: TaskDecisionExplanation["blockedBy"];
-      finalizeCommand: string;
-      checkCommand: string;
     }>
   > = [];
   for (const explanation of current.plan.tasks) {
@@ -249,15 +246,59 @@ const dirtyAgentTasks = async ({
         .filter(({ kind }) => kind === "input")
         .map(({ id }) => id),
       blockedBy: explanation.blockedBy,
-      finalizeCommand: commandFormatter.finalizeTask({
-        taskRevision: explanation.taskRevision,
-      }),
-      checkCommand: commandFormatter.checkTask({
-        taskRevision: explanation.taskRevision,
-      }),
     });
   }
   return dirty;
+};
+
+export const buildDirtyAgentTaskDispatch = ({
+  task,
+  attemptId,
+  commandFormatter,
+}: {
+  readonly task: Awaited<ReturnType<typeof createDirtyAgentTaskWorkspaces>>[number];
+  readonly attemptId: string;
+  readonly commandFormatter: ProductionCommandFormatter;
+}) => {
+  const bindingId = buildTaskWorkerBindingId({
+    taskRevision: task.taskRevision,
+    attemptId,
+  });
+  const commandInput = {
+    taskRevision: task.taskRevision,
+    attemptId,
+    bindingId,
+  } as const;
+  return {
+    ...task,
+    bindingId,
+    bindCommands: {
+      sharedWorkspace: commandFormatter.bindTask({
+        ...commandInput,
+        transport: "shared-workspace",
+      }),
+      controllerIo: commandFormatter.bindTask({
+        ...commandInput,
+        transport: "controller-io",
+      }),
+    },
+    describeCommand: commandFormatter.describeTask(commandInput),
+    finalizeCommand: commandFormatter.finalizeTask(commandInput),
+    checkCommand: commandFormatter.checkTask(commandInput),
+    commitCommand: commandFormatter.commitTask(commandInput),
+    taskFailureCommand: commandFormatter.failTask({
+      ...commandInput,
+      kind: "task",
+    }),
+    fixedFailureCommand: commandFormatter.failTask({
+      ...commandInput,
+      kind: "fixed",
+    }),
+    spawnFailureCommand: commandFormatter.failTask({
+      ...commandInput,
+      kind: "host",
+    }),
+  } as const;
 };
 
 const missingAuthoringResult = ({
@@ -365,11 +406,10 @@ export const prepareProjectProduction = async (
       inputs,
       narration,
     });
-    const dirty = await dirtyAgentTasks({
+    const dirty = await createDirtyAgentTaskWorkspaces({
       locations,
       current,
       createWorkspace,
-      commandFormatter,
     });
     const taskSnapshots = buildTaskSnapshots({
       nodes: current.nodes,
@@ -404,23 +444,13 @@ export const prepareProjectProduction = async (
         deliveryMedia: [],
       },
       taskExplanations: current.plan.tasks,
-      dirtyAgentTasks: dirty.map((task) => ({
-        ...task,
-        commitCommand: commandFormatter.commitTask({
-          taskRevision: task.taskRevision,
+      dirtyAgentTasks: dirty.map((task) =>
+        buildDirtyAgentTaskDispatch({
+          task,
           attemptId: attempt.attemptId,
+          commandFormatter,
         }),
-        taskFailureCommand: commandFormatter.failTask({
-          taskRevision: task.taskRevision,
-          attemptId: attempt.attemptId,
-          kind: "task",
-        }),
-        hostFailureCommand: commandFormatter.failTask({
-          taskRevision: task.taskRevision,
-          attemptId: attempt.attemptId,
-          kind: "host",
-        }),
-      })),
+      ),
       continuationCommand: commandFormatter.continueProduction({
         projectId,
         revisionId: current.revision.revisionId,

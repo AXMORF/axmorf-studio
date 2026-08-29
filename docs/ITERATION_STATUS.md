@@ -95,7 +95,8 @@ bootstrap/Registry/Catalog/settings 合同保持有效。
 - Scene executor 继续受 repository-local `remotion-best-practices`、Scene-only requirements、本地
   SceneViewport、resource/license 与 Remotion runtime gates 约束；它不感知 full-frame 安全区 inset。
 - execution resolver 已按用户提示词明确字段、独立 settings、内置 `inline` 默认逐级解析；全新 checkout
-  只需一个 shell-capable Agent，具备 runtime-native children 的宿主可显式选择最多四个 subagents；策略
+  只需一个 shell-capable Agent，具备 runtime-native children 且验证 shared-workspace/controller-IO transport 的
+  宿主可显式选择最多四个 subagents；generic delegate 不算 native worker，未验证 transport 在 prepare 前阻塞；策略
   不进入 Revision/Task/artifact/delivery identity。
 - `AGENTS.md` 是唯一 repository Agent authority；`CLAUDE.md`/`GEMINI.md` 只导入该文件，OpenAI Skill metadata
   只提供可选 UI 展示。生产脚本不调用任何厂商 Agent SDK。
@@ -328,7 +329,7 @@ Application Support 的单一 encrypted private-config envelope。旧 encrypted 
 active-work gate，并对 validation、safeStorage/private-file authority 与 saved-but-Engine-restart-failed 返回不同的脱敏
 code/message/action/issues，不再统一显示“操作未完成”。
 
-Workspace `rsp-local-v2` 现提供无需 App session 的 `help --json`、project-create/project-revision/asset-import structural schemas；active
+Workspace `rsp-local-v2` 现提供无需 App session 的 `help --json`、project-create/project-revision/asset-import/task-worker structural schemas；active
 `project create-context` 投影 exact style/collection/template/resource choices，`project validate` 在 create 前合并 strict
 static 与 config/Runtime Pack operational checks。`rsp project create` 明确拒绝
 `command/input/protocolVersion/requestId/workspaceId` wrapper；公开创建与 task 失败返回不带字段值的
@@ -339,6 +340,10 @@ discovery/router，dirty Agent workspace 增加 immutable
 `task finalize` 统一计算 fingerprint/receipt。native gate 的 deterministic executor 不再调用私有 output builder，只消费
 task contract，并把 exact Scene meaningId 绑定进示例 Renderer source 后走 finalize/check/commit，再验证
 source-current、manual/automatic Delivery 与 exact-four-file Preview。
+dirty task 现在先以 deterministic bindingId 执行 attempt-bound `task bind`，返回 shared-workspace 或 controller-IO
+capability；immutable input/identity failure 为零写入 fixed-controller issue，validation issue 保持 agent-output，
+host failure 限于真实基础设施。terminal failed first attempt 可显式 recover-inspect/reissue：旧 attempt 不变，fresh
+attempt 零 provider call、无需 current Delivery，并复用 valid artifacts/drafts。
 
 现有 Project 修改使用 same-Project candidate Revision：`revise-context/validate/revise` 创建隔离候选，后续
 `context/inspect/prepare/continue/delivery build` 以 `--candidate` 绑定；候选强制 automatic Delivery，exact-four-file

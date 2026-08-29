@@ -9,7 +9,9 @@ storyId: <storyId>
 revisionId: <revisionId>
 taskRevision: <taskRevision>
 attemptId: <attemptId>
-只写: .producer-work/<storyId>/<taskRevision>/
+bindingId: <bindingId>
+首先运行 Root 提供的 exact task bind command。未返回 task-worker-bound 前零写入并停止猜路径。
+只通过 bind 返回的 shared-workspace 或 controller-io capability 读 immutable inputs、写 declaredOutputs。
 
 读取 AGENTS.md、task.json、inputs/context.json、
 .agents/skills/remotion-best-practices/SKILL.md、
@@ -25,14 +27,11 @@ Artifact Store、live Project owner source、网络或 private/voice 内容；�
 基于当前 immutable context 独立创作 meaning-local Renderer；禁止复用其他Project/meaningId Renderer。
 validator拒绝历史normalized指纹、同Revision重复bytes及plan-JSON绕过。
 
-循环运行并修正当前 workspace：
-npm run project:task:check -- --task <taskRevision>
-只有 check 成功后运行：
-npm run project:task:commit -- --task <taskRevision> --attempt <attemptId>
+循环运行 bind 返回的 exact finalize/check command，只修正 agent-output issues。
+只有 check 成功后运行 bind 返回的 exact commit command。
 
-commit 会重查；成功后不得再改。无法修正的 task failure 运行
-`npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --kind task`；可执行命令的 host
-failure 改用 `--kind host`。记录终态后结束，不等待/通知 Root，不重试。
+commit 会重查；成功后不得再改。无法修正的 authored-output failure 运行 exact taskFailureCommand。
+immutable/identity failure 零写入并返回 structured fixed issue；不得当作 host failure。记录终态后结束。
 ```
 
 `scene-template` 由 fixed task 产生 ArtifactAttestation，不由 Agent executor 创作。

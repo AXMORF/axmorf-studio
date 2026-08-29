@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  TaskWorkerTransportSchema,
+  type TaskWorkerTransport,
+} from "../../src/contracts/task-worker-binding";
+
 export const EXECUTION_PREFERENCES_VERSION =
   "execution-preferences-v1" as const;
 export const REPOSITORY_SUBAGENT_CONCURRENCY_CEILING = 4;
@@ -77,11 +82,13 @@ export const resolveAgentExecution = ({
   preferenceSource,
   override: rawOverride,
   runtimeMaxConcurrency: rawRuntimeMaxConcurrency,
+  runtimeWorkerTransport: rawRuntimeWorkerTransport,
 }: {
   readonly preferences: ExecutionPreferences;
   readonly preferenceSource: ExecutionPreferenceSource;
   readonly override?: AgentExecutionOverride;
   readonly runtimeMaxConcurrency?: number;
+  readonly runtimeWorkerTransport?: TaskWorkerTransport;
 }) => {
   const preferences = ExecutionPreferencesSchema.parse(rawPreferences);
   const override =
@@ -92,6 +99,10 @@ export const resolveAgentExecution = ({
     rawRuntimeMaxConcurrency === undefined
       ? undefined
       : RuntimeConcurrencySchema.parse(rawRuntimeMaxConcurrency);
+  const runtimeWorkerTransport =
+    rawRuntimeWorkerTransport === undefined
+      ? undefined
+      : TaskWorkerTransportSchema.parse(rawRuntimeWorkerTransport);
   const mode = override?.mode ?? preferences.creativeTaskExecution.mode;
   const modeSource = override === undefined ? preferenceSource : "user-prompt";
   if (mode === "inline") {
@@ -101,6 +112,7 @@ export const resolveAgentExecution = ({
       requestedMaxConcurrency: null,
       effectiveMaxConcurrency: 0,
       requireExactConcurrency: false,
+      workerTransport: null,
       source: { mode: modeSource, maxConcurrency: null },
       limitedBy: [] as const,
       persistence: "current-production-only" as const,
@@ -146,6 +158,7 @@ export const resolveAgentExecution = ({
     override.requireExactConcurrency === true;
   return {
     status:
+      runtimeWorkerTransport === undefined ||
       effectiveMaxConcurrency === 0 ||
       (requireExactConcurrency &&
         effectiveMaxConcurrency < requestedMaxConcurrency)
@@ -155,8 +168,14 @@ export const resolveAgentExecution = ({
     requestedMaxConcurrency,
     effectiveMaxConcurrency,
     requireExactConcurrency,
+    workerTransport: runtimeWorkerTransport ?? null,
     source: { mode: modeSource, maxConcurrency: maxConcurrencySource },
-    limitedBy,
+    limitedBy: [
+      ...(runtimeWorkerTransport === undefined
+        ? (["worker-transport-unverified"] as const)
+        : []),
+      ...limitedBy,
+    ],
     persistence: "current-production-only" as const,
   };
 };

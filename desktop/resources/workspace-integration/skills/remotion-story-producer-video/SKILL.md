@@ -19,7 +19,8 @@ Remotion Studio, a Settings server, a background engine, or another executable.
    command, Settings, Studio, or credential endpoint. Report any structured blocker exactly; do not retry or downgrade.
 2. Run `./.rsp/bin/rsp help --json` when command discovery is needed. Local structural contracts are available with
    `./.rsp/bin/rsp schema project-create`, `./.rsp/bin/rsp schema project-revision`, and
-   `./.rsp/bin/rsp schema asset-import`; these commands do not require an active App session. Do not infer
+   `./.rsp/bin/rsp schema asset-import`. Before delegating, also read `./.rsp/bin/rsp schema task-worker`; these
+   commands do not require an active App session. Do not infer
    unsupported commands or fields.
 
 ## Create or select a Project
@@ -70,9 +71,10 @@ Delivery, or render runtime.
 ## Resolve, inspect, and prepare
 
 Run `./.rsp/bin/rsp context --project <storyId>`, then `./.rsp/bin/rsp inspect --project <storyId>`. Add Delivery or
-execution overrides only when chosen by the user/current Workspace settings. If subagent execution is selected and
-the host exposes a concrete runtime capacity, pass it as `--runtime-max-concurrency <n>`; zero or an unsatisfied exact
-capacity is a blocker before preparation. Do not infer child capability from host branding.
+execution overrides only when chosen by the user/current Workspace settings. A generic delegate/thread/chat is not
+a runtime-native child. If subagent execution is selected, require concrete child execution plus either a verified
+`shared-workspace` or `controller-io` transport; pass it as `--worker-transport` with known capacity. Missing transport,
+zero capacity, or an unsatisfied exact capacity is a blocker before preparation. Do not infer capability from branding.
 
 Inspect is read-only, zero-provider, and zero-write. Report source readiness, estimated cost, artifact reuse, and
 changed-input explanations before running the cost-bearing
@@ -81,12 +83,14 @@ changed-input explanations before running the cost-bearing
 ## Execute self-describing dirty tasks
 
 Follow `controlPlane.execution`. Inline executes one dirty workspace at a time. Subagents use only runtime-native
-children admitted by the resolved bounded pool; a spawn failure runs that task's exact `hostFailureCommand` and does
-not fall back inline.
+children admitted by the resolved bounded pool. Only a real spawn/mount/controller-IO failure runs Root's exact
+`spawnFailureCommand`; it does not fall back inline.
 
-Each executor is bound to one TaskRevision and may read only its `task.json`, `inputs/context.json`, and
-`inputs/task-contract.json`. `./.rsp/bin/rsp task describe --task <taskRevision>` returns the same redacted task
-contract when discovery through the command surface is preferable. The task contract is the authority for exact
+Before any task read or write, run that dirty task's exact bind command. Continue only on `task-worker-bound`; use
+only its returned workspace capability and bound commands, never a guessed path. Bind validates Task/attempt identity,
+`task.json`, `inputs/context.json`, and `inputs/task-contract.json`. Any bind/immutable-input failure means zero writes,
+stop, and return the structured `fixed-controller` issue. The binding's exact `task describe` command returns the
+same redacted contract when command discovery is preferable. The task contract is the authority for exact
 output paths, JSON Schemas, component signatures, examples, constraints, and which fields are derived by rsp.
 
 Every `scene-owner` Renderer must be authored from its own immutable Scene context. Never read, copy, adapt, or
@@ -97,12 +101,12 @@ not make copied TSX valid.
 Write only outputs whose contract owner is `agent` or `agent-draft-rsp-finalize`; the latter is a draft that fixed
 finalization replaces. Never write an `rsp-finalize`-only output. Then:
 
-1. Run the returned exact `task finalize` command once. It canonicalizes authored JSON and computes fixed
+1. Run the returned exact bound `task finalize` command once. It canonicalizes authored JSON and computes fixed
    fingerprints/receipts; never guess or hand-author derived values.
-2. Run the exact `task check` command. Correct only the owning workspace using structured `issues[]`, then rerun
-   finalize/check as directed until valid.
-3. Run the exact attempt-bound `task commit` command, or the exact `task fail`/`hostFailureCommand` when execution
-   cannot complete. Never cross-read, cross-commit, edit fixed state, or treat chat/child status as completion.
+2. Run exact bound `task check`. Every issue owned by `agent-output` is a repairable task issue: correct only declared
+   outputs and rerun. Never classify a fixed validation issue as host failure.
+3. Run exact bound commit. Use `taskFailureCommand` only for unrecoverable authored output;
+   `fixedFailureCommand` records immutable/controller failure. Never cross-read/commit or trust chat as completion.
 
 ## Fixed continuation and Delivery
 
@@ -111,6 +115,10 @@ attempt-bound `continue` command returned by prepare. Then suspend: do not poll,
 workspace, or infer terminal state. A disconnected client does not cancel the Engine's one-shot claim. On a later,
 explicit diagnostic/recovery request, `./.rsp/bin/rsp attempt status --project <storyId> --attempt <attemptId>` may
 read the redacted durable attempt state; never use it as an active continuation poll loop.
+
+A terminal failed attempt stays immutable. On a later explicit recovery action, run `attempt recover-inspect`, then
+`attempt reissue`. Reissue requires the same current Revision and no active attempt, performs no provider calls,
+needs no current Delivery, preserves valid drafts, and returns a fresh attempt/binding. It is not candidate revision.
 
 `project-production-source-current` is a valid manual-policy terminal with no playable Delivery. An explicit manual
 Delivery request may run `./.rsp/bin/rsp delivery build --project <storyId>`; automatic policy uses the same fixed

@@ -86,18 +86,21 @@ GlobalVisual executor 还必须服从 `inputs/context.json` 中 fixed 派生的 
 `GlobalVisualBaseLayer` 提供全片稳定底板，让 `GlobalVisualDecorationLayers` 以 narrated window 起点为 local frame 0；
 不能把 decoration、continuity motif 或 Beat-specific 变化塞入 base 以绕过 silent boundary gate。
 
-executor 只能在自己的 workspace 循环：
+executor 先运行 prepare 返回的 exact task bind command；只有 `task-worker-bound` 后才能通过返回的 capability
+读取 immutable inputs、写 declared outputs。绑定后循环：
 
 ```bash
-npm run project:task:check -- --task <taskRevision>
-npm run project:task:commit -- --task <taskRevision> --attempt <attemptId>
-npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --kind task|host
+npm run project:task:finalize -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:check -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:commit -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --kind task|host|fixed
 ```
 
 check 是只读；commit 重跑同一 validator。校验失败由同一 executor 在宣告终态前修正 workspace 后重跑。
 inline 模式下 Root 一次只处理一个 workspace。subagents 模式按 `effectiveMaxConcurrency` 维护 bounded pool；
 队列未空时仅 wait-any 释放 admission slot，不轮询全部 child。spawn hard failure 运行 exact
-`hostFailureCommand`，不自动改为 inline。聊天不是 terminal receipt。
+`spawnFailureCommand`，不自动改为 inline。structured agent-output validation issue 只在 owning task 修复，不能
+记录 host failure。聊天不是 terminal receipt。
 
 ## 6. Hand off to fixed continuation
 

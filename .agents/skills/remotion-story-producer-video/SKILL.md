@@ -25,9 +25,9 @@ local Catalog first and use `project:asset:import`. MCP data never enters tasks 
 
 Resolve once with `project:execution:resolve`. Explicit prompt fields override settings; omissions inherit settings,
 then built-in `inline`. Overrides are one-production unless explicitly saved. Inline needs no child runtime and is
-sequential. Select subagents only through prompt/settings with runtime-native children; pass known capacity, maximum
-four. If exact capacity or known zero resolves `blocked`, stop before prepare. Do not persist prompts or put policy in
-revision IDs.
+sequential. Select subagents only with runtime-native children plus a verified `shared-workspace` or `controller-io`
+transport; pass transport and known capacity, maximum four. Any blocked resolution stops before prepare. A generic
+delegate is not a native child. See [worker protocol](references/task-worker-protocol.md).
 
 ## Inspect before cost
 
@@ -43,14 +43,14 @@ exclude its diagnostics. Reuse artifacts and execute only `dirtyAgentTasks`.
 
 Use the resolved mode with [Scene](references/scene-agent-orchestration.md),
 [GlobalVisual](references/global-visual-agent-orchestration.md), or [Cover](references/cover-agent-orchestration.md)
-prompt; never Agent-author `scene-template`. Each Root or child executor reads immutable inputs, writes only
-`.producer-work/<storyId>/<taskRevision>/`, loops check, then runs prepare's attempt-bound terminal command. The
-validated ArtifactAttestation and task-terminal event are durable authority.
+prompt; never Agent-author `scene-template`. Before any read/write, each executor runs its exact attempt-bound bind
+command. Use only the returned workspace capability and commands; never guess a path. Immutable input/identity
+failure means stop with zero writes. The validated ArtifactAttestation and task-terminal event are durable authority.
 
 Inline Root executes one workspace at a time. Subagent mode admits at most `effectiveMaxConcurrency` native
-children; when tasks exceed it, wait-any only for admission. Never poll all children or treat chat as completion. A
-hard spawn failure runs exact `hostFailureCommand`, without switching modes. Continue after every task is executed
-or admitted.
+children; when tasks exceed it, wait-any only for admission. Never poll all children or treat chat as completion.
+Only a real spawn/transport failure runs exact `spawnFailureCommand`; structured validation issues are repaired in
+the owning task and never classified as host failure. Continue after every task is executed or admitted.
 
 ## Hand off to fixed continuation
 
@@ -69,9 +69,10 @@ at ExecutionAttempt creation. No retry, Root re-entry, direct converge, or works
 
 ## Classify failure by task owner
 
-Only its executor corrects a workspace before terminal; failure ends the attempt. Separate engineering uses
-[system hardening](references/agent-rework-and-system-hardening.md). Never retry, fallback, weaken validators, or
-fabricate attestations inside it.
+Only its executor corrects `agent-output` issues before terminal. `fixed-controller` faults stop with zero writes;
+`worker-host` is reserved for infrastructure. A failed attempt stays immutable. Explicitly inspect/reissue it only
+through the supported recovery commands; this creates a fresh attempt without requiring current Delivery. Separate
+shared defects use [system hardening](references/agent-rework-and-system-hardening.md).
 
 ## Finish with verified delivery
 

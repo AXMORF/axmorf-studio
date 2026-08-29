@@ -7,7 +7,10 @@ import {
   ProjectRevisionCandidateIdSchema,
   ProjectRevisionInputSchema,
   ProductionRevisionIdSchema,
+  ProducerLogicalPathSchema,
   StoryIdSchema,
+  TaskWorkerBindingIdSchema,
+  TaskWorkerTransportSchema,
   TaskRevisionSchema,
 } from "../../src/contracts";
 import { AgentExecutionOverrideSchema } from "../../settings/contracts/execution-preferences";
@@ -191,6 +194,12 @@ const AssetImportRequestSchema = z.strictObject({
   ...RspAssetImportInputObjectSchema.shape,
 });
 
+const BoundTaskRequestShape = {
+  taskRevision: TaskRevisionSchema,
+  attemptId: AttemptIdSchema,
+  bindingId: TaskWorkerBindingIdSchema,
+} as const;
+
 export const RspCommandRequestSchema = z
   .discriminatedUnion("command", [
     z.strictObject({ ...RspRequestBaseShape, command: z.literal("doctor") }),
@@ -226,6 +235,7 @@ export const RspCommandRequestSchema = z
       deliveryPolicy: DeliveryPolicySchema.optional(),
       execution: AgentExecutionOverrideSchema.optional(),
       runtimeMaxConcurrency: z.number().int().nonnegative().safe().optional(),
+      runtimeWorkerTransport: TaskWorkerTransportSchema.optional(),
     }),
     z.strictObject({
       ...RspRequestBaseShape,
@@ -258,31 +268,53 @@ export const RspCommandRequestSchema = z
     }),
     z.strictObject({
       ...RspRequestBaseShape,
+      command: z.literal("task-bind"),
+      ...BoundTaskRequestShape,
+      transport: TaskWorkerTransportSchema,
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
       command: z.literal("task-check"),
-      taskRevision: TaskRevisionSchema,
+      ...BoundTaskRequestShape,
     }),
     z.strictObject({
       ...RspRequestBaseShape,
       command: z.literal("task-describe"),
-      taskRevision: TaskRevisionSchema,
+      ...BoundTaskRequestShape,
     }),
     z.strictObject({
       ...RspRequestBaseShape,
       command: z.literal("task-finalize"),
-      taskRevision: TaskRevisionSchema,
+      ...BoundTaskRequestShape,
     }),
     z.strictObject({
       ...RspRequestBaseShape,
       command: z.literal("task-commit"),
-      taskRevision: TaskRevisionSchema,
-      attemptId: AttemptIdSchema,
+      ...BoundTaskRequestShape,
     }),
     z.strictObject({
       ...RspRequestBaseShape,
       command: z.literal("task-fail"),
-      taskRevision: TaskRevisionSchema,
-      attemptId: AttemptIdSchema,
-      kind: z.enum(["task", "host"]),
+      ...BoundTaskRequestShape,
+      kind: z.enum(["task", "host", "fixed"]),
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
+      command: z.literal("task-file-read"),
+      ...BoundTaskRequestShape,
+      logicalPath: ProducerLogicalPathSchema,
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
+      command: z.literal("task-file-write"),
+      ...BoundTaskRequestShape,
+      logicalPath: ProducerLogicalPathSchema,
+      contentBase64: z
+        .string()
+        .max(8 * 1024 * 1024)
+        .regex(
+          /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u,
+        ),
     }),
     z.strictObject({
       ...RspRequestBaseShape,
@@ -298,6 +330,21 @@ export const RspCommandRequestSchema = z
       command: z.literal("attempt-status"),
       storyId: StoryIdSchema,
       attemptId: AttemptIdSchema,
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
+      command: z.literal("attempt-recover-inspect"),
+      storyId: StoryIdSchema,
+      attemptId: AttemptIdSchema,
+      candidateId: ProjectRevisionCandidateIdSchema.optional(),
+    }),
+    z.strictObject({
+      ...RspRequestBaseShape,
+      command: z.literal("attempt-reissue"),
+      storyId: StoryIdSchema,
+      attemptId: AttemptIdSchema,
+      candidateId: ProjectRevisionCandidateIdSchema.optional(),
+      deliveryPolicy: DeliveryPolicySchema.optional(),
     }),
     z.strictObject({
       ...RspRequestBaseShape,
@@ -324,8 +371,11 @@ const RSP_READ_ONLY_COMMANDS = new Set<RspCommandRequest["command"]>([
   "context",
   "inspect",
   "attempt-status",
+  "attempt-recover-inspect",
+  "task-bind",
   "task-describe",
   "task-check",
+  "task-file-read",
 ]);
 
 export const isRspReadOnlyCommand = (command: RspCommandRequest["command"]) =>

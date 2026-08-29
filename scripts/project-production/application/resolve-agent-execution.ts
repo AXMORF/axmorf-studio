@@ -2,6 +2,7 @@ import {
   resolveAgentExecution,
   type AgentExecutionOverride,
 } from "../../../settings/contracts/execution-preferences";
+import type { TaskWorkerTransport } from "../../../src/contracts";
 import {
   loadExecutionPreferences,
   resolveExecutionPreferencesPath,
@@ -11,10 +12,12 @@ export const resolveProjectAgentExecution = async ({
   rootDir,
   override,
   runtimeMaxConcurrency,
+  runtimeWorkerTransport,
 }: {
   readonly rootDir: string;
   readonly override?: AgentExecutionOverride;
   readonly runtimeMaxConcurrency?: number;
+  readonly runtimeWorkerTransport?: TaskWorkerTransport;
 }) => {
   const loaded = await loadExecutionPreferences({
     preferencesPath: resolveExecutionPreferencesPath({ rootDir }),
@@ -26,5 +29,8 @@ export const resolveProjectAgentExecution = async ({
     ...(runtimeMaxConcurrency === undefined
       ? {}
       : { runtimeMaxConcurrency }),
+    ...(runtimeWorkerTransport === undefined
+      ? {}
+      : { runtimeWorkerTransport }),
   });
 };

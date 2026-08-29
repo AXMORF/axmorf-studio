@@ -30,7 +30,8 @@ Phase B current implementation 已 clean-break 为 Workspace-owned `rsp-local-v2
 Pack 安装的 self-contained client，只连接 App-running authenticated Unix-domain socket，不依赖 host Node/npm/Git、
 源码 checkout 或 repository npm fallback。public surface 覆盖 `doctor`、`help --json`、read-only schemas、
 `project create-context/validate/create/list/delete`、`project revise-context/revise-validate/revise`、`asset import`、`context`、`inspect`、`prepare`、
-`task describe/finalize/check/commit/fail`、`attempt status`、one-shot `continue` 与 `delivery build`。`manual` 可在
+`task bind/describe/finalize/check/commit/fail/file-read/file-write`、`attempt status/recover-inspect/reissue`、
+one-shot `continue` 与 `delivery build`。`manual` 可在
 `project-production-source-current` 终结且没有可播放视频；`automatic` 或 later explicit Delivery 才能产生复验后的
 exact four-file current package。
 
@@ -68,13 +69,15 @@ App 不安装、升级、托管或调用 Codex/Hermes SDK。目标行为见
 开箱生产只要求当前 Agent 能：
 
 1. 读取 Workspace/仓库文件和 JSON；
-2. 在精确 workspace 内编辑普通文件；
+2. 运行 attempt-bound `task bind`，并通过返回的 exact shared workspace 或 controller-IO capability 编辑
+   declared outputs；
 3. 在 Desktop Workspace 运行 self-contained `.rsp/bin/rsp` 并读取结构化 stdout；源码 checkout 流程才使用 npm CLI；
 4. 保持 fixed continuation 进程运行到 terminal output。
 
 全新 checkout 的内置执行模式是 `inline`，不要求原生子 Agent API。`subagents` 只是一项可选加速能力：宿主
-必须能创建相互隔离的 runtime-native children、限制并发并执行 wait-any admission。线程、聊天、普通后台 shell
-或宿主无法确认的容量不算该能力。已保存设置选择 `subagents` 但宿主容量为零时，生产在 prepare 前阻塞；不自动
+必须能创建相互隔离的 runtime-native children、限制并发、执行 wait-any admission，并验证
+`shared-workspace` 或 `controller-io` transport。generic delegate、线程、聊天、普通后台 shell、未验证 transport
+或宿主无法确认的容量不算该能力。已保存设置选择 `subagents` 但能力不完整时，生产在 prepare 前阻塞；不自动
 回退或伪造 child completion。
 
 ## 通用视频入口
@@ -85,6 +88,11 @@ App 不安装、升级、托管或调用 Codex/Hermes SDK。目标行为见
 2. 按 Skill 只加载当前阶段需要的 reference。
 3. 运行 `project:execution:resolve`。没有持久化设置或提示词 override 时会解析为 `inline`。
 4. 后续只消费 `project:produce:inspect`、`project:produce:prepare` 返回的 JSON、task workspace 和 exact commands。
+
+`task bind` 是零写入硬门：immutable input、Task/attempt identity、checksum 或 transport 失败时不得写任何 task
+文件。finalize/check 的 `agent-output` issues 由同一 executor 修复；只有真实 spawn/mount/controller-IO/sandbox/
+permission 故障才是 `worker-host`。terminal failed attempt 通过显式 recover-inspect/reissue 创建 fresh attempt；
+旧 attempt 不变，reissue 零 provider call 且不要求 current Delivery。
 
 仓库脚本不调用 Codex/Claude/Gemini/Cursor/Copilot SDK，也不创建 Agent。`prepare` 产生通用任务描述和 shell
 commands；当前宿主负责 inline 执行或可选 child admission。

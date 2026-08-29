@@ -530,9 +530,11 @@ export const createEngineController = ({
   const authorizeCommand: RspCommandAuthorizer = (request) => {
     const readonlyDuringActive = isRspReadOnlyCommand(request.command);
     const activeTaskWorkspaceMutation =
-      request.command === "task-finalize" &&
+      (request.command === "task-finalize" ||
+        request.command === "task-file-write") &&
       activeWork?.kind === "production" &&
       activeWork.attemptId !== null &&
+      request.attemptId === activeWork.attemptId &&
       activeWork.phase === "awaiting-task-terminals";
     const exactAttemptTerminal =
       (request.command === "task-commit" || request.command === "task-fail") &&
@@ -585,6 +587,17 @@ export const createEngineController = ({
         phase: "preparing-production",
       };
       postActiveWork(request.requestId);
+    } else if (request.command === "attempt-reissue") {
+      activeWork = {
+        storyId: request.storyId,
+        ...(request.candidateId === undefined
+          ? {}
+          : { candidateId: request.candidateId }),
+        kind: "production",
+        attemptId: null,
+        phase: "reissuing-production",
+      };
+      postActiveWork(request.requestId);
     } else if (request.command === "delivery-build") {
       activeWork = {
         storyId: request.storyId,
@@ -615,16 +628,21 @@ export const createEngineController = ({
       throw new Error("engine-not-initialized");
     const terminalCommand =
       request.command === "continue" || request.command === "delivery-build";
+    const opensAttempt =
+      request.command === "prepare" || request.command === "attempt-reissue";
     const ownsPreparingState =
-      request.command === "prepare" &&
+      opensAttempt &&
       activeWork?.kind === "production" &&
       activeWork.storyId === request.storyId &&
       activeWork.attemptId === null &&
-      activeWork.phase === "preparing-production";
+      activeWork.phase ===
+        (request.command === "prepare"
+          ? "preparing-production"
+          : "reissuing-production");
     let prepareReachedAwaiting = false;
     try {
       const result = await rawExecuteCommand(request);
-      if (request.command === "prepare") {
+      if (opensAttempt) {
         const attemptId = attemptIdFromResult(result);
         if (attemptId !== null) {
           activeWork = {

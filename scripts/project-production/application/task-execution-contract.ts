@@ -113,18 +113,24 @@ const Renderer = ({sceneFrame, durationInFrames, viewportWidth, viewportHeight, 
 export default Renderer;
 `;
   return TaskExecutionContractSchema.parse({
-    schemaVersion: 1,
-    contractVersion: "agent-task-execution-contract-v1",
+    schemaVersion: 2,
+    contractVersion: "agent-task-execution-contract-v2",
     taskKind: "scene-owner",
     purpose:
       "Author one meaning-local Scene renderer and its semantic visual, shot, sync, sound, resource, and recipe decisions.",
     workflow: [
+      "Run the exact task bind command and do not write until it returns task-worker-bound.",
       "Read inputs/context.json and use scene.taskInput as immutable identity and timing authority.",
       "Replace the examples with creative output that realizes the current StoryBeat, brief, VisualStyle, and requirements.",
       "Write every declared output. Fingerprint fields listed as derivedFields may be omitted or stale in drafts.",
       "Run rsp task finalize once to canonicalize JSON and compute derived fingerprints, then run rsp task check.",
       "Correct only this workspace and repeat finalize/check until valid, then run the attempt-bound commit command.",
     ],
+    preflight: {
+      bindingRequiredBeforeWrites: true,
+      immutableInputFailurePolicy: "abort-zero-write",
+      repairableValidationOwner: "agent-output",
+    },
     immutableInputs: ["inputs/context.json", "inputs/task-contract.json"],
     outputs: [
       sourceOutput({
@@ -262,8 +268,12 @@ export default Renderer;
     ],
     constraints: sharedConstraints,
     commands: {
-      finalize: "./.rsp/bin/rsp task finalize --task <taskRevision>",
-      check: "./.rsp/bin/rsp task check --task <taskRevision>",
+      bind:
+        "./.rsp/bin/rsp task bind --task <taskRevision> --attempt <attemptId> --binding <bindingId> --transport <shared-workspace|controller-io>",
+      finalize:
+        "./.rsp/bin/rsp task finalize --task <taskRevision> --attempt <attemptId> --binding <bindingId>",
+      check:
+        "./.rsp/bin/rsp task check --task <taskRevision> --attempt <attemptId> --binding <bindingId>",
     },
   });
 };
@@ -309,17 +319,23 @@ const globalVisualContract = (rawContext: unknown): TaskExecutionContract => {
   );
   const layerPolicy = GlobalVisualLayerPolicySchema.parse(context.layerPolicy);
   return TaskExecutionContractSchema.parse({
-    schemaVersion: 1,
-    contractVersion: "agent-task-execution-contract-v1",
+    schemaVersion: 2,
+    contractVersion: "agent-task-execution-contract-v2",
     taskKind: "global-visual-owner",
     purpose:
       "Author one visual-only full-Composition base treatment plus narrated-content-only decoration and continuity layers without taking Scene or text ownership.",
     workflow: [
+      "Run the exact task bind command and do not write until it returns task-worker-bound.",
       "Read the full Story, timing, layer policy, render, readability, resource pool, VisualStyle, and GlobalVisual brief from inputs/context.json.",
       "Write the three declared outputs and replace examples with current creative decisions.",
       "Run rsp task finalize to canonicalize the plan and compute its fingerprint, then run rsp task check.",
       "Correct only this workspace until valid, then run the attempt-bound commit command.",
     ],
+    preflight: {
+      bindingRequiredBeforeWrites: true,
+      immutableInputFailurePolicy: "abort-zero-write",
+      repairableValidationOwner: "agent-output",
+    },
     immutableInputs: ["inputs/context.json", "inputs/task-contract.json"],
     outputs: [
       sourceOutput({
@@ -397,8 +413,12 @@ export const GlobalVisualDecorationLayers = () => {
     ],
     constraints: sharedConstraints,
     commands: {
-      finalize: "./.rsp/bin/rsp task finalize --task <taskRevision>",
-      check: "./.rsp/bin/rsp task check --task <taskRevision>",
+      bind:
+        "./.rsp/bin/rsp task bind --task <taskRevision> --attempt <attemptId> --binding <bindingId> --transport <shared-workspace|controller-io>",
+      finalize:
+        "./.rsp/bin/rsp task finalize --task <taskRevision> --attempt <attemptId> --binding <bindingId>",
+      check:
+        "./.rsp/bin/rsp task check --task <taskRevision> --attempt <attemptId> --binding <bindingId>",
     },
   });
 };
@@ -408,16 +428,22 @@ const coverContract = (rawContext: unknown): TaskExecutionContract => {
   const storyId = StoryIdSchema.parse(context.story?.storyId);
   const compositionId = deriveCoverCompositionBaseId(storyId);
   return TaskExecutionContractSchema.parse({
-    schemaVersion: 1,
-    contractVersion: "agent-task-execution-contract-v1",
+    schemaVersion: 2,
+    contractVersion: "agent-task-execution-contract-v2",
     taskKind: "cover-owner",
     purpose:
       "Author two code-only one-frame Delivery covers that express the current Story and VisualStyle.",
     workflow: [
+      "Run the exact task bind command and do not write until it returns task-worker-bound.",
       "Read Story, VisualStyle, and CoverSpec from inputs/context.json.",
       "Write all four source files and replace the visual examples with Story-specific code-only graphics.",
       "Run rsp task finalize, then rsp task check, correct only this workspace, and commit with the exact attempt-bound command.",
     ],
+    preflight: {
+      bindingRequiredBeforeWrites: true,
+      immutableInputFailurePolicy: "abort-zero-write",
+      repairableValidationOwner: "agent-output",
+    },
     immutableInputs: ["inputs/context.json", "inputs/task-contract.json"],
     outputs: [
       sourceOutput({
@@ -466,8 +492,12 @@ export const CoverRoot = () => (<>
     ],
     constraints: sharedConstraints,
     commands: {
-      finalize: "./.rsp/bin/rsp task finalize --task <taskRevision>",
-      check: "./.rsp/bin/rsp task check --task <taskRevision>",
+      bind:
+        "./.rsp/bin/rsp task bind --task <taskRevision> --attempt <attemptId> --binding <bindingId> --transport <shared-workspace|controller-io>",
+      finalize:
+        "./.rsp/bin/rsp task finalize --task <taskRevision> --attempt <attemptId> --binding <bindingId>",
+      check:
+        "./.rsp/bin/rsp task check --task <taskRevision> --attempt <attemptId> --binding <bindingId>",
     },
   });
 };

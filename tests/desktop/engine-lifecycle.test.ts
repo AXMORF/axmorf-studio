@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  buildTaskWorkerBindingId,
   ProductionRevisionIdSchema,
   ProjectRevisionCandidateIdSchema,
   StoryIdSchema,
@@ -410,6 +411,8 @@ test("active work rejects conflicting mutations and only admits its exact attemp
     tokenEvent(new Uint8Array(32).fill(3)),
   );
   const attemptId = "ed99ee7f-f8ec-45f0-ae5e-0a840bcfd720";
+  const taskRevision = TaskRevisionSchema.parse(`task-${"b".repeat(64)}`);
+  const bindingId = buildTaskWorkerBindingId({ taskRevision, attemptId });
   const revisionId = ProductionRevisionIdSchema.parse(
     `revision-${"a".repeat(64)}`,
   );
@@ -445,7 +448,9 @@ test("active work rejects conflicting mutations and only admits its exact attemp
     requestId: "rsp-finalize-before-attempt",
     workspaceId,
     command: "task-finalize",
-    taskRevision: TaskRevisionSchema.parse(`task-${"b".repeat(64)}`),
+    taskRevision,
+    attemptId,
+    bindingId,
   });
   assert.deepEqual(harness.commands, ["prepare"]);
   assert.equal(
@@ -493,8 +498,9 @@ test("active work rejects conflicting mutations and only admits its exact attemp
     requestId: "rsp-wrong-attempt-commit",
     workspaceId,
     command: "task-commit",
-    taskRevision: TaskRevisionSchema.parse(`task-${"b".repeat(64)}`),
+    taskRevision,
     attemptId: "11111111-1111-4111-8111-111111111111",
+    bindingId,
   });
   assert.deepEqual(harness.commands, ["prepare"]);
   assert.equal(
@@ -507,22 +513,27 @@ test("active work rejects conflicting mutations and only admits its exact attemp
     requestId: "rsp-active-task-describe",
     workspaceId,
     command: "task-describe",
-    taskRevision: TaskRevisionSchema.parse(`task-${"b".repeat(64)}`),
+    taskRevision,
+    attemptId,
+    bindingId,
   });
   await harness.executeFromRsp({
     protocolVersion: RSP_PROTOCOL_VERSION,
     requestId: "rsp-active-task-finalize",
     workspaceId,
     command: "task-finalize",
-    taskRevision: TaskRevisionSchema.parse(`task-${"b".repeat(64)}`),
+    taskRevision,
+    attemptId,
+    bindingId,
   });
   await harness.executeFromRsp({
     protocolVersion: RSP_PROTOCOL_VERSION,
     requestId: "rsp-exact-attempt-commit",
     workspaceId,
     command: "task-commit",
-    taskRevision: TaskRevisionSchema.parse(`task-${"b".repeat(64)}`),
+    taskRevision,
     attemptId,
+    bindingId,
   });
   await harness.executeFromRsp({
     protocolVersion: RSP_PROTOCOL_VERSION,

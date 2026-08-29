@@ -58,13 +58,14 @@ test("user execution fields override settings and runtime capacity clamps safely
   assert.deepEqual(
     resolveAgentExecution({ preferences: settings, preferenceSource: "settings" }),
     {
-      status: "ready",
+      status: "blocked",
       mode: "subagents",
       requestedMaxConcurrency: 3,
       effectiveMaxConcurrency: 1,
       requireExactConcurrency: false,
+      workerTransport: null,
       source: { mode: "settings", maxConcurrency: "settings" },
-      limitedBy: ["runtime-unknown-default"],
+      limitedBy: ["worker-transport-unverified", "runtime-unknown-default"],
       persistence: "current-production-only",
     },
   );
@@ -84,8 +85,10 @@ test("user execution fields override settings and runtime capacity clamps safely
     preferenceSource: "settings",
     override: { mode: "subagents", maxConcurrency: 8 },
     runtimeMaxConcurrency: 6,
+    runtimeWorkerTransport: "controller-io",
   });
   assert.equal(clamped.status, "ready");
+  assert.equal(clamped.workerTransport, "controller-io");
   assert.equal(clamped.effectiveMaxConcurrency, 4);
   assert.deepEqual(clamped.limitedBy, ["repository-safety-ceiling"]);
 
@@ -98,6 +101,7 @@ test("user execution fields override settings and runtime capacity clamps safely
       requireExactConcurrency: true,
     },
     runtimeMaxConcurrency: 6,
+    runtimeWorkerTransport: "shared-workspace",
   });
   assert.equal(exact.status, "blocked");
   assert.equal(exact.effectiveMaxConcurrency, 4);
@@ -106,6 +110,7 @@ test("user execution fields override settings and runtime capacity clamps safely
     preferences: settings,
     preferenceSource: "settings",
     runtimeMaxConcurrency: 0,
+    runtimeWorkerTransport: "shared-workspace",
   });
   assert.equal(unavailable.status, "blocked");
   assert.equal(unavailable.effectiveMaxConcurrency, 0);

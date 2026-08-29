@@ -11,6 +11,8 @@ import {
 } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
 
+import { z } from "zod";
+
 import {
   ProducerTaskSpecSchema,
   StoryIdSchema,
@@ -21,6 +23,14 @@ import {
 import type { ProductionLocations } from "../domain/production-locations";
 
 type TaskWorkspaceLocation = Readonly<{ locations: ProductionLocations }>;
+
+export class TaskWorkspaceAuthorityError extends Error {
+  readonly code = "task-workspace-authority-invalid" as const;
+
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+  }
+}
 
 const taskWorkspaceRoot = ({ locations }: TaskWorkspaceLocation) =>
   locations.taskWorkspaceRoot;
@@ -180,29 +190,133 @@ export const createTaskWorkspace = async (
 export const readTaskWorkspace = async (
   input: TaskWorkspaceLocation & { readonly taskRevision: string },
 ) => {
-  const { taskRevision } = input;
-  const storage = taskWorkspaceRoot(input);
-  const revision = TaskRevisionSchema.parse(taskRevision);
-  const storyRoots = await readdir(storage, { withFileTypes: true });
-  const matches: Array<{ task: ProducerTaskSpec; workspace: string }> = [];
-  for (const story of storyRoots) {
-    if (!story.isDirectory() || story.isSymbolicLink()) continue;
-    const workspace = join(storage, story.name, revision);
-    try {
-      const metadata = await lstat(workspace);
-      if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
-        throw new Error("Task workspace path is unsafe.");
+  try {
+    const { taskRevision } = input;
+    const storage = taskWorkspaceRoot(input);
+    const revision = TaskRevisionSchema.parse(taskRevision);
+    const storyRoots = await readdir(storage, { withFileTypes: true });
+    const matches: Array<{ task: ProducerTaskSpec; workspace: string }> = [];
+    for (const story of storyRoots) {
+      if (!story.isDirectory() || story.isSymbolicLink()) continue;
+      const workspace = join(storage, story.name, revision);
+      try {
+        const metadata = await lstat(workspace);
+        if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+          throw new Error("Task workspace path is unsafe.");
+        }
+        const task = await readStoredTask(workspace);
+        await assertDeclaredReadsCurrent(workspace, task);
+        matches.push({ task, workspace });
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
       }
-      const task = await readStoredTask(workspace);
-      await assertDeclaredReadsCurrent(workspace, task);
-      matches.push({ task, workspace });
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
+    if (matches.length !== 1)
+      throw new Error("Task workspace is missing or ambiguous.");
+    return matches[0];
+  } catch (error) {
+    if (error instanceof TaskWorkspaceAuthorityError) throw error;
+    throw new TaskWorkspaceAuthorityError(
+      error instanceof Error
+        ? error.message
+        : "Task workspace authority is invalid.",
+      { cause: error },
+    );
   }
-  if (matches.length !== 1)
-    throw new Error("Task workspace is missing or ambiguous.");
-  return matches[0];
+};
+
+/**
+ * Reads only immutable task identity for controller-owned failure recording.
+ * It deliberately does not admit task execution or output writes.
+ */
+export const readTaskWorkspaceIdentity = async (
+  input: TaskWorkspaceLocation & { readonly taskRevision: string },
+) => {
+  try {
+    const revision = TaskRevisionSchema.parse(input.taskRevision);
+    const storage = taskWorkspaceRoot(input);
+    const storyRoots = await readdir(storage, { withFileTypes: true });
+    const matches: Array<{ task: ProducerTaskSpec; workspace: string }> = [];
+    for (const story of storyRoots) {
+      if (!story.isDirectory() || story.isSymbolicLink()) continue;
+      const workspace = join(storage, story.name, revision);
+      try {
+        const metadata = await lstat(workspace);
+        if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+          throw new Error("Task workspace path is unsafe.");
+        }
+        const task = await readStoredTask(workspace);
+        if (task.taskRevision !== revision) {
+          throw new Error("Task workspace identity is stale.");
+        }
+        matches.push({ task, workspace });
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      }
+    }
+    if (matches.length !== 1) {
+      throw new Error("Task workspace identity is missing or ambiguous.");
+    }
+    return matches[0]!;
+  } catch (error) {
+    if (error instanceof TaskWorkspaceAuthorityError) throw error;
+    throw new TaskWorkspaceAuthorityError(
+      error instanceof Error
+        ? error.message
+        : "Task workspace identity could not be read.",
+      { cause: error },
+    );
+  }
+};
+
+export const reissueTaskWorkspace = async (
+  input: TaskWorkspaceLocation & {
+    readonly task: ProducerTaskSpec;
+    readonly seedFiles: Readonly<Record<string, Uint8Array | string>>;
+    readonly failedAttemptId: string;
+  },
+) => {
+  const workspace = resolveTaskWorkspacePath({
+    ...input,
+    storyId: input.task.storyId,
+    taskRevision: input.task.taskRevision,
+  });
+  try {
+    return {
+      workspace: await createTaskWorkspace(input),
+      recovery: "preserved" as const,
+    };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") throw error;
+  }
+  const metadata = await lstat(workspace);
+  if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+    throw new TaskWorkspaceAuthorityError(
+      "Unsafe task workspace cannot be reissued automatically.",
+    );
+  }
+  const quarantine = join(
+    dirname(workspace),
+    `.${input.task.taskRevision}.failed-${z.string().uuid().parse(input.failedAttemptId)}`,
+  );
+  try {
+    await lstat(quarantine);
+    throw new TaskWorkspaceAuthorityError(
+      "Task workspace recovery quarantine already exists.",
+    );
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  await rename(workspace, quarantine);
+  try {
+    return {
+      workspace: await createTaskWorkspace(input),
+      recovery: "fresh-seed" as const,
+    };
+  } catch (error) {
+    await rename(quarantine, workspace).catch(() => undefined);
+    throw error;
+  }
 };
 
 export const removeTaskWorkspace = async (

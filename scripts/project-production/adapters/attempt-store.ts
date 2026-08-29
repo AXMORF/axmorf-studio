@@ -592,6 +592,42 @@ export const readExecutionAttempt = async (input: {
   return progress;
 };
 
+export const readExecutionAttemptsForStory = async (input: {
+  readonly locations: ProductionLocations;
+  readonly storyId: string;
+}) => {
+  const storyId = StoryIdSchema.parse(input.storyId);
+  const attemptStoreRoot = input.locations.attemptStoreRoot;
+  if (
+    !(await assertAttemptParents({ attemptStoreRoot, storyId, create: false }))
+  ) {
+    return [];
+  }
+  const entries = await readdir(attemptsRoot(attemptStoreRoot, storyId), {
+    withFileTypes: true,
+  });
+  const attempts: ExecutionAttemptProgress[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.isSymbolicLink()) {
+      throw new Error("Execution attempt store contains an unsafe entry.");
+    }
+    const progress = await readExecutionAttemptProgressAtRoot({
+      attemptStoreRoot,
+      storyId,
+      attemptId: entry.name,
+    });
+    if (progress === null) {
+      throw new Error("Execution attempt store entry is incomplete.");
+    }
+    attempts.push(progress);
+  }
+  return attempts.sort(
+    (left, right) =>
+      left.createdAt.localeCompare(right.createdAt) ||
+      left.attemptId.localeCompare(right.attemptId),
+  );
+};
+
 const readCurrentDeliveryBinding = async (input: {
   readonly locations: ProductionLocations;
   readonly storyId: string;

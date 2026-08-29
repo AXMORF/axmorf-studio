@@ -7,6 +7,7 @@ import {
   ResourceCatalogSchema,
   StoryIdSchema,
   StorySpecSchema,
+  TaskWorkerTransportSchema,
   VisualStyleSpecSchema,
 } from "../../src/contracts";
 
@@ -41,6 +42,7 @@ export const WorkspaceExecutionResolutionSchema = z
     requestedMaxConcurrency: z.number().int().positive().nullable(),
     effectiveMaxConcurrency: z.number().int().nonnegative(),
     requireExactConcurrency: z.boolean(),
+    workerTransport: TaskWorkerTransportSchema.nullable(),
     source: z.strictObject({
       mode: ExecutionSourceSchema,
       maxConcurrency: ExecutionSourceSchema.nullable(),
@@ -51,6 +53,7 @@ export const WorkspaceExecutionResolutionSchema = z
           "runtime-unknown-default",
           "runtime-capacity",
           "repository-safety-ceiling",
+          "worker-transport-unverified",
         ]),
       )
       .readonly(),

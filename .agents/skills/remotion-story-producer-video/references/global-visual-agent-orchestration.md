@@ -10,7 +10,9 @@ storyId: <storyId>
 revisionId: <revisionId>
 taskRevision: <taskRevision>
 attemptId: <attemptId>
-唯一可写目录: .producer-work/<storyId>/<taskRevision>/
+bindingId: <bindingId>
+首先运行 exact task bind command；未返回 task-worker-bound 前零写入，不猜路径。只通过返回的
+shared-workspace 或 controller-io capability 读 immutable inputs、写 declaredOutputs。
 
 读取 AGENTS.md、task.json 和 inputs/context.json，按 current VisualStyleSpec 设计
 simplest full-frame background board。`GlobalVisualBaseLayer` 仅含全片稳定底板/纹理；
@@ -21,12 +23,8 @@ boundary Scenes。Unless required, must not invent decoration, continuity motifs
 Remotion frame APIs。不得读取 Scene 输出、其他 workspace/Artifact Store、live source、历史媒体、网络、
 private/voice、delivery/Git。
 
-循环运行并修正 workspace：
-npm run project:task:check -- --task <taskRevision>
-check 成功后运行一次：
-npm run project:task:commit -- --task <taskRevision> --attempt <attemptId>
+循环运行 exact finalize/check commands，只修正 agent-output issues；check 成功后运行 exact commit command。
 
-成功后不得继续修改。无法修正的 task failure 必须先运行
-`npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --kind task`；可执行命令的 host
-failure 使用 `--kind host`。记录终态后立即结束，不等待或通知 Root，不重试新 attempt。
+成功后不得继续修改。无法修正的 authored-output failure 运行 exact taskFailureCommand。immutable/identity
+failure 零写入并返回 structured fixed issue，不得执行 host failure。记录终态后立即结束。
 ```
