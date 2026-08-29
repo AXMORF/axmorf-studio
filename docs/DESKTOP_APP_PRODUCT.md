@@ -135,7 +135,8 @@ production 前迁移或阻塞。进行中的 Attempt 固定使用启动时的协
 ## 4. 稳定 CLI 与配置投影
 
 发行版必须提供稳定的公共命令，不要求用户或 Agent 知道源码仓库路径、Node module layout 或内部 npm script。
-命令名仅用于表达目标 surface，精确 schema 在实现设计时确定：
+当前已实现且必须维持的 surface 如下；精确 mutability、session/stdin contract 以本地 `help --json` 与各
+`schema` 命令为 discoverable authority：
 
 ```text
 ./.rsp/bin/rsp doctor
@@ -143,6 +144,7 @@ production 前迁移或阻塞。进行中的 Attempt 固定使用启动时的协
 ./.rsp/bin/rsp schema project-create
 ./.rsp/bin/rsp schema project-revision
 ./.rsp/bin/rsp schema asset-import
+./.rsp/bin/rsp schema task-worker
 ./.rsp/bin/rsp project create-context
 ./.rsp/bin/rsp project validate < project-create-input.json
 ./.rsp/bin/rsp project create < project-create-input.json
@@ -151,16 +153,21 @@ production 前迁移或阻塞。进行中的 Attempt 固定使用启动时的协
 ./.rsp/bin/rsp project revise < project-revision-input.json
 ./.rsp/bin/rsp project list
 ./.rsp/bin/rsp project delete --project <storyId> --confirm-delete
-./.rsp/bin/rsp context --project <storyId> [--candidate <candidateId>]
+./.rsp/bin/rsp context --project <storyId> [--candidate <candidateId>] [--delivery-policy <manual|automatic>] [--execution-mode <inline|subagents>] [--max-concurrency <n>] [--require-exact-concurrency <true|false>] [--runtime-max-concurrency <n>] [--worker-transport <shared-workspace|controller-io>]
 ./.rsp/bin/rsp inspect --project <storyId> [--candidate <candidateId>]
-./.rsp/bin/rsp prepare --project <storyId> [--candidate <candidateId>]
-./.rsp/bin/rsp task describe --task <taskRevision>
-./.rsp/bin/rsp task finalize --task <taskRevision>
-./.rsp/bin/rsp task check --task <taskRevision>
-./.rsp/bin/rsp task commit --task <taskRevision> --attempt <attemptId>
-./.rsp/bin/rsp task fail --task <taskRevision> --attempt <attemptId> --kind <task|host>
+./.rsp/bin/rsp prepare --project <storyId> [--candidate <candidateId>] [--delivery-policy <manual|automatic>]
+./.rsp/bin/rsp task bind --task <taskRevision> --attempt <attemptId> --binding <bindingId> --transport <shared-workspace|controller-io>
+./.rsp/bin/rsp task describe --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+./.rsp/bin/rsp task finalize --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+./.rsp/bin/rsp task check --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+./.rsp/bin/rsp task commit --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+./.rsp/bin/rsp task fail --task <taskRevision> --attempt <attemptId> --binding <bindingId> --kind <task|host|fixed>
+./.rsp/bin/rsp task file-read --task <taskRevision> --attempt <attemptId> --binding <bindingId> --path <logicalPath>
+./.rsp/bin/rsp task file-write --task <taskRevision> --attempt <attemptId> --binding <bindingId> --path <logicalPath>
 ./.rsp/bin/rsp attempt status --project <storyId> --attempt <attemptId>
-./.rsp/bin/rsp continue --project <storyId> --revision <revisionId> --attempt <attemptId> [--candidate <candidateId>]
+./.rsp/bin/rsp attempt recover-inspect --project <storyId> --attempt <failedAttemptId> [--candidate <candidateId>]
+./.rsp/bin/rsp attempt reissue --project <storyId> --attempt <failedAttemptId> [--candidate <candidateId>] [--delivery-policy <manual|automatic>]
+./.rsp/bin/rsp continue --project <storyId> --revision <revisionId> --attempt <attemptId> [--candidate <candidateId>] [--delivery-policy <manual|automatic>]
 ./.rsp/bin/rsp delivery build --project <storyId> [--candidate <candidateId>]
 ```
 
@@ -174,6 +181,9 @@ config/Runtime Pack operational checks。`project create` 的 stdin 就是通过
 `null` 才覆盖该语义。managed Workspace Skill 只路由这些 discoverable contracts；dirty task 的 exact schemas、
 examples、component signatures 和 derived-field ownership 位于 immutable `inputs/task-contract.json`，由
 `task finalize` 计算 fingerprint/receipt，外部 Agent 不需要源码 checkout、私有 builder 或 tests。
+每个 dirty task 在任何读写前必须运行 prepare 返回的 exact attempt-bound `task bind`；只有
+`task-worker-bound` 返回的 shared workspace 或 controller-IO commands 可用。terminal failed attempt 保持不可变，
+后续显式恢复只通过 `attempt recover-inspect` 与 `attempt reissue` 创建 fresh same-Revision attempt。
 
 create 与包含 Story patch 的 revise 共用固定字幕可读性校验：每个 narrated `ttsChunk` 最多 72 display
 half-units。超限输入在 Project mutation、current base 检查或 candidate 创建前返回精确 `ttsText` path 和拆分
@@ -195,9 +205,14 @@ Agent 不直接读取 App 的原始设置文件。`rsp context` 只投影任务�
 
 - Project/render/visual/TTS policy 的非秘密部分；
 - resolved delivery policy；
+- resolved Agent execution policy，以及当前宿主为本次 production 提供的 runtime capacity/worker transport；
 - task workspace 和允许的输出集合；
 - provider readiness，但不含 token、私有声音内容或受保护绝对路径；
 - 本次提示词允许覆盖的字段。
+
+App 只保存 inline/subagents 与最大并发偏好，不提供 worker-transport 设置。transport 是当前 Agent 宿主逐次验证
+并传给 `rsp context` 的运行能力；delegate 名称本身不证明能力，只有确实提供 bounded children 与所声明
+transport 的宿主原生 delegate tool 才满足 subagents 合同。
 
 自然语言可以覆盖本次创作、render 或 delivery policy，但不能覆盖 storage root、路径 containment、credential、
 validator 或安全策略。

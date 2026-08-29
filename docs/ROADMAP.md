@@ -24,14 +24,17 @@ attempt-bound task commit/fail 与 fixed continuation；converge 是 continuatio
 - prepare 才允许 provider/fixed artifact/workspace/attempt mutation；converge 不允许这些 preparation 副作用；
 - diagnostic explanation/baseline/attempt 不进入或改变 production/artifact/delivery authority；
 - execution mode 按用户提示词、settings、内置 `inline` 默认解析；inline 一次一个 workspace，subagents bounded pool
-  最多四个；一个 dirty task 只归属一个 executor，template task 不由 Agent 创作；
+  最多四个，并要求宿主逐次声明已验证的 shared-workspace/controller-IO transport；App 不保存 transport。宿主原生
+  delegate tool 只有在确实提供 bounded children 与所声明 transport 时才满足合同；一个 dirty task 只归属一个
+  executor，template task 不由 Agent 创作；
 - Composition exactly once 拥有 raw readability/insets 与 SceneViewport mount；Scene child 只看到
   safe-area-local viewport dimensions/min font size，不得恢复 full-frame authority；
 - scene-owner v3 拒绝冻结的历史 normalized Renderer fingerprint；convergence 在 live write 前拒绝同 Revision
   narrated Renderer 的 exact 或 normalized duplicate；
 - GlobalVisual base layer 覆盖完整 Composition；decoration 由 fixed timing policy 仅挂载在首个至末个 narrated
   Scene 的连续窗口，silent boundary Scenes 不接收项目装饰；
-- Agent 只写 task workspace，fixed commit 重跑 validator，commit/fail 绑定 exact attempt 且首终态不可覆盖；
+- Agent 先通过 attempt-bound `task bind` 获得 exact shared workspace 或 controller-IO capability，再只写 declared
+  outputs；fixed commit 重跑 validator，commit/fail 绑定 exact attempt 且首终态不可覆盖；
 - continuation 启动后 Root 挂起且不监督；bounded fixed continuation 以 atomic claim 单消费者运行，failure/attempt 创建起一小时
   timeout fail-fast，all-success 只 converge 一次；
 - artifact hit 严格复验 exact file set、no-symlink、size/checksum/dependencies/policy；

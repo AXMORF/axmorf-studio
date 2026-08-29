@@ -35,12 +35,13 @@ without saved settings the host-neutral built-in default is `inline`. Do not sav
 explicitly requests it.
 
 ```bash
-npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>] [--worker-transport shared-workspace|controller-io]
+npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>] [--worker-transport <shared-workspace|controller-io>]
 ```
 
 Inline requires only the current shell-capable Agent. When prompt/settings select subagents, pass current runtime
 capacity and a verified worker transport; without capacity it safely resolves to one, but without a transport it
-blocks. The repository ceiling is four. A
+blocks. Transport is host evidence, not an App setting; native delegates qualify only with bounded children. The
+repository ceiling is four. A
 non-exact request is clamped and reported; an exact request that cannot be satisfied returns `blocked`; known runtime
 capacity zero also blocks. Production stops before prepare. Freeze the resolved result. It is diagnostic orchestration
 state and never enters ProductionRevision, TaskRevision, artifacts, or delivery.

@@ -57,8 +57,10 @@ task 或产物，也避免 Remotion Studio 因短暂的旧 import 终止配置 A
 原子替换和 `0600` 权限。该文件不是 ProducerConfig，也不改变 ProducerConfig、Revision、TaskRevision、
 ArtifactAttestation 或 DeliveryBuild identity；文件不存在时内置使用 `inline`，一个 shell-capable Agent 即可
 串行处理 dirty workspaces。只有宿主确实提供 runtime-native children 时才选择 `subagents` 并设置最多四个
-并发。用户提示词中的本次 override 优先于已保存设置，但不会自动写回；无法满足明确容量要求时在 prepare
-前阻塞，不回退或伪造 child execution。
+并发。shared-workspace/controller-IO transport 不是 App、ProducerConfig 或 execution preferences 字段，而是
+当前 Agent 宿主对本次 production 的能力声明；宿主原生 delegate tool 只有在确实提供 bounded children 与所
+声明 transport 时才满足合同。用户提示词中的本次 override 优先于已保存设置，但不会自动写回；无法满足明确
+容量要求或验证 transport 时在 prepare 前阻塞，不回退或伪造 child execution。
 
 右侧“只读环境诊断”检查配置、默认声线来源与 Remotion browser preflight。VoxCPM 继续检查
 health/ready/info；SpeechSDK 与 Edge 只做 strict config/profile 校验，并明确显示“凭证/网络将在真实生成

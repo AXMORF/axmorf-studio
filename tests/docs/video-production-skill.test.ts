@@ -219,6 +219,14 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
       workflow.indexOf("project:produce:inspect"),
   );
   assert.match(skill, /another Agent's tools do[\s\S]*not count/u);
+  assert.match(
+    workerProtocol,
+    /host-native\s+delegate tool[\s\S]*bounded child execution[\s\S]*declared transport/u,
+  );
+  assert.match(
+    workerProtocol,
+    /transport is runtime capability evidence[\s\S]*not an App setting/u,
+  );
   assert.match(skill, /validated ArtifactAttestation[\s\S]*durable authority/u);
   assert.match(skill, /exactly once/u);
   assert.match(
@@ -229,10 +237,7 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
     skill,
     /schema project-revision[\s\S]*project revise-context\/revise-validate\/revise[\s\S]*candidateId/u,
   );
-  assert.match(
-    skill,
-    /Never clone an MP4[\s\S]*verified candidate promotion/u,
-  );
+  assert.match(skill, /Never clone an MP4[\s\S]*verified candidate promotion/u);
   assert.match(
     skill,
     /Root's final production action[\s\S]*continuationCommand/u,

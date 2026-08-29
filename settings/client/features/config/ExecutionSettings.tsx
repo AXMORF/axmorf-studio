@@ -16,7 +16,10 @@ export const ExecutionSettings = ({
       description="全新 checkout 内置采用通用的 Root 串行执行；本页可为具备原生 child runtime 的宿主保存受限并发。用户在当前对话中的明确要求按字段覆盖这里的值，但不会自动回写配置。"
     >
       <FieldRow>
-        <Field label="执行模式" hint="Root 串行不创建子 Agent；受限并发使用独立 task workspace">
+        <Field
+          label="执行模式"
+          hint="Root 串行不创建子 Agent；受限并发使用独立 task workspace"
+        >
           <select
             value={execution.mode}
             onChange={(event) => {
@@ -44,7 +47,9 @@ export const ExecutionSettings = ({
             max="4"
             step="1"
             disabled={execution.mode === "inline"}
-            value={execution.mode === "subagents" ? execution.maxConcurrency : 1}
+            value={
+              execution.mode === "subagents" ? execution.maxConcurrency : 1
+            }
             onChange={(event) => {
               if (execution.mode !== "subagents") return;
               update({
@@ -61,15 +66,23 @@ export const ExecutionSettings = ({
       <div className="spec-strip">
         <span>当前默认</span>
         <strong>
-          {execution.mode === "inline" ? "ROOT · SEQUENTIAL" : "SUBAGENTS · BOUNDED"}
+          {execution.mode === "inline"
+            ? "ROOT · SEQUENTIAL"
+            : "SUBAGENTS · BOUNDED"}
         </strong>
         <strong>
-          {execution.mode === "inline" ? "0 CHILD" : `MAX ${execution.maxConcurrency}`}
+          {execution.mode === "inline"
+            ? "0 CHILD"
+            : `MAX ${execution.maxConcurrency}`}
         </strong>
         <strong>TASK TERMINAL DEADLINE · 1H</strong>
       </div>
       <p className="execution-precedence-note">
-        生效顺序：当前用户提示词 → 本页保存值 → 内置 inline。若选择子 Agent 但宿主容量为零，或精确并发超过运行时或仓库上限，生产会明确阻塞，不会伪造 child 或静默降级。
+        生效顺序：当前用户提示词 → 本页保存值 → 内置 inline。transport 由当前
+        Agent 宿主按本次生产声明，App 不提供 transport 配置项。若宿主不能验证子
+        Agent 的共享工作区或
+        controller-IO、容量为零，或精确并发超过运行时或仓库上限，生产会明确阻塞，不会伪造
+        child 或静默降级。
       </p>
     </Section>
   );

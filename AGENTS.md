@@ -128,8 +128,10 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   Root 一次只执行一个 dirty workspace；`subagents` 使用不超过四个且受 runtime capacity 限制的 bounded pool。
   runtime capacity 未知时按 1、明确为 0 时阻塞；用户要求 exact capacity 而无法满足时也必须在 prepare 前
   阻塞，不自动换模式。
-- `subagents` 还必须声明宿主已验证的 `shared-workspace` 或 `controller-io` worker transport；普通 delegate、
-  thread、chat 或后台进程不等于 runtime-native child。transport 未验证时在 prepare 前阻塞；inline 不要求该能力。
+- `subagents` 还必须声明宿主已验证的 `shared-workspace` 或 `controller-io` worker transport；delegate 名称、
+  thread、chat 或后台进程本身不证明 runtime-native child，但宿主原生 delegate tool 在确实提供受限 child execution
+  与所声明 transport 时可以满足合同。transport 是宿主对本次 production 的能力声明，不是 App 持久设置；未验证时
+  在 prepare 前阻塞，inline 不要求该能力。
 - `npm run project:produce:inspect -- --project <storyId>` 是严格只读、零 provider call 的诊断入口；Root
   必须先报告 source readiness、estimated cost、artifact reuse 与结构化失效解释，再运行有成本 preparation。
 - `npm run project:produce:prepare -- --project <storyId>` 是唯一允许调用 provider、准备 fixed artifacts、

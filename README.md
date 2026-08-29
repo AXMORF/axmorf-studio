@@ -54,9 +54,10 @@ Codex、Claude、Gemini、Cursor 或 Copilot SDK。Codex、Cursor 与 GitHub Cop
 Claude Code 通过 `CLAUDE.md`、Gemini CLI 通过 `GEMINI.md` 导入同一文件。不会自动发现 Skill 的 Agent 仍可按
 `AGENTS.md` 指向的路径手动加载，规则没有第二份副本。
 
-全新 checkout 内置使用 `inline`：单个 Agent 即可完成 dirty tasks。`subagents` 是可选加速能力，只有宿主确实
-支持 runtime-native children 且本次解析选择该模式时才启用。OpenAI 的 `agents/openai.yaml` 只是可选 UI
-adapter，不参与生产 authority。完整入口与能力矩阵见
+全新 checkout 内置使用 `inline`：单个 Agent 即可完成 dirty tasks。`subagents` 是可选加速能力；宿主原生
+delegate tool 只有在确实提供 bounded children 与已验证的 `shared-workspace`/`controller-io` transport 时才
+满足合同。transport 由宿主按本次 production 声明，不是 AXMORF Studio 设置。OpenAI 的
+`agents/openai.yaml` 只是可选 UI adapter，不参与生产 authority。完整入口与能力矩阵见
 [Agent 兼容性指南](docs/guides/AGENT_COMPATIBILITY.md)。
 
 ## 面向用户的产品目标
@@ -202,11 +203,12 @@ workspace、Artifact Store、delivery 或 Remotion runtime。
    `inline`；提示词 override 不自动保存：
 
 ```bash
-npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>]
+npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>] [--worker-transport <shared-workspace|controller-io>]
 ```
 
 仓库并发上限为 4；runtime capacity 未知按 1、明确为 0 时阻塞。非 exact 请求会明确显示 clamp，无法满足
-的 exact 请求在 prepare 前阻塞。解析结果只属于本次编排，不进入生产 identity。
+的 exact 请求在 prepare 前阻塞。subagents 还要求当前宿主传入已验证 transport；App/Project 不保存该能力，
+未验证时同样在 prepare 前阻塞。解析结果只属于本次编排，不进入 production identity。
 
 2. 严格只读检查 source readiness、预计 provider/cache/Agent/delivery 成本、artifact reuse 与逐任务失效解释：
 
@@ -223,12 +225,15 @@ npm run project:produce:prepare -- --project <story-id>
 ```
 
 4. 按已解析模式执行 `dirtyAgentTasks`：inline 时 Root 一次处理一个；subagents 时以有效并发上限运行 bounded
-   pool，任务多于槽位时仅 wait-any 释放 admission slot。每个 executor 在自己的 workspace 内循环：
+   pool，任务多于槽位时仅 wait-any 释放 admission slot。每个 executor 先运行 prepare 返回的、与实际
+   transport 匹配的 exact bind command；得到 `task-worker-bound` 后只使用返回的 bound commands 循环：
 
 ```bash
-npm run project:task:check -- --task <task-revision>
-npm run project:task:commit -- --task <task-revision> --attempt <attempt-id>
-npm run project:task:fail -- --task <task-revision> --attempt <attempt-id> --kind task|host
+npm run project:task:bind -- --task <task-revision> --attempt <attempt-id> --binding <binding-id> --transport shared-workspace
+npm run project:task:finalize -- --task <task-revision> --attempt <attempt-id> --binding <binding-id>
+npm run project:task:check -- --task <task-revision> --attempt <attempt-id> --binding <binding-id>
+npm run project:task:commit -- --task <task-revision> --attempt <attempt-id> --binding <binding-id>
+npm run project:task:fail -- --task <task-revision> --attempt <attempt-id> --binding <binding-id> --kind task|host|fixed
 ```
 
 5. 串行执行完或全部 bounded admission 完成后，Root 的最后一个生产动作是启动 exact `continuationCommand`：

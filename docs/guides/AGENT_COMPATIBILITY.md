@@ -76,9 +76,10 @@ App 不安装、升级、托管或调用 Codex/Hermes SDK。目标行为见
 
 全新 checkout 的内置执行模式是 `inline`，不要求原生子 Agent API。`subagents` 只是一项可选加速能力：宿主
 必须能创建相互隔离的 runtime-native children、限制并发、执行 wait-any admission，并验证
-`shared-workspace` 或 `controller-io` transport。generic delegate、线程、聊天、普通后台 shell、未验证 transport
-或宿主无法确认的容量不算该能力。已保存设置选择 `subagents` 但能力不完整时，生产在 prepare 前阻塞；不自动
-回退或伪造 child completion。
+`shared-workspace` 或 `controller-io` transport。delegate 名称、线程、聊天或普通后台 shell 本身不证明该能力；
+宿主原生 delegate tool 若确实提供上述 child execution 与 transport 可以满足合同。transport 是宿主按本次
+production 提供的能力证据，不是 AXMORF App 设置。未验证 transport 或宿主无法确认容量时，生产在 prepare
+前阻塞；不自动回退或伪造 child completion。
 
 ## 通用视频入口
 

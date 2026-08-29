@@ -93,9 +93,10 @@ DeliveryBuild 的显式 contract clean-break，不得重新把 converge 与同�
 - Project 删除使用完整 storyId 确认并清理该 Project 的全部 ownership roots，同时保护其他 Project、
   core、shared media、private config 与 voice profiles。
 - 每个完成状态都有机械证据；聊天成功、Agent 自评、文件存在或进程启动都不代表交付完成。
-- Agent 执行模式按用户提示词明确字段、配置页、内置 `inline` 默认逐级解析；全新 checkout 单 Agent 可用，
-  具备 runtime-native children 的宿主可显式选择最多四个 subagents；
-  策略不进入 production identity。continuation 启动后 Root 不监督；failure 直接终止，all-success 只由持有
+- Agent 执行模式按用户提示词明确字段、配置页、内置 `inline` 默认逐级解析；全新 checkout 单 Agent 可用。
+  宿主原生 delegate tool 只有在确实提供 bounded children 与已验证的 shared-workspace/controller-IO transport
+  时才可显式选择最多四个 subagents；transport 是宿主对本次 production 的能力声明，不是 App 设置，执行策略
+  不进入 production identity。continuation 启动后 Root 不监督；failure 直接终止，all-success 只由持有
   exact-attempt one-shot claim 的 fixed continuation 触发一次 converge；缺失终态受 attempt 创建起一小时总
   deadline 约束。
 

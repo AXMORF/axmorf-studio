@@ -165,8 +165,9 @@ prepare 只为 action 为 `dispatch-agent` 的 non-reused task 建立：
 Agent 不能直接写 live Project。inspect 前用 `project:execution:resolve` 按用户提示词明确字段、配置页、内置
 `inline` 默认的优先级冻结本次执行策略；该诊断策略不进入 identity。inline 时 Root 一次执行一个 workspace；
 subagents 时使用不超过四个且受 runtime capacity 限制的 bounded pool，并要求宿主验证
-`shared-workspace` 或 `controller-io` worker transport；普通 delegate/thread/chat 不算 native child，未验证
-transport 时在 prepare 前阻塞。`scene-template` 和其他 fixed tasks
+`shared-workspace` 或 `controller-io` worker transport；delegate/thread/chat 名称本身不证明 native child，但宿主
+原生 delegate tool 若确实提供受限 child execution 与所声明 transport 可以满足合同。transport 由宿主按本次
+production 传入，不是 App 设置；未验证时在 prepare 前阻塞。`scene-template` 和其他 fixed tasks
 不由 Agent 创作。仓库只产出通用 workspace 与 shell command，不调用厂商 Agent SDK；每个 TaskRevision
 只归属一个 executor。Scene executor 完整读取 repository-local
 `remotion-best-practices`，且不能用 Skill 扩大

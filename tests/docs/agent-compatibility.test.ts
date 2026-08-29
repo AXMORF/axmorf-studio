@@ -17,6 +17,8 @@ test("mainstream agent entrypoints import one repository authority", async () =>
     status,
     producerConfig,
     architecture,
+    product,
+    roadmap,
   ] = await Promise.all([
     readRepositoryFile("AGENTS.md"),
     readRepositoryFile("CLAUDE.md"),
@@ -27,6 +29,8 @@ test("mainstream agent entrypoints import one repository authority", async () =>
     readRepositoryFile("docs/ITERATION_STATUS.md"),
     readRepositoryFile("docs/guides/PRODUCER_CONFIG.md"),
     readRepositoryFile("docs/ARCHITECTURE.md"),
+    readRepositoryFile("docs/DESKTOP_APP_PRODUCT.md"),
+    readRepositoryFile("docs/ROADMAP.md"),
   ]);
 
   assert.equal(claude.trim(), "@AGENTS.md");
@@ -43,12 +47,21 @@ test("mainstream agent entrypoints import one repository authority", async () =>
   assert.match(workflow, /Resolved execution mode/u);
   assert.match(workflow, /inline default/u);
   assert.match(workflow, /仓库只产出通用 workspace 与 shell command/u);
-  assert.match(status, /policy schema v16 \/ policy v18/u);
+  assert.match(status, /policy schema v17 \/ policy v20/u);
   assert.match(status, /内置 `inline` 默认/u);
   assert.match(producerConfig, /private\/execution-preferences\.json/u);
   assert.match(producerConfig, /文件不存在时内置使用 `inline`/u);
+  assert.match(producerConfig, /transport 不是 App.*execution preferences/su);
   assert.match(architecture, /single repository Agent instruction authority/u);
   assert.match(architecture, /Built-in inline default/u);
+  assert.match(architecture, /宿主原生 delegate tool[\s\S]*bounded[\s\S]*transport/u);
+  assert.match(readme, /--worker-transport/u);
+  assert.match(readme, /project:task:bind/u);
+  assert.match(product, /schema task-worker/u);
+  assert.match(product, /task bind[\s\S]*--binding <bindingId>/u);
+  assert.match(product, /attempt recover-inspect[\s\S]*attempt reissue/u);
+  assert.match(product, /不提供 worker-transport 设置/u);
+  assert.match(roadmap, /task bind[\s\S]*controller-IO capability/u);
 });
 
 test("generic production surfaces do not call vendor agent runtimes", async () => {

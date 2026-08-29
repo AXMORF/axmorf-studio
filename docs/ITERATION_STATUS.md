@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-27 current Desktop contracts/full gate 与 Ubuntu x64 package/install reverified
+> 最后复核：2026-08-29 task worker binding/transport contracts 与 repository full gate reverified
 
 ## 当前结论
 
@@ -17,9 +17,16 @@ project:asset:import
 project:execution:resolve
 project:produce:inspect
 project:produce:prepare
+project:task:bind
+project:task:describe
+project:task:finalize
 project:task:check
 project:task:commit
 project:task:fail
+project:task:file-read
+project:task:file-write
+project:attempt:recover-inspect
+project:attempt:reissue
 project:produce:continue
 ```
 
@@ -28,10 +35,10 @@ shim。历史 `.producer-runs` 数据保持原位，但 current prepare/converge
 保留 strict ownership parser。
 
 当前 checkout 为 zero Project：ProjectRegistry 是 0 entry，`deliveries/` 是 0 current delivery，ResourceCatalog
-投影为 19 entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据；zero-Project
+投影为 23 entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据；zero-Project
 bootstrap/Registry/Catalog/settings 合同保持有效。
 
-当前 repository video Skill policy schema v16 / policy v18 还定义了一个 pre-inspect external-asset Agent capability slot：只按
+当前 repository video Skill policy schema v17 / policy v20 还定义了一个 pre-inspect external-asset Agent capability slot：只按
 当前 Root Agent 的实际 callable MCP tools 激活，缺失时完全省略；激活后也必须先查本地 Catalog，再通过
 `project:asset:import` 把选择准入为 Project-owned 输入。该 slot 不创建 DAG node，也不进入 child/runtime。
 
@@ -96,8 +103,9 @@ bootstrap/Registry/Catalog/settings 合同保持有效。
   SceneViewport、resource/license 与 Remotion runtime gates 约束；它不感知 full-frame 安全区 inset。
 - execution resolver 已按用户提示词明确字段、独立 settings、内置 `inline` 默认逐级解析；全新 checkout
   只需一个 shell-capable Agent，具备 runtime-native children 且验证 shared-workspace/controller-IO transport 的
-  宿主可显式选择最多四个 subagents；generic delegate 不算 native worker，未验证 transport 在 prepare 前阻塞；策略
-  不进入 Revision/Task/artifact/delivery identity。
+  宿主可显式选择最多四个 subagents；delegate 名称本身不证明能力，宿主原生 delegate tool 只有在确实提供
+  bounded children 与所声明 transport 时才满足合同。transport 由宿主按本次 production 声明，不是 App 设置；
+  未验证 transport 在 prepare 前阻塞，策略不进入 Revision/Task/artifact/delivery identity。
 - `AGENTS.md` 是唯一 repository Agent authority；`CLAUDE.md`/`GEMINI.md` 只导入该文件，OpenAI Skill metadata
   只提供可选 UI 展示。生产脚本不调用任何厂商 Agent SDK。
 - continuation 启动后 Root 不参与 barrier；event-driven fixed continuation 读取 immutable event log，在 task
@@ -123,7 +131,8 @@ bootstrap/Registry/Catalog/settings 合同保持有效。
 - settings schema v5 展示 sourceState、current Revision、estimated/actual cost、逐任务 structured explanation、
   latest attempt diagnostic 和 four-file delivery；不输出 raw fingerprints/private authoring/provider data；
 - 独立 `private/execution-preferences.json` 以 strict contract/`0600` 原子保存 Root inline 或 subagents 最大并发
-  偏好，文件缺失时使用内置 `inline`；它不改变 ProducerConfig fingerprint，当前用户提示词 override 不自动持久化；
+  偏好，文件缺失时使用内置 `inline`；worker transport 不保存，由当前 Agent 宿主逐次声明。两者都不改变
+  ProducerConfig fingerprint，当前用户提示词 override 不自动持久化；
 - source Project enumeration 不读取 historical data，也不把 output-only roots 伪装成 Project；
 - deletion scope 增加 `.producer-work`、`.producer-artifacts`、`.producer-attempts`，继续保护 private、voice、
   shared/core 与 other Projects；

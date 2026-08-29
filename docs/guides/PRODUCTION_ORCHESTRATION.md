@@ -31,12 +31,14 @@ manifest identity 与 bytes fingerprint。
 全新 checkout 的内置默认是无需 child runtime 的 `inline`。override 只用于当前 production，除非用户明确要求保存：
 
 ```bash
-npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>]
+npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>] [--worker-transport <shared-workspace|controller-io>]
 ```
 
 只有 prompt/settings 选择 subagents 时才需要 runtime capacity；已知值必须传入，未知时按 1，明确为 0 时
-阻塞。仓库安全上限为 4。非 exact 请求可 clamp 但必须报告；无法满足的 exact 请求在 prepare 前阻塞。
-解析结果不进入 production identity。
+阻塞。当前 Agent 宿主还必须按本次 production 传入已验证的 worker transport；它不是 App/Project setting。
+delegate 名称本身不证明能力，宿主原生 delegate tool 只有在确实提供 bounded children 与所声明 transport 时
+才满足合同。仓库安全上限为 4。非 exact 请求可 clamp 但必须报告；无法满足的 exact 请求或未验证 transport
+在 prepare 前阻塞。解析结果不进入 production identity。
 
 ## 3. Inspect and report before cost
 

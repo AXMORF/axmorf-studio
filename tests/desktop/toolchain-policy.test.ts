@@ -75,10 +75,7 @@ test("Phase B desktop toolchain and product identity are exact", async () => {
     { electron: "43.4.1", forge: "7.11.2", vite: "7.11.2" },
   );
   assert.equal(DESKTOP_RELEASE_NODE_VERSION, "22.23.1");
-  assert.equal(
-    packageJson.devDependencies.node,
-    DESKTOP_RELEASE_NODE_VERSION,
-  );
+  assert.equal(packageJson.devDependencies.node, DESKTOP_RELEASE_NODE_VERSION);
   assert.equal(
     packageJson.scripts["desktop:package"],
     "node --import tsx scripts/desktop/package.ts",
@@ -462,7 +459,10 @@ test("packaged Workspace integration is an external exact curated tree", async (
       .mode & 0o777,
     0o755,
   );
-  assert.equal((await lstat(join(outputRoot, "AGENTS.md"))).mode & 0o777, 0o644);
+  assert.equal(
+    (await lstat(join(outputRoot, "AGENTS.md"))).mode & 0o777,
+    0o644,
+  );
 
   await chmod(outputRoot, 0o700);
   assert.throws(
@@ -570,6 +570,11 @@ test("managed production Skill uses UDS control and verified loopback-scoped Del
   assert.match(skill, /task finalize/u);
   assert.match(skill, /`ownerAction`/u);
   assert.match(skill, /attempt status/u);
+  assert.match(
+    skill,
+    /context --project <storyId>[\s\S]*--runtime-max-concurrency <n>[\s\S]*--worker-transport shared-workspace/u,
+  );
+  assert.match(skill, /AXMORF Studio has no worker-transport setting/u);
   assert.doesNotMatch(skill, /Valid raw stdin example/u);
   assert.doesNotMatch(skill, /```json/u);
   assert.doesNotMatch(
@@ -580,4 +585,17 @@ test("managed production Skill uses UDS control and verified loopback-scoped Del
   assert.match(hermesPrompt, /schema project-revision/u);
   assert.match(hermesPrompt, /revise-validate\/revise/u);
   assert.match(hermesPrompt, /never[\s\S]*clone an MP4/u);
+  assert.match(
+    hermesPrompt,
+    /Hermes `delegate_task\(tasks=\[\.\.\.\]\)`[\s\S]*shared-workspace/u,
+  );
+  assert.match(
+    hermesPrompt,
+    /`hermes config get delegation\.max_concurrent_children`/u,
+  );
+  assert.match(hermesPrompt, /no worker-transport switch/u);
+  assert.doesNotMatch(
+    hermesPrompt,
+    /normal Hermes `delegate_task` is not a runtime-native worker/u,
+  );
 });

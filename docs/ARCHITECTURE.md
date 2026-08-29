@@ -134,7 +134,9 @@ Renderers 的 exact checksum 或 normalized fingerprint 重复。plan/shot JSON 
 inspect 前的 execution resolver 按用户提示词、settings、内置 `inline` 默认逐字段选择 Root inline 或 bounded
 subagents，且不进入 production identity。每个 dirty Agent task 只有一个 executor；inline 一次一个 workspace，
 subagents 最大四个并受 runtime capacity 限制，且宿主必须声明已验证的 shared-workspace 或 controller-IO
-transport；generic delegate 不自动获得 child/workspace authority。每个 executor 先通过 deterministic
+transport。delegate 名称本身不提供 child/workspace authority；宿主原生 delegate tool 只有在确实提供 bounded
+children 与所声明 transport 时才满足合同。transport 是本次 production 的宿主能力证据，不进入 App settings。
+每个 executor 先通过 deterministic
 attempt-bound bindingId 验证 Task/attempt/immutable inputs，再获得 exact workspace capability 与 bound commands；
 失败零写入。全部完成或 admission 后 Root 挂起；fixed continuation 以 one-shot
 atomic claim 独占 exact attempt，只订阅 immutable mechanical task-terminal event log；attempt 创建起一小时总

@@ -15,10 +15,12 @@ This Workspace is the only production-data authority for AXMORF Studio Desktop A
   for a current source when Delivery policy is manual.
 - Never run repository npm scripts, Remotion Studio, Settings Web services, or another CLI as a fallback.
 - Do not edit `.rsp/`, this file, the host adapters, or the managed Skill. Their exact bytes are checksum-bound.
-- A generic delegate is not a runtime-native child. Subagents require a verified shared-workspace or controller-io
-  transport. Immutable input/identity failure is a zero-write stop; structured validation issues are task repairs,
-  never host failures. An external Agent writes only declared outputs through its bound capability. It does not write Project,
-  artifact, attempt, source-current, Delivery, session, token, or migration state directly.
+- A delegate label alone is not proof, but a host-native delegate tool qualifies when it provides bounded child
+  execution and a verified shared-workspace or controller-io transport. Transport is declared by that Agent host for
+  the current production, never configured in AXMORF Studio. Immutable input/identity failure is a zero-write stop;
+  structured validation issues are task repairs, never host failures. An external Agent writes only declared outputs
+  through its bound capability. It does not write Project, artifact, attempt, source-current, Delivery, session, token,
+  or migration state directly.
 - A `scene-owner` must create one meaning-local Renderer from its immutable context. Historical normalized Renderer
   fingerprints and same-Revision exact or normalized narrated Renderer duplicates are fixed-validator failures.
 - `continue` is the final production action. After it obtains the one-shot exact-attempt claim, do not poll,

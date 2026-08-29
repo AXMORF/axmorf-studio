@@ -71,10 +71,20 @@ Delivery, or render runtime.
 ## Resolve, inspect, and prepare
 
 Run `./.rsp/bin/rsp context --project <storyId>`, then `./.rsp/bin/rsp inspect --project <storyId>`. Add Delivery or
-execution overrides only when chosen by the user/current Workspace settings. A generic delegate/thread/chat is not
-a runtime-native child. If subagent execution is selected, require concrete child execution plus either a verified
-`shared-workspace` or `controller-io` transport; pass it as `--worker-transport` with known capacity. Missing transport,
-zero capacity, or an unsatisfied exact capacity is a blocker before preparation. Do not infer capability from branding.
+execution overrides only when chosen by the user/current Workspace settings. A delegate label alone is not proof, but
+a host-native delegate tool qualifies when it supplies bounded child execution and a verified `shared-workspace` or
+`controller-io` transport. AXMORF Studio has no worker-transport setting: the current Agent host must pass its actual
+capacity and transport on the context call, for example:
+
+```bash
+./.rsp/bin/rsp context --project <storyId> \
+  --runtime-max-concurrency <n> \
+  --worker-transport shared-workspace
+```
+
+Do not ask the user to configure transport in the App. If a prior read-only context was blocked only because transport
+was omitted, rerun it with verified runtime capability before inspect or prepare. Missing transport, zero capacity, or
+an unsatisfied exact capacity remains a blocker before preparation; never infer capability from branding.
 
 Inspect is read-only, zero-provider, and zero-write. Report source readiness, estimated cost, artifact reuse, and
 changed-input explanations before running the cost-bearing

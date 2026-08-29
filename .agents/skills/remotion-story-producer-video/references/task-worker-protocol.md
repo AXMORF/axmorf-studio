@@ -1,14 +1,15 @@
 # Portable task worker protocol
 
-A generic delegate, thread, chat, or background process is not a runtime-native child. Use subagents only when the
-host can provide both bounded child execution and one declared worker transport:
+A delegate label, thread, chat, or background process alone is not proof of a runtime-native child. A host-native
+delegate tool qualifies when it provides bounded child execution and one declared transport:
 
 - `shared-workspace`: the child can enter the exact bound workspace path returned by `task bind`.
 - `controller-io`: the child reads and writes declared task files through the returned `task file-read/file-write`
   commands and needs no filesystem mount.
 
-Pass that transport to execution resolution. An unverified transport blocks subagent production before prepare;
-inline remains the host-neutral default.
+Pass that transport to execution resolution. The transport is runtime capability evidence, not an App setting or
+Project preference. Never ask the user to configure it in AXMORF Studio. An unverified transport blocks subagent
+production before prepare; inline remains the host-neutral default.
 
 For every dirty task, use its prepare-returned `bindingId` and exact bind command before any task read or write. A
 successful bind returns `task-worker-bound`, Task/attempt identity, the executable workspace capability, immutable

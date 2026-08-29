@@ -26,8 +26,9 @@ local Catalog first and use `project:asset:import`. MCP data never enters tasks 
 Resolve once with `project:execution:resolve`. Explicit prompt fields override settings; omissions inherit settings,
 then built-in `inline`. Overrides are one-production unless explicitly saved. Inline needs no child runtime and is
 sequential. Select subagents only with runtime-native children plus a verified `shared-workspace` or `controller-io`
-transport; pass transport and known capacity, maximum four. Any blocked resolution stops before prepare. A generic
-delegate is not a native child. See [worker protocol](references/task-worker-protocol.md).
+transport; pass transport and known capacity, maximum four. Any blocked resolution stops before prepare. A delegate
+label is not proof; a host-native tool qualifies only with the bounded children and transport in the
+[worker protocol](references/task-worker-protocol.md).
 
 ## Inspect before cost
 
