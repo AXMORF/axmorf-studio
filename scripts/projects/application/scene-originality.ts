@@ -263,15 +263,23 @@ const resolveWorkspaceRoot = async ({
   readonly rootDir: string;
   readonly fileSystem: SceneOriginalitySnapshotFileSystem;
 }) => {
-  const workspaceRoot = resolve(rootDir);
-  const metadata = await fileSystem.lstat(workspaceRoot);
-  if (metadata.isSymbolicLink() || !metadata.isDirectory()) {
+  const requestedRoot = resolve(rootDir);
+  const requestedMetadata = await fileSystem.lstat(requestedRoot);
+  if (requestedMetadata.isSymbolicLink() || !requestedMetadata.isDirectory()) {
     throw new Error(
       "Scene originality Workspace root must be a real directory.",
     );
   }
-  if ((await fileSystem.realpath(workspaceRoot)) !== workspaceRoot) {
-    throw new Error("Scene originality Workspace root must be canonical.");
+  const workspaceRoot = await fileSystem.realpath(requestedRoot);
+  const canonicalMetadata = await fileSystem.lstat(workspaceRoot);
+  if (
+    canonicalMetadata.isSymbolicLink() ||
+    !canonicalMetadata.isDirectory() ||
+    !sameMetadata(requestedMetadata, canonicalMetadata)
+  ) {
+    throw new Error(
+      "Scene originality Workspace root changed while being canonicalized.",
+    );
   }
   return workspaceRoot;
 };

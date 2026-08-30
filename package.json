@@ -4,7 +4,7 @@
   "description": "Agent-first video production workspace and npm distribution for AXMORF Studio.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/agenticnoob/axmorf-studio.git"
+    "url": "git+https://github.com/AXMORF/axmorf-studio.git"
   },
   "license": "Apache-2.0",
   "private": true,

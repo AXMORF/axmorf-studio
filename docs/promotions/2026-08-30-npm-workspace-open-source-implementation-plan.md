@@ -560,8 +560,9 @@ Remotion bundle 成功都不能单独作为最终交付证据。
   已采用 Apache-2.0，两个 child packages 已移除 `private` 并补齐 package README/LICENSE/third-party notices；
 - 同一外部 Workspace 的 packed production、verified-Delivery Web endpoint/viewer 与用户另行授权的受控 Project
   delete 已完成串联验收；fresh consumer install/lockfile replay、双包 publish dry-run 和完整 release gates 也已通过。
-  完整事实见 [npm release closeout](../evidence/2026-08-31-npm-release-closeout.md)。实现计划已完成，真实
-  push/tag/Release/npm publish 作为外部发布操作单独记录。
+  完整事实见 [npm release closeout](../evidence/2026-08-31-npm-release-closeout.md)。实现计划已完成；GitHub push、
+  Organization transfer、default branch 与 publish workflow 已执行，真实 tag/Release/npm publish 作为剩余外部
+  发布操作单独记录。
 
 ## 8. 完成定义
 
@@ -584,7 +585,8 @@ Remotion bundle 成功都不能单独作为最终交付证据。
 - OSI license、third-party notices 和 Remotion 独立许可证边界明确；
 - active docs、Skill、README、Roadmap、Architecture、Workflow、Status 与真实 package surface 一致；
 - current checkout 中原有未跟踪 Desktop 遗留和任何用户 Project/Delivery 均未被纳入、修改或删除；
-- 未经用户明确授权，没有 push、tag、GitHub Release 或真实 npm publish。
+- push、tag、GitHub Release 或真实 npm publish 都必须有用户明确授权；当前已授权并执行 push，tag/Release/npm
+  publish 仍待外部门禁。
 
 ## 9. 建议提交切片
 

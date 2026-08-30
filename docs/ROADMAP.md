@@ -77,7 +77,8 @@ production/current Delivery、verified-Delivery endpoint 和桌面/窄屏浏览�
 4. production/repository audit 已归零，所有 Remotion packages 保持精确同版；
 5. Apache-2.0、third-party notices、Remotion 独立许可证边界以及 `@axmorf/studio` /
    `create-axmorf-studio` 名称已确认；
-6. npm provenance、2FA/token、首次 publish、push/tag 与 GitHub Release 仍需单独验收和明确授权；
+6. GitHub push、Organization transfer、default branch 与 provenance publish workflow 已完成；npm scope/authentication、
+   首次 publish、tag 与 GitHub Release 仍需完成；
 7. 用户另行明确授权后，受控 Project delete 已在真实验收 Workspace 的一次性副本通过：无确认参数时 fail closed，
    confirmed delete 只清理 Project-owned roots，zero-Project doctor/compositions/Web 继续可用，原验收 Workspace 未变。
 

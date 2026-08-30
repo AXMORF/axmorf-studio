@@ -87,6 +87,42 @@ test("Workspace baseline snapshots complete source graphs with explicit owners",
   assert.notEqual(selectedGraph.sourceGraphFingerprint, undefined);
 });
 
+test("Workspace snapshots canonicalize an aliasing ancestor without admitting a root symlink", async (context) => {
+  const fixtureRoot = await mkdtemp(
+    join(tmpdir(), "axmorf-originality-root-alias-"),
+  );
+  context.after(() => rm(fixtureRoot, { recursive: true, force: true }));
+  const canonicalParent = join(fixtureRoot, "canonical-parent");
+  const canonicalRoot = join(canonicalParent, "workspace");
+  const aliasParent = join(fixtureRoot, "alias-parent");
+  const directRootAlias = join(fixtureRoot, "workspace-link");
+  await mkdir(canonicalRoot, { recursive: true });
+  await symlink(canonicalParent, aliasParent, "dir");
+  await symlink(canonicalRoot, directRootAlias, "dir");
+  const rootThroughAliasingAncestor = join(aliasParent, "workspace");
+  await writeScene({
+    rootDir: rootThroughAliasingAncestor,
+    storyId: "selected-story",
+    meaningId: "opening",
+    renderer,
+  });
+
+  const graph = await snapshotSceneSourceGraph({
+    rootDir: rootThroughAliasingAncestor,
+    storyId: "selected-story",
+    meaningId: "opening",
+  });
+  assert.equal(graph.files.length, 2);
+  await assert.rejects(
+    snapshotSceneSourceGraph({
+      rootDir: directRootAlias,
+      storyId: "selected-story",
+      meaningId: "opening",
+    }),
+    /Workspace root must be a real directory/u,
+  );
+});
+
 test("baseline freeze is explicit, immutable, and excludes the subject Project", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "axmorf-originality-freeze-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));

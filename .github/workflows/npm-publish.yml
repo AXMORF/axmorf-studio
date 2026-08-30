@@ -1,0 +1,152 @@
+name: Publish npm packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_version:
+        description: Type the exact release tag, for example v0.1.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verify and publish exact tarballs
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      NPM_CONFIG_REGISTRY: https://registry.npmjs.org
+      RELEASE_ROOT: ${{ runner.temp }}/axmorf-npm-release
+    steps:
+      - name: Checkout exact release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Install exact Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.16.0
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Verify tag and package versions
+        shell: bash
+        env:
+          CONFIRM_VERSION: ${{ inputs.confirm_version }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_TYPE" = "tag"
+          root_version="$(node -p 'require("./package.json").version')"
+          runtime_version="$(node -p 'require("./packages/studio/package.json").version')"
+          creator_version="$(node -p 'require("./packages/create-axmorf-studio/package.json").version')"
+          test "$runtime_version" = "$root_version"
+          test "$creator_version" = "$root_version"
+          test "$GITHUB_REF_NAME" = "v$root_version"
+          test "$CONFIRM_VERSION" = "$GITHUB_REF_NAME"
+
+      - name: Install exact dependencies
+        run: npm ci
+
+      - name: Run repository and package gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run packages:typecheck
+          npm run packages:build
+          npm run check
+          npm audit --audit-level=low
+
+      - name: Pack exact release candidates
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RELEASE_ROOT"
+          npm pack ./packages/studio --ignore-scripts --pack-destination "$RELEASE_ROOT" --json >"$RELEASE_ROOT/runtime-pack.json"
+          npm pack ./packages/create-axmorf-studio --ignore-scripts --pack-destination "$RELEASE_ROOT" --json >"$RELEASE_ROOT/creator-pack.json"
+
+          runtime_file="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))[0].filename' "$RELEASE_ROOT/runtime-pack.json")"
+          creator_file="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))[0].filename' "$RELEASE_ROOT/creator-pack.json")"
+          runtime_integrity="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))[0].integrity' "$RELEASE_ROOT/runtime-pack.json")"
+          creator_integrity="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))[0].integrity' "$RELEASE_ROOT/creator-pack.json")"
+
+          test -f "$RELEASE_ROOT/$runtime_file"
+          test -f "$RELEASE_ROOT/$creator_file"
+          sha256sum "$RELEASE_ROOT/$runtime_file" "$RELEASE_ROOT/$creator_file" >"$RELEASE_ROOT/SHA256SUMS"
+
+          {
+            echo "runtime_tarball=$RELEASE_ROOT/$runtime_file"
+            echo "creator_tarball=$RELEASE_ROOT/$creator_file"
+            echo "runtime_integrity=$runtime_integrity"
+            echo "creator_integrity=$creator_integrity"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Publish or verify exact package versions
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RUNTIME_TARBALL: ${{ steps.pack.outputs.runtime_tarball }}
+          CREATOR_TARBALL: ${{ steps.pack.outputs.creator_tarball }}
+          RUNTIME_INTEGRITY: ${{ steps.pack.outputs.runtime_integrity }}
+          CREATOR_INTEGRITY: ${{ steps.pack.outputs.creator_integrity }}
+        run: |
+          set -euo pipefail
+
+          publish_or_verify() {
+            package_name="$1"
+            package_version="$2"
+            tarball="$3"
+            local_integrity="$4"
+            registry_integrity="$(npm view "$package_name@$package_version" dist.integrity 2>/dev/null || true)"
+
+            if [[ -n "$registry_integrity" ]]; then
+              test "$registry_integrity" = "$local_integrity"
+              echo "$package_name@$package_version already exists with the exact expected integrity."
+              return
+            fi
+
+            npm publish "$tarball" --access public --provenance
+            registry_integrity="$(npm view "$package_name@$package_version" dist.integrity)"
+            test "$registry_integrity" = "$local_integrity"
+          }
+
+          version="$(node -p 'require("./package.json").version')"
+          publish_or_verify "@axmorf/studio" "$version" "$RUNTIME_TARBALL" "$RUNTIME_INTEGRITY"
+          publish_or_verify "create-axmorf-studio" "$version" "$CREATOR_TARBALL" "$CREATOR_INTEGRITY"
+
+      - name: Publish release summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## npm release"
+            echo
+            echo "- Repository: \`$GITHUB_REPOSITORY\`"
+            echo "- Commit: \`$GITHUB_SHA\`"
+            echo "- Ref: \`$GITHUB_REF_NAME\`"
+            if [[ -f "$RELEASE_ROOT/SHA256SUMS" ]]; then
+              echo
+              echo '```text'
+              cat "$RELEASE_ROOT/SHA256SUMS"
+              echo '```'
+            fi
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Upload exact release receipt
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: npm-release-${{ github.run_id }}
+          path: ${{ env.RELEASE_ROOT }}
+          if-no-files-found: warn
+          compression-level: 0
+          retention-days: 30

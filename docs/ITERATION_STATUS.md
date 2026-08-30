@@ -27,11 +27,13 @@ reference environment evidence，不是 runtime allowlist；其他宿主可以�
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
 补齐 package README/LICENSE/third-party notices。`@axmorf/studio` 与 `create-axmorf-studio` 的公开 registry
-查询当前均为 E404，且用户已确认 `axmorf` npm organization。GitHub 仓库已更名为
-`agenticnoob/axmorf-studio`。production 与完整 repository `npm audit` 已通过 `fast-uri@3.1.6`、
+查询当前均为 E404；`@axmorf` npm scope 的 ownership/publish 权限仍需在首次 publish 前由 npm 登录身份复核。
+GitHub 仓库已转移为 `AXMORF/axmorf-studio`，npm 发布分支是 default branch，旧 `main` 保留。production 与完整
+repository `npm audit` 已通过 `fast-uri@3.1.6`、
 `nanoid@3.3.18` 精确 overrides 以及 Vite/esbuild/ESLint 兼容更新归零。公开发布尚未执行：macOS 15 ARM64
 package/scaffold evidence 与 Ubuntu 24.04 x86_64 exact-Delivery evidence 已完成，固定 OS matrix 已从首次发布 gate
-移除；provenance/2FA/token、push/tag 与首次 npm publish 仍需单独授权。
+移除；release blocker commit 已 push，provenance workflow 已加入；npm scope/authentication、tag、Release 与首次 npm
+publish 仍是剩余外部门禁。
 
 仓库当前 production authority 已收敛为 ProductionRevision、content-addressed Task DAG、task workspace、
 ArtifactAttestation、reusable Artifact Store、fixed convergence 与 synchronous exact four-file delivery。
@@ -249,16 +251,17 @@ manifest；三秒轮询会合并仍在执行的请求，不再反复 abort 较�
 未认证宿主仍按 capability gate best-effort 接入，不预先阻塞，也不描述为已验证支持。consumer production 与完整
 repository audit 均为 0 finding。Remotion 继续精确锁定 4.0.489；安全处置没有运行不受控 `audit fix`，而是固定
 传递版本并单独升级兼容的开发工具。ESLint 保持 9.39.5，因为 Remotion 当前内置的 TypeScript ESLint 8.21 peer
-range 不支持 ESLint 10。真实 npm publish、tag 与 push 尚未执行。
+range 不支持 ESLint 10。Git push 与 GitHub Organization transfer 已执行；真实 npm publish、tag 与 Release 尚未执行。
 
 focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests 已验证原子 create、inspect
 零写入/零 provider、dirty-only dispatch、精确 direct/dependency/artifact explanation、诊断隔离、安全边界、
 历史隔离、current no-op 与 delivery failure reuse。
 
-本轮 closeout 已运行完整 `npm run check`：665/665 tests，以及 typecheck、lint、docs links、Catalog/Registry、
+本轮 closeout 已运行完整 `npm run check`：666/666 tests，以及 typecheck、lint、docs links、Catalog/Registry、
 配置构建、Remotion bundle/compositions 与 host Project gate 全部 Green；`npm run packages:typecheck` 和 release-focused
-17 tests 也通过。文档 closeout 后另行重跑 docs links 与 diff checks。真实 npm publish、tag、push 与 GitHub Release
-均未执行；受控 Project delete 只作用于一次性验收副本。
+17 tests 也通过。文档 closeout 后另行重跑 docs links 与 diff checks。Git push、Organization transfer、default branch
+切换与 publish workflow 已执行；真实 npm publish、tag 与 GitHub Release 尚未执行。受控 Project delete 只作用于
+一次性验收副本。
 
 ## 当前非目标
 
