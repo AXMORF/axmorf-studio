@@ -4,6 +4,14 @@ import type { ProductionProgressResponse } from "../../contracts/api";
 import { loadProductionProgress, requestProjectDeletion } from "../api";
 import { projectDeletionErrorMessage } from "../model";
 
+export const beginProductionProgressRequest = ({
+  deleting,
+  request,
+}: {
+  readonly deleting: boolean;
+  readonly request: AbortController | null;
+}) => (deleting || request !== null ? null : new AbortController());
+
 export const useProductionProgress = () => {
   const [progress, setProgress] = useState<ProductionProgressResponse | null>(
     null,
@@ -14,9 +22,11 @@ export const useProductionProgress = () => {
   const deletionInProgress = useRef(false);
 
   const refresh = useCallback(async () => {
-    if (deletionInProgress.current) return;
-    request.current?.abort();
-    const controller = new AbortController();
+    const controller = beginProductionProgressRequest({
+      deleting: deletionInProgress.current,
+      request: request.current,
+    });
+    if (controller === null) return;
     request.current = controller;
     try {
       const result = await loadProductionProgress(controller.signal);

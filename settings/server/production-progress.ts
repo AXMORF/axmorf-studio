@@ -1,4 +1,5 @@
 import { StoryIdSchema } from "@axmorf/studio/contracts";
+import type { RuntimePolicyManifest } from "@axmorf/studio";
 import { readCurrentProductionRevision } from "../../scripts/project-production/application/current-revision";
 import { inspectProjectProduction } from "../../scripts/project-production/application/inspect-production";
 import {
@@ -48,17 +49,23 @@ const readProject = async ({
   readCurrentRevision,
   inspectProduction,
   readCurrentDelivery,
+  runtimePolicyManifest,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly readCurrentRevision: typeof readCurrentProductionRevision;
   readonly inspectProduction: typeof inspectProjectProduction;
   readonly readCurrentDelivery: typeof readCurrentProjectDelivery;
+  readonly runtimePolicyManifest?: RuntimePolicyManifest;
 }): Promise<ProjectProductionProgress> => {
   let inspection: Awaited<ReturnType<typeof inspectProjectProduction>> | null =
     null;
   try {
-    inspection = await inspectProduction({ rootDir, projectId });
+    inspection = await inspectProduction({
+      rootDir,
+      projectId,
+      ...(runtimePolicyManifest === undefined ? {} : { runtimePolicyManifest }),
+    });
   } catch {
     // Settings diagnostics never alter production authority. A projection
     // failure must not hide a valid attempt or delivery.
@@ -109,8 +116,15 @@ const readProject = async ({
 
   let currentRevisionId: string | null;
   try {
-    currentRevisionId = (await readCurrentRevision({ rootDir, projectId }))
-      .revisionId;
+    currentRevisionId = (
+      await readCurrentRevision({
+        rootDir,
+        projectId,
+        ...(runtimePolicyManifest === undefined
+          ? {}
+          : { runtimePolicyManifest }),
+      })
+    ).revisionId;
   } catch {
     if (delivery !== null) {
       return {
@@ -193,9 +207,11 @@ const readProject = async ({
 
 export const readProjectProductionProgress = async ({
   rootDir,
+  runtimePolicyManifest,
   dependencies = {},
 }: {
   readonly rootDir: string;
+  readonly runtimePolicyManifest?: RuntimePolicyManifest;
   readonly dependencies?: Readonly<{
     readCurrentRevision?: typeof readCurrentProductionRevision;
     inspectProduction?: typeof inspectProjectProduction;
@@ -223,6 +239,7 @@ export const readProjectProductionProgress = async ({
         readCurrentRevision,
         inspectProduction,
         readCurrentDelivery,
+        runtimePolicyManifest,
       }),
     ),
   );

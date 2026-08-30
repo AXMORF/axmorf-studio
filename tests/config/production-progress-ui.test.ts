@@ -4,7 +4,26 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { ProductionProgressPanel } from "../../settings/client/features/progress/ProductionProgressPanel";
+import { beginProductionProgressRequest } from "../../settings/client/hooks/useProductionProgress";
 import { ProductionProgressResponseSchema } from "../../settings/contracts/api";
+
+test("progress polling coalesces while a slow request is still running", () => {
+  const current = new AbortController();
+
+  assert.equal(
+    beginProductionProgressRequest({ deleting: false, request: current }),
+    null,
+  );
+  assert.equal(current.signal.aborted, false);
+  assert.equal(
+    beginProductionProgressRequest({ deleting: true, request: null }),
+    null,
+  );
+  assert.ok(
+    beginProductionProgressRequest({ deleting: false, request: null }) instanceof
+      AbortController,
+  );
+});
 
 test("progress UI renders Revision task reuse attempt diagnostics and four-file delivery", () => {
   const progress = ProductionProgressResponseSchema.parse({

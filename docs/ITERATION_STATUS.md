@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-30 Ubuntu 24.04 x86_64 packed production E2E 与 macOS 15 ARM64 native gate
+> 最后复核：2026-08-31 Ubuntu 24.04 x86_64 npm release closeout 与 macOS 15 ARM64 native gate
 
 ## 当前结论
 
@@ -223,6 +223,24 @@ imports、精确 Remotion 版本、packed Web HTTP 与 compositions 均通过。
 tests 中验证，本次 packed Project 没有伪造对应 runtime receipt。完整事实见
 [Ubuntu npm current-feature re-acceptance](evidence/2026-08-30-ubuntu-npm-current-feature-reacceptance.md)。
 
+2026-08-31 release closeout 从 current source 再次构建两份真实 tarball 并完成双包 publish dry-run。packed runtime
+在同一外部 `ubuntu-current-features` Project 上以 `inline` 执行三个因 runtime identity 失效的 Agent tasks，复用
+五个 artifacts 与两个 provider cache hits，零 provider request，one-shot continuation 抵达新的
+`project-production-complete` exact-four Delivery。packed Web 的 progress/current Delivery API、Range video、双 Cover、
+桌面播放与窄屏加载均通过真实浏览器验证。另一个从零消费者 Workspace 使用 creator 默认流程安装，随后以 lockfile
+执行 `npm ci`，public exports、doctor、三个 compositions 与 official-registry audit 全部通过。完整 receipt 见
+[npm release closeout](evidence/2026-08-31-npm-release-closeout.md)。
+
+用户明确授权后，受控 Project delete 又在上述真实 production Workspace 的一次性副本执行。缺少
+`--confirm-delete` 时命令 exit 1 且 Delivery checksum 不变；exact confirmed command 清理 source/public/narration/
+work/artifact/attempt/delivery ownership roots，Project Registry 归零，同时保留 package/lockfile、private config、
+Agent instructions、共享 Catalog 资源和 Workspace entry。删除后的 doctor、三个系统 compositions、Web root 与空
+progress API 均通过；原验收 Workspace 与 exact-four Delivery 未变。
+
+closeout 同时修复了 packed Web 暴露的三个 release blocker：progress projection 现在携带 package runtime policy
+manifest；三秒轮询会合并仍在执行的请求，不再反复 abort 较慢的只读 inspect；Delivery Range stream 在正常结束、
+错误与客户端中止时都显式关闭 `FileHandle`。对应 server/UI/`/proc/self/fd` regression 已加入完整 gate。
+
 本轮同时修复了 packed boundary 暴露的四个问题：scaffold execution resolver 缺失、bundled FFmpeg 不提供 raw
 `s16le` muxer、scaffolded `remotion.config.mjs` 未进入 Workspace configuration snapshot，以及 EOF decode 默认选择
 缺失的 `wrapped_avframe` encoder。音频现在经 PCM WAV 解码后由 Node 重建 canonical WAV；video/Cover decode
@@ -237,9 +255,10 @@ focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests
 零写入/零 provider、dirty-only dispatch、精确 direct/dependency/artifact explanation、诊断隔离、安全边界、
 历史隔离、current no-op 与 delivery failure reuse。
 
-本轮 closeout 的完整验收仍必须按顺序运行 `npm test`、`npm run typecheck`、`npm run lint`、`npm run docs:check-links`、
-`npm run check:static`、`npm run compositions`、`npm run check`。如果本次工作尚未取得某项 Green，交付报告必须
-明确列出，不得仅凭本文宣称通过。
+本轮 closeout 已运行完整 `npm run check`：665/665 tests，以及 typecheck、lint、docs links、Catalog/Registry、
+配置构建、Remotion bundle/compositions 与 host Project gate 全部 Green；`npm run packages:typecheck` 和 release-focused
+17 tests 也通过。文档 closeout 后另行重跑 docs links 与 diff checks。真实 npm publish、tag、push 与 GitHub Release
+均未执行；受控 Project delete 只作用于一次性验收副本。
 
 ## 当前非目标
 

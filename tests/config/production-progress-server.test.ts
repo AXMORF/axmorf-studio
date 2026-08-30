@@ -19,6 +19,7 @@ import {
   StoryIdSchema,
   type ExecutionAttempt,
 } from "@axmorf/studio/contracts";
+import { buildRuntimePolicyManifest } from "../../packages/studio/src/runtime/policy-manifest";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 const revisionId = `revision-${"a".repeat(64)}` as const;
@@ -328,6 +329,62 @@ test("progress projects the shared read-only inspection without recomputing task
 
   assert.deepEqual(progress.projects[0]?.inspection, inspection);
   assert.equal(progress.projects[0]?.attempt, null);
+});
+
+test("packed Web progress forwards the runtime policy manifest to read-only production inputs", async (context) => {
+  const rootDir = await createRoot(context);
+  await writeProject(rootDir, "story-example");
+  const runtimePolicyManifest = buildRuntimePolicyManifest({
+    packageVersion: "0.1.0",
+    files: [
+      {
+        logicalPath: "dist/runtime.js",
+        bytes: Buffer.from("runtime-policy", "utf8"),
+        scopes: ["composition", "delivery", "global-visual", "scene"],
+      },
+    ],
+  });
+  let inspectManifest: unknown;
+  let revisionManifest: unknown;
+
+  const progress = await readProjectProductionProgress({
+    rootDir,
+    runtimePolicyManifest,
+    dependencies: {
+      inspectProduction: (async (
+        input: Parameters<typeof inspectProjectProduction>[0],
+      ) => {
+        inspectManifest = input.runtimePolicyManifest;
+        return {
+          schemaVersion: 1,
+          contractVersion: "production-inspection-v1",
+          storyId: StoryIdSchema.parse("story-example"),
+          sourceState: "configured-authoring",
+          currentRevisionId: revisionId,
+          baseline: { kind: "none", revisionId: null },
+          estimatedCost: {
+            providerRequests: 0,
+            providerCacheHits: 0,
+            agentTasks: 0,
+            deliveryMedia: [],
+          },
+          tasks: [],
+          nextAction: "prepare-narration",
+        };
+      }) as unknown as typeof inspectProjectProduction,
+      readCurrentRevision: (async (
+        input: Parameters<typeof readCurrentProductionRevision>[0],
+      ) => {
+        revisionManifest = input.runtimePolicyManifest;
+        return { revisionId };
+      }) as typeof readCurrentProductionRevision,
+    },
+  });
+
+  assert.strictEqual(inspectManifest, runtimePolicyManifest);
+  assert.strictEqual(revisionManifest, runtimePolicyManifest);
+  assert.equal(progress.projects[0]?.status, "not-produced");
+  assert.equal(progress.projects[0]?.error, null);
 });
 
 test("progress exposes latest attempt task summary and current four-file delivery", async (context) => {

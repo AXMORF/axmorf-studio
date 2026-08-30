@@ -1,9 +1,18 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readlink,
+  rm,
+  truncate,
+  writeFile,
+} from "node:fs/promises";
 import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { startWebControlCenter } from "../../packages/studio/src/web/server";
 
@@ -69,6 +78,21 @@ const requestWithHeaders = ({
     outgoing.once("error", reject);
     outgoing.end();
   });
+
+const countOpenDescriptors = async (absolutePath: string) => {
+  if (process.platform !== "linux") return null;
+  const descriptors = await readdir("/proc/self/fd");
+  const targets = await Promise.all(
+    descriptors.map(async (descriptor) => {
+      try {
+        return await readlink(`/proc/self/fd/${descriptor}`);
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return targets.filter((target) => target === absolutePath).length;
+};
 
 test("runtime Web server is loopback-only and serves prebuilt assets with strict request authority", async (context) => {
   const { assetsDir, rootDir } = await createFixture(context);
@@ -269,4 +293,49 @@ test("Delivery media endpoint rejects a verified but stale Revision", async (con
     new URL(`api/delivery/story-example/${deliveryBuildId}/video`, server.url),
   );
   assert.equal(response.status, 404);
+});
+
+test("Delivery media closes its file when the client aborts a response", async (context) => {
+  const { assetsDir, rootDir } = await createFixture(context);
+  const videoPath = join(rootDir, "deliveries/story-example/video.mp4");
+  const videoSize = 64 * 1024 * 1024;
+  await truncate(videoPath, videoSize);
+  const server = await startWebControlCenter({
+    rootDir,
+    assetsDir,
+    port: 0,
+    api: async () => ({ statusCode: 404, body: { error: "missing" } }),
+    inspectCurrentDelivery: async () => ({
+      storyId: "story-example",
+      revisionId,
+      deliveryBuildId,
+      artifacts: {
+        video: { sizeBytes: videoSize },
+        cover4x3: { sizeBytes: 16 },
+        cover3x4: { sizeBytes: 16 },
+      },
+    }),
+    readCurrentRevision: async () => ({ revisionId }),
+  });
+  context.after(() => server.close());
+
+  await new Promise<void>((resolve, reject) => {
+    const outgoing = request(
+      new URL(`api/delivery/story-example/${deliveryBuildId}/video`, server.url),
+      (response) => {
+        response.once("data", () => response.destroy());
+        response.once("close", resolve);
+      },
+    );
+    outgoing.once("error", reject);
+    outgoing.end();
+  });
+
+  let openDescriptors = await countOpenDescriptors(videoPath);
+  for (let attempt = 0; openDescriptors !== null && attempt < 20; attempt += 1) {
+    if (openDescriptors === 0) break;
+    await delay(10);
+    openDescriptors = await countOpenDescriptors(videoPath);
+  }
+  if (openDescriptors !== null) assert.equal(openDescriptors, 0);
 });

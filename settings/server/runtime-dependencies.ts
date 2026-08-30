@@ -30,7 +30,8 @@ export const createSettingsWebDependencies = ({
     env,
     diagnose: () =>
       runProducerEnvironmentDiagnostics({ rootDir, env, runtimeResources }),
-    inspectProductionProgress: () => readProjectProductionProgress({ rootDir }),
+    inspectProductionProgress: () =>
+      readProjectProductionProgress({ rootDir, runtimePolicyManifest }),
     deleteProject: ({ projectId }) =>
       deleteProjectData({
         rootDir,

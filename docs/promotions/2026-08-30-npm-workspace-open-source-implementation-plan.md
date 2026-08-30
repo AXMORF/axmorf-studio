@@ -558,8 +558,10 @@ Remotion bundle 成功都不能单独作为最终交付证据。
   [Ubuntu production acceptance](../evidence/2026-08-30-ubuntu-npm-workspace-production-acceptance.md)；
 - production 与完整 repository audit 已通过精确 overrides 和兼容开发工具更新归零。仓库和两个 child packages
   已采用 Apache-2.0，两个 child packages 已移除 `private` 并补齐 package README/LICENSE/third-party notices；
-- 同一外部 Workspace 的 verified-Delivery Web endpoint/viewer 与受控 Project delete 串联验收尚未在本轮执行，
-  因此计划暂不归档；真实 push/tag/Release/npm publish 仍等待用户单独授权。
+- 同一外部 Workspace 的 packed production、verified-Delivery Web endpoint/viewer 与用户另行授权的受控 Project
+  delete 已完成串联验收；fresh consumer install/lockfile replay、双包 publish dry-run 和完整 release gates 也已通过。
+  完整事实见 [npm release closeout](../evidence/2026-08-31-npm-release-closeout.md)。实现计划已完成，真实
+  push/tag/Release/npm publish 作为外部发布操作单独记录。
 
 ## 8. 完成定义
 

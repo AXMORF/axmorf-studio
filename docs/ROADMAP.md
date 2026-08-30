@@ -63,19 +63,23 @@ Remotion compositions、Web/API/浏览器 QA 和 zero-provider create/inspect；
 macOS 15 ARM64 原生 runner 上通过。Ubuntu 24.04 x86_64 又从 clean tarballs 完成 provider narration、bounded
 Agent execution、convergence、render 与 exact four-file Delivery，满足 deterministic packed production E2E；新增
 revision/originality/task-binding/reissue/GlobalVisual contracts 后又完成
-[current-feature re-acceptance](evidence/2026-08-30-ubuntu-npm-current-feature-reacceptance.md)。其中 packed Web
-HTTP 服务已冒烟返回 200，但这不替代下面仍待完成的 verified-Delivery endpoint/viewer 交互证据。
+[current-feature re-acceptance](evidence/2026-08-30-ubuntu-npm-current-feature-reacceptance.md)。2026-08-31 又从
+current closeout source 构建两份真实 tarball，在仓库外完成 fresh consumer 安装与 lockfile 重放、packed
+production/current Delivery、verified-Delivery endpoint 和桌面/窄屏浏览器交互；完整事实见
+[npm release closeout](evidence/2026-08-31-npm-release-closeout.md)。
 
-公开发布前剩余门槛是：
+公开发布收尾状态是：
 
-1. 从最终提交的 clean source 重建/复核两个 tarballs 与 publish dry-run receipt；
-2. 在同一外部 Workspace 通过 Web verified-Delivery endpoint/viewer 读取 current Delivery，并另行授权后验证受控
-   Project delete；这两项不影响已完成的 package production/Delivery receipt，但仍属于实施计划 closeout；
-3. production/repository audit 已归零，所有 Remotion packages 保持精确同版；
-4. Apache-2.0、third-party notices、Remotion 独立许可证边界以及 `@axmorf/studio` /
+1. current closeout source 的两个 tarballs、allowlist、checksum 与 publish dry-run receipt 已复核；
+2. 同一外部 Workspace 的 packed production、verified-Delivery endpoint、视频播放和双 Cover 浏览器证据已完成；
+3. 全新外部 Workspace 的 creator 默认安装、`npm ci`、doctor、public exports、compositions 与 official-registry audit
+   已完成；
+4. production/repository audit 已归零，所有 Remotion packages 保持精确同版；
+5. Apache-2.0、third-party notices、Remotion 独立许可证边界以及 `@axmorf/studio` /
    `create-axmorf-studio` 名称已确认；
-5. npm provenance、2FA/token 与首次 publish authority 仍需单独验收和明确授权；
-6. 未经用户后续授权，不 push、不 tag、不创建 GitHub Release、不执行真实 npm publish。
+6. npm provenance、2FA/token、首次 publish、push/tag 与 GitHub Release 仍需单独验收和明确授权；
+7. 用户另行明确授权后，受控 Project delete 已在真实验收 Workspace 的一次性副本通过：无确认参数时 fail closed，
+   confirmed delete 只清理 Project-owned roots，zero-Project doctor/compositions/Web 继续可用，原验收 Workspace 未变。
 
 Desktop 分叉后的非 Desktop correctness fixes 只按行为和 regression tests 选择性移植，不整体 cherry-pick Desktop
 commits。完整任务拆分、package layout、dependency 规则和完成定义见上述实施计划。

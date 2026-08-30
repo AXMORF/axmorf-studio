@@ -208,7 +208,25 @@ export const serveDeliveryMedia = async ({
     response.end();
     return;
   }
-  const stream = file.createReadStream({ start, end, autoClose: true });
-  stream.once("error", () => response.destroy());
+  const stream = file.createReadStream({ start, end, autoClose: false });
+  let fileCloseStarted = false;
+  const closeFile = () => {
+    if (fileCloseStarted) return;
+    fileCloseStarted = true;
+    void file.close().catch(() => response.destroy());
+  };
+  const closeOnAbortedResponse = () => {
+    if (!response.writableFinished) stream.destroy();
+  };
+  response.once("close", closeOnAbortedResponse);
+  stream.once("end", closeFile);
+  stream.once("close", () => {
+    response.off("close", closeOnAbortedResponse);
+    closeFile();
+  });
+  stream.once("error", () => {
+    closeFile();
+    response.destroy();
+  });
   stream.pipe(response);
 };
