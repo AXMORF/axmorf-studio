@@ -202,6 +202,10 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     manifest.scripts["project:produce:inspect"],
     "axmorf project produce inspect",
   );
+  assert.equal(
+    manifest.scripts.compositions,
+    "remotion compositions src/index.ts",
+  );
   assert.doesNotMatch(JSON.stringify(manifest.scripts), /tsx|scripts\//u);
   const remotionEntry = await readFile(join(workspace, "src/index.ts"), "utf8");
   assert.match(remotionEntry, /createRemotionRoot\(projectRegistry\)/u);
