@@ -10,6 +10,14 @@ checkout. Treat structured CLI output, task inputs, fixed validators,
 ArtifactAttestations, and the verified current Delivery as authority; chat or
 self-assessment is not completion evidence.
 
+Before Project work, run `npm run doctor`. If it fails, prepare the declared
+Node.js/npm environment and host prerequisites, then rerun the same command.
+Environment preparation may use ordinary package-manager or version-manager
+operations, but do not modify `node_modules`, package internals, exact dependency
+versions, lockfile authority, or validators to force readiness. If the declared
+capabilities cannot be satisfied, report the blocker instead of changing the
+product.
+
 Run `npm run project:produce:inspect` before any costly preparation. Only
 `npm run project:produce:prepare` may call configured providers. An Agent task
 may write only its declared `.producer-work` directory, must pass

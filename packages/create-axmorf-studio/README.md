@@ -16,6 +16,12 @@ It also includes host-neutral `AGENTS.md` instructions and the `axmorf-video`
 Skill. Any Agent that can read and write files and run npm commands can use those
 contracts; no Codex-specific runtime is required.
 
+The generated Workspace uses `npm run doctor` as its capability gate. An Agent
+may prepare the declared Node.js/npm and host prerequisites, then rerun doctor;
+it must not patch package internals, `node_modules`, exact dependencies, or
+validators to force readiness. macOS 15 ARM64 is the current reference
+environment, not an operating-system allowlist.
+
 ## Options
 
 ```text

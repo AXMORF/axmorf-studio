@@ -40,6 +40,8 @@ Agent 通过 Workspace-local、宿主无关的 Skill 调用 npm 主链创作用�
 配置/诊断/状态/Delivery 控制台，Remotion Studio 继续负责实时画面预览。
 用户入口以 `npm create axmorf-studio@latest <name>` 为准：默认完成依赖安装、lockfile、bootstrap/doctor，
 之后进入目录运行 `npm run dev`，不要求 global install 或 source clone。
+Agent 负责准备声明的 Node.js/npm 与宿主前置条件，生成 Workspace 的 `doctor` 是当前环境 capability gate；OS 不作为
+预设 allowlist，未认证宿主可以 best-effort 运行，但不得通过修改 package internals、精确依赖或 validator 制造 Green。
 
 该里程碑保持 ProductionRevision → Task DAG → ArtifactAttestation → exact four-file Delivery 主链，不引入第二条
 authority。目标产品不含 Desktop、Electron、Runtime Pack、App session、workspace-local `rsp` 或原生 installer；
@@ -53,7 +55,8 @@ macOS 15 ARM64 原生 runner 上通过。下一阶段门槛是：
    Delivery E2E；
 2. 已用精确 overrides 与兼容开发工具更新把 production/repository audit 归零，同时保持所有 Remotion packages
    精确同版；
-3. macOS 15 ARM64 已取得真实 native CI/host evidence；Windows 按用户当前决策暂缓，未取得证据前不声明支持；
+3. macOS 15 ARM64 已取得 reference-environment native evidence；首次发布不要求固定 OS matrix，其他宿主由 Agent
+   通过 doctor capability gate 接入，未取得原生证据前只标记为未认证；
 4. 已确认 Apache-2.0、third-party notices、Remotion 独立许可证边界以及 `@axmorf/studio` / `create-axmorf-studio`
    名称；剩余 provenance/2FA/token 和首次 publish authority 继续独立验收；
 5. 当前 feature branch push 仅获授权用于 macOS 验证；未经用户后续逐项授权，不 tag、不创建 Release、不执行真实

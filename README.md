@@ -13,8 +13,9 @@ Runtime Pack 或 `rsp` control plane；用户数据只属于生成的 Workspace�
 仓库和两个发布包已采用 Apache-2.0，并补齐 package README、`LICENSE` 与
 `THIRD_PARTY_NOTICES.md`。`@axmorf/studio` 和 `create-axmorf-studio` 当前 registry 查询均未发现公开包；下面的
 `npm create` 是首次发布后的稳定入口。production 与完整 repository `npm audit` 已通过精确传递依赖约束和兼容的
-开发工具更新归零；macOS 15 ARM64 已完成原生 package/scaffold 门禁，Windows 按当前决策暂缓验证。首次
-publish 仍是独立 gate，未经明确授权不会执行真实发布或 tag。
+开发工具更新归零。macOS 15 ARM64 是当前已验证的参考环境；首次发布不再要求固定 OS matrix，其他宿主由 Agent
+准备声明的前置条件，并以生成 Workspace 的 `doctor` capability gate 判定是否 ready。未经明确授权不会执行真实
+publish 或 tag。
 
 ## 当前主链
 
@@ -66,22 +67,29 @@ Claude Code 通过 `CLAUDE.md`、Gemini CLI 通过 `GEMINI.md` 导入同一文�
 adapter，不参与生产 authority。完整入口与能力矩阵见
 [Agent 兼容性指南](docs/guides/AGENT_COMPATIBILITY.md)。
 
-## 用户快速开始（首次发布后）
+操作系统不是预先写死的 runtime allowlist。Agent 可以安装 package 声明的 Node.js/npm、重建普通 npm dependencies、
+配置 provider 与处理可用端口；它不能修改 `node_modules`、package internals、精确依赖或 validator 来“适配”宿主。
+`doctor` Green 只表示当前 Workspace 的声明能力 ready，不替代最终 production/Delivery 验证。
+
+## 交给 Agent 的快速开始（首次发布后）
 
 ```bash
-npm create axmorf-studio@latest my-video
+npm create axmorf-studio@latest my-video -- --yes
 cd my-video
-npm run dev
+npm run doctor
 ```
 
 creator 默认安装精确依赖、生成 `package-lock.json`，并在原子提升目标目录前完成无 provider 的
-`bootstrap`/`doctor`。`npm run dev` 同时启动 loopback-only Web 控制中心和 Remotion Studio；Web 负责配置、
-诊断、生产进度与 verified current Delivery，Studio 负责 Composition 实时预览。二者都不编辑 Project，也不
-派发 Agent。
+`bootstrap`/`doctor`。把下面的目标交给任意能读写文件并运行 npm 的 Agent 即可：
 
-把生成目录交给任意能读写文件并运行 npm 的 Agent。Agent 先读取 Workspace 内的 `AGENTS.md` 和
-`.agents/skills/axmorf-video/SKILL.md`，再通过结构化 npm scripts 执行创建、inspect、
-prepare、task validation 和 fixed continuation。
+1. 检查并准备 `@axmorf/studio` README 声明的 Node.js/npm 环境；
+2. 运行 creator，进入 Workspace 后读取 `AGENTS.md`；
+3. 运行 `npm run doctor`，失败时只修复声明的宿主前置条件并重跑，无法满足时报告 blocker；
+4. doctor Green 后读取 `.agents/skills/axmorf-video/SKILL.md`，按用户 brief 创建、生产并交付视频；
+5. 需要配置或实时预览时运行 `npm run dev`。
+
+`npm run dev` 同时启动 loopback-only Web 控制中心和 Remotion Studio；Web 负责配置、诊断、生产进度与
+verified current Delivery，Studio 负责 Composition 实时预览。二者都不编辑 Project，也不派发 Agent。
 
 ## Contributor 快速开始
 

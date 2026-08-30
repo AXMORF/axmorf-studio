@@ -114,14 +114,27 @@ test("documented npm scripts must exist in package.json", async () => {
       await assert.rejects(
         () =>
           checkDocumentedNpmScripts({
-            markdownPaths: [
-              "README.md",
-              "docs/evidence/old.md",
-            ],
+            markdownPaths: ["README.md", "docs/evidence/old.md"],
             rootDir,
           }),
         /README\.md:2: unknown package script.*missing:script/i,
       );
+    },
+  );
+});
+
+test("generated Workspace scripts are valid when supplied explicitly", async () => {
+  await withFixture(
+    {
+      "package.json": `${JSON.stringify({ scripts: {} })}\n`,
+      "README.md": "npm run doctor\n",
+    },
+    async (rootDir) => {
+      await checkDocumentedNpmScripts({
+        additionalScriptNames: ["doctor"],
+        markdownPaths: ["README.md"],
+        rootDir,
+      });
     },
   );
 });
@@ -170,9 +183,13 @@ test("default scope ignores tracked Markdown removed from the current Project se
     },
     async (rootDir) => {
       await execFileAsync("git", ["init", "-q"], { cwd: rootDir });
-      await execFileAsync("git", ["add", "README.md", "src/projects/removable/incident.md"], {
-        cwd: rootDir,
-      });
+      await execFileAsync(
+        "git",
+        ["add", "README.md", "src/projects/removable/incident.md"],
+        {
+          cwd: rootDir,
+        },
+      );
       await rm(path.join(rootDir, "src/projects/removable"), {
         recursive: true,
       });

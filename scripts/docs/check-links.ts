@@ -4,14 +4,14 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { pathToFileURL } from "node:url";
 
+import { createPackageJson } from "../../packages/create-axmorf-studio/src/index.js";
+
 const execFileAsync = promisify(execFile);
 
 export const isActiveDocumentationPath = (repositoryPath: string) =>
   !repositoryPath.startsWith("docs/archive/");
 
-export const isCurrentOperationalDocumentationPath = (
-  repositoryPath: string,
-) =>
+export const isCurrentOperationalDocumentationPath = (repositoryPath: string) =>
   isActiveDocumentationPath(repositoryPath) &&
   !repositoryPath.startsWith("docs/evidence/") &&
   !repositoryPath.startsWith("docs/promotions/");
@@ -30,6 +30,10 @@ export type MarkdownLinkCheckResult = {
 export type DocumentedNpmScriptCheckResult = {
   readonly fileCount: number;
   readonly scriptReferenceCount: number;
+};
+
+type DocumentedNpmScriptCheckOptions = MarkdownLinkCheckOptions & {
+  readonly additionalScriptNames?: readonly string[];
 };
 
 type MarkdownLink = {
@@ -144,7 +148,8 @@ const trackedMarkdownPaths = async (rootDir: string) => {
 export const checkDocumentedNpmScripts = async ({
   rootDir,
   markdownPaths,
-}: MarkdownLinkCheckOptions): Promise<DocumentedNpmScriptCheckResult> => {
+  additionalScriptNames = [],
+}: DocumentedNpmScriptCheckOptions): Promise<DocumentedNpmScriptCheckResult> => {
   const absoluteRoot = await realpath(rootDir);
   const paths = [
     ...(markdownPaths ?? (await trackedMarkdownPaths(absoluteRoot))),
@@ -154,7 +159,10 @@ export const checkDocumentedNpmScripts = async ({
   const packageJson = JSON.parse(
     await readFile(path.join(absoluteRoot, "package.json"), "utf8"),
   ) as { readonly scripts?: Readonly<Record<string, unknown>> };
-  const available = new Set(Object.keys(packageJson.scripts ?? {}));
+  const available = new Set([
+    ...Object.keys(packageJson.scripts ?? {}),
+    ...additionalScriptNames,
+  ]);
   const failures: string[] = [];
   let scriptReferenceCount = 0;
   const scriptPattern = /\bnpm run(?:\s+--silent)?\s+([A-Za-z0-9:_-]+)/gu;
@@ -298,9 +306,17 @@ export const checkMarkdownLinks = async ({
 
 export const runDocsLinkCheck = async (rootDir = process.cwd()) => {
   const markdownPaths = await trackedMarkdownPaths(await realpath(rootDir));
+  const workspaceManifest = createPackageJson({
+    name: "generated-workspace",
+    runtimePackage: "0.1.0",
+  }) as { readonly scripts?: Readonly<Record<string, unknown>> };
   const [result, scripts] = await Promise.all([
     checkMarkdownLinks({ rootDir, markdownPaths }),
-    checkDocumentedNpmScripts({ rootDir, markdownPaths }),
+    checkDocumentedNpmScripts({
+      rootDir,
+      markdownPaths,
+      additionalScriptNames: Object.keys(workspaceManifest.scripts ?? {}),
+    }),
   ]);
   process.stdout.write(
     `Markdown links are current across ${result.fileCount} tracked files (${result.localLinkCount} local, ${result.externalLinkCount} external skipped); ${scripts.scriptReferenceCount} npm script references are current across ${scripts.fileCount} operational files.\n`,

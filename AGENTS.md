@@ -86,6 +86,10 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - 最终用户通过 `create-axmorf-studio` 创建普通 npm Workspace；运行时、CLI、contracts、Remotion
   exports 与预构建 Web 由 `@axmorf/studio` 提供，Workspace-local Skill 与用户配置由 creator
   生成。不存在 Desktop、Electron、Runtime Pack 或 `rsp` authority。
+- 环境接入是 Agent-first capability gate：Agent 负责准备 package 声明的 Node.js/npm 与宿主前置条件，creator
+  负责 install/bootstrap，生成 Workspace 的 `npm run doctor` 决定当前环境是否 ready。参考环境证据不构成 OS
+  allowlist，未认证系统也不由文档预先阻塞；但 Agent 不得修改 `node_modules`、package internals、精确依赖或
+  validator 来制造兼容，无法通过 gate 时必须报告 blocker。
 - 只使用宿主机 Node.js/npm 与 Workspace-local Remotion CLI，不新增 Docker；所有 `remotion` 与 `@remotion/*` 保持
   完全相同的精确版本。
 - 一 Story 一个 Composition；一 StoryBeat 一个 meaningId 和 Scene，完成物化的 Scene 对应一个

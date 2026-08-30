@@ -176,6 +176,11 @@ npm run dev
 成功返回时目录已经可交给任意 Agent，也可直接启动 Web 和 Remotion Studio。用户不需要先 global install、clone 本仓库、
 复制模板、手写 package.json 或理解内部 package layout。`--no-install` 只作为离线/高级用法，`--yes` 供 Agent/CI 使用。
 
+README 是发现入口，生成 Workspace 的 `AGENTS.md`/Skill 是执行说明，`npm run doctor` 是当前宿主的 capability gate。
+Agent 负责准备 package 声明的 Node.js/npm 与宿主前置条件；OS 不作为预设 allowlist，reference-environment evidence
+也不限制其他宿主尝试运行。环境适配不得改写 package internals、`node_modules`、精确依赖、lockfile authority、
+sandbox 或 validators，无法通过 doctor 时必须报告 blocker。
+
 生成项目继续用 Foundation 已验证的 npm script 名称，让 Agent Skill 不需要理解包内部目录：
 
 ```text
@@ -477,16 +482,19 @@ Red 必须由目标 contract 缺失造成，不得以网络、npm registry、pro
 网络/provider failure 不得用 fallback 绕过；package E2E 默认使用仓库自有 deterministic fixture，真实 provider
 另设显式授权的 smoke。
 
-### Task 7：跨平台与开源发布 gates
+### Task 7：Agent capability 与开源发布 gates
 
-- GitHub Actions 使用同一 source commit 在 Ubuntu、macOS、Windows 上分别完成 install、typecheck、unit、pack、
-  scaffold 和 no-provider compositions smoke；
-- product code 不依赖 Bash、Unix socket、POSIX permission literal、DMG/DEB 或平台绝对路径；需要 shell 的维护测试
-  不进入 published runtime；
-- Web 与 Studio launcher 在三个 OS 上验证 loopback bind、端口冲突、URL 输出和进程清理；published Web runtime 不安装
-  Vite 开发服务器；
-- 至少 Ubuntu 与 macOS 完成完整本地 tarball render/Delivery E2E；Windows 若真实 renderer gate 尚未 Green，公开
-  support matrix 必须标为未验证，而不是声称 npm 等于零平台差异；
+- README 给出唯一 Agent-first onboarding：准备声明环境、运行 creator、读取 Workspace `AGENTS.md`/Skill、执行
+  `npm run doctor`，再进入用户视频任务；
+- creator install/bootstrap 与 Workspace doctor 是运行时 capability gate；未认证 OS 可以 best-effort 通过同一 gate，
+  不用固定 Ubuntu/macOS/Windows matrix 阻塞首次发布；
+- 至少一个明确记录的 reference environment 对同一 source commit 完成 install、typecheck、unit、pack、scaffold、
+  no-provider compositions smoke 与完整 tarball render/Delivery E2E；当前 reference evidence 是 macOS 15 ARM64；
+- product code 继续不依赖 Bash、Unix socket、POSIX permission literal、DMG/DEB 或平台绝对路径；路径、npm CLI、
+  Web/Studio process lifecycle 保留跨平台单元/合同测试，但原生 OS certification 是增量 evidence，不是发布前矩阵；
+- Agent 只能准备声明的 Node.js/npm、普通 dependencies、provider 配置与可用端口；不得改写 package internals、
+  `node_modules`、精确依赖、lockfile authority、Chromium sandbox 或 validators，无法满足时必须结构化报告 blocker；
+- doctor Green 只证明当前 Workspace 静态 readiness，不冒充 production completion、exact Delivery 或整个 OS 家族认证；
 - 生成 SBOM/third-party license inventory，人工复核 Remotion 特殊许可证与非标准 license；
 - `npm publish --dry-run`、provenance metadata 和 README install commands 验证通过；
 - actual publish、Git push、release/tag 仍等待用户对名称、license、版本和目标 registry 的逐项授权。
@@ -518,7 +526,7 @@ contract/unit tests
   -> Remotion compositions
   -> deterministic production E2E
   -> exact four-file media verification
-  -> OS matrix
+  -> reference-environment capability receipt
   -> full repository check
 ```
 
@@ -539,10 +547,11 @@ Remotion bundle 成功都不能单独作为最终交付证据。
   自动修正；实现提交 `2bac738d4b24745b6bd10be386257dff7c60c4d1` 已在 macOS 15 ARM64 原生 runner 完成
   repository/public package gates、pack、外部 Workspace 默认安装、doctor、三个 compositions 和双侧零漏洞 audit，
   [CI run #33291456702](https://github.com/agenticnoob/axmorf-studio/actions/runs/33291456702) 的下载 receipt
-  已复核 tarball SHA-256。尚未完成 packed Workspace 的真实 provider production/exact four-file Delivery；Windows
-  按用户当前决策暂缓验证，因此本计划不归档。production 与完整 repository audit 已通过精确 overrides 和兼容开发
-  工具更新归零。仓库和两个 child packages 已采用 Apache-2.0，两个 child packages 已移除 `private` 并补齐 package
-  README/LICENSE/third-party notices；真实 publish 仍等待用户单独授权。
+  已复核 tarball SHA-256。该运行现在作为 reference-environment evidence；首次发布不再等待固定 OS matrix，其他
+  宿主由 Agent 通过 Workspace doctor capability gate best-effort 接入。尚未完成 packed Workspace 的真实 provider
+  production/exact four-file Delivery，因此本计划不归档。production 与完整 repository audit 已通过精确 overrides
+  和兼容开发工具更新归零。仓库和两个 child packages 已采用 Apache-2.0，两个 child packages 已移除 `private` 并
+  补齐 package README/LICENSE/third-party notices；真实 publish 仍等待用户单独授权。
 
 ## 8. 完成定义
 
@@ -560,7 +569,8 @@ Remotion bundle 成功都不能单独作为最终交付证据。
 - 全部 Remotion packages 精确同版，package runtime 不依赖 npm hoisting 偶然性；
 - Foundation production identity 与安全不变量保留；
 - deterministic E2E 产生并复验 exact four-file Delivery；
-- 至少声明支持的平台全部有 native CI/host evidence；
+- 至少一个 reference environment 具有 native install/scaffold/doctor/compositions 与 exact Delivery receipt；其他宿主
+  由 Agent 通过 capability gate 接入，未认证状态不冒充原生支持；
 - OSI license、third-party notices 和 Remotion 独立许可证边界明确；
 - active docs、Skill、README、Roadmap、Architecture、Workflow、Status 与真实 package surface 一致；
 - current checkout 中原有未跟踪 Desktop 遗留和任何用户 Project/Delivery 均未被纳入、修改或删除；
@@ -577,7 +587,7 @@ Remotion bundle 成功都不能单独作为最终交付证据。
 7. `feat(scaffold): create isolated story producer workspaces`
 8. `feat(web): package local control center and verified delivery viewer`
 9. `test(packaging): verify packed install and four-file delivery`
-10. `ci: validate npm workspaces across supported platforms`
+10. `test(release): validate the Agent capability gate and reference environment`
 11. `docs: switch product authority to npm workspace distribution`
 
 每个提交必须精确 stage owned paths；不得把 `.desktop-package-resources/`、`.vite/`、未跟踪 `desktop/` 或本地

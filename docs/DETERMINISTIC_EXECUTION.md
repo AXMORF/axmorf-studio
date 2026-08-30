@@ -9,6 +9,10 @@ derived fingerprint 在 parse 时拒绝。以下数据永不进入 RevisionId、
 DeliveryBuildId：ExecutionAttempt ID、clock、PID、absolute path、workspace location、Agent/child identity、
 chat、heartbeat、token usage。
 
+OS、CPU architecture、reference-environment label、Node/npm install path、Agent 的环境准备步骤和 doctor diagnostic
+同样不进入 content identity。它们只决定当前 Workspace 能否通过 capability gate；通过 gate 不改变相同 inputs 的
+Revision/Task/Artifact/Delivery identity，也不替代 exact delivery validation。
+
 ProductionInspection、TaskDecisionExplanation、diagnostic baseline、estimated/actual cost 和 ExecutionAttempt
 都属于 diagnostic plane。即使缺失、损坏或不可用，也只能降低解释完整度，不能改变 production identity、
 artifact classification、dispatch、materialization 或 delivery authority。

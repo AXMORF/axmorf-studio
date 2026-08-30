@@ -32,14 +32,15 @@ test("mainstream agent entrypoints import one repository authority", async () =>
   assert.equal(claude.trim(), "@AGENTS.md");
   assert.equal(gemini.trim(), "@./AGENTS.md");
   assert.match(agents, /AGENTS\.md` 是唯一仓库级 Agent 指令 authority/u);
-  assert.match(
-    agents,
-    /\.agents\/skills\/axmorf-video\/SKILL\.md/u,
-  );
+  assert.match(agents, /\.agents\/skills\/axmorf-video\/SKILL\.md/u);
   assert.match(agents, /内置执行默认是 `inline`/u);
   assert.match(readme, /docs\/guides\/AGENT_COMPATIBILITY\.md/u);
+  assert.match(readme, /`doctor` capability gate/u);
   assert.match(guide, /其他 shell-capable Agent/u);
   assert.match(guide, /不依赖.*Agent API|不创建 Agent/su);
+  assert.match(guide, /Workspace capability gate/u);
+  assert.match(guide, /不得修改 `node_modules`/u);
+  assert.match(status, /macOS 15 ARM64.*reference environment/su);
   assert.match(workflow, /Resolved execution mode/u);
   assert.match(workflow, /inline default/u);
   assert.match(workflow, /仓库只产出通用 workspace 与 shell command/u);
@@ -55,9 +56,7 @@ test("generic production surfaces do not call vendor agent runtimes", async () =
   const [packageJson, productionSkill, remotionSkill, prepareProduction] =
     await Promise.all([
       readRepositoryFile("package.json"),
-      readRepositoryFile(
-        ".agents/skills/axmorf-video/SKILL.md",
-      ),
+      readRepositoryFile(".agents/skills/axmorf-video/SKILL.md"),
       readRepositoryFile(".agents/skills/remotion-best-practices/SKILL.md"),
       readRepositoryFile(
         "scripts/project-production/application/prepare-production.ts",

@@ -2,9 +2,11 @@
 
 > 文档类型：术语 authority
 
+<!-- prettier-ignore -->
 | 名词 | 精确定义 |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Project authoring source | `src/projects/<storyId>/` 与显式 Project-local selected media 中的可变创作输入。 |
+| Workspace capability gate | creator install/bootstrap 后由 `npm run doctor` 对当前 Workspace 声明能力执行的 readiness 检查；Agent 可准备宿主环境但不得修改 package internals、精确依赖或 validators。它不是 OS allowlist、production completion 或 Delivery evidence。 |
 | configured-authoring | `project:create` 已原子写入 Story/TTS/config 与 pending timing-bound authoring，尚未准备 narration。 |
 | timing-ready | verified narration PCM/seal/master/timing 已存在，但 production authoring 仍可能待 fixed projection。 |
 | production-inputs-ready | 所有 current authoring contracts 与 narration preparation receipt 齐全，可以只读计算 Revision/Task DAG。 |

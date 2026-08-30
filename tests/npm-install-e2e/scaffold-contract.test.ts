@@ -245,10 +245,20 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     join(workspace, ".agents/skills/axmorf-video/SKILL.md"),
     "utf8",
   );
+  const workspaceReadme = await readFile(join(workspace, "README.md"), "utf8");
+  const workspaceAgents = await readFile(join(workspace, "AGENTS.md"), "utf8");
+  assert.match(workspaceReadme, /npm run doctor/u);
+  assert.match(workspaceReadme, /read\s+`AGENTS\.md`/u);
+  assert.match(
+    workspaceAgents,
+    /prepare the declared\s+Node\.js\/npm environment/u,
+  );
+  assert.match(workspaceAgents, /do not modify `node_modules`/u);
   assert.match(
     workspaceSkill,
     /Do not use package\s+internals or assume a particular Agent host/u,
   );
+  assert.match(workspaceSkill, /Run `npm run doctor`/u);
   assert.doesNotMatch(
     workspaceSkill,
     /Codex|OpenAI|spawn_agent|thread|chat|session/iu,

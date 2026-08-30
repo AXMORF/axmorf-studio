@@ -8,6 +8,13 @@
 `axmorf` bin；CLI 从 marker 解析唯一 writable Workspace root，并分别读取 npm package 中
 immutable RuntimeResources。脚本不依赖源码 checkout、global install、Desktop、`rsp`、shell 或 `.bin` 路径。
 
+## Workspace capability gate
+
+Agent 第一次接手生成 Workspace 时先读取 `AGENTS.md` 并运行 `npm run doctor`。若失败，只能准备 package 声明的
+Node.js/npm、普通 npm dependencies 与宿主前置条件后重跑；不得修改 `node_modules`、package internals、精确版本、
+lockfile authority、sandbox 或 validator 来制造 Green。无法满足时报告 external blocker。doctor Green 只表示
+当前环境可以进入下面的主链，不表示已经生产或交付视频，也不把该 OS 整体认证为受支持平台。
+
 ## 1. 主链概览
 
 ```mermaid

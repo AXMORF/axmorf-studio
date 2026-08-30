@@ -9,6 +9,11 @@ Read [the production workflow](references/production-workflow.md) before acting.
 Use the Workspace's npm scripts and their structured output. Do not use package
 internals or assume a particular Agent host or global installation.
 
+Run `npm run doctor` before Project work. If it is not ready, prepare only the
+declared host environment and rerun it; never patch package internals,
+`node_modules`, exact dependencies, or validators. Report an unsatisfied host
+capability as a blocker.
+
 For a new video, build a strict Project create input from the user brief and run
 `npm run project:create`. This command creates authoring source only; it must not
 call a provider or start production.

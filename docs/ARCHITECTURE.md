@@ -144,6 +144,11 @@ CLI 先从静态 `axmorf.workspaceVersion` marker 解析 canonical Workspace roo
 Scene template source、预构建 Web、Remotion preflight 和稳定 policy manifest。Workspace 不复制 package
 authority，也不能写 package directory；package path、cwd、PID、时间和 npm cache 不进入 creative identity。
 
+creator install/bootstrap 与生成 Workspace 的 `doctor` 组成 host capability boundary。Agent 可以在 data plane
+之外准备声明的 Node.js/npm、普通依赖和宿主前置条件；OS/reference-environment label、安装步骤与诊断均不进入
+Revision/Task/Artifact/Delivery identity。doctor 只读检查当前 Workspace 的 declared readiness；它不允许 Agent
+改写 package internals、精确依赖、sandbox 或 validators，也不替代 production/Delivery evidence。
+
 Remotion/FFmpeg/FFprobe/Studio 统一解析 Workspace-local `@remotion/cli` 的 JavaScript entry 并通过
 `process.execPath` 启动，不依赖 shell、PATH 或 platform-specific `.bin`。generated Registry/Catalog 在 bundle
 前写入 Workspace，runtime render 不扫描 package、filesystem 或网络。

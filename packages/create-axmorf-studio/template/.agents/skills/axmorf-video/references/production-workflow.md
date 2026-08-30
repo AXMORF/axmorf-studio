@@ -1,19 +1,21 @@
 # Production workflow
 
-1. Preserve unrelated Workspace changes and inspect existing Project source.
-2. Create or revise strict authoring input without calling providers.
-3. Resolve execution according to the current host's real capabilities. Inline
+1. Run `npm run doctor`. Prepare only declared host prerequisites when needed;
+   never patch package internals, dependencies, or validators to force Green.
+2. Preserve unrelated Workspace changes and inspect existing Project source.
+3. Create or revise strict authoring input without calling providers.
+4. Resolve execution according to the current host's real capabilities. Inline
    execution is always valid; use isolated child execution only when the host
    genuinely supplies it and the user/config selects it.
-4. Run `npm run project:produce:inspect -- --project <storyId>` and report its
+5. Run `npm run project:produce:inspect -- --project <storyId>` and report its
    structured readiness, cost, reuse, and invalidation result.
-5. Run `npm run project:produce:prepare -- --project <storyId>` only after the
+6. Run `npm run project:produce:prepare -- --project <storyId>` only after the
    inspection is understood and cost is authorized.
-6. Execute each dirty Scene, GlobalVisual, or Cover task within its declared
+7. Execute each dirty Scene, GlobalVisual, or Cover task within its declared
    workspace. Do not author fixed template tasks.
-7. Check and terminate every task through the exact commands returned by the
+8. Check and terminate every task through the exact commands returned by the
    controller.
-8. Start the exact continuation command as the Root Agent's final production
+9. Start the exact continuation command as the Root Agent's final production
    action. Do not supervise it through polling or a second continuation.
 
 Timing comes from sealed PCM samples. Scenes do not own captions or narration.

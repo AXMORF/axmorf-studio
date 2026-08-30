@@ -34,6 +34,12 @@ The package does not bundle `node_modules` or vendor Remotion. The creator
 installs the required third-party packages as ordinary exact npm dependencies in
 the generated workspace.
 
+The creator and `axmorf doctor` form the runtime capability gate. Agents may
+prepare the declared host environment, but unsupported host conditions must
+remain explicit failures; modifying package internals, exact dependencies, or
+validators is not environment adaptation. Native evidence for a reference
+environment does not restrict installation on other operating systems.
+
 ## License
 
 AXMORF Studio source in this package is licensed under Apache-2.0. Third-party

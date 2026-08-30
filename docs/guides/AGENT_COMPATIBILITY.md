@@ -33,14 +33,26 @@ task workspace、validator、ArtifactAttestation 和 current delivery，不来�
 或宿主无法确认的容量不算该能力。已保存设置选择 `subagents` 但宿主容量为零时，生产在 prepare 前阻塞；不自动
 回退或伪造 child completion。
 
+## Workspace capability gate
+
+平台兼容不使用预设 OS allowlist，也不要求首次发布前完成固定三平台矩阵。macOS 15 ARM64 是当前 reference
+environment evidence；其他宿主由 Agent 按 package README 准备 Node.js/npm 与声明的宿主前置条件，再以生成
+Workspace 中的 `npm run doctor` 判定当前环境是否 ready。
+
+Agent 可以使用普通 package manager/version manager 准备环境、用 npm 重装声明依赖、配置 provider 或选择可用
+端口；不得修改 `node_modules`、package internals、精确依赖、lockfile authority、Chromium sandbox 或 validator
+来制造 Green。doctor 失败且声明能力无法满足时，必须报告 external blocker。doctor Green 只证明当前 Workspace
+的静态 readiness，不是 production completion、Delivery evidence 或对整个操作系统家族的认证。
+
 ## 通用视频入口
 
 收到创建、生产、重建或交付视频的请求时：
 
-1. 读取 Workspace 中的 `.agents/skills/axmorf-video/SKILL.md`；宿主是否支持自动 Skill discovery 不影响该路径。
-2. 按 Skill 只加载当前阶段需要的 reference。
-3. 运行 `project:execution:resolve`。没有持久化设置或提示词 override 时会解析为 `inline`。
-4. 后续只消费 `project:produce:inspect`、`project:produce:prepare` 返回的 JSON、task workspace 和 exact commands。
+1. 读取 Workspace `AGENTS.md`，运行 `npm run doctor` 并按上述边界准备环境；
+2. 读取 `.agents/skills/axmorf-video/SKILL.md`；宿主是否支持自动 Skill discovery 不影响该路径；
+3. 按 Skill 只加载当前阶段需要的 reference；
+4. 运行 `project:execution:resolve`。没有持久化设置或提示词 override 时会解析为 `inline`；
+5. 后续只消费 `project:produce:inspect`、`project:produce:prepare` 返回的 JSON、task workspace 和 exact commands。
 
 仓库脚本不调用 Codex/Claude/Gemini/Cursor/Copilot SDK，也不创建 Agent。`prepare` 产生通用任务描述和 shell
 commands；当前宿主负责 inline 执行或可选 child admission。
