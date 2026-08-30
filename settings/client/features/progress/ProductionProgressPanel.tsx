@@ -6,6 +6,7 @@ import type {
 } from "../../../contracts/api";
 import { Section } from "../../components/Form";
 import { projectDeletionErrorMessage } from "../../model";
+import { DeliveryViewer } from "./DeliveryViewer";
 
 const labels: Record<ProjectProductionStatus, string> = {
   "not-produced": "尚未生产",
@@ -119,6 +120,8 @@ export const ProductionProgressPanel = ({
                 onClick={() => {
                   setSelectedId(project.projectId);
                   setPendingDelete(false);
+                  setConfirmation("");
+                  setDeleteError(null);
                 }}
               >
                 <i className={project.status} />
@@ -262,7 +265,8 @@ export const ProductionProgressPanel = ({
                   <p>
                     实际成本 · Provider requests{" "}
                     {selected.attempt.actualCost.providerRequests}
-                    {" · "}cache hits {selected.attempt.actualCost.providerCacheHits}
+                    {" · "}cache hits{" "}
+                    {selected.attempt.actualCost.providerCacheHits}
                     {" · "}Agent tasks {selected.attempt.actualCost.agentTasks}
                     {" · "}delivery{" "}
                     {selected.attempt.actualCost.deliveryMedia.length === 0
@@ -308,23 +312,29 @@ export const ProductionProgressPanel = ({
                 </div>
               ))}
               {selected.delivery === null ? null : (
-                <div className="delivery-stamp">
-                  <div>
-                    <span>VERIFIED DELIVERY</span>
-                    <strong>
-                      {selected.delivery.current
-                        ? "对应 current Revision"
-                        : "保留的上一版交付"}
-                    </strong>
+                <>
+                  <div className="delivery-stamp">
+                    <div>
+                      <span>VERIFIED DELIVERY</span>
+                      <strong>
+                        {selected.delivery.current
+                          ? "对应 current Revision"
+                          : "保留的上一版交付"}
+                      </strong>
+                    </div>
+                    <div className="delivery-files" aria-label="四文件完整">
+                      <span>VIDEO</span>
+                      <span>COVER 4:3</span>
+                      <span>COVER 3:4</span>
+                      <span>PUBLISH</span>
+                    </div>
+                    <small>{selected.delivery.frameCount} frames</small>
                   </div>
-                  <div className="delivery-files" aria-label="四文件完整">
-                    <span>VIDEO</span>
-                    <span>COVER 4:3</span>
-                    <span>COVER 3:4</span>
-                    <span>PUBLISH</span>
-                  </div>
-                  <small>{selected.delivery.frameCount} frames</small>
-                </div>
+                  <DeliveryViewer
+                    projectId={selected.projectId}
+                    delivery={selected.delivery}
+                  />
+                </>
               )}
             </article>
           )}

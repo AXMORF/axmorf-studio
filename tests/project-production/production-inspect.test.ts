@@ -4,17 +4,29 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { inspectProjectProduction } from "../../scripts/project-production/application/inspect-production";
-import { createProject } from "../../scripts/projects/application/create-project";
+import { createProject as createProjectApplication } from "../../scripts/projects/application/create-project";
 import {
   NARRATION_MASTERING_POLICY,
   computeGenerationInputFingerprint,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { inspectNarrationCache } from "../../scripts/project-production/adapters/production-inspection";
 import { loadNarrationProjectFiles } from "../../scripts/narration/project-files";
 import {
   prepareProjectCreateFixture,
+  projectCreateRuntimeResources,
   writeProjectCreateJson,
 } from "../fixtures/project-create";
+
+const createProject = (
+  input: Omit<
+    Parameters<typeof createProjectApplication>[0],
+    "runtimeResources"
+  >,
+) =>
+  createProjectApplication({
+    ...input,
+    runtimeResources: projectCreateRuntimeResources,
+  });
 
 const sameSnapshot = {
   source: "source-a",

@@ -1,5 +1,9 @@
 import { pathToFileURL } from "node:url";
-import type { ProducerTaskSpec, Sha256Digest } from "../../src/contracts";
+import type {
+  ProducerTaskSpec,
+  Sha256Digest,
+} from "@axmorf/studio/contracts";
+import type { RuntimePolicyManifest } from "../../packages/studio/src/runtime/policy-manifest";
 import { appendExecutionAttemptTaskOutcome } from "./adapters/attempt-store";
 import { readTaskWorkspace } from "./adapters/task-workspace";
 
@@ -12,6 +16,7 @@ import { resolveProjectAgentExecution } from "./application/resolve-agent-execut
 
 type Context = Readonly<{
   rootDir: string;
+  runtimePolicyManifest?: RuntimePolicyManifest;
   stdout: (line: string) => void;
   commitTaskArtifact?: typeof commitProducerTaskArtifact;
   readWorkspace?: typeof readTaskWorkspace;
@@ -126,9 +131,7 @@ export const runProjectProductionCli = async (
       );
     }
     if (requireExactConcurrency && rawMode !== "subagents") {
-      throw new Error(
-        "Exact concurrency requires an explicit subagents mode.",
-      );
+      throw new Error("Exact concurrency requires an explicit subagents mode.");
     }
     const override =
       rawMode === "inline"
@@ -162,6 +165,7 @@ export const runProjectProductionCli = async (
     )({
       rootDir: context.rootDir,
       projectId: option(args, "--project"),
+      runtimePolicyManifest: context.runtimePolicyManifest,
     });
     context.stdout(JSON.stringify(result));
     return result;
@@ -172,6 +176,7 @@ export const runProjectProductionCli = async (
     )({
       rootDir: context.rootDir,
       projectId: option(args, "--project"),
+      runtimePolicyManifest: context.runtimePolicyManifest,
     });
     context.stdout(JSON.stringify(result));
     return result;
@@ -284,6 +289,7 @@ export const runProjectProductionCli = async (
       projectId: option(args, "--project"),
       revisionId: option(args, "--revision"),
       attemptId: option(args, "--attempt"),
+      runtimePolicyManifest: context.runtimePolicyManifest,
     });
     context.stdout(JSON.stringify(result));
     return result;

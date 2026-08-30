@@ -1,6 +1,6 @@
 import { join } from "node:path";
 
-import { VoiceProfileIdSchema } from "../../src/contracts/primitives";
+import { VoiceProfileIdSchema } from "@axmorf/studio/contracts";
 import {
   migrateVoxcpmPrivateConfigFile,
   VoxcpmPrivateConfigMigrationBlocker,

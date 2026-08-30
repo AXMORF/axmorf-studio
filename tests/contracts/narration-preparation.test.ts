@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   NARRATION_MASTERING_POLICY,
   NarrationPreparationReceiptSchema,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 const sha = (value: string) => `sha256:${value.repeat(64)}`;
 

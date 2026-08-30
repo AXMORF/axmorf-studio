@@ -10,7 +10,7 @@ import {
   computeGenerationInputFingerprint,
   computeStoryFingerprint,
   generateSemanticTiming,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   buildValidSealedNarrationManifest,
   validNarrationSpec,

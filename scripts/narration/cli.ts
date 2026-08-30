@@ -1,9 +1,9 @@
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { computeGenerationInputFingerprint } from "../../src/contracts/generation-input";
-import type { NarrationSpec } from "../../src/contracts/narration";
-import { Sha256DigestSchema } from "../../src/contracts/primitives";
+import { computeGenerationInputFingerprint } from "@axmorf/studio/contracts";
+import type { NarrationSpec } from "@axmorf/studio/contracts";
+import { Sha256DigestSchema } from "@axmorf/studio/contracts";
 import {
   loadVerifiedProgress,
   readCandidateBytes,
@@ -25,7 +25,7 @@ import type { M2NarrationCheckResult } from "./check";
 
 type GenerationDependencies = {
   readonly providerAttemptFingerprint: string;
-  readonly executionSnapshot: import("../../src/contracts").NarrationExecutionSnapshot;
+  readonly executionSnapshot: import("@axmorf/studio/contracts").NarrationExecutionSnapshot;
   readonly generateChunk: ChunkAudioGenerator;
   readonly normalizePcm: PcmNormalizer;
 };

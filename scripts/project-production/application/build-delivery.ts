@@ -17,7 +17,7 @@ import {
   createDeliveryBuildId,
   serializeCanonicalJson,
   type DeliveryPublish,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   assertDeliveryPath,
   ensureDeliveryDirectory,

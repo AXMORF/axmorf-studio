@@ -6,8 +6,10 @@
 
 ## 1. 产品结论
 
-Remotion Story Producer 把一份可审计的 Project authoring source 生产为一个 Composition 和一个本地
-current delivery。唯一主链是：
+AXMORF Studio 通过 npm creator 建立一个用户自有 Workspace，再把其中可审计的 Project authoring
+source 生产为一个 Composition 和一个本地 current delivery。runtime/CLI、contracts、Remotion exports 与
+预构建 Web 来自 npm package；用户 Project、配置、媒体、artifacts 和 Delivery 只属于 Workspace。产品不含
+Desktop、Electron、Runtime Pack 或 `rsp` control plane。唯一主链是：
 
 在确定性主链之前，Root 可从“当前 Agent 实际 callable 的 tools”投影外部图片 MCP 插槽。该能力存在时才
 在本地 Catalog 缺少合适素材后 acquire，并经 `project:asset:import` 准入；不存在时整个阶段无错误、无占位
@@ -77,7 +79,7 @@ decode 全部通过后才替换。相同完整 identity 是只读 no-op。
 - Project 删除使用完整 storyId 确认并清理该 Project 的全部 ownership roots，同时保护其他 Project、
   core、shared media、private config 与 voice profiles。
 - 每个完成状态都有机械证据；聊天成功、Agent 自评、文件存在或进程启动都不代表交付完成。
-- Agent 执行模式按用户提示词明确字段、配置页、内置 `inline` 默认逐级解析；全新 checkout 单 Agent 可用，
+- Agent 执行模式按用户提示词明确字段、配置页、内置 `inline` 默认逐级解析；全新 scaffolded Workspace 单 Agent 可用，
   具备 runtime-native children 的宿主可显式选择最多四个 subagents；
   策略不进入 production identity。continuation 启动后 Root 不监督；failure 直接终止，all-success 只由持有
   exact-attempt one-shot claim 的 fixed continuation 触发一次 converge；缺失终态受 attempt 创建起一小时总

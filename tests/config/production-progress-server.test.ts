@@ -18,7 +18,7 @@ import {
   ExecutionAttemptSchema,
   StoryIdSchema,
   type ExecutionAttempt,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 const revisionId = `revision-${"a".repeat(64)}` as const;

@@ -2,7 +2,7 @@ import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 
-import { StoryIdSchema } from "../../src/contracts";
+import { StoryIdSchema } from "@axmorf/studio/contracts";
 
 import { renderProjectRegistrySource } from "./domain";
 import {

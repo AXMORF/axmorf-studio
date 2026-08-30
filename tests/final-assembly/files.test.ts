@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { createFinalAssemblyPlan } from "../../src/contracts/final-assembly";
+import { createFinalAssemblyPlan } from "@axmorf/studio/contracts";
 import {
   checkPersistedFinalAssembly,
   serializeFinalAssembly,

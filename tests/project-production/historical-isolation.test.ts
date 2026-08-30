@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { ExecutionAttemptSchema } from "../../src/contracts";
+import { ExecutionAttemptSchema } from "@axmorf/studio/contracts";
 import {
   readExecutionAttemptDiagnosticBaseline,
   writeExecutionAttempt,

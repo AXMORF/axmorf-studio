@@ -1,8 +1,11 @@
 import { lstat, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 
-import { NarrationSpecSchema } from "../../src/contracts/narration";
-import { getSpeechSdkVendorDefinition } from "../../src/contracts/tts-provider-registry";
+import type { RuntimeResources } from "@axmorf/studio";
+import {
+  getSpeechSdkVendorDefinition,
+  NarrationSpecSchema,
+} from "@axmorf/studio/contracts";
 import {
   readProducerConfig,
   resolveDefaultTtsProvider,
@@ -41,12 +44,20 @@ export const runProducerEnvironmentDiagnostics = async ({
   rootDir,
   env,
   voxcpmProbe = probe,
-  browserPreflight = preflightRemotionBrowser,
+  runtimeResources,
+  browserPreflight,
 }: {
   readonly rootDir: string;
   readonly env: Readonly<Record<string, string | undefined>>;
   readonly voxcpmProbe?: VoxcpmProbe;
-  readonly browserPreflight?: typeof preflightRemotionBrowser;
+  readonly runtimeResources?: RuntimeResources;
+  readonly browserPreflight?: (
+    input: Readonly<{
+      rootDir: string;
+      requirementsFingerprint: string;
+      runtimeResources?: RuntimeResources;
+    }>,
+  ) => ReturnType<typeof preflightRemotionBrowser>;
 }): Promise<EnvironmentDiagnostics> => {
   let config;
   try {
@@ -143,7 +154,8 @@ export const runProducerEnvironmentDiagnostics = async ({
         provider.voiceProfiles.filter(
           ({ id }) => id === config.tts.defaultVoiceProfileId,
         ).length === 1;
-      if (!profileMatched) throw new Error("Remote voice profile is unavailable.");
+      if (!profileMatched)
+        throw new Error("Remote voice profile is unavailable.");
       remoteProvider =
         provider.kind === "speech-sdk"
           ? {
@@ -199,10 +211,25 @@ export const runProducerEnvironmentDiagnostics = async ({
       remediation: null,
     });
   }
-  const browser = await browserPreflight({
-    rootDir,
-    requirementsFingerprint: config.configFingerprint,
-  });
+  let browser;
+  if (browserPreflight === undefined) {
+    if (runtimeResources === undefined) {
+      throw new Error(
+        "Runtime resources are required for Remotion diagnostics.",
+      );
+    }
+    browser = await preflightRemotionBrowser({
+      rootDir,
+      runtimeResources,
+      requirementsFingerprint: config.configFingerprint,
+    });
+  } else {
+    browser = await browserPreflight({
+      rootDir,
+      requirementsFingerprint: config.configFingerprint,
+      ...(runtimeResources === undefined ? {} : { runtimeResources }),
+    });
+  }
   checks.push(
     browser.status === "pass"
       ? {

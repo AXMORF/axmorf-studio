@@ -2,7 +2,7 @@ import { lstat, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 
-import { StoryIdSchema } from "../../src/contracts";
+import { StoryIdSchema } from "@axmorf/studio/contracts";
 import { readLocalProjectRoot } from "../projects/root";
 
 export const ProjectVerificationStepSchema = z.enum([
@@ -44,10 +44,7 @@ const ProjectVerificationProfileSchema = z
 export type ProjectVerificationStep = z.infer<
   typeof ProjectVerificationStepSchema
 >;
-export type ProjectVerificationScope =
-  | "full"
-  | "source"
-  | "evidence";
+export type ProjectVerificationScope = "full" | "source" | "evidence";
 
 export type ProjectVerificationProfiles = Readonly<{
   profileVersion: "project-verification-current-v1";
@@ -127,11 +124,7 @@ export const resolveProfileSteps = (
 const scopes = ["full", "source", "evidence"] as const;
 
 export const parseProjectValidationArgs = (args: readonly string[]) => {
-  if (
-    args.length === 3 &&
-    args[0] === "evidence" &&
-    args[1] === "--project"
-  ) {
+  if (args.length === 3 && args[0] === "evidence" && args[1] === "--project") {
     return {
       target: StoryIdSchema.parse(args[2]),
       scope: args[0],

@@ -4,8 +4,8 @@ import test from "node:test";
 import {
   ProducerAssetManifestSchema,
   assertProducerAssetManifest,
-} from "../../src/contracts/assets";
-import { getProducerSoundLibrary } from "../../src/remotion/capabilities/sound/library";
+} from "@axmorf/studio/contracts";
+import { getProducerSoundLibrary } from "@axmorf/studio/remotion";
 
 const digest = (character: string) => `sha256:${character.repeat(64)}`;
 

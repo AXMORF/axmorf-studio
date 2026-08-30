@@ -11,7 +11,7 @@ import {
   getSpeechSdkModelMaxInputChars,
   getSpeechSdkVendorDefinition,
   type SpeechSdkVendor,
-} from "../../../../src/contracts/tts-provider-registry";
+} from "@axmorf/studio/contracts";
 import { Field, FieldRow, Section } from "../../components/Form";
 import {
   nextUniqueId,
@@ -696,9 +696,10 @@ const SpeechSdkEditor = ({
         ) : null}
       </FieldRow>
       <p className="inline-note">
-        单 authored ttsChunk 最多 {getSpeechSdkModelMaxInputChars(provider.vendor, provider.modelId)} 字符；maxRetries=0，
-        不启用 SDK timestamp、响度处理、自动拆分或跨厂商 fallback。没有 Key
-        的厂商仅完成源码与 mock 验证，不标记为线上实测。
+        单 authored ttsChunk 最多{" "}
+        {getSpeechSdkModelMaxInputChars(provider.vendor, provider.modelId)}{" "}
+        字符；maxRetries=0， 不启用 SDK timestamp、响度处理、自动拆分或跨厂商
+        fallback。没有 Key 的厂商仅完成源码与 mock 验证，不标记为线上实测。
       </p>
       <div className="profile-list">
         {provider.voiceProfiles.map((profile, index) => (

@@ -33,13 +33,13 @@ import {
   type FinalMechanicalCheckV2Id,
   type FinalMechanicalCheckV2ReportInput,
   type Sha256Digest,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   resolveSceneSound,
   type SceneSoundProjection,
-} from "../../src/remotion/runtime/scene-sound";
-import { buildSoundDesignProjection } from "../../src/remotion/runtime/sound-design";
-import { buildStoryVisualProjection } from "../../src/remotion/runtime/story-visual";
+} from "../../packages/studio/src/remotion/runtime/scene-sound";
+import { buildSoundDesignProjection } from "../../packages/studio/src/remotion/runtime/sound-design";
+import { buildStoryVisualProjection } from "../../packages/studio/src/remotion/runtime/story-visual";
 import { checkPersistedNarrativeAutoCheck } from "./report-files";
 import { runNarrativeAutoCheck } from "./run";
 import type { ProcessRunner } from "../baseline/evidence";

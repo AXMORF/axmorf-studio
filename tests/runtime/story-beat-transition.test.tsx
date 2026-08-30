@@ -3,7 +3,7 @@ import { isValidElement } from "react";
 import test from "node:test";
 import { Sequence } from "remotion";
 
-import { StoryBeatTransitionOverlay } from "../../src/remotion/runtime/story-visual/StoryBeatTransitionOverlay";
+import { StoryBeatTransitionOverlay } from "@axmorf/studio/remotion";
 
 test("hard cut creates no node and visual overlay stays inside an equal-duration boundary window", () => {
   assert.equal(

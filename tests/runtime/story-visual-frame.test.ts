@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   resolveSceneLocalFrame,
   resolveShotLocalFrame,
-} from "../../src/remotion/runtime/story-visual/frame";
+} from "@axmorf/studio/remotion";
 
 test("Scene and Shot frame helpers preserve exact half-open local coordinates", () => {
   assert.equal(
@@ -15,10 +15,7 @@ test("Scene and Shot frame helpers preserve exact half-open local coordinates", 
     resolveSceneLocalFrame(139, { startFrame: 20, endFrame: 140 }),
     119,
   );
-  assert.equal(
-    resolveShotLocalFrame(42, { startFrame: 40, endFrame: 80 }),
-    2,
-  );
+  assert.equal(resolveShotLocalFrame(42, { startFrame: 40, endFrame: 80 }), 2);
   for (const frame of [19, 140]) {
     assert.throws(() =>
       resolveSceneLocalFrame(frame, { startFrame: 20, endFrame: 140 }),

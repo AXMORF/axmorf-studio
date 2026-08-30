@@ -1,4 +1,4 @@
-import type { ExecutionAttemptProgress } from "../../../src/contracts";
+import type { ExecutionAttemptProgress } from "@axmorf/studio/contracts";
 import {
   appendExecutionAttemptDeliveryResult,
   claimExecutionAttemptContinuation,
@@ -10,6 +10,7 @@ import {
   type ExecutionAttemptEventWait,
 } from "../adapters/attempt-event-wait";
 import { convergeProjectProduction } from "./converge-artifacts";
+import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
 
 export const DEFAULT_EXECUTION_ATTEMPT_DEADLINE_MS = 60 * 60 * 1_000;
 
@@ -65,12 +66,14 @@ export const continueProjectProduction = async (
     projectId,
     revisionId,
     attemptId,
+    runtimePolicyManifest,
     timeoutMs = DEFAULT_EXECUTION_ATTEMPT_DEADLINE_MS,
   }: {
     readonly rootDir: string;
     readonly projectId: string;
     readonly revisionId: string;
     readonly attemptId: string;
+    readonly runtimePolicyManifest?: RuntimePolicyManifest;
     readonly timeoutMs?: number;
   },
   dependencies: ContinueProductionDependencies = {},
@@ -178,6 +181,7 @@ export const continueProjectProduction = async (
       projectId,
       revisionId,
       attemptId,
+      runtimePolicyManifest,
     });
     const terminal = await readProgress({
       rootDir,

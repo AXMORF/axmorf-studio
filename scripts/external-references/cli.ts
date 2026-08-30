@@ -1,6 +1,9 @@
 import { pathToFileURL } from "node:url";
 
-import { GitCommitSchema, StoryIdSchema } from "../../src/contracts";
+import {
+  GitCommitSchema,
+  StoryIdSchema,
+} from "@axmorf/studio/contracts";
 
 type BaseInput = {
   readonly source: "video-shotcraft";

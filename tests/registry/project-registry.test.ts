@@ -21,7 +21,7 @@ import {
   RenderSpecSchema,
   SealedNarrationManifestSchema,
   StorySpecSchema,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { renderProjectRegistrySource } from "../../scripts/registry/domain";
 import {
   discoverProjectEntries,

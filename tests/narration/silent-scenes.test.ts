@@ -6,7 +6,7 @@ import {
   StorySpecSchema,
   buildSilentScenePreset,
   computeGenerationInputFingerprint,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { NarrationGenerationProgressSchema } from "../../scripts/narration/domain/candidate-progress";
 import { computeChunkRequestFingerprint } from "../../scripts/narration/domain/provider-input";
 import {
@@ -15,10 +15,7 @@ import {
   sha256Bytes,
 } from "../../scripts/narration/domain/pcm-wav";
 import { buildNarrationSeal } from "../../scripts/narration/domain/seal";
-import {
-  validNarrationSpec,
-  validStorySpec,
-} from "../fixtures/narrative";
+import { validNarrationSpec, validStorySpec } from "../fixtures/narrative";
 import { createRawPcmFixture, createWavFixture } from "../fixtures/wav";
 
 test("narration sealing consumes only narrated chunks when silent Scenes exist", () => {
@@ -104,13 +101,10 @@ test("narration sealing consumes only narrated chunks when silent Scenes exist",
     seal.manifest.segments.map((segment) => segment.meaningId),
     ["opening", "opening", "conclusion"],
   );
-  assert.deepEqual([...seal.chunkWavs.keys()], [
-    "opening-01",
-    "conclusion-01",
-  ]);
+  assert.deepEqual([...seal.chunkWavs.keys()], ["opening-01", "conclusion-01"]);
   assert.equal(
-    seal.manifest.segments.some(({ meaningId }) =>
-      meaningId === "intro" || meaningId === "outro"
+    seal.manifest.segments.some(
+      ({ meaningId }) => meaningId === "intro" || meaningId === "outro",
     ),
     false,
   );

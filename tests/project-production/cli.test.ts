@@ -9,7 +9,7 @@ import { readLatestExecutionAttempt } from "../../scripts/project-production/ada
 import {
   buildArtifactAttestation,
   buildProducerTaskSpec,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
@@ -59,7 +59,8 @@ test("package scripts have one honest resolve/inspect/prepare production surface
     },
     {
       create: "node --import tsx scripts/projects/create.ts",
-      resolve: "node --import tsx scripts/project-production/cli.ts execution-resolve",
+      resolve:
+        "node --import tsx scripts/project-production/cli.ts execution-resolve",
       inspect: "node --import tsx scripts/project-production/cli.ts inspect",
       prepare: "node --import tsx scripts/project-production/cli.ts prepare",
       check: "node --import tsx scripts/project-production/cli.ts task-check",
@@ -133,10 +134,13 @@ test("execution-resolve passes explicit user fields and runtime capacity once", 
   });
   assert.deepEqual(lines, [JSON.stringify(result)]);
   await assert.rejects(
-    runProjectProductionCli(["execution-resolve", "--mode", "inline", "--max-concurrency", "2"], {
-      rootDir: "/fixture",
-      stdout: () => undefined,
-    }),
+    runProjectProductionCli(
+      ["execution-resolve", "--mode", "inline", "--max-concurrency", "2"],
+      {
+        rootDir: "/fixture",
+        stdout: () => undefined,
+      },
+    ),
     /does not accept/u,
   );
   const zeroCapacityCalls: unknown[] = [];

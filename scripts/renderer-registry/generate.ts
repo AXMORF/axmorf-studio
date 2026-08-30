@@ -65,5 +65,5 @@ export const generateRendererRegistryFromProjectFiles = async ({
 };
 import { join } from "node:path";
 
-import { SceneCoverageMapSchema } from "../../src/contracts";
+import { SceneCoverageMapSchema } from "@axmorf/studio/contracts";
 import { readJsonFile } from "../scene-package/project-files";

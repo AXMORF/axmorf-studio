@@ -1,8 +1,8 @@
-import { serializeCanonicalJson } from "../../../src/contracts";
+import { serializeCanonicalJson } from "@axmorf/studio/contracts";
 import {
   ProductionInspectionSchema,
   type ProductionInspection,
-} from "../../../src/contracts/production-inspection";
+} from "@axmorf/studio/contracts";
 import {
   captureProductionInspectionSnapshot,
   inspectCurrentDelivery,
@@ -13,6 +13,7 @@ import {
   type ProductionSourceReadiness,
 } from "../adapters/production-inspection";
 import { buildCurrentProductionPlan } from "./build-current-plan";
+import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
 
 type CurrentPlan = Awaited<ReturnType<typeof buildCurrentProductionPlan>>;
 
@@ -37,6 +38,7 @@ export type InspectProductionDependencies = Readonly<{
     readonly projectId: string;
     readonly env: Readonly<Record<string, string | undefined>>;
     readonly narration: NarrationCacheInspection;
+    readonly runtimePolicyManifest?: RuntimePolicyManifest;
   }) => Promise<CurrentPlan>;
   inspectDelivery?: typeof inspectCurrentDelivery;
 }>;
@@ -51,10 +53,12 @@ export const inspectProjectProduction = async (
     rootDir,
     projectId,
     env = process.env,
+    runtimePolicyManifest,
   }: {
     readonly rootDir: string;
     readonly projectId: string;
     readonly env?: Readonly<Record<string, string | undefined>>;
+    readonly runtimePolicyManifest?: RuntimePolicyManifest;
   },
   dependencies: InspectProductionDependencies = {},
 ): Promise<ProductionInspection> => {
@@ -81,7 +85,13 @@ export const inspectProjectProduction = async (
     readiness = await inspectReadiness({ rootDir, projectId });
     narration = await inspectCache({ rootDir, projectId, env });
     if (readiness.sourceState === "production-inputs-ready") {
-      currentPlan = await buildPlan({ rootDir, projectId, env, narration });
+      currentPlan = await buildPlan({
+        rootDir,
+        projectId,
+        env,
+        narration,
+        runtimePolicyManifest,
+      });
       delivery = await readDelivery({ rootDir, projectId });
     }
   } catch (error) {

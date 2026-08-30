@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { FINAL_MECHANICAL_CHECK_IDS } from "../../src/contracts";
+import { FINAL_MECHANICAL_CHECK_IDS } from "@axmorf/studio/contracts";
 import {
   checkFinalSourceHealth,
   type FinalSceneBranchResult,

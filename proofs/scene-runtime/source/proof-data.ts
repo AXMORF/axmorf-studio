@@ -1,32 +1,32 @@
 import { staticFile } from "remotion";
 import { z } from "zod";
 
-import { resolveSceneReadabilityPolicy } from "../../../src/contracts/scene-readability";
-import { ReferenceFidelityReceiptSchema } from "../../../src/contracts/reference-fidelity";
+import { resolveSceneReadabilityPolicy } from "@axmorf/studio/contracts";
+import { ReferenceFidelityReceiptSchema } from "@axmorf/studio/contracts";
 import {
   ResourceDescriptorSchema,
   SelectedResourceRefSchema,
-} from "../../../src/contracts/resource-catalog";
+} from "@axmorf/studio/contracts";
 import {
   SceneSoundPlanSchema,
   SceneSyncAnchorSetSchema,
   SceneVisualPlanSchema,
   ShotPlanSetSchema,
-} from "../../../src/contracts/scene-plan";
+} from "@axmorf/studio/contracts";
 import {
   SceneCoverageMapSchema,
   ScenePackageSchema,
-} from "../../../src/contracts/scene-package";
-import { SceneTaskInputSchema } from "../../../src/contracts/scene-task";
-import { ShotRecipeSelectionSchema } from "../../../src/contracts/shot-recipe";
-import { VisualStyleSpecSchema } from "../../../src/contracts/visual-style";
-import { resolveSceneSound } from "../../../src/remotion/runtime/scene-sound";
-import { buildSoundDesignProjection } from "../../../src/remotion/runtime/sound-design";
+} from "@axmorf/studio/contracts";
+import { SceneTaskInputSchema } from "@axmorf/studio/contracts";
+import { ShotRecipeSelectionSchema } from "@axmorf/studio/contracts";
+import { VisualStyleSpecSchema } from "@axmorf/studio/contracts";
+import { resolveSceneSound } from "@axmorf/studio/remotion";
+import { buildSoundDesignProjection } from "@axmorf/studio/remotion";
 import {
   buildStoryVisualProjection,
   type SceneRendererMountProps,
   type SceneRendererRegistry,
-} from "../../../src/remotion/runtime/story-visual";
+} from "@axmorf/studio/remotion";
 import { SCENE_RUNTIME_PROOF_IDENTITY } from "../identity";
 import coverageJson from "../fixtures/generated/scene-coverage.generated.json";
 import fidelityJson from "../fixtures/scenes/runtime-proof-scene/generated/reference-fidelity.generated.json";

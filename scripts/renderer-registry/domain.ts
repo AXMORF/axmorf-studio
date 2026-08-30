@@ -9,7 +9,7 @@ import {
   createFingerprint,
   type Sha256Digest,
   type ScenePackage,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   checksumExternalBytes,
   readExternalRegularFile,
@@ -148,8 +148,15 @@ export const collectRendererSourceGraph = async ({
       source,
       sourcePath,
       allowedBarePackages: new Map([
+        ["@axmorf/studio", "workspace"],
         ["react", "19.2.3"],
         ["remotion", "4.0.489"],
+      ]),
+      allowedBareSpecifiers: new Set([
+        "@axmorf/studio/contracts",
+        "@axmorf/studio/remotion",
+        "react",
+        "remotion",
       ]),
       relativeRoot: sourcePath.startsWith(projectRoot)
         ? "src"
@@ -188,10 +195,7 @@ export const collectRendererSourceGraph = async ({
         return isTypeOnly
           ? [
               posix.normalize(
-                posix.join(
-                  dirname(sourcePath),
-                  statement.moduleSpecifier.text,
-                ),
+                posix.join(dirname(sourcePath), statement.moduleSpecifier.text),
               ),
             ]
           : [];
@@ -346,7 +350,7 @@ export const buildRendererRegistry = async ({
     (entry, index) =>
       `  ${JSON.stringify(entry.rendererId)}: Renderer${index},`,
   );
-  const source = `${imports.join("\n")}\nimport type {SceneRendererRegistry} from "../../remotion/runtime/story-visual/types";\n\nexport const rendererRegistryFingerprint = ${JSON.stringify(registryFingerprint)};\nexport const rendererSourceGraphFingerprints = {\n${graphEntries.join("\n")}\n} as const;\nexport const rendererRegistry = {\n${registryEntries.join("\n")}\n} as const satisfies SceneRendererRegistry;\n`;
+  const source = `${imports.join("\n")}\nimport type {SceneRendererRegistry} from "@axmorf/studio/remotion";\n\nexport const rendererRegistryFingerprint = ${JSON.stringify(registryFingerprint)};\nexport const rendererSourceGraphFingerprints = {\n${graphEntries.join("\n")}\n} as const;\nexport const rendererRegistry = {\n${registryEntries.join("\n")}\n} as const satisfies SceneRendererRegistry;\n`;
   return {
     source,
     registryFingerprint,

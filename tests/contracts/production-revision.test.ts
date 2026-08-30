@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildProductionRevision } from "../../src/contracts";
+import { buildProductionRevision } from "@axmorf/studio/contracts";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
@@ -56,7 +56,8 @@ test("Revision invalidates exact authored and policy inputs", () => {
   const original = buildProductionRevision(input);
   assert.notEqual(
     original.revisionId,
-    buildProductionRevision({ ...input, storyFingerprint: sha("5") }).revisionId,
+    buildProductionRevision({ ...input, storyFingerprint: sha("5") })
+      .revisionId,
   );
   assert.notEqual(
     original.revisionId,

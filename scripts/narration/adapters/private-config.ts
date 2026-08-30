@@ -7,12 +7,12 @@ import { extname, isAbsolute, relative, resolve } from "node:path";
 
 import { z } from "zod";
 
-import { createFingerprint } from "../../../src/contracts/fingerprint";
-import type { NarrationSpec } from "../../../src/contracts/narration";
+import { createFingerprint } from "@axmorf/studio/contracts";
+import type { NarrationSpec } from "@axmorf/studio/contracts";
 import {
   VoiceProfileIdSchema,
   Sha256DigestSchema,
-} from "../../../src/contracts/primitives";
+} from "@axmorf/studio/contracts";
 import type {
   ResolvedVoxcpmProfile,
   SafeVoxcpmExecutionDescriptor,

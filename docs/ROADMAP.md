@@ -31,15 +31,33 @@ attempt-bound task commit/fail 与 fixed continuation；converge 是 continuatio
 - settings 与 progress 不扫描历史 `.producer-runs/`；Project delete 仍能安全清理其 ownership root；
 - zero Project bootstrap/Registry/Catalog/settings 可用。
 
-## 下一里程碑候选
+## 当前里程碑状态
 
-只有在现有 focused、static、host、media 与 E2E gates 保持 Green 后才进入：
+已从 `foundation@e52d2a5` 在 `axmorf/npm-workspace-open-source` 分支实现
+[npm Workspace 开源方案](promotions/2026-08-30-npm-workspace-open-source-implementation-plan.md)：把 current
+repository-native production core 提取为可发布 npm runtime/CLI package，并提供独立脚手架创建用户 Workspace。
+Agent 通过 Workspace-local、宿主无关的 Skill 调用 npm 主链创作用户级 Project；Foundation 当前 Web 收敛为本地
+配置/诊断/状态/Delivery 控制台，Remotion Studio 继续负责实时画面预览。
+用户入口以 `npm create axmorf-studio@latest <name>` 为准：默认完成依赖安装、lockfile、bootstrap/doctor，
+之后进入目录运行 `npm run dev`，不要求 global install 或 source clone。
 
-1. 扩展 provider-neutral TTS 配置 UI，同时保持 authored chunk → one provider attempt → canonical PCM 的
-   无隐式 fallback contract。
-2. 为大型 artifact sets 增加只读诊断的性能与容量治理，不改变本地 filesystem authority 或既有解释合同。
-3. 增加用户显式触发的 delivery export/publishing adapter；上传、账号、网络、密钥是新的独立授权边界。
-4. 基于 fingerprint-bound proposal 和用户逐项授权提升 Project-local capability；不得自动 promotion。
+该里程碑保持 ProductionRevision → Task DAG → ArtifactAttestation → exact four-file Delivery 主链，不引入第二条
+authority。目标产品不含 Desktop、Electron、Runtime Pack、App session、workspace-local `rsp` 或原生 installer；
+Remotion 和其他第三方包由生成项目按官方 npm dependency 安装，不 vendoring 到本项目 tarball。
+
+本地 vertical slice 已通过 package build/pack、仓库外 creator 默认安装、`npm ci` 重装、doctor、public exports、
+Remotion compositions、Web/API/浏览器 QA 和 zero-provider create/inspect。下一阶段门槛是：
+
+1. 运行完整 Foundation static/host gates，并在 packed Workspace 完成 deterministic exact four-file Delivery E2E；
+2. 已用精确 overrides 与兼容开发工具更新把 production/repository audit 归零，同时保持所有 Remotion packages
+   精确同版；
+3. 至少对声明支持的平台提供真实 native CI/host evidence；
+4. 已确认 Apache-2.0、third-party notices、Remotion 独立许可证边界以及 `@axmorf/studio` / `create-axmorf-studio`
+   名称；剩余 provenance/2FA/token 和首次 publish authority 继续独立验收；
+5. 未经用户逐项授权，不 push、不 tag、不创建 Release、不执行真实 npm publish。
+
+Desktop 分叉后的非 Desktop correctness fixes 只按行为和 regression tests 选择性移植，不整体 cherry-pick Desktop
+commits。完整任务拆分、package layout、dependency 规则和完成定义见上述实施计划。
 
 ## 不以里程碑名义引入
 

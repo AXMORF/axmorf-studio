@@ -12,7 +12,7 @@ import {
 } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
-import { Sha256DigestSchema } from "../../../src/contracts";
+import { Sha256DigestSchema } from "@axmorf/studio/contracts";
 
 export const checksumBytes = (bytes: Uint8Array) =>
   Sha256DigestSchema.parse(

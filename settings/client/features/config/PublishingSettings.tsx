@@ -1,4 +1,4 @@
-import { SCENE_TEMPLATE_OPTIONS } from "../../../../src/remotion/capabilities/scene-templates/catalog";
+import { SCENE_TEMPLATE_OPTIONS } from "../../../../packages/studio/src/remotion/capabilities/scene-templates/catalog";
 import { Field, FieldRow, Section } from "../../components/Form";
 import { nextUniqueId } from "../../model";
 import type { EditorProps } from "./types";

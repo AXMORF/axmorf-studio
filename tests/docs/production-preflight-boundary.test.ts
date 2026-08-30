@@ -14,7 +14,7 @@ test("real production preflight requires host permissions and sandbox failures s
     ),
     readFile(
       new URL(
-        "../../.agents/skills/remotion-story-producer-video/references/direct-production-workflow.md",
+        "../../.agents/skills/axmorf-video/references/direct-production-workflow.md",
         import.meta.url,
       ),
       "utf8",

@@ -12,9 +12,9 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { ResourceCatalogSchema } from "../../src/contracts/resource-catalog";
-import { capabilityDescriptorDeclarations } from "../../src/remotion/catalog/capability-descriptors";
-import { styleDescriptorDeclarations } from "../../src/remotion/catalog/style-descriptors";
+import { ResourceCatalogSchema } from "@axmorf/studio/contracts";
+import { capabilityDescriptorDeclarations } from "../../packages/studio/src/remotion/catalog/capability-descriptors";
+import { styleDescriptorDeclarations } from "../../packages/studio/src/remotion/catalog/style-descriptors";
 import {
   buildResourceCatalog,
   deriveCatalogWithoutProjectOwnedDescriptors,
@@ -160,7 +160,10 @@ test("Project resource discovery is removable and never scans orphan public file
 test("shared asset manifest contains no Project-owned public paths", async () => {
   const shared = JSON.parse(
     await readFile(
-      join(repositoryRoot, "src/remotion/catalog/assets.manifest.json"),
+      join(
+        repositoryRoot,
+        "packages/studio/src/remotion/catalog/assets.manifest.json",
+      ),
       "utf8",
     ),
   ) as { assets: readonly { localPath: string }[] };

@@ -16,7 +16,7 @@ import {
   buildDeliveryPublishing,
   type ProductionRevisionId,
   type Sha256Digest,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   buildDelivery,
   type DeliveryBuildDependencies,

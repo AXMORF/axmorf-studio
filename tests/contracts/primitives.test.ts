@@ -8,7 +8,7 @@ import {
   Sha256DigestSchema,
   StoryIdSchema,
   TtsChunkIdSchema,
-} from "../../src/contracts/primitives";
+} from "@axmorf/studio/contracts";
 
 test("stable ids accept lowercase slugs and reject paths or whitespace", () => {
   assert.equal(StoryIdSchema.parse("story-example"), "story-example");

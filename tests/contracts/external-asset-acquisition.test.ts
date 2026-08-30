@@ -6,7 +6,7 @@ import {
   ExternalImageAssetAcquisitionSchema,
   assertImportableExternalAssetAcquisition,
   buildExternalAssetAcquisition,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { adaptPexelsAcquisitionReceiptV1 } from "../../scripts/project-assets/adapters/pexels-receipt";
 
 const sha = (character: string) => character.repeat(64);

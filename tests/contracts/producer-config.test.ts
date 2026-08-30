@@ -5,13 +5,13 @@ import {
   ProducerConfigSchema,
   buildProducerConfig,
   computePublishingCollectionCatalogFingerprint,
-} from "../../src/contracts/producer-config";
+} from "@axmorf/studio/contracts";
 import {
   EDGE_TTS_VOICE_DEFINITIONS,
   SPEECH_SDK_VENDORS,
   getEdgeTtsVoiceDefinition,
   getSpeechSdkVendorDefinition,
-} from "../../src/contracts/tts-provider-registry";
+} from "@axmorf/studio/contracts";
 
 export const validProducerConfigInput = {
   schemaVersion: 4,

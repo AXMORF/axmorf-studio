@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { GitCommitSchema } from "../../../src/contracts/external-reference";
+import { GitCommitSchema } from "@axmorf/studio/contracts";
 
 const execFileAsync = promisify(execFile);
 

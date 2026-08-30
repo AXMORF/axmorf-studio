@@ -9,7 +9,7 @@ import {
   FINAL_MECHANICAL_CHECK_V2_IDS,
   createFinalMechanicalCheckReport,
   createFinalMechanicalCheckV2Report,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   checkPersistedFinalMechanicalCheck,
   serializeFinalMechanicalCheckReport,

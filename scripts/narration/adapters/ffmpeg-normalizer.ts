@@ -7,6 +7,7 @@ import {
   CANONICAL_NARRATION_PCM,
   encodeCanonicalPcmWav,
 } from "../domain/pcm-wav";
+import { resolveMediaToolCommand } from "../../shared/media-tool-command";
 
 export type ProcessResult = {
   readonly exitCode: number;
@@ -61,28 +62,33 @@ export const normalizeProviderAudio = async ({
   const inputPath = join(temporaryDirectory, "provider-audio");
   try {
     await writeFile(inputPath, Uint8Array.from(sourceBytes), { flag: "wx" });
-    const result = await runProcess("ffmpeg", [
-      "-nostdin",
-      "-hide_banner",
-      "-loglevel",
-      "error",
-      "-i",
-      inputPath,
-      "-af",
-      `atempo=${speechRate}`,
-      "-map_metadata",
-      "-1",
-      "-vn",
-      "-ac",
-      "1",
-      "-ar",
-      String(CANONICAL_NARRATION_PCM.sampleRate),
-      "-acodec",
-      "pcm_s16le",
-      "-f",
-      "s16le",
-      "pipe:1",
-    ]);
+    const invocation = await resolveMediaToolCommand({
+      rootDir: process.cwd(),
+      tool: "ffmpeg",
+      args: [
+        "-nostdin",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        inputPath,
+        "-af",
+        `atempo=${speechRate}`,
+        "-map_metadata",
+        "-1",
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        String(CANONICAL_NARRATION_PCM.sampleRate),
+        "-acodec",
+        "pcm_s16le",
+        "-f",
+        "s16le",
+        "pipe:1",
+      ],
+    });
+    const result = await runProcess(invocation.command, invocation.args);
     if (result.exitCode !== 0) {
       throw new Error(
         `FFmpeg normalization failed with exit code ${result.exitCode}.`,

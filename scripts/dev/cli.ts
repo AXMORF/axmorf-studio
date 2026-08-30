@@ -1,16 +1,18 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+
+import { resolvePackageBinCommand } from "../../packages/studio/src/process/resolve-package-bin";
 
 const children = new Set<ChildProcess>();
 
 const launch = (
   command: string,
   args: readonly string[],
+  cwd: string,
   env: NodeJS.ProcessEnv = process.env,
 ) => {
   const child = spawn(command, [...args], {
-    cwd: process.cwd(),
+    cwd,
     env,
     stdio: "inherit",
     shell: false,
@@ -34,18 +36,42 @@ export const parseDevLanFlag = (args: readonly string[]) => {
   throw new Error("Expected no arguments or exactly --lan.");
 };
 
-export const runDev = ({ lan = false }: { readonly lan?: boolean } = {}) => {
+export const runDev = async ({
+  rootDir,
+  lan = false,
+}: {
+  readonly rootDir: string;
+  readonly lan?: boolean;
+}) => {
+  const [vite, remotion] = await Promise.all([
+    resolvePackageBinCommand({
+      workspaceRoot: rootDir,
+      packageName: "vite",
+      binName: "vite",
+    }),
+    resolvePackageBinCommand({
+      workspaceRoot: rootDir,
+      packageName: "@remotion/cli",
+      binName: "remotion",
+    }),
+  ]);
   launch(
-    join(process.cwd(), "node_modules/.bin/vite"),
-    ["--config", "settings/vite.config.ts"],
+    vite.command,
+    [...vite.argsPrefix, "--config", "settings/vite.config.ts"],
+    rootDir,
     { ...process.env, RSP_DEV_LAN: lan ? "1" : "0" },
   );
-  launch(join(process.cwd(), "node_modules/.bin/remotion"), [
-    "studio",
-    "--port=3101",
-    "--no-open",
-    ...(lan ? ["--ipv4"] : []),
-  ]);
+  launch(
+    remotion.command,
+    [
+      ...remotion.argsPrefix,
+      "studio",
+      "--port=3101",
+      "--no-open",
+      ...(lan ? ["--ipv4"] : []),
+    ],
+    rootDir,
+  );
 };
 
 if (
@@ -57,5 +83,14 @@ if (
   };
   process.once("SIGINT", shutdown);
   process.once("SIGTERM", shutdown);
-  runDev({ lan: parseDevLanFlag(process.argv.slice(2)) });
+  runDev({
+    rootDir: process.cwd(),
+    lan: parseDevLanFlag(process.argv.slice(2)),
+  }).catch((error: unknown) => {
+    process.stderr.write(
+      `${error instanceof Error ? error.message : "Development services failed."}\n`,
+    );
+    process.exitCode = 1;
+    shutdown();
+  });
 }

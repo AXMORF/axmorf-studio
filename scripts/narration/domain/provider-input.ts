@@ -1,5 +1,5 @@
-import { createFingerprint } from "../../../src/contracts/fingerprint";
-import type { SpeechSdkVendor } from "../../../src/contracts/tts-provider-registry";
+import { createFingerprint } from "@axmorf/studio/contracts";
+import type { SpeechSdkVendor } from "@axmorf/studio/contracts";
 
 type SafeVoxcpmDescriptorBase = {
   readonly privateConfigFingerprint: string;

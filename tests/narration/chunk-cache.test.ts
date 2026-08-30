@@ -7,8 +7,8 @@ import test from "node:test";
 import { runNarrationGeneration } from "../../scripts/narration/generate-runner";
 import { loadVerifiedProgress } from "../../scripts/narration/adapters/candidate-workspace";
 import { computeChunkRequestFingerprint } from "../../scripts/narration/domain/provider-input";
-import { NarrationSpecSchema } from "../../src/contracts/narration";
-import { StorySpecSchema } from "../../src/contracts/story";
+import { NarrationSpecSchema } from "@axmorf/studio/contracts";
+import { StorySpecSchema } from "@axmorf/studio/contracts";
 import { validNarrationSpec, validStorySpec } from "../fixtures/narrative";
 import { createRawPcmFixture, createWavFixture } from "../fixtures/wav";
 
@@ -67,7 +67,10 @@ test("changing one authored TTS chunk reuses verified bytes for every unchanged 
   const normalizePcm = async (sourceBytes: Buffer) => {
     normalizationCalls.push(sourceBytes.toString("utf8"));
     return createWavFixture({
-      rawPcm: createRawPcmFixture([sourceBytes[0] ?? 1, -(sourceBytes[0] ?? 1)]),
+      rawPcm: createRawPcmFixture([
+        sourceBytes[0] ?? 1,
+        -(sourceBytes[0] ?? 1),
+      ]),
     });
   };
 

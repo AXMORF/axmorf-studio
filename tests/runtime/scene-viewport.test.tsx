@@ -5,11 +5,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   resolveSceneReadabilityPolicy,
   resolveSceneViewport,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   SceneText,
   SceneViewport,
-} from "../../src/remotion/runtime/readability";
+} from "@axmorf/studio/remotion";
 
 const policy = resolveSceneReadabilityPolicy({ width: 1080, height: 1920 });
 const viewport = resolveSceneViewport(policy);

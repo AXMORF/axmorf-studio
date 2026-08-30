@@ -6,7 +6,7 @@ import {
   StoryIdSchema,
   type DeliveryPublish,
   type RenderSpec,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { assertDeliveryPath, inspectDeliveryFile } from "./delivery-filesystem";
 import { inspectProjectCover, inspectProjectVideo } from "./media";
 

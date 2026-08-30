@@ -11,7 +11,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { buildProducerConfig, createFingerprint } from "../../src/contracts";
+import {
+  buildProducerConfig,
+  createFingerprint,
+} from "@axmorf/studio/contracts";
 import {
   readProducerConfig,
   resolveDefaultTtsProvider,
@@ -181,7 +184,8 @@ test("producer-config-v3 OpenAI voice profiles migrate to explicit catalog bindi
   const provider = loaded.tts.providers[1];
   assert.equal(loaded.contractVersion, "producer-config-v4");
   assert.equal(provider?.kind, "speech-sdk");
-  if (provider?.kind !== "speech-sdk") throw new Error("Expected cloud provider.");
+  if (provider?.kind !== "speech-sdk")
+    throw new Error("Expected cloud provider.");
   assert.equal(provider.voiceProfiles[0]?.source, "catalog");
   assert.equal(
     JSON.parse(await readFile(configPath, "utf8")).contractVersion,

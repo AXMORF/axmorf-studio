@@ -5,7 +5,7 @@ import {
   STORY_COMPOSITION_TIMELINE_VERSION,
   getStoryCompositionDurationInFrames,
   toStoryCompositionFrame,
-} from "../../src/contracts/story-composition";
+} from "@axmorf/studio/contracts";
 
 test("ScenePackage timeline uses SemanticTiming frames without a boundary offset", () => {
   assert.equal(STORY_COMPOSITION_TIMELINE_VERSION, "scene-package-timeline-v1");
@@ -19,5 +19,8 @@ test("ScenePackage timeline helpers reject unsafe frame values", () => {
     assert.throws(() => getStoryCompositionDurationInFrames(frame));
   }
   assert.throws(() => toStoryCompositionFrame(-1));
-  assert.equal(toStoryCompositionFrame(Number.MAX_SAFE_INTEGER), Number.MAX_SAFE_INTEGER);
+  assert.equal(
+    toStoryCompositionFrame(Number.MAX_SAFE_INTEGER),
+    Number.MAX_SAFE_INTEGER,
+  );
 });

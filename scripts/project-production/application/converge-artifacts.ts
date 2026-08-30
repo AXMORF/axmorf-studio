@@ -10,7 +10,7 @@ import {
   serializeCanonicalJson,
   type ArtifactAttestation,
   type ProducerTaskSpec,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   commitTaskArtifact,
   inspectArtifact as inspectArtifactFromStore,
@@ -29,6 +29,7 @@ import { acquireRepositoryOperationLock } from "../../shared/repository-operatio
 import { buildDeliveryUnlocked as buildSynchronousDelivery } from "./build-delivery";
 import { buildCurrentProductionPlan, contextFile } from "./build-current-plan";
 import { prepareProjectAuthoringBuild } from "./prepare-delivery";
+import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
 
 type PlannedProduction = Awaited<ReturnType<typeof buildCurrentProductionPlan>>;
 type MaterializedArtifact = Readonly<{
@@ -359,12 +360,14 @@ const convergeProjectProductionUnlocked = async ({
   projectId,
   revisionId,
   attemptId,
+  runtimePolicyManifest,
   dependencies = {},
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly revisionId: string;
   readonly attemptId: string;
+  readonly runtimePolicyManifest?: RuntimePolicyManifest;
   readonly dependencies?: ConvergenceDependencies;
 }) => {
   const buildCurrentPlan =
@@ -411,6 +414,7 @@ const convergeProjectProductionUnlocked = async ({
   const planned = await buildCurrentPlan({
     rootDir,
     projectId,
+    runtimePolicyManifest,
   });
   let terminalPlan = planned;
   const appendTerminal = async (
@@ -594,6 +598,7 @@ const convergeProjectProductionUnlocked = async ({
     const withComposition = await buildCurrentPlan({
       rootDir,
       projectId,
+      runtimePolicyManifest,
     });
     terminalPlan = withComposition;
     if (withComposition.revision.revisionId !== revisionId) {
@@ -645,6 +650,7 @@ const convergeProjectProductionUnlocked = async ({
     const completed = await buildCurrentPlan({
       rootDir,
       projectId,
+      runtimePolicyManifest,
     });
     terminalPlan = completed;
     if (
@@ -692,12 +698,14 @@ export const convergeProjectProduction = async ({
   projectId,
   revisionId,
   attemptId,
+  runtimePolicyManifest,
   dependencies = {},
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly revisionId: string;
   readonly attemptId: string;
+  readonly runtimePolicyManifest?: RuntimePolicyManifest;
   readonly dependencies?: ConvergenceDependencies;
 }) => {
   const acquireLock =
@@ -712,6 +720,7 @@ export const convergeProjectProduction = async ({
       projectId,
       revisionId,
       attemptId,
+      runtimePolicyManifest,
       dependencies,
     });
   } finally {

@@ -9,7 +9,7 @@ import {
   type ResourceCatalog,
   type ResourceCatalogEntry,
   type ResourceDescriptor,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 export const buildResourceCatalog = (
   rawDescriptors: readonly unknown[],

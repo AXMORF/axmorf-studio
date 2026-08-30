@@ -241,3 +241,60 @@ details .field-row {
   padding-left: 0;
   padding-right: 0;
 }
+
+@media (max-width: 760px) {
+  .section-heading,
+  .field-row,
+  .formula-board,
+  .collection-row,
+  .profile-row,
+  .route-table {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .section-heading {
+    padding: 20px 18px 16px;
+  }
+  .field-row {
+    padding: 18px 18px 0;
+  }
+  .spec-strip {
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    margin: 18px 18px 0;
+  }
+  .spec-strip span {
+    flex-basis: 100%;
+    margin-right: 0;
+  }
+  .formula-board,
+  .route-table,
+  details {
+    margin-right: 18px;
+    margin-left: 18px;
+  }
+  .formula-board div,
+  .route-table div + div {
+    border-top: 1px solid #d5dfe7;
+    border-right: 0;
+    border-left: 0;
+  }
+  .formula-board div:first-child {
+    border-top: 0;
+  }
+  .collection-list,
+  .profile-list {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+  .profile-row > .field:last-child {
+    grid-column: auto;
+  }
+  .row-index,
+  .icon-button {
+    margin-top: 0;
+    padding-top: 0;
+  }
+  .secondary-button {
+    margin-left: 18px;
+  }
+}

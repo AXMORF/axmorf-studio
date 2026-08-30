@@ -1,16 +1,16 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { validateNarrativeArtifactBundle } from "../../src/contracts/narrative-artifact-bundle";
-import type { NarrativeProjectSource } from "../../src/contracts/project";
+import { validateNarrativeArtifactBundle } from "@axmorf/studio/contracts";
+import type { NarrativeProjectSource } from "@axmorf/studio/contracts";
 import {
   SealedNarrationManifestSchema,
   type SealedNarrationManifest,
-} from "../../src/contracts/sealed-narration";
+} from "@axmorf/studio/contracts";
 import {
   SemanticTimingSchema,
   type SemanticTiming,
-} from "../../src/contracts/semantic-timing";
+} from "@axmorf/studio/contracts";
 import {
   concatenateCanonicalPcm,
   createExplicitPausePcm,

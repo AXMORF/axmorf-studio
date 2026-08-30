@@ -1,10 +1,10 @@
-import { computeGenerationInputFingerprint } from "../../src/contracts/generation-input";
-import { NarrationSpecSchema } from "../../src/contracts/narration";
+import { computeGenerationInputFingerprint } from "@axmorf/studio/contracts";
+import { NarrationSpecSchema } from "@axmorf/studio/contracts";
 import {
   computeSealedNarrationFingerprint,
   SealedNarrationManifestSchema,
-} from "../../src/contracts/sealed-narration";
-import { StorySpecSchema } from "../../src/contracts/story";
+} from "@axmorf/studio/contracts";
+import { StorySpecSchema } from "@axmorf/studio/contracts";
 
 export const validVideoBrief = {
   schemaVersion: 1,

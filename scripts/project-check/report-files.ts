@@ -1,17 +1,11 @@
 import { randomUUID } from "node:crypto";
-import {
-  mkdir,
-  open,
-  readFile,
-  rename,
-  unlink,
-} from "node:fs/promises";
+import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
 import {
   NarrativeAutoCheckReportSchema,
   type NarrativeAutoCheckReport,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { getProjectCheckPaths } from "./project-files";
 
 const sortJsonValue = (value: unknown): unknown => {
@@ -116,7 +110,8 @@ export const checkPersistedNarrativeAutoCheck = async ({
   readonly rootDir: string;
   readonly expectedReport: unknown;
 }): Promise<NarrativeAutoCheckReport> => {
-  const expectedReport = NarrativeAutoCheckReportSchema.parse(rawExpectedReport);
+  const expectedReport =
+    NarrativeAutoCheckReportSchema.parse(rawExpectedReport);
   if (expectedReport.aggregateStatus !== "pass") {
     throw new Error("Current Narrative AutoCheck did not pass.");
   }

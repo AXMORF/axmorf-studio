@@ -1,0 +1,91 @@
+{
+  "name": "@axmorf/studio",
+  "version": "0.1.0",
+  "description": "Agent-first video production runtime, CLI, contracts, Remotion components, and local Web control center for AXMORF Studio.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agenticnoob/axmorf-studio.git",
+    "directory": "packages/studio"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=10"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./contracts": {
+      "types": "./dist/contracts.d.ts",
+      "import": "./dist/contracts.js"
+    },
+    "./remotion": {
+      "types": "./dist/remotion.d.ts",
+      "import": "./dist/remotion.js"
+    }
+  },
+  "bin": {
+    "axmorf": "dist/cli/main.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "sideEffects": [
+    "**/*.css",
+    "./src/remotion/preflight/index.tsx"
+  ],
+  "scripts": {
+    "clean": "node ./scripts/clean.mjs",
+    "build:runtime": "node ./scripts/build.mjs",
+    "build:types": "tsc -p ./tsconfig.build.json",
+    "build:web": "vite build --config ../../settings/vite.config.ts",
+    "build:resources": "node ./scripts/build-runtime-resources.mjs",
+    "build": "npm run clean && npm run build:runtime && npm run build:types && npm run build:web && npm run build:resources",
+    "typecheck": "tsc -p ./tsconfig.json",
+    "check:package": "node ./scripts/check-package.mjs",
+    "prepack": "npm run build && npm run check:package"
+  },
+  "dependencies": {
+    "@speech-sdk/core": "0.27.0",
+    "lottie-web": "5.13.0",
+    "node-edge-tts": "1.2.10",
+    "ogl": "1.0.11",
+    "typescript": "5.9.3",
+    "zod": "4.3.6"
+  },
+  "peerDependencies": {
+    "@react-three/fiber": "9.6.1",
+    "@remotion/cli": "4.0.489",
+    "@remotion/effects": "4.0.489",
+    "@remotion/gif": "4.0.489",
+    "@remotion/google-fonts": "4.0.489",
+    "@remotion/layout-utils": "4.0.489",
+    "@remotion/light-leaks": "4.0.489",
+    "@remotion/lottie": "4.0.489",
+    "@remotion/media": "4.0.489",
+    "@remotion/motion-blur": "4.0.489",
+    "@remotion/paths": "4.0.489",
+    "@remotion/renderer": "4.0.489",
+    "@remotion/shapes": "4.0.489",
+    "@remotion/tailwind-v4": "4.0.489",
+    "@remotion/three": "4.0.489",
+    "@remotion/transitions": "4.0.489",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.489",
+    "three": "0.185.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "vite": "8.2.2"
+  }
+}

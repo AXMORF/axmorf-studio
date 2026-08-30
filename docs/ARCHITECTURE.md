@@ -5,9 +5,17 @@
 ## 1. 模块与依赖方向
 
 ```text
-src/contracts/                 JSON-safe versioned contracts
-src/remotion/                  runtime capabilities and top-level ownership
+packages/studio/
+  src/contracts/               JSON-safe versioned contracts
+  src/remotion/                runtime capabilities and top-level ownership
+  src/runtime/                 immutable package resources and policy manifest
+  src/cli/                     one compiled workspace-aware CLI
+  src/web/ + dist/web/         loopback HTTP adapter and prebuilt control center
+packages/create-axmorf-studio/
+  src/                         atomic scaffold application
+  template/                    Workspace instructions, generic Skill and static seeds
 src/projects/<storyId>/        ignored Project authoring + materialized current source
+src/runtime/                   generated thin public-package facades for bundling
 scripts/project-production/
   domain/                      pure Revision, DAG, invalidation, plan rules
   application/                 orchestration/use cases and ports
@@ -17,12 +25,22 @@ scripts/projects/              atomic Project create/delete use cases and adapte
 scripts/narration/             provider attempt cache, PCM validation, seal and timing
 scripts/scene-package/          deterministic ScenePackage/Coverage generation
 scripts/renderer-registry/      static composition-local registry generation
-settings/                      config/progress API and UI
+settings/                      Web source; Vite is monorepo build-time only
 private/execution-preferences.json  ignored Agent execution defaults, separate from ProducerConfig
-AGENTS.md                      single repository Agent instruction authority
+AGENTS.md                      contributor instruction authority
+packages/create-axmorf-studio/template/AGENTS.md
+                               generated Workspace instruction authority
 CLAUDE.md / GEMINI.md          thin host imports; no duplicated workflow
-.agents/skills/                host-neutral workflow plus optional host UI metadata
+.agents/skills/                contributor workflow; creator owns the user Workspace snapshot
 ```
+
+`AGENTS.md` remains the single repository Agent instruction authority. The creator writes a separate
+Workspace-local `AGENTS.md` and Skill snapshot for the generated user's directory; host adapters only import the
+authority in their own scope and never duplicate its rules.
+
+根 package 只管理 npm workspaces 和 contributor checks，不是 consumer runtime import target。runtime package
+公开 surface 只包含 `.`, `/contracts`, `/remotion` 和一个 compiled bin；creator 生成的是普通独立 npm application，
+不是嵌套 monorepo。
 
 `domain/` 不读取 filesystem 且不依赖 application/adapters/CLI。application 编排 use cases，不承载 host
 details；adapters 实现 filesystem/process/media ports，不能反向成为业务 authority。`scripts/project-production`
@@ -79,17 +97,17 @@ TypeScript registry 完成。
 
 ## 4. Write ownership
 
-| Surface | Writer | Rule |
-| ------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------- |
-| Project create/configured authoring | fixed atomic creator | existing/partial/conflicting target fail closed；零 provider/media/attempt |
-| Optional external acquisition | current Root Agent + fixed import | callable compatible MCP 才出现；缺失即省略；只在 inspect 前写 Project-owned asset/evidence |
-| Existing Project authoring inputs | Root authoring Agent / fixed import command | preparation 前可变，受 Project ownership 限制 |
-| `.producer-work/<story>/<taskRevision>` | one assigned task executor | only declared output set; cannot edit `task.json` or inputs |
-| `.producer-artifacts` | fixed commit adapter | validator recheck + atomic promotion only |
-| materialized Scene/GlobalVisual/Cover roots | fixed materializer | all artifacts present; controlled replace/rollback |
-| generated packages/registry/Composition | fixed convergence | deterministic projection |
-| delivery staging/current | fixed synchronous builder | exact identity, media validation, controlled promotion |
-| `.producer-attempts` | fixed prepare/progress adapter | diagnostic snapshot only；不能拥有 artifact/delivery |
+| Surface                                     | Writer                                      | Rule                                                                                       |
+| ------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Project create/configured authoring         | fixed atomic creator                        | existing/partial/conflicting target fail closed；零 provider/media/attempt                 |
+| Optional external acquisition               | current Root Agent + fixed import           | callable compatible MCP 才出现；缺失即省略；只在 inspect 前写 Project-owned asset/evidence |
+| Existing Project authoring inputs           | Root authoring Agent / fixed import command | preparation 前可变，受 Project ownership 限制                                              |
+| `.producer-work/<story>/<taskRevision>`     | one assigned task executor                  | only declared output set; cannot edit `task.json` or inputs                                |
+| `.producer-artifacts`                       | fixed commit adapter                        | validator recheck + atomic promotion only                                                  |
+| materialized Scene/GlobalVisual/Cover roots | fixed materializer                          | all artifacts present; controlled replace/rollback                                         |
+| generated packages/registry/Composition     | fixed convergence                           | deterministic projection                                                                   |
+| delivery staging/current                    | fixed synchronous builder                   | exact identity, media validation, controlled promotion                                     |
+| `.producer-attempts`                        | fixed prepare/progress adapter              | diagnostic snapshot only；不能拥有 artifact/delivery                                       |
 
 private config、voice profiles、shared media、core、other Projects 与 historical data 不属于 Agent task write scope。
 
@@ -119,7 +137,16 @@ sorted unique logical paths、size/checksum current。相同 TaskRevision 与不
 promotion 在目标同父目录准备 staging，完整验证后写 manifest，最后原子 rename。捕获到 replacement failure
 必须恢复上一有效 artifact。Attempt 写入失败不能污染 store。
 
-## 7. Materialization 与 runtime
+## 7. Workspace、RuntimeResources 与 materialization
+
+CLI 先从静态 `axmorf.workspaceVersion` marker 解析 canonical Workspace root；所有用户写入位置都
+由这个 root 的 typed locations 派生。package install path 只用于读取 immutable RuntimeResources，包括
+Scene template source、预构建 Web、Remotion preflight 和稳定 policy manifest。Workspace 不复制 package
+authority，也不能写 package directory；package path、cwd、PID、时间和 npm cache 不进入 creative identity。
+
+Remotion/FFmpeg/FFprobe/Studio 统一解析 Workspace-local `@remotion/cli` 的 JavaScript entry 并通过
+`process.execPath` 启动，不依赖 shell、PATH 或 platform-specific `.bin`。generated Registry/Catalog 在 bundle
+前写入 Workspace，runtime render 不扫描 package、filesystem 或网络。
 
 convergence 在任何 live write 前通过 read-only current-plan builder 重新计算 Revision、检查全部 required
 artifacts；它不调用 provider、不创建 workspace 或 planning attempt。Scene/GlobalVisual/Cover roots
@@ -145,7 +172,12 @@ promotion。build-owned staging 允许跨捕获失败复用同 identity 已验�
 current directory exact 只允许三份 media 加 `publish.json`，其余文件、symlink、path drift 或 media mismatch
 均 fail closed。
 
-## 9. Progress、删除与历史隔离
+## 9. Web、Progress、删除与历史隔离
+
+`web` 只绑定 `127.0.0.1`，普通 Node HTTP server 服务 package 的 `dist/web`，运行时不需要 Vite/`tsx`。
+Host/Origin、CSP 和 body-size gates 保护 config API。Delivery endpoint 不接受 filesystem path，只允许映射已经
+复验 current revision/build identity 的 video 或 cover enum，并在 open 前重新检查 regular-file/no-symlink 和
+file identity。Web 是配置与只读投影界面；Remotion Studio 是实时视觉预览；二者都不修改 Project 或调度 Agent。
 
 settings 从 source readiness、read-only inspection、latest ExecutionAttempt 和 current delivery 投影，不扫描
 historical `.producer-runs`，也不自行重算失效原因。删除器是唯一允许读取 legacy manifest ownership 的

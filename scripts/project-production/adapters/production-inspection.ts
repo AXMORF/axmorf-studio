@@ -14,7 +14,7 @@ import {
   flattenTtsChunks,
   serializeCanonicalJson,
   validateNarrativeArtifactBundle,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { generateProjectResourceCatalog } from "../../catalog/generate";
 import { resolveProducerNarrationInspection } from "../../config/narration-execution";
 import { loadVerifiedProgress } from "../../narration/adapters/candidate-workspace";
@@ -22,7 +22,7 @@ import {
   planChunkGeneration,
   type NarrationGenerationExpected,
 } from "../../narration/domain/candidate-progress";
-import type { NarrationPreparationReceipt } from "../../../src/contracts";
+import type { NarrationPreparationReceipt } from "@axmorf/studio/contracts";
 import { computeChunkRequestFingerprint } from "../../narration/domain/provider-input";
 import { loadNarrationProjectFiles } from "../../narration/project-files";
 import { isTemplateSceneLiveProjectionPath } from "../domain/template-scene-output";

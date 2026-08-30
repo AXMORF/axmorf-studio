@@ -6,7 +6,7 @@ import {
   buildDeliveryPublish,
   buildDeliveryPublishing,
   createDeliveryBuildId,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 const digest = (character: string) => `sha256:${character.repeat(64)}`;
 const revisionId = `revision-${"a".repeat(64)}`;
@@ -28,7 +28,14 @@ test("Delivery publish validates the exact content identity without treating pay
     storyId: identity.storyId,
     title: "Contract delivery",
     description: "A synchronous four-file delivery contract.",
-    topics: ["contract", "delivery", "remotion", "revision", "artifact", "video"],
+    topics: [
+      "contract",
+      "delivery",
+      "remotion",
+      "revision",
+      "artifact",
+      "video",
+    ],
     collection: "Engineering",
     outputFileName: "video.mp4",
     coverFileNames: {
@@ -39,7 +46,12 @@ test("Delivery publish validates the exact content identity without treating pay
     frameCount: identity.frameCount,
     plannedDurationSeconds: 3,
     chapters: [
-      { meaningId: "opening", name: "开场", startFrame: 0, timecode: "00:00:00" },
+      {
+        meaningId: "opening",
+        name: "开场",
+        startFrame: 0,
+        timecode: "00:00:00",
+      },
     ],
   });
   const videoMedia = {
@@ -86,5 +98,8 @@ test("Delivery publish validates the exact content identity without treating pay
   });
 
   assert.equal(publish.deliveryBuildId, deliveryBuildId);
-  assert.equal(publish.artifacts.video.repositoryPath, "deliveries/delivery-contract/video.mp4");
+  assert.equal(
+    publish.artifacts.video.repositoryPath,
+    "deliveries/delivery-contract/video.mp4",
+  );
 });

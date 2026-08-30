@@ -17,7 +17,7 @@ import {
   StoryIdSchema,
   type NarrativeBaselineEvidenceReceipt,
   type NarrativeBaselineEvidenceReceiptInput,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { writeJsonAtomic } from "../narration/adapters/atomic-files";
 import { generateProjectRegistry } from "../registry/generate";
 import type { ValidatedProjectRegistrationEntry } from "../registry/domain";

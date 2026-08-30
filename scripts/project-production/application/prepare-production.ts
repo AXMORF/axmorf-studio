@@ -3,11 +3,11 @@ import type {
   ProducerPlan,
   ProducerTaskKind,
   ProducerTaskSpec,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import type {
   ProductionInspection,
   TaskDecisionExplanation,
-} from "../../../src/contracts/production-inspection";
+} from "@axmorf/studio/contracts";
 import { isAbsolute, relative } from "node:path";
 import { projectPendingSceneAuthoring } from "../../projects/application/create-project";
 import { acquireRepositoryOperationLock } from "../../shared/repository-operation-lock";
@@ -31,6 +31,7 @@ import {
 } from "./prepare-fixed-tasks";
 import { buildCurrentProductionRevision } from "./current-revision";
 import { ensureTemplateSceneArtifact } from "./template-scene-artifacts";
+import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
 
 type LoadedInputs = Awaited<ReturnType<typeof loadProjectProductionInputs>>;
 type CurrentPlan = Awaited<ReturnType<typeof buildCurrentProductionPlan>>;
@@ -259,10 +260,12 @@ export const prepareProjectProduction = async (
     rootDir,
     projectId,
     env = process.env,
+    runtimePolicyManifest,
   }: {
     readonly rootDir: string;
     readonly projectId: string;
     readonly env?: Readonly<Record<string, string | undefined>>;
+    readonly runtimePolicyManifest?: RuntimePolicyManifest;
   },
   dependencies: PrepareProductionDependencies = {},
 ) => {
@@ -290,13 +293,23 @@ export const prepareProjectProduction = async (
   try {
     // This check-only phase validates every fact available before a provider
     // request. It also proves the cost estimate was obtained without mutation.
-    const estimated = await inspect({ rootDir, projectId, env });
+    const estimated = await inspect({
+      rootDir,
+      projectId,
+      env,
+      runtimePolicyManifest,
+    });
     let narration: PreparedNarrationInputs | null = null;
     if (estimated.sourceState !== "timing-ready") {
       narration = await prepareNarration({ rootDir, projectId, env });
     }
     await projectAuthoring({ rootDir, projectId });
-    const ready = await inspect({ rootDir, projectId, env });
+    const ready = await inspect({
+      rootDir,
+      projectId,
+      env,
+      runtimePolicyManifest,
+    });
     if (ready.sourceState !== "production-inputs-ready") {
       return missingAuthoringResult({
         projectId,
@@ -309,6 +322,7 @@ export const prepareProjectProduction = async (
     const inputs = await loadInputs({
       rootDir,
       projectId,
+      runtimePolicyManifest,
     });
     await prepareFixed({ rootDir, inputs, narration });
     const current = await buildCurrentPlan({
@@ -317,6 +331,7 @@ export const prepareProjectProduction = async (
       env,
       inputs,
       narration,
+      runtimePolicyManifest,
     });
     const dirty = await dirtyAgentTasks({
       rootDir,

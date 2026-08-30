@@ -5,7 +5,7 @@ import { z } from "zod";
 import {
   ResourceCatalogSchema,
   serializeCanonicalJson,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { queryResourceCatalog, type ResourceCatalogQuery } from "./domain";
 import {
   generateResourceCatalog,

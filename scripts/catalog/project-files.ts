@@ -13,10 +13,18 @@ import {
   Sha256DigestSchema,
   type ResourceDescriptor,
   type ResourceCatalog,
-} from "../../src/contracts";
-import { capabilityDescriptorDeclarations } from "../../src/remotion/catalog/capability-descriptors";
-import { styleDescriptorDeclarations } from "../../src/remotion/catalog/style-descriptors";
-import { producerStyleProfileIds } from "../../src/remotion/capabilities/styles";
+} from "@axmorf/studio/contracts";
+import {
+  WORKSPACE_CAPABILITY_FACADE_SOURCE,
+  WORKSPACE_REMOTION_FACADE_PATH,
+  capabilityDescriptorDeclarations,
+} from "../../packages/studio/src/remotion/catalog/capability-descriptors";
+import {
+  WORKSPACE_STYLE_FACADE_PATH,
+  WORKSPACE_STYLE_FACADE_SOURCE,
+  styleDescriptorDeclarations,
+} from "../../packages/studio/src/remotion/catalog/style-descriptors";
+import { producerStyleProfileIds } from "../../packages/studio/src/remotion/capabilities/styles";
 import { readLocalProjectRoot } from "../projects/root";
 
 export const LOCAL_REFERENCE_ASSET_MANIFEST_PATH =
@@ -95,6 +103,18 @@ export const validateCapabilityDescriptorExports = async (
     const source = (await readRegularFile(absolutePath)).toString("utf8");
     if (!collectExportNames(source, absolutePath).has(descriptor.exportName)) {
       throw new Error(`Catalog export identity is stale: ${descriptor.id}.`);
+    }
+  }
+};
+
+const validateWorkspaceRuntimeFacades = async (rootDir: string) => {
+  for (const [path, expected] of [
+    [WORKSPACE_REMOTION_FACADE_PATH, WORKSPACE_CAPABILITY_FACADE_SOURCE],
+    [WORKSPACE_STYLE_FACADE_PATH, WORKSPACE_STYLE_FACADE_SOURCE],
+  ] as const) {
+    const actual = await readRegularFile(join(rootDir, path));
+    if (actual.toString("utf8") !== expected) {
+      throw new Error(`Workspace runtime facade is stale: ${path}.`);
     }
   }
 };
@@ -290,15 +310,7 @@ export const loadCatalogAuthorityDescriptors = async (
 export const loadCoreCatalogAuthorityDescriptors = async (
   rootDir: string,
 ): Promise<readonly ResourceDescriptor[]> => {
-  const manifestPath = join(
-    rootDir,
-    "src/remotion/catalog/assets.manifest.json",
-  );
-  const rawManifest = JSON.parse(
-    (await readRegularFile(manifestPath)).toString("utf8"),
-  );
-  const manifest = ProducerAssetManifestSchema.parse(rawManifest);
-  await validateAssetDescriptorFiles(rootDir, manifest.assets);
+  await validateWorkspaceRuntimeFacades(rootDir);
   await validateCapabilityDescriptorExports(rootDir, [
     ...styleDescriptorDeclarations,
     ...capabilityDescriptorDeclarations,
@@ -313,7 +325,6 @@ export const loadCoreCatalogAuthorityDescriptors = async (
     throw new Error("Catalog style profile identities are stale.");
   }
   const descriptors = [
-    ...manifest.assets,
     ...styleDescriptorDeclarations,
     ...capabilityDescriptorDeclarations,
   ];

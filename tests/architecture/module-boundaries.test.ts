@@ -38,9 +38,9 @@ test("settings progress server consumes application queries, not storage adapter
 
 test("proof and capability taxonomies keep production runtime boundaries explicit", async () => {
   const absentDirectories = [
-    "src/remotion/proofs",
-    "src/remotion/capabilities/primitives",
-    "src/remotion/capabilities/scenes",
+    "packages/studio/src/remotion/proofs",
+    "packages/studio/src/remotion/capabilities/primitives",
+    "packages/studio/src/remotion/capabilities/scenes",
   ];
   for (const path of absentDirectories) {
     await assert.rejects(access(join(process.cwd(), path)), { code: "ENOENT" });
@@ -49,8 +49,18 @@ test("proof and capability taxonomies keep production runtime boundaries explici
     access(join(process.cwd(), "proofs/scene-runtime/source")),
     access(join(process.cwd(), "proofs/scene-runtime/fixtures")),
     access(join(process.cwd(), "proofs/scene-runtime/evidence")),
-    access(join(process.cwd(), "src/remotion/capabilities/visual-components")),
-    access(join(process.cwd(), "src/remotion/capabilities/scene-templates")),
+    access(
+      join(
+        process.cwd(),
+        "packages/studio/src/remotion/capabilities/visual-components",
+      ),
+    ),
+    access(
+      join(
+        process.cwd(),
+        "packages/studio/src/remotion/capabilities/scene-templates",
+      ),
+    ),
   ]);
   const rootSource = await readFile(
     join(process.cwd(), "src/Root.tsx"),

@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { NarrationSpecSchema } from "../../src/contracts/narration";
+import { NarrationSpecSchema } from "@axmorf/studio/contracts";
 import {
   NARRATIVE_PROJECT_FILES,
   NarrativeProjectSourceSchema,
   StoryCompositionPropsSchema,
-} from "../../src/contracts/project";
-import { RenderSpecSchema } from "../../src/contracts/render";
+} from "@axmorf/studio/contracts";
+import { RenderSpecSchema } from "@axmorf/studio/contracts";
 import {
   validNarrationSpec,
   validProjectSource,

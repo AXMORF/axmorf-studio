@@ -2,7 +2,7 @@ import {
   buildNotApplicableFidelityReceipt,
   buildShotRecipeSelection,
   computeResourceDescriptorFingerprint,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { createScenePlans, sha } from "./scene-input";
 
 export const createScenePackageInput = () => {

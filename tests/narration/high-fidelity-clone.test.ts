@@ -9,7 +9,7 @@ import {
   encodeCanonicalPcmWav,
   measureCanonicalPcmWav,
 } from "../../scripts/narration/domain/pcm-wav";
-import { NarrationSpecSchema } from "../../src/contracts/narration";
+import { NarrationSpecSchema } from "@axmorf/studio/contracts";
 
 const promptAudioPath = "/srv/private/my_voice.m4a";
 const promptTextPath = "/srv/private/my_voice_text.txt";

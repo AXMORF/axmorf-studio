@@ -28,13 +28,15 @@ import {
   validateSceneProductionBrief,
   validateStoryResourcePool,
   validateNarrativeArtifactBundle,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { generateProjectResourceCatalog } from "../../catalog/generate";
 import {
   readRegularJson,
   snapshotPolicyRoots,
   snapshotTaskPolicyFingerprints,
+  snapshotWorkspaceConfiguration,
 } from "../adapters/project-input-snapshot";
+import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
 
 const fingerprint = (namespace: string, value: unknown) =>
   createFingerprint({ namespace, version: 1, value });
@@ -42,9 +44,11 @@ const fingerprint = (namespace: string, value: unknown) =>
 export const loadProjectProductionInputs = async ({
   rootDir,
   projectId: rawProjectId,
+  runtimePolicyManifest,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
+  readonly runtimePolicyManifest?: RuntimePolicyManifest;
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
   const projectRoot = join(rootDir, "src/projects", projectId);
@@ -68,6 +72,7 @@ export const loadProjectProductionInputs = async ({
     masteredFile,
     runtimePolicyFingerprint,
     taskPolicyFingerprints,
+    workspaceConfigurationFingerprint,
   ] = await Promise.all([
     read("brief.json", "VideoBrief"),
     read("story.json", "StorySpec"),
@@ -84,8 +89,11 @@ export const loadProjectProductionInputs = async ({
     read("generated/semantic-timing.generated.json", "SemanticTiming"),
     read("generated/sealed-narration.generated.json", "SealedNarration"),
     read("generated/mastered-narration.generated.json", "MasteredNarration"),
-    snapshotPolicyRoots({ rootDir }),
-    snapshotTaskPolicyFingerprints({ rootDir }),
+    snapshotPolicyRoots({ rootDir, runtimePolicyManifest }),
+    snapshotTaskPolicyFingerprints({ rootDir, runtimePolicyManifest }),
+    runtimePolicyManifest === undefined
+      ? Promise.resolve(null)
+      : snapshotWorkspaceConfiguration({ rootDir }),
   ]);
   const brief = VideoBriefSchema.parse(briefFile.raw);
   const story = StorySpecSchema.parse(storyFile.raw);
@@ -305,6 +313,7 @@ export const loadProjectProductionInputs = async ({
     sceneInputs,
     runtimePolicyFingerprint,
     taskPolicyFingerprints,
+    workspaceConfigurationFingerprint,
     fingerprints: {
       story: fingerprint("revision-story", story),
       narration: fingerprint("revision-narration", narration),

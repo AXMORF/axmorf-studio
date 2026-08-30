@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   ProjectCreateInputSchema,
   computeProjectCreateInputFingerprint,
-} from "../../src/contracts/project-create";
+} from "@axmorf/studio/contracts";
 import { validProjectCreateInput } from "../fixtures/project-create";
 
 test("ProjectCreateInput keeps exact authored Story and TTS chunks", () => {

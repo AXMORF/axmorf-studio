@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { Tts } from "../../settings/client/features/config/TtsSettings";
 import { parseEditableConfig } from "../../settings/contracts/api";
-import { buildProducerConfig } from "../../src/contracts/producer-config";
+import { buildProducerConfig } from "@axmorf/studio/contracts";
 import { validProducerConfigInput } from "../contracts/producer-config.test";
 
 test("Edge voices render as a catalog selector with derived locale", () => {

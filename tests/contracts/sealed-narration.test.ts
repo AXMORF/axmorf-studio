@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { SealedNarrationManifestSchema } from "../../src/contracts/sealed-narration";
+import { SealedNarrationManifestSchema } from "@axmorf/studio/contracts";
 import { buildValidSealedNarrationManifest } from "../fixtures/narrative";
 
 test("sealed narration validates ordered measured PCM artifacts", () => {

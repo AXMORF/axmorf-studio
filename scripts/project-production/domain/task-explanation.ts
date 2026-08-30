@@ -4,16 +4,16 @@ import {
   type DiagnosticInputId,
   type DiagnosticSubject,
   type TaskDecisionExplanation,
-} from "../../../src/contracts/production-inspection";
+} from "@axmorf/studio/contracts";
 import {
   TaskDiagnosticSnapshotListSchema,
   type TaskDiagnosticSnapshot,
-} from "../../../src/contracts/execution-attempt";
-import { serializeCanonicalJson } from "../../../src/contracts/fingerprint";
+} from "@axmorf/studio/contracts";
+import { serializeCanonicalJson } from "@axmorf/studio/contracts";
 import type {
   ProducerTaskKind,
   TaskRevision,
-} from "../../../src/contracts/producer-task";
+} from "@axmorf/studio/contracts";
 import type { ArtifactInspection } from "./invalidation";
 import { missingArtifactInspection } from "./invalidation";
 import { buildProducerTaskGraph, type ProducerTaskNode } from "./task-graph";
@@ -55,7 +55,9 @@ const diagnosticInputAliases: Readonly<Record<string, DiagnosticInputId>> = {
   "visual-style": "visual-style",
 };
 
-export const toDiagnosticInputId = (rawId: string): DiagnosticInputId | null => {
+export const toDiagnosticInputId = (
+  rawId: string,
+): DiagnosticInputId | null => {
   if (rawId.startsWith("read:")) return null;
   const mapped = diagnosticInputAliases[rawId];
   if (mapped === undefined) {
@@ -73,7 +75,9 @@ const resolveSubject = ({
 }) => {
   const subject = subjects.get(node.task.taskRevision);
   if (subject === undefined) {
-    throw new Error("Task diagnostic subject is missing from the current plan.");
+    throw new Error(
+      "Task diagnostic subject is missing from the current plan.",
+    );
   }
   return subject;
 };
@@ -115,7 +119,9 @@ export const buildTaskDiagnosticSnapshots = ({
   readonly decisions: readonly TaskDecisionExplanation[];
 }): readonly TaskDiagnosticSnapshot[] => {
   const nodes = buildProducerTaskGraph(rawNodes);
-  const byRevision = new Map(nodes.map((node) => [node.task.taskRevision, node]));
+  const byRevision = new Map(
+    nodes.map((node) => [node.task.taskRevision, node]),
+  );
   const decisionByRevision = new Map(
     decisions.map((decision) => [decision.taskRevision, decision]),
   );
@@ -128,8 +134,13 @@ export const buildTaskDiagnosticSnapshots = ({
       })
       .filter((value): value is NonNullable<typeof value> => value !== null)
       .sort((left, right) => left.id.localeCompare(right.id));
-    if (new Set(inputFingerprints.map(({ id }) => id)).size !== inputFingerprints.length) {
-      throw new Error("Task inputs collapse to a duplicate diagnostic input ID.");
+    if (
+      new Set(inputFingerprints.map(({ id }) => id)).size !==
+      inputFingerprints.length
+    ) {
+      throw new Error(
+        "Task inputs collapse to a duplicate diagnostic input ID.",
+      );
     }
     const dependencies = node.dependencyTaskRevisions
       .map((taskRevision) => {
@@ -212,12 +223,19 @@ const dependencyChanges = ({
   readonly baseline: TaskDiagnosticSnapshot;
 }): TaskDecisionExplanation["dependencyChanges"] => {
   const before = new Map(
-    baseline.dependencies.map((dependency) => [subjectKey(dependency), dependency]),
+    baseline.dependencies.map((dependency) => [
+      subjectKey(dependency),
+      dependency,
+    ]),
   );
   const after = new Map(
-    current.dependencies.map((dependency) => [subjectKey(dependency), dependency]),
+    current.dependencies.map((dependency) => [
+      subjectKey(dependency),
+      dependency,
+    ]),
   );
-  const changes: Array<TaskDecisionExplanation["dependencyChanges"][number]> = [];
+  const changes: Array<TaskDecisionExplanation["dependencyChanges"][number]> =
+    [];
   for (const key of new Set([...before.keys(), ...after.keys()])) {
     const prior = before.get(key);
     const next = after.get(key);
@@ -277,10 +295,9 @@ export const explainTaskDecisions = ({
     currentSnapshots.map((snapshot) => [snapshot.taskRevision, snapshot]),
   );
   const baselineBySubject = new Map(
-    TaskDiagnosticSnapshotListSchema.parse(baselineSnapshots).map((snapshot) => [
-      subjectKey(snapshot),
-      snapshot,
-    ]),
+    TaskDiagnosticSnapshotListSchema.parse(baselineSnapshots).map(
+      (snapshot) => [subjectKey(snapshot), snapshot],
+    ),
   );
   const nodesByRevision = new Map(
     nodes.map((node) => [node.task.taskRevision, node]),

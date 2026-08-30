@@ -1,7 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { Sha256DigestSchema, StoryIdSchema } from "../../../src/contracts";
+import {
+  Sha256DigestSchema,
+  StoryIdSchema,
+} from "@axmorf/studio/contracts";
 import { writeOrCheckRendererRegistry } from "../../renderer-registry/project-files";
 import { writeTextFileAtomic } from "../../shared/atomic-file";
 
@@ -23,7 +26,6 @@ const variableNameFor = (value: string) =>
       index === 0 ? part : `${part[0]?.toUpperCase()}${part.slice(1)}`,
     )
     .join("");
-
 
 const renderProductionSceneRuntimeTemplate = ({
   storyId: rawStoryId,
@@ -88,14 +90,14 @@ import {
   ShotPlanSetSchema,
   VisualStyleSpecSchema,
   resolveSceneViewport,
-} from "../../contracts";
-import {resolveSceneSound} from "../../remotion/runtime/scene-sound";
-import {buildSoundDesignProjection} from "../../remotion/runtime/sound-design";
+} from "@axmorf/studio/contracts";
 import {
   buildStoryVisualProjection,
+  buildSoundDesignProjection,
+  resolveSceneSound,
   type SceneRendererMountProps,
   type SceneRendererRegistry,
-} from "../../remotion/runtime/story-visual";
+} from "@axmorf/studio/remotion";
 import coverageJson from "./generated/scene-coverage.generated.json";
 import resourceCatalogJson from "./generated/resource-catalog.generated.json";
 import semanticTimingJson from "./generated/semantic-timing.generated.json";
@@ -248,12 +250,8 @@ export const renderProjectAuthoringBuildScaffold = ({
 // runtime-input-fingerprint ${runtimeInputFingerprint}
 import type {FC} from "react";
 import {staticFile} from "remotion";
-import {AuthoringRequirementsSchema, GlobalVisualPlanSchema, getStoryCompositionDurationInFrames, MasteredNarrationManifestSchema, parseNarrativeProjectSource, SealedNarrationManifestSchema, SemanticTimingSchema, StoryCompositionPropsSchema, validateNarrativeArtifactBundle, type StoryCompositionProps} from "../../contracts";
-import {CompositionAssembly} from "../../remotion/runtime/composition-assembly";
-import type {GlobalVisualLayersComponent} from "../../remotion/runtime/global-visual";
-import {NarrativeCore, type NarrativeCoreProps} from "../../remotion/runtime/narrative-core";
-import {SoundDesignTrack} from "../../remotion/runtime/sound-design";
-import {StoryVisualTrack} from "../../remotion/runtime/story-visual";
+import {AuthoringRequirementsSchema, GlobalVisualPlanSchema, getStoryCompositionDurationInFrames, MasteredNarrationManifestSchema, parseNarrativeProjectSource, SealedNarrationManifestSchema, SemanticTimingSchema, StoryCompositionPropsSchema, validateNarrativeArtifactBundle, type StoryCompositionProps} from "@axmorf/studio/contracts";
+import {CompositionAssembly, NarrativeCore, SoundDesignTrack, StoryVisualTrack, type GlobalVisualLayersComponent, type NarrativeCoreProps} from "@axmorf/studio/remotion";
 import briefJson from "./brief.json";
 import masteredNarrationJson from "./generated/mastered-narration.generated.json";
 import sealedNarrationJson from "./generated/sealed-narration.generated.json";
@@ -288,18 +286,57 @@ export default ${componentName};
 `;
 };
 
-export const ensureProjectAuthoringBuildScaffold = async ({ rootDir, storyId, meaningIds, runtimeInputFingerprint }: {
-  readonly rootDir: string; readonly storyId: string; readonly meaningIds: readonly string[]; readonly runtimeInputFingerprint: string;
+export const ensureProjectAuthoringBuildScaffold = async ({
+  rootDir,
+  storyId,
+  meaningIds,
+  runtimeInputFingerprint,
+}: {
+  readonly rootDir: string;
+  readonly storyId: string;
+  readonly meaningIds: readonly string[];
+  readonly runtimeInputFingerprint: string;
 }) => {
-  const projectRoot = join(rootDir, "src/projects", StoryIdSchema.parse(storyId));
-  const runtimeDestination = join(projectRoot, "production-scene-runtime.generated.ts");
-  const runtimeSource = renderReadabilityAwareProductionSceneRuntime({ storyId, meaningIds, runtimeInputFingerprint });
-  await writeOrCheckRendererRegistry({ destination: runtimeDestination, source: runtimeSource, mode: "write" });
+  const projectRoot = join(
+    rootDir,
+    "src/projects",
+    StoryIdSchema.parse(storyId),
+  );
+  const runtimeDestination = join(
+    projectRoot,
+    "production-scene-runtime.generated.ts",
+  );
+  const runtimeSource = renderReadabilityAwareProductionSceneRuntime({
+    storyId,
+    meaningIds,
+    runtimeInputFingerprint,
+  });
+  await writeOrCheckRendererRegistry({
+    destination: runtimeDestination,
+    source: runtimeSource,
+    mode: "write",
+  });
   const destination = join(projectRoot, "Composition.tsx");
-  const expected = renderProjectAuthoringBuildScaffold({ storyId, runtimeInputFingerprint });
+  const expected = renderProjectAuthoringBuildScaffold({
+    storyId,
+    runtimeInputFingerprint,
+  });
   let current: string | null = null;
-  try { current = await readFile(destination, "utf8"); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
-  if (current !== null && current !== expected && !current.includes("@generated-by")) throw new Error("Refusing to overwrite a hand-written Composition.");
-  await writeTextFileAtomic({ destination, bytes: expected, mode: current === null ? "create" : "replace" });
+  try {
+    current = await readFile(destination, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  if (
+    current !== null &&
+    current !== expected &&
+    !current.includes("@generated-by")
+  )
+    throw new Error("Refusing to overwrite a hand-written Composition.");
+  await writeTextFileAtomic({
+    destination,
+    bytes: expected,
+    mode: current === null ? "create" : "replace",
+  });
   return { destination, runtimeDestination, source: expected } as const;
 };

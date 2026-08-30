@@ -4,7 +4,7 @@ import {
   ExternalReferenceSnapshotSchema,
   serializeCanonicalJson,
   type ExternalReferenceSnapshot,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   appendBytesAtomically,
   checksumExternalBytes,

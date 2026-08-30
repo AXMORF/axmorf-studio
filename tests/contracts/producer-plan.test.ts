@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildProducerPlan } from "../../src/contracts/producer-plan";
+import { buildProducerPlan } from "@axmorf/studio/contracts";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 const revisionId = `revision-${"1".repeat(64)}` as const;
@@ -30,7 +30,11 @@ const deliveryDecision = {
   directChanges: [],
   dependencyChanges: [],
   blockedBy: [
-    { taskKind: "scene-owner" as const, subjectId: "opening", taskRevision: taskA },
+    {
+      taskKind: "scene-owner" as const,
+      subjectId: "opening",
+      taskRevision: taskA,
+    },
   ],
   explanationAvailability: "baseline-unavailable" as const,
 };
@@ -41,17 +45,26 @@ test("plan is stable, sorted, and derives mechanical summary from explanations",
     revisionId,
     artifactSetFingerprint: sha("3"),
     tasks: [sceneDecision, deliveryDecision],
-    summary: { reusedTaskCount: 0, dirtyAgentTaskCount: 1, dirtyFixedTaskCount: 0, blockedTaskCount: 1 },
+    summary: {
+      reusedTaskCount: 0,
+      dirtyAgentTaskCount: 1,
+      dirtyFixedTaskCount: 0,
+      blockedTaskCount: 1,
+    },
   });
   assert.equal(plan.tasks.length, 2);
-  assert.throws(() => buildProducerPlan({
-    ...plan,
-    tasks: [...plan.tasks].reverse(),
-  }));
-  assert.throws(() => buildProducerPlan({
-    ...plan,
-    summary: { ...plan.summary, dirtyAgentTaskCount: 0 },
-  }));
+  assert.throws(() =>
+    buildProducerPlan({
+      ...plan,
+      tasks: [...plan.tasks].reverse(),
+    }),
+  );
+  assert.throws(() =>
+    buildProducerPlan({
+      ...plan,
+      summary: { ...plan.summary, dirtyAgentTaskCount: 0 },
+    }),
+  );
 });
 
 test("plan explanation metadata is diagnostic-only", () => {
@@ -60,16 +73,35 @@ test("plan explanation metadata is diagnostic-only", () => {
     revisionId,
     artifactSetFingerprint: sha("3"),
     tasks: [sceneDecision, deliveryDecision],
-    summary: { reusedTaskCount: 0, dirtyAgentTaskCount: 1, dirtyFixedTaskCount: 0, blockedTaskCount: 1 },
+    summary: {
+      reusedTaskCount: 0,
+      dirtyAgentTaskCount: 1,
+      dirtyFixedTaskCount: 0,
+      blockedTaskCount: 1,
+    },
   });
   const explainedFromAnotherBaseline = buildProducerPlan({
     ...first,
     tasks: [
-      { ...sceneDecision, explanationAvailability: "complete", baselineTaskRevision: `task-${"4".repeat(64)}` },
-      { ...deliveryDecision, explanationAvailability: "complete", baselineTaskRevision: `task-${"5".repeat(64)}` },
+      {
+        ...sceneDecision,
+        explanationAvailability: "complete",
+        baselineTaskRevision: `task-${"4".repeat(64)}`,
+      },
+      {
+        ...deliveryDecision,
+        explanationAvailability: "complete",
+        baselineTaskRevision: `task-${"5".repeat(64)}`,
+      },
     ],
   });
   assert.equal(explainedFromAnotherBaseline.revisionId, first.revisionId);
-  assert.equal(explainedFromAnotherBaseline.artifactSetFingerprint, first.artifactSetFingerprint);
-  assert.notEqual(explainedFromAnotherBaseline.planFingerprint, first.planFingerprint);
+  assert.equal(
+    explainedFromAnotherBaseline.artifactSetFingerprint,
+    first.artifactSetFingerprint,
+  );
+  assert.notEqual(
+    explainedFromAnotherBaseline.planFingerprint,
+    first.planFingerprint,
+  );
 });

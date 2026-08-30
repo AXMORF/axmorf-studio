@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   buildPublishingIntent,
   computePublishingCollectionCatalogFingerprint,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { validStorySpec } from "../fixtures/narrative";
 
 const collections = [

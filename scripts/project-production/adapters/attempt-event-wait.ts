@@ -2,7 +2,7 @@ import { watch } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 
-import { StoryIdSchema } from "../../../src/contracts";
+import { StoryIdSchema } from "@axmorf/studio/contracts";
 
 export type ExecutionAttemptEventWait = Readonly<{
   changed: Promise<void>;

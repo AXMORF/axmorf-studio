@@ -4,7 +4,7 @@ import {
   ResourceAssetDescriptorSchema,
   ResourceIdSchema,
   type ExternalImageAssetAcquisition,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 export type ProjectAssetRole = "scene-visual" | "global-visual";
 

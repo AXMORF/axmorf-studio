@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { resolveProducerNarrationInspection } from "../../scripts/config/narration-execution";
 import { writeProducerConfig } from "../../scripts/config/producer-config";
-import { NarrationSpecSchema } from "../../src/contracts/narration";
+import { NarrationSpecSchema } from "@axmorf/studio/contracts";
 import { validProjectCreateProducerConfig } from "../fixtures/project-create";
 
 const narration = NarrationSpecSchema.parse({
@@ -35,10 +35,7 @@ test("inspection metadata does not open the selected VoxCPM voice material", asy
     inspection.providerAttemptIdentityState,
     "unknown-protected-voice-material",
   );
-  assert.equal(
-    inspection.masteringPolicy.targetIntegratedLoudnessLufs,
-    -16,
-  );
+  assert.equal(inspection.masteringPolicy.targetIntegratedLoudnessLufs, -16);
   assert.deepEqual(inspection.metadata, {
     kind: "voxcpm",
     mode: "controllable-clone",
@@ -149,7 +146,10 @@ test("SpeechSDK inspection exposes an exact safe fingerprint without exposing it
     }),
   });
 
-  assert.match(inspection.providerAttemptFingerprint ?? "", /^sha256:[a-f0-9]{64}$/u);
+  assert.match(
+    inspection.providerAttemptFingerprint ?? "",
+    /^sha256:[a-f0-9]{64}$/u,
+  );
   assert.equal(inspection.providerAttemptIdentityState, "exact");
   assert.deepEqual(inspection.metadata, {
     kind: "speech-sdk",

@@ -8,7 +8,7 @@ import {
   SceneCoverageMapSchema,
   ScenePackageSchema,
   ShotRecipeSelectionSchema,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import SceneRuntimeProof, {
   sceneRuntimeProofMetadata,
 } from "../../proofs/scene-runtime/source/Composition";
@@ -20,7 +20,7 @@ import {
   sceneRuntimeProofSoundDesignProjection,
   sceneRuntimeProofStoryVisualProjection,
 } from "../../proofs/scene-runtime/source/proof-data";
-import { CompositionAssembly } from "../../src/remotion/runtime/composition-assembly";
+import { CompositionAssembly } from "@axmorf/studio/remotion";
 
 test("synthetic proof binds one exact current Scene package coverage and both projections", () => {
   assert.deepEqual(sceneRuntimeProofMetadata, {

@@ -21,9 +21,9 @@ import {
   createDeliveryBuildId,
   ExecutionAttemptDeliveryResultSchema,
   type Sha256Digest,
-} from "../../src/contracts";
-import type { TaskDiagnosticSnapshot } from "../../src/contracts/execution-attempt";
-import type { TaskDecisionExplanation } from "../../src/contracts/production-inspection";
+} from "@axmorf/studio/contracts";
+import type { TaskDiagnosticSnapshot } from "@axmorf/studio/contracts";
+import type { TaskDecisionExplanation } from "@axmorf/studio/contracts";
 import {
   appendExecutionAttemptDeliveryResult,
   appendExecutionAttemptTaskOutcome,

@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   ShotRecipeSelectionSchema,
   buildShotRecipeSelection,
-} from "../../src/contracts/shot-recipe";
+} from "@axmorf/studio/contracts";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}`;
 

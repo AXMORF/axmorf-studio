@@ -34,7 +34,7 @@ test("mainstream agent entrypoints import one repository authority", async () =>
   assert.match(agents, /AGENTS\.md` 是唯一仓库级 Agent 指令 authority/u);
   assert.match(
     agents,
-    /\.agents\/skills\/remotion-story-producer-video\/SKILL\.md/u,
+    /\.agents\/skills\/axmorf-video\/SKILL\.md/u,
   );
   assert.match(agents, /内置执行默认是 `inline`/u);
   assert.match(readme, /docs\/guides\/AGENT_COMPATIBILITY\.md/u);
@@ -56,7 +56,7 @@ test("generic production surfaces do not call vendor agent runtimes", async () =
     await Promise.all([
       readRepositoryFile("package.json"),
       readRepositoryFile(
-        ".agents/skills/remotion-story-producer-video/SKILL.md",
+        ".agents/skills/axmorf-video/SKILL.md",
       ),
       readRepositoryFile(".agents/skills/remotion-best-practices/SKILL.md"),
       readRepositoryFile(

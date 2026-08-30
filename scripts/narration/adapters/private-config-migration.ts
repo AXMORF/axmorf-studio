@@ -12,8 +12,8 @@ import { basename, dirname, extname, join } from "node:path";
 
 import { z } from "zod";
 
-import { serializeCanonicalJson } from "../../../src/contracts/fingerprint";
-import { VoiceProfileIdSchema } from "../../../src/contracts/primitives";
+import { serializeCanonicalJson } from "@axmorf/studio/contracts";
+import { VoiceProfileIdSchema } from "@axmorf/studio/contracts";
 import { measureCanonicalPcmWav } from "../domain/pcm-wav";
 import { normalizePromptAudio as normalizePromptAudioBytes } from "./prompt-audio-normalizer";
 import {

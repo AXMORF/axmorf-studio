@@ -12,7 +12,7 @@ import {
   Sha256DigestSchema,
   createFingerprint,
   serializeCanonicalJson,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   sceneRuntimeProofCoverage,
   sceneRuntimeProofFidelityReceipt,

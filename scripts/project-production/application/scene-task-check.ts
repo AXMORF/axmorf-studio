@@ -1,7 +1,7 @@
 import { checkProducerTaskWorkspace } from "./task-check";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { SceneTaskInputSchema } from "../../../src/contracts";
+import { SceneTaskInputSchema } from "@axmorf/studio/contracts";
 import { validateSceneArtifactBundle } from "../../scene-package/domain";
 import { parseSceneSelectedResourcesFile } from "../../scene-package/generate";
 import { validateRendererReadabilitySourceGraph } from "./readability-source-validator";
@@ -50,7 +50,7 @@ export const checkSceneTask = async (
     virtualSources: {
       [rendererPath]: rendererSource,
       [contractCheckPath]: `import Renderer from "./Renderer";
-import type {SceneRendererComponent} from "../../../../remotion/runtime/story-visual/types";
+import type {SceneRendererComponent} from "@axmorf/studio/remotion";
 const renderer: SceneRendererComponent = Renderer;
 void renderer;
 `,

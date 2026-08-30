@@ -1,7 +1,7 @@
 import { lstat } from "node:fs/promises";
 import { join } from "node:path";
 
-import { StoryIdSchema } from "../../../src/contracts";
+import { StoryIdSchema } from "@axmorf/studio/contracts";
 import { compileTypeScriptImportGraph } from "./typescript-compile";
 
 export const compileTargetProjectComposition = async ({

@@ -10,7 +10,7 @@ import {
   createFingerprint,
   serializeCanonicalJson,
   type ProducerConfig,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { writeBinaryFileAtomic } from "../../shared/atomic-file";
 
 const checksum = (bytes: Uint8Array) =>

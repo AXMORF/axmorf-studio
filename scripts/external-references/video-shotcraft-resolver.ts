@@ -2,7 +2,7 @@ import {
   ExternalReferenceSnapshotSchema,
   type ExternalReferenceCard,
   type ExternalReferenceSnapshot,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 export type ResolvedVideoShotcraftReference = ExternalReferenceCard & {
   readonly sourceId: ExternalReferenceSnapshot["sourceId"];

@@ -24,26 +24,23 @@ import {
   validateStoryResourcePool,
   type ProducerConfig,
   type ResourceDescriptor,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   PendingSceneAuthoringSchema,
   ProjectCreateInputSchema,
   buildPendingSceneAuthoring,
   computeProjectCreateInputFingerprint,
   type ProjectCreateInput,
-} from "../../../src/contracts/project-create";
+} from "@axmorf/studio/contracts";
 import {
   Sha256DigestSchema,
   StoryIdSchema,
-} from "../../../src/contracts/primitives";
+} from "@axmorf/studio/contracts";
 import {
   buildResourceCatalog,
   renderResourceCatalogJson,
 } from "../../catalog/domain";
-import {
-  loadCatalogAuthorityDescriptors,
-  loadLocalReferenceAssetDescriptors,
-} from "../../catalog/project-files";
+import { loadCatalogAuthorityDescriptors } from "../../catalog/project-files";
 import { generateProjectResourceCatalog } from "../../catalog/generate";
 import {
   readProducerConfig,
@@ -66,11 +63,13 @@ import {
   inspectProjectCreateTargets,
   readContainedRegularFile,
 } from "../adapters/project-create-store";
-import {
-  buildSceneTemplateDefinitions,
-  getSceneTemplateDefinition,
-  type SceneTemplateDefinition,
-} from "../../../src/remotion/capabilities/scene-templates/registry";
+import { getSceneTemplateDefinition } from "../../../packages/studio/src/remotion/capabilities/scene-templates/registry";
+import type { RuntimeResources } from "../../../packages/studio/src/runtime/runtime-resources";
+
+export type ProjectCreationRuntimeResources = Pick<
+  RuntimeResources,
+  "sceneTemplatesRoot"
+>;
 import { readCurrentSceneTemplateAudioProjection } from "../../scene-templates/audio-projection";
 
 const CREATION_RECEIPT_PATH = "production/project-create.json" as const;
@@ -96,67 +95,6 @@ const writeStageBytes = async ({
   const destination = join(stagingRoot, relativePath);
   await mkdir(dirname(destination), { recursive: true });
   await writeFile(destination, bytes);
-};
-
-const copyOptionalRegular = async ({
-  rootDir,
-  stagingRoot,
-  relativePath,
-}: {
-  readonly rootDir: string;
-  readonly stagingRoot: string;
-  readonly relativePath: string;
-}) => {
-  try {
-    await lstat(join(rootDir, relativePath));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
-    throw error;
-  }
-  await writeStageBytes({
-    stagingRoot,
-    relativePath,
-    bytes: await readContainedRegularFile({
-      rootDir,
-      relativePath,
-      label: `Project create selected source ${relativePath}`,
-    }),
-  });
-};
-
-const copySceneTemplateAuthorities = async ({
-  rootDir,
-  stagingRoot,
-  definitions,
-}: {
-  readonly rootDir: string;
-  readonly stagingRoot: string;
-  readonly definitions: readonly SceneTemplateDefinition[];
-}) => {
-  const localReferenceAssetPaths =
-    definitions.length === 0
-      ? []
-      : (await loadLocalReferenceAssetDescriptors(rootDir)).flatMap(
-          (descriptor) =>
-            descriptor.kind === "asset" ? [descriptor.localPath] : [],
-        );
-  const paths = new Set(
-    definitions.flatMap((definition) => [
-      ...definition.sourceFiles.map(({ sourcePath }) => sourcePath),
-      ...definition.assets.map(({ sourcePath }) => sourcePath),
-      ...localReferenceAssetPaths,
-    ]),
-  );
-  for (const relativePath of paths) {
-    await copyOptionalRegular({ rootDir, stagingRoot, relativePath });
-  }
-  for (const relativePath of [
-    "private/reference-assets/scene-template-sound-overrides.json",
-    "private/reference-assets/assets.manifest.json",
-    "private/reference-assets/MIXKIT_AUDIO_LICENSE.md",
-  ]) {
-    await copyOptionalRegular({ rootDir, stagingRoot, relativePath });
-  }
 };
 
 const projectDescriptors = ({
@@ -572,12 +510,14 @@ const prepareCreation = async ({
   storyId,
   input,
   config,
+  runtimeResources,
 }: {
   readonly rootDir: string;
   readonly stagingRoot: string;
   readonly storyId: string;
   readonly input: ProjectCreateInput;
   readonly config: ProducerConfig;
+  readonly runtimeResources: ProjectCreationRuntimeResources;
 }) => {
   const stageRepositoryRoot = join(stagingRoot, "root");
   const projectRoot = `src/projects/${storyId}`;
@@ -601,14 +541,6 @@ const prepareCreation = async ({
     mkdir(join(stageRepositoryRoot, projectRoot), { recursive: true }),
     mkdir(join(stageRepositoryRoot, publicRoot), { recursive: true }),
   ]);
-  await copySceneTemplateAuthorities({
-    rootDir,
-    stagingRoot: stageRepositoryRoot,
-    definitions:
-      sceneTemplateAudioProjection === null
-        ? []
-        : buildSceneTemplateDefinitions(sceneTemplateAudioProjection),
-  });
   const initialManifest = buildProjectAssetManifest({
     projectId: storyId,
     assets: [],
@@ -627,6 +559,8 @@ const prepareCreation = async ({
   }
   const sceneTemplates = await prepareConfiguredSceneTemplates({
     rootDir: stageRepositoryRoot,
+    templateSourceRoot: runtimeResources.sceneTemplatesRoot,
+    workspaceAssetRoot: rootDir,
     projectId: storyId,
     story: input.story,
     sceneDefaults: selectedSceneTemplates,
@@ -848,12 +782,14 @@ export const createProject = async ({
   projectId: rawProjectId,
   inputPath,
   env,
+  runtimeResources,
   store = { commit: commitStagedProjectCreate },
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly inputPath: string;
   readonly env: Readonly<Record<string, string | undefined>>;
+  readonly runtimeResources: ProjectCreationRuntimeResources;
   readonly store?: Readonly<{
     commit: typeof commitStagedProjectCreate;
   }>;
@@ -926,6 +862,7 @@ export const createProject = async ({
       storyId: projectId,
       input,
       config,
+      runtimeResources,
     });
     if (existing !== null) {
       const current = await verifyExistingCreation({

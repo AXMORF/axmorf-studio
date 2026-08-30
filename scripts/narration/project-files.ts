@@ -5,7 +5,7 @@ import {
   parseNarrativeProjectSource,
   StoryIdSchema,
   type NarrativeProjectSource,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 export const getNarrationProjectPaths = ({
   rootDir,

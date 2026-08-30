@@ -17,7 +17,7 @@ import {
   getStoryCompositionDurationInFrames,
   resolveCurrentPublishingIntent,
   toStoryCompositionFrame,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { collectDeliveryCoverSourceGraph } from "../adapters/cover-source";
 import { checkMasteredNarrationArtifacts } from "../../narration/mastering";
 import { collectGlobalVisualSourceGraph } from "./global-visual-validator";
@@ -50,26 +50,25 @@ export const prepareProjectAuthoringBuild = async ({
     projectSound,
     resourceCatalog,
     rawPublishingIntent,
-  ] =
-    await Promise.all([
-      readJson(join(projectRoot, "story.json")).then(StorySpecSchema.parse),
-      readJson(join(projectRoot, "render.json")).then(RenderSpecSchema.parse),
-      readJson(
-        join(projectRoot, "generated/semantic-timing.generated.json"),
-      ).then(SemanticTimingSchema.parse),
-      readJson(join(projectRoot, "visual-style.json")).then(
-        VisualStyleSpecSchema.parse,
-      ),
-      readJson(join(projectRoot, "sound.json")).then(
-        ProjectSoundPlanSchema.parse,
-      ),
-      readJson(join(projectRoot, "generated/resource-catalog.generated.json")).then(
-        ResourceCatalogSchema.parse,
-      ),
-      readJson(join(projectRoot, "publishing-intent.json")).then(
-        PublishingIntentSchema.parse,
-      ),
-    ]);
+  ] = await Promise.all([
+    readJson(join(projectRoot, "story.json")).then(StorySpecSchema.parse),
+    readJson(join(projectRoot, "render.json")).then(RenderSpecSchema.parse),
+    readJson(
+      join(projectRoot, "generated/semantic-timing.generated.json"),
+    ).then(SemanticTimingSchema.parse),
+    readJson(join(projectRoot, "visual-style.json")).then(
+      VisualStyleSpecSchema.parse,
+    ),
+    readJson(join(projectRoot, "sound.json")).then(
+      ProjectSoundPlanSchema.parse,
+    ),
+    readJson(
+      join(projectRoot, "generated/resource-catalog.generated.json"),
+    ).then(ResourceCatalogSchema.parse),
+    readJson(join(projectRoot, "publishing-intent.json")).then(
+      PublishingIntentSchema.parse,
+    ),
+  ]);
   if (
     story.storyId !== projectId ||
     timing.storyId !== projectId ||
@@ -158,7 +157,9 @@ export const prepareProjectAuthoringBuild = async ({
         ({ meaningId }) => meaningId === chapter.meaningId,
       );
       if (beat === undefined || beat.kind !== "narrated-scene") {
-        throw new Error("Publishing chapters are stale against SemanticTiming.");
+        throw new Error(
+          "Publishing chapters are stale against SemanticTiming.",
+        );
       }
       const startFrame = toStoryCompositionFrame(beat.startFrame);
       return {

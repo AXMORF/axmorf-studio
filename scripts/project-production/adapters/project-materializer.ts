@@ -19,7 +19,7 @@ import {
   serializeCanonicalJson,
   type ArtifactAttestation,
   type ProducerTaskSpec,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { inspectArtifact, resolveArtifactPath } from "./artifact-store";
 import { checksumBytes } from "./project-input-snapshot";
 
@@ -31,7 +31,10 @@ type Replacement = Readonly<{
 }>;
 
 type MaterializationDependencies = Readonly<{
-  beforePromote?: (input: { readonly index: number; readonly target: string }) => Promise<void>;
+  beforePromote?: (input: {
+    readonly index: number;
+    readonly target: string;
+  }) => Promise<void>;
 }>;
 
 export type AdditionalSceneFileManifest = ReadonlyMap<
@@ -141,11 +144,17 @@ const promoteReplacements = async (
   dependencies: MaterializationDependencies,
 ) => {
   for (const replacement of replacements) {
-    await assertLivePath({ rootDir, kind: replacement.kind, target: replacement.target });
+    await assertLivePath({
+      rootDir,
+      kind: replacement.kind,
+      target: replacement.target,
+    });
     const staging = await lstat(replacement.staging);
     if (
       staging.isSymbolicLink() ||
-      (replacement.kind === "directory" ? !staging.isDirectory() : !staging.isFile())
+      (replacement.kind === "directory"
+        ? !staging.isDirectory()
+        : !staging.isFile())
     ) {
       throw new Error("Materialization staging is unsafe.");
     }
@@ -158,7 +167,11 @@ const promoteReplacements = async (
   try {
     for (const [index, replacement] of replacements.entries()) {
       await dependencies.beforePromote?.({ index, target: replacement.target });
-      await assertLivePath({ rootDir, kind: replacement.kind, target: replacement.target });
+      await assertLivePath({
+        rootDir,
+        kind: replacement.kind,
+        target: replacement.target,
+      });
       if ((await state(replacement.backup)) !== null) {
         throw new Error("Materialization backup path already exists.");
       }
@@ -172,7 +185,11 @@ const promoteReplacements = async (
     const rollbackErrors: unknown[] = [];
     for (const replacement of [...touched].reverse()) {
       try {
-        await assertLivePath({ rootDir, kind: replacement.kind, target: replacement.target });
+        await assertLivePath({
+          rootDir,
+          kind: replacement.kind,
+          target: replacement.target,
+        });
         if ((await state(replacement.target)) !== null) {
           await removeReplacementPath(rootDir, replacement, replacement.target);
         }
@@ -184,7 +201,10 @@ const promoteReplacements = async (
       }
     }
     if (rollbackErrors.length > 0) {
-      throw new AggregateError([error, ...rollbackErrors], "Materialization rollback failed.");
+      throw new AggregateError(
+        [error, ...rollbackErrors],
+        "Materialization rollback failed.",
+      );
     }
     throw error;
   }
@@ -228,14 +248,15 @@ const listRegularFiles = async (
     throw new Error("Materialized owner root is unsafe.");
   }
   const files: string[] = [];
-  for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) =>
-    a.name.localeCompare(b.name),
+  for (const entry of (await readdir(directory, { withFileTypes: true })).sort(
+    (a, b) => a.name.localeCompare(b.name),
   )) {
     const path = join(directory, entry.name);
     if (entry.isSymbolicLink() || (!entry.isDirectory() && !entry.isFile())) {
       throw new Error("Materialized owner root contains a non-regular entry.");
     }
-    if (entry.isDirectory()) files.push(...await listRegularFiles(root, path));
+    if (entry.isDirectory())
+      files.push(...(await listRegularFiles(root, path)));
     else files.push(relative(root, path).split(sep).join("/"));
   }
   return files.sort();
@@ -248,7 +269,10 @@ const assertExactDirectory = async ({
 }: {
   readonly rootDir: string;
   readonly directory: string;
-  readonly expected: ReadonlyMap<string, { readonly checksum: string; readonly sizeBytes: number }>;
+  readonly expected: ReadonlyMap<
+    string,
+    { readonly checksum: string; readonly sizeBytes: number }
+  >;
 }) => {
   await assertLivePath({ rootDir, kind: "directory", target: directory });
   const actual = await listRegularFiles(directory);
@@ -306,18 +330,22 @@ export const verifyMaterializedOwnerArtifacts = async ({
   const projectId = StoryIdSchema.parse(rawProjectId);
   const sceneMeaningIds = new Set<string>(
     artifacts.flatMap(({ task }) =>
-      (task.taskKind === "scene-owner" || task.taskKind === "scene-template") && task.semanticId !== null
+      (task.taskKind === "scene-owner" || task.taskKind === "scene-template") &&
+      task.semanticId !== null
         ? [task.semanticId]
         : [],
     ),
   );
   for (const meaningId of additionalSceneFiles.keys()) {
     if (!sceneMeaningIds.has(meaningId)) {
-      throw new Error("Additional Scene file manifest belongs to an unknown Scene.");
+      throw new Error(
+        "Additional Scene file manifest belongs to an unknown Scene.",
+      );
     }
   }
   for (const { task, attestation } of artifacts) {
-    if (task.storyId !== projectId) throw new Error("Artifact belongs to another Project.");
+    if (task.storyId !== projectId)
+      throw new Error("Artifact belongs to another Project.");
     await assertArtifactBinding({ rootDir, task, attestation });
     const sourceOutputs = new Map<
       string,
@@ -328,18 +356,26 @@ export const verifyMaterializedOwnerArtifacts = async ({
         .map((output) => [output.logicalPath.slice(4), output] as const),
     );
     if (task.taskKind === "scene-owner" || task.taskKind === "scene-template") {
-      if (task.semanticId === null) throw new Error("Scene artifact is missing semantic identity.");
+      if (task.semanticId === null)
+        throw new Error("Scene artifact is missing semantic identity.");
       const input = sceneTaskInputs.get(task.semanticId);
-      if (input === undefined) throw new Error("Scene task input is missing during verification.");
-      const bytes = new TextEncoder().encode(`${serializeCanonicalJson(input)}\n`);
+      if (input === undefined)
+        throw new Error("Scene task input is missing during verification.");
+      const bytes = new TextEncoder().encode(
+        `${serializeCanonicalJson(input)}\n`,
+      );
       sourceOutputs.set("task-input.generated.json", {
         checksum: checksumBytes(bytes),
         sizeBytes: bytes.byteLength,
       });
-      for (const [rawLogicalPath, rawManifest] of additionalSceneFiles.get(task.semanticId) ?? []) {
+      for (const [rawLogicalPath, rawManifest] of additionalSceneFiles.get(
+        task.semanticId,
+      ) ?? []) {
         const logicalPath = ProducerLogicalPathSchema.parse(rawLogicalPath);
         if (sourceOutputs.has(logicalPath)) {
-          throw new Error("Additional Scene file conflicts with an artifact-owned path.");
+          throw new Error(
+            "Additional Scene file conflicts with an artifact-owned path.",
+          );
         }
         sourceOutputs.set(logicalPath, {
           checksum: Sha256DigestSchema.parse(rawManifest.checksum),
@@ -348,7 +384,13 @@ export const verifyMaterializedOwnerArtifacts = async ({
       }
       await assertExactDirectory({
         rootDir,
-        directory: join(rootDir, "src/projects", projectId, "scenes", task.semanticId),
+        directory: join(
+          rootDir,
+          "src/projects",
+          projectId,
+          "scenes",
+          task.semanticId,
+        ),
         expected: sourceOutputs,
       });
       const publicOutputs = new Map<
@@ -361,7 +403,13 @@ export const verifyMaterializedOwnerArtifacts = async ({
       );
       await assertExactDirectory({
         rootDir,
-        directory: join(rootDir, "public/projects", projectId, "scenes", task.semanticId),
+        directory: join(
+          rootDir,
+          "public/projects",
+          projectId,
+          "scenes",
+          task.semanticId,
+        ),
         expected: publicOutputs,
       });
     } else if (task.taskKind === "global-visual-owner") {
@@ -373,11 +421,20 @@ export const verifyMaterializedOwnerArtifacts = async ({
       const plan = attestation.outputManifest.find(
         ({ logicalPath }) => logicalPath === "project/global-visual-plan.json",
       );
-      if (plan === undefined) throw new Error("GlobalVisual artifact plan is missing.");
-      const target = join(rootDir, "src/projects", projectId, "global-visual-plan.json");
+      if (plan === undefined)
+        throw new Error("GlobalVisual artifact plan is missing.");
+      const target = join(
+        rootDir,
+        "src/projects",
+        projectId,
+        "global-visual-plan.json",
+      );
       await assertLivePath({ rootDir, kind: "file", target });
       const bytes = Uint8Array.from(await readFile(target));
-      if (bytes.byteLength !== plan.sizeBytes || checksumBytes(bytes) !== plan.checksum) {
+      if (
+        bytes.byteLength !== plan.sizeBytes ||
+        checksumBytes(bytes) !== plan.checksum
+      ) {
         throw new Error("Materialized GlobalVisual plan checksum drifted.");
       }
     } else if (task.taskKind === "cover-owner") {
@@ -411,29 +468,49 @@ export const materializeOwnerArtifacts = async ({
   const suffix = randomUUID();
   const targets = new Set<string>();
 
-  const liveTargets: { readonly kind: Replacement["kind"]; readonly target: string }[] = [];
+  const liveTargets: {
+    readonly kind: Replacement["kind"];
+    readonly target: string;
+  }[] = [];
   for (const { task, attestation } of artifacts) {
-    if (task.storyId !== projectId) throw new Error("Artifact belongs to another Project.");
+    if (task.storyId !== projectId)
+      throw new Error("Artifact belongs to another Project.");
     await assertArtifactBinding({ rootDir, task, attestation });
     if (task.taskKind === "scene-owner" || task.taskKind === "scene-template") {
-      if (task.semanticId === null) throw new Error("Scene artifact is missing semantic identity.");
+      if (task.semanticId === null)
+        throw new Error("Scene artifact is missing semantic identity.");
       if (!sceneTaskInputs.has(task.semanticId)) {
         throw new Error("Scene task input is missing during materialization.");
       }
       liveTargets.push(
         {
           kind: "directory",
-          target: join(rootDir, "src/projects", projectId, "scenes", task.semanticId),
+          target: join(
+            rootDir,
+            "src/projects",
+            projectId,
+            "scenes",
+            task.semanticId,
+          ),
         },
         {
           kind: "directory",
-          target: join(rootDir, "public/projects", projectId, "scenes", task.semanticId),
+          target: join(
+            rootDir,
+            "public/projects",
+            projectId,
+            "scenes",
+            task.semanticId,
+          ),
         },
       );
     } else if (task.taskKind === "global-visual-owner") {
-      if (!attestation.outputManifest.some(
-        ({ logicalPath }) => logicalPath === "project/global-visual-plan.json",
-      )) {
+      if (
+        !attestation.outputManifest.some(
+          ({ logicalPath }) =>
+            logicalPath === "project/global-visual-plan.json",
+        )
+      ) {
         throw new Error("GlobalVisual artifact plan is missing.");
       }
       liveTargets.push(
@@ -443,7 +520,12 @@ export const materializeOwnerArtifacts = async ({
         },
         {
           kind: "file",
-          target: join(rootDir, "src/projects", projectId, "global-visual-plan.json"),
+          target: join(
+            rootDir,
+            "src/projects",
+            projectId,
+            "global-visual-plan.json",
+          ),
         },
       );
     } else if (task.taskKind === "cover-owner") {
@@ -463,7 +545,8 @@ export const materializeOwnerArtifacts = async ({
   }
 
   for (const { task, attestation } of artifacts) {
-    if (task.storyId !== projectId) throw new Error("Artifact belongs to another Project.");
+    if (task.storyId !== projectId)
+      throw new Error("Artifact belongs to another Project.");
     await assertArtifactBinding({ rootDir, task, attestation });
     const artifactRoot = resolveArtifactPath({
       rootDir,
@@ -472,7 +555,8 @@ export const materializeOwnerArtifacts = async ({
       taskRevision: task.taskRevision,
     });
     const addDirectory = async (target: string, prefix: "src/" | "public/") => {
-      if (targets.has(target)) throw new Error("Materialization target is duplicated.");
+      if (targets.has(target))
+        throw new Error("Materialization target is duplicated.");
       targets.add(target);
       await ensureContainedDirectory({ rootDir, directory: dirname(target) });
       const staging = `${target}.producer-staging-${suffix}`;
@@ -493,11 +577,19 @@ export const materializeOwnerArtifacts = async ({
     };
 
     if (task.taskKind === "scene-owner" || task.taskKind === "scene-template") {
-      if (task.semanticId === null) throw new Error("Scene artifact is missing semantic identity.");
-      const sceneRoot = join(rootDir, "src/projects", projectId, "scenes", task.semanticId);
+      if (task.semanticId === null)
+        throw new Error("Scene artifact is missing semantic identity.");
+      const sceneRoot = join(
+        rootDir,
+        "src/projects",
+        projectId,
+        "scenes",
+        task.semanticId,
+      );
       const staging = await addDirectory(sceneRoot, "src/");
       const taskInput = sceneTaskInputs.get(task.semanticId);
-      if (taskInput === undefined) throw new Error("Scene task input is missing during materialization.");
+      if (taskInput === undefined)
+        throw new Error("Scene task input is missing during materialization.");
       await writeFile(
         join(staging, "task-input.generated.json"),
         `${serializeCanonicalJson(taskInput)}\n`,
@@ -508,13 +600,23 @@ export const materializeOwnerArtifacts = async ({
         "public/",
       );
     } else if (task.taskKind === "global-visual-owner") {
-      await addDirectory(join(rootDir, "src/projects", projectId, "global-visual"), "src/");
+      await addDirectory(
+        join(rootDir, "src/projects", projectId, "global-visual"),
+        "src/",
+      );
       const output = attestation.outputManifest.find(
         ({ logicalPath }) => logicalPath === "project/global-visual-plan.json",
       );
-      if (output === undefined) throw new Error("GlobalVisual artifact plan is missing.");
-      const target = join(rootDir, "src/projects", projectId, "global-visual-plan.json");
-      if (targets.has(target)) throw new Error("Materialization target is duplicated.");
+      if (output === undefined)
+        throw new Error("GlobalVisual artifact plan is missing.");
+      const target = join(
+        rootDir,
+        "src/projects",
+        projectId,
+        "global-visual-plan.json",
+      );
+      if (targets.has(target))
+        throw new Error("Materialization target is duplicated.");
       targets.add(target);
       const staging = `${target}.producer-staging-${suffix}`;
       await ensureContainedDirectory({ rootDir, directory: dirname(target) });
@@ -535,7 +637,10 @@ export const materializeOwnerArtifacts = async ({
         backup: `${target}.producer-backup-${suffix}`,
       });
     } else if (task.taskKind === "cover-owner") {
-      await addDirectory(join(rootDir, "src/projects", projectId, "delivery/cover"), "src/");
+      await addDirectory(
+        join(rootDir, "src/projects", projectId, "delivery/cover"),
+        "src/",
+      );
     }
   }
 

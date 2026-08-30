@@ -5,7 +5,7 @@ import {
   VISUAL_STYLE_FINGERPRINT_VERSION,
   VisualStyleSpecSchema,
   computeVisualStyleFingerprint,
-} from "../../src/contracts/visual-style";
+} from "@axmorf/studio/contracts";
 
 const digest = (character: string) => `sha256:${character.repeat(64)}`;
 
@@ -32,11 +32,13 @@ test("VisualStyleSpec is strict non-empty unique and bounded", () => {
   assert.equal(parsed.styleProfileId, "cinematic-3d");
   assert.equal(VISUAL_STYLE_FINGERPRINT_VERSION, "visual-style-fingerprint-v1");
 
-  assert.throws(() => VisualStyleSpecSchema.parse({...validVisualStyle, extra: true}));
+  assert.throws(() =>
+    VisualStyleSpecSchema.parse({ ...validVisualStyle, extra: true }),
+  );
   assert.throws(() =>
     VisualStyleSpecSchema.parse({
       ...validVisualStyle,
-      artDirection: {...validVisualStyle.artDirection, palette: "  "},
+      artDirection: { ...validVisualStyle.artDirection, palette: "  " },
     }),
   );
   assert.throws(() =>
@@ -48,12 +50,23 @@ test("VisualStyleSpec is strict non-empty unique and bounded", () => {
   assert.throws(() =>
     VisualStyleSpecSchema.parse({
       ...validVisualStyle,
-      forbiddenTreatments: Array.from({length: 33}, (_, index) => `rule-${index}`),
+      forbiddenTreatments: Array.from(
+        { length: 33 },
+        (_, index) => `rule-${index}`,
+      ),
     }),
   );
-  assert.throws(() => VisualStyleSpecSchema.parse({...validVisualStyle, styleProfileId: "Styles/Profile"}));
   assert.throws(() =>
-    VisualStyleSpecSchema.parse({...validVisualStyle, resourceCatalogFingerprint: digest("A")}),
+    VisualStyleSpecSchema.parse({
+      ...validVisualStyle,
+      styleProfileId: "Styles/Profile",
+    }),
+  );
+  assert.throws(() =>
+    VisualStyleSpecSchema.parse({
+      ...validVisualStyle,
+      resourceCatalogFingerprint: digest("A"),
+    }),
   );
 });
 
@@ -86,11 +99,41 @@ test("VisualStyle fingerprint is canonical and covers the resolved style authori
   assert.equal(first, reordered);
 
   const mutations = [
-    {visualStyle: {...validVisualStyle, resourceCatalogFingerprint: digest("c")}, resolvedStyleDescriptorFingerprint},
-    {visualStyle: validVisualStyle, resolvedStyleDescriptorFingerprint: digest("c")},
-    {visualStyle: {...validVisualStyle, artDirection: {...validVisualStyle.artDirection, medium: "flat editorial"}}, resolvedStyleDescriptorFingerprint},
-    {visualStyle: {...validVisualStyle, continuityRules: ["Keep scale stable"]}, resolvedStyleDescriptorFingerprint},
-    {visualStyle: {...validVisualStyle, forbiddenTreatments: ["No glass UI"]}, resolvedStyleDescriptorFingerprint},
+    {
+      visualStyle: {
+        ...validVisualStyle,
+        resourceCatalogFingerprint: digest("c"),
+      },
+      resolvedStyleDescriptorFingerprint,
+    },
+    {
+      visualStyle: validVisualStyle,
+      resolvedStyleDescriptorFingerprint: digest("c"),
+    },
+    {
+      visualStyle: {
+        ...validVisualStyle,
+        artDirection: {
+          ...validVisualStyle.artDirection,
+          medium: "flat editorial",
+        },
+      },
+      resolvedStyleDescriptorFingerprint,
+    },
+    {
+      visualStyle: {
+        ...validVisualStyle,
+        continuityRules: ["Keep scale stable"],
+      },
+      resolvedStyleDescriptorFingerprint,
+    },
+    {
+      visualStyle: {
+        ...validVisualStyle,
+        forbiddenTreatments: ["No glass UI"],
+      },
+      resolvedStyleDescriptorFingerprint,
+    },
   ] as const;
   for (const mutation of mutations) {
     assert.notEqual(first, computeVisualStyleFingerprint(mutation));

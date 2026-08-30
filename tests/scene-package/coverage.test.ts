@@ -5,7 +5,7 @@ import {
   SceneCoverageMapSchema,
   buildSceneFallbackDeclaration,
   buildSceneCoverageMap,
-} from "../../src/contracts/scene-package";
+} from "@axmorf/studio/contracts";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
 import { createScenePackageInput } from "../fixtures/scene/package-input";
 

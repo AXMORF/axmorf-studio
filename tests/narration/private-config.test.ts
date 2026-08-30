@@ -10,9 +10,9 @@ import {
   resolveVoxcpmProfileMetadata,
   resolveVoxcpmProfile,
 } from "../../scripts/narration/adapters/private-config";
-import { NarrationSpecSchema } from "../../src/contracts/narration";
-import { computeGenerationInputFingerprint } from "../../src/contracts/generation-input";
-import { StorySpecSchema } from "../../src/contracts/story";
+import { NarrationSpecSchema } from "@axmorf/studio/contracts";
+import { computeGenerationInputFingerprint } from "@axmorf/studio/contracts";
+import { StorySpecSchema } from "@axmorf/studio/contracts";
 import { validNarrationSpec, validStorySpec } from "../fixtures/narrative";
 
 const referencePath = "/srv/private/science.wav";

@@ -1,6 +1,7 @@
 # Narrative Contracts
 
-> 文档类型：合同参考。可执行 schema 与 fingerprint 逻辑以 `src/contracts/` 为准。
+> 文档类型：合同参考。可执行 schema 与 fingerprint 逻辑以
+> `packages/studio/src/contracts/` 为准。
 >
 > 最后复核：2026-08-21
 

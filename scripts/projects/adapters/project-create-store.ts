@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { lstat, mkdir, readFile, rename, rm } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
-import { StoryIdSchema } from "../../../src/contracts/primitives";
+import { StoryIdSchema } from "@axmorf/studio/contracts";
 
 export const PROJECT_CREATE_CATALOG_PATH =
   "src/remotion/catalog/resource-catalog.generated.json" as const;

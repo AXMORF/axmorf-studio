@@ -3,7 +3,7 @@ import { realpathSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { buildProducerConfig } from "../../src/contracts";
+import { buildProducerConfig } from "@axmorf/studio/contracts";
 import {
   VoxcpmPrivateConfigSchema,
   type VoxcpmPrivateConfig,

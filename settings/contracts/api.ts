@@ -1,14 +1,14 @@
 import { z } from "zod";
 
-import { ProducerConfigSchema } from "../../src/contracts/producer-config";
+import { ProducerConfigSchema } from "@axmorf/studio/contracts";
 import {
   ActualProductionCostSchema,
   EstimatedProductionCostSchema,
   ProductionInspectionSchema,
   TaskDecisionExplanationListSchema,
   validateTaskExplanationStoryBinding,
-} from "../../src/contracts/production-inspection";
-import { StoryIdSchema } from "../../src/contracts/primitives";
+} from "@axmorf/studio/contracts";
+import { StoryIdSchema } from "@axmorf/studio/contracts";
 import {
   ExecutionPreferencesSchema,
   type ExecutionPreferences,
@@ -75,12 +75,7 @@ export const ProjectAttemptSummarySchema = z
   .object({
     attemptId: z.string().uuid(),
     revisionId: z.string().regex(/^revision-[0-9a-f]{64}$/u),
-    state: z.enum([
-      "waiting-for-agent",
-      "converging",
-      "succeeded",
-      "failed",
-    ]),
+    state: z.enum(["waiting-for-agent", "converging", "succeeded", "failed"]),
     updatedAt: z.string().datetime({ offset: true }),
     diagnosticCode: z
       .string()

@@ -15,7 +15,7 @@ import test from "node:test";
 import {
   buildReferenceFidelityEvidence,
   buildShotRecipeSelection,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   buildDependencyClosure,
   readExactDependencyAllowlist,

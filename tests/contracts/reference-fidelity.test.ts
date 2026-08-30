@@ -6,7 +6,7 @@ import {
   buildReferenceFidelityEvidence,
   buildNotApplicableFidelityReceipt,
   computeReferenceFidelityEvidenceFingerprint,
-} from "../../src/contracts/reference-fidelity";
+} from "@axmorf/studio/contracts";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 

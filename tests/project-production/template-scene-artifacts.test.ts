@@ -20,13 +20,17 @@ import {
   resolveSceneViewport,
   serializeCanonicalJson,
   StorySpecSchema,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { buildResourceCatalog } from "../../scripts/catalog/domain";
 import { inspectArtifact } from "../../scripts/project-production/adapters/artifact-store";
 import { readTemplateSceneFilesForInspection } from "../../scripts/project-production/adapters/production-inspection";
 import { ensureTemplateSceneArtifact } from "../../scripts/project-production/application/template-scene-artifacts";
 import { readTemplateSceneFiles } from "../../scripts/project-production/application/prepare-fixed-tasks";
-import { validNarrationSpec, validRenderSpec, validVideoBrief } from "../fixtures/narrative";
+import {
+  validNarrationSpec,
+  validRenderSpec,
+  validVideoBrief,
+} from "../fixtures/narrative";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 const digest = (value: string | Uint8Array) =>
@@ -38,15 +42,33 @@ test("template readers exclude live-only Scene projections after materialization
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const storyId = "template-live-view";
   const meaningId = "intro";
-  const sourceRoot = join(rootDir, "src/projects", storyId, "scenes", meaningId);
-  const publicRoot = join(rootDir, "public/projects", storyId, "scenes", meaningId);
+  const sourceRoot = join(
+    rootDir,
+    "src/projects",
+    storyId,
+    "scenes",
+    meaningId,
+  );
+  const publicRoot = join(
+    rootDir,
+    "public/projects",
+    storyId,
+    "scenes",
+    meaningId,
+  );
   await mkdir(join(sourceRoot, "generated"), { recursive: true });
   await mkdir(publicRoot, { recursive: true });
   await Promise.all([
-    writeFile(join(sourceRoot, "Renderer.tsx"), "export default () => <div />;\n"),
+    writeFile(
+      join(sourceRoot, "Renderer.tsx"),
+      "export default () => <div />;\n",
+    ),
     writeFile(join(sourceRoot, "scene-template-instance.json"), "{}\n"),
     writeFile(join(sourceRoot, "selected-resources.json"), "{}\n"),
-    writeFile(join(sourceRoot, "generated/scene-package.generated.json"), "{}\n"),
+    writeFile(
+      join(sourceRoot, "generated/scene-package.generated.json"),
+      "{}\n",
+    ),
     writeFile(join(sourceRoot, "task-input.generated.json"), "{}\n"),
     writeFile(join(publicRoot, "effect.wav"), "sound"),
   ]);
@@ -294,10 +316,9 @@ export default Renderer;
     await mkdir(dirname(destination), { recursive: true });
     await writeFile(destination, bytes);
   }
-  await mkdir(
-    join(rootDir, `public/projects/${storyId}/scenes/${meaningId}`),
-    { recursive: true },
-  );
+  await mkdir(join(rootDir, `public/projects/${storyId}/scenes/${meaningId}`), {
+    recursive: true,
+  });
 
   const prepared = await ensureTemplateSceneArtifact({
     rootDir,
@@ -306,20 +327,17 @@ export default Renderer;
     taskInput,
     catalog,
   });
-  assert.deepEqual(
-    prepared.task.declaredOutputSet,
-    [
-      "src/Renderer.tsx",
-      "src/generated/reference-fidelity.generated.json",
-      "src/scene-template-instance.json",
-      "src/selected-resources.json",
-      "src/shot-plan.json",
-      "src/shot-recipe-selection.json",
-      "src/sound-plan.json",
-      "src/sync-anchors.json",
-      "src/visual-plan.json",
-    ],
-  );
+  assert.deepEqual(prepared.task.declaredOutputSet, [
+    "src/Renderer.tsx",
+    "src/generated/reference-fidelity.generated.json",
+    "src/scene-template-instance.json",
+    "src/selected-resources.json",
+    "src/shot-plan.json",
+    "src/shot-recipe-selection.json",
+    "src/sound-plan.json",
+    "src/sync-anchors.json",
+    "src/visual-plan.json",
+  ]);
   assert.deepEqual(
     prepared.attestation.outputManifest.map(({ logicalPath }) => logicalPath),
     prepared.task.declaredOutputSet,

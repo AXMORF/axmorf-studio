@@ -7,7 +7,7 @@ import {
   computeDependencyClosureFingerprint,
   type DependencyAllowlist,
   type DependencyClosureManifest,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   checksumExternalBytes,
   readExternalRegularFile,

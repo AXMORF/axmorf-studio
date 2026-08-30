@@ -7,7 +7,7 @@ import test from "node:test";
 import {
   GitCommitSchema,
   computeExternalReferenceSnapshotFingerprint,
-} from "../../src/contracts/external-reference";
+} from "@axmorf/studio/contracts";
 import {
   assertCleanExactCheckout,
   runGit,

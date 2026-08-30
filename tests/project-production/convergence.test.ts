@@ -18,7 +18,7 @@ import {
   serializeCanonicalJson,
   type ArtifactAttestation,
   type ProducerTaskSpec,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   commitConvergenceFixedArtifact,
   convergeProjectProduction,

@@ -13,10 +13,10 @@ import {
   buildShotRecipeSelection,
   buildSilentScenePreset,
   computeScenePackageFingerprint,
-} from "../../src/contracts";
-import { SceneSoundContribution } from "../../src/remotion/runtime/scene-sound/SceneSoundContribution";
-import { resolveSceneSound } from "../../src/remotion/runtime/scene-sound/resolve-scene-sound";
-import { SoundContribution } from "../../src/remotion/runtime/sound-design";
+} from "@axmorf/studio/contracts";
+import { SceneSoundContribution } from "@axmorf/studio/remotion";
+import { resolveSceneSound } from "@axmorf/studio/remotion";
+import { SoundContribution } from "@axmorf/studio/remotion";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
 import { createScenePackageInput } from "../fixtures/scene/package-input";
 import { createSoundRuntimeFixture } from "../fixtures/scene/sound-runtime";

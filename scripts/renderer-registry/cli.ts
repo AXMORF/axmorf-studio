@@ -1,6 +1,6 @@
 import { pathToFileURL } from "node:url";
 
-import { StoryIdSchema } from "../../src/contracts";
+import { StoryIdSchema } from "@axmorf/studio/contracts";
 import { generateRendererRegistryFromProjectFiles } from "./generate";
 import type { RendererRegistryMode } from "./project-files";
 

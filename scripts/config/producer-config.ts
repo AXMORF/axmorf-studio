@@ -18,7 +18,7 @@ import {
   type ProducerConfig,
   type TtsProviderConfig,
   type VoxcpmProviderConfig,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import type { VoxcpmPrivateConfig } from "../narration/adapters/private-config";
 
 export const DEFAULT_PRODUCER_CONFIG_REPOSITORY_PATH =

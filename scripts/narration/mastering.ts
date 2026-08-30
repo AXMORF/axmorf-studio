@@ -12,12 +12,13 @@ import {
   serializeCanonicalJson,
   type MasteredNarrationManifest,
   type NarrationLoudnessMeasurement,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   commitImmutableDirectory,
   withProjectSealLock,
   writeJsonAtomic,
 } from "./adapters/atomic-files";
+import { resolveMediaToolCommand } from "../shared/media-tool-command";
 import {
   runHostProcess,
   type ProcessRunner,
@@ -89,18 +90,23 @@ export const analyzeNarrationLoudness = async ({
   readonly masteringPolicy?: NarrationMasteringPolicy;
   readonly runProcess?: ProcessRunner;
 }): Promise<LoudnormPass> => {
-  const result = await runProcess("ffmpeg", [
-    "-nostdin",
-    "-hide_banner",
-    "-nostats",
-    "-i",
-    path,
-    "-af",
-    analysisFilter(masteringPolicy),
-    "-f",
-    "null",
-    "-",
-  ]);
+  const invocation = await resolveMediaToolCommand({
+    rootDir: process.cwd(),
+    tool: "ffmpeg",
+    args: [
+      "-nostdin",
+      "-hide_banner",
+      "-nostats",
+      "-i",
+      path,
+      "-af",
+      analysisFilter(masteringPolicy),
+      "-f",
+      "null",
+      "-",
+    ],
+  });
+  const result = await runProcess(invocation.command, invocation.args);
   if (result.exitCode !== 0) {
     throw new Error("FFmpeg loudness analysis failed.");
   }
@@ -188,28 +194,33 @@ export const masterNarrationBytes = async ({
     runProcess,
     masteringPolicy: processingPolicy,
   });
-  const result = await runProcess("ffmpeg", [
-    "-nostdin",
-    "-hide_banner",
-    "-loglevel",
-    "error",
-    "-i",
-    sourcePath,
-    "-af",
-    masterFilter(sourceAnalysis, processingPolicy),
-    "-map_metadata",
-    "-1",
-    "-vn",
-    "-ac",
-    "1",
-    "-ar",
-    String(sourceMeasurement.pcm.sampleRate),
-    "-acodec",
-    "pcm_s16le",
-    "-f",
-    "s16le",
-    "pipe:1",
-  ]);
+  const invocation = await resolveMediaToolCommand({
+    rootDir: process.cwd(),
+    tool: "ffmpeg",
+    args: [
+      "-nostdin",
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-i",
+      sourcePath,
+      "-af",
+      masterFilter(sourceAnalysis, processingPolicy),
+      "-map_metadata",
+      "-1",
+      "-vn",
+      "-ac",
+      "1",
+      "-ar",
+      String(sourceMeasurement.pcm.sampleRate),
+      "-acodec",
+      "pcm_s16le",
+      "-f",
+      "s16le",
+      "pipe:1",
+    ],
+  });
+  const result = await runProcess(invocation.command, invocation.args);
   if (result.exitCode !== 0 || result.stdout.length === 0) {
     throw new Error("FFmpeg narration mastering failed.");
   }

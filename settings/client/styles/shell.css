@@ -265,3 +265,81 @@
     grid-column: 1 / -1;
   }
 }
+
+@media (max-width: 760px) {
+  .shell {
+    display: block;
+    min-width: 0;
+  }
+  .topbar {
+    display: grid;
+    grid-template-columns: 50px minmax(0, 1fr) auto;
+    gap: 12px;
+    min-height: 78px;
+    padding: 12px 14px;
+  }
+  .brand-mark {
+    width: 44px;
+    height: 44px;
+  }
+  .title-block {
+    min-width: 0;
+  }
+  .title-block h1 {
+    font-size: 19px;
+  }
+  .frame-ruler,
+  .save-state {
+    display: none;
+  }
+  .save-button {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  .sidebar {
+    display: block;
+    border-right: 0;
+    border-bottom: 1px solid #35495a;
+  }
+  .sidebar-label {
+    display: none;
+  }
+  .sidebar nav {
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+  .sidebar nav button {
+    flex: 0 0 132px;
+    min-height: 52px;
+    padding: 0 14px;
+    border-bottom: 3px solid transparent;
+    border-left: 0;
+  }
+  .sidebar nav button.active {
+    border-bottom-color: #1677f2;
+    border-left-color: transparent;
+  }
+  .studio-link {
+    margin-top: 0;
+    padding: 14px;
+    border-top: 1px solid #34495a;
+  }
+  .studio-link span {
+    display: inline;
+    margin: 0 10px 0 0;
+  }
+  .workspace {
+    padding: 20px 14px 34px;
+    overflow: visible;
+  }
+  .validation-rail {
+    padding: 24px 18px;
+    border-top: 1px solid #d1dbe3;
+    border-left: 0;
+  }
+  .empty-state {
+    margin: 32px auto;
+    padding: 24px;
+  }
+}

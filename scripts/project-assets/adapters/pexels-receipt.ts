@@ -3,7 +3,7 @@ import { z } from "zod";
 import {
   assertImportableExternalAssetAcquisition,
   buildExternalAssetAcquisition,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 const trimmed = (maximum: number) => z.string().trim().min(1).max(maximum);
 

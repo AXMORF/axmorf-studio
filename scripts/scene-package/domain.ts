@@ -19,7 +19,7 @@ import {
   validateScenePlanBundle,
   validateSelectedResourceRef,
   type ScenePackage,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 type SceneArtifactBundleInput = {
   readonly task: unknown;

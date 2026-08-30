@@ -7,7 +7,7 @@ import {
   assertResourceAllowedForUse,
   computeResourceDescriptorFingerprint,
   validateSelectedResourceRef,
-} from "../../src/contracts/resource-catalog";
+} from "@axmorf/studio/contracts";
 
 const digest = (character: string) => `sha256:${character.repeat(64)}`;
 

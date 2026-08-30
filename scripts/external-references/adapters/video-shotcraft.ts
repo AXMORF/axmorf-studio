@@ -4,7 +4,7 @@ import {
   ExternalReferenceCardSchema,
   ExternalRepositoryPathSchema,
   type ExternalReferenceCard,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 type UpstreamStyle = {
   readonly key?: unknown;

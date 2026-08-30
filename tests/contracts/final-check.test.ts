@@ -8,7 +8,7 @@ import {
   FinalMechanicalCheckV2ReportSchema,
   createFinalMechanicalCheckReport,
   createFinalMechanicalCheckV2Report,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 const sha = (value: string) => `sha256:${value.repeat(64)}`;
 

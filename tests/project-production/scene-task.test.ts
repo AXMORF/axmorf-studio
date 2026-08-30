@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { buildProducerTaskSpec } from "../../src/contracts";
+import { buildProducerTaskSpec } from "@axmorf/studio/contracts";
 import { checkSceneTask } from "../../scripts/project-production/application/scene-task-check";
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
 import { createScenePackageInput } from "../fixtures/scene/package-input";
@@ -14,13 +14,13 @@ const checksum = (value: string) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}` as const;
 
 const rendererSource = `
-import type {SceneRendererProps} from "../../../../remotion/runtime/story-visual/types";
+import type {SceneRendererProps} from "@axmorf/studio/remotion";
 const Renderer = ({viewportWidth, viewportHeight}: SceneRendererProps) => <div style={{width: viewportWidth, height: viewportHeight}} />;
 export default Renderer;
 `;
 
 const legacyRendererSource = `
-import type {SceneRendererProps} from "../../../../remotion/runtime/story-visual/types";
+import type {SceneRendererProps} from "@axmorf/studio/remotion";
 const SceneBackground = () => <div />;
 const SceneContentFrame = (_props: {children?: any; policy: unknown}) => <div />;
 const Renderer = ({readabilityPolicy}: SceneRendererProps & {readabilityPolicy?: unknown}) => (
@@ -92,9 +92,14 @@ const createSceneWorkspace = async ({
     "src/visual-plan.json": fixture.visual,
   };
   await mkdir(join(workspace, "src/generated"), { recursive: true });
+  const repositoryRoot = join(import.meta.dirname, "../..");
+  const compilerConfig = JSON.parse(
+    await readFile(join(repositoryRoot, "tsconfig.json"), "utf8"),
+  ) as { compilerOptions: Record<string, unknown> };
+  compilerConfig.compilerOptions.baseUrl = repositoryRoot;
   await writeFile(
     join(rootDir, "tsconfig.json"),
-    await readFile(join(import.meta.dirname, "../../tsconfig.json"), "utf8"),
+    `${JSON.stringify(compilerConfig, null, 2)}\n`,
   );
   await writeFile(join(workspace, "src/Renderer.tsx"), rendererSource);
   for (const [logicalPath, value] of Object.entries(outputs)) {
@@ -176,7 +181,9 @@ test("Scene task rejects access to Composition dimensions", async (context) => {
 });
 
 test("Scene task rejects a Renderer that narrows the shared StoryBeat contract", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-component-contract-"));
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-scene-component-contract-"),
+  );
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const { task, workspace } = await createSceneWorkspace({ rootDir });
   await writeFile(

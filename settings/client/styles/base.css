@@ -23,3 +23,9 @@ textarea {
 button {
   cursor: pointer;
 }
+
+@media (max-width: 760px) {
+  body {
+    min-width: 0;
+  }
+}

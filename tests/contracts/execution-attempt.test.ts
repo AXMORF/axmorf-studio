@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   ExecutionAttemptSchema,
   TaskDiagnosticSnapshotSchema,
-} from "../../src/contracts/execution-attempt";
+} from "@axmorf/studio/contracts";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 const taskRevision = `task-${"1".repeat(64)}` as const;
@@ -76,7 +76,9 @@ test("execution attempt v3 persists chunk-distinct diagnostic snapshots", () => 
         subject: { kind: "tts-chunk", id: "chunk-two" },
         taskRevision: `task-${"8".repeat(64)}`,
       },
-    ].sort((left, right) => left.taskRevision.localeCompare(right.taskRevision)),
+    ].sort((left, right) =>
+      left.taskRevision.localeCompare(right.taskRevision),
+    ),
     taskSnapshots: [
       snapshot,
       {
@@ -89,7 +91,9 @@ test("execution attempt v3 persists chunk-distinct diagnostic snapshots", () => 
           taskRevision: `task-${"8".repeat(64)}`,
         },
       },
-    ].sort((left, right) => left.taskRevision.localeCompare(right.taskRevision)),
+    ].sort((left, right) =>
+      left.taskRevision.localeCompare(right.taskRevision),
+    ),
     estimatedCost: {
       providerRequests: 2,
       providerCacheHits: 0,

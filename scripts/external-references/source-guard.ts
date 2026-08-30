@@ -1,7 +1,7 @@
 import { dirname, posix } from "node:path";
 import ts from "typescript";
 
-import { ExternalRepositoryPathSchema } from "../../src/contracts";
+import { ExternalRepositoryPathSchema } from "@axmorf/studio/contracts";
 
 export type GuardedSourceResult = {
   readonly relativeImports: readonly string[];
@@ -19,11 +19,13 @@ export const assertGuardedSource = ({
   source,
   sourcePath,
   allowedBarePackages,
+  allowedBareSpecifiers,
   relativeRoot,
 }: {
   readonly source: string;
   readonly sourcePath: string;
   readonly allowedBarePackages: ReadonlyMap<string, string>;
+  readonly allowedBareSpecifiers?: ReadonlySet<string>;
   readonly relativeRoot: string;
 }): GuardedSourceResult => {
   ExternalRepositoryPathSchema.parse(sourcePath);
@@ -77,6 +79,12 @@ export const assertGuardedSource = ({
           throw new Error(
             `Bare package import is not approved: ${packageName}.`,
           );
+        }
+        if (
+          allowedBareSpecifiers !== undefined &&
+          !allowedBareSpecifiers.has(specifier)
+        ) {
+          throw new Error(`Bare package export is not approved: ${specifier}.`);
         }
         bareImports.add(packageName);
       }

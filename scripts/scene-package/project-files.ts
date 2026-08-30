@@ -1,7 +1,7 @@
 import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { dirname } from "node:path";
 
-import { serializeCanonicalJson } from "../../src/contracts";
+import { serializeCanonicalJson } from "@axmorf/studio/contracts";
 
 export type SceneArtifactMode = "write" | "check";
 

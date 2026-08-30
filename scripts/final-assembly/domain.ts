@@ -1,7 +1,7 @@
 import {
   FinalAssemblyPlanInputSchema,
   createFinalAssemblyPlan,
-} from "../../src/contracts/final-assembly";
+} from "@axmorf/studio/contracts";
 
 export const buildFinalAssembly = (rawPlanInput: unknown) =>
   createFinalAssemblyPlan(FinalAssemblyPlanInputSchema.parse(rawPlanInput));

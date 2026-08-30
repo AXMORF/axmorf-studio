@@ -30,13 +30,13 @@ import {
   type ResourceAssetDescriptor,
   type Sha256Digest,
   type StorySpec,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   getSceneTemplateDefinition,
   renderCopiedSceneRenderer,
   type SceneTemplateDefinition,
-} from "../../../src/remotion/capabilities/scene-templates/registry";
-import type { SceneTemplateAudioProjection } from "../../../src/remotion/capabilities/scene-templates/template-audio";
+} from "../../../packages/studio/src/remotion/capabilities/scene-templates/registry";
+import type { SceneTemplateAudioProjection } from "../../../packages/studio/src/remotion/capabilities/scene-templates/template-audio";
 import {
   assertSceneTemplateAudioProjectionCurrent,
   readCurrentSceneTemplateAudioProjection,
@@ -179,10 +179,12 @@ const readProjectAssetManifest = async ({
 };
 
 const templateFingerprint = async ({
-  rootDir,
+  templateSourceRoot,
+  workspaceAssetRoot,
   definition,
 }: {
-  readonly rootDir: string;
+  readonly templateSourceRoot: string;
+  readonly workspaceAssetRoot: string;
   readonly definition: SceneTemplateDefinition;
 }) => {
   const sourceFiles = await Promise.all(
@@ -190,13 +192,16 @@ const templateFingerprint = async ({
       sourcePath: file.sourcePath,
       destinationName: file.destinationName,
       checksum: checksumExternalBytes(
-        await readExternalRegularFile(rootDir, file.sourcePath),
+        await readExternalRegularFile(templateSourceRoot, file.sourcePath),
       ),
     })),
   );
   const assets = await Promise.all(
     definition.assets.map(async (asset) => {
-      const bytes = await readExternalRegularFile(rootDir, asset.sourcePath);
+      const bytes = await readExternalRegularFile(
+        workspaceAssetRoot,
+        asset.sourcePath,
+      );
       const actual = checksumExternalBytes(bytes);
       if (actual !== asset.sourceDescriptor.checksum) {
         throw new Error(
@@ -217,14 +222,16 @@ const localResourceId = (projectId: string, meaningId: string, key: string) =>
   ResourceIdSchema.parse(`asset.${projectId}.${meaningId}.${key}`);
 
 const instantiateOne = async ({
-  sourceRootDir,
+  templateSourceRoot,
+  workspaceAssetRoot,
   targetRootDir,
   projectId,
   meaningId,
   templateId,
   audioProjection,
 }: {
-  readonly sourceRootDir: string;
+  readonly templateSourceRoot: string;
+  readonly workspaceAssetRoot: string;
   readonly targetRootDir: string;
   readonly projectId: string;
   readonly meaningId: string;
@@ -233,7 +240,8 @@ const instantiateOne = async ({
 }) => {
   const definition = getSceneTemplateDefinition(templateId, audioProjection);
   const sourceTemplateFingerprint = await templateFingerprint({
-    rootDir: sourceRootDir,
+    templateSourceRoot,
+    workspaceAssetRoot,
     definition,
   });
   const sceneRoot = `src/projects/${projectId}/scenes/${meaningId}`;
@@ -247,7 +255,10 @@ const instantiateOne = async ({
     bytes: Uint8Array;
   }> = [];
   for (const file of definition.sourceFiles) {
-    const bytes = await readExternalRegularFile(sourceRootDir, file.sourcePath);
+    const bytes = await readExternalRegularFile(
+      templateSourceRoot,
+      file.sourcePath,
+    );
     const repositoryPath = `${sceneRoot}/${file.destinationName}`;
     await writeBinaryCreate(join(targetRootDir, repositoryPath), bytes);
     projectFiles.push({ repositoryPath, bytes });
@@ -275,7 +286,7 @@ const instantiateOne = async ({
   }> = [];
   for (const asset of definition.assets) {
     const bytes = await readExternalRegularFile(
-      sourceRootDir,
+      workspaceAssetRoot,
       asset.sourcePath,
     );
     const resourceId = localResourceId(projectId, meaningId, asset.assetKey);
@@ -553,12 +564,19 @@ const mergeCopiedAssets = ({
 
 export const prepareConfiguredSceneTemplates = async ({
   rootDir,
+  templateSourceRoot = join(
+    import.meta.dirname,
+    "../../../packages/studio/src/remotion/capabilities/scene-templates",
+  ),
+  workspaceAssetRoot = rootDir,
   projectId,
   story: rawStory,
   sceneDefaults,
   sceneTemplateAudioProjection,
 }: {
   readonly rootDir: string;
+  readonly templateSourceRoot?: string;
+  readonly workspaceAssetRoot?: string;
   readonly projectId: string;
   readonly story: unknown;
   readonly sceneDefaults: SceneDefaults;
@@ -595,11 +613,11 @@ export const prepareConfiguredSceneTemplates = async ({
     sceneDefaults.outroSceneTemplateId !== null;
   const audioProjection = templatesEnabled
     ? (sceneTemplateAudioProjection ??
-      (await readCurrentSceneTemplateAudioProjection(rootDir)))
+      (await readCurrentSceneTemplateAudioProjection(workspaceAssetRoot)))
     : null;
   if (audioProjection !== null) {
     await assertSceneTemplateAudioProjectionCurrent({
-      rootDir,
+      rootDir: workspaceAssetRoot,
       loadedProjection: audioProjection,
     });
   }
@@ -622,7 +640,8 @@ export const prepareConfiguredSceneTemplates = async ({
       sceneDefaults.introSceneTemplateId === null
         ? null
         : instantiateOne({
-            sourceRootDir: rootDir,
+            templateSourceRoot,
+            workspaceAssetRoot,
             targetRootDir: stagingRoot,
             projectId,
             meaningId: INTRO_MEANING_ID,
@@ -632,7 +651,8 @@ export const prepareConfiguredSceneTemplates = async ({
       sceneDefaults.outroSceneTemplateId === null
         ? null
         : instantiateOne({
-            sourceRootDir: rootDir,
+            templateSourceRoot,
+            workspaceAssetRoot,
             targetRootDir: stagingRoot,
             projectId,
             meaningId: OUTRO_MEANING_ID,

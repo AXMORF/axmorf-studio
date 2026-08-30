@@ -3,10 +3,19 @@ import { basename } from "node:path";
 
 import type { ProcessRunner } from "./process";
 
-const ALLOWED_MEDIA_EXECUTABLES = new Set(["ffmpeg", "ffprobe", "remotion"]);
+const isRemotionCliInvocation = (
+  command: string,
+  args: readonly string[],
+): boolean =>
+  command === process.execPath &&
+  args[0] !== undefined &&
+  basename(args[0]) === "remotion-cli.js";
 
 export const runMediaProcess: ProcessRunner = (command, args) => {
-  if (!ALLOWED_MEDIA_EXECUTABLES.has(basename(command))) {
+  if (
+    basename(command) !== "remotion" &&
+    !isRemotionCliInvocation(command, args)
+  ) {
     throw new Error(
       "Media process adapter only permits Remotion and FFmpeg tools.",
     );

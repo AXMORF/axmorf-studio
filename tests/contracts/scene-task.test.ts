@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { SceneTaskInputSchema } from "../../src/contracts/scene-task";
+import { SceneTaskInputSchema } from "@axmorf/studio/contracts";
 import { createSceneTaskInput } from "../fixtures/scene/scene-input";
 
 test("SceneTaskInput binds exact StoryBeat timing shared identities allowlists continuity and directories", () => {

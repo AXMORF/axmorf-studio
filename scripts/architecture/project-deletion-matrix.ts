@@ -22,7 +22,7 @@ import {
   computeGenerationInputFingerprint,
   computeSealedNarrationFingerprint,
   generateSemanticTiming,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 const MATRIX_ROOT_PREFIX = join(tmpdir(), "rsp-project-deletion-");
 

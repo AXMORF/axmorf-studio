@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   MasteredNarrationManifestSchema,
   buildMasteredNarrationManifest,
-} from "../../src/contracts/mastered-narration";
+} from "@axmorf/studio/contracts";
 import {
   masterNarrationBytes,
   parseLoudnormAnalysis,

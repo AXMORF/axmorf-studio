@@ -21,7 +21,7 @@ manifest identity 与 bytes fingerprint。
 ## 2. Resolve Agent execution
 
 当前用户提示词中明确提出的 mode/max concurrency 字段优先；提示词没有的字段继承配置页，再继承内置默认。
-全新 checkout 的内置默认是无需 child runtime 的 `inline`。override 只用于当前 production，除非用户明确要求保存：
+全新 scaffolded Workspace 的内置默认是无需 child runtime 的 `inline`。override 只用于当前 production，除非用户明确要求保存：
 
 ```bash
 npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>]
@@ -101,12 +101,12 @@ converge 使用 read-only current replan 检查 Revision 与 Artifact Store；�
 new attempt。stale revision 或 incomplete artifacts 在任何 live mutation 前返回；不信任聊天。齐全后 fixed
 code 受控物化、刷新 derived Project、复验 attested bytes，并同步构建和验证 current delivery。
 
-| outcome | 含义 |
-| --- | --- |
-| `producer-revision-stale` | authoring inputs 已变化，本次 revision 不可采用 |
+| outcome                         | 含义                                              |
+| ------------------------------- | ------------------------------------------------- |
+| `producer-revision-stale`       | authoring inputs 已变化，本次 revision 不可采用   |
 | `producer-artifacts-incomplete` | 至少一个 required artifact 缺失或无效，未完成交付 |
-| `project-production-complete` | 新四文件 package 已同步生成、复验并提升 current |
-| `project-production-current` | 同 identity current package 已复验，media 未重写 |
+| `project-production-complete`   | 新四文件 package 已同步生成、复验并提升 current   |
+| `project-production-current`    | 同 identity current package 已复验，media 未重写  |
 
 若 attempt 失败，重新 inspect、向用户报告、再显式 prepare；valid earlier artifacts 自动 reuse，只派发仍
 dirty tasks。这不是自动 retry。不要 provider fallback、跨 Project reuse、复制 identity、手改 manifest 或绕过

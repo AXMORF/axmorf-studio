@@ -7,12 +7,11 @@ import {
   SceneDefaults,
 } from "./features/config/PublishingSettings";
 import { Tts } from "./features/config/TtsSettings";
-import { ProductionProgressPanel } from "./features/progress/ProductionProgressPanel";
+import { ProductionProgressPage } from "./features/progress/ProductionProgressPage";
 import { useEnvironmentDiagnostics } from "./hooks/useEnvironmentDiagnostics";
 import { useExecutionPreferences } from "./hooks/useExecutionPreferences";
-import { useProductionProgress } from "./hooks/useProductionProgress";
 import { useSettingsConfig } from "./hooks/useSettingsConfig";
-import { buildStudioUrl, isLanAccessHostname } from "./network";
+import { isLanAccessHostname, resolveStudioUrl } from "./network";
 
 type TabId =
   | "progress"
@@ -40,8 +39,12 @@ export const App = () => {
   const settings = useSettingsConfig();
   const execution = useExecutionPreferences();
   const environment = useEnvironmentDiagnostics();
-  const production = useProductionProgress();
-  const studioUrl = buildStudioUrl(window.location.href);
+  const studioUrl = resolveStudioUrl(
+    window.location.href,
+    document
+      .querySelector<HTMLMetaElement>('meta[name="axmorf-studio-url"]')
+      ?.getAttribute("content") ?? null,
+  );
   const lanAccess = isLanAccessHostname(window.location.hostname);
   const activeSettings = activeTab === "execution" ? execution : settings;
   const validation = [
@@ -69,9 +72,9 @@ export const App = () => {
   return (
     <div className="shell">
       <header className="topbar">
-        <div className="brand-mark">RSP</div>
+        <div className="brand-mark">AX</div>
         <div className="title-block">
-          <span>REMOTION STORY PRODUCER</span>
+          <span>AXMORF STUDIO</span>
           <h1>制作配置</h1>
         </div>
         <div className="frame-ruler" aria-label="30fps 帧标尺">
@@ -124,13 +127,7 @@ export const App = () => {
 
       <main className="workspace">
         {activeTab === "progress" ? (
-          <ProductionProgressPanel
-            progress={production.progress}
-            status={production.status}
-            error={production.error}
-            refresh={production.refresh}
-            deleteProject={production.deleteProject}
-          />
+          <ProductionProgressPage />
         ) : activeTab === "execution" ? (
           execution.config === null ? (
             <div className="empty-state">

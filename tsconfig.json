@@ -12,12 +12,28 @@
     "forceConsistentCasingInFileNames": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@axmorf/studio": [
+        "packages/studio/src/index.ts"
+      ],
+      "@axmorf/studio/contracts": [
+        "packages/studio/src/contracts/index.ts"
+      ],
+      "@axmorf/studio/remotion": [
+        "packages/studio/src/remotion.ts"
+      ]
+    }
   },
   "exclude": [
     "remotion.config.ts",
     "build",
     "dist",
+    ".desktop-package-resources",
+    ".vite",
+    "desktop",
+    "packages/*/dist",
     "out",
     "src/projects/*"
   ]

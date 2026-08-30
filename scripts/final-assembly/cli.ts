@@ -1,9 +1,9 @@
-import {readFile} from "node:fs/promises";
-import {join} from "node:path";
-import {pathToFileURL} from "node:url";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
-import {StoryIdSchema} from "../../src/contracts";
-import {buildFinalAssembly} from "./domain";
+import { StoryIdSchema } from "@axmorf/studio/contracts";
+import { buildFinalAssembly } from "./domain";
 import {
   checkPersistedFinalAssembly,
   writeFinalAssemblyIfPassed,
@@ -27,7 +27,7 @@ export const runFinalAssemblyCli = async (
   args: readonly string[],
   rootDir = process.cwd(),
 ) => {
-  const {storyId, mode} = parseFinalAssemblyArgs(args);
+  const { storyId, mode } = parseFinalAssemblyArgs(args);
   const source = join(
     rootDir,
     "src",
@@ -44,13 +44,13 @@ export const runFinalAssemblyCli = async (
   const assembly = buildFinalAssembly(raw);
   const result =
     mode === "write"
-      ? await writeFinalAssemblyIfPassed({rootDir, assembly})
+      ? await writeFinalAssemblyIfPassed({ rootDir, assembly })
       : await checkPersistedFinalAssembly({
           rootDir,
           expectedAssembly: assembly,
         });
   process.stdout.write(
-    `${JSON.stringify({storyId, mode, finalAssemblyFingerprint: assembly.finalAssemblyFingerprint})}\n`,
+    `${JSON.stringify({ storyId, mode, finalAssemblyFingerprint: assembly.finalAssemblyFingerprint })}\n`,
   );
   return result;
 };

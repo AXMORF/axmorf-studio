@@ -2,7 +2,7 @@
 
 > 文档类型：操作指南
 
-本仓库把 Agent 当作可替换的创意任务 executor。生产 authority 来自 repository-local contracts、CLI、
+生成的 Workspace 把 Agent 当作可替换的创意任务 executor。生产 authority 来自 package contracts、Workspace-local CLI、
 task workspace、validator、ArtifactAttestation 和 current delivery，不来自宿主名称、聊天状态或 Agent API。
 
 ## 入口与单一 authority
@@ -14,7 +14,7 @@ task workspace、validator、ArtifactAttestation 和 current delivery，不来�
 | GitHub Copilot           | `AGENTS.md`          | 支持 Agent instructions；不需要重复的 repository instructions |
 | Claude Code              | `CLAUDE.md`          | 只导入 `AGENTS.md`                                            |
 | Gemini CLI               | `GEMINI.md`          | 只导入 `AGENTS.md`                                            |
-| 其他 shell-capable Agent | 手动读取 `AGENTS.md` | 视频任务再读取其中指向的 repository-local Skill               |
+| 其他 shell-capable Agent | 手动读取 `AGENTS.md` | 视频任务再读取其中指向的 Workspace-local Skill                |
 
 `AGENTS.md` 是唯一仓库级 Agent 指令 authority。宿主入口文件不得复制规则；否则更新时会形成双 authority。
 `.agents/**/agents/openai.yaml` 是可选 OpenAI UI metadata，其他宿主可以忽略。
@@ -28,7 +28,7 @@ task workspace、validator、ArtifactAttestation 和 current delivery，不来�
 3. 运行 npm CLI 并读取结构化 stdout；
 4. 保持 fixed continuation 进程运行到 terminal output。
 
-全新 checkout 的内置执行模式是 `inline`，不要求原生子 Agent API。`subagents` 只是一项可选加速能力：宿主
+全新 scaffolded Workspace 的内置执行模式是 `inline`，不要求原生子 Agent API。`subagents` 只是一项可选加速能力：宿主
 必须能创建相互隔离的 runtime-native children、限制并发并执行 wait-any admission。线程、聊天、普通后台 shell
 或宿主无法确认的容量不算该能力。已保存设置选择 `subagents` 但宿主容量为零时，生产在 prepare 前阻塞；不自动
 回退或伪造 child completion。
@@ -37,7 +37,7 @@ task workspace、validator、ArtifactAttestation 和 current delivery，不来�
 
 收到创建、生产、重建或交付视频的请求时：
 
-1. 读取 `.agents/skills/remotion-story-producer-video/SKILL.md`；宿主是否支持自动 Skill discovery 不影响该路径。
+1. 读取 Workspace 中的 `.agents/skills/axmorf-video/SKILL.md`；宿主是否支持自动 Skill discovery 不影响该路径。
 2. 按 Skill 只加载当前阶段需要的 reference。
 3. 运行 `project:execution:resolve`。没有持久化设置或提示词 override 时会解析为 `inline`。
 4. 后续只消费 `project:produce:inspect`、`project:produce:prepare` 返回的 JSON、task workspace 和 exact commands。

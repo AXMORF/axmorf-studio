@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { buildProducerTaskSpec } from "../../src/contracts";
+import { buildProducerTaskSpec } from "@axmorf/studio/contracts";
 import {
   commitTaskArtifact,
   inspectArtifact,
@@ -117,8 +117,12 @@ test("checksum drift and same task identity with different bytes fail closed", a
 });
 
 test("Artifact Store refuses symlinked storage parents", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-production-artifact-parent-"));
-  const outside = await mkdtemp(join(tmpdir(), "rsp-production-artifact-outside-"));
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-production-artifact-parent-"),
+  );
+  const outside = await mkdtemp(
+    join(tmpdir(), "rsp-production-artifact-outside-"),
+  );
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   context.after(() => rm(outside, { recursive: true, force: true }));
   await symlink(outside, join(rootDir, ".producer-artifacts"));

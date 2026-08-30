@@ -1,19 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { NarrationSpecSchema } from "../../src/contracts/narration";
-import { RenderSpecSchema } from "../../src/contracts/render";
+import { NarrationSpecSchema } from "@axmorf/studio/contracts";
+import { RenderSpecSchema } from "@axmorf/studio/contracts";
 import {
   computeSealedNarrationFingerprint,
   SealedNarrationManifestSchema,
-} from "../../src/contracts/sealed-narration";
+} from "@axmorf/studio/contracts";
 import {
   generateSemanticTiming,
   pauseMsToSampleFrames,
   sampleFrameToFrame,
   SemanticTimingSchema,
-} from "../../src/contracts/semantic-timing";
-import { StorySpecSchema } from "../../src/contracts/story";
+} from "@axmorf/studio/contracts";
+import { StorySpecSchema } from "@axmorf/studio/contracts";
 import {
   buildValidSealedNarrationManifest,
   validNarrationSpec,

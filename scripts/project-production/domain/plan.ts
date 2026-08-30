@@ -3,9 +3,9 @@ import {
   createFingerprint,
   type ProducerPlan,
   type ProductionRevision,
-} from "../../../src/contracts";
-import type { TaskDiagnosticSnapshot } from "../../../src/contracts/execution-attempt";
-import type { DiagnosticSubject } from "../../../src/contracts/production-inspection";
+} from "@axmorf/studio/contracts";
+import type { TaskDiagnosticSnapshot } from "@axmorf/studio/contracts";
+import type { DiagnosticSubject } from "@axmorf/studio/contracts";
 import type { ArtifactInspection } from "./invalidation";
 import {
   buildTaskDiagnosticSnapshots,

@@ -1,0 +1,36 @@
+{
+  "name": "create-axmorf-studio",
+  "version": "0.1.0",
+  "description": "Create an isolated, agent-ready AXMORF Studio video workspace.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agenticnoob/axmorf-studio.git",
+    "directory": "packages/create-axmorf-studio"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "create-axmorf-studio": "bin/create-axmorf-studio.js"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "template/",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "scripts": {
+    "check:package": "node ./scripts/check-package.mjs",
+    "prepack": "npm run check:package"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}

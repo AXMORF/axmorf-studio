@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { continueProjectProduction } from "../../scripts/project-production/application/continue-production";
 import { ExecutionAttemptEventWaitTimeoutError } from "../../scripts/project-production/adapters/attempt-event-wait";
-import type { ExecutionAttemptProgress } from "../../src/contracts";
+import type { ExecutionAttemptProgress } from "@axmorf/studio/contracts";
 
 const revisionId = `revision-${"1".repeat(64)}`;
 const attemptId = "00000000-0000-4000-8000-000000000001";

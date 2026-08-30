@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import {
   computeCoverSourceGraphFingerprint,
   Sha256DigestSchema,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   validateDeliveryCoverSource,
   type CoverCompositionDeclaration,
@@ -37,7 +37,10 @@ export const collectDeliveryCoverSourceGraph = async ({
 }) => {
   const sourceRoot = `src/projects/${storyId}/delivery/cover`;
   let compositions: readonly CoverCompositionDeclaration[] = [];
-  const files: Array<{ relativePath: string; checksum: ReturnType<typeof checksum> }> = [];
+  const files: Array<{
+    relativePath: string;
+    checksum: ReturnType<typeof checksum>;
+  }> = [];
   for (const { fileName, role } of FIXED_FILES) {
     const relativePath = `${sourceRoot}/${fileName}`;
     const { bytes } = await readCoverRegularFile({ rootDir, relativePath });

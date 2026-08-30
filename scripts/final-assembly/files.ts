@@ -1,11 +1,11 @@
-import {readFile} from "node:fs/promises";
-import {join} from "node:path";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 import {
   FinalAssemblyPlanSchema,
   type FinalAssemblyPlan,
-} from "../../src/contracts/final-assembly";
-import {writeNarrativeAutoCheckAtomic} from "../project-check/report-files";
+} from "@axmorf/studio/contracts";
+import { writeNarrativeAutoCheckAtomic } from "../project-check/report-files";
 
 const sortJsonValue = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(sortJsonValue);
@@ -49,13 +49,13 @@ export const writeFinalAssemblyIfPassed = async ({
   const bytes = serializeFinalAssembly(assembly);
   try {
     if ((await readFile(destination, "utf8")) === bytes) {
-      return {destination, written: false} as const;
+      return { destination, written: false } as const;
     }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
   await writeNarrativeAutoCheckAtomic(destination, bytes);
-  return {destination, written: true} as const;
+  return { destination, written: true } as const;
 };
 
 export const checkPersistedFinalAssembly = async ({

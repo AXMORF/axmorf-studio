@@ -57,7 +57,7 @@ flowchart LR
   descriptor 声明；
 - `src/remotion/catalog/resource-catalog.generated.json`：由 bootstrap 重建的 ignored 本地读取
   视图；
-- `src/contracts/resource-catalog.ts`：四类 descriptor、选择引用和准入合同；
+- `packages/studio/src/contracts/resource-catalog.ts`：四类 descriptor、选择引用和准入合同；
 - `scripts/catalog/`：稳定生成、byte drift check 和只读查询。
 
 ```bash

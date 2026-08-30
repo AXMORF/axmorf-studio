@@ -3,12 +3,24 @@ import { mkdir, readFile, rename, rm, stat, symlink } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 
-import { createProject } from "../../scripts/projects/application/create-project";
+import { createProject as createProjectApplication } from "../../scripts/projects/application/create-project";
 import {
   prepareProjectCreateFixture,
+  projectCreateRuntimeResources,
   validProjectCreateInput,
   writeProjectCreateJson,
 } from "../fixtures/project-create";
+
+const createProject = (
+  input: Omit<
+    Parameters<typeof createProjectApplication>[0],
+    "runtimeResources"
+  >,
+) =>
+  createProjectApplication({
+    ...input,
+    runtimeResources: projectCreateRuntimeResources,
+  });
 
 const requestFor = (
   fixture: Awaited<ReturnType<typeof prepareProjectCreateFixture>>,

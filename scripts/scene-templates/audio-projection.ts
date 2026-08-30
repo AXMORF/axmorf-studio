@@ -1,14 +1,14 @@
 import { lstat, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
-import { serializeCanonicalJson } from "../../src/contracts";
+import { serializeCanonicalJson } from "@axmorf/studio/contracts";
 import {
   SCENE_TEMPLATE_AUDIO_PROJECTION_PATH,
   SCENE_TEMPLATE_AUDIO_OVERRIDE_PATH,
   SceneTemplateAudioOverrideSchema,
   SceneTemplateAudioProjectionSchema,
   type SceneTemplateAudioProjection,
-} from "../../src/remotion/capabilities/scene-templates/template-audio";
+} from "../../packages/studio/src/remotion/capabilities/scene-templates/template-audio";
 import { loadLocalReferenceAssetDescriptors } from "../catalog/project-files";
 import { writeTextFileAtomic } from "../shared/atomic-file";
 
@@ -135,7 +135,9 @@ export const readCurrentSceneTemplateAudioProjection = async (
     "Scene template audio projection",
   );
   if (bytes === null) {
-    throw new Error("Scene template audio projection is missing; run npm run bootstrap.");
+    throw new Error(
+      "Scene template audio projection is missing; run npm run bootstrap.",
+    );
   }
   const projection = SceneTemplateAudioProjectionSchema.parse(
     JSON.parse(bytes.toString("utf8")),

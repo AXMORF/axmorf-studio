@@ -99,7 +99,8 @@
 .project-list > button > i.current {
   background: #13a27d;
 }
-.project-list > button > i.building {
+.project-list > button > i.converging,
+.project-list > button > i.needs-agent {
   background: #1677f2;
 }
 .project-list > button > i.stale {
@@ -202,7 +203,8 @@
   border-left-color: #13a27d;
   background: #f3fbf8;
 }
-.build-state-banner.building {
+.build-state-banner.converging,
+.build-state-banner.needs-agent {
   border-left-color: #1677f2;
   background: #f3f8ff;
 }
@@ -466,7 +468,8 @@
   background: #fff3f3;
   color: #7c4141;
 }
-.progress-footnote.building {
+.progress-footnote.converging,
+.progress-footnote.needs-agent {
   border-left-color: #1677f2;
   background: #f2f7ff;
   color: #3d5f82;
@@ -511,11 +514,132 @@
     monospace;
   text-align: center;
 }
+.delivery-viewer {
+  margin: 20px 26px 26px;
+  padding: 16px;
+  border: 1px solid #ccd8e1;
+  background: #f8fafc;
+}
+.delivery-viewer-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+.delivery-viewer-heading > div {
+  display: grid;
+  gap: 5px;
+}
+.delivery-viewer-heading span,
+.delivery-viewer-heading code,
+.delivery-cover-grid figcaption {
+  color: #657784;
+  font:
+    9px/1.2 ui-monospace,
+    monospace;
+  letter-spacing: 0.08em;
+}
+.delivery-viewer-heading strong {
+  color: #263a4b;
+  font-size: 13px;
+}
+.delivery-viewer-heading code {
+  overflow: hidden;
+  max-width: 56%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.delivery-viewer video {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  background: #101820;
+}
+.delivery-cover-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.delivery-cover-grid figure {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+.delivery-cover-grid img {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  border: 1px solid #d5dfe7;
+  background: #fff;
+  object-fit: contain;
+}
 @media (max-width: 1300px) {
   .delivery-stamp {
     grid-template-columns: minmax(150px, 0.8fr) minmax(0, 1.5fr);
   }
   .delivery-stamp > small {
     grid-column: 1 / -1;
+  }
+  .delivery-cover-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .progress-toolbar,
+  .project-progress-heading,
+  .delivery-viewer-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .progress-toolbar,
+  .project-progress-layout,
+  .progress-empty {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+  .project-list,
+  .progress-summary,
+  .delivery-stamp,
+  .delivery-files,
+  .delivery-cover-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .project-progress-heading {
+    display: flex;
+  }
+  .build-state-banner,
+  .progress-summary,
+  .progress-meter,
+  .progress-footnote,
+  .delivery-stamp,
+  .delivery-viewer {
+    margin-right: 18px;
+    margin-left: 18px;
+  }
+  .progress-summary div {
+    border-right: 0;
+    border-bottom: 1px solid #d5dfe7;
+  }
+  .progress-summary div:last-child {
+    border-bottom: 0;
+  }
+  .progress-steps {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+  .progress-step {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+  .progress-step time {
+    grid-column: 2;
+  }
+  .delivery-stamp > small {
+    grid-column: auto;
+  }
+  .delivery-viewer-heading code {
+    max-width: 100%;
   }
 }

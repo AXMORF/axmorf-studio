@@ -1,4 +1,0 @@
-interface:
-  display_name: "Remotion Story 视频制作"
-  short_description: "可配置 Root/子 Agent 执行、内容寻址规划、同步四文件交付"
-  default_prompt: "使用 $remotion-story-producer-video：按用户提示词、设置页、内置 inline 的顺序解析执行模式；仅在当前宿主支持时使用最多四个子 Agent。执行 dirty Agent task 后启动持有 exact-attempt atomic claim 的固定 continuation，由脚本处理 immutable event barrier、一小时 deadline、单次 converge 与四文件复验。"

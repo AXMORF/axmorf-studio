@@ -37,7 +37,7 @@ src/remotion/primitives    -> src/remotion/capabilities/visual-components
 preset 及 copy-on-configure `scene-templates` 产生同名边界。
 
 迁入后仅有一处基础适配：`sound/library.ts` 的资产 manifest 类型引用改为新仓库
-`src/contracts/assets.ts`。其余白名单源码与来源 commit 一致。
+`packages/studio/src/contracts/assets.ts`。其余白名单源码与来源 commit 一致。
 
 明确排除：
 

@@ -84,7 +84,10 @@ test("removed workflow roots and contracts cannot become a second authority", as
     await assert.rejects(access(join(process.cwd(), path)), { code: "ENOENT" });
   }
 
-  const exports = await readFile("src/contracts/index.ts", "utf8");
+  const exports = await readFile(
+    "packages/studio/src/contracts/index.ts",
+    "utf8",
+  );
   assert.doesNotMatch(
     exports,
     /production-(?:run|owner|render|agent-write-boundary)|delivery-launch|project-build/u,

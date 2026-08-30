@@ -1,11 +1,14 @@
-import { computeGenerationInputFingerprint } from "../../../src/contracts/generation-input";
-import type { NarrationSpec } from "../../../src/contracts/narration";
+import { computeGenerationInputFingerprint } from "@axmorf/studio/contracts";
+import type { NarrationSpec } from "@axmorf/studio/contracts";
 import {
   computeSealedNarrationFingerprint,
   SealedNarrationManifestSchema,
   type SealedNarrationManifest,
-} from "../../../src/contracts/sealed-narration";
-import { flattenTtsChunks, type StorySpec } from "../../../src/contracts/story";
+} from "@axmorf/studio/contracts";
+import {
+  flattenTtsChunks,
+  type StorySpec,
+} from "@axmorf/studio/contracts";
 import {
   CanonicalMeasuredChunkSchema,
   NarrationGenerationProgressSchema,
@@ -55,7 +58,9 @@ export const buildNarrationSeal = ({
   if (
     parsedProgress.generationInputFingerprint !== generationInputFingerprint
   ) {
-    throw new Error("Narration progress generation input fingerprint is stale.");
+    throw new Error(
+      "Narration progress generation input fingerprint is stale.",
+    );
   }
 
   const expectedChunks = flattenTtsChunks(story);
@@ -69,7 +74,9 @@ export const buildNarrationSeal = ({
   );
   if (
     normalizedChunks.size !== expectedChunks.length ||
-    [...normalizedChunks.keys()].some((chunkId) => !expectedChunkIds.has(chunkId))
+    [...normalizedChunks.keys()].some(
+      (chunkId) => !expectedChunkIds.has(chunkId),
+    )
   ) {
     throw new Error(
       "Normalized chunk selection must contain exactly the authored chunks.",
@@ -79,10 +86,13 @@ export const buildNarrationSeal = ({
   const pausesByChunkId = new Map(
     story.beats.flatMap((beat) =>
       beat.kind === "narrated-scene"
-        ? beat.explicitPauses.map((pause) => [
-            pause.afterChunkId,
-            { ...pause, meaningId: beat.meaningId },
-          ] as const)
+        ? beat.explicitPauses.map(
+            (pause) =>
+              [
+                pause.afterChunkId,
+                { ...pause, meaningId: beat.meaningId },
+              ] as const,
+          )
         : [],
     ),
   );
@@ -207,8 +217,7 @@ export const buildNarrationSeal = ({
     },
   };
   if (
-    computeSealedNarrationFingerprint(finalInput) !==
-    sealedNarrationFingerprint
+    computeSealedNarrationFingerprint(finalInput) !== sealedNarrationFingerprint
   ) {
     throw new Error("Content-addressed paths changed the sealed fingerprint.");
   }

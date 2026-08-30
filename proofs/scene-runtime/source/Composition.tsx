@@ -3,10 +3,10 @@ import { AbsoluteFill } from "remotion";
 import {
   CaptionLayer,
   type CaptionLayerProps,
-} from "../../../src/remotion/runtime/narrative-core";
-import { CompositionAssembly } from "../../../src/remotion/runtime/composition-assembly";
-import { SoundDesignTrack } from "../../../src/remotion/runtime/sound-design";
-import { StoryVisualTrack } from "../../../src/remotion/runtime/story-visual";
+} from "@axmorf/studio/remotion";
+import { CompositionAssembly } from "@axmorf/studio/remotion";
+import { SoundDesignTrack } from "@axmorf/studio/remotion";
+import { StoryVisualTrack } from "@axmorf/studio/remotion";
 import { SCENE_RUNTIME_PROOF_IDENTITY } from "../identity";
 import {
   sceneRuntimeProofRendererPropsByMeaning,

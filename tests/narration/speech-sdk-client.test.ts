@@ -14,7 +14,7 @@ import {
   SPEECH_SDK_VENDORS,
   getSpeechSdkModelMaxInputChars,
   getSpeechSdkVendorDefinition,
-} from "../../src/contracts/tts-provider-registry";
+} from "@axmorf/studio/contracts";
 
 const secret = "test-api-key-that-must-never-leak";
 
@@ -86,7 +86,10 @@ test("SpeechSDK OpenAI direct uses one request while retry fallback and SDK post
 });
 
 test("SpeechSDK OpenAI rejects input that could activate SDK chunking", async () => {
-  const maxInputChars = getSpeechSdkModelMaxInputChars("openai", resolved.modelId);
+  const maxInputChars = getSpeechSdkModelMaxInputChars(
+    "openai",
+    resolved.modelId,
+  );
   assert.equal(maxInputChars, 4096);
   const generate = createSpeechSdkChunkGenerator({
     resolved,

@@ -12,8 +12,8 @@ import {
   computeGenerationInputFingerprint,
   computeSealedNarrationFingerprint,
   generateSemanticTiming,
-} from "../../src/contracts";
-import { ProjectCreateInputSchema } from "../../src/contracts/project-create";
+} from "@axmorf/studio/contracts";
+import { ProjectCreateInputSchema } from "@axmorf/studio/contracts";
 import {
   generateProjectResourceCatalog,
   generateResourceCatalog,
@@ -21,17 +21,29 @@ import {
 import { writeProducerConfig } from "../../scripts/config/producer-config";
 import { commitStagedProjectCreate } from "../../scripts/projects/adapters/project-create-store";
 import {
-  createProject,
+  createProject as createProjectApplication,
   projectPendingSceneAuthoring,
 } from "../../scripts/projects/application/create-project";
 import { runProjectCreateCli } from "../../scripts/projects/create";
 import { generateSceneTemplateAudioProjection } from "../../scripts/scene-templates/audio-projection";
 import {
   prepareProjectCreateFixture,
+  projectCreateRuntimeResources,
   validProjectCreateInput,
   validProjectCreateProducerConfig,
   writeProjectCreateJson,
 } from "../fixtures/project-create";
+
+const createProject = (
+  input: Omit<
+    Parameters<typeof createProjectApplication>[0],
+    "runtimeResources"
+  >,
+) =>
+  createProjectApplication({
+    ...input,
+    runtimeResources: projectCreateRuntimeResources,
+  });
 
 const snapshotProjectMtimes = async (rootDir: string) => {
   const paths = [
@@ -429,6 +441,15 @@ test("project:create CLI accepts only one repository-relative input", async (con
       rootDir: fixture.rootDir,
       env: { RSP_PRODUCER_CONFIG: fixture.configPath },
       stdout: (line) => stdout.push(line),
+      runtimeResources: {
+        ...projectCreateRuntimeResources,
+        packageRoot: "unused-by-project-create",
+        packageVersion: "0.0.0-test",
+        assetsRoot: "unused-by-project-create",
+        policyManifestPath: "unused-by-project-create",
+        remotionPreflightEntry: "unused-by-project-create",
+        webRoot: "unused-by-project-create",
+      },
     },
   );
   assert.equal(result.status, "project-created");

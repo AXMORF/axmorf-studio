@@ -11,8 +11,9 @@ import {
   type ProductionRevisionId,
   type Sha256Digest,
   type NarrationPreparationReceipt,
-} from "../../../src/contracts";
-import type { DiagnosticSubject } from "../../../src/contracts/production-inspection";
+} from "@axmorf/studio/contracts";
+import type { DiagnosticSubject } from "@axmorf/studio/contracts";
+import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
 
 import { inspectArtifactState } from "../adapters/artifact-store";
 import {
@@ -600,6 +601,7 @@ export const buildDownstreamTasks = ({
 export type BuildCurrentProductionPlanInput = Readonly<{
   rootDir: string;
   projectId: string;
+  runtimePolicyManifest?: RuntimePolicyManifest;
   env?: Readonly<Record<string, string | undefined>>;
   inputs?: LoadedInputs;
   narration?: Readonly<{
@@ -618,6 +620,7 @@ export type BuildCurrentProductionPlanInput = Readonly<{
 export const buildCurrentProductionPlan = async ({
   rootDir,
   projectId,
+  runtimePolicyManifest,
   env = process.env,
   inputs: suppliedInputs,
   narration: suppliedNarration,
@@ -628,6 +631,7 @@ export const buildCurrentProductionPlan = async ({
     (await loadProjectProductionInputs({
       rootDir,
       projectId,
+      runtimePolicyManifest,
     }));
   const narration =
     suppliedNarration ??

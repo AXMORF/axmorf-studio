@@ -11,7 +11,7 @@ import {
   ProductionRevisionIdSchema,
   type Sha256Digest,
   type TaskRevision,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   buildNarrationChunkTask,
   ensureFixedTaskArtifact,
@@ -229,9 +229,7 @@ test("same fixed TaskRevision with different output bytes fails closed", async (
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const fixed = buildNarrationChunkTask({
     storyId: "story-example",
-    revisionId: ProductionRevisionIdSchema.parse(
-      `revision-${"0".repeat(64)}`,
-    ),
+    revisionId: ProductionRevisionIdSchema.parse(`revision-${"0".repeat(64)}`),
     narrationFingerprint: sha("1"),
     providerAttemptFingerprint: sha("2"),
     chunk: {
@@ -318,7 +316,10 @@ test("delivery artifact never enters its own reusable artifact set fingerprint",
   const compositionAttestation = attestation(composition);
   const deliveryAttestation = attestation(delivery);
   const subjects = new Map([
-    [composition.taskRevision, { kind: "project" as const, id: composition.storyId }],
+    [
+      composition.taskRevision,
+      { kind: "project" as const, id: composition.storyId },
+    ],
     [delivery.taskRevision, { kind: "project" as const, id: delivery.storyId }],
   ]);
   const before = createProducerPlan({
@@ -326,8 +327,17 @@ test("delivery artifact never enters its own reusable artifact set fingerprint",
     nodes,
     subjects,
     inspections: new Map([
-      [composition.taskRevision, { attestation: compositionAttestation, artifactState: "valid" as const }],
-      [delivery.taskRevision, { attestation: null, artifactState: "missing" as const }],
+      [
+        composition.taskRevision,
+        {
+          attestation: compositionAttestation,
+          artifactState: "valid" as const,
+        },
+      ],
+      [
+        delivery.taskRevision,
+        { attestation: null, artifactState: "missing" as const },
+      ],
     ]),
   });
   const after = createProducerPlan({
@@ -335,8 +345,17 @@ test("delivery artifact never enters its own reusable artifact set fingerprint",
     nodes,
     subjects,
     inspections: new Map([
-      [composition.taskRevision, { attestation: compositionAttestation, artifactState: "valid" as const }],
-      [delivery.taskRevision, { attestation: deliveryAttestation, artifactState: "valid" as const }],
+      [
+        composition.taskRevision,
+        {
+          attestation: compositionAttestation,
+          artifactState: "valid" as const,
+        },
+      ],
+      [
+        delivery.taskRevision,
+        { attestation: deliveryAttestation, artifactState: "valid" as const },
+      ],
     ]),
   });
   assert.equal(after.artifactSetFingerprint, before.artifactSetFingerprint);
@@ -344,9 +363,7 @@ test("delivery artifact never enters its own reusable artifact set fingerprint",
 
 test("active seal is not current against another provider-attempt cache", () => {
   const sealedNarration = {
-    segments: [
-      { kind: "chunk", chunkId: "chunk-one", checksum: sha("1") },
-    ],
+    segments: [{ kind: "chunk", chunkId: "chunk-one", checksum: sha("1") }],
   } as unknown as Parameters<
     typeof sealedNarrationMatchesMeasuredProgress
   >[0]["sealedNarration"];

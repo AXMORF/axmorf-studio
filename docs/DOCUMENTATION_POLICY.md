@@ -25,9 +25,11 @@ README 只做入口和快速开始；guide 只解释操作；evidence 只证明�
 
 - `docs/`：当前权威文档与文档导航。
 - `docs/guides/`：仍在使用的操作和维护指南。
-- `docs/contracts/`：对外数据合同说明；可执行 schema 仍以 `src/contracts/` 为准。
+- `docs/contracts/`：对外数据合同说明；可执行 schema 以
+  `packages/studio/src/contracts/` 为准。
 - `docs/evidence/`：不可替代当前状态的历史验收证据。
-- `docs/promotions/`：待明确批准的能力提升提案。
+- `docs/promotions/`：尚未成为 current implementation 的能力提案或实施计划；文档内必须明确待批准、已批准或
+  实施中状态，完成后移入 archive。
 - `docs/archive/`：已完成、已取代或不再维护的历史快照。
 
 文档从 active 移入 archive 时必须在目标目录 README 说明原因。归档内容不再参与默认链接

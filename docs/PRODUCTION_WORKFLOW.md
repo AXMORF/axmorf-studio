@@ -4,6 +4,10 @@
 >
 > 本文只描述 current Revision/DAG/Artifact 主链。
 
+以下命令在 creator 生成的用户 Workspace 中运行。npm scripts 只调用安装在该 Workspace 的 compiled
+`axmorf` bin；CLI 从 marker 解析唯一 writable Workspace root，并分别读取 npm package 中
+immutable RuntimeResources。脚本不依赖源码 checkout、global install、Desktop、`rsp`、shell 或 `.bin` 路径。
+
 ## 1. 主链概览
 
 ```mermaid
@@ -129,7 +133,7 @@ Agent 不能直接写 live Project。inspect 前用 `project:execution:resolve` 
 `inline` 默认的优先级冻结本次执行策略；该诊断策略不进入 identity。inline 时 Root 一次执行一个 workspace；
 subagents 时使用不超过四个且受 runtime capacity 限制的 bounded pool。`scene-template` 和其他 fixed tasks
 不由 Agent 创作。仓库只产出通用 workspace 与 shell command，不调用厂商 Agent SDK；每个 TaskRevision
-只归属一个 executor。Scene executor 完整读取 repository-local
+只归属一个 executor。Scene executor 完整读取 Workspace-local
 `remotion-best-practices`，且不能用 Skill 扩大
 TaskSpec/validator/write scope。
 

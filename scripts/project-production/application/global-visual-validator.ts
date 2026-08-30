@@ -1,7 +1,7 @@
 import { lstat } from "node:fs/promises";
 import { dirname, join, posix } from "node:path";
 import ts from "typescript";
-import { createFingerprint } from "../../../src/contracts";
+import { createFingerprint } from "@axmorf/studio/contracts";
 import {
   checksumExternalBytes,
   readExternalRegularFile,
@@ -32,7 +32,7 @@ export const assertGlobalVisualLayersComponentInterface = ({
     rootDir,
     rootPath,
     label: "GlobalVisualLayers component interface compile",
-    virtualSource: `import type {GlobalVisualLayersComponent} from "../../../remotion/runtime/global-visual";
+    virtualSource: `import type {GlobalVisualLayersComponent} from "@axmorf/studio/remotion";
 import {GlobalVisualLayers} from "./GlobalVisualLayers";
 
 const CheckedGlobalVisualLayers: GlobalVisualLayersComponent<typeof GlobalVisualLayers> = GlobalVisualLayers;
@@ -189,8 +189,15 @@ export const collectGlobalVisualSourceGraph = async ({
       source,
       sourcePath,
       allowedBarePackages: new Map([
+        ["@axmorf/studio", "workspace"],
         ["react", "19.2.3"],
         ["remotion", "4.0.489"],
+      ]),
+      allowedBareSpecifiers: new Set([
+        "@axmorf/studio/contracts",
+        "@axmorf/studio/remotion",
+        "react",
+        "remotion",
       ]),
       relativeRoot: "src",
     });

@@ -64,8 +64,11 @@ test("normalizer applies provider-neutral speech rate before canonical PCM", asy
     },
   });
 
-  assert.equal(captured.command, "ffmpeg");
-  assert.deepEqual(captured.args?.slice(6, 8), ["-af", "atempo=1.15"]);
+  assert.equal(captured.command, process.execPath);
+  assert.match(captured.args?.[0] ?? "", /[/\\]remotion-cli\.js$/u);
+  assert.equal(captured.args?.[1], "ffmpeg");
+  const audioFilterIndex = captured.args?.indexOf("-af") ?? -1;
+  assert.equal(captured.args?.[audioFilterIndex + 1], "atempo=1.15");
   assert.deepEqual(captured.args?.slice(-10), [
     "-vn",
     "-ac",

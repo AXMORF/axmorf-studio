@@ -20,8 +20,8 @@ import {
 import {
   getSpeechSdkModelMaxInputChars,
   getSpeechSdkVendorDefinition,
-} from "../../../src/contracts/tts-provider-registry";
-import type { SpeechSdkVendor } from "../../../src/contracts/tts-provider-registry";
+} from "@axmorf/studio/contracts";
+import type { SpeechSdkVendor } from "@axmorf/studio/contracts";
 import type {
   ChunkAudioGenerator,
   ResolvedSpeechSdkProfile,

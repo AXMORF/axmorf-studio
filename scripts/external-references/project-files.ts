@@ -6,7 +6,7 @@ import {
   ExternalRepositoryPathSchema,
   Sha256DigestSchema,
   type Sha256Digest,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 export const checksumExternalBytes = (bytes: Iterable<number>): Sha256Digest =>
   Sha256DigestSchema.parse(

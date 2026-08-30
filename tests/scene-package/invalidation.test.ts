@@ -11,7 +11,7 @@ import {
   buildSceneVisualPlan,
   buildSilentScenePreset,
   buildShotPlanSet,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   generateSceneCoverage,
   generateScenePackage,

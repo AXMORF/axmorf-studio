@@ -8,12 +8,12 @@ import {
   buildSceneCoverageMap,
   buildSceneFallbackDeclaration,
   computeResourceDescriptorFingerprint,
-} from "../../src/contracts";
-import { SoundContribution } from "../../src/remotion/runtime/sound-design";
+} from "@axmorf/studio/contracts";
+import { SoundContribution } from "@axmorf/studio/remotion";
 import {
   SoundDesignTrack,
   buildSoundDesignProjection,
-} from "../../src/remotion/runtime/sound-design/SoundDesignTrack";
+} from "@axmorf/studio/remotion";
 import { createSoundRuntimeFixture } from "../fixtures/scene/sound-runtime";
 
 const makeSoundDesign = () => {
@@ -244,9 +244,9 @@ test("one looping background-music contribution spans narrated content but exclu
 
 test("Scene sound runtime source owns no narrative global mix provider or network fields", async () => {
   const paths = [
-    "../../src/remotion/runtime/scene-sound/resolve-scene-sound.ts",
-    "../../src/remotion/runtime/scene-sound/SceneSoundContribution.tsx",
-    "../../src/remotion/runtime/sound-design/SoundDesignTrack.tsx",
+    "../../packages/studio/src/remotion/runtime/scene-sound/resolve-scene-sound.ts",
+    "../../packages/studio/src/remotion/runtime/scene-sound/SceneSoundContribution.tsx",
+    "../../packages/studio/src/remotion/runtime/sound-design/SoundDesignTrack.tsx",
   ];
   const source = (
     await Promise.all(

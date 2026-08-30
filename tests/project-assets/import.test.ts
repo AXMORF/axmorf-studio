@@ -22,7 +22,7 @@ import {
   importProjectAsset,
   type ProjectAssetCatalogSync,
 } from "../../scripts/project-assets/application/import";
-import { ProjectAssetManifestSchema } from "../../src/contracts";
+import { ProjectAssetManifestSchema } from "@axmorf/studio/contracts";
 
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",

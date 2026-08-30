@@ -1,7 +1,8 @@
 import {
   buildProductionRevision,
   type ProductionRevision,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
+import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
 import { loadProjectProductionInputs } from "./load-inputs";
 
 type LoadedProjectProductionInputs = Awaited<
@@ -35,6 +36,14 @@ export const buildCurrentProductionRevision = (
         id: "runtime-toolchain",
         fingerprint: inputs.runtimePolicyFingerprint,
       },
+      ...(inputs.workspaceConfigurationFingerprint === null
+        ? []
+        : [
+            {
+              id: "workspace-configuration",
+              fingerprint: inputs.workspaceConfigurationFingerprint,
+            },
+          ]),
     ],
   });
 
@@ -54,15 +63,18 @@ export const readCurrentProductionRevision = async (
   {
     rootDir,
     projectId,
+    runtimePolicyManifest,
   }: {
     readonly rootDir: string;
     readonly projectId: string;
+    readonly runtimePolicyManifest?: RuntimePolicyManifest;
   },
   dependencies: CurrentRevisionDependencies = defaultDependencies,
 ) => {
   const inputs = await dependencies.loadInputs({
     rootDir,
     projectId,
+    ...(runtimePolicyManifest === undefined ? {} : { runtimePolicyManifest }),
   });
   return buildCurrentProductionRevision(inputs);
 };

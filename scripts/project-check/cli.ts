@@ -1,6 +1,6 @@
 import { pathToFileURL } from "node:url";
 
-import { StoryIdSchema } from "../../src/contracts";
+import { StoryIdSchema } from "@axmorf/studio/contracts";
 import type { ProcessRunner } from "../baseline/evidence";
 import { discoverProjectEntries } from "../registry/project-files";
 import {

@@ -6,7 +6,7 @@ import {
   ProductionRevisionIdSchema,
   buildProducerTaskSpec,
   type Sha256Digest,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   buildAgentTasks,
   buildDownstreamTasks,
@@ -166,14 +166,11 @@ test("template-copy task rebinds the copied and derived file set without losing 
   assert.deepEqual(rebound.dependencyArtifacts, built.task.dependencyArtifacts);
   assert.notEqual(rebound.taskRevision, built.task.taskRevision);
 
-  const materializedReplan = rebindTemplateTaskOutputs(
-    built.task,
-    [
-      ...rebound.declaredOutputSet,
-      "src/generated/scene-package.generated.json",
-      "src/task-input.generated.json",
-    ],
-  );
+  const materializedReplan = rebindTemplateTaskOutputs(built.task, [
+    ...rebound.declaredOutputSet,
+    "src/generated/scene-package.generated.json",
+    "src/task-input.generated.json",
+  ]);
   assert.deepEqual(
     materializedReplan.declaredOutputSet,
     rebound.declaredOutputSet,

@@ -1,4 +1,4 @@
-import { StoryIdSchema } from "../../src/contracts";
+import { StoryIdSchema } from "@axmorf/studio/contracts";
 import { readCurrentProductionRevision } from "../../scripts/project-production/application/current-revision";
 import { inspectProjectProduction } from "../../scripts/project-production/application/inspect-production";
 import {

@@ -14,7 +14,7 @@ import {
   type SealedNarrationManifest,
   type SemanticTiming,
   type Sha256Digest,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 export const getProjectCheckPaths = ({
   rootDir,

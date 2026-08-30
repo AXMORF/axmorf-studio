@@ -8,7 +8,7 @@ import test from "node:test";
 import {
   buildProducerTaskSpec,
   deriveCoverCompositionBaseId,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { checkCoverTask } from "../../scripts/project-production/application/cover-task-check";
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
 
@@ -25,7 +25,9 @@ const cover3x4 = `
 const Cover3x4 = () => <div style={{width: 1200, height: 1600}} />;
 export default Cover3x4;
 `;
-const rootSource = ({ width4x3 = 1600 }: { readonly width4x3?: number } = {}) => `
+const rootSource = ({
+  width4x3 = 1600,
+}: { readonly width4x3?: number } = {}) => `
 import {Composition} from "remotion";
 import Cover4x3 from "./Cover4x3";
 import Cover3x4 from "./Cover3x4";

@@ -1,5 +1,8 @@
-import type { ArtifactAttestation, ProducerTaskSpec } from "../../../src/contracts";
-import type { ArtifactState } from "../../../src/contracts/production-inspection";
+import type {
+  ArtifactAttestation,
+  ProducerTaskSpec,
+} from "@axmorf/studio/contracts";
+import type { ArtifactState } from "@axmorf/studio/contracts";
 
 export type ArtifactInspection =
   | Readonly<{

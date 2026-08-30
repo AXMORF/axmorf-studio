@@ -5,7 +5,7 @@ import ts from "typescript";
 import {
   SceneViewportSchema,
   type SceneViewport,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 type StaticValue = number | string | ts.ObjectLiteralExpression;
 
@@ -333,7 +333,9 @@ const assertNoSharedBoundaryOwnership = (
   for (const sourceFile of sourceFiles) {
     const visit = (node: ts.Node) => {
       if (ts.isIdentifier(node) && forbidden.has(node.text)) {
-        throw new Error(`Scene Renderer source graph must not own ${node.text}.`);
+        throw new Error(
+          `Scene Renderer source graph must not own ${node.text}.`,
+        );
       }
       if (
         (ts.isPropertyAssignment(node) || ts.isPropertyDeclaration(node)) &&

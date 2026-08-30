@@ -6,7 +6,7 @@ import {
   BrandRevealTemplatePreview,
   SourceFollowTemplatePreview,
   SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS,
-} from "../../src/remotion/compositions/scene-template-previews/SceneTemplatePreviews";
+} from "../../packages/studio/src/remotion/compositions/scene-template-previews/SceneTemplatePreviews";
 
 test("System Scene template previews play configured contributions from frame zero", async () => {
   assert.equal(typeof BrandRevealTemplatePreview, "function");
@@ -27,7 +27,7 @@ test("System Scene template previews play configured contributions from frame ze
   }
   const source = await readFile(
     new URL(
-      "../../src/remotion/compositions/scene-template-previews/SceneTemplatePreviews.tsx",
+      "../../packages/studio/src/remotion/compositions/scene-template-previews/SceneTemplatePreviews.tsx",
       import.meta.url,
     ),
     "utf8",

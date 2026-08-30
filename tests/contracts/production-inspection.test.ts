@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   ProductionInspectionSchema,
   TaskDecisionExplanationSchema,
-} from "../../src/contracts/production-inspection";
+} from "@axmorf/studio/contracts";
 
 const task = `task-${"1".repeat(64)}` as const;
 const revision = `revision-${"2".repeat(64)}` as const;

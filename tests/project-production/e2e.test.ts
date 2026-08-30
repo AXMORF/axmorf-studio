@@ -9,7 +9,7 @@ import {
   buildProductionRevision,
   type ProducerTaskSpec,
   type Sha256Digest,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   commitTaskArtifact,
   inspectArtifactState,

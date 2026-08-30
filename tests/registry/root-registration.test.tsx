@@ -7,7 +7,7 @@ import ts from "typescript";
 import { Composition, Folder } from "remotion";
 
 import packageJson from "../../package.json";
-import { StoryCompositionPropsSchema } from "../../src/contracts";
+import { StoryCompositionPropsSchema } from "@axmorf/studio/contracts";
 import type { ProjectRegistryEntry } from "../../src/projects/project-registry.generated";
 
 type ElementProps = {
@@ -37,7 +37,8 @@ const asElement = (node: unknown) => {
 test("Root keeps System capability and Scene template previews when the ProjectRegistry is empty", async () => {
   const require = createRequire(import.meta.url);
   require.extensions[".css"] = () => undefined;
-  const { createRemotionRoot } = await import("../../src/Root");
+  const { createRemotionRoot } =
+    await import("@axmorf/studio/remotion");
   const root = createRemotionRoot([]);
   const folders = elementChildren(root);
   const systemFolder = folders.find(
@@ -55,11 +56,11 @@ test("Root keeps System capability and Scene template previews when the ProjectR
   const systemFolderElement = asElement(systemFolder);
   const storiesFolderElement = asElement(storiesFolder);
 
-  const systemCompositions = elementChildren(systemFolderElement).map(asElement);
+  const systemCompositions =
+    elementChildren(systemFolderElement).map(asElement);
   const systemComposition = systemCompositions.find(
     (entry) =>
-      entry.type === Composition &&
-      entry.props.id === "CapabilityGallery",
+      entry.type === Composition && entry.props.id === "CapabilityGallery",
   );
   const systemCompositionElement = asElement(systemComposition);
   assert.notEqual(systemCompositionElement.props.component, undefined);
@@ -71,15 +72,13 @@ test("Root keeps System capability and Scene template previews when the ProjectR
   const introPreview = asElement(
     systemCompositions.find(
       (entry) =>
-        entry.type === Composition &&
-        entry.props.id === "DefaultIntroPreview",
+        entry.type === Composition && entry.props.id === "DefaultIntroPreview",
     ),
   );
   const outroPreview = asElement(
     systemCompositions.find(
       (entry) =>
-        entry.type === Composition &&
-        entry.props.id === "DefaultOutroPreview",
+        entry.type === Composition && entry.props.id === "DefaultOutroPreview",
     ),
   );
   assert.deepEqual(
@@ -116,7 +115,8 @@ test("Root keeps System capability and Scene template previews when the ProjectR
 test("Root maps synthetic Project entries without concrete Story assumptions", async () => {
   const require = createRequire(import.meta.url);
   require.extensions[".css"] = () => undefined;
-  const { createRemotionRoot } = await import("../../src/Root");
+  const { createRemotionRoot } =
+    await import("@axmorf/studio/remotion");
   const load = async () => ({ default: () => null });
   const entries: readonly ProjectRegistryEntry[] = [
     {
@@ -200,12 +200,16 @@ test("root typecheck reaches current Projects only through the generated Registr
     "remotion.config.ts",
     "build",
     "dist",
+    ".desktop-package-resources",
+    ".vite",
+    "desktop",
+    "packages/*/dist",
     "out",
     "src/projects/*",
   ]);
 });
 
-test("Root statically consumes only registry metadata and passes through lazy loaders", async () => {
+test("Root delegates registry composition to the public package root factory", async () => {
   const path = new URL("../../src/Root.tsx", import.meta.url);
   const source = await readFile(path, "utf8");
   const ast = ts.createSourceFile(
@@ -221,11 +225,12 @@ test("Root statically consumes only registry metadata and passes through lazy lo
     .filter(ts.isStringLiteral)
     .map((specifier) => specifier.text);
   assert.ok(imports.includes("./projects/project-registry.generated"));
+  assert.ok(imports.includes("@axmorf/studio/remotion"));
   assert.equal(
     imports.some((specifier) => specifier.endsWith("/Composition")),
     false,
   );
-  assert.match(source, /lazyComponent=\{entry\.load\}/);
+  assert.match(source, /createRemotionRoot\(projectRegistry\)/u);
   assert.doesNotMatch(
     source,
     /brief\.json|story\.json|render\.json|semantic-timing|node:fs|readdir|import\.meta\.glob/,

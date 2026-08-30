@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { buildSceneCoverageMap } from "../../src/contracts";
+import { buildSceneCoverageMap } from "@axmorf/studio/contracts";
 import {
   buildRendererRegistry,
   collectRendererSourceGraph,
@@ -94,7 +94,7 @@ test("registry discovers fixed-depth Renderer only and emits stable literal stat
     assert.equal(first.source.includes("ProofShot"), false);
     assert.equal(first.source.includes("modulePath"), false);
     assert.deepEqual(
-      fixture.graph.files.map(({sourcePath}) => sourcePath),
+      fixture.graph.files.map(({ sourcePath }) => sourcePath),
       [
         "src/projects/synthetic-proof/scenes/meaning-one/Renderer.tsx",
         "src/projects/synthetic-proof/scenes/meaning-one/shots/ProofShot.tsx",

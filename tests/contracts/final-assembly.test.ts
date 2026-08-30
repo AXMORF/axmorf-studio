@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   FinalAssemblyPlanSchema,
   createFinalAssemblyPlan,
-} from "../../src/contracts/final-assembly";
+} from "@axmorf/studio/contracts";
 import { finalAssemblyInput } from "../fixtures/final-assembly/input";
 
 const sha = (value: string) => `sha256:${value.repeat(64)}`;

@@ -4,13 +4,13 @@ import test from "node:test";
 import {
   createFingerprint,
   serializeCanonicalJson,
-} from "../../src/contracts/fingerprint";
+} from "@axmorf/studio/contracts";
 import {
   computeGenerationInputFingerprint,
   computeStoryFingerprint,
-} from "../../src/contracts/generation-input";
-import { NarrationSpecSchema } from "../../src/contracts/narration";
-import { StorySpecSchema } from "../../src/contracts/story";
+} from "@axmorf/studio/contracts";
+import { NarrationSpecSchema } from "@axmorf/studio/contracts";
+import { StorySpecSchema } from "@axmorf/studio/contracts";
 import { validNarrationSpec, validStorySpec } from "../fixtures/narrative";
 
 test("canonical JSON sorts object keys and preserves array order", () => {

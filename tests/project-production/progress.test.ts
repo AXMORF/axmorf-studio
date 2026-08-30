@@ -6,8 +6,7 @@ import test from "node:test";
 
 import { readCurrentProductionRevision } from "../../scripts/project-production/application/current-revision";
 
-const sha = (character: string) =>
-  `sha256:${character.repeat(64)}` as const;
+const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 
 test("current Revision query is catalog-check-only and creates no execution roots", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-current-revision-"));
@@ -45,6 +44,7 @@ test("current Revision query is catalog-check-only and creates no execution root
     ],
     assetManifest: { assets: [] },
     runtimePolicyFingerprint: sha("4"),
+    workspaceConfigurationFingerprint: null,
   };
 
   const revision = await readCurrentProductionRevision(

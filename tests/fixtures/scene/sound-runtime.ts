@@ -1,8 +1,8 @@
 import {
   buildSceneSoundPlan,
   computeResourceDescriptorFingerprint,
-} from "../../../src/contracts";
-import { resolveSceneSound } from "../../../src/remotion/runtime/scene-sound/resolve-scene-sound";
+} from "@axmorf/studio/contracts";
+import { resolveSceneSound } from "@axmorf/studio/remotion";
 import { buildScenePackage } from "../../../scripts/scene-package/domain";
 import { createScenePackageInput } from "./package-input";
 import { sha } from "./scene-input";

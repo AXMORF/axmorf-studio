@@ -2,9 +2,20 @@ import { isAbsolute, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { createProject } from "./application/create-project";
+import {
+  resolveRuntimeResources,
+  type RuntimeResources,
+} from "../../packages/studio/src/runtime/runtime-resources";
 
 const usage =
   "Expected --project <storyId> --input <repository-relative-json>.";
+
+type ProjectCreateCliContext = Readonly<{
+  rootDir: string;
+  env: Readonly<Record<string, string | undefined>>;
+  stdout: (line: string) => void;
+  runtimeResources: RuntimeResources;
+}>;
 
 export const parseProjectCreateArguments = (args: readonly string[]) => {
   if (args.length !== 4 || args[0] !== "--project" || args[2] !== "--input") {
@@ -29,24 +40,25 @@ export const parseProjectCreateArguments = (args: readonly string[]) => {
 
 export const runProjectCreateCli = async (
   args: readonly string[],
-  context: Readonly<{
-    rootDir: string;
-    env: Readonly<Record<string, string | undefined>>;
-    stdout: (line: string) => void;
-  }> = {
-    rootDir: process.cwd(),
-    env: process.env,
-    stdout: (line) => process.stdout.write(`${line}\n`),
-  },
+  context?: ProjectCreateCliContext,
 ) => {
+  const resolvedContext =
+    context ??
+    ({
+      rootDir: process.cwd(),
+      env: process.env,
+      stdout: (line: string) => process.stdout.write(`${line}\n`),
+      runtimeResources: await resolveRuntimeResources(),
+    } satisfies ProjectCreateCliContext);
   const parsed = parseProjectCreateArguments(args);
   const result = await createProject({
-    rootDir: context.rootDir,
+    rootDir: resolvedContext.rootDir,
     projectId: parsed.projectId,
-    inputPath: join(context.rootDir, parsed.inputPath),
-    env: context.env,
+    inputPath: join(resolvedContext.rootDir, parsed.inputPath),
+    env: resolvedContext.env,
+    runtimeResources: resolvedContext.runtimeResources,
   });
-  context.stdout(JSON.stringify(result));
+  resolvedContext.stdout(JSON.stringify(result));
   return result;
 };
 

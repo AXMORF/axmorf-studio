@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
-import { Sha256DigestSchema } from "../../../src/contracts/primitives";
-import { pauseMsToSampleFrames } from "../../../src/contracts/semantic-timing";
+import { Sha256DigestSchema } from "@axmorf/studio/contracts";
+import { pauseMsToSampleFrames } from "@axmorf/studio/contracts";
 
 export const CANONICAL_NARRATION_PCM = {
   sampleRate: 48_000,
@@ -13,7 +13,10 @@ const WAV_HEADER_BYTES = 44;
 const PCM_BYTES_PER_SAMPLE_FRAME = 2;
 const MAX_WAV_DATA_BYTES = 0xffff_ffff;
 
-const assertAllocatableByteLength = (byteLength: bigint, label: string): number => {
+const assertAllocatableByteLength = (
+  byteLength: bigint,
+  label: string,
+): number => {
   if (byteLength < 0n || byteLength > BigInt(MAX_WAV_DATA_BYTES)) {
     throw new Error(`${label} exceeds the WAV v1 safe size.`);
   }
@@ -59,9 +62,7 @@ export type DecodedCanonicalPcmWav = {
   readonly rawPcm: Buffer;
 };
 
-export const decodeCanonicalPcmWav = (
-  wav: Buffer,
-): DecodedCanonicalPcmWav => {
+export const decodeCanonicalPcmWav = (wav: Buffer): DecodedCanonicalPcmWav => {
   if (
     wav.length < 12 ||
     wav.toString("ascii", 0, 4) !== "RIFF" ||

@@ -10,7 +10,7 @@ import {
   serializeCanonicalJson,
   type ProjectAssetManifest,
   type ResourceCatalog,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   acquireImportLock,
   assertBeforeSceneFreeze,

@@ -6,7 +6,7 @@ import {
   Sha256DigestSchema,
   StoryIdSchema,
   TtsChunkIdSchema,
-} from "../../../src/contracts/primitives";
+} from "@axmorf/studio/contracts";
 import type { ChunkAudioRequest } from "./provider-input";
 import { CANONICAL_NARRATION_PCM } from "./pcm-wav";
 

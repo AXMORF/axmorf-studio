@@ -3,7 +3,7 @@ import { lstat, readFile, readdir, rm } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { StoryIdSchema } from "../../src/contracts";
+import { StoryIdSchema } from "@axmorf/studio/contracts";
 import { generateResourceCatalog } from "../catalog/generate";
 import { generateProjectRegistry } from "../registry/generate";
 import { acquireRepositoryOperationLock } from "../shared/repository-operation-lock";
@@ -143,7 +143,11 @@ const parseStoredRunOwnership = (raw: unknown) => {
   }
   const record = raw as Record<string, unknown>;
   const runId = record.runId;
-  if (typeof runId !== "string" || runId.length > 128 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(runId)) {
+  if (
+    typeof runId !== "string" ||
+    runId.length > 128 ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(runId)
+  ) {
     throw new Error("Production run ownership is malformed.");
   }
   return {

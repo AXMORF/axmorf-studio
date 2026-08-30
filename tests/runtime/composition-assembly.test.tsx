@@ -13,7 +13,7 @@ import ts from "typescript";
 import {
   CompositionAssembly,
   type CompositionAssemblyProps,
-} from "../../src/remotion/runtime/composition-assembly";
+} from "@axmorf/studio/remotion";
 
 test("CompositionAssembly exposes one required and four exact optional semantic slots", () => {
   const props: CompositionAssemblyProps = {
@@ -55,7 +55,7 @@ test("CompositionAssembly exposes one required and four exact optional semantic 
 
 test("assembly source has five approved semantic slots and no generic track array", async () => {
   const path = new URL(
-    "../../src/remotion/runtime/composition-assembly/CompositionAssembly.tsx",
+    "../../packages/studio/src/remotion/runtime/composition-assembly/CompositionAssembly.tsx",
     import.meta.url,
   );
   const source = await readFile(path, "utf8");

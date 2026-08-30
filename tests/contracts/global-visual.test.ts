@@ -6,7 +6,7 @@ import {
   GlobalVisualProjectionSchema,
   createGlobalVisualPlan,
   createGlobalVisualProjection,
-} from "../../src/contracts/global-visual";
+} from "@axmorf/studio/contracts";
 
 const sha = (value: string) => `sha256:${value.repeat(64)}`;
 

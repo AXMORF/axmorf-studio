@@ -12,7 +12,7 @@ import {
   buildSceneCoverageMap,
   type SceneCoverageMap,
   type ScenePackage,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { collectRendererSourceGraph } from "../renderer-registry/domain";
 import { buildScenePackage } from "./domain";
 import {

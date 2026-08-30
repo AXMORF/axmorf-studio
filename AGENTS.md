@@ -5,51 +5,53 @@ and completing the task end-to-end.
 
 ## Working principles
 
-* Before modifying code, inspect the relevant codebase, existing conventions, dependencies, tests, and
+- Before modifying code, inspect the relevant codebase, existing conventions, dependencies, tests, and
   `AGENTS.md` instructions. Do not guess about code you can inspect.
-* Understand the root cause before fixing bugs. Prefer the smallest coherent change that fully solves it.
-* Follow existing architecture, naming, formatting, and abstractions. Do not refactor unrelated code.
-* Preserve existing behavior unless the requested change explicitly requires otherwise.
+- Understand the root cause before fixing bugs. Prefer the smallest coherent change that fully solves it.
+- Follow existing architecture, naming, formatting, and abstractions. Do not refactor unrelated code.
+- Preserve existing behavior unless the requested change explicitly requires otherwise.
 
 ## Planning and execution
 
-* Implement small, well-defined tasks directly. For multi-file or architectural work, form a concise plan
+- Implement small, well-defined tasks directly. For multi-file or architectural work, form a concise plan
   and then execute it.
-* Use skills, subagents, plugins, or specialized workflows when they materially improve correctness or
+- Use skills, subagents, plugins, or specialized workflows when they materially improve correctness or
   efficiency. Make reasonable decisions autonomously; ask only when a missing choice materially changes
   the implementation or an action is destructive, irreversible, or high-risk.
 
 ## Verification
 
-* Do not call work complete because the code looks correct. Run relevant tests, typecheck, lint, builds, and
+- Do not call work complete because the code looks correct. Run relevant tests, typecheck, lint, builds, and
   runtime checks. Add regression coverage for meaningful fixes and behavior changes when practical.
-* If a check cannot run, state exactly what was not verified and why. Review the final diff for unintended
+- If a check cannot run, state exactly what was not verified and why. Review the final diff for unintended
   changes, dead code, debug artifacts, and unnecessary complexity.
 
 ## Libraries, APIs, and code quality
 
-* Verify current primary documentation when behavior depends on a changing library, framework, API, model,
+- Verify current primary documentation when behavior depends on a changing library, framework, API, model,
   CLI, or tool. Prefer existing dependency versions; use `pnpm` only when the repository does not specify a
   package manager.
-* Prefer clear, explicit, focused code. Comment non-obvious intent, handle errors deliberately, and consider
+- Prefer clear, explicit, focused code. Comment non-obvious intent, handle errors deliberately, and consider
   relevant edge cases, security, concurrency, cleanup, and performance.
 
 ## Communication
 
-* Default to concise Chinese explanations. Keep identifiers and technical terms consistent with the repo.
-* During long work, report meaningful findings or blockers. Final responses summarize changes, decisions,
+- Default to concise Chinese explanations. Keep identifiers and technical terms consistent with the repo.
+- During long work, report meaningful findings or blockers. Final responses summarize changes, decisions,
   verification, and remaining risks, and never claim success without evidence.
 
 <!-- CODEGRAPH_START -->
+
 ## CodeGraph
 
 When a `.codegraph/` directory exists, use CodeGraph before grep/find for code discovery:
 `codegraph explore "<question>"` or `codegraph node <symbol-or-file>`. If it does not exist, skip it.
+
 <!-- CODEGRAPH_END -->
 
 --- project-doc ---
 
-# Remotion Story Producer Agent Guide
+# AXMORF Studio Agent Guide
 
 本文件定义仓库内 Agent 的执行规则。默认中文交流，先给结论，再给最少必要依据。
 
@@ -58,9 +60,9 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - `AGENTS.md` 是唯一仓库级 Agent 指令 authority。`CLAUDE.md`、`GEMINI.md` 与任何宿主专用 metadata
   只能作为导入或发现 adapter，不复制、覆盖或扩展这里的规则。
 - 处理视频创建、生产或交付时，即使宿主不会自动发现 Skill，也必须手动读取
-  `.agents/skills/remotion-story-producer-video/SKILL.md`；Scene task 再按该 Skill 读取 repository-local
+  `.agents/skills/axmorf-video/SKILL.md`；Scene task 再按该 Skill 读取 repository-local
   `remotion-best-practices`。
-- 全新 checkout 的内置执行默认是 `inline`，只要求当前 Agent 能读写文件并运行 shell。只有用户或已保存设置
+- 全新 scaffolded Workspace 的内置执行默认是 `inline`，只要求当前 Agent 能读写文件并运行 shell。只有用户或已保存设置
   选择 `subagents` 且宿主确实提供 runtime-native child execution 时才使用子 Agent；不得把线程、聊天或普通
   后台进程伪装成 child runtime。
 - `.agents/**/agents/openai.yaml` 只提供 OpenAI host 的可选 UI metadata，不属于 Skill、production contract、
@@ -81,7 +83,10 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 
 ## 产品不变量
 
-- 只使用宿主机 Node.js/npm 与 Remotion CLI，不新增 Docker；所有 `remotion` 与 `@remotion/*` 保持
+- 最终用户通过 `create-axmorf-studio` 创建普通 npm Workspace；运行时、CLI、contracts、Remotion
+  exports 与预构建 Web 由 `@axmorf/studio` 提供，Workspace-local Skill 与用户配置由 creator
+  生成。不存在 Desktop、Electron、Runtime Pack 或 `rsp` authority。
+- 只使用宿主机 Node.js/npm 与 Workspace-local Remotion CLI，不新增 Docker；所有 `remotion` 与 `@remotion/*` 保持
   完全相同的精确版本。
 - 一 Story 一个 Composition；一 StoryBeat 一个 meaningId 和 Scene，完成物化的 Scene 对应一个
   ScenePackage。StoryBeat 严格区分 narrated 与只允许位于首尾的 silent Scene。
@@ -97,7 +102,7 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   content window，不进入 silent boundary Scenes。
 - JSON/数据文件不包含 executable expression；renderer 由 composition-local static registry 绑定。
   render runtime 不调用 Agent、Skill、MCP、Git、网络或目录扫描。
-- 所有媒体都位于 repository `public/`、具有 manifest identity 并通过检查。render-critical motion
+- 所有媒体都位于当前 Workspace `public/`、具有 manifest identity 并通过检查。render-critical motion
   只用 Remotion frame API，禁止 CSS animation/transition 和 Tailwind animation utilities。
 
 ## 唯一 production 与 delivery 主链

@@ -7,7 +7,7 @@ import {
   resolveSceneReadabilityPolicy,
   resolveSceneViewport,
   Sha256DigestSchema,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 export const sha = (character: string) =>
   Sha256DigestSchema.parse(`sha256:${character.repeat(64)}`);

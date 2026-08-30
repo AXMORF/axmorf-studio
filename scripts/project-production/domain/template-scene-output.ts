@@ -1,7 +1,7 @@
 import {
   buildProducerTaskSpec,
   type ProducerTaskSpec,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 export const TEMPLATE_SCENE_DERIVED_OUTPUTS = [
   "src/generated/reference-fidelity.generated.json",

@@ -14,7 +14,7 @@ import {
   resolveSceneReadabilityPolicy,
   serializeCanonicalJson,
   StorySpecSchema,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { checkGlobalVisualTask } from "../../scripts/project-production/application/global-visual-task-check";
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
 import {
@@ -139,7 +139,10 @@ const createGlobalWorkspace = async ({
     join(workspace, "project/global-visual-plan.json"),
     `${JSON.stringify(fixture.plan)}\n`,
   );
-  await writeFile(join(workspace, "src/GlobalVisualLayers.tsx"), fixture.source);
+  await writeFile(
+    join(workspace, "src/GlobalVisualLayers.tsx"),
+    fixture.source,
+  );
   await writeFile(
     join(workspace, "src/selected-resources.json"),
     `${JSON.stringify({
@@ -193,7 +196,9 @@ test("GlobalVisual task rejects a valid plan whose dimensions cross the frozen c
 });
 
 test("GlobalVisual task rejects a plan whose Composition identity crosses RenderSpec", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-composition-boundary-"));
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-global-composition-boundary-"),
+  );
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const task = await createGlobalWorkspace({
     rootDir,
@@ -207,7 +212,9 @@ test("GlobalVisual task rejects a plan whose Composition identity crosses Render
 });
 
 test("GlobalVisual task rejects resources outside its exact role and allowlist", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-resource-boundary-"));
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-global-resource-boundary-"),
+  );
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const task = await createGlobalWorkspace({
     rootDir,

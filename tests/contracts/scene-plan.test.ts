@@ -7,7 +7,7 @@ import {
   buildSceneSoundPlan,
   resolveSceneSoundContributions,
   validateScenePlanBundle,
-} from "../../src/contracts/scene-plan";
+} from "@axmorf/studio/contracts";
 import { createScenePlans, sha } from "../fixtures/scene/scene-input";
 
 test("visual Shot anchor and explicit empty sound plans form one strict 120-frame Scene", () => {

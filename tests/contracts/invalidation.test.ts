@@ -9,7 +9,7 @@ import {
   RenderSpecSchema,
   StorySpecSchema,
   validateNarrativeArtifactBundle,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   buildValidSealedNarrationManifest,
   validNarrationSpec,

@@ -2,7 +2,16 @@ import { createHash } from "node:crypto";
 import { lstat, readFile, readdir } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
 
-import { Sha256DigestSchema, createFingerprint } from "../../../src/contracts";
+import {
+  Sha256DigestSchema,
+  createFingerprint,
+} from "@axmorf/studio/contracts";
+import {
+  parseRuntimePolicyManifest,
+  selectRuntimePolicyFiles,
+  type RuntimePolicyManifest,
+  type RuntimePolicyScope,
+} from "../../../packages/studio/src/runtime/policy-manifest";
 
 export const checksumBytes = (bytes: Uint8Array) =>
   Sha256DigestSchema.parse(
@@ -59,9 +68,19 @@ const collectTree = async (
 
 export const snapshotPolicyRoots = async ({
   rootDir,
+  runtimePolicyManifest,
 }: {
   readonly rootDir: string;
+  readonly runtimePolicyManifest?: RuntimePolicyManifest;
 }) => {
+  if (runtimePolicyManifest !== undefined) {
+    const manifest = parseRuntimePolicyManifest(runtimePolicyManifest);
+    return createFingerprint({
+      namespace: "project-production-runtime-policy",
+      version: 2,
+      value: manifest,
+    });
+  }
   const files = (
     await Promise.all(
       ["src/contracts", "src/remotion"].map((path) =>
@@ -90,6 +109,19 @@ export const snapshotPolicyRoots = async ({
     value: files,
   });
 };
+
+export const snapshotWorkspaceConfiguration = async ({
+  rootDir,
+  paths = ["package.json", "package-lock.json", "remotion.config.ts"],
+}: {
+  readonly rootDir: string;
+  readonly paths?: readonly string[];
+}) =>
+  snapshotExplicitPolicyPaths({
+    rootDir,
+    paths,
+    namespace: "project-production-workspace-configuration",
+  });
 
 export const snapshotExplicitPolicyPaths = async ({
   rootDir,
@@ -212,9 +244,41 @@ const TASK_POLICY_PATHS = {
 
 export const snapshotTaskPolicyFingerprints = async ({
   rootDir,
+  runtimePolicyManifest,
 }: {
   readonly rootDir: string;
+  readonly runtimePolicyManifest?: RuntimePolicyManifest;
 }) => {
+  if (runtimePolicyManifest !== undefined) {
+    const manifest = parseRuntimePolicyManifest(runtimePolicyManifest);
+    const fingerprintFor = (scope: RuntimePolicyScope, namespace: string) =>
+      createFingerprint({
+        namespace,
+        version: 2,
+        value: {
+          policyVersion: manifest.policyVersion,
+          packageName: manifest.packageName,
+          packageVersion: manifest.packageVersion,
+          publicExports: manifest.publicExports,
+          files: selectRuntimePolicyFiles(manifest, scope),
+        },
+      });
+    return {
+      scene: fingerprintFor("scene", "project-production-scene-policy"),
+      globalVisual: fingerprintFor(
+        "global-visual",
+        "project-production-global-visual-policy",
+      ),
+      composition: fingerprintFor(
+        "composition",
+        "project-production-composition-policy",
+      ),
+      delivery: fingerprintFor(
+        "delivery",
+        "project-production-delivery-policy",
+      ),
+    } as const;
+  }
   const [scene, globalVisual, composition, delivery] = await Promise.all([
     snapshotExplicitPolicyPaths({
       rootDir,

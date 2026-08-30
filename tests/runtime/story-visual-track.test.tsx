@@ -11,21 +11,21 @@ import {
   buildSceneFallbackDeclaration,
   computeScenePackageFingerprint,
   resolveSceneReadabilityPolicy,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   renderSceneRendererMount,
   SceneSlot,
   resolveSceneRenderer,
-} from "../../src/remotion/runtime/story-visual/SceneSlot";
+} from "@axmorf/studio/remotion";
 import {
   StoryVisualTrack,
   buildStoryVisualProjection,
-} from "../../src/remotion/runtime/story-visual/StoryVisualTrack";
-import { SceneViewport } from "../../src/remotion/runtime/readability";
+} from "@axmorf/studio/remotion";
+import { SceneViewport } from "@axmorf/studio/remotion";
 import type {
   SceneRendererMountProps,
   SceneRendererProps,
-} from "../../src/remotion/runtime/story-visual/types";
+} from "@axmorf/studio/remotion";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
 import { createScenePackageInput } from "../fixtures/scene/package-input";
 
@@ -313,8 +313,8 @@ test("StoryVisualTrack mounts ready SceneSlot only and sound-only identity chang
 
 test("visual runtime source has no sound caption filesystem network or authored loader", async () => {
   const paths = [
-    "../../src/remotion/runtime/story-visual/SceneSlot.tsx",
-    "../../src/remotion/runtime/story-visual/StoryVisualTrack.tsx",
+    "../../packages/studio/src/remotion/runtime/story-visual/SceneSlot.tsx",
+    "../../packages/studio/src/remotion/runtime/story-visual/StoryVisualTrack.tsx",
   ];
   const source = (
     await Promise.all(

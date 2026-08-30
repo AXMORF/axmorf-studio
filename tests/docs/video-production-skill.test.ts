@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const skillRoot = path.join(
   process.cwd(),
-  ".agents/skills/remotion-story-producer-video",
+  ".agents/skills/axmorf-video",
 );
 const readSkillFile = (relativePath: string) =>
   readFile(path.join(skillRoot, relativePath), "utf8");
@@ -15,7 +15,7 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 const PolicySchema = z
   .object({
     schemaVersion: z.literal(16),
-    policyVersion: z.literal("remotion-story-producer-video-policy-v18"),
+    policyVersion: z.literal("axmorf-video-policy-v18"),
     rootEndpoints: z.tuple([
       z.literal("project-production-complete"),
       z.literal("project-production-current"),
@@ -155,8 +155,8 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   const executable = `${workflow}\n${scene}\n${globalVisual}\n${cover}`;
   const bundle = `${skill}\n${executable}\n${hardening}\n${producerConfig}\n${rawPolicy}`;
 
-  assert.match(skill, /^name: remotion-story-producer-video$/mu);
-  assert.match(openAiMetadata, /\$remotion-story-producer-video/u);
+  assert.match(skill, /^name: axmorf-video$/mu);
+  assert.match(openAiMetadata, /\$axmorf-video/u);
   assert.match(openAiMetadata, /内置 inline/u);
   for (const heading of policy.requiredEntrypointHeadings) {
     assert.match(skill, new RegExp(`^## ${heading}$`, "mu"));

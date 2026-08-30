@@ -1,16 +1,16 @@
-import type { NarrationSpec } from "../../src/contracts/narration";
-import { buildNarrationExecutionSnapshot } from "../../src/contracts/narration-execution";
-import { createFingerprint } from "../../src/contracts/fingerprint";
+import type { NarrationSpec } from "@axmorf/studio/contracts";
+import { buildNarrationExecutionSnapshot } from "@axmorf/studio/contracts";
+import { createFingerprint } from "@axmorf/studio/contracts";
 import {
   NarrationMasteringPolicySchema,
   buildNarrationMasteringPolicy,
-} from "../../src/contracts/mastered-narration";
+} from "@axmorf/studio/contracts";
 import type {
   EdgeTtsProviderConfig,
   SpeechSdkProviderConfig,
-} from "../../src/contracts/producer-config";
-import { getSpeechSdkModelMaxInputChars } from "../../src/contracts/tts-provider-registry";
-import type { SpeechSdkVendor } from "../../src/contracts/tts-provider-registry";
+} from "@axmorf/studio/contracts";
+import { getSpeechSdkModelMaxInputChars } from "@axmorf/studio/contracts";
+import type { SpeechSdkVendor } from "@axmorf/studio/contracts";
 import {
   resolveVoxcpmProfile,
   resolveVoxcpmProfileInspectionMetadata,
@@ -45,27 +45,21 @@ export type RemoteTtsProfileMetadata =
 
 export type ProducerNarrationInspection = Readonly<{
   providerAttemptFingerprint: string | null;
-  providerAttemptIdentityState:
-    | "exact"
-    | "unknown-protected-voice-material";
-  masteringPolicy: ReturnType<
-    typeof NarrationMasteringPolicySchema.parse
-  >;
+  providerAttemptIdentityState: "exact" | "unknown-protected-voice-material";
+  masteringPolicy: ReturnType<typeof NarrationMasteringPolicySchema.parse>;
   metadata: VoxcpmProfileInspectionMetadata | RemoteTtsProfileMetadata;
 }>;
 
-const requireVoiceProfile = <
-  T extends readonly { readonly id: string }[],
->(
+const requireVoiceProfile = <T extends readonly { readonly id: string }[]>(
   profiles: T,
   narration: NarrationSpec,
   providerLabel: string,
 ) => {
-  const matches = profiles.filter(
-    ({ id }) => id === narration.voiceProfileId,
-  );
+  const matches = profiles.filter(({ id }) => id === narration.voiceProfileId);
   if (matches.length !== 1) {
-    throw new Error(`The selected ${providerLabel} voice profile is unavailable.`);
+    throw new Error(
+      `The selected ${providerLabel} voice profile is unavailable.`,
+    );
   }
   return matches[0] as T[number];
 };
@@ -219,9 +213,7 @@ export const resolveProducerNarrationInspection = async ({
   const provider = resolveDefaultTtsProvider(producerConfig);
   const speechRate = producerConfig.tts.speech.rate;
   const masteringPolicy = NarrationMasteringPolicySchema.parse(
-    buildNarrationMasteringPolicy(
-      producerConfig.tts.speech.targetLoudnessLufs,
-    ),
+    buildNarrationMasteringPolicy(producerConfig.tts.speech.targetLoudnessLufs),
   );
   if (provider.kind === "voxcpm") {
     return {

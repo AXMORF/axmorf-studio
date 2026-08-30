@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { VideoBriefSchema } from "../../src/contracts/brief";
-import { flattenTtsChunks, StorySpecSchema } from "../../src/contracts/story";
+import { VideoBriefSchema } from "@axmorf/studio/contracts";
+import {
+  flattenTtsChunks,
+  StorySpecSchema,
+} from "@axmorf/studio/contracts";
 import { validStorySpec, validVideoBrief } from "../fixtures/narrative";
 
 test("valid authored inputs preserve StoryBeat and TTSChunk order", () => {

@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import {
   AnyFinalMechanicalCheckReportSchema,
   type AnyFinalMechanicalCheckReport,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { getProjectCheckPaths } from "./project-files";
 import { writeNarrativeAutoCheckAtomic } from "./report-files";
 

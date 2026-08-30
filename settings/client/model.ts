@@ -1,4 +1,4 @@
-import { getEdgeTtsVoiceDefinition } from "../../src/contracts/tts-provider-registry";
+import { getEdgeTtsVoiceDefinition } from "@axmorf/studio/contracts";
 
 type VoiceProfile = Readonly<{
   id: string;

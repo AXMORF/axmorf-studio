@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   buildSceneCoverageMap,
   buildSceneFallbackDeclaration,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   generateSceneCoverage,
   generateScenePackage,

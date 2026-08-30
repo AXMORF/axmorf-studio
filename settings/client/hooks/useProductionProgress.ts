@@ -63,10 +63,32 @@ export const useProductionProgress = () => {
   );
 
   useEffect(() => {
-    void refresh();
-    const interval = window.setInterval(() => void refresh(), 3_000);
+    let interval: number | null = null;
+    const stopPolling = () => {
+      if (interval !== null) {
+        window.clearInterval(interval);
+        interval = null;
+      }
+    };
+    const startPolling = () => {
+      stopPolling();
+      if (document.visibilityState === "hidden") return;
+      void refresh();
+      interval = window.setInterval(() => void refresh(), 3_000);
+    };
+    const visibilityChanged = () => {
+      if (document.visibilityState === "hidden") {
+        stopPolling();
+        request.current?.abort();
+        return;
+      }
+      startPolling();
+    };
+    document.addEventListener("visibilitychange", visibilityChanged);
+    startPolling();
     return () => {
-      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", visibilityChanged);
+      stopPolling();
       request.current?.abort();
     };
   }, [refresh]);

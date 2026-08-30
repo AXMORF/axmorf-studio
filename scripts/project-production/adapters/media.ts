@@ -1,10 +1,11 @@
 import { lstat, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
-import type { RenderSpec } from "../../../src/contracts";
+import type { RenderSpec } from "@axmorf/studio/contracts";
+import { resolveMediaToolCommand } from "../../shared/media-tool-command";
 import { runMediaProcess } from "../../shared/media-process";
 import type { ProcessRunner } from "../../shared/process";
-import { resolveRemotionCommand } from "../../shared/remotion-command";
+import { resolveRemotionCliInvocation } from "../../shared/remotion-command";
 
 const parseProbe = (stdout: string, label: string) => {
   try {
@@ -58,7 +59,9 @@ export const renderProjectVideo = async ({
   readonly outputPath: string;
   readonly runProcess?: ProcessRunner;
 }) => {
-  const result = await runProcess(resolveRemotionCommand(rootDir), [
+  const invocation = await resolveRemotionCliInvocation(rootDir);
+  const result = await runProcess(invocation.command, [
+    ...invocation.argsPrefix,
     "render",
     "src/index.ts",
     compositionId,
@@ -69,7 +72,9 @@ export const renderProjectVideo = async ({
     "--log=error",
   ]);
   if (result.status !== 0) {
-    throw new Error(`Remotion could not render Project video: ${basename(outputPath)}.`);
+    throw new Error(
+      `Remotion could not render Project video: ${basename(outputPath)}.`,
+    );
   }
 };
 
@@ -86,7 +91,9 @@ export const renderProjectCover = async ({
   readonly outputPath: string;
   readonly runProcess?: ProcessRunner;
 }) => {
-  const result = await runProcess(resolveRemotionCommand(rootDir), [
+  const invocation = await resolveRemotionCliInvocation(rootDir);
+  const result = await runProcess(invocation.command, [
+    ...invocation.argsPrefix,
     "still",
     join("src/projects", projectId, "delivery/cover/index.ts"),
     compositionId,
@@ -95,7 +102,9 @@ export const renderProjectCover = async ({
     "--log=error",
   ]);
   if (result.status !== 0) {
-    throw new Error(`Remotion could not render Project Cover: ${basename(outputPath)}.`);
+    throw new Error(
+      `Remotion could not render Project Cover: ${basename(outputPath)}.`,
+    );
   }
 };
 
@@ -114,22 +123,33 @@ export const inspectProjectVideo = async ({
   if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size <= 0) {
     throw new Error("Project video must be a non-empty regular MP4.");
   }
-  const videoProbe = await runProcess("ffprobe", [
-    "-v",
-    "error",
-    "-count_frames",
-    "-select_streams",
-    "v:0",
-    "-show_entries",
-    "stream=codec_name,width,height,r_frame_rate,nb_read_frames",
-    "-of",
-    "json",
-    absolutePath,
-  ]);
+  const videoProbeCommand = await resolveMediaToolCommand({
+    rootDir: process.cwd(),
+    tool: "ffprobe",
+    args: [
+      "-v",
+      "error",
+      "-count_frames",
+      "-select_streams",
+      "v:0",
+      "-show_entries",
+      "stream=codec_name,width,height,r_frame_rate,nb_read_frames",
+      "-of",
+      "json",
+      absolutePath,
+    ],
+  });
+  const videoProbe = await runProcess(
+    videoProbeCommand.command,
+    videoProbeCommand.args,
+  );
   if (videoProbe.status !== 0) {
     throw new Error("Project video metadata could not be inspected.");
   }
-  const video = oneStream(parseProbe(videoProbe.stdout, "Video probe"), "Video probe");
+  const video = oneStream(
+    parseProbe(videoProbe.stdout, "Video probe"),
+    "Video probe",
+  );
   const fps = parseFrameRate(video.r_frame_rate);
   const readFrames =
     typeof video.nb_read_frames === "string"
@@ -144,37 +164,44 @@ export const inspectProjectVideo = async ({
   ) {
     throw new Error("Project video stream metadata drifted from RenderSpec.");
   }
-  const audioProbe = await runProcess("ffprobe", [
-    "-v",
-    "error",
-    "-select_streams",
-    "a:0",
-    "-show_entries",
-    "stream=codec_name,channels",
-    "-of",
-    "json",
-    absolutePath,
-  ]);
+  const audioProbeCommand = await resolveMediaToolCommand({
+    rootDir: process.cwd(),
+    tool: "ffprobe",
+    args: [
+      "-v",
+      "error",
+      "-select_streams",
+      "a:0",
+      "-show_entries",
+      "stream=codec_name,channels",
+      "-of",
+      "json",
+      absolutePath,
+    ],
+  });
+  const audioProbe = await runProcess(
+    audioProbeCommand.command,
+    audioProbeCommand.args,
+  );
   if (audioProbe.status !== 0) {
     throw new Error("Project video audio metadata could not be inspected.");
   }
-  const audio = oneStream(parseProbe(audioProbe.stdout, "Audio probe"), "Audio probe");
+  const audio = oneStream(
+    parseProbe(audioProbe.stdout, "Audio probe"),
+    "Audio probe",
+  );
   if (
     audio.codec_name !== "aac" ||
     audio.channels !== render.output.audioChannels
   ) {
     throw new Error("Project video audio stream drifted from RenderSpec.");
   }
-  const decoded = await runProcess("ffmpeg", [
-    "-v",
-    "error",
-    "-xerror",
-    "-i",
-    absolutePath,
-    "-f",
-    "null",
-    "-",
-  ]);
+  const decodeCommand = await resolveMediaToolCommand({
+    rootDir: process.cwd(),
+    tool: "ffmpeg",
+    args: ["-v", "error", "-xerror", "-i", absolutePath, "-f", "null", "-"],
+  });
+  const decoded = await runProcess(decodeCommand.command, decodeCommand.args);
   if (decoded.status !== 0) {
     throw new Error("Project video did not decode completely to EOF.");
   }
@@ -192,17 +219,45 @@ export const inspectProjectVideo = async ({
 
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const;
 
-export const inspectProjectCover = async ({ absolutePath, expected, runProcess = runMediaProcess }: {
-  readonly absolutePath: string; readonly expected: Readonly<{ width: number; height: number }>; readonly runProcess?: ProcessRunner;
+export const inspectProjectCover = async ({
+  absolutePath,
+  expected,
+  runProcess = runMediaProcess,
+}: {
+  readonly absolutePath: string;
+  readonly expected: Readonly<{ width: number; height: number }>;
+  readonly runProcess?: ProcessRunner;
 }) => {
   const metadata = await lstat(absolutePath);
-  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size < 24) throw new Error("Delivery cover must be a non-empty regular PNG.");
+  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size < 24) {
+    throw new Error("Delivery cover must be a non-empty regular PNG.");
+  }
   const bytes = Uint8Array.from(await readFile(absolutePath));
-  if (PNG_SIGNATURE.some((value, index) => bytes[index] !== value) || String.fromCharCode(...bytes.subarray(12, 16)) !== "IHDR") throw new Error("Delivery cover PNG header is malformed.");
+  if (
+    PNG_SIGNATURE.some((value, index) => bytes[index] !== value) ||
+    String.fromCharCode(...bytes.subarray(12, 16)) !== "IHDR"
+  ) {
+    throw new Error("Delivery cover PNG header is malformed.");
+  }
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const width = view.getUint32(16); const height = view.getUint32(20);
-  if (width !== expected.width || height !== expected.height) throw new Error("Delivery cover dimensions drifted.");
-  const decoded = await runProcess("ffmpeg", ["-v", "error", "-xerror", "-i", absolutePath, "-f", "null", "-"]);
-  if (decoded.status !== 0) throw new Error("Delivery cover did not decode completely to EOF.");
-  return { imageFormat: "png" as const, width, height, decodedToEof: true as const };
+  const width = view.getUint32(16);
+  const height = view.getUint32(20);
+  if (width !== expected.width || height !== expected.height) {
+    throw new Error("Delivery cover dimensions drifted.");
+  }
+  const decodeCommand = await resolveMediaToolCommand({
+    rootDir: process.cwd(),
+    tool: "ffmpeg",
+    args: ["-v", "error", "-xerror", "-i", absolutePath, "-f", "null", "-"],
+  });
+  const decoded = await runProcess(decodeCommand.command, decodeCommand.args);
+  if (decoded.status !== 0) {
+    throw new Error("Delivery cover did not decode completely to EOF.");
+  }
+  return {
+    imageFormat: "png" as const,
+    width,
+    height,
+    decodedToEof: true as const,
+  };
 };

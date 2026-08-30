@@ -5,7 +5,7 @@ import {
   FINAL_MECHANICAL_CHECK_V2_IDS,
   createFinalAssemblyPlan,
   createFinalMechanicalCheckV2Report,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { finalAssemblyInput } from "../fixtures/final-assembly/input";
 
 const sha = (value: string) => `sha256:${value.repeat(64)}`;

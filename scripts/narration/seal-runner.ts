@@ -1,17 +1,17 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { serializeCanonicalJson } from "../../src/contracts/fingerprint";
-import { validateNarrativeArtifactBundle } from "../../src/contracts/narrative-artifact-bundle";
-import type { NarrativeProjectSource } from "../../src/contracts/project";
+import { serializeCanonicalJson } from "@axmorf/studio/contracts";
+import { validateNarrativeArtifactBundle } from "@axmorf/studio/contracts";
+import type { NarrativeProjectSource } from "@axmorf/studio/contracts";
 import {
   SealedNarrationManifestSchema,
   type SealedNarrationManifest,
-} from "../../src/contracts/sealed-narration";
+} from "@axmorf/studio/contracts";
 import {
   generateSemanticTiming,
   SemanticTimingSchema,
-} from "../../src/contracts/semantic-timing";
+} from "@axmorf/studio/contracts";
 import {
   createNarrationSealFileOperations,
   removeNarrationSealStaging,

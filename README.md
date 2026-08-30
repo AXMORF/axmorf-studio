@@ -1,7 +1,19 @@
-# Remotion Story Producer
+# AXMORF Studio
 
-一个以 Remotion 为渲染运行时、以 Project authoring revision 和内容寻址 artifacts 为生产 authority 的本地
-视频生产仓库。Agent 负责创意任务；固定脚本负责输入快照、验证、artifact promotion、Project 物化和同步交付。
+一个以 Remotion 为渲染运行时、以 Project authoring revision 和内容寻址 artifacts 为生产 authority 的
+Agent-first 视频生产工具。Agent 在用户 Workspace 中负责创作；npm package 提供 contracts、固定生产控制器、
+Remotion runtime、CLI 和本地 Web 控制中心。
+
+## npm 方案状态
+
+当前分支已经完成可安装的本地 npm vertical slice：private monorepo 根管理 runtime 与 creator 两个公开 package，
+creator 可从真实 tarball 创建一个普通、独立、可重装的 npm Workspace。目标产品不包含 Desktop、Electron、
+Runtime Pack 或 `rsp` control plane；用户数据只属于生成的 Workspace。
+
+仓库和两个发布包已采用 Apache-2.0，并补齐 package README、`LICENSE` 与
+`THIRD_PARTY_NOTICES.md`。`@axmorf/studio` 和 `create-axmorf-studio` 当前 registry 查询均未发现公开包；下面的
+`npm create` 是首次发布后的稳定入口。production 与完整 repository `npm audit` 已通过精确传递依赖约束和兼容的
+开发工具更新归零；跨平台 CI 和首次 publish 仍是独立 gates，未经明确授权不会执行真实发布、push 或 tag。
 
 ## 当前主链
 
@@ -38,7 +50,7 @@ Project source
 - `project-production-complete` 与 `project-production-current` 都表示实际 current four files 已机械复验。
 
 产品目标、实现状态和精确 contract 请从 [文档导航](docs/README.md) 进入。生产 Agent 使用
-[remotion-story-producer-video Skill](.agents/skills/remotion-story-producer-video/SKILL.md)；每个 Scene task executor
+[axmorf-video Skill](.agents/skills/axmorf-video/SKILL.md)；每个 Scene task executor
 还必须完整读取 repository-local `remotion-best-practices`。
 
 ## Agent 兼容性
@@ -48,12 +60,29 @@ Codex、Claude、Gemini、Cursor 或 Copilot SDK。Codex、Cursor 与 GitHub Cop
 Claude Code 通过 `CLAUDE.md`、Gemini CLI 通过 `GEMINI.md` 导入同一文件。不会自动发现 Skill 的 Agent 仍可按
 `AGENTS.md` 指向的路径手动加载，规则没有第二份副本。
 
-全新 checkout 内置使用 `inline`：单个 Agent 即可完成 dirty tasks。`subagents` 是可选加速能力，只有宿主确实
+全新 scaffolded Workspace 内置使用 `inline`：单个 Agent 即可完成 dirty tasks。`subagents` 是可选加速能力，只有宿主确实
 支持 runtime-native children 且本次解析选择该模式时才启用。OpenAI 的 `agents/openai.yaml` 只是可选 UI
 adapter，不参与生产 authority。完整入口与能力矩阵见
 [Agent 兼容性指南](docs/guides/AGENT_COMPATIBILITY.md)。
 
-## 快速开始
+## 用户快速开始（首次发布后）
+
+```bash
+npm create axmorf-studio@latest my-video
+cd my-video
+npm run dev
+```
+
+creator 默认安装精确依赖、生成 `package-lock.json`，并在原子提升目标目录前完成无 provider 的
+`bootstrap`/`doctor`。`npm run dev` 同时启动 loopback-only Web 控制中心和 Remotion Studio；Web 负责配置、
+诊断、生产进度与 verified current Delivery，Studio 负责 Composition 实时预览。二者都不编辑 Project，也不
+派发 Agent。
+
+把生成目录交给任意能读写文件并运行 npm 的 Agent。Agent 先读取 Workspace 内的 `AGENTS.md` 和
+`.agents/skills/axmorf-video/SKILL.md`，再通过结构化 npm scripts 执行创建、inspect、
+prepare、task validation 和 fixed continuation。
+
+## Contributor 快速开始
 
 ```bash
 npm install
@@ -71,7 +100,7 @@ npm run check
 真实 Remotion、FFmpeg、Chromium 和 production preflight 首次直接使用宿主权限。不要通过降低 Chromium
 sandbox、预热 TTS 或 fallback output 获得 Green。
 
-本地配置页：
+本地源码仓库的 Web 开发页：
 
 ```bash
 npm run config:dev
@@ -138,7 +167,7 @@ npm run project:produce:prepare -- --project <story-id>
 ```
 
 4. 按已解析模式执行 `dirtyAgentTasks`：inline 时 Root 一次处理一个；subagents 时以有效并发上限运行 bounded
-pool，任务多于槽位时仅 wait-any 释放 admission slot。每个 executor 在自己的 workspace 内循环：
+   pool，任务多于槽位时仅 wait-any 释放 admission slot。每个 executor 在自己的 workspace 内循环：
 
 ```bash
 npm run project:task:check -- --task <task-revision>
@@ -190,8 +219,10 @@ Registry/Catalog；不会删除 core、其他 Project、shared assets、private 
 ## Repository layout
 
 ```text
-src/contracts/                        versioned JSON-safe contracts
-src/remotion/                         runtime components and top-level ownership
+packages/studio/     compiled runtime, CLI, contracts, Remotion and Web assets
+packages/create-axmorf-studio/ atomic user Workspace creator and host-neutral Skill template
+packages/studio/src/contracts/ versioned JSON-safe contracts
+packages/studio/src/remotion/ runtime components and top-level ownership
 src/projects/<storyId>/               ignored authoring + materialized Project source
 scripts/project-production/           Revision/DAG/workspace/artifact/convergence/delivery
 scripts/narration/                    provider attempts, PCM seal, timing
@@ -202,7 +233,7 @@ scripts/renderer-registry/             static composition registry generation
 .producer-attempts/<story>/            ignored diagnostic attempts
 .producer-runs/                        ignored legacy deletion-only history
 deliveries/<story>/                    ignored exact current four-file package
-settings/                              local configuration/progress UI and API
+settings/                              Web source, built into the runtime package at release time
 docs/                                  current authority, guides, evidence, archive
 ```
 

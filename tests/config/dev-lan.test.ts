@@ -9,6 +9,7 @@ import {
 import {
   buildStudioUrl,
   isLanAccessHostname,
+  resolveStudioUrl,
 } from "../../settings/client/network";
 
 test("LAN development mode is explicit and fail-closed", () => {
@@ -50,4 +51,12 @@ test("the config page keeps the current LAN host when linking to Studio", () => 
   );
   assert.equal(isLanAccessHostname("192.168.50.6"), true);
   assert.equal(isLanAccessHostname("127.0.0.1"), false);
+  assert.equal(
+    resolveStudioUrl("http://127.0.0.1:3100/", "http://127.0.0.1:43101/"),
+    "http://127.0.0.1:43101/",
+  );
+  assert.equal(
+    resolveStudioUrl("http://127.0.0.1:3100/", "__AXMORF_STUDIO_URL__"),
+    "http://127.0.0.1:3101/",
+  );
 });

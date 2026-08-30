@@ -1,6 +1,9 @@
-import { computeGenerationInputFingerprint } from "../../src/contracts/generation-input";
-import type { NarrationSpec } from "../../src/contracts/narration";
-import { flattenTtsChunks, type StorySpec } from "../../src/contracts/story";
+import { computeGenerationInputFingerprint } from "@axmorf/studio/contracts";
+import type { NarrationSpec } from "@axmorf/studio/contracts";
+import {
+  flattenTtsChunks,
+  type StorySpec,
+} from "@axmorf/studio/contracts";
 import {
   CanonicalMeasuredChunkSchema,
   RawNarrationCandidateSchema,

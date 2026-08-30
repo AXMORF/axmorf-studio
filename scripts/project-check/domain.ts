@@ -3,7 +3,7 @@ import {
   type NarrativeAutoCheckEvidenceId,
   type NarrativeAutoCheckId,
   type NarrativeAutoCheckReportInput,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 
 const CHECK_EVIDENCE = {
   "source-contracts": [],

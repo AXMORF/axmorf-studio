@@ -3,7 +3,16 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 import { writeProducerConfig } from "../../scripts/config/producer-config";
+import { generateResourceCatalog } from "../../scripts/catalog/generate";
 import { generateSceneTemplateAudioProjection } from "../../scripts/scene-templates/audio-projection";
+import {
+  WORKSPACE_CAPABILITY_FACADE_SOURCE,
+  WORKSPACE_REMOTION_FACADE_PATH,
+} from "../../packages/studio/src/remotion/catalog/capability-descriptors";
+import {
+  WORKSPACE_STYLE_FACADE_PATH,
+  WORKSPACE_STYLE_FACADE_SOURCE,
+} from "../../packages/studio/src/remotion/catalog/style-descriptors";
 
 export const validProjectCreateInput = {
   schemaVersion: 1,
@@ -172,26 +181,44 @@ export const validProjectCreateProducerConfig = {
 
 const repositoryRoot = join(import.meta.dirname, "../..");
 
+export const projectCreateRuntimeResources = {
+  sceneTemplatesRoot: join(
+    repositoryRoot,
+    "packages/studio/src/remotion/capabilities/scene-templates",
+  ),
+} as const;
+
 export const writeProjectCreateJson = async (path: string, value: unknown) => {
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 };
 
+const writeTextFile = async (path: string, source: string) => {
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, source, "utf8");
+};
+
 export const prepareProjectCreateFixture = async () => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-project-create-"));
-  await cp(
-    join(repositoryRoot, "src/remotion"),
-    join(rootDir, "src/remotion"),
-    { recursive: true },
-  );
+  await Promise.all([
+    writeTextFile(
+      join(rootDir, WORKSPACE_REMOTION_FACADE_PATH),
+      WORKSPACE_CAPABILITY_FACADE_SOURCE,
+    ),
+    writeTextFile(
+      join(rootDir, WORKSPACE_STYLE_FACADE_PATH),
+      WORKSPACE_STYLE_FACADE_SOURCE,
+    ),
+  ]);
   await cp(
     join(repositoryRoot, "public/assets"),
     join(rootDir, "public/assets"),
     { recursive: true },
   );
-  await generateSceneTemplateAudioProjection({ rootDir, mode: "write" });
   await mkdir(join(rootDir, "src/projects"), { recursive: true });
   await mkdir(join(rootDir, "public/projects"), { recursive: true });
+  await generateSceneTemplateAudioProjection({ rootDir, mode: "write" });
+  await generateResourceCatalog({ rootDir, mode: "write" });
   const configPath = join(rootDir, "operator/producer.config.json");
   await writeProducerConfig({
     configPath,
@@ -199,5 +226,10 @@ export const prepareProjectCreateFixture = async () => {
   });
   const inputPath = join(rootDir, "inputs/project-create.json");
   await writeProjectCreateJson(inputPath, validProjectCreateInput);
-  return { rootDir, configPath, inputPath } as const;
+  return {
+    rootDir,
+    configPath,
+    inputPath,
+    runtimeResources: projectCreateRuntimeResources,
+  } as const;
 };

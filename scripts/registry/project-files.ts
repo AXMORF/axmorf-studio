@@ -9,7 +9,7 @@ import {
   SemanticTimingSchema,
   STORY_SPEC_SCHEMA_VERSION,
   validateNarrativeArtifactBundle,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   createValidatedProjectRegistrationEntry,
   type ValidatedProjectRegistrationEntry,

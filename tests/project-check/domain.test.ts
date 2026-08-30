@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { NARRATIVE_AUTO_CHECK_IDS } from "../../src/contracts";
+import { NARRATIVE_AUTO_CHECK_IDS } from "@axmorf/studio/contracts";
 import {
   createNarrativeCheckItem,
   mapNarrativeCheckFailure,

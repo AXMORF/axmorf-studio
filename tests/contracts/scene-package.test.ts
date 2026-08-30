@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   ScenePackageSchema,
   buildShotRecipeSelection,
-} from "../../src/contracts";
+} from "@axmorf/studio/contracts";
 import { buildScenePackage } from "../../scripts/scene-package/domain";
 import { createScenePackageInput } from "../fixtures/scene/package-input";
 import { sha } from "../fixtures/scene/scene-input";

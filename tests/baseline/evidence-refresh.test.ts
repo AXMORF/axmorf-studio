@@ -13,8 +13,8 @@ import {
   NARRATIVE_BASELINE_EVIDENCE_SCHEMA_VERSION,
   NarrativeBaselineEvidenceReceiptInputSchema,
   ProjectRegistrationDescriptorSchema,
-} from "../../src/contracts/narrative-baseline";
-import { Sha256DigestSchema } from "../../src/contracts/primitives";
+} from "@axmorf/studio/contracts";
+import { Sha256DigestSchema } from "@axmorf/studio/contracts";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 

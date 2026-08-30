@@ -1,12 +1,5 @@
 import { randomUUID } from "node:crypto";
-import {
-  lstat,
-  mkdir,
-  open,
-  readFile,
-  rename,
-  unlink,
-} from "node:fs/promises";
+import { lstat, mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 
 import {
@@ -19,14 +12,11 @@ import {
   type RawNarrationCandidate,
   planChunkGeneration,
 } from "../domain/candidate-progress";
-import {
-  decodeCanonicalPcmWav,
-  sha256Bytes,
-} from "../domain/pcm-wav";
+import { decodeCanonicalPcmWav, sha256Bytes } from "../domain/pcm-wav";
 import {
   Sha256DigestSchema,
   StoryIdSchema,
-} from "../../../src/contracts/primitives";
+} from "@axmorf/studio/contracts";
 
 const digestBody = (fingerprint: string): string =>
   Sha256DigestSchema.parse(fingerprint).slice("sha256:".length);
@@ -121,9 +111,7 @@ const readIfPresent = async (path: string): Promise<Buffer | undefined> => {
   }
 };
 
-type VerifiedNarrationChunk =
-  | RawNarrationCandidate
-  | CanonicalMeasuredChunk;
+type VerifiedNarrationChunk = RawNarrationCandidate | CanonicalMeasuredChunk;
 
 const parseChunkRecord = (bytes: Buffer): VerifiedNarrationChunk => {
   let value: unknown;
@@ -257,7 +245,9 @@ export const loadVerifiedProgress = async ({
     try {
       rawProgress = JSON.parse(progressBytes.toString("utf8"));
     } catch (error) {
-      throw new Error("Narration progress JSON is malformed.", { cause: error });
+      throw new Error("Narration progress JSON is malformed.", {
+        cause: error,
+      });
     }
     parsed = NarrationGenerationProgressSchema.parse(rawProgress);
   }
@@ -270,7 +260,8 @@ export const loadVerifiedProgress = async ({
   }
 
   const expectedById = new Map(
-    expected?.chunks.map((request) => [request.chunkId, request] as const) ?? [],
+    expected?.chunks.map((request) => [request.chunkId, request] as const) ??
+      [],
   );
   const verifiedById = new Map<string, VerifiedNarrationChunk>();
   for (const chunk of parsed.chunks) {
@@ -472,7 +463,10 @@ const writeCachedChunk = async ({
       const rawBytes = await readIfPresent(
         resolveInsideAttempt(paths.cacheDirectory, chunk.rawRelativePath),
       );
-      if (rawBytes === undefined || sha256Bytes(rawBytes) !== chunk.rawChecksum) {
+      if (
+        rawBytes === undefined ||
+        sha256Bytes(rawBytes) !== chunk.rawChecksum
+      ) {
         throw new Error(
           `Narration measured chunk ${chunk.chunkId} is missing its verified raw candidate.`,
         );

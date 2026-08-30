@@ -2,9 +2,28 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-22 host-neutral Agent entrypoints 与内置 inline execution
+> 最后复核：2026-08-30 npm Workspace 本地 vertical slice
 
 ## 当前结论
+
+当前分支已在 Foundation 主链上实现 npm Workspace 本地 vertical slice：
+
+- 根 package 是 `private` npm workspaces owner；`@axmorf/studio` 提供 compiled ESM public
+  exports、单一 CLI、package-owned RuntimeResources、Remotion entry 和预构建 Web；
+- `create-axmorf-studio` 以 same-parent staging 原子创建普通独立应用，写入精确 dependencies、marker、
+  配置、宿主无关 `AGENTS.md`/Skill，并默认完成 install、lockfile、bootstrap 和 doctor；
+- contracts 与 Remotion runtime 的 canonical source 已迁入 runtime package；Workspace 只拥有可写 Project、
+  media、config、work/artifact/attempt/out/delivery，以及 catalog/registry 的薄静态 facade；
+- Web 只监听 `127.0.0.1`，复用 Foundation 配置/诊断/进度 UI，新增 verified current Delivery player/covers；
+  Remotion Studio 继续作为独立实时预览，Web/Studio 都不拥有创作或生产 authority；
+- runtime 通过已验证的 package policy manifest 与 package resources 工作，Remotion/FFmpeg/FFprobe/Studio 均解析
+  Workspace-local npm CLI JavaScript entry，不依赖 shell、PATH 或 `.bin` 路径。
+
+仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
+补齐 package README/LICENSE/third-party notices。`@axmorf/studio` 与 `create-axmorf-studio` 的公开 registry
+查询当前均为 E404，且用户已确认 `axmorf` npm organization。production 与完整 repository `npm audit` 已通过
+`fast-uri@3.1.6`、`nanoid@3.3.18` 精确 overrides 以及 Vite/esbuild/ESLint 兼容更新归零。公开发布尚未执行：
+仍需取得 native OS matrix 证据，并由用户单独授权 provenance/2FA/token、Git push/tag 与首次 npm publish。
 
 仓库当前 production authority 已收敛为 ProductionRevision、content-addressed Task DAG、task workspace、
 ArtifactAttestation、reusable Artifact Store、fixed convergence 与 synchronous exact four-file delivery。
@@ -26,11 +45,8 @@ project:produce:continue
 shim。历史 `.producer-runs` 数据保持原位，但 current prepare/convergence/build/settings 不读取；删除器内部只
 保留 strict ownership parser。
 
-当前 checkout 有一个 source Project `remotion-story-producer-handdrawn-intro`；只读 inspect 返回
-`production-inputs-ready` / `prepare-production`，但它没有 materialized Composition 或 current delivery，
-因此 ProjectRegistry 为 0 entry、`deliveries/` 为 0 current delivery。当前 ResourceCatalog 投影为 26
-entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据；该本地 Project 也不改变 zero-Project
-支持合同。
+当前 checkout 没有 source Project 或 current Delivery，ProjectRegistry 为 0 entry；这验证了 zero-Project
+bootstrap/Registry/Catalog/settings 合同。readiness、cache reuse 与 dirty task estimate 始终都不是完成证据。
 
 当前 repository video Skill policy schema v16 / policy v18 还定义了一个 pre-inspect external-asset Agent capability slot：只按
 当前 Root Agent 的实际 callable MCP tools 激活，缺失时完全省略；激活后也必须先查本地 Catalog，再通过
@@ -88,9 +104,9 @@ entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据�
   最终组合中心在 portrait/landscape 都有确定性回归；
 - Root-facing prepare 输出 stable reuse/dirty/blocked summary、逐任务 direct/dependency/artifact 解释和 dirty Agent
   TaskRevisions；
-- Scene executor 继续受 repository-local `remotion-best-practices`、Scene-only requirements、本地
+- Scene executor 继续受 Workspace-local `remotion-best-practices`、Scene-only requirements、本地
   SceneViewport、resource/license 与 Remotion runtime gates 约束；它不感知 full-frame 安全区 inset。
-- execution resolver 已按用户提示词明确字段、独立 settings、内置 `inline` 默认逐级解析；全新 checkout
+- execution resolver 已按用户提示词明确字段、独立 settings、内置 `inline` 默认逐级解析；全新 scaffolded Workspace
   只需一个 shell-capable Agent，具备 runtime-native children 的宿主可显式选择最多四个 subagents；策略
   不进入 Revision/Task/artifact/delivery identity。
 - `AGENTS.md` 是唯一 repository Agent authority；`CLAUDE.md`/`GEMINI.md` 只导入该文件，OpenAI Skill metadata
@@ -121,6 +137,17 @@ entries。readiness、cache reuse 与 dirty task estimate 都不是完成证据�
 - bootstrap、Registry、Catalog 和 settings 支持 zero Project。
 
 ## 验证边界
+
+2026-08-30 的 package 验收在仓库外使用真实 `.tgz` 完成：creator 默认流程创建 Workspace，删除并通过
+`npm ci` 重装后 doctor 五项检查通过；public `/contracts` 与 `/remotion` imports、三个 Remotion compositions、
+Web static/API/CSP、浏览器交互、zero-provider `project:create` 和只读 inspect 均通过。packed runtime 只含
+allowlisted `package.json`/`dist/**`，CLI 保持 executable；host-neutral Skill 扫描未发现特定 Agent host、会话或
+child tool 假设。
+
+本轮未宣称完成真实 provider production、exact four-file Delivery、Windows/macOS native CI 或公开发布。
+consumer production 与完整 repository audit 均为 0 finding。Remotion 继续精确锁定 4.0.489；安全处置没有运行
+不受控 `audit fix`，而是固定传递版本并单独升级兼容的开发工具。ESLint 保持 9.39.5，因为 Remotion 当前内置的
+TypeScript ESLint 8.21 peer range 不支持 ESLint 10。
 
 focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests 已验证原子 create、inspect
 零写入/零 provider、dirty-only dispatch、精确 direct/dependency/artifact explanation、诊断隔离、安全边界、

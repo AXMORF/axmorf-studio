@@ -31,15 +31,15 @@ import {
   type ExecutionAttemptTaskOutcome,
   type ProducerPlan,
   type ProducerTaskSpec,
-} from "../../../src/contracts";
+} from "@axmorf/studio/contracts";
 import {
   TaskDiagnosticSnapshotListSchema,
   type TaskDiagnosticSnapshot,
-} from "../../../src/contracts/execution-attempt";
+} from "@axmorf/studio/contracts";
 import type {
   ActualProductionCost,
   EstimatedProductionCost,
-} from "../../../src/contracts/production-inspection";
+} from "@axmorf/studio/contracts";
 import {
   readOptionalTextFile,
   writeTextFileAtomic,

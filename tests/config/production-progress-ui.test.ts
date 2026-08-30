@@ -138,9 +138,70 @@ test("progress UI renders Revision task reuse attempt diagnostics and four-file 
   assert.match(markup, /COVER 4:3/u);
   assert.match(markup, /COVER 3:4/u);
   assert.match(markup, /PUBLISH/u);
+  assert.match(markup, /当前交付预览/u);
+  assert.match(markup, /<video/u);
+  assert.match(
+    markup,
+    new RegExp(
+      `/api/delivery/story-example/delivery-${"b".repeat(64)}/video`,
+      "u",
+    ),
+  );
+  assert.match(markup, /cover-4x3/u);
+  assert.match(markup, /cover-3x4/u);
   assert.doesNotMatch(markup, /audited|render-ready|spawn acknowledgement/iu);
-  assert.equal(markup.includes(["project", "produce", "plan"].join(":")), false);
+  assert.equal(
+    markup.includes(["project", "produce", "plan"].join(":")),
+    false,
+  );
   assert.doesNotMatch(markup, /sha256:|private|provider error/iu);
+});
+
+test("progress UI never renders stale Delivery media", () => {
+  const progress = ProductionProgressResponseSchema.parse({
+    schemaVersion: 5,
+    projects: [
+      {
+        projectId: "story-stale",
+        status: "stale",
+        revisionId: `revision-${"c".repeat(64)}`,
+        tasks: {
+          reusedTaskCount: 0,
+          dirtyAgentTaskCount: 0,
+          dirtyFixedTaskCount: 0,
+          blockedTaskCount: 0,
+        },
+        inspection: null,
+        attempt: null,
+        delivery: {
+          deliveryBuildId: `delivery-${"b".repeat(64)}`,
+          revisionId: `revision-${"a".repeat(64)}`,
+          frameCount: 120,
+          current: false,
+          files: {
+            video: true,
+            cover4x3: true,
+            cover3x4: true,
+            publish: true,
+          },
+        },
+        error: null,
+      },
+    ],
+  });
+  const markup = renderToStaticMarkup(
+    createElement(ProductionProgressPanel, {
+      progress,
+      status: "Project 状态已更新",
+      error: null,
+      refresh: async () => undefined,
+      deleteProject: async () => undefined,
+    }),
+  );
+
+  assert.doesNotMatch(markup, /<video/u);
+  assert.doesNotMatch(markup, /<img/u);
+  assert.doesNotMatch(markup, /\/api\/delivery\//u);
 });
 
 test("configured authoring renders read-only readiness and estimated cost before prepare", () => {
