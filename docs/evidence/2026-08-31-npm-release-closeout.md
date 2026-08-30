@@ -106,7 +106,14 @@ push 后的 macOS gate `#33327350179` 在 full tests 捕获 `/var/...` 到 `/pri
 会延迟投递订阅前文件的 `fs.watch` 通知；测试中的 `/var` 路径也没有命中生产代码已 canonicalize 的 `/private/var`
 路径。event wait 现在以 immutable event log 相对 baseline 的真实新增 JSON 为准，不能只信 watcher notification；
 originality drift test 则比较 canonical renderer path。focused 22 tests 和完整 666/666 gate 已在 Linux Green；修复提交
-push 后仍需新的 macOS CI receipt。
+push 后的 macOS gate
+[`#33330699611`](https://github.com/AXMORF/axmorf-studio/actions/runs/33330699611) 已完成完整 gates、双包 pack、fresh
+Workspace 与 receipt 上传。artifact `9737615274` 的 digest 是
+`sha256:439d2fe4fc7fdbd8d1f2a9b263af7eddc56454526e7010569751235887ed24cf`。runtime SHA-256 与本表一致；creator
+解包比较又暴露 clean GitHub checkout 缺少 6 个被根 `.gitignore` 捕获的 template `.gitkeep`，而本地 pack 会把这些
+ignored files 混入 tarball。六个 placeholder 现作为 creator template source 精确纳入 Git，`check:package` 要求它们为
+regular files；本地 creator 恢复本表的 36 entries/hash，`--no-install` Workspace 也验证六个目录存在。最终 release
+commit 仍必须以自己的 macOS receipt 为 authority，不能复用修复前 run。
 
 仓库已转移到 `AXMORF/axmorf-studio`，三个 `package.json.repository` 均与 provenance source exact match。新增
 `.github/workflows/npm-publish.yml`：只允许从 exact `v<version>` tag 手动触发，要求二次输入相同 tag，使用 GitHub-hosted

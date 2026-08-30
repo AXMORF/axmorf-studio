@@ -33,6 +33,12 @@ for (const relativePath of [
   "README.md",
   "LICENSE",
   "THIRD_PARTY_NOTICES.md",
+  "template/.narration-work/.gitkeep",
+  "template/.producer-artifacts/.gitkeep",
+  "template/.producer-attempts/.gitkeep",
+  "template/.producer-work/.gitkeep",
+  "template/deliveries/.gitkeep",
+  "template/out/.gitkeep",
 ]) {
   const metadata = await lstat(resolve(packageRoot, relativePath));
   assert.equal(metadata.isFile(), true, `${relativePath} must be a file.`);
