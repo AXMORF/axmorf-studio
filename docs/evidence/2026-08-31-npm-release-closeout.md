@@ -23,17 +23,17 @@ Workspace，原仓库不保存用户 Project。
 - `npm run check`：666/666 tests，typecheck、lint、docs links、Catalog/Registry、配置构建、Remotion bundle/
   compositions 与 host Project gate 全部通过；
 - `npm run packages:typecheck`：通过；
-- release-focused 17 tests、typecheck 与 lint：通过；
+- release-focused 17 tests、macOS portability-focused 22 tests、typecheck 与 lint：通过；
 - runtime/creator `check:package`、`npm pack`、tarball allowlist 与
   `npm publish --dry-run --access public --json`：通过；
 - 2026-08-31 官方 registry 对 `@axmorf/studio` 与 `create-axmorf-studio` 均返回 E404；真实 publish 未发生。
 
 Closeout tarballs：
 
-| Tarball | Bytes | Unpacked bytes | Entries | SHA-256 | npm integrity |
-| --- | ---: | ---: | ---: | --- | --- |
-| `axmorf-studio-0.1.0.tgz` | 1,870,738 | 8,480,237 | 246 | `23bb89ce7f14c31c0f1b39797719a1629d4789da5d78e8599b98e23c92934fd8` | `sha512-ST64NDsJvxgPfMHFCWh3caWA+wQFho0KOkJapS2royIP0zi3qnqVcVY4vy72fwVINMAkwf27rBxUEy/v6s5gLg==` |
-| `create-axmorf-studio-0.1.0.tgz` | 19,174 | 57,272 | 36 | `69bafda455964802b19b08789b3452a51ecbf7ce8c76d7a6e448f9c95edf4184` | `sha512-N9LBaRsGDGzpSPh1i3GlEhNEHawr8dZsxCK9Lz26g9awE6UNYpb+0q1aFDWmsCDdYzV2jK62aZ5Ti9cjtaZdyQ==` |
+| Tarball                          |     Bytes | Unpacked bytes | Entries | SHA-256                                                            | npm integrity                                                                                     |
+| -------------------------------- | --------: | -------------: | ------: | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `axmorf-studio-0.1.0.tgz`        | 1,870,785 |      8,480,629 |     246 | `fa56f42cf1b29012d884b7afb0bfbb5881d143135047d64b1e5c0a999fe3b747` | `sha512-TsQtw9/gG0LNhXiU1Fiw2Vc+d5/5SuTz1Q2Fa4jVXVCJhYfrNxr2C4KDWmq+08qgOq27vW2m+jav3iwClxKFdQ==` |
+| `create-axmorf-studio-0.1.0.tgz` |    19,174 |         57,272 |      36 | `69bafda455964802b19b08789b3452a51ecbf7ce8c76d7a6e448f9c95edf4184` | `sha512-N9LBaRsGDGzpSPh1i3GlEhNEHawr8dZsxCK9Lz26g9awE6UNYpb+0q1aFDWmsCDdYzV2jK62aZ5Ti9cjtaZdyQ==` |
 
 ## Fresh consumer receipt
 
@@ -56,34 +56,33 @@ internals；上面的 Green receipt 来自官方 registry 与独立 cache。
 ## Packed production receipt
 
 - Workspace/Project：仓库外 `ubuntu-current-acceptance` / `ubuntu-current-features`
-- Revision：`revision-9a2cb5de8750caba0ff020b1ef4f8306585885290f9b4e17bb9d7d225d0257e0`
-- Attempt：`744474aa-38ca-4106-8fda-959281816a03`
-- DeliveryBuild：`delivery-3aa07b31ecc2ce3b0bd7f95654d8cb78d09ba97d5f2e4785bb44e7589ceb75ab`
-- Execution：显式 `inline`；最终 Organization tarball 复用 8 个 valid artifacts，dirty Agent 为 0，只有一个 fixed
-  convergence 与其阻塞的 Delivery；最后只启动一次 attempt-bound continuation
-- Actual cost：0 provider requests、2 provider cache hits、0 Agent tasks、8 reused tasks
+- Revision：`revision-d83e5e609a9fed70f9ebfd9e87a534463983a4ac69bd90d321a52462f6eb64c1`
+- Attempt：`29feb5be-46bc-47d2-89ef-a6fe830f8609`
+- DeliveryBuild：`delivery-1b85c344bd130b2af3ce074ae35971ad193fb66e27a9bee235f94db2ec6a66a8`
+- Execution：显式 `inline`；最终 macOS portability tarball 复用 5 个 valid artifacts，两个 `scene-owner` 与一个
+  `global-visual-owner` 逐一 exact bind/describe/finalize/check/commit；最后只启动一次 attempt-bound continuation
+- Actual cost：0 provider requests、2 provider cache hits、3 Agent tasks、5 reused tasks
 - Fixed terminal：`project-production-complete`；随后 progress API 为 `current`，`error: null`
 
-macOS portability candidate 首次把新 runtime identity 装入该 Workspace 时，两个 `scene-owner` 与一个
-`global-visual-owner` 逐一 exact bind/describe/finalize/check/commit；最终 Organization metadata 只改变 package
-identity，三个 Agent artifact TaskRevision 均保持 valid。最终 continuation 只执行 fixed convergence、render 与
-Delivery，没有额外 provider 或 Agent 成本。
+先前 Organization metadata tarball 只改变 package identity，三个 Agent artifact TaskRevision 保持 valid；本次
+`attempt-event-wait` correctness 修复改变 production runtime identity，因此三项 Agent task 正确失效并由 `inline` Root
+重新创作/验证。fixed continuation 独占完成 convergence、render 与 Delivery，没有额外 provider 请求。
 
 Delivery directory exact 只有四个 regular files：
 
-| File | Bytes | SHA-256 | Media facts |
-| --- | ---: | --- | --- |
-| `video.mp4` | 1,082,270 | `2d8b1944631aa6620f7255197a011c63dd6a42abbf9d36e555c530054912d062` | H.264/AAC, 1080×1920, 30 fps, 272 frames, stereo |
-| `cover-4x3.png` | 146,234 | `ca2a4f6e1dec8de39206f978a89ac5a70e78d349fca39b73183eeefdda478749` | PNG, 1600×1200 |
-| `cover-3x4.png` | 169,447 | `8b9b4c345caa987aa9fc9f34a12318c3eb36bb84e9f19f9153482a75b9b67791` | PNG, 1200×1600 |
-| `publish.json` | 2,115 | `3b75c4249e8277398cbac357b48cbe181c6efa78944bc12277c593bf0e02a458` | publish-last identity and checksums |
+| File            |     Bytes | SHA-256                                                            | Media facts                                      |
+| --------------- | --------: | ------------------------------------------------------------------ | ------------------------------------------------ |
+| `video.mp4`     | 1,810,300 | `089c54e95eca51baa7cc36c5ce9792d6e23747373f4397d82660f82f13e7b107` | H.264/AAC, 1080×1920, 30 fps, 272 frames, stereo |
+| `cover-4x3.png` |   146,234 | `ca2a4f6e1dec8de39206f978a89ac5a70e78d349fca39b73183eeefdda478749` | PNG, 1600×1200                                   |
+| `cover-3x4.png` |   169,447 | `8b9b4c345caa987aa9fc9f34a12318c3eb36bb84e9f19f9153482a75b9b67791` | PNG, 1200×1600                                   |
+| `publish.json`  |     2,115 | `6a4ce66d60ae87097358d18d75682cf80b258d3e8257d6604e53985ad09f9c10` | publish-last identity and checksums              |
 
 ## Verified-Delivery Viewer receipt
 
-packed Web 在 loopback `127.0.0.1:43173` 上提供 current Delivery。Chrome 151 的真实浏览器验收结果：
+packed Web 在 loopback `127.0.0.1:43174` 上提供 current Delivery。Chrome 151 的真实浏览器验收结果：
 
 - desktop `1440×1200`：progress API 200；video Range API 206，`Content-Range` 为
-  `bytes 0-1023/1082270`；双 Cover API 200；video `readyState=4`，从 `0` 播放到 `1.51013` 秒；Cover natural
+  `bytes 0-1023/1810300`；双 Cover API 200；video `readyState=3`，从 `0` 播放到 `1.428305` 秒；Cover natural
   sizes 为 `1600×1200` 与 `1200×1600`；
 - console errors、page errors 与 bad HTTP responses 均为空；
 - 浏览器切换 MP4 range 时会主动取消首个 metadata request，记录一个预期 `net::ERR_ABORTED`；后续 206、
@@ -102,8 +101,12 @@ request coalescing，以及 Linux `/proc/self/fd` 下 abort 后 descriptor count
 
 push 后的 macOS gate `#33327350179` 在 full tests 捕获 `/var/...` 到 `/private/var/...` 的 canonical ancestor alias。
 `resolveWorkspaceRoot` 现在分别 `lstat` requested/canonical root，并以相同 filesystem metadata 接受祖先别名，同时继续
-拒绝 leaf root symlink、内部 symlink 与 path escape。新增 regression 先 Red 后 Green；focused originality/revision
-13 tests 和完整 666/666 gate 通过。修复提交 push 后仍需以新的 macOS CI receipt 复核。
+拒绝 leaf root symlink、内部 symlink 与 path escape。随后 macOS gate
+[`#33329569091`](https://github.com/AXMORF/axmorf-studio/actions/runs/33329569091) 又暴露两个 Linux 未复现的边界：macOS
+会延迟投递订阅前文件的 `fs.watch` 通知；测试中的 `/var` 路径也没有命中生产代码已 canonicalize 的 `/private/var`
+路径。event wait 现在以 immutable event log 相对 baseline 的真实新增 JSON 为准，不能只信 watcher notification；
+originality drift test 则比较 canonical renderer path。focused 22 tests 和完整 666/666 gate 已在 Linux Green；修复提交
+push 后仍需新的 macOS CI receipt。
 
 仓库已转移到 `AXMORF/axmorf-studio`，三个 `package.json.repository` 均与 provenance source exact match。新增
 `.github/workflows/npm-publish.yml`：只允许从 exact `v<version>` tag 手动触发，要求二次输入相同 tag，使用 GitHub-hosted
@@ -113,9 +116,9 @@ runner、`id-token: write`、完整 gates、exact tarball checksums、provenance
 
 ## Controlled Project delete receipt
 
-用户明确授权后，将包含上述 Project、五个历史 attempts、完整 task work/artifact 集合和 exact-four Delivery 的真实
-验收 Workspace 复制到一次性 `/tmp/axmorf-final-delete-yyBzf6/workspace`，只在副本执行删除。删除前副本的
-Project-owned file counts 为：source 52、public 4、narration work 7、task work 162、artifacts 154、attempts 51、
+用户明确授权后，将包含上述 Project、多个历史 attempts 与当前 attempt、完整 task work/artifact 集合和 exact-four Delivery 的真实
+验收 Workspace 复制到一次性 `/tmp/axmorf-final-macos-fix-delete-eqBPJE/workspace`，只在副本执行删除。删除前副本的
+Project-owned file counts 为：source 52、public 4、narration work 7、task work 190、artifacts 180、attempts 59、
 Delivery 4。
 
 先运行不带确认参数的命令：

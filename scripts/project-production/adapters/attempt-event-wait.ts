@@ -76,7 +76,15 @@ export const openExecutionAttemptEventWait = ({
   };
   const watcher = watch(directory, (eventType, filename) => {
     if (isExecutionAttemptEventNotification(eventType, filename)) {
-      settle();
+      try {
+        if (
+          containsNewExecutionAttemptEvent(baseline, readdirSync(directory))
+        ) {
+          settle();
+        }
+      } catch (error) {
+        settle(error instanceof Error ? error : new Error(String(error)));
+      }
     }
   });
   watcher.once("error", (error) => settle(error));

@@ -32,8 +32,10 @@ GitHub 仓库已转移为 `AXMORF/axmorf-studio`，npm 发布分支是 default b
 repository `npm audit` 已通过 `fast-uri@3.1.6`、
 `nanoid@3.3.18` 精确 overrides 以及 Vite/esbuild/ESLint 兼容更新归零。公开发布尚未执行：macOS 15 ARM64
 package/scaffold evidence 与 Ubuntu 24.04 x86_64 exact-Delivery evidence 已完成，固定 OS matrix 已从首次发布 gate
-移除；release blocker commit 已 push，provenance workflow 已加入；npm scope/authentication、tag、Release 与首次 npm
-publish 仍是剩余外部门禁。
+移除；Organization transfer/release blocker commit 已 push，provenance workflow 已加入。转移后的 macOS full gate 又
+捕获 delayed `fs.watch` notification 与 `/var` test alias 两个 portability 边界，本地最小修复、focused 22 tests 和
+完整 666/666 gate 已 Green，仍待 push 后的新 macOS receipt；之后的剩余外部门禁是 npm scope/authentication、tag、
+Release 与首次 npm publish。
 
 仓库当前 production authority 已收敛为 ProductionRevision、content-addressed Task DAG、task workspace、
 ArtifactAttestation、reusable Artifact Store、fixed convergence 与 synchronous exact four-file delivery。
@@ -252,6 +254,8 @@ manifest；三秒轮询会合并仍在执行的请求，不再反复 abort 较�
 repository audit 均为 0 finding。Remotion 继续精确锁定 4.0.489；安全处置没有运行不受控 `audit fix`，而是固定
 传递版本并单独升级兼容的开发工具。ESLint 保持 9.39.5，因为 Remotion 当前内置的 TypeScript ESLint 8.21 peer
 range 不支持 ESLint 10。Git push 与 GitHub Organization transfer 已执行；真实 npm publish、tag 与 Release 尚未执行。
+post-transfer macOS gate 的两个 portability 修复当前已完成本地 package/fresh-consumer/packed-production/Viewer/delete
+复验，但尚待 push 与新的 macOS CI receipt。
 
 focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests 已验证原子 create、inspect
 零写入/零 provider、dirty-only dispatch、精确 direct/dependency/artifact explanation、诊断隔离、安全边界、
@@ -259,9 +263,9 @@ focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests
 
 本轮 closeout 已运行完整 `npm run check`：666/666 tests，以及 typecheck、lint、docs links、Catalog/Registry、
 配置构建、Remotion bundle/compositions 与 host Project gate 全部 Green；`npm run packages:typecheck` 和 release-focused
-17 tests 也通过。文档 closeout 后另行重跑 docs links 与 diff checks。Git push、Organization transfer、default branch
-切换与 publish workflow 已执行；真实 npm publish、tag 与 GitHub Release 尚未执行。受控 Project delete 只作用于
-一次性验收副本。
+17 tests 与 macOS portability-focused 22 tests 也通过。文档 closeout 后另行重跑 docs links 与 diff checks。GitHub
+Organization transfer、default branch 切换与 publish workflow 已执行；当前 portability patch 仍待 push/macOS receipt，
+真实 npm publish、tag 与 GitHub Release 尚未执行。受控 Project delete 只作用于一次性验收副本。
 
 ## 当前非目标
 

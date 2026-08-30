@@ -3,6 +3,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   rm,
   symlink,
   writeFile,
@@ -202,7 +203,7 @@ test("Scene snapshots fail closed when a source changes during its read", async 
     meaningId: "opening",
     renderer,
   });
-  const rendererPath = join(sceneRoot, "Renderer.tsx");
+  const rendererPath = await realpath(join(sceneRoot, "Renderer.tsx"));
   let changed = false;
   await assert.rejects(
     snapshotSceneSourceGraph({
