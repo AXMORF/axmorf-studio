@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-30 npm Workspace 本地 vertical slice
+> 最后复核：2026-08-30 npm Workspace 本地 vertical slice 与 macOS 15 ARM64 native gate
 
 ## 当前结论
 
@@ -21,9 +21,10 @@
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
 补齐 package README/LICENSE/third-party notices。`@axmorf/studio` 与 `create-axmorf-studio` 的公开 registry
-查询当前均为 E404，且用户已确认 `axmorf` npm organization。production 与完整 repository `npm audit` 已通过
-`fast-uri@3.1.6`、`nanoid@3.3.18` 精确 overrides 以及 Vite/esbuild/ESLint 兼容更新归零。公开发布尚未执行：
-仍需取得 native OS matrix 证据，并由用户单独授权 provenance/2FA/token、Git push/tag 与首次 npm publish。
+查询当前均为 E404，且用户已确认 `axmorf` npm organization。GitHub 仓库已更名为
+`agenticnoob/axmorf-studio`。production 与完整 repository `npm audit` 已通过 `fast-uri@3.1.6`、
+`nanoid@3.3.18` 精确 overrides 以及 Vite/esbuild/ESLint 兼容更新归零。公开发布尚未执行：macOS 15 ARM64
+native evidence 已完成，Windows 按用户当前决策暂缓；provenance/2FA/token、tag 与首次 npm publish 仍需单独授权。
 
 仓库当前 production authority 已收敛为 ProductionRevision、content-addressed Task DAG、task workspace、
 ArtifactAttestation、reusable Artifact Store、fixed convergence 与 synchronous exact four-file delivery。
@@ -144,8 +145,16 @@ Web static/API/CSP、浏览器交互、zero-provider `project:create` 和只读 
 allowlisted `package.json`/`dist/**`，CLI 保持 executable；host-neutral Skill 扫描未发现特定 Agent host、会话或
 child tool 假设。
 
-本轮未宣称完成真实 provider production、exact four-file Delivery、Windows/macOS native CI 或公开发布。
-consumer production 与完整 repository audit 均为 0 finding。Remotion 继续精确锁定 4.0.489；安全处置没有运行
+脚手架实现提交 `2bac738d4b24745b6bd10be386257dff7c60c4d1` 已通过
+[macOS npm Workspace gate #33291456702](https://github.com/agenticnoob/axmorf-studio/actions/runs/33291456702)：
+`Darwin arm64`、Node `v24.16.0`、npm `11.13.0` 上完成 repository/public package gates、两个真实 tarball
+pack、全新外部 Workspace 安装、doctor 五项检查、三个 Remotion compositions 与双侧 audit；下载后的两个 tarball
+SHA-256 与 CI receipt 一致。artifact `9726110695` 的 digest 为
+`sha256:2d0a74df869a1ec43ee294640f0bb8e0c7d8dbf7eea426d6ad80b01ab2c16b46`。
+
+本轮未宣称完成真实 provider production、exact four-file Delivery、Windows native CI 或公开发布；Windows 是明确
+暂缓，不是已验证支持。consumer production 与完整 repository audit 均为 0 finding。Remotion 继续精确锁定
+4.0.489；安全处置没有运行
 不受控 `audit fix`，而是固定传递版本并单独升级兼容的开发工具。ESLint 保持 9.39.5，因为 Remotion 当前内置的
 TypeScript ESLint 8.21 peer range 不支持 ESLint 10。
 

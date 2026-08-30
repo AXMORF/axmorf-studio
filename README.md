@@ -13,7 +13,8 @@ Runtime Pack 或 `rsp` control plane；用户数据只属于生成的 Workspace�
 仓库和两个发布包已采用 Apache-2.0，并补齐 package README、`LICENSE` 与
 `THIRD_PARTY_NOTICES.md`。`@axmorf/studio` 和 `create-axmorf-studio` 当前 registry 查询均未发现公开包；下面的
 `npm create` 是首次发布后的稳定入口。production 与完整 repository `npm audit` 已通过精确传递依赖约束和兼容的
-开发工具更新归零；跨平台 CI 和首次 publish 仍是独立 gates，未经明确授权不会执行真实发布、push 或 tag。
+开发工具更新归零；macOS 15 ARM64 已完成原生 package/scaffold 门禁，Windows 按当前决策暂缓验证。首次
+publish 仍是独立 gate，未经明确授权不会执行真实发布或 tag。
 
 ## 当前主链
 

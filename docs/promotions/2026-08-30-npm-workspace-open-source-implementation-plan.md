@@ -536,11 +536,13 @@ Remotion bundle 成功都不能单独作为最终交付证据。
 - runtime tarball 只含 allowlisted `package.json`/`dist/**`，不含 `node_modules`、Workspace data、Desktop 或
   repository tests；creator Skill 不含特定 Agent host、thread/chat/session/child tool 假设；
 - 两个 child packages 已通过 npm 11 对官方 registry 的 `npm publish --dry-run --access public`，发布清单未发生
-  自动修正；尚未完成 packed Workspace 的真实 provider production/exact four-file Delivery 与 Windows/macOS native
-  CI，因此本计划不归档。production 与完整 repository audit 已通过精确 overrides 和兼容开发工具更新归零；仓库和
-  两个 child packages 已采用
-  Apache-2.0，两个 child packages 已移除 `private` 并补齐 package README/LICENSE/third-party notices；真实 publish
-  仍等待用户单独授权。
+  自动修正；实现提交 `2bac738d4b24745b6bd10be386257dff7c60c4d1` 已在 macOS 15 ARM64 原生 runner 完成
+  repository/public package gates、pack、外部 Workspace 默认安装、doctor、三个 compositions 和双侧零漏洞 audit，
+  [CI run #33291456702](https://github.com/agenticnoob/axmorf-studio/actions/runs/33291456702) 的下载 receipt
+  已复核 tarball SHA-256。尚未完成 packed Workspace 的真实 provider production/exact four-file Delivery；Windows
+  按用户当前决策暂缓验证，因此本计划不归档。production 与完整 repository audit 已通过精确 overrides 和兼容开发
+  工具更新归零。仓库和两个 child packages 已采用 Apache-2.0，两个 child packages 已移除 `private` 并补齐 package
+  README/LICENSE/third-party notices；真实 publish 仍等待用户单独授权。
 
 ## 8. 完成定义
 
