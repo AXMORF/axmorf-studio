@@ -3,8 +3,10 @@ import { createHash } from "node:crypto";
 import {
   COVER_SPEC_FINGERPRINT,
   FIXED_COVER_SPEC,
+  SCENE_ORIGINALITY_INPUT_ID,
   buildProducerTaskSpec,
   createFingerprint,
+  deriveGlobalVisualLayerPolicy,
   serializeCanonicalJson,
   type ArtifactAttestation,
   type ProducerTaskSpec,
@@ -14,6 +16,10 @@ import {
 } from "@axmorf/studio/contracts";
 import type { DiagnosticSubject } from "@axmorf/studio/contracts";
 import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
+import {
+  createLiveProjectProductionScope,
+  type ProductionScope,
+} from "./production-scope";
 
 import { inspectArtifactState } from "../adapters/artifact-store";
 import {
@@ -30,6 +36,10 @@ import {
 } from "../domain/template-scene-output";
 import { loadProjectProductionInputs } from "./load-inputs";
 import { buildCurrentProductionRevision } from "./current-revision";
+import {
+  assertTaskExecutionContractMatchesTask,
+  buildTaskExecutionContract,
+} from "./task-execution-contract";
 
 const SCENE_OUTPUTS = [
   "src/Renderer.tsx",
@@ -160,6 +170,15 @@ const buildContextTask = ({
   readonly context: unknown;
 }) => {
   const contextSeed = contextFile(context);
+  const agentTask =
+    taskKind === "scene-owner" ||
+    taskKind === "global-visual-owner" ||
+    taskKind === "cover-owner";
+  const taskContract = agentTask
+    ? buildTaskExecutionContract({ taskKind, context })
+    : null;
+  const taskContractSeed =
+    taskContract === null ? null : contextFile(taskContract);
   const dependencyArtifacts = sortedDependencies(dependencies);
   const task = buildProducerTaskSpec({
     taskKind,
@@ -173,14 +192,29 @@ const buildContextTask = ({
         id: "read:inputs/context.json",
         fingerprint: contextSeed.fingerprint,
       },
+      ...(taskContractSeed === null
+        ? []
+        : [
+            {
+              id: "read:inputs/task-contract.json",
+              fingerprint: taskContractSeed.fingerprint,
+            },
+          ]),
     ]),
-    declaredReadSet: ["inputs/context.json"],
+    declaredReadSet:
+      taskContractSeed === null
+        ? ["inputs/context.json"]
+        : ["inputs/context.json", "inputs/task-contract.json"],
     declaredOutputSet: [...outputs].sort(),
     validatorPolicyVersion,
   });
+  if (taskContract !== null) {
+    assertTaskExecutionContractMatchesTask({ task, contract: taskContract });
+  }
   return {
     task,
     contextBytes: contextSeed.bytes,
+    taskContractBytes: taskContractSeed?.bytes ?? null,
     dependencyTaskRevisions: dependencyArtifacts.map(
       ({ taskRevision }) => taskRevision,
     ),
@@ -414,6 +448,7 @@ export const buildAgentTasks = (
   const tasks: Readonly<{
     task: ProducerTaskSpec;
     contextBytes: string;
+    taskContractBytes: string | null;
     dependencyTaskRevisions: readonly ProducerTaskSpec["taskRevision"][];
   }>[] = inputs.sceneInputs.map((scene) => {
     const r = scene.revisionInput;
@@ -433,6 +468,14 @@ export const buildAgentTasks = (
         { id: "resources", fingerprint: r.selectedResourcesFingerprint },
         { id: "runtime", fingerprint: inputs.taskPolicyFingerprints.scene },
         { id: "timing", fingerprint: r.timingFingerprint },
+        ...(templateCopy
+          ? []
+          : [
+              {
+                id: SCENE_ORIGINALITY_INPUT_ID,
+                fingerprint: inputs.fingerprints.originalityBaseline,
+              },
+            ]),
         ...(r.templateInstanceFingerprint === null
           ? []
           : [
@@ -444,10 +487,13 @@ export const buildAgentTasks = (
       ],
       outputs: SCENE_OUTPUTS,
       validatorPolicyVersion: templateCopy
-        ? "scene-template-validator-v2"
-        : "scene-owner-validator-v2",
+        ? "scene-template-validator-v3"
+        : "scene-owner-validator-v3",
       context: {
         resourcePool: inputs.resourcePool,
+        ...(templateCopy
+          ? {}
+          : { originalityBaseline: inputs.originalityBaseline }),
         scene: {
           beat: scene.beat,
           timingBeat: scene.timingBeat,
@@ -478,11 +524,12 @@ export const buildAgentTasks = (
       { id: "timing", fingerprint: inputs.timing.fingerprint },
     ],
     outputs: GLOBAL_OUTPUTS,
-    validatorPolicyVersion: "global-visual-owner-validator-v1",
+    validatorPolicyVersion: "global-visual-owner-validator-v2",
     context: {
       story: inputs.story,
       render: inputs.render,
       timing: inputs.timing,
+      layerPolicy: deriveGlobalVisualLayerPolicy(inputs.timing),
       requirements: inputs.requirements,
       resourcePool: inputs.resourcePool,
       visualStyle: inputs.visualStyle,
@@ -610,6 +657,7 @@ export type BuildCurrentProductionPlanInput = Readonly<{
     preparationReceipt?: NarrationPreparationReceipt;
   }>;
   baseline?: Awaited<ReturnType<typeof readProductionDiagnosticBaseline>>;
+  scope?: ProductionScope;
 }>;
 
 /**
@@ -625,17 +673,25 @@ export const buildCurrentProductionPlan = async ({
   inputs: suppliedInputs,
   narration: suppliedNarration,
   baseline: suppliedBaseline,
+  scope: suppliedScope,
 }: BuildCurrentProductionPlanInput) => {
+  const scope =
+    suppliedScope ??
+    createLiveProjectProductionScope({ rootDir, storyId: projectId });
+  if (scope.repositoryRoot !== rootDir || scope.storyId !== projectId) {
+    throw new Error("Current production plan scope is cross-bound.");
+  }
   const inputs =
     suppliedInputs ??
     (await loadProjectProductionInputs({
       rootDir,
       projectId,
       runtimePolicyManifest,
+      scope,
     }));
   const narration =
     suppliedNarration ??
-    (await inspectNarrationCache({ rootDir, projectId, env }));
+    (await inspectNarrationCache({ rootDir, projectId, env, scope }));
   if (narration.providerAttemptFingerprint === undefined) {
     throw new Error("Narration preparation identity is unavailable.");
   }
@@ -656,7 +712,10 @@ export const buildCurrentProductionPlan = async ({
   const revision = buildCurrentProductionRevision(inputs);
   const baseline =
     suppliedBaseline ??
-    (await readProductionDiagnosticBaseline({ rootDir, projectId }));
+    (await readProductionDiagnosticBaseline({
+      rootDir: scope.isolatedRoot,
+      projectId,
+    }));
   const fixed = await buildNarrationTasks({
     rootDir,
     inputs,
@@ -674,7 +733,11 @@ export const buildCurrentProductionPlan = async ({
   const ownerInspections = new Map<string, ArtifactInspection>();
   const taskSeeds = new Map<
     string,
-    Readonly<{ task: ProducerTaskSpec; contextBytes: string }>
+    Readonly<{
+      task: ProducerTaskSpec;
+      contextBytes: string;
+      taskContractBytes: string | null;
+    }>
   >();
   for (const built of builtOwners) {
     let task = built.task;
@@ -682,7 +745,7 @@ export const buildCurrentProductionPlan = async ({
       if (task.semanticId === null)
         throw new Error("Template task lost meaningId.");
       const templateFiles = await readTemplateSceneFilesForInspection({
-        rootDir,
+        rootDir: scope.isolatedRoot,
         projectId: inputs.projectId,
         meaningId: task.semanticId,
       });
@@ -692,6 +755,7 @@ export const buildCurrentProductionPlan = async ({
     taskSeeds.set(task.taskRevision, {
       task,
       contextBytes: built.contextBytes,
+      taskContractBytes: built.taskContractBytes,
     });
     ownerNodes.push({
       task,

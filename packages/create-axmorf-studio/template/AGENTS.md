@@ -20,14 +20,48 @@ product.
 
 Run `npm run project:produce:inspect` before any costly preparation. Only
 `npm run project:produce:prepare` may call configured providers. An Agent task
-may write only its declared `.producer-work` directory, must pass
-`project:task:check`, and must terminate through its attempt-bound commit or fail
-command. The Root Agent's last production action is the exact continuation
-command returned by prepare.
+must run prepare's exact attempt-bound bind command before reading or writing
+task content. Only `task-worker-bound` grants access to immutable `task.json`,
+`inputs/context.json`, and `inputs/task-contract.json` plus declared outputs.
+Use the returned transport and bound describe/finalize/check/commit/failure
+commands. The Root Agent's last production action is prepare's exact continuation
+command.
+
+`project:create` freezes the Project's Scene originality baseline. A legacy
+Project without it requires the user's explicit migration request and
+`npm run project:originality:freeze -- --project <storyId>` before inspect;
+production must not infer an empty baseline. Agent-owned Scenes must not duplicate
+a frozen historical or same-revision TS/TSX source graph; fixed template-copy
+Scenes are exempt, and convergence checks again before live materialization.
+
+Create and revision validation may return structured
+`authoring-validation-failed` issues. For
+`caption-display-budget-exceeded`, shorten or semantically split the authored
+`ttsChunk` to stay within 72 `caption-display-unit-v1` half-units; never weaken
+the validator.
+
+Never edit a current Project in place. For an existing Project, obtain the
+exact current Revision and verified four-file Delivery with
+`project:revise:context`, validate strict raw input, and create an isolated
+candidate with `project:revise`. Carry its candidate ID through production.
+Candidate promotion changes the current Project and Delivery only after its own
+exact four files pass validation; it replaces only source/public/narration/delivery
+as one transaction, and any promotion failure must roll all four back.
+Retry only `project:revision:promote`, not the completed production attempt.
+
+Subagents require bounded runtime-native children and verified
+`shared-workspace` or `controller-io` transport for this production. Transport is
+host capability evidence, not saved Workspace configuration. A failed attempt is
+immutable; explicit recovery uses read-only `project:attempt:recover-inspect`
+before zero-provider same-Revision `project:attempt:reissue`.
 
 Load `.agents/skills/remotion-best-practices/SKILL.md` before implementing a
 Scene. Render-critical motion uses Remotion frame APIs, Scene roots stay
 transparent, and the Composition alone owns narration and captions.
+
+GlobalVisual exports a full-Composition base layer and a decoration layer that
+is sequenced from the first through last narrated Scene with local frame zero at
+that window's start. It must not read Scene output or carry Beat-specific copy.
 
 Never publish, push, delete a Project, or expose private configuration unless
 the user explicitly requests that action. Project deletion must use

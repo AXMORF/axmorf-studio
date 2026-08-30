@@ -6,9 +6,11 @@ import { compileTypeScriptImportGraph } from "./typescript-compile";
 
 export const compileTargetProjectComposition = async ({
   rootDir,
+  runtimeRootDir = rootDir,
   storyId: rawStoryId,
 }: {
   readonly rootDir: string;
+  readonly runtimeRootDir?: string;
   readonly storyId: string;
 }) => {
   const storyId = StoryIdSchema.parse(rawStoryId);
@@ -19,7 +21,7 @@ export const compileTargetProjectComposition = async ({
     throw new Error("Target Project Composition must be a regular file.");
   }
   compileTypeScriptImportGraph({
-    rootDir,
+    rootDir: runtimeRootDir,
     rootPath: compositionPath,
     label: "Target Project Composition TypeScript compile",
   });

@@ -322,6 +322,8 @@ const assertNoSharedBoundaryOwnership = (
     "SceneBackground",
     "CaptionLayer",
     "GlobalVisualLayers",
+    "GlobalVisualBaseLayer",
+    "GlobalVisualDecorationLayers",
     "Audio",
     "Html5Audio",
     "readabilityPolicy",

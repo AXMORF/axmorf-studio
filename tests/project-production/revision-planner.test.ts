@@ -3,8 +3,18 @@ import { createHash } from "node:crypto";
 import test from "node:test";
 
 import {
+  NarrationSpecSchema,
   ProductionRevisionIdSchema,
+  RenderSpecSchema,
+  SCENE_ORIGINALITY_INPUT_ID,
+  StorySpecSchema,
+  buildSceneTaskInputV7,
+  buildSceneOriginalityBaseline,
   buildProducerTaskSpec,
+  deriveGlobalVisualLayerPolicy,
+  generateSemanticTiming,
+  resolveSceneReadabilityPolicy,
+  resolveSceneViewport,
   type Sha256Digest,
 } from "@axmorf/studio/contracts";
 import {
@@ -12,12 +22,28 @@ import {
   buildDownstreamTasks,
   rebindTemplateTaskOutputs,
 } from "../../scripts/project-production/application/build-current-plan";
+import {
+  buildValidSealedNarrationManifest,
+  validNarrationSpec,
+  validRenderSpec,
+  validStorySpec,
+} from "../fixtures/narrative";
 
 const sha = (character: string) =>
   `sha256:${character.repeat(64)}` as Sha256Digest;
 const revisionId = ProductionRevisionIdSchema.parse(
   `revision-${"1".repeat(64)}`,
 );
+const canonicalTiming = generateSemanticTiming({
+  story: StorySpecSchema.parse(validStorySpec),
+  narration: NarrationSpecSchema.parse(validNarrationSpec),
+  render: RenderSpecSchema.parse(validRenderSpec),
+  sealedNarration: buildValidSealedNarrationManifest(),
+});
+const originalityBaseline = buildSceneOriginalityBaseline({
+  subjectStoryId: "story-example",
+  entries: [],
+});
 
 const sceneInput = ({
   meaningId,
@@ -45,17 +71,57 @@ const sceneInput = ({
           meaningId,
           preset: { implementation },
         };
+  const validTaskBeat = {
+    kind: "narrated-scene" as const,
+    meaningId,
+    narrativePurpose: `Explain ${meaningId}.`,
+    ttsChunks: [
+      { chunkId: `${meaningId}-01`, ttsText: `Narrate ${meaningId}.` },
+    ],
+    explicitPauses: [],
+  };
+  const startFrame = Number.parseInt(timingMarker, 16) * 10;
+  const readability = resolveSceneReadabilityPolicy({
+    width: validRenderSpec.width,
+    height: validRenderSpec.height,
+  });
   return {
     meaningId,
     beat,
     timingBeat: { meaningId, marker: timingMarker },
     brief: { meaningId, marker },
-    taskInput: {
+    taskInput: buildSceneTaskInputV7({
       storyId: "story-example",
       meaningId,
-      marker,
-      timingBeat: { meaningId, marker: timingMarker },
-    },
+      storyBeat: validTaskBeat,
+      sourceReferences: [],
+      timingBeat: {
+        kind: "narrated-scene",
+        meaningId,
+        startFrame,
+        endFrame: startFrame + 120,
+      },
+      storyFingerprint: sha("e"),
+      renderFingerprint: sha("1"),
+      visualStyleFingerprint: sha(marker),
+      resourceCatalogFingerprint: sha("c"),
+      allowedSnapshots: [],
+      allowedResourceIds: [],
+      continuity: {
+        previousMeaningId: null,
+        previousSummary: null,
+        nextMeaningId: null,
+        nextSummary: null,
+        continuityBrief: "Keep this fixture self-contained.",
+      },
+      allowedDirectories: {
+        sceneRoot: `src/projects/story-example/scenes/${meaningId}`,
+        publicAssetRoot: `public/projects/story-example/scenes/${meaningId}`,
+      },
+      sceneRequirements: [],
+      sceneViewport: resolveSceneViewport(readability),
+      sceneCompositionBoundaryVersion: "scene-composition-boundary-v2",
+    }),
     revisionInput: {
       meaningId,
       beatFingerprint: sha(marker),
@@ -81,19 +147,28 @@ const inputs = ({
 } = {}) =>
   ({
     projectId: "story-example",
-    story: { storyId: "story-example", title: "Story" },
-    timing: {
+    story: {
+      ...StorySpecSchema.parse(validStorySpec),
       storyId: "story-example",
+    },
+    timing: {
+      ...canonicalTiming,
       fingerprint: sha(globalTimingMarker),
     },
-    render: { fps: 30 },
+    render: RenderSpecSchema.parse(validRenderSpec),
     sound: { storyId: "story-example" },
     visualStyle: { storyId: "story-example", marker },
     publishingIntent: { storyId: "story-example" },
     requirements: {
-      readabilityPolicy: { policyFingerprint: sha("b") },
+      readabilityPolicy: resolveSceneReadabilityPolicy({
+        width: validRenderSpec.width,
+        height: validRenderSpec.height,
+      }),
     },
-    resourcePool: { poolFingerprint: sha("c") },
+    resourcePool: {
+      poolFingerprint: sha("c"),
+      resourceCatalogFingerprint: sha("c"),
+    },
     globalVisualBrief: { storyId: "story-example" },
     runtimePolicyFingerprint: sha("d"),
     taskPolicyFingerprints: {
@@ -102,6 +177,7 @@ const inputs = ({
       composition: sha("3"),
       delivery: sha("4"),
     },
+    originalityBaseline,
     fingerprints: {
       story: sha("e"),
       narration: sha("f"),
@@ -113,6 +189,7 @@ const inputs = ({
       globalVisualBrief: sha("5"),
       resourcePool: sha("6"),
       assetManifest: sha("7"),
+      originalityBaseline: originalityBaseline.baselineFingerprint,
       narrationGeneration: sha("8"),
     },
     sceneInputs: [
@@ -139,6 +216,73 @@ test("planner dispatches only template-copy silent Scenes as fixed template task
   ]);
 });
 
+test("originality baseline binds only Agent-owned Scene tasks and template-copy is exempt", () => {
+  const built = buildAgentTasks(inputs(), revisionId);
+  const template = built.find(({ task }) => task.taskKind === "scene-template");
+  const sceneOwners = built.filter(
+    ({ task }) => task.taskKind === "scene-owner",
+  );
+  assert.ok(template !== undefined);
+  assert.equal(
+    template.task.inputFingerprints.some(
+      ({ id }) => id === SCENE_ORIGINALITY_INPUT_ID,
+    ),
+    false,
+  );
+  assert.equal(
+    Object.hasOwn(JSON.parse(template.contextBytes), "originalityBaseline"),
+    false,
+  );
+  for (const owner of sceneOwners) {
+    assert.equal(owner.task.validatorPolicyVersion, "scene-owner-validator-v3");
+    assert.equal(
+      owner.task.inputFingerprints.find(
+        ({ id }) => id === SCENE_ORIGINALITY_INPUT_ID,
+      )?.fingerprint,
+      originalityBaseline.baselineFingerprint,
+    );
+    assert.deepEqual(
+      JSON.parse(owner.contextBytes).originalityBaseline,
+      originalityBaseline,
+    );
+  }
+});
+
+test("originality baseline changes invalidate Scene owners without invalidating fixed templates or other owners", () => {
+  const currentInputs = inputs();
+  const changedBaseline = buildSceneOriginalityBaseline({
+    subjectStoryId: "story-example",
+    entries: [
+      {
+        owner: { storyId: "historical-story", meaningId: "opening" },
+        sourceGraphFingerprint: sha("9"),
+      },
+    ],
+  });
+  const changedInputs = {
+    ...currentInputs,
+    originalityBaseline: changedBaseline,
+    fingerprints: {
+      ...currentInputs.fingerprints,
+      originalityBaseline: changedBaseline.baselineFingerprint,
+    },
+  } as Parameters<typeof buildAgentTasks>[0];
+  const revisionMap = (loaded: Parameters<typeof buildAgentTasks>[0]) =>
+    Object.fromEntries(
+      buildAgentTasks(loaded, revisionId).map(({ task }) => [
+        task.semanticId === null ? task.taskKind : task.semanticId,
+        task.taskRevision,
+      ]),
+    );
+  const before = revisionMap(currentInputs);
+  const after = revisionMap(changedInputs);
+  assert.equal(before.intro, after.intro);
+  assert.notEqual(before.body, after.body);
+  assert.notEqual(before.outro, after.outro);
+  assert.equal(before["global-visual-owner"], after["global-visual-owner"]);
+  assert.equal(before["cover-owner"], after["cover-owner"]);
+});
+
 test("template-copy task rebinds the copied and derived file set without losing context identity", () => {
   const built = buildAgentTasks(inputs(), revisionId).find(
     ({ task }) => task.taskKind === "scene-template",
@@ -162,6 +306,11 @@ test("template-copy task rebinds the copied and derived file set without losing 
     "src/visual-plan.json",
   ]);
   assert.deepEqual(rebound.declaredReadSet, built.task.declaredReadSet);
+  assert.equal(
+    built.task.validatorPolicyVersion,
+    "scene-template-validator-v3",
+  );
+  assert.equal(rebound.validatorPolicyVersion, "scene-template-validator-v3");
   assert.deepEqual(rebound.inputFingerprints, built.task.inputFingerprints);
   assert.deepEqual(rebound.dependencyArtifacts, built.task.dependencyArtifacts);
   assert.notEqual(rebound.taskRevision, built.task.taskRevision);
@@ -180,7 +329,13 @@ test("template-copy task rebinds the copied and derived file set without losing 
 
 test("every Agent task binds the exact canonical context bytes it declares", () => {
   for (const built of buildAgentTasks(inputs(), revisionId)) {
-    assert.deepEqual(built.task.declaredReadSet, ["inputs/context.json"]);
+    const agentAuthored = built.task.taskKind !== "scene-template";
+    assert.deepEqual(
+      built.task.declaredReadSet,
+      agentAuthored
+        ? ["inputs/context.json", "inputs/task-contract.json"]
+        : ["inputs/context.json"],
+    );
     const binding = built.task.inputFingerprints.find(
       ({ id }) => id === "read:inputs/context.json",
     );
@@ -188,7 +343,36 @@ test("every Agent task binds the exact canonical context bytes it declares", () 
       binding?.fingerprint,
       `sha256:${createHash("sha256").update(built.contextBytes).digest("hex")}`,
     );
+    assert.equal(built.taskContractBytes !== null, agentAuthored);
+    if (built.taskContractBytes !== null) {
+      const contractBinding = built.task.inputFingerprints.find(
+        ({ id }) => id === "read:inputs/task-contract.json",
+      );
+      assert.equal(
+        contractBinding?.fingerprint,
+        `sha256:${createHash("sha256")
+          .update(built.taskContractBytes)
+          .digest("hex")}`,
+      );
+    }
   }
+});
+
+test("GlobalVisual task freezes the derived layer policy under validator v2", () => {
+  const built = buildAgentTasks(inputs(), revisionId).find(
+    ({ task }) => task.taskKind === "global-visual-owner",
+  );
+  assert.ok(built !== undefined);
+  const context = JSON.parse(built.contextBytes) as { layerPolicy?: unknown };
+
+  assert.equal(
+    built.task.validatorPolicyVersion,
+    "global-visual-owner-validator-v2",
+  );
+  assert.deepEqual(
+    context.layerPolicy,
+    deriveGlobalVisualLayerPolicy(canonicalTiming),
+  );
 });
 
 test("full Project revision identity does not enter taskRevision", () => {

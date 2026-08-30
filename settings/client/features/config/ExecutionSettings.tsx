@@ -69,7 +69,10 @@ export const ExecutionSettings = ({
         <strong>TASK TERMINAL DEADLINE · 1H</strong>
       </div>
       <p className="execution-precedence-note">
-        生效顺序：当前用户提示词 → 本页保存值 → 内置 inline。若选择子 Agent 但宿主容量为零，或精确并发超过运行时或仓库上限，生产会明确阻塞，不会伪造 child 或静默降级。
+        生效顺序：当前用户提示词 → 本页保存值 → 内置 inline。本页只保存模式与并发上限；
+        shared-workspace 或 controller-io transport 由当前 Agent 宿主为本次生产验证，不会持久化。
+        若选择子 Agent 但 transport 未验证、宿主容量为零，或精确并发超过运行时或仓库上限，
+        生产会明确阻塞，不会伪造 child 或静默降级。
       </p>
     </Section>
   );

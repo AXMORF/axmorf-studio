@@ -307,6 +307,55 @@ export const loadCatalogAuthorityDescriptors = async (
   return descriptors;
 };
 
+/**
+ * Builds the same Catalog identity while routing repository-owned descriptors
+ * and Project-owned descriptors through different filesystem roots. This is
+ * used by isolated Project revision production; repositoryPath values remain
+ * logical Workspace paths and therefore do not change content identity.
+ */
+export const loadScopedProjectCatalogAuthorityDescriptors = async ({
+  runtimeRoot,
+  projectRoot,
+  projectId,
+}: {
+  readonly runtimeRoot: string;
+  readonly projectRoot: string;
+  readonly projectId: string;
+}): Promise<readonly ResourceDescriptor[]> => {
+  const [coreDescriptors, localReferenceDescriptors, projectDescriptors] =
+    await Promise.all([
+      loadCoreCatalogAuthorityDescriptors(runtimeRoot),
+      loadLocalReferenceAssetDescriptors(runtimeRoot),
+      loadProjectResourceDescriptors(projectRoot, projectId),
+    ]);
+  const [enrichedLocal, enrichedProject] = await Promise.all([
+    Promise.all(
+      localReferenceDescriptors.map((descriptor) =>
+        withAuthorityChecksum(runtimeRoot, descriptor),
+      ),
+    ),
+    Promise.all(
+      projectDescriptors.map((descriptor) =>
+        withAuthorityChecksum(projectRoot, descriptor),
+      ),
+    ),
+  ]);
+  const descriptors = [
+    ...coreDescriptors,
+    ...enrichedLocal,
+    ...enrichedProject,
+  ];
+  const ids = new Set<string>();
+  for (const descriptor of descriptors) {
+    ResourceIdSchema.parse(descriptor.id);
+    if (ids.has(descriptor.id)) {
+      throw new Error(`Duplicate Resource Catalog ID: ${descriptor.id}.`);
+    }
+    ids.add(descriptor.id);
+  }
+  return descriptors;
+};
+
 export const loadCoreCatalogAuthorityDescriptors = async (
   rootDir: string,
 ): Promise<readonly ResourceDescriptor[]> => {

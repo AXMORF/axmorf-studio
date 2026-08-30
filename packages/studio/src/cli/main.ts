@@ -22,6 +22,7 @@ import {
   parseWorkspaceArguments,
   resolveWorkspaceRoot,
 } from "../workspace/resolve-workspace";
+import { reportCliFailure } from "./failure";
 
 type Output = Readonly<{
   stdout: (value: string) => void;
@@ -171,6 +172,32 @@ const createDefaultRunners = (output: Output): CliRunners => {
         runtimeResources: resources,
       });
     },
+    projectRevision: async ({ rootDir, args }) => {
+      await runtime();
+      const { runProjectRevisionCli } =
+        await import("../../../../scripts/projects/revision");
+      const [action, ...actionArgs] = args;
+      const context = { rootDir, env: process.env, stdout: stdoutLine };
+      switch (action) {
+        case "context":
+        case "validate":
+        case "create":
+        case "promote":
+          await runProjectRevisionCli(action, actionArgs, context);
+          return;
+        default:
+          throw new Error("Project revision action is invalid.");
+      }
+    },
+    projectOriginality: async ({ rootDir, args }) => {
+      await runtime();
+      const { runProjectOriginalityFreezeCli } =
+        await import("../../../../scripts/projects/originality");
+      await runProjectOriginalityFreezeCli(args, {
+        rootDir,
+        stdout: stdoutLine,
+      });
+    },
     projectDelete: async ({ rootDir, args }) => {
       await runtime();
       const { runProjectDeleteCli } =
@@ -295,18 +322,6 @@ export const runCli = async ({
   if (isRunningService(result)) await waitForService(result);
 };
 
-const errorCode = (error: unknown) => {
-  if (
-    error !== null &&
-    typeof error === "object" &&
-    "code" in error &&
-    typeof error.code === "string"
-  ) {
-    return error.code;
-  }
-  return "command-failed";
-};
-
 const isMainModule = () => {
   if (process.argv[1] === undefined) return false;
   try {
@@ -322,14 +337,9 @@ const isMainModule = () => {
 if (isMainModule()) {
   runCli({ cwd: process.cwd(), args: process.argv.slice(2) }).catch(
     (error: unknown) => {
-      defaultOutput.stderr(
-        `${JSON.stringify({
-          status: "error",
-          code: errorCode(error),
-          message: error instanceof Error ? error.message : "Command failed.",
-        })}\n`,
-      );
-      process.exitCode = errorCode(error) === "command-failed" ? 1 : 2;
+      const report = reportCliFailure(error);
+      defaultOutput.stderr(`${report.serialized}\n`);
+      process.exitCode = report.exitCode;
     },
   );
 }

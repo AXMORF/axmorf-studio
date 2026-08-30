@@ -9,27 +9,38 @@
 当前架构基线是单一 Project production 主链：ProductionRevision → content-addressed Task DAG → reusable
 ArtifactAttestation → atomic materialization → synchronous exact four-file delivery。旧执行账本与异步交付不再是
 active runtime authority。公开入口已分为 atomic create、strict read-only inspect、explicit costly prepare、
-attempt-bound task commit/fail 与 fixed continuation；converge 是 continuation 内部 application，不是 Root 命令。
+attempt-bound zero-write task bind、bound describe/finalize/check/commit/fail、explicit failed-attempt recovery/reissue
+与 fixed continuation；现有作品修改使用 strict exact-base revision candidate 和受控 promotion；converge 是
+continuation 内部 application，不是 Root 命令。
 
 基线门槛包括：
 
 - identity 不含 attempt/clock/process/absolute path；
 - create existing/partial/conflicting target fail closed，相同 creation identity 只读 current，零 provider/media；
+- revision context 同时复验 current Revision 与 exact-four Delivery；candidate 隔离所有 Project-owned mutable roots，
+  promotion 前不得改 live，promotion failure 完整 rollback 且只允许独立 promote retry；
 - Root 在任何成本前报告 inspect 的 source readiness、unknown-safe estimate、reuse 与逐任务失效解释；
 - prepare 才允许 provider/fixed artifact/workspace/attempt mutation；converge 不允许这些 preparation 副作用；
 - diagnostic explanation/baseline/attempt 不进入或改变 production/artifact/delivery authority；
 - execution mode 按用户提示词、settings、内置 `inline` 默认解析；inline 一次一个 workspace，subagents bounded pool
-  最多四个；一个 dirty task 只归属一个 executor，template task 不由 Agent 创作；
+  最多四个且需要本次 verified `shared-workspace` 或 `controller-io` transport；transport 不持久化；一个 dirty
+  task 只归属一个 executor，template task 不由 Agent 创作；
 - Composition exactly once 拥有 raw readability/insets 与 SceneViewport mount；Scene child 只看到
   safe-area-local viewport dimensions/min font size，不得恢复 full-frame authority；
-- Agent 只写 task workspace，fixed commit 重跑 validator，commit/fail 绑定 exact attempt 且首终态不可覆盖；
+- 每个 dirty Agent task 绑定 immutable、attempt-neutral TaskExecutionContract；新 contract 只让对应 task artifact
+  一次失效，current delivery 不动；
+- `task bind` 在任何 content read/write 前以零写入校验 exact attempt/contract。shared-workspace 只授予 declared
+  workspace capability；controller-io 只授予 strict bound file read/write。describe/finalize/check/commit/task failure
+  要求 full binding；spawn/fixed failure 仅有更窄的 exact terminal authority；
 - continuation 启动后 Root 挂起且不监督；bounded fixed continuation 以 atomic claim 单消费者运行，failure/attempt 创建起一小时
   timeout fail-fast，all-success 只 converge 一次；
 - artifact hit 严格复验 exact file set、no-symlink、size/checksum/dependencies/policy；
 - convergence stale/incomplete/drift fail closed 且 materialization 有 rollback；
 - delivery 同步等待和验证 exact four files，current replacement 受控且同 identity no-op；
 - settings 与 progress 不扫描历史 `.producer-runs/`；Project delete 仍能安全清理其 ownership root；
-- zero Project bootstrap/Registry/Catalog/settings 可用。
+- zero Project bootstrap/Registry/Catalog/settings 可用；
+- terminal failed attempt 只允许显式 read-only/zero-provider recover inspection 后 same-Revision reissue；旧 attempt
+  immutable，reissue 不要求 current delivery，active/stale/fixed-flow recovery fail closed。
 
 ## 当前里程碑状态
 
@@ -50,7 +61,10 @@ Remotion 和其他第三方包由生成项目按官方 npm dependency 安装，�
 本地 vertical slice 已通过 package build/pack、仓库外 creator 默认安装、`npm ci` 重装、doctor、public exports、
 Remotion compositions、Web/API/浏览器 QA 和 zero-provider create/inspect；同一 package/scaffold 主链也已在
 macOS 15 ARM64 原生 runner 上通过。Ubuntu 24.04 x86_64 又从 clean tarballs 完成 provider narration、bounded
-Agent execution、convergence、render 与 exact four-file Delivery，满足 deterministic packed production E2E。
+Agent execution、convergence、render 与 exact four-file Delivery，满足 deterministic packed production E2E；新增
+revision/originality/task-binding/reissue/GlobalVisual contracts 后又完成
+[current-feature re-acceptance](evidence/2026-08-30-ubuntu-npm-current-feature-reacceptance.md)。其中 packed Web
+HTTP 服务已冒烟返回 200，但这不替代下面仍待完成的 verified-Delivery endpoint/viewer 交互证据。
 
 公开发布前剩余门槛是：
 

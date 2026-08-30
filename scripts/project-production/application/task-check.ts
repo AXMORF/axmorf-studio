@@ -4,6 +4,7 @@ import ts from "typescript";
 
 import type { ProducerTaskSpec } from "@axmorf/studio/contracts";
 import { readTaskWorkspace } from "../adapters/task-workspace";
+import { assertGlobalVisualSource } from "./global-visual-validator";
 
 const listFiles = async (
   root: string,
@@ -69,6 +70,7 @@ export const checkProducerTaskWorkspace = async ({
 }: {
   readonly rootDir: string;
   readonly taskRevision: string;
+  readonly runtimeRootDir?: string;
 }) => {
   const { task, workspace } = await readTaskWorkspace({
     rootDir,
@@ -85,21 +87,8 @@ export const checkProducerTaskWorkspace = async ({
       join(workspace, "src/GlobalVisualLayers.tsx"),
       "utf8",
     );
-    if (
-      /\b(?:Audio|CaptionLayer|NarrationAudioTrack|ScenePackage|StoryBeat)\b|<text\b|>\s*[^<{\s][^<{]*</u.test(
-        source,
-      )
-    ) {
-      throw new Error("GlobalVisual source crosses its visual-only boundary.");
-    }
-    if (
-      !/\buseCurrentFrame\b/u.test(source) ||
-      !/pointerEvents\s*:\s*["']none["']/u.test(source)
-    ) {
-      throw new Error(
-        "GlobalVisual source must use frame motion and a pointer-transparent root.",
-      );
-    }
+    const sourcePath = `src/projects/${task.storyId}/global-visual/GlobalVisualLayers.tsx`;
+    assertGlobalVisualSource({ source, sourcePath, entryPath: sourcePath });
   }
   if (task.taskKind === "cover-owner") {
     for (const file of [

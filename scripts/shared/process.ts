@@ -7,4 +7,5 @@ export type ProcessResult = Readonly<{
 export type ProcessRunner = (
   command: string,
   args: readonly string[],
+  options?: Readonly<{ cwd?: string }>,
 ) => Promise<ProcessResult>;

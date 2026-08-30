@@ -4,6 +4,7 @@ import {
 } from "@axmorf/studio/contracts";
 import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
 import { loadProjectProductionInputs } from "./load-inputs";
+import type { ProductionScope } from "./production-scope";
 
 type LoadedProjectProductionInputs = Awaited<
   ReturnType<typeof loadProjectProductionInputs>
@@ -64,10 +65,12 @@ export const readCurrentProductionRevision = async (
     rootDir,
     projectId,
     runtimePolicyManifest,
+    scope,
   }: {
     readonly rootDir: string;
     readonly projectId: string;
     readonly runtimePolicyManifest?: RuntimePolicyManifest;
+    readonly scope?: ProductionScope;
   },
   dependencies: CurrentRevisionDependencies = defaultDependencies,
 ) => {
@@ -75,6 +78,7 @@ export const readCurrentProductionRevision = async (
     rootDir,
     projectId,
     ...(runtimePolicyManifest === undefined ? {} : { runtimePolicyManifest }),
+    ...(scope === undefined ? {} : { scope }),
   });
   return buildCurrentProductionRevision(inputs);
 };

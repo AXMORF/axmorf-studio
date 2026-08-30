@@ -8,12 +8,16 @@ import {
   Sha256DigestSchema,
   StoryIdSchema,
 } from "./primitives";
+import { SemanticTimingSchema } from "./semantic-timing";
+import { getStoryCompositionDurationInFrames } from "./story-composition";
 
 export const GLOBAL_VISUAL_PLAN_VERSION = "global-visual-plan-v1" as const;
 export const GLOBAL_VISUAL_PROJECTION_VERSION =
   "global-visual-projection-v1" as const;
 export const GLOBAL_VISUAL_PROJECTION_VERSION_V2 =
   "global-visual-projection-v2" as const;
+export const GLOBAL_VISUAL_LAYER_POLICY_VERSION =
+  "global-visual-layer-policy-v1" as const;
 
 const HexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const UnitIntervalSchema = z.number().finite().min(0).max(1);
@@ -26,6 +30,71 @@ const InsetSchema = z
   })
   .strict()
   .readonly();
+
+const GlobalVisualFrameRangeSchema = z
+  .object({
+    startFrame: NonNegativeIntegerSchema,
+    endFrame: PositiveIntegerSchema,
+  })
+  .strict()
+  .refine(({ startFrame, endFrame }) => endFrame > startFrame, {
+    message: "GlobalVisual frame range must be non-empty.",
+  })
+  .readonly();
+
+/**
+ * Fixed projection authority for the two GlobalVisual layers. The owner task
+ * receives this value but cannot author or widen either range.
+ */
+export const GlobalVisualLayerPolicySchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    policyVersion: z.literal(GLOBAL_VISUAL_LAYER_POLICY_VERSION),
+    baseFrameRange: GlobalVisualFrameRangeSchema,
+    decorationFrameRange: GlobalVisualFrameRangeSchema,
+    decorationFrameOrigin: z.literal("window-local-zero"),
+  })
+  .strict()
+  .superRefine((policy, context) => {
+    if (
+      policy.baseFrameRange.startFrame !== 0 ||
+      policy.decorationFrameRange.startFrame <
+        policy.baseFrameRange.startFrame ||
+      policy.decorationFrameRange.endFrame > policy.baseFrameRange.endFrame
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "GlobalVisual decoration must stay inside the full Composition base range.",
+      });
+    }
+  })
+  .readonly();
+
+export const deriveGlobalVisualLayerPolicy = (rawTiming: unknown) => {
+  const timing = SemanticTimingSchema.parse(rawTiming);
+  const narratedBeats = timing.storyBeats.filter(
+    (beat) => beat.kind === "narrated-scene",
+  );
+  const firstNarratedBeat = narratedBeats[0];
+  const lastNarratedBeat = narratedBeats.at(-1);
+  if (firstNarratedBeat === undefined || lastNarratedBeat === undefined) {
+    throw new Error("GlobalVisual requires narrated content.");
+  }
+  return GlobalVisualLayerPolicySchema.parse({
+    schemaVersion: 1,
+    policyVersion: GLOBAL_VISUAL_LAYER_POLICY_VERSION,
+    baseFrameRange: {
+      startFrame: 0,
+      endFrame: getStoryCompositionDurationInFrames(timing.durationInFrames),
+    },
+    decorationFrameRange: {
+      startFrame: firstNarratedBeat.startFrame,
+      endFrame: lastNarratedBeat.endFrame,
+    },
+    decorationFrameOrigin: "window-local-zero",
+  });
+};
 
 const MotifWindowSchema = z
   .object({
@@ -240,6 +309,9 @@ export const createGlobalVisualProjection = (rawInput: unknown) => {
 };
 
 export type GlobalVisualPlan = z.infer<typeof GlobalVisualPlanSchema>;
+export type GlobalVisualLayerPolicy = z.infer<
+  typeof GlobalVisualLayerPolicySchema
+>;
 export type GlobalVisualProjection = z.infer<
   typeof GlobalVisualProjectionSchema
 >;

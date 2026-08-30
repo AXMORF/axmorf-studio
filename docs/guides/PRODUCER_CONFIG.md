@@ -38,8 +38,8 @@ latest ExecutionAttempt diagnostic 和 four-file delivery，每 3 秒只读刷�
 checksum 和 media facts 完整一致才显示 current。
 
 Project 详情提供删除入口，必须输入完整 Project ID 二次确认。页面调用与 `project:delete` 完全相同
-的删除器：删除该 Project 的代码、媒体、narration work、task workspaces、artifacts、attempts、legacy
-history、out 与 current delivery，
+的删除器：删除该 Project 的代码、媒体、narration work、task workspaces、artifacts、attempts、revision
+candidates、legacy history、out 与 current delivery，
 随后重建 Catalog/Registry；其他 Project、private config 与 `public/voice_profile/` 不受影响。
 非同源请求、非空 delivery staging、writer lock、不安全路径或不存在的 Project 会在删除前被拒绝。
 prepare/convergence、Project create/import 或交付构建正在改变仓库时，删除也会通过共享 operation lock 拒绝执行；删除在
@@ -51,9 +51,11 @@ task 或产物，也避免 Remotion Studio 因短暂的旧 import 终止配置 A
 “Agent 执行”设置独立保存到 Git-ignored 的 `private/execution-preferences.json`，使用 strict contract、
 原子替换和 `0600` 权限。该文件不是 ProducerConfig，也不改变 ProducerConfig、Revision、TaskRevision、
 ArtifactAttestation 或 DeliveryBuild identity；文件不存在时内置使用 `inline`，一个 shell-capable Agent 即可
-串行处理 dirty workspaces。只有宿主确实提供 runtime-native children 时才选择 `subagents` 并设置最多四个
-并发。用户提示词中的本次 override 优先于已保存设置，但不会自动写回；无法满足明确容量要求时在 prepare
-前阻塞，不回退或伪造 child execution。
+串行处理 dirty workspaces。只有宿主确实提供 bounded runtime-native children，并能为本次 production 验证
+`shared-workspace` 或 `controller-io` transport 时才选择 `subagents` 并设置最多四个并发。transport 是本次宿主
+capability evidence，不是表单字段，永远不写入 execution preferences 或 content identity。用户提示词中的本次
+override 优先于已保存设置，但不会自动写回；transport 未验证或无法满足明确容量要求时在 prepare 前阻塞，
+不回退或伪造 child execution。
 
 右侧“只读环境诊断”检查配置、默认声线来源与 Remotion browser preflight。VoxCPM 继续检查
 health/ready/info；SpeechSDK 与 Edge 只做 strict config/profile 校验，并明确显示“凭证/网络将在真实生成

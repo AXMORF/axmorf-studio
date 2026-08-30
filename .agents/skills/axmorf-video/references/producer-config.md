@@ -16,6 +16,8 @@ Read this only while authoring a new Project's strict create input.
   `targetLoudnessLufs`. Do not reproduce those derivations manually.
 - ProductionRevision binds a private-safe narration-generation fingerprint, never secrets. Configuration
   drift creates new content-addressed task identities; valid unrelated artifacts remain reusable.
+- Agent execution preferences save only mode and concurrency. A verified `shared-workspace` or `controller-io`
+  transport is ephemeral host evidence for one production and is never written to config or content identity.
 - Creation stops at `configured-authoring`; run and report the read-only inspection before explicit
   preparation. Do not fabricate timing-bound authoring or claim a Revision before verified PCM timing exists.
 - Use environment diagnostics only for metadata, health/ready, and browser checks. Never generate test

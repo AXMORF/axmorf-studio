@@ -52,25 +52,30 @@ export const renderProjectVideo = async ({
   rootDir,
   compositionId,
   outputPath,
+  entryPoint = join(rootDir, "src/index.ts"),
+  publicDir = join(rootDir, "public"),
   runProcess = runMediaProcess,
 }: {
   readonly rootDir: string;
   readonly compositionId: string;
   readonly outputPath: string;
+  readonly entryPoint?: string;
+  readonly publicDir?: string;
   readonly runProcess?: ProcessRunner;
 }) => {
   const invocation = await resolveRemotionCliInvocation(rootDir);
   const result = await runProcess(invocation.command, [
     ...invocation.argsPrefix,
     "render",
-    "src/index.ts",
+    entryPoint,
     compositionId,
     outputPath,
     "--codec=h264",
     "--audio-codec=aac",
     "--pixel-format=yuv420p",
     "--log=error",
-  ]);
+    `--public-dir=${publicDir}`,
+  ], { cwd: rootDir });
   if (result.status !== 0) {
     throw new Error(
       `Remotion could not render Project video: ${basename(outputPath)}.`,
@@ -83,24 +88,34 @@ export const renderProjectCover = async ({
   projectId,
   compositionId,
   outputPath,
+  entryPoint = join(
+    rootDir,
+    "src/projects",
+    projectId,
+    "delivery/cover/index.ts",
+  ),
+  publicDir = join(rootDir, "public"),
   runProcess = runMediaProcess,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly compositionId: string;
   readonly outputPath: string;
+  readonly entryPoint?: string;
+  readonly publicDir?: string;
   readonly runProcess?: ProcessRunner;
 }) => {
   const invocation = await resolveRemotionCliInvocation(rootDir);
   const result = await runProcess(invocation.command, [
     ...invocation.argsPrefix,
     "still",
-    join("src/projects", projectId, "delivery/cover/index.ts"),
+    entryPoint,
     compositionId,
     outputPath,
     "--image-format=png",
     "--log=error",
-  ]);
+    `--public-dir=${publicDir}`,
+  ], { cwd: rootDir });
   if (result.status !== 0) {
     throw new Error(
       `Remotion could not render Project Cover: ${basename(outputPath)}.`,

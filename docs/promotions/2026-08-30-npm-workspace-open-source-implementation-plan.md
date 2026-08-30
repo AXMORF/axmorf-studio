@@ -297,22 +297,22 @@ Remotion Studio
 - Docker、常驻 daemon、后台 Agent scheduler、remote database/artifact store；
 - 自动 provider retry/fallback、跨 Project Scene/media clone 或历史 Run authority。
 
-### 5.3 Foundation parity 后再移植
+### 5.3 Foundation parity 后的 hardening 状态
 
 Desktop 分叉后的功能按行为和 focused tests 重做，不按 commit 整体 cherry-pick：
 
 | 能力                                                                  | npm 方案处理                            |
 | --------------------------------------------------------------------- | --------------------------------------- |
-| caption display half-unit budget 与字段级 issue                       | 首个 public beta 前移植                 |
-| narration normalize、render cleanup、deadline/event correctness fixes | 对照 regression tests 逐项移植          |
-| Agent task self-description/finalize 与安全 binding                   | 在 package vertical slice Green 后移植  |
-| same-Project candidate revision                                       | 作为现有作品修改的独立纵向任务移植      |
-| Scene originality baseline                                            | 在 candidate revision 后移植            |
-| source-current / manual versus automatic Delivery                     | 重新评估产品需要，不从 Desktop 默认继承 |
+| caption display half-unit budget 与字段级 issue                       | 已按 npm authoring contract 重写        |
+| narration normalize、render cleanup、deadline/event correctness fixes | deadline/event 已重写；其余继续逐项验证 |
+| Agent task self-description/finalize 与安全 binding                   | 已按 npm task protocol 重写             |
+| same-Project candidate revision                                       | 已按 exact-base isolated candidate 重写 |
+| Scene originality baseline                                            | 已按多文件 source-graph contract 重写   |
+| 额外 source snapshot authority / manual Delivery branch               | 不引入；保持 current npm 单一主链       |
 | Foundation Settings Web 与 Studio 外链                                | 保留并迁入 npm package                  |
 | Desktop Settings、Player、media ticket、Runtime Pack、native gates    | 永不移植                                |
 
-首次 package parity 不得声称已经包含上表未完成能力；公开版本号和 README 必须按真实 capability 标注。
+公开版本号和 README 必须按 executable contracts、tests 与最终 verification 的真实 capability 标注。
 
 ## 6. 实施任务
 
@@ -501,7 +501,7 @@ Red 必须由目标 contract 缺失造成，不得以网络、npm registry、pro
 - `npm publish --dry-run`、provenance metadata 和 README install commands 验证通过；
 - actual publish、Git push、release/tag 仍等待用户对名称、license、版本和目标 registry 的逐项授权。
 
-### Task 8：移植非 Desktop production hardening
+### Task 8：移植非 Desktop production hardening（实现与仓库级验证完成）
 
 Package parity E2E Green 后，按第 5.3 节顺序建立 focused Red/Green。每项必须证明：
 

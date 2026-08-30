@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -8,6 +8,7 @@ import test from "node:test";
 import {
   buildProducerTaskSpec,
   createGlobalVisualPlan,
+  deriveGlobalVisualLayerPolicy,
   generateSemanticTiming,
   NarrationSpecSchema,
   RenderSpecSchema,
@@ -29,23 +30,31 @@ const checksum = (value: string) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}` as const;
 
 const validSource = `
-const useCurrentFrame = () => 0;
-const rootStyle = {pointerEvents: "none"};
-export const GlobalVisualLayers = () => {
-  const frame = useCurrentFrame();
-  return frame >= 0 ? null : null;
+import {useCurrentFrame} from "remotion";
+export const GlobalVisualBaseLayer = () => {
+  return <div style={{pointerEvents: "none"}} />;
 };
-void rootStyle;
+export const GlobalVisualDecorationLayers = () => {
+  const frame = useCurrentFrame();
+  return <div style={{opacity: frame >= 0 ? 1 : 0, pointerEvents: "none"}} />;
+};
 `;
 
 const buildFixture = ({
   planWidth = 1920,
   planCompositionId = validRenderSpec.compositionId,
+  motifWindows = [],
   selectedResources = [],
   source = validSource,
 }: {
   readonly planWidth?: number;
   readonly planCompositionId?: string;
+  readonly motifWindows?: readonly Readonly<{
+    startFrame: number;
+    endFrame: number;
+    axis: "x" | "y";
+    direction: -1 | 1;
+  }>[];
   readonly selectedResources?: readonly unknown[];
   readonly source?: string;
 } = {}) => {
@@ -64,6 +73,7 @@ const buildFixture = ({
     story: { storyId: validStorySpec.storyId },
     render: RenderSpecSchema.parse(validRenderSpec),
     timing,
+    layerPolicy: deriveGlobalVisualLayerPolicy(timing),
     requirements: { readabilityPolicy },
     resourcePool: {
       allowedResourceIds: ["asset.allowed-global"],
@@ -94,7 +104,7 @@ const buildFixture = ({
       strokeWidth: 3,
       opacity: 0.3,
       motionPolicy: "linear-frame-progress-v1",
-      windows: [],
+      windows: motifWindows,
     },
   });
   return { context, plan, selectedResources, source } as const;
@@ -126,7 +136,7 @@ const createGlobalWorkspace = async ({
       "src/GlobalVisualLayers.tsx",
       "src/selected-resources.json",
     ],
-    validatorPolicyVersion: "global-visual-owner-validator-v1",
+    validatorPolicyVersion: "global-visual-owner-validator-v2",
   });
   const workspace = await createTaskWorkspace({
     rootDir,
@@ -150,17 +160,23 @@ const createGlobalWorkspace = async ({
       selectedResources: fixture.selectedResources,
     })}\n`,
   );
+  const repositoryRoot = join(import.meta.dirname, "../..");
+  const compilerConfig = JSON.parse(
+    await readFile(join(repositoryRoot, "tsconfig.json"), "utf8"),
+  ) as { compilerOptions: Record<string, unknown> };
+  compilerConfig.compilerOptions.baseUrl = repositoryRoot;
+  compilerConfig.compilerOptions.paths = {
+    ...(compilerConfig.compilerOptions.paths as Record<string, string[]>),
+    remotion: [
+      join(repositoryRoot, "node_modules/remotion/dist/cjs/index.d.ts"),
+    ],
+    "react/jsx-runtime": [
+      join(repositoryRoot, "node_modules/@types/react/jsx-runtime.d.ts"),
+    ],
+  };
   await writeFile(
     join(rootDir, "tsconfig.json"),
-    `${JSON.stringify({
-      compilerOptions: {
-        target: "ES2022",
-        module: "ESNext",
-        moduleResolution: "Bundler",
-        strict: true,
-        noEmit: true,
-      },
-    })}\n`,
+    `${JSON.stringify(compilerConfig, null, 2)}\n`,
   );
   return task;
 };
@@ -252,4 +268,242 @@ test("GlobalVisual task rejects source that crosses into audio ownership", async
     checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
     /visual-only boundary/u,
   );
+});
+
+test("GlobalVisual task rejects decoration windows outside narrated content", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-window-boundary-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const task = await createGlobalWorkspace({
+    rootDir,
+    fixture: buildFixture({
+      motifWindows: [{ startFrame: 0, endFrame: 10, axis: "x", direction: 1 }],
+    }),
+  });
+
+  await assert.rejects(
+    checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+    /plan is stale/u,
+  );
+});
+
+test("GlobalVisual task rejects the legacy single-layer export", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-legacy-layer-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const task = await createGlobalWorkspace({
+    rootDir,
+    fixture: buildFixture({
+      source: `
+import {useCurrentFrame} from "remotion";
+export const GlobalVisualLayers = () => {
+  const frame = useCurrentFrame();
+  return <div style={{opacity: frame >= 0 ? 1 : 0, pointerEvents: "none"}} />;
+};
+`,
+    }),
+  });
+
+  await assert.rejects(
+    checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+    /GlobalVisualBaseLayer and GlobalVisualDecorationLayers/u,
+  );
+});
+
+test("GlobalVisual task requires both layer exports to be zero-props components", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-props-layer-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const task = await createGlobalWorkspace({
+    rootDir,
+    fixture: buildFixture({
+      source: `
+import {useCurrentFrame} from "remotion";
+type BaseProps = {readonly opacity: number};
+export const GlobalVisualBaseLayer = (_props: BaseProps) => {
+  return <div style={{pointerEvents: "none"}} />;
+};
+export const GlobalVisualDecorationLayers = () => {
+  const frame = useCurrentFrame();
+  return <div style={{opacity: frame >= 0 ? 1 : 0, pointerEvents: "none"}} />;
+};
+`,
+    }),
+  });
+
+  await assert.rejects(
+    checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+    /component interface compile/u,
+  );
+});
+
+test("GlobalVisual task requires the base component to own pointer transparency", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-base-pointer-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const task = await createGlobalWorkspace({
+    rootDir,
+    fixture: buildFixture({
+      source: validSource.replace(
+        '<div style={{pointerEvents: "none"}} />',
+        "<div />",
+      ),
+    }),
+  });
+
+  await assert.rejects(
+    checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+    /GlobalVisualBaseLayer root must declare pointerEvents none/u,
+  );
+});
+
+test("GlobalVisual task requires the decoration component to own pointer transparency", async (context) => {
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-global-decoration-pointer-"),
+  );
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const task = await createGlobalWorkspace({
+    rootDir,
+    fixture: buildFixture({
+      source: validSource.replace(
+        '<div style={{opacity: frame >= 0 ? 1 : 0, pointerEvents: "none"}} />',
+        "<div style={{opacity: frame >= 0 ? 1 : 0}} />",
+      ),
+    }),
+  });
+
+  await assert.rejects(
+    checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+    /GlobalVisualDecorationLayers root must declare pointerEvents none/u,
+  );
+});
+
+test("GlobalVisual task requires frame motion inside the decoration component", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-decoration-frame-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const task = await createGlobalWorkspace({
+    rootDir,
+    fixture: buildFixture({
+      source: `
+import {useCurrentFrame} from "remotion";
+export const GlobalVisualBaseLayer = () => {
+  return <div style={{pointerEvents: "none"}} />;
+};
+export const GlobalVisualDecorationLayers = () => {
+  return <div style={{pointerEvents: "none"}} />;
+};
+`,
+    }),
+  });
+
+  await assert.rejects(
+    checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+    /must directly call useCurrentFrame imported from remotion/u,
+  );
+});
+
+test("GlobalVisual task requires a direct Remotion useCurrentFrame binding", async (context) => {
+  const invalidSources = [
+    validSource.replace(
+      'import {useCurrentFrame} from "remotion";',
+      "const useCurrentFrame = () => 0;",
+    ),
+    validSource.replace(
+      "  const frame = useCurrentFrame();",
+      "  const useCurrentFrame = () => 0;\n  const frame = useCurrentFrame();",
+    ),
+    validSource
+      .replace(
+        'import {useCurrentFrame} from "remotion";',
+        'import {useCurrentFrame as remotionFrame} from "remotion";\nconst readFrame = () => remotionFrame();',
+      )
+      .replace("useCurrentFrame()", "readFrame()"),
+  ];
+
+  for (const [index, source] of invalidSources.entries()) {
+    const rootDir = await mkdtemp(
+      join(tmpdir(), `rsp-global-frame-binding-${index}-`),
+    );
+    context.after(() => rm(rootDir, { recursive: true, force: true }));
+    const task = await createGlobalWorkspace({
+      rootDir,
+      fixture: buildFixture({ source }),
+    });
+
+    await assert.rejects(
+      checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+      /must directly call useCurrentFrame imported from remotion/u,
+    );
+  }
+});
+
+test("GlobalVisual task rejects visible or unproven JSX child expressions", async (context) => {
+  for (const [index, expression] of [
+    '{"VISIBLE TEXT"}',
+    "{123}",
+    "{label}",
+    "{makeText()}",
+  ].entries()) {
+    const rootDir = await mkdtemp(
+      join(tmpdir(), `rsp-global-expression-copy-${index}-`),
+    );
+    context.after(() => rm(rootDir, { recursive: true, force: true }));
+    const source = validSource.replace(
+      '<div style={{opacity: frame >= 0 ? 1 : 0, pointerEvents: "none"}} />',
+      `<div style={{opacity: frame >= 0 ? 1 : 0, pointerEvents: "none"}}>${expression}</div>`,
+    );
+    const task = await createGlobalWorkspace({
+      rootDir,
+      fixture: buildFixture({ source }),
+    });
+
+    await assert.rejects(
+      checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+      /visual-only boundary: visible text/u,
+    );
+  }
+});
+
+test("GlobalVisual task preserves element-valued dynamic visual expressions", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-global-dynamic-visual-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const source = validSource.replace(
+    '<div style={{opacity: frame >= 0 ? 1 : 0, pointerEvents: "none"}} />',
+    '<div style={{opacity: frame >= 0 ? 1 : 0, pointerEvents: "none"}}>{frame >= 0 ? <span /> : null}</div>',
+  );
+  const task = await createGlobalWorkspace({
+    rootDir,
+    fixture: buildFixture({ source }),
+  });
+
+  assert.equal(
+    (await checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }))
+      .status,
+    "task-workspace-valid",
+  );
+});
+
+test("GlobalVisual task rejects pointer transparency detached from the returned root", async (context) => {
+  const invalidBaseBodies = [
+    `const unusedStyle = {pointerEvents: "none"};
+  void unusedStyle;
+  return <div />;`,
+    'return <div><span style={{pointerEvents: "none"}} /></div>;',
+  ];
+
+  for (const [index, baseBody] of invalidBaseBodies.entries()) {
+    const rootDir = await mkdtemp(
+      join(tmpdir(), `rsp-global-detached-pointer-${index}-`),
+    );
+    context.after(() => rm(rootDir, { recursive: true, force: true }));
+    const source = validSource.replace(
+      'return <div style={{pointerEvents: "none"}} />;',
+      baseBody,
+    );
+    const task = await createGlobalWorkspace({
+      rootDir,
+      fixture: buildFixture({ source }),
+    });
+
+    await assert.rejects(
+      checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+      /GlobalVisualBaseLayer root must declare pointerEvents none/u,
+    );
+  }
 });

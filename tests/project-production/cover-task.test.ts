@@ -157,3 +157,20 @@ test("Cover task rejects a Composition with the wrong fixed dimensions", async (
     /two independent fixed one-frame Compositions/u,
   );
 });
+
+test("Cover task cannot take ownership of a GlobalVisual layer", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-cover-global-visual-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const task = await createCoverWorkspace({
+    rootDir,
+    sources: {
+      ...validSources(),
+      "Cover4x3.tsx": `${cover4x3}\nconst GlobalVisualBaseLayer = null;\nvoid GlobalVisualBaseLayer;`,
+    },
+  });
+
+  await assert.rejects(
+    checkCoverTask({ rootDir, taskRevision: task.taskRevision }),
+    /GlobalVisualBaseLayer/u,
+  );
+});

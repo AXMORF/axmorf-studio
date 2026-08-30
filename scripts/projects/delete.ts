@@ -28,6 +28,7 @@ const DIRECT_DATA_ROOTS = [
   ".producer-attempts",
   ".producer-work",
   ".producer-artifacts",
+  ".producer-revisions",
   "out",
   "deliveries",
 ] as const;
@@ -39,6 +40,7 @@ const PROJECT_DISCOVERY_ROOTS = [
   ".producer-attempts",
   ".producer-work",
   ".producer-artifacts",
+  ".producer-revisions",
   "out",
   "deliveries",
 ] as const;
@@ -104,6 +106,7 @@ const assertFixedParentChains = async (rootDir: string) => {
     ".producer-attempts",
     ".producer-work",
     ".producer-artifacts",
+    ".producer-revisions",
     "out",
     "deliveries",
     "deliveries/.staging",

@@ -92,3 +92,175 @@ test("active production docs expose resolved bounded execution and fixed continu
   assert.match(active, /user prompt|用户提示词/iu);
   assert.match(active, /bounded pool|受限并发/iu);
 });
+
+test("active npm docs expose bound TaskExecutionContract and explicit failed-attempt recovery", async () => {
+  const rootDir = process.cwd();
+  const commandPaths = [
+    "README.md",
+    "docs/PRODUCTION_WORKFLOW.md",
+    "docs/guides/PRODUCTION_ORCHESTRATION.md",
+    ".agents/skills/axmorf-video/references/direct-production-workflow.md",
+  ] as const;
+  const authorityPaths = [
+    "AGENTS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/FINAL_PRODUCT_GOAL.md",
+    "docs/ITERATION_STATUS.md",
+    "docs/ROADMAP.md",
+  ] as const;
+  const commands = await Promise.all(
+    commandPaths.map((relativePath) =>
+      readFile(path.join(rootDir, relativePath), "utf8"),
+    ),
+  );
+  for (const source of commands) {
+    assert.match(source, /project:task:bind/u);
+    assert.match(source, /project:task:finalize/u);
+    assert.match(source, /project:attempt:recover-inspect/u);
+    assert.match(source, /project:attempt:reissue/u);
+    for (const command of source.matchAll(
+      /npm run project:task:(?:describe|finalize|check|commit|fail)[^\n]*/gu,
+    )) {
+      assert.match(command[0], /--attempt/u);
+      assert.match(command[0], /--binding/u);
+    }
+  }
+  const authorities = await Promise.all(
+    authorityPaths.map((relativePath) =>
+      readFile(path.join(rootDir, relativePath), "utf8"),
+    ),
+  );
+  const active = [...commands, ...authorities].join("\n");
+  assert.match(active, /TaskExecutionContract/u);
+  assert.match(active, /zero-write/u);
+  assert.match(active, /shared-workspace[\s\S]*controller-io/u);
+  assert.match(active, /full (?:valid )?binding/u);
+  assert.match(active, /same-Revision/u);
+  assert.match(active, /不要求 current delivery|needs no current delivery/iu);
+  assert.doesNotMatch(active, /policy schema v1[689] \/ policy v1[89]/u);
+});
+
+test("active npm docs expose exact-base isolated Project revision promotion", async () => {
+  const rootDir = process.cwd();
+  const operationalPaths = [
+    "README.md",
+    "docs/PRODUCTION_WORKFLOW.md",
+    "docs/guides/PROJECT_REVISION.md",
+    ".agents/skills/axmorf-video/references/project-revision.md",
+  ] as const;
+  const authorityPaths = [
+    "AGENTS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/FINAL_PRODUCT_GOAL.md",
+    "docs/ITERATION_STATUS.md",
+    "docs/ROADMAP.md",
+  ] as const;
+  const operational = await Promise.all(
+    operationalPaths.map((relativePath) =>
+      readFile(path.join(rootDir, relativePath), "utf8"),
+    ),
+  );
+  for (const source of operational) {
+    assert.match(source, /project:revise:context/u);
+    assert.match(source, /project:revise:validate/u);
+    assert.match(source, /project:revise(?:`|\s|:)/u);
+    assert.match(source, /project:revision:promote/u);
+    assert.match(source, /--candidate/u);
+  }
+  const authorities = await Promise.all(
+    authorityPaths.map((relativePath) =>
+      readFile(path.join(rootDir, relativePath), "utf8"),
+    ),
+  );
+  const active = [...operational, ...authorities].join("\n");
+  assert.match(active, /baseRevisionId[\s\S]*baseDeliveryBuildId/u);
+  assert.match(active, /isolated|隔离/iu);
+  assert.match(active, /source\/public\/narration\/delivery/u);
+  assert.match(active, /rollback/u);
+  assert.match(active, /promotion[\s\S]*(?:独立|only)[\s\S]*(?:retry|重试)/iu);
+  assert.doesNotMatch(active, /edit existing inputs/u);
+  assert.doesNotMatch(
+    active,
+    /Existing Project authoring inputs\s*\|\s*Root authoring Agent/u,
+  );
+});
+
+test("active docs expose originality, bound capabilities, layered GlobalVisual, and reissue", async () => {
+  const rootDir = process.cwd();
+  const read = (relativePath: string) =>
+    readFile(path.join(rootDir, relativePath), "utf8");
+  const [goal, deterministic, terminology, status, workflow, review] =
+    await Promise.all([
+      read("docs/FINAL_PRODUCT_GOAL.md"),
+      read("docs/DETERMINISTIC_EXECUTION.md"),
+      read("docs/TERMINOLOGY.md"),
+      read("docs/ITERATION_STATUS.md"),
+      read("docs/PRODUCTION_WORKFLOW.md"),
+      read("docs/guides/REVIEW_MODEL.md"),
+    ]);
+
+  assert.match(goal, /originality baseline/iu);
+  assert.match(goal, /72 caption display half-units/iu);
+  for (const term of [
+    "TaskExecutionContract",
+    "task-worker-bound",
+    "shared-workspace",
+    "controller-io",
+    "Scene originality baseline",
+    "GlobalVisual layer policy",
+    "attempt reissue",
+  ]) {
+    assert.match(`${deterministic}\n${terminology}`, new RegExp(term, "iu"));
+  }
+  for (const command of [
+    "project:originality:freeze",
+    "project:revise:context",
+    "project:revise:validate",
+    "project:revise",
+    "project:revision:promote",
+  ]) {
+    assert.match(status, new RegExp(command, "u"));
+  }
+  assert.match(workflow, /authoring-validation-failed/u);
+  assert.match(workflow, /caption-display-budget-exceeded/u);
+  assert.match(review, /project:task:bind/u);
+  assert.match(review, /project:task:finalize/u);
+  assert.match(review, /spawn\/fixed failure/u);
+
+  const templateDocs = (
+    await Promise.all([
+      read("packages/create-axmorf-studio/template/AGENTS.md"),
+      read(
+        "packages/create-axmorf-studio/template/.agents/skills/axmorf-video/SKILL.md",
+      ),
+      read(
+        "packages/create-axmorf-studio/template/.agents/skills/axmorf-video/references/production-workflow.md",
+      ),
+    ])
+  ).join("\n");
+  assert.match(templateDocs, /GlobalVisualBaseLayer/u);
+  assert.match(templateDocs, /GlobalVisualDecorationLayers/u);
+  assert.match(templateDocs, /local frame zero/iu);
+
+  const transportDocs = (
+    await Promise.all([
+      read(
+        ".agents/skills/axmorf-video/references/global-visual-agent-orchestration.md",
+      ),
+      read(
+        ".agents/skills/axmorf-video/references/cover-agent-orchestration.md",
+      ),
+      read("docs/guides/PRODUCTION_ORCHESTRATION.md"),
+    ])
+  ).join("\n");
+  assert.match(
+    transportDocs,
+    /controller-io[\s\S]{0,100}没有[\s\S]{0,80}filesystem/iu,
+  );
+  assert.doesNotMatch(transportDocs, /在共享 checkout/u);
+
+  const deletionDocs = `${await read("docs/guides/PRODUCER_CONFIG.md")}\n${await read(
+    "docs/guides/FORMAL_PROJECT_VERIFICATION.md",
+  )}`;
+  assert.match(deletionDocs, /revision candidates/u);
+});

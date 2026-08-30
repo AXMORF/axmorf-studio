@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   DELIVERY_BUILD_POLICY_VERSION,
   RenderSpecSchema,
+  Sha256DigestSchema,
   StorySpecSchema,
   buildArtifactAttestation,
   buildDeliveryPublish,
@@ -28,6 +29,7 @@ import { checksumBytes } from "../../scripts/project-production/adapters/project
 import { validRenderSpec, validStorySpec } from "../fixtures/narrative";
 
 const SHA = `sha256:${"a".repeat(64)}`;
+const SHA_DIGEST = Sha256DigestSchema.parse(SHA);
 const REVISION = `revision-${"1".repeat(64)}`;
 const NEXT_REVISION = `revision-${"2".repeat(64)}`;
 const ATTEMPT_ID = "00000000-0000-4000-8000-000000000001";
@@ -62,6 +64,19 @@ const task = (
     validatorPolicyVersion: `${taskKind}-validator-v1`,
   });
 
+const sceneTask = (meaningId: string): ProducerTaskSpec =>
+  buildProducerTaskSpec({
+    taskKind: "scene-owner",
+    storyId: "story-example",
+    semanticId: meaningId,
+    revisionId: REVISION,
+    dependencyArtifacts: [],
+    inputFingerprints: [{ id: "brief", fingerprint: SHA }],
+    declaredReadSet: [],
+    declaredOutputSet: ["src/Renderer.tsx"],
+    validatorPolicyVersion: "scene-owner-validator-v3",
+  });
+
 const attestation = (producerTask: ProducerTaskSpec): ArtifactAttestation =>
   buildArtifactAttestation({
     storyId: producerTask.storyId,
@@ -74,6 +89,27 @@ const attestation = (producerTask: ProducerTaskSpec): ArtifactAttestation =>
       {
         logicalPath: producerTask.declaredOutputSet[0],
         checksum: SHA,
+        sizeBytes: 1,
+        kind: "file",
+      },
+    ],
+  });
+
+const sceneAttestation = (
+  producerTask: ProducerTaskSpec,
+  checksum: ArtifactAttestation["outputManifest"][number]["checksum"],
+): ArtifactAttestation =>
+  buildArtifactAttestation({
+    storyId: producerTask.storyId,
+    taskKind: producerTask.taskKind,
+    semanticId: producerTask.semanticId,
+    taskRevision: producerTask.taskRevision,
+    validatorPolicyVersion: producerTask.validatorPolicyVersion,
+    dependencyArtifacts: producerTask.dependencyArtifacts,
+    outputManifest: [
+      {
+        logicalPath: "src/Renderer.tsx",
+        checksum,
         sizeBytes: 1,
         kind: "file",
       },
@@ -149,6 +185,86 @@ const convergenceStages = (ownerTask: ProducerTaskSpec) => {
 const fakePrepareProject = (async () => ({})) as unknown as NonNullable<
   ConvergenceDependencies["prepareProject"]
 >;
+
+test("convergence rejects exact duplicate Scene source graphs before materialization", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-converge-exact-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const first = sceneTask("scene-one");
+  const second = sceneTask("scene-two");
+  let materializeCalls = 0;
+
+  await assert.rejects(
+    convergeProjectProduction({
+      rootDir,
+      projectId: "story-example",
+      revisionId: REVISION,
+      attemptId: ATTEMPT_ID,
+      dependencies: {
+        acquireLock: acquireTestLock,
+        buildCurrentPlan: injectedPlan(
+          plannedProduction([first, second], REVISION),
+        ),
+        inspectArtifact: async ({ task: inspected }) =>
+          sceneAttestation(inspected, SHA_DIGEST),
+        materializeOwnerArtifacts: (async () => {
+          materializeCalls += 1;
+        }) as NonNullable<ConvergenceDependencies["materializeOwnerArtifacts"]>,
+        appendAttempt: (async () => undefined) as unknown as NonNullable<
+          ConvergenceDependencies["appendAttempt"]
+        >,
+      },
+    }),
+    /exact duplicates/u,
+  );
+  assert.equal(materializeCalls, 0);
+});
+
+test("convergence rejects token-normalized duplicate Scene graphs before materialization", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-converge-normalized-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const first = sceneTask("scene-one");
+  const second = sceneTask("scene-two");
+  const checksums = new Map([
+    [first.taskRevision, Sha256DigestSchema.parse(`sha256:${"1".repeat(64)}`)],
+    [second.taskRevision, Sha256DigestSchema.parse(`sha256:${"2".repeat(64)}`)],
+  ]);
+  let materializeCalls = 0;
+
+  await assert.rejects(
+    convergeProjectProduction({
+      rootDir,
+      projectId: "story-example",
+      revisionId: REVISION,
+      attemptId: ATTEMPT_ID,
+      dependencies: {
+        acquireLock: acquireTestLock,
+        buildCurrentPlan: injectedPlan(
+          plannedProduction([first, second], REVISION),
+        ),
+        inspectArtifact: async ({ task: inspected }) =>
+          sceneAttestation(inspected, checksums.get(inspected.taskRevision)!),
+        readSceneArtifactSources: async ({ task: inspected }) => [
+          {
+            path: "Renderer.tsx",
+            source:
+              inspected.semanticId === "scene-one"
+                ? "export default()=> <div data-value={1}/>;"
+                : "// formatting only\nexport default () => <div data-value={1} />;",
+            checksum: checksums.get(inspected.taskRevision)!,
+          },
+        ],
+        materializeOwnerArtifacts: (async () => {
+          materializeCalls += 1;
+        }) as NonNullable<ConvergenceDependencies["materializeOwnerArtifacts"]>,
+        appendAttempt: (async () => undefined) as unknown as NonNullable<
+          ConvergenceDependencies["appendAttempt"]
+        >,
+      },
+    }),
+    /normalize to duplicates/u,
+  );
+  assert.equal(materializeCalls, 0);
+});
 
 test("converge-owned fixed promotion validates directly without a task workspace", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-converge-fixed-"));

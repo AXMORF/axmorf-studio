@@ -169,3 +169,48 @@ test("one Scene brief change is direct while downstream blocking follows exact D
     ],
   );
 });
+
+test("originality baseline changes remain a structured diagnostic input", () => {
+  const previous = build({
+    taskKind: "scene-owner",
+    semanticId: "scene-a",
+    input: "originality-baseline",
+    value: "1",
+  });
+  const current = build({
+    taskKind: "scene-owner",
+    semanticId: "scene-a",
+    input: "originality-baseline",
+    value: "2",
+  });
+  const baseline = buildTaskDiagnosticSnapshots({
+    nodes: [{ task: previous, dependencyTaskRevisions: [] }],
+    subjects: new Map([
+      [
+        previous.taskRevision,
+        { kind: "meaning" as const, id: previous.semanticId! },
+      ],
+    ]),
+    decisions: [],
+  });
+  const decisions = explainTaskDecisions({
+    storyId: "story-example",
+    nodes: [{ task: current, dependencyTaskRevisions: [] }],
+    subjects: new Map([
+      [
+        current.taskRevision,
+        { kind: "meaning" as const, id: current.semanticId! },
+      ],
+    ]),
+    inspections: new Map([
+      [
+        current.taskRevision,
+        { artifactState: "missing" as const, attestation: null },
+      ],
+    ]),
+    baselineSnapshots: baseline,
+  });
+  assert.deepEqual(decisions[0]?.directChanges, [
+    { kind: "input", id: "originality-baseline" },
+  ]);
+});

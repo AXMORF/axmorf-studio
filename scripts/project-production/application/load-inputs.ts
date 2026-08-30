@@ -10,6 +10,7 @@ import {
   PublishingIntentSchema,
   RenderSpecSchema,
   SceneProductionBriefSchema,
+  SceneOriginalityBaselineSchema,
   SemanticTimingSchema,
   SealedNarrationManifestSchema,
   StoryIdSchema,
@@ -30,6 +31,7 @@ import {
   validateNarrativeArtifactBundle,
 } from "@axmorf/studio/contracts";
 import { generateProjectResourceCatalog } from "../../catalog/generate";
+import { loadScopedProjectCatalogAuthorityDescriptors } from "../../catalog/project-files";
 import {
   readRegularJson,
   snapshotPolicyRoots,
@@ -37,6 +39,10 @@ import {
   snapshotWorkspaceConfiguration,
 } from "../adapters/project-input-snapshot";
 import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
+import {
+  createLiveProjectProductionScope,
+  type ProductionScope,
+} from "./production-scope";
 
 const fingerprint = (namespace: string, value: unknown) =>
   createFingerprint({ namespace, version: 1, value });
@@ -45,13 +51,21 @@ export const loadProjectProductionInputs = async ({
   rootDir,
   projectId: rawProjectId,
   runtimePolicyManifest,
+  scope: suppliedScope,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly runtimePolicyManifest?: RuntimePolicyManifest;
+  readonly scope?: ProductionScope;
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
-  const projectRoot = join(rootDir, "src/projects", projectId);
+  const scope =
+    suppliedScope ??
+    createLiveProjectProductionScope({ rootDir, storyId: projectId });
+  if (scope.repositoryRoot !== rootDir || scope.storyId !== projectId) {
+    throw new Error("Production input scope is cross-bound.");
+  }
+  const projectRoot = join(scope.projectSourceRoot, projectId);
   const read = (path: string, label: string) =>
     readRegularJson(join(projectRoot, path), label);
   const [
@@ -70,6 +84,7 @@ export const loadProjectProductionInputs = async ({
     timingFile,
     sealedFile,
     masteredFile,
+    originalityBaselineFile,
     runtimePolicyFingerprint,
     taskPolicyFingerprints,
     workspaceConfigurationFingerprint,
@@ -89,11 +104,21 @@ export const loadProjectProductionInputs = async ({
     read("generated/semantic-timing.generated.json", "SemanticTiming"),
     read("generated/sealed-narration.generated.json", "SealedNarration"),
     read("generated/mastered-narration.generated.json", "MasteredNarration"),
-    snapshotPolicyRoots({ rootDir, runtimePolicyManifest }),
-    snapshotTaskPolicyFingerprints({ rootDir, runtimePolicyManifest }),
+    read(
+      "production/scene-originality-baseline.json",
+      "Scene originality baseline",
+    ),
+    snapshotPolicyRoots({
+      rootDir: scope.shared.runtimeRoot,
+      runtimePolicyManifest,
+    }),
+    snapshotTaskPolicyFingerprints({
+      rootDir: scope.shared.runtimeRoot,
+      runtimePolicyManifest,
+    }),
     runtimePolicyManifest === undefined
       ? Promise.resolve(null)
-      : snapshotWorkspaceConfiguration({ rootDir }),
+      : snapshotWorkspaceConfiguration({ rootDir: scope.shared.runtimeRoot }),
   ]);
   const brief = VideoBriefSchema.parse(briefFile.raw);
   const story = StorySpecSchema.parse(storyFile.raw);
@@ -108,12 +133,25 @@ export const loadProjectProductionInputs = async ({
   const masteredNarration = MasteredNarrationManifestSchema.parse(
     masteredFile.raw,
   );
+  const originalityBaseline = SceneOriginalityBaselineSchema.parse(
+    originalityBaselineFile.raw,
+  );
   const catalog = ResourceCatalogSchema.parse(
     (
       await generateProjectResourceCatalog({
-        rootDir,
+        rootDir: scope.isolatedRoot,
         projectId,
         mode: "check",
+        ...(scope.kind === "live-project"
+          ? {}
+          : {
+              loadDescriptors: () =>
+                loadScopedProjectCatalogAuthorityDescriptors({
+                  runtimeRoot: scope.shared.runtimeRoot,
+                  projectRoot: scope.isolatedRoot,
+                  projectId,
+                }),
+            }),
       })
     ).catalog,
   );
@@ -162,6 +200,9 @@ export const loadProjectProductionInputs = async ({
   ];
   if (storyIds.some((id) => id !== projectId))
     throw new Error("Project production inputs are cross-bound.");
+  if (originalityBaseline.subjectStoryId !== projectId) {
+    throw new Error("Scene originality baseline is cross-bound.");
+  }
   if (
     masteredNarration.sealedNarrationFingerprint !==
     sealedNarration.sealedNarrationFingerprint
@@ -314,6 +355,7 @@ export const loadProjectProductionInputs = async ({
     runtimePolicyFingerprint,
     taskPolicyFingerprints,
     workspaceConfigurationFingerprint,
+    originalityBaseline,
     fingerprints: {
       story: fingerprint("revision-story", story),
       narration: fingerprint("revision-narration", narration),
@@ -328,6 +370,7 @@ export const loadProjectProductionInputs = async ({
       ),
       resourcePool: resourcePool.poolFingerprint,
       assetManifest: assetManifest.manifestFingerprint,
+      originalityBaseline: originalityBaseline.baselineFingerprint,
       narrationGeneration: generationFingerprint,
       canonicalInputFingerprint: fingerprint(
         "revision-canonical-inputs",

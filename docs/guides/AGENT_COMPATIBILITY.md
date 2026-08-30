@@ -29,9 +29,14 @@ task workspace、validator、ArtifactAttestation 和 current delivery，不来�
 4. 保持 fixed continuation 进程运行到 terminal output。
 
 全新 scaffolded Workspace 的内置执行模式是 `inline`，不要求原生子 Agent API。`subagents` 只是一项可选加速能力：宿主
-必须能创建相互隔离的 runtime-native children、限制并发并执行 wait-any admission。线程、聊天、普通后台 shell
-或宿主无法确认的容量不算该能力。已保存设置选择 `subagents` 但宿主容量为零时，生产在 prepare 前阻塞；不自动
-回退或伪造 child completion。
+必须能创建 bounded runtime-native children、执行 wait-any admission，并为本次 production 验证一种 transport：
+
+- `shared-workspace`：child 可进入 bind 返回的 exact relative workspace；
+- `controller-io`：child 没有 filesystem access，只调用 bind 返回的 strict file-read/file-write commands。
+
+线程、聊天、普通后台 shell、delegate 名称或未验证 transport 都不证明该能力。transport 是不持久化的 host
+capability evidence，不是 execution preferences/Project 设置。未验证 transport、容量为零或无法满足 exact
+capacity 时，生产在 prepare 前阻塞；不自动回退或伪造 child completion。
 
 ## Workspace capability gate
 
@@ -52,17 +57,30 @@ Agent 可以使用普通 package manager/version manager 准备环境、用 npm 
 1. 读取 Workspace `AGENTS.md`，运行 `npm run doctor` 并按上述边界准备环境；
 2. 读取 `.agents/skills/axmorf-video/SKILL.md`；宿主是否支持自动 Skill discovery 不影响该路径；
 3. 按 Skill 只加载当前阶段需要的 reference；
-4. 运行 `project:execution:resolve`。没有持久化设置或提示词 override 时会解析为 `inline`；
-5. 后续只消费 `project:produce:inspect`、`project:produce:prepare` 返回的 JSON、task workspace 和 exact commands。
+4. 修改现有 Project 时，先按 [`PROJECT_REVISION.md`](PROJECT_REVISION.md) 读取 exact current context、校验 strict
+   input 并创建隔离 candidate；它不要求额外宿主 API，后续只消费 candidate-routed npm commands；
+5. 运行 `npm run project:execution:resolve`。没有持久化设置或提示词 override 时会解析为 `inline`；选择 subagents
+   时把 verified transport 作为当前 resolver input；
+6. 后续只消费 `npm run project:produce:inspect`、`npm run project:produce:prepare` 返回的 JSON、task workspace 和 exact
+   commands；每个 dirty task 在任何 content read/write 前先通过 attempt-bound zero-write bind；
+7. `task-worker-bound` 后读取 immutable `task.json`、`inputs/context.json`、`inputs/task-contract.json`，再按返回的
+   capability 与 bound describe/finalize/check/commit/failure commands 执行。
 
 仓库脚本不调用 Codex/Claude/Gemini/Cursor/Copilot SDK，也不创建 Agent。`prepare` 产生通用任务描述和 shell
 commands；当前宿主负责 inline 执行或可选 child admission。
 
 ## 可选能力
 
-- 原生子 Agent：只影响执行并发，不进入 Revision、TaskRevision、artifact 或 delivery identity。
+- 原生子 Agent/transport：只影响本次执行并发与 I/O capability，不持久化 child identity，不进入
+  Revision、TaskRevision、artifact 或 delivery identity。
 - 外部图片 MCP：只有当前 Agent 实际暴露兼容 tools 时才启用；缺失时完整省略。
 - OpenAI Skill metadata：只改善 OpenAI host 的展示与显式 `$skill-name` 调用，不是执行前提。
+- revision candidate：只是同一 npm CLI/production 主链的隔离 routing scope，不是 child transport、第二 Workspace
+  或第二 production authority。
 
 无论宿主如何，完成证据始终是 fixed validator、ArtifactAttestation，以及经过 checksum、media probe 和 EOF decode
 复验的 exact four-file delivery。
+
+terminal failed attempt 不由宿主重开。显式 recovery 依次使用 read-only/zero-provider
+`npm run project:attempt:recover-inspect` 与 same-Revision `npm run project:attempt:reissue`；fresh attempt 可复用 valid
+artifacts/drafts，不要求 current delivery。active、stale、fixed-flow failure 均不能 reissue。

@@ -11,7 +11,7 @@ const isRemotionCliInvocation = (
   args[0] !== undefined &&
   basename(args[0]) === "remotion-cli.js";
 
-export const runMediaProcess: ProcessRunner = (command, args) => {
+export const runMediaProcess: ProcessRunner = (command, args, options) => {
   if (
     basename(command) !== "remotion" &&
     !isRemotionCliInvocation(command, args)
@@ -24,6 +24,7 @@ export const runMediaProcess: ProcessRunner = (command, args) => {
     const child = spawn(command, [...args], {
       shell: false,
       stdio: ["ignore", "pipe", "pipe"],
+      ...(options?.cwd === undefined ? {} : { cwd: options.cwd }),
     });
     let stdout = "";
     let stderr = "";

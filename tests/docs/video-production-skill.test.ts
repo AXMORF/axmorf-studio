@@ -4,36 +4,43 @@ import path from "node:path";
 import test from "node:test";
 import { z } from "zod";
 
-const skillRoot = path.join(
-  process.cwd(),
-  ".agents/skills/axmorf-video",
-);
+const skillRoot = path.join(process.cwd(), ".agents/skills/axmorf-video");
 const readSkillFile = (relativePath: string) =>
   readFile(path.join(skillRoot, relativePath), "utf8");
 const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 
 const PolicySchema = z
   .object({
-    schemaVersion: z.literal(16),
-    policyVersion: z.literal("axmorf-video-policy-v18"),
+    schemaVersion: z.literal(18),
+    policyVersion: z.literal("axmorf-video-policy-v21"),
     rootEndpoints: z.tuple([
       z.literal("project-production-complete"),
       z.literal("project-production-current"),
     ]),
     privateConfigPath: z.literal("private/producer.config.json"),
-    executionPreferencesPath: z.literal(
-      "private/execution-preferences.json",
-    ),
+    executionPreferencesPath: z.literal("private/execution-preferences.json"),
     requiredEntrypointHeadings: z.array(z.string().min(1)).min(8),
     requiredReferences: z.array(z.string().min(1)).min(6),
     workflowCommands: z.tuple([
       z.literal("project:create"),
+      z.literal("project:originality:freeze"),
+      z.literal("project:revise:context"),
+      z.literal("project:revise:validate"),
+      z.literal("project:revise"),
+      z.literal("project:revision:promote"),
       z.literal("project:execution:resolve"),
       z.literal("project:produce:inspect"),
       z.literal("project:produce:prepare"),
+      z.literal("project:task:bind"),
+      z.literal("project:task:describe"),
+      z.literal("project:task:finalize"),
       z.literal("project:task:check"),
       z.literal("project:task:commit"),
       z.literal("project:task:fail"),
+      z.literal("project:task:file-read"),
+      z.literal("project:task:file-write"),
+      z.literal("project:attempt:recover-inspect"),
+      z.literal("project:attempt:reissue"),
       z.literal("project:produce:continue"),
     ]),
     executionPolicy: z
@@ -53,6 +60,10 @@ const PolicySchema = z
         unknownRuntimeMaxConcurrency: z.literal(1),
         inlinePolicy: z.literal("root-sequential-one-workspace-at-a-time"),
         subagentPolicy: z.literal("bounded-pool-wait-any-admission"),
+        subagentWorkerTransport: z.literal(
+          "verified-shared-workspace-or-controller-io",
+        ),
+        unverifiedWorkerTransportPolicy: z.literal("block-before-prepare"),
         exactCapacityFailurePolicy: z.literal("block-before-prepare"),
         automaticModeFallback: z.literal(false),
         identityVisibility: z.literal("none"),
@@ -88,7 +99,12 @@ const PolicySchema = z
           "repository-local-remotion-best-practices",
         ),
         sharedCheckout: z.literal(true),
-        agentWriteBoundary: z.literal("task-workspace-only-after-prepare"),
+        taskExecutionContract: z.literal(
+          "immutable-attempt-neutral-agent-task-input",
+        ),
+        agentWriteBoundary: z.literal(
+          "declared-task-outputs-only-after-successful-attempt-bound-bind",
+        ),
         artifactAuthority: z.literal("validated-artifact-attestation"),
         artifactReusePolicy: z.literal(
           "reuse-valid-content-addressed-artifacts",
@@ -119,8 +135,9 @@ const PolicySchema = z
       .object({
         entrypointMaxWords: z.number().int().positive(),
         directWorkflowMaxWords: z.number().int().positive(),
+        projectRevisionMaxWords: z.number().int().positive(),
         normalProductionMaxWords: z.number().int().positive(),
-        normalProductionMaxCharacters: z.number().int().positive().max(16_000),
+        normalProductionMaxCharacters: z.number().int().positive().max(18_000),
         sceneOrchestrationMaxWords: z.number().int().positive(),
         globalVisualOrchestrationMaxWords: z.number().int().positive(),
         coverOrchestrationMaxWords: z.number().int().positive(),
@@ -134,26 +151,30 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
     skill,
     openAiMetadata,
     workflow,
+    revisionWorkflow,
     scene,
     globalVisual,
     cover,
     hardening,
+    taskProtocol,
     producerConfig,
     rawPolicy,
   ] = await Promise.all([
     readSkillFile("SKILL.md"),
     readSkillFile("agents/openai.yaml"),
     readSkillFile("references/direct-production-workflow.md"),
+    readSkillFile("references/project-revision.md"),
     readSkillFile("references/scene-agent-orchestration.md"),
     readSkillFile("references/global-visual-agent-orchestration.md"),
     readSkillFile("references/cover-agent-orchestration.md"),
     readSkillFile("references/agent-rework-and-system-hardening.md"),
+    readSkillFile("references/task-execution-protocol.md"),
     readSkillFile("references/producer-config.md"),
     readSkillFile("policy.json"),
   ]);
   const policy = PolicySchema.parse(JSON.parse(rawPolicy));
-  const executable = `${workflow}\n${scene}\n${globalVisual}\n${cover}`;
-  const bundle = `${skill}\n${executable}\n${hardening}\n${producerConfig}\n${rawPolicy}`;
+  const executable = `${workflow}\n${revisionWorkflow}\n${scene}\n${globalVisual}\n${cover}`;
+  const bundle = `${skill}\n${executable}\n${hardening}\n${taskProtocol}\n${producerConfig}\n${rawPolicy}`;
 
   assert.match(skill, /^name: axmorf-video$/mu);
   assert.match(openAiMetadata, /\$axmorf-video/u);
@@ -209,6 +230,24 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
       workflow.indexOf("project:produce:inspect"),
   );
   assert.match(skill, /another Agent's tools do[\s\S]*not count/u);
+  assert.match(skill, /revision workflow[\s\S]*never edit live authoring/u);
+  assert.match(
+    revisionWorkflow,
+    /project:revise:validate[\s\S]*baseDeliveryBuildId[\s\S]*--candidate/u,
+  );
+  assert.match(
+    revisionWorkflow,
+    /project:revision:promote[\s\S]*Do not reissue/u,
+  );
+  assert.match(
+    taskProtocol,
+    /runtime-native child[\s\S]*shared-workspace[\s\S]*controller-io/u,
+  );
+  assert.match(taskProtocol, /Transport is ephemeral host evidence/u);
+  assert.match(
+    taskProtocol,
+    /immutable[\s\S]*attempt-neutral[\s\S]*TaskExecutionContract/u,
+  );
   assert.match(skill, /validated ArtifactAttestation[\s\S]*durable authority/u);
   assert.match(skill, /exactly once/u);
   assert.match(
@@ -241,6 +280,8 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   ]);
   assert.match(workflow, /bounded pool[\s\S]*wait-any/iu);
   assert.match(workflow, /automatic inline fallback/iu);
+  assert.match(workflow, /--worker-transport shared-workspace\|controller-io/u);
+  assert.match(workflow, /zero-write gate[\s\S]*task-worker-bound/iu);
   assert.match(workflow, /user silence[\s\S]*never become `null`/iu);
   assert.match(
     producerConfig,
@@ -249,7 +290,9 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
 
   assert.match(scene, /remotion-best-practices\/SKILL\.md/u);
   assert.match(scene, /remotion-markup\/REFERENCE\.md/u);
-  assert.match(scene, /\.producer-work\/<storyId>\/<taskRevision>\//u);
+  assert.match(scene, /bindingId: <bindingId>/u);
+  assert.match(scene, /shared-workspace[\s\S]*controller-io/u);
+  assert.match(scene, /inputs\/task-contract\.json/u);
   assert.match(scene, /task-input\.generated\.json/u);
   assert.match(scene, /fixed materialization/u);
   assert.doesNotMatch(scene, /taskInput 必须完整投影/u);
@@ -264,9 +307,12 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   assert.match(scene, /scene-template[\s\S]*不由 Agent executor/u);
 
   assert.match(globalVisual, /不得读取 Scene 输出/u);
-  assert.match(globalVisual, /simplest full-frame background board/u);
+  assert.match(globalVisual, /simplest[\s\S]*full-frame base/u);
   assert.match(globalVisual, /current[\s\S]*VisualStyleSpec/u);
   assert.match(globalVisual, /must not invent[\s\S]*continuity motifs/u);
+  assert.match(globalVisual, /GlobalVisualBaseLayer/u);
+  assert.match(globalVisual, /GlobalVisualDecorationLayers/u);
+  assert.match(globalVisual, /layerPolicy[\s\S]*窗口 local frame 0/u);
   assert.match(globalVisual, /caption|字幕/u);
   assert.match(globalVisual, /DSL|automatic director/u);
   assert.match(cover, /StorySpec[\s\S]*VisualStyleSpec[\s\S]*fixed CoverSpec/u);
@@ -278,16 +324,21 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
     );
   }
 
-  const checkCommand = "npm run project:task:check -- --task <taskRevision>";
+  const finalizeCommand =
+    "npm run project:task:finalize -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>";
+  const checkCommand =
+    "npm run project:task:check -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>";
   const commitCommand =
-    "npm run project:task:commit -- --task <taskRevision> --attempt <attemptId>";
+    "npm run project:task:commit -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>";
   for (const prompt of [scene, globalVisual, cover]) {
-    assert.ok(prompt.indexOf(checkCommand) >= 0);
+    assert.match(prompt, /exact task bind command/u);
+    assert.match(prompt, /task-worker-bound/u);
+    assert.ok(prompt.indexOf(finalizeCommand) >= 0);
+    assert.ok(prompt.indexOf(checkCommand) > prompt.indexOf(finalizeCommand));
     assert.ok(prompt.indexOf(commitCommand) > prompt.indexOf(checkCommand));
-    assert.match(
-      prompt,
-      /npm run project:task:fail[\s\S]*--attempt <attemptId>/u,
-    );
+    assert.match(prompt, /taskFailureCommand/u);
+    assert.match(prompt, /spawnFailureCommand/u);
+    assert.match(prompt, /fixedFailureCommand/u);
   }
   assert.match(
     workflow,
@@ -296,7 +347,11 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   assert.doesNotMatch(workflow, /npm run project:produce:converge/u);
   assert.match(
     hardening,
-    /ExecutionAttempt[\s\S]*Attempt state never invalidates or owns bytes/u,
+    /project:attempt:recover-inspect[\s\S]*project:attempt:reissue[\s\S]*fresh attempt/iu,
+  );
+  assert.match(
+    hardening,
+    /(?:does not require|needs no|不要求)[\s\S]*current delivery/iu,
   );
   assert.match(producerConfig, /publishingCollections/u);
   assert.match(producerConfig, /targetLoudnessLufs/u);
@@ -317,10 +372,18 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
     /owner[- ](?:ready|failed)|render-ready|detached spawn|launch-ambiguous/u,
   );
   assert.doesNotMatch(bundle, /create_thread/u);
+  assert.doesNotMatch(
+    bundle,
+    /\brsp\b|Desktop|\bDeliveryPolicy\b|source-current|compat(?:ibility)? shim/u,
+  );
 
   assert.ok(wordCount(skill) <= policy.contextBudgets.entrypointMaxWords);
   assert.ok(
     wordCount(workflow) <= policy.contextBudgets.directWorkflowMaxWords,
+  );
+  assert.ok(
+    wordCount(revisionWorkflow) <=
+      policy.contextBudgets.projectRevisionMaxWords,
   );
   assert.ok(
     wordCount(scene) <= policy.contextBudgets.sceneOrchestrationMaxWords,
@@ -359,6 +422,8 @@ test("skill directory contains only the declared operational bundle", async () =
     "direct-production-workflow.md",
     "global-visual-agent-orchestration.md",
     "producer-config.md",
+    "project-revision.md",
     "scene-agent-orchestration.md",
+    "task-execution-protocol.md",
   ]);
 });

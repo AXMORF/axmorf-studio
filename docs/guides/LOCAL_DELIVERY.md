@@ -19,6 +19,10 @@ directory 必须 exact 只有四个 regular files。`publish.json` 绑定 revisi
 DeliveryBuildId、Composition metadata、publishing projection 以及三个 media 的 repository path、size、checksum
 和 probe facts。
 
+revision candidate 在 `.producer-revisions/<storyId>/<candidateId>/` 内拥有隔离的同构 four-file Delivery。它通过
+所有 media/checksum/EOF gates 只表示可 promotion；`deliveries/<storyId>/` 与 live Project 在 promotion 成功前
+仍是唯一 current authority。
+
 ## Build identity and staging
 
 DeliveryBuildId 由 `revisionId + artifactSetFingerprint + Composition metadata + build policy` 计算，不包含
@@ -41,6 +45,10 @@ builder 等待所有子进程完成后验证：
 
 相同 DeliveryBuildId 的 current package 若全部复验通过，返回 `project-production-current`，不重写任何媒体；
 新 identity 成功提升返回 `project-production-complete`。
+
+candidate Delivery 完成后 fixed promotion 才能受控替换 source/public/narration/delivery 四个 Project-owned roots。
+promotion failure 完整恢复上一 current，并保留 candidate；显式 `project:revision:promote` 只重试 promotion，不重跑
+render/provider，也不使用 attempt reissue。
 
 ## Run through fixed continuation
 

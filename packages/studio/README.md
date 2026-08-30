@@ -17,12 +17,16 @@ npm run dev
 ## Public surface
 
 - `@axmorf/studio` — runtime metadata and workspace helpers
-- `@axmorf/studio/contracts` — stable data contracts
+- `@axmorf/studio/contracts` — stable data contracts, including strict Project
+  revision/authoring validation, Scene originality, GlobalVisual layer policy,
+  TaskExecutionContract, and attempt-bound TaskWorkerBinding families
 - `@axmorf/studio/remotion` — supported Remotion components and helpers
 - `axmorf` — workspace CLI used by generated npm scripts
 
 Package internals are not public API. A generated workspace owns its projects,
 media, private configuration, production artifacts, output, and deliveries.
+Create, revise, recover, and produce through its generated npm scripts and
+Workspace-local Skill; do not reconstruct package-internal commands.
 
 ## Requirements
 

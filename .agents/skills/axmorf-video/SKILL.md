@@ -10,7 +10,15 @@ description: Resolve inline or bounded-Agent execution, produce, and hand off to
 Read [policy](policy.json), [workflow](references/direct-production-workflow.md), and
 [Producer config](references/producer-config.md). Report boundary Scenes as inherited, selected, or disabled.
 User silence means inheritance: omit `sceneTemplates`, never infer `null`. Use `project:create` for new authoring;
-edit existing inputs and preserve unrelated changes.
+existing authoring changes use the isolated revision flow below and preserve unrelated sections.
+
+`project:create` freezes the Scene originality baseline. If an older Project has no baseline, stop before inspect and
+ask for explicit migration, then run zero-provider `project:originality:freeze`; never synthesize an empty baseline.
+Create and revision validation can return structured `authoring-validation-failed` issues. For
+`caption-display-budget-exceeded`, shorten or semantically split the authored `ttsChunk` to stay within 72
+`caption-display-unit-v1` half-units; never weaken the validator.
+
+Existing Project changes use the [revision workflow](references/project-revision.md); never edit live authoring.
 
 ## Load optional Agent capabilities
 
@@ -22,12 +30,10 @@ task executors, artifacts, delivery, or runtime.
 
 ## Resolve Agent execution
 
-Before inspect, resolve execution once with `project:execution:resolve`. Explicit user prompt fields override the
-settings page; omitted fields inherit it, then the host-neutral built-in `inline` default. Prompt overrides apply only
-to this production unless the user explicitly asks to save them. Inline needs no child runtime and executes dirty
-tasks sequentially. Select subagents only through prompt/settings when the host supplies runtime-native children;
-pass known capacity and respect the repository ceiling of four. If exact requested capacity or known zero runtime
-capacity resolves `blocked`, stop before prepare. Do not persist raw prompt text or put this policy in revision IDs.
+Inspect 前执行一次 `project:execution:resolve`：explicit prompt fields → settings → host-neutral `inline`。override
+只作用本次 production，除非用户要求保存。inline 串行且无需 child；subagents 要求 bounded runtime-native children、
+本次 verified `shared-workspace`/`controller-io`、已知 capacity，并受 ceiling 4 限制。unverified transport、
+exact mismatch 或 zero capacity 在 prepare 前阻塞。transport 不持久化、不进入 identity。
 
 ## Inspect before cost
 
@@ -43,14 +49,15 @@ exclude its diagnostics. Reuse artifacts and execute only `dirtyAgentTasks`.
 
 Use the resolved mode with the task's [Scene](references/scene-agent-orchestration.md),
 [GlobalVisual](references/global-visual-agent-orchestration.md), or [Cover](references/cover-agent-orchestration.md)
-prompt; never Agent-author `scene-template`. Each Root or child executor reads immutable inputs, writes only
-`.producer-work/<storyId>/<taskRevision>/`, loops check, then runs prepare's attempt-bound terminal command. The
-validated ArtifactAttestation and task-terminal event are durable authority.
+prompt; never Agent-author `scene-template`. 按 [task protocol](references/task-execution-protocol.md) 在任何 task
+read/write 前运行 exact attempt-bound bind；只有 `task-worker-bound` 才能通过返回的 transport 访问三个 immutable
+inputs 与 declared outputs，并运行 bound commands。TaskExecutionContract attempt-neutral；the validated ArtifactAttestation
+与 task-terminal events 才是 durable authority。
 
 Inline Root executes exactly one workspace at a time. Subagent mode admits at most `effectiveMaxConcurrency`
-runtime-native children; when dirty tasks exceed it, wait-any only to release an admission slot. Never poll all
-children or treat chat as completion. A hard spawn failure runs that task's exact `hostFailureCommand`; it does not
-switch modes. Once every dirty task has been executed or admitted, continue immediately.
+runtime-native children；超量时只 wait-any 释放 admission slot，不轮询全部 child 或信任 chat。真实 spawn/
+transport failure 由 Root 运行 `spawnFailureCommand`；immutable/controller fault 用 `fixedFailureCommand`；两者都不
+授予 task content access 或切换模式。全部 dirty task 执行/admit 后立即 continue。
 
 ## Hand off to fixed continuation
 
@@ -63,14 +70,16 @@ at ExecutionAttempt creation. No retry, Root re-entry, direct converge, or works
 
 - Sealed PCM samples own timing; Composition owns captions, narration, and background.
 - Scene/GlobalVisual/Cover are isolated; templates are fixed-produced; Scene roots stay transparent.
+- Scene owners must not duplicate a frozen historical or same-revision TS/TSX source graph; template-copy is exempt.
 - Diagnostics do not change authority; protect private/voice/other-Project/history.
 - Delivery is exact `video.mp4`, two PNG Covers, and `publish.json`, validated through EOF.
 
 ## Classify failure by task owner
 
-Only its assigned executor corrects a workspace before terminal; failure ends the attempt. Separate engineering uses
-[system hardening](references/agent-rework-and-system-hardening.md). Never retry, fallback, weaken validators, or
-fabricate attestations inside it.
+仅 assigned executor 在 terminal 前修正 `agent-output`；failure 冻结 attempt。明确后续 recovery 先 read-only
+`project:attempt:recover-inspect`，再 zero-provider same-Revision `project:attempt:reissue`，且不要求 current
+delivery。系统问题用 [hardening](references/agent-rework-and-system-hardening.md)。不 auto-retry/fallback、弱化
+validator 或伪造 attestation。
 
 ## Finish with verified delivery
 

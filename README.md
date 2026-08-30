@@ -15,6 +15,8 @@ Runtime Pack 或 `rsp` control plane；用户数据只属于生成的 Workspace�
 `npm create` 是首次发布后的稳定入口。production 与完整 repository `npm audit` 已通过精确传递依赖约束和兼容的
 开发工具更新归零。macOS 15 ARM64 已通过原生 package/scaffold gate；Ubuntu 24.04 x86_64 还通过了从真实
 tarball 安装到 provider narration、bounded Agent tasks、Remotion render 与 exact four-file Delivery 的完整验收。
+新增 revision/originality/task-binding/reissue/GlobalVisual contracts 后的
+[Ubuntu current-feature re-acceptance](docs/evidence/2026-08-30-ubuntu-npm-current-feature-reacceptance.md) 也已完成。
 首次发布不要求固定 OS matrix，其他宿主由 Agent 准备声明的前置条件，并以生成 Workspace 的
 `doctor` capability gate 判定是否 ready。未经明确授权不会执行真实 publish、tag 或 push。
 
@@ -40,12 +42,22 @@ Project source
   Agent identity；
 - Root/child task executor 只写 `.producer-work/<storyId>/<taskRevision>/`，fixed commit 重跑 validator 后才能产生
   ArtifactAttestation；
+- 每个 dirty Agent task 还有 immutable、attempt-neutral `TaskExecutionContract`，任何 task content 读写必须先通过
+  exact attempt-bound zero-write bind；
 - 新 attempt 机械复用 valid artifacts，只执行仍 dirty 的 Scene/GlobalVisual/Cover tasks；
 - inspection、estimate、baseline、explanation 与 attempt 都只属于 diagnostic plane，不进入或改变任何
   production/artifact/delivery identity 或 authority；
 - template-copy Scenes 由 fixed task 处理，不派发 Agent；
+- `project:create` 冻结创建前其他 Project 的 Scene source-graph baseline；旧 Project 必须显式运行
+  `project:originality:freeze` 迁移，production 不静默补空；
+- baseline 只使 `scene-owner` TaskRevision 失效，template-copy 豁免；validator 与 converge 分别拒绝历史和
+  同 revision 的 exact/token-normalized TS/TSX graph 重复；
 - Composition exactly once 拥有 SceneViewport 与 full-frame readability policy；Scene Renderer 只接收
   safe-area-local `viewportWidth`/`viewportHeight`，不读取或重复应用 Composition inset；
+- GlobalVisual 固定分为 full-Composition base 与首个至末个 narrated Scene 的 decoration window；decoration 从
+  window-local frame zero 开始，不能读取 Scene output 或承载 Beat 文案；
+- create/revision 在 mutation 前执行 structured authoring validation；每个 authored `ttsChunk` 最多 72 caption
+  display half-units，超限必须改短或按自然语义拆分，不能降低 validator；
 - Root 串行执行完或完成受限并发 admission 后不监督、不轮询、不参与成败处理；fixed continuation 以
   one-shot atomic claim 独占 terminal barrier，并受 attempt 创建起一小时总 deadline 约束；
 - converge 重新计算 current Revision，全部 artifact 齐全才受控物化 Project；
@@ -63,8 +75,9 @@ Codex、Claude、Gemini、Cursor 或 Copilot SDK。Codex、Cursor 与 GitHub Cop
 Claude Code 通过 `CLAUDE.md`、Gemini CLI 通过 `GEMINI.md` 导入同一文件。不会自动发现 Skill 的 Agent 仍可按
 `AGENTS.md` 指向的路径手动加载，规则没有第二份副本。
 
-全新 scaffolded Workspace 内置使用 `inline`：单个 Agent 即可完成 dirty tasks。`subagents` 是可选加速能力，只有宿主确实
-支持 runtime-native children 且本次解析选择该模式时才启用。OpenAI 的 `agents/openai.yaml` 只是可选 UI
+全新 scaffolded Workspace 内置使用 `inline`：单个 Agent 即可完成 dirty tasks。`subagents` 是可选加速能力，只有宿主
+支持 bounded runtime-native children、为本次 production 验证 `shared-workspace` 或 `controller-io` transport，且
+本次解析选择该模式时才启用。transport 是不持久化的宿主能力证据。OpenAI 的 `agents/openai.yaml` 只是可选 UI
 adapter，不参与生产 authority。完整入口与能力矩阵见
 [Agent 兼容性指南](docs/guides/AGENT_COMPATIBILITY.md)。
 
@@ -131,6 +144,12 @@ create input，其中包含 Story、narrated beats 的 exact `ttsChunks`、视�
 npm run project:create -- --project <story-id> --input <repository-relative-json>
 ```
 
+旧 Project 若缺少 `production/scene-originality-baseline.json`，经用户明确同意后执行：
+
+```bash
+npm run project:originality:freeze -- --project <story-id>
+```
+
 create 在一个受控 transaction 中原子写入 configured authoring 与选定 boundary Scene template 的
 Project-local immutable instance；已存在/partial/conflicting target fail closed。它不调用 provider、不生成
 媒体，也不写 narration work、task workspace、artifact、attempt 或 delivery。成功重复相同 creation identity
@@ -150,17 +169,45 @@ node。有 MCP 时也先查询本地 Catalog，仅在确有缺口时 acquire，�
 provider acquisition evidence 只存在于 adapter boundary；远程 URL、SDK、MCP、token 与 API key 不进入 task
 workspace、Artifact Store、delivery 或 Remotion runtime。
 
+## 修改现有 Project
+
+修改前先读取并冻结 exact current base。context 只有在 current Revision 与已复验的 four-file Delivery 一致时
+才返回可编辑 authoring：
+
+```bash
+npm run project:revise:context -- --project <story-id>
+npm run project:revise:validate -- --input <repository-relative-json>
+npm run project:revise -- --project <story-id> --input <repository-relative-json>
+```
+
+strict revision input 只允许 patch `brief/story/visualStyle/scenes/globalVisual/publishing`，并显式绑定
+`baseRevisionId` 与 `baseDeliveryBuildId`。`project:revise` 在 `.producer-revisions/<storyId>/<candidateId>/`
+建立隔离的 source/public/narration/work/attempt/out/delivery scope；它不会覆盖 current Project 或 Delivery。
+后续 inspect、prepare、task、continue、recover/reissue 都必须携带命令返回的 exact `--candidate`。
+
+candidate continuation 先在隔离 scope 完成并复验 exact four files，再自动尝试受控 promotion。promotion 在锁内
+重验 live base 与 candidate expected Revision/Delivery tuple，只受控替换 source/public/narration/delivery 四个
+Project-owned roots，刷新并复验 Catalog/Registry；任一步失败都回滚到原 current。若 candidate production 已成功而
+promotion 失败，只重试：
+
+```bash
+npm run project:revision:promote -- --project <story-id> --candidate <candidate-id> --revision <revision-id> --delivery <delivery-build-id>
+```
+
+promotion retry 与 failed-attempt reissue 是两条不同语义：不得为已经完成的 candidate production 重开 attempt。
+完整边界见 [Project revision candidates](docs/guides/PROJECT_REVISION.md)。
+
 ## 生产一个 Project
 
 1. 在 inspect 前按“当前用户提示词明确字段 → 配置页 → 内置默认”解析本次执行策略。内置默认是宿主中立的
    `inline`；提示词 override 不自动保存：
 
 ```bash
-npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>]
+npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>] [--worker-transport shared-workspace|controller-io]
 ```
 
-仓库并发上限为 4；runtime capacity 未知按 1、明确为 0 时阻塞。非 exact 请求会明确显示 clamp，无法满足
-的 exact 请求在 prepare 前阻塞。解析结果只属于本次编排，不进入生产 identity。
+仓库并发上限为 4；runtime capacity 未知按 1、明确为 0 时阻塞。subagents transport 未验证或 exact 请求无法满足
+也在 prepare 前阻塞。解析结果与 transport 只属于本次编排，不写入设置或生产 identity。
 
 2. 严格只读检查 source readiness、预计 provider/cache/Agent/delivery 成本、artifact reuse 与逐任务失效解释：
 
@@ -177,13 +224,25 @@ npm run project:produce:prepare -- --project <story-id>
 ```
 
 4. 按已解析模式执行 `dirtyAgentTasks`：inline 时 Root 一次处理一个；subagents 时以有效并发上限运行 bounded
-   pool，任务多于槽位时仅 wait-any 释放 admission slot。每个 executor 在自己的 workspace 内循环：
+   pool，任务多于槽位时仅 wait-any 释放 admission slot。每个 task 的 immutable
+   `inputs/task-contract.json` 定义 purpose、workflow、constraints、exact outputs 与 Agent/fixed ownership；它不含
+   attempt、transport 或命令。executor 在任何 task read/write 前先运行 prepare 返回的 exact bind command：
 
 ```bash
-npm run project:task:check -- --task <task-revision>
-npm run project:task:commit -- --task <task-revision> --attempt <attempt-id>
-npm run project:task:fail -- --task <task-revision> --attempt <attempt-id> --kind task|host
+npm run project:task:bind -- --task <task-revision> --attempt <attempt-id> --binding <binding-id> --transport shared-workspace|controller-io
+npm run project:task:describe -- --task <task-revision> --attempt <attempt-id> --binding <binding-id>
+npm run project:task:finalize -- --task <task-revision> --attempt <attempt-id> --binding <binding-id>
+npm run project:task:check -- --task <task-revision> --attempt <attempt-id> --binding <binding-id>
+npm run project:task:commit -- --task <task-revision> --attempt <attempt-id> --binding <binding-id>
+npm run project:task:fail -- --task <task-revision> --attempt <attempt-id> --binding <binding-id> --kind task|host|fixed
+npm run project:task:file-read -- --task <task-revision> --attempt <attempt-id> --binding <binding-id> --path <logical-path>
+npm run project:task:file-write -- --task <task-revision> --attempt <attempt-id> --binding <binding-id> --path <declared-output-path>
 ```
+
+bind 是 zero-write gate，只有 `task-worker-bound` 才授予 capability。shared-workspace 只允许返回的 workspace 与
+declared files；controller-io 不提供 filesystem access，只允许返回的 strict file commands。describe/finalize/
+check/commit/task failure 需要 full binding；Root-only spawn failure 与 fixed failure 只能记录其更窄的
+host/immutable-controller 终态，不能访问 task content。
 
 5. 串行执行完或全部 bounded admission 完成后，Root 的最后一个生产动作是启动 exact `continuationCommand`：
 
@@ -199,6 +258,17 @@ current delivery；它不调用 provider 或创建 workspace/attempt。聊天终
 不作 authority；只有 ArtifactAttestation 和验证后的 four-file package 作 authority。详细步骤见
 [生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md) 与
 [本地交付指南](docs/guides/LOCAL_DELIVERY.md)。
+
+terminal failed attempt 不可重开。用户明确恢复时，先运行只读、零 provider inspection，再为同一 current
+Revision reissue fresh attempt：
+
+```bash
+npm run project:attempt:recover-inspect -- --project <story-id> --attempt <failed-attempt-id>
+npm run project:attempt:reissue -- --project <story-id> --attempt <failed-attempt-id>
+```
+
+reissue 不要求 current delivery，复用 valid artifacts/drafts 并返回 fresh bindings/continuation；active、stale
+或 fixed-flow failure 拒绝恢复。这不是自动 retry，旧 attempt 保持 immutable。
 
 ## Narration maintenance
 
@@ -222,7 +292,7 @@ measurement 和 cumulative frame formula 是时间 authority。参见
 npm run project:delete -- --project <story-id> --confirm-delete
 ```
 
-它清理 Project-owned source/public/narration/work/artifact/attempt/legacy history/out/delivery，并重建
+它清理 Project-owned source/public/narration/work/artifact/attempt/revision candidates/legacy history/out/delivery，并重建
 Registry/Catalog；不会删除 core、其他 Project、shared assets、private config 或 voice profiles。删除矩阵只在
 `mktemp` 隔离副本运行。
 
@@ -241,6 +311,7 @@ scripts/renderer-registry/             static composition registry generation
 .producer-work/<story>/<task>/         ignored task workspaces
 .producer-artifacts/<story>/           ignored reusable attested artifacts
 .producer-attempts/<story>/            ignored diagnostic attempts
+.producer-revisions/<story>/           ignored isolated revision candidates and promotion state
 .producer-runs/                        ignored legacy deletion-only history
 deliveries/<story>/                    ignored exact current four-file package
 settings/                              Web source, built into the runtime package at release time

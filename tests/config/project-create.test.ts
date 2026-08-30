@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  AuthoringValidationError,
   NarrationSpecSchema,
   RenderSpecSchema,
   SealedNarrationManifestSchema,
@@ -24,6 +25,7 @@ import {
   createProject as createProjectApplication,
   projectPendingSceneAuthoring,
 } from "../../scripts/projects/application/create-project";
+import { freezeProjectSceneOriginalityBaseline } from "../../scripts/projects/application/scene-originality";
 import { runProjectCreateCli } from "../../scripts/projects/create";
 import { generateSceneTemplateAudioProjection } from "../../scripts/scene-templates/audio-projection";
 import {
@@ -225,6 +227,22 @@ test("project:create atomically creates configured authoring and preserves exact
     ),
   );
   assert.deepEqual(pending.scenes, validProjectCreateInput.scenes);
+  const originalityBaseline = JSON.parse(
+    await readFile(
+      join(
+        fixture.rootDir,
+        "src/projects/story-example/production/scene-originality-baseline.json",
+      ),
+      "utf8",
+    ),
+  );
+  assert.equal(originalityBaseline.subjectStoryId, "story-example");
+  assert.deepEqual(originalityBaseline.entries, []);
+  assert.ok(
+    result.writtenLogicalPaths.includes(
+      "src/projects/story-example/production/scene-originality-baseline.json",
+    ),
+  );
   for (const forbidden of [
     ".narration-work/story-example",
     ".producer-artifacts/story-example",
@@ -249,6 +267,60 @@ test("project:create atomically creates configured authoring and preserves exact
   await generateResourceCatalog({ rootDir: fixture.rootDir, mode: "check" });
 });
 
+test("project:create rejects unreadable captions before acquiring the repository lock or staging", async (context) => {
+  const fixture = await prepareProjectCreateFixture();
+  context.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+  await writeProjectCreateJson(fixture.inputPath, {
+    ...validProjectCreateInput,
+    story: {
+      ...validProjectCreateInput.story,
+      beats: [
+        {
+          ...validProjectCreateInput.story.beats[0],
+          ttsChunks: [{ chunkId: "opening-01", ttsText: "专".repeat(37) }],
+        },
+      ],
+    },
+  });
+  let lockAttempts = 0;
+
+  await assert.rejects(
+    createProject({
+      rootDir: fixture.rootDir,
+      projectId: "story-example",
+      inputPath: fixture.inputPath,
+      env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+      acquireLock: async () => {
+        lockAttempts += 1;
+        throw new Error("repository lock must not be acquired");
+      },
+    }),
+    (error: unknown) => {
+      assert.ok(error instanceof AuthoringValidationError);
+      assert.equal(error.issues.length, 1);
+      assert.equal(
+        error.issues[0]?.path,
+        "$.story.beats[0].ttsChunks[0].ttsText",
+      );
+      assert.equal(error.issues[0]?.code, "caption-display-budget-exceeded");
+      assert.deepEqual(error.issues[0]?.details, {
+        algorithmId: "caption-display-unit-v1",
+        chunkId: "opening-01",
+        displayHalfUnits: 74,
+        maxDisplayHalfUnits: 72,
+      });
+      return true;
+    },
+  );
+  assert.equal(lockAttempts, 0);
+  assert.deepEqual(
+    (await readdirNames(join(fixture.rootDir, "src/projects"))).filter((name) =>
+      name.startsWith(".project-create-staging-"),
+    ),
+    [],
+  );
+});
+
 test("same creation identity is read-only current and different identity fails closed", async (context) => {
   const fixture = await prepareProjectCreateFixture();
   context.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
@@ -259,6 +331,17 @@ test("same creation identity is read-only current and different identity fails c
     env: { RSP_PRODUCER_CONFIG: fixture.configPath },
   } as const;
   const created = await createProject(request);
+  await mkdir(
+    join(fixture.rootDir, "src/projects/later-story/scenes/opening"),
+    { recursive: true },
+  );
+  await writeFile(
+    join(
+      fixture.rootDir,
+      "src/projects/later-story/scenes/opening/Renderer.tsx",
+    ),
+    "export default () => <main>later</main>;\n",
+  );
   const before = await snapshotProjectMtimes(fixture.rootDir);
   const current = await createProject(request);
   const after = await snapshotProjectMtimes(fixture.rootDir);
@@ -287,6 +370,37 @@ test("same creation identity is read-only current and different identity fails c
     /identity conflicts/iu,
   );
   assert.deepEqual(await snapshotProjectMtimes(fixture.rootDir), before);
+});
+
+test("legacy Project creation stays blocked until originality baseline is explicitly frozen", async (context) => {
+  const fixture = await prepareProjectCreateFixture();
+  context.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+  const request = {
+    rootDir: fixture.rootDir,
+    projectId: "story-example",
+    inputPath: fixture.inputPath,
+    env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+  } as const;
+  const created = await createProject(request);
+  await rm(
+    join(
+      fixture.rootDir,
+      "src/projects/story-example/production/scene-originality-baseline.json",
+    ),
+  );
+
+  await assert.rejects(
+    createProject(request),
+    /originality baseline is missing.*freeze/u,
+  );
+  const frozen = await freezeProjectSceneOriginalityBaseline({
+    rootDir: fixture.rootDir,
+    subjectStoryId: "story-example",
+  });
+  assert.equal(frozen.status, "scene-originality-baseline-frozen");
+  const current = await createProject(request);
+  assert.equal(current.status, "project-create-current");
+  assert.equal(current.creationIdentity, created.creationIdentity);
 });
 
 test("project-create-current requires the transaction's exact global Catalog without mutation", async (context) => {

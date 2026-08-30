@@ -9,7 +9,8 @@ import {
 import { ProductionRevisionIdSchema } from "./production-revision";
 import { ProducerTaskKindSchema, TaskRevisionSchema } from "./producer-task";
 
-export const PRODUCTION_INSPECTION_VERSION = "production-inspection-v1" as const;
+export const PRODUCTION_INSPECTION_VERSION =
+  "production-inspection-v1" as const;
 
 export const DiagnosticInputIdSchema = z.enum([
   "beat",
@@ -18,6 +19,7 @@ export const DiagnosticInputIdSchema = z.enum([
   "generation-input",
   "mastering-policy",
   "narration",
+  "originality-baseline",
   "provider-attempt",
   "publishing",
   "readability",
@@ -40,9 +42,18 @@ const StableSubjectIdSchema = z
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u);
 
 export const DiagnosticSubjectSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("meaning"), id: MeaningIdSchema }).strict().readonly(),
-  z.object({ kind: z.literal("tts-chunk"), id: TtsChunkIdSchema }).strict().readonly(),
-  z.object({ kind: z.literal("project"), id: StoryIdSchema }).strict().readonly(),
+  z
+    .object({ kind: z.literal("meaning"), id: MeaningIdSchema })
+    .strict()
+    .readonly(),
+  z
+    .object({ kind: z.literal("tts-chunk"), id: TtsChunkIdSchema })
+    .strict()
+    .readonly(),
+  z
+    .object({ kind: z.literal("project"), id: StoryIdSchema })
+    .strict()
+    .readonly(),
 ]);
 
 export const ArtifactStateSchema = z.enum([
@@ -64,8 +75,14 @@ export const TaskDecisionActionSchema = z.enum([
 ]);
 
 export const TaskDirectChangeSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("input"), id: DiagnosticInputIdSchema }).strict().readonly(),
-  z.object({ kind: z.literal("validator"), id: z.literal("validator-policy") }).strict().readonly(),
+  z
+    .object({ kind: z.literal("input"), id: DiagnosticInputIdSchema })
+    .strict()
+    .readonly(),
+  z
+    .object({ kind: z.literal("validator"), id: z.literal("validator-policy") })
+    .strict()
+    .readonly(),
   z
     .object({
       kind: z.literal("declared-io"),
@@ -155,7 +172,7 @@ export const TaskDecisionExplanationSchema = z
         path: ["subject", "kind"],
       });
     }
-    if ((value.action === "blocked") !== (value.blockedBy.length > 0)) {
+    if ((value.action === "blocked") !== value.blockedBy.length > 0) {
       context.addIssue({
         code: "custom",
         message: "Only blocked decisions bind blocking dependencies.",
@@ -330,7 +347,8 @@ export const ProductionInspectionSchema = z
     ) {
       context.addIssue({
         code: "custom",
-        message: "A diagnostic baseline kind and Revision must be present together.",
+        message:
+          "A diagnostic baseline kind and Revision must be present together.",
         path: ["baseline"],
       });
     }

@@ -16,6 +16,7 @@ import {
   validateNarrativeArtifactBundle,
 } from "@axmorf/studio/contracts";
 import { generateProjectResourceCatalog } from "../../catalog/generate";
+import { loadScopedProjectCatalogAuthorityDescriptors } from "../../catalog/project-files";
 import { resolveProducerNarrationInspection } from "../../config/narration-execution";
 import { loadVerifiedProgress } from "../../narration/adapters/candidate-workspace";
 import {
@@ -27,6 +28,10 @@ import { computeChunkRequestFingerprint } from "../../narration/domain/provider-
 import { loadNarrationProjectFiles } from "../../narration/project-files";
 import { isTemplateSceneLiveProjectionPath } from "../domain/template-scene-output";
 import { inspectCurrentDelivery as inspectVerifiedCurrentDelivery } from "./current-delivery-inspection";
+import {
+  createLiveProjectProductionScope,
+  type ProductionScope,
+} from "../domain/production-scope";
 
 type TreeEntry = Readonly<{
   path: string;
@@ -111,12 +116,17 @@ export type ProductionInspectionSnapshot = Readonly<{
 export const captureProductionInspectionSnapshot = async ({
   rootDir,
   projectId: rawProjectId,
+  scope: suppliedScope,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
+  readonly scope?: ProductionScope;
 }): Promise<ProductionInspectionSnapshot> => {
   const projectId = StoryIdSchema.parse(rawProjectId);
-  const projectRoot = join(rootDir, "src/projects", projectId);
+  const scope =
+    suppliedScope ??
+    createLiveProjectProductionScope({ rootDir, storyId: projectId });
+  const projectRoot = join(scope.projectSourceRoot, projectId);
   const generatedRoot = join(projectRoot, "generated");
   const [
     source,
@@ -130,17 +140,20 @@ export const captureProductionInspectionSnapshot = async ({
     delivery,
   ] = await Promise.all([
     fingerprintTrees([projectRoot]),
-    fingerprintTrees([join(rootDir, "public/projects", projectId)]),
+    fingerprintTrees([join(scope.projectPublicRoot, projectId)]),
     fingerprintTrees([generatedRoot]),
     fingerprintTrees([
-      join(rootDir, "src/remotion/catalog/resource-catalog.generated.json"),
+      join(
+        scope.shared.runtimeRoot,
+        "src/remotion/catalog/resource-catalog.generated.json",
+      ),
       join(generatedRoot, "resource-catalog.generated.json"),
     ]),
-    fingerprintTrees([join(rootDir, ".narration-work", projectId)]),
-    fingerprintTrees([join(rootDir, ".producer-artifacts", projectId)]),
-    fingerprintTrees([join(rootDir, ".producer-work", projectId)]),
-    fingerprintTrees([join(rootDir, ".producer-attempts", projectId)]),
-    fingerprintTrees([join(rootDir, "deliveries", projectId)]),
+    fingerprintTrees([join(scope.narrationWorkRoot, projectId)]),
+    fingerprintTrees([join(scope.shared.producerArtifactRoot, projectId)]),
+    fingerprintTrees([join(scope.producerWorkRoot, projectId)]),
+    fingerprintTrees([join(scope.producerAttemptsRoot, projectId)]),
+    fingerprintTrees([join(scope.deliveryRoot, projectId)]),
   ]);
   return {
     source,
@@ -194,6 +207,7 @@ const CONFIGURED_FILES = [
   "production/requirements.json",
   "production/story-resource-pool.json",
   "production/global-visual-brief.json",
+  "production/scene-originality-baseline.json",
 ] as const;
 const TIMING_FILES = [
   "generated/sealed-narration.generated.json",
@@ -214,12 +228,17 @@ export type ProductionSourceReadiness = Readonly<{
 export const inspectProductionSourceReadiness = async ({
   rootDir,
   projectId: rawProjectId,
+  scope: suppliedScope,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
+  readonly scope?: ProductionScope;
 }): Promise<ProductionSourceReadiness> => {
   const projectId = StoryIdSchema.parse(rawProjectId);
-  const projectRoot = join(rootDir, "src/projects", projectId);
+  const scope =
+    suppliedScope ??
+    createLiveProjectProductionScope({ rootDir, storyId: projectId });
+  const projectRoot = join(scope.projectSourceRoot, projectId);
   const configured = await Promise.all(
     CONFIGURED_FILES.map((path) => isRegularFile(join(projectRoot, path))),
   );
@@ -232,10 +251,24 @@ export const inspectProductionSourceReadiness = async ({
     );
   }
   const { projectSource } = await loadNarrationProjectFiles({
-    rootDir,
+    rootDir: scope.isolatedRoot,
     projectId,
   });
-  await generateProjectResourceCatalog({ rootDir, projectId, mode: "check" });
+  await generateProjectResourceCatalog({
+    rootDir: scope.isolatedRoot,
+    projectId,
+    mode: "check",
+    ...(scope.kind === "live-project"
+      ? {}
+      : {
+          loadDescriptors: () =>
+            loadScopedProjectCatalogAuthorityDescriptors({
+              runtimeRoot: scope.shared.runtimeRoot,
+              projectRoot: scope.isolatedRoot,
+              projectId,
+            }),
+        }),
+  });
 
   const timing = await Promise.all(
     TIMING_FILES.map((path) => isRegularFile(join(projectRoot, path))),
@@ -386,24 +419,28 @@ export const inspectNarrationCache = async ({
   rootDir,
   projectId,
   env,
+  scope: suppliedScope,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly env: Readonly<Record<string, string | undefined>>;
+  readonly scope?: ProductionScope;
 }): Promise<NarrationCacheInspection> => {
+  const scope =
+    suppliedScope ??
+    createLiveProjectProductionScope({ rootDir, storyId: projectId });
   const { projectSource } = await loadNarrationProjectFiles({
-    rootDir,
+    rootDir: scope.isolatedRoot,
     projectId,
   });
   const inspection = await resolveProducerNarrationInspection({
-    rootDir,
+    rootDir: scope.shared.runtimeRoot,
     env,
     narration: projectSource.narration,
   });
   if (inspection.providerAttemptFingerprint === null) {
     const receiptPath = join(
-      rootDir,
-      "src/projects",
+      scope.projectSourceRoot,
       projectId,
       NARRATION_PREPARATION_RECEIPT,
     );
@@ -434,7 +471,7 @@ export const inspectNarrationCache = async ({
     providerAttemptFingerprint: inspection.providerAttemptFingerprint,
   });
   const progress = await loadVerifiedProgress({
-    rootDir: join(rootDir, ".narration-work"),
+    rootDir: scope.narrationWorkRoot,
     storyId: projectId,
     generationInputFingerprint: expected.generationInputFingerprint,
     providerAttemptFingerprint: expected.providerAttemptFingerprint,

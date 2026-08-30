@@ -56,15 +56,19 @@ test("user execution fields override settings and runtime capacity clamps safely
   } as const;
 
   assert.deepEqual(
-    resolveAgentExecution({ preferences: settings, preferenceSource: "settings" }),
+    resolveAgentExecution({
+      preferences: settings,
+      preferenceSource: "settings",
+    }),
     {
-      status: "ready",
+      status: "blocked",
       mode: "subagents",
       requestedMaxConcurrency: 3,
       effectiveMaxConcurrency: 1,
       requireExactConcurrency: false,
       source: { mode: "settings", maxConcurrency: "settings" },
-      limitedBy: ["runtime-unknown-default"],
+      workerTransport: null,
+      limitedBy: ["worker-transport-unverified", "runtime-unknown-default"],
       persistence: "current-production-only",
     },
   );
@@ -78,16 +82,19 @@ test("user execution fields override settings and runtime capacity clamps safely
   assert.equal(inline.mode, "inline");
   assert.equal(inline.source.mode, "user-prompt");
   assert.equal(inline.effectiveMaxConcurrency, 0);
+  assert.equal(inline.workerTransport, null);
 
   const clamped = resolveAgentExecution({
     preferences: settings,
     preferenceSource: "settings",
     override: { mode: "subagents", maxConcurrency: 8 },
     runtimeMaxConcurrency: 6,
+    runtimeWorkerTransport: "shared-workspace",
   });
   assert.equal(clamped.status, "ready");
   assert.equal(clamped.effectiveMaxConcurrency, 4);
   assert.deepEqual(clamped.limitedBy, ["repository-safety-ceiling"]);
+  assert.equal(clamped.workerTransport, "shared-workspace");
 
   const exact = resolveAgentExecution({
     preferences: settings,
@@ -98,6 +105,7 @@ test("user execution fields override settings and runtime capacity clamps safely
       requireExactConcurrency: true,
     },
     runtimeMaxConcurrency: 6,
+    runtimeWorkerTransport: "controller-io",
   });
   assert.equal(exact.status, "blocked");
   assert.equal(exact.effectiveMaxConcurrency, 4);
@@ -106,8 +114,26 @@ test("user execution fields override settings and runtime capacity clamps safely
     preferences: settings,
     preferenceSource: "settings",
     runtimeMaxConcurrency: 0,
+    runtimeWorkerTransport: "shared-workspace",
   });
   assert.equal(unavailable.status, "blocked");
   assert.equal(unavailable.effectiveMaxConcurrency, 0);
   assert.deepEqual(unavailable.limitedBy, ["runtime-capacity"]);
+});
+
+test("worker transport is a per-resolution capability and never persisted", () => {
+  assert.equal("workerTransport" in DEFAULT_EXECUTION_PREFERENCES, false);
+  const result = resolveAgentExecution({
+    preferences: {
+      schemaVersion: 1,
+      contractVersion: "execution-preferences-v1",
+      creativeTaskExecution: { mode: "subagents", maxConcurrency: 2 },
+    },
+    preferenceSource: "settings",
+    runtimeMaxConcurrency: 2,
+    runtimeWorkerTransport: "controller-io",
+  });
+  assert.equal(result.status, "ready");
+  assert.equal(result.workerTransport, "controller-io");
+  assert.equal("workerTransport" in DEFAULT_EXECUTION_PREFERENCES, false);
 });

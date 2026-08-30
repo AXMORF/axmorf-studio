@@ -8,9 +8,12 @@ Current automatic flow 只有机械 acceptance，不把 Agent 自评或主观审
 | --- | --- | --- |
 | ProductionRevision parse | fixed planner | explicit inputs、selected bytes、policy identities current |
 | Task DAG validation | pure domain | no cycle/duplicate/unknown dependency; stable order |
-| `project:task:check` | read-only fixed validator | workspace exact outputs 满足 task-kind contracts |
+| `project:task:bind` | zero-write fixed gate | exact task/active attempt/three immutable inputs/contract current；返回 transport-scoped capability |
+| `project:task:finalize` | fixed derived projection | 仅重建 contract 声明的 fixed-derived outputs，再运行同一 validator |
+| `project:task:check` | read-only fixed validator | full binding 下 workspace exact outputs 满足 task-kind contracts |
 | `project:task:commit` | fixed Artifact Store adapter | check rerun + exact bytes + ArtifactAttestation atomic promotion |
-| `project:task:fail` | fixed attempt adapter | exact attempt/task 的 immutable failed terminal event |
+| authored `project:task:fail` | fixed attempt adapter | full binding 下 exact attempt/task 的 immutable failed terminal event |
+| spawn/fixed failure | narrow fixed adapter | 只记录真实 host transport/permission 或 immutable/controller fault；不能读取 task content |
 | artifact inspection | fixed reader | schema/dependency/policy/path/type/size/checksum current |
 | fixed continuation | fixed application | atomic single-consumer claim；immutable event log；failure/attempt 创建起一小时 timeout 不 converge；all-success 内部 converge exactly once；Root 不参与 barrier |
 | convergence | fixed application | all artifacts present, current revision, rollback-safe materialization |

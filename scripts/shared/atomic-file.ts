@@ -6,6 +6,7 @@ export type AtomicTextFileWriter = (request: {
   readonly destination: string;
   readonly bytes: string;
   readonly mode: "create" | "replace";
+  readonly temporaryDirectory?: string;
 }) => Promise<{ readonly written: boolean }>;
 
 export type AtomicBinaryFileWriter = (request: {
@@ -113,9 +114,12 @@ export const writeTextFileAtomic: AtomicTextFileWriter = async ({
   destination,
   bytes,
   mode,
+  temporaryDirectory,
 }) => {
   const parent = dirname(destination);
   await mkdir(parent, { recursive: true });
+  const temporaryParent = temporaryDirectory ?? parent;
+  await mkdir(temporaryParent, { recursive: true });
   const existing = await readOptionalTextFile(destination);
   if (existing === bytes) return { written: false };
   if (mode === "create" && existing !== null) {
@@ -123,7 +127,7 @@ export const writeTextFileAtomic: AtomicTextFileWriter = async ({
   }
 
   const temporaryPath = join(
-    parent,
+    temporaryParent,
     `.${basename(destination)}.${process.pid}.${randomUUID()}.tmp`,
   );
   let installed = false;

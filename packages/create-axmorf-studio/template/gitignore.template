@@ -12,6 +12,7 @@ src/remotion/catalog/resource-catalog.generated.json
 .producer-work/
 .producer-artifacts/
 .producer-attempts/
+.producer-revisions/
 .producer-runs/
 out/
 deliveries/

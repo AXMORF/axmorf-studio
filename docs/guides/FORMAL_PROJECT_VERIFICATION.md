@@ -46,5 +46,5 @@ npm run project:evidence:check -- --project <story-id>
 - 不把具体 storyId 加回 core、package scripts 或 active 中央 manifest；新增 Project 后由 bootstrap
   重算 Registry/Catalog。删除一个、多个或全部作品时必须使用
   `npm run project:delete -- ... --confirm-delete`，让 profile、工具、媒体、narration work、workspaces、
-  artifacts、attempts、legacy history、out 与 deliveries 一起消失并重建聚合投影。
+  artifacts、attempts、revision candidates、legacy history、out 与 deliveries 一起消失并重建聚合投影。
 - 不提交 `src/projects/`、`public/` 或当前 Project 集的聚合 Registry/Catalog。

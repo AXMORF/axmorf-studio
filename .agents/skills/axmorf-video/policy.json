@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 16,
-  "policyVersion": "axmorf-video-policy-v18",
+  "schemaVersion": 18,
+  "policyVersion": "axmorf-video-policy-v21",
   "rootEndpoints": [
     "project-production-complete",
     "project-production-current"
@@ -25,25 +25,35 @@
     "references/scene-agent-orchestration.md",
     "references/global-visual-agent-orchestration.md",
     "references/cover-agent-orchestration.md",
+    "references/task-execution-protocol.md",
+    "references/project-revision.md",
     "references/agent-rework-and-system-hardening.md"
   ],
   "workflowCommands": [
     "project:create",
+    "project:originality:freeze",
+    "project:revise:context",
+    "project:revise:validate",
+    "project:revise",
+    "project:revision:promote",
     "project:execution:resolve",
     "project:produce:inspect",
     "project:produce:prepare",
+    "project:task:bind",
+    "project:task:describe",
+    "project:task:finalize",
     "project:task:check",
     "project:task:commit",
     "project:task:fail",
+    "project:task:file-read",
+    "project:task:file-write",
+    "project:attempt:recover-inspect",
+    "project:attempt:reissue",
     "project:produce:continue"
   ],
   "executionPolicy": {
     "resolutionPhase": "before-production-inspect",
-    "precedence": [
-      "user-prompt",
-      "settings-page",
-      "builtin-default"
-    ],
+    "precedence": ["user-prompt", "settings-page", "builtin-default"],
     "promptOverridePersistence": "current-production-only-unless-explicit-save",
     "defaultMode": "inline",
     "defaultSubagentMaxConcurrency": 4,
@@ -51,6 +61,8 @@
     "unknownRuntimeMaxConcurrency": 1,
     "inlinePolicy": "root-sequential-one-workspace-at-a-time",
     "subagentPolicy": "bounded-pool-wait-any-admission",
+    "subagentWorkerTransport": "verified-shared-workspace-or-controller-io",
+    "unverifiedWorkerTransportPolicy": "block-before-prepare",
     "exactCapacityFailurePolicy": "block-before-prepare",
     "automaticModeFallback": false,
     "identityVisibility": "none"
@@ -79,7 +91,10 @@
     "capacityPolicy": "resolved-bounded-pool-max-four",
     "unavailableDelegationPolicy": "known-zero-blocks-unknown-defaults-one",
     "rootAgentAuthorsTaskOutputs": "only-when-resolved-inline",
-    "agentWriteBoundary": "task-workspace-only-after-prepare",
+    "taskExecutionContract": "immutable-attempt-neutral-agent-task-input",
+    "agentWriteBoundary": "declared-task-outputs-only-after-successful-attempt-bound-bind",
+    "taskBindingPolicy": "zero-write-before-task-worker-bound",
+    "controllerIoPolicy": "strict-bound-file-read-write-only",
     "artifactAuthority": "validated-artifact-attestation",
     "artifactReusePolicy": "reuse-valid-content-addressed-artifacts",
     "artifactPromotionPolicy": "validator-only-atomic-promotion",
@@ -93,6 +108,11 @@
     "convergePolicy": "fixed-exactly-once-after-all-agent-artifacts",
     "agentFailurePolicy": "terminal-exit-without-converge",
     "fixedFailurePolicy": "terminal-exit-without-root-reentry-or-retry",
+    "failedAttemptRecoveryPolicy": "explicit-read-only-inspect-then-same-revision-zero-provider-reissue",
+    "projectRevisionBasePolicy": "exact-current-revision-and-verified-four-file-delivery",
+    "projectRevisionCandidatePolicy": "isolated-source-public-narration-work-attempt-output-delivery",
+    "projectRevisionPromotionPolicy": "automatic-after-candidate-delivery-with-independent-explicit-retry",
+    "projectRevisionRollbackPolicy": "restore-previous-current-project-and-delivery",
     "globalVisualReadsSceneOutputs": false,
     "coverReadsOnlyTaskInputs": true,
     "childIdentityPersisted": false,
@@ -119,13 +139,15 @@
     "git add .",
     "push",
     "publish",
-    "agent-write-outside-task-workspace"
+    "agent-write-outside-task-workspace",
+    "unbound-task-read-or-write"
   ],
   "contextBudgets": {
     "entrypointMaxWords": 580,
     "directWorkflowMaxWords": 680,
-    "normalProductionMaxWords": 1850,
-    "normalProductionMaxCharacters": 15500,
+    "projectRevisionMaxWords": 220,
+    "normalProductionMaxWords": 1900,
+    "normalProductionMaxCharacters": 18000,
     "sceneOrchestrationMaxWords": 330,
     "globalVisualOrchestrationMaxWords": 270,
     "coverOrchestrationMaxWords": 240

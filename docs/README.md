@@ -25,6 +25,7 @@
 | 主题                                                                                                          | 文档                                                                           |
 | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | 主流 Agent 入口、最低能力与宿主适配边界                                                                       | [guides/AGENT_COMPATIBILITY.md](guides/AGENT_COMPATIBILITY.md)                 |
+| 现有 Project 的 exact-base candidate revision 与 promotion                                                    | [guides/PROJECT_REVISION.md](guides/PROJECT_REVISION.md)                       |
 | 统一 Producer/TTS/Scene defaults 配置                                                                         | [guides/PRODUCER_CONFIG.md](guides/PRODUCER_CONFIG.md)                         |
 | create 后的只读 inspect、显式 prepare、dirty task delegation、attempt-bound commit/fail 与 fixed continuation | [guides/PRODUCTION_ORCHESTRATION.md](guides/PRODUCTION_ORCHESTRATION.md)       |
 | 同步 exact four-file delivery                                                                                 | [guides/LOCAL_DELIVERY.md](guides/LOCAL_DELIVERY.md)                           |
@@ -43,7 +44,9 @@
 - `promotions/` 保存尚未完全达到完成定义的提案和实施计划；每份文档必须明确自身批准/实施状态。
 - [npm Workspace 开源方案实施计划](promotions/2026-08-30-npm-workspace-open-source-implementation-plan.md)
   已完成本地 package/scaffold vertical slice、macOS native package gate 与
-  [Ubuntu packed production/Delivery E2E](evidence/2026-08-30-ubuntu-npm-workspace-production-acceptance.md)；公开发布
+  [Ubuntu packed production/Delivery E2E](evidence/2026-08-30-ubuntu-npm-workspace-production-acceptance.md)，并在
+  新增 production contracts 后完成
+  [Ubuntu current-feature re-acceptance](evidence/2026-08-30-ubuntu-npm-current-feature-reacceptance.md)；公开发布
   仍待 closeout verification、发布账号材料与单独授权，不再以固定 OS matrix 作为阻塞条件。
 - [archive/](archive/README.md) 保存已完成或被取代的 plans/specs，仅供追溯。
 

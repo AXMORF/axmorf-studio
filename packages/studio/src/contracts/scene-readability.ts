@@ -13,7 +13,7 @@ const SCALE_DENOMINATOR = 1080;
 const CAPTION_LINE_HEIGHT_NUMERATOR = 135;
 const CAPTION_LINE_HEIGHT_DENOMINATOR = 100;
 const RECOMMENDED_DISPLAY_HALF_UNITS = 64;
-const MAX_DISPLAY_HALF_UNITS = 72;
+export const CAPTION_MAX_DISPLAY_HALF_UNITS = 72 as const;
 
 const ceilDiv = (numerator: number, denominator: number) =>
   Math.floor((numerator + denominator - 1) / denominator);
@@ -64,7 +64,7 @@ const SceneReadabilityPolicyInputObject = z
         recommendedDisplayUnitsPerChunk: z.literal(32),
         maxDisplayUnitsPerChunk: z.literal(36),
         recommendedDisplayHalfUnits: z.literal(RECOMMENDED_DISPLAY_HALF_UNITS),
-        maxDisplayHalfUnits: z.literal(MAX_DISPLAY_HALF_UNITS),
+        maxDisplayHalfUnits: z.literal(CAPTION_MAX_DISPLAY_HALF_UNITS),
         maxCaptionLines: z.literal(2),
         captionFontSizePx: PositiveIntegerSchema,
         captionBottomInsetPx: PositiveIntegerSchema,
@@ -152,7 +152,7 @@ const buildSceneReadabilityPolicyInput = ({
       recommendedDisplayUnitsPerChunk: 32,
       maxDisplayUnitsPerChunk: 36,
       recommendedDisplayHalfUnits: RECOMMENDED_DISPLAY_HALF_UNITS,
-      maxDisplayHalfUnits: MAX_DISPLAY_HALF_UNITS,
+      maxDisplayHalfUnits: CAPTION_MAX_DISPLAY_HALF_UNITS,
       maxCaptionLines: 2,
       captionFontSizePx,
       captionBottomInsetPx,
@@ -331,22 +331,57 @@ export const countCaptionDisplayHalfUnits = (text: string) =>
     0,
   );
 
-export const validateCaptionDisplayBudget = ({
+export const measureCaptionDisplayBudget = ({
   chunkId,
   ttsText,
-  maxDisplayHalfUnits = MAX_DISPLAY_HALF_UNITS,
+  maxDisplayHalfUnits = CAPTION_MAX_DISPLAY_HALF_UNITS,
 }: {
   readonly chunkId: string;
   readonly ttsText: string;
   readonly maxDisplayHalfUnits?: number;
 }) => {
   const displayHalfUnits = countCaptionDisplayHalfUnits(ttsText);
-  if (displayHalfUnits > maxDisplayHalfUnits) {
-    throw new Error(
-      `TTS chunk ${chunkId} uses ${displayHalfUnits} half-units and exceeds the ${maxDisplayHalfUnits} half-units caption budget.`,
-    );
+  return {
+    chunkId,
+    ttsText,
+    displayHalfUnits,
+    maxDisplayHalfUnits,
+    exceedsBudget: displayHalfUnits > maxDisplayHalfUnits,
+  } as const;
+};
+
+export const formatCaptionDisplayBudgetExceededMessage = ({
+  chunkId,
+  displayHalfUnits,
+  maxDisplayHalfUnits,
+}: Pick<
+  ReturnType<typeof measureCaptionDisplayBudget>,
+  "chunkId" | "displayHalfUnits" | "maxDisplayHalfUnits"
+>) =>
+  `TTS chunk ${chunkId} uses ${displayHalfUnits} half-units and exceeds the ${maxDisplayHalfUnits} half-units caption budget.`;
+
+export const validateCaptionDisplayBudget = ({
+  chunkId,
+  ttsText,
+  maxDisplayHalfUnits = CAPTION_MAX_DISPLAY_HALF_UNITS,
+}: {
+  readonly chunkId: string;
+  readonly ttsText: string;
+  readonly maxDisplayHalfUnits?: number;
+}) => {
+  const measurement = measureCaptionDisplayBudget({
+    chunkId,
+    ttsText,
+    maxDisplayHalfUnits,
+  });
+  if (measurement.exceedsBudget) {
+    throw new Error(formatCaptionDisplayBudgetExceededMessage(measurement));
   }
-  return { chunkId, ttsText, displayHalfUnits } as const;
+  return {
+    chunkId,
+    ttsText,
+    displayHalfUnits: measurement.displayHalfUnits,
+  } as const;
 };
 
 export const validateStoryCaptionReadability = ({

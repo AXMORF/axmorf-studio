@@ -63,8 +63,9 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   `.agents/skills/axmorf-video/SKILL.md`；Scene task 再按该 Skill 读取 repository-local
   `remotion-best-practices`。
 - 全新 scaffolded Workspace 的内置执行默认是 `inline`，只要求当前 Agent 能读写文件并运行 shell。只有用户或已保存设置
-  选择 `subagents` 且宿主确实提供 runtime-native child execution 时才使用子 Agent；不得把线程、聊天或普通
-  后台进程伪装成 child runtime。
+  选择 `subagents`、宿主提供 bounded runtime-native child execution，且为本次 production 验证
+  `shared-workspace` 或 `controller-io` transport 时才使用子 Agent；不得把线程、聊天或普通后台进程伪装成 child
+  runtime。transport 是不持久化的宿主能力证据，不是 Workspace/App/Project 设置。
 - `.agents/**/agents/openai.yaml` 只提供 OpenAI host 的可选 UI metadata，不属于 Skill、production contract、
   Task identity 或完成证据。其他 Agent 直接读取 `SKILL.md`、references、JSON contracts 与 CLI 输出。
 - 宿主兼容性、最低能力与入口文件见 `docs/guides/AGENT_COMPATIBILITY.md`。
@@ -97,11 +98,21 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - `project:create` 从 strict create input 原子创建 configured authoring，并将选定边界 Scene template
   源码与资源复制为 Project-local immutable instance；它不调用 provider、不生成媒体或生产 attempt。
   template-copy Scene 由 fixed task 验证和产出 artifact，不派发 Agent。
+- `project:create` 同事务冻结 `production/scene-originality-baseline.json`，只记录创建前其他 Project 的完整
+  TypeScript Scene source graph；重复 create 必须复用自身 baseline。旧 Project 缺失时只能由用户显式运行零 provider、
+  持锁的 `npm run project:originality:freeze -- --project <storyId>`，production 不得静默补空 baseline。
+- 现有 Project 禁止原地修改 live authoring。先用只读 `project:revise:context` 取得 exact current Revision 与已复验
+  four-file Delivery，再以 strict raw input 运行 `project:revise:validate`/`project:revise`。候选隔离 source/public/
+  narration/work/attempt/out/delivery；promote 前 current Project/Delivery 始终是 authority。
 - `ttsChunks` 是 Agent 已确定的原子朗读单元。sealed PCM 实测 samples 是绝对时间 authority；frame
   boundary 统一为 `ceilDiv(cumulativeSamples × fps, sampleRate)`。Scene/transition 不吞 spoken frames。
+- create 与 revision validate/create 在 mutation 前执行 structured authoring validation；每个 authored
+  `ttsChunk` 最多 72 `caption-display-unit-v1` half-units。`authoring-validation-failed` /
+  `caption-display-budget-exceeded` 由 Agent 改短或按自然语义拆分，不得降低 validator。
 - 字幕只由顶层 CaptionLayer 渲染；Scene root 透明，只输出 Beat 语义视觉与音效。Composition exactly
-  once owns safe-area-local SceneViewport、captions、narration 和 GlobalVisual background；Scene 的 `(0, 0)`
-  是 viewport 左上角，只接收 viewport width/height，不感知 full-frame inset。
+  once owns safe-area-local SceneViewport、captions、narration 和 GlobalVisual layers；GlobalVisual base 覆盖完整
+  Composition，decoration 只覆盖首个至末个 narrated Scene 的连续窗口。Scene 的 `(0, 0)` 是 viewport 左上角，
+  只接收 viewport width/height，不感知 full-frame inset。
 - 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。Project BGM 只覆盖 narrated
   content window，不进入 silent boundary Scenes。
 - JSON/数据文件不包含 executable expression；renderer 由 composition-local static registry 绑定。
@@ -111,7 +122,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 
 ## 唯一 production 与 delivery 主链
 
-- `project:create`/authoring edit 之后、`project:produce:inspect` 之前只有一个可选 Agent capability slot：若
+- `project:create` 之后、live Project 首次 `project:produce:inspect` 之前只有一个可选 Agent capability slot；revision
+  candidate 不开放新的外部素材准入，只使用 base snapshot 已有 Project-owned media。若
   当前 Root Agent 的实际 callable tool surface 暴露同一外部图片 MCP 的 `get_provider_status`、
   `search_images`、`preview_images`、`acquire_image`，且 receipt 兼容 `project:asset:import`，则先查本地
   Catalog，确有素材缺口时才 acquire/import；否则从本次流程完全省略该 slot，不报错、不生成占位 task、
@@ -121,24 +133,42 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - `npm run project:execution:resolve` 在 inspect 前解析一次 Agent 执行策略：用户提示词中的明确字段优先于
   `private/execution-preferences.json`，未明确字段继续继承配置，再继承内置 `inline` 默认。override 只作用于当前
   production，除非用户明确要求保存；解析结果不进入 Revision/Task/artifact/delivery identity。`inline` 由
-  Root 一次只执行一个 dirty workspace；`subagents` 使用不超过四个且受 runtime capacity 限制的 bounded pool。
-  runtime capacity 未知时按 1、明确为 0 时阻塞；用户要求 exact capacity 而无法满足时也必须在 prepare 前
-  阻塞，不自动换模式。
+  Root 一次只执行一个 dirty workspace；`subagents` 使用不超过四个且受 runtime capacity 限制的 bounded pool，
+  并要求本次 resolver 输入 verified worker transport。runtime capacity 未知时按 1；transport 未验证、容量为 0
+  或 exact capacity 无法满足都必须在 prepare 前阻塞，不自动换模式。transport/解析结果不持久化也不进入 content
+  identity。
 - `npm run project:produce:inspect -- --project <storyId>` 是严格只读、零 provider call 的诊断入口；Root
   必须先报告 source readiness、estimated cost、artifact reuse 与结构化失效解释，再运行有成本 preparation。
 - `npm run project:produce:prepare -- --project <storyId>` 是唯一允许调用 provider、准备 fixed artifacts、
   计算 ProductionRevision/content-addressed Task DAG、创建 dirty workspace 与 ExecutionAttempt 的生产入口。
+- candidate 的 inspect/prepare/task/continue/recover/reissue 必须携带 exact `--candidate`，但 candidateId/path 只属于
+  routing/diagnostic plane，不进入 Revision、TaskRevision、ArtifactAttestation 或 DeliveryBuildId。candidate exact-four
+  Delivery 成功后 fixed continuation 自动尝试 promotion；promotion 在锁内重验 live base 与 expected candidate
+  Revision/Delivery tuple，只受控替换 source/public/narration/delivery 四个 Project-owned roots，并刷新/复验
+  Registry/Catalog；任一步失败完整 rollback。production 已完成而 promotion 失败时只允许幂等
+  `project:revision:promote` 重试，不能 reissue attempt。
 - RevisionId、TaskRevision、ArtifactAttestation identity 不包含 attemptId、历史执行 ID、时间戳、PID、
   absolute path 或 Agent identity。ExecutionAttempt 只保存诊断，不拥有 artifact 或 delivery。
 - prepare 只为未命中有效 artifact 的 Agent 任务创建 `.producer-work/<storyId>/<taskRevision>/`。Root 按已解析
   模式串行执行或受限派发 dirty `scene-owner`、`global-visual-owner`、`cover-owner`；valid artifacts 必须复用。
-- 每个 Root/child task executor 只写自己的 task workspace，读取 immutable `task.json` 与
-  `inputs/context.json`，循环运行
-  `project:task:check`，最后调用 prepare 返回的 attempt-bound `project:task:commit` 或 `project:task:fail`。
-  commit 必须重跑 validator；只有 fixed validator 能把 workspace 原子提升为 ArtifactAttestation。聊天、
-  child status 与 Agent 自评都不是 authority。
+- Agent task 的 immutable、attempt-neutral `TaskExecutionContract` 位于 `inputs/task-contract.json`，与
+  `task.json`、`inputs/context.json` 一起定义 purpose/workflow/constraints、exact outputs 及 Agent/fixed ownership；
+  contract 不承载 transport、binding、failure state 或 CLI template。新 contract version 只让 Agent TaskRevision/
+  artifact 一次失效，不修改 ProductionRevision 或 current delivery。
+- 每个 Root/child executor 在任何 task content 读写前先运行 prepare 返回的 exact attempt-bound
+  `project:task:bind`；bind 校验 identity、active attempt、immutable input checksums 与 task contract，且必须零写入。
+  只有 `task-worker-bound` 才允许按 binding 返回的 capability 读取三个 immutable inputs、写 declared outputs。
+  `shared-workspace` 只能访问返回的 workspace；`controller-io` 没有 filesystem access，只能通过 exact bound
+  `project:task:file-read`/`file-write` 读允许路径、用 strict base64 JSON 写 declared output。
+- `project:task:describe`、`finalize`、`check`、`commit` 与 authored-output `taskFailureCommand` 都要求 full valid
+  binding；finalize 只做 fixed derived projection，executor 只修正 `agent-output` issues。commit 重跑 validator 并
+  原子提升 ArtifactAttestation。Root-only `spawnFailureCommand` 仅记录真实 spawn/transport/permission failure，
+  `fixedFailureCommand` 仅记录 immutable/controller fault；二者 authority 更窄，不能读写 task content。
 - Artifact hit 每次重新验证 contract、task identity、dependencies、validator version、exact sorted file
   set、path containment、regular-file/no-symlink、size 与 checksum；目录存在不代表命中。
+- originality baseline fingerprint 只进入 `scene-owner` TaskRevision/context；`scene-template` 明确豁免。Scene validator
+  用全部 declared TS/TSX 的 token-normalized source graph 拒绝历史冲突；converge 在任何 live materialization 前再次
+  拒绝同 revision Scene 的 exact 或 normalized duplicate。
 - Root 在串行执行完或把全部 dirty tasks 纳入 bounded pool 后的最后一个生产动作，是启动 prepare 返回的
   attempt-bound `project:produce:continue`。此后 Root 挂起，不轮询 child、不读取终态、不推理或修复。fixed continuation
   必须先获得 one-shot atomic attempt claim，再等待 immutable task-terminal event log；重复 continuation
@@ -168,7 +198,7 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   扫描 `.producer-runs/` 来规划、构建、收敛或判定 current 状态。历史 Run 只是 deletion-only 数据。
 - 用户明确删除 Project 时，使用
   `npm run project:delete -- --project <storyId> --confirm-delete` 的完整 storyId-owned 清理语义；禁止 broad
-  `rm`。删除范围含 Project/public/narration/work/artifact/attempt/legacy Run/out/delivery，不含 core、其他
+  `rm`。删除范围含 Project/public/narration/work/artifact/attempt/revision candidate/legacy Run/out/delivery，不含 core、其他
   Project、private config、共享素材或 `public/voice_profile/`。
 - 删除器只为历史 `.producer-runs` 保留内部严格 `runId/storyId` ownership parser，不导出或解释旧合同。
   删除矩阵只能在明确的 `mktemp` 隔离副本中运行。
@@ -190,11 +220,15 @@ contact sheet 或布局。第三方 source/media 分别校验 license/attributio
   scope/API/files/target 后，才移入 `src/remotion/capabilities/`。
 - Root 只有在解析为 `inline` 时才能按 task prompt 串行创作；不得读其他 executor workspace、跨 task 代
   commit 或持久化 child identity/chat/heartbeat/token。subagents 模式的 spawn failure 记录 exact
-  `hostFailureCommand`，不得自动回退 inline。
+  `spawnFailureCommand`，不得自动回退 inline。
 
 ## 故障语义
 
 - Agent-owned workspace 校验失败时，仅原 task executor 修正 owning paths 并重跑同一 validator；不得降低合同。
+- terminal failed attempt 永远 immutable。用户另行明确恢复时，先运行严格只读、零 provider 的
+  `npm run project:attempt:recover-inspect`；只有同一 current Revision、无 active/fixed blocker 时才运行
+  `npm run project:attempt:reissue`。reissue 不要求 current delivery，复用 valid artifacts/drafts 并创建 fresh
+  attempt/bindings；它不是在旧 attempt 内自动 retry。
 - fixed workflow 在 valid inputs 下失败是系统缺陷：当前 production lifecycle 立即终止。只有用户另行启动的
   engineering task 才能保存脱敏 incident，Red → minimal shared Green → focused/full verification；之后再从
   current inputs 新建 ExecutionAttempt。不得在失败 attempt 内修复或重试。

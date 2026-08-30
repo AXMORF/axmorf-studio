@@ -237,12 +237,16 @@ export const bindTemplateSceneTask = ({
 
 export const ensureTemplateSceneArtifact = async ({
   rootDir,
+  sourceRootDir = rootDir,
+  workspaceRootDir = rootDir,
   task,
   contextBytes,
   taskInput,
   catalog,
 }: {
   readonly rootDir: string;
+  readonly sourceRootDir?: string;
+  readonly workspaceRootDir?: string;
   readonly task: ProducerTaskSpec;
   readonly contextBytes: string;
   readonly taskInput: SceneTaskInput;
@@ -252,7 +256,7 @@ export const ensureTemplateSceneArtifact = async ({
     throw new Error("Task is not a fixed Scene template task.");
   }
   const templateFiles = await readTemplateSceneFiles({
-    rootDir,
+    rootDir: sourceRootDir,
     projectId: task.storyId,
     meaningId: task.semanticId,
   });
@@ -266,6 +270,7 @@ export const ensureTemplateSceneArtifact = async ({
     rootDir,
     task: prepared.task,
     files: { "inputs/context.json": contextBytes, ...prepared.files },
+    workspaceRootDir,
   });
   return { ...prepared, attestation } as const;
 };

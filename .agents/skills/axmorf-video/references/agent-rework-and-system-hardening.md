@@ -8,15 +8,23 @@ failing owner before acting.
 
 ## Agent task rework
 
-The assigned child may correct files only inside
-`.producer-work/<storyId>/<taskRevision>/`, rerun the same `project:task:check`, and then call
-`project:task:commit`. Do not weaken the validator, change `task.json`, edit inputs, write live Project
-output, or fabricate the artifact manifest. Commit repeats validation and is the only promoter.
+The assigned executor first passes the attempt-bound zero-write bind gate. It may then use only the returned
+`shared-workspace` or `controller-io` capability, correct outputs permitted by the immutable
+`TaskExecutionContract`, rerun exact bound finalize/check, and call exact bound commit. Do not weaken the validator,
+change immutable inputs, write fixed-finalize outputs, write live Project output, or fabricate the artifact manifest.
+Commit repeats validation and is the only promoter.
 
-A child terminal message does not prove an artifact. The child must execute its attempt-bound task failure
-command when it cannot complete. Fixed continuation then fails the attempt and exits without convergence or
-Root re-entry. A later, separately user-started ExecutionAttempt may replan current inputs, reuse every valid
-ArtifactAttestation, and dispatch only remaining dirty tasks. Attempt state never invalidates or owns bytes.
+A child terminal message does not prove an artifact. The executor uses its full-bound `taskFailureCommand` only for
+unrecoverable authored output. Root-only `spawnFailureCommand` records real host/transport spawn failure;
+`fixedFailureCommand` records immutable/controller failure through a narrower authority that cannot access task
+content. Fixed continuation then fails the attempt without convergence or Root re-entry.
+
+A terminal failed attempt is never reopened. A later explicit
+`npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failedAttemptId>` is read-only and zero
+provider. If it reports same-current-Revision recovery ready with no active/fixed blocker, run
+`npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>`. Reissue needs no current
+delivery, preserves valid drafts, reuses every valid ArtifactAttestation, and creates a fresh attempt/binding. It is
+not retry inside the old attempt. Attempt state never invalidates or owns bytes.
 
 ## Fixed-flow defects
 

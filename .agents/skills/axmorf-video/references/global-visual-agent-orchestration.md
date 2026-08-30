@@ -1,31 +1,39 @@
 # GlobalVisual task executor
 
-Assign this prompt to the resolved Root or runtime-native child executor for the dirty `global-visual-owner`
-TaskRevision.
-
 ```text
-在共享 checkout <repo> 中完成 GlobalVisual task；保护其他修改且不使用 worktree。
+在 Workspace <repo> 中完成 GlobalVisual task；保护其他修改且不使用 worktree。只有 shared-workspace transport
+可以进入 bind 返回的 exact workspace；controller-io 不接触 checkout/filesystem。
 
 storyId: <storyId>
 revisionId: <revisionId>
 taskRevision: <taskRevision>
 attemptId: <attemptId>
-唯一可写目录: .producer-work/<storyId>/<taskRevision>/
+bindingId: <bindingId>
+workerTransport: <shared-workspace|controller-io>
 
-读取 AGENTS.md、workspace/task.json 和 workspace/inputs/context.json。设计 aligned with the current
-VisualStyleSpec 的 simplest full-frame background board。Unless required, must not invent decoration,
-continuity motifs, or Beat-specific changes。
+先读 AGENTS.md，再运行 exact task bind command；`task-worker-bound` 前零 task read/write。shared-workspace 只用
+返回的 workspace/declared files；controller-io capability 只用 exact file-read/file-write。绑定后读 immutable
+`task.json`、`inputs/context.json`、`inputs/task-contract.json`，只写 Agent/Agent-draft outputs。
 
-GlobalVisualLayers 必须 no-Props、无可见文字、caption、音频、Scene DSL 或 automatic director，只使用
-Remotion frame APIs。不得读取 Scene 输出、其他 workspace、Artifact Store、live owner source、历史媒体、
-网络、private/voice、delivery 或 Git。
+`layerPolicy` 是 SemanticTiming 派生的
+fixed authority。按 current VisualStyleSpec 设计 simplest full-frame base；unless required, must not invent
+decoration or continuity motifs。
 
-循环运行并修正 workspace：
-npm run project:task:check -- --task <taskRevision>
-check 成功后运行一次：
-npm run project:task:commit -- --task <taskRevision> --attempt <attemptId>
+同一个 `src/GlobalVisualLayers.tsx` 必须恰好导出 no-Props 的 `GlobalVisualBaseLayer` 与
+`GlobalVisualDecorationLayers`。base 只提供全片稳定底板；decoration 只面向 `decorationFrameRange`。`useCurrentFrame`
+必须从`remotion`直接import/call（禁止shadow/proxy），从窗口 local frame 0 开始。二者returned root只用intrinsic或
+Remotion `AbsoluteFill`，且inline style恰好一个`pointerEvents: none`、无spread；不得拥有可见文字、caption、
+音频、Scene DSL 或 automatic director。JSX child仅允许机械非文字形状（element/fragment、`null`/boolean、安全
+conditional及其array）；identifier/call/template/string/number一律拒绝。continuity windows 必须位于 decoration range。不得读取 Scene 输出、其他 workspace、
+Artifact Store、live owner source、历史媒体、网络、private/voice、delivery 或 Git。
 
-成功后不得继续修改。无法修正的 task failure 必须先运行
-`npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --kind task`；可执行命令的 host
-failure 使用 `--kind host`。记录终态后立即结束，不等待或通知 Root，不重试新 attempt。
+循环运行返回的 finalize/check，只修正 `agent-output`：
+npm run project:task:finalize -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:check -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+成功后运行 exact commit command：
+npm run project:task:commit -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+
+成功后停止。仅 unrecoverable authored output 用 exact `taskFailureCommand`；validation issue 不得报 host failure。
+`spawnFailureCommand` 仅 Root 处理 spawn/transport；`fixedFailureCommand` 仅处理 immutable/controller fault。
+终态后结束，不重试。
 ```

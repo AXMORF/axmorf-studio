@@ -44,6 +44,10 @@ import {
 } from "../adapters/project-input-snapshot";
 import { isTemplateSceneLiveProjectionPath } from "../domain/template-scene-output";
 import { checkTaskByKind } from "./check-task";
+import {
+  createLiveProjectProductionScope,
+  type ProductionScope,
+} from "./production-scope";
 
 export type PreparedNarrationInputs = Readonly<{
   providerAttemptFingerprint: Sha256Digest;
@@ -67,6 +71,7 @@ export type PrepareNarration = (input: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly env: Readonly<Record<string, string | undefined>>;
+  readonly scope?: ProductionScope;
 }) => Promise<PreparedNarrationInputs>;
 
 const readJsonBytes = async <T>(
@@ -186,24 +191,32 @@ export const prepareNarrationInputs: PrepareNarration = async ({
   rootDir,
   projectId,
   env,
+  scope: suppliedScope,
 }) => {
+  const scope =
+    suppliedScope ??
+    createLiveProjectProductionScope({ rootDir, storyId: projectId });
+  if (scope.repositoryRoot !== rootDir || scope.storyId !== projectId) {
+    throw new Error("Narration preparation scope is cross-bound.");
+  }
+  const contentRoot = scope.isolatedRoot;
   const { projectSource } = await loadNarrationProjectFiles({
-    rootDir,
+    rootDir: contentRoot,
     projectId,
   });
   const execution = await resolveProducerNarrationExecution({
-    rootDir,
+    rootDir: scope.shared.runtimeRoot,
     env,
     narration: projectSource.narration,
   });
-  const workRoot = join(rootDir, ".narration-work");
+  const workRoot = scope.narrationWorkRoot;
   let current = true;
   let actualCost = {
     providerRequests: 0,
     providerCacheHits: 0,
   };
   try {
-    await checkM2NarrationArtifacts({ rootDir, projectSource });
+    await checkM2NarrationArtifacts({ rootDir: contentRoot, projectSource });
     const progress = await loadVerifiedProgress({
       rootDir: workRoot,
       storyId: projectId,
@@ -215,7 +228,7 @@ export const prepareNarrationInputs: PrepareNarration = async ({
     });
     const activeSeal = await readExistingSeal(
       join(
-        rootDir,
+        contentRoot,
         "src/projects",
         projectId,
         "generated/sealed-narration.generated.json",
@@ -275,14 +288,14 @@ export const prepareNarrationInputs: PrepareNarration = async ({
       );
     }
     const sealPath = join(
-      rootDir,
+      contentRoot,
       "src/projects",
       projectId,
       "generated/sealed-narration.generated.json",
     );
     const existing = await readExistingSeal(sealPath);
     await runNarrationSeal({
-      rootDir,
+      rootDir: contentRoot,
       projectSource,
       progress,
       normalizedChunks,
@@ -292,14 +305,19 @@ export const prepareNarrationInputs: PrepareNarration = async ({
     });
   }
   await writeMasteredNarrationArtifacts({
-    rootDir,
+    rootDir: contentRoot,
     storyId: projectId,
     targetLoudnessLufs:
       execution.snapshot.masteringPolicy.targetIntegratedLoudnessLufs,
   });
-  await checkM2NarrationArtifacts({ rootDir, projectSource });
+  await checkM2NarrationArtifacts({ rootDir: contentRoot, projectSource });
 
-  const generatedRoot = join(rootDir, "src/projects", projectId, "generated");
+  const generatedRoot = join(
+    contentRoot,
+    "src/projects",
+    projectId,
+    "generated",
+  );
   const sealed = await readJsonBytes(
     join(generatedRoot, "sealed-narration.generated.json"),
     SealedNarrationManifestSchema,
@@ -329,7 +347,7 @@ export const prepareNarrationInputs: PrepareNarration = async ({
       chunkAudioBytes.set(
         segment.chunkId,
         await readRegularBytes(
-          join(rootDir, segment.localPath),
+          join(contentRoot, segment.localPath),
           segment.chunkId,
         ),
       );
@@ -342,11 +360,11 @@ export const prepareNarrationInputs: PrepareNarration = async ({
     };
   }
   const completeAudioBytes = await readRegularBytes(
-    join(rootDir, sealed.value.completeAudio.localPath),
+    join(contentRoot, sealed.value.completeAudio.localPath),
     "sealed complete narration",
   );
   const masteredAudioBytes = await readRegularBytes(
-    join(rootDir, mastered.value.outputAudio.localPath),
+    join(contentRoot, mastered.value.outputAudio.localPath),
     "mastered narration audio",
   );
   const preparationReceipt = NarrationPreparationReceiptSchema.parse({
@@ -395,10 +413,12 @@ export const ensureFixedTaskArtifact = async ({
   rootDir,
   task,
   files,
+  workspaceRootDir = rootDir,
 }: {
   readonly rootDir: string;
   readonly task: ProducerTaskSpec;
   readonly files: Readonly<Record<string, Uint8Array | string>>;
+  readonly workspaceRootDir?: string;
 }): Promise<ArtifactAttestation> => {
   const existing = await inspectArtifact({ rootDir, task });
   if (existing !== null) {
@@ -422,7 +442,7 @@ export const ensureFixedTaskArtifact = async ({
     return existing;
   }
   const workspace = await createTaskWorkspace({
-    rootDir,
+    rootDir: workspaceRootDir,
     task,
     seedFiles: files,
   });
@@ -436,7 +456,11 @@ export const ensureFixedTaskArtifact = async ({
       throw new Error("Fixed task workspace has conflicting bytes.");
     }
   }
-  await checkTaskByKind({ rootDir, taskRevision: task.taskRevision });
+  await checkTaskByKind({
+    rootDir: workspaceRootDir,
+    taskRevision: task.taskRevision,
+    runtimeRootDir: rootDir,
+  });
   const committed = await commitTaskArtifact({ rootDir, task, workspace });
   if (committed.attestation === null) {
     throw new Error(

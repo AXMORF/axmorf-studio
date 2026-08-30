@@ -14,6 +14,8 @@ export type CliRunners = Readonly<{
   preview: CliCommandRunner;
   dev: CliCommandRunner;
   projectCreate: CliCommandRunner;
+  projectRevision: CliCommandRunner;
+  projectOriginality: CliCommandRunner;
   projectDelete: CliCommandRunner;
   projectAssetImport: CliCommandRunner;
   projectCheck: CliCommandRunner;
@@ -53,11 +55,27 @@ const routeProject = async (input: CliCommandInput, runners: CliRunners) => {
       args: input.args.slice(2),
     });
   }
+  if (
+    (group === "revise" &&
+      (operation === "context" ||
+        operation === "validate" ||
+        operation === "create")) ||
+    (group === "revision" && operation === "promote")
+  ) {
+    const action = group === "revision" ? "promote" : operation;
+    return runners.projectRevision({
+      rootDir: input.rootDir,
+      args: [action, ...rest],
+    });
+  }
   if (group === "delete") {
     return runners.projectDelete({
       rootDir: input.rootDir,
       args: input.args.slice(2),
     });
+  }
+  if (group === "originality" && operation === "freeze") {
+    return runners.projectOriginality({ rootDir: input.rootDir, args: rest });
   }
   if (group === "check") {
     return runners.projectCheck({
@@ -87,11 +105,29 @@ const routeProject = async (input: CliCommandInput, runners: CliRunners) => {
   }
   if (
     group === "task" &&
-    (operation === "check" || operation === "commit" || operation === "fail")
+    [
+      "bind",
+      "describe",
+      "finalize",
+      "check",
+      "commit",
+      "fail",
+      "file-read",
+      "file-write",
+    ].includes(operation ?? "")
   ) {
     return runners.projectProduction({
       rootDir: input.rootDir,
       args: [`task-${operation}`, ...rest],
+    });
+  }
+  if (
+    group === "attempt" &&
+    (operation === "recover-inspect" || operation === "reissue")
+  ) {
+    return runners.projectProduction({
+      rootDir: input.rootDir,
+      args: [`attempt-${operation}`, ...rest],
     });
   }
   throw new CliUsageError(usage);

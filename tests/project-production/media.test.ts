@@ -8,6 +8,8 @@ import type { RenderSpec } from "@axmorf/studio/contracts";
 import {
   inspectProjectCover,
   inspectProjectVideo,
+  renderProjectCover,
+  renderProjectVideo,
 } from "../../scripts/project-production/adapters/media";
 import type { ProcessRunner } from "../../scripts/shared/process";
 
@@ -69,6 +71,47 @@ test("video EOF inspection selects encoders bundled by Remotion FFmpeg", async (
     "null",
     "-",
   ]);
+});
+
+test("candidate rendering uses explicit entrypoint, public directory, and shared runtime cwd", async () => {
+  const rootDir = process.cwd();
+  const videoEntry = "/fixture/candidate/src/index.ts";
+  const coverEntry = "/fixture/candidate/src/projects/story-example/delivery/cover/index.ts";
+  const publicDir = "/fixture/candidate/out/render-public";
+  const calls: Array<{
+    args: readonly string[];
+    cwd?: string;
+  }> = [];
+  const runProcess: ProcessRunner = async (_command, args, options) => {
+    calls.push({ args, cwd: options?.cwd });
+    return { status: 0, stdout: "", stderr: "" };
+  };
+
+  await renderProjectVideo({
+    rootDir,
+    compositionId: "StoryExample",
+    outputPath: "/fixture/candidate/video.mp4",
+    entryPoint: videoEntry,
+    publicDir,
+    runProcess,
+  });
+  await renderProjectCover({
+    rootDir,
+    projectId: "story-example",
+    compositionId: "StoryExampleCover",
+    outputPath: "/fixture/candidate/cover.png",
+    entryPoint: coverEntry,
+    publicDir,
+    runProcess,
+  });
+
+  assert.equal(calls[0]?.args.includes(videoEntry), true);
+  assert.equal(calls[1]?.args.includes(coverEntry), true);
+  assert.equal(
+    calls.every(({ args }) => args.includes(`--public-dir=${publicDir}`)),
+    true,
+  );
+  assert.equal(calls.every(({ cwd }) => cwd === rootDir), true);
 });
 
 test("cover EOF inspection selects the bundled rawvideo encoder", async (context) => {

@@ -9,6 +9,10 @@ derived fingerprint 在 parse 时拒绝。以下数据永不进入 RevisionId、
 DeliveryBuildId：ExecutionAttempt ID、clock、PID、absolute path、workspace location、Agent/child identity、
 chat、heartbeat、token usage。
 
+Project revision candidateId、candidate filesystem path、promotion transaction state 也不进入这些 content
+identities。candidate input 自身内容寻址并绑定 exact base Revision/Delivery；同一 candidate 在隔离 scope 运行时仍
+产生与相同 authored inputs 等价的 ProductionRevision/Task/Artifact/Delivery identity。
+
 OS、CPU architecture、reference-environment label、Node/npm install path、Agent 的环境准备步骤和 doctor diagnostic
 同样不进入 content identity。它们只决定当前 Workspace 能否通过 capability gate；通过 gate 不改变相同 inputs 的
 Revision/Task/Artifact/Delivery identity，也不替代 exact delivery validation。
@@ -48,6 +52,19 @@ Configured template instance 另外绑定 copied Renderer adapter 与完整 impo
 artifact identities、declared reads/outputs 和 validator policy。Task graph stable-sort 并拒绝 cycle、duplicate、
 unknown dependency。
 
+Agent TaskRevision 另外绑定 canonical `TaskExecutionContract` fingerprint。contract 只含 immutable
+purpose/workflow/constraints、component signatures、exact outputs 与 ownership；不含 attempt、transport、binding、
+failure 或 command。contract 版本变化只使相应 Agent artifact 一次失效，不改变 ProductionRevision 或已验证
+current Delivery。
+
+Scene originality baseline fingerprint/context 只进入 `scene-owner` TaskRevision，template-copy 和其他 owner 不
+依赖它。baseline 的 token identity 固定为声明的 TypeScript tokenizer algorithm；Scene validator 拒绝 frozen
+historical graph，converge 在任何 scope materialization 前再次拒绝同 Revision exact/token-normalized duplicate。
+
+GlobalVisual layer policy 由 canonical SemanticTiming 确定性派生：base 是完整 Composition，decoration 是首个至
+末个 narrated Scene 的连续 frame range，且 decoration origin 固定为 window-local zero。它进入 task/context 与
+生成式 Composition projection，不由 Agent 自行选择或扩大。
+
 失效解释把正交事实分开：typed `artifactState` 描述目标 artifact 的 current integrity；`directChanges`
 只比较 allowlisted input/validator/declared-I/O snapshot；`dependencyChanges` 与 `blockedBy` 只沿已验证 DAG
 edges 传播。hash 不可反解，因此 baseline 不可用时明确标记，不能把 artifact missing 猜成某个 input change。
@@ -66,6 +83,13 @@ edges 传播。hash 不可反解，因此 baseline 不可用时明确标记，�
 
 workspace roots 只由 strict storyId/taskRevision 推导。`task.json` 与 seed inputs 是 immutable fixed writes；Agent
 只写 declared outputs。read-only check 可重复且不写 authority。
+
+binding ID 只由 exact TaskRevision 与 attemptId 推导，但 binding/transport 本身不进入 content identity。任何 task
+content read/write 前，zero-write bind 必须复验 active attempt、task identity、`task.json`、
+`inputs/context.json`、`inputs/task-contract.json` 的 checksum/contract；只有 `task-worker-bound` 才授予能力。
+shared-workspace capability 只覆盖返回的 relative workspace/declared files；controller-io 没有 filesystem access，
+只允许 bound strict base64 file-read/file-write。相同 valid bind 可重复得到等价 capability，stale/mismatched
+attempt、input drift 或 contract drift 都 fail closed。
 
 commit 重跑 validator，递归检查 exact entry set，拒绝 unknown/duplicate/escape/absolute/backslash path、symlink、
 FIFO/device 和 checksum drift。ArtifactAttestation 由实际 output bytes 构建；manifest 最后写。promotion 使用
@@ -125,15 +149,27 @@ no-op。
 ## 8. Idempotence 与 failure
 
 - create：same creation identity → read-only current；different/partial target → fail closed，不覆盖；
+- revision candidate：same strict input + exact base tree bytes → read-only current；base drift 或 candidate bytes
+  冲突 → fail closed，且不修改 live；
 - inspect：同 source/cache/artifact/delivery snapshot → byte-equivalent read model、零 provider/零写入；
 - prepare：同 inputs + valid store → same Revision/Task identities and reuse classification；新 attempt 仍只诊断；
 - check：同 workspace → same read-only result；
+- bind：同 TaskRevision/attempt/immutable bytes/transport → equivalent capability、零 task write；stale attempt、
+  checksum/contract drift 或错误 transport → fail closed；
 - task terminal：同 attempt/task/result → no-op；相反 result → immutable-terminal conflict；
 - commit：same artifact identity/bytes → no-op，different bytes → conflict；
 - continuation：同 active attempt 只有一个 atomic claim；只消费 plan-bound immutable terminal events；failure
   不 converge，all-success 内部 converge once，attempt 创建起一小时 deadline 到期原子失败；
 - converge：只由 fixed continuation 调用；same revision/artifact set/materialized bytes → deterministic projection；
 - delivery：same complete DeliveryBuildId → current no-op；captured staging failure → later reuse valid media；
+- revision promotion：same expected candidate Revision/Delivery 已 current → no-op；只替换 source/public/narration/delivery
+  四个 Project-owned roots；captured replacement/refresh/verification failure → rollback previous current，保留
+  candidate 供独立 promote retry；
+- attempt recovery inspection：同 failed attempt/current Revision snapshot → 相同只读、零 provider 结论；active、
+  stale、non-terminal 或 fixed dirty/blocked flow 明确拒绝；
+- attempt reissue：只在 recovery-ready 时创建 fresh attempt/bindings，旧 failed attempt immutable；不要求 current
+  delivery，provider request 为零，并复用 valid artifacts/合法 drafts；相同 failed attempt 已有 active successor
+  时 fail closed，不自动 retry；
 - settings progress：malformed diagnostic/historical data 不影响 current classification 或 projection authority；
 - delete：严格 story ownership，可重复清理 missing targets，并保护其他 roots。
 

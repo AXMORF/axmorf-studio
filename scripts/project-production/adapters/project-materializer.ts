@@ -313,12 +313,14 @@ const assertArtifactBinding = async ({
 
 export const verifyMaterializedOwnerArtifacts = async ({
   rootDir,
+  artifactRootDir = rootDir,
   projectId: rawProjectId,
   artifacts,
   sceneTaskInputs,
   additionalSceneFiles = new Map(),
 }: {
   readonly rootDir: string;
+  readonly artifactRootDir?: string;
   readonly projectId: string;
   readonly artifacts: readonly Readonly<{
     task: ProducerTaskSpec;
@@ -346,7 +348,11 @@ export const verifyMaterializedOwnerArtifacts = async ({
   for (const { task, attestation } of artifacts) {
     if (task.storyId !== projectId)
       throw new Error("Artifact belongs to another Project.");
-    await assertArtifactBinding({ rootDir, task, attestation });
+    await assertArtifactBinding({
+      rootDir: artifactRootDir,
+      task,
+      attestation,
+    });
     const sourceOutputs = new Map<
       string,
       { readonly checksum: string; readonly sizeBytes: number }
@@ -449,12 +455,14 @@ export const verifyMaterializedOwnerArtifacts = async ({
 
 export const materializeOwnerArtifacts = async ({
   rootDir,
+  artifactRootDir = rootDir,
   projectId: rawProjectId,
   artifacts,
   sceneTaskInputs,
   dependencies = {},
 }: {
   readonly rootDir: string;
+  readonly artifactRootDir?: string;
   readonly projectId: string;
   readonly artifacts: readonly Readonly<{
     task: ProducerTaskSpec;
@@ -475,7 +483,11 @@ export const materializeOwnerArtifacts = async ({
   for (const { task, attestation } of artifacts) {
     if (task.storyId !== projectId)
       throw new Error("Artifact belongs to another Project.");
-    await assertArtifactBinding({ rootDir, task, attestation });
+    await assertArtifactBinding({
+      rootDir: artifactRootDir,
+      task,
+      attestation,
+    });
     if (task.taskKind === "scene-owner" || task.taskKind === "scene-template") {
       if (task.semanticId === null)
         throw new Error("Scene artifact is missing semantic identity.");
@@ -547,9 +559,13 @@ export const materializeOwnerArtifacts = async ({
   for (const { task, attestation } of artifacts) {
     if (task.storyId !== projectId)
       throw new Error("Artifact belongs to another Project.");
-    await assertArtifactBinding({ rootDir, task, attestation });
+    await assertArtifactBinding({
+      rootDir: artifactRootDir,
+      task,
+      attestation,
+    });
     const artifactRoot = resolveArtifactPath({
-      rootDir,
+      rootDir: artifactRootDir,
       storyId: task.storyId,
       taskKind: task.taskKind,
       taskRevision: task.taskRevision,
@@ -653,6 +669,7 @@ export const materializeOwnerArtifacts = async ({
   }
   await verifyMaterializedOwnerArtifacts({
     rootDir,
+    artifactRootDir,
     projectId,
     artifacts,
     sceneTaskInputs,

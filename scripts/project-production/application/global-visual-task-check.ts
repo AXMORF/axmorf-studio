@@ -4,17 +4,22 @@ import { join } from "node:path";
 import { z } from "zod";
 
 import {
+  GlobalVisualLayerPolicySchema,
   GlobalVisualPlanSchema,
   RenderSpecSchema,
   SceneReadabilityPolicySchema,
   SelectedResourceRefSchema,
   SemanticTimingSchema,
   StoryIdSchema,
+  deriveGlobalVisualLayerPolicy,
   getStoryCompositionDurationInFrames,
+  serializeCanonicalJson,
 } from "@axmorf/studio/contracts";
 import { assertGuardedSource } from "../../external-references/source-guard";
-import { assertGlobalVisualSource } from "./global-visual-validator";
-import { compileTypeScriptImportGraph } from "./typescript-compile";
+import {
+  assertGlobalVisualLayersComponentInterface,
+  assertGlobalVisualSource,
+} from "./global-visual-validator";
 
 export const checkGlobalVisualTask = async (
   input: Parameters<typeof checkProducerTaskWorkspace>[0],
@@ -22,12 +27,18 @@ export const checkGlobalVisualTask = async (
   const checked = await checkProducerTaskWorkspace(input);
   if (checked.task.taskKind !== "global-visual-owner")
     throw new Error("Task is not a GlobalVisual task.");
+  if (
+    checked.task.validatorPolicyVersion !== "global-visual-owner-validator-v2"
+  ) {
+    throw new Error("GlobalVisual task validator policy is incompatible.");
+  }
   const context = JSON.parse(
     await readFile(join(checked.workspace, "inputs/context.json"), "utf8"),
   ) as {
     story?: { storyId?: unknown };
     render?: unknown;
     timing?: unknown;
+    layerPolicy?: unknown;
     requirements?: {
       readabilityPolicy?: {
         width?: unknown;
@@ -43,6 +54,8 @@ export const checkGlobalVisualTask = async (
   const storyId = StoryIdSchema.parse(context.story?.storyId);
   const render = RenderSpecSchema.parse(context.render);
   const timing = SemanticTimingSchema.parse(context.timing);
+  const layerPolicy = GlobalVisualLayerPolicySchema.parse(context.layerPolicy);
+  const expectedLayerPolicy = deriveGlobalVisualLayerPolicy(timing);
   const readabilityPolicy = SceneReadabilityPolicySchema.parse(
     context.requirements?.readabilityPolicy,
   );
@@ -73,7 +86,14 @@ export const checkGlobalVisualTask = async (
     plan.captionSafeArea.right !== readabilityPolicy.captionSafeAreaPx.right ||
     plan.captionSafeArea.bottom !==
       readabilityPolicy.captionSafeAreaPx.bottom ||
-    plan.captionSafeArea.left !== readabilityPolicy.captionSafeAreaPx.left
+    plan.captionSafeArea.left !== readabilityPolicy.captionSafeAreaPx.left ||
+    serializeCanonicalJson(layerPolicy) !==
+      serializeCanonicalJson(expectedLayerPolicy) ||
+    plan.continuityMotif.windows.some(
+      ({ startFrame, endFrame }) =>
+        startFrame < layerPolicy.decorationFrameRange.startFrame ||
+        endFrame > layerPolicy.decorationFrameRange.endFrame,
+    )
   ) {
     throw new Error("GlobalVisual plan is stale against task context.");
   }
@@ -126,11 +146,10 @@ export const checkGlobalVisualTask = async (
       "GlobalVisual task must declare every relative source as an output.",
     );
   }
-  compileTypeScriptImportGraph({
-    rootDir: input.rootDir,
-    rootPath: futurePath,
-    label: "GlobalVisual task compile",
-    virtualSource: source,
+  assertGlobalVisualLayersComponentInterface({
+    rootDir: input.runtimeRootDir ?? input.rootDir,
+    storyId,
+    virtualEntrySource: source,
   });
   return checked;
 };

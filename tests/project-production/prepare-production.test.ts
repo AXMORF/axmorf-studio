@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { prepareProjectProduction } from "../../scripts/project-production/application/prepare-production";
+import { createProjectRevisionProductionScope } from "../../scripts/project-production/application/production-scope";
+import { join } from "node:path";
 
 const inspection = (
   sourceState:
@@ -138,6 +140,7 @@ test("prepare alone commits fixed tasks, creates dirty owner workspaces, and ope
                   taskRevision: dirtyTask.taskRevision,
                 },
                 contextBytes: "{}\n",
+                taskContractBytes: "{}\n",
               },
             ],
           ]),
@@ -162,8 +165,32 @@ test("prepare alone commits fixed tasks, creates dirty owner workspaces, and ope
     /project:task:commit[\s\S]*--attempt 00000000-0000-4000-8000-000000000001/u,
   );
   assert.match(
+    result.dirtyAgentTasks[0]?.bindCommands.sharedWorkspace ?? "",
+    /project:task:bind[\s\S]*--transport shared-workspace/u,
+  );
+  assert.match(
+    result.dirtyAgentTasks[0]?.bindCommands.controllerIo ?? "",
+    /project:task:bind[\s\S]*--transport controller-io/u,
+  );
+  assert.match(
+    result.dirtyAgentTasks[0]?.describeCommand ?? "",
+    /project:task:describe[\s\S]*--binding binding-/u,
+  );
+  assert.match(
+    result.dirtyAgentTasks[0]?.finalizeCommand ?? "",
+    /project:task:finalize[\s\S]*--binding binding-/u,
+  );
+  assert.match(
     result.dirtyAgentTasks[0]?.taskFailureCommand ?? "",
     /project:task:fail[\s\S]*--kind task/u,
+  );
+  assert.match(
+    result.dirtyAgentTasks[0]?.fixedFailureCommand ?? "",
+    /project:task:fail[\s\S]*--kind fixed/u,
+  );
+  assert.match(
+    result.dirtyAgentTasks[0]?.spawnFailureCommand ?? "",
+    /project:task:fail[\s\S]*--kind host/u,
   );
   assert.match(
     result.continuationCommand,
@@ -180,4 +207,111 @@ test("prepare alone commits fixed tasks, creates dirty owner workspaces, and ope
     deliveryMedia: [],
   });
   assert.deepEqual(calls, { fixed: 1, workspace: 1, attempt: 1 });
+});
+
+test("candidate prepare isolates work and attempts while keeping commands repository-routable", async () => {
+  const scope = createProjectRevisionProductionScope({
+    rootDir: "/fixture",
+    storyId: "story-example",
+    candidateId: `revision-candidate-${"b".repeat(64)}`,
+  });
+  const dirtyTask = {
+    taskKind: "scene-owner",
+    subject: { kind: "meaning", id: "scene-one" },
+    taskRevision: `task-${"5".repeat(64)}`,
+    action: "dispatch-agent",
+    directChanges: [],
+    blockedBy: [],
+  } as const;
+  let attemptRoot = "";
+  let authoringRoot = "";
+  let fixedScope: unknown;
+  const result = await prepareProjectProduction(
+    {
+      rootDir: "/fixture",
+      projectId: "story-example",
+      env: {},
+      scope,
+    },
+    {
+      acquireLock: async ({ rootDir }) => {
+        assert.equal(rootDir, "/fixture");
+        return { release: async () => undefined };
+      },
+      inspect: async () => inspection("production-inputs-ready") as never,
+      projectPendingAuthoring: async ({ rootDir }) => {
+        authoringRoot = rootDir;
+        return {} as never;
+      },
+      prepareNarration: async () =>
+        ({
+          actualCost: { providerRequests: 0, providerCacheHits: 0 },
+        }) as never,
+      loadInputs: async () => ({ projectId: "story-example" }) as never,
+      prepareFixedTasks: async ({ scope: receivedScope }) => {
+        fixedScope = receivedScope;
+      },
+      buildCurrentPlan: async () =>
+        ({
+          revision: {
+            storyId: "story-example",
+            revisionId: `revision-${"6".repeat(64)}`,
+          },
+          plan: {
+            storyId: "story-example",
+            revisionId: `revision-${"6".repeat(64)}`,
+            tasks: [dirtyTask],
+            summary: {
+              reusedTaskCount: 0,
+              dirtyAgentTaskCount: 1,
+              dirtyFixedTaskCount: 0,
+              blockedTaskCount: 0,
+            },
+          },
+          taskSeeds: new Map([
+            [
+              dirtyTask.taskRevision,
+              {
+                task: {
+                  storyId: "story-example",
+                  taskRevision: dirtyTask.taskRevision,
+                },
+                contextBytes: "{}\n",
+                taskContractBytes: "{}\n",
+              },
+            ],
+          ]),
+        }) as never,
+      createWorkspace: async () =>
+        join(scope.producerWorkRoot, "story-example", dirtyTask.taskRevision),
+      buildTaskSnapshots: () => [] as never,
+      createAttempt: async ({ rootDir }) => {
+        attemptRoot = rootDir;
+        return { attemptId: "00000000-0000-4000-8000-000000000009" } as never;
+      },
+    },
+  );
+
+  assert.equal(authoringRoot, scope.isolatedRoot);
+  assert.equal(attemptRoot, scope.isolatedRoot);
+  assert.equal(fixedScope, scope);
+  assert.equal(result.status, "project-production-prepared");
+  if (result.status !== "project-production-prepared") {
+    throw new Error("Candidate production unexpectedly requires authoring.");
+  }
+  assert.equal(
+    result.dirtyAgentTasks[0]?.workspace,
+    `.producer-revisions/story-example/${scope.candidateId}/scope/.producer-work/story-example/${dirtyTask.taskRevision}`,
+  );
+  for (const command of [
+    result.dirtyAgentTasks[0]?.bindCommands.sharedWorkspace,
+    result.dirtyAgentTasks[0]?.commitCommand,
+    result.continuationCommand,
+  ]) {
+    assert.match(command ?? "", /--project story-example/u);
+    assert.match(
+      command ?? "",
+      new RegExp(`--candidate ${scope.candidateId}`, "u"),
+    );
+  }
 });

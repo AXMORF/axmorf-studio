@@ -69,6 +69,15 @@ test("arguments are strict and keep the test runtime override explicit", () => {
   );
 });
 
+test("help documents every supported creator option", async () => {
+  const output: string[] = [];
+  const result = await runCli(["--help"], {
+    stdout: (value) => output.push(value),
+  });
+  assert.deepEqual(result, { status: "help" });
+  assert.match(output.join(""), /--runtime-package <version-or-path>/u);
+});
+
 test("npm runs through its validated JavaScript CLI on Windows without npm.cmd or a shell", async () => {
   const execPath = String.raw`C:\Program Files\nodejs\node.exe`;
   const npmCliPath = String.raw`C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js`;
@@ -207,6 +216,50 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     "axmorf project produce inspect",
   );
   assert.equal(
+    manifest.scripts["project:originality:freeze"],
+    "axmorf project originality freeze",
+  );
+  assert.deepEqual(
+    {
+      context: manifest.scripts["project:revise:context"],
+      validate: manifest.scripts["project:revise:validate"],
+      create: manifest.scripts["project:revise"],
+      promote: manifest.scripts["project:revision:promote"],
+    },
+    {
+      context: "axmorf project revise context",
+      validate: "axmorf project revise validate",
+      create: "axmorf project revise create",
+      promote: "axmorf project revision promote",
+    },
+  );
+  assert.deepEqual(
+    {
+      bind: manifest.scripts["project:task:bind"],
+      describe: manifest.scripts["project:task:describe"],
+      finalize: manifest.scripts["project:task:finalize"],
+      check: manifest.scripts["project:task:check"],
+      commit: manifest.scripts["project:task:commit"],
+      fail: manifest.scripts["project:task:fail"],
+      fileRead: manifest.scripts["project:task:file-read"],
+      fileWrite: manifest.scripts["project:task:file-write"],
+      recoverInspect: manifest.scripts["project:attempt:recover-inspect"],
+      reissue: manifest.scripts["project:attempt:reissue"],
+    },
+    {
+      bind: "axmorf project task bind",
+      describe: "axmorf project task describe",
+      finalize: "axmorf project task finalize",
+      check: "axmorf project task check",
+      commit: "axmorf project task commit",
+      fail: "axmorf project task fail",
+      fileRead: "axmorf project task file-read",
+      fileWrite: "axmorf project task file-write",
+      recoverInspect: "axmorf project attempt recover-inspect",
+      reissue: "axmorf project attempt reissue",
+    },
+  );
+  assert.equal(
     manifest.scripts.compositions,
     "remotion compositions src/index.ts",
   );
@@ -241,10 +294,12 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   );
   assert.deepEqual(ResourceCatalogSchema.parse(catalog), catalog);
   assert.deepEqual(catalog.entries, []);
-  assert.match(
-    await readFile(join(workspace, ".gitignore"), "utf8"),
-    /^private\/$/mu,
+  const workspaceGitignore = await readFile(
+    join(workspace, ".gitignore"),
+    "utf8",
   );
+  assert.match(workspaceGitignore, /^private\/$/mu);
+  assert.match(workspaceGitignore, /^\.producer-revisions\/$/mu);
   const workspaceSkill = await readFile(
     join(workspace, ".agents/skills/axmorf-video/SKILL.md"),
     "utf8",
@@ -263,6 +318,18 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     /Do not use package\s+internals or assume a particular Agent host/u,
   );
   assert.match(workspaceSkill, /Run `npm run doctor`/u);
+  assert.match(
+    workspaceSkill,
+    /project:revise:context[\s\S]*project:revise:validate[\s\S]*project:revise`/u,
+  );
+  assert.match(
+    workspaceSkill,
+    /project:revision:promote[\s\S]*never reissue/iu,
+  );
+  assert.match(
+    workspaceAgents,
+    /isolated\s+candidate[\s\S]*current Project and Delivery/iu,
+  );
   assert.doesNotMatch(
     workspaceSkill,
     /Codex|OpenAI|spawn_agent|thread|chat|session/iu,

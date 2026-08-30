@@ -8,9 +8,16 @@ export const UNKNOWN_RUNTIME_SUBAGENT_CONCURRENCY = 1;
 const ConfiguredConcurrencySchema = z.number().int().min(1).max(4);
 const RequestedConcurrencySchema = z.number().int().min(1).max(1_000);
 const RuntimeConcurrencySchema = z.number().int().nonnegative().safe();
+const RuntimeWorkerTransportSchema = z.enum([
+  "shared-workspace",
+  "controller-io",
+]);
 
 export const CreativeTaskExecutionSchema = z.discriminatedUnion("mode", [
-  z.object({ mode: z.literal("inline") }).strict().readonly(),
+  z
+    .object({ mode: z.literal("inline") })
+    .strict()
+    .readonly(),
   z
     .object({
       mode: z.literal("subagents"),
@@ -38,7 +45,10 @@ export const DEFAULT_EXECUTION_PREFERENCES = ExecutionPreferencesSchema.parse({
 });
 
 export const AgentExecutionOverrideSchema = z.discriminatedUnion("mode", [
-  z.object({ mode: z.literal("inline") }).strict().readonly(),
+  z
+    .object({ mode: z.literal("inline") })
+    .strict()
+    .readonly(),
   z
     .object({
       mode: z.literal("subagents"),
@@ -77,11 +87,13 @@ export const resolveAgentExecution = ({
   preferenceSource,
   override: rawOverride,
   runtimeMaxConcurrency: rawRuntimeMaxConcurrency,
+  runtimeWorkerTransport: rawRuntimeWorkerTransport,
 }: {
   readonly preferences: ExecutionPreferences;
   readonly preferenceSource: ExecutionPreferenceSource;
   readonly override?: AgentExecutionOverride;
   readonly runtimeMaxConcurrency?: number;
+  readonly runtimeWorkerTransport?: "shared-workspace" | "controller-io";
 }) => {
   const preferences = ExecutionPreferencesSchema.parse(rawPreferences);
   const override =
@@ -92,6 +104,10 @@ export const resolveAgentExecution = ({
     rawRuntimeMaxConcurrency === undefined
       ? undefined
       : RuntimeConcurrencySchema.parse(rawRuntimeMaxConcurrency);
+  const runtimeWorkerTransport =
+    rawRuntimeWorkerTransport === undefined
+      ? undefined
+      : RuntimeWorkerTransportSchema.parse(rawRuntimeWorkerTransport);
   const mode = override?.mode ?? preferences.creativeTaskExecution.mode;
   const modeSource = override === undefined ? preferenceSource : "user-prompt";
   if (mode === "inline") {
@@ -102,6 +118,7 @@ export const resolveAgentExecution = ({
       effectiveMaxConcurrency: 0,
       requireExactConcurrency: false,
       source: { mode: modeSource, maxConcurrency: null },
+      workerTransport: null,
       limitedBy: [] as const,
       persistence: "current-production-only" as const,
     };
@@ -127,6 +144,9 @@ export const resolveAgentExecution = ({
     REPOSITORY_SUBAGENT_CONCURRENCY_CEILING,
   );
   const limitedBy = [
+    ...(runtimeWorkerTransport === undefined
+      ? (["worker-transport-unverified"] as const)
+      : []),
     ...(rawRuntimeMaxConcurrency === undefined &&
     effectiveMaxConcurrency < requestedMaxConcurrency
       ? (["runtime-unknown-default"] as const)
@@ -142,10 +162,10 @@ export const resolveAgentExecution = ({
       : []),
   ];
   const requireExactConcurrency =
-    override?.mode === "subagents" &&
-    override.requireExactConcurrency === true;
+    override?.mode === "subagents" && override.requireExactConcurrency === true;
   return {
     status:
+      runtimeWorkerTransport === undefined ||
       effectiveMaxConcurrency === 0 ||
       (requireExactConcurrency &&
         effectiveMaxConcurrency < requestedMaxConcurrency)
@@ -156,6 +176,7 @@ export const resolveAgentExecution = ({
     effectiveMaxConcurrency,
     requireExactConcurrency,
     source: { mode: modeSource, maxConcurrency: maxConcurrencySource },
+    workerTransport: runtimeWorkerTransport ?? null,
     limitedBy,
     persistence: "current-production-only" as const,
   };

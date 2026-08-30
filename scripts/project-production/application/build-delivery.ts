@@ -32,6 +32,10 @@ import {
   renderProjectVideo,
 } from "../adapters/media";
 import { prepareProjectAuthoringBuild } from "./prepare-delivery";
+import {
+  createLiveProjectProductionScope,
+  type ProductionScope,
+} from "./production-scope";
 
 type PreparedBuild = Awaited<ReturnType<typeof prepareProjectAuthoringBuild>>;
 
@@ -380,15 +384,24 @@ export const buildDeliveryUnlocked = async ({
   revisionId,
   artifactSetFingerprint,
   dependencies = {},
+  scope: suppliedScope,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly revisionId: string;
   readonly artifactSetFingerprint: string;
   readonly dependencies?: DeliveryBuildDependencies;
+  readonly scope?: ProductionScope;
 }) => {
+  const scope =
+    suppliedScope ??
+    createLiveProjectProductionScope({ rootDir, storyId: projectId });
+  if (scope.repositoryRoot !== rootDir || scope.storyId !== projectId) {
+    throw new Error("Delivery build scope is cross-bound.");
+  }
+  const deliveryRootDir = scope.isolatedRoot;
   const prepare = dependencies.prepare ?? prepareProjectAuthoringBuild;
-  const prepared = await prepare({ rootDir, projectId });
+  const prepared = await prepare({ rootDir, projectId, scope });
   await dependencies.verifyMaterialized?.();
   const identity = {
     storyId: prepared.projectId,
@@ -402,8 +415,12 @@ export const buildDeliveryUnlocked = async ({
     policyVersion: DELIVERY_BUILD_POLICY_VERSION,
   } as const;
   const buildId = createDeliveryBuildId(identity);
-  const delivery = join(rootDir, "deliveries", prepared.projectId);
-  await assertDeliveryPath({ rootDir, path: delivery, kind: "directory" });
+  const delivery = join(scope.deliveryRoot, prepared.projectId);
+  await assertDeliveryPath({
+    rootDir: deliveryRootDir,
+    path: delivery,
+    kind: "directory",
+  });
   const deliveryMetadata = await exists(delivery);
   if (
     deliveryMetadata !== null &&
@@ -413,7 +430,7 @@ export const buildDeliveryUnlocked = async ({
   }
   if (deliveryMetadata !== null) {
     const current = await tryCurrentNoOp({
-      rootDir,
+      rootDir: deliveryRootDir,
       directory: delivery,
       expectedBuildId: buildId,
       revisionId,
@@ -435,14 +452,14 @@ export const buildDeliveryUnlocked = async ({
     }
   }
   const paths = await ensureStaging({
-    rootDir,
+    rootDir: deliveryRootDir,
     projectId: prepared.projectId,
     buildId,
   });
 
   const stagingPublishPath = join(paths.staging, "publish.json");
   await assertDeliveryPath({
-    rootDir,
+    rootDir: deliveryRootDir,
     path: stagingPublishPath,
     kind: "file",
   });
@@ -455,14 +472,16 @@ export const buildDeliveryUnlocked = async ({
   const cover4x3Path = join(paths.staging, "cover-4x3.png");
   const cover3x4Path = join(paths.staging, "cover-3x4.png");
   const video = await materializeArtifact({
-    rootDir,
+    rootDir: deliveryRootDir,
     path: videoPath,
     temporarySuffix: "mp4",
     render: (outputPath) =>
       renderVideo({
-        rootDir,
+        rootDir: prepared.runtimeRootDir,
         compositionId: prepared.render.compositionId,
         outputPath,
+        entryPoint: prepared.entryPoint,
+        publicDir: prepared.publicDir,
       }),
     inspect: (absolutePath) =>
       inspectVideo({
@@ -472,15 +491,17 @@ export const buildDeliveryUnlocked = async ({
       }),
   });
   const cover4x3 = await materializeArtifact({
-    rootDir,
+    rootDir: deliveryRootDir,
     path: cover4x3Path,
     temporarySuffix: "png",
     render: (outputPath) =>
       renderCover({
-        rootDir,
+        rootDir: prepared.runtimeRootDir,
         projectId: prepared.projectId,
         compositionId: `${prepared.coverCompositionBaseId}DeliveryCover4x3V2`,
         outputPath,
+        entryPoint: prepared.coverEntryPoint,
+        publicDir: prepared.publicDir,
       }),
     inspect: (absolutePath) =>
       inspectCover({
@@ -489,15 +510,17 @@ export const buildDeliveryUnlocked = async ({
       }),
   });
   const cover3x4 = await materializeArtifact({
-    rootDir,
+    rootDir: deliveryRootDir,
     path: cover3x4Path,
     temporarySuffix: "png",
     render: (outputPath) =>
       renderCover({
-        rootDir,
+        rootDir: prepared.runtimeRootDir,
         projectId: prepared.projectId,
         compositionId: `${prepared.coverCompositionBaseId}DeliveryCover3x4V2`,
         outputPath,
+        entryPoint: prepared.coverEntryPoint,
+        publicDir: prepared.publicDir,
       }),
     inspect: (absolutePath) =>
       inspectCover({
@@ -507,18 +530,21 @@ export const buildDeliveryUnlocked = async ({
   });
   await dependencies.verifyMaterialized?.();
   await assertDeliveryPath({
-    rootDir,
+    rootDir: deliveryRootDir,
     path: paths.staging,
     kind: "directory",
     mustExist: true,
   });
-  const videoFile = await inspectDeliveryFile({ rootDir, path: videoPath });
+  const videoFile = await inspectDeliveryFile({
+    rootDir: deliveryRootDir,
+    path: videoPath,
+  });
   const cover4x3File = await inspectDeliveryFile({
-    rootDir,
+    rootDir: deliveryRootDir,
     path: cover4x3Path,
   });
   const cover3x4File = await inspectDeliveryFile({
-    rootDir,
+    rootDir: deliveryRootDir,
     path: cover3x4Path,
   });
   const publish = buildDeliveryPublish({
@@ -546,9 +572,13 @@ export const buildDeliveryUnlocked = async ({
     },
     publishing: prepared.publishing,
   });
-  await writePublishLast({ rootDir, path: stagingPublishPath, publish });
+  await writePublishLast({
+    rootDir: deliveryRootDir,
+    path: stagingPublishPath,
+    publish,
+  });
   await validateProjectDelivery({
-    rootDir,
+    rootDir: deliveryRootDir,
     directory: paths.staging,
     expectedBuildId: buildId,
     revisionId,
@@ -557,12 +587,12 @@ export const buildDeliveryUnlocked = async ({
     dependencies,
   });
   await promoteDeliveryStaging({
-    rootDir,
+    rootDir: deliveryRootDir,
     staging: paths.staging,
     destination: paths.delivery,
     validate: async (directory) => {
       await validateProjectDelivery({
-        rootDir,
+        rootDir: deliveryRootDir,
         directory,
         expectedBuildId: buildId,
         revisionId,
@@ -572,8 +602,8 @@ export const buildDeliveryUnlocked = async ({
       });
     },
   });
-  await removeEmptyDirectory(rootDir, paths.projectStaging);
-  await removeEmptyDirectory(rootDir, paths.projectBuilds);
+  await removeEmptyDirectory(deliveryRootDir, paths.projectStaging);
+  await removeEmptyDirectory(deliveryRootDir, paths.projectBuilds);
   return {
     projectId: prepared.projectId,
     deliveryBuildId: buildId,

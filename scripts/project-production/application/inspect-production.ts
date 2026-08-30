@@ -14,6 +14,10 @@ import {
 } from "../adapters/production-inspection";
 import { buildCurrentProductionPlan } from "./build-current-plan";
 import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
+import {
+  createLiveProjectProductionScope,
+  type ProductionScope,
+} from "./production-scope";
 
 type CurrentPlan = Awaited<ReturnType<typeof buildCurrentProductionPlan>>;
 
@@ -21,17 +25,20 @@ export type InspectProductionDependencies = Readonly<{
   captureSnapshot?: (input: {
     readonly rootDir: string;
     readonly projectId: string;
+    readonly scope?: ProductionScope;
   }) => Promise<
     ProductionInspectionSnapshot | Readonly<Record<string, string>>
   >;
   inspectReadiness?: (input: {
     readonly rootDir: string;
     readonly projectId: string;
+    readonly scope?: ProductionScope;
   }) => Promise<ProductionSourceReadiness>;
   inspectNarrationCache?: (input: {
     readonly rootDir: string;
     readonly projectId: string;
     readonly env: Readonly<Record<string, string | undefined>>;
+    readonly scope?: ProductionScope;
   }) => Promise<NarrationCacheInspection>;
   buildCurrentPlan?: (input: {
     readonly rootDir: string;
@@ -39,6 +46,7 @@ export type InspectProductionDependencies = Readonly<{
     readonly env: Readonly<Record<string, string | undefined>>;
     readonly narration: NarrationCacheInspection;
     readonly runtimePolicyManifest?: RuntimePolicyManifest;
+    readonly scope?: ProductionScope;
   }) => Promise<CurrentPlan>;
   inspectDelivery?: typeof inspectCurrentDelivery;
 }>;
@@ -53,12 +61,14 @@ export const inspectProjectProduction = async (
     rootDir,
     projectId,
     env = process.env,
-    runtimePolicyManifest,
+  runtimePolicyManifest,
+  scope: suppliedScope,
   }: {
     readonly rootDir: string;
     readonly projectId: string;
     readonly env?: Readonly<Record<string, string | undefined>>;
     readonly runtimePolicyManifest?: RuntimePolicyManifest;
+    readonly scope?: ProductionScope;
   },
   dependencies: InspectProductionDependencies = {},
 ): Promise<ProductionInspection> => {
@@ -70,8 +80,14 @@ export const inspectProjectProduction = async (
     dependencies.inspectNarrationCache ?? inspectNarrationCache;
   const buildPlan = dependencies.buildCurrentPlan ?? buildCurrentProductionPlan;
   const readDelivery = dependencies.inspectDelivery ?? inspectCurrentDelivery;
+  const scope =
+    suppliedScope ??
+    createLiveProjectProductionScope({ rootDir, storyId: projectId });
+  if (scope.repositoryRoot !== rootDir || scope.storyId !== projectId) {
+    throw new Error("Production inspection scope is cross-bound.");
+  }
 
-  const before = await captureSnapshot({ rootDir, projectId });
+  const before = await captureSnapshot({ rootDir, projectId, scope });
   let readiness: ProductionSourceReadiness | undefined;
   let narration: NarrationCacheInspection | undefined;
   let currentPlan: CurrentPlan | null = null;
@@ -82,8 +98,8 @@ export const inspectProjectProduction = async (
   };
   let readError: unknown;
   try {
-    readiness = await inspectReadiness({ rootDir, projectId });
-    narration = await inspectCache({ rootDir, projectId, env });
+    readiness = await inspectReadiness({ rootDir, projectId, scope });
+    narration = await inspectCache({ rootDir, projectId, env, scope });
     if (readiness.sourceState === "production-inputs-ready") {
       currentPlan = await buildPlan({
         rootDir,
@@ -91,13 +107,17 @@ export const inspectProjectProduction = async (
         env,
         narration,
         runtimePolicyManifest,
+        scope,
       });
-      delivery = await readDelivery({ rootDir, projectId });
+      delivery = await readDelivery({
+        rootDir: scope.isolatedRoot,
+        projectId,
+      });
     }
   } catch (error) {
     readError = error;
   }
-  const after = await captureSnapshot({ rootDir, projectId });
+  const after = await captureSnapshot({ rootDir, projectId, scope });
   if (!snapshotsMatch(before, after)) {
     throw new Error("inspection-source-drift");
   }

@@ -19,7 +19,7 @@ lockfile authority、sandbox 或 validator 来制造 Green。无法满足时报�
 
 ```mermaid
 flowchart LR
-  Author[Atomic create or current authoring edits] --> MCP{Current Root exposes compatible MCP tools?}
+  Author[Atomic create or isolated revision candidate] --> MCP{Current Root exposes compatible MCP tools?}
   MCP -->|no: omit slot| Resolve[Resolve execution policy]
   MCP -->|yes: load slot| Catalog{Local Catalog satisfies need?}
   Catalog -->|yes| Resolve
@@ -33,9 +33,10 @@ flowchart LR
   Plan --> Dirty[Create dirty Agent task workspaces]
   Dirty --> Mode{Resolved execution mode}
   Mode -->|inline default| Inline[Root sequential executor]
-  Mode -->|subagents| Children[Runtime-native task children]
-  Inline --> Check[Read-only task check]
-  Children --> Check[Read-only task check]
+  Mode -->|verified transport| Children[Bounded runtime-native children]
+  Inline --> Bind[Attempt-bound zero-write bind]
+  Children --> Bind
+  Bind --> Check[Finalize and read-only task check]
   Check --> Terminal[Attempt-bound commit or failure event]
   Terminal -->|failure| Exit[Terminal nonzero exit]
   Terminal -->|all artifacts| Continue[Fixed continuation]
@@ -45,7 +46,10 @@ flowchart LR
   Materialize --> Derived[Packages + Registry + Composition]
   Derived --> Build[Synchronous media build]
   Build --> Verify[Exact four-file validation]
-  Verify --> Current[Controlled current delivery]
+  Verify --> CandidateGate{Candidate scope?}
+  CandidateGate -->|no| Current[Controlled current delivery]
+  CandidateGate -->|yes| Promote[Controlled promotion with rollback]
+  Promote --> Current
 ```
 
 一个新 ExecutionAttempt 可以失败或消失；已验证 artifact 仍按内容 identity 复用。inspection/explanation/
@@ -67,6 +71,11 @@ boundary，task executors 与 runtime 不感知。
 npm run project:create -- --project <storyId> --input <repository-relative-json>
 ```
 
+create 同事务冻结 `production/scene-originality-baseline.json`，entries 只来自创建前其他 Project 的完整
+TS/TSX Scene source graph；重复 create 复用已冻结 bytes。旧 Project 缺失时必须由用户显式运行
+`npm run project:originality:freeze -- --project <storyId>`；该迁移零 provider、持 repository lock、create-only，
+inspect/prepare 不会静默生成空 baseline。
+
 fixed creator 在受控 staging 中验证完整 Project/source/public/template/sound/catalog transaction，将
 ProducerConfig 的 render/readability/TTS defaults 与选定 boundary Scene templates 投影到 Project-local
 configured authoring。已存在、partial、cross-project、symlink/path escape/special-file 或不同 creation identity
@@ -81,6 +90,25 @@ units；silent beat 只允许在首尾，使用固定 frame/template/sound，不
 外部媒体必须先经 `project:asset:import` 本地化为 Project-owned、runtime-approved asset，只有 manifest ID
 和校验后的 bytes fingerprint 进入 Revision/task inputs。
 
+create 与 revision validate/create 共用 structured pre-mutation authoring validation。顶层
+`authoring-validation-failed` 返回 field-level issues；`caption-display-budget-exceeded` 使用
+`caption-display-unit-v1`，要求每个 authored `ttsChunk` 不超过 72 display half-units。Agent 应改短或在自然语义
+边界拆分 chunk，不得弱化 validator。该错误在 create lock/staging 与 candidate mutation 前返回。
+
+现有 Project 不直接修改 live authoring。先读取 exact current context：
+
+```bash
+npm run project:revise:context -- --project <storyId>
+npm run project:revise:validate -- --input <repository-relative-json>
+npm run project:revise -- --project <storyId> --input <repository-relative-json>
+```
+
+context 在返回 editable authoring 前同时复验 current `baseRevisionId` 与 exact-four-file
+`baseDeliveryBuildId`。strict patch 只开放 authored sections，并保持 narrated meaningId/order 与 boundary Scenes。
+candidateId 由 canonical input 确定；候选在 `.producer-revisions/<storyId>/<candidateId>/` 隔离 source/public/
+narration/work/attempt/out/delivery。相同完整 input/base bytes 只读 current，stale base、未知文件、symlink、special
+file 或路径逃逸 fail closed。candidate create 和后续 production 在 promotion 前都不修改 live Project/Delivery。
+
 ## 3. 只读 inspect 与显式 prepare
 
 先运行严格只读 inspection：
@@ -88,6 +116,9 @@ units；silent beat 只允许在首尾，使用固定 frame/template/sound，不
 ```bash
 npm run project:produce:inspect -- --project <storyId>
 ```
+
+候选生产在同一公共主链上为 inspect/prepare/task/continue/recovery 追加 exact
+`--candidate <candidateId>`；该参数只选择受信 scope，不进入任何 content identity。
 
 inspect 不获取 mutation lock、不调用 provider、不刷新 Catalog、不创建 cache/workspace/attempt/artifact，也不
 物化或交付。它在前后 snapshot 一致时返回 `configured-authoring`、`timing-ready` 或
@@ -113,6 +144,9 @@ production inputs ready 时生成：
 - `ProductionRevision`：只含生产输入，不含 Agent output 或过程数据；
 - `ProducerTaskSpec[]`：内容寻址 DAG nodes，具备 dependency artifacts、declared read/output set 和
   task-kind validator policy；
+- `TaskExecutionContract`：仅为 Agent tasks 生成的 immutable、attempt-neutral input，定义 purpose/workflow/
+  constraints、component signatures、exact outputs 与 Agent/fixed ownership；不含 transport、binding、failure
+  state 或 command template；
 - `ProducerPlan`：稳定排序的 action、typed artifact state、allowlisted direct changes、DAG dependency changes
   与 blockedBy；
 - `ExecutionAttempt`：task diagnostic snapshots、estimated/actual cost、等待/收敛或失败诊断，不进入任何
@@ -120,6 +154,8 @@ production inputs ready 时生成：
 
 Task kinds 包括 narration chunk/seal/timing、scene-template、scene-owner、global-visual-owner、cover-owner、
 composition-convergence 与 delivery-build。共享输入只进入真正依赖它的 node key，避免全局版本导致无差别失效。
+Scene originality baseline fingerprint/context 只进入 `scene-owner`；template-copy fixed task 豁免，因此 baseline
+变化只失效 Agent Scene branch，不改变 ProductionRevision 或其他 owner TaskRevision。
 
 ## 4. Artifact reuse 与 task workspace
 
@@ -133,12 +169,15 @@ prepare 只为 action 为 `dispatch-agent` 的 non-reused task 建立：
 .producer-work/<storyId>/<taskRevision>/
 ├── task.json
 ├── inputs/context.json
+├── inputs/task-contract.json
 └── <declared outputs>
 ```
 
 Agent 不能直接写 live Project。inspect 前用 `project:execution:resolve` 按用户提示词明确字段、配置页、内置
 `inline` 默认的优先级冻结本次执行策略；该诊断策略不进入 identity。inline 时 Root 一次执行一个 workspace；
-subagents 时使用不超过四个且受 runtime capacity 限制的 bounded pool。`scene-template` 和其他 fixed tasks
+subagents 时使用不超过四个且受 runtime capacity 限制的 bounded pool，并要求本次宿主验证
+`shared-workspace` 或 `controller-io` transport。transport 是不持久化的 host capability evidence；未验证时在
+prepare 前阻塞。`scene-template` 和其他 fixed tasks
 不由 Agent 创作。仓库只产出通用 workspace 与 shell command，不调用厂商 Agent SDK；每个 TaskRevision
 只归属一个 executor。Scene executor 完整读取 Workspace-local
 `remotion-best-practices`，且不能用 Skill 扩大
@@ -151,18 +190,39 @@ size/fingerprint）。raw policy、full-frame width/height 和四边 inset 不�
 validator 拒绝 Renderer 自建 SceneViewport/provider、读取 raw policy/inset 或调用 `useVideoConfig()`
 恢复 full-frame authority。
 
+GlobalVisual context 包含 fixed workflow 从 canonical SemanticTiming 派生的严格 layer policy：base range 是完整
+Composition，decoration range 是首个至末个 narrated Scene 的连续窗口，decoration 的 Remotion frame origin 是
+窗口 local zero。`global-visual-owner-validator-v2` 要求同一入口恰好导出两个 no-Props component，并拒绝越出
+decoration range 的 continuity window；生成式 Composition 将 base 放入 background slot，将 decoration 通过
+前景 `globalVisualLayers` slot 的 `Sequence` 限定在该窗口。
+
 `scene-template` fixed producer 与 validator 共用同一 exact output contract：artifact 包含 immutable
 copied source/assets，以及从 template instance、SceneTaskInput 和 ResourceCatalog 机械派生的 canonical
 Scene plans、selected-resource envelope 与 fidelity receipt。live-only
 `task-input.generated.json`/`generated/scene-package.generated.json` 不进入该 artifact identity。
 
-task executor 在 workspace 内循环：
+新 TaskExecutionContract 进入 Agent task input fingerprint，因此采用该 contract 后 Agent TaskRevision/artifact
+一次失效；ProductionRevision 与已验证 current delivery 都不改变。executor 必须先运行 prepare 返回的 exact
+attempt-bound bind command；bind 只校验 binding/task/active attempt、三个 immutable inputs 的 checksum 与
+contract，且 task content 零写入。只有 `task-worker-bound` 才授予 capability：
 
 ```bash
-npm run project:task:check -- --task <taskRevision>
-npm run project:task:commit -- --task <taskRevision> --attempt <attemptId>
-npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --kind task|host
+npm run project:task:bind -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --transport shared-workspace|controller-io
+npm run project:task:describe -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:finalize -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:check -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:commit -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
+npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --kind task|host|fixed
+npm run project:task:file-read -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --path <logicalPath>
+npm run project:task:file-write -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --path <declaredOutputPath>
 ```
+
+shared-workspace 只允许 binding 返回的 workspace/declared files；controller-io 没有 filesystem access，file-read
+只读 immutable inputs/已有 declared outputs，file-write 从 strict `{ "contentBase64": "..." }` stdin 原子写
+declared output。describe/finalize/check/commit 与 authored-output task failure 都要求 full binding；finalize 只投影
+fixed derived fields 并调用同一 task validator，executor 只修正 `agent-output` issues。Root-only
+`spawnFailureCommand` 只记录真实 child spawn/transport/permission fault；`fixedFailureCommand` 只记录 immutable/
+controller fault。二者使用更窄 authority，不能读取或修改 task content。
 
 check 只读；commit 必须重跑同一 validator。成功 promotion 使用同父 staging/atomic rename，manifest 最后写，
 并产生 immutable ArtifactAttestation。相同 identity/bytes no-op；冲突绝不覆盖。commit/fail 都写入 exact
@@ -185,6 +245,8 @@ terminal failure 立即写失败终态并非零退出，不调用 converge；全
 converge 只调用 read-only current-plan builder 重算 current inputs；不调用 provider、不创建 workspace 或
 ExecutionAttempt。revision 不同返回 stable stale 结果。任何 required artifact 缺失时，
 返回 incomplete 且不得写 live owner roots 或 delivery。
+在第一次 live materialization 前，converge 对同 revision 的全部 `scene-owner` attested TS/TSX source graph 做
+exact manifest 与 token-normalized 双重去重；任一冲突直接终止并保持 live owner roots 零写入。
 对 unchanged template Scene，create-only、fixed-prepared 与 materialized source view 必须归一到相同 exact
 output set 和 TaskRevision；已声明 derived outputs 只能幂等吸收，unknown file 或 checksum drift 仍 fail closed。
 
@@ -210,6 +272,17 @@ build 同步等待 Remotion/FFmpeg，依次验证：
 `project-production-current`；新 package 成功提升返回 `project-production-complete`。这两个状态均证明实际
 current files 完整，不是计划、聊天或进程启动事实。
 
+candidate continuation 在隔离 delivery 上完成同样的 exact-four validation 后，自动尝试 promotion。promotion
+在 repository lock 内再次复验 live base、candidate record、expected candidate Revision/Delivery tuple 与四文件
+bytes，然后受控替换 source/public/narration/delivery 四个 Project-owned roots、刷新 Registry/Catalog 并复验结果。任何一步
+失败按逆序恢复原 current roots；candidate 保留，以便仅重试：
+
+```bash
+npm run project:revision:promote -- --project <storyId> --candidate <candidateId> --revision <revisionId> --delivery <deliveryBuildId>
+```
+
+promotion failure 不改变 candidate production attempt 的终态，不使用 attempt reissue 修复。
+
 ## 7. Progress 与失败后继续
 
 settings API 从 `src/projects/` 枚举 source Projects，展示 sourceState、inspection estimate、current Revision、
@@ -217,10 +290,16 @@ settings API 从 `src/projects/` 枚举 source Projects，展示 sourceState、i
 structured explanation，不从错误文案或 task kind 猜 DAG。它不扫描历史执行数据，也不把 `out/` 或
 delivery-only 目录伪装成 Project；raw fingerprint、authoring text、private path/provider body 不对外投影。
 Agent execution preferences 独立保存到 `private/execution-preferences.json`，不改变 ProducerConfig fingerprint；
-文件缺失时使用内置 `inline`，当前提示词 override 只进入本次 resolver 输入，除非用户明确要求保存。
+文件缺失时使用内置 `inline`，当前提示词 override 只进入本次 resolver 输入，除非用户明确要求保存。worker
+transport 永远不保存。
 
-若三个 Agent tasks 中两个已 commit、第三个失败，当前 lifecycle 立即结束。用户另行启动 inspect/prepare 时，
-前两个必须是 reuse，只派发第三个。
+若多个 Agent tasks 中一部分已 commit、另一个失败，当前 lifecycle 立即结束且旧 attempt immutable。用户明确恢复时
+先运行只读、零 provider 的
+`npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failedAttemptId>`；只有 failed terminal、
+无 active attempt、current Revision exact same 且没有 dirty/blocked fixed task 时，才运行
+`npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>`。reissue 在 lock 内重检，
+不要求 current delivery，复用两个 valid artifacts 与合法 draft，并返回 fresh attempt/bindings/continuation。
+active/stale/fixed-flow recovery fail closed；这不是自动 retry 或重开旧 attempt。
 delivery 若在生成 video 后失败，再次 prepare 不重跑已验证 TTS/Agent artifacts，converge 复用已验证 staging
 video，只生成缺失媒体。这不是自动 retry；每次都由显式 inspect/report/prepare 与 content inspection 得出。
 
@@ -233,7 +312,7 @@ npm run project:delete -- --project <storyId> --confirm-delete
 ```
 
 删除器要求完整 Project ID，精确清理 `src/projects`、Project-owned `public`、`.narration-work`、
-`.producer-work`、`.producer-artifacts`、`.producer-attempts`、legacy `.producer-runs`、`out` 和 `deliveries`
+`.producer-work`、`.producer-artifacts`、`.producer-attempts`、`.producer-revisions`、legacy `.producer-runs`、`out` 和 `deliveries`
 中的对应 ownership roots，并重建 Registry/Catalog。它不删除 core、其他 Project、shared assets、private
 config 或 voice profiles。
 

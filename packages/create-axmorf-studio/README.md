@@ -16,6 +16,12 @@ It also includes host-neutral `AGENTS.md` instructions and the `axmorf-video`
 Skill. Any Agent that can read and write files and run npm commands can use those
 contracts; no Codex-specific runtime is required.
 
+The generated npm scripts cover atomic Project creation, exact-base revision
+candidates, Scene-originality migration, attempt-bound task capabilities,
+explicit failed-attempt recovery, fixed continuation, and verified four-file
+Delivery. The generated `AGENTS.md` and Skill—not package internals—define their
+safe order.
+
 The generated Workspace uses `npm run doctor` as its capability gate. An Agent
 may prepare the declared Node.js/npm and host prerequisites, then rerun doctor;
 it must not patch package internals, `node_modules`, exact dependencies, or
@@ -28,7 +34,8 @@ evidence; neither is an operating-system allowlist.
 ```text
 --yes                         accept non-interactive defaults
 --no-install                  generate files without installing dependencies
---runtime-package <version>   use an exact @axmorf/studio version or local tarball
+--runtime-package <version-or-path>
+                              use an exact @axmorf/studio version or local tarball
 ```
 
 `--no-install` produces a generated but not ready workspace. The default flow is

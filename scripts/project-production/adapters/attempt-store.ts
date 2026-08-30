@@ -510,6 +510,114 @@ export const readExecutionAttempt = async (input: {
   return progress;
 };
 
+export const listExecutionAttemptsForStory = async ({
+  rootDir,
+  storyId: rawStoryId,
+}: {
+  readonly rootDir: string;
+  readonly storyId: string;
+}) => {
+  const storyId = StoryIdSchema.parse(rawStoryId);
+  if (!(await assertAttemptParents({ rootDir, storyId, create: false }))) {
+    return [];
+  }
+  const entries = await readdir(attemptsRoot(rootDir, storyId), {
+    withFileTypes: true,
+  });
+  const attempts: ExecutionAttemptProgress[] = [];
+  for (const entry of entries.sort((left, right) =>
+    left.name.localeCompare(right.name),
+  )) {
+    if (entry.name.startsWith(".")) continue;
+    if (!entry.isDirectory() || entry.isSymbolicLink()) {
+      throw new ExecutionAttemptAuthorityError(
+        "Execution attempt listing contains an unsafe entry.",
+      );
+    }
+    let attemptId: string;
+    try {
+      attemptId = z.string().uuid().parse(entry.name);
+    } catch (error) {
+      throw new ExecutionAttemptAuthorityError(
+        "Execution attempt listing contains an invalid identity.",
+        { cause: error },
+      );
+    }
+    const progress = await readExecutionAttemptProgress({
+      rootDir,
+      storyId,
+      attemptId,
+    });
+    if (progress === null) {
+      throw new ExecutionAttemptAuthorityError(
+        "Execution attempt disappeared while being listed.",
+      );
+    }
+    attempts.push(progress);
+  }
+  return attempts;
+};
+
+export class ExecutionAttemptAuthorityError extends Error {
+  readonly code = "execution-attempt-authority-invalid" as const;
+
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+  }
+}
+
+export const assertExecutionAttemptTaskAuthority = async ({
+  rootDir,
+  attemptId,
+  task: rawTask,
+}: {
+  readonly rootDir: string;
+  readonly attemptId: string;
+  readonly task: ProducerTaskSpec;
+}) => {
+  const task = ProducerTaskSpecSchema.parse(rawTask);
+  const progress = await readExecutionAttemptProgress({
+    rootDir,
+    storyId: task.storyId,
+    attemptId,
+  });
+  if (progress === null) {
+    throw new ExecutionAttemptAuthorityError("Execution attempt is missing.");
+  }
+  if (
+    progress.storyId !== task.storyId ||
+    progress.revisionId !== task.revisionId ||
+    progress.state === "succeeded" ||
+    progress.state === "failed"
+  ) {
+    throw new ExecutionAttemptAuthorityError(
+      "Execution attempt is not active task authority.",
+    );
+  }
+  const snapshot = progress.taskSnapshots.find(
+    ({ taskRevision }) => taskRevision === task.taskRevision,
+  );
+  if (
+    snapshot === undefined ||
+    snapshot.taskKind !== task.taskKind ||
+    snapshot.decision.action !== "dispatch-agent"
+  ) {
+    throw new ExecutionAttemptAuthorityError(
+      "Execution attempt task is not plan-bound Agent work.",
+    );
+  }
+  if (
+    progress.taskOutcomes.some(
+      ({ taskRevision }) => taskRevision === task.taskRevision,
+    )
+  ) {
+    throw new ExecutionAttemptAuthorityError(
+      "Execution attempt task is already terminal.",
+    );
+  }
+  return { progress, snapshot, task } as const;
+};
+
 const readCurrentDeliveryBinding = async ({
   rootDir,
   storyId,
@@ -729,6 +837,14 @@ const appendEvent = async ({
       destination: path,
       bytes: eventBytes,
       mode: "create",
+      // Every entry in events/ is immutable authority. Stage beside that
+      // directory so a concurrent projection never mistakes an in-progress
+      // temporary file for an event.
+      temporaryDirectory: attemptRoot(
+        rootDir,
+        progress.storyId,
+        progress.attemptId,
+      ),
     });
   } catch (error) {
     const existingBytes = await readOptionalTextFile(path);

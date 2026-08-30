@@ -98,6 +98,11 @@ const prepared = {
   }),
   frameCount: 120,
   coverCompositionBaseId: "StoryExampleCover",
+  runtimeRootDir: "/prepared/runtime-root",
+  entryPoint: "/prepared/candidate/src/index.ts",
+  coverEntryPoint:
+    "/prepared/candidate/src/projects/story-example/delivery/cover/index.ts",
+  publicDir: "/prepared/candidate/out/render-public",
 } as const;
 
 const createDependencies = ({
@@ -110,6 +115,12 @@ const createDependencies = ({
   readonly failPromotedVideoInspectionOnce?: boolean;
 } = {}) => {
   const calls = { video: 0, cover4x3: 0, cover3x4: 0, verify: 0 };
+  const renderRequests: Array<{
+    readonly kind: "video" | "cover";
+    readonly rootDir: string;
+    readonly entryPoint?: string;
+    readonly publicDir?: string;
+  }> = [];
   let tallFailed = false;
   let promotedInspectionFailed = false;
   const dependencies: DeliveryBuildDependencies = {
@@ -117,12 +128,30 @@ const createDependencies = ({
       prepared as Awaited<
         ReturnType<NonNullable<DeliveryBuildDependencies["prepare"]>>
       >,
-    renderVideo: async ({ outputPath }) => {
+    renderVideo: async ({ outputPath, rootDir, entryPoint, publicDir }) => {
       calls.video += 1;
+      renderRequests.push({
+        kind: "video",
+        rootDir,
+        entryPoint,
+        publicDir,
+      });
       if (failVideo) throw new Error("synthetic video failure");
       await writeFile(outputPath, "video");
     },
-    renderCover: async ({ compositionId, outputPath }) => {
+    renderCover: async ({
+      compositionId,
+      outputPath,
+      rootDir,
+      entryPoint,
+      publicDir,
+    }) => {
+      renderRequests.push({
+        kind: "cover",
+        rootDir,
+        entryPoint,
+        publicDir,
+      });
       if (compositionId.endsWith("4x3V2")) {
         calls.cover4x3 += 1;
         await writeFile(outputPath, "cover-4x3");
@@ -160,7 +189,7 @@ const createDependencies = ({
       calls.verify += 1;
     },
   };
-  return { calls, dependencies } as const;
+  return { calls, dependencies, renderRequests } as const;
 };
 
 test("synchronous delivery resumes verified staging media and publishes exactly four files", async (context) => {
@@ -202,6 +231,16 @@ test("synchronous delivery resumes verified staging media and publishes exactly 
     cover3x4: 2,
     verify: 3,
   });
+  assert.equal(
+    fixture.renderRequests.every(
+      ({ kind, rootDir, entryPoint, publicDir }) =>
+        rootDir === prepared.runtimeRootDir &&
+        entryPoint ===
+          (kind === "video" ? prepared.entryPoint : prepared.coverEntryPoint) &&
+        publicDir === prepared.publicDir,
+    ),
+    true,
+  );
   assert.deepEqual(
     (await readdir(join(rootDir, "deliveries/story-example"))).sort(),
     ["cover-3x4.png", "cover-4x3.png", "publish.json", "video.mp4"],

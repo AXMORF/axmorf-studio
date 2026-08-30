@@ -17,6 +17,11 @@ test("mainstream agent entrypoints import one repository authority", async () =>
     status,
     producerConfig,
     architecture,
+    productGoal,
+    roadmap,
+    workspaceAgents,
+    workspaceSkill,
+    workspaceWorkflow,
   ] = await Promise.all([
     readRepositoryFile("AGENTS.md"),
     readRepositoryFile("CLAUDE.md"),
@@ -27,6 +32,15 @@ test("mainstream agent entrypoints import one repository authority", async () =>
     readRepositoryFile("docs/ITERATION_STATUS.md"),
     readRepositoryFile("docs/guides/PRODUCER_CONFIG.md"),
     readRepositoryFile("docs/ARCHITECTURE.md"),
+    readRepositoryFile("docs/FINAL_PRODUCT_GOAL.md"),
+    readRepositoryFile("docs/ROADMAP.md"),
+    readRepositoryFile("packages/create-axmorf-studio/template/AGENTS.md"),
+    readRepositoryFile(
+      "packages/create-axmorf-studio/template/.agents/skills/axmorf-video/SKILL.md",
+    ),
+    readRepositoryFile(
+      "packages/create-axmorf-studio/template/.agents/skills/axmorf-video/references/production-workflow.md",
+    ),
   ]);
 
   assert.equal(claude.trim(), "@AGENTS.md");
@@ -34,22 +48,51 @@ test("mainstream agent entrypoints import one repository authority", async () =>
   assert.match(agents, /AGENTS\.md` 是唯一仓库级 Agent 指令 authority/u);
   assert.match(agents, /\.agents\/skills\/axmorf-video\/SKILL\.md/u);
   assert.match(agents, /内置执行默认是 `inline`/u);
+  assert.match(agents, /TaskExecutionContract/u);
+  assert.match(agents, /project:task:bind/u);
   assert.match(readme, /docs\/guides\/AGENT_COMPATIBILITY\.md/u);
   assert.match(readme, /`doctor` capability gate/u);
   assert.match(guide, /其他 shell-capable Agent/u);
   assert.match(guide, /不依赖.*Agent API|不创建 Agent/su);
   assert.match(guide, /Workspace capability gate/u);
   assert.match(guide, /不得修改 `node_modules`/u);
+  assert.match(guide, /shared-workspace[\s\S]*controller-io/u);
   assert.match(status, /macOS 15 ARM64.*reference environment/su);
   assert.match(workflow, /Resolved execution mode/u);
   assert.match(workflow, /inline default/u);
   assert.match(workflow, /仓库只产出通用 workspace 与 shell command/u);
-  assert.match(status, /policy schema v16 \/ policy v18/u);
+  assert.match(status, /policy schema v18 \/ policy v21/u);
   assert.match(status, /内置 `inline` 默认/u);
+  assert.match(status, /project:attempt:recover-inspect/u);
   assert.match(producerConfig, /private\/execution-preferences\.json/u);
   assert.match(producerConfig, /文件不存在时内置使用 `inline`/u);
+  assert.match(producerConfig, /transport[\s\S]*不是表单字段/u);
   assert.match(architecture, /single repository Agent instruction authority/u);
   assert.match(architecture, /Built-in inline default/u);
+  assert.match(architecture, /attempt-bound zero-write gate/u);
+  assert.match(readme, /--worker-transport/u);
+  assert.match(readme, /project:task:bind/u);
+  assert.match(readme, /project:attempt:recover-inspect/u);
+  assert.match(readme, /project:revise:context/u);
+  assert.match(readme, /project:revision:promote/u);
+  assert.match(productGoal, /TaskExecutionContract/u);
+  assert.match(productGoal, /current delivery/u);
+  assert.match(roadmap, /controller-io/u);
+  assert.match(roadmap, /same-Revision reissue/u);
+  for (const source of [workspaceAgents, workspaceSkill, workspaceWorkflow]) {
+    assert.match(source, /inputs\/task-contract\.json/u);
+    assert.match(source, /project:attempt:recover-inspect/u);
+    assert.match(source, /project:revise:context/u);
+    assert.match(source, /project:revision:promote/u);
+    assert.doesNotMatch(
+      source,
+      /\brsp\b|Desktop|DeliveryPolicy|source-current/iu,
+    );
+  }
+  assert.match(
+    `${workspaceAgents}\n${workspaceSkill}\n${workspaceWorkflow}`,
+    /isolated[\s\S]{0,120}candidate|candidate[\s\S]{0,120}isolated/iu,
+  );
 });
 
 test("generic production surfaces do not call vendor agent runtimes", async () => {

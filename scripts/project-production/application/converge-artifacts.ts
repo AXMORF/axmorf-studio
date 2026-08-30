@@ -7,6 +7,8 @@ import {
   ProjectSoundPlanSchema,
   PublishingIntentSchema,
   RenderSpecSchema,
+  buildSceneSourceGraph,
+  createFingerprint,
   serializeCanonicalJson,
   type ArtifactAttestation,
   type ProducerTaskSpec,
@@ -14,6 +16,7 @@ import {
 import {
   commitTaskArtifact,
   inspectArtifact as inspectArtifactFromStore,
+  resolveArtifactPath,
 } from "../adapters/artifact-store";
 import { appendExecutionAttemptDeliveryResult } from "../adapters/attempt-store";
 import {
@@ -30,9 +33,13 @@ import { buildDeliveryUnlocked as buildSynchronousDelivery } from "./build-deliv
 import { buildCurrentProductionPlan, contextFile } from "./build-current-plan";
 import { prepareProjectAuthoringBuild } from "./prepare-delivery";
 import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
+import {
+  createLiveProjectProductionScope,
+  type ProductionScope,
+} from "./production-scope";
 
 type PlannedProduction = Awaited<ReturnType<typeof buildCurrentProductionPlan>>;
-type MaterializedArtifact = Readonly<{
+export type MaterializedArtifact = Readonly<{
   task: ProducerTaskSpec;
   attestation: ArtifactAttestation;
 }>;
@@ -56,6 +63,17 @@ export type ConvergenceDependencies = Readonly<{
     readonly projectId: string;
     readonly meaningId: string;
   }) => Promise<Uint8Array>;
+  readSceneArtifactSources?: (input: {
+    readonly rootDir: string;
+    readonly task: ProducerTaskSpec;
+    readonly attestation: ArtifactAttestation;
+  }) => Promise<
+    readonly Readonly<{
+      path: string;
+      source: string;
+      checksum: string;
+    }>[]
+  >;
 }>;
 
 const MATERIALIZED_TASK_KINDS = new Set<ProducerTaskSpec["taskKind"]>([
@@ -79,6 +97,113 @@ const same = (left: unknown, right: unknown) =>
 
 const asBytes = (value: Uint8Array | string) =>
   typeof value === "string" ? new TextEncoder().encode(value) : value;
+
+const isTypeScriptSource = (logicalPath: string) =>
+  logicalPath.startsWith("src/") && /\.[cm]?tsx?$/u.test(logicalPath);
+
+const readAttestedSceneSources = async ({
+  rootDir,
+  task,
+  attestation,
+}: {
+  readonly rootDir: string;
+  readonly task: ProducerTaskSpec;
+  readonly attestation: ArtifactAttestation;
+}) => {
+  const artifactRoot = resolveArtifactPath({
+    rootDir,
+    storyId: task.storyId,
+    taskKind: task.taskKind,
+    taskRevision: task.taskRevision,
+  });
+  return Promise.all(
+    attestation.outputManifest
+      .filter(({ logicalPath }) => isTypeScriptSource(logicalPath))
+      .map(async ({ logicalPath, checksum }) => {
+        const bytes = await readRegularBytes(
+          join(artifactRoot, "files", logicalPath),
+          `Scene artifact source ${logicalPath}`,
+        );
+        if (checksumBytes(bytes) !== checksum) {
+          throw new Error("Scene artifact source checksum drifted.");
+        }
+        let source: string;
+        try {
+          source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+        } catch (error) {
+          throw new Error("Scene artifact source must be valid UTF-8.", {
+            cause: error,
+          });
+        }
+        return {
+          path: logicalPath.slice("src/".length),
+          source,
+          checksum,
+        } as const;
+      }),
+  );
+};
+
+export const assertSceneArtifactsAreMeaningLocal = async ({
+  rootDir,
+  artifacts,
+  readSources = readAttestedSceneSources,
+}: {
+  readonly rootDir: string;
+  readonly artifacts: readonly MaterializedArtifact[];
+  readonly readSources?: NonNullable<
+    ConvergenceDependencies["readSceneArtifactSources"]
+  >;
+}) => {
+  const sceneArtifacts = artifacts.filter(
+    ({ task }) => task.taskKind === "scene-owner",
+  );
+  if (sceneArtifacts.length < 2) return;
+  const exactOwners = new Map<string, string>();
+  for (const { task, attestation } of sceneArtifacts) {
+    if (task.semanticId === null) {
+      throw new Error("Scene owner artifact lost its meaning identity.");
+    }
+    const sourceManifest = attestation.outputManifest
+      .filter(({ logicalPath }) => isTypeScriptSource(logicalPath))
+      .map(({ logicalPath, checksum }) => ({ logicalPath, checksum }))
+      .sort((left, right) => left.logicalPath.localeCompare(right.logicalPath));
+    if (
+      !sourceManifest.some(
+        ({ logicalPath }) => logicalPath === "src/Renderer.tsx",
+      )
+    ) {
+      throw new Error("Scene owner artifact is missing Renderer.tsx.");
+    }
+    const exactFingerprint = createFingerprint({
+      namespace: "scene-exact-source-graph",
+      version: 1,
+      value: sourceManifest,
+    });
+    const exactOwner = exactOwners.get(exactFingerprint);
+    if (exactOwner !== undefined) {
+      throw new Error(
+        `Scene source graphs must be meaning-local; ${exactOwner} and ${task.semanticId} are exact duplicates.`,
+      );
+    }
+    exactOwners.set(exactFingerprint, task.semanticId);
+  }
+
+  const normalizedOwners = new Map<string, string>();
+  for (const { task, attestation } of sceneArtifacts) {
+    const sources = await readSources({ rootDir, task, attestation });
+    const normalizedFingerprint = buildSceneSourceGraph(
+      sources.map(({ path, source }) => ({ path, source })),
+    ).sourceGraphFingerprint;
+    const normalizedOwner = normalizedOwners.get(normalizedFingerprint);
+    if (normalizedOwner !== undefined) {
+      throw new Error(
+        `Scene source graphs must be meaning-local; ${normalizedOwner} and ${task.semanticId} normalize to duplicates.`,
+      );
+    }
+    normalizedOwners.set(normalizedFingerprint, String(task.semanticId));
+  }
+};
 
 const parseCanonical = <T>(
   bytes: Uint8Array | string,
@@ -361,6 +486,7 @@ const convergeProjectProductionUnlocked = async ({
   revisionId,
   attemptId,
   runtimePolicyManifest,
+  scope: suppliedScope,
   dependencies = {},
 }: {
   readonly rootDir: string;
@@ -368,6 +494,7 @@ const convergeProjectProductionUnlocked = async ({
   readonly revisionId: string;
   readonly attemptId: string;
   readonly runtimePolicyManifest?: RuntimePolicyManifest;
+  readonly scope?: ProductionScope;
   readonly dependencies?: ConvergenceDependencies;
 }) => {
   const buildCurrentPlan =
@@ -408,6 +535,15 @@ const convergeProjectProductionUnlocked = async ({
         ),
         `ScenePackage ${meaningId}`,
       ));
+  const readSceneArtifactSources =
+    dependencies.readSceneArtifactSources ?? readAttestedSceneSources;
+  const scope =
+    suppliedScope ??
+    createLiveProjectProductionScope({ rootDir, storyId: projectId });
+  if (scope.repositoryRoot !== rootDir || scope.storyId !== projectId) {
+    throw new Error("Production convergence scope is cross-bound.");
+  }
+  const contentRoot = scope.isolatedRoot;
 
   // Convergence never trusts the plan emitted by an earlier command. This is the
   // authority check that prevents an old revision from materializing current paths.
@@ -415,6 +551,7 @@ const convergeProjectProductionUnlocked = async ({
     rootDir,
     projectId,
     runtimePolicyManifest,
+    scope,
   });
   let terminalPlan = planned;
   const appendTerminal = async (
@@ -435,7 +572,7 @@ const convergeProjectProductionUnlocked = async ({
   ) => {
     try {
       await appendAttempt({
-        rootDir,
+        rootDir: contentRoot,
         storyId: terminalPlan.revision.storyId,
         revisionId: attemptRevisionId,
         attemptId,
@@ -512,21 +649,28 @@ const convergeProjectProductionUnlocked = async ({
     ]),
   );
   try {
-    await materializeOwnerArtifacts({
+    await assertSceneArtifactsAreMeaningLocal({
       rootDir,
+      artifacts,
+      readSources: readSceneArtifactSources,
+    });
+    await materializeOwnerArtifacts({
+      rootDir: contentRoot,
+      artifactRootDir: rootDir,
       projectId,
       artifacts,
       sceneTaskInputs,
     });
     const verifyOwnerMaterialized = () =>
       verifyMaterializedOwnerArtifacts({
-        rootDir,
+        rootDir: contentRoot,
+        artifactRootDir: rootDir,
         projectId,
         artifacts,
         sceneTaskInputs,
       });
     await verifyOwnerMaterialized();
-    const prepared = await prepareProject({ rootDir, projectId });
+    const prepared = await prepareProject({ rootDir, projectId, scope });
     const additionalSceneEntries: Array<
       readonly [
         string,
@@ -542,7 +686,7 @@ const convergeProjectProductionUnlocked = async ({
         continue;
       }
       const bytes = await readPreparedScenePackage({
-        rootDir,
+        rootDir: contentRoot,
         projectId,
         meaningId: task.semanticId,
       });
@@ -564,7 +708,8 @@ const convergeProjectProductionUnlocked = async ({
     );
     const verifyPreparedMaterialized = () =>
       verifyMaterializedOwnerArtifacts({
-        rootDir,
+        rootDir: contentRoot,
+        artifactRootDir: rootDir,
         projectId,
         artifacts,
         sceneTaskInputs,
@@ -599,6 +744,7 @@ const convergeProjectProductionUnlocked = async ({
       rootDir,
       projectId,
       runtimePolicyManifest,
+      scope,
     });
     terminalPlan = withComposition;
     if (withComposition.revision.revisionId !== revisionId) {
@@ -621,6 +767,7 @@ const convergeProjectProductionUnlocked = async ({
       projectId,
       revisionId,
       artifactSetFingerprint: withComposition.plan.artifactSetFingerprint,
+      scope,
       dependencies: {
         verifyMaterialized: verifyPreparedMaterialized,
         prepare: async () => prepared,
@@ -642,7 +789,7 @@ const convergeProjectProductionUnlocked = async ({
       files: {
         "inputs/context.json": deliveryContext.bytes,
         "project/publish.json": await readDeliveryPublish({
-          rootDir,
+          rootDir: contentRoot,
           projectId,
         }),
       },
@@ -651,6 +798,7 @@ const convergeProjectProductionUnlocked = async ({
       rootDir,
       projectId,
       runtimePolicyManifest,
+      scope,
     });
     terminalPlan = completed;
     if (
@@ -699,6 +847,7 @@ export const convergeProjectProduction = async ({
   revisionId,
   attemptId,
   runtimePolicyManifest,
+  scope,
   dependencies = {},
 }: {
   readonly rootDir: string;
@@ -706,6 +855,7 @@ export const convergeProjectProduction = async ({
   readonly revisionId: string;
   readonly attemptId: string;
   readonly runtimePolicyManifest?: RuntimePolicyManifest;
+  readonly scope?: ProductionScope;
   readonly dependencies?: ConvergenceDependencies;
 }) => {
   const acquireLock =
@@ -721,6 +871,7 @@ export const convergeProjectProduction = async ({
       revisionId,
       attemptId,
       runtimePolicyManifest,
+      scope,
       dependencies,
     });
   } finally {

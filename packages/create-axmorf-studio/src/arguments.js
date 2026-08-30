@@ -1,6 +1,6 @@
 const FLAG_NAMES = new Set(["--yes", "--no-install", "--runtime-package"]);
 
-export const usage = `Usage: npm create axmorf-studio@latest <target> [--yes] [--no-install]
+export const usage = `Usage: npm create axmorf-studio@latest <target> [--yes] [--no-install] [--runtime-package <version-or-path>]
 
 Arguments:
   target        New workspace directory inside the current directory
@@ -8,6 +8,8 @@ Arguments:
 Options:
   --yes         Run without interactive confirmation
   --no-install  Generate files without installing dependencies
+  --runtime-package <version-or-path>
+                Use an exact @axmorf/studio version or local package path
   --help        Show this help`;
 
 export const parseArguments = (argv) => {

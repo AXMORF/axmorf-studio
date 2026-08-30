@@ -40,12 +40,24 @@ ArtifactAttestation、reusable Artifact Store、fixed convergence 与 synchronou
 ```text
 project:create
 project:asset:import
+project:originality:freeze
+project:revise:context
+project:revise:validate
+project:revise
+project:revision:promote
 project:execution:resolve
 project:produce:inspect
 project:produce:prepare
+project:task:bind
+project:task:describe
+project:task:finalize
 project:task:check
 project:task:commit
 project:task:fail
+project:task:file-read
+project:task:file-write
+project:attempt:recover-inspect
+project:attempt:reissue
 project:produce:continue
 ```
 
@@ -56,14 +68,17 @@ shim。历史 `.producer-runs` 数据保持原位，但 current prepare/converge
 当前 checkout 没有 source Project 或 current Delivery，ProjectRegistry 为 0 entry；这验证了 zero-Project
 bootstrap/Registry/Catalog/settings 合同。readiness、cache reuse 与 dirty task estimate 始终都不是完成证据。
 
-当前 repository video Skill policy schema v16 / policy v18 还定义了一个 pre-inspect external-asset Agent capability slot：只按
+当前 repository video Skill policy schema v18 / policy v21 定义了 pre-inspect external-asset Agent capability slot 与
+isolated Project revision flow：外部能力只按
 当前 Root Agent 的实际 callable MCP tools 激活，缺失时完全省略；激活后也必须先查本地 Catalog，再通过
 `project:asset:import` 把选择准入为 Project-owned 输入。该 slot 不创建 DAG node，也不进入 child/runtime。
 
 ## 已实现 contracts 与 domain
 
-- `ProjectCreateInput`、`ProductionInspection`、`TaskDecisionExplanation`、`ProductionRevision`、
-  `ProducerTaskSpec/TaskRevision`、`ArtifactAttestation`、`ProducerPlan`、`ExecutionAttempt`、
+- `ProjectCreateInput`、structured `AuthoringValidationIssue`、`ProjectRevisionInput/Context/CandidateRecord`、
+  `SceneOriginalityBaseline`、`ProductionInspection`、`TaskDecisionExplanation`、`ProductionRevision`、
+  `ProducerTaskSpec/TaskRevision`、`TaskExecutionContract`、`TaskWorkerBinding`、`ArtifactAttestation`、
+  `ProducerPlan`、`ExecutionAttempt`、
   `DeliveryBuild/DeliveryPublish`；
 - Revision/DAG/invalidation/plan pure domain；DAG cycle/duplicate/unknown dependency/stable ordering gates；
 - renamed Project authoring contracts `authoring-requirements` 与 `scene-readability`，不导出旧 runtime authority；
@@ -77,8 +92,16 @@ bootstrap/Registry/Catalog/settings 合同。readiness、cache reuse 与 dirty t
 
 - `project:create` 从 strict repository-relative input 原子创建 configured authoring；相同 creation identity
   只读 current，existing/partial/conflicting/symlink/path escape/special file fail closed；
+- create 与 revision validate/create 在 mutation 前共享 structured authoring validation；caption issue 使用
+  `authoring-validation-failed` / `caption-display-budget-exceeded` / `caption-display-unit-v1`，每个 authored
+  `ttsChunk` 上限 72 display half-units；
+- create 同事务冻结其他 Project 的完整 Scene TS/TSX source-graph baseline；existing create 复用自身 baseline，
+  legacy Project 通过显式零 provider、持锁 `project:originality:freeze` 迁移，缺失时 production fail closed；
 - create 保留 authored Story/`ttsChunks`，复制 boundary template 与 sound/catalog projection，但零 provider、
   零媒体生成，且不写 narration work、artifact、workspace、attempt 或 delivery；
+- `project:revise:context` 只读复验 exact current Revision 与 four-file Delivery；validate/create 使用 strict raw input，
+  在 `.producer-revisions/<storyId>/<candidateId>` 隔离 source/public/narration/work/attempt/out/delivery，promotion 前不改
+  live Project/Delivery；
 - `project:produce:inspect` 通过 check-only ports 返回 sourceState、baseline、unknown-safe estimated cost、
   structured task explanations 与 nextAction；前后 snapshot drift fail closed，零 provider/零 repository mutation；
 - `project:produce:prepare` 是唯一有成本入口，负责 provider/cache/seal/master/timing、timing-bound authoring、
@@ -88,8 +111,15 @@ bootstrap/Registry/Catalog/settings 合同。readiness、cache reuse 与 dirty t
 
 ## 已实现 workspace 与 Artifact Store
 
-- `.producer-work/<storyId>/<taskRevision>` strict resolution、immutable task/input seeds 和 exact cleanup；
+- `.producer-work/<storyId>/<taskRevision>` strict resolution、immutable `task.json`/context/task-contract seeds 和
+  exact cleanup；TaskExecutionContract 是 attempt-neutral content input，不包含 transport/binding/commands；
+- Agent task 把 canonical task-contract fingerprint 纳入 TaskRevision；这一 clean break 使既有 Agent task artifacts
+  一次失效，但不改变 ProductionRevision 或已验证 current delivery；
 - workspace/output path containment、regular/no-symlink、unknown/special file rejection；
+- exact TaskRevision/attemptId 派生 binding ID；`task bind` 在任何 task content read/write 前执行 zero-write
+  identity/attempt/checksum/contract gate，只有 `task-worker-bound` 返回 capability；
+- shared-workspace 只允许 binding 返回的 relative workspace/declared files；controller-io 没有 filesystem access，
+  file-read/file-write 对 logical path、symlink/special file、strict base64 body/byte cap 与 atomic replace fail closed；
 - fixed check、commit-time recheck、attestation generation、same-parent staging、atomic promotion、identity conflict
   与 rollback；
 - `.producer-attempts` append-only diagnostics；task/delivery terminal 使用 deterministic event key 原子
@@ -105,6 +135,11 @@ bootstrap/Registry/Catalog/settings 合同。readiness、cache reuse 与 dirty t
 - template-copy Scene 固定任务，不进入 Agent dispatch；共享 canonical builder/output contract 同时物化 copied
   source/assets 与完整 derived Scene bundle，并保证 create-only/fixed-prepared/materialized replan 的
   TaskRevision 稳定；
+- originality baseline 只绑定 `scene-owner` TaskRevision/context，template-copy 豁免；Scene validator 拒绝 frozen
+  historical graph，converge 在 materialization 前拒绝同 revision exact/normalized duplicates；
+- GlobalVisual fixed layer policy 从 canonical SemanticTiming 派生：base 覆盖完整 Composition，decoration 只覆盖
+  首个至末个 narrated Scene 的连续窗口并使用 window-local frame zero；生成式 Composition 分别挂载两个 no-Props
+  exports，validator 拒绝 Scene output、Beat 文案和越界 continuity window；
 - configured template 的 Project-local `Renderer.tsx` 实现当前 `SceneRendererComponent` viewport props，并把
   `viewportWidth`/`viewportHeight` 适配为冻结模板内部的 `width`/`height`；模板源码不拥有 SceneViewport 或
   full-frame policy，既有 Project copy 也不会被共享模板修复静默改写；
@@ -115,13 +150,21 @@ bootstrap/Registry/Catalog/settings 合同。readiness、cache reuse 与 dirty t
 - Scene executor 继续受 Workspace-local `remotion-best-practices`、Scene-only requirements、本地
   SceneViewport、resource/license 与 Remotion runtime gates 约束；它不感知 full-frame 安全区 inset。
 - execution resolver 已按用户提示词明确字段、独立 settings、内置 `inline` 默认逐级解析；全新 scaffolded Workspace
-  只需一个 shell-capable Agent，具备 runtime-native children 的宿主可显式选择最多四个 subagents；策略
-  不进入 Revision/Task/artifact/delivery identity。
+  只需一个 shell-capable Agent；subagents 只在宿主提供 bounded runtime-native children 并为本次 production 验证
+  `shared-workspace` 或 `controller-io` transport 时启用，最多四个。transport 不写 execution preferences，也不进入
+  Revision/Task/artifact/delivery identity。
+- prepare 的每个 dirtyAgentTask 返回 `bindingId`、shared/controller bind commands、describe/finalize/check/commit、
+  task/fixed/spawn failure commands。describe/finalize/check/commit/authored task failure 要求 full binding；Root-only
+  spawn failure 与 immutable/controller fixed failure 只持有更窄的 terminal authority，不能访问 task content。
 - `AGENTS.md` 是唯一 repository Agent authority；`CLAUDE.md`/`GEMINI.md` 只导入该文件，OpenAI Skill metadata
   只提供可选 UI 展示。生产脚本不调用任何厂商 Agent SDK。
 - continuation 启动后 Root 不参与 barrier；event-driven fixed continuation 读取 immutable event log，在 task
   failure 或 attempt 创建起一小时 terminal deadline 到期时直接退出，在全部成功后只调用一次 converge，fixed failure 不重试或
   唤回 Root。
+- terminal failed attempt immutable；`project:attempt:recover-inspect` 严格只读、零 provider，并要求 failed terminal、
+  no active attempt、same current Revision、no fixed dirty/blocked。`project:attempt:reissue` 在 lock 内重检，零
+  provider、不要求 current delivery，复用 valid artifacts/drafts 并创建 fresh attempt/bindings；stale/active/
+  fixed-flow recovery 拒绝。
 
 ## 已实现 convergence 与 delivery
 
@@ -132,6 +175,9 @@ bootstrap/Registry/Catalog/settings 合同。readiness、cache reuse 与 dirty t
 - build-owned staging、validated media reuse、synchronous Remotion/FFmpeg、H.264/AAC/channels、dimensions、fps、
   frame count、PNG、checksums 与 EOF decode；
 - `publish.json` 最后写、exact four files、controlled current replacement 与 same identity no-op。
+- candidate exact-four Delivery 完成后自动尝试 promotion；锁内复验 live base 与 expected candidate Revision/Delivery
+  tuple，受控替换 source/public/narration/delivery 并刷新 Registry/Catalog。失败完整 rollback，保留 candidate 供
+  `project:revision:promote` 独立幂等重试，不借 attempt reissue 修复 promotion。
 
 ## Settings、删除与 zero Project
 
@@ -140,7 +186,7 @@ bootstrap/Registry/Catalog/settings 合同。readiness、cache reuse 与 dirty t
 - 独立 `private/execution-preferences.json` 以 strict contract/`0600` 原子保存 Root inline 或 subagents 最大并发
   偏好，文件缺失时使用内置 `inline`；它不改变 ProducerConfig fingerprint，当前用户提示词 override 不自动持久化；
 - source Project enumeration 不读取 historical data，也不把 output-only roots 伪装成 Project；
-- deletion scope 增加 `.producer-work`、`.producer-artifacts`、`.producer-attempts`，继续保护 private、voice、
+- deletion scope 增加 `.producer-work`、`.producer-artifacts`、`.producer-attempts`、`.producer-revisions`，继续保护 private、voice、
   shared/core 与 other Projects；
 - bootstrap、Registry、Catalog 和 settings 支持 zero Project。
 
@@ -168,6 +214,14 @@ tasks、one-shot continuation、convergence、Remotion render 与 exact four-fil
 `project-production-complete`；H.264/AAC 1080×1920/30fps video、两张固定尺寸 PNG、checksums 与 bundled FFmpeg
 EOF decode 全部通过。完整 receipt 见
 [Ubuntu npm Workspace production acceptance](evidence/2026-08-30-ubuntu-npm-workspace-production-acceptance.md)。
+
+新增 revision/originality/task-binding/reissue/GlobalVisual contracts 后，同一 Ubuntu 24.04 x86_64 宿主又从当前
+snapshot 的两份真实 tarball 创建并以 `npm ci` 重装外部 Workspace；doctor、官方 registry 零漏洞 audit、public
+imports、精确 Remotion 版本、packed Web HTTP 与 compositions 均通过。`ubuntu-current-features` 使用 verified
+`shared-workspace`、四个 attempt-bound task bindings 和 one-shot continuation 抵达新的
+`project-production-complete` exact-four Delivery。candidate promotion 与 failed-attempt reissue 在 repository
+tests 中验证，本次 packed Project 没有伪造对应 runtime receipt。完整事实见
+[Ubuntu npm current-feature re-acceptance](evidence/2026-08-30-ubuntu-npm-current-feature-reacceptance.md)。
 
 本轮同时修复了 packed boundary 暴露的四个问题：scaffold execution resolver 缺失、bundled FFmpeg 不提供 raw
 `s16le` muxer、scaffolded `remotion.config.mjs` 未进入 Workspace configuration snapshot，以及 EOF decode 默认选择

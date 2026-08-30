@@ -20,5 +20,7 @@ test("execution settings explain precedence, bounded capacity, and attempt deadl
   assert.match(markup, /受限并发子 Agent/u);
   assert.match(markup, /max="4"/u);
   assert.match(markup, /当前用户提示词 → 本页保存值 → 内置 inline/u);
+  assert.match(markup, /shared-workspace 或 controller-io transport/u);
+  assert.match(markup, /不会持久化/u);
   assert.match(markup, /TASK TERMINAL DEADLINE · 1H/u);
 });

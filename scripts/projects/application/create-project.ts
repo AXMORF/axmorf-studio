@@ -4,6 +4,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 
 import {
   AuthoringRequirementsSchema,
+  assertCaptionAuthoringValid,
   NarrationSpecSchema,
   ProjectAssetManifestSchema,
   RenderSpecSchema,
@@ -24,6 +25,7 @@ import {
   validateStoryResourcePool,
   type ProducerConfig,
   type ResourceDescriptor,
+  type SceneOriginalityBaseline,
 } from "@axmorf/studio/contracts";
 import {
   PendingSceneAuthoringSchema,
@@ -32,10 +34,7 @@ import {
   computeProjectCreateInputFingerprint,
   type ProjectCreateInput,
 } from "@axmorf/studio/contracts";
-import {
-  Sha256DigestSchema,
-  StoryIdSchema,
-} from "@axmorf/studio/contracts";
+import { Sha256DigestSchema, StoryIdSchema } from "@axmorf/studio/contracts";
 import {
   buildResourceCatalog,
   renderResourceCatalogJson,
@@ -71,6 +70,11 @@ export type ProjectCreationRuntimeResources = Pick<
   "sceneTemplatesRoot"
 >;
 import { readCurrentSceneTemplateAudioProjection } from "../../scene-templates/audio-projection";
+import {
+  SCENE_ORIGINALITY_BASELINE_PATH,
+  readProjectSceneOriginalityBaseline,
+  snapshotWorkspaceSceneOriginalityBaseline,
+} from "./scene-originality";
 
 const CREATION_RECEIPT_PATH = "production/project-create.json" as const;
 export const PENDING_SCENE_AUTHORING_PATH =
@@ -215,7 +219,10 @@ const collectFiles = async ({
         ...(await collectFiles({ rootDir, relativeRoot: logicalPath })),
       );
     } else if (entry.isFile()) {
-      if (!logicalPath.endsWith(`/${CREATION_RECEIPT_PATH}`)) {
+      if (
+        !logicalPath.endsWith(`/${CREATION_RECEIPT_PATH}`) &&
+        !logicalPath.endsWith(`/${SCENE_ORIGINALITY_BASELINE_PATH}`)
+      ) {
         files.push({
           logicalPath,
           checksum: checksum(await readFile(join(rootDir, logicalPath))),
@@ -511,6 +518,7 @@ const prepareCreation = async ({
   input,
   config,
   runtimeResources,
+  originalityBaseline,
 }: {
   readonly rootDir: string;
   readonly stagingRoot: string;
@@ -518,6 +526,7 @@ const prepareCreation = async ({
   readonly input: ProjectCreateInput;
   readonly config: ProducerConfig;
   readonly runtimeResources: ProjectCreationRuntimeResources;
+  readonly originalityBaseline: SceneOriginalityBaseline;
 }) => {
   const stageRepositoryRoot = join(stagingRoot, "root");
   const projectRoot = `src/projects/${storyId}`;
@@ -728,6 +737,7 @@ const prepareCreation = async ({
     [`${projectRoot}/production/requirements.json`, requirements],
     [`${projectRoot}/production/story-resource-pool.json`, resourcePool],
     [`${projectRoot}/production/global-visual-brief.json`, globalVisual],
+    [`${projectRoot}/${SCENE_ORIGINALITY_BASELINE_PATH}`, originalityBaseline],
     [`${projectRoot}/${PENDING_SCENE_AUTHORING_PATH}`, pending],
     [
       `${projectRoot}/generated/resource-catalog.generated.json`,
@@ -784,6 +794,7 @@ export const createProject = async ({
   env,
   runtimeResources,
   store = { commit: commitStagedProjectCreate },
+  acquireLock = acquireRepositoryOperationLock,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
@@ -793,6 +804,7 @@ export const createProject = async ({
   readonly store?: Readonly<{
     commit: typeof commitStagedProjectCreate;
   }>;
+  readonly acquireLock?: typeof acquireRepositoryOperationLock;
 }) => {
   const rootDir = resolve(rawRootDir);
   const projectId = StoryIdSchema.parse(rawProjectId);
@@ -806,27 +818,31 @@ export const createProject = async ({
   ) {
     throw new Error("Project create input must stay inside the repository.");
   }
-  const lock = await acquireRepositoryOperationLock({
+  const input = ProjectCreateInputSchema.parse(
+    JSON.parse(
+      (
+        await readContainedRegularFile({
+          rootDir,
+          relativePath: relativeInputPath,
+          label: "Project create input",
+        })
+      ).toString("utf8"),
+    ),
+  );
+  assertCaptionAuthoringValid({
+    story: input.story,
+    pathPrefix: ["story"],
+  });
+  if (input.storyId !== projectId) {
+    throw new Error("Project create CLI and input Story identities differ.");
+  }
+  const lock = await acquireLock({
     rootDir,
     ownerId: "project-create",
   });
   let staging: Awaited<ReturnType<typeof createProjectCreateStaging>> | null =
     null;
   try {
-    const input = ProjectCreateInputSchema.parse(
-      JSON.parse(
-        (
-          await readContainedRegularFile({
-            rootDir,
-            relativePath: relativeInputPath,
-            label: "Project create input",
-          })
-        ).toString("utf8"),
-      ),
-    );
-    if (input.storyId !== projectId) {
-      throw new Error("Project create CLI and input Story identities differ.");
-    }
     const configPath = await resolveProducerConfigPathFromEnvironment({
       rootDir,
       env,
@@ -855,6 +871,16 @@ export const createProject = async ({
             storyId: projectId,
           })
         : null;
+    const originalityBaseline =
+      existing === null
+        ? await snapshotWorkspaceSceneOriginalityBaseline({
+            rootDir,
+            subjectStoryId: projectId,
+          })
+        : await readProjectSceneOriginalityBaseline({
+            rootDir,
+            subjectStoryId: projectId,
+          });
     staging = await createProjectCreateStaging({ rootDir });
     const prepared = await prepareCreation({
       rootDir,
@@ -863,6 +889,7 @@ export const createProject = async ({
       input,
       config,
       runtimeResources,
+      originalityBaseline,
     });
     if (existing !== null) {
       const current = await verifyExistingCreation({
@@ -895,6 +922,16 @@ export const createProject = async ({
           expectedCatalogBytes: prepared.aggregateCatalogBytes,
           requireExactFileSet: true,
         });
+        const liveBaseline = await readProjectSceneOriginalityBaseline({
+          rootDir,
+          subjectStoryId: projectId,
+        });
+        if (
+          liveBaseline.baselineFingerprint !==
+          originalityBaseline.baselineFingerprint
+        ) {
+          throw new Error("Created Scene originality baseline is stale.");
+        }
       },
     });
     staging = null;
@@ -906,6 +943,7 @@ export const createProject = async ({
       writtenLogicalPaths: [
         ...prepared.receipt.files.map(({ logicalPath }) => logicalPath),
         `src/projects/${projectId}/${CREATION_RECEIPT_PATH}`,
+        `src/projects/${projectId}/${SCENE_ORIGINALITY_BASELINE_PATH}`,
         PROJECT_CREATE_CATALOG_PATH,
       ].sort((left, right) => left.localeCompare(right)),
       pendingAuthoringRequirements: [PENDING_SCENE_AUTHORING_PATH],
@@ -940,9 +978,13 @@ const readProjectJson = async ({
 export const projectPendingSceneAuthoring = async ({
   rootDir: rawRootDir,
   projectId: rawProjectId,
+  loadCatalogDescriptors,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
+  readonly loadCatalogDescriptors?: Parameters<
+    typeof generateProjectResourceCatalog
+  >[0]["loadDescriptors"];
 }) => {
   const rootDir = resolve(rawRootDir);
   const projectId = StoryIdSchema.parse(rawProjectId);
@@ -982,6 +1024,9 @@ export const projectPendingSceneAuthoring = async ({
         rootDir,
         projectId,
         mode: "write",
+        ...(loadCatalogDescriptors === undefined
+          ? {}
+          : { loadDescriptors: loadCatalogDescriptors }),
       })
     ).catalog,
   );

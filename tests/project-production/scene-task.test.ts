@@ -5,7 +5,12 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { buildProducerTaskSpec } from "@axmorf/studio/contracts";
+import {
+  SCENE_ORIGINALITY_INPUT_ID,
+  buildProducerTaskSpec,
+  buildSceneOriginalityBaseline,
+  buildSceneSourceGraph,
+} from "@axmorf/studio/contracts";
 import { checkSceneTask } from "../../scripts/project-production/application/scene-task-check";
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
 import { createScenePackageInput } from "../fixtures/scene/package-input";
@@ -44,12 +49,21 @@ export default Renderer;
 const createSceneWorkspace = async ({
   rootDir,
   semanticId = "meaning-one",
+  sourceFiles = { "src/Renderer.tsx": rendererSource },
+  originalityEntries = [],
 }: {
   readonly rootDir: string;
   readonly semanticId?: string;
+  readonly sourceFiles?: Readonly<Record<string, string>>;
+  readonly originalityEntries?: readonly unknown[];
 }) => {
   const fixture = createScenePackageInput();
+  const originalityBaseline = buildSceneOriginalityBaseline({
+    subjectStoryId: fixture.task.storyId,
+    entries: originalityEntries,
+  });
   const context = `${JSON.stringify({
+    originalityBaseline,
     scene: { taskInput: fixture.task },
   })}\n`;
   const task = buildProducerTaskSpec({
@@ -60,10 +74,16 @@ const createSceneWorkspace = async ({
     dependencyArtifacts: [],
     inputFingerprints: [
       { id: "read:inputs/context.json", fingerprint: checksum(context) },
-    ],
+      {
+        id: SCENE_ORIGINALITY_INPUT_ID,
+        fingerprint: originalityBaseline.baselineFingerprint,
+      },
+    ].sort((left, right) =>
+      left.id < right.id ? -1 : left.id > right.id ? 1 : 0,
+    ),
     declaredReadSet: ["inputs/context.json"],
     declaredOutputSet: [
-      "src/Renderer.tsx",
+      ...Object.keys(sourceFiles),
       "src/generated/reference-fidelity.generated.json",
       "src/selected-resources.json",
       "src/shot-plan.json",
@@ -71,8 +91,8 @@ const createSceneWorkspace = async ({
       "src/sound-plan.json",
       "src/sync-anchors.json",
       "src/visual-plan.json",
-    ],
-    validatorPolicyVersion: "scene-owner-validator-v2",
+    ].sort(),
+    validatorPolicyVersion: "scene-owner-validator-v3",
   });
   const workspace = await createTaskWorkspace({
     rootDir,
@@ -101,7 +121,11 @@ const createSceneWorkspace = async ({
     join(rootDir, "tsconfig.json"),
     `${JSON.stringify(compilerConfig, null, 2)}\n`,
   );
-  await writeFile(join(workspace, "src/Renderer.tsx"), rendererSource);
+  for (const [logicalPath, source] of Object.entries(sourceFiles)) {
+    const destination = join(workspace, logicalPath);
+    await mkdir(dirname(destination), { recursive: true });
+    await writeFile(destination, source);
+  }
   for (const [logicalPath, value] of Object.entries(outputs)) {
     const destination = join(workspace, logicalPath);
     await mkdir(dirname(destination), { recursive: true });
@@ -156,6 +180,108 @@ test("Scene task rejects an unresolved Renderer import graph", async (context) =
   );
 });
 
+test("Scene task validates and compiles every declared TypeScript source", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-source-graph-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const { task } = await createSceneWorkspace({
+    rootDir,
+    sourceFiles: {
+      "src/Renderer.tsx": `
+import type {SceneRendererProps} from "@axmorf/studio/remotion";
+import {SceneBody} from "./components/SceneBody";
+const Renderer = (props: SceneRendererProps) => <SceneBody width={props.viewportWidth} height={props.viewportHeight} />;
+export default Renderer;
+`,
+      "src/components/SceneBody.tsx": `
+export const SceneBody = ({width, height}: {width: number; height: number}) => <div style={{width, height}} />;
+`,
+    },
+  });
+
+  assert.equal(
+    (await checkSceneTask({ rootDir, taskRevision: task.taskRevision })).status,
+    "task-workspace-valid",
+  );
+});
+
+test("Scene task rejects a complete source graph that duplicates frozen historical ownership", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-originality-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const sources = {
+    "src/Renderer.tsx": rendererSource,
+    "src/helpers/palette.ts": "export const ink = '#111';\n",
+  };
+  const sourceGraphFingerprint = buildSceneSourceGraph(
+    Object.entries(sources).map(([path, source]) => ({
+      path: path.slice("src/".length),
+      source,
+    })),
+  ).sourceGraphFingerprint;
+  const { task } = await createSceneWorkspace({
+    rootDir,
+    sourceFiles: sources,
+    originalityEntries: [
+      {
+        owner: { storyId: "historical-story", meaningId: "opening" },
+        sourceGraphFingerprint,
+      },
+    ],
+  });
+
+  await assert.rejects(
+    checkSceneTask({ rootDir, taskRevision: task.taskRevision }),
+    /duplicates frozen historical ownership: historical-story\/opening/u,
+  );
+});
+
+test("Scene task permits a frozen fingerprint owned by the same Story and meaning", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-originality-owner-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const sourceGraphFingerprint = buildSceneSourceGraph([
+    { path: "Renderer.tsx", source: rendererSource },
+  ]).sourceGraphFingerprint;
+  const { task } = await createSceneWorkspace({
+    rootDir,
+    originalityEntries: [
+      {
+        owner: { storyId: "synthetic-proof", meaningId: "meaning-one" },
+        sourceGraphFingerprint,
+      },
+    ],
+  });
+
+  assert.equal(
+    (await checkSceneTask({ rootDir, taskRevision: task.taskRevision })).status,
+    "task-workspace-valid",
+  );
+});
+
+test("Scene task applies readability policy to declared helper sources", async (context) => {
+  const rootDir = await mkdtemp(
+    join(tmpdir(), "rsp-scene-source-readability-"),
+  );
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const { task } = await createSceneWorkspace({
+    rootDir,
+    sourceFiles: {
+      "src/Renderer.tsx": `
+import type {SceneRendererProps} from "@axmorf/studio/remotion";
+import {SceneBody} from "./SceneBody";
+const Renderer = (_props: SceneRendererProps) => <SceneBody />;
+export default Renderer;
+`,
+      "src/SceneBody.tsx": `
+export const SceneBody = () => <p style={{fontSize: 1}}>Unreadable helper copy</p>;
+`,
+    },
+  });
+
+  await assert.rejects(
+    checkSceneTask({ rootDir, taskRevision: task.taskRevision }),
+    /below the frozen/u,
+  );
+});
+
 test("Scene task rejects the removed Scene-owned readability boundary", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-legacy-boundary-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
@@ -177,6 +303,21 @@ test("Scene task rejects access to Composition dimensions", async (context) => {
   await assert.rejects(
     checkSceneTask({ rootDir, taskRevision: task.taskRevision }),
     /must not own useVideoConfig/u,
+  );
+});
+
+test("Scene task cannot take ownership of GlobalVisual decoration", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-scene-global-visual-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const { task, workspace } = await createSceneWorkspace({ rootDir });
+  await writeFile(
+    join(workspace, "src/Renderer.tsx"),
+    `${rendererSource}\nconst GlobalVisualDecorationLayers = null;\nvoid GlobalVisualDecorationLayers;`,
+  );
+
+  await assert.rejects(
+    checkSceneTask({ rootDir, taskRevision: task.taskRevision }),
+    /must not own GlobalVisualDecorationLayers/u,
   );
 });
 

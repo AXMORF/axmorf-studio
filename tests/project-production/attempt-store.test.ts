@@ -25,10 +25,13 @@ import {
 import type { TaskDiagnosticSnapshot } from "@axmorf/studio/contracts";
 import type { TaskDecisionExplanation } from "@axmorf/studio/contracts";
 import {
+  ExecutionAttemptAuthorityError,
   appendExecutionAttemptDeliveryResult,
   appendExecutionAttemptTaskOutcome,
+  assertExecutionAttemptTaskAuthority,
   claimExecutionAttemptContinuation,
   createExecutionAttemptForPlan,
+  listExecutionAttemptsForStory,
   readExecutionAttempt,
   readExecutionAttemptDiagnosticBaseline,
   readExecutionAttemptProgress,
@@ -182,6 +185,46 @@ test("attempt base persists safe explanations, snapshots, and costs", async (con
     ),
   );
   assert.equal(events.length, 1);
+});
+
+test("attempt listing and task authority stay plan-bound and terminal-aware", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-attempt-authority-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const attempt = await openAttempt(rootDir);
+
+  const listed = await listExecutionAttemptsForStory({
+    rootDir,
+    storyId: attempt.storyId,
+  });
+  assert.deepEqual(
+    listed.map(({ attemptId }) => attemptId),
+    [attempt.attemptId],
+  );
+  const authority = await assertExecutionAttemptTaskAuthority({
+    rootDir,
+    attemptId: attempt.attemptId,
+    task,
+  });
+  assert.equal(authority.snapshot.decision.action, "dispatch-agent");
+
+  await appendExecutionAttemptTaskOutcome({
+    rootDir,
+    attemptId: attempt.attemptId,
+    task,
+    outcome: {
+      outcome: "failed",
+      artifactFingerprint: null,
+      diagnosticCode: "producer-agent-task-failed",
+    },
+  });
+  await assert.rejects(
+    assertExecutionAttemptTaskAuthority({
+      rootDir,
+      attemptId: attempt.attemptId,
+      task,
+    }),
+    ExecutionAttemptAuthorityError,
+  );
 });
 
 test("task and delivery terminal events rebuild progress without mutating attempt.json", async (context) => {

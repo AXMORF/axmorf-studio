@@ -20,6 +20,6 @@ interface owns configuration and status views; Remotion Studio owns live
 preview; neither is a creative authority.
 
 Project source, media, production work, artifacts, attempts, output, delivery,
-and the real `private/producer.config.json` are intentionally local and ignored.
+revision candidates, and the real `private/producer.config.json` are intentionally local and ignored.
 Commit `package.json`, `package-lock.json`, this README, and any instruction
 customizations you want to share.

@@ -10,10 +10,7 @@ import {
   type TaskDiagnosticSnapshot,
 } from "@axmorf/studio/contracts";
 import { serializeCanonicalJson } from "@axmorf/studio/contracts";
-import type {
-  ProducerTaskKind,
-  TaskRevision,
-} from "@axmorf/studio/contracts";
+import type { ProducerTaskKind, TaskRevision } from "@axmorf/studio/contracts";
 import type { ArtifactInspection } from "./invalidation";
 import { missingArtifactInspection } from "./invalidation";
 import { buildProducerTaskGraph, type ProducerTaskNode } from "./task-graph";
@@ -37,6 +34,7 @@ const diagnosticInputAliases: Readonly<Record<string, DiagnosticInputId>> = {
   "generation-input": "generation-input",
   "mastering-policy": "mastering-policy",
   narration: "narration",
+  "originality-baseline": "originality-baseline",
   "provider-attempt": "provider-attempt",
   publishing: "publishing",
   readability: "readability",

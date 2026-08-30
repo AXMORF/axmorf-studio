@@ -236,6 +236,8 @@ const assertForbiddenSource = (
     "ScenePackage",
     "SceneProductionResult",
     "GlobalVisualLayers",
+    "GlobalVisualBaseLayer",
+    "GlobalVisualDecorationLayers",
     "GlobalVisualPackage",
     "FinalAssembly",
     "SemanticTiming",

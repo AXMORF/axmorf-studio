@@ -107,11 +107,16 @@ test("fixed template preparation derives and commits the complete canonical Scen
   const storyId = "template-fixed-proof";
   const meaningId = "configured-intro-scene";
   const durationInFrames = 30;
+  const sceneBody = `
+export const SceneBody = () => <div />;
+`;
   const renderer = `
-const Renderer = () => <div />;
+import {SceneBody} from "./SceneBody";
+const Renderer = () => <SceneBody />;
 export default Renderer;
 `;
   const rendererRepositoryPath = `src/projects/${storyId}/scenes/${meaningId}/Renderer.tsx`;
+  const sceneBodyRepositoryPath = `src/projects/${storyId}/scenes/${meaningId}/SceneBody.tsx`;
   const instance = buildSceneTemplateInstance({
     schemaVersion: 1,
     storyId,
@@ -125,6 +130,7 @@ export default Renderer;
         rendererPath: rendererRepositoryPath,
         files: [
           { sourcePath: rendererRepositoryPath, checksum: digest(renderer) },
+          { sourcePath: sceneBodyRepositoryPath, checksum: digest(sceneBody) },
         ],
       },
     }),
@@ -135,6 +141,7 @@ export default Renderer;
     soundCues: [],
     copiedSourceFiles: [
       { repositoryPath: rendererRepositoryPath, checksum: digest(renderer) },
+      { repositoryPath: sceneBodyRepositoryPath, checksum: digest(sceneBody) },
     ],
     copiedAssetFiles: [],
     visual: {
@@ -302,11 +309,12 @@ export default Renderer;
     ],
     declaredReadSet: ["inputs/context.json"],
     declaredOutputSet: ["src/Renderer.tsx"],
-    validatorPolicyVersion: "scene-template-validator-v2",
+    validatorPolicyVersion: "scene-template-validator-v3",
   });
 
   for (const [relativePath, bytes] of [
     [rendererRepositoryPath, renderer],
+    [sceneBodyRepositoryPath, sceneBody],
     [
       `src/projects/${storyId}/scenes/${meaningId}/scene-template-instance.json`,
       canonical(instance),
@@ -329,6 +337,7 @@ export default Renderer;
   });
   assert.deepEqual(prepared.task.declaredOutputSet, [
     "src/Renderer.tsx",
+    "src/SceneBody.tsx",
     "src/generated/reference-fidelity.generated.json",
     "src/scene-template-instance.json",
     "src/selected-resources.json",

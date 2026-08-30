@@ -44,6 +44,7 @@ const writeProjectData = async ({
     ".producer-attempts",
     ".producer-work",
     ".producer-artifacts",
+    ".producer-revisions",
     "out",
     "deliveries",
   ]) {
@@ -158,6 +159,7 @@ test("selected deletion removes every owned data root and preserves other Projec
     ".producer-attempts/alpha-story",
     ".producer-work/alpha-story",
     ".producer-artifacts/alpha-story",
+    ".producer-revisions/alpha-story",
     "out/alpha-story",
     "deliveries/alpha-story",
     `.producer-runs/${alpha.runId}`,

@@ -1,4 +1,9 @@
-import type { ExecutionAttemptProgress } from "@axmorf/studio/contracts";
+import {
+  PROJECT_REVISION_CONTINUATION_VERSION,
+  ProjectRevisionContinuationResultSchema,
+  buildProjectRevisionPromotionRetryCommand,
+  type ExecutionAttemptProgress,
+} from "@axmorf/studio/contracts";
 import {
   appendExecutionAttemptDeliveryResult,
   claimExecutionAttemptContinuation,
@@ -11,10 +16,16 @@ import {
 } from "../adapters/attempt-event-wait";
 import { convergeProjectProduction } from "./converge-artifacts";
 import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
+import {
+  createLiveProjectProductionScope,
+  type ProductionScope,
+} from "./production-scope";
+import { inspectProjectRevisionCandidateDefinition } from "../../projects/application/project-revision-candidate-store";
+import { promoteProjectRevisionCandidate } from "../../projects/application/project-revision-promotion";
 
 export const DEFAULT_EXECUTION_ATTEMPT_DEADLINE_MS = 60 * 60 * 1_000;
 
-type ContinueProductionDependencies = Readonly<{
+export type ContinueProductionDependencies = Readonly<{
   readProgress?: typeof readExecutionAttemptProgress;
   openEventWait?: (input: {
     readonly rootDir: string;
@@ -30,8 +41,13 @@ type ContinueProductionDependencies = Readonly<{
   }) => Promise<unknown>;
   appendTerminalFailure?: typeof appendExecutionAttemptDeliveryResult;
   converge?: typeof convergeProjectProduction;
+  inspectCandidateRecord?: typeof inspectProjectRevisionCandidateDefinition;
+  promoteCandidate?: typeof promoteProjectRevisionCandidate;
   now?: () => number;
 }>;
+
+const PROMOTION_FAILURE_MESSAGE =
+  "Candidate production succeeded, but promotion did not complete.";
 
 const agentTaskRevisions = (progress: ExecutionAttemptProgress) =>
   new Set(
@@ -67,6 +83,7 @@ export const continueProjectProduction = async (
     revisionId,
     attemptId,
     runtimePolicyManifest,
+    scope: suppliedScope,
     timeoutMs = DEFAULT_EXECUTION_ATTEMPT_DEADLINE_MS,
   }: {
     readonly rootDir: string;
@@ -74,6 +91,7 @@ export const continueProjectProduction = async (
     readonly revisionId: string;
     readonly attemptId: string;
     readonly runtimePolicyManifest?: RuntimePolicyManifest;
+    readonly scope?: ProductionScope;
     readonly timeoutMs?: number;
   },
   dependencies: ContinueProductionDependencies = {},
@@ -87,13 +105,36 @@ export const continueProjectProduction = async (
   const appendTerminalFailure =
     dependencies.appendTerminalFailure ?? appendExecutionAttemptDeliveryResult;
   const converge = dependencies.converge ?? convergeProjectProduction;
+  const inspectCandidateRecord =
+    dependencies.inspectCandidateRecord ??
+    inspectProjectRevisionCandidateDefinition;
+  const promoteCandidate =
+    dependencies.promoteCandidate ?? promoteProjectRevisionCandidate;
   const now = dependencies.now ?? Date.now;
+  const scope =
+    suppliedScope ??
+    createLiveProjectProductionScope({ rootDir, storyId: projectId });
+  if (scope.repositoryRoot !== rootDir || scope.storyId !== projectId) {
+    throw new Error("Execution continuation scope is cross-bound.");
+  }
+  const executionRoot = scope.isolatedRoot;
+  const candidateRecord =
+    scope.kind === "project-revision-candidate"
+      ? await inspectCandidateRecord({ scope })
+      : null;
+  if (
+    candidateRecord !== null &&
+    (candidateRecord.candidateId !== scope.candidateId ||
+      candidateRecord.input.storyId !== projectId)
+  ) {
+    throw new Error("Execution continuation candidate is cross-bound.");
+  }
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) {
     throw new Error("Execution attempt deadline is invalid.");
   }
 
   const initial = await readProgress({
-    rootDir,
+    rootDir: executionRoot,
     storyId: projectId,
     attemptId,
   });
@@ -111,7 +152,7 @@ export const continueProjectProduction = async (
   const deadline = attemptCreatedAt + timeoutMs;
 
   await claimContinuation({
-    rootDir,
+    rootDir: executionRoot,
     storyId: projectId,
     revisionId,
     attemptId,
@@ -119,7 +160,7 @@ export const continueProjectProduction = async (
 
   const failForDeadline = async (cause?: unknown): Promise<never> => {
     await appendTerminalFailure({
-      rootDir,
+      rootDir: executionRoot,
       storyId: projectId,
       revisionId,
       attemptId,
@@ -155,7 +196,7 @@ export const continueProjectProduction = async (
     );
     if (failed !== undefined) {
       await appendTerminalFailure({
-        rootDir,
+        rootDir: executionRoot,
         storyId: projectId,
         revisionId,
         attemptId,
@@ -182,30 +223,105 @@ export const continueProjectProduction = async (
       revisionId,
       attemptId,
       runtimePolicyManifest,
+      scope,
     });
     const terminal = await readProgress({
-      rootDir,
+      rootDir: executionRoot,
       storyId: projectId,
       attemptId,
     });
     if (terminal?.state !== "succeeded") {
       throw new Error("Fixed production convergence did not succeed.");
     }
-    return { done: true as const, result };
+    if (scope.kind === "live-project") {
+      return { done: true as const, result };
+    }
+    if (candidateRecord === null) {
+      throw new Error("Execution continuation candidate record is missing.");
+    }
+    if (
+      (result.status !== "project-production-complete" &&
+        result.status !== "project-production-current") ||
+      result.revisionId !== revisionId
+    ) {
+      throw new Error("Candidate production result is not promotable.");
+    }
+    const expectedDeliveryBuildId = result.delivery.deliveryBuildId;
+    const continuation = {
+      schemaVersion: 1,
+      contractVersion: PROJECT_REVISION_CONTINUATION_VERSION,
+      storyId: projectId,
+      candidateId: scope.candidateId,
+      base: {
+        revisionId: candidateRecord.input.baseRevisionId,
+        deliveryBuildId: candidateRecord.input.baseDeliveryBuildId,
+      },
+      expected: {
+        revisionId: result.revisionId,
+        deliveryBuildId: expectedDeliveryBuildId,
+      },
+      production: {
+        status: result.status,
+        attemptId,
+        state: "succeeded",
+        deliveryStatus: "verified",
+        revisionId: result.revisionId,
+        deliveryBuildId: expectedDeliveryBuildId,
+      },
+    } as const;
+    try {
+      const promotion = await promoteCandidate({
+        rootDir,
+        storyId: projectId,
+        candidateId: scope.candidateId,
+        expectedRevisionId: result.revisionId,
+        expectedDeliveryBuildId,
+      });
+      return {
+        done: true as const,
+        result: ProjectRevisionContinuationResultSchema.parse({
+          ...continuation,
+          status: "project-revision-complete",
+          promotion: { status: promotion.status },
+        }),
+      };
+    } catch {
+      return {
+        done: true as const,
+        result: ProjectRevisionContinuationResultSchema.parse({
+          ...continuation,
+          status: "project-revision-promotion-pending",
+          promotion: {
+            status: "project-revision-promotion-failed",
+            failure: {
+              code: "project-revision-promotion-failed",
+              message: PROMOTION_FAILURE_MESSAGE,
+            },
+          },
+          retryCommand: buildProjectRevisionPromotionRetryCommand({
+            storyId: projectId,
+            candidateId: scope.candidateId,
+            expectedRevisionId: result.revisionId,
+            expectedDeliveryBuildId,
+          }),
+        }),
+      };
+    }
   };
 
   for (;;) {
     // Subscribe before reading so an outcome committed during the read cannot
     // be missed. The fixed process blocks here; no Agent polling is involved.
     const eventWait = openEventWait({
-      rootDir,
+      rootDir: executionRoot,
       storyId: projectId,
       attemptId,
       timeoutMs: Math.max(1, deadline - now()),
     });
     try {
+      await eventWait.ready;
       const progress = await readProgress({
-        rootDir,
+        rootDir: executionRoot,
         storyId: projectId,
         attemptId,
       });
@@ -220,7 +336,7 @@ export const continueProjectProduction = async (
           throw error;
         }
         const latest = await readProgress({
-          rootDir,
+          rootDir: executionRoot,
           storyId: projectId,
           attemptId,
         });

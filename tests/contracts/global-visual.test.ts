@@ -4,9 +4,20 @@ import test from "node:test";
 import {
   GlobalVisualPlanSchema,
   GlobalVisualProjectionSchema,
+  NarrationSpecSchema,
+  RenderSpecSchema,
+  StorySpecSchema,
   createGlobalVisualPlan,
   createGlobalVisualProjection,
+  deriveGlobalVisualLayerPolicy,
+  generateSemanticTiming,
 } from "@axmorf/studio/contracts";
+import {
+  buildValidSealedNarrationManifest,
+  validNarrationSpec,
+  validRenderSpec,
+  validStorySpec,
+} from "../fixtures/narrative";
 
 const sha = (value: string) => `sha256:${value.repeat(64)}`;
 
@@ -61,6 +72,29 @@ test("GlobalVisualPlan only accepts frame treatment and continuity motif semanti
       captionSafeArea: { ...input().captionSafeArea, bottom: 161 },
     }).planFingerprint,
   );
+});
+
+test("GlobalVisual layer policy derives a full base and narrated-only decoration window", () => {
+  const timing = generateSemanticTiming({
+    story: StorySpecSchema.parse(validStorySpec),
+    narration: NarrationSpecSchema.parse(validNarrationSpec),
+    render: RenderSpecSchema.parse(validRenderSpec),
+    sealedNarration: buildValidSealedNarrationManifest(),
+  });
+  const narratedBeats = timing.storyBeats.filter(
+    (beat) => beat.kind === "narrated-scene",
+  );
+  const policy = deriveGlobalVisualLayerPolicy(timing);
+
+  assert.deepEqual(policy.baseFrameRange, {
+    startFrame: 0,
+    endFrame: timing.durationInFrames,
+  });
+  assert.deepEqual(policy.decorationFrameRange, {
+    startFrame: narratedBeats[0]?.startFrame,
+    endFrame: narratedBeats.at(-1)?.endFrame,
+  });
+  assert.equal(policy.decorationFrameOrigin, "window-local-zero");
 });
 
 test("GlobalVisualPlan rejects DSL executable caption and invalid windows", () => {

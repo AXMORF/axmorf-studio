@@ -12,6 +12,7 @@ build
 .producer-attempts/
 .producer-work/
 .producer-artifacts/
+.producer-revisions/
 .project-operation.lock
 private/
 voxcpm/voxcpm.private.json

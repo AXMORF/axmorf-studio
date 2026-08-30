@@ -572,7 +572,7 @@ test("Scene template binding rejects copied-byte and Renderer graph tampering us
       "src/value.ts",
       "src/visual-plan.json",
     ].sort(),
-    validatorPolicyVersion: "scene-template-validator-v2",
+    validatorPolicyVersion: "scene-template-validator-v3",
   });
   const workspace = join(rootDir, "workspace");
   await mkdir(join(workspace, "src"), { recursive: true });

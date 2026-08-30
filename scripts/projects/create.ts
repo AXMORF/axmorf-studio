@@ -6,6 +6,7 @@ import {
   resolveRuntimeResources,
   type RuntimeResources,
 } from "../../packages/studio/src/runtime/runtime-resources";
+import { reportCliFailure } from "../../packages/studio/src/cli/failure";
 
 const usage =
   "Expected --project <storyId> --input <repository-relative-json>.";
@@ -67,9 +68,8 @@ if (
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
   runProjectCreateCli(process.argv.slice(2)).catch((error: unknown) => {
-    process.stderr.write(
-      `${error instanceof Error ? error.message : "Project creation failed."}\n`,
-    );
-    process.exitCode = 1;
+    const report = reportCliFailure(error);
+    process.stderr.write(`${report.serialized}\n`);
+    process.exitCode = report.exitCode;
   });
 }
