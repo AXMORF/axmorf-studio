@@ -5,6 +5,7 @@ import {
   readFile,
   rm,
   stat,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -371,9 +372,17 @@ test("legacy VoxCPM settings migrate into the generic provider without losing mo
   );
 });
 
-test("migration atomically refuses to overwrite an existing producer config", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "rsp-config-migration-"));
-  context.after(() => rm(rootDir, { recursive: true, force: true }));
+test("migration canonicalizes a root alias and atomically refuses overwrite", async (context) => {
+  const parentDir = await mkdtemp(join(tmpdir(), "rsp-config-migration-"));
+  context.after(() => rm(parentDir, { recursive: true, force: true }));
+  const realRoot = join(parentDir, "workspace");
+  const rootDir = join(parentDir, "workspace-alias");
+  await mkdir(realRoot);
+  await symlink(
+    realRoot,
+    rootDir,
+    process.platform === "win32" ? "junction" : "dir",
+  );
   await mkdir(join(rootDir, "voxcpm"), { recursive: true });
   await writeFile(
     join(rootDir, "voxcpm/voxcpm.private.json"),

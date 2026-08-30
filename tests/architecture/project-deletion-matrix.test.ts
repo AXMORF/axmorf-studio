@@ -14,7 +14,9 @@ test("deletion matrix rejects repository and broad roots", () => {
     assert.throws(() => assertIsolatedMatrixRoot(unsafe));
   }
   assert.doesNotThrow(() =>
-    assertIsolatedMatrixRoot("/tmp/rsp-project-deletion-case-a-123456"),
+    assertIsolatedMatrixRoot(
+      join(tmpdir(), "rsp-project-deletion-case-a-123456"),
+    ),
   );
 });
 

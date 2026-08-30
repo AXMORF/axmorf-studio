@@ -1,6 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { realpathSync } from "node:fs";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+} from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { buildProducerConfig } from "@axmorf/studio/contracts";
@@ -13,11 +20,25 @@ import {
   writeProducerConfig,
 } from "./producer-config";
 
-const canonicalPath = (path: string) => {
-  try {
-    return realpathSync(path);
-  } catch {
-    return resolve(path);
+const isNotFound = (error: unknown): error is NodeJS.ErrnoException =>
+  error !== null &&
+  typeof error === "object" &&
+  "code" in error &&
+  error.code === "ENOENT";
+
+const canonicalPath = (rawPath: string) => {
+  let candidate = resolve(rawPath);
+  const missingSegments: string[] = [];
+  for (;;) {
+    try {
+      return resolve(realpathSync(candidate), ...missingSegments);
+    } catch (error) {
+      if (!isNotFound(error)) throw error;
+      const parent = dirname(candidate);
+      if (parent === candidate) return resolve(rawPath);
+      missingSegments.unshift(basename(candidate));
+      candidate = parent;
+    }
   }
 };
 
