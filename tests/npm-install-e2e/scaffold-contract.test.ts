@@ -199,6 +199,10 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     assert.doesNotMatch(version, /^[~^*><=]/u);
   }
   assert.equal(
+    manifest.scripts["project:execution:resolve"],
+    "axmorf project execution resolve",
+  );
+  assert.equal(
     manifest.scripts["project:produce:inspect"],
     "axmorf project produce inspect",
   );

@@ -19,8 +19,9 @@ contracts; no Codex-specific runtime is required.
 The generated Workspace uses `npm run doctor` as its capability gate. An Agent
 may prepare the declared Node.js/npm and host prerequisites, then rerun doctor;
 it must not patch package internals, `node_modules`, exact dependencies, or
-validators to force readiness. macOS 15 ARM64 is the current reference
-environment, not an operating-system allowlist.
+validators to force readiness. macOS 15 ARM64 has native package/scaffold
+evidence, and Ubuntu 24.04 x86_64 has packed production and exact-delivery
+evidence; neither is an operating-system allowlist.
 
 ## Options
 

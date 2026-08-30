@@ -42,8 +42,9 @@
 - `evidence/` 记录发生时的验收证据，不定义 current runtime。
 - `promotions/` 保存尚未完全达到完成定义的提案和实施计划；每份文档必须明确自身批准/实施状态。
 - [npm Workspace 开源方案实施计划](promotions/2026-08-30-npm-workspace-open-source-implementation-plan.md)
-  已完成本地 package/scaffold vertical slice 与 macOS reference-environment evidence；公开发布仍待 exact Delivery、
-  capability-gate 和发布材料验收，不再以固定 OS matrix 作为阻塞条件。
+  已完成本地 package/scaffold vertical slice、macOS native package gate 与
+  [Ubuntu packed production/Delivery E2E](evidence/2026-08-30-ubuntu-npm-workspace-production-acceptance.md)；公开发布
+  仍待 closeout verification、发布账号材料与单独授权，不再以固定 OS matrix 作为阻塞条件。
 - [archive/](archive/README.md) 保存已完成或被取代的 plans/specs，仅供追溯。
 
 ## 管理规则

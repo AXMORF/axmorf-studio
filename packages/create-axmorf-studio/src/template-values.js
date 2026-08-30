@@ -52,6 +52,7 @@ const SCRIPTS = Object.freeze({
   dev: "axmorf dev",
   compositions: "remotion compositions src/index.ts",
   "project:create": "axmorf project create",
+  "project:execution:resolve": "axmorf project execution resolve",
   "project:produce:inspect": "axmorf project produce inspect",
   "project:produce:prepare": "axmorf project produce prepare",
   "project:task:check": "axmorf project task check",

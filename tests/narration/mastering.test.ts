@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { writeFile } from "node:fs/promises";
+import { basename } from "node:path";
 import test from "node:test";
 
 import {
@@ -69,7 +71,12 @@ test("two-pass mastering preserves canonical sample count and verifies output lo
       };
     }
     if (index === 2) {
-      return { exitCode: 0, stdout: outputRaw, stderr: Buffer.alloc(0) };
+      await writeFile(args.at(-1)!, createWavFixture({ rawPcm: outputRaw }));
+      return {
+        exitCode: 0,
+        stdout: Buffer.alloc(0),
+        stderr: Buffer.alloc(0),
+      };
     }
     return {
       exitCode: 0,
@@ -97,13 +104,13 @@ test("two-pass mastering preserves canonical sample count and verifies output lo
   assert.match(calls[1]?.join(" ") ?? "", /loudnorm=I=-17\.75:/u);
   assert.match(calls[1]?.join(" ") ?? "", /measured_I=-18\.77/u);
   assert.match(calls[1]?.join(" ") ?? "", /measured_TP=-0\.25/u);
-  assert.deepEqual(calls[1]?.slice(-5), [
+  assert.deepEqual(calls[1]?.slice(-5, -1), [
     "-acodec",
     "pcm_s16le",
     "-f",
-    "s16le",
-    "pipe:1",
+    "wav",
   ]);
+  assert.equal(basename(calls[1]?.at(-1) ?? ""), "mastered.wav");
 });
 
 test("two-pass mastering biases peak-limited speech toward the requested target", async () => {
@@ -123,7 +130,12 @@ test("two-pass mastering biases peak-limited speech toward the requested target"
       };
     }
     if (index === 2) {
-      return { exitCode: 0, stdout: outputRaw, stderr: Buffer.alloc(0) };
+      await writeFile(args.at(-1)!, createWavFixture({ rawPcm: outputRaw }));
+      return {
+        exitCode: 0,
+        stdout: Buffer.alloc(0),
+        stderr: Buffer.alloc(0),
+      };
     }
     const usedBiasedTarget = calls[1]?.join(" ").includes("loudnorm=I=-17.75:");
     return {

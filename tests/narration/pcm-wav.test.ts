@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { writeFile } from "node:fs/promises";
+import { basename } from "node:path";
 import test from "node:test";
 
 import { normalizeProviderAudio } from "../../scripts/narration/adapters/ffmpeg-normalizer";
@@ -60,7 +62,12 @@ test("normalizer applies provider-neutral speech rate before canonical PCM", asy
     runProcess: async (command, args) => {
       captured.command = command;
       captured.args = args;
-      return { exitCode: 0, stdout: rawPcm, stderr: Buffer.alloc(0) };
+      await writeFile(args.at(-1)!, encodeCanonicalPcmWav(rawPcm));
+      return {
+        exitCode: 0,
+        stdout: Buffer.alloc(0),
+        stderr: Buffer.alloc(0),
+      };
     },
   });
 
@@ -69,7 +76,7 @@ test("normalizer applies provider-neutral speech rate before canonical PCM", asy
   assert.equal(captured.args?.[1], "ffmpeg");
   const audioFilterIndex = captured.args?.indexOf("-af") ?? -1;
   assert.equal(captured.args?.[audioFilterIndex + 1], "atempo=1.15");
-  assert.deepEqual(captured.args?.slice(-10), [
+  assert.deepEqual(captured.args?.slice(-10, -1), [
     "-vn",
     "-ac",
     "1",
@@ -78,9 +85,9 @@ test("normalizer applies provider-neutral speech rate before canonical PCM", asy
     "-acodec",
     "pcm_s16le",
     "-f",
-    "s16le",
-    "pipe:1",
+    "wav",
   ]);
+  assert.equal(basename(captured.args?.at(-1) ?? ""), "canonical.wav");
   assert.equal(
     captured.args?.some((argument) => /silenceremove|atrim/.test(argument)),
     false,
@@ -154,11 +161,14 @@ test("normalizer rejects empty input process failures and empty PCM", async () =
     () =>
       normalizeProviderAudio({
         sourceBytes: Buffer.from("provider"),
-        runProcess: async () => ({
-          exitCode: 0,
-          stdout: Buffer.alloc(0),
-          stderr: Buffer.alloc(0),
-        }),
+        runProcess: async (_command, args) => {
+          await writeFile(args.at(-1)!, Buffer.alloc(0));
+          return {
+            exitCode: 0,
+            stdout: Buffer.alloc(0),
+            stderr: Buffer.alloc(0),
+          };
+        },
       }),
     /empty PCM/i,
   );

@@ -13,9 +13,10 @@ Runtime Pack 或 `rsp` control plane；用户数据只属于生成的 Workspace�
 仓库和两个发布包已采用 Apache-2.0，并补齐 package README、`LICENSE` 与
 `THIRD_PARTY_NOTICES.md`。`@axmorf/studio` 和 `create-axmorf-studio` 当前 registry 查询均未发现公开包；下面的
 `npm create` 是首次发布后的稳定入口。production 与完整 repository `npm audit` 已通过精确传递依赖约束和兼容的
-开发工具更新归零。macOS 15 ARM64 是当前已验证的参考环境；首次发布不再要求固定 OS matrix，其他宿主由 Agent
-准备声明的前置条件，并以生成 Workspace 的 `doctor` capability gate 判定是否 ready。未经明确授权不会执行真实
-publish 或 tag。
+开发工具更新归零。macOS 15 ARM64 已通过原生 package/scaffold gate；Ubuntu 24.04 x86_64 还通过了从真实
+tarball 安装到 provider narration、bounded Agent tasks、Remotion render 与 exact four-file Delivery 的完整验收。
+首次发布不要求固定 OS matrix，其他宿主由 Agent 准备声明的前置条件，并以生成 Workspace 的
+`doctor` capability gate 判定是否 ready。未经明确授权不会执行真实 publish、tag 或 push。
 
 ## 当前主链
 

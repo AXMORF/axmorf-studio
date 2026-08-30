@@ -199,7 +199,20 @@ export const inspectProjectVideo = async ({
   const decodeCommand = await resolveMediaToolCommand({
     rootDir: process.cwd(),
     tool: "ffmpeg",
-    args: ["-v", "error", "-xerror", "-i", absolutePath, "-f", "null", "-"],
+    args: [
+      "-v",
+      "error",
+      "-xerror",
+      "-i",
+      absolutePath,
+      "-c:v",
+      "rawvideo",
+      "-c:a",
+      "pcm_s16le",
+      "-f",
+      "null",
+      "-",
+    ],
   });
   const decoded = await runProcess(decodeCommand.command, decodeCommand.args);
   if (decoded.status !== 0) {
@@ -248,7 +261,18 @@ export const inspectProjectCover = async ({
   const decodeCommand = await resolveMediaToolCommand({
     rootDir: process.cwd(),
     tool: "ffmpeg",
-    args: ["-v", "error", "-xerror", "-i", absolutePath, "-f", "null", "-"],
+    args: [
+      "-v",
+      "error",
+      "-xerror",
+      "-i",
+      absolutePath,
+      "-c:v",
+      "rawvideo",
+      "-f",
+      "null",
+      "-",
+    ],
   });
   const decoded = await runProcess(decodeCommand.command, decodeCommand.args);
   if (decoded.status !== 0) {

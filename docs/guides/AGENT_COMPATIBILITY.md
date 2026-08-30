@@ -35,9 +35,10 @@ task workspace、validator、ArtifactAttestation 和 current delivery，不来�
 
 ## Workspace capability gate
 
-平台兼容不使用预设 OS allowlist，也不要求首次发布前完成固定三平台矩阵。macOS 15 ARM64 是当前 reference
-environment evidence；其他宿主由 Agent 按 package README 准备 Node.js/npm 与声明的宿主前置条件，再以生成
-Workspace 中的 `npm run doctor` 判定当前环境是否 ready。
+平台兼容不使用预设 OS allowlist，也不要求首次发布前完成固定三平台矩阵。macOS 15 ARM64 已提供原生
+package/scaffold evidence，Ubuntu 24.04 x86_64 已提供 packed exact-Delivery E2E evidence；其他宿主由 Agent 按
+package README 准备 Node.js/npm 与声明的宿主前置条件，再以生成 Workspace 中的 `npm run doctor` 判定当前环境
+是否 ready。
 
 Agent 可以使用普通 package manager/version manager 准备环境、用 npm 重装声明依赖、配置 provider 或选择可用
 端口；不得修改 `node_modules`、package internals、精确依赖、lockfile authority、Chromium sandbox 或 validator

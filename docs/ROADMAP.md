@@ -49,18 +49,19 @@ Remotion 和其他第三方包由生成项目按官方 npm dependency 安装，�
 
 本地 vertical slice 已通过 package build/pack、仓库外 creator 默认安装、`npm ci` 重装、doctor、public exports、
 Remotion compositions、Web/API/浏览器 QA 和 zero-provider create/inspect；同一 package/scaffold 主链也已在
-macOS 15 ARM64 原生 runner 上通过。下一阶段门槛是：
+macOS 15 ARM64 原生 runner 上通过。Ubuntu 24.04 x86_64 又从 clean tarballs 完成 provider narration、bounded
+Agent execution、convergence、render 与 exact four-file Delivery，满足 deterministic packed production E2E。
 
-1. macOS 已运行完整 Foundation static/host gates；仍需在 packed Workspace 完成 deterministic exact four-file
-   Delivery E2E；
-2. 已用精确 overrides 与兼容开发工具更新把 production/repository audit 归零，同时保持所有 Remotion packages
-   精确同版；
-3. macOS 15 ARM64 已取得 reference-environment native evidence；首次发布不要求固定 OS matrix，其他宿主由 Agent
-   通过 doctor capability gate 接入，未取得原生证据前只标记为未认证；
-4. 已确认 Apache-2.0、third-party notices、Remotion 独立许可证边界以及 `@axmorf/studio` / `create-axmorf-studio`
-   名称；剩余 provenance/2FA/token 和首次 publish authority 继续独立验收；
-5. 当前 feature branch push 仅获授权用于 macOS 验证；未经用户后续逐项授权，不 tag、不创建 Release、不执行真实
-   npm publish。
+公开发布前剩余门槛是：
+
+1. 从最终提交的 clean source 重建/复核两个 tarballs 与 publish dry-run receipt；
+2. 在同一外部 Workspace 通过 Web verified-Delivery endpoint/viewer 读取 current Delivery，并另行授权后验证受控
+   Project delete；这两项不影响已完成的 package production/Delivery receipt，但仍属于实施计划 closeout；
+3. production/repository audit 已归零，所有 Remotion packages 保持精确同版；
+4. Apache-2.0、third-party notices、Remotion 独立许可证边界以及 `@axmorf/studio` /
+   `create-axmorf-studio` 名称已确认；
+5. npm provenance、2FA/token 与首次 publish authority 仍需单独验收和明确授权；
+6. 未经用户后续授权，不 push、不 tag、不创建 GitHub Release、不执行真实 npm publish。
 
 Desktop 分叉后的非 Desktop correctness fixes 只按行为和 regression tests 选择性移植，不整体 cherry-pick Desktop
 commits。完整任务拆分、package layout、dependency 规则和完成定义见上述实施计划。

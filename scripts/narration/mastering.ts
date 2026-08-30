@@ -24,6 +24,7 @@ import {
   type ProcessRunner,
 } from "./adapters/ffmpeg-normalizer";
 import {
+  decodeCanonicalPcmWav,
   encodeCanonicalPcmWav,
   measureCanonicalPcmWav,
   sha256Bytes,
@@ -194,37 +195,49 @@ export const masterNarrationBytes = async ({
     runProcess,
     masteringPolicy: processingPolicy,
   });
-  const invocation = await resolveMediaToolCommand({
-    rootDir: process.cwd(),
-    tool: "ffmpeg",
-    args: [
-      "-nostdin",
-      "-hide_banner",
-      "-loglevel",
-      "error",
-      "-i",
-      sourcePath,
-      "-af",
-      masterFilter(sourceAnalysis, processingPolicy),
-      "-map_metadata",
-      "-1",
-      "-vn",
-      "-ac",
-      "1",
-      "-ar",
-      String(sourceMeasurement.pcm.sampleRate),
-      "-acodec",
-      "pcm_s16le",
-      "-f",
-      "s16le",
-      "pipe:1",
-    ],
-  });
-  const result = await runProcess(invocation.command, invocation.args);
-  if (result.exitCode !== 0 || result.stdout.length === 0) {
-    throw new Error("FFmpeg narration mastering failed.");
+  const directory = await mkdtemp(join(tmpdir(), "rsp-narration-master-"));
+  const outputPath = join(directory, "mastered.wav");
+  let outputWav: Buffer;
+  try {
+    const invocation = await resolveMediaToolCommand({
+      rootDir: process.cwd(),
+      tool: "ffmpeg",
+      args: [
+        "-nostdin",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        sourcePath,
+        "-af",
+        masterFilter(sourceAnalysis, processingPolicy),
+        "-map_metadata",
+        "-1",
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        String(sourceMeasurement.pcm.sampleRate),
+        "-acodec",
+        "pcm_s16le",
+        "-f",
+        "wav",
+        outputPath,
+      ],
+    });
+    const result = await runProcess(invocation.command, invocation.args);
+    if (result.exitCode !== 0) {
+      throw new Error("FFmpeg narration mastering failed.");
+    }
+    const normalizedWav = await readFile(outputPath);
+    if (normalizedWav.length === 0) {
+      throw new Error("FFmpeg narration mastering returned empty PCM.");
+    }
+    const { rawPcm } = decodeCanonicalPcmWav(normalizedWav);
+    outputWav = encodeCanonicalPcmWav(rawPcm);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
-  const outputWav = encodeCanonicalPcmWav(result.stdout);
   const outputMeasurement = measureCanonicalPcmWav(outputWav);
   if (
     outputMeasurement.sampleFrameCount !== sourceMeasurement.sampleFrameCount

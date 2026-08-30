@@ -489,7 +489,9 @@ Red 必须由目标 contract 缺失造成，不得以网络、npm registry、pro
 - creator install/bootstrap 与 Workspace doctor 是运行时 capability gate；未认证 OS 可以 best-effort 通过同一 gate，
   不用固定 Ubuntu/macOS/Windows matrix 阻塞首次发布；
 - 至少一个明确记录的 reference environment 对同一 source commit 完成 install、typecheck、unit、pack、scaffold、
-  no-provider compositions smoke 与完整 tarball render/Delivery E2E；当前 reference evidence 是 macOS 15 ARM64；
+  no-provider compositions smoke 与完整 tarball render/Delivery E2E；当前 evidence set 包含 macOS 15 ARM64 的
+  package/scaffold native gate 与 Ubuntu 24.04 x86_64 的 packed production/Delivery E2E，最终发布候选仍需从提交后的
+  clean source 重建 receipt；
 - product code 继续不依赖 Bash、Unix socket、POSIX permission literal、DMG/DEB 或平台绝对路径；路径、npm CLI、
   Web/Studio process lifecycle 保留跨平台单元/合同测试，但原生 OS certification 是增量 evidence，不是发布前矩阵；
 - Agent 只能准备声明的 Node.js/npm、普通 dependencies、provider 配置与可用端口；不得改写 package internals、
@@ -536,7 +538,7 @@ Remotion bundle 成功都不能单独作为最终交付证据。
 
 ### 2026-08-30 本地实施回执
 
-- runtime 与 creator 均可 build/typecheck/pack；package boundary 32 项与 root 542 项 tests 通过；
+- runtime 与 creator 均可 build/typecheck/pack；package boundary 与 root 546 项 tests 通过；
 - 从两个真实 `.tgz` 在仓库外运行 creator 默认流程，生成 ordinary npm Workspace，随后删除 `node_modules` 并用
   lockfile `npm ci` 重装；doctor 五项检查与 public `/contracts`、`/remotion` imports 通过；
 - external Workspace 的三个 Remotion compositions、loopback Web static/API/CSP、浏览器导航与响应式无横向溢出
@@ -547,11 +549,17 @@ Remotion bundle 成功都不能单独作为最终交付证据。
   自动修正；实现提交 `2bac738d4b24745b6bd10be386257dff7c60c4d1` 已在 macOS 15 ARM64 原生 runner 完成
   repository/public package gates、pack、外部 Workspace 默认安装、doctor、三个 compositions 和双侧零漏洞 audit，
   [CI run #33291456702](https://github.com/agenticnoob/axmorf-studio/actions/runs/33291456702) 的下载 receipt
-  已复核 tarball SHA-256。该运行现在作为 reference-environment evidence；首次发布不再等待固定 OS matrix，其他
-  宿主由 Agent 通过 Workspace doctor capability gate best-effort 接入。尚未完成 packed Workspace 的真实 provider
-  production/exact four-file Delivery，因此本计划不归档。production 与完整 repository audit 已通过精确 overrides
-  和兼容开发工具更新归零。仓库和两个 child packages 已采用 Apache-2.0，两个 child packages 已移除 `private` 并
-  补齐 package README/LICENSE/third-party notices；真实 publish 仍等待用户单独授权。
+  已复核 tarball SHA-256。该运行现在作为 package/scaffold reference-environment evidence；首次发布不再等待固定 OS
+  matrix，其他宿主由 Agent 通过 Workspace doctor capability gate best-effort 接入；
+- Ubuntu 24.04 x86_64、Node 24.16.0、npm 11.13.0 又从新 pack 的真实 tarballs 创建 clean Workspace，完成 strict
+  Project create、provider narration、四个 bounded Agent tasks、one-shot continuation、convergence、Remotion render
+  与 exact four-file Delivery。terminal 为 `project-production-complete`，完整 identity、tarball/media checksums 与
+  H.264/AAC/PNG facts 见
+  [Ubuntu production acceptance](../evidence/2026-08-30-ubuntu-npm-workspace-production-acceptance.md)；
+- production 与完整 repository audit 已通过精确 overrides 和兼容开发工具更新归零。仓库和两个 child packages
+  已采用 Apache-2.0，两个 child packages 已移除 `private` 并补齐 package README/LICENSE/third-party notices；
+- 同一外部 Workspace 的 verified-Delivery Web endpoint/viewer 与受控 Project delete 串联验收尚未在本轮执行，
+  因此计划暂不归档；真实 push/tag/Release/npm publish 仍等待用户单独授权。
 
 ## 8. 完成定义
 

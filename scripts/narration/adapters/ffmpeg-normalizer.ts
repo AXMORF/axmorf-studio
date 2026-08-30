@@ -1,10 +1,11 @@
 import { spawn } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
   CANONICAL_NARRATION_PCM,
+  decodeCanonicalPcmWav,
   encodeCanonicalPcmWav,
 } from "../domain/pcm-wav";
 import { resolveMediaToolCommand } from "../../shared/media-tool-command";
@@ -60,6 +61,7 @@ export const normalizeProviderAudio = async ({
     join(tmpdir(), "rsp-voxcpm-normalize-"),
   );
   const inputPath = join(temporaryDirectory, "provider-audio");
+  const outputPath = join(temporaryDirectory, "canonical.wav");
   try {
     await writeFile(inputPath, Uint8Array.from(sourceBytes), { flag: "wx" });
     const invocation = await resolveMediaToolCommand({
@@ -84,8 +86,8 @@ export const normalizeProviderAudio = async ({
         "-acodec",
         "pcm_s16le",
         "-f",
-        "s16le",
-        "pipe:1",
+        "wav",
+        outputPath,
       ],
     });
     const result = await runProcess(invocation.command, invocation.args);
@@ -94,10 +96,12 @@ export const normalizeProviderAudio = async ({
         `FFmpeg normalization failed with exit code ${result.exitCode}.`,
       );
     }
-    if (result.stdout.length === 0) {
+    const normalizedWav = await readFile(outputPath);
+    if (normalizedWav.length === 0) {
       throw new Error("FFmpeg normalization returned empty PCM.");
     }
-    return encodeCanonicalPcmWav(result.stdout);
+    const { rawPcm } = decodeCanonicalPcmWav(normalizedWav);
+    return encodeCanonicalPcmWav(rawPcm);
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true });
   }

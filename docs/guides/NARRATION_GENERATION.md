@@ -164,8 +164,10 @@ checksum, sample-frame, chunk, and CaptionCue identities. They never print priva
 - Natural silence inside provider audio is preserved. No `silenceremove`, `atrim`, or other silence
   trimming is allowed.
 - Extra narration pauses come only from authored `explicitPauses` and become zero-valued PCM.
-- FFmpeg normalizes each selected provider response to 48 kHz, mono, s16le PCM. Node code validates the
-  WAV structure, checksum, and positive integer sample-frame count.
+- FFmpeg normalizes each selected provider response to a temporary 48 kHz, mono, s16le PCM WAV. Node code
+  decodes that container and deterministically re-encodes the canonical WAV before validating structure,
+  checksum, and positive integer sample-frame count. Mastering uses the same boundary, so it does not
+  require the bundled FFmpeg build to expose a raw `s16le` muxer.
 - Configured speech rate is applied provider-neutrally before that PCM measurement and is included in
   provider-attempt identity. Configured target LUFS is frozen in the later two-pass mastering policy.
 - Frames come only from cumulative sealed PCM sample boundaries through `pcm-cumulative-ceil-v1` with

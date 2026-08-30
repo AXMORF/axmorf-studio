@@ -110,6 +110,32 @@ test("runtime policy and Workspace configuration have separate fingerprints", as
   );
 });
 
+test("Workspace configuration fingerprints the scaffolded mjs Remotion config", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "rsp-policy-workspace-mjs-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  for (const [path, content] of [
+    ["package.json", JSON.stringify({ name: "workspace-mjs" })],
+    ["package-lock.json", JSON.stringify({ name: "workspace-mjs" })],
+    ["remotion.config.mjs", "export const config = 'before';\n"],
+  ] as const) {
+    await writeFile(join(rootDir, path), content);
+  }
+
+  const before = await snapshotWorkspaceConfiguration({ rootDir });
+  await writeFile(
+    join(rootDir, "remotion.config.mjs"),
+    "export const config = 'after';\n",
+  );
+  const after = await snapshotWorkspaceConfiguration({ rootDir });
+  assert.notEqual(before, after);
+
+  await writeFile(join(rootDir, "remotion.config.ts"), "export {};\n");
+  await assert.rejects(
+    snapshotWorkspaceConfiguration({ rootDir }),
+    /exactly one supported Remotion config/iu,
+  );
+});
+
 test("task policy fingerprints invalidate only scopes containing changed files", async () => {
   const before = await snapshotTaskPolicyFingerprints({
     rootDir: "/unused",

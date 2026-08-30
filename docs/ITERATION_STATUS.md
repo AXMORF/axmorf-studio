@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-30 npm Workspace 本地 vertical slice 与 macOS 15 ARM64 native gate
+> 最后复核：2026-08-30 Ubuntu 24.04 x86_64 packed production E2E 与 macOS 15 ARM64 native gate
 
 ## 当前结论
 
@@ -21,16 +21,17 @@
 
 当前平台策略是 Agent-first capability gate，不是固定 OS matrix：Agent 按 README 创建 Workspace、读取本地
 `AGENTS.md`/Skill、准备 package 声明的 Node.js/npm 与宿主前置条件，再以 `npm run doctor` 判定当前环境 readiness。
-macOS 15 ARM64 是 reference environment evidence，不是 runtime allowlist；其他宿主可以尝试通过同一 gate，但未经
-原生证据不描述为已认证。Agent 不得修改 package internals、精确依赖、sandbox 或 validators 来强行适配。
+macOS 15 ARM64 的 package/scaffold native gate 与 Ubuntu 24.04 x86_64 的 packed exact-Delivery E2E 都是
+reference environment evidence，不是 runtime allowlist；其他宿主可以尝试通过同一 gate，但未经原生证据不描述为
+已认证。Agent 不得修改 package internals、精确依赖、sandbox 或 validators 来强行适配。
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
 补齐 package README/LICENSE/third-party notices。`@axmorf/studio` 与 `create-axmorf-studio` 的公开 registry
 查询当前均为 E404，且用户已确认 `axmorf` npm organization。GitHub 仓库已更名为
 `agenticnoob/axmorf-studio`。production 与完整 repository `npm audit` 已通过 `fast-uri@3.1.6`、
 `nanoid@3.3.18` 精确 overrides 以及 Vite/esbuild/ESLint 兼容更新归零。公开发布尚未执行：macOS 15 ARM64
-reference-environment evidence 已完成，固定 OS matrix 已从首次发布 gate 移除；provenance/2FA/token、tag 与首次
-npm publish 仍需单独授权。
+package/scaffold evidence 与 Ubuntu 24.04 x86_64 exact-Delivery evidence 已完成，固定 OS matrix 已从首次发布 gate
+移除；provenance/2FA/token、push/tag 与首次 npm publish 仍需单独授权。
 
 仓库当前 production authority 已收敛为 ProductionRevision、content-addressed Task DAG、task workspace、
 ArtifactAttestation、reusable Artifact Store、fixed convergence 与 synchronous exact four-file delivery。
@@ -151,6 +152,9 @@ Web static/API/CSP、浏览器交互、zero-provider `project:create` 和只读 
 allowlisted `package.json`/`dist/**`，CLI 保持 executable；host-neutral Skill 扫描未发现特定 Agent host、会话或
 child tool 假设。
 
+生成的 Workspace scripts 现在机械包含 inspect 前必需的 `project:execution:resolve`，并由 scaffold contract
+regression 锁定。
+
 脚手架实现提交 `2bac738d4b24745b6bd10be386257dff7c60c4d1` 已通过
 [macOS npm Workspace gate #33291456702](https://github.com/agenticnoob/axmorf-studio/actions/runs/33291456702)：
 `Darwin arm64`、Node `v24.16.0`、npm `11.13.0` 上完成 repository/public package gates、两个真实 tarball
@@ -158,11 +162,22 @@ pack、全新外部 Workspace 安装、doctor 五项检查、三个 Remotion com
 SHA-256 与 CI receipt 一致。artifact `9726110695` 的 digest 为
 `sha256:2d0a74df869a1ec43ee294640f0bb8e0c7d8dbf7eea426d6ad80b01ab2c16b46`。
 
-本轮未宣称完成真实 provider production、exact four-file Delivery、其他 OS 原生认证或公开发布。未认证宿主按
-capability gate best-effort 接入，不预先阻塞，也不描述为已验证支持。consumer production 与完整 repository audit
-均为 0 finding。Remotion 继续精确锁定 4.0.489；安全处置没有运行
-不受控 `audit fix`，而是固定传递版本并单独升级兼容的开发工具。ESLint 保持 9.39.5，因为 Remotion 当前内置的
-TypeScript ESLint 8.21 peer range 不支持 ESLint 10。
+Ubuntu 24.04 x86_64 随后从新 pack 的 runtime/creator tarballs 创建 clean Workspace，完成 doctor、官方 registry
+零漏洞 audit、strict Project create、execution resolve、inspect/report、provider narration、四个 bounded Agent
+tasks、one-shot continuation、convergence、Remotion render 与 exact four-file Delivery。terminal 为
+`project-production-complete`；H.264/AAC 1080×1920/30fps video、两张固定尺寸 PNG、checksums 与 bundled FFmpeg
+EOF decode 全部通过。完整 receipt 见
+[Ubuntu npm Workspace production acceptance](evidence/2026-08-30-ubuntu-npm-workspace-production-acceptance.md)。
+
+本轮同时修复了 packed boundary 暴露的四个问题：scaffold execution resolver 缺失、bundled FFmpeg 不提供 raw
+`s16le` muxer、scaffolded `remotion.config.mjs` 未进入 Workspace configuration snapshot，以及 EOF decode 默认选择
+缺失的 `wrapped_avframe` encoder。音频现在经 PCM WAV 解码后由 Node 重建 canonical WAV；video/Cover decode
+显式选择 bundled `rawvideo`/`pcm_s16le` encoders；Workspace 必须恰有一个受支持的 `.mjs` 或 `.ts` Remotion config。
+
+未认证宿主仍按 capability gate best-effort 接入，不预先阻塞，也不描述为已验证支持。consumer production 与完整
+repository audit 均为 0 finding。Remotion 继续精确锁定 4.0.489；安全处置没有运行不受控 `audit fix`，而是固定
+传递版本并单独升级兼容的开发工具。ESLint 保持 9.39.5，因为 Remotion 当前内置的 TypeScript ESLint 8.21 peer
+range 不支持 ESLint 10。真实 npm publish、tag 与 push 尚未执行。
 
 focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests 已验证原子 create、inspect
 零写入/零 provider、dirty-only dispatch、精确 direct/dependency/artifact explanation、诊断隔离、安全边界、

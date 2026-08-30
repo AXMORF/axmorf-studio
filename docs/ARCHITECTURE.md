@@ -153,6 +153,10 @@ Remotion/FFmpeg/FFprobe/Studio 统一解析 Workspace-local `@remotion/cli` 的 
 `process.execPath` 启动，不依赖 shell、PATH 或 platform-specific `.bin`。generated Registry/Catalog 在 bundle
 前写入 Workspace，runtime render 不扫描 package、filesystem 或网络。
 
+Workspace configuration snapshot 要求根目录恰有一个 `remotion.config.mjs` 或 `remotion.config.ts`；creator
+生成 `.mjs`，源码 Workspace 可以使用 `.ts`。缺失或同时存在时 fail closed。所选配置与 `package.json`、lockfile
+共同进入独立 configuration fingerprint，不与 package-owned runtime policy 混成同一 identity。
+
 convergence 在任何 live write 前通过 read-only current-plan builder 重新计算 Revision、检查全部 required
 artifacts；它不调用 provider、不创建 workspace 或 planning attempt。Scene/GlobalVisual/Cover roots
 分别 staging 并受控替换；跨 `src`/`public` 操作必须 rollback。物化后重新 hash live exact paths。

@@ -110,16 +110,42 @@ export const snapshotPolicyRoots = async ({
   });
 };
 
+const resolveWorkspaceConfigurationPaths = async (rootDir: string) => {
+  const remotionConfigCandidates = [
+    "remotion.config.mjs",
+    "remotion.config.ts",
+  ] as const;
+  const existingRemotionConfigs: string[] = [];
+  for (const path of remotionConfigCandidates) {
+    try {
+      await lstat(join(rootDir, path));
+      existingRemotionConfigs.push(path);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+  if (existingRemotionConfigs.length !== 1) {
+    throw new Error(
+      "Workspace must contain exactly one supported Remotion config file.",
+    );
+  }
+  return [
+    "package.json",
+    "package-lock.json",
+    existingRemotionConfigs[0]!,
+  ];
+};
+
 export const snapshotWorkspaceConfiguration = async ({
   rootDir,
-  paths = ["package.json", "package-lock.json", "remotion.config.ts"],
+  paths,
 }: {
   readonly rootDir: string;
   readonly paths?: readonly string[];
 }) =>
   snapshotExplicitPolicyPaths({
     rootDir,
-    paths,
+    paths: paths ?? (await resolveWorkspaceConfigurationPaths(rootDir)),
     namespace: "project-production-workspace-configuration",
   });
 
