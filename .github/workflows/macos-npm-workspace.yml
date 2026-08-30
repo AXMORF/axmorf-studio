@@ -61,8 +61,12 @@ jobs:
           set -euo pipefail
           release_root="$RUNNER_TEMP/axmorf-studio-macos-release"
           mkdir -p "$release_root"
-          runtime_name="$(npm pack ./packages/studio --pack-destination "$release_root")"
-          creator_name="$(npm pack ./packages/create-axmorf-studio --pack-destination "$release_root")"
+          npm pack ./packages/studio --pack-destination "$release_root" | \
+            tee "$release_root/runtime-pack.log"
+          npm pack ./packages/create-axmorf-studio --pack-destination "$release_root" | \
+            tee "$release_root/creator-pack.log"
+          runtime_name="$(tail -n 1 "$release_root/runtime-pack.log")"
+          creator_name="$(tail -n 1 "$release_root/creator-pack.log")"
           runtime_tarball="$release_root/$runtime_name"
           creator_tarball="$release_root/$creator_name"
           test -f "$runtime_tarball"
