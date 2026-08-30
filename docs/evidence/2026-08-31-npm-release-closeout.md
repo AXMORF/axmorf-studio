@@ -111,8 +111,10 @@ push 后仍需新的 macOS CI receipt。
 仓库已转移到 `AXMORF/axmorf-studio`，三个 `package.json.repository` 均与 provenance source exact match。新增
 `.github/workflows/npm-publish.yml`：只允许从 exact `v<version>` tag 手动触发，要求二次输入相同 tag，使用 GitHub-hosted
 runner、`id-token: write`、完整 gates、exact tarball checksums、provenance publish，以及“registry 已存在时 integrity
-必须相同”的幂等重跑语义。首次发布仍需 npm scope 权限与 `NPM_TOKEN`；包存在后可分别配置 npm trusted publisher 到
-`AXMORF/axmorf-studio` / `npm-publish.yml` 并移除长效 publish token。
+必须相同”的幂等重跑语义。首次 push 的 GitHub parser receipt 又捕获 job-level `env` 不能引用 `runner.temp`；release
+root 现只在 step-level `env`/input 使用 runner context，不再生成 push-time invalid-workflow run。首次发布仍需 npm scope
+权限与 `NPM_TOKEN`；包存在后可分别配置 npm trusted publisher 到 `AXMORF/axmorf-studio` / `npm-publish.yml` 并移除
+长效 publish token。
 
 ## Controlled Project delete receipt
 

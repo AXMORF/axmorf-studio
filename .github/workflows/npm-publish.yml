@@ -23,7 +23,6 @@ jobs:
     timeout-minutes: 120
     env:
       NPM_CONFIG_REGISTRY: https://registry.npmjs.org
-      RELEASE_ROOT: ${{ runner.temp }}/axmorf-npm-release
     steps:
       - name: Checkout exact release tag
         uses: actions/checkout@v6
@@ -68,6 +67,8 @@ jobs:
       - name: Pack exact release candidates
         id: pack
         shell: bash
+        env:
+          RELEASE_ROOT: ${{ runner.temp }}/axmorf-npm-release
         run: |
           set -euo pipefail
           mkdir -p "$RELEASE_ROOT"
@@ -126,6 +127,8 @@ jobs:
       - name: Publish release summary
         if: always()
         shell: bash
+        env:
+          RELEASE_ROOT: ${{ runner.temp }}/axmorf-npm-release
         run: |
           {
             echo "## npm release"
@@ -146,7 +149,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: npm-release-${{ github.run_id }}
-          path: ${{ env.RELEASE_ROOT }}
+          path: ${{ runner.temp }}/axmorf-npm-release
           if-no-files-found: warn
           compression-level: 0
           retention-days: 30

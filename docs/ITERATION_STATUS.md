@@ -265,7 +265,8 @@ focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests
 配置构建、Remotion bundle/compositions 与 host Project gate 全部 Green；`npm run packages:typecheck` 和 release-focused
 17 tests 与 macOS portability-focused 22 tests 也通过。文档 closeout 后另行重跑 docs links 与 diff checks。GitHub
 Organization transfer、default branch 切换与 publish workflow 已执行；当前 portability patch 仍待 push/macOS receipt，
-真实 npm publish、tag 与 GitHub Release 尚未执行。受控 Project delete 只作用于一次性验收副本。
+push 后同时发现并修复 publish workflow 的 job-level `runner.temp` context 解析错误；真实 npm publish、tag 与 GitHub
+Release 尚未执行。受控 Project delete 只作用于一次性验收副本。
 
 ## 当前非目标
 
