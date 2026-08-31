@@ -22,19 +22,10 @@ validators 判断一次生产是否真正完成。
 
 ## 把这段提示词交给你的 Agent
 
-复制下面整段，只需替换安装位置和 Workspace 名称：
+复制下面一句，只需替换本地目标路径：
 
 ```text
-请帮我在本地安装并验收 AXMORF Studio。
-
-项目地址：https://github.com/AXMORF/axmorf-studio
-Workspace 父目录：<本地绝对路径>
-Workspace 名称：<例如 my-video>
-
-请先阅读项目最新 README 及其引用的当前文档，再按照官方说明准备环境、安装，并确认这个 Workspace 确实可以运行和
-继续使用。本次只完成 Workspace 创建与可用性验收，不开始制作视频；不要绕过项目检查或覆盖现有数据。
-
-完成后请报告 Workspace 路径、安装版本、实际完成的验证及结果、可访问的本地入口，以及任何 blocker。
+请打开 https://github.com/AXMORF/axmorf-studio，按照最新 README 中的步骤在 <本地目标路径，例如 /path/to/my-video> 完成 AXMORF Studio Workspace 的本地搭建与可用性验收，本次不要开始制作视频。
 ```
 
 ## 快速开始

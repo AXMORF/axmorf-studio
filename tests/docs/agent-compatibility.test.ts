@@ -63,9 +63,10 @@ test("mainstream agent entrypoints import one repository authority", async () =>
     (source) => source.match(/```text\n([\s\S]*?)\n```/u)?.[1] ?? "",
   );
   for (const prompt of publicPrompts) {
+    assert.equal(prompt.trim().split(/\r?\n/u).length, 1);
     assert.match(prompt, /https:\/\/github\.com\/AXMORF\/axmorf-studio/u);
     assert.match(prompt, /最新 README|latest README/iu);
-    assert.match(prompt, /不开始制作视频|Stop before video production/iu);
+    assert.match(prompt, /不要?开始制作视频|Stop before video production/iu);
     assert.doesNotMatch(prompt, /npm create|npm run|Node\.js|npm >=/iu);
   }
   assert.match(guide, /其他 shell-capable Agent/u);
@@ -75,7 +76,7 @@ test("mainstream agent entrypoints import one repository authority", async () =>
   assert.match(guide, /README Agent 入口分层/u);
   assert.match(
     guide,
-    /短 Agent prompt[\s\S]*creator template[\s\S]*下一次视频/u,
+    /一句 Agent prompt[\s\S]*creator template[\s\S]*下一次视频/u,
   );
   assert.match(guide, /shared-workspace[\s\S]*controller-io/u);
   assert.match(status, /macOS 15 ARM64.*reference environment/su);

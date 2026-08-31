@@ -7,19 +7,10 @@ The runtime, CLI, contracts, Remotion components, and local Web control center b
 
 ## Recommended: let your agent create a workspace
 
-Most users should use the companion initializer instead of installing this package directly. Give this prompt to a coding agent:
+Most users should use the companion initializer instead of installing this package directly. Give this sentence to a coding agent:
 
 ```text
-Set up and validate a complete local AXMORF Studio workspace.
-
-Project: https://github.com/AXMORF/axmorf-studio
-Workspace parent directory: <absolute local path>
-Workspace name: <for example, my-video>
-
-Read the latest README and its current linked documentation at the project URL. Follow those official instructions to prepare the
-environment, install the workspace, and verify that it runs and is ready for continued use. Stop before video production, do not bypass
-project checks, and do not overwrite existing data. Report the workspace path, installed version, validations actually completed and
-their results, available local entrypoints, and any blocker.
+Open https://github.com/AXMORF/axmorf-studio and follow its latest README to set up and validate a working local AXMORF Studio workspace at <absolute local path>; stop before video production.
 ```
 
 Quick start:

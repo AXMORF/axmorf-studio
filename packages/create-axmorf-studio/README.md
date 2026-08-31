@@ -7,21 +7,10 @@ Create a standalone, local-first, agent-ready AXMORF Studio video workspace.
 
 ## Give this prompt to your agent
 
-Replace the parent directory and workspace name, then paste the block into any coding agent that can edit files and run npm:
+Replace the local target path, then paste this sentence into any coding agent that can edit files and run npm:
 
 ```text
-Set up and validate a complete local AXMORF Studio workspace.
-
-Project: https://github.com/AXMORF/axmorf-studio
-Workspace parent directory: <absolute local path>
-Workspace name: <for example, my-video>
-
-Read the latest README and its current linked documentation at the project URL. Follow those official instructions to prepare the
-environment, install the workspace, and verify that it runs and is ready for continued use. Stop before video production, do not bypass
-project checks, and do not overwrite existing data.
-
-Report the workspace path, installed version, validations actually completed and their results, available local entrypoints, and any
-remaining blocker.
+Open https://github.com/AXMORF/axmorf-studio and follow its latest README to set up and validate a working local AXMORF Studio workspace at <absolute local path>; stop before video production.
 ```
 
 The generated `README.md`, `AGENTS.md`, and `axmorf-video` Skill are versioned with the workspace template, so the agent reads the
