@@ -35,6 +35,26 @@ test("documentation separates active authorities, guides, and archived plans", a
   }
 });
 
+test("the completed npm workspace release plan is archived", async () => {
+  const docsRoot = path.join(process.cwd(), "docs");
+  const fileName =
+    "2026-08-30-npm-workspace-open-source-implementation-plan.md";
+  const [promotions, archived, index, status, roadmap] = await Promise.all([
+    readdir(path.join(docsRoot, "promotions")),
+    readdir(path.join(docsRoot, "archive", "implementation-plans")),
+    readFile(path.join(docsRoot, "README.md"), "utf8"),
+    readFile(path.join(docsRoot, "ITERATION_STATUS.md"), "utf8"),
+    readFile(path.join(docsRoot, "ROADMAP.md"), "utf8"),
+  ]);
+
+  assert.equal(promotions.includes(fileName), false);
+  assert.equal(archived.includes(fileName), true);
+  assert.match(index, /archive\/implementation-plans\/2026-08-30/u);
+  assert.doesNotMatch(index, /仍待 closeout|发布 gates 待完成/u);
+  assert.match(status, /@axmorf\/studio@0\.1\.0[\s\S]*公开发布/u);
+  assert.match(roadmap, /Trusted Publisher[\s\S]*纯 OIDC/u);
+});
+
 test("active production docs expose resolved bounded execution and fixed continuation", async () => {
   const rootDir = process.cwd();
   const operationalPaths = [

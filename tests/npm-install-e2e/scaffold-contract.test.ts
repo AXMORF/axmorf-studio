@@ -307,7 +307,12 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   const workspaceReadme = await readFile(join(workspace, "README.md"), "utf8");
   const workspaceAgents = await readFile(join(workspace, "AGENTS.md"), "utf8");
   assert.match(workspaceReadme, /npm run doctor/u);
+  assert.match(workspaceReadme, /Copy this prompt for your next video/u);
   assert.match(workspaceReadme, /read\s+`AGENTS\.md`/u);
+  assert.match(
+    workspaceReadme,
+    /README\.md[\s\S]*AGENTS\.md[\s\S]*\.agents\/skills\/axmorf-video\/SKILL\.md/u,
+  );
   assert.match(
     workspaceAgents,
     /prepare the declared\s+Node\.js\/npm environment/u,

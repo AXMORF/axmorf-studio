@@ -30,3 +30,9 @@ explanation、Settings diagnostic projection 与 converge read-only replan；旧
 surface 和 active docs/tests 删除，不保留 alias/shim。diagnostics 不进入或改变 production/artifact/delivery
 identity/authority。focused vertical tests 已取得 Green；完整 closeout gate 仍以该实施轮次的最终验证报告为准。
 计划快照见 `2026-08-20-explainable-project-create-production-preparation.md`。
+
+2026-08-30 的 npm Workspace 开源方案完成了 `@axmorf/studio` runtime/CLI package、
+`create-axmorf-studio` creator、host-neutral Workspace instructions/Skill、本地 Web/Remotion Studio 边界、packed
+consumer E2E、Organization transfer、Trusted Publisher 与 `v0.1.0` public release。计划中的发布前状态仅为历史
+快照；current release facts 见 [`ITERATION_STATUS.md`](../../ITERATION_STATUS.md)。计划快照见
+`2026-08-30-npm-workspace-open-source-implementation-plan.md`。

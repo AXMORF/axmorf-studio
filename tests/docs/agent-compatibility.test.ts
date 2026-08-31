@@ -52,10 +52,17 @@ test("mainstream agent entrypoints import one repository authority", async () =>
   assert.match(agents, /project:task:bind/u);
   assert.match(readme, /docs\/guides\/AGENT_COMPATIBILITY\.md/u);
   assert.match(readme, /`doctor` capability gate/u);
+  assert.match(readme, /把这段提示词交给你的 Agent/u);
+  assert.match(
+    readme,
+    /README\.md、AGENTS\.md[\s\S]*\.agents\/skills\/axmorf-video\/SKILL\.md/u,
+  );
   assert.match(guide, /其他 shell-capable Agent/u);
   assert.match(guide, /不依赖.*Agent API|不创建 Agent/su);
   assert.match(guide, /Workspace capability gate/u);
   assert.match(guide, /不得修改 `node_modules`/u);
+  assert.match(guide, /README Agent 入口/u);
+  assert.match(guide, /prompt 只携带[\s\S]*不复制下面的 production contract/u);
   assert.match(guide, /shared-workspace[\s\S]*controller-io/u);
   assert.match(status, /macOS 15 ARM64.*reference environment/su);
   assert.match(workflow, /Resolved execution mode/u);

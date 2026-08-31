@@ -40,7 +40,7 @@ capacity 时，生产在 prepare 前阻塞；不自动回退或伪造 child comp
 
 ## Workspace capability gate
 
-平台兼容不使用预设 OS allowlist，也不要求首次发布前完成固定三平台矩阵。macOS 15 ARM64 已提供原生
+平台兼容不使用预设 OS allowlist，也不要求固定三平台矩阵。macOS 15 ARM64 已提供原生
 package/scaffold evidence，Ubuntu 24.04 x86_64 已提供 packed exact-Delivery E2E evidence；其他宿主由 Agent 按
 package README 准备 Node.js/npm 与声明的宿主前置条件，再以生成 Workspace 中的 `npm run doctor` 判定当前环境
 是否 ready。
@@ -49,6 +49,13 @@ Agent 可以使用普通 package manager/version manager 准备环境、用 npm 
 端口；不得修改 `node_modules`、package internals、精确依赖、lockfile authority、Chromium sandbox 或 validator
 来制造 Green。doctor 失败且声明能力无法满足时，必须报告 external blocker。doctor Green 只证明当前 Workspace
 的静态 readiness，不是 production completion、Delivery evidence 或对整个操作系统家族的认证。
+
+## README Agent 入口
+
+root README、两个 package README 与 creator template 提供可复制的短 Agent prompt。prompt 只携带 Workspace
+位置、用户的视频需求、读取当前本地文档和需单独授权的外部/破坏性操作；它不复制下面的 production contract。
+Agent 进入 Workspace 后，以该版本生成的 `README.md`、`AGENTS.md`、Workspace-local Skill、按阶段 references 与
+结构化 CLI 输出为准，因此 npm 页面或 Agent 记忆中的旧命令不能覆盖当前本地 authority。
 
 ## 通用视频入口
 

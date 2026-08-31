@@ -2,7 +2,7 @@
 
 > 文档类型：唯一导航入口
 >
-> 最后复核：2026-08-30
+> 最后复核：2026-08-31
 
 先按问题选择文档，不要从历史计划或 evidence 反推 current implementation。
 
@@ -42,12 +42,10 @@
 
 - `evidence/` 记录发生时的验收证据，不定义 current runtime。
 - `promotions/` 保存尚未完全达到完成定义的提案和实施计划；每份文档必须明确自身批准/实施状态。
-- [npm Workspace 开源方案实施计划](promotions/2026-08-30-npm-workspace-open-source-implementation-plan.md)
-  已完成本地 package/scaffold vertical slice、macOS native package gate 与
-  [Ubuntu packed production/Delivery E2E](evidence/2026-08-30-ubuntu-npm-workspace-production-acceptance.md)，并在
-  新增 production contracts 后完成
-  [Ubuntu current-feature re-acceptance](evidence/2026-08-30-ubuntu-npm-current-feature-reacceptance.md)；公开发布
-  仍待 closeout verification、发布账号材料与单独授权，不再以固定 OS matrix 作为阻塞条件。
+- npm Workspace 开源方案已经完成 `v0.1.0` public release 并
+  [归档实施计划](archive/implementation-plans/2026-08-30-npm-workspace-open-source-implementation-plan.md)；当前发布事实以
+  [ITERATION_STATUS.md](ITERATION_STATUS.md) 为准，验收过程见
+  [npm release closeout](evidence/2026-08-31-npm-release-closeout.md)。
 - [archive/](archive/README.md) 保存已完成或被取代的 plans/specs，仅供追溯。
 
 ## 管理规则

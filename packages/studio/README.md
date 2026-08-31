@@ -1,32 +1,43 @@
 # @axmorf/studio
 
-`@axmorf/studio` is the runtime package behind AXMORF Studio workspaces. It
-provides the `axmorf` CLI, production contracts, fixed production controllers,
-Remotion runtime components, package-owned resources, and the local Web control
-center.
+The runtime, CLI, contracts, Remotion components, and local Web control center behind AXMORF Studio workspaces.
 
-Most users should create a workspace with the companion initializer instead of
-installing this package by hand:
+[![npm](https://img.shields.io/npm/v/%40axmorf%2Fstudio)](https://www.npmjs.com/package/@axmorf/studio)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
+## Recommended: let your agent create a workspace
+
+Most users should use the companion initializer instead of installing this package directly. Give this prompt to a coding agent:
+
+```text
+Create an AXMORF Studio workspace named <workspace-name> and use it to produce this video: <video brief>.
+
+Run npm create axmorf-studio@latest <workspace-name> -- --yes. Enter the generated workspace, then read its current README.md,
+AGENTS.md, .agents/skills/axmorf-video/SKILL.md, and the references required by that Skill. Run npm run doctor and follow the
+workspace-local instructions and structured CLI output end to end. Ask before provider cost or an external/destructive action, and
+only report completion after the fixed workflow verifies the exact four-file Delivery. Do not clone the AXMORF source repo, install
+@axmorf/studio globally, or patch package internals or validators.
+```
+
+Manual equivalent:
 
 ```bash
-npm create axmorf-studio@latest my-video
+npm create axmorf-studio@latest my-video -- --yes
 cd my-video
+npm run doctor
 npm run dev
 ```
 
 ## Public surface
 
 - `@axmorf/studio` — runtime metadata and workspace helpers
-- `@axmorf/studio/contracts` — stable data contracts, including strict Project
-  revision/authoring validation, Scene originality, GlobalVisual layer policy,
-  TaskExecutionContract, and attempt-bound TaskWorkerBinding families
+- `@axmorf/studio/contracts` — supported versioned data contracts
 - `@axmorf/studio/remotion` — supported Remotion components and helpers
-- `axmorf` — workspace CLI used by generated npm scripts
+- `axmorf` — the workspace CLI used by generated npm scripts
 
-Package internals are not public API. A generated workspace owns its projects,
-media, private configuration, production artifacts, output, and deliveries.
-Create, revise, recover, and produce through its generated npm scripts and
-Workspace-local Skill; do not reconstruct package-internal commands.
+Package internals are not public API. A generated workspace owns its Projects, media, private configuration, artifacts, output, and
+Deliveries. Create, revise, recover, and produce through its npm scripts and Workspace-local Skill; do not reconstruct internal CLI
+commands.
 
 ## Requirements
 
@@ -34,19 +45,19 @@ Workspace-local Skill; do not reconstruct package-internal commands.
 - npm 10 or newer
 - the exact Remotion and React peer versions declared in `package.json`
 
-The package does not bundle `node_modules` or vendor Remotion. The creator
-installs the required third-party packages as ordinary exact npm dependencies in
-the generated workspace.
+This package does not vendor `node_modules` or Remotion. The creator installs the required third-party packages as exact ordinary npm
+dependencies and generates a consumer-owned lockfile. The creator and `axmorf doctor` are the capability gate for the current host.
 
-The creator and `axmorf doctor` form the runtime capability gate. Agents may
-prepare the declared host environment, but unsupported host conditions must
-remain explicit failures; modifying package internals, exact dependencies, or
-validators is not environment adaptation. Native evidence for a reference
-environment does not restrict installation on other operating systems.
+## Documentation
+
+- [Project overview and Agent prompt](https://github.com/AXMORF/axmorf-studio#readme)
+- [Agent compatibility](https://github.com/AXMORF/axmorf-studio/blob/HEAD/docs/guides/AGENT_COMPATIBILITY.md)
+- [Production workflow](https://github.com/AXMORF/axmorf-studio/blob/HEAD/docs/PRODUCTION_WORKFLOW.md)
+- [Local Delivery](https://github.com/AXMORF/axmorf-studio/blob/HEAD/docs/guides/LOCAL_DELIVERY.md)
+
+For production, prefer the current generated Workspace documents because they match the installed runtime version.
 
 ## License
 
-AXMORF Studio source in this package is licensed under Apache-2.0. Third-party
-dependencies retain their own licenses; see `THIRD_PARTY_NOTICES.md` and each
-installed package's metadata and license files. Remotion is not relicensed by
-AXMORF Studio.
+AXMORF Studio source in this package is licensed under [Apache-2.0](LICENSE). Third-party dependencies retain their own licenses; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and each installed package's metadata. Remotion is not relicensed by AXMORF Studio.

@@ -1,8 +1,11 @@
 # npm Workspace 开源方案实施计划
 
-> 文档类型：已批准方向的实施计划，不是 current implementation authority
+> 文档类型：已完成实施计划归档，不是 current implementation authority
 >
-> 状态：本地 vertical slice 已实施；公开发布 gates 待完成
+> 状态：已完成并归档
+>
+> 归档说明：方案已完成 `v0.1.0` tag、GitHub Release、双包 npm public publish、Organization transfer 与
+> Trusted Publisher 配置；下文保留实施时的任务拆分和阶段性状态，仅供追溯。
 >
 > 日期：2026-08-30
 >
@@ -555,14 +558,14 @@ Remotion bundle 成功都不能单独作为最终交付证据。
   Project create、provider narration、四个 bounded Agent tasks、one-shot continuation、convergence、Remotion render
   与 exact four-file Delivery。terminal 为 `project-production-complete`，完整 identity、tarball/media checksums 与
   H.264/AAC/PNG facts 见
-  [Ubuntu production acceptance](../evidence/2026-08-30-ubuntu-npm-workspace-production-acceptance.md)；
+  [Ubuntu production acceptance](../../evidence/2026-08-30-ubuntu-npm-workspace-production-acceptance.md)；
 - production 与完整 repository audit 已通过精确 overrides 和兼容开发工具更新归零。仓库和两个 child packages
   已采用 Apache-2.0，两个 child packages 已移除 `private` 并补齐 package README/LICENSE/third-party notices；
 - 同一外部 Workspace 的 packed production、verified-Delivery Web endpoint/viewer 与用户另行授权的受控 Project
   delete 已完成串联验收；fresh consumer install/lockfile replay、双包 publish dry-run 和完整 release gates 也已通过。
-  完整事实见 [npm release closeout](../evidence/2026-08-31-npm-release-closeout.md)。实现计划已完成；GitHub push、
-  Organization transfer、default branch 与 publish workflow 已执行，真实 tag/Release/npm publish 作为剩余外部
-  发布操作单独记录。
+  完整事实见 [npm release closeout](../../evidence/2026-08-31-npm-release-closeout.md)。实现计划、GitHub push、
+  Organization transfer、default branch、publish workflow、真实 tag/Release/npm publish 与 Trusted Publisher
+  配置均已完成。
 
 ## 8. 完成定义
 
@@ -585,8 +588,8 @@ Remotion bundle 成功都不能单独作为最终交付证据。
 - OSI license、third-party notices 和 Remotion 独立许可证边界明确；
 - active docs、Skill、README、Roadmap、Architecture、Workflow、Status 与真实 package surface 一致；
 - current checkout 中原有未跟踪 Desktop 遗留和任何用户 Project/Delivery 均未被纳入、修改或删除；
-- push、tag、GitHub Release 或真实 npm publish 都必须有用户明确授权；当前已授权并执行 push，tag/Release/npm
-  publish 仍待外部门禁。
+- push、tag、GitHub Release 或真实 npm publish 都必须有用户明确授权；该实施轮已获得授权并完成
+  push、tag、GitHub Release 与双包 npm publish。
 
 ## 9. 建议提交切片
 
