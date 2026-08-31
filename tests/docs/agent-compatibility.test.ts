@@ -56,18 +56,17 @@ test("mainstream agent entrypoints import one repository authority", async () =>
   assert.match(agents, /project:task:bind/u);
   assert.match(readme, /docs\/guides\/AGENT_COMPATIBILITY\.md/u);
   assert.match(readme, /`doctor` capability gate/u);
-  assert.match(readme, /把这段安装提示词交给你的 Agent/u);
-  assert.match(
-    readme,
-    /README\.md、AGENTS\.md[\s\S]*\.agents\/skills\/axmorf-video\/SKILL\.md/u,
+  assert.match(readme, /把这段提示词交给你的 Agent/u);
+  assert.match(readme, /## 快速开始/u);
+  assert.doesNotMatch(readme, /## 人工快速开始/u);
+  const publicPrompts = [readme, runtimeReadme, creatorReadme].map(
+    (source) => source.match(/```text\n([\s\S]*?)\n```/u)?.[1] ?? "",
   );
-  for (const source of [readme, runtimeReadme, creatorReadme]) {
-    assert.match(source, /https:\/\/github\.com\/AXMORF\/axmorf-studio/u);
-    assert.match(
-      source,
-      /npm run doctor[\s\S]*npm run compositions[\s\S]*npm run dev/u,
-    );
-    assert.match(source, /不创建视频 Project|stops before video production/iu);
+  for (const prompt of publicPrompts) {
+    assert.match(prompt, /https:\/\/github\.com\/AXMORF\/axmorf-studio/u);
+    assert.match(prompt, /最新 README|latest README/iu);
+    assert.match(prompt, /不开始制作视频|Stop before video production/iu);
+    assert.doesNotMatch(prompt, /npm create|npm run|Node\.js|npm >=/iu);
   }
   assert.match(guide, /其他 shell-capable Agent/u);
   assert.match(guide, /不依赖.*Agent API|不创建 Agent/su);
@@ -76,7 +75,7 @@ test("mainstream agent entrypoints import one repository authority", async () =>
   assert.match(guide, /README Agent 入口分层/u);
   assert.match(
     guide,
-    /安装 Agent prompt[\s\S]*creator template[\s\S]*下一次视频/u,
+    /短 Agent prompt[\s\S]*creator template[\s\S]*下一次视频/u,
   );
   assert.match(guide, /shared-workspace[\s\S]*controller-io/u);
   assert.match(status, /macOS 15 ARM64.*reference environment/su);

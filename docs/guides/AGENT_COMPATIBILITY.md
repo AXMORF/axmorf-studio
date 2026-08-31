@@ -52,9 +52,9 @@ Agent 可以使用普通 package manager/version manager 准备环境、用 npm 
 
 ## README Agent 入口分层
 
-root README 与两个 package README 提供同一类安装 Agent prompt：必须包含公开项目 URL、Workspace 父目录和名称，
-只运行 creator 默认安装并验证 `doctor`、`compositions`、Web 控制中心与 Remotion Studio startup。这一入口明确停止在
-ready Workspace，不创建 Project、不调用 provider、不渲染视频，也不 clone 源码或 global install runtime。
+root README 与两个 package README 提供同一类短 Agent prompt：只携带公开项目 URL、Workspace 父目录和名称、创建与
+可用性验收目标，以及“不开始制作视频”的停止边界。环境要求、安装命令和验证步骤由项目最新 README 及其当前引用
+拥有，prompt 不再复制；Agent 必须先读这些资料再按官方说明执行，并报告实际验收证据。
 
 creator template 生成的 Workspace README 才提供“下一次视频”的 prompt。Agent 此时以该版本本地的 `README.md`、
 `AGENTS.md`、Workspace-local Skill、按阶段 references 与结构化 CLI 输出为执行 authority；public README 或 Agent

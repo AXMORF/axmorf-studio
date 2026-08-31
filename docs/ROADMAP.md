@@ -51,10 +51,9 @@ transfer、default branch、provenance workflow 与 Trusted Publisher 配置均�
 [ITERATION_STATUS.md](ITERATION_STATUS.md) 与
 [npm release closeout](evidence/2026-08-31-npm-release-closeout.md) 维护。
 
-当前用户入口是 `npm create axmorf-studio@latest <name>`，或者复制 public README 中带项目 URL 的安装 Agent
-prompt。该 prompt 只创建完整 Workspace 并通过 doctor、compositions 与本地 Web/Studio startup 验证可用，不创建
-Project 或开始视频生产。Agent 进入生成的 Workspace 后必须读取当前版本的 `README.md`、`AGENTS.md` 和
-Workspace-local Skill；Workspace ready 后，generated README 的独立视频 prompt 才负责接收创作需求。
+当前用户入口是 README 的“快速开始”，或者复制带项目 URL、Workspace 位置、创建/验收目标和停止边界的短 Agent
+prompt。prompt 不复制环境、安装和验证步骤；Agent 先读取项目最新 README 及其当前引用，再按官方说明创建并验收
+Workspace。Workspace ready 后，generated README 的独立视频 prompt 才负责接收创作需求。
 
 下一版本的 release gate 是：
 

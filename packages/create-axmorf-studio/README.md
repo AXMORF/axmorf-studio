@@ -7,7 +7,7 @@ Create a standalone, local-first, agent-ready AXMORF Studio video workspace.
 
 ## Give this prompt to your agent
 
-Replace the parent directory and workspace name, then paste the whole block into any coding agent that can edit files and run npm:
+Replace the parent directory and workspace name, then paste the block into any coding agent that can edit files and run npm:
 
 ```text
 Set up and validate a complete local AXMORF Studio workspace.
@@ -16,19 +16,12 @@ Project: https://github.com/AXMORF/axmorf-studio
 Workspace parent directory: <absolute local path>
 Workspace name: <for example, my-video>
 
-This task stops before video production: do not create a Project, call a TTS/provider, or render a video.
+Read the latest README and its current linked documentation at the project URL. Follow those official instructions to prepare the
+environment, install the workspace, and verify that it runs and is ready for continued use. Stop before video production, do not bypass
+project checks, and do not overwrite existing data.
 
-Read the latest README at the project URL, verify Node.js >= 20.19 and npm >= 10, then enter the parent directory and run:
-npm create axmorf-studio@latest <workspace-name> -- --yes
-
-Use the default install flow; do not use --no-install, clone the source repository, or install @axmorf/studio globally. Enter the new
-workspace and read its current README.md, AGENTS.md, and .agents/skills/axmorf-video/SKILL.md. Run npm run doctor and
-npm run compositions. Start npm run dev, wait for both the Web control center and Remotion Studio to become ready, verify their local
-URLs, then stop the services cleanly unless I asked you to keep them running.
-
-Do not patch node_modules, package internals, exact dependencies, the lockfile authority, Chromium sandbox, or validators. Report the
-absolute workspace path, Node/npm and @axmorf/studio versions, doctor result, discovered compositions, verified Web/Studio URLs, and
-any remaining blocker.
+Report the workspace path, installed version, validations actually completed and their results, available local entrypoints, and any
+remaining blocker.
 ```
 
 The generated `README.md`, `AGENTS.md`, and `axmorf-video` Skill are versioned with the workspace template, so the agent reads the

@@ -95,11 +95,10 @@ decode 全部通过后才替换。相同完整 identity 是只读 no-op。
 
 ## 5. 用户体验目标
 
-- 用户只需复制 public README 的安装 Agent prompt，提供 Workspace 父目录和名称。prompt 包含项目 URL，并明确只创建、
-  安装和验收 Workspace：Agent 阅读最新项目 README 后运行 creator，进入 Workspace 读取当前安装版本的 `README.md`、
-  `AGENTS.md` 与 Workspace-local Skill，再通过 `npm run doctor`、`npm run compositions` 和本地 `npm run dev` startup
-  验证确认可运行；这一阶段不创建 Project、不调用 provider、不渲染视频。环境适配不得修改 package internals、精确
-  依赖或 validators。Workspace ready 后，用户才通过 generated README 的视频 prompt 提交具体创作需求。
+- 用户只需复制 public README 的短 Agent prompt，提供项目 URL、Workspace 父目录和名称，并要求创建与验收一个完整
+  可用的本地 Workspace。prompt 不重复环境版本、安装命令或验证步骤；Agent 必须先读取项目最新 README 及其当前引用，
+  再按官方说明执行并报告实际证据。这一阶段不开始制作视频，也不得绕过项目检查。Workspace ready 后，用户才通过
+  generated README 的视频 prompt 提交具体创作需求。
 - settings 列出 current source Projects，展示 Revision、task reused/dirty/blocked、latest attempt diagnostic
   和 current four-file delivery，不把 output-only 目录伪装成 Project。
 - 局部修改只重做真正 dirty 的创作或媒体。terminal failed attempt 永不重开；显式 read-only/zero-provider

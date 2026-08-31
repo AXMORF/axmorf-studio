@@ -42,11 +42,11 @@ gate 与 GitHub Release 均已完成；首次发布外部门禁归零。两个 p
 `AXMORF/axmorf-studio` / `npm-publish.yml`，publish workflow 已移除 `NODE_AUTH_TOKEN`；下一实际版本负责验证纯 OIDC
 publish，验证前临时 token 只保留为人工 rollback，不再进入 workflow。
 
-`v0.1.0` 后的 current source 已把 README Agent 入口分成两个阶段：root 与两个 package README 的 prompt 带
-`https://github.com/AXMORF/axmorf-studio`，只负责创建完整 Workspace，并以 doctor、compositions 和本地 Web/Studio
-startup 验证可用；不创建 Project、不调用 provider、不渲染视频。creator template README 才在 ready Workspace 中
-提供下一次视频 prompt，并要求 Agent 读取当前安装版本的 README、`AGENTS.md`、Skill 与按阶段 references。该更新会随
-下一实际 package version 进入 npm registry；已发布的 `0.1.0` tarball 保持 immutable。
+`v0.1.0` 后的 current source 已把 README Agent 入口分成两个阶段：root 与两个 package README 使用只携带项目 URL、
+Workspace 位置、创建/验收目标和停止边界的短 prompt；具体环境、安装与验证步骤不在 prompt 中重复，由 Agent 先读取
+项目最新 README 及其当前引用后执行。creator template README 才在 ready Workspace 中提供下一次视频 prompt，并要求
+Agent 读取当前安装版本的 README、`AGENTS.md`、Skill 与按阶段 references。该更新会随下一实际 package version 进入
+npm registry；已发布的 `0.1.0` tarball 保持 immutable。
 
 仓库当前 production authority 已收敛为 ProductionRevision、content-addressed Task DAG、task workspace、
 ArtifactAttestation、reusable Artifact Store、fixed convergence 与 synchronous exact four-file delivery。

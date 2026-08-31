@@ -16,17 +16,13 @@ Project: https://github.com/AXMORF/axmorf-studio
 Workspace parent directory: <absolute local path>
 Workspace name: <for example, my-video>
 
-Read the latest project README, verify Node.js >= 20.19 and npm >= 10, then run
-npm create axmorf-studio@latest <workspace-name> -- --yes from the parent directory. Use the default install flow; do not use
---no-install, clone the source repo, or install @axmorf/studio globally. Inside the new workspace, read README.md, AGENTS.md, and
-.agents/skills/axmorf-video/SKILL.md; run npm run doctor and npm run compositions; then start npm run dev and verify both local Web
-and Remotion Studio URLs before stopping it cleanly.
-
-This task stops before video production. Do not create a Project, call a provider, render video, or patch package internals,
-dependencies, sandbox, or validators. Report the workspace path, installed versions, checks, verified URLs, and blockers.
+Read the latest README and its current linked documentation at the project URL. Follow those official instructions to prepare the
+environment, install the workspace, and verify that it runs and is ready for continued use. Stop before video production, do not bypass
+project checks, and do not overwrite existing data. Report the workspace path, installed version, validations actually completed and
+their results, available local entrypoints, and any blocker.
 ```
 
-Manual equivalent:
+Quick start:
 
 ```bash
 npm create axmorf-studio@latest my-video -- --yes
