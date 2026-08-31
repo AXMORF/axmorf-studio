@@ -142,7 +142,9 @@ runner、`id-token: write`、完整 gates、exact tarball checksums、provenance
 root 现只在 step-level `env`/input 使用 runner context，不再生成 push-time invalid-workflow run。首次发布仍需 npm scope
 权限与 `NPM_TOKEN`；`v0.1.0` 首次发布已完成。实际发布暴露 npm 新包写入成功后 packument 短暂 E404，workflow 现对
 post-publish public integrity 执行 bounded retry，并输出 portable checksum receipt。两个包可分别配置 npm trusted
-publisher 到 `AXMORF/axmorf-studio` / `npm-publish.yml`，确认 OIDC 后移除临时 publish token。
+publisher 到 `AXMORF/axmorf-studio` / `npm-publish.yml`。用户已确认两项 npm Trusted Publisher 配置完成；workflow 已
+移除 `NODE_AUTH_TOKEN`，后续 publish 只允许 npm CLI 使用 GitHub OIDC。临时 Organization secret/token 保留到下一版本
+真实 OIDC publish Green，随后再撤销。
 
 ## Controlled Project delete receipt
 

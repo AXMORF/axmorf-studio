@@ -82,6 +82,7 @@ production/current Delivery、verified-Delivery endpoint 和桌面/窄屏浏览�
    delayed watcher/canonical test path 已有 Green receipt，后续解包比较发现的 creator ignored-placeholder 污染也已锁入
    package source/checker；最终 exact release commit 的 macOS gate `#33331148535` 与 npm publish gate `#33362584883`
    均已 Green，Linux/macOS tarball 逐字节相同；首次 registry 可见性延迟已转为 bounded retry 与 portable checksum receipt；
+   两个 package 的 Trusted Publisher 已配置，workflow 已切为纯 OIDC，等待下一实际版本完成 live publish 验证后撤销临时 token；
 7. 用户另行明确授权后，受控 Project delete 已在真实验收 Workspace 的一次性副本通过：无确认参数时 fail closed，
    confirmed delete 只清理 Project-owned roots，zero-Project doctor/compositions/Web 继续可用，原验收 Workspace 未变。
 

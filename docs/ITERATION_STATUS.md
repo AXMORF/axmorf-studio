@@ -38,7 +38,9 @@ release blocker commits、provenance workflow、tag、双包 publish 与 GitHub 
 `#33330699611` 完整 Green。该 receipt 的解包比较继续暴露 creator 本地 pack 混入 6 个 Git-ignored template
 placeholders；这些 `.gitkeep` 现作为 package source 精确 tracked，并由 `check:package` 锁定。最终 release commit 仍以
 自身 macOS receipt 为 authority。exact commit `7b5fea3329d2ef5eb10f82ef67a3606ca5476bfb` 的 macOS gate、npm publish
-gate 与 GitHub Release 均已完成；首次发布外部门禁归零。
+gate 与 GitHub Release 均已完成；首次发布外部门禁归零。两个 package 的 npm Trusted Publisher 已由用户配置到
+`AXMORF/axmorf-studio` / `npm-publish.yml`，publish workflow 已移除 `NODE_AUTH_TOKEN`；下一实际版本负责验证纯 OIDC
+publish，验证前临时 token 只保留为人工 rollback，不再进入 workflow。
 
 仓库当前 production authority 已收敛为 ProductionRevision、content-addressed Task DAG、task workspace、
 ArtifactAttestation、reusable Artifact Store、fixed convergence 与 synchronous exact four-file delivery。

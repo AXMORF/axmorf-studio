@@ -97,7 +97,6 @@ jobs:
       - name: Publish or verify exact package versions
         shell: bash
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           RUNTIME_TARBALL: ${{ steps.pack.outputs.runtime_tarball }}
           CREATOR_TARBALL: ${{ steps.pack.outputs.creator_tarball }}
           RUNTIME_INTEGRITY: ${{ steps.pack.outputs.runtime_integrity }}
