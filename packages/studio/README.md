@@ -10,13 +10,20 @@ The runtime, CLI, contracts, Remotion components, and local Web control center b
 Most users should use the companion initializer instead of installing this package directly. Give this prompt to a coding agent:
 
 ```text
-Create an AXMORF Studio workspace named <workspace-name> and use it to produce this video: <video brief>.
+Set up and validate a complete local AXMORF Studio workspace.
 
-Run npm create axmorf-studio@latest <workspace-name> -- --yes. Enter the generated workspace, then read its current README.md,
-AGENTS.md, .agents/skills/axmorf-video/SKILL.md, and the references required by that Skill. Run npm run doctor and follow the
-workspace-local instructions and structured CLI output end to end. Ask before provider cost or an external/destructive action, and
-only report completion after the fixed workflow verifies the exact four-file Delivery. Do not clone the AXMORF source repo, install
-@axmorf/studio globally, or patch package internals or validators.
+Project: https://github.com/AXMORF/axmorf-studio
+Workspace parent directory: <absolute local path>
+Workspace name: <for example, my-video>
+
+Read the latest project README, verify Node.js >= 20.19 and npm >= 10, then run
+npm create axmorf-studio@latest <workspace-name> -- --yes from the parent directory. Use the default install flow; do not use
+--no-install, clone the source repo, or install @axmorf/studio globally. Inside the new workspace, read README.md, AGENTS.md, and
+.agents/skills/axmorf-video/SKILL.md; run npm run doctor and npm run compositions; then start npm run dev and verify both local Web
+and Remotion Studio URLs before stopping it cleanly.
+
+This task stops before video production. Do not create a Project, call a provider, render video, or patch package internals,
+dependencies, sandbox, or validators. Report the workspace path, installed versions, checks, verified URLs, and blockers.
 ```
 
 Manual equivalent:

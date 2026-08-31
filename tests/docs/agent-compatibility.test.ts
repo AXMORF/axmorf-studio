@@ -12,6 +12,8 @@ test("mainstream agent entrypoints import one repository authority", async () =>
     claude,
     gemini,
     readme,
+    runtimeReadme,
+    creatorReadme,
     guide,
     workflow,
     status,
@@ -27,6 +29,8 @@ test("mainstream agent entrypoints import one repository authority", async () =>
     readRepositoryFile("CLAUDE.md"),
     readRepositoryFile("GEMINI.md"),
     readRepositoryFile("README.md"),
+    readRepositoryFile("packages/studio/README.md"),
+    readRepositoryFile("packages/create-axmorf-studio/README.md"),
     readRepositoryFile("docs/guides/AGENT_COMPATIBILITY.md"),
     readRepositoryFile("docs/PRODUCTION_WORKFLOW.md"),
     readRepositoryFile("docs/ITERATION_STATUS.md"),
@@ -52,17 +56,28 @@ test("mainstream agent entrypoints import one repository authority", async () =>
   assert.match(agents, /project:task:bind/u);
   assert.match(readme, /docs\/guides\/AGENT_COMPATIBILITY\.md/u);
   assert.match(readme, /`doctor` capability gate/u);
-  assert.match(readme, /把这段提示词交给你的 Agent/u);
+  assert.match(readme, /把这段安装提示词交给你的 Agent/u);
   assert.match(
     readme,
     /README\.md、AGENTS\.md[\s\S]*\.agents\/skills\/axmorf-video\/SKILL\.md/u,
   );
+  for (const source of [readme, runtimeReadme, creatorReadme]) {
+    assert.match(source, /https:\/\/github\.com\/AXMORF\/axmorf-studio/u);
+    assert.match(
+      source,
+      /npm run doctor[\s\S]*npm run compositions[\s\S]*npm run dev/u,
+    );
+    assert.match(source, /不创建视频 Project|stops before video production/iu);
+  }
   assert.match(guide, /其他 shell-capable Agent/u);
   assert.match(guide, /不依赖.*Agent API|不创建 Agent/su);
   assert.match(guide, /Workspace capability gate/u);
   assert.match(guide, /不得修改 `node_modules`/u);
-  assert.match(guide, /README Agent 入口/u);
-  assert.match(guide, /prompt 只携带[\s\S]*不复制下面的 production contract/u);
+  assert.match(guide, /README Agent 入口分层/u);
+  assert.match(
+    guide,
+    /安装 Agent prompt[\s\S]*creator template[\s\S]*下一次视频/u,
+  );
   assert.match(guide, /shared-workspace[\s\S]*controller-io/u);
   assert.match(status, /macOS 15 ARM64.*reference environment/su);
   assert.match(workflow, /Resolved execution mode/u);

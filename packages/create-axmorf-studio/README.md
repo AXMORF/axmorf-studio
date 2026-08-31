@@ -7,24 +7,28 @@ Create a standalone, local-first, agent-ready AXMORF Studio video workspace.
 
 ## Give this prompt to your agent
 
-Replace the workspace name and video brief, then paste the whole block into any coding agent that can edit files and run npm:
+Replace the parent directory and workspace name, then paste the whole block into any coding agent that can edit files and run npm:
 
 ```text
-Use AXMORF Studio to create and deliver this video locally.
+Set up and validate a complete local AXMORF Studio workspace.
 
-Workspace: <new workspace name or absolute path to an existing workspace>
-Video brief: <topic, audience, duration, aspect ratio, language, style, required content, and references>
+Project: https://github.com/AXMORF/axmorf-studio
+Workspace parent directory: <absolute local path>
+Workspace name: <for example, my-video>
 
-If the target is not already an AXMORF Studio workspace, verify Node.js >= 20.19 and npm >= 10, then run:
+This task stops before video production: do not create a Project, call a TTS/provider, or render a video.
+
+Read the latest README at the project URL, verify Node.js >= 20.19 and npm >= 10, then enter the parent directory and run:
 npm create axmorf-studio@latest <workspace-name> -- --yes
 
-Once inside the workspace, read the current README.md and AGENTS.md completely. Then read
-.agents/skills/axmorf-video/SKILL.md and the references it directly requires for the current stage. Run npm run doctor, then follow
-those current local instructions and the structured CLI output end to end instead of relying on remembered or package-internal
-commands. Report the exact scope and wait for approval before provider cost or an external/destructive action. Only report completion
-after the fixed workflow verifies the exact four-file Delivery.
+Use the default install flow; do not use --no-install, clone the source repository, or install @axmorf/studio globally. Enter the new
+workspace and read its current README.md, AGENTS.md, and .agents/skills/axmorf-video/SKILL.md. Run npm run doctor and
+npm run compositions. Start npm run dev, wait for both the Web control center and Remotion Studio to become ready, verify their local
+URLs, then stop the services cleanly unless I asked you to keep them running.
 
-Do not clone the AXMORF source repository, install @axmorf/studio globally, weaken validators, or expose private configuration.
+Do not patch node_modules, package internals, exact dependencies, the lockfile authority, Chromium sandbox, or validators. Report the
+absolute workspace path, Node/npm and @axmorf/studio versions, doctor result, discovered compositions, verified Web/Studio URLs, and
+any remaining blocker.
 ```
 
 The generated `README.md`, `AGENTS.md`, and `axmorf-video` Skill are versioned with the workspace template, so the agent reads the

@@ -5,7 +5,7 @@
 [![macOS package gate](https://github.com/AXMORF/axmorf-studio/actions/workflows/macos-npm-workspace.yml/badge.svg)](https://github.com/AXMORF/axmorf-studio/actions/workflows/macos-npm-workspace.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-**把视频需求交给你的 Agent，在自己的电脑上完成创作、渲染和可验证交付。**
+**让你的 Agent 在本地搭好完整视频生产 Workspace，再从创作需求走到可验证交付。**
 
 AXMORF Studio 是一个基于 [Remotion](https://www.remotion.dev/) 的 Agent-first 视频生产 Workspace。它把创作交给
 你正在使用的 coding Agent，把项目、媒体、配置、生产 artifacts 和最终视频留在本地，并用固定 contracts 和
@@ -20,31 +20,38 @@ validators 判断一次生产是否真正完成。
 > 当前为 `0.x` public beta。生产前请保留 Workspace 备份，并查看
 > [当前实现状态](docs/ITERATION_STATUS.md)。
 
-## 把这段提示词交给你的 Agent
+## 把这段安装提示词交给你的 Agent
 
-复制下面整段，只需替换 `Workspace` 和“视频需求”。Agent 会创建或识别 AXMORF Workspace，然后先读取当前安装版本
-自带的 README、Agent instructions 和使用手册，再开始工作。
+复制下面整段，只需替换安装位置和 Workspace 名称。它的目标是创建并验收一个完整可用的本地 Workspace，不会直接
+开始制作视频。
 
 ```text
-请使用 AXMORF Studio 在本机完成并交付下面的视频。
+请帮我在本地安装并验收 AXMORF Studio。
 
-Workspace：<新 Workspace 名称，或已有 Workspace 的绝对路径>
-视频需求：
-<在这里写主题、目标受众、时长、画幅、语言、风格、必须包含的内容和参考资料；不确定的部分请做合理决定。>
+项目地址：https://github.com/AXMORF/axmorf-studio
+Workspace 父目录：<本地绝对路径>
+Workspace 名称：<例如 my-video>
 
-执行要求：
-1. 检查目标目录的 package.json 是否包含 axmorf.workspaceVersion。若不是 AXMORF Studio Workspace，先确认
-   Node.js >= 20.19、npm >= 10，再运行：npm create axmorf-studio@latest <workspace-name> -- --yes。
-   不要 clone AXMORF 源码仓库，也不要全局安装 @axmorf/studio。
-2. 进入 Workspace 后，先完整读取当前目录中的 README.md、AGENTS.md、.agents/skills/axmorf-video/SKILL.md，
-   以及 Skill 针对当前阶段直接要求的 references；然后运行 npm run doctor。以这些当前本地文档和结构化 CLI
-   输出为准，不要依赖记忆中的旧命令或自行拼接 package internals。
-3. 按 Workspace-local Skill 端到端执行。在 provider 成本、账号授权、删除、发布、上传、提交或推送之前，先向我
-   报告具体范围并等待确认。不要通过修改 node_modules、精确依赖、sandbox 或 validators 绕过检查。
-4. 只有 fixed workflow 返回 project-production-complete 或 project-production-current，并复验 exact four-file
-   Delivery，才报告完成。不要暴露 private 配置或密钥。
+本次任务只负责创建一个完整、可运行、可继续使用的 Workspace，不创建视频 Project，不调用 TTS/provider，
+也不渲染视频。
 
-完成后请告诉我：storyId、执行模式、artifact reuse、最终四个文件的路径，以及仍存在的限制。
+请按下面顺序执行：
+1. 先打开项目地址并阅读最新 README，确认官方安装入口、Node.js/npm 要求和产品边界。
+2. 检查本机 Node.js >= 20.19、npm >= 10；如果不满足，使用正常的版本管理器或包管理器准备环境。
+3. 进入 Workspace 父目录，确认目标目录不会覆盖现有数据，然后运行：
+   npm create axmorf-studio@latest <workspace-name> -- --yes
+   使用默认安装流程，不要使用 --no-install，不要 clone 源码仓库，也不要全局安装 @axmorf/studio。
+4. 进入新 Workspace，确认 package.json、package-lock.json、node_modules 和 axmorf.workspaceVersion 已生成；
+   然后完整读取本地 README.md、AGENTS.md、.agents/skills/axmorf-video/SKILL.md。以这些与当前安装版本匹配的
+   本地资料为准，不要依赖记忆中的旧命令。
+5. 运行 npm run doctor 和 npm run compositions，确认环境检查通过且可以发现内置 Remotion Compositions。
+6. 启动 npm run dev，等待 Web 控制中心和 Remotion Studio 都报告 ready，并实际验证它们的本地地址可以访问；
+   验证后正常停止服务，除非我明确要求保持运行。
+7. 不要修改 node_modules、package internals、精确依赖、lockfile authority、Chromium sandbox 或 validators
+   来绕过检查。不要创建 Project、调用 provider、发布、提交或推送任何内容。
+
+完成后请报告：Workspace 绝对路径、Node/npm 版本、安装的 @axmorf/studio 版本、doctor 结果、发现的
+Compositions、Web/Studio 验证地址，以及任何仍存在的 blocker。
 ```
 
 ## 人工快速开始

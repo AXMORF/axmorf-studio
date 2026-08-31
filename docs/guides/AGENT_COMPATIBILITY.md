@@ -50,12 +50,15 @@ Agent 可以使用普通 package manager/version manager 准备环境、用 npm 
 来制造 Green。doctor 失败且声明能力无法满足时，必须报告 external blocker。doctor Green 只证明当前 Workspace
 的静态 readiness，不是 production completion、Delivery evidence 或对整个操作系统家族的认证。
 
-## README Agent 入口
+## README Agent 入口分层
 
-root README、两个 package README 与 creator template 提供可复制的短 Agent prompt。prompt 只携带 Workspace
-位置、用户的视频需求、读取当前本地文档和需单独授权的外部/破坏性操作；它不复制下面的 production contract。
-Agent 进入 Workspace 后，以该版本生成的 `README.md`、`AGENTS.md`、Workspace-local Skill、按阶段 references 与
-结构化 CLI 输出为准，因此 npm 页面或 Agent 记忆中的旧命令不能覆盖当前本地 authority。
+root README 与两个 package README 提供同一类安装 Agent prompt：必须包含公开项目 URL、Workspace 父目录和名称，
+只运行 creator 默认安装并验证 `doctor`、`compositions`、Web 控制中心与 Remotion Studio startup。这一入口明确停止在
+ready Workspace，不创建 Project、不调用 provider、不渲染视频，也不 clone 源码或 global install runtime。
+
+creator template 生成的 Workspace README 才提供“下一次视频”的 prompt。Agent 此时以该版本本地的 `README.md`、
+`AGENTS.md`、Workspace-local Skill、按阶段 references 与结构化 CLI 输出为执行 authority；public README 或 Agent
+记忆中的命令不能覆盖当前本地文档。安装 prompt 与视频 prompt 分层，二者都不复制完整 production contract。
 
 ## 通用视频入口
 
