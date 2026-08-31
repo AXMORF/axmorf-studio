@@ -14,9 +14,9 @@ registry；Project、artifacts、Delivery、浏览器截图与 npm cache 均位�
 closeout 后用户明确授权继续发布：release blocker 修复提交已 push，仓库已从
 `agenticnoob/axmorf-studio` 转移到 `AXMORF/axmorf-studio`，默认分支已切换为
 `axmorf/npm-workspace-open-source`，旧 `main` 保留。最终 Organization repository metadata 进入两个 tarball 后，
-本 receipt 重新执行 pack、fresh consumer、packed production、Viewer 与受控 Project delete；真实 npm publish、tag
-与 GitHub Release 仍等待 npm scope/authentication gate。Project、Delivery 与浏览器产物都只位于一次性 `/tmp`
-Workspace，原仓库不保存用户 Project。
+本 receipt 重新执行 pack、fresh consumer、packed production、Viewer 与受控 Project delete；随后从 exact commit
+`7b5fea3329d2ef5eb10f82ef67a3606ca5476bfb` 发布 `v0.1.0` tag、两个 public npm packages 与 GitHub Release。
+Project、Delivery 与浏览器产物都只位于一次性 `/tmp` Workspace，原仓库不保存用户 Project。
 
 ## Source and package gates
 
@@ -26,7 +26,8 @@ Workspace，原仓库不保存用户 Project。
 - release-focused 17 tests、macOS portability-focused 22 tests、typecheck 与 lint：通过；
 - runtime/creator `check:package`、`npm pack`、tarball allowlist 与
   `npm publish --dry-run --access public --json`：通过；
-- 2026-08-31 官方 registry 对 `@axmorf/studio` 与 `create-axmorf-studio` 均返回 E404；真实 publish 未发生。
+- official registry 已公开 `@axmorf/studio@0.1.0` 与 `create-axmorf-studio@0.1.0`；两者 registry integrity 与下表
+  release candidate 精确一致。
 
 Closeout tarballs：
 
@@ -34,6 +35,22 @@ Closeout tarballs：
 | -------------------------------- | --------: | -------------: | ------: | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
 | `axmorf-studio-0.1.0.tgz`        | 1,870,785 |      8,480,629 |     246 | `fa56f42cf1b29012d884b7afb0bfbb5881d143135047d64b1e5c0a999fe3b747` | `sha512-TsQtw9/gG0LNhXiU1Fiw2Vc+d5/5SuTz1Q2Fa4jVXVCJhYfrNxr2C4KDWmq+08qgOq27vW2m+jav3iwClxKFdQ==` |
 | `create-axmorf-studio-0.1.0.tgz` |    19,174 |         57,272 |      36 | `69bafda455964802b19b08789b3452a51ecbf7ce8c76d7a6e448f9c95edf4184` | `sha512-N9LBaRsGDGzpSPh1i3GlEhNEHawr8dZsxCK9Lz26g9awE6UNYpb+0q1aFDWmsCDdYzV2jK62aZ5Ti9cjtaZdyQ==` |
+
+## Public release receipt
+
+- tag/release：[`v0.1.0`](https://github.com/AXMORF/axmorf-studio/releases/tag/v0.1.0)，annotated tag exact 指向
+  `7b5fea3329d2ef5eb10f82ef67a3606ca5476bfb`；
+- final publish/integrity gate：
+  [`#33362584883`](https://github.com/AXMORF/axmorf-studio/actions/runs/33362584883)，完整 repository/package gates、
+  exact pack、双包 registry integrity 与 receipt upload 全部 Green；
+- 首次两个 publish 请求分别成功返回 `+ @axmorf/studio@0.1.0` 与 `+ create-axmorf-studio@0.1.0`，且发布 provenance
+  到 Sigstore transparency log；npm 的新包 packument 在写入成功后短暂返回 E404。幂等重跑只在 registry integrity
+  与本地 candidate 相同时跳过已存在版本；最终 Green run 没有重复写入；
+- official-registry 外部用户验收使用 published creator 创建并默认安装 250 packages；bootstrap/doctor 五项、三个
+  compositions、三个 public imports 与零漏洞 audit 全部通过。`npm audit signatures` 验证 250 个 registry signatures
+  和 47 个 attestations；
+- publish receipt 的两份 tarball SHA-256 与上表逐字节一致。后续 workflow 在 publish 后最多等待五分钟读取公开
+  integrity，并生成只含 tarball basename 的 portable `SHA256SUMS`，避免把 runner 绝对路径写入 receipt。
 
 ## Fresh consumer receipt
 
@@ -113,15 +130,19 @@ Workspace 与 receipt 上传。artifact `9737615274` 的 digest 是
 解包比较又暴露 clean GitHub checkout 缺少 6 个被根 `.gitignore` 捕获的 template `.gitkeep`，而本地 pack 会把这些
 ignored files 混入 tarball。六个 placeholder 现作为 creator template source 精确纳入 Git，`check:package` 要求它们为
 regular files；本地 creator 恢复本表的 36 entries/hash，`--no-install` Workspace 也验证六个目录存在。最终 release
-commit 仍必须以自己的 macOS receipt 为 authority，不能复用修复前 run。
+commit 的 macOS gate
+[`#33331148535`](https://github.com/AXMORF/axmorf-studio/actions/runs/33331148535) 已 Green；artifact
+`9737728324` digest 为 `sha256:38e630e2d67340472954f0dc7d6c1d1e3c8a1b12f0c9b427d56d20700cabc1d2`，其中两份
+tarball 与 Linux release candidates 逐字节相同。
 
 仓库已转移到 `AXMORF/axmorf-studio`，三个 `package.json.repository` 均与 provenance source exact match。新增
 `.github/workflows/npm-publish.yml`：只允许从 exact `v<version>` tag 手动触发，要求二次输入相同 tag，使用 GitHub-hosted
 runner、`id-token: write`、完整 gates、exact tarball checksums、provenance publish，以及“registry 已存在时 integrity
 必须相同”的幂等重跑语义。首次 push 的 GitHub parser receipt 又捕获 job-level `env` 不能引用 `runner.temp`；release
 root 现只在 step-level `env`/input 使用 runner context，不再生成 push-time invalid-workflow run。首次发布仍需 npm scope
-权限与 `NPM_TOKEN`；包存在后可分别配置 npm trusted publisher 到 `AXMORF/axmorf-studio` / `npm-publish.yml` 并移除
-长效 publish token。
+权限与 `NPM_TOKEN`；`v0.1.0` 首次发布已完成。实际发布暴露 npm 新包写入成功后 packument 短暂 E404，workflow 现对
+post-publish public integrity 执行 bounded retry，并输出 portable checksum receipt。两个包可分别配置 npm trusted
+publisher 到 `AXMORF/axmorf-studio` / `npm-publish.yml`，确认 OIDC 后移除临时 publish token。
 
 ## Controlled Project delete receipt
 

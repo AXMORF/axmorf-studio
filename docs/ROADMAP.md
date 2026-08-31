@@ -70,7 +70,8 @@ production/current Delivery、verified-Delivery endpoint 和桌面/窄屏浏览�
 
 公开发布收尾状态是：
 
-1. current closeout source 的两个 tarballs、allowlist、checksum 与 publish dry-run receipt 已复核；
+1. current closeout source 的两个 tarballs、allowlist、checksum、publish dry-run 与 public registry integrity 已复核，
+   `@axmorf/studio@0.1.0`、`create-axmorf-studio@0.1.0` 和 `v0.1.0` GitHub Release 已公开；
 2. 同一外部 Workspace 的 packed production、verified-Delivery endpoint、视频播放和双 Cover 浏览器证据已完成；
 3. 全新外部 Workspace 的 creator 默认安装、`npm ci`、doctor、public exports、compositions 与 official-registry audit
    已完成；
@@ -79,8 +80,8 @@ production/current Delivery、verified-Delivery endpoint 和桌面/窄屏浏览�
    `create-axmorf-studio` 名称已确认；
 6. Organization transfer、default branch 与 provenance publish workflow 已完成；post-transfer macOS gate 捕获的
    delayed watcher/canonical test path 已有 Green receipt，后续解包比较发现的 creator ignored-placeholder 污染也已锁入
-   package source/checker；最终 exact release commit 必须再取得自己的 macOS receipt，随后完成 npm scope/authentication、
-   首次 publish、tag 与 GitHub Release；
+   package source/checker；最终 exact release commit 的 macOS gate `#33331148535` 与 npm publish gate `#33362584883`
+   均已 Green，Linux/macOS tarball 逐字节相同；首次 registry 可见性延迟已转为 bounded retry 与 portable checksum receipt；
 7. 用户另行明确授权后，受控 Project delete 已在真实验收 Workspace 的一次性副本通过：无确认参数时 fail closed，
    confirmed delete 只清理 Project-owned roots，zero-Project doctor/compositions/Web 继续可用，原验收 Workspace 未变。
 

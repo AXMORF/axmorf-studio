@@ -82,7 +82,10 @@ jobs:
 
           test -f "$RELEASE_ROOT/$runtime_file"
           test -f "$RELEASE_ROOT/$creator_file"
-          sha256sum "$RELEASE_ROOT/$runtime_file" "$RELEASE_ROOT/$creator_file" >"$RELEASE_ROOT/SHA256SUMS"
+          (
+            cd "$RELEASE_ROOT"
+            sha256sum "$runtime_file" "$creator_file" >SHA256SUMS
+          )
 
           {
             echo "runtime_tarball=$RELEASE_ROOT/$runtime_file"
@@ -116,7 +119,17 @@ jobs:
             fi
 
             npm publish "$tarball" --access public --provenance
-            registry_integrity="$(npm view "$package_name@$package_version" dist.integrity)"
+            registry_integrity=""
+            for attempt in {1..30}; do
+              registry_integrity="$(npm view "$package_name@$package_version" dist.integrity 2>/dev/null || true)"
+              if [[ -n "$registry_integrity" ]]; then
+                break
+              fi
+              if (( attempt < 30 )); then
+                echo "Waiting for $package_name@$package_version to become visible in the public registry ($attempt/30)."
+                sleep 10
+              fi
+            done
             test "$registry_integrity" = "$local_integrity"
           }
 

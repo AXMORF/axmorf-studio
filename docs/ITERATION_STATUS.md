@@ -26,17 +26,19 @@ reference environment evidence，不是 runtime allowlist；其他宿主可以�
 已认证。Agent 不得修改 package internals、精确依赖、sandbox 或 validators 来强行适配。
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
-补齐 package README/LICENSE/third-party notices。`@axmorf/studio` 与 `create-axmorf-studio` 的公开 registry
-查询当前均为 E404；`@axmorf` npm scope 的 ownership/publish 权限仍需在首次 publish 前由 npm 登录身份复核。
+补齐 package README/LICENSE/third-party notices。`@axmorf/studio@0.1.0` 与 `create-axmorf-studio@0.1.0` 已从
+exact `v0.1.0` tag 公开发布，registry integrity 与 release candidates 一致，provenance、registry signatures 与
+attestations 已由外部 fresh Workspace 复验。
 GitHub 仓库已转移为 `AXMORF/axmorf-studio`，npm 发布分支是 default branch，旧 `main` 保留。production 与完整
 repository `npm audit` 已通过 `fast-uri@3.1.6`、
-`nanoid@3.3.18` 精确 overrides 以及 Vite/esbuild/ESLint 兼容更新归零。公开发布尚未执行：macOS 15 ARM64
-package/scaffold evidence 与 Ubuntu 24.04 x86_64 exact-Delivery evidence 已完成，固定 OS matrix 已从首次发布 gate
-移除；Organization transfer/release blocker commit 已 push，provenance workflow 已加入。转移后的 macOS full gate 又
+`nanoid@3.3.18` 精确 overrides 以及 Vite/esbuild/ESLint 兼容更新归零。macOS 15 ARM64 package/scaffold evidence 与
+Ubuntu 24.04 x86_64 exact-Delivery evidence 已完成，固定 OS matrix 已从首次发布 gate 移除；Organization transfer、
+release blocker commits、provenance workflow、tag、双包 publish 与 GitHub Release 均已完成。转移后的 macOS full gate 又
 捕获 delayed `fs.watch` notification 与 `/var` test alias 两个 portability 边界；最小修复已由 macOS gate
 `#33330699611` 完整 Green。该 receipt 的解包比较继续暴露 creator 本地 pack 混入 6 个 Git-ignored template
 placeholders；这些 `.gitkeep` 现作为 package source 精确 tracked，并由 `check:package` 锁定。最终 release commit 仍以
-自身 macOS receipt 为 authority；之后的剩余外部门禁是 npm scope/authentication、tag、Release 与首次 npm publish。
+自身 macOS receipt 为 authority。exact commit `7b5fea3329d2ef5eb10f82ef67a3606ca5476bfb` 的 macOS gate、npm publish
+gate 与 GitHub Release 均已完成；首次发布外部门禁归零。
 
 仓库当前 production authority 已收敛为 ProductionRevision、content-addressed Task DAG、task workspace、
 ArtifactAttestation、reusable Artifact Store、fixed convergence 与 synchronous exact four-file delivery。
@@ -236,6 +238,11 @@ tests 中验证，本次 packed Project 没有伪造对应 runtime receipt。完
 执行 `npm ci`，public exports、doctor、三个 compositions 与 official-registry audit 全部通过。完整 receipt 见
 [npm release closeout](evidence/2026-08-31-npm-release-closeout.md)。
 
+exact `v0.1.0` tag 已公开发布 `@axmorf/studio@0.1.0` 与 `create-axmorf-studio@0.1.0`。最终 publish gate
+`#33362584883` Green；外部 official-registry creator 安装、doctor、compositions、public imports、零漏洞 audit、
+250 个 registry signatures 与 47 个 attestations 均通过。首次新包写入后 packument 曾短暂 E404，后续 workflow 已增加
+bounded registry visibility retry，并将 checksum receipt 改为 portable basename。
+
 用户明确授权后，受控 Project delete 又在上述真实 production Workspace 的一次性副本执行。缺少
 `--confirm-delete` 时命令 exit 1 且 Delivery checksum 不变；exact confirmed command 清理 source/public/narration/
 work/artifact/attempt/delivery ownership roots，Project Registry 归零，同时保留 package/lockfile、private config、
@@ -254,10 +261,10 @@ manifest；三秒轮询会合并仍在执行的请求，不再反复 abort 较�
 未认证宿主仍按 capability gate best-effort 接入，不预先阻塞，也不描述为已验证支持。consumer production 与完整
 repository audit 均为 0 finding。Remotion 继续精确锁定 4.0.489；安全处置没有运行不受控 `audit fix`，而是固定
 传递版本并单独升级兼容的开发工具。ESLint 保持 9.39.5，因为 Remotion 当前内置的 TypeScript ESLint 8.21 peer
-range 不支持 ESLint 10。Git push 与 GitHub Organization transfer 已执行；真实 npm publish、tag 与 Release 尚未执行。
+range 不支持 ESLint 10。Git push、GitHub Organization transfer、exact tag、双包 npm publish 与 GitHub Release 已执行。
 post-transfer macOS gate 的两个 portability 修复已完成本地 package/fresh-consumer/packed-production/Viewer/delete
-复验并由 `#33330699611` Green；其 receipt 揭示的 creator ignored-placeholder 污染已在 package boundary 修正，最终
-exact release commit 仍需自己的 macOS receipt。
+复验；creator ignored-placeholder 污染已在 package boundary 修正，最终 exact release commit 的 macOS gate
+`#33331148535` Green，Linux/macOS 双包 tarball 逐字节相同。
 
 focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests 已验证原子 create、inspect
 零写入/零 provider、dirty-only dispatch、精确 direct/dependency/artifact explanation、诊断隔离、安全边界、
@@ -268,8 +275,8 @@ focused create/contracts/explanation/inspect/prepare/converge/settings/E2E tests
 17 tests 与 macOS portability-focused 22 tests 也通过。文档 closeout 后另行重跑 docs links 与 diff checks。GitHub
 Organization transfer、default branch 切换与 publish workflow 已执行；post-transfer portability 已有 Green receipt，
 creator placeholder package boundary 进入最终 exact-commit gate。push 后同时发现并修复 publish workflow 的 job-level
-`runner.temp` context 解析错误；真实 npm publish、tag 与 GitHub Release 尚未执行。受控 Project delete 只作用于一次性
-验收副本。
+`runner.temp` context 解析错误；`v0.1.0` npm publish、tag 与 GitHub Release 已完成，最终 publish/integrity gate
+`#33362584883` Green。受控 Project delete 只作用于一次性验收副本。
 
 ## 当前非目标
 
