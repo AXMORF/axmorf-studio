@@ -68,6 +68,7 @@ test("mainstream agent entrypoints import one repository authority", async () =>
     assert.match(prompt, /最新 README|latest README/iu);
     assert.match(prompt, /不要?开始制作视频|Stop before video production/iu);
     assert.doesNotMatch(prompt, /npm create|npm run|Node\.js|npm >=/iu);
+    assert.doesNotMatch(prompt, /请打开|Open https:/iu);
   }
   assert.match(guide, /其他 shell-capable Agent/u);
   assert.match(guide, /不依赖.*Agent API|不创建 Agent/su);

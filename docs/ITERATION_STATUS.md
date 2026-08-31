@@ -43,7 +43,7 @@ gate 与 GitHub Release 均已完成；首次发布外部门禁归零。两个 p
 publish，验证前临时 token 只保留为人工 rollback，不再进入 workflow。
 
 `v0.1.0` 后的 current source 已把 README Agent 入口分成两个阶段：root 与两个 package README 只提供一句 prompt，
-要求 Agent 打开项目 URL，按照最新 README 在指定路径完成 Workspace 搭建与可用性验收，并停止在视频生产之前。
+要求 Agent 根据项目最新 README 在指定路径完成 Workspace 搭建与可用性验收，并停止在视频生产之前。
 creator template README 才在 ready Workspace 中提供下一次视频 prompt，并要求 Agent 读取当前安装版本的 README、
 `AGENTS.md`、Skill 与按阶段 references。该更新会随下一实际 package version 进入 npm registry；已发布的 `0.1.0`
 tarball 保持 immutable。

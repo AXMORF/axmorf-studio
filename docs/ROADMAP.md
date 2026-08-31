@@ -51,7 +51,7 @@ transfer、default branch、provenance workflow 与 Trusted Publisher 配置均�
 [ITERATION_STATUS.md](ITERATION_STATUS.md) 与
 [npm release closeout](evidence/2026-08-31-npm-release-closeout.md) 维护。
 
-当前用户入口是 README 的“快速开始”，或者复制一句 Agent prompt，让 Agent 打开项目 URL 并按照最新 README 在指定
+当前用户入口是 README 的“快速开始”，或者复制一句 Agent prompt，让 Agent 根据项目最新 README 在指定
 路径完成 Workspace 搭建与可用性验收。Workspace ready 后，generated README 的独立视频 prompt 才负责接收创作需求。
 
 下一版本的 release gate 是：

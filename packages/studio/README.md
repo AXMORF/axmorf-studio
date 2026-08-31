@@ -10,7 +10,7 @@ The runtime, CLI, contracts, Remotion components, and local Web control center b
 Most users should use the companion initializer instead of installing this package directly. Give this sentence to a coding agent:
 
 ```text
-Open https://github.com/AXMORF/axmorf-studio and follow its latest README to set up and validate a working local AXMORF Studio workspace at <absolute local path>; stop before video production.
+Follow the latest README at https://github.com/AXMORF/axmorf-studio to set up and validate a working local AXMORF Studio workspace at <absolute local path>; stop before video production.
 ```
 
 Quick start:

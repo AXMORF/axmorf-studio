@@ -52,7 +52,7 @@ Agent 可以使用普通 package manager/version manager 准备环境、用 npm 
 
 ## README Agent 入口分层
 
-root README 与两个 package README 只提供一句 Agent prompt：打开公开项目 URL，按照最新 README 在指定本地路径完成
+root README 与两个 package README 只提供一句 Agent prompt：根据公开项目的最新 README 在指定本地路径完成
 Workspace 搭建与可用性验收，并停止在视频生产之前。环境要求、安装命令和验证步骤由 README 及其当前引用拥有，
 prompt 不复制这些内容。
 

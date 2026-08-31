@@ -95,7 +95,7 @@ decode 全部通过后才替换。相同完整 identity 是只读 no-op。
 
 ## 5. 用户体验目标
 
-- 用户只需复制 public README 的一句 Agent prompt：打开项目 URL，按照最新 README 在指定本地路径完成 Workspace 搭建
+- 用户只需复制 public README 的一句 Agent prompt：根据项目最新 README 在指定本地路径完成 Workspace 搭建
   与可用性验收，并停止在视频生产之前。环境、安装和验证细节只由 README 及其当前引用拥有，不在 prompt 中复制。
   Workspace ready 后，用户才通过 generated README 的视频 prompt 提交具体创作需求。
 - settings 列出 current source Projects，展示 Revision、task reused/dirty/blocked、latest attempt diagnostic

@@ -25,7 +25,7 @@ validators 判断一次生产是否真正完成。
 复制下面一句，只需替换本地目标路径：
 
 ```text
-请打开 https://github.com/AXMORF/axmorf-studio，按照最新 README 中的步骤在 <本地目标路径，例如 /path/to/my-video> 完成 AXMORF Studio Workspace 的本地搭建与可用性验收，本次不要开始制作视频。
+请根据 https://github.com/AXMORF/axmorf-studio 项目最新 README 中的步骤，在 <本地目标路径，例如 /path/to/my-video> 完成 AXMORF Studio Workspace 的本地搭建与可用性验收，本次不要开始制作视频。
 ```
 
 ## 快速开始
