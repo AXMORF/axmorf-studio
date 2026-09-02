@@ -46,11 +46,11 @@ continuation 内部 application，不是 Root 命令。
 
 从 `foundation@e52d2a5` 开始的
 [npm Workspace 开源方案](archive/implementation-plans/2026-08-30-npm-workspace-open-source-implementation-plan.md)
-已经完成并归档。当前 `@axmorf/studio@0.1.1`、`create-axmorf-studio@0.1.1` 与 GitHub `v0.1.1` Release 已通过
+已经完成并归档。当前 `@axmorf/studio@0.1.2`、`create-axmorf-studio@0.1.2` 与 GitHub `v0.1.2` Release 已通过
 Trusted Publisher 纯 OIDC 公开发布；package-owned shared Workspace media、Organization transfer、default branch
 与 provenance workflow 均已完成。精确实现和验收事实只由
 [ITERATION_STATUS.md](ITERATION_STATUS.md) 与
-[v0.1.1 shared Workspace media release](evidence/2026-09-02-v0.1.1-shared-workspace-media-release.md) 维护。
+[v0.1.2 System preview audio release](evidence/2026-09-03-v0.1.2-system-preview-audio-release.md) 维护。
 
 当前用户入口是 README 的“快速开始”，或者复制一句 Agent prompt，让 Agent 根据项目最新 README 在指定
 路径完成 Workspace 搭建与可用性验收。Workspace ready 后，generated README 的独立视频 prompt 才负责接收创作需求。

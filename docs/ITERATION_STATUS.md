@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-02 `v0.1.1` package-owned shared Workspace resources public release
+> 最后复核：2026-09-03 `v0.1.2` System preview audio public release and official-registry self-test
 
 ## 当前结论
 
@@ -32,8 +32,8 @@ reference environment evidence，不是 runtime allowlist；其他宿主可以�
 已认证。Agent 不得修改 package internals、精确依赖、sandbox 或 validators 来强行适配。
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
-补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.1` 与
-`create-axmorf-studio@0.1.1`，从 exact `v0.1.1` tag 通过 Trusted Publisher 纯 OIDC 发布；registry integrity 与
+补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.2` 与
+`create-axmorf-studio@0.1.2`，从 exact `v0.1.2` tag 通过 Trusted Publisher 纯 OIDC 发布；registry integrity 与
 release candidates 一致，provenance、registry signatures 与 attestations 已由外部 fresh Workspace 复验。
 GitHub 仓库已转移为 `AXMORF/axmorf-studio`，npm 发布分支是 default branch，旧 `main` 保留。production 与完整
 repository `npm audit` 已通过 `fast-uri@3.1.6`、
@@ -45,7 +45,7 @@ release blocker commits、provenance workflow、tag、双包 publish 与 GitHub 
 placeholders；这些 `.gitkeep` 现作为 package source 精确 tracked，并由 `check:package` 锁定。最终 release commit 仍以
 自身 macOS receipt 为 authority。exact commit `7b5fea3329d2ef5eb10f82ef67a3606ca5476bfb` 的 macOS gate、npm publish
 gate 与 GitHub Release 均已完成；首次发布外部门禁归零。两个 package 的 npm Trusted Publisher 已由用户配置到
-`AXMORF/axmorf-studio` / `npm-publish.yml`，publish workflow 已移除 `NODE_AUTH_TOKEN`；`v0.1.1` 已完成真实纯 OIDC
+`AXMORF/axmorf-studio` / `npm-publish.yml`，publish workflow 已移除 `NODE_AUTH_TOKEN`；`v0.1.2` 已完成真实纯 OIDC
 双包 publish、公开 integrity 回读和 receipt upload，不依赖人工 token。
 
 `v0.1.1` 已把 README Agent 入口分成两个阶段：root 与两个 package README 只提供一句 prompt，
@@ -262,6 +262,13 @@ Project create 把实际使用的音频复制为 Project-local resources。macOS
 publish gate `#33628246765` 均 Green；official-registry fresh creator 安装、doctor、零漏洞 audit、250 个 registry
 signatures 与 49 个 attestations 全部通过。完整事实见
 [v0.1.1 shared Workspace media release](evidence/2026-09-02-v0.1.1-shared-workspace-media-release.md)。
+
+exact `v0.1.2` tag 修复 System 首尾预览的 audio projection 默认值：`DefaultIntroPreview` 与
+`DefaultOutroPreview` 现在从 package-owned manifest 解析并挂载共享 WAV，不再生成只有静音 AAC 的 MP4。macOS exact
+release gate `#33663623305` 与纯 OIDC publish gate `#33664081626` 均 Green；显式锁定 official registry 的 fresh
+Ubuntu creator Workspace 已复验 Studio 两条未静音 audio element、WAV HTTP 206、两个 H.264/AAC render 的实际音量、
+零漏洞 audit、250 个 registry signatures 与 49 个 attestations。完整事实见
+[v0.1.2 System preview audio release](evidence/2026-09-03-v0.1.2-system-preview-audio-release.md)。
 
 用户明确授权后，受控 Project delete 又在上述真实 production Workspace 的一次性副本执行。缺少
 `--confirm-delete` 时命令 exit 1 且 Delivery checksum 不变；exact confirmed command 清理 source/public/narration/
