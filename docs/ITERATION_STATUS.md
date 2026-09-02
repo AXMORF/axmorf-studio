@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-02 package-owned shared Workspace resource source implementation
+> 最后复核：2026-09-02 `v0.1.1` package-owned shared Workspace resources public release
 
 ## 当前结论
 
@@ -32,9 +32,9 @@ reference environment evidence，不是 runtime allowlist；其他宿主可以�
 已认证。Agent 不得修改 package internals、精确依赖、sandbox 或 validators 来强行适配。
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
-补齐 package README/LICENSE/third-party notices。`@axmorf/studio@0.1.0` 与 `create-axmorf-studio@0.1.0` 已从
-exact `v0.1.0` tag 公开发布，registry integrity 与 release candidates 一致，provenance、registry signatures 与
-attestations 已由外部 fresh Workspace 复验。
+补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.1` 与
+`create-axmorf-studio@0.1.1`，从 exact `v0.1.1` tag 通过 Trusted Publisher 纯 OIDC 发布；registry integrity 与
+release candidates 一致，provenance、registry signatures 与 attestations 已由外部 fresh Workspace 复验。
 GitHub 仓库已转移为 `AXMORF/axmorf-studio`，npm 发布分支是 default branch，旧 `main` 保留。production 与完整
 repository `npm audit` 已通过 `fast-uri@3.1.6`、
 `nanoid@3.3.18` 精确 overrides 以及 Vite/esbuild/ESLint 兼容更新归零。macOS 15 ARM64 package/scaffold evidence 与
@@ -45,14 +45,13 @@ release blocker commits、provenance workflow、tag、双包 publish 与 GitHub 
 placeholders；这些 `.gitkeep` 现作为 package source 精确 tracked，并由 `check:package` 锁定。最终 release commit 仍以
 自身 macOS receipt 为 authority。exact commit `7b5fea3329d2ef5eb10f82ef67a3606ca5476bfb` 的 macOS gate、npm publish
 gate 与 GitHub Release 均已完成；首次发布外部门禁归零。两个 package 的 npm Trusted Publisher 已由用户配置到
-`AXMORF/axmorf-studio` / `npm-publish.yml`，publish workflow 已移除 `NODE_AUTH_TOKEN`；下一实际版本负责验证纯 OIDC
-publish，验证前临时 token 只保留为人工 rollback，不再进入 workflow。
+`AXMORF/axmorf-studio` / `npm-publish.yml`，publish workflow 已移除 `NODE_AUTH_TOKEN`；`v0.1.1` 已完成真实纯 OIDC
+双包 publish、公开 integrity 回读和 receipt upload，不依赖人工 token。
 
-`v0.1.0` 后的 current source 已把 README Agent 入口分成两个阶段：root 与两个 package README 只提供一句 prompt，
+`v0.1.1` 已把 README Agent 入口分成两个阶段：root 与两个 package README 只提供一句 prompt，
 要求 Agent 根据项目最新 README 在指定路径完成 Workspace 搭建与可用性验收，并停止在视频生产之前。
 creator template README 才在 ready Workspace 中提供下一次视频 prompt，并要求 Agent 读取当前安装版本的 README、
-`AGENTS.md`、Skill 与按阶段 references。该更新会随下一实际 package version 进入 npm registry；已发布的 `0.1.0`
-tarball 保持 immutable。
+`AGENTS.md`、Skill 与按阶段 references。此前发布的 `0.1.0` tarball 保持 immutable。
 
 仓库当前 production authority 已收敛为 ProductionRevision、content-addressed Task DAG、task workspace、
 ArtifactAttestation、reusable Artifact Store、fixed convergence 与 synchronous exact four-file delivery。
@@ -256,6 +255,13 @@ exact `v0.1.0` tag 已公开发布 `@axmorf/studio@0.1.0` 与 `create-axmorf-stu
 `#33362584883` Green；外部 official-registry creator 安装、doctor、compositions、public imports、零漏洞 audit、
 250 个 registry signatures 与 47 个 attestations 均通过。首次新包写入后 packument 曾短暂 E404，后续 workflow 已增加
 bounded registry visibility retry，并将 checksum receipt 改为 portable basename。
+
+exact `v0.1.1` tag 随后公开发布当前 `@axmorf/studio@0.1.1` 与 `create-axmorf-studio@0.1.1`。该版本把
+AXMORF-owned 首尾音频与品牌素材纳入 policy-covered runtime Workspace seed，creator 默认启用首尾 templates，
+Project create 把实际使用的音频复制为 Project-local resources。macOS exact-commit gate `#33627797623` 与纯 OIDC
+publish gate `#33628246765` 均 Green；official-registry fresh creator 安装、doctor、零漏洞 audit、250 个 registry
+signatures 与 49 个 attestations 全部通过。完整事实见
+[v0.1.1 shared Workspace media release](evidence/2026-09-02-v0.1.1-shared-workspace-media-release.md)。
 
 用户明确授权后，受控 Project delete 又在上述真实 production Workspace 的一次性副本执行。缺少
 `--confirm-delete` 时命令 exit 1 且 Delivery checksum 不变；exact confirmed command 清理 source/public/narration/

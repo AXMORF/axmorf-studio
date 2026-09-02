@@ -46,10 +46,11 @@ continuation 内部 application，不是 Root 命令。
 
 从 `foundation@e52d2a5` 开始的
 [npm Workspace 开源方案](archive/implementation-plans/2026-08-30-npm-workspace-open-source-implementation-plan.md)
-已经完成并归档。`@axmorf/studio@0.1.0`、`create-axmorf-studio@0.1.0`、GitHub `v0.1.0` Release、Organization
-transfer、default branch、provenance workflow 与 Trusted Publisher 配置均已完成；精确实现和验收事实只由
+已经完成并归档。当前 `@axmorf/studio@0.1.1`、`create-axmorf-studio@0.1.1` 与 GitHub `v0.1.1` Release 已通过
+Trusted Publisher 纯 OIDC 公开发布；package-owned shared Workspace media、Organization transfer、default branch
+与 provenance workflow 均已完成。精确实现和验收事实只由
 [ITERATION_STATUS.md](ITERATION_STATUS.md) 与
-[npm release closeout](evidence/2026-08-31-npm-release-closeout.md) 维护。
+[v0.1.1 shared Workspace media release](evidence/2026-09-02-v0.1.1-shared-workspace-media-release.md) 维护。
 
 当前用户入口是 README 的“快速开始”，或者复制一句 Agent prompt，让 Agent 根据项目最新 README 在指定
 路径完成 Workspace 搭建与可用性验收。Workspace ready 后，generated README 的独立视频 prompt 才负责接收创作需求。
@@ -60,7 +61,7 @@ transfer、default branch、provenance workflow 与 Trusted Publisher 配置均�
 2. root/package/template README、Agent instructions、Skill 和 active docs 与当前 package surface 一致；
 3. focused package/scaffold/docs gates、完整 `npm run check`、fresh packed consumer install 与 registry audit Green；
 4. 通过 Trusted Publisher 运行纯 OIDC `npm publish --provenance`，并复验 registry integrity、provenance 与 signatures；
-5. 纯 OIDC live publish 验证后撤销首次发布保留的人工 rollback token。
+5. 不把人工 token 重新引入 workflow；每个 live publish 都以 Trusted Publisher OIDC receipt 为准。
 
 ## 不以里程碑名义引入
 
