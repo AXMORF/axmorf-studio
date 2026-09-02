@@ -19,6 +19,9 @@ const createRuntimePackage = async (rootDir: string) => {
   await mkdir(join(rootDir, "dist", "assets", "scene-templates"), {
     recursive: true,
   });
+  await mkdir(join(rootDir, "dist", "assets", "workspace-seed"), {
+    recursive: true,
+  });
   await writeFile(
     join(rootDir, "package.json"),
     `${JSON.stringify({
@@ -67,6 +70,7 @@ test("runtime resources resolve package-owned immutable roots from module URL", 
     ),
     remotionPreflightEntry: join(packageRoot, "dist", "remotion-preflight.js"),
     sceneTemplatesRoot: join(packageRoot, "dist", "assets", "scene-templates"),
+    workspaceSeedRoot: join(packageRoot, "dist", "assets", "workspace-seed"),
     webRoot: join(packageRoot, "dist", "web"),
   });
   assert.equal(

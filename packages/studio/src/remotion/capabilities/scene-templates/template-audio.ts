@@ -7,6 +7,8 @@ import {
 
 export const SCENE_TEMPLATE_AUDIO_PROJECTION_PATH =
   "src/remotion/catalog/scene-template-audio.generated.json";
+export const SCENE_TEMPLATE_AUDIO_DEFAULT_PATH =
+  "src/remotion/catalog/scene-template-audio.defaults.json";
 export const SCENE_TEMPLATE_AUDIO_OVERRIDE_PATH =
   "private/reference-assets/scene-template-sound-overrides.json";
 

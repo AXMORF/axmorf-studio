@@ -109,8 +109,29 @@ const createDefaultRunners = (output: Output): CliRunners => {
   };
   return {
     bootstrap: async ({ rootDir }) => {
-      await runtime();
-      stdoutLine(JSON.stringify(await bootstrapWorkspace(rootDir)));
+      const { resources } = await runtime();
+      const workspace = await bootstrapWorkspace({
+        rootDir,
+        workspaceSeedRoot: resources.workspaceSeedRoot,
+      });
+      const [
+        { generateResourceCatalog },
+        { generateSceneTemplateAudioProjection },
+      ] = await Promise.all([
+        import("../../../../scripts/catalog/generate"),
+        import("../../../../scripts/scene-templates/audio-projection"),
+      ]);
+      await generateSceneTemplateAudioProjection({ rootDir, mode: "write" });
+      const catalog = await generateResourceCatalog({
+        rootDir,
+        mode: "write",
+      });
+      stdoutLine(
+        JSON.stringify({
+          ...workspace,
+          catalogEntryCount: catalog.entryCount,
+        }),
+      );
     },
     doctor: async ({ rootDir }) => {
       stdoutLine(JSON.stringify(await inspectWorkspaceReadiness(rootDir)));

@@ -17,7 +17,7 @@ export const parseArguments = (argv) => {
     target: null,
     yes: false,
     install: true,
-    runtimePackage: "0.1.0",
+    runtimePackage: "0.1.1",
     help: false,
   };
   const seen = new Set();

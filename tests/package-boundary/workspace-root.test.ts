@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { lstat, mkdir, symlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test } from "node:test";
+import { test, type TestContext } from "node:test";
 
 import {
   parseWorkspaceArguments,
@@ -21,6 +21,18 @@ const writeWorkspaceMarker = async (rootDir: string, version: unknown = 1) => {
       axmorf: { workspaceVersion: version },
     })}\n`,
   );
+};
+
+const createWorkspaceSeed = async (context: TestContext) => {
+  const seedRoot = await createTemporaryDirectory(context, "workspace-seed-");
+  await mkdir(join(seedRoot, "public/assets/axmorf-shared"), {
+    recursive: true,
+  });
+  await writeFile(
+    join(seedRoot, "public/assets/axmorf-shared/shared.txt"),
+    "shared\n",
+  );
+  return seedRoot;
 };
 
 test("workspace resolution finds one canonical v1 marker from a nested cwd", async (context) => {
@@ -139,14 +151,15 @@ test("global workspace arguments have one canonical position", () => {
   }
 });
 
-test("workspace bootstrap creates only the fixed user-data layout and is idempotent", async (context) => {
+test("workspace bootstrap projects immutable shared resources and is idempotent", async (context) => {
   const rootDir = await createTemporaryDirectory(
     context,
     "workspace-bootstrap-",
   );
+  const workspaceSeedRoot = await createWorkspaceSeed(context);
   await writeWorkspaceMarker(rootDir);
-  const first = await bootstrapWorkspace(rootDir);
-  const second = await bootstrapWorkspace(rootDir);
+  const first = await bootstrapWorkspace({ rootDir, workspaceSeedRoot });
+  const second = await bootstrapWorkspace({ rootDir, workspaceSeedRoot });
   assert.deepEqual(second, first);
   assert.equal(first.status, "workspace-bootstrapped");
   for (const relativePath of first.directories) {
@@ -155,6 +168,44 @@ test("workspace bootstrap creates only the fixed user-data layout and is idempot
       true,
     );
   }
+  assert.deepEqual(first.sharedResourceFiles, [
+    "public/assets/axmorf-shared/shared.txt",
+  ]);
+  assert.equal(
+    await readFile(
+      join(rootDir, "public/assets/axmorf-shared/shared.txt"),
+      "utf8",
+    ),
+    "shared\n",
+  );
+});
+
+test("workspace bootstrap refuses to overwrite a changed shared resource", async (context) => {
+  const rootDir = await createTemporaryDirectory(
+    context,
+    "workspace-bootstrap-conflict-",
+  );
+  const workspaceSeedRoot = await createWorkspaceSeed(context);
+  await writeWorkspaceMarker(rootDir);
+  await mkdir(join(rootDir, "public/assets/axmorf-shared"), {
+    recursive: true,
+  });
+  await writeFile(
+    join(rootDir, "public/assets/axmorf-shared/shared.txt"),
+    "user bytes\n",
+  );
+
+  await assert.rejects(
+    bootstrapWorkspace({ rootDir, workspaceSeedRoot }),
+    /conflicts with package bytes/u,
+  );
+  assert.equal(
+    await readFile(
+      join(rootDir, "public/assets/axmorf-shared/shared.txt"),
+      "utf8",
+    ),
+    "user bytes\n",
+  );
 });
 
 test("workspace bootstrap rejects a symlink in a managed directory chain", async (context) => {
@@ -162,6 +213,7 @@ test("workspace bootstrap rejects a symlink in a managed directory chain", async
     context,
     "workspace-bootstrap-link-",
   );
+  const workspaceSeedRoot = await createWorkspaceSeed(context);
   const outside = await createTemporaryDirectory(
     context,
     "workspace-bootstrap-outside-",
@@ -169,7 +221,7 @@ test("workspace bootstrap rejects a symlink in a managed directory chain", async
   await writeWorkspaceMarker(rootDir);
   await symlink(outside, join(rootDir, "public"), "dir");
   await assert.rejects(
-    bootstrapWorkspace(rootDir),
+    bootstrapWorkspace({ rootDir, workspaceSeedRoot }),
     /cannot be a symbolic link/u,
   );
 });

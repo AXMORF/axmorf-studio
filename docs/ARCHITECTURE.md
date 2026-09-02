@@ -169,8 +169,11 @@ promotion 在目标同父目录准备 staging，完整验证后写 manifest，�
 
 CLI 先从静态 `axmorf.workspaceVersion` marker 解析 canonical Workspace root；所有用户写入位置都
 由这个 root 的 typed locations 派生。package install path 只用于读取 immutable RuntimeResources，包括
-Scene template source、预构建 Web、Remotion preflight 和稳定 policy manifest。Workspace 不复制 package
-authority，也不能写 package directory；package path、cwd、PID、时间和 npm cache 不进入 creative identity。
+Scene template source、预构建 Web、Remotion preflight、Workspace seed 和稳定 policy manifest。bootstrap
+只把 policy 覆盖、manifest/checksum/license 已验证的 shared seed bytes 写到保留的 Workspace paths，再生成
+Scene template audio projection 与 Resource Catalog；相同 bytes 幂等，已有不同 bytes 或 symlink fail closed。
+package 仍拥有发行 authority，Workspace 不能写 package directory；package path、cwd、PID、时间和 npm cache
+不进入 creative identity。
 
 creator install/bootstrap 与生成 Workspace 的 `doctor` 组成 host capability boundary。Agent 可以在 data plane
 之外准备声明的 Node.js/npm、普通依赖和宿主前置条件；OS/reference-environment label、安装步骤与诊断均不进入
@@ -208,6 +211,10 @@ Configured template 的复制边界由 Project-local `Renderer.tsx` adapter 承�
 `width`/`height`。模板组件不 import/安装 SceneViewport，也不读取 raw policy。adapter 与其 import graph
 都进入 template instance/source-graph fingerprint；共享 generator 变化只影响未来 create，不静默改写既有
 Project-local instance。
+
+默认 creator config 选择 `axmorf-brand-reveal-v1` 与 `axmorf-source-follow-v1`。两者引用的 package-authored
+片头 impact WAV 与片尾 BGM WAV 在 Workspace seed 中进入 Catalog，`project:create` 再把所选模板实际使用的 bytes、descriptor 与 sound cue
+冻结到 Project-local source/public roots；既有 Project 不因 package/shared seed 更新而改变。
 
 ## 8. Synchronous delivery
 

@@ -95,6 +95,8 @@ fingerprint 不匹配、未知字段或结构
 
 - `sceneDefaults.introSceneTemplateId` / `outroSceneTemplateId`：配置页中的首尾业务位置选择。两者都
   接受任意已登记 Scene template 或 `null`，不做位置适配判断；同一 template 可同时选择两次。
+  creator 初始配置分别选择 `axmorf-brand-reveal-v1` 与 `axmorf-source-follow-v1`；bootstrap 已将其默认
+  音频和其他 package shared assets 投影进 Workspace Catalog。显式 `null` 仍表示关闭对应位置。
   该选择只在新 Project 首次 `project:create` 时使用。create 会生成并冻结 Project-local Renderer adapter；
   adapter 接收 `viewportWidth`/`viewportHeight`，再把本地尺寸映射给模板组件的 `width`/`height`。共享模板、
   generator 或 preview 的后续修复不会自动迁移既有 Project copy。
@@ -161,7 +163,8 @@ creator 从一次 ProducerConfig 读取派生 `narration.json`、`render.json`�
 requirements、Project ResourceCatalog 与 configured template instance。合集必须且只能选择当前数组中的一个
 ID；完整数组 fingerprint 被保存。选定普通 Scene template 的源码/资源会复制到 Project-local roots，并把
 对应 silent StoryBeat 写入时间线首尾；`null` 表示不插入。Project 一旦创建，后续修改全局 defaults/shared
-template 不会静默改变它。
+template 不会静默改变它。template 引用的 shared 音频会同时复制到 Project-local public root，并使用
+Project-owned resource ID；render 不依赖 package 或共享 Workspace path。
 
 transaction 先在受控 staging 生成并严格解析 exact set，再原子提升 source/public/catalog roots；任一步失败
 恢复创建前 filesystem。existing、partial、different identity、cross-project、unknown source、symlink、path

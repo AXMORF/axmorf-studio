@@ -16,6 +16,13 @@ const allowedFiles = new Set([
   "THIRD_PARTY_NOTICES.md",
 ]);
 const releaseDocuments = ["README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"];
+const sharedResourcePaths = [
+  "dist/assets/workspace-seed/public/assets/axmorf-shared/audio/music/axmorf-closing-pulse-v1.wav",
+  "dist/assets/workspace-seed/public/assets/axmorf-shared/audio/sound-effects/axmorf-cinematic-impact-v1.wav",
+  "dist/assets/workspace-seed/public/assets/axmorf-shared/brand/axmorf-mark.svg",
+  "dist/assets/workspace-seed/src/remotion/catalog/assets.manifest.json",
+  "dist/assets/workspace-seed/src/remotion/catalog/scene-template-audio.defaults.json",
+];
 
 assert.equal(manifest.name, "@axmorf/studio");
 assert.equal(manifest.type, "module");
@@ -65,6 +72,61 @@ assert.equal(
 );
 
 assert.deepEqual(missingReleaseDocuments, []);
+
+for (const relativePath of sharedResourcePaths) {
+  const metadata = await lstat(resolve(packageRoot, relativePath));
+  assert.equal(metadata.isFile(), true, `${relativePath} must be a file.`);
+  assert.equal(
+    metadata.isSymbolicLink(),
+    false,
+    `${relativePath} cannot be a symbolic link.`,
+  );
+}
+const sharedManifest = JSON.parse(
+  await readFile(
+    resolve(
+      packageRoot,
+      "dist/assets/workspace-seed/src/remotion/catalog/assets.manifest.json",
+    ),
+    "utf8",
+  ),
+);
+assert.deepEqual(
+  sharedManifest.assets.map(({ id }) => id),
+  [
+    "asset.axmorf-mark",
+    "asset.axmorf-cinematic-impact-v1",
+    "asset.axmorf-closing-pulse-v1",
+  ],
+);
+const audioDefaults = JSON.parse(
+  await readFile(
+    resolve(
+      packageRoot,
+      "dist/assets/workspace-seed/src/remotion/catalog/scene-template-audio.defaults.json",
+    ),
+    "utf8",
+  ),
+);
+assert.equal(audioDefaults.intro.source.id, "asset.axmorf-cinematic-impact-v1");
+assert.equal(audioDefaults.outro.source.id, "asset.axmorf-closing-pulse-v1");
+assert.equal(audioDefaults.outro.targetMediaRole, "background-music");
+const runtimePolicy = JSON.parse(
+  await readFile(
+    resolve(packageRoot, "dist/assets/policy/runtime-policy.json"),
+    "utf8",
+  ),
+);
+const policyPaths = new Set(
+  runtimePolicy.files.map(({ logicalPath }) => logicalPath),
+);
+for (const relativePath of sharedResourcePaths) {
+  assert.equal(
+    policyPaths.has(relativePath.replace(/^dist\/assets\//u, "assets/")),
+    true,
+    `${relativePath} must be covered by runtime policy.`,
+  );
+}
 
 process.stdout.write(
   `${JSON.stringify({

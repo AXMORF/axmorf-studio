@@ -35,6 +35,10 @@ npm run dev
 production progress, and verified current Delivery views; Remotion Studio owns live Composition preview. Neither is the creative or
 completion authority.
 
+`npm run bootstrap` maintains package-owned shared media under `public/assets/axmorf-shared/` and registers it in the Resource
+Catalog. New Projects inherit the configured opening/closing templates unless the create input explicitly overrides them; the
+template audio actually used is copied into that Project, so an existing Project never depends on a later package update.
+
 ## Useful commands
 
 | Goal                                        | Command                                                   |

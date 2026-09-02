@@ -97,6 +97,9 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   ScenePackage。StoryBeat 严格区分 narrated 与只允许位于首尾的 silent Scene。
 - `project:create` 从 strict create input 原子创建 configured authoring，并将选定边界 Scene template
   源码与资源复制为 Project-local immutable instance；它不调用 provider、不生成媒体或生产 attempt。
+- runtime package 只通过 policy-covered Workspace seed 发行 manifest/checksum/license 已验证的 shared media；
+  bootstrap 投影到保留的 `public/assets/axmorf-shared/` 和 Catalog，相同 bytes 幂等、不同 bytes/symlink fail closed。
+  默认首尾 template 实际使用的音频必须在 `project:create` 时复制为 Project-local resource；既有 Project 不自动迁移。
   template-copy Scene 由 fixed task 验证和产出 artifact，不派发 Agent。
 - `project:create` 同事务冻结 `production/scene-originality-baseline.json`，只记录创建前其他 Project 的完整
   TypeScript Scene source graph；重复 create 必须复用自身 baseline。旧 Project 缺失时只能由用户显式运行零 provider、

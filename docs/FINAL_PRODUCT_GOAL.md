@@ -41,6 +41,9 @@ source/public/narration/delivery 四个 Project-owned roots；失败完整 rollb
   GlobalVisual。GlobalVisual base 覆盖完整 Composition；decoration 仅覆盖首个至末个 narrated Scene 的连续
   窗口，不进入 silent boundary。Scene 只在本地 viewport 内布局，不感知 full-frame inset。
 - template-copy Scene 是 Project-local immutable instance，由 fixed task 产出，不派发 Agent。
+- package-owned shared Workspace resources 只通过 runtime policy、manifest、checksum 与 license gate 发行；
+  bootstrap 投影到保留的 Workspace paths 和 Catalog，template-copy Scene 只把实际使用的资源复制为
+  Project-local bytes。用户修改或冲突的保留路径必须 fail closed，不能静默覆盖。
 - `project:create` 同事务冻结创建前其他 Project 的完整 Scene TS/TSX source graph；旧 Project 缺失 baseline
   时只能由用户显式运行零 provider、持 repository lock 的 originality freeze，production 不静默补空。
 - originality baseline fingerprint/context 只进入 `scene-owner` TaskRevision；template-copy 豁免。Scene validator

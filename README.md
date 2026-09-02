@@ -40,7 +40,10 @@ npm run dev
 ```
 
 creator 会安装精确依赖、生成 `package-lock.json`，并在原子提升目标目录前运行无 provider 的
-`bootstrap`/`doctor`。`npm run dev` 会同时启动 loopback-only Web 控制中心和 Remotion Studio：前者用于配置、诊断、
+`bootstrap`/`doctor`。`bootstrap` 同时从 runtime package 投影经过清单与 checksum 验证的共享素材；当前包括
+片头 cinematic impact、片尾 8 秒电子 BGM 与可复用 AXMORF 标记，默认首尾 Scene 会在 Project 创建时把所用音频复制为
+Project-local 资产。
+`npm run dev` 会同时启动 loopback-only Web 控制中心和 Remotion Studio：前者用于配置、诊断、
 进度和 current Delivery，后者用于 Composition 实时预览。
 
 ### 环境要求

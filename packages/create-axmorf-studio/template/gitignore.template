@@ -6,6 +6,10 @@ private/
 
 src/projects/
 public/projects/
+public/assets/axmorf-shared/
+src/remotion/catalog/assets.manifest.json
+src/remotion/catalog/scene-template-audio.defaults.json
+src/remotion/catalog/scene-template-audio.generated.json
 src/remotion/catalog/resource-catalog.generated.json
 
 .narration-work/

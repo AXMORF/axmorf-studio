@@ -85,6 +85,12 @@ template instance 同时包含一个 Project-local Renderer adapter；它接收�
 `viewportWidth`/`viewportHeight`，只把 safe-area-local dimensions 映射给模板内部 `width`/`height`。其源码和
 import graph 与其他 copied bytes 一起冻结；后续共享模板或 generator 修复不会隐式迁移既有 Project。
 
+全新 creator Workspace 的 bootstrap 会先把 runtime package 中 runtime-policy 覆盖的共享音频/视觉素材投影到
+`public/assets/axmorf-shared/`，并把 package manifest 投影进 Resource Catalog。默认 config 选择 AXMORF 首尾
+template；create 只把所选 template 实际使用的音频复制到 `public/projects/<storyId>/scenes/...`，并改写为
+Project-owned resource IDs。共享路径冲突不会覆盖，未被 template 使用的共享视觉素材继续作为 Catalog capability
+供新 Scene authoring 选择；既有 Project 不自动迁移。
+
 StoryBeat 明确区分 narrated-scene 与 silent-scene。narrated beat 的 `ttsChunks` 是 Agent-authored atomic
 units；silent beat 只允许在首尾，使用固定 frame/template/sound，不创建 TTS、CaptionCue 或 sealed segment。
 外部媒体必须先经 `project:asset:import` 本地化为 Project-owned、runtime-approved asset，只有 manifest ID

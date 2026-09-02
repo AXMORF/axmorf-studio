@@ -3,112 +3,13 @@
   "assets": [
     {
       "schemaVersion": 1,
-      "id": "asset.axmorf-brand-reveal-chime",
+      "id": "asset.axmorf-mark",
       "kind": "asset",
       "status": "approved",
-      "title": "AXMORF brand reveal chime",
-      "description": "Project-authored mono PCM chime for the AXMORF brand reveal Scene template.",
-      "useCases": ["AXMORF brand reveal Scene template preview"],
-      "tags": ["brand-reveal", "scene-template", "sfx"],
-      "authority": {
-        "kind": "repository-file",
-        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
-      },
-      "allowedUse": "runtime-approved",
-      "assetKind": "audio",
-      "mediaRole": "sound-effect",
-      "localPath": "public/assets/library/scene-templates/axmorf-brand-reveal-chime.wav",
-      "checksum": "sha256:739069dd51389ebac5704cdcd4b16ef43abc458a268931ab5817b834c1f2c475",
-      "license": {
-        "id": "Project-Authored",
-        "verificationStatus": "verified",
-        "sourceUrl": null,
-        "attributionRequired": false,
-        "attributionText": null,
-        "verifiedAt": "2026-08-15T00:00:00.000Z",
-        "sourceEvidenceFingerprint": "sha256:739069dd51389ebac5704cdcd4b16ef43abc458a268931ab5817b834c1f2c475"
-      },
-      "media": {
-        "durationInSeconds": 0.6,
-        "codec": "pcm_s16le",
-        "sampleRate": 48000
-      }
-    },
-    {
-      "schemaVersion": 1,
-      "id": "asset.axmorf-source-follow-chime",
-      "kind": "asset",
-      "status": "approved",
-      "title": "AXMORF source follow chime",
-      "description": "Project-authored mono PCM chime for the AXMORF source follow Scene template.",
-      "useCases": ["AXMORF source follow Scene template preview"],
-      "tags": ["scene-template", "sfx", "source-follow"],
-      "authority": {
-        "kind": "repository-file",
-        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
-      },
-      "allowedUse": "runtime-approved",
-      "assetKind": "audio",
-      "mediaRole": "sound-effect",
-      "localPath": "public/assets/library/scene-templates/axmorf-source-follow-chime.wav",
-      "checksum": "sha256:7140b3c599b3656e5c3ee26c9c127a5d6a8deb26a336c67574114e4fdbe355b0",
-      "license": {
-        "id": "Project-Authored",
-        "verificationStatus": "verified",
-        "sourceUrl": null,
-        "attributionRequired": false,
-        "attributionText": null,
-        "verifiedAt": "2026-08-15T00:00:00.000Z",
-        "sourceEvidenceFingerprint": "sha256:7140b3c599b3656e5c3ee26c9c127a5d6a8deb26a336c67574114e4fdbe355b0"
-      },
-      "media": {
-        "durationInSeconds": 1,
-        "codec": "pcm_s16le",
-        "sampleRate": 48000
-      }
-    },
-    {
-      "schemaVersion": 1,
-      "id": "asset.scene-runtime-proof-pulse",
-      "kind": "asset",
-      "status": "approved",
-      "title": "Scene runtime proof pulse",
-      "description": "Project-authored mono PCM pulse for the synthetic sound contribution proof.",
-      "useCases": ["synthetic scene cue"],
-      "tags": ["proof", "scene-runtime", "sfx"],
-      "authority": {
-        "kind": "repository-file",
-        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
-      },
-      "allowedUse": "runtime-approved",
-      "assetKind": "audio",
-      "mediaRole": "sound-effect",
-      "localPath": "public/assets/library/scene-runtime-proof/proof-pulse.wav",
-      "checksum": "sha256:187da07a941e050db15e5fe2e8e7aed327a3f796fda894125ae1b504e210c1a7",
-      "license": {
-        "id": "Project-Authored",
-        "verificationStatus": "verified",
-        "sourceUrl": null,
-        "attributionRequired": false,
-        "attributionText": null,
-        "verifiedAt": "2026-08-02T00:00:00.000Z",
-        "sourceEvidenceFingerprint": "sha256:187da07a941e050db15e5fe2e8e7aed327a3f796fda894125ae1b504e210c1a7"
-      },
-      "media": {
-        "durationInSeconds": 0.18,
-        "codec": "pcm_s16le",
-        "sampleRate": 48000
-      }
-    },
-    {
-      "schemaVersion": 1,
-      "id": "asset.scene-runtime-proof-shape",
-      "kind": "asset",
-      "status": "approved",
-      "title": "Scene runtime proof shape",
-      "description": "Project-authored SVG used by the synthetic Scene visual runtime proof.",
-      "useCases": ["synthetic scene visual"],
-      "tags": ["proof", "scene-runtime", "svg"],
+      "title": "AXMORF mark",
+      "description": "AXMORF-authored vector mark distributed with the npm runtime for reusable Scene visuals.",
+      "useCases": ["AXMORF brand identification", "Reusable Scene visual"],
+      "tags": ["brand", "scene-visual", "svg"],
       "authority": {
         "kind": "repository-file",
         "repositoryPath": "src/remotion/catalog/assets.manifest.json"
@@ -116,20 +17,109 @@
       "allowedUse": "runtime-approved",
       "assetKind": "svg",
       "mediaRole": "scene-visual",
-      "localPath": "public/assets/library/scene-runtime-proof/proof-shape.svg",
-      "checksum": "sha256:a173d06fa0f769755cda708c82cb9180ca88f7bcbd98e0d624dfb7a39c617f5c",
+      "localPath": "public/assets/axmorf-shared/brand/axmorf-mark.svg",
+      "checksum": "sha256:67c3a002c2138b90c5d64a23160c72815ec85a25b21826fa46fbf78cbd1de6c8",
       "license": {
-        "id": "Project-Authored",
+        "id": "Apache-2.0",
         "verificationStatus": "verified",
-        "sourceUrl": null,
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
         "attributionRequired": false,
         "attributionText": null,
-        "verifiedAt": "2026-08-02T00:00:00.000Z",
-        "sourceEvidenceFingerprint": "sha256:a173d06fa0f769755cda708c82cb9180ca88f7bcbd98e0d624dfb7a39c617f5c"
+        "verifiedAt": "2026-09-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
       },
       "media": {
-        "width": 560,
-        "height": 380
+        "mimeType": "image/svg+xml",
+        "sizeBytes": 398,
+        "width": 640,
+        "height": 640
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf-cinematic-impact-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Cinematic Impact",
+      "description": "AXMORF-authored stereo cinematic impact distributed with the npm runtime for reusable opening Scenes.",
+      "useCases": [
+        "AXMORF brand reveal Scene template",
+        "Cinematic opening sound effect"
+      ],
+      "tags": [
+        "brand-reveal",
+        "cinematic",
+        "impact",
+        "scene-template",
+        "sound-effect"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "sound-effect",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-cinematic-impact-v1.wav",
+      "checksum": "sha256:fd7b06d89910ce3d17e7b4272004768bb9a2125f0d678db786adc2e31f13b725",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-09-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 768044,
+        "durationInSeconds": 4,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "asset.axmorf-closing-pulse-v1",
+      "kind": "asset",
+      "status": "approved",
+      "title": "AXMORF Closing Pulse",
+      "description": "AXMORF-authored stereo electronic background cue distributed with the npm runtime for reusable closing Scenes.",
+      "useCases": [
+        "AXMORF source follow Scene template",
+        "Reusable closing background music"
+      ],
+      "tags": [
+        "background-music",
+        "electronic",
+        "scene-template",
+        "source-follow"
+      ],
+      "authority": {
+        "kind": "repository-file",
+        "repositoryPath": "src/remotion/catalog/assets.manifest.json"
+      },
+      "allowedUse": "runtime-approved",
+      "assetKind": "audio",
+      "mediaRole": "background-music",
+      "localPath": "public/assets/axmorf-shared/audio/music/axmorf-closing-pulse-v1.wav",
+      "checksum": "sha256:5bf3d8601b226bd6fc05b44fe4fb4040542268a8a29267733c69b8e8980e155f",
+      "license": {
+        "id": "Apache-2.0",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "attributionRequired": false,
+        "attributionText": null,
+        "verifiedAt": "2026-09-02T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "media": {
+        "mimeType": "audio/wav",
+        "sizeBytes": 1536044,
+        "durationInSeconds": 8,
+        "codec": "pcm_s16le",
+        "sampleRate": 48000
       }
     }
   ]

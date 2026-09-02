@@ -31,6 +31,8 @@ export const LOCAL_REFERENCE_ASSET_MANIFEST_PATH =
   "private/reference-assets/assets.manifest.json";
 export const LOCAL_REFERENCE_ASSET_LICENSE_EVIDENCE_PATH =
   "private/reference-assets/MIXKIT_AUDIO_LICENSE.md";
+export const CORE_ASSET_MANIFEST_PATH =
+  "src/remotion/catalog/assets.manifest.json";
 
 const LOCAL_REFERENCE_AUDIO_ROLES = new Set([
   "sound-effect",
@@ -373,14 +375,41 @@ export const loadCoreCatalogAuthorityDescriptors = async (
   ) {
     throw new Error("Catalog style profile identities are stale.");
   }
-  const descriptors = [
+  const sourceDescriptors = [
     ...styleDescriptorDeclarations,
     ...capabilityDescriptorDeclarations,
   ];
-  const enriched = await Promise.all(
-    descriptors.map((descriptor) => withAuthorityChecksum(rootDir, descriptor)),
+  const manifestPath = join(rootDir, CORE_ASSET_MANIFEST_PATH);
+  let assetDescriptors: readonly ResourceDescriptor[] = [];
+  try {
+    const metadata = await lstat(manifestPath);
+    if (!metadata.isFile() || metadata.isSymbolicLink()) {
+      throw new Error(
+        "Core asset manifest must be a regular non-symbolic file.",
+      );
+    }
+    const manifest = ProducerAssetManifestSchema.parse(
+      JSON.parse(await readFile(manifestPath, "utf8")),
+    );
+    for (const descriptor of manifest.assets) {
+      if (
+        descriptor.authority.repositoryPath !== CORE_ASSET_MANIFEST_PATH ||
+        descriptor.allowedUse !== "runtime-approved" ||
+        !descriptor.localPath.startsWith("public/assets/axmorf-shared/")
+      ) {
+        throw new Error(`Core asset scope is invalid: ${descriptor.id}.`);
+      }
+    }
+    await validateAssetDescriptorFiles(rootDir, manifest.assets);
+    assetDescriptors = manifest.assets;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  return Promise.all(
+    [...assetDescriptors, ...sourceDescriptors].map((descriptor) =>
+      withAuthorityChecksum(rootDir, descriptor),
+    ),
   );
-  return enriched;
 };
 
 export const readGeneratedResourceCatalog = async (

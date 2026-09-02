@@ -25,6 +25,7 @@ export type RuntimeResources = Readonly<{
   policyManifestPath: string;
   remotionPreflightEntry: string;
   sceneTemplatesRoot: string;
+  workspaceSeedRoot: string;
   webRoot: string;
 }>;
 
@@ -150,6 +151,7 @@ export const resolveRuntimeResources = async ({
   const assetsRoot = join(requestedRoot, "dist", "assets");
   const policyManifestPath = join(assetsRoot, "policy", "runtime-policy.json");
   const sceneTemplatesRoot = join(assetsRoot, "scene-templates");
+  const workspaceSeedRoot = join(assetsRoot, "workspace-seed");
   const remotionPreflightEntry = join(
     requestedRoot,
     "dist",
@@ -161,6 +163,7 @@ export const resolveRuntimeResources = async ({
     assertRegularFile(policyManifestPath, "Runtime policy manifest"),
     assertRegularFile(remotionPreflightEntry, "Remotion preflight entry"),
     assertDirectory(sceneTemplatesRoot, "Runtime Scene templates root"),
+    assertDirectory(workspaceSeedRoot, "Runtime Workspace seed root"),
     assertDirectory(webRoot, "Runtime Web assets root"),
     assertRegularFile(
       join(webRoot, "index.html"),
@@ -174,6 +177,7 @@ export const resolveRuntimeResources = async ({
     policyManifestPath,
     remotionPreflightEntry,
     sceneTemplatesRoot,
+    workspaceSeedRoot,
     webRoot,
   };
 };

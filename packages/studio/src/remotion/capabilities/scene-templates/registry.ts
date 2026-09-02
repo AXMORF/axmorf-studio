@@ -94,7 +94,7 @@ const brandReveal = (
   soundIntent:
     audioProjection.intro === null
       ? "Render without a sound-effect contribution."
-      : "Play only the configured opening impact from frame zero for the full Scene.",
+      : "Play only the configured opening Scene sound cues.",
   componentName: "AxmorfIntroScene",
   sourceReferencesProp: false,
   sourceFiles: [
@@ -158,7 +158,7 @@ const sourceFollow = (
   soundIntent:
     audioProjection.outro === null
       ? "Render without a sound-effect contribution."
-      : "Play only the configured closing music from frame zero for the full Scene.",
+      : "Play only the configured closing Scene sound cues.",
   componentName: "AxmorfOutroScene",
   sourceReferencesProp: true,
   sourceFiles: [

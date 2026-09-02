@@ -4,6 +4,8 @@ import { dirname, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
+import { parseArguments } from "../src/arguments.js";
+
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(
   await readFile(resolve(packageRoot, "package.json"), "utf8"),
@@ -27,6 +29,11 @@ assert.deepEqual(manifest.files, [
 assert.equal(manifest.dependencies, undefined);
 assert.equal(manifest.bundleDependencies, undefined);
 assert.equal(manifest.bundledDependencies, undefined);
+assert.equal(
+  parseArguments(["release-check"]).runtimePackage,
+  manifest.version,
+  "The creator default runtime must match the creator release version.",
+);
 
 for (const relativePath of [
   "bin/create-axmorf-studio.js",

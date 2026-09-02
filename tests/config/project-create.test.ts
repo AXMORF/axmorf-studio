@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import test from "node:test";
 
 import {
@@ -190,6 +190,88 @@ const configureTemplateAudioWithUnusedAuthority = async (rootDir: string) => {
     }),
   );
   await generateSceneTemplateAudioProjection({ rootDir, mode: "write" });
+};
+
+const configurePackagedTemplateAudio = async (rootDir: string) => {
+  const packageRoot = join(import.meta.dirname, "../../packages/studio");
+  const sourceManifest = JSON.parse(
+    await readFile(
+      join(packageRoot, "src/remotion/catalog/assets.manifest.json"),
+      "utf8",
+    ),
+  ) as { readonly assets: readonly Record<string, unknown>[] };
+  const byId = new Map(
+    sourceManifest.assets.map((descriptor) => [descriptor.id, descriptor]),
+  );
+  const intro = byId.get("asset.axmorf-cinematic-impact-v1");
+  const outro = byId.get("asset.axmorf-closing-pulse-v1");
+  assert.ok(intro);
+  assert.ok(outro);
+  const audioAssets = [intro, outro];
+  const audioPaths = [
+    "audio/sound-effects/axmorf-cinematic-impact-v1.wav",
+    "audio/music/axmorf-closing-pulse-v1.wav",
+  ];
+  await Promise.all(
+    audioPaths.map(async (path) => {
+      const target = join(rootDir, "public/assets/axmorf-shared", path);
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(
+        target,
+        await readFile(
+          join(
+            packageRoot,
+            "src/runtime/workspace-seed/files/public/assets/axmorf-shared",
+            path,
+          ),
+        ),
+      );
+    }),
+  );
+  await writeFile(
+    join(rootDir, "src/remotion/catalog/assets.manifest.json"),
+    `${JSON.stringify({ schemaVersion: 1, assets: audioAssets }, null, 2)}\n`,
+  );
+  await writeFile(
+    join(rootDir, "src/remotion/catalog/scene-template-audio.defaults.json"),
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        intro: {
+          source: intro,
+          targetMediaRole: "sound-effect",
+          destinationName: "axmorf-cinematic-impact-v1.wav",
+          soundCues: [
+            {
+              cueId: "reveal-impact",
+              anchorId: "intro-sound-start",
+              offsetFrames: 0,
+              durationInFrames: 60,
+              volume: 0.82,
+            },
+          ],
+        },
+        outro: {
+          source: outro,
+          targetMediaRole: "background-music",
+          destinationName: "axmorf-closing-pulse-v1.wav",
+          soundCues: [
+            {
+              cueId: "closing-music",
+              anchorId: "closing-music-start",
+              offsetFrames: 0,
+              durationInFrames: 240,
+              volume: 1,
+            },
+          ],
+        },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  await generateSceneTemplateAudioProjection({ rootDir, mode: "write" });
+  await generateResourceCatalog({ rootDir, mode: "write" });
 };
 
 test("project:create atomically creates configured authoring and preserves exact TTS", async (context) => {
@@ -562,6 +644,7 @@ test("project:create CLI accepts only one repository-relative input", async (con
         assetsRoot: "unused-by-project-create",
         policyManifestPath: "unused-by-project-create",
         remotionPreflightEntry: "unused-by-project-create",
+        workspaceSeedRoot: "unused-by-project-create",
         webRoot: "unused-by-project-create",
       },
     },
@@ -576,9 +659,10 @@ test("project:create CLI accepts only one repository-relative input", async (con
   );
 });
 
-test("project:create reuses configured template and sound builders inside the transaction", async (context) => {
+test("project:create localizes packaged template sounds inside the new Project", async (context) => {
   const fixture = await prepareProjectCreateFixture();
   context.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+  await configurePackagedTemplateAudio(fixture.rootDir);
   await mkdir(join(fixture.rootDir, "public/audio"), { recursive: true });
   await writeFile(
     join(fixture.rootDir, "public/audio/create-bgm.mp3"),
@@ -644,6 +728,50 @@ test("project:create reuses configured template and sound builders inside the tr
       fixture.rootDir,
       "src/projects/story-example/scenes/configured-intro-scene/Renderer.tsx",
     ),
+  );
+  for (const [meaningId, name] of [
+    ["configured-intro-scene", "axmorf-cinematic-impact-v1.wav"],
+    ["configured-outro-scene", "axmorf-closing-pulse-v1.wav"],
+  ] as const) {
+    assert.deepEqual(
+      await readFile(
+        join(
+          fixture.rootDir,
+          `public/projects/story-example/scenes/${meaningId}/${name}`,
+        ),
+      ),
+      await readFile(
+        join(
+          fixture.rootDir,
+          `public/assets/axmorf-shared/audio/${meaningId === "configured-intro-scene" ? "sound-effects" : "music"}/${name}`,
+        ),
+      ),
+    );
+  }
+  const silentBeats = story.beats.filter(
+    ({ kind }: { kind: string }) => kind === "silent-scene",
+  );
+  assert.deepEqual(
+    silentBeats.map(
+      ({ preset }: { preset: { implementation: { soundCues: unknown[] } } }) =>
+        preset.implementation.soundCues.length,
+    ),
+    [1, 1],
+  );
+  const projectAssets = JSON.parse(
+    await readFile(
+      join(fixture.rootDir, "src/projects/story-example/assets.manifest.json"),
+      "utf8",
+    ),
+  ) as { readonly assets: readonly { readonly localPath: string }[] };
+  assert.deepEqual(
+    projectAssets.assets
+      .map(({ localPath }) => localPath)
+      .filter((localPath) => localPath.includes("/scenes/")),
+    [
+      "public/projects/story-example/scenes/configured-intro-scene/axmorf-cinematic-impact-v1.wav",
+      "public/projects/story-example/scenes/configured-outro-scene/axmorf-closing-pulse-v1.wav",
+    ],
   );
   await stat(
     join(

@@ -4,6 +4,7 @@ import { basename, join } from "node:path";
 import { serializeCanonicalJson } from "@axmorf/studio/contracts";
 import {
   SCENE_TEMPLATE_AUDIO_PROJECTION_PATH,
+  SCENE_TEMPLATE_AUDIO_DEFAULT_PATH,
   SCENE_TEMPLATE_AUDIO_OVERRIDE_PATH,
   SceneTemplateAudioOverrideSchema,
   SceneTemplateAudioProjectionSchema,
@@ -33,11 +34,15 @@ export const buildSceneTemplateAudioProjection = async (
     "Scene template audio override",
   );
   if (overrideBytes === null) {
-    return SceneTemplateAudioProjectionSchema.parse({
-      schemaVersion: 1,
-      intro: null,
-      outro: null,
-    });
+    const defaultBytes = await readOptionalRegularFile(
+      join(rootDir, SCENE_TEMPLATE_AUDIO_DEFAULT_PATH),
+      "Scene template audio default",
+    );
+    return SceneTemplateAudioProjectionSchema.parse(
+      defaultBytes === null
+        ? { schemaVersion: 1, intro: null, outro: null }
+        : JSON.parse(defaultBytes.toString("utf8")),
+    );
   }
   const override = SceneTemplateAudioOverrideSchema.parse(
     JSON.parse(overrideBytes.toString("utf8")),

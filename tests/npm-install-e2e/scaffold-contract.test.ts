@@ -283,6 +283,10 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   assert.equal(styleFacade, WORKSPACE_STYLE_FACADE_SOURCE);
   assert.deepEqual(ProducerConfigSchema.parse(config), config);
   assert.deepEqual(config, example);
+  assert.deepEqual(config.sceneDefaults, {
+    introSceneTemplateId: "axmorf-brand-reveal-v1",
+    outroSceneTemplateId: "axmorf-source-follow-v1",
+  });
   assert.equal(config.tts.providers[0].kind, "edge-tts");
   assert.equal(
     Object.hasOwn(config.tts.providers[0].connection, "apiKey"),
@@ -299,6 +303,11 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     "utf8",
   );
   assert.match(workspaceGitignore, /^private\/$/mu);
+  assert.match(workspaceGitignore, /^public\/assets\/axmorf-shared\/$/mu);
+  assert.match(
+    workspaceGitignore,
+    /^src\/remotion\/catalog\/assets\.manifest\.json$/mu,
+  );
   assert.match(workspaceGitignore, /^\.producer-revisions\/$/mu);
   const workspaceSkill = await readFile(
     join(workspace, ".agents/skills/axmorf-video/SKILL.md"),

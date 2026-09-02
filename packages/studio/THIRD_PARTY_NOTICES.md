@@ -3,6 +3,13 @@
 AXMORF Studio source in this package is licensed under Apache-2.0. That license
 does not relicense third-party software installed alongside this package.
 
+## Bundled Workspace media
+
+The AXMORF mark, cinematic opening impact, and electronic closing cue bundled
+under `dist/assets/workspace-seed/` are AXMORF-authored works distributed under
+this package's Apache-2.0 license. The package does not redistribute the local
+Mixkit reference library used by the source repository.
+
 ## Remotion
 
 `remotion` and the `@remotion/*` packages are declared as exact peer

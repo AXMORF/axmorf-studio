@@ -22,9 +22,15 @@ const REQUIRED_DIRECTORIES = [
 
 const REQUIRED_FILES = [
   "private/producer.config.json",
+  "public/assets/axmorf-shared/brand/axmorf-mark.svg",
+  "public/assets/axmorf-shared/audio/music/axmorf-closing-pulse-v1.wav",
+  "public/assets/axmorf-shared/audio/sound-effects/axmorf-cinematic-impact-v1.wav",
   "src/index.ts",
   "src/projects/project-registry.generated.ts",
+  "src/remotion/catalog/assets.manifest.json",
   "src/remotion/catalog/resource-catalog.generated.json",
+  "src/remotion/catalog/scene-template-audio.defaults.json",
+  "src/remotion/catalog/scene-template-audio.generated.json",
 ] as const;
 
 const assertEntry = async (

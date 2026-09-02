@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-08-31 Ubuntu 24.04 x86_64 npm release closeout 与 macOS 15 ARM64 native gate
+> 最后复核：2026-09-02 package-owned shared Workspace resource source implementation
 
 ## 当前结论
 
@@ -12,6 +12,12 @@
   exports、单一 CLI、package-owned RuntimeResources、Remotion entry 和预构建 Web；
 - `create-axmorf-studio` 以 same-parent staging 原子创建普通独立应用，写入精确 dependencies、marker、
   配置、宿主无关 `AGENTS.md`/Skill，并默认完成 install、lockfile、bootstrap 和 doctor；
+- runtime package 现在构建 policy-covered Workspace seed：AXMORF-authored 片头 cinematic impact、片尾八秒电子 BGM、
+  一个 AXMORF SVG、
+  asset manifest 与默认 template audio projection。bootstrap 只创建缺失的保留路径、拒绝不同 bytes/symlink，
+  随后重建 Catalog；creator 默认启用首尾 templates，Project create 把实际使用的音频冻结为 Project-local assets；
+- `private/reference-assets/` 中的 Mixkit 下载音频继续只作为当前 repository-local reference library，不进入 Git 或 npm
+  tarball；公开 Workspace seed 只包含可再发行的 AXMORF-authored bytes；
 - contracts 与 Remotion runtime 的 canonical source 已迁入 runtime package；Workspace 只拥有可写 Project、
   media、config、work/artifact/attempt/out/delivery，以及 catalog/registry 的薄静态 facade；
 - Web 只监听 `127.0.0.1`，复用 Foundation 配置/诊断/进度 UI，新增 verified current Delivery player/covers；

@@ -27,7 +27,9 @@ npm run dev
 
 The initializer writes exact dependencies, installs them, creates a `package-lock.json`, and runs package-provided `bootstrap` and
 `doctor` checks before atomically publishing the target directory. The resulting directory is a normal private npm application, not
-a clone of the AXMORF monorepo.
+a clone of the AXMORF monorepo. Bootstrap also projects manifest- and checksum-verified shared media from the runtime package into the
+workspace Catalog. The initial set contains a cinematic opening impact, an eight-second electronic closing cue, and a reusable AXMORF
+mark; the default bookend templates copy their used audio into each newly created Project.
 
 The workspace owns its Projects, media, private configuration, production artifacts, render output, revision candidates, and
 Deliveries. Its generated npm scripts cover strict Project creation, isolated revisions, read-only production inspection,
