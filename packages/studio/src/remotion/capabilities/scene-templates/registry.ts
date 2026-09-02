@@ -1,15 +1,84 @@
-import type { ResourceAssetDescriptor } from "../../../contracts";
+import {
+  ProducerAssetManifestSchema,
+  type ResourceAssetDescriptor,
+} from "../../../contracts";
+import packageAssetManifest from "../../catalog/assets.manifest.json";
 import type { SceneTemplateId } from "./catalog";
 import {
   SceneTemplateAudioProjectionSchema,
   type SceneTemplateAudioProjection,
 } from "./template-audio";
 
+const packagedAssets = ProducerAssetManifestSchema.parse(
+  packageAssetManifest,
+).assets;
+
+const packagedAudioAsset = ({
+  id,
+  mediaRole,
+  minimumDurationInSeconds,
+}: {
+  readonly id: string;
+  readonly mediaRole: "sound-effect" | "background-music";
+  readonly minimumDurationInSeconds: number;
+}) => {
+  const descriptor = packagedAssets.find((asset) => asset.id === id);
+  if (
+    descriptor === undefined ||
+    descriptor.assetKind !== "audio" ||
+    descriptor.mediaRole !== mediaRole ||
+    descriptor.allowedUse !== "runtime-approved" ||
+    descriptor.media?.durationInSeconds === undefined ||
+    descriptor.media.durationInSeconds < minimumDurationInSeconds ||
+    !descriptor.localPath.startsWith("public/assets/axmorf-shared/")
+  ) {
+    throw new Error(`Packaged Scene template audio is invalid: ${id}.`);
+  }
+  return descriptor;
+};
+
+const packagedIntroAudio = packagedAudioAsset({
+  id: "asset.axmorf-cinematic-impact-v1",
+  mediaRole: "sound-effect",
+  minimumDurationInSeconds: 2,
+});
+const packagedOutroAudio = packagedAudioAsset({
+  id: "asset.axmorf-closing-pulse-v1",
+  mediaRole: "background-music",
+  minimumDurationInSeconds: 8,
+});
+
 export const DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION =
   SceneTemplateAudioProjectionSchema.parse({
     schemaVersion: 1,
-    intro: null,
-    outro: null,
+    intro: {
+      source: packagedIntroAudio,
+      targetMediaRole: "sound-effect",
+      destinationName: "axmorf-cinematic-impact-v1.wav",
+      soundCues: [
+        {
+          cueId: "reveal-impact",
+          anchorId: "intro-sound-start",
+          offsetFrames: 0,
+          durationInFrames: 60,
+          volume: 0.82,
+        },
+      ],
+    },
+    outro: {
+      source: packagedOutroAudio,
+      targetMediaRole: "background-music",
+      destinationName: "axmorf-closing-pulse-v1.wav",
+      soundCues: [
+        {
+          cueId: "closing-music",
+          anchorId: "closing-music-start",
+          offsetFrames: 0,
+          durationInFrames: 240,
+          volume: 1,
+        },
+      ],
+    },
   });
 
 type TemplateAudioBinding = NonNullable<SceneTemplateAudioProjection["intro"]>;

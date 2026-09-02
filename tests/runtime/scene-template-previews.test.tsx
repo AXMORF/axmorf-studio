@@ -8,23 +8,29 @@ import {
   SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS,
 } from "../../packages/studio/src/remotion/compositions/scene-template-previews/SceneTemplatePreviews";
 
-test("System Scene template previews play configured contributions from frame zero", async () => {
+test("System Scene template previews play packaged contributions from frame zero", async () => {
   assert.equal(typeof BrandRevealTemplatePreview, "function");
   assert.equal(typeof SourceFollowTemplatePreview, "function");
   assert.equal(SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS.intro.durationInFrames, 60);
   assert.equal(SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS.outro.durationInFrames, 240);
   const intro = SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS.intro.audio;
   const outro = SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS.outro.audio;
-  if (intro !== null) {
-    assert.equal(intro.startFrame, 0);
-    assert.equal(intro.durationInFrames, 60);
-    assert.equal(intro.role, "sound-effect");
-  }
-  if (outro !== null) {
-    assert.equal(outro.startFrame, 0);
-    assert.equal(outro.durationInFrames, 240);
-    assert.equal(outro.role, "background-music");
-  }
+  assert.ok(intro);
+  assert.equal(intro.startFrame, 0);
+  assert.equal(intro.durationInFrames, 60);
+  assert.equal(intro.role, "sound-effect");
+  assert.equal(
+    intro.publicPath,
+    "public/assets/axmorf-shared/audio/sound-effects/axmorf-cinematic-impact-v1.wav",
+  );
+  assert.ok(outro);
+  assert.equal(outro.startFrame, 0);
+  assert.equal(outro.durationInFrames, 240);
+  assert.equal(outro.role, "background-music");
+  assert.equal(
+    outro.publicPath,
+    "public/assets/axmorf-shared/audio/music/axmorf-closing-pulse-v1.wav",
+  );
   const source = await readFile(
     new URL(
       "../../packages/studio/src/remotion/compositions/scene-template-previews/SceneTemplatePreviews.tsx",

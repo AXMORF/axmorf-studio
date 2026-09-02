@@ -74,10 +74,13 @@ test("TypeScript resolves runtime workspace entrypoints from source", async () =
 });
 
 test("the runtime package exposes only stable ESM entrypoints", async () => {
-  const manifest = await readManifest(join(runtimePackageDir, "package.json"));
+  const [manifest, rootManifest] = await Promise.all([
+    readManifest(join(runtimePackageDir, "package.json")),
+    readManifest(join(rootDir, "package.json")),
+  ]);
 
   assert.equal(manifest.name, "@axmorf/studio");
-  assert.equal(manifest.version, "0.1.0");
+  assert.equal(manifest.version, rootManifest.version);
   assert.equal(manifest.type, "module");
   assert.deepEqual(manifest.engines, { node: ">=20.19.0", npm: ">=10" });
   assert.deepEqual(manifest.bin, {
