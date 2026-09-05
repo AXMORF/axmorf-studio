@@ -33,10 +33,10 @@ Package internals are not public API. A generated workspace owns its Projects, m
 Deliveries. Create, revise, recover, and produce through its npm scripts and Workspace-local Skill; do not reconstruct internal CLI
 commands.
 
-The package also carries a policy-covered Workspace seed for redistributable shared media. `axmorf bootstrap` projects only its
+The package also carries a policy-covered Workspace seed for shared media. `axmorf bootstrap` projects only its
 manifested bytes into reserved Workspace paths, generates the Resource Catalog, and refuses conflicting files or symlinks. The
-current seed includes a cinematic opening impact, an eight-second electronic closing cue, and an AXMORF mark SVG; selected template
-audio becomes Project-local during creation.
+current seed includes a Mixkit cinematic opening impact excerpt, an eight-second Mixkit “Deep Urban” closing excerpt, and an AXMORF
+mark SVG; selected template audio becomes Project-local during creation. See `THIRD_PARTY_NOTICES.md` for source and license details.
 
 ## Requirements
 

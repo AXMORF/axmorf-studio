@@ -1,7 +1,8 @@
-import type { FC, ReactNode } from "react";
+import { useEffect, useMemo, type FC, type ReactNode } from "react";
 import {
   AbsoluteFill,
   Html5Audio,
+  prefetch,
   Sequence,
   staticFile,
   useCurrentFrame,
@@ -13,18 +14,24 @@ import {
   AxmorfOutroScene,
 } from "../../capabilities/scene-templates/axmorf";
 import { AXMORF_SCENE_TEMPLATE_TIMING } from "../../capabilities/scene-templates/axmorf/timing";
-import { getSceneTemplateDefinition } from "../../capabilities/scene-templates/registry";
+import {
+  DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION,
+  getSceneTemplateDefinition,
+} from "../../capabilities/scene-templates/registry";
+import type { SceneTemplateAudioProjection } from "../../capabilities/scene-templates/template-audio";
 
 const PREVIEW_FPS = 30;
 
 const buildPreviewSpec = ({
   templateId,
   timingId,
+  audioProjection,
 }: {
   readonly templateId: "axmorf-brand-reveal-v1" | "axmorf-source-follow-v1";
   readonly timingId: keyof typeof AXMORF_SCENE_TEMPLATE_TIMING;
+  readonly audioProjection: SceneTemplateAudioProjection;
 }) => {
-  const definition = getSceneTemplateDefinition(templateId);
+  const definition = getSceneTemplateDefinition(templateId, audioProjection);
   const timing = AXMORF_SCENE_TEMPLATE_TIMING[timingId];
   if (
     definition.assets.length > 1 ||
@@ -83,16 +90,24 @@ const buildPreviewSpec = ({
   } as const;
 };
 
-export const SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS = {
-  intro: buildPreviewSpec({
-    templateId: "axmorf-brand-reveal-v1",
-    timingId: "axmorf-brand-reveal-v1",
-  }),
-  outro: buildPreviewSpec({
-    templateId: "axmorf-source-follow-v1",
-    timingId: "axmorf-source-follow-v1",
-  }),
-} as const;
+export const buildSceneTemplatePreviewSpecs = (
+  audioProjection: SceneTemplateAudioProjection,
+) =>
+  ({
+    intro: buildPreviewSpec({
+      templateId: "axmorf-brand-reveal-v1",
+      timingId: "axmorf-brand-reveal-v1",
+      audioProjection,
+    }),
+    outro: buildPreviewSpec({
+      templateId: "axmorf-source-follow-v1",
+      timingId: "axmorf-source-follow-v1",
+      audioProjection,
+    }),
+  }) as const;
+
+export const SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS =
+  buildSceneTemplatePreviewSpecs(DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION);
 
 const PreviewStage: FC<{ readonly children: ReactNode }> = ({ children }) => (
   <AbsoluteFill
@@ -117,24 +132,66 @@ const PreviewSound: FC<{
       <Html5Audio
         src={staticFile(spec.audio.publicPath.slice("public/".length))}
         volume={() => spec.audio.volume}
+        pauseWhenBuffering
+        preload="auto"
       />
     </Sequence>
   );
 
-export const BrandRevealTemplatePreview: FC = () => {
+export type SceneTemplatePreviewProps = Readonly<{
+  audioProjection?: SceneTemplateAudioProjection;
+}>;
+
+export const SceneTemplateAudioPreloader: FC<SceneTemplatePreviewProps> = ({
+  audioProjection = DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION,
+}) => {
+  const sources = useMemo(() => {
+    const specs = buildSceneTemplatePreviewSpecs(audioProjection);
+    return [specs.intro.audio, specs.outro.audio].flatMap((audio) =>
+      audio === null
+        ? []
+        : [staticFile(audio.publicPath.slice("public/".length))],
+    );
+  }, [audioProjection]);
+
+  useEffect(() => {
+    const handles = sources.map((src) =>
+      prefetch(src, { method: "blob-url", logLevel: "warn" }),
+    );
+    return () => {
+      for (const handle of handles) handle.free();
+    };
+  }, [sources]);
+
+  return null;
+};
+
+export const BrandRevealTemplatePreview: FC<SceneTemplatePreviewProps> = ({
+  audioProjection = DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION,
+}) => {
   const sceneFrame = useCurrentFrame();
   const { width, height } = useVideoConfig();
+  const specs = useMemo(
+    () => buildSceneTemplatePreviewSpecs(audioProjection),
+    [audioProjection],
+  );
   return (
     <PreviewStage>
       <AxmorfIntroScene sceneFrame={sceneFrame} width={width} height={height} />
-      <PreviewSound spec={SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS.intro} />
+      <PreviewSound spec={specs.intro} />
     </PreviewStage>
   );
 };
 
-export const SourceFollowTemplatePreview: FC = () => {
+export const SourceFollowTemplatePreview: FC<SceneTemplatePreviewProps> = ({
+  audioProjection = DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION,
+}) => {
   const sceneFrame = useCurrentFrame();
   const { width, height } = useVideoConfig();
+  const specs = useMemo(
+    () => buildSceneTemplatePreviewSpecs(audioProjection),
+    [audioProjection],
+  );
   return (
     <PreviewStage>
       <AxmorfOutroScene
@@ -152,7 +209,7 @@ export const SourceFollowTemplatePreview: FC = () => {
           },
         ]}
       />
-      <PreviewSound spec={SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS.outro} />
+      <PreviewSound spec={specs.outro} />
     </PreviewStage>
   );
 };

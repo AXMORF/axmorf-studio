@@ -37,19 +37,20 @@
     },
     {
       "schemaVersion": 1,
-      "id": "asset.axmorf-cinematic-impact-v1",
+      "id": "asset.mixkit.movie-trailer-epic-impact-2908-intro-2s",
       "kind": "asset",
       "status": "approved",
-      "title": "AXMORF Cinematic Impact",
-      "description": "AXMORF-authored stereo cinematic impact distributed with the npm runtime for reusable opening Scenes.",
+      "title": "Mixkit Movie Trailer Epic Impact - Intro 2s Excerpt",
+      "description": "The opening 2 seconds of the Mixkit Movie Trailer Epic Impact source used by the AXMORF intro template.",
       "useCases": [
         "AXMORF brand reveal Scene template",
         "Cinematic opening sound effect"
       ],
       "tags": [
-        "brand-reveal",
         "cinematic",
         "impact",
+        "intro",
+        "mixkit",
         "scene-template",
         "sound-effect"
       ],
@@ -60,39 +61,40 @@
       "allowedUse": "runtime-approved",
       "assetKind": "audio",
       "mediaRole": "sound-effect",
-      "localPath": "public/assets/axmorf-shared/audio/sound-effects/axmorf-cinematic-impact-v1.wav",
-      "checksum": "sha256:fd7b06d89910ce3d17e7b4272004768bb9a2125f0d678db786adc2e31f13b725",
+      "localPath": "public/assets/axmorf-shared/audio/sound-effects/mixkit-movie-trailer-epic-impact-2908-intro-2s.wav",
+      "checksum": "sha256:c89277f6b273010a88d5cd59d189a6b7097134d8c4e4e7ffda29b6e216cfa797",
       "license": {
-        "id": "Apache-2.0",
+        "id": "Mixkit Sound Effects Free License",
         "verificationStatus": "verified",
-        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "sourceUrl": "https://mixkit.co/license/",
         "attributionRequired": false,
         "attributionText": null,
-        "verifiedAt": "2026-09-02T00:00:00.000Z",
-        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        "verifiedAt": "2026-08-15T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:9adfb1591192763fcbcb86dc3afe451a419d79aa90548e142aec3e8527664e01"
       },
       "media": {
         "mimeType": "audio/wav",
-        "sizeBytes": 768044,
-        "durationInSeconds": 4,
+        "sizeBytes": 356430,
+        "durationInSeconds": 2.020136,
         "codec": "pcm_s16le",
-        "sampleRate": 48000
+        "sampleRate": 44100
       }
     },
     {
       "schemaVersion": 1,
-      "id": "asset.axmorf-closing-pulse-v1",
+      "id": "asset.mixkit.deep-urban-623-outro-8s",
       "kind": "asset",
       "status": "approved",
-      "title": "AXMORF Closing Pulse",
-      "description": "AXMORF-authored stereo electronic background cue distributed with the npm runtime for reusable closing Scenes.",
+      "title": "Mixkit Deep Urban - Outro 8s Excerpt",
+      "description": "The opening 8 seconds of the Mixkit Deep Urban source used by the AXMORF outro template.",
       "useCases": [
         "AXMORF source follow Scene template",
         "Reusable closing background music"
       ],
       "tags": [
         "background-music",
-        "electronic",
+        "deep-urban",
+        "mixkit",
         "scene-template",
         "source-follow"
       ],
@@ -103,23 +105,23 @@
       "allowedUse": "runtime-approved",
       "assetKind": "audio",
       "mediaRole": "background-music",
-      "localPath": "public/assets/axmorf-shared/audio/music/axmorf-closing-pulse-v1.wav",
-      "checksum": "sha256:5bf3d8601b226bd6fc05b44fe4fb4040542268a8a29267733c69b8e8980e155f",
+      "localPath": "public/assets/axmorf-shared/audio/music/mixkit-deep-urban-623-outro-8s.mp3",
+      "checksum": "sha256:fefb0356c74c565377ec02a68e31d70f670595dab9a6a0969e3d6b8090c5d434",
       "license": {
-        "id": "Apache-2.0",
+        "id": "Mixkit Stock Music Free License",
         "verificationStatus": "verified",
-        "sourceUrl": "https://github.com/AXMORF/axmorf-studio/blob/HEAD/LICENSE",
+        "sourceUrl": "https://mixkit.co/license/",
         "attributionRequired": false,
         "attributionText": null,
-        "verifiedAt": "2026-09-02T00:00:00.000Z",
-        "sourceEvidenceFingerprint": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        "verifiedAt": "2026-08-15T00:00:00.000Z",
+        "sourceEvidenceFingerprint": "sha256:9adfb1591192763fcbcb86dc3afe451a419d79aa90548e142aec3e8527664e01"
       },
       "media": {
-        "mimeType": "audio/wav",
-        "sizeBytes": 1536044,
-        "durationInSeconds": 8,
-        "codec": "pcm_s16le",
-        "sampleRate": 48000
+        "mimeType": "audio/mpeg",
+        "sizeBytes": 258597,
+        "durationInSeconds": 8.045714,
+        "codec": "mp3",
+        "sampleRate": 44100
       }
     }
   ]

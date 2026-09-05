@@ -17,8 +17,8 @@ const allowedFiles = new Set([
 ]);
 const releaseDocuments = ["README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"];
 const sharedResourcePaths = [
-  "dist/assets/workspace-seed/public/assets/axmorf-shared/audio/music/axmorf-closing-pulse-v1.wav",
-  "dist/assets/workspace-seed/public/assets/axmorf-shared/audio/sound-effects/axmorf-cinematic-impact-v1.wav",
+  "dist/assets/workspace-seed/public/assets/axmorf-shared/audio/music/mixkit-deep-urban-623-outro-8s.mp3",
+  "dist/assets/workspace-seed/public/assets/axmorf-shared/audio/sound-effects/mixkit-movie-trailer-epic-impact-2908-intro-2s.wav",
   "dist/assets/workspace-seed/public/assets/axmorf-shared/brand/axmorf-mark.svg",
   "dist/assets/workspace-seed/src/remotion/catalog/assets.manifest.json",
   "dist/assets/workspace-seed/src/remotion/catalog/scene-template-audio.defaults.json",
@@ -95,10 +95,29 @@ assert.deepEqual(
   sharedManifest.assets.map(({ id }) => id),
   [
     "asset.axmorf-mark",
-    "asset.axmorf-cinematic-impact-v1",
-    "asset.axmorf-closing-pulse-v1",
+    "asset.mixkit.movie-trailer-epic-impact-2908-intro-2s",
+    "asset.mixkit.deep-urban-623-outro-8s",
   ],
 );
+const packagedIntroAudio = sharedManifest.assets.find(
+  ({ id }) => id === "asset.mixkit.movie-trailer-epic-impact-2908-intro-2s",
+);
+const packagedOutroAudio = sharedManifest.assets.find(
+  ({ id }) => id === "asset.mixkit.deep-urban-623-outro-8s",
+);
+assert.equal(
+  packagedIntroAudio.checksum,
+  "sha256:c89277f6b273010a88d5cd59d189a6b7097134d8c4e4e7ffda29b6e216cfa797",
+);
+assert.equal(
+  packagedIntroAudio.license.id,
+  "Mixkit Sound Effects Free License",
+);
+assert.equal(
+  packagedOutroAudio.checksum,
+  "sha256:fefb0356c74c565377ec02a68e31d70f670595dab9a6a0969e3d6b8090c5d434",
+);
+assert.equal(packagedOutroAudio.license.id, "Mixkit Stock Music Free License");
 const audioDefaults = JSON.parse(
   await readFile(
     resolve(
@@ -108,8 +127,14 @@ const audioDefaults = JSON.parse(
     "utf8",
   ),
 );
-assert.equal(audioDefaults.intro.source.id, "asset.axmorf-cinematic-impact-v1");
-assert.equal(audioDefaults.outro.source.id, "asset.axmorf-closing-pulse-v1");
+assert.equal(
+  audioDefaults.intro.source.id,
+  "asset.mixkit.movie-trailer-epic-impact-2908-intro-2s",
+);
+assert.equal(
+  audioDefaults.outro.source.id,
+  "asset.mixkit.deep-urban-623-outro-8s",
+);
 assert.equal(audioDefaults.outro.targetMediaRole, "background-music");
 const runtimePolicy = JSON.parse(
   await readFile(

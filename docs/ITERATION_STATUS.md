@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-03 `v0.1.2` System preview audio public release and official-registry self-test
+> 最后复核：2026-09-05 `v0.1.3` Mixkit bookend audio release candidate and local packed Workspace self-test
 
 ## 当前结论
 
@@ -12,12 +12,13 @@
   exports、单一 CLI、package-owned RuntimeResources、Remotion entry 和预构建 Web；
 - `create-axmorf-studio` 以 same-parent staging 原子创建普通独立应用，写入精确 dependencies、marker、
   配置、宿主无关 `AGENTS.md`/Skill，并默认完成 install、lockfile、bootstrap 和 doctor；
-- runtime package 现在构建 policy-covered Workspace seed：AXMORF-authored 片头 cinematic impact、片尾八秒电子 BGM、
-  一个 AXMORF SVG、
+- runtime package 现在构建 policy-covered Workspace seed：Mixkit “Movie Trailer Epic Impact” 片头两秒节选、
+  Mixkit “Deep Urban” 片尾八秒节选、一个 AXMORF SVG、
   asset manifest 与默认 template audio projection。bootstrap 只创建缺失的保留路径、拒绝不同 bytes/symlink，
   随后重建 Catalog；creator 默认启用首尾 templates，Project create 把实际使用的音频冻结为 Project-local assets；
-- `private/reference-assets/` 中的 Mixkit 下载音频继续只作为当前 repository-local reference library，不进入 Git 或 npm
-  tarball；公开 Workspace seed 只包含可再发行的 AXMORF-authored bytes；
+- `v0.1.3` source candidate 按用户明确发布授权把上述两个实际音频节选纳入 Git 与 npm Workspace seed；package
+  manifest 记录原文件 checksum、媒体信息和 Mixkit license identity，`THIRD_PARTY_NOTICES.md` 明确它们不受
+  repository Apache-2.0 license 覆盖；
 - contracts 与 Remotion runtime 的 canonical source 已迁入 runtime package；Workspace 只拥有可写 Project、
   media、config、work/artifact/attempt/out/delivery，以及 catalog/registry 的薄静态 facade；
 - Web 只监听 `127.0.0.1`，复用 Foundation 配置/诊断/进度 UI，新增 verified current Delivery player/covers；
@@ -32,8 +33,8 @@ reference environment evidence，不是 runtime allowlist；其他宿主可以�
 已认证。Agent 不得修改 package internals、精确依赖、sandbox 或 validators 来强行适配。
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
-补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.2` 与
-`create-axmorf-studio@0.1.2`，从 exact `v0.1.2` tag 通过 Trusted Publisher 纯 OIDC 发布；registry integrity 与
+补齐 package README/LICENSE/third-party notices。当前公开版本仍是 `@axmorf/studio@0.1.2` 与
+`create-axmorf-studio@0.1.2`；当前 source candidate 为 `0.1.3`。`v0.1.2` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布；registry integrity 与
 release candidates 一致，provenance、registry signatures 与 attestations 已由外部 fresh Workspace 复验。
 GitHub 仓库已转移为 `AXMORF/axmorf-studio`，npm 发布分支是 default branch，旧 `main` 保留。production 与完整
 repository `npm audit` 已通过 `fast-uri@3.1.6`、

@@ -37,8 +37,7 @@ const asElement = (node: unknown) => {
 test("Root keeps System capability and Scene template previews when the ProjectRegistry is empty", async () => {
   const require = createRequire(import.meta.url);
   require.extensions[".css"] = () => undefined;
-  const { createRemotionRoot } =
-    await import("@axmorf/studio/remotion");
+  const { createRemotionRoot } = await import("@axmorf/studio/remotion");
   const root = createRemotionRoot([]);
   const folders = elementChildren(root);
   const systemFolder = folders.find(
@@ -115,8 +114,7 @@ test("Root keeps System capability and Scene template previews when the ProjectR
 test("Root maps synthetic Project entries without concrete Story assumptions", async () => {
   const require = createRequire(import.meta.url);
   require.extensions[".css"] = () => undefined;
-  const { createRemotionRoot } =
-    await import("@axmorf/studio/remotion");
+  const { createRemotionRoot } = await import("@axmorf/studio/remotion");
   const load = async () => ({ default: () => null });
   const entries: readonly ProjectRegistryEntry[] = [
     {
@@ -154,6 +152,38 @@ test("Root maps synthetic Project entries without concrete Story assumptions", a
   assert.deepEqual(storyElement.props.defaultProps, {
     projectId: "synthetic-story",
   });
+});
+
+test("Root forwards the Workspace-local Scene template audio projection to both previews", async () => {
+  const require = createRequire(import.meta.url);
+  require.extensions[".css"] = () => undefined;
+  const { createRemotionRoot } = await import("@axmorf/studio/remotion");
+  const sceneTemplateAudioProjection = {
+    schemaVersion: 1,
+    intro: null,
+    outro: null,
+  } as const;
+  const root = createRemotionRoot([], { sceneTemplateAudioProjection });
+  const systemFolder = elementChildren(root).find(
+    (folder) =>
+      isValidElement<ElementProps>(folder) &&
+      folder.type === Folder &&
+      folder.props.name === "System",
+  );
+  const previews = elementChildren(asElement(systemFolder))
+    .map(asElement)
+    .filter(
+      (entry) =>
+        entry.props.id === "DefaultIntroPreview" ||
+        entry.props.id === "DefaultOutroPreview",
+    );
+
+  assert.equal(previews.length, 2);
+  for (const preview of previews) {
+    assert.deepEqual(preview.props.defaultProps, {
+      audioProjection: sceneTemplateAudioProjection,
+    });
+  }
 });
 
 test("fresh-clone entrypoints bootstrap local projections before use", () => {
@@ -225,12 +255,18 @@ test("Root delegates registry composition to the public package root factory", a
     .filter(ts.isStringLiteral)
     .map((specifier) => specifier.text);
   assert.ok(imports.includes("./projects/project-registry.generated"));
+  assert.ok(
+    imports.includes("./remotion/catalog/scene-template-audio.generated.json"),
+  );
   assert.ok(imports.includes("@axmorf/studio/remotion"));
   assert.equal(
     imports.some((specifier) => specifier.endsWith("/Composition")),
     false,
   );
-  assert.match(source, /createRemotionRoot\(projectRegistry\)/u);
+  assert.match(
+    source,
+    /createRemotionRoot\(projectRegistry, \{ sceneTemplateAudioProjection \}\)/u,
+  );
   assert.doesNotMatch(
     source,
     /brief\.json|story\.json|render\.json|semantic-timing|node:fs|readdir|import\.meta\.glob/,

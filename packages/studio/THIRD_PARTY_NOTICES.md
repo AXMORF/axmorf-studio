@@ -5,10 +5,18 @@ does not relicense third-party software installed alongside this package.
 
 ## Bundled Workspace media
 
-The AXMORF mark, cinematic opening impact, and electronic closing cue bundled
-under `dist/assets/workspace-seed/` are AXMORF-authored works distributed under
-this package's Apache-2.0 license. The package does not redistribute the local
-Mixkit reference library used by the source repository.
+The AXMORF mark bundled under `dist/assets/workspace-seed/` is an
+AXMORF-authored work distributed under this package's Apache-2.0 license.
+
+The bundled opening sound is an excerpt of “Movie Trailer Epic Impact” from
+Mixkit. The bundled closing music is an excerpt of “Deep Urban” by Eugenio
+Mininni from Mixkit. They retain their respective Mixkit Sound Effects Free
+License and Mixkit Stock Music Free License; this package's Apache-2.0 license
+does not apply to those audio files. Source and license information:
+
+- https://mixkit.co/free-sound-effects/movie/
+- https://mixkit.co/free-stock-music/tech-house/
+- https://mixkit.co/license/
 
 ## Remotion
 

@@ -1,7 +1,9 @@
 export const buildDefaultSceneTemplateAudioProjection = (manifest) => {
   const byId = new Map(manifest.assets.map((asset) => [asset.id, asset]));
-  const intro = byId.get("asset.axmorf-cinematic-impact-v1");
-  const outro = byId.get("asset.axmorf-closing-pulse-v1");
+  const intro = byId.get(
+    "asset.mixkit.movie-trailer-epic-impact-2908-intro-2s",
+  );
+  const outro = byId.get("asset.mixkit.deep-urban-623-outro-8s");
   if (intro === undefined || outro === undefined) {
     throw new Error("Default Scene template audio assets are missing.");
   }
@@ -10,7 +12,7 @@ export const buildDefaultSceneTemplateAudioProjection = (manifest) => {
     intro: {
       source: intro,
       targetMediaRole: "sound-effect",
-      destinationName: "axmorf-cinematic-impact-v1.wav",
+      destinationName: "mixkit-movie-trailer-epic-impact-2908-intro-2s.wav",
       soundCues: [
         {
           cueId: "reveal-impact",
@@ -24,7 +26,7 @@ export const buildDefaultSceneTemplateAudioProjection = (manifest) => {
     outro: {
       source: outro,
       targetMediaRole: "background-music",
-      destinationName: "axmorf-closing-pulse-v1.wav",
+      destinationName: "mixkit-deep-urban-623-outro-8s.mp3",
       soundCues: [
         {
           cueId: "closing-music",

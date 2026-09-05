@@ -23,8 +23,8 @@ const REQUIRED_DIRECTORIES = [
 const REQUIRED_FILES = [
   "private/producer.config.json",
   "public/assets/axmorf-shared/brand/axmorf-mark.svg",
-  "public/assets/axmorf-shared/audio/music/axmorf-closing-pulse-v1.wav",
-  "public/assets/axmorf-shared/audio/sound-effects/axmorf-cinematic-impact-v1.wav",
+  "public/assets/axmorf-shared/audio/music/mixkit-deep-urban-623-outro-8s.mp3",
+  "public/assets/axmorf-shared/audio/sound-effects/mixkit-movie-trailer-epic-impact-2908-intro-2s.wav",
   "src/index.ts",
   "src/projects/project-registry.generated.ts",
   "src/remotion/catalog/assets.manifest.json",

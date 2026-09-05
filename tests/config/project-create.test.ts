@@ -203,14 +203,16 @@ const configurePackagedTemplateAudio = async (rootDir: string) => {
   const byId = new Map(
     sourceManifest.assets.map((descriptor) => [descriptor.id, descriptor]),
   );
-  const intro = byId.get("asset.axmorf-cinematic-impact-v1");
-  const outro = byId.get("asset.axmorf-closing-pulse-v1");
+  const intro = byId.get(
+    "asset.mixkit.movie-trailer-epic-impact-2908-intro-2s",
+  );
+  const outro = byId.get("asset.mixkit.deep-urban-623-outro-8s");
   assert.ok(intro);
   assert.ok(outro);
   const audioAssets = [intro, outro];
   const audioPaths = [
-    "audio/sound-effects/axmorf-cinematic-impact-v1.wav",
-    "audio/music/axmorf-closing-pulse-v1.wav",
+    "audio/sound-effects/mixkit-movie-trailer-epic-impact-2908-intro-2s.wav",
+    "audio/music/mixkit-deep-urban-623-outro-8s.mp3",
   ];
   await Promise.all(
     audioPaths.map(async (path) => {
@@ -240,7 +242,7 @@ const configurePackagedTemplateAudio = async (rootDir: string) => {
         intro: {
           source: intro,
           targetMediaRole: "sound-effect",
-          destinationName: "axmorf-cinematic-impact-v1.wav",
+          destinationName: "mixkit-movie-trailer-epic-impact-2908-intro-2s.wav",
           soundCues: [
             {
               cueId: "reveal-impact",
@@ -254,7 +256,7 @@ const configurePackagedTemplateAudio = async (rootDir: string) => {
         outro: {
           source: outro,
           targetMediaRole: "background-music",
-          destinationName: "axmorf-closing-pulse-v1.wav",
+          destinationName: "mixkit-deep-urban-623-outro-8s.mp3",
           soundCues: [
             {
               cueId: "closing-music",
@@ -730,8 +732,11 @@ test("project:create localizes packaged template sounds inside the new Project",
     ),
   );
   for (const [meaningId, name] of [
-    ["configured-intro-scene", "axmorf-cinematic-impact-v1.wav"],
-    ["configured-outro-scene", "axmorf-closing-pulse-v1.wav"],
+    [
+      "configured-intro-scene",
+      "mixkit-movie-trailer-epic-impact-2908-intro-2s.wav",
+    ],
+    ["configured-outro-scene", "mixkit-deep-urban-623-outro-8s.mp3"],
   ] as const) {
     assert.deepEqual(
       await readFile(
@@ -769,8 +774,8 @@ test("project:create localizes packaged template sounds inside the new Project",
       .map(({ localPath }) => localPath)
       .filter((localPath) => localPath.includes("/scenes/")),
     [
-      "public/projects/story-example/scenes/configured-intro-scene/axmorf-cinematic-impact-v1.wav",
-      "public/projects/story-example/scenes/configured-outro-scene/axmorf-closing-pulse-v1.wav",
+      "public/projects/story-example/scenes/configured-intro-scene/mixkit-movie-trailer-epic-impact-2908-intro-2s.wav",
+      "public/projects/story-example/scenes/configured-outro-scene/mixkit-deep-urban-623-outro-8s.mp3",
     ],
   );
   await stat(

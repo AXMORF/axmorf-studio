@@ -7,7 +7,7 @@
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Project authoring source | `src/projects/<storyId>/` 与显式 Project-local selected media 中的可变创作输入。 |
 | Workspace capability gate | creator install/bootstrap 后由 `npm run doctor` 对当前 Workspace 声明能力执行的 readiness 检查；Agent 可准备宿主环境但不得修改 package internals、精确依赖或 validators。它不是 OS allowlist、production completion 或 Delivery evidence。 |
-| shared Workspace resource | runtime package 中由 policy、asset manifest、checksum 与 license 共同覆盖的可再发行媒体；bootstrap 只投影到保留的 `public/assets/axmorf-shared/` 和 Catalog，相同 bytes 幂等、冲突 fail closed。它不是 Project-owned，直到 create/import 将实际使用的 bytes 本地化。 |
+| shared Workspace resource | runtime package 中由 policy、asset manifest、checksum 与 license identity 共同覆盖并随 package 分发的媒体；bootstrap 只投影到保留的 `public/assets/axmorf-shared/` 和 Catalog，相同 bytes 幂等、冲突 fail closed。它不是 Project-owned，直到 create/import 将实际使用的 bytes 本地化。 |
 | configured-authoring | `project:create` 已原子写入 Story/TTS/config 与 pending timing-bound authoring，尚未准备 narration。 |
 | structured authoring validation | create/revision 共用的 pre-mutation machine validation；顶层 `authoring-validation-failed` 包含 field-level issues。`caption-display-budget-exceeded` 使用 `caption-display-unit-v1`，每个 authored `ttsChunk` 上限 72 display half-units。 |
 | ProjectRevisionInput | 修改现有 Project 的 strict raw input；绑定 storyId、exact base Revision/Delivery tuple 与非空 authored patch。 |

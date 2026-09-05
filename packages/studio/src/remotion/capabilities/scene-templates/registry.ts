@@ -9,9 +9,8 @@ import {
   type SceneTemplateAudioProjection,
 } from "./template-audio";
 
-const packagedAssets = ProducerAssetManifestSchema.parse(
-  packageAssetManifest,
-).assets;
+const packagedAssets =
+  ProducerAssetManifestSchema.parse(packageAssetManifest).assets;
 
 const packagedAudioAsset = ({
   id,
@@ -38,12 +37,12 @@ const packagedAudioAsset = ({
 };
 
 const packagedIntroAudio = packagedAudioAsset({
-  id: "asset.axmorf-cinematic-impact-v1",
+  id: "asset.mixkit.movie-trailer-epic-impact-2908-intro-2s",
   mediaRole: "sound-effect",
   minimumDurationInSeconds: 2,
 });
 const packagedOutroAudio = packagedAudioAsset({
-  id: "asset.axmorf-closing-pulse-v1",
+  id: "asset.mixkit.deep-urban-623-outro-8s",
   mediaRole: "background-music",
   minimumDurationInSeconds: 8,
 });
@@ -54,7 +53,7 @@ export const DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION =
     intro: {
       source: packagedIntroAudio,
       targetMediaRole: "sound-effect",
-      destinationName: "axmorf-cinematic-impact-v1.wav",
+      destinationName: "mixkit-movie-trailer-epic-impact-2908-intro-2s.wav",
       soundCues: [
         {
           cueId: "reveal-impact",
@@ -68,7 +67,7 @@ export const DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION =
     outro: {
       source: packagedOutroAudio,
       targetMediaRole: "background-music",
-      destinationName: "axmorf-closing-pulse-v1.wav",
+      destinationName: "mixkit-deep-urban-623-outro-8s.mp3",
       soundCues: [
         {
           cueId: "closing-music",

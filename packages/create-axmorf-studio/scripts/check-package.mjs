@@ -46,6 +46,8 @@ for (const relativePath of [
   "template/.producer-work/.gitkeep",
   "template/deliveries/.gitkeep",
   "template/out/.gitkeep",
+  "template/src/generated-json.d.ts",
+  "template/src/index.ts",
 ]) {
   const metadata = await lstat(resolve(packageRoot, relativePath));
   assert.equal(metadata.isFile(), true, `${relativePath} must be a file.`);
@@ -55,6 +57,21 @@ for (const relativePath of [
     `${relativePath} cannot be a symbolic link.`,
   );
 }
+
+const templateEntry = await readFile(
+  resolve(packageRoot, "template/src/index.ts"),
+  "utf8",
+);
+assert.match(
+  templateEntry,
+  /scene-template-audio\.generated\.json/u,
+  "The generated Workspace root must load its Workspace-local Scene template audio projection.",
+);
+assert.match(
+  templateEntry,
+  /createRemotionRoot\(projectRegistry, \{ sceneTemplateAudioProjection \}\)/u,
+  "The generated Workspace root must pass its local audio projection to the runtime root.",
+);
 
 assert.notEqual(
   (await lstat(resolve(packageRoot, "bin/create-axmorf-studio.js"))).mode &
