@@ -44,8 +44,8 @@
 - `promotions/` 保存尚未完全达到完成定义的提案和实施计划；每份文档必须明确自身批准/实施状态。
 - npm Workspace 开源方案已经完成并
   [归档实施计划](archive/implementation-plans/2026-08-30-npm-workspace-open-source-implementation-plan.md)；当前是
-  `v0.1.2` public release，事实以 [ITERATION_STATUS.md](ITERATION_STATUS.md) 与
-  [v0.1.2 System preview audio release](evidence/2026-09-03-v0.1.2-system-preview-audio-release.md) 为准。
+  `v0.1.3` public release，事实以 [ITERATION_STATUS.md](ITERATION_STATUS.md) 与
+  [v0.1.3 Mixkit bookend audio release](evidence/2026-09-05-v0.1.3-mixkit-bookend-audio-release.md) 为准。
 - [archive/](archive/README.md) 保存已完成或被取代的 plans/specs，仅供追溯。
 
 ## 管理规则

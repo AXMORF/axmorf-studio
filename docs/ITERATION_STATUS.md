@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-05 `v0.1.3` Mixkit bookend audio release candidate and local packed Workspace self-test
+> 最后复核：2026-09-05 `v0.1.3` Mixkit bookend audio public release and official-registry self-test
 
 ## 当前结论
 
@@ -16,7 +16,7 @@
   Mixkit “Deep Urban” 片尾八秒节选、一个 AXMORF SVG、
   asset manifest 与默认 template audio projection。bootstrap 只创建缺失的保留路径、拒绝不同 bytes/symlink，
   随后重建 Catalog；creator 默认启用首尾 templates，Project create 把实际使用的音频冻结为 Project-local assets；
-- `v0.1.3` source candidate 按用户明确发布授权把上述两个实际音频节选纳入 Git 与 npm Workspace seed；package
+- `v0.1.3` 按用户明确发布授权把上述两个实际音频节选纳入 Git 与 npm Workspace seed；package
   manifest 记录原文件 checksum、媒体信息和 Mixkit license identity，`THIRD_PARTY_NOTICES.md` 明确它们不受
   repository Apache-2.0 license 覆盖；
 - contracts 与 Remotion runtime 的 canonical source 已迁入 runtime package；Workspace 只拥有可写 Project、
@@ -33,8 +33,8 @@ reference environment evidence，不是 runtime allowlist；其他宿主可以�
 已认证。Agent 不得修改 package internals、精确依赖、sandbox 或 validators 来强行适配。
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
-补齐 package README/LICENSE/third-party notices。当前公开版本仍是 `@axmorf/studio@0.1.2` 与
-`create-axmorf-studio@0.1.2`；当前 source candidate 为 `0.1.3`。`v0.1.2` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布；registry integrity 与
+补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.3` 与
+`create-axmorf-studio@0.1.3`；`v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
 release candidates 一致，provenance、registry signatures 与 attestations 已由外部 fresh Workspace 复验。
 GitHub 仓库已转移为 `AXMORF/axmorf-studio`，npm 发布分支是 default branch，旧 `main` 保留。production 与完整
 repository `npm audit` 已通过 `fast-uri@3.1.6`、
@@ -270,6 +270,13 @@ release gate `#33663623305` 与纯 OIDC publish gate `#33664081626` 均 Green；
 Ubuntu creator Workspace 已复验 Studio 两条未静音 audio element、WAV HTTP 206、两个 H.264/AAC render 的实际音量、
 零漏洞 audit、250 个 registry signatures 与 49 个 attestations。完整事实见
 [v0.1.2 System preview audio release](evidence/2026-09-03-v0.1.2-system-preview-audio-release.md)。
+
+exact `v0.1.3` tag 把当前项目配置的 Mixkit 片头 impact 两秒节选与片尾 “Deep Urban” 八秒节选作为
+policy-covered Workspace seed 发布，并让 root factory 接收 Workspace-local audio projection。Studio 在 root mount 时
+预取两条音频，preview 使用 `preload="auto"` 与 `pauseWhenBuffering`。纯 OIDC publish gate `#33971031243` Green；
+official-registry empty-cache fresh Workspace 已复验精确音频 checksum、doctor、compositions、两段非静音 H.264/AAC
+render 和真实浏览器首响延迟。完整事实见
+[v0.1.3 Mixkit bookend audio release](evidence/2026-09-05-v0.1.3-mixkit-bookend-audio-release.md)。
 
 用户明确授权后，受控 Project delete 又在上述真实 production Workspace 的一次性副本执行。缺少
 `--confirm-delete` 时命令 exit 1 且 Delivery checksum 不变；exact confirmed command 清理 source/public/narration/
