@@ -2,16 +2,18 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-06 `v0.1.7` 已发布；当前 Mac 官方 npm 全新 Workspace 双 Agent 成片及并发 final 验收通过
+> 最后复核：2026-09-07 `v0.1.8` 已发布；候选与官方 npm 两阶段全新 Workspace 的 Codex/Hermes 成片及独立 final 验收通过
 
-## 当前工程增量（0.1.8 候选，尚未发布）
+## 当前工程增量（0.1.8 已发布并完成首次使用验收）
 
-首次用户模拟发现的输入示例、时长反馈、安装进度与发布验收缺口已收敛为同一个补丁版本。
-候选包已通过隔离的 Codex/Hermes 首次使用验收，分别交付 29.3 秒与 27.7 秒视频。
-发布后还将从官方 npm fresh create 重验；证据见 [v0.1.8](evidence/2026-09-07-v0.1.8-first-use-release.md)。
-不能把候选测试、维护者引导测试或后台启动回执写成官方包交付成功。
+首次用户模拟发现的输入示例、结构化错误反馈、总时长预算、安装进度与发布验收缺口已收敛为同一个补丁版本。
+候选包通过隔离 Codex/Hermes 验收后，由 exact-tag CI 完成双包发布；macOS 与 Ubuntu 全量 794 项测试通过。
+发布后从官方 latest 再建两个全新 Workspace，真实 Codex/Hermes 分别交付 26.9 秒与 26.87 秒视频，
+原 continuation 均成功，独立 final 各 7/7、四文件 checksum/EOF、252 个 runtime 文件与 10 个指南的一致性复验通过。
+两个阶段均只有普通业务提示，无后续工程指导或控制器代修。Hermes 正式包首个 create 的字段组合错误由新错误反馈引导自行修正；
+成功不表示零校验错误或精确达到 30 秒。完整证据与范围见 [v0.1.8](evidence/2026-09-07-v0.1.8-first-use-release.md)。
 
-## 当前工程增量（0.1.7 已发布并完成双 Agent 验收）
+## 历史工程增量（0.1.7 已发布并完成双 Agent 验收）
 
 本轮已把 npm Workspace 使用中暴露的问题修正到项目源码、发行 Skill 和说明文档：
 
@@ -25,7 +27,7 @@
 Hermes 0.21.0 分别交付 31.67 秒和 31.3 秒视频，固定终态均成功。两项目并发 final 各 7 项全通过；
 checksum、媒体规格、EOF 解码和发行包原始 bytes 复验通过。使用侧未修改安装包、精确依赖或 validator。
 
-当前验收见 [v0.1.7 release](evidence/2026-09-06-v0.1.7-workspace-reliability-release.md)。
+该版本验收见 [v0.1.7 release](evidence/2026-09-06-v0.1.7-workspace-reliability-release.md)。
 此前失败与修复证据见 [v0.1.6](evidence/2026-09-06-v0.1.6-workspace-reliability-release.md)、
 [v0.1.5](evidence/2026-09-06-v0.1.5-workspace-reliability-release.md)、
 [v0.1.4](evidence/2026-09-06-v0.1.4-workspace-reliability-release.md)；
@@ -60,8 +62,8 @@ reference environment evidence，不是 runtime allowlist；其他宿主可以�
 已认证。Agent 不得修改 package internals、精确依赖、sandbox 或 validators 来强行适配。
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
-补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.7` 与
-`create-axmorf-studio@0.1.7`，发布记录见上方证据。此前 `v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
+补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.8` 与
+`create-axmorf-studio@0.1.8`，发布记录见上方证据。此前 `v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
 release candidates 一致，provenance、registry signatures 与 attestations 已由外部 fresh Workspace 复验。
 GitHub 仓库已转移为 `AXMORF/axmorf-studio`，npm 发布分支是 default branch，旧 `main` 保留。production 与完整
 repository `npm audit` 已通过 `fast-uri@3.1.6`、

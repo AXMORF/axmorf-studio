@@ -1,0 +1,172 @@
+{
+  "version": "0.1.8",
+  "releaseSourceCommit": "15f89958a217f233b5539893746755c877d59bf9",
+  "platform": {
+    "os": "macOS 15.7.1",
+    "arch": "x86_64",
+    "node": "22.22.3",
+    "npm": "10.9.8"
+  },
+  "model": "gpt-6-astra",
+  "macosCi": 34052681328,
+  "publishCi": 34053013522,
+  "ciTestsPassed": 794,
+  "results": [
+    {
+      "host": "codex",
+      "hostVersion": "0.153.4",
+      "sessionId": "01a0781c-af17-7081-a3d4-1d4c0806ba56",
+      "storyId": "ten-minute-focus",
+      "businessPrompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“从十分钟专注开始”，讲清楚选一个具体小步骤、关掉打断、做完记录下一步。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。",
+      "businessMessages": 1,
+      "followupMessages": 0,
+      "controllerInterventions": 0,
+      "originalExitCode": 0,
+      "elapsedSeconds": 411.9,
+      "frameCount": 807,
+      "fps": 30,
+      "durationBudget": {
+        "targetTotalSeconds": 30,
+        "boundarySeconds": 10,
+        "leadAndTailSeconds": 0,
+        "availableNarratedSeconds": 20,
+        "budgetState": "narration-budget-available",
+        "actualTotalSeconds": 26.9,
+        "deltaSeconds": -3.1000000000000014,
+        "measurement": "sealed-semantic-timing",
+        "comparison": "shorter-than-target",
+        "guidance": [
+          "targetTotalSeconds includes silent opening/ending Scenes and render lead-in/tail; availableNarratedSeconds must cover speech and pauses.",
+          "Before project:create, budget narration text against availableNarratedSeconds using the selected language and voice; text estimates are not measured duration.",
+          "After sealing, actualTotalSeconds follows PCM-derived semantic timing. The target is advisory, with no implicit tolerance, audio truncation or automatic retry.",
+          "If a duration change is needed, report the measured deviation and use an explicitly requested project revision; do not edit live authoring or an active attempt."
+        ]
+      },
+      "deliveryBuildId": "delivery-7657219803b2505b4cac58dbd837e0705eaa46e5b4f7724002ff826243793516",
+      "originalTerminalStatus": "project-production-complete",
+      "publicFinalChecksPassed": 7,
+      "exactFour": true,
+      "decodedToEof": true,
+      "files": {
+        "video.mp4": {
+          "bytes": 2085529,
+          "checksum": "sha256:dabdc70233acd2ec816dcc23daec6cb019bdf8d67404b71828f55f79e9b28837"
+        },
+        "cover-4x3.png": {
+          "bytes": 128743,
+          "checksum": "sha256:16819b7fce3271f49d4bf1b6fc349b415798000f6f96d8c62c86f1406608f690"
+        },
+        "publish.json": {
+          "bytes": 2143,
+          "checksum": "sha256:a787d9ea7e58d6ce5ef388c52c6316a020ecc1b101a0379c341ede2f82e8369b"
+        },
+        "cover-3x4.png": {
+          "bytes": 125215,
+          "checksum": "sha256:ad201186f79488fd86ee32900cc8eb4fcd12e0e7f67b352ec3c5c8a5e97679bb"
+        }
+      },
+      "contentAudit": {
+        "host": "codex",
+        "runtimeFingerprint": "sha256:5cb0c692aa53440ee56ebb81c054a6c7f8c7093d0d2bec980a8b5b5d70163cba",
+        "fileCount": 252,
+        "matchesAcceptedCandidate": true,
+        "verifiedGuideFiles": 10
+      },
+      "registry": {
+        "@axmorf/studio": {
+          "version": "0.1.8",
+          "integrity": "sha512-zNk4MoN3/VvZN5WTbyicvjmq2d97x65fJEDx/2ivJYPPiJzlOTFksSFuxgvvjvNXzkqN/+2dPoT3+ifcqpeTtw=="
+        },
+        "create-axmorf-studio": {
+          "version": "0.1.8",
+          "integrity": "sha512-Kq/TeUKe3+cXa+qvL9C475ZaYBQFuUdhJTDWGMQPYhA/kG57mQiN7DXwTdARZbgC5ItvWJ+ndGVsq0GRkYYOWQ=="
+        }
+      },
+      "observations": [
+        "No nonzero command exits recorded."
+      ]
+    },
+    {
+      "host": "hermes",
+      "hostVersion": "0.21.0",
+      "sessionId": "20260907_030541_5dd134",
+      "storyId": "daily-small-progress",
+      "businessPrompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“每天进步一点点”，用1.01的365次方约37.8说明积累，但讲清楚这只是数学示意，现实成长不保证固定回报。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。",
+      "businessMessages": 1,
+      "followupMessages": 0,
+      "controllerInterventions": 0,
+      "originalExitCode": 0,
+      "elapsedSeconds": 729.96,
+      "frameCount": 806,
+      "fps": 30,
+      "durationBudget": {
+        "targetTotalSeconds": 30,
+        "boundarySeconds": 10,
+        "leadAndTailSeconds": 0,
+        "availableNarratedSeconds": 20,
+        "budgetState": "narration-budget-available",
+        "actualTotalSeconds": 26.866666666666667,
+        "deltaSeconds": -3.133333333333333,
+        "measurement": "sealed-semantic-timing",
+        "comparison": "shorter-than-target",
+        "guidance": [
+          "targetTotalSeconds includes silent opening/ending Scenes and render lead-in/tail; availableNarratedSeconds must cover speech and pauses.",
+          "Before project:create, budget narration text against availableNarratedSeconds using the selected language and voice; text estimates are not measured duration.",
+          "After sealing, actualTotalSeconds follows PCM-derived semantic timing. The target is advisory, with no implicit tolerance, audio truncation or automatic retry.",
+          "If a duration change is needed, report the measured deviation and use an explicitly requested project revision; do not edit live authoring or an active attempt."
+        ]
+      },
+      "deliveryBuildId": "delivery-0176b5362a891309accf932792db10db4a515f80b2d24bc6f3835ac4e29b96ec",
+      "originalTerminalStatus": "project-production-complete",
+      "publicFinalChecksPassed": 7,
+      "exactFour": true,
+      "decodedToEof": true,
+      "files": {
+        "video.mp4": {
+          "bytes": 1944676,
+          "checksum": "sha256:4b757e595dd8a605207336447df44576a26a35f4b564708dbe24866d57e35476"
+        },
+        "cover-4x3.png": {
+          "bytes": 1323337,
+          "checksum": "sha256:64b7dafffaa29501777d7ddb82b57fe78ca2c289803420da183c7d762106d572"
+        },
+        "publish.json": {
+          "bytes": 2374,
+          "checksum": "sha256:a0eb7220d1e38f9d2b79af562538347db8ccbab5f6f399ca7e9c84970615dc26"
+        },
+        "cover-3x4.png": {
+          "bytes": 1157985,
+          "checksum": "sha256:ac9b1af192586fac1f6c8de427e99394b5be23b060ea0233fa7bdda4c5a25ae4"
+        }
+      },
+      "contentAudit": {
+        "host": "hermes",
+        "runtimeFingerprint": "sha256:5cb0c692aa53440ee56ebb81c054a6c7f8c7093d0d2bec980a8b5b5d70163cba",
+        "fileCount": 252,
+        "matchesAcceptedCandidate": true,
+        "verifiedGuideFiles": 10
+      },
+      "registry": {
+        "@axmorf/studio": {
+          "version": "0.1.8",
+          "integrity": "sha512-zNk4MoN3/VvZN5WTbyicvjmq2d97x65fJEDx/2ivJYPPiJzlOTFksSFuxgvvjvNXzkqN/+2dPoT3+ifcqpeTtw=="
+        },
+        "create-axmorf-studio": {
+          "version": "0.1.8",
+          "integrity": "sha512-Kq/TeUKe3+cXa+qvL9C475ZaYBQFuUdhJTDWGMQPYhA/kG57mQiN7DXwTdARZbgC5ItvWJ+ndGVsq0GRkYYOWQ=="
+        }
+      },
+      "observations": [
+        "Initial production-scoped requirement incorrectly listed targetMeaningIds; the new field-path/example error enabled correction without user input.",
+        "Agent corrected its own JSON parsing and Scene readability issues before task commit. An unrelated git-status probe returned not-a-repository.",
+        "Hermes saved a host skill after successful continuation in its fresh private profile. That skill was absent at startup and was not reused by any acceptance run."
+      ]
+    }
+  ],
+  "limitations": [
+    "Four video samples across candidate and official registry phases on two hosts with one model and one Mac.",
+    "Unattended CLI authorization and inherited filesystem access rules, not a VM or a certification of all permission flows.",
+    "Successful completion permits Agent-owned draft correction and does not mean zero errors or exact 30-second duration.",
+    "Visual samples and full media decoding, not exhaustive aesthetic or subjective audio acceptance."
+  ]
+}
