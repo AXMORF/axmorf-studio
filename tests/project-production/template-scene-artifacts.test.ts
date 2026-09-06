@@ -20,6 +20,8 @@ import {
   resolveSceneViewport,
   serializeCanonicalJson,
   StorySpecSchema,
+  SceneTemplateInstanceSchema,
+  ProducerConfigSchema,
 } from "@axmorf/studio/contracts";
 import { buildResourceCatalog } from "../../scripts/catalog/domain";
 import { inspectArtifact } from "../../scripts/project-production/adapters/artifact-store";
@@ -31,6 +33,15 @@ import {
   validRenderSpec,
   validVideoBrief,
 } from "../fixtures/narrative";
+
+import {
+  prepareProjectCreateFixture,
+  validProjectCreateInput,
+  validProjectCreateProducerConfig,
+} from "../fixtures/project-create";
+import { createProject } from "../../scripts/projects/application/create-project";
+import { writeProducerConfig } from "../../scripts/config/producer-config";
+import { readGeneratedResourceCatalog } from "../../scripts/catalog/project-files";
 
 const sha = (character: string) => `sha256:${character.repeat(64)}` as const;
 const digest = (value: string | Uint8Array) =>
@@ -356,3 +367,189 @@ export default Renderer;
     prepared.task.taskRevision,
   );
 });
+
+for (const meaningId of ["configured-intro-scene", "configured-outro-scene"]) {
+  test(`shipped default ${meaningId} passes the complete fixed Scene artifact checker`, async (context) => {
+    const fixture = await prepareProjectCreateFixture();
+    const { rootDir } = fixture;
+    context.after(() => rm(rootDir, { recursive: true, force: true }));
+    await writeFile(
+      join(rootDir, "tsconfig.json"),
+      await readFile(new URL("../../tsconfig.json", import.meta.url), "utf8"),
+    );
+    const { createSafeProducerConfig } = await import(
+      new URL(
+        "../../packages/create-axmorf-studio/src/template-values.js",
+        import.meta.url,
+      ).href
+    );
+    const defaults = ProducerConfigSchema.parse(
+      createSafeProducerConfig(),
+    ).sceneDefaults;
+    await writeProducerConfig({
+      configPath: fixture.configPath,
+      value: { ...validProjectCreateProducerConfig, sceneDefaults: defaults },
+    });
+    const input = { ...validProjectCreateInput, sceneTemplates: undefined };
+    await writeFile(fixture.inputPath, JSON.stringify(input));
+    const storyId = input.storyId;
+    await createProject({
+      rootDir,
+      projectId: storyId,
+      inputPath: fixture.inputPath,
+      env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+      runtimeResources: fixture.runtimeResources,
+    });
+    const story = StorySpecSchema.parse(
+      JSON.parse(
+        await readFile(
+          join(rootDir, `src/projects/${storyId}/story.json`),
+          "utf8",
+        ),
+      ),
+    );
+    const beat = story.beats.find((entry) => entry.meaningId === meaningId);
+    assert.ok(beat?.kind === "silent-scene");
+    const preset = beat.preset;
+    const durationInFrames = preset.durationInFrames;
+    const instance = SceneTemplateInstanceSchema.parse(
+      JSON.parse(
+        await readFile(
+          join(
+            rootDir,
+            `src/projects/${storyId}/scenes/${meaningId}/scene-template-instance.json`,
+          ),
+          "utf8",
+        ),
+      ),
+    );
+    const render = RenderSpecSchema.parse({
+      ...validRenderSpec,
+      compositionId: "TemplateFixedProof",
+    });
+    const projectSound = buildProjectSoundPlan({ storyId, contributions: [] });
+    const requirements = buildAuthoringRequirements({
+      source: {
+        brief: { ...validVideoBrief, storyId, title: story.title },
+        story,
+        narration: validNarrationSpec,
+        render,
+        projectSound,
+      },
+      sourceChecksums: {
+        videoBrief: sha("2"),
+        storySpec: sha("3"),
+        narrationSpec: sha("4"),
+        renderSpec: sha("5"),
+        projectSound: sha("6"),
+      },
+      enhancementSelection: {
+        storyVisual: "required",
+        sound: "allowed",
+        globalVisual: "required",
+      },
+      resourcePolicy: {
+        selfAuthoredVisualsAllowed: true,
+        unlistedThirdPartyResources: "deny",
+      },
+      additionalRequirements: [],
+      readability: { edgeInsetPx: 90 },
+    });
+    const catalog = await readGeneratedResourceCatalog(rootDir);
+    const taskInput = buildSceneTaskInputV7({
+      storyId,
+      meaningId,
+      storyBeat: beat,
+      sourceReferences: [],
+      timingBeat: {
+        kind: "silent-scene",
+        meaningId,
+        presetFingerprint: preset.presetFingerprint,
+        presetDurationInFrames: durationInFrames,
+        startFrame: 0,
+        endFrame: durationInFrames,
+      },
+      storyFingerprint: computeStoryFingerprint(story),
+      renderFingerprint: computeRenderSpecFingerprint(render),
+      visualStyleFingerprint: sha("7"),
+      resourceCatalogFingerprint: catalog.catalogFingerprint,
+      allowedSnapshots: [],
+      allowedResourceIds: instance.resourceIds,
+      continuity: {
+        previousMeaningId: null,
+        previousSummary: null,
+        nextMeaningId: null,
+        nextSummary: null,
+        continuityBrief: "Hand the configured opening into narrated content.",
+      },
+      allowedDirectories: {
+        sceneRoot: `src/projects/${storyId}/scenes/${meaningId}`,
+        publicAssetRoot: `public/projects/${storyId}/scenes/${meaningId}`,
+      },
+      sceneRequirements: [],
+      sceneViewport: resolveSceneViewport(
+        resolveSceneReadabilityPolicy({
+          width: render.width,
+          height: render.height,
+        }),
+      ),
+      sceneCompositionBoundaryVersion: "scene-composition-boundary-v2",
+    });
+    const contextBytes = canonical({
+      requirements,
+      resourcePool: {
+        allowedResourceIds: instance.resourceIds,
+        resourceCatalogFingerprint: catalog.catalogFingerprint,
+      },
+      scene: {
+        beat: beat,
+        timingBeat: taskInput.timingBeat,
+        brief: {
+          meaningId,
+          visualIntent: instance.visualIntent,
+          compositionIntent: "Use the copied centered proof card.",
+          motionIntent: "Use only fixed template motion.",
+          soundIntent: instance.soundIntent,
+          continuityBrief: "Hand into narrated content.",
+          candidateResourceIds: [],
+          allowedSnapshotCards: [],
+        },
+        taskInput,
+      },
+    });
+    const task = buildProducerTaskSpec({
+      taskKind: "scene-template",
+      storyId,
+      semanticId: meaningId,
+      revisionId: `revision-${"8".repeat(64)}`,
+      dependencyArtifacts: [],
+      inputFingerprints: [
+        { id: "read:inputs/context.json", fingerprint: digest(contextBytes) },
+      ],
+      declaredReadSet: ["inputs/context.json"],
+      declaredOutputSet: ["src/Renderer.tsx"],
+      validatorPolicyVersion: "scene-template-validator-v3",
+    });
+
+    const prepared = await ensureTemplateSceneArtifact({
+      rootDir,
+      task,
+      contextBytes,
+      taskInput,
+      catalog,
+    });
+    assert.equal(
+      (await inspectArtifact({ rootDir, task: prepared.task }))?.taskRevision,
+      prepared.task.taskRevision,
+    );
+    assert.ok(
+      prepared.task.declaredOutputSet.some((path) =>
+        path.endsWith(
+          meaningId === "configured-intro-scene"
+            ? "AxmorfIntroScene.tsx"
+            : "AxmorfOutroScene.tsx",
+        ),
+      ),
+    );
+  });
+}

@@ -2,13 +2,18 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-05 `v0.1.3` Mixkit bookend audio public release and official-registry self-test
+> 最后复核：2026-09-06 `v0.1.4` Workspace reliability public release；Agent 实测发现默认模板固定校验缺陷
 
-## 当前工程增量（待发布验证）
+## 当前工程增量（已发布，Agent 实测发现默认模板固定校验缺陷）
 
 本轮新增 creator 浏览器准备、doctor 真实 16×16 PNG gate、只读 create context/schema、行列级可读性诊断、
 continuation 绝对期限与子进程组清理、显式 interrupt-inspect/interrupt 后接 recover-inspect/reissue。
-creator/package-boundary 回归现纳入 npm run check；发布与 Hermes/Codex npm 成片验证尚在进行，不能视为已完成。
+creator/package-boundary 回归现纳入 npm run check；755 项远端测试、macOS ARM64 gate 与双包 npm 发布已通过。
+当前 Mac 已从官方 latest 冷安装 0.1.4；Hermes 实测在默认片头固定校验失败，Codex 暂未启动。
+0.1.5 已修正发行模板中的动态 scale 与字号，补充从 creator 默认配置出发的真实 create、源码/音频复制、
+固定 artifact 产出及复验回归；源码检查已通过，发布与新工作空间双 Agent 验收仍待完成。
+不能将 0.1.4 的安装通过等同成片通过。
+版本与安装证据见 [v0.1.4 release](evidence/2026-09-06-v0.1.4-workspace-reliability-release.md)。
 具体边界见 [Workspace reliability](guides/WORKSPACE_RELIABILITY.md)。
 
 ## 当前结论
@@ -40,8 +45,8 @@ reference environment evidence，不是 runtime allowlist；其他宿主可以�
 已认证。Agent 不得修改 package internals、精确依赖、sandbox 或 validators 来强行适配。
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
-补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.3` 与
-`create-axmorf-studio@0.1.3`；`v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
+补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.4` 与
+`create-axmorf-studio@0.1.4`，发布记录见上方证据。此前 `v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
 release candidates 一致，provenance、registry signatures 与 attestations 已由外部 fresh Workspace 复验。
 GitHub 仓库已转移为 `AXMORF/axmorf-studio`，npm 发布分支是 default branch，旧 `main` 保留。production 与完整
 repository `npm audit` 已通过 `fast-uri@3.1.6`、

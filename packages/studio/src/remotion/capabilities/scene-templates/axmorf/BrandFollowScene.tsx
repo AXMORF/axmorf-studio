@@ -54,6 +54,10 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
     ...clamped,
     easing: Easing.inOut(Easing.cubic),
   });
+  const markZoom = interpolate(frame, [2, 40], [isLandscape ? 6.4 : 7.2, 1], {
+    ...clamped,
+    easing: Easing.inOut(Easing.cubic),
+  });
   const buttonWidth = isLandscape ? 286 : 310;
   const buttonHeight = isLandscape ? 74 : 84;
   const clickProgress = interpolate(frame, [142, 150], [0, 1], {
@@ -75,15 +79,11 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
           aria-label="AXMORF"
           role="img"
           style={{
-            height: markSize,
-            left: markLeft,
+            height: markSize * markZoom,
+            left: markLeft + (markSize - markSize * markZoom) / 2,
             position: "absolute",
-            scale: interpolate(frame, [2, 40], [isLandscape ? 6.4 : 7.2, 1], {
-              ...clamped,
-              easing: Easing.inOut(Easing.cubic),
-            }),
-            top: 0,
-            width: markSize,
+            top: (markSize - markSize * markZoom) / 2,
+            width: markSize * markZoom,
           }}
         >
           <AxmorfMark
@@ -97,13 +97,13 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
           style={{
             display: "flex",
             fontFamily: "Inter, Arial, ui-sans-serif, sans-serif",
-            fontSize: isLandscape ? 70 : 76,
+            fontSize: 76,
             fontWeight: 620,
             justifyContent: "space-between",
             left: markSize + lockupGap,
             letterSpacing: "0.12em",
             position: "absolute",
-            top: markSize / 2 - (isLandscape ? 35 : 38),
+            top: markSize / 2 - 38,
             width: wordmarkWidth,
           }}
         >
@@ -112,6 +112,7 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
               key={`${character}-${index}`}
               aria-hidden="true"
               style={{
+                fontSize: 76,
                 opacity: interpolate(
                   frame,
                   [64 + index * 4, 76 + index * 4],
@@ -136,7 +137,7 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
           color: "#fffdf9",
           display: "flex",
           fontFamily: 'Inter, "Noto Sans SC", Arial, sans-serif',
-          fontSize: isLandscape ? 27 : 30,
+          fontSize: 36,
           fontWeight: 650,
           height: buttonHeight,
           justifyContent: "center",
@@ -144,11 +145,13 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
           letterSpacing: "0.1em",
           opacity: interpolate(frame, [102, 118], [0, 1], clamped),
           position: "absolute",
-          scale: interpolate(frame, [102, 118], [0.82, 1], {
-            ...clamped,
-            easing: Easing.out(Easing.back(1.6)),
-          }),
-          top: height * (isLandscape ? 0.72 : 0.68) - buttonHeight / 2,
+          top:
+            height * (isLandscape ? 0.72 : 0.68) -
+            buttonHeight / 2 +
+            interpolate(frame, [102, 118], [14, 0], {
+              ...clamped,
+              easing: Easing.out(Easing.back(1.6)),
+            }),
           width: buttonWidth,
         }}
       >
