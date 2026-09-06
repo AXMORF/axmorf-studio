@@ -28,6 +28,7 @@ export * from "./producer-artifact";
 export * from "./producer-plan";
 export * from "./producer-task";
 export * from "./production-inspection";
+export * from "./duration-budget";
 export * from "./production-revision";
 export * from "./project-create";
 export * from "./project-revision";

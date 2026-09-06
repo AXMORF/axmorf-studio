@@ -138,7 +138,10 @@ const plannedProduction = (
     tasks,
     inputs: {
       projectId: "story-example",
-      render: { fps: 30 },
+      brief: { targetDurationSeconds: 30 },
+      story: { beats: [] },
+      timing: { durationInFrames: 960 },
+      render: { fps: 30, leadInFrames: 0, tailFrames: 0 },
       sound: { contributions: [] },
       publishingIntent: { description: "Example" },
       sceneInputs: [
@@ -735,6 +738,9 @@ test("prepare-generated ScenePackage bytes remain exact through synchronous deli
   });
 
   assert.equal(result.status, "project-production-complete");
+  assert.equal(result.durationBudget.actualTotalSeconds, 32);
+  assert.equal(result.durationBudget.deltaSeconds, 2);
+  assert.equal(result.durationBudget.comparison, "longer-than-target");
   assert.equal(planCall, 3);
   assert.deepEqual(calls, {
     materialize: 1,

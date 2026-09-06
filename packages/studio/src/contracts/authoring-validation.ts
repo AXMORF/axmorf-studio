@@ -60,7 +60,9 @@ export const formatJsonPath = (segments: readonly JsonPathSegment[]) =>
   segments.reduce((path, segment) => {
     if (typeof segment === "number") {
       if (!Number.isSafeInteger(segment) || segment < 0) {
-        throw new Error("JSONPath array indexes must be non-negative integers.");
+        throw new Error(
+          "JSONPath array indexes must be non-negative integers.",
+        );
       }
       return `${path}[${segment}]`;
     }
@@ -145,3 +147,22 @@ export type AuthoringFieldIssue = z.infer<typeof AuthoringFieldIssueSchema>;
 export type AuthoringValidationFailure = z.infer<
   typeof AuthoringValidationFailureSchema
 >;
+
+/** Marks only a caller-owned raw authoring draft, never stored runtime artifacts. */
+export class AuthoringSchemaValidationError extends Error {
+  readonly issues: z.ZodError["issues"];
+  constructor(error: z.ZodError) {
+    super(error.message);
+    this.name = "AuthoringSchemaValidationError";
+    this.issues = error.issues;
+  }
+}
+
+export const parseAuthoringInput = <T extends z.ZodType>(
+  schema: T,
+  input: unknown,
+): z.output<T> => {
+  const result = schema.safeParse(input);
+  if (!result.success) throw new AuthoringSchemaValidationError(result.error);
+  return result.data;
+};

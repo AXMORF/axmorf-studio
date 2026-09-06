@@ -133,6 +133,7 @@ export const inspectProjectProduction = async (
       contractVersion: "production-inspection-v1",
       storyId: projectId,
       sourceState: readiness.sourceState,
+      durationBudget: readiness.durationBudget,
       currentRevisionId: null,
       baseline: { kind: "none", revisionId: null },
       estimatedCost: {
@@ -168,6 +169,7 @@ export const inspectProjectProduction = async (
     contractVersion: "production-inspection-v1",
     storyId: projectId,
     sourceState: readiness.sourceState,
+    durationBudget: readiness.durationBudget,
     currentRevisionId: revisionId,
     baseline,
     estimatedCost: {

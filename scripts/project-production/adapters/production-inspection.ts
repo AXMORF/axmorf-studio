@@ -4,6 +4,8 @@ import { join, relative, sep } from "node:path";
 
 import {
   ExecutionAttemptProgressSchema,
+  buildProjectDurationBudget,
+  type DurationBudget,
   MasteredNarrationManifestSchema,
   NarrationPreparationReceiptSchema,
   SceneProductionBriefSchema,
@@ -223,6 +225,7 @@ export type ProductionSourceReadiness = Readonly<{
     | "timing-ready"
     | "production-inputs-ready";
   missingAuthoringInputs: readonly string[];
+  durationBudget?: DurationBudget;
 }>;
 
 export const inspectProductionSourceReadiness = async ({
@@ -254,6 +257,7 @@ export const inspectProductionSourceReadiness = async ({
     rootDir: scope.isolatedRoot,
     projectId,
   });
+  const durationBudget = buildProjectDurationBudget(projectSource);
   await generateProjectResourceCatalog({
     rootDir: scope.isolatedRoot,
     projectId,
@@ -280,6 +284,7 @@ export const inspectProductionSourceReadiness = async ({
   if (timingCount === 0) {
     return {
       sourceState: "configured-authoring",
+      durationBudget,
       missingAuthoringInputs: [],
     };
   }
@@ -305,6 +310,7 @@ export const inspectProductionSourceReadiness = async ({
   if (!(await isRegularFile(receiptPath))) {
     return {
       sourceState: "configured-authoring",
+      durationBudget,
       missingAuthoringInputs: [],
     };
   }
@@ -332,19 +338,26 @@ export const inspectProductionSourceReadiness = async ({
     ) {
       return {
         sourceState: "configured-authoring",
+        durationBudget,
         missingAuthoringInputs: [],
       };
     }
   } catch {
     return {
       sourceState: "configured-authoring",
+      durationBudget,
       missingAuthoringInputs: [],
     };
   }
+  const measuredDurationBudget = buildProjectDurationBudget({
+    ...projectSource,
+    timing: semanticTiming,
+  });
   const sceneBrief = "production/scene-production-brief.json";
   if (!(await isRegularFile(join(projectRoot, sceneBrief)))) {
     return {
       sourceState: "timing-ready",
+      durationBudget: measuredDurationBudget,
       missingAuthoringInputs: [sceneBrief],
     };
   }
@@ -358,11 +371,13 @@ export const inspectProductionSourceReadiness = async ({
   ) {
     return {
       sourceState: "timing-ready",
+      durationBudget: measuredDurationBudget,
       missingAuthoringInputs: [sceneBrief],
     };
   }
   return {
     sourceState: "production-inputs-ready",
+    durationBudget: measuredDurationBudget,
     missingAuthoringInputs: [],
   };
 };

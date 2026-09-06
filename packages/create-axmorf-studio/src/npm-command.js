@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import * as nodeFileSystem from "node:fs/promises";
-import { posix, win32 } from "node:path";
+import { join, posix, win32 } from "node:path";
+import { tmpdir } from "node:os";
 
 const JAVASCRIPT_EXTENSION = /\.(?:c?js|mjs)$/u;
 
@@ -111,6 +112,7 @@ export const createNpmCommandRunner = ({
   spawnProcess = spawn,
 }) => {
   let resolvedNpmCli;
+  let logDirectory;
   return async (command, args, options) => {
     resolvedNpmCli ??= resolveNpmCliPath({
       npmExecPath,
@@ -119,6 +121,12 @@ export const createNpmCommandRunner = ({
       filesystem,
     });
     const npmCliPath = await resolvedNpmCli;
+    if (command === "install" && logDirectory === undefined) {
+      // Keep diagnostics outside atomic staging so a failed install can clean up
+      // the target without also deleting npm's own diagnostic files.
+      logDirectory = await filesystem.mkdtemp(join(tmpdir(), "axmorf-npm-"));
+      options.onLogDirectory?.(logDirectory);
+    }
     const request = buildNpmSpawnRequest({
       execPath,
       npmCliPath,
@@ -126,6 +134,9 @@ export const createNpmCommandRunner = ({
       args,
       cwd: options.cwd,
     });
+    if (logDirectory !== undefined) {
+      request.args.splice(1, 0, `--logs-dir=${logDirectory}`, "--logs-max=10");
+    }
     await new Promise((resolve, reject) => {
       const child = spawnProcess(
         request.executable,

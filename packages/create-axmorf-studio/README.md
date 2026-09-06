@@ -31,6 +31,11 @@ a clone of the AXMORF monorepo. Bootstrap also projects manifest- and checksum-v
 workspace Catalog. The initial set contains a Mixkit “Movie Trailer Epic Impact” opening excerpt, an eight-second Mixkit “Deep Urban”
 closing excerpt, and a reusable AXMORF mark; the default bookend templates copy their used audio into each newly created Project.
 
+Setup reports the `install`, `bootstrap`, `browser`, and `doctor` stages with elapsed seconds on stderr. While a stage is running,
+a status line appears every 30 seconds; npm and runtime output remains visible. The creator prints the private temporary directory
+containing npm diagnostic logs, which remain available if staging cleanup follows a failure. Progress reports do not imply readiness:
+only the final `workspace-ready` result means all setup checks passed.
+
 The workspace owns its Projects, media, private configuration, production artifacts, render output, revision candidates, and
 Deliveries. Its generated npm scripts cover strict Project creation, isolated revisions, read-only production inspection,
 attempt-bound Agent tasks, fixed continuation, recovery, and verified four-file Delivery.

@@ -158,6 +158,49 @@ test("npm CLI resolution rejects a symlink even when npm_execpath names JavaScri
   );
 });
 
+test("npm retains a private diagnostic directory across stages without capturing stdio", async (context) => {
+  const root = await temporaryRoot(context);
+  const npmCliPath = join(root, "npm-cli.js");
+  await writeFile(npmCliPath, "// npm test fixture\n");
+  const diagnostics: string[] = [];
+  const requests: Array<{ args: string[]; stdio: string }> = [];
+  const runner = createNpmCommandRunner({
+    npmExecPath: npmCliPath,
+    execPath: process.execPath,
+    platform: process.platform,
+    spawnProcess: (_executable, args, options) => {
+      requests.push({ args, stdio: options.stdio });
+      const child = new EventEmitter();
+      queueMicrotask(() => child.emit("exit", 0, null));
+      return child;
+    },
+  });
+  await runner("install", [], {
+    cwd: root,
+    onLogDirectory: (path: string) => diagnostics.push(path),
+  });
+  const logDirectory = diagnostics[0]!;
+  context.after(() => rm(logDirectory, { recursive: true, force: true }));
+  await runner("run", ["--silent", "doctor"], { cwd: root });
+  assert.equal(diagnostics.length, 1);
+  assert.equal((await lstat(logDirectory)).isDirectory(), true);
+  if (process.platform !== "win32") {
+    assert.equal((await lstat(logDirectory)).mode & 0o777, 0o700);
+  }
+  assert.deepEqual(
+    requests.map(({ args, stdio }) => ({
+      logOptions: args.slice(1, 3),
+      command: args[3],
+      stdio,
+    })),
+    ["install", "run"].map((command) => ({
+      logOptions: [`--logs-dir=${logDirectory}`, "--logs-max=10"],
+      command,
+      stdio: "inherit",
+    })),
+  );
+});
+
 test("no-install creates a standalone, host-neutral workspace without claiming readiness", async (context) => {
   const root = await temporaryRoot(context);
   const commands: unknown[] = [];
@@ -335,12 +378,9 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   const workspaceReadme = await readFile(join(workspace, "README.md"), "utf8");
   const workspaceAgents = await readFile(join(workspace, "AGENTS.md"), "utf8");
   assert.match(workspaceReadme, /npm run doctor/u);
-  assert.match(workspaceReadme, /Copy this prompt for your next video/u);
-  assert.match(workspaceReadme, /read\s+`AGENTS\.md`/u);
-  assert.match(
-    workspaceReadme,
-    /README\.md[\s\S]*AGENTS\.md[\s\S]*\.agents\/skills\/axmorf-video\/SKILL\.md/u,
-  );
+  assert.match(workspaceReadme, /Ask your Agent for a video/u);
+  assert.match(workspaceReadme, /`AGENTS\.md` and local Skill supply/u);
+  assert.match(workspaceReadme, /You do not need to include internal commands/u);
   assert.match(
     workspaceAgents,
     /prepare the declared\s+Node\.js\/npm environment/u,
@@ -385,15 +425,15 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
 test("default flow installs, bootstraps, doctors, and only then atomically publishes the target", async (context) => {
   const root = await temporaryRoot(context);
   const calls: Array<{ command: string; args: string[]; cwd: string }> = [];
-  const result = await createWorkspace(
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  const result = await runCli(
+    ["ready-story", "--yes", "--runtime-package", "0.1.0"],
     {
       cwd: root,
-      target: "ready-story",
-      install: true,
-      runtimePackage: "0.1.0",
-    },
-    {
       templateRoot: creatorTemplate,
+      stdout: (value) => stdout.push(value),
+      stderr: (value) => stderr.push(value),
       runCommand: async (command, args, options) => {
         calls.push({ command, args, cwd: options.cwd });
         assert.match(options.cwd, /\.ready-story\.staging-/u);
@@ -409,7 +449,15 @@ test("default flow installs, bootstraps, doctors, and only then atomically publi
     },
   );
 
-  assert.equal(result.status, "workspace-ready");
+  assert.ok(result.status === "workspace-ready");
+  assert.deepEqual(stdout, [`${JSON.stringify(result)}\n`]);
+  assert.deepEqual(
+    stderr.map((value) => value.replace(/\(\d+s elapsed\)/u, "(elapsed)")),
+    ["install", "bootstrap", "browser", "doctor"].flatMap((stage) => [
+      `[axmorf] ${stage}: starting\n`,
+      `[axmorf] ${stage}: complete (elapsed)\n`,
+    ]),
+  );
   assert.equal(result.ready, true);
   assert.deepEqual(
     calls.map(({ command, args }) => [command, args]),
@@ -460,6 +508,68 @@ test("install or doctor failure leaves neither a target nor staging debris", asy
     /doctor rejected workspace/u,
   );
   await assert.rejects(() => lstat(join(root, "failed-story")), /ENOENT/u);
+  assert.deepEqual(await readdir(root), []);
+});
+
+test("long setup stages report elapsed progress and clear their timer on failure", async (context) => {
+  const root = await temporaryRoot(context);
+  const output: string[] = [];
+  const intervals: Array<{ callback: () => void; cancelled: boolean }> = [];
+  let milliseconds = 0;
+  const failure = new Error("npm failed with exit code 1");
+  await assert.rejects(
+    () =>
+      createWorkspace(
+        {
+          cwd: root,
+          target: "progress-story",
+          install: true,
+          runtimePackage: "0.1.0",
+        },
+        {
+          templateRoot: creatorTemplate,
+          progress: (value: string) => output.push(value),
+          now: () => milliseconds,
+          scheduleInterval: (callback: () => void, delay: number) => {
+            assert.equal(delay, 30_000);
+            const interval = {
+              callback,
+              cancelled: false,
+              unref: () => undefined,
+            };
+            intervals.push(interval);
+            return interval;
+          },
+          cancelInterval: (interval) => {
+            const matching = intervals.find((entry) => entry === interval);
+            assert.ok(matching);
+            matching.cancelled = true;
+          },
+          runCommand: async (command, _args, options) => {
+            if (command === "install") {
+              options.onLogDirectory?.("/retained/npm-logs");
+              milliseconds = 30_000;
+              intervals[0]!.callback();
+              milliseconds = 65_000;
+              return;
+            }
+            milliseconds = 70_000;
+            throw failure;
+          },
+        },
+      ),
+    (error: unknown) => error === failure,
+  );
+  assert.deepEqual(output, [
+    "[axmorf] install: starting\n",
+    "[axmorf] npm diagnostic logs (retained): /retained/npm-logs\n",
+    "[axmorf] install: still running (30s elapsed)\n",
+    "[axmorf] install: complete (65s elapsed)\n",
+    "[axmorf] bootstrap: starting\n",
+    "[axmorf] bootstrap: failed (5s elapsed)\n",
+  ]);
+  assert.equal(intervals.length, 2);
+  assert.ok(intervals.every((interval) => interval.cancelled));
   assert.deepEqual(await readdir(root), []);
 });
 

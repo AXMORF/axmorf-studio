@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 
 import {
   DeliveryPublishSchema,
+  buildProjectDurationBudget,
   ProjectSoundPlanSchema,
   PublishingIntentSchema,
   RenderSpecSchema,
@@ -826,6 +827,7 @@ const convergeProjectProductionUnlocked = async ({
     });
     return {
       status: delivery.status,
+      durationBudget: buildProjectDurationBudget(completed.inputs),
       revisionId,
       delivery,
       attemptRecorded,

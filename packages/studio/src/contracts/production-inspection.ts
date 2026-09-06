@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DurationBudgetSchema } from "./duration-budget";
 
 import {
   MeaningIdSchema,
@@ -331,6 +332,7 @@ export const ProductionInspectionSchema = z
       .strict()
       .readonly(),
     estimatedCost: EstimatedProductionCostSchema,
+    durationBudget: DurationBudgetSchema.optional(),
     tasks: TaskDecisionExplanationListSchema,
     nextAction: z.enum([
       "complete-authoring",

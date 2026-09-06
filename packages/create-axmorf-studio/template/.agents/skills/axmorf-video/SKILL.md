@@ -47,7 +47,7 @@ subagents configuration is a blocker, not permission to switch to inline.
 Before cost, run read-only `npm run project:produce:inspect` and report source
 readiness, estimate, artifact reuse, and invalidation. Only then run
 `npm run project:produce:prepare`, which may call configured providers and
-returns content-addressed dirty tasks plus exact terminal commands.
+returns content-addressed dirty tasks plus exact terminal commands. Use its `durationBudget` to report measured total duration and deviation; sealed audio remains authoritative.
 
 Execute only dirty Agent tasks. Each executor first runs prepare's exact
 attempt-bound bind command and continues only after `task-worker-bound`. Only

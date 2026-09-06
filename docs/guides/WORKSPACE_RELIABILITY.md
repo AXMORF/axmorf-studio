@@ -29,3 +29,22 @@ failed delivery event and archives the abandoned lock. The old claim remains one
 creates a fresh attempt and reuses validated artifacts. Active, pending, foreign or legacy ownership fails closed.
 Hosts must keep the exact continuation process alive across tool yields and wait only on its original handle for the
 fixed result. A background acknowledgement is not delivery; no additional production/status commands or retries follow launch.
+
+
+## First-use authoring and duration feedback
+
+The public create context provides a complete nonempty `additionalRequirements` example separately from the default empty array.
+Schema failures return structured JSON paths, issue codes and a valid object example for this field; strict validation is unchanged.
+The generated README uses a business-only video prompt. Workflow instructions belong in the bundled AGENTS/Skill and public CLI.
+
+`durationBudget` is a diagnostic projection in create context, inspect, prepare and fixed completion. It separates the requested total
+from silent boundary Scenes and render lead/tail, leaving a narration-and-pause budget. Context values describe its example and
+must be recalculated for the actual brief. Before sealing, measured duration is unknown; after verified sealing, actual total and
+signed deviation follow semantic timing. There is no implicit tolerance, speech truncation, automatic retry or content identity change.
+A requested authoring change still uses an isolated revision. See the bundled authoring reference for the Agent's planning steps.
+
+Creator writes stage start/waiting/complete/failure and elapsed time to stderr while preserving npm output and final JSON stdout.
+Progress indicates a running stage, not estimated percent completion. npm log locations remain available if staging is removed.
+
+Release evidence follows the [first-use release gate](FIRST_USE_RELEASE_GATE.md): fresh candidates, business-only prompts,
+original transcripts, unchanged installed files and verified deliveries before publication; public npm runs follow publication.

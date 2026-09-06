@@ -10,6 +10,7 @@ export const runCli = async (
     cwd = process.cwd(),
     platform = process.platform,
     stdout = (value) => process.stdout.write(value),
+    stderr = (value) => process.stderr.write(value),
     runCommand = createNpmCommandRunner({
       npmExecPath: process.env.npm_execpath,
       execPath: process.execPath,
@@ -35,6 +36,7 @@ export const runCli = async (
       ...(filesystem === undefined ? {} : { filesystem }),
       ...(templateRoot === undefined ? {} : { templateRoot }),
       runCommand,
+      progress: stderr,
     },
   );
   stdout(`${JSON.stringify(result)}\n`);

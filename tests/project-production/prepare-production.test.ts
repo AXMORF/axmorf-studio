@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { buildDurationBudget } from "@axmorf/studio/contracts";
 
 import { prepareProjectProduction } from "../../scripts/project-production/application/prepare-production";
 import { createProjectRevisionProductionScope } from "../../scripts/project-production/application/production-scope";
@@ -14,6 +15,14 @@ const inspection = (
   ({
     storyId: "story-example",
     sourceState,
+    durationBudget: buildDurationBudget({
+      targetDurationSeconds: 30,
+      fps: 30,
+      boundaryFrames: 300,
+      ...(sourceState === "configured-authoring"
+        ? {}
+        : { actualDurationInFrames: 1045 }),
+    }),
     currentRevisionId: null,
     baseline: { kind: "none", revisionId: null },
     estimatedCost: {
@@ -158,6 +167,8 @@ test("prepare alone commits fixed tasks, creates dirty owner workspaces, and ope
   );
 
   assert.equal(result.status, "project-production-prepared");
+  assert.equal(result.durationBudget?.actualTotalSeconds, 1045 / 30);
+  assert.equal(result.durationBudget?.measurement, "sealed-semantic-timing");
   assert.equal(result.attemptId, "00000000-0000-4000-8000-000000000001");
   assert.equal(result.dirtyAgentTasks.length, 1);
   assert.match(

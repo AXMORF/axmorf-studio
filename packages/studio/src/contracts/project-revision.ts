@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DurationBudgetSchema } from "./duration-budget";
 
 import { SceneProductionBriefItemSchema } from "./authoring-briefs";
 import { VideoBriefSchema } from "./brief";
@@ -287,6 +288,7 @@ const ProjectRevisionContinuationShape = {
   base: ProjectRevisionTupleSchema,
   expected: ProjectRevisionTupleSchema,
   production: ProjectRevisionProductionResultSchema,
+  durationBudget: DurationBudgetSchema.optional(),
 } as const;
 
 const SafeProjectRevisionPromotionFailureMessageSchema = z

@@ -5,6 +5,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import {
   AuthoringRequirementsSchema,
   assertCaptionAuthoringValid,
+  parseAuthoringInput,
   NarrationSpecSchema,
   ProjectAssetManifestSchema,
   RenderSpecSchema,
@@ -818,7 +819,8 @@ export const createProject = async ({
   ) {
     throw new Error("Project create input must stay inside the repository.");
   }
-  const input = ProjectCreateInputSchema.parse(
+  const input = parseAuthoringInput(
+    ProjectCreateInputSchema,
     JSON.parse(
       (
         await readContainedRegularFile({

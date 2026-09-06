@@ -225,6 +225,14 @@ test("a freshly created Project is inspected from real source and Catalog bytes 
   assert.equal(result.sourceState, "configured-authoring");
   assert.equal(result.nextAction, "prepare-narration");
   assert.equal(result.estimatedCost.providerRequests, null);
+  assert.equal(result.durationBudget?.targetTotalSeconds, 10);
+  assert.equal(result.durationBudget?.boundarySeconds, 0);
+  assert.equal(result.durationBudget?.availableNarratedSeconds, 9.1);
+  assert.equal(
+    result.durationBudget?.budgetState,
+    "narration-budget-available",
+  );
+  assert.equal(result.durationBudget?.actualTotalSeconds, null);
   assert.equal(result.estimatedCost.providerCacheHits, 0);
   for (const forbidden of [
     ".narration-work/story-example",

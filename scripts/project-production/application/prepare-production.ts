@@ -267,13 +267,16 @@ const missingAuthoringResult = ({
   estimated,
   narration,
   missingAuthoringInputs,
+  durationBudget,
 }: {
   readonly projectId: string;
   readonly estimated: ProductionInspection["estimatedCost"];
+  readonly durationBudget: ProductionInspection["durationBudget"];
   readonly narration: PreparedNarrationInputs | null;
   readonly missingAuthoringInputs: readonly string[];
 }) => ({
   status: "project-authoring-required" as const,
+  durationBudget,
   storyId: projectId,
   sourceState: "timing-ready" as const,
   missingAuthoringInputs: [...missingAuthoringInputs].sort(),
@@ -374,6 +377,7 @@ export const prepareProjectProduction = async (
       return missingAuthoringResult({
         projectId,
         estimated: estimated.estimatedCost,
+        durationBudget: ready.durationBudget,
         narration,
         missingAuthoringInputs: ["production/scene-production-brief.json"],
       });
@@ -421,6 +425,7 @@ export const prepareProjectProduction = async (
     });
     return {
       status: "project-production-prepared" as const,
+      durationBudget: ready.durationBudget,
       storyId: projectId,
       attemptId: attempt.attemptId,
       revisionId: current.revision.revisionId,

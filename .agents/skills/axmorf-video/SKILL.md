@@ -7,8 +7,7 @@ description: Resolve inline or bounded-Agent execution, produce, and hand off to
 
 ## Create the Project when needed
 
-新建先用 `npm run project:create:context -- --project <storyId>` 取得完整示例与当前选项；`project:create -- --schema`
-只描述结构，语义验证仍然生效。
+新建先用 `npm run project:create:context -- --project <storyId>`；按 `fieldExamples` 写附加要求对象，按 `durationBudget` 扣除首尾预算旁白，prepare/交付报告实测偏差。`project:create -- --schema` 仅描述结构。
 
 Read [policy](policy.json), [workflow](references/direct-production-workflow.md), and
 [Producer config](references/producer-config.md). Report boundary Scenes as inherited, selected, or disabled.
@@ -89,7 +88,6 @@ validator 或伪造 attestation。
 
 ## Finish with verified delivery
 
-Report mode/capacity, IDs, inspection, cost, summary, and TaskRevisions before execution. After the
-continuation starts, no Root terminal report.
+执行前报告 mode/capacity、IDs、inspect、cost 与 TaskRevisions；continuation 启动后 Root 不报告终态。
 Only `project-production-complete` or `project-production-current` proves delivery. Do not publish, push, or use
 `git add .`.

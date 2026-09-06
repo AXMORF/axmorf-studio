@@ -4,7 +4,17 @@ import test from "node:test";
 
 import { continueProjectProduction } from "../../scripts/project-production/application/continue-production";
 import { ExecutionAttemptEventWaitTimeoutError } from "../../scripts/project-production/adapters/attempt-event-wait";
-import type { ExecutionAttemptProgress } from "@axmorf/studio/contracts";
+import {
+  buildDurationBudget,
+  type ExecutionAttemptProgress,
+} from "@axmorf/studio/contracts";
+
+const durationBudget = buildDurationBudget({
+  targetDurationSeconds: 30,
+  fps: 30,
+  boundaryFrames: 300,
+  actualDurationInFrames: 1045,
+});
 import { createProjectRevisionProductionScope } from "../../scripts/project-production/application/production-scope";
 
 const revisionId = `revision-${"1".repeat(64)}`;
@@ -476,6 +486,7 @@ test("candidate continuation keeps attempt events isolated and converges through
           status: "project-production-complete",
           revisionId,
           delivery: { deliveryBuildId },
+          durationBudget,
         } as never;
       },
       promoteCandidate: async (input) => {
@@ -489,6 +500,7 @@ test("candidate continuation keeps attempt events isolated and converges through
   assert.deepEqual(result, {
     schemaVersion: 1,
     contractVersion: "project-revision-continuation-v1",
+    durationBudget,
     status: "project-revision-complete",
     storyId: "story-example",
     candidateId: scope.candidateId,
@@ -557,6 +569,7 @@ test("candidate promotion failure preserves succeeded production and returns a s
           status: "project-production-current",
           revisionId,
           delivery: { deliveryBuildId },
+          durationBudget,
         } as never;
       },
       appendTerminalFailure: async () => {
@@ -576,6 +589,7 @@ test("candidate promotion failure preserves succeeded production and returns a s
   assert.deepEqual(result, {
     schemaVersion: 1,
     contractVersion: "project-revision-continuation-v1",
+    durationBudget,
     status: "project-revision-promotion-pending",
     storyId: "story-example",
     candidateId: scope.candidateId,

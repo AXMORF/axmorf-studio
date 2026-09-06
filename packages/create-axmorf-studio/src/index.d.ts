@@ -1,7 +1,7 @@
 export type CreatorCommandRunner = (
   command: string,
   args: string[],
-  options: Readonly<{ cwd: string }>,
+  options: Readonly<{ cwd: string; onLogDirectory?: (path: string) => void }>,
 ) => Promise<void>;
 
 export type NpmFileSystem = Readonly<{
@@ -12,6 +12,7 @@ export type NpmFileSystem = Readonly<{
     }>
   >;
   readFile?: (path: string, encoding: "utf8") => Promise<string>;
+  mkdtemp?: (prefix: string) => Promise<string>;
 }>;
 
 export type NpmSpawnRequest = Readonly<{
@@ -77,6 +78,8 @@ export type WorkspaceCreationResult = Readonly<{
 
 export const parseArguments: (argv: readonly string[]) => CreatorArguments;
 
+export type CreatorProgressTimer = Readonly<{ unref?: () => unknown }>;
+
 export const createWorkspace: (
   input: Readonly<{
     cwd: string;
@@ -88,6 +91,13 @@ export const createWorkspace: (
     filesystem?: typeof import("node:fs/promises");
     runCommand: CreatorCommandRunner;
     templateRoot?: string;
+    progress?: (value: string) => void;
+    now?: () => number;
+    scheduleInterval?: (
+      callback: () => void,
+      delay: number,
+    ) => CreatorProgressTimer;
+    cancelInterval?: (interval: CreatorProgressTimer) => void;
   }>,
 ) => Promise<WorkspaceCreationResult>;
 
@@ -97,6 +107,7 @@ export const runCli: (
     cwd?: string;
     platform?: NodeJS.Platform;
     stdout?: (value: string) => void;
+    stderr?: (value: string) => void;
     runCommand?: CreatorCommandRunner;
     filesystem?: typeof import("node:fs/promises");
     templateRoot?: string;

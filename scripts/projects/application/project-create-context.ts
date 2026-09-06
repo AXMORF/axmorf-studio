@@ -1,4 +1,6 @@
 import {
+  AUTHORING_REQUIREMENT_EXAMPLE,
+  buildDurationBudget,
   ProjectCreateInputSchema,
   StoryIdSchema,
 } from "@axmorf/studio/contracts";
@@ -7,6 +9,8 @@ import {
   readProducerConfig,
   resolveProducerConfigPathFromEnvironment,
 } from "../../config/producer-config";
+
+import { getSceneTemplateDefinition } from "../../../packages/studio/src/remotion/capabilities/scene-templates/registry";
 
 /** Project creation guidance only exposes public authoring choices, never TTS connections. */
 export const inspectProjectCreateContext = async ({
@@ -151,14 +155,34 @@ export const inspectProjectCreateContext = async ({
     storyId,
     renderDefaults: config.renderDefaults,
     inheritedSceneTemplates: config.sceneDefaults,
+    durationBudget: buildDurationBudget({
+      targetDurationSeconds: example.brief.targetDurationSeconds,
+      fps: config.renderDefaults.fps,
+      boundaryFrames: [
+        config.sceneDefaults.introSceneTemplateId,
+        config.sceneDefaults.outroSceneTemplateId,
+      ].reduce(
+        (frames, id) =>
+          frames +
+          (id === null ? 0 : getSceneTemplateDefinition(id).durationInFrames),
+        0,
+      ),
+      leadInFrames: example.render.leadInFrames,
+      tailFrames: example.render.tailFrames,
+    }),
     publishingCollections: config.publishingCollections.map(({ id, name }) => ({
       id,
       name,
     })),
     styleProfiles,
     example,
+    fieldExamples: {
+      "production.additionalRequirements": [AUTHORING_REQUIREMENT_EXAMPLE],
+    },
     guidance: [
       "Adapt example to the requested brief; do not submit it unchanged as the user's video.",
+      "production.additionalRequirements is an array of objects, never strings. Keep [] when no additional requirement is needed; otherwise adapt fieldExamples to the user's requirement, preserving every required field.",
+      "durationBudget describes this example with inherited boundary templates. Recalculate available narration time when changing the requested total duration, render lead/tail or selected boundaries; include speech and pauses in that budget.",
       "Omit sceneTemplates to inherit settings. Set both fields explicitly only when the user selected or disabled boundary Scenes.",
       "Keep Story beats, scenes and publishing chapters in the same meaningId order; each ttsChunk is an object with chunkId and ttsText.",
       "The JSON Schema describes shape; project:create also validates cross-field semantics, caption budget and current Catalog choices.",

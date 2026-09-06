@@ -9,6 +9,9 @@ import {
   sep,
 } from "node:path";
 import { fileURLToPath, URL } from "node:url";
+import { performance } from "node:perf_hooks";
+import process from "node:process";
+import { clearInterval, setInterval } from "node:timers";
 
 import {
   createEmptyResourceCatalog,
@@ -169,6 +172,10 @@ export const createWorkspace = async (
     filesystem = nodeFileSystem,
     runCommand,
     templateRoot = DEFAULT_TEMPLATE_ROOT,
+    progress = (value) => process.stderr.write(value),
+    now = () => performance.now(),
+    scheduleInterval = setInterval,
+    cancelInterval = clearInterval,
   },
 ) => {
   if (typeof runCommand !== "function") {
@@ -222,12 +229,37 @@ export const createWorkspace = async (
     await validateGeneratedWorkspace({ rootDir: stagingPath, filesystem });
 
     if (install) {
-      await runCommand("install", [], { cwd: stagingPath });
-      await runCommand("run", ["--silent", "bootstrap"], { cwd: stagingPath });
-      await runCommand("run", ["--silent", "browser:prepare"], {
-        cwd: stagingPath,
-      });
-      await runCommand("run", ["--silent", "doctor"], { cwd: stagingPath });
+      const stages = [
+        ["install", "install", []],
+        ["bootstrap", "run", ["--silent", "bootstrap"]],
+        ["browser", "run", ["--silent", "browser:prepare"]],
+        ["doctor", "run", ["--silent", "doctor"]],
+      ];
+      for (const [stage, command, args] of stages) {
+        const startedAt = now();
+        const elapsed = () =>
+          Math.max(0, Math.floor((now() - startedAt) / 1000));
+        progress(`[axmorf] ${stage}: starting\n`);
+        const interval = scheduleInterval(() => {
+          progress(
+            `[axmorf] ${stage}: still running (${elapsed()}s elapsed)\n`,
+          );
+        }, 30_000);
+        interval.unref?.();
+        try {
+          await runCommand(command, args, {
+            cwd: stagingPath,
+            onLogDirectory: (path) =>
+              progress(`[axmorf] npm diagnostic logs (retained): ${path}\n`),
+          });
+          progress(`[axmorf] ${stage}: complete (${elapsed()}s elapsed)\n`);
+        } catch (error) {
+          progress(`[axmorf] ${stage}: failed (${elapsed()}s elapsed)\n`);
+          throw error;
+        } finally {
+          cancelInterval(interval);
+        }
+      }
       const lockStatus = await filesystem.lstat(
         join(stagingPath, "package-lock.json"),
       );

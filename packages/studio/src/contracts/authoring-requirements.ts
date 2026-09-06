@@ -120,6 +120,18 @@ export const AuthoringRequirementCategorySchema = z.enum([
   "other",
 ]);
 
+/** A complete optional requirement example shared by public authoring guidance. */
+export const AUTHORING_REQUIREMENT_EXAMPLE = Object.freeze({
+  requirementId: "explain-math-limits",
+  scope: "production",
+  targetMeaningIds: [],
+  category: "content",
+  statement: "说明复利计算只是数学示意，不保证现实成长的固定回报。",
+  owner: "main-agent",
+  verification: "contract",
+  severity: "error",
+} as const);
+
 const AuthoringRequirementObject = z
   .object({
     requirementId: AuthoringRequirementIdSchema,
@@ -284,10 +296,9 @@ export const computeAuthoringRequirementsFingerprint = (rawInput: unknown) => {
   });
 };
 
-const AuthoringRequirementsObject =
-  AuthoringRequirementsInputObject.extend({
-    requirementsFingerprint: Sha256DigestSchema,
-  }).strict();
+const AuthoringRequirementsObject = AuthoringRequirementsInputObject.extend({
+  requirementsFingerprint: Sha256DigestSchema,
+}).strict();
 
 const withCurrentFreezeFingerprint = (
   freeze: AuthoringRequirementsInput & {

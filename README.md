@@ -168,6 +168,7 @@ artifacts、attempts、revision candidates、render output 和 Delivery；这些
 - [配置指南](docs/guides/PRODUCER_CONFIG.md)：TTS、render、readability、模板和发布集合
 - [Project revision](docs/guides/PROJECT_REVISION.md)：安全修改已有作品
 - [本地交付](docs/guides/LOCAL_DELIVERY.md)：四文件 Delivery 结构与验证
+- [首次用户发布验收](docs/guides/FIRST_USE_RELEASE_GATE.md)：候选包双 Agent 验收与发布后复验
 - [当前实现状态](docs/ITERATION_STATUS.md)：已实现能力和验收事实
 
 README 只负责产品入口和快速开始；精确 contracts、当前状态与操作顺序以上述 active 文档和生成 Workspace 中当前版本的

@@ -51,6 +51,7 @@ jobs:
           test "$creator_version" = "$root_version"
           test "$GITHUB_REF_NAME" = "v$root_version"
           test "$CONFIRM_VERSION" = "$GITHUB_REF_NAME"
+          test -f "docs/evidence/v${root_version}-first-use.json"
 
       - name: Install exact dependencies
         run: npm ci
@@ -93,6 +94,19 @@ jobs:
             echo "runtime_integrity=$runtime_integrity"
             echo "creator_integrity=$creator_integrity"
           } >>"$GITHUB_OUTPUT"
+
+      - name: Verify first-use evidence against release candidates
+        shell: bash
+        env:
+          RUNTIME_TARBALL: ${{ steps.pack.outputs.runtime_tarball }}
+          CREATOR_TARBALL: ${{ steps.pack.outputs.creator_tarball }}
+          RELEASE_ROOT: ${{ runner.temp }}/axmorf-npm-release
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          receipt="docs/evidence/v${version}-first-use.json"
+          node --import tsx scripts/release/first-use.ts verify "$RUNTIME_TARBALL" "$CREATOR_TARBALL" "$receipt"
+          cp "$receipt" "$RELEASE_ROOT/first-use.json"
 
       - name: Publish or verify exact package versions
         shell: bash

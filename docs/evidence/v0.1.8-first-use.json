@@ -1,0 +1,279 @@
+{
+  "schemaVersion": 1,
+  "hosts": [
+    {
+      "schemaVersion": 1,
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "sessionId": "01a077fc-67cf-71b3-8439-ade0f35bda86",
+      "environment": {
+        "platform": "darwin",
+        "arch": "x64",
+        "node": "v22.22.3"
+      },
+      "startedAt": "2026-09-06T18:30:20.083598+00:00",
+      "endedAt": "2026-09-06T18:37:04.325630+00:00",
+      "packages": {
+        "runtime": {
+          "name": "@axmorf/studio",
+          "version": "0.1.8",
+          "fingerprint": "sha256:5cb0c692aa53440ee56ebb81c054a6c7f8c7093d0d2bec980a8b5b5d70163cba",
+          "fileCount": 252
+        },
+        "creator": {
+          "name": "create-axmorf-studio",
+          "version": "0.1.8",
+          "fingerprint": "sha256:aee9dbeb036f455117a3a97e32e8e93aa31993fc23e7ce59bfecab74f899bd16",
+          "fileCount": 39
+        }
+      },
+      "prompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“从十分钟专注开始”，讲清楚选一个具体小步骤、关掉打断、做完记录下一步。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。\n",
+      "promptChecksum": "sha256:6bef7e10a2be33b3280e5f30e5368d9613a20f4242a87bd820aeb24e9d007e63",
+      "transcriptChecksum": "sha256:51658cd1083d8e0c578b40694324afac602ad53270a8b332331b7114f386325f",
+      "runChecksum": "sha256:0c34e1f900f81fcfd7b67dcf968da90ef82e3ce9c24c766e8554b163d39a56dd",
+      "snapshotChecksum": "sha256:1ed907ab460e488602d4decd7b84cd1cbcce72525b1194e3b4d0c04a3cbdbef9",
+      "creation": {
+        "method": "npm-exec-candidate",
+        "runtimeTarballChecksum": "sha256:0ed20ea732bc682834a522eb09919eedd981b9aeb76b54dff032d9f720f45edd",
+        "creatorTarballChecksum": "sha256:b123c51f282560ee7705f3fb32306ca52d7e02c09254898b2b4c0d6475d85d9f",
+        "installLogChecksum": "sha256:3b94a166249ff488bff1439a5d040db060c2eb4f000accac3c263c2d0f560c44"
+      },
+      "sessionChecksum": null,
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 24,
+        "followUpMessages": 0
+      },
+      "unchangedPackageFiles": 252,
+      "unchangedGuideFiles": 10,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "ten-minute-focus",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-9ad17c1453b2d9b61d8417358807aa78ea09a1b06d22a0bc3e8b7ce3273834df",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-9774dc0142354c104514e327d03a784ce7c0a6908d5f8dab71d40bac662eadad",
+        "artifactSetFingerprint": "sha256:d9317e9a299b7c940f67558b9d8524bcd42065e55a475cb05d539e14753bd7eb"
+      },
+      "delivery": {
+        "storyId": "ten-minute-focus",
+        "deliveryBuildId": "delivery-9ad17c1453b2d9b61d8417358807aa78ea09a1b06d22a0bc3e8b7ce3273834df",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:7d25bc8dcb6ff15658b1134106634dae4d8bab0211033c60d3ea7e40bdaac959",
+            "sizeBytes": 2024845
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:eea2499696b8d8d9a79f20f9083322bbbca54f9be0127027559bc1986d6173a2",
+            "sizeBytes": 114623
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:9ed73b23c3ba0dfe14aa9df16c42adb99df1fdaa9caa7808da087d23b79266e4",
+            "sizeBytes": 108306
+          },
+          "publish.json": {
+            "checksum": "sha256:16f16fb8c2daf7e9a6f936d0ab7cc4fa5b9cf8e4f7d9b67a7c402403a137b97b",
+            "sizeBytes": 2143
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1080,
+          "height": 1920,
+          "fps": 30,
+          "frameCount": 879
+        },
+        "decodedFiles": [
+          "video.mp4",
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "host": "hermes",
+      "model": "gpt-6-astra",
+      "sessionId": "20260907_023025_384246",
+      "environment": {
+        "platform": "darwin",
+        "arch": "x64",
+        "node": "v22.22.3"
+      },
+      "startedAt": "2026-09-06T18:30:20.090107+00:00",
+      "endedAt": "2026-09-06T18:39:03.647181+00:00",
+      "packages": {
+        "runtime": {
+          "name": "@axmorf/studio",
+          "version": "0.1.8",
+          "fingerprint": "sha256:5cb0c692aa53440ee56ebb81c054a6c7f8c7093d0d2bec980a8b5b5d70163cba",
+          "fileCount": 252
+        },
+        "creator": {
+          "name": "create-axmorf-studio",
+          "version": "0.1.8",
+          "fingerprint": "sha256:aee9dbeb036f455117a3a97e32e8e93aa31993fc23e7ce59bfecab74f899bd16",
+          "fileCount": 39
+        }
+      },
+      "prompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“每天进步一点点”，用1.01的365次方约37.8说明积累，但讲清楚这只是数学示意，现实成长不保证固定回报。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。\n",
+      "promptChecksum": "sha256:e2c2eb364e470d5d0315fdf2156eaa0777018bdf38efcd9910f22e722d1e9ce6",
+      "transcriptChecksum": "sha256:dff0c996d89f901baad49ee162374a73db7097025c2fa8274f39196b26cfbad9",
+      "runChecksum": "sha256:84d7626d4d0b9fa505ff3425156bc720fc96973b02d91e86efd0187aed19e4ed",
+      "snapshotChecksum": "sha256:a5ea81a1b283fe7179ee5c7f5038748dec6220d524b92891bf7619d307025e92",
+      "creation": {
+        "method": "npm-exec-candidate",
+        "runtimeTarballChecksum": "sha256:0ed20ea732bc682834a522eb09919eedd981b9aeb76b54dff032d9f720f45edd",
+        "creatorTarballChecksum": "sha256:b123c51f282560ee7705f3fb32306ca52d7e02c09254898b2b4c0d6475d85d9f",
+        "installLogChecksum": "sha256:ddb025af5af640237ffeca438ac52a67622349bb47189065152597dfee629010"
+      },
+      "sessionChecksum": "sha256:c8c8c79702533aef14c00b0fd3356181df98f75fdb46fd9cf5778503201a78fb",
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 31,
+        "followUpMessages": 0
+      },
+      "unchangedPackageFiles": 252,
+      "unchangedGuideFiles": 10,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "daily-small-progress",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-3ba266c5e19669e71f318e06bd4ca4c4df8b1b4752efcd65bb96c114779c353b",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-a5da2e6b3071c12f39fb14b36a7d5615aa68a14f834a7afd6102fb1e692641d7",
+        "artifactSetFingerprint": "sha256:6d8930bceb6eea1da1abe64dea5e4b33db6f468ed954be6aea8325d571e48859"
+      },
+      "delivery": {
+        "storyId": "daily-small-progress",
+        "deliveryBuildId": "delivery-3ba266c5e19669e71f318e06bd4ca4c4df8b1b4752efcd65bb96c114779c353b",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:73792f81a5613fa5f3184d9cd779b8adda7dd13611ccafc78db1d317b4d8a85d",
+            "sizeBytes": 1866155
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:0831f2d900ce8c6de55df6d646315740738da969d3e4b3fd18b27a9dec27e48b",
+            "sizeBytes": 99426
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:708b76393587d085229a1057215c238599567ca20ed10bcd5a620b47ca90c7f3",
+            "sizeBytes": 98390
+          },
+          "publish.json": {
+            "checksum": "sha256:ddb31c32a04baa49503564b37941fed8c4d97e04a741b0ccdac719a41e81e162",
+            "sizeBytes": 2344
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1080,
+          "height": 1920,
+          "fps": 30,
+          "frameCount": 831
+        },
+        "decodedFiles": [
+          "video.mp4",
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ]
+      }
+    }
+  ]
+}

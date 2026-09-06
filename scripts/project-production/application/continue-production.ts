@@ -258,6 +258,7 @@ export const continueProjectProduction = async (
     const continuation = {
       schemaVersion: 1,
       contractVersion: PROJECT_REVISION_CONTINUATION_VERSION,
+      durationBudget: result.durationBudget,
       storyId: projectId,
       candidateId: scope.candidateId,
       base: {

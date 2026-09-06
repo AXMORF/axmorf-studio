@@ -5,6 +5,7 @@ import test from "node:test";
 
 import { ProjectCreateInputSchema } from "@axmorf/studio/contracts";
 import { inspectProjectCreateContext } from "../../scripts/projects/application/project-create-context";
+import { describeCliFailure } from "../../packages/studio/src/cli/failure";
 import { runProjectCreateCli } from "../../scripts/projects/create";
 import {
   prepareProjectCreateFixture,
@@ -24,7 +25,20 @@ test("create context supplies a usable example from current public choices witho
     env,
   });
   assert.equal(context.status, "project-create-context");
-  const example = ProjectCreateInputSchema.parse(context.example);
+  assert.equal(context.durationBudget.targetTotalSeconds, 20);
+  assert.equal(context.durationBudget.actualTotalSeconds, null);
+  assert.equal(
+    context.durationBudget.availableNarratedSeconds,
+    Math.max(0, 20 - context.durationBudget.boundarySeconds),
+  );
+  const example = ProjectCreateInputSchema.parse({
+    ...context.example,
+    production: {
+      ...context.example.production,
+      additionalRequirements:
+        context.fieldExamples["production.additionalRequirements"],
+    },
+  });
   assert.equal(example.storyId, "fresh-video");
   assert.equal(example.publishing.collectionId, "ai-workflow");
   assert.ok(
@@ -38,6 +52,45 @@ test("create context supplies a usable example from current public choices witho
     /visible-editable-token|127\.0\.0\.1|referenceAudioPath/,
   );
   assert.equal(await readFile(configPath, "utf8"), before);
+  assert.deepEqual(
+    await readdir(join(fixture.rootDir, "src/projects")),
+    entries,
+  );
+  const invalidInputPath = join(fixture.rootDir, "invalid.json");
+  const { writeFile: writeInvalid } = await import("node:fs/promises");
+  await writeInvalid(
+    invalidInputPath,
+    JSON.stringify({
+      ...example,
+      production: {
+        ...example.production,
+        additionalRequirements: ["keep the disclaimer"],
+      },
+    }),
+  );
+  await assert.rejects(
+    () =>
+      runProjectCreateCli(
+        ["--project", "fresh-video", "--input", "invalid.json"],
+        {
+          rootDir: fixture.rootDir,
+          env,
+          stdout: () => undefined,
+          runtimeResources: {
+            ...projectCreateRuntimeResources,
+            packageRoot: "unused",
+            packageVersion: "0.0.0-test",
+            assetsRoot: "unused",
+            policyManifestPath: "unused",
+            remotionPreflightEntry: "unused",
+            workspaceSeedRoot: "unused",
+            webRoot: "unused",
+          },
+        },
+      ),
+    (error: unknown) =>
+      describeCliFailure(error).code === "schema-validation-failed",
+  );
   assert.deepEqual(
     await readdir(join(fixture.rootDir, "src/projects")),
     entries,

@@ -23,6 +23,7 @@ import {
   VideoBriefSchema,
   VisualStyleSpecSchema,
   assertCaptionAuthoringValid,
+  parseAuthoringInput,
   buildAuthoringRequirements,
   buildGlobalVisualBrief,
   buildPendingSceneAuthoring,
@@ -461,7 +462,7 @@ const inspectProjectRevisionAuthoring = async ({
   readonly input: unknown;
   readonly dependencies?: ProjectRevisionStateDependencies;
 }) => {
-  const input = ProjectRevisionInputSchema.parse(rawInput);
+  const input = parseAuthoringInput(ProjectRevisionInputSchema, rawInput);
   if (input.patch.story !== undefined) {
     assertCaptionAuthoringValid({
       story: input.patch.story,
@@ -1058,7 +1059,8 @@ export const readProjectRevisionInputFile = async ({
   ) {
     throw new Error("Project revision input must stay inside the repository.");
   }
-  return ProjectRevisionInputSchema.parse(
+  return parseAuthoringInput(
+    ProjectRevisionInputSchema,
     JSON.parse(
       new TextDecoder().decode(
         await readContainedRegularFile({

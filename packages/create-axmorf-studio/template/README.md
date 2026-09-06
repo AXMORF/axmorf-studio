@@ -3,26 +3,17 @@
 This is a private, user-owned video workspace created by `create-axmorf-studio`. Its Projects, media, private configuration, production
 artifacts, renders, revision candidates, and Deliveries stay in this directory and are ignored by Git by default.
 
-## Copy this prompt for your next video
+## Ask your Agent for a video
 
-Replace the brief, then give the whole block to any coding agent that can edit files and run npm commands:
-
-The Agent should first read `README.md`, then read `AGENTS.md` and the Workspace-local Skill before acting.
+Open this workspace in an Agent that can read/write files and run npm commands, and describe the video you want. For example:
 
 ```text
-Work inside the current AXMORF Studio Workspace and complete this video request:
-<topic, audience, duration, aspect ratio, language, visual style, required content, and references>
-
-Before changing any Project or calling a provider, read the current README.md and AGENTS.md completely. Then read
-.agents/skills/axmorf-video/SKILL.md and every reference it directly requires for the current stage. Use these local documents and the
-structured CLI output as authority instead of remembered AXMORF commands.
-
-Run npm run doctor, then follow the Workspace-local Skill and exact CLI output end to end. Use existing authorization for provider cost; ask only if cost or external/destructive actions have not been authorized. Do not patch node_modules, package internals, exact dependencies, sandbox, or validators to force
-readiness. Only report completion after the fixed workflow verifies exactly video.mp4, cover-4x3.png, cover-3x4.png, and publish.json.
-
-Use a host terminal handle that survives long commands and delivers the fixed terminal output. Do not treat a tool timeout or
-background-start acknowledgement as a production result.
+请制作一条约30秒的中文竖屏视频，介绍如何从一个小步骤开始行动。
+要有旁白、字幕和动态图形，文案和画面你来设计，最后给我视频和封面。
 ```
+
+The workspace's `AGENTS.md` and local Skill supply the production instructions. You do not need to include internal commands
+in your request. Give any strict duration limit or required opening/closing choices in the brief. Git initialization is optional.
 
 ## Start here
 
