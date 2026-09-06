@@ -43,7 +43,7 @@ export const exitedProcessGroupHasNoWriters = (
     const lines = readSnapshot().trim().split("\n");
     if (lines.length === 0 || lines[0] === "") return false;
     for (const line of lines) {
-      const match = /^\s*([0-9]+)\s+([A-Za-z][A-Za-z0-9+<>=-]*)\s*$/u.exec(
+      const match = /^\s*([0-9]+)\s+([A-Za-z?][A-Za-z0-9+<>=-]*)\s*$/u.exec(
         line,
       );
       if (match === null) return false;
@@ -114,29 +114,31 @@ export const runBoundedProcess = async (
           // Darwin may report EPERM while an exiting group contains zombies.
           // Recheck without a signal; genuine permission errors still fail.
           if (code === "EPERM") {
+            let canInspectExitedGroup = true;
             try {
               signalProcess(target, 0);
             } catch (probeError) {
               const probeCode = (probeError as NodeJS.ErrnoException).code;
               if (probeCode === "ESRCH") return true;
-              // XNU filters zombies before counting permitted signal targets.
-              // At close only, one bounded snapshot may prove no writer remains.
-              if (
-                probeCode === "EPERM" &&
-                process.platform === "darwin" &&
-                closeStatus !== undefined
-              ) {
-                try {
-                  if (
-                    (
-                      dependencies.exitedGroupHasNoWriters ??
-                      exitedProcessGroupHasNoWriters
-                    )(child.pid)
-                  )
-                    return true;
-                } catch {
-                  /* Unknown inspection authority keeps the original failure. */
-                }
+              canInspectExitedGroup = probeCode === "EPERM";
+            }
+            // A successful signal-zero probe is only an instantaneous view.
+            // At close, one later snapshot can prove the group has no writers.
+            if (
+              canInspectExitedGroup &&
+              process.platform === "darwin" &&
+              closeStatus !== undefined
+            ) {
+              try {
+                if (
+                  (
+                    dependencies.exitedGroupHasNoWriters ??
+                    exitedProcessGroupHasNoWriters
+                  )(child.pid)
+                )
+                  return true;
+              } catch {
+                /* Unknown inspection authority keeps the original failure. */
               }
             }
           }

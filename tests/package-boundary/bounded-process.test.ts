@@ -428,3 +428,51 @@ test(
     }
   },
 );
+
+test("unrelated Darwin unknown states do not invalidate proof for a missing or zombie-only group", () => {
+  assert.equal(
+    exitedProcessGroupHasNoWriters(87610, () => "    1 Ss\n87611 ?E\n"),
+    true,
+  );
+  assert.equal(
+    exitedProcessGroupHasNoWriters(87610, () => "87610 Z\n87611 ?E\n"),
+    true,
+  );
+  assert.equal(
+    exitedProcessGroupHasNoWriters(87610, () => "87610 ?E\n87611 Ss\n"),
+    false,
+  );
+  assert.equal(
+    exitedProcessGroupHasNoWriters(87610, () => "87610 Z\n87610 ?\n"),
+    false,
+  );
+});
+
+test("after close a successful signal zero still permits one Darwin no-writer proof", async () => {
+  const calls: Array<string | number> = [];
+  const operation = runBoundedProcess(
+    process.execPath,
+    ["-e", "console.log('finished')"],
+    {},
+    {
+      signalProcess: (_pid, signal) => {
+        calls.push(signal);
+        if (signal === 0) return true;
+        throw permissionError();
+      },
+      exitedGroupHasNoWriters: () => {
+        calls.push("snapshot");
+        return true;
+      },
+    },
+  );
+  if (process.platform === "darwin") {
+    const result = await operation;
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /finished/u);
+    assert.deepEqual(calls, ["SIGKILL", 0, "snapshot"]);
+  } else {
+    await assert.rejects(operation, /EPERM/u);
+    assert.deepEqual(calls, ["SIGKILL", 0]);
+  }
+});
