@@ -2,23 +2,26 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-06 `v0.1.6` 双 Agent 已成片；0.1.7 修正复验暴露的 macOS 进程状态边界
+> 最后复核：2026-09-06 `v0.1.7` 已发布；当前 Mac 官方 npm 全新 Workspace 双 Agent 成片及并发 final 验收通过
 
-## 当前工程增量（0.1.7 复验边界修正中）
+## 当前工程增量（0.1.7 已发布并完成双 Agent 验收）
 
-本轮新增 creator 浏览器准备、doctor 真实 16×16 PNG gate、只读 create context/schema、行列级可读性诊断、
-continuation 绝对期限与子进程组清理、显式 interrupt-inspect/interrupt 后接 recover-inspect/reissue。
-creator/package-boundary 回归现纳入 npm run check。
-0.1.5 已修正发行模板中的动态 scale 与字号，真实默认模板回归、757 项测试、macOS ARM64 gate、
-双包 npm 发布和 registry integrity 均通过。当前 Mac 从官方 latest 新建 Workspace 后，Hermes 已成功交付
-31.13 秒视频并通过四文件、checksum、媒体与 EOF 复验。Codex CLI 升级后在 doctor 暴露 macOS 进程组退出
-EPERM 竞态；另一个公开 final 检查仍引用旧 baseline 证据链。0.1.6 已修正这两处共享实现，776 项测试、macOS ARM64 gate 与双包 npm 发布已通过。
-当前 Mac 的官方 0.1.6 Workspace 中，Codex 与 Hermes 均已完成视频并通过独立媒体验证；
-随后并发 final 复验暴露无关进程的 `?E` 状态导致进程表整体解析失败，0.1.7 正在补齐该边界。
-证据见 [v0.1.7 follow-up](evidence/2026-09-06-v0.1.7-workspace-reliability-release.md)。
-证据见 [v0.1.6 follow-up](evidence/2026-09-06-v0.1.6-workspace-reliability-release.md)、
-[v0.1.5 release](evidence/2026-09-06-v0.1.5-workspace-reliability-release.md)、
-[v0.1.4 failure](evidence/2026-09-06-v0.1.4-workspace-reliability-release.md)。
+本轮已把 npm Workspace 使用中暴露的问题修正到项目源码、发行 Skill 和说明文档：
+
+- creator 自动准备浏览器，doctor 执行真实 16×16 PNG 渲染；只读 create context 提供完整示例与 schema；
+- 默认首尾模板通过真实创建与 artifact 回归；可读性诊断补齐具体文件、行列和 Agent 可修正的错误信息；
+- continuation 与子进程有明确期限、所有权和错误输出；macOS 退出进程组与合法 `?E` 状态不再造成清理误报；
+- public final 验证 current Revision、artifacts 和 exact 四文件，显式中断/恢复与旧 development proof 保持独立边界。
+
+`0.1.7` 已通过 778 项测试、完整本地检查、macOS ARM64 gate、双包 npm 发布及 registry integrity 验证。
+当前 Mac 从官方 latest 在 `/Users/ai/AgentWorkspace/axmorf` 新建 Workspace，真实 Codex 0.153.4 与
+Hermes 0.21.0 分别交付 31.67 秒和 31.3 秒视频，固定终态均成功。两项目并发 final 各 7 项全通过；
+checksum、媒体规格、EOF 解码和发行包原始 bytes 复验通过。使用侧未修改安装包、精确依赖或 validator。
+
+当前验收见 [v0.1.7 release](evidence/2026-09-06-v0.1.7-workspace-reliability-release.md)。
+此前失败与修复证据见 [v0.1.6](evidence/2026-09-06-v0.1.6-workspace-reliability-release.md)、
+[v0.1.5](evidence/2026-09-06-v0.1.5-workspace-reliability-release.md)、
+[v0.1.4](evidence/2026-09-06-v0.1.4-workspace-reliability-release.md)；
 具体边界见 [Workspace reliability](guides/WORKSPACE_RELIABILITY.md)。
 
 ## 当前结论
@@ -50,8 +53,8 @@ reference environment evidence，不是 runtime allowlist；其他宿主可以�
 已认证。Agent 不得修改 package internals、精确依赖、sandbox 或 validators 来强行适配。
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
-补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.6` 与
-`create-axmorf-studio@0.1.6`，发布记录见上方证据。此前 `v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
+补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.7` 与
+`create-axmorf-studio@0.1.7`，发布记录见上方证据。此前 `v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
 release candidates 一致，provenance、registry signatures 与 attestations 已由外部 fresh Workspace 复验。
 GitHub 仓库已转移为 `AXMORF/axmorf-studio`，npm 发布分支是 default branch，旧 `main` 保留。production 与完整
 repository `npm audit` 已通过 `fast-uri@3.1.6`、
