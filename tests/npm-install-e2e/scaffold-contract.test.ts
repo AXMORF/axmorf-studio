@@ -69,6 +69,22 @@ test("arguments are strict and keep the test runtime override explicit", () => {
   );
 });
 
+test("default creator runtime tracks its own published package version", async () => {
+  const manifest = JSON.parse(
+    await readFile(
+      new URL(
+        "../../packages/create-axmorf-studio/package.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  assert.equal(
+    parseArguments(["fresh-workspace"]).runtimePackage,
+    manifest.version,
+  );
+});
+
 test("help documents every supported creator option", async () => {
   const output: string[] = [];
   const result = await runCli(["--help"], {
@@ -265,7 +281,10 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   );
   assert.doesNotMatch(JSON.stringify(manifest.scripts), /tsx|scripts\//u);
   const remotionEntry = await readFile(join(workspace, "src/index.ts"), "utf8");
-  assert.match(remotionEntry, /createRemotionRoot\(projectRegistry\)/u);
+  assert.match(
+    remotionEntry,
+    /createRemotionRoot\(projectRegistry, \{ sceneTemplateAudioProjection \}\)/u,
+  );
   assert.match(remotionEntry, /\.\/projects\/project-registry\.generated/u);
   assert.doesNotMatch(
     remotionEntry,
@@ -397,6 +416,7 @@ test("default flow installs, bootstraps, doctors, and only then atomically publi
     [
       ["install", []],
       ["run", ["--silent", "bootstrap"]],
+      ["run", ["--silent", "browser:prepare"]],
       ["run", ["--silent", "doctor"]],
     ],
   );
@@ -440,6 +460,42 @@ test("install or doctor failure leaves neither a target nor staging debris", asy
     /doctor rejected workspace/u,
   );
   await assert.rejects(() => lstat(join(root, "failed-story")), /ENOENT/u);
+  assert.deepEqual(await readdir(root), []);
+});
+
+test("browser setup failure preserves bounded diagnostics before staging cleanup", async (context) => {
+  const root = await temporaryRoot(context);
+  await assert.rejects(
+    () =>
+      createWorkspace(
+        {
+          cwd: root,
+          target: "browser-failed",
+          install: true,
+          runtimePackage: "0.1.0",
+        },
+        {
+          templateRoot: creatorTemplate,
+          runCommand: async (_command, args, options) => {
+            if (args.includes("browser:prepare")) {
+              await writeFile(
+                join(options.cwd, ".axmorf-browser-prepare.log"),
+                `discarded-prefix${"x".repeat(5000)}\nBrowser download interrupted`,
+              );
+              throw new Error("browser setup failed");
+            }
+          },
+        },
+      ),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /browser setup failed/u);
+      assert.match(error.message, /Browser download interrupted/u);
+      assert.doesNotMatch(error.message, /discarded-prefix/u);
+      assert.ok(error.message.length < 4300);
+      return true;
+    },
+  );
   assert.deepEqual(await readdir(root), []);
 });
 

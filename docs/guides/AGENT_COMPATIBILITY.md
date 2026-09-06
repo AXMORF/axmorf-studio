@@ -94,3 +94,8 @@ commands；当前宿主负责 inline 执行或可选 child admission。
 terminal failed attempt 不由宿主重开。显式 recovery 依次使用 read-only/zero-provider
 `npm run project:attempt:recover-inspect` 与 same-Revision `npm run project:attempt:reissue`；fresh attempt 可复用 valid
 artifacts/drafts，不要求 current delivery。active、stale、fixed-flow failure 均不能 reissue。
+
+## npm Workspace reliability
+
+Browser preparation, real-render readiness, bounded media processes and explicit interrupted-attempt recovery are described in
+[Workspace reliability](WORKSPACE_RELIABILITY.md). Process ownership and logs are diagnostic-only; read-only inspection remains zero-write.

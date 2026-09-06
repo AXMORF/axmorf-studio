@@ -331,3 +331,8 @@ Agent workspace validator 失败由同一 task executor 在宣告终态前修正
 failure 或 validator/store/materialization/delivery fixed failure 都立即结束当前 lifecycle。系统缺陷只能在
 用户另行启动的 engineering task 中诊断、Red/Green 和验证，然后再显式创建新 attempt；不得在失败 attempt
 内修复或重试。
+
+## npm Workspace reliability
+
+Browser preparation, real-render readiness, bounded media processes and explicit interrupted-attempt recovery are described in
+[Workspace reliability](guides/WORKSPACE_RELIABILITY.md). Process ownership and logs are diagnostic-only; read-only inspection remains zero-write.

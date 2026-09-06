@@ -60,3 +60,10 @@ For production, prefer the current generated Workspace documents because they ma
 
 AXMORF Studio source in this package is licensed under [Apache-2.0](LICENSE). Third-party dependencies retain their own licenses; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and each installed package's metadata. Remotion is not relicensed by AXMORF Studio.
+
+## Authoring and host readiness
+
+The creator prepares the pinned browser and checks a real tiny PNG render before reporting a ready Workspace. Browser
+preparation is serialized and bounded; doctor never silently downloads Chrome. New authoring begins with
+`npm run project:create:context -- --project <storyId>`, which returns a complete example and current public choices.
+Use the generated Workspace-local authoring and host-execution references for exact task execution and interruption recovery.

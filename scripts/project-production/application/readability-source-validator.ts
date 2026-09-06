@@ -9,6 +9,21 @@ import {
 
 type StaticValue = number | string | ts.ObjectLiteralExpression;
 
+const sourceError = (
+  node: ts.Node,
+  rule: string,
+  message: string,
+  correction: string,
+) => {
+  const sourceFile = node.getSourceFile();
+  const { line, character } = sourceFile.getLineAndCharacterOfPosition(
+    node.getStart(sourceFile),
+  );
+  return new Error(
+    `${message} ${sourceFile.fileName}:${line + 1}:${character + 1} [${rule}] ${correction}`,
+  );
+};
+
 const jsxTagName = (node: ts.JsxTagNameExpression) => node.getText();
 
 const unwrapExpression = (expression: ts.Expression): ts.Expression => {
@@ -156,16 +171,45 @@ const parseFontSize = ({
   return match === null ? null : Number(match[1]);
 };
 
+const isJsxOnlyExpression = (expression: ts.Expression): boolean => {
+  const current = unwrapExpression(expression);
+  if (
+    ts.isJsxElement(current) ||
+    ts.isJsxSelfClosingElement(current) ||
+    ts.isJsxFragment(current)
+  ) {
+    return true;
+  }
+  // A literal array and an inline JSX arrow body expose every rendered child.
+  // Unknown receivers, callbacks, and text-returning expressions remain conservative.
+  if (
+    ts.isCallExpression(current) &&
+    ts.isPropertyAccessExpression(current.expression) &&
+    current.expression.name.text === "map" &&
+    ts.isArrayLiteralExpression(unwrapExpression(current.expression.expression))
+  ) {
+    const callback = current.arguments[0];
+    if (
+      callback !== undefined &&
+      ts.isArrowFunction(callback) &&
+      !callback.modifiers?.some(
+        (modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword,
+      ) &&
+      !ts.isBlock(callback.body)
+    ) {
+      const body = unwrapExpression(callback.body);
+      return ts.isJsxElement(body) || ts.isJsxSelfClosingElement(body);
+    }
+  }
+  return false;
+};
+
 const hasVisibleTextChild = (element: ts.JsxElement) =>
   element.children.some((child) => {
     if (ts.isJsxText(child)) return child.text.trim().length > 0;
     if (!ts.isJsxExpression(child) || child.expression === undefined)
       return false;
-    return (
-      !ts.isJsxElement(child.expression) &&
-      !ts.isJsxSelfClosingElement(child.expression) &&
-      !ts.isJsxFragment(child.expression)
-    );
+    return !isJsxOnlyExpression(child.expression);
   });
 
 const getAttributes = (node: ts.Node): ts.JsxAttributes | null => {
@@ -227,20 +271,29 @@ const assertNoUnreadableScale = (
         ]) {
           if (expression === null) continue;
           if (expression === undefined) {
-            throw new Error(
+            throw sourceError(
+              attributes,
+              "readability-transform",
               `Renderer transform must be statically provable in ${sourceFile.fileName}.`,
+              "Use an explicit style object with a literal transform. For frame-driven movement, animate numeric left/top (or SVG x/y) instead of building a dynamic transform string; keep readable content at full scale.",
             );
           }
           const resolved = resolveStaticValue(expression, values);
           if (resolved === null) {
-            throw new Error(
+            throw sourceError(
+              expression,
+              "readability-transform",
               `Renderer transform must be statically provable in ${sourceFile.fileName}.`,
+              "Use a literal transform. For frame-driven movement, animate numeric left/top (or SVG x/y) instead of building a dynamic transform string; keep readable content at full scale.",
             );
           }
           const parsed = parseScale(resolved);
           if (parsed.found && (parsed.minimum === null || parsed.minimum < 1)) {
-            throw new Error(
+            throw sourceError(
+              expression,
+              "readability-scale",
               `Renderer scale must be statically proven not to shrink readable content in ${sourceFile.fileName}.`,
+              "Remove shrinking or dynamic scale; use a literal scale of at least 1 and animate position or opacity instead.",
             );
           }
         }
@@ -393,10 +446,20 @@ const assertTextSizes = ({
             expression =
               attribute === null ? null : attributeExpression(attribute);
           } else if (tagName === "text") {
+            const styledSize = styleProperty({
+              attributes,
+              name: "fontSize",
+              values,
+            });
             const attribute = findAttribute(attributes, "fontSize");
+            // Inline CSS overrides the SVG presentation attribute.
             expression =
-              attribute === null ? null : attributeExpression(attribute);
-            allowUnitlessString = true;
+              styledSize !== null
+                ? styledSize
+                : attribute === null
+                  ? null
+                  : attributeExpression(attribute);
+            allowUnitlessString = styledSize === null;
           } else if (/^[a-z]/u.test(tagName)) {
             expression = styleProperty({
               attributes,
@@ -413,13 +476,19 @@ const assertTextSizes = ({
               values,
             });
             if (size === null) {
-              throw new Error(
+              throw sourceError(
+                expression ?? node.openingElement,
+                "readability-font-size",
                 `Visible text font size in ${sourceFile.fileName} is inherited, relative, or not statically provable.`,
+                `Set an explicit pixel size on <${tagName}>: ${controlled ? `fontSizePx={${minimum}}` : tagName === "text" ? `fontSize={${minimum}}` : `style={{fontSize: ${minimum}}}`} or larger. Inherited sizes and unknown JSX child expressions cannot prove readability.`,
               );
             }
             if (size < minimum) {
-              throw new Error(
+              throw sourceError(
+                expression ?? node.openingElement,
+                "readability-font-minimum",
                 `Visible text size ${size}px is below the frozen ${minimum}px minimum in ${sourceFile.fileName}.`,
+                `Increase the explicit size on <${tagName}> to at least ${minimum}px without a shrinking transform.`,
               );
             }
           }

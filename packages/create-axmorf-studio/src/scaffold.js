@@ -224,6 +224,9 @@ export const createWorkspace = async (
     if (install) {
       await runCommand("install", [], { cwd: stagingPath });
       await runCommand("run", ["--silent", "bootstrap"], { cwd: stagingPath });
+      await runCommand("run", ["--silent", "browser:prepare"], {
+        cwd: stagingPath,
+      });
       await runCommand("run", ["--silent", "doctor"], { cwd: stagingPath });
       const lockStatus = await filesystem.lstat(
         join(stagingPath, "package-lock.json"),
@@ -246,10 +249,37 @@ export const createWorkspace = async (
       installed: install,
       ...(install
         ? {}
-        : { next: ["npm install", "npm run bootstrap", "npm run doctor"] }),
+        : {
+            next: [
+              "npm install",
+              "npm run bootstrap",
+              "npm run browser:prepare",
+              "npm run doctor",
+            ],
+          }),
     };
   } catch (error) {
+    let browserLog = "";
+    if (stagingPath !== null) {
+      try {
+        browserLog = (
+          await filesystem.readFile(
+            join(stagingPath, ".axmorf-browser-prepare.log"),
+            "utf8",
+          )
+        ).slice(-4096);
+      } catch (logError) {
+        if (!isNotFound(logError))
+          browserLog = "Browser preparation log could not be read.";
+      }
+    }
     await removeStaging(filesystem, stagingPath).catch(() => undefined);
+    if (browserLog !== "") {
+      throw new Error(
+        `${error instanceof Error ? error.message : "Workspace setup failed."}\nBrowser preparation output (last 4096 characters):\n${browserLog}`,
+        { cause: error },
+      );
+    }
     throw error;
   }
 };

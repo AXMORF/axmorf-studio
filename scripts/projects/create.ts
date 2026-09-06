@@ -7,6 +7,9 @@ import {
   type RuntimeResources,
 } from "../../packages/studio/src/runtime/runtime-resources";
 import { reportCliFailure } from "../../packages/studio/src/cli/failure";
+import { z } from "zod";
+import { ProjectCreateInputSchema } from "@axmorf/studio/contracts";
+import { inspectProjectCreateContext } from "./application/project-create-context";
 
 const usage =
   "Expected --project <storyId> --input <repository-relative-json>.";
@@ -51,6 +54,34 @@ export const runProjectCreateCli = async (
       stdout: (line: string) => process.stdout.write(`${line}\n`),
       runtimeResources: await resolveRuntimeResources(),
     } satisfies ProjectCreateCliContext);
+  if (args.length === 1 && args[0] === "--help") {
+    const result = {
+      status: "help",
+      commands: [
+        "npm run project:create:context -- --project <storyId>",
+        "npm run project:create -- --schema",
+        "npm run project:create -- --project <storyId> --input <workspace-relative-json>",
+      ],
+      guidance:
+        "Read the Workspace-local authoring reference. Context is read-only and supplies a complete example with current public choices.",
+    };
+    resolvedContext.stdout(JSON.stringify(result));
+    return result;
+  }
+  if (args.length === 1 && args[0] === "--schema") {
+    const schema = z.toJSONSchema(ProjectCreateInputSchema, { io: "input" });
+    resolvedContext.stdout(JSON.stringify(schema));
+    return { status: "project-create-schema" as const, schema };
+  }
+  if (args.length === 3 && args[0] === "context" && args[1] === "--project") {
+    const result = await inspectProjectCreateContext({
+      rootDir: resolvedContext.rootDir,
+      storyId: args[2]!,
+      env: resolvedContext.env,
+    });
+    resolvedContext.stdout(JSON.stringify(result));
+    return result;
+  }
   const parsed = parseProjectCreateArguments(args);
   const result = await createProject({
     rootDir: resolvedContext.rootDir,

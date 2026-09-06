@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { bootstrapWorkspace } from "../bootstrap/workspace-bootstrap";
 import { inspectWorkspaceReadiness } from "../bootstrap/workspace-doctor";
+import { prepareWorkspaceBrowser } from "../bootstrap/workspace-browser";
 import {
   loadRuntimePolicyManifest,
   resolveRuntimeResources,
@@ -23,6 +24,7 @@ import {
   resolveWorkspaceRoot,
 } from "../workspace/resolve-workspace";
 import { reportCliFailure } from "./failure";
+import { describeWorkspaceCliHelp } from "./help";
 
 type Output = Readonly<{
   stdout: (value: string) => void;
@@ -136,6 +138,9 @@ const createDefaultRunners = (output: Output): CliRunners => {
     doctor: async ({ rootDir }) => {
       stdoutLine(JSON.stringify(await inspectWorkspaceReadiness(rootDir)));
     },
+    browserPrepare: async ({ rootDir }) => {
+      stdoutLine(JSON.stringify(await prepareWorkspaceBrowser(rootDir)));
+    },
     web: async ({ rootDir, args }) => {
       const { port } = parseSinglePortArgument(args, "--port", 3100);
       const { resources, manifest } = await runtime();
@@ -239,6 +244,7 @@ const createDefaultRunners = (output: Output): CliRunners => {
     },
     projectProduction: async ({ rootDir, args }) => {
       const { manifest } = await runtime();
+      if (args[0] === "prepare") await inspectWorkspaceReadiness(rootDir);
       const { runProjectProductionCli } =
         await import("../../../../scripts/project-production/cli");
       await runProjectProductionCli(args, {
@@ -329,6 +335,10 @@ export const runCli = async ({
   readonly runners?: CliRunners;
 }) => {
   const parsed = parseWorkspaceArguments(args);
+  if (parsed.commandArgs.at(-1) === "--help") {
+    output.stdout(`${JSON.stringify(describeWorkspaceCliHelp())}\n`);
+    return;
+  }
   const workspace = await resolveWorkspaceRoot({
     cwd,
     ...(parsed.explicitWorkspace === undefined

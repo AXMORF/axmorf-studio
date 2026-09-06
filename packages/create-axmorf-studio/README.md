@@ -44,7 +44,7 @@ attempt-bound Agent tasks, fixed continuation, recovery, and verified four-file 
                               use an exact @axmorf/studio version or local tarball
 ```
 
-`--no-install` creates a generated but not ready workspace. Run `npm install`, then `npm run bootstrap` and `npm run doctor` before
+`--no-install` creates a generated but not ready workspace. Run `npm install`, then `npm run bootstrap`, `npm run browser:prepare`, and `npm run doctor` before
 using it.
 
 ## Requirements
@@ -69,3 +69,10 @@ The generated workspace-local instructions take precedence for actual production
 The initializer and included template files are licensed under [Apache-2.0](LICENSE). A generated workspace is private and
 `UNLICENSED` by default, so the creator does not choose a license for the user's videos or Project source. Third-party packages retain
 their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Authoring and host readiness
+
+The creator prepares the pinned browser and checks a real tiny PNG render before reporting a ready Workspace. Browser
+preparation is serialized and bounded; doctor never silently downloads Chrome. New authoring begins with
+`npm run project:create:context -- --project <storyId>`, which returns a complete example and current public choices.
+Use the generated Workspace-local authoring and host-execution references for exact task execution and interruption recovery.

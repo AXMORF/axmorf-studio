@@ -302,6 +302,7 @@ const validateProjectDelivery = async ({
     mustExist: true,
   });
   const video = await inspectVideo({
+    rootDir: prepared.runtimeRootDir,
     absolutePath: videoPath,
     render: prepared.render,
     frameCount: prepared.frameCount,
@@ -319,6 +320,7 @@ const validateProjectDelivery = async ({
     mustExist: true,
   });
   const cover4x3 = await inspectCover({
+    rootDir: prepared.runtimeRootDir,
     absolutePath: cover4x3Path,
     expected: { width: 1600, height: 1200 },
   });
@@ -335,6 +337,7 @@ const validateProjectDelivery = async ({
     mustExist: true,
   });
   const cover3x4 = await inspectCover({
+    rootDir: prepared.runtimeRootDir,
     absolutePath: cover3x4Path,
     expected: { width: 1200, height: 1600 },
   });
@@ -485,6 +488,7 @@ export const buildDeliveryUnlocked = async ({
       }),
     inspect: (absolutePath) =>
       inspectVideo({
+        rootDir: prepared.runtimeRootDir,
         absolutePath,
         render: prepared.render,
         frameCount: prepared.frameCount,
@@ -505,6 +509,7 @@ export const buildDeliveryUnlocked = async ({
       }),
     inspect: (absolutePath) =>
       inspectCover({
+        rootDir: prepared.runtimeRootDir,
         absolutePath,
         expected: { width: 1600, height: 1200 },
       }),
@@ -524,6 +529,7 @@ export const buildDeliveryUnlocked = async ({
       }),
     inspect: (absolutePath) =>
       inspectCover({
+        rootDir: prepared.runtimeRootDir,
         absolutePath,
         expected: { width: 1200, height: 1600 },
       }),

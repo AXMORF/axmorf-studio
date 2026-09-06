@@ -19,6 +19,11 @@ unrecoverable authored output. Root-only `spawnFailureCommand` records real host
 `fixedFailureCommand` records immutable/controller failure through a narrower authority that cannot access task
 content. Fixed continuation then fails the attempt without convergence or Root re-entry.
 
+When a continuation was externally interrupted before its terminal event, explicit `project:attempt:interrupt-inspect`
+checks same-host process ownership, all task terminals, owned process groups and the exact operation lock. Only its
+ready result allows `project:attempt:interrupt`; the latter appends a failed event and archives a verified abandoned lock,
+without removing the original continuation claim or changing artifact identity. Legacy or unverifiable ownership is a blocker.
+
 A terminal failed attempt is never reopened. A later explicit
 `npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failedAttemptId>` is read-only and zero
 provider. If it reports same-current-Revision recovery ready with no active/fixed blocker, run

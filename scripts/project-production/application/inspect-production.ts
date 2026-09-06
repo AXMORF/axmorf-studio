@@ -61,8 +61,8 @@ export const inspectProjectProduction = async (
     rootDir,
     projectId,
     env = process.env,
-  runtimePolicyManifest,
-  scope: suppliedScope,
+    runtimePolicyManifest,
+    scope: suppliedScope,
   }: {
     readonly rootDir: string;
     readonly projectId: string;
@@ -111,6 +111,7 @@ export const inspectProjectProduction = async (
       });
       delivery = await readDelivery({
         rootDir: scope.isolatedRoot,
+        runtimeRootDir: scope.repositoryRoot,
         projectId,
       });
     }

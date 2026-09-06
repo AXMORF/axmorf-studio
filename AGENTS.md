@@ -228,6 +228,10 @@ contact sheet 或布局。第三方 source/media 分别校验 license/attributio
 ## 故障语义
 
 - Agent-owned workspace 校验失败时，仅原 task executor 修正 owning paths 并重跑同一 validator；不得降低合同。
+- 已启动的 continuation 意外退出而未写终态时，显式运行 `project:attempt:interrupt-inspect`；只有同宿主
+  owner 与已登记 process groups 均已退出、全部 Agent tasks 已终态、operation lock 可复验时才允许
+  `project:attempt:interrupt` 追加 failed event 并归档匹配的遗留锁。原 claim/attempt inputs 不改；legacy/unknown
+  owner fail closed，不手动删锁。随后沿既有 recover-inspect/reissue 新建 attempt。进程诊断不进入 content identity。
 - terminal failed attempt 永远 immutable。用户另行明确恢复时，先运行严格只读、零 provider 的
   `npm run project:attempt:recover-inspect`；只有同一 current Revision、无 active/fixed blocker 时才运行
   `npm run project:attempt:reissue`。reissue 不要求 current delivery，复用 valid artifacts/drafts 并创建 fresh

@@ -1,3 +1,8 @@
+import { createRequire } from "node:module";
+
+const { version: releaseVersion } = createRequire(import.meta.url)(
+  "../package.json",
+);
 const FLAG_NAMES = new Set(["--yes", "--no-install", "--runtime-package"]);
 
 export const usage = `Usage: npm create axmorf-studio@latest <target> [--yes] [--no-install] [--runtime-package <version-or-path>]
@@ -17,7 +22,7 @@ export const parseArguments = (argv) => {
     target: null,
     yes: false,
     install: true,
-    runtimePackage: "0.1.3",
+    runtimePackage: releaseVersion,
     help: false,
   };
   const seen = new Set();

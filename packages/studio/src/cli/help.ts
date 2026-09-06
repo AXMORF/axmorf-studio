@@ -1,0 +1,27 @@
+export const describeWorkspaceCliHelp = () => ({
+  status: "help" as const,
+  commands: [
+    "npm run doctor",
+    "npm run browser:prepare",
+    "npm run project:create:context -- --project <storyId>",
+    "npm run project:create -- --schema",
+    "npm run project:create -- --project <storyId> --input <workspace-relative-json>",
+    "npm run catalog:query -- --kind style-profile",
+    "npm run project:execution:resolve [-- --mode inline|subagents]",
+    "npm run project:produce:inspect -- --project <storyId>",
+    "npm run project:produce:prepare -- --project <storyId>",
+    "npm run project:attempt:interrupt-inspect -- --project <storyId> --attempt <attemptId>",
+    "npm run project:attempt:interrupt -- --project <storyId> --attempt <attemptId>",
+    "npm run project:attempt:recover-inspect -- --project <storyId> --attempt <attemptId>",
+    "npm run project:attempt:reissue -- --project <storyId> --attempt <attemptId>",
+    "npm run project:check -- --project <storyId> --level narrative|final",
+    "npm run project:revise:context -- --project <storyId>",
+    "npm run dev",
+  ],
+  guidance: [
+    "Read .agents/skills/axmorf-video/SKILL.md and its references for the current stage.",
+    "Use exact task bind/finalize/check/commit and continuation commands returned by prepare; do not reconstruct their identities.",
+    "Execution overrides require the user's selection. Missing fields inherit settings.",
+    "Candidate production and recovery must preserve the exact --candidate returned by revision create.",
+  ],
+});

@@ -10,6 +10,7 @@ export type CliCommandRunner = (
 export type CliRunners = Readonly<{
   bootstrap: CliCommandRunner;
   doctor: CliCommandRunner;
+  browserPrepare: CliCommandRunner;
   web: CliCommandRunner;
   preview: CliCommandRunner;
   dev: CliCommandRunner;
@@ -123,7 +124,10 @@ const routeProject = async (input: CliCommandInput, runners: CliRunners) => {
   }
   if (
     group === "attempt" &&
-    (operation === "recover-inspect" || operation === "reissue")
+    (operation === "recover-inspect" ||
+      operation === "reissue" ||
+      operation === "interrupt-inspect" ||
+      operation === "interrupt")
   ) {
     return runners.projectProduction({
       rootDir: input.rootDir,
@@ -144,6 +148,9 @@ export const routeCliCommand = async ({
   }
   if (args[0] === "doctor") {
     return exactFixedCommand({ args, input, runner: runners.doctor });
+  }
+  if (args.length === 2 && args[0] === "browser" && args[1] === "prepare") {
+    return runners.browserPrepare({ rootDir, args: [] });
   }
   if (args[0] === "web") {
     return runners.web({ rootDir, args: args.slice(1) });

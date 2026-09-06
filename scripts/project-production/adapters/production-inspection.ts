@@ -489,14 +489,17 @@ export const inspectNarrationCache = async ({
 
 export const inspectCurrentDelivery = async ({
   rootDir,
+  runtimeRootDir = rootDir,
   projectId: rawProjectId,
 }: {
   readonly rootDir: string;
+  readonly runtimeRootDir?: string;
   readonly projectId: string;
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
   const publish = await inspectVerifiedCurrentDelivery({
     rootDir,
+    runtimeRootDir,
     storyId: projectId,
   });
   return publish === null

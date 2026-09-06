@@ -174,3 +174,8 @@ no-op。
 - delete：严格 story ownership，可重复清理 missing targets，并保护其他 roots。
 
 系统不得用自动 retry、compatibility shim、fallback output、Agent 自评或手工修复 manifest 来制造幂等。
+
+## npm Workspace reliability
+
+Browser preparation, real-render readiness, bounded media processes and explicit interrupted-attempt recovery are described in
+[Workspace reliability](guides/WORKSPACE_RELIABILITY.md). Process ownership and logs are diagnostic-only; read-only inspection remains zero-write.

@@ -1,3 +1,7 @@
+import {
+  getProcessOwnership,
+  ProcessOwnershipSchema,
+} from "../../../packages/studio/src/process/process-ownership";
 import { createHash, randomUUID } from "node:crypto";
 import {
   lstat,
@@ -916,7 +920,8 @@ export const claimExecutionAttemptContinuation = async ({
     throw new Error("Execution attempt is not active continuation authority.");
   }
   const claim = {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    process: getProcessOwnership(),
     claimId: randomUUID(),
     attemptId: progress.attemptId,
     storyId: progress.storyId,
@@ -1067,4 +1072,32 @@ export const appendExecutionAttemptDeliveryResult = async ({
       deliveryResult: result,
     }),
   });
+};
+
+export const readExecutionAttemptContinuationClaim = async ({
+  rootDir,
+  storyId,
+  attemptId,
+}: {
+  readonly rootDir: string;
+  readonly storyId: string;
+  readonly attemptId: string;
+}) => {
+  if (!(await assertAttemptDirectory({ rootDir, storyId, attemptId })))
+    throw missingAttemptError();
+  const path = continuationClaimPath(rootDir, storyId, attemptId);
+  const metadata = await lstat(path);
+  if (!metadata.isFile() || metadata.isSymbolicLink())
+    throw new Error("Execution continuation claim is unsafe.");
+  return z
+    .object({
+      schemaVersion: z.literal(2),
+      claimId: z.string().uuid(),
+      attemptId: z.string().uuid(),
+      storyId: StoryIdSchema,
+      revisionId: z.string(),
+      process: ProcessOwnershipSchema,
+    })
+    .strict()
+    .parse(JSON.parse(await readFile(path, "utf8")));
 };

@@ -7,16 +7,18 @@ description: Resolve inline or bounded-Agent execution, produce, and hand off to
 
 ## Create the Project when needed
 
+新建先用 `npm run project:create:context -- --project <storyId>` 取得完整示例与当前选项；`project:create -- --schema`
+只描述结构，语义验证仍然生效。
+
 Read [policy](policy.json), [workflow](references/direct-production-workflow.md), and
 [Producer config](references/producer-config.md). Report boundary Scenes as inherited, selected, or disabled.
 User silence means inheritance: omit `sceneTemplates`, never infer `null`. Use `project:create` for new authoring;
 existing authoring changes use the isolated revision flow below and preserve unrelated sections.
 
-`project:create` freezes the Scene originality baseline. If an older Project has no baseline, stop before inspect and
-ask for explicit migration, then run zero-provider `project:originality:freeze`; never synthesize an empty baseline.
-Create and revision validation can return structured `authoring-validation-failed` issues. For
-`caption-display-budget-exceeded`, shorten or semantically split the authored `ttsChunk` to stay within 72
-`caption-display-unit-v1` half-units; never weaken the validator.
+`project:create` freezes the originality baseline. Missing legacy baseline requires explicit migration via
+zero-provider `project:originality:freeze` before inspect; never synthesize one.
+Fix `authoring-validation-failed` issues. For `caption-display-budget-exceeded`, shorten or split `ttsChunk`
+within 72 `caption-display-unit-v1` half-units; never weaken validators.
 
 Existing Project changes use the [revision workflow](references/project-revision.md); never edit live authoring.
 
@@ -42,8 +44,7 @@ unknown.
 
 ## Prepare content-addressed tasks
 
-Only after reporting run `project:produce:prepare`; it may call providers and open an ExecutionAttempt. Identities
-exclude its diagnostics. Reuse artifacts and execute only `dirtyAgentTasks`.
+After reporting run `project:produce:prepare`; it may call providers and open an ExecutionAttempt. Diagnostics 不进入 identity；复用 artifacts，只执行 `dirtyAgentTasks`。
 
 ## Execute dirty Agent tasks
 
@@ -53,6 +54,8 @@ prompt; never Agent-author `scene-template`. 按 [task protocol](references/task
 read/write 前运行 exact attempt-bound bind；只有 `task-worker-bound` 才能通过返回的 transport 访问三个 immutable
 inputs 与 declared outputs，并运行 bound commands。TaskExecutionContract attempt-neutral；the validated ArtifactAttestation
 与 task-terminal events 才是 durable authority。
+
+Prepare 前确认宿主进程能跨工具超时存活；只能等待原 handle 的 fixed 终态，后台启动回执不是完成。
 
 Inline Root executes exactly one workspace at a time. Subagent mode admits at most `effectiveMaxConcurrency`
 runtime-native children；超量时只 wait-any 释放 admission slot，不轮询全部 child 或信任 chat。真实 spawn/
@@ -76,6 +79,9 @@ at ExecutionAttempt creation. No retry, Root re-entry, direct converge, or works
 
 ## Classify failure by task owner
 
+中断但无终态时，显式 `project:attempt:interrupt-inspect` 证明 owner/子进程死亡后才执行返回的
+`project:attempt:interrupt`，再走 recovery。禁止手删 lock/claim；legacy ownership 阻塞。细节见下方 hardening。
+
 仅 assigned executor 在 terminal 前修正 `agent-output`；failure 冻结 attempt。明确后续 recovery 先 read-only
 `project:attempt:recover-inspect`，再 zero-provider same-Revision `project:attempt:reissue`，且不要求 current
 delivery。系统问题用 [hardening](references/agent-rework-and-system-hardening.md)。不 auto-retry/fallback、弱化
@@ -83,7 +89,7 @@ validator 或伪造 attestation。
 
 ## Finish with verified delivery
 
-Before execution report the resolved mode/capacity, IDs, inspection, cost, summary, and TaskRevisions. After the
+Report mode/capacity, IDs, inspection, cost, summary, and TaskRevisions before execution. After the
 continuation starts, no Root terminal report.
 Only `project-production-complete` or `project-production-current` proves delivery. Do not publish, push, or use
 `git add .`.

@@ -20,6 +20,30 @@ const createRunner =
     calls.push({ name, rootDir, args });
   };
 
+test("public help works outside a Workspace and describes authoring and recovery without invoking runners", async () => {
+  const output: string[] = [];
+  await runCli({
+    cwd: "/workspace-does-not-exist",
+    args: ["project", "create", "--help"],
+    output: {
+      stdout: (line) => output.push(line),
+      stderr: () => assert.fail("help must not fail"),
+    },
+  });
+  const help = JSON.parse(output.join(""));
+  assert.equal(help.status, "help");
+  assert.ok(
+    help.commands.some((command: string) =>
+      command.includes("project:create:context"),
+    ),
+  );
+  assert.ok(
+    help.commands.some((command: string) =>
+      command.includes("project:attempt:interrupt-inspect"),
+    ),
+  );
+});
+
 test("the public CLI maps grouped commands exactly without leaking routing arguments", async () => {
   const calls: Array<{
     name: string;
@@ -29,6 +53,7 @@ test("the public CLI maps grouped commands exactly without leaking routing argum
   const runners = {
     bootstrap: createRunner(calls, "bootstrap"),
     doctor: createRunner(calls, "doctor"),
+    browserPrepare: createRunner(calls, "browserPrepare"),
     web: createRunner(calls, "web"),
     preview: createRunner(calls, "preview"),
     dev: createRunner(calls, "dev"),
@@ -49,6 +74,7 @@ test("the public CLI maps grouped commands exactly without leaking routing argum
   const cases: readonly [readonly string[], string, readonly string[]][] = [
     [["bootstrap"], "bootstrap", []],
     [["doctor"], "doctor", []],
+    [["browser", "prepare"], "browserPrepare", []],
     [["web", "--port", "3110"], "web", ["--port", "3110"]],
     [["preview"], "preview", []],
     [["dev"], "dev", []],
@@ -230,6 +256,7 @@ test("the router rejects aliases partial commands and arguments on fixed command
   const runners = {
     bootstrap: noOp,
     doctor: noOp,
+    browserPrepare: noOp,
     web: noOp,
     preview: noOp,
     dev: noOp,
@@ -288,6 +315,7 @@ test("CLI composition resolves Workspace before invoking any command runner", as
   const runners = {
     bootstrap: runner,
     doctor: runner,
+    browserPrepare: runner,
     web: runner,
     preview: runner,
     dev: runner,

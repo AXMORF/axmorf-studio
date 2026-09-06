@@ -252,3 +252,8 @@ terminal failed attempt 保持 immutable。显式 recovery 先做 read-only/zero
 
 Scene authoring 仍必须使用 repository-local `remotion-best-practices`，但 Skill 不能扩大 TaskSpec 或
 validator boundary。
+
+## npm Workspace reliability
+
+Browser preparation, real-render readiness, bounded media processes and explicit interrupted-attempt recovery are described in
+[Workspace reliability](guides/WORKSPACE_RELIABILITY.md). Process ownership and logs are diagnostic-only; read-only inspection remains zero-write.

@@ -14,6 +14,7 @@ import test, { type TestContext } from "node:test";
 
 import {
   deleteProjectData,
+  discoverDeletableProjectIds,
   parseProjectDeleteArguments,
 } from "../../scripts/projects/delete";
 import { acquireRepositoryOperationLock } from "../../scripts/shared/repository-operation-lock";
@@ -487,4 +488,46 @@ test("repository operation lock close failure leaves no stale lock", async (cont
     ownerId: "delivery-build",
   });
   await recovered.release();
+});
+
+test("Project discovery excludes only real reserved Workspace process diagnostics", async (context) => {
+  const rootDir = await createRoot(context);
+  await mkdir(join(rootDir, ".producer-attempts", ".processes"), {
+    recursive: true,
+  });
+  await mkdir(join(rootDir, ".producer-attempts", ".process-logs"));
+  await mkdir(
+    join(rootDir, ".producer-attempts", "owned-story", "attempt", ".processes"),
+    { recursive: true },
+  );
+  assert.deepEqual(await discoverDeletableProjectIds({ rootDir }), [
+    "owned-story",
+  ]);
+  await deleteProjectData({
+    rootDir,
+    selection: { kind: "all" },
+    regenerate: async () => ({ catalogEntryCount: 0, projectEntryCount: 0 }),
+  });
+  await missing(join(rootDir, ".producer-attempts", "owned-story"));
+  await access(join(rootDir, ".producer-attempts", ".processes"));
+  await mkdir(join(rootDir, ".producer-attempts", ".unknown"));
+  await assert.rejects(discoverDeletableProjectIds({ rootDir }));
+});
+
+test("Project discovery rejects symlinked and regular-file reserved diagnostics", async (context) => {
+  const rootDir = await createRoot(context);
+  const outside = await createRoot(context);
+  await mkdir(join(rootDir, ".producer-attempts"));
+  const reserved = join(rootDir, ".producer-attempts", ".processes");
+  await symlink(outside, reserved);
+  await assert.rejects(
+    discoverDeletableProjectIds({ rootDir }),
+    /symbolic-link/u,
+  );
+  await rm(reserved);
+  await writeFile(reserved, "unsafe");
+  await assert.rejects(
+    discoverDeletableProjectIds({ rootDir }),
+    /real directories/u,
+  );
 });

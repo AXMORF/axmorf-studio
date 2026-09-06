@@ -32,6 +32,10 @@ import {
 } from "./application/reissue-attempt";
 import { resolveProjectAgentExecution } from "./application/resolve-agent-execution";
 import {
+  inspectAttemptInterruption,
+  interruptAttempt,
+} from "./application/interrupt-attempt";
+import {
   assertTaskWorkerBinding,
   assertTaskWorkerFailureAuthority,
   bindTaskWorker,
@@ -155,10 +159,7 @@ const resolveCliProductionScope = async ({
   return scope;
 };
 
-const boundTaskInput = (
-  args: readonly string[],
-  scope: ProductionScope,
-) => ({
+const boundTaskInput = (args: readonly string[], scope: ProductionScope) => ({
   rootDir: scope.isolatedRoot,
   taskRevision: option(args, "--task"),
   attemptId: option(args, "--attempt"),
@@ -366,9 +367,7 @@ export const runProjectProductionCli = async (
       ...input,
       transport,
       repositoryRootDir: scope.repositoryRoot,
-      ...(scope.candidateId === null
-        ? {}
-        : { candidateId: scope.candidateId }),
+      ...(scope.candidateId === null ? {} : { candidateId: scope.candidateId }),
     });
     context.stdout(JSON.stringify(result));
     return result;
@@ -556,6 +555,40 @@ export const runProjectProductionCli = async (
     });
     context.stdout(JSON.stringify(result));
     return result;
+  }
+  if (
+    command === "attempt-interrupt-inspect" ||
+    command === "attempt-interrupt"
+  ) {
+    const projectId = option(args, "--project");
+    const scope = await resolveCliProductionScope({
+      args,
+      rootDir: context.rootDir,
+      projectId,
+    });
+    const input = {
+      rootDir: context.rootDir,
+      projectId,
+      attemptId: option(args, "--attempt"),
+      scope,
+    };
+    const result = await (
+      command === "attempt-interrupt-inspect"
+        ? inspectAttemptInterruption
+        : interruptAttempt
+    )(input);
+    const candidate =
+      scope.kind === "project-revision-candidate"
+        ? ` --candidate ${scope.candidateId}`
+        : "";
+    const next =
+      command === "attempt-interrupt-inspect" ? "interrupt" : "recover-inspect";
+    const report = {
+      ...result,
+      nextCommand: `npm run project:attempt:${next} -- --project ${projectId} --attempt ${input.attemptId}${candidate}`,
+    };
+    context.stdout(JSON.stringify(report));
+    return report;
   }
   if (command === "attempt-reissue") {
     const projectId = option(args, "--project");

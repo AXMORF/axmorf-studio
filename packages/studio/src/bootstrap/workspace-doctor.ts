@@ -1,3 +1,4 @@
+import { verifyWorkspaceBrowser } from "./workspace-browser";
 import { lstat, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -73,6 +74,7 @@ export const inspectWorkspaceReadiness = async (rootDir: string) => {
   ]);
   ProducerConfigSchema.parse(JSON.parse(config) as unknown);
   ResourceCatalogSchema.parse(JSON.parse(catalog) as unknown);
+  await verifyWorkspaceBrowser(rootDir, runtimeResources);
   return {
     status: "workspace-ready" as const,
     workspaceVersion: 1 as const,
@@ -80,6 +82,7 @@ export const inspectWorkspaceReadiness = async (rootDir: string) => {
       layout: "pass" as const,
       runtimeResources: "pass" as const,
       remotionCli: "pass" as const,
+      browserRender: "pass" as const,
       producerConfig: "pass" as const,
       resourceCatalog: "pass" as const,
     },

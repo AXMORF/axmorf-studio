@@ -4,6 +4,13 @@
 >
 > 最后复核：2026-09-05 `v0.1.3` Mixkit bookend audio public release and official-registry self-test
 
+## 当前工程增量（待发布验证）
+
+本轮新增 creator 浏览器准备、doctor 真实 16×16 PNG gate、只读 create context/schema、行列级可读性诊断、
+continuation 绝对期限与子进程组清理、显式 interrupt-inspect/interrupt 后接 recover-inspect/reissue。
+creator/package-boundary 回归现纳入 npm run check；发布与 Hermes/Codex npm 成片验证尚在进行，不能视为已完成。
+具体边界见 [Workspace reliability](guides/WORKSPACE_RELIABILITY.md)。
+
 ## 当前结论
 
 当前分支已在 Foundation 主链上实现 npm Workspace 本地 vertical slice：

@@ -164,7 +164,8 @@ const createDependencies = ({
       }
       await writeFile(outputPath, "cover-3x4");
     },
-    inspectVideo: async ({ absolutePath }) => {
+    inspectVideo: async ({ rootDir, absolutePath }) => {
+      assert.equal(rootDir, prepared.runtimeRootDir);
       if (
         failPromotedVideoInspectionOnce &&
         !promotedInspectionFailed &&
@@ -176,7 +177,8 @@ const createDependencies = ({
       assert.equal(await readFile(absolutePath, "utf8"), "video");
       return media.video;
     },
-    inspectCover: async ({ absolutePath, expected }) => {
+    inspectCover: async ({ rootDir, absolutePath, expected }) => {
+      assert.equal(rootDir, prepared.runtimeRootDir);
       const value = await readFile(absolutePath, "utf8");
       if (expected.width === 1600) {
         assert.equal(value, "cover-4x3");

@@ -1,11 +1,5 @@
 import { randomUUID } from "node:crypto";
-import {
-  lstat,
-  mkdir,
-  readdir,
-  rename,
-  rm,
-} from "node:fs/promises";
+import { lstat, mkdir, readdir, rename, rm } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import {
@@ -77,6 +71,7 @@ type ProjectionResult = Readonly<{
 export type ProjectRevisionPromotionDependencies = Readonly<{
   inspectDelivery?: (input: {
     readonly rootDir: string;
+    readonly runtimeRootDir: string;
     readonly storyId: string;
   }) => Promise<ProjectRevisionPromotionDelivery | null>;
   readRevision?: (input: {
@@ -228,8 +223,12 @@ const assertExactDeliveryFiles = async (directory: string) => {
 
 const defaultInspectDelivery: NonNullable<
   ProjectRevisionPromotionDependencies["inspectDelivery"]
-> = async ({ rootDir, storyId }) => {
-  const delivery = await inspectCurrentDelivery({ rootDir, storyId });
+> = async ({ rootDir, runtimeRootDir, storyId }) => {
+  const delivery = await inspectCurrentDelivery({
+    rootDir,
+    runtimeRootDir,
+    storyId,
+  });
   return delivery === null
     ? null
     : {
@@ -271,11 +270,13 @@ const resolveDependencies = (
 
 const inspectDeliveryTuple = async ({
   rootDir,
+  runtimeRootDir,
   storyId,
   deliveryDirectory,
   inspectDelivery,
 }: {
   readonly rootDir: string;
+  readonly runtimeRootDir: string;
   readonly storyId: string;
   readonly deliveryDirectory: string;
   readonly inspectDelivery: NonNullable<
@@ -283,7 +284,7 @@ const inspectDeliveryTuple = async ({
   >;
 }) => {
   await assertExactDeliveryFiles(deliveryDirectory);
-  const delivery = await inspectDelivery({ rootDir, storyId });
+  const delivery = await inspectDelivery({ rootDir, runtimeRootDir, storyId });
   if (delivery === null) {
     throw new Error("Project revision delivery is missing.");
   }
@@ -350,6 +351,7 @@ const inspectCandidate = async ({
   }
   const delivery = await inspectDeliveryTuple({
     rootDir: scope.isolatedRoot,
+    runtimeRootDir: scope.repositoryRoot,
     storyId: scope.storyId,
     deliveryDirectory: paths.delivery,
     inspectDelivery,
@@ -422,6 +424,7 @@ const inspectLive = async ({
   const paths = livePaths(scope);
   const delivery = await inspectDeliveryTuple({
     rootDir: scope.repositoryRoot,
+    runtimeRootDir: scope.repositoryRoot,
     storyId: scope.storyId,
     deliveryDirectory: paths.delivery,
     inspectDelivery,
@@ -442,11 +445,7 @@ const inspectLive = async ({
   ) {
     assertSameTree(source, candidate.state.source, "Current source");
     assertSameTree(publicTree, candidate.state.public, "Current public tree");
-    assertSameTree(
-      narration,
-      candidate.state.narration,
-      "Current narration",
-    );
+    assertSameTree(narration, candidate.state.narration, "Current narration");
     assertSameTree(deliveryTree, candidate.state.delivery, "Current delivery");
     return { kind: "current" } as const;
   }
@@ -469,10 +468,10 @@ const inspectLive = async ({
             ? deliveryTree
             : expectedTree.scope === "narration"
               ? narration
-            : await snapshotForBaseScope({
-                scope,
-                snapshotScope: expectedTree.scope,
-              });
+              : await snapshotForBaseScope({
+                  scope,
+                  snapshotScope: expectedTree.scope,
+                });
     assertSameTree(
       actualTree,
       expectedTree.entries,
@@ -620,10 +619,7 @@ export const promoteProjectRevisionCandidate = async (
         expectedDeliveryBuildId,
       });
     } else {
-      transactionRoot = join(
-        scope.candidateRoot,
-        `.promotion-${randomUUID()}`,
-      );
+      transactionRoot = join(scope.candidateRoot, `.promotion-${randomUUID()}`);
       assertProjectRevisionOwnedPath({ scope, path: transactionRoot });
       await mkdir(transactionRoot);
       const stagingRoot = join(transactionRoot, "staging");

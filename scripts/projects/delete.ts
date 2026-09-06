@@ -233,6 +233,16 @@ const discoverProjectIds = async ({
           `${relativeRoot} contains a symbolic-link: ${entry.name}.`,
         );
       }
+      if (
+        relativeRoot === ".producer-attempts" &&
+        (entry.name === ".processes" || entry.name === ".process-logs")
+      ) {
+        if (!entry.isDirectory())
+          throw new Error(
+            "Workspace process diagnostics must be real directories.",
+          );
+        continue;
+      }
       if (!entry.isDirectory()) continue;
       projectIds.add(parseDeletableProjectId(entry.name));
     }

@@ -1,3 +1,5 @@
+import { withProcessDiagnosticScope } from "../../../packages/studio/src/process/process-ownership";
+import { withProcessDeadline } from "../../shared/process-deadline";
 import {
   PROJECT_REVISION_CONTINUATION_VERSION,
   ProjectRevisionContinuationResultSchema,
@@ -217,14 +219,20 @@ export const continueProjectProduction = async (
     if (!allSucceeded) return { done: false as const };
     if (now() >= deadline) await failForDeadline();
 
-    const result = await converge({
-      rootDir,
-      projectId,
-      revisionId,
-      attemptId,
-      runtimePolicyManifest,
-      scope,
-    });
+    const result = await withProcessDiagnosticScope(
+      { rootDir: scope.isolatedRoot, storyId: projectId, attemptId },
+      () =>
+        withProcessDeadline(deadline, () =>
+          converge({
+            rootDir,
+            projectId,
+            revisionId,
+            attemptId,
+            runtimePolicyManifest,
+            scope,
+          }),
+        ),
+    );
     const terminal = await readProgress({
       rootDir: executionRoot,
       storyId: projectId,

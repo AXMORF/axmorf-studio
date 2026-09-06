@@ -1,3 +1,4 @@
+import { resolveProcessTimeout } from "../../scripts/shared/process-deadline";
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -598,4 +599,34 @@ test("candidate promotion failure preserves succeeded production and returns a s
     },
     retryCommand: `npm run project:revision:promote -- --project story-example --candidate ${scope.candidateId} --revision ${revisionId} --delivery ${deliveryBuildId}`,
   });
+});
+
+test("fixed continuation passes the remaining absolute attempt deadline into media convergence", async () => {
+  const createdAt = new Date(Date.now() - 59 * 60_000).toISOString();
+  let current = progress({
+    createdAt,
+    outcomes: [
+      { taskRevision: taskRevision("2"), outcome: "artifact-current" },
+    ],
+  });
+  let observed = 0;
+  await continueProjectProduction(
+    { rootDir: "/fixture", projectId: "story-example", revisionId, attemptId },
+    {
+      claimContinuation,
+      openEventWait: resolvedWait,
+      readProgress: async () => current,
+      converge: async () => {
+        observed = resolveProcessTimeout();
+        current = progress({ state: "succeeded" });
+        return { status: "project-production-current" } as never;
+      },
+    },
+  );
+  assert.ok(observed > 0 && observed <= 60_000);
+  assert.equal(
+    resolveProcessTimeout(),
+    15 * 60_000,
+    "deadline scope must not leak to another production",
+  );
 });

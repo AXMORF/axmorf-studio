@@ -64,18 +64,22 @@ export const renderProjectVideo = async ({
   readonly runProcess?: ProcessRunner;
 }) => {
   const invocation = await resolveRemotionCliInvocation(rootDir);
-  const result = await runProcess(invocation.command, [
-    ...invocation.argsPrefix,
-    "render",
-    entryPoint,
-    compositionId,
-    outputPath,
-    "--codec=h264",
-    "--audio-codec=aac",
-    "--pixel-format=yuv420p",
-    "--log=error",
-    `--public-dir=${publicDir}`,
-  ], { cwd: rootDir });
+  const result = await runProcess(
+    invocation.command,
+    [
+      ...invocation.argsPrefix,
+      "render",
+      entryPoint,
+      compositionId,
+      outputPath,
+      "--codec=h264",
+      "--audio-codec=aac",
+      "--pixel-format=yuv420p",
+      "--log=error",
+      `--public-dir=${publicDir}`,
+    ],
+    { cwd: rootDir },
+  );
   if (result.status !== 0) {
     throw new Error(
       `Remotion could not render Project video: ${basename(outputPath)}.`,
@@ -106,16 +110,20 @@ export const renderProjectCover = async ({
   readonly runProcess?: ProcessRunner;
 }) => {
   const invocation = await resolveRemotionCliInvocation(rootDir);
-  const result = await runProcess(invocation.command, [
-    ...invocation.argsPrefix,
-    "still",
-    entryPoint,
-    compositionId,
-    outputPath,
-    "--image-format=png",
-    "--log=error",
-    `--public-dir=${publicDir}`,
-  ], { cwd: rootDir });
+  const result = await runProcess(
+    invocation.command,
+    [
+      ...invocation.argsPrefix,
+      "still",
+      entryPoint,
+      compositionId,
+      outputPath,
+      "--image-format=png",
+      "--log=error",
+      `--public-dir=${publicDir}`,
+    ],
+    { cwd: rootDir },
+  );
   if (result.status !== 0) {
     throw new Error(
       `Remotion could not render Project Cover: ${basename(outputPath)}.`,
@@ -124,11 +132,13 @@ export const renderProjectCover = async ({
 };
 
 export const inspectProjectVideo = async ({
+  rootDir,
   absolutePath,
   render,
   frameCount,
   runProcess = runMediaProcess,
 }: {
+  readonly rootDir: string;
   readonly absolutePath: string;
   readonly render: RenderSpec;
   readonly frameCount: number;
@@ -139,7 +149,7 @@ export const inspectProjectVideo = async ({
     throw new Error("Project video must be a non-empty regular MP4.");
   }
   const videoProbeCommand = await resolveMediaToolCommand({
-    rootDir: process.cwd(),
+    rootDir,
     tool: "ffprobe",
     args: [
       "-v",
@@ -157,6 +167,7 @@ export const inspectProjectVideo = async ({
   const videoProbe = await runProcess(
     videoProbeCommand.command,
     videoProbeCommand.args,
+    { cwd: rootDir },
   );
   if (videoProbe.status !== 0) {
     throw new Error("Project video metadata could not be inspected.");
@@ -180,7 +191,7 @@ export const inspectProjectVideo = async ({
     throw new Error("Project video stream metadata drifted from RenderSpec.");
   }
   const audioProbeCommand = await resolveMediaToolCommand({
-    rootDir: process.cwd(),
+    rootDir,
     tool: "ffprobe",
     args: [
       "-v",
@@ -197,6 +208,7 @@ export const inspectProjectVideo = async ({
   const audioProbe = await runProcess(
     audioProbeCommand.command,
     audioProbeCommand.args,
+    { cwd: rootDir },
   );
   if (audioProbe.status !== 0) {
     throw new Error("Project video audio metadata could not be inspected.");
@@ -212,7 +224,7 @@ export const inspectProjectVideo = async ({
     throw new Error("Project video audio stream drifted from RenderSpec.");
   }
   const decodeCommand = await resolveMediaToolCommand({
-    rootDir: process.cwd(),
+    rootDir,
     tool: "ffmpeg",
     args: [
       "-v",
@@ -229,7 +241,9 @@ export const inspectProjectVideo = async ({
       "-",
     ],
   });
-  const decoded = await runProcess(decodeCommand.command, decodeCommand.args);
+  const decoded = await runProcess(decodeCommand.command, decodeCommand.args, {
+    cwd: rootDir,
+  });
   if (decoded.status !== 0) {
     throw new Error("Project video did not decode completely to EOF.");
   }
@@ -248,10 +262,12 @@ export const inspectProjectVideo = async ({
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const;
 
 export const inspectProjectCover = async ({
+  rootDir,
   absolutePath,
   expected,
   runProcess = runMediaProcess,
 }: {
+  readonly rootDir: string;
   readonly absolutePath: string;
   readonly expected: Readonly<{ width: number; height: number }>;
   readonly runProcess?: ProcessRunner;
@@ -274,7 +290,7 @@ export const inspectProjectCover = async ({
     throw new Error("Delivery cover dimensions drifted.");
   }
   const decodeCommand = await resolveMediaToolCommand({
-    rootDir: process.cwd(),
+    rootDir,
     tool: "ffmpeg",
     args: [
       "-v",
@@ -289,7 +305,9 @@ export const inspectProjectCover = async ({
       "-",
     ],
   });
-  const decoded = await runProcess(decodeCommand.command, decodeCommand.args);
+  const decoded = await runProcess(decodeCommand.command, decodeCommand.args, {
+    cwd: rootDir,
+  });
   if (decoded.status !== 0) {
     throw new Error("Delivery cover did not decode completely to EOF.");
   }

@@ -1,7 +1,11 @@
-import { spawn } from "node:child_process";
-import { basename } from "node:path";
+import { getProcessDiagnosticRoot } from "../../packages/studio/src/process/process-ownership";
+import { runBoundedProcess } from "../../packages/studio/src/process/bounded-process";
+import { randomUUID } from "node:crypto";
+import { mkdir } from "node:fs/promises";
+import { basename, join } from "node:path";
 
 import type { ProcessRunner } from "./process";
+import { hasProcessDeadline, resolveProcessTimeout } from "./process-deadline";
 
 const isRemotionCliInvocation = (
   command: string,
@@ -11,7 +15,11 @@ const isRemotionCliInvocation = (
   args[0] !== undefined &&
   basename(args[0]) === "remotion-cli.js";
 
-export const runMediaProcess: ProcessRunner = (command, args, options) => {
+export const runMediaProcess: ProcessRunner = async (
+  command,
+  args,
+  options,
+) => {
   if (
     basename(command) !== "remotion" &&
     !isRemotionCliInvocation(command, args)
@@ -20,25 +28,25 @@ export const runMediaProcess: ProcessRunner = (command, args, options) => {
       "Media process adapter only permits Remotion and FFmpeg tools.",
     );
   }
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, [...args], {
-      shell: false,
-      stdio: ["ignore", "pipe", "pipe"],
-      ...(options?.cwd === undefined ? {} : { cwd: options.cwd }),
+  const cwd = options?.cwd ?? process.cwd();
+  if (!hasProcessDeadline()) {
+    return runBoundedProcess(command, args, options);
+  }
+  const logDirectory = join(getProcessDiagnosticRoot(cwd), ".process-logs");
+  await mkdir(logDirectory, { recursive: true });
+  const logPath = options?.logPath ?? join(logDirectory, `${randomUUID()}.log`);
+  try {
+    return await runBoundedProcess(command, args, {
+      ...options,
+      cwd,
+      logPath,
+      trackOwnership: true,
+      timeoutMs: resolveProcessTimeout(options?.timeoutMs),
     });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.setEncoding("utf8");
-    child.stderr.setEncoding("utf8");
-    child.stdout.on("data", (chunk: string) => {
-      stdout += chunk;
-    });
-    child.stderr.on("data", (chunk: string) => {
-      stderr += chunk;
-    });
-    child.on("error", reject);
-    child.on("close", (status) =>
-      resolve({ status: status ?? -1, stdout, stderr }),
+  } catch (error) {
+    throw new Error(
+      `${error instanceof Error ? error.message : "Media process failed"} Diagnostic log: ${logPath}`,
+      { cause: error },
     );
-  });
+  }
 };

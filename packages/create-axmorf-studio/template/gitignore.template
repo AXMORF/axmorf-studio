@@ -23,5 +23,8 @@ deliveries/
 dist/
 
 *.log
+.axmorf-browser-prepare.*
+.project-operation.lock
+.project-operation.recovery.lock
 .DS_Store
 Thumbs.db

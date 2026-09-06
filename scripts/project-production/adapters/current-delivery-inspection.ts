@@ -26,12 +26,14 @@ type ExpectedCover = Readonly<{
 export type CurrentDeliveryInspectionDependencies = Readonly<{
   inspectVideo?: (
     input: Readonly<{
+      rootDir: string;
       absolutePath: string;
       expected: ExpectedVideo;
     }>,
   ) => Promise<DeliveryPublish["artifacts"]["video"]["media"]>;
   inspectCover?: (
     input: Readonly<{
+      rootDir: string;
       absolutePath: string;
       expected: ExpectedCover;
     }>,
@@ -77,8 +79,9 @@ const assertExactRegularFiles = async ({
 
 const defaultInspectVideo: NonNullable<
   CurrentDeliveryInspectionDependencies["inspectVideo"]
-> = ({ absolutePath, expected }) =>
+> = ({ rootDir, absolutePath, expected }) =>
   inspectProjectVideo({
+    rootDir,
     absolutePath,
     render: {
       width: expected.width,
@@ -91,8 +94,8 @@ const defaultInspectVideo: NonNullable<
 
 const defaultInspectCover: NonNullable<
   CurrentDeliveryInspectionDependencies["inspectCover"]
-> = ({ absolutePath, expected }) =>
-  inspectProjectCover({ absolutePath, expected });
+> = ({ rootDir, absolutePath, expected }) =>
+  inspectProjectCover({ rootDir, absolutePath, expected });
 
 const sameFile = (
   left: Readonly<{ checksum: string; sizeBytes: number }>,
@@ -130,11 +133,13 @@ const inspectBoundArtifact = async <T>({
 
 export const inspectCurrentDelivery = async ({
   rootDir,
+  runtimeRootDir = rootDir,
   storyId: rawStoryId,
   dependencies = {},
 }: {
   readonly rootDir: string;
   readonly storyId: string;
+  readonly runtimeRootDir?: string;
   readonly dependencies?: CurrentDeliveryInspectionDependencies;
 }): Promise<DeliveryPublish | null> => {
   const storyId = StoryIdSchema.parse(rawStoryId);
@@ -177,6 +182,7 @@ export const inspectCurrentDelivery = async ({
     recorded: publish.artifacts.video,
     inspectMedia: () =>
       inspectVideo({
+        rootDir: runtimeRootDir,
         absolutePath: join(directory, "video.mp4"),
         expected: {
           width: publish.width,
@@ -193,6 +199,7 @@ export const inspectCurrentDelivery = async ({
     recorded: publish.artifacts.cover4x3,
     inspectMedia: () =>
       inspectCover({
+        rootDir: runtimeRootDir,
         absolutePath: join(directory, "cover-4x3.png"),
         expected: { width: 1600, height: 1200 },
       }),
@@ -203,6 +210,7 @@ export const inspectCurrentDelivery = async ({
     recorded: publish.artifacts.cover3x4,
     inspectMedia: () =>
       inspectCover({
+        rootDir: runtimeRootDir,
         absolutePath: join(directory, "cover-3x4.png"),
         expected: { width: 1200, height: 1600 },
       }),

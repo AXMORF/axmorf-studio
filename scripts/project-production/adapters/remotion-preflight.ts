@@ -1,4 +1,4 @@
-import { runMediaProcess } from "../../shared/media-process";
+import { verifyWorkspaceBrowser } from "../../../packages/studio/src/bootstrap/workspace-browser";
 import type { ProcessRunner } from "../../shared/process";
 import { resolveRemotionCliInvocation } from "../../shared/remotion-command";
 import type { RuntimeResources } from "../../../packages/studio/src/runtime/runtime-resources";
@@ -14,7 +14,7 @@ export type RemotionBrowserPreflightResult =
 export const preflightRemotionBrowser = async ({
   rootDir,
   runtimeResources,
-  runProcess = runMediaProcess,
+  runProcess,
 }: {
   readonly rootDir: string;
   readonly runtimeResources: RuntimeResources;
@@ -22,6 +22,10 @@ export const preflightRemotionBrowser = async ({
   readonly runProcess?: ProcessRunner;
 }): Promise<RemotionBrowserPreflightResult> => {
   try {
+    if (runProcess === undefined) {
+      await verifyWorkspaceBrowser(rootDir, runtimeResources);
+      return { status: "pass", domain: "remotion-browser" };
+    }
     const invocation = await resolveRemotionCliInvocation(rootDir);
     const result = await runProcess(invocation.command, [
       ...invocation.argsPrefix,
@@ -48,12 +52,13 @@ export const preflightRemotionBrowser = async ({
       summary: "Remotion 固定 preflight 失败。",
       remediation: "检查固定 Remotion 命令与 Composition。",
     };
-  } catch {
+  } catch (error) {
     return {
       status: "failed",
       domain: "remotion-browser",
-      summary: "Remotion 浏览器不可用。",
-      remediation: "恢复宿主 Remotion 浏览器环境。",
+      summary: `Remotion 浏览器不可用：${error instanceof Error ? error.message : "unknown error"}`,
+      remediation:
+        "运行 npm run browser:prepare；若为权限错误，恢复宿主权限且不要降低 sandbox。",
     };
   }
 };

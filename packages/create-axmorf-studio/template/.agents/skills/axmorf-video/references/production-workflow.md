@@ -3,20 +3,21 @@
 1. Run `npm run doctor`. Prepare only declared host prerequisites when needed;
    never patch package internals, dependencies, or validators to force Green.
 2. Preserve unrelated Workspace changes and inspect existing Project source.
-3. Create or revise strict authoring input without calling providers.
+3. For new authoring, read [authoring](authoring.md) and run `project:create:context` to get a complete example and current public choices.
+   Create or revise strict authoring input without calling providers.
    Project create freezes the Scene originality baseline. A legacy Project
    requires explicit `project:originality:freeze`; never infer an empty baseline.
    For an existing Project, run `project:revise:context`,
    `project:revise:validate`, then `project:revise`. Bind the exact current
    Revision and verified Delivery; keep live authoring unchanged and carry the
    returned `--candidate` through every production, task, and recovery command.
-4. Resolve execution according to the current host's real capabilities. Inline
-   execution is always valid; use bounded runtime-native children only when the
+4. Resolve execution according to the current host's real capabilities. The built-in default is inline; never override a configured subagents selection without a user choice. Use bounded runtime-native children only when the
    user/config selects them and the host verifies `shared-workspace` or
    `controller-io` transport for this production. Never persist transport.
 5. Run `npm run project:produce:inspect -- --project <storyId>` and report its
    structured readiness, cost, reuse, and invalidation result.
-6. Run `npm run project:produce:prepare -- --project <storyId>` only after the
+6. Read [host execution and recovery](host-execution-and-recovery.md); establish a terminal handle that can survive the host tool deadline.
+   Run `npm run project:produce:prepare -- --project <storyId>` only after the
    inspection is understood and cost is authorized.
 7. For every dirty Scene, GlobalVisual, or Cover task, run its exact
    attempt-bound bind command before any task read/write. Continue only after
