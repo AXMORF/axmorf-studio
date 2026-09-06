@@ -237,10 +237,13 @@ const createDefaultRunners = (output: Output): CliRunners => {
       await runProjectAssetImportCli(args, { rootDir, stdout: stdoutLine });
     },
     projectCheck: async ({ rootDir, args }) => {
-      await runtime();
-      const { runProjectCheckCli } =
-        await import("../../../../scripts/project-check/cli");
-      await runProjectCheckCli(args, { rootDir, stdout: stdoutLine });
+      const { manifest } = await runtime();
+      const { runPublicProjectCheck } = await import("./project-check");
+      await runPublicProjectCheck(args, {
+        rootDir,
+        stdout: stdoutLine,
+        runtimePolicyManifest: manifest,
+      });
     },
     projectProduction: async ({ rootDir, args }) => {
       const { manifest } = await runtime();

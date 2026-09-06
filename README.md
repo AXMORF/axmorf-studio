@@ -203,3 +203,6 @@ Agent 用 `project:create:context` 获取完整输入示例与当前风格/模�
 continuation 的媒体进程具有期限、进程组清理和独立诊断日志。进程意外退出后通过显式
 `project:attempt:interrupt-inspect` / `interrupt` 验证旧执行者死亡并记录失败，再沿 recover-inspect/reissue 复用产物。
 原 claim 和 content identity 保持不变，不能手动删锁继续。随包 Skill 说明长任务宿主句柄、默认继承与恢复边界。
+
+Workspace 的 `project:check --level final` 只读复验当前 Revision、artifacts 和四文件交付，输出结构化失效原因；
+不要求补造历史 baseline 证据。浏览器清理仅在确认进程组已退出时接受 macOS 退出竞态，真实权限失败保留原始结果并阻断。

@@ -56,7 +56,7 @@ timeout and a single download lock; diagnostics never silently download another 
 | Open only the Web control center            | `npm run web`                                                                              |
 | Open only Remotion Studio                   | `npm run preview`                                                                          |
 | Inspect a production without provider calls | `npm run project:produce:inspect -- --project <story-id>`                                  |
-| Check a Project                             | `npm run project:check -- --project <story-id> --level final`                              |
+| Verify the current delivered Project        | `npm run project:check -- --project <story-id> --level final`                              |
 
 For Project creation, revisions, production, recovery, and deletion, use the order in `AGENTS.md` and the Workspace-local
 `axmorf-video` Skill. Prefer commands returned by structured CLI output over manually reconstructed internal parameters.
@@ -72,6 +72,8 @@ deliveries/<storyId>/publish.json
 
 Only `project-production-complete` or `project-production-current` after mechanical validation means the current Delivery is complete.
 A chat response, Agent self-assessment, running process, or unverified file is not completion evidence.
+After production, a separate read-only `project:check --level final` verifies the current Revision, artifacts and four-file
+Delivery. It returns structured failure reasons and never writes legacy baseline proof reports.
 
 ## What to commit
 

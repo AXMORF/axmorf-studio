@@ -22,6 +22,7 @@ export const describeWorkspaceCliHelp = () => ({
     "Read .agents/skills/axmorf-video/SKILL.md and its references for the current stage.",
     "Use exact task bind/finalize/check/commit and continuation commands returned by prepare; do not reconstruct their identities.",
     "Execution overrides require the user's selection. Missing fields inherit settings.",
+    "project:check --level final verifies the current Revision, artifacts, and four-file delivery without writing proof reports. --scope source retains source-only checks.",
     "Candidate production and recovery must preserve the exact --candidate returned by revision create.",
   ],
 });
