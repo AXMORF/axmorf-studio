@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "status": "candidate-partial-pass-release-blocked",
+  "version": "0.1.9",
+  "published": false,
+  "sourceCommit": "bb7dca3cdae253bdce5eefcf3c7f875d58f12a42",
+  "packages": [
+    {
+      "name": "@axmorf/studio",
+      "version": "0.1.9",
+      "fingerprint": "sha256:1482be7b8ecac8500e96314a5efc10e91a33c20e5bd5127cae19472b87ca7f68"
+    },
+    {
+      "name": "create-axmorf-studio",
+      "version": "0.1.9",
+      "fingerprint": "sha256:3f359e452ab8ddd59d4d4ec521d6a54e116564d6b9bbd2792de2c45d390bbfa0"
+    }
+  ],
+  "testProtocol": {
+    "source": "unpublished candidate npm tarballs",
+    "freshProfiles": true,
+    "freshWorkspaces": true,
+    "businessPromptsOnly": true,
+    "harnessInterventions": [],
+    "sourceAndHistoryReadDenialsPerPhase": 10,
+    "failedAttemptsReissued": false,
+    "failedInstallationPreserved": true
+  },
+  "hosts": [
+    {
+      "host": "codex",
+      "version": "0.153.4",
+      "model": "gpt-6-astra",
+      "sessionId": "01a07c96-29d7-7f30-91bc-600a020a5602",
+      "startedAt": "2026-09-07T15:56:43.207427+00:00",
+      "endedAt": "2026-09-07T16:05:30.788851+00:00",
+      "prompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“从十分钟专注开始”，讲清楚选一个具体小步骤、关掉打断、做完记录下一步。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。\n",
+      "promptChecksum": "sha256:6bef7e10a2be33b3280e5f30e5368d9613a20f4242a87bd820aeb24e9d007e63",
+      "transcriptChecksum": "sha256:668b82f4d9d88c3f3aa6c5170159d69a47220b6561b90cb8f5bc47071d4a0911",
+      "status": "project-production-complete",
+      "tts": "passed",
+      "mode": "subagents",
+      "requestedMaxConcurrency": 4,
+      "effectiveMaxConcurrency": 4,
+      "source": "builtin-default",
+      "nativeProductionChildren": 5,
+      "nativeProbeChildren": 1,
+      "observedPeakConcurrency": 4,
+      "observedRefillCount": 1,
+      "rootTaskCommits": 0,
+      "attemptId": "116dbe15-5fe4-492a-9c6e-d96e213c7289",
+      "deliveryBuildId": "delivery-2b201f49ca221748a96947de77fe9aff78b075c5f5bb1aa47915a4a0eb5d4f74",
+      "publicFinalChecksPassed": 7,
+      "media": {
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "frames": 787,
+        "seconds": 26.233333333333334,
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "channels": 2,
+        "decodedToEof": true,
+        "files": {
+          "video.mp4": {
+            "bytes": 2322864,
+            "checksum": "sha256:fdc9990f9b6cdc3b7bc173e4564db5d2cf1fb0b91c3786f8d3ea5dad655080d8"
+          },
+          "cover-4x3.png": {
+            "bytes": 147785,
+            "checksum": "sha256:1dafecb906ef163b0076dfb5d44851abcbd29a0a8aa49a5dfdb55cff1e18cc3e"
+          },
+          "publish.json": {
+            "bytes": 2166,
+            "checksum": "sha256:dc5d7c384a38efef28d3b5d9de17cfadd3dd15747a2e538abc569ec48cd48f24"
+          },
+          "cover-3x4.png": {
+            "bytes": 143174,
+            "checksum": "sha256:0ec932e81ad1a0b6b8221eef5c4bed24775d337a60de70c3aa7b4c1a64199ba9"
+          }
+        }
+      },
+      "visualReview": "Sampled frames at 10 and 16 seconds and portrait cover; no obvious text cropping or overlap. Not an exhaustive frame or listening review.",
+      "unchangedPackageFiles": 252,
+      "unchangedGuideFiles": 11,
+      "receiptChecksum": "sha256:3766db7f94a1bd00a02043c9f96c82fb822e0e36db09320369be640552510034",
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 35,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 0
+      },
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 1,
+        "refillAdmissions": 1,
+        "attemptId": "116dbe15-5fe4-492a-9c6e-d96e213c7289",
+        "childEvidence": [
+          {
+            "sessionId": "01a07c96-e6b5-74b2-9ccd-ff17d263d6eb",
+            "transcriptChecksum": "sha256:b4e905582fb9cd6fd59acd689a62cbe879a94f8ba65fbfa9471a6ceec6401b9d",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a07c98-5195-7df0-a496-2ce976e72697",
+            "transcriptChecksum": "sha256:bdbc6e0ef313a59e901d9e1dd6348a5bcc00f232f9d8d181fe2557b2bb17d3ee",
+            "sessionChecksum": null,
+            "taskRevision": "task-1afc571b85c632d5a92dfcbeaf82c11b2b9dbb592215ccb507062f95a8d0f271"
+          },
+          {
+            "sessionId": "01a07c98-7b64-74f2-b2d1-f9c016f52e4c",
+            "transcriptChecksum": "sha256:085d50118df3dbb94216f766303e2415c3997cc5b9af3d1104a32b883882692a",
+            "sessionChecksum": null,
+            "taskRevision": "task-67642d21ab4b6e1bd97515bb0006ed75bc19f16ea638224705a21ffdfbfda3b9"
+          },
+          {
+            "sessionId": "01a07c98-a5c1-7f70-a88b-327f265409f3",
+            "transcriptChecksum": "sha256:8f4db9ce3f49750973c02305c5bd2e0c2403dd124e1754d0f24edd2290768050",
+            "sessionChecksum": null,
+            "taskRevision": "task-cd2f366be77548d99c16a841664f51c6b574a40245df2e83738f169a469e8a08"
+          },
+          {
+            "sessionId": "01a07c98-28df-7900-bfd8-93b361c4cd07",
+            "transcriptChecksum": "sha256:947f7478fee884373f1d27b21930ef83f9d8fd130a794076c88a0af74f9514c7",
+            "sessionChecksum": null,
+            "taskRevision": "task-05f2340b61bf9d5a7ebdb9bad6794e19c1927e93704f6bf7865abf59460be7ab"
+          },
+          {
+            "sessionId": "01a07c9a-ab09-7a90-8029-c870574eb9af",
+            "transcriptChecksum": "sha256:378b615661237f4aaddcc1aedd201dab324f309bbbcf583084431c11666ea715",
+            "sessionChecksum": null,
+            "taskRevision": "task-d09e15f1cf83163fa3a472936606eed5262856e8c8ef8993acb9031b9fb83c68"
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null
+      }
+    },
+    {
+      "host": "hermes",
+      "version": "0.21.0",
+      "model": "gpt-6-astra",
+      "sessionId": "20260907_234443_4bf1de",
+      "startedAt": "2026-09-07T15:44:37.679307+00:00",
+      "endedAt": "2026-09-07T15:52:16.448946+00:00",
+      "prompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“每天进步一点点”，用1.01的365次方约37.8说明积累，但讲清楚这只是数学示意，现实成长不保证固定回报。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。\n",
+      "promptChecksum": "sha256:e2c2eb364e470d5d0315fdf2156eaa0777018bdf38efcd9910f22e722d1e9ce6",
+      "rawSessionsChecksum": "sha256:3651a8b22716333eee8d9746d60b623e9a4ca72d6f5cb5363115210b5af1e38f",
+      "rawMessagesChecksum": "sha256:79d54f2afbfe728a185ff2ff8c53bec7a7804912c76d63fb435b5e0cd096d5d3",
+      "status": "failed",
+      "hostExitCode": 0,
+      "tts": "passed",
+      "mode": "subagents",
+      "requestedMaxConcurrency": 4,
+      "effectiveMaxConcurrency": 4,
+      "source": "builtin-default",
+      "dirtyTasks": 5,
+      "nativeProductionChildren": 4,
+      "nativeProbeChildren": 1,
+      "observedFirstBatchConcurrency": 4,
+      "committedArtifacts": 2,
+      "failedTasks": 2,
+      "unadmittedTasks": 1,
+      "attemptId": "2dec2779-fa03-4a94-b7d5-629bc7467826",
+      "deliveryFiles": 0,
+      "diagnosticCode": "producer-agent-task-failed",
+      "failure": {
+        "stage": "worker doctor process cleanup after child command exit 0",
+        "code": "bounded-process-failed",
+        "message": "Could not send SIGKILL to owned process group <pid> (target -<pid>): kill EPERM Exit status: 0.",
+        "nativeMessageIds": [
+          67,
+          71,
+          75,
+          79
+        ],
+        "workerDoctorAttemptsPerFailedTask": 2,
+        "underlyingLivenessCause": "unknown; the failed-instant signal0 result and process snapshot were not retained"
+      },
+      "taskOutcomes": [
+        {
+          "artifactFingerprint": "sha256:30beb3e27dc297bd64e5fd1dfaf6998a6408374d5475aba51a7811076ffd1094",
+          "diagnosticCode": null,
+          "outcome": "artifact-committed",
+          "taskKind": "global-visual-owner",
+          "taskRevision": "task-2f954622b25997a46b9294f7ce2f4b73a283f28f0100054341dedfb4de58dcf9"
+        },
+        {
+          "artifactFingerprint": "sha256:909e4fdee384f5b666461643d539a3795bae4d95f928f351f266417e57064cf1",
+          "diagnosticCode": null,
+          "outcome": "artifact-committed",
+          "taskKind": "scene-owner",
+          "taskRevision": "task-6f9f3ac618b4744b7154860c4e50937e28c501eb24e6dfee1e331f6e7dc03ee5"
+        },
+        {
+          "artifactFingerprint": null,
+          "diagnosticCode": "producer-agent-fixed-failed",
+          "outcome": "failed",
+          "taskKind": "scene-owner",
+          "taskRevision": "task-dea896a0b1746b74cdaf69b20d75704ade298d7546d6c71df89dd3b3bf7dc06e"
+        },
+        {
+          "artifactFingerprint": null,
+          "diagnosticCode": "producer-agent-fixed-failed",
+          "outcome": "failed",
+          "taskKind": "cover-owner",
+          "taskRevision": "task-a4d2cb2ef77372c7a197bee945c481d7a3758549a5a921a186d365a7b44da7df"
+        }
+      ],
+      "unchangedInitialPackageAndGuideFiles": 261
+    }
+  ],
+  "installationFailure": {
+    "phase": "candidate-resumed/codex",
+    "agentStarted": false,
+    "stage": "browser preparation",
+    "timeoutMs": 300000,
+    "downloadedMb": 76.3,
+    "totalMb": 98.4,
+    "logChecksum": "sha256:418d147d480cfbc733391e8b543453a74f428dc3ee23efe198fae7a29606190d",
+    "control": "A separately created fresh candidate-codex-resumed2 installation passed without changing the package or timeout. This was an explicit test-controller rerun, not automatic product recovery."
+  },
+  "remainingDefects": [
+    "Process cleanup reports EPERM after successful child exit; failure-instant liveness evidence is missing.",
+    "Workspace instructions apply doctor to every Project worker; native Hermes workers repeated the global browser check after Root readiness and two workers retried the failed doctor once.",
+    "A progressing cold browser download can exceed the fixed five-minute preparation timeout."
+  ],
+  "releaseGate": "not-passed",
+  "officialNpmRetest": "not-started",
+  "registryLatest": {
+    "@axmorf/studio": "0.1.8",
+    "create-axmorf-studio": "0.1.8"
+  },
+  "temporaryAuthenticationCopiesRemoved": 6,
+  "engineeringVerification": {
+    "firstUseTestsPassed": 14,
+    "docsTestsPassed": 21,
+    "typecheck": "passed",
+    "focusedEslint": "passed",
+    "prettier": "passed",
+    "docsLinks": "passed",
+    "diffCheck": "passed",
+    "runtimeChanges": false
+  }
+}

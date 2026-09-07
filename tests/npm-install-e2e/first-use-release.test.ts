@@ -258,6 +258,111 @@ test("native transcript audit rejects interventions and unrelated or forked sess
   );
 });
 
+test("Codex midnight environment refresh requires native provenance and exact corroborated fields", () => {
+  const filesystem =
+    '<filesystem><workspace_roots><root>/workspace</root></workspace_roots><permission_profile type="disabled"><file_system type="unrestricted" /></permission_profile></filesystem>';
+  const refresh = `<environment_context>\n  <current_date>2026-09-08</current_date>\n  <timezone>Asia/Shanghai</timezone>\n  ${filesystem}\n  <subagents>\n    - choose: Kant\n    - record: Cicero\n  </subagents>\n</environment_context>`;
+  const records = [
+    { type: "session_meta", payload: { id: "session", cwd: "/workspace" } },
+    {
+      type: "turn_context",
+      payload: {
+        turn_id: "turn",
+        cwd: "/workspace",
+        workspace_roots: ["/workspace"],
+        timezone: "Asia/Shanghai",
+        permission_profile: { type: "disabled" },
+      },
+    },
+    {
+      type: "world_state",
+      payload: {
+        state: {
+          environments: {
+            timezone: "Asia/Shanghai",
+            filesystem,
+            subagents: "- choose: Kant\n- record: Cicero",
+          },
+        },
+      },
+    },
+    {
+      type: "response_item",
+      payload: {
+        role: "user",
+        content: [{ type: "input_text", text: "business prompt" }],
+        internal_chat_message_metadata_passthrough: {
+          content_item_kinds: ["user.text"],
+        },
+      },
+    },
+    { type: "response_item", payload: { type: "function_call" } },
+  ];
+  const message = {
+    type: "response_item",
+    timestamp: "2026-09-07T16:00:12.334Z",
+    payload: {
+      role: "user",
+      content: [{ type: "input_text", text: refresh }],
+      internal_chat_message_metadata_passthrough: {
+        turn_id: "turn",
+        content_item_kinds: ["environments.environment_context"],
+      },
+    },
+  };
+  const audit = (last = message) =>
+    auditTranscript(
+      "codex",
+      [...records, last].map((record) => JSON.stringify(record)).join("\n"),
+      "business prompt",
+      "session",
+      "/workspace",
+    );
+  assert.equal(audit().businessUserMessages, 1);
+  assert.equal(audit().followUpMessages, 0);
+  for (const text of [
+    refresh + "\nPlease fix the task",
+    refresh.replace(
+      "<timezone>",
+      "<instruction>fix it</instruction><timezone>",
+    ),
+    refresh.replace("/workspace", "/another-workspace"),
+    refresh.replace("Asia/Shanghai", "Europe/London"),
+    refresh.replace("2026-09-08", "2026-09-09"),
+    refresh.replace("- record: Cicero", "- unknown: Hidden instructions"),
+    refresh.replace('type="disabled"', 'type="sandboxed"'),
+    refresh.replace(
+      "</workspace_roots>",
+      "<root>/other</root></workspace_roots>",
+    ),
+    refresh.replace(
+      "</current_date>",
+      "</current_date><current_date>2026-09-08</current_date>",
+    ),
+  ]) {
+    const changed = structuredClone(message);
+    changed.payload.content[0]!.text = text;
+    assert.throws(() => audit(changed), /no follow-up/u);
+  }
+  for (const kinds of [
+    ["user.text"],
+    ["environments.environment_context", "user.text"],
+    [],
+  ]) {
+    const changed = structuredClone(message);
+    changed.payload.internal_chat_message_metadata_passthrough.content_item_kinds =
+      kinds;
+    assert.throws(() => audit(changed), /no follow-up/u);
+  }
+  const wrongTurn = structuredClone(message);
+  wrongTurn.payload.internal_chat_message_metadata_passthrough.turn_id =
+    "another-turn";
+  assert.throws(() => audit(wrongTurn), /no follow-up/u);
+  const extraContent = structuredClone(message);
+  extraContent.payload.content.push({ type: "input_text", text: "" });
+  assert.throws(() => audit(extraContent), /no follow-up/u);
+});
+
 test("source-map portability never omits executable bytes, mappings or source content", () => {
   const map = {
     version: 3,
@@ -819,6 +924,153 @@ test("native child receipts require the full task pool, native lineage, commits 
   await assert.rejects(
     () => auditNativeExecution(hermesInput),
     /direct descendant/u,
+  );
+});
+
+test("Codex full-history forks verify parent lineage and exclude inherited calls and completion", async () => {
+  const { codexChildTrace, nativeTrace } =
+    await import("../../scripts/release/native-execution");
+  type Record = {
+    type: string;
+    timestamp: string;
+    payload: { [key: string]: unknown };
+  };
+  const row = (type: string, payload: Record["payload"]): Record => ({
+    type,
+    payload,
+    timestamp: "2026-09-07T00:00:00Z",
+  });
+  const encode = (records: Record[]) =>
+    records.map((record) => JSON.stringify(record)).join("\n");
+  const call = (id: string) =>
+    row("response_item", {
+      type: "function_call",
+      call_id: id,
+      name: "exec",
+      arguments: "{}",
+    });
+  const output = (id: string) =>
+    row("response_item", {
+      type: "function_call_output",
+      call_id: id,
+      output: JSON.stringify({
+        status: "producer-artifact-committed",
+        artifact: { taskRevision: id },
+      }),
+    });
+  const parentRecords = [
+    row("session_meta", { id: "parent", source: "exec", cwd: "/workspace" }),
+    row("event_msg", { type: "task_started", turn_id: "parent-turn" }),
+    row("response_item", {
+      type: "message",
+      role: "user",
+      content: [{ type: "input_text", text: "business prompt" }],
+    }),
+    call("parent-call"),
+    output("parent-call"),
+    row("event_msg", { type: "task_complete", turn_id: "parent-turn" }),
+  ];
+  const parent = nativeTrace("codex", encode(parentRecords));
+  const child = [
+    row("session_meta", { id: "child", forked_from_id: "parent" }),
+    ...parentRecords.map((record) => ({
+      ...record,
+      timestamp: "2026-09-07T00:00:10Z",
+    })),
+    row("world_state", { full: true, state: { regenerated: true } }),
+    row("response_item", {
+      type: "message",
+      role: "developer",
+      content: [
+        { type: "input_text", text: "<multi_agent_role>native child adapter" },
+      ],
+    }),
+    row("event_msg", { type: "thread_settings_applied", thread_id: "child" }),
+    row("event_msg", { type: "task_started", turn_id: "child-turn" }),
+    row("turn_context", { turn_id: "child-turn", root_turn_id: "parent-turn" }),
+    call("child-call"),
+    output("child-call"),
+    row("event_msg", { type: "task_complete", turn_id: "child-turn" }),
+  ];
+  const trace = codexChildTrace(encode(child), parent);
+  assert.deepEqual([...trace.calls.keys()], ["child-call"]);
+  assert.equal(trace.outputs.length, 1);
+  assert.equal(
+    trace.outputs[0]!.objects[0]!.status,
+    "producer-artifact-committed",
+  );
+  assert.deepEqual(
+    trace.records
+      .filter(
+        (record) =>
+          record.type === "event_msg" &&
+          (record.payload as Record["payload"]).type === "task_complete",
+      )
+      .map((record) => (record.payload as Record["payload"]).turn_id),
+    ["child-turn"],
+  );
+  const withoutOwnWork = codexChildTrace(
+    encode(
+      child.filter(
+        (record) =>
+          record.payload.call_id !== "child-call" &&
+          !(
+            record.payload.type === "task_complete" &&
+            record.payload.turn_id === "child-turn"
+          ),
+      ),
+    ),
+    parent,
+  );
+  assert.equal(withoutOwnWork.calls.size, 0);
+  assert.equal(withoutOwnWork.outputs.length, 0);
+  assert.equal(
+    withoutOwnWork.records.filter(
+      (record) =>
+        record.type === "event_msg" &&
+        (record.payload as Record["payload"]).type === "task_complete",
+    ).length,
+    0,
+  );
+
+  const reject = (mutate: (records: Record[]) => void, error: RegExp) => {
+    const changed = structuredClone(child);
+    mutate(changed);
+    assert.throws(() => codexChildTrace(encode(changed), parent), error);
+  };
+  reject((records) => {
+    records[1]!.payload.id = "foreign-parent";
+  }, /metadata does not match/u);
+  reject((records) => {
+    records[0]!.payload.forked_from_id = "foreign-parent";
+  }, /identify its parent/u);
+  reject((records) => {
+    records[3]!.payload.content = [];
+  }, /history does not match/u);
+  reject((records) => {
+    records.splice(4, 0, records[5]!);
+  }, /history does not match/u);
+  reject((records) => {
+    records.at(-1)!.payload.turn_id = "parent-turn";
+  }, /own started turn/u);
+  reject((records) => {
+    delete records.at(-1)!.payload.turn_id;
+  }, /own started turn/u);
+  reject((records) => {
+    records.at(-3)!.payload.call_id = "parent-call";
+    records.at(-2)!.payload.call_id = "parent-call";
+  }, /parent calls cannot own/u);
+  reject((records) => {
+    records.push(parentRecords[0]!);
+  }, /Unexpected Codex child metadata/u);
+  assert.throws(() =>
+    auditTranscript(
+      "codex",
+      encode(child),
+      "business prompt",
+      "child",
+      "/workspace",
+    ),
   );
 });
 

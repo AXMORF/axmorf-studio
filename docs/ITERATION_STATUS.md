@@ -2,19 +2,34 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-07 `v0.1.9` 默认多 Agent 候选已实现，双宿主在首段 Edge TTS 失败而阻塞发布；最新已发布版本仍是 `v0.1.8`
+> 最后复核：2026-09-08 `v0.1.9` 候选 Codex 多 Agent 成片通过，Hermes 因 worker 进程清理失败阻塞发布；最新已发布版本仍是 `v0.1.8`
 
 ## 当前工程增量（0.1.9 候选）
 
 默认执行策略改为 `subagents`、最大并发 4；已保存的显式 inline 偏好继续生效。
 发行 Skill 与 CLI 帮助补齐原生子 Agent 的临时读写 probe、实际宿主容量验证、resolver 参数和 bounded admission 流程。
 未验证 transport、零容量或精确并发不满足时仍阻塞，不盲填宿主能力或回退 inline。
-本地全量检查 803/803、包构建/typecheck 与依赖审计通过。两个全新候选 Workspace 都自行完成真实 native child
-读写 probe，并从 `builtin-default` 解析为 `subagents`、请求/有效并发上限 4；未向业务提示词追加工程指导。
-两边首次 prepare 均在首段 Edge TTS 请求失败，尚未创建 attempt、生产 child、artifact 或 Delivery。
-当前错误适配器抹除了底层异常，已有日志不足以区分超时、服务拒绝或本地 I/O；未自动重试、切 provider 或改包。
-证据见 [0.1.9 候选阻塞记录](evidence/v0.1.9-candidate-blocked.json)。原生生产并发与成片验收尚未通过，
-因此没有创建 release tag、发布 0.1.9 或执行发布后官方 npm 测试；不能把此前 inline 成功当作该模式通过。
+候选原实现通过本地全量 803/803、包构建/typecheck、依赖审计及 exact commit `bb7dca3` macOS CI。
+
+首轮双宿主在首段 Edge TTS 失败，历史记录保留于
+[0.1.9 首轮阻塞证据](evidence/v0.1.9-candidate-blocked.json)。用户明确要求复测后，独立 SDK 请求先复现
+合成超时，随后同隔离条件成功；不足以确定上游原因。继续使用相同候选包、全新 profile/cache/Workspace 和普通
+业务提示后，两边 TTS 均成功；控制器没有补提示、代写、修改安装包或恢复旧 attempt。
+
+本轮 [多 Agent 黑盒证据](evidence/v0.1.9-subagents-resumed.json)：
+
+- Codex 0.153.4 原生 5 个创作 child，实测峰值 4、补位 1；Root 无 task commit。
+  原 continuation 成功交付 26.23 秒、1080×1920、30 fps 视频与两个封面；public final 7/7，四文件 checksum 与 EOF 解码通过。
+- Hermes 0.21.0 原生同步首批并发 4，2 个 task 提交、2 个 task 因 worker doctor 清理报 `SIGKILL EPERM`
+  而失败；剩余 1 个 task 未派发，continuation 记录失败，没有 Delivery。失败子命令 exit 0，现有日志不能区分
+  残留进程、退出竞争或进程快照失败。worker 重复全局 doctor、失败后再次 doctor 的行为也暴露了发行文档的职责不清。
+- 另一次全新 Codex 安装在浏览器仍下载时达到 300 秒期限、Agent 未启动；独立新建安装成功，不抹去前次失败。
+- Codex 正式 receipt 验证 252 个包文件与 11 个指南未变化；Hermes 的 261 个初始化包/指南文件未变化。临时认证副本已清理。原生 full-history child 导出的父历史由验收器验证后排除，
+  只统计 child 自己的 bind/commit/终态，原始完整日志与 checksum 保留。宿主跨日环境刷新按原生 metadata、
+  host state 与当前 turn 严格核验，不豁免额外业务指令；本轮验收器回归 14/14、文档 21/21、typecheck/ESLint/链接检查通过。
+
+双宿主 gate 仍未通过，没有创建 release tag 或发布 0.1.9，发布后官方 npm 黑盒测试也未开始。
+本轮验证对象是尚未发布的 npm 候选 tarball；不能把 Codex 单宿主通过描述为默认多 Agent 已稳定发布。
 
 ## 历史工程增量（0.1.8 已发布并完成 inline 首次使用验收）
 

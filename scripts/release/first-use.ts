@@ -390,13 +390,12 @@ export function auditTranscript(
       meta[0].payload.forked_from_id == null,
       "Forked Codex history is not a first-use test",
     );
-    const messages = records
-      .filter(
-        (row) => row.type === "response_item" && row.payload.role === "user",
-      )
-      .map((row) => row.payload);
+    const messages = records.filter(
+      (row) => row.type === "response_item" && row.payload.role === "user",
+    );
     userMessages = [];
-    for (const [index, message] of messages.entries()) {
+    for (const [index, row] of messages.entries()) {
+      const message = row.payload;
       const content = message.content
         .map((item: { text?: string }) => item.text ?? "")
         .join("");
@@ -414,6 +413,63 @@ export function auditTranscript(
         )
       )
         continue;
+      // Across midnight Codex injects a role=user environment refresh. Accept
+      // only the native content kind and exact fields corroborated by the
+      // preceding host state/turn and this record's local calendar date.
+      const metadata = message.internal_chat_message_metadata_passthrough;
+      if (
+        metadata?.content_item_kinds?.length === 1 &&
+        metadata.content_item_kinds[0] === "environments.environment_context" &&
+        message.content.length === 1 &&
+        message.content[0].type === "input_text"
+      ) {
+        const earlier = records.slice(0, records.indexOf(row));
+        const state = Object.assign(
+          {},
+          ...earlier
+            .filter((record) => record.type === "world_state")
+            .map((record) => record.payload.state?.environments ?? {}),
+        );
+        const context = earlier
+          .filter((record) => record.type === "turn_context")
+          .at(-1)?.payload;
+        const refresh = content.match(
+          /^<environment_context>\s*<current_date>(\d{4}-\d{2}-\d{2})<\/current_date>\s*<timezone>([A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)+)<\/timezone>\s*(<filesystem><workspace_roots><root>([^<>\r\n]+)<\/root><\/workspace_roots><permission_profile type="disabled"><file_system type="unrestricted" \/><\/permission_profile><\/filesystem>)\s*(?:<subagents>([^<>]*)<\/subagents>\s*)?<\/environment_context>$/u,
+        );
+        if (
+          refresh &&
+          context?.turn_id === metadata.turn_id &&
+          context?.cwd === workspace &&
+          context?.workspace_roots?.length === 1 &&
+          context.workspace_roots[0] === workspace &&
+          context.permission_profile?.type === "disabled" &&
+          refresh[2] === context.timezone &&
+          refresh[2] === state.timezone &&
+          refresh[3] === state.filesystem &&
+          refresh[4] === workspace &&
+          (refresh[5] ?? "")
+            .trim()
+            .split("\n")
+            .map((line: string) => line.trim())
+            .join("\n") === (state.subagents ?? "")
+        ) {
+          const date = new Date(row.timestamp);
+          if (Number.isFinite(date.getTime())) {
+            const parts = new Intl.DateTimeFormat("en-US", {
+              timeZone: refresh[2],
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            }).formatToParts(date);
+            const part = (type: string) =>
+              parts.find((value) => value.type === type)!.value;
+            if (
+              refresh[1] === `${part("year")}-${part("month")}-${part("day")}`
+            )
+              continue;
+          }
+        }
+      }
       userMessages.push(content);
     }
     toolCalls = records.filter(

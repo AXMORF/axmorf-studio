@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import { sha256 } from "./package-content";
 
@@ -153,6 +154,127 @@ export function nativeTrace(host: "codex" | "hermes", text: string) {
   return { records, calls, outputs };
 }
 
+export function codexChildTrace(
+  text: string,
+  parent: ReturnType<typeof nativeTrace>,
+) {
+  const records = text
+    .trim()
+    .split("\n")
+    .map((line) => object(JSON.parse(line)));
+  const metas = records.filter((record) => record.type === "session_meta");
+  assert.equal(
+    records[0],
+    metas[0],
+    "Codex child must start with its own metadata",
+  );
+  assert.ok(
+    metas.length === 1 || metas.length === 2,
+    "Unexpected Codex child metadata",
+  );
+  if (metas.length === 1) return nativeTrace("codex", text);
+
+  // Full-history native forks re-emit selected parent records with NEW outer
+  // timestamps. Verify their payload lineage before discarding inherited work.
+  const meta = object(metas[0]!.payload);
+  const parentMetas = parent.records.filter(
+    (record) => record.type === "session_meta",
+  );
+  assert.equal(
+    parentMetas.length,
+    1,
+    "Codex parent must be a fresh root session",
+  );
+  assert.equal(
+    metas[1],
+    records[1],
+    "Inherited metadata must precede fork history",
+  );
+  assert.deepEqual(
+    metas[1]!.payload,
+    parentMetas[0]!.payload,
+    "Inherited metadata does not match parent",
+  );
+  assert.equal(
+    meta.forked_from_id,
+    object(parentMetas[0]!.payload).id,
+    "Fork does not identify its parent",
+  );
+  const settingsIndex = records.findIndex(
+    (record) =>
+      record.type === "event_msg" &&
+      object(record.payload).type === "thread_settings_applied" &&
+      object(record.payload).thread_id === meta.id,
+  );
+  assert.ok(settingsIndex > 2, "Fork has no native child settings boundary");
+  const adapter = object(records[settingsIndex - 1]!.payload);
+  assert.ok(
+    records[settingsIndex - 1]!.type === "response_item" &&
+      adapter.type === "message" &&
+      adapter.role === "developer" &&
+      Array.isArray(adapter.content) &&
+      String(object(adapter.content[0]).text).startsWith("<multi_agent_role>"),
+    "Fork has no native child role adapter",
+  );
+  let parentIndex = 0;
+  for (const record of records.slice(2, settingsIndex - 1)) {
+    // World state is a regenerated host projection, never execution evidence.
+    if (record.type === "world_state") continue;
+    const match = parent.records.findIndex(
+      (candidate, index) =>
+        index > parentIndex &&
+        candidate.type === record.type &&
+        isDeepStrictEqual(candidate.payload, record.payload),
+    );
+    assert.ok(
+      match > parentIndex,
+      "Inherited history does not match parent order and payloads",
+    );
+    parentIndex = match;
+  }
+  const own = records.slice(settingsIndex + 1);
+  const parentTurns = new Set(
+    parent.records
+      .map((record) => object(record.payload).turn_id)
+      .filter(Boolean),
+  );
+  const turns = new Set<string>();
+  assert.ok(
+    own[0]?.type === "event_msg" &&
+      object(own[0].payload).type === "task_started",
+    "Fork has no child turn boundary",
+  );
+  for (const record of own) {
+    const payload = object(record.payload);
+    if (record.type === "event_msg" && payload.type === "task_started") {
+      const turn = z.string().min(1).parse(payload.turn_id);
+      assert.ok(
+        !parentTurns.has(turn),
+        "Inherited parent turn cannot own child work",
+      );
+      turns.add(turn);
+    }
+    if (
+      payload.turn_id !== undefined ||
+      (record.type === "event_msg" && payload.type === "task_complete")
+    ) {
+      assert.ok(
+        turns.has(String(payload.turn_id)),
+        "Child event does not belong to its own started turn",
+      );
+    }
+  }
+  const trace = nativeTrace(
+    "codex",
+    [records[0], ...own].map((record) => JSON.stringify(record)).join("\n"),
+  );
+  assert.ok(
+    [...trace.calls.keys()].every((id) => !parent.calls.has(id)),
+    "Inherited parent calls cannot own child work",
+  );
+  return trace;
+}
+
 const commandOutputs = (trace: ReturnType<typeof nativeTrace>) =>
   trace.outputs.filter(({ name }) =>
     /(?:^|[._])(?:exec|exec_command|execute_code|terminal|process|process_manage|wait|write_stdin)$/u.test(
@@ -280,7 +402,10 @@ export async function auditNativeExecution(input: {
   const children = [];
   for (const paths of input.nativeChildren) {
     const transcript = await readFile(paths.transcriptFile, "utf8");
-    const trace = nativeTrace(input.host, transcript);
+    const trace =
+      input.host === "codex"
+        ? codexChildTrace(transcript, root)
+        : nativeTrace(input.host, transcript);
     let id: string;
     let started: number;
     let ended: number;
