@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "status": "failure-mechanism-reproduced",
+  "version": "0.1.9",
+  "supersedesDiagnosis": "v0.1.9-subagents-resumed.json",
+  "scope": "Engineering diagnosis only; no new production, provider calls, changes to installed package, failed attempt recovery, or release. A separate cloned Workspace was instrumented with an external preload that records and rethrows the original calls.",
+  "finding": "The controller-added macOS sandbox-exec wrapper prevents /bin/ps from starting. An intermittent post-close process-group EPERM invokes the existing ps fallback, which also receives EPERM under that wrapper. The boolean fallback drops the inspection exception and the CLI reports only the original kill error.",
+  "causalChain": [
+    "Browser render child exits with status 0.",
+    "Immediate group SIGKILL and signal 0 both return EPERM.",
+    "Fallback execFileSync(/bin/ps) fails immediately with spawnSync /bin/ps EPERM.",
+    "Inspection returns false and the original cleanup EPERM fails doctor.",
+    "Worker records task failure; fixed continuation cannot deliver."
+  ],
+  "testIsolationOwner": "Acceptance controller, not Hermes or the ordinary npm Workspace",
+  "psControls": [
+    {
+      "case": "host",
+      "exitCode": 0,
+      "stdout": "{\"ok\":true,\"rows\":757}",
+      "stderr": ""
+    },
+    {
+      "case": "test-policy",
+      "exitCode": 1,
+      "stdout": "{\"ok\":false,\"code\":\"EPERM\",\"status\":null,\"message\":\"spawnSync /bin/ps EPERM\"}",
+      "stderr": ""
+    },
+    {
+      "case": "allow-default",
+      "exitCode": 1,
+      "stdout": "{\"ok\":false,\"code\":\"EPERM\",\"status\":null,\"message\":\"spawnSync /bin/ps EPERM\"}",
+      "stderr": ""
+    }
+  ],
+  "psExecutable": {
+    "path": "/bin/ps",
+    "mode": "-rwsr-xr-x",
+    "owner": "root",
+    "group": "wheel"
+  },
+  "diagnosticRuns": [
+    {
+      "case": "sandbox-four",
+      "runs": 4,
+      "passed": 4,
+      "failed": 0,
+      "resultsChecksum": "sha256:3b9eac2d366e3ef061df1ca7e5bbcee52842e3c5bdc7f81f15c74a0b91dbce5e"
+    },
+    {
+      "case": "hermes-native-four",
+      "runs": 4,
+      "passed": 4,
+      "failed": 0,
+      "resultsChecksum": "sha256:4c0453d93d453ee5b054322fa16665af2d73d57d914d6ecf1a43ecdd94c102ec"
+    },
+    {
+      "case": "hermes-native-serial",
+      "runs": 8,
+      "passed": 7,
+      "failed": 1,
+      "resultsChecksum": "sha256:c859d9be481323717d80243580f2784b583b742766ff9636a2ae96673559e5c1"
+    },
+    {
+      "case": "hermes-host-serial",
+      "runs": 8,
+      "passed": 8,
+      "failed": 0,
+      "resultsChecksum": "sha256:e24f8b4027157c6ed73f006198bd97b00a81540e0367107d2e0e08bffc312e86"
+    }
+  ],
+  "reproducedFailureTrace": [
+    {
+      "event": "spawn",
+      "at": "2026-09-07T16:52:19.825Z",
+      "pid": 94005,
+      "child": 94007,
+      "command": "node",
+      "kind": "browser-render",
+      "detached": true
+    },
+    {
+      "event": "child-exit",
+      "at": "2026-09-07T16:52:22.012Z",
+      "pid": 94005,
+      "child": 94007,
+      "code": 0,
+      "signal": null
+    },
+    {
+      "event": "child-close",
+      "at": "2026-09-07T16:52:22.012Z",
+      "pid": 94005,
+      "child": 94007,
+      "code": 0,
+      "signal": null
+    },
+    {
+      "event": "signal",
+      "at": "2026-09-07T16:52:22.013Z",
+      "pid": 94005,
+      "target": -94007,
+      "signal": "SIGKILL",
+      "error": "EPERM"
+    },
+    {
+      "event": "signal",
+      "at": "2026-09-07T16:52:22.013Z",
+      "pid": 94005,
+      "target": -94007,
+      "signal": 0,
+      "error": "EPERM"
+    },
+    {
+      "event": "ps",
+      "at": "2026-09-07T16:52:22.014Z",
+      "pid": 94005,
+      "args": [
+        "-axo",
+        "pgid=,stat="
+      ],
+      "elapsedMs": 1,
+      "error": "EPERM",
+      "status": null,
+      "message": "spawnSync /bin/ps EPERM"
+    }
+  ],
+  "reproducedFailureTraceChecksum": "sha256:b79c291c37633bef6361393656c1a1941b310181767646113147f2d1ee26c3d2",
+  "unrestrictedSameBranchControls": [
+    {
+      "traceChecksum": "sha256:67aaa12f5e9ef77d068bb50258a90b6a0c64942af31689ef9439d3ab5993fb29",
+      "snapshotElapsedMs": 38,
+      "snapshotError": null,
+      "targetGroupPresent": false
+    },
+    {
+      "traceChecksum": "sha256:f6fb9bde3fcf7184183d2408b7d1324c88da440f25fa362d0fbdb8add52b3be2",
+      "snapshotElapsedMs": 39,
+      "snapshotError": null,
+      "targetGroupPresent": false
+    },
+    {
+      "traceChecksum": "sha256:873467f51ad11a4570322c5f37bcbdd3b3e229d864171d58f2522f2de052f5c7",
+      "snapshotElapsedMs": 38,
+      "snapshotError": null,
+      "targetGroupPresent": false
+    }
+  ],
+  "nodeObservation": "Hermes terminal login resolves Node v26.4.0; simple non-login shell resolves Node v22.22.3. Host/sandbox Hermes controls both used v26.4.0, so Node version was not changed in the causal comparison.",
+  "correction": "Repeated worker doctor increases the number of checks but is not the demonstrated root cause; failure also reproduced serially. Native delegate_task compatibility is not disproven by this failure. The existing host cleanup fallback succeeded in all three observed host runs that required ps.",
+  "limitations": [
+    "The original production log did not retain the ps exception. The same error branch was captured in a new reproduction with the same candidate and equivalent sandbox policy.",
+    "Eight successful host doctor runs are not a completed Hermes video or a new black-box first-use receipt.",
+    "A corrected isolation strategy must preserve first-use context independence without disabling required host capabilities; do not relabel an unrestricted diagnostic as isolated acceptance."
+  ],
+  "remainingWork": [
+    "Correct the acceptance isolation design and preflight all required host capabilities, including the cleanup fallback.",
+    "Expose sanitized inspection failure reasons in runtime diagnostics.",
+    "Clarify Root versus worker readiness responsibilities.",
+    "Repeat fresh candidate and post-release npm acceptance before declaring stable release."
+  ]
+}

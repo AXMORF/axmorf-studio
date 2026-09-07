@@ -2,7 +2,7 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-08 `v0.1.9` 候选 Codex 多 Agent 成片通过，Hermes 因 worker 进程清理失败阻塞发布；最新已发布版本仍是 `v0.1.8`
+> 最后复核：2026-09-08 `v0.1.9` 候选 Codex 多 Agent 成片通过，Hermes 清理失败已复现为测试隔离阻止进程状态检查，需修正验收后重测；最新已发布版本仍是 `v0.1.8`
 
 ## 当前工程增量（0.1.9 候选）
 
@@ -21,8 +21,11 @@
 - Codex 0.153.4 原生 5 个创作 child，实测峰值 4、补位 1；Root 无 task commit。
   原 continuation 成功交付 26.23 秒、1080×1920、30 fps 视频与两个封面；public final 7/7，四文件 checksum 与 EOF 解码通过。
 - Hermes 0.21.0 原生同步首批并发 4，2 个 task 提交、2 个 task 因 worker doctor 清理报 `SIGKILL EPERM`
-  而失败；剩余 1 个 task 未派发，continuation 记录失败，没有 Delivery。失败子命令 exit 0，现有日志不能区分
-  残留进程、退出竞争或进程快照失败。worker 重复全局 doctor、失败后再次 doctor 的行为也暴露了发行文档的职责不清。
+  而失败；剩余 1 个 task 未派发，continuation 记录失败，没有 Delivery。后续工程复现发现控制器额外添加的
+  `sandbox-exec` 拒绝启动 `/bin/ps`，导致现有清理复核失败；普通宿主相同 Hermes 终端/包的 8 次 doctor 全通过，
+  其中 3 次相同 EPERM 分支由 ps 确认组已退出。详见 [归因更正](evidence/v0.1.9-hermes-cleanup-diagnosis.json)。
+  这不证明 Hermes 原生委派不兼容，也不能直接断言清理算法有缺陷；应先修正验收隔离设计及诊断信息。
+  worker 重复全局 doctor、失败后再次 doctor 的职责问题仍需改善，但不是已复现根因。
 - 另一次全新 Codex 安装在浏览器仍下载时达到 300 秒期限、Agent 未启动；独立新建安装成功，不抹去前次失败。
 - Codex 正式 receipt 验证 252 个包文件与 11 个指南未变化；Hermes 的 261 个初始化包/指南文件未变化。临时认证副本已清理。原生 full-history child 导出的父历史由验收器验证后排除，
   只统计 child 自己的 bind/commit/终态，原始完整日志与 checksum 保留。宿主跨日环境刷新按原生 metadata、
