@@ -1,0 +1,357 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "version": "0.1.9",
+  "releaseCommit": "d12bcbda53d42a392761fc84bcb77fd5429c7975",
+  "method": "Official registry npm create axmorf-studio@latest <host> -- --yes; fresh cache, profile and workspace",
+  "isolation": "Normal host permissions, no OS filesystem isolation. Personal Codex Skills disabled in fresh test profile; built-in/plugin discovery retained.",
+  "controllerFollowUps": 0,
+  "packageOrWorkspaceRepairs": 0,
+  "nativeAuditChecksum": "sha256:4a9ee00f505d7fe19d6a9ece0fbe97305e0ce2c3647b685a01274b76f1eb7ad8",
+  "hosts": [
+    {
+      "host": "codex",
+      "sessionId": "01a07d3a-dc42-7a72-bfb3-30d7a5505457",
+      "startedAt": "2026-09-07T18:56:40.144551+00:00",
+      "endedAt": "2026-09-07T19:05:39.561085+00:00",
+      "exitCode": 0,
+      "prompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“从十分钟专注开始”，讲清楚选一个具体小步骤、关掉打断、做完记录下一步。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。\n",
+      "transcriptChecksum": "sha256:139b0240510dbfad132236975aafce721d811c6ce72b3c01ac4f3a3691a5dc59",
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 42,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 0
+      },
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 1,
+        "refillAdmissions": 1,
+        "attemptId": "b454e81c-6664-47d0-96b0-c17df2cafe91",
+        "childEvidence": [
+          {
+            "sessionId": "01a07d3d-89fb-75c0-9016-740454a48516",
+            "transcriptChecksum": "sha256:8a25cb39e177453ffb7ade18e27dc99ac2e448d67e6c9f3d59e873c2f039fac3",
+            "sessionChecksum": null,
+            "taskRevision": "task-24bc394e130acf6896136755bd04692e5946a063606cd3a60227e471645fb9f9"
+          },
+          {
+            "sessionId": "01a07d3b-69a6-72b1-867f-85c96610e222",
+            "transcriptChecksum": "sha256:de12054c21561dbaee90b110776e635aa76585522c0a6e674a9f9827660f4add",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a07d3f-4991-7140-af3e-1bf490608414",
+            "transcriptChecksum": "sha256:b49cedbc7e4dc32c9ac5459a73423546c08e9f6215e0bd55aebb083f17b469ec",
+            "sessionChecksum": null,
+            "taskRevision": "task-bc64395d2a8b96089c42391b1fb520012e0f614af7386b5764ec619c5168cf4e"
+          },
+          {
+            "sessionId": "01a07d3d-e90c-7d23-af4b-2c189532c3cc",
+            "transcriptChecksum": "sha256:9a05f6746f4f41d34784701e909096f695ee5d691af25ad0d190ace54771d539",
+            "sessionChecksum": null,
+            "taskRevision": "task-ab69d3423a161fd4139a2438550a3e02b724c777993356e4608f72912520d3fd"
+          },
+          {
+            "sessionId": "01a07d3d-580d-7f53-871d-83a70ae065f7",
+            "transcriptChecksum": "sha256:335cc30d7391d927a1b428e88e217d2c229e6548493bbf7d5573ecd4efcae34f",
+            "sessionChecksum": null,
+            "taskRevision": "task-043ea022dbc14efa50b5fa4c9b186d76c1309df8574a1ec584336635b69a6a30"
+          },
+          {
+            "sessionId": "01a07d3d-b35e-7ff2-9d8d-abaf040cf594",
+            "transcriptChecksum": "sha256:b681d19d83fe34b9c54a0a690cc5578b25b69de595e460625e91bba55d9f78e0",
+            "sessionChecksum": null,
+            "taskRevision": "task-89bc9831c0ceca48cfba7165576314062fc491e9b7005bc3605ce7d385ca24dd"
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null
+      },
+      "runtimeFingerprint": "sha256:9b3180b11d754dd44a02754468c7c618dea81845937d274714d8e47dd4e511ff",
+      "unchangedRuntimeFiles": 252,
+      "unchangedGuideFiles": 11,
+      "registryIntegrity": "sha512-2+/JCK87UNJLRddL+Nu6j7IbzGe+Lb0xjkDNbOjKeLyWezS27JstKQ7/LHOHrs7ip+KV3ShTXetE0aNIOfGdmQ==",
+      "originalContinuationStatus": "project-production-complete",
+      "publicFinal": {
+        "schemaVersion": 1,
+        "status": "project-final-check",
+        "storyId": "ten-minute-focus",
+        "level": "final",
+        "scope": "current-production",
+        "aggregateStatus": "pass",
+        "revisionId": "revision-885e9848ec6b9e4b5f858c24e4e79f814f5085239bad17de3a79c78140f3c1b9",
+        "artifactSetFingerprint": "sha256:457d007bd2ca6678c7c55ba923f9d1cdb66ef256051d7cdbae8e39faa5fad956",
+        "deliveryBuildId": "delivery-413cd665944558e14596c0e443a03ffb879ee9af8be26836a5208009d09fc138",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ]
+      },
+      "video": {
+        "durationSeconds": 27.933333333333334,
+        "frames": 838,
+        "width": 1080,
+        "height": 1920,
+        "fps": "30/1",
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "audioChannels": 2,
+        "decodedToEof": true
+      },
+      "files": {
+        "video.mp4": {
+          "bytes": 2647276,
+          "checksum": "sha256:8777ca0e55e038e47bb89817e8f238029c14207386d6865ff75d9f2f13553c32"
+        },
+        "cover-4x3.png": {
+          "bytes": 123559,
+          "checksum": "sha256:142b14ab37adacd3f821cf73b840a7d9b66b9fde376d672a3193e0adf574c700"
+        },
+        "publish.json": {
+          "bytes": 2170,
+          "checksum": "sha256:3c42cf920e4287e326ab9e89916886ea79602a1817c5e5f37bc62b5113bb0403"
+        },
+        "cover-3x4.png": {
+          "bytes": 116977,
+          "checksum": "sha256:e5c1068e44f03c0af0b6264dc1baf4a3110f6967ea2837c3db12b2c16d339740"
+        }
+      }
+    },
+    {
+      "host": "hermes",
+      "sessionId": "20260908_025409_c749ed",
+      "startedAt": "2026-09-07T18:54:04.404192+00:00",
+      "endedAt": "2026-09-07T19:06:13.222099+00:00",
+      "exitCode": 0,
+      "prompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“从十分钟专注开始”。视频依次呈现三个独立内容段落：第一段讲选择一个具体小步骤，第二段讲关掉打断，第三段讲做完记录下一步。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。\n",
+      "transcriptChecksum": "sha256:2ce64090994025dbe3390b43b5b77b9267ba6c116a56ff0e6d75615e9b035c7d",
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 21,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 0
+      },
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 1,
+        "refillAdmissions": 1,
+        "attemptId": "4e1c29b4-201b-43cd-b149-6260829a888c",
+        "childEvidence": [
+          {
+            "sessionId": "20260908_025450_d58d30",
+            "transcriptChecksum": "sha256:bb826dc6d05e5bb900f67e7691ef4cf48daad900acaf8496431d9c1f22c357ae",
+            "sessionChecksum": "sha256:88072e627becd39e4257f48b6d1b951eb15c1dec35d5918273dbe8461fe32e9b",
+            "taskRevision": null
+          },
+          {
+            "sessionId": "20260908_025738_a1b892",
+            "transcriptChecksum": "sha256:7a1eb083e16966450b2ec024344562dc33d67d5fe47ab14e603d2e530c713a4c",
+            "sessionChecksum": "sha256:2b9feb2004a7107a6c31ab2d4d2d32c881e1e23dab64e2631f071a519496bf9d",
+            "taskRevision": "task-0cc34a7a6e4ce2e8507a8227cd1f6ddfca9987446ff23478d41c585eb70e946f"
+          },
+          {
+            "sessionId": "20260908_025738_05e63c",
+            "transcriptChecksum": "sha256:a49bed764d66b8fff160cab44070dfdacd513ba0b811cde55708122e2afa6541",
+            "sessionChecksum": "sha256:405fc624b42404cdc22e5a16c3ed38f9b8409895e7a0c372e798ddaeabd34e38",
+            "taskRevision": "task-15af7fc979c994a529d18a890c9493f66363a21e522ac67b1d40e3950fc79d54"
+          },
+          {
+            "sessionId": "20260908_025738_b90a5b",
+            "transcriptChecksum": "sha256:0eb4a69627916e9ef3ce2dd04804d179168ec2be2652737a5599bf6b0436ca48",
+            "sessionChecksum": "sha256:e6fc747b870856131e4260bfc05f5ad49b536ca52d07501c723f721121272cdd",
+            "taskRevision": "task-7b8e25d2cc580edb90ae9879afa0a039c88d07115b946e9706c8ab405fa4c6ea"
+          },
+          {
+            "sessionId": "20260908_025738_ea623b",
+            "transcriptChecksum": "sha256:0f69450ed1ac27c108540996f54961f0512a5d9eba859068207a64c4e385da3a",
+            "sessionChecksum": "sha256:2f98c40ce874ffd28ecb82a82264754190e245e011721e2f7d0e05f16dd29e52",
+            "taskRevision": "task-c9704fb8a3886cebaf90cea2b73256b6ad140ee98964729135e40ff183db5639"
+          },
+          {
+            "sessionId": "20260908_030151_01f74f",
+            "transcriptChecksum": "sha256:48c13be73339d903b0f6b9c95c0c8085b25473c61ad91d7d1f0d89ec4b2f1dc2",
+            "sessionChecksum": "sha256:f3217e0478a1a50325b993e5fec069dddc81065912675b6deb27d095484352d5",
+            "taskRevision": "task-d3774d10be16df3f343f236e7cc2e41a1590f57580948b6cf1d6ef932f2b9502"
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null
+      },
+      "runtimeFingerprint": "sha256:9b3180b11d754dd44a02754468c7c618dea81845937d274714d8e47dd4e511ff",
+      "unchangedRuntimeFiles": 252,
+      "unchangedGuideFiles": 11,
+      "registryIntegrity": "sha512-2+/JCK87UNJLRddL+Nu6j7IbzGe+Lb0xjkDNbOjKeLyWezS27JstKQ7/LHOHrs7ip+KV3ShTXetE0aNIOfGdmQ==",
+      "originalContinuationStatus": "project-production-complete",
+      "publicFinal": {
+        "schemaVersion": 1,
+        "status": "project-final-check",
+        "storyId": "ten-minute-focus",
+        "level": "final",
+        "scope": "current-production",
+        "aggregateStatus": "pass",
+        "revisionId": "revision-2a38bac8b2f3366fde8dfeb8344f003ca5a977d0d1efa02bd857ef45cb9502e1",
+        "artifactSetFingerprint": "sha256:ed34a24de3b858d08acf747cab73286cba492daf6851271ab5f029e306e76951",
+        "deliveryBuildId": "delivery-3d6bb66478b05c59d10a70a7e6c17d123d00dd5226d81c37a992d53e94653dde",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ]
+      },
+      "video": {
+        "durationSeconds": 27.9,
+        "frames": 837,
+        "width": 1080,
+        "height": 1920,
+        "fps": "30/1",
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "audioChannels": 2,
+        "decodedToEof": true
+      },
+      "files": {
+        "video.mp4": {
+          "bytes": 2439927,
+          "checksum": "sha256:5c250254ffd8222284db8ca6fd2619c34f30af9fa90129471958ac007ca94e6d"
+        },
+        "cover-4x3.png": {
+          "bytes": 146322,
+          "checksum": "sha256:b3af0ab29d7c49a410ae54054432332e44944634ac52649b2b0678f0d955cf27"
+        },
+        "publish.json": {
+          "bytes": 2196,
+          "checksum": "sha256:fe957738f833143f88f9211fe7234f3c84e9a3f1cf4ecdfa1ad494a38d620483"
+        },
+        "cover-3x4.png": {
+          "bytes": 149295,
+          "checksum": "sha256:bf13714c096f8dca23316eedbd43447135035a025b2ddf6f85e4517c45d06e40"
+        }
+      }
+    }
+  ],
+  "contextAudit": {
+    "checksum": "sha256:22e9ffe26a04a06ac07bb8c7615bf5182366bd70a60078feb4c9f45b6af516b5",
+    "transcripts": 14,
+    "nativeToolCalls": 177,
+    "nativeToolCallsByHost": {
+      "codex": 81,
+      "hermes": 96
+    },
+    "observedAccess": {
+      "developerSourceRepositoryRead": false,
+      "priorSessionMemoryOrDiagnosticsRead": false,
+      "personalGlobalSkillRead": false,
+      "externalPluginSkillFileRead": false,
+      "summary": "完整实际工具调用、初始system/user上下文未发现开发源码、旧会话/记忆/诊断或个人global Skill读取/指导；实际指南读取来自npm生成的当前Workspace。"
+    },
+    "rootDoctorExecutions": {
+      "codex": 1,
+      "hermes": 1
+    },
+    "childDoctorCommands": {
+      "codex": 0,
+      "hermes": 0
+    },
+    "codexInitialContextCaveat": "Root实际7个Skill descriptor（5系统+2Workspace）；child实际90个descriptor，含fresh CODEX_HOME下5个宿主插件root。个人Skill禁用实际生效，但child并非只有npm指南的纯上下文；没有实际读取这些插件Skill文件。",
+    "hermesSystemPromptSessions": 7,
+    "hermesNativeSystemPromptHashesVerified": true,
+    "limitation": "核验Agent-visible完整原生工具参数、相关输出、初始上下文及system prompt；本轮无OS文件隔离，不能据此断言OS层从未访问其他文件。"
+  }
+}

@@ -2,9 +2,9 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-08 `v0.1.9` 修复候选已通过 Codex/Hermes 原生多 Agent 首次使用门禁；最新已发布版本仍是 `v0.1.8`，0.1.9 等待 exact-tag 发布。
+> 最后复核：2026-09-08 `v0.1.9` 已通过双宿主候选门禁并正式发布；官方 npm 新建 Workspace 的 Codex/Hermes 成片复测已通过。
 
-## 当前工程增量（0.1.9 候选）
+## 当前工程增量（0.1.9 已发布并完成原生 subagents 首次使用验收）
 
 默认执行策略为 `subagents`、最大并发 4；显式 inline 偏好继续生效。发行 Skill 明确 Root 负责全局 doctor/preflight，
 worker 只执行 exact bind 与 owning task 合同；每个不同 TaskRevision 必须 fresh native child/session，不得把完成的
@@ -33,7 +33,13 @@ child 通过 follow-up/resume 复用于其他任务。原生 wait-any、同步�
 随后新候选 Hermes 的 27.2 秒成片仅有 4 个任务，没有覆盖补位；因此另用明确三个内容段落的普通业务需求补测，
 没有改包、追加技术提示或修改旧 attempt。TTS 间歇失败的上游原因仍未确定，本轮成功不代表外部 provider 永不失败。
 
-0.1.9 尚未发布，官方 npm 发布后黑盒测试尚未开始；候选通过与 registry 发布必须分开报告。
+`v0.1.9` 已从 exact commit `d12bcbd` 经 macOS ARM64 CI 与 Linux 发布工作流验证后发布；两个 npm latest 均已回读为 0.1.9。
+首次发布提交被 npm 接受后延迟约九分钟才可见，超过五分钟等待期限；确认 runtime 可见且 integrity 匹配后，第二次同标签工作流验证并跳过已发布 runtime，再成功发布 creator。
+
+公开包的 252 个 runtime 文件、40 个 creator 文件与候选逐字节一致，registry integrity 与 CI 实际 tarball 一致；gzip 归档 hash 与本地重打 tarball 不混用。
+官方 registry 独立复测也已通过：两个全新 Workspace 的 Codex/Hermes 各 5 个创作 child、峰值 4、补位 1，分别交付 27.93 秒与 27.90 秒视频。
+原 continuation 均成功，独立 final 各 7/7、exact 四文件 checksum 与 EOF 解码通过，安装包与指南未改。
+详见 [发布后机器证据](evidence/v0.1.9-public-registry.json) 与 [完整发布记录](evidence/2026-09-08-v0.1.9-native-subagents-release.md)。
 
 ## 历史工程增量（0.1.8 已发布并完成 inline 首次使用验收）
 
@@ -93,8 +99,8 @@ reference environment evidence，不是 runtime allowlist；其他宿主可以�
 已认证。Agent 不得修改 package internals、精确依赖、sandbox 或 validators 来强行适配。
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
-补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.8` 与
-`create-axmorf-studio@0.1.8`，发布记录见上方证据。此前 `v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
+补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.9` 与
+`create-axmorf-studio@0.1.9`，发布记录见上方证据。此前 `v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
 release candidates 一致，provenance、registry signatures 与 attestations 已由外部 fresh Workspace 复验。
 GitHub 仓库已转移为 `AXMORF/axmorf-studio`，npm 发布分支是 default branch，旧 `main` 保留。production 与完整
 repository `npm audit` 已通过 `fast-uri@3.1.6`、
