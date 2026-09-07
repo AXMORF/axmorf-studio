@@ -1,6 +1,6 @@
 # Direct production workflow
 
-Agents author; fixed scripts validate and build.
+Root orchestration only. Assigned workers go directly to [task protocol](task-execution-protocol.md).
 
 ## 1. Create or revise Project inputs
 
@@ -87,7 +87,7 @@ write 通过 strict `{ "contentBase64": "..." }` stdin。finalize 生成 fixed f
 复验并提升 ArtifactAttestation。
 
 - `inline`：Root 每次完成一个 task 的 bound terminal 后再处理下一个。
-- `subagents`：以 `effectiveMaxConcurrency` 维护 bounded pool；原生 wait-any 完成即补位；原生同步批量返回后发下一批。
+- `subagents`：以 `effectiveMaxConcurrency` 维护 bounded pool；原生 wait-any 完成即补位；原生批量返回或整批完成通知后发下一批。
   每批不超过容量；不轮询 child，聊天不是 receipt。
 
 真实 spawn/transport failure 只用 exact `spawnFailureCommand`，immutable/controller fault 只用

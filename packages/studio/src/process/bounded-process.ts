@@ -30,6 +30,28 @@ export class BoundedProcessError extends Error {
   }
 }
 
+export class ProcessGroupInspectionError extends Error {
+  readonly code = "process-group-inspection-unavailable";
+  constructor(
+    readonly reason:
+      | "snapshot-read-failed"
+      | "snapshot-empty"
+      | "snapshot-invalid",
+    systemCode?: unknown,
+  ) {
+    const safeCode =
+      typeof systemCode === "string" &&
+      ["EPERM", "EACCES", "ENOENT", "ETIMEDOUT", "ENOBUFS", "EIO"].includes(
+        systemCode,
+      )
+        ? systemCode
+        : "unknown";
+    super(
+      `Process-group inspection via /bin/ps unavailable (${reason}${reason === "snapshot-read-failed" ? `; ${safeCode}` : ""}).`,
+    );
+  }
+}
+
 export const exitedProcessGroupHasNoWriters = (
   groupId: number,
   readSnapshot: () => string = () =>
@@ -39,22 +61,28 @@ export const exitedProcessGroupHasNoWriters = (
       maxBuffer: 4 * 1024 * 1024,
     }),
 ): boolean => {
+  let snapshot: string;
   try {
-    const lines = readSnapshot().trim().split("\n");
-    if (lines.length === 0 || lines[0] === "") return false;
-    for (const line of lines) {
-      const match = /^\s*([0-9]+)\s+([A-Za-z?][A-Za-z0-9+<>=-]*)\s*$/u.exec(
-        line,
-      );
-      if (match === null) return false;
-      const observedGroup = Number(match[1]);
-      if (!Number.isSafeInteger(observedGroup)) return false;
-      if (observedGroup === groupId && !match[2]!.startsWith("Z")) return false;
-    }
-    return true;
-  } catch {
-    return false;
+    snapshot = readSnapshot();
+  } catch (error) {
+    throw new ProcessGroupInspectionError(
+      "snapshot-read-failed",
+      (error as NodeJS.ErrnoException | null)?.code,
+    );
   }
+  const lines = snapshot.trim().split("\n");
+  if (lines.length === 0 || lines[0] === "")
+    throw new ProcessGroupInspectionError("snapshot-empty");
+  for (const line of lines) {
+    const match = /^\s*([0-9]+)\s+([A-Za-z?][A-Za-z0-9+<>=-]*)\s*$/u.exec(line);
+    if (match === null)
+      throw new ProcessGroupInspectionError("snapshot-invalid");
+    const observedGroup = Number(match[1]);
+    if (!Number.isSafeInteger(observedGroup))
+      throw new ProcessGroupInspectionError("snapshot-invalid");
+    if (observedGroup === groupId && !match[2]!.startsWith("Z")) return false;
+  }
+  return true;
 };
 
 type SignalProcess = (pid: number, signal: NodeJS.Signals | 0) => boolean;
@@ -111,6 +139,7 @@ export const runBoundedProcess = async (
         } catch (error) {
           const code = (error as NodeJS.ErrnoException).code;
           if (code === "ESRCH") return true;
+          let inspectionDiagnostic = "";
           // Darwin may report EPERM while an exiting group contains zombies.
           // Recheck without a signal; genuine permission errors still fail.
           if (code === "EPERM") {
@@ -137,13 +166,22 @@ export const runBoundedProcess = async (
                   )(child.pid)
                 )
                   return true;
-              } catch {
-                /* Unknown inspection authority keeps the original failure. */
+                inspectionDiagnostic =
+                  " Process-group inspection found a remaining non-zombie member.";
+              } catch (inspectionError) {
+                inspectionDiagnostic = ` ${
+                  inspectionError instanceof ProcessGroupInspectionError
+                    ? inspectionError.message
+                    : new ProcessGroupInspectionError(
+                        "snapshot-read-failed",
+                        (inspectionError as NodeJS.ErrnoException | null)?.code,
+                      ).message
+                }`;
               }
             }
           }
           cleanupError ??= new Error(
-            `Could not send ${signal} to owned ${process.platform === "win32" ? "process" : "process group"} ${child.pid} (target ${target}): ${error instanceof Error ? error.message : String(error)}`,
+            `Could not send ${signal} to owned ${process.platform === "win32" ? "process" : "process group"} ${child.pid} (target ${target}): ${error instanceof Error ? error.message : String(error)}${inspectionDiagnostic}`,
             { cause: error },
           );
           return false;

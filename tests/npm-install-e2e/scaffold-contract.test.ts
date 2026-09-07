@@ -380,7 +380,10 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   assert.match(workspaceReadme, /npm run doctor/u);
   assert.match(workspaceReadme, /Ask your Agent for a video/u);
   assert.match(workspaceReadme, /`AGENTS\.md` and local Skill supply/u);
-  assert.match(workspaceReadme, /You do not need to include internal commands/u);
+  assert.match(
+    workspaceReadme,
+    /You do not need to include internal commands/u,
+  );
   assert.match(
     workspaceAgents,
     /prepare the declared\s+Node\.js\/npm environment/u,
@@ -390,7 +393,38 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     workspaceSkill,
     /Do not use package\s+internals or assume a particular Agent host/u,
   );
-  assert.match(workspaceSkill, /Run `npm run doctor`/u);
+  assert.match(workspaceSkill, /The Root runs `npm run doctor`/u);
+  assert.match(workspaceAgents, /the Root runs `npm run doctor`/u);
+  for (const entrypoint of [workspaceAgents, workspaceSkill]) {
+    assert.ok(
+      entrypoint.indexOf("exact attempt-bound") <
+        entrypoint.indexOf("npm run doctor"),
+    );
+    assert.match(entrypoint, /production-workflow\.md#assigned-task-worker/u);
+  }
+  const workspaceWorkflow = await readFile(
+    join(
+      workspace,
+      ".agents/skills/axmorf-video/references/production-workflow.md",
+    ),
+    "utf8",
+  );
+  const workerRoute = workspaceWorkflow.split("## Root production")[0]!;
+  assert.match(workerRoute, /## Assigned task worker/u);
+  assert.match(workerRoute, /Workers do not run `doctor`, `browser:prepare`/u);
+  assert.match(
+    workerRoute,
+    /task-worker-bound[\s\S]*inputs\/task-contract\.json/u,
+  );
+  assert.match(
+    workerRoute,
+    /declared Agent-owned outputs[\s\S]*finalize\/check\/commit/u,
+  );
+  assert.match(
+    workspaceWorkflow,
+    /assigned executor writes only contract-declared/u,
+  );
+  assert.match(workspaceWorkflow, /Root is that executor only in inline mode/u);
   assert.match(
     workspaceSkill,
     /project:revise:context[\s\S]*project:revise:validate[\s\S]*project:revise`/u,

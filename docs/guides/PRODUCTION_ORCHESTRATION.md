@@ -2,7 +2,9 @@
 
 > 文档类型：操作指南
 
-Root 负责 authoring、执行策略解析、inspect-and-report、explicit prepare 与 dirty-only execution。Root 串行执行
+Root 负责全局 doctor/preflight、authoring、执行策略解析、inspect-and-report、explicit prepare 与 dirty-only execution。
+已分派 worker 直接走 exact bind 与 task contract，不重跑这些全局入口或调用 provider。每次派发附完整 Workspace root、
+exact bind 和本地 worker 指南入口，不依赖父会话继承；模板见 [worker handoff](../../.agents/skills/axmorf-video/references/execution-capabilities.md#give-each-worker-a-complete-assignment)。Root 串行执行
 完或完成 bounded admission 后挂起；attempt-bound fixed continuation 独占 terminal barrier 和单次 converge。
 
 修改现有 Project 时先完成 [`PROJECT_REVISION.md`](PROJECT_REVISION.md) 的 context → validate → isolated candidate。
@@ -105,8 +107,10 @@ shared-workspace 只允许返回的 relative workspace/declared files。controll
 只允许 immutable inputs/已有 declared outputs；file-write 从 strict `{ "contentBase64": "..." }` stdin 写 declared
 output，并复验大小、parent/no-symlink 与 regular file。describe/finalize/check/commit/authored task failure 需要 full
 binding。finalize 只投影 fixed derived fields 后运行同一 validator；`agent-output` issue 由同一 executor 修正。
-inline 模式下 Root 一次只处理一个 workspace。subagents 模式按 `effectiveMaxConcurrency` 维护 bounded pool；
-原生支持 wait-any 时完成即释放 slot 并补位；原生同步批量时每批不超过容量，调用返回后提交下一批。
+inline 模式下 Root 一次只处理一个 workspace。subagents 中不同 TaskRevision 使用全新 native child/session；
+已完成 child 不通过 follow-up/resume 接新任务。原 owning executor 只可在同任务 terminal 前修正输出。
+subagents 模式按 `effectiveMaxConcurrency` 维护 bounded pool；
+原生支持 wait-any 时完成即释放 slot 并补位；原生批量时每批不超过容量，同步调用返回或原生整批完成通知后提交下一批。
 两者都是真实 native children，不能用 shell 后台或新聊天模拟，也不轮询全部 child。真实 spawn/transport/permission failure 运行
 Root-only exact `spawnFailureCommand`；immutable/controller fault 运行 `fixedFailureCommand`。二者 authority 更窄，
 只能记录 exact terminal event，不能读写 task content。不自动改为 inline；聊天不是 terminal receipt。

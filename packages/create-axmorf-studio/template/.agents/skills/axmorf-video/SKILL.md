@@ -5,13 +5,17 @@ description: Create, produce, validate, and deliver a video in this Workspace.
 
 # AXMORF Studio Video
 
-Read [the production workflow](references/production-workflow.md) before acting.
+First route by assignment: with an exact attempt-bound task bind, follow only
+[Assigned task worker](references/production-workflow.md#assigned-task-worker) and the task contract.
+Do not restart global doctor/preflight or the Root flow below. Otherwise act as the Root.
+
+Read [the production workflow](references/production-workflow.md#root-production) before acting.
 For a new Project read [authoring](references/authoring.md); before preparation read
 [host execution and recovery](references/host-execution-and-recovery.md).
 Use the Workspace's npm scripts and their structured output. Do not use package
 internals or assume a particular Agent host or global installation.
 
-Run `npm run doctor` before Project work. If it is not ready, prepare only the
+The Root runs `npm run doctor` before Project work. If it is not ready, prepare only the
 declared host environment and rerun it; never patch package internals,
 `node_modules`, exact dependencies, or validators. Report an unsatisfied host
 capability as a blocker.

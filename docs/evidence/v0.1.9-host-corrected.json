@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "recordedOn": "2026-09-08",
+  "phase": "candidate-host-corrected",
+  "version": "0.1.9",
+  "releaseGate": "failed",
+  "published": false,
+  "protocol": {
+    "freshNativeProfiles": true,
+    "unchangedBusinessPrompts": true,
+    "controllerFollowups": 0,
+    "osFilesystemIsolation": false,
+    "removedControllerSandbox": "sandbox-exec",
+    "hostProcessInspectionPreflight": "both passed"
+  },
+  "packages": {
+    "runtime": "sha256:9b3180b11d754dd44a02754468c7c618dea81845937d274714d8e47dd4e511ff",
+    "creator": "sha256:398016f85ee5409299b26cec348031ff36555b3c0075789bd4d9144d295b7739"
+  },
+  "codex": {
+    "production": "project-production-complete",
+    "acceptance": "failed",
+    "reason": "One child must own only one production task",
+    "observation": "Root reused a completed Scene child with followup_task for a different GlobalVisual TaskRevision.",
+    "contextAudit": "Root also read an unrelated personal global HyperFrames Skill; this run does not establish Workspace-only context. No source checkout or previous session reads observed.",
+    "rootDoctorCalls": 1,
+    "workerDoctorCalls": 0
+  },
+  "hermes": {
+    "production": "project-production-complete",
+    "acceptance": "passed",
+    "nativeExecution": {
+      "mode": "subagents",
+      "workerTransport": "shared-workspace",
+      "modeSource": "builtin-default",
+      "concurrencySource": "builtin-default",
+      "requestedMaxConcurrency": 4,
+      "effectiveMaxConcurrency": 4,
+      "peakActiveChildren": 4,
+      "dirtyTaskCount": 6,
+      "productionChildCount": 6,
+      "probeChildCount": 1,
+      "refillAdmissions": 2,
+      "attemptId": "1288f16f-dac1-4c27-9dbd-bf6c6e44f59a",
+      "childEvidence": [
+        {
+          "sessionId": "20260908_014011_56f7fe",
+          "transcriptChecksum": "sha256:e0088eb86d5442cdfdf84a214047bf7715cf913e91de318b67b9bf097a3107e8",
+          "sessionChecksum": "sha256:e8ef5efbea928a36a71f7bdac7dcfbbb5471d63c5f94212e1343cb097744c655",
+          "taskRevision": null
+        },
+        {
+          "sessionId": "20260908_014340_7a1346",
+          "transcriptChecksum": "sha256:6b87f2370812fd7b9181871d8fe465c05052dc9e794505a41fd4923cd3f3e00d",
+          "sessionChecksum": "sha256:1148837a598853286bce2ab51e1bfd8b340b0fb70f09ca316c732c72ed1c8e73",
+          "taskRevision": "task-08ec034c92de1d305fc809efe7e4dd284ac25bd9077c5f279be4ca816ab81802"
+        },
+        {
+          "sessionId": "20260908_014340_f1bb28",
+          "transcriptChecksum": "sha256:26a7227148d0c9809c3c2121ee04a7033f19b4a39bac45fc1f964c267a3d9d20",
+          "sessionChecksum": "sha256:3f548d4b4703c08dd86a5a4de19f30cd408eb1ae3239808c73345636d9ba2c5a",
+          "taskRevision": "task-490321d90c7810a7d757071ec4732812ac9ea1e500d1ec0cb12af0d6d71b786c"
+        },
+        {
+          "sessionId": "20260908_014340_bb5ddf",
+          "transcriptChecksum": "sha256:a7d7f1a9a233c1a6ce8e9fc7a3be8a26b27912702fbe9ab11a36899f998a1a9b",
+          "sessionChecksum": "sha256:ab7a00a1d01a1aeef4cda32f8f52453a5af2245aba0b4009414ddf91ab155021",
+          "taskRevision": "task-97bc5bf4d8dbfe64b1a7bf6df56d47e7c8742b3d072aa7636fe7e6f610591666"
+        },
+        {
+          "sessionId": "20260908_014340_c5f738",
+          "transcriptChecksum": "sha256:3a6fc2625213e22766d8d32bac7a359ee7e7b5a4c864c334863061c696ebac37",
+          "sessionChecksum": "sha256:b787fe6e0a9ddc9e1698e11946ea514baac7c41c0ca860b2253df090002f2f87",
+          "taskRevision": "task-63051b25177f629cd629a27514f119da160e939e70b0b0002b3a7278ef6dc10e"
+        },
+        {
+          "sessionId": "20260908_014701_75cdb7",
+          "transcriptChecksum": "sha256:227d4692d079e834df98b182cd645444299a32a050230c65557de5b4803c203b",
+          "sessionChecksum": "sha256:27b1ba18f05cc4fa65531d2f3b23324795fc311685ef80862064c51ee41cf1f7",
+          "taskRevision": "task-9fbd38239b7f643be4267ec72fb8ce92f0167ef027cdcffc745833f3c1ab4d2f"
+        },
+        {
+          "sessionId": "20260908_014701_5c8a2d",
+          "transcriptChecksum": "sha256:e9367b33c2146a59d2925a53febf289ffb3d001c213854cf392569310ad708ae",
+          "sessionChecksum": "sha256:bcf5fdfdfc691ea1d0e272c95eff85f6abeb05b5fe60ab6ad09af5aafad04a1c",
+          "taskRevision": "task-b806282fd62b734de12904795b9ffb00cceadf2302bfe07fec7d5461c80c516c"
+        }
+      ],
+      "delegationChecksum": null,
+      "notificationFormatterChecksum": null
+    },
+    "delivery": {
+      "storyId": "daily-small-progress",
+      "deliveryBuildId": "delivery-fa1474331ba02c6696cc3d70c74d75b8aaf764ebcbd75db46a2acdc705095a8c",
+      "files": {
+        "video.mp4": {
+          "checksum": "sha256:3c9982f2411de32441f3189a0c25b7d4d89432c9b6faea112e25edf2b485389c",
+          "sizeBytes": 1949908
+        },
+        "cover-4x3.png": {
+          "checksum": "sha256:6f8a808578bfd981dbf7da6cd6deba1b00a8a8dbf296c3fea93b46f4698db3cf",
+          "sizeBytes": 89441
+        },
+        "cover-3x4.png": {
+          "checksum": "sha256:2cb912ae571aaf3c16202bb8f3545c8e51ed5029b812ea4c7b29995205c3b4dd",
+          "sizeBytes": 95716
+        },
+        "publish.json": {
+          "checksum": "sha256:6c92bdc3f20add54472de6388b6c339540e9d1fb657cfa9f9d9ebdce82736544",
+          "sizeBytes": 2367
+        }
+      },
+      "video": {
+        "codec": "h264",
+        "audioCodec": "aac",
+        "audioChannels": 2,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "frameCount": 782
+      },
+      "decodedFiles": [
+        "video.mp4",
+        "cover-4x3.png",
+        "cover-3x4.png"
+      ]
+    },
+    "rootDoctorCalls": 1,
+    "workerDoctorCalls": 0,
+    "contextAudit": "Native system_prompts table provides initial prompt text, verified against session hashes; no source checkout, personal global Skill, previous session, or diagnostic context observed."
+  },
+  "corrections": {
+    "guides": "Each different TaskRevision requires a fresh native child session, never follow-up/resume reuse for a different task.",
+    "testContext": "Disable personal global Codex Skills in the fresh test profile using native skills.config; preserve package Skill discovery.",
+    "evidenceParser": "Strictly match Hermes native tool_call bridge arguments to result tool_name before recognizing underlying process_manage output. No original transcript or attempt mutation."
+  },
+  "verification": {
+    "fullCheck": {
+      "tests": 811,
+      "passed": 811,
+      "failed": 0,
+      "skipped": 0
+    },
+    "nativeParserTests": 15,
+    "docsAndScaffoldTests": 35
+  },
+  "nextPhase": "candidate-fresh-child"
+}

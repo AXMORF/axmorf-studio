@@ -57,6 +57,9 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 
 ## 通用 Agent 入口
 
+- 先按 assignment 路由：已有 exact attempt-bound task bind 的 worker 直接按 Skill task protocol 绑定并执行该任务；
+  不重跑全局 doctor/preflight、browser preparation、Project create/revise、execution resolve、inspect/prepare、provider 或 continuation。
+  这些是 Root 职责；worker 的输入、写入和命令范围由成功 bind 与 TaskExecutionContract/validators 决定，不能因环境错误扩大。
 - `AGENTS.md` 是唯一仓库级 Agent 指令 authority。`CLAUDE.md`、`GEMINI.md` 与任何宿主专用 metadata
   只能作为导入或发现 adapter，不复制、覆盖或扩展这里的规则。
 - 处理视频创建、生产或交付时，即使宿主不会自动发现 Skill，也必须手动读取
@@ -137,7 +140,7 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   `private/execution-preferences.json`，未明确字段继续继承配置，再继承内置 `subagents`/4 默认。override 只作用于当前
   production，除非用户明确要求保存；解析结果不进入 Revision/Task/artifact/delivery identity。`inline` 由
   Root 一次只执行一个 dirty workspace；`subagents` 使用不超过四个且受 runtime capacity 限制的 bounded pool，
-  并要求本次 resolver 输入 verified worker transport。原生 wait-any 完成即补位；原生同步批量每批不超过容量，返回后发下一批。
+  并要求本次 resolver 输入 verified worker transport。原生 wait-any 完成即补位；原生批量每批不超过容量，同步返回或原生整批完成通知后发下一批。
   runtime capacity 未知时按 1；transport 未验证、容量为 0
   或 exact capacity 无法满足都必须在 prepare 前阻塞，不自动换模式。transport/解析结果不持久化也不进入 content
   identity。
@@ -222,6 +225,8 @@ contact sheet 或布局。第三方 source/media 分别校验 license/attributio
 - exact-reference Scene 的 lineage/license/phase/checksum 由机械 validator 检查，不使用主观自评 gate。
 - 新实现默认留在 Project-local artifact。只有 fingerprint-bound promotion proposal 且用户明确授权
   scope/API/files/target 后，才移入 `src/remotion/capabilities/`。
+- subagents 中每个不同 TaskRevision 必须使用全新 native child/session；完成后不得通过 follow-up/resume 接另一个任务，
+  释放容量也不代表复用 session。只有原 owning executor 在同任务 terminal 前可修正自己的输出。
 - Root 只有在解析为 `inline` 时才能按 task prompt 串行创作；不得读其他 executor workspace、跨 task 代
   commit 或持久化 child identity/chat/heartbeat/token。subagents 模式的 spawn failure 记录 exact
   `spawnFailureCommand`，不得自动回退 inline。

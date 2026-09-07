@@ -823,6 +823,7 @@ test("native child receipts require the full task pool, native lineage, commits 
     events.flatMap((event) => {
       if (event.type !== "response_item") return [];
       const payload = event.payload as Record<string, unknown>;
+      const bridged = /^(?:prepare|commit)/u.test(String(payload.call_id));
       return [
         {
           timestamp: Date.parse(String(event.timestamp)) / 1000,
@@ -837,19 +838,33 @@ test("native child receipts require the full task pool, native lineage, commits 
                     function: {
                       name:
                         payload.name === "exec"
-                          ? /^(?:prepare|commit)/u.test(String(payload.call_id))
-                            ? "process_manage"
+                          ? bridged
+                            ? "tool_call"
                             : "terminal"
                           : payload.name,
-                      arguments: payload.arguments,
+                      arguments: bridged
+                        ? JSON.stringify({
+                            name: "process_manage",
+                            arguments: {
+                              action: "log",
+                              session_id: "proc-fixture",
+                            },
+                          })
+                        : payload.arguments,
                     },
                   },
                 ]),
               }
             : {
                 role: "tool",
-                content: payload.output,
+                content: bridged
+                  ? JSON.stringify({
+                      status: "exited",
+                      output: `> workspace command\n${String(payload.output)}`,
+                    })
+                  : payload.output,
                 tool_call_id: payload.call_id,
+                ...(bridged ? { tool_name: "process_manage" } : {}),
               }),
         },
       ];
@@ -1163,4 +1178,93 @@ test("native tool output parser handles bannered multiline JSON and nested host 
     [],
     "Assistant prose is not tool evidence",
   );
+});
+
+test("Hermes deferred process tool evidence requires matching native bridge invocation and output", async () => {
+  const { nativeTrace } =
+    await import("../../scripts/release/native-execution");
+  const prepared = {
+    status: "project-production-prepared",
+    attemptId: "attempt",
+    dirtyAgentTasks: [
+      { taskRevision: "task", prompt: "task instructions ".repeat(1800) },
+    ],
+  };
+  const records = [
+    {
+      role: "assistant",
+      timestamp: 1,
+      tool_calls: JSON.stringify([
+        {
+          id: "native-call",
+          type: "function",
+          function: {
+            name: "tool_call",
+            arguments: JSON.stringify({
+              name: "process_manage",
+              arguments: {
+                action: "log",
+                session_id: "proc-native",
+                offset: 0,
+                limit: 100,
+              },
+            }),
+          },
+        },
+      ]),
+    },
+    {
+      role: "tool",
+      timestamp: 2,
+      tool_call_id: "native-call",
+      tool_name: "process_manage",
+      content: JSON.stringify({
+        session_id: "proc-native",
+        command: "npm run project:produce:prepare -- --project story",
+        status: "exited",
+        output: `\n> workspace project:produce:prepare\n> axmorf project produce prepare --project story\n\n${JSON.stringify(prepared)}\n`,
+        total_lines: 6,
+        showing: "all",
+      }),
+    },
+  ];
+  const audit = (value = records) =>
+    nativeTrace("hermes", JSON.stringify(value));
+  const trace = audit();
+  assert.equal(trace.outputs[0]!.name, "process_manage");
+  assert.deepEqual(
+    trace.outputs[0]!.objects.filter(
+      (value) => value.status === "project-production-prepared",
+    ),
+    [prepared],
+  );
+  const mismatch = structuredClone(records);
+  mismatch[1]!.tool_name = "terminal";
+  assert.throws(
+    () => audit(mismatch),
+    /does not match its underlying invocation/u,
+  );
+  assert.throws(() => audit(records.slice(1)), /missing its originating call/u);
+  const ordinaryRead = structuredClone(records);
+  ordinaryRead[0]!.tool_calls = JSON.stringify([
+    {
+      id: "native-call",
+      type: "function",
+      function: { name: "read_file", arguments: "{}" },
+    },
+  ]);
+  assert.equal(
+    audit(ordinaryRead).outputs[0]!.name,
+    "read_file",
+    "Output tool_name alone cannot turn a read into command evidence",
+  );
+  const malformed = structuredClone(records);
+  malformed[0]!.tool_calls = JSON.stringify([
+    {
+      id: "native-call",
+      type: "function",
+      function: { name: "tool_call", arguments: "not-json" },
+    },
+  ]);
+  assert.throws(() => audit(malformed));
 });

@@ -1,5 +1,7 @@
 # Host execution and interruption recovery
 
+These are Root-only preparation and recovery duties; assigned workers stay on the task bind/contract route.
+
 Before preparation, discover the current host's actual long-running command capability. A command's own timeout does not override
 an outer tool deadline. Arrange a supported terminal session/process handle that remains alive while the fixed continuation runs.
 Use a native background command with completion notification when the foreground wrapper cannot wait long enough. Keep the exact

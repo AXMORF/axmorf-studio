@@ -2,37 +2,38 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-08 `v0.1.9` 候选 Codex 多 Agent 成片通过，Hermes 清理失败已复现为测试隔离阻止进程状态检查，需修正验收后重测；最新已发布版本仍是 `v0.1.8`
+> 最后复核：2026-09-08 `v0.1.9` 修复候选已通过 Codex/Hermes 原生多 Agent 首次使用门禁；最新已发布版本仍是 `v0.1.8`，0.1.9 等待 exact-tag 发布。
 
 ## 当前工程增量（0.1.9 候选）
 
-默认执行策略改为 `subagents`、最大并发 4；已保存的显式 inline 偏好继续生效。
-发行 Skill 与 CLI 帮助补齐原生子 Agent 的临时读写 probe、实际宿主容量验证、resolver 参数和 bounded admission 流程。
-未验证 transport、零容量或精确并发不满足时仍阻塞，不盲填宿主能力或回退 inline。
-候选原实现通过本地全量 803/803、包构建/typecheck、依赖审计及 exact commit `bb7dca3` macOS CI。
+默认执行策略为 `subagents`、最大并发 4；显式 inline 偏好继续生效。发行 Skill 明确 Root 负责全局 doctor/preflight，
+worker 只执行 exact bind 与 owning task 合同；每个不同 TaskRevision 必须 fresh native child/session，不得把完成的
+child 通过 follow-up/resume 复用于其他任务。原生 wait-any、同步批量与异步批量通知遵守实际容量，不能回退 inline。
 
-首轮双宿主在首段 Edge TTS 失败，历史记录保留于
-[0.1.9 首轮阻塞证据](evidence/v0.1.9-candidate-blocked.json)。用户明确要求复测后，独立 SDK 请求先复现
-合成超时，随后同隔离条件成功；不足以确定上游原因。继续使用相同候选包、全新 profile/cache/Workspace 和普通
-业务提示后，两边 TTS 均成功；控制器没有补提示、代写、修改安装包或恢复旧 attempt。
+进程清理保留原有安全判定；当 macOS 退出组复核无法运行时，错误追加 `/bin/ps` 的固定原因与允许的 errno，
+不再吞掉诊断，也不通过忽略 EPERM、放宽 sandbox 或自动重试制造成功。此前 Hermes 清理失败已复现为测试控制器
+额外 `sandbox-exec` 阻止进程检查，归因与证据见 [清理复现](evidence/v0.1.9-hermes-cleanup-diagnosis.json)。
+新验收使用普通宿主权限与全新 profile/Workspace，并预检 `/bin/ps`，不声称 OS 文件隔离。
 
-本轮 [多 Agent 黑盒证据](evidence/v0.1.9-subagents-resumed.json)：
+[双宿主首次使用 receipt](evidence/v0.1.9-first-use.json) 绑定同一组 runtime/creator 内容：
 
-- Codex 0.153.4 原生 5 个创作 child，实测峰值 4、补位 1；Root 无 task commit。
-  原 continuation 成功交付 26.23 秒、1080×1920、30 fps 视频与两个封面；public final 7/7，四文件 checksum 与 EOF 解码通过。
-- Hermes 0.21.0 原生同步首批并发 4，2 个 task 提交、2 个 task 因 worker doctor 清理报 `SIGKILL EPERM`
-  而失败；剩余 1 个 task 未派发，continuation 记录失败，没有 Delivery。后续工程复现发现控制器额外添加的
-  `sandbox-exec` 拒绝启动 `/bin/ps`，导致现有清理复核失败；普通宿主相同 Hermes 终端/包的 8 次 doctor 全通过，
-  其中 3 次相同 EPERM 分支由 ps 确认组已退出。详见 [归因更正](evidence/v0.1.9-hermes-cleanup-diagnosis.json)。
-  这不证明 Hermes 原生委派不兼容，也不能直接断言清理算法有缺陷；应先修正验收隔离设计及诊断信息。
-  worker 重复全局 doctor、失败后再次 doctor 的职责问题仍需改善，但不是已复现根因。
-- 另一次全新 Codex 安装在浏览器仍下载时达到 300 秒期限、Agent 未启动；独立新建安装成功，不抹去前次失败。
-- Codex 正式 receipt 验证 252 个包文件与 11 个指南未变化；Hermes 的 261 个初始化包/指南文件未变化。临时认证副本已清理。原生 full-history child 导出的父历史由验收器验证后排除，
-  只统计 child 自己的 bind/commit/终态，原始完整日志与 checksum 保留。宿主跨日环境刷新按原生 metadata、
-  host state 与当前 turn 严格核验，不豁免额外业务指令；本轮验收器回归 14/14、文档 21/21、typecheck/ESLint/链接检查通过。
+- Codex：5 个创作 child + 1 个 probe，峰值 4、补位 1；原 continuation 成功，成片 26.83 秒。
+- Hermes：5 个创作 child + 1 个 probe，峰值 4、补位 1；原 continuation 成功，成片 27.67 秒。
+- 两边各 1 条普通业务提示、0 条控制器 follow-up；Root 无 task commit。两个 Root 各 doctor 1 次，worker 均为 0。
+  各自 252 个 runtime 文件和 11 个指南未变；final 各 7/7，exact 四文件、H.264/AAC、尺寸/帧数/checksum/EOF 解码通过。
+- 完整原生上下文与工具记录未观察到开发源码、旧会话或个人全局 Skill 读取。Codex 测试 profile 禁用个人 Skill，
+  保留宿主内置/插件发现；Hermes 完整 system prompt 从原生去重表取回并复验 hash。不能把配置隔离说成 OS 文件访问隔离。
 
-双宿主 gate 仍未通过，没有创建 release tag 或发布 0.1.9，发布后官方 npm 黑盒测试也未开始。
-本轮验证对象是尚未发布的 npm 候选 tarball；不能把 Codex 单宿主通过描述为默认多 Agent 已稳定发布。
+本地全量 811/811、package build/typecheck 与零漏洞审计通过；验收器严格核对 Hermes 原生 `tool_call` 转发的参数
+与结果工具名后识别 `process_manage`，不豁免证据来源、唯一 attempt 或任务所有权门槛。
+
+历史未通过运行全部保留：[首轮 TTS 阻塞](evidence/v0.1.9-candidate-blocked.json)、
+[旧隔离下的运行](evidence/v0.1.9-subagents-resumed.json)、[修正环境后的运行](evidence/v0.1.9-host-corrected.json)。
+后者 Hermes 成片通过，但 Codex 跨任务复用 child 且读取个人 HyperFrames Skill，不能作为本次发布通过证据。
+随后新候选 Hermes 的 27.2 秒成片仅有 4 个任务，没有覆盖补位；因此另用明确三个内容段落的普通业务需求补测，
+没有改包、追加技术提示或修改旧 attempt。TTS 间歇失败的上游原因仍未确定，本轮成功不代表外部 provider 永不失败。
+
+0.1.9 尚未发布，官方 npm 发布后黑盒测试尚未开始；候选通过与 registry 发布必须分开报告。
 
 ## 历史工程增量（0.1.8 已发布并完成 inline 首次使用验收）
 

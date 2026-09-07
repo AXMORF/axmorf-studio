@@ -1,5 +1,13 @@
 # Portable task execution protocol
 
+An exact attempt-bound bind assigns one task worker. Read AGENTS.md, then run that bind before task input access; do not
+restart the Root production workflow. The Root owns global doctor/preflight, browser preparation, Project create/revise,
+execution resolve, inspect/prepare, providers and continuation. Workers do not run those operations, even on environment errors.
+Use only the granted task capability and declared outputs. Host/fixed errors go to the Root with their structured evidence;
+no automatic retry or recovery. The TaskExecutionContract and validators retain authority.
+In subagents mode, each different TaskRevision needs a fresh native child/session; do not accept another task through follow-up
+or resume. The original executor may correct its own same-task output before terminal; a finished task cannot reopen.
+
 `inputs/task-contract.json` is the immutable, attempt-neutral `TaskExecutionContract` for one dirty Agent task. It
 describes purpose, workflow, constraints, component signatures, and exact outputs plus their Agent/fixed ownership;
 it does not embed host transport, binding, failure state, or CLI command templates. Read it with `task.json` and
@@ -36,7 +44,7 @@ for immutable input/controller faults. Their authority is intentionally narrower
 when full task capability could not be established, but cannot read or write task content. Never classify a
 structured `agent-output` issue as host/fixed failure.
 
-A terminal failed attempt is immutable. On a new explicit recovery action, run
+A terminal failed attempt is immutable. On a new explicit recovery action, the Root runs
 `project:attempt:recover-inspect`, report its read-only zero-provider result, then run `project:attempt:reissue`.
 Reissue revalidates the same current Revision, requires no current delivery, preserves valid drafts, reuses valid
 artifacts, and creates a fresh attempt/binding. It refuses active, stale, or fixed-flow recovery and is not an

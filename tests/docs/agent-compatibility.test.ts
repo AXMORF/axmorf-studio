@@ -143,7 +143,7 @@ test("generic production surfaces do not call vendor agent runtimes", async () =
   assert.match(prepareProduction, /continuationCommand/u);
 });
 
-test("native execution guides support both wait-any and synchronous bounded batches", async () => {
+test("native execution guides support wait-any and native batch completion", async () => {
   const [repository, workspace] = await Promise.all([
     readRepositoryFile(
       ".agents/skills/axmorf-video/references/execution-capabilities.md",
@@ -158,8 +158,77 @@ test("native execution guides support both wait-any and synchronous bounded batc
     workspace,
     /With a synchronous native batch[\s\S]*effectiveMaxConcurrency[\s\S]*next bounded batch/u,
   );
+  assert.match(
+    workspace,
+    /With native asynchronous batch completion[\s\S]*completion notification/u,
+  );
   assert.match(workspace, /Root never authors task outputs/u);
   assert.match(workspace, /Do not wrap shell jobs as children/u);
   assert.match(workspace, /continuation once and suspend/u);
   assert.doesNotMatch(workspace, /do not wait for the whole batch/u);
+});
+
+test("assigned-worker routing precedes global preflight in both instruction bundles", async () => {
+  for (const prefix of ["", "packages/create-axmorf-studio/template/"]) {
+    const [agents, skill, worker, execution] = await Promise.all([
+      readRepositoryFile(`${prefix}AGENTS.md`),
+      readRepositoryFile(`${prefix}.agents/skills/axmorf-video/SKILL.md`),
+      readRepositoryFile(
+        `${prefix}.agents/skills/axmorf-video/references/${prefix ? "production-workflow.md" : "task-execution-protocol.md"}`,
+      ),
+      readRepositoryFile(
+        `${prefix}.agents/skills/axmorf-video/references/execution-capabilities.md`,
+      ),
+    ]);
+    // A fresh child loading only AGENTS + the local Skill must route before global work.
+    assert.ok(
+      agents.indexOf("exact attempt-bound") < agents.indexOf("npm run doctor"),
+    );
+    assert.ok(
+      skill.indexOf("exact attempt-bound") < skill.indexOf("project:create"),
+    );
+    assert.match(worker, /Root owns global doctor[\s\S]*preflight/u);
+    assert.match(worker, /TaskExecutionContract[\s\S]*validators/u);
+    assert.match(worker, /finalize[\s\S]*check[\s\S]*commit/u);
+    assert.match(worker, /no automatic retry|automatically retry/u);
+    assert.match(execution, /Workspace root: <absolute Workspace root>/u);
+    assert.match(
+      execution,
+      /exact attempt-bound bind command returned by prepare/u,
+    );
+    assert.match(execution, /Do not rely on inherited conversation/u);
+  }
+});
+
+test("different task revisions require fresh native children while same-task corrections stay with their owner", async () => {
+  for (const prefix of ["", "packages/create-axmorf-studio/template/"]) {
+    const execution = await readRepositoryFile(
+      `${prefix}.agents/skills/axmorf-video/references/execution-capabilities.md`,
+    );
+    const worker = await readRepositoryFile(
+      `${prefix}.agents/skills/axmorf-video/references/${prefix ? "production-workflow.md" : "task-execution-protocol.md"}`,
+    );
+    assert.match(
+      execution,
+      /Each different TaskRevision requires a fresh native child\/session/u,
+    );
+    assert.match(
+      execution,
+      /finished child must not receive another TaskRevision[\s\S]*follow-up, resume/u,
+    );
+    assert.match(
+      execution,
+      /Own only the bound TaskRevision; do not accept a different TaskRevision/u,
+    );
+    assert.match(
+      execution,
+      /Same-task corrections by the original owning executor[\s\S]*before[\s\S]*terminal/u,
+    );
+    assert.match(
+      worker,
+      /each different TaskRevision needs a fresh native child\/session/u,
+    );
+    assert.match(worker, /follow-up[\s\S]*resume/u);
+    assert.match(worker, /same-task[\s\S]*before terminal/u);
+  }
 });

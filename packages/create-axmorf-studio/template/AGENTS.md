@@ -4,13 +4,18 @@ This Workspace is the authority for its user-owned Projects, media, production
 artifacts, and Deliveries. Before creating, revising, producing, or delivering a
 video, read `.agents/skills/axmorf-video/SKILL.md` completely.
 
+Route by assignment first: an Agent given an exact attempt-bound task bind is a worker. Follow
+[Assigned task worker](.agents/skills/axmorf-video/references/production-workflow.md#assigned-task-worker),
+not the Root production flow. The TaskExecutionContract and validators retain task authority. Global doctor/preflight,
+browser preparation, Project creation and production orchestration belong to the Root; a worker does not repeat them.
+
 Use only the npm scripts declared in this Workspace. Do not import package
 internals, mutate `node_modules`, install global tools, or depend on a source
 checkout. Treat structured CLI output, task inputs, fixed validators,
 ArtifactAttestations, and the verified current Delivery as authority; chat or
 self-assessment is not completion evidence.
 
-Before Project work, run `npm run doctor`. It verifies a real tiny browser render;
+Before Project work, the Root runs `npm run doctor`. It verifies a real tiny browser render;
 if the pinned browser is missing, use `npm run browser:prepare` once and rerun doctor. If it fails, prepare the declared
 Node.js/npm environment and host prerequisites, then rerun the same command.
 Environment preparation may use ordinary package-manager or version-manager
@@ -58,7 +63,9 @@ Retry only `project:revision:promote`, not the completed production attempt.
 Execution defaults to `subagents` with maximum four, subject to available native child capacity. Explicit user choices override
 saved execution settings and the built-in default; explicit inline remains supported. Before inspect, follow the Skill
 [host probe](.agents/skills/axmorf-video/references/execution-capabilities.md), then pass verified capacity and transport to
-`project:execution:resolve`. The Root assigns one dirty task per child and never authors task outputs in subagents mode.
+`project:execution:resolve`. The Root assigns each different TaskRevision to a fresh native child/session and never authors task outputs in subagents mode.
+Never reuse a finished child through follow-up or resume for a different task; same-task corrections remain with its original
+executor before terminal. Releasing a capacity slot does not authorize reusing that child session.
 Subagents require bounded runtime-native children and verified
 `shared-workspace` or `controller-io` transport for this production. Transport is
 host capability evidence, not saved Workspace configuration. A failed attempt is

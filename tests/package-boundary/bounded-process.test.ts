@@ -1,5 +1,6 @@
 import { waitForFixtureReady, stopFixture } from "./process-fixture";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -326,21 +327,124 @@ test("Darwin exited-group proof accepts only a complete snapshot with no live gr
     exitedProcessGroupHasNoWriters(42, () => " 42 Z\n 42 S+\n"),
     false,
   );
-  assert.equal(
-    exitedProcessGroupHasNoWriters(42, () => "garbled"),
-    false,
+  assert.throws(
+    () => exitedProcessGroupHasNoWriters(42, () => "garbled"),
+    /Process-group inspection via \/bin\/ps unavailable \(snapshot-invalid\)/u,
   );
-  assert.equal(
-    exitedProcessGroupHasNoWriters(42, () => ""),
-    false,
+  assert.throws(
+    () => exitedProcessGroupHasNoWriters(42, () => ""),
+    /Process-group inspection via \/bin\/ps unavailable \(snapshot-empty\)/u,
   );
-  assert.equal(
-    exitedProcessGroupHasNoWriters(42, () => {
-      throw new Error("ps denied");
-    }),
-    false,
+  assert.throws(
+    () =>
+      exitedProcessGroupHasNoWriters(42, () => {
+        throw new Error("ps denied");
+      }),
+    /Process-group inspection via \/bin\/ps unavailable \(snapshot-read-failed; unknown\)/u,
   );
 });
+
+test("process inspection errors expose only fixed reasons and approved system codes", () => {
+  for (const code of ["EPERM", "ETIMEDOUT", "PRIVATE_SECRET"]) {
+    assert.throws(
+      () =>
+        exitedProcessGroupHasNoWriters(42, () => {
+          throw Object.assign(
+            new Error("spawnSync /private/secret EPERM TOKEN=secret"),
+            {
+              code,
+              stderr: "private diagnostic bytes",
+            },
+          );
+        }),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.match(error.message, /snapshot-read-failed/u);
+        assert.match(
+          error.message,
+          code === "PRIVATE_SECRET" ? /unknown/u : new RegExp(code),
+        );
+        assert.doesNotMatch(
+          error.message,
+          /PRIVATE_SECRET|private|TOKEN|secret/u,
+        );
+        return true;
+      },
+    );
+  }
+});
+
+test("unavailable post-close inspection preserves the cleanup error and original exit output", async () => {
+  await assert.rejects(
+    runBoundedProcess(
+      process.execPath,
+      [
+        "-e",
+        "console.log('original output');console.error('original diagnostic');process.exit(7)",
+      ],
+      {},
+      {
+        signalProcess: () => {
+          throw permissionError();
+        },
+        exitedGroupHasNoWriters: () =>
+          exitedProcessGroupHasNoWriters(42, () => {
+            throw Object.assign(
+              new Error("spawnSync /bin/ps EPERM PRIVATE_SECRET"),
+              { code: "EPERM" },
+            );
+          }),
+      },
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /Could not send SIGKILL.*kill EPERM/u);
+      if (process.platform === "darwin") {
+        assert.match(
+          error.message,
+          /Process-group inspection via \/bin\/ps unavailable \(snapshot-read-failed; EPERM\)/u,
+        );
+      }
+      assert.doesNotMatch(error.message, /PRIVATE_SECRET/u);
+      assert.equal((error as Error & { status: number }).status, 7);
+      assert.match(error.message, /original output/u);
+      assert.match(error.message, /original diagnostic/u);
+      return true;
+    },
+  );
+});
+
+test(
+  "Darwin sandbox process inspection reports the real spawnSync EPERM",
+  {
+    skip: process.platform !== "darwin",
+  },
+  () => {
+    const source = new URL(
+      "../../packages/studio/src/process/bounded-process.ts",
+      import.meta.url,
+    ).href;
+    const script = `import {exitedProcessGroupHasNoWriters} from ${JSON.stringify(source)}; try { exitedProcessGroupHasNoWriters(process.pid); process.stdout.write('unexpected success'); } catch(error) { process.stdout.write(error.message); }`;
+    const output = execFileSync(
+      "/usr/bin/sandbox-exec",
+      [
+        "-p",
+        "(version 1)(allow default)",
+        process.execPath,
+        "--import",
+        "tsx",
+        "--input-type=module",
+        "-e",
+        script,
+      ],
+      { encoding: "utf8", timeout: 10_000 },
+    );
+    assert.equal(
+      output,
+      "Process-group inspection via /bin/ps unavailable (snapshot-read-failed; EPERM).",
+    );
+  },
+);
 
 test(
   "registration and cleanup failures preserve the original failure, process identity, and streamed log",

@@ -23,6 +23,14 @@ Record those separately when exercised. A maintainer reviews the prompt and
 isolation setup: a transcript hash is evidence binding, not proof that a host or
 maintainer is trustworthy.
 
+The acceptance controller must preserve required host capabilities. In particular, verify `/bin/ps` can run through the
+actual macOS host command surface before production; a passing browser check alone may not exercise the cleanup fallback.
+Do not add `sandbox-exec` as a supposedly file-only isolation wrapper: it can prevent `/bin/ps` from starting even under
+`(allow default)`. This restriction belongs to the test setup and is separate from the Chromium sandbox.
+Fresh profiles and workspace context without OS file isolation must be labeled as such; review initial host context and
+all native tool traces for source/history access. If hard filesystem separation is required, use a separately provisioned
+account or machine without the development checkout. Do not weaken product cleanup or relabel a diagnostic rerun as acceptance.
+
 ## Prepare candidates and capture the empty workspace
 
 After the final package build and focused/full checks, pack both packages with

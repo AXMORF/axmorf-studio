@@ -144,8 +144,28 @@ export function nativeTrace(host: "codex" | "hermes", text: string) {
     ) {
       const call = calls.get(String(payload.tool_call_id ?? payload.call_id));
       assert.ok(call, "Native tool output is missing its originating call");
+      let outputName = call.name;
+      if (host === "hermes" && call.name === "tool_call") {
+        // Hermes defers tools behind a native bridge. Its invocation records
+        // the wrapper, while the native result records the executed tool name.
+        const bridge = z
+          .object({
+            name: z.string().min(1),
+            arguments: z.union([z.record(z.string(), z.unknown()), z.string()]),
+          })
+          .strict()
+          .parse(JSON.parse(call.arguments));
+        if (typeof bridge.arguments === "string")
+          z.record(z.string(), z.unknown()).parse(JSON.parse(bridge.arguments));
+        assert.equal(
+          payload.tool_name,
+          bridge.name,
+          "Hermes bridge output does not match its underlying invocation",
+        );
+        outputName = bridge.name;
+      }
       outputs.push({
-        name: call.name,
+        name: outputName,
         timestamp: time(record.timestamp),
         objects: outputObjects(payload.output ?? payload.content),
       });

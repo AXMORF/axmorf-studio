@@ -29,7 +29,7 @@ task workspace、validator、ArtifactAttestation 和 current delivery，不来�
 4. 保持 fixed continuation 进程运行到 terminal output。
 
 全新 scaffolded Workspace 的内置执行模式是 `subagents`、最大并发 4。默认宿主还必须能创建 bounded
-runtime-native children，并支持 wait-any 补位或原生同步批量（每批不超过容量，返回后提交下一批）；按 [host probe](../../.agents/skills/axmorf-video/references/execution-capabilities.md)
+runtime-native children，并支持 wait-any 补位或原生批量（每批不超过容量，同步返回或整批完成通知后提交下一批）；按 [host probe](../../.agents/skills/axmorf-video/references/execution-capabilities.md)
 验证可用 child 容量及原生 child 的临时 challenge 读写，再给 resolver 传入一种已验证 transport：
 
 - `shared-workspace`：child 可进入 bind 返回的 exact relative workspace；
@@ -63,7 +63,11 @@ creator template 生成的 Workspace README 才提供“下一次视频”的 pr
 
 ## 通用视频入口
 
-收到创建、生产、重建或交付视频的请求时：
+先区分职责：收到 exact attempt-bound task bind 的 worker 直接按本地 Skill 的 worker 路由绑定、读取三个 immutable
+inputs、写 declared outputs 并 finalize/check/commit。全局 doctor/preflight、环境准备、Project 创建、execution resolve
+与 inspect/prepare 只由 Root 执行；worker 不重新执行或调用 provider，不依赖父会话继承。
+
+Root 收到创建、生产、重建或交付视频的请求时：
 
 1. 读取 Workspace `AGENTS.md`，运行 `npm run doctor` 并按上述边界准备环境；
 2. 读取 `.agents/skills/axmorf-video/SKILL.md`；宿主是否支持自动 Skill discovery 不影响该路径；

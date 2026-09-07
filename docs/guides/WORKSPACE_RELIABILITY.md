@@ -17,6 +17,9 @@ Cleanup failures retain the child exit status and captured output and settle the
 from an event callback. An EPERM result is accepted only when a read-only liveness check proves the owned group exited;
 after child close on macOS, one bounded process snapshot may prove the group is absent or contains only zombies.
 Live or unknown groups remain failures. This does not retry production or relax the Chromium sandbox.
+If the inspection itself cannot run, the error now identifies `/bin/ps`, a fixed inspection reason and an approved system
+error code separately from the original cleanup failure. Snapshot read failure, empty/invalid data and a remaining
+non-zombie member are distinct diagnostics; raw inspection stderr, environment values and arbitrary exception text are not exposed.
 
 The public Workspace `npm run project:check -- --project <storyId> --level final` is a read-only check of the current
 ProductionRevision, verified artifacts and exact four-file Delivery. It reports structured failure reasons for missing,

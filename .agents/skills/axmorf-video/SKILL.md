@@ -5,21 +5,21 @@ description: Resolve inline or bounded-Agent execution, produce, and hand off to
 
 # AXMORF Studio Video
 
+已有 exact attempt-bound bind 的 worker 直接走 [task protocol](references/task-execution-protocol.md)，不重跑 Root 流程；其余由 Root 执行。
+
 ## Create the Project when needed
 
 新建先用 `npm run project:create:context -- --project <storyId>`；按 `fieldExamples` 写附加要求对象，按 `durationBudget` 预算旁白并报告实测偏差。
 
 Read [policy](policy.json), [workflow](references/direct-production-workflow.md), and
 [Producer config](references/producer-config.md). 报告首尾 Scene 的继承、选择或禁用。
-User silence means inheritance: omit `sceneTemplates`, never infer `null`. Use `project:create` for new authoring;
-修改走下方隔离 revision，保留无关 authoring。
+User silence means inheritance：省略 `sceneTemplates`，never infer `null`；新建用 `project:create`，修改走隔离 revision。
 
-`project:create` freezes the originality baseline. Missing legacy baseline requires explicit migration via
-zero-provider `project:originality:freeze` before inspect; never synthesize one.
+`project:create` 冻结 originality baseline；legacy 缺失时必须显式 zero-provider `project:originality:freeze`，不伪造。
 Fix `authoring-validation-failed` issues. For `caption-display-budget-exceeded`, shorten or split `ttsChunk`
 within 72 `caption-display-unit-v1` half-units; never weaken validators.
 
-Existing Project changes use the [revision workflow](references/project-revision.md); never edit live authoring.
+修改用 [revision workflow](references/project-revision.md); never edit live authoring.
 
 ## Load optional Agent capabilities
 
@@ -57,7 +57,7 @@ inputs 与 declared outputs，并运行 bound commands。TaskExecutionContract a
 Prepare 前确认宿主进程能跨工具超时存活；只能等待原 handle 的 fixed 终态，后台启动回执不是完成。
 
 Inline Root executes exactly one workspace at a time. Subagent mode admits at most `effectiveMaxConcurrency`
-runtime-native children；原生 wait-any 即时补位，原生同步批量则返回后发下一批；不轮询 child 或信任 chat。真实 spawn/
+runtime-native children；原生 wait-any 即时补位，原生批量返回或整批完成通知后发下一批；不轮询 child 或信任 chat。真实 spawn/
 transport failure 由 Root 运行 `spawnFailureCommand`；immutable/controller fault 用 `fixedFailureCommand`；两者都不
 授予 task content access 或切换模式。全部 dirty task 执行/admit 后立即 continue。
 
