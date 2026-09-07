@@ -40,7 +40,8 @@ authoring in place; use the returned candidate flag throughout production.
 Candidates only use Project-owned media already frozen in their base context;
 they do not import new assets.
 
-Resolve execution once with `npm run project:execution:resolve`. Only explicit user choices
+Before inspect, read [native child verification](references/execution-capabilities.md) and perform its probe for the default
+`subagents` mode (maximum four). Resolve once with verified host flags on `npm run project:execution:resolve`. Only explicit user choices
 may override settings; do not claim an Agent-selected mode came from the user. A blocked
 subagents configuration is a blocker, not permission to switch to inline.
 

@@ -51,7 +51,7 @@ test("mainstream agent entrypoints import one repository authority", async () =>
   assert.equal(gemini.trim(), "@./AGENTS.md");
   assert.match(agents, /AGENTS\.md` 是唯一仓库级 Agent 指令 authority/u);
   assert.match(agents, /\.agents\/skills\/axmorf-video\/SKILL\.md/u);
-  assert.match(agents, /内置执行默认是 `inline`/u);
+  assert.match(agents, /内置执行默认是 `subagents`/u);
   assert.match(agents, /TaskExecutionContract/u);
   assert.match(agents, /project:task:bind/u);
   assert.match(readme, /docs\/guides\/AGENT_COMPATIBILITY\.md/u);
@@ -82,16 +82,16 @@ test("mainstream agent entrypoints import one repository authority", async () =>
   assert.match(guide, /shared-workspace[\s\S]*controller-io/u);
   assert.match(status, /macOS 15 ARM64.*reference environment/su);
   assert.match(workflow, /Resolved execution mode/u);
-  assert.match(workflow, /inline default/u);
+  assert.match(workflow, /explicit inline/u);
   assert.match(workflow, /仓库只产出通用 workspace 与 shell command/u);
-  assert.match(status, /policy schema v18 \/ policy v21/u);
-  assert.match(status, /内置 `inline` 默认/u);
+  assert.match(status, /policy schema v18 \/ policy v22/u);
+  assert.match(status, /内置 `subagents`\/4 默认/u);
   assert.match(status, /project:attempt:recover-inspect/u);
   assert.match(producerConfig, /private\/execution-preferences\.json/u);
-  assert.match(producerConfig, /文件不存在时内置使用 `inline`/u);
+  assert.match(producerConfig, /文件不存在时内置使用 `subagents`/u);
   assert.match(producerConfig, /transport[\s\S]*不是表单字段/u);
   assert.match(architecture, /single repository Agent instruction authority/u);
-  assert.match(architecture, /Built-in inline default/u);
+  assert.match(architecture, /Built-in subagents default: max 4/u);
   assert.match(architecture, /attempt-bound zero-write gate/u);
   assert.match(readme, /--worker-transport/u);
   assert.match(readme, /project:task:bind/u);
@@ -141,4 +141,25 @@ test("generic production surfaces do not call vendor agent runtimes", async () =
   );
   assert.match(prepareProduction, /dirtyAgentTasks/u);
   assert.match(prepareProduction, /continuationCommand/u);
+});
+
+test("native execution guides support both wait-any and synchronous bounded batches", async () => {
+  const [repository, workspace] = await Promise.all([
+    readRepositoryFile(
+      ".agents/skills/axmorf-video/references/execution-capabilities.md",
+    ),
+    readRepositoryFile(
+      "packages/create-axmorf-studio/template/.agents/skills/axmorf-video/references/execution-capabilities.md",
+    ),
+  ]);
+  assert.equal(workspace, repository);
+  assert.match(workspace, /With wait-any[\s\S]*immediately admit/u);
+  assert.match(
+    workspace,
+    /With a synchronous native batch[\s\S]*effectiveMaxConcurrency[\s\S]*next bounded batch/u,
+  );
+  assert.match(workspace, /Root never authors task outputs/u);
+  assert.match(workspace, /Do not wrap shell jobs as children/u);
+  assert.match(workspace, /continuation once and suspend/u);
+  assert.doesNotMatch(workspace, /do not wait for the whole batch/u);
 });

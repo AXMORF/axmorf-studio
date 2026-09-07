@@ -50,9 +50,9 @@ task 或产物，也避免 Remotion Studio 因短暂的旧 import 终止配置 A
 
 “Agent 执行”设置独立保存到 Git-ignored 的 `private/execution-preferences.json`，使用 strict contract、
 原子替换和 `0600` 权限。该文件不是 ProducerConfig，也不改变 ProducerConfig、Revision、TaskRevision、
-ArtifactAttestation 或 DeliveryBuild identity；文件不存在时内置使用 `inline`，一个 shell-capable Agent 即可
-串行处理 dirty workspaces。只有宿主确实提供 bounded runtime-native children，并能为本次 production 验证
-`shared-workspace` 或 `controller-io` transport 时才选择 `subagents` 并设置最多四个并发。transport 是本次宿主
+ArtifactAttestation 或 DeliveryBuild identity；文件不存在时内置使用 `subagents`、最大并发 4；用户可明确保存 `inline`。
+宿主必须提供 bounded runtime-native children，并按 [host probe](../../.agents/skills/axmorf-video/references/execution-capabilities.md)
+为本次 production 验证可用容量与 `shared-workspace` 或 `controller-io` transport。transport 是本次宿主
 capability evidence，不是表单字段，永远不写入 execution preferences 或 content identity。用户提示词中的本次
 override 优先于已保存设置，但不会自动写回；transport 未验证或无法满足明确容量要求时在 prepare 前阻塞，
 不回退或伪造 child execution。

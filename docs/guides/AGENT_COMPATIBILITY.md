@@ -21,20 +21,21 @@ task workspace、validator、ArtifactAttestation 和 current delivery，不来�
 
 ## 最低能力
 
-开箱生产只要求当前 Agent 能：
+生产的基础文件和进程能力要求当前 Agent 能：
 
 1. 读取仓库文件和 JSON；
 2. 在精确 workspace 内编辑普通文件；
 3. 运行 npm CLI 并读取结构化 stdout；
 4. 保持 fixed continuation 进程运行到 terminal output。
 
-全新 scaffolded Workspace 的内置执行模式是 `inline`，不要求原生子 Agent API。`subagents` 只是一项可选加速能力：宿主
-必须能创建 bounded runtime-native children、执行 wait-any admission，并为本次 production 验证一种 transport：
+全新 scaffolded Workspace 的内置执行模式是 `subagents`、最大并发 4。默认宿主还必须能创建 bounded
+runtime-native children，并支持 wait-any 补位或原生同步批量（每批不超过容量，返回后提交下一批）；按 [host probe](../../.agents/skills/axmorf-video/references/execution-capabilities.md)
+验证可用 child 容量及原生 child 的临时 challenge 读写，再给 resolver 传入一种已验证 transport：
 
 - `shared-workspace`：child 可进入 bind 返回的 exact relative workspace；
 - `controller-io`：child 没有 filesystem access，只调用 bind 返回的 strict file-read/file-write commands。
 
-线程、聊天、普通后台 shell、delegate 名称或未验证 transport 都不证明该能力。transport 是不持久化的 host
+用户可明确选择 `inline`，此时只需基础能力。线程、聊天、普通后台 shell、delegate 名称或未验证 transport 都不证明 child 能力。transport 是不持久化的 host
 capability evidence，不是 execution preferences/Project 设置。未验证 transport、容量为零或无法满足 exact
 capacity 时，生产在 prepare 前阻塞；不自动回退或伪造 child completion。
 
@@ -69,17 +70,17 @@ creator template 生成的 Workspace README 才提供“下一次视频”的 pr
 3. 按 Skill 只加载当前阶段需要的 reference；
 4. 修改现有 Project 时，先按 [`PROJECT_REVISION.md`](PROJECT_REVISION.md) 读取 exact current context、校验 strict
    input 并创建隔离 candidate；它不要求额外宿主 API，后续只消费 candidate-routed npm commands；
-5. 运行 `npm run project:execution:resolve`。没有持久化设置或提示词 override 时会解析为 `inline`；选择 subagents
-   时把 verified transport 作为当前 resolver input；
+5. 按 Skill 验证 native child transport 与容量，再运行 `npm run project:execution:resolve`，传入
+   `--runtime-max-concurrency` 和 `--worker-transport`；没有持久化设置或提示词 override 时使用 `subagents`/4；
 6. 后续只消费 `npm run project:produce:inspect`、`npm run project:produce:prepare` 返回的 JSON、task workspace 和 exact
    commands；每个 dirty task 在任何 content read/write 前先通过 attempt-bound zero-write bind；
 7. `task-worker-bound` 后读取 immutable `task.json`、`inputs/context.json`、`inputs/task-contract.json`，再按返回的
    capability 与 bound describe/finalize/check/commit/failure commands 执行。
 
 仓库脚本不调用 Codex/Claude/Gemini/Cursor/Copilot SDK，也不创建 Agent。`prepare` 产生通用任务描述和 shell
-commands；当前宿主负责 inline 执行或可选 child admission。
+commands；当前宿主负责已解析的 inline 执行或 bounded child admission。
 
-## 可选能力
+## 按执行模式使用的能力
 
 - 原生子 Agent/transport：只影响本次执行并发与 I/O capability，不持久化 child identity，不进入
   Revision、TaskRevision、artifact 或 delivery identity。

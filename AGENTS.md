@@ -62,8 +62,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - 处理视频创建、生产或交付时，即使宿主不会自动发现 Skill，也必须手动读取
   `.agents/skills/axmorf-video/SKILL.md`；Scene task 再按该 Skill 读取 repository-local
   `remotion-best-practices`。
-- 全新 scaffolded Workspace 的内置执行默认是 `inline`，只要求当前 Agent 能读写文件并运行 shell。只有用户或已保存设置
-  选择 `subagents`、宿主提供 bounded runtime-native child execution，且为本次 production 验证
+- 全新 scaffolded Workspace 的内置执行默认是 `subagents`，最大并发 4；用户或已保存设置可明确选择 `inline`。
+  默认生产要求宿主提供 bounded runtime-native child execution，并按 Skill 的临时 challenge probe 为本次 production 验证
   `shared-workspace` 或 `controller-io` transport 时才使用子 Agent；不得把线程、聊天或普通后台进程伪装成 child
   runtime。transport 是不持久化的宿主能力证据，不是 Workspace/App/Project 设置。
 - `.agents/**/agents/openai.yaml` 只提供 OpenAI host 的可选 UI metadata，不属于 Skill、production contract、
@@ -134,10 +134,11 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   MCP/receipt/candidate path 不进入 child、Revision、Artifact Store、delivery 或 runtime；只有 import 后的
   Project-owned manifest identity 与 bytes fingerprint 能成为 production input。
 - `npm run project:execution:resolve` 在 inspect 前解析一次 Agent 执行策略：用户提示词中的明确字段优先于
-  `private/execution-preferences.json`，未明确字段继续继承配置，再继承内置 `inline` 默认。override 只作用于当前
+  `private/execution-preferences.json`，未明确字段继续继承配置，再继承内置 `subagents`/4 默认。override 只作用于当前
   production，除非用户明确要求保存；解析结果不进入 Revision/Task/artifact/delivery identity。`inline` 由
   Root 一次只执行一个 dirty workspace；`subagents` 使用不超过四个且受 runtime capacity 限制的 bounded pool，
-  并要求本次 resolver 输入 verified worker transport。runtime capacity 未知时按 1；transport 未验证、容量为 0
+  并要求本次 resolver 输入 verified worker transport。原生 wait-any 完成即补位；原生同步批量每批不超过容量，返回后发下一批。
+  runtime capacity 未知时按 1；transport 未验证、容量为 0
   或 exact capacity 无法满足都必须在 prepare 前阻塞，不自动换模式。transport/解析结果不持久化也不进入 content
   identity。
 - `npm run project:produce:inspect -- --project <storyId>` 是严格只读、零 provider call 的诊断入口；Root

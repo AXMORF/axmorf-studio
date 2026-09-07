@@ -1,6 +1,6 @@
 {
   "schemaVersion": 18,
-  "policyVersion": "axmorf-video-policy-v21",
+  "policyVersion": "axmorf-video-policy-v22",
   "rootEndpoints": [
     "project-production-complete",
     "project-production-current"
@@ -22,6 +22,7 @@
   "requiredReferences": [
     "references/producer-config.md",
     "references/direct-production-workflow.md",
+    "references/execution-capabilities.md",
     "references/scene-agent-orchestration.md",
     "references/global-visual-agent-orchestration.md",
     "references/cover-agent-orchestration.md",
@@ -55,12 +56,12 @@
     "resolutionPhase": "before-production-inspect",
     "precedence": ["user-prompt", "settings-page", "builtin-default"],
     "promptOverridePersistence": "current-production-only-unless-explicit-save",
-    "defaultMode": "inline",
+    "defaultMode": "subagents",
     "defaultSubagentMaxConcurrency": 4,
     "repositoryMaxConcurrency": 4,
     "unknownRuntimeMaxConcurrency": 1,
     "inlinePolicy": "root-sequential-one-workspace-at-a-time",
-    "subagentPolicy": "bounded-pool-wait-any-admission",
+    "subagentPolicy": "bounded-native-wait-any-or-synchronous-batch",
     "subagentWorkerTransport": "verified-shared-workspace-or-controller-io",
     "unverifiedWorkerTransportPolicy": "block-before-prepare",
     "exactCapacityFailurePolicy": "block-before-prepare",

@@ -101,8 +101,9 @@ deliveries/<storyId>/publish.json
 <details>
 <summary>Agent / 高级生产命令参考</summary>
 
-执行策略默认是 `inline`。只有当前宿主确实支持 bounded runtime-native children，并为本次生产验证了
-`shared-workspace` 或 `controller-io` transport，才使用 subagents：
+执行策略默认是 `subagents`，最大并发 4，受宿主可用 child 容量限制。用户或配置可明确选择 `inline`。
+Agent 先按 [host probe](.agents/skills/axmorf-video/references/execution-capabilities.md) 验证原生 child 读写，
+再把实际容量与 transport 作为本次证据传给 resolver；没有能力时阻塞，不自动降级：
 
 ```bash
 npm run project:execution:resolve -- --mode subagents --max-concurrency <n> --runtime-max-concurrency <n> --worker-transport shared-workspace|controller-io

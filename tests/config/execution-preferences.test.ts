@@ -21,7 +21,7 @@ test("execution preferences default, persist privately, and reject symlinks", as
   assert.deepEqual(DEFAULT_EXECUTION_PREFERENCES, {
     schemaVersion: 1,
     contractVersion: "execution-preferences-v1",
-    creativeTaskExecution: { mode: "inline" },
+    creativeTaskExecution: { mode: "subagents", maxConcurrency: 4 },
   });
   assert.deepEqual(await loadExecutionPreferences({ preferencesPath }), {
     preferences: DEFAULT_EXECUTION_PREFERENCES,
@@ -46,6 +46,57 @@ test("execution preferences default, persist privately, and reject symlinks", as
     loadExecutionPreferences({ preferencesPath: linkPath }),
     /regular file/u,
   );
+});
+
+test("default subagents require verified transport and respect the available child capacity", () => {
+  const resolve = (runtime: {
+    runtimeMaxConcurrency?: number;
+    runtimeWorkerTransport?: "shared-workspace" | "controller-io";
+  }) =>
+    resolveAgentExecution({
+      preferences: DEFAULT_EXECUTION_PREFERENCES,
+      preferenceSource: "builtin-default",
+      ...runtime,
+    });
+
+  const unverified = resolve({ runtimeMaxConcurrency: 4 });
+  assert.equal(unverified.status, "blocked");
+  assert.equal(unverified.mode, "subagents");
+  assert.equal(unverified.requestedMaxConcurrency, 4);
+  assert.deepEqual(unverified.limitedBy, ["worker-transport-unverified"]);
+
+  const verified = resolve({
+    runtimeMaxConcurrency: 8,
+    runtimeWorkerTransport: "shared-workspace",
+  });
+  assert.equal(verified.status, "ready");
+  assert.equal(verified.effectiveMaxConcurrency, 4);
+  assert.deepEqual(verified.source, {
+    mode: "builtin-default",
+    maxConcurrency: "builtin-default",
+  });
+
+  const constrained = resolve({
+    runtimeMaxConcurrency: 2,
+    runtimeWorkerTransport: "controller-io",
+  });
+  assert.equal(constrained.status, "ready");
+  assert.equal(constrained.effectiveMaxConcurrency, 2);
+  assert.deepEqual(constrained.limitedBy, ["runtime-capacity"]);
+
+  const unknown = resolve({ runtimeWorkerTransport: "shared-workspace" });
+  assert.equal(unknown.status, "ready");
+  assert.equal(unknown.effectiveMaxConcurrency, 1);
+  assert.deepEqual(unknown.limitedBy, ["runtime-unknown-default"]);
+
+  const inline = resolveAgentExecution({
+    preferences: DEFAULT_EXECUTION_PREFERENCES,
+    preferenceSource: "builtin-default",
+    override: { mode: "inline" },
+  });
+  assert.equal(inline.status, "ready");
+  assert.equal(inline.mode, "inline");
+  assert.equal(inline.workerTransport, null);
 });
 
 test("user execution fields override settings and runtime capacity clamps safely", () => {

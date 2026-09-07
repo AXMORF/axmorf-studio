@@ -40,7 +40,8 @@ export const DEFAULT_EXECUTION_PREFERENCES = ExecutionPreferencesSchema.parse({
   schemaVersion: 1,
   contractVersion: EXECUTION_PREFERENCES_VERSION,
   creativeTaskExecution: {
-    mode: "inline",
+    mode: "subagents",
+    maxConcurrency: REPOSITORY_SUBAGENT_CONCURRENCY_CEILING,
   },
 });
 

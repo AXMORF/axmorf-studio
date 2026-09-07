@@ -55,6 +55,10 @@ exact four files pass validation; it replaces only source/public/narration/deliv
 as one transaction, and any promotion failure must roll all four back.
 Retry only `project:revision:promote`, not the completed production attempt.
 
+Execution defaults to `subagents` with maximum four, subject to available native child capacity. Explicit user choices override
+saved execution settings and the built-in default; explicit inline remains supported. Before inspect, follow the Skill
+[host probe](.agents/skills/axmorf-video/references/execution-capabilities.md), then pass verified capacity and transport to
+`project:execution:resolve`. The Root assigns one dirty task per child and never authors task outputs in subagents mode.
 Subagents require bounded runtime-native children and verified
 `shared-workspace` or `controller-io` transport for this production. Transport is
 host capability evidence, not saved Workspace configuration. A failed attempt is

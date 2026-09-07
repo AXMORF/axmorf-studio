@@ -1,4 +1,4 @@
 interface:
   display_name: "AXMORF Studio 视频制作"
   short_description: "原子创建或候选修改、内容寻址生产、同步四文件交付"
-  default_prompt: "使用 $axmorf-video：新建 Project 走 strict create；修改现有 Project 先读取 exact current context，再在隔离 candidate 中生产并受控提升。按用户提示词、设置页、内置 inline 解析执行模式；仅在宿主能为本次生产验证 shared-workspace 或 controller-io transport 时使用最多四个子 Agent。每个 dirty task 先经 attempt-bound zero-write bind，再按 immutable TaskExecutionContract 执行，最后启动 exact continuation。"
+  default_prompt: "使用 $axmorf-video：新建 Project 走 strict create；修改现有 Project 先读取 exact current context，再在隔离 candidate 中生产并受控提升。按用户提示词、设置页、内置 subagents/4 解析执行模式；仅在宿主能为本次生产验证 shared-workspace 或 controller-io transport 时使用最多四个子 Agent。每个 dirty task 先经 attempt-bound zero-write bind，再按 immutable TaskExecutionContract 执行，最后启动 exact continuation。"

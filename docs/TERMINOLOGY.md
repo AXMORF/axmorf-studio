@@ -40,7 +40,7 @@
 | attempt recovery inspection | 对 terminal failed attempt 的严格只读、零 provider eligibility 检查；要求 same current Revision、无 active successor、无 fixed dirty/blocked flow，不要求 current Delivery。 |
 | attempt reissue | recovery-ready 后创建 fresh same-Revision attempt/bindings 的显式零 provider 操作；旧 attempt immutable，复用 valid artifacts/合法 drafts，不是自动 retry。 |
 | task-terminal event | task executor 对 exact attempt/TaskRevision 写入的首个 committed/current/failed 机械终态；同结果幂等，相反结果不可覆盖。 |
-| Agent execution policy | inspect 前按用户提示词明确字段、独立 settings、内置 `inline` 默认解析的当前 production 编排策略；选择 Root inline 串行或最多四个 subagents，不进入 production identity。 |
+| Agent execution policy | inspect 前按用户提示词明确字段、独立 settings、内置 `subagents`/4 默认解析的当前 production 编排策略；选择 Root inline 串行或最多四个 subagents，不进入 production identity。 |
 | GlobalVisual layer policy | 由 canonical SemanticTiming 固定派生的双层范围：base 覆盖完整 Composition；decoration 只覆盖首个至末个 narrated Scene 的连续窗口，并以该窗口起点作为 local frame zero。 |
 | fixed continuation | Root 完成 inline execution 或 bounded admission 后启动的 attempt-bound 固定进程；one-shot atomic claim 后等待 immutable task-terminal event log，failure/attempt 创建起一小时 timeout 退出，all-success 内部 converge exactly once。 |
 | convergence | fixed continuation 内部的只读重算 Revision、要求全部 artifact、受控物化 Project、刷新 derived packages/Composition 并交付。 |

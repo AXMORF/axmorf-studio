@@ -30,13 +30,15 @@ manifest identity 与 bytes fingerprint。revision candidate 本轮没有独立 
 ## 2. Resolve Agent execution
 
 当前用户提示词中明确提出的 mode/max concurrency 字段优先；提示词没有的字段继承配置页，再继承内置默认。
-全新 scaffolded Workspace 的内置默认是无需 child runtime 的 `inline`。override 只用于当前 production，除非用户明确要求保存：
+全新 scaffolded Workspace 的内置默认是 `subagents`、最大并发 4；明确选择 `inline` 时不要求 child runtime。
+先按 [host probe](../../.agents/skills/axmorf-video/references/execution-capabilities.md) 让原生 child 完成临时 challenge 读写，
+Root 复验 bytes 并释放 probe slot，再把真实可用 capacity 与 transport 传给 resolver。override 只用于当前 production，除非用户明确要求保存：
 
 ```bash
 npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>] [--worker-transport shared-workspace|controller-io]
 ```
 
-只有 prompt/settings 选择 subagents 时才需要 runtime capacity 和 verified worker transport；已知容量必须传入，
+解析为 subagents 时需要 runtime capacity 和 verified worker transport；已知容量必须传入，
 未知时按 1，明确为 0 时阻塞。`shared-workspace`/`controller-io` 是本次宿主能力证据，不是配置项，也不持久化。
 仓库安全上限为 4。未验证 transport 或无法满足 exact request 都在 prepare 前阻塞。解析结果不进入
 production identity。
@@ -104,7 +106,8 @@ shared-workspace 只允许返回的 relative workspace/declared files。controll
 output，并复验大小、parent/no-symlink 与 regular file。describe/finalize/check/commit/authored task failure 需要 full
 binding。finalize 只投影 fixed derived fields 后运行同一 validator；`agent-output` issue 由同一 executor 修正。
 inline 模式下 Root 一次只处理一个 workspace。subagents 模式按 `effectiveMaxConcurrency` 维护 bounded pool；
-队列未空时仅 wait-any 释放 admission slot，不轮询全部 child。真实 spawn/transport/permission failure 运行
+原生支持 wait-any 时完成即释放 slot 并补位；原生同步批量时每批不超过容量，调用返回后提交下一批。
+两者都是真实 native children，不能用 shell 后台或新聊天模拟，也不轮询全部 child。真实 spawn/transport/permission failure 运行
 Root-only exact `spawnFailureCommand`；immutable/controller fault 运行 `fixedFailureCommand`。二者 authority 更窄，
 只能记录 exact terminal event，不能读写 task content。不自动改为 inline；聊天不是 terminal receipt。
 

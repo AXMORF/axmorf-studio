@@ -16,6 +16,11 @@ import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import { resolveNpmCliPath } from "../../packages/create-axmorf-studio/src/index.js";
 import {
+  auditNativeExecution,
+  NativeChildInput,
+  NativeExecutionSchema,
+} from "./native-execution";
+import {
   directoryFiles,
   packageContent,
   sha256,
@@ -80,9 +85,11 @@ export const HostReceiptSchema = z
         businessUserMessages: z.literal(1),
         toolCalls: z.number().int().positive(),
         followUpMessages: z.literal(0),
+        nativeCompletionMessages: z.number().int().nonnegative().optional(),
       })
       .strict(),
     unchangedPackageFiles: z.number().int().positive(),
+    nativeExecution: NativeExecutionSchema.optional(),
     unchangedGuideFiles: z.number().int().positive(),
     finalCheck: FinalCheck,
     delivery: z
@@ -330,6 +337,7 @@ export function auditTranscript(
   prompt: string,
   sessionId: string,
   workspace: string,
+  allowedNativeMessages: readonly string[] = [],
 ) {
   let userMessages: string[];
   let toolCalls: number;
@@ -414,6 +422,15 @@ export function auditTranscript(
         ["function_call", "custom_tool_call"].includes(row.payload.type),
     ).length;
   }
+  const remainingNative = [...allowedNativeMessages];
+  let nativeCompletionMessages = 0;
+  userMessages = userMessages.filter((message) => {
+    const index = remainingNative.indexOf(message);
+    if (index === -1) return true;
+    remainingNative.splice(index, 1);
+    nativeCompletionMessages += 1;
+    return false;
+  });
   assert.deepEqual(
     userMessages,
     [prompt],
@@ -424,6 +441,7 @@ export function auditTranscript(
     businessUserMessages: 1 as const,
     toolCalls,
     followUpMessages: 0 as const,
+    nativeCompletionMessages,
   };
 }
 
@@ -525,6 +543,9 @@ export async function record(
       transcriptFile: Text,
       runFile: Text,
       sessionFile: Text.optional(),
+      nativeChildren: z.array(NativeChildInput).optional(),
+      delegationFile: Text.optional(),
+      hermesRuntimeRoot: Text.optional(),
     })
     .strict()
     .parse(await readJson(evidencePath));
@@ -563,12 +584,40 @@ export async function record(
     "Public guides changed during the test",
   );
   const transcript = await readFile(input.transcriptFile, "utf8");
+  const requiresNative = requiresNativeExecution(
+    initial.packages.runtime.version,
+  );
+  if (requiresNative)
+    assert.ok(
+      input.nativeChildren,
+      "This release requires native child execution evidence",
+    );
+  const native =
+    input.nativeChildren === undefined
+      ? undefined
+      : await auditNativeExecution({
+          host: initial.host,
+          transcript,
+          sessionId: input.sessionId,
+          workspace,
+          startedAt: run.startedAt,
+          endedAt: run.endedAt,
+          storyId: input.storyId,
+          nativeChildren: input.nativeChildren,
+          ...(input.delegationFile === undefined
+            ? {}
+            : { delegationFile: input.delegationFile }),
+          ...(input.hermesRuntimeRoot === undefined
+            ? {}
+            : { hermesRuntimeRoot: input.hermesRuntimeRoot }),
+        });
   const transcriptAudit = auditTranscript(
     initial.host,
     transcript,
     initial.prompt,
     input.sessionId,
     workspace,
+    native?.allowedNativeMessages,
   );
   let sessionChecksum: string | null = null;
   if (initial.host === "hermes") {
@@ -702,6 +751,7 @@ export async function record(
     creation: initial.creation,
     sessionChecksum,
     transcriptAudit,
+    nativeExecution: native?.execution,
     unchangedPackageFiles: installed.length,
     unchangedGuideFiles: initial.guides.length,
     finalCheck,
@@ -743,6 +793,44 @@ export function verifyReceipt(
       { runtime: packageSummary(runtime), creator: packageSummary(creator) },
       "First-use evidence does not match these release candidates",
     );
+    if (requiresNativeExecution(runtime.version)) {
+      assert.ok(
+        host.nativeExecution,
+        "This release requires actual bounded native child execution on both hosts",
+      );
+      const execution = host.nativeExecution;
+      assert.equal(execution.productionChildCount, execution.dirtyTaskCount);
+      assert.equal(
+        execution.childEvidence.length,
+        execution.productionChildCount + execution.probeChildCount,
+      );
+      assert.ok(
+        execution.peakActiveChildren <= execution.effectiveMaxConcurrency,
+      );
+      assert.equal(
+        new Set(execution.childEvidence.map((child) => child.sessionId)).size,
+        execution.childEvidence.length,
+      );
+      assert.equal(
+        execution.childEvidence.filter((child) => child.taskRevision !== null)
+          .length,
+        execution.dirtyTaskCount,
+      );
+      assert.equal(
+        new Set(
+          execution.childEvidence.flatMap((child) =>
+            child.taskRevision === null ? [] : [child.taskRevision],
+          ),
+        ).size,
+        execution.dirtyTaskCount,
+      );
+      assert.ok(
+        execution.childEvidence.every(
+          (child) =>
+            (child.sessionChecksum !== null) === (host.host === "hermes"),
+        ),
+      );
+    }
     assert.equal(host.promptChecksum, sha256(host.prompt));
     assert.equal(
       host.sessionChecksum !== null,
@@ -778,6 +866,9 @@ export function verifyReceipt(
     creatorFingerprint: creator.fingerprint,
   };
 }
+
+const requiresNativeExecution = (version: string) =>
+  !/^0\.1\.[0-8](?:$|-)/u.test(version);
 
 async function main(args: string[]) {
   const [operation, ...paths] = args;

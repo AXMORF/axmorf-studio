@@ -7,7 +7,7 @@ export const describeWorkspaceCliHelp = () => ({
     "npm run project:create -- --schema",
     "npm run project:create -- --project <storyId> --input <workspace-relative-json>",
     "npm run catalog:query -- --kind style-profile",
-    "npm run project:execution:resolve [-- --mode inline|subagents]",
+    "npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>] [--worker-transport shared-workspace|controller-io]",
     "npm run project:produce:inspect -- --project <storyId>",
     "npm run project:produce:prepare -- --project <storyId>",
     "npm run project:attempt:interrupt-inspect -- --project <storyId> --attempt <attemptId>",
@@ -21,7 +21,8 @@ export const describeWorkspaceCliHelp = () => ({
   guidance: [
     "Read .agents/skills/axmorf-video/SKILL.md and its references for the current stage.",
     "Use exact task bind/finalize/check/commit and continuation commands returned by prepare; do not reconstruct their identities.",
-    "Execution overrides require the user's selection. Missing fields inherit settings.",
+    "Execution precedence: explicit user fields, private/execution-preferences.json, then built-in subagents with maximum 4. Explicit inline remains supported.",
+    "Before resolving subagents, follow .agents/skills/axmorf-video/references/execution-capabilities.md: verify a native child challenge read/write and available child capacity. --runtime-max-concurrency is verified host capacity, not the saved maximum; --worker-transport is this production's verified transport, never a persisted preference. Missing evidence blocks before prepare without inline fallback.",
     "project:check --level final verifies the current Revision, artifacts, and four-file delivery without writing proof reports. --scope source retains source-only checks.",
     "Candidate production and recovery must preserve the exact --candidate returned by revision create.",
   ],

@@ -11,15 +11,17 @@
    `project:revise:validate`, then `project:revise`. Bind the exact current
    Revision and verified Delivery; keep live authoring unchanged and carry the
    returned `--candidate` through every production, task, and recovery command.
-4. Resolve execution according to the current host's real capabilities. The built-in default is inline; never override a configured subagents selection without a user choice. Use bounded runtime-native children only when the
-   user/config selects them and the host verifies `shared-workspace` or
-   `controller-io` transport for this production. Never persist transport.
+4. The built-in default is `subagents` with maximum four; explicit user choices override saved settings and defaults.
+   Read [native child verification](execution-capabilities.md), probe this host, then run `project:execution:resolve` with
+   verified capacity and transport before inspect. Explicit inline needs no child probe. Never persist transport or silently change mode.
 5. Run `npm run project:produce:inspect -- --project <storyId>` and report its
    structured readiness, cost, reuse, and invalidation result.
 6. Read [host execution and recovery](host-execution-and-recovery.md); establish a terminal handle that can survive the host tool deadline.
    Run `npm run project:produce:prepare -- --project <storyId>` only after the
    inspection is understood and cost is authorized.
-7. For every dirty Scene, GlobalVisual, or Cover task, run its exact
+7. In subagents mode assign one dirty task per native child and never exceed `effectiveMaxConcurrency`. Refill on native wait-any;
+   if the host offers synchronous native batches, wait for its batch return before submitting the next bounded batch;
+   the Root does not author task outputs. For every dirty Scene, GlobalVisual, or Cover task, its executor runs the exact
    attempt-bound bind command before any task read/write. Continue only after
    `task-worker-bound`; consume immutable `task.json`, `inputs/context.json`, and
    `inputs/task-contract.json` through the returned capability.

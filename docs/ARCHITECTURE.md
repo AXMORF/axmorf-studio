@@ -57,7 +57,7 @@ flowchart TD
   AgentTools[Current Root callable MCP tools] -. optional receipt import .-> Inputs
   Prompt[Explicit user execution fields] --> Execution[One-run execution resolution]
   Settings[Independent execution preferences] --> Execution
-  Builtin[Built-in inline default] --> Execution
+  Builtin[Built-in subagents default: max 4] --> Execution
   Execution -. orchestration only .-> Inspection
   Inputs --> Inspection[Read-only ProductionInspection]
   Inspection --> Prepare[Explicit costly preparation]
@@ -141,7 +141,7 @@ Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the config
 instance. Its artifact is the exact union of immutable copied source/assets and the canonical derived Scene bundle;
 live-only fixed projections are excluded from its task identity.
 
-inspect 前的 execution resolver 按用户提示词、settings、内置 `inline` 默认逐字段选择 Root inline 或 bounded
+inspect 前的 execution resolver 按用户提示词、settings、内置 `subagents`/4 默认逐字段选择 Root inline 或 bounded
 subagents，且不进入 production identity。subagents 还要求宿主为本次 production 验证 `shared-workspace` 或
 `controller-io`；transport 不进入 settings 或持久 identity。每个 dirty Agent task 只有一个 executor；inline 一次一个 workspace，
 subagents 最大四个并受 runtime capacity 限制。全部完成或 admission 后 Root 挂起；fixed continuation 以 one-shot

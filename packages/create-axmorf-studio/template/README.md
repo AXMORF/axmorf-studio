@@ -5,7 +5,7 @@ artifacts, renders, revision candidates, and Deliveries stay in this directory a
 
 ## Ask your Agent for a video
 
-Open this workspace in an Agent that can read/write files and run npm commands, and describe the video you want. For example:
+Open this workspace in an Agent that supports native subagents, file access, and npm commands, and describe the video you want. For example:
 
 ```text
 请制作一条约30秒的中文竖屏视频，介绍如何从一个小步骤开始行动。
@@ -14,6 +14,11 @@ Open this workspace in an Agent that can read/write files and run npm commands, 
 
 The workspace's `AGENTS.md` and local Skill supply the production instructions. You do not need to include internal commands
 in your request. Give any strict duration limit or required opening/closing choices in the brief. Git initialization is optional.
+
+Video production defaults to subagents with a maximum of four concurrent workers, limited by the host's verified capacity.
+The Agent verifies native child access using the local Skill before production. A host with no native child capability stops with
+a blocker; you can explicitly choose inline in the Web execution settings or in your request. Saved settings override the default;
+this request's explicit choices take precedence. Host transport evidence is verified each production and is never saved.
 
 ## Start here
 

@@ -37,14 +37,15 @@ fingerprints proceed.
 
 ## 3. Resolve execution once
 
-只解析 prompt 的 explicit execution fields；其余按 settings、host-neutral `inline` 继承。除非明确要求，不保存。
+只解析 prompt 的 explicit execution fields；其余按 settings、内置 `subagents`/4 继承。除非明确要求，不保存。
+先按 [host capability probe](execution-capabilities.md) 验证 native child 读写与可用容量，再传入下列 host flags。
 
 ```bash
 npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>] [--worker-transport shared-workspace|controller-io]
 ```
 
 Inline 只需当前 shell-capable Agent。subagents 要求 runtime capacity 与 verified `shared-workspace`/
-`controller-io`；unknown 按 1，missing/zero/exact mismatch 阻塞，ceiling 为 4。transport 不持久化，解析诊断不
+`controller-io`；capacity unknown 按 1，transport 缺失/zero capacity/exact mismatch 阻塞，ceiling 4。transport 不持久化，解析诊断不
 进入 content identity。
 
 ## 4. Inspect read-only, then prepare explicitly
@@ -86,8 +87,8 @@ write 通过 strict `{ "contentBase64": "..." }` stdin。finalize 生成 fixed f
 复验并提升 ArtifactAttestation。
 
 - `inline`：Root 每次完成一个 task 的 bound terminal 后再处理下一个。
-- `subagents`：以 `effectiveMaxConcurrency` 维护 bounded pool；队列未空时只 wait-any 释放 admission slot，不轮询
-  全部 child，聊天不是 receipt。
+- `subagents`：以 `effectiveMaxConcurrency` 维护 bounded pool；原生 wait-any 完成即补位；原生同步批量返回后发下一批。
+  每批不超过容量；不轮询 child，聊天不是 receipt。
 
 真实 spawn/transport failure 只用 exact `spawnFailureCommand`，immutable/controller fault 只用
 `fixedFailureCommand`；两者不能访问 task content。普通 failure 要 full binding；no automatic inline fallback。完成

@@ -32,7 +32,7 @@ flowchart LR
   Plan --> Reuse[Reuse valid artifacts]
   Plan --> Dirty[Create dirty Agent task workspaces]
   Dirty --> Mode{Resolved execution mode}
-  Mode -->|inline default| Inline[Root sequential executor]
+  Mode -->|explicit inline| Inline[Root sequential executor]
   Mode -->|verified transport| Children[Bounded runtime-native children]
   Inline --> Bind[Attempt-bound zero-write bind]
   Children --> Bind
@@ -180,7 +180,7 @@ prepare 只为 action 为 `dispatch-agent` 的 non-reused task 建立：
 ```
 
 Agent 不能直接写 live Project。inspect 前用 `project:execution:resolve` 按用户提示词明确字段、配置页、内置
-`inline` 默认的优先级冻结本次执行策略；该诊断策略不进入 identity。inline 时 Root 一次执行一个 workspace；
+`subagents`/4 默认的优先级冻结本次执行策略；该诊断策略不进入 identity。inline 时 Root 一次执行一个 workspace；
 subagents 时使用不超过四个且受 runtime capacity 限制的 bounded pool，并要求本次宿主验证
 `shared-workspace` 或 `controller-io` transport。transport 是不持久化的 host capability evidence；未验证时在
 prepare 前阻塞。`scene-template` 和其他 fixed tasks
@@ -296,7 +296,7 @@ settings API 从 `src/projects/` 枚举 source Projects，展示 sourceState、i
 structured explanation，不从错误文案或 task kind 猜 DAG。它不扫描历史执行数据，也不把 `out/` 或
 delivery-only 目录伪装成 Project；raw fingerprint、authoring text、private path/provider body 不对外投影。
 Agent execution preferences 独立保存到 `private/execution-preferences.json`，不改变 ProducerConfig fingerprint；
-文件缺失时使用内置 `inline`，当前提示词 override 只进入本次 resolver 输入，除非用户明确要求保存。worker
+文件缺失时使用内置 `subagents`、最大并发 4，当前提示词 override 只进入本次 resolver 输入，除非用户明确要求保存。worker
 transport 永远不保存。
 
 若多个 Agent tasks 中一部分已 commit、另一个失败，当前 lifecycle 立即结束且旧 attempt immutable。用户明确恢复时

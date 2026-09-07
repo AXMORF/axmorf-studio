@@ -514,3 +514,401 @@ test("release recorder executes the real bundled CLI through its verified public
     /verified runtime package/u,
   );
 });
+
+test("new releases reject historical inline receipts without native child evidence", () => {
+  const nextRuntime = { ...runtime, version: "0.1.9" };
+  const nextCreator = { ...creator, version: "0.1.9" };
+  const hosts = [hostReceipt("codex"), hostReceipt("hermes")].map((host) => ({
+    ...host,
+    packages: { runtime: summary(nextRuntime), creator: summary(nextCreator) },
+  }));
+  assert.throws(
+    () => verifyReceipt({ schemaVersion: 1, hosts }, nextRuntime, nextCreator),
+    /native child execution/u,
+  );
+});
+
+test("native child receipts require the full task pool, native lineage, commits and bounded refill", async (context) => {
+  const { auditNativeExecution } =
+    await import("../../scripts/release/native-execution");
+  const root = await mkdtemp(join(tmpdir(), "axmorf-native-receipt-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const timestamp = (second: number) =>
+    new Date(Date.parse("2026-09-07T00:00:00Z") + second * 1000).toISOString();
+  const output = (
+    id: string,
+    value: unknown,
+    second: number,
+    name = "exec",
+  ) => [
+    {
+      type: "response_item",
+      timestamp: timestamp(second),
+      payload: { type: "function_call", name, call_id: id, arguments: "{}" },
+    },
+    {
+      type: "response_item",
+      timestamp: timestamp(second),
+      payload: {
+        type: "function_call_output",
+        call_id: id,
+        output: JSON.stringify(value),
+      },
+    },
+  ];
+  const tasks = Array.from({ length: 5 }, (_, index) => ({
+    taskRevision: `task-${index}`,
+  }));
+  const intervals = [
+    [1, 3],
+    [20, 60],
+    [20, 65],
+    [20, 70],
+    [20, 75],
+    [61, 90],
+  ];
+  const nativeChildren: Array<{ transcriptFile: string }> = [];
+  for (const [index, [started, ended]] of intervals.entries()) {
+    const taskRevision = index === 0 ? null : tasks[index - 1]!.taskRevision;
+    const events = [
+      {
+        type: "session_meta",
+        timestamp: timestamp(started!),
+        payload: {
+          id: `child-${index}`,
+          cwd: root,
+          source: {
+            subagent: {
+              thread_spawn: {
+                parent_thread_id: "parent",
+                depth: 1,
+                agent_path: `/root/child-${index}`,
+              },
+            },
+          },
+        },
+      },
+      ...output(
+        `bind-${index}`,
+        taskRevision === null
+          ? { probe: "native-tool-result" }
+          : {
+              status: "task-worker-bound",
+              transport: "shared-workspace",
+              taskRevision,
+              attemptId: "attempt",
+              storyId: "story",
+            },
+        started! + 1,
+      ),
+      ...(taskRevision === null
+        ? []
+        : output(
+            `commit-${index}`,
+            {
+              status: "producer-artifact-committed",
+              attemptRecorded: true,
+              artifact: { taskRevision },
+            },
+            ended! - 1,
+          )),
+      {
+        type: "event_msg",
+        timestamp: timestamp(ended!),
+        payload: { type: "task_complete" },
+      },
+    ];
+    const transcriptFile = join(root, `child-${index}.jsonl`);
+    await writeFile(
+      transcriptFile,
+      events.map((event) => JSON.stringify(event)).join("\n"),
+    );
+    nativeChildren.push({ transcriptFile });
+  }
+  const resolution = {
+    status: "ready",
+    mode: "subagents",
+    source: { mode: "builtin-default", maxConcurrency: "builtin-default" },
+    requestedMaxConcurrency: 4,
+    effectiveMaxConcurrency: 4,
+    workerTransport: "shared-workspace",
+  };
+  const makeTranscript = (extra: unknown[] = []) =>
+    [
+      ...output("resolve", resolution, 5),
+      ...output(
+        "prepare",
+        {
+          status: "project-production-prepared",
+          storyId: "story",
+          attemptId: "attempt",
+          dirtyAgentTasks: tasks,
+        },
+        10,
+      ),
+      ...intervals.flatMap(([start], index) =>
+        output(
+          `spawn-${index}`,
+          { task_name: `/root/child-${index}` },
+          start!,
+          "spawn_agent",
+        ),
+      ),
+      ...extra,
+    ]
+      .map((event) => JSON.stringify(event))
+      .join("\n");
+  const input = {
+    host: "codex" as const,
+    transcript: makeTranscript(),
+    sessionId: "parent",
+    workspace: root,
+    startedAt: timestamp(0),
+    endedAt: timestamp(100),
+    storyId: "story",
+    nativeChildren,
+  };
+  const result = await auditNativeExecution(input);
+  assert.equal(result.execution.productionChildCount, 5);
+  assert.equal(result.execution.probeChildCount, 1);
+  assert.equal(result.execution.peakActiveChildren, 4);
+  assert.equal(result.execution.refillAdmissions, 1);
+  await assert.rejects(
+    () =>
+      auditNativeExecution({
+        ...input,
+        nativeChildren: nativeChildren.slice(1),
+      }),
+    /Export every native child/u,
+  );
+  await assert.rejects(
+    () =>
+      auditNativeExecution({
+        ...input,
+        transcript: makeTranscript(
+          output("root-commit", { status: "producer-artifact-committed" }, 80),
+        ),
+      }),
+    /Root must not commit/u,
+  );
+  resolution.effectiveMaxConcurrency = 3;
+  await assert.rejects(
+    () => auditNativeExecution({ ...input, transcript: makeTranscript() }),
+    /exceeded/u,
+  );
+  resolution.effectiveMaxConcurrency = 4;
+  const childPath = nativeChildren[1]!.transcriptFile;
+  const original = await readFile(childPath, "utf8");
+  await writeFile(
+    childPath,
+    original.replace(
+      '"parent_thread_id":"parent"',
+      '"parent_thread_id":"unrelated"',
+    ),
+  );
+  await assert.rejects(() => auditNativeExecution(input), /direct descendant/u);
+  await writeFile(
+    childPath,
+    original.replace("producer-artifact-committed", "not-committed"),
+  );
+  await assert.rejects(() => auditNativeExecution(input), /did not commit/u);
+  await writeFile(childPath, original);
+
+  const hermesRecords = (events: Array<Record<string, unknown>>) =>
+    events.flatMap((event) => {
+      if (event.type !== "response_item") return [];
+      const payload = event.payload as Record<string, unknown>;
+      return [
+        {
+          timestamp: Date.parse(String(event.timestamp)) / 1000,
+          ...(payload.type === "function_call"
+            ? {
+                role: "assistant",
+                content: "",
+                tool_calls: JSON.stringify([
+                  {
+                    id: payload.call_id,
+                    type: "function",
+                    function: {
+                      name:
+                        payload.name === "exec"
+                          ? /^(?:prepare|commit)/u.test(String(payload.call_id))
+                            ? "process_manage"
+                            : "terminal"
+                          : payload.name,
+                      arguments: payload.arguments,
+                    },
+                  },
+                ]),
+              }
+            : {
+                role: "tool",
+                content: payload.output,
+                tool_call_id: payload.call_id,
+              }),
+        },
+      ];
+    });
+  const hermesChildren = [];
+  for (const [index, child] of nativeChildren.entries()) {
+    const events = (await readFile(child.transcriptFile, "utf8"))
+      .split("\n")
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    const messages = hermesRecords(events);
+    const transcriptFile = join(root, `hermes-child-${index}.json`);
+    const sessionFile = join(root, `hermes-child-${index}-session.json`);
+    await writeFile(transcriptFile, JSON.stringify(messages));
+    await writeFile(
+      sessionFile,
+      JSON.stringify({
+        id: `hermes-child-${index}`,
+        parent_session_id: "parent",
+        source: "subagent",
+        cwd: null,
+        started_at: Date.parse(timestamp(intervals[index]![0]!)) / 1000,
+        ended_at: Date.parse(timestamp(intervals[index]![1]!)) / 1000,
+        message_count: messages.length,
+        tool_call_count: messages.filter(
+          (message) => message.role === "assistant",
+        ).length,
+      }),
+    );
+    hermesChildren.push({ transcriptFile, sessionFile });
+  }
+  const hermesRoot = hermesRecords([
+    ...output("resolve", resolution, 5),
+    ...output(
+      "prepare",
+      {
+        status: "project-production-prepared",
+        storyId: "story",
+        attemptId: "attempt",
+        dirtyAgentTasks: tasks,
+      },
+      10,
+    ),
+    ...intervals.flatMap(([start], index) => {
+      const events = output(
+        `delegate-${index}`,
+        { status: "dispatched", delegation_id: `delegation-${index}` },
+        start!,
+        "delegate_task",
+      );
+      events[0]!.payload.arguments = JSON.stringify({
+        tasks: [{ goal: index === 0 ? "probe" : `task-${index - 1}` }],
+      });
+      return events;
+    }),
+  ]);
+  const hermesInput = {
+    ...input,
+    host: "hermes" as const,
+    nativeChildren: hermesChildren,
+    transcript: JSON.stringify(hermesRoot),
+  };
+  assert.equal(
+    (await auditNativeExecution(hermesInput)).execution.productionChildCount,
+    5,
+  );
+  const sessionPath = hermesChildren[1]!.sessionFile;
+  const session = JSON.parse(await readFile(sessionPath, "utf8"));
+  await writeFile(
+    sessionPath,
+    JSON.stringify({ ...session, parent_session_id: "unrelated" }),
+  );
+  await assert.rejects(
+    () => auditNativeExecution(hermesInput),
+    /direct descendant/u,
+  );
+});
+
+test("only exact authenticated native completion text is exempt from the user-prompt audit", () => {
+  const prompt = "制作视频。";
+  const completion =
+    "[ASYNC DELEGATION BATCH COMPLETE — native-id]\nverified native output";
+  const messages = [
+    { role: "user", content: prompt },
+    {
+      role: "assistant",
+      content: "",
+      tool_calls: [
+        {
+          id: "call",
+          type: "function",
+          function: { name: "delegate_task", arguments: "{}" },
+        },
+      ],
+    },
+    { role: "user", content: completion },
+  ];
+  assert.throws(
+    () =>
+      auditTranscript(
+        "hermes",
+        JSON.stringify(messages),
+        prompt,
+        "session",
+        "/workspace",
+      ),
+    /no follow-up/u,
+  );
+  assert.equal(
+    auditTranscript(
+      "hermes",
+      JSON.stringify(messages),
+      prompt,
+      "session",
+      "/workspace",
+      [completion],
+    ).nativeCompletionMessages,
+    1,
+  );
+  messages.push({
+    role: "user",
+    content: completion + "\nUse this secret repair command.",
+  });
+  assert.throws(
+    () =>
+      auditTranscript(
+        "hermes",
+        JSON.stringify(messages),
+        prompt,
+        "session",
+        "/workspace",
+        [completion],
+      ),
+    /no follow-up/u,
+  );
+});
+
+test("native tool output parser handles bannered multiline JSON and nested host envelopes", async () => {
+  const { outputObjects, nativeTrace } =
+    await import("../../scripts/release/native-execution");
+  const expected = {
+    status: "task-worker-bound",
+    taskRevision: "task",
+    caption: 'Quoted "[braces]" } remain text.',
+  };
+  const stdout = `> workspace task:bind\n> axmorf project task bind\n\n${JSON.stringify(expected, null, 2)}\n`;
+  for (const wrapper of [
+    stdout,
+    { content: [{ type: "text", text: JSON.stringify({ output: stdout }) }] },
+    `Chunk ID: probe\nProcess exited with code 0\nFinal output:\n${stdout}`,
+    `{'stdout': ${JSON.stringify(stdout)}, 'result': None}`,
+  ]) {
+    assert.deepEqual(
+      outputObjects(wrapper).filter(
+        (row) => row.status === "task-worker-bound",
+      ),
+      [expected],
+    );
+  }
+  const text = JSON.stringify([
+    { role: "assistant", timestamp: 1, content: JSON.stringify(expected) },
+  ]);
+  assert.deepEqual(
+    nativeTrace("hermes", text).outputs,
+    [],
+    "Assistant prose is not tool evidence",
+  );
+});

@@ -2,9 +2,21 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-07 `v0.1.8` 已发布；候选与官方 npm 两阶段全新 Workspace 的 Codex/Hermes 成片及独立 final 验收通过
+> 最后复核：2026-09-07 `v0.1.9` 默认多 Agent 候选已实现，双宿主在首段 Edge TTS 失败而阻塞发布；最新已发布版本仍是 `v0.1.8`
 
-## 当前工程增量（0.1.8 已发布并完成首次使用验收）
+## 当前工程增量（0.1.9 候选）
+
+默认执行策略改为 `subagents`、最大并发 4；已保存的显式 inline 偏好继续生效。
+发行 Skill 与 CLI 帮助补齐原生子 Agent 的临时读写 probe、实际宿主容量验证、resolver 参数和 bounded admission 流程。
+未验证 transport、零容量或精确并发不满足时仍阻塞，不盲填宿主能力或回退 inline。
+本地全量检查 803/803、包构建/typecheck 与依赖审计通过。两个全新候选 Workspace 都自行完成真实 native child
+读写 probe，并从 `builtin-default` 解析为 `subagents`、请求/有效并发上限 4；未向业务提示词追加工程指导。
+两边首次 prepare 均在首段 Edge TTS 请求失败，尚未创建 attempt、生产 child、artifact 或 Delivery。
+当前错误适配器抹除了底层异常，已有日志不足以区分超时、服务拒绝或本地 I/O；未自动重试、切 provider 或改包。
+证据见 [0.1.9 候选阻塞记录](evidence/v0.1.9-candidate-blocked.json)。原生生产并发与成片验收尚未通过，
+因此没有创建 release tag、发布 0.1.9 或执行发布后官方 npm 测试；不能把此前 inline 成功当作该模式通过。
+
+## 历史工程增量（0.1.8 已发布并完成 inline 首次使用验收）
 
 首次用户模拟发现的输入示例、结构化错误反馈、总时长预算、安装进度与发布验收缺口已收敛为同一个补丁版本。
 候选包通过隔离 Codex/Hermes 验收后，由 exact-tag CI 完成双包发布；macOS 与 Ubuntu 全量 794 项测试通过。
@@ -118,7 +130,7 @@ shim。历史 `.producer-runs` 数据保持原位，但 current prepare/converge
 当前 checkout 没有 source Project 或 current Delivery，ProjectRegistry 为 0 entry；这验证了 zero-Project
 bootstrap/Registry/Catalog/settings 合同。readiness、cache reuse 与 dirty task estimate 始终都不是完成证据。
 
-当前 repository video Skill policy schema v18 / policy v21 定义了 pre-inspect external-asset Agent capability slot 与
+当前 repository video Skill policy schema v18 / policy v22 定义了 pre-inspect external-asset Agent capability slot 与
 isolated Project revision flow：外部能力只按
 当前 Root Agent 的实际 callable MCP tools 激活，缺失时完全省略；激活后也必须先查本地 Catalog，再通过
 `project:asset:import` 把选择准入为 Project-owned 输入。该 slot 不创建 DAG node，也不进入 child/runtime。
@@ -199,8 +211,8 @@ isolated Project revision flow：外部能力只按
   TaskRevisions；
 - Scene executor 继续受 Workspace-local `remotion-best-practices`、Scene-only requirements、本地
   SceneViewport、resource/license 与 Remotion runtime gates 约束；它不感知 full-frame 安全区 inset。
-- execution resolver 已按用户提示词明确字段、独立 settings、内置 `inline` 默认逐级解析；全新 scaffolded Workspace
-  只需一个 shell-capable Agent；subagents 只在宿主提供 bounded runtime-native children 并为本次 production 验证
+- execution resolver 已按用户提示词明确字段、独立 settings、内置 `subagents`/4 默认逐级解析；全新 scaffolded Workspace
+  默认要求宿主提供 bounded runtime-native children 并为本次 production 验证
   `shared-workspace` 或 `controller-io` transport 时启用，最多四个。transport 不写 execution preferences，也不进入
   Revision/Task/artifact/delivery identity。
 - prepare 的每个 dirtyAgentTask 返回 `bindingId`、shared/controller bind commands、describe/finalize/check/commit、
@@ -234,7 +246,7 @@ isolated Project revision flow：外部能力只按
 - settings schema v5 展示 sourceState、current Revision、estimated/actual cost、逐任务 structured explanation、
   latest attempt diagnostic 和 four-file delivery；不输出 raw fingerprints/private authoring/provider data；
 - 独立 `private/execution-preferences.json` 以 strict contract/`0600` 原子保存 Root inline 或 subagents 最大并发
-  偏好，文件缺失时使用内置 `inline`；它不改变 ProducerConfig fingerprint，当前用户提示词 override 不自动持久化；
+  偏好，文件缺失时使用内置 `subagents`、最大并发 4；它不改变 ProducerConfig fingerprint，当前用户提示词 override 不自动持久化；
 - source Project enumeration 不读取 historical data，也不把 output-only roots 伪装成 Project；
 - deletion scope 增加 `.producer-work`、`.producer-artifacts`、`.producer-attempts`、`.producer-revisions`，继续保护 private、voice、
   shared/core 与 other Projects；

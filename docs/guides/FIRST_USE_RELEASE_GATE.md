@@ -9,6 +9,14 @@ send follow-up repair instructions or change package internals during the run.
 A failed run stays recorded as failed; a later engineering fix requires new
 candidates and a new first-use run.
 
+From 0.1.9 onward, both hosts must exercise the package's default native
+`subagents` path with configured maximum concurrency four. The business prompt
+does not name this execution strategy. Select a normal video brief that produces
+more than four dirty creative tasks, so the run exercises releasing a child slot
+and admitting another task. An inline run or merely saving subagent settings is
+not evidence for this gate. Explicit inline behavior retains automated regression
+coverage; the historical 0.1.8 inline receipts remain readable.
+
 This gate supplements the automated install/contract tests. It does not claim
 multi-model, multi-OS, interactive approval, revision, or recovery certification.
 Record those separately when exercised. A maintainer reviews the prompt and
@@ -31,8 +39,8 @@ Before creating a workspace and starting each Agent, save a configuration outsid
 {
   "host": "codex",
   "workspace": "/absolute/fresh-codex-workspace",
-  "runtimeTarball": "/absolute/axmorf-studio-0.1.8.tgz",
-  "creatorTarball": "/absolute/create-axmorf-studio-0.1.8.tgz",
+  "runtimeTarball": "/absolute/axmorf-studio-0.1.9.tgz",
+  "creatorTarball": "/absolute/create-axmorf-studio-0.1.9.tgz",
   "promptFile": "/absolute/codex-prompt.txt"
 }
 ```
@@ -61,10 +69,16 @@ only after the snapshot, and retain original logs. Successful first-use runs
 must have exit code zero and an empty intervention list. Never store credentials
 in an evidence folder or commit raw host profiles.
 
-For Codex, retain the fresh `CODEX_HOME/sessions/**/rollout-*.jsonl`. For Hermes,
-export the single session's SQLite messages in order as JSON objects with
-`role`, `content`, and `tool_calls`. Also export its native session row containing
+For Codex, retain the fresh root and every native child's
+`CODEX_HOME/sessions/**/rollout-*.jsonl`. For Hermes,
+export the root and every native child's SQLite messages in order, preserving
+all fields including `role`, `content`, `tool_calls`, `tool_call_id`, `timestamp`,
+`display_kind`, and `display_metadata`. Also export each native session row containing
 `id`, `model`, `cwd`, `started_at`, `ended_at`, `message_count`, and `tool_call_count`.
+For children, preserve `parent_session_id` and `source` as well. Export the root's
+raw `async_delegations` rows with `event_json` and `result_json` when asynchronous
+completion messages were delivered. Include capability-probe children even though
+they do not bind a production task. Do not prefilter failed or incomplete children.
 Preserve all user and tool records. The verifier binds this metadata to the selected
 run and checks message and actual function-call counts.
 
@@ -76,18 +90,39 @@ After the Agent exits, create a local run-evidence configuration (Hermes additio
   "model": "the-actual-model",
   "sessionId": "the-actual-host-session-id",
   "transcriptFile": "/absolute/native-transcript.jsonl",
-  "runFile": "/absolute/run.json"
+  "runFile": "/absolute/run.json",
+  "nativeChildren": [{ "transcriptFile": "/absolute/child-rollout.jsonl" }]
 }
 ```
+
+List all child transcripts in `nativeChildren`. Hermes entries additionally
+require their native `sessionFile`. For Hermes asynchronous completions, add
+`delegationFile` pointing to the exported delegation-row array and
+`hermesRuntimeRoot` pointing to the actual installed Hermes runtime. The local
+recorder uses that runtime's native notification formatter to reproduce each
+completion exactly, binds its checksum, and checks the delegation's parent and
+dispatch response. A user message with a similar prefix or appended repair advice
+does not qualify for the native-message exemption. These local paths never enter
+the published receipt.
 
 ```sh
 node --import tsx scripts/release/first-use.ts record snapshot.json run-evidence.json host-receipt.json
 ```
 
 The recorder checks the original prompt against the native transcript and rejects
-follow-ups, forked Codex sessions, mismatched Hermes session metadata, missing real
-function calls, or modified package and
-guide files. It executes the workspace's public final check, independently checks
+follow-ups, forked root Codex sessions, mismatched Hermes session metadata, missing real
+function calls, or modified package and guide files. It derives execution mode
+and capacity from the root's public resolver output, the dirty task set from
+prepare, native parentage and lifetimes from host records, and task ownership from
+each child's actual bind and commit tool results. Every dirty task requires one
+child commit; the Root cannot commit those tasks. The receipt records native child
+hashes, peak concurrency, capability-probe count, and later admissions after a
+production child completes. Missing children, unknown parentage, a pool exceeding
+resolved capacity, or no admission beyond the initial pool fail closed.
+Native Codex children may inherit their fresh parent's context: the recorder binds
+`source.subagent.thread_spawn.parent_thread_id` and `agent_path` to that parent's
+native `spawn_agent` response, rather than confusing this with a reused root session.
+It executes the workspace's public final check, independently checks
 exactly four delivery files and their checksums, probes the video, and decodes the
 video and both covers to EOF. It generates the receipt from these checks; supplying
 a `passed` flag cannot replace them. Output files use exclusive creation so an
@@ -113,7 +148,7 @@ with the release. Retain referenced raw evidence privately; only the compact
 receipt, business prompts, and hashes belong in Git.
 
 ```sh
-node --import tsx scripts/release/first-use.ts verify runtime.tgz creator.tgz docs/evidence/v0.1.8-first-use.json
+node --import tsx scripts/release/first-use.ts verify runtime.tgz creator.tgz docs/evidence/v0.1.9-first-use.json
 ```
 
 The publish workflow requires the receipt in the exact release tag and verifies

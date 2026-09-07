@@ -12,7 +12,7 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 const PolicySchema = z
   .object({
     schemaVersion: z.literal(18),
-    policyVersion: z.literal("axmorf-video-policy-v21"),
+    policyVersion: z.literal("axmorf-video-policy-v22"),
     rootEndpoints: z.tuple([
       z.literal("project-production-complete"),
       z.literal("project-production-current"),
@@ -54,12 +54,14 @@ const PolicySchema = z
         promptOverridePersistence: z.literal(
           "current-production-only-unless-explicit-save",
         ),
-        defaultMode: z.literal("inline"),
+        defaultMode: z.literal("subagents"),
         defaultSubagentMaxConcurrency: z.literal(4),
         repositoryMaxConcurrency: z.literal(4),
         unknownRuntimeMaxConcurrency: z.literal(1),
         inlinePolicy: z.literal("root-sequential-one-workspace-at-a-time"),
-        subagentPolicy: z.literal("bounded-pool-wait-any-admission"),
+        subagentPolicy: z.literal(
+          "bounded-native-wait-any-or-synchronous-batch",
+        ),
         subagentWorkerTransport: z.literal(
           "verified-shared-workspace-or-controller-io",
         ),
@@ -178,7 +180,7 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
 
   assert.match(skill, /^name: axmorf-video$/mu);
   assert.match(openAiMetadata, /\$axmorf-video/u);
-  assert.match(openAiMetadata, /内置 inline/u);
+  assert.match(openAiMetadata, /内置 subagents\/4/u);
   for (const heading of policy.requiredEntrypointHeadings) {
     assert.match(skill, new RegExp(`^## ${heading}$`, "mu"));
   }
@@ -420,6 +422,7 @@ test("skill directory contains only the declared operational bundle", async () =
     "agent-rework-and-system-hardening.md",
     "cover-agent-orchestration.md",
     "direct-production-workflow.md",
+    "execution-capabilities.md",
     "global-visual-agent-orchestration.md",
     "producer-config.md",
     "project-revision.md",

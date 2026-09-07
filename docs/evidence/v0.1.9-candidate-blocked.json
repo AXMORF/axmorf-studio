@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "status": "candidate-production-blocked",
+  "version": "0.1.9",
+  "published": false,
+  "packages": [
+    {
+      "name": "@axmorf/studio",
+      "version": "0.1.9",
+      "fingerprint": "sha256:1482be7b8ecac8500e96314a5efc10e91a33c20e5bd5127cae19472b87ca7f68"
+    },
+    {
+      "name": "create-axmorf-studio",
+      "version": "0.1.9",
+      "fingerprint": "sha256:3f359e452ab8ddd59d4d4ec521d6a54e116564d6b9bbd2792de2c45d390bbfa0"
+    }
+  ],
+  "hosts": [
+    {
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "sessionId": "01a07b9b-cafd-75b3-a17e-a55bfc657e1b",
+      "startedAt": "2026-09-07T11:23:17.370085+00:00",
+      "endedAt": "2026-09-07T11:26:11.880349+00:00",
+      "prompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“从十分钟专注开始”，讲清楚选一个具体小步骤、关掉打断、做完记录下一步。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。\n",
+      "promptChecksum": "sha256:6bef7e10a2be33b3280e5f30e5368d9613a20f4242a87bd820aeb24e9d007e63",
+      "harnessInterventions": [],
+      "transcriptChecksum": "sha256:dfa55e6d86ebd4ec128412ad7ae17e06275317d5eb42e1d20627e6e52b67535f",
+      "mode": "subagents",
+      "requestedMaxConcurrency": 4,
+      "effectiveMaxConcurrency": 4,
+      "source": {
+        "mode": "builtin-default",
+        "maxConcurrency": "builtin-default"
+      },
+      "workerTransport": "shared-workspace",
+      "nativeProbeChildren": 1,
+      "productionChildren": 0,
+      "attemptsCreated": 0,
+      "deliveryFiles": 0,
+      "packageAndGuidesUnchanged": 261,
+      "prepareError": {
+        "status": "error",
+        "code": "command-failed",
+        "message": "Edge TTS request failed for chunk small-step-01."
+      }
+    },
+    {
+      "host": "hermes",
+      "model": "gpt-6-astra",
+      "sessionId": "20260907_192218_504d88",
+      "startedAt": "2026-09-07T11:22:12.770934+00:00",
+      "endedAt": "2026-09-07T11:26:01.749250+00:00",
+      "prompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“每天进步一点点”，用1.01的365次方约37.8说明积累，但讲清楚这只是数学示意，现实成长不保证固定回报。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。\n",
+      "promptChecksum": "sha256:e2c2eb364e470d5d0315fdf2156eaa0777018bdf38efcd9910f22e722d1e9ce6",
+      "harnessInterventions": [],
+      "transcriptChecksum": "sha256:fbd5235117a30136071b9f127e9433c2a0b8f7f225409604e55510f306925e52",
+      "mode": "subagents",
+      "requestedMaxConcurrency": 4,
+      "effectiveMaxConcurrency": 4,
+      "source": {
+        "mode": "builtin-default",
+        "maxConcurrency": "builtin-default"
+      },
+      "workerTransport": "shared-workspace",
+      "nativeProbeChildren": 1,
+      "productionChildren": 0,
+      "attemptsCreated": 0,
+      "deliveryFiles": 0,
+      "packageAndGuidesUnchanged": 261,
+      "prepareError": {
+        "status": "error",
+        "code": "command-failed",
+        "message": "Edge TTS request failed for chunk small-steps-01."
+      }
+    }
+  ],
+  "diagnosis": "Both original prepare calls failed at the first Edge TTS chunk before creating a production attempt. The adapter discards the underlying exception, so provider rejection, timeout and local I/O cannot be distinguished from these logs. HTTPS reachability checks alone do not verify synthesis.",
+  "releaseGate": "not-passed",
+  "officialNpmRetest": "not-started"
+}

@@ -44,6 +44,37 @@ test("public help works outside a Workspace and describes authoring and recovery
   );
 });
 
+test("execution help exposes host evidence separately from user preferences", async () => {
+  const output: string[] = [];
+  await runCli({
+    cwd: "/workspace-does-not-exist",
+    args: ["project", "execution", "resolve", "--help"],
+    output: {
+      stdout: (line) => output.push(line),
+      stderr: () => assert.fail("help must not fail"),
+    },
+  });
+  const help = JSON.parse(output.join(""));
+  const command = help.commands.find((value: string) =>
+    value.includes("project:execution:resolve"),
+  );
+  for (const flag of [
+    "--mode",
+    "--max-concurrency",
+    "--require-exact-concurrency",
+    "--runtime-max-concurrency",
+    "--worker-transport",
+  ]) {
+    assert.ok(command.includes(flag));
+  }
+  const guidance = help.guidance.join("\n");
+  assert.match(guidance, /private\/execution-preferences\.json.*subagents.*4/u);
+  assert.match(guidance, /execution-capabilities\.md/u);
+  assert.match(guidance, /native child challenge read\/write/u);
+  assert.match(guidance, /verified host capacity, not the saved maximum/u);
+  assert.match(guidance, /without inline fallback/u);
+});
+
 test("the public CLI maps grouped commands exactly without leaking routing arguments", async () => {
   const calls: Array<{
     name: string;

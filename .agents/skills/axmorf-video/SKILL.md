@@ -7,12 +7,12 @@ description: Resolve inline or bounded-Agent execution, produce, and hand off to
 
 ## Create the Project when needed
 
-新建先用 `npm run project:create:context -- --project <storyId>`；按 `fieldExamples` 写附加要求对象，按 `durationBudget` 扣除首尾预算旁白，prepare/交付报告实测偏差。`project:create -- --schema` 仅描述结构。
+新建先用 `npm run project:create:context -- --project <storyId>`；按 `fieldExamples` 写附加要求对象，按 `durationBudget` 预算旁白并报告实测偏差。
 
 Read [policy](policy.json), [workflow](references/direct-production-workflow.md), and
-[Producer config](references/producer-config.md). Report boundary Scenes as inherited, selected, or disabled.
+[Producer config](references/producer-config.md). 报告首尾 Scene 的继承、选择或禁用。
 User silence means inheritance: omit `sceneTemplates`, never infer `null`. Use `project:create` for new authoring;
-existing authoring changes use the isolated revision flow below and preserve unrelated sections.
+修改走下方隔离 revision，保留无关 authoring。
 
 `project:create` freezes the originality baseline. Missing legacy baseline requires explicit migration via
 zero-provider `project:originality:freeze` before inspect; never synthesize one.
@@ -31,9 +31,9 @@ task executors, artifacts, delivery, or runtime.
 
 ## Resolve Agent execution
 
-Inspect 前执行一次 `project:execution:resolve`：explicit prompt fields → settings → host-neutral `inline`。override
+按 [host probe](references/execution-capabilities.md) 验证原生 child 与 I/O，再在 inspect 前执行 `project:execution:resolve`：prompt → settings → `subagents`/4。override
 只作用本次 production，除非用户要求保存。inline 串行且无需 child；subagents 要求 bounded runtime-native children、
-本次 verified `shared-workspace`/`controller-io`、已知 capacity，并受 ceiling 4 限制。unverified transport、
+本次 verified `shared-workspace`/`controller-io`，capacity 未知按 1，ceiling 4。unverified transport、
 exact mismatch 或 zero capacity 在 prepare 前阻塞。transport 不持久化、不进入 identity。
 
 ## Inspect before cost
@@ -57,14 +57,14 @@ inputs 与 declared outputs，并运行 bound commands。TaskExecutionContract a
 Prepare 前确认宿主进程能跨工具超时存活；只能等待原 handle 的 fixed 终态，后台启动回执不是完成。
 
 Inline Root executes exactly one workspace at a time. Subagent mode admits at most `effectiveMaxConcurrency`
-runtime-native children；超量时只 wait-any 释放 admission slot，不轮询全部 child 或信任 chat。真实 spawn/
+runtime-native children；原生 wait-any 即时补位，原生同步批量则返回后发下一批；不轮询 child 或信任 chat。真实 spawn/
 transport failure 由 Root 运行 `spawnFailureCommand`；immutable/controller fault 用 `fixedFailureCommand`；两者都不
 授予 task content access 或切换模式。全部 dirty task 执行/admit 后立即 continue。
 
 ## Hand off to fixed continuation
 
 Root's final production action is the exact `continuationCommand`; then it suspends without polling or
-token-consuming supervision. Code claims once, watches immutable events, and rejects duplicates.
+token-consuming supervision. Code claims once and watches immutable events.
 Any failure exits nonzero without converge; all-success converges exactly once; the one-hour total deadline starts
 at ExecutionAttempt creation. No retry, Root re-entry, direct converge, or workspace edit.
 
