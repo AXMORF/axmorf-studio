@@ -2,9 +2,9 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-08 `v0.1.9` 已通过双宿主候选门禁并正式发布；官方 npm 新建 Workspace 的 Codex/Hermes 成片复测已通过。
+> 最后复核：2026-09-09 `v0.1.10` 已通过双宿主新候选验收和 macOS CI；正式 npm 发布与公开包复测待完成。
 
-## 低 token 监督与视频任务恢复（2026-09-09，未发布）
+## 低 token 监督与视频任务恢复（0.1.10 候选通过，待发布）
 
 仓库 Agent 规则、Skill policy v23 和 creator 模板改为原进程阻塞等待/原生事件通知监督；普通等待超时只续等，
 错误时 Root 定位并指导原 executor，不读写其他 task workspace，不接管 fixed continuation。只报告一次 fixed 结果。
@@ -15,9 +15,16 @@ recover-inspect ready 才 same-Revision/零 provider reissue 到 fresh attempt/b
 回归 24 项、creator package 检查、Skill 校验、链接和 scoped ESLint 已通过；8 个只读场景推演覆盖等待、返工、恢复与中断。
 此前对本机旧 Workspace 的 5 个指南手动覆盖已从备份恢复；原 0.1.9 package/lockfile 和交付文件未变。
 新指南仅通过正式新版本 creator 发行；当前 creator 不提供既有 Workspace 指南迁移，后续使用正式包新建 Workspace。
-尚无新 Hermes 真实故障恢复成片验收，发布验收证据待补。
+[首轮成片通过](evidence/v0.1.10-supervision-first-pass.json)，但人工复核发现 Codex 反复请求一秒等待，未选为最终发布证据。
+指南进一步要求宿主 deadline 内最长阻塞等待，通常 30–60 秒或更长，禁止短等待循环与无变化叙述。
+新包在全新 profile/Workspace 重新验收：[双宿主 receipt](evidence/v0.1.10-first-use.json) 均通过，
+各 5 个创作 child + 1 个 probe、峰值 4、补位 1、Root 无 task commit、final 7/7、四文件 checksum/EOF 解码通过。
+Codex 25.97 秒、Hermes 28.33 秒；252 个 runtime 文件与 11 个指南未变，零控制器 follow-up。
+[原生记录复核](evidence/v0.1.10-supervision-review.json)：Codex continuation 后 3 次原进程 60 秒等待，Hermes 1 次原进程 600 秒等待，
+无额外生产查询；不把这些次数换算为 token 节省比例。真实故障自动恢复尚未实测，边界仅有既有回归与场景检查证据。
+完整本地 811/811、package build/typecheck、零漏洞审计与 macOS ARM64 CI 通过；CI 两包与候选的全部发行文件一致。
 
-## 当前工程增量（0.1.9 已发布并完成原生 subagents 首次使用验收）
+## 历史工程增量（0.1.9 已发布并完成原生 subagents 首次使用验收）
 
 默认执行策略为 `subagents`、最大并发 4；显式 inline 偏好继续生效。发行 Skill 明确 Root 负责全局 doctor/preflight，
 worker 只执行 exact bind 与 owning task 合同；每个不同 TaskRevision 必须 fresh native child/session，不得把完成的

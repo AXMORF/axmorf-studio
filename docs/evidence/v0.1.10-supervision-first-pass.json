@@ -1,0 +1,323 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.10",
+  "selectedForRelease": false,
+  "reason": "Both deliveries passed, but Root frequently requested short unchanged-state waits; clarify longest safe blocking wait and rerun fresh candidate acceptance.",
+  "review": {
+    "codexShortContinuationWaitRequests": 15,
+    "requestedWaitMs": 1000,
+    "runtimeOrValidatorChanged": false
+  },
+  "hosts": [
+    {
+      "host": "codex",
+      "sessionId": "01a08233-6b4b-7541-9372-10a171844906",
+      "startedAt": "2026-09-08T18:06:38.979555+00:00",
+      "endedAt": "2026-09-08T18:15:03.499461+00:00",
+      "promptChecksum": "sha256:6bef7e10a2be33b3280e5f30e5368d9613a20f4242a87bd820aeb24e9d007e63",
+      "transcriptChecksum": "sha256:6029e86047d6d7ccc94ae3a52bbccfa6a3d66e6e12ac017b901becb5bd9cf604",
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 1,
+        "refillAdmissions": 1,
+        "attemptId": "1c2c52e0-01af-4cdf-84ad-50badbdf4fc1",
+        "childEvidence": [
+          {
+            "sessionId": "01a08236-145f-73f2-aa6e-7cca89e8785f",
+            "transcriptChecksum": "sha256:3623eb3545ab1000134e3ed85d9ab4a5a59e8cb67217c16238ba8acc23a061fa",
+            "sessionChecksum": null,
+            "taskRevision": "task-f735947ddc42d731edf0c92fe36b78781bd1cada63d94fe15d52728a37454051"
+          },
+          {
+            "sessionId": "01a08234-13bb-7a03-8314-0a8ef256644c",
+            "transcriptChecksum": "sha256:68a5b699e7f1c3484cb3727b5b6400b6c73245a6c237994e6b1cc82db510d2ba",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a08235-b681-7c70-a186-7b9505214ea7",
+            "transcriptChecksum": "sha256:253535bd262d4697b47c7113045467aaa514d65b7c22862ce4acc10063ba0e0f",
+            "sessionChecksum": null,
+            "taskRevision": "task-6ed2e0f13fea305bf48258cd148ead52392ae3c9c559560856cf4dbab8fa7b29"
+          },
+          {
+            "sessionId": "01a08235-79ad-7c50-8358-ec9fd5eea140",
+            "transcriptChecksum": "sha256:66de1d364e7d8d34625c188b6628f2bab1b1bd3b564083911a7e03380a735faa",
+            "sessionChecksum": null,
+            "taskRevision": "task-3680511a6b95fb49e5369847836f68fb6282379a52f30e71b9e307b4c93746e7"
+          },
+          {
+            "sessionId": "01a08237-8edb-7aa1-b973-f8fa447bd4be",
+            "transcriptChecksum": "sha256:c70519f1294d205abb9b6cb30bce58d099b5e26466f16dcb34232e45e1978da7",
+            "sessionChecksum": null,
+            "taskRevision": "task-a2a248e2576da96a71c7f6d129782ab98d10bdefdd727007f9876f2f7750c781"
+          },
+          {
+            "sessionId": "01a08235-e698-7240-ad86-8bfb28fecf10",
+            "transcriptChecksum": "sha256:779a00e9c3d00a1da30f73cb125ddf355fbc8ffbc011b4337c9dadc07d8947db",
+            "sessionChecksum": null,
+            "taskRevision": "task-ceee5cf89b50eb68c3eac38e3af914cf49aa54e969b4637c2711eb57c67fd6a0"
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null
+      },
+      "unchangedPackageFiles": 252,
+      "unchangedGuideFiles": 11,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "ten-minute-focus",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-72057377dba662b4e197d0353c05498885fafcd324825e6112846d4be5203aa8",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-2a8de6391550fe0ca5c456c6323e25f42895e00852324902ed0834bed30ad02b",
+        "artifactSetFingerprint": "sha256:81691e881da3c3cc0f64c99bd6bf719702e2dc4cbd724e3f8b347665ae836a6a"
+      },
+      "delivery": {
+        "storyId": "ten-minute-focus",
+        "deliveryBuildId": "delivery-72057377dba662b4e197d0353c05498885fafcd324825e6112846d4be5203aa8",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:dacef329c670694c3e762a8af028387f4e8774a8e2a37f973994474626e0b070",
+            "sizeBytes": 2277956
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:8ff1b838db560a47678c120ba0bd8cc09403b256cbb3e264a200b631b3430082",
+            "sizeBytes": 143069
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:1e56a61b6f35e67fd7d19f4c93a179204d1f81e66fb51d42082945b9f30b8ab1",
+            "sizeBytes": 128882
+          },
+          "publish.json": {
+            "checksum": "sha256:6144c8b76159e482b8edcdfde00c1c61c02a2fab82c86cec0c2ec53e4cd77371",
+            "sizeBytes": 2154
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1080,
+          "height": 1920,
+          "fps": 30,
+          "frameCount": 785
+        },
+        "decodedFiles": [
+          "video.mp4",
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ]
+      }
+    },
+    {
+      "host": "hermes",
+      "sessionId": "20260909_020643_d24d3e",
+      "startedAt": "2026-09-08T18:06:38.997204+00:00",
+      "endedAt": "2026-09-08T18:20:00.782367+00:00",
+      "promptChecksum": "sha256:3aa9b92e3d302149a819165b9bdba25d62bc9caa8b88d7f981ee03e287bfe027",
+      "transcriptChecksum": "sha256:abfec7de56f74287a75cd5e781f0d0d1be501eeec31acbc92d1f491131216cf2",
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 1,
+        "refillAdmissions": 1,
+        "attemptId": "211059a5-47f9-4440-8705-55c523d225a0",
+        "childEvidence": [
+          {
+            "sessionId": "20260909_020728_d292ac",
+            "transcriptChecksum": "sha256:3a68bc905796f64fda36a5d1f9462e33f706a58642bc1b4a1ea335c2b2aed3b1",
+            "sessionChecksum": "sha256:1a066dac4b23eb2a9c64701221be19414aab54e09dc9ed05e5458952178b6128",
+            "taskRevision": null
+          },
+          {
+            "sessionId": "20260909_021008_a6bd2b",
+            "transcriptChecksum": "sha256:e37edcd25b8d8edefaa8f0c44f42a4a075dc8af897dcf55550fd91186a9d579c",
+            "sessionChecksum": "sha256:9cc54ab912dbff03acb0eef24ff018dc7c7c7d8e9b335e2e434ee1071157e66c",
+            "taskRevision": "task-1f8e8233090c9df1c42da610648a7b0d042287c22eed3d798a2b22f602e0cd50"
+          },
+          {
+            "sessionId": "20260909_021008_5c8812",
+            "transcriptChecksum": "sha256:73d3fcb1430ef87a23bf8f29ee37eab3f62bda7ba591b4d7296fe0100923e50f",
+            "sessionChecksum": "sha256:f9a528db214fbd6aa7d1fd77dcf423e54095ee0077a229e502e1c68f056bdcc9",
+            "taskRevision": "task-5b96ee79f3aa2c4dd9087b3fba409587cbd96d82550d270be4581f3b94c8cb49"
+          },
+          {
+            "sessionId": "20260909_021008_2b7496",
+            "transcriptChecksum": "sha256:9a4dff1178ef0c8f8fe9dd0f40ac4fdedda7fabb3247bf9640d059fe4a231bca",
+            "sessionChecksum": "sha256:13ff8d45053532d93a25f5f65a3e88828f53f33ca5f5bac1f4ca479606b24131",
+            "taskRevision": "task-66c610b803b4bf32202ecf85e4055b2294ebe7d9161c221a86524b65c6f1df6e"
+          },
+          {
+            "sessionId": "20260909_021008_d01384",
+            "transcriptChecksum": "sha256:5b91c2091a846c4bcdfb036fdbf2e5f5320e90a10d7935c4bde24c70ee881aa0",
+            "sessionChecksum": "sha256:ccefc38ef0dad807b422cf6e8452289ffd5212736dbc69293c15a357f1923e15",
+            "taskRevision": "task-ba12fbe2e502a8bbda863c929e4f1bcd9c26d74bbcf58c0487e7697bf47409e8"
+          },
+          {
+            "sessionId": "20260909_021330_b0fd6c",
+            "transcriptChecksum": "sha256:0ed83f1bb23f7445fc4a50c20ff76392a12700e15e6c6b57e00d4948ff19050c",
+            "sessionChecksum": "sha256:d761e34d66eca4eafd53f83115d368d988540f626ab4f027246d7521c4c1133a",
+            "taskRevision": "task-b6ed2c02042f1af362b9115cc44499c7b885842e5a1e603f6a311e8db191286a"
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null
+      },
+      "unchangedPackageFiles": 252,
+      "unchangedGuideFiles": 11,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "ten-minute-focus",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-a54f56912507c2724d9e88c6046a44c42c20d65593b28f2c155e5f9e65b1f785",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-7647d302839e28b015949fbadb31b751e4e76368849bb368d7bc8db483739149",
+        "artifactSetFingerprint": "sha256:10c8a1dfde0fb70acc4b935be970d962245682fe80026957b2de399d149bc0dc"
+      },
+      "delivery": {
+        "storyId": "ten-minute-focus",
+        "deliveryBuildId": "delivery-a54f56912507c2724d9e88c6046a44c42c20d65593b28f2c155e5f9e65b1f785",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:9f7b37056bf3ec85c8c0ca0683eade25c610aadc85851ddeb6879e3e3f03c975",
+            "sizeBytes": 2445397
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:89bc8edd0711bddbf23f30d089ce57bef91f40afafb93dcf8b3957237722ef0e",
+            "sizeBytes": 160415
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:8ba03a68e96cba1866646c577e607f30cfbeda0291e9083e031801a0cc5f98b4",
+            "sizeBytes": 149307
+          },
+          "publish.json": {
+            "checksum": "sha256:a597f95aa688e694d7247cc08ebee6e8bea5018b84dc2a383a576932d45150bb",
+            "sizeBytes": 2164
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1080,
+          "height": 1920,
+          "fps": 30,
+          "frameCount": 829
+        },
+        "decodedFiles": [
+          "video.mp4",
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ]
+      }
+    }
+  ]
+}
