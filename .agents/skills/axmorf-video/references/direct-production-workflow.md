@@ -94,7 +94,7 @@ write 通过 strict `{ "contentBase64": "..." }` stdin。finalize 生成 fixed f
 `fixedFailureCommand`；两者不能访问 task content。普通 failure 要 full binding；no automatic inline fallback。完成
 inline tasks 或 child admission 后立即 continuation。
 
-## 6. Suspend Root in the fixed continuation
+## 6. Supervise through the fixed continuation
 
 After dispatch, Root launches prepare's exact `continuationCommand`:
 
@@ -102,8 +102,7 @@ After dispatch, Root launches prepare's exact `continuationCommand`:
 npm run project:produce:continue -- --project <storyId> --revision <revisionId> --attempt <attemptId>
 ```
 
-It claims once while Root suspends and rejects duplicates. Failure stops; all success converges once. The one-hour
-deadline starts at attempt creation. No repair, retry, or Root re-entry.
+Claim 一次，拒绝重复。Root 阻塞等原进程/通知，普通超时只续等；不轮询 child、反复读日志或重复汇报。错误才诊断并指导原 executor，不代写/commit。失败退出，all success converges once；deadline 从 attempt 创建起一小时。
 
 Convergence read-only replans, safely materializes attested bytes, then verifies `video.mp4`, `cover-4x3.png`,
 `cover-3x4.png`, and `publish.json` by checksum and EOF-decode. A matching delivery returns
@@ -111,16 +110,14 @@ Convergence read-only replans, safely materializes attested bytes, then verifies
 
 Candidate completion and promotion follow the revision reference.
 
-terminal failed attempt immutable。明确恢复时先报告 read-only、zero-provider inspection，再为 same current
-Revision reissue fresh attempt：
+terminal failed attempt immutable。按 [recovery](agent-rework-and-system-hardening.md) 诊断，视频创作错误每个请求最多恢复一次；旧 workers 全退出后报告 read-only、zero-provider inspection，ready 才 same Revision reissue：
 
 ```bash
 npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failedAttemptId>
 npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>
 ```
 
-Reissue 不要求 current delivery；复用 valid artifacts/drafts，返回 fresh bindings/continuation，并拒绝 active、
-stale 或 fixed-flow recovery。它不是 automatic retry。
+Reissue 不要求 current delivery；复用 valid artifacts/drafts，返回 fresh bindings/continuation，并拒绝 active、stale 或 fixed-flow recovery。新 attempt 使用 fresh workers；旧 attempt 不重开。系统/外部故障只诊断报告。
 
 Run `npm run compositions` and `npm run check` with host permissions first. Sandbox failures cannot prove VoxCPM
 unavailable or justify weakening Chromium sandbox.

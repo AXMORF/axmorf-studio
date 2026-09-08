@@ -65,11 +65,11 @@ finalize/check/commit commands. Reuse valid artifacts; fixed template tasks neve
 Keep at most `effectiveMaxConcurrency` children active (at most four and no more than verified host capacity). Use the native
 scheduling shape this host actually supports:
 
-- With wait-any, release each completed child slot and immediately admit the next queued task.
+- With wait-any, use the longest blocking timeout allowed by the outer host deadline (normally at least 30–60 seconds); completion wakes it early. Release each completed slot and immediately admit the next queued task. Do not renew short waits on unchanged state.
 - With a synchronous native batch, submit at most `effectiveMaxConcurrency` tasks together, let the native call return, then
   submit the next bounded batch. Children still execute natively in parallel within each batch; a synchronous return is valid.
 - With native asynchronous batch completion, keep that batch's slots occupied until its native completion notification arrives,
   then admit the next bounded batch. Do not require per-child wait-any or change host settings to obtain it.
 
 Do not wrap shell jobs as children or change host settings to emulate another scheduling shape. Child chat is not a task-terminal receipt. Once all dirty tasks have been admitted, launch prepare's exact continuation once and suspend the
-Root; the fixed continuation alone verifies task terminal events and delivers. No polling or Root repairs after that handoff.
+Root between native events; the fixed continuation alone verifies task terminal events and delivers. No child/status polling. Root may diagnose reported errors and guide the original owner before terminal; it never reads/writes another worker's workspace or repairs the running continuation. Terminal recovery requires the Skill recovery gate and fresh workers after all previous workers have exited.

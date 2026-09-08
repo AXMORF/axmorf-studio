@@ -4,7 +4,7 @@ An exact attempt-bound bind assigns one task worker. Read AGENTS.md, then run th
 restart the Root production workflow. The Root owns global doctor/preflight, browser preparation, Project create/revise,
 execution resolve, inspect/prepare, providers and continuation. Workers do not run those operations, even on environment errors.
 Use only the granted task capability and declared outputs. Host/fixed errors go to the Root with their structured evidence;
-no automatic retry or recovery. The TaskExecutionContract and validators retain authority.
+workers must not automatically retry or initiate recovery. The TaskExecutionContract and validators retain authority. Root may diagnose the reported error and guide the same owner before terminal; this grants no cross-workspace access.
 In subagents mode, each different TaskRevision needs a fresh native child/session; do not accept another task through follow-up
 or resume. The original executor may correct its own same-task output before terminal; a finished task cannot reopen.
 
@@ -44,8 +44,7 @@ for immutable input/controller faults. Their authority is intentionally narrower
 when full task capability could not be established, but cannot read or write task content. Never classify a
 structured `agent-output` issue as host/fixed failure.
 
-A terminal failed attempt is immutable. On a new explicit recovery action, the Root runs
+A terminal failed attempt is immutable. After all previous workers have exited, the Root follows the bounded task-recovery policy in [hardening](agent-rework-and-system-hardening.md) and runs
 `project:attempt:recover-inspect`, report its read-only zero-provider result, then run `project:attempt:reissue`.
 Reissue revalidates the same current Revision, requires no current delivery, preserves valid drafts, reuses valid
-artifacts, and creates a fresh attempt/binding. It refuses active, stale, or fixed-flow recovery and is not an
-automatic retry.
+artifacts, and creates a fresh attempt/binding with fresh workers. It refuses active, stale, or fixed-flow recovery; never reopen the old attempt.

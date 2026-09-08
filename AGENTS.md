@@ -176,8 +176,10 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
 - originality baseline fingerprint 只进入 `scene-owner` TaskRevision/context；`scene-template` 明确豁免。Scene validator
   用全部 declared TS/TSX 的 token-normalized source graph 拒绝历史冲突；converge 在任何 live materialization 前再次
   拒绝同 revision Scene 的 exact 或 normalized duplicate。
-- Root 在串行执行完或把全部 dirty tasks 纳入 bounded pool 后的最后一个生产动作，是启动 prepare 返回的
-  attempt-bound `project:produce:continue`。此后 Root 挂起，不轮询 child、不读取终态、不推理或修复。fixed continuation
+- Root 在串行执行完或把全部 dirty tasks 纳入 bounded pool 后，启动 prepare 返回的 attempt-bound
+  `project:produce:continue`，每个 attempt 仅一次。Root 全程负责，用原进程阻塞等待或原生通知做低 token 监督；
+  等待取宿主 deadline 内最长阻塞时长，通常 30–60 秒或更长；不反复一秒等待。普通超时只续等，不轮询 child/status、反复读日志或推理未变进度。错误通知才唤醒 Root 诊断并指导原 executor；
+  不读写其 workspace、不代 commit、不修复运行中的 continuation。只按 fixed 结果报告一次，忽略迟到的重复成功通知。fixed continuation
   必须先获得 one-shot atomic attempt claim，再等待 immutable task-terminal event log；重复 continuation
   fail closed。任一失败直接终止且不 converge；全部成功才内部恰好调用一次 converge；从 ExecutionAttempt
   创建时刻起一小时总 deadline 内缺少终态时写 timeout failure 并退出；converge 失败也直接终止。
@@ -233,17 +235,23 @@ contact sheet 或布局。第三方 source/media 分别校验 license/attributio
 
 ## 故障语义
 
-- Agent-owned workspace 校验失败时，仅原 task executor 修正 owning paths 并重跑同一 validator；不得降低合同。
-- 已启动的 continuation 意外退出而未写终态时，显式运行 `project:attempt:interrupt-inspect`；只有同宿主
+- Agent-owned workspace 校验失败时，Root 可根据原 executor 返回的结构化错误与最小相关片段定位并指导，
+  仅原 executor 在 terminal 前修正 owning paths 并重跑同一 validator；不得降低合同。相同错误重复且没有具体新修正时停止报告。
+- 已启动的 continuation 意外退出而未写终态时，Root 先诊断报告；不属于自动任务恢复。用户另行明确恢复后，
+  才运行 `project:attempt:interrupt-inspect`；只有同宿主
   owner 与已登记 process groups 均已退出、全部 Agent tasks 已终态、operation lock 可复验时才允许
   `project:attempt:interrupt` 追加 failed event 并归档匹配的遗留锁。原 claim/attempt inputs 不改；legacy/unknown
   owner fail closed，不手动删锁。随后沿既有 recover-inspect/reissue 新建 attempt。进程诊断不进入 content identity。
-- terminal failed attempt 永远 immutable。用户另行明确恢复时，先运行严格只读、零 provider 的
-  `npm run project:attempt:recover-inspect`；只有同一 current Revision、无 active/fixed blocker 时才运行
-  `npm run project:attempt:reissue`。reissue 不要求 current delivery，复用 valid artifacts/drafts 并创建 fresh
-  attempt/bindings；它不是在旧 attempt 内自动 retry。
-- fixed workflow 在 valid inputs 下失败是系统缺陷：当前 production lifecycle 立即终止。只有用户另行启动的
-  engineering task 才能保存脱敏 incident，Red → minimal shared Green → focused/full verification；之后再从
+- terminal failed attempt 永远 immutable。每个用户制作请求（含 candidate）最多自动恢复一次，且只覆盖已证明的
+  Agent-authored output fault；普通退出码或 recovery-ready 本身不能证明故障归属。先等待原 continuation 退出，
+  通过原生完成通知或 stop 后确认所有旧 workers 已退出；无法证明就报告 blocker，禁止新旧 writer 重叠。再运行
+  严格只读、零 provider 的 `npm run project:attempt:recover-inspect`，报告原因、修正方案和复用情况；只有
+  `attempt-recovery-ready`、同一 current Revision、无 active/fixed blocker 时才运行 `npm run project:attempt:reissue`。
+  reissue 不要求 current delivery，复用 valid artifacts/drafts，返回 fresh attempt/bindings/continuation；使用 fresh workers
+  且只派 dirty tasks。恢复再次失败就报告，不重跑 prepare/旁白或重置恢复额度；后续用户明确恢复另算授权。详见 Skill hardening。
+- fixed workflow 在 valid inputs 下失败是系统缺陷：当前 attempt 立即终止。Root 可诊断并报告证据和所需工程范围，
+  不自动修改程序源码、安装包、依赖或 validator。只有用户另行启动的 engineering task 才能保存脱敏 incident，
+  Red → minimal shared Green → focused/full verification；之后再从
   current inputs 新建 ExecutionAttempt。不得在失败 attempt 内修复或重试。
 - provider、host tool、sandbox、permission 或 authorization failure 是 external blocker；不添加 fallback、
   自动 retry、TTS warm-up 或降低 Chromium sandbox。

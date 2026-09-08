@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 18,
-  "policyVersion": "axmorf-video-policy-v22",
+  "schemaVersion": 19,
+  "policyVersion": "axmorf-video-policy-v23",
   "rootEndpoints": [
     "project-production-complete",
     "project-production-current"
@@ -83,7 +83,7 @@
     "productionAuthority": "production-revision-task-dag-artifact-attestation",
     "executionAttemptRole": "diagnostics-only",
     "sceneAuthoringOwner": "resolved-root-or-one-runtime-native-child",
-    "rootAgentRole": "resolved-inline-sequential-or-bounded-dispatch",
+    "rootAgentRole": "resolved-executor-or-dispatcher-with-event-driven-supervision",
     "sceneAuthoringSkill": "repository-local-remotion-best-practices",
     "globalVisualAuthoringOwner": "resolved-root-or-one-runtime-native-child",
     "coverAuthoringOwner": "resolved-root-or-one-runtime-native-child",
@@ -100,7 +100,7 @@
     "artifactReusePolicy": "reuse-valid-content-addressed-artifacts",
     "artifactPromotionPolicy": "validator-only-atomic-promotion",
     "rootWaitsForAllChildTerminalStates": false,
-    "rootPostDispatchParticipation": "none-after-fixed-continuation-starts",
+    "rootPostDispatchParticipation": "event-driven-diagnosis-and-bounded-task-recovery",
     "fixedContinuationMonitorsTaskEvents": true,
     "fixedContinuationClaimPolicy": "one-shot-atomic-exact-attempt",
     "fixedContinuationEventSource": "immutable-attempt-event-log",
@@ -108,8 +108,8 @@
     "fixedContinuationDeadlineOrigin": "execution-attempt-created-at",
     "convergePolicy": "fixed-exactly-once-after-all-agent-artifacts",
     "agentFailurePolicy": "terminal-exit-without-converge",
-    "fixedFailurePolicy": "terminal-exit-without-root-reentry-or-retry",
-    "failedAttemptRecoveryPolicy": "explicit-read-only-inspect-then-same-revision-zero-provider-reissue",
+    "fixedFailurePolicy": "terminal-exit-root-diagnosis-and-report-only",
+    "failedAttemptRecoveryPolicy": "bounded-task-fault-inspect-then-same-revision-zero-provider-reissue",
     "projectRevisionBasePolicy": "exact-current-revision-and-verified-four-file-delivery",
     "projectRevisionCandidatePolicy": "isolated-source-public-narration-work-attempt-output-delivery",
     "projectRevisionPromotionPolicy": "automatic-after-candidate-delivery-with-independent-explicit-retry",
@@ -132,7 +132,6 @@
     "root-task-artifact-fabrication",
     "repeat-converge-in-one-attempt",
     "root-child-status-polling",
-    "root-post-dispatch-reasoning",
     "root-direct-converge",
     "persist-child-identity",
     "trust-chat-as-artifact-authority",
@@ -141,7 +140,11 @@
     "push",
     "publish",
     "agent-write-outside-task-workspace",
-    "unbound-task-read-or-write"
+    "unbound-task-read-or-write",
+    "root-unchanged-progress-reasoning",
+    "automatic-program-source-repair",
+    "recovery-with-live-previous-workers",
+    "unbounded-task-recovery"
   ],
   "contextBudgets": {
     "entrypointMaxWords": 580,
@@ -152,5 +155,19 @@
     "sceneOrchestrationMaxWords": 330,
     "globalVisualOrchestrationMaxWords": 270,
     "coverOrchestrationMaxWords": 240
+  },
+  "supervisionPolicy": {
+    "normalWait": "original-handle-blocking-wait-or-native-notification",
+    "normalTimeout": "renew-original-wait-only",
+    "waitDuration": "longest-blocking-wait-within-host-deadline",
+    "diagnosticTrigger": "error-notification",
+    "taskRepairOwner": "original-bound-executor-before-terminal",
+    "automaticRecoveryScope": "proven-agent-authored-output-fault-only",
+    "automaticRecoveryLimitPerUserRequest": 1,
+    "recoveryQuiescence": "original-continuation-and-all-previous-workers-exited",
+    "recoveryGate": "attempt-recovery-ready",
+    "recoveryWorkers": "fresh-bound-workers",
+    "unknownFixedExternalFaults": "diagnose-and-report-only",
+    "duplicateSuccessNotifications": "ignore-after-fixed-result-report"
   }
 }

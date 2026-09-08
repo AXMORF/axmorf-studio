@@ -144,7 +144,10 @@ live-only fixed projections are excluded from its task identity.
 inspect 前的 execution resolver 按用户提示词、settings、内置 `subagents`/4 默认逐字段选择 Root inline 或 bounded
 subagents，且不进入 production identity。subagents 还要求宿主为本次 production 验证 `shared-workspace` 或
 `controller-io`；transport 不进入 settings 或持久 identity。每个 dirty Agent task 只有一个 executor；inline 一次一个 workspace，
-subagents 最大四个并受 runtime capacity 限制。全部完成或 admission 后 Root 挂起；fixed continuation 以 one-shot
+subagents 最大四个并受 runtime capacity 限制。全部完成或 admission 后 Root 通过原进程阻塞等待或原生通知监督，
+普通超时只续等；错误时才诊断并指导原 executor，不接管 task workspace。每个用户请求最多自动恢复一次已证明的
+视频任务错误：旧 continuation/workers 全退出、recover-inspect ready 后，same-Revision/零 provider reissue 到 fresh
+attempt/bindings/workers；系统/外部/未知故障诊断报告。该策略在 Agent 层执行，CLI 不新增自动重试循环。fixed continuation 以 one-shot
 atomic claim 独占 exact attempt，只订阅 immutable mechanical task-terminal event log；attempt 创建起一小时总
 deadline 防止无限等待。
 ArtifactAttestation 才进入 production data plane。

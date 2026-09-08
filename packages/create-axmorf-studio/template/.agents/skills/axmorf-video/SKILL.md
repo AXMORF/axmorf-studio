@@ -62,22 +62,23 @@ then read `task.json`,
 describe/finalize/check/commit/failure commands. ArtifactAttestation and terminal
 events are authority.
 
-The Root Agent's final production action is the exact continuation command from
-prepare. Do not poll, retry, edit another task, manually converge, or fabricate
-completion. Only a terminal result that verifies the exact four-file current
-Delivery proves completion.
+Start prepare's exact continuation once per attempt. Root stays responsible with blocking waits on the original handle or native
+notifications; no child/status polling, repeated log reads or unchanged progress reasoning. On errors, diagnose and guide the original
+owner without accessing its workspace or repairing the running continuation. Report the fixed result once; ignore duplicate success
+notifications. Only a terminal result that verifies the exact four-file current Delivery proves completion.
 
 Candidate continuation verifies its isolated four files before controlled
 promotion of source/public/narration/delivery as one transaction. A promotion
 failure rolls all four back; retry only `npm run project:revision:promote`,
 never reissue the successfully produced candidate attempt.
 
-A disappeared continuation without a terminal event uses the explicit interruption inspection
-and recovery route in [host execution and recovery](references/host-execution-and-recovery.md).
-Never manually clear its lock or claim. A terminal failed attempt is immutable. On an explicit recovery request, run
-read-only, zero-provider `npm run project:attempt:recover-inspect`, report the
-result, then use `npm run project:attempt:reissue` for a fresh same-Revision
-attempt. It does not require current Delivery and is not an automatic retry.
+A disappeared continuation without a terminal event stops with diagnosis. A later explicit user recovery request uses the interruption
+inspection and recovery route in [host execution and recovery](references/host-execution-and-recovery.md).
+Never manually clear its lock or claim. A terminal failed attempt is immutable. The host recovery guide permits at most one automatic
+recovery per user production request for a proven Agent-authored output fault, after all previous workers have exited. Run read-only,
+zero-provider `npm run project:attempt:recover-inspect`, report the diagnosis/reuse, then use `npm run project:attempt:reissue` only when
+ready for a fresh same-Revision attempt and fresh workers. It does not require current Delivery. Unknown, system or external faults
+are diagnosed and reported, not automatically repaired or retried.
 
 Before writing Scene code, read the repository-local
 `.agents/skills/remotion-best-practices/SKILL.md` and only the references routed

@@ -4,6 +4,19 @@
 >
 > 最后复核：2026-09-08 `v0.1.9` 已通过双宿主候选门禁并正式发布；官方 npm 新建 Workspace 的 Codex/Hermes 成片复测已通过。
 
+## 低 token 监督与视频任务恢复（2026-09-09，未发布）
+
+仓库 Agent 规则、Skill policy v23 和 creator 模板改为原进程阻塞等待/原生事件通知监督；普通等待超时只续等，
+错误时 Root 定位并指导原 executor，不读写其他 task workspace，不接管 fixed continuation。只报告一次 fixed 结果。
+每个用户制作请求最多自动恢复一次已证明的 Agent-authored output fault；旧 continuation/workers 全退出后，
+recover-inspect ready 才 same-Revision/零 provider reissue 到 fresh attempt/bindings/workers，复用有效产物和草稿。
+底层程序、外部或未知故障只诊断报告，恢复再次失败停止。CLI gate、one-shot claim、旧 attempt 不可变与校验规则保留。
+本轮是 Agent 指南/策略修改，不是新增 CLI 自动修复器。文档/兼容性测试 23 项、既有 continuation/reissue/interrupt
+回归 24 项、creator package 检查、Skill 校验、链接和 scoped ESLint 已通过；8 个只读场景推演覆盖等待、返工、恢复与中断。
+此前对本机旧 Workspace 的 5 个指南手动覆盖已从备份恢复；原 0.1.9 package/lockfile 和交付文件未变。
+新指南仅通过正式新版本 creator 发行；当前 creator 不提供既有 Workspace 指南迁移，后续使用正式包新建 Workspace。
+尚无新 Hermes 真实故障恢复成片验收，发布验收证据待补。
+
 ## 当前工程增量（0.1.9 已发布并完成原生 subagents 首次使用验收）
 
 默认执行策略为 `subagents`、最大并发 4；显式 inline 偏好继续生效。发行 Skill 明确 Root 负责全局 doctor/preflight，
@@ -155,7 +168,7 @@ shim。历史 `.producer-runs` 数据保持原位，但 current prepare/converge
 当前 checkout 没有 source Project 或 current Delivery，ProjectRegistry 为 0 entry；这验证了 zero-Project
 bootstrap/Registry/Catalog/settings 合同。readiness、cache reuse 与 dirty task estimate 始终都不是完成证据。
 
-当前 repository video Skill policy schema v18 / policy v22 定义了 pre-inspect external-asset Agent capability slot 与
+当前 repository video Skill policy schema v19 / policy v23 定义了 pre-inspect external-asset Agent capability slot 与
 isolated Project revision flow：外部能力只按
 当前 Root Agent 的实际 callable MCP tools 激活，缺失时完全省略；激活后也必须先查本地 Catalog，再通过
 `project:asset:import` 把选择准入为 Project-owned 输入。该 slot 不创建 DAG node，也不进入 child/runtime。
@@ -246,8 +259,7 @@ isolated Project revision flow：外部能力只按
 - `AGENTS.md` 是唯一 repository Agent authority；`CLAUDE.md`/`GEMINI.md` 只导入该文件，OpenAI Skill metadata
   只提供可选 UI 展示。生产脚本不调用任何厂商 Agent SDK。
 - continuation 启动后 Root 不参与 barrier；event-driven fixed continuation 读取 immutable event log，在 task
-  failure 或 attempt 创建起一小时 terminal deadline 到期时直接退出，在全部成功后只调用一次 converge，fixed failure 不重试或
-  唤回 Root。
+  failure 或 attempt 创建起一小时 terminal deadline 到期时直接退出，在全部成功后只调用一次 converge，fixed failure 不自动重试。Root 按 Skill 诊断，有界恢复只覆盖视频任务错误。
 - terminal failed attempt immutable；`project:attempt:recover-inspect` 严格只读、零 provider，并要求 failed terminal、
   no active attempt、same current Revision、no fixed dirty/blocked。`project:attempt:reissue` 在 lock 内重检，零
   provider、不要求 current delivery，复用 valid artifacts/drafts 并创建 fresh attempt/bindings；stale/active/

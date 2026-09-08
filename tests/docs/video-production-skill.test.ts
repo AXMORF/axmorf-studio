@@ -11,8 +11,8 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 
 const PolicySchema = z
   .object({
-    schemaVersion: z.literal(18),
-    policyVersion: z.literal("axmorf-video-policy-v22"),
+    schemaVersion: z.literal(19),
+    policyVersion: z.literal("axmorf-video-policy-v23"),
     rootEndpoints: z.tuple([
       z.literal("project-production-complete"),
       z.literal("project-production-current"),
@@ -71,6 +71,30 @@ const PolicySchema = z
         identityVisibility: z.literal("none"),
       })
       .strict(),
+    supervisionPolicy: z
+      .object({
+        normalWait: z.literal(
+          "original-handle-blocking-wait-or-native-notification",
+        ),
+        normalTimeout: z.literal("renew-original-wait-only"),
+        waitDuration: z.literal("longest-blocking-wait-within-host-deadline"),
+        diagnosticTrigger: z.literal("error-notification"),
+        taskRepairOwner: z.literal("original-bound-executor-before-terminal"),
+        automaticRecoveryScope: z.literal(
+          "proven-agent-authored-output-fault-only",
+        ),
+        automaticRecoveryLimitPerUserRequest: z.literal(1),
+        recoveryQuiescence: z.literal(
+          "original-continuation-and-all-previous-workers-exited",
+        ),
+        recoveryGate: z.literal("attempt-recovery-ready"),
+        recoveryWorkers: z.literal("fresh-bound-workers"),
+        unknownFixedExternalFaults: z.literal("diagnose-and-report-only"),
+        duplicateSuccessNotifications: z.literal(
+          "ignore-after-fixed-result-report",
+        ),
+      })
+      .strict(),
     optionalCapabilitySlots: z
       .object({
         externalAssetAcquisition: z
@@ -94,7 +118,7 @@ const PolicySchema = z
           "production-revision-task-dag-artifact-attestation",
         ),
         rootAgentRole: z.literal(
-          "resolved-inline-sequential-or-bounded-dispatch",
+          "resolved-executor-or-dispatcher-with-event-driven-supervision",
         ),
         executionAttemptRole: z.literal("diagnostics-only"),
         sceneAuthoringSkill: z.literal(
@@ -113,7 +137,7 @@ const PolicySchema = z
         ),
         rootWaitsForAllChildTerminalStates: z.literal(false),
         rootPostDispatchParticipation: z.literal(
-          "none-after-fixed-continuation-starts",
+          "event-driven-diagnosis-and-bounded-task-recovery",
         ),
         fixedContinuationMonitorsTaskEvents: z.literal(true),
         convergePolicy: z.literal(
@@ -121,7 +145,7 @@ const PolicySchema = z
         ),
         agentFailurePolicy: z.literal("terminal-exit-without-converge"),
         fixedFailurePolicy: z.literal(
-          "terminal-exit-without-root-reentry-or-retry",
+          "terminal-exit-root-diagnosis-and-report-only",
         ),
         globalVisualReadsSceneOutputs: z.literal(false),
         childIdentityPersisted: z.literal(false),
@@ -258,9 +282,9 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
   );
   assert.match(
     skill,
-    /Root's final production action[\s\S]*continuationCommand/u,
+    /Root starts the exact `continuationCommand` once per attempt/u,
   );
-  assert.match(skill, /without polling[\s\S]*token-consuming supervision/u);
+
   assert.match(skill, /failure exits nonzero without converge/u);
   assert.equal(
     policy.invariants.fixedContinuationClaimPolicy,
@@ -355,6 +379,7 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
     hardening,
     /(?:does not require|needs no|不要求)[\s\S]*current delivery/iu,
   );
+  assert.match(hardening, /Do not repeatedly request 1-second waits/u);
   assert.match(producerConfig, /publishingCollections/u);
   assert.match(producerConfig, /targetLoudnessLufs/u);
   assert.doesNotMatch(producerConfig, /POST \/clone|127\.0\.0\.1:31(?:00|01)/u);

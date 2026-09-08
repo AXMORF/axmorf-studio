@@ -1,6 +1,6 @@
 ---
 name: axmorf-video
-description: Resolve inline or bounded-Agent execution, produce, and hand off to fixed continuation.
+description: Produce videos with bounded workers, event-driven supervision, and task recovery.
 ---
 
 # AXMORF Studio Video
@@ -63,10 +63,9 @@ transport failure 由 Root 运行 `spawnFailureCommand`；immutable/controller f
 
 ## Hand off to fixed continuation
 
-Root's final production action is the exact `continuationCommand`; then it suspends without polling or
-token-consuming supervision. Code claims once and watches immutable events.
-Any failure exits nonzero without converge; all-success converges exactly once; the one-hour total deadline starts
-at ExecutionAttempt creation. No retry, Root re-entry, direct converge, or workspace edit.
+Root starts the exact `continuationCommand` once per attempt. 用原进程阻塞等待或完成通知做低 token 监督；普通超时只继续等待，不查日志、不推理进度。Code claims once and watches immutable events.
+Task failure exits nonzero without converge; all-success converges exactly once; deadline 从 attempt 创建起一小时。
+错误通知才唤醒 Root 诊断并指导原 executor；不接管 workspace、不 direct converge、不重启当前 continuation。修复与恢复按下方 hardening。
 
 ## Preserve production invariants
 
@@ -78,16 +77,13 @@ at ExecutionAttempt creation. No retry, Root re-entry, direct converge, or works
 
 ## Classify failure by task owner
 
-中断但无终态时，显式 `project:attempt:interrupt-inspect` 证明 owner/子进程死亡后才执行返回的
+中断无终态先报告；用户明确恢复后，`project:attempt:interrupt-inspect` 证明 owner/子进程死亡才执行返回的
 `project:attempt:interrupt`，再走 recovery。禁止手删 lock/claim；legacy ownership 阻塞。细节见下方 hardening。
 
-仅 assigned executor 在 terminal 前修正 `agent-output`；failure 冻结 attempt。明确后续 recovery 先 read-only
-`project:attempt:recover-inspect`，再 zero-provider same-Revision `project:attempt:reissue`，且不要求 current
-delivery。系统问题用 [hardening](references/agent-rework-and-system-hardening.md)。不 auto-retry/fallback、弱化
-validator 或伪造 attestation。
+按 [hardening](references/agent-rework-and-system-hardening.md) 诊断并指导原 executor 修正 `agent-output`。terminal failure 后旧 workers 全退出，read-only `project:attempt:recover-inspect` ready 才 zero-provider same-Revision `project:attempt:reissue`，无需 current delivery。每个请求最多恢复一次；未知、无进展、系统/外部故障只诊断报告。
 
 ## Finish with verified delivery
 
-执行前报告 mode/capacity、IDs、inspect、cost 与 TaskRevisions；continuation 启动后 Root 不报告终态。
+执行前报告 mode/capacity、IDs、inspect、cost 与 TaskRevisions；Root 只按 fixed 结果报告一次交付或阻塞，忽略迟到的重复成功通知。
 Only `project-production-complete` or `project-production-current` proves delivery. Do not publish, push, or use
 `git add .`.

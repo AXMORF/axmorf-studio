@@ -31,7 +31,15 @@ owner/process-group death, all task terminals and exact lock ownership before `p
 failed delivery event and archives the abandoned lock. The old claim remains one-shot. Recover-inspect/reissue then
 creates a fresh attempt and reuses validated artifacts. Active, pending, foreign or legacy ownership fails closed.
 Hosts must keep the exact continuation process alive across tool yields and wait only on its original handle for the
-fixed result. A background acknowledgement is not delivery; no additional production/status commands or retries follow launch.
+fixed result. A background acknowledgement is not delivery. Normal wait timeouts renew the wait without polling child/status or
+reading unchanged logs. Root diagnoses error notifications and guides only the original owner before terminal, without accessing
+its workspace. Report the fixed result once and ignore duplicate success notices.
+
+The Agent policy permits one automatic recovery per user production request for proven Agent-authored output faults only. After
+the original continuation and all workers have exited, diagnose/report and run read-only recover-inspect; only recovery-ready
+permits same-Revision, zero-provider reissue with fresh bindings/workers and valid artifact/draft reuse. Recovery failure stops;
+unknown, fixed-system and external faults are diagnosed and reported. Interruption recovery still requires explicit authorization.
+The CLI does not add a retry loop, and this policy never authorizes installed-package, dependency or validator modification.
 
 
 ## First-use authoring and duration feedback

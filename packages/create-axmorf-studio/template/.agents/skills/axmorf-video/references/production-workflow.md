@@ -49,16 +49,18 @@ or resume; only same-task corrections by the original owning executor before ter
 8. The assigned executor writes only contract-declared Agent/Agent-draft outputs and uses its exact returned
    describe/finalize/check/commit/failure commands; the Root is that executor only in inline mode.
    With `controller-io`, the executor uses only returned strict file-read/file-write commands.
-9. Start the exact continuation command as the Root Agent's final production
-   action. Do not supervise it through polling or a second continuation.
+9. Start the exact continuation command once per attempt. Root supervises with native notifications or blocking waits on its original
+   handle. Normal wait timeouts only renew that wait; no child/status polling, repeated log reads or a second continuation. On an error
+   notification, diagnose and guide the original executor before terminal without accessing its workspace. Report fixed completion once.
    Candidate continuation verifies an isolated exact-four Delivery before
    controlled source/public/narration/delivery promotion. If promotion rolls
    back, retry only
    `project:revision:promote`; do not reissue the completed production attempt.
-10. Never reopen a terminal failed attempt. On explicit recovery, run read-only
-    `npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failedAttemptId>`, then zero-provider
-    same-Revision `npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>`; no current
-    Delivery is required.
+10. Never reopen a terminal failed attempt. Follow [host recovery](host-execution-and-recovery.md): at most one automatic recovery per
+    user production request for proven Agent-authored output faults, only after all previous workers have exited. Run read-only
+    `npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failedAttemptId>`, report the diagnosis/reuse, then zero-provider
+    same-Revision `npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>` only if ready; no current Delivery is
+    required. Use fresh workers and bindings. Unknown, fixed-system and external faults stop with diagnosis; no automatic program-source repair.
 
 Timing comes from sealed PCM samples. Scenes do not own captions or narration.
 Agent-owned Scene TS/TSX graphs must be unique against the frozen baseline and

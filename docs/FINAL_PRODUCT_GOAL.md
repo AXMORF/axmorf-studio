@@ -19,12 +19,13 @@ Desktop、Electron、Runtime Pack 或 `rsp` control plane。唯一主链是：
 2. 建立 content-addressed Task DAG；
 3. 为 dirty Agent tasks 冻结 immutable TaskExecutionContract，并复用有效 ArtifactAttestation；
 4. 每个 executor 经 attempt-bound zero-write bind 后，只通过 verified capability 执行 exact contract；
-5. Root 完成 inline execution 或 bounded child admission 后挂起，由 attempt-bound fixed continuation 处理全部 task terminal；
+5. Root 完成 inline execution 或 bounded child admission 后以阻塞等待/事件通知低 token 监督，由 attempt-bound fixed continuation 处理全部 task terminal；
 6. 全部成功后 fixed convergence 原子物化 live 或 isolated candidate production scope；
 7. 同步生成并机械复验 exact four-file delivery；candidate scope 随后才尝试受控 current promotion。
 
 ExecutionAttempt 只记录一次执行诊断。它的失败或丢失不拥有产物、不改变 content identity，也不阻止
-后续 attempt 复用已经验证的 artifact。
+后续 attempt 复用已经验证的 artifact。Root 负责定位视频任务错误并指导原 executor；terminal 后仅在旧 workers 全退出、
+只读恢复检查通过时最多自动恢复一次，使用新 attempt 和新 workers。底层程序及外部故障诊断后报告，不自动修程序。
 
 修改现有 Project 不是 live in-place edit：strict revision input 必须绑定 exact current Revision 与已复验
 four-file Delivery，先在隔离 candidate 中走同一 production 主链。candidate Delivery 完整后才受控提升 current
@@ -113,7 +114,7 @@ decode 全部通过后才替换。相同完整 identity 是只读 no-op。
 - 每个完成状态都有机械证据；聊天成功、Agent 自评、文件存在或进程启动都不代表交付完成。
 - Agent 执行模式按用户提示词明确字段、配置页、内置 `subagents`/4 默认逐级解析；默认要求
   bounded runtime-native children 和 verified transport，用户仍可明确选择 inline；
-  策略不进入 production identity。continuation 启动后 Root 不监督；failure 直接终止，all-success 只由持有
+  策略不进入 production identity。continuation 启动后 Root 以阻塞等待/通知监督，错误时诊断；failure 直接终止该 attempt，all-success 只由持有
   exact-attempt one-shot claim 的 fixed continuation 触发一次 converge；缺失终态受 attempt 创建起一小时总
   deadline 约束。
 

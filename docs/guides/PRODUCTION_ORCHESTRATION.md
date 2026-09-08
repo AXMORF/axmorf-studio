@@ -117,7 +117,7 @@ Root-only exact `spawnFailureCommand`；immutable/controller fault 运行 `fixed
 
 ## 6. Hand off to fixed continuation
 
-inline 全部执行完或 subagents 全部 admission 后，Root 的最后一个生产动作是启动 exact `continuationCommand`：
+inline 全部执行完或 subagents 全部 admission 后，Root 启动 exact `continuationCommand`，每个 attempt 仅一次：
 
 ```bash
 npm run project:produce:continue -- --project <storyId> --revision <revisionId> --attempt <attemptId>
@@ -125,9 +125,10 @@ npm run project:produce:continue -- --project <storyId> --revision <revisionId> 
 
 这是 bounded fixed process，不是常驻 Agent/scheduler。它先对 exact attempt 原子创建 one-shot claim，再监听
 immutable event log；重复启动 fail closed，不依赖 `progress.generated.json` 通知。它保持宿主任务运行；Root
-同时挂起，不轮询、推理或消耗 token 监督。任一 task failure 直接终止且不 converge；全部成功才内部
-converge 一次；从 ExecutionAttempt 创建起一小时总 deadline 内缺 terminal 会写 timeout failure；fixed failure 直接退出，不重试或
-重新进入 Root。
+用原进程阻塞等待或原生通知监督，普通超时只续等，不轮询 child/status、反复读日志或推理未变进度。错误通知才诊断并指导
+原 executor，不读写其 workspace、不代 commit、不修复运行中的 continuation。只报告一次 fixed 结果，忽略重复成功通知。
+任一 task failure 直接终止且不 converge；全部成功才内部 converge 一次；从 ExecutionAttempt 创建起一小时总 deadline 内
+缺 terminal 会写 timeout failure；fixed failure 直接退出，Root 只诊断报告，不自动修改底层程序或重试。
 
 converge 使用 read-only current replan 检查 Revision 与 Artifact Store；不调用 provider、不创建 workspace 或
 new attempt。stale revision 或 incomplete artifacts 在任何 live mutation 前返回；不信任聊天。齐全后 fixed
@@ -145,7 +146,9 @@ promotion 在锁内重验 base/current 与 expected candidate tuple，受控替�
 | `project-production-complete`   | 新四文件 package 已同步生成、复验并提升 current   |
 | `project-production-current`    | 同 identity current package 已复验，media 未重写  |
 
-terminal failed attempt 永远 immutable。显式 recovery 先运行并报告严格只读、零 provider inspection：
+terminal failed attempt 永远 immutable。按 [Skill recovery](../../.agents/skills/axmorf-video/references/agent-rework-and-system-hardening.md)
+先分类故障；仅已证明的视频任务错误允许每个用户请求自动恢复一次（candidate/重试不重置额度）。确认原 continuation 与
+所有旧 workers 经原生完成或 stop 后确认退出，才能运行并报告严格只读、零 provider inspection：
 
 ```bash
 npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failedAttemptId>
@@ -155,7 +158,8 @@ npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptI
 recover inspection 只在 failed terminal、无其他 active attempt、same current Revision 且 current plan 没有
 dirty/blocked fixed tasks 时返回 `attempt-recovery-ready`。reissue 在 lock 内重检，不要求 current delivery，复用
 valid artifacts/drafts，创建 fresh attempt/bindings 并返回 `project-production-reissued` 与 continuation。active/
-stale/fixed-flow failure 拒绝；这不是自动 retry。不要 provider fallback、跨 Project reuse、复制 identity、手改
+stale/fixed-flow failure 拒绝。恢复使用 fresh workers 与 exact 新 bindings，只派 dirty tasks；再次失败、未知、系统或外部错误停止报告。
+不能 rerun prepare/旁白绕过恢复额度。不要 provider fallback、跨 Project reuse、复制 identity、手改
 manifest 或绕过 validator。
 
 ## 7. Host verification

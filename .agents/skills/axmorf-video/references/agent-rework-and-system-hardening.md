@@ -6,30 +6,52 @@ Only an Agent-owned dirty task workspace is recoverable creative work. A fixed-f
 defect. Provider, host, sandbox, permission, or authorization failure is an external blocker. Classify the
 failing owner before acting.
 
+## Low-token supervision
+
+Root remains responsible through verified delivery. After bounded admission, start the exact continuation once per attempt.
+Prefer native completion notification or a blocking wait on its original process handle. An ordinary wait timeout with a live
+process means continue waiting on that handle, not inspect progress, read logs or diagnose a failure. Read only new error output
+when an error arrives. Do not poll child chats, tail transcripts, repeat unchanged status or reply again to late success notices.
+A success notification never replaces fixed delivery verification. Report the fixed final result once.
+
+Use the longest supported blocking wait that fits the outer host deadline, typically 30–60 seconds or longer when allowed. Native completion should wake it early. Do not repeatedly request 1-second waits, alternate wait tools to inspect unchanged state, or narrate routine renewals. Queue admission likewise uses a long native wait-any that wakes on completion; it does not need short polling intervals.
+
 ## Agent task rework
 
-The assigned executor first passes the attempt-bound zero-write bind gate. It may then use only the returned
-`shared-workspace` or `controller-io` capability, correct outputs permitted by the immutable
-`TaskExecutionContract`, rerun exact bound finalize/check, and call exact bound commit. Do not weaken the validator,
-change immutable inputs, write fixed-finalize outputs, write live Project output, or fabricate the artifact manifest.
-Commit repeats validation and is the only promoter.
+On a worker error notification, Root diagnoses from the exact task/binding identity, failing command, structured validator issue
+and the owner's minimal relevant excerpt. Chat routes diagnosis only; bound checks and terminal events remain authority. Root may
+send a targeted correction to the original live executor, which alone can read/write its declared outputs after successful bind.
+Do not read another worker's workspace, take over its commit, edit immutable inputs or fixed-finalize outputs, weaken validators,
+or repair a running continuation. The owner reruns exact bound finalize/check/commit before terminal. Repeated identical errors
+without a concrete new correction stop and report; neither Root nor worker loops blindly.
 
-A child terminal message does not prove an artifact. The executor uses its full-bound `taskFailureCommand` only for
-unrecoverable authored output. Root-only `spawnFailureCommand` records real host/transport spawn failure;
-`fixedFailureCommand` records immutable/controller failure through a narrower authority that cannot access task
-content. Fixed continuation then fails the attempt without convergence or Root re-entry.
+A terminal failed attempt is never reopened. Video production authorizes at most **one automatic task-recovery cycle per user
+production request**, including revision candidates; a retry or candidate change does not reset this allowance. Only a proven
+Agent-authored output fault qualifies. A generic exit code or recovery-ready response alone does not classify the original fault.
+Unknown, fixed-system, provider, host, permission, identity or integrity faults stop with diagnosis and a concise blocker.
 
-When a continuation was externally interrupted before its terminal event, explicit `project:attempt:interrupt-inspect`
-checks same-host process ownership, all task terminals, owned process groups and the exact operation lock. Only its
-ready result allows `project:attempt:interrupt`; the latter appends a failed event and archives a verified abandoned lock,
-without removing the original continuation claim or changing artifact identity. Legacy or unverifiable ownership is a blocker.
+For an eligible terminal task failure:
 
-A terminal failed attempt is never reopened. A later explicit
-`npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failedAttemptId>` is read-only and zero
-provider. If it reports same-current-Revision recovery ready with no active/fixed blocker, run
-`npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>`. Reissue needs no current
-delivery, preserves valid drafts, reuses every valid ArtifactAttestation, and creates a fresh attempt/binding. It is
-not retry inside the old attempt. Attempt state never invalidates or owns bytes.
+1. Wait for the original continuation to exit and use native worker completion, or native stop followed by confirmed exit, to
+   establish that **all previous workers have exited**. A failed attempt alone does not prove their processes stopped. If the host
+   cannot establish quiescence, report the blocker; never overlap old and new writers.
+2. Run read-only, zero-provider `project:attempt:recover-inspect` for the exact failed attempt, preserving `--candidate` when present.
+   Report the diagnosed cause, proposed task correction, artifact reuse and inspection result. Only `attempt-recovery-ready`
+   permits `project:attempt:reissue`; it rechecks same-current-Revision, no active/fixed blocker, and valid artifacts/drafts under lock.
+3. Reissue needs no current delivery and calls no provider. It returns a fresh attempt/bindings/continuation. Admit only its dirty
+   tasks to fresh native workers using the resolved capacity/transport; inline Root binds serially. Give each its exact new bind
+   and the relevant diagnosis, never another task's contents. No old bindings or terminal sessions may be reused.
+4. Start that attempt's exact continuation once and resume low-token supervision. If this recovery fails, stop and report; do not
+   reissue again, rerun prepare, regenerate narration or expand to package-source repair. A later explicit user recovery request
+   is a separate authorization, still subject to all gates.
+
+Root-only spawn/fixed failure commands retain their narrow authority: record actual host/transport or immutable/controller
+faults without task content access. Workers never initiate recovery. Automatic mode fallback is forbidden.
+
+For an external interruption with no terminal event, diagnose and report; automatic task recovery does not cover it. On explicit
+recovery, `project:attempt:interrupt-inspect` proves same-host owner/process-group death, all task terminals and exact lock ownership.
+Only its ready result permits `project:attempt:interrupt` to append failure and archive the abandoned lock, preserving the old claim.
+Then use recover-inspect/reissue. Unknown or legacy ownership blocks; never manually remove a lock or manufacture terminal events.
 
 ## Fixed-flow defects
 
@@ -37,8 +59,9 @@ Artifact Store inspection/promotion, fixed template preparation, convergence/mat
 ScenePackage/Coverage/RendererRegistry/Composition refresh, and synchronous delivery are fixed flow. With
 valid inputs:
 
-The production attempt never repairs these defects in place. It exits. In a separate user-started engineering
-task:
+The production attempt never repairs these defects in place. It exits. Root may read the relevant diagnostic evidence and
+report the likely cause, supporting evidence and required engineering scope, but must not change program source, installed
+packages, dependencies, validators or generated authority, or restart production. In a separate user-started engineering task:
 
 1. Diagnose from the failed attempt; do not skip the gate or hand-edit derived state.
 2. Save a redacted incident containing storyId/revisionId/taskRevision where applicable, the safe symptom,

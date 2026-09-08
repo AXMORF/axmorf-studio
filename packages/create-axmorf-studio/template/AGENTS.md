@@ -34,9 +34,11 @@ must run prepare's exact attempt-bound bind command before reading or writing
 task content. Only `task-worker-bound` grants access to immutable `task.json`,
 `inputs/context.json`, and `inputs/task-contract.json` plus declared outputs.
 Use the returned transport and bound describe/finalize/check/commit/failure
-commands. The Root Agent's last production action is prepare's exact continuation
-command. Wait only on the original host process handle for its terminal output;
-do not issue new production/status commands or infer completion from a background acknowledgement.
+commands. Start prepare's exact continuation once per attempt. Root remains responsible using blocking waits on the original host
+handle or native notifications; use the longest wait within host deadlines, normally 30–60 seconds or longer, never repeated 1-second waits. Normal timeouts only renew the wait. No child/status polling, repeated log reads or unchanged progress
+reasoning. On error notifications Root diagnoses and guides the original live executor without reading/writing its workspace or
+repairing the running continuation. Report the fixed final result once; ignore duplicate success notices and never infer delivery
+from a background acknowledgement.
 
 `project:create` freezes the Project's Scene originality baseline. A legacy
 Project without it requires the user's explicit migration request and
@@ -69,10 +71,13 @@ executor before terminal. Releasing a capacity slot does not authorize reusing t
 Subagents require bounded runtime-native children and verified
 `shared-workspace` or `controller-io` transport for this production. Transport is
 host capability evidence, not saved Workspace configuration. A failed attempt is
-immutable; explicit recovery uses read-only `project:attempt:recover-inspect`
-before zero-provider same-Revision `project:attempt:reissue`.
+immutable. The Skill host-recovery guide allows at most one automatic task-recovery cycle per user production request for proven
+Agent-authored output faults, after the continuation and all previous workers have exited. Read-only `project:attempt:recover-inspect`
+plus diagnosis/reuse reporting precedes zero-provider same-Revision `project:attempt:reissue` only if ready. Use fresh workers and
+bindings; stop on repeated/no-progress failures. Unknown, system and external faults are diagnosed and reported, not automatically
+repaired or retried. No package/source/dependency/validator changes belong to video-task recovery.
 
-A continuation interrupted without a terminal event uses explicit
+An external interruption without terminal first stops with diagnosis. After a later explicit user recovery request, use
 `project:attempt:interrupt-inspect`, then its returned `project:attempt:interrupt`
 only when owner and subprocess death are proven. Follow recover-inspect/reissue.
 Never manually delete a lock or claim; old claims without ownership evidence fail closed.
