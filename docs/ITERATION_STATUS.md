@@ -2,9 +2,9 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-09 `v0.1.10` 已通过双宿主新候选验收和 macOS CI；正式 npm 发布与公开包复测待完成。
+> 最后复核：2026-09-09 `v0.1.10` 已正式发布；候选与公共 npm 包的 Codex/Hermes 成片验收、新建用户 Workspace 均通过。
 
-## 低 token 监督与视频任务恢复（0.1.10 候选通过，待发布）
+## 低 token 监督与视频任务恢复（0.1.10 已发布）
 
 仓库 Agent 规则、Skill policy v23 和 creator 模板改为原进程阻塞等待/原生事件通知监督；普通等待超时只续等，
 错误时 Root 定位并指导原 executor，不读写其他 task workspace，不接管 fixed continuation。只报告一次 fixed 结果。
@@ -23,6 +23,16 @@ Codex 25.97 秒、Hermes 28.33 秒；252 个 runtime 文件与 11 个指南未�
 [原生记录复核](evidence/v0.1.10-supervision-review.json)：Codex continuation 后 3 次原进程 60 秒等待，Hermes 1 次原进程 600 秒等待，
 无额外生产查询；不把这些次数换算为 token 节省比例。真实故障自动恢复尚未实测，边界仅有既有回归与场景检查证据。
 完整本地 811/811、package build/typecheck、零漏洞审计与 macOS ARM64 CI 通过；CI 两包与候选的全部发行文件一致。
+
+`v0.1.10` 从 exact commit `39edbd5` 发布；最终提交的 macOS ARM64 和 Linux 811 项全量门禁通过。
+runtime 首次被 npm 接收后约八分钟才可见，超过工作流五分钟等待期限；确认 registry integrity 匹配后，同标签第二次
+工作流验证并跳过已有 runtime，继续发布 creator。两个 public latest 均为 0.1.10，integrity 与 CI tarball 一致。
+[公共包复测](evidence/v0.1.10-public-registry.json) 各 5 个创作 child + 1 个 probe、峰值 4、补位 1；
+Codex 26.67 秒、Hermes 27.37 秒，原 continuation 成功，独立 final 7/7、四文件 checksum/EOF 解码通过。
+两边安装文件与指南未变；无控制器追加指导、未观察到开发仓库或历史制作上下文读取。Hermes 成功后额外执行了三次只读 CLI 查询，
+包含一次缺少 level 的调用与 help 查询，随后正确 final 检查通过；不把运行描述为零多余调用或 token 消耗确定为零。
+已从公共 `npm create axmorf-studio@latest` 新建用户 Workspace `axmorf-v0.1.10`，252 个 runtime 文件与 11 个指南一致，
+doctor 六项通过；旧 Workspace 保留且五处手动指南覆盖已恢复。见 [发行机器记录](evidence/v0.1.10-release.json)。
 
 ## 历史工程增量（0.1.9 已发布并完成原生 subagents 首次使用验收）
 
@@ -119,8 +129,8 @@ reference environment evidence，不是 runtime allowlist；其他宿主可以�
 已认证。Agent 不得修改 package internals、精确依赖、sandbox 或 validators 来强行适配。
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
-补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.9` 与
-`create-axmorf-studio@0.1.9`，发布记录见上方证据。此前 `v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
+补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.10` 与
+`create-axmorf-studio@0.1.10`，发布记录见上方证据。此前 `v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
 release candidates 一致，provenance、registry signatures 与 attestations 已由外部 fresh Workspace 复验。
 GitHub 仓库已转移为 `AXMORF/axmorf-studio`，npm 发布分支是 default branch，旧 `main` 保留。production 与完整
 repository `npm audit` 已通过 `fast-uri@3.1.6`、
