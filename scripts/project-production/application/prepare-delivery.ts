@@ -526,6 +526,7 @@ export const prepareProjectAuthoringBuild = async ({
   await Promise.all([
     collectGlobalVisualSourceGraph({
       rootDir: contentRoot,
+      runtimeRootDir: scope.shared.runtimeRoot,
       storyId: projectId,
     }),
     collectDeliveryCoverSourceGraph({

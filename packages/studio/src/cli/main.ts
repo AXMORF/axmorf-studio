@@ -199,11 +199,16 @@ const createDefaultRunners = (output: Output): CliRunners => {
       });
     },
     projectRevision: async ({ rootDir, args }) => {
-      await runtime();
+      const { manifest } = await runtime();
       const { runProjectRevisionCli } =
         await import("../../../../scripts/projects/revision");
       const [action, ...actionArgs] = args;
-      const context = { rootDir, env: process.env, stdout: stdoutLine };
+      const context = {
+        rootDir,
+        env: process.env,
+        stdout: stdoutLine,
+        runtimePolicyManifest: manifest,
+      };
       switch (action) {
         case "context":
         case "validate":

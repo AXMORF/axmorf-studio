@@ -38,8 +38,7 @@ exact mismatch 或 zero capacity 在 prepare 前阻塞。transport 不持久化�
 
 ## Inspect before cost
 
-Run read-only, zero-provider `project:produce:inspect`; report readiness, cost/reuse, and invalidation. Unknown stays
-unknown.
+Run read-only `project:produce:inspect`; prepare 前向用户说明 readiness、cost/reuse 与失效原因；CLI 输出不算说明。未知保持未知。
 
 ## Prepare content-addressed tasks
 

@@ -357,6 +357,7 @@ export async function auditNativeExecution(input: {
   host: "codex" | "hermes";
   transcript: string;
   sessionId: string;
+  sessionSource?: string;
   workspace: string;
   startedAt: string;
   endedAt: string;
@@ -476,7 +477,7 @@ export async function auditNativeExecution(input: {
         .object({
           id: z.string(),
           parent_session_id: z.string(),
-          source: z.literal("subagent"),
+          source: z.string(),
           cwd: z.string().nullable(),
           started_at: z.number(),
           ended_at: z.number(),
@@ -486,6 +487,13 @@ export async function auditNativeExecution(input: {
         .passthrough()
         .parse(JSON.parse(bytes.toString("utf8")));
       id = session.id;
+      // Hermes TUI's session context overrides platform="subagent" with the
+      // parent's source. Native parentage and task bind/commit remain authority.
+      assert.equal(
+        session.source,
+        input.sessionSource === "tui" ? "tui" : "subagent",
+        "Hermes child source does not match its native parent surface",
+      );
       assert.equal(
         session.parent_session_id,
         input.sessionId,

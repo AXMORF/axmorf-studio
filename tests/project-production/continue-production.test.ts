@@ -16,6 +16,7 @@ const durationBudget = buildDurationBudget({
   actualDurationInFrames: 1045,
 });
 import { createProjectRevisionProductionScope } from "../../scripts/project-production/application/production-scope";
+import { buildRuntimePolicyManifest } from "../../packages/studio/src/runtime/policy-manifest";
 
 const revisionId = `revision-${"1".repeat(64)}`;
 const deliveryBuildId = `delivery-${"2".repeat(64)}`;
@@ -434,6 +435,16 @@ test("fixed continuation refuses to start convergence after the task deadline", 
 });
 
 test("candidate continuation keeps attempt events isolated and converges through the repository runtime", async () => {
+  const runtimePolicyManifest = buildRuntimePolicyManifest({
+    packageVersion: "0.1.11",
+    files: [
+      {
+        logicalPath: "dist/contracts.js",
+        bytes: Buffer.from("runtime"),
+        scopes: ["composition", "delivery", "global-visual", "scene"],
+      },
+    ],
+  });
   const scope = createProjectRevisionProductionScope({
     rootDir: "/fixture",
     storyId: "story-example",
@@ -455,6 +466,7 @@ test("candidate continuation keeps attempt events isolated and converges through
       revisionId,
       attemptId,
       scope,
+      runtimePolicyManifest,
     },
     {
       readProgress: async ({ rootDir }) => {
@@ -523,6 +535,7 @@ test("candidate continuation keeps attempt events isolated and converges through
       candidateId: scope.candidateId,
       expectedRevisionId: revisionId,
       expectedDeliveryBuildId: deliveryBuildId,
+      runtimePolicyManifest,
     },
   ]);
   assert.deepEqual(new Set(progressRoots), new Set([scope.isolatedRoot]));

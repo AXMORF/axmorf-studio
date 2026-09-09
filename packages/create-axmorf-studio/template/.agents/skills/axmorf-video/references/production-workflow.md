@@ -20,6 +20,8 @@ or resume; only same-task corrections by the original owning executor before ter
 
 ## Root production
 
+Before the first command, briefly tell the user the plan. Report inherited boundary duration before create and the inspect result before prepare; CLI output is not a user-facing explanation. Keep all production commands scoped to this Workspace. A newly created npm Workspace may have no Git repository, so a Git check must not gate doctor.
+
 1. Run `npm run doctor`. Prepare only declared host prerequisites when needed;
    never patch package internals, dependencies, or validators to force Green.
 2. Preserve unrelated Workspace changes and inspect existing Project source.
@@ -61,6 +63,8 @@ or resume; only same-task corrections by the original owning executor before ter
     `npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failedAttemptId>`, report the diagnosis/reuse, then zero-provider
     same-Revision `npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>` only if ready; no current Delivery is
     required. Use fresh workers and bindings. Unknown, fixed-system and external faults stop with diagnosis; no automatic program-source repair.
+
+After `project-production-complete` or `project-production-current`, report the verified delivery paths once and stop. This fixed result already validates the exact four files. If a separate recheck is needed, use exactly `npm run project:check -- --project <storyId> --level final`; do not omit `--level`. `project:revise:context` starts a user-requested revision and is not a delivery inspection command.
 
 Timing comes from sealed PCM samples. Scenes do not own captions or narration.
 Agent-owned Scene TS/TSX graphs must be unique against the frozen baseline and

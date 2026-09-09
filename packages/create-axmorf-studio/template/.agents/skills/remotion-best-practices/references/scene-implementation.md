@@ -1,6 +1,7 @@
 # Scene implementation
 
-- Derive animation from `useCurrentFrame()` and `useVideoConfig()`.
+- Derive animation from the supplied `sceneFrame`, `durationInFrames`, and `fps`.
+- Size the Scene using `viewportWidth` and `viewportHeight`. Never call `useVideoConfig()` or infer full-frame dimensions.
 - Use `interpolate()`, `spring()`, and `Sequence` with explicit frame ranges.
 - Keep the root transparent; never add the Composition background or captions.
 - Load only Workspace-owned public assets through `staticFile()`.
@@ -8,6 +9,21 @@
 - Preserve the task's meaning, timing anchors, safe area, and declared outputs.
 - Run the exact task check command until the owning workspace validates, then
   use the exact attempt-bound terminal command.
+
+The following boundary example is checked by the same Scene validator used in production. Replace its visual with the Beat's meaning:
+
+```tsx
+import type {SceneRendererProps} from "@axmorf/studio/remotion";
+import {interpolate} from "remotion";
+
+const Renderer = ({sceneFrame, fps, viewportWidth, viewportHeight}: SceneRendererProps) => {
+  const progress = interpolate(sceneFrame, [0, fps], [0, 1], {extrapolateRight: "clamp"});
+  return <div style={{width: viewportWidth, height: viewportHeight}}>
+    <div style={{width: 120, height: 120, borderRadius: 60, backgroundColor: "#00d4ff", opacity: progress}} />
+  </div>;
+};
+export default Renderer;
+```
 
 ## Readability checks
 

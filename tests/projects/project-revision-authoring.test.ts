@@ -38,8 +38,11 @@ import {
   parseProjectRevisionCreateArguments,
   parseProjectRevisionValidateArguments,
   runProjectRevisionContextCli,
+  runProjectRevisionCreateCli,
   runProjectRevisionValidateCli,
 } from "../../scripts/projects/revision";
+import { buildRuntimePolicyManifest } from "../../packages/studio/src/runtime/policy-manifest";
+import { snapshotPolicyRoots } from "../../scripts/project-production/adapters/project-input-snapshot";
 import { computeProjectRevisionCandidateId } from "../../packages/studio/src/contracts/project-revision";
 import { createProjectRevisionProductionScope } from "../../scripts/project-production/application/production-scope";
 import {
@@ -292,6 +295,70 @@ test("revision context fully binds the current Revision and exact Delivery", asy
     }),
     /exactly four regular files/u,
   );
+});
+
+test("public revision commands use installed runtime policy without Workspace contract sources", async (context) => {
+  const runtimePolicyManifest = buildRuntimePolicyManifest({
+    packageVersion: "0.1.11",
+    files: [
+      {
+        logicalPath: "dist/contracts.js",
+        bytes: Buffer.from("installed-runtime"),
+        scopes: ["composition", "delivery", "global-visual", "scene"],
+      },
+    ],
+  });
+  const expected = await snapshotPolicyRoots({
+    rootDir: "/unused",
+    runtimePolicyManifest,
+  });
+  for (const action of ["context", "validate", "create"] as const) {
+    const current = await fixture(context);
+    await assert.rejects(access(join(current.rootDir, "src/contracts")), {
+      code: "ENOENT",
+    });
+    await writeFile(
+      join(current.rootDir, "revision-input.json"),
+      JSON.stringify(current.input),
+    );
+    let revisionReads = 0;
+    const cliContext = {
+      rootDir: current.rootDir,
+      env: { RSP_PRODUCER_CONFIG: current.configPath },
+      stdout: () => undefined,
+      runtimePolicyManifest,
+      dependencies: {
+        ...current.dependencies,
+        readCurrentRevision: async (
+          input: Parameters<
+            NonNullable<ProjectRevisionStateDependencies["readCurrentRevision"]>
+          >[0],
+        ) => {
+          assert.equal(await snapshotPolicyRoots(input), expected);
+          revisionReads += 1;
+          return revision;
+        },
+      },
+    };
+    if (action === "context") {
+      const result = await runProjectRevisionContextCli(
+        ["--project", current.input.storyId],
+        cliContext,
+      );
+      assert.equal(result.baseRevisionId, revision.revisionId);
+    } else if (action === "validate") {
+      await runProjectRevisionValidateCli(
+        ["--input", "revision-input.json"],
+        cliContext,
+      );
+    } else {
+      await runProjectRevisionCreateCli(
+        ["--project", current.input.storyId, "--input", "revision-input.json"],
+        cliContext,
+      );
+    }
+    assert.ok(revisionReads >= 2);
+  }
 });
 
 test("revision context rejects a Delivery that changes during inspection", async (context) => {

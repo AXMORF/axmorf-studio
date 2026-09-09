@@ -714,6 +714,7 @@ export const buildCurrentProductionPlan = async ({
     suppliedBaseline ??
     (await readProductionDiagnosticBaseline({
       rootDir: scope.isolatedRoot,
+      runtimeRootDir: scope.shared.runtimeRoot,
       projectId,
     }));
   const fixed = await buildNarrationTasks({

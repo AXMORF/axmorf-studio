@@ -20,6 +20,7 @@ import {
   NativeChildInput,
   NativeExecutionSchema,
 } from "./native-execution";
+import { auditSupervision, SupervisionSchema } from "./supervision";
 import {
   directoryFiles,
   packageContent,
@@ -90,6 +91,7 @@ export const HostReceiptSchema = z
       .strict(),
     unchangedPackageFiles: z.number().int().positive(),
     nativeExecution: NativeExecutionSchema.optional(),
+    supervision: SupervisionSchema.optional(),
     unchangedGuideFiles: z.number().int().positive(),
     finalCheck: FinalCheck,
     delivery: z
@@ -599,6 +601,7 @@ export async function record(
       transcriptFile: Text,
       runFile: Text,
       sessionFile: Text.optional(),
+      uiTranscriptFile: Text.optional(),
       nativeChildren: z.array(NativeChildInput).optional(),
       delegationFile: Text.optional(),
       hermesRuntimeRoot: Text.optional(),
@@ -640,6 +643,16 @@ export async function record(
     "Public guides changed during the test",
   );
   const transcript = await readFile(input.transcriptFile, "utf8");
+  if (initial.host === "hermes")
+    assert.ok(
+      input.sessionFile,
+      "Hermes evidence requires its native sessionFile",
+    );
+  const sessionBytes =
+    initial.host === "hermes" ? await readFile(input.sessionFile!) : undefined;
+  const sessionSource: string | undefined = sessionBytes
+    ? JSON.parse(sessionBytes.toString("utf8")).source
+    : undefined;
   const requiresNative = requiresNativeExecution(
     initial.packages.runtime.version,
   );
@@ -655,6 +668,7 @@ export async function record(
           host: initial.host,
           transcript,
           sessionId: input.sessionId,
+          ...(sessionSource === undefined ? {} : { sessionSource }),
           workspace,
           startedAt: run.startedAt,
           endedAt: run.endedAt,
@@ -677,11 +691,7 @@ export async function record(
   );
   let sessionChecksum: string | null = null;
   if (initial.host === "hermes") {
-    assert.ok(
-      input.sessionFile,
-      "Hermes evidence requires its native sessionFile",
-    );
-    const sessionBytes = await readFile(input.sessionFile);
+    assert.ok(sessionBytes);
     const session = auditHermesSession(
       JSON.parse(sessionBytes.toString("utf8")),
       input.sessionId,
@@ -700,6 +710,40 @@ export async function record(
     );
     sessionChecksum = sha256(sessionBytes);
   }
+  const needsSupervision = requiresSupervision(
+    initial.packages.runtime.version,
+  );
+  let hermesUi;
+  if (needsSupervision && initial.host === "hermes") {
+    assert.ok(
+      input.uiTranscriptFile,
+      "TUI supervision requires its complete native UI event stream",
+    );
+    assert.equal(
+      run.storedSessionId,
+      input.sessionId,
+      "TUI run stored session differs from native DB",
+    );
+    assert.equal(
+      typeof run.uiSessionId,
+      "string",
+      "TUI run lacks its UI session identity",
+    );
+    hermesUi = {
+      rpc: await readFile(input.uiTranscriptFile, "utf8"),
+      sessionId: input.sessionId,
+      uiSessionId: run.uiSessionId as string,
+      workspace,
+    };
+  }
+  const supervision = needsSupervision
+    ? auditSupervision({
+        host: initial.host,
+        transcript,
+        sessionSource,
+        ...(hermesUi ? { hermesUi } : {}),
+      })
+    : undefined;
   const checkText = await runPublicCli(
     workspace,
     ["project", "check", "--project", input.storyId, "--level", "final"],
@@ -808,6 +852,7 @@ export async function record(
     sessionChecksum,
     transcriptAudit,
     nativeExecution: native?.execution,
+    supervision,
     unchangedPackageFiles: installed.length,
     unchangedGuideFiles: initial.guides.length,
     finalCheck,
@@ -844,6 +889,31 @@ export function verifyReceipt(
   assert.equal(creator.name, "create-axmorf-studio");
   assert.equal(runtime.version, creator.version);
   for (const host of receipt.hosts) {
+    if (requiresSupervision(runtime.version)) {
+      assert.ok(
+        host.supervision,
+        "This release requires native supervision acceptance",
+      );
+      assert.equal(
+        host.supervision.source,
+        host.host === "hermes" ? "tui" : "codex",
+      );
+      assert.equal(
+        host.supervision.asyncBatches,
+        host.supervision.completedAsyncBatches,
+      );
+      if (host.host === "hermes") {
+        assert.ok(host.supervision.asyncBatches > 0);
+        assert.ok(
+          host.supervision.uiEvidence,
+          "Hermes supervision must bind the complete native UI stream",
+        );
+        assert.equal(
+          host.supervision.uiEvidence.toolCalls,
+          host.transcriptAudit.toolCalls,
+        );
+      }
+    }
     assert.deepEqual(
       host.packages,
       { runtime: packageSummary(runtime), creator: packageSummary(creator) },
@@ -925,6 +995,8 @@ export function verifyReceipt(
 
 const requiresNativeExecution = (version: string) =>
   !/^0\.1\.[0-8](?:$|-)/u.test(version);
+const requiresSupervision = (version: string) =>
+  !/^0\.1\.(?:[0-9]|10)(?:$|-)/u.test(version);
 
 async function main(args: string[]) {
   const [operation, ...paths] = args;

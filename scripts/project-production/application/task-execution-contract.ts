@@ -201,6 +201,7 @@ const buildSceneContract = (rawContext: unknown) => {
         instructions: [
           "Default-export a component assignable to SceneRendererComponent from @axmorf/studio/remotion.",
           "Use sceneFrame, durationInFrames, fps, viewportWidth, and viewportHeight; never assume full-frame coordinates.",
+          "Do not import or call useVideoConfig; the supplied SceneRendererProps own timing and viewport dimensions.",
           "Keep the root transparent and do not own captions, narration, or GlobalVisual decoration.",
         ],
         example: `import type {SceneRendererProps} from "@axmorf/studio/remotion";
@@ -454,6 +455,7 @@ const buildCoverContract = (rawContext: unknown) => {
     workflow: [
       "Use Story, VisualStyle, and CoverSpec from inputs/context.json.",
       "Write both covers plus their fixed Root and entry source without loading media or remote resources.",
+      "Cover JSX is statically validated: precompute chart coordinates while authoring and embed literal SVG paths; do not put loops, helper calls, Math expressions, or runtime calculations in the cover source.",
       "Run the deterministic task finalizer and fixed checker, correct only this workspace, then use the attempt-bound completion operation supplied by the caller.",
     ],
     outputs: [

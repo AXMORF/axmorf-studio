@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -29,6 +29,28 @@ const validate = async (source: string) => {
     await rm(rootDir, { recursive: true, force: true });
   }
 };
+
+test("the shipped Scene guide example passes the real Scene boundary checker", async () => {
+  const guide = await readFile(
+    "packages/create-axmorf-studio/template/.agents/skills/remotion-best-practices/references/scene-implementation.md",
+    "utf8",
+  );
+  const examples = [...guide.matchAll(/```tsx\n([\s\S]*?)```/gu)];
+  assert.ok(
+    examples.length > 0,
+    "The Scene guide needs an executable boundary example",
+  );
+  for (const example of examples) await validate(example[1]!);
+});
+
+test("full-frame config rejection explains the supported Scene inputs", async () => {
+  await assert.rejects(
+    validate(`import {useVideoConfig} from 'remotion';
+const Renderer = () => <div />;
+export default Renderer;`),
+    /must not own useVideoConfig.*SceneRendererProps.*fps.*viewportWidth.*viewportHeight/u,
+  );
+});
 
 test("font diagnostics identify the exact element and show a valid correction", async () => {
   await assert.rejects(

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "20260909_230644_533a4f",
+  "runtimeVersion": "0.1.10",
+  "surface": "tui",
+  "storyId": "one-percent-compound",
+  "attemptId": "3b79e3a1-70bf-4834-8d0a-9efc3d23ba17",
+  "deliveryStatus": "verified",
+  "issues": [
+    {
+      "code": "scene-guide-boundary-conflict",
+      "evidenceMessageIds": [
+        25918,
+        25971,
+        25974
+      ],
+      "cause": "Shipped Scene guide instructed useVideoConfig while the fixed Scene boundary rejects it. Both owners corrected their outputs before commit."
+    },
+    {
+      "code": "event-only-turn-not-yielded",
+      "evidenceMessageIds": [
+        25821,
+        25839,
+        25841,
+        25843,
+        25845,
+        26033
+      ],
+      "cause": "TUI delivers native batch notifications on a subsequent turn. Root occupied the active turn with sleeps, a list call and a transcript read."
+    },
+    {
+      "code": "preparation-report-not-provable-from-database",
+      "evidenceMessageIds": [
+        25849,
+        25850
+      ],
+      "cause": "The historic database lacks assistant interim prose, but actual TUI testing proves message.interim is visible without being persisted there. No historic UI event capture is available; absence of a user-visible report is not established.",
+      "findingStatus": "inconclusive"
+    },
+    {
+      "code": "insufficient-release-surface-coverage",
+      "cause": "Previous release acceptance used hermes -z, whose stateless channel executes children synchronously. It did not exercise interactive TUI notification delivery."
+    }
+  ],
+  "containment": "Preserve existing package, project and four-file delivery. Repair source and creator guides in an isolated engineering checkout; use fresh candidate Workspaces. Do not patch Hermes core, installed packages or validators to force acceptance."
+}

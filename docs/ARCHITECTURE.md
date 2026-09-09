@@ -178,6 +178,10 @@ Scene template audio projection 与 Resource Catalog；相同 bytes 幂等，已
 package 仍拥有发行 authority，Workspace 不能写 package directory；package path、cwd、PID、时间和 npm cache
 不进入 creative identity。
 
+公开 revision context/validate/create 与手动、continuation 自动 promotion 均把已验证的 runtime policy manifest
+传入共享 Revision 读取；candidate 与 live base 使用同一 policy authority。普通 npm Workspace 不提供开发仓库的
+`src/contracts` 等源码树，不能丢弃 manifest 后回落到开发源码扫描。
+
 creator install/bootstrap 与生成 Workspace 的 `doctor` 组成 host capability boundary。Agent 可以在 data plane
 之外准备声明的 Node.js/npm、普通依赖和宿主前置条件；OS/reference-environment label、安装步骤与诊断均不进入
 Revision/Task/Artifact/Delivery identity。doctor 只读检查当前 Workspace 的 declared readiness；它不允许 Agent
@@ -194,6 +198,10 @@ Workspace configuration snapshot 要求根目录恰有一个 `remotion.config.mj
 candidate scope 复用同一 immutable runtime/config 与 content-addressed Artifact Store，但隔离 Project source/public、
 narration、task workspace、attempt、disposable output 和 Delivery。所有 production/task/recovery CLI 都通过受信
 candidate resolver 定位这些 roots，不能把 candidate directory 当成第二个 Workspace root。
+GlobalVisual 与 Composition 类型校验读取 candidate source graph，但显式使用 shared Workspace runtime root 的
+TypeScript 配置；candidate 不复制 `tsconfig.json`，不得把隔离源码目录误作编译环境目录。
+末端 current-plan 的诊断 baseline 同样保留两个 root：交付/attempt 从 candidate 读取，媒体 probe 的 npm binary
+从 shared Workspace 解析。诊断不拥有或改写内容 identity，不把 candidate 当作第二个 npm Workspace。
 
 convergence 在任何 live write 前通过 read-only current-plan builder 重新计算 Revision、检查全部 required
 artifacts；它不调用 provider、不创建 workspace 或 planning attempt。Scene/GlobalVisual/Cover roots

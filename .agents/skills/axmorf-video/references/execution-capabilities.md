@@ -29,6 +29,14 @@ For a host without shared files, `controller-io` is valid only after its native 
 round trip through the Root's controller. During production it must exclusively use the exact bound file-read/file-write capability.
 Do not label a shared-filesystem probe as `controller-io`, or select it merely to bypass a failed probe.
 
+## Event-only hosts
+
+A host may deliver background child completion only after the current assistant turn ends (for example, an interactive Hermes session). A background dispatch acknowledgement is not that completion. If no native blocking child wait exists, finish independent preparation, then end the current turn with a brief pending-work update. Leave the same session open: the native completion starts its next turn automatically. Do not occupy that turn with shell sleeps, list/status calls, transcript reads, or a loop waiting for response.txt. After the probe completion arrives, compare the two exact files and resolve execution.
+
+Apply the same yield/resume behavior when a bounded batch must finish before another can be admitted. Once every dirty task is admitted, start the exact continuation once using the original persistent process handle. If batch completions still need delivery, yield so the host can deliver them; then wait on that original continuation handle. Report final delivery only after its fixed success and the already-dispatched native batch completions have arrived. Completion messages carry no new user request and do not authorize another production run.
+
+This is session resumption, not a new task, mode fallback, or a user approval request. Do not change host settings or call undocumented background overrides to obtain synchronous execution.
+
 ## Give each worker a complete assignment
 
 A child may receive only its own goal/context. Do not rely on inherited conversation, working directory, or a parent's successful

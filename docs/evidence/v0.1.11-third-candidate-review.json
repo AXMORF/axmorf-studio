@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "status": "superseded-after-candidate-package-bin-fault",
+  "version": "0.1.11",
+  "publication": "not-published",
+  "firstUseReceipt": "v0.1.11-third-candidate.json",
+  "fullCheck": {
+    "command": "npm run check",
+    "tests": 845,
+    "passed": 845,
+    "failed": 0,
+    "hostCompositions": "passed",
+    "logChecksum": "sha256:b61a98f86c60c368e81511a63cd5240e8f0d5f76d4fb68dd9a7c855fc676c7e3"
+  },
+  "packagesBuild": "passed",
+  "packagesTypecheck": "passed",
+  "packageChecks": "passed",
+  "manualReview": {
+    "hermes": {
+      "surface": "real-tui-json-rpc-backend",
+      "sessionId": "20260910_015800_fa7dc0",
+      "visibleReports": 7,
+      "toolCalls": 25,
+      "asyncBatchesReceivedBeforeFinal": 3,
+      "continuationCalls": 1,
+      "continuationWaitSeconds": [
+        60,
+        60
+      ],
+      "duplicateFinalReports": 0,
+      "preCreateBoundarySeconds": 10,
+      "prePrepareReportedProviderRequests": 3,
+      "prePrepareReportedCacheHits": 0,
+      "durationSeconds": 26.5,
+      "ordinaryRootErrors": [
+        "Initial Git command stopped before doctor; Root subsequently ran doctor successfully.",
+        "Read-only search for a nonexistent projects directory."
+      ],
+      "ordinaryWorkerCorrections": [
+        "Original Scene owner corrected dynamic transform and explicit SVG group font size; same task committed successfully.",
+        "A worker attempted describe after commit; the immutable terminal binding correctly rejected it."
+      ],
+      "postCompletionQueries": 0
+    },
+    "codex": {
+      "sessionId": "01a08751-cac0-79f1-b6bf-6d9d77be6696",
+      "durationSeconds": 30.5,
+      "continuationProcessWaitMilliseconds": [
+        60000,
+        60000,
+        60000,
+        60000
+      ],
+      "wrapperWaitMilliseconds": [
+        1000,
+        20000,
+        30000,
+        30000
+      ],
+      "duplicateFinalReports": 0,
+      "note": "The original process uses long waits; one short wrapper resumption is recorded, not described as zero short waits."
+    },
+    "visualSampling": [
+      "Six frames from each final video were viewed.",
+      "Main scenes and captions were visible; default boundary branding and text still have weak contrast over the dark global base."
+    ],
+    "limitations": [
+      "Passing receipts verify production and supervision, not zero unsuccessful Agent tool calls.",
+      "Visual sampling is not a complete frame-by-frame or listening review; technical delivery checks are not a visual-quality certificate.",
+      "Automatic recovery from a terminal production failure was not exercised in these successful first-use runs.",
+      "Candidate validation is not npm publication or migration of an existing Workspace."
+    ]
+  },
+  "packageRepackEvidenceChecksum": "sha256:0881f2b2376a2f5ca74085f42c9945a7f58c75cdb5d16914efe26b81991728ad"
+}

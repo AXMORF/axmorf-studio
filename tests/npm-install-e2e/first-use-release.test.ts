@@ -633,6 +633,42 @@ test("new releases reject historical inline receipts without native child eviden
   );
 });
 
+test("0.1.11 cannot reuse a delivery-only receipt as supervision acceptance", () => {
+  const nextRuntime = { ...runtime, version: "0.1.11" };
+  const nextCreator = { ...creator, version: "0.1.11" };
+  const hosts = [hostReceipt("codex"), hostReceipt("hermes")].map((host) => ({
+    ...host,
+    packages: { runtime: summary(nextRuntime), creator: summary(nextCreator) },
+  }));
+  assert.throws(
+    () => verifyReceipt({ schemaVersion: 1, hosts }, nextRuntime, nextCreator),
+    /native supervision acceptance/u,
+  );
+});
+
+test("0.1.11 Hermes supervision cannot omit native UI evidence", () => {
+  const nextRuntime = { ...runtime, version: "0.1.11" };
+  const nextCreator = { ...creator, version: "0.1.11" };
+  const hosts = [hostReceipt("hermes"), hostReceipt("codex")].map((host) => ({
+    ...host,
+    packages: { runtime: summary(nextRuntime), creator: summary(nextCreator) },
+    supervision: {
+      schemaVersion: 1,
+      source: host.host === "hermes" ? "tui" : "codex",
+      reportedBeforeCreate: true,
+      reportedBeforePrepare: true,
+      continuationCalls: 1,
+      pollingCalls: 0,
+      asyncBatches: 1,
+      completedAsyncBatches: 1,
+    },
+  }));
+  assert.throws(
+    () => verifyReceipt({ schemaVersion: 1, hosts }, nextRuntime, nextCreator),
+    /complete native UI stream/u,
+  );
+});
+
 test("native child receipts require the full task pool, native lineage, commits and bounded refill", async (context) => {
   const { auditNativeExecution } =
     await import("../../scripts/release/native-execution");
@@ -930,6 +966,22 @@ test("native child receipts require the full task pool, native lineage, commits 
     (await auditNativeExecution(hermesInput)).execution.productionChildCount,
     5,
   );
+  for (const child of hermesChildren) {
+    const native = JSON.parse(await readFile(child.sessionFile, "utf8"));
+    await writeFile(
+      child.sessionFile,
+      JSON.stringify({ ...native, source: "tui" }),
+    );
+  }
+  await assert.rejects(
+    () => auditNativeExecution(hermesInput),
+    /native parent surface/u,
+  );
+  const tuiInput = { ...hermesInput, sessionSource: "tui" };
+  assert.equal(
+    (await auditNativeExecution(tuiInput)).execution.productionChildCount,
+    5,
+  );
   const sessionPath = hermesChildren[1]!.sessionFile;
   const session = JSON.parse(await readFile(sessionPath, "utf8"));
   await writeFile(
@@ -937,7 +989,7 @@ test("native child receipts require the full task pool, native lineage, commits 
     JSON.stringify({ ...session, parent_session_id: "unrelated" }),
   );
   await assert.rejects(
-    () => auditNativeExecution(hermesInput),
+    () => auditNativeExecution(tuiInput),
     /direct descendant/u,
   );
 });

@@ -19,6 +19,7 @@ import {
   readCurrentProductionRevision,
 } from "../../project-production/application/current-revision";
 import { loadProjectProductionInputs } from "../../project-production/application/load-inputs";
+import type { RuntimePolicyManifest } from "../../../packages/studio/src/runtime/policy-manifest";
 import {
   assertProjectRevisionOwnedPath,
   createProjectRevisionProductionScope,
@@ -61,6 +62,7 @@ export type ProjectRevisionPromotionInput = Readonly<{
   candidateId: string;
   expectedRevisionId: string;
   expectedDeliveryBuildId: string;
+  runtimePolicyManifest?: RuntimePolicyManifest;
 }>;
 
 type ProjectionResult = Readonly<{
@@ -77,11 +79,13 @@ export type ProjectRevisionPromotionDependencies = Readonly<{
   readRevision?: (input: {
     readonly rootDir: string;
     readonly projectId: string;
+    readonly runtimePolicyManifest?: RuntimePolicyManifest;
   }) => Promise<Pick<ProductionRevision, "revisionId">>;
   readCandidateRevision?: (input: {
     readonly rootDir: string;
     readonly projectId: string;
     readonly scope: ProjectRevisionProductionScope;
+    readonly runtimePolicyManifest?: RuntimePolicyManifest;
   }) => Promise<Pick<ProductionRevision, "revisionId">>;
   regenerateProjections?: (rootDir: string) => Promise<ProjectionResult>;
   checkpoint?: (
@@ -251,18 +255,39 @@ const defaultRegenerateProjections = async (
 
 const defaultReadCandidateRevision: NonNullable<
   ProjectRevisionPromotionDependencies["readCandidateRevision"]
-> = async ({ rootDir, projectId, scope }) =>
+> = async ({ rootDir, projectId, scope, runtimePolicyManifest }) =>
   buildCurrentProductionRevision(
-    await loadProjectProductionInputs({ rootDir, projectId, scope }),
+    await loadProjectProductionInputs({
+      rootDir,
+      projectId,
+      scope,
+      runtimePolicyManifest,
+    }),
   );
 
 const resolveDependencies = (
   dependencies: ProjectRevisionPromotionDependencies,
+  runtimePolicyManifest?: RuntimePolicyManifest,
 ) => ({
   inspectDelivery: dependencies.inspectDelivery ?? defaultInspectDelivery,
-  readRevision: dependencies.readRevision ?? readCurrentProductionRevision,
-  readCandidateRevision:
-    dependencies.readCandidateRevision ?? defaultReadCandidateRevision,
+  readRevision: (
+    input: Parameters<
+      NonNullable<ProjectRevisionPromotionDependencies["readRevision"]>
+    >[0],
+  ) =>
+    (dependencies.readRevision ?? readCurrentProductionRevision)({
+      ...input,
+      ...(runtimePolicyManifest === undefined ? {} : { runtimePolicyManifest }),
+    }),
+  readCandidateRevision: (
+    input: Parameters<
+      NonNullable<ProjectRevisionPromotionDependencies["readCandidateRevision"]>
+    >[0],
+  ) =>
+    (dependencies.readCandidateRevision ?? defaultReadCandidateRevision)({
+      ...input,
+      ...(runtimePolicyManifest === undefined ? {} : { runtimePolicyManifest }),
+    }),
   regenerateProjections:
     dependencies.regenerateProjections ?? defaultRegenerateProjections,
   checkpoint: dependencies.checkpoint ?? (async () => undefined),
@@ -566,7 +591,10 @@ export const promoteProjectRevisionCandidate = async (
     candidateId: rawInput.candidateId,
   });
   await assertRealDirectory(rootDir, "Project revision repository root");
-  const dependencies = resolveDependencies(rawDependencies);
+  const dependencies = resolveDependencies(
+    rawDependencies,
+    rawInput.runtimePolicyManifest,
+  );
   const candidateBeforeLock = await inspectCandidate({
     scope,
     expectedRevisionId,

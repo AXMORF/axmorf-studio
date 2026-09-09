@@ -50,7 +50,7 @@ may override settings; do not claim an Agent-selected mode came from the user. A
 subagents configuration is a blocker, not permission to switch to inline.
 
 Before cost, run read-only `npm run project:produce:inspect` and report source
-readiness, estimate, artifact reuse, and invalidation. Only then run
+readiness, estimate, artifact reuse, and invalidation in a user-visible message. Tool output alone is not this report. Only then run
 `npm run project:produce:prepare`, which may call configured providers and
 returns content-addressed dirty tasks plus exact terminal commands. Use its `durationBudget` to report measured total duration and deviation; sealed audio remains authoritative.
 
@@ -63,7 +63,7 @@ describe/finalize/check/commit/failure commands. ArtifactAttestation and termina
 events are authority.
 
 Start prepare's exact continuation once per attempt. Root stays responsible with blocking waits on the original handle or native
-notifications; no child/status polling, repeated log reads or unchanged progress reasoning. On errors, diagnose and guide the original
+notifications; on event-only hosts follow the yield/resume instructions in [native child verification](references/execution-capabilities.md#event-only-hosts); no child/status polling, repeated log reads or unchanged progress reasoning. On errors, diagnose and guide the original
 owner without accessing its workspace or repairing the running continuation. Report the fixed result once; ignore duplicate success
 notifications. Only a terminal result that verifies the exact four-file current Delivery proves completion.
 

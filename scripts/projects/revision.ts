@@ -3,6 +3,8 @@ import { pathToFileURL } from "node:url";
 
 import { StoryIdSchema } from "@axmorf/studio/contracts";
 import { reportCliFailure } from "../../packages/studio/src/cli/failure";
+import type { RuntimePolicyManifest } from "../../packages/studio/src/runtime/policy-manifest";
+import { readCurrentProductionRevision } from "../project-production/application/current-revision";
 import {
   createProjectRevisionCandidate,
   readProjectRevisionContext,
@@ -71,8 +73,26 @@ export type ProjectRevisionCliContext = Readonly<{
   rootDir: string;
   env: Readonly<Record<string, string | undefined>>;
   stdout: (line: string) => void;
+  runtimePolicyManifest?: RuntimePolicyManifest;
   dependencies?: ProjectRevisionStateDependencies;
 }>;
+
+const revisionDependencies = (
+  context: ProjectRevisionCliContext,
+): ProjectRevisionStateDependencies | undefined => {
+  if (context.runtimePolicyManifest === undefined) return context.dependencies;
+  return {
+    ...context.dependencies,
+    readCurrentRevision: (input) =>
+      (
+        context.dependencies?.readCurrentRevision ??
+        readCurrentProductionRevision
+      )({
+        ...input,
+        runtimePolicyManifest: context.runtimePolicyManifest,
+      }),
+  };
+};
 
 const defaultContext = (): ProjectRevisionCliContext => ({
   rootDir: process.cwd(),
@@ -88,7 +108,7 @@ export const runProjectRevisionContextCli = async (
   const result = await readProjectRevisionContext({
     rootDir: context.rootDir,
     projectId,
-    dependencies: context.dependencies,
+    dependencies: revisionDependencies(context),
   });
   context.stdout(JSON.stringify(result));
   return result;
@@ -106,7 +126,7 @@ export const runProjectRevisionValidateCli = async (
   const result = await validateProjectRevisionAuthoring({
     rootDir: context.rootDir,
     input,
-    dependencies: context.dependencies,
+    dependencies: revisionDependencies(context),
   });
   context.stdout(JSON.stringify(result));
   return result;
@@ -126,7 +146,7 @@ export const runProjectRevisionCreateCli = async (
     projectId,
     input,
     env: context.env,
-    dependencies: context.dependencies,
+    dependencies: revisionDependencies(context),
   });
   context.stdout(JSON.stringify(result));
   return result;
@@ -146,6 +166,7 @@ export const runProjectRevisionCli = async (
     return runProjectRevisionPromotionCli({
       args,
       rootDir: context.rootDir,
+      runtimePolicyManifest: context.runtimePolicyManifest,
       stdout: (line) => context.stdout(line.replace(/\n$/u, "")),
     });
   }

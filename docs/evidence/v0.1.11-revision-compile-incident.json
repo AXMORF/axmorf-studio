@@ -1,0 +1,163 @@
+{
+  "status": "stopped",
+  "scope": "isolated-publication-metadata-revision",
+  "project": "ten-minute-focus",
+  "sourceBefore": "sha256:82d1b26ea97d69745ddb821c3208c2c137c495d43bd02a8e3d2f2f6c6a5097ae",
+  "stage": "exact-continuation",
+  "packageVersion": "0.1.11",
+  "packageBefore": "sha256:ab1e5393c70e7cb2253cf3bb88b9932f153399a1ac70ae6d7b1f97425cb21279",
+  "noOpCorrectlyRejected": true,
+  "candidateId": "revision-candidate-9f70b395d6fe0278e7cf43218bbca4777ab0f2001b0933334935cd9e2c63285e",
+  "estimatedCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 6,
+    "agentTasks": 0,
+    "deliveryMedia": [
+      "video",
+      "cover-4x3",
+      "cover-3x4"
+    ]
+  },
+  "actualCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 6,
+    "agentTasks": 0,
+    "deliveryMedia": []
+  },
+  "attemptId": "fede30b1-c139-472d-8d96-2b01054f9afb",
+  "sourceAfter": "sha256:82d1b26ea97d69745ddb821c3208c2c137c495d43bd02a8e3d2f2f6c6a5097ae",
+  "sourceUnchanged": true,
+  "schemaVersion": 1,
+  "failure": "GlobalVisual layer component interface compile failed (TS5083).",
+  "faultClass": "fixed-workflow",
+  "sourcePackageEvidence": "v0.1.11-second-candidate.json",
+  "attemptAction": "Preserved; no package edits or in-place retries.",
+  "commandEvidence": [
+    {
+      "file": "01-base-final-check.command.json",
+      "checksum": "sha256:b36e0c895cfd11e2a72c217809c9d34d441b578211ce825faccd519601407325"
+    },
+    {
+      "file": "01-base-final-check.stderr.log",
+      "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "01-base-final-check.stdout.log",
+      "checksum": "sha256:6ca0387260f2a6a6e35e01be2e75f303772f1df8a22145ae6956af68673dd173"
+    },
+    {
+      "file": "02-revision-context.command.json",
+      "checksum": "sha256:56f36b5ba82491687d84093056f89dc02faec17f2fed19080e8b4702f9622c44"
+    },
+    {
+      "file": "02-revision-context.stderr.log",
+      "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "02-revision-context.stdout.log",
+      "checksum": "sha256:b3a5d9a705773771ee8d5b1fec39565a1563bf2c284bcb8900faf22783093a09"
+    },
+    {
+      "file": "03-noop-validation.command.json",
+      "checksum": "sha256:81462969f4df1c12277e15fdaa5e2e745e097be90af71285ae6393e0a2e3642b"
+    },
+    {
+      "file": "03-noop-validation.stderr.log",
+      "checksum": "sha256:1edaaff516c3deb2e5b5c26051a8aa9da507e2224eb63d70038911b03302bab7"
+    },
+    {
+      "file": "03-noop-validation.stdout.log",
+      "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "04-publication-validate.command.json",
+      "checksum": "sha256:6e93ef4be5da6bc77ce1416efd97c2d0480cedbfd1ddf867cf1986d41e615239"
+    },
+    {
+      "file": "04-publication-validate.stderr.log",
+      "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "04-publication-validate.stdout.log",
+      "checksum": "sha256:1d50f912fd6a5f225476c81c3122d629c2f51f8d4a95505ddacb979e08e97aed"
+    },
+    {
+      "file": "05-publication-create.command.json",
+      "checksum": "sha256:2ad60b27a4dbba49e21ea9faaf569ad0d8575eaab391049bd781167ecffafeb2"
+    },
+    {
+      "file": "05-publication-create.stderr.log",
+      "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "05-publication-create.stdout.log",
+      "checksum": "sha256:e5ad1ea8818bb03df1ca285f20158a93a1620973d942a3647f85866a55e0392b"
+    },
+    {
+      "file": "06-candidate-inspect.command.json",
+      "checksum": "sha256:67070e0a4da683c10789c5587755801f232fa8afe18a1c796058c40c6fb1f0fc"
+    },
+    {
+      "file": "06-candidate-inspect.stderr.log",
+      "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "06-candidate-inspect.stdout.log",
+      "checksum": "sha256:25a886b35a386e948533e8ae667f2eb725fef5341580b898e6dba087bd7622b8"
+    },
+    {
+      "file": "07-candidate-prepare.command.json",
+      "checksum": "sha256:ee65b37923929a129aa827648a240a091ef13d3b6efbf7e9d6516375d1222e7b"
+    },
+    {
+      "file": "07-candidate-prepare.stderr.log",
+      "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "07-candidate-prepare.stdout.log",
+      "checksum": "sha256:acc96d8f724a2cbf1c92a7e1aebded47f9d43b3dfc03349e88be152bbbcb1a0e"
+    },
+    {
+      "file": "08-exact-continuation.command.json",
+      "checksum": "sha256:babed3b40fa33473af568a343e1701c6f4247d038427af44eda6f51b21c93801"
+    },
+    {
+      "file": "08-exact-continuation.stderr.log",
+      "checksum": "sha256:efd82d19ca901249c6742e11f1f9ebb0219b6530db8a39424ab0751c01dab4ca"
+    },
+    {
+      "file": "08-exact-continuation.stdout.log",
+      "checksum": "sha256:680b4a5740c66b8ba786cc8ce45672684a9b571ede98f69377387e3872a0ad10"
+    }
+  ],
+  "rootCause": "Candidate GlobalVisual interface checking used the isolated source root as the TypeScript configuration root; Composition already used the shared Workspace runtime root.",
+  "sourceFix": [
+    "global-visual-validator.ts explicitly carries runtimeRootDir while retaining candidate source paths.",
+    "prepare-delivery.ts passes scope.shared.runtimeRoot."
+  ],
+  "sourceVerification": {
+    "red": {
+      "failed": 2,
+      "passed": 1,
+      "error": "TS5083"
+    },
+    "green": {
+      "passed": 3
+    },
+    "focused": {
+      "passed": 53
+    },
+    "typecheck": "passed",
+    "realFailedCandidateReadOnly": [
+      "GlobalVisual interface passed",
+      "Complete Composition import graph passed"
+    ],
+    "logChecksums": {
+      "red": "sha256:43fe694a6f1d37aeea5a5415c7c3897832d31652bdb7153338aadb894f58728a",
+      "green": "sha256:421cc646f88f75db5e43e56d15f986c5296976129d98cf2b59fcefee1cb677c3",
+      "focused-tests": "sha256:837ad3988ed5174f42ea1f084aede4388617691be5abe03f406163ba1357f85d",
+      "typecheck": "sha256:3a956b85dd383d21d5c9747ed20be9b62f178ac730c1edaa5bedd29715b2d264",
+      "real-candidate-readonly": "sha256:32a86ac65c645cc7fdd9c23568bb6bd188bca8ed3d92892fd38cc4152f999adf"
+    }
+  }
+}

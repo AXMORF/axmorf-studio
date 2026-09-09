@@ -23,6 +23,36 @@ Record those separately when exercised. A maintainer reviews the prompt and
 isolation setup: a transcript hash is evidence binding, not proof that a host or
 maintainer is trustworthy.
 
+From 0.1.11, the Hermes run must use its actual TUI JSON-RPC backend and native
+asynchronous notification lifecycle. `hermes -z` selects a synchronous child path
+and cannot certify interactive yield/resume. Send one ordinary business prompt
+through `session.create` and `prompt.submit`, retain the complete native session
+and notification records, the complete JSON-RPC stdout event stream, and let the backend resume itself. The controller may
+capture events and close the completed session, but must not inject follow-up
+prompts, manufacture completion messages, or read a child log to drive the Agent.
+
+The recorder now checks user-visible messages before create and between inspect
+and prepare, a single continuation invocation, no shell sleep/child-list/transcript
+polling, long native process waits, and every dispatched async batch notification
+before the final report. A reviewer still checks the meaning of the reports:
+message presence cannot prove that cost, readiness, or boundary duration is correct,
+or that an earlier pending update did not prematurely repeat the delivery summary.
+Command auditing recognizes literal public npm script invocations in native shell
+tools and Codex code-mode shell calls; opaque dynamic command construction is not
+a substitute for reviewable invocation evidence.
+Receipts bind these checks in `supervision`; a successful media delivery alone does
+not pass this gate. Hermes `message.interim` prose is visible in the TUI but may be absent
+from SQLite assistant content. The recorder binds the fresh `session.create` response to
+the run's UI and stored session IDs, then matches every root UI tool call and result
+(ID, name, arguments, content, and order) to the unmodified complete SQLite transcript.
+It requires contiguous native UI event sequence numbers and matches final report text
+against SQLite. Report timing comes from native `message.interim` and `message.complete`
+events. The complete raw UI stream checksum is recorded in `supervision.uiEvidence`;
+never synthesize assistant rows in the database transcript to supply missing prose.
+These bindings detect mismatched or incomplete captures; they are not cryptographic
+attestation that a maintainer did not fabricate an entire capture.
+Historical receipts retain their original, narrower scope.
+
 The acceptance controller must preserve required host capabilities. In particular, verify `/bin/ps` can run through the
 actual macOS host command surface before production; a passing browser check alone may not exercise the cleanup fallback.
 Do not add `sandbox-exec` as a supposedly file-only isolation wrapper: it can prevent `/bin/ps` from starting even under
@@ -75,7 +105,8 @@ The harness records `host`, `workspace`, `startedAt`, `endedAt`, `exitCode`, the
 exact `prompt`, and `harnessInterventions` in a run JSON. Capture the start time
 only after the snapshot, and retain original logs. Successful first-use runs
 must have exit code zero and an empty intervention list. Never store credentials
-in an evidence folder or commit raw host profiles.
+in an evidence folder or commit raw host profiles. Hermes TUI runs additionally retain
+`uiSessionId` and `storedSessionId` from the native session-create response.
 
 For Codex, retain the fresh root and every native child's
 `CODEX_HOME/sessions/**/rollout-*.jsonl`. For Hermes,
@@ -104,7 +135,9 @@ After the Agent exits, create a local run-evidence configuration (Hermes additio
 ```
 
 List all child transcripts in `nativeChildren`. Hermes entries additionally
-require their native `sessionFile`. For Hermes asynchronous completions, add
+require their native `sessionFile`. From 0.1.11, the root run-evidence configuration
+also requires `uiTranscriptFile` pointing to the complete, unedited TUI JSON-RPC
+stdout JSONL capture. For Hermes asynchronous completions, add
 `delegationFile` pointing to the exported delegation-row array and
 `hermesRuntimeRoot` pointing to the actual installed Hermes runtime. The local
 recorder uses that runtime's native notification formatter to reproduce each
@@ -135,6 +168,18 @@ exactly four delivery files and their checksums, probes the video, and decodes t
 video and both covers to EOF. It generates the receipt from these checks; supplying
 a `passed` flag cannot replace them. Output files use exclusive creation so an
 existing result cannot be silently overwritten.
+
+## Verify revision changes separately
+
+A first-use receipt certifies fresh creation and delivery, not the existing-Project revision path.
+For changes to candidate compilation, delivery, diagnostics, or promotion, also exercise the installed
+candidate package in a complete isolated copy of a finished Workspace. Use public npm entry points:
+context → validate/create a real publishing-only patch → inspect → prepare → exact continuation →
+automatic promotion → current context and final check → manual promote idempotency and final check.
+Require zero new provider requests and Agent tasks before preparation; stop if reuse cannot satisfy that
+fixture. Keep source/package bytes unchanged and retain failed attempts. Record the tested package content,
+command outputs, final tuple, unchanged original digest, and any harness limitations separately.
+A source test with an injected fixture policy does not replace this installed-package evidence.
 
 ## Publish once both hosts pass
 

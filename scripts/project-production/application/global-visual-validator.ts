@@ -17,10 +17,12 @@ export type GlobalVisualSourceGraph = Readonly<{
 
 export const assertGlobalVisualLayersComponentInterface = ({
   rootDir,
+  runtimeRootDir = rootDir,
   storyId,
   virtualEntrySource,
 }: {
   readonly rootDir: string;
+  readonly runtimeRootDir?: string;
   readonly storyId: string;
   readonly virtualEntrySource?: string;
 }) => {
@@ -35,7 +37,7 @@ const CheckedDecorationLayers: GlobalVisualLayersComponent<typeof GlobalVisualDe
 export const GlobalVisualLayersInterfaceProof = [CheckedBaseLayer, CheckedDecorationLayers] as const;
 `;
   compileTypeScriptImportGraph({
-    rootDir,
+    rootDir: runtimeRootDir,
     rootPath,
     label: "GlobalVisual layer component interface compile",
     ...(virtualEntrySource === undefined
@@ -496,9 +498,11 @@ export const assertGlobalVisualSource = ({
 
 export const collectGlobalVisualSourceGraph = async ({
   rootDir,
+  runtimeRootDir = rootDir,
   storyId,
 }: {
   readonly rootDir: string;
+  readonly runtimeRootDir?: string;
   readonly storyId: string;
 }): Promise<GlobalVisualSourceGraph> => {
   const entryPath = `src/projects/${storyId}/global-visual/GlobalVisualLayers.tsx`;
@@ -555,7 +559,11 @@ export const collectGlobalVisualSourceGraph = async ({
       sourcePath,
       checksum: checksumExternalBytes(bytes),
     }));
-  assertGlobalVisualLayersComponentInterface({ rootDir, storyId });
+  assertGlobalVisualLayersComponentInterface({
+    rootDir,
+    runtimeRootDir,
+    storyId,
+  });
   return {
     entryPath,
     files: graphFiles,

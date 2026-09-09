@@ -388,8 +388,12 @@ const assertNoSharedBoundaryOwnership = (
   for (const sourceFile of sourceFiles) {
     const visit = (node: ts.Node) => {
       if (ts.isIdentifier(node) && forbidden.has(node.text)) {
+        const correction =
+          node.text === "useVideoConfig"
+            ? " Use SceneRendererProps: sceneFrame, durationInFrames, fps, viewportWidth, and viewportHeight."
+            : "";
         throw new Error(
-          `Scene Renderer source graph must not own ${node.text}.`,
+          `Scene Renderer source graph must not own ${node.text}.${correction}`,
         );
       }
       if (

@@ -1,0 +1,171 @@
+{
+  "status": "stopped",
+  "scope": "isolated-publication-metadata-revision",
+  "project": "ten-minute-focus",
+  "sourceBefore": "sha256:166f6fc4f7093945eb7710dea84d308b60cf4c5331eb31c10d85b148090afed3",
+  "stage": "exact-continuation",
+  "packageVersion": "0.1.11",
+  "packageBefore": "sha256:219707d8929743fab9e788ac9d8bcfe5a78ad3d30ae9eb807296ef326cabfdfb",
+  "noOpCorrectlyRejected": true,
+  "candidateId": "revision-candidate-7a28054ea287be902128fe88f92e6d901a5b6d93418acdfc4fc98b989b6c2b0c",
+  "estimatedCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 6,
+    "agentTasks": 0,
+    "deliveryMedia": [
+      "video",
+      "cover-4x3",
+      "cover-3x4"
+    ]
+  },
+  "actualCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 6,
+    "agentTasks": 0,
+    "deliveryMedia": []
+  },
+  "attemptId": "79368604-524a-4051-b48b-a06fffcd17a4",
+  "sourceAfter": "sha256:166f6fc4f7093945eb7710dea84d308b60cf4c5331eb31c10d85b148090afed3",
+  "sourceUnchanged": true,
+  "schemaVersion": 1,
+  "failure": {
+    "code": "workspace-package-bin-invalid",
+    "message": "Workspace package.json must be a regular file."
+  },
+  "faultClass": "fixed-workflow",
+  "sourcePackageEvidence": "v0.1.11-third-candidate.json",
+  "attemptAction": "Preserved; no package edits or in-place retries.",
+  "commandEvidence": [
+    {
+      "file": "01-base-final-check.command.json",
+      "checksum": "sha256:9c839504a62b3e332cb9774d4a1f9a906b5b1bd90d0569a5dfa396ebd1e212b2"
+    },
+    {
+      "file": "01-base-final-check.stderr.log",
+      "checksum": "sha256:3ff1c9fa42c205c526776ed41eb2084f8196f5db19e2389c0881d4eda498ccd6"
+    },
+    {
+      "file": "01-base-final-check.stdout.log",
+      "checksum": "sha256:26decaf51f5773cfa1b660cf3a55a1d91969336e8e2a334d3dc0b0100dcc2d96"
+    },
+    {
+      "file": "02-revision-context.command.json",
+      "checksum": "sha256:9f1e59b5d6323dfbe2a6c414446c5152cd88eb98651c7dfb32ebbd9a8d2b2171"
+    },
+    {
+      "file": "02-revision-context.stderr.log",
+      "checksum": "sha256:94254b10d2e2c86f6f83020e3cd8048f5eb5821756f4b54880dce3ce78427ef7"
+    },
+    {
+      "file": "02-revision-context.stdout.log",
+      "checksum": "sha256:8ddc8cd5714b811114ad564e37ba94324c8582e5d8fd835d1463a320f51b44db"
+    },
+    {
+      "file": "03-noop-validation.command.json",
+      "checksum": "sha256:dc834afdb23f377e6260ecf10ebdb9576c08df71f64b0a46f2bb5985ddecc537"
+    },
+    {
+      "file": "03-noop-validation.stderr.log",
+      "checksum": "sha256:b33f65e64c3f037eeb5b9c048b6abdbbe7c9dfd67b9ddec513a861f304e79953"
+    },
+    {
+      "file": "03-noop-validation.stdout.log",
+      "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "04-publication-validate.command.json",
+      "checksum": "sha256:cc12e65cc5f4b762a38f58eaa0914796d2bb0e2736a64bb31fc9ef6a4acda2ab"
+    },
+    {
+      "file": "04-publication-validate.stderr.log",
+      "checksum": "sha256:216f1bfc69f85fef43edc9dc62aa02033e42042a02c2d5e649c233ac982b423c"
+    },
+    {
+      "file": "04-publication-validate.stdout.log",
+      "checksum": "sha256:b61285ea4034b8972719d3dd02e92cd923ab16f052aa05e1b00a84de02e9d9aa"
+    },
+    {
+      "file": "05-publication-create.command.json",
+      "checksum": "sha256:6346697c7ecf9f35eaee8cd0a8977a781fcdaa37251cb60f6e4ee27404abd1e3"
+    },
+    {
+      "file": "05-publication-create.stderr.log",
+      "checksum": "sha256:9f027bb23ed9888953565dee2b60126e58a1e308fc9117df545a9b2d77d03e01"
+    },
+    {
+      "file": "05-publication-create.stdout.log",
+      "checksum": "sha256:84061fd46bdc3ac7d885a1e5e106495baa3be11781b08f2d0273644edd38a149"
+    },
+    {
+      "file": "06-candidate-inspect.command.json",
+      "checksum": "sha256:5327db4ff2ad64ae7b91cf933a4644f1739aff5b5cc6d61b46431a97485ffdb2"
+    },
+    {
+      "file": "06-candidate-inspect.stderr.log",
+      "checksum": "sha256:789d19888b08bdb99f7068a119a672711a813eac90840828699ca9cd3a40d0d4"
+    },
+    {
+      "file": "06-candidate-inspect.stdout.log",
+      "checksum": "sha256:5509e5515d0a235cde52e7cf20de72ac3199a1aebbe056a185ce4ff6e564ade1"
+    },
+    {
+      "file": "07-candidate-prepare.command.json",
+      "checksum": "sha256:3ecb13de73785571bbdf6fdad92b04705707037b94ee0d00249ca7d1a5790983"
+    },
+    {
+      "file": "07-candidate-prepare.stderr.log",
+      "checksum": "sha256:ca0707111f4bc42b59e4ecbc9ed04174eb31b92525667c572d1ac96a83362c92"
+    },
+    {
+      "file": "07-candidate-prepare.stdout.log",
+      "checksum": "sha256:a25d20475ab15a62d1ec5835b903d9eb8d79ed3e05a7f6b5f9a7205939e8a034"
+    },
+    {
+      "file": "08-exact-continuation.command.json",
+      "checksum": "sha256:3425237892de75c1342c47daeed9c09aa4a26402984e546c9612f575fe60943b"
+    },
+    {
+      "file": "08-exact-continuation.stderr.log",
+      "checksum": "sha256:bac9b1f78748a4671fe889102b57426b09eb447fd3f2d4222b4dc9df5a60edbc"
+    },
+    {
+      "file": "08-exact-continuation.stdout.log",
+      "checksum": "sha256:44bf17eca7d59c2a032b5c51daf586ec67bdf7eb12d3bf84f856f1786f6f063e"
+    }
+  ],
+  "rootCause": "After candidate four-file generation, the final current-plan diagnostic baseline probe lost the Workspace runtime root and resolved a package binary against the isolated candidate root.",
+  "sourceFix": [
+    "build-current-plan.ts passes scope.shared.runtimeRoot to the diagnostic baseline reader.",
+    "production-inspection.ts carries runtimeRootDir to the actual four-file media probe."
+  ],
+  "sourceVerification": {
+    "scope": "engineering-source-integration-with-verified-installed-policy",
+    "status": "passed",
+    "finalStage": "manual-promote-final-check",
+    "actualCost": {
+      "providerRequests": 0,
+      "providerCacheHits": 6,
+      "agentTasks": 0,
+      "deliveryMedia": []
+    },
+    "sourceUnchanged": true,
+    "sourceBefore": "sha256:feeb6d6324aaac6353797315770b7ff19ed40e209a94a8eb8334e6683769cbd7",
+    "sourceAfter": "sha256:feeb6d6324aaac6353797315770b7ff19ed40e209a94a8eb8334e6683769cbd7",
+    "packageBefore": "sha256:219707d8929743fab9e788ac9d8bcfe5a78ad3d30ae9eb807296ef326cabfdfb",
+    "focusedTestsPassed": 32,
+    "typecheck": "passed",
+    "eslint": "passed",
+    "provenanceChecksum": "sha256:536e70e342d08ca884fe9ba327982af62f0ba16685e9e906c8fbb8ba8e828f6b",
+    "receiptChecksum": "sha256:d8315e7032655897720c0914ea12c10b1bd1739f414961ddce78464fc739eaf9",
+    "steps": [
+      "actual media render",
+      "final current-plan recheck",
+      "automatic promotion",
+      "promoted context",
+      "final check",
+      "manual promote idempotency",
+      "final check"
+    ],
+    "limitation": "Engineering source fixture with verified original installed policy; not final installed-package acceptance."
+  }
+}

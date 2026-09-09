@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "status": "first-use-and-installed-revision-verified",
+  "version": "0.1.11",
+  "publication": "not-published",
+  "firstUseReceipt": "v0.1.11-first-use.json",
+  "revisionReceipt": "v0.1.11-revision-closure.json",
+  "fullCheck": {
+    "command": "npm run check",
+    "tests": 846,
+    "passed": 846,
+    "failed": 0,
+    "hostCompositions": "passed",
+    "logChecksum": "sha256:720c96fed54d3f77b00af13d056e7e422457497d05c35f814004100df80c9c26"
+  },
+  "packagesBuild": "passed",
+  "packagesTypecheck": "passed",
+  "packageChecks": "passed",
+  "manualReview": {
+    "hermes": {
+      "surface": "real-tui-json-rpc-backend",
+      "sessionId": "20260910_023400_f9d889",
+      "visibleReports": 7,
+      "toolCalls": 22,
+      "asyncBatchesReceivedBeforeFinal": 3,
+      "continuationCalls": 1,
+      "continuationWaitSeconds": [
+        600
+      ],
+      "duplicateFinalReports": 0,
+      "preCreateBoundarySeconds": 10,
+      "prePrepareReportedProviderRequests": 6,
+      "prePrepareReportedCacheHits": 0,
+      "durationSeconds": 28.133333333333333,
+      "ordinaryRootErrors": [
+        "Initial Git command stopped before doctor; Root subsequently ran doctor successfully."
+      ],
+      "ordinaryWorkerCorrections": [
+        "Original Scene owner corrected dynamic transform and explicit SVG group font size; same task committed successfully."
+      ],
+      "postCompletionQueries": 0
+    },
+    "codex": {
+      "sessionId": "01a08772-c200-7c20-be59-e2780e16c778",
+      "durationSeconds": 28.3,
+      "continuationProcessWaitMilliseconds": [
+        60000,
+        60000,
+        60000
+      ],
+      "wrapperWaitMilliseconds": [
+        30000,
+        30000,
+        30000
+      ],
+      "duplicateFinalReports": 0
+    },
+    "visualSampling": [
+      "Six frames from each final video were viewed.",
+      "Main scene visuals and captions were present; some generated text and default boundary branding/text still have weak contrast over the dark global base."
+    ],
+    "limitations": [
+      "Passing receipts verify production and supervision, not zero unsuccessful Agent tool calls.",
+      "Visual sampling is not a complete frame-by-frame or listening review; technical delivery checks are not a visual-quality certificate.",
+      "Automatic recovery from a terminal production failure was not exercised in these successful first-use runs.",
+      "Candidate validation is not npm publication or migration of an existing Workspace."
+    ]
+  },
+  "packageRepackEvidenceChecksum": "sha256:0881f2b2376a2f5ca74085f42c9945a7f58c75cdb5d16914efe26b81991728ad"
+}

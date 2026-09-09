@@ -2,7 +2,40 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-09 `v0.1.10` 已正式发布；候选与公共 npm 包的 Codex/Hermes 成片验收、新建用户 Workspace 均通过。
+> 最后复核：2026-09-10 `v0.1.11` 候选完成双宿主首次制作与安装包 revision 闭环验证；本次修复尚未发布，也未迁移旧 Workspace。
+
+## Hermes TUI 监督与 revision 闭环修正（0.1.11 已验证候选）
+
+[最终双宿主 receipt](evidence/v0.1.11-first-use.json) 已绑定同一批未修改的实际安装包：Codex 28.3 秒、真实 Hermes TUI 28.13 秒。
+两边各一条普通业务提示、零控制器 follow-up、5 个创作 child + 1 个 probe、峰值 4、补位 1、唯一 continuation；
+独立 final 各 7/7，exact 四文件 checksum、H.264/AAC 双声道、尺寸/帧数及 EOF 解码通过。
+252 个 runtime 文件及 11 个指南逐字节未变，重新打包的 252/40 个发行文件也一致。
+Hermes 的 22 次工具调用、7 条可见报告和 3 批异步通知已用原生 UI 流与数据库绑定；通知均先于最终答复，最终结果未重复汇报。
+
+[安装包 revision 闭环](evidence/v0.1.11-revision-closure.json) 在完成 Workspace 的完整隔离副本中通过：
+public context、等价 no-op 拒绝、真实 publishing-only validate/create、inspect、prepare、唯一 continuation、自动 promotion、
+修改后 context/final、manual promote 幂等和再次 final。provider/Agent 新增成本均为 0，复用 6 项旁白缓存和全部创作 artifact；
+原 Workspace 完整哈希未变，安装包未修改。此验证直接使用 npm public bin，不使用 source adapter 或注入 policy。
+
+[完整复核](evidence/v0.1.11-closure-review.json) 记录 `npm run check` 846/846、type/lint/docs/build、真实 compositions、
+package build/typecheck/check 全部通过。仍存在开头一次非阻塞 Git 探测，以及原 Scene owner 对动态 transform/SVG 字号的正常修正；
+不宣称 Agent 全程零失败调用。两份成片已抽帧查看，部分文字与默认片尾在深色底上对比度偏弱；技术检查不等于完整视觉/听感验收。
+本轮成功路径没有触发 terminal failure 自动恢复，其覆盖仍来自现有回归，而非本次真实首次制作。
+
+修复内容：发行 Scene 指南、可执行示例、task contract 和错误反馈统一使用 `SceneRendererProps`，禁止 `useVideoConfig`；
+Cover contract 明确预计算并写入静态 SVG，validator 门槛不变。Root 指南明确创建前说明片头片尾预算、inspect 后向用户报告再 prepare；
+event-only 宿主依原生通知 yield/resume，所有已派发批次通知与 fixed 成功到齐后才汇报。
+公开 revision context/validate/create、manual/automatic promotion 保留已验证 runtime policy manifest；
+candidate GlobalVisual 类型检查与最终诊断分别显式使用 shared Workspace 的 compiler/toolchain root，同时保持 candidate source/delivery 隔离。
+
+[旧会话复核](evidence/hermes-supervision-20260909-incident.json) 确认 0.1.10 成片成功，但同步 `hermes -z` 验收未覆盖真实 TUI 异步通知条件。
+另外，`message.interim` 可见提示不完整写入 SQLite `messages`，此前仅据数据库断言“缺少用户报告”的结论证据不足，已纠正。
+0.1.11 起 [首次使用门槛](guides/FIRST_USE_RELEASE_GATE.md) 要求真实 TUI 与原生 UI/DB 绑定，文档同时明确首次制作与 revision 是两类证据。
+
+未通过的候选保持原样并保留记录：[首轮](evidence/v0.1.11-initial-candidate.json) 暴露 revision 的 `src/contracts` 扫描错误；
+[第二轮](evidence/v0.1.11-second-candidate.json) 暴露 [candidate compiler root 漏传](evidence/v0.1.11-revision-compile-incident.json)；
+[第三轮](evidence/v0.1.11-third-candidate.json) 在四文件生成后暴露 [末端诊断 toolchain root 漏传](evidence/v0.1.11-revision-bin-incident.json)。
+最后两项均先真实 RED→GREEN，并在新包验收前完成独立 source 全链集成。未改 Hermes core、失败 attempt 或任何既有 Workspace 安装包。
 
 ## 低 token 监督与视频任务恢复（0.1.10 已发布）
 

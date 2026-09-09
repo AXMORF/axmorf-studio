@@ -1,6 +1,6 @@
 # Direct production workflow
 
-Root orchestration only. Assigned workers go directly to [task protocol](task-execution-protocol.md).
+Root only. Assigned workers follow [task protocol](task-execution-protocol.md).
 
 ## 1. Create or revise Project inputs
 
@@ -60,8 +60,8 @@ Report read-only readiness, cost/reuse, and invalidation before:
 npm run project:produce:prepare -- --project <storyId>
 ```
 
-Prepare derives the ProductionRevision, Task DAG, and `dirtyAgentTasks`. Reuse valid artifacts; execute only dirty
-Agent-owned tasks, never `scene-template`. Attempt IDs never enter TaskRevision; diagnostics own no content identity.
+Prepare: ProductionRevision, Task DAG and `dirtyAgentTasks`. Reuse artifacts; execute dirty Agent tasks only,
+never `scene-template`. Attempt IDs never enter TaskRevision; diagnostics own no content identity.
 
 ## 5. Execute dirty Agent tasks
 
@@ -104,11 +104,10 @@ npm run project:produce:continue -- --project <storyId> --revision <revisionId> 
 
 Claim 一次，拒绝重复。Root 阻塞等原进程/通知，普通超时只续等；不轮询 child、反复读日志或重复汇报。错误才诊断并指导原 executor，不代写/commit。失败退出，all success converges once；deadline 从 attempt 创建起一小时。
 
-Convergence read-only replans, safely materializes attested bytes, then verifies `video.mp4`, `cover-4x3.png`,
-`cover-3x4.png`, and `publish.json` by checksum and EOF-decode. A matching delivery returns
-`project-production-current` without rewrite.
+Converge: read-only replan, attested materialization, checksum/EOF-decode for `video.mp4`, `cover-4x3.png`, `cover-3x4.png`, `publish.json`.
+Valid matching delivery returns `project-production-current` without rewrite.
 
-Candidate completion and promotion follow the revision reference.
+Fixed success 后汇报路径并结束；需独立复验用 `npm run project:check -- --project <storyId> --level final`。revision context 只用于用户要求的修改。Candidate promotion 按 revision reference。
 
 terminal failed attempt immutable。按 [recovery](agent-rework-and-system-hardening.md) 诊断，视频创作错误每个请求最多恢复一次；旧 workers 全退出后报告 read-only、zero-provider inspection，ready 才 same Revision reissue：
 

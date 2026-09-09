@@ -7,6 +7,7 @@ import {
   StoryIdSchema,
 } from "@axmorf/studio/contracts";
 import { promoteProjectRevisionCandidate } from "./application/project-revision-promotion";
+import type { RuntimePolicyManifest } from "../../packages/studio/src/runtime/policy-manifest";
 
 const usage =
   "Expected --project <storyId> --candidate <candidateId> --revision <revisionId> --delivery <deliveryBuildId>.";
@@ -49,14 +50,20 @@ export const parseProjectRevisionPromotionArguments = (
 export const runProjectRevisionPromotionCli = async ({
   args,
   rootDir,
+  runtimePolicyManifest,
   stdout = (value: string) => process.stdout.write(value),
 }: {
   readonly args: readonly string[];
   readonly rootDir: string;
+  readonly runtimePolicyManifest?: RuntimePolicyManifest;
   readonly stdout?: (value: string) => void;
 }) => {
   const input = parseProjectRevisionPromotionArguments(args);
-  const result = await promoteProjectRevisionCandidate({ rootDir, ...input });
+  const result = await promoteProjectRevisionCandidate({
+    rootDir,
+    ...input,
+    runtimePolicyManifest,
+  });
   stdout(`${JSON.stringify(result)}\n`);
   return result;
 };

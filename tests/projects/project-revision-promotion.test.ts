@@ -24,6 +24,8 @@ import {
 } from "../../scripts/projects/application/project-revision-promotion";
 import { parseProjectRevisionPromotionArguments } from "../../scripts/projects/revision-promotion";
 import { validProjectCreateInput } from "../fixtures/project-create";
+import { buildRuntimePolicyManifest } from "../../packages/studio/src/runtime/policy-manifest";
+import { snapshotPolicyRoots } from "../../scripts/project-production/adapters/project-input-snapshot";
 
 const storyId = validProjectCreateInput.storyId;
 const baseRevisionId = `revision-${"a".repeat(64)}`;
@@ -232,6 +234,42 @@ const fixture = async (context: {
   } as const;
   return { rootDir, live, candidate, scope, dependencies, input } as const;
 };
+
+test("promotion retains installed policy for candidate and live revision reads", async (context) => {
+  const current = await fixture(context);
+  const runtimePolicyManifest = buildRuntimePolicyManifest({
+    packageVersion: "0.1.11",
+    files: [
+      {
+        logicalPath: "dist/contracts.js",
+        bytes: Buffer.from("runtime"),
+        scopes: ["composition", "delivery", "global-visual", "scene"],
+      },
+    ],
+  });
+  const expected = await snapshotPolicyRoots({
+    rootDir: "/unused",
+    runtimePolicyManifest,
+  });
+  const reads: string[] = [];
+  const input = { ...current.input, runtimePolicyManifest };
+  const dependencies: ProjectRevisionPromotionDependencies = {
+    ...current.dependencies,
+    readRevision: async (readInput) => {
+      assert.equal(await snapshotPolicyRoots(readInput), expected);
+      reads.push("live");
+      return current.dependencies.readRevision!(readInput);
+    },
+    readCandidateRevision: async (readInput) => {
+      assert.equal(await snapshotPolicyRoots(readInput), expected);
+      reads.push("candidate");
+      return current.dependencies.readCandidateRevision!(readInput);
+    },
+  };
+  const promoted = await promoteProjectRevisionCandidate(input, dependencies);
+  assert.equal(promoted.status, "project-revision-promoted");
+  assert.ok(reads.includes("live") && reads.includes("candidate"));
+});
 
 test("promotion replaces the live tuple and is idempotent without consuming the candidate", async (context) => {
   const { rootDir, candidate, dependencies, input } = await fixture(context);
