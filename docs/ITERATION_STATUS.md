@@ -2,9 +2,9 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-11 公共 npm 两包 latest 均为 0.1.12；0.1.13 双宿主候选验收通过，等待精确 tag CI 发布与公共 npm 复测。
+> 最后复核：2026-09-11 公共 npm 两包 latest 均为 0.1.13；精确 tag CI 发布成功。发布后 Codex 流程验收通过，Hermes 成片及实际四并发通过，但监督流程验收失败。
 
-## 并发交接与监督修复（0.1.13 候选通过）
+## 并发交接与监督修复（0.1.13 已发布）
 
 短 `--assignment` 由 exact attempt 的 immutable dirty task snapshots 还原 full task/binding identity；prepare/reissue 同时提供完整 worker handoff。
 原 zero-write bind、active attempt、candidate isolation、checksum 与 task validators 保持强制，旧 full-identity CLI 继续可用。
@@ -22,6 +22,17 @@ Skill 明确单 probe 只证明 I/O 而非最大容量，并给出完整进程�
 第五轮[双宿主 receipt](evidence/v0.1.13-first-use.json) 绑定相同 252/41 个发行文件：Luna/medium、各一条业务提示、零控制器追加提示、5 个创作 child、4 个 probe、补位 1。
 Codex/Hermes 四任务绑定至提交的重叠分别为 67883 ms / 97396.06 ms；唯一 continuation、报告顺序、无 child polling、最终 7/7 与四文件 EOF 均通过。
 [过程与视觉抽检](evidence/v0.1.13-candidate-review.json) 保留模型自行纠错、35.8/35.0667 秒时长偏差、Hermes 首尾拆分报告错误，以及封面装饰线穿过文字的视觉瑕疵；不宣称完整需求或统计稳定率。
+
+[正式发布](evidence/v0.1.13-publication.json) 来自 `c1b67cb` 的 `v0.1.13`；CI 895 项及 package gates 通过。
+首轮 npm 接收 runtime 后 registry 超过五分钟才可见，工作流保留失败；确认其 integrity 后同标签幂等流程完成 creator 发布，两包 latest/integrity 已复核。
+旧 Workspace 已完整备份，当前 Workspace 已从公共 `npm create axmorf-studio@latest` 重建，private 配置逐字节保留。
+[公共 npm 复测](evidence/v0.1.13-public-verification.json) 使用相同普通业务提示、Luna/medium 和零控制器追加提示。
+Codex 成片 25.4 秒，真实四任务重叠 112830 ms，独立 recorder 通过；Hermes 成片 37.2333 秒，真实四任务重叠 163135.95 ms。
+Hermes Root 再次调用 17 次 child-list 查询，独立 recorder 以 `Child list polling is not native completion` 拒绝通过；没有成功 receipt，也未重跑来替换失败。
+另有 4 次 Hermes Root 对自己 workers 的催办，不属于控制器追加提示；监督失败的明确依据是 child-list polling。
+Hermes 安装包/指南未变、原生并发、final 7/7、四文件 checksum、H.264/AAC 双声道与 EOF 均经独立诊断通过，这些不能豁免监督失败。
+发布后视觉抽检记录正文文字偏暗/重叠、字幕孤字换行与时长偏差；未做全帧或完整听审。
+候选第五轮通过不能替代本次公开版本的失败事实；当前不宣称双宿主完整流程已稳定通过。
 
 ## 可读性误报与默认模板对比度优化（0.1.12 发布候选）
 

@@ -1,0 +1,346 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.13",
+  "releaseCommit": "c1b67cb8b02757e9eb47a3b791beb56760f39e5b",
+  "recordedAt": "2026-09-10T22:49:05.444153+00:00",
+  "status": "public-first-use-not-passed",
+  "scope": "Post-publication public npm verification and defect record. This is not a successful combined first-use receipt.",
+  "hosts": [
+    {
+      "host": "codex",
+      "strictFirstUseStatus": "passed",
+      "evidenceKind": "successful-first-use-receipt",
+      "evidenceFile": "public-codex-receipt.json",
+      "evidenceChecksum": "sha256:eaf545e2998209dd9d349a03fffb75947b6de1bc0494ccf71fea8a5e9372a4de",
+      "nativeTranscriptChecksum": "sha256:6acb54f1519dad03bf1c9e9684441121250f4de051bf53d962f87881e34e47d5",
+      "model": "gpt-5.6-luna",
+      "reasoningEffort": "medium",
+      "businessPrompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“从十分钟专注开始”，项目 ID 使用 codex-luna-medium-focus。视频依次呈现三个独立内容段落：第一段讲选择一个具体小步骤，第二段讲关掉打断，第三段讲做完记录下一步。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。\n",
+      "harnessInterventions": [],
+      "creationMethod": "npm-create-public-registry",
+      "publicInstallationVerified": true,
+      "unchangedPackageFiles": 252,
+      "unchangedGuideFiles": 12,
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakBoundTasks": 4,
+        "fourWayBoundOverlapMs": 112830,
+        "productionChildCount": 5,
+        "probeChildCount": 4,
+        "refillAdmissions": 1
+      },
+      "supervision": {
+        "schemaVersion": 1,
+        "source": "codex",
+        "reportedBeforeCreate": true,
+        "reportedBeforePrepare": true,
+        "continuationCalls": 1,
+        "pollingCalls": 0,
+        "asyncBatches": 0,
+        "completedAsyncBatches": 0
+      },
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "codex-luna-medium-focus",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-41a96f593695b8cad817049e848e5e60d5956a7cf14b5555723d90712981fa05",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-901cb6e040a7efb4648965d4c654729198a153ba02160f47320e637bcd755ff4",
+        "artifactSetFingerprint": "sha256:3abc7f1b50d79e521cf9388b73514c4733d0cb9bbadc832ed36fba058de918f6"
+      },
+      "delivery": {
+        "storyId": "codex-luna-medium-focus",
+        "deliveryBuildId": "delivery-41a96f593695b8cad817049e848e5e60d5956a7cf14b5555723d90712981fa05",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:b9c9379a9b5ee06745df420d109afbfc15ee98235fbe089985a3a03ee91953d5",
+            "sizeBytes": 2351786
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:6cc0af6b6f9684f3b4004d745cc4150dcc59ec16fd088dfab41a001378ccafc8",
+            "sizeBytes": 88349
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:4222da352a3ee3bcbdcf005f0a5d98ea9cb429ffd8e1d830c83f04dd9279fcbc",
+            "sizeBytes": 97726
+          },
+          "publish.json": {
+            "checksum": "sha256:20c7a6dfc1a2abc99e32652894963a92b3f0690b2b1d8d351e454d8d41ee8377",
+            "sizeBytes": 2199
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1080,
+          "height": 1920,
+          "fps": 30,
+          "frameCount": 762
+        },
+        "decodedFiles": [
+          "video.mp4",
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ]
+      },
+      "durationSeconds": 25.4,
+      "targetSeconds": 30,
+      "durationDeltaSeconds": -4.600000000000001,
+      "nativeSelfCorrections": [
+        "Root corrected a rejected creation topics count.",
+        "Workers corrected independent Cover component imports, task file-write JSON format, and readability/check failures inside their original tasks.",
+        "One worker searched an absent scripts directory in the generated Workspace."
+      ],
+      "visualReview": {
+        "sampledFrames": [
+          {
+            "name": "codex-03.png",
+            "checksum": "sha256:b46b1ee02ba1deb0a50203927eceff3f47f6b49fd707e942bec815fe76fe7a62"
+          },
+          {
+            "name": "codex-04.png",
+            "checksum": "sha256:4061c6acd3318aeaeec85cd92ec7a9bdfaf7409a6459e6bb4074802ed09f7589"
+          },
+          {
+            "name": "codex-06.png",
+            "checksum": "sha256:cfd00a247992624cac5a0d77c8ab44332b2206ac5c3ad054f37f1ef322205036"
+          },
+          {
+            "name": "codex-09.png",
+            "checksum": "sha256:5fd8e9e74abe322caf7f56aabea43c38a1175e21ec4c19ad10c7aa4d27009129"
+          },
+          {
+            "name": "codex-15.png",
+            "checksum": "sha256:4136ae3e6f2f9ba0382c065c09cab944ca756eb0ae265fe69ab93618ee306daa"
+          }
+        ],
+        "viewedCovers": [
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ],
+        "findings": [
+          "At sampled 3-6 seconds, body text has low contrast and outgoing English text overlaps incoming Chinese text. Captions remain readable.",
+          "At 15 seconds, the final Chinese character and punctuation of a caption occupy a line alone.",
+          "Body graphics use substantial English despite the Chinese video request; record as language/style quality concern."
+        ]
+      }
+    },
+    {
+      "host": "hermes",
+      "strictFirstUseStatus": "failed-supervision",
+      "evidenceKind": "failure-diagnostic-only",
+      "evidenceFile": "public-hermes-failure-diagnostics.json",
+      "evidenceChecksum": "sha256:a0e17f4d49429ae505bb4c02cbbb5dd753b70edf64ba3a3ccda6fd789fbe73dd",
+      "nativeTranscriptChecksum": "sha256:e5da8ad75e51881e73c37cb1bd6ef78cc57ad5065c938055b4cb4a89a00f8536",
+      "model": "gpt-5.6-luna",
+      "reasoningEffort": "medium",
+      "businessPrompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“从十分钟专注开始”，项目 ID 使用 hermes-luna-medium-focus。视频依次呈现三个独立内容段落：第一段讲选择一个具体小步骤，第二段讲关掉打断，第三段讲做完记录下一步。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。\n",
+      "harnessInterventions": [],
+      "creationMethod": "npm-create-public-registry",
+      "publicInstallationVerified": true,
+      "unchangedPackageFiles": 252,
+      "unchangedGuideFiles": 12,
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakBoundTasks": 4,
+        "fourWayBoundOverlapMs": 163135.94921875,
+        "productionChildCount": 5,
+        "probeChildCount": 4,
+        "refillAdmissions": 1
+      },
+      "supervision": {
+        "status": "failed",
+        "error": "Child list polling is not native completion",
+        "childListPollingCalls": 17,
+        "rootWorkerSteerCalls": 4,
+        "note": "The 4 steer calls were issued by the tested Hermes Root to its own workers, not by the harness. The explicit recorder failure is the 17 child-list polling calls."
+      },
+      "finalCheck": {
+        "schemaVersion": 1,
+        "status": "project-final-check",
+        "storyId": "hermes-luna-medium-focus",
+        "level": "final",
+        "scope": "current-production",
+        "aggregateStatus": "pass",
+        "revisionId": "revision-f245f28156d265186e3bc6b22e2d1504884712d1f7d7a892b255adf804e2c736",
+        "artifactSetFingerprint": "sha256:8930ee0e52f6768fd14730dd88e8ccfd6eba3aa1e0b074e8aeb6be6cfe8a13a6",
+        "deliveryBuildId": "delivery-a2470e311f702ddd3475dcfd8169c1940c6041bb2f28acd672118f5ed45ad1ce",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ]
+      },
+      "delivery": {
+        "storyId": "hermes-luna-medium-focus",
+        "deliveryBuildId": "delivery-a2470e311f702ddd3475dcfd8169c1940c6041bb2f28acd672118f5ed45ad1ce",
+        "files": {
+          "cover-3x4.png": {
+            "checksum": "sha256:0c30f6b79c65930fbbcbd18acd9cb290e1a8b3b40bfbe42208572fd078cfea72",
+            "sizeBytes": 105908
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:f6b79fc54af6ab07d27a4c620d7e65863874f9e89657575150f4e719009114ac",
+            "sizeBytes": 105559
+          },
+          "publish.json": {
+            "checksum": "sha256:9e6651fa1fdb6be94a6181895ada4c6336c20b61575bcf4f7cb9a155514b06a6",
+            "sizeBytes": 2223
+          },
+          "video.mp4": {
+            "checksum": "sha256:9b87da08121bc4c8f817d888b6e3d944551cf625d0888c6030cfbc8bb6265163",
+            "sizeBytes": 3404547
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1080,
+          "height": 1920,
+          "fps": 30,
+          "frameCount": 1117
+        },
+        "decodedFiles": [
+          "video.mp4",
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ]
+      },
+      "durationSeconds": 37.233333333333334,
+      "targetSeconds": 30,
+      "durationDeltaSeconds": 7.233333333333334,
+      "nativeSelfCorrections": [
+        "A Scene worker corrected a Python shot-plan SyntaxError.",
+        "Workers corrected finalizer/check failures, a stale GlobalVisual plan and task file-write input format."
+      ],
+      "visualReview": {
+        "sampledFrames": [
+          {
+            "name": "hermes-05.png",
+            "checksum": "sha256:4ff23a682aa86496ecfb2913f602f63368caac3add36c076d264c077d334708d"
+          },
+          {
+            "name": "hermes-15.png",
+            "checksum": "sha256:780a9d7c34fd939f2aeb013349015ee94b7fde739ef29f99752916b5c4104ba8"
+          },
+          {
+            "name": "hermes-25.png",
+            "checksum": "sha256:4f34e43b9c80f3b5d1a3751154a378d643ca28a76a3f41f6123bb38fbc2397e1"
+          }
+        ],
+        "viewedCovers": [
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ],
+        "findings": [
+          "The sampled animation frame at 5 seconds contains dim text; a single animation state does not establish persistent contrast failure.",
+          "At 25 seconds, the final Chinese character and punctuation of a caption occupy a line alone."
+        ]
+      }
+    }
+  ],
+  "limits": [
+    "Candidate 5 passed on both hosts; the subsequent public Hermes supervision failure remains failed. No rerun replaced this result and no gate was waived.",
+    "Both media and native concurrency checks passed. These checks do not imply complete workflow compliance or visual quality approval.",
+    "No package/validator mutation or cross-task takeover was found in the reviewed native traces; this is an observation, not exhaustive proof.",
+    "Visual inspection covered 5 Codex frames, 3 Hermes frames and both covers per host. No full-frame or complete listening review was performed.",
+    "This sample does not establish a model success rate or isolate model versus host causality."
+  ]
+}

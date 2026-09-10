@@ -63,6 +63,14 @@
       "testCount": 23,
       "logSha256": "9561db86337fda0fdf0e1bcb6ed70b30d917fabd244e5cac01c9323d781b6663",
       "scope": "Native session alias matching, original transcript and child evidence regression; source-only recorder change."
+    },
+    "releaseCi": {
+      "passed": true,
+      "testCount": 895,
+      "commit": "c1b67cb8b02757e9eb47a3b791beb56760f39e5b",
+      "workflow": "https://github.com/AXMORF/axmorf-studio/actions/runs/34533011613",
+      "fullLogSha256": "7d0150e53d22354c84a3908189bbc8b32f6837c6f044be0bb9885e89eee141c1",
+      "scope": "All repository and package gates passed before publication. The first run later failed only while waiting for registry visibility; same-tag publication completed in run 34534474488."
     }
   },
   "limits": [

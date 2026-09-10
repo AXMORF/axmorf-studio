@@ -1,0 +1,22 @@
+{
+  "version": "0.1.13",
+  "commit": "c1b67cb8b02757e9eb47a3b791beb56760f39e5b",
+  "successfulWorkflow": "https://github.com/AXMORF/axmorf-studio/actions/runs/34534474488",
+  "initialWorkflow": "https://github.com/AXMORF/axmorf-studio/actions/runs/34533011613",
+  "initialFailure": "Runtime accepted by npm; public registry visibility exceeded the five-minute confirmation window. Runtime integrity matched before same-tag idempotent continuation.",
+  "verifiedAt": "2026-09-10T22:01:27.280227+00:00",
+  "packages": [
+    {
+      "name": "@axmorf/studio",
+      "version": "0.1.13",
+      "integrity": "sha512-1BdYF7DVeyW30sMZz26T87E4dEuOYLCW1/H0eBt4FBjWEm+r86p73JrMz9dwMoAby/2MWD6DEoY0NxJIaLe8Aw==",
+      "tarball": "https://registry.npmjs.org/@axmorf/studio/-/studio-0.1.13.tgz"
+    },
+    {
+      "name": "create-axmorf-studio",
+      "version": "0.1.13",
+      "integrity": "sha512-McJ/0fVldDa0PSlsgYApf8s5F3t3YMAKWMJUpIPPnHRjf4FC3JlRpAAsfQH85/EEEh/xbMW+zMyl+EZQ2QLNXw==",
+      "tarball": "https://registry.npmjs.org/create-axmorf-studio/-/create-axmorf-studio-0.1.13.tgz"
+    }
+  ]
+}
