@@ -4,6 +4,16 @@
 >
 > 最后复核：2026-09-10 `v0.1.12` 已发布并完成公共安装与 revision 复验；三次公共样本中两次交付成功、一次旁白准备失败，完整保留问题记录。
 
+## Skill 主入口轻量整理（本地未发布）
+
+仅整理 creator 发行的 `axmorf-video/SKILL.md` 措辞：6,198 → 6,063 字符，减少 135（2.18%）；
+命令、顺序、必读引用、任务归属、并发、停止、恢复和验证要求保留，runtime、contracts、validators 与测试均未修改。
+[复核记录](evidence/skill-wording-cleanup-20260910.json)：独立语义复核的 16 类要求未发现剩余实质差异；
+初稿一处旧项目 baseline 触发条件变化已恢复原文。现有相关测试 42/42，最终文案再跑文档/scaffold 25/25，
+Skill 格式、creator package 与文档链接/命令引用检查通过。
+本轮未做新的真实视频或原生 Agent 黑盒测试，不沿用 0.1.12 的验收宣称此文案已通过真实制作。
+当前为本地候选，未推送或发布，既有用户 Workspace 未改动。
+
 ## 可读性误报与默认模板对比度优化（0.1.12 已发布并复验）
 
 [工程检查](evidence/v0.1.12-engineering-checks.json) 完成 874/874、type/lint/docs/build、真实 compositions、package build/typecheck/check 和零漏洞审计。

@@ -5,7 +5,7 @@ description: Create, produce, validate, and deliver a video in this Workspace.
 
 # AXMORF Studio Video
 
-First route by assignment: with an exact attempt-bound task bind, follow only
+With an exact attempt-bound task bind, follow only
 [Assigned task worker](references/production-workflow.md#assigned-task-worker) and the task contract.
 Do not restart global doctor/preflight or the Root flow below. Otherwise act as the Root.
 
@@ -15,34 +15,28 @@ For a new Project read [authoring](references/authoring.md); before preparation 
 Use the Workspace's npm scripts and their structured output. Do not use package
 internals or assume a particular Agent host or global installation.
 
-The Root runs `npm run doctor` before Project work. If it is not ready, prepare only the
+The Root runs `npm run doctor` before Project work. If unready, prepare only the
 declared host environment and rerun it; never patch package internals,
-`node_modules`, exact dependencies, or validators. Report an unsatisfied host
-capability as a blocker.
+`node_modules`, exact dependencies, or validators. Report unmet host capabilities as blockers.
 
 For a new video, first run `npm run project:create:context -- --project <storyId>`.
-Adapt its complete example using current public choices. Build a strict Project create input from the user brief and run
-`npm run project:create`. This command creates authoring source only; it must not
-call a provider or start production.
+Adapt its complete example to the user brief using current public choices, then run
+`npm run project:create` with strict input. It creates authoring source only, without provider calls or production.
 
 Project creation also freezes the Scene originality baseline. For a legacy
 Project that predates it, require explicit user approval and run
 `npm run project:originality:freeze -- --project <storyId>` before inspect;
 production never substitutes a silent empty baseline.
 
-Create and revision validation may return structured
-`authoring-validation-failed` issues. For
-`caption-display-budget-exceeded`, shorten or semantically split the authored
-`ttsChunk` to stay within 72 `caption-display-unit-v1` half-units; never weaken
-the validator.
+Create and revision validation may return structured `authoring-validation-failed` issues.
+For `caption-display-budget-exceeded`, shorten or semantically split the authored `ttsChunk`
+to stay within 72 `caption-display-unit-v1` half-units; never weaken the validator.
 
 To modify an existing Project, first run `npm run project:revise:context`,
 validate a strict raw input with `npm run project:revise:validate`, then create
-an isolated candidate with `npm run project:revise`. The input must bind the
-exact current Revision and verified four-file Delivery. Never edit live
-authoring in place; use the returned candidate flag throughout production.
-Candidates only use Project-owned media already frozen in their base context;
-they do not import new assets.
+an isolated candidate with `npm run project:revise`. Bind the input to the exact current Revision and verified four-file Delivery.
+Never edit live authoring in place; use the returned candidate flag throughout production.
+Candidates use only Project-owned media frozen in their base context; do not import new assets.
 
 Before inspect, read [native child verification](references/execution-capabilities.md) and perform its probe for the default
 `subagents` mode (maximum four). Resolve once with verified host flags on `npm run project:execution:resolve`. Only explicit user choices
@@ -50,17 +44,16 @@ may override settings; do not claim an Agent-selected mode came from the user. A
 subagents configuration is a blocker, not permission to switch to inline.
 
 Before cost, run read-only `npm run project:produce:inspect` and report source
-readiness, estimate, artifact reuse, and invalidation in a user-visible message. Tool output alone is not this report. Only then run
-`npm run project:produce:prepare`, which may call configured providers and
-returns content-addressed dirty tasks plus exact terminal commands. Use its `durationBudget` to report measured total duration and deviation; sealed audio remains authoritative.
+readiness, estimate, artifact reuse, and invalidation to the user; tool output alone is insufficient.
+Only then run `npm run project:produce:prepare`, which may call configured providers and returns
+content-addressed dirty tasks and exact terminal commands. Report measured total duration and deviation
+using its `durationBudget`; sealed audio remains authoritative.
 
 Execute only dirty Agent tasks. Each executor first runs prepare's exact
-attempt-bound bind command and continues only after `task-worker-bound`. Only
-then read `task.json`,
-`inputs/context.json`, and the immutable, attempt-neutral
-`inputs/task-contract.json`; then use only the returned transport and bound
-describe/finalize/check/commit/failure commands. ArtifactAttestation and terminal
-events are authority.
+attempt-bound bind command and continues only after `task-worker-bound`. Only then read `task.json`,
+`inputs/context.json`, and immutable, attempt-neutral `inputs/task-contract.json`.
+Use only the returned transport and bound describe/finalize/check/commit/failure commands.
+ArtifactAttestation and terminal events are authority.
 
 Start prepare's exact continuation once per attempt. Root stays responsible with blocking waits on the original handle or native
 notifications; on event-only hosts follow the yield/resume instructions in [native child verification](references/execution-capabilities.md#event-only-hosts); no child/status polling, repeated log reads or unchanged progress reasoning. On errors, diagnose and guide the original
@@ -80,12 +73,10 @@ zero-provider `npm run project:attempt:recover-inspect`, report the diagnosis/re
 ready for a fresh same-Revision attempt and fresh workers. It does not require current Delivery. Unknown, system or external faults
 are diagnosed and reported, not automatically repaired or retried.
 
-Before writing Scene code, read the repository-local
-`.agents/skills/remotion-best-practices/SKILL.md` and only the references routed
-for that Scene.
-The complete declared TS/TSX graph must be original against the immutable
-baseline; template-copy Scenes are fixed-produced and exempt. Convergence also
-rejects exact or token-normalized duplicates before any live materialization.
+Before writing Scene code, read repository-local `.agents/skills/remotion-best-practices/SKILL.md`
+and only the references routed for that Scene. The complete declared TS/TSX graph must be original
+against the immutable baseline; template-copy Scenes are fixed-produced and exempt.
+Convergence rejects exact or token-normalized duplicates before any live materialization.
 
 GlobalVisual owns two no-Props exports: `GlobalVisualBaseLayer` covers the full
 Composition, while `GlobalVisualDecorationLayers` receives frame zero at the
