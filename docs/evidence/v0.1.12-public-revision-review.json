@@ -1,0 +1,679 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-09-10T09:14:45.348620+00:00",
+  "status": "passed-with-evidence-label-correction",
+  "scope": "Independent read-only review of completed public-installed Hermes publication-metadata revision QA; candidate QA cost-field correction only.",
+  "runRoot": "qa/public-revision/revision-policy-run-2LWQfh",
+  "sourceWorkspace": "public/hermes",
+  "qaWorkspace": "qa/public-revision/revision-policy-run-2LWQfh/workspace",
+  "project": "ten-minute-focus",
+  "packageVersion": "0.1.12",
+  "sourceEvidence": {
+    "receiptSha256": "sha256:bdb5a2448724d1352dbfe9d697b0ca00b56b31776144bc029baaf0d4a8fecc95",
+    "controller": "qa/public-revision/revision-policy-qa.mjs",
+    "controllerSha256": "sha256:ed46ff447dec60a54e187e324ac9b318cb58e8380c9d659d2ed9947116fe2e12",
+    "installedCli": "qa/public-revision/revision-policy-run-2LWQfh/workspace/node_modules/@axmorf/studio/dist/cli/main.js",
+    "installedCliSha256": "sha256:ac243232447d54b2d532d71668274a9729a3dca4e55640c812e00152573e3665"
+  },
+  "commands": [
+    {
+      "step": 1,
+      "label": "base-final-check",
+      "binary": "npm",
+      "args": [
+        "exec",
+        "--no",
+        "--",
+        "axmorf",
+        "project",
+        "check",
+        "--project",
+        "ten-minute-focus",
+        "--level",
+        "final"
+      ],
+      "status": "project-final-check",
+      "stdoutSha256": "sha256:86f7e50f86ad786912e558b1f23997ab193c6406c72053185fe160c79dd645dc",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commandSha256": "sha256:d3b27361cb62053f96c59d9dce25c0a9727f2ced549031e05149c0edb01ba2ac"
+    },
+    {
+      "step": 2,
+      "label": "revision-context",
+      "binary": "npm",
+      "args": [
+        "exec",
+        "--no",
+        "--",
+        "axmorf",
+        "project",
+        "revise",
+        "context",
+        "--project",
+        "ten-minute-focus"
+      ],
+      "status": "project-revision-context",
+      "stdoutSha256": "sha256:d2f4fa187a21a731ce5b77241efc2a8647b0ae3cbed40fe4ac52bb23ea0ccdb3",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commandSha256": "sha256:52da6340e346a9d63fb7f2e9ee6481a760b55fb46d671ad9a6855624ef4e0dc2"
+    },
+    {
+      "step": 3,
+      "label": "noop-validation",
+      "binary": "npm",
+      "args": [
+        "exec",
+        "--no",
+        "--",
+        "axmorf",
+        "project",
+        "revise",
+        "validate",
+        "--input",
+        "qa-noop-revision.json"
+      ],
+      "status": "expected-error",
+      "stdoutSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "sha256:1edaaff516c3deb2e5b5c26051a8aa9da507e2224eb63d70038911b03302bab7",
+      "commandSha256": "sha256:265a9420ac80ec12251a6fb8a9fecd3a6e9bd1b1ac08775cf2d93f20a5da47e6"
+    },
+    {
+      "step": 4,
+      "label": "publication-validate",
+      "binary": "npm",
+      "args": [
+        "exec",
+        "--no",
+        "--",
+        "axmorf",
+        "project",
+        "revise",
+        "validate",
+        "--input",
+        "qa-publication-revision.json"
+      ],
+      "status": "project-revision-valid",
+      "stdoutSha256": "sha256:d9ce2bb7e0bd946c5ea5b6b36aba30118cf163d5fb9818bcfdcde64f5b2cd483",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commandSha256": "sha256:dbe89d5b3f563bb4d343a6c17fb182400bfd928b37ef9ef3ed73048eaf3ba550"
+    },
+    {
+      "step": 5,
+      "label": "publication-create",
+      "binary": "npm",
+      "args": [
+        "exec",
+        "--no",
+        "--",
+        "axmorf",
+        "project",
+        "revise",
+        "create",
+        "--project",
+        "ten-minute-focus",
+        "--input",
+        "qa-publication-revision.json"
+      ],
+      "status": "project-revision-candidate-created",
+      "stdoutSha256": "sha256:df045264dff66e01a1582679ec4839e99b6e7646ee607c8b5a55c11adeba4f9d",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commandSha256": "sha256:c76c31a8d160b10efa203d8010e0e4a6db2b1f2d44d7a0459b44bb0e2c140b9b"
+    },
+    {
+      "step": 6,
+      "label": "candidate-inspect",
+      "binary": "npm",
+      "args": [
+        "exec",
+        "--no",
+        "--",
+        "axmorf",
+        "project",
+        "produce",
+        "inspect",
+        "--project",
+        "ten-minute-focus",
+        "--candidate",
+        "revision-candidate-6cf62538d5b65f56a39b47e394b8a32d5881b35b768e45800ee816fb37b6a10b"
+      ],
+      "status": null,
+      "stdoutSha256": "sha256:2e9e0db317658d5eefbcf8883a7359a65a7894997990cd07560d65c30c17e4d5",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commandSha256": "sha256:b726020544c73e832dfca5930dfc507c780a505b2d3337a4e3022db8170843ac"
+    },
+    {
+      "step": 7,
+      "label": "candidate-prepare",
+      "binary": "npm",
+      "args": [
+        "exec",
+        "--no",
+        "--",
+        "axmorf",
+        "project",
+        "produce",
+        "prepare",
+        "--project",
+        "ten-minute-focus",
+        "--candidate",
+        "revision-candidate-6cf62538d5b65f56a39b47e394b8a32d5881b35b768e45800ee816fb37b6a10b"
+      ],
+      "status": "project-production-prepared",
+      "stdoutSha256": "sha256:23ffcd174cc0879e8538752cc31aefb0673b3151c0a2fa073b870d46f8704c01",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commandSha256": "sha256:b04ce8750697f007f3fecf072a1e29bf80bd80d021846f55e682912fd2285b40"
+    },
+    {
+      "step": 8,
+      "label": "exact-continuation",
+      "binary": "/bin/sh",
+      "args": [
+        "-c",
+        "npm run project:produce:continue -- --project ten-minute-focus --revision revision-36255556fd6857ebf1fd219dcdfc475634bafdaa6dbf74dc3b2c4d326a265298 --attempt c24e38c6-4bcc-4f35-8a0b-21e086cb5337 --candidate revision-candidate-6cf62538d5b65f56a39b47e394b8a32d5881b35b768e45800ee816fb37b6a10b"
+      ],
+      "status": "project-revision-complete",
+      "stdoutSha256": "sha256:4a6aa34d5dbc684f3621fbe1e4310a1ab51dccd9cf19069039deb4efa5b9b22f",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commandSha256": "sha256:64a8d116b57c704e0ee8910eb8ae20d9e84df5d06cc8e74b2595873b3cb2c6a6"
+    },
+    {
+      "step": 9,
+      "label": "promoted-context",
+      "binary": "npm",
+      "args": [
+        "exec",
+        "--no",
+        "--",
+        "axmorf",
+        "project",
+        "revise",
+        "context",
+        "--project",
+        "ten-minute-focus"
+      ],
+      "status": "project-revision-context",
+      "stdoutSha256": "sha256:f8581edb8a623543f1ec5c448de35118637c275045a7e1f93c04fdc7d8c1f342",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commandSha256": "sha256:52da6340e346a9d63fb7f2e9ee6481a760b55fb46d671ad9a6855624ef4e0dc2"
+    },
+    {
+      "step": 10,
+      "label": "promoted-final-check",
+      "binary": "npm",
+      "args": [
+        "exec",
+        "--no",
+        "--",
+        "axmorf",
+        "project",
+        "check",
+        "--project",
+        "ten-minute-focus",
+        "--level",
+        "final"
+      ],
+      "status": "project-final-check",
+      "stdoutSha256": "sha256:450e74d8acac7fd0dbc90c09d3c97bfd2bf36be5447f4d79d53315c7b43245dd",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commandSha256": "sha256:d3b27361cb62053f96c59d9dce25c0a9727f2ced549031e05149c0edb01ba2ac"
+    },
+    {
+      "step": 11,
+      "label": "manual-promote-idempotency",
+      "binary": "npm",
+      "args": [
+        "exec",
+        "--no",
+        "--",
+        "axmorf",
+        "project",
+        "revision",
+        "promote",
+        "--project",
+        "ten-minute-focus",
+        "--candidate",
+        "revision-candidate-6cf62538d5b65f56a39b47e394b8a32d5881b35b768e45800ee816fb37b6a10b",
+        "--revision",
+        "revision-36255556fd6857ebf1fd219dcdfc475634bafdaa6dbf74dc3b2c4d326a265298",
+        "--delivery",
+        "delivery-a1301e10ad7faf997de29111b9dfaa55c22dd20e56f1e30800401d0240c3d233"
+      ],
+      "status": "project-revision-current",
+      "stdoutSha256": "sha256:bff9b369011438b1952fc21398049a1b17822305e0878beef58661bd2a0b455f",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commandSha256": "sha256:cbe71440ecf2d346251cc62064ddd1a10f6979b480024029761ef17d71b06d04"
+    },
+    {
+      "step": 12,
+      "label": "manual-promote-final-check",
+      "binary": "npm",
+      "args": [
+        "exec",
+        "--no",
+        "--",
+        "axmorf",
+        "project",
+        "check",
+        "--project",
+        "ten-minute-focus",
+        "--level",
+        "final"
+      ],
+      "status": "project-final-check",
+      "stdoutSha256": "sha256:450e74d8acac7fd0dbc90c09d3c97bfd2bf36be5447f4d79d53315c7b43245dd",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "commandSha256": "sha256:d3b27361cb62053f96c59d9dce25c0a9727f2ced549031e05149c0edb01ba2ac"
+    }
+  ],
+  "noOp": {
+    "rejected": true,
+    "error": {
+      "status": "error",
+      "code": "command-failed",
+      "message": "Project revision patch does not change current authoring."
+    },
+    "exitEvidence": "Numeric exit codes were not persisted. The reviewed controller requires nonzero for step 3 and zero/no signal for all other steps before writing passed."
+  },
+  "revision": {
+    "changedSections": [
+      "publishing"
+    ],
+    "publishingChangedFields": [
+      "description"
+    ],
+    "storyChanged": false,
+    "candidateId": "revision-candidate-6cf62538d5b65f56a39b47e394b8a32d5881b35b768e45800ee816fb37b6a10b",
+    "baseRevisionId": "revision-749b5cf1b3ab0fd8b397738efd22d16fe4f8f20d9d426b6262201715bb89a893",
+    "baseDeliveryBuildId": "delivery-d018ea603e1b5b237eb706bdef72b3743b570562a25261a9ff6804ce566d21ff",
+    "revisionId": "revision-36255556fd6857ebf1fd219dcdfc475634bafdaa6dbf74dc3b2c4d326a265298",
+    "deliveryBuildId": "delivery-a1301e10ad7faf997de29111b9dfaa55c22dd20e56f1e30800401d0240c3d233"
+  },
+  "continuation": {
+    "commandCount": 1,
+    "exactPrepareCommand": true,
+    "originalProcessAwaited": true,
+    "retryOrPollingLoop": false,
+    "attemptId": "c24e38c6-4bcc-4f35-8a0b-21e086cb5337",
+    "claimCount": 1,
+    "events": [
+      {
+        "eventKind": "attempt-opened",
+        "recordedAt": "2026-09-10T09:05:23.015Z",
+        "deliveryResult": null
+      },
+      {
+        "eventKind": "delivery-terminal",
+        "recordedAt": "2026-09-10T09:06:40.818Z",
+        "deliveryResult": {
+          "deliveryBuildId": "delivery-a1301e10ad7faf997de29111b9dfaa55c22dd20e56f1e30800401d0240c3d233",
+          "deliveryMedia": [
+            "video",
+            "cover-4x3",
+            "cover-3x4"
+          ],
+          "diagnosticCode": null,
+          "status": "verified"
+        }
+      }
+    ],
+    "terminalState": "succeeded"
+  },
+  "promotion": {
+    "automatic": "project-revision-promoted",
+    "promotedContextMatchesExpected": true,
+    "postAutomaticFinal": "pass",
+    "manual": "project-revision-current",
+    "postManualFinal": "pass",
+    "manualDeliveryUnchanged": "Controller asserted inventory equality immediately before/after manual promotion; individual before/after digests were not persisted. Both recorded final-check JSON results are identical."
+  },
+  "estimatedCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 6,
+    "agentTasks": 0,
+    "deliveryMedia": [
+      "video",
+      "cover-4x3",
+      "cover-3x4"
+    ]
+  },
+  "prepareActualCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 6,
+    "agentTasks": 0,
+    "deliveryMedia": []
+  },
+  "terminalActualCost": {
+    "agentTasks": 0,
+    "deliveryMedia": [
+      "video",
+      "cover-4x3",
+      "cover-3x4"
+    ],
+    "providerCacheHits": 6,
+    "providerRequests": 0
+  },
+  "artifactReuse": {
+    "count": 15,
+    "byTaskKind": [
+      {
+        "taskKind": "cover-owner",
+        "reusedTaskCount": 1
+      },
+      {
+        "taskKind": "global-visual-owner",
+        "reusedTaskCount": 1
+      },
+      {
+        "taskKind": "narration-chunk",
+        "reusedTaskCount": 6
+      },
+      {
+        "taskKind": "narration-seal",
+        "reusedTaskCount": 1
+      },
+      {
+        "taskKind": "scene-owner",
+        "reusedTaskCount": 3
+      },
+      {
+        "taskKind": "scene-template",
+        "reusedTaskCount": 2
+      },
+      {
+        "taskKind": "semantic-timing",
+        "reusedTaskCount": 1
+      }
+    ],
+    "dirtyAgentTasks": [],
+    "actualAgentTaskOutcomes": [],
+    "providerRequests": 0,
+    "providerCacheHits": 6,
+    "newAgentTasks": 0,
+    "evidence": "Inspect, prepare, and final persisted progress agree; all creative artifacts valid reuse, no worker commands in the 12-step harness, only opened/delivery-terminal events. No independent network/provider billing capture was performed."
+  },
+  "delivery": {
+    "files": [
+      {
+        "name": "video.mp4",
+        "before": "sha256:2ced9b401cca6abc806b249acb10d51a40cde5b94e8c4fddad83ca287e8c50b2",
+        "after": "sha256:2ced9b401cca6abc806b249acb10d51a40cde5b94e8c4fddad83ca287e8c50b2",
+        "sameBytes": true
+      },
+      {
+        "name": "cover-4x3.png",
+        "before": "sha256:3a086ad30c70d8f28ce5ece2b484190c3210ceb649998442dcb51475ff6dda2d",
+        "after": "sha256:3a086ad30c70d8f28ce5ece2b484190c3210ceb649998442dcb51475ff6dda2d",
+        "sameBytes": true
+      },
+      {
+        "name": "cover-3x4.png",
+        "before": "sha256:5807957128092c1322fa731745ef46eec698872b9f629aa166fad94da046f505",
+        "after": "sha256:5807957128092c1322fa731745ef46eec698872b9f629aa166fad94da046f505",
+        "sameBytes": true
+      },
+      {
+        "name": "publish.json",
+        "before": "sha256:6fd0097a0427bb275cc18696a6aff290504c5a99622cc5c4f3beba30282d5ca3",
+        "after": "sha256:7470733d2cce354e2948a73d72aef1f43f2ea1d4a5958990108573d3662fdbc7",
+        "sameBytes": false
+      }
+    ],
+    "sameMediaBytes": true,
+    "publishChanged": true,
+    "video": {
+      "audioChannels": 2,
+      "audioCodec": "aac",
+      "codec": "h264",
+      "decodedToEof": true,
+      "fps": 30,
+      "frameCount": 884,
+      "height": 1920,
+      "width": 1080
+    },
+    "terminalMediaProcessLogs": [
+      {
+        "path": "workspace/.producer-revisions/ten-minute-focus/revision-candidate-6cf62538d5b65f56a39b47e394b8a32d5881b35b768e45800ee816fb37b6a10b/scope/.producer-attempts/ten-minute-focus/c24e38c6-4bcc-4f35-8a0b-21e086cb5337/.process-logs/06edcbb0-a201-4960-bffd-c928982053b3.log",
+        "sha256": "sha256:47c900b976c0d4b43a50bffba33c99a8656837f8cc6ab665155bb0ab33bce455",
+        "streams": [
+          {
+            "codec_name": "aac",
+            "channels": 2
+          }
+        ]
+      },
+      {
+        "path": "workspace/.producer-revisions/ten-minute-focus/revision-candidate-6cf62538d5b65f56a39b47e394b8a32d5881b35b768e45800ee816fb37b6a10b/scope/.producer-attempts/ten-minute-focus/c24e38c6-4bcc-4f35-8a0b-21e086cb5337/.process-logs/15f5bea3-b59d-492e-a69f-81f19745f098.log",
+        "sha256": "sha256:47c900b976c0d4b43a50bffba33c99a8656837f8cc6ab665155bb0ab33bce455",
+        "streams": [
+          {
+            "codec_name": "aac",
+            "channels": 2
+          }
+        ]
+      },
+      {
+        "path": "workspace/.producer-revisions/ten-minute-focus/revision-candidate-6cf62538d5b65f56a39b47e394b8a32d5881b35b768e45800ee816fb37b6a10b/scope/.producer-attempts/ten-minute-focus/c24e38c6-4bcc-4f35-8a0b-21e086cb5337/.process-logs/1b50dea7-bd4e-4d1f-af72-79b58b2281c6.log",
+        "sha256": "sha256:47c900b976c0d4b43a50bffba33c99a8656837f8cc6ab665155bb0ab33bce455",
+        "streams": [
+          {
+            "codec_name": "aac",
+            "channels": 2
+          }
+        ]
+      },
+      {
+        "path": "workspace/.producer-revisions/ten-minute-focus/revision-candidate-6cf62538d5b65f56a39b47e394b8a32d5881b35b768e45800ee816fb37b6a10b/scope/.producer-attempts/ten-minute-focus/c24e38c6-4bcc-4f35-8a0b-21e086cb5337/.process-logs/1dbee462-a0e3-4cdf-be94-11236bccfcc9.log",
+        "sha256": "sha256:7a469f388a5f3ae2c1ede226d45019d45493eda16221c4f51ff3e0ee63128989",
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1080,
+            "height": 1920,
+            "r_frame_rate": "30/1",
+            "nb_read_frames": "884",
+            "side_data_list": [
+              {}
+            ]
+          }
+        ]
+      },
+      {
+        "path": "workspace/.producer-revisions/ten-minute-focus/revision-candidate-6cf62538d5b65f56a39b47e394b8a32d5881b35b768e45800ee816fb37b6a10b/scope/.producer-attempts/ten-minute-focus/c24e38c6-4bcc-4f35-8a0b-21e086cb5337/.process-logs/68f9d3b6-fcfe-44fd-ba46-8679fd448572.log",
+        "sha256": "sha256:7a469f388a5f3ae2c1ede226d45019d45493eda16221c4f51ff3e0ee63128989",
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1080,
+            "height": 1920,
+            "r_frame_rate": "30/1",
+            "nb_read_frames": "884",
+            "side_data_list": [
+              {}
+            ]
+          }
+        ]
+      },
+      {
+        "path": "workspace/.producer-revisions/ten-minute-focus/revision-candidate-6cf62538d5b65f56a39b47e394b8a32d5881b35b768e45800ee816fb37b6a10b/scope/.producer-attempts/ten-minute-focus/c24e38c6-4bcc-4f35-8a0b-21e086cb5337/.process-logs/7890f413-6706-4ec3-87cd-9314d8c8380f.log",
+        "sha256": "sha256:7a469f388a5f3ae2c1ede226d45019d45493eda16221c4f51ff3e0ee63128989",
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1080,
+            "height": 1920,
+            "r_frame_rate": "30/1",
+            "nb_read_frames": "884",
+            "side_data_list": [
+              {}
+            ]
+          }
+        ]
+      },
+      {
+        "path": "workspace/.producer-revisions/ten-minute-focus/revision-candidate-6cf62538d5b65f56a39b47e394b8a32d5881b35b768e45800ee816fb37b6a10b/scope/.producer-attempts/ten-minute-focus/c24e38c6-4bcc-4f35-8a0b-21e086cb5337/.process-logs/7c5ac214-4c9d-4729-b6c6-ab2ab08d6820.log",
+        "sha256": "sha256:47c900b976c0d4b43a50bffba33c99a8656837f8cc6ab665155bb0ab33bce455",
+        "streams": [
+          {
+            "codec_name": "aac",
+            "channels": 2
+          }
+        ]
+      },
+      {
+        "path": "workspace/.producer-revisions/ten-minute-focus/revision-candidate-6cf62538d5b65f56a39b47e394b8a32d5881b35b768e45800ee816fb37b6a10b/scope/.producer-attempts/ten-minute-focus/c24e38c6-4bcc-4f35-8a0b-21e086cb5337/.process-logs/9a5dc7b7-ca12-455e-9ee1-0e8b16c0c395.log",
+        "sha256": "sha256:7a469f388a5f3ae2c1ede226d45019d45493eda16221c4f51ff3e0ee63128989",
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1080,
+            "height": 1920,
+            "r_frame_rate": "30/1",
+            "nb_read_frames": "884",
+            "side_data_list": [
+              {}
+            ]
+          }
+        ]
+      }
+    ],
+    "renderReuseInterpretation": "All three delivery media were regenerated from reused authoring/media inputs. Identical output SHA256 is deterministic equality, not evidence of avoiding renders. Installed CLI lines 36240-36244 populates terminal deliveryMedia only for media whose delivery.reused flag is false."
+  },
+  "immutability": {
+    "independentRehash": {
+      "source": {
+        "fingerprint": "sha256:428f154d8d6e59d2217e2f3bd9ef220dce983f162cfa544fe7b59a047215e98f",
+        "files": 20133,
+        "links": 25
+      },
+      "sourceMatchesBefore": true,
+      "sourceMatchesAfter": true,
+      "sourcePackage": {
+        "fingerprint": "sha256:edd1be6d509a862618096aa37a8b09b306ec1c8afa251f97f676dfd86b7305ff",
+        "files": 252,
+        "links": 0
+      },
+      "clonePackage": {
+        "fingerprint": "sha256:edd1be6d509a862618096aa37a8b09b306ec1c8afa251f97f676dfd86b7305ff",
+        "files": 252,
+        "links": 0
+      },
+      "sourcePackageMatchesBefore": true,
+      "clonePackageMatchesBefore": true,
+      "media": [
+        {
+          "name": "video.mp4",
+          "before": "sha256:2ced9b401cca6abc806b249acb10d51a40cde5b94e8c4fddad83ca287e8c50b2",
+          "after": "sha256:2ced9b401cca6abc806b249acb10d51a40cde5b94e8c4fddad83ca287e8c50b2",
+          "sameBytes": true
+        },
+        {
+          "name": "cover-4x3.png",
+          "before": "sha256:3a086ad30c70d8f28ce5ece2b484190c3210ceb649998442dcb51475ff6dda2d",
+          "after": "sha256:3a086ad30c70d8f28ce5ece2b484190c3210ceb649998442dcb51475ff6dda2d",
+          "sameBytes": true
+        },
+        {
+          "name": "cover-3x4.png",
+          "before": "sha256:5807957128092c1322fa731745ef46eec698872b9f629aa166fad94da046f505",
+          "after": "sha256:5807957128092c1322fa731745ef46eec698872b9f629aa166fad94da046f505",
+          "sameBytes": true
+        },
+        {
+          "name": "publish.json",
+          "before": "sha256:6fd0097a0427bb275cc18696a6aff290504c5a99622cc5c4f3beba30282d5ca3",
+          "after": "sha256:7470733d2cce354e2948a73d72aef1f43f2ea1d4a5958990108573d3662fdbc7",
+          "sameBytes": false
+        }
+      ]
+    },
+    "protectedWorkspaceFiles": [
+      {
+        "path": "package.json",
+        "files": 1,
+        "sameBytes": true
+      },
+      {
+        "path": "package-lock.json",
+        "files": 1,
+        "sameBytes": true
+      },
+      {
+        "path": "AGENTS.md",
+        "files": 1,
+        "sameBytes": true
+      },
+      {
+        "path": ".agents",
+        "files": 7,
+        "sameBytes": true
+      }
+    ],
+    "initialFullCopy": "Controller verifies whole-tree byte/name/symlink fingerprint before any public CLI command and rejects escaping symlinks. Review independently rehashed original source and original/clone runtime package. No clone or source file was edited by reviewer."
+  },
+  "findings": [
+    {
+      "severity": "nonblocking-evidence-label",
+      "code": "prepare-cost-is-not-terminal-cost",
+      "message": "qa-receipt.actualCost captures prepare only and is not refreshed after continuation. Its deliveryMedia=[] must not be reported as final zero render cost. Terminal actualCost lists all three regenerated media; zero provider requests and zero Agent tasks still hold.",
+      "productFailure": false
+    }
+  ],
+  "candidateCorrection": {
+    "runRoot": "qa/candidate-revision/revision-policy-run-rYvMjR",
+    "sourceWorkspace": "candidate/codex",
+    "prepareActualCost": {
+      "providerRequests": 0,
+      "providerCacheHits": 3,
+      "agentTasks": 0,
+      "deliveryMedia": []
+    },
+    "terminalActualCost": {
+      "agentTasks": 0,
+      "deliveryMedia": [
+        "video",
+        "cover-4x3",
+        "cover-3x4"
+      ],
+      "providerCacheHits": 3,
+      "providerRequests": 0
+    },
+    "state": "succeeded",
+    "media": [
+      {
+        "name": "video.mp4",
+        "before": "sha256:e40230556a4b2e26f8b4896f1f7e812b165c5c9d1b7b0ccf769215f3a83e6c52",
+        "after": "sha256:e40230556a4b2e26f8b4896f1f7e812b165c5c9d1b7b0ccf769215f3a83e6c52",
+        "sameBytes": true
+      },
+      {
+        "name": "cover-4x3.png",
+        "before": "sha256:91d41cba91b0102737b430f364c33a4f90704c855e325ab2111b036d63e9fe49",
+        "after": "sha256:91d41cba91b0102737b430f364c33a4f90704c855e325ab2111b036d63e9fe49",
+        "sameBytes": true
+      },
+      {
+        "name": "cover-3x4.png",
+        "before": "sha256:245dfb1c26d022b11bfe926d98b03824c8eb7c48fec52c6584867b27113fda45",
+        "after": "sha256:245dfb1c26d022b11bfe926d98b03824c8eb7c48fec52c6584867b27113fda45",
+        "sameBytes": true
+      },
+      {
+        "name": "publish.json",
+        "before": "sha256:852532d2a8016351a8dfb9888f50fde2f9c3d61b414f8dd87d746c5e33d844a6",
+        "after": "sha256:968ee0141774f376e836f4700b90e607088b5c84d4796d556c435de679b53768",
+        "sameBytes": false
+      }
+    ],
+    "replacementText": "候选 revision QA 成功完成发布描述修改、自动晋升与幂等复验；新增 provider 请求 0、Agent 任务 0、旁白缓存命中 3。视频和两张封面实际重新生成，输出字节与 base 一致。qa-receipt.actualCost.deliveryMedia=[] 仅是 prepare 阶段，不代表最终零渲染。"
+  },
+  "limitations": [
+    "Only a publishing.description append was exercised; narration changes, dirty creative tasks, recovery, rollback/fault injection, stale-base conflict and concurrent writers are outside this QA sample.",
+    "This was a scripted installed-public-CLI revision QA, not a second native Hermes conversational revision test.",
+    "The reviewer did not rerun production, providers, Agent execution, rendering, final checks, or promotion.",
+    "Final gates and native ffprobe logs support technical media validity; this review did not watch the video, listen end-to-end, or independently perform another decode.",
+    "Source/current fingerprints match historical before/after evidence; the review cannot retrospectively observe unlogged ephemeral actions or prove provider network silence via packet capture.",
+    "The separate still-running Codex installation/sample was not accessed.",
+    "Raw stdout/stderr and original receipt/controller remain unchanged; this report records the cost interpretation correction externally."
+  ],
+  "reviewSourceChecksum": "sha256:d825ce62dd41483888e4ccc6f560e4d538e7471a9af3a33daecc5c41890bbb0e"
+}

@@ -21,12 +21,6 @@
       "cover-3x4"
     ]
   },
-  "actualCost": {
-    "providerRequests": 0,
-    "providerCacheHits": 3,
-    "agentTasks": 0,
-    "deliveryMedia": []
-  },
   "attemptId": "cc88034e-be24-44e4-b017-8800c1266492",
   "revisionId": "revision-4d4ad6fcb563df1e8ce8bfe27437a378388ce8b75f9738921dce5f69d9a1324a",
   "deliveryBuildId": "delivery-2c8f852fc36a4fc259f1016273c3116f8ed703345b1f6e7f8d16cda480401f13",
@@ -97,5 +91,24 @@
   "limitations": [
     "Revision QA used a complete isolated copy of a finished installed Workspace and the public npm CLI.",
     "This is a publishing-only revision closure with no new provider calls or creative Agent tasks; it is not Agent-driven revision or recovery certification."
-  ]
+  ],
+  "prepareActualCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 3,
+    "agentTasks": 0,
+    "deliveryMedia": []
+  },
+  "terminalActualCost": {
+    "agentTasks": 0,
+    "deliveryMedia": [
+      "video",
+      "cover-4x3",
+      "cover-3x4"
+    ],
+    "providerCacheHits": 3,
+    "providerRequests": 0
+  },
+  "deliveryRegeneratedWithIdenticalMediaBytes": true,
+  "independentReview": "v0.1.12-public-revision-review.json",
+  "costEvidenceCorrection": "Original raw receipt actualCost captured prepare only. Final terminal evidence records regeneration of all three media; identical bytes do not imply render reuse."
 }

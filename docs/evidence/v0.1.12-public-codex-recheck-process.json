@@ -1,0 +1,346 @@
+{
+  "schemaVersion": 1,
+  "review": "public-codex-recheck-independent-readonly",
+  "runtimeVersion": "0.1.12",
+  "sampleOrdinalWithinPublicCodex": 2,
+  "verdict": "production-complete-with-process-defects",
+  "zeroIssueRun": false,
+  "relationshipToFirstSample": {
+    "independentFreshWorkspace": true,
+    "notARecoveryOrRetryOfOldProject": true,
+    "firstSampleRemains": "failed-production-not-accepted",
+    "firstSampleReport": "/tmp/axmorf-012-public-codex-initial-failure.json",
+    "statement": "This second public Codex sample establishes a positive run but does not erase, replace or reinterpret the first public Codex narration-preparation failure."
+  },
+  "coverage": {
+    "originalRecords": 517,
+    "ownRecords": 457,
+    "inheritedParentRecordsExcluded": 60,
+    "rootNativeCalls": 27,
+    "childNativeCalls": 31,
+    "nativeCallsTotal": 58,
+    "commandTerminalResults": 63,
+    "successfulCommandExits": 61,
+    "failedCommandExits": 2,
+    "creativeChildren": 5,
+    "probeChildren": 1,
+    "allActualOwnCallsReviewed": true,
+    "truncatedCommandOutputsFound": false,
+    "method": "nativeTrace/codexChildTrace normalizes each native transcript; audit actual tool calls and results, not inherited tool history, event summaries or final claims alone."
+  },
+  "findings": [
+    {
+      "id": "input-generation-failure",
+      "severity": "minor",
+      "rootCallLine": 46,
+      "rootOutputLine": 50,
+      "kind": "failed-command",
+      "originalError": "SyntaxError: Non-UTF-8 code starting with '\\xe7' in file <stdin> on line 6, but no encoding declared; see http://python.org/dev/peps/pep-0263/ for details",
+      "assessment": "The Python3 stdin authoring-input script failed before writing inputs. The saved trace does not prove why stdin bytes were non-UTF-8. This is a pre-production input-generation failure, not a readability finding or proven package/provider defect.",
+      "repair": "Root used a Node stdin script at line 56 to generate a valid input; line 61 confirms successful creation. No installed code, dependency, validator or production task was changed."
+    },
+    {
+      "id": "dependent-create-after-writer-failed",
+      "severity": "minor",
+      "rootCallLine": 46,
+      "rootOutputLine": 50,
+      "kind": "failed-command",
+      "originalError": "{\"status\":\"error\",\"code\":\"command-failed\",\"message\":\"Repository directory is missing: inputs.\"}",
+      "assessment": "Root awaited the writer tool but did not check its exit before calling project:create in the same exec cell. This avoidable second failure correctly rejected a missing input directory. The successful create followed actual input repair; it was not a retry of a failed production attempt."
+    },
+    {
+      "id": "short-root-wait-renewals",
+      "severity": "minor",
+      "kind": "instruction-execution-deviation",
+      "ruleActuallyReadAtRootLine": 18,
+      "rule": "host-execution-and-recovery.md:19",
+      "rootCallLines": [
+        74,
+        153
+      ],
+      "assessment": "Two renewals requested 1000 ms after the long-wait guide was read: the prepare process wait returned empty after the host minimum of about 5 seconds; the continuation outer-cell wait returned empty after 1 second. All other sustained process waits used 60000 ms. These are inefficiencies, not failed tool calls."
+    },
+    {
+      "id": "relative-final-file-links",
+      "severity": "minor",
+      "kind": "host-output-format-deviation",
+      "actualRuleLocation": "root transcript line 1, session_meta.payload.base_instructions.text: clickable file links use absolute target",
+      "rootFinalLine": 193,
+      "assessment": "All three final delivery links use deliveries/... relative targets. The actual sampled host instructions require absolute targets; no controller-only rule was applied. Files exist, but click behavior was not tested, so broken links are not asserted."
+    },
+    {
+      "id": "repeated-create-context-read",
+      "severity": "minor",
+      "kind": "redundant-read",
+      "rootCallLines": [
+        24,
+        56
+      ],
+      "assessment": "Root ran create:context once directly and once inside the successful Node authoring-input script. Reusing the first complete example would avoid this second read. The failed Python script did not reach its nested context command."
+    }
+  ],
+  "outcome": {
+    "hostExitCode": 0,
+    "productionStatus": "project-production-complete",
+    "productionOutputLine": 190,
+    "finalReportLine": 193,
+    "actualSeconds": 28.466666666666665,
+    "targetSeconds": 30,
+    "deltaSeconds": -1.533333333333335
+  },
+  "readability": {
+    "validatorFailures": 0,
+    "validatorRework": 0,
+    "firstPassCreativeTasks": 5,
+    "observedCases": [
+      {
+        "role": "record-next",
+        "sourceLines": [
+          5,
+          12
+        ],
+        "case": "Real imported Remotion interpolate result used directly in translateY on a text-bearing card."
+      },
+      {
+        "role": "record-next",
+        "sourceLines": [
+          14,
+          28
+        ],
+        "case": "Literal arrays map to purely graphical JSX divs without forcing ancestor fontSize."
+      },
+      {
+        "role": "close-interruptions",
+        "sourceLines": [
+          22,
+          27
+        ],
+        "case": "Block-bodied map callback with a local animation value and returned JSX; nested text nodes have explicit font sizes; animated text-bearing wrapper uses translateX."
+      },
+      {
+        "role": "close-interruptions",
+        "sourceLines": [
+          29,
+          31
+        ],
+        "case": "Dynamic SVG rotation center uses viewport-derived numeric expression on a purely graphical circle."
+      },
+      {
+        "role": "choose-step",
+        "sourceLines": [
+          16,
+          18
+        ],
+        "case": "Animated map-generated text cards use numeric translateY and explicit child text size."
+      }
+    ],
+    "sourceEvidence": "qa/public-codex-recheck-process/errors-and-source-snippets.json",
+    "limits": "These exact written cases passed without repair. This is not proof that every dynamic expression or visual layout is supported or visually safe."
+  },
+  "ownershipAndLifecycle": {
+    "freshCreativeSessions": 5,
+    "maxSimultaneousCreativeWorkers": 4,
+    "probeFinishedBeforeCreativeDispatch": true,
+    "rootAuthoredTaskOutputs": false,
+    "allTaskContentReadsAfterSuccessfulExactBind": true,
+    "taskWritesWithinOwnDeclaredAgentOrDraftOutputs": true,
+    "crossTaskReadsOrCommits": 0,
+    "historyOrDevelopmentSourceReads": 0,
+    "installedCodeOrValidatorEdits": 0,
+    "autoFallbacksOrProductionRecovery": 0,
+    "prepareInvocations": 1,
+    "continuationInvocations": 1,
+    "continuationRootLine": 141,
+    "continuationMatchesPrepareExactly": true,
+    "continuationStartedAfterAllDirtyTasksAdmitted": true,
+    "childReuseOrFollowupForAnotherTask": 0,
+    "postTerminalRootToolCalls": 0,
+    "duplicateRootFinalReports": 0
+  },
+  "supervision": {
+    "nativeWaitAny": {
+      "rootLines": [
+        113,
+        120,
+        127
+      ],
+      "timeoutMs": 60000,
+      "wokeOnNativeMessagesOrCompletion": true
+    },
+    "changedProgressReports": {
+      "162": [
+        151,
+        158
+      ],
+      "182": [
+        169,
+        180
+      ]
+    },
+    "unchangedProgressNarrationFound": false,
+    "childShortWaitObservation": "choose-step used one 1000 ms commit renewal at child line 63 and immediately received success. No repeated empty child polling occurred; the Root-only recovery guide was not separately read by that worker, so no already-read-rule violation is attributed there.",
+    "opaqueMessages": "Two preterminal child-to-Root messages caused native wakeups. Their content is host-encrypted; semantic necessity is not asserted."
+  },
+  "childEvidence": [
+    {
+      "role": "probe",
+      "transcript": "codex-children/01a08a93-d9ca-74c2-a82f-959cf2b66e04.jsonl",
+      "ownRecords": 20,
+      "inheritedRecordsExcluded": 0,
+      "nativeCalls": 1,
+      "callLines": [
+        11
+      ],
+      "failedCommandExits": 0,
+      "finalReportLine": 17
+    },
+    {
+      "role": "global-visual",
+      "transcript": "codex-children/01a08a95-8f9e-73c1-a89e-3b592d15c557.jsonl",
+      "ownRecords": 41,
+      "inheritedRecordsExcluded": 10,
+      "nativeCalls": 5,
+      "callLines": [
+        18,
+        24,
+        30,
+        35,
+        42
+      ],
+      "failedCommandExits": 0,
+      "finalReportLine": 48,
+      "bindOutputLine": 28,
+      "firstTaskReadCallLine": 30,
+      "firstWriteCallLine": 35,
+      "finalizeOutputLine": 40,
+      "checkOutputLine": 40,
+      "commitOutputLine": 45,
+      "finalizeCheckCommitFirstPass": true
+    },
+    {
+      "role": "close-interruptions",
+      "transcript": "codex-children/01a08a95-bd31-7bc2-8aeb-d35fb80cb769.jsonl",
+      "ownRecords": 44,
+      "inheritedRecordsExcluded": 11,
+      "nativeCalls": 5,
+      "callLines": [
+        19,
+        26,
+        31,
+        38,
+        46
+      ],
+      "failedCommandExits": 0,
+      "finalReportLine": 52,
+      "bindOutputLine": 24,
+      "firstTaskReadCallLine": 26,
+      "firstWriteCallLine": 38,
+      "finalizeOutputLine": 44,
+      "checkOutputLine": 44,
+      "commitOutputLine": 49,
+      "finalizeCheckCommitFirstPass": true
+    },
+    {
+      "role": "record-next",
+      "transcript": "codex-children/01a08a95-e96c-78e3-a422-60b91363c77c.jsonl",
+      "ownRecords": 55,
+      "inheritedRecordsExcluded": 12,
+      "nativeCalls": 7,
+      "callLines": [
+        20,
+        26,
+        32,
+        40,
+        45,
+        50,
+        57
+      ],
+      "failedCommandExits": 0,
+      "finalReportLine": 64,
+      "bindOutputLine": 30,
+      "firstTaskReadCallLine": 32,
+      "firstWriteCallLine": 50,
+      "finalizeOutputLine": 55,
+      "checkOutputLine": 61,
+      "commitOutputLine": 61,
+      "finalizeCheckCommitFirstPass": true
+    },
+    {
+      "role": "choose-step",
+      "transcript": "codex-children/01a08a96-1935-7ec0-afc1-a8959bc57260.jsonl",
+      "ownRecords": 58,
+      "inheritedRecordsExcluded": 13,
+      "nativeCalls": 8,
+      "callLines": [
+        21,
+        27,
+        33,
+        39,
+        46,
+        51,
+        57,
+        63
+      ],
+      "failedCommandExits": 0,
+      "finalReportLine": 68,
+      "bindOutputLine": 31,
+      "firstTaskReadCallLine": 33,
+      "firstWriteCallLine": 51,
+      "finalizeOutputLine": 55,
+      "checkOutputLine": 60,
+      "commitOutputLine": 65,
+      "finalizeCheckCommitFirstPass": true
+    },
+    {
+      "role": "cover",
+      "transcript": "codex-children/01a08a96-da63-7013-aff3-921779cc1d58.jsonl",
+      "ownRecords": 43,
+      "inheritedRecordsExcluded": 14,
+      "nativeCalls": 5,
+      "callLines": [
+        22,
+        28,
+        34,
+        41,
+        47
+      ],
+      "failedCommandExits": 0,
+      "finalReportLine": 54,
+      "bindOutputLine": 32,
+      "firstTaskReadCallLine": 34,
+      "firstWriteCallLine": 41,
+      "finalizeOutputLine": 45,
+      "checkOutputLine": 51,
+      "commitOutputLine": 51,
+      "finalizeCheckCommitFirstPass": true
+    }
+  ],
+  "integrity": {
+    "runtimeFiles": 252,
+    "creatorFiles": 40,
+    "guides": 11,
+    "allMatchInitialSnapshot": true,
+    "tarballsLocksInstallLogUnchanged": true,
+    "deliveryExactlyFourFilesPresent": true,
+    "verification": "Existing fixed production-complete result; no additional production, renderer or final-checker invocation in this audit."
+  },
+  "evidence": {
+    "sampleRoot": "public-codex-recheck",
+    "rootTranscript": "codex-transcript.jsonl",
+    "run": "codex-run.json",
+    "runEvidence": "codex-run-evidence.json",
+    "snapshot": "codex-snapshot.json",
+    "allActualCalls": "qa/public-codex-recheck-process/all-traces.json",
+    "structuredResults": "qa/public-codex-recheck-process/structured-facts.json",
+    "rawErrorsAndMinimalSource": "qa/public-codex-recheck-process/errors-and-source-snippets.json",
+    "detailedReview": "qa/public-codex-recheck-process/detailed-review.json"
+  },
+  "limits": [
+    "No Workspace, package, source, attempt, artifact or delivery mutation; no production Agent message.",
+    "No other public sample or running Hermes/new production trace was accessed during this review.",
+    "Encrypted native spawn/message content was not decrypted or copied into this compact report; actual task identities, actions, results and clear-text final notifications were audited.",
+    "No playback or exhaustive visual review was performed. Process receipt plus concrete file presence is not universal visual quality certification.",
+    "Auditor helper command errors are excluded from production-run error counts."
+  ],
+  "reviewSourceChecksum": "sha256:e149a71a422cae94c92a30dc85d899566f110184dc14d8ca39787d392e622841"
+}

@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.12",
+  "status": "published-and-post-publication-verified-with-recorded-failure",
+  "recordedAt": "2026-09-10T08:28:07.598602+00:00",
+  "tag": "v0.1.12",
+  "releaseCommit": "8823a77a1addf65540ab068b2fdd6ba327cbf3d7",
+  "branch": "axmorf/readability-release",
+  "macosGate": {
+    "runId": 34454224620,
+    "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/34454224620",
+    "conclusion": "success",
+    "headSha": "8823a77a1addf65540ab068b2fdd6ba327cbf3d7",
+    "packagesMatchCandidate": true
+  },
+  "publishRuns": [
+    {
+      "runId": 34455185778,
+      "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/34455185778",
+      "status": "completed",
+      "conclusion": "success",
+      "headSha": "8823a77a1addf65540ab068b2fdd6ba327cbf3d7"
+    }
+  ],
+  "candidatePackages": {
+    "runtime": {
+      "name": "@axmorf/studio",
+      "version": "0.1.12",
+      "fingerprint": "sha256:f91a415bc1fa4e4327114fbd1a2f5434707cfa2c8ae1b01836d912978948039c",
+      "fileCount": 252
+    },
+    "creator": {
+      "name": "create-axmorf-studio",
+      "version": "0.1.12",
+      "fingerprint": "sha256:c71ee25c5b49ed43395b6c40c5664cf91bb4599c0267bd0b16e1c8e8449fd998",
+      "fileCount": 40
+    }
+  },
+  "lastVerifiedPublicLatest": {
+    "@axmorf/studio": "0.1.12",
+    "create-axmorf-studio": "0.1.12"
+  },
+  "postPublicationFirstUse": "two-successful-public-hosts-with-one-earlier-failed-codex-sample",
+  "postPublicationRevision": "passed-public-installed-cli-and-independent-review",
+  "publicVerifiedAt": "2026-09-10T08:36:55.841366+00:00",
+  "publicPackages": [
+    {
+      "name": "@axmorf/studio",
+      "version": "0.1.12",
+      "integrity": "sha512-3EWqTHLwrNgob/Q/ZHW4EvohxVC3H1XL/jHGZ2xyimVI2HO85GpXPWdRu5F+vpmT7Vv2nBSOSX+qwxNSRY4Z6g==",
+      "tarball": "https://registry.npmjs.org/@axmorf/studio/-/studio-0.1.12.tgz",
+      "ciTarballChecksum": "sha256:12dfe130b61bc8f0bb4edb95136aa8fbe3f8497f625b6796eb211fdd2740edf0"
+    },
+    {
+      "name": "create-axmorf-studio",
+      "version": "0.1.12",
+      "integrity": "sha512-TmZbvJeYNIZ5Iku8/XG7v/U+ebfUjr3SJ6MNi9byhmn48yYbKOzRYT4DawYSo+GNNRRmgAGO4lrCbfEe66lD+g==",
+      "tarball": "https://registry.npmjs.org/create-axmorf-studio/-/create-axmorf-studio-0.1.12.tgz",
+      "ciTarballChecksum": "sha256:4265ddb0e1c034d9c954a5f33e3d27f97048125463a19972c2832ab0d384db1a"
+    }
+  ],
+  "ciVerification": {
+    "macos": {
+      "tests": 874,
+      "pass": 874,
+      "fail": 0,
+      "skipped": 0,
+      "logChecksum": "sha256:9652267df217e74639ac980b6963a9c65a8c179ad9bf2a138c973975832a9821",
+      "skippedTests": []
+    },
+    "linux": {
+      "tests": 874,
+      "pass": 873,
+      "fail": 0,
+      "skipped": 1,
+      "logChecksum": "sha256:51bd3ba96d194c2ed15343d5ed7c997ae0d5d5076ef5691fab2b501ba69b80e4",
+      "skippedTests": [
+        "﹣ Darwin sandbox process inspection reports the real spawnSync EPERM (0.175314ms) # SKIP"
+      ],
+      "skipExplanation": {
+        "test": "Darwin sandbox process inspection reports the real spawnSync EPERM",
+        "condition": "process.platform !== darwin",
+        "source": "tests/package-boundary/bounded-process.test.ts:418",
+        "passedOnMacos": true
+      }
+    }
+  },
+  "verificationUpdatedAt": "2026-09-10T09:18:46.095688+00:00",
+  "postPublicationSamples": [
+    {
+      "host": "codex",
+      "sampleDirectory": "public",
+      "outcome": "failed-narration-before-attempt",
+      "additionalIndependentSample": false,
+      "startedAt": "2026-09-10T08:44:40.175698+00:00",
+      "endedAt": "2026-09-10T08:47:36.209175+00:00",
+      "hostExitCode": 0,
+      "controllerFollowups": 0,
+      "sessionId": "01a08a7d-98a0-7202-a443-7099c033e574",
+      "creativeWorkers": 0,
+      "deliveryCreated": false,
+      "failureCode": "command-failed",
+      "failureMessage": "Edge TTS request failed for chunk choose-step-2.",
+      "underlyingCause": "unknown; adapter discards underlying exception",
+      "evidence": "v0.1.12-public-codex-initial-failure.json"
+    },
+    {
+      "host": "hermes",
+      "sampleDirectory": "public",
+      "outcome": "passed",
+      "additionalIndependentSample": false,
+      "startedAt": "2026-09-10T08:45:06.974787+00:00",
+      "endedAt": "2026-09-10T08:56:39.323854+00:00",
+      "hostExitCode": 0,
+      "controllerFollowups": 0,
+      "sessionId": "20260910_164507_acc573",
+      "durationSeconds": 29.466666666666665,
+      "finalChecksPassed": 7,
+      "packageFilesUnchanged": 252,
+      "guideFilesUnchanged": 11
+    },
+    {
+      "host": "codex",
+      "sampleDirectory": "public-codex-recheck",
+      "outcome": "passed",
+      "additionalIndependentSample": true,
+      "startedAt": "2026-09-10T09:08:18.346638+00:00",
+      "endedAt": "2026-09-10T09:15:22.257731+00:00",
+      "hostExitCode": 0,
+      "controllerFollowups": 0,
+      "sessionId": "01a08a93-3e42-7b23-83bb-17ccb1e1fe63",
+      "durationSeconds": 28.466666666666665,
+      "finalChecksPassed": 7,
+      "packageFilesUnchanged": 252,
+      "guideFilesUnchanged": 11
+    }
+  ],
+  "samplingBoundary": {
+    "totalPublicSamples": 3,
+    "delivered": 2,
+    "failed": 1,
+    "initialFailurePreserved": true,
+    "failedProjectRetried": false,
+    "runtimeRetryOrFallbackAdded": false,
+    "additionalCodexSamples": 1,
+    "note": "The additional independent sample does not erase the initial failure or establish provider reliability."
+  },
+  "publicFirstUseGate": {
+    "status": "first-use-public-registry-passed",
+    "receipt": "v0.1.12-public-registry.json",
+    "gateLogChecksum": "sha256:e388e5444e0fc407bbedd1239e509c801e741a0d30695b9a0eccdda650e8f621"
+  },
+  "publicRevision": {
+    "receipt": "v0.1.12-public-revision-closure.json",
+    "independentReview": "v0.1.12-public-revision-review.json",
+    "providerRequests": 0,
+    "newAgentTasks": 0,
+    "providerCacheHits": 6,
+    "regeneratedDeliveryMedia": [
+      "video",
+      "cover-4x3",
+      "cover-3x4"
+    ],
+    "sameMediaBytes": true,
+    "originalWorkspaceUnchanged": true,
+    "scope": "scripted publishing.description revision through installed public npm CLI"
+  },
+  "verificationCompletedAt": "2026-09-10T09:28:18.884750+00:00",
+  "independentReviews": {
+    "initialCodexFailure": "v0.1.12-public-codex-initial-failure.json",
+    "successfulCodexProcess": "v0.1.12-public-codex-recheck-process.json",
+    "successfulHermesProcess": "v0.1.12-public-hermes-process.json",
+    "codexVisual": "v0.1.12-public-codex-recheck-visual.json",
+    "hermesVisual": "v0.1.12-public-hermes-visual.json",
+    "revision": "v0.1.12-public-revision-review.json",
+    "crossEvidenceChecks": 24,
+    "crossEvidenceContradictionsFound": 0
+  },
+  "remainingLimitations": [
+    "Initial public Codex narration boundary failure remains unexplained because the adapter discarded the underlying exception; it is not counted as a successful production.",
+    "Minor process defects remain: Git assumption, input-script encoding and follow-on missing input, short waits, repeated context query, relative final links.",
+    "Public visual sampling: 25 Hermes frames and 20 additional-Codex frames plus both covers each; minor phone-exit clipping and unnatural caption line breaks remain. No full-frame or full-listening certification.",
+    "Publishing-only revision QA used installed public npm CLI scripts, not a native Agent conversational revision. No new real terminal-failure recovery/rollback certification.",
+    "Existing static coverage gaps for SVG viewBox text shrinking and independent CSS 3D rotate remain documented."
+  ]
+}
