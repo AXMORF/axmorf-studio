@@ -1,0 +1,295 @@
+{
+  "schemaVersion": 1,
+  "status": "reviewed-complete-with-minor-wait-inefficiency",
+  "version": "0.1.12",
+  "scope": "Completed candidate Codex process only; not a post-publication or Hermes review",
+  "rootSessionId": "01a08a4b-b357-7be2-b575-7ea267390e38",
+  "storyId": "ten-minute-focus",
+  "evidenceBase": "candidate",
+  "rootTranscript": {
+    "path": "codex-transcript.jsonl",
+    "sha256": "2b14a1215b781024ed23ea1143c42040cee4c10b829b5ab343bfa9724ce94ba5",
+    "records": 188,
+    "ownNativeCalls": 26
+  },
+  "method": {
+    "allSixChildrenRead": true,
+    "nativeForkLineageVerified": "nativeTrace(codex) and codexChildTrace; inherited parent payload order verified and removed before counting",
+    "totalOwnNativeCalls": 54,
+    "nestedToolInvocations": 64,
+    "completedNativeExecResults": 58,
+    "allCompletedExitCodes": 0,
+    "capturedOutputTruncationMarkers": 0
+  },
+  "children": [
+    {
+      "sessionId": "01a08a4c-6ea9-7632-9b0f-2577fcca1896",
+      "source": "codex-children/01a08a4c-6ea9-7632-9b0f-2577fcca1896.jsonl",
+      "sha256": "a6f19f2fadc12bafdae590b77dc287ba9989434937bdd9fce2352314381e74b2",
+      "ownNativeCalls": 1,
+      "originalRecords": 20,
+      "ownRecords": 20,
+      "ownExecutedToolResults": 1,
+      "failedCalls": 0,
+      "postTerminalCalls": 0,
+      "role": "transport-probe",
+      "ownership": "copied challenge to response inside the root-created temporary probe directory"
+    },
+    {
+      "sessionId": "01a08a4d-a34d-7570-9712-28683422e1ab",
+      "source": "codex-children/01a08a4d-a34d-7570-9712-28683422e1ab.jsonl",
+      "sha256": "92bae4fd3125e6a693663450f53089ed6f80ab11a3747e0456ec02bc4a87cd26",
+      "ownNativeCalls": 5,
+      "originalRecords": 52,
+      "ownRecords": 42,
+      "ownExecutedToolResults": 10,
+      "failedCalls": 0,
+      "postTerminalCalls": 0,
+      "role": "scene-owner",
+      "semanticId": "record-next",
+      "taskRevision": "task-086a4cad832a27ea9d74bd98c32b209a46ad08e14d31a7fd8d7b4d970ccb4138",
+      "bindingResultLine": 29,
+      "firstTaskContentReadLine": 31,
+      "firstAuthoringWriteLine": 36,
+      "sceneGuideReadCallLine": 25,
+      "checkResultLine": 41,
+      "commitResultLine": 46,
+      "binds": 1,
+      "checks": 1,
+      "commits": 1,
+      "authoringRework": 0,
+      "ownership": "all observed task content reads and writes inside the exact bound workspace; declared agent and agent-draft-fixed-finalize outputs only"
+    },
+    {
+      "sessionId": "01a08a4d-cf01-7153-b3b6-eecf79e6f2d8",
+      "source": "codex-children/01a08a4d-cf01-7153-b3b6-eecf79e6f2d8.jsonl",
+      "sha256": "7bb21f1babe7eed2b2b0f06b16fa552c85ed9f51504aa3768fcdfe05699c0d54",
+      "ownNativeCalls": 5,
+      "originalRecords": 53,
+      "ownRecords": 42,
+      "ownExecutedToolResults": 8,
+      "failedCalls": 0,
+      "postTerminalCalls": 0,
+      "role": "global-visual-owner",
+      "semanticId": "global-visual",
+      "taskRevision": "task-538c279473f306bc1e094e037a0539dfb49d9ba398dec843ac5860a40b556be0",
+      "bindingResultLine": 28,
+      "firstTaskContentReadLine": 30,
+      "firstAuthoringWriteLine": 37,
+      "sceneGuideReadCallLine": null,
+      "checkResultLine": 47,
+      "commitResultLine": 47,
+      "binds": 1,
+      "checks": 1,
+      "commits": 1,
+      "authoringRework": 0,
+      "ownership": "all observed task content reads and writes inside the exact bound workspace; declared agent and agent-draft-fixed-finalize outputs only"
+    },
+    {
+      "sessionId": "01a08a4d-ff2e-7a81-8b3d-a96510e8f6da",
+      "source": "codex-children/01a08a4d-ff2e-7a81-8b3d-a96510e8f6da.jsonl",
+      "sha256": "77debfd8dcbc26c861f2a94c4aae5b756496a6f73229cec90c8de59d1a625dcc",
+      "ownNativeCalls": 5,
+      "originalRecords": 54,
+      "ownRecords": 42,
+      "ownExecutedToolResults": 8,
+      "failedCalls": 0,
+      "postTerminalCalls": 0,
+      "role": "scene-owner",
+      "semanticId": "choose-step",
+      "taskRevision": "task-949fa46bca93d98d3a91031c0c43b074f904c798fd51697fc073fbd8927320ef",
+      "bindingResultLine": 29,
+      "firstTaskContentReadLine": 31,
+      "firstAuthoringWriteLine": 38,
+      "sceneGuideReadCallLine": 25,
+      "checkResultLine": 43,
+      "commitResultLine": 48,
+      "binds": 1,
+      "checks": 1,
+      "commits": 1,
+      "authoringRework": 0,
+      "ownership": "all observed task content reads and writes inside the exact bound workspace; declared agent and agent-draft-fixed-finalize outputs only"
+    },
+    {
+      "sessionId": "01a08a4e-2833-7842-968d-de2e8f3f91bd",
+      "source": "codex-children/01a08a4e-2833-7842-968d-de2e8f3f91bd.jsonl",
+      "sha256": "d0cf4b007d57841ecb9915bb088a5f33ec22e5e6b1ecd60181237858614c2883",
+      "ownNativeCalls": 6,
+      "originalRecords": 62,
+      "ownRecords": 49,
+      "ownExecutedToolResults": 10,
+      "failedCalls": 0,
+      "postTerminalCalls": 0,
+      "role": "scene-owner",
+      "semanticId": "silence-interruptions",
+      "taskRevision": "task-fff75944f9cad48fd7d1fd72f4e1d590866c4f2185bba6c209eb4c1318574c67",
+      "bindingResultLine": 32,
+      "firstTaskContentReadLine": 34,
+      "firstAuthoringWriteLine": 46,
+      "sceneGuideReadCallLine": 27,
+      "checkResultLine": 56,
+      "commitResultLine": 56,
+      "binds": 1,
+      "checks": 1,
+      "commits": 1,
+      "authoringRework": 0,
+      "ownership": "all observed task content reads and writes inside the exact bound workspace; declared agent and agent-draft-fixed-finalize outputs only"
+    },
+    {
+      "sessionId": "01a08a4f-0017-7551-989d-ef0b8c975a61",
+      "source": "codex-children/01a08a4f-0017-7551-989d-ef0b8c975a61.jsonl",
+      "sha256": "598743e02416bd17d91494ea8b06d5d695e9b1a699cd3f46390cd3d8f8a469f9",
+      "ownNativeCalls": 6,
+      "originalRecords": 60,
+      "ownRecords": 46,
+      "ownExecutedToolResults": 8,
+      "failedCalls": 0,
+      "postTerminalCalls": 0,
+      "role": "cover-owner",
+      "semanticId": "cover",
+      "taskRevision": "task-b195f0f9ca8f465ffe8033b57c2c569c5870837ffe6a3202922863441be8d27b",
+      "bindingResultLine": 31,
+      "firstTaskContentReadLine": 33,
+      "firstAuthoringWriteLine": 40,
+      "sceneGuideReadCallLine": null,
+      "checkResultLine": 49,
+      "commitResultLine": 54,
+      "binds": 1,
+      "checks": 1,
+      "commits": 1,
+      "authoringRework": 0,
+      "ownership": "all observed task content reads and writes inside the exact bound workspace; declared agent and agent-draft-fixed-finalize outputs only"
+    }
+  ],
+  "findings": [
+    {
+      "id": "first-pass-authoring",
+      "severity": "pass",
+      "summary": "All five creative tasks finalized, checked and committed on their first authored version. No failed tool results, validator rejection, authored repair, terminal failure or recovery observed.",
+      "failedCalls": 0,
+      "validatorRework": 0,
+      "knownAuthoringConstraintViolations": 0,
+      "falsePositiveValidatorRejections": 0
+    },
+    {
+      "id": "real-new-constructs",
+      "severity": "pass",
+      "summary": "Actual choose-step and silence-interruptions code uses block-bodied map; choose-step and record-next use dynamic numeric CSS translateY. Containers without direct text were not padded with dummy fontSize to satisfy the checker.",
+      "sourceExcerpts": "qa/candidate-codex-process/accepted-source-excerpts.json",
+      "evidence": [
+        {
+          "child": "01a08a4d-ff2e-7a81-8b3d-a96510e8f6da",
+          "guideReadLine": 25,
+          "writeLine": 38,
+          "checkLine": 43
+        },
+        {
+          "child": "01a08a4d-a34d-7570-9712-28683422e1ab",
+          "guideReadLine": 25,
+          "writeLine": 36,
+          "checkLine": 41
+        },
+        {
+          "child": "01a08a4e-2833-7842-968d-de2e8f3f91bd",
+          "guideReadLine": 27,
+          "writeLine": 46,
+          "checkLine": 56
+        }
+      ]
+    },
+    {
+      "id": "ownership-and-lifecycle",
+      "severity": "pass",
+      "summary": "Every task bound before its own immutable inputs were read; only its owner wrote declared draft/output paths and committed. Root did not read worker content, take over commits, inspect history/developer source, edit installed packages or invoke recovery.",
+      "rootContinuationCalls": 1,
+      "rootContinuationCallLine": 127,
+      "rootFixedCompletionOutputLine": 182,
+      "rootFinalReportLine": 185,
+      "creativeChildren": 5,
+      "probeChildren": 1,
+      "peakCreativeChildren": 4,
+      "refillAdmissions": 1,
+      "childStatusPolling": 0,
+      "liveTranscriptOrLogReads": 0,
+      "rootTaskCommitCalls": 0,
+      "postCompletionToolCalls": 0,
+      "duplicateFinalReports": 0
+    },
+    {
+      "id": "short-waits-after-read-guidance",
+      "severity": "minor",
+      "summary": "The root read the long-wait guidance before execution, but still used one short empty prepare read and two short empty outer-wrapper renewals before switching to 60-second waits. The original continuation process was always renewed with a 60-second request; no state polling or duplicate continuation occurred.",
+      "guidance": {
+        "file": "codex/.agents/skills/axmorf-video/references/host-execution-and-recovery.md",
+        "line": 19,
+        "rootReadCallLine": 18
+      },
+      "evidence": [
+        {
+          "callLine": 67,
+          "outputLine": 69,
+          "operation": "prepare process read",
+          "requestedMs": 1000,
+          "actualMs": 5003,
+          "newOutput": false
+        },
+        {
+          "callLine": 141,
+          "outputLine": 143,
+          "operation": "continuation wrapper wait",
+          "requestedMs": 1000,
+          "actualMs": 1000,
+          "newOutput": false
+        },
+        {
+          "callLine": 149,
+          "outputLine": 151,
+          "operation": "continuation wrapper wait",
+          "requestedMs": 10000,
+          "actualMs": 11000,
+          "newOutput": false
+        }
+      ],
+      "impact": "small avoidable orchestration/attention overhead; no delivery or task correctness failure"
+    },
+    {
+      "id": "cover-short-completion-read",
+      "severity": "observation",
+      "summary": "Cover commit was started with a 1-second yield, followed by one 1-second requested read that returned an already-completed success immediately. This was not a repeated polling loop.",
+      "child": "01a08a4f-0017-7551-989d-ef0b8c975a61",
+      "commitCallLine": 46,
+      "completionReadLine": 52,
+      "completionResultLine": 54
+    },
+    {
+      "id": "duration",
+      "severity": "disclosed-deviation",
+      "targetSeconds": 30,
+      "actualSeconds": 25.1,
+      "deltaSeconds": -4.9,
+      "summary": "The prompt said approximately 30 seconds. Root budgeted a 10-second built-in intro/outro and reported the 25.1-second measured duration after prepare and in the final report. No hidden shortening or claim of exact 30 seconds.",
+      "rootReportLines": [
+        44,
+        105,
+        185
+      ]
+    },
+    {
+      "id": "repeat-context-read",
+      "severity": "observation",
+      "summary": "Root called create context once for inspection and once again inside the authoring Python script to obtain a structured example. This is a duplicate readonly request, not status polling or a production retry.",
+      "rootCallLines": [
+        24,
+        46
+      ]
+    }
+  ],
+  "limitations": [
+    "Read-only trace/source review; did not rerender, perform a full audiovisual quality review, click final relative links, or test published packages.",
+    "Some native delegation/message arguments are encrypted in the captured trace. Their bodies were not decrypted or interpreted; actual task binding/results and verified fork lineage were audited.",
+    "No OS syscall tracing: ownership conclusions cover all observed native tool calls and fully inspected shell/Python command bodies.",
+    "Successful run does not exercise automatic recovery. It demonstrates block map and dynamic CSS translation; it does not individually exercise every supported numeric/JSX syntax branch.",
+    "No Hermes workspace, trace, or production Agent was accessed or messaged during this audit."
+  ],
+  "privateQaDirectory": "qa/candidate-codex-process"
+}

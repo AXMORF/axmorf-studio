@@ -14,6 +14,14 @@ import { arch, platform } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { z } from "zod";
+import {
+  installPublic,
+  PublicCreationSchema,
+  verifyPublicArtifacts,
+  assertPublicIntegrity,
+  publicMetadata,
+  type PublicArtifacts,
+} from "./public-registry";
 import { resolveNpmCliPath } from "../../packages/create-axmorf-studio/src/index.js";
 import {
   auditNativeExecution,
@@ -56,7 +64,7 @@ const FinalCheck = z
       .min(7),
   })
   .passthrough();
-const Creation = z
+const CandidateCreation = z
   .object({
     method: z.literal("npm-exec-candidate"),
     runtimeTarballChecksum: Hash,
@@ -64,6 +72,10 @@ const Creation = z
     installLogChecksum: Hash,
   })
   .strict();
+const Creation = z.discriminatedUnion("method", [
+  CandidateCreation,
+  PublicCreationSchema,
+]);
 export const HostReceiptSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -147,6 +159,7 @@ type Snapshot = {
   guides: FileDigest[];
   creation: z.infer<typeof Creation>;
   installLogPath: string;
+  publicArtifacts?: PublicArtifacts;
 };
 const readJson = async (path: string) =>
   JSON.parse(await readFile(path, "utf8"));
@@ -328,6 +341,60 @@ export async function create(configPath: string, outputPath: string) {
   await writeJson(outputPath, result);
   return {
     status: "first-use-workspace-created",
+    host: config.host,
+    outputPath,
+  };
+}
+
+export async function createPublic(configPath: string, outputPath: string) {
+  const config = z
+    .object({
+      host: Host,
+      workspace: Text,
+      promptFile: Text,
+      expectedVersion: z.string().regex(/^\d+\.\d+\.\d+$/u),
+    })
+    .strict()
+    .parse(await readJson(configPath));
+  const workspace = resolve(config.workspace);
+  const output = resolve(outputPath);
+  await assertAbsent(workspace);
+  await assertAbsent(output);
+  const prompt = await readFile(config.promptFile, "utf8");
+  assert.ok(prompt.trim(), "Business prompt is empty");
+  await mkdir(dirname(workspace), { recursive: true });
+  const installed = await installPublic(
+    workspace,
+    output,
+    config.expectedVersion,
+  );
+  await assertEmptyWorkspace(workspace);
+  const guides = await guideFiles(workspace);
+  for (const file of guides) {
+    assert.deepEqual(
+      installed.packages.creator.files.find(
+        (entry) => entry.path === `template/${file.path}`,
+      ),
+      { ...file, path: `template/${file.path}` },
+      "Guide differs from the public creator package",
+    );
+  }
+  const snapshot: Snapshot = {
+    schemaVersion: 1,
+    host: config.host,
+    workspace,
+    createdAt: new Date().toISOString(),
+    environment: { platform: platform(), arch: arch(), node: process.version },
+    prompt,
+    packages: installed.packages,
+    guides,
+    creation: installed.creation,
+    installLogPath: installed.installLogPath,
+    publicArtifacts: installed.artifacts,
+  };
+  await writeJson(output, snapshot);
+  return {
+    status: "first-use-public-workspace-created",
     host: config.host,
     outputPath,
   };
@@ -587,7 +654,18 @@ export async function record(
 ) {
   const initial: Snapshot = await readJson(snapshotPath);
   assert.equal(initial.schemaVersion, 1);
-  Creation.parse(initial.creation);
+  const creation = Creation.parse(initial.creation);
+  if (creation.method === "npm-create-public-registry") {
+    assert.ok(
+      initial.publicArtifacts,
+      "Public snapshot lacks original registry artifacts",
+    );
+    await verifyPublicArtifacts(
+      creation,
+      initial.publicArtifacts,
+      initial.workspace,
+    );
+  }
   assert.equal(
     sha256(await readFile(initial.installLogPath)),
     initial.creation.installLogChecksum,
@@ -868,10 +946,11 @@ export async function record(
   return { status: "first-use-host-verified", host: initial.host, outputPath };
 }
 
-export function verifyReceipt(
+function verifyCombined(
   value: unknown,
   runtime: PackageContent,
   creator: PackageContent,
+  method: "npm-exec-candidate" | "npm-create-public-registry",
 ) {
   const receipt = z
     .object({
@@ -889,6 +968,11 @@ export function verifyReceipt(
   assert.equal(creator.name, "create-axmorf-studio");
   assert.equal(runtime.version, creator.version);
   for (const host of receipt.hosts) {
+    assert.equal(
+      host.creation.method,
+      method,
+      "Candidate and public-registry receipts cannot substitute for each other",
+    );
     if (requiresSupervision(runtime.version)) {
       assert.ok(
         host.supervision,
@@ -985,12 +1069,65 @@ export function verifyReceipt(
   }
   assert.notEqual(receipt.hosts[0]!.sessionId, receipt.hosts[1]!.sessionId);
   return {
-    status: "first-use-release-gate-passed",
+    status:
+      method === "npm-exec-candidate"
+        ? "first-use-release-gate-passed"
+        : "first-use-public-registry-passed",
     version: runtime.version,
     hosts: ["codex", "hermes"],
     runtimeFingerprint: runtime.fingerprint,
     creatorFingerprint: creator.fingerprint,
   };
+}
+
+export function verifyReceipt(
+  value: unknown,
+  runtime: PackageContent,
+  creator: PackageContent,
+) {
+  return verifyCombined(value, runtime, creator, "npm-exec-candidate");
+}
+
+export async function verifyPublicReceipt(
+  value: unknown,
+  runtimeTarball: string,
+  creatorTarball: string,
+) {
+  const runtime = await packageContent(runtimeTarball);
+  const creator = await packageContent(creatorTarball);
+  const result = verifyCombined(
+    value,
+    runtime,
+    creator,
+    "npm-create-public-registry",
+  );
+  const hosts = z
+    .object({ hosts: z.array(HostReceiptSchema) })
+    .parse(value).hosts;
+  for (const host of hosts) {
+    const creation = PublicCreationSchema.parse(host.creation);
+    for (const [role, path, content] of [
+      ["runtime", runtimeTarball, runtime],
+      ["creator", creatorTarball, creator],
+    ] as const) {
+      const bytes = await readFile(path);
+      const registryPackage = creation.packages[role];
+      publicMetadata(
+        {
+          name: registryPackage.name,
+          version: registryPackage.version,
+          dist: registryPackage,
+        },
+        role === "runtime" ? "@axmorf/studio" : "create-axmorf-studio",
+        content.version,
+      );
+      assertPublicIntegrity(bytes, registryPackage.integrity);
+      assert.equal(sha256(bytes), creation[`${role}TarballChecksum`]);
+      assert.equal(content.name, creation.packages[role].name);
+      assert.equal(content.version, creation.packages[role].version);
+    }
+  }
+  return result;
 }
 
 const requiresNativeExecution = (version: string) =>
@@ -1002,6 +1139,10 @@ async function main(args: string[]) {
   const [operation, ...paths] = args;
   if (operation === "create" && paths.length === 2)
     return create(paths[0]!, paths[1]!);
+  if (operation === "create-public" && paths.length === 2)
+    return createPublic(paths[0]!, paths[1]!);
+  if (operation === "verify-public" && paths.length === 3)
+    return verifyPublicReceipt(await readJson(paths[2]!), paths[0]!, paths[1]!);
   if (operation === "record" && paths.length === 3)
     return record(paths[0]!, paths[1]!, paths[2]!);
   if (operation === "verify" && paths.length === 3)
@@ -1011,7 +1152,7 @@ async function main(args: string[]) {
       await packageContent(paths[1]!),
     );
   throw new Error(
-    "Usage: first-use.ts create config.json snapshot.json | record snapshot.json run-evidence.json receipt.json | verify runtime.tgz creator.tgz combined-receipt.json",
+    "Usage: first-use.ts create|create-public config.json snapshot.json | verify-public runtime.tgz creator.tgz combined-receipt.json | record snapshot.json run-evidence.json receipt.json | verify runtime.tgz creator.tgz combined-receipt.json",
   );
 }
 if (

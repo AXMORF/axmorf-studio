@@ -68,11 +68,14 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
     <AbsoluteFill style={{ color: "#242424", overflow: "hidden" }}>
       <div
         style={{
-          height: markSize,
-          left: lockupLeft,
+          backgroundColor: "#fffdf9",
+          borderRadius: 36,
+          height: markSize + 96,
+          left: lockupLeft - 48,
+          overflow: "hidden",
           position: "absolute",
-          top: lockupY - markSize / 2,
-          width: lockupWidth,
+          top: lockupY - markSize / 2 - 48,
+          width: lockupWidth + 96,
         }}
       >
         <div
@@ -80,9 +83,9 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
           role="img"
           style={{
             height: markSize * markZoom,
-            left: markLeft + (markSize - markSize * markZoom) / 2,
+            left: markLeft + (markSize - markSize * markZoom) / 2 + 48,
             position: "absolute",
-            top: (markSize - markSize * markZoom) / 2,
+            top: (markSize - markSize * markZoom) / 2 + 48,
             width: markSize * markZoom,
           }}
         >
@@ -100,10 +103,10 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
             fontSize: 76,
             fontWeight: 620,
             justifyContent: "space-between",
-            left: markSize + lockupGap,
+            left: markSize + lockupGap + 48,
             letterSpacing: "0.12em",
             position: "absolute",
-            top: markSize / 2 - 38,
+            top: markSize / 2 - 38 + 48,
             width: wordmarkWidth,
           }}
         >

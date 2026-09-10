@@ -203,6 +203,7 @@ const buildSceneContract = (rawContext: unknown) => {
           "Use sceneFrame, durationInFrames, fps, viewportWidth, and viewportHeight; never assume full-frame coordinates.",
           "Do not import or call useVideoConfig; the supplied SceneRendererProps own timing and viewport dimensions.",
           "Keep the root transparent and do not own captions, narration, or GlobalVisual decoration.",
+          "Keep visible text at the task viewport minimum font size with clear contrast against its actual background; pure layout and graphic containers do not need a font size.",
         ],
         example: `import type {SceneRendererProps} from "@axmorf/studio/remotion";
 

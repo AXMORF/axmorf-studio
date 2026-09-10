@@ -7,7 +7,7 @@ import {
   type SceneViewport,
 } from "@axmorf/studio/contracts";
 
-type StaticValue = number | string | ts.ObjectLiteralExpression;
+import { createReadabilityExpressionProof } from "./readability-expression-proof";
 
 const sourceError = (
   node: ts.Node,
@@ -37,131 +37,32 @@ const unwrapExpression = (expression: ts.Expression): ts.Expression => {
   return expression;
 };
 
-const collectStaticValues = (sourceFiles: readonly ts.SourceFile[]) => {
-  const values = new Map<string, StaticValue | null>();
-  for (const sourceFile of sourceFiles) {
-    const visit = (node: ts.Node) => {
-      if (
-        ts.isVariableDeclaration(node) &&
-        ts.isIdentifier(node.name) &&
-        node.initializer !== undefined
-      ) {
-        const initializer = unwrapExpression(node.initializer);
-        let value: StaticValue | null = null;
-        if (ts.isNumericLiteral(initializer)) value = Number(initializer.text);
-        else if (
-          ts.isStringLiteral(initializer) ||
-          ts.isNoSubstitutionTemplateLiteral(initializer)
-        ) {
-          value = initializer.text;
-        } else if (ts.isObjectLiteralExpression(initializer))
-          value = initializer;
-        if (values.has(node.name.text)) values.set(node.name.text, null);
-        else values.set(node.name.text, value);
-      }
-      ts.forEachChild(node, visit);
-    };
-    visit(sourceFile);
-  }
-  return values;
-};
-
-const resolveStaticValue = (
-  expression: ts.Expression,
-  values: ReadonlyMap<string, StaticValue | null>,
-): StaticValue | null => {
-  const current = unwrapExpression(expression);
-  if (ts.isNumericLiteral(current)) return Number(current.text);
-  if (
-    ts.isStringLiteral(current) ||
-    ts.isNoSubstitutionTemplateLiteral(current)
-  ) {
-    return current.text;
-  }
-  if (ts.isObjectLiteralExpression(current)) return current;
-  if (
-    ts.isPrefixUnaryExpression(current) &&
-    ts.isNumericLiteral(current.operand)
-  ) {
-    const value = Number(current.operand.text);
-    return current.operator === ts.SyntaxKind.MinusToken ? -value : value;
-  }
-  if (ts.isIdentifier(current)) return values.get(current.text) ?? null;
-  return null;
-};
-
-const propertyName = (name: ts.PropertyName) =>
-  ts.isIdentifier(name) || ts.isStringLiteral(name) ? name.text : null;
-
-const findObjectProperty = (
-  object: ts.ObjectLiteralExpression,
-  name: string,
-) => {
-  for (const property of object.properties) {
-    if (
-      ts.isPropertyAssignment(property) &&
-      propertyName(property.name) === name
-    ) {
-      return property.initializer;
-    }
-    if (
-      ts.isShorthandPropertyAssignment(property) &&
-      property.name.text === name
-    ) {
-      return property.name;
-    }
-  }
-  return null;
-};
-
-const findAttribute = (
-  attributes: ts.JsxAttributes,
-  name: string,
-): ts.JsxAttribute | null =>
-  attributes.properties.find(
-    (property): property is ts.JsxAttribute =>
-      ts.isJsxAttribute(property) && property.name.getText() === name,
-  ) ?? null;
-
-const attributeExpression = (
-  attribute: ts.JsxAttribute,
-): ts.Expression | null => {
-  if (attribute.initializer === undefined) return null;
-  if (ts.isStringLiteral(attribute.initializer)) return attribute.initializer;
-  return ts.isJsxExpression(attribute.initializer)
-    ? (attribute.initializer.expression ?? null)
-    : null;
-};
-
 const styleProperty = ({
   attributes,
   name,
-  values,
+  proof,
 }: {
   readonly attributes: ts.JsxAttributes;
   readonly name: string;
-  readonly values: ReadonlyMap<string, StaticValue | null>;
+  readonly proof: ReturnType<typeof createReadabilityExpressionProof>;
 }) => {
-  const style = findAttribute(attributes, "style");
-  if (style === null) return null;
-  const expression = attributeExpression(style);
-  if (expression === null) return null;
-  const resolved = resolveStaticValue(expression, values);
-  if (resolved === null || typeof resolved !== "object") return undefined;
-  return findObjectProperty(resolved, name);
+  const expression = proof.jsxProperty(attributes, "style");
+  return expression === null || expression === undefined
+    ? expression
+    : proof.styleProperty(expression, name);
 };
 
 const parseFontSize = ({
   expression,
   allowUnitlessString,
-  values,
+  proof,
 }: {
   readonly expression: ts.Expression | null | undefined;
   readonly allowUnitlessString: boolean;
-  readonly values: ReadonlyMap<string, StaticValue | null>;
+  readonly proof: ReturnType<typeof createReadabilityExpressionProof>;
 }) => {
   if (expression === null || expression === undefined) return null;
-  const resolved = resolveStaticValue(expression, values);
+  const resolved = proof.staticValue(expression);
   if (typeof resolved === "number" && Number.isFinite(resolved))
     return resolved;
   if (typeof resolved !== "string") return null;
@@ -171,47 +72,6 @@ const parseFontSize = ({
   return match === null ? null : Number(match[1]);
 };
 
-const isJsxOnlyExpression = (expression: ts.Expression): boolean => {
-  const current = unwrapExpression(expression);
-  if (
-    ts.isJsxElement(current) ||
-    ts.isJsxSelfClosingElement(current) ||
-    ts.isJsxFragment(current)
-  ) {
-    return true;
-  }
-  // A literal array and an inline JSX arrow body expose every rendered child.
-  // Unknown receivers, callbacks, and text-returning expressions remain conservative.
-  if (
-    ts.isCallExpression(current) &&
-    ts.isPropertyAccessExpression(current.expression) &&
-    current.expression.name.text === "map" &&
-    ts.isArrayLiteralExpression(unwrapExpression(current.expression.expression))
-  ) {
-    const callback = current.arguments[0];
-    if (
-      callback !== undefined &&
-      ts.isArrowFunction(callback) &&
-      !callback.modifiers?.some(
-        (modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword,
-      ) &&
-      !ts.isBlock(callback.body)
-    ) {
-      const body = unwrapExpression(callback.body);
-      return ts.isJsxElement(body) || ts.isJsxSelfClosingElement(body);
-    }
-  }
-  return false;
-};
-
-const hasVisibleTextChild = (element: ts.JsxElement) =>
-  element.children.some((child) => {
-    if (ts.isJsxText(child)) return child.text.trim().length > 0;
-    if (!ts.isJsxExpression(child) || child.expression === undefined)
-      return false;
-    return !isJsxOnlyExpression(child.expression);
-  });
-
 const getAttributes = (node: ts.Node): ts.JsxAttributes | null => {
   if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
     return node.attributes;
@@ -220,80 +80,149 @@ const getAttributes = (node: ts.Node): ts.JsxAttributes | null => {
   return null;
 };
 
-const parseScale = (
-  value: StaticValue | null,
-): { readonly found: boolean; readonly minimum: number | null } => {
-  if (typeof value === "number") return { found: true, minimum: value };
-  if (typeof value !== "string")
-    return { found: value !== null, minimum: null };
-  if (!/scale/iu.test(value)) return { found: false, minimum: 1 };
-  const matches = [
-    ...value.matchAll(
-      /scale(?:x|y)?\(\s*(-?\d+(?:\.\d+)?)\s*(?:,\s*(-?\d+(?:\.\d+)?)\s*)?\)/giu,
-    ),
-  ];
-  if (matches.length === 0) return { found: true, minimum: null };
-  return {
-    found: true,
-    minimum: Math.min(
-      ...matches.flatMap((match) =>
-        [match[1], match[2]]
-          .filter((entry): entry is string => entry !== undefined)
-          .map(Number),
-      ),
-    ),
-  };
+const numberToken = String.raw`[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?`;
+const numericToken = new RegExp(`^(?:${numberToken}|@)$`, "u");
+const cssLengthToken = new RegExp(
+  `^(?:${numberToken}|@)(?:px|%)$|^[+-]?0(?:\\.0*)?$`,
+  "u",
+);
+const cssAngleToken = new RegExp(
+  `^(?:${numberToken}|@)(?:deg|rad|grad|turn)$|^[+-]?0(?:\\.0*)?$`,
+  "u",
+);
+
+const parseTransform = (
+  text: string,
+  syntax: "css" | "svg" | "scale",
+): "valid" | "scale" | "unknown" => {
+  if (text === "none") return "valid";
+  if (syntax === "scale") {
+    const parts = text.trim().split(/\s+/u);
+    return parts.length >= 1 &&
+      parts.length <= 2 &&
+      parts.every(
+        (part) => numericToken.test(part) && part !== "@" && Number(part) >= 1,
+      )
+      ? "valid"
+      : "scale";
+  }
+  const functions = [...text.matchAll(/([a-zA-Z]+)\(([^()]*)\)/gu)];
+  if (
+    functions.length === 0 ||
+    text.replace(/[a-zA-Z]+\([^()]*\)/gu, "").trim().length > 0
+  )
+    return "unknown";
+  for (const match of functions) {
+    const name = match[1]!;
+    const raw = match[2]!.trim();
+    const parts =
+      syntax === "svg" ? raw.split(/(?:\s*,\s*|\s+)/u) : raw.split(/\s*,\s*/u);
+    const count = parts.length;
+    if (
+      name === "scale" ||
+      (syntax === "css" && (name === "scaleX" || name === "scaleY"))
+    ) {
+      if (
+        (name === "scale" ? count < 1 || count > 2 : count !== 1) ||
+        !parts.every(
+          (part) =>
+            numericToken.test(part) && part !== "@" && Number(part) >= 1,
+        )
+      )
+        return "scale";
+    } else if (
+      name === "translate" ||
+      (syntax === "css" && (name === "translateX" || name === "translateY"))
+    ) {
+      if (
+        (name === "translate" ? count < 1 || count > 2 : count !== 1) ||
+        !parts.every((part) =>
+          (syntax === "svg" ? numericToken : cssLengthToken).test(part),
+        )
+      )
+        return "unknown";
+    } else if (name === "rotate") {
+      if (
+        syntax === "svg"
+          ? (count !== 1 && count !== 3) ||
+            !parts.every((part) => numericToken.test(part))
+          : count !== 1 || !cssAngleToken.test(parts[0]!)
+      )
+        return "unknown";
+    } else return "unknown";
+  }
+  return "valid";
 };
+
+const svgTransformTags = new Set([
+  "svg",
+  "g",
+  "text",
+  "tspan",
+  "path",
+  "rect",
+  "circle",
+  "ellipse",
+  "line",
+  "polygon",
+  "polyline",
+  "use",
+  "foreignObject",
+  "defs",
+  "clipPath",
+  "mask",
+  "pattern",
+  "marker",
+  "symbol",
+]);
 
 const assertNoUnreadableScale = (
   sourceFiles: readonly ts.SourceFile[],
-  values: ReadonlyMap<string, StaticValue | null>,
+  proof: ReturnType<typeof createReadabilityExpressionProof>,
 ) => {
   for (const sourceFile of sourceFiles) {
     const visit = (node: ts.Node) => {
-      const attributes = getAttributes(node);
-      if (attributes !== null) {
-        const transformAttribute = findAttribute(attributes, "transform");
-        const transformExpression =
-          transformAttribute === null
-            ? null
-            : attributeExpression(transformAttribute);
-        const styleTransform = styleProperty({
-          attributes,
-          name: "transform",
-          values,
-        });
-        const styleScale = styleProperty({ attributes, name: "scale", values });
-        for (const expression of [
-          transformExpression,
-          styleTransform,
-          styleScale,
-        ]) {
-          if (expression === null) continue;
-          if (expression === undefined) {
+      // Inspect each JSX element once. Only explicit native SVG graphics can
+      // avoid a text-scale check; unknown descendants/attributes remain checked.
+      if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
+        const attributes = getAttributes(node)!;
+        if (!proof.isGraphicsOnly(node)) {
+          const opening = ts.isJsxElement(node) ? node.openingElement : node;
+          const cssTransform = styleProperty({
+            attributes,
+            name: "transform",
+            proof,
+          });
+          const svgTransform =
+            !svgTransformTags.has(opening.tagName.getText()) ||
+            cssTransform !== null
+              ? null
+              : proof.jsxProperty(attributes, "transform");
+          const expressions = [
+            [svgTransform, "svg"],
+            [cssTransform, "css"],
+            [styleProperty({ attributes, name: "scale", proof }), "scale"],
+          ] as const;
+          for (const [expression, syntax] of expressions) {
+            if (expression === null) continue;
+            const resolved =
+              expression === undefined ? null : proof.transformText(expression);
+            const verdict =
+              resolved === null ? "unknown" : parseTransform(resolved, syntax);
+            if (verdict === "valid") continue;
+            if (verdict === "scale") {
+              throw sourceError(
+                expression ?? attributes,
+                "readability-scale",
+                `Renderer scale must be statically proven not to shrink readable content in ${sourceFile.fileName}.`,
+                "Remove shrinking or dynamic scale from text and its ancestors; use a literal scale of at least 1 or a numeric translate/rotate.",
+              );
+            }
             throw sourceError(
-              attributes,
+              expression ?? attributes,
               "readability-transform",
               `Renderer transform must be statically provable in ${sourceFile.fileName}.`,
-              "Use an explicit style object with a literal transform. For frame-driven movement, animate numeric left/top (or SVG x/y) instead of building a dynamic transform string; keep readable content at full scale.",
-            );
-          }
-          const resolved = resolveStaticValue(expression, values);
-          if (resolved === null) {
-            throw sourceError(
-              expression,
-              "readability-transform",
-              `Renderer transform must be statically provable in ${sourceFile.fileName}.`,
-              "Use a literal transform. For frame-driven movement, animate numeric left/top (or SVG x/y) instead of building a dynamic transform string; keep readable content at full scale.",
-            );
-          }
-          const parsed = parseScale(resolved);
-          if (parsed.found && (parsed.minimum === null || parsed.minimum < 1)) {
-            throw sourceError(
-              expression,
-              "readability-scale",
-              `Renderer scale must be statically proven not to shrink readable content in ${sourceFile.fileName}.`,
-              "Remove shrinking or dynamic scale; use a literal scale of at least 1 and animate position or opacity instead.",
+              "Use a complete CSS/SVG 2D translate/rotate with numeric expressions, or a literal scale of at least 1. Unknown transforms cannot prove text readability; numeric left/top or SVG x/y are also supported.",
             );
           }
         }
@@ -414,11 +343,11 @@ const assertNoSharedBoundaryOwnership = (
 
 const assertTextSizes = ({
   sourceFiles,
-  values,
+  proof,
   minimum,
 }: {
   readonly sourceFiles: readonly ts.SourceFile[];
-  readonly values: ReadonlyMap<string, StaticValue | null>;
+  readonly proof: ReturnType<typeof createReadabilityExpressionProof>;
   readonly minimum: number;
 }) => {
   for (const sourceFile of sourceFiles) {
@@ -433,42 +362,36 @@ const assertTextSizes = ({
           "Scene Renderer source graph must not import CaptionLayer.",
         );
       }
-      if (ts.isJsxElement(node)) {
-        const tagName = jsxTagName(node.openingElement.tagName);
+      if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
+        const opening = ts.isJsxElement(node) ? node.openingElement : node;
+        const tagName = jsxTagName(opening.tagName);
         if (tagName === "CaptionLayer") {
           throw new Error("Scene Renderer must not render CaptionLayer.");
         }
         const controlled =
           tagName === "SceneText" || tagName === "SceneSvgText";
-        const visible = controlled || hasVisibleTextChild(node);
+        const visible = controlled || proof.hasVisibleTextChild(node);
         if (visible) {
-          const attributes = node.openingElement.attributes;
+          const attributes = opening.attributes;
           let expression: ts.Expression | null | undefined;
           let allowUnitlessString = false;
           if (controlled) {
-            const attribute = findAttribute(attributes, "fontSizePx");
-            expression =
-              attribute === null ? null : attributeExpression(attribute);
+            expression = proof.jsxProperty(attributes, "fontSizePx");
           } else if (tagName === "text") {
             const styledSize = styleProperty({
               attributes,
               name: "fontSize",
-              values,
+              proof,
             });
-            const attribute = findAttribute(attributes, "fontSize");
+            const attribute = proof.jsxProperty(attributes, "fontSize");
             // Inline CSS overrides the SVG presentation attribute.
-            expression =
-              styledSize !== null
-                ? styledSize
-                : attribute === null
-                  ? null
-                  : attributeExpression(attribute);
+            expression = styledSize !== null ? styledSize : attribute;
             allowUnitlessString = styledSize === null;
           } else if (/^[a-z]/u.test(tagName)) {
             expression = styleProperty({
               attributes,
               name: "fontSize",
-              values,
+              proof,
             });
           } else {
             expression = null;
@@ -477,11 +400,11 @@ const assertTextSizes = ({
             const size = parseFontSize({
               expression,
               allowUnitlessString,
-              values,
+              proof,
             });
             if (size === null) {
               throw sourceError(
-                expression ?? node.openingElement,
+                expression ?? opening,
                 "readability-font-size",
                 `Visible text font size in ${sourceFile.fileName} is inherited, relative, or not statically provable.`,
                 `Set an explicit pixel size on <${tagName}>: ${controlled ? `fontSizePx={${minimum}}` : tagName === "text" ? `fontSize={${minimum}}` : `style={{fontSize: ${minimum}}}`} or larger. Inherited sizes and unknown JSX child expressions cannot prove readability.`,
@@ -489,7 +412,7 @@ const assertTextSizes = ({
             }
             if (size < minimum) {
               throw sourceError(
-                expression ?? node.openingElement,
+                expression ?? opening,
                 "readability-font-minimum",
                 `Visible text size ${size}px is below the frozen ${minimum}px minimum in ${sourceFile.fileName}.`,
                 `Increase the explicit size on <${tagName}> to at least ${minimum}px without a shrinking transform.`,
@@ -543,14 +466,14 @@ export const validateRendererReadabilitySourceGraph = async ({
         !fileName.startsWith("src/remotion/runtime/readability/"),
     ),
   );
-  const values = collectStaticValues(sourceFiles);
-  assertNoUnreadableScale(sourceFiles, values);
+  const proof = createReadabilityExpressionProof(sourceFiles, rendererSource);
+  assertNoUnreadableScale(sourceFiles, proof);
   assertTextSizes({
     sourceFiles: sourceFiles.filter(
       ({ fileName }) =>
         !fileName.startsWith("src/remotion/runtime/readability/"),
     ),
-    values,
+    proof,
     minimum: sceneViewport.minFontSizePx,
   });
   return {

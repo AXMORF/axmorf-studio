@@ -2,7 +2,41 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-10 `v0.1.11` 候选完成双宿主首次制作与安装包 revision 闭环验证；本次修复尚未发布，也未迁移旧 Workspace。
+> 最后复核：2026-09-10 `v0.1.12` 已完成 874 项工程检查、双宿主候选黑盒与安装包 revision 闭环；尚未发布，公共 npm 仍为 0.1.10。
+
+## 可读性误报与默认模板对比度优化（0.1.12 发布候选）
+
+[工程检查](evidence/v0.1.12-engineering-checks.json) 完成 874/874、type/lint/docs/build、真实 compositions、package build/typecheck/check 和零漏洞审计。
+[原始问题](evidence/v0.1.12-readability-incident.json) 区分真实不合规、保守静态误报与渲染对比度问题；本次不以增加文字约束处理图形容器。
+
+Scene validator v4 使用有界词法证明识别 JSX-only block/map 与纯图形 SVG，允许可证明数字参数的 2D translate/rotate，
+包括真实 Remotion interpolate/spring 与显式 SceneRendererProps 输入；保留小字、文本缩小、未知字符串与覆盖逃逸拒绝。
+字号与 transform 按实际词法绑定、style/JSX 最终覆盖顺序判断；新增 proof helper 进入 Scene policy fingerprint。
+[独立复现回归](evidence/v0.1.12-readability-review.json) 确认 self-closing children 小字、后置 props spread 和 map receiver mutation 已拒绝，安全旧模板仍通过。
+SVG viewBox 缩小文字与独立 CSS 3D rotate 是基线和当前都存在的覆盖缺口；不宣称通用视觉质量认证。
+
+Scene 指南改为解释实际可读文字、可证明运动和渲染检查，纯布局/图形无需补虚拟字号。
+固定首尾模板为深色品牌/文字提供局部不透明浅底，root 仍透明；六引用横屏仅调整排布，不缩小文字或删引用。
+[模板视觉证据](evidence/v0.1.12-boundary-visual.json) 包含深浅底、横竖屏与首尾动效的 36 张真实 Remotion still；
+抽检与固定组件对比度回归不等于任意正文 Scene 的视觉门禁。既有 Project-local immutable 模板和用户 Workspace 均未迁移。
+
+首次使用验收新增独立 public-registry 模式：发布后必须实际执行公共 npm create @latest，核对 registry metadata/integrity、
+creator npx 与 runtime 安装内容及 lockfile；不能把候选本地 tgz 测试替代发布后验证。
+
+[候选双宿主 receipt](evidence/v0.1.12-first-use.json) 绑定相同 252/40 个发行文件：Codex 25.1 秒、真实 Hermes TUI 28.4 秒；
+各一条业务提示、零控制器追加提示、5 个创作 child + 1 个 probe、峰值 4、补位 1、唯一 continuation。
+独立 final 各 7/7，四文件 checksum、H.264/AAC 双声道与 EOF 解码通过；252 个 runtime 文件与 11 份指南均未变。
+[安装包 revision](evidence/v0.1.12-revision-closure.json) 通过公开 CLI 的 no-op 拒绝、真实 publishing-only 修改、
+inspect/prepare、自动 promotion、手动幂等 promotion 与最终复验；新增 provider/Agent 均 0，原 Workspace 完整哈希未变。
+
+[Codex 全过程](evidence/v0.1.12-candidate-codex-process.json) 审阅 54 次自身原生调用及 58 个完成执行结果，
+5 个创作 worker 首次通过，无校验返工；已读长等待指南后仍有少量短空等待，属于非阻断执行偏差。
+[Hermes 全过程](evidence/v0.1.12-candidate-hermes-process.json) 审阅 89 次原生调用，5 个创作 worker 首次通过；
+Root 有一次非 Git Workspace 上的 Git 假设错误，随后 doctor 成功。3 批原生通知均先于最终答复，原进程仅一次 600 秒等待。
+未观察到 Root 越权修改 child 或安装包，不宣称全程零多余调用。
+[Codex 视觉](evidence/v0.1.12-candidate-codex-visual.json) 实看 19 帧与两张封面，
+[Hermes 视觉](evidence/v0.1.12-candidate-hermes-visual.json) 实看 25 帧与两张封面，所看首尾与正文无阻断性对比度、遮挡或裁切问题。
+Codex 有一处完整可读但孤字换行的字幕；淡入态与稳定态分开判定。未做全帧或完整听审，成功路径未触发 terminal 自动恢复。
 
 ## Hermes TUI 监督与 revision 闭环修正（0.1.11 已验证候选）
 

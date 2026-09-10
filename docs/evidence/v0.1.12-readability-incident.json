@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "observedVersion": "0.1.11",
+  "targetVersion": "0.1.12",
+  "source": "final candidate native child transcripts and installed source guide",
+  "findings": [
+    {
+      "host": "hermes",
+      "code": "readability-transform",
+      "observed": "A frame-derived SVG rotate(-90 cx cy) on a progress circle was rejected because the complete template literal was not statically constant.",
+      "classification": "conservative false positive: shape rotation does not shrink text",
+      "fixBoundary": "Recognize numeric 2D transform arguments; retain rejection of unknown operations and shrinking text transforms."
+    },
+    {
+      "host": "hermes",
+      "code": "readability-font-size",
+      "observed": "A g containing a literal array mapped through a block callback to rect graphics was treated as possible visible text. Adding fontSize to g had no visual effect.",
+      "classification": "conservative false positive: structural JSX return was not recognized",
+      "fixBoundary": "Prove common JSX-only return structures; keep bare text and unknown returns subject to text size checks."
+    },
+    {
+      "host": "codex",
+      "code": "readability-font-size",
+      "observed": "Two original Scene workers received missing explicit container font-size failures and corrected their own output before successful commit.",
+      "classification": "Recorded worker rework; final success alone does not establish whether each original container had real text.",
+      "fixBoundary": "Do not infer zero unsuccessful calls from a passing first-use receipt."
+    },
+    {
+      "host": "both",
+      "code": "boundary-contrast",
+      "observed": "Default templates used fixed dark foregrounds on transparent roots; the light preview backing was absent when composed over a dark GlobalVisual base.",
+      "classification": "rendered visual issue not covered by font-size checks",
+      "fixBoundary": "Provide local opaque foreground backing without adding a full-frame Scene background; validate on dark and light composed backgrounds."
+    }
+  ],
+  "limitations": [
+    "This incident is not a pass receipt.",
+    "Source checks do not certify rendered contrast, clipping, or listening quality.",
+    "Historical attempts and installed packages remain unchanged."
+  ]
+}

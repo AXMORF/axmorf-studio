@@ -234,7 +234,7 @@ test("originality baseline binds only Agent-owned Scene tasks and template-copy 
     false,
   );
   for (const owner of sceneOwners) {
-    assert.equal(owner.task.validatorPolicyVersion, "scene-owner-validator-v3");
+    assert.equal(owner.task.validatorPolicyVersion, "scene-owner-validator-v4");
     assert.equal(
       owner.task.inputFingerprints.find(
         ({ id }) => id === SCENE_ORIGINALITY_INPUT_ID,

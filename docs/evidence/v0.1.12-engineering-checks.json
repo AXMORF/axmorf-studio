@@ -1,0 +1,41 @@
+{
+  "version": "0.1.12",
+  "recordedAt": "2026-09-10T07:47:35.198647+00:00",
+  "sourceBaseline": "ec7cf06c8dcb982ba65d203d2d08b50117e34107",
+  "verification": {
+    "fullCheck": {
+      "command": "npm run check",
+      "tests": 874,
+      "passed": 874,
+      "failed": 0,
+      "skipped": 0,
+      "typecheck": true,
+      "lint": true,
+      "docsLinks": true,
+      "build": true,
+      "hostCompositions": true
+    },
+    "packagesTypecheck": true,
+    "packagesBuild": true,
+    "packagesCheck": true,
+    "audit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  },
+  "logChecksums": {
+    "axmorf-012-full-check.log": "sha256:faeddf3a1dc9939187fb3350af9177864df7718f81ae6c0eca7eb2caf374d20f",
+    "axmorf-012-package-check.log": "sha256:1ff2b1d160fb17f93312d11689aa7a01bce429a111cd86f5d8f37e9162cfd018",
+    "axmorf-012-audit.json": "sha256:480178e0a7644e6529fca25042448846755154376029cae39e4014fb1be863ac",
+    "axmorf-012-final-focused.log": "sha256:015e97704e0c607dc0e6720f4d196b267a86c7e3e0dedc11e8b82a8ad4ee57db",
+    "axmorf-readability-final-focused.log": "sha256:dbad0758c4603b1bc525ca8f3f10d07b7420e86771537d42fbc6d346589f3d10"
+  },
+  "limitations": [
+    "Automated source and package checks are pre-release evidence, not public-registry first-use evidence.",
+    "Rendered template checks and independent readability residuals are recorded separately."
+  ]
+}

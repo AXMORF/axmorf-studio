@@ -27,6 +27,7 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
 }) => {
   const isLandscape = width > height;
   const isDense = references.length > 5;
+  const compactLandscape = isLandscape && isDense;
   const lines = isLandscape
     ? AXMORF_SOURCE_FOLLOW_LANDSCAPE_LINES
     : AXMORF_SOURCE_FOLLOW_PORTRAIT_LINES;
@@ -37,7 +38,9 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
         opacity: interpolate(sceneFrame, [104, 119], [1, 0], clamped),
         overflow: "hidden",
         padding: isLandscape
-          ? "88px 128px 64px"
+          ? compactLandscape
+            ? "24px 128px"
+            : "88px 128px 64px"
           : `${references.length <= 3 ? 300 : 88}px 96px 96px`,
       }}
     >
@@ -45,12 +48,15 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
         aria-label={AXMORF_SOURCE_FOLLOW_MESSAGE}
         role="img"
         style={{
+          backgroundColor: "#fffdf9",
+          borderRadius: 8,
+          boxShadow: "0 0 0 20px #fffdf9",
           fontFamily:
             '"Noto Serif SC", "Source Han Serif SC", "Songti SC", serif',
           fontSize: 48,
           fontWeight: 520,
           letterSpacing: "0.045em",
-          lineHeight: isLandscape ? 1.58 : 1.66,
+          lineHeight: compactLandscape ? 1.3 : isLandscape ? 1.58 : 1.66,
           textAlign: "center",
         }}
       >
@@ -79,12 +85,18 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
       </div>
       <div
         style={{
+          backgroundColor: "#fffdf9",
+          borderRadius: 16,
           color: "#a37d5c",
+          marginLeft: "auto",
+          marginRight: "auto",
+          boxShadow: "0 0 0 8px #fffdf9",
+          width: "fit-content",
           fontFamily: 'Inter, "Noto Sans SC", Arial, sans-serif',
           fontSize: 36,
           fontWeight: 650,
           letterSpacing: "0.18em",
-          marginTop: isLandscape ? 28 : 52,
+          marginTop: compactLandscape ? 16 : isLandscape ? 28 : 52,
           opacity: interpolate(sceneFrame, [44, 58], [0, 1], clamped),
           textAlign: "center",
         }}
@@ -99,7 +111,7 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
           gridTemplateColumns: isLandscape
             ? "repeat(2, minmax(0, 1fr))"
             : "minmax(0, 1fr)",
-          marginTop: 24,
+          marginTop: compactLandscape ? 16 : 24,
         }}
       >
         {(references.length === 0
@@ -110,7 +122,7 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
             key={`${reference.url}-${index}`}
             style={{
               fontSize: 36,
-              background: "rgba(255, 253, 249, 0.72)",
+              background: "#fffdf9",
               border: "1px solid rgba(36, 36, 36, 0.1)",
               borderRadius: 18,
               minWidth: 0,

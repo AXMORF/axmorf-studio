@@ -245,7 +245,7 @@ test("Scene finalization recomputes task-bound derived JSON atomically and passe
       originalityBaseline,
       scene: { taskInput: fixture.task },
     },
-    validatorPolicyVersion: "scene-owner-validator-v3",
+    validatorPolicyVersion: "scene-owner-validator-v4",
     additionalInputFingerprints: [
       {
         id: SCENE_ORIGINALITY_INPUT_ID,

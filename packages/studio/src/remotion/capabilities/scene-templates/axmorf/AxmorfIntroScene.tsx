@@ -35,8 +35,11 @@ export const AxmorfIntroScene: FC<AxmorfIntroSceneProps> = ({
       <div
         style={{
           alignItems: "center",
+          backgroundColor: "#fffdf9",
+          borderRadius: 36,
           display: "flex",
           flexDirection: "column",
+          padding: "48px 56px",
         }}
       >
         <div

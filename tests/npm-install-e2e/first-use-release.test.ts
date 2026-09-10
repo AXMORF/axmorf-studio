@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import {
   mkdtemp,
+  cp,
   mkdir,
   readFile,
   rm,
@@ -9,7 +11,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import test from "node:test";
 import { build } from "esbuild";
 import {
@@ -17,6 +19,8 @@ import {
   auditHermesSession,
   assertEmptyWorkspace,
   create,
+  createPublic,
+  verifyPublicReceipt,
   runPublicCli,
   verifyReceipt,
 } from "../../scripts/release/first-use";
@@ -27,6 +31,15 @@ import {
   sha256,
   type PackageContent,
 } from "../../scripts/release/package-content";
+
+import {
+  assertPublicIntegrity,
+  assertPublicLock,
+  publicMetadata,
+  installPublic,
+  verifyPublicArtifacts,
+  type RegistryPackage,
+} from "../../scripts/release/public-registry";
 
 const file = {
   path: "index.js",
@@ -1319,4 +1332,269 @@ test("Hermes deferred process tool evidence requires matching native bridge invo
     },
   ]);
   assert.throws(() => audit(malformed));
+});
+
+test("public registry metadata, tar bytes and lock reject redirected or local packages", () => {
+  const bytes = Buffer.from("public package bytes");
+  const integrity = `sha512-${createHash("sha512").update(bytes).digest("base64")}`;
+  const metadata = publicMetadata(
+    {
+      name: "@axmorf/studio",
+      version: "0.1.8",
+      dist: {
+        tarball: "https://registry.npmjs.org/@axmorf/studio/-/studio-0.1.8.tgz",
+        integrity,
+      },
+    },
+    "@axmorf/studio",
+    "0.1.8",
+  );
+  assertPublicIntegrity(bytes, integrity);
+  assert.throws(
+    () => assertPublicIntegrity(Buffer.from("changed"), integrity),
+    /dist integrity/u,
+  );
+  for (const tarball of [
+    "file:/local.tgz",
+    "https://mirror.example/studio.tgz",
+  ])
+    assert.throws(() =>
+      publicMetadata(
+        { ...metadata, dist: { tarball, integrity } },
+        "@axmorf/studio",
+        "0.1.8",
+      ),
+    );
+  assert.throws(
+    () =>
+      publicMetadata(
+        { ...metadata, dist: metadata },
+        "@axmorf/studio",
+        "0.1.9",
+      ),
+    /expected release/u,
+  );
+  const lock = {
+    lockfileVersion: 3,
+    packages: {
+      "node_modules/@axmorf/studio": {
+        version: metadata.version,
+        resolved: metadata.tarball,
+        integrity,
+      },
+    },
+  };
+  assertPublicLock(lock, metadata);
+  for (const override of [
+    { resolved: "file:local.tgz" },
+    { integrity: `sha512-${"A".repeat(86)}==` },
+    { link: true },
+  ])
+    assert.throws(() =>
+      assertPublicLock(
+        {
+          ...lock,
+          packages: {
+            "node_modules/@axmorf/studio": {
+              ...lock.packages["node_modules/@axmorf/studio"],
+              ...override,
+            },
+          },
+        },
+        metadata,
+      ),
+    );
+});
+
+test("public creation uses npm latest with fresh registry cache and distinct verifiable receipts", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "axmorf-public-registry-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const names = ["@axmorf/studio", "create-axmorf-studio"] as const;
+  const fixtures = new Map<
+    string,
+    { root: string; tar: string; metadata: RegistryPackage }
+  >();
+  for (const [index, name] of names.entries()) {
+    const fixtureRoot = join(root, `fixture-${index}`);
+    await mkdir(join(fixtureRoot, "package"), { recursive: true });
+    await writeFile(
+      join(fixtureRoot, "package/package.json"),
+      JSON.stringify({ name, version: "0.1.8" }),
+    );
+    await writeFile(
+      join(fixtureRoot, "package/index.js"),
+      `export const name=${JSON.stringify(name)};\n`,
+    );
+    const tar = join(root, `fixture-${index}.tgz`);
+    execFileSync("tar", ["-czf", tar, "-C", fixtureRoot, "package"]);
+    const short = name.slice(name.lastIndexOf("/") + 1);
+    const metadata = {
+      name,
+      version: "0.1.8",
+      tarball: `https://registry.npmjs.org/${name}/-/${short}-0.1.8.tgz`,
+      integrity: `sha512-${createHash("sha512")
+        .update(await readFile(tar))
+        .digest("base64")}`,
+    };
+    fixtures.set(name, { root: fixtureRoot, tar, metadata });
+  }
+  const workspace = join(root, "fresh");
+  const calls: string[][] = [];
+  const installed = await installPublic(
+    workspace,
+    join(root, "snapshot.json"),
+    "0.1.8",
+    async (args, options) => {
+      calls.push(args);
+      assert.equal(
+        options.env.NPM_CONFIG_REGISTRY,
+        "https://registry.npmjs.org",
+      );
+      assert.equal(
+        await readFile(options.env.NPM_CONFIG_USERCONFIG!, "utf8"),
+        "",
+      );
+      assert.equal(options.cwd, root);
+      if (args[0] === "view") {
+        const fixture = fixtures.get(args[1]!.slice(0, -"@latest".length))!;
+        return JSON.stringify({
+          name: fixture.metadata.name,
+          version: fixture.metadata.version,
+          dist: fixture.metadata,
+        });
+      }
+      if (args[0] === "pack") {
+        const fixture = fixtures.get(args[1]!.slice(0, -"@0.1.8".length))!;
+        const filename = basename(fixture.tar);
+        await cp(fixture.tar, join(args.at(-1)!, filename));
+        return JSON.stringify([{ filename }]);
+      }
+      assert.deepEqual(args, [
+        "create",
+        "--yes",
+        "axmorf-studio@latest",
+        "fresh",
+        "--",
+        "--yes",
+      ]);
+      const npx = join(
+        options.env.NPM_CONFIG_CACHE!,
+        "_npx",
+        "fresh-resolution",
+      );
+      for (const [name, destination] of [
+        [names[0], workspace],
+        [names[1], npx],
+      ] as const) {
+        const fixture = fixtures.get(name)!;
+        const packagePath = join(destination, "node_modules", name);
+        await mkdir(dirname(packagePath), { recursive: true });
+        await cp(join(fixture.root, "package"), packagePath, {
+          recursive: true,
+        });
+        await writeFile(
+          join(destination, "package-lock.json"),
+          JSON.stringify({
+            lockfileVersion: 3,
+            packages: {
+              [`node_modules/${name}`]: {
+                version: fixture.metadata.version,
+                resolved: fixture.metadata.tarball,
+                integrity: fixture.metadata.integrity,
+              },
+            },
+          }),
+        );
+      }
+      return "created\n";
+    },
+  );
+  assert.equal(calls.filter((args) => args[0] === "create").length, 1);
+  assert.equal(calls.filter((args) => args[0] === "view").length, 4);
+  assert.equal(installed.creation.method, "npm-create-public-registry");
+  await verifyPublicArtifacts(
+    installed.creation,
+    installed.artifacts,
+    workspace,
+  );
+  const publicEvidence = {
+    schemaVersion: 1,
+    hosts: ["codex", "hermes"].map((host) => ({
+      ...hostReceipt(host as "codex" | "hermes"),
+      creation: installed.creation,
+      packages: {
+        runtime: summary(installed.packages.runtime),
+        creator: summary(installed.packages.creator),
+      },
+      unchangedPackageFiles: installed.packages.runtime.files.length,
+    })),
+  };
+  assert.throws(
+    () =>
+      verifyReceipt(
+        publicEvidence,
+        installed.packages.runtime,
+        installed.packages.creator,
+      ),
+    /cannot substitute/u,
+  );
+  assert.equal(
+    (
+      await verifyPublicReceipt(
+        publicEvidence,
+        installed.artifacts.runtimeTarball,
+        installed.artifacts.creatorTarball,
+      )
+    ).status,
+    "first-use-public-registry-passed",
+  );
+  const candidateEvidence = {
+    ...publicEvidence,
+    hosts: publicEvidence.hosts.map((host) => ({
+      ...host,
+      creation: hostReceipt(host.host).creation,
+    })),
+  };
+  await assert.rejects(
+    () =>
+      verifyPublicReceipt(
+        candidateEvidence,
+        installed.artifacts.runtimeTarball,
+        installed.artifacts.creatorTarball,
+      ),
+    /cannot substitute/u,
+  );
+  await writeFile(join(workspace, "package-lock.json"), "{}");
+  await assert.rejects(
+    () =>
+      verifyPublicArtifacts(installed.creation, installed.artifacts, workspace),
+    /lock changed/u,
+  );
+});
+
+test("public creation rejects existing workspaces and local tarball configuration before installation", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "axmorf-public-create-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const workspace = join(root, "existing");
+  await mkdir(workspace);
+  const path = join(root, "config.json");
+  const config = {
+    host: "hermes",
+    workspace,
+    expectedVersion: "0.1.8",
+    promptFile: "never-read.txt",
+  };
+  await writeFile(path, JSON.stringify(config));
+  await assert.rejects(
+    () => createPublic(path, join(root, "snapshot.json")),
+    /nonexistent path/u,
+  );
+  await writeFile(
+    path,
+    JSON.stringify({ ...config, runtimeTarball: "local.tgz" }),
+  );
+  await assert.rejects(
+    () => createPublic(path, join(root, "snapshot.json")),
+    /Unrecognized/u,
+  );
 });

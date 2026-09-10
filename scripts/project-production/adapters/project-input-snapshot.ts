@@ -203,6 +203,7 @@ export const snapshotExplicitPolicyPaths = async ({
 
 const TASK_POLICY_PATHS = {
   scene: [
+    "scripts/project-production/application/readability-expression-proof.ts",
     "scripts/project-production/application/readability-source-validator.ts",
     "scripts/project-production/application/scene-task-check.ts",
     "scripts/project-production/application/task-check.ts",

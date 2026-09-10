@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "phase": "candidate",
+  "receiptChecksum": "sha256:9ec82bf471cfd8f0e29a9273bc7bf01a84117db33188c93b417acaa66a58644e",
+  "status": "passed",
+  "scope": "isolated-publication-metadata-revision",
+  "project": "ten-minute-focus",
+  "sourceBefore": "sha256:322fb094a525e19745f621f6569187fb023bcf9e02aa6f7487b7458b47dba91b",
+  "stage": "manual-promote-final-check",
+  "packageVersion": "0.1.12",
+  "packageBefore": "sha256:edd1be6d509a862618096aa37a8b09b306ec1c8afa251f97f676dfd86b7305ff",
+  "noOpCorrectlyRejected": true,
+  "candidateId": "revision-candidate-7fa7ece756db204201628caf04826e2a9ea6ab848fcd04d0708cb6e8a0ee149b",
+  "estimatedCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 3,
+    "agentTasks": 0,
+    "deliveryMedia": [
+      "video",
+      "cover-4x3",
+      "cover-3x4"
+    ]
+  },
+  "actualCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 3,
+    "agentTasks": 0,
+    "deliveryMedia": []
+  },
+  "attemptId": "cc88034e-be24-44e4-b017-8800c1266492",
+  "revisionId": "revision-4d4ad6fcb563df1e8ce8bfe27437a378388ce8b75f9738921dce5f69d9a1324a",
+  "deliveryBuildId": "delivery-2c8f852fc36a4fc259f1016273c3116f8ed703345b1f6e7f8d16cda480401f13",
+  "sourceAfter": "sha256:322fb094a525e19745f621f6569187fb023bcf9e02aa6f7487b7458b47dba91b",
+  "sourceUnchanged": true,
+  "commands": [
+    {
+      "step": "01-base-final-check",
+      "commandChecksum": "sha256:9578384d89a253c8160a18dbb5126dea9c630a216bff6eed886401441f42a01c",
+      "stdoutChecksum": "sha256:88c59676df4ef8648c68281e80145e3c3c4f09298c530f983df29b89e5ae9be7"
+    },
+    {
+      "step": "02-revision-context",
+      "commandChecksum": "sha256:a75d3db53de0f2aa4dc351c95fcd0b2dcac11f8bb8501a482242105cb015992f",
+      "stdoutChecksum": "sha256:876e34eb7f8d819199faf9b9bb7e919a3fd184e5c0ea1dee1c5b25042dd9619b"
+    },
+    {
+      "step": "03-noop-validation",
+      "commandChecksum": "sha256:46d86489993dcd306609615a5c074a34c5479f270e7017e8a0d1b8a85ae7e6ba",
+      "stdoutChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "04-publication-validate",
+      "commandChecksum": "sha256:025bfde38031fa106e36d01b678bec84c742d180af988794f288bf87dae7afb5",
+      "stdoutChecksum": "sha256:65eb48caf0292e58b4db8d5cc7c0935c4252af30ee8901cc49db1de42737476d"
+    },
+    {
+      "step": "05-publication-create",
+      "commandChecksum": "sha256:819d93c8d83634b3fa5638a4942ee63ba0750a87727da6bc8c4126d6e3f750f5",
+      "stdoutChecksum": "sha256:6202b5504260c574dcf935b80d5a8157303a30ab6b87cbf7362e92ed08e7d76a"
+    },
+    {
+      "step": "06-candidate-inspect",
+      "commandChecksum": "sha256:921c167f3a22afc20e9daf1180ad992e13caa6519bb6b1fb660e9913607dd95a",
+      "stdoutChecksum": "sha256:16ff49170cf392c23cb8ed06123500fa062a051c3eb2425ce2ddaf501a9ac443"
+    },
+    {
+      "step": "07-candidate-prepare",
+      "commandChecksum": "sha256:46cf54f2deff5d34f2d214f5e2f03a90a00fe0391e5532a87afd51ac33197f48",
+      "stdoutChecksum": "sha256:ec2ad455f43de4d4ffde289b113dcf414413c8dd24afd7fb2658048cc1d123e5"
+    },
+    {
+      "step": "08-exact-continuation",
+      "commandChecksum": "sha256:87b9e433095e253dc9b2d71d0f02fb760ab6dc09eee970d5104acdadcb9f0666",
+      "stdoutChecksum": "sha256:37ab20495d3efb45f6592d208b6ec988ffe68dad7491a6751e40a25d9bad190b"
+    },
+    {
+      "step": "09-promoted-context",
+      "commandChecksum": "sha256:a75d3db53de0f2aa4dc351c95fcd0b2dcac11f8bb8501a482242105cb015992f",
+      "stdoutChecksum": "sha256:1a367e89fede4170e3a5899bebab0868a8dfcb95bd0a3814e3f6998c8b26f5f0"
+    },
+    {
+      "step": "10-promoted-final-check",
+      "commandChecksum": "sha256:9578384d89a253c8160a18dbb5126dea9c630a216bff6eed886401441f42a01c",
+      "stdoutChecksum": "sha256:8898e9d73d5ffcf4851d1211d03decbc6daf13d7a7325e77631dee8c45d2d231"
+    },
+    {
+      "step": "11-manual-promote-idempotency",
+      "commandChecksum": "sha256:7b974b23864df32dc4db5935a64b9e6e435c64dd19a49695f428840efc153f38",
+      "stdoutChecksum": "sha256:8181bafae4fa5e028c609da509cddbe2252bc2a3facc0b8d5c6bd56eb0f52d1f"
+    },
+    {
+      "step": "12-manual-promote-final-check",
+      "commandChecksum": "sha256:9578384d89a253c8160a18dbb5126dea9c630a216bff6eed886401441f42a01c",
+      "stdoutChecksum": "sha256:8898e9d73d5ffcf4851d1211d03decbc6daf13d7a7325e77631dee8c45d2d231"
+    }
+  ],
+  "limitations": [
+    "Revision QA used a complete isolated copy of a finished installed Workspace and the public npm CLI.",
+    "This is a publishing-only revision closure with no new provider calls or creative Agent tasks; it is not Agent-driven revision or recovery certification."
+  ]
+}

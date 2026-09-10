@@ -219,3 +219,47 @@ After publication, repeat ordinary `npm create ...@latest` installation and the
 same two-host business-prompt test against the public registry. Keep post-release
 evidence separate from the candidate receipt. Do not mark the release as fully
 verified until these published-package runs finish.
+
+Use `create-public` after both `latest` tags identify the intended release. Its strict configuration
+has `host`, `workspace`, `promptFile`, and `expectedVersion`; it accepts no local package paths:
+
+```json
+{
+  "host": "hermes",
+  "workspace": "/absolute/fresh-public-hermes-workspace",
+  "promptFile": "/absolute/hermes-prompt.txt",
+  "expectedVersion": "0.1.12"
+}
+```
+
+```sh
+node --import tsx scripts/release/first-use.ts create-public public-config.json public-snapshot.json
+```
+
+This controller runs ordinary `npm create --yes axmorf-studio@latest <workspace> -- --yes` against
+`https://registry.npmjs.org` using a fresh cache and empty npm credential/configuration files.
+It independently downloads both public tarballs, verifies their SHA-512 `dist.integrity`, and checks
+`latest` before and after installation. It binds the actual cached creator and installed runtime bytes,
+both npm lockfiles, the generated guides, and the empty Workspace before any Agent starts. Keep its
+`.public-install-*` directory and original install log with the private raw evidence; they contain the
+registry tarballs and creator lock required for revalidation. Credentials and host auth profiles must
+remain outside the evidence directory. There is no standalone command to certify an existing Workspace.
+
+Run each fresh host and use the same `record` command with the public snapshot. Combine these receipts
+in a separate public-release evidence file, then verify using the retained registry tarballs:
+
+```sh
+node --import tsx scripts/release/first-use.ts verify-public public-runtime.tgz public-creator.tgz public-receipts.json
+```
+
+Public receipts explicitly use `npm-create-public-registry`; the prepublication `verify` gate accepts
+only `npm-exec-candidate`, and `verify-public` accepts only public-registry evidence. Neither can replace
+the other. The public verifier rechecks registry tarball bytes and integrity as well as the same native
+execution, supervision, and delivery requirements.
+
+During release review, inspect both roots and every worker for failed tools and self-corrections; a
+successful receipt does not describe all intermediate failures. Sample the actual rendered opener,
+closer, every content Scene, and transitions. Record the sampled frames/times, observed contrast or
+occlusion issues, and whether full-frame review and listening were performed. These are release-review
+records, not additional hard gates in the Agent's ordinary production workflow, and a technical receipt
+is not visual-quality certification.

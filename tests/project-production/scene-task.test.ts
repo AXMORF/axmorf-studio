@@ -92,7 +92,7 @@ const createSceneWorkspace = async ({
       "src/sync-anchors.json",
       "src/visual-plan.json",
     ].sort(),
-    validatorPolicyVersion: "scene-owner-validator-v3",
+    validatorPolicyVersion: "scene-owner-validator-v4",
   });
   const workspace = await createTaskWorkspace({
     rootDir,

@@ -488,7 +488,7 @@ export const buildAgentTasks = (
       outputs: SCENE_OUTPUTS,
       validatorPolicyVersion: templateCopy
         ? "scene-template-validator-v3"
-        : "scene-owner-validator-v3",
+        : "scene-owner-validator-v4",
       context: {
         resourcePool: inputs.resourcePool,
         ...(templateCopy

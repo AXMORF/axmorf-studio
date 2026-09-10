@@ -85,7 +85,7 @@ void renderer;
     },
   });
   if (checked.task.taskKind === "scene-owner") {
-    if (checked.task.validatorPolicyVersion !== "scene-owner-validator-v3") {
+    if (checked.task.validatorPolicyVersion !== "scene-owner-validator-v4") {
       throw new Error("Scene owner task uses an unsupported validator policy.");
     }
     const baseline = SceneOriginalityBaselineSchema.parse(

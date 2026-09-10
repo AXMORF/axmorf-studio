@@ -141,6 +141,15 @@ Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the config
 instance. Its artifact is the exact union of immutable copied source/assets and the canonical derived Scene bundle;
 live-only fixed projections are excluded from its task identity.
 
+Scene owner validator v4 distinguishes actual text from provable JSX-only layout/graphic children. A bounded
+syntax proof resolves lexical const bindings and supports common synchronous map returns; unknown or text-returning
+expressions still require readable text sizing. Numeric 2D translation/rotation is accepted, while shrinking or
+unknown text transforms remain rejected. Only explicit native SVG graphics without text, custom/unknown children,
+or text-affecting definitions are exempt from text-scale checks. The proof helper participates in the Scene policy
+fingerprint; no authored code is evaluated. These source checks do not certify rendered contrast or clipping.
+Default boundary templates keep transparent roots and provide local opaque backing for their fixed dark foregrounds;
+the Composition remains the only full-frame background owner. Existing Project-local template copies are immutable.
+
 inspect 前的 execution resolver 按用户提示词、settings、内置 `subagents`/4 默认逐字段选择 Root inline 或 bounded
 subagents，且不进入 production identity。subagents 还要求宿主为本次 production 验证 `shared-workspace` 或
 `controller-io`；transport 不进入 settings 或持久 identity。每个 dirty Agent task 只有一个 executor；inline 一次一个 workspace，

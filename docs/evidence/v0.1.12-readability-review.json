@@ -1,0 +1,60 @@
+{
+  "version": "0.1.12",
+  "status": "passed",
+  "recordedAt": "2026-09-10T07:37:54.443Z",
+  "results": [
+    {
+      "case": "selfclosing-svg-small-text",
+      "expected": "rejected",
+      "actual": "rejected",
+      "passed": true
+    },
+    {
+      "case": "selfclosing-html-small-text",
+      "expected": "rejected",
+      "actual": "rejected",
+      "passed": true
+    },
+    {
+      "case": "spread-props-scale",
+      "expected": "rejected",
+      "actual": "rejected",
+      "passed": true
+    },
+    {
+      "case": "map-mutated-receiver",
+      "expected": "rejected",
+      "actual": "rejected",
+      "passed": true
+    },
+    {
+      "case": "old-safe-template-g",
+      "expected": "accepted",
+      "actual": "accepted",
+      "passed": true
+    }
+  ],
+  "regressionEvidence": {
+    "axmorf-readability-review-pre-fix.json": "sha256:e419fdbcf866799df8a61ac25d23f2cccf181d513cfca2d9777aab5936454e8e",
+    "review-result.json": "sha256:d2995dcd0669619410edfe68f6cd4fad4337ee01a2f5d424f0f065bd531ef2f8",
+    "axmorf-readability-baseline-residuals.json": "sha256:4ca7e11b28e2329f0b5541b5046b127bfca0e0b988477a05335e778c92bced83"
+  },
+  "residuals": {
+    "baselineCommit": "ec7cf06c8dcb982ba65d203d2d08b50117e34107",
+    "currentAndBaseline": [
+      {
+        "case": "svg-viewbox-scale",
+        "result": "accepted"
+      },
+      {
+        "case": "individual-css-3d-rotation",
+        "result": "accepted"
+      }
+    ],
+    "scope": "These pre-existing source-check coverage gaps remain. This release does not certify general rendered readability, clipping, contrast, or all CSS/SVG transformations."
+  },
+  "validatorSources": {
+    "scripts/project-production/application/readability-source-validator.ts": "sha256:7df5458898a8a45cf67d4dfd648f3db9ed20d7b124bb5de6c66a4a7bf25a4d86",
+    "scripts/project-production/application/readability-expression-proof.ts": "sha256:177facf592a62ac61f0f2c35b09fd2c7e26962faf8c725cffe309be500f725e9"
+  }
+}

@@ -19,19 +19,23 @@ import {interpolate} from "remotion";
 const Renderer = ({sceneFrame, fps, viewportWidth, viewportHeight}: SceneRendererProps) => {
   const progress = interpolate(sceneFrame, [0, fps], [0, 1], {extrapolateRight: "clamp"});
   return <div style={{width: viewportWidth, height: viewportHeight}}>
-    <div style={{width: 120, height: 120, borderRadius: 60, backgroundColor: "#00d4ff", opacity: progress}} />
+    <div style={{width: 120, height: 120, borderRadius: 60, backgroundColor: "#00d4ff", opacity: progress, transform: `translateX(${progress * 40}px)`}} />
   </div>;
 };
 export default Renderer;
 ```
 
-## Readability checks
+## Readability
 
-Give every direct text-bearing HTML element an explicit numeric `style.fontSize`. For SVG `<text>`, use numeric
-`style.fontSize` or `fontSize`; CSS style takes precedence over the attribute. Avoid inherited/relative text sizes and hidden
-small labels. Literal array maps with direct JSX bodies are structural children; unknown expressions are conservatively checked.
+Keep visible text at least `sceneViewport.minFontSizePx` and clearly separated from its actual background.
+Set the size on the text-bearing element: numeric `style.fontSize` for HTML, and `fontSize` or
+`style.fontSize` for SVG `<text>` (style wins). Pure layout and graphic containers do not need a font size.
 
-For frame-driven movement, prefer numeric `left`/`top` or SVG `x`/`y`. Dynamic `transform` strings cannot generally prove that
-readable content will not shrink; a deterministic Remotion expression alone does not satisfy static readability proof. Keep
-scaling of text statically at least one. Errors include exact file:line:column, a rule name and a concrete correction. Fix the
-reported element instead of changing unrelated text nodes or asking the user to approve routine DOM changes.
+Frame-driven 2D translation and rotation are supported with literal transform functions and numeric
+arguments, including `interpolate()`/`spring()` results and supplied frame/viewport numbers. Keep text
+and its ancestors at full scale or larger; isolate decorative SVG motion from text.
+Unknown transform strings and unproven text sizes still fail the source check. Use the reported element
+and rule to correct the cause; do not add dummy typography to purely graphical content.
+
+Source checks do not measure rendered contrast, clipping, or pacing. Choose readable foreground/background
+pairs and adequate spacing; when reviewing a render, inspect the text in its actual frame and background.
