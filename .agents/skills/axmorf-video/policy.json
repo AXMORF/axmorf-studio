@@ -1,6 +1,6 @@
 {
   "schemaVersion": 19,
-  "policyVersion": "axmorf-video-policy-v23",
+  "policyVersion": "axmorf-video-policy-v24",
   "rootEndpoints": [
     "project-production-complete",
     "project-production-current"
@@ -54,12 +54,16 @@
   ],
   "executionPolicy": {
     "resolutionPhase": "before-production-inspect",
-    "precedence": ["user-prompt", "settings-page", "builtin-default"],
+    "precedence": [
+      "user-prompt",
+      "settings-page",
+      "builtin-default"
+    ],
     "promptOverridePersistence": "current-production-only-unless-explicit-save",
     "defaultMode": "subagents",
     "defaultSubagentMaxConcurrency": 4,
     "repositoryMaxConcurrency": 4,
-    "unknownRuntimeMaxConcurrency": 1,
+    "unknownRuntimeMaxConcurrency": 0,
     "inlinePolicy": "root-sequential-one-workspace-at-a-time",
     "subagentPolicy": "bounded-native-wait-any-or-synchronous-batch",
     "subagentWorkerTransport": "verified-shared-workspace-or-controller-io",
@@ -90,7 +94,7 @@
     "delegationSurface": "optional-runtime-native-subagents",
     "sharedCheckout": true,
     "capacityPolicy": "resolved-bounded-pool-max-four",
-    "unavailableDelegationPolicy": "known-zero-blocks-unknown-defaults-one",
+    "unavailableDelegationPolicy": "unknown-or-zero-capacity-blocks",
     "rootAgentAuthorsTaskOutputs": "only-when-resolved-inline",
     "taskExecutionContract": "immutable-attempt-neutral-agent-task-input",
     "agentWriteBoundary": "declared-task-outputs-only-after-successful-attempt-bound-bind",

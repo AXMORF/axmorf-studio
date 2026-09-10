@@ -16,44 +16,41 @@ Read [policy](policy.json), [workflow](references/direct-production-workflow.md)
 User silence means inheritance：省略 `sceneTemplates`，never infer `null`；新建用 `project:create`，修改走隔离 revision。
 
 `project:create` 冻结 originality baseline；legacy 缺失时必须显式 zero-provider `project:originality:freeze`，不伪造。
-Fix `authoring-validation-failed` issues. For `caption-display-budget-exceeded`, shorten or split `ttsChunk`
-within 72 `caption-display-unit-v1` half-units; never weaken validators.
+修复 `authoring-validation-failed`：`caption-display-budget-exceeded` 时缩短或拆分 `ttsChunk`，每段最多 72 `caption-display-unit-v1` half-units；不降低 validator。
 
 修改用 [revision workflow](references/project-revision.md); never edit live authoring.
 
 ## Load optional Agent capabilities
 
-Before inspect, use only the current Agent's actually callable tools. Activate the external-asset MCP slot when one
-MCP exposes `get_provider_status`, `search_images`, `preview_images`, and `acquire_image` with an import-compatible
-receipt; config, shell discovery, and another Agent's tools do not count. If absent, omit it without error,
-placeholder, or DAG node. If active, query local Catalog first and use `project:asset:import`. MCP data never enters
-task executors, artifacts, delivery, or runtime.
+Inspect 前仅看 current Agent's actually callable tools。同一 MCP 暴露 `get_provider_status`、`search_images`、
+`preview_images`、`acquire_image` 且 receipt 兼容 import 才启用；config, shell, another Agent's tools do not count。
+缺失时完整省略，不报错、不造 placeholder/DAG node。启用后先查 Catalog，再 `project:asset:import`；MCP 数据不进入 child、artifact、delivery 或 runtime。
 
 ## Resolve Agent execution
 
-按 [host probe](references/execution-capabilities.md) 验证原生 child 与 I/O，再在 inspect 前执行 `project:execution:resolve`：prompt → settings → `subagents`/4。override
+按 [host probe](references/execution-capabilities.md) 用 helper 生成完整路径和派发提示，验证 I/O 并释放全部探测槽位，再在 inspect 前执行 `project:execution:resolve`：prompt → settings → `subagents`/4。override
 只作用本次 production，除非用户要求保存。inline 串行且无需 child；subagents 要求 bounded runtime-native children、
-本次 verified `shared-workspace`/`controller-io`，capacity 未知按 1，ceiling 4。unverified transport、
+本次 verified `shared-workspace`/`controller-io`，capacity 未知阻塞，ceiling 4。一个 I/O probe 成功不代表最大容量是 1；读取原生工具可用槽位。unverified transport、
 exact mismatch 或 zero capacity 在 prepare 前阻塞。transport 不持久化、不进入 identity。
 
 ## Inspect before cost
 
-Run read-only `project:produce:inspect`; prepare 前向用户说明 readiness、cost/reuse 与失效原因；CLI 输出不算说明。未知保持未知。
+Run read-only `project:produce:inspect`；返回后转述 `agentHandoff` 的 readiness、cost/reuse 与失效原因，再 prepare；CLI 输出不算报告，未知保持未知。
 
 ## Prepare content-addressed tasks
 
-After reporting run `project:produce:prepare`; it may call providers and open an ExecutionAttempt. Diagnostics 不进入 identity；复用 artifacts，只执行 `dirtyAgentTasks`。
+报告后运行 `project:produce:prepare`，它可能调用 provider 并创建 ExecutionAttempt。Diagnostics 不进入 identity；复用 artifacts，仅执行 `dirtyAgentTasks`。
 
 ## Execute dirty Agent tasks
 
-Use the resolved mode with the task's [Scene](references/scene-agent-orchestration.md),
+按已解析模式与 [Scene](references/scene-agent-orchestration.md)、
 [GlobalVisual](references/global-visual-agent-orchestration.md), or [Cover](references/cover-agent-orchestration.md)
-prompt; never Agent-author `scene-template`. 按 [task protocol](references/task-execution-protocol.md) 在任何 task
+prompt; 优先完整转发 prepare 的对应 `workerPrompts`，不手抄 task/binding hash；never Agent-author `scene-template`. 按 [task protocol](references/task-execution-protocol.md) 在任何 task
 read/write 前运行 exact attempt-bound bind；只有 `task-worker-bound` 才能通过返回的 transport 访问三个 immutable
 inputs 与 declared outputs，并运行 bound commands。TaskExecutionContract attempt-neutral；the validated ArtifactAttestation
 与 task-terminal events 才是 durable authority。
 
-Prepare 前确认宿主进程能跨工具超时存活；只能等待原 handle 的 fixed 终态，后台启动回执不是完成。
+Prepare 前确认宿主进程能跨工具超时存活；按 host probe reference 的完整结果/原句柄等待示例执行。Hermes continuation 用原生 background/notify；Codex 不丢 session/cell ID，也不把 wait-any 的部分完成当整批完成。后台启动回执不是完成。
 
 Inline Root executes exactly one workspace at a time. Subagent mode admits at most `effectiveMaxConcurrency`
 runtime-native children；原生 wait-any 即时补位，原生批量返回或整批完成通知后发下一批；不轮询 child 或信任 chat。真实 spawn/
@@ -68,11 +65,11 @@ Task failure exits nonzero without converge; all-success converges exactly once;
 
 ## Preserve production invariants
 
-- Sealed PCM samples own timing; Composition owns captions, narration, and background.
-- Scene/GlobalVisual/Cover are isolated; templates are fixed-produced; Scene roots stay transparent.
-- Scene owners must not duplicate a frozen historical or same-revision TS/TSX source graph; template-copy is exempt.
-- Diagnostics do not change authority; protect private/voice/other-Project/history.
-- Delivery is exact `video.mp4`, two PNG Covers, and `publish.json`, validated through EOF.
+- Sealed PCM samples 定义 timing；Composition 拥有 captions、narration、background。
+- Scene/GlobalVisual/Cover 隔离；template 固定生产；Scene root 透明。
+- TS/TSX 不可重复 frozen baseline 或同 revision source graph；template-copy 豁免。
+- Diagnostics 不改变 authority；保护 private/voice/其他 Project/history。
+- Delivery：`video.mp4`、两张 PNG Cover、`publish.json`，全部通过 EOF。
 
 ## Classify failure by task owner
 

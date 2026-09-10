@@ -9,15 +9,30 @@ const boundArguments = ({
   bindingId,
   projectId,
   candidateId,
-}: BoundTaskCommandInput) =>
-  [
-    `--task ${taskRevision}`,
-    `--attempt ${attemptId}`,
-    `--binding ${bindingId}`,
+  assignment,
+}: BoundTaskCommandInput) => {
+  if (assignment !== undefined && projectId === undefined)
+    throw new Error("Short task assignment requires a project id.");
+  return [
+    ...(assignment === undefined
+      ? [
+          `--task ${taskRevision}`,
+          `--attempt ${attemptId}`,
+          `--binding ${bindingId}`,
+        ]
+      : [
+          `--project ${projectId}`,
+          `--attempt ${attemptId}`,
+          `--assignment ${assignment}`,
+        ]),
     ...(candidateId === undefined
       ? []
-      : [`--project ${projectId}`, `--candidate ${candidateId}`]),
+      : [
+          ...(assignment === undefined ? [`--project ${projectId}`] : []),
+          `--candidate ${candidateId}`,
+        ]),
   ].join(" ");
+};
 
 export const npmScriptProductionCommandFormatter: ProductionCommandFormatter = {
   bindTask: ({ transport, ...input }) =>

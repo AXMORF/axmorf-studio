@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.13",
+  "date": "2026-09-11",
+  "baseRelease": "v0.1.12",
+  "scope": "attempt-scoped handoff, native probes/waits, explicit capacity, precise authored-output diagnostics, dependency-aware task recovery and actual concurrency acceptance",
+  "checks": {
+    "focused": {
+      "passed": true,
+      "logSha256": "3997b512c50732c7ab48b8dc81e5e252624b521d1e32dc017e879b574deb7c64",
+      "testCount": 22,
+      "includes": [
+        "task finalization and public CLI serialization",
+        "recover-inspect/reissue with actual dependency graphs",
+        "immutable, fixed, host and unknown error guards"
+      ]
+    },
+    "full": {
+      "passed": true,
+      "logSha256": "18d25a8e1bcaf74be0367254db25502ec41f49b1557388279a6e51473859973b",
+      "testCount": 894,
+      "includes": [
+        "typecheck",
+        "lint",
+        "documentation links",
+        "runtime build",
+        "real Chromium compositions",
+        "all current source Projects"
+      ]
+    },
+    "packages": {
+      "passed": true,
+      "includes": [
+        "workspace typecheck",
+        "runtime build",
+        "runtime and creator check:package",
+        "npm audit: zero vulnerabilities"
+      ],
+      "evidence": "Native command completed packages:typecheck, packages:build, both check:package scripts and npm audit with zero vulnerabilities; candidate5 package snapshots bind the built files."
+    },
+    "review": {
+      "diffWhitespace": "passed",
+      "independentReadOnlyReview": "Final focused review of dependency-aware recovery and attempt-scoped assignment found no new actionable bug. The no-failed-outcomes recovery guard remains enforced. This is not an exhaustive independent review."
+    },
+    "additionalRegression": {
+      "passed": true,
+      "testCount": 8,
+      "scope": "Scene finalization suite after adding five draft-file diagnostic cases; package source unchanged after full checks"
+    },
+    "reportHandoff": {
+      "passed": true,
+      "testCount": 9,
+      "logSha256": "f195228e0099dd3d68aebe087292610d5d54f338e5d2d588456a89298b907109",
+      "scope": "create-context and inspect CLI summaries; null stays unknown, zero stays zero, example duration is distinct from the user target"
+    },
+    "hermesRunIdentityTypecheck": {
+      "passed": true,
+      "logSha256": "23b0aba27eeb1f3b7ca569692925cbef4fdb741c61308d3a4a9e312fb78bd773",
+      "scope": "Source-only release recorder accepts sessionId or storedSessionId; every present ID must match the native database."
+    },
+    "hermesRunIdentityRegression": {
+      "passed": true,
+      "testCount": 23,
+      "logSha256": "9561db86337fda0fdf0e1bcb6ed70b30d917fabd244e5cac01c9323d781b6663",
+      "scope": "Native session alias matching, original transcript and child evidence regression; source-only recorder change."
+    }
+  },
+  "limits": [
+    "These are engineering checks, not real-agent acceptance.",
+    "Real Luna/medium Codex and Hermes candidate and public npm results are recorded separately.",
+    "Vite emitted its existing large-chunk advisory; the build completed."
+  ]
+}

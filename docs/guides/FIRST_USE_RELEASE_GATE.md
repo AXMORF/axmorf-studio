@@ -53,6 +53,14 @@ These bindings detect mismatched or incomplete captures; they are not cryptograp
 attestation that a maintainer did not fabricate an entire capture.
 Historical receipts retain their original, narrower scope.
 
+From 0.1.13, each host must resolve effective capacity four and demonstrate positive-duration overlap of four
+production tasks between their successful bind result and first commit result in the native common timestamp domain.
+The recorder reports `peakBoundTasks` and total `fourWayBoundOverlapMs` separately from native session lifetimes.
+Four open sessions with serial task execution do not satisfy this gate. These observed task intervals do not measure
+CPU utilization or provider request concurrency. Older receipts remain readable without these new fields.
+Hermes continuation must start through its native background process interface; a larger foreground timeout is
+insufficient. Both `process` and `process_manage` aliases are subject to the same original-handle wait rules.
+
 The acceptance controller must preserve required host capabilities. In particular, verify `/bin/ps` can run through the
 actual macOS host command surface before production; a passing browser check alone may not exercise the cleanup fallback.
 Do not add `sandbox-exec` as a supposedly file-only isolation wrapper: it can prevent `/bin/ps` from starting even under
@@ -106,7 +114,7 @@ exact `prompt`, and `harnessInterventions` in a run JSON. Capture the start time
 only after the snapshot, and retain original logs. Successful first-use runs
 must have exit code zero and an empty intervention list. Never store credentials
 in an evidence folder or commit raw host profiles. Hermes TUI runs additionally retain
-`uiSessionId` and `storedSessionId` from the native session-create response.
+`uiSessionId` and the stored identity as `storedSessionId` or `sessionId` from the native session-create response. If both stored-identity fields are present, both must match the native database.
 
 For Codex, retain the fresh root and every native child's
 `CODEX_HOME/sessions/**/rollout-*.jsonl`. For Hermes,

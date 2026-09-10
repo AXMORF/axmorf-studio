@@ -82,6 +82,38 @@ const audit = (rows: unknown[], sessionSource = "tui") =>
 test("TUI acceptance follows native batch completion and reports fixed delivery once", () => {
   assert.equal(audit(trace().rows).completedAsyncBatches, 2);
 });
+test("Hermes continuation must use a persistent native background process", () => {
+  const { rows } = trace();
+  for (const row of rows) {
+    for (const call of (row.tool_calls ?? []) as Array<{
+      function: { arguments: string };
+    }>) {
+      const args = JSON.parse(call.function.arguments);
+      if (String(args.command).startsWith("npm run project:produce:continue")) {
+        delete args.background;
+        args.timeout = 600;
+        call.function.arguments = JSON.stringify(args);
+      }
+    }
+  }
+  assert.throws(() => audit(rows), /native background process/u);
+});
+test("the native process alias cannot bypass continuation wait rules", () => {
+  const { rows } = trace();
+  for (const row of rows) {
+    for (const call of (row.tool_calls ?? []) as Array<{
+      function: { name: string; arguments: string };
+    }>) {
+      if (call.function.name === "process_manage") {
+        call.function.name = "process";
+        const args = JSON.parse(call.function.arguments);
+        args.action = "poll";
+        call.function.arguments = JSON.stringify(args);
+      }
+    }
+  }
+  assert.throws(() => audit(rows), /original handle/u);
+});
 test("synchronous oneshot evidence cannot certify the TUI notification lifecycle", () => {
   assert.throws(() => audit(trace().rows, "cli"), /real Hermes TUI/u);
 });

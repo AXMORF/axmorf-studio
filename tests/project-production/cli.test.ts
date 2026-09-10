@@ -294,7 +294,47 @@ test("inspect and prepare each emit one stable structured JSON document", async 
   );
   assert.equal(inspectLines.length, 2);
   assert.equal(inspectLines[0], inspectLines[1]);
-  assert.deepEqual(JSON.parse(inspectLines[0] ?? "null"), inspection);
+  assert.deepEqual(JSON.parse(inspectLines[0] ?? "null"), {
+    agentHandoff: {
+      nextAction: "report-to-user-before-prepare-production",
+      summary:
+        "sourceState=production-inputs-ready; estimatedProviderRequests=1; providerCacheHits=2; estimatedAgentTasks=1; artifactReuse=0; nonReusableTasks=1; actualDurationSeconds=not-measured.",
+      instruction:
+        "After this tool returns, report these read-only facts and the task invalidation explanations to the user in a separate assistant message, then take the next production action. CLI output is not that report. Existing production authorization needs no new confirmation; this handoff is diagnostic only.",
+    },
+    ...inspection,
+  });
+
+  for (const value of [0, null]) {
+    const lines: string[] = [];
+    await runProjectProductionCli(["inspect", "--project", "story-example"], {
+      ...inspectContext,
+      stdout: (line) => lines.push(line),
+      inspectProduction: (async () => ({
+        ...inspection,
+        sourceState: "configured-authoring",
+        currentRevisionId: null,
+        tasks: [],
+        estimatedCost: {
+          providerRequests: value,
+          providerCacheHits: value,
+          agentTasks: value,
+          deliveryMedia: null,
+        },
+        nextAction: "prepare-narration",
+      })) as never,
+    });
+    const result = JSON.parse(lines[0]!);
+    assert.equal(
+      result.agentHandoff.summary,
+      `sourceState=configured-authoring; estimatedProviderRequests=${value === null ? "unknown" : 0}; providerCacheHits=${value === null ? "unknown" : 0}; estimatedAgentTasks=${value === null ? "unknown" : 0}; artifactReuse=not-planned; nonReusableTasks=not-planned; actualDurationSeconds=not-measured.`,
+    );
+    assert.equal(
+      result.agentHandoff.nextAction,
+      "report-to-user-before-prepare-narration",
+    );
+    assert.equal(result.nextAction, "prepare-narration");
+  }
 
   const prepared = {
     status: "project-production-prepared",

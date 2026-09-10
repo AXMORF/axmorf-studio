@@ -41,7 +41,7 @@ npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrenc
 ```
 
 解析为 subagents 时需要 runtime capacity 和 verified worker transport；已知容量必须传入，
-未知时按 1，明确为 0 时阻塞。`shared-workspace`/`controller-io` 是本次宿主能力证据，不是配置项，也不持久化。
+未知或明确为 0 时均阻塞。`shared-workspace`/`controller-io` 是本次宿主能力证据，不是配置项，也不持久化。
 仓库安全上限为 4。未验证 transport 或无法满足 exact request 都在 prepare 前阻塞。解析结果不进入
 production identity。
 
@@ -93,14 +93,14 @@ bind 与 prepare 返回的 exact commands。Scene child 完整读取 repository-
 三个 immutable inputs 的 checksum 与 TaskExecutionContract；只有 `task-worker-bound` 授予 capability：
 
 ```bash
-npm run project:task:bind -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --transport shared-workspace|controller-io
-npm run project:task:describe -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
-npm run project:task:finalize -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
-npm run project:task:check -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
-npm run project:task:commit -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
-npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --kind task|host|fixed
-npm run project:task:file-read -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --path <logicalPath>
-npm run project:task:file-write -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --path <declaredOutputPath>
+npm run project:task:bind -- --project <storyId> --attempt <attemptId> --assignment <ordinal> --transport shared-workspace|controller-io
+npm run project:task:describe -- --project <storyId> --attempt <attemptId> --assignment <ordinal>
+npm run project:task:finalize -- --project <storyId> --attempt <attemptId> --assignment <ordinal>
+npm run project:task:check -- --project <storyId> --attempt <attemptId> --assignment <ordinal>
+npm run project:task:commit -- --project <storyId> --attempt <attemptId> --assignment <ordinal>
+npm run project:task:fail -- --project <storyId> --attempt <attemptId> --assignment <ordinal> --kind task|host|fixed
+npm run project:task:file-read -- --project <storyId> --attempt <attemptId> --assignment <ordinal> --path <logicalPath>
+npm run project:task:file-write -- --project <storyId> --attempt <attemptId> --assignment <ordinal> --path <declaredOutputPath>
 ```
 
 shared-workspace 只允许返回的 relative workspace/declared files。controller-io 没有 filesystem access：file-read

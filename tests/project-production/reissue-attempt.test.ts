@@ -4,6 +4,8 @@ import test from "node:test";
 
 import {
   ExecutionAttemptProgressSchema,
+  TaskDecisionExplanationSchema,
+  TaskDiagnosticSnapshotSchema,
   TaskExecutionContractSchema,
   buildProducerPlan,
   buildProducerTaskSpec,
@@ -260,7 +262,7 @@ const dependenciesFor = (
       calls.inspectArtifact += 1;
       return null;
     },
-    buildTaskSnapshots: () => [input.snapshot],
+    buildTaskSnapshots: () => input.failed.taskSnapshots,
     createAttempt: async (attemptInput) => {
       calls.createAttempt += 1;
       createAttemptInput = attemptInput;
@@ -371,6 +373,191 @@ test("recover-inspect rejects stale revisions and fixed-flow failed plans", asyn
     inspectAttemptRecovery(recoveryInput(input, unsupported.dependencies)),
     rejectsWithCode("attempt-recovery-plan-not-recoverable"),
   );
+});
+
+const withDownstreamBlocks = () => {
+  const input = fixture();
+  const dependency = {
+    taskKind: input.task.taskKind,
+    subjectId: input.task.storyId,
+    taskRevision: input.task.taskRevision,
+  };
+  const convergence = TaskDecisionExplanationSchema.parse({
+    ...input.decision,
+    taskRevision: `task-${"1".repeat(64)}`,
+    taskKind: "composition-convergence",
+    action: "blocked",
+    blockedBy: [dependency],
+  });
+  const delivery = TaskDecisionExplanationSchema.parse({
+    ...convergence,
+    taskRevision: `task-${"2".repeat(64)}`,
+    taskKind: "delivery-build",
+    blockedBy: [
+      {
+        taskKind: convergence.taskKind,
+        subjectId: input.task.storyId,
+        taskRevision: convergence.taskRevision,
+      },
+    ],
+  });
+  const plan = buildProducerPlan({
+    ...input.plan,
+    tasks: [input.decision, convergence, delivery].sort((a, b) =>
+      String(a.taskRevision).localeCompare(String(b.taskRevision)),
+    ),
+    summary: { ...input.plan.summary, blockedTaskCount: 2 },
+  });
+  const failed = ExecutionAttemptProgressSchema.parse({
+    ...input.failed,
+    planFingerprint: plan.planFingerprint,
+    taskExplanations: plan.tasks,
+    taskSnapshots: plan.tasks.map((decision) =>
+      TaskDiagnosticSnapshotSchema.parse({
+        ...input.snapshot,
+        taskKind: decision.taskKind,
+        subject: decision.subject,
+        taskRevision: decision.taskRevision,
+        decision,
+      }),
+    ),
+    taskSummary: plan.summary,
+  });
+  return { ...input, plan, failed, current: { ...input.current, plan } };
+};
+
+test("inspect and reissue allow two downstream blocks with separate revisions after an Agent failure", async () => {
+  const input = withDownstreamBlocks();
+  const before = JSON.stringify(input.failed);
+  const { dependencies, calls } = dependenciesFor(input);
+  const inspected = await inspectAttemptRecovery(
+    recoveryInput(input, dependencies),
+  );
+  assert.equal(inspected.status, "attempt-recovery-ready");
+  assert.equal(calls.createAttempt, 0);
+  const reissued = await reissueAttempt(recoveryInput(input, dependencies));
+  assert.equal(reissued.status, "project-production-reissued");
+  assert.equal(reissued.dirtyAgentTasks.length, 1);
+  assert.equal(reissued.providerRequests, 0);
+  assert.equal(calls.createAttempt, 1);
+  assert.equal(JSON.stringify(input.failed), before);
+});
+
+test("recovery refuses fixed, host, unknown and missing failed-task evidence even without downstream blocks", async () => {
+  for (const diagnosticCode of [
+    "producer-agent-fixed-failed",
+    "producer-agent-host-failed",
+    "producer-task-commit-failed",
+    null,
+  ]) {
+    const input = fixture();
+    const failed = ExecutionAttemptProgressSchema.parse({
+      ...input.failed,
+      taskOutcomes:
+        diagnosticCode === null
+          ? []
+          : input.failed.taskOutcomes.map((outcome) => ({
+              ...outcome,
+              diagnosticCode,
+            })),
+      taskOutcomeSummary: {
+        ...input.failed.taskOutcomeSummary,
+        failedTaskCount: diagnosticCode === null ? 0 : 1,
+      },
+    });
+    const { dependencies, calls } = dependenciesFor(input, {
+      readAttempt: async () => failed,
+    });
+    await assert.rejects(
+      inspectAttemptRecovery(recoveryInput(input, dependencies)),
+      rejectsWithCode("attempt-recovery-plan-not-recoverable"),
+    );
+    assert.equal(calls.createAttempt, 0);
+  }
+});
+
+test("recovery rejects unknown, cross-revision, cyclic and independent downstream blockers", async () => {
+  for (const variant of [
+    "unknown",
+    "cross-revision",
+    "cycle",
+    "independent",
+  ] as const) {
+    const input = withDownstreamBlocks();
+    const tasks = input.plan.tasks.map((task) => {
+      if (task.taskKind !== "composition-convergence") return task;
+      const original = task.blockedBy[0]!;
+      const blockedBy =
+        variant === "independent"
+          ? [
+              {
+                taskKind: "scene-template",
+                subjectId: "independent",
+                taskRevision: `task-${"3".repeat(64)}`,
+              },
+            ]
+          : [
+              {
+                ...original,
+                ...(variant === "unknown" ? { subjectId: "other-story" } : {}),
+                ...(variant === "cross-revision"
+                  ? { taskRevision: `task-${"a".repeat(64)}` }
+                  : {}),
+                ...(variant === "cycle"
+                  ? {
+                      taskKind: "delivery-build",
+                      taskRevision: `task-${"2".repeat(64)}`,
+                    }
+                  : {}),
+              },
+            ];
+      return TaskDecisionExplanationSchema.parse({ ...task, blockedBy });
+    });
+    if (variant === "independent")
+      tasks.push(
+        TaskDecisionExplanationSchema.parse({
+          ...input.decision,
+          taskKind: "scene-template",
+          taskRevision: `task-${"3".repeat(64)}`,
+          subject: { kind: "meaning", id: "independent" },
+          action: "reuse",
+          artifactState: "valid",
+        }),
+      );
+    const plan = buildProducerPlan({
+      ...input.plan,
+      tasks: tasks.sort((a, b) =>
+        String(a.taskRevision).localeCompare(String(b.taskRevision)),
+      ),
+      summary: {
+        ...input.plan.summary,
+        reusedTaskCount: variant === "independent" ? 1 : 0,
+      },
+    });
+    const failed = ExecutionAttemptProgressSchema.parse({
+      ...input.failed,
+      planFingerprint: plan.planFingerprint,
+      taskSummary: plan.summary,
+      taskExplanations: plan.tasks,
+      taskSnapshots: plan.tasks.map((decision) =>
+        TaskDiagnosticSnapshotSchema.parse({
+          ...input.snapshot,
+          taskKind: decision.taskKind,
+          subject: decision.subject,
+          taskRevision: decision.taskRevision,
+          decision,
+        }),
+      ),
+    });
+    const { dependencies, calls } = dependenciesFor(input, {
+      readAttempt: async () => failed,
+    });
+    await assert.rejects(
+      inspectAttemptRecovery(recoveryInput(input, dependencies)),
+      rejectsWithCode("attempt-recovery-plan-not-recoverable"),
+    );
+    assert.equal(calls.createAttempt, 0);
+  }
 });
 
 test("reissue rechecks under lock, preserves the old attempt, and creates zero-provider commands", async () => {

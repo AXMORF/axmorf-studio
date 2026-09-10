@@ -142,7 +142,13 @@ test("active npm docs expose bound TaskExecutionContract and explicit failed-att
       /npm run project:task:(?:describe|finalize|check|commit|fail)[^\n]*/gu,
     )) {
       assert.match(command[0], /--attempt/u);
-      assert.match(command[0], /--binding/u);
+      if (command[0].includes("--assignment")) {
+        assert.match(command[0], /--project/u);
+        assert.doesNotMatch(command[0], /--task|--binding/u);
+      } else {
+        assert.match(command[0], /--task/u);
+        assert.match(command[0], /--binding/u);
+      }
     }
   }
   const authorities = await Promise.all(

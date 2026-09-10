@@ -6,18 +6,32 @@ Explicit `inline` remains supported and needs no child probe.
 
 ## Verify this host before inspect
 
-1. Inspect the current callable native child tools and their documented limits: child creation, completion (wait-any, synchronous batch return, or native asynchronous batch notification), and slot release. Use discoverable host tool search when available. A CLI on PATH, an installed plugin, a new chat, or a shell subprocess
-   is not a native child executor. Determine available child capacity, excluding the Root and occupied slots; never copy the saved
-   maximum into runtime capacity. If capacity is unknown, omit its flag; with verified transport the resolver conservatively uses one. An exact request
-   that cannot be met still blocks.
-2. For a shared filesystem host, create one unique temporary directory within this Workspace using `mktemp -d .axmorf-worker-probe.XXXXXX`. Write random challenge bytes to `challenge.txt` and leave `response.txt` absent.
-   Start one bounded native child with only this task: read that exact challenge path and write its bytes unchanged to that exact
-   response path; access no other files and return. Do not include the challenge bytes in the child prompt. This probe precedes
-   production, uses no Project/task/artifact path, and calls no media provider.
-3. Wait for the native child to finish. The Root reads both files and compares their bytes. Only a successful native child plus
-   matching bytes proves `shared-workspace`. Release its host slot and remove only the two probe files and the unique empty probe
-   directory. The Root must not write the response or replace a failing native probe with a shell job.
-4. Pass verified host facts to the resolver, inheriting the requested mode/maximum rather than overriding them:
+1. Read the requested mode/maximum from explicit user fields, then `private/execution-preferences.json`, then
+   built-in `subagents`/4. Inspect actual callable native child creation/completion/slot-release tools and their
+   documented available slots, excluding Root and occupied slots. A CLI, plugin, new chat, or shell job is not a child.
+   Missing runtime capacity now blocks resolution; it never silently becomes one. A read-only blocked resolver result
+   may expose the requested settings; resolve successfully once after gathering the missing host evidence.
+2. Choose a bounded probe count up to the requested maximum and repository ceiling four, respecting a known lower
+   native host limit. When the host maximum is unknown, exercise the requested batch through the real native child API;
+   do not test one and label it the maximum. Generate the temporary challenge files and complete assignments with the
+   shipped helper from the Workspace root:
+
+```bash
+node .agents/skills/axmorf-video/scripts/native-probe.mjs create --count <bounded-probe-count>
+```
+
+3. Forward each returned `workerPrompt` in full to one fresh native child. Both the input and output paths are absolute;
+   never shorten a response path, reconstruct a prompt, or put challenge bytes in it. Dispatch the whole bounded batch
+   before waiting on one. No Project/task/artifact path or provider is involved. Respect a native capacity rejection;
+   do not fake capacity or substitute shell jobs.
+4. Wait for every native completion, preserving still-pending handles. Then run the returned exact `verifyCommand`.
+   Only its successful comparison proves the shared-file round trip; native admission and completion establish the
+   tested available capacity. A missing response is an unverified probe, not proof of filesystem isolation: inspect the
+   assigned absolute paths and reported child command before classifying the cause. Root never writes or moves responses.
+5. Explicitly close/release every completed probe child through the native host API before production dispatch. A completed
+   child can still occupy a host slot; a completion message alone does not release it. Then run the returned `cleanupCommand`,
+   which removes only this verified batch. Preserve failed probe evidence. Pass verified host facts to the resolver,
+   inheriting the requested mode/maximum rather than overriding them:
 
 ```bash
 npm run project:execution:resolve -- --runtime-max-concurrency <verified-available-child-capacity> --worker-transport shared-workspace
@@ -28,6 +42,41 @@ inputs. If no child API or verified transport exists, report the actual blocker 
 For a host without shared files, `controller-io` is valid only after its native child channel demonstrates a strict read/write
 round trip through the Root's controller. During production it must exclusively use the exact bound file-read/file-write capability.
 Do not label a shared-filesystem probe as `controller-io`, or select it merely to bypass a failed probe.
+
+A single successful probe proves transport and at least one working child; it does **not** prove a maximum of one.
+Use the current native tool's documented available slots for capacity. If that tool supports four available children,
+pass four, even when one child was sufficient for the I/O challenge. Never invent a lower capacity for convenience.
+For an exact concurrency request, the tested batch must satisfy that exact count before prepare. Keep this temporary evidence outside production identity. Compare
+cross-process timing only with a shared wall-clock domain; use a process's monotonic clock only for its own duration.
+
+## Preserve process and child waits
+
+Use the host's current callable tool schema. A yielded tool response is still running when it contains a process or
+cell handle, including when output is empty. Preserve the complete result, not just its output string. In Codex
+code mode, this pattern keeps the original shell process alive through repeated wait windows:
+
+```javascript
+// axmorf-original-process-wait
+let result = await tools.exec_command({cmd: "<exact returned command>", yield_time_ms: 1000});
+text(result);
+while (result.session_id !== undefined) {
+  result = await tools.write_stdin({session_id: result.session_id, chars: "", yield_time_ms: 60000});
+  text(result);
+}
+if (result.exit_code !== 0) throw new Error("Command failed; inspect the structured result above.");
+```
+
+If code mode itself yields a cell ID, wait on that same cell until completion. Never start the command again.
+Root and probe/production workers use this rule. A wait-any child result covers only the children reported complete:
+keep the other native handles pending, refill free slots, and wait again. A CLI Root must not send its final answer
+while probe/production children or the original continuation process remain pending; ending that Root can cancel them.
+
+For Hermes, start continuation with native `terminal` arguments `background: true, notify: true`. Preserve its
+`session_id`; use the current native `process`/`process_manage` tool with `action: "wait"`, that same ID, and a long
+wait within the host deadline. Raising a foreground `timeout` does not extend the outer tool executor deadline.
+Do not use shell `&`, change host timeouts, or restart a timed-out foreground continuation. A wait-window timeout
+is pending; a missing/killed process is an error requiring diagnosis. The event-only yield rule below applies only
+when the host keeps the session and work alive and resumes it through native notifications.
 
 ## Event-only hosts
 
@@ -41,7 +90,10 @@ This is session resumption, not a new task, mode fallback, or a user approval re
 
 A child may receive only its own goal/context. Do not rely on inherited conversation, working directory, or a parent's successful
 doctor message. Supply the Workspace root, task kind, exact bind command from prepare, and these public instruction paths in each
-native child assignment. Preserve every returned identity and candidate flag; do not reconstruct them. A compact handoff is:
+native child assignment. Prefer prepare's complete `workerPrompts` entry for the verified transport: forward the whole
+string without rewriting its command. Short `--assignment` is a 1-based index into this exact attempt's immutable dirty
+task snapshots, never a global/current/latest task selector. Preserve the project, attempt and candidate flags.
+Do not copy or reconstruct TaskRevision/binding hashes. A compact handoff is:
 
 ```text
 Role: assigned task worker for <task kind>, not production Root.

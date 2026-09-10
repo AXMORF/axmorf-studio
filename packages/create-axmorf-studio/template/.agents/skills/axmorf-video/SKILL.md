@@ -44,23 +44,27 @@ authoring in place; use the returned candidate flag throughout production.
 Candidates only use Project-owned media already frozen in their base context;
 they do not import new assets.
 
-Before inspect, read [native child verification](references/execution-capabilities.md) and perform its probe for the default
-`subagents` mode (maximum four). Resolve once with verified host flags on `npm run project:execution:resolve`. Only explicit user choices
+Before inspect, read [native child verification](references/execution-capabilities.md), use its helper-generated complete probe prompts, and release every completed probe slot for the default
+`subagents` mode (maximum four). Unknown runtime capacity blocks; verify a native probe batch up to the requested maximum. One I/O probe cannot establish maximum capacity one. Resolve once with verified host flags on `npm run project:execution:resolve`. Only explicit user choices
 may override settings; do not claim an Agent-selected mode came from the user. A blocked
 subagents configuration is a blocker, not permission to switch to inline.
 
 Before cost, run read-only `npm run project:produce:inspect` and report source
-readiness, estimate, artifact reuse, and invalidation in a user-visible message. Tool output alone is not this report. Only then run
+readiness, estimate, artifact reuse, and invalidation in a user-visible message. Follow the returned `agentHandoff`: send its summary before the next production command. Tool output alone is not this report. Only then run
 `npm run project:produce:prepare`, which may call configured providers and
 returns content-addressed dirty tasks plus exact terminal commands. Use its `durationBudget` to report measured total duration and deviation; sealed audio remains authoritative.
 
-Execute only dirty Agent tasks. Each executor first runs prepare's exact
+Execute only dirty Agent tasks. Forward the selected complete `workerPrompts` string from prepare/reissue without reconstructing task hashes. Each executor first runs prepare's exact
 attempt-bound bind command and continues only after `task-worker-bound`. Only
 then read `task.json`,
 `inputs/context.json`, and the immutable, attempt-neutral
 `inputs/task-contract.json`; then use only the returned transport and bound
 describe/finalize/check/commit/failure commands. ArtifactAttestation and terminal
 events are authority.
+
+Short `--assignment` selects one dirty task from the exact immutable project/attempt snapshots and retains the same full binding checks. Preserve all returned flags.
+
+Keep full process results and their original handles until exit; partial wait-any completion leaves the other children pending. Use native background/notify when a foreground wrapper cannot survive its outer deadline. Read the executable wait example in [native child verification](references/execution-capabilities.md#preserve-process-and-child-waits).
 
 Start prepare's exact continuation once per attempt. Root stays responsible with blocking waits on the original handle or native
 notifications; on event-only hosts follow the yield/resume instructions in [native child verification](references/execution-capabilities.md#event-only-hosts); no child/status polling, repeated log reads or unchanged progress reasoning. On errors, diagnose and guide the original

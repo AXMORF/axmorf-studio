@@ -2,7 +2,26 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-10 `v0.1.12` 已完成 874 项工程检查、双宿主候选黑盒与安装包 revision 闭环；尚未发布，公共 npm 仍为 0.1.10。
+> 最后复核：2026-09-11 公共 npm 两包 latest 均为 0.1.12；0.1.13 双宿主候选验收通过，等待精确 tag CI 发布与公共 npm 复测。
+
+## 并发交接与监督修复（0.1.13 候选通过）
+
+短 `--assignment` 由 exact attempt 的 immutable dirty task snapshots 还原 full task/binding identity；prepare/reissue 同时提供完整 worker handoff。
+原 zero-write bind、active attempt、candidate isolation、checksum 与 task validators 保持强制，旧 full-identity CLI 继续可用。
+首轮候选 Codex 仍省略 runtime capacity 并被旧默认放行为串行，已保留该失败证据；未验证容量改为前置阻断。
+第二轮 Hermes 把 probe response 派到错误目录并误判文件隔离，Codex 首次派发又受未释放 probe 槽位影响。
+后续改由 Skill helper 生成完整绝对路径与 probe prompts，固定验证临时文件，并要求原生槽位释放后再派发生产任务。
+第三轮 Hermes 在四路探测/派发后被 240 对 239 帧的 authored shot 越界阻断；finalizer 隐藏具体 draft 错误导致误诊。
+第三轮 Codex 成片 46.4 秒，但缺少 inspect 后、prepare 前的用户报告，独立 recorder 拒绝作为发布证据。
+当前补充结构化 finalizer 诊断与严格 Agent task recovery 的下游依赖阻塞判断；失败样本仍保留，不更改安装包或旧 attempt。
+第四轮 Codex 再次把报告放在 prepare 后；新 CLI handoff 在操作返回处给出实际摘要与报告次序，未知保持未知，不新增审批或持久状态。
+Skill 明确单 probe 只证明 I/O 而非最大容量，并给出完整进程结果等待、wait-any 未完成集合与 Hermes native background/notify 规则。
+发布 recorder 新增绑定到提交的实际任务重叠统计，并要求四并发持续时间为正；不会把 session 存活或配置上限当作实际工作并发。
+这些改动降低模型的交接与等待负担，不能阻止任意宿主模型提前结束；真实 Luna/medium 双宿主验收和公开 npm 复测仍是交付门槛。
+
+第五轮[双宿主 receipt](evidence/v0.1.13-first-use.json) 绑定相同 252/41 个发行文件：Luna/medium、各一条业务提示、零控制器追加提示、5 个创作 child、4 个 probe、补位 1。
+Codex/Hermes 四任务绑定至提交的重叠分别为 67883 ms / 97396.06 ms；唯一 continuation、报告顺序、无 child polling、最终 7/7 与四文件 EOF 均通过。
+[过程与视觉抽检](evidence/v0.1.13-candidate-review.json) 保留模型自行纠错、35.8/35.0667 秒时长偏差、Hermes 首尾拆分报告错误，以及封面装饰线穿过文字的视觉瑕疵；不宣称完整需求或统计稳定率。
 
 ## 可读性误报与默认模板对比度优化（0.1.12 发布候选）
 

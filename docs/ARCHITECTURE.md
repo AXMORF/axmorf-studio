@@ -168,6 +168,10 @@ bound file-read/file-write 读取 immutable/existing-output 或写 declared outp
 authored task failure 需要 full binding；Root-only spawn failure 与 fixed-controller failure authority 更窄，
 只能记录 exact terminal event，不能访问 task content。child identity 不持久化。
 
+Finalizer 在全部 draft 投影成功前不写 derived outputs；draft schema 错误带 `diagnostic`，包含确切 file、首个 issue path/code/message、
+`failureOwner: agent-output` 与修正指引，source 和 npm CLI 使用相同序列化。Scene shot 越界报告实际 endFrame 与 immutable duration，
+不钳制 authored ranges、不要求 Agent 手算 fingerprint。immutable input、路径与未知 fixed 错误不因 finalizer 命令失败而归为创作错误。
+
 ## 6. Artifact Store security
 
 Store/workspace paths 只由 strict storyId/task kind/taskRevision schemas 推导，不接收 arbitrary joined path。
@@ -269,6 +273,9 @@ Agent execution preferences 使用独立 strict contract 与 `0600` 原子存储
 terminal failed attempt 保持 immutable。显式 recovery 先做 read-only/zero-provider recover inspection，再在 lock
 内按 same current Revision reissue fresh attempt/bindings；它不要求 current delivery，复用 valid artifacts/drafts，
 并拒绝 active、stale 或 fixed-flow recovery。
+当前 recovery 要求明确的 `producer-agent-task-failed` outcome；fixed/host/unknown 或缺少失败任务证据仍阻塞。
+下游 dependency-only `blocked` 仅在完整、无环、identity 匹配的依赖图可追溯到该失败 Agent task 时放行；
+dirty fixed work、独立或未知 blocker 不放行。`recovery-ready` 仍不替代 Root 对原故障与旧 workers 全部退出的核实。
 
 Scene authoring 仍必须使用 repository-local `remotion-best-practices`，但 Skill 不能扩大 TaskSpec 或
 validator boundary。
@@ -277,3 +284,13 @@ validator boundary。
 
 Browser preparation, real-render readiness, bounded media processes and explicit interrupted-attempt recovery are described in
 [Workspace reliability](guides/WORKSPACE_RELIABILITY.md). Process ownership and logs are diagnostic-only; read-only inspection remains zero-write.
+
+### Attempt-bound task handoff
+
+Workspace-local `native-probe.mjs` 只为临时能力验证生成随机 challenge、完整绝对路径和 worker prompt，不执行原生 child 派发。
+verify 零写入验证 exact 文件集与 bytes，cleanup 复验后只删除本次临时文件；native capacity、child 来源和槽位释放仍由宿主原生证据证明。
+临时 manifest 不包含 host identity/transport 设置，不进入 Project、Revision、Task、artifact 或 delivery；creator 将 helper 与指南一同发行。
+
+`--assignment` 在 exact project/attempt（及 candidate scope）内按 immutable dirty task snapshots 的稳定顺序解析完整 task/binding identity。
+prepare/reissue 生成命令与 `workerPrompts`；它们是 transient diagnostic routing，不写入 TaskExecutionContract、Revision、artifact 或 Delivery identity。
+简短入口继续复用 zero-write bind、active attempt、candidate containment、immutable checksum 和 task validators；缺失或越界 fail closed。

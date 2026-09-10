@@ -152,9 +152,15 @@ export const ShotPlanSetSchema = ShotPlanSetInputSchema.extend({
     let previousEnd = 0;
     const shotIds = new Set<string>();
     plan.shots.forEach((shot, index) => {
+      if (shot.primaryRange.endFrame > plan.sceneDurationInFrames) {
+        context.addIssue({
+          code: "custom",
+          message: `Shot endFrame ${shot.primaryRange.endFrame} exceeds the immutable Scene duration ${plan.sceneDurationInFrames}; use a Scene-local exclusive end no greater than ${plan.sceneDurationInFrames}.`,
+          path: ["shots", index, "primaryRange", "endFrame"],
+        });
+      }
       if (
         shot.order !== index ||
-        shot.primaryRange.endFrame > plan.sceneDurationInFrames ||
         shot.primaryRange.startFrame < previousEnd ||
         shotIds.has(shot.shotId) ||
         new Set(shot.syncAnchorIds).size !== shot.syncAnchorIds.length

@@ -158,7 +158,16 @@ test("prepare alone commits fixed tasks, creates dirty owner workspaces, and ope
         calls.workspace += 1;
         return `.producer-work/story-example/${dirtyTask.taskRevision}`;
       },
-      buildTaskSnapshots: () => [] as never,
+      buildTaskSnapshots: () =>
+        [
+          {
+            taskRevision: dirtyTask.taskRevision,
+            decision: {
+              action: "dispatch-agent",
+              taskRevision: dirtyTask.taskRevision,
+            },
+          },
+        ] as never,
       createAttempt: async () => {
         calls.attempt += 1;
         return { attemptId: "00000000-0000-4000-8000-000000000001" } as never;
@@ -173,7 +182,7 @@ test("prepare alone commits fixed tasks, creates dirty owner workspaces, and ope
   assert.equal(result.dirtyAgentTasks.length, 1);
   assert.match(
     result.dirtyAgentTasks[0]?.commitCommand ?? "",
-    /project:task:commit[\s\S]*--attempt 00000000-0000-4000-8000-000000000001/u,
+    /project:task:commit[\s\S]*--assignment 1/u,
   );
   assert.match(
     result.dirtyAgentTasks[0]?.bindCommands.sharedWorkspace ?? "",
@@ -185,23 +194,23 @@ test("prepare alone commits fixed tasks, creates dirty owner workspaces, and ope
   );
   assert.match(
     result.dirtyAgentTasks[0]?.describeCommand ?? "",
-    /project:task:describe[\s\S]*--binding binding-/u,
+    /project:task:describe[\s\S]*--assignment 1/u,
   );
   assert.match(
     result.dirtyAgentTasks[0]?.finalizeCommand ?? "",
-    /project:task:finalize[\s\S]*--binding binding-/u,
+    /project:task:finalize[\s\S]*--assignment 1/u,
   );
   assert.match(
     result.dirtyAgentTasks[0]?.taskFailureCommand ?? "",
-    /project:task:fail[\s\S]*--kind task/u,
+    /project:task:fail[\s\S]*--assignment 1[\s\S]*--kind task/u,
   );
   assert.match(
     result.dirtyAgentTasks[0]?.fixedFailureCommand ?? "",
-    /project:task:fail[\s\S]*--kind fixed/u,
+    /project:task:fail[\s\S]*--assignment 1[\s\S]*--kind fixed/u,
   );
   assert.match(
     result.dirtyAgentTasks[0]?.spawnFailureCommand ?? "",
-    /project:task:fail[\s\S]*--kind host/u,
+    /project:task:fail[\s\S]*--assignment 1[\s\S]*--kind host/u,
   );
   assert.match(
     result.continuationCommand,
@@ -295,7 +304,16 @@ test("candidate prepare isolates work and attempts while keeping commands reposi
         }) as never,
       createWorkspace: async () =>
         join(scope.producerWorkRoot, "story-example", dirtyTask.taskRevision),
-      buildTaskSnapshots: () => [] as never,
+      buildTaskSnapshots: () =>
+        [
+          {
+            taskRevision: dirtyTask.taskRevision,
+            decision: {
+              action: "dispatch-agent",
+              taskRevision: dirtyTask.taskRevision,
+            },
+          },
+        ] as never,
       createAttempt: async ({ rootDir }) => {
         attemptRoot = rootDir;
         return { attemptId: "00000000-0000-4000-8000-000000000009" } as never;

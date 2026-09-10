@@ -17,6 +17,7 @@ import { build } from "esbuild";
 import {
   auditTranscript,
   auditHermesSession,
+  assertHermesRunIdentity,
   assertEmptyWorkspace,
   create,
   createPublic,
@@ -53,6 +54,23 @@ const runtime: PackageContent = {
   files: [file],
 };
 const creator: PackageContent = { ...runtime, name: "create-axmorf-studio" };
+
+test("Hermes run identity aliases must all agree with the native DB", () => {
+  assertHermesRunIdentity({ sessionId: "native" }, "native");
+  assertHermesRunIdentity({ storedSessionId: "native" }, "native");
+  assertHermesRunIdentity(
+    { storedSessionId: "native", sessionId: "native" },
+    "native",
+  );
+  for (const run of [
+    {},
+    { sessionId: null },
+    { sessionId: "other" },
+    { storedSessionId: "other", sessionId: "native" },
+    { storedSessionId: "native", sessionId: "other" },
+  ])
+    assert.throws(() => assertHermesRunIdentity(run, "native"));
+});
 const summary = ({ files, ...value }: PackageContent) => ({
   ...value,
   fileCount: files.length,
@@ -683,7 +701,7 @@ test("0.1.11 Hermes supervision cannot omit native UI evidence", () => {
 });
 
 test("native child receipts require the full task pool, native lineage, commits and bounded refill", async (context) => {
-  const { auditNativeExecution } =
+  const { auditNativeExecution, assertFourWayExecution } =
     await import("../../scripts/release/native-execution");
   const root = await mkdtemp(join(tmpdir(), "axmorf-native-receipt-"));
   context.after(() => rm(root, { recursive: true, force: true }));
@@ -826,7 +844,149 @@ test("native child receipts require the full task pool, native lineage, commits 
   assert.equal(result.execution.productionChildCount, 5);
   assert.equal(result.execution.probeChildCount, 1);
   assert.equal(result.execution.peakActiveChildren, 4);
+  assert.equal(result.execution.peakBoundTasks, 4);
+  assert.equal(result.execution.fourWayBoundOverlapMs, 40000);
   assert.equal(result.execution.refillAdmissions, 1);
+  assertFourWayExecution(result.execution);
+  const originalChildren = await Promise.all(
+    nativeChildren.map(({ transcriptFile }) =>
+      readFile(transcriptFile, "utf8"),
+    ),
+  );
+  const originalRootTranscript = input.transcript;
+  const originalChildTranscripts = [...originalChildren];
+  const upgradedChildTranscripts = originalChildTranscripts.map((text) => {
+    const rows = text.split("\n").map((line) => JSON.parse(line));
+    const spawn = rows.find((row) => row.type === "session_meta");
+    spawn.payload.source.subagent.thread_spawn.agent_path = null;
+    return rows.map((row) => JSON.stringify(row)).join("\n");
+  });
+  const upgradedRootRows: Array<{
+    type: string;
+    timestamp: string;
+    payload: Record<string, unknown>;
+  }> = JSON.parse(`[${makeTranscript().split("\n").join(",")}]`);
+  const nativeSpawnEvents = [];
+  for (let index = 0; index < nativeChildren.length; index += 1) {
+    const callId = `spawn-${index}`;
+    const call = upgradedRootRows.find((row) => row.payload.call_id === callId);
+    const output = upgradedRootRows.find(
+      (row) =>
+        row.payload.call_id === callId && row.payload.output !== undefined,
+    );
+    assert.ok(call);
+    assert.ok(output);
+    call.payload.name = "exec";
+    output.payload.output = JSON.stringify({
+      agent_id: `child-${index}`,
+      nickname: `worker-${index}`,
+    });
+    nativeSpawnEvents.push({
+      type: "event_msg",
+      timestamp: timestamp(2 + index),
+      payload: {
+        type: "item_completed",
+        thread_id: "parent",
+        item: {
+          type: "CollabAgentToolCall",
+          id: `spawn-event-${index}`,
+          tool: "spawn_agent",
+          status: "completed",
+          sender_thread_id: "parent",
+          receiver_thread_ids: [`child-${index}`],
+        },
+      },
+    });
+  }
+  const upgradedRootTranscript = [...upgradedRootRows, ...nativeSpawnEvents]
+    .map((row) => JSON.stringify(row))
+    .join("\n");
+  await Promise.all(
+    nativeChildren.map(({ transcriptFile }, index) =>
+      writeFile(transcriptFile, upgradedChildTranscripts[index]!),
+    ),
+  );
+  const upgradedInput = { ...input, transcript: upgradedRootTranscript };
+  const upgraded = await auditNativeExecution(upgradedInput);
+  assert.equal(upgraded.execution.productionChildCount, 5);
+  const missingEventRows = upgradedRootRows.concat(
+    nativeSpawnEvents.slice(0, 5),
+  );
+  await assert.rejects(
+    () =>
+      auditNativeExecution({
+        ...upgradedInput,
+        transcript: missingEventRows
+          .map((row) => JSON.stringify(row))
+          .join("\n"),
+      }),
+    /events and outputs do not match/u,
+  );
+  const wrongParentRows = structuredClone(
+    upgradedRootRows.concat(nativeSpawnEvents),
+  );
+  wrongParentRows.at(-1)!.payload.item = {
+    ...(wrongParentRows.at(-1)!.payload.item as Record<string, unknown>),
+    sender_thread_id: "other",
+  };
+  await assert.rejects(
+    () =>
+      auditNativeExecution({
+        ...upgradedInput,
+        transcript: wrongParentRows
+          .map((row) => JSON.stringify(row))
+          .join("\n"),
+      }),
+    /wrong parent/u,
+  );
+  await Promise.all(
+    nativeChildren.map(({ transcriptFile }, index) =>
+      writeFile(transcriptFile, originalChildTranscripts[index]!),
+    ),
+  );
+  input.transcript = originalRootTranscript;
+  assert.throws(
+    () =>
+      assertFourWayExecution({
+        ...result.execution,
+        effectiveMaxConcurrency: 1,
+      }),
+    /effective capacity four/u,
+  );
+  assert.throws(
+    () =>
+      assertFourWayExecution({ ...result.execution, fourWayBoundOverlapMs: 0 }),
+    /positive duration/u,
+  );
+  for (let index = 1; index < nativeChildren.length; index += 1) {
+    const rows = originalChildren[index]!.split("\n").map((line) =>
+      JSON.parse(line),
+    );
+    const bindSecond = [21, 26, 31, 36, 62][index - 1]!;
+    for (const row of rows) {
+      if (row.payload.call_id === `bind-${index}`)
+        row.timestamp = timestamp(bindSecond);
+      if (row.payload.call_id === `commit-${index}`)
+        row.timestamp = timestamp(bindSecond + 4);
+    }
+    await writeFile(
+      nativeChildren[index]!.transcriptFile,
+      rows.map((row) => JSON.stringify(row)).join("\n"),
+    );
+  }
+  const serial = await auditNativeExecution(input);
+  assert.equal(serial.execution.peakActiveChildren, 4);
+  assert.equal(serial.execution.peakBoundTasks, 1);
+  assert.equal(serial.execution.fourWayBoundOverlapMs, 0);
+  assert.throws(
+    () => assertFourWayExecution(serial.execution),
+    /overlapping bound tasks/u,
+  );
+  await Promise.all(
+    nativeChildren.map(({ transcriptFile }, index) =>
+      writeFile(transcriptFile, originalChildren[index]!),
+    ),
+  );
   await assert.rejects(
     () =>
       auditNativeExecution({
@@ -1004,6 +1164,246 @@ test("native child receipts require the full task pool, native lineage, commits 
   await assert.rejects(
     () => auditNativeExecution(tuiInput),
     /direct descendant/u,
+  );
+});
+
+test("Codex spawn receipts bind completed native events to agent ids", async () => {
+  const { codexSpawnReceipts, nativeTrace } =
+    await import("../../scripts/release/native-execution");
+  const row = (type: string, payload: Record<string, unknown>) =>
+    JSON.stringify({ type, timestamp: "2026-09-07T00:00:00Z", payload });
+  const event = (receiver = "child-1", sender = "parent", id = "spawn-event") =>
+    row("event_msg", {
+      type: "item_completed",
+      thread_id: "parent",
+      item: {
+        type: "CollabAgentToolCall",
+        id,
+        tool: "spawn_agent",
+        status: "completed",
+        sender_thread_id: sender,
+        receiver_thread_ids: [receiver],
+      },
+    });
+  const output = (agentId = "child-1") => [
+    row("response_item", {
+      type: "custom_tool_call",
+      name: "exec",
+      call_id: "spawn-call",
+      arguments: "{}",
+    }),
+    row("response_item", {
+      type: "custom_tool_call_output",
+      call_id: "spawn-call",
+      output: JSON.stringify({ agent_id: agentId, nickname: "worker" }),
+    }),
+  ];
+  const trace = nativeTrace("codex", [event(), ...output()].join("\n"));
+  assert.deepEqual(codexSpawnReceipts(trace, "parent"), {
+    native: true,
+    childIds: new Set(["child-1"]),
+    legacy: new Set(),
+  });
+  assert.throws(
+    () =>
+      codexSpawnReceipts(nativeTrace("codex", output().join("\n")), "parent"),
+    /no native completed event/u,
+  );
+  assert.throws(
+    () =>
+      codexSpawnReceipts(
+        nativeTrace(
+          "codex",
+          [event("child-1", "other"), ...output()].join("\n"),
+        ),
+        "parent",
+      ),
+    /wrong parent/u,
+  );
+  assert.throws(
+    () =>
+      codexSpawnReceipts(
+        nativeTrace("codex", [event("child-2"), ...output()].join("\n")),
+        "parent",
+      ),
+    /do not match/u,
+  );
+  assert.throws(
+    () =>
+      codexSpawnReceipts(
+        nativeTrace(
+          "codex",
+          [
+            event(),
+            event("child-2", "parent", "spawn-event-2"),
+            ...output(),
+          ].join("\n"),
+        ),
+        "parent",
+      ),
+    /events and outputs do not match/u,
+  );
+});
+
+test("Codex native completion text must equal the child final message", async () => {
+  const { codexCompletionMessages, nativeTrace } =
+    await import("../../scripts/release/native-execution");
+  const row = (
+    type: string,
+    payload: Record<string, unknown>,
+    timestamp = "2026-09-07T00:00:00Z",
+  ) => JSON.stringify({ type, timestamp, payload });
+  const child = "child-1";
+  const completion = "Assignment complete: producer-artifact-committed";
+  const notification = (
+    text: string,
+    metadata = ["multi_agent.subagent_notification"],
+  ) =>
+    row(
+      "response_item",
+      {
+        role: "user",
+        content: [{ type: "input_text", text }],
+        internal_chat_message_metadata_passthrough: {
+          content_item_kinds: metadata,
+        },
+      },
+      "2026-09-07T00:00:03Z",
+    );
+  const nativeText = `<subagent_notification>\n${JSON.stringify({
+    agent_path: child,
+    status: { completed: completion },
+  })}\n</subagent_notification>`;
+  const transcript = [
+    row("event_msg", {
+      type: "item_completed",
+      thread_id: "parent",
+      item: {
+        type: "CollabAgentToolCall",
+        id: "spawn-event",
+        tool: "spawn_agent",
+        status: "completed",
+        sender_thread_id: "parent",
+        receiver_thread_ids: [child],
+      },
+    }),
+    notification(nativeText),
+    row(
+      "event_msg",
+      { type: "task_complete", thread_id: "parent" },
+      "2026-09-07T00:00:04Z",
+    ),
+  ].join("\n");
+  const trace = nativeTrace("codex", transcript);
+  assert.deepEqual(
+    codexCompletionMessages(trace, "parent", [
+      {
+        sessionId: child,
+        ended: Date.parse("2026-09-07T00:00:02Z"),
+        lastAgentMessage: completion,
+      },
+    ]),
+    [nativeText],
+  );
+  assert.throws(
+    () =>
+      codexCompletionMessages(trace, "parent", [
+        {
+          sessionId: child,
+          ended: Date.parse("2026-09-07T00:00:02Z"),
+          lastAgentMessage: `${completion} extra instruction`,
+        },
+      ]),
+    /does not match child final/u,
+  );
+  assert.throws(
+    () =>
+      codexCompletionMessages(
+        nativeTrace(
+          "codex",
+          transcript.replace(completion, `${completion} extra`),
+        ),
+        "parent",
+        [
+          {
+            sessionId: child,
+            ended: Date.parse("2026-09-07T00:00:02Z"),
+            lastAgentMessage: completion,
+          },
+        ],
+      ),
+    /does not match child final/u,
+  );
+  const completedChild = {
+    sessionId: child,
+    ended: Date.parse("2026-09-07T00:00:02Z"),
+    lastAgentMessage: completion,
+  };
+  const close = row(
+    "event_msg",
+    { type: "task_complete", thread_id: "parent" },
+    "2026-09-07T00:00:04Z",
+  );
+  const notified = (text: string) =>
+    nativeTrace("codex", [notification(text), close].join("\n"));
+  const nullText = nativeText.replace(JSON.stringify(completion), "null");
+  assert.deepEqual(
+    codexCompletionMessages(notified(nullText), "parent", [
+      { ...completedChild, lastAgentMessage: null },
+    ]),
+    [nullText],
+  );
+  assert.throws(
+    () =>
+      codexCompletionMessages(notified(nullText), "parent", [completedChild]),
+    /does not match child final/u,
+  );
+  assert.throws(
+    () =>
+      codexCompletionMessages(
+        notified(nativeText.replace(child, "unknown")),
+        "parent",
+        [completedChild],
+      ),
+    /unknown child/u,
+  );
+  assert.throws(
+    () =>
+      codexCompletionMessages(trace, "parent", [
+        { ...completedChild, ended: Date.parse("2026-09-07T00:00:04Z") },
+      ]),
+    /predates child completion/u,
+  );
+  assert.throws(
+    () =>
+      codexCompletionMessages(
+        nativeTrace(
+          "codex",
+          [notification(nativeText), notification(nativeText), close].join(
+            "\n",
+          ),
+        ),
+        "parent",
+        [completedChild],
+      ),
+    /Duplicate native notification/u,
+  );
+  assert.throws(
+    () =>
+      codexCompletionMessages(
+        nativeTrace("codex", notification(nativeText)),
+        "parent",
+        [completedChild],
+      ),
+    /no Root completion event/u,
+  );
+  assert.deepEqual(
+    codexCompletionMessages(
+      nativeTrace("codex", [notification(nativeText, []), close].join("\n")),
+      "parent",
+      [completedChild],
+    ),
+    [],
   );
 });
 

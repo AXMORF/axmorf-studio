@@ -25,6 +25,7 @@ import {
 import { resolveNpmCliPath } from "../../packages/create-axmorf-studio/src/index.js";
 import {
   auditNativeExecution,
+  assertFourWayExecution,
   NativeChildInput,
   NativeExecutionSchema,
 } from "./native-execution";
@@ -615,6 +616,22 @@ export function auditHermesSession(
   return session;
 }
 
+export function assertHermesRunIdentity(
+  run: Record<string, unknown>,
+  nativeSessionId: string,
+) {
+  const ids = [run.storedSessionId, run.sessionId].filter(
+    (id) => id !== undefined,
+  );
+  assert.ok(ids.length > 0, "TUI run lacks its stored session identity");
+  for (const id of ids)
+    assert.equal(
+      id,
+      nativeSessionId,
+      "TUI run stored session differs from native DB",
+    );
+}
+
 const command = (workspace: string, args: string[], timeout = 180_000) =>
   execFileSync(process.execPath, args, {
     cwd: workspace,
@@ -759,6 +776,10 @@ export async function record(
             ? {}
             : { hermesRuntimeRoot: input.hermesRuntimeRoot }),
         });
+  if (requiresFourWayExecution(initial.packages.runtime.version)) {
+    assert.ok(native, "Four-way acceptance requires native execution evidence");
+    assertFourWayExecution(native.execution);
+  }
   const transcriptAudit = auditTranscript(
     initial.host,
     transcript,
@@ -797,11 +818,7 @@ export async function record(
       input.uiTranscriptFile,
       "TUI supervision requires its complete native UI event stream",
     );
-    assert.equal(
-      run.storedSessionId,
-      input.sessionId,
-      "TUI run stored session differs from native DB",
-    );
+    assertHermesRunIdentity(run, input.sessionId);
     assert.equal(
       typeof run.uiSessionId,
       "string",
@@ -1009,6 +1026,8 @@ function verifyCombined(
         "This release requires actual bounded native child execution on both hosts",
       );
       const execution = host.nativeExecution;
+      if (requiresFourWayExecution(runtime.version))
+        assertFourWayExecution(execution);
       assert.equal(execution.productionChildCount, execution.dirtyTaskCount);
       assert.equal(
         execution.childEvidence.length,
@@ -1134,6 +1153,8 @@ const requiresNativeExecution = (version: string) =>
   !/^0\.1\.[0-8](?:$|-)/u.test(version);
 const requiresSupervision = (version: string) =>
   !/^0\.1\.(?:[0-9]|10)(?:$|-)/u.test(version);
+const requiresFourWayExecution = (version: string) =>
+  !/^0\.1\.(?:[0-9]|1[0-2])(?:$|-)/u.test(version);
 
 async function main(args: string[]) {
   const [operation, ...paths] = args;

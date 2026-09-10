@@ -12,6 +12,11 @@ Write only declared Agent-owned outputs; use exact bound describe/finalize/check
 `agent-output` issues before terminal. On a host/fixed fault, stop and return the structured error to the Root for its exact
 failure command. Never reopen or automatically retry a terminal failed attempt.
 
+Finalize computes derived identities and fingerprints. For `failureOwner: agent-output`, correct its reported
+file/field and rerun finalize before check; do not calculate hashes manually or read package internals.
+A finalizer command failure alone is not a fixed-system fault. Scene-local ranges use immutable endFrame minus
+startFrame, with exclusive ends; never round that duration or use the global endFrame.
+
 The Root owns global doctor and preflight. Workers do not run `doctor`, `browser:prepare`, Project create/revise, execution
 resolve, inspect, prepare, provider calls, recovery or continuation. Missing task input or an environment error does not transfer
 those responsibilities to the worker. Do not inspect another task or assume access to the parent's conversation.
@@ -37,7 +42,8 @@ Before the first command, briefly tell the user the plan. Report inherited bound
    Read [native child verification](execution-capabilities.md), probe this host, then run `project:execution:resolve` with
    verified capacity and transport before inspect. Explicit inline needs no child probe. Never persist transport or silently change mode.
 5. Run `npm run project:produce:inspect -- --project <storyId>` and report its
-   structured readiness, cost, reuse, and invalidation result.
+   structured readiness, cost, reuse, and invalidation result in a separate user-visible message after the command returns.
+   A plan stated before inspection does not report its result. Finish that message before invoking prepare; do not combine inspect and prepare in one tool call.
 6. Read [host execution and recovery](host-execution-and-recovery.md); establish a terminal handle that can survive the host tool deadline.
    Run `npm run project:produce:prepare -- --project <storyId>` only after the
    inspection is understood and cost is authorized.

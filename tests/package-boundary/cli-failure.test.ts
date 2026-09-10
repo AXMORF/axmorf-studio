@@ -60,6 +60,34 @@ test("unclassified failures remain operational errors", () => {
   });
 });
 
+test("packaged CLI preserves structured Agent authored-output finalization diagnostics", () => {
+  const error = Object.assign(
+    new Error(
+      "Agent-authored output failed schema validation: src/shot-plan.json.",
+    ),
+    {
+      name: "AgentTaskFinalizationError",
+      code: "task-output-invalid",
+      diagnostic: {
+        file: "src/shot-plan.json",
+        path: ["shots", 0],
+        code: "custom",
+        message: "Shot order identities ranges or anchors are invalid.",
+        failureOwner: "agent-output",
+        repairHint: "Correct src/shot-plan.json and rerun finalize.",
+      },
+    },
+  );
+  const report = reportCliFailure(error);
+  assert.equal(report.exitCode, 2);
+  assert.deepEqual(JSON.parse(report.serialized), {
+    status: "error",
+    code: "task-output-invalid",
+    message: error.message,
+    diagnostic: error.diagnostic,
+  });
+});
+
 test("invalid requirement strings return actionable structured errors without accepting invalid input", () => {
   const result = ProjectCreateInputSchema.safeParse({
     ...validProjectCreateInput,

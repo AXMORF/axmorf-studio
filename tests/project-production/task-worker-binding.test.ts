@@ -36,6 +36,11 @@ import {
   writeTaskWorkerFile,
 } from "../../scripts/project-production/application/task-worker-binding";
 import { createProjectRevisionProductionScope } from "../../scripts/project-production/application/production-scope";
+import {
+  resolveTaskAssignment,
+  selectTaskAssignment,
+} from "../../scripts/project-production/application/task-assignment";
+import { runProjectProductionCli } from "../../scripts/project-production/cli";
 
 const digest = (bytes: string) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}` as Sha256Digest;
@@ -206,6 +211,145 @@ test("task bind is zero-write, attempt-bound, and exposes transport-specific aut
       bindingId: `binding-${"f".repeat(64)}`,
       transport: "controller-io",
     }),
+    TaskWorkerBindingError,
+  );
+});
+
+test("short task assignment resolves the immutable attempt snapshot", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-task-assignment-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const current = await fixture(rootDir);
+  const before = await readdir(current.workspace, { recursive: true });
+  const resolved = await resolveTaskAssignment({
+    rootDir,
+    storyId: current.task.storyId,
+    attemptId: current.attempt.attemptId,
+    assignment: 1,
+  });
+  assert.equal(resolved.taskRevision, current.task.taskRevision);
+  assert.equal(resolved.bindingId, current.bindingId);
+  await assert.rejects(
+    resolveTaskAssignment({
+      rootDir,
+      storyId: current.task.storyId,
+      attemptId: current.attempt.attemptId,
+      assignment: 0,
+    }),
+    /positive integer/u,
+  );
+  assert.deepEqual(
+    await readdir(current.workspace, { recursive: true }),
+    before,
+  );
+});
+
+test("assignment ordinal filters reuse and fixed snapshots in sorted revision order", () => {
+  const snapshots = [
+    {
+      taskRevision: "task-a",
+      decision: { action: "dispatch-agent", taskRevision: "task-a" },
+    },
+    {
+      taskRevision: "task-b",
+      decision: { action: "reuse", taskRevision: "task-b" },
+    },
+    {
+      taskRevision: "task-c",
+      decision: { action: "dispatch-agent", taskRevision: "task-c" },
+    },
+    {
+      taskRevision: "task-d",
+      decision: { action: "dispatch-fixed", taskRevision: "task-d" },
+    },
+  ] as const;
+  assert.equal(selectTaskAssignment(snapshots, 1).taskRevision, "task-a");
+  assert.equal(selectTaskAssignment(snapshots, 2).taskRevision, "task-c");
+  assert.throws(() => selectTaskAssignment(snapshots, 3), /out of range/u);
+  assert.throws(() => selectTaskAssignment([], 1), /out of range/u);
+});
+
+test("CLI short bind preserves assignment commands and rejects unsafe forms", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-task-assignment-cli-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const current = await fixture(rootDir);
+  const base = [
+    "task-bind",
+    "--project",
+    current.task.storyId,
+    "--attempt",
+    current.attempt.attemptId,
+    "--assignment",
+    "1",
+    "--transport",
+    "shared-workspace",
+  ] as const;
+  const before = await readdir(current.workspace, { recursive: true });
+  const bound = (await runProjectProductionCli(base, {
+    rootDir,
+    stdout: () => undefined,
+  })) as Awaited<ReturnType<typeof bindTaskWorker>>;
+  assert.equal(bound.status, "task-worker-bound");
+  assert.match(bound.commands.finalize, /--assignment 1/u);
+  assert.doesNotMatch(bound.commands.finalize, /--task|--binding/u);
+  assert.deepEqual(
+    await readdir(current.workspace, { recursive: true }),
+    before,
+  );
+  for (const value of ["0", "1e0", "0x1", " 1", "1 "])
+    await assert.rejects(
+      runProjectProductionCli([...base.slice(0, 6), value, ...base.slice(7)], {
+        rootDir,
+        stdout: () => undefined,
+      }),
+      /canonical decimal|positive integer/u,
+    );
+  await assert.rejects(
+    runProjectProductionCli([...base, "--task", current.task.taskRevision], {
+      rootDir,
+      stdout: () => undefined,
+    }),
+    /cannot be combined/u,
+  );
+  await assert.rejects(
+    runProjectProductionCli(
+      [
+        "task-bind",
+        "--attempt",
+        current.attempt.attemptId,
+        "--assignment",
+        "1",
+        "--transport",
+        "shared-workspace",
+      ],
+      { rootDir, stdout: () => undefined },
+    ),
+    /Missing --project value/u,
+  );
+  await rm(join(current.workspace, "inputs/context.json"));
+  await assert.rejects(
+    runProjectProductionCli(base, { rootDir, stdout: () => undefined }),
+    TaskWorkerBindingError,
+  );
+  assert.deepEqual(
+    await readdir(current.workspace, { recursive: true }),
+    before.filter((path) => path !== "inputs/context.json"),
+  );
+  await writeFile(
+    join(current.workspace, "inputs/context.json"),
+    current.contextBytes,
+  );
+  await appendExecutionAttemptTaskOutcome({
+    rootDir,
+    attemptId: current.attempt.attemptId,
+    task: current.task,
+    outcome: {
+      outcome: "failed",
+      artifactFingerprint: null,
+      diagnosticCode: "producer-agent-task-failed",
+    },
+  });
+  await assert.rejects(
+    runProjectProductionCli(base, { rootDir, stdout: () => undefined }),
     TaskWorkerBindingError,
   );
 });

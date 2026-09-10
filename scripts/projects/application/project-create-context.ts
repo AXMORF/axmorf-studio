@@ -150,26 +150,33 @@ export const inspectProjectCreateContext = async ({
       additionalRequirements: [],
     },
   });
+  const durationBudget = buildDurationBudget({
+    targetDurationSeconds: example.brief.targetDurationSeconds,
+    fps: config.renderDefaults.fps,
+    boundaryFrames: [
+      config.sceneDefaults.introSceneTemplateId,
+      config.sceneDefaults.outroSceneTemplateId,
+    ].reduce(
+      (frames, id) =>
+        frames +
+        (id === null ? 0 : getSceneTemplateDefinition(id).durationInFrames),
+      0,
+    ),
+    leadInFrames: example.render.leadInFrames,
+    tailFrames: example.render.tailFrames,
+  });
   return {
     status: "project-create-context" as const,
     storyId,
     renderDefaults: config.renderDefaults,
     inheritedSceneTemplates: config.sceneDefaults,
-    durationBudget: buildDurationBudget({
-      targetDurationSeconds: example.brief.targetDurationSeconds,
-      fps: config.renderDefaults.fps,
-      boundaryFrames: [
-        config.sceneDefaults.introSceneTemplateId,
-        config.sceneDefaults.outroSceneTemplateId,
-      ].reduce(
-        (frames, id) =>
-          frames +
-          (id === null ? 0 : getSceneTemplateDefinition(id).durationInFrames),
-        0,
-      ),
-      leadInFrames: example.render.leadInFrames,
-      tailFrames: example.render.tailFrames,
-    }),
+    durationBudget,
+    agentHandoff: {
+      nextAction: "report-to-user-before-project-create",
+      summary: `Boundary templates: intro=${config.sceneDefaults.introSceneTemplateId ?? "none"}, outro=${config.sceneDefaults.outroSceneTemplateId ?? "none"}; exampleTarget=${durationBudget.targetTotalSeconds}s, boundary=${durationBudget.boundarySeconds}s, availableNarrated=${durationBudget.availableNarratedSeconds}s.`,
+      instruction:
+        "Adapt the example to the user's target, recalculate speech budget after boundaries and lead/tail, then write the input JSON. Before running project:create, report the selected boundaries and adapted total-duration budget in a separate assistant message. The example target is not the user's target. CLI output is not that report; existing video authorization needs no new confirmation. This handoff is diagnostic only.",
+    },
     publishingCollections: config.publishingCollections.map(({ id, name }) => ({
       id,
       name,

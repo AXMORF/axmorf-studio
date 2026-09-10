@@ -141,7 +141,7 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   production，除非用户明确要求保存；解析结果不进入 Revision/Task/artifact/delivery identity。`inline` 由
   Root 一次只执行一个 dirty workspace；`subagents` 使用不超过四个且受 runtime capacity 限制的 bounded pool，
   并要求本次 resolver 输入 verified worker transport。原生 wait-any 完成即补位；原生批量每批不超过容量，同步返回或原生整批完成通知后发下一批。
-  runtime capacity 未知时按 1；transport 未验证、容量为 0
+  runtime capacity 未知时阻塞；transport 未验证、容量为 0
   或 exact capacity 无法满足都必须在 prepare 前阻塞，不自动换模式。transport/解析结果不持久化也不进入 content
   identity。
 - `npm run project:produce:inspect -- --project <storyId>` 是严格只读、零 provider call 的诊断入口；Root
@@ -232,6 +232,10 @@ contact sheet 或布局。第三方 source/media 分别校验 license/attributio
 - Root 只有在解析为 `inline` 时才能按 task prompt 串行创作；不得读其他 executor workspace、跨 task 代
   commit 或持久化 child identity/chat/heartbeat/token。subagents 模式的 spawn failure 记录 exact
   `spawnFailureCommand`，不得自动回退 inline。
+
+
+短 `--assignment` 只路由 exact project/attempt 的 immutable dirty task 序号；CLI 还原 full task/binding 后继续原验证，不能混入手写长身份。
+Root 优先整段转发 prepare/reissue 的 `workerPrompts`；进程工具返回 session/cell handle 时完整保留并等待，不能只取 output 或提前结束 Root。
 
 ## 故障语义
 

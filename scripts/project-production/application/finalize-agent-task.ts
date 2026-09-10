@@ -35,17 +35,62 @@ export type AgentTaskFinalizationErrorCode =
 
 export class AgentTaskFinalizationError extends Error {
   readonly code: AgentTaskFinalizationErrorCode;
+  readonly diagnostic?: {
+    readonly file: string;
+    readonly path: readonly (string | number)[];
+    readonly code: string;
+    readonly message: string;
+    readonly failureOwner: "agent-output";
+    readonly repairHint: string;
+  };
 
   constructor(
     code: AgentTaskFinalizationErrorCode,
     message: string,
-    options?: ErrorOptions,
+    options?: ErrorOptions & {
+      diagnostic?: AgentTaskFinalizationError["diagnostic"];
+    },
   ) {
     super(message, options);
     this.name = "AgentTaskFinalizationError";
     this.code = code;
+    this.diagnostic = options?.diagnostic;
   }
 }
+
+const agentOutputSchemaError = (file: string, error: z.ZodError) => {
+  const issue = error.issues[0];
+  if (issue === undefined) return error;
+  return new AgentTaskFinalizationError(
+    "task-output-invalid",
+    `Agent-authored output failed schema validation: ${file}.`,
+    {
+      cause: error,
+      diagnostic: {
+        file,
+        path: issue.path.map((part) =>
+          typeof part === "symbol" ? String(part) : part,
+        ),
+        code: issue.code,
+        message: issue.message,
+        failureOwner: "agent-output",
+        repairHint: `Correct the authored JSON in ${file} at the reported path to satisfy the schema; keep immutable timing and inputs unchanged, then rerun finalize.`,
+      },
+    },
+  );
+};
+
+const parseAgentDraft = async <T>(
+  file: string,
+  parse: () => Promise<T> | T,
+): Promise<T> => {
+  try {
+    return await parse();
+  } catch (error) {
+    if (error instanceof z.ZodError) throw agentOutputSchemaError(file, error);
+    throw error;
+  }
+};
 
 const SelectedResourcesFileSchema = z
   .object({
@@ -275,46 +320,42 @@ const finalizeSceneJson = async (workspace: string) => {
   const taskInput = context.scene.taskInput;
   const durationInFrames =
     taskInput.timingBeat.endFrame - taskInput.timingBeat.startFrame;
-  const visualDraft = JsonObjectSchema.parse(
-    await readJsonFile(
-      workspace,
-      "src/visual-plan.json",
-      "task-output-invalid",
-    ),
+  const readDraft = async (file: string) =>
+    await readJsonFile(workspace, file, "task-output-invalid");
+  const visualDraft = await parseAgentDraft("src/visual-plan.json", async () =>
+    JsonObjectSchema.parse(await readDraft("src/visual-plan.json")),
   );
-  const shotDraft = JsonObjectSchema.parse(
-    await readJsonFile(workspace, "src/shot-plan.json", "task-output-invalid"),
+  const shotDraft = await parseAgentDraft("src/shot-plan.json", async () =>
+    JsonObjectSchema.parse(await readDraft("src/shot-plan.json")),
   );
-  const syncDraft = JsonObjectSchema.parse(
-    await readJsonFile(
-      workspace,
-      "src/sync-anchors.json",
-      "task-output-invalid",
-    ),
+  const syncDraft = await parseAgentDraft("src/sync-anchors.json", async () =>
+    JsonObjectSchema.parse(await readDraft("src/sync-anchors.json")),
   );
-  const soundDraft = JsonObjectSchema.parse(
-    await readJsonFile(workspace, "src/sound-plan.json", "task-output-invalid"),
+  const soundDraft = await parseAgentDraft("src/sound-plan.json", async () =>
+    JsonObjectSchema.parse(await readDraft("src/sound-plan.json")),
   );
-  const selectionDraft = z
-    .object({ selections: z.array(z.unknown()).max(24).readonly() })
-    .passthrough()
-    .parse(
-      await readJsonFile(
-        workspace,
-        "src/shot-recipe-selection.json",
-        "task-output-invalid",
+  const selectionDraft = await parseAgentDraft(
+    "src/shot-recipe-selection.json",
+    async () =>
+      z
+        .object({ selections: z.array(z.unknown()).max(24).readonly() })
+        .passthrough()
+        .parse(await readDraft("src/shot-recipe-selection.json")),
+  );
+  const selection = await parseAgentDraft(
+    "src/shot-recipe-selection.json",
+    () =>
+      buildShotRecipeSelection({
+        taskInputFingerprint: taskInput.taskInputFingerprint,
+        selections: selectionDraft.selections,
+      }),
+  );
+  const selectedResources = await parseAgentDraft(
+    "src/selected-resources.json",
+    async () =>
+      SelectedResourcesFileSchema.parse(
+        await readDraft("src/selected-resources.json"),
       ),
-    );
-  const selection = buildShotRecipeSelection({
-    taskInputFingerprint: taskInput.taskInputFingerprint,
-    selections: selectionDraft.selections,
-  });
-  const selectedResources = SelectedResourcesFileSchema.parse(
-    await readJsonFile(
-      workspace,
-      "src/selected-resources.json",
-      "task-output-invalid",
-    ),
   );
   const exactSelection = selection.selections.some(
     ({ mode }) => mode === "exact-demo-localized",
@@ -326,19 +367,27 @@ const finalizeSceneJson = async (workspace: string) => {
       "src/generated/reference-fidelity.generated.json",
       "task-output-invalid",
     );
-    const draft = z
-      .object({
-        status: z.literal("pass"),
-        evidenceFingerprint: z.unknown(),
-        items: z.array(z.unknown()).readonly(),
-      })
-      .passthrough()
-      .parse(rawFidelity);
-    fidelity = buildPassFidelityReceipt({
-      selectionFingerprint: selection.selectionFingerprint,
-      evidenceFingerprint: draft.evidenceFingerprint,
-      items: draft.items,
-    });
+    const draft = await parseAgentDraft(
+      "src/generated/reference-fidelity.generated.json",
+      () =>
+        z
+          .object({
+            status: z.literal("pass"),
+            evidenceFingerprint: z.unknown(),
+            items: z.array(z.unknown()).readonly(),
+          })
+          .passthrough()
+          .parse(rawFidelity),
+    );
+    fidelity = await parseAgentDraft(
+      "src/generated/reference-fidelity.generated.json",
+      () =>
+        buildPassFidelityReceipt({
+          selectionFingerprint: selection.selectionFingerprint,
+          evidenceFingerprint: draft.evidenceFingerprint,
+          items: draft.items,
+        }),
+    );
   } else {
     fidelity = buildNotApplicableFidelityReceipt({
       selectionFingerprint: selection.selectionFingerprint,
@@ -346,54 +395,76 @@ const finalizeSceneJson = async (workspace: string) => {
     });
   }
 
-  return {
-    "src/generated/reference-fidelity.generated.json": fidelity,
-    "src/selected-resources.json": selectedResources,
-    "src/shot-plan.json": buildShotPlanSet({
+  const shotPlan = await parseAgentDraft("src/shot-plan.json", () =>
+    buildShotPlanSet({
       ...shotDraft,
       taskInputFingerprint: taskInput.taskInputFingerprint,
       meaningId: taskInput.meaningId,
       sceneDurationInFrames: durationInFrames,
     } as unknown as Parameters<typeof buildShotPlanSet>[0]),
+  );
+  return {
+    "src/generated/reference-fidelity.generated.json": fidelity,
+    "src/selected-resources.json": selectedResources,
+    "src/shot-plan.json": shotPlan,
     "src/shot-recipe-selection.json": selection,
-    "src/sound-plan.json": buildSceneSoundPlan({
-      ...soundDraft,
-      taskInputFingerprint: taskInput.taskInputFingerprint,
-      meaningId: taskInput.meaningId,
-      sceneDurationInFrames: durationInFrames,
-    } as unknown as Parameters<typeof buildSceneSoundPlan>[0]),
-    "src/sync-anchors.json": buildSceneSyncAnchors({
-      ...syncDraft,
-      taskInputFingerprint: taskInput.taskInputFingerprint,
-      meaningId: taskInput.meaningId,
-      sceneDurationInFrames: durationInFrames,
-    } as unknown as Parameters<typeof buildSceneSyncAnchors>[0]),
-    "src/visual-plan.json": buildSceneVisualPlan({
-      ...visualDraft,
-      taskInputFingerprint: taskInput.taskInputFingerprint,
-      meaningId: taskInput.meaningId,
-    } as unknown as Parameters<typeof buildSceneVisualPlan>[0]),
+    "src/sound-plan.json": await parseAgentDraft("src/sound-plan.json", () =>
+      buildSceneSoundPlan({
+        ...soundDraft,
+        taskInputFingerprint: taskInput.taskInputFingerprint,
+        meaningId: taskInput.meaningId,
+        sceneDurationInFrames: durationInFrames,
+      } as unknown as Parameters<typeof buildSceneSoundPlan>[0]),
+    ),
+    "src/sync-anchors.json": await parseAgentDraft(
+      "src/sync-anchors.json",
+      () =>
+        buildSceneSyncAnchors({
+          ...syncDraft,
+          taskInputFingerprint: taskInput.taskInputFingerprint,
+          meaningId: taskInput.meaningId,
+          sceneDurationInFrames: durationInFrames,
+        } as unknown as Parameters<typeof buildSceneSyncAnchors>[0]),
+    ),
+    "src/visual-plan.json": await parseAgentDraft("src/visual-plan.json", () =>
+      buildSceneVisualPlan({
+        ...visualDraft,
+        taskInputFingerprint: taskInput.taskInputFingerprint,
+        meaningId: taskInput.meaningId,
+      } as unknown as Parameters<typeof buildSceneVisualPlan>[0]),
+    ),
   } as const;
 };
 
 const finalizeGlobalVisualJson = async (workspace: string) => {
-  const plan = JsonObjectSchema.parse(
-    await readJsonFile(
-      workspace,
-      "project/global-visual-plan.json",
-      "task-output-invalid",
-    ),
+  const plan = await parseAgentDraft(
+    "project/global-visual-plan.json",
+    async () =>
+      JsonObjectSchema.parse(
+        await readJsonFile(
+          workspace,
+          "project/global-visual-plan.json",
+          "task-output-invalid",
+        ),
+      ),
   );
   const { planFingerprint: _planFingerprint, ...planInput } = plan;
   void _planFingerprint;
   return {
-    "project/global-visual-plan.json": createGlobalVisualPlan(planInput),
-    "src/selected-resources.json": SelectedResourcesFileSchema.parse(
-      await readJsonFile(
-        workspace,
-        "src/selected-resources.json",
-        "task-output-invalid",
-      ),
+    "project/global-visual-plan.json": await parseAgentDraft(
+      "project/global-visual-plan.json",
+      () => createGlobalVisualPlan(planInput),
+    ),
+    "src/selected-resources.json": await parseAgentDraft(
+      "src/selected-resources.json",
+      async () =>
+        SelectedResourcesFileSchema.parse(
+          await readJsonFile(
+            workspace,
+            "src/selected-resources.json",
+            "task-output-invalid",
+          ),
+        ),
     ),
   } as const;
 };

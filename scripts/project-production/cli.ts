@@ -23,6 +23,7 @@ import { continueProjectProduction } from "./application/continue-production";
 import { buildCurrentProductionPlan } from "./application/build-current-plan";
 import { checkTaskByKind } from "./application/check-task";
 import { finalizeAgentTaskWorkspace } from "./application/finalize-agent-task";
+import { reportCliFailure } from "../../packages/studio/src/cli/failure";
 import { inspectProjectProduction } from "./application/inspect-production";
 import { prepareProjectProduction } from "./application/prepare-production";
 import {
@@ -50,6 +51,7 @@ import {
   type ProductionScope,
 } from "./application/production-scope";
 import { inspectProjectRevisionCandidateDefinition } from "../projects/application/project-revision-candidate-store";
+import { resolveTaskAssignment } from "./application/task-assignment";
 
 type Context = Readonly<{
   rootDir: string;
@@ -139,6 +141,17 @@ const workerTransportOption = (
 const candidateOption = (args: readonly string[]) =>
   optionalOption(args, "--candidate");
 
+const assignmentOption = (args: readonly string[]) => {
+  const value = optionalOption(args, "--assignment");
+  if (value === undefined) return undefined;
+  if (!/^[1-9][0-9]*$/u.test(value))
+    throw new Error("--assignment must be a canonical decimal integer.");
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0)
+    throw new Error("--assignment must be a positive integer.");
+  return parsed;
+};
+
 const resolveCliProductionScope = async ({
   args,
   rootDir,
@@ -166,10 +179,36 @@ const boundTaskInput = (args: readonly string[], scope: ProductionScope) => ({
   bindingId: option(args, "--binding"),
 });
 
+const resolvedBoundTaskInput = async (
+  args: readonly string[],
+  scope: ProductionScope,
+) => {
+  const assignment = assignmentOption(args);
+  if (assignment === undefined) return boundTaskInput(args, scope);
+  if (args.includes("--task") || args.includes("--binding"))
+    throw new Error(
+      "--assignment cannot be combined with --task or --binding.",
+    );
+  const projectId = option(args, "--project");
+  const resolved = await resolveTaskAssignment({
+    rootDir: scope.isolatedRoot,
+    storyId: projectId,
+    attemptId: option(args, "--attempt"),
+    assignment,
+  });
+  return { rootDir: scope.isolatedRoot, ...resolved };
+};
+
 const taskCommandScope = async (
   args: readonly string[],
   repositoryRoot: string,
 ) => {
+  if (assignmentOption(args) !== undefined)
+    return resolveCliProductionScope({
+      args,
+      rootDir: repositoryRoot,
+      projectId: option(args, "--project"),
+    });
   if (candidateOption(args) === undefined) {
     return resolveProductionScope({
       rootDir: repositoryRoot,
@@ -316,7 +355,7 @@ export const runProjectProductionCli = async (
       rootDir: context.rootDir,
       projectId,
     });
-    const result = await (
+    const inspection = await (
       context.inspectProduction ?? inspectProjectProduction
     )({
       rootDir: context.rootDir,
@@ -324,6 +363,25 @@ export const runProjectProductionCli = async (
       scope,
       runtimePolicyManifest: context.runtimePolicyManifest,
     });
+    const reuseCount = inspection.tasks.filter(
+      ({ action }) => action === "reuse",
+    ).length;
+    const nonReusableCount = inspection.tasks.filter(
+      ({ action }) => action !== "reuse",
+    ).length;
+    const providerRequests = inspection.estimatedCost.providerRequests;
+    const providerCacheHits = inspection.estimatedCost.providerCacheHits;
+    const agentTasks = inspection.estimatedCost.agentTasks;
+    const planned = inspection.currentRevisionId !== null;
+    const result = {
+      agentHandoff: {
+        nextAction: `report-to-user-before-${inspection.nextAction}`,
+        summary: `sourceState=${inspection.sourceState}; estimatedProviderRequests=${providerRequests === null ? "unknown" : providerRequests}; providerCacheHits=${providerCacheHits === null ? "unknown" : providerCacheHits}; estimatedAgentTasks=${agentTasks === null ? "unknown" : agentTasks}; artifactReuse=${planned ? reuseCount : "not-planned"}; nonReusableTasks=${planned ? nonReusableCount : "not-planned"}; actualDurationSeconds=${inspection.durationBudget?.actualTotalSeconds ?? "not-measured"}.`,
+        instruction:
+          "After this tool returns, report these read-only facts and the task invalidation explanations to the user in a separate assistant message, then take the next production action. CLI output is not that report. Existing production authorization needs no new confirmation; this handoff is diagnostic only.",
+      },
+      ...inspection,
+    };
     context.stdout(JSON.stringify(result));
     return result;
   }
@@ -347,10 +405,13 @@ export const runProjectProductionCli = async (
   }
   if (command === "task-bind") {
     const candidateId = candidateOption(args);
+    const assignment = assignmentOption(args);
     const projectId =
-      candidateId === undefined ? "task-routing" : option(args, "--project");
+      assignment !== undefined || candidateId !== undefined
+        ? option(args, "--project")
+        : "task-routing";
     const scope =
-      candidateId === undefined
+      assignment === undefined && candidateId === undefined
         ? resolveProductionScope({
             rootDir: context.rootDir,
             storyId: projectId,
@@ -360,7 +421,7 @@ export const runProjectProductionCli = async (
             rootDir: context.rootDir,
             projectId,
           });
-    const input = boundTaskInput(args, scope);
+    const input = await resolvedBoundTaskInput(args, scope);
     const transport = workerTransportOption(args, "--transport");
     if (transport === undefined) throw new Error("Missing --transport value.");
     const result = await (context.bindWorker ?? bindTaskWorker)({
@@ -368,6 +429,7 @@ export const runProjectProductionCli = async (
       transport,
       repositoryRootDir: scope.repositoryRoot,
       ...(scope.candidateId === null ? {} : { candidateId: scope.candidateId }),
+      ...(assignment === undefined ? {} : { assignment, projectId }),
     });
     context.stdout(JSON.stringify(result));
     return result;
@@ -375,14 +437,14 @@ export const runProjectProductionCli = async (
   if (command === "task-describe") {
     const scope = await taskCommandScope(args, context.rootDir);
     const result = await (context.describeTask ?? describeBoundTask)(
-      boundTaskInput(args, scope),
+      await resolvedBoundTaskInput(args, scope),
     );
     context.stdout(JSON.stringify(result));
     return result;
   }
   if (command === "task-finalize") {
     const scope = await taskCommandScope(args, context.rootDir);
-    const input = boundTaskInput(args, scope);
+    const input = await resolvedBoundTaskInput(args, scope);
     await (context.assertTaskBinding ?? assertTaskWorkerBinding)(input);
     const result = await (context.finalizeTask ?? finalizeAgentTaskWorkspace)({
       rootDir: scope.isolatedRoot,
@@ -394,7 +456,7 @@ export const runProjectProductionCli = async (
   }
   if (command === "task-check") {
     const scope = await taskCommandScope(args, context.rootDir);
-    const input = boundTaskInput(args, scope);
+    const input = await resolvedBoundTaskInput(args, scope);
     await (context.assertTaskBinding ?? assertTaskWorkerBinding)(input);
     const result = await checkTaskByKind({
       rootDir: scope.isolatedRoot,
@@ -410,7 +472,7 @@ export const runProjectProductionCli = async (
   }
   if (command === "task-commit") {
     const scope = await taskCommandScope(args, context.rootDir);
-    const input = boundTaskInput(args, scope);
+    const input = await resolvedBoundTaskInput(args, scope);
     const { task } = await (
       context.assertTaskBinding ?? assertTaskWorkerBinding
     )(input);
@@ -465,7 +527,7 @@ export const runProjectProductionCli = async (
   }
   if (command === "task-fail") {
     const scope = await taskCommandScope(args, context.rootDir);
-    const input = boundTaskInput(args, scope);
+    const input = await resolvedBoundTaskInput(args, scope);
     const { taskRevision, attemptId } = input;
     const kind = option(args, "--kind");
     if (kind !== "task" && kind !== "host" && kind !== "fixed") {
@@ -505,7 +567,7 @@ export const runProjectProductionCli = async (
   if (command === "task-file-read") {
     const scope = await taskCommandScope(args, context.rootDir);
     const result = await (context.readTaskFile ?? readTaskWorkerFile)({
-      ...boundTaskInput(args, scope),
+      ...(await resolvedBoundTaskInput(args, scope)),
       logicalPath: option(args, "--path"),
     });
     context.stdout(JSON.stringify(result));
@@ -532,7 +594,7 @@ export const runProjectProductionCli = async (
       throw new Error("Task file write stdin must contain contentBase64.");
     }
     const result = await (context.writeTaskFile ?? writeTaskWorkerFile)({
-      ...boundTaskInput(args, scope),
+      ...(await resolvedBoundTaskInput(args, scope)),
       logicalPath: option(args, "--path"),
       contentBase64: body.contentBase64,
     });
@@ -637,9 +699,8 @@ if (
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
   runProjectProductionCli(process.argv.slice(2)).catch((error: unknown) => {
-    process.stderr.write(
-      `${error instanceof Error ? error.message : "Project production failed."}\n`,
-    );
-    process.exitCode = 1;
+    const report = reportCliFailure(error);
+    process.stderr.write(`${report.serialized}\n`);
+    process.exitCode = report.exitCode;
   });
 }

@@ -442,7 +442,23 @@ export const prepareProjectProduction = async (
       dirtyAgentTasks: dirty.map(({ task: taskSpec, ...task }) => ({
         ...task,
         ...buildTaskDispatch({
+          repositoryRootDir: scope.repositoryRoot,
           task: taskSpec,
+          assignment: (() => {
+            const index = taskSnapshots
+              .filter(
+                ({ decision }) =>
+                  decision.action === "dispatch-agent" &&
+                  decision.taskRevision !== null,
+              )
+              .findIndex(
+                ({ decision }) =>
+                  decision.taskRevision === taskSpec.taskRevision,
+              );
+            if (index < 0)
+              throw new Error("Agent task is missing from attempt snapshots.");
+            return index + 1;
+          })(),
           attemptId: attempt.attemptId,
           workspace: task.workspace,
           ...(scope.candidateId === null

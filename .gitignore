@@ -3,6 +3,7 @@ dist
 build
 .vite/
 .DS_Store
+.axmorf-worker-probe-*/
 .env
 .env.*
 !.env.example

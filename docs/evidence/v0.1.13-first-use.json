@@ -1,0 +1,447 @@
+{
+  "schemaVersion": 1,
+  "hosts": [
+    {
+      "schemaVersion": 1,
+      "host": "codex",
+      "model": "gpt-5.6-luna",
+      "sessionId": "01a08d1d-d696-7662-a5b6-bb8e679bbc7c",
+      "environment": {
+        "platform": "darwin",
+        "arch": "x64",
+        "node": "v22.22.3"
+      },
+      "startedAt": "2026-09-10T20:58:56.897046+00:00",
+      "endedAt": "2026-09-10T21:14:13.197793+00:00",
+      "packages": {
+        "runtime": {
+          "name": "@axmorf/studio",
+          "version": "0.1.13",
+          "fingerprint": "sha256:fed5fa35cbb836adec3d3619d007bca02e55c311446db28589aaf529a9a2a9bb",
+          "fileCount": 252
+        },
+        "creator": {
+          "name": "create-axmorf-studio",
+          "version": "0.1.13",
+          "fingerprint": "sha256:fe9720c591ad42d575a68fb75168804b3201bdc6dedef9bf3820f6428d552839",
+          "fileCount": 41
+        }
+      },
+      "prompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“从十分钟专注开始”，项目 ID 使用 codex-luna-medium-focus。视频依次呈现三个独立内容段落：第一段讲选择一个具体小步骤，第二段讲关掉打断，第三段讲做完记录下一步。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。\n",
+      "promptChecksum": "sha256:b273c9f07e0c9ee7a64fe441816867d022c5366d4c65486303a729bbd09a7fc3",
+      "transcriptChecksum": "sha256:2c553a291a6ed3c52a17964e049f91665b38d83545537fa73ca8768444728bcf",
+      "runChecksum": "sha256:c18ea627fd76a5aa6de68d030ac9dfb54525dc79e2526cac8ba07dfd75feb6e8",
+      "snapshotChecksum": "sha256:b389d1a3c2df6dd7ed5d6d78dfe79e405ebe5b5c60718f6f9da80ed2182438d0",
+      "creation": {
+        "method": "npm-exec-candidate",
+        "runtimeTarballChecksum": "sha256:03cfc4207efe9cd9a0947161e9f6fb7f06b5a237be4b6c873b5a9d8f70ba5a07",
+        "creatorTarballChecksum": "sha256:4c6874e8466bf162ae6b1633625a13534053663a7a88b051fc17b7faf45f019e",
+        "installLogChecksum": "sha256:184eae1fea3104b78f49da6ab8b1851cfc174b584fbbe59f20a2241aa0c05dd5"
+      },
+      "sessionChecksum": null,
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 48,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 9
+      },
+      "unchangedPackageFiles": 252,
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "peakBoundTasks": 4,
+        "fourWayBoundOverlapMs": 67883,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 4,
+        "refillAdmissions": 1,
+        "attemptId": "7de7189a-bf71-44ab-972e-9006fb1aa6de",
+        "childEvidence": [
+          {
+            "sessionId": "01a08d1e-9bf2-7683-84e1-efacac8bda08",
+            "transcriptChecksum": "sha256:99ccbe84c74a7f0ec2077b760cb1399c4aa692e69daad668a7b1555572a32346",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a08d1e-9c39-78f0-a456-209bb5490f15",
+            "transcriptChecksum": "sha256:de08d0bf7ec658af93c7702228fcb5647d3058d5c2700ef7c38df9ee74cfdd78",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a08d1e-9c72-72f0-83d3-6e372a2c8856",
+            "transcriptChecksum": "sha256:9edbecd8ef599738753000deb018b9e7326a04999c36184c538b0576b0709170",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a08d1e-9cab-7351-8bbe-cd40b8c74c4c",
+            "transcriptChecksum": "sha256:5b9ab524ac3c36e25a7e79ef570a2ed854698c153fb40b59b0ed022064d0c984",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a08d20-f6da-73e1-b2ae-718feae05c23",
+            "transcriptChecksum": "sha256:f32c28550d5d56a600d487ab246724ebb220bfbc55721e2c290138ebead3d60a",
+            "sessionChecksum": null,
+            "taskRevision": "task-229d81472b1a51d575e4f99cb9b0f835c28c916a09d9e82347235824f0749094"
+          },
+          {
+            "sessionId": "01a08d20-f714-7200-b190-6402b93e9023",
+            "transcriptChecksum": "sha256:6976dd99c924c2624fa0f4b2cf38c6491b05a92172f224bccd88880939aa40b2",
+            "sessionChecksum": null,
+            "taskRevision": "task-4390186b431ce02f85625cb65c9a8331b9e4500469c3649b429b59d8eeb8ae5c"
+          },
+          {
+            "sessionId": "01a08d20-f747-70a1-af3e-296b349f6b13",
+            "transcriptChecksum": "sha256:fbb3ca2312348179682ce743d0f849389e4b3d4c82f7d035f1459d7cc2a9c4c9",
+            "sessionChecksum": null,
+            "taskRevision": "task-8a34d35dd34cff22d2db05917cc9ecb747b60e1ef0452b2c3202f14b8c291bad"
+          },
+          {
+            "sessionId": "01a08d20-f778-7613-bee2-f7c14d253b25",
+            "transcriptChecksum": "sha256:26dd76e2b0ee841e8d559cb4c1bf748f773f16cd55d0f12f4c12db2b49d2ae0b",
+            "sessionChecksum": null,
+            "taskRevision": "task-d02aabb14d7247d0410b46702b50fd4ca38d21a1a76e6825565f1447f51743bd"
+          },
+          {
+            "sessionId": "01a08d24-6de4-7ba1-9f34-3408d425db24",
+            "transcriptChecksum": "sha256:fa01f868a78899eb4a7a9240267421ff393efbdb99155d4a50bb98ad59b86082",
+            "sessionChecksum": null,
+            "taskRevision": "task-e8320942c7dd5ced87a604f3e460d1a3514bccbdb57beceb12d323ef4dfacd35"
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null
+      },
+      "supervision": {
+        "schemaVersion": 1,
+        "source": "codex",
+        "reportedBeforeCreate": true,
+        "reportedBeforePrepare": true,
+        "continuationCalls": 1,
+        "pollingCalls": 0,
+        "asyncBatches": 0,
+        "completedAsyncBatches": 0
+      },
+      "unchangedGuideFiles": 12,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "codex-luna-medium-focus",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-bd5136b2786ff63be9da002485cf14412976305e07045dbf37ebfef81fb71fa9",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-a27e6640495c34679a2b118f1ada79faa339997fa357fa00a19c8c56ad119a1a",
+        "artifactSetFingerprint": "sha256:0e5cd83f6a14231ec408020c51ba77509230aebd7b4b34140797b3068effc76a"
+      },
+      "delivery": {
+        "storyId": "codex-luna-medium-focus",
+        "deliveryBuildId": "delivery-bd5136b2786ff63be9da002485cf14412976305e07045dbf37ebfef81fb71fa9",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:3b8fe8e14bd3c839a61e69b237632689435dcd4814b3b1a6662bea8c72b42566",
+            "sizeBytes": 3110941
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:f5caaba97debf121d9be19475225561c0adec68bfcaa53215bb02414227e9398",
+            "sizeBytes": 100145
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:4b8be23e93085b19b909a8d84ee44c6b4a40653d8c9ff8cd5a3814cde8940100",
+            "sizeBytes": 104343
+          },
+          "publish.json": {
+            "checksum": "sha256:64d639589a9b48d678550ca90ffe84b7317627b85ade9d671cfa05290914a802",
+            "sizeBytes": 2205
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1080,
+          "height": 1920,
+          "fps": 30,
+          "frameCount": 1074
+        },
+        "decodedFiles": ["video.mp4", "cover-4x3.png", "cover-3x4.png"]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "host": "hermes",
+      "model": "gpt-5.6-luna",
+      "sessionId": "20260911_045626_a69eb0",
+      "environment": {
+        "platform": "darwin",
+        "arch": "x64",
+        "node": "v22.22.3"
+      },
+      "startedAt": "2026-09-10T20:56:26.030713+00:00",
+      "endedAt": "2026-09-10T21:10:12.873082+00:00",
+      "packages": {
+        "runtime": {
+          "name": "@axmorf/studio",
+          "version": "0.1.13",
+          "fingerprint": "sha256:fed5fa35cbb836adec3d3619d007bca02e55c311446db28589aaf529a9a2a9bb",
+          "fileCount": 252
+        },
+        "creator": {
+          "name": "create-axmorf-studio",
+          "version": "0.1.13",
+          "fingerprint": "sha256:fe9720c591ad42d575a68fb75168804b3201bdc6dedef9bf3820f6428d552839",
+          "fileCount": 41
+        }
+      },
+      "prompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“从十分钟专注开始”，项目 ID 使用 hermes-luna-medium-focus。视频依次呈现三个独立内容段落：第一段讲选择一个具体小步骤，第二段讲关掉打断，第三段讲做完记录下一步。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。\n",
+      "promptChecksum": "sha256:6561f56fe2ab8a5f8a931779c67ef4df4f102a678da628e7193caf818c73bd5c",
+      "transcriptChecksum": "sha256:c1b62628502986f7b2327ebf7189fb2a91f6a849c3d8e202924ca1485e6f5935",
+      "runChecksum": "sha256:778f18ddca10e78131ad8fa3177029bc397ac2d32bd9de997e31ef25f687f1aa",
+      "snapshotChecksum": "sha256:4324f23505a5f17ee7a1312588e7ff9b1e8b935d6ac0f50d45eab3e229fb5ada",
+      "creation": {
+        "method": "npm-exec-candidate",
+        "runtimeTarballChecksum": "sha256:03cfc4207efe9cd9a0947161e9f6fb7f06b5a237be4b6c873b5a9d8f70ba5a07",
+        "creatorTarballChecksum": "sha256:4c6874e8466bf162ae6b1633625a13534053663a7a88b051fc17b7faf45f019e",
+        "installLogChecksum": "sha256:3a8bb400f2f415733e6bc6b0ff6313edfbeeda76199a3796970315a2f703baca"
+      },
+      "sessionChecksum": "sha256:2887c98f9834a268a2ddb5c2900bbf29fc202a6e992ee1e77a568d12421cd2d3",
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 39,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 3
+      },
+      "unchangedPackageFiles": 252,
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "peakBoundTasks": 4,
+        "fourWayBoundOverlapMs": 97396.05883789062,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 4,
+        "refillAdmissions": 1,
+        "attemptId": "206e3770-daef-400e-8459-d3d00d02f164",
+        "childEvidence": [
+          {
+            "sessionId": "20260911_045829_2b90c2",
+            "transcriptChecksum": "sha256:1b491feec96f4e04c08ecc19e34b77d31f7c00a2f5df90a2c74c7efc26b278d6",
+            "sessionChecksum": "sha256:727b9bfe1d519408fbc847dc8f2f2f9760b0bcdc86d856183c4e28c20ed68895",
+            "taskRevision": null
+          },
+          {
+            "sessionId": "20260911_045829_30b665",
+            "transcriptChecksum": "sha256:b1ffac08745acb0e69dfd99978f663a85acb4b4eb2b3fda7ebb17042b4330730",
+            "sessionChecksum": "sha256:129c546686a8da8060b015503c1ca5025188024144b605a0c3051770b3baac0c",
+            "taskRevision": null
+          },
+          {
+            "sessionId": "20260911_045829_3ea476",
+            "transcriptChecksum": "sha256:3ebf92eda95d25b26dea175a587da4af3b48e3e72642dd681c272ec6074dbe82",
+            "sessionChecksum": "sha256:c59213fb434359bdc09b6e9826bf209d9718d80ffc969efad051039d68501838",
+            "taskRevision": null
+          },
+          {
+            "sessionId": "20260911_045829_66ccbc",
+            "transcriptChecksum": "sha256:4b081256e324adbecac81d123c3f57a1103f8cfb6891100e433570c4a2007237",
+            "sessionChecksum": "sha256:c16ee8dc830965d747e2f708964147db5598571347bf6023a5d99db9d96f68e7",
+            "taskRevision": null
+          },
+          {
+            "sessionId": "20260911_050004_385fec",
+            "transcriptChecksum": "sha256:b0cd028c5d4c1dc38ade5cf05be32b24ca8cd9cacc26b719e2edca3fde39d7bb",
+            "sessionChecksum": "sha256:b70c8269e1f7425a1eba3cf68c6eef33ea453a5f513d7d99b4e8722f7444bc8f",
+            "taskRevision": "task-75db6c8ab33b1e6215a5014888c0bf365122b2d30164cec6bb2f0ab8a81d3970"
+          },
+          {
+            "sessionId": "20260911_050004_a2cb81",
+            "transcriptChecksum": "sha256:f6b588c4b8bc65dc1c7e84bfd8e6c08f59f9905d8c995b3398b4137d5071a756",
+            "sessionChecksum": "sha256:13b4b746a4f41d9ffd977565de5c6e1413daeb413c49d403335e4b0ac25866d2",
+            "taskRevision": "task-16afcae8d34d365d22d7a9ce2e35e33e72b22915ad21e9b0f48378f074014fdc"
+          },
+          {
+            "sessionId": "20260911_050004_ada563",
+            "transcriptChecksum": "sha256:786de6ad81c4d8acc99f69821383b8243c93adb45ce75278180a94b93e294d6f",
+            "sessionChecksum": "sha256:b42bc1857de3f1d26437e846c5f248de35e65068eac2c725b68c4df3fd758e8c",
+            "taskRevision": "task-033a9e599cdeda7cebf99ba864c2ca3e7fb6b4ab62ee08b0a0fef2d9eaeacb44"
+          },
+          {
+            "sessionId": "20260911_050005_1a6599",
+            "transcriptChecksum": "sha256:94d2d035151856f3c9139e32af219208d8fb2c4553aeb4ce0fc801e8c39e1cf9",
+            "sessionChecksum": "sha256:0c03d3510f6f936c8f48b8c167070afeb56771d6e394bd11c09489bb6c1eb047",
+            "taskRevision": "task-7e4d699af1298ea7386d941b56175c418e429b645c2ccd41e22add430e14f096"
+          },
+          {
+            "sessionId": "20260911_050355_d1a94b",
+            "transcriptChecksum": "sha256:0661c6e337e0b5fcdf4d0f9fc00df90ef68c8662b185b269278a34ce43deee37",
+            "sessionChecksum": "sha256:b921d68b2f99bc4e87b6e5ca00226d0917501c3d7c7a6a1e51226feda239aa09",
+            "taskRevision": "task-b5c631d2779e95d7ff876e635b77351c178aac7944ff37c58827418ab0b84406"
+          }
+        ],
+        "delegationChecksum": "sha256:6ba8745fc00c62143993e03339c11a502b0897b25a13de061008c7328a8cf237",
+        "notificationFormatterChecksum": "sha256:6639686593d58c0114593d3776de70aabcfe69b2cdbbc518ac2e3c558f45b6c8"
+      },
+      "supervision": {
+        "schemaVersion": 1,
+        "source": "tui",
+        "reportedBeforeCreate": true,
+        "reportedBeforePrepare": true,
+        "continuationCalls": 1,
+        "pollingCalls": 0,
+        "asyncBatches": 3,
+        "completedAsyncBatches": 3,
+        "uiEvidence": {
+          "checksum": "sha256:223a933752662ea2630c53a924c086d06ce2f9513e861a18bcd91e15385e01ae",
+          "sessionId": "f739c0db",
+          "toolCalls": 39,
+          "visibleReports": 12
+        }
+      },
+      "unchangedGuideFiles": 12,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "hermes-luna-medium-focus",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-d4c6ad76bcc6ea2404fad7be2b7d04d7ea90de67ecf50758a5c90a5352041938",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-fad76391522c7ac3f779d8009971e12480bd554566c01da6ca258aac63bc6cae",
+        "artifactSetFingerprint": "sha256:602e76f1391c4d5d774daa3fa4ab76976e03f40fb354e1c9221fe5e317202652"
+      },
+      "delivery": {
+        "storyId": "hermes-luna-medium-focus",
+        "deliveryBuildId": "delivery-d4c6ad76bcc6ea2404fad7be2b7d04d7ea90de67ecf50758a5c90a5352041938",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:551df729dea870ee72c44882960bca13604f3c893f3f1dfb7df4a9bbbf5b9bda",
+            "sizeBytes": 2901241
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:cfc0885850fe7a2c48de8ee00cc732d6676abe14452a8d45a70abe9da6e22299",
+            "sizeBytes": 99259
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:c0bf4897c7032f9094b50aac5c785fdc911568ed7215c4fa1a6af4899674c1e3",
+            "sizeBytes": 94312
+          },
+          "publish.json": {
+            "checksum": "sha256:b0251de3e10f92c1d2b6f23e44328a28a25083dd53bb7b01816aa2c6be4f98ca",
+            "sizeBytes": 2220
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1080,
+          "height": 1920,
+          "fps": 30,
+          "frameCount": 1052
+        },
+        "decodedFiles": ["video.mp4", "cover-4x3.png", "cover-3x4.png"]
+      }
+    }
+  ]
+}

@@ -28,6 +28,16 @@ test("create context supplies a usable example from current public choices witho
   assert.equal(context.durationBudget.targetTotalSeconds, 20);
   assert.equal(context.durationBudget.actualTotalSeconds, null);
   assert.equal(
+    context.agentHandoff.nextAction,
+    "report-to-user-before-project-create",
+  );
+  assert.match(context.agentHandoff.summary, /exampleTarget=20s/u);
+  assert.match(context.agentHandoff.summary, /availableNarrated=/u);
+  assert.match(
+    context.agentHandoff.instruction,
+    /Before running project:create/u,
+  );
+  assert.equal(
     context.durationBudget.availableNarratedSeconds,
     Math.max(0, 20 - context.durationBudget.boundarySeconds),
   );

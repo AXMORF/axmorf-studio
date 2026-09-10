@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "packageVersion": "0.1.12",
+  "testedModel": "gpt-5.6-luna",
+  "reasoningEffort": "medium",
+  "source": "2026-09-11 real Codex and Hermes exact-four-concurrency retest; original private evidence retained",
+  "failures": [
+    {
+      "host": "codex",
+      "stage": "native capability probe",
+      "symptom": "Two workers discarded yielded shell session handles; Root finalized after partial wait-any completion, interrupting remaining children.",
+      "productionStarted": false
+    },
+    {
+      "host": "hermes",
+      "stage": "task handoff and continuation supervision",
+      "symptom": "A copied 64-character task digest lost 15 characters. Three binds across two children failed. Four other tasks committed; foreground continuation exceeded the outer host deadline.",
+      "successfulCreativeTasks": 4,
+      "expectedCreativeTasks": 5,
+      "peakBoundTasks": 3,
+      "deliveryVerified": false
+    },
+    {
+      "owner": "acceptance-controller",
+      "symptom": "Absolute monotonic clock origins were process-local on the Python runtime used by workers.",
+      "correction": "Preserve original evidence; independently calibrate shared native wall-clock timestamps with per-process elapsed durations.",
+      "fourProbeOverlapLowerBoundMs": 48937
+    }
+  ],
+  "containment": "No validators/package internals or failed attempt identity/claims were edited; previous failed evidence preserved.",
+  "fixScope": [
+    "Unknown runtime capacity blocks instead of silently selecting one; verified positive lower capacities remain supported",
+    "Attempt-scoped ordinal routes retain full binding checks",
+    "Generated complete worker prompts",
+    "Executable original-handle wait example and explicit native background guidance",
+    "Native bind-to-commit concurrency evidence and stricter release supervision",
+    "Generated bounded native probe assignments and strict zero-write verification with owned cleanup",
+    "Structured draft finalization errors keep file/field ownership and do not mislabel authored output as fixed failure",
+    "Eligible Agent-task recovery distinguishes dependency-only downstream blocking from independent fixed/host faults",
+    "Operation-local reporting handoff preserves unknown estimates and distinguishes context examples from the user target"
+  ],
+  "limits": [
+    "Guidance cannot force a host model to retain pending work or avoid premature finalization.",
+    "One run per host does not establish a statistical model success rate.",
+    "Fresh Luna/medium candidate and public npm acceptance are required before calling this release verified.",
+    "The second Codex sample exceeded its approximately 30-second target at about 41.17 seconds after sealed narration; this authoring-duration deviation is separate from concurrency correctness.",
+    "Third Codex sample measured 46.4 seconds against an advisory 30-second target; it is a recorded duration deviation, not full brief compliance.",
+    "Recovery remains fail closed for fixed/host/unknown outcomes or missing failed-task evidence, including interrupted attempts without an eligible Agent task failure."
+  ],
+  "additionalCandidateFailures": [
+    {
+      "host": "codex",
+      "candidate": "first 0.1.13 tarballs, before unknown-capacity blocking",
+      "stage": "execution resolution",
+      "symptom": "The Root read the package guide, verified one child I/O challenge, and omitted runtime-max-concurrency. The resolver returned ready with effective capacity one, and the Root dispatched production serially.",
+      "releaseAcceptance": "failed: effective capacity four was not demonstrated",
+      "correction": "Missing runtime capacity now blocks resolution before preparation guidance; the public reference and structured next steps explain bounded concurrent native probes."
+    },
+    {
+      "host": "hermes",
+      "candidate": "second 0.1.13 tarballs, before generated probe assignments",
+      "stage": "native capability probe",
+      "symptom": "Root omitted the temporary directory from all four response paths. Native workers followed those assignments and wrote matching copies at the Workspace root. Root checked the temporary directory, then incorrectly reported filesystem isolation.",
+      "productionStarted": false,
+      "providerRequests": 0,
+      "evidence": "All four native worker commands and successful copy/compare results are preserved; four root-level response files remain. The Root removed its challenge directory after the failed comparison.",
+      "correction": "A shipped probe helper generates absolute source/response paths and complete worker prompts; deterministic verify reports missing paths without inferring filesystem isolation."
+    },
+    {
+      "host": "codex",
+      "candidate": "second 0.1.13 tarballs",
+      "stage": "native slot release",
+      "symptom": "Completed probe children still occupied host slots, so the first production spawn batch was rejected. The Root closed the completed probes and then dispatched production workers.",
+      "correction": "Probe closeout explicitly releases every native probe slot before production dispatch."
+    },
+    {
+      "host": "hermes",
+      "candidate": "third 0.1.13 tarballs",
+      "stage": "Agent output finalization and recovery diagnosis",
+      "symptom": "The Scene duration was 239 frames but the authored shot ended at 240. Finalize hid the draft schema error behind task-finalization-failed, leaving stale derived fingerprints. The worker guessed hashes and eventually recorded a fixed failure. No delivery was produced.",
+      "independentReproduction": "An isolated copy, unchanged candidate package and source finalizer exposed the nested Zod shots[0] range violation. Failed attempt and installed package remain unchanged.",
+      "correction": "Report authored draft file/field diagnostics without changing authored ranges or weakening validation. Preserve fixed/host failure classification; allow dependency-only blocked downstream work in a separately eligible Agent task recovery."
+    },
+    {
+      "host": "codex",
+      "candidate": "third 0.1.13 tarballs",
+      "stage": "user-visible reporting",
+      "symptom": "The video completed at 46.4 seconds, but the Root omitted a user-visible report between inspect and costly prepare. The independent release recorder rejected this run.",
+      "releaseAcceptance": "failed: missing inspect report before preparation; technical delivery alone is insufficient"
+    },
+    {
+      "host": "codex",
+      "candidate": "fourth 0.1.13 tarballs",
+      "stage": "operation ordering",
+      "symptom": "Root invoked costly prepare immediately after inspect without an intervening user report, then described the measured preparation output as a read-only inspection result. Video delivery completed at 27.77 seconds, but the independent release recorder rejected this ordering.",
+      "correction": "CLI create context and inspection now return operation-local agentHandoff text with computed summary and explicit report-before-action order; the ordinary business prompt and release checks stay unchanged."
+    },
+    {
+      "host": "hermes",
+      "candidate": "fourth 0.1.13 tarballs",
+      "stage": "native supervision",
+      "symptom": "Video delivery completed at 38 seconds, but Root called delegate_task action=list instead of relying exclusively on native completion notifications. Independent release supervision rejected the run.",
+      "releaseAcceptance": "failed: child list polling is not native completion"
+    }
+  ],
+  "intermediateCodexResult": {
+    "candidate": "second 0.1.13 tarballs",
+    "deliveryReportedComplete": true,
+    "independentNativeAudit": {
+      "effectiveMaxConcurrency": 4,
+      "peakActiveChildren": 4,
+      "peakBoundTasks": 4,
+      "fourWayBoundOverlapMs": 141623,
+      "dirtyTaskCount": 5,
+      "productionChildCount": 5,
+      "probeChildCount": 4,
+      "refillAdmissions": 1
+    },
+    "releaseEligibility": "not the final candidate; same-candidate Hermes failed and probe helper changes require fresh acceptance"
+  },
+  "finalizationReproduction": {
+    "authoredShotEndFrame": 240,
+    "immutableSceneDurationInFrames": 239,
+    "failureCode": "task-output-invalid",
+    "file": "src/shot-plan.json",
+    "path": ["shots", 0, "primaryRange", "endFrame"],
+    "failureOwner": "agent-output",
+    "result": "Source finalizer and public CLI serializer now expose the exact range violation in an isolated copy; source regression confirms no write on failure and successful fixed projection after correcting authored timing."
+  },
+  "intermediateCandidate4Results": [
+    {
+      "host": "codex",
+      "deliveryReportedComplete": true,
+      "durationSeconds": 27.77,
+      "releaseAcceptance": "failed",
+      "independentNativeAudit": {
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "peakBoundTasks": 4,
+        "fourWayBoundOverlapMs": 83269,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 4,
+        "refillAdmissions": 1
+      }
+    },
+    {
+      "host": "hermes",
+      "deliveryReportedComplete": true,
+      "durationSeconds": 38,
+      "releaseAcceptance": "failed",
+      "independentNativeAudit": {
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "peakBoundTasks": 4,
+        "fourWayBoundOverlapMs": 149885.8271484375,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 4,
+        "refillAdmissions": 1
+      }
+    }
+  ]
+}

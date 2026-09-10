@@ -12,7 +12,7 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 const PolicySchema = z
   .object({
     schemaVersion: z.literal(19),
-    policyVersion: z.literal("axmorf-video-policy-v23"),
+    policyVersion: z.literal("axmorf-video-policy-v24"),
     rootEndpoints: z.tuple([
       z.literal("project-production-complete"),
       z.literal("project-production-current"),
@@ -57,7 +57,7 @@ const PolicySchema = z
         defaultMode: z.literal("subagents"),
         defaultSubagentMaxConcurrency: z.literal(4),
         repositoryMaxConcurrency: z.literal(4),
-        unknownRuntimeMaxConcurrency: z.literal(1),
+        unknownRuntimeMaxConcurrency: z.literal(0),
         inlinePolicy: z.literal("root-sequential-one-workspace-at-a-time"),
         subagentPolicy: z.literal(
           "bounded-native-wait-any-or-synchronous-batch",

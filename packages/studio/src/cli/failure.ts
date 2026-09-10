@@ -18,7 +18,55 @@ const errorCode = (error: unknown) => {
   return "command-failed";
 };
 
+const isAgentOutputFinalizationFailure = (
+  error: unknown,
+): error is {
+  readonly name: "AgentTaskFinalizationError";
+  readonly code: string;
+  readonly message: string;
+  readonly diagnostic: {
+    readonly file: string;
+    readonly path: readonly (string | number)[];
+    readonly code: string;
+    readonly message: string;
+    readonly failureOwner: "agent-output";
+    readonly repairHint: string;
+  };
+} => {
+  if (error === null || typeof error !== "object") return false;
+  const value = error as Record<string, unknown>;
+  const diagnostic = value.diagnostic;
+  if (
+    value.name !== "AgentTaskFinalizationError" ||
+    value.code !== "task-output-invalid" ||
+    typeof value.message !== "string" ||
+    diagnostic === null ||
+    typeof diagnostic !== "object"
+  )
+    return false;
+  const entry = diagnostic as Record<string, unknown>;
+  return (
+    typeof entry.file === "string" &&
+    Array.isArray(entry.path) &&
+    entry.path.every(
+      (part) => typeof part === "string" || typeof part === "number",
+    ) &&
+    typeof entry.code === "string" &&
+    typeof entry.message === "string" &&
+    entry.failureOwner === "agent-output" &&
+    typeof entry.repairHint === "string"
+  );
+};
+
 export const describeCliFailure = (error: unknown) => {
+  if (isAgentOutputFinalizationFailure(error)) {
+    return {
+      status: "error",
+      code: "task-output-invalid",
+      message: error.message,
+      diagnostic: error.diagnostic,
+    } as const;
+  }
   if (error instanceof AuthoringValidationError) {
     return buildAuthoringValidationFailure(error);
   }

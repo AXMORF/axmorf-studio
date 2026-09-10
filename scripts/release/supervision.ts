@@ -457,6 +457,13 @@ export function auditSupervision(input: {
     1,
     "Production must start its continuation exactly once",
   );
+  if (input.host === "hermes") {
+    assert.equal(
+      continuation[0]!.arguments.background,
+      true,
+      "Hermes continuation requires a native background process; a longer foreground timeout is insufficient",
+    );
+  }
   for (const call of calls) {
     assert.ok(
       !(call.name === "delegate_task" && call.arguments.action === "list"),
@@ -472,7 +479,10 @@ export function auditSupervision(input: {
       ),
       "Shell sleep blocks event-only completion delivery",
     );
-    if (call.index > continuation[0]!.index && call.name === "process_manage") {
+    if (
+      call.index > continuation[0]!.index &&
+      ["process", "process_manage"].includes(call.name)
+    ) {
       assert.ok(
         !["poll", "log", "list"].includes(String(call.arguments.action)),
         "Continuation supervision must wait on its original handle",

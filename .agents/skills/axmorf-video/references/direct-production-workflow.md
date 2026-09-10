@@ -38,14 +38,14 @@ fingerprints proceed.
 ## 3. Resolve execution once
 
 只解析 prompt 的 explicit execution fields；其余按 settings、内置 `subagents`/4 继承。除非明确要求，不保存。
-先按 [host capability probe](execution-capabilities.md) 验证 native child 读写与可用容量，再传入下列 host flags。
+先按 [host capability probe](execution-capabilities.md) 使用 helper 生成完整路径与派发提示，验证读写与容量、释放所有探测槽位，再传入下列 host flags。
 
 ```bash
 npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>] [--worker-transport shared-workspace|controller-io]
 ```
 
 Inline 只需当前 shell-capable Agent。subagents 要求 runtime capacity 与 verified `shared-workspace`/
-`controller-io`；capacity unknown 按 1，transport 缺失/zero capacity/exact mismatch 阻塞，ceiling 4。transport 不持久化，解析诊断不
+`controller-io`；capacity unknown 阻塞，transport 缺失/zero capacity/exact mismatch 阻塞，ceiling 4。transport 不持久化，解析诊断不
 进入 content identity。
 
 ## 4. Inspect read-only, then prepare explicitly
@@ -54,7 +54,7 @@ Inline 只需当前 shell-capable Agent。subagents 要求 runtime capacity 与 
 npm run project:produce:inspect -- --project <storyId>
 ```
 
-Report read-only readiness, cost/reuse, and invalidation before:
+Inspect 返回后先报告 readiness、cost/reuse 与 invalidation，再 prepare；前置计划不算结果报告，二者不得合并调用：
 
 ```bash
 npm run project:produce:prepare -- --project <storyId>
@@ -66,20 +66,21 @@ never `scene-template`. Attempt IDs never enter TaskRevision; diagnostics own no
 ## 5. Execute dirty Agent tasks
 
 每个 TaskRevision 只归属一个 executor。`inputs/task-contract.json` 是 immutable、attempt-neutral 的 exact output
-contract，不包含 host command。
+contract，不包含 host command。prepare 的 `workerPrompts` 已含完整角色、路径与绑定命令，Root 按 transport 整段转发。
+短 ordinal 由 exact attempt 的 immutable dirty task snapshots 解析，仍走原完整 binding gate；旧 full task/binding CLI 保留，禁止混用。
 
 先运行 prepare 的 exact attempt-bound bind；这是 zero-write gate，`task-worker-bound` 前禁止 task read/write。
 之后只使用返回的 capability 与 commands：
 
 ```bash
-npm run project:task:bind -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --transport shared-workspace|controller-io
-npm run project:task:describe -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
-npm run project:task:finalize -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
-npm run project:task:check -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
-npm run project:task:commit -- --task <taskRevision> --attempt <attemptId> --binding <bindingId>
-npm run project:task:fail -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --kind task|host|fixed
-npm run project:task:file-read -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --path <logicalPath>
-npm run project:task:file-write -- --task <taskRevision> --attempt <attemptId> --binding <bindingId> --path <declaredOutputPath>
+npm run project:task:bind -- --project <storyId> --attempt <attemptId> --assignment <ordinal> --transport shared-workspace|controller-io
+npm run project:task:describe -- --project <storyId> --attempt <attemptId> --assignment <ordinal>
+npm run project:task:finalize -- --project <storyId> --attempt <attemptId> --assignment <ordinal>
+npm run project:task:check -- --project <storyId> --attempt <attemptId> --assignment <ordinal>
+npm run project:task:commit -- --project <storyId> --attempt <attemptId> --assignment <ordinal>
+npm run project:task:fail -- --project <storyId> --attempt <attemptId> --assignment <ordinal> --kind task|host|fixed
+npm run project:task:file-read -- --project <storyId> --attempt <attemptId> --assignment <ordinal> --path <logicalPath>
+npm run project:task:file-write -- --project <storyId> --attempt <attemptId> --assignment <ordinal> --path <declaredOutputPath>
 ```
 
 `shared-workspace` 仅访问返回的 workspace。`controller-io` 无 filesystem access，只能用 file-read/file-write；

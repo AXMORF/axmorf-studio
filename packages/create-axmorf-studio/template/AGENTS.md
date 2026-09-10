@@ -26,7 +26,7 @@ product.
 
 For new authoring, read the Skill authoring reference and use `project:create:context`
 to obtain a complete example and current public choices. Inherit boundary templates
-and execution settings unless the user explicitly changes them.
+and execution settings unless the user explicitly changes them. In subagents mode, unknown runtime capacity blocks before costly preparation; verify the requested bounded native probe batch and pass its tested capacity to execution resolution.
 
 Run `npm run project:produce:inspect` before any costly preparation. Only
 `npm run project:produce:prepare` may call configured providers. An Agent task
@@ -64,7 +64,7 @@ Retry only `project:revision:promote`, not the completed production attempt.
 
 Execution defaults to `subagents` with maximum four, subject to available native child capacity. Explicit user choices override
 saved execution settings and the built-in default; explicit inline remains supported. Before inspect, follow the Skill
-[host probe](.agents/skills/axmorf-video/references/execution-capabilities.md), then pass verified capacity and transport to
+[host probe](.agents/skills/axmorf-video/references/execution-capabilities.md) with its helper-generated absolute paths and complete prompts; release all completed probe slots, then pass verified capacity and transport to
 `project:execution:resolve`. The Root assigns each different TaskRevision to a fresh native child/session and never authors task outputs in subagents mode.
 Never reuse a finished child through follow-up or resume for a different task; same-task corrections remain with its original
 executor before terminal. Releasing a capacity slot does not authorize reusing that child session.
@@ -93,3 +93,6 @@ that window's start. It must not read Scene output or carry Beat-specific copy.
 Never publish, push, delete a Project, or expose private configuration unless
 the user explicitly requests that action. Project deletion must use
 `npm run project:delete -- --project <storyId> --confirm-delete`.
+
+短 `--assignment` 只路由 exact project/attempt 的 immutable dirty task 序号；CLI 还原 full task/binding 后继续原验证，不能混入手写长身份。
+Root 优先整段转发 prepare/reissue 的 `workerPrompts`；进程工具返回 session/cell handle 时完整保留并等待，不能只取 output 或提前结束 Root。
