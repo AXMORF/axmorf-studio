@@ -7,6 +7,7 @@ import {
   type Sha256Digest,
 } from "./primitives";
 import { StyleProfileIdSchema } from "./scene-primitives";
+import { VisualThemeSchema } from "./visual-theme";
 
 export const VISUAL_STYLE_FINGERPRINT_VERSION =
   "visual-style-fingerprint-v1" as const;
@@ -51,6 +52,7 @@ export const VisualStyleSpecSchema = z
     styleProfileId: StyleProfileIdSchema,
     resourceCatalogFingerprint: Sha256DigestSchema,
     artDirection: VisualStyleArtDirectionSchema,
+    theme: VisualThemeSchema.optional(),
     continuityRules: UniqueVisualStyleRulesSchema,
     forbiddenTreatments: UniqueVisualStyleRulesSchema,
   })

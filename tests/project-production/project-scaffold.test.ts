@@ -47,10 +47,12 @@ test("production scaffold source binds the complete runtime input identity for S
   assert.match(composition, new RegExp(sha("a"), "u"));
   assert.match(
     composition,
-    /globalVisualBackgroundLayers=\{<ProductionGlobalVisualBaseLayer\/>\}/u,
+    /globalVisualBackgroundLayers=\{visualStyle\.theme === undefined \? <ProductionGlobalVisualBaseLayer\/> : <ThemedGlobalVisualBackground theme=\{visualStyle\.theme\}>\{decorationLayers\}<\/ThemedGlobalVisualBackground>\}/u,
   );
+  assert.match(composition, /VisualStyleSpecSchema\.parse\(visualStyleJson\)/u);
+  assert.match(composition, /visualStyle\.storyId !== storyId/u);
   assert.match(
     composition,
-    /globalVisualLayers=\{<Sequence from=\{globalVisualLayerPolicy\.decorationFrameRange\.startFrame\}[^>]+layout="absolute-fill"><ProductionGlobalVisualDecorationLayers\/><\/Sequence>\}/u,
+    /const decorationLayers = <Sequence from=\{globalVisualLayerPolicy\.decorationFrameRange\.startFrame\}[^>]+layout="absolute-fill"><ProductionGlobalVisualDecorationLayers\/><\/Sequence>/u,
   );
 });

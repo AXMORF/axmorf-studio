@@ -76,3 +76,5 @@ Delivery. It returns structured failure reasons and never writes legacy baseline
 Commit `package.json`, `package-lock.json`, this README, and any instruction customizations you intentionally want to share. Keep
 Project source, media, private config, provider credentials, voice profiles, production work, artifacts, attempts, output, Deliveries,
 and revision candidates local unless you deliberately establish a different policy.
+
+新 Project 的 `visualStyle.theme` 可选 dark、light 或 background/primaryText/secondaryText/accent 四角色不透明六位 hex；默认 dark。系统在创建/修订前验证配色，Composition 的实际底色与正文、固定首尾共用主题。旧 Project 的 immutable 首尾不自动迁移。

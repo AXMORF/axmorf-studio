@@ -1,5 +1,6 @@
 import type { FC } from "react";
 import { AbsoluteFill, Easing, interpolate } from "remotion";
+import type { VisualTheme } from "@axmorf/studio/contracts";
 
 import { AXMORF_WORDMARK, AxmorfMark } from "./AxmorfBrand";
 
@@ -12,6 +13,7 @@ export type BrandFollowSceneProps = Readonly<{
   sceneFrame: number;
   width: number;
   height: number;
+  theme: VisualTheme;
 }>;
 
 export const resolveBrandFollowLockupLayout = ({
@@ -38,6 +40,7 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
   sceneFrame,
   width,
   height,
+  theme,
 }) => {
   const frame = sceneFrame * 1.5;
   const {
@@ -58,24 +61,21 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
     ...clamped,
     easing: Easing.inOut(Easing.cubic),
   });
-  const buttonWidth = isLandscape ? 286 : 310;
+  const buttonWidth = isLandscape ? 330 : 310;
   const buttonHeight = isLandscape ? 74 : 84;
   const clickProgress = interpolate(frame, [142, 150], [0, 1], {
     ...clamped,
     easing: Easing.out(Easing.cubic),
   });
   return (
-    <AbsoluteFill style={{ color: "#242424", overflow: "hidden" }}>
+    <AbsoluteFill style={{ color: theme.primaryText, overflow: "hidden" }}>
       <div
         style={{
-          backgroundColor: "#fffdf9",
-          borderRadius: 36,
-          height: markSize + 96,
-          left: lockupLeft - 48,
-          overflow: "hidden",
+          height: markSize,
+          left: lockupLeft,
           position: "absolute",
-          top: lockupY - markSize / 2 - 48,
-          width: lockupWidth + 96,
+          top: lockupY - markSize / 2,
+          width: lockupWidth,
         }}
       >
         <div
@@ -83,14 +83,14 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
           role="img"
           style={{
             height: markSize * markZoom,
-            left: markLeft + (markSize - markSize * markZoom) / 2 + 48,
+            left: markLeft + (markSize - markSize * markZoom) / 2,
             position: "absolute",
-            top: (markSize - markSize * markZoom) / 2 + 48,
+            top: (markSize - markSize * markZoom) / 2,
             width: markSize * markZoom,
           }}
         >
           <AxmorfMark
-            color="#242424"
+            color={theme.primaryText}
             style={{ height: "100%", width: "100%" }}
           />
         </div>
@@ -103,10 +103,10 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
             fontSize: 76,
             fontWeight: 620,
             justifyContent: "space-between",
-            left: markSize + lockupGap + 48,
+            left: markSize + lockupGap,
             letterSpacing: "0.12em",
             position: "absolute",
-            top: markSize / 2 - 38 + 48,
+            top: markSize / 2 - 38,
             width: wordmarkWidth,
           }}
         >
@@ -135,9 +135,9 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
         role="img"
         style={{
           alignItems: "center",
-          background: clickProgress > 0 ? "#a37d5c" : "#242424",
+          background: clickProgress > 0 ? theme.accent : theme.primaryText,
           borderRadius: buttonHeight / 2,
-          color: "#fffdf9",
+          color: theme.background,
           display: "flex",
           fontFamily: 'Inter, "Noto Sans SC", Arial, sans-serif',
           fontSize: 36,
@@ -156,6 +156,7 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
               easing: Easing.out(Easing.back(1.6)),
             }),
           width: buttonWidth,
+          whiteSpace: "nowrap",
         }}
       >
         {clickProgress >= 0.5 ? "✓ 已关注" : "+ 关注 AXMORF"}
@@ -166,7 +167,7 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
         viewBox="0 0 28 28"
         width={isLandscape ? 54 : 62}
         style={{
-          filter: "drop-shadow(0 5px 8px rgba(36, 36, 36, 0.28))",
+          filter: `drop-shadow(0 5px 8px ${theme.primaryText}47)`,
           left: interpolate(frame, [114, 136], [width * 0.14, width * 0.58], {
             ...clamped,
             easing: Easing.out(Easing.cubic),
@@ -186,8 +187,8 @@ export const BrandFollowScene: FC<BrandFollowSceneProps> = ({
       >
         <path
           d="M2 1 L2 23 L8 17.5 L11.5 25 L15.5 23.2 L12 15.8 L20 15 Z"
-          fill="#fffdf9"
-          stroke="#242424"
+          fill={theme.background}
+          stroke={theme.primaryText}
           strokeLinejoin="round"
           strokeWidth={1.6}
         />

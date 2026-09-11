@@ -10,6 +10,7 @@ bindingId: <bindingId>
 workspace/declared files；controller-io 只用 file-read/file-write。绑定后读 `task.json`、
 `inputs/context.json`、`inputs/task-contract.json`，只写 declared outputs。
 
+读取 `context.visualStyle`；有 theme 时主文字、次文字与强调色使用其语义角色，背景由 Composition 绘制，不能再加整片底板。
 完整消费 context.scene.taskInput 的 StoryBeat/timing/brief/requirements、sceneViewport、allowedResourceIds、
 allowedSnapshots。`task-input.generated.json` 仅由 fixed materialization 投影。Renderer 从 SceneViewport `(0, 0)`
 布局，只用 width/height/sceneViewport.minFontSizePx，不得读取、推导或重复应用 full-frame inset。透明 Scene

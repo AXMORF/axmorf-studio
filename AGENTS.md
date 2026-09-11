@@ -119,6 +119,7 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   once owns safe-area-local SceneViewport、captions、narration 和 GlobalVisual layers；GlobalVisual base 覆盖完整
   Composition，decoration 只覆盖首个至末个 narrated Scene 的连续窗口。Scene 的 `(0, 0)` 是 viewport 左上角，
   只接收 viewport width/height，不感知 full-frame inset。
+- 新 Project 的 `VisualStyleSpec.theme` 固化已校验四角色配色，Composition 实际绘制 background；themed GlobalVisual base 必须直接返回 null，正文/首尾共用主题。旧 immutable 模板不静默迁移；不兼容主题在 create/revision 前置拒绝。
 - 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。Project BGM 只覆盖 narrated
   content window，不进入 silent boundary Scenes。
 - JSON/数据文件不包含 executable expression；renderer 由 composition-local static registry 绑定。

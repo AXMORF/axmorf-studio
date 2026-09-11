@@ -17,6 +17,7 @@ import test from "node:test";
 
 import {
   AuthoringValidationError,
+  VISUAL_THEME_PRESETS,
   buildDeliveryPublish,
   buildDeliveryPublishing,
   buildProductionRevision,
@@ -207,11 +208,25 @@ const writeCurrentDelivery = async (rootDir: string) => {
   return publish;
 };
 
-const fixture = async (context: {
-  after: (callback: () => Promise<void>) => void;
-}) => {
+const fixture = async (
+  context: {
+    after: (callback: () => Promise<void>) => void;
+  },
+  boundaryTemplates = false,
+) => {
   const prepared = await prepareProjectCreateFixture();
   context.after(() => rm(prepared.rootDir, { recursive: true, force: true }));
+  if (boundaryTemplates)
+    await writeFile(
+      prepared.inputPath,
+      JSON.stringify({
+        ...validProjectCreateInput,
+        sceneTemplates: {
+          introSceneTemplateId: "axmorf-brand-reveal-v1",
+          outroSceneTemplateId: "axmorf-source-follow-v1",
+        },
+      }),
+    );
   await createProject({
     rootDir: prepared.rootDir,
     projectId: validProjectCreateInput.storyId,
@@ -263,6 +278,94 @@ const fixture = async (context: {
   } as const;
   return { ...prepared, dependencies, input, publish } as const;
 };
+
+test("theme revision preserves immutable boundaries and changes only the isolated candidate", async (context) => {
+  const current = await fixture(context, true);
+  const projectRoot = join(current.rootDir, "src/projects/story-example");
+  const liveStyleBytes = await readFile(
+    join(projectRoot, "visual-style.json"),
+    "utf8",
+  );
+  const liveStyle = JSON.parse(liveStyleBytes);
+  const result = await readProjectRevisionContext({
+    rootDir: current.rootDir,
+    projectId: current.input.storyId,
+    dependencies: current.dependencies,
+  });
+  assert.deepEqual(
+    result.editable.visualStyle.theme,
+    VISUAL_THEME_PRESETS.dark,
+  );
+  const input = {
+    ...current.input,
+    patch: {
+      visualStyle: { ...result.editable.visualStyle, theme: "light" },
+    },
+  };
+  await createProjectRevisionCandidate({
+    rootDir: current.rootDir,
+    projectId: current.input.storyId,
+    input,
+    env: { RSP_PRODUCER_CONFIG: current.configPath },
+    dependencies: current.dependencies,
+  });
+  const scope = createProjectRevisionProductionScope({
+    rootDir: current.rootDir,
+    storyId: current.input.storyId,
+    candidateId: computeProjectRevisionCandidateId(input),
+  });
+  const candidateRoot = join(scope.projectSourceRoot, current.input.storyId);
+  assert.deepEqual(
+    JSON.parse(await readFile(join(candidateRoot, "visual-style.json"), "utf8"))
+      .theme,
+    VISUAL_THEME_PRESETS.light,
+  );
+  assert.equal(
+    await readFile(join(projectRoot, "visual-style.json"), "utf8"),
+    liveStyleBytes,
+  );
+  for (const boundary of ["configured-intro-scene", "configured-outro-scene"]) {
+    const instancePath = `scenes/${boundary}/scene-template-instance.json`;
+    const instance = JSON.parse(
+      await readFile(join(projectRoot, instancePath), "utf8"),
+    );
+    assert.equal(
+      await readFile(join(candidateRoot, instancePath), "utf8"),
+      await readFile(join(projectRoot, instancePath), "utf8"),
+    );
+    for (const file of instance.copiedSourceFiles) {
+      assert.equal(
+        await readFile(join(scope.isolatedRoot, file.repositoryPath), "utf8"),
+        await readFile(join(current.rootDir, file.repositoryPath), "utf8"),
+      );
+    }
+  }
+  await assert.rejects(
+    validateProjectRevisionAuthoring({
+      rootDir: current.rootDir,
+      input: {
+        ...current.input,
+        patch: { visualStyle: validProjectCreateInput.visualStyle },
+      },
+      dependencies: current.dependencies,
+    }),
+    /preserve or replace.*theme/u,
+  );
+  // Simulate a pre-theme stored authoring document in this disposable fixture only.
+  delete liveStyle.theme;
+  await writeFile(
+    join(projectRoot, "visual-style.json"),
+    JSON.stringify(liveStyle),
+  );
+  await assert.rejects(
+    validateProjectRevisionAuthoring({
+      rootDir: current.rootDir,
+      input,
+      dependencies: current.dependencies,
+    }),
+    /incompatible with legacy immutable boundary templates/u,
+  );
+});
 
 test("revision context fully binds the current Revision and exact Delivery", async (context) => {
   const current = await fixture(context);

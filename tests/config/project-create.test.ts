@@ -6,6 +6,7 @@ import test from "node:test";
 
 import {
   AuthoringValidationError,
+  VISUAL_THEME_PRESETS,
   NarrationSpecSchema,
   RenderSpecSchema,
   SealedNarrationManifestSchema,
@@ -46,6 +47,64 @@ const createProject = (
     ...input,
     runtimeResources: projectCreateRuntimeResources,
   });
+
+test("create freezes the default or selected theme and rejects invalid colors before writes", async (context) => {
+  for (const theme of [
+    undefined,
+    "light",
+    { ...VISUAL_THEME_PRESETS.dark, background: "#111a3a" },
+  ]) {
+    const fixture = await prepareProjectCreateFixture();
+    context.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+    await writeProjectCreateJson(fixture.inputPath, {
+      ...validProjectCreateInput,
+      visualStyle: {
+        ...validProjectCreateInput.visualStyle,
+        ...(theme === undefined ? {} : { theme }),
+      },
+    });
+    await createProject({
+      rootDir: fixture.rootDir,
+      projectId: validProjectCreateInput.storyId,
+      inputPath: fixture.inputPath,
+      env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+    });
+    const stored = JSON.parse(
+      await readFile(
+        join(fixture.rootDir, "src/projects/story-example/visual-style.json"),
+        "utf8",
+      ),
+    );
+    assert.deepEqual(
+      stored.theme,
+      theme === "light"
+        ? VISUAL_THEME_PRESETS.light
+        : (theme ?? VISUAL_THEME_PRESETS.dark),
+    );
+  }
+  const fixture = await prepareProjectCreateFixture();
+  context.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+  await writeProjectCreateJson(fixture.inputPath, {
+    ...validProjectCreateInput,
+    visualStyle: {
+      ...validProjectCreateInput.visualStyle,
+      theme: { ...VISUAL_THEME_PRESETS.dark, primaryText: "#0d1b2a" },
+    },
+  });
+  await assert.rejects(
+    createProject({
+      rootDir: fixture.rootDir,
+      projectId: validProjectCreateInput.storyId,
+      inputPath: fixture.inputPath,
+      env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+    }),
+    /contrast/u,
+  );
+  await assert.rejects(
+    stat(join(fixture.rootDir, "src/projects/story-example")),
+    { code: "ENOENT" },
+  );
+});
 
 const snapshotProjectMtimes = async (rootDir: string) => {
   const paths = [

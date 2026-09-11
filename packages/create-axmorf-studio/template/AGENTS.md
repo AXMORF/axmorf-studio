@@ -96,3 +96,5 @@ the user explicitly requests that action. Project deletion must use
 
 短 `--assignment` 只路由 exact project/attempt 的 immutable dirty task 序号；CLI 还原 full task/binding 后继续原验证，不能混入手写长身份。
 Root 优先整段转发 prepare/reissue 的 `workerPrompts`；进程工具返回 session/cell handle 时完整保留并等待，不能只取 output 或提前结束 Root。
+
+New Projects freeze `visualStyle.theme`: dark (default), light, or validated opaque hex roles background/primaryText/secondaryText/accent. Composition paints that background. Themed GlobalVisualBaseLayer must return null; Scene and boundary colors use the same theme. Legacy immutable boundaries are never silently migrated; incompatible theme revisions fail before mutation.

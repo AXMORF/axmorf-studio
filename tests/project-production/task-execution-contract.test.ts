@@ -229,6 +229,36 @@ test("TaskExecutionContract is npm-native, attempt-neutral, and mechanically mat
   );
 });
 
+test("themed GlobalVisual contract reserves the background and uses the resolved theme roles", () => {
+  const theme = {
+    background: "#111827",
+    primaryText: "#f9fafb",
+    secondaryText: "#d1d5db",
+    accent: "#fbbf24",
+  };
+  const contract = buildTaskExecutionContract({
+    taskKind: "global-visual-owner",
+    context: { ...buildGlobalContext(), visualStyle: { theme } },
+  });
+  const source = String(
+    contract.outputs.find(({ path }) => path === "src/GlobalVisualLayers.tsx")
+      ?.example,
+  );
+  assert.match(source, /GlobalVisualBaseLayer = \(\) => null/u);
+  assert.doesNotMatch(source, /backgroundColor/u);
+  const plan = GlobalVisualPlanSchema.parse(
+    contract.outputs.find(
+      ({ path }) => path === "project/global-visual-plan.json",
+    )?.example,
+  );
+  assert.equal(plan.frameTreatment.borderColor, theme.secondaryText);
+  assert.equal(plan.continuityMotif.color, theme.accent);
+  assert.match(
+    serializeCanonicalJson(contract),
+    /Composition owns.*theme\.background/u,
+  );
+});
+
 test("Scene finalization recomputes task-bound derived JSON atomically and passes the fixed checker", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "axmorf-task-finalize-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
@@ -559,7 +589,7 @@ test("GlobalVisual finalization rebuilds its canonical plan fingerprint", async 
     storyId: validStorySpec.storyId,
     semanticId: null,
     context: buildGlobalContext(),
-    validatorPolicyVersion: "global-visual-owner-validator-v2",
+    validatorPolicyVersion: "global-visual-owner-validator-v3",
   });
   const repositoryRoot = join(import.meta.dirname, "../..");
   const compilerConfig = JSON.parse(

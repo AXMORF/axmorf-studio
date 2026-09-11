@@ -14,6 +14,7 @@ import {
   StoryResourcePoolSchema,
   StorySpecSchema,
   VisualStyleSpecSchema,
+  VISUAL_THEME_PRESETS,
   buildAuthoringRequirements,
   buildGlobalVisualBrief,
   buildProjectAssetManifest,
@@ -677,6 +678,7 @@ const prepareCreation = async ({
     storyId,
     resourceCatalogFingerprint: projectCatalog.catalogFingerprint,
     ...input.visualStyle,
+    theme: input.visualStyle.theme ?? VISUAL_THEME_PRESETS.dark,
   });
   const configuredSceneResourceIds = story.beats.flatMap((beat) =>
     beat.kind === "silent-scene" ? beat.preset.resourceIds : [],

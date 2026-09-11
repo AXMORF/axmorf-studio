@@ -46,6 +46,11 @@ Configured template instance 另外绑定 copied Renderer adapter 与完整 impo
 `viewportWidth`/`viewportHeight` → 模板内部 `width`/`height` 的确定性映射；adapter/layout bytes 改变会改变
 未来 instance/source-graph identity，但不会跨过 immutable copy 边界重写既有 Project。
 
+新建 `VisualStyleSpec.theme` 固化已校验的四角色颜色；preset 名称只属于 authoring input。主题进入既有
+VisualStyle/Revision/Task/delivery fingerprint 链，copied Renderer 读取当前主题而不改写 immutable bytes。
+Composition 固定绘制 background；themed GlobalVisual base 为机械验证的 null，decoration 在正文后方通过固定 8% 上限的隔离组合成，主题对比度校验覆盖其最差范围。旧文档缺少 theme 时不补字段，
+不改变其 VisualStyle identity；含旧 immutable 首尾的 Project 拒绝直接添加新主题。
+
 ## 3. TaskRevision 与精确失效
 
 每个 node key 包含 task kind、story/semantic identity、Revision reference、最小 input fingerprints、dependency

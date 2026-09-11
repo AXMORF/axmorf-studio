@@ -83,12 +83,20 @@ export const checkProducerTaskWorkspace = async ({
     if (/\.[cm]?tsx?$/u.test(logicalPath)) await parseSource(path);
   }
   if (task.taskKind === "global-visual-owner") {
+    const context = JSON.parse(
+      await readFile(join(workspace, "inputs/context.json"), "utf8"),
+    ) as { visualStyle?: { theme?: unknown } };
     const source = await readFile(
       join(workspace, "src/GlobalVisualLayers.tsx"),
       "utf8",
     );
     const sourcePath = `src/projects/${task.storyId}/global-visual/GlobalVisualLayers.tsx`;
-    assertGlobalVisualSource({ source, sourcePath, entryPath: sourcePath });
+    assertGlobalVisualSource({
+      source,
+      sourcePath,
+      entryPath: sourcePath,
+      theme: context.visualStyle?.theme,
+    });
   }
   if (task.taskKind === "cover-owner") {
     for (const file of [

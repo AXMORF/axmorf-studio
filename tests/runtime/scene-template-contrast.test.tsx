@@ -7,6 +7,11 @@ import {
   type ReactNode,
 } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import {
+  VISUAL_THEME_PRESETS,
+  VisualThemeSchema,
+  type VisualTheme,
+} from "@axmorf/studio/contracts";
 
 import { AxmorfIntroScene } from "../../packages/studio/src/remotion/capabilities/scene-templates/axmorf/AxmorfIntroScene";
 import { BrandFollowScene } from "../../packages/studio/src/remotion/capabilities/scene-templates/axmorf/BrandFollowScene";
@@ -59,6 +64,8 @@ type ElementProps = Readonly<{
   color?: string;
   fill?: string;
   d?: string;
+  stroke?: string;
+  "aria-label"?: string;
   style?: CSSProperties;
 }>;
 
@@ -67,17 +74,31 @@ type ElementProps = Readonly<{
 const checkVisibleContent = (
   node: ReactNode,
   background: Rgb,
-  color = "#242424",
+  theme: VisualTheme,
+  color = theme.primaryText,
 ): number => {
   if (!isValidElement<ElementProps>(node)) return 0;
   if (typeof node.type === "function") {
     return checkVisibleContent(
       (node.type as (props: ElementProps) => ReactNode)(node.props),
       background,
+      theme,
       color,
     );
   }
-  const { style, children, fill, d } = node.props;
+  const { style, children, fill, d, stroke } = node.props;
+  if (style?.background !== undefined || style?.backgroundColor !== undefined) {
+    assert.match(
+      node.props["aria-label"] ?? "",
+      /^AXMORF 品牌关注状态：/u,
+      "Only the follow button may draw a local filled surface",
+    );
+    assert.ok(
+      [theme.primaryText, theme.accent].includes(String(style.background)),
+      "The follow button must use the validated theme's inverse pair",
+    );
+    assert.equal(style.color, theme.background);
+  }
   const nextBackground = style?.backgroundColor
     ? rgb(String(style.backgroundColor), background)
     : style?.background
@@ -90,10 +111,20 @@ const checkVisibleContent = (
     leaves.some((child) => typeof child === "string" && child.trim().length > 0)
   ) {
     assert.ok(
-      contrast(rgb(nextColor, nextBackground), nextBackground) >= 3,
+      contrast(rgb(nextColor, nextBackground), nextBackground) >= 4.5,
       `Template text is unreadable on its composed backing: ${leaves.filter((child) => typeof child === "string").join("")}`,
     );
     checked += 1;
+    if (
+      leaves.some(
+        (child) => typeof child === "string" && child.startsWith("https://"),
+      )
+    ) {
+      assert.equal(nextColor, theme.secondaryText);
+    }
+    if (leaves.includes("本期参考资料")) {
+      assert.equal(nextColor, theme.accent);
+    }
   }
   if (
     node.type === "path" &&
@@ -101,17 +132,23 @@ const checkVisibleContent = (
   ) {
     const actualFill = fill === "currentColor" ? nextColor : fill;
     assert.ok(actualFill);
+    assert.equal(actualFill, theme.primaryText);
     assert.ok(
-      contrast(rgb(actualFill, nextBackground), nextBackground) >= 3,
+      contrast(rgb(actualFill, nextBackground), nextBackground) >= 4.5,
       "Template brand mark is unreadable on its composed backing",
     );
     checked += 1;
+  }
+  if (node.type === "line") assert.equal(stroke, theme.accent);
+  if (node.type === "path" && d?.startsWith("M2 1 L2 23")) {
+    assert.equal(fill, theme.background);
+    assert.equal(stroke, theme.primaryText);
   }
   return (
     checked +
     leaves.reduce<number>(
       (sum, child) =>
-        sum + checkVisibleContent(child, nextBackground, nextColor),
+        sum + checkVisibleContent(child, nextBackground, theme, nextColor),
       0,
     )
   );
@@ -121,24 +158,35 @@ for (const viewport of [
   { width: 900, height: 1470 },
   { width: 1740, height: 630 },
 ]) {
-  for (const background of ["#0B1423", "#fffdf9"]) {
-    test(`default boundary content stays readable on ${background} in ${viewport.width}x${viewport.height}`, () => {
+  for (const [themeName, theme] of Object.entries({
+    ...VISUAL_THEME_PRESETS,
+    custom: VisualThemeSchema.parse({
+      background: "#171b14",
+      primaryText: "#fffff3",
+      secondaryText: "#c0ccb1",
+      accent: "#daeaa6",
+    }),
+  })) {
+    test(`boundary semantic colors share the ${themeName} background in ${viewport.width}x${viewport.height}`, () => {
       for (const node of [
-        AxmorfIntroScene({ ...viewport, sceneFrame: 59 }),
+        AxmorfIntroScene({ ...viewport, sceneFrame: 59, theme }),
         SourceCreditsScene({
           ...viewport,
           sceneFrame: 90,
+          theme,
           references: [{ title: "Source", url: "https://example.com" }],
         }),
         SourceCreditsScene({
           ...viewport,
           sceneFrame: 90,
+          theme,
           references: Array.from({ length: 6 }, (_, index) => ({
             title: `Source ${index + 1}`,
             url: "https://example.com/reference",
           })),
         }),
-        BrandFollowScene({ ...viewport, sceneFrame: 115 }),
+        BrandFollowScene({ ...viewport, sceneFrame: 82, theme }),
+        BrandFollowScene({ ...viewport, sceneFrame: 115, theme }),
       ]) {
         assert.ok(isValidElement<ElementProps>(node));
         assert.equal(
@@ -151,7 +199,10 @@ for (const viewport of [
           undefined,
           "Scene root must stay transparent",
         );
-        assert.ok(checkVisibleContent(node, rgb(background, [0, 0, 0])) >= 3);
+        assert.ok(
+          checkVisibleContent(node, rgb(theme.background, [0, 0, 0]), theme) >=
+            3,
+        );
         assert.ok(renderToStaticMarkup(node).length > 0);
       }
     });

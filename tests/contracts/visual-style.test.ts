@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   VISUAL_STYLE_FINGERPRINT_VERSION,
+  VISUAL_THEME_PRESETS,
   VisualStyleSpecSchema,
   computeVisualStyleFingerprint,
 } from "@axmorf/studio/contracts";
@@ -138,4 +139,25 @@ test("VisualStyle fingerprint is canonical and covers the resolved style authori
   for (const mutation of mutations) {
     assert.notEqual(first, computeVisualStyleFingerprint(mutation));
   }
+});
+
+test("theme roles participate in visual identity while absent legacy themes stay absent", () => {
+  assert.equal("theme" in VisualStyleSpecSchema.parse(validVisualStyle), false);
+  const fingerprint = (theme?: unknown) =>
+    computeVisualStyleFingerprint({
+      visualStyle: {
+        ...validVisualStyle,
+        ...(theme === undefined ? {} : { theme }),
+      },
+      resolvedStyleDescriptorFingerprint: digest("b"),
+    });
+  assert.notEqual(fingerprint(), fingerprint(VISUAL_THEME_PRESETS.dark));
+  for (const theme of [
+    VISUAL_THEME_PRESETS.light,
+    { ...VISUAL_THEME_PRESETS.dark, background: "#111a3a" },
+    { ...VISUAL_THEME_PRESETS.dark, primaryText: "#ffffff" },
+    { ...VISUAL_THEME_PRESETS.dark, secondaryText: "#bbc7d3" },
+    { ...VISUAL_THEME_PRESETS.dark, accent: "#e0b887" },
+  ])
+    assert.notEqual(fingerprint(VISUAL_THEME_PRESETS.dark), fingerprint(theme));
 });

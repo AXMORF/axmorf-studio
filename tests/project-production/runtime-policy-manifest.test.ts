@@ -17,13 +17,13 @@ import {
 
 const bytes = (value: string) => Buffer.from(value, "utf8");
 
-const manifest = (sceneBytes = "scene") =>
+const manifest = (sceneBytes = "scene", contractBytes = "contracts") =>
   buildRuntimePolicyManifest({
     packageVersion: "0.1.0",
     files: [
       {
         logicalPath: "dist/contracts.js",
-        bytes: bytes("contracts"),
+        bytes: bytes(contractBytes),
         scopes: ["composition", "delivery", "global-visual", "scene"],
       },
       {
@@ -149,4 +149,26 @@ test("task policy fingerprints invalidate only scopes containing changed files",
   assert.notEqual(before.globalVisual, after.globalVisual);
   assert.notEqual(before.composition, after.composition);
   assert.equal(before.delivery, after.delivery);
+});
+
+test("changes to bundled theme validation invalidate every consuming runtime scope", async () => {
+  const before = await snapshotTaskPolicyFingerprints({
+    rootDir: "/unused",
+    runtimePolicyManifest: manifest(),
+  });
+  const after = await snapshotTaskPolicyFingerprints({
+    rootDir: "/unused",
+    runtimePolicyManifest: manifest(
+      "scene",
+      "contracts with updated theme validation",
+    ),
+  });
+  for (const scope of [
+    "scene",
+    "globalVisual",
+    "composition",
+    "delivery",
+  ] as const) {
+    assert.notEqual(before[scope], after[scope]);
+  }
 });

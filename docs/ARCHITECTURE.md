@@ -132,7 +132,7 @@ private config、voice profiles、shared media、core、other Projects 与 histo
 ## 5. Task isolation
 
 Scene task reads one complete StoryBeat, its SemanticTiming slice, Scene-only requirements, a derived
-safe-area-local SceneViewport, Scene brief, resource pool and selected resources. It does not receive the raw
+safe-area-local SceneViewport, VisualStyleSpec, Scene brief, resource pool and selected resources. It does not receive the raw
 Composition readability policy, full-frame dimensions or insets. GlobalVisual reads
 Story/Timing/VisualStyle/requirements/brief/resources but never Scene output. Its fixed layer policy derives a
 full-Composition base range and a first-to-last narrated Scene decoration range from canonical SemanticTiming;
@@ -147,8 +147,10 @@ expressions still require readable text sizing. Numeric 2D translation/rotation 
 unknown text transforms remain rejected. Only explicit native SVG graphics without text, custom/unknown children,
 or text-affecting definitions are exempt from text-scale checks. The proof helper participates in the Scene policy
 fingerprint; no authored code is evaluated. These source checks do not certify rendered contrast or clipping.
-Default boundary templates keep transparent roots and provide local opaque backing for their fixed dark foregrounds;
-the Composition remains the only full-frame background owner. Existing Project-local template copies are immutable.
+Default boundary templates keep transparent roots and read semantic colors from `VisualStyleSpec.theme`.
+The Composition directly paints the validated theme background and composites themed decoration behind Scenes in an isolated group capped at 8% opacity; a themed GlobalVisual base must return null and is never mounted.
+Legacy Projects without a theme retain their existing base path. Existing Project-local template copies remain immutable;
+incompatible legacy template/theme revisions are rejected before mutation. See [visual theme contract](contracts/VISUAL_THEME_CONTRACT.md).
 
 inspect 前的 execution resolver 按用户提示词、settings、内置 `subagents`/4 默认逐字段选择 Root inline 或 bounded
 subagents，且不进入 production identity。subagents 还要求宿主为本次 production 验证 `shared-workspace` 或

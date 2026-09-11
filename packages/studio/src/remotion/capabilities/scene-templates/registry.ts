@@ -208,7 +208,7 @@ const brandReveal = (
     primaryComposition:
       "A centered brand lockup with restrained construction guides.",
     styleRealization: [
-      "Warm editorial neutrals with a muted bronze accent.",
+      "Validated Project theme colors with fixed brand typography and geometry.",
       "Frame-driven blur, scale, and guide-line reveal.",
     ],
     continuity: "Finish on a stable transparent frame.",
@@ -296,7 +296,7 @@ const sourceFollow = (
     primaryComposition:
       "Readable source cards followed by a centered brand interaction.",
     styleRealization: [
-      "Warm editorial cards with restrained typography.",
+      "Transparent source cards with validated Project theme colors and fixed typography.",
       "Frame-driven brand shrink, wordmark reveal, cursor, and confirmation.",
     ],
     continuity: "Resolve on a stable transparent frame.",
@@ -336,5 +336,5 @@ export const renderCopiedSceneRenderer = (
   const sourceReferencesProp = definition.sourceReferencesProp
     ? " sourceReferences={sourceReferences}"
     : "";
-  return `import {${definition.componentName}} from "./${definition.componentName}";\n\ntype RendererProps = Readonly<{\n  sceneFrame: number;\n  viewportWidth: number;\n  viewportHeight: number;\n  sourceReferences: readonly Readonly<{title: string; url: string}>[];\n}>;\n\nconst Renderer = ({sceneFrame, viewportWidth, viewportHeight${sourceReferencesBinding}}: RendererProps) => (\n  <${definition.componentName} sceneFrame={sceneFrame} width={viewportWidth} height={viewportHeight}${sourceReferencesProp} />\n);\n\nexport default Renderer;\n`;
+  return `import type {VisualTheme} from "@axmorf/studio/contracts";\nimport {${definition.componentName}} from "./${definition.componentName}";\n\ntype RendererProps = Readonly<{\n  sceneFrame: number;\n  viewportWidth: number;\n  viewportHeight: number;\n  visualStyle: Readonly<{theme?: VisualTheme}>;\n  sourceReferences: readonly Readonly<{title: string; url: string}>[];\n}>;\n\nconst Renderer = ({sceneFrame, viewportWidth, viewportHeight, visualStyle${sourceReferencesBinding}}: RendererProps) => {\n  const theme = visualStyle.theme;\n  if (theme === undefined) {\n    throw new Error("Configured Scene template requires the Project visual theme.");\n  }\n  return (\n    <${definition.componentName} sceneFrame={sceneFrame} width={viewportWidth} height={viewportHeight} theme={theme}${sourceReferencesProp} />\n  );\n};\n\nexport default Renderer;\n`;
 };

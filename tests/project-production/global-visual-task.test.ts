@@ -40,12 +40,24 @@ export const GlobalVisualDecorationLayers = () => {
 };
 `;
 
+const theme = {
+  background: "#111827",
+  primaryText: "#f9fafb",
+  secondaryText: "#d1d5db",
+  accent: "#fbbf24",
+} as const;
+const themedSource = validSource.replace(
+  'return <div style={{pointerEvents: "none"}} />;',
+  "return null;",
+);
+
 const buildFixture = ({
   planWidth = 1920,
   planCompositionId = validRenderSpec.compositionId,
   motifWindows = [],
   selectedResources = [],
   source = validSource,
+  visualTheme,
 }: {
   readonly planWidth?: number;
   readonly planCompositionId?: string;
@@ -57,6 +69,7 @@ const buildFixture = ({
   }>[];
   readonly selectedResources?: readonly unknown[];
   readonly source?: string;
+  readonly visualTheme?: typeof theme;
 } = {}) => {
   const timing = generateSemanticTiming({
     story: StorySpecSchema.parse(validStorySpec),
@@ -79,6 +92,9 @@ const buildFixture = ({
       allowedResourceIds: ["asset.allowed-global"],
       resourceCatalogFingerprint: catalogFingerprint,
     },
+    ...(visualTheme === undefined
+      ? {}
+      : { visualStyle: { theme: visualTheme } }),
   };
   const plan = createGlobalVisualPlan({
     schemaVersion: 1,
@@ -136,7 +152,7 @@ const createGlobalWorkspace = async ({
       "src/GlobalVisualLayers.tsx",
       "src/selected-resources.json",
     ],
-    validatorPolicyVersion: "global-visual-owner-validator-v2",
+    validatorPolicyVersion: "global-visual-owner-validator-v3",
   });
   const workspace = await createTaskWorkspace({
     rootDir,
@@ -195,6 +211,45 @@ test("GlobalVisual task accepts canonical context whose inset key order differs 
     ).status,
     "task-workspace-valid",
   );
+});
+
+test("themed GlobalVisual task accepts an empty base while Composition owns the background", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-global-themed-base-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const task = await createGlobalWorkspace({
+    rootDir,
+    fixture: buildFixture({ source: themedSource, visualTheme: theme }),
+  });
+  assert.equal(
+    (await checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }))
+      .status,
+    "task-workspace-valid",
+  );
+});
+
+test("themed GlobalVisual task rejects any authored base rendering or indirect null", async (context) => {
+  for (const [index, source] of [
+    validSource,
+    themedSource.replace("return null;", "const value = null; return value;"),
+    themedSource.replace("return null;", "if (true) return null; return null;"),
+    themedSource.replace(
+      "GlobalVisualBaseLayer = ()",
+      "GlobalVisualBaseLayer = (_props = {})",
+    ),
+  ].entries()) {
+    const rootDir = await mkdtemp(
+      join(tmpdir(), `axmorf-global-themed-reject-${index}-`),
+    );
+    context.after(() => rm(rootDir, { recursive: true, force: true }));
+    const task = await createGlobalWorkspace({
+      rootDir,
+      fixture: buildFixture({ source, visualTheme: theme }),
+    });
+    await assert.rejects(
+      checkGlobalVisualTask({ rootDir, taskRevision: task.taskRevision }),
+      /GlobalVisualBaseLayer must directly return null without parameters/u,
+    );
+  }
 });
 
 test("GlobalVisual task rejects a valid plan whose dimensions cross the frozen context", async (context) => {

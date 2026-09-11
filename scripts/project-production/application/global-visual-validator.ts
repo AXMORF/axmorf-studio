@@ -1,7 +1,7 @@
 import { lstat } from "node:fs/promises";
 import { dirname, join, posix } from "node:path";
 import ts from "typescript";
-import { createFingerprint } from "@axmorf/studio/contracts";
+import { VisualThemeSchema, createFingerprint } from "@axmorf/studio/contracts";
 import {
   checksumExternalBytes,
   readExternalRegularFile,
@@ -272,6 +272,22 @@ const componentReturnExpressions = (body: ts.ConciseBody) => {
   return expressions;
 };
 
+const directlyReturnsNull = (component: GlobalVisualComponentDefinition) => {
+  if (component.parameters.length !== 0) return false;
+  const body = component.body;
+  if (!ts.isBlock(body)) {
+    return unwrapExpression(body).kind === ts.SyntaxKind.NullKeyword;
+  }
+  const statement = body.statements[0];
+  return (
+    body.statements.length === 1 &&
+    statement !== undefined &&
+    ts.isReturnStatement(statement) &&
+    statement.expression !== undefined &&
+    unwrapExpression(statement.expression).kind === ts.SyntaxKind.NullKeyword
+  );
+};
+
 const hasInlinePointerTransparentRoot = ({
   component,
   absoluteFillBindings,
@@ -330,15 +346,215 @@ const hasInlinePointerTransparentRoot = ({
   );
 };
 
+const assertThemedCompositionOwnership = (sourceFile: ts.SourceFile) => {
+  const browserGlobals = new Set([
+    "window",
+    "document",
+    "globalThis",
+    "self",
+    "parent",
+    "top",
+    "frames",
+  ]);
+  const imperativeApis = new Set([
+    "eval",
+    "Function",
+    "useEffect",
+    "useLayoutEffect",
+    "useInsertionEffect",
+    "useRef",
+    "createRef",
+    "createPortal",
+    "setTimeout",
+    "setInterval",
+    "clearTimeout",
+    "clearInterval",
+    "requestAnimationFrame",
+    "cancelAnimationFrame",
+    "requestIdleCallback",
+    "cancelIdleCallback",
+    "queueMicrotask",
+  ]);
+  const forbiddenElements = new Set([
+    "style",
+    "script",
+    "link",
+    "iframe",
+    "object",
+    "embed",
+    "foreignobject",
+  ]);
+  const forbiddenAttribute = (name: string) =>
+    name === "ref" ||
+    name === "dangerouslySetInnerHTML" ||
+    /^on[a-z]/iu.test(name);
+  const reject = (name: string): never => {
+    throw new Error(
+      `GlobalVisual source crosses themed Composition ownership: ${name}. Use frame-driven JSX/SVG and explicit local styles without DOM, CSS injection, effects, refs, events, or JSX attribute spreads.`,
+    );
+  };
+  const staticName = (node: ts.Node): string | undefined => {
+    if (
+      ts.isIdentifier(node) ||
+      ts.isStringLiteral(node) ||
+      ts.isNoSubstitutionTemplateLiteral(node)
+    )
+      return node.text;
+    if (ts.isComputedPropertyName(node)) return staticName(node.expression);
+    return undefined;
+  };
+  const scopeFor = (node: ts.Node, functionScoped = false): ts.Node => {
+    let scope = node.parent;
+    while (
+      !ts.isSourceFile(scope) &&
+      !ts.isFunctionLike(scope) &&
+      (functionScoped ||
+        (!ts.isBlock(scope) &&
+          !ts.isCatchClause(scope) &&
+          !ts.isForStatement(scope) &&
+          !ts.isForInStatement(scope) &&
+          !ts.isForOfStatement(scope)))
+    ) {
+      scope = scope.parent;
+    }
+    return scope;
+  };
+  const localGlobals = new Map<ts.Node, Set<string>>();
+  const elementFactories = new Set(["createElement"]);
+  const bind = (name: ts.BindingName, scope: ts.Node) => {
+    for (const global of browserGlobals) {
+      if (!bindingNameIncludes(name, global)) continue;
+      const names = localGlobals.get(scope) ?? new Set<string>();
+      names.add(global);
+      localGlobals.set(scope, names);
+    }
+  };
+  const collectBindings = (node: ts.Node): void => {
+    if (
+      ts.isImportSpecifier(node) &&
+      staticName(node.propertyName ?? node.name) === "createElement"
+    ) {
+      elementFactories.add(node.name.text);
+    }
+    if (ts.isVariableDeclaration(node)) {
+      bind(
+        node.name,
+        scopeFor(
+          node,
+          ts.isVariableDeclarationList(node.parent) &&
+            (node.parent.flags & ts.NodeFlags.BlockScoped) === 0,
+        ),
+      );
+    } else if (ts.isParameter(node)) {
+      bind(node.name, node.parent);
+    } else if (
+      (ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) &&
+      node.name !== undefined
+    ) {
+      bind(node.name, scopeFor(node));
+    } else if (ts.isFunctionExpression(node) && node.name !== undefined) {
+      bind(node.name, node);
+    } else if (
+      ts.isImportSpecifier(node) ||
+      ts.isNamespaceImport(node) ||
+      (ts.isImportClause(node) && node.name !== undefined)
+    ) {
+      bind(node.name!, sourceFile);
+    }
+    ts.forEachChild(node, collectBindings);
+  };
+  collectBindings(sourceFile);
+  const isLocal = (node: ts.Node, name: string) => {
+    let current: ts.Node | undefined = node;
+    while (current !== undefined) {
+      if (localGlobals.get(current)?.has(name)) return true;
+      current = current.parent;
+    }
+    return false;
+  };
+  const visit = (node: ts.Node): void => {
+    if (ts.isIdentifier(node)) {
+      if (imperativeApis.has(node.text)) reject(node.text);
+      const parent = node.parent;
+      const isPropertyName =
+        ((ts.isPropertyAssignment(parent) ||
+          ts.isPropertyDeclaration(parent) ||
+          ts.isMethodDeclaration(parent) ||
+          ts.isPropertyAccessExpression(parent) ||
+          ts.isJsxAttribute(parent)) &&
+          parent.name === node) ||
+        (ts.isBindingElement(parent) && parent.propertyName === node);
+      if (
+        browserGlobals.has(node.text) &&
+        !isPropertyName &&
+        !isLocal(node, node.text)
+      )
+        reject(node.text);
+    }
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const name = node.tagName.getText(sourceFile).toLowerCase();
+      if (forbiddenElements.has(name)) reject(`<${name}>`);
+    }
+    if (ts.isJsxSpreadAttribute(node)) reject("JSX attribute spread");
+    if (ts.isCallExpression(node)) {
+      const callee = unwrapExpression(node.expression);
+      const factoryName = ts.isPropertyAccessExpression(callee)
+        ? staticName(callee.name)
+        : ts.isElementAccessExpression(callee)
+          ? staticName(callee.argumentExpression)
+          : staticName(callee);
+      const element = node.arguments[0];
+      if (
+        factoryName !== undefined &&
+        elementFactories.has(factoryName) &&
+        element !== undefined &&
+        ts.isStringLiteral(element) &&
+        forbiddenElements.has(element.text.toLowerCase())
+      ) {
+        reject(`<${element.text}>`);
+      }
+    }
+    if (ts.isJsxAttribute(node)) {
+      const name = node.name.getText(sourceFile);
+      if (forbiddenAttribute(name)) reject(name);
+    }
+    const propertyName =
+      ts.isPropertyAssignment(node) ||
+      ts.isShorthandPropertyAssignment(node) ||
+      ts.isPropertyDeclaration(node) ||
+      ts.isMethodDeclaration(node)
+        ? staticName(node.name)
+        : ts.isBindingElement(node) && node.propertyName !== undefined
+          ? staticName(node.propertyName)
+          : ts.isElementAccessExpression(node)
+            ? staticName(node.argumentExpression)
+            : ts.isPropertyAccessExpression(node)
+              ? staticName(node.name)
+              : ts.isImportSpecifier(node)
+                ? staticName(node.propertyName ?? node.name)
+                : undefined;
+    if (
+      propertyName !== undefined &&
+      (imperativeApis.has(propertyName) || forbiddenAttribute(propertyName))
+    )
+      reject(propertyName);
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+};
+
 export const assertGlobalVisualSource = ({
   source,
   sourcePath,
   entryPath,
+  theme: rawTheme,
 }: {
   readonly source: string;
   readonly sourcePath: string;
   readonly entryPath: string;
+  readonly theme?: unknown;
 }) => {
+  const theme = VisualThemeSchema.optional().parse(rawTheme);
   if (/\b(?:animation|animationName|transition)\s*:/u.test(source)) {
     throw new Error(
       "GlobalVisual source cannot use CSS animation or transition.",
@@ -351,6 +567,7 @@ export const assertGlobalVisualSource = ({
     true,
     sourcePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   );
+  if (theme !== undefined) assertThemedCompositionOwnership(sourceFile);
   const forbidden = new Set([
     "Audio",
     "CaptionLayer",
@@ -471,6 +688,14 @@ export const assertGlobalVisualSource = ({
           `${componentName} must use a statically inspectable function body.`,
         );
       }
+      if (componentName === "GlobalVisualBaseLayer" && theme !== undefined) {
+        if (!directlyReturnsNull(component)) {
+          throw new Error(
+            "Themed GlobalVisualBaseLayer must directly return null without parameters; Composition owns theme.background.",
+          );
+        }
+        continue;
+      }
       if (
         !hasInlinePointerTransparentRoot({
           component,
@@ -500,10 +725,12 @@ export const collectGlobalVisualSourceGraph = async ({
   rootDir,
   runtimeRootDir = rootDir,
   storyId,
+  theme,
 }: {
   readonly rootDir: string;
   readonly runtimeRootDir?: string;
   readonly storyId: string;
+  readonly theme?: unknown;
 }): Promise<GlobalVisualSourceGraph> => {
   const entryPath = `src/projects/${storyId}/global-visual/GlobalVisualLayers.tsx`;
   const ownedRoot = `src/projects/${storyId}/global-visual`;
@@ -514,7 +741,7 @@ export const collectGlobalVisualSourceGraph = async ({
     if (sourcePath === undefined || files.has(sourcePath)) continue;
     const bytes = await readExternalRegularFile(rootDir, sourcePath);
     const source = bytes.toString("utf8");
-    assertGlobalVisualSource({ source, sourcePath, entryPath });
+    assertGlobalVisualSource({ source, sourcePath, entryPath, theme });
     const guarded = assertGuardedSource({
       source,
       sourcePath,

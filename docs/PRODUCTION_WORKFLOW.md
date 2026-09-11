@@ -91,6 +91,10 @@ template instance 同时包含一个 Project-local Renderer adapter；它接收�
 `viewportWidth`/`viewportHeight`，只把 safe-area-local dimensions 映射给模板内部 `width`/`height`。其源码和
 import graph 与其他 copied bytes 一起冻结；后续共享模板或 generator 修复不会隐式迁移既有 Project。
 
+新 Project 的 `visualStyle.theme` 默认 dark，也可选择 light 或四角色 hex 自定义值。create/revision 在 mutation 前
+验证颜色与对比度；copied Renderer 读取同一已固化主题。Composition 实际绘制主题底色，首尾没有独立白色衬板。
+旧版 immutable 首尾不自动迁移；不兼容的主题修订前置拒绝。见 [主题合同](contracts/VISUAL_THEME_CONTRACT.md)。
+
 全新 creator Workspace 的 bootstrap 会先把 runtime package 中 runtime-policy 覆盖的共享音频/视觉素材投影到
 `public/assets/axmorf-shared/`，并把 package manifest 投影进 Resource Catalog。默认 config 选择 AXMORF 首尾
 template；create 只把所选 template 实际使用的音频复制到 `public/projects/<storyId>/scenes/...`，并改写为
@@ -204,8 +208,10 @@ validator 拒绝 Renderer 自建 SceneViewport/provider、读取 raw policy/inse
 
 GlobalVisual context 包含 fixed workflow 从 canonical SemanticTiming 派生的严格 layer policy：base range 是完整
 Composition，decoration range 是首个至末个 narrated Scene 的连续窗口，decoration 的 Remotion frame origin 是
-窗口 local zero。`global-visual-owner-validator-v2` 要求同一入口恰好导出两个 no-Props component，并拒绝越出
-decoration range 的 continuity window；生成式 Composition 将 base 放入 background slot，将 decoration 通过
+窗口 local zero。GlobalVisual validator 要求同一入口恰好导出两个 no-Props component，并拒绝越出
+decoration range 的 continuity window；themed base 必须直接返回 null，由 Composition 固定绘制 theme.background。
+themed decoration 在 Scene 后方的固定隔离组内合成，group opacity 上限 8%，配色校验覆盖该最差背景范围。
+旧 Project 无 theme 时继续将其 base 放入 background slot。其 decoration 通过
 前景 `globalVisualLayers` slot 的 `Sequence` 限定在该窗口。
 
 `scene-template` fixed producer 与 validator 共用同一 exact output contract：artifact 包含 immutable

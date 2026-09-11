@@ -17,6 +17,8 @@ import {
   ShotRecipeSelectionSchema,
   StoryIdSchema,
   TaskExecutionContractSchema,
+  VISUAL_THEME_DECORATION_MAX_OPACITY,
+  VisualThemeSchema,
   buildNotApplicableFidelityReceipt,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
@@ -188,6 +190,7 @@ const buildSceneContract = (rawContext: unknown) => {
     purpose:
       "Author one meaning-local Scene renderer and its semantic visual, shot, sync, sound, resource, and recipe decisions.",
     workflow: [
+      "Read the complete VisualStyle from inputs/context.json; when theme is present its background, primaryText, secondaryText, and accent roles are the shared color authority.",
       "Use scene.taskInput in inputs/context.json as immutable identity, timing, viewport, and allowlist authority.",
       "Treat originalityBaseline as immutable negative evidence: the complete declared TypeScript source graph must not normalize to another Scene in that baseline.",
       "Replace the examples with StoryBeat-specific creative output and write every declared output.",
@@ -203,15 +206,16 @@ const buildSceneContract = (rawContext: unknown) => {
           "Use sceneFrame, durationInFrames, fps, viewportWidth, and viewportHeight; never assume full-frame coordinates.",
           "Do not import or call useVideoConfig; the supplied SceneRendererProps own timing and viewport dimensions.",
           "Keep the root transparent and do not own captions, narration, or GlobalVisual decoration.",
+          "For themed Projects, use visualStyle.theme semantic roles for readable text and accents; Composition draws theme.background and Scene must not replace it with a full-frame surface.",
           "Keep visible text at the task viewport minimum font size with clear contrast against its actual background; pure layout and graphic containers do not need a font size.",
         ],
         example: `import type {SceneRendererProps} from "@axmorf/studio/remotion";
 
-const Renderer = ({sceneFrame, durationInFrames, viewportWidth, viewportHeight}: SceneRendererProps) => {
+const Renderer = ({sceneFrame, durationInFrames, viewportWidth, viewportHeight, visualStyle}: SceneRendererProps) => {
   const progress = Math.min(1, Math.max(0, sceneFrame / Math.max(1, durationInFrames - 1)));
   const diameter = Math.round(Math.min(viewportWidth, viewportHeight) * (0.18 + progress * 0.08));
   return <div style={{width: viewportWidth, height: viewportHeight, display: "flex", alignItems: "center", justifyContent: "center"}}>
-    <div style={{width: diameter, height: diameter, borderRadius: "50%", backgroundColor: "#fffdf9", opacity: 0.9}} />
+    <div style={{width: diameter, height: diameter, borderRadius: "50%", backgroundColor: visualStyle.theme?.accent ?? "#fffdf9", opacity: 0.9}} />
   </div>;
 };
 
@@ -348,9 +352,14 @@ const buildGlobalVisualContract = (rawContext: unknown) => {
       resourcePool: z
         .object({ resourceCatalogFingerprint: Sha256DigestSchema })
         .passthrough(),
+      visualStyle: z
+        .object({ theme: VisualThemeSchema.optional() })
+        .passthrough()
+        .optional(),
     })
     .passthrough()
     .parse(rawContext);
+  const theme = context.visualStyle?.theme;
   const plan = createGlobalVisualPlan({
     schemaVersion: 1,
     planVersion: "global-visual-plan-v1",
@@ -365,13 +374,13 @@ const buildGlobalVisualContract = (rawContext: unknown) => {
     frameTreatment: {
       inset: 24,
       borderWidth: 2,
-      borderColor: "#fffdf9",
+      borderColor: theme?.secondaryText ?? "#fffdf9",
       borderOpacity: 0.2,
       vignetteOpacity: 0.08,
       grainOpacity: 0,
     },
     continuityMotif: {
-      color: "#a37d5c",
+      color: theme?.accent ?? "#a37d5c",
       strokeWidth: 3,
       opacity: 0.25,
       motionPolicy: "linear-frame-progress-v1",
@@ -382,10 +391,14 @@ const buildGlobalVisualContract = (rawContext: unknown) => {
   return createContract({
     taskKind: "global-visual-owner",
     purpose:
-      "Author visual-only full-composition base and narrated-window decoration layers without taking Scene or text ownership.",
+      theme === undefined
+        ? "Author visual-only full-composition base and narrated-window decoration layers without taking Scene or text ownership."
+        : "Author visual-only narrated-window decoration while Composition owns the full-composition theme.background.",
     workflow: [
       "Use Story, render, timing, layerPolicy, readability, resource pool, VisualStyle, and GlobalVisual brief from inputs/context.json.",
-      "Author the base for the full Composition and decoration for the fixed narrated-content window using window-local frame zero.",
+      theme === undefined
+        ? "Author the base for the full Composition and decoration for the fixed narrated-content window using window-local frame zero."
+        : "Composition owns the full-composition theme.background. Export GlobalVisualBaseLayer as a zero-parameter direct null return; use the resolved theme roles for decoration in the fixed narrated-content window with window-local frame zero.",
       "Run the deterministic task finalizer to canonicalize the plan and recompute its fingerprint.",
       "Run the fixed task checker, correct only this workspace, then use the attempt-bound completion operation supplied by the caller.",
     ],
@@ -406,22 +419,33 @@ const buildGlobalVisualContract = (rawContext: unknown) => {
         format: "tsx",
         instructions: [
           "Export exactly the zero-prop named components GlobalVisualBaseLayer and GlobalVisualDecorationLayers.",
-          "The base is mounted for the full Composition; decoration is mounted only for the narrated window and receives window-local frame zero.",
+          theme === undefined
+            ? "The base is mounted for the full Composition; decoration is mounted only for the narrated window and receives window-local frame zero."
+            : `The themed base must directly return null without parameters, additional statements, helpers, or JSX, and is never mounted. Composition draws theme.background and composites all decoration behind Scenes in one fixed ${VISUAL_THEME_DECORATION_MAX_OPACITY * 100}% maximum opacity group. Use theme.secondaryText and theme.accent; author normal internal opacity and do not pre-apply the group limit a second time.`,
           "Directly import and call useCurrentFrame from remotion for decoration motion; do not shadow or proxy it.",
-          "Each returned root must be intrinsic or Remotion AbsoluteFill and declare exactly one inline pointerEvents: none style property without spreads.",
+          "Each rendered JSX root must be intrinsic or Remotion AbsoluteFill and declare exactly one inline pointerEvents: none style property without spreads; a themed null base has no root.",
           "Do not render visible text, Scene semantics, captions, narration, or audio.",
+          ...(theme === undefined
+            ? []
+            : [
+                "Stay within frame-driven JSX/SVG: no style/script/link/iframe/object/embed/foreignObject elements, HTML injection, refs, event handlers, JSX attribute spreads, browser globals, effect/ref/portal APIs, dynamic code execution, or timers. Local style object spreads remain allowed; use explicit JSX attributes.",
+              ]),
           "Keep JSX child expressions mechanically non-text: elements or fragments, null or booleans, safe conditionals, or arrays containing only those shapes.",
         ],
         example: `import {AbsoluteFill, interpolate, useCurrentFrame} from "remotion";
 
-export const GlobalVisualBaseLayer = () => {
+${
+  theme === undefined
+    ? `export const GlobalVisualBaseLayer = () => {
   return <AbsoluteFill style={{backgroundColor: "#161412", pointerEvents: "none"}} />;
-};
+};`
+    : "export const GlobalVisualBaseLayer = () => null;"
+}
 
 export const GlobalVisualDecorationLayers = () => {
   const frame = useCurrentFrame();
   const opacity = interpolate(frame, [0, 24], [0, 0.28], {extrapolateLeft: "clamp", extrapolateRight: "clamp"});
-  return <AbsoluteFill style={{inset: 24, border: "2px solid #fffdf9", opacity, pointerEvents: "none"}} />;
+  return <AbsoluteFill style={{inset: 24, border: "2px solid ${theme?.secondaryText ?? "#fffdf9"}", opacity, pointerEvents: "none"}} />;
 };
 `,
       }),
@@ -435,7 +459,9 @@ export const GlobalVisualDecorationLayers = () => {
       }),
     ],
     componentSignatures: [
-      "export const GlobalVisualBaseLayer: () => ReactElement;",
+      theme === undefined
+        ? "export const GlobalVisualBaseLayer: () => ReactElement;"
+        : "export const GlobalVisualBaseLayer: () => null;",
       "export const GlobalVisualDecorationLayers: () => ReactElement;",
     ],
     constraints: sharedConstraints,
@@ -444,10 +470,17 @@ export const GlobalVisualDecorationLayers = () => {
 
 const buildCoverContract = (rawContext: unknown) => {
   const context = z
-    .object({ story: z.object({ storyId: StoryIdSchema }).passthrough() })
+    .object({
+      story: z.object({ storyId: StoryIdSchema }).passthrough(),
+      visualStyle: z
+        .object({ theme: VisualThemeSchema.optional() })
+        .passthrough()
+        .optional(),
+    })
     .passthrough()
     .parse(rawContext);
   const compositionId = deriveCoverCompositionBaseId(context.story.storyId);
+  const theme = context.visualStyle?.theme;
 
   return createContract({
     taskKind: "cover-owner",
@@ -455,6 +488,7 @@ const buildCoverContract = (rawContext: unknown) => {
       "Author two code-only one-frame Delivery covers that express the current Story and VisualStyle.",
     workflow: [
       "Use Story, VisualStyle, and CoverSpec from inputs/context.json.",
+      "When visualStyle.theme is present, use its background, primaryText, secondaryText, and accent roles consistently in both covers; do not choose a separate palette.",
       "Write both covers plus their fixed Root and entry source without loading media or remote resources.",
       "Cover JSX is statically validated: precompute chart coordinates while authoring and embed literal SVG paths; do not put loops, helper calls, Math expressions, or runtime calculations in the cover source.",
       "Run the deterministic task finalizer and fixed checker, correct only this workspace, then use the attempt-bound completion operation supplied by the caller.",
@@ -466,8 +500,7 @@ const buildCoverContract = (rawContext: unknown) => {
         instructions: [
           "Default-export a 1200x1600 code-only cover with no media, font, or network access.",
         ],
-        example:
-          'const Cover3x4 = () => <div style={{width: 1200, height: 1600, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#242424", color: "#fffdf9", fontSize: 88, fontWeight: 700}}>STORY</div>;\nexport default Cover3x4;\n',
+        example: `const Cover3x4 = () => <div style={{width: 1200, height: 1600, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "${theme?.background ?? "#242424"}", color: "${theme?.primaryText ?? "#fffdf9"}", fontSize: 88, fontWeight: 700}}>STORY</div>;\nexport default Cover3x4;\n`,
       }),
       sourceOutput({
         path: "src/Cover4x3.tsx",
@@ -475,8 +508,7 @@ const buildCoverContract = (rawContext: unknown) => {
         instructions: [
           "Default-export a 1600x1200 code-only cover with no media, font, or network access.",
         ],
-        example:
-          'const Cover4x3 = () => <div style={{width: 1600, height: 1200, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#fffdf9", color: "#242424", fontSize: 88, fontWeight: 700}}>STORY</div>;\nexport default Cover4x3;\n',
+        example: `const Cover4x3 = () => <div style={{width: 1600, height: 1200, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "${theme?.background ?? "#fffdf9"}", color: "${theme?.primaryText ?? "#242424"}", fontSize: 88, fontWeight: 700}}>STORY</div>;\nexport default Cover4x3;\n`,
       }),
       sourceOutput({
         path: "src/Root.tsx",

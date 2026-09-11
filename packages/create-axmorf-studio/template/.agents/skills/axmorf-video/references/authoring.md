@@ -36,6 +36,7 @@ caption budget and licensing are still checked by create. Do not read package in
   `fieldExamples["production.additionalRequirements"]`; preserve its required fields and use the user's actual statement.
   A `schema-validation-failed` response supplies structured field paths and a repair example for this field. Fix the draft
   without dropping the user's constraints or changing the contract.
+- `visualStyle.theme` accepts dark (default), light, or an object with background/primaryText/secondaryText/accent opaque six-digit hex colors. All foreground roles must contrast with background by at least 4.5:1. Use theme as the numeric authority; artDirection.palette describes intent and cannot override it. Logo shapes, brand fonts, layout and animation remain fixed. Existing themed revisions must preserve or replace the theme; legacy immutable boundaries cannot adopt a theme through revision.
 - Empty resource selections are valid for self-authored geometry. Query Catalog before selecting media; never invent resource IDs.
 - Narration provider, voice and publishing defaults come from settings. Context deliberately omits connections and credentials.
 - Source assets must have Workspace ownership and validated manifests. Do not download random files to bypass asset admission.

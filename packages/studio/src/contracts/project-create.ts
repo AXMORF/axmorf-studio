@@ -15,6 +15,7 @@ import {
   TTSChunkSchema,
 } from "./story";
 import { VisualStyleArtDirectionSchema } from "./visual-style";
+import { VisualThemeSelectionSchema } from "./visual-theme";
 
 export const PROJECT_CREATE_INPUT_VERSION = "project-create-input-v1" as const;
 export const PENDING_SCENE_AUTHORING_VERSION =
@@ -128,6 +129,7 @@ export const ProjectCreateVisualStyleSchema = z
   .object({
     styleProfileId: StyleProfileIdSchema,
     artDirection: VisualStyleArtDirectionSchema,
+    theme: VisualThemeSelectionSchema.optional(),
     continuityRules: z
       .array(SafeAuthoredTextSchema.max(512))
       .max(32)

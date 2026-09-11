@@ -1,5 +1,6 @@
 import type { FC } from "react";
 import { AbsoluteFill, Easing, interpolate } from "remotion";
+import type { VisualTheme } from "@axmorf/studio/contracts";
 
 import { AXMORF_MARK_PATHS, AXMORF_WORDMARK } from "./AxmorfBrand";
 
@@ -12,12 +13,14 @@ export type AxmorfIntroSceneProps = Readonly<{
   sceneFrame: number;
   width: number;
   height: number;
+  theme: VisualTheme;
 }>;
 
 export const AxmorfIntroScene: FC<AxmorfIntroSceneProps> = ({
   sceneFrame,
   width,
   height,
+  theme,
 }) => {
   const isLandscape = width > height;
   const markSize = Math.min(width, height) * (isLandscape ? 0.34 : 0.4);
@@ -27,7 +30,7 @@ export const AxmorfIntroScene: FC<AxmorfIntroSceneProps> = ({
     <AbsoluteFill
       style={{
         alignItems: "center",
-        color: "#242424",
+        color: theme.primaryText,
         justifyContent: "center",
         overflow: "hidden",
       }}
@@ -35,11 +38,8 @@ export const AxmorfIntroScene: FC<AxmorfIntroSceneProps> = ({
       <div
         style={{
           alignItems: "center",
-          backgroundColor: "#fffdf9",
-          borderRadius: 36,
           display: "flex",
           flexDirection: "column",
-          padding: "48px 56px",
         }}
       >
         <div
@@ -63,7 +63,7 @@ export const AxmorfIntroScene: FC<AxmorfIntroSceneProps> = ({
               y1={54}
               y2={586}
               pathLength={100}
-              stroke="#a37d5c"
+              stroke={theme.accent}
               strokeDasharray={100}
               strokeDashoffset={interpolate(sceneFrame, [0, 9], [100, 0], {
                 ...clamped,
@@ -78,7 +78,7 @@ export const AxmorfIntroScene: FC<AxmorfIntroSceneProps> = ({
               y1={320}
               y2={320}
               pathLength={100}
-              stroke="#a37d5c"
+              stroke={theme.accent}
               strokeDasharray={100}
               strokeDashoffset={interpolate(sceneFrame, [8, 18], [100, 0], {
                 ...clamped,
@@ -106,7 +106,7 @@ export const AxmorfIntroScene: FC<AxmorfIntroSceneProps> = ({
               <path
                 key={path}
                 d={path}
-                fill="#242424"
+                fill={theme.primaryText}
                 style={{
                   filter: `blur(${interpolate(sceneFrame, [10 + index * 3, 24 + index * 3], [7, 0], clamped)}px)`,
                   opacity: interpolate(
@@ -123,7 +123,7 @@ export const AxmorfIntroScene: FC<AxmorfIntroSceneProps> = ({
         <div
           aria-label={AXMORF_WORDMARK}
           style={{
-            color: "#242424",
+            color: theme.primaryText,
             display: "flex",
             fontFamily: "Inter, Arial, ui-sans-serif, sans-serif",
             fontSize: 76,

@@ -528,6 +528,7 @@ export const prepareProjectAuthoringBuild = async ({
       rootDir: contentRoot,
       runtimeRootDir: scope.shared.runtimeRoot,
       storyId: projectId,
+      theme: visualStyle.theme,
     }),
     collectDeliveryCoverSourceGraph({
       rootDir: contentRoot,

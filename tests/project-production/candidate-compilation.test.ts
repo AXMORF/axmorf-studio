@@ -87,6 +87,29 @@ test("candidate GlobalVisual graph still rejects incompatible layer props", asyn
   );
 });
 
+test("candidate GlobalVisual graph revalidates the themed base against its current VisualStyle", async (context) => {
+  const input = await fixture(context);
+  const theme = {
+    background: "#111827",
+    primaryText: "#f9fafb",
+    secondaryText: "#d1d5db",
+    accent: "#fbbf24",
+  };
+  await assert.rejects(
+    collectGlobalVisualSourceGraph({ ...input, theme }),
+    /GlobalVisualBaseLayer must directly return null without parameters/u,
+  );
+  await writeFile(
+    input.sourcePath,
+    validSource.replace(
+      '() => <div style={{pointerEvents: "none"}} />',
+      "() => null",
+    ),
+  );
+  const graph = await collectGlobalVisualSourceGraph({ ...input, theme });
+  assert.equal(graph.files.length, 1);
+});
+
 test("candidate Composition compiles its isolated import graph and rejects its type errors", async (context) => {
   const input = await fixture(context);
   await compileTargetProjectComposition(input);

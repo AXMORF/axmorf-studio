@@ -28,7 +28,7 @@ export const checkGlobalVisualTask = async (
   if (checked.task.taskKind !== "global-visual-owner")
     throw new Error("Task is not a GlobalVisual task.");
   if (
-    checked.task.validatorPolicyVersion !== "global-visual-owner-validator-v2"
+    checked.task.validatorPolicyVersion !== "global-visual-owner-validator-v3"
   ) {
     throw new Error("GlobalVisual task validator policy is incompatible.");
   }
@@ -39,6 +39,7 @@ export const checkGlobalVisualTask = async (
     render?: unknown;
     timing?: unknown;
     layerPolicy?: unknown;
+    visualStyle?: { theme?: unknown };
     requirements?: {
       readabilityPolicy?: {
         width?: unknown;
@@ -131,6 +132,7 @@ export const checkGlobalVisualTask = async (
     source,
     sourcePath: futurePath,
     entryPath: futurePath,
+    theme: context.visualStyle?.theme,
   });
   const guarded = assertGuardedSource({
     source,

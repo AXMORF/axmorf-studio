@@ -2,7 +2,34 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-11 公共 npm 两包 latest 均为 0.1.13；精确 tag CI 发布成功。发布后 Codex 流程验收通过，Hermes 成片及实际四并发通过，但监督流程验收失败。
+> 最后复核：2026-09-12 本地开发分支完成统一视觉主题与固定 Logo 回归修复及工程/抽帧验证，未发布。
+> 上次公开版本核验为 2026-09-11 的 0.1.13；Codex 流程验收通过，Hermes 成片及实际四并发通过，但监督流程验收失败。
+
+## 统一视觉主题与固定模板回归（0.1.14 候选，未发布）
+
+`0.1.14` 已冻结并完成[升版工程检查](evidence/v0.1.14-engineering-checks.json)：同一完整测试集合以本机单文件并发运行 930/930，随后 type/lint/docs/build、真实 compositions、包检查和零漏洞审计通过。默认文件并发下两轮进程启动超时失败保留；未修改断言或阈值，CI 仍使用原 `npm run check`。升版后重新渲染 144 张 still 与 4 段动画，全部 PNG 与已抽检矩阵逐字节一致。双宿主候选/公开包验收及本地真实制作尚未完成。
+
+新增 [Visual theme contract](contracts/VISUAL_THEME_CONTRACT.md)：创建时将 dark/light/custom 解析为一份已校验的
+background、primaryText、secondaryText、accent。Composition 实际绘制该背景，正文 task context 与固定首尾共用
+VisualStyleSpec；不再以文字提示或局部白色衬板保证一致性。三个前景角色在固定 8% 装饰合成范围内须达到 4.5:1。
+themed GlobalVisual base 必须直接返回 null；其 decoration 由 runtime 隔离到正文后方并限制组透明度，源检查拒绝
+CSS/DOM 注入和副作用入口。该检查是受限创作合同，不宣称任意 JavaScript 的安全沙箱或任意正文视觉认证。
+
+固定模板移除 0.1.12 引入的浅底、48px 偏移和品牌局部裁剪，保留 Logo paths、字体、布局及 frame 动画。
+真实过渡帧另确认旧横版关注按钮会将完整文案挤成两行；按钮容纳和长引用间距单独修正，不缩小文字或更改 Logo。
+旧 Project 的 immutable template bytes 不原地迁移；已有 themed Project 通过 revision 更新颜色，旧模板 Project
+拒绝直接添加主题。theme 与相关实现通过既有 fingerprint/policy 链使受影响任务和交付失效。
+
+[无 provider 渲染回归](../proofs/scene-theme/README.md) 使用真实 CompositionAssembly、SceneViewport 和固定模板，
+覆盖深浅主题、横竖屏、0/1/6 条引用及长标题/链接。首轮实际查看发现横版长引用挤掉最后一排，机械检查未发现该问题；
+失败媒体保留在本地 `out/scene-theme-proof-reference-layout-failure/`；第二轮按钮问题保留在
+`out/scene-theme-proof-button-layout-failure/`，均不作为视觉通过证据。
+第三轮 144 张原尺寸 still、4 个完整 360 帧动画及媒体/源码复验通过；实际查看全部 still 联系表并放大关键帧，
+已确认本矩阵的引用完整、按钮单行、首尾无浅底贴片。最大 Logo 入场仍按原设计超出 SceneViewport，由既有安全区裁切，
+没有恢复品牌卡片级裁剪。全量静态检查 929/929；最后按钮改动后再通过 20 项模板/编译回归、type/lint、真实 compositions、
+package build 与两包 check。9 份模板发行资源与源码逐字节相同。完整边界和指纹见
+[工程与视觉记录](evidence/visual-theme-20260912-review.json)。这些是合成场景的抽帧证据，不等同真实制作或逐帧播放/听审。
+本轮不修改 Hermes 监督协议，不创建真实制作 attempt，不更改原 Workspace 或既有交付。
 
 ## 并发交接与监督修复（0.1.13 已发布）
 
@@ -46,7 +73,8 @@ Scene validator v4 使用有界词法证明识别 JSX-only block/map 与纯图�
 SVG viewBox 缩小文字与独立 CSS 3D rotate 是基线和当前都存在的覆盖缺口；不宣称通用视觉质量认证。
 
 Scene 指南改为解释实际可读文字、可证明运动和渲染检查，纯布局/图形无需补虚拟字号。
-固定首尾模板为深色品牌/文字提供局部不透明浅底，root 仍透明；六引用横屏仅调整排布，不缩小文字或删引用。
+当时固定首尾模板为深色品牌/文字添加局部不透明浅底，root 仍透明；六引用横屏仅调整排布，不缩小文字或删引用。
+后续真实样本确认浅底及品牌局部裁剪造成视觉回归，当前未发布修复见本页顶部；以下保留当时抽检的范围与记录。
 [模板视觉证据](evidence/v0.1.12-boundary-visual.json) 包含深浅底、横竖屏与首尾动效的 36 张真实 Remotion still；
 抽检与固定组件对比度回归不等于任意正文 Scene 的视觉门禁。既有 Project-local immutable 模板和用户 Workspace 均未迁移。
 

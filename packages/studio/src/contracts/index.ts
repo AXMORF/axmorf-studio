@@ -55,3 +55,4 @@ export * from "./task-execution-contract";
 export * from "./task-worker-binding";
 export * from "./tts-provider-registry";
 export * from "./visual-style";
+export * from "./visual-theme";

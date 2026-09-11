@@ -14,6 +14,7 @@ description: Produce videos with bounded workers, event-driven supervision, and 
 Read [policy](policy.json), [workflow](references/direct-production-workflow.md), and
 [Producer config](references/producer-config.md). 报告首尾 Scene 的继承、选择或禁用。
 User silence means inheritance：省略 `sceneTemplates`，never infer `null`；新建用 `project:create`，修改走隔离 revision。
+新建 `visualStyle.theme` 默认 dark；可选 light 或四角色自定义 hex。按已校验主题设计全片，不能用 palette 文案覆盖主题；固定首尾形状/字体/动画不改。
 
 `project:create` 冻结 originality baseline；legacy 缺失时必须显式 zero-provider `project:originality:freeze`，不伪造。
 修复 `authoring-validation-failed`：`caption-display-budget-exceeded` 时缩短或拆分 `ttsChunk`，每段最多 72 `caption-display-unit-v1` half-units；不降低 validator。

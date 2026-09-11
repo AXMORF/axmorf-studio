@@ -75,7 +75,7 @@ After `project-production-complete` or `project-production-current`, report the 
 Timing comes from sealed PCM samples. Scenes do not own captions or narration.
 Agent-owned Scene TS/TSX graphs must be unique against the frozen baseline and
 within the current revision; fixed template-copy Scenes are exempt.
-GlobalVisual base covers the full Composition. Its decoration export is limited
+All visual workers read context.visualStyle and use its semantic theme roles. Composition paints theme.background and composites decoration behind Scenes in an isolated group capped at 8% opacity; GlobalVisualBaseLayer must directly return null and is not mounted. Legacy Projects without a theme retain their base layer. Its decoration export is limited
 to the continuous first-to-last narrated Scene window and receives local frame
 zero at that window's start; neither layer may read Scene output or carry Beat
 copy.

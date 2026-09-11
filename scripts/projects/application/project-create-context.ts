@@ -88,9 +88,10 @@ export const inspectProjectCreateContext = async ({
     },
     visualStyle: {
       styleProfileId: style.styleProfileId,
+      theme: "dark",
       artDirection: {
         medium: "二维几何动态图形",
-        palette: "深色背景、浅色文字和青绿强调色",
+        palette: "遵循 theme 的深色背景、浅色文字和暖色强调色",
         lighting: "均匀平面光线",
         texture: "清晰无噪点",
         compositionGrammar: "一个主要图形和一个视觉焦点",
