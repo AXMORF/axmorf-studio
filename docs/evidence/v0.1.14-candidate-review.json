@@ -1,0 +1,443 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.14",
+  "candidate": 1,
+  "reviewedAt": "2026-09-11T19:06:43.154326+00:00",
+  "status": "blocked-before-publication",
+  "firstUseReceipt": false,
+  "sourceCommit": "f0c6b4ee4d37e0ef29755c651a891cc80d5d70ca",
+  "branch": "axmorf/visual-theme-logo-fix",
+  "packages": {
+    "runtime": {
+      "name": "@axmorf/studio",
+      "version": "0.1.14",
+      "fingerprint": "sha256:09dce4d706e5931e43393ecbad36c335f873422a45e0b057242d2ee8086a8b6e",
+      "fileCount": 254
+    },
+    "creator": {
+      "name": "create-axmorf-studio",
+      "version": "0.1.14",
+      "fingerprint": "sha256:007ae06f8d3b1e83a441d1ad95eb5d2526183ce54155361d90478dbea405e8a1",
+      "fileCount": 41
+    }
+  },
+  "creation": {
+    "method": "npm-exec-candidate",
+    "runtimeTarballChecksum": "sha256:8378be6ced705d525244e6cced54624722efc2bfe230268fd17c15b03c44c288",
+    "creatorTarballChecksum": "sha256:b4ca5b4a85565c1eb1645b682b75effd60110dc3b25a84f445bec5887aaf1120"
+  },
+  "setup": {
+    "freshProfiles": true,
+    "freshNpmWorkspaces": true,
+    "filesystemIsolation": false,
+    "scope": "Fresh host profiles and npm-generated Workspace context; not an operating-system filesystem sandbox. Review native transcripts for source/history access.",
+    "model": "gpt-5.6-luna",
+    "reasoningEffort": "medium",
+    "codexCliVersion": "0.153.4",
+    "harnessFiles": {
+      "first_use_harness.py": "sha256:2b7a70e7556733a335409324c5fe38e48954f9c0d905a630d10a31ca89b1e298",
+      "completion.py": "sha256:0b1b48e503305c9bc19aa15b1dd0ac38a312bf02bacb7a61588fa93cba476bf3",
+      "test_harness.py": "sha256:1ba81cab94c06c082be50c8901f1a92a647cf32b0935d63bb3ffc76fee4a23bf"
+    },
+    "businessPromptsPerHost": 1,
+    "controllerFollowUps": 0,
+    "note": "Hermes root-to-worker steering below is distinct from controller follow-up prompts."
+  },
+  "codex": {
+    "recorderStatus": "passed",
+    "overallBriefCompliance": "failed-orientation",
+    "receiptFile": "v0.1.14-candidate-codex-receipt.json",
+    "receiptChecksum": "sha256:643b72614eca615a15474712b1dbee4790cd6cbc5f9921fbb2a3d8ee9f3376c6",
+    "peakBoundTasks": 4,
+    "fourWayBoundOverlapMs": 216634,
+    "supervision": {
+      "schemaVersion": 1,
+      "source": "codex",
+      "reportedBeforeCreate": true,
+      "reportedBeforePrepare": true,
+      "continuationCalls": 1,
+      "pollingCalls": 0,
+      "asyncBatches": 0,
+      "completedAsyncBatches": 0
+    },
+    "prepareActualCost": {
+      "providerRequests": 3,
+      "providerCacheHits": 3,
+      "agentTasks": 5
+    },
+    "visualReview": {
+      "schemaVersion": 1,
+      "host": "codex",
+      "version": "0.1.14",
+      "firstUseRecorder": "passed",
+      "businessBrief": "failed-orientation",
+      "mechanicalMedia": "passed-recorder-final-7-of-7-and-complete-EOF-decode",
+      "mediaFiles": {
+        "video.mp4": {
+          "checksum": "sha256:f6af798b133b5ad39eff83ee2d83c8c4f69fc516b8b51387d7662c7e43c3c078",
+          "sizeBytes": 2482463
+        },
+        "cover-4x3.png": {
+          "checksum": "sha256:cb7540b1cf2b2c4aadc3e5817c86dedf0cd00143266d8c1d0793feb56203af0d",
+          "sizeBytes": 117437
+        },
+        "cover-3x4.png": {
+          "checksum": "sha256:e2579ca4f9d0aa63ac5730f57636db57007137ef9fbe169aa0c8d0b5813950e8",
+          "sizeBytes": 114693
+        },
+        "publish.json": {
+          "checksum": "sha256:c6ac3a4928016ce12a53157c076f65d56fd102b5ebab2e944a29a366d9537a30",
+          "sizeBytes": 2169
+        }
+      },
+      "video": {
+        "codec": "h264",
+        "audioCodec": "aac",
+        "audioChannels": 2,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "frameCount": 927
+      },
+      "sampledFrames": [
+        0,
+        9,
+        18,
+        34,
+        45,
+        59,
+        60,
+        72,
+        158,
+        256,
+        257,
+        269,
+        369,
+        480,
+        481,
+        493,
+        584,
+        686,
+        687,
+        741,
+        775,
+        790,
+        791,
+        798,
+        806,
+        807,
+        809,
+        819,
+        833,
+        852,
+        867,
+        901,
+        907,
+        926
+      ],
+      "fullSizeOpenedFrames": [
+        158,
+        369,
+        584,
+        901
+      ],
+      "coversViewed": [
+        "cover-4x3.png",
+        "cover-3x4.png"
+      ],
+      "themeObservations": [
+        "Dark blue background remains consistent in sampled opener, body and closer frames.",
+        "Fixed Logo and source-credit components do not introduce the former opaque light backing plates. Maximum Logo zoom uses the existing viewport boundary and shrinks to the original horizontal lockup.",
+        "Stable text in sampled fixed components, body and covers is readable against the actual background.",
+        "Portrait follow label is on one line, with the plus and final letter very close to the capsule edges."
+      ],
+      "contentFindings": [
+        "The ordinary business prompt and root pre-create report require landscape 1920x1080; actual RenderSpec and delivered video are portrait 1080x1920.",
+        "The root wrote landscape constraints into BriefSpec and art direction but made no render-default configuration change. Strict create input omits dimensions by contract; create-project.ts derives dimensions from config.renderDefaults.",
+        "One subtitle breaks the word shenme between lines. The first body scene has sparse visual content; media validity is not creative quality certification.",
+        "Duration is 30.9 seconds versus the approximate 30-second brief."
+      ],
+      "limitations": [
+        "34 sampled frames and two covers, not every-frame visual review or full audio listening.",
+        "No external references in this actual Project; long and multiple references are covered only by the separate synthetic matrix.",
+        "Recorder success does not verify semantic compliance with landscape instructions or certify both hosts."
+      ]
+    }
+  },
+  "hermes": {
+    "recorderStatus": "failed",
+    "firstUseReceipt": false,
+    "error": "Child list polling is not native completion",
+    "diagnosticChecksum": "sha256:2257a84f649dba8dd99f82cddbef64fc610329214bc740d88c036314e285fd80",
+    "nativeExecution": {
+      "mode": "subagents",
+      "workerTransport": "shared-workspace",
+      "modeSource": "builtin-default",
+      "concurrencySource": "builtin-default",
+      "requestedMaxConcurrency": 4,
+      "effectiveMaxConcurrency": 4,
+      "peakActiveChildren": 4,
+      "peakBoundTasks": 4,
+      "fourWayBoundOverlapMs": 172889.80590820312,
+      "dirtyTaskCount": 5,
+      "productionChildCount": 5,
+      "probeChildCount": 4,
+      "refillAdmissions": 1,
+      "attemptId": "1bacb326-d08c-46b4-b235-2060015afada",
+      "childEvidence": [
+        {
+          "sessionId": "20260912_023429_2870ff",
+          "transcriptChecksum": "sha256:12bd195edd71bf79e3eb98a97b5464bbaa1e7b4eb7f98a0b8b35226106642bf3",
+          "sessionChecksum": "sha256:2642b7ef27a0b5d3782bd7e84a1dc01302f109735b9d1678867f213622c51146",
+          "taskRevision": null
+        },
+        {
+          "sessionId": "20260912_023429_86d70e",
+          "transcriptChecksum": "sha256:3bda3c094214ed875200cb31d16a0d30fb4cfe7147b1a9d67b4c649c154ba4b9",
+          "sessionChecksum": "sha256:125cc558c89709ac6147031fac3befde3bf567ce9112140da89327d654cddbe4",
+          "taskRevision": null
+        },
+        {
+          "sessionId": "20260912_023429_c5b656",
+          "transcriptChecksum": "sha256:7256baa075c72898ce572fdeddee543c660a456a4f96557ab4add096763cffc9",
+          "sessionChecksum": "sha256:71ff3bc7089b2af63d5bbcdb98fcc1c714e5fb810e0b452ac1117f1bb6499ffa",
+          "taskRevision": null
+        },
+        {
+          "sessionId": "20260912_023429_e19b96",
+          "transcriptChecksum": "sha256:6815510677c01c86048226b1688f06476a3fb1e7ee892e86c4b87f94144d2d2d",
+          "sessionChecksum": "sha256:9186b14ff2559a60ea75300f44998babde7ff7160b6280c2e44a6235d8b95a80",
+          "taskRevision": null
+        },
+        {
+          "sessionId": "20260912_023613_0c4e0c",
+          "transcriptChecksum": "sha256:fffe3c26f2544ed85e615f4e12ee659066b84e93875bbe8aaa2750264319828e",
+          "sessionChecksum": "sha256:c00cac1fc5cc4410ddf9f3ffedfe4b79204b4c215b9ee0349994f2849e180297",
+          "taskRevision": "task-bfd76bd9fa83b8666a32991d54a1f7805e25145b2dadc7a4b36ca1af628c8864"
+        },
+        {
+          "sessionId": "20260912_023613_14073d",
+          "transcriptChecksum": "sha256:80f44af085f4e60be0cb9ed7e1ffd5dde1e5a88e1fa8d87b7d19c036d4a3088f",
+          "sessionChecksum": "sha256:61728cf097785dad1babec76fcf9844a11a7043314a041f759e8850fdaaac1e4",
+          "taskRevision": "task-681765f989a8c348ad57e38bdbbe5653282e06bfa234f435aa2f414b7c4ab84c"
+        },
+        {
+          "sessionId": "20260912_023613_520094",
+          "transcriptChecksum": "sha256:ec807b74f48f51c9a01250cf657e35efd1ce91c9de66d21b72efda32a1137563",
+          "sessionChecksum": "sha256:1da124f5f2a4b78df80b5dacba75481dc0a45a11fe507de9c6a389844c988a9c",
+          "taskRevision": "task-28b6f56de52a7881a26f2c8fbb9af62312369eeaca9fead4a4fe1882edd13b33"
+        },
+        {
+          "sessionId": "20260912_023613_55bd1b",
+          "transcriptChecksum": "sha256:fc75ffea8a61136c614594e68197d13c8d27160bcd36de48f20f15bf6b981931",
+          "sessionChecksum": "sha256:c525d8628674ad145f6cedb0d1789c347e334ebdc224a985d3c3e1b37d5bc13a",
+          "taskRevision": "task-c533ec56ec487b97cf31d1cf73ebbe1f0a63178f707b51c445c2c935932f92d1"
+        },
+        {
+          "sessionId": "20260912_024103_42828a",
+          "transcriptChecksum": "sha256:89cbbbaeb52bb221b01fbe626882db3e5e2747a8c762f0b78c39d788843aee85",
+          "sessionChecksum": "sha256:157eaf70188cdd82d248ee98bc77344ce52cb7443eadda43c0a3f0011ee44c03",
+          "taskRevision": "task-d5557b5205573de50171b63ff329bb3bdb49a7146cc6c086bfe818276c46858a"
+        }
+      ],
+      "delegationChecksum": "sha256:9620c6939142b13152caa558e1af840b0e0f18909d621e6945cf6a3f0ad91872",
+      "notificationFormatterChecksum": "sha256:6639686593d58c0114593d3776de70aabcfe69b2cdbbc518ac2e3c558f45b6c8"
+    },
+    "observedSupervision": {
+      "childListCalls": 14,
+      "shellSleepCalls": 5,
+      "shellSleepSeconds": 270,
+      "liveChildTranscriptReads": 10,
+      "rootToWorkerSteers": 3,
+      "firstFullDeliveryReport": {
+        "rowId": 375,
+        "at": "2026-09-11T18:45:45.748Z",
+        "nativeBatchNotificationsAlreadyInModelConversation": 0
+      },
+      "batchNotifications": [
+        {
+          "rowId": 376,
+          "at": "2026-09-11T18:45:45.925Z",
+          "firstLine": "[ASYNC DELEGATION BATCH COMPLETE — deleg_fbd81ef2]"
+        },
+        {
+          "rowId": 378,
+          "at": "2026-09-11T18:45:50.837Z",
+          "firstLine": "[ASYNC DELEGATION BATCH COMPLETE — deleg_e26aa772]"
+        },
+        {
+          "rowId": 380,
+          "at": "2026-09-11T18:45:54.320Z",
+          "firstLine": "[ASYNC DELEGATION BATCH COMPLETE — deleg_6bb69e73]"
+        }
+      ],
+      "lastAcknowledgement": {
+        "rowId": 381,
+        "at": "2026-09-11T18:45:59.302Z",
+        "nativeBatchNotificationsAlreadyInModelConversation": 3
+      },
+      "guidanceRead": {
+        "hostExecutionAndRecovery": {
+          "rowId": 9,
+          "truncated": false
+        },
+        "executionCapabilities": {
+          "rowId": 10,
+          "truncated": false,
+          "lines": "27, 31-33, 83, 85, 131-135"
+        }
+      },
+      "hostGuidanceConflict": {
+        "source": "Hermes tools/delegate_tool_dispatch.py:253-287",
+        "sourceChecksum": "sha256:e0b40472591d581c0425579ad6df626b90dbae48c1353eb50cc05728913ba2b1",
+        "finding": "Background dispatch prohibits polling but unconditionally advertises list control and read/tail of live child transcripts.",
+        "attributionLimit": "The contradictory hint is observable, but is not proof of sole causation. The model read the workspace prohibitions and still violated them. No notification loss or AXMORF engine fault was found in this focused diagnostic."
+      }
+    },
+    "independentFinalCheck": "passed-7-of-7",
+    "independentFinalLogChecksum": "sha256:701a818913d16871d78d161179d119b17303d84d6165c2b2fab16e83072cb345",
+    "visualReview": {
+      "schemaVersion": 1,
+      "host": "hermes",
+      "version": "0.1.14",
+      "firstUseGate": "failed-supervision",
+      "mechanicalMedia": "passed-independent-final-7-of-7-and-complete-EOF-decode",
+      "mediaFiles": {
+        "cover-3x4.png": {
+          "checksum": "sha256:244cf35a866dc1454a77ab4b4cdc5db02a6b6a22a70c12644df170b6bf991577",
+          "sizeBytes": 101524
+        },
+        "cover-4x3.png": {
+          "checksum": "sha256:f39b3d47baef737745f6622746a80a3c80fc554f13ad8eddfaaf7f59a9b550d9",
+          "sizeBytes": 109312
+        },
+        "publish.json": {
+          "checksum": "sha256:8e9172d670ac98980cafdb12f3368bbfd6e9b8cf7af112bb745ed7594a2ebe2e",
+          "sizeBytes": 2186
+        },
+        "video.mp4": {
+          "checksum": "sha256:f80efb9d5f507f83b7891b33630a11c705c173f3798f9834e0a76fe92d2fb60e",
+          "sizeBytes": 2903764
+        }
+      },
+      "sampledFrames": [
+        0,
+        9,
+        18,
+        34,
+        45,
+        59,
+        60,
+        72,
+        193,
+        325,
+        326,
+        338,
+        439,
+        551,
+        552,
+        564,
+        690,
+        827,
+        828,
+        882,
+        916,
+        931,
+        932,
+        939,
+        947,
+        948,
+        950,
+        960,
+        974,
+        993,
+        1008,
+        1042,
+        1048,
+        1067
+      ],
+      "fullSizeOpenedFrames": [
+        193,
+        439,
+        690,
+        916,
+        1008,
+        1042,
+        1048
+      ],
+      "coversViewed": [
+        "cover-4x3.png",
+        "cover-3x4.png"
+      ],
+      "themeObservations": [
+        "Warm light background remains consistent in sampled opener, body and closer frames.",
+        "Fixed Logo and source-credit components do not introduce the old opaque light backing plates. Logo maximum zoom uses the existing viewport boundary and then shrinks to the horizontal lockup.",
+        "Stable text in sampled fixed components, body and covers remains readable against the actual background.",
+        "Follow label is on one line, although the plus and final letter sit very close to the capsule edges in the portrait pre-click frame."
+      ],
+      "contentFindings": [
+        "Third content segment shows 02 / CONTINUE after second segment 02; chapter numbering is inconsistent.",
+        "Third segment next-step card breaks the final word into a one-character line.",
+        "Duration is 35.6 seconds versus the approximate 30-second brief."
+      ],
+      "limitations": [
+        "34 sampled frames and two covers, not every-frame visual review or full audio listening.",
+        "No external references in this actual Project; long and multiple references are covered only by the separate synthetic matrix.",
+        "A passing media review does not override the failed native-supervision release gate."
+      ]
+    },
+    "video": {
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "frameCount": 1068,
+      "durationSeconds": 35.6,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "audioChannels": 2
+    },
+    "completeEofDecode": [
+      "video.mp4",
+      "cover-4x3.png",
+      "cover-3x4.png"
+    ]
+  },
+  "publication": {
+    "published": false,
+    "releaseTagCreated": false,
+    "workflowDispatched": false,
+    "registryCheckedAt": "2026-09-11T19:06:43.155474+00:00",
+    "publicRuntimeLatest": "0.1.13",
+    "publicCreatorLatest": "0.1.13",
+    "publicRuntimeIntegrity": "sha512-1BdYF7DVeyW30sMZz26T87E4dEuOYLCW1/H0eBt4FBjWEm+r86p73JrMz9dwMoAby/2MWD6DEoY0NxJIaLe8Aw==",
+    "publicCreatorIntegrity": "sha512-McJ/0fVldDa0PSlsgYApf8s5F3t3YMAKWMJUpIPPnHRjf4FC3JlRpAAsfQH85/EEEh/xbMW+zMyl+EZQ2QLNXw=="
+  },
+  "existingLocalWorkspace": {
+    "upgraded": false,
+    "runtimeVersion": "0.1.13",
+    "fullBackupRetained": true,
+    "nonNodeModulesRegularFilesReverified": 393,
+    "matchedBackup": true,
+    "newVersionProductionPerformed": false
+  },
+  "preservation": {
+    "rawEvidence": "Retained privately with exact candidates, fresh host transcripts/UI/DB records, original failed run and delivered media; not committed.",
+    "failedRunReplaced": false,
+    "unchangedCandidateRetried": false,
+    "installedPackageModified": false,
+    "hermesHostModified": false,
+    "releaseGateRelaxed": false
+  },
+  "remainingWork": [
+    "Resolve the Hermes supervision failure through a separately scoped host/engineering correction and test its actual native notification lifecycle.",
+    "Resolve landscape request versus render-default handling; retain the current mismatch as failed semantic evidence.",
+    "Create and verify new candidates after a meaningful engineering fix, then obtain both required first-use receipts before the release workflow.",
+    "Publish both packages, verify public npm first use, then upgrade the backed-up existing workspace and make the requested new-version local video."
+  ],
+  "limitations": [
+    "Successful media and positive four-way task overlap do not waive failed supervision or unmet business constraints.",
+    "Focused native-supervision/orientation review and sampled visuals are not a full semantic audit of every root and worker operation.",
+    "Actual videos are portrait; landscape theme/template coverage comes from the separate synthetic proof only.",
+    "No claim of statistical reliability, complete audio review, public 0.1.14 acceptance or local upgraded-workspace acceptance."
+  ]
+}

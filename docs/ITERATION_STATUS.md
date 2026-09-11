@@ -2,12 +2,36 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-12 本地开发分支完成统一视觉主题与固定 Logo 回归修复及工程/抽帧验证，未发布。
-> 上次公开版本核验为 2026-09-11 的 0.1.13；Codex 流程验收通过，Hermes 成片及实际四并发通过，但监督流程验收失败。
+> 最后复核：2026-09-12，统一视觉主题与固定 Logo 修复已提交并推送到 `axmorf/visual-theme-logo-fix`，0.1.14 候选未发布。
+> 当日复核公共 npm 两包 latest 仍为 0.1.13。0.1.14 Codex 流程 recorder 通过但未满足横屏需求；Hermes 成片及实际四并发通过，监督流程验收失败。
 
 ## 统一视觉主题与固定模板回归（0.1.14 候选，未发布）
 
-`0.1.14` 已冻结并完成[升版工程检查](evidence/v0.1.14-engineering-checks.json)：同一完整测试集合以本机单文件并发运行 930/930，随后 type/lint/docs/build、真实 compositions、包检查和零漏洞审计通过。默认文件并发下两轮进程启动超时失败保留；未修改断言或阈值，CI 仍使用原 `npm run check`。升版后重新渲染 144 张 still 与 4 段动画，全部 PNG 与已抽检矩阵逐字节一致。双宿主候选/公开包验收及本地真实制作尚未完成。
+`0.1.14` 已冻结并完成[升版工程检查](evidence/v0.1.14-engineering-checks.json)：同一完整测试集合以本机单文件并发运行 930/930，随后 type/lint/docs/build、真实 compositions、包检查和零漏洞审计通过。默认文件并发下两轮进程启动超时失败保留；未修改断言或阈值，CI 仍使用原 `npm run check`。升版后重新渲染 144 张 still 与 4 段动画，全部 PNG 与已抽检矩阵逐字节一致。真实候选双宿主已运行，发布门禁未通过；公开包复测与原本地工作空间升级制作尚未执行。
+
+[首轮候选实测](evidence/v0.1.14-candidate-review.json) 使用同一批 254/41 个发行文件、全新 npm Workspace 和宿主 profile、
+Luna/medium、各一条普通业务提示，控制器无追加指导。两边均生成四文件并通过独立 final 7/7 与完整 EOF 解码，
+各有 5 个创作 child、4 个 probe、1 次补位；四任务绑定到提交的实际重叠为 Codex 216634 ms、Hermes 172889.81 ms。
+[Codex 单宿主 recorder](evidence/v0.1.14-candidate-codex-receipt.json) 通过，但提示和创建前报告要求横屏，
+模型未落实 render defaults，成片实际为 1080×1920、30.9 秒；不能把机械通过写成完整需求通过。
+Hermes 成片为 1080×1920、35.6 秒，Root 调用 14 次 child-list、5 次 shell sleep、10 次子任务日志读取和 3 次 steer；
+三批原生通知均在首次完整交付报告之后进入模型上下文，recorder 以 `Child list polling is not native completion` 拒绝。
+宿主 dispatch 提示同时禁止 polling 又推荐 list/live transcript，已保留冲突证据；模型也已完整读过 Workspace 禁令，
+不能将失败归为检测误报或声称已证明唯一根因。未修改宿主、安装包、失败记录或门禁，未重跑相同候选来替换失败。
+
+实际查看每条成片的 34 个抽样帧及两张封面，深浅主题的首尾与正文保持一致，旧 Logo/引用浅底贴片未再出现。
+Hermes 第三段序号重复及孤字换行、Codex 横屏需求偏差和字幕断词均已记录；未做全帧或完整听审。
+这两条实际样片均为竖屏；横屏、长引用及六引用覆盖来自下述合成矩阵。
+原本地 Workspace 已完整备份，393 个非 node_modules 普通文件与备份再次匹配，安装版本仍为 0.1.13。
+没有创建发布 tag 或触发 npm 发布工作流，不宣称已完成新公共包的本地制作验收。
+
+[安装包 revision 闭环](evidence/v0.1.14-revision-closure.json) 在已完成候选 Workspace 的全新隔离副本中通过：
+等价 no-op 正确拒绝，publishing.description 修改经 validate/create、inspect/prepare、唯一 continuation、
+自动 promotion、手动幂等 promotion 与两次 final 7/7。新增 provider/Agent 均为 0，复用 6 个旁白缓存，
+视频和两张封面 bytes 不变，publish.json 随文案修订变化；原 Workspace、安装包及指南完整哈希不变。
+首个测试副本因外部控制器误将 CLI 的 agentHandoff 字段交给 strict domain schema 而在 prepare 前停止；
+失败完整保留，仅修正控制器的已知输出边界并通过 23 项非生产回归后，在新副本运行上述闭环。
+此脚本化修订兼容性检查不替代双宿主首次制作验收，也不宣称 Agent 修订或故障恢复已验证。
 
 新增 [Visual theme contract](contracts/VISUAL_THEME_CONTRACT.md)：创建时将 dark/light/custom 解析为一份已校验的
 background、primaryText、secondaryText、accent。Composition 实际绘制该背景，正文 task context 与固定首尾共用
@@ -29,7 +53,7 @@ CSS/DOM 注入和副作用入口。该检查是受限创作合同，不宣称任
 没有恢复品牌卡片级裁剪。全量静态检查 929/929；最后按钮改动后再通过 20 项模板/编译回归、type/lint、真实 compositions、
 package build 与两包 check。9 份模板发行资源与源码逐字节相同。完整边界和指纹见
 [工程与视觉记录](evidence/visual-theme-20260912-review.json)。这些是合成场景的抽帧证据，不等同真实制作或逐帧播放/听审。
-本轮不修改 Hermes 监督协议，不创建真实制作 attempt，不更改原 Workspace 或既有交付。
+上述合成回归本身不调用 provider；后续候选实测见本节前文。原 Workspace 与既有交付保持不变。
 
 ## 并发交接与监督修复（0.1.13 已发布）
 
