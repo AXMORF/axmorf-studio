@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.14",
+  "scope": "user-requested-hermes-inline-and-landscape-test",
+  "status": "failed-landscape-requirement",
+  "firstUseReleaseReceipt": false,
+  "reviewedAt": "2026-09-12T02:36:49.075588+00:00",
+  "sourceCommit": "f0c6b4ee4d37e0ef29755c651a891cc80d5d70ca",
+  "packages": {
+    "runtime": {
+      "name": "@axmorf/studio",
+      "version": "0.1.14",
+      "fingerprint": "sha256:09dce4d706e5931e43393ecbad36c335f873422a45e0b057242d2ee8086a8b6e",
+      "fileCount": 254
+    },
+    "creator": {
+      "name": "create-axmorf-studio",
+      "version": "0.1.14",
+      "fingerprint": "sha256:007ae06f8d3b1e83a441d1ad95eb5d2526183ce54155361d90478dbea405e8a1",
+      "fileCount": 41
+    }
+  },
+  "userDecisions": {
+    "durationDeviationAccepted": true,
+    "hermesExecution": "inline",
+    "preferencePersisted": false,
+    "note": "User requested an inline landscape test. The override applies only to this production; no saved preferences or release gate were changed."
+  },
+  "nativeRun": {
+    "host": "hermes-tui",
+    "model": "gpt-5.6-luna",
+    "reasoningEffort": "medium",
+    "startedAt": "2026-09-12T02:03:36.347396+00:00",
+    "endedAt": "2026-09-12T02:21:08.690404+00:00",
+    "freshNpmWorkspace": true,
+    "freshHostProfile": true,
+    "filesystemIsolation": false,
+    "initialRenderDefaults": {
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "locale": "zh-CN"
+    },
+    "requested": {
+      "mode": "inline",
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "durationDeviationAccepted": true
+    },
+    "businessUserMessages": 1,
+    "controllerFollowUps": 0,
+    "productionAttempts": 1,
+    "productionRetries": 0,
+    "promptChecksum": "sha256:fd0a0c16065731173a9550873d48c9c9bde80c39bbfed6a92b1ab94bafc3ff71",
+    "transcriptChecksum": "sha256:5a21e961ff690532e93db8ed15f20e1eeffecdf95c37440b298b4f1fe9ca47b8",
+    "snapshotChecksum": "sha256:eb4a9e40ccb144c90f90893f88dd9b59a7988ab9bc9769cf5dc494487e40e9a2",
+    "runChecksum": "sha256:213b83a27bc78393407c51ff4f7cc03ddbeb4d3b68c2b0205a08353657163bf2",
+    "nativeChildren": 0,
+    "delegateCalls": 0,
+    "dirtyTaskCount": 5,
+    "executionResolution": {
+      "status": "ready",
+      "mode": "inline",
+      "requestedMaxConcurrency": null,
+      "effectiveMaxConcurrency": 0,
+      "requireExactConcurrency": false,
+      "source": {
+        "mode": "user-prompt",
+        "maxConcurrency": null
+      },
+      "workerTransport": null,
+      "limitedBy": [],
+      "persistence": "current-production-only"
+    },
+    "sequentialTasks": [
+      {
+        "taskRevision": "task-41d1f66f6598eaa01f79f24b2c26d771af9597c566340f3bbdc23e2a786b6edd",
+        "boundAt": 1789178808758.533,
+        "taskKind": "scene-owner",
+        "committedAt": 1789179039178.4001
+      },
+      {
+        "taskRevision": "task-80c07a6424cc4c53e6d908afe87a911cdb375f521781daeb1bcf9923228df866",
+        "boundAt": 1789179047474.565,
+        "taskKind": "cover-owner",
+        "committedAt": 1789179083515.219
+      },
+      {
+        "taskRevision": "task-a748da26c12d78db74d19cdb70fcc9b61ae6bd7a32c002e2ccdcbc846a0d6497",
+        "boundAt": 1789179090940.649,
+        "taskKind": "scene-owner",
+        "committedAt": 1789179163007.55
+      },
+      {
+        "taskRevision": "task-bf5f6bef75fefaf4bc4cd3930fbc315a062dc2bb567d46166918ebb7be69f773",
+        "boundAt": 1789179176775.5862,
+        "taskKind": "scene-owner",
+        "committedAt": 1789179243790.3528
+      },
+      {
+        "taskRevision": "task-c867aa37ad55beff1657a7e8ddeb806173ae9cf4638fc098dabbbd9e25f3c90d",
+        "boundAt": 1789179250217.4028,
+        "taskKind": "global-visual-owner",
+        "committedAt": 1789179425999.876
+      }
+    ],
+    "commonSupervision": {
+      "status": "release-recorder-not-certified-for-inline",
+      "error": "Hermes TUI acceptance did not exercise background delegation",
+      "note": "Unchanged recorder reached its required-background-delegation assertion after prior UI/DB binding and common supervision checks. User explicitly requested zero delegation; this is a separate scoped test, not a release receipt."
+    },
+    "runtimeFilesUnchanged": 254,
+    "guidesUnchanged": 12
+  },
+  "delivery": {
+    "finalCheckStatus": "pass",
+    "passedFinalChecks": 7,
+    "files": {
+      "cover-3x4.png": {
+        "checksum": "sha256:aa6279715ec0b87db37edd888cc714600b5d72d7d3bdd5ad462cb74ecec22da6",
+        "sizeBytes": 76190
+      },
+      "cover-4x3.png": {
+        "checksum": "sha256:6150b99e4fd11a57ed3b801937693ee0928451376b894755209399aab71503fa",
+        "sizeBytes": 85235
+      },
+      "publish.json": {
+        "checksum": "sha256:6fd672c0e9986b38dbf5fb4cac1e120b752f8e986770065ab1390fb21228b24b",
+        "sizeBytes": 2199
+      },
+      "video.mp4": {
+        "checksum": "sha256:42dc4c140861dd18de3c672db102fa03512075ed76fce29d81cccc1202e140a0",
+        "sizeBytes": 2383721
+      }
+    },
+    "media": {
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "frameCount": 1069
+    },
+    "durationSeconds": 35.63333333333333,
+    "decodedFiles": ["video.mp4", "cover-4x3.png", "cover-3x4.png"],
+    "landscapeRequirementMet": false,
+    "rootReportedDimensionFailure": true
+  },
+  "rootCause": {
+    "observed": "The agent wrote 1920x1080 into natural-language requirements without changing Workspace render defaults. Project creation froze 1080x1920, and the video matched that frozen RenderSpec.",
+    "createInputContract": "packages/studio/src/contracts/project-create.ts RenderChoicesSchema has no width or height fields.",
+    "renderSpecSource": "scripts/projects/application/create-project.ts builds RenderSpec from config.renderDefaults.",
+    "implication": "Textual landscape requirements are not automatically applied to dimensions. This test does not show that landscape rendering is unsupported.",
+    "requiredFollowUp": "Before create, reconcile the requested dimensions with actual settings and validate the frozen RenderSpec before provider preparation. No implementation change was made in this test."
+  },
+  "settingsControl": {
+    "schemaVersion": 1,
+    "scope": "isolated-public-settings-and-project-create-only",
+    "firstUseReleaseReceipt": false,
+    "providerCalls": 0,
+    "productionAttemptsStarted": 0,
+    "status": "passed-public-settings-to-project-create",
+    "checkedAt": "2026-09-12T02:33:40.554Z",
+    "controllerCorrection": "Preserved the initial controller failure and script. The public writer recomputes configFingerprint; compare every authored field and verify the fingerprint changes. Reset only the isolated copy dimensions through the public API before this configuration-only rerun. No production retry.",
+    "settings": {
+      "method": "GET /api/settings, same-origin PUT /api/settings, GET /api/settings",
+      "before": {
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "locale": "zh-CN"
+      },
+      "after": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "locale": "zh-CN"
+      },
+      "onlyWidthHeightChanged": true,
+      "readbackMatches": true
+    },
+    "projectCreate": {
+      "status": "project-created",
+      "render": {
+        "compositionId": "LandscapeSettingsProbe",
+        "fps": 30,
+        "height": 1080,
+        "leadInFrames": 0,
+        "locale": "zh-CN",
+        "output": {
+          "audioChannels": 2,
+          "audioCodec": "aac",
+          "container": "mp4",
+          "videoCodec": "h264"
+        },
+        "schemaVersion": 1,
+        "tailFrames": 0,
+        "width": 1920
+      },
+      "providerInvoked": false
+    },
+    "preservation": {
+      "originalProjectAndDeliveryUnchanged": true,
+      "copiedExistingProjectAndDeliveryUnchanged": true,
+      "runtimeFilesUnchanged": 254,
+      "guidesUnchanged": 12
+    },
+    "limitations": [
+      "Isolated copy and zero-provider configured-authoring control only; no landscape video was produced.",
+      "The actual unassisted Hermes inline video remains a failed landscape requirement."
+    ]
+  },
+  "visualReview": {
+    "sampledFrames": [45, 188, 426, 683, 917, 1043],
+    "contactSheetsViewed": ["contact-1.jpg"],
+    "coversViewed": ["cover-4x3.png", "cover-3x4.png"],
+    "observations": [
+      "Sampled opener, body and closer retain the dark blue theme; the former opaque light Logo plates are absent.",
+      "Body chapter numbers are 1, 2 and 3 in this sample.",
+      "At frame 426 several notification labels overlap into a dense line. At frame 683 a subtitle splits shenme and leaves a one-character continuation with punctuation.",
+      "Both covers are sparse and legible in the viewed images."
+    ],
+    "limitations": [
+      "Six sampled frames and two covers; no full-frame visual review or full audio listening.",
+      "This is a portrait video. The settings control only created configured authoring; it did not produce a landscape video."
+    ]
+  },
+  "protocolReviewLimitations": [
+    "Sequential execution and zero delegation were verified; this is not full task-scope compliance certification.",
+    "Native transcript message id 151 reads live src/projects/hermes-inline-landscape/render.json after the global-visual-owner binding and before its commit, outside that task workspace. The read is preserved and prevents a claim of fully compliant bounded task access.",
+    "The unchanged release recorder requires background delegation, so its expected inline assertion is retained. No successful default-subagent release receipt was generated."
+  ],
+  "controllerCorrections": [
+    "The initial checker incorrectly expected one child slot for inline. The unchanged resolver contract explicitly returns zero child slots and a null transport; sequential root execution is independently checked using all task bind-to-commit intervals. Original checker and failure receipt are retained; no production rerun.",
+    "Preserved the initial controller failure and script. The public writer recomputes configFingerprint; compare every authored field and verify the fingerprint changes. Reset only the isolated copy dimensions through the public API before this configuration-only rerun. No production retry."
+  ],
+  "preservedEvidence": {
+    "independent-check.json": "sha256:4829baa7193df897e46c8666558bf71ad64a4633e6c5053d9ee8eb19cfb0d9b9",
+    "independent-final.json": "sha256:8a3a786b3314ccf9b0613499c92fef6ff5776aa495a7a050ea0364135e46b0ce",
+    "settings-probe-result.json": "sha256:0fd159b32c7431e7adcd4717a0bc5a16a5cb4cdbe0c98632838e1a5ff17d5559",
+    "settings-probe-create.json": "sha256:68c233a3e94c29ca201be364bd7efecdb43b9dbb57db364965d89536dfe00b13",
+    "independent-check-controller-capacity-failure.json": "sha256:c2133afafcb7d13aaa4c1130373431caaffd12b93ab41cf3f427940c03da120f",
+    "controller-before-capacity-correction.mts": "sha256:607777add1f67f9680419d0f914eb26296e7adad8fbc4ef155600ebed833d957",
+    "settings-probe-controller-fingerprint-failure.json": "sha256:1b371150d5f48e4e5880df5855d91fb9bb2eb483dd0653f64c478637bd6f78b3",
+    "settings-probe-controller-before-fingerprint-correction.mts": "sha256:191f4e6582faafd5c9df301830ef380a6f27fc89383385f70f036c303a3c0b14",
+    "visual/samples.json": "sha256:0141434c2fb26947a28e84be61c3036161ca4226cc1045eb9b960e423396d50e",
+    "visual/contact-1.jpg": "sha256:17c0da353b7c9dab7be5e8fb671a36a1fdf367491c69cbab89d7b617751c3df0"
+  },
+  "priorCommitCi": {
+    "headCommit": "6ffb921567c3fbf75bee55515ff996b14798b07d",
+    "status": "success",
+    "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/34665779028",
+    "completedAt": "2026-09-12T01:50:41Z",
+    "scope": "Unchanged repository and public package gates on macOS 15 arm64; does not certify this subsequent documentation commit."
+  },
+  "preservation": {
+    "candidatePackageOrGuideChanges": false,
+    "releaseGateChanges": false,
+    "userOriginalWorkspaceUpgraded": false,
+    "npmPublishedByThisTest": false,
+    "temporarySettingsServerStopped": true,
+    "rawNativeTranscriptsAndMediaCommitted": false
+  }
+}

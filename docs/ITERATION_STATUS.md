@@ -2,12 +2,29 @@
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-12，统一视觉主题与固定 Logo 修复已提交并推送到 `axmorf/visual-theme-logo-fix`，0.1.14 候选未发布。
-> 当日复核公共 npm 两包 latest 仍为 0.1.13。0.1.14 Codex 流程 recorder 通过但未满足横屏需求；Hermes 成片及实际四并发通过，监督流程验收失败。
+> 最后复核：2026-09-12，统一视觉主题与固定 Logo 修复已同步到 `axmorf/npm-workspace-open-source`，0.1.14 候选未发布。
+> 当日复核公共 npm 两包 latest 仍为 0.1.13。用户接受时长偏差并选择 Hermes inline；新增实测确认串行执行，但横屏要求仍未落实到成片尺寸。
 
 ## 统一视觉主题与固定模板回归（0.1.14 候选，未发布）
 
 `0.1.14` 已冻结并完成[升版工程检查](evidence/v0.1.14-engineering-checks.json)：同一完整测试集合以本机单文件并发运行 930/930，随后 type/lint/docs/build、真实 compositions、包检查和零漏洞审计通过。默认文件并发下两轮进程启动超时失败保留；未修改断言或阈值，CI 仍使用原 `npm run check`。升版后重新渲染 144 张 still 与 4 段动画，全部 PNG 与已抽检矩阵逐字节一致。真实候选双宿主已运行，发布门禁未通过；公开包复测与原本地工作空间升级制作尚未执行。
+
+`6ffb921` 已快进推送至 npm 分支，其 [macOS CI](https://github.com/AXMORF/axmorf-studio/actions/runs/34665779028)
+通过原有 repository/public package gates 和全新外部 Workspace 检查。原主 checkout 的未提交修改未动。
+
+[Hermes inline 横屏专项实测](evidence/v0.1.14-hermes-inline-landscape.json) 使用同一候选、全新 Workspace/profile、
+Luna/medium 和一条明确要求 1920×1080 的业务提示。5 个任务逐个绑定并提交，零 child、零派发、零控制器追加提示；
+唯一 attempt/continuation 生成四文件，独立 final 7/7 和 EOF 解码通过。成片仍为 1080×1920、35.6333 秒，
+Hermes 最终明确报告尺寸不符。时长偏差按用户要求不作为问题，inline 仅为本次 override，未改保存设置或默认发布门禁。
+零派发不会满足既有 recorder 的 background delegation 断言；另记录 global task 绑定后一次越过 workspace 的 live RenderSpec 读取，
+因此这里只确认串行行为与媒体检查，不能写成完整 task protocol 或默认多 Agent 首次使用验收通过。
+
+尺寸来自创建时的 Workspace `renderDefaults`；Agent 只写入文字横屏约束，未同步实际设置。
+隔离副本通过正式 Web 设置 API 改成 1920×1080 后，公开 `project:create` 正确继承尺寸；该对照零 provider、
+零 production attempt，未制作横屏成片。原 Project/交付、254 个安装包文件和 12 份指南保持不变。
+两个外部检查脚本的断言错误及原代码完整保留：inline 使用零 child slots，配置写入会重算 fingerprint；
+仅修正外部检查，没有修改安装包、validator 或重跑实际生产。下一步需在创建前落实尺寸，并在 prepare 前复验 RenderSpec。
+六帧及两张封面的抽检确认主题与 Logo 修复仍有效，同时记录正文通知标签重叠和字幕孤字换行；不宣称横屏视觉或完整听审通过。
 
 [首轮候选实测](evidence/v0.1.14-candidate-review.json) 使用同一批 254/41 个发行文件、全新 npm Workspace 和宿主 profile、
 Luna/medium、各一条普通业务提示，控制器无追加指导。两边均生成四文件并通过独立 final 7/7 与完整 EOF 解码，
