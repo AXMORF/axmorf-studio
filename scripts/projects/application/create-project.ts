@@ -609,7 +609,10 @@ const prepareCreation = async ({
     compositionId: input.render.compositionId,
     leadInFrames: input.render.leadInFrames,
     tailFrames: input.render.tailFrames,
-    ...config.renderDefaults,
+    width: input.render.width ?? config.renderDefaults.width,
+    height: input.render.height ?? config.renderDefaults.height,
+    fps: input.render.fps ?? config.renderDefaults.fps,
+    locale: input.render.locale ?? config.renderDefaults.locale,
     output: {
       container: "mp4",
       videoCodec: "h264",
@@ -782,6 +785,7 @@ const prepareCreation = async ({
   });
   return {
     receipt,
+    render,
     copiedSceneMeaningIds: sceneTemplates.copiedMeaningIds,
     requirementsFingerprint: requirements.requirementsFingerprint,
     publishingIntentFingerprint: publishing.intentFingerprint,
@@ -909,6 +913,7 @@ export const createProject = async ({
         storyId: projectId,
         sourceState: "configured-authoring",
         creationIdentity: current.creationIdentity,
+        render: prepared.render,
         writtenLogicalPaths: [],
         pendingAuthoringRequirements: [PENDING_SCENE_AUTHORING_PATH],
         nextAction: "prepare-narration",
@@ -944,6 +949,7 @@ export const createProject = async ({
       storyId: projectId,
       sourceState: "configured-authoring",
       creationIdentity: prepared.receipt.creationIdentity,
+      render: prepared.render,
       writtenLogicalPaths: [
         ...prepared.receipt.files.map(({ logicalPath }) => logicalPath),
         `src/projects/${projectId}/${CREATION_RECEIPT_PATH}`,

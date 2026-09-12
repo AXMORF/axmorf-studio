@@ -28,6 +28,10 @@ For new authoring, read the Skill authoring reference and use `project:create:co
 to obtain a complete example and current public choices. Inherit boundary templates
 and execution settings unless the user explicitly changes them. In subagents mode, unknown runtime capacity blocks before costly preparation; verify the requested bounded native probe batch and pass its tested capacity to execution resolution.
 
+Explicit user dimensions/orientation, fps and locale go in create input `render.width/height/fps/locale`.
+Omit unspecified fields to inherit settings. Convert orientation to concrete dimensions; do not change saved
+defaults for one Project. Compare the returned frozen `render` with the request before provider preparation.
+
 Run `npm run project:produce:inspect` before any costly preparation. Only
 `npm run project:produce:prepare` may call configured providers. An Agent task
 must run prepare's exact attempt-bound bind command before reading or writing

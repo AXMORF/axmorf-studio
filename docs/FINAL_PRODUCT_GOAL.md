@@ -112,6 +112,8 @@ decode 全部通过后才替换。相同完整 identity 是只读 no-op。
 - Project 删除使用完整 storyId 确认并清理该 Project 的全部 ownership roots，同时保护其他 Project、
   core、shared media、private config 与 voice profiles。
 - 每个完成状态都有机械证据；聊天成功、Agent 自评、文件存在或进程启动都不代表交付完成。
+- 新建视频的尺寸/横竖屏、fps、locale 按用户明确要求优先、未指定字段继承配置。Agent 将要求写入结构化 create
+  input；fixed creator 解析并冻结 Project RenderSpec，返回实际值供有成本生产前复核，不自动改写长期默认配置。
 - Agent 执行模式按用户提示词明确字段、配置页、内置 `subagents`/4 默认逐级解析；默认要求
   bounded runtime-native children 和 verified transport，用户仍可明确选择 inline；
   策略不进入 production identity。continuation 启动后 Root 以阻塞等待/通知监督，错误时诊断；failure 直接终止该 attempt，all-success 只由持有

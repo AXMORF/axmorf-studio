@@ -129,6 +129,10 @@ TypeScript registry 完成。
 
 private config、voice profiles、shared media、core、other Projects 与 historical data 不属于 Agent task write scope。
 
+Project create 对 `render.width/height/fps/locale` 按字段解析：明确的 authored override 优先，省略字段继承
+ProducerConfig `renderDefaults`。只把解析结果冻结到 Project RenderSpec，不改写 private config；CLI 返回已复验
+render 供 Agent 在有成本生产前核对用户要求。既有 Project 的 RenderSpec 不由当前默认设置重新覆盖。
+
 ## 5. Task isolation
 
 Scene task reads one complete StoryBeat, its SemanticTiming slice, Scene-only requirements, a derived

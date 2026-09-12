@@ -21,6 +21,14 @@ Follow `agentHandoff` before create: adapt its example budget to the user's targ
 The schema is generated from the installed version. It describes JSON shape; cross-field semantics, current Catalog choices,
 caption budget and licensing are still checked by create. Do not read package internals or fetch development-branch contracts.
 
+- Resolve each render field from the explicit user request first, then `renderDefaults` for unspecified fields.
+  Set optional `render.width`, `render.height`, `render.fps`, and `render.locale` only when requested. An orientation
+  or aspect ratio requires concrete width and height; for example, a requested 16:9 landscape video can use
+  `fieldExamples.render` (1920 by 1080), while retaining configured fps and locale by omission. Do not copy this
+  landscape example when the user did not request it. Do not leave dimensions only in textual requirements or
+  modify saved defaults for one Project. Width/height must be positive even integers; fps is an integer from 1
+  through 120; locale is canonical BCP 47. Recalculate duration budget if fps changes. Before production, compare
+  the successful create response `render` with the request; stop before provider calls on a mismatch.
 - Use lowercase hyphenated `storyId`. Use registered `styleProfileId` values (without the `style.` Catalog ID prefix).
 - Each narrated beat owns one `meaningId`, one Scene brief and one publishing chapter in the same order.
 - `ttsChunks` contains objects with `chunkId` and `ttsText`, not strings. Keep each within 72 caption display half-units; shorten or

@@ -90,8 +90,17 @@ export const runProjectCreateCli = async (
     env: resolvedContext.env,
     runtimeResources: resolvedContext.runtimeResources,
   });
-  resolvedContext.stdout(JSON.stringify(result));
-  return result;
+  const output = {
+    ...result,
+    agentHandoff: {
+      nextAction: "verify-render-before-production",
+      summary: `Project render: ${result.render.width}x${result.render.height}, ${result.render.fps}fps, ${result.render.locale}.`,
+      instruction:
+        "Compare the returned render.width, render.height, render.fps and render.locale with the user's explicit request before any provider preparation. These values are the frozen Project RenderSpec, not the Workspace defaults. If they disagree, stop and report the mismatch before production; do not edit live Project files or saved settings to bypass creation. Existing video authorization needs no new confirmation. This handoff is diagnostic only.",
+    },
+  };
+  resolvedContext.stdout(JSON.stringify(output));
+  return output;
 };
 
 if (

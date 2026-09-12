@@ -82,11 +82,15 @@ TS/TSX Scene source graph；重复 create 复用已冻结 bytes。旧 Project �
 `npm run project:originality:freeze -- --project <storyId>`；该迁移零 provider、持 repository lock、create-only，
 inspect/prepare 不会静默生成空 baseline。
 
-fixed creator 在受控 staging 中验证完整 Project/source/public/template/sound/catalog transaction，将
-ProducerConfig 的 render/readability/TTS defaults 与选定 boundary Scene templates 投影到 Project-local
+fixed creator 在受控 staging 中验证完整 Project/source/public/template/sound/catalog transaction。
+用户明确的 `render.width/height/fps/locale` 优先，未指定字段逐项继承 ProducerConfig `renderDefaults`；
+解析后的 render、readability/TTS defaults 与选定 boundary Scene templates 投影到 Project-local
 configured authoring。已存在、partial、cross-project、symlink/path escape/special-file 或不同 creation identity
 都 fail closed；相同 identity 重复调用只读 current。create 不调用 provider、不生成媒体，也不写
 `.narration-work`、workspace、artifact、attempt 或 delivery。Project-local media 只能在创建成功后 import。
+Agent 须把横竖屏/宽高比转为 create input 的具体宽高，不能只写文字要求，也不为单次需求改写保存配置。
+`project-created` / `project-create-current` 返回已复验的 `render`；在 provider preparation 前核对实际尺寸、fps、locale
+与用户明确要求，一致后才继续。未提供覆盖字段的旧输入保持原有继承行为；既有 Project 不原地更改 RenderSpec。
 template instance 同时包含一个 Project-local Renderer adapter；它接收共享 runtime 的
 `viewportWidth`/`viewportHeight`，只把 safe-area-local dimensions 映射给模板内部 `width`/`height`。其源码和
 import graph 与其他 copied bytes 一起冻结；后续共享模板或 generator 修复不会隐式迁移既有 Project。

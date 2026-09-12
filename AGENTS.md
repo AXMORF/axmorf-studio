@@ -100,6 +100,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   ScenePackage。StoryBeat 严格区分 narrated 与只允许位于首尾的 silent Scene。
 - `project:create` 从 strict create input 原子创建 configured authoring，并将选定边界 Scene template
   源码与资源复制为 Project-local immutable instance；它不调用 provider、不生成媒体或生产 attempt。
+- 用户明确的尺寸/横竖屏、fps、locale 写入 create input 的 `render.width/height/fps/locale`，未指定字段继承配置；
+  不为单次需求修改长期默认值。创建返回的 `render` 是已复验的 Project RenderSpec，须在 provider preparation 前核对用户要求。
 - runtime package 只通过 policy-covered Workspace seed 发行 manifest/checksum/license 已验证的 shared media；
   bootstrap 投影到保留的 `public/assets/axmorf-shared/` 和 Catalog，相同 bytes 幂等、不同 bytes/symlink fail closed。
   默认首尾 template 实际使用的音频必须在 `project:create` 时复制为 Project-local resource；既有 Project 不自动迁移。

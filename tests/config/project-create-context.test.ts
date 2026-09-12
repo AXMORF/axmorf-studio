@@ -57,6 +57,19 @@ test("create context supplies a usable example from current public choices witho
     ),
   );
   assert.equal(Object.hasOwn(example, "sceneTemplates"), false);
+  assert.equal(Object.hasOwn(example.render, "width"), false);
+  assert.deepEqual(context.fieldExamples.render, {
+    ...example.render,
+    width: 1920,
+    height: 1080,
+  });
+  const landscapeInput = ProjectCreateInputSchema.parse({
+    ...example,
+    render: context.fieldExamples.render,
+  });
+  assert.equal(landscapeInput.render.width, 1920);
+  assert.match(context.agentHandoff.instruction, /render\.width/u);
+  assert.doesNotMatch(example.brief.deliveryConstraints.join(" "), /竖屏/u);
   assert.doesNotMatch(
     JSON.stringify(context),
     /visible-editable-token|127\.0\.0\.1|referenceAudioPath/,
@@ -107,7 +120,7 @@ test("create context supplies a usable example from current public choices witho
   );
   const inputPath = join(fixture.rootDir, "input.json");
   const { writeFile } = await import("node:fs/promises");
-  await writeFile(inputPath, JSON.stringify(example));
+  await writeFile(inputPath, JSON.stringify(landscapeInput));
   const result = await runProjectCreateCli(
     ["--project", "fresh-video", "--input", "input.json"],
     {
@@ -127,6 +140,21 @@ test("create context supplies a usable example from current public choices witho
     },
   );
   assert.equal(result.status, "project-created");
+  assert.ok("render" in result);
+  assert.equal(result.render.width, 1920);
+  assert.equal(result.render.height, 1080);
+  assert.equal(result.render.fps, context.renderDefaults.fps);
+  assert.match(result.agentHandoff.instruction, /before.*provider/iu);
+  assert.deepEqual(
+    JSON.parse(
+      await readFile(
+        join(fixture.rootDir, "src/projects/fresh-video/render.json"),
+        "utf8",
+      ),
+    ),
+    result.render,
+  );
+  assert.equal(await readFile(configPath, "utf8"), before);
 });
 
 test("create help and input schema are read-only and require no configured provider", async () => {

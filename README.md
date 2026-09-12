@@ -98,6 +98,8 @@ deliveries/<storyId>/publish.json
 日常使用建议让 Agent 消费结构化输出和返回的 exact commands，不要手工拼接内部参数。完整顺序见
 [生产流程](docs/PRODUCTION_WORKFLOW.md) 和 [生产编排指南](docs/guides/PRODUCTION_ORCHESTRATION.md)。
 
+新建视频时，提示词明确指定的横竖屏、尺寸、帧率优先于配置；未指定字段继承配置，单次覆盖不改写长期默认值。
+
 <details>
 <summary>Agent / 高级生产命令参考</summary>
 

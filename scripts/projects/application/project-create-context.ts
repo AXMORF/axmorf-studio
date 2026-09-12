@@ -65,7 +65,7 @@ export const inspectProjectCreateContext = async ({
       sourceReferences: [],
       audience: "希望开始行动的普通观众",
       targetDurationSeconds: 20,
-      deliveryConstraints: ["中文竖屏；旁白简洁；结尾给出具体行动。"],
+      deliveryConstraints: ["旁白简洁；结尾给出具体行动。"],
     },
     story: {
       schemaVersion: 3,
@@ -174,9 +174,9 @@ export const inspectProjectCreateContext = async ({
     durationBudget,
     agentHandoff: {
       nextAction: "report-to-user-before-project-create",
-      summary: `Boundary templates: intro=${config.sceneDefaults.introSceneTemplateId ?? "none"}, outro=${config.sceneDefaults.outroSceneTemplateId ?? "none"}; exampleTarget=${durationBudget.targetTotalSeconds}s, boundary=${durationBudget.boundarySeconds}s, availableNarrated=${durationBudget.availableNarratedSeconds}s.`,
+      summary: `Render defaults: ${config.renderDefaults.width}x${config.renderDefaults.height}, ${config.renderDefaults.fps}fps, ${config.renderDefaults.locale}; boundary templates: intro=${config.sceneDefaults.introSceneTemplateId ?? "none"}, outro=${config.sceneDefaults.outroSceneTemplateId ?? "none"}; exampleTarget=${durationBudget.targetTotalSeconds}s, boundary=${durationBudget.boundarySeconds}s, availableNarrated=${durationBudget.availableNarratedSeconds}s.`,
       instruction:
-        "Adapt the example to the user's target, recalculate speech budget after boundaries and lead/tail, then write the input JSON. Before running project:create, report the selected boundaries and adapted total-duration budget in a separate assistant message. The example target is not the user's target. CLI output is not that report; existing video authorization needs no new confirmation. This handoff is diagnostic only.",
+        "Adapt the example to the user's target. Put explicit size/orientation, frame-rate and locale requests in render.width/render.height/render.fps/render.locale; omit unspecified fields to inherit renderDefaults. A textual requirement alone does not override dimensions. Use fieldExamples.render for a landscape example, not as an unconditional default. Do not change saved settings for this one Project. Recalculate speech budget with the chosen fps, boundaries and lead/tail. Before running project:create, report the resolved dimensions/fps/locale, selected boundaries and adapted total-duration budget in a separate assistant message. The example target is not the user's target. CLI output is not that report; existing video authorization needs no new confirmation. This handoff is diagnostic only.",
     },
     publishingCollections: config.publishingCollections.map(({ id, name }) => ({
       id,
@@ -185,10 +185,12 @@ export const inspectProjectCreateContext = async ({
     styleProfiles,
     example,
     fieldExamples: {
+      render: { ...example.render, width: 1920, height: 1080 },
       "production.additionalRequirements": [AUTHORING_REQUIREMENT_EXAMPLE],
     },
     guidance: [
       "Adapt example to the requested brief; do not submit it unchanged as the user's video.",
+      "Resolve each render field from the explicit user request first, otherwise renderDefaults. Convert an orientation/aspect-ratio request to concrete width and height in render; do not leave it only in brief.deliveryConstraints or production.additionalRequirements. Unspecified fields stay omitted, and saved settings remain unchanged. Verify the returned frozen render against the request before production.",
       "production.additionalRequirements is an array of objects, never strings. Keep [] when no additional requirement is needed; otherwise adapt fieldExamples to the user's requirement, preserving every required field.",
       "durationBudget describes this example with inherited boundary templates. Recalculate available narration time when changing the requested total duration, render lead/tail or selected boundaries; include speech and pauses in that budget.",
       "Omit sceneTemplates to inherit settings. Set both fields explicitly only when the user selected or disabled boundary Scenes.",

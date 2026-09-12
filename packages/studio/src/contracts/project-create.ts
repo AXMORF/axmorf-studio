@@ -7,6 +7,7 @@ import { createFingerprint } from "./fingerprint";
 import { MeaningIdSchema, StoryIdSchema, TtsChunkIdSchema } from "./primitives";
 import { AuthoredPublishingIntentSchema } from "./publishing-intent";
 import { ResourceIdSchema } from "./resource-catalog";
+import { RenderSpecSchema } from "./render";
 import { SceneTemplateIdSchema } from "./scene-template";
 import { StyleProfileIdSchema } from "./scene-primitives";
 import {
@@ -225,6 +226,8 @@ export const ProjectCreateGlobalVisualSchema = z
   })
   .readonly();
 
+const renderFields = RenderSpecSchema.unwrap().shape;
+
 const RenderChoicesSchema = z
   .object({
     compositionId: z
@@ -235,6 +238,10 @@ const RenderChoicesSchema = z
     leadInFrames: z.number().int().nonnegative().safe(),
     tailFrames: z.number().int().nonnegative().safe(),
     audioChannels: z.union([z.literal(1), z.literal(2)]),
+    width: renderFields.width.multipleOf(2).optional(),
+    height: renderFields.height.multipleOf(2).optional(),
+    fps: renderFields.fps.optional(),
+    locale: renderFields.locale.optional(),
   })
   .strict()
   .readonly();

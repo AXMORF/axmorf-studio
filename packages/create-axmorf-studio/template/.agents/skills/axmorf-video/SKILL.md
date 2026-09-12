@@ -24,6 +24,10 @@ For a new video, first run `npm run project:create:context -- --project <storyId
 Adapt its complete example using current public choices. Build a strict Project create input from the user brief and run
 `npm run project:create`. This command creates authoring source only; it must not
 call a provider or start production.
+Explicit user dimensions/orientation, fps and locale override settings through create input
+`render.width/height/fps/locale`; omit unspecified fields to inherit defaults. Convert orientation to concrete
+dimensions, not just a textual constraint. Do not change saved settings for one video. Check the returned
+`render` against the request before inspect or provider preparation.
 
 Project creation also freezes the Scene originality baseline. For a legacy
 Project that predates it, require explicit user approval and run

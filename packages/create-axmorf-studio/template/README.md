@@ -57,6 +57,9 @@ timeout and a single download lock; diagnostics never silently download another 
 For Project creation, revisions, production, recovery, and deletion, use the order in `AGENTS.md` and the Workspace-local
 `axmorf-video` Skill. Prefer commands returned by structured CLI output over manually reconstructed internal parameters.
 
+For a new video, explicit orientation, dimensions, frame rate and locale requests take precedence over saved defaults.
+Unspecified fields inherit settings; a one-video override does not change your saved defaults.
+
 ## Completion means four verified files
 
 ```text

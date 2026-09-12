@@ -48,6 +48,77 @@ const createProject = (
     runtimeResources: projectCreateRuntimeResources,
   });
 
+test("create resolves explicit render fields over defaults without changing settings or repeating writes", async (t) => {
+  for (const overrides of [
+    {},
+    { width: 1920, height: 1080 },
+    { width: 1440 },
+    { fps: 24, locale: "en-US" },
+  ]) {
+    const fixture = await prepareProjectCreateFixture();
+    t.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+    const configBefore = await readFile(fixture.configPath);
+    await writeProjectCreateJson(fixture.inputPath, {
+      ...validProjectCreateInput,
+      render: { ...validProjectCreateInput.render, ...overrides },
+    });
+    const args = {
+      rootDir: fixture.rootDir,
+      projectId: validProjectCreateInput.storyId,
+      inputPath: fixture.inputPath,
+      env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+    };
+    const created = await createProject(args);
+    const path = join(
+      fixture.rootDir,
+      "src/projects/story-example/render.json",
+    );
+    const frozen = RenderSpecSchema.parse(
+      JSON.parse(await readFile(path, "utf8")),
+    );
+    for (const [key, expected] of Object.entries({
+      ...validProjectCreateProducerConfig.renderDefaults,
+      ...overrides,
+    })) {
+      assert.equal(frozen[key as keyof typeof frozen], expected, key);
+    }
+    assert.deepEqual(created.render, frozen);
+    const before = await snapshotProjectMtimes(fixture.rootDir);
+    const current = await createProject(args);
+    assert.equal(current.status, "project-create-current");
+    assert.deepEqual(current.render, frozen);
+    assert.deepEqual(await snapshotProjectMtimes(fixture.rootDir), before);
+    assert.deepEqual(await readFile(fixture.configPath), configBefore);
+  }
+});
+
+test("invalid render override stops before project, provider or attempt writes", async (t) => {
+  const fixture = await prepareProjectCreateFixture();
+  t.after(() => rm(fixture.rootDir, { recursive: true, force: true }));
+  const configBefore = await readFile(fixture.configPath);
+  await writeProjectCreateJson(fixture.inputPath, {
+    ...validProjectCreateInput,
+    render: { ...validProjectCreateInput.render, width: 1921, height: 1080 },
+  });
+  await assert.rejects(
+    createProject({
+      rootDir: fixture.rootDir,
+      projectId: validProjectCreateInput.storyId,
+      inputPath: fixture.inputPath,
+      env: { RSP_PRODUCER_CONFIG: fixture.configPath },
+    }),
+  );
+  for (const path of [
+    "src/projects/story-example",
+    "public/projects/story-example",
+    ".narration-work/story-example",
+    ".producer-attempts/story-example",
+  ]) {
+    await assert.rejects(stat(join(fixture.rootDir, path)), { code: "ENOENT" });
+  }
+  assert.deepEqual(await readFile(fixture.configPath), configBefore);
+});
+
 test("create freezes the default or selected theme and rejects invalid colors before writes", async (context) => {
   for (const theme of [
     undefined,

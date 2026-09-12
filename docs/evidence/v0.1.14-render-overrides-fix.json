@@ -1,0 +1,247 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.14",
+  "scope": "new-project-render-overrides-fix",
+  "status": "engineering-and-installed-cli-checks-passed",
+  "firstUseReleaseReceipt": false,
+  "reviewedAt": "2026-09-12T03:18:08.206062+00:00",
+  "baseCommit": "4835e7569a607c806b04c2182e37a8a7202b68dd",
+  "behavior": {
+    "overrides": [
+      "render.width",
+      "render.height",
+      "render.fps",
+      "render.locale"
+    ],
+    "precedence": ["explicit-project-input", "producer-config-render-defaults"],
+    "omittedFieldsInherit": true,
+    "savedConfigurationChanged": false,
+    "legacyInputSupported": true,
+    "existingProjectMigrated": false,
+    "revisionRenderEditingAdded": false,
+    "resolvedRenderReturnedAndVerified": true,
+    "naturalLanguageRuntimeParserAdded": false
+  },
+  "regression": {
+    "beforeImplementation": {
+      "tests": 4,
+      "passed": 1,
+      "failed": 3,
+      "failure": "Missing optional render contract fields, render example and returned RenderSpec."
+    },
+    "focused": {
+      "tests": 25,
+      "passed": 25
+    },
+    "fullTests": {
+      "tests": 933,
+      "passed": 933,
+      "failed": 0
+    },
+    "staticChecks": [
+      "typecheck",
+      "lint",
+      "docs links",
+      "template audio",
+      "catalog",
+      "registry",
+      "settings build",
+      "Remotion bundle"
+    ],
+    "skillChecksAfterFinalGuideEdit": {
+      "tests": 2,
+      "passed": 2
+    },
+    "initialFullFailure": "932/933 passed; the direct-workflow guide exceeded its existing context budget. Preserved the failure and shortened/reorganized documentation without changing tests or budgets."
+  },
+  "hostChecks": {
+    "compositions": "passed",
+    "availableCompositions": [
+      "CapabilityGallery",
+      "DefaultIntroPreview",
+      "DefaultOutroPreview"
+    ],
+    "projectSourceGate": "passed-zero-source-projects",
+    "freshWorkspaceBrowserPngChecks": "passed",
+    "browserAndCliVersion": "4.0.489",
+    "originalFullCheckExit": 143,
+    "reason": "After all static checks passed, stopped only the duplicate slow browser download. Ran both remaining host commands successfully with --browser-executable pointing to the identical pinned browser already prepared and PNG-verified by the fresh candidate Workspace. No Chromium sandbox or validation changes."
+  },
+  "packages": {
+    "runtime": {
+      "name": "@axmorf/studio",
+      "version": "0.1.14",
+      "fingerprint": "sha256:18545c0ef474552257dca5b17e70a371f96b1763fcc2bd315d08f53df6d5ffae",
+      "fileCount": 254
+    },
+    "creator": {
+      "name": "create-axmorf-studio",
+      "version": "0.1.14",
+      "fingerprint": "sha256:eceb6e197a4325b5bd7a6a9e273508b6d1bdadd1fb57912b9af9f17f0284dbb2",
+      "fileCount": 41
+    }
+  },
+  "packageChecks": [
+    "packages:typecheck",
+    "packages:build",
+    "runtime check:package",
+    "creator check:package",
+    "fresh npm exec installation and doctor"
+  ],
+  "installedCliVerification": {
+    "schemaVersion": 1,
+    "scope": "installed-candidate-public-cli-render-overrides",
+    "firstUseReleaseReceipt": false,
+    "agentRun": false,
+    "providerGenerationCalls": 0,
+    "productionAttempts": 0,
+    "configBeforeChecksum": "sha256:54759706a7e4e36656a84346ba30f0779897ab4845d319d53e03e93abb02c119",
+    "status": "passed",
+    "startedAt": "2026-09-12T03:12:00.665Z",
+    "packages": {
+      "runtime": {
+        "name": "@axmorf/studio",
+        "version": "0.1.14",
+        "fingerprint": "sha256:18545c0ef474552257dca5b17e70a371f96b1763fcc2bd315d08f53df6d5ffae",
+        "fileCount": 254
+      },
+      "creator": {
+        "name": "create-axmorf-studio",
+        "version": "0.1.14",
+        "fingerprint": "sha256:eceb6e197a4325b5bd7a6a9e273508b6d1bdadd1fb57912b9af9f17f0284dbb2",
+        "fileCount": 41
+      }
+    },
+    "cases": [
+      {
+        "story": "render-default",
+        "overrides": {},
+        "resolved": {
+          "width": 1080,
+          "height": 1920,
+          "fps": 30,
+          "locale": "zh-CN"
+        },
+        "repeatedCreate": "read-only-current"
+      },
+      {
+        "story": "render-landscape",
+        "overrides": {
+          "width": 1920,
+          "height": 1080
+        },
+        "resolved": {
+          "width": 1920,
+          "height": 1080,
+          "fps": 30,
+          "locale": "zh-CN"
+        },
+        "repeatedCreate": "read-only-current"
+      },
+      {
+        "story": "render-width-only",
+        "overrides": {
+          "width": 1440
+        },
+        "resolved": {
+          "width": 1440,
+          "height": 1920,
+          "fps": 30,
+          "locale": "zh-CN"
+        },
+        "repeatedCreate": "read-only-current"
+      },
+      {
+        "story": "render-fps-locale",
+        "overrides": {
+          "fps": 24,
+          "locale": "en-US"
+        },
+        "resolved": {
+          "width": 1080,
+          "height": 1920,
+          "fps": 24,
+          "locale": "en-US"
+        },
+        "repeatedCreate": "read-only-current"
+      }
+    ],
+    "invalidDiagnostic": {
+      "status": "error",
+      "code": "schema-validation-failed",
+      "message": "Input does not match the installed contract. Correct the indicated fields and validate again.",
+      "issues": [
+        {
+          "path": "$.render.width",
+          "code": "not_multiple_of",
+          "message": "Invalid number: must be a multiple of 2"
+        }
+      ],
+      "truncated": false
+    },
+    "endedAt": "2026-09-12T03:12:36.780Z",
+    "completedAt": "2026-09-12T03:15:07.369Z",
+    "configurationUnchanged": true,
+    "unchangedRuntimeFiles": 254,
+    "unchangedGuideFiles": 10,
+    "invalidDimensionsRejectedBeforeProjectWrites": true,
+    "verificationMethod": "Public create and immediate idempotence checks from the preserved run, then read-only final verification of all returned RenderSpecs, package/guides, configuration and absence of Project-owned production state.",
+    "controllerCorrections": [
+      {
+        "failure": "First controller expected exit code 1/authoring-validation-failed; the existing public schema error contract returns 2/schema-validation-failed.",
+        "action": "Preserved the original workspace and script. Corrected only the controller and ran in a fresh Workspace against identical candidates."
+      },
+      {
+        "failure": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   '.gitkeep',\n+   '.processes'\n+ ]\n- []\n",
+        "action": "The second controller assumed production roots were empty. Creator bootstrap legitimately writes .gitkeep and .processes. Preserved that failure and completed read-only Project-owned state checks; no production command, package change, or new create retry.",
+        "priorReportChecksum": "sha256:0c5af2c7f7a767b90bff1c620dbe66bee52e90948320976b39faaf04f84b3334"
+      }
+    ],
+    "limitations": [
+      "No native Agent prompt or full video production was run for this fix.",
+      "No existing Project or original user Workspace was modified; no npm package was published."
+    ]
+  },
+  "evidenceChecksums": {
+    "axmorf-render-overrides-check-final.log": "sha256:d86d8b4a5df8d1c3dc5c841c1caa51893e811f979b939582a1cc18e0c6daa46e",
+    "axmorf-render-overrides-check.log": "sha256:194b335f8ddd97554bb1b4de31194db580ac81fd5b805d9f488e674890545ead",
+    "axmorf-render-overrides-download-stop.json": "sha256:547122527f6c00958c94c6f896b164f846ce8a3c84b4a571cd21ef9337f58984",
+    "axmorf-render-overrides-host-check.log": "sha256:1af465953b90cd6e6ae2ce6edddb3917125eeb0cbc76146e72160aa3f6bee14e",
+    "axmorf-render-overrides-package-build.log": "sha256:e8d3f48859038372a605c778a82c1cc5a5875b81ae676c86305601190657cba7",
+    "axmorf-render-overrides-package-finalize.mts": "sha256:c36b719014fcee5dda0c69b232473c536876c75682ebe1d6e3775a71de0faaf4",
+    "controller-run-1/controller-before-exit-code-correction.mts": "sha256:1f71f02d5cded498a54030d49b8aac74116d1a7a806945d9d1a9d817f072a7e6",
+    "controller-run-1/creator-pack.json": "sha256:c1d94a1918e3be61a1410c5c91ba385435c58424b6b508eb3a0b413148a2ba32",
+    "controller-run-1/install.log": "sha256:3e81b475ced1fe31f33426996e5e2163c34a46dee37f82587d5d7c916e80ae37",
+    "controller-run-1/package-check.json": "sha256:6cae595316bd9fe90a470b5f8952294fe6560a2488cffed0a9a3a67eca7610b3",
+    "controller-run-1/package-check.log": "sha256:c62aa882a6522ebdfc948a7a1c6ed5379e5a62cf217c8ddd996453e4dc48132e",
+    "controller-run-1/render-default-create.json": "sha256:2b4110d26fefe1c2ece69a77c7e7e3503761de77add86de1f8788132f5304ddc",
+    "controller-run-1/render-fps-locale-create.json": "sha256:e3572eb96004184801f97270d3cb52c1a4c0bd3e496665539363ff02968b4fc0",
+    "controller-run-1/render-landscape-create.json": "sha256:30c4ac67464e85abaffb0d2a97a2cc1737d3632ba76c72dcfcccaefb4fbeda42",
+    "controller-run-1/render-specs/render-default.json": "sha256:f38cdbc5be0d7534f7da64fdddb2f2f04a81c720c021f9671da843ea4bba6443",
+    "controller-run-1/render-specs/render-fps-locale.json": "sha256:33a43c823ef8cca33ed2b6d3a7435d7be2979d6db4352f3313394a897e12959b",
+    "controller-run-1/render-specs/render-landscape.json": "sha256:770e50f61864747b0f132d51f2721fee95744838873863fc493b990a654f8e62",
+    "controller-run-1/render-specs/render-width-only.json": "sha256:9f6efaf0de79482078dd3f451da24eee70f2b26c68890acd734c0b0ad4984be7",
+    "controller-run-1/render-width-only-create.json": "sha256:00eb8405b71be9cc81d00107ecb6549aa700a942175cd8de8170bfa63f6d535d",
+    "controller-run-1/runtime-pack.json": "sha256:66688bd6431be45df17fe2e00a0d848e08dd65d7761679de395db2735eed8e8e",
+    "controller-run-2/controller-before-bootstrap-scope-correction.mts": "sha256:24b3773422d420551ed1839c0ea5e59737021e7625dcbc6ef57cf65ec65a5b62",
+    "controller-run-2/install.log": "sha256:2ef64ce2f4a135db66227aa697e888870ac1826a5d8e3a456f4a625e38fe5413",
+    "controller-run-2/package-check-final.json": "sha256:1aca6022fc0b31110d17fcd996173667c30e8e0d81ee8b38ee08a25d32f37705",
+    "controller-run-2/package-check.json": "sha256:0c5af2c7f7a767b90bff1c620dbe66bee52e90948320976b39faaf04f84b3334",
+    "controller-run-2/package-check.log": "sha256:28a8cda728d65f4ea3d48560df21e76ab437d752a5b30bb3f7b4ed75b685ae4f",
+    "controller-run-2/render-default-create.json": "sha256:2b4110d26fefe1c2ece69a77c7e7e3503761de77add86de1f8788132f5304ddc",
+    "controller-run-2/render-fps-locale-create.json": "sha256:e3572eb96004184801f97270d3cb52c1a4c0bd3e496665539363ff02968b4fc0",
+    "controller-run-2/render-landscape-create.json": "sha256:30c4ac67464e85abaffb0d2a97a2cc1737d3632ba76c72dcfcccaefb4fbeda42",
+    "controller-run-2/render-specs/render-default.json": "sha256:f38cdbc5be0d7534f7da64fdddb2f2f04a81c720c021f9671da843ea4bba6443",
+    "controller-run-2/render-specs/render-fps-locale.json": "sha256:33a43c823ef8cca33ed2b6d3a7435d7be2979d6db4352f3313394a897e12959b",
+    "controller-run-2/render-specs/render-landscape.json": "sha256:770e50f61864747b0f132d51f2721fee95744838873863fc493b990a654f8e62",
+    "controller-run-2/render-specs/render-width-only.json": "sha256:9f6efaf0de79482078dd3f451da24eee70f2b26c68890acd734c0b0ad4984be7",
+    "controller-run-2/render-width-only-create.json": "sha256:00eb8405b71be9cc81d00107ecb6549aa700a942175cd8de8170bfa63f6d535d",
+    "packages/axmorf-studio-0.1.14.tgz": "sha256:9bbb54d93e27971318ccefeac1ed1c66d8eb09e406cfd18f20e4f4431b8a5ac5",
+    "packages/create-axmorf-studio-0.1.14.tgz": "sha256:555493a61ccc9c6e6a62f10528842661d848639eda124909d769dd0ca4324d1b"
+  },
+  "limitations": [
+    "The installed-package test uses public CLI authoring inputs; no native Agent prompt or full video production was rerun for this fix.",
+    "No npm publish or original user Workspace upgrade was performed. Earlier candidate video failures and receipts retain their original scope.",
+    "Runtime and creator package contents changed; earlier first-use receipts cannot certify these new candidates."
+  ]
+}

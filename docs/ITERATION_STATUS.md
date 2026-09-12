@@ -3,7 +3,27 @@
 > 文档类型：current implementation authority
 >
 > 最后复核：2026-09-12，统一视觉主题与固定 Logo 修复已同步到 `axmorf/npm-workspace-open-source`，0.1.14 候选未发布。
-> 当日复核公共 npm 两包 latest 仍为 0.1.13。用户接受时长偏差并选择 Hermes inline；新增实测确认串行执行，但横屏要求仍未落实到成片尺寸。
+> 当日复核公共 npm 两包 latest 仍为 0.1.13。用户接受时长偏差并选择 Hermes inline；横屏实测暴露的创建参数覆盖缺口已修复，完整视频复测尚未执行。
+
+## 提示词画面参数覆盖（0.1.14 候选，未发布）
+
+新建项目的 strict create input 支持可选 `render.width/height/fps/locale`。用户明确要求优先，省略字段逐项继承
+ProducerConfig `renderDefaults`；配置文件不改写。覆盖值沿既有 RenderSpec/creation fingerprint 冻结，重复创建仍只读，
+非法尺寸/帧率/locale 在创建前拒绝。既有 Project 不迁移，也未扩展 revision 的可编辑范围。
+`project:create:context` 提供独立横屏示例并移除通用示例中的固定竖屏文字；CLI 返回已复验的实际 `render`，
+仓库及 npm Workspace 指南要求 Agent 将自然语言要求写入对应字段，并在 provider preparation 前核对。
+这不是运行时自然语言解析器，也不把文字约束本身当作尺寸 authority。
+
+[修复验证](evidence/v0.1.14-render-overrides-fix.json) 包含 25 项定向回归、933/933 全量测试、type/lint/docs/build、
+包类型/构建/检查，以及真实 compositions 和 Project source gate。原 `npm run check` 的静态阶段通过后，
+因重复浏览器下载缓慢而停止该下载；剩余宿主检查使用外部 Workspace 已准备并通过 PNG 验证的同版浏览器单独通过。
+首轮全量检查的 Skill 文档预算失败保留；仅精简重复文字，未修改预算或测试阈值。
+
+新候选包通过全新 npm Workspace 的公开 CLI 验证：默认 1080×1920、本次覆盖 1920×1080、仅宽度覆盖、
+仅 fps/locale 覆盖均符合预期；每组立即重复创建为只读 current，奇数宽度拒绝且无 Project-owned production 状态。
+配置 bytes、254 个 runtime 文件和检查的 10 份指南保持不变。两个外部检查脚本错误（CLI schema 退出码与 bootstrap
+目录占位文件）保留，未修改安装包或 validator；后者通过只读检查项目所属路径完成复核。
+包内容已变化，旧候选 receipt 不能作为新包的完整验收。尚未重跑真实 Agent 完整成片，也未发布 npm 或升级原工作空间。
 
 ## 统一视觉主题与固定模板回归（0.1.14 候选，未发布）
 
