@@ -403,12 +403,29 @@ export function codexChildTrace(
   );
   assert.ok(settingsIndex > 2, "Fork has no native child settings boundary");
   const adapter = object(records[settingsIndex - 1]!.payload);
+  const adapterContent =
+    Array.isArray(adapter.content) && adapter.content.length === 1
+      ? object(adapter.content[0])
+      : {};
+  const adapterKinds = object(
+    adapter.internal_chat_message_metadata_passthrough,
+  ).content_item_kinds;
+  // Current Codex identifies this host message with typed metadata; older
+  // captures use the XML wrapper. Neither form replaces the lineage audit.
+  const hasRoleIdentity =
+    adapterKinds === undefined
+      ? String(adapterContent.text).startsWith("<multi_agent_role>")
+      : Array.isArray(adapterKinds) &&
+        adapterKinds.length === 1 &&
+        adapterKinds[0] === "multi_agent.role_instructions";
   assert.ok(
     records[settingsIndex - 1]!.type === "response_item" &&
       adapter.type === "message" &&
       adapter.role === "developer" &&
-      Array.isArray(adapter.content) &&
-      String(object(adapter.content[0]).text).startsWith("<multi_agent_role>"),
+      adapterContent.type === "input_text" &&
+      typeof adapterContent.text === "string" &&
+      adapterContent.text.trim().length > 0 &&
+      hasRoleIdentity,
     "Fork has no native child role adapter",
   );
   let parentIndex = 0;

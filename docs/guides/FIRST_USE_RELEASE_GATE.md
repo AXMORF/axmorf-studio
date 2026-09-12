@@ -53,6 +53,13 @@ These bindings detect mismatched or incomplete captures; they are not cryptograp
 attestation that a maintainer did not fabricate an entire capture.
 Historical receipts retain their original, narrower scope.
 
+Codex full-history child captures bind the native role adapter immediately before
+that child's settings event. Current captures identify the developer message with
+the exact `multi_agent.role_instructions` content kind; legacy captures without
+typed metadata use the `<multi_agent_role>` wrapper. Both forms require one
+nonempty input-text item. This format compatibility does not relax parent metadata,
+inherited-history order, child-turn ownership, or actual task concurrency checks.
+
 From 0.1.13, each host must resolve effective capacity four and demonstrate positive-duration overlap of four
 production tasks between their successful bind result and first commit result in the native common timestamp domain.
 The recorder reports `peakBoundTasks` and total `fourWayBoundOverlapMs` separately from native session lifetimes.

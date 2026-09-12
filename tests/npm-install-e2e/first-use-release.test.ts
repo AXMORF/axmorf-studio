@@ -1489,6 +1489,46 @@ test("Codex full-history forks verify parent lineage and exclude inherited calls
       .map((record) => (record.payload as Record["payload"]).turn_id),
     ["child-turn"],
   );
+  const nativeChild = structuredClone(child);
+  const adapterIndex = nativeChild.findIndex(
+    (record) => record.payload.role === "developer",
+  );
+  const nativeAdapter = nativeChild[adapterIndex]!.payload;
+  nativeAdapter.content = [
+    { type: "input_text", text: "You are an agent in a team of agents." },
+  ];
+  nativeAdapter.internal_chat_message_metadata_passthrough = {
+    content_item_kinds: ["multi_agent.role_instructions"],
+  };
+  assert.deepEqual(codexChildTrace(encode(nativeChild), parent), trace);
+  for (const kinds of [
+    [],
+    ["host_skills.instructions"],
+    ["multi_agent.role_instructions", "user.text"],
+  ]) {
+    const changed = structuredClone(nativeChild);
+    changed[adapterIndex]!.payload.internal_chat_message_metadata_passthrough =
+      {
+        content_item_kinds: kinds,
+      };
+    assert.throws(
+      () => codexChildTrace(encode(changed), parent),
+      /child role adapter/u,
+    );
+  }
+  for (const change of [
+    { role: "user" },
+    { content: [] },
+    { content: [{ type: "input_text", text: "" }] },
+    { content: [{ type: "output_text", text: "native adapter" }] },
+  ]) {
+    const changed = structuredClone(nativeChild);
+    Object.assign(changed[adapterIndex]!.payload, change);
+    assert.throws(
+      () => codexChildTrace(encode(changed), parent),
+      /child role adapter/u,
+    );
+  }
   const withoutOwnWork = codexChildTrace(
     encode(
       child.filter(
@@ -1514,9 +1554,11 @@ test("Codex full-history forks verify parent lineage and exclude inherited calls
   );
 
   const reject = (mutate: (records: Record[]) => void, error: RegExp) => {
-    const changed = structuredClone(child);
-    mutate(changed);
-    assert.throws(() => codexChildTrace(encode(changed), parent), error);
+    for (const source of [child, nativeChild]) {
+      const changed = structuredClone(source);
+      mutate(changed);
+      assert.throws(() => codexChildTrace(encode(changed), parent), error);
+    }
   };
   reject((records) => {
     records[1]!.payload.id = "foreign-parent";

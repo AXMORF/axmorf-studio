@@ -1,5 +1,23 @@
 # Iteration Status
 
+## 0.1.14 发布准备与 Codex recorder 兼容（2026-09-13，未发布）
+
+修复提交 `4059d7b` 已快进推送，[macOS CI](https://github.com/AXMORF/axmorf-studio/actions/runs/34714145981)
+通过完整 repository/package gates、全新安装和真实浏览器检查；两项依赖审计零漏洞。
+CI 与本机候选的 254/41 个发行文件内容一致。本机 Codex/Hermes 全新 Workspace 均由原始 creator
+完成安装、浏览器下载和 doctor 六项检查，无手工缓存准备。
+
+Codex/Terra medium 的一次实际制作完成后，旧 recorder 把无 XML wrapper 的原生角色消息误拒。
+[兼容修复记录](evidence/v0.1.14-codex-native-role.json) 保留原错误：当前宿主使用
+`multi_agent.role_instructions` 类型元数据。recorder 识别该严格标记并保留旧格式，父子关系、历史顺序、
+任务所有权和并发约束不变。Red 复现后 50 项首次使用/监督回归、typecheck 和定向 lint 通过。
+同一份未改动原始记录经完整复验生成[Codex receipt](evidence/v0.1.14-codex-terra-receipt.json)，未重跑模型：
+5 个创作 child、4 个 probe、1 次补位、实际四任务重叠 69.107 秒、零轮询、唯一 continuation，final 7/7 和
+三份媒体完整 EOF 通过；1920×1080、30fps、1079 帧，约 35.97 秒。
+
+Hermes 按用户已指定的 Terra/medium、inline 继续独立实测。现有发布规则仍强制双宿主四并发，
+调整本版 Hermes 发布验收范围的选择尚待用户答复；没有修改执行模式发布门槛、创建 tag 或发布 npm。
+
 ## 制作汇报提前结束修复（0.1.14 候选，未发布）
 
 [原始事件与修复记录](evidence/v0.1.14-progress-handoff-fix.json) 记录 Hermes / Terra medium / inline
