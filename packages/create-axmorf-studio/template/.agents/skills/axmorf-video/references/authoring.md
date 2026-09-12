@@ -16,7 +16,7 @@ npm run catalog:query -- --kind style-profile
 npm run catalog:query -- --kind asset
 ```
 
-Follow `agentHandoff` before create: adapt its example budget to the user's target, then report the selected boundaries and budget in a separate message. The example target is not the requested target; existing video authorization needs no new confirmation.
+Follow `agentHandoff` before create: adapt its example budget to the user's target, then report the selected boundaries and budget as an intermediate progress message, not a final answer. Continue in the same turn: write the adapted input and execute `nextCommand`. The report does not pause production or request another user reply; existing video authorization needs no new confirmation. The example target is not the requested target.
 
 The schema is generated from the installed version. It describes JSON shape; cross-field semantics, current Catalog choices,
 caption budget and licensing are still checked by create. Do not read package internals or fetch development-branch contracts.

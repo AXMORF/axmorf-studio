@@ -145,7 +145,10 @@ inspect 不获取 mutation lock、不调用 provider、不刷新 Catalog、不�
 `production-inputs-ready`，以及 provider/cache/Agent/delivery estimate、baseline、task explanations 和
 nextAction；无法确定的 estimate 显式为 `null`。并发 source drift 返回稳定错误，不自动 retry。
 
-Root 先向用户报告 readiness、cost、reuse 与失效原因，之后才运行：
+Root 先向用户报告 readiness、cost、reuse 与失效原因，之后才运行。已授权制作中的 create-context/inspect
+汇报都是中间进度消息，汇报后同轮继续工具执行，不以 final 结束或等待新的用户回复。Hermes 使用 assistant text
+搭配下一次 tool call；只有真实 blocker、用户暂停或已派发 native work 的等待可以停下。四文件 fixed 终态才证明完成。
+CLI handoff 仅为诊断提示，不新增状态、审批或 completion authority：
 
 ```bash
 npm run project:produce:prepare -- --project <storyId>

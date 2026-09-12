@@ -37,6 +37,9 @@ test("create context supplies a usable example from current public choices witho
     context.agentHandoff.instruction,
     /Before running project:create/u,
   );
+  assert.match(context.agentHandoff.instruction, /intermediate progress message/u);
+  assert.match(context.agentHandoff.instruction, /not a final answer/u);
+  assert.match(context.agentHandoff.instruction, /same turn[\s\S]*nextCommand/u);
   assert.equal(
     context.durationBudget.availableNarratedSeconds,
     Math.max(0, 20 - context.durationBudget.boundarySeconds),

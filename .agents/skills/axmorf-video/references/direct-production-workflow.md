@@ -2,6 +2,8 @@
 
 Root only. Assigned workers follow [task protocol](task-execution-protocol.md).
 
+create-context/inspect 汇报后同轮继续工具。Hermes 用 assistant text 搭配下一次 tool call，单独 final 会结束轮次。暂停/yield 按 Skill。
+
 ## 1. Create or revise Project inputs
 
 Pass one strict repository-relative input. Omit `sceneTemplates` to inherit ProducerConfig;
@@ -11,16 +13,14 @@ user silence must never become `null`:
 npm run project:create -- --project <storyId> --input <repository-relative-json>
 ```
 
-Creation atomically preserves silent/narrated semantics and freezes the pre-existing Scene source graph. A legacy
-Project without a baseline stops before inspect until the user authorizes this zero-provider, locked migration:
+Create 原子保留 silent/narrated 语义并冻结 Scene baseline。legacy 缺失时 inspect 前须用户授权零 provider、持锁迁移：
 
 ```bash
 npm run project:originality:freeze -- --project <storyId>
 ```
 
-Never infer an empty baseline. A `ttsChunk` above 72 `caption-display-unit-v1` half-units fails with
-`authoring-validation-failed`/`caption-display-budget-exceeded`; shorten or semantically split it. Revisions follow
-their reference.
+不伪造空 baseline。`ttsChunk` 超过 72 `caption-display-unit-v1` half-units 时按
+`authoring-validation-failed`/`caption-display-budget-exceeded` 缩短或语义拆分。修订见 revision reference。
 
 ## 2. Load the optional external-asset MCP slot
 

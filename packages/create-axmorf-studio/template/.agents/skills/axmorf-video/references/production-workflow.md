@@ -25,6 +25,8 @@ or resume; only same-task corrections by the original owning executor before ter
 
 ## Root production
 
+For an authorized production request, every plan, create-context report and inspection report is an intermediate progress message, not a final answer. Continue with tools in the same turn; do not wait for another user reply. On Hermes, include user-visible assistant text with the next tool call; a text-only final reply ends the turn. Stop for an actual blocker or an explicit user pause. Yield only to already-pending native work as described in the host execution reference; a report alone creates no resumable work.
+
 Before the first command, briefly tell the user the plan. Report inherited boundary duration before create and the inspect result before prepare; CLI output is not a user-facing explanation. Keep all production commands scoped to this Workspace. A newly created npm Workspace may have no Git repository, so a Git check must not gate doctor.
 
 1. Run `npm run doctor`. Prepare only declared host prerequisites when needed;
@@ -42,8 +44,8 @@ Before the first command, briefly tell the user the plan. Report inherited bound
    Read [native child verification](execution-capabilities.md), probe this host, then run `project:execution:resolve` with
    verified capacity and transport before inspect. Explicit inline needs no child probe. Never persist transport or silently change mode.
 5. Run `npm run project:produce:inspect -- --project <storyId>` and report its
-   structured readiness, cost, reuse, and invalidation result in a separate user-visible message after the command returns.
-   A plan stated before inspection does not report its result. Finish that message before invoking prepare; do not combine inspect and prepare in one tool call.
+   structured readiness, cost, reuse, and invalidation result in an intermediate progress message after the command returns.
+   A plan stated before inspection does not report its result. Continue in the same turn after that message by invoking prepare; do not combine inspect and prepare in one tool call.
 6. Read [host execution and recovery](host-execution-and-recovery.md); establish a terminal handle that can survive the host tool deadline.
    Run `npm run project:produce:prepare -- --project <storyId>` only after the
    inspection is understood and cost is authorized.

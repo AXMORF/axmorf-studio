@@ -9,6 +9,8 @@ description: Produce videos with bounded workers, event-driven supervision, and 
 
 ## Create the Project when needed
 
+已授权制作的汇报用进度消息，同轮继续工具；仅交付、blocker、用户暂停或已派发 native work 的等待可结束轮次。
+
 新建先用 `npm run project:create:context -- --project <storyId>`；按 `fieldExamples` 写附加要求对象，按 `durationBudget` 预算旁白并报告实测偏差。
 用户明确的尺寸/横竖屏、fps、locale 写入 `render.width/height/fps/locale`，其余继承配置；创建后核对 `render`，不改长期设置。
 

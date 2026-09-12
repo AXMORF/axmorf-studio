@@ -1,5 +1,21 @@
 # Iteration Status
 
+## 制作汇报提前结束修复（0.1.14 候选，未发布）
+
+[原始事件与修复记录](evidence/v0.1.14-progress-handoff-fix.json) 记录 Hermes / Terra medium / inline
+在 doctor 和 create context 成功后仅汇报方案便结束：原生 `message.complete`、`running:false` 先于控制器关闭，
+没有 Project、production attempt 或成片。旧指令要求独立汇报，但未区分中间进度与结束轮次的 final 回复。
+当前 CLI handoff 和仓库/creator Skill 明确汇报后同轮继续工具执行；Hermes 使用 assistant text 搭配下一次 tool call。
+真实 blocker、用户暂停与已启动 native work 的 yield 保留，四文件 fixed 终态仍是唯一交付完成依据。
+这只是 Agent 提示修复，没有新增生产状态或自动重试；原始失败、业务提示、宿主控制器与发布门禁保持不变。
+28 项定向回归、933/933 全量测试、类型检查、lint、文档链接、包构建/检查、真实 compositions 和零 Project source gate 通过。
+同一业务提示和未改动的原生控制器在全新 Workspace 使用 Terra/medium、inline 完成：6 条中间汇报，
+5 个串行任务、0 子代理/派发/控制器追加提示、1 次 continuation，最终只报告一次完成。
+独立 final 7/7、四文件 checksum 和视频/两张封面完整 EOF 解码通过；成片 1920×1080、30fps、1137 帧、37.9 秒。
+首次标准安装的浏览器下载在 300 秒超时，失败日志保留；本轮改用公开 creator 的 no-install 流程，安装依赖后
+校验并准备已有同版浏览器缓存，再经原版 doctor 六项通过。两包与 12 份指南均未改动。
+因此这是汇报衔接与 inline 交付的专项回归，不替代默认并发首次使用发布 receipt；未发布 npm，未宣称完整视觉/听审或统计稳定率。
+
 > 文档类型：current implementation authority
 >
 > 最后复核：2026-09-12，统一视觉主题与固定 Logo 修复已同步到 `axmorf/npm-workspace-open-source`，0.1.14 候选未发布。

@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "scope": "authorized-production-progress-handoff",
+  "baseCommit": "9198fed9aa008d708373c0adc2efefa2e2c7ef43",
+  "version": "0.1.14",
+  "firstUseReleaseReceipt": false,
+  "incident": {
+    "host": "Hermes TUI",
+    "model": "gpt-5.6-terra",
+    "reasoningEffort": "medium",
+    "requestedMode": "inline",
+    "startedAt": "2026-09-12T06:54:49.211860+00:00",
+    "endedAt": "2026-09-12T06:56:21.425256+00:00",
+    "observed": "After successful doctor and project:create:context, the host emitted message.complete followed by running:false. There was no project:create, execution resolution, preparation, task binding or delivery. The controller subsequently closed an idle session; it did not interrupt active work.",
+    "controllerFollowUps": 0,
+    "nativeChildren": 0,
+    "promptChecksum": "sha256:266e5ba6380e45d187096d7fe0a2568e47b0d4a83b3c67bd22b5c9cc7ff8b7ba",
+    "transcriptChecksum": "sha256:effc38f51e485d20f3cc460aad19db730e4d1b58ce0d9214fa2520eb257a60d6",
+    "uiEventsChecksum": "sha256:c271419ee3dc130f38bc9a006b708ce2e71592e735459becf1a8c8599325ee4e",
+    "promptDefect": "The CLI handoff and authoring guide required a separate assistant report but did not distinguish interim progress from a final text response or explicitly require same-turn tool execution after reporting.",
+    "causalLimit": "Native events prove premature completion at the report boundary. A single model run does not establish a unique model-internal cause. Local Hermes source confirms that assistant text with tool calls can be emitted as interim progress, while a final text response exits the conversation loop."
+  },
+  "fix": {
+    "runtime": "Create-context, create-success and inspect handoffs explicitly continue authorized tool execution after progress reporting; create-success still stops on a render mismatch.",
+    "guides": "Repository and generated Workspace skills distinguish progress reports from final answers, specify Hermes text plus the next tool call, and preserve blockers, explicit user pauses and native pending-work yields.",
+    "authority": "Diagnostic text only. No new production state, approval, retry, completion authority or validator relaxation.",
+    "preserved": [
+      "original failed evidence",
+      "one business prompt",
+      "Hermes harness",
+      "Terra medium",
+      "inline override",
+      "native completion transport",
+      "release policy",
+      "task and media validators"
+    ]
+  },
+  "verification": {
+    "red": "Create-context and inspect tests fail on missing interim-progress semantics; scaffold test fails on missing generated Workspace guidance.",
+    "focused": {
+      "passed": 28,
+      "failed": 0
+    },
+    "typecheck": "passed",
+    "lint": "passed",
+    "packageBuildAndChecks": "passed",
+    "fullTests": {
+      "passed": 933,
+      "failed": 0,
+      "filesRunSerially": true
+    },
+    "freshHermesRun": {
+      "status": "progress-handoff-and-inline-delivery-passed",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "medium",
+      "startedAt": "2026-09-12T08:32:35.747839+00:00",
+      "endedAt": "2026-09-12T08:49:08.185386+00:00",
+      "controllerFollowUps": 0,
+      "harnessInterventions": [],
+      "nativeChildren": 0,
+      "delegateCalls": 0,
+      "sequentialTasks": 5,
+      "continuations": 1,
+      "interimReports": 6,
+      "finalMessages": 1,
+      "finalChecksPassed": 7,
+      "media": {
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "audioChannels": 2,
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "frameCount": 1137
+      },
+      "durationSeconds": 37.9,
+      "decodedFiles": [
+        "video.mp4",
+        "cover-4x3.png",
+        "cover-3x4.png"
+      ],
+      "unchangedRuntimeFiles": 254,
+      "unchangedGuides": 12,
+      "files": {
+        "cover-3x4.png": {
+          "checksum": "sha256:44e697862449d784f9a716abd15683fe6abee47cb4ddfe072e6e77513d586cc8",
+          "sizeBytes": 110062
+        },
+        "cover-4x3.png": {
+          "checksum": "sha256:19aca9010a644c281d5787d09c8efa876b4723aed99bf7ec68b03d9c7a6f868e",
+          "sizeBytes": 111703
+        },
+        "publish.json": {
+          "checksum": "sha256:7d0629838fff66574eabc41bcdd930b05f4edd1c5f34751ceb0146917bebf403",
+          "sizeBytes": 2238
+        },
+        "video.mp4": {
+          "checksum": "sha256:b351d4a7c757d22c776bbe14e2e9f340f2b5634b46ab2bfa58b5724204203904",
+          "sizeBytes": 2933614
+        }
+      },
+      "releaseRecorder": {
+        "status": "release-recorder-not-certified-for-inline",
+        "error": "Hermes TUI acceptance did not exercise background delegation",
+        "note": "Unchanged recorder reached its required-background-delegation assertion after prior UI/DB binding and common supervision checks. User explicitly requested zero delegation; this is a separate scoped test, not a release receipt."
+      }
+    },
+    "limitations": "One fresh native production request after explicit host browser-cache preparation. The original default-install download timeout remains a failure. This is not the default concurrent first-use release receipt, a statistical model-reliability result, or a full visual/listening audit.",
+    "environmentPreparation": {
+      "initialInstall": "Chromium download timed out at 300000 ms with 9.5/98.4 MB received; creator cleaned its failed target; original logs retained",
+      "regressionSetup": "public creator --no-install; npm install; bootstrap; identical versioned browser cache; unchanged doctor passed all 6 checks",
+      "browserVersion": "149.0.7790.0",
+      "cacheFiles": 18,
+      "cacheBytes": 206577680,
+      "sourceAndCopiedCacheHashComparison": "passed",
+      "installedRuntimeFiles": 254,
+      "unchangedGuides": 12,
+      "firstUseReleaseReceipt": false
+    },
+    "hostCompositions": "passed with unchanged pinned browser via public --browser-executable",
+    "projectSourceGate": "passed; zero source Projects",
+    "externalCheckCorrections": [
+      {
+        "failure": "First independent-check invocation used the repository cwd while native record paths were relative to the evidence cwd.",
+        "correction": "Reran the unchanged checker from the original evidence cwd. No production rerun or assertion change."
+      },
+      {
+        "failure": "Optional contact sheet filter unsupported by the Remotion bundled FFmpeg.",
+        "correction": "Used installed system FFmpeg for the diagnostic contact sheet. Original delivery unchanged."
+      }
+    ],
+    "visualReview": {
+      "scope": "Viewed populated sampled frames in a contact sheet and both covers; no full-frame or listening audit.",
+      "note": "This verifies the progress-handoff bug and one inline delivery, not general creative quality or model reliability."
+    },
+    "evidenceChecksums": {
+      "snapshot.json": "sha256:9ae51ca3cb432a9e884c43b37034f5bf48aef2550e9e899bb7da7ec33237afec",
+      "native/run.json": "sha256:e4430d847f550c6c20869e872109b6da377c9c58b7b2d4506df1c488db7d2843",
+      "native/root-transcript.json": "sha256:610ff8ebcdf60aae5d60ff2c891348e07b224c3b5772240c9184c207df927d18",
+      "native/ui-events.jsonl": "sha256:1e893181421e956403cf4fa5d8f693460bec08f8f5ddf3250ff1b138d9bc90bf",
+      "independent-check.json": "sha256:70f4e7b55764a16c896e5fec9fb125daf0eb5380b2655b835cf8d13fe1ae322c",
+      "independent-final.json": "sha256:bd57b960192a8b467f776b8dd234203ed46cde64ccea2dfba445092f43cc2002",
+      "handoff-regression.json": "sha256:5f565eac2d70d75c7edd9c992336af635b526f1fe129203cf16093a83b2cb3c5",
+      "prompt.txt": "sha256:266e5ba6380e45d187096d7fe0a2568e47b0d4a83b3c67bd22b5c9cc7ff8b7ba"
+    }
+  },
+  "candidateTarballs": {
+    "runtime": "sha256:44634c78a2b9dc6d58db8566c90211aca040736eb2451c22ff5f1f6dee461999",
+    "creator": "sha256:231d610e772ea4ffcb3ebcbc4d134b4e458f48b843d0d40a80748c16ed7b3920"
+  },
+  "published": false
+}

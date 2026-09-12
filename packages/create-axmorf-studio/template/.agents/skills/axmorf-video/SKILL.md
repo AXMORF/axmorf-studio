@@ -15,6 +15,8 @@ For a new Project read [authoring](references/authoring.md); before preparation 
 Use the Workspace's npm scripts and their structured output. Do not use package
 internals or assume a particular Agent host or global installation.
 
+For an authorized video request, a plan or report is an intermediate progress message, not a final answer. Continue tool execution in the same turn after reporting; do not wait for another user reply. Follow the workflow for actual blockers and yielding to already-pending native work. Only verified delivery completes production.
+
 The Root runs `npm run doctor` before Project work. If it is not ready, prepare only the
 declared host environment and rerun it; never patch package internals,
 `node_modules`, exact dependencies, or validators. Report an unsatisfied host

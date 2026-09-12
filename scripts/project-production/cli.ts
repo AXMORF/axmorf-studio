@@ -378,7 +378,7 @@ export const runProjectProductionCli = async (
         nextAction: `report-to-user-before-${inspection.nextAction}`,
         summary: `sourceState=${inspection.sourceState}; estimatedProviderRequests=${providerRequests === null ? "unknown" : providerRequests}; providerCacheHits=${providerCacheHits === null ? "unknown" : providerCacheHits}; estimatedAgentTasks=${agentTasks === null ? "unknown" : agentTasks}; artifactReuse=${planned ? reuseCount : "not-planned"}; nonReusableTasks=${planned ? nonReusableCount : "not-planned"}; actualDurationSeconds=${inspection.durationBudget?.actualTotalSeconds ?? "not-measured"}.`,
         instruction:
-          "After this tool returns, report these read-only facts and the task invalidation explanations to the user in a separate assistant message, then take the next production action. CLI output is not that report. Existing production authorization needs no new confirmation; this handoff is diagnostic only.",
+          "After this tool returns, report these read-only facts and the task invalidation explanations in an intermediate progress message, not a final answer. Then continue the authorized next production action with tools in the same turn. Do not stop after the report or wait for a user reply unless an actual blocker requires it. CLI output is not that report. Existing production authorization needs no new confirmation; this handoff is diagnostic only.",
       },
       ...inspection,
     };

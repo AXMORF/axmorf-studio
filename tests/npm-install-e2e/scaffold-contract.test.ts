@@ -394,6 +394,9 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     /Do not use package\s+internals or assume a particular Agent host/u,
   );
   assert.match(workspaceSkill, /The Root runs `npm run doctor`/u);
+  assert.match(workspaceSkill, /intermediate progress message/u);
+  assert.match(workspaceSkill, /same turn/u);
+  assert.match(workspaceSkill, /not a final answer/u);
   assert.match(workspaceAgents, /the Root runs `npm run doctor`/u);
   for (const entrypoint of [workspaceAgents, workspaceSkill]) {
     assert.ok(
@@ -410,6 +413,10 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     "utf8",
   );
   const workerRoute = workspaceWorkflow.split("## Root production")[0]!;
+  assert.match(workspaceWorkflow, /intermediate progress message/u);
+  assert.match(workspaceWorkflow, /same turn/u);
+  assert.match(workspaceWorkflow, /actual blocker/u);
+  assert.match(workspaceWorkflow, /already.pending native work/u);
   assert.match(workerRoute, /## Assigned task worker/u);
   assert.match(workerRoute, /Workers do not run `doctor`, `browser:prepare`/u);
   assert.match(

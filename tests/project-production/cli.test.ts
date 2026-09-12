@@ -294,13 +294,18 @@ test("inspect and prepare each emit one stable structured JSON document", async 
   );
   assert.equal(inspectLines.length, 2);
   assert.equal(inspectLines[0], inspectLines[1]);
+  const handoff = JSON.parse(inspectLines[0]!).agentHandoff;
+  assert.match(handoff.instruction, /intermediate progress message/u);
+  assert.match(handoff.instruction, /not a final answer/u);
+  assert.match(handoff.instruction, /same turn/u);
+  assert.match(handoff.instruction, /blocker/u);
   assert.deepEqual(JSON.parse(inspectLines[0] ?? "null"), {
     agentHandoff: {
       nextAction: "report-to-user-before-prepare-production",
       summary:
         "sourceState=production-inputs-ready; estimatedProviderRequests=1; providerCacheHits=2; estimatedAgentTasks=1; artifactReuse=0; nonReusableTasks=1; actualDurationSeconds=not-measured.",
       instruction:
-        "After this tool returns, report these read-only facts and the task invalidation explanations to the user in a separate assistant message, then take the next production action. CLI output is not that report. Existing production authorization needs no new confirmation; this handoff is diagnostic only.",
+        "After this tool returns, report these read-only facts and the task invalidation explanations in an intermediate progress message, not a final answer. Then continue the authorized next production action with tools in the same turn. Do not stop after the report or wait for a user reply unless an actual blocker requires it. CLI output is not that report. Existing production authorization needs no new confirmation; this handoff is diagnostic only.",
     },
     ...inspection,
   });
