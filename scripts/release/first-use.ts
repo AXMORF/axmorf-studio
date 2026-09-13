@@ -31,6 +31,12 @@ import {
 } from "./native-execution";
 import { auditSupervision, SupervisionSchema } from "./supervision";
 import {
+  auditInlineExecution,
+  assertInlineExecution,
+  InlineExecutionSchema,
+  requiresHermesInline,
+} from "./inline-execution";
+import {
   directoryFiles,
   packageContent,
   sha256,
@@ -104,6 +110,7 @@ export const HostReceiptSchema = z
       .strict(),
     unchangedPackageFiles: z.number().int().positive(),
     nativeExecution: NativeExecutionSchema.optional(),
+    inlineExecution: InlineExecutionSchema.optional(),
     supervision: SupervisionSchema.optional(),
     unchangedGuideFiles: z.number().int().positive(),
     finalCheck: FinalCheck,
@@ -748,16 +755,34 @@ export async function record(
   const sessionSource: string | undefined = sessionBytes
     ? JSON.parse(sessionBytes.toString("utf8")).source
     : undefined;
-  const requiresNative = requiresNativeExecution(
+  const needsInline = requiresHermesInline(
     initial.packages.runtime.version,
+    initial.host,
   );
+  if (needsInline) assert.equal(run.model, input.model);
+  const inlineExecution = needsInline
+    ? auditInlineExecution({
+        transcript,
+        storyId: input.storyId,
+        startedAt: run.startedAt,
+        endedAt: run.endedAt,
+        model: input.model,
+        reasoningEffort: run.reasoningEffort,
+        nativeChildren: input.nativeChildren,
+        delegations: input.delegationFile
+          ? await readJson(input.delegationFile)
+          : undefined,
+      })
+    : undefined;
+  const requiresNative =
+    !needsInline && requiresNativeExecution(initial.packages.runtime.version);
   if (requiresNative)
     assert.ok(
       input.nativeChildren,
       "This release requires native child execution evidence",
     );
   const native =
-    input.nativeChildren === undefined
+    needsInline || input.nativeChildren === undefined
       ? undefined
       : await auditNativeExecution({
           host: initial.host,
@@ -776,7 +801,10 @@ export async function record(
             ? {}
             : { hermesRuntimeRoot: input.hermesRuntimeRoot }),
         });
-  if (requiresFourWayExecution(initial.packages.runtime.version)) {
+  if (
+    !needsInline &&
+    requiresFourWayExecution(initial.packages.runtime.version)
+  ) {
     assert.ok(native, "Four-way acceptance requires native execution evidence");
     assertFourWayExecution(native.execution);
   }
@@ -836,6 +864,7 @@ export async function record(
         host: initial.host,
         transcript,
         sessionSource,
+        executionMode: needsInline ? "inline" : "subagents",
         ...(hermesUi ? { hermesUi } : {}),
       })
     : undefined;
@@ -947,6 +976,7 @@ export async function record(
     sessionChecksum,
     transcriptAudit,
     nativeExecution: native?.execution,
+    inlineExecution,
     supervision,
     unchangedPackageFiles: installed.length,
     unchangedGuideFiles: initial.guides.length,
@@ -985,6 +1015,26 @@ function verifyCombined(
   assert.equal(creator.name, "create-axmorf-studio");
   assert.equal(runtime.version, creator.version);
   for (const host of receipt.hosts) {
+    const needsInline = requiresHermesInline(runtime.version, host.host);
+    if (needsInline) {
+      assert.ok(
+        host.inlineExecution,
+        "This release requires Hermes inline execution evidence",
+      );
+      assert.equal(
+        host.nativeExecution,
+        undefined,
+        "Inline and child execution evidence cannot substitute for each other",
+      );
+      assert.equal(host.model, host.inlineExecution.model);
+      assertInlineExecution(host.inlineExecution, host.startedAt, host.endedAt);
+    } else {
+      assert.equal(
+        host.inlineExecution,
+        undefined,
+        "Inline exception does not apply to this host/version",
+      );
+    }
     assert.equal(
       host.creation.method,
       method,
@@ -1004,7 +1054,8 @@ function verifyCombined(
         host.supervision.completedAsyncBatches,
       );
       if (host.host === "hermes") {
-        assert.ok(host.supervision.asyncBatches > 0);
+        if (needsInline) assert.equal(host.supervision.asyncBatches, 0);
+        else assert.ok(host.supervision.asyncBatches > 0);
         assert.ok(
           host.supervision.uiEvidence,
           "Hermes supervision must bind the complete native UI stream",
@@ -1020,7 +1071,7 @@ function verifyCombined(
       { runtime: packageSummary(runtime), creator: packageSummary(creator) },
       "First-use evidence does not match these release candidates",
     );
-    if (requiresNativeExecution(runtime.version)) {
+    if (!needsInline && requiresNativeExecution(runtime.version)) {
       assert.ok(
         host.nativeExecution,
         "This release requires actual bounded native child execution on both hosts",

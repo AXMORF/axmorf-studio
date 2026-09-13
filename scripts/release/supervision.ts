@@ -332,6 +332,7 @@ export function auditSupervision(input: {
   host: "codex" | "hermes";
   transcript: string;
   sessionSource?: string;
+  executionMode?: "subagents" | "inline";
   hermesUi?: HermesUiInput;
 }) {
   if (input.host === "hermes") {
@@ -465,6 +466,18 @@ export function auditSupervision(input: {
     );
   }
   for (const call of calls) {
+    if (input.executionMode === "inline") {
+      assert.equal(
+        input.host,
+        "hermes",
+        "Inline supervision is only available for Hermes",
+      );
+      assert.notEqual(
+        call.name,
+        "delegate_task",
+        "Inline supervision forbids all delegation calls",
+      );
+    }
     assert.ok(
       !(call.name === "delegate_task" && call.arguments.action === "list"),
       "Child list polling is not native completion",
@@ -520,11 +533,25 @@ export function auditSupervision(input: {
       "Final report precedes native async batch completion",
     );
   }
-  if (input.host === "hermes")
-    assert.ok(
-      batches.length > 0,
-      "Hermes TUI acceptance did not exercise background delegation",
-    );
+  if (input.host === "hermes") {
+    if (input.executionMode === "inline") {
+      assert.equal(
+        batches.length,
+        0,
+        "Inline supervision forbids delegation batches",
+      );
+      assert.equal(
+        completed.size,
+        0,
+        "Inline supervision forbids child completion notifications",
+      );
+    } else {
+      assert.ok(
+        batches.length > 0,
+        "Hermes TUI acceptance did not exercise background delegation",
+      );
+    }
+  }
   return SupervisionSchema.parse({
     schemaVersion: 1,
     source: input.host === "hermes" ? "tui" : "codex",

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.14",
+  "authorization": {
+    "reply": "同意。",
+    "approvedScope": "Codex four-way native subagents; Hermes explicit inline with gpt-5.6-terra / medium; retain all other release checks"
+  },
+  "scope": "candidate and public first-use verification for 0.1.14 only",
+  "productDefaultsChanged": false,
+  "rawNativeEvidenceModified": false,
+  "priorFailuresRetained": true,
+  "candidateReceipt": "v0.1.14-first-use.json",
+  "checks": {
+    "focusedTests": {
+      "passed": 56,
+      "failed": 0
+    },
+    "typecheck": "passed",
+    "focusedLint": "passed"
+  },
+  "visualReview": {
+    "sampledFramesPerVideo": 10,
+    "coversPerVideo": 2,
+    "hermesObservation": "At frame 510 a decorative curve crosses the small annotation 结束，也是下一次开始.",
+    "fullFrameReview": false,
+    "fullListeningReview": false
+  },
+  "publication": "not yet published at this policy commit"
+}

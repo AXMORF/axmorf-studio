@@ -15,8 +15,14 @@ Codex/Terra medium 的一次实际制作完成后，旧 recorder 把无 XML wrap
 5 个创作 child、4 个 probe、1 次补位、实际四任务重叠 69.107 秒、零轮询、唯一 continuation，final 7/7 和
 三份媒体完整 EOF 通过；1920×1080、30fps、1079 帧，约 35.97 秒。
 
-Hermes 按用户已指定的 Terra/medium、inline 继续独立实测。现有发布规则仍强制双宿主四并发，
-调整本版 Hermes 发布验收范围的选择尚待用户答复；没有修改执行模式发布门槛、创建 tag 或发布 npm。
+用户明确同意本版采用 Codex 四并发 + Hermes Terra/medium inline 的发布矩阵；仅作用于 0.1.14，
+不修改产品默认设置。新 recorder 对原始未改动 Hermes 记录生成正式凭据：5 个任务依次绑定/提交，
+0 子代理/派发，唯一 background continuation，原生 TUI/SQLite 对齐、final 7/7 和全部媒体 EOF 通过；
+1920×1080、30fps、806 帧，约 26.87 秒。[双宿主候选凭据](evidence/v0.1.14-first-use.json) 与
+[本版规则记录](evidence/v0.1.14-release-policy.json) 保留实际范围。新增验收规则先 Red 后 Green，
+56 项定向测试、typecheck、lint 通过；完整 CI 和实际发布状态以后续发布记录为准。
+已抽检两条成片各 10 帧及两张封面；Hermes 第三段一处装饰曲线跨过小字注释，保留该视觉问题。
+这些机械检查和抽样不代表全帧视觉检查或完整听审。目前未创建 tag、未发布 npm。
 
 ## 制作汇报提前结束修复（0.1.14 候选，未发布）
 

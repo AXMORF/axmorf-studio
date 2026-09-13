@@ -428,3 +428,43 @@ test("TUI native tool_call bridge authenticates its actual UI name and inner arg
   call.function.arguments = JSON.stringify(inner);
   assert.throws(() => auditUi(input), /arguments differ from native DB/u);
 });
+
+test("explicit inline supervision preserves reports and fixed continuation without delegation", () => {
+  const rows = trace().rows.filter(
+    (row) =>
+      row.role !== "user" &&
+      row.tool_name !== "delegate_task" &&
+      !(
+        row.tool_calls as Array<{ function: { name: string } }> | undefined
+      )?.some((call) => call.function.name === "delegate_task"),
+  );
+  const inline = (records: unknown[]) =>
+    auditSupervision({
+      host: "hermes",
+      sessionSource: "tui",
+      executionMode: "inline",
+      transcript: JSON.stringify(records),
+    });
+  assert.equal(inline(rows).asyncBatches, 0);
+  assert.throws(() => audit(rows), /did not exercise background delegation/u);
+  assert.throws(() => inline(trace().rows), /forbids all delegation/u);
+  assert.throws(
+    () =>
+      inline(
+        rows.filter((row) => !String(row.content).startsWith("源文件就绪")),
+      ),
+    /inspect report/u,
+  );
+  const changed = structuredClone(rows);
+  for (const row of changed)
+    for (const call of (row.tool_calls ?? []) as Array<{
+      function: { arguments: string };
+    }>) {
+      const args = JSON.parse(call.function.arguments);
+      if (String(args.command).startsWith("npm run project:produce:continue")) {
+        delete args.background;
+        call.function.arguments = JSON.stringify(args);
+      }
+    }
+  assert.throws(() => inline(changed), /native background process/u);
+});

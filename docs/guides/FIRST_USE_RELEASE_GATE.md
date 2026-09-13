@@ -9,13 +9,30 @@ send follow-up repair instructions or change package internals during the run.
 A failed run stays recorded as failed; a later engineering fix requires new
 candidates and a new first-use run.
 
-From 0.1.9 onward, both hosts must exercise the package's default native
+Except for the explicit 0.1.14 matrix below, from 0.1.9 onward both hosts must exercise the package's default native
 `subagents` path with configured maximum concurrency four. The business prompt
 does not name this execution strategy. Select a normal video brief that produces
 more than four dirty creative tasks, so the run exercises releasing a child slot
 and admitting another task. An inline run or merely saving subagent settings is
 not evidence for this gate. Explicit inline behavior retains automated regression
 coverage; the historical 0.1.8 inline receipts remain readable.
+
+For **0.1.14 only**, the maintainer approved Codex default four-way native execution
+and Hermes **explicit inline, gpt-5.6-terra, medium**. This matrix applies to both
+candidate and post-publication runs; it changes no Workspace or runtime defaults.
+The Hermes business prompt explicitly selects inline for the current production.
+The recorder requires zero native children, delegation calls, or delegation rows,
+one explicit inline resolver result, and at least five distinct dirty tasks bound
+and committed sequentially by the Root within one attempt. Each commit must be
+recorded for the active task, and task intervals must lie within the native run.
+The receipt records this as `inlineExecution`; it cannot also carry `nativeExecution`.
+Codex must still prove capacity four, four bound tasks overlapping, and a later
+admission. Other versions retain their existing native child requirements.
+All installation, fresh profile, one-prompt, actual-model, native TUI/session,
+progress report, single background continuation, no-polling, package/guide
+integrity, final delivery and complete media decoding checks remain required.
+Original failed runs and their narrower evidence remain preserved; the approved
+scope does not turn earlier failed runs into passing receipts.
 
 This gate supplements the automated install/contract tests. It does not claim
 multi-model, multi-OS, interactive approval, revision, or recovery certification.
@@ -24,7 +41,8 @@ isolation setup: a transcript hash is evidence binding, not proof that a host or
 maintainer is trustworthy.
 
 From 0.1.11, the Hermes run must use its actual TUI JSON-RPC backend and native
-asynchronous notification lifecycle. `hermes -z` selects a synchronous child path
+asynchronous notification lifecycle when using subagents. The 0.1.14 inline run
+uses the same TUI backend and records no child notifications. `hermes -z` selects a synchronous child path
 and cannot certify interactive yield/resume. Send one ordinary business prompt
 through `session.create` and `prompt.submit`, retain the complete native session
 and notification records, the complete JSON-RPC stdout event stream, and let the backend resume itself. The controller may
@@ -60,7 +78,7 @@ typed metadata use the `<multi_agent_role>` wrapper. Both forms require one
 nonempty input-text item. This format compatibility does not relax parent metadata,
 inherited-history order, child-turn ownership, or actual task concurrency checks.
 
-From 0.1.13, each host must resolve effective capacity four and demonstrate positive-duration overlap of four
+From 0.1.13, each host using subagents must resolve effective capacity four and demonstrate positive-duration overlap of four
 production tasks between their successful bind result and first commit result in the native common timestamp domain.
 The recorder reports `peakBoundTasks` and total `fourWayBoundOverlapMs` separately from native session lifetimes.
 Four open sessions with serial task execution do not satisfy this gate. These observed task intervals do not measure
@@ -170,11 +188,12 @@ follow-ups, forked root Codex sessions, mismatched Hermes session metadata, miss
 function calls, or modified package and guide files. It derives execution mode
 and capacity from the root's public resolver output, the dirty task set from
 prepare, native parentage and lifetimes from host records, and task ownership from
-each child's actual bind and commit tool results. Every dirty task requires one
-child commit; the Root cannot commit those tasks. The receipt records native child
+each child's actual bind and commit tool results. For subagent entries, every dirty task requires one
+child commit; the Root cannot commit those tasks. The approved 0.1.14 Hermes inline
+entry instead requires the exact Root binding and sequential commit checks above. The receipt records native child
 hashes, peak concurrency, capability-probe count, and later admissions after a
 production child completes. Missing children, unknown parentage, a pool exceeding
-resolved capacity, or no admission beyond the initial pool fail closed.
+resolved capacity, or no admission beyond the initial pool fail closed for subagent entries.
 Native Codex children may inherit their fresh parent's context: the recorder binds
 `source.subagent.thread_spawn.parent_thread_id` and `agent_path` to that parent's
 native `spawn_agent` response, rather than confusing this with a reused root session.
