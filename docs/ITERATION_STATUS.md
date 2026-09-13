@@ -1,5 +1,17 @@
 # Iteration Status
 
+## 0.1.14 已发布（2026-09-13，公共复验受浏览器下载阻塞）
+
+`@axmorf/studio` 与 `create-axmorf-studio` 的公共 `latest` 均已回读确认为 `0.1.14`。
+发布提交 `a9175d3` / tag `v0.1.14` 的正式 OIDC 工作流成功，registry SHA-512 与工作流 tarball 一致；
+全部 254/41 个发行文件与已通过的双宿主候选凭据一致。Linux 全量检查 938 项通过、0 失败、1 项
+Darwin 专属测试跳过；独立 macOS CI 939/939、零跳过，依赖审计零漏洞。
+[发布记录](evidence/v0.1.14-published.json) 区分已发布与发布后验收：两次全新公共安装均完成 npm install
+与 bootstrap，随后 Chrome Headless Shell 下载因 `storage.googleapis.com` 无数据超时及 TLS `ECONNRESET`
+失败；doctor 和两宿主模型制作均未启动。两次独立下载的公共 tarball 与发布工作流 bytes 完全一致。
+失败日志保留，creator 已自动清理隔离 staging；没有换包、准备旧浏览器缓存、控制器重试或伪造 receipt。
+该本机网络阻塞不改变已发布事实，但发布后首次制作复验未完成。下方未发布记录是此前阶段历史。
+
 ## 0.1.14 发布准备与 Codex recorder 兼容（2026-09-13，未发布）
 
 修复提交 `4059d7b` 已快进推送，[macOS CI](https://github.com/AXMORF/axmorf-studio/actions/runs/34714145981)
@@ -42,8 +54,8 @@ Codex/Terra medium 的一次实际制作完成后，旧 recorder 把无 XML wrap
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-12，统一视觉主题与固定 Logo 修复已同步到 `axmorf/npm-workspace-open-source`，0.1.14 候选未发布。
-> 当日复核公共 npm 两包 latest 仍为 0.1.13。用户接受时长偏差并选择 Hermes inline；横屏实测暴露的创建参数覆盖缺口已修复，完整视频复测尚未执行。
+> 最后复核：2026-09-13，公共 npm 两包 latest 均为 0.1.14，tag `v0.1.14` / release commit `a9175d3`。
+> 发布前双宿主候选通过本版已批准矩阵；发布后本机浏览器下载受网络阻塞，完整首次制作复验未完成，见顶部当前记录。
 
 ## 提示词画面参数覆盖（0.1.14 候选，未发布）
 
