@@ -1,6 +1,6 @@
 # Iteration Status
 
-## 0.1.15 候选制作与发布准备（2026-09-29 至 09-30，未发布）
+## 0.1.15 已发布（2026-09-30，公共首次使用监督未通过）
 
 本轮更新 Workspace 源码并修复生成 Workspace 的 Remotion 配置加载：模板由 `remotion.config.mjs`
 改为当前 CLI 自动加载的 `remotion.config.ts`；浏览器准备允许明确的宿主可执行文件路径，下载等待延长至一小时。
@@ -18,7 +18,16 @@ publishing-only 修改、唯一 continuation、自动 promotion、current 复验
 用户明确同意本版仅以 Codex 验收；[版本限定规则](evidence/v0.1.15-release-policy.json) 不改变后续版本双宿主门槛。
 首次成功运行的原始临时会话在系统清理 `/tmp` 后未保留，签发的独立收据及当前包内容复验仍在；
 补存原始记录的全新 Codex 运行因宿主模型容量错误退出，未计为通过，也未覆盖成功收据。
-该原始记录保留缺口及发布后公共包复验应继续单独记录，不能由候选收据推断已完成。
+该原始记录保留缺口不能由候选收据补足。
+
+发布提交 `bc66f96` / tag `v0.1.15` 已推送；[npm OIDC 发布工作流](https://github.com/AXMORF/axmorf-studio/actions/runs/36605261163)
+成功，公共 registry 两包 `latest` 均为 `0.1.15`，SHA-512 与工作流包一致。
+[发布及公共复验记录](evidence/v0.1.15-published.json) 区分包发布与首次使用监督：全新公共安装的
+Codex Workspace 生成 1920×1080、30fps、32.896 秒视频及两张封面；current final 七项通过，视频和
+两张封面完整解码通过。抽看 1、5、15、25、31、32 秒帧，首尾文字在浅色背景上可读；未做逐帧检查或完整听审。
+该次 Root 在同一制作请求中成功运行两次 `project:execution:resolve`，独立 `first-use record` 以
+`Expected one successful native subagents resolution: 2 !== 1` 拒绝。因此公共包交付成功，但发布后
+首次使用监督门槛未通过；原始 Codex 会话记录保留在仓库外，失败未改写或降低门槛。
 
 ## 0.1.14 已发布（2026-09-13，公共复验受浏览器下载阻塞）
 
@@ -74,8 +83,8 @@ Codex/Terra medium 的一次实际制作完成后，旧 recorder 把无 XML wrap
 
 > 文档类型：current implementation authority
 >
-> 最后复核：2026-09-13，公共 npm 两包 latest 均为 0.1.14，tag `v0.1.14` / release commit `a9175d3`。
-> 发布前双宿主候选通过本版已批准矩阵；发布后本机浏览器下载受网络阻塞，完整首次制作复验未完成，见顶部当前记录。
+> 最后复核：2026-09-30，公共 npm 两包 latest 均为 0.1.15，tag `v0.1.15` / release commit `bc66f96`。
+> 本版 Codex 候选收据通过，发布后公共包成片交付通过、首次使用监督收据未通过，见顶部当前记录。
 
 ## 提示词画面参数覆盖（0.1.14 候选，未发布）
 
