@@ -19,6 +19,7 @@ import {
   resolveSceneReadabilityPolicy,
   serializeCanonicalJson,
   type ProducerTaskSpec,
+  type SceneTaskInput,
 } from "@axmorf/studio/contracts";
 import { reportCliFailure } from "../../packages/studio/src/cli/failure";
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
@@ -40,6 +41,84 @@ import {
 
 const checksum = (value: string) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}` as const;
+
+const sceneContext = (taskInput: SceneTaskInput) => ({
+  scene: {
+    taskInput,
+    brief: {
+      meaningId: taskInput.meaningId,
+      visualIntent: "Trace a proof shape to explain the result.",
+      compositionIntent: "Keep the shape as the single focal point.",
+      motionIntent: "Reveal the outline, then fill the shape.",
+      soundIntent: "Narration only.",
+      continuityBrief: taskInput.continuity.continuityBrief,
+      candidateResourceIds: [...taskInput.allowedResourceIds].sort(),
+      allowedSnapshotCards: [],
+    },
+    visualStyle: {
+      schemaVersion: 1,
+      storyId: taskInput.storyId,
+      styleProfileId: "cinematic-3d",
+      resourceCatalogFingerprint: taskInput.resourceCatalogFingerprint,
+      artDirection: {
+        medium: "clean technical diagram",
+        palette: "dark blue and warm white",
+        lighting: "soft focal light",
+        texture: "matte surface",
+        compositionGrammar: "centered focal subject",
+        motionLanguage: "measured reveal",
+        typography: "minimal",
+      },
+      continuityRules: ["Keep the subject centered."],
+      forbiddenTreatments: ["No unrelated decoration."],
+    },
+    narrationCues:
+      taskInput.storyBeat.kind === "narrated-scene"
+        ? taskInput.storyBeat.ttsChunks.map((chunk) => ({
+            chunkId: chunk.chunkId,
+            text: chunk.ttsText,
+            startFrame: 0,
+            endFrame:
+              taskInput.timingBeat.endFrame - taskInput.timingBeat.startFrame,
+          }))
+        : [],
+  },
+});
+
+test("Scene contract rejects creative context that no longer matches its task", () => {
+  const context = sceneContext(createScenePackageInput().task);
+  assert.throws(
+    () =>
+      buildTaskExecutionContract({
+        taskKind: "scene-owner",
+        context: {
+          ...context,
+          scene: {
+            ...context.scene,
+            brief: { ...context.scene.brief, meaningId: "another-beat" },
+          },
+        },
+      }),
+    /creative context is stale/u,
+  );
+  assert.throws(
+    () =>
+      buildTaskExecutionContract({
+        taskKind: "scene-owner",
+        context: {
+          ...context,
+          scene: {
+            ...context.scene,
+            narrationCues: context.scene.narrationCues.map((cue) => ({
+              ...cue,
+              endFrame: context.scene.taskInput.timingBeat.endFrame + 1,
+            })),
+          },
+        },
+      }),
+    /narration cues are stale/u,
+  );
+});
 
 const writeOutputExamples = async ({
   workspace,
@@ -148,7 +227,7 @@ test("TaskExecutionContract is npm-native, attempt-neutral, and mechanically mat
   const contracts = [
     buildTaskExecutionContract({
       taskKind: "scene-owner",
-      context: { scene: { taskInput: sceneFixture.task } },
+      context: sceneContext(sceneFixture.task),
     }),
     buildTaskExecutionContract({
       taskKind: "global-visual-owner",
@@ -195,6 +274,15 @@ test("TaskExecutionContract is npm-native, attempt-neutral, and mechanically mat
   )?.example;
   assert.match(String(globalSource), /GlobalVisualBaseLayer/u);
   assert.match(String(globalSource), /GlobalVisualDecorationLayers/u);
+  assert.match(contracts[0].workflow.join(" "), /scene\.brief/u);
+  assert.match(contracts[0].workflow.join(" "), /narrationCues/u);
+  assert.match(contracts[0].workflow.join(" "), /cause and consequence/u);
+  assert.match(contracts[0].workflow.join(" "), /focal subject/u);
+  const sceneSource = contracts[0].outputs.find(
+    ({ path }) => path === "src/Renderer.tsx",
+  )?.example;
+  assert.match(String(sceneSource), /=> null/u);
+  assert.doesNotMatch(String(sceneSource), /borderRadius|diameter|backgroundColor/u);
 
   const coverContract = contracts[2];
   const changedCoverContract = {
@@ -274,7 +362,7 @@ test("Scene finalization recomputes task-bound derived JSON atomically and passe
     semanticId: fixture.task.meaningId,
     context: {
       originalityBaseline,
-      scene: { taskInput: fixture.task },
+      ...sceneContext(fixture.task),
     },
     validatorPolicyVersion: "scene-owner-validator-v4",
     additionalInputFingerprints: [
@@ -303,6 +391,23 @@ test("Scene finalization recomputes task-bound derived JSON atomically and passe
   visualDraft.meaningId = "stale-meaning";
   visualDraft.visualPlanFingerprint = `sha256:${"c".repeat(64)}`;
   await writeFile(visualPath, `${JSON.stringify(visualDraft, null, 2)}\n`);
+
+  await assert.rejects(
+    finalizeAgentTaskWorkspace({
+      rootDir,
+      taskRevision: created.task.taskRevision,
+    }),
+    (error: unknown) => {
+      assert.ok(error instanceof AgentTaskFinalizationError);
+      assert.equal(error.code, "task-check-failed");
+      assert.match(String(error.cause), /task scaffold/u);
+      return true;
+    },
+  );
+  await writeFile(
+    join(created.workspace, "src/Renderer.tsx"),
+    'import type {SceneRendererProps} from "@axmorf/studio/remotion";\nconst Renderer = ({viewportWidth, viewportHeight}: SceneRendererProps) => <div style={{width: viewportWidth, height: viewportHeight}} />;\nexport default Renderer;\n',
+  );
 
   const result = await finalizeAgentTaskWorkspace({
     rootDir,
@@ -342,8 +447,8 @@ test("Scene shot range schema failures identify agent output and write no derive
     storyId: fixture.task.storyId,
     semanticId: fixture.task.meaningId,
     context: {
+      ...sceneContext(fixture.task),
       originalityBaseline: baseline,
-      scene: { taskInput: fixture.task },
     },
     validatorPolicyVersion: "scene-owner-validator-v4",
     additionalInputFingerprints: [
@@ -357,6 +462,10 @@ test("Scene shot range schema failures identify agent output and write no derive
     workspace: created.workspace,
     contract: created.contract,
   });
+  await writeFile(
+    join(created.workspace, "src/Renderer.tsx"),
+    'import type {SceneRendererProps} from "@axmorf/studio/remotion";\nconst Renderer = ({viewportWidth, viewportHeight}: SceneRendererProps) => <div style={{width: viewportWidth, height: viewportHeight}} />;\nexport default Renderer;\n',
+  );
   const shotPath = join(created.workspace, "src/shot-plan.json");
   const shot = JSON.parse(await readFile(shotPath, "utf8")) as {
     shots: Array<{ primaryRange: { endFrame: number } }>;
@@ -478,8 +587,8 @@ test("authored draft schema diagnostics retain exact file ownership and zero-wri
       storyId: fixture.task.storyId,
       semanticId: fixture.task.meaningId,
       context: {
+        ...sceneContext(fixture.task),
         originalityBaseline: baseline,
-        scene: { taskInput: fixture.task },
       },
       validatorPolicyVersion: "scene-owner-validator-v4",
       additionalInputFingerprints: [
@@ -692,7 +801,7 @@ test("immutable input drift aborts finalization before any Agent output write", 
     taskKind: "scene-owner",
     storyId: fixture.task.storyId,
     semanticId: fixture.task.meaningId,
-    context: { scene: { taskInput: fixture.task } },
+    context: sceneContext(fixture.task),
     validatorPolicyVersion: "scene-owner-validator-v2",
   });
   const visualPath = join(created.workspace, "src/visual-plan.json");

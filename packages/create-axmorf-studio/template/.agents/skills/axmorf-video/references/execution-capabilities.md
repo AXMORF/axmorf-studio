@@ -24,7 +24,7 @@ node .agents/skills/axmorf-video/scripts/native-probe.mjs create --count <bounde
    never shorten a response path, reconstruct a prompt, or put challenge bytes in it. Dispatch the whole bounded batch
    before waiting on one. No Project/task/artifact path or provider is involved. Respect a native capacity rejection;
    do not fake capacity or substitute shell jobs.
-4. Wait for every native completion, preserving still-pending handles. Then run the returned exact `verifyCommand`.
+4. Wait for every native completion, preserving still-pending handles. On Hermes TUI, `delegate_task` with `{"action":"list"}` is status polling even when called once after the probe batch; wait for the native completion notification instead. Then run the returned exact `verifyCommand`.
    Only its successful comparison proves the shared-file round trip; native admission and completion establish the
    tested available capacity. A missing response is an unverified probe, not proof of filesystem isolation: inspect the
    assigned absolute paths and reported child command before classifying the cause. Root never writes or moves responses.

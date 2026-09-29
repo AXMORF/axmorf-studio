@@ -999,17 +999,23 @@ function verifyCombined(
   creator: PackageContent,
   method: "npm-exec-candidate" | "npm-create-public-registry",
 ) {
+  // The maintainer approved Codex-only acceptance for 0.1.15. Later releases
+  // return to the two-host gate unless a new explicit policy is implemented.
+  const requiredHosts =
+    runtime.version === "0.1.15"
+      ? (["codex"] as const)
+      : (["codex", "hermes"] as const);
   const receipt = z
     .object({
       schemaVersion: z.literal(1),
-      hosts: z.array(HostReceiptSchema).length(2),
+      hosts: z.array(HostReceiptSchema).length(requiredHosts.length),
     })
     .strict()
     .parse(value);
   assert.deepEqual(
     receipt.hosts.map((host) => host.host).sort(),
-    ["codex", "hermes"],
-    "Both Agent hosts are required",
+    requiredHosts,
+    "This release requires its exact Agent host acceptance set",
   );
   assert.equal(runtime.name, "@axmorf/studio");
   assert.equal(creator.name, "create-axmorf-studio");
@@ -1137,14 +1143,15 @@ function verifyCombined(
     );
     assert.ok(Date.parse(host.endedAt) > Date.parse(host.startedAt));
   }
-  assert.notEqual(receipt.hosts[0]!.sessionId, receipt.hosts[1]!.sessionId);
+  if (receipt.hosts.length === 2)
+    assert.notEqual(receipt.hosts[0]!.sessionId, receipt.hosts[1]!.sessionId);
   return {
     status:
       method === "npm-exec-candidate"
         ? "first-use-release-gate-passed"
         : "first-use-public-registry-passed",
     version: runtime.version,
-    hosts: ["codex", "hermes"],
+    hosts: [...requiredHosts],
     runtimeFingerprint: runtime.fingerprint,
     creatorFingerprint: creator.fingerprint,
   };

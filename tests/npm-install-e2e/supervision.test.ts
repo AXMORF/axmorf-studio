@@ -424,9 +424,91 @@ test("TUI native tool_call bridge authenticates its actual UI name and inner arg
   };
   call.function = { name: "tool_call", arguments: JSON.stringify(inner) };
   assert.equal(auditUi(input).continuationCalls, 1);
+  call.function.arguments = JSON.stringify({ calls: [inner] });
+  assert.equal(auditUi(input).continuationCalls, 1);
   inner.arguments.timeout = 1;
-  call.function.arguments = JSON.stringify(inner);
+  call.function.arguments = JSON.stringify({ calls: [inner] });
   assert.throws(() => auditUi(input), /arguments differ from native DB/u);
+});
+
+test("TUI vision result binds native text and retains the image in raw UI evidence", () => {
+  const input = uiTrace();
+  const callId = "vision-call";
+  const visionArgs = { path: "/frame.png", question: "Review frame" };
+  const text = "Visible frame review";
+  const result = {
+    _multimodal: true,
+    content: [
+      { type: "text", text },
+      { type: "image_url", image_url: { url: "data:image/jpeg;base64,/9j/" } },
+    ],
+  };
+  const dbIndex = input.rows.findIndex((row) =>
+    String(row.content).startsWith("四文件"),
+  );
+  input.rows.splice(
+    dbIndex,
+    0,
+    {
+      role: "assistant",
+      tool_calls: [
+        {
+          id: callId,
+          function: {
+            name: "vision_analyze",
+            arguments: JSON.stringify(visionArgs),
+          },
+        },
+      ],
+    },
+    {
+      role: "tool",
+      timestamp: 1,
+      tool_call_id: callId,
+      tool_name: "vision_analyze",
+      content: `${text}\n[screenshot]`,
+    },
+  );
+  const uiIndex = input.rpc.findIndex(
+    (row) =>
+      (row.params as { type?: string } | undefined)?.type ===
+      "message.complete",
+  );
+  input.rpc.splice(
+    uiIndex,
+    0,
+    {
+      jsonrpc: "2.0",
+      method: "event",
+      params: {
+        type: "tool.start",
+        session_id: "ui",
+        payload: { tool_id: callId, name: "vision_analyze", args: visionArgs },
+      },
+    },
+    {
+      jsonrpc: "2.0",
+      method: "event",
+      params: {
+        type: "tool.complete",
+        session_id: "ui",
+        payload: {
+          tool_id: callId,
+          name: "vision_analyze",
+          args: visionArgs,
+          result,
+        },
+      },
+    },
+  );
+  let sequence = 0;
+  for (const row of input.rpc) {
+    if (row.method === "event")
+      (row.params as Record<string, unknown>).seq = ++sequence;
+  }
+  assert.equal(auditUi(input).continuationCalls, 1);
+  result.content[0]!.text = "Changed frame review";
+  assert.throws(() => auditUi(input), /vision text differs/u);
 });
 
 test("explicit inline supervision preserves reports and fixed continuation without delegation", () => {

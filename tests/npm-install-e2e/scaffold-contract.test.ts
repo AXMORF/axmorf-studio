@@ -246,6 +246,13 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   assert.equal(manifest.private, true);
   assert.equal(manifest.license, "UNLICENSED");
   assert.equal(manifest.type, "module");
+  assert.match(
+    await readFile(join(workspace, "remotion.config.ts"), "utf8"),
+    /Config\.setVideoImageFormat/u,
+  );
+  await assert.rejects(() => lstat(join(workspace, "remotion.config.mjs")), {
+    code: "ENOENT",
+  });
   assert.equal(Object.hasOwn(manifest, "workspaces"), false);
   assert.deepEqual(manifest.axmorf, { workspaceVersion: 1 });
   assert.equal(
@@ -256,7 +263,7 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   assert.equal(manifest.dependencies["@remotion/cli"], "4.0.489");
   assert.equal(manifest.dependencies.react, "19.2.3");
   assert.deepEqual(manifest.overrides, {
-    "fast-uri": "3.1.6",
+    "fast-uri": "3.1.7",
     nanoid: "3.3.18",
   });
   for (const version of [

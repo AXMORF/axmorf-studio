@@ -10,6 +10,9 @@ import { enableTailwind } from "@remotion/tailwind-v4";
 
 Config.setVideoImageFormat("jpeg");
 Config.setOverwriteOutput(true);
+if (process.env.AXMORF_BROWSER_EXECUTABLE?.trim()) {
+  Config.setBrowserExecutable(process.env.AXMORF_BROWSER_EXECUTABLE.trim());
+}
 Config.overrideWebpackConfig((currentConfiguration) => {
   const withTailwind = enableTailwind(currentConfiguration);
   return {

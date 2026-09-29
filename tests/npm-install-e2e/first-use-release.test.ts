@@ -156,7 +156,7 @@ test("release evidence binds both hosts, exact candidates, prompts and complete 
   duplicateHost.hosts[1]!.host = "codex";
   assert.throws(
     () => verifyReceipt(duplicateHost, runtime, creator),
-    /Both Agent hosts/u,
+    /exact Agent host acceptance set/u,
   );
   const changedSource = { ...runtime, fingerprint: sha256("changed code") };
   assert.throws(
@@ -186,6 +186,52 @@ test("release evidence binds both hosts, exact candidates, prompts and complete 
   assert.throws(() => verifyReceipt(missingFile, runtime, creator));
   assert.throws(() =>
     verifyReceipt({ schemaVersion: 1, passed: true }, runtime, creator),
+  );
+});
+
+test("0.1.15 requires Codex-only acceptance without relaxing native execution", () => {
+  const nextRuntime = { ...runtime, version: "0.1.15" };
+  const nextCreator = { ...creator, version: "0.1.15" };
+  const codex = {
+    ...hostReceipt("codex"),
+    packages: { runtime: summary(nextRuntime), creator: summary(nextCreator) },
+    supervision: {
+      schemaVersion: 1,
+      source: "codex",
+      reportedBeforeCreate: true,
+      reportedBeforePrepare: true,
+      continuationCalls: 1,
+      pollingCalls: 0,
+      asyncBatches: 0,
+      completedAsyncBatches: 0,
+    },
+  };
+  assert.throws(
+    () =>
+      verifyReceipt(
+        { schemaVersion: 1, hosts: [codex] },
+        nextRuntime,
+        nextCreator,
+      ),
+    /native child execution/u,
+  );
+  const hermes = {
+    ...hostReceipt("hermes"),
+    packages: codex.packages,
+  };
+  assert.throws(() =>
+    verifyReceipt(
+      { schemaVersion: 1, hosts: [codex, hermes] },
+      nextRuntime,
+      nextCreator,
+    ),
+  );
+  assert.throws(() =>
+    verifyReceipt(
+      { schemaVersion: 1, hosts: [hermes] },
+      nextRuntime,
+      nextCreator,
+    ),
   );
 });
 
@@ -1765,6 +1811,23 @@ test("Hermes deferred process tool evidence requires matching native bridge invo
     "read_file",
     "Output tool_name alone cannot turn a read into command evidence",
   );
+  const batchedBridge = structuredClone(records);
+  const batchedCalls = JSON.parse(batchedBridge[0]!.tool_calls!) as Array<{
+    function: { arguments: string };
+  }>;
+  batchedCalls[0]!.function.arguments = JSON.stringify({
+    calls: [JSON.parse(batchedCalls[0]!.function.arguments)],
+  });
+  batchedBridge[0]!.tool_calls = JSON.stringify(batchedCalls);
+  assert.equal(audit(batchedBridge).outputs[0]!.name, "process_manage");
+  batchedCalls[0]!.function.arguments = JSON.stringify({
+    calls: [
+      { name: "process_manage", arguments: {} },
+      { name: "terminal", arguments: {} },
+    ],
+  });
+  batchedBridge[0]!.tool_calls = JSON.stringify(batchedCalls);
+  assert.throws(() => audit(batchedBridge));
   const malformed = structuredClone(records);
   malformed[0]!.tool_calls = JSON.stringify([
     {

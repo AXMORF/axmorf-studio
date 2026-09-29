@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import ts from "typescript";
 import { sha256 } from "./package-content";
 import { z } from "zod";
-import { nativeTrace, outputObjects } from "./native-execution";
+import { nativeTrace, outputObjects, unwrapHermesToolCall } from "./native-execution";
 
 export const SupervisionSchema = z
   .object({
@@ -38,6 +38,45 @@ const args = (value: unknown): Row => {
   } catch {
     return { code: value };
   }
+};
+
+const assertTuiResult = (name: string, actual: unknown, expected: unknown) => {
+  if (
+    name === "vision_analyze" &&
+    typeof expected === "string" &&
+    expected.endsWith("\n[screenshot]")
+  ) {
+    const result = z
+      .object({
+        _multimodal: z.literal(true),
+        content: z.tuple([
+          z.object({ type: z.literal("text"), text: z.string() }).strict(),
+          z
+            .object({
+              type: z.literal("image_url"),
+              image_url: z.object({ url: z.string() }).strict(),
+            })
+            .strict(),
+        ]),
+      })
+      .passthrough()
+      .parse(actual);
+    assert.equal(
+      `${result.content[0].text}\n[screenshot]`,
+      expected,
+      "TUI vision text differs from native DB",
+    );
+    const image = result.content[1].image_url.url;
+    assert.match(image, /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/u);
+    assert.ok(
+      Buffer.from(image.slice("data:image/jpeg;base64,".length), "base64")
+        .subarray(0, 3)
+        .equals(Buffer.from([0xff, 0xd8, 0xff])),
+      "TUI vision image is missing or invalid",
+    );
+    return;
+  }
+  assert.deepEqual(actual, expected, "TUI result differs from native DB");
 };
 
 const shellCommands = (name: string, input: Row): string[] => {
@@ -160,8 +199,9 @@ function hermesUiTimeline(input: HermesUiInput, records: Row[]) {
         let name = String(fn.name);
         let arguments_ = args(fn.arguments);
         if (name === "tool_call") {
-          name = String(arguments_.name);
-          arguments_ = args(arguments_.arguments);
+          const bridge = unwrapHermesToolCall(fn.arguments);
+          name = bridge.name;
+          arguments_ = bridge.arguments;
         }
         expectedCalls.push({
           id: String(raw.id),
@@ -260,11 +300,7 @@ function hermesUiTimeline(input: HermesUiInput, records: Row[]) {
         const result = expectedResults[resultCount++];
         assert.ok(result, "Extra TUI tool result");
         assert.equal(id, result.id, "TUI result order differs from native DB");
-        assert.deepEqual(
-          payload.result,
-          result.value,
-          "TUI result differs from native DB",
-        );
+        assertTuiResult(expected.name, payload.result, result.value);
         results.set(id, index);
         rowPositions.set(result.row, index);
       }
@@ -401,8 +437,9 @@ export function auditSupervision(input: {
       let name = String(fn.name);
       let arguments_ = args(fn.arguments ?? fn.input);
       if (name === "tool_call") {
-        name = String(arguments_.name);
-        arguments_ = args(arguments_.arguments);
+        const bridge = unwrapHermesToolCall(fn.arguments);
+        name = bridge.name;
+        arguments_ = bridge.arguments;
       }
       calls.push({
         index: ui ? ui.starts.get(String(object(raw).id))! : index,

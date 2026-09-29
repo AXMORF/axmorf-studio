@@ -38,6 +38,28 @@ test("browser inspection refuses an absent browser without starting a download",
   }
 });
 
+test("browser inspection accepts an explicit host executable without downloading", async () => {
+  const root = await mkdtemp(join(tmpdir(), "axmorf-browser-host-"));
+  const previous = process.env.AXMORF_BROWSER_EXECUTABLE;
+  const executable = join(root, "host chrome");
+  try {
+    const renderer = join(root, "node_modules/@remotion/renderer");
+    await mkdir(renderer, { recursive: true });
+    await writeFile(join(root, "package.json"), "{}");
+    await writeFile(join(renderer, "package.json"), '{"main":"index.js"}');
+    await writeFile(
+      join(renderer, "index.js"),
+      'exports.ensureBrowser=async(o)=>{if(o.browserExecutable!==process.env.AXMORF_BROWSER_EXECUTABLE)throw new Error("wrong executable");return {path:o.browserExecutable};};',
+    );
+    process.env.AXMORF_BROWSER_EXECUTABLE = executable;
+    assert.equal(await inspectInstalledBrowser(root), executable);
+  } finally {
+    if (previous === undefined) delete process.env.AXMORF_BROWSER_EXECUTABLE;
+    else process.env.AXMORF_BROWSER_EXECUTABLE = previous;
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("concurrent readiness calls share one probe and never download a missing browser", async () => {
   const root = await realpath(
     await mkdtemp(join(tmpdir(), "axmorf-browser-single-")),
@@ -196,6 +218,7 @@ for (const proxyMode of ["1", "0"]) {
             http_proxy: "http://127.0.0.1:9",
             https_proxy: "http://127.0.0.1:9",
             NODE_USE_ENV_PROXY: proxyMode,
+            AXMORF_BROWSER_EXECUTABLE: "",
           },
           stdio: ["ignore", "ignore", "pipe"],
         },
@@ -235,6 +258,55 @@ for (const proxyMode of ["1", "0"]) {
     }
   });
 }
+
+test("browser preparation forwards an explicit host executable", async () => {
+  const root = await realpath(
+    await mkdtemp(join(tmpdir(), "axmorf-browser-executable-")),
+  );
+  try {
+    const cli = join(root, "node_modules/@remotion/cli");
+    await mkdir(cli, { recursive: true });
+    await writeFile(join(root, "package.json"), "{}");
+    await writeFile(
+      join(cli, "package.json"),
+      '{"name":"@remotion/cli","bin":{"remotion":"remotion-cli.js"}}',
+    );
+    await writeFile(
+      join(cli, "remotion-cli.js"),
+      `require('node:fs').writeFileSync('launcher.json',JSON.stringify(process.argv.slice(2)));process.exit(1);`,
+    );
+    const source = new URL(
+      "../../packages/studio/src/bootstrap/workspace-browser.ts",
+      import.meta.url,
+    ).href;
+    const executable = join(root, "host chrome");
+    const script = `import {prepareWorkspaceBrowser} from ${JSON.stringify(source)};try{await prepareWorkspaceBrowser(${JSON.stringify(root)});}catch(error){process.stderr.write(error.message);}`;
+    const { spawn } = await import("node:child_process");
+    const child = spawn(
+      process.execPath,
+      ["--import", "tsx", "--input-type=module", "-e", script],
+      {
+        env: {
+          ...process.env,
+          NODE_USE_ENV_PROXY: "0",
+          AXMORF_BROWSER_EXECUTABLE: executable,
+        },
+        stdio: ["ignore", "ignore", "pipe"],
+      },
+    );
+    const code = await new Promise<number | null>((resolve, reject) => {
+      child.once("error", reject);
+      child.once("close", resolve);
+    });
+    assert.equal(code, 0);
+    assert.deepEqual(
+      JSON.parse(await readFile(join(root, "launcher.json"), "utf8")),
+      ["browser", "ensure", `--browser-executable=${executable}`],
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 test("browser preparation preserves an explicit native proxy opt-out in NODE_OPTIONS", () => {
   for (const options of [

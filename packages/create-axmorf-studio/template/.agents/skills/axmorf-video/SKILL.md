@@ -30,6 +30,8 @@ Explicit user dimensions/orientation, fps and locale override settings through c
 `render.width/height/fps/locale`; omit unspecified fields to inherit defaults. Convert orientation to concrete
 dimensions, not just a textual constraint. Do not change saved settings for one video. Check the returned
 `render` against the request before inspect or provider preparation.
+For each narrated Scene, author a visible subject, initial state, narration-timed change, and readable result. Use
+composition and shot relationships to express cause and consequence instead of generic diagrams or decorative motion.
 
 Project creation also freezes the Scene originality baseline. For a legacy
 Project that predates it, require explicit user approval and run
@@ -54,6 +56,7 @@ Before inspect, read [native child verification](references/execution-capabiliti
 `subagents` mode (maximum four). Unknown runtime capacity blocks; verify a native probe batch up to the requested maximum. One I/O probe cannot establish maximum capacity one. Resolve once with verified host flags on `npm run project:execution:resolve`. Only explicit user choices
 may override settings; do not claim an Agent-selected mode came from the user. A blocked
 subagents configuration is a blocker, not permission to switch to inline.
+For Hermes TUI probe batches, wait for native completion notifications; `delegate_task` with `{"action":"list"}` is forbidden status polling, including a single post-dispatch check.
 
 Before cost, run read-only `npm run project:produce:inspect` and report source
 readiness, estimate, artifact reuse, and invalidation in a user-visible message. Follow the returned `agentHandoff`: send its summary before the next production command. Tool output alone is not this report. Only then run

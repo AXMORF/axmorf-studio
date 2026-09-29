@@ -32,7 +32,7 @@ data 不改变 Revision。
 
 Workspace configuration policy fingerprint 绑定 `package.json`、`package-lock.json` 与恰好一个受支持的
 `remotion.config.mjs` 或 `remotion.config.ts`。配置缺失、同时存在两种后缀、symlink/special file 或 bytes drift
-都必须 fail closed；creator 生成的 `.mjs` 与源码 Workspace 的 `.ts` 使用同一 identity boundary。
+都必须 fail closed；creator 和源码 Workspace 均生成 `.ts`，旧 Workspace 的 `.mjs` 仍使用同一 identity boundary。
 
 resource manifest 不能只绑定元数据；selected bytes/checksum drift 必须改变 identity 或 fail closed。private
 secret value 不进入 Revision，只有 private-safe provider/voice/policy identity。

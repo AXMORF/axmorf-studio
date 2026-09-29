@@ -17,7 +17,7 @@ description: Produce videos with bounded workers, event-driven supervision, and 
 Read [policy](policy.json), [workflow](references/direct-production-workflow.md), and
 [Producer config](references/producer-config.md). 报告首尾 Scene 的继承、选择或禁用。
 User silence means inheritance：省略 `sceneTemplates`，never infer `null`；新建用 `project:create`，修改走隔离 revision。
-新建 `visualStyle.theme` 默认 dark；可选 light 或四角色自定义 hex。按已校验主题设计全片，不能用 palette 文案覆盖主题；固定首尾形状/字体/动画不改。
+新建 `visualStyle.theme` 默认 dark，可选 light/四角色 hex；全片按主题取色，palette 文案不能覆盖主题。
 
 `project:create` 冻结 originality baseline；legacy 缺失时必须显式 zero-provider `project:originality:freeze`，不伪造。
 修复 `authoring-validation-failed`：`caption-display-budget-exceeded` 时缩短或拆分 `ttsChunk`，每段最多 72 `caption-display-unit-v1` half-units；不降低 validator。
@@ -54,7 +54,7 @@ read/write 前运行 exact attempt-bound bind；只有 `task-worker-bound` 才�
 inputs 与 declared outputs，并运行 bound commands。TaskExecutionContract attempt-neutral；the validated ArtifactAttestation
 与 task-terminal events 才是 durable authority。
 
-Prepare 前确认宿主进程能跨工具超时存活；按 host probe reference 的完整结果/原句柄等待示例执行。Hermes continuation 用原生 background/notify；Codex 不丢 session/cell ID，也不把 wait-any 的部分完成当整批完成。后台启动回执不是完成。
+Prepare 前确认宿主进程可跨工具超时存活；按 host probe 保留原句柄。Hermes continuation 用原生 background/notify；Codex 不丢 session/cell ID，也不把 wait-any 的部分完成当整批完成。
 
 Inline Root executes exactly one workspace at a time. Subagent mode admits at most `effectiveMaxConcurrency`
 runtime-native children；原生 wait-any 即时补位，原生批量返回或整批完成通知后发下一批；不轮询 child 或信任 chat。真实 spawn/
@@ -63,8 +63,7 @@ transport failure 由 Root 运行 `spawnFailureCommand`；immutable/controller f
 
 ## Hand off to fixed continuation
 
-Root starts the exact `continuationCommand` once per attempt. 用原进程阻塞等待或完成通知做低 token 监督；普通超时只继续等待，不查日志、不推理进度。Code claims once and watches immutable events.
-Task failure exits nonzero without converge; all-success converges exactly once; deadline 从 attempt 创建起一小时。
+Root starts the exact `continuationCommand` once per attempt. 用原句柄或原生通知等待，普通超时只续等。Task failure exits nonzero without converge; all-success converges exactly once.
 错误通知才唤醒 Root 诊断并指导原 executor；不接管 workspace、不 direct converge、不重启当前 continuation。修复与恢复按下方 hardening。
 
 ## Preserve production invariants
@@ -84,6 +83,6 @@ Task failure exits nonzero without converge; all-success converges exactly once;
 
 ## Finish with verified delivery
 
-执行前报告 mode/capacity、IDs、inspect、cost 与 TaskRevisions；Root 只按 fixed 结果报告一次交付或阻塞，忽略迟到的重复成功通知。
+执行前报告 mode/capacity、inspect、cost 与 TaskRevisions；只按 fixed 终态报告一次。
 Only `project-production-complete` or `project-production-current` proves delivery. Do not publish, push, or use
 `git add .`.

@@ -6,6 +6,7 @@ export * from "./auto-check";
 export * from "./cover-spec";
 export * from "./delivery-attribution";
 export * from "./delivery-build";
+export * from "./delivery-layout";
 export * from "./delivery-publishing";
 export * from "./fingerprint";
 export * from "./external-reference";

@@ -501,6 +501,12 @@ export const buildAgentTasks = (
           beat: scene.beat,
           timingBeat: scene.timingBeat,
           brief: scene.brief,
+          ...(templateCopy
+            ? {}
+            : {
+                visualStyle: inputs.visualStyle,
+                narrationCues: scene.narrationCues,
+              }),
           taskInput: scene.taskInput,
         },
       },

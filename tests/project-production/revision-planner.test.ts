@@ -89,7 +89,24 @@ const sceneInput = ({
     meaningId,
     beat,
     timingBeat: { meaningId, marker: timingMarker },
-    brief: { meaningId, marker },
+    brief: {
+      meaningId,
+      visualIntent: `Show the meaning of ${meaningId}.`,
+      compositionIntent: "Use one clear focal subject.",
+      motionIntent: "Reveal the subject through a visible change.",
+      soundIntent: "Narration only.",
+      continuityBrief: "Keep this fixture self-contained.",
+      candidateResourceIds: [],
+      allowedSnapshotCards: [],
+    },
+    narrationCues: [
+      {
+        chunkId: `${meaningId}-01`,
+        text: `Narrate ${meaningId}.`,
+        startFrame: 0,
+        endFrame: 120,
+      },
+    ],
     taskInput: buildSceneTaskInputV7({
       storyId: "story-example",
       meaningId,
@@ -157,7 +174,23 @@ const inputs = ({
     },
     render: RenderSpecSchema.parse(validRenderSpec),
     sound: { storyId: "story-example" },
-    visualStyle: { storyId: "story-example", marker },
+    visualStyle: {
+      schemaVersion: 1,
+      storyId: "story-example",
+      styleProfileId: "cinematic-3d",
+      resourceCatalogFingerprint: sha("c"),
+      artDirection: {
+        medium: `technical illustration ${marker}`,
+        palette: "dark blue and white",
+        lighting: "soft directional light",
+        texture: "matte",
+        compositionGrammar: "one focal subject",
+        motionLanguage: "measured reveal",
+        typography: "minimal",
+      },
+      continuityRules: ["Keep direction stable."],
+      forbiddenTreatments: ["No unrelated decoration."],
+    },
     publishingIntent: { storyId: "story-example" },
     requirements: {
       readabilityPolicy: resolveSceneReadabilityPolicy({
@@ -432,6 +465,35 @@ test("Scene task revision binds only its meaning-local timing slice", () => {
 
   assert.equal(revisionFor(first, "body"), revisionFor(second, "body"));
   assert.notEqual(revisionFor(first, "outro"), revisionFor(second, "outro"));
+});
+
+test("Scene narration cue changes invalidate only the owning Scene", () => {
+  const current = inputs();
+  const changed = {
+    ...current,
+    sceneInputs: current.sceneInputs.map((scene) =>
+      scene.meaningId === "body"
+        ? {
+            ...scene,
+            narrationCues: scene.narrationCues.map((cue) => ({
+              ...cue,
+              startFrame: 1,
+            })),
+          }
+        : scene,
+    ),
+  } as Parameters<typeof buildAgentTasks>[0];
+  const revisions = (loaded: Parameters<typeof buildAgentTasks>[0]) =>
+    Object.fromEntries(
+      buildAgentTasks(loaded, revisionId)
+        .filter(({ task }) => task.semanticId !== null)
+        .map(({ task }) => [task.semanticId, task.taskRevision]),
+    );
+  const before = revisions(current);
+  const after = revisions(changed);
+  assert.notEqual(before.body, after.body);
+  assert.equal(before.intro, after.intro);
+  assert.equal(before.outro, after.outro);
 });
 
 test("GlobalVisual task revision binds RenderSpec identity", () => {

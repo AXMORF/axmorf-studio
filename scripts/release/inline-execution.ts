@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { z } from "zod";
-import { nativeTrace } from "./native-execution";
+import { nativeTrace, unwrapHermesToolCall } from "./native-execution";
 
 // This release's maintainer-approved matrix does not change product defaults
 // or grant an inline exception to other versions or hosts.
@@ -81,7 +81,9 @@ export function auditInlineExecution(input: {
   const trace = nativeTrace("hermes", input.transcript);
   for (const call of trace.calls.values()) {
     const name =
-      call.name === "tool_call" ? JSON.parse(call.arguments).name : call.name;
+      call.name === "tool_call"
+        ? unwrapHermesToolCall(call.arguments).name
+        : call.name;
     assert.notEqual(
       name,
       "delegate_task",

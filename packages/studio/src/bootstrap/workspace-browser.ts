@@ -22,7 +22,7 @@ export const inspectInstalledBrowser = async (
 const {createRequire}=require('node:module');
 const {join}=require('node:path');
 const {ensureBrowser}=createRequire(join(process.cwd(),'package.json'))('@remotion/renderer');
-ensureBrowser({logLevel:'error',onBrowserDownload:()=>{throw new Error('Browser is missing or incomplete. Run npm run browser:prepare.');}})
+ensureBrowser({browserExecutable:process.env.AXMORF_BROWSER_EXECUTABLE?.trim()||null,logLevel:'error',onBrowserDownload:()=>{throw new Error('Browser is missing or incomplete. Run npm run browser:prepare.');}})
 .then(status=>{if(!status.path)throw new Error('Browser unavailable. Run npm run browser:prepare.');process.stdout.write(JSON.stringify(status.path));})
 .catch(error=>{process.stderr.write(error.message);process.exitCode=1;});
 `,
@@ -122,6 +122,7 @@ export const browserPreparationNodeArgs = (
 
 export const prepareWorkspaceBrowser = async (rootDir: string) => {
   const nodeArgs = browserPreparationNodeArgs();
+  const browserExecutable = process.env.AXMORF_BROWSER_EXECUTABLE?.trim();
   const lockPath = join(rootDir, ".axmorf-browser-prepare.lock");
   let lock;
   try {
@@ -142,10 +143,18 @@ export const prepareWorkspaceBrowser = async (rootDir: string) => {
     });
     const result = await runBoundedProcess(
       invocation.command,
-      [...nodeArgs, ...invocation.argsPrefix, "browser", "ensure"],
+      [
+        ...nodeArgs,
+        ...invocation.argsPrefix,
+        "browser",
+        "ensure",
+        ...(browserExecutable
+          ? [`--browser-executable=${browserExecutable}`]
+          : []),
+      ],
       {
         cwd: rootDir,
-        timeoutMs: 300_000,
+        timeoutMs: 60 * 60_000,
         trackOwnership: true,
         logPath: join(rootDir, ".axmorf-browser-prepare.log"),
       },

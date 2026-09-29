@@ -1,5 +1,25 @@
 # Iteration Status
 
+## 0.1.15 候选制作与发布准备（2026-09-29 至 09-30，未发布）
+
+本轮更新 Workspace 源码并修复生成 Workspace 的 Remotion 配置加载：模板由 `remotion.config.mjs`
+改为当前 CLI 自动加载的 `remotion.config.ts`；浏览器准备允许明确的宿主可执行文件路径，下载等待延长至一小时。
+Scene 主题、首尾文字对比、交付布局、任务进度与 Scene review 改动均已纳入本版候选。
+完整 `npm run check` 通过 957/957，包类型检查、构建与两包 `check:package` 通过，依赖审计零漏洞。
+
+[Codex 候选收据](evidence/v0.1.15-first-use.json) 对当前重新打包的 255/41 个发行文件再次通过独立
+`first-use verify`：默认四并发、5 个创作 child、4 个探测 child、一次补位，四任务实际重叠 47.483 秒，
+零轮询、唯一 continuation，final 四文件与 EOF 解码通过；视频 1920×1080、30fps、898 帧、29.93 秒。
+抽看 1、5、15、25、29 秒帧，浅色片头片尾文字与背景对比清楚；未做逐帧检查或完整听审。
+[安装包 revision 闭环](evidence/v0.1.15-revision-closure.json) 在隔离副本完成零 provider/Agent 成本的
+publishing-only 修改、唯一 continuation、自动 promotion、current 复验与手动幂等 promotion。
+另一个隔离副本无代理直连装好 Chrome Headless Shell，`doctor` 六项、默认 `compositions` 与本地浏览器渲染交付均通过。
+
+用户明确同意本版仅以 Codex 验收；[版本限定规则](evidence/v0.1.15-release-policy.json) 不改变后续版本双宿主门槛。
+首次成功运行的原始临时会话在系统清理 `/tmp` 后未保留，签发的独立收据及当前包内容复验仍在；
+补存原始记录的全新 Codex 运行因宿主模型容量错误退出，未计为通过，也未覆盖成功收据。
+该原始记录保留缺口及发布后公共包复验应继续单独记录，不能由候选收据推断已完成。
+
 ## 0.1.14 已发布（2026-09-13，公共复验受浏览器下载阻塞）
 
 `@axmorf/studio` 与 `create-axmorf-studio` 的公共 `latest` 均已回读确认为 `0.1.14`。
@@ -504,6 +524,11 @@ isolated Project revision flow：外部能力只按
   TaskRevisions；
 - Scene executor 继续受 Workspace-local `remotion-best-practices`、Scene-only requirements、本地
   SceneViewport、resource/license 与 Remotion runtime gates 约束；它不感知 full-frame 安全区 inset。
+- Scene owner context 现提供完整 Scene brief、VisualStyleSpec 和封存旁白的 Scene-local chunk 帧区间；
+  TaskExecutionContract 要求开场、可见变化、结果与镜头/旁白同步，`scene-owner-validator-v4` 拒绝原样提交
+  Renderer scaffold。任务 context/contract 变化只失效相应 Agent TaskRevision。
+- `project:scene:review` 在复验 current Delivery 与 SemanticTiming 对齐后，为每个 Scene 生成三帧本地
+  review 页面，保存在 ignored `out/<storyId>/scene-review/`；人工画面复核不属于自动生产完成门槛。
 - execution resolver 已按用户提示词明确字段、独立 settings、内置 `subagents`/4 默认逐级解析；全新 scaffolded Workspace
   默认要求宿主提供 bounded runtime-native children 并为本次 production 验证
   `shared-workspace` 或 `controller-io` transport 时启用，最多四个。transport 不写 execution preferences，也不进入

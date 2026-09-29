@@ -47,6 +47,10 @@ authority in their own scope and never duplicate its rules.
 details；adapters 实现 filesystem/process/media ports，不能反向成为业务 authority。`scripts/project-production`
 是唯一 production/delivery root，不存在第二条构建链。
 
+`domain/attempt-progress.ts` 负责从 immutable attempt/events 纯计算进度、终态统计与计划诊断字段；
+`adapters/attempt-store.ts` 负责事件读取、原子追加、并发投影刷新与持久化。初始与事件进度共享字段投影，
+重复终态与跨绑定事件仍拒绝。分层检查同时拒绝 domain 直接依赖 filesystem/child-process 模块。
+
 ## 2. Authority graph
 
 ```mermaid
@@ -126,6 +130,7 @@ TypeScript registry 完成。
 | generated packages/registry/Composition     | fixed convergence                 | deterministic projection                                                                   |
 | delivery staging/current                    | fixed synchronous builder         | exact identity, media validation, controlled promotion                                     |
 | `.producer-attempts`                        | fixed prepare/progress adapter    | diagnostic snapshot only；不能拥有 artifact/delivery                                       |
+| `out/<storyId>/scene-review`                | delivery review CLI               | local diagnostic PNG/HTML only；不进入任何 production identity                             |
 
 private config、voice profiles、shared media、core、other Projects 与 historical data 不属于 Agent task write scope。
 
@@ -137,6 +142,8 @@ render 供 Agent 在有成本生产前核对用户要求。既有 Project 的 Re
 
 Scene task reads one complete StoryBeat, its SemanticTiming slice, Scene-only requirements, a derived
 safe-area-local SceneViewport, VisualStyleSpec, Scene brief, resource pool and selected resources. It does not receive the raw
+safe-area-local SceneViewport, Scene brief, VisualStyleSpec, Scene-local narration chunk ranges, resource pool and
+selected resources. It does not receive the raw
 Composition readability policy, full-frame dimensions or insets. GlobalVisual reads
 Story/Timing/VisualStyle/requirements/brief/resources but never Scene output. Its fixed layer policy derives a
 full-Composition base range and a first-to-last narrated Scene decoration range from canonical SemanticTiming;
@@ -211,7 +218,7 @@ Remotion/FFmpeg/FFprobe/Studio 统一解析 Workspace-local `@remotion/cli` 的 
 前写入 Workspace，runtime render 不扫描 package、filesystem 或网络。
 
 Workspace configuration snapshot 要求根目录恰有一个 `remotion.config.mjs` 或 `remotion.config.ts`；creator
-生成 `.mjs`，源码 Workspace 可以使用 `.ts`。缺失或同时存在时 fail closed。所选配置与 `package.json`、lockfile
+生成 Remotion CLI 自动加载的 `.ts`，`.mjs` 仅供旧 Workspace 的配置快照识别。缺失或同时存在时 fail closed。所选配置与 `package.json`、lockfile
 共同进入独立 configuration fingerprint，不与 package-owned runtime policy 混成同一 identity。
 
 candidate scope 复用同一 immutable runtime/config 与 content-addressed Artifact Store，但隔离 Project source/public、
@@ -247,6 +254,10 @@ Project-local instance。
 冻结到 Project-local source/public roots；既有 Project 不因 package/shared seed 更新而改变。
 
 ## 8. Synchronous delivery
+
+`contracts/delivery-layout.ts` 集中定义 exact 四文件名称与 Project-owned artifact 路径；构建、current
+inspection、revision promotion、publishing schema 与 Web 消费同一规则。封面任务示例、源码检查与媒体复验均从
+`FIXED_COVER_SPEC` 取得尺寸，不分别维护数字副本。规则仍为固定合同，不增加用户配置或改变交付格式。
 
 Delivery builder 在一个 foreground command 内完成 render、probe、EOF decode、publish-last 和 current
 promotion。build-owned staging 允许跨捕获失败复用同 identity 已验证媒体；不同 identity 不混用。

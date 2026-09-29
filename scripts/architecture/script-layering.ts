@@ -166,6 +166,14 @@ export const findScriptLayeringViolations = async (rootDir: string) => {
       source,
       sourcePath,
     )) {
+      if (
+        sourceLayer === "domain" &&
+        /^(?:node:)?(?:fs(?:\/promises)?|child_process)$/u.test(specifier)
+      ) {
+        violations.push(
+          `${sourcePath} -> ${specifier}: domain depends on host I/O`,
+        );
+      }
       const target = resolveLocalImport(sourcePath, specifier);
       if (target === null) continue;
       const targets = importGraph.get(sourcePath) ?? [];

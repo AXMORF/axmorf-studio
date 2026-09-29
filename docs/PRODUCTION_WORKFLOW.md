@@ -14,6 +14,7 @@ Agent 第一次接手生成 Workspace 时先读取 `AGENTS.md` 并运行 `npm ru
 Node.js/npm、普通 npm dependencies 与宿主前置条件后重跑；不得修改 `node_modules`、package internals、精确版本、
 lockfile authority、sandbox 或 validator 来制造 Green。无法满足时报告 external blocker。doctor Green 只表示
 当前环境可以进入下面的主链，不表示已经生产或交付视频，也不把该 OS 整体认证为受支持平台。
+宿主已有兼容浏览器时可在创建、doctor 与渲染进程设置 `AXMORF_BROWSER_EXECUTABLE` 为其绝对路径；仍需通过真实浏览器渲染验证。
 
 ## 1. 主链概览
 
@@ -213,6 +214,11 @@ size/fingerprint）。raw policy、full-frame width/height 和四边 inset 不�
 validator 拒绝 Renderer 自建 SceneViewport/provider、读取 raw policy/inset 或调用 `useVideoConfig()`
 恢复 full-frame authority。
 
+`scene-owner` context 另外提供当前 Scene brief、完整 VisualStyleSpec 与由已封存 SemanticTiming 派生的
+Scene-local narrationCues。TaskExecutionContract 要求执行者把开场主体、可见变化与结果对应到实际镜头和
+旁白 chunk；示例 Renderer 只是 API scaffold，原样提交由 `scene-owner-validator-v4` 拒绝。新增 context 和
+contract 只改变相关 Agent TaskRevision，不改变 ProductionRevision。
+
 GlobalVisual context 包含 fixed workflow 从 canonical SemanticTiming 派生的严格 layer policy：base range 是完整
 Composition，decoration range 是首个至末个 narrated Scene 的连续窗口，decoration 的 Remotion frame origin 是
 窗口 local zero。GlobalVisual validator 要求同一入口恰好导出两个 no-Props component，并拒绝越出
@@ -298,6 +304,11 @@ build 同步等待 Remotion/FFmpeg，依次验证：
 `publish.json` 最后写。四文件全部通过才 controlled replace `deliveries/<storyId>/`。相同完整 identity 返回
 `project-production-current`；新 package 成功提升返回 `project-production-complete`。这两个状态均证明实际
 current files 完整，不是计划、聊天或进程启动事实。
+
+交付后可运行 `npm run project:scene:review -- --project <storyId>`。命令先复验 current 四文件
+Delivery，再核对当前 SemanticTiming 的 fps/frame count 与 narrated chapter 起点；逐个 Scene 提取开头、
+中点和末帧，生成 `out/<storyId>/scene-review/<deliveryBuildId>-*/index.html` 与 `review.json`。
+该产物只供人工复核，既不进入 Project/Task/Artifact/Delivery identity，也不自动判定审美质量。
 
 candidate continuation 在隔离 delivery 上完成同样的 exact-four validation 后，自动尝试 promotion。promotion
 在 repository lock 内再次复验 live base、candidate record、expected candidate Revision/Delivery tuple 与四文件

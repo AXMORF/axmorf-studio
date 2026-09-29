@@ -21,6 +21,7 @@ export type CliRunners = Readonly<{
   projectAssetImport: CliCommandRunner;
   projectCheck: CliCommandRunner;
   projectProduction: CliCommandRunner;
+  projectSceneReview: CliCommandRunner;
   catalog: CliCommandRunner;
   registry: CliCommandRunner;
   renderer: CliCommandRunner;
@@ -83,6 +84,9 @@ const routeProject = async (input: CliCommandInput, runners: CliRunners) => {
       rootDir: input.rootDir,
       args: input.args.slice(2),
     });
+  }
+  if (group === "scene" && operation === "review") {
+    return runners.projectSceneReview({ rootDir: input.rootDir, args: rest });
   }
   if (group === "asset" && operation === "import") {
     return runners.projectAssetImport({ rootDir: input.rootDir, args: rest });

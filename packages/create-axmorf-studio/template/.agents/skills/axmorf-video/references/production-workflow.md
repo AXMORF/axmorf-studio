@@ -11,6 +11,11 @@ Write only declared Agent-owned outputs; use exact bound describe/finalize/check
 `.agents/skills/remotion-best-practices/SKILL.md` and its relevant references before implementation. Correct only your own
 `agent-output` issues before terminal. On a host/fixed fault, stop and return the structured error to the Root for its exact
 failure command. Never reopen or automatically retry a terminal failed attempt.
+For Scene tasks, consume `scene.brief`, `scene.visualStyle`, and Scene-local `scene.narrationCues` in the bound context.
+Design a visible opening, meaning-driven change, and result aligned with narration. The Renderer in the task contract is
+an API scaffold and must be replaced; its unchanged source fails the Scene checker.
+Stage one clear focal subject per shot, keep it recognizable across changes in scale or viewpoint, and make the final state
+show the Beat's consequence. Leave visual breathing room for Composition-owned captions.
 
 Finalize computes derived identities and fingerprints. For `failureOwner: agent-output`, correct its reported
 file/field and rerun finalize before check; do not calculate hashes manually or read package internals.
@@ -84,3 +89,9 @@ copy.
 Runtime code does not call Agents, providers, Git, or the network. Delivery is
 exactly `video.mp4`, `cover-4x3.png`, `cover-3x4.png`, and `publish.json`, and is
 current only after fixed media and checksum validation.
+After a verified current delivery, `npm run project:scene:review -- --project <storyId>` writes a local three-frame-per-Scene
+review page under ignored `out/<storyId>/scene-review/`. Review the delivered video for motion and sound; this diagnostic
+does not alter production identity or automatically grade visual quality.
+Compare each Scene's opening, change, and result with its `narrativePurpose`, Scene brief, and narration cues. If the visible
+result misses the user's meaning or the focal subject is unclear, describe the specific mismatch and use the isolated
+revision flow for corrections within the authorized brief. Mechanical delivery success alone does not prove visual quality.

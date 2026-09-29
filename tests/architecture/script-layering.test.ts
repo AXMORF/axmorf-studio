@@ -10,6 +10,26 @@ test("workflow and shared scripts keep one-way layer dependencies", async () => 
   assert.deepEqual(await findScriptLayeringViolations(process.cwd()), []);
 });
 
+test("domain modules cannot acquire filesystem or child-process dependencies", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-domain-layering-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const directory = join(rootDir, "scripts/project-production/domain");
+  await mkdir(directory, { recursive: true });
+  await writeFile(
+    join(directory, "progress.ts"),
+    [
+      'import { readFile } from "node:fs/promises";',
+      'import { writeFileSync } from "fs";',
+      'import { spawn } from "node:child_process";',
+    ].join("\n"),
+  );
+  assert.deepEqual(await findScriptLayeringViolations(rootDir), [
+    "scripts/project-production/domain/progress.ts -> fs: domain depends on host I/O",
+    "scripts/project-production/domain/progress.ts -> node:child_process: domain depends on host I/O",
+    "scripts/project-production/domain/progress.ts -> node:fs/promises: domain depends on host I/O",
+  ]);
+});
+
 test("layering guard detects every forbidden dependency direction", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "rsp-script-layering-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));

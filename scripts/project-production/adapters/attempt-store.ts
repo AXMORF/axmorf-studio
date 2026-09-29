@@ -18,13 +18,10 @@ import { z } from "zod";
 import {
   EXECUTION_ATTEMPT_VERSION,
   EXECUTION_ATTEMPT_EVENT_VERSION,
-  EXECUTION_ATTEMPT_PROGRESS_VERSION,
   ExecutionAttemptDeliveryResultSchema,
   ExecutionAttemptEventSchema,
-  ExecutionAttemptProgressSchema,
   ExecutionAttemptSchema,
   ExecutionAttemptTaskOutcomeSchema,
-  ProducerPlanSchema,
   ProducerTaskSpecSchema,
   StoryIdSchema,
   serializeCanonicalJson,
@@ -35,9 +32,6 @@ import {
   type ExecutionAttemptTaskOutcome,
   type ProducerPlan,
   type ProducerTaskSpec,
-} from "@axmorf/studio/contracts";
-import {
-  TaskDiagnosticSnapshotListSchema,
   type TaskDiagnosticSnapshot,
 } from "@axmorf/studio/contracts";
 import type {
@@ -48,6 +42,12 @@ import {
   readOptionalTextFile,
   writeTextFileAtomic,
 } from "../../shared/atomic-file";
+import {
+  assertAttemptEventIdentity,
+  buildAttemptPlanFields,
+  createInitialAttemptProgress,
+  projectAttemptProgress,
+} from "../domain/attempt-progress";
 import { inspectCurrentDelivery } from "./current-delivery-inspection";
 
 const attemptsStorageRoot = (rootDir: string) =>
@@ -172,19 +172,6 @@ const missingAttemptError = () => {
 const writeCanonicalJson = (path: string, value: unknown, flag?: "wx") =>
   writeFile(path, `${serializeCanonicalJson(value)}\n`, { flag });
 
-const emptyTaskOutcomeSummary = {
-  committedTaskCount: 0,
-  currentTaskCount: 0,
-  failedTaskCount: 0,
-} as const;
-
-const notVerifiedDelivery = {
-  status: "not-verified",
-  deliveryBuildId: null,
-  diagnosticCode: null,
-  deliveryMedia: [],
-} as const;
-
 const eventPath = (
   rootDir: string,
   storyId: string,
@@ -217,47 +204,6 @@ const buildOpenedEvent = (attempt: ExecutionAttempt): ExecutionAttemptEvent =>
     taskOutcome: null,
     deliveryResult: null,
   });
-
-const baseProgress = (
-  attempt: ExecutionAttempt,
-  eventCount: number,
-): ExecutionAttemptProgress =>
-  ExecutionAttemptProgressSchema.parse({
-    schemaVersion: 3,
-    contractVersion: EXECUTION_ATTEMPT_PROGRESS_VERSION,
-    attemptId: attempt.attemptId,
-    storyId: attempt.storyId,
-    revisionId: attempt.revisionId,
-    planFingerprint: attempt.planFingerprint,
-    artifactSetFingerprint: attempt.artifactSetFingerprint,
-    taskExplanations: attempt.taskExplanations,
-    taskSnapshots: attempt.taskSnapshots,
-    estimatedCost: attempt.estimatedCost,
-    actualCost: attempt.actualCost,
-    state: attempt.state,
-    createdAt: attempt.createdAt,
-    updatedAt: attempt.updatedAt,
-    dirtyTaskRevisions: attempt.dirtyTaskRevisions,
-    taskSummary: attempt.taskSummary,
-    diagnosticCode: attempt.diagnosticCode,
-    eventCount,
-    taskOutcomes: [],
-    taskOutcomeSummary: emptyTaskOutcomeSummary,
-    deliveryResult: notVerifiedDelivery,
-  });
-
-const assertEventIdentity = (
-  event: ExecutionAttemptEvent,
-  attempt: Pick<ExecutionAttempt, "attemptId" | "storyId" | "revisionId">,
-) => {
-  if (
-    event.attemptId !== attempt.attemptId ||
-    event.storyId !== attempt.storyId ||
-    event.revisionId !== attempt.revisionId
-  ) {
-    throw new Error("Execution attempt event identity is cross-bound.");
-  }
-};
 
 const readEvents = async ({
   rootDir,
@@ -301,7 +247,7 @@ const readEvents = async ({
     if (`${event.eventId}.json` !== entry.name) {
       throw new Error("Execution attempt event filename is stale.");
     }
-    assertEventIdentity(event, attempt);
+    assertAttemptEventIdentity(event, attempt);
     events.push(event);
   }
   return events.sort(
@@ -309,87 +255,6 @@ const readEvents = async ({
       left.recordedAt.localeCompare(right.recordedAt) ||
       left.eventId.localeCompare(right.eventId),
   );
-};
-
-const projectProgress = ({
-  attempt,
-  events,
-}: {
-  readonly attempt: ExecutionAttempt;
-  readonly events: readonly ExecutionAttemptEvent[];
-}): ExecutionAttemptProgress => {
-  const outcomes = new Map<string, ExecutionAttemptTaskOutcome>();
-  const dirty = new Set(attempt.dirtyTaskRevisions);
-  let state: ExecutionAttemptProgress["state"] = attempt.state;
-  let updatedAt = attempt.updatedAt;
-  let diagnosticCode = attempt.diagnosticCode;
-  let deliveryResult: ExecutionAttemptDeliveryResult = notVerifiedDelivery;
-  for (const event of events) {
-    if (event.recordedAt > updatedAt) updatedAt = event.recordedAt;
-    if (event.taskOutcome !== null) {
-      if (outcomes.has(event.taskOutcome.taskRevision)) {
-        throw new Error(
-          "Execution attempt contains duplicate task terminal events.",
-        );
-      }
-      outcomes.set(event.taskOutcome.taskRevision, event.taskOutcome);
-      if (event.taskOutcome.outcome === "failed") {
-        dirty.add(event.taskOutcome.taskRevision);
-      } else {
-        dirty.delete(event.taskOutcome.taskRevision);
-      }
-    }
-    if (event.deliveryResult !== null) {
-      if (deliveryResult.status !== "not-verified") {
-        throw new Error(
-          "Execution attempt contains duplicate delivery terminal events.",
-        );
-      }
-      deliveryResult = event.deliveryResult;
-      state =
-        event.deliveryResult.status === "verified" ? "succeeded" : "failed";
-      diagnosticCode = event.deliveryResult.diagnosticCode;
-    }
-  }
-  const taskOutcomes = [...outcomes.values()].sort((left, right) =>
-    left.taskRevision.localeCompare(right.taskRevision),
-  );
-  return ExecutionAttemptProgressSchema.parse({
-    schemaVersion: 3,
-    contractVersion: EXECUTION_ATTEMPT_PROGRESS_VERSION,
-    attemptId: attempt.attemptId,
-    storyId: attempt.storyId,
-    revisionId: attempt.revisionId,
-    planFingerprint: attempt.planFingerprint,
-    artifactSetFingerprint: attempt.artifactSetFingerprint,
-    taskExplanations: attempt.taskExplanations,
-    taskSnapshots: attempt.taskSnapshots,
-    estimatedCost: attempt.estimatedCost,
-    actualCost: {
-      ...attempt.actualCost,
-      deliveryMedia: deliveryResult.deliveryMedia,
-    },
-    state,
-    createdAt: attempt.createdAt,
-    updatedAt,
-    dirtyTaskRevisions: [...dirty].sort(),
-    taskSummary: attempt.taskSummary,
-    diagnosticCode,
-    eventCount: events.length,
-    taskOutcomes,
-    taskOutcomeSummary: {
-      committedTaskCount: taskOutcomes.filter(
-        ({ outcome }) => outcome === "artifact-committed",
-      ).length,
-      currentTaskCount: taskOutcomes.filter(
-        ({ outcome }) => outcome === "artifact-current",
-      ).length,
-      failedTaskCount: taskOutcomes.filter(
-        ({ outcome }) => outcome === "failed",
-      ).length,
-    },
-    deliveryResult,
-  });
 };
 
 const writeProgress = async ({
@@ -446,7 +311,7 @@ export const writeExecutionAttempt = async ({
     );
     await writeCanonicalJson(
       join(staging, "progress.generated.json"),
-      baseProgress(parsed, 1),
+      createInitialAttemptProgress(parsed, 1),
       "wx",
     );
     await rename(staging, directory);
@@ -495,7 +360,7 @@ export const readExecutionAttemptProgress = async ({
       throw new Error("Execution attempt identity is cross-bound.");
     }
     const events = await readEvents({ rootDir, attempt });
-    return projectProgress({ attempt, events });
+    return projectAttemptProgress({ attempt, events });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw error;
@@ -740,38 +605,6 @@ export const readExecutionAttemptDiagnosticBaseline = async ({
   };
 };
 
-const planAttemptFields = ({
-  plan,
-  taskSnapshots,
-  estimatedCost,
-  actualCost,
-}: {
-  readonly plan: ProducerPlan;
-  readonly taskSnapshots: readonly TaskDiagnosticSnapshot[];
-  readonly estimatedCost: EstimatedProductionCost;
-  readonly actualCost: ActualProductionCost;
-}) => {
-  const parsed = ProducerPlanSchema.parse(plan);
-  const parsedSnapshots = TaskDiagnosticSnapshotListSchema.parse(taskSnapshots);
-  return {
-    planFingerprint: parsed.planFingerprint,
-    artifactSetFingerprint: parsed.artifactSetFingerprint,
-    taskExplanations: parsed.tasks,
-    taskSnapshots: parsedSnapshots,
-    estimatedCost,
-    actualCost,
-    dirtyTaskRevisions: parsed.tasks
-      .filter(({ action }) => action !== "reuse" && action !== "blocked")
-      .map(({ taskRevision }) => taskRevision)
-      .filter(
-        (revision): revision is NonNullable<typeof revision> =>
-          revision !== null,
-      )
-      .sort(),
-    taskSummary: parsed.summary,
-  } as const;
-};
-
 export const createExecutionAttemptForPlan = async ({
   rootDir,
   plan,
@@ -787,7 +620,7 @@ export const createExecutionAttemptForPlan = async ({
   readonly actualCost: ActualProductionCost;
   readonly state: "waiting-for-agent" | "converging";
 }) => {
-  const fields = planAttemptFields({
+  const fields = buildAttemptPlanFields({
     plan,
     taskSnapshots,
     estimatedCost,
@@ -819,7 +652,7 @@ const appendEvent = async ({
   readonly progress: ExecutionAttemptProgress;
   readonly event: ExecutionAttemptEvent;
 }) => {
-  assertEventIdentity(event, progress);
+  assertAttemptEventIdentity(event, progress);
   if (
     !(await assertAttemptEventsDirectory({
       rootDir,
@@ -856,7 +689,7 @@ const appendEvent = async ({
     const existing = ExecutionAttemptEventSchema.parse(
       JSON.parse(existingBytes),
     );
-    assertEventIdentity(existing, progress);
+    assertAttemptEventIdentity(existing, progress);
     const sameTerminal =
       existing.eventKind === event.eventKind &&
       serializeCanonicalJson(existing.taskOutcome) ===
@@ -882,7 +715,7 @@ const appendEvent = async ({
   });
   for (;;) {
     const before = await readEvents({ rootDir, attempt });
-    const projected = projectProgress({ attempt, events: before });
+    const projected = projectAttemptProgress({ attempt, events: before });
     await writeProgress({ rootDir, progress: projected });
     const after = await readEvents({ rootDir, attempt });
     if (

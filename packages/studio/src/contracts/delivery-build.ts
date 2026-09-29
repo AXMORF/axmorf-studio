@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { deliveryArtifactPath } from "./delivery-layout";
 import { DeliveryPublishingSchema } from "./delivery-publishing";
 import { createFingerprint } from "./fingerprint";
 import { CompositionIdSchema, PositiveIntegerSchema, Sha256DigestSchema, StoryIdSchema } from "./primitives";
@@ -45,7 +46,7 @@ const PublishInputSchema = DeliveryBuildIdentitySchema.extend({
     policyVersion: publish.policyVersion,
   };
   if (publish.deliveryBuildId !== createDeliveryBuildId(identity)) context.addIssue({ code: "custom", message: "Delivery build identity is stale.", path: ["deliveryBuildId"] });
-  const expected = { video: `deliveries/${publish.storyId}/video.mp4`, cover4x3: `deliveries/${publish.storyId}/cover-4x3.png`, cover3x4: `deliveries/${publish.storyId}/cover-3x4.png` };
+  const expected = { video: deliveryArtifactPath(publish.storyId, "video"), cover4x3: deliveryArtifactPath(publish.storyId, "cover4x3"), cover3x4: deliveryArtifactPath(publish.storyId, "cover3x4") };
   for (const key of Object.keys(expected) as Array<keyof typeof expected>) if (publish.artifacts[key].repositoryPath !== expected[key]) context.addIssue({ code: "custom", message: "Delivery artifact path is stale.", path: ["artifacts", key, "repositoryPath"] });
 });
 

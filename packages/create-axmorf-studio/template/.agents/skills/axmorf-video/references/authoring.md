@@ -31,6 +31,10 @@ caption budget and licensing are still checked by create. Do not read package in
   the successful create response `render` with the request; stop before provider calls on a mismatch.
 - Use lowercase hyphenated `storyId`. Use registered `styleProfileId` values (without the `style.` Catalog ID prefix).
 - Each narrated beat owns one `meaningId`, one Scene brief and one publishing chapter in the same order.
+- Write each narrated Scene as a visible causal sequence: identify the subject and its initial state, the action that changes it,
+  and the resulting state the viewer should understand. Put concrete staging and focal hierarchy in `compositionIntent`, and
+  describe the timed visible action in `motionIntent`. Tie the change to the relevant `ttsChunk`; keep the visual subject consistent
+  with `visualStyle` and `continuityBrief`. A generic diagram or decorative movement is not a substitute for that sequence.
 - `ttsChunks` contains objects with `chunkId` and `ttsText`, not strings. Keep each within 72 caption display half-units; shorten or
   split by natural meaning when needed. Audio sample measurements determine actual duration.
 - The duration brief includes inherited intro/outro Scenes. Report their selection before create; do not silently disable them to

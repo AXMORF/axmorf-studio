@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "hosts": [
+    {
+      "schemaVersion": 1,
+      "host": "codex",
+      "model": "gpt-5.6-sol",
+      "sessionId": "01a0ebf2-ea4c-7372-81d9-f6baec6cb227",
+      "environment": {
+        "platform": "darwin",
+        "arch": "x64",
+        "node": "v26.4.0"
+      },
+      "startedAt": "2026-09-29T06:55:58Z",
+      "endedAt": "2026-09-29T07:16:17Z",
+      "packages": {
+        "runtime": {
+          "name": "@axmorf/studio",
+          "version": "0.1.15",
+          "fingerprint": "sha256:8ad9426d192869c1f844026e9ce30c19236ff20f9642d10ce28ecba4950e573e",
+          "fileCount": 255
+        },
+        "creator": {
+          "name": "create-axmorf-studio",
+          "version": "0.1.15",
+          "fingerprint": "sha256:f313dba0a05612591e776c337e256164324319d252e703bd0ddce5078dd08379",
+          "fileCount": 41
+        }
+      },
+      "prompt": "请帮我制作一条约30秒的中文横屏科普视频，尺寸1920×1080，项目 ID 为 codex-release015-moon。主题是“为什么月亮会有阴晴圆缺”，请分三个独立内容段落讲清楚：月球本身不发光、我们看到的亮面随位置变化、一个周期后又回到相似形状。采用浅色主题，画面有清楚的层次和运动，片头片尾文字要和背景保持高对比度。配旁白和字幕，最后给我视频和两张封面。\n",
+      "promptChecksum": "sha256:a8ce8bf6cfde80b3898126154a638fb29aa7f36e4456366e8dc4c515aec06248",
+      "transcriptChecksum": "sha256:3b8c66599e0e67204b802e110a442c7c8d4e46ccd4ba25283f447401f1982029",
+      "runChecksum": "sha256:90c2983179eadfa1e0c26d6df905a68bc8f7bf1693dea33170c20df6deb8d110",
+      "snapshotChecksum": "sha256:aea6ff32511f77fa26fd4f2a2e28b254c6db1898b1c789a5dee5c4a83c6cf5f6",
+      "creation": {
+        "method": "npm-exec-candidate",
+        "runtimeTarballChecksum": "sha256:c4061f24d30f885936ba775c829d3dbea753c4bd146c4b1bdcc9fae853d35767",
+        "creatorTarballChecksum": "sha256:39fa2803894f8e5710e09bc0a6c5d0b7242b75c6bdb32411f3571734bf543844",
+        "installLogChecksum": "sha256:29ac5347177ff3a52e4014695e92b1020a3d334a2a25fc91b3a0a5680e0ea341"
+      },
+      "sessionChecksum": null,
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 45,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 0
+      },
+      "unchangedPackageFiles": 255,
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "peakBoundTasks": 4,
+        "fourWayBoundOverlapMs": 47483,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 4,
+        "refillAdmissions": 1,
+        "attemptId": "c6ed6003-acfd-48c6-a10b-5c66f5dbb6d6",
+        "childEvidence": [
+          {
+            "sessionId": "01a0ebf6-c2de-72a1-9d6d-859e5ae7aff6",
+            "transcriptChecksum": "sha256:9177d53422493c60ccb51096a9d348e5a31fe3b7f21beb663390e4c2d7f53133",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a0ebf6-dcbf-73a1-b353-4cb5d41685fc",
+            "transcriptChecksum": "sha256:7372f81c91bba11915c529bbc20a9bbd06e1d2890bf3ab642dd169911637edd1",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a0ebf6-fed7-72b2-a528-3e15adb37f88",
+            "transcriptChecksum": "sha256:ecd192a1286c5d72be3f0fea0776b78f6286c87ddab55cad3397ca78f54cad08",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a0ebf7-1610-7302-a5cf-5d9a1179e831",
+            "transcriptChecksum": "sha256:f59ce2c555010e82239aa61322d7744abc3aa7e12f7882250d35232a6de8e206",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a0ebfa-937e-7bb2-8635-2bd48346705a",
+            "transcriptChecksum": "sha256:9430267644341db25b7e49db7b2735fdb8ff44f8ddedad5a7d50b047b26eea56",
+            "sessionChecksum": null,
+            "taskRevision": "task-33b3ba4622464fc259ff1167ba9f0f306e36f2238e0ea8213620421675fcd894"
+          },
+          {
+            "sessionId": "01a0ebfa-c622-7fd3-8cd6-4c7b8814cf62",
+            "transcriptChecksum": "sha256:2177bc55ed3fa3b601e202176327575dad851ed44ed27baf32427dd524ee7a3e",
+            "sessionChecksum": null,
+            "taskRevision": "task-6fb569d45a425463b1f5ef923f69914caf814e09d3c8566c072559964073bca6"
+          },
+          {
+            "sessionId": "01a0ebfa-f619-7d02-8e6a-b35c8ff1daa3",
+            "transcriptChecksum": "sha256:fe7af014bf18708fb1179a9a341e51c7410ec186d57ba3cd83be5025635b9270",
+            "sessionChecksum": null,
+            "taskRevision": "task-75682ce2a4140018b49090ae710cdabf2417c77b875122b292a20eac8be8e24e"
+          },
+          {
+            "sessionId": "01a0ebfb-27c3-7f92-b7f8-0789c606831e",
+            "transcriptChecksum": "sha256:62e3784e2a016dcb40b6ac222307f7b3544db7a3dd16a1d3a25595a1334dd95f",
+            "sessionChecksum": null,
+            "taskRevision": "task-8b81bc819c03324c5564fce9bda1742345dbab0a1ce998249810552ff07734bd"
+          },
+          {
+            "sessionId": "01a0ebfe-42a8-74c3-ac02-c785b43a9b62",
+            "transcriptChecksum": "sha256:4b284641cdc89b2d7ee1abf82acfbad5c210d2ec0564a001d6249ad3acfd1936",
+            "sessionChecksum": null,
+            "taskRevision": "task-c2b39e782d7dc73735a99bfea48f466be33cf1aa47dfd8832f8bc564cdb9cab5"
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null
+      },
+      "supervision": {
+        "schemaVersion": 1,
+        "source": "codex",
+        "reportedBeforeCreate": true,
+        "reportedBeforePrepare": true,
+        "continuationCalls": 1,
+        "pollingCalls": 0,
+        "asyncBatches": 0,
+        "completedAsyncBatches": 0
+      },
+      "unchangedGuideFiles": 12,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "codex-release015-moon",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-c41bef45850add6b4e93b8fa6231d7dd41285475580ce4cddf5e0fd95dffb0b7",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-6235804618f34245ea23c3c2ed0fd5b136e4a8e46e089bf49e90046765c25aec",
+        "artifactSetFingerprint": "sha256:ae6c87242cebd7f170780f376049c24e43966a891d6a6f3b0ba2040162e49cd3"
+      },
+      "delivery": {
+        "storyId": "codex-release015-moon",
+        "deliveryBuildId": "delivery-c41bef45850add6b4e93b8fa6231d7dd41285475580ce4cddf5e0fd95dffb0b7",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:cb6932bd9e05e30bb01f56418e15dcf4ca80430f324da6824e628cd4ada712cd",
+            "sizeBytes": 2844576
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:0f4fc6009b30795d6ff4e4c6e0d9271efbe51e90658977b43c1585527e687e01",
+            "sizeBytes": 120411
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:3354c45945422e7701b3fd1d963fa7a7ed7dcc84b7b8df2405c787ad4a055a0a",
+            "sizeBytes": 122577
+          },
+          "publish.json": {
+            "checksum": "sha256:a05d80d191314e909f3e080262695a7ddcabb3984a3447fc2feb70f58d610cfb",
+            "sizeBytes": 2191
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1920,
+          "height": 1080,
+          "fps": 30,
+          "frameCount": 898
+        },
+        "decodedFiles": [
+          "video.mp4",
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ]
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # First-use release gate
 
-A stable npm release requires actual Codex and Hermes runs against the candidate
+A stable npm release normally requires actual Codex and Hermes runs against the candidate
 creator and runtime tarballs. These runs use fresh workspaces and fresh host
 profiles, with one ordinary business prompt per host. They do not inherit the
 repository, earlier sessions, memory, global project skills, or engineering hints.
@@ -9,7 +9,7 @@ send follow-up repair instructions or change package internals during the run.
 A failed run stays recorded as failed; a later engineering fix requires new
 candidates and a new first-use run.
 
-Except for the explicit 0.1.14 matrix below, from 0.1.9 onward both hosts must exercise the package's default native
+Except for the explicit 0.1.14 and 0.1.15 scopes below, from 0.1.9 onward both hosts must exercise the package's default native
 `subagents` path with configured maximum concurrency four. The business prompt
 does not name this execution strategy. Select a normal video brief that produces
 more than four dirty creative tasks, so the run exercises releasing a child slot
@@ -33,6 +33,13 @@ progress report, single background continuation, no-polling, package/guide
 integrity, final delivery and complete media decoding checks remain required.
 Original failed runs and their narrower evidence remain preserved; the approved
 scope does not turn earlier failed runs into passing receipts.
+
+For **0.1.15 only**, the maintainer uses Codex and authorized a Codex-only
+candidate and post-publication gate. The exact receipt must contain one Codex
+host, with the unchanged default four-way native execution, supervision, real
+delivery, and full media checks. Hermes runs remain diagnostic and cannot be
+counted as passing release evidence. This scope does not certify Hermes; later
+versions return to the two-host gate.
 
 This gate supplements the automated install/contract tests. It does not claim
 multi-model, multi-OS, interactive approval, revision, or recovery certification.
@@ -215,14 +222,15 @@ fixture. Keep source/package bytes unchanged and retain failed attempts. Record 
 command outputs, final tuple, unchanged original digest, and any harness limitations separately.
 A source test with an injected fixture policy does not replace this installed-package evidence.
 
-## Publish once both hosts pass
+## Publish once the required hosts pass
 
-Combine the two generated JSON objects from the repository root:
+Combine the required generated JSON objects from the repository root. For
+0.1.15, use only the Codex receipt; other versions use both hosts:
 
 ```sh
 node --input-type=module - <<'JS'
 import {readFile, writeFile} from 'node:fs/promises';
-const files = ['codex-receipt.json', 'hermes-receipt.json'];
+const files = ['codex-receipt.json']; // 0.1.15 only; other versions require Hermes too.
 const hosts = await Promise.all(files.map(async file => JSON.parse(await readFile(file, 'utf8'))));
 const {version} = JSON.parse(await readFile('package.json', 'utf8'));
 await writeFile(`docs/evidence/v${version}-first-use.json`,
@@ -240,7 +248,7 @@ node --import tsx scripts/release/first-use.ts verify runtime.tgz creator.tgz do
 
 The publish workflow requires the receipt in the exact release tag and verifies
 it against the newly built tarballs **before either package is published**.
-Missing hosts, failed checks, changed versions, or any changed published file fail
+Missing required hosts, failed checks, changed versions, or any changed published file fail
 closed. Tar container timestamps, compression, and ownership are not content
 identity. Every package file, its path, executable bit, and content remain covered.
 Source-map JSON whitespace/key order and path separators normalize; source lists,
@@ -250,7 +258,7 @@ same package content be verified on macOS and Linux without accepting code drift
 The exact registry tarball integrity remains independently checked at publication.
 
 After publication, repeat ordinary `npm create ...@latest` installation and the
-same two-host business-prompt test against the public registry. Keep post-release
+same required-host business-prompt test against the public registry. Keep post-release
 evidence separate from the candidate receipt. Do not mark the release as fully
 verified until these published-package runs finish.
 

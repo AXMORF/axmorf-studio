@@ -261,6 +261,11 @@ const createDefaultRunners = (output: Output): CliRunners => {
         stdout: stdoutLine,
       });
     },
+    projectSceneReview: async ({ rootDir, args }) => {
+      const { runSceneReviewCli } =
+        await import("../../../../scripts/scene-review/cli");
+      await runSceneReviewCli(args, { rootDir, stdout: stdoutLine });
+    },
     catalog: async ({ rootDir, args }) => {
       await runtime();
       const { runCatalogCli } = await import("../../../../scripts/catalog/cli");

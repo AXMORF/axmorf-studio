@@ -11,6 +11,28 @@ const object = (value: unknown): Row =>
   value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as Row)
     : {};
+const HermesTool = z
+  .object({
+    name: z.string().min(1),
+    arguments: z.union([z.record(z.string(), z.unknown()), z.string()]),
+  })
+  .strict();
+
+export const unwrapHermesToolCall = (value: unknown) => {
+  const parsed = typeof value === "string" ? JSON.parse(value) : value;
+  const bridge =
+    parsed !== null && typeof parsed === "object" && "calls" in parsed
+      ? z.object({ calls: z.tuple([HermesTool]) }).strict().parse(parsed).calls[0]
+      : HermesTool.parse(parsed);
+  return {
+    name: bridge.name,
+    arguments: z.record(z.string(), z.unknown()).parse(
+      typeof bridge.arguments === "string"
+        ? JSON.parse(bridge.arguments)
+        : bridge.arguments,
+    ),
+  };
+};
 const time = (value: unknown) => {
   const result =
     typeof value === "number" ? value * 1000 : Date.parse(String(value));
@@ -148,15 +170,7 @@ export function nativeTrace(host: "codex" | "hermes", text: string) {
       if (host === "hermes" && call.name === "tool_call") {
         // Hermes defers tools behind a native bridge. Its invocation records
         // the wrapper, while the native result records the executed tool name.
-        const bridge = z
-          .object({
-            name: z.string().min(1),
-            arguments: z.union([z.record(z.string(), z.unknown()), z.string()]),
-          })
-          .strict()
-          .parse(JSON.parse(call.arguments));
-        if (typeof bridge.arguments === "string")
-          z.record(z.string(), z.unknown()).parse(JSON.parse(bridge.arguments));
+        const bridge = unwrapHermesToolCall(call.arguments);
         assert.equal(
           payload.tool_name,
           bridge.name,

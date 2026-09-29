@@ -93,6 +93,7 @@ deliveries/<storyId>/publish.json
 | 创建 Project                       | `npm run project:create -- --project <story-id> --input <input.json>` |
 | 只读检查生产计划                   | `npm run project:produce:inspect -- --project <story-id>`             |
 | 开始有成本的准备                   | `npm run project:produce:prepare -- --project <story-id>`             |
+| 交付后复核每个 Scene 的关键画面     | `npm run project:scene:review -- --project <story-id>`                 |
 | 检查 Project                       | `npm run project:check -- --project <story-id>`                       |
 
 日常使用建议让 Agent 消费结构化输出和返回的 exact commands，不要手工拼接内部参数。完整顺序见
@@ -204,6 +205,7 @@ credentials、voice profile 内容或用户 Project 数据。
 ### npm 使用稳定性
 
 生成 Workspace 的 creator 先串行准备固定版本浏览器，doctor 真实执行小图渲染后才报告 ready。
+直连下载受阻时可用 `AXMORF_BROWSER_EXECUTABLE` 指定宿主已安装的兼容 Chrome/Chromium 绝对路径；创建、doctor 与渲染阶段需保持该环境变量，真实小图验证仍执行。
 Agent 用 `project:create:context` 获取完整输入示例与当前风格/模板配置；校验错误给出准确文件行列和修正方式。
 新视频通过 `visualStyle.theme` 选择深色、浅色或已校验的自定义配色，Composition 实际底色与正文、固定首尾共用
 同一来源；默认深色。Logo 的形状、排版与动画固定。详见 [主题合同](docs/contracts/VISUAL_THEME_CONTRACT.md)。

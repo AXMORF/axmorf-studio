@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import {
   SceneOriginalityBaselineSchema,
   SceneTaskInputSchema,
+  TaskExecutionContractSchema,
   buildSceneSourceGraph,
   findSceneOriginalityConflicts,
 } from "@axmorf/studio/contracts";
@@ -48,6 +49,26 @@ export const checkSceneTask = async (
   const sourcePaths = sceneTypeScriptSourcePaths(
     checked.task.declaredOutputSet,
   );
+  if (
+    checked.task.taskKind === "scene-owner" &&
+    checked.task.declaredReadSet.includes("inputs/task-contract.json")
+  ) {
+    const contract = TaskExecutionContractSchema.parse(
+      await readJson(join(checked.workspace, "inputs/task-contract.json")),
+    );
+    const scaffold = contract.outputs.find(
+      ({ path }) => path === "src/Renderer.tsx",
+    )?.example;
+    if (
+      typeof scaffold === "string" &&
+      (await readFile(join(checked.workspace, "src/Renderer.tsx"), "utf8")) ===
+        scaffold
+    ) {
+      throw new Error(
+        "Scene Renderer still matches the task scaffold; author a StoryBeat-specific visual.",
+      );
+    }
+  }
   await validateRendererReadabilitySourceGraph({
     rootDir: checked.workspace,
     rendererPath: "src/Renderer.tsx",

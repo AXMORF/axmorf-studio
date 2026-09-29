@@ -3,6 +3,7 @@ import { lstat, mkdir, readdir, rename, rm } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import {
+  DELIVERY_FILE_NAMES,
   DeliveryBuildIdSchema,
   ProductionRevisionIdSchema,
   StoryIdSchema,
@@ -30,13 +31,6 @@ import {
   inspectProjectRevisionCandidateDefinition,
   inspectProjectRevisionRegularTree,
 } from "./project-revision-candidate-store";
-
-const DELIVERY_FILE_NAMES = [
-  "cover-3x4.png",
-  "cover-4x3.png",
-  "publish.json",
-  "video.mp4",
-] as const;
 
 export const PROJECT_REVISION_PROMOTION_CHECKPOINTS = [
   "lock-acquired",

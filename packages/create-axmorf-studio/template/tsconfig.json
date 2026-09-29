@@ -12,5 +12,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "remotion.config.mjs"]
+  "include": ["src", "remotion.config.ts"]
 }

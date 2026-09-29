@@ -3,6 +3,10 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
 
 import {
+  DELIVERY_FILES,
+  type DeliveryArtifactKind,
+} from "../contracts/delivery-layout";
+import {
   parseDeliveryMediaPath,
   type DeliveryMediaKind,
 } from "./delivery-route";
@@ -14,21 +18,21 @@ const deliveryFiles: Record<
   Readonly<{
     fileName: string;
     contentType: string;
-    artifact: "video" | "cover4x3" | "cover3x4";
+    artifact: DeliveryArtifactKind;
   }>
 > = {
   video: {
-    fileName: "video.mp4",
+    fileName: DELIVERY_FILES.video,
     contentType: "video/mp4",
     artifact: "video",
   },
   "cover-4x3": {
-    fileName: "cover-4x3.png",
+    fileName: DELIVERY_FILES.cover4x3,
     contentType: "image/png",
     artifact: "cover4x3",
   },
   "cover-3x4": {
-    fileName: "cover-3x4.png",
+    fileName: DELIVERY_FILES.cover3x4,
     contentType: "image/png",
     artifact: "cover3x4",
   },
