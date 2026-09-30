@@ -1,5 +1,29 @@
 # Iteration Status
 
+## 当前主分支统一与新 Workspace 回归（2026-09-30，本地未发布）
+
+默认主分支 `axmorf/npm-workspace-open-source` 已从旧 `dd4368e` 快进到集成代码 `ac0e1af`，
+包含最新远端 `d403f3e`、既有主题/首尾修复 `f0c6b4e`、能力暴露与资源准入增量 `44baf15`，
+以及尚未进入远端主线的 Skill cleanup。11 个本地分支的提交均为当前主分支祖先；旧 Desktop
+架构的远端 `main` 等分支不纳入当前 npm 主线。原未提交源码和 Git 历史已备份，其他 worktree 与本地媒体保留。
+
+统一精确依赖并重建发行包后，完整 `npm run check` 通过 973/973，零失败、零跳过；package build、
+typecheck 与两包发行边界检查通过。首尾 dark/light × 横/竖屏矩阵的 144 张 PNG 和四个完整动画视频
+渲染、checksum、像素与 EOF 复验通过；实际抽看四种组合的 12 张稳定态关键帧，文字和按钮可读。
+没有完整动画播放或听审；机械验证不代替全面视觉验收。
+
+当前本地 0.1.15 tarballs 经标准 `npm exec` creator 生成独立新 Workspace，bootstrap、真实 browser-render
+doctor 通过，安装的 255 个运行包文件与本地 tarball 逐一相同。使用公开浏览器路径配置复用已验证的
+Chrome 149.0.7790.0；不宣称冷网络下载通过。默认 subagents/4 受真实原生容量限制为 3，三槽 probe
+通过并释放，四个全新制作 worker 一次补位、一次 execution resolve、唯一 continuation 完成交付。
+新 Workspace 的 compositions 与独立 final 检查 7/7 通过；视频为 1080×1920、30fps、676 帧、22.53 秒 H.264/AAC 双声道，
+比 25 秒预算短 2.47 秒。实际 MP4 的八张抽样帧确认首尾深底浅字，以及 LineChart、镜头变化和
+自定义中文 AnimatedText 的可见输出；图表内置纵轴刻度仍偏小，本轮不宣称全面字体可读性或听审通过。
+
+详见 [统一与本地 Workspace 证据](evidence/2026-09-30-main-integration-workspace.json)。成片、封面和
+诊断收据保留在 ignored `out/main-integration-20260930/`。这些能力增量已本地合入主分支，未推送、未发布新 npm 包；
+下方旧 0.1.9 测试只保留为历史能力专项证据。
+
 ## 能力选择与 Scene 资源准入修复（2026-09-30，本地未发布）
 
 创建 context 现在返回当前 capability 的公开 API、参数、可编译示例和 descriptor fingerprint；示例明确选择
@@ -21,7 +45,7 @@ H.264/AAC 视频与两张 PNG 封面、publish.json 均已复验至 EOF；比 25
 当前成片关键帧已看到 LineChart、Camera 和自定义中文 AnimatedText 的实际输出。
 详见 [本地 Workspace 验证](evidence/2026-09-30-capability-workspace-smoke.json) 与
 [准入诊断](evidence/2026-09-30-scene-capability-admission.md)。该记录仅证明旧基线的能力专项；用户复核发现首尾深底深字，未通过首尾视觉验收。
-本次统一将已有 0.1.15 主题修复与能力增量合并，须重新验证；未发布新包。
+已有 0.1.15 主题修复与能力增量现已统一并重新验证，见顶部当前记录；未发布新包。
 
 
 ## 0.1.15 已发布（2026-09-30，公共首次使用监督未通过）

@@ -1,0 +1,561 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-30",
+  "scope": "local-main-integration-and-fresh-workspace-regression",
+  "published": false,
+  "pushed": false,
+  "git": {
+    "defaultMainBranch": "axmorf/npm-workspace-open-source",
+    "previousCheckout": "dd4368e",
+    "remoteBaseline": "d403f3e73e3e97c604f8a0e9730affcbbe2c008a",
+    "verifiedCodeCommit": "ac0e1af0c1346c75cb80266e3940e25985dd067d",
+    "capabilityChangeCommit": "44baf15",
+    "currentSourceMerge": "7f60140",
+    "cleanupMerge": "ac0e1af",
+    "includedExistingThemeFix": "f0c6b4e",
+    "localBranches": [
+      {
+        "branch": "axmorf/agent-progress-handoff-fix",
+        "head": "4059d7b0e0e2a0183873d8a043da50f820294f73",
+        "included": true
+      },
+      {
+        "branch": "axmorf/capability-integration-20260930",
+        "head": "ac0e1af0c1346c75cb80266e3940e25985dd067d",
+        "included": true
+      },
+      {
+        "branch": "axmorf/concurrency-reliability-0.1.13",
+        "head": "6bd9091c08f662aedaad8d2e93d5fec0ea69872f",
+        "included": true
+      },
+      {
+        "branch": "axmorf/hermes-production-closure",
+        "head": "ec7cf06c8dcb982ba65d203d2d08b50117e34107",
+        "included": true
+      },
+      {
+        "branch": "axmorf/npm-release-0.1.14",
+        "head": "686faf74a84362f1989ef47774fee3a3642c3542",
+        "included": true
+      },
+      {
+        "branch": "axmorf/npm-workspace-open-source",
+        "head": "ac0e1af0c1346c75cb80266e3940e25985dd067d",
+        "included": true
+      },
+      {
+        "branch": "axmorf/readability-release",
+        "head": "9de7dd3979a8ea136a3b607336a969bbabde185d",
+        "included": true
+      },
+      {
+        "branch": "axmorf/release-0.1.10",
+        "head": "b3e7166b013a9dd8c49bc64e0ac448e17339a7dd",
+        "included": true
+      },
+      {
+        "branch": "axmorf/scene-visual-release",
+        "head": "d403f3e73e3e97c604f8a0e9730affcbbe2c008a",
+        "included": true
+      },
+      {
+        "branch": "axmorf/skill-wording-cleanup",
+        "head": "a6515b8f9f1002bbf4c394fae3c87de08baad212",
+        "included": true
+      },
+      {
+        "branch": "axmorf/visual-theme-logo-fix",
+        "head": "9198fed9aa008d708373c0adc2efefa2e2c7ef43",
+        "included": true
+      }
+    ],
+    "excludedObsoleteRemoteBranches": [
+      "origin/main",
+      "origin/axmorf/desktop-settings-rsp-create-contract",
+      "origin/axmorf/ubuntu-desktop-production-ux"
+    ],
+    "preservedOriginalDirtyBackup": "/private/tmp/axmorf-unify-backup-uaj7yfq1"
+  },
+  "engineering": {
+    "fullCheck": {
+      "command": "AXMORF_BROWSER_EXECUTABLE=<verified-host-browser> npm run check",
+      "exitCode": 0,
+      "tests": 973,
+      "passed": 973,
+      "failed": 0,
+      "skipped": 0,
+      "typecheck": "pass",
+      "lint": "pass",
+      "build": "pass",
+      "compositions": "pass",
+      "sourceGate": "pass",
+      "logPath": "out/main-integration-20260930/receipts/axmorf-unify-full-check-verified.log",
+      "logChecksum": "sha256:407a1ef51f8e41b455ea214d09f4c3557ebe099f3688a04c09e15d7d2622928c"
+    },
+    "packageBuild": "pass",
+    "packageTypecheck": "pass",
+    "runtimePackageCheck": "package-local-ready",
+    "creatorPackageCheck": "package-local-ready",
+    "environmentCorrections": [
+      "Rebuilt dist after source merge; the initial two shipped boundary artifact compiler failures came from stale 0.1.9 declarations.",
+      "npm ci restored the exact current lockfile dependency versions.",
+      "Final checks use the publicly supported existing Chrome executable path; no installed package code, exact dependency or validator was modified."
+    ],
+    "coldBrowserDownloadVerified": false
+  },
+  "themeRegression": {
+    "renderedStills": 144,
+    "fullAnimationVideos": 4,
+    "mechanicalCheck": "pass",
+    "manifestPath": "out/scene-theme-proof/manifest.json",
+    "sourceFingerprint": "sha256:5c8b89edb226e409674086ad2245c2708810305794a639893c6798b6328dfa77",
+    "evidenceFingerprint": "sha256:586be50e8cbd110eabd8b26c3f0b02d7d33c5ae5ec738cde6818e8c2d97a41bc",
+    "sampledVisualReview": {
+      "scope": "sampled-keyframe-review",
+      "evidenceFingerprint": "sha256:586be50e8cbd110eabd8b26c3f0b02d7d33c5ae5ec738cde6818e8c2d97a41bc",
+      "sourceFingerprint": "sha256:5c8b89edb226e409674086ad2245c2708810305794a639893c6798b6328dfa77",
+      "reviewed": [
+        {
+          "section": "intro",
+          "sceneFrame": 59,
+          "frame": 59,
+          "purpose": "stable",
+          "referenceCase": "six-mixed",
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-landscape/intro-059-six-mixed.png",
+          "sizeBytes": 45395,
+          "checksum": "sha256:d565e9621ccdafd6e60f9e4d0886a1e5afec7cfa5efb6b3b9a9b1b30a31d2862",
+          "width": 1920,
+          "height": 1080
+        },
+        {
+          "section": "outro",
+          "sceneFrame": 88,
+          "frame": 208,
+          "purpose": "references-stable",
+          "referenceCase": "six-mixed",
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-landscape/outro-088-six-mixed.png",
+          "sizeBytes": 212389,
+          "checksum": "sha256:7e601af12f6686d5b89ade71c701de8ba5cfb64438e5012fc62e289cfa7ffdad",
+          "width": 1920,
+          "height": 1080
+        },
+        {
+          "section": "outro",
+          "sceneFrame": 239,
+          "frame": 359,
+          "purpose": "stable",
+          "referenceCase": "six-mixed",
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-landscape/outro-239-six-mixed.png",
+          "sizeBytes": 51778,
+          "checksum": "sha256:3dfa30479f8e8eeda8692cec1414d77209047aa4e933890fe753f7e949f3332f",
+          "width": 1920,
+          "height": 1080
+        },
+        {
+          "section": "intro",
+          "sceneFrame": 59,
+          "frame": 59,
+          "purpose": "stable",
+          "referenceCase": "six-mixed",
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-portrait/intro-059-six-mixed.png",
+          "sizeBytes": 54663,
+          "checksum": "sha256:c64f1b364948bb680cdc3d729fea509f86e4b27a87ab4f87f935f4c63ed210a0",
+          "width": 1080,
+          "height": 1920
+        },
+        {
+          "section": "outro",
+          "sceneFrame": 88,
+          "frame": 208,
+          "purpose": "references-stable",
+          "referenceCase": "six-mixed",
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-portrait/outro-088-six-mixed.png",
+          "sizeBytes": 239697,
+          "checksum": "sha256:ad2988cd6976263041911df957b444f6a904130ddf8712c77f6975519d233dde",
+          "width": 1080,
+          "height": 1920
+        },
+        {
+          "section": "outro",
+          "sceneFrame": 239,
+          "frame": 359,
+          "purpose": "stable",
+          "referenceCase": "six-mixed",
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-portrait/outro-239-six-mixed.png",
+          "sizeBytes": 55072,
+          "checksum": "sha256:0a6d425e5268e7698dcaac0e83665b34643819e55997c880d4690d742795774f",
+          "width": 1080,
+          "height": 1920
+        },
+        {
+          "section": "intro",
+          "sceneFrame": 59,
+          "frame": 59,
+          "purpose": "stable",
+          "referenceCase": "six-mixed",
+          "localPath": "out/scene-theme-proof/SceneTheme-light-landscape/intro-059-six-mixed.png",
+          "sizeBytes": 45265,
+          "checksum": "sha256:b8093a1565ddb16a5fc6781bf73dcaa0d4504e134b5d62933dda66da9c0df8e4",
+          "width": 1920,
+          "height": 1080
+        },
+        {
+          "section": "outro",
+          "sceneFrame": 88,
+          "frame": 208,
+          "purpose": "references-stable",
+          "referenceCase": "six-mixed",
+          "localPath": "out/scene-theme-proof/SceneTheme-light-landscape/outro-088-six-mixed.png",
+          "sizeBytes": 207834,
+          "checksum": "sha256:83dc9ce1777d7812053feb547dc2674927a65edbd9758ab66b0086ff4ebeae1f",
+          "width": 1920,
+          "height": 1080
+        },
+        {
+          "section": "outro",
+          "sceneFrame": 239,
+          "frame": 359,
+          "purpose": "stable",
+          "referenceCase": "six-mixed",
+          "localPath": "out/scene-theme-proof/SceneTheme-light-landscape/outro-239-six-mixed.png",
+          "sizeBytes": 51813,
+          "checksum": "sha256:806e4d896105f36e13ae78902e0a1cc8ccde00d7b1eb4d818564ae4b73a85336",
+          "width": 1920,
+          "height": 1080
+        },
+        {
+          "section": "intro",
+          "sceneFrame": 59,
+          "frame": 59,
+          "purpose": "stable",
+          "referenceCase": "six-mixed",
+          "localPath": "out/scene-theme-proof/SceneTheme-light-portrait/intro-059-six-mixed.png",
+          "sizeBytes": 54218,
+          "checksum": "sha256:29dce508493ef2bf4934066219eebd1327d1936ebd1e73bc7e23b757e0867a24",
+          "width": 1080,
+          "height": 1920
+        },
+        {
+          "section": "outro",
+          "sceneFrame": 88,
+          "frame": 208,
+          "purpose": "references-stable",
+          "referenceCase": "six-mixed",
+          "localPath": "out/scene-theme-proof/SceneTheme-light-portrait/outro-088-six-mixed.png",
+          "sizeBytes": 233827,
+          "checksum": "sha256:894eb0d631e33540caa74fae34f751f1c4dd90a9b57c4692d5c99d9e10ec720f",
+          "width": 1080,
+          "height": 1920
+        },
+        {
+          "section": "outro",
+          "sceneFrame": 239,
+          "frame": 359,
+          "purpose": "stable",
+          "referenceCase": "six-mixed",
+          "localPath": "out/scene-theme-proof/SceneTheme-light-portrait/outro-239-six-mixed.png",
+          "sizeBytes": 54742,
+          "checksum": "sha256:79aa8d45ab22a42062ee2730d0d892ea862e1e558de2d95d1f888ca336afc566",
+          "width": 1080,
+          "height": 1920
+        }
+      ],
+      "observations": [
+        "Dark and light portrait/landscape intro logo and wordmark are readable.",
+        "Outro stable source cards and final follow button are readable; no clipping observed in these samples."
+      ],
+      "fullAnimationPlayback": false,
+      "completeAudioReview": false
+    },
+    "claimBoundary": "12 stable keyframes reviewed; no complete animation playback or listening review."
+  },
+  "freshWorkspace": {
+    "root": "/private/tmp/axmorf-unified-latest-1fq3vqz_/workspace",
+    "localPackages": {
+      "runtime": {
+        "path": "/private/tmp/axmorf-unified-latest-1fq3vqz_/packages/axmorf-studio-0.1.15.tgz",
+        "name": "@axmorf/studio",
+        "version": "0.1.15",
+        "sha256": "ccd2f40903cb79c65efe9d1c07252b88467e304095b959d22b789ac77aab213a"
+      },
+      "creator": {
+        "path": "/private/tmp/axmorf-unified-latest-1fq3vqz_/packages/create-axmorf-studio-0.1.15.tgz",
+        "name": "create-axmorf-studio",
+        "version": "0.1.15",
+        "sha256": "ffeccbcedb3a76d8d9eb39d32fdfd60dfe01ad35c433c9b352b5304d20d37edc"
+      }
+    },
+    "installedRuntime": {
+      "status": "installed-runtime-matches-local-tarball",
+      "filesVerified": 255,
+      "runtimeVersion": "0.1.15",
+      "runtimeSha256": "ccd2f40903cb79c65efe9d1c07252b88467e304095b959d22b789ac77aab213a"
+    },
+    "creatorResult": "workspace-ready",
+    "bootstrap": "pass",
+    "browserPreparation": "pass",
+    "doctor": "workspace-ready",
+    "browserEnvironment": "Public AXMORF_BROWSER_EXECUTABLE points to verified existing Chrome 149.0.7790.0; this is not a cold browser-download acceptance.",
+    "capabilityGroups": 9,
+    "publicExports": 101,
+    "theme": {
+      "background": "#0d1b2a",
+      "primaryText": "#fffdf9",
+      "secondaryText": "#bdc7d3",
+      "accent": "#dfb887"
+    },
+    "execution": {
+      "status": "ready",
+      "mode": "subagents",
+      "requestedMaxConcurrency": 4,
+      "effectiveMaxConcurrency": 3,
+      "requireExactConcurrency": false,
+      "source": {
+        "mode": "builtin-default",
+        "maxConcurrency": "builtin-default"
+      },
+      "workerTransport": "shared-workspace",
+      "limitedBy": [
+        "runtime-capacity"
+      ],
+      "persistence": "current-production-only"
+    },
+    "nativeProbe": {
+      "count": 3,
+      "transport": "shared-workspace",
+      "comparison": "pass",
+      "allProbeSlotsReleased": true
+    },
+    "dirtyAgentTasks": 4,
+    "freshProductionWorkers": 4,
+    "poolRefills": 1,
+    "successfulExecutionResolutions": 1,
+    "continuationStarts": 1,
+    "automaticRecoveries": 0,
+    "attemptId": "c575e109-b975-4e5c-9d03-101452be8a77",
+    "revisionId": "revision-3e75b9a3571ee22a5ba83bfcd2b2b4fe19fb0f759c32890a09cc71bbb65dfaa3",
+    "prepareActualCost": {
+      "providerRequests": 3,
+      "providerCacheHits": 3,
+      "agentTasks": 4,
+      "deliveryMedia": []
+    },
+    "terminal": {
+      "status": "project-production-complete",
+      "durationBudget": {
+        "targetTotalSeconds": 25,
+        "boundarySeconds": 10,
+        "leadAndTailSeconds": 0,
+        "availableNarratedSeconds": 15,
+        "budgetState": "narration-budget-available",
+        "actualTotalSeconds": 22.533333333333335,
+        "deltaSeconds": -2.466666666666665,
+        "measurement": "sealed-semantic-timing",
+        "comparison": "shorter-than-target",
+        "guidance": [
+          "targetTotalSeconds includes silent opening/ending Scenes and render lead-in/tail; availableNarratedSeconds must cover speech and pauses.",
+          "Before project:create, budget narration text against availableNarratedSeconds using the selected language and voice; text estimates are not measured duration.",
+          "After sealing, actualTotalSeconds follows PCM-derived semantic timing. The target is advisory, with no implicit tolerance, audio truncation or automatic retry.",
+          "If a duration change is needed, report the measured deviation and use an explicitly requested project revision; do not edit live authoring or an active attempt."
+        ]
+      },
+      "revisionId": "revision-3e75b9a3571ee22a5ba83bfcd2b2b4fe19fb0f759c32890a09cc71bbb65dfaa3",
+      "delivery": {
+        "projectId": "capability-main-smoke",
+        "deliveryBuildId": "delivery-9d27c3a9f00deb4ad0233c48d53e4f378d2c41ba44a0dd714f8d7df15e6ba136",
+        "status": "project-production-complete",
+        "noOp": false,
+        "deliveryPath": "deliveries/capability-main-smoke",
+        "reused": {
+          "video": false,
+          "cover4x3": false,
+          "cover3x4": false
+        }
+      },
+      "attemptRecorded": true
+    },
+    "finalCheck": {
+      "schemaVersion": 1,
+      "status": "project-final-check",
+      "storyId": "capability-main-smoke",
+      "level": "final",
+      "scope": "current-production",
+      "aggregateStatus": "pass",
+      "revisionId": "revision-3e75b9a3571ee22a5ba83bfcd2b2b4fe19fb0f759c32890a09cc71bbb65dfaa3",
+      "artifactSetFingerprint": "sha256:0e57634111dd417d1fe23e2720510f7ce1de899ec4a40bb91c4de3f5a8441267",
+      "deliveryBuildId": "delivery-9d27c3a9f00deb4ad0233c48d53e4f378d2c41ba44a0dd714f8d7df15e6ba136",
+      "checks": [
+        {
+          "checkId": "artifacts",
+          "status": "pass",
+          "code": null,
+          "message": null
+        },
+        {
+          "checkId": "delivery",
+          "status": "pass",
+          "code": null,
+          "message": null
+        },
+        {
+          "checkId": "revision",
+          "status": "pass",
+          "code": null,
+          "message": null
+        },
+        {
+          "checkId": "artifact-set",
+          "status": "pass",
+          "code": null,
+          "message": null
+        },
+        {
+          "checkId": "delivery-build",
+          "status": "pass",
+          "code": null,
+          "message": null
+        },
+        {
+          "checkId": "audio-channels",
+          "status": "pass",
+          "code": null,
+          "message": null
+        },
+        {
+          "checkId": "snapshot",
+          "status": "pass",
+          "code": null,
+          "message": null
+        }
+      ]
+    },
+    "sceneCapabilityEvidence": [
+      {
+        "meaningId": "visible-trend",
+        "resourceIds": [
+          "capability.camera",
+          "capability.chart"
+        ],
+        "mountedPublicComponents": [
+          "LineChart",
+          "ProducerCamera2D"
+        ],
+        "rendererChecksum": "sha256:28ad04fd14b68c36619ab5f04ef46f73a647d07eb7fd7761edaf7208a612870d"
+      },
+      {
+        "meaningId": "memorable-focus",
+        "resourceIds": [
+          "capability.camera",
+          "capability.visual-components"
+        ],
+        "mountedPublicComponents": [
+          "ProducerCamera2D",
+          "AnimatedText"
+        ],
+        "rendererChecksum": "sha256:8d2b4925726d88911dcea2197e60a817ac56c71b5c2ec4a6c1e97a04425a553e"
+      }
+    ],
+    "video": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "width": 1080,
+        "height": 1920,
+        "avg_frame_rate": "30/1",
+        "nb_frames": "676",
+        "channels": null
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "width": null,
+        "height": null,
+        "avg_frame_rate": "0/0",
+        "nb_frames": "1059",
+        "channels": 2
+      }
+    ],
+    "retainedExactDeliveryCopies": [
+      {
+        "localPath": "out/main-integration-20260930/delivery/video.mp4",
+        "sizeBytes": 2033541,
+        "checksum": "sha256:70e8cda20d36756a90e0c7dc731c6cf25b4d48880adb3fb787fe0a697ce865cc"
+      },
+      {
+        "localPath": "out/main-integration-20260930/delivery/cover-4x3.png",
+        "sizeBytes": 120821,
+        "checksum": "sha256:4f42015adc0ee4ca1ba425ce66a52ada32a593d3deb3c75cf81fc0922919ee89"
+      },
+      {
+        "localPath": "out/main-integration-20260930/delivery/cover-3x4.png",
+        "sizeBytes": 118122,
+        "checksum": "sha256:e205e4867e181c7cd3c35d520e0002d7beae2ba99fce231d66feca37b9962f58"
+      },
+      {
+        "localPath": "out/main-integration-20260930/delivery/publish.json",
+        "sizeBytes": 2130,
+        "checksum": "sha256:c9144f4c1578dfa5066c0f788c45adbfb2713b01c6bbadbdeea49060e0cd9069"
+      }
+    ],
+    "sampledActualVideoFrames": [
+      {
+        "frame": 59,
+        "localPath": "out/main-integration-20260930/visual-samples/frame-01.png",
+        "checksum": "sha256:eaa49faed9ebe40556afb6d0e615efa9d6b3e4aefcde57a68d33904f4d53be79"
+      },
+      {
+        "frame": 175,
+        "localPath": "out/main-integration-20260930/visual-samples/frame-02.png",
+        "checksum": "sha256:29596cedabbcaed9f40b4dbf497362a72618e336ea009c333c0abeedc9b47352"
+      },
+      {
+        "frame": 291,
+        "localPath": "out/main-integration-20260930/visual-samples/frame-03.png",
+        "checksum": "sha256:eec2a3a1d5da5932d1975d4e313cf2f512a59b025b00cde38f83d431219f8c1b"
+      },
+      {
+        "frame": 350,
+        "localPath": "out/main-integration-20260930/visual-samples/frame-04.png",
+        "checksum": "sha256:72916a4aacef44f0e8474e94f41c4695a491a5c9304ed79a21641d7b3e98ad7a"
+      },
+      {
+        "frame": 435,
+        "localPath": "out/main-integration-20260930/visual-samples/frame-05.png",
+        "checksum": "sha256:3dff19e7c4a4f11849cf971c97be77d138bf3623ded94fa31ee041e797882349"
+      },
+      {
+        "frame": 524,
+        "localPath": "out/main-integration-20260930/visual-samples/frame-06.png",
+        "checksum": "sha256:f8bae33b52737ec5881c7fe42d30487703f41e4baefb2b024a9d643b4ca53a22"
+      },
+      {
+        "frame": 650,
+        "localPath": "out/main-integration-20260930/visual-samples/frame-07.png",
+        "checksum": "sha256:d471a11ecbe7e25171185a492c2191f3c393804f1796aaba6da29ce9593194ad"
+      },
+      {
+        "frame": 675,
+        "localPath": "out/main-integration-20260930/visual-samples/frame-08.png",
+        "checksum": "sha256:50e61ceb4da563ddf413d1a0afec2b66f0e59152d37eb14099d2a2e9a557d0b1"
+      }
+    ],
+    "visualObservations": [
+      "Intro logo and wordmark are light on the dark background.",
+      "Outro reference information, brand wordmark and follow button are readable on the inherited dark theme.",
+      "LineChart, camera framing change and authored AnimatedText are visible in actual video samples.",
+      "Chart y-axis tick labels remain small; complete typography review and listening review are outside this integration regression."
+    ],
+    "claimBoundary": "Local engineering regression with actual native capacity three; not a public release, dual-host first-use receipt or full audiovisual quality acceptance.",
+    "compositions": {
+      "status": "pass",
+      "compositionId": "CapabilityMainSmoke",
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "durationInFrames": 676,
+      "logPath": "out/main-integration-20260930/receipts/workspace-compositions.log"
+    },
+    "standaloneWorkspaceTypecheckScript": "not-exposed; repository/package typechecks and bound Scene compilation passed"
+  }
+}
