@@ -1,0 +1,221 @@
+import { CapabilityAuthoringGuideSchema } from "../../contracts";
+
+export const capabilityAuthoringGuides = {
+  "capability.camera": CapabilityAuthoringGuideSchema.parse({
+    importSource: "@axmorf/studio/remotion",
+    exports: [
+      "ProducerCamera2D",
+      "ProducerCamera3D",
+      "ProducerFocusPull",
+      "ProducerLayeredStage",
+    ],
+    parameters: [
+      "ProducerCamera2D: sorted keyframes {frame,x,y,zoom,rotation,anchor:[percentX,percentY],easing?}; x/y normalized travel, anchor percentages.",
+      "ProducerCamera3D: width, height, keyframes {frame,position:[x,y,z],target:[x,y,z],fov,roll}.",
+      "ProducerLayeredStage: keyframes {frame,x,y}, background, subject, foreground; ProducerFocusPull: plane and keyframes {frame,plane}.",
+    ],
+    example:
+      'import {ProducerCamera2D} from "@axmorf/studio/remotion";\nexport const Example = ({endFrame}: {endFrame: number}) => <ProducerCamera2D keyframes={[{frame:0,x:0,y:0,zoom:1,rotation:0,anchor:[50,50]},{frame:endFrame,x:0.15,y:0,zoom:1.12,rotation:0,anchor:[50,50]}]}><svg width="100%" height="100%"><circle cx="50%" cy="50%" r={40} fill="#e7573f" /></svg></ProducerCamera2D>;',
+    selectionAdvice: [
+      "Use a push to reveal a new fact or spatial relationship; settle before the result hold.",
+      "3D requires meaningful depth and authored scene geometry; use 2D for flat explanations.",
+    ],
+  }),
+  "capability.chart": CapabilityAuthoringGuideSchema.parse({
+    importSource: "@axmorf/studio/remotion",
+    exports: [
+      "AreaChart",
+      "BarChart",
+      "CircularProgress",
+      "ComparisonChart",
+      "DonutChart",
+      "LineChart",
+      "PieChart",
+      "ProgressBars",
+      "StatCounter",
+    ],
+    parameters: [
+      "LineChart: data [{label,value}], width, height, title, yMax, lineColor, pointColor, background, containerStyle.",
+      "Choose a chart with configurable data; avoid fixed sample values in demo components.",
+    ],
+    example:
+      'import {LineChart} from "@axmorf/studio/remotion";\nexport const Example = ({width,height}: {width:number;height:number}) => <LineChart data={[{label:"Before",value:20},{label:"After",value:80}]} title="Measured change" width={width} height={height} lineColor="#e7573f" background="transparent" />;',
+    selectionAdvice: [
+      "Use only real story data, or explicitly label illustrative data.",
+      "Choose charts for comparisons or trends, not as generic decoration.",
+    ],
+  }),
+  "capability.effects": CapabilityAuthoringGuideSchema.parse({
+    importSource: "@axmorf/studio/remotion",
+    exports: ["getProducerEffectPreset", "getProducerMediaEffectPreset"],
+    parameters: [
+      "Both resolvers take {id,frame}; id is comic-print, cyber-scan, paper-grain or pixel-grid.",
+      "Pass the returned array to a Remotion canvas component effects prop; it is not a CSS filter.",
+    ],
+    example:
+      'import {Solid,useCurrentFrame} from "remotion";\nimport {getProducerEffectPreset} from "@axmorf/studio/remotion";\nexport const Example = ({width,height}: {width:number;height:number}) => <Solid width={width} height={height} color="#f4ead5" effects={getProducerEffectPreset({id:"paper-grain",frame:useCurrentFrame()})} />;',
+    selectionAdvice: [
+      "Use texture only when it supports the selected art direction; protect subject contrast.",
+      "Keep full-composition background in GlobalVisual; Scene effects must stay within semantic content.",
+    ],
+  }),
+  "capability.layout": CapabilityAuthoringGuideSchema.parse({
+    importSource: "@axmorf/studio/remotion",
+    exports: ["CalloutGrid"],
+    parameters: [
+      "CalloutGrid: callouts:string[] and theme {background,panel,primary,secondary,text,muted}.",
+    ],
+    example:
+      'import {CalloutGrid} from "@axmorf/studio/remotion";\nexport const Example = () => <CalloutGrid callouts={["Cause","Consequence"]} theme={{background:"transparent",panel:"#fff8e8",primary:"#e7573f",secondary:"#287f8f",text:"#292624",muted:"#746b61"}} />;',
+    selectionAdvice: [
+      "Use a grid for genuinely parallel facts; keep causal actions in a spatial scene.",
+    ],
+  }),
+  "capability.media": CapabilityAuthoringGuideSchema.parse({
+    importSource: "@axmorf/studio/remotion",
+    exports: ["ProducerAnimatedImage", "ProducerLocalVideo", "ProducerLottie"],
+    parameters: [
+      "All wrappers require src, width and height. src is an approved path relative to public/.",
+      "ProducerLocalVideo supports trimBefore/trimAfter in frames, objectFit, playbackRate and muted. ProducerAnimatedImage supports fit/playbackRate/loopBehavior. ProducerLottie supports loop/playbackRate.",
+    ],
+    example:
+      'import {ProducerLocalVideo} from "@axmorf/studio/remotion";\nexport const Example = ({src,width,height}: {src:string;width:number;height:number}) => <ProducerLocalVideo src={src} width={width} height={height} muted objectFit="contain" />;',
+    selectionAdvice: [
+      "Select the actual approved asset descriptor as well as capability.media.",
+      "Scene video must be muted; route non-narration audio through sound-plan.json.",
+    ],
+  }),
+  "capability.motion": CapabilityAuthoringGuideSchema.parse({
+    importSource: "@axmorf/studio/remotion",
+    exports: ["ProducerMotionTreatment"],
+    parameters: [
+      "ProducerMotionTreatment: id is camera-natural, typography-trail, icon-trail or particle-trail; wrap the moving children.",
+    ],
+    example:
+      'import {ProducerMotionTreatment} from "@axmorf/studio/remotion";\nexport const Example = () => <ProducerMotionTreatment id="icon-trail"><div style={{width:48,height:48,background:"#e7573f"}} /></ProducerMotionTreatment>;',
+    selectionAdvice: [
+      "Apply blur/trails to an already frame-driven motion; the wrapper does not move content by itself.",
+      "Avoid trails on body text or during the result hold.",
+    ],
+  }),
+  "capability.visual-components": CapabilityAuthoringGuideSchema.parse({
+    importSource: "@axmorf/studio/remotion",
+    exports: [
+      "AnimatedList",
+      "AnimatedText",
+      "BlindsTransition",
+      "BokehCircles",
+      "BounceText",
+      "BubblePopText",
+      "BulletScene",
+      "CameraShake",
+      "CardFlip",
+      "ChapterTitle",
+      "CinematicTitleIntro",
+      "ClockWipe",
+      "CountdownIntro",
+      "CountdownTimer",
+      "CreditsRoll",
+      "CrossDissolve",
+      "EndCard",
+      "FadeThroughBlack",
+      "FilmBurn",
+      "FloatingBubbleText",
+      "GalleryGrid",
+      "GeometricPatterns",
+      "GlitchText",
+      "GradientShiftBackground",
+      "GridPulse",
+      "ImageCarousel",
+      "ImageComparisonSlider",
+      "ImageZoomReveal",
+      "IrisTransition",
+      "KenBurns",
+      "Kicker",
+      "LetterboxReveal",
+      "LiquidWave",
+      "LogoBlurReveal",
+      "LogoBounceDrop",
+      "LogoFadeReveal",
+      "LogoGlitchReveal",
+      "LogoScaleRotate",
+      "LogoSpinReveal",
+      "LogoSplitReveal",
+      "LogoStrokeDraw",
+      "LogoTypewriter",
+      "LowerThird",
+      "MasonryGallery",
+      "MatrixRain",
+      "MetaBallsPrimitive",
+      "MorphTransition",
+      "NoiseGrain",
+      "NotificationPop",
+      "ParallaxPan",
+      "ParticleExplosion",
+      "PhotoStack",
+      "PictureInPicture",
+      "PixelTransition",
+      "PolaroidFrame",
+      "PoppingText",
+      "ProgressSteps",
+      "PulsingText",
+      "PushTransition",
+      "QuoteCard",
+      "QuoteScene",
+      "RotatingCarousel",
+      "SlideText",
+      "SlideWipe",
+      "SoundWave",
+      "SplitScreen",
+      "SpotlightReveal",
+      "Starfield",
+      "SubscribeReminder",
+      "TextHighlight",
+      "TitleScene",
+      "TitleSplit",
+      "TypewriterSubtitle",
+      "VideoPanel",
+      "VignettePulse",
+      "WhipPan",
+      "ZoomPulse",
+      "ZoomThrough",
+      "useEntranceProgress",
+    ],
+    parameters: [
+      "AnimatedText: text, color, fontSize, staggerInFrames, style. PoppingText: text, fontSize and colors.",
+      "Other exported primitives cover text, scene patterns, backgrounds, cinematic treatments, image layouts and transitions; some are fixed demos. Select only a component whose configurable content fits the brief.",
+    ],
+    example:
+      'import {AnimatedText} from "@axmorf/studio/remotion";\nexport const Example = () => <AnimatedText text="One clear step" fontSize={64} color="#292624" staggerInFrames={2} />;',
+    selectionAdvice: [
+      "Use authored words or visuals, not default demo copy. Keep Composition captions separate.",
+      "A component must communicate the Scene meaning; do not add particles or cards simply to consume a capability.",
+    ],
+  }),
+  "capability.sound": CapabilityAuthoringGuideSchema.parse({
+    importSource: "@axmorf/studio/remotion",
+    exports: ["getProducerSoundLibrary"],
+    parameters: [
+      "getProducerSoundLibrary accepts a validated {schemaVersion:1,assets:[approved asset descriptors]} manifest and returns background-music/sound-effect lists.",
+    ],
+    example:
+      'import {getProducerSoundLibrary} from "@axmorf/studio/remotion";\nexport const Example = () => getProducerSoundLibrary({schemaVersion:1,assets:[]});',
+    selectionAdvice: [
+      "Declare selected audio assets and semantic sync anchors in sound-plan.json; do not render audio in Renderer.",
+      "Only choose verified local audio tied to a visible action or intended mood.",
+    ],
+  }),
+  "capability.transitions": CapabilityAuthoringGuideSchema.parse({
+    importSource: "@axmorf/studio/remotion",
+    exports: ["getProducerTransitionPreset"],
+    parameters: [
+      "getProducerTransitionPreset accepts {id,durationInFrames,direction?}; ids: editorial-fade, directional-slide, signal-wipe, cinematic-film-burn. direction is valid only for directional-slide.",
+    ],
+    example:
+      'import {getProducerTransitionPreset} from "@axmorf/studio/remotion";\nexport const Example = () => getProducerTransitionPreset({id:"directional-slide",durationInFrames:12,direction:"from-right"});',
+    selectionAdvice: [
+      "The resolver returns presentation/timing; mount it in a Scene-local TransitionSeries only when the semantic shot sequence needs it.",
+      "Keep the frozen Scene duration intact; never overlap or shorten spoken StoryBeat windows.",
+    ],
+  }),
+} as const;

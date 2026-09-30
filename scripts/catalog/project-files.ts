@@ -103,7 +103,12 @@ export const validateCapabilityDescriptorExports = async (
     }
     const absolutePath = join(rootDir, descriptor.sourceFile);
     const source = (await readRegularFile(absolutePath)).toString("utf8");
-    if (!collectExportNames(source, absolutePath).has(descriptor.exportName)) {
+    const exportNames = collectExportNames(source, absolutePath);
+    const requiredExports =
+      descriptor.kind === "capability"
+        ? [descriptor.exportName, ...(descriptor.authoring?.exports ?? [])]
+        : [descriptor.exportName];
+    if (requiredExports.some((name) => !exportNames.has(name))) {
       throw new Error(`Catalog export identity is stale: ${descriptor.id}.`);
     }
   }

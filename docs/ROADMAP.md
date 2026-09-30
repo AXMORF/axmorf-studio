@@ -32,15 +32,16 @@ continuation 内部 application，不是 Root 命令。
 - `task bind` 在任何 content read/write 前以零写入校验 exact attempt/contract。shared-workspace 只授予 declared
   workspace capability；controller-io 只授予 strict bound file read/write。describe/finalize/check/commit/task failure
   要求 full binding；spawn/fixed failure 仅有更窄的 exact terminal authority；
-- continuation 启动后 Root 挂起且不监督；bounded fixed continuation 以 atomic claim 单消费者运行，failure/attempt 创建起一小时
+- continuation 启动后 Root 以原进程阻塞等待/事件通知低 token 监督，错误时诊断并指导原 executor；bounded fixed continuation 以 atomic claim 单消费者运行，failure/attempt 创建起一小时
   timeout fail-fast，all-success 只 converge 一次；
 - artifact hit 严格复验 exact file set、no-symlink、size/checksum/dependencies/policy；
 - convergence stale/incomplete/drift fail closed 且 materialization 有 rollback；
 - delivery 同步等待和验证 exact four files，current replacement 受控且同 identity no-op；
 - settings 与 progress 不扫描历史 `.producer-runs/`；Project delete 仍能安全清理其 ownership root；
 - zero Project bootstrap/Registry/Catalog/settings 可用；
-- terminal failed attempt 只允许显式 read-only/zero-provider recover inspection 后 same-Revision reissue；旧 attempt
-  immutable，reissue 不要求 current delivery，active/stale/fixed-flow recovery fail closed。
+- 每个用户请求最多自动恢复一次已证明的视频任务错误；旧 continuation/workers 全退出后，显式 read-only/zero-provider
+  recover inspection ready 才 same-Revision reissue，使用 fresh workers。旧 attempt immutable，reissue 不要求 current delivery；
+  active/stale/fixed-flow recovery fail closed，系统/外部/未知故障只诊断报告。
 
 ## 当前里程碑状态
 

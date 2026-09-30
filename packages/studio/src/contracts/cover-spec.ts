@@ -11,6 +11,17 @@ export const FIXED_COVER_SPEC = CoverSpecSchema.parse({ schemaVersion: 2, contra
   { variantId: "cover-3x4", aspectRatio: "3:4", width: 1200, height: 1600, layoutMode: "independent-composition" },
 ], forbiddenInputs: ["image", "video", "audio", "network", "remote-font", "scene-output", "global-visual-output"] });
 export const COVER_SPEC_FINGERPRINT = createFingerprint({ namespace: "cover-spec", version: 2, value: FIXED_COVER_SPEC });
+export const getFixedCoverDimensions = (
+  variantId: (typeof FIXED_COVER_SPEC.variants)[number]["variantId"],
+) => {
+  const variant = FIXED_COVER_SPEC.variants.find(
+    (entry) => entry.variantId === variantId,
+  );
+  if (variant === undefined) {
+    throw new Error(`Fixed Cover variant is unavailable: ${variantId}.`);
+  }
+  return { width: variant.width, height: variant.height };
+};
 export const deriveCoverCompositionBaseId = (storyId: string) => CompositionIdSchema.parse(StoryIdSchema.parse(storyId).split("-").map((part) => `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`).join(""));
 const CoverSourceFileSchema = z.object({ relativePath: z.string().min(1), checksum: Sha256DigestSchema }).strict();
 export const computeCoverSourceGraphFingerprint = ({ storyId, sourceFiles }: { readonly storyId: unknown; readonly sourceFiles: unknown }) => createFingerprint({

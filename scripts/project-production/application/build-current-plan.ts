@@ -488,7 +488,7 @@ export const buildAgentTasks = (
       outputs: SCENE_OUTPUTS,
       validatorPolicyVersion: templateCopy
         ? "scene-template-validator-v3"
-        : "scene-owner-validator-v3",
+        : "scene-owner-validator-v4",
       context: {
         resourcePool: inputs.resourcePool,
         ...(templateCopy
@@ -498,7 +498,14 @@ export const buildAgentTasks = (
           beat: scene.beat,
           timingBeat: scene.timingBeat,
           brief: scene.brief,
+          ...(templateCopy
+            ? {}
+            : {
+                visualStyle: inputs.visualStyle,
+                narrationCues: scene.narrationCues,
+              }),
           taskInput: scene.taskInput,
+          availableResources: scene.availableResources,
         },
       },
     });

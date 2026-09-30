@@ -4,12 +4,14 @@ import { dirname, join } from "node:path";
 import {
   SceneOriginalityBaselineSchema,
   SceneTaskInputSchema,
+  TaskExecutionContractSchema,
   buildSceneSourceGraph,
   findSceneOriginalityConflicts,
 } from "@axmorf/studio/contracts";
 import { validateSceneArtifactBundle } from "../../scene-package/domain";
 import { parseSceneSelectedResourcesFile } from "../../scene-package/generate";
 import { validateRendererReadabilitySourceGraph } from "./readability-source-validator";
+import { validateSceneCapabilityUsage } from "./scene-capability-usage";
 import { compileTypeScriptImportGraph } from "./typescript-compile";
 
 const readJson = async (path: string) =>
@@ -35,7 +37,7 @@ export const checkSceneTask = async (
   const context = JSON.parse(
     await readFile(join(checked.workspace, "inputs/context.json"), "utf8"),
   ) as {
-    scene?: { taskInput?: unknown } | null;
+    scene?: { taskInput?: unknown; availableResources?: unknown } | null;
     originalityBaseline?: unknown;
   };
   const taskInput = SceneTaskInputSchema.parse(context.scene?.taskInput);
@@ -48,6 +50,26 @@ export const checkSceneTask = async (
   const sourcePaths = sceneTypeScriptSourcePaths(
     checked.task.declaredOutputSet,
   );
+  if (
+    checked.task.taskKind === "scene-owner" &&
+    checked.task.declaredReadSet.includes("inputs/task-contract.json")
+  ) {
+    const contract = TaskExecutionContractSchema.parse(
+      await readJson(join(checked.workspace, "inputs/task-contract.json")),
+    );
+    const scaffold = contract.outputs.find(
+      ({ path }) => path === "src/Renderer.tsx",
+    )?.example;
+    if (
+      typeof scaffold === "string" &&
+      (await readFile(join(checked.workspace, "src/Renderer.tsx"), "utf8")) ===
+        scaffold
+    ) {
+      throw new Error(
+        "Scene Renderer still matches the task scaffold; author a StoryBeat-specific visual.",
+      );
+    }
+  }
   await validateRendererReadabilitySourceGraph({
     rootDir: checked.workspace,
     rendererPath: "src/Renderer.tsx",
@@ -85,7 +107,7 @@ void renderer;
     },
   });
   if (checked.task.taskKind === "scene-owner") {
-    if (checked.task.validatorPolicyVersion !== "scene-owner-validator-v3") {
+    if (checked.task.validatorPolicyVersion !== "scene-owner-validator-v4") {
       throw new Error("Scene owner task uses an unsupported validator policy.");
     }
     const baseline = SceneOriginalityBaselineSchema.parse(
@@ -122,6 +144,26 @@ void renderer;
   const selectedResources = parseSceneSelectedResourcesFile(
     await readJson(join(checked.workspace, "src/selected-resources.json")),
   ).selectedResources;
+  if (context.scene?.availableResources !== undefined) {
+    const available = parseSceneSelectedResourcesFile({
+      schemaVersion: 1,
+      selectedResources: context.scene.availableResources,
+    }).selectedResources;
+    for (const record of selectedResources) {
+      const frozen = available.find(
+        ({ selected }) => selected.resourceId === record.selected.resourceId,
+      );
+      if (
+        frozen === undefined ||
+        JSON.stringify(frozen) !== JSON.stringify(record)
+      ) {
+        throw new Error(
+          `Scene selected resource differs from immutable capability or asset input: ${record.selected.resourceId}.`,
+        );
+      }
+    }
+  }
+  validateSceneCapabilityUsage({ sources: sourceFiles, selectedResources });
   validateSceneArtifactBundle({
     task: taskInput,
     visual: await readJson(join(checked.workspace, "src/visual-plan.json")),

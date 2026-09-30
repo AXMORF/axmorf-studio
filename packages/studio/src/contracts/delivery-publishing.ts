@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { DELIVERY_FILES } from "./delivery-layout";
 import { PublishingTopicSchema } from "./publishing-intent";
 import { MeaningIdSchema, PositiveIntegerSchema, StoryIdSchema } from "./primitives";
 
@@ -17,8 +18,8 @@ export const formatDeliveryTimecode = (startFrame: number, fps: number) => {
 export const DeliveryPublishingSchema = z.object({
   schemaVersion: z.literal(3), contractVersion: z.literal(DELIVERY_PUBLISHING_VERSION), storyId: StoryIdSchema,
   title: z.string().trim().min(1), description: z.string().trim().min(1).max(2000), topics: z.array(PublishingTopicSchema).min(6).max(7).readonly(),
-  collection: z.string().trim().min(1).max(96), outputFileName: z.literal("video.mp4"),
-  coverFileNames: z.object({ cover4x3: z.literal("cover-4x3.png"), cover3x4: z.literal("cover-3x4.png") }).strict().readonly(),
+  collection: z.string().trim().min(1).max(96), outputFileName: z.literal(DELIVERY_FILES.video),
+  coverFileNames: z.object({ cover4x3: z.literal(DELIVERY_FILES.cover4x3), cover3x4: z.literal(DELIVERY_FILES.cover3x4) }).strict().readonly(),
   fps: PositiveIntegerSchema.max(120), frameCount: PositiveIntegerSchema, plannedDurationSeconds: z.number().positive().finite(), chapters: z.array(ChapterSchema).min(1).max(256).readonly(),
 }).strict().superRefine((publishing, context) => {
   if (publishing.plannedDurationSeconds !== publishing.frameCount / publishing.fps) context.addIssue({ code: "custom", message: "Publishing duration is stale.", path: ["plannedDurationSeconds"] });

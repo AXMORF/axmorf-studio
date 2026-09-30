@@ -1,13 +1,11 @@
 import { join } from "node:path";
-import { z } from "zod";
 
 import {
-  ResourceDescriptorSchema,
   SceneCoverageMapSchema,
   ScenePackageSchema,
   SceneTaskInputSchema,
   SemanticTimingSchema,
-  SelectedResourceRefSchema,
+  SceneSelectedResourcesFileSchema,
   StorySpecSchema,
   buildSceneCoverageMap,
   type SceneCoverageMap,
@@ -21,22 +19,7 @@ import {
   type SceneArtifactMode,
 } from "./project-files";
 
-export const SceneSelectedResourcesFileSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    selectedResources: z
-      .array(
-        z
-          .object({
-            selected: SelectedResourceRefSchema,
-            descriptor: ResourceDescriptorSchema,
-          })
-          .strict(),
-      )
-      .readonly(),
-  })
-  .strict()
-  .readonly();
+export { SceneSelectedResourcesFileSchema } from "@axmorf/studio/contracts";
 
 export const parseSceneSelectedResourcesFile = (value: unknown) =>
   SceneSelectedResourcesFileSchema.parse(value);

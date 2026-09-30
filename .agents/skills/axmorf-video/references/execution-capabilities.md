@@ -72,4 +72,4 @@ scheduling shape this host actually supports:
   then admit the next bounded batch. Do not require per-child wait-any or change host settings to obtain it.
 
 Do not wrap shell jobs as children or change host settings to emulate another scheduling shape. Child chat is not a task-terminal receipt. Once all dirty tasks have been admitted, launch prepare's exact continuation once and suspend the
-Root; the fixed continuation alone verifies task terminal events and delivers. No polling or Root repairs after that handoff.
+Root between native events; the fixed continuation alone verifies task terminal events and delivers. No child/status polling. Root may diagnose reported errors and guide the original owner before terminal; it never reads/writes another worker's workspace or repairs the running continuation. Terminal recovery requires the Skill recovery gate and fresh workers after all previous workers have exited.

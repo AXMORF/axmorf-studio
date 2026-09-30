@@ -9,7 +9,8 @@ Open this workspace in an Agent that supports native subagents, file access, and
 
 ```text
 请制作一条约30秒的中文竖屏视频，介绍如何从一个小步骤开始行动。
-要有旁白、字幕和动态图形，文案和画面你来设计，最后给我视频和封面。
+画面用一团交错路线代表难以下手的目标：开场让光点困在路口，旁白说到“一小步”时抽出一条清晰路线，结尾让光点走到第一个节点。每段都要有看得懂的主体、变化和结果；保持统一色彩与留白。
+要有旁白、字幕和动态图形，最后给我视频和封面。
 ```
 
 The workspace's `AGENTS.md` and local Skill supply the production instructions. You do not need to include internal commands
@@ -52,6 +53,7 @@ timeout and a single download lock; diagnostics never silently download another 
 | Open only the Web control center            | `npm run web`                                                                              |
 | Open only Remotion Studio                   | `npm run preview`                                                                          |
 | Inspect a production without provider calls | `npm run project:produce:inspect -- --project <story-id>`                                  |
+| Review opening, middle, and final Scene frames | `npm run project:scene:review -- --project <story-id>`                                    |
 | Verify the current delivered Project        | `npm run project:check -- --project <story-id> --level final`                              |
 
 For Project creation, revisions, production, recovery, and deletion, use the order in `AGENTS.md` and the Workspace-local

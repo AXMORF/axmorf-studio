@@ -8,6 +8,7 @@ export { default as StatCounter } from "./charts/StatCounter";
 export { default as ComparisonChart } from "./charts/ComparisonChart";
 export { default as CircularProgress } from "./charts/CircularProgress";
 export { default as AnimatedText } from "./text/AnimatedText";
+export type { AnimatedTextProps } from "./text/AnimatedText";
 export { default as BounceText } from "./text/BounceText";
 export { default as BubblePopText } from "./text/BubblePopText";
 export { default as FloatingBubbleText } from "./text/FloatingBubbleText";

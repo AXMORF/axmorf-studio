@@ -6,6 +6,10 @@ import {
   ReferenceFidelityReceiptSchema,
   RenderSpecSchema,
   SceneReadabilityPolicySchema,
+  SceneSelectedResourcesFileSchema,
+  SceneSelectedResourceSchema,
+  validateSelectedResourceRef,
+  SceneProductionBriefItemSchema,
   SceneSoundPlanSchema,
   SceneSyncAnchorSetSchema,
   SceneTaskInputSchema,
@@ -17,6 +21,7 @@ import {
   ShotRecipeSelectionSchema,
   StoryIdSchema,
   TaskExecutionContractSchema,
+  VisualStyleSpecSchema,
   buildNotApplicableFidelityReceipt,
   buildSceneSoundPlan,
   buildSceneSyncAnchors,
@@ -25,6 +30,7 @@ import {
   buildShotRecipeSelection,
   createGlobalVisualPlan,
   deriveCoverCompositionBaseId,
+  getFixedCoverDimensions,
   type AgentTaskKind,
   type ProducerTaskSpec,
   type TaskExecutionContract,
@@ -124,13 +130,74 @@ const createContract = (
 const buildSceneContract = (rawContext: unknown) => {
   const context = z
     .object({
-      scene: z.object({ taskInput: SceneTaskInputSchema }).passthrough(),
+      scene: z
+        .object({
+          taskInput: SceneTaskInputSchema,
+          availableResources: z.array(SceneSelectedResourceSchema).default([]),
+          brief: SceneProductionBriefItemSchema,
+          visualStyle: VisualStyleSpecSchema,
+          narrationCues: z
+            .array(
+              z
+                .object({
+                  chunkId: z.string().min(1),
+                  text: z.string().trim().min(1),
+                  startFrame: z.number().int().nonnegative(),
+                  endFrame: z.number().int().positive(),
+                })
+                .strict(),
+            )
+            .readonly(),
+        })
+        .passthrough(),
     })
     .passthrough()
     .parse(rawContext);
-  const taskInput = context.scene.taskInput;
+  const { taskInput, brief, visualStyle, narrationCues, availableResources } =
+    context.scene;
+  if (
+    JSON.stringify(
+      availableResources.map(({ selected }) => selected.resourceId),
+    ) !== JSON.stringify([...taskInput.allowedResourceIds].sort())
+  ) {
+    throw new Error(
+      "Scene available resources must exactly resolve its allowlist.",
+    );
+  }
+  for (const record of availableResources)
+    validateSelectedResourceRef({
+      ...record,
+      currentCatalogFingerprint: taskInput.resourceCatalogFingerprint,
+    });
   const durationInFrames =
     taskInput.timingBeat.endFrame - taskInput.timingBeat.startFrame;
+  if (
+    brief.meaningId !== taskInput.meaningId ||
+    visualStyle.storyId !== taskInput.storyId ||
+    visualStyle.resourceCatalogFingerprint !==
+      taskInput.resourceCatalogFingerprint ||
+    JSON.stringify(brief.candidateResourceIds) !==
+      JSON.stringify([...taskInput.allowedResourceIds].sort())
+  ) {
+    throw new Error("Scene creative context is stale against its task input.");
+  }
+  const expectedChunks =
+    taskInput.storyBeat.kind === "narrated-scene"
+      ? taskInput.storyBeat.ttsChunks
+      : [];
+  if (
+    narrationCues.length !== expectedChunks.length ||
+    narrationCues.some(
+      (cue, index) =>
+        cue.chunkId !== expectedChunks[index]?.chunkId ||
+        cue.text !== expectedChunks[index]?.ttsText ||
+        cue.startFrame >= cue.endFrame ||
+        cue.endFrame > durationInFrames ||
+        (index > 0 && cue.startFrame < narrationCues[index - 1].endFrame),
+    )
+  ) {
+    throw new Error("Scene narration cues are stale or outside its timing.");
+  }
   const shotId = `${taskInput.meaningId}-primary`;
   const selection = buildShotRecipeSelection({
     taskInputFingerprint: taskInput.taskInputFingerprint,
@@ -140,15 +207,16 @@ const buildSceneContract = (rawContext: unknown) => {
     taskInputFingerprint: taskInput.taskInputFingerprint,
     meaningId: taskInput.meaningId,
     semanticObjective: taskInput.storyBeat.narrativePurpose,
-    subject: `The visual subject for ${taskInput.meaningId}.`,
-    primaryAction: "Show one readable action that advances the current idea.",
+    subject: brief.visualIntent,
+    primaryAction: brief.motionIntent,
     causalLink: "The visible action makes the narrated causal link concrete.",
-    primaryComposition:
-      "Use one clear focal composition inside the Scene viewport.",
+    primaryComposition: brief.compositionIntent,
     styleRealization: [
-      "Apply the current VisualStyle without introducing undeclared media.",
+      visualStyle.artDirection.medium,
+      visualStyle.artDirection.palette,
+      visualStyle.artDirection.motionLanguage,
     ],
-    continuity: taskInput.continuity.continuityBrief,
+    continuity: brief.continuityBrief,
     orderedShotIds: [shotId],
     visualResourceIds: [],
     recipeDecision: "empty",
@@ -163,8 +231,8 @@ const buildSceneContract = (rawContext: unknown) => {
         shotId,
         order: 0,
         primaryRange: { startFrame: 0, endFrame: durationInFrames },
-        purpose: "Realize the current StoryBeat in one primary shot.",
-        action: "Stage one visible action synchronized to the narration.",
+        purpose: brief.visualIntent,
+        action: brief.motionIntent,
         visualResourceIds: [],
         syncAnchorIds: [],
       },
@@ -189,8 +257,14 @@ const buildSceneContract = (rawContext: unknown) => {
       "Author one meaning-local Scene renderer and its semantic visual, shot, sync, sound, resource, and recipe decisions.",
     workflow: [
       "Use scene.taskInput in inputs/context.json as immutable identity, timing, viewport, and allowlist authority.",
+      "Use scene.brief and scene.visualStyle for the actual visual, composition, motion, sound, and continuity decisions; scene.narrationCues are Scene-local frame ranges for narrated chunks.",
+      "Evaluate scene.availableResources capability authoring guides before implementing equivalent behavior yourself. Use the exact public imports, parameters and examples when a capability fits; keep authored content specific to this StoryBeat. Record the chosen capabilities and concrete reasons for self-authored alternatives in visual-plan.json styleRealization.",
+      "Before writing the renderer, decide what the viewer sees first, what visibly changes, and what final state makes the StoryBeat's causal point clear. Use one or more shots according to the meaning and duration, with purposeful entry, transformation, and result.",
+      "Choose a visual subject with a specific role in the idea. Show cause and consequence through staging, scale, movement, occlusion, or a change in spatial relationship; avoid generic shapes, ambient particles, and motion that only illustrates a keyword.",
+      "Give each shot one focal subject and a readable silhouette. Vary shot scale or viewpoint only when it clarifies a new fact, and preserve continuity of the subject across shots. Leave the Composition-owned caption area visually quiet.",
+      "Align meaningful visual changes to narrationCues and declare sync anchors for events used by shots or sound. Keep the plan, renderer, and visible result consistent; do not add motion only to fill time.",
       "Treat originalityBaseline as immutable negative evidence: the complete declared TypeScript source graph must not normalize to another Scene in that baseline.",
-      "Replace the examples with StoryBeat-specific creative output and write every declared output.",
+      "Replace the scaffold Renderer with StoryBeat-specific creative output and write every declared output. The scaffold is an API illustration, never a finished Scene.",
       "Run the deterministic task finalizer to bind identities, canonicalize JSON, and recompute derived fields.",
       "Run the fixed task checker, correct only this workspace, then use the attempt-bound completion operation supplied by the caller.",
     ],
@@ -201,17 +275,12 @@ const buildSceneContract = (rawContext: unknown) => {
         instructions: [
           "Default-export a component assignable to SceneRendererComponent from @axmorf/studio/remotion.",
           "Use sceneFrame, durationInFrames, fps, viewportWidth, and viewportHeight; never assume full-frame coordinates.",
+          "Show a readable subject, a visible meaning-driven change, and its result at narration-aligned frames; use scene.brief and scene.visualStyle rather than the scaffold imagery.",
           "Keep the root transparent and do not own captions, narration, or GlobalVisual decoration.",
         ],
         example: `import type {SceneRendererProps} from "@axmorf/studio/remotion";
 
-const Renderer = ({sceneFrame, durationInFrames, viewportWidth, viewportHeight}: SceneRendererProps) => {
-  const progress = Math.min(1, Math.max(0, sceneFrame / Math.max(1, durationInFrames - 1)));
-  const diameter = Math.round(Math.min(viewportWidth, viewportHeight) * (0.18 + progress * 0.08));
-  return <div style={{width: viewportWidth, height: viewportHeight, display: "flex", alignItems: "center", justifyContent: "center"}}>
-    <div style={{width: diameter, height: diameter, borderRadius: "50%", backgroundColor: "#fffdf9", opacity: 0.9}} />
-  </div>;
-};
+const Renderer = (_props: SceneRendererProps) => null;
 
 export default Renderer;
 `,
@@ -239,9 +308,10 @@ export default Renderer;
       }),
       jsonOutput({
         path: "src/selected-resources.json",
-        schema: SelectedResourcesFileSchema,
+        schema: SceneSelectedResourcesFileSchema,
         instructions: [
-          "List the exact approved Catalog resources used by the renderer, visual plan, shots, or sound plan.",
+          "Copy the selected/descriptor records from scene.availableResources for the exact resources used by the renderer and plans; never invent descriptor fingerprints.",
+          "Declare capability IDs in visual-plan.json visualResourceIds. Every declared capability must actually be invoked or mounted by the Renderer source graph; unused imports do not count. Do not invoke unselected capabilities.",
         ],
         example: { schemaVersion: 1, selectedResources: [] },
       }),
@@ -251,6 +321,8 @@ export default Renderer;
         owner: "agent-draft-fixed-finalize",
         instructions: [
           "Cover the Scene with ordered, non-overlapping, meaning-local shots.",
+          "Choose shot boundaries for semantic changes, including a result hold when duration permits; one continuous shot is valid for a short, clear Beat.",
+          "Describe observable subject positions, actions, and changes in each shot; a theme word or a camera move alone is not a shot action.",
           "Keep shot order identical to visual-plan.json orderedShotIds.",
         ],
         derivedFields: [
@@ -298,6 +370,7 @@ export default Renderer;
         owner: "agent-draft-fixed-finalize",
         instructions: [
           "Declare only frame-local semantic events referenced by shots or sound contributions.",
+          "Use scene.narrationCues to place visual events at the relevant spoken chunk, not at arbitrary percentages.",
         ],
         derivedFields: [
           "schemaVersion",
@@ -314,6 +387,8 @@ export default Renderer;
         owner: "agent-draft-fixed-finalize",
         instructions: [
           "Describe subject, action, causality, composition, style realization, continuity, and ordered shots.",
+          "Carry scene.brief and scene.visualStyle into concrete visible choices; describe the beginning, change, and result in the shot actions.",
+          "Make causalLink name the visible consequence of the primaryAction, not a generic claim that the visuals support the narration.",
           "Use only resource IDs permitted by scene.taskInput.allowedResourceIds.",
         ],
         derivedFields: [
@@ -446,6 +521,8 @@ const buildCoverContract = (rawContext: unknown) => {
     .passthrough()
     .parse(rawContext);
   const compositionId = deriveCoverCompositionBaseId(context.story.storyId);
+  const cover4x3 = getFixedCoverDimensions("cover-4x3");
+  const cover3x4 = getFixedCoverDimensions("cover-3x4");
 
   return createContract({
     taskKind: "cover-owner",
@@ -461,19 +538,17 @@ const buildCoverContract = (rawContext: unknown) => {
         path: "src/Cover3x4.tsx",
         format: "tsx",
         instructions: [
-          "Default-export a 1200x1600 code-only cover with no media, font, or network access.",
+          `Default-export a ${cover3x4.width}x${cover3x4.height} code-only cover with no media, font, or network access.`,
         ],
-        example:
-          'const Cover3x4 = () => <div style={{width: 1200, height: 1600, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#242424", color: "#fffdf9", fontSize: 88, fontWeight: 700}}>STORY</div>;\nexport default Cover3x4;\n',
+        example: `const Cover3x4 = () => <div style={{width: ${cover3x4.width}, height: ${cover3x4.height}, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#242424", color: "#fffdf9", fontSize: 88, fontWeight: 700}}>STORY</div>;\nexport default Cover3x4;\n`,
       }),
       sourceOutput({
         path: "src/Cover4x3.tsx",
         format: "tsx",
         instructions: [
-          "Default-export a 1600x1200 code-only cover with no media, font, or network access.",
+          `Default-export a ${cover4x3.width}x${cover4x3.height} code-only cover with no media, font, or network access.`,
         ],
-        example:
-          'const Cover4x3 = () => <div style={{width: 1600, height: 1200, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#fffdf9", color: "#242424", fontSize: 88, fontWeight: 700}}>STORY</div>;\nexport default Cover4x3;\n',
+        example: `const Cover4x3 = () => <div style={{width: ${cover4x3.width}, height: ${cover4x3.height}, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#fffdf9", color: "#242424", fontSize: 88, fontWeight: 700}}>STORY</div>;\nexport default Cover4x3;\n`,
       }),
       sourceOutput({
         path: "src/Root.tsx",
@@ -486,8 +561,8 @@ import Cover4x3 from "./Cover4x3";
 import Cover3x4 from "./Cover3x4";
 
 export const CoverRoot = () => <>
-  <Composition id="${compositionId}DeliveryCover4x3V2" component={Cover4x3} width={1600} height={1200} fps={30} durationInFrames={1} />
-  <Composition id="${compositionId}DeliveryCover3x4V2" component={Cover3x4} width={1200} height={1600} fps={30} durationInFrames={1} />
+  <Composition id="${compositionId}DeliveryCover4x3V2" component={Cover4x3} width={${cover4x3.width}} height={${cover4x3.height}} fps={30} durationInFrames={1} />
+  <Composition id="${compositionId}DeliveryCover3x4V2" component={Cover3x4} width={${cover3x4.width}} height={${cover3x4.height}} fps={30} durationInFrames={1} />
 </>;
 `,
       }),

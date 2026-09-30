@@ -74,7 +74,7 @@ const sceneTask = (meaningId: string): ProducerTaskSpec =>
     inputFingerprints: [{ id: "brief", fingerprint: SHA }],
     declaredReadSet: [],
     declaredOutputSet: ["src/Renderer.tsx"],
-    validatorPolicyVersion: "scene-owner-validator-v3",
+    validatorPolicyVersion: "scene-owner-validator-v4",
   });
 
 const attestation = (producerTask: ProducerTaskSpec): ArtifactAttestation =>

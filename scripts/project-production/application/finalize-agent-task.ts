@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   ProducerTaskSpecSchema,
   SceneTaskInputSchema,
+  SceneSelectedResourcesFileSchema,
   SelectedResourceRefSchema,
   TaskExecutionContractSchema,
   buildNotApplicableFidelityReceipt,
@@ -47,6 +48,7 @@ export class AgentTaskFinalizationError extends Error {
   }
 }
 
+const JsonObjectSchema = z.record(z.string(), z.unknown());
 const SelectedResourcesFileSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -54,8 +56,6 @@ const SelectedResourcesFileSchema = z
   })
   .strict()
   .readonly();
-
-const JsonObjectSchema = z.record(z.string(), z.unknown());
 
 const asFinalizationError = (
   error: unknown,
@@ -309,7 +309,7 @@ const finalizeSceneJson = async (workspace: string) => {
     taskInputFingerprint: taskInput.taskInputFingerprint,
     selections: selectionDraft.selections,
   });
-  const selectedResources = SelectedResourcesFileSchema.parse(
+  const selectedResources = SceneSelectedResourcesFileSchema.parse(
     await readJsonFile(
       workspace,
       "src/selected-resources.json",

@@ -1,10 +1,25 @@
+import type { CSSProperties } from "react";
 import { spring, useCurrentFrame, useVideoConfig } from "remotion";
 
-function AnimatedText() {
+export type AnimatedTextProps = {
+  text?: string;
+  color?: string;
+  fontSize?: CSSProperties["fontSize"];
+  staggerInFrames?: number;
+  style?: CSSProperties;
+};
+
+function AnimatedText({
+  text = "Hello Remotion",
+  color = "white",
+  fontSize = "5rem",
+  staggerInFrames = 5,
+  style,
+}: AnimatedTextProps = {}) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const text = "Hello Remotion".split("");
+  const characters = Array.from(text);
 
   return (
     <div
@@ -15,10 +30,11 @@ function AnimatedText() {
         transform: "translate(-50%, -50%)",
         width: "100%",
         textAlign: "center",
+        ...style,
       }}
     >
-      {text.map((char, i) => {
-        const delay = i * 5;
+      {characters.map((char, i) => {
+        const delay = i * staggerInFrames;
 
         const opacity = spring({
           frame: frame - delay,
@@ -50,8 +66,8 @@ function AnimatedText() {
             style={{
               display: "inline-block",
               opacity,
-              color: "white",
-              fontSize: "5rem",
+              color,
+              fontSize,
               fontWeight: "bold",
               transform: `translateY(${y}px) rotate(${rotate}deg)`,
             }}

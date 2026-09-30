@@ -39,7 +39,13 @@ flowchart LR
   Bind --> Check[Finalize and read-only task check]
   Check --> Terminal[Attempt-bound commit or failure event]
   Terminal -->|failure| Exit[Terminal nonzero exit]
-  Terminal -->|all artifacts| Continue[Fixed continuation]
+  Children -->|all admitted| Continue[Fixed continuation]
+  Inline -->|all committed| Continue
+  Terminal -->|events| Continue
+  Exit --> Diagnose[Root diagnosis]
+  Diagnose -->|proven task fault and recovery allowance| Recovery[Wait for old workers to exit then inspect and reissue]
+  Diagnose -->|system external unknown or limit| ReportFailure[Report blocker]
+  Recovery -->|ready and fresh attempt| Mode
   Reuse --> Continue
   Continue --> Barrier[All required artifacts]
   Barrier --> Materialize[Controlled materialization]
@@ -196,6 +202,17 @@ size/fingerprint）。raw policy、full-frame width/height 和四边 inset 不�
 validator 拒绝 Renderer 自建 SceneViewport/provider、读取 raw policy/inset 或调用 `useVideoConfig()`
 恢复 full-frame authority。
 
+`scene-owner` context 另外提供当前 Scene brief、完整 VisualStyleSpec 与由已封存 SemanticTiming 派生的
+Scene-local narrationCues。TaskExecutionContract 要求执行者把开场主体、可见变化与结果对应到实际镜头和
+旁白 chunk；示例 Renderer 只是 API scaffold，原样提交由 `scene-owner-validator-v4` 拒绝。新增 context 和
+contract 只改变相关 Agent TaskRevision，不改变 ProductionRevision。
+
+创建 context 提供 Catalog capability 的公开 API、参数和可编译示例。Root 按叙事需要选入资源池与 Scene
+候选；Scene context 的 `availableResources` 冻结该 allowlist 的完整 selected/descriptor records，worker
+无需额外扫描能力源码。Scene 的 selected-resources.json、finalizer 与 checker 共用包装格式。checker
+复核 immutable records，并要求公开能力的源码调用/JSX 挂载与声明对应；unused import 不计使用。
+不适用的能力允许由自绘替代，理由写进 styleRealization；源码调用检查不代替实际画面审阅。
+
 GlobalVisual context 包含 fixed workflow 从 canonical SemanticTiming 派生的严格 layer policy：base range 是完整
 Composition，decoration range 是首个至末个 narrated Scene 的连续窗口，decoration 的 Remotion frame origin 是
 窗口 local zero。`global-visual-owner-validator-v2` 要求同一入口恰好导出两个 no-Props component，并拒绝越出
@@ -236,17 +253,19 @@ attempt 的机械 task-terminal event；executor chat 不参与 barrier，也不
 
 ## 5. Fixed continuation、convergence 与物化
 
-Root inline 执行完或完成 bounded admission 后只启动 prepare 返回的 exact command，然后挂起：
+Root inline 执行完或完成 bounded admission 后启动 prepare 返回的 exact command，每个 attempt 仅一次：
 
 ```bash
 npm run project:produce:continue -- --project <storyId> --revision <revisionId> --attempt <attemptId>
 ```
 
-Root 此后不轮询、读取 executor 终态、推理、修复或重试。bounded fixed continuation 首先对 exact attempt
+Root 用原进程阻塞等待或原生通知做低 token 监督；普通等待超时只续等，不轮询 child/status、反复读日志或推理未变进度。
+错误通知时读取相关诊断并指导原 executor，Root 不读写其 workspace、不代 commit、不修复运行中的 continuation。
+只按 fixed 结果报告一次，忽略迟到重复成功通知。bounded fixed continuation 首先对 exact attempt
 建立 one-shot atomic claim，然后订阅 immutable event log（不是可失败的 progress projection）。任一 Agent
 terminal failure 立即写失败终态并非零退出，不调用 converge；全部 Agent artifacts committed/current 后内部
 只调用一次 converge。重复 continuation fail closed；从 ExecutionAttempt 创建起一小时总 deadline 内仍缺 terminal 时写
-`producer-continuation-timeout` 后退出。converge 失败原样退出且不重新进入 Root。
+`producer-continuation-timeout` 后退出。converge 失败原样退出；Root 只诊断报告系统故障，不能在生产中修复底层程序。
 
 converge 只调用 read-only current-plan builder 重算 current inputs；不调用 provider、不创建 workspace 或
 ExecutionAttempt。revision 不同返回 stable stale 结果。任何 required artifact 缺失时，
@@ -278,6 +297,11 @@ build 同步等待 Remotion/FFmpeg，依次验证：
 `project-production-current`；新 package 成功提升返回 `project-production-complete`。这两个状态均证明实际
 current files 完整，不是计划、聊天或进程启动事实。
 
+交付后可运行 `npm run project:scene:review -- --project <storyId>`。命令先复验 current 四文件
+Delivery，再核对当前 SemanticTiming 的 fps/frame count 与 narrated chapter 起点；逐个 Scene 提取开头、
+中点和末帧，生成 `out/<storyId>/scene-review/<deliveryBuildId>-*/index.html` 与 `review.json`。
+该产物只供人工复核，既不进入 Project/Task/Artifact/Delivery identity，也不自动判定审美质量。
+
 candidate continuation 在隔离 delivery 上完成同样的 exact-four validation 后，自动尝试 promotion。promotion
 在 repository lock 内再次复验 live base、candidate record、expected candidate Revision/Delivery tuple 与四文件
 bytes，然后受控替换 source/public/narration/delivery 四个 Project-owned roots、刷新 Registry/Catalog 并复验结果。任何一步
@@ -299,13 +323,17 @@ Agent execution preferences 独立保存到 `private/execution-preferences.json`
 文件缺失时使用内置 `subagents`、最大并发 4，当前提示词 override 只进入本次 resolver 输入，除非用户明确要求保存。worker
 transport 永远不保存。
 
-若多个 Agent tasks 中一部分已 commit、另一个失败，当前 lifecycle 立即结束且旧 attempt immutable。用户明确恢复时
-先运行只读、零 provider 的
+若多个 Agent tasks 中一部分已 commit、另一个失败，当前 attempt 立即结束且旧 attempt immutable。Root 根据结构化
+错误和原 executor 的最小相关片段诊断；只有已证明的 Agent-authored output fault 可自动恢复。每个用户制作请求（含
+candidate）最多一次，重试或换 candidate 不重置额度。先等待原 continuation 及所有旧 workers 经原生完成或 stop 后
+确认退出，无法证明就阻塞；禁止新旧 writer 重叠。再运行只读、零 provider 的
 `npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failedAttemptId>`；只有 failed terminal、
-无 active attempt、current Revision exact same 且没有 dirty/blocked fixed task 时，才运行
+无 active attempt、current Revision exact same 且没有 dirty/blocked fixed task，报告诊断、修正和复用结果并得到
+`attempt-recovery-ready` 时，才运行
 `npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>`。reissue 在 lock 内重检，
-不要求 current delivery，复用两个 valid artifacts 与合法 draft，并返回 fresh attempt/bindings/continuation。
-active/stale/fixed-flow recovery fail closed；这不是自动 retry 或重开旧 attempt。
+不要求 current delivery，复用 valid artifacts 与合法 draft，并返回 fresh attempt/bindings/continuation；只派 dirty tasks
+到 fresh workers。恢复再次失败、相同错误无新修正或原因不明时停止报告，不重跑 prepare/旁白绕过额度。后续用户明确恢复
+另算授权；active/stale/fixed-flow recovery fail closed，不重开旧 attempt。此策略属于 Agent 编排规则，不是 CLI 自动重试循环。
 delivery 若在生成 video 后失败，再次 prepare 不重跑已验证 TTS/Agent artifacts，converge 复用已验证 staging
 video，只生成缺失媒体。这不是自动 retry；每次都由显式 inspect/report/prepare 与 content inspection 得出。
 
@@ -328,8 +356,8 @@ legacy data 仅在删除器内部以最小严格 `runId/storyId` parser 判定 o
 ## 9. 固定流程故障
 
 Agent workspace validator 失败由同一 task executor 在宣告终态前修正 owning output 并重跑。任何 task terminal
-failure 或 validator/store/materialization/delivery fixed failure 都立即结束当前 lifecycle。系统缺陷只能在
-用户另行启动的 engineering task 中诊断、Red/Green 和验证，然后再显式创建新 attempt；不得在失败 attempt
+failure 或 validator/store/materialization/delivery fixed failure 都立即结束当前 attempt。Root 可诊断并报告系统缺陷的
+证据和所需工程范围；只有用户另行启动的 engineering task 才能修复、Red/Green 和验证，然后再显式创建新 attempt；不得在失败 attempt
 内修复或重试。
 
 ## npm Workspace reliability

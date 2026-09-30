@@ -12,6 +12,7 @@ import {
 import { dirname, join, relative, resolve, sep } from "node:path";
 
 import {
+  DELIVERY_FILES,
   PublishingIntentSchema,
   ProjectSoundPlanSchema,
   RenderSpecSchema,
@@ -558,10 +559,10 @@ export const prepareProjectAuthoringBuild = async ({
     description: publishingIntent.description,
     topics: publishingIntent.topics,
     collection: publishingIntent.collection.name,
-    outputFileName: "video.mp4",
+    outputFileName: DELIVERY_FILES.video,
     coverFileNames: {
-      cover4x3: "cover-4x3.png",
-      cover3x4: "cover-3x4.png",
+      cover4x3: DELIVERY_FILES.cover4x3,
+      cover3x4: DELIVERY_FILES.cover3x4,
     },
     fps: render.fps,
     frameCount,

@@ -47,6 +47,10 @@ authority in their own scope and never duplicate its rules.
 details；adapters 实现 filesystem/process/media ports，不能反向成为业务 authority。`scripts/project-production`
 是唯一 production/delivery root，不存在第二条构建链。
 
+`domain/attempt-progress.ts` 负责从 immutable attempt/events 纯计算进度、终态统计与计划诊断字段；
+`adapters/attempt-store.ts` 负责事件读取、原子追加、并发投影刷新与持久化。初始与事件进度共享字段投影，
+重复终态与跨绑定事件仍拒绝。分层检查同时拒绝 domain 直接依赖 filesystem/child-process 模块。
+
 ## 2. Authority graph
 
 ```mermaid
@@ -126,13 +130,15 @@ TypeScript registry 完成。
 | generated packages/registry/Composition     | fixed convergence                 | deterministic projection                                                                   |
 | delivery staging/current                    | fixed synchronous builder         | exact identity, media validation, controlled promotion                                     |
 | `.producer-attempts`                        | fixed prepare/progress adapter    | diagnostic snapshot only；不能拥有 artifact/delivery                                       |
+| `out/<storyId>/scene-review`                | delivery review CLI               | local diagnostic PNG/HTML only；不进入任何 production identity                             |
 
 private config、voice profiles、shared media、core、other Projects 与 historical data 不属于 Agent task write scope。
 
 ## 5. Task isolation
 
 Scene task reads one complete StoryBeat, its SemanticTiming slice, Scene-only requirements, a derived
-safe-area-local SceneViewport, Scene brief, resource pool and selected resources. It does not receive the raw
+safe-area-local SceneViewport, Scene brief, VisualStyleSpec, Scene-local narration chunk ranges, resource pool and
+selected resources. It does not receive the raw
 Composition readability policy, full-frame dimensions or insets. GlobalVisual reads
 Story/Timing/VisualStyle/requirements/brief/resources but never Scene output. Its fixed layer policy derives a
 full-Composition base range and a first-to-last narrated Scene decoration range from canonical SemanticTiming;
@@ -144,7 +150,10 @@ live-only fixed projections are excluded from its task identity.
 inspect 前的 execution resolver 按用户提示词、settings、内置 `subagents`/4 默认逐字段选择 Root inline 或 bounded
 subagents，且不进入 production identity。subagents 还要求宿主为本次 production 验证 `shared-workspace` 或
 `controller-io`；transport 不进入 settings 或持久 identity。每个 dirty Agent task 只有一个 executor；inline 一次一个 workspace，
-subagents 最大四个并受 runtime capacity 限制。全部完成或 admission 后 Root 挂起；fixed continuation 以 one-shot
+subagents 最大四个并受 runtime capacity 限制。全部完成或 admission 后 Root 通过原进程阻塞等待或原生通知监督，
+普通超时只续等；错误时才诊断并指导原 executor，不接管 task workspace。每个用户请求最多自动恢复一次已证明的
+视频任务错误：旧 continuation/workers 全退出、recover-inspect ready 后，same-Revision/零 provider reissue 到 fresh
+attempt/bindings/workers；系统/外部/未知故障诊断报告。该策略在 Agent 层执行，CLI 不新增自动重试循环。fixed continuation 以 one-shot
 atomic claim 独占 exact attempt，只订阅 immutable mechanical task-terminal event log；attempt 创建起一小时总
 deadline 防止无限等待。
 ArtifactAttestation 才进入 production data plane。
@@ -218,6 +227,10 @@ Project-local instance。
 
 ## 8. Synchronous delivery
 
+`contracts/delivery-layout.ts` 集中定义 exact 四文件名称与 Project-owned artifact 路径；构建、current
+inspection、revision promotion、publishing schema 与 Web 消费同一规则。封面任务示例、源码检查与媒体复验均从
+`FIXED_COVER_SPEC` 取得尺寸，不分别维护数字副本。规则仍为固定合同，不增加用户配置或改变交付格式。
+
 Delivery builder 在一个 foreground command 内完成 render、probe、EOF decode、publish-last 和 current
 promotion。build-owned staging 允许跨捕获失败复用同 identity 已验证媒体；不同 identity 不混用。
 current directory exact 只允许三份 media 加 `publish.json`，其余文件、symlink、path drift 或 media mismatch
@@ -249,6 +262,12 @@ Agent execution preferences 使用独立 strict contract 与 `0600` 原子存储
 terminal failed attempt 保持 immutable。显式 recovery 先做 read-only/zero-provider recover inspection，再在 lock
 内按 same current Revision reissue fresh attempt/bindings；它不要求 current delivery，复用 valid artifacts/drafts，
 并拒绝 active、stale 或 fixed-flow recovery。
+
+Capability discovery is part of authoring: create context exposes Catalog-bound public API guides. A Scene context
+freezes exactly its allowlisted selected/descriptor records, including guide examples and fingerprints. The canonical
+Scene resource wrapper is shared by contract generation, finalization and checking. Scene source calls or JSX mounts
+must match declared public capabilities, and selected records must match immutable inputs; empty self-authored Scenes
+remain valid. These checks establish source usage, not rendered visibility or aesthetic quality.
 
 Scene authoring 仍必须使用 repository-local `remotion-best-practices`，但 Skill 不能扩大 TaskSpec 或
 validator boundary。

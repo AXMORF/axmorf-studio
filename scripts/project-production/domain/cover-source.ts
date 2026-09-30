@@ -1,3 +1,4 @@
+import { getFixedCoverDimensions } from "@axmorf/studio/contracts";
 import ts from "typescript";
 
 import { assertGuardedSource } from "../../external-references/source-guard";
@@ -132,8 +133,7 @@ const collectCompositions = ({
     {
       id: `${compositionId}DeliveryCover4x3V2`,
       component: "Cover4x3",
-      width: 1600,
-      height: 1200,
+      ...getFixedCoverDimensions("cover-4x3"),
       fps: 30,
       durationInFrames: 1,
       variantId: "cover-4x3" as const,
@@ -142,8 +142,7 @@ const collectCompositions = ({
     {
       id: `${compositionId}DeliveryCover3x4V2`,
       component: "Cover3x4",
-      width: 1200,
-      height: 1600,
+      ...getFixedCoverDimensions("cover-3x4"),
       fps: 30,
       durationInFrames: 1,
       variantId: "cover-3x4" as const,

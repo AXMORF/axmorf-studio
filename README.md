@@ -20,6 +20,10 @@ validators 判断一次生产是否真正完成。
 > 当前为 `0.x` public beta。生产前请保留 Workspace 备份，并查看
 > [当前实现状态](docs/ITERATION_STATUS.md)。
 
+制作 Agent 可通过 `project:create:context` 查看既有视觉能力的公开 API 与示例，并按 Scene 语义选择。
+生产任务冻结选定资源和指南；校验会拒绝仅声明却未调用的能力，以及调用未声明的能力。自绘仍可使用，
+需要说明与现有 API 的适配理由；这些机械检查不代替成片审片。
+
 ## 把这段提示词交给你的 Agent
 
 复制下面一句，只需替换本地目标路径：
@@ -93,6 +97,7 @@ deliveries/<storyId>/publish.json
 | 创建 Project                       | `npm run project:create -- --project <story-id> --input <input.json>` |
 | 只读检查生产计划                   | `npm run project:produce:inspect -- --project <story-id>`             |
 | 开始有成本的准备                   | `npm run project:produce:prepare -- --project <story-id>`             |
+| 交付后复核每个 Scene 的关键画面     | `npm run project:scene:review -- --project <story-id>`                 |
 | 检查 Project                       | `npm run project:check -- --project <story-id>`                       |
 
 日常使用建议让 Agent 消费结构化输出和返回的 exact commands，不要手工拼接内部参数。完整顺序见

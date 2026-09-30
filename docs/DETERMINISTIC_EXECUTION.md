@@ -113,12 +113,16 @@ Scene/CaptionCue/Composition 消费同一 timing artifact；transition 不移动
 
 ## 6. Fixed continuation、convergence 与 materialization
 
-Root 派发全部 dirty Agent tasks 后只启动 prepare 返回的 attempt-bound fixed continuation，然后挂起。该
+Root 派发全部 dirty Agent tasks 后启动 prepare 返回的 attempt-bound fixed continuation，每个 attempt 仅一次；
+Root 用原进程阻塞等待或原生事件通知监督，只在错误时诊断并指导原 executor，不接管其 workspace 或 fixed barrier。该
 bounded process 先以原子 create 建立不可重复的 attempt claim，再通过 filesystem event 等待 immutable event
 log，而不依赖 progress projection，也不由 Root 轮询。任一 Agent task failure 先把 attempt 终结为 failed，
 再非零退出且不调用 converge；全部 Agent task outcomes 为 committed/current 时，内部只调用一次 converge。
 从 ExecutionAttempt 创建起一小时总 deadline 到期仍缺 terminal 时原子写 timeout failure 并退出。converge failure 直接退出，不 retry、
-不修复，也不重新进入 Root。
+不在原 attempt 修复。Root 只对视频任务错误执行有界诊断/恢复，系统和外部故障诊断后报告。
+恢复资格先按故障归属确认，不能仅因 recover-inspect ready 就重试；旧 continuation/workers 全退出后，经只读检查、
+同 Revision/零 provider gate 创建 fresh attempt/bindings/workers。每个用户请求最多自动恢复一次，再失败停止。
+等待、诊断和恢复计数均为 Agent 编排状态，不进入 content identity，也不放宽 runtime validators。
 
 内部 converge 每次通过 read-only current-plan builder 重新计算 current Revision/Plan；不调用 provider、不创建
 workspace/attempt。调用方 revision stale 时不采用旧 artifact。required artifacts
@@ -169,7 +173,7 @@ no-op。
   stale、non-terminal 或 fixed dirty/blocked flow 明确拒绝；
 - attempt reissue：只在 recovery-ready 时创建 fresh attempt/bindings，旧 failed attempt immutable；不要求 current
   delivery，provider request 为零，并复用 valid artifacts/合法 drafts；相同 failed attempt 已有 active successor
-  时 fail closed，不自动 retry；
+  时 fail closed；CLI 不自动 retry，Root 仅按 Skill 的一次有界视频任务恢复规则显式调用；
 - settings progress：malformed diagnostic/historical data 不影响 current classification 或 projection authority；
 - delete：严格 story ownership，可重复清理 missing targets，并保护其他 roots。
 

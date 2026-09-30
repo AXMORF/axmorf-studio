@@ -11,6 +11,10 @@ import {
 import { join } from "node:path";
 
 import {
+  DELIVERY_FILE_NAMES,
+  deliveryArtifactPath,
+  DELIVERY_FILES,
+  getFixedCoverDimensions,
   DELIVERY_BUILD_POLICY_VERSION,
   DeliveryPublishSchema,
   buildDeliveryPublish,
@@ -218,12 +222,7 @@ const assertExactDeliveryEntries = async (
     throw new Error("Project delivery must be a regular directory.");
   }
   const entries = await readdir(directory, { withFileTypes: true });
-  const expected = [
-    "cover-3x4.png",
-    "cover-4x3.png",
-    "publish.json",
-    "video.mp4",
-  ];
+  const expected = DELIVERY_FILE_NAMES;
   const actual = entries.map(({ name }) => name).sort();
   if (
     actual.length !== expected.length ||
@@ -258,7 +257,7 @@ const validateProjectDelivery = async ({
   readonly dependencies: DeliveryBuildDependencies;
 }) => {
   await assertExactDeliveryEntries(rootDir, directory);
-  const publishPath = join(directory, "publish.json");
+  const publishPath = join(directory, DELIVERY_FILES.publish);
   await assertDeliveryPath({
     rootDir,
     path: publishPath,
@@ -283,9 +282,9 @@ const validateProjectDelivery = async ({
   }
   const inspectVideo = dependencies.inspectVideo ?? inspectProjectVideo;
   const inspectCover = dependencies.inspectCover ?? inspectProjectCover;
-  const videoPath = join(directory, "video.mp4");
-  const cover4x3Path = join(directory, "cover-4x3.png");
-  const cover3x4Path = join(directory, "cover-3x4.png");
+  const videoPath = join(directory, DELIVERY_FILES.video);
+  const cover4x3Path = join(directory, DELIVERY_FILES.cover4x3);
+  const cover3x4Path = join(directory, DELIVERY_FILES.cover3x4);
   const videoFile = await inspectDeliveryFile({ rootDir, path: videoPath });
   const cover4x3File = await inspectDeliveryFile({
     rootDir,
@@ -322,7 +321,7 @@ const validateProjectDelivery = async ({
   const cover4x3 = await inspectCover({
     rootDir: prepared.runtimeRootDir,
     absolutePath: cover4x3Path,
-    expected: { width: 1600, height: 1200 },
+    expected: getFixedCoverDimensions("cover-4x3"),
   });
   await assertDeliveryPath({
     rootDir,
@@ -339,7 +338,7 @@ const validateProjectDelivery = async ({
   const cover3x4 = await inspectCover({
     rootDir: prepared.runtimeRootDir,
     absolutePath: cover3x4Path,
-    expected: { width: 1200, height: 1600 },
+    expected: getFixedCoverDimensions("cover-3x4"),
   });
   await assertDeliveryPath({
     rootDir,
@@ -460,7 +459,7 @@ export const buildDeliveryUnlocked = async ({
     buildId,
   });
 
-  const stagingPublishPath = join(paths.staging, "publish.json");
+  const stagingPublishPath = join(paths.staging, DELIVERY_FILES.publish);
   await assertDeliveryPath({
     rootDir: deliveryRootDir,
     path: stagingPublishPath,
@@ -471,9 +470,9 @@ export const buildDeliveryUnlocked = async ({
   const renderCover = dependencies.renderCover ?? renderProjectCover;
   const inspectVideo = dependencies.inspectVideo ?? inspectProjectVideo;
   const inspectCover = dependencies.inspectCover ?? inspectProjectCover;
-  const videoPath = join(paths.staging, "video.mp4");
-  const cover4x3Path = join(paths.staging, "cover-4x3.png");
-  const cover3x4Path = join(paths.staging, "cover-3x4.png");
+  const videoPath = join(paths.staging, DELIVERY_FILES.video);
+  const cover4x3Path = join(paths.staging, DELIVERY_FILES.cover4x3);
+  const cover3x4Path = join(paths.staging, DELIVERY_FILES.cover3x4);
   const video = await materializeArtifact({
     rootDir: deliveryRootDir,
     path: videoPath,
@@ -511,7 +510,7 @@ export const buildDeliveryUnlocked = async ({
       inspectCover({
         rootDir: prepared.runtimeRootDir,
         absolutePath,
-        expected: { width: 1600, height: 1200 },
+        expected: getFixedCoverDimensions("cover-4x3"),
       }),
   });
   const cover3x4 = await materializeArtifact({
@@ -531,7 +530,7 @@ export const buildDeliveryUnlocked = async ({
       inspectCover({
         rootDir: prepared.runtimeRootDir,
         absolutePath,
-        expected: { width: 1200, height: 1600 },
+        expected: getFixedCoverDimensions("cover-3x4"),
       }),
   });
   await dependencies.verifyMaterialized?.();
@@ -558,19 +557,19 @@ export const buildDeliveryUnlocked = async ({
     deliveryBuildId: buildId,
     artifacts: {
       video: {
-        repositoryPath: `deliveries/${prepared.projectId}/video.mp4`,
+        repositoryPath: deliveryArtifactPath(prepared.projectId, "video"),
         checksum: videoFile.checksum,
         sizeBytes: videoFile.sizeBytes,
         media: video.media,
       },
       cover4x3: {
-        repositoryPath: `deliveries/${prepared.projectId}/cover-4x3.png`,
+        repositoryPath: deliveryArtifactPath(prepared.projectId, "cover4x3"),
         checksum: cover4x3File.checksum,
         sizeBytes: cover4x3File.sizeBytes,
         media: cover4x3.media,
       },
       cover3x4: {
-        repositoryPath: `deliveries/${prepared.projectId}/cover-3x4.png`,
+        repositoryPath: deliveryArtifactPath(prepared.projectId, "cover3x4"),
         checksum: cover3x4File.checksum,
         sizeBytes: cover3x4File.sizeBytes,
         media: cover3x4.media,

@@ -1,4 +1,5 @@
 import { ResourceCapabilityDescriptorSchema } from "../../contracts";
+import { capabilityAuthoringGuides } from "./capability-guides";
 
 const common = {
   schemaVersion: 1,
@@ -9,19 +10,6 @@ const common = {
 
 export const WORKSPACE_REMOTION_FACADE_PATH =
   "src/runtime/capabilities.ts" as const;
-
-export const WORKSPACE_CAPABILITY_FACADE_SOURCE = `export {
-  AnimatedText,
-  CalloutGrid,
-  LineChart,
-  ProducerCamera2D,
-  ProducerLocalVideo,
-  ProducerMotionTreatment,
-  getProducerEffectPreset,
-  getProducerSoundLibrary,
-  getProducerTransitionPreset,
-} from "@axmorf/studio/remotion";
-`;
 
 const declarations = [
   {
@@ -104,9 +92,22 @@ export const capabilityDescriptorDeclarations = declarations.map(
       ...common,
       ...declaration,
       kind: "capability",
+      authoring: capabilityAuthoringGuides[declaration.id],
       authority: {
         kind: "repository-file",
         repositoryPath: declaration.sourceFile,
       },
     }),
 );
+
+export const WORKSPACE_CAPABILITY_FACADE_SOURCE = `export {
+${[
+  ...new Set(
+    Object.values(capabilityAuthoringGuides).flatMap((guide) => guide.exports),
+  ),
+]
+  .sort()
+  .map((name) => `  ${name},`)
+  .join("\n")}
+} from "@axmorf/studio/remotion";
+`;

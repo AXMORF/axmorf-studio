@@ -62,6 +62,7 @@ const SCRIPTS = Object.freeze({
   "project:originality:freeze": "axmorf project originality freeze",
   "project:execution:resolve": "axmorf project execution resolve",
   "project:produce:inspect": "axmorf project produce inspect",
+  "project:scene:review": "axmorf project scene review",
   "project:produce:prepare": "axmorf project produce prepare",
   "project:task:bind": "axmorf project task bind",
   "project:task:describe": "axmorf project task describe",

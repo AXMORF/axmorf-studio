@@ -25,11 +25,34 @@ test("create context supplies a usable example from current public choices witho
     env,
   });
   assert.equal(context.status, "project-create-context");
-  assert.equal(context.durationBudget.targetTotalSeconds, 20);
+  const camera = context.capabilities.find(
+    ({ descriptor }) => descriptor.id === "capability.camera",
+  );
+  assert.ok(camera);
+  assert.ok(
+    camera.descriptor.kind === "capability" && camera.descriptor.authoring,
+  );
+  assert.ok(camera.descriptor.authoring.exports.includes("ProducerCamera3D"));
+  assert.match(camera.descriptor.authoring.example, /ProducerCamera2D/);
+  assert.match(camera.descriptorFingerprint, /^sha256:/);
+  assert.ok(
+    context.example.resources.allowedResourceIds.some(
+      (id) => id === "capability.camera",
+    ),
+  );
+  assert.match(
+    context.guidance.join(" "),
+    /capabilit.*before.*self-authored/iu,
+  );
+  assert.equal(context.durationBudget.targetTotalSeconds, 30);
   assert.equal(context.durationBudget.actualTotalSeconds, null);
   assert.equal(
     context.durationBudget.availableNarratedSeconds,
-    Math.max(0, 20 - context.durationBudget.boundarySeconds),
+    Math.max(
+      0,
+      context.durationBudget.targetTotalSeconds -
+        context.durationBudget.boundarySeconds,
+    ),
   );
   const example = ProjectCreateInputSchema.parse({
     ...context.example,
@@ -47,6 +70,21 @@ test("create context supplies a usable example from current public choices witho
     ),
   );
   assert.equal(Object.hasOwn(example, "sceneTemplates"), false);
+  assert.deepEqual(
+    example.story.beats.map(({ meaningId }) => meaningId),
+    ["stuck-goal", "next-step"],
+  );
+  assert.match(example.scenes[0].motionIntent, /光点.*回到原地.*旁白/u);
+  assert.match(example.scenes[1].motionIntent, /旁白.*橙红线.*光点/u);
+  assert.match(example.scenes[1].continuityBrief, /上一 Scene 的光点/u);
+  assert.match(
+    context.guidance.join(" "),
+    /visible subject.*observable change.*resulting state/u,
+  );
+  assert.match(
+    context.guidance.join(" "),
+    /do not repeat the example's motif/u,
+  );
   assert.doesNotMatch(
     JSON.stringify(context),
     /visible-editable-token|127\.0\.0\.1|referenceAudioPath/,

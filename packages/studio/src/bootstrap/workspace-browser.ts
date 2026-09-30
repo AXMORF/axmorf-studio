@@ -145,7 +145,7 @@ export const prepareWorkspaceBrowser = async (rootDir: string) => {
       [...nodeArgs, ...invocation.argsPrefix, "browser", "ensure"],
       {
         cwd: rootDir,
-        timeoutMs: 300_000,
+        timeoutMs: 60 * 60_000,
         trackOwnership: true,
         logPath: join(rootDir, ".axmorf-browser-prepare.log"),
       },

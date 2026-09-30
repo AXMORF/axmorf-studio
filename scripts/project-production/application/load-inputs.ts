@@ -21,6 +21,7 @@ import {
   ResourceCatalogSchema,
   buildSceneTaskInputV7,
   resolveSceneViewport,
+  resolveSceneAvailableResources,
   computeRenderSpecFingerprint,
   computeStoryFingerprint,
   computeVisualStyleFingerprint,
@@ -296,7 +297,28 @@ export const loadProjectProductionInputs = async ({
       beat,
       timingBeat,
       brief: authoredBrief,
+      narrationCues:
+        beat.kind === "narrated-scene"
+          ? timing.segments.flatMap((segment) =>
+              segment.kind === "chunk" && segment.meaningId === beat.meaningId
+                ? [
+                    {
+                      chunkId: segment.chunkId,
+                      text: segment.ttsText,
+                      startFrame:
+                        segment.frameRange.startFrame - timingBeat.startFrame,
+                      endFrame:
+                        segment.frameRange.endFrame - timingBeat.startFrame,
+                    },
+                  ]
+                : [],
+            )
+          : [],
       taskInput,
+      availableResources: resolveSceneAvailableResources(
+        catalog,
+        taskInput.allowedResourceIds,
+      ),
       revisionInput: {
         meaningId: beat.meaningId,
         beatFingerprint: fingerprint("revision-story-beat", beat),

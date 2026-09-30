@@ -42,7 +42,8 @@ DeliveryBuildId、ArtifactAttestation 或 current delivery authority。
 
 fixed continuation 只在 exact attempt 的全部 Agent task terminal 为 committed/current 后调用一次 delivery 所属
 convergence；它必须先获得 one-shot atomic claim，并从 immutable event log 判定 barrier。任一 failed terminal、
-attempt 创建起一小时 missing-terminal timeout 或 fixed failure 都直接结束该 process，不自动 retry，也不重新进入 Root。
+attempt 创建起一小时 missing-terminal timeout 或 fixed failure 都直接结束该 process，不在原 attempt retry。Root 以原进程
+等待/通知监督，按 Skill 诊断故障；只有视频任务错误可经有界 recovery gate 创建新 attempt，底层程序缺陷只诊断报告。
 
 配置页只读投影严格解析 publish schema，要求 exact 四文件的真实 file/type/path/size/checksum，并与
 current Revision 比较。轮询不重复 FFmpeg/ffprobe/EOF decode；一致为 current，不一致为 stale，

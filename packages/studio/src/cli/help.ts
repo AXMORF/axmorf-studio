@@ -10,6 +10,7 @@ export const describeWorkspaceCliHelp = () => ({
     "npm run project:execution:resolve -- [--mode inline|subagents] [--max-concurrency <n>] [--require-exact-concurrency] [--runtime-max-concurrency <n>] [--worker-transport shared-workspace|controller-io]",
     "npm run project:produce:inspect -- --project <storyId>",
     "npm run project:produce:prepare -- --project <storyId>",
+    "npm run project:scene:review -- --project <storyId>",
     "npm run project:attempt:interrupt-inspect -- --project <storyId> --attempt <attemptId>",
     "npm run project:attempt:interrupt -- --project <storyId> --attempt <attemptId>",
     "npm run project:attempt:recover-inspect -- --project <storyId> --attempt <attemptId>",

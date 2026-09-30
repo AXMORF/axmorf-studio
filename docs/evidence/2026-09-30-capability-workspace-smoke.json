@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-30",
+  "publication": "local-unpublished",
+  "packages": [
+    {
+      "filename": "axmorf-studio-0.1.9.tgz",
+      "sizeBytes": 2519572,
+      "checksum": "sha256:94c50af0792f5b97e99aa3e0ec98e66b2f7bde9d1076947533dbb00bdb3a013e"
+    },
+    {
+      "filename": "create-axmorf-studio-0.1.9.tgz",
+      "sizeBytes": 33173,
+      "checksum": "sha256:3a9c355c8206719f6ecb66349a0011ea0cf346a3612760cbd7fbcd932365d7a9"
+    }
+  ],
+  "workspace": {
+    "creatorMode": "no-install-then-independent-npm-install",
+    "projectCount": 1,
+    "doctor": {
+      "layout": "pass",
+      "runtimeResources": "pass",
+      "remotionCli": "pass",
+      "browserRender": "pass",
+      "producerConfig": "pass",
+      "resourceCatalog": "pass"
+    },
+    "browserEnvironment": {
+      "version": "149.0.7790.0",
+      "provisioning": "reused-identical-version-cache-with-equal-file-checksums",
+      "browserPrepare": "pass",
+      "realBrowserRender": "pass",
+      "coldDownload": "interrupted-due-to-slow-network"
+    },
+    "execution": {
+      "mode": "subagents",
+      "effectiveMaxConcurrency": 3,
+      "transport": "shared-workspace",
+      "nativeChallengeProbe": "pass",
+      "agentTasks": 4
+    }
+  },
+  "repositoryVerification": {
+    "command": "npm run check",
+    "tests": 841,
+    "passed": 841,
+    "failed": 0,
+    "typecheck": "pass",
+    "lint": "pass",
+    "build": "pass",
+    "host": "pass",
+    "packagesBuild": "pass",
+    "packagesTypecheck": "pass",
+    "packageBoundary": "pass",
+    "reactDoctor": {
+      "score": 84,
+      "warnings": 12,
+      "category": "Zod schema API migration suggestions",
+      "errors": 0
+    }
+  },
+  "production": {
+    "status": "project-production-complete",
+    "storyId": "capability-flow-smoke",
+    "revisionId": "revision-052ffd4fcd9a1f28a34b308c985c87a85705b3025bb12aff1dc4b8633d022017",
+    "deliveryBuildId": "delivery-bad04b2fe0e88f128c0f2c58af269f8cd6c350d0db9f1a00fc93983af44db2bc",
+    "targetSeconds": 25,
+    "actualSeconds": 22.533333333333335,
+    "providerRequests": 3,
+    "automaticRecoveryCount": 0,
+    "sourceCheck": "pass",
+    "finalCheckCount": 7,
+    "finalCheck": "pass",
+    "sceneUsage": [
+      {
+        "meaningId": "visible-trend",
+        "capabilityIds": [
+          "capability.camera",
+          "capability.chart"
+        ],
+        "rendererChecksum": "sha256:08e6f0a77fb66612b1f42c821437eba27ec07c97b32f616707151e1aeebc6b39"
+      },
+      {
+        "meaningId": "memorable-focus",
+        "capabilityIds": [
+          "capability.camera",
+          "capability.visual-components"
+        ],
+        "rendererChecksum": "sha256:29930128e8e7af242488fe222ab72d1b118487593256b8484606db717ec88277"
+      }
+    ],
+    "files": [
+      "cover-3x4.png",
+      "cover-4x3.png",
+      "publish.json",
+      "video.mp4"
+    ],
+    "artifacts": {
+      "cover3x4": {
+        "checksum": "sha256:3dff04dc6b51f871ded9046553daa8dd3099cf54ef10c810d6fd6ed388fefdb7",
+        "media": {
+          "decodedToEof": true,
+          "height": 1600,
+          "imageFormat": "png",
+          "width": 1200
+        },
+        "repositoryPath": "deliveries/capability-flow-smoke/cover-3x4.png",
+        "sizeBytes": 117148
+      },
+      "cover4x3": {
+        "checksum": "sha256:41f962da6d9c6febb9b9e9295bd6676022fdc3d6b82be353eb8a83e8b1680696",
+        "media": {
+          "decodedToEof": true,
+          "height": 1200,
+          "imageFormat": "png",
+          "width": 1600
+        },
+        "repositoryPath": "deliveries/capability-flow-smoke/cover-4x3.png",
+        "sizeBytes": 124714
+      },
+      "video": {
+        "checksum": "sha256:781ec3cfcbe55668715c3761fb65f4709bbc06fb105a4f59ad90831d653e074c",
+        "media": {
+          "audioChannels": 2,
+          "audioCodec": "aac",
+          "codec": "h264",
+          "decodedToEof": true,
+          "fps": 30,
+          "frameCount": 676,
+          "height": 1920,
+          "width": 1080
+        },
+        "repositoryPath": "deliveries/capability-flow-smoke/video.mp4",
+        "sizeBytes": 1835861
+      }
+    }
+  },
+  "visualReview": {
+    "sceneCount": 4,
+    "samplesPerScene": 3,
+    "reviewedFrames": [
+      291,
+      435
+    ],
+    "observations": [
+      "Rendered curve and camera focus are visible.",
+      "Custom Chinese AnimatedText and underline are visible."
+    ],
+    "limitation": "Source invocation evidence and human keyframe review do not provide automatic aesthetic acceptance."
+  }
+}

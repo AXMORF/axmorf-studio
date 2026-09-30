@@ -11,6 +11,11 @@ Write only declared Agent-owned outputs; use exact bound describe/finalize/check
 `.agents/skills/remotion-best-practices/SKILL.md` and its relevant references before implementation. Correct only your own
 `agent-output` issues before terminal. On a host/fixed fault, stop and return the structured error to the Root for its exact
 failure command. Never reopen or automatically retry a terminal failed attempt.
+For Scene tasks, consume `scene.brief`, `scene.visualStyle`, and Scene-local `scene.narrationCues` in the bound context.
+Design a visible opening, meaning-driven change, and result aligned with narration. The Renderer in the task contract is
+an API scaffold and must be replaced; its unchanged source fails the Scene checker.
+Stage one clear focal subject per shot, keep it recognizable across changes in scale or viewpoint, and make the final state
+show the Beat's consequence. Leave visual breathing room for Composition-owned captions.
 
 The Root owns global doctor and preflight. Workers do not run `doctor`, `browser:prepare`, Project create/revise, execution
 resolve, inspect, prepare, provider calls, recovery or continuation. Missing task input or an environment error does not transfer
@@ -23,7 +28,7 @@ or resume; only same-task corrections by the original owning executor before ter
 1. Run `npm run doctor`. Prepare only declared host prerequisites when needed;
    never patch package internals, dependencies, or validators to force Green.
 2. Preserve unrelated Workspace changes and inspect existing Project source.
-3. For new authoring, read [authoring](authoring.md) and run `project:create:context` to get a complete example and current public choices.
+3. For new authoring, read [authoring](authoring.md) and run `project:create:context` to get a complete example and current public choices. Evaluate its capability API guides before selecting self-authored alternatives; workers receive only selected immutable resource records.
    Create or revise strict authoring input without calling providers.
    Project create freezes the Scene originality baseline. A legacy Project
    requires explicit `project:originality:freeze`; never infer an empty baseline.
@@ -49,16 +54,18 @@ or resume; only same-task corrections by the original owning executor before ter
 8. The assigned executor writes only contract-declared Agent/Agent-draft outputs and uses its exact returned
    describe/finalize/check/commit/failure commands; the Root is that executor only in inline mode.
    With `controller-io`, the executor uses only returned strict file-read/file-write commands.
-9. Start the exact continuation command as the Root Agent's final production
-   action. Do not supervise it through polling or a second continuation.
+9. Start the exact continuation command once per attempt. Root supervises with native notifications or blocking waits on its original
+   handle. Normal wait timeouts only renew that wait; no child/status polling, repeated log reads or a second continuation. On an error
+   notification, diagnose and guide the original executor before terminal without accessing its workspace. Report fixed completion once.
    Candidate continuation verifies an isolated exact-four Delivery before
    controlled source/public/narration/delivery promotion. If promotion rolls
    back, retry only
    `project:revision:promote`; do not reissue the completed production attempt.
-10. Never reopen a terminal failed attempt. On explicit recovery, run read-only
-    `npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failedAttemptId>`, then zero-provider
-    same-Revision `npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>`; no current
-    Delivery is required.
+10. Never reopen a terminal failed attempt. Follow [host recovery](host-execution-and-recovery.md): at most one automatic recovery per
+    user production request for proven Agent-authored output faults, only after all previous workers have exited. Run read-only
+    `npm run project:attempt:recover-inspect -- --project <storyId> --attempt <failedAttemptId>`, report the diagnosis/reuse, then zero-provider
+    same-Revision `npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>` only if ready; no current Delivery is
+    required. Use fresh workers and bindings. Unknown, fixed-system and external faults stop with diagnosis; no automatic program-source repair.
 
 Timing comes from sealed PCM samples. Scenes do not own captions or narration.
 Agent-owned Scene TS/TSX graphs must be unique against the frozen baseline and
@@ -70,3 +77,9 @@ copy.
 Runtime code does not call Agents, providers, Git, or the network. Delivery is
 exactly `video.mp4`, `cover-4x3.png`, `cover-3x4.png`, and `publish.json`, and is
 current only after fixed media and checksum validation.
+After a verified current delivery, `npm run project:scene:review -- --project <storyId>` writes a local three-frame-per-Scene
+review page under ignored `out/<storyId>/scene-review/`. Review the delivered video for motion and sound; this diagnostic
+does not alter production identity or automatically grade visual quality.
+Compare each Scene's opening, change, and result with its `narrativePurpose`, Scene brief, and narration cues. If the visible
+result misses the user's meaning or the focal subject is unclear, describe the specific mismatch and use the isolated
+revision flow for corrections within the authorized brief. Mechanical delivery success alone does not prove visual quality.

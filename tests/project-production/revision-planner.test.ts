@@ -15,6 +15,7 @@ import {
   generateSemanticTiming,
   resolveSceneReadabilityPolicy,
   resolveSceneViewport,
+  resolveSceneAvailableResources,
   type Sha256Digest,
 } from "@axmorf/studio/contracts";
 import {
@@ -28,6 +29,8 @@ import {
   validRenderSpec,
   validStorySpec,
 } from "../fixtures/narrative";
+import { buildResourceCatalog } from "../../scripts/catalog/domain";
+import { capabilityDescriptorDeclarations } from "../../packages/studio/src/remotion/catalog/capability-descriptors";
 
 const sha = (character: string) =>
   `sha256:${character.repeat(64)}` as Sha256Digest;
@@ -89,7 +92,25 @@ const sceneInput = ({
     meaningId,
     beat,
     timingBeat: { meaningId, marker: timingMarker },
-    brief: { meaningId, marker },
+    brief: {
+      meaningId,
+      visualIntent: `Show the meaning of ${meaningId}.`,
+      compositionIntent: "Use one clear focal subject.",
+      motionIntent: "Reveal the subject through a visible change.",
+      soundIntent: "Narration only.",
+      continuityBrief: "Keep this fixture self-contained.",
+      candidateResourceIds: [],
+      allowedSnapshotCards: [],
+    },
+    narrationCues: [
+      {
+        chunkId: `${meaningId}-01`,
+        text: `Narrate ${meaningId}.`,
+        startFrame: 0,
+        endFrame: 120,
+      },
+    ],
+    availableResources: [],
     taskInput: buildSceneTaskInputV7({
       storyId: "story-example",
       meaningId,
@@ -157,7 +178,23 @@ const inputs = ({
     },
     render: RenderSpecSchema.parse(validRenderSpec),
     sound: { storyId: "story-example" },
-    visualStyle: { storyId: "story-example", marker },
+    visualStyle: {
+      schemaVersion: 1,
+      storyId: "story-example",
+      styleProfileId: "cinematic-3d",
+      resourceCatalogFingerprint: sha("c"),
+      artDirection: {
+        medium: `technical illustration ${marker}`,
+        palette: "dark blue and white",
+        lighting: "soft directional light",
+        texture: "matte",
+        compositionGrammar: "one focal subject",
+        motionLanguage: "measured reveal",
+        typography: "minimal",
+      },
+      continuityRules: ["Keep direction stable."],
+      forbiddenTreatments: ["No unrelated decoration."],
+    },
     publishingIntent: { storyId: "story-example" },
     requirements: {
       readabilityPolicy: resolveSceneReadabilityPolicy({
@@ -216,6 +253,55 @@ test("planner dispatches only template-copy silent Scenes as fixed template task
   ]);
 });
 
+test("planner freezes capability API guides into the exact Scene context and task identity", () => {
+  const base = inputs();
+  const catalog = buildResourceCatalog(capabilityDescriptorDeclarations);
+  const availableResources = resolveSceneAvailableResources(catalog, [
+    "capability.camera",
+  ]);
+  const withResources = {
+    ...base,
+    visualStyle: {
+      ...base.visualStyle,
+      resourceCatalogFingerprint: catalog.catalogFingerprint,
+    },
+    sceneInputs: base.sceneInputs.map((scene) => {
+      const resources = scene.meaningId === "body" ? availableResources : [];
+      const allowedResourceIds = resources.map(
+        ({ selected }) => selected.resourceId,
+      );
+      return {
+        ...scene,
+        brief: { ...scene.brief, candidateResourceIds: allowedResourceIds },
+        availableResources: resources,
+        taskInput: buildSceneTaskInputV7({
+          ...scene.taskInput,
+          allowedResourceIds,
+          resourceCatalogFingerprint: catalog.catalogFingerprint,
+        }),
+      };
+    }),
+  };
+  const findBody = (value: Parameters<typeof buildAgentTasks>[0]) => {
+    const body = buildAgentTasks(value, revisionId).find(
+      ({ task }) => task.semanticId === "body",
+    );
+    assert.ok(body);
+    return body;
+  };
+  const before = findBody(base);
+  const after = findBody(withResources);
+  assert.deepEqual(
+    JSON.parse(after.contextBytes).scene.availableResources,
+    availableResources,
+  );
+  assert.notEqual(after.task.taskRevision, before.task.taskRevision);
+  assert.match(
+    after.taskContractBytes ?? "",
+    /availableResources|immutable capability/u,
+  );
+});
+
 test("originality baseline binds only Agent-owned Scene tasks and template-copy is exempt", () => {
   const built = buildAgentTasks(inputs(), revisionId);
   const template = built.find(({ task }) => task.taskKind === "scene-template");
@@ -234,7 +320,7 @@ test("originality baseline binds only Agent-owned Scene tasks and template-copy 
     false,
   );
   for (const owner of sceneOwners) {
-    assert.equal(owner.task.validatorPolicyVersion, "scene-owner-validator-v3");
+    assert.equal(owner.task.validatorPolicyVersion, "scene-owner-validator-v4");
     assert.equal(
       owner.task.inputFingerprints.find(
         ({ id }) => id === SCENE_ORIGINALITY_INPUT_ID,
@@ -401,6 +487,35 @@ test("Scene task revision binds only its meaning-local timing slice", () => {
 
   assert.equal(revisionFor(first, "body"), revisionFor(second, "body"));
   assert.notEqual(revisionFor(first, "outro"), revisionFor(second, "outro"));
+});
+
+test("Scene narration cue changes invalidate only the owning Scene", () => {
+  const current = inputs();
+  const changed = {
+    ...current,
+    sceneInputs: current.sceneInputs.map((scene) =>
+      scene.meaningId === "body"
+        ? {
+            ...scene,
+            narrationCues: scene.narrationCues.map((cue) => ({
+              ...cue,
+              startFrame: 1,
+            })),
+          }
+        : scene,
+    ),
+  } as Parameters<typeof buildAgentTasks>[0];
+  const revisions = (loaded: Parameters<typeof buildAgentTasks>[0]) =>
+    Object.fromEntries(
+      buildAgentTasks(loaded, revisionId)
+        .filter(({ task }) => task.semanticId !== null)
+        .map(({ task }) => [task.semanticId, task.taskRevision]),
+    );
+  const before = revisions(current);
+  const after = revisions(changed);
+  assert.notEqual(before.body, after.body);
+  assert.equal(before.intro, after.intro);
+  assert.equal(before.outro, after.outro);
 });
 
 test("GlobalVisual task revision binds RenderSpec identity", () => {

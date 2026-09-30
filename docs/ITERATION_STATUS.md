@@ -4,7 +4,65 @@
 >
 > 最后复核：2026-09-08 `v0.1.9` 已通过双宿主候选门禁并正式发布；官方 npm 新建 Workspace 的 Codex/Hermes 成片复测已通过。
 
-## 当前工程增量（0.1.9 已发布并完成原生 subagents 首次使用验收）
+## 能力选择与 Scene 资源准入修复（2026-09-30，本地未发布）
+
+创建 context 现在返回当前 capability 的公开 API、参数、可编译示例和 descriptor fingerprint；示例明确选择
+Camera，指导 Agent 先评估既有能力，再按具体语义选择或说明自绘理由，不设置使用数量配额。
+Catalog 保留 9 类 identity，扩展 discoverable exports 与 Workspace facade；Scene immutable context 只冻结
+该 Scene allowlist 的完整 selected/descriptor records（含 API guides），不开放 worker 额外目录读取。
+Scene selected resources 的 contract、finalizer 与 checker 共用 canonical 包装格式，修复非空列表的格式冲突。
+checker 复核冻结记录，并检查公开能力的调用/JSX 挂载与声明对应；unused import 不构成使用证据。
+该检查只提供源码调用证据，不自动判定画面可见性或审美。AnimatedText 支持实际文案和排版参数，保留默认行为。
+
+本轮 `npm run check` 通过（841/841 tests、typecheck、lint、构建与 host Composition 检查）；
+package build/typecheck 与两个包的发行边界检查通过。最新本地 tarballs 经 creator 生成全新 Workspace，
+独立安装依赖并通过 bootstrap、browser:prepare 和真实 browser-render doctor。慢速冷下载被中止；浏览器环境
+复用逐文件 checksum 相同的 Chrome 149.0.7790.0 缓存，未修改 npm package code、依赖或 validator。
+原生 shared-workspace challenge probe 通过，以默认 subagents 模式/实际并发上限 3 执行四个独立 Agent tasks。
+三段 Edge 旁白、两个 Scene、GlobalVisual、Cover 和固定 continuation 成功交付，终态
+`project-production-complete`；source check 通过，final check 7/7 通过。22.53 秒/676 帧/1080×1920/30 fps
+H.264/AAC 视频与两张 PNG 封面、publish.json 均已复验至 EOF；比 25 秒预算短 2.47 秒。
+当前成片关键帧已看到 LineChart、Camera 和自定义中文 AnimatedText 的实际输出。
+详见 [本地 Workspace 验证](evidence/2026-09-30-capability-workspace-smoke.json) 与
+[准入诊断](evidence/2026-09-30-scene-capability-admission.md)。未提交、未发布新包；其他既有 Workspace 不自动更新。
+
+## 画面语言引导改进（本地未发布）
+
+`project:create:context` 的示例改为“困住 → 找到一步”两个连续 Scene，以明确主体、阻力、转变与结果的路径隐喻展示
+跨镜头承接；guidance 要求每个 narrated Scene
+把叙事目的写成可见因果。Scene `TaskExecutionContract` 增加焦点、空间关系、镜头连续性与旁白对齐的具体创作要求，
+并将容易诱导通用圆形动效的 Renderer 示例改为空白 API 骨架；现有 `scene-owner-validator-v4` 仍拒绝原样提交骨架。
+生成 Workspace 的提示词示例和 authoring/worker 指南同步强调可见主体、变化与结果；交付后对照 brief 审片，
+具体失配走既有隔离 revision。此轮改善的是 Agent 输入与人工反馈路径，
+不构成主观审美自动验收，也尚未有新的真实成片对照。当前 checkout 的 `npm run check` 已通过（825/825 tests、
+typecheck、lint、文档、构建与 host Composition 检查），`npm run packages:build`、`npm run packages:typecheck` 通过；
+未发布新 npm 包。
+
+## 低 token 监督与视频任务恢复（2026-09-09，未发布）
+
+仓库 Agent 规则、Skill policy v23 和 creator 模板改为原进程阻塞等待/原生事件通知监督；普通等待超时只续等，
+错误时 Root 定位并指导原 executor，不读写其他 task workspace，不接管 fixed continuation。只报告一次 fixed 结果。
+每个用户制作请求最多自动恢复一次已证明的 Agent-authored output fault；旧 continuation/workers 全退出后，
+recover-inspect ready 才 same-Revision/零 provider reissue 到 fresh attempt/bindings/workers，复用有效产物和草稿。
+底层程序、外部或未知故障只诊断报告，恢复再次失败停止。CLI gate、one-shot claim、旧 attempt 不可变与校验规则保留。
+本轮是 Agent 指南/策略修改，不是新增 CLI 自动修复器。文档/兼容性测试 23 项、既有 continuation/reissue/interrupt
+回归 24 项、creator package 检查、Skill 校验、链接和 scoped ESLint 已通过；8 个只读场景推演覆盖等待、返工、恢复与中断。
+本机 `/Users/ai/AgentWorkspace/axmorf` 的 5 个原版指南已同步并逐字节回读，package/lockfile 和 current delivery checksum
+未变；其他已安装 Workspace 不自动更新。尚无新 Hermes 真实故障恢复成片验收，未发布新 npm 包。
+
+## 当前源码重构（未发布）
+
+执行进度投影与计划诊断字段已从 attempt filesystem adapter 提取到纯 domain 模块；初始/事件进度共用字段映射，
+存储读写与原子追加语义保持原样。架构检查新增 domain filesystem/child-process 依赖禁令。
+交付文件名与 artifact 路径集中到 `contracts/delivery-layout.ts`；封面尺寸复用 `FIXED_COVER_SPEC`，
+供构建、源码检查、媒体复验、candidate promotion 与 Web 使用。未改变 public JSON 格式、版本号或生产命令。
+编译后 package policy bytes 会变化，后续生产仍按既有 fingerprint 规则重新规划；不保证旧 artifact 跨包源码变更复用。
+
+本地 `npm run check` 通过（819/819 tests、typecheck、lint、文档、构建与 host Composition 检查），
+`npm run packages:build` 和 `npm run packages:typecheck` 通过。新增 8 项回归覆盖；封面任务合同的重构前后
+JSON 逐字节一致。当前 checkout 为 zero Project，本轮未做新的 provider/成片验收，也未发布新包。
+
+## 已发布工程增量（0.1.9 已发布并完成原生 subagents 首次使用验收）
 
 默认执行策略为 `subagents`、最大并发 4；显式 inline 偏好继续生效。发行 Skill 明确 Root 负责全局 doctor/preflight，
 worker 只执行 exact bind 与 owning task 合同；每个不同 TaskRevision 必须 fresh native child/session，不得把完成的
@@ -155,7 +213,7 @@ shim。历史 `.producer-runs` 数据保持原位，但 current prepare/converge
 当前 checkout 没有 source Project 或 current Delivery，ProjectRegistry 为 0 entry；这验证了 zero-Project
 bootstrap/Registry/Catalog/settings 合同。readiness、cache reuse 与 dirty task estimate 始终都不是完成证据。
 
-当前 repository video Skill policy schema v18 / policy v22 定义了 pre-inspect external-asset Agent capability slot 与
+当前 repository video Skill policy schema v19 / policy v23 定义了 pre-inspect external-asset Agent capability slot 与
 isolated Project revision flow：外部能力只按
 当前 Root Agent 的实际 callable MCP tools 激活，缺失时完全省略；激活后也必须先查本地 Catalog，再通过
 `project:asset:import` 把选择准入为 Project-owned 输入。该 slot 不创建 DAG node，也不进入 child/runtime。
@@ -236,6 +294,11 @@ isolated Project revision flow：外部能力只按
   TaskRevisions；
 - Scene executor 继续受 Workspace-local `remotion-best-practices`、Scene-only requirements、本地
   SceneViewport、resource/license 与 Remotion runtime gates 约束；它不感知 full-frame 安全区 inset。
+- Scene owner context 现提供完整 Scene brief、VisualStyleSpec 和封存旁白的 Scene-local chunk 帧区间；
+  TaskExecutionContract 要求开场、可见变化、结果与镜头/旁白同步，`scene-owner-validator-v4` 拒绝原样提交
+  Renderer scaffold。任务 context/contract 变化只失效相应 Agent TaskRevision。
+- `project:scene:review` 在复验 current Delivery 与 SemanticTiming 对齐后，为每个 Scene 生成三帧本地
+  review 页面，保存在 ignored `out/<storyId>/scene-review/`；人工画面复核不属于自动生产完成门槛。
 - execution resolver 已按用户提示词明确字段、独立 settings、内置 `subagents`/4 默认逐级解析；全新 scaffolded Workspace
   默认要求宿主提供 bounded runtime-native children 并为本次 production 验证
   `shared-workspace` 或 `controller-io` transport 时启用，最多四个。transport 不写 execution preferences，也不进入
@@ -246,8 +309,7 @@ isolated Project revision flow：外部能力只按
 - `AGENTS.md` 是唯一 repository Agent authority；`CLAUDE.md`/`GEMINI.md` 只导入该文件，OpenAI Skill metadata
   只提供可选 UI 展示。生产脚本不调用任何厂商 Agent SDK。
 - continuation 启动后 Root 不参与 barrier；event-driven fixed continuation 读取 immutable event log，在 task
-  failure 或 attempt 创建起一小时 terminal deadline 到期时直接退出，在全部成功后只调用一次 converge，fixed failure 不重试或
-  唤回 Root。
+  failure 或 attempt 创建起一小时 terminal deadline 到期时直接退出，在全部成功后只调用一次 converge，fixed failure 不自动重试。Root 通过原生通知获知失败后按上方策略诊断，有界恢复只覆盖视频任务错误。
 - terminal failed attempt immutable；`project:attempt:recover-inspect` 严格只读、零 provider，并要求 failed terminal、
   no active attempt、same current Revision、no fixed dirty/blocked。`project:attempt:reissue` 在 lock 内重检，零
   provider、不要求 current delivery，复用 valid artifacts/drafts 并创建 fresh attempt/bindings；stale/active/

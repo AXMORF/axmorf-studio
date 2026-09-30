@@ -257,10 +257,34 @@ const ResourceStyleProfileDescriptorObject = z
   .superRefine(addStatusIssues)
   .readonly();
 
+export const CapabilityAuthoringGuideSchema = z
+  .object({
+    importSource: z.literal("@axmorf/studio/remotion"),
+    exports: z
+      .array(z.string().regex(/^[A-Za-z_$][A-Za-z0-9_$]*$/))
+      .min(1)
+      .max(128)
+      .readonly(),
+    parameters: z
+      .array(z.string().trim().min(1).max(1000))
+      .min(1)
+      .max(16)
+      .readonly(),
+    example: z.string().trim().min(1).max(10000),
+    selectionAdvice: z
+      .array(z.string().trim().min(1).max(1000))
+      .min(1)
+      .max(16)
+      .readonly(),
+  })
+  .strict()
+  .readonly();
+
 const ResourceCapabilityDescriptorObject = z
   .object({
     ...RuntimeSourceDescriptorShape,
     kind: z.literal("capability"),
+    authoring: CapabilityAuthoringGuideSchema.optional(),
   })
   .strict()
   .superRefine(addStatusIssues)
@@ -469,6 +493,58 @@ export const SelectedResourceRefSchema = z
   .readonly();
 
 export type SelectedResourceRef = z.infer<typeof SelectedResourceRefSchema>;
+
+export const SceneSelectedResourceSchema = z
+  .object({
+    selected: SelectedResourceRefSchema,
+    descriptor: ResourceDescriptorSchema,
+  })
+  .strict()
+  .readonly();
+
+export const SceneSelectedResourcesFileSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    selectedResources: z.array(SceneSelectedResourceSchema).max(128).readonly(),
+  })
+  .strict()
+  .readonly();
+
+export type SceneSelectedResource = z.infer<typeof SceneSelectedResourceSchema>;
+
+export const resolveSceneAvailableResources = (
+  rawCatalog: unknown,
+  allowedResourceIds: readonly string[],
+): readonly SceneSelectedResource[] => {
+  const catalog = ResourceCatalogSchema.parse(rawCatalog);
+  return [...allowedResourceIds].sort().map((id) => {
+    const entry = catalog.entries.find(
+      ({ descriptor }) => descriptor.id === id,
+    );
+    if (entry === undefined || entry.descriptor.kind === "authoring-reference")
+      throw new Error(`Scene resource is unavailable: ${id}.`);
+    const descriptor = entry.descriptor;
+    const role =
+      descriptor.kind === "asset"
+        ? descriptor.mediaRole
+        : descriptor.kind === "capability"
+          ? "capability"
+          : "style-profile";
+    const selected = validateSelectedResourceRef({
+      selected: {
+        schemaVersion: 1,
+        resourceId: descriptor.id,
+        kind: descriptor.kind,
+        role,
+        descriptorFingerprint: entry.descriptorFingerprint,
+        catalogFingerprint: catalog.catalogFingerprint,
+      },
+      descriptor,
+      currentCatalogFingerprint: catalog.catalogFingerprint,
+    });
+    return SceneSelectedResourceSchema.parse({ selected, descriptor });
+  });
+};
 
 export const computeResourceDescriptorFingerprint = (
   rawDescriptor: unknown,

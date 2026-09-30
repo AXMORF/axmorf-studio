@@ -6,7 +6,7 @@ Run the read-only command first:
 npm run project:create:context -- --project <storyId>
 ```
 
-It returns `example`, `fieldExamples`, `durationBudget`, current `styleProfiles`, publishing collections, render defaults and inherited boundary templates. Adapt
+It returns `example`, `fieldExamples`, `durationBudget`, current `styleProfiles` and capability API guides, publishing collections, render defaults and inherited boundary templates. Adapt
 `example` to the user's brief and write only that object to `inputs/<storyId>.json`. Do not pass the enclosing context response to
 create. Never start with `{}` and discover fields by repeatedly invoking create. For exact field shapes:
 
@@ -21,6 +21,10 @@ caption budget and licensing are still checked by create. Do not read package in
 
 - Use lowercase hyphenated `storyId`. Use registered `styleProfileId` values (without the `style.` Catalog ID prefix).
 - Each narrated beat owns one `meaningId`, one Scene brief and one publishing chapter in the same order.
+- Write each narrated Scene as a visible causal sequence: identify the subject and its initial state, the action that changes it,
+  and the resulting state the viewer should understand. Put concrete staging and focal hierarchy in `compositionIntent`, and
+  describe the timed visible action in `motionIntent`. Tie the change to the relevant `ttsChunk`; keep the visual subject consistent
+  with `visualStyle` and `continuityBrief`. A generic diagram or decorative movement is not a substitute for that sequence.
 - `ttsChunks` contains objects with `chunkId` and `ttsText`, not strings. Keep each within 72 caption display half-units; shorten or
   split by natural meaning when needed. Audio sample measurements determine actual duration.
 - The duration brief includes inherited intro/outro Scenes. Report their selection before create; do not silently disable them to
@@ -34,7 +38,7 @@ caption budget and licensing are still checked by create. Do not read package in
   `fieldExamples["production.additionalRequirements"]`; preserve its required fields and use the user's actual statement.
   A `schema-validation-failed` response supplies structured field paths and a repair example for this field. Fix the draft
   without dropping the user's constraints or changing the contract.
-- Empty resource selections are valid for self-authored geometry. Query Catalog before selecting media; never invent resource IDs.
+- Evaluate the returned capabilities and authoring guides before self-authored geometry. Match semantic camera, chart, typography, media and motion needs to public APIs; include chosen IDs in the Story pool and each Scene candidateResourceIds. Empty selections are valid when no API fits, with a concrete reason in the visual intent. Query Catalog before selecting media; never invent resource IDs.
 - Narration provider, voice and publishing defaults come from settings. Context deliberately omits connections and credentials.
 - Source assets must have Workspace ownership and validated manifests. Do not download random files to bypass asset admission.
 

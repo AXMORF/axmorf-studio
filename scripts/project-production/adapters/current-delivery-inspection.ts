@@ -2,6 +2,9 @@ import { lstat, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
+  DELIVERY_FILE_NAMES,
+  DELIVERY_FILES,
+  getFixedCoverDimensions,
   DeliveryPublishSchema,
   StoryIdSchema,
   type DeliveryPublish,
@@ -40,13 +43,6 @@ export type CurrentDeliveryInspectionDependencies = Readonly<{
   ) => Promise<DeliveryPublish["artifacts"]["cover4x3"]["media"]>;
 }>;
 
-const expectedEntries = [
-  "cover-3x4.png",
-  "cover-4x3.png",
-  "publish.json",
-  "video.mp4",
-] as const;
-
 const assertExactRegularFiles = async ({
   rootDir,
   directory,
@@ -67,8 +63,8 @@ const assertExactRegularFiles = async ({
   const entries = await readdir(directory, { withFileTypes: true });
   const actual = entries.map(({ name }) => name).sort();
   if (
-    actual.length !== expectedEntries.length ||
-    actual.some((name, index) => name !== expectedEntries[index]) ||
+    actual.length !== DELIVERY_FILE_NAMES.length ||
+    actual.some((name, index) => name !== DELIVERY_FILE_NAMES[index]) ||
     entries.some((entry) => !entry.isFile() || entry.isSymbolicLink())
   ) {
     throw new Error(
@@ -156,7 +152,7 @@ export const inspectCurrentDelivery = async ({
   }
 
   await assertExactRegularFiles({ rootDir, directory });
-  const publishPath = join(directory, "publish.json");
+  const publishPath = join(directory, DELIVERY_FILES.publish);
   const publishFile = await inspectDeliveryFile({
     rootDir,
     path: publishPath,
@@ -178,12 +174,12 @@ export const inspectCurrentDelivery = async ({
   const inspectCover = dependencies.inspectCover ?? defaultInspectCover;
   await inspectBoundArtifact({
     rootDir,
-    path: join(directory, "video.mp4"),
+    path: join(directory, DELIVERY_FILES.video),
     recorded: publish.artifacts.video,
     inspectMedia: () =>
       inspectVideo({
         rootDir: runtimeRootDir,
-        absolutePath: join(directory, "video.mp4"),
+        absolutePath: join(directory, DELIVERY_FILES.video),
         expected: {
           width: publish.width,
           height: publish.height,
@@ -195,24 +191,24 @@ export const inspectCurrentDelivery = async ({
   });
   await inspectBoundArtifact({
     rootDir,
-    path: join(directory, "cover-4x3.png"),
+    path: join(directory, DELIVERY_FILES.cover4x3),
     recorded: publish.artifacts.cover4x3,
     inspectMedia: () =>
       inspectCover({
         rootDir: runtimeRootDir,
-        absolutePath: join(directory, "cover-4x3.png"),
-        expected: { width: 1600, height: 1200 },
+        absolutePath: join(directory, DELIVERY_FILES.cover4x3),
+        expected: getFixedCoverDimensions("cover-4x3"),
       }),
   });
   await inspectBoundArtifact({
     rootDir,
-    path: join(directory, "cover-3x4.png"),
+    path: join(directory, DELIVERY_FILES.cover3x4),
     recorded: publish.artifacts.cover3x4,
     inspectMedia: () =>
       inspectCover({
         rootDir: runtimeRootDir,
-        absolutePath: join(directory, "cover-3x4.png"),
-        expected: { width: 1200, height: 1600 },
+        absolutePath: join(directory, DELIVERY_FILES.cover3x4),
+        expected: getFixedCoverDimensions("cover-3x4"),
       }),
   });
 
