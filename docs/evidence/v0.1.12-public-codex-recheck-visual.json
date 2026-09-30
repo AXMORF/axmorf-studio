@@ -1,0 +1,326 @@
+{
+  "schemaVersion": 1,
+  "status": "sampled-review-complete-with-minor-typography-observation",
+  "agent": "codex",
+  "releaseVersion": "0.1.12",
+  "installationTrack": "public-independent-additional-sample",
+  "firstPublicCodexFailureSuperseded": false,
+  "storyId": "ten-minute-focus",
+  "deliveryBuildId": "delivery-7e86a9b799332d6903d250ba410f8295f82c7ab75a81516be51508b6e9baf48e",
+  "videoChecksum": "sha256:a60507544650b4811cb1199658e1a8d3d71d8c7ce0339e0a6630c31b71a81e0d",
+  "media": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "frameCount": 854,
+    "durationSeconds": 28.466666666666665
+  },
+  "sampleReceipt": "qa/public-codex-recheck-frames/samples.json",
+  "sampleReceiptChecksum": "sha256:e83b23a93fd33515f1d24808c83b6f9bab1501962baf26d1459bc7c6df555433",
+  "inputUnchanged": true,
+  "inputChecksumsAfterVisualReview": {
+    "story": "sha256:36e253c1c33b2379b1ffccee458ded6ed048b522457296e4d58e0d516b8dd67d",
+    "timing": "sha256:2c174453e00cbfb37a95d62200d5630c3afc07f4c1f78f668272593c68674160",
+    "video.mp4": "sha256:a60507544650b4811cb1199658e1a8d3d71d8c7ce0339e0a6630c31b71a81e0d",
+    "cover-4x3.png": "sha256:1c287ca4b75099d24c9810e97bbd298474c8e8c3323da5367f2822d95c014231",
+    "cover-3x4.png": "sha256:f194eccab30a141e463d6f7fae9c70e5decd6094e775ed0306b3d30be5f4d8b0",
+    "publish.json": "sha256:b56624a9977aa559aee6ab594b6ede2b14066ca76cfc29d3cc7cdeed7b68961c"
+  },
+  "extractedSampleCount": 36,
+  "additionalStableCreditsFrame": {
+    "frame": 704,
+    "timeExact": "704/30",
+    "timeSeconds": 23.466667,
+    "videoPts": 2112000,
+    "videoTimeBase": "1/90000",
+    "file": "qa/public-codex-recheck-frames/axmorf-012-public-codex-recheck-credits-frame-704.png",
+    "checksum": "sha256:8b81f3f16a8e356cb63e4bfa7a6cdec046d6b1c9263743aba0954bcce18c0b32",
+    "videoChecksumBefore": "sha256:a60507544650b4811cb1199658e1a8d3d71d8c7ce0339e0a6630c31b71a81e0d",
+    "videoChecksumAfter": "sha256:a60507544650b4811cb1199658e1a8d3d71d8c7ce0339e0a6630c31b71a81e0d",
+    "videoUnchanged": true,
+    "reason": "Stable outro SourceCredits at local frame 90; sampled local59 is mid-fade and local119 is transition blank."
+  },
+  "manuallyViewedFrames": [
+    {
+      "frame": 0,
+      "timeSeconds": 0.0,
+      "timeExact": "0/30",
+      "videoPts": 0,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000000.png",
+      "checksum": "sha256:8b4b3c24a7eef0d65a81c4f30236efb1bb03f1e2bbb708fe0bc100d538e217f9"
+    },
+    {
+      "frame": 14,
+      "timeSeconds": 0.466667,
+      "timeExact": "14/30",
+      "videoPts": 42000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000014.png",
+      "checksum": "sha256:07682b9df1a61856856b13ec394b82ded7710945415def169a78757754c0d427"
+    },
+    {
+      "frame": 53,
+      "timeSeconds": 1.766667,
+      "timeExact": "53/30",
+      "videoPts": 159000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000053.png",
+      "checksum": "sha256:0efe8f1d97d9a24c9d2d53528af5d930d1bdea33275536cc462417a8c45b80fd"
+    },
+    {
+      "frame": 59,
+      "timeSeconds": 1.966667,
+      "timeExact": "59/30",
+      "videoPts": 177000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000059.png",
+      "checksum": "sha256:b9c6010192a40340e32364772689b2b974aead6949dd8d4d674dd080acafdf2c"
+    },
+    {
+      "frame": 60,
+      "timeSeconds": 2.0,
+      "timeExact": "60/30",
+      "videoPts": 180000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000060.png",
+      "checksum": "sha256:7abb5cea6e75590c381c6fb9967aebe7809f072b8a94456d0bb47d64af2299d5"
+    },
+    {
+      "frame": 152,
+      "timeSeconds": 5.066667,
+      "timeExact": "152/30",
+      "videoPts": 456000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000152.png",
+      "checksum": "sha256:d08bc03725704c6b6c35df6de0b3907be8308aee7a5db1c52316634c374763e5"
+    },
+    {
+      "frame": 244,
+      "timeSeconds": 8.133333,
+      "timeExact": "244/30",
+      "videoPts": 732000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000244.png",
+      "checksum": "sha256:f7bd8651e2dcffe902524b4977d51030cb29691d2db4563d3f75cc3e4bd9beb4"
+    },
+    {
+      "frame": 245,
+      "timeSeconds": 8.166667,
+      "timeExact": "245/30",
+      "videoPts": 735000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000245.png",
+      "checksum": "sha256:0129aa07405673c42a0eaf5863da7cc6d33d040be05574beda98915accb7c45e"
+    },
+    {
+      "frame": 337,
+      "timeSeconds": 11.233333,
+      "timeExact": "337/30",
+      "videoPts": 1011000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000337.png",
+      "checksum": "sha256:2119804e584b6bfefcff4d6c41b699840ada1af0b8f773e9aca0406d5d6e9837"
+    },
+    {
+      "frame": 429,
+      "timeSeconds": 14.3,
+      "timeExact": "429/30",
+      "videoPts": 1287000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000429.png",
+      "checksum": "sha256:0f87d502f64ec093401f34705629bf43039a257bdcb2705c066d7ea0de8541b0"
+    },
+    {
+      "frame": 430,
+      "timeSeconds": 14.333333,
+      "timeExact": "430/30",
+      "videoPts": 1290000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000430.png",
+      "checksum": "sha256:25e1e88070c5df9fe92f5a4d9f136cf6a86a18c68df928bca59d2f6f2dbb2141"
+    },
+    {
+      "frame": 521,
+      "timeSeconds": 17.366667,
+      "timeExact": "521/30",
+      "videoPts": 1563000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000521.png",
+      "checksum": "sha256:3b7b78612fc19b8352f1661965490167d2241000930dc66a1b93111b543a01e1"
+    },
+    {
+      "frame": 613,
+      "timeSeconds": 20.433333,
+      "timeExact": "613/30",
+      "videoPts": 1839000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000613.png",
+      "checksum": "sha256:f9b92e6676e9718c84ac6aff89442c28159831749fe87b5f72a66626ef4a832d"
+    },
+    {
+      "frame": 614,
+      "timeSeconds": 20.466667,
+      "timeExact": "614/30",
+      "videoPts": 1842000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000614.png",
+      "checksum": "sha256:e45d9bfe344dae133ce2ace4e367b1b1dbea18226c553732b932b84438ca286a"
+    },
+    {
+      "frame": 673,
+      "timeSeconds": 22.433333,
+      "timeExact": "673/30",
+      "videoPts": 2019000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000673.png",
+      "checksum": "sha256:d8dd746316d0ebee13138eb9c63992e84175e8087ede56f62ac78dbf1d6d8a1f"
+    },
+    {
+      "frame": 704,
+      "timeSeconds": 23.466667,
+      "timeExact": "704/30",
+      "videoPts": 2112000,
+      "videoTimeBase": "1/90000",
+      "file": "qa/public-codex-recheck-frames/axmorf-012-public-codex-recheck-credits-frame-704.png",
+      "checksum": "sha256:8b81f3f16a8e356cb63e4bfa7a6cdec046d6b1c9263743aba0954bcce18c0b32"
+    },
+    {
+      "frame": 733,
+      "timeSeconds": 24.433333,
+      "timeExact": "733/30",
+      "videoPts": 2199000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000733.png",
+      "checksum": "sha256:b609e7d89a8a27c505259505d9a3dfda2c7e86029a7372a3dc81d04742f18ccd"
+    },
+    {
+      "frame": 793,
+      "timeSeconds": 26.433333,
+      "timeExact": "793/30",
+      "videoPts": 2379000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000793.png",
+      "checksum": "sha256:a052279fdbe42b7ecf44d2c2aa642c020560893b35ce6bbaa9aec40e44be811d"
+    },
+    {
+      "frame": 829,
+      "timeSeconds": 27.633333,
+      "timeExact": "829/30",
+      "videoPts": 2487000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000829.png",
+      "checksum": "sha256:f2607ee2758e201c05b9583402d026951ee2e75570b4d530f6318b905463836f"
+    },
+    {
+      "frame": 853,
+      "timeSeconds": 28.433333,
+      "timeExact": "853/30",
+      "videoPts": 2559000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000853.png",
+      "checksum": "sha256:516a070ff537d82f1da68b3df54cd524d89a34172e8ead7b784ec1bcbd66bcea"
+    }
+  ],
+  "viewedCovers": [
+    {
+      "name": "cover-4x3.png",
+      "checksum": "sha256:1c287ca4b75099d24c9810e97bbd298474c8e8c3323da5367f2822d95c014231"
+    },
+    {
+      "name": "cover-3x4.png",
+      "checksum": "sha256:f194eccab30a141e463d6f7fae9c70e5decd6094e775ed0306b3d30be5f4d8b0"
+    }
+  ],
+  "findings": [
+    {
+      "scope": "caption line wrapping",
+      "frames": [
+        245,
+        337,
+        429,
+        430,
+        521,
+        613
+      ],
+      "severity": "minor-nonblocking-typography-observation",
+      "observation": "The second caption wraps the word 安心 across lines (first line ends 安; second begins 心做十分钟). The third caption similarly wraps 不用 (first line ends 就不; second begins 用重新找方向). Glyphs are complete and remain readable; these are awkward line breaks, not visible crop or occlusion.",
+      "suggestedFollowUp": "If polishing caption presentation later, prefer natural phrase boundaries when authoring shorter speech chunks or laying out captions, while preserving the display budget and font-size requirements."
+    },
+    {
+      "scope": "default boundary templates",
+      "frames": [
+        0,
+        14,
+        53,
+        59,
+        614,
+        673,
+        704,
+        733,
+        793,
+        829,
+        853
+      ],
+      "severity": "none-observed-in-listed-stable-samples",
+      "observation": "At stable frames 53/59 and 704/829/853, intro/follow brand and credit text have opaque local light backing against the dark global base and are legible without evident clipping. Frame 0/614 show the plate before text reveal; 14 is the assembling/fading logo, 673 reference-card fade-in, 733 internal credits-to-follow blank transition, and 793 late wordmark-letter fade. These animation states were not misclassified as stable contrast failures."
+    },
+    {
+      "scope": "three narrated scenes",
+      "frames": [
+        152,
+        244,
+        337,
+        429,
+        521,
+        613
+      ],
+      "severity": "none-observed-in-main-content",
+      "observation": "The three main titles, selected-step callout, focus timer, and completed/next-step notebook are readable in the listed stable samples without evident main-text clipping or overlap. At frame 152 the lower ten-minute dial is still faint during reveal; it is fully legible by frame 244."
+    },
+    {
+      "scope": "all three caption cue midpoints",
+      "frames": [
+        152,
+        337,
+        521
+      ],
+      "severity": "readable-with-wrap-observation",
+      "observation": "These are all caption midpoint samples reported by the actual timing data (one cue per narrated Scene). All three captions occupy two readable lines in the bottom caption area. No visibly cropped glyphs or overlap with the main Scene content was observed; awkward phrase wrapping is recorded separately."
+    },
+    {
+      "scope": "four adjacent Scene-boundary pairs",
+      "frames": [
+        59,
+        60,
+        244,
+        245,
+        429,
+        430,
+        613,
+        614
+      ],
+      "severity": "none-observed-in-primary-content",
+      "observation": "The adjacent pairs show the expected outgoing/incoming scene content with no cross-scene caption collision. The first narrated frame 60 shows the caption before Scene content reveals; frame 614 is the outro pre-reveal plate. These entry states do not imply stable missing content."
+    },
+    {
+      "scope": "delivered covers",
+      "files": [
+        "cover-4x3.png",
+        "cover-3x4.png"
+      ],
+      "severity": "none-observed",
+      "observation": "Both actual delivered cover PNGs were opened. Main title, ten-minute dial, supporting line, and three-step footer are readable with clear foreground/background separation and no evident text cropping."
+    }
+  ],
+  "limitations": [
+    "This is the single additional independent public Codex sample identified by the parent controller. Its successful delivery review does not erase, supersede, or reclassify the first public Codex failure.",
+    "Only the listed 20 actual video frames and both delivered covers were visually examined; the other decoded frames are not visually certified.",
+    "The controller extracted 36 regular samples; one additional exact decoded frame (704, outro-local 90) was added for stable credits. Extraction count does not imply manual review of every extracted image.",
+    "Transition review examined four adjacent Scene-boundary pairs and selected intro/outro animation states, not every frame of every animation.",
+    "No audio listening, OCR, pixel-based contrast measurement, full semantic accuracy certification, source inspection, or frame-by-frame playback review was performed.",
+    "Registry provenance, installation, and Agent execution evidence are owned by the parent acceptance controller and are not inferred from these pixels.",
+    "No Workspace, installed package, source, or delivery file was modified or re-rendered; only external QA outputs and this review were written. Hermes and other Codex acceptance directories were not read during this review."
+  ],
+  "reviewSourceChecksum": "sha256:5a914b1e013714b55b7b6bc967031e5b5fa68c716c540a007a4ce7cc259aaae3"
+}

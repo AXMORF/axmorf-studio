@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "phase": "public-registry",
+  "sourceHost": "hermes",
+  "receiptChecksum": "sha256:bdb5a2448724d1352dbfe9d697b0ca00b56b31776144bc029baaf0d4a8fecc95",
+  "status": "passed",
+  "scope": "isolated-publication-metadata-revision",
+  "project": "ten-minute-focus",
+  "sourceBefore": "sha256:428f154d8d6e59d2217e2f3bd9ef220dce983f162cfa544fe7b59a047215e98f",
+  "stage": "manual-promote-final-check",
+  "packageVersion": "0.1.12",
+  "packageBefore": "sha256:edd1be6d509a862618096aa37a8b09b306ec1c8afa251f97f676dfd86b7305ff",
+  "noOpCorrectlyRejected": true,
+  "candidateId": "revision-candidate-6cf62538d5b65f56a39b47e394b8a32d5881b35b768e45800ee816fb37b6a10b",
+  "estimatedCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 6,
+    "agentTasks": 0,
+    "deliveryMedia": [
+      "video",
+      "cover-4x3",
+      "cover-3x4"
+    ]
+  },
+  "attemptId": "c24e38c6-4bcc-4f35-8a0b-21e086cb5337",
+  "revisionId": "revision-36255556fd6857ebf1fd219dcdfc475634bafdaa6dbf74dc3b2c4d326a265298",
+  "deliveryBuildId": "delivery-a1301e10ad7faf997de29111b9dfaa55c22dd20e56f1e30800401d0240c3d233",
+  "sourceAfter": "sha256:428f154d8d6e59d2217e2f3bd9ef220dce983f162cfa544fe7b59a047215e98f",
+  "sourceUnchanged": true,
+  "prepareActualCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 6,
+    "agentTasks": 0,
+    "deliveryMedia": []
+  },
+  "commands": [
+    {
+      "step": "01-base-final-check",
+      "commandChecksum": "sha256:d3b27361cb62053f96c59d9dce25c0a9727f2ced549031e05149c0edb01ba2ac",
+      "stdoutChecksum": "sha256:86f7e50f86ad786912e558b1f23997ab193c6406c72053185fe160c79dd645dc",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "02-revision-context",
+      "commandChecksum": "sha256:52da6340e346a9d63fb7f2e9ee6481a760b55fb46d671ad9a6855624ef4e0dc2",
+      "stdoutChecksum": "sha256:d2f4fa187a21a731ce5b77241efc2a8647b0ae3cbed40fe4ac52bb23ea0ccdb3",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "03-noop-validation",
+      "commandChecksum": "sha256:265a9420ac80ec12251a6fb8a9fecd3a6e9bd1b1ac08775cf2d93f20a5da47e6",
+      "stdoutChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrChecksum": "sha256:1edaaff516c3deb2e5b5c26051a8aa9da507e2224eb63d70038911b03302bab7"
+    },
+    {
+      "step": "04-publication-validate",
+      "commandChecksum": "sha256:dbe89d5b3f563bb4d343a6c17fb182400bfd928b37ef9ef3ed73048eaf3ba550",
+      "stdoutChecksum": "sha256:d9ce2bb7e0bd946c5ea5b6b36aba30118cf163d5fb9818bcfdcde64f5b2cd483",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "05-publication-create",
+      "commandChecksum": "sha256:c76c31a8d160b10efa203d8010e0e4a6db2b1f2d44d7a0459b44bb0e2c140b9b",
+      "stdoutChecksum": "sha256:df045264dff66e01a1582679ec4839e99b6e7646ee607c8b5a55c11adeba4f9d",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "06-candidate-inspect",
+      "commandChecksum": "sha256:b726020544c73e832dfca5930dfc507c780a505b2d3337a4e3022db8170843ac",
+      "stdoutChecksum": "sha256:2e9e0db317658d5eefbcf8883a7359a65a7894997990cd07560d65c30c17e4d5",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "07-candidate-prepare",
+      "commandChecksum": "sha256:b04ce8750697f007f3fecf072a1e29bf80bd80d021846f55e682912fd2285b40",
+      "stdoutChecksum": "sha256:23ffcd174cc0879e8538752cc31aefb0673b3151c0a2fa073b870d46f8704c01",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "08-exact-continuation",
+      "commandChecksum": "sha256:64a8d116b57c704e0ee8910eb8ae20d9e84df5d06cc8e74b2595873b3cb2c6a6",
+      "stdoutChecksum": "sha256:4a6aa34d5dbc684f3621fbe1e4310a1ab51dccd9cf19069039deb4efa5b9b22f",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "09-promoted-context",
+      "commandChecksum": "sha256:52da6340e346a9d63fb7f2e9ee6481a760b55fb46d671ad9a6855624ef4e0dc2",
+      "stdoutChecksum": "sha256:f8581edb8a623543f1ec5c448de35118637c275045a7e1f93c04fdc7d8c1f342",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "10-promoted-final-check",
+      "commandChecksum": "sha256:d3b27361cb62053f96c59d9dce25c0a9727f2ced549031e05149c0edb01ba2ac",
+      "stdoutChecksum": "sha256:450e74d8acac7fd0dbc90c09d3c97bfd2bf36be5447f4d79d53315c7b43245dd",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "11-manual-promote-idempotency",
+      "commandChecksum": "sha256:cbe71440ecf2d346251cc62064ddd1a10f6979b480024029761ef17d71b06d04",
+      "stdoutChecksum": "sha256:bff9b369011438b1952fc21398049a1b17822305e0878beef58661bd2a0b455f",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "12-manual-promote-final-check",
+      "commandChecksum": "sha256:d3b27361cb62053f96c59d9dce25c0a9727f2ced549031e05149c0edb01ba2ac",
+      "stdoutChecksum": "sha256:450e74d8acac7fd0dbc90c09d3c97bfd2bf36be5447f4d79d53315c7b43245dd",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "terminalActualCost": {
+    "agentTasks": 0,
+    "deliveryMedia": [
+      "video",
+      "cover-4x3",
+      "cover-3x4"
+    ],
+    "providerCacheHits": 6,
+    "providerRequests": 0
+  },
+  "deliveryRegeneratedWithIdenticalMediaBytes": true,
+  "independentReview": "v0.1.12-public-revision-review.json",
+  "limitations": [
+    "Only a publishing.description append was exercised; narration changes, dirty creative tasks, recovery, rollback/fault injection, stale-base conflict and concurrent writers are outside this QA sample.",
+    "This was a scripted installed-public-CLI revision QA, not a second native Hermes conversational revision test.",
+    "The reviewer did not rerun production, providers, Agent execution, rendering, final checks, or promotion.",
+    "Final gates and native ffprobe logs support technical media validity; this review did not watch the video, listen end-to-end, or independently perform another decode.",
+    "Source/current fingerprints match historical before/after evidence; the review cannot retrospectively observe unlogged ephemeral actions or prove provider network silence via packet capture.",
+    "The separate still-running Codex installation/sample was not accessed.",
+    "Raw stdout/stderr and original receipt/controller remain unchanged; this report records the cost interpretation correction externally."
+  ]
+}

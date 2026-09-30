@@ -1,0 +1,332 @@
+{
+  "schemaVersion": 1,
+  "review": "public-codex-initial-failure-independent-readonly",
+  "runtimeVersion": "0.1.12",
+  "verdict": "failed-production-not-accepted",
+  "countAsBlackBoxPass": false,
+  "summary": "First public-install Codex sample stopped during narration preparation, before any creative task or ExecutionAttempt. The generic Edge TTS boundary error is confirmed; its underlying cause is not recoverable from saved evidence. Stop behavior was correct. Retain this as a failed public black-box sample.",
+  "run": {
+    "storyId": "ten-minute-focus",
+    "startedAt": "2026-09-10T08:44:40.175698+00:00",
+    "endedAt": "2026-09-10T08:47:36.209175+00:00",
+    "hostExitCode": 0,
+    "prepareExitCode": 1,
+    "harnessInterventions": [],
+    "hostExitMeaning": "The Agent finished reporting; this is not production or delivery success."
+  },
+  "scope": {
+    "rootRecords": 94,
+    "probeRecords": 20,
+    "ownRecords": [
+      94,
+      20
+    ],
+    "inheritedParentRecordsRemoved": 0,
+    "rootNativeCalls": 12,
+    "probeNativeCalls": 1,
+    "nativeCallsTotal": 13,
+    "subprocessCommandsStarted": 11,
+    "successfulSubprocessExits": 10,
+    "failedSubprocessExits": 1,
+    "creativeChildren": 0,
+    "probeChildren": 1,
+    "allOwnCallsReviewed": true
+  },
+  "failure": {
+    "command": "npm run project:produce:prepare -- --project ten-minute-focus",
+    "rootCallLine": 63,
+    "rootErrorOutputLine": 86,
+    "stdoutLine": 25,
+    "originalError": {
+      "status": "error",
+      "code": "command-failed",
+      "message": "Edge TTS request failed for chunk choose-step-2."
+    },
+    "stage": "prepareNarration before createAttempt",
+    "classification": "unattributed narration/provider-boundary blocker",
+    "underlyingCause": "unknown",
+    "notAReadabilityStaticFalsePositive": true,
+    "validatorCalls": 0,
+    "validatorRework": 0,
+    "providerCallsPlanned": 6,
+    "measuredChunksPersisted": 1,
+    "failedChunk": "choose-step-2",
+    "explanation": "Adapter catch covers ttsPromise rejection, readFile failure and empty audio; it discards the original error/cause and deletes the temporary directory. No lower-level provider error was found in saved transcript/stdout or stopped-Workspace logs. Elapsed time is not proof of timeout."
+  },
+  "promiseReview": {
+    "dependency": "node-edge-tts@1.2.10",
+    "installedFile": "node_modules/node-edge-tts/dist/edge-tts.js",
+    "lines": [
+      94,
+      118
+    ],
+    "confirmed": "ttsPromise resolves in the audio write stream finish callback after turn.end. The adapter awaits it before readFile. No statically demonstrated read-before-write-finish misuse was found.",
+    "limits": "This rules out that narrow adapter race, not all provider/library/host defects. No live TTS call or network reproduction was performed."
+  },
+  "processAssessment": {
+    "rulesActuallyRead": {
+      "rootCallLine": 18,
+      "outputLine": 22,
+      "stopRule": "host-execution-and-recovery.md:26-29,61-64"
+    },
+    "correctStop": true,
+    "toolCallsAfterFailure": 0,
+    "automaticRetries": 0,
+    "fallbacks": 0,
+    "packageSourceOrValidatorEdits": 0,
+    "historicalProjectOrDevelopmentSourceReads": 0,
+    "creativeTaskBinds": 0,
+    "taskCommits": 0,
+    "continuations": 0,
+    "duplicateFinalReports": 0,
+    "ownership": "Root created authoring input and used public CLI. The only child copied the exact temporary capability challenge, which Root verified and removed. No creative task ownership or commit existed to cross."
+  },
+  "minorIssues": [
+    {
+      "kind": "execution-efficiency",
+      "severity": "minor",
+      "rootLines": [
+        67,
+        77,
+        83
+      ],
+      "alreadyReadRuleLine": 18,
+      "description": "After reading the long-wait rule, Root requested a 1-second process wait (actual host minimum was about 5 seconds), then a 1-second outer-cell renewal and a 10-second renewal. It subsequently/otherwise used the original process correctly. These short waits were unnecessary renewals, not failed calls or the cause of failure."
+    },
+    {
+      "kind": "diagnostic-precision",
+      "severity": "minor",
+      "rootLine": 91,
+      "excerpt": "需要恢复旁白服务后继续制作。",
+      "description": "The final accurately said no video/covers were produced, but presupposed a service fault. Evidence proves a narration boundary failure only; adapter catch also covers file I/O/empty output. Underlying cause must remain unknown."
+    }
+  ],
+  "stoppedWorkspace": {
+    "productionAttemptCount": 0,
+    "producerWorkTaskDirectories": 0,
+    "artifactCount": 0,
+    "deliveryFiles": [],
+    "outputFiles": [],
+    "attemptDirectoryCaveat": "Contains .gitkeep plus one .processes diagnostic record; this is not an ExecutionAttempt. Recorded processes were absent at read-only ps inspection.",
+    "narrationProgress": {
+      "file": ".narration-work/ten-minute-focus/generations-v2/c1c06eed47812f42a2722593ee466f64ae69b2bf2dcca08c837362fdade75398/6e5f2754f7e661e4c97f853264f198dc13cc916c05062a12ae3cd6988435401b/progress.json",
+      "sha256": "sha256:1a77f1f40f04da296c02beef1db29d8c465eb3eedf004b7c9995a22e1b60ca30",
+      "chunks": [
+        {
+          "chunkId": "choose-step-1",
+          "stage": "measured",
+          "sampleFrameCount": 114176,
+          "sampleRate": 48000
+        }
+      ]
+    },
+    "projectAuthoringPreserved": true
+  },
+  "snapshotIntegrity": {
+    "runtime": {
+      "fileCount": 252,
+      "expectedFileCount": 252,
+      "fingerprint": "sha256:f91a415bc1fa4e4327114fbd1a2f5434707cfa2c8ae1b01836d912978948039c",
+      "expectedFingerprint": "sha256:f91a415bc1fa4e4327114fbd1a2f5434707cfa2c8ae1b01836d912978948039c",
+      "unchanged": true
+    },
+    "creator": {
+      "fileCount": 40,
+      "expectedFileCount": 40,
+      "fingerprint": "sha256:c71ee25c5b49ed43395b6c40c5664cf91bb4599c0267bd0b16e1c8e8449fd998",
+      "expectedFingerprint": "sha256:c71ee25c5b49ed43395b6c40c5664cf91bb4599c0267bd0b16e1c8e8449fd998",
+      "unchanged": true
+    },
+    "guides": {
+      "count": 11,
+      "changed": []
+    },
+    "runtimeTarball": {
+      "checksum": "sha256:12dfe130b61bc8f0bb4edb95136aa8fbe3f8497f625b6796eb211fdd2740edf0",
+      "expectedChecksum": "sha256:12dfe130b61bc8f0bb4edb95136aa8fbe3f8497f625b6796eb211fdd2740edf0",
+      "unchanged": true
+    },
+    "creatorTarball": {
+      "checksum": "sha256:4265ddb0e1c034d9c954a5f33e3d27f97048125463a19972c2832ab0d384db1a",
+      "expectedChecksum": "sha256:4265ddb0e1c034d9c954a5f33e3d27f97048125463a19972c2832ab0d384db1a",
+      "unchanged": true
+    },
+    "workspaceLock": {
+      "checksum": "sha256:fe0c2b76419aa6ff4fa4932967cb44a4f50a8d872ae483c3eb93a1f0d6fb88bd",
+      "expectedChecksum": "sha256:fe0c2b76419aa6ff4fa4932967cb44a4f50a8d872ae483c3eb93a1f0d6fb88bd",
+      "unchanged": true
+    },
+    "creatorLock": {
+      "checksum": "sha256:76c65de42d7272624751849d3af2f1be15ea7bd00a8cf67b7bf3e91fab77b571",
+      "expectedChecksum": "sha256:76c65de42d7272624751849d3af2f1be15ea7bd00a8cf67b7bf3e91fab77b571",
+      "unchanged": true
+    },
+    "installLog": {
+      "checksum": "sha256:6cd4f0575ae14136983cac8697b67b067c1c5b05cc93b69446ac1b36a25506ec",
+      "expectedChecksum": "sha256:6cd4f0575ae14136983cac8697b67b067c1c5b05cc93b69446ac1b36a25506ec",
+      "unchanged": true
+    }
+  },
+  "evidence": {
+    "acceptanceRoot": "External acceptance evidence; raw native transcripts are not committed.",
+    "rootTranscript": "qa/public-codex-initial-failure/rollout-2026-09-10T16-44-42-01a08a7d-98a0-7202-a443-7099c033e574.jsonl",
+    "probeTranscript": "qa/public-codex-initial-failure/rollout-2026-09-10T16-45-22-01a08a7e-36fc-7ad1-9aa7-eef4c0ec21d6.jsonl",
+    "transcriptChecksums": [
+      {
+        "file": "qa/public-codex-initial-failure/rollout-2026-09-10T16-44-42-01a08a7d-98a0-7202-a443-7099c033e574.jsonl",
+        "sha256": "sha256:d92c0d1a227e99b437713e58c796b34150b70f2bf135aa5bfbc7c3b4fb09e35d"
+      },
+      {
+        "file": "qa/public-codex-initial-failure/rollout-2026-09-10T16-45-22-01a08a7e-36fc-7ad1-9aa7-eef4c0ec21d6.jsonl",
+        "sha256": "sha256:dbeacfc22f97f1a27e9642ce9e98e3f9c4134165397e6ee44903364efeee643a"
+      }
+    ],
+    "run": "public/codex-run.json",
+    "snapshot": "public/codex-snapshot.json",
+    "stdout": "public/codex-stdout.log",
+    "stdoutSha256": "sha256:955f3bd12d3bf958e3bc37acef6ebc3fed293d1615de49fb9cdb115ae0a06ceb",
+    "sourceSnippets": "qa/public-codex-failure-review/source-evidence.json",
+    "normalizedFullCalls": "qa/public-codex-failure-review/all-traces.json"
+  },
+  "toolLedger": [
+    {
+      "executor": "root",
+      "line": 13,
+      "tool": "exec",
+      "outputLines": [
+        16
+      ],
+      "action": "Read axmorf-video Skill; inspect actual callable tool metadata",
+      "result": "success"
+    },
+    {
+      "executor": "root",
+      "line": 18,
+      "tool": "exec",
+      "outputLines": [
+        22
+      ],
+      "action": "Read four Root workflow references; run doctor (workspace-ready)",
+      "result": "success"
+    },
+    {
+      "executor": "root",
+      "line": 24,
+      "tool": "exec",
+      "outputLines": [
+        28
+      ],
+      "action": "Read project:create:context; create isolated ephemeral probe directory",
+      "result": "success"
+    },
+    {
+      "executor": "root",
+      "line": 30,
+      "tool": "exec",
+      "outputLines": [
+        33
+      ],
+      "action": "Write 48 random challenge bytes to probe-owned file",
+      "result": "success"
+    },
+    {
+      "executor": "root",
+      "line": 35,
+      "tool": "spawn_agent",
+      "outputLines": [
+        38
+      ],
+      "action": "Spawn exactly one native capability probe",
+      "result": "success"
+    },
+    {
+      "executor": "root",
+      "line": 46,
+      "tool": "exec",
+      "outputLines": [
+        49
+      ],
+      "action": "Write strict Project create input; project:create succeeds",
+      "result": "success"
+    },
+    {
+      "executor": "root",
+      "line": 53,
+      "tool": "exec",
+      "outputLines": [
+        57
+      ],
+      "action": "Verify and delete exact probe bytes; execution resolve subagents/4/shared-workspace; readonly production inspect succeeds",
+      "result": "success"
+    },
+    {
+      "executor": "root",
+      "line": 63,
+      "tool": "exec",
+      "outputLines": [
+        65
+      ],
+      "action": "Start the only project:produce:prepare process",
+      "result": "live-wait"
+    },
+    {
+      "executor": "root",
+      "line": 67,
+      "tool": "exec",
+      "outputLines": [
+        69
+      ],
+      "action": "Renew original process with requested 1000 ms wait; empty nonterminal result",
+      "result": "live-wait"
+    },
+    {
+      "executor": "root",
+      "line": 73,
+      "tool": "exec",
+      "outputLines": [
+        75
+      ],
+      "action": "Renew original process with requested 60000 ms wait; outer tool yields cell",
+      "result": "live-wait"
+    },
+    {
+      "executor": "root",
+      "line": 77,
+      "tool": "wait",
+      "outputLines": [
+        79
+      ],
+      "action": "Renew same cell with 1000 ms wait; empty nonterminal result",
+      "result": "live-wait"
+    },
+    {
+      "executor": "root",
+      "line": 83,
+      "tool": "wait",
+      "outputLines": [
+        86
+      ],
+      "action": "Renew same cell with 10000 ms wait; receives prepare exit 1",
+      "result": "prepare-failed-exit-1"
+    },
+    {
+      "executor": "probe",
+      "line": 11,
+      "tool": "exec",
+      "outputLines": [
+        14
+      ],
+      "action": "Copy exact challenge bytes to response file; no other call",
+      "result": "success"
+    }
+  ],
+  "limitations": [
+    "Read-only stopped first public Codex sample only; no Hermes or replacement Codex workspace/trace was accessed.",
+    "No TTS retry, package modification, project recovery, source change or production Agent message.",
+    "One spawn argument is host-encrypted; it was not decrypted or copied here. Probe actual call/result and Root challenge verification are visible.",
+    "No production artifacts existed, so scene/cover/render/readability end-to-end validation did not run in this sample.",
+    "Package comparison uses the release helper source-map canonicalization plus exact executable bits/file set; guides, locks, tarballs and logs match the original snapshot.",
+    "Sanitized report omits hostnames, PIDs and opaque/encrypted prompts; original native evidence remains in external QA."
+  ],
+  "reviewSourceChecksum": "sha256:6cc72bd54de2ec410df61e258efe3fd536b0220c5a45f3043923726ed5848e72"
+}

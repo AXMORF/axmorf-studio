@@ -1,0 +1,55 @@
+{
+  "scope": "Unpublished wording-only cleanup of the distributed axmorf-video entrypoint",
+  "baseline": "9de7dd3979a8ea136a3b607336a969bbabde185d",
+  "file": "packages/create-axmorf-studio/template/.agents/skills/axmorf-video/SKILL.md",
+  "sha256": "sha256:2e101006d9e739fe20b01365461e419f66006e613bea00975eb91d59ea8c81aa",
+  "characters": {
+    "before": 6198,
+    "after": 6063,
+    "removed": 135,
+    "reductionPercent": 2.18
+  },
+  "whitespaceDelimitedWords": {
+    "before": 794,
+    "after": 767
+  },
+  "mechanicalPreservation": {
+    "frontmatter": true,
+    "headings_in_order": true,
+    "inline_code_in_order": true,
+    "link_targets_in_order": true
+  },
+  "semanticReview": {
+    "requirementAreas": 16,
+    "remainingMaterialDifferences": 0,
+    "correctedDraftFinding": "Restored the legacy originality baseline paragraph verbatim to retain its original trigger."
+  },
+  "verification": {
+    "focusedExistingTests": {
+      "passed": 42,
+      "failed": 0,
+      "note": "Run before restoring the original legacy paragraph."
+    },
+    "finalDocsAndScaffoldTests": {
+      "passed": 25,
+      "failed": 0
+    },
+    "skillFormat": "passed",
+    "creatorPackageCheck": "passed",
+    "localDocsLinksAndScriptReferences": "passed"
+  },
+  "unchanged": [
+    "runtime",
+    "contracts",
+    "validators",
+    "tests",
+    "required references",
+    "package versions",
+    "existing production Workspaces"
+  ],
+  "limits": [
+    "No new real-video or native-Agent black-box run for this wording candidate.",
+    "Previous v0.1.12 acceptance does not certify the changed wording.",
+    "No push or publication; v0.1.12 remains the published version."
+  ]
+}

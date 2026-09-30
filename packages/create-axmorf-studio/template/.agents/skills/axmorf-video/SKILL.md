@@ -5,7 +5,7 @@ description: Create, produce, validate, and deliver a video in this Workspace.
 
 # AXMORF Studio Video
 
-First route by assignment: with an exact attempt-bound task bind, follow only
+With an exact attempt-bound task bind, follow only
 [Assigned task worker](references/production-workflow.md#assigned-task-worker) and the task contract.
 Do not restart global doctor/preflight or the Root flow below. Otherwise act as the Root.
 
@@ -19,8 +19,7 @@ For an authorized video request, a plan or report is an intermediate progress me
 
 The Root runs `npm run doctor` before Project work. If it is not ready, prepare only the
 declared host environment and rerun it; never patch package internals,
-`node_modules`, exact dependencies, or validators. Report an unsatisfied host
-capability as a blocker.
+`node_modules`, exact dependencies, or validators. Report unmet host capabilities as blockers.
 
 For a new video, first run `npm run project:create:context -- --project <storyId>`.
 Adapt its complete example using current public choices. Build a strict Project create input from the user brief and run
@@ -38,19 +37,15 @@ Project that predates it, require explicit user approval and run
 `npm run project:originality:freeze -- --project <storyId>` before inspect;
 production never substitutes a silent empty baseline.
 
-Create and revision validation may return structured
-`authoring-validation-failed` issues. For
-`caption-display-budget-exceeded`, shorten or semantically split the authored
-`ttsChunk` to stay within 72 `caption-display-unit-v1` half-units; never weaken
-the validator.
+Create and revision validation may return structured `authoring-validation-failed` issues.
+For `caption-display-budget-exceeded`, shorten or semantically split the authored `ttsChunk`
+to stay within 72 `caption-display-unit-v1` half-units; never weaken the validator.
 
 To modify an existing Project, first run `npm run project:revise:context`,
 validate a strict raw input with `npm run project:revise:validate`, then create
-an isolated candidate with `npm run project:revise`. The input must bind the
-exact current Revision and verified four-file Delivery. Never edit live
-authoring in place; use the returned candidate flag throughout production.
-Candidates only use Project-owned media already frozen in their base context;
-they do not import new assets.
+an isolated candidate with `npm run project:revise`. Bind the input to the exact current Revision and verified four-file Delivery.
+Never edit live authoring in place; use the returned candidate flag throughout production.
+Candidates use only Project-owned media frozen in their base context; do not import new assets.
 
 Before inspect, read [native child verification](references/execution-capabilities.md), use its helper-generated complete probe prompts, and release every completed probe slot for the default
 `subagents` mode (maximum four). Unknown runtime capacity blocks; verify a native probe batch up to the requested maximum. One I/O probe cannot establish maximum capacity one. Resolve once with verified host flags on `npm run project:execution:resolve`. Only explicit user choices
@@ -93,12 +88,10 @@ zero-provider `npm run project:attempt:recover-inspect`, report the diagnosis/re
 ready for a fresh same-Revision attempt and fresh workers. It does not require current Delivery. Unknown, system or external faults
 are diagnosed and reported, not automatically repaired or retried.
 
-Before writing Scene code, read the repository-local
-`.agents/skills/remotion-best-practices/SKILL.md` and only the references routed
-for that Scene.
-The complete declared TS/TSX graph must be original against the immutable
-baseline; template-copy Scenes are fixed-produced and exempt. Convergence also
-rejects exact or token-normalized duplicates before any live materialization.
+Before writing Scene code, read repository-local `.agents/skills/remotion-best-practices/SKILL.md`
+and only the references routed for that Scene. The complete declared TS/TSX graph must be original
+against the immutable baseline; template-copy Scenes are fixed-produced and exempt.
+Convergence rejects exact or token-normalized duplicates before any live materialization.
 
 GlobalVisual owns two no-Props exports: `GlobalVisualBaseLayer` covers the full
 Composition, while `GlobalVisualDecorationLayers` receives frame zero at the

@@ -1,0 +1,366 @@
+{
+  "schemaVersion": 1,
+  "status": "sampled-review-complete-with-minor-exit-layout-observation",
+  "agent": "hermes",
+  "releaseVersion": "0.1.12",
+  "installationTrack": "public",
+  "storyId": "ten-minute-focus",
+  "deliveryBuildId": "delivery-d018ea603e1b5b237eb706bdef72b3743b570562a25261a9ff6804ce566d21ff",
+  "videoChecksum": "sha256:2ced9b401cca6abc806b249acb10d51a40cde5b94e8c4fddad83ca287e8c50b2",
+  "media": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "frameCount": 884,
+    "durationSeconds": 29.466666666666665
+  },
+  "sampleReceipt": "qa/public-hermes-frames/samples.json",
+  "sampleReceiptChecksum": "sha256:7d6e48b1bb059b63492698659548eaa08ecba7af3ad444f35ae07cbd066df4a2",
+  "inputUnchanged": true,
+  "inputChecksumsAfterVisualReview": {
+    "story": "sha256:3e5e5ec9d74e4cee71364604e1578902dc55cedc67a13769bebd48f211de07b6",
+    "timing": "sha256:e49c8950fdcfc76a41d913a213a8e102abbe086c924d4a44c82a8f1bfc574d2a",
+    "video.mp4": "sha256:2ced9b401cca6abc806b249acb10d51a40cde5b94e8c4fddad83ca287e8c50b2",
+    "cover-4x3.png": "sha256:3a086ad30c70d8f28ce5ece2b484190c3210ceb649998442dcb51475ff6dda2d",
+    "cover-3x4.png": "sha256:5807957128092c1322fa731745ef46eec698872b9f629aa166fad94da046f505",
+    "publish.json": "sha256:6fd0097a0427bb275cc18696a6aff290504c5a99622cc5c4f3beba30282d5ca3"
+  },
+  "extractedSampleCount": 42,
+  "additionalStableCreditsFrame": {
+    "frame": 734,
+    "timeExact": "734/30",
+    "timeSeconds": 24.466667,
+    "videoPts": 2202000,
+    "videoTimeBase": "1/90000",
+    "file": "qa/public-hermes-frames/axmorf-012-public-hermes-credits-frame-734.png",
+    "checksum": "sha256:9db833839b55e8484a99c5c1fe0c9352d46a4b4abfc3b825e4d91691d87640ca",
+    "videoChecksumBefore": "sha256:2ced9b401cca6abc806b249acb10d51a40cde5b94e8c4fddad83ca287e8c50b2",
+    "videoChecksumAfter": "sha256:2ced9b401cca6abc806b249acb10d51a40cde5b94e8c4fddad83ca287e8c50b2",
+    "videoUnchanged": true,
+    "reason": "Stable outro SourceCredits at local frame 90; sampled local59 is mid-fade and local119 is transition blank."
+  },
+  "manuallyViewedFrames": [
+    {
+      "frame": 0,
+      "timeSeconds": 0.0,
+      "timeExact": "0/30",
+      "videoPts": 0,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000000.png",
+      "checksum": "sha256:28fd4c3222e75e80aa0dda191bdde9226a1a7cf064d9ba09b02eebf4e574ca0b"
+    },
+    {
+      "frame": 53,
+      "timeSeconds": 1.766667,
+      "timeExact": "53/30",
+      "videoPts": 159000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000053.png",
+      "checksum": "sha256:c53d6dfdef309fe41f842c33a33e0ad609a622ba45e739dea6a241a243d494d5"
+    },
+    {
+      "frame": 59,
+      "timeSeconds": 1.966667,
+      "timeExact": "59/30",
+      "videoPts": 177000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000059.png",
+      "checksum": "sha256:1cee8f7993664036cf19dda6fa15fcb3fa59dead995edee9344453c4493ca9b9"
+    },
+    {
+      "frame": 60,
+      "timeSeconds": 2.0,
+      "timeExact": "60/30",
+      "videoPts": 180000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000060.png",
+      "checksum": "sha256:153a4bf5ddd96a243da394cffc7d3b40fabe83ff1fa9dea7047e6085c9875527"
+    },
+    {
+      "frame": 100,
+      "timeSeconds": 3.333333,
+      "timeExact": "100/30",
+      "videoPts": 300000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000100.png",
+      "checksum": "sha256:9a8ab17ed4c38c39126c685adc23b347c4093dfb3014ec13883f473626554af1"
+    },
+    {
+      "frame": 159,
+      "timeSeconds": 5.3,
+      "timeExact": "159/30",
+      "videoPts": 477000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000159.png",
+      "checksum": "sha256:c9248dc7f81a4a5200bd0dab84b62d8a8346ccacf8733f127087efe29b73d770"
+    },
+    {
+      "frame": 199,
+      "timeSeconds": 6.633333,
+      "timeExact": "199/30",
+      "videoPts": 597000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000199.png",
+      "checksum": "sha256:a155b7ad27ed8db2df67b412013e65b996ee58003e8f8f33cf88d70f5594af84"
+    },
+    {
+      "frame": 258,
+      "timeSeconds": 8.6,
+      "timeExact": "258/30",
+      "videoPts": 774000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000258.png",
+      "checksum": "sha256:4dc161b9947a360eb28266dea3093d444cdfc3484bd8e6023db9770bd87f786d"
+    },
+    {
+      "frame": 259,
+      "timeSeconds": 8.633333,
+      "timeExact": "259/30",
+      "videoPts": 777000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000259.png",
+      "checksum": "sha256:4065b413771a0c765f34452379a597be197ee212902fd490154550628be7ba5c"
+    },
+    {
+      "frame": 320,
+      "timeSeconds": 10.666667,
+      "timeExact": "320/30",
+      "videoPts": 960000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000320.png",
+      "checksum": "sha256:dad2540276c348c1c2d9c25e8b2f39166e5714757132bbe58546cc40c84f286d"
+    },
+    {
+      "frame": 360,
+      "timeSeconds": 12.0,
+      "timeExact": "360/30",
+      "videoPts": 1080000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000360.png",
+      "checksum": "sha256:62a117d160822560dfab08f6a400057fdcd205f47af8b3e339fa2898d03dafd8"
+    },
+    {
+      "frame": 421,
+      "timeSeconds": 14.033333,
+      "timeExact": "421/30",
+      "videoPts": 1263000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000421.png",
+      "checksum": "sha256:2a0c26fde96a5811ea60b22487aa13feedf7710545413cb9ebc8915a2de7bfde"
+    },
+    {
+      "frame": 461,
+      "timeSeconds": 15.366667,
+      "timeExact": "461/30",
+      "videoPts": 1383000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000461.png",
+      "checksum": "sha256:491a154f8cdcdad988ba8bd17898d619c38a778030516d6373b1c3b40eb1a952"
+    },
+    {
+      "frame": 462,
+      "timeSeconds": 15.4,
+      "timeExact": "462/30",
+      "videoPts": 1386000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000462.png",
+      "checksum": "sha256:a328e584982513952e5a419d3bfb70dd885f922e070e208ff5dceab01377d7cc"
+    },
+    {
+      "frame": 503,
+      "timeSeconds": 16.766667,
+      "timeExact": "503/30",
+      "videoPts": 1509000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000503.png",
+      "checksum": "sha256:c5bc70c373e0f77af773f89000a7d07609b0b418c683f39beb8d9b1009960ae2"
+    },
+    {
+      "frame": 552,
+      "timeSeconds": 18.4,
+      "timeExact": "552/30",
+      "videoPts": 1656000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000552.png",
+      "checksum": "sha256:8b59a5dee17f2d66bbb2baf82b2efd727c68f1d320c5d88ad59ab4114b405279"
+    },
+    {
+      "frame": 594,
+      "timeSeconds": 19.8,
+      "timeExact": "594/30",
+      "videoPts": 1782000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000594.png",
+      "checksum": "sha256:992d4aac316a1c56bb11f18a3db6d2b80a6b8c7cfb3130501e0d7c3a2ac33c35"
+    },
+    {
+      "frame": 643,
+      "timeSeconds": 21.433333,
+      "timeExact": "643/30",
+      "videoPts": 1929000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000643.png",
+      "checksum": "sha256:5d5342030d70396839b38cc905c5d779963fb0c92088d9119e055b5e697b516a"
+    },
+    {
+      "frame": 644,
+      "timeSeconds": 21.466667,
+      "timeExact": "644/30",
+      "videoPts": 1932000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000644.png",
+      "checksum": "sha256:4136f4e3b5387cca1556fd9f184fa69786d4f5df7eea57c6be4d09bf343c8d7b"
+    },
+    {
+      "frame": 703,
+      "timeSeconds": 23.433333,
+      "timeExact": "703/30",
+      "videoPts": 2109000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000703.png",
+      "checksum": "sha256:aee15adfe628c25fa891df8d9bc9afddc2a5e839e8b7ea11801aa3298882f767"
+    },
+    {
+      "frame": 734,
+      "timeSeconds": 24.466667,
+      "timeExact": "734/30",
+      "videoPts": 2202000,
+      "videoTimeBase": "1/90000",
+      "file": "qa/public-hermes-frames/axmorf-012-public-hermes-credits-frame-734.png",
+      "checksum": "sha256:9db833839b55e8484a99c5c1fe0c9352d46a4b4abfc3b825e4d91691d87640ca"
+    },
+    {
+      "frame": 763,
+      "timeSeconds": 25.433333,
+      "timeExact": "763/30",
+      "videoPts": 2289000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000763.png",
+      "checksum": "sha256:f5543001b6f6baaa65b16957e4d1a38123cc0649ab5c5895901ea1e66a373f47"
+    },
+    {
+      "frame": 823,
+      "timeSeconds": 27.433333,
+      "timeExact": "823/30",
+      "videoPts": 2469000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000823.png",
+      "checksum": "sha256:50cac1c2dbc626cc2f514a52ef9d8fc86ecde978ff7a6e6f0cf92c3059be3320"
+    },
+    {
+      "frame": 859,
+      "timeSeconds": 28.633333,
+      "timeExact": "859/30",
+      "videoPts": 2577000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000859.png",
+      "checksum": "sha256:6d1384bbe863eea84078d121ea5d8a2c4ac827b862a73d99a5f3acb57ab1e203"
+    },
+    {
+      "frame": 883,
+      "timeSeconds": 29.433333,
+      "timeExact": "883/30",
+      "videoPts": 2649000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000883.png",
+      "checksum": "sha256:0805a88e5a065919489c779e152bf9727d4ff92924d5f0ee38e10125aeb531bc"
+    }
+  ],
+  "viewedCovers": [
+    {
+      "name": "cover-4x3.png",
+      "checksum": "sha256:3a086ad30c70d8f28ce5ece2b484190c3210ceb649998442dcb51475ff6dda2d"
+    },
+    {
+      "name": "cover-3x4.png",
+      "checksum": "sha256:5807957128092c1322fa731745ef46eec698872b9f629aa166fad94da046f505"
+    }
+  ],
+  "findings": [
+    {
+      "scope": "second narrated scene phone exit",
+      "frames": [
+        360,
+        421,
+        461
+      ],
+      "severity": "minor-nonblocking-authoring-observation",
+      "observation": "A faded portion of the phone remains against the left Scene clipping boundary in the middle and late scene samples; the secondary phone label 通知 is partly clipped. Primary title, current-page card, callout, and captions remain legible. This is not a clean complete-exit layout in these samples. The observed sequence is consistent with an incomplete exit position, but source-level cause was not inspected and this is not evidence of a default-boundary-template regression.",
+      "suggestedFollowUp": "If polishing this authored Scene, complete the phone exit or finish its fade before holding the stable current-page layout; do not lower font size or add a general subjective validation gate."
+    },
+    {
+      "scope": "default boundary templates",
+      "frames": [
+        0,
+        53,
+        59,
+        644,
+        703,
+        734,
+        763,
+        823,
+        859,
+        883
+      ],
+      "severity": "none-observed-in-listed-stable-samples",
+      "observation": "At stable frames 53/59 and 734/859/883, intro/follow brand and credit text have local opaque light backing against the dark global base and are legible without evident clipping. Frame 0/644 show the plate before text reveal; 703 is reference-card fade-in, 763 the internal credits-to-follow blank transition, and 823 the late wordmark-letter fade. These states were not misclassified as stable contrast failures."
+    },
+    {
+      "scope": "primary narrated scene content",
+      "frames": [
+        159,
+        360,
+        552,
+        594
+      ],
+      "severity": "none-observed-in-primary-content",
+      "observation": "All three primary scene titles and central visuals are legible in the listed samples. The phone-exit clipping is recorded separately. Scene 3 note card is mid-fade at 503 and stable at 552; the lower next-start text is mid-fade at 552 and fully readable at 594."
+    },
+    {
+      "scope": "six caption cue midpoints",
+      "frames": [
+        100,
+        199,
+        320,
+        421,
+        503,
+        594
+      ],
+      "severity": "none-observed-in-listed-samples",
+      "observation": "All six cue midpoint captions are readable single lines in the bottom caption area, with no evident cropped glyphs or overlap with the primary Scene content."
+    },
+    {
+      "scope": "four adjacent scene-boundary pairs",
+      "frames": [
+        59,
+        60,
+        258,
+        259,
+        461,
+        462,
+        643,
+        644
+      ],
+      "severity": "none-observed-in-primary-content",
+      "observation": "Each pair shows outgoing and incoming scene content. No cross-scene caption collision or main-text clipping was visible. At frame 60 the first-scene text is still unrevealed while its caption is present; at 644 the outro is a pre-reveal plate. The secondary phone residue at 461 remains explicitly recorded."
+    },
+    {
+      "scope": "delivered covers",
+      "files": [
+        "cover-4x3.png",
+        "cover-3x4.png"
+      ],
+      "severity": "none-observed",
+      "observation": "Both actual delivered cover PNGs were opened. Main title, stopwatch, supporting line, and footer have clear foreground/background separation, and no evident text cropping was observed."
+    }
+  ],
+  "limitations": [
+    "Only the listed 25 actual video frames and both delivered covers were visually examined; the other decoded frames are not visually certified.",
+    "The controller extracted 42 regular samples; one additional exact decoded frame (734, outro-local 90) was added for stable credits. Extraction count does not imply manual review of every extracted image.",
+    "Transition review examined four adjacent scene-boundary pairs and selected intro/outro animation states, not every frame of every animation. Phone residue was observed at three separated frames, not continuously measured between them.",
+    "No audio listening, OCR, pixel-based contrast measurement, full semantic accuracy certification, source inspection, or frame-by-frame playback review was performed.",
+    "This review covers the supplied completed public-installation delivery. Registry provenance, installation and Agent execution evidence are owned by the parent acceptance controller, not inferred from these pixels.",
+    "No Workspace, installed package, source, or delivery file was modified; only external QA outputs and this review were written. Other Codex acceptance directories were not read."
+  ],
+  "reviewSourceChecksum": "sha256:16844bbb98a043478d12bf66d7a6a064f4aacbee43fdcfd6815bf82f51eea55f"
+}

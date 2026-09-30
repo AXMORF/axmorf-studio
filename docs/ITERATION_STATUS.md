@@ -227,7 +227,17 @@ Hermes 安装包/指南未变、原生并发、final 7/7、四文件 checksum、
 发布后视觉抽检记录正文文字偏暗/重叠、字幕孤字换行与时长偏差；未做全帧或完整听审。
 候选第五轮通过不能替代本次公开版本的失败事实；当前不宣称双宿主完整流程已稳定通过。
 
-## 可读性误报与默认模板对比度优化（0.1.12 发布候选）
+## Skill 主入口轻量整理（本地未发布）
+
+仅整理 creator 发行的 `axmorf-video/SKILL.md` 措辞：6,198 → 6,063 字符，减少 135（2.18%）；
+命令、顺序、必读引用、任务归属、并发、停止、恢复和验证要求保留，runtime、contracts、validators 与测试均未修改。
+[复核记录](evidence/skill-wording-cleanup-20260910.json)：独立语义复核的 16 类要求未发现剩余实质差异；
+初稿一处旧项目 baseline 触发条件变化已恢复原文。现有相关测试 42/42，最终文案再跑文档/scaffold 25/25，
+Skill 格式、creator package 与文档链接/命令引用检查通过。
+本轮未做新的真实视频或原生 Agent 黑盒测试，不沿用 0.1.12 的验收宣称此文案已通过真实制作。
+当前为本地候选，未推送或发布，既有用户 Workspace 未改动。
+
+## 可读性误报与默认模板对比度优化（0.1.12 已发布并复验）
 
 [工程检查](evidence/v0.1.12-engineering-checks.json) 完成 874/874、type/lint/docs/build、真实 compositions、package build/typecheck/check 和零漏洞审计。
 [原始问题](evidence/v0.1.12-readability-incident.json) 区分真实不合规、保守静态误报与渲染对比度问题；本次不以增加文字约束处理图形容器。
@@ -261,6 +271,32 @@ Root 有一次非 Git Workspace 上的 Git 假设错误，随后 doctor 成功�
 [Codex 视觉](evidence/v0.1.12-candidate-codex-visual.json) 实看 19 帧与两张封面，
 [Hermes 视觉](evidence/v0.1.12-candidate-hermes-visual.json) 实看 25 帧与两张封面，所看首尾与正文无阻断性对比度、遮挡或裁切问题。
 Codex 有一处完整可读但孤字换行的字幕；淡入态与稳定态分开判定。未做全帧或完整听审，成功路径未触发 terminal 自动恢复。
+
+[发行记录](evidence/v0.1.12-release.json)：macOS ARM64 874/874；Linux 873 通过、1 项既有 Darwin-only 测试跳过、0 失败，
+该测试在 macOS 通过。CI 发行文件与候选一致；两包公共 latest 均为 0.1.12，registry integrity 与 Linux CI tarball 一致。
+0.1.11 未单独发行，其修复随 0.1.12 首次公开。发布标签固定在 `8823a77`，发布后只补验收文档。
+
+[公共安装回执](evidence/v0.1.12-public-registry.json) 来自实际 `npm create axmorf-studio@latest`，通过专用 `verify-public`，
+没有用候选 tgz 替代公开安装。共有三个独立公共样本：[首轮 Codex](evidence/v0.1.12-public-codex-initial-failure.json) 在
+第二个旁白 chunk 失败，未创建 attempt/创作任务/交付；Root 正确停止。适配层丢弃底层异常，原因仍未知，不能据此认定服务不稳。
+原失败项目未重试或修改；仅追加一个全新 profile/Workspace 的独立 Codex 样本，不能抹去首轮失败或证明 provider 可靠性。
+
+真实 Hermes TUI 29.47 秒、追加 Codex 28.47 秒均完成。各一条业务提示、零控制器 follow-up、5 个创作 child + 1 个 probe，
+峰值 4、补位 1、唯一 continuation；独立 final 各 7/7、四文件媒体/checksum/EOF 通过，252 个 runtime 文件与 11 份指南未变。
+[公共 Hermes 过程](evidence/v0.1.12-public-hermes-process.json) 保留一次非 Git Workspace 的 Git 假设错误；
+[追加 Codex 过程](evidence/v0.1.12-public-codex-recheck-process.json) 保留写输入脚本编码错误、随后缺输入的 create 失败、两次短等待及最终相对链接问题。
+两边 5 个创作 worker 均首次 finalize/check/commit 通过，未观察到本轮可读性误报返工；技术验收通过不代表全程无错误。
+
+[公共 Hermes 视觉](evidence/v0.1.12-public-hermes-visual.json) 实看 25 帧与两封面：主要文字可读，第二 Scene 的退场手机
+在 360/421/461 帧残留半截“通知”文字；[追加 Codex 视觉](evidence/v0.1.12-public-codex-recheck-visual.json) 实看 20 帧与两封面，
+字幕有“安/心”“不/用”跨行。上述均为非阻断细节，所看首尾稳定态未见原默认模板对比度问题；未做全帧或完整听审。
+
+[公共安装 revision](evidence/v0.1.12-public-revision-closure.json) 与[独立复核](evidence/v0.1.12-public-revision-review.json)
+在完成的 Hermes Workspace 完整隔离副本中通过 12 步公开 CLI：no-op 拒绝、仅 description 修改、exact continuation、
+自动 promotion、final、手动幂等 promotion 与 final。原 Workspace 全量哈希及安装包未变，新增 provider/Agent 均 0。
+候选与公共 revision 的原始 QA 回执 `actualCost` 仅来自 prepare；原件保留，汇总证据明确标为 `prepareActualCost` 并补终态成本。
+两次都复用旁白/创作 artifacts，但视频和两张封面实际重新生成且字节与 base 一致，不能说最终零渲染。
+此项是脚本驱动的 publishing-only revision，不是原生 Agent 对话修订、失败恢复或全分支认证。
 
 ## Hermes TUI 监督与 revision 闭环修正（0.1.11 已验证候选）
 

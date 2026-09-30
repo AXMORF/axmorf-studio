@@ -1,0 +1,362 @@
+{
+  "schemaVersion": 1,
+  "scope": "independent-public-registry-hermes-native-process-review",
+  "reviewedAt": "2026-09-10T09:03:55.828909+00:00",
+  "status": "completed-with-one-nonblocking-root-error",
+  "packageVersion": "0.1.12",
+  "installationMethod": "npm-create-public-registry",
+  "runtimeFingerprint": "sha256:f91a415bc1fa4e4327114fbd1a2f5434707cfa2c8ae1b01836d912978948039c",
+  "rootSessionId": "20260910_164507_acc573",
+  "nativeRun": {
+    "uiSessionId": "a4a0fa8b",
+    "businessPrompts": 1,
+    "controllerFollowups": 0,
+    "sessionsReviewed": 7,
+    "nativeToolCallsReviewed": 79,
+    "creativeWorkers": 5,
+    "probeWorkers": 1
+  },
+  "findings": [
+    {
+      "severity": "nonblocking",
+      "category": "root-environment-assumption",
+      "sessionId": "20260910_164507_acc573",
+      "callId": "call_LD1MRvqVSXYbWMIX0iwMukYT",
+      "summary": "Root assumed the generated npm Workspace was a Git checkout; the chained Git command exited 128 before doctor ran. Root then ran npm run doctor successfully without intervention.",
+      "explicitSkillViolation": false,
+      "validatorFalsePositive": false,
+      "selfCorrected": true,
+      "correctionCallId": "call_1A5IUYzFiG4HiedX0uFY4Vsn"
+    }
+  ],
+  "failedNativeCalls": 1,
+  "failedWorkerCalls": 0,
+  "taskValidationFailures": 0,
+  "authoredOutputCorrectionsAfterValidation": 0,
+  "observedExplicitReadConstraintViolations": [],
+  "sessions": [
+    {
+      "sessionId": "20260910_164507_acc573",
+      "parentSessionId": null,
+      "role": "root",
+      "nativeToolCalls": 23,
+      "taskRevision": null,
+      "boundBeforeTaskContent": null,
+      "oneOwnTaskOnly": null,
+      "fixedOperations": [],
+      "firstPassAccepted": null,
+      "sourceTranscriptChecksum": "sha256:efaadae1785e22df16b6c3526f6451ed9959be3dc70b17340eeab23b08f3c9a7"
+    },
+    {
+      "sessionId": "20260910_164555_3b0664",
+      "parentSessionId": "20260910_164507_acc573",
+      "role": "capability-probe",
+      "nativeToolCalls": 1,
+      "taskRevision": null,
+      "boundBeforeTaskContent": null,
+      "oneOwnTaskOnly": null,
+      "fixedOperations": [],
+      "firstPassAccepted": null,
+      "sourceTranscriptChecksum": "sha256:b0ac2b0d8cee4889ee78da4e4e214a9273d6f60d59cdceb9cc38666e6d1d8040"
+    },
+    {
+      "sessionId": "20260910_164906_583731",
+      "parentSessionId": "20260910_164507_acc573",
+      "role": "global-visual-owner",
+      "nativeToolCalls": 11,
+      "taskRevision": "task-7273bda3bf8db2757aa524daac6d8fb7818cde985466a33b87a9ec132113d929",
+      "boundBeforeTaskContent": true,
+      "oneOwnTaskOnly": true,
+      "fixedOperations": [
+        {
+          "operation": "finalize",
+          "callId": "call_dKwxA5JLjyQ5b61Ix0gkgKOS",
+          "exitCode": 0,
+          "statuses": [
+            "agent-task-finalized"
+          ]
+        },
+        {
+          "operation": "check",
+          "callId": "call_iRFVS033nYD33PfJ6Z07yyFD",
+          "exitCode": 0,
+          "statuses": [
+            "task-workspace-valid"
+          ]
+        },
+        {
+          "operation": "commit",
+          "callId": "call_EospgeeMSLRUERcPHDMZ0Gln",
+          "exitCode": 0,
+          "statuses": [
+            "producer-artifact-committed"
+          ]
+        }
+      ],
+      "firstPassAccepted": true,
+      "sourceTranscriptChecksum": "sha256:df4f8722c04712d71ddb6c3d0e80e4d2e24ffed984812575909c63aa6ece4c7d"
+    },
+    {
+      "sessionId": "20260910_164906_8309c7",
+      "parentSessionId": "20260910_164507_acc573",
+      "role": "scene:choose-small-step",
+      "nativeToolCalls": 9,
+      "taskRevision": "task-90fe082e4eacfc8401f819bc955fef16d9a947440f1e7569ca45bfc00ec1f525",
+      "boundBeforeTaskContent": true,
+      "oneOwnTaskOnly": true,
+      "fixedOperations": [
+        {
+          "operation": "finalize",
+          "callId": "call_kYA7iKlVLrJJEoEy6UrvhppB",
+          "exitCode": 0,
+          "statuses": [
+            "agent-task-finalized"
+          ]
+        },
+        {
+          "operation": "check",
+          "callId": "call_4xTpsVcTnuTpzmdDAef9q3Uh",
+          "exitCode": 0,
+          "statuses": [
+            "task-workspace-valid"
+          ]
+        },
+        {
+          "operation": "commit",
+          "callId": "call_c1rTF0NTWh4ENJC56b1FHDEX",
+          "exitCode": 0,
+          "statuses": [
+            "producer-artifact-committed"
+          ]
+        }
+      ],
+      "firstPassAccepted": true,
+      "sourceTranscriptChecksum": "sha256:9392a8b7b70dfd17da130cdcfb0f6caf47ec9af0e73acf38616710d7b702c187"
+    },
+    {
+      "sessionId": "20260910_164906_998054",
+      "parentSessionId": "20260910_164507_acc573",
+      "role": "scene:remove-interruptions",
+      "nativeToolCalls": 12,
+      "taskRevision": "task-84a1d297b71cb5192aa03f807a3cce86e750f9c7a8ce118c5749063b48d58898",
+      "boundBeforeTaskContent": true,
+      "oneOwnTaskOnly": true,
+      "fixedOperations": [
+        {
+          "operation": "finalize",
+          "callId": "call_eNttWJMd7SGT4AK6cu7ejnbP",
+          "exitCode": 0,
+          "statuses": [
+            "agent-task-finalized"
+          ]
+        },
+        {
+          "operation": "check",
+          "callId": "call_eNttWJMd7SGT4AK6cu7ejnbP",
+          "exitCode": 0,
+          "statuses": [
+            "task-workspace-valid"
+          ]
+        },
+        {
+          "operation": "commit",
+          "callId": "call_xE0BUJfzDtDxVrw5TKnTtbCL",
+          "exitCode": 0,
+          "statuses": [
+            "producer-artifact-committed"
+          ]
+        }
+      ],
+      "firstPassAccepted": true,
+      "sourceTranscriptChecksum": "sha256:aabb611a99aeb2d8422e4ef3195112ca0df930cbdc69d399e80090e2dbc16c87"
+    },
+    {
+      "sessionId": "20260910_164906_fbdf32",
+      "parentSessionId": "20260910_164507_acc573",
+      "role": "cover-owner",
+      "nativeToolCalls": 12,
+      "taskRevision": "task-3da4c7dd2bb560dbf08274ea46153d9967214907e7aad6ac31edf4383be2e176",
+      "boundBeforeTaskContent": true,
+      "oneOwnTaskOnly": true,
+      "fixedOperations": [
+        {
+          "operation": "finalize",
+          "callId": "call_Kg9F5gAMfLrr2FB25WiLmlno",
+          "exitCode": 0,
+          "statuses": [
+            "agent-task-finalized"
+          ]
+        },
+        {
+          "operation": "check",
+          "callId": "call_t7gG6Rr6lNPl9O2PPFslj7cj",
+          "exitCode": 0,
+          "statuses": [
+            "task-workspace-valid"
+          ]
+        },
+        {
+          "operation": "commit",
+          "callId": "call_PCBiPF2qORNb0JRTO8E91Q6w",
+          "exitCode": 0,
+          "statuses": [
+            "producer-artifact-committed"
+          ]
+        }
+      ],
+      "firstPassAccepted": true,
+      "sourceTranscriptChecksum": "sha256:e0b9b4d19c313faee10fb82a9142519311ab02cb07043ae65752b9bbcf9a1d4a"
+    },
+    {
+      "sessionId": "20260910_165213_191c40",
+      "parentSessionId": "20260910_164507_acc573",
+      "role": "scene:record-next-step",
+      "nativeToolCalls": 11,
+      "taskRevision": "task-dd964a0126e49838bf569deb9a07db6b56396ddc12ed5671b1dd6106897e6893",
+      "boundBeforeTaskContent": true,
+      "oneOwnTaskOnly": true,
+      "fixedOperations": [
+        {
+          "operation": "finalize",
+          "callId": "call_zaQMkx2eyPDAfFeoEhagIq7d",
+          "exitCode": 0,
+          "statuses": [
+            "agent-task-finalized"
+          ]
+        },
+        {
+          "operation": "check",
+          "callId": "call_uPDFMcXZISDmvF5izeT3mGYw",
+          "exitCode": 0,
+          "statuses": [
+            "task-workspace-valid"
+          ]
+        },
+        {
+          "operation": "commit",
+          "callId": "call_XIxxlmZds5JpOaEFF8yK7SLL",
+          "exitCode": 0,
+          "statuses": [
+            "producer-artifact-committed"
+          ]
+        }
+      ],
+      "firstPassAccepted": true,
+      "sourceTranscriptChecksum": "sha256:aa4f90625d93e008d614af2a30b66e19be3e8f05d0ec41f258778c4adc1d8e51"
+    }
+  ],
+  "ownershipReview": {
+    "taskBindBeforeContent": true,
+    "rootTaskContentReadOrWrite": false,
+    "crossWorkerTaskAccess": false,
+    "freshSessionPerTask": true,
+    "sceneGuideReadBeforeAuthoredRenderer": true,
+    "fixedDraftOwnershipNote": "Scene JSON contracts label generated/reference-fidelity and plan outputs agent-draft-fixed-finalize; copying their examples before the one fixed finalizer is permitted by the received contract, not a fixed-only write violation."
+  },
+  "supervision": {
+    "continuationStarts": 1,
+    "waitCalls": 1,
+    "waitTimeoutSeconds": 60,
+    "shortSupervisionWaits": 0,
+    "statusOrChildPolling": false,
+    "nativeAsyncBatches": 3,
+    "allNativeNoticesBeforeFinal": true,
+    "finalDeliveryReports": 1,
+    "postFinalRootToolCalls": 0,
+    "uiInterimReports": 3,
+    "uiCompleteReports": 4,
+    "sourceReadinessCostReuseReport": {
+      "source": "native-message.interim",
+      "seq": 139,
+      "beforePrepareToolStartSeq": 141,
+      "reportedProviderRequests": 6
+    },
+    "durationBudgetReport": {
+      "source": "native-message.interim",
+      "seq": 62,
+      "totalSeconds": 30,
+      "boundarySeconds": 10,
+      "narrationBudgetSeconds": 20
+    },
+    "finalDurationSeconds": 29.47,
+    "uiEventSequenceContiguous": true,
+    "rootUserMessageKinds": {
+      "ordinary": 2,
+      "async_delegation_complete": 2
+    },
+    "peakActiveNativeChildren": 4,
+    "allNativeChildrenCompleted": true,
+    "slotRefillObserved": true,
+    "nativeChildStartSeqs": [
+      45,
+      148,
+      151,
+      152,
+      153,
+      328
+    ],
+    "nativeChildCompleteSeqs": [
+      59,
+      309,
+      312,
+      316,
+      321,
+      409
+    ]
+  },
+  "sourceIsolation": {
+    "developmentCheckoutToolAccessObserved": false,
+    "previousProjectOrAcceptanceToolAccessObserved": false,
+    "workerWorkspaceInspectedByReviewer": false,
+    "rawNativeArgumentsAndCodeReviewed": true,
+    "osFilesystemIsolation": false,
+    "candidateWorkspaceToolAccessObserved": false
+  },
+  "limitations": [
+    "A successful first check shows no observed readability validator failure in this run; it does not prove every possible JSX pattern or every frame is correct.",
+    "This review uses complete native tool arguments/results and UI events; it is not frame-by-frame visual or full listening verification.",
+    "Workers used describe and Python to read their own immutable context/contracts; no read_file failure or truncated=true result was found.",
+    "choose-small-step ran exact task bind as its first native tool, then read routing/Remotion guides before authored content. Its binding and task-content access order remained valid.",
+    "remove-interruptions ran finalize and check in one shell invocation joined by &&; both original outputs passed, so the absence of a separate check call is not a missing check.",
+    "Other public Codex attempts were outside this review and were not accessed.",
+    "The Git assumption remains a nonblocking avoidable root call; do not describe the overall process as zero-error."
+  ],
+  "evidenceChecksums": {
+    "hermes-rpc.jsonl": "sha256:d03d4a398808289d2fd203a62f06ccac3c8515978d47f346900e8852cf1a2e85",
+    "hermes-transcript.json": "sha256:efaadae1785e22df16b6c3526f6451ed9959be3dc70b17340eeab23b08f3c9a7",
+    "hermes-session.json": "sha256:80626772f3f8b2ea5455e5617fc5185d74a7bd200111b90d0c8df9c952c32663",
+    "hermes-delegations.json": "sha256:f2ff60ca21c26e308b19f822ffcef622315ae690efad8dc99b70b515e4eb534d",
+    "hermes-run-evidence.json": "sha256:88c486e9167c333659636089c15a92a48661f10a04eafc20e6dc046b6e6a1641"
+  },
+  "privateQaPath": "qa/public-hermes-process",
+  "authoredSceneSourceReview": {
+    "source": "native write_file and execute_code string arguments only",
+    "sceneCount": 3,
+    "literalFontSizesObserved": {
+      "choose-small-step": [
+        36,
+        48,
+        50,
+        60,
+        64
+      ],
+      "remove-interruptions": [
+        42,
+        44,
+        56,
+        76
+      ],
+      "record-next-step": [
+        42,
+        44,
+        66,
+        76
+      ]
+    },
+    "forbiddenSceneOwnershipIdentifiersObserved": [],
+    "cssAnimationOrTransitionObserved": false,
+    "numericTranslateRotateAcceptedWithoutRewrites": true,
+    "coverNote": "Cover sizes use their own received CoverSpec; Scene minimum 36px is not mechanically applied to cover text."
+  },
+  "reviewSourceChecksum": "sha256:18daee52686c8c44fdef69020bb74b26731519ebd2d797ec3c754be2a1529922"
+}
