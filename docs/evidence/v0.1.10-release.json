@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.10",
+  "tag": "v0.1.10",
+  "releaseCommit": "39edbd590875d2c00123cbbec21a0ea0b4590d01",
+  "publish": {
+    "attempt": 2,
+    "conclusion": "success",
+    "databaseId": 34264249216,
+    "headSha": "39edbd590875d2c00123cbbec21a0ea0b4590d01",
+    "status": "completed",
+    "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/34264249216"
+  },
+  "macos": {
+    "conclusion": "success",
+    "databaseId": 34264248375,
+    "headSha": "39edbd590875d2c00123cbbec21a0ea0b4590d01",
+    "status": "completed",
+    "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/34264248375"
+  },
+  "initialPublication": {
+    "schemaVersion": 1,
+    "workflowRun": 34264249216,
+    "runAttempt": 1,
+    "tag": "v0.1.10",
+    "commit": "39edbd590875d2c00123cbbec21a0ea0b4590d01",
+    "failure": "Registry visibility timeout after npm accepted runtime publication; creator not submitted in this attempt.",
+    "runtimeAcceptedAt": "2026-09-08T18:41:54.5732399Z",
+    "logChecksum": "sha256:ae145e17cc224856b08fdb8fb40b9d018ade6ca7a371481f75ec48fba2ec7f9f",
+    "runtimeIntegrity": "sha512-n1eMLACqHtvaIjn976p3Y+r7AdacHeFcp0pjBmKmHpRWox2/cGweDcCeducIMsH/ZAl2TabH8+euXClL43XEMg==",
+    "creatorIntegrity": "sha512-ws3JI7AOudENB2/K/VtY2PGngVV6LL6V5GLIuAhu3uM3zfFxuOpO31iUe7ph4eM1e3v+3aXd8xsypdhd2yZFfg=="
+  },
+  "runtimeVisibilityConfirmedAt": "2026-09-08T18:49:52.679182+00:00",
+  "registry": {
+    "@axmorf/studio": {
+      "version": "0.1.10",
+      "dist": {
+        "shasum": "28cd9f549095ebaa6367ca8d028d5a3511530a43",
+        "tarball": "https://registry.npmjs.org/@axmorf/studio/-/studio-0.1.10.tgz",
+        "fileCount": 252,
+        "integrity": "sha512-n1eMLACqHtvaIjn976p3Y+r7AdacHeFcp0pjBmKmHpRWox2/cGweDcCeducIMsH/ZAl2TabH8+euXClL43XEMg==",
+        "signatures": [
+          {
+            "sig": "MEUCIBg+nzZFR4wFuXKGHAv/ippATN5FtG8cWn1hn81gqeBkAiEAnOCZFq/0JvUXx/g/mgL3O30ZqHEfHMpo1JN6c4JfDLI=",
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+          },
+          {
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+            "sig": "MEYCIQC48pZ11VkVqknm88rKb3GrPjfZX8MVi3uWjnJg3M0ywgIhAI5T9uH/Bbvk63gsqyHKwS6stUFGrBbrfU4X4iN+MxhW"
+          }
+        ],
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/@axmorf%2fstudio@0.1.10",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        },
+        "unpackedSize": 9263445
+      }
+    },
+    "create-axmorf-studio": {
+      "version": "0.1.10",
+      "dist": {
+        "integrity": "sha512-ws3JI7AOudENB2/K/VtY2PGngVV6LL6V5GLIuAhu3uM3zfFxuOpO31iUe7ph4eM1e3v+3aXd8xsypdhd2yZFfg==",
+        "shasum": "40ac7274cf3f94f31af82c06632159feb87cc17a",
+        "tarball": "https://registry.npmjs.org/create-axmorf-studio/-/create-axmorf-studio-0.1.10.tgz",
+        "fileCount": 40,
+        "unpackedSize": 94612,
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/create-axmorf-studio@0.1.10",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        },
+        "signatures": [
+          {
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+            "sig": "MEYCIQC5uGEHJr7ZTaGjO0oM2MAAoRiFzOqdpZzj4qBaJduedgIhANTsLWUD2Nfok/ABa/QiLCFumXMKpahC6GFpLg/UK76V"
+          }
+        ]
+      }
+    }
+  },
+  "userWorkspace": {
+    "schemaVersion": 1,
+    "version": "0.1.10",
+    "method": "npm create axmorf-studio@latest axmorf-v0.1.10 -- --yes",
+    "runtimeIntegrity": "sha512-n1eMLACqHtvaIjn976p3Y+r7AdacHeFcp0pjBmKmHpRWox2/cGweDcCeducIMsH/ZAl2TabH8+euXClL43XEMg==",
+    "creatorIntegrity": "sha512-ws3JI7AOudENB2/K/VtY2PGngVV6LL6V5GLIuAhu3uM3zfFxuOpO31iUe7ph4eM1e3v+3aXd8xsypdhd2yZFfg==",
+    "runtimeFingerprint": "sha256:18fee0a1d325d153baaf1ec0b641d09e1c42a2013541f44ec75c8feff91285ae",
+    "runtimeFilesVerified": 252,
+    "guideFilesVerified": 11,
+    "doctor": {
+      "status": "workspace-ready",
+      "workspaceVersion": 1,
+      "checks": {
+        "layout": "pass",
+        "runtimeResources": "pass",
+        "remotionCli": "pass",
+        "browserRender": "pass",
+        "producerConfig": "pass",
+        "resourceCatalog": "pass"
+      }
+    },
+    "installLogChecksum": "sha256:23d5e6bce7093cf1cfbf8654445d89aa881cfd93c7060a180ac6184f4331bab7",
+    "workspaceName": "axmorf-v0.1.10"
+  },
+  "previousWorkspace": {
+    "manualGuideOverwritesRestored": 5,
+    "runtimeVersion": "0.1.9",
+    "kept": true
+  },
+  "publicFirstUse": "v0.1.10-public-registry.json"
+}

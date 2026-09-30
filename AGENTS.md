@@ -100,6 +100,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   ScenePackage。StoryBeat 严格区分 narrated 与只允许位于首尾的 silent Scene。
 - `project:create` 从 strict create input 原子创建 configured authoring，并将选定边界 Scene template
   源码与资源复制为 Project-local immutable instance；它不调用 provider、不生成媒体或生产 attempt。
+- 用户明确的尺寸/横竖屏、fps、locale 写入 create input 的 `render.width/height/fps/locale`，未指定字段继承配置；
+  不为单次需求修改长期默认值。创建返回的 `render` 是已复验的 Project RenderSpec，须在 provider preparation 前核对用户要求。
 - runtime package 只通过 policy-covered Workspace seed 发行 manifest/checksum/license 已验证的 shared media；
   bootstrap 投影到保留的 `public/assets/axmorf-shared/` 和 Catalog，相同 bytes 幂等、不同 bytes/symlink fail closed。
   默认首尾 template 实际使用的音频必须在 `project:create` 时复制为 Project-local resource；既有 Project 不自动迁移。
@@ -119,6 +121,7 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   once owns safe-area-local SceneViewport、captions、narration 和 GlobalVisual layers；GlobalVisual base 覆盖完整
   Composition，decoration 只覆盖首个至末个 narrated Scene 的连续窗口。Scene 的 `(0, 0)` 是 viewport 左上角，
   只接收 viewport width/height，不感知 full-frame inset。
+- 新 Project 的 `VisualStyleSpec.theme` 固化已校验四角色配色，Composition 实际绘制 background；themed GlobalVisual base 必须直接返回 null，正文/首尾共用主题。旧 immutable 模板不静默迁移；不兼容主题在 create/revision 前置拒绝。
 - 旁白独占 narration track；非旁白声音都是独立 `SoundContribution`。Project BGM 只覆盖 narrated
   content window，不进入 silent boundary Scenes。
 - JSON/数据文件不包含 executable expression；renderer 由 composition-local static registry 绑定。
@@ -141,7 +144,7 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   production，除非用户明确要求保存；解析结果不进入 Revision/Task/artifact/delivery identity。`inline` 由
   Root 一次只执行一个 dirty workspace；`subagents` 使用不超过四个且受 runtime capacity 限制的 bounded pool，
   并要求本次 resolver 输入 verified worker transport。原生 wait-any 完成即补位；原生批量每批不超过容量，同步返回或原生整批完成通知后发下一批。
-  runtime capacity 未知时按 1；transport 未验证、容量为 0
+  runtime capacity 未知时阻塞；transport 未验证、容量为 0
   或 exact capacity 无法满足都必须在 prepare 前阻塞，不自动换模式。transport/解析结果不持久化也不进入 content
   identity。
 - `npm run project:produce:inspect -- --project <storyId>` 是严格只读、零 provider call 的诊断入口；Root
@@ -178,7 +181,7 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   拒绝同 revision Scene 的 exact 或 normalized duplicate。
 - Root 在串行执行完或把全部 dirty tasks 纳入 bounded pool 后，启动 prepare 返回的 attempt-bound
   `project:produce:continue`，每个 attempt 仅一次。Root 全程负责，用原进程阻塞等待或原生通知做低 token 监督；
-  普通等待超时只续等，不轮询 child/status、反复读日志或推理未变进度。错误通知才唤醒 Root 诊断并指导原 executor；
+  等待取宿主 deadline 内最长阻塞时长，通常 30–60 秒或更长；不反复一秒等待。普通超时只续等，不轮询 child/status、反复读日志或推理未变进度。错误通知才唤醒 Root 诊断并指导原 executor；
   不读写其 workspace、不代 commit、不修复运行中的 continuation。只按 fixed 结果报告一次，忽略迟到的重复成功通知。fixed continuation
   必须先获得 one-shot atomic attempt claim，再等待 immutable task-terminal event log；重复 continuation
   fail closed。任一失败直接终止且不 converge；全部成功才内部恰好调用一次 converge；从 ExecutionAttempt
@@ -232,6 +235,10 @@ contact sheet 或布局。第三方 source/media 分别校验 license/attributio
 - Root 只有在解析为 `inline` 时才能按 task prompt 串行创作；不得读其他 executor workspace、跨 task 代
   commit 或持久化 child identity/chat/heartbeat/token。subagents 模式的 spawn failure 记录 exact
   `spawnFailureCommand`，不得自动回退 inline。
+
+
+短 `--assignment` 只路由 exact project/attempt 的 immutable dirty task 序号；CLI 还原 full task/binding 后继续原验证，不能混入手写长身份。
+Root 优先整段转发 prepare/reissue 的 `workerPrompts`；进程工具返回 session/cell handle 时完整保留并等待，不能只取 output 或提前结束 Root。
 
 ## 故障语义
 

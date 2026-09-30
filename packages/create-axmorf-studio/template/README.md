@@ -39,6 +39,8 @@ template audio actually used is copied into that Project, so an existing Project
 Creator installation prepares the pinned browser and runs a real tiny render before claiming readiness. If browser preparation was
 explicitly skipped or the browser was removed, run `npm run browser:prepare`, then `npm run doctor`. Preparation has a bounded
 timeout and a single download lock; diagnostics never silently download another browser.
+If direct download stalls, set `AXMORF_BROWSER_EXECUTABLE` to the absolute path of an existing compatible Chrome/Chromium
+executable before creation, `doctor`, and production. The real browser render check still applies; keep the variable set while rendering.
 
 ## Useful commands
 
@@ -59,6 +61,9 @@ timeout and a single download lock; diagnostics never silently download another 
 For Project creation, revisions, production, recovery, and deletion, use the order in `AGENTS.md` and the Workspace-local
 `axmorf-video` Skill. Prefer commands returned by structured CLI output over manually reconstructed internal parameters.
 
+For a new video, explicit orientation, dimensions, frame rate and locale requests take precedence over saved defaults.
+Unspecified fields inherit settings; a one-video override does not change your saved defaults.
+
 ## Completion means four verified files
 
 ```text
@@ -78,3 +83,5 @@ Delivery. It returns structured failure reasons and never writes legacy baseline
 Commit `package.json`, `package-lock.json`, this README, and any instruction customizations you intentionally want to share. Keep
 Project source, media, private config, provider credentials, voice profiles, production work, artifacts, attempts, output, Deliveries,
 and revision candidates local unless you deliberately establish a different policy.
+
+新 Project 的 `visualStyle.theme` 可选 dark、light 或 background/primaryText/secondaryText/accent 四角色不透明六位 hex；默认 dark。系统在创建/修订前验证配色，Composition 的实际底色与正文、固定首尾共用主题。旧 Project 的 immutable 首尾不自动迁移。

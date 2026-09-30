@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.14",
+  "date": "2026-09-12",
+  "status": "engineering-checks-passed-candidate-first-use-pending",
+  "tests": {
+    "discovery": "scripts/tests/project-tests.ts discoverRepositoryTests(source)",
+    "fileConcurrency": 1,
+    "passed": 930,
+    "failed": 0,
+    "skipped": 0,
+    "note": "Same complete repository test discovery and assertions; invoked Node test runner with --test-concurrency=1 on this 12-core host. npm run check with default file concurrency has not passed locally; all remaining static/host commands were then executed sequentially."
+  },
+  "processFocused": {
+    "passed": 24,
+    "failed": 0
+  },
+  "checks": {
+    "fullTestsSingleFileConcurrency": {
+      "result": "passed",
+      "logChecksum": "sha256:1f2e16aa702aec938763f702c225b468aa0943488ef4502b60c6a784538c0a13"
+    },
+    "processFocused": {
+      "result": "passed",
+      "logChecksum": "sha256:f197e3a37ce2c99f21eb6a4d9d27986f5152ab48497d80716827b8d0fea1521c"
+    },
+    "packageTypes": {
+      "result": "passed",
+      "logChecksum": "sha256:74ca9feaf6617c3c02b6a57219025fc15add38e2a634fab12a1b077fd39e732e"
+    },
+    "packageBuild": {
+      "result": "passed",
+      "logChecksum": "sha256:ea2b83db9368aa1e8209f945b9bf382b70953d695602e437cf14e5a32bd674e7"
+    },
+    "runtimePackage": {
+      "result": "passed",
+      "logChecksum": "sha256:05681ca7c03b343d708240ba77502ae71b142f5cb4aab1ddb138c58aa6fa010e"
+    },
+    "creatorPackage": {
+      "result": "passed",
+      "logChecksum": "sha256:9d00814e38b250fb5255d880c478b26889ed470015159ed031fea11ecf7f2db4"
+    },
+    "typecheck": {
+      "result": "passed",
+      "logChecksum": "sha256:acb7b81d47217197021097b5dbbd5c2182029217d1b560ce8047b269eab38309"
+    },
+    "lint": {
+      "result": "passed",
+      "logChecksum": "sha256:32b77e9f042e7c866f0eb187ebb75cab94f839f86303c13aabeef7edaba600b3"
+    },
+    "docs": {
+      "result": "passed",
+      "logChecksum": "sha256:a74d5f58bcf52aaeae98930844981d80e2ff59e716f5124f7e33312107054922"
+    },
+    "templateAudio": {
+      "result": "passed",
+      "logChecksum": "sha256:dfe5ab27e4c33308415c7949be26ad51a48f5a51bd3c9feb284885546135fce9"
+    },
+    "catalog": {
+      "result": "passed",
+      "logChecksum": "sha256:c6af93af62ec013d7d06f4a41b453da2081c89aefbe8d8bdc2a883358f77d8f0"
+    },
+    "registry": {
+      "result": "passed",
+      "logChecksum": "sha256:b34dd7f9c3f92bd6ec7332ab2d47cc51140971908426a88c2b388c5fdfc17642"
+    },
+    "webBuild": {
+      "result": "passed",
+      "logChecksum": "sha256:b6b596dde93ba674e476f762d956cec0683bde5eba044ba9207dd2dfbe927549"
+    },
+    "remotionBuild": {
+      "result": "passed",
+      "logChecksum": "sha256:b1c9d0e45b93c2c1bc98f79474a52241a8098f5ebf9b6a068b1d228df946fee7"
+    },
+    "compositions": {
+      "result": "passed",
+      "logChecksum": "sha256:73150e5d07f1d573b0f8ff8a6471d7571d9617af876e4886a56ae25d35758b24"
+    },
+    "sourceGate": {
+      "result": "passed",
+      "logChecksum": "sha256:b73bbf3b59a211c3821b463d9283cf45a7da916212c0bad3c174b8bac96473fb"
+    },
+    "audit": {
+      "result": "passed",
+      "logChecksum": "sha256:6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+    },
+    "themeRender": {
+      "result": "passed",
+      "logChecksum": "sha256:d6bf48c78112a3cf69f6d3038048aa4ceff2a4220ea6a3c04b05a5197f628723"
+    },
+    "themeCheck": {
+      "result": "passed",
+      "logChecksum": "sha256:23bf76d5c22d9ee3fa25c3bea36b7c8f3eec459a94cb518354eee539e37ba853"
+    }
+  },
+  "auditVulnerabilities": 0,
+  "hostCompositions": [
+    "CapabilityGallery",
+    "DefaultIntroPreview",
+    "DefaultOutroPreview"
+  ],
+  "sourceGateProjects": [],
+  "templateResourceParity": [
+    {
+      "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/AxmorfBrand.tsx",
+      "checksum": "sha256:4c1c6cb2f4c8b12da564f09da7ed94ac20edfcc8821542547cfd83833875d83b"
+    },
+    {
+      "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/AxmorfIntroScene.tsx",
+      "checksum": "sha256:bbae208cdeee8bbfadd3e8594fe58cc1c253c88ba84a934cb3730790b1753028"
+    },
+    {
+      "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/AxmorfOutroScene.tsx",
+      "checksum": "sha256:0ea9fef0305573595b4cc2074b20b0bea1027ebf8ed9399b0228ef6cd568ae8e"
+    },
+    {
+      "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/BrandFollowScene.tsx",
+      "checksum": "sha256:6a40298704dea0386c8392d14055814794c20ed41042bf5ce5190e4870a3291f"
+    },
+    {
+      "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/NOTICE.md",
+      "checksum": "sha256:ce60b2ca5a33440d82605666956d1e59c0c4d286f153a53aa4990a78afb6dbc4"
+    },
+    {
+      "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/SourceCreditsScene.tsx",
+      "checksum": "sha256:e87b2ef3decc2f3aec64624f0e384bcc5aed419f9c2771b705bbc183869dad21"
+    },
+    {
+      "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/content.ts",
+      "checksum": "sha256:7a6767b3b663724f381ebcb2c5c7eec9ec1f61cb5d2973923c2d8bad54369bb5"
+    },
+    {
+      "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/index.ts",
+      "checksum": "sha256:f2b62b46f65ef163c19a6a11cb251cf67410da884846b7a3dab4b99d1ee2c3a3"
+    },
+    {
+      "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/timing.ts",
+      "checksum": "sha256:fa3d2eb03405b2cd752fa5a00a145bdda96ba3d7dc3a38aabace6129aa4656ef"
+    }
+  ],
+  "preservedFailures": [
+    {
+      "command": "npm run check:static",
+      "passed": 923,
+      "failed": 7,
+      "logChecksum": "sha256:bbc4cb7fca71aceb43bd2dd8cd9f603724225e7bc2a02de0d06b19b10fa5b433",
+      "finding": "Short process startup/readiness deadlines failed under default test-file concurrency. No assertion, timeout, test, or implementation was changed to make them pass. The same process tests passed independently and in the complete single-file-concurrency run."
+    },
+    {
+      "command": "npm run check:static",
+      "passed": 925,
+      "failed": 5,
+      "logChecksum": "sha256:115f1c8f66e7faafaf1107d3e4c8c8f03876ee4e79d8dcfa22a0e5ea0492e5d5",
+      "finding": "Short process startup/readiness deadlines failed under default test-file concurrency. No assertion, timeout, test, or implementation was changed to make them pass. The same process tests passed independently and in the complete single-file-concurrency run."
+    }
+  ],
+  "limitations": [
+    "Local macOS engineering and synthetic media checks only; candidate/public first-use and real user Workspace delivery are separate evidence.",
+    "CI will run the unchanged npm run check command on its own host."
+  ]
+}

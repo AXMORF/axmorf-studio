@@ -1,0 +1,352 @@
+{
+  "schemaVersion": 1,
+  "status": "sampled-review-complete-no-blocking-visual-finding",
+  "agent": "hermes",
+  "candidateVersion": "0.1.12",
+  "storyId": "ten-minute-focus",
+  "deliveryBuildId": "delivery-5a009889ef507c9f3c8bbc4cd0a9a7593daeedbe103534091f3bc589b7dfe407",
+  "videoChecksum": "sha256:2881fcf41afd7ed1d86ce1ff584df70b8fb9db2ddb3f8aa7f50de4f85d11499c",
+  "media": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "frameCount": 852,
+    "durationSeconds": 28.4
+  },
+  "sampleReceipt": "qa/candidate-hermes-frames/samples.json",
+  "sampleReceiptChecksum": "sha256:08d6e2c3083109330126b6b2d565b55354e614dd232499444d3f9dbac0775c4b",
+  "inputUnchanged": true,
+  "inputChecksumsAfterVisualReview": {
+    "story": "sha256:da559f31d93ffd9ec5e86ba00bcf1efe1b892ba4dc7ab383bcff8d0eb8b9ad8c",
+    "timing": "sha256:3195d443ca444d269433d7cfc8cdb4c2b31c1a61a7b719af8e730ceb56653157",
+    "video.mp4": "sha256:2881fcf41afd7ed1d86ce1ff584df70b8fb9db2ddb3f8aa7f50de4f85d11499c",
+    "cover-4x3.png": "sha256:07586183f43e99fc7ef2ce714517f3c26077cc638fb04d20ffae5a5f199fcf2f",
+    "cover-3x4.png": "sha256:b6c750ec17f57c0fd78c77cd3d7dcae517e0aa804a7a9153e58456768e55a3cb",
+    "publish.json": "sha256:eedb5de1c7c5553790e9594c88debafdf8f559883fa4583bca4e45eef76f97d9"
+  },
+  "extractedSampleCount": 42,
+  "additionalStableCreditsFrame": {
+    "frame": 702,
+    "timeExact": "702/30",
+    "timeSeconds": 23.4,
+    "videoPts": 2106000,
+    "videoTimeBase": "1/90000",
+    "file": "axmorf-012-candidate-hermes-credits-frame-702.png",
+    "checksum": "sha256:1abe58ac71c75e5fbb7f6dc2f0e0a34a646533a9867ca6167046bea339d6e50f",
+    "videoChecksumBefore": "sha256:2881fcf41afd7ed1d86ce1ff584df70b8fb9db2ddb3f8aa7f50de4f85d11499c",
+    "videoChecksumAfter": "sha256:2881fcf41afd7ed1d86ce1ff584df70b8fb9db2ddb3f8aa7f50de4f85d11499c",
+    "videoUnchanged": true,
+    "reason": "Stable outro SourceCredits at local frame 90; sample at local59 is mid-fade and local119 is transition blank."
+  },
+  "manuallyViewedFrames": [
+    {
+      "frame": 0,
+      "timeSeconds": 0.0,
+      "timeExact": "0/30",
+      "videoPts": 0,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000000.png",
+      "checksum": "sha256:d2a408572c06e1a74006a5906b9bccdfa112e81f00c6a4806322d0067b044be4"
+    },
+    {
+      "frame": 53,
+      "timeSeconds": 1.766667,
+      "timeExact": "53/30",
+      "videoPts": 159000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000053.png",
+      "checksum": "sha256:5d090cd8ed637f63f8c799f6fbffd4c09058504db52e22b06f7ca5fcbf6b521a"
+    },
+    {
+      "frame": 59,
+      "timeSeconds": 1.966667,
+      "timeExact": "59/30",
+      "videoPts": 177000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000059.png",
+      "checksum": "sha256:2def4bc1fac78efcae76254df018f1391138481563a5d81b9cf6dca428628617"
+    },
+    {
+      "frame": 60,
+      "timeSeconds": 2.0,
+      "timeExact": "60/30",
+      "videoPts": 180000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000060.png",
+      "checksum": "sha256:f6ed03406940b257501cfe8301fb5a2fdcfcef56e9e6bdd63dc91fd0312682ec"
+    },
+    {
+      "frame": 111,
+      "timeSeconds": 3.7,
+      "timeExact": "111/30",
+      "videoPts": 333000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000111.png",
+      "checksum": "sha256:83732d15be2a5a463e626eca1d7e79e85f99a9480dd21c34738e390afbc1bd89"
+    },
+    {
+      "frame": 152,
+      "timeSeconds": 5.066667,
+      "timeExact": "152/30",
+      "videoPts": 456000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000152.png",
+      "checksum": "sha256:5f92f287ab540e15ee526f4628be5a5f9fb6d7cab05869d72066653d0400f43f"
+    },
+    {
+      "frame": 204,
+      "timeSeconds": 6.8,
+      "timeExact": "204/30",
+      "videoPts": 612000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000204.png",
+      "checksum": "sha256:2656232dce431c6b85a69714a4b46aadd77c46c5ef63599320eb13724a608b8b"
+    },
+    {
+      "frame": 245,
+      "timeSeconds": 8.166667,
+      "timeExact": "245/30",
+      "videoPts": 735000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000245.png",
+      "checksum": "sha256:66a3a25ce288c38dc9b6a9104818087c125a2e9f95ec5f7ba23bd098b603c0eb"
+    },
+    {
+      "frame": 246,
+      "timeSeconds": 8.2,
+      "timeExact": "246/30",
+      "videoPts": 738000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000246.png",
+      "checksum": "sha256:8c6b299b3444c2d1579b3654de302c3deecebe279625f00adbe0fd640a45db2c"
+    },
+    {
+      "frame": 290,
+      "timeSeconds": 9.666667,
+      "timeExact": "290/30",
+      "videoPts": 870000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000290.png",
+      "checksum": "sha256:0df823d284963c0bb0f9dbe087808a51dcc641b3aec39f9664fdb1a2d49e5bcd"
+    },
+    {
+      "frame": 337,
+      "timeSeconds": 11.233333,
+      "timeExact": "337/30",
+      "videoPts": 1011000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000337.png",
+      "checksum": "sha256:2ac6e2054888da839c1013a8ef243ecd9497211d1225a8aa364d5e7dead54144"
+    },
+    {
+      "frame": 382,
+      "timeSeconds": 12.733333,
+      "timeExact": "382/30",
+      "videoPts": 1146000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000382.png",
+      "checksum": "sha256:4fb8fcc2096784e3587ccc8b55894bec9819e222de95ff8812e17ccbd56270de"
+    },
+    {
+      "frame": 428,
+      "timeSeconds": 14.266667,
+      "timeExact": "428/30",
+      "videoPts": 1284000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000428.png",
+      "checksum": "sha256:0f27fb20bcd4755b1af8b38d5fcff0303a7246be2eca8c382c94f30dd6efd9f8"
+    },
+    {
+      "frame": 429,
+      "timeSeconds": 14.3,
+      "timeExact": "429/30",
+      "videoPts": 1287000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000429.png",
+      "checksum": "sha256:4071adb20fbebd158b78e287358bd70d2da163999cdf96c3e803b00494741607"
+    },
+    {
+      "frame": 472,
+      "timeSeconds": 15.733333,
+      "timeExact": "472/30",
+      "videoPts": 1416000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000472.png",
+      "checksum": "sha256:9c0db9d0057760919383a39bd1eb4e1bec878b5261fa9e175af29a6c36d9cc30"
+    },
+    {
+      "frame": 520,
+      "timeSeconds": 17.333333,
+      "timeExact": "520/30",
+      "videoPts": 1560000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000520.png",
+      "checksum": "sha256:7fbea3660b447bfc2c14b0bd0885fd10c5293586020618a53c859b6b2263fad6"
+    },
+    {
+      "frame": 563,
+      "timeSeconds": 18.766667,
+      "timeExact": "563/30",
+      "videoPts": 1689000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000563.png",
+      "checksum": "sha256:10e8f39bc83b1af84d79409aabf4b78e1fb862c82d868abb90ecc5278cbe5d94"
+    },
+    {
+      "frame": 611,
+      "timeSeconds": 20.366667,
+      "timeExact": "611/30",
+      "videoPts": 1833000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000611.png",
+      "checksum": "sha256:f6ff6e171491cd8727436d784b151f4d8283b66adf546ad00c87c303e1d60de0"
+    },
+    {
+      "frame": 612,
+      "timeSeconds": 20.4,
+      "timeExact": "612/30",
+      "videoPts": 1836000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000612.png",
+      "checksum": "sha256:f6fcde61835fe4311b57f06324c85a6e6f3025fa122c2efe47f0207603e94663"
+    },
+    {
+      "frame": 671,
+      "timeSeconds": 22.366667,
+      "timeExact": "671/30",
+      "videoPts": 2013000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000671.png",
+      "checksum": "sha256:8c98f9ac17558770e8fbfb4ef60cd1ba650dadd955a9a57ecc23f05ae0ae309f"
+    },
+    {
+      "frame": 702,
+      "timeSeconds": 23.4,
+      "timeExact": "702/30",
+      "videoPts": 2106000,
+      "videoTimeBase": "1/90000",
+      "file": "/tmp/axmorf-012-candidate-hermes-credits-frame-702.png",
+      "checksum": "sha256:1abe58ac71c75e5fbb7f6dc2f0e0a34a646533a9867ca6167046bea339d6e50f"
+    },
+    {
+      "frame": 731,
+      "timeSeconds": 24.366667,
+      "timeExact": "731/30",
+      "videoPts": 2193000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000731.png",
+      "checksum": "sha256:8b126924a61a80997be0cd59dacbf759305c6a37c0f673092807cd8b9f043176"
+    },
+    {
+      "frame": 791,
+      "timeSeconds": 26.366667,
+      "timeExact": "791/30",
+      "videoPts": 2373000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000791.png",
+      "checksum": "sha256:fc46413ec440340d8b1f014a3019b335f37848b273004c9f8f6dbeef366e297d"
+    },
+    {
+      "frame": 827,
+      "timeSeconds": 27.566667,
+      "timeExact": "827/30",
+      "videoPts": 2481000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000827.png",
+      "checksum": "sha256:68e22e9cebb317c28c677022d45539a125fb1a37d88e1d0882e6add5c0bfe5f2"
+    },
+    {
+      "frame": 851,
+      "timeSeconds": 28.366667,
+      "timeExact": "851/30",
+      "videoPts": 2553000,
+      "videoTimeBase": "1/90000",
+      "file": "frame-000851.png",
+      "checksum": "sha256:4fa2ded68d40862d70cf105bc0f715863e4178f523e6acfb09c9913406f24bd6"
+    }
+  ],
+  "viewedCovers": [
+    {
+      "name": "cover-4x3.png",
+      "checksum": "sha256:07586183f43e99fc7ef2ce714517f3c26077cc638fb04d20ffae5a5f199fcf2f"
+    },
+    {
+      "name": "cover-3x4.png",
+      "checksum": "sha256:b6c750ec17f57c0fd78c77cd3d7dcae517e0aa804a7a9153e58456768e55a3cb"
+    }
+  ],
+  "findings": [
+    {
+      "scope": "default boundary templates",
+      "frames": [
+        0,
+        53,
+        59,
+        612,
+        671,
+        702,
+        731,
+        791,
+        827,
+        851
+      ],
+      "severity": "none-observed-in-listed-stable-samples",
+      "observation": "At stable frames 53/59 and 702/827/851, the default intro/follow brand and source-credit text have their local opaque light backing against the dark global base and are legible without evident clipping. Frame 0 and 612 begin with the plate before text reveal; 671 is the reference-card fade-in, 731 the internal credits-to-follow blank transition, and 791 the late wordmark-letter fade. These transient states were not treated as stable contrast failures."
+    },
+    {
+      "scope": "three narrated scene midpoints",
+      "frames": [
+        152,
+        337,
+        520
+      ],
+      "severity": "none-observed-in-listed-samples",
+      "observation": "Primary titles, step visuals, and caption text are legible; no evident main-text overlap or clipping in these samples. Scene 2 intentionally layers phone/notification cards behind the work window and fades them as emphasis changes."
+    },
+    {
+      "scope": "six caption cue midpoints",
+      "frames": [
+        111,
+        204,
+        290,
+        382,
+        472,
+        563
+      ],
+      "severity": "none-observed-in-listed-samples",
+      "observation": "All six cue midpoint captions are readable single lines in the bottom caption area. No overlap with the scene visual or visibly cropped glyphs were observed at these six frames."
+    },
+    {
+      "scope": "four adjacent scene-boundary pairs",
+      "frames": [
+        59,
+        60,
+        245,
+        246,
+        428,
+        429,
+        611,
+        612
+      ],
+      "severity": "none-observed-in-listed-samples",
+      "observation": "Each adjacent pair displays the expected outgoing and incoming scene. Main text remains within the frame; no cross-scene caption collision was visible. The first outro frame is a deliberate pre-reveal state, not evidence that the stable credits remain blank."
+    },
+    {
+      "scope": "delivered covers",
+      "files": [
+        "cover-4x3.png",
+        "cover-3x4.png"
+      ],
+      "severity": "none-observed",
+      "observation": "Both actual delivered cover PNGs were opened. Title, ten-minute dial, supporting lines, and footer are readable with clear foreground/background separation and no evident text cropping."
+    }
+  ],
+  "limitations": [
+    "Only the listed 25 actual video frames and both delivered covers were visually examined; the other decoded frames are not visually certified.",
+    "The controller extracted 42 regular samples; one additional exact decoded frame (702, outro-local 90) was added for stable credits. Extraction count does not imply manual visual review of every extracted image.",
+    "Transition review examined four adjacent scene-boundary pairs and selected intro/outro animation states, not every frame of every animation.",
+    "No audio listening, OCR, pixel-based contrast measurement, full semantic accuracy certification, or frame-by-frame playback review was performed.",
+    "This candidate black-box visual result is separate from post-publication registry verification.",
+    "No Workspace, installed package, source, or delivery file was modified; only external QA outputs and this review were written."
+  ]
+}

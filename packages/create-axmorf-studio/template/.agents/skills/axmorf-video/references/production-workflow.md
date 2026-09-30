@@ -17,6 +17,11 @@ an API scaffold and must be replaced; its unchanged source fails the Scene check
 Stage one clear focal subject per shot, keep it recognizable across changes in scale or viewpoint, and make the final state
 show the Beat's consequence. Leave visual breathing room for Composition-owned captions.
 
+Finalize computes derived identities and fingerprints. For `failureOwner: agent-output`, correct its reported
+file/field and rerun finalize before check; do not calculate hashes manually or read package internals.
+A finalizer command failure alone is not a fixed-system fault. Scene-local ranges use immutable endFrame minus
+startFrame, with exclusive ends; never round that duration or use the global endFrame.
+
 The Root owns global doctor and preflight. Workers do not run `doctor`, `browser:prepare`, Project create/revise, execution
 resolve, inspect, prepare, provider calls, recovery or continuation. Missing task input or an environment error does not transfer
 those responsibilities to the worker. Do not inspect another task or assume access to the parent's conversation.
@@ -24,6 +29,10 @@ In subagents mode, each different TaskRevision needs a fresh native child/sessio
 or resume; only same-task corrections by the original owning executor before terminal are allowed.
 
 ## Root production
+
+For an authorized production request, every plan, create-context report and inspection report is an intermediate progress message, not a final answer. Continue with tools in the same turn; do not wait for another user reply. On Hermes, include user-visible assistant text with the next tool call; a text-only final reply ends the turn. Stop for an actual blocker or an explicit user pause. Yield only to already-pending native work as described in the host execution reference; a report alone creates no resumable work.
+
+Before the first command, briefly tell the user the plan. Report inherited boundary duration before create and the inspect result before prepare; CLI output is not a user-facing explanation. Keep all production commands scoped to this Workspace. A newly created npm Workspace may have no Git repository, so a Git check must not gate doctor.
 
 1. Run `npm run doctor`. Prepare only declared host prerequisites when needed;
    never patch package internals, dependencies, or validators to force Green.
@@ -40,7 +49,8 @@ or resume; only same-task corrections by the original owning executor before ter
    Read [native child verification](execution-capabilities.md), probe this host, then run `project:execution:resolve` with
    verified capacity and transport before inspect. Explicit inline needs no child probe. Never persist transport or silently change mode.
 5. Run `npm run project:produce:inspect -- --project <storyId>` and report its
-   structured readiness, cost, reuse, and invalidation result.
+   structured readiness, cost, reuse, and invalidation result in an intermediate progress message after the command returns.
+   A plan stated before inspection does not report its result. Continue in the same turn after that message by invoking prepare; do not combine inspect and prepare in one tool call.
 6. Read [host execution and recovery](host-execution-and-recovery.md); establish a terminal handle that can survive the host tool deadline.
    Run `npm run project:produce:prepare -- --project <storyId>` only after the
    inspection is understood and cost is authorized.
@@ -67,10 +77,12 @@ or resume; only same-task corrections by the original owning executor before ter
     same-Revision `npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>` only if ready; no current Delivery is
     required. Use fresh workers and bindings. Unknown, fixed-system and external faults stop with diagnosis; no automatic program-source repair.
 
+After `project-production-complete` or `project-production-current`, report the verified delivery paths once and stop. This fixed result already validates the exact four files. If a separate recheck is needed, use exactly `npm run project:check -- --project <storyId> --level final`; do not omit `--level`. `project:revise:context` starts a user-requested revision and is not a delivery inspection command.
+
 Timing comes from sealed PCM samples. Scenes do not own captions or narration.
 Agent-owned Scene TS/TSX graphs must be unique against the frozen baseline and
 within the current revision; fixed template-copy Scenes are exempt.
-GlobalVisual base covers the full Composition. Its decoration export is limited
+All visual workers read context.visualStyle and use its semantic theme roles. Composition paints theme.background and composites decoration behind Scenes in an isolated group capped at 8% opacity; GlobalVisualBaseLayer must directly return null and is not mounted. Legacy Projects without a theme retain their base layer. Its decoration export is limited
 to the continuous first-to-last narrated Scene window and receives local frame
 zero at that window's start; neither layer may read Scene output or carry Beat
 copy.

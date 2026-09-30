@@ -1,0 +1,250 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "scope": "isolated-publication-metadata-revision",
+  "project": "hermes-theme-focus",
+  "expectedPackageVersion": "0.1.14",
+  "startedAt": "2026-09-11T19:02:51.202Z",
+  "endedAt": "2026-09-11T19:08:27.515Z",
+  "stage": "manual-promote-final-check",
+  "harnessChecksum": "sha256:0163892f79d4b70c13248189a1f89a41d96e7afdba7343f04ee35b7755e824bf",
+  "continuationInvocations": 1,
+  "sourceBefore": "sha256:b230d690aca0d54046f171e2532c0c46c73faab43d0d4089b10bec4636961119",
+  "copyDigest": "sha256:b230d690aca0d54046f171e2532c0c46c73faab43d0d4089b10bec4636961119",
+  "sourceAfter": "sha256:b230d690aca0d54046f171e2532c0c46c73faab43d0d4089b10bec4636961119",
+  "sourceUnchanged": true,
+  "packageBefore": "sha256:6203e47a2cfbf364da7731825e3c162a01dfb5fe3e2ecccdffc8c162fbc5515e",
+  "packageAfter": "sha256:6203e47a2cfbf364da7731825e3c162a01dfb5fe3e2ecccdffc8c162fbc5515e",
+  "installedPackageUnchanged": true,
+  "protectedFilesUnchanged": true,
+  "runtimePolicyChecksum": "sha256:9601246d27134739182f2aaef081f6c82ecd57c8b549ccc015b5b2923b88cb5d",
+  "base": {
+    "revisionId": "revision-76c2847c072ab10b827c51520ee8dd582871218e5bf81ff9b73eac06ca1bcff8",
+    "deliveryBuildId": "delivery-696954f395e1d60f6a70f5ba4e294d0f9303f8527737ec51cb29c3886d97a560"
+  },
+  "candidateId": "revision-candidate-00b4eb6b4bffe94901579434bfabc60e232c185b636f4949eab451af5ae29b18",
+  "noOpCorrectlyRejected": true,
+  "estimatedCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 6,
+    "agentTasks": 0,
+    "deliveryMedia": [
+      "video",
+      "cover-4x3",
+      "cover-3x4"
+    ]
+  },
+  "prepareActualCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 6,
+    "agentTasks": 0,
+    "deliveryMedia": []
+  },
+  "terminalActualCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 6,
+    "agentTasks": 0,
+    "deliveryMedia": [
+      "video",
+      "cover-4x3",
+      "cover-3x4"
+    ]
+  },
+  "attemptId": "58b0def9-5527-4e70-bfff-9d8bdef4402f",
+  "expected": {
+    "revisionId": "revision-5ec68e3dd2eac114fa46dd1a84a0628518200d83465bcd5f9fdcf10602a9a6cc",
+    "deliveryBuildId": "delivery-7a812756b77721a8c8fea4e9da030f999a2c9c205922e6421a1fb40f68c33d94"
+  },
+  "terminalProgressChecksum": "sha256:0a5e80004b82b833759f4ee20fffd3df8676032ede177edc48b39fc2b6921859",
+  "continuationClaimChecksum": "sha256:5e453b6c22697b16bfda13bb545240589b46e8e677573ce6bf5f442fbf793fd5",
+  "terminalEvents": [
+    {
+      "file": "78fd2572-6a91-4120-bed5-b72fa38311eb.json",
+      "eventKind": "attempt-opened",
+      "checksum": "sha256:e3e83fa199b519bc993a7cc7d2b7e8fdbdc02c28c9e8e82b9f90da3b820e4b7c"
+    },
+    {
+      "file": "93db1c70-26b2-57e7-ac0b-e041761d3a64.json",
+      "eventKind": "delivery-terminal",
+      "checksum": "sha256:0aff85c4aa2d1f33c54531b56a8c36af3ac396dfb101a3cdba4b3fd7847b8ca0"
+    }
+  ],
+  "revisionId": "revision-5ec68e3dd2eac114fa46dd1a84a0628518200d83465bcd5f9fdcf10602a9a6cc",
+  "deliveryBuildId": "delivery-7a812756b77721a8c8fea4e9da030f999a2c9c205922e6421a1fb40f68c33d94",
+  "limitations": [
+    "Scripted installed-package publishing.description revision only; no Agent-driven revision, dirty creative tasks, recovery, rollback or fault certification.",
+    "Provider and Agent cost is verified from public inspection, preparation and terminal product evidence; no independent packet or billing capture.",
+    "Final product checks verify media; this controller does not perform visual review or listening. Identical output media bytes do not prove render reuse.",
+    "Source must remain idle. Full filesystem byte/name/link/executable-bit digests exclude timestamps and do not prove absence of transient writes.",
+    "Independent scripted revision compatibility check; it does not repair or replace the Hermes first-use supervision failure."
+  ],
+  "version": "0.1.14",
+  "firstUseReceipt": false,
+  "rawReceiptChecksum": "sha256:ca7cb5612bd6fd0d1abfea1441265f1fcc11fcd11c629d53f63e9da22d52f6ae",
+  "steps": [
+    {
+      "step": "01-base-final-check",
+      "commandChecksum": "sha256:49cea225d6964c309767562a6cdd945971c1bde29be2af67df9e38a7de511160",
+      "code": 0,
+      "signal": null,
+      "spawnError": null,
+      "endedAt": "2026-09-11T19:03:30.742Z",
+      "stdoutChecksum": "sha256:701a818913d16871d78d161179d119b17303d84d6165c2b2fab16e83072cb345",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "02-revision-context",
+      "commandChecksum": "sha256:12e01d81da42d2819c946edfea37963abe8fb02fbf4fddffd84a18d2d2b290e9",
+      "code": 0,
+      "signal": null,
+      "spawnError": null,
+      "endedAt": "2026-09-11T19:03:43.824Z",
+      "stdoutChecksum": "sha256:306407b40725dbfe5cdbbbd031072b468f007622282b1e19c910e3d5385a72da",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "03-noop-validation",
+      "commandChecksum": "sha256:f1ced0e80e509fb2d8b515dc5c57e560746cff73baa9c81c0857396363914d4b",
+      "code": 1,
+      "signal": null,
+      "spawnError": null,
+      "endedAt": "2026-09-11T19:03:56.853Z",
+      "stdoutChecksum": "sha256:82cfc71da707393b3689d48a20c95ce27812cc9b18fd71bf3711740ee7557376",
+      "stderrChecksum": "sha256:1edaaff516c3deb2e5b5c26051a8aa9da507e2224eb63d70038911b03302bab7"
+    },
+    {
+      "step": "04-publication-validate",
+      "commandChecksum": "sha256:012fddf3bab4dc333246768472bdc743dcabc49304d40123cfb089294fe37ff0",
+      "code": 0,
+      "signal": null,
+      "spawnError": null,
+      "endedAt": "2026-09-11T19:04:09.726Z",
+      "stdoutChecksum": "sha256:d592ff963cf24eac750bfc84c7518cf512c560576b2ff08647ef1a9dbccd6127",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "05-publication-create",
+      "commandChecksum": "sha256:9aaaffb62f8bad75ddb68827971f20addbcbb22db14a4d80357d65c0cb7259c5",
+      "code": 0,
+      "signal": null,
+      "spawnError": null,
+      "endedAt": "2026-09-11T19:04:52.798Z",
+      "stdoutChecksum": "sha256:12577a4538aa42384e7c790bb3ee4bcb29a30ff130b6140db6d0333d2ecb5a7a",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "06-candidate-inspect",
+      "commandChecksum": "sha256:46139c55698f9eecc4d9bd81d4e0b559a188c02c8ab53bf4536fe42bc5b97cc9",
+      "code": 0,
+      "signal": null,
+      "spawnError": null,
+      "endedAt": "2026-09-11T19:04:54.505Z",
+      "stdoutChecksum": "sha256:126d7234b7703307d702b4c5f6492b18be015c8c8a8e94fe31e8e1d055f0802c",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "07-candidate-prepare",
+      "commandChecksum": "sha256:00d6b18ae993eb094c607012c137a744b89d79a4c18bdff53752d789ca072cc8",
+      "code": 0,
+      "signal": null,
+      "spawnError": null,
+      "endedAt": "2026-09-11T19:05:03.430Z",
+      "stdoutChecksum": "sha256:d534ba8f96a32c96d8169f7dc57aa41e0957245528303614532774e190d8209e",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "08-exact-continuation",
+      "commandChecksum": "sha256:383ffc7270951e03e07ce11f88c57711389e3e9ac3184c0149b4451847f3903f",
+      "code": 0,
+      "signal": null,
+      "spawnError": null,
+      "endedAt": "2026-09-11T19:07:17.167Z",
+      "stdoutChecksum": "sha256:7029d58b45dd2496f59ef210309027e1c837be51f2470a63ed2e9e26978af9df",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "09-promoted-context",
+      "commandChecksum": "sha256:86891a7f56c965e42217eeacb6ad4da77414461d0ca3750c949e24bf5f9f14f3",
+      "code": 0,
+      "signal": null,
+      "spawnError": null,
+      "endedAt": "2026-09-11T19:07:30.177Z",
+      "stdoutChecksum": "sha256:ecc6df485bb760cb9734ce1afdb48896d6745315ac8748c7f2e6a1d7c5eca638",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "10-promoted-final-check",
+      "commandChecksum": "sha256:10ee8ba6faef9fc177df69875c8a4596024b14ef4060104802b66d9030e03ff1",
+      "code": 0,
+      "signal": null,
+      "spawnError": null,
+      "endedAt": "2026-09-11T19:07:43.387Z",
+      "stdoutChecksum": "sha256:7a1f94ed41989e5089d5592bcf7444fddc443ec2e0212618e07fac0cb6f2836c",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "11-manual-promote-idempotency",
+      "commandChecksum": "sha256:51738fbc2e143613c2d87cf932d245d1984ad31878b6884463e7572c0f57e8ba",
+      "code": 0,
+      "signal": null,
+      "spawnError": null,
+      "endedAt": "2026-09-11T19:08:08.628Z",
+      "stdoutChecksum": "sha256:e1ac6e05c955fe61bfcab36a97200812c87e02071f780a39456d1779a6e4f321",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "step": "12-manual-promote-final-check",
+      "commandChecksum": "sha256:c00df7b1974d6c5bae1811c7948630c7ab9bd6f24010230e3e03b1f9e11beec4",
+      "code": 0,
+      "signal": null,
+      "spawnError": null,
+      "endedAt": "2026-09-11T19:08:21.842Z",
+      "stdoutChecksum": "sha256:7a1f94ed41989e5089d5592bcf7444fddc443ec2e0212618e07fac0cb6f2836c",
+      "stderrChecksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "mediaComparison": [
+    {
+      "name": "cover-3x4.png",
+      "beforeChecksum": "sha256:244cf35a866dc1454a77ab4b4cdc5db02a6b6a22a70c12644df170b6bf991577",
+      "afterChecksum": "sha256:244cf35a866dc1454a77ab4b4cdc5db02a6b6a22a70c12644df170b6bf991577",
+      "sameBytes": true
+    },
+    {
+      "name": "cover-4x3.png",
+      "beforeChecksum": "sha256:f39b3d47baef737745f6622746a80a3c80fc554f13ad8eddfaaf7f59a9b550d9",
+      "afterChecksum": "sha256:f39b3d47baef737745f6622746a80a3c80fc554f13ad8eddfaaf7f59a9b550d9",
+      "sameBytes": true
+    },
+    {
+      "name": "publish.json",
+      "beforeChecksum": "sha256:8e9172d670ac98980cafdb12f3368bbfd6e9b8cf7af112bb745ed7594a2ebe2e",
+      "afterChecksum": "sha256:76b78329314a9f8fea390f851498e45651ca02bc0f6c459a596aef11943058bf",
+      "sameBytes": false
+    },
+    {
+      "name": "video.mp4",
+      "beforeChecksum": "sha256:f80efb9d5f507f83b7891b33630a11c705c173f3798f9834e0a76fe92d2fb60e",
+      "afterChecksum": "sha256:f80efb9d5f507f83b7891b33630a11c705c173f3798f9834e0a76fe92d2fb60e",
+      "sameBytes": true
+    }
+  ],
+  "preservedControllerFailure": {
+    "status": "stopped",
+    "stage": "candidate-inspect",
+    "error": "[\n  {\n    \"code\": \"unrecognized_keys\",\n    \"keys\": [\n      \"agentHandoff\"\n    ],\n    \"path\": [],\n    \"message\": \"Unrecognized key: \\\"agentHandoff\\\"\"\n  }\n]",
+    "receiptChecksum": "sha256:09cc3b0b5fcf154b7950765676f63ba5cd1d9493173501340620f3ba91d63783",
+    "beforePrepare": true,
+    "sourceUnchanged": true,
+    "installedPackageUnchanged": true,
+    "protectedFilesUnchanged": true,
+    "cause": "External controller passed the known public CLI agentHandoff envelope to the strict domain ProductionInspectionSchema. Public inspect succeeded; prepare was not invoked.",
+    "correction": "Validate exactly instruction/nextAction/summary in agentHandoff, bind its action to the domain nextAction, and pass every remaining field to the unchanged installed strict schema. No package, guide or gate changed.",
+    "nonProductionTests": {
+      "fakeControllerCases": 16,
+      "realJsonInstalledContractCases": 7
+    },
+    "correctionDiffChecksum": "sha256:874dbb3843eec93557dcc332d17c27bb258b7d65e75fc876dcbffe0a23b0c840",
+    "correctionReviewChecksum": "sha256:0eb9e84db854001b47c6ef189cf6e18972ba15c86c683b75e5f79cbb4dd9e56c"
+  }
+}

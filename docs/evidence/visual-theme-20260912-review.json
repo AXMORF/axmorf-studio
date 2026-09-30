@@ -1,0 +1,311 @@
+{
+  "status": "sampled-visual-regression-verified-unreleased",
+  "date": "2026-09-12",
+  "baseCommit": "6bd9091c08f662aedaad8d2e93d5fec0ea69872f",
+  "branch": "axmorf/visual-theme-logo-fix",
+  "scope": "Systemic theme ownership, fixed boundary template regression and reproducible synthetic render proof; no provider, production attempt, npm publish, tag or push.",
+  "rootCause": [
+    "Fixed templates assumed charcoal text while generated GlobalVisual owned an unconstrained background.",
+    "The 0.1.12 local backing change added opaque light plates, 48px geometry offsets and lockup-local clipping that damaged the original zoom.",
+    "Real render review also exposed long-reference row overflow and the existing landscape follow label wrapping outside its 286px capsule."
+  ],
+  "resolution": [
+    "A canonical validated VisualStyle.theme supplies background, primaryText, secondaryText and accent. Creation defaults to dark; light and explicit custom colors use the same validation.",
+    "Composition paints the real background and caps all themed decoration to an isolated 8% group behind Scenes. Theme validation covers the worst opaque sRGB blend envelope; source guard rejects direct CSS/DOM and side-effect escapes.",
+    "Copied templates consume the current theme. Original Logo paths, font, lockup geometry and frame animation are retained without local backing or lockup clipping.",
+    "Dense landscape sources retain all text at 36px with tighter line height and vertical spacing; one source uses full width. Landscape follow capsule is 330px with nowrap; portrait stays 310px.",
+    "Legacy immutable template Projects cannot adopt a theme by revision. Themed revisions preserve copied bytes and use normal content and runtime policy invalidation."
+  ],
+  "verification": {
+    "fullStatic": {
+      "command": "npm run check:static",
+      "result": "passed",
+      "tests": 929,
+      "passed": 929,
+      "failed": 0,
+      "timing": "After theme, decoration guard and long-reference fix; before final button-width adjustment."
+    },
+    "finalTemplateRegression": {
+      "command": "node --import tsx --test tests/runtime/scene-templates.test.tsx tests/runtime/scene-template-contrast.test.tsx tests/project-production/template-scene-artifacts.test.ts",
+      "tests": 20,
+      "passed": 20,
+      "failed": 0,
+      "timing": "After final button-width adjustment."
+    },
+    "finalRootTypecheck": "passed",
+    "finalLint": "passed",
+    "packageBuildIncludingTypes": "passed",
+    "packageTypecheck": "passed",
+    "runtimeAndCreatorPackageChecks": "package-local-ready",
+    "hostCompositions": {
+      "result": "passed",
+      "ids": [
+        "CapabilityGallery",
+        "DefaultIntroPreview",
+        "DefaultOutroPreview"
+      ],
+      "browser": "Google Chrome for Testing 149.0.7790.0; explicit existing headless-shell"
+    },
+    "sourceProjectGate": {
+      "result": "passed",
+      "completed": [],
+      "note": "Clean engineering worktree has zero Projects; not a production acceptance."
+    },
+    "templateResourceParity": [
+      {
+        "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/AxmorfBrand.tsx",
+        "checksum": "sha256:4c1c6cb2f4c8b12da564f09da7ed94ac20edfcc8821542547cfd83833875d83b"
+      },
+      {
+        "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/AxmorfIntroScene.tsx",
+        "checksum": "sha256:bbae208cdeee8bbfadd3e8594fe58cc1c253c88ba84a934cb3730790b1753028"
+      },
+      {
+        "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/AxmorfOutroScene.tsx",
+        "checksum": "sha256:0ea9fef0305573595b4cc2074b20b0bea1027ebf8ed9399b0228ef6cd568ae8e"
+      },
+      {
+        "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/BrandFollowScene.tsx",
+        "checksum": "sha256:6a40298704dea0386c8392d14055814794c20ed41042bf5ce5190e4870a3291f"
+      },
+      {
+        "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/NOTICE.md",
+        "checksum": "sha256:ce60b2ca5a33440d82605666956d1e59c0c4d286f153a53aa4990a78afb6dbc4"
+      },
+      {
+        "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/SourceCreditsScene.tsx",
+        "checksum": "sha256:e87b2ef3decc2f3aec64624f0e384bcc5aed419f9c2771b705bbc183869dad21"
+      },
+      {
+        "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/content.ts",
+        "checksum": "sha256:7a6767b3b663724f381ebcb2c5c7eec9ec1f61cb5d2973923c2d8bad54369bb5"
+      },
+      {
+        "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/index.ts",
+        "checksum": "sha256:f2b62b46f65ef163c19a6a11cb251cf67410da884846b7a3dab4b99d1ee2c3a3"
+      },
+      {
+        "file": "packages/studio/src/remotion/capabilities/scene-templates/axmorf/timing.ts",
+        "checksum": "sha256:fa3d2eb03405b2cd752fa5a00a145bdda96ba3d7dc3a38aabace6129aa4656ef"
+      }
+    ],
+    "reactDoctor": {
+      "base": "6bd9091",
+      "scannedFiles": 43,
+      "errors": 0,
+      "warnings": 10,
+      "score": "unavailable with telemetry disabled",
+      "note": "Advisory findings: 8 Zod strict/passthrough API warnings, existing component complexity and barrel import. Current Zod 4.3.6 schema and creation/revision checks pass. No unrelated refactor was performed."
+    }
+  },
+  "renderProof": {
+    "manifest": "out/scene-theme-proof/manifest.json",
+    "manifestChecksum": "sha256:afea97e65206e8729978475ae6a7f2558b08874060adca64855de44699f98da9",
+    "sourceFingerprint": "sha256:238b3e185ec48ec737e426982726d51e6611f19b434abf6593fb6ac23998c1f0",
+    "evidenceFingerprint": "sha256:12bf388a26602cfd9efe0d2ef8518a19c8bfe03176114423ecdc182d6cbc80d2",
+    "stills": 144,
+    "fullLengthVideos": 4,
+    "framesPerVideo": 360,
+    "fps": 30,
+    "mechanicalCheck": "passed: source/media checksums, dimensions, H.264, frame count, EOF decode and 24 decoration pressure frames",
+    "manualReview": {
+      "result": "sampled still review passed for this matrix",
+      "method": "Root inspected 12 contact sheets containing every one of the 144 stills, then opened selected originals. After the button fix, all 6 changed stills were opened; the other 138 PNG checksums match the already inspected matrix.",
+      "previousEvidenceFingerprint": "sha256:8e179475dd7837e35db605dbba5d98e59fc3fe95b8c991a0cd09cf7a968a649c",
+      "unchangedInspectedPngCount": 138,
+      "changedPngsOpenedAtFullResolution": [
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-landscape/outro-214-six-mixed.png",
+          "checksum": "sha256:4da89f3e4de26e409077e13eb8fbf9478fccac510bd02c6b4db8a53c14ecff64"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-landscape/outro-220-six-mixed.png",
+          "checksum": "sha256:89ccd65c477da3610cf254e2ac6a733504389bcdfd014fd5b9f130cb73d14ca0"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-landscape/outro-239-six-mixed.png",
+          "checksum": "sha256:3dfa30479f8e8eeda8692cec1414d77209047aa4e933890fe753f7e949f3332f"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-light-landscape/outro-214-six-mixed.png",
+          "checksum": "sha256:dbb72c32db5c23bf414298e51030d97d7cc8c72a1508e586b825e43c1ad92df7"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-light-landscape/outro-220-six-mixed.png",
+          "checksum": "sha256:4b469f5ff295636acb4d287b834413faf5706ad4bf527b5f059ddc3a70842d62"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-light-landscape/outro-239-six-mixed.png",
+          "checksum": "sha256:806e4d896105f36e13ae78902e0a1cc8ccde00d7b1eb4d818564ae4b73a85336"
+        }
+      ],
+      "selectedOriginalImagesOpened": [
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-landscape/body-040-six-mixed.png",
+          "checksum": "sha256:19f68d21091db385408d13fd2dd8c9ae3fb8b2c2facafba4a8816a11559f3a14",
+          "section": "body",
+          "sceneFrame": 40,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-landscape/outro-088-six-mixed.png",
+          "checksum": "sha256:7e601af12f6686d5b89ade71c701de8ba5cfb64438e5012fc62e289cfa7ffdad",
+          "section": "outro",
+          "sceneFrame": 88,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-landscape/outro-104-six-mixed.png",
+          "checksum": "sha256:7e601af12f6686d5b89ade71c701de8ba5cfb64438e5012fc62e289cfa7ffdad",
+          "section": "outro",
+          "sceneFrame": 104,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-landscape/outro-120-six-mixed.png",
+          "checksum": "sha256:093e11de9151a86adc95e76a7fb6c06231fb4c9298c50f5497fad9047278ef57",
+          "section": "outro",
+          "sceneFrame": 120,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-landscape/outro-214-six-mixed.png",
+          "checksum": "sha256:4da89f3e4de26e409077e13eb8fbf9478fccac510bd02c6b4db8a53c14ecff64",
+          "section": "outro",
+          "sceneFrame": 214,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-landscape/outro-220-six-mixed.png",
+          "checksum": "sha256:89ccd65c477da3610cf254e2ac6a733504389bcdfd014fd5b9f130cb73d14ca0",
+          "section": "outro",
+          "sceneFrame": 220,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-landscape/outro-239-six-mixed.png",
+          "checksum": "sha256:3dfa30479f8e8eeda8692cec1414d77209047aa4e933890fe753f7e949f3332f",
+          "section": "outro",
+          "sceneFrame": 239,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-landscape/outro-088-one-long.png",
+          "checksum": "sha256:8df7e1903f81e742a0f27c7dce04da1792274ab6846943223743ad0edae36a41",
+          "section": "outro",
+          "sceneFrame": 88,
+          "referenceCase": "one-long"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-portrait/outro-088-six-mixed.png",
+          "checksum": "sha256:ad2988cd6976263041911df957b444f6a904130ddf8712c77f6975519d233dde",
+          "section": "outro",
+          "sceneFrame": 88,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-dark-portrait/outro-214-six-mixed.png",
+          "checksum": "sha256:af472199bd95095326c0a13ea2a227671da64e3ba1b25e6b6ac03edc986309c0",
+          "section": "outro",
+          "sceneFrame": 214,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-light-landscape/intro-045-six-mixed.png",
+          "checksum": "sha256:b8093a1565ddb16a5fc6781bf73dcaa0d4504e134b5d62933dda66da9c0df8e4",
+          "section": "intro",
+          "sceneFrame": 45,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-light-landscape/outro-088-six-mixed.png",
+          "checksum": "sha256:83dc9ce1777d7812053feb547dc2674927a65edbd9758ab66b0086ff4ebeae1f",
+          "section": "outro",
+          "sceneFrame": 88,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-light-landscape/outro-214-six-mixed.png",
+          "checksum": "sha256:dbb72c32db5c23bf414298e51030d97d7cc8c72a1508e586b825e43c1ad92df7",
+          "section": "outro",
+          "sceneFrame": 214,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-light-landscape/outro-220-six-mixed.png",
+          "checksum": "sha256:4b469f5ff295636acb4d287b834413faf5706ad4bf527b5f059ddc3a70842d62",
+          "section": "outro",
+          "sceneFrame": 220,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-light-landscape/outro-239-six-mixed.png",
+          "checksum": "sha256:806e4d896105f36e13ae78902e0a1cc8ccde00d7b1eb4d818564ae4b73a85336",
+          "section": "outro",
+          "sceneFrame": 239,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-light-portrait/outro-214-six-mixed.png",
+          "checksum": "sha256:c5943a37e559666eb204cdeb4e892ecfa1c54facfaf18914e0742e4f1c434283",
+          "section": "outro",
+          "sceneFrame": 214,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-light-portrait/outro-239-six-mixed.png",
+          "checksum": "sha256:79aa8d45ab22a42062ee2730d0d892ea862e1e558de2d95d1f888ca336afc566",
+          "section": "outro",
+          "sceneFrame": 239,
+          "referenceCase": "six-mixed"
+        },
+        {
+          "localPath": "out/scene-theme-proof/SceneTheme-light-portrait/outro-088-one-long.png",
+          "checksum": "sha256:02b5e6c768f7a25968fb15227fbbe1afbefb2fe8225bf73a6c1f6ea69d55f60f",
+          "section": "outro",
+          "sceneFrame": 88,
+          "referenceCase": "one-long"
+        }
+      ],
+      "observations": [
+        "Dark and light intro/outro share the actual background with no added opaque source or Logo backing plates.",
+        "Six mixed references including the long first title and full URL fit the sampled landscape and portrait safe viewports; the one-long-reference case also fits.",
+        "Logo reveal, maximum zoom, shrink, wordmark and click states retain the established animation. Maximum zoom intentionally extends beyond SceneViewport; no lockup-card clipping remains.",
+        "Both follow states keep the full label on one line inside the capsule. The animated cursor crosses the button as before.",
+        "Opaque white, black and high-z-index/SVG decoration stays within the runtime group and does not recolor or cover the body text."
+      ]
+    },
+    "versionRefresh": {
+      "packageVersion": "0.1.14",
+      "previousManifest": "out/scene-theme-proof-v013-final/manifest.json",
+      "previousManifestChecksum": "sha256:110f395a81fa7636dc09d7cf33ed0470db966f919c7ec32fb746d65224f20fa4",
+      "previousSourceFingerprint": "sha256:f2ed3af156f4283986b5c3d99d1feb9897d8e52a8b806b6071c2b26b9bc13f4f",
+      "previousEvidenceFingerprint": "sha256:686e2408a7c2c5158cdc326862d45715dcdd1e780744879e32747e3e2190a9ae",
+      "method": "Re-rendered all 144 full-size stills and four full-animation videos after the package and lockfile version bump. Compared every PNG byte checksum against the retained, previously inspected final 0.1.13 engineering matrix.",
+      "identicalPreviouslyInspectedPngs": 144,
+      "changedPngs": 0,
+      "mechanicalCheck": "passed"
+    }
+  },
+  "preservedFailures": [
+    {
+      "directory": "out/scene-theme-proof-reference-layout-failure",
+      "sourceFingerprint": "sha256:96bad57fc6aee7fedbfb927590f72979ca36b252a61b0118c680d71a9c1f8594",
+      "evidenceFingerprint": "sha256:581824ddf07eb9ce30408b6d8326fc6ca13c91f5e159e62b0b4f5007356542d8",
+      "finding": "Long first reference increased row height and clipped the third landscape row, despite successful mechanical checks."
+    },
+    {
+      "directory": "out/scene-theme-proof-button-layout-failure",
+      "sourceFingerprint": "sha256:1955c9c6e4556c72f87345a04c51fa740571c5d6543590f9bf561876771c5cfb",
+      "evidenceFingerprint": "sha256:8e179475dd7837e35db605dbba5d98e59fc3fe95b8c991a0cd09cf7a968a649c",
+      "finding": "Pre-click landscape follow label wrapped into two lines and extended outside the capsule."
+    }
+  ],
+  "limitations": [
+    "This is sampled still inspection plus complete media decode, not real-time playback, every-frame visual certification or audio listening.",
+    "Synthetic body and fixed templates only; no real Project, narration, provider, Delivery or Luna/Hermes first-use run.",
+    "The font stack remains host-dependent. Arbitrary numbers of references and all maximum-length titles/URLs are not certified by this fixture.",
+    "The source guard enforces a bounded authoring contract; it is not a general malicious-JavaScript sandbox or a universal Scene readability validator.",
+    "No existing Workspace, immutable Project-local template or current Delivery was migrated."
+  ]
+}

@@ -14,6 +14,8 @@ process means continue waiting on that handle, not inspect progress, read logs o
 when an error arrives. Do not poll child chats, tail transcripts, repeat unchanged status or reply again to late success notices.
 A success notification never replaces fixed delivery verification. Report the fixed final result once.
 
+Use the longest supported blocking wait that fits the outer host deadline, typically 30–60 seconds or longer when allowed. Native completion should wake it early. Do not repeatedly request 1-second waits, alternate wait tools to inspect unchanged state, or narrate routine renewals. Queue admission likewise uses a long native wait-any that wakes on completion; it does not need short polling intervals.
+
 ## Agent task rework
 
 On a worker error notification, Root diagnoses from the exact task/binding identity, failing command, structured validator issue

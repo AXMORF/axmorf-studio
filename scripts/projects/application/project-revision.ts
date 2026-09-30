@@ -232,6 +232,7 @@ const editableVisualStyle = (
 ) => ({
   styleProfileId: visualStyle.styleProfileId,
   artDirection: visualStyle.artDirection,
+  ...(visualStyle.theme === undefined ? {} : { theme: visualStyle.theme }),
   continuityRules: visualStyle.continuityRules,
   forbiddenTreatments: visualStyle.forbiddenTreatments,
 });
@@ -483,6 +484,28 @@ const inspectProjectRevisionAuthoring = async ({
   const expectedMeaningIds = state.context.editable.story.beats.map(
     ({ meaningId }) => meaningId,
   );
+  const nextStyle = input.patch.visualStyle;
+  const currentTheme = state.context.editable.visualStyle.theme;
+  if (nextStyle !== undefined) {
+    if (currentTheme !== undefined && nextStyle.theme === undefined) {
+      throw new Error(
+        "Project revision visualStyle must preserve or replace the current theme.",
+      );
+    }
+    if (
+      currentTheme === undefined &&
+      nextStyle.theme !== undefined &&
+      state.project.story.beats.some(
+        (beat) =>
+          beat.kind === "silent-scene" &&
+          beat.preset.implementation.kind === "template-copy",
+      )
+    ) {
+      throw new Error(
+        "Project revision theme is incompatible with legacy immutable boundary templates; create a new Project to adopt themed templates.",
+      );
+    }
+  }
   if (input.patch.story !== undefined) {
     assertMeaningOrder({
       expected: expectedMeaningIds,

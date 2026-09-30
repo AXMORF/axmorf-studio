@@ -1,6 +1,6 @@
 # First-use release gate
 
-A stable npm release requires actual Codex and Hermes runs against the candidate
+A stable npm release normally requires actual Codex and Hermes runs against the candidate
 creator and runtime tarballs. These runs use fresh workspaces and fresh host
 profiles, with one ordinary business prompt per host. They do not inherit the
 repository, earlier sessions, memory, global project skills, or engineering hints.
@@ -9,7 +9,7 @@ send follow-up repair instructions or change package internals during the run.
 A failed run stays recorded as failed; a later engineering fix requires new
 candidates and a new first-use run.
 
-From 0.1.9 onward, both hosts must exercise the package's default native
+Except for the explicit 0.1.14 and 0.1.15 scopes below, from 0.1.9 onward both hosts must exercise the package's default native
 `subagents` path with configured maximum concurrency four. The business prompt
 does not name this execution strategy. Select a normal video brief that produces
 more than four dirty creative tasks, so the run exercises releasing a child slot
@@ -17,11 +17,81 @@ and admitting another task. An inline run or merely saving subagent settings is
 not evidence for this gate. Explicit inline behavior retains automated regression
 coverage; the historical 0.1.8 inline receipts remain readable.
 
+For **0.1.14 only**, the maintainer approved Codex default four-way native execution
+and Hermes **explicit inline, gpt-5.6-terra, medium**. This matrix applies to both
+candidate and post-publication runs; it changes no Workspace or runtime defaults.
+The Hermes business prompt explicitly selects inline for the current production.
+The recorder requires zero native children, delegation calls, or delegation rows,
+one explicit inline resolver result, and at least five distinct dirty tasks bound
+and committed sequentially by the Root within one attempt. Each commit must be
+recorded for the active task, and task intervals must lie within the native run.
+The receipt records this as `inlineExecution`; it cannot also carry `nativeExecution`.
+Codex must still prove capacity four, four bound tasks overlapping, and a later
+admission. Other versions retain their existing native child requirements.
+All installation, fresh profile, one-prompt, actual-model, native TUI/session,
+progress report, single background continuation, no-polling, package/guide
+integrity, final delivery and complete media decoding checks remain required.
+Original failed runs and their narrower evidence remain preserved; the approved
+scope does not turn earlier failed runs into passing receipts.
+
+For **0.1.15 only**, the maintainer uses Codex and authorized a Codex-only
+candidate and post-publication gate. The exact receipt must contain one Codex
+host, with the unchanged default four-way native execution, supervision, real
+delivery, and full media checks. Hermes runs remain diagnostic and cannot be
+counted as passing release evidence. This scope does not certify Hermes; later
+versions return to the two-host gate.
+
 This gate supplements the automated install/contract tests. It does not claim
 multi-model, multi-OS, interactive approval, revision, or recovery certification.
 Record those separately when exercised. A maintainer reviews the prompt and
 isolation setup: a transcript hash is evidence binding, not proof that a host or
 maintainer is trustworthy.
+
+From 0.1.11, the Hermes run must use its actual TUI JSON-RPC backend and native
+asynchronous notification lifecycle when using subagents. The 0.1.14 inline run
+uses the same TUI backend and records no child notifications. `hermes -z` selects a synchronous child path
+and cannot certify interactive yield/resume. Send one ordinary business prompt
+through `session.create` and `prompt.submit`, retain the complete native session
+and notification records, the complete JSON-RPC stdout event stream, and let the backend resume itself. The controller may
+capture events and close the completed session, but must not inject follow-up
+prompts, manufacture completion messages, or read a child log to drive the Agent.
+
+The recorder now checks user-visible messages before create and between inspect
+and prepare, a single continuation invocation, no shell sleep/child-list/transcript
+polling, long native process waits, and every dispatched async batch notification
+before the final report. A reviewer still checks the meaning of the reports:
+message presence cannot prove that cost, readiness, or boundary duration is correct,
+or that an earlier pending update did not prematurely repeat the delivery summary.
+Command auditing recognizes literal public npm script invocations in native shell
+tools and Codex code-mode shell calls; opaque dynamic command construction is not
+a substitute for reviewable invocation evidence.
+Receipts bind these checks in `supervision`; a successful media delivery alone does
+not pass this gate. Hermes `message.interim` prose is visible in the TUI but may be absent
+from SQLite assistant content. The recorder binds the fresh `session.create` response to
+the run's UI and stored session IDs, then matches every root UI tool call and result
+(ID, name, arguments, content, and order) to the unmodified complete SQLite transcript.
+It requires contiguous native UI event sequence numbers and matches final report text
+against SQLite. Report timing comes from native `message.interim` and `message.complete`
+events. The complete raw UI stream checksum is recorded in `supervision.uiEvidence`;
+never synthesize assistant rows in the database transcript to supply missing prose.
+These bindings detect mismatched or incomplete captures; they are not cryptographic
+attestation that a maintainer did not fabricate an entire capture.
+Historical receipts retain their original, narrower scope.
+
+Codex full-history child captures bind the native role adapter immediately before
+that child's settings event. Current captures identify the developer message with
+the exact `multi_agent.role_instructions` content kind; legacy captures without
+typed metadata use the `<multi_agent_role>` wrapper. Both forms require one
+nonempty input-text item. This format compatibility does not relax parent metadata,
+inherited-history order, child-turn ownership, or actual task concurrency checks.
+
+From 0.1.13, each host using subagents must resolve effective capacity four and demonstrate positive-duration overlap of four
+production tasks between their successful bind result and first commit result in the native common timestamp domain.
+The recorder reports `peakBoundTasks` and total `fourWayBoundOverlapMs` separately from native session lifetimes.
+Four open sessions with serial task execution do not satisfy this gate. These observed task intervals do not measure
+CPU utilization or provider request concurrency. Older receipts remain readable without these new fields.
+Hermes continuation must start through its native background process interface; a larger foreground timeout is
+insufficient. Both `process` and `process_manage` aliases are subject to the same original-handle wait rules.
 
 The acceptance controller must preserve required host capabilities. In particular, verify `/bin/ps` can run through the
 actual macOS host command surface before production; a passing browser check alone may not exercise the cleanup fallback.
@@ -75,7 +145,8 @@ The harness records `host`, `workspace`, `startedAt`, `endedAt`, `exitCode`, the
 exact `prompt`, and `harnessInterventions` in a run JSON. Capture the start time
 only after the snapshot, and retain original logs. Successful first-use runs
 must have exit code zero and an empty intervention list. Never store credentials
-in an evidence folder or commit raw host profiles.
+in an evidence folder or commit raw host profiles. Hermes TUI runs additionally retain
+`uiSessionId` and the stored identity as `storedSessionId` or `sessionId` from the native session-create response. If both stored-identity fields are present, both must match the native database.
 
 For Codex, retain the fresh root and every native child's
 `CODEX_HOME/sessions/**/rollout-*.jsonl`. For Hermes,
@@ -104,7 +175,9 @@ After the Agent exits, create a local run-evidence configuration (Hermes additio
 ```
 
 List all child transcripts in `nativeChildren`. Hermes entries additionally
-require their native `sessionFile`. For Hermes asynchronous completions, add
+require their native `sessionFile`. From 0.1.11, the root run-evidence configuration
+also requires `uiTranscriptFile` pointing to the complete, unedited TUI JSON-RPC
+stdout JSONL capture. For Hermes asynchronous completions, add
 `delegationFile` pointing to the exported delegation-row array and
 `hermesRuntimeRoot` pointing to the actual installed Hermes runtime. The local
 recorder uses that runtime's native notification formatter to reproduce each
@@ -122,11 +195,12 @@ follow-ups, forked root Codex sessions, mismatched Hermes session metadata, miss
 function calls, or modified package and guide files. It derives execution mode
 and capacity from the root's public resolver output, the dirty task set from
 prepare, native parentage and lifetimes from host records, and task ownership from
-each child's actual bind and commit tool results. Every dirty task requires one
-child commit; the Root cannot commit those tasks. The receipt records native child
+each child's actual bind and commit tool results. For subagent entries, every dirty task requires one
+child commit; the Root cannot commit those tasks. The approved 0.1.14 Hermes inline
+entry instead requires the exact Root binding and sequential commit checks above. The receipt records native child
 hashes, peak concurrency, capability-probe count, and later admissions after a
 production child completes. Missing children, unknown parentage, a pool exceeding
-resolved capacity, or no admission beyond the initial pool fail closed.
+resolved capacity, or no admission beyond the initial pool fail closed for subagent entries.
 Native Codex children may inherit their fresh parent's context: the recorder binds
 `source.subagent.thread_spawn.parent_thread_id` and `agent_path` to that parent's
 native `spawn_agent` response, rather than confusing this with a reused root session.
@@ -136,14 +210,27 @@ video and both covers to EOF. It generates the receipt from these checks; supply
 a `passed` flag cannot replace them. Output files use exclusive creation so an
 existing result cannot be silently overwritten.
 
-## Publish once both hosts pass
+## Verify revision changes separately
 
-Combine the two generated JSON objects from the repository root:
+A first-use receipt certifies fresh creation and delivery, not the existing-Project revision path.
+For changes to candidate compilation, delivery, diagnostics, or promotion, also exercise the installed
+candidate package in a complete isolated copy of a finished Workspace. Use public npm entry points:
+context → validate/create a real publishing-only patch → inspect → prepare → exact continuation →
+automatic promotion → current context and final check → manual promote idempotency and final check.
+Require zero new provider requests and Agent tasks before preparation; stop if reuse cannot satisfy that
+fixture. Keep source/package bytes unchanged and retain failed attempts. Record the tested package content,
+command outputs, final tuple, unchanged original digest, and any harness limitations separately.
+A source test with an injected fixture policy does not replace this installed-package evidence.
+
+## Publish once the required hosts pass
+
+Combine the required generated JSON objects from the repository root. For
+0.1.15, use only the Codex receipt; other versions use both hosts:
 
 ```sh
 node --input-type=module - <<'JS'
 import {readFile, writeFile} from 'node:fs/promises';
-const files = ['codex-receipt.json', 'hermes-receipt.json'];
+const files = ['codex-receipt.json']; // 0.1.15 only; other versions require Hermes too.
 const hosts = await Promise.all(files.map(async file => JSON.parse(await readFile(file, 'utf8'))));
 const {version} = JSON.parse(await readFile('package.json', 'utf8'));
 await writeFile(`docs/evidence/v${version}-first-use.json`,
@@ -161,7 +248,7 @@ node --import tsx scripts/release/first-use.ts verify runtime.tgz creator.tgz do
 
 The publish workflow requires the receipt in the exact release tag and verifies
 it against the newly built tarballs **before either package is published**.
-Missing hosts, failed checks, changed versions, or any changed published file fail
+Missing required hosts, failed checks, changed versions, or any changed published file fail
 closed. Tar container timestamps, compression, and ownership are not content
 identity. Every package file, its path, executable bit, and content remain covered.
 Source-map JSON whitespace/key order and path separators normalize; source lists,
@@ -171,6 +258,50 @@ same package content be verified on macOS and Linux without accepting code drift
 The exact registry tarball integrity remains independently checked at publication.
 
 After publication, repeat ordinary `npm create ...@latest` installation and the
-same two-host business-prompt test against the public registry. Keep post-release
+same required-host business-prompt test against the public registry. Keep post-release
 evidence separate from the candidate receipt. Do not mark the release as fully
 verified until these published-package runs finish.
+
+Use `create-public` after both `latest` tags identify the intended release. Its strict configuration
+has `host`, `workspace`, `promptFile`, and `expectedVersion`; it accepts no local package paths:
+
+```json
+{
+  "host": "hermes",
+  "workspace": "/absolute/fresh-public-hermes-workspace",
+  "promptFile": "/absolute/hermes-prompt.txt",
+  "expectedVersion": "0.1.12"
+}
+```
+
+```sh
+node --import tsx scripts/release/first-use.ts create-public public-config.json public-snapshot.json
+```
+
+This controller runs ordinary `npm create --yes axmorf-studio@latest <workspace> -- --yes` against
+`https://registry.npmjs.org` using a fresh cache and empty npm credential/configuration files.
+It independently downloads both public tarballs, verifies their SHA-512 `dist.integrity`, and checks
+`latest` before and after installation. It binds the actual cached creator and installed runtime bytes,
+both npm lockfiles, the generated guides, and the empty Workspace before any Agent starts. Keep its
+`.public-install-*` directory and original install log with the private raw evidence; they contain the
+registry tarballs and creator lock required for revalidation. Credentials and host auth profiles must
+remain outside the evidence directory. There is no standalone command to certify an existing Workspace.
+
+Run each fresh host and use the same `record` command with the public snapshot. Combine these receipts
+in a separate public-release evidence file, then verify using the retained registry tarballs:
+
+```sh
+node --import tsx scripts/release/first-use.ts verify-public public-runtime.tgz public-creator.tgz public-receipts.json
+```
+
+Public receipts explicitly use `npm-create-public-registry`; the prepublication `verify` gate accepts
+only `npm-exec-candidate`, and `verify-public` accepts only public-registry evidence. Neither can replace
+the other. The public verifier rechecks registry tarball bytes and integrity as well as the same native
+execution, supervision, and delivery requirements.
+
+During release review, inspect both roots and every worker for failed tools and self-corrections; a
+successful receipt does not describe all intermediate failures. Sample the actual rendered opener,
+closer, every content Scene, and transitions. Record the sampled frames/times, observed contrast or
+occlusion issues, and whether full-frame review and listening were performed. These are release-review
+records, not additional hard gates in the Agent's ordinary production workflow, and a technical receipt
+is not visual-quality certification.

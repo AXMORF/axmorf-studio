@@ -42,6 +42,7 @@ test("capacity blockers retain guidance while ready modes keep their original re
   context.after(() => rm(rootDir, { recursive: true, force: true }));
 
   for (const runtime of [
+    {},
     { runtimeMaxConcurrency: 0 },
     {
       runtimeMaxConcurrency: 2,
@@ -64,15 +65,38 @@ test("capacity blockers retain guidance while ready modes keep their original re
 
   for (const runtime of [
     { override: { mode: "inline" } as const },
-    { runtimeWorkerTransport: "shared-workspace" as const },
     {
       runtimeWorkerTransport: "shared-workspace" as const,
       runtimeMaxConcurrency: 4,
+    },
+    {
+      runtimeWorkerTransport: "shared-workspace" as const,
+      runtimeMaxConcurrency: 1,
     },
   ]) {
     const result = await resolveProjectAgentExecution({ rootDir, ...runtime });
     assert.equal(result.status, "ready");
     assert.equal("nextSteps" in result, false);
+  }
+  assert.deepEqual(await readdir(rootDir), []);
+});
+
+test("unknown capacity gives a bounded probe matching the requested policy", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-execution-probe-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  for (const [requested, bounded] of [[1, 1], [3, 3], [8, 4]]) {
+    const result = await resolveProjectAgentExecution({
+      rootDir,
+      override: { mode: "subagents", maxConcurrency: requested },
+      runtimeWorkerTransport: "shared-workspace",
+    });
+    assert.equal(result.status, "blocked");
+    assert.equal(result.effectiveMaxConcurrency, 0);
+    assert.deepEqual(result.limitedBy, ["runtime-capacity-unverified"]);
+    assert.ok("nextSteps" in result);
+    assert.ok(result.nextSteps.actions.some((action) =>
+      action.includes(`up to ${bounded} separate native children`) &&
+      action.includes("dispatch the batch before waiting")));
   }
   assert.deepEqual(await readdir(rootDir), []);
 });

@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.14",
+  "scope": "release-recorder-native-Codex-role-identity",
+  "baseCommit": "4059d7b0e0e2a0183873d8a043da50f820294f73",
+  "incident": {
+    "stage": "first-use record; native child lineage parsing",
+    "error": "Fork has no native child role adapter",
+    "host": "codex-cli 0.153.4",
+    "nativeRoleMetadata": {
+      "content_item_kinds": [
+        "multi_agent.role_instructions"
+      ]
+    },
+    "observed": "The native developer adapter has one nonempty input_text item with typed role metadata and no legacy XML prefix. It immediately precedes the child thread_settings_applied event. The old recorder required the XML prefix.",
+    "productionRunExitCode": 0,
+    "controllerFollowUps": 0,
+    "productionReruns": 0,
+    "originalFailureLogChecksum": "sha256:55f980963f27a1297789f9e91a18e3db493c6bbe4080f3bd57e44320a6e1cb0c"
+  },
+  "fix": {
+    "currentIdentity": "One native multi_agent.role_instructions content kind, one nonempty input_text item, developer message at the exact child settings boundary.",
+    "legacyIdentity": "Retain the XML role wrapper for captures without typed content kinds.",
+    "unchangedChecks": [
+      "Exact native parent metadata and fork identity",
+      "Inherited parent payloads and ordering",
+      "Distinct child turns and tool-call ownership",
+      "Native spawn/child parentage and lifetimes",
+      "Effective capacity four and positive actual four-way task overlap",
+      "Single prompt, no controller interventions, unchanged packages and guides",
+      "Native supervision, exact four-file delivery and full EOF decode"
+    ],
+    "packageFilesChanged": false,
+    "releaseExecutionModePolicyChanged": false
+  },
+  "verification": {
+    "red": {
+      "tests": 2,
+      "passed": 1,
+      "failed": 1,
+      "error": "Fork has no native child role adapter"
+    },
+    "firstUseAndSupervisionRegression": {
+      "tests": 50,
+      "passed": 50,
+      "failed": 0,
+      "skipped": 0
+    },
+    "typecheck": "passed",
+    "focusedLint": "passed",
+    "originalNativeEvidenceRechecked": "passed; no raw record edits and no model rerun",
+    "receipt": "v0.1.14-codex-terra-receipt.json",
+    "model": "gpt-5.6-terra",
+    "nativeExecution": {
+      "mode": "subagents",
+      "workerTransport": "shared-workspace",
+      "modeSource": "builtin-default",
+      "concurrencySource": "builtin-default",
+      "requestedMaxConcurrency": 4,
+      "effectiveMaxConcurrency": 4,
+      "peakActiveChildren": 4,
+      "peakBoundTasks": 4,
+      "fourWayBoundOverlapMs": 69107,
+      "dirtyTaskCount": 5,
+      "productionChildCount": 5,
+      "probeChildCount": 4,
+      "refillAdmissions": 1,
+      "attemptId": "e6fc5d01-9ec0-4af4-940a-9fda5a830b6b",
+      "delegationChecksum": null,
+      "notificationFormatterChecksum": null
+    },
+    "supervision": {
+      "schemaVersion": 1,
+      "source": "codex",
+      "reportedBeforeCreate": true,
+      "reportedBeforePrepare": true,
+      "continuationCalls": 1,
+      "pollingCalls": 0,
+      "asyncBatches": 0,
+      "completedAsyncBatches": 0
+    },
+    "media": {
+      "codec": "h264",
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "frameCount": 1079
+    },
+    "finalCheck": "pass",
+    "rawTranscripts": [
+      {
+        "sessionRole": "root",
+        "checksum": "sha256:286e18a91e58438b54c957b03576773d2cf31421ea064f1bab5029f425103c6f"
+      },
+      {
+        "sessionRole": "child",
+        "checksum": "sha256:39a51dd9e1394b23ffd3de2340f1a4feefe3a2c781862ae501d27a8777c21bac"
+      },
+      {
+        "sessionRole": "child",
+        "checksum": "sha256:d85679cbc44579d2c8e127fdd6ba69a3a26be4428d5509b5fcc32f8d2e0a5644"
+      },
+      {
+        "sessionRole": "child",
+        "checksum": "sha256:1dd3e3c7fa23d7c989866479a056e328d2435a0cdf2a5a2336c29000e9b6e840"
+      },
+      {
+        "sessionRole": "child",
+        "checksum": "sha256:2f4867e48df749dcfdc10170cdb5f218b224ba768db8a00466329ab19499ba28"
+      },
+      {
+        "sessionRole": "child",
+        "checksum": "sha256:133d8d0035a0882ab18e9b0305c7cb384ec34d0d3069eb7d9304320dbd8bd24e"
+      },
+      {
+        "sessionRole": "child",
+        "checksum": "sha256:3bc3142f1374106446f712325a42595e1447e158fff0d7992cf96ecec256451a"
+      },
+      {
+        "sessionRole": "child",
+        "checksum": "sha256:898de0b62d5e6d36fa131d4de37af2a7753e2efd8420566bd11ba34be327efcf"
+      },
+      {
+        "sessionRole": "child",
+        "checksum": "sha256:dfa23078da49a48e227c89629fd98dc8729e1be930f4c044aa6a64f72edf1463"
+      },
+      {
+        "sessionRole": "child",
+        "checksum": "sha256:8831e392f902d047b16c7628f041c62c3a1fdeea5285745d1468975ec8b15b5d"
+      }
+    ],
+    "visualReview": {
+      "schemaVersion": 1,
+      "scope": "codex-candidate-sampled-visual-review",
+      "frames": [
+        15,
+        75,
+        180,
+        300,
+        420,
+        540,
+        660,
+        810,
+        945,
+        1050
+      ],
+      "coversViewed": [
+        "cover-4x3.png",
+        "cover-3x4.png"
+      ],
+      "observations": [
+        "Sampled opener, three content sections and closer consistently use the dark theme.",
+        "The three sections show a small action, notification blocking, and a next-step note; the sampled captions and both cover layouts are legible.",
+        "The portrait cover has a thin decorative ring behind the 10:00 label; no text is hidden in the viewed image."
+      ],
+      "limitations": [
+        "Ten sampled frames and two covers; no full-frame or full audio listening audit.",
+        "Mechanical first-use receipt does not certify arbitrary scene creativity or complete task-access isolation."
+      ],
+      "contactSheetChecksum": "sha256:913f43037a58a3b18244770fe4ff3b9b1ada6efe948f0a2f2c5561ff1ad65a88"
+    }
+  },
+  "published": false
+}

@@ -15,6 +15,8 @@ For a new Project read [authoring](references/authoring.md); before preparation 
 Use the Workspace's npm scripts and their structured output. Do not use package
 internals or assume a particular Agent host or global installation.
 
+For an authorized video request, a plan or report is an intermediate progress message, not a final answer. Continue tool execution in the same turn after reporting; do not wait for another user reply. Follow the workflow for actual blockers and yielding to already-pending native work. Only verified delivery completes production.
+
 The Root runs `npm run doctor` before Project work. If it is not ready, prepare only the
 declared host environment and rerun it; never patch package internals,
 `node_modules`, exact dependencies, or validators. Report an unsatisfied host
@@ -24,6 +26,10 @@ For a new video, first run `npm run project:create:context -- --project <storyId
 Adapt its complete example using current public choices. Build a strict Project create input from the user brief and run
 `npm run project:create`. This command creates authoring source only; it must not
 call a provider or start production.
+Explicit user dimensions/orientation, fps and locale override settings through create input
+`render.width/height/fps/locale`; omit unspecified fields to inherit defaults. Convert orientation to concrete
+dimensions, not just a textual constraint. Do not change saved settings for one video. Check the returned
+`render` against the request before inspect or provider preparation.
 For each narrated Scene, author a visible subject, initial state, narration-timed change, and readable result. Use
 composition and shot relationships to express cause and consequence instead of generic diagrams or decorative motion.
 
@@ -46,17 +52,18 @@ authoring in place; use the returned candidate flag throughout production.
 Candidates only use Project-owned media already frozen in their base context;
 they do not import new assets.
 
-Before inspect, read [native child verification](references/execution-capabilities.md) and perform its probe for the default
-`subagents` mode (maximum four). Resolve once with verified host flags on `npm run project:execution:resolve`. Only explicit user choices
+Before inspect, read [native child verification](references/execution-capabilities.md), use its helper-generated complete probe prompts, and release every completed probe slot for the default
+`subagents` mode (maximum four). Unknown runtime capacity blocks; verify a native probe batch up to the requested maximum. One I/O probe cannot establish maximum capacity one. Resolve once with verified host flags on `npm run project:execution:resolve`. Only explicit user choices
 may override settings; do not claim an Agent-selected mode came from the user. A blocked
 subagents configuration is a blocker, not permission to switch to inline.
+For Hermes TUI probe batches, wait for native completion notifications; `delegate_task` with `{"action":"list"}` is forbidden status polling, including a single post-dispatch check.
 
 Before cost, run read-only `npm run project:produce:inspect` and report source
-readiness, estimate, artifact reuse, and invalidation. Only then run
+readiness, estimate, artifact reuse, and invalidation in a user-visible message. Follow the returned `agentHandoff`: send its summary before the next production command. Tool output alone is not this report. Only then run
 `npm run project:produce:prepare`, which may call configured providers and
 returns content-addressed dirty tasks plus exact terminal commands. Use its `durationBudget` to report measured total duration and deviation; sealed audio remains authoritative.
 
-Execute only dirty Agent tasks. Each executor first runs prepare's exact
+Execute only dirty Agent tasks. Forward the selected complete `workerPrompts` string from prepare/reissue without reconstructing task hashes. Each executor first runs prepare's exact
 attempt-bound bind command and continues only after `task-worker-bound`. Only
 then read `task.json`,
 `inputs/context.json`, and the immutable, attempt-neutral
@@ -64,8 +71,12 @@ then read `task.json`,
 describe/finalize/check/commit/failure commands. ArtifactAttestation and terminal
 events are authority.
 
+Short `--assignment` selects one dirty task from the exact immutable project/attempt snapshots and retains the same full binding checks. Preserve all returned flags.
+
+Keep full process results and their original handles until exit; partial wait-any completion leaves the other children pending. Use native background/notify when a foreground wrapper cannot survive its outer deadline. Read the executable wait example in [native child verification](references/execution-capabilities.md#preserve-process-and-child-waits).
+
 Start prepare's exact continuation once per attempt. Root stays responsible with blocking waits on the original handle or native
-notifications; no child/status polling, repeated log reads or unchanged progress reasoning. On errors, diagnose and guide the original
+notifications; on event-only hosts follow the yield/resume instructions in [native child verification](references/execution-capabilities.md#event-only-hosts); no child/status polling, repeated log reads or unchanged progress reasoning. On errors, diagnose and guide the original
 owner without accessing its workspace or repairing the running continuation. Report the fixed result once; ignore duplicate success
 notifications. Only a terminal result that verifies the exact four-file current Delivery proves completion.
 

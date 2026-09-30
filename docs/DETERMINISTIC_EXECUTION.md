@@ -32,7 +32,7 @@ data 不改变 Revision。
 
 Workspace configuration policy fingerprint 绑定 `package.json`、`package-lock.json` 与恰好一个受支持的
 `remotion.config.mjs` 或 `remotion.config.ts`。配置缺失、同时存在两种后缀、symlink/special file 或 bytes drift
-都必须 fail closed；creator 生成的 `.mjs` 与源码 Workspace 的 `.ts` 使用同一 identity boundary。
+都必须 fail closed；creator 和源码 Workspace 均生成 `.ts`，旧 Workspace 的 `.mjs` 仍使用同一 identity boundary。
 
 resource manifest 不能只绑定元数据；selected bytes/checksum drift 必须改变 identity 或 fail closed。private
 secret value 不进入 Revision，只有 private-safe provider/voice/policy identity。
@@ -45,6 +45,11 @@ SceneViewport，并与 task/package 绑定的 boundary version/fingerprint fail-
 Configured template instance 另外绑定 copied Renderer adapter 与完整 import graph。adapter 只做
 `viewportWidth`/`viewportHeight` → 模板内部 `width`/`height` 的确定性映射；adapter/layout bytes 改变会改变
 未来 instance/source-graph identity，但不会跨过 immutable copy 边界重写既有 Project。
+
+新建 `VisualStyleSpec.theme` 固化已校验的四角色颜色；preset 名称只属于 authoring input。主题进入既有
+VisualStyle/Revision/Task/delivery fingerprint 链，copied Renderer 读取当前主题而不改写 immutable bytes。
+Composition 固定绘制 background；themed GlobalVisual base 为机械验证的 null，decoration 在正文后方通过固定 8% 上限的隔离组合成，主题对比度校验覆盖其最差范围。旧文档缺少 theme 时不补字段，
+不改变其 VisualStyle identity；含旧 immutable 首尾的 Project 拒绝直接添加新主题。
 
 ## 3. TaskRevision 与精确失效
 

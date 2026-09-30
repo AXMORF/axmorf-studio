@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "status": "sampled-review-complete-with-minor-typography-observation",
+  "agent": "codex",
+  "candidateVersion": "0.1.12",
+  "storyId": "ten-minute-focus",
+  "deliveryBuildId": "delivery-096a00b7d97d927f5cfd4a0343ba10d6c8415a7c02a5eabceaa38b645b88b6b8",
+  "videoChecksum": "sha256:e40230556a4b2e26f8b4896f1f7e812b165c5c9d1b7b0ccf769215f3a83e6c52",
+  "media": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "frameCount": 753,
+    "durationSeconds": 25.1
+  },
+  "sampleReceipt": "qa/candidate-codex-frames/samples.json",
+  "sampleReceiptChecksum": "sha256:561b01b0ed481ad14598e86ef7884d32f2a27cd2f814f71f1626c705d800fa24",
+  "inputUnchanged": true,
+  "extractedSampleCount": 36,
+  "additionalStableCreditsFrame": {
+    "frame": 603,
+    "timeSeconds": 20.1,
+    "videoPts": 1809000,
+    "timeExact": "603/30",
+    "file": "axmorf-012-candidate-codex-credits-frame-603.png",
+    "checksum": "sha256:13178154e4aab8816a1def7f01b32ac56859591be3814c8c9b2216d9975c883b",
+    "reason": "outro source credits stable frame (scene-local 90)",
+    "videoChecksum": "sha256:e40230556a4b2e26f8b4896f1f7e812b165c5c9d1b7b0ccf769215f3a83e6c52"
+  },
+  "manuallyViewedFrames": [
+    {
+      "frame": 0,
+      "timeSeconds": 0.0,
+      "checksum": "sha256:28e9988bc97ff5d0063f0fbf45d6d0cfc332a85b5f0f57db47cb491789ed5278"
+    },
+    {
+      "frame": 53,
+      "timeSeconds": 1.766667,
+      "checksum": "sha256:07ab66a846d01894313d10444e9cf8715ee97cd53f3120448db1861813877c83"
+    },
+    {
+      "frame": 59,
+      "timeSeconds": 1.966667,
+      "checksum": "sha256:c45fda95c7890a650ac489a7e7a26cb4f4dd684981cd18e120e837fccaa976b6"
+    },
+    {
+      "frame": 60,
+      "timeSeconds": 2.0,
+      "checksum": "sha256:1de6278a5f32777d1789f1f6c3a9e6267c14444f9af9067d6728dead2155367c"
+    },
+    {
+      "frame": 131,
+      "timeSeconds": 4.366667,
+      "checksum": "sha256:e176baf3941bc418b342c1f3ffccb8bb27305ab3ca788c237d97e6a23003562a"
+    },
+    {
+      "frame": 202,
+      "timeSeconds": 6.733333,
+      "checksum": "sha256:bb3ec64ebd82982d020ec12676ebf8dd515a72f52c9015b220a5d18a8887ebdc"
+    },
+    {
+      "frame": 203,
+      "timeSeconds": 6.766667,
+      "checksum": "sha256:fcaf92808b353b8a13ce12df84a6039f2da5b0fe4e139434982556604f31ac10"
+    },
+    {
+      "frame": 284,
+      "timeSeconds": 9.466667,
+      "checksum": "sha256:b65fee7e5bef86906b72e993aadb2d37459e1fcb1be8587f2399998be728cfb8"
+    },
+    {
+      "frame": 366,
+      "timeSeconds": 12.2,
+      "checksum": "sha256:63451db6ce8f8dcb603dcf4420200766cdf3b16859d334ad739a8c920094b31f"
+    },
+    {
+      "frame": 367,
+      "timeSeconds": 12.233333,
+      "checksum": "sha256:f39561ffbaa34688e70ee16ae5c2b711b9cb4bd612ccd1f32a920ed958347d75"
+    },
+    {
+      "frame": 439,
+      "timeSeconds": 14.633333,
+      "checksum": "sha256:bdac38417357956f21a861f5cf4027cd03603f20084e5a5aeb68cfbad2ea1665"
+    },
+    {
+      "frame": 512,
+      "timeSeconds": 17.066667,
+      "checksum": "sha256:f2f3feb0fa45dd34e2c9348c6456f2ea8ce575f1e8dccd443dd7736094c109e7"
+    },
+    {
+      "frame": 513,
+      "timeSeconds": 17.1,
+      "checksum": "sha256:4b5fa62d112bd842356f896b5f509779fd1d891557725b4e48cf2a546bceadab"
+    },
+    {
+      "frame": 572,
+      "timeSeconds": 19.066667,
+      "checksum": "sha256:81d8d0700b21c62b8d3df239abb7d5f0a78f60bc5d1259abdbf4e8fdee708023"
+    },
+    {
+      "frame": 603,
+      "timeSeconds": 20.1,
+      "checksum": "sha256:13178154e4aab8816a1def7f01b32ac56859591be3814c8c9b2216d9975c883b"
+    },
+    {
+      "frame": 632,
+      "timeSeconds": 21.066667,
+      "checksum": "sha256:cfcd48410e474ce405a5e28eda50a5aaaf2d7cf5b82eda051d78fe4766d2f0f1"
+    },
+    {
+      "frame": 692,
+      "timeSeconds": 23.066667,
+      "checksum": "sha256:d7a454675e1a58e8bad42545665b86c4037a65a77b9d67021b33dce5cf3fd670"
+    },
+    {
+      "frame": 728,
+      "timeSeconds": 24.266667,
+      "checksum": "sha256:f9877b9f96c7dc48b8a45676add2f0d5fd2f2f6ac92c9f21eeb7898a899b6a93"
+    },
+    {
+      "frame": 752,
+      "timeSeconds": 25.066667,
+      "checksum": "sha256:6bf9d2040c7e72f3b85c5227ef19143691519b2a93d773181799edb35373cc85"
+    }
+  ],
+  "viewedCovers": [
+    {
+      "name": "cover-4x3.png",
+      "checksum": "sha256:91d41cba91b0102737b430f364c33a4f90704c855e325ab2111b036d63e9fe49"
+    },
+    {
+      "name": "cover-3x4.png",
+      "checksum": "sha256:245dfb1c26d022b11bfe926d98b03824c8eb7c48fec52c6584867b27113fda45"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "resolved-target-observation",
+      "frames": [
+        53,
+        59,
+        603,
+        692,
+        728,
+        752
+      ],
+      "detail": "Default intro/outro brand and stable source-credit text are legible against the dark full-frame base because the local light backing remains present. No evident clipping of those stable elements was observed."
+    },
+    {
+      "severity": "pass-in-reviewed-samples",
+      "frames": [
+        131,
+        284,
+        439,
+        202,
+        366,
+        512
+      ],
+      "detail": "Three narrated scenes have readable foreground text, intact separate captions, and no evident text occlusion or frame-edge clipping in reviewed samples."
+    },
+    {
+      "severity": "minor-typography",
+      "frames": [
+        203,
+        284,
+        366
+      ],
+      "detail": "The second caption wraps the final Chinese character and punctuation of the ten-minute phrase onto an isolated second line. All text remains visible; this is an awkward line break, not clipping or a regression in static font-size validation."
+    },
+    {
+      "severity": "animation-context",
+      "frames": [
+        0,
+        60,
+        203,
+        367,
+        513,
+        572,
+        632,
+        692
+      ],
+      "detail": "Opening/Scene entry and credit-to-brand samples show intentionally incomplete fade/reveal stages. The partially transparent reference card at 572 is fully readable at the separately inspected stable frame 603."
+    },
+    {
+      "severity": "pass-in-reviewed-covers",
+      "files": [
+        "cover-4x3.png",
+        "cover-3x4.png"
+      ],
+      "detail": "Both cover titles, supporting line and central timer label are readable with clear foreground/background separation and no evident clipping."
+    }
+  ],
+  "limitations": [
+    "Only the listed 19 actual video frames and both delivered covers were visually examined; the other decoded frames are not visually certified.",
+    "Transition review examined four adjacent scene-boundary pairs, not every frame of every animation.",
+    "No audio listening, OCR, pixel-based contrast measurement, or full semantic accuracy certification was performed.",
+    "The candidate black-box result is separate from post-publication registry verification.",
+    "No Workspace, installed package, source, or delivery file was modified; only external QA outputs and this review were written."
+  ]
+}

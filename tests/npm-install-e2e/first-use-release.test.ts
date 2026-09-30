@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import {
   mkdtemp,
+  cp,
   mkdir,
   readFile,
   rm,
@@ -9,14 +11,17 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import test from "node:test";
 import { build } from "esbuild";
 import {
   auditTranscript,
   auditHermesSession,
+  assertHermesRunIdentity,
   assertEmptyWorkspace,
   create,
+  createPublic,
+  verifyPublicReceipt,
   runPublicCli,
   verifyReceipt,
 } from "../../scripts/release/first-use";
@@ -27,6 +32,15 @@ import {
   sha256,
   type PackageContent,
 } from "../../scripts/release/package-content";
+
+import {
+  assertPublicIntegrity,
+  assertPublicLock,
+  publicMetadata,
+  installPublic,
+  verifyPublicArtifacts,
+  type RegistryPackage,
+} from "../../scripts/release/public-registry";
 
 const file = {
   path: "index.js",
@@ -40,6 +54,23 @@ const runtime: PackageContent = {
   files: [file],
 };
 const creator: PackageContent = { ...runtime, name: "create-axmorf-studio" };
+
+test("Hermes run identity aliases must all agree with the native DB", () => {
+  assertHermesRunIdentity({ sessionId: "native" }, "native");
+  assertHermesRunIdentity({ storedSessionId: "native" }, "native");
+  assertHermesRunIdentity(
+    { storedSessionId: "native", sessionId: "native" },
+    "native",
+  );
+  for (const run of [
+    {},
+    { sessionId: null },
+    { sessionId: "other" },
+    { storedSessionId: "other", sessionId: "native" },
+    { storedSessionId: "native", sessionId: "other" },
+  ])
+    assert.throws(() => assertHermesRunIdentity(run, "native"));
+});
 const summary = ({ files, ...value }: PackageContent) => ({
   ...value,
   fileCount: files.length,
@@ -125,7 +156,7 @@ test("release evidence binds both hosts, exact candidates, prompts and complete 
   duplicateHost.hosts[1]!.host = "codex";
   assert.throws(
     () => verifyReceipt(duplicateHost, runtime, creator),
-    /Both Agent hosts/u,
+    /exact Agent host acceptance set/u,
   );
   const changedSource = { ...runtime, fingerprint: sha256("changed code") };
   assert.throws(
@@ -155,6 +186,52 @@ test("release evidence binds both hosts, exact candidates, prompts and complete 
   assert.throws(() => verifyReceipt(missingFile, runtime, creator));
   assert.throws(() =>
     verifyReceipt({ schemaVersion: 1, passed: true }, runtime, creator),
+  );
+});
+
+test("0.1.15 requires Codex-only acceptance without relaxing native execution", () => {
+  const nextRuntime = { ...runtime, version: "0.1.15" };
+  const nextCreator = { ...creator, version: "0.1.15" };
+  const codex = {
+    ...hostReceipt("codex"),
+    packages: { runtime: summary(nextRuntime), creator: summary(nextCreator) },
+    supervision: {
+      schemaVersion: 1,
+      source: "codex",
+      reportedBeforeCreate: true,
+      reportedBeforePrepare: true,
+      continuationCalls: 1,
+      pollingCalls: 0,
+      asyncBatches: 0,
+      completedAsyncBatches: 0,
+    },
+  };
+  assert.throws(
+    () =>
+      verifyReceipt(
+        { schemaVersion: 1, hosts: [codex] },
+        nextRuntime,
+        nextCreator,
+      ),
+    /native child execution/u,
+  );
+  const hermes = {
+    ...hostReceipt("hermes"),
+    packages: codex.packages,
+  };
+  assert.throws(() =>
+    verifyReceipt(
+      { schemaVersion: 1, hosts: [codex, hermes] },
+      nextRuntime,
+      nextCreator,
+    ),
+  );
+  assert.throws(() =>
+    verifyReceipt(
+      { schemaVersion: 1, hosts: [hermes] },
+      nextRuntime,
+      nextCreator,
+    ),
   );
 });
 
@@ -633,8 +710,44 @@ test("new releases reject historical inline receipts without native child eviden
   );
 });
 
+test("0.1.11 cannot reuse a delivery-only receipt as supervision acceptance", () => {
+  const nextRuntime = { ...runtime, version: "0.1.11" };
+  const nextCreator = { ...creator, version: "0.1.11" };
+  const hosts = [hostReceipt("codex"), hostReceipt("hermes")].map((host) => ({
+    ...host,
+    packages: { runtime: summary(nextRuntime), creator: summary(nextCreator) },
+  }));
+  assert.throws(
+    () => verifyReceipt({ schemaVersion: 1, hosts }, nextRuntime, nextCreator),
+    /native supervision acceptance/u,
+  );
+});
+
+test("0.1.11 Hermes supervision cannot omit native UI evidence", () => {
+  const nextRuntime = { ...runtime, version: "0.1.11" };
+  const nextCreator = { ...creator, version: "0.1.11" };
+  const hosts = [hostReceipt("hermes"), hostReceipt("codex")].map((host) => ({
+    ...host,
+    packages: { runtime: summary(nextRuntime), creator: summary(nextCreator) },
+    supervision: {
+      schemaVersion: 1,
+      source: host.host === "hermes" ? "tui" : "codex",
+      reportedBeforeCreate: true,
+      reportedBeforePrepare: true,
+      continuationCalls: 1,
+      pollingCalls: 0,
+      asyncBatches: 1,
+      completedAsyncBatches: 1,
+    },
+  }));
+  assert.throws(
+    () => verifyReceipt({ schemaVersion: 1, hosts }, nextRuntime, nextCreator),
+    /complete native UI stream/u,
+  );
+});
+
 test("native child receipts require the full task pool, native lineage, commits and bounded refill", async (context) => {
-  const { auditNativeExecution } =
+  const { auditNativeExecution, assertFourWayExecution } =
     await import("../../scripts/release/native-execution");
   const root = await mkdtemp(join(tmpdir(), "axmorf-native-receipt-"));
   context.after(() => rm(root, { recursive: true, force: true }));
@@ -777,7 +890,149 @@ test("native child receipts require the full task pool, native lineage, commits 
   assert.equal(result.execution.productionChildCount, 5);
   assert.equal(result.execution.probeChildCount, 1);
   assert.equal(result.execution.peakActiveChildren, 4);
+  assert.equal(result.execution.peakBoundTasks, 4);
+  assert.equal(result.execution.fourWayBoundOverlapMs, 40000);
   assert.equal(result.execution.refillAdmissions, 1);
+  assertFourWayExecution(result.execution);
+  const originalChildren = await Promise.all(
+    nativeChildren.map(({ transcriptFile }) =>
+      readFile(transcriptFile, "utf8"),
+    ),
+  );
+  const originalRootTranscript = input.transcript;
+  const originalChildTranscripts = [...originalChildren];
+  const upgradedChildTranscripts = originalChildTranscripts.map((text) => {
+    const rows = text.split("\n").map((line) => JSON.parse(line));
+    const spawn = rows.find((row) => row.type === "session_meta");
+    spawn.payload.source.subagent.thread_spawn.agent_path = null;
+    return rows.map((row) => JSON.stringify(row)).join("\n");
+  });
+  const upgradedRootRows: Array<{
+    type: string;
+    timestamp: string;
+    payload: Record<string, unknown>;
+  }> = JSON.parse(`[${makeTranscript().split("\n").join(",")}]`);
+  const nativeSpawnEvents = [];
+  for (let index = 0; index < nativeChildren.length; index += 1) {
+    const callId = `spawn-${index}`;
+    const call = upgradedRootRows.find((row) => row.payload.call_id === callId);
+    const output = upgradedRootRows.find(
+      (row) =>
+        row.payload.call_id === callId && row.payload.output !== undefined,
+    );
+    assert.ok(call);
+    assert.ok(output);
+    call.payload.name = "exec";
+    output.payload.output = JSON.stringify({
+      agent_id: `child-${index}`,
+      nickname: `worker-${index}`,
+    });
+    nativeSpawnEvents.push({
+      type: "event_msg",
+      timestamp: timestamp(2 + index),
+      payload: {
+        type: "item_completed",
+        thread_id: "parent",
+        item: {
+          type: "CollabAgentToolCall",
+          id: `spawn-event-${index}`,
+          tool: "spawn_agent",
+          status: "completed",
+          sender_thread_id: "parent",
+          receiver_thread_ids: [`child-${index}`],
+        },
+      },
+    });
+  }
+  const upgradedRootTranscript = [...upgradedRootRows, ...nativeSpawnEvents]
+    .map((row) => JSON.stringify(row))
+    .join("\n");
+  await Promise.all(
+    nativeChildren.map(({ transcriptFile }, index) =>
+      writeFile(transcriptFile, upgradedChildTranscripts[index]!),
+    ),
+  );
+  const upgradedInput = { ...input, transcript: upgradedRootTranscript };
+  const upgraded = await auditNativeExecution(upgradedInput);
+  assert.equal(upgraded.execution.productionChildCount, 5);
+  const missingEventRows = upgradedRootRows.concat(
+    nativeSpawnEvents.slice(0, 5),
+  );
+  await assert.rejects(
+    () =>
+      auditNativeExecution({
+        ...upgradedInput,
+        transcript: missingEventRows
+          .map((row) => JSON.stringify(row))
+          .join("\n"),
+      }),
+    /events and outputs do not match/u,
+  );
+  const wrongParentRows = structuredClone(
+    upgradedRootRows.concat(nativeSpawnEvents),
+  );
+  wrongParentRows.at(-1)!.payload.item = {
+    ...(wrongParentRows.at(-1)!.payload.item as Record<string, unknown>),
+    sender_thread_id: "other",
+  };
+  await assert.rejects(
+    () =>
+      auditNativeExecution({
+        ...upgradedInput,
+        transcript: wrongParentRows
+          .map((row) => JSON.stringify(row))
+          .join("\n"),
+      }),
+    /wrong parent/u,
+  );
+  await Promise.all(
+    nativeChildren.map(({ transcriptFile }, index) =>
+      writeFile(transcriptFile, originalChildTranscripts[index]!),
+    ),
+  );
+  input.transcript = originalRootTranscript;
+  assert.throws(
+    () =>
+      assertFourWayExecution({
+        ...result.execution,
+        effectiveMaxConcurrency: 1,
+      }),
+    /effective capacity four/u,
+  );
+  assert.throws(
+    () =>
+      assertFourWayExecution({ ...result.execution, fourWayBoundOverlapMs: 0 }),
+    /positive duration/u,
+  );
+  for (let index = 1; index < nativeChildren.length; index += 1) {
+    const rows = originalChildren[index]!.split("\n").map((line) =>
+      JSON.parse(line),
+    );
+    const bindSecond = [21, 26, 31, 36, 62][index - 1]!;
+    for (const row of rows) {
+      if (row.payload.call_id === `bind-${index}`)
+        row.timestamp = timestamp(bindSecond);
+      if (row.payload.call_id === `commit-${index}`)
+        row.timestamp = timestamp(bindSecond + 4);
+    }
+    await writeFile(
+      nativeChildren[index]!.transcriptFile,
+      rows.map((row) => JSON.stringify(row)).join("\n"),
+    );
+  }
+  const serial = await auditNativeExecution(input);
+  assert.equal(serial.execution.peakActiveChildren, 4);
+  assert.equal(serial.execution.peakBoundTasks, 1);
+  assert.equal(serial.execution.fourWayBoundOverlapMs, 0);
+  assert.throws(
+    () => assertFourWayExecution(serial.execution),
+    /overlapping bound tasks/u,
+  );
+  await Promise.all(
+    nativeChildren.map(({ transcriptFile }, index) =>
+      writeFile(transcriptFile, originalChildren[index]!),
+    ),
+  );
   await assert.rejects(
     () =>
       auditNativeExecution({
@@ -930,6 +1185,22 @@ test("native child receipts require the full task pool, native lineage, commits 
     (await auditNativeExecution(hermesInput)).execution.productionChildCount,
     5,
   );
+  for (const child of hermesChildren) {
+    const native = JSON.parse(await readFile(child.sessionFile, "utf8"));
+    await writeFile(
+      child.sessionFile,
+      JSON.stringify({ ...native, source: "tui" }),
+    );
+  }
+  await assert.rejects(
+    () => auditNativeExecution(hermesInput),
+    /native parent surface/u,
+  );
+  const tuiInput = { ...hermesInput, sessionSource: "tui" };
+  assert.equal(
+    (await auditNativeExecution(tuiInput)).execution.productionChildCount,
+    5,
+  );
   const sessionPath = hermesChildren[1]!.sessionFile;
   const session = JSON.parse(await readFile(sessionPath, "utf8"));
   await writeFile(
@@ -937,8 +1208,248 @@ test("native child receipts require the full task pool, native lineage, commits 
     JSON.stringify({ ...session, parent_session_id: "unrelated" }),
   );
   await assert.rejects(
-    () => auditNativeExecution(hermesInput),
+    () => auditNativeExecution(tuiInput),
     /direct descendant/u,
+  );
+});
+
+test("Codex spawn receipts bind completed native events to agent ids", async () => {
+  const { codexSpawnReceipts, nativeTrace } =
+    await import("../../scripts/release/native-execution");
+  const row = (type: string, payload: Record<string, unknown>) =>
+    JSON.stringify({ type, timestamp: "2026-09-07T00:00:00Z", payload });
+  const event = (receiver = "child-1", sender = "parent", id = "spawn-event") =>
+    row("event_msg", {
+      type: "item_completed",
+      thread_id: "parent",
+      item: {
+        type: "CollabAgentToolCall",
+        id,
+        tool: "spawn_agent",
+        status: "completed",
+        sender_thread_id: sender,
+        receiver_thread_ids: [receiver],
+      },
+    });
+  const output = (agentId = "child-1") => [
+    row("response_item", {
+      type: "custom_tool_call",
+      name: "exec",
+      call_id: "spawn-call",
+      arguments: "{}",
+    }),
+    row("response_item", {
+      type: "custom_tool_call_output",
+      call_id: "spawn-call",
+      output: JSON.stringify({ agent_id: agentId, nickname: "worker" }),
+    }),
+  ];
+  const trace = nativeTrace("codex", [event(), ...output()].join("\n"));
+  assert.deepEqual(codexSpawnReceipts(trace, "parent"), {
+    native: true,
+    childIds: new Set(["child-1"]),
+    legacy: new Set(),
+  });
+  assert.throws(
+    () =>
+      codexSpawnReceipts(nativeTrace("codex", output().join("\n")), "parent"),
+    /no native completed event/u,
+  );
+  assert.throws(
+    () =>
+      codexSpawnReceipts(
+        nativeTrace(
+          "codex",
+          [event("child-1", "other"), ...output()].join("\n"),
+        ),
+        "parent",
+      ),
+    /wrong parent/u,
+  );
+  assert.throws(
+    () =>
+      codexSpawnReceipts(
+        nativeTrace("codex", [event("child-2"), ...output()].join("\n")),
+        "parent",
+      ),
+    /do not match/u,
+  );
+  assert.throws(
+    () =>
+      codexSpawnReceipts(
+        nativeTrace(
+          "codex",
+          [
+            event(),
+            event("child-2", "parent", "spawn-event-2"),
+            ...output(),
+          ].join("\n"),
+        ),
+        "parent",
+      ),
+    /events and outputs do not match/u,
+  );
+});
+
+test("Codex native completion text must equal the child final message", async () => {
+  const { codexCompletionMessages, nativeTrace } =
+    await import("../../scripts/release/native-execution");
+  const row = (
+    type: string,
+    payload: Record<string, unknown>,
+    timestamp = "2026-09-07T00:00:00Z",
+  ) => JSON.stringify({ type, timestamp, payload });
+  const child = "child-1";
+  const completion = "Assignment complete: producer-artifact-committed";
+  const notification = (
+    text: string,
+    metadata = ["multi_agent.subagent_notification"],
+  ) =>
+    row(
+      "response_item",
+      {
+        role: "user",
+        content: [{ type: "input_text", text }],
+        internal_chat_message_metadata_passthrough: {
+          content_item_kinds: metadata,
+        },
+      },
+      "2026-09-07T00:00:03Z",
+    );
+  const nativeText = `<subagent_notification>\n${JSON.stringify({
+    agent_path: child,
+    status: { completed: completion },
+  })}\n</subagent_notification>`;
+  const transcript = [
+    row("event_msg", {
+      type: "item_completed",
+      thread_id: "parent",
+      item: {
+        type: "CollabAgentToolCall",
+        id: "spawn-event",
+        tool: "spawn_agent",
+        status: "completed",
+        sender_thread_id: "parent",
+        receiver_thread_ids: [child],
+      },
+    }),
+    notification(nativeText),
+    row(
+      "event_msg",
+      { type: "task_complete", thread_id: "parent" },
+      "2026-09-07T00:00:04Z",
+    ),
+  ].join("\n");
+  const trace = nativeTrace("codex", transcript);
+  assert.deepEqual(
+    codexCompletionMessages(trace, "parent", [
+      {
+        sessionId: child,
+        ended: Date.parse("2026-09-07T00:00:02Z"),
+        lastAgentMessage: completion,
+      },
+    ]),
+    [nativeText],
+  );
+  assert.throws(
+    () =>
+      codexCompletionMessages(trace, "parent", [
+        {
+          sessionId: child,
+          ended: Date.parse("2026-09-07T00:00:02Z"),
+          lastAgentMessage: `${completion} extra instruction`,
+        },
+      ]),
+    /does not match child final/u,
+  );
+  assert.throws(
+    () =>
+      codexCompletionMessages(
+        nativeTrace(
+          "codex",
+          transcript.replace(completion, `${completion} extra`),
+        ),
+        "parent",
+        [
+          {
+            sessionId: child,
+            ended: Date.parse("2026-09-07T00:00:02Z"),
+            lastAgentMessage: completion,
+          },
+        ],
+      ),
+    /does not match child final/u,
+  );
+  const completedChild = {
+    sessionId: child,
+    ended: Date.parse("2026-09-07T00:00:02Z"),
+    lastAgentMessage: completion,
+  };
+  const close = row(
+    "event_msg",
+    { type: "task_complete", thread_id: "parent" },
+    "2026-09-07T00:00:04Z",
+  );
+  const notified = (text: string) =>
+    nativeTrace("codex", [notification(text), close].join("\n"));
+  const nullText = nativeText.replace(JSON.stringify(completion), "null");
+  assert.deepEqual(
+    codexCompletionMessages(notified(nullText), "parent", [
+      { ...completedChild, lastAgentMessage: null },
+    ]),
+    [nullText],
+  );
+  assert.throws(
+    () =>
+      codexCompletionMessages(notified(nullText), "parent", [completedChild]),
+    /does not match child final/u,
+  );
+  assert.throws(
+    () =>
+      codexCompletionMessages(
+        notified(nativeText.replace(child, "unknown")),
+        "parent",
+        [completedChild],
+      ),
+    /unknown child/u,
+  );
+  assert.throws(
+    () =>
+      codexCompletionMessages(trace, "parent", [
+        { ...completedChild, ended: Date.parse("2026-09-07T00:00:04Z") },
+      ]),
+    /predates child completion/u,
+  );
+  assert.throws(
+    () =>
+      codexCompletionMessages(
+        nativeTrace(
+          "codex",
+          [notification(nativeText), notification(nativeText), close].join(
+            "\n",
+          ),
+        ),
+        "parent",
+        [completedChild],
+      ),
+    /Duplicate native notification/u,
+  );
+  assert.throws(
+    () =>
+      codexCompletionMessages(
+        nativeTrace("codex", notification(nativeText)),
+        "parent",
+        [completedChild],
+      ),
+    /no Root completion event/u,
+  );
+  assert.deepEqual(
+    codexCompletionMessages(
+      nativeTrace("codex", [notification(nativeText, []), close].join("\n")),
+      "parent",
+      [completedChild],
+    ),
+    [],
   );
 });
 
@@ -1024,6 +1535,46 @@ test("Codex full-history forks verify parent lineage and exclude inherited calls
       .map((record) => (record.payload as Record["payload"]).turn_id),
     ["child-turn"],
   );
+  const nativeChild = structuredClone(child);
+  const adapterIndex = nativeChild.findIndex(
+    (record) => record.payload.role === "developer",
+  );
+  const nativeAdapter = nativeChild[adapterIndex]!.payload;
+  nativeAdapter.content = [
+    { type: "input_text", text: "You are an agent in a team of agents." },
+  ];
+  nativeAdapter.internal_chat_message_metadata_passthrough = {
+    content_item_kinds: ["multi_agent.role_instructions"],
+  };
+  assert.deepEqual(codexChildTrace(encode(nativeChild), parent), trace);
+  for (const kinds of [
+    [],
+    ["host_skills.instructions"],
+    ["multi_agent.role_instructions", "user.text"],
+  ]) {
+    const changed = structuredClone(nativeChild);
+    changed[adapterIndex]!.payload.internal_chat_message_metadata_passthrough =
+      {
+        content_item_kinds: kinds,
+      };
+    assert.throws(
+      () => codexChildTrace(encode(changed), parent),
+      /child role adapter/u,
+    );
+  }
+  for (const change of [
+    { role: "user" },
+    { content: [] },
+    { content: [{ type: "input_text", text: "" }] },
+    { content: [{ type: "output_text", text: "native adapter" }] },
+  ]) {
+    const changed = structuredClone(nativeChild);
+    Object.assign(changed[adapterIndex]!.payload, change);
+    assert.throws(
+      () => codexChildTrace(encode(changed), parent),
+      /child role adapter/u,
+    );
+  }
   const withoutOwnWork = codexChildTrace(
     encode(
       child.filter(
@@ -1049,9 +1600,11 @@ test("Codex full-history forks verify parent lineage and exclude inherited calls
   );
 
   const reject = (mutate: (records: Record[]) => void, error: RegExp) => {
-    const changed = structuredClone(child);
-    mutate(changed);
-    assert.throws(() => codexChildTrace(encode(changed), parent), error);
+    for (const source of [child, nativeChild]) {
+      const changed = structuredClone(source);
+      mutate(changed);
+      assert.throws(() => codexChildTrace(encode(changed), parent), error);
+    }
   };
   reject((records) => {
     records[1]!.payload.id = "foreign-parent";
@@ -1258,6 +1811,23 @@ test("Hermes deferred process tool evidence requires matching native bridge invo
     "read_file",
     "Output tool_name alone cannot turn a read into command evidence",
   );
+  const batchedBridge = structuredClone(records);
+  const batchedCalls = JSON.parse(batchedBridge[0]!.tool_calls!) as Array<{
+    function: { arguments: string };
+  }>;
+  batchedCalls[0]!.function.arguments = JSON.stringify({
+    calls: [JSON.parse(batchedCalls[0]!.function.arguments)],
+  });
+  batchedBridge[0]!.tool_calls = JSON.stringify(batchedCalls);
+  assert.equal(audit(batchedBridge).outputs[0]!.name, "process_manage");
+  batchedCalls[0]!.function.arguments = JSON.stringify({
+    calls: [
+      { name: "process_manage", arguments: {} },
+      { name: "terminal", arguments: {} },
+    ],
+  });
+  batchedBridge[0]!.tool_calls = JSON.stringify(batchedCalls);
+  assert.throws(() => audit(batchedBridge));
   const malformed = structuredClone(records);
   malformed[0]!.tool_calls = JSON.stringify([
     {
@@ -1267,4 +1837,269 @@ test("Hermes deferred process tool evidence requires matching native bridge invo
     },
   ]);
   assert.throws(() => audit(malformed));
+});
+
+test("public registry metadata, tar bytes and lock reject redirected or local packages", () => {
+  const bytes = Buffer.from("public package bytes");
+  const integrity = `sha512-${createHash("sha512").update(bytes).digest("base64")}`;
+  const metadata = publicMetadata(
+    {
+      name: "@axmorf/studio",
+      version: "0.1.8",
+      dist: {
+        tarball: "https://registry.npmjs.org/@axmorf/studio/-/studio-0.1.8.tgz",
+        integrity,
+      },
+    },
+    "@axmorf/studio",
+    "0.1.8",
+  );
+  assertPublicIntegrity(bytes, integrity);
+  assert.throws(
+    () => assertPublicIntegrity(Buffer.from("changed"), integrity),
+    /dist integrity/u,
+  );
+  for (const tarball of [
+    "file:/local.tgz",
+    "https://mirror.example/studio.tgz",
+  ])
+    assert.throws(() =>
+      publicMetadata(
+        { ...metadata, dist: { tarball, integrity } },
+        "@axmorf/studio",
+        "0.1.8",
+      ),
+    );
+  assert.throws(
+    () =>
+      publicMetadata(
+        { ...metadata, dist: metadata },
+        "@axmorf/studio",
+        "0.1.9",
+      ),
+    /expected release/u,
+  );
+  const lock = {
+    lockfileVersion: 3,
+    packages: {
+      "node_modules/@axmorf/studio": {
+        version: metadata.version,
+        resolved: metadata.tarball,
+        integrity,
+      },
+    },
+  };
+  assertPublicLock(lock, metadata);
+  for (const override of [
+    { resolved: "file:local.tgz" },
+    { integrity: `sha512-${"A".repeat(86)}==` },
+    { link: true },
+  ])
+    assert.throws(() =>
+      assertPublicLock(
+        {
+          ...lock,
+          packages: {
+            "node_modules/@axmorf/studio": {
+              ...lock.packages["node_modules/@axmorf/studio"],
+              ...override,
+            },
+          },
+        },
+        metadata,
+      ),
+    );
+});
+
+test("public creation uses npm latest with fresh registry cache and distinct verifiable receipts", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "axmorf-public-registry-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const names = ["@axmorf/studio", "create-axmorf-studio"] as const;
+  const fixtures = new Map<
+    string,
+    { root: string; tar: string; metadata: RegistryPackage }
+  >();
+  for (const [index, name] of names.entries()) {
+    const fixtureRoot = join(root, `fixture-${index}`);
+    await mkdir(join(fixtureRoot, "package"), { recursive: true });
+    await writeFile(
+      join(fixtureRoot, "package/package.json"),
+      JSON.stringify({ name, version: "0.1.8" }),
+    );
+    await writeFile(
+      join(fixtureRoot, "package/index.js"),
+      `export const name=${JSON.stringify(name)};\n`,
+    );
+    const tar = join(root, `fixture-${index}.tgz`);
+    execFileSync("tar", ["-czf", tar, "-C", fixtureRoot, "package"]);
+    const short = name.slice(name.lastIndexOf("/") + 1);
+    const metadata = {
+      name,
+      version: "0.1.8",
+      tarball: `https://registry.npmjs.org/${name}/-/${short}-0.1.8.tgz`,
+      integrity: `sha512-${createHash("sha512")
+        .update(await readFile(tar))
+        .digest("base64")}`,
+    };
+    fixtures.set(name, { root: fixtureRoot, tar, metadata });
+  }
+  const workspace = join(root, "fresh");
+  const calls: string[][] = [];
+  const installed = await installPublic(
+    workspace,
+    join(root, "snapshot.json"),
+    "0.1.8",
+    async (args, options) => {
+      calls.push(args);
+      assert.equal(
+        options.env.NPM_CONFIG_REGISTRY,
+        "https://registry.npmjs.org",
+      );
+      assert.equal(
+        await readFile(options.env.NPM_CONFIG_USERCONFIG!, "utf8"),
+        "",
+      );
+      assert.equal(options.cwd, root);
+      if (args[0] === "view") {
+        const fixture = fixtures.get(args[1]!.slice(0, -"@latest".length))!;
+        return JSON.stringify({
+          name: fixture.metadata.name,
+          version: fixture.metadata.version,
+          dist: fixture.metadata,
+        });
+      }
+      if (args[0] === "pack") {
+        const fixture = fixtures.get(args[1]!.slice(0, -"@0.1.8".length))!;
+        const filename = basename(fixture.tar);
+        await cp(fixture.tar, join(args.at(-1)!, filename));
+        return JSON.stringify([{ filename }]);
+      }
+      assert.deepEqual(args, [
+        "create",
+        "--yes",
+        "axmorf-studio@latest",
+        "fresh",
+        "--",
+        "--yes",
+      ]);
+      const npx = join(
+        options.env.NPM_CONFIG_CACHE!,
+        "_npx",
+        "fresh-resolution",
+      );
+      for (const [name, destination] of [
+        [names[0], workspace],
+        [names[1], npx],
+      ] as const) {
+        const fixture = fixtures.get(name)!;
+        const packagePath = join(destination, "node_modules", name);
+        await mkdir(dirname(packagePath), { recursive: true });
+        await cp(join(fixture.root, "package"), packagePath, {
+          recursive: true,
+        });
+        await writeFile(
+          join(destination, "package-lock.json"),
+          JSON.stringify({
+            lockfileVersion: 3,
+            packages: {
+              [`node_modules/${name}`]: {
+                version: fixture.metadata.version,
+                resolved: fixture.metadata.tarball,
+                integrity: fixture.metadata.integrity,
+              },
+            },
+          }),
+        );
+      }
+      return "created\n";
+    },
+  );
+  assert.equal(calls.filter((args) => args[0] === "create").length, 1);
+  assert.equal(calls.filter((args) => args[0] === "view").length, 4);
+  assert.equal(installed.creation.method, "npm-create-public-registry");
+  await verifyPublicArtifacts(
+    installed.creation,
+    installed.artifacts,
+    workspace,
+  );
+  const publicEvidence = {
+    schemaVersion: 1,
+    hosts: ["codex", "hermes"].map((host) => ({
+      ...hostReceipt(host as "codex" | "hermes"),
+      creation: installed.creation,
+      packages: {
+        runtime: summary(installed.packages.runtime),
+        creator: summary(installed.packages.creator),
+      },
+      unchangedPackageFiles: installed.packages.runtime.files.length,
+    })),
+  };
+  assert.throws(
+    () =>
+      verifyReceipt(
+        publicEvidence,
+        installed.packages.runtime,
+        installed.packages.creator,
+      ),
+    /cannot substitute/u,
+  );
+  assert.equal(
+    (
+      await verifyPublicReceipt(
+        publicEvidence,
+        installed.artifacts.runtimeTarball,
+        installed.artifacts.creatorTarball,
+      )
+    ).status,
+    "first-use-public-registry-passed",
+  );
+  const candidateEvidence = {
+    ...publicEvidence,
+    hosts: publicEvidence.hosts.map((host) => ({
+      ...host,
+      creation: hostReceipt(host.host).creation,
+    })),
+  };
+  await assert.rejects(
+    () =>
+      verifyPublicReceipt(
+        candidateEvidence,
+        installed.artifacts.runtimeTarball,
+        installed.artifacts.creatorTarball,
+      ),
+    /cannot substitute/u,
+  );
+  await writeFile(join(workspace, "package-lock.json"), "{}");
+  await assert.rejects(
+    () =>
+      verifyPublicArtifacts(installed.creation, installed.artifacts, workspace),
+    /lock changed/u,
+  );
+});
+
+test("public creation rejects existing workspaces and local tarball configuration before installation", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "axmorf-public-create-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const workspace = join(root, "existing");
+  await mkdir(workspace);
+  const path = join(root, "config.json");
+  const config = {
+    host: "hermes",
+    workspace,
+    expectedVersion: "0.1.8",
+    promptFile: "never-read.txt",
+  };
+  await writeFile(path, JSON.stringify(config));
+  await assert.rejects(
+    () => createPublic(path, join(root, "snapshot.json")),
+    /nonexistent path/u,
+  );
+  await writeFile(
+    path,
+    JSON.stringify({ ...config, runtimeTarball: "local.tgz" }),
+  );
+  await assert.rejects(
+    () => createPublic(path, join(root, "snapshot.json")),
+    /Unrecognized/u,
+  );
 });

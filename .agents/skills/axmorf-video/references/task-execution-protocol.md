@@ -30,6 +30,12 @@ Run prepare's exact attempt-bound bind command before any task read or write. Bi
 TaskRevision, active attempt, immutable input checksums, and TaskExecutionContract without writing task files. Only
 `task-worker-bound` grants a capability. Never guess a workspace or reconstruct commands.
 
+The generated short command uses `--project`, `--attempt` and `--assignment <positive ordinal>` (plus exact
+`--candidate` when present). The CLI resolves the full task/binding identity from that exact immutable attempt;
+it grants no authority until the same zero-write bind passes. Do not mix short assignment and manual task/binding
+flags. Preserve every returned command. Keep complete process results and wait on any returned session/cell handle,
+even when output is empty; a yielded process is not a completed task.
+
 After binding:
 
 1. Use the returned transport to read all three immutable inputs.
@@ -37,6 +43,11 @@ After binding:
 3. Run the exact bound `describe`, `finalize`, and `check` commands. Finalize performs fixed derived projection and
    then the same task-kind validation; repair only `agent-output` issues and repeat.
 4. Commit through the exact bound command. Use `taskFailureCommand` only for unrecoverable authored output.
+
+Finalize computes derived identities and fingerprints. When it returns `failureOwner: agent-output`, use its
+file/field diagnostics to correct the draft and rerun finalize before check; do not hand-compute hashes or read
+package internals. A finalizer command failure alone is not a fixed-system fault. Scene-local ranges use the
+immutable endFrame minus startFrame, with exclusive ends; do not round that duration or use the global endFrame.
 
 Describe/finalize/check/commit/task failure require a full valid binding. `spawnFailureCommand` is Root-only for a
 real child spawn, mount, controller-IO, sandbox, permission, or host-runtime failure; `fixedFailureCommand` is only

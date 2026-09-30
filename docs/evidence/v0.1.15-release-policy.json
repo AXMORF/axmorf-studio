@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.15",
+  "authorization": {
+    "reply": "Hermes的校验可以暂时不考虑，我现在只用Codex。",
+    "approvedScope": "Codex-only candidate and post-publication first-use acceptance for 0.1.15"
+  },
+  "productDefaultsChanged": false,
+  "hermesCertified": false,
+  "priorFailuresRetained": true,
+  "candidateReceipt": "v0.1.15-first-use.json",
+  "fullRepositoryCheck": {
+    "passed": 957,
+    "failed": 0
+  },
+  "packageChecks": "passed",
+  "dependencyAudit": "0 vulnerabilities",
+  "publication": "not yet published at this policy commit"
+}

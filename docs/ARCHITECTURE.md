@@ -134,6 +134,10 @@ TypeScript registry 完成。
 
 private config、voice profiles、shared media、core、other Projects 与 historical data 不属于 Agent task write scope。
 
+Project create 对 `render.width/height/fps/locale` 按字段解析：明确的 authored override 优先，省略字段继承
+ProducerConfig `renderDefaults`。只把解析结果冻结到 Project RenderSpec，不改写 private config；CLI 返回已复验
+render 供 Agent 在有成本生产前核对用户要求。既有 Project 的 RenderSpec 不由当前默认设置重新覆盖。
+
 ## 5. Task isolation
 
 Scene task reads one complete StoryBeat, its SemanticTiming slice, Scene-only requirements, a derived
@@ -146,6 +150,17 @@ the decoration component receives window-local frame zero. Cover reads only
 Story/VisualStyle/fixed CoverSpec. Template-copy is a fixed task over the configured Project-local template
 instance. Its artifact is the exact union of immutable copied source/assets and the canonical derived Scene bundle;
 live-only fixed projections are excluded from its task identity.
+
+Scene owner validator v4 distinguishes actual text from provable JSX-only layout/graphic children. A bounded
+syntax proof resolves lexical const bindings and supports common synchronous map returns; unknown or text-returning
+expressions still require readable text sizing. Numeric 2D translation/rotation is accepted, while shrinking or
+unknown text transforms remain rejected. Only explicit native SVG graphics without text, custom/unknown children,
+or text-affecting definitions are exempt from text-scale checks. The proof helper participates in the Scene policy
+fingerprint; no authored code is evaluated. These source checks do not certify rendered contrast or clipping.
+Default boundary templates keep transparent roots and read semantic colors from `VisualStyleSpec.theme`.
+The Composition directly paints the validated theme background and composites themed decoration behind Scenes in an isolated group capped at 8% opacity; a themed GlobalVisual base must return null and is never mounted.
+Legacy Projects without a theme retain their existing base path. Existing Project-local template copies remain immutable;
+incompatible legacy template/theme revisions are rejected before mutation. See [visual theme contract](contracts/VISUAL_THEME_CONTRACT.md).
 
 inspect 前的 execution resolver 按用户提示词、settings、内置 `subagents`/4 默认逐字段选择 Root inline 或 bounded
 subagents，且不进入 production identity。subagents 还要求宿主为本次 production 验证 `shared-workspace` 或
@@ -164,6 +179,10 @@ shared-workspace binding 提供严格 workspace capability；controller-io bindi
 bound file-read/file-write 读取 immutable/existing-output 或写 declared output。describe/finalize/check/commit 与
 authored task failure 需要 full binding；Root-only spawn failure 与 fixed-controller failure authority 更窄，
 只能记录 exact terminal event，不能访问 task content。child identity 不持久化。
+
+Finalizer 在全部 draft 投影成功前不写 derived outputs；draft schema 错误带 `diagnostic`，包含确切 file、首个 issue path/code/message、
+`failureOwner: agent-output` 与修正指引，source 和 npm CLI 使用相同序列化。Scene shot 越界报告实际 endFrame 与 immutable duration，
+不钳制 authored ranges、不要求 Agent 手算 fingerprint。immutable input、路径与未知 fixed 错误不因 finalizer 命令失败而归为创作错误。
 
 ## 6. Artifact Store security
 
@@ -184,6 +203,10 @@ Scene template audio projection 与 Resource Catalog；相同 bytes 幂等，已
 package 仍拥有发行 authority，Workspace 不能写 package directory；package path、cwd、PID、时间和 npm cache
 不进入 creative identity。
 
+公开 revision context/validate/create 与手动、continuation 自动 promotion 均把已验证的 runtime policy manifest
+传入共享 Revision 读取；candidate 与 live base 使用同一 policy authority。普通 npm Workspace 不提供开发仓库的
+`src/contracts` 等源码树，不能丢弃 manifest 后回落到开发源码扫描。
+
 creator install/bootstrap 与生成 Workspace 的 `doctor` 组成 host capability boundary。Agent 可以在 data plane
 之外准备声明的 Node.js/npm、普通依赖和宿主前置条件；OS/reference-environment label、安装步骤与诊断均不进入
 Revision/Task/Artifact/Delivery identity。doctor 只读检查当前 Workspace 的 declared readiness；它不允许 Agent
@@ -194,12 +217,16 @@ Remotion/FFmpeg/FFprobe/Studio 统一解析 Workspace-local `@remotion/cli` 的 
 前写入 Workspace，runtime render 不扫描 package、filesystem 或网络。
 
 Workspace configuration snapshot 要求根目录恰有一个 `remotion.config.mjs` 或 `remotion.config.ts`；creator
-生成 `.mjs`，源码 Workspace 可以使用 `.ts`。缺失或同时存在时 fail closed。所选配置与 `package.json`、lockfile
+生成 Remotion CLI 自动加载的 `.ts`，`.mjs` 仅供旧 Workspace 的配置快照识别。缺失或同时存在时 fail closed。所选配置与 `package.json`、lockfile
 共同进入独立 configuration fingerprint，不与 package-owned runtime policy 混成同一 identity。
 
 candidate scope 复用同一 immutable runtime/config 与 content-addressed Artifact Store，但隔离 Project source/public、
 narration、task workspace、attempt、disposable output 和 Delivery。所有 production/task/recovery CLI 都通过受信
 candidate resolver 定位这些 roots，不能把 candidate directory 当成第二个 Workspace root。
+GlobalVisual 与 Composition 类型校验读取 candidate source graph，但显式使用 shared Workspace runtime root 的
+TypeScript 配置；candidate 不复制 `tsconfig.json`，不得把隔离源码目录误作编译环境目录。
+末端 current-plan 的诊断 baseline 同样保留两个 root：交付/attempt 从 candidate 读取，媒体 probe 的 npm binary
+从 shared Workspace 解析。诊断不拥有或改写内容 identity，不把 candidate 当作第二个 npm Workspace。
 
 convergence 在任何 live write 前通过 read-only current-plan builder 重新计算 Revision、检查全部 required
 artifacts；它不调用 provider、不创建 workspace 或 planning attempt。Scene/GlobalVisual/Cover roots
@@ -262,6 +289,9 @@ Agent execution preferences 使用独立 strict contract 与 `0600` 原子存储
 terminal failed attempt 保持 immutable。显式 recovery 先做 read-only/zero-provider recover inspection，再在 lock
 内按 same current Revision reissue fresh attempt/bindings；它不要求 current delivery，复用 valid artifacts/drafts，
 并拒绝 active、stale 或 fixed-flow recovery。
+当前 recovery 要求明确的 `producer-agent-task-failed` outcome；fixed/host/unknown 或缺少失败任务证据仍阻塞。
+下游 dependency-only `blocked` 仅在完整、无环、identity 匹配的依赖图可追溯到该失败 Agent task 时放行；
+dirty fixed work、独立或未知 blocker 不放行。`recovery-ready` 仍不替代 Root 对原故障与旧 workers 全部退出的核实。
 
 Capability discovery is part of authoring: create context exposes Catalog-bound public API guides. A Scene context
 freezes exactly its allowlisted selected/descriptor records, including guide examples and fingerprints. The canonical
@@ -276,3 +306,13 @@ validator boundary。
 
 Browser preparation, real-render readiness, bounded media processes and explicit interrupted-attempt recovery are described in
 [Workspace reliability](guides/WORKSPACE_RELIABILITY.md). Process ownership and logs are diagnostic-only; read-only inspection remains zero-write.
+
+### Attempt-bound task handoff
+
+Workspace-local `native-probe.mjs` 只为临时能力验证生成随机 challenge、完整绝对路径和 worker prompt，不执行原生 child 派发。
+verify 零写入验证 exact 文件集与 bytes，cleanup 复验后只删除本次临时文件；native capacity、child 来源和槽位释放仍由宿主原生证据证明。
+临时 manifest 不包含 host identity/transport 设置，不进入 Project、Revision、Task、artifact 或 delivery；creator 将 helper 与指南一同发行。
+
+`--assignment` 在 exact project/attempt（及 candidate scope）内按 immutable dirty task snapshots 的稳定顺序解析完整 task/binding identity。
+prepare/reissue 生成命令与 `workerPrompts`；它们是 transient diagnostic routing，不写入 TaskExecutionContract、Revision、artifact 或 Delivery identity。
+简短入口继续复用 zero-write bind、active attempt、candidate containment、immutable checksum 和 task validators；缺失或越界 fail closed。

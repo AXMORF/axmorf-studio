@@ -73,8 +73,9 @@ export const inspectProjectCreateContext = async ({
       sourceMaterial: "说明把一个复杂目标拆成今天可以完成的小步骤。",
       sourceReferences: [],
       audience: "希望开始行动的普通观众",
+
       targetDurationSeconds: 30,
-      deliveryConstraints: ["中文竖屏；旁白简洁；结尾给出具体行动。"],
+      deliveryConstraints: ["旁白简洁；结尾给出具体行动。"],
     },
     story: {
       schemaVersion: 3,
@@ -109,9 +110,10 @@ export const inspectProjectCreateContext = async ({
     },
     visualStyle: {
       styleProfileId: style.styleProfileId,
+      theme: "dark",
       artDirection: {
         medium: "带纸张肌理的二维路径地图",
-        palette: "暖白底、深墨蓝线条和一处橙红强调色",
+        palette: "遵循 theme 的深色背景、浅色纸纹与暖色路径强调",
         lighting: "柔和侧光突出纸张层次",
         texture: "细纸纹与清晰的路径边缘",
         compositionGrammar:
@@ -119,7 +121,7 @@ export const inspectProjectCreateContext = async ({
         motionLanguage: "纠缠的线停住，一条线被抽出并向前延伸；变化对齐旁白",
         typography: "克制的大号无衬线字，画面不复述旁白",
       },
-      continuityRules: ["光点与纸张地图贯穿两段，橙红色只标记找到的那一步。"],
+      continuityRules: ["光点与纸张地图贯穿两段，暖色强调只标记找到的那一步。"],
       forbiddenTreatments: ["不要用与行动无关的漂浮粒子或抽象圆形填充画面。"],
     },
     resources: { allowedResourceIds: exampleResources, allowedSnapshots: [] },
@@ -192,26 +194,33 @@ export const inspectProjectCreateContext = async ({
       additionalRequirements: [],
     },
   });
+  const durationBudget = buildDurationBudget({
+    targetDurationSeconds: example.brief.targetDurationSeconds,
+    fps: config.renderDefaults.fps,
+    boundaryFrames: [
+      config.sceneDefaults.introSceneTemplateId,
+      config.sceneDefaults.outroSceneTemplateId,
+    ].reduce(
+      (frames, id) =>
+        frames +
+        (id === null ? 0 : getSceneTemplateDefinition(id).durationInFrames),
+      0,
+    ),
+    leadInFrames: example.render.leadInFrames,
+    tailFrames: example.render.tailFrames,
+  });
   return {
     status: "project-create-context" as const,
     storyId,
     renderDefaults: config.renderDefaults,
     inheritedSceneTemplates: config.sceneDefaults,
-    durationBudget: buildDurationBudget({
-      targetDurationSeconds: example.brief.targetDurationSeconds,
-      fps: config.renderDefaults.fps,
-      boundaryFrames: [
-        config.sceneDefaults.introSceneTemplateId,
-        config.sceneDefaults.outroSceneTemplateId,
-      ].reduce(
-        (frames, id) =>
-          frames +
-          (id === null ? 0 : getSceneTemplateDefinition(id).durationInFrames),
-        0,
-      ),
-      leadInFrames: example.render.leadInFrames,
-      tailFrames: example.render.tailFrames,
-    }),
+    durationBudget,
+    agentHandoff: {
+      nextAction: "report-to-user-before-project-create",
+      summary: `Render defaults: ${config.renderDefaults.width}x${config.renderDefaults.height}, ${config.renderDefaults.fps}fps, ${config.renderDefaults.locale}; boundary templates: intro=${config.sceneDefaults.introSceneTemplateId ?? "none"}, outro=${config.sceneDefaults.outroSceneTemplateId ?? "none"}; exampleTarget=${durationBudget.targetTotalSeconds}s, boundary=${durationBudget.boundarySeconds}s, availableNarrated=${durationBudget.availableNarratedSeconds}s.`,
+      instruction:
+        "Adapt the example to the user's target. Put explicit size/orientation, frame-rate and locale requests in render.width/render.height/render.fps/render.locale; omit unspecified fields to inherit renderDefaults. A textual requirement alone does not override dimensions. Use fieldExamples.render for a landscape example, not as an unconditional default. Do not change saved settings for this one Project. Recalculate speech budget with the chosen fps, boundaries and lead/tail. Before running project:create, report the resolved dimensions/fps/locale, selected boundaries and adapted total-duration budget in an intermediate progress message, not a final answer. Then continue tool execution in the same turn: write the adapted input and run nextCommand. Do not stop after the report or wait for a user reply unless a material brief conflict or actual blocker prevents creation. The example target is not the user's target. CLI output is not that report; existing video authorization needs no new confirmation. This handoff is diagnostic only.",
+    },
     publishingCollections: config.publishingCollections.map(({ id, name }) => ({
       id,
       name,
@@ -220,11 +229,13 @@ export const inspectProjectCreateContext = async ({
     capabilities,
     example,
     fieldExamples: {
+      render: { ...example.render, width: 1920, height: 1080 },
       "production.additionalRequirements": [AUTHORING_REQUIREMENT_EXAMPLE],
     },
     guidance: [
       "Adapt example to the requested brief; do not submit it unchanged as the user's video.",
       "Evaluate current capabilities and their authoring guides before choosing self-authored implementations. Match the story's camera, data, typography, media and motion needs to concrete APIs; put selected capability IDs in the Story pool and each relevant Scene candidateResourceIds. Empty selections remain valid when no capability fits; describe the reason in the visual intent.",
+      "Resolve each render field from the explicit user request first, otherwise renderDefaults. Convert an orientation/aspect-ratio request to concrete width and height in render; do not leave it only in brief.deliveryConstraints or production.additionalRequirements. Unspecified fields stay omitted, and saved settings remain unchanged. Verify the returned frozen render against the request before production.",
       "The example's paper map and light point are illustrative. Choose a different subject and visual metaphor when the user's story calls for one; do not repeat the example's motif across unrelated videos.",
       "production.additionalRequirements is an array of objects, never strings. Keep [] when no additional requirement is needed; otherwise adapt fieldExamples to the user's requirement, preserving every required field.",
       "durationBudget describes this example with inherited boundary templates. Recalculate available narration time when changing the requested total duration, render lead/tail or selected boundaries; include speech and pauses in that budget.",

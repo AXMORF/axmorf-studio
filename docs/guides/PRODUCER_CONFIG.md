@@ -102,6 +102,8 @@ fingerprint 不匹配、未知字段或结构
   generator 或 preview 的后续修复不会自动迁移既有 Project copy。
 - `renderDefaults`：新 RenderSpec 的 width/height/fps/locale；页面用一个“画面尺寸”下拉同时设置
   width/height，提供 9:16、16:9、4:5 与 1:1 四个常用规格；没有目标时长。
+  create input 的可选 `render.width/height/fps/locale` 按字段优先于此默认值；用户未指定的字段省略并继承。
+  单次项目覆盖不改写配置。创建响应返回已冻结 `render`，Agent 在 provider preparation 前复核其符合用户要求。
 - `readability.edgeInsetPx`：以 1080 短边为基准的 Scene 边缘留白。字幕底边 = 缩放后边缘留白 × 2；
   Scene 底边 = 字幕底边 + 字幕盒高度 + gap，再向上取整到 10px。RenderSpec 不再保存字幕安全区。
   该值由 Composition 拥有的 readability policy 解析成 full-frame inset；Scene task 只收到派生的

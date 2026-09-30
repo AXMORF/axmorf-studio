@@ -16,6 +16,7 @@ import {
   resolveSceneReadabilityPolicy,
   resolveSceneViewport,
   resolveSceneAvailableResources,
+  VISUAL_THEME_PRESETS,
   type Sha256Digest,
 } from "@axmorf/studio/contracts";
 import {
@@ -264,6 +265,7 @@ test("planner freezes capability API guides into the exact Scene context and tas
     visualStyle: {
       ...base.visualStyle,
       resourceCatalogFingerprint: catalog.catalogFingerprint,
+      theme: VISUAL_THEME_PRESETS.dark,
     },
     sceneInputs: base.sceneInputs.map((scene) => {
       const resources = scene.meaningId === "body" ? availableResources : [];
@@ -294,6 +296,14 @@ test("planner freezes capability API guides into the exact Scene context and tas
   assert.deepEqual(
     JSON.parse(after.contextBytes).scene.availableResources,
     availableResources,
+  );
+  assert.deepEqual(
+    JSON.parse(after.contextBytes).scene.visualStyle.theme,
+    VISUAL_THEME_PRESETS.dark,
+  );
+  assert.deepEqual(
+    JSON.parse(after.contextBytes).visualStyle.theme,
+    VISUAL_THEME_PRESETS.dark,
   );
   assert.notEqual(after.task.taskRevision, before.task.taskRevision);
   assert.match(
@@ -444,7 +454,7 @@ test("every Agent task binds the exact canonical context bytes it declares", () 
   }
 });
 
-test("GlobalVisual task freezes the derived layer policy under validator v2", () => {
+test("GlobalVisual task freezes the derived layer policy under validator v3", () => {
   const built = buildAgentTasks(inputs(), revisionId).find(
     ({ task }) => task.taskKind === "global-visual-owner",
   );
@@ -453,7 +463,7 @@ test("GlobalVisual task freezes the derived layer policy under validator v2", ()
 
   assert.equal(
     built.task.validatorPolicyVersion,
-    "global-visual-owner-validator-v2",
+    "global-visual-owner-validator-v3",
   );
   assert.deepEqual(
     context.layerPolicy,
@@ -471,6 +481,37 @@ test("full Project revision identity does not enter taskRevision", () => {
     first.map(({ task }) => task.taskRevision),
     second.map(({ task }) => task.taskRevision),
   );
+});
+
+test("Scene owner receives the full VisualStyle and its theme enters the task identity", () => {
+  const current = inputs();
+  const themed = {
+    ...current,
+    visualStyle: {
+      ...current.visualStyle,
+      theme: {
+        background: "#111827",
+        primaryText: "#f9fafb",
+        secondaryText: "#d1d5db",
+        accent: "#fbbf24",
+      },
+    },
+  } as Parameters<typeof buildAgentTasks>[0];
+  const owner = (loaded: Parameters<typeof buildAgentTasks>[0]) =>
+    buildAgentTasks(loaded, revisionId).find(
+      ({ task }) => task.semanticId === "body",
+    )!;
+  const first = owner(current);
+  const second = owner(themed);
+  assert.deepEqual(
+    JSON.parse(first.contextBytes).visualStyle,
+    current.visualStyle,
+  );
+  assert.deepEqual(
+    JSON.parse(second.contextBytes).visualStyle,
+    themed.visualStyle,
+  );
+  assert.notEqual(first.task.taskRevision, second.task.taskRevision);
 });
 
 test("Scene task revision binds only its meaning-local timing slice", () => {

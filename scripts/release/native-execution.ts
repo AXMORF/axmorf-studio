@@ -11,6 +11,28 @@ const object = (value: unknown): Row =>
   value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as Row)
     : {};
+const HermesTool = z
+  .object({
+    name: z.string().min(1),
+    arguments: z.union([z.record(z.string(), z.unknown()), z.string()]),
+  })
+  .strict();
+
+export const unwrapHermesToolCall = (value: unknown) => {
+  const parsed = typeof value === "string" ? JSON.parse(value) : value;
+  const bridge =
+    parsed !== null && typeof parsed === "object" && "calls" in parsed
+      ? z.object({ calls: z.tuple([HermesTool]) }).strict().parse(parsed).calls[0]
+      : HermesTool.parse(parsed);
+  return {
+    name: bridge.name,
+    arguments: z.record(z.string(), z.unknown()).parse(
+      typeof bridge.arguments === "string"
+        ? JSON.parse(bridge.arguments)
+        : bridge.arguments,
+    ),
+  };
+};
 const time = (value: unknown) => {
   const result =
     typeof value === "number" ? value * 1000 : Date.parse(String(value));
@@ -148,15 +170,7 @@ export function nativeTrace(host: "codex" | "hermes", text: string) {
       if (host === "hermes" && call.name === "tool_call") {
         // Hermes defers tools behind a native bridge. Its invocation records
         // the wrapper, while the native result records the executed tool name.
-        const bridge = z
-          .object({
-            name: z.string().min(1),
-            arguments: z.union([z.record(z.string(), z.unknown()), z.string()]),
-          })
-          .strict()
-          .parse(JSON.parse(call.arguments));
-        if (typeof bridge.arguments === "string")
-          z.record(z.string(), z.unknown()).parse(JSON.parse(bridge.arguments));
+        const bridge = unwrapHermesToolCall(call.arguments);
         assert.equal(
           payload.tool_name,
           bridge.name,
@@ -172,6 +186,181 @@ export function nativeTrace(host: "codex" | "hermes", text: string) {
     }
   }
   return { records, calls, outputs };
+}
+
+export function codexSpawnReceipts(
+  root: ReturnType<typeof nativeTrace>,
+  sessionId: string,
+) {
+  const completed = root.records.filter((record) => {
+    const payload = object(record.payload);
+    const item = object(payload.item);
+    return (
+      record.type === "event_msg" &&
+      payload.type === "item_completed" &&
+      payload.thread_id === sessionId &&
+      item.type === "CollabAgentToolCall" &&
+      item.tool === "spawn_agent" &&
+      item.status === "completed"
+    );
+  });
+  const eventIds = new Set<string>();
+  const childIds = new Set<string>();
+  for (const record of completed) {
+    const payload = object(record.payload);
+    const item = object(payload.item);
+    const eventId = z.string().min(1).parse(item.id);
+    assert.ok(!eventIds.has(eventId), "Duplicate native spawn event");
+    eventIds.add(eventId);
+    assert.equal(
+      item.sender_thread_id,
+      sessionId,
+      "Native spawn event has the wrong parent",
+    );
+    const receivers = z
+      .array(z.string().min(1))
+      .length(1)
+      .parse(item.receiver_thread_ids);
+    assert.ok(!childIds.has(receivers[0]!), "Duplicate native child receiver");
+    childIds.add(receivers[0]!);
+  }
+  const agentValues = root.outputs
+    .flatMap(({ objects }) => objects)
+    .filter(
+      (value) =>
+        typeof value.agent_id === "string" &&
+        typeof value.nickname === "string",
+    )
+    .map((value) => value.agent_id)
+    .filter((value): value is string => typeof value === "string");
+  const agentIds = new Set(agentValues);
+  assert.equal(
+    agentIds.size,
+    agentValues.length,
+    "Duplicate native spawn tool results",
+  );
+  if (completed.length === 0) {
+    assert.equal(
+      agentIds.size,
+      0,
+      "Codex spawn output has no native completed event",
+    );
+    const legacyValues = root.outputs
+      .filter(({ name }) => /spawn_agent$/u.test(name))
+      .flatMap(({ objects }) => objects)
+      .map((value) => value.task_name)
+      .filter((value): value is string => typeof value === "string");
+    const legacy = new Set(legacyValues);
+    assert.equal(
+      legacy.size,
+      legacyValues.length,
+      "Duplicate legacy spawn responses",
+    );
+    return { native: false, childIds: new Set<string>(), legacy };
+  }
+  assert.equal(
+    agentIds.size,
+    completed.length,
+    "Codex native spawn events and outputs do not match",
+  );
+  assert.deepEqual(
+    [...agentIds].sort(),
+    [...childIds].sort(),
+    "Codex native spawn receivers do not match tool results",
+  );
+  return { native: true, childIds, legacy: new Set<string>() };
+}
+
+export function codexCompletionMessages(
+  root: ReturnType<typeof nativeTrace>,
+  sessionId: string,
+  children: Array<{
+    sessionId: string;
+    ended: number;
+    lastAgentMessage: string | null;
+  }>,
+) {
+  const expected = new Map(children.map((child) => [child.sessionId, child]));
+  const messages = root.records
+    .filter((record) => record.type === "response_item")
+    .filter((record) => {
+      const payload = object(record.payload);
+      const metadata = object(
+        payload.internal_chat_message_metadata_passthrough,
+      );
+      return (
+        payload.role === "user" &&
+        Array.isArray(metadata.content_item_kinds) &&
+        metadata.content_item_kinds.length === 1 &&
+        metadata.content_item_kinds[0] === "multi_agent.subagent_notification"
+      );
+    });
+  const seen = new Set<string>();
+  const allowed: string[] = [];
+  let previous = 0;
+  if (messages.length === 0) return allowed;
+  for (const record of messages) {
+    const payload = object(record.payload);
+    const content = payload.content;
+    assert.ok(Array.isArray(content) && content.length === 1);
+    const item = object(content[0]);
+    assert.equal(item.type, "input_text");
+    const text = z.string().parse(item.text);
+    const match = text.match(
+      /^<subagent_notification>\n([\s\S]*)\n<\/subagent_notification>$/u,
+    );
+    assert.ok(match, "Malformed native subagent notification");
+    const notification = z
+      .object({
+        agent_path: z.string().min(1),
+        status: z.object({ completed: z.string().nullable() }).strict(),
+      })
+      .strict()
+      .parse(JSON.parse(match[1]!));
+    const child = expected.get(notification.agent_path);
+    assert.ok(child, "Native notification references an unknown child");
+    assert.ok(
+      !seen.has(notification.agent_path),
+      "Duplicate native notification",
+    );
+    seen.add(notification.agent_path);
+    const timestamp = time(record.timestamp);
+    assert.ok(timestamp >= previous, "Native notification order is not stable");
+    assert.ok(
+      timestamp >= child.ended,
+      "Native notification predates child completion",
+    );
+    assert.equal(
+      notification.status.completed,
+      child.lastAgentMessage,
+      "Native notification text does not match child final message",
+    );
+    previous = timestamp;
+    allowed.push(text);
+  }
+  assert.equal(
+    seen.size,
+    expected.size,
+    "Native completion notifications do not cover every child",
+  );
+  const rootCompletion = root.records
+    .filter(
+      (record) =>
+        record.type === "event_msg" &&
+        object(record.payload).type === "task_complete" &&
+        (object(record.payload).thread_id === sessionId ||
+          object(record.payload).thread_id == null),
+    )
+    .at(-1);
+  assert.ok(
+    rootCompletion,
+    "Native notifications have no Root completion event",
+  );
+  assert.ok(
+    previous <= time(rootCompletion.timestamp),
+    "Native notification follows Root completion",
+  );
+  return allowed;
 }
 
 export function codexChildTrace(
@@ -228,12 +417,29 @@ export function codexChildTrace(
   );
   assert.ok(settingsIndex > 2, "Fork has no native child settings boundary");
   const adapter = object(records[settingsIndex - 1]!.payload);
+  const adapterContent =
+    Array.isArray(adapter.content) && adapter.content.length === 1
+      ? object(adapter.content[0])
+      : {};
+  const adapterKinds = object(
+    adapter.internal_chat_message_metadata_passthrough,
+  ).content_item_kinds;
+  // Current Codex identifies this host message with typed metadata; older
+  // captures use the XML wrapper. Neither form replaces the lineage audit.
+  const hasRoleIdentity =
+    adapterKinds === undefined
+      ? String(adapterContent.text).startsWith("<multi_agent_role>")
+      : Array.isArray(adapterKinds) &&
+        adapterKinds.length === 1 &&
+        adapterKinds[0] === "multi_agent.role_instructions";
   assert.ok(
     records[settingsIndex - 1]!.type === "response_item" &&
       adapter.type === "message" &&
       adapter.role === "developer" &&
-      Array.isArray(adapter.content) &&
-      String(object(adapter.content[0]).text).startsWith("<multi_agent_role>"),
+      adapterContent.type === "input_text" &&
+      typeof adapterContent.text === "string" &&
+      adapterContent.text.trim().length > 0 &&
+      hasRoleIdentity,
     "Fork has no native child role adapter",
   );
   let parentIndex = 0;
@@ -315,6 +521,8 @@ export const NativeExecutionSchema = z
     requestedMaxConcurrency: z.literal(4),
     effectiveMaxConcurrency: z.number().int().min(1).max(4),
     peakActiveChildren: z.number().int().min(2).max(4),
+    peakBoundTasks: z.number().int().min(0).max(4).optional(),
+    fourWayBoundOverlapMs: z.number().nonnegative().optional(),
     dirtyTaskCount: z.number().int().min(5),
     productionChildCount: z.number().int().min(5),
     probeChildCount: z.number().int().positive(),
@@ -353,10 +561,30 @@ export const NativeChildInput = z
   })
   .strict();
 
+export function assertFourWayExecution(
+  execution: z.infer<typeof NativeExecutionSchema>,
+) {
+  assert.equal(
+    execution.effectiveMaxConcurrency,
+    4,
+    "Release acceptance requires effective capacity four",
+  );
+  assert.equal(
+    execution.peakBoundTasks,
+    4,
+    "Release acceptance requires four overlapping bound tasks",
+  );
+  assert.ok(
+    (execution.fourWayBoundOverlapMs ?? 0) > 0,
+    "Four-way task overlap must have positive duration",
+  );
+}
+
 export async function auditNativeExecution(input: {
   host: "codex" | "hermes";
   transcript: string;
   sessionId: string;
+  sessionSource?: string;
   workspace: string;
   startedAt: string;
   endedAt: string;
@@ -419,6 +647,8 @@ export async function auditNativeExecution(input: {
     !outputs.some(({ value }) => committed(value)),
     "Root must not commit child-owned artifacts",
   );
+  const codexSpawns =
+    input.host === "codex" ? codexSpawnReceipts(root, input.sessionId) : null;
   const children = [];
   for (const paths of input.nativeChildren) {
     const transcript = await readFile(paths.transcriptFile, "utf8");
@@ -429,6 +659,7 @@ export async function auditNativeExecution(input: {
     let id: string;
     let started: number;
     let ended: number;
+    let lastAgentMessage: string | null = null;
     let sessionChecksum: string | null = null;
     if (input.host === "codex") {
       const metas = trace.records.filter(
@@ -437,6 +668,12 @@ export async function auditNativeExecution(input: {
       assert.equal(metas.length, 1);
       const meta = object(metas[0]!.payload);
       id = z.string().min(1).parse(meta.id);
+      if (codexSpawns?.native) {
+        assert.ok(
+          codexSpawns.childIds.has(id),
+          "Codex child is missing from native spawn receipts",
+        );
+      }
       const spawn = object(object(object(meta.source).subagent).thread_spawn);
       assert.equal(
         spawn.parent_thread_id,
@@ -444,16 +681,17 @@ export async function auditNativeExecution(input: {
         "Codex child is not a native direct descendant",
       );
       assert.equal(spawn.depth, 1);
-      const agentPath = z.string().min(1).parse(spawn.agent_path);
+      if (codexSpawns?.native) {
+        if (spawn.agent_path !== null && spawn.agent_path !== undefined)
+          z.string().min(1).parse(spawn.agent_path);
+      } else {
+        const agentPath = z.string().min(1).parse(spawn.agent_path);
+        assert.ok(
+          codexSpawns?.legacy.has(agentPath),
+          "Codex child has no native spawn response",
+        );
+      }
       assert.equal(meta.cwd, input.workspace);
-      assert.ok(
-        root.outputs.some(
-          ({ name, objects }) =>
-            /spawn_agent$/u.test(name) &&
-            objects.some((value) => value.task_name === agentPath),
-        ),
-        "Codex child has no native spawn response",
-      );
       started = time(metas[0]!.timestamp);
       const complete = trace.records.filter(
         (record) =>
@@ -464,7 +702,12 @@ export async function auditNativeExecution(input: {
         complete.length > 0,
         "Codex child has no native completion event",
       );
-      ended = time(complete.at(-1)!.timestamp);
+      const final = complete.at(-1)!;
+      ended = time(final.timestamp);
+      lastAgentMessage = z
+        .string()
+        .nullable()
+        .parse(object(final.payload).last_agent_message ?? null);
     } else {
       assert.ok(
         paths.sessionFile,
@@ -476,7 +719,7 @@ export async function auditNativeExecution(input: {
         .object({
           id: z.string(),
           parent_session_id: z.string(),
-          source: z.literal("subagent"),
+          source: z.string(),
           cwd: z.string().nullable(),
           started_at: z.number(),
           ended_at: z.number(),
@@ -486,6 +729,13 @@ export async function auditNativeExecution(input: {
         .passthrough()
         .parse(JSON.parse(bytes.toString("utf8")));
       id = session.id;
+      // Hermes TUI's session context overrides platform="subagent" with the
+      // parent's source. Native parentage and task bind/commit remain authority.
+      assert.equal(
+        session.source,
+        input.sessionSource === "tui" ? "tui" : "subagent",
+        "Hermes child source does not match its native parent surface",
+      );
       assert.equal(
         session.parent_session_id,
         input.sessionId,
@@ -509,11 +759,17 @@ export async function auditNativeExecution(input: {
         ended > started,
       "Child session falls outside the tested run",
     );
-    const results = commandOutputs(trace).flatMap(({ objects }) => objects);
+    const timedResults = commandOutputs(trace).flatMap(
+      ({ objects, timestamp }) =>
+        objects.map((value) => ({ value, timestamp })),
+    );
+    const results = timedResults.map(({ value }) => value);
     const binds = results.filter(
       (value) => value.status === "task-worker-bound",
     );
     let taskRevision: string | null = null;
+    let boundAt: number | null = null;
+    let committedAt: number | null = null;
     if (binds.length === 0) {
       assert.ok(
         ended <= resolves[0]!.timestamp,
@@ -549,6 +805,16 @@ export async function auditNativeExecution(input: {
         started >= preparation.timestamp,
         "Production child predates its prepared task",
       );
+      boundAt = timedResults.find(
+        ({ value }) => value.status === "task-worker-bound",
+      )!.timestamp;
+      committedAt = timedResults.find(({ value }) =>
+        committed(value),
+      )!.timestamp;
+      assert.ok(
+        boundAt >= started && committedAt >= boundAt && committedAt <= ended,
+        "Task bind and commit results fall outside their native child lifetime",
+      );
     }
     children.push({
       sessionId: id,
@@ -557,6 +823,9 @@ export async function auditNativeExecution(input: {
       taskRevision,
       started,
       ended,
+      lastAgentMessage,
+      boundAt,
+      committedAt,
     });
   }
   assert.equal(
@@ -566,10 +835,9 @@ export async function auditNativeExecution(input: {
   );
   const spawnedCount =
     input.host === "codex"
-      ? root.outputs
-          .filter(({ name }) => /spawn_agent$/u.test(name))
-          .flatMap(({ objects }) => objects)
-          .filter((value) => typeof value.task_name === "string").length
+      ? codexSpawns!.native
+        ? codexSpawns!.childIds.size
+        : codexSpawns!.legacy.size
       : [...root.calls.values()]
           .filter((call) => call.name === "delegate_task")
           .reduce((count, call) => {
@@ -608,10 +876,33 @@ export async function auditNativeExecution(input: {
   const productionChildren = children.filter(
     (child) => child.taskRevision !== null,
   );
+  // Use the hosts' common timestamp domain, never absolute monotonic values
+  // from different worker processes. Session overlap alone can hide serial work.
+  const boundEvents = productionChildren
+    .filter((child) => child.committedAt! > child.boundAt!)
+    .flatMap((child) => [
+      { at: child.boundAt!, change: 1 },
+      { at: child.committedAt!, change: -1 },
+    ])
+    .sort((a, b) => a.at - b.at || a.change - b.change);
+  let boundActive = 0;
+  let peakBoundTasks = 0;
+  let fourWayBoundOverlapMs = 0;
+  let previous = boundEvents[0]?.at ?? 0;
+  for (const event of boundEvents) {
+    if (boundActive === 4) fourWayBoundOverlapMs += event.at - previous;
+    boundActive += event.change;
+    peakBoundTasks = Math.max(peakBoundTasks, boundActive);
+    previous = event.at;
+  }
   const refillAdmissions = productionChildren.filter((child) =>
     productionChildren.some((earlier) => earlier.ended <= child.started),
   ).length;
   const notifications = await hermesNotifications(input, root);
+  const codexMessages =
+    input.host === "codex"
+      ? codexCompletionMessages(root, input.sessionId, children)
+      : [];
   return {
     execution: NativeExecutionSchema.parse({
       mode: "subagents",
@@ -621,6 +912,8 @@ export async function auditNativeExecution(input: {
       requestedMaxConcurrency: 4,
       effectiveMaxConcurrency: capacity,
       peakActiveChildren: peak,
+      peakBoundTasks,
+      fourWayBoundOverlapMs,
       dirtyTaskCount: tasks.length,
       productionChildCount: productionChildren.length,
       probeChildCount: children.length - productionChildren.length,
@@ -638,7 +931,8 @@ export async function auditNativeExecution(input: {
       notificationFormatterChecksum:
         notifications.notificationFormatterChecksum,
     }),
-    allowedNativeMessages: notifications.messages,
+    allowedNativeMessages:
+      input.host === "codex" ? codexMessages : notifications.messages,
   };
 }
 

@@ -285,6 +285,9 @@ export const continueProjectProduction = async (
         candidateId: scope.candidateId,
         expectedRevisionId: result.revisionId,
         expectedDeliveryBuildId,
+        ...(runtimePolicyManifest === undefined
+          ? {}
+          : { runtimePolicyManifest }),
       });
       return {
         done: true as const,

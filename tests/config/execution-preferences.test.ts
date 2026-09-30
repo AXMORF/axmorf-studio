@@ -85,9 +85,9 @@ test("default subagents require verified transport and respect the available chi
   assert.deepEqual(constrained.limitedBy, ["runtime-capacity"]);
 
   const unknown = resolve({ runtimeWorkerTransport: "shared-workspace" });
-  assert.equal(unknown.status, "ready");
-  assert.equal(unknown.effectiveMaxConcurrency, 1);
-  assert.deepEqual(unknown.limitedBy, ["runtime-unknown-default"]);
+  assert.equal(unknown.status, "blocked");
+  assert.equal(unknown.effectiveMaxConcurrency, 0);
+  assert.deepEqual(unknown.limitedBy, ["runtime-capacity-unverified"]);
 
   const inline = resolveAgentExecution({
     preferences: DEFAULT_EXECUTION_PREFERENCES,
@@ -115,11 +115,11 @@ test("user execution fields override settings and runtime capacity clamps safely
       status: "blocked",
       mode: "subagents",
       requestedMaxConcurrency: 3,
-      effectiveMaxConcurrency: 1,
+      effectiveMaxConcurrency: 0,
       requireExactConcurrency: false,
       source: { mode: "settings", maxConcurrency: "settings" },
       workerTransport: null,
-      limitedBy: ["worker-transport-unverified", "runtime-unknown-default"],
+      limitedBy: ["worker-transport-unverified", "runtime-capacity-unverified"],
       persistence: "current-production-only",
     },
   );

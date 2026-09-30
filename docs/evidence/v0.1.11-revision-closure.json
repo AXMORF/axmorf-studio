@@ -1,0 +1,199 @@
+{
+  "status": "passed",
+  "scope": "isolated-publication-metadata-revision",
+  "project": "ten-minute-focus",
+  "sourceBefore": "sha256:ac7398ead8ce4c77ba84aa0f1ba6c8c7876b7294d99a53131b4e71e723278791",
+  "stage": "manual-promote-final-check",
+  "packageVersion": "0.1.11",
+  "packageBefore": "sha256:1f642f3423a1a52c76ce6575e54f3972729728edc22b98681f6fd709197d12a2",
+  "noOpCorrectlyRejected": true,
+  "candidateId": "revision-candidate-c93afc9d68f7d7c717fe293a7926f97f538744bd0a576f36d328daeb62aa3f91",
+  "estimatedCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 6,
+    "agentTasks": 0,
+    "deliveryMedia": [
+      "video",
+      "cover-4x3",
+      "cover-3x4"
+    ]
+  },
+  "actualCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 6,
+    "agentTasks": 0,
+    "deliveryMedia": []
+  },
+  "attemptId": "21622933-10d0-4073-b2f6-8485bf4fe07d",
+  "revisionId": "revision-234094489b021fea628688d32d2877e147139b3189a4ec8dcf06c5491e606712",
+  "deliveryBuildId": "delivery-880659efcccf26f5caf2f8ae82f012af8d0a2e8d2da29e313742d01a6dc87191",
+  "sourceAfter": "sha256:ac7398ead8ce4c77ba84aa0f1ba6c8c7876b7294d99a53131b4e71e723278791",
+  "sourceUnchanged": true,
+  "schemaVersion": 1,
+  "runtimePackage": {
+    "name": "@axmorf/studio",
+    "version": "0.1.11",
+    "fingerprint": "sha256:bb82474e6db91ba2e98ed5530e2d842d284fe96fb29494718ab6c5d2f69dc4b0",
+    "fileCount": 252
+  },
+  "firstUseReceipt": "v0.1.11-first-use.json",
+  "entry": "Workspace public npm bin and exact prepare-returned continuation; no source adapter or injected policy",
+  "installedPackageUnchanged": true,
+  "verification": [
+    "base final check passed",
+    "context and no-op rejection passed",
+    "publishing-only validation and candidate creation passed",
+    "all Agent artifacts reused with zero provider/Agent requests",
+    "unique continuation completed and automatically promoted",
+    "promoted context and final check passed",
+    "manual promotion returned project-revision-current without delivery byte changes",
+    "manual-promote final check passed"
+  ],
+  "commandEvidence": [
+    {
+      "file": "01-base-final-check.command.json",
+      "checksum": "sha256:f0d54bc2f506c95d191c128260265e2c2a1e82379a6b6a69e89c1c37c6959ae1"
+    },
+    {
+      "file": "01-base-final-check.stderr.log",
+      "checksum": "sha256:e6d4a182f51ff143d8845caaa4b1447d685c40f8fdfe15bd043c77e8f9ff0ccb"
+    },
+    {
+      "file": "01-base-final-check.stdout.log",
+      "checksum": "sha256:8d9e045dca2b72fb74c627965d357bd2005ae4110fcddf9816d74f1fd2eea271"
+    },
+    {
+      "file": "02-revision-context.command.json",
+      "checksum": "sha256:5ce63f39cd8317539cf9e35e6dbf7a038eb4d1e41448f2555a3a0a10785ba78f"
+    },
+    {
+      "file": "02-revision-context.stderr.log",
+      "checksum": "sha256:2e8947662d4ad7421da73f9ae42f5921be73f76a43b1163f383f6714b3f8378d"
+    },
+    {
+      "file": "02-revision-context.stdout.log",
+      "checksum": "sha256:22d6c7a83ed3caa20903aedb744362e2f2afc30c9bd407c9a496e1538f4548ea"
+    },
+    {
+      "file": "03-noop-validation.command.json",
+      "checksum": "sha256:9d6f917db24213bf0627c6ead44b9742ed2f3dc9957c1636f8f5acc7157f4b7f"
+    },
+    {
+      "file": "03-noop-validation.stderr.log",
+      "checksum": "sha256:3ceb0c252e4892610b7fc126e0ef138a22138cac07077203ae46dfdfe23504b0"
+    },
+    {
+      "file": "03-noop-validation.stdout.log",
+      "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "04-publication-validate.command.json",
+      "checksum": "sha256:19de0d13cd0429e89a22e73e867083c5769b45fdfff9d94e5ff0a7b905f8818f"
+    },
+    {
+      "file": "04-publication-validate.stderr.log",
+      "checksum": "sha256:2eca8f50a76ccc970c164960e28878c3d0fb45ac4319fa01a8708b575bfb478a"
+    },
+    {
+      "file": "04-publication-validate.stdout.log",
+      "checksum": "sha256:a6ed30082379164b803844f86e905c4560340c3045ef009f74980f99d9766e8c"
+    },
+    {
+      "file": "05-publication-create.command.json",
+      "checksum": "sha256:bacfc094043dd835a31f58418d1576688ddfd0bd96e19d49fd6a09f99feed394"
+    },
+    {
+      "file": "05-publication-create.stderr.log",
+      "checksum": "sha256:1a6f1c5f0fd5842e56301cbefcef58ce8abcd5a82c649fdc47bba8aebaa98197"
+    },
+    {
+      "file": "05-publication-create.stdout.log",
+      "checksum": "sha256:cf657a0bcfb9a6bfbf56c21b478c7f56fbf8aca10057ba3e4ef3e1da11115fda"
+    },
+    {
+      "file": "06-candidate-inspect.command.json",
+      "checksum": "sha256:7366082bddc4cbe84d0879d4cc2164aa4878cdaf523e47d98226ffe0eff4cd29"
+    },
+    {
+      "file": "06-candidate-inspect.stderr.log",
+      "checksum": "sha256:6418887af3c69b948791490f9ff716488f32196cbfdd18d10a2d506493e95428"
+    },
+    {
+      "file": "06-candidate-inspect.stdout.log",
+      "checksum": "sha256:86f1280bca8badd322f28f06b523b4f3253fe4eecf087cb2a1a9e690d8524794"
+    },
+    {
+      "file": "07-candidate-prepare.command.json",
+      "checksum": "sha256:613428fb5e5ac43335bea2ea4da03a4bf813c0ff5565cecc6fd82751467326ef"
+    },
+    {
+      "file": "07-candidate-prepare.stderr.log",
+      "checksum": "sha256:86c73356ec17cca881f3ce042a1090b94a4966b8cc775568ed70d9de482679ce"
+    },
+    {
+      "file": "07-candidate-prepare.stdout.log",
+      "checksum": "sha256:98ba8539abf0457224751a790123b0daad99f99b27b26f9474436be998f800d5"
+    },
+    {
+      "file": "08-exact-continuation.command.json",
+      "checksum": "sha256:71854aee8e3af91c2636968e4964bea6f3d5276890a2a156a45be3b1749c3151"
+    },
+    {
+      "file": "08-exact-continuation.stderr.log",
+      "checksum": "sha256:557c7da5e633c9ad2ff9e805c1f8892bf545fc86bfa340cefaaf152ac8d004ca"
+    },
+    {
+      "file": "08-exact-continuation.stdout.log",
+      "checksum": "sha256:c3f1a5b8d3413b00a050b2f7cbffdbfb25b3f172f335bd319fdf84b9d085104d"
+    },
+    {
+      "file": "09-promoted-context.command.json",
+      "checksum": "sha256:5ce63f39cd8317539cf9e35e6dbf7a038eb4d1e41448f2555a3a0a10785ba78f"
+    },
+    {
+      "file": "09-promoted-context.stderr.log",
+      "checksum": "sha256:674991a6ff579498b60dd607c5ffd8149a1ff139c2667c7e3e3f5aa4d43c71ae"
+    },
+    {
+      "file": "09-promoted-context.stdout.log",
+      "checksum": "sha256:19f603aa6258d4fac5a9d4ebb20f09927866809cea4ad4cdb9dd60b59f95c834"
+    },
+    {
+      "file": "10-promoted-final-check.command.json",
+      "checksum": "sha256:f0d54bc2f506c95d191c128260265e2c2a1e82379a6b6a69e89c1c37c6959ae1"
+    },
+    {
+      "file": "10-promoted-final-check.stderr.log",
+      "checksum": "sha256:857005ea689896753a0aefefe0d30b22d89d6630c7b97fecb35324f9f7729563"
+    },
+    {
+      "file": "10-promoted-final-check.stdout.log",
+      "checksum": "sha256:814d4ab7ec66324b66b51a19ba48d33e0678a8f56245327bf124bd2f8ee205e6"
+    },
+    {
+      "file": "11-manual-promote-idempotency.command.json",
+      "checksum": "sha256:44b829d2b2df73ae1a49322f770461cd86241ee7fa44b721103a4e6059bc2892"
+    },
+    {
+      "file": "11-manual-promote-idempotency.stderr.log",
+      "checksum": "sha256:f7461ee72ded554e488eb36c528243cc97f70866b76bfc8515507070696e8915"
+    },
+    {
+      "file": "11-manual-promote-idempotency.stdout.log",
+      "checksum": "sha256:0372c87f63f56acdc298e998ca26feed661287a248504298b7c81e59475b23ef"
+    },
+    {
+      "file": "12-manual-promote-final-check.command.json",
+      "checksum": "sha256:f0d54bc2f506c95d191c128260265e2c2a1e82379a6b6a69e89c1c37c6959ae1"
+    },
+    {
+      "file": "12-manual-promote-final-check.stderr.log",
+      "checksum": "sha256:e8c84f670e635b169177d0870d228e62daac861a821dda08dcdcfdf755323bf8"
+    },
+    {
+      "file": "12-manual-promote-final-check.stdout.log",
+      "checksum": "sha256:814d4ab7ec66324b66b51a19ba48d33e0678a8f56245327bf124bd2f8ee205e6"
+    }
+  ],
+  "harnessChecksum": "sha256:ed46ff447dec60a54e187e324ac9b318cb58e8380c9d659d2ed9947116fe2e12"
+}

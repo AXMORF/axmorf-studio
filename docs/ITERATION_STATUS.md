@@ -1,9 +1,5 @@
 # Iteration Status
 
-> 文档类型：current implementation authority
->
-> 最后复核：2026-09-08 `v0.1.9` 已通过双宿主候选门禁并正式发布；官方 npm 新建 Workspace 的 Codex/Hermes 成片复测已通过。
-
 ## 能力选择与 Scene 资源准入修复（2026-09-30，本地未发布）
 
 创建 context 现在返回当前 capability 的公开 API、参数、可编译示例和 descriptor fingerprint；示例明确选择
@@ -14,8 +10,8 @@ Scene selected resources 的 contract、finalizer 与 checker 共用 canonical �
 checker 复核冻结记录，并检查公开能力的调用/JSX 挂载与声明对应；unused import 不构成使用证据。
 该检查只提供源码调用证据，不自动判定画面可见性或审美。AnimatedText 支持实际文案和排版参数，保留默认行为。
 
-本轮 `npm run check` 通过（841/841 tests、typecheck、lint、构建与 host Composition 检查）；
-package build/typecheck 与两个包的发行边界检查通过。最新本地 tarballs 经 creator 生成全新 Workspace，
+旧 0.1.9 checkout 的 `npm run check` 通过（841/841 tests、typecheck、lint、构建与 host Composition 检查）；
+package build/typecheck 与两个包的发行边界检查通过。该旧基线的本地 tarballs 经 creator 生成全新 Workspace，
 独立安装依赖并通过 bootstrap、browser:prepare 和真实 browser-render doctor。慢速冷下载被中止；浏览器环境
 复用逐文件 checksum 相同的 Chrome 149.0.7790.0 缓存，未修改 npm package code、依赖或 validator。
 原生 shared-workspace challenge probe 通过，以默认 subagents 模式/实际并发上限 3 执行四个独立 Agent tasks。
@@ -24,21 +20,282 @@ package build/typecheck 与两个包的发行边界检查通过。最新本地 t
 H.264/AAC 视频与两张 PNG 封面、publish.json 均已复验至 EOF；比 25 秒预算短 2.47 秒。
 当前成片关键帧已看到 LineChart、Camera 和自定义中文 AnimatedText 的实际输出。
 详见 [本地 Workspace 验证](evidence/2026-09-30-capability-workspace-smoke.json) 与
-[准入诊断](evidence/2026-09-30-scene-capability-admission.md)。未提交、未发布新包；其他既有 Workspace 不自动更新。
+[准入诊断](evidence/2026-09-30-scene-capability-admission.md)。该记录仅证明旧基线的能力专项；用户复核发现首尾深底深字，未通过首尾视觉验收。
+本次统一将已有 0.1.15 主题修复与能力增量合并，须重新验证；未发布新包。
 
-## 画面语言引导改进（本地未发布）
 
-`project:create:context` 的示例改为“困住 → 找到一步”两个连续 Scene，以明确主体、阻力、转变与结果的路径隐喻展示
-跨镜头承接；guidance 要求每个 narrated Scene
-把叙事目的写成可见因果。Scene `TaskExecutionContract` 增加焦点、空间关系、镜头连续性与旁白对齐的具体创作要求，
-并将容易诱导通用圆形动效的 Renderer 示例改为空白 API 骨架；现有 `scene-owner-validator-v4` 仍拒绝原样提交骨架。
-生成 Workspace 的提示词示例和 authoring/worker 指南同步强调可见主体、变化与结果；交付后对照 brief 审片，
-具体失配走既有隔离 revision。此轮改善的是 Agent 输入与人工反馈路径，
-不构成主观审美自动验收，也尚未有新的真实成片对照。当前 checkout 的 `npm run check` 已通过（825/825 tests、
-typecheck、lint、文档、构建与 host Composition 检查），`npm run packages:build`、`npm run packages:typecheck` 通过；
-未发布新 npm 包。
+## 0.1.15 已发布（2026-09-30，公共首次使用监督未通过）
 
-## 低 token 监督与视频任务恢复（2026-09-09，未发布）
+本轮更新 Workspace 源码并修复生成 Workspace 的 Remotion 配置加载：模板由 `remotion.config.mjs`
+改为当前 CLI 自动加载的 `remotion.config.ts`；浏览器准备允许明确的宿主可执行文件路径，下载等待延长至一小时。
+Scene 主题、首尾文字对比、交付布局、任务进度与 Scene review 改动均已纳入本版候选。
+完整 `npm run check` 通过 957/957，包类型检查、构建与两包 `check:package` 通过，依赖审计零漏洞。
+
+[Codex 候选收据](evidence/v0.1.15-first-use.json) 对当前重新打包的 255/41 个发行文件再次通过独立
+`first-use verify`：默认四并发、5 个创作 child、4 个探测 child、一次补位，四任务实际重叠 47.483 秒，
+零轮询、唯一 continuation，final 四文件与 EOF 解码通过；视频 1920×1080、30fps、898 帧、29.93 秒。
+抽看 1、5、15、25、29 秒帧，浅色片头片尾文字与背景对比清楚；未做逐帧检查或完整听审。
+[安装包 revision 闭环](evidence/v0.1.15-revision-closure.json) 在隔离副本完成零 provider/Agent 成本的
+publishing-only 修改、唯一 continuation、自动 promotion、current 复验与手动幂等 promotion。
+另一个隔离副本无代理直连装好 Chrome Headless Shell，`doctor` 六项、默认 `compositions` 与本地浏览器渲染交付均通过。
+
+用户明确同意本版仅以 Codex 验收；[版本限定规则](evidence/v0.1.15-release-policy.json) 不改变后续版本双宿主门槛。
+首次成功运行的原始临时会话在系统清理 `/tmp` 后未保留，签发的独立收据及当前包内容复验仍在；
+补存原始记录的全新 Codex 运行因宿主模型容量错误退出，未计为通过，也未覆盖成功收据。
+该原始记录保留缺口不能由候选收据补足。
+
+发布提交 `bc66f96` / tag `v0.1.15` 已推送；[npm OIDC 发布工作流](https://github.com/AXMORF/axmorf-studio/actions/runs/36605261163)
+成功，公共 registry 两包 `latest` 均为 `0.1.15`，SHA-512 与工作流包一致。
+[发布及公共复验记录](evidence/v0.1.15-published.json) 区分包发布与首次使用监督：全新公共安装的
+Codex Workspace 生成 1920×1080、30fps、32.896 秒视频及两张封面；current final 七项通过，视频和
+两张封面完整解码通过。抽看 1、5、15、25、31、32 秒帧，首尾文字在浅色背景上可读；未做逐帧检查或完整听审。
+该次 Root 在同一制作请求中成功运行两次 `project:execution:resolve`，独立 `first-use record` 以
+`Expected one successful native subagents resolution: 2 !== 1` 拒绝。因此公共包交付成功，但发布后
+首次使用监督门槛未通过；原始 Codex 会话记录保留在仓库外，失败未改写或降低门槛。
+
+## 0.1.14 已发布（2026-09-13，公共复验受浏览器下载阻塞）
+
+`@axmorf/studio` 与 `create-axmorf-studio` 的公共 `latest` 均已回读确认为 `0.1.14`。
+发布提交 `a9175d3` / tag `v0.1.14` 的正式 OIDC 工作流成功，registry SHA-512 与工作流 tarball 一致；
+全部 254/41 个发行文件与已通过的双宿主候选凭据一致。Linux 全量检查 938 项通过、0 失败、1 项
+Darwin 专属测试跳过；独立 macOS CI 939/939、零跳过，依赖审计零漏洞。
+[发布记录](evidence/v0.1.14-published.json) 区分已发布与发布后验收：两次全新公共安装均完成 npm install
+与 bootstrap，随后 Chrome Headless Shell 下载因 `storage.googleapis.com` 无数据超时及 TLS `ECONNRESET`
+失败；doctor 和两宿主模型制作均未启动。两次独立下载的公共 tarball 与发布工作流 bytes 完全一致。
+失败日志保留，creator 已自动清理隔离 staging；没有换包、准备旧浏览器缓存、控制器重试或伪造 receipt。
+该本机网络阻塞不改变已发布事实，但发布后首次制作复验未完成。下方未发布记录是此前阶段历史。
+
+## 0.1.14 发布准备与 Codex recorder 兼容（2026-09-13，未发布）
+
+修复提交 `4059d7b` 已快进推送，[macOS CI](https://github.com/AXMORF/axmorf-studio/actions/runs/34714145981)
+通过完整 repository/package gates、全新安装和真实浏览器检查；两项依赖审计零漏洞。
+CI 与本机候选的 254/41 个发行文件内容一致。本机 Codex/Hermes 全新 Workspace 均由原始 creator
+完成安装、浏览器下载和 doctor 六项检查，无手工缓存准备。
+
+Codex/Terra medium 的一次实际制作完成后，旧 recorder 把无 XML wrapper 的原生角色消息误拒。
+[兼容修复记录](evidence/v0.1.14-codex-native-role.json) 保留原错误：当前宿主使用
+`multi_agent.role_instructions` 类型元数据。recorder 识别该严格标记并保留旧格式，父子关系、历史顺序、
+任务所有权和并发约束不变。Red 复现后 50 项首次使用/监督回归、typecheck 和定向 lint 通过。
+同一份未改动原始记录经完整复验生成[Codex receipt](evidence/v0.1.14-codex-terra-receipt.json)，未重跑模型：
+5 个创作 child、4 个 probe、1 次补位、实际四任务重叠 69.107 秒、零轮询、唯一 continuation，final 7/7 和
+三份媒体完整 EOF 通过；1920×1080、30fps、1079 帧，约 35.97 秒。
+
+用户明确同意本版采用 Codex 四并发 + Hermes Terra/medium inline 的发布矩阵；仅作用于 0.1.14，
+不修改产品默认设置。新 recorder 对原始未改动 Hermes 记录生成正式凭据：5 个任务依次绑定/提交，
+0 子代理/派发，唯一 background continuation，原生 TUI/SQLite 对齐、final 7/7 和全部媒体 EOF 通过；
+1920×1080、30fps、806 帧，约 26.87 秒。[双宿主候选凭据](evidence/v0.1.14-first-use.json) 与
+[本版规则记录](evidence/v0.1.14-release-policy.json) 保留实际范围。新增验收规则先 Red 后 Green，
+56 项定向测试、typecheck、lint 通过；完整 CI 和实际发布状态以后续发布记录为准。
+已抽检两条成片各 10 帧及两张封面；Hermes 第三段一处装饰曲线跨过小字注释，保留该视觉问题。
+这些机械检查和抽样不代表全帧视觉检查或完整听审。目前未创建 tag、未发布 npm。
+
+## 制作汇报提前结束修复（0.1.14 候选，未发布）
+
+[原始事件与修复记录](evidence/v0.1.14-progress-handoff-fix.json) 记录 Hermes / Terra medium / inline
+在 doctor 和 create context 成功后仅汇报方案便结束：原生 `message.complete`、`running:false` 先于控制器关闭，
+没有 Project、production attempt 或成片。旧指令要求独立汇报，但未区分中间进度与结束轮次的 final 回复。
+当前 CLI handoff 和仓库/creator Skill 明确汇报后同轮继续工具执行；Hermes 使用 assistant text 搭配下一次 tool call。
+真实 blocker、用户暂停与已启动 native work 的 yield 保留，四文件 fixed 终态仍是唯一交付完成依据。
+这只是 Agent 提示修复，没有新增生产状态或自动重试；原始失败、业务提示、宿主控制器与发布门禁保持不变。
+28 项定向回归、933/933 全量测试、类型检查、lint、文档链接、包构建/检查、真实 compositions 和零 Project source gate 通过。
+同一业务提示和未改动的原生控制器在全新 Workspace 使用 Terra/medium、inline 完成：6 条中间汇报，
+5 个串行任务、0 子代理/派发/控制器追加提示、1 次 continuation，最终只报告一次完成。
+独立 final 7/7、四文件 checksum 和视频/两张封面完整 EOF 解码通过；成片 1920×1080、30fps、1137 帧、37.9 秒。
+首次标准安装的浏览器下载在 300 秒超时，失败日志保留；本轮改用公开 creator 的 no-install 流程，安装依赖后
+校验并准备已有同版浏览器缓存，再经原版 doctor 六项通过。两包与 12 份指南均未改动。
+因此这是汇报衔接与 inline 交付的专项回归，不替代默认并发首次使用发布 receipt；未发布 npm，未宣称完整视觉/听审或统计稳定率。
+
+> 文档类型：current implementation authority
+>
+> 最后复核：2026-09-30，公共 npm 两包 latest 均为 0.1.15，tag `v0.1.15` / release commit `bc66f96`。
+> 本版 Codex 候选收据通过，发布后公共包成片交付通过、首次使用监督收据未通过，见顶部当前记录。
+
+## 提示词画面参数覆盖（0.1.14 候选，未发布）
+
+新建项目的 strict create input 支持可选 `render.width/height/fps/locale`。用户明确要求优先，省略字段逐项继承
+ProducerConfig `renderDefaults`；配置文件不改写。覆盖值沿既有 RenderSpec/creation fingerprint 冻结，重复创建仍只读，
+非法尺寸/帧率/locale 在创建前拒绝。既有 Project 不迁移，也未扩展 revision 的可编辑范围。
+`project:create:context` 提供独立横屏示例并移除通用示例中的固定竖屏文字；CLI 返回已复验的实际 `render`，
+仓库及 npm Workspace 指南要求 Agent 将自然语言要求写入对应字段，并在 provider preparation 前核对。
+这不是运行时自然语言解析器，也不把文字约束本身当作尺寸 authority。
+
+[修复验证](evidence/v0.1.14-render-overrides-fix.json) 包含 25 项定向回归、933/933 全量测试、type/lint/docs/build、
+包类型/构建/检查，以及真实 compositions 和 Project source gate。原 `npm run check` 的静态阶段通过后，
+因重复浏览器下载缓慢而停止该下载；剩余宿主检查使用外部 Workspace 已准备并通过 PNG 验证的同版浏览器单独通过。
+首轮全量检查的 Skill 文档预算失败保留；仅精简重复文字，未修改预算或测试阈值。
+
+新候选包通过全新 npm Workspace 的公开 CLI 验证：默认 1080×1920、本次覆盖 1920×1080、仅宽度覆盖、
+仅 fps/locale 覆盖均符合预期；每组立即重复创建为只读 current，奇数宽度拒绝且无 Project-owned production 状态。
+配置 bytes、254 个 runtime 文件和检查的 10 份指南保持不变。两个外部检查脚本错误（CLI schema 退出码与 bootstrap
+目录占位文件）保留，未修改安装包或 validator；后者通过只读检查项目所属路径完成复核。
+包内容已变化，旧候选 receipt 不能作为新包的完整验收。尚未重跑真实 Agent 完整成片，也未发布 npm 或升级原工作空间。
+
+## 统一视觉主题与固定模板回归（0.1.14 候选，未发布）
+
+`0.1.14` 已冻结并完成[升版工程检查](evidence/v0.1.14-engineering-checks.json)：同一完整测试集合以本机单文件并发运行 930/930，随后 type/lint/docs/build、真实 compositions、包检查和零漏洞审计通过。默认文件并发下两轮进程启动超时失败保留；未修改断言或阈值，CI 仍使用原 `npm run check`。升版后重新渲染 144 张 still 与 4 段动画，全部 PNG 与已抽检矩阵逐字节一致。真实候选双宿主已运行，发布门禁未通过；公开包复测与原本地工作空间升级制作尚未执行。
+
+`6ffb921` 已快进推送至 npm 分支，其 [macOS CI](https://github.com/AXMORF/axmorf-studio/actions/runs/34665779028)
+通过原有 repository/public package gates 和全新外部 Workspace 检查。原主 checkout 的未提交修改未动。
+
+[Hermes inline 横屏专项实测](evidence/v0.1.14-hermes-inline-landscape.json) 使用同一候选、全新 Workspace/profile、
+Luna/medium 和一条明确要求 1920×1080 的业务提示。5 个任务逐个绑定并提交，零 child、零派发、零控制器追加提示；
+唯一 attempt/continuation 生成四文件，独立 final 7/7 和 EOF 解码通过。成片仍为 1080×1920、35.6333 秒，
+Hermes 最终明确报告尺寸不符。时长偏差按用户要求不作为问题，inline 仅为本次 override，未改保存设置或默认发布门禁。
+零派发不会满足既有 recorder 的 background delegation 断言；另记录 global task 绑定后一次越过 workspace 的 live RenderSpec 读取，
+因此这里只确认串行行为与媒体检查，不能写成完整 task protocol 或默认多 Agent 首次使用验收通过。
+
+尺寸来自创建时的 Workspace `renderDefaults`；Agent 只写入文字横屏约束，未同步实际设置。
+隔离副本通过正式 Web 设置 API 改成 1920×1080 后，公开 `project:create` 正确继承尺寸；该对照零 provider、
+零 production attempt，未制作横屏成片。原 Project/交付、254 个安装包文件和 12 份指南保持不变。
+两个外部检查脚本的断言错误及原代码完整保留：inline 使用零 child slots，配置写入会重算 fingerprint；
+仅修正外部检查，没有修改安装包、validator 或重跑实际生产。下一步需在创建前落实尺寸，并在 prepare 前复验 RenderSpec。
+六帧及两张封面的抽检确认主题与 Logo 修复仍有效，同时记录正文通知标签重叠和字幕孤字换行；不宣称横屏视觉或完整听审通过。
+
+[首轮候选实测](evidence/v0.1.14-candidate-review.json) 使用同一批 254/41 个发行文件、全新 npm Workspace 和宿主 profile、
+Luna/medium、各一条普通业务提示，控制器无追加指导。两边均生成四文件并通过独立 final 7/7 与完整 EOF 解码，
+各有 5 个创作 child、4 个 probe、1 次补位；四任务绑定到提交的实际重叠为 Codex 216634 ms、Hermes 172889.81 ms。
+[Codex 单宿主 recorder](evidence/v0.1.14-candidate-codex-receipt.json) 通过，但提示和创建前报告要求横屏，
+模型未落实 render defaults，成片实际为 1080×1920、30.9 秒；不能把机械通过写成完整需求通过。
+Hermes 成片为 1080×1920、35.6 秒，Root 调用 14 次 child-list、5 次 shell sleep、10 次子任务日志读取和 3 次 steer；
+三批原生通知均在首次完整交付报告之后进入模型上下文，recorder 以 `Child list polling is not native completion` 拒绝。
+宿主 dispatch 提示同时禁止 polling 又推荐 list/live transcript，已保留冲突证据；模型也已完整读过 Workspace 禁令，
+不能将失败归为检测误报或声称已证明唯一根因。未修改宿主、安装包、失败记录或门禁，未重跑相同候选来替换失败。
+
+实际查看每条成片的 34 个抽样帧及两张封面，深浅主题的首尾与正文保持一致，旧 Logo/引用浅底贴片未再出现。
+Hermes 第三段序号重复及孤字换行、Codex 横屏需求偏差和字幕断词均已记录；未做全帧或完整听审。
+这两条实际样片均为竖屏；横屏、长引用及六引用覆盖来自下述合成矩阵。
+原本地 Workspace 已完整备份，393 个非 node_modules 普通文件与备份再次匹配，安装版本仍为 0.1.13。
+没有创建发布 tag 或触发 npm 发布工作流，不宣称已完成新公共包的本地制作验收。
+
+[安装包 revision 闭环](evidence/v0.1.14-revision-closure.json) 在已完成候选 Workspace 的全新隔离副本中通过：
+等价 no-op 正确拒绝，publishing.description 修改经 validate/create、inspect/prepare、唯一 continuation、
+自动 promotion、手动幂等 promotion 与两次 final 7/7。新增 provider/Agent 均为 0，复用 6 个旁白缓存，
+视频和两张封面 bytes 不变，publish.json 随文案修订变化；原 Workspace、安装包及指南完整哈希不变。
+首个测试副本因外部控制器误将 CLI 的 agentHandoff 字段交给 strict domain schema 而在 prepare 前停止；
+失败完整保留，仅修正控制器的已知输出边界并通过 23 项非生产回归后，在新副本运行上述闭环。
+此脚本化修订兼容性检查不替代双宿主首次制作验收，也不宣称 Agent 修订或故障恢复已验证。
+
+新增 [Visual theme contract](contracts/VISUAL_THEME_CONTRACT.md)：创建时将 dark/light/custom 解析为一份已校验的
+background、primaryText、secondaryText、accent。Composition 实际绘制该背景，正文 task context 与固定首尾共用
+VisualStyleSpec；不再以文字提示或局部白色衬板保证一致性。三个前景角色在固定 8% 装饰合成范围内须达到 4.5:1。
+themed GlobalVisual base 必须直接返回 null；其 decoration 由 runtime 隔离到正文后方并限制组透明度，源检查拒绝
+CSS/DOM 注入和副作用入口。该检查是受限创作合同，不宣称任意 JavaScript 的安全沙箱或任意正文视觉认证。
+
+固定模板移除 0.1.12 引入的浅底、48px 偏移和品牌局部裁剪，保留 Logo paths、字体、布局及 frame 动画。
+真实过渡帧另确认旧横版关注按钮会将完整文案挤成两行；按钮容纳和长引用间距单独修正，不缩小文字或更改 Logo。
+旧 Project 的 immutable template bytes 不原地迁移；已有 themed Project 通过 revision 更新颜色，旧模板 Project
+拒绝直接添加主题。theme 与相关实现通过既有 fingerprint/policy 链使受影响任务和交付失效。
+
+[无 provider 渲染回归](../proofs/scene-theme/README.md) 使用真实 CompositionAssembly、SceneViewport 和固定模板，
+覆盖深浅主题、横竖屏、0/1/6 条引用及长标题/链接。首轮实际查看发现横版长引用挤掉最后一排，机械检查未发现该问题；
+失败媒体保留在本地 `out/scene-theme-proof-reference-layout-failure/`；第二轮按钮问题保留在
+`out/scene-theme-proof-button-layout-failure/`，均不作为视觉通过证据。
+第三轮 144 张原尺寸 still、4 个完整 360 帧动画及媒体/源码复验通过；实际查看全部 still 联系表并放大关键帧，
+已确认本矩阵的引用完整、按钮单行、首尾无浅底贴片。最大 Logo 入场仍按原设计超出 SceneViewport，由既有安全区裁切，
+没有恢复品牌卡片级裁剪。全量静态检查 929/929；最后按钮改动后再通过 20 项模板/编译回归、type/lint、真实 compositions、
+package build 与两包 check。9 份模板发行资源与源码逐字节相同。完整边界和指纹见
+[工程与视觉记录](evidence/visual-theme-20260912-review.json)。这些是合成场景的抽帧证据，不等同真实制作或逐帧播放/听审。
+上述合成回归本身不调用 provider；后续候选实测见本节前文。原 Workspace 与既有交付保持不变。
+
+## 并发交接与监督修复（0.1.13 已发布）
+
+短 `--assignment` 由 exact attempt 的 immutable dirty task snapshots 还原 full task/binding identity；prepare/reissue 同时提供完整 worker handoff。
+原 zero-write bind、active attempt、candidate isolation、checksum 与 task validators 保持强制，旧 full-identity CLI 继续可用。
+首轮候选 Codex 仍省略 runtime capacity 并被旧默认放行为串行，已保留该失败证据；未验证容量改为前置阻断。
+第二轮 Hermes 把 probe response 派到错误目录并误判文件隔离，Codex 首次派发又受未释放 probe 槽位影响。
+后续改由 Skill helper 生成完整绝对路径与 probe prompts，固定验证临时文件，并要求原生槽位释放后再派发生产任务。
+第三轮 Hermes 在四路探测/派发后被 240 对 239 帧的 authored shot 越界阻断；finalizer 隐藏具体 draft 错误导致误诊。
+第三轮 Codex 成片 46.4 秒，但缺少 inspect 后、prepare 前的用户报告，独立 recorder 拒绝作为发布证据。
+当前补充结构化 finalizer 诊断与严格 Agent task recovery 的下游依赖阻塞判断；失败样本仍保留，不更改安装包或旧 attempt。
+第四轮 Codex 再次把报告放在 prepare 后；新 CLI handoff 在操作返回处给出实际摘要与报告次序，未知保持未知，不新增审批或持久状态。
+Skill 明确单 probe 只证明 I/O 而非最大容量，并给出完整进程结果等待、wait-any 未完成集合与 Hermes native background/notify 规则。
+发布 recorder 新增绑定到提交的实际任务重叠统计，并要求四并发持续时间为正；不会把 session 存活或配置上限当作实际工作并发。
+这些改动降低模型的交接与等待负担，不能阻止任意宿主模型提前结束；真实 Luna/medium 双宿主验收和公开 npm 复测仍是交付门槛。
+
+第五轮[双宿主 receipt](evidence/v0.1.13-first-use.json) 绑定相同 252/41 个发行文件：Luna/medium、各一条业务提示、零控制器追加提示、5 个创作 child、4 个 probe、补位 1。
+Codex/Hermes 四任务绑定至提交的重叠分别为 67883 ms / 97396.06 ms；唯一 continuation、报告顺序、无 child polling、最终 7/7 与四文件 EOF 均通过。
+[过程与视觉抽检](evidence/v0.1.13-candidate-review.json) 保留模型自行纠错、35.8/35.0667 秒时长偏差、Hermes 首尾拆分报告错误，以及封面装饰线穿过文字的视觉瑕疵；不宣称完整需求或统计稳定率。
+
+[正式发布](evidence/v0.1.13-publication.json) 来自 `c1b67cb` 的 `v0.1.13`；CI 895 项及 package gates 通过。
+首轮 npm 接收 runtime 后 registry 超过五分钟才可见，工作流保留失败；确认其 integrity 后同标签幂等流程完成 creator 发布，两包 latest/integrity 已复核。
+旧 Workspace 已完整备份，当前 Workspace 已从公共 `npm create axmorf-studio@latest` 重建，private 配置逐字节保留。
+[公共 npm 复测](evidence/v0.1.13-public-verification.json) 使用相同普通业务提示、Luna/medium 和零控制器追加提示。
+Codex 成片 25.4 秒，真实四任务重叠 112830 ms，独立 recorder 通过；Hermes 成片 37.2333 秒，真实四任务重叠 163135.95 ms。
+Hermes Root 再次调用 17 次 child-list 查询，独立 recorder 以 `Child list polling is not native completion` 拒绝通过；没有成功 receipt，也未重跑来替换失败。
+另有 4 次 Hermes Root 对自己 workers 的催办，不属于控制器追加提示；监督失败的明确依据是 child-list polling。
+Hermes 安装包/指南未变、原生并发、final 7/7、四文件 checksum、H.264/AAC 双声道与 EOF 均经独立诊断通过，这些不能豁免监督失败。
+发布后视觉抽检记录正文文字偏暗/重叠、字幕孤字换行与时长偏差；未做全帧或完整听审。
+候选第五轮通过不能替代本次公开版本的失败事实；当前不宣称双宿主完整流程已稳定通过。
+
+## 可读性误报与默认模板对比度优化（0.1.12 发布候选）
+
+[工程检查](evidence/v0.1.12-engineering-checks.json) 完成 874/874、type/lint/docs/build、真实 compositions、package build/typecheck/check 和零漏洞审计。
+[原始问题](evidence/v0.1.12-readability-incident.json) 区分真实不合规、保守静态误报与渲染对比度问题；本次不以增加文字约束处理图形容器。
+
+Scene validator v4 使用有界词法证明识别 JSX-only block/map 与纯图形 SVG，允许可证明数字参数的 2D translate/rotate，
+包括真实 Remotion interpolate/spring 与显式 SceneRendererProps 输入；保留小字、文本缩小、未知字符串与覆盖逃逸拒绝。
+字号与 transform 按实际词法绑定、style/JSX 最终覆盖顺序判断；新增 proof helper 进入 Scene policy fingerprint。
+[独立复现回归](evidence/v0.1.12-readability-review.json) 确认 self-closing children 小字、后置 props spread 和 map receiver mutation 已拒绝，安全旧模板仍通过。
+SVG viewBox 缩小文字与独立 CSS 3D rotate 是基线和当前都存在的覆盖缺口；不宣称通用视觉质量认证。
+
+Scene 指南改为解释实际可读文字、可证明运动和渲染检查，纯布局/图形无需补虚拟字号。
+当时固定首尾模板为深色品牌/文字添加局部不透明浅底，root 仍透明；六引用横屏仅调整排布，不缩小文字或删引用。
+后续真实样本确认浅底及品牌局部裁剪造成视觉回归，当前未发布修复见本页顶部；以下保留当时抽检的范围与记录。
+[模板视觉证据](evidence/v0.1.12-boundary-visual.json) 包含深浅底、横竖屏与首尾动效的 36 张真实 Remotion still；
+抽检与固定组件对比度回归不等于任意正文 Scene 的视觉门禁。既有 Project-local immutable 模板和用户 Workspace 均未迁移。
+
+首次使用验收新增独立 public-registry 模式：发布后必须实际执行公共 npm create @latest，核对 registry metadata/integrity、
+creator npx 与 runtime 安装内容及 lockfile；不能把候选本地 tgz 测试替代发布后验证。
+
+[候选双宿主 receipt](evidence/v0.1.12-first-use.json) 绑定相同 252/40 个发行文件：Codex 25.1 秒、真实 Hermes TUI 28.4 秒；
+各一条业务提示、零控制器追加提示、5 个创作 child + 1 个 probe、峰值 4、补位 1、唯一 continuation。
+独立 final 各 7/7，四文件 checksum、H.264/AAC 双声道与 EOF 解码通过；252 个 runtime 文件与 11 份指南均未变。
+[安装包 revision](evidence/v0.1.12-revision-closure.json) 通过公开 CLI 的 no-op 拒绝、真实 publishing-only 修改、
+inspect/prepare、自动 promotion、手动幂等 promotion 与最终复验；新增 provider/Agent 均 0，原 Workspace 完整哈希未变。
+
+[Codex 全过程](evidence/v0.1.12-candidate-codex-process.json) 审阅 54 次自身原生调用及 58 个完成执行结果，
+5 个创作 worker 首次通过，无校验返工；已读长等待指南后仍有少量短空等待，属于非阻断执行偏差。
+[Hermes 全过程](evidence/v0.1.12-candidate-hermes-process.json) 审阅 89 次原生调用，5 个创作 worker 首次通过；
+Root 有一次非 Git Workspace 上的 Git 假设错误，随后 doctor 成功。3 批原生通知均先于最终答复，原进程仅一次 600 秒等待。
+未观察到 Root 越权修改 child 或安装包，不宣称全程零多余调用。
+[Codex 视觉](evidence/v0.1.12-candidate-codex-visual.json) 实看 19 帧与两张封面，
+[Hermes 视觉](evidence/v0.1.12-candidate-hermes-visual.json) 实看 25 帧与两张封面，所看首尾与正文无阻断性对比度、遮挡或裁切问题。
+Codex 有一处完整可读但孤字换行的字幕；淡入态与稳定态分开判定。未做全帧或完整听审，成功路径未触发 terminal 自动恢复。
+
+## Hermes TUI 监督与 revision 闭环修正（0.1.11 已验证候选）
+
+[最终双宿主 receipt](evidence/v0.1.11-first-use.json) 已绑定同一批未修改的实际安装包：Codex 28.3 秒、真实 Hermes TUI 28.13 秒。
+两边各一条普通业务提示、零控制器 follow-up、5 个创作 child + 1 个 probe、峰值 4、补位 1、唯一 continuation；
+独立 final 各 7/7，exact 四文件 checksum、H.264/AAC 双声道、尺寸/帧数及 EOF 解码通过。
+252 个 runtime 文件及 11 个指南逐字节未变，重新打包的 252/40 个发行文件也一致。
+Hermes 的 22 次工具调用、7 条可见报告和 3 批异步通知已用原生 UI 流与数据库绑定；通知均先于最终答复，最终结果未重复汇报。
+
+[安装包 revision 闭环](evidence/v0.1.11-revision-closure.json) 在完成 Workspace 的完整隔离副本中通过：
+public context、等价 no-op 拒绝、真实 publishing-only validate/create、inspect、prepare、唯一 continuation、自动 promotion、
+修改后 context/final、manual promote 幂等和再次 final。provider/Agent 新增成本均为 0，复用 6 项旁白缓存和全部创作 artifact；
+原 Workspace 完整哈希未变，安装包未修改。此验证直接使用 npm public bin，不使用 source adapter 或注入 policy。
+
+[完整复核](evidence/v0.1.11-closure-review.json) 记录 `npm run check` 846/846、type/lint/docs/build、真实 compositions、
+package build/typecheck/check 全部通过。仍存在开头一次非阻塞 Git 探测，以及原 Scene owner 对动态 transform/SVG 字号的正常修正；
+不宣称 Agent 全程零失败调用。两份成片已抽帧查看，部分文字与默认片尾在深色底上对比度偏弱；技术检查不等于完整视觉/听感验收。
+本轮成功路径没有触发 terminal failure 自动恢复，其覆盖仍来自现有回归，而非本次真实首次制作。
+
+修复内容：发行 Scene 指南、可执行示例、task contract 和错误反馈统一使用 `SceneRendererProps`，禁止 `useVideoConfig`；
+Cover contract 明确预计算并写入静态 SVG，validator 门槛不变。Root 指南明确创建前说明片头片尾预算、inspect 后向用户报告再 prepare；
+event-only 宿主依原生通知 yield/resume，所有已派发批次通知与 fixed 成功到齐后才汇报。
+公开 revision context/validate/create、manual/automatic promotion 保留已验证 runtime policy manifest；
+candidate GlobalVisual 类型检查与最终诊断分别显式使用 shared Workspace 的 compiler/toolchain root，同时保持 candidate source/delivery 隔离。
+
+[旧会话复核](evidence/hermes-supervision-20260909-incident.json) 确认 0.1.10 成片成功，但同步 `hermes -z` 验收未覆盖真实 TUI 异步通知条件。
+另外，`message.interim` 可见提示不完整写入 SQLite `messages`，此前仅据数据库断言“缺少用户报告”的结论证据不足，已纠正。
+0.1.11 起 [首次使用门槛](guides/FIRST_USE_RELEASE_GATE.md) 要求真实 TUI 与原生 UI/DB 绑定，文档同时明确首次制作与 revision 是两类证据。
+
+未通过的候选保持原样并保留记录：[首轮](evidence/v0.1.11-initial-candidate.json) 暴露 revision 的 `src/contracts` 扫描错误；
+[第二轮](evidence/v0.1.11-second-candidate.json) 暴露 [candidate compiler root 漏传](evidence/v0.1.11-revision-compile-incident.json)；
+[第三轮](evidence/v0.1.11-third-candidate.json) 在四文件生成后暴露 [末端诊断 toolchain root 漏传](evidence/v0.1.11-revision-bin-incident.json)。
+最后两项均先真实 RED→GREEN，并在新包验收前完成独立 source 全链集成。未改 Hermes core、失败 attempt 或任何既有 Workspace 安装包。
+
+## 低 token 监督与视频任务恢复（0.1.10 已发布）
 
 仓库 Agent 规则、Skill policy v23 和 creator 模板改为原进程阻塞等待/原生事件通知监督；普通等待超时只续等，
 错误时 Root 定位并指导原 executor，不读写其他 task workspace，不接管 fixed continuation。只报告一次 fixed 结果。
@@ -47,22 +304,28 @@ recover-inspect ready 才 same-Revision/零 provider reissue 到 fresh attempt/b
 底层程序、外部或未知故障只诊断报告，恢复再次失败停止。CLI gate、one-shot claim、旧 attempt 不可变与校验规则保留。
 本轮是 Agent 指南/策略修改，不是新增 CLI 自动修复器。文档/兼容性测试 23 项、既有 continuation/reissue/interrupt
 回归 24 项、creator package 检查、Skill 校验、链接和 scoped ESLint 已通过；8 个只读场景推演覆盖等待、返工、恢复与中断。
-本机 `/Users/ai/AgentWorkspace/axmorf` 的 5 个原版指南已同步并逐字节回读，package/lockfile 和 current delivery checksum
-未变；其他已安装 Workspace 不自动更新。尚无新 Hermes 真实故障恢复成片验收，未发布新 npm 包。
+此前对本机旧 Workspace 的 5 个指南手动覆盖已从备份恢复；原 0.1.9 package/lockfile 和交付文件未变。
+新指南仅通过正式新版本 creator 发行；当前 creator 不提供既有 Workspace 指南迁移，后续使用正式包新建 Workspace。
+[首轮成片通过](evidence/v0.1.10-supervision-first-pass.json)，但人工复核发现 Codex 反复请求一秒等待，未选为最终发布证据。
+指南进一步要求宿主 deadline 内最长阻塞等待，通常 30–60 秒或更长，禁止短等待循环与无变化叙述。
+新包在全新 profile/Workspace 重新验收：[双宿主 receipt](evidence/v0.1.10-first-use.json) 均通过，
+各 5 个创作 child + 1 个 probe、峰值 4、补位 1、Root 无 task commit、final 7/7、四文件 checksum/EOF 解码通过。
+Codex 25.97 秒、Hermes 28.33 秒；252 个 runtime 文件与 11 个指南未变，零控制器 follow-up。
+[原生记录复核](evidence/v0.1.10-supervision-review.json)：Codex continuation 后 3 次原进程 60 秒等待，Hermes 1 次原进程 600 秒等待，
+无额外生产查询；不把这些次数换算为 token 节省比例。真实故障自动恢复尚未实测，边界仅有既有回归与场景检查证据。
+完整本地 811/811、package build/typecheck、零漏洞审计与 macOS ARM64 CI 通过；CI 两包与候选的全部发行文件一致。
 
-## 当前源码重构（未发布）
+`v0.1.10` 从 exact commit `39edbd5` 发布；最终提交的 macOS ARM64 和 Linux 811 项全量门禁通过。
+runtime 首次被 npm 接收后约八分钟才可见，超过工作流五分钟等待期限；确认 registry integrity 匹配后，同标签第二次
+工作流验证并跳过已有 runtime，继续发布 creator。两个 public latest 均为 0.1.10，integrity 与 CI tarball 一致。
+[公共包复测](evidence/v0.1.10-public-registry.json) 各 5 个创作 child + 1 个 probe、峰值 4、补位 1；
+Codex 26.67 秒、Hermes 27.37 秒，原 continuation 成功，独立 final 7/7、四文件 checksum/EOF 解码通过。
+两边安装文件与指南未变；无控制器追加指导、未观察到开发仓库或历史制作上下文读取。Hermes 成功后额外执行了三次只读 CLI 查询，
+包含一次缺少 level 的调用与 help 查询，随后正确 final 检查通过；不把运行描述为零多余调用或 token 消耗确定为零。
+已从公共 `npm create axmorf-studio@latest` 新建用户 Workspace `axmorf-v0.1.10`，252 个 runtime 文件与 11 个指南一致，
+doctor 六项通过；旧 Workspace 保留且五处手动指南覆盖已恢复。见 [发行机器记录](evidence/v0.1.10-release.json)。
 
-执行进度投影与计划诊断字段已从 attempt filesystem adapter 提取到纯 domain 模块；初始/事件进度共用字段映射，
-存储读写与原子追加语义保持原样。架构检查新增 domain filesystem/child-process 依赖禁令。
-交付文件名与 artifact 路径集中到 `contracts/delivery-layout.ts`；封面尺寸复用 `FIXED_COVER_SPEC`，
-供构建、源码检查、媒体复验、candidate promotion 与 Web 使用。未改变 public JSON 格式、版本号或生产命令。
-编译后 package policy bytes 会变化，后续生产仍按既有 fingerprint 规则重新规划；不保证旧 artifact 跨包源码变更复用。
-
-本地 `npm run check` 通过（819/819 tests、typecheck、lint、文档、构建与 host Composition 检查），
-`npm run packages:build` 和 `npm run packages:typecheck` 通过。新增 8 项回归覆盖；封面任务合同的重构前后
-JSON 逐字节一致。当前 checkout 为 zero Project，本轮未做新的 provider/成片验收，也未发布新包。
-
-## 已发布工程增量（0.1.9 已发布并完成原生 subagents 首次使用验收）
+## 历史工程增量（0.1.9 已发布并完成原生 subagents 首次使用验收）
 
 默认执行策略为 `subagents`、最大并发 4；显式 inline 偏好继续生效。发行 Skill 明确 Root 负责全局 doctor/preflight，
 worker 只执行 exact bind 与 owning task 合同；每个不同 TaskRevision 必须 fresh native child/session，不得把完成的
@@ -157,8 +420,8 @@ reference environment evidence，不是 runtime allowlist；其他宿主可以�
 已认证。Agent 不得修改 package internals、精确依赖、sandbox 或 validators 来强行适配。
 
 仓库和两个 child packages 已采用 Apache-2.0；child packages 已移除 `private`、声明 public publish access，并
-补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.9` 与
-`create-axmorf-studio@0.1.9`，发布记录见上方证据。此前 `v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
+补齐 package README/LICENSE/third-party notices。当前公开版本是 `@axmorf/studio@0.1.10` 与
+`create-axmorf-studio@0.1.10`，发布记录见上方证据。此前 `v0.1.3` 从 exact tag 通过 Trusted Publisher 纯 OIDC 发布，registry integrity 与
 release candidates 一致，provenance、registry signatures 与 attestations 已由外部 fresh Workspace 复验。
 GitHub 仓库已转移为 `AXMORF/axmorf-studio`，npm 发布分支是 default branch，旧 `main` 保留。production 与完整
 repository `npm audit` 已通过 `fast-uri@3.1.6`、
@@ -309,7 +572,7 @@ isolated Project revision flow：外部能力只按
 - `AGENTS.md` 是唯一 repository Agent authority；`CLAUDE.md`/`GEMINI.md` 只导入该文件，OpenAI Skill metadata
   只提供可选 UI 展示。生产脚本不调用任何厂商 Agent SDK。
 - continuation 启动后 Root 不参与 barrier；event-driven fixed continuation 读取 immutable event log，在 task
-  failure 或 attempt 创建起一小时 terminal deadline 到期时直接退出，在全部成功后只调用一次 converge，fixed failure 不自动重试。Root 通过原生通知获知失败后按上方策略诊断，有界恢复只覆盖视频任务错误。
+  failure 或 attempt 创建起一小时 terminal deadline 到期时直接退出，在全部成功后只调用一次 converge，fixed failure 不自动重试。Root 按 Skill 诊断，有界恢复只覆盖视频任务错误。
 - terminal failed attempt immutable；`project:attempt:recover-inspect` 严格只读、零 provider，并要求 failed terminal、
   no active attempt、same current Revision、no fixed dirty/blocked。`project:attempt:reissue` 在 lock 内重检，零
   provider、不要求 current delivery，复用 valid artifacts/drafts 并创建 fresh attempt/bindings；stale/active/

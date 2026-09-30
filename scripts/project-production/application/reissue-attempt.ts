@@ -157,23 +157,83 @@ const assertAttemptIdentity = ({
 const assertPlanRecoverable = ({
   plan,
   label,
+  recoverableAgentTaskKeys,
 }: {
   readonly plan: Pick<ProducerPlan, "summary" | "tasks">;
   readonly label: "failed" | "current";
+  readonly recoverableAgentTaskKeys: ReadonlySet<string>;
 }) => {
-  const unsupported = plan.tasks.find(
-    ({ action }) => action !== "reuse" && action !== "dispatch-agent",
-  );
-  if (
-    plan.summary.dirtyFixedTaskCount !== 0 ||
-    plan.summary.blockedTaskCount !== 0 ||
-    unsupported !== undefined
-  ) {
+  if (plan.summary.dirtyFixedTaskCount !== 0) {
     fail(
       "attempt-recovery-plan-not-recoverable",
-      `The ${label} plan contains fixed-flow or blocked work.`,
+      `The ${label} plan contains fixed-flow work.`,
     );
   }
+  const taskKey = (task: { taskKind: string; subject: { id: string } }) =>
+    `${task.taskKind}:${task.subject.id}`;
+  const byKey = new Map(plan.tasks.map((task) => [taskKey(task), task]));
+  if (byKey.size !== plan.tasks.length)
+    fail(
+      "attempt-recovery-plan-not-recoverable",
+      `The ${label} plan contains duplicate task subjects.`,
+    );
+  const roots = new Map<string, ReadonlySet<string>>();
+  const resolving = new Set<string>();
+  const resolveRoots = (taskRevision: string): ReadonlySet<string> => {
+    const cached = roots.get(taskRevision);
+    if (cached !== undefined) return cached;
+    if (resolving.has(taskRevision))
+      fail(
+        "attempt-recovery-plan-not-recoverable",
+        `The ${label} plan contains a dependency cycle.`,
+      );
+    const task = byKey.get(taskRevision);
+    if (task === undefined)
+      fail(
+        "attempt-recovery-plan-not-recoverable",
+        `The ${label} plan contains an unknown dependency.`,
+      );
+    if (task.action === "reuse") return new Set();
+    if (task.action === "dispatch-agent") {
+      const result = new Set([taskRevision]);
+      roots.set(taskRevision, result);
+      return result;
+    }
+    if (task.action !== "blocked" || task.blockedBy.length === 0)
+      fail(
+        "attempt-recovery-plan-not-recoverable",
+        `The ${label} plan contains unsupported blocked work.`,
+      );
+    resolving.add(taskRevision);
+    const result = new Set<string>();
+    for (const dependency of task.blockedBy) {
+      const dependencyTask = byKey.get(
+        `${dependency.taskKind}:${dependency.subjectId}`,
+      );
+      if (
+        dependencyTask === undefined ||
+        dependencyTask.taskRevision !== dependency.taskRevision
+      )
+        fail(
+          "attempt-recovery-plan-not-recoverable",
+          `The ${label} plan contains an invalid blocked dependency.`,
+        );
+      for (const root of resolveRoots(taskKey(dependencyTask)))
+        result.add(root);
+    }
+    resolving.delete(taskRevision);
+    roots.set(taskRevision, result);
+    if (
+      result.size === 0 ||
+      ![...result].some((revision) => recoverableAgentTaskKeys.has(revision))
+    )
+      fail(
+        "attempt-recovery-plan-not-recoverable",
+        `The ${label} plan contains blocked work without a recoverable Agent root.`,
+      );
+    return result;
+  };
+  for (const task of plan.tasks) resolveRoots(taskKey(task));
 };
 
 const dirtyAgentTasks = (current: CurrentPlan) =>
@@ -253,12 +313,47 @@ const inspectRecovery = async ({
       "Only a terminal failed attempt can be reissued.",
     );
   }
+  const failedTaskByRevision = new Map(
+    failed.taskExplanations
+      .filter(({ taskRevision }) => taskRevision !== null)
+      .map((task) => [task.taskRevision, task]),
+  );
+  const failedOutcomes = failed.taskOutcomes.filter(
+    ({ outcome }) => outcome === "failed",
+  );
+  if (
+    failedOutcomes.length === 0 ||
+    failedOutcomes.some(({ diagnosticCode, taskKind, taskRevision }) => {
+      const task = failedTaskByRevision.get(taskRevision);
+      return (
+        diagnosticCode !== "producer-agent-task-failed" ||
+        task?.action !== "dispatch-agent" ||
+        task.taskKind !== taskKind
+      );
+    })
+  )
+    fail(
+      "attempt-recovery-plan-not-recoverable",
+      "The failed attempt contains a fixed, host, or unsupported task failure.",
+    );
+  const recoverableAgentTaskKeys = new Set(
+    failed.taskOutcomes
+      .filter(
+        ({ outcome, diagnosticCode }) =>
+          outcome === "failed" &&
+          diagnosticCode === "producer-agent-task-failed",
+      )
+      .map(({ taskRevision }) => failedTaskByRevision.get(taskRevision))
+      .filter((task): task is NonNullable<typeof task> => task !== undefined)
+      .map((task) => `${task.taskKind}:${task.subject.id}`),
+  );
   assertPlanRecoverable({
     plan: {
       summary: failed.taskSummary,
       tasks: failed.taskExplanations,
     },
     label: "failed",
+    recoverableAgentTaskKeys,
   });
 
   const attempts = await dependencies.listAttempts({
@@ -300,7 +395,11 @@ const inspectRecovery = async ({
       "Failed attempt revision is stale against current inputs.",
     );
   }
-  assertPlanRecoverable({ plan: current.plan, label: "current" });
+  assertPlanRecoverable({
+    plan: current.plan,
+    label: "current",
+    recoverableAgentTaskKeys,
+  });
 
   const dirty = dirtyAgentTasks(current);
   for (const task of dirty) {
@@ -470,7 +569,24 @@ export const reissueAttempt = async (input: RecoveryInput) => {
           blockedBy,
           workspaceRecovery,
           ...buildTaskDispatch({
+            repositoryRootDir: scope.repositoryRoot,
             task,
+            assignment: (() => {
+              const index = taskSnapshots
+                .filter(
+                  ({ decision }) =>
+                    decision.action === "dispatch-agent" &&
+                    decision.taskRevision !== null,
+                )
+                .findIndex(
+                  ({ decision }) => decision.taskRevision === task.taskRevision,
+                );
+              if (index < 0)
+                throw new Error(
+                  "Agent task is missing from attempt snapshots.",
+                );
+              return index + 1;
+            })(),
             attemptId: attempt.attemptId,
             workspace,
             ...(scope.candidateId === null

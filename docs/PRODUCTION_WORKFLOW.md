@@ -14,6 +14,7 @@ Agent 第一次接手生成 Workspace 时先读取 `AGENTS.md` 并运行 `npm ru
 Node.js/npm、普通 npm dependencies 与宿主前置条件后重跑；不得修改 `node_modules`、package internals、精确版本、
 lockfile authority、sandbox 或 validator 来制造 Green。无法满足时报告 external blocker。doctor Green 只表示
 当前环境可以进入下面的主链，不表示已经生产或交付视频，也不把该 OS 整体认证为受支持平台。
+宿主已有兼容浏览器时可在创建、doctor 与渲染进程设置 `AXMORF_BROWSER_EXECUTABLE` 为其绝对路径；仍需通过真实浏览器渲染验证。
 
 ## 1. 主链概览
 
@@ -82,14 +83,22 @@ TS/TSX Scene source graph；重复 create 复用已冻结 bytes。旧 Project �
 `npm run project:originality:freeze -- --project <storyId>`；该迁移零 provider、持 repository lock、create-only，
 inspect/prepare 不会静默生成空 baseline。
 
-fixed creator 在受控 staging 中验证完整 Project/source/public/template/sound/catalog transaction，将
-ProducerConfig 的 render/readability/TTS defaults 与选定 boundary Scene templates 投影到 Project-local
+fixed creator 在受控 staging 中验证完整 Project/source/public/template/sound/catalog transaction。
+用户明确的 `render.width/height/fps/locale` 优先，未指定字段逐项继承 ProducerConfig `renderDefaults`；
+解析后的 render、readability/TTS defaults 与选定 boundary Scene templates 投影到 Project-local
 configured authoring。已存在、partial、cross-project、symlink/path escape/special-file 或不同 creation identity
 都 fail closed；相同 identity 重复调用只读 current。create 不调用 provider、不生成媒体，也不写
 `.narration-work`、workspace、artifact、attempt 或 delivery。Project-local media 只能在创建成功后 import。
+Agent 须把横竖屏/宽高比转为 create input 的具体宽高，不能只写文字要求，也不为单次需求改写保存配置。
+`project-created` / `project-create-current` 返回已复验的 `render`；在 provider preparation 前核对实际尺寸、fps、locale
+与用户明确要求，一致后才继续。未提供覆盖字段的旧输入保持原有继承行为；既有 Project 不原地更改 RenderSpec。
 template instance 同时包含一个 Project-local Renderer adapter；它接收共享 runtime 的
 `viewportWidth`/`viewportHeight`，只把 safe-area-local dimensions 映射给模板内部 `width`/`height`。其源码和
 import graph 与其他 copied bytes 一起冻结；后续共享模板或 generator 修复不会隐式迁移既有 Project。
+
+新 Project 的 `visualStyle.theme` 默认 dark，也可选择 light 或四角色 hex 自定义值。create/revision 在 mutation 前
+验证颜色与对比度；copied Renderer 读取同一已固化主题。Composition 实际绘制主题底色，首尾没有独立白色衬板。
+旧版 immutable 首尾不自动迁移；不兼容的主题修订前置拒绝。见 [主题合同](contracts/VISUAL_THEME_CONTRACT.md)。
 
 全新 creator Workspace 的 bootstrap 会先把 runtime package 中 runtime-policy 覆盖的共享音频/视觉素材投影到
 `public/assets/axmorf-shared/`，并把 package manifest 投影进 Resource Catalog。默认 config 选择 AXMORF 首尾
@@ -137,7 +146,10 @@ inspect 不获取 mutation lock、不调用 provider、不刷新 Catalog、不�
 `production-inputs-ready`，以及 provider/cache/Agent/delivery estimate、baseline、task explanations 和
 nextAction；无法确定的 estimate 显式为 `null`。并发 source drift 返回稳定错误，不自动 retry。
 
-Root 先向用户报告 readiness、cost、reuse 与失效原因，之后才运行：
+Root 先向用户报告 readiness、cost、reuse 与失效原因，之后才运行。已授权制作中的 create-context/inspect
+汇报都是中间进度消息，汇报后同轮继续工具执行，不以 final 结束或等待新的用户回复。Hermes 使用 assistant text
+搭配下一次 tool call；只有真实 blocker、用户暂停或已派发 native work 的等待可以停下。四文件 fixed 终态才证明完成。
+CLI handoff 仅为诊断提示，不新增状态、审批或 completion authority：
 
 ```bash
 npm run project:produce:prepare -- --project <storyId>
@@ -215,8 +227,10 @@ contract 只改变相关 Agent TaskRevision，不改变 ProductionRevision。
 
 GlobalVisual context 包含 fixed workflow 从 canonical SemanticTiming 派生的严格 layer policy：base range 是完整
 Composition，decoration range 是首个至末个 narrated Scene 的连续窗口，decoration 的 Remotion frame origin 是
-窗口 local zero。`global-visual-owner-validator-v2` 要求同一入口恰好导出两个 no-Props component，并拒绝越出
-decoration range 的 continuity window；生成式 Composition 将 base 放入 background slot，将 decoration 通过
+窗口 local zero。GlobalVisual validator 要求同一入口恰好导出两个 no-Props component，并拒绝越出
+decoration range 的 continuity window；themed base 必须直接返回 null，由 Composition 固定绘制 theme.background。
+themed decoration 在 Scene 后方的固定隔离组内合成，group opacity 上限 8%，配色校验覆盖该最差背景范围。
+旧 Project 无 theme 时继续将其 base 放入 background slot。其 decoration 通过
 前景 `globalVisualLayers` slot 的 `Sequence` 限定在该窗口。
 
 `scene-template` fixed producer 与 validator 共用同一 exact output contract：artifact 包含 immutable

@@ -6,6 +6,7 @@ export type BoundTaskCommandInput = Readonly<{
   bindingId: string;
   projectId?: string;
   candidateId?: string;
+  assignment?: number;
 }>;
 
 /** Renders the public command surface without leaking host-specific paths. */

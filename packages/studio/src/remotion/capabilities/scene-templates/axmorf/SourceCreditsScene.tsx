@@ -1,5 +1,6 @@
 import type { FC } from "react";
 import { AbsoluteFill, Easing, interpolate } from "remotion";
+import type { VisualTheme } from "@axmorf/studio/contracts";
 
 import {
   AXMORF_SOURCE_FOLLOW_LANDSCAPE_LINES,
@@ -16,6 +17,7 @@ export type SourceCreditsSceneProps = Readonly<{
   sceneFrame: number;
   width: number;
   height: number;
+  theme: VisualTheme;
   references: readonly Readonly<{ title: string; url: string }>[];
 }>;
 
@@ -23,21 +25,25 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
   sceneFrame,
   width,
   height,
+  theme,
   references,
 }) => {
   const isLandscape = width > height;
   const isDense = references.length > 5;
+  const compactLandscape = isLandscape && isDense;
   const lines = isLandscape
     ? AXMORF_SOURCE_FOLLOW_LANDSCAPE_LINES
     : AXMORF_SOURCE_FOLLOW_PORTRAIT_LINES;
   return (
     <AbsoluteFill
       style={{
-        color: "#242424",
+        color: theme.primaryText,
         opacity: interpolate(sceneFrame, [104, 119], [1, 0], clamped),
         overflow: "hidden",
         padding: isLandscape
-          ? "88px 128px 64px"
+          ? compactLandscape
+            ? "12px 128px"
+            : "88px 128px 64px"
           : `${references.length <= 3 ? 300 : 88}px 96px 96px`,
       }}
     >
@@ -50,7 +56,7 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
           fontSize: 48,
           fontWeight: 520,
           letterSpacing: "0.045em",
-          lineHeight: isLandscape ? 1.58 : 1.66,
+          lineHeight: compactLandscape ? 1.1 : isLandscape ? 1.58 : 1.66,
           textAlign: "center",
         }}
       >
@@ -79,12 +85,13 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
       </div>
       <div
         style={{
-          color: "#a37d5c",
+          color: theme.accent,
           fontFamily: 'Inter, "Noto Sans SC", Arial, sans-serif',
           fontSize: 36,
           fontWeight: 650,
           letterSpacing: "0.18em",
-          marginTop: isLandscape ? 28 : 52,
+          lineHeight: compactLandscape ? 1.2 : undefined,
+          marginTop: compactLandscape ? 8 : isLandscape ? 28 : 52,
           opacity: interpolate(sceneFrame, [44, 58], [0, 1], clamped),
           textAlign: "center",
         }}
@@ -95,11 +102,12 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
         style={{
           display: "grid",
           fontSize: 36,
-          gap: isDense ? 10 : 14,
-          gridTemplateColumns: isLandscape
-            ? "repeat(2, minmax(0, 1fr))"
-            : "minmax(0, 1fr)",
-          marginTop: 24,
+          gap: compactLandscape ? 8 : isDense ? 10 : 14,
+          gridTemplateColumns:
+            isLandscape && references.length > 1
+              ? "repeat(2, minmax(0, 1fr))"
+              : "minmax(0, 1fr)",
+          marginTop: compactLandscape ? 8 : 24,
         }}
       >
         {(references.length === 0
@@ -110,9 +118,9 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
             key={`${reference.url}-${index}`}
             style={{
               fontSize: 36,
-              background: "rgba(255, 253, 249, 0.72)",
-              border: "1px solid rgba(36, 36, 36, 0.1)",
+              border: `1px solid ${theme.secondaryText}`,
               borderRadius: 18,
+              lineHeight: compactLandscape ? 1.1 : undefined,
               minWidth: 0,
               opacity: interpolate(
                 sceneFrame,
@@ -120,7 +128,11 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
                 [0, 1],
                 clamped,
               ),
-              padding: isDense ? "10px 18px" : "16px 22px",
+              padding: compactLandscape
+                ? "6px 18px"
+                : isDense
+                  ? "10px 18px"
+                  : "16px 22px",
               translate: `0 ${interpolate(sceneFrame, [54 + index * 4, 68 + index * 4], [18, 0], clamped)}px`,
             }}
           >
@@ -137,7 +149,7 @@ export const SourceCreditsScene: FC<SourceCreditsSceneProps> = ({
             {reference.url.length > 0 ? (
               <div
                 style={{
-                  color: "rgba(36, 36, 36, 0.72)",
+                  color: theme.secondaryText,
                   direction: "ltr",
                   fontFamily: "Inter, Arial, ui-sans-serif, sans-serif",
                   fontSize: 36,

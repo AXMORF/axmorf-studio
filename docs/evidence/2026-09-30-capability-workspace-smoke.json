@@ -2,6 +2,14 @@
   "schemaVersion": 1,
   "date": "2026-09-30",
   "publication": "local-unpublished",
+  "sourceBaseline": {
+    "commit": "dd4368eb9bd9dbf61a4c00c4fdf814bfd58c0e0c",
+    "packageVersion": "0.1.9",
+    "scope": "capability-admission-only",
+    "latestSourceAcceptance": false,
+    "boundaryVisualReview": "failed-dark-text-on-dark-background",
+    "reason": "The checkout did not contain the existing 0.1.15 theme fix. This run is retained as old-baseline capability evidence and must not count as unified-main acceptance."
+  },
   "packages": [
     {
       "filename": "axmorf-studio-0.1.9.tgz",
@@ -74,27 +82,16 @@
     "sceneUsage": [
       {
         "meaningId": "visible-trend",
-        "capabilityIds": [
-          "capability.camera",
-          "capability.chart"
-        ],
+        "capabilityIds": ["capability.camera", "capability.chart"],
         "rendererChecksum": "sha256:08e6f0a77fb66612b1f42c821437eba27ec07c97b32f616707151e1aeebc6b39"
       },
       {
         "meaningId": "memorable-focus",
-        "capabilityIds": [
-          "capability.camera",
-          "capability.visual-components"
-        ],
+        "capabilityIds": ["capability.camera", "capability.visual-components"],
         "rendererChecksum": "sha256:29930128e8e7af242488fe222ab72d1b118487593256b8484606db717ec88277"
       }
     ],
-    "files": [
-      "cover-3x4.png",
-      "cover-4x3.png",
-      "publish.json",
-      "video.mp4"
-    ],
+    "files": ["cover-3x4.png", "cover-4x3.png", "publish.json", "video.mp4"],
     "artifacts": {
       "cover3x4": {
         "checksum": "sha256:3dff04dc6b51f871ded9046553daa8dd3099cf54ef10c810d6fd6ed388fefdb7",
@@ -138,10 +135,7 @@
   "visualReview": {
     "sceneCount": 4,
     "samplesPerScene": 3,
-    "reviewedFrames": [
-      291,
-      435
-    ],
+    "reviewedFrames": [291, 435],
     "observations": [
       "Rendered curve and camera focus are visible.",
       "Custom Chinese AnimatedText and underline are visible."

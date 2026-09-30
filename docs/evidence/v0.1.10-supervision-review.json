@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.10",
+  "phase": "candidate-long-wait",
+  "isolation": "Fresh profiles and Workspaces; normal host permissions; no OS file isolation.",
+  "sourceHistoryAccessObserved": false,
+  "packageFilesUnchanged": true,
+  "guideFilesUnchanged": true,
+  "harnessInterventions": [],
+  "supervision": {
+    "codex": {
+      "continuationStarts": 1,
+      "originalProcessWaitRequests": 3,
+      "requestedWaitMs": [
+        60000,
+        60000,
+        60000
+      ],
+      "outerExecWaitMs": [
+        10000,
+        20000,
+        60000,
+        60000
+      ],
+      "repeatedOneSecondProcessWaits": 0,
+      "extraProductionQueriesAfterContinuation": 0
+    },
+    "hermes": {
+      "continuationStarts": 1,
+      "originalProcessWaitRequests": 1,
+      "requestedWaitSeconds": [
+        600
+      ],
+      "extraProductionQueriesAfterContinuation": 0
+    }
+  },
+  "realFaultRecoveryExercised": false,
+  "scope": "Agent guidance; no runtime retry loop or relaxation of validators, immutable attempts, ownership, provider or integrity gates.",
+  "nativeCallEvidence": [
+    {
+      "host": "codex",
+      "sha256": "5e49d7f8274090b2d80707dabf6fb96ca0584425d732fa5299215c6d1d2cfbbf"
+    },
+    {
+      "host": "hermes",
+      "sha256": "ed2f334cb38fa58be4dc623891b00faf54d873d9a20cce4d1a2daa5d3eafb7ca"
+    }
+  ],
+  "hermesSystemPromptHashesVerified": 7,
+  "macosPackageContent": {
+    "commit": "5a482040271d08eb3805d22d0a09067f2409cef2",
+    "workflowRun": 34262498548,
+    "sameCandidateContent": true,
+    "packages": [
+      {
+        "name": "axmorf-studio-0.1.10.tgz",
+        "files": 252,
+        "contentFingerprint": "sha256:18fee0a1d325d153baaf1ec0b641d09e1c42a2013541f44ec75c8feff91285ae"
+      },
+      {
+        "name": "create-axmorf-studio-0.1.10.tgz",
+        "files": 40,
+        "contentFingerprint": "sha256:c6a2d622ac0db68abb9aa9d2940250a82ca030db3c9566f9f06aebc919092b0d"
+      }
+    ]
+  }
+}

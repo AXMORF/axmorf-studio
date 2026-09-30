@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.13",
+  "candidate": 5,
+  "model": "gpt-5.6-luna",
+  "reasoningEffort": "medium",
+  "scope": "Native process review and sampled visual inspection after both independent recorders passed. Raw evidence stays private.",
+  "hosts": [
+    {
+      "host": "codex",
+      "receiptChecksum": "sha256:237e75896901dd5e15e6febaa320b024176514524d389edd18e6356aacf3c08a",
+      "durationSeconds": 35.8,
+      "targetSeconds": 30,
+      "deltaSeconds": 5.799999999999997,
+      "fourWayBoundOverlapMs": 67883,
+      "harnessInterventions": [],
+      "nativeSelfCorrections": [
+        "Creation topics count and two caption chunks were rejected, then corrected before successful create.",
+        "Assignments 2, 4 and 5 corrected file-write/finalizer/check errors inside owning task workspaces."
+      ],
+      "processReview": "No source/history/package mutation or cross-task takeover found in the reviewed native traces. This is an observation, not exhaustive proof.",
+      "visualReview": {
+        "frames": [
+          {
+            "name": "codex-01.png",
+            "sha256": "c364d6e3ef9d07be4716fb241f9afb18bb4c934a499fa70a0b0406ebdfec952d"
+          },
+          {
+            "name": "codex-05.png",
+            "sha256": "1217fded75fcb730b312d4c44e81471974e761728c3f9d4c00ac3248c97d4046"
+          },
+          {
+            "name": "codex-08.png",
+            "sha256": "8c394b9ca17c1fa6046af52e7003541df877eb2771dded67dce5e10ff73f0481"
+          },
+          {
+            "name": "codex-14.png",
+            "sha256": "372b239c79a65d1bb1cf78d0bd92f35b75af9f4195a85de53045b7678cf254f6"
+          },
+          {
+            "name": "codex-23.png",
+            "sha256": "4c4796d680ffe2f319f82f53a73f6bc3f215df7931e25fb7470dd3bd98e56cd0"
+          },
+          {
+            "name": "codex-32.png",
+            "sha256": "b3f1a757ac154a4057e5cb4cca7a79c11017a2cf6fe6c1a07322d493607556e2"
+          }
+        ],
+        "covers": [
+          {
+            "checksum": "sha256:f5caaba97debf121d9be19475225561c0adec68bfcaa53215bb02414227e9398",
+            "sizeBytes": 100145
+          },
+          {
+            "checksum": "sha256:4b8be23e93085b19b909a8d84ee44c6b4a40653d8c9ff8cd5a3814cde8940100",
+            "sizeBytes": 104343
+          }
+        ],
+        "finding": "Sampled narrated frames have legible captions and no blocking crop or occlusion. Intro/outro transition states were distinguished from stable frames."
+      },
+      "remainingIssues": [
+        "Duration exceeds the advisory 30-second target.",
+        "Cover decoration lines cross some text; text remains readable, but the overlap is an observed design defect."
+      ]
+    },
+    {
+      "host": "hermes",
+      "receiptChecksum": "sha256:f49dd041778bb0aa90bfb68bb8973aac1f4848d02f7f3d2bd03844913d0a018d",
+      "durationSeconds": 35.06666666666667,
+      "targetSeconds": 30,
+      "deltaSeconds": 5.06666666666667,
+      "fourWayBoundOverlapMs": 97396.05883789062,
+      "harnessInterventions": [],
+      "nativeSelfCorrections": [
+        "Probe slot 3 corrected a Python path quoting SyntaxError.",
+        "Assignments 3 and 5 corrected readability errors; assignment 5 also corrected two file-write input errors."
+      ],
+      "processReview": "No source/history/package mutation or cross-task takeover found in the reviewed native traces. This is an observation, not exhaustive proof.",
+      "visualReview": {
+        "frames": [
+          {
+            "name": "hermes-01.png",
+            "sha256": "b03b5142d3e12065e19f59b3483723fc21f973b7fb7dde6dc7d670fbd0f73473"
+          },
+          {
+            "name": "hermes-05.png",
+            "sha256": "03b6b3918b21da6cfaeaef15136a13d4f5c5a4133b71e8a007c8450fdd9490e8"
+          },
+          {
+            "name": "hermes-14.png",
+            "sha256": "61af47500803a0e2aaa2a3daf995f2bfa3e081149b6e9a7e2a7f052e2a07f6c3"
+          },
+          {
+            "name": "hermes-23.png",
+            "sha256": "4e438f90c9e1b1a365c071aa23a304539275f5e3e2ea96a9645fb4f6e6ad6e60"
+          },
+          {
+            "name": "hermes-26.png",
+            "sha256": "49cb040b966a2486097928c2035802b2822bdb36b4a7b7760f2fd607e9a9c6b0"
+          },
+          {
+            "name": "hermes-30.png",
+            "sha256": "a504eaabb277b36beddf1b2dbc847ff23c59dd19f69b3fd38cfcc84958a861c8"
+          }
+        ],
+        "covers": [
+          {
+            "checksum": "sha256:cfc0885850fe7a2c48de8ee00cc732d6676abe14452a8d45a70abe9da6e22299",
+            "sizeBytes": 99259
+          },
+          {
+            "checksum": "sha256:c0bf4897c7032f9094b50aac5c785fdc911568ed7215c4fa1a6af4899674c1e3",
+            "sizeBytes": 94312
+          }
+        ],
+        "finding": "Sampled narrated frames have legible captions and no blocking crop or occlusion. Intro/outro transition states were distinguished from stable frames."
+      },
+      "remainingIssues": [
+        "Duration exceeds the advisory 30-second target.",
+        "Cover decoration lines cross some text; text remains readable, but the overlap is an observed design defect.",
+        "Root described inherited boundaries as 5s+5s; actual defaults are 2s+8s. Total boundary budget 10s was correct. User-visible inspect report was confirmed in the native UI stream, not inferred from SQLite assistant rows."
+      ]
+    }
+  ],
+  "limits": [
+    "One final candidate run per host does not establish a success rate. Earlier failed candidates remain failed.",
+    "No full-frame review or complete listening review. Technical media checks include H.264/AAC stereo and complete EOF decoding.",
+    "Terminal automatic recovery was not exercised by these successful first-use runs; covered separately by regression tests."
+  ]
+}

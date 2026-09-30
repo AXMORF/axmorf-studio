@@ -532,9 +532,11 @@ export const inspectCurrentDelivery = async ({
 
 export const readProductionDiagnosticBaseline = async ({
   rootDir,
+  runtimeRootDir = rootDir,
   projectId: rawProjectId,
 }: {
   readonly rootDir: string;
+  readonly runtimeRootDir?: string;
   readonly projectId: string;
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
@@ -578,7 +580,11 @@ export const readProductionDiagnosticBaseline = async ({
       right.updatedAt.localeCompare(left.updatedAt) ||
       right.attemptId.localeCompare(left.attemptId),
   );
-  const delivery = await inspectCurrentDelivery({ rootDir, projectId });
+  const delivery = await inspectCurrentDelivery({
+    rootDir,
+    runtimeRootDir,
+    projectId,
+  });
   const selected =
     (delivery.current
       ? candidates.find(

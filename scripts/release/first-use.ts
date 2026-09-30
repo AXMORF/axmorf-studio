@@ -14,12 +14,28 @@ import { arch, platform } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { z } from "zod";
+import {
+  installPublic,
+  PublicCreationSchema,
+  verifyPublicArtifacts,
+  assertPublicIntegrity,
+  publicMetadata,
+  type PublicArtifacts,
+} from "./public-registry";
 import { resolveNpmCliPath } from "../../packages/create-axmorf-studio/src/index.js";
 import {
   auditNativeExecution,
+  assertFourWayExecution,
   NativeChildInput,
   NativeExecutionSchema,
 } from "./native-execution";
+import { auditSupervision, SupervisionSchema } from "./supervision";
+import {
+  auditInlineExecution,
+  assertInlineExecution,
+  InlineExecutionSchema,
+  requiresHermesInline,
+} from "./inline-execution";
 import {
   directoryFiles,
   packageContent,
@@ -55,7 +71,7 @@ const FinalCheck = z
       .min(7),
   })
   .passthrough();
-const Creation = z
+const CandidateCreation = z
   .object({
     method: z.literal("npm-exec-candidate"),
     runtimeTarballChecksum: Hash,
@@ -63,6 +79,10 @@ const Creation = z
     installLogChecksum: Hash,
   })
   .strict();
+const Creation = z.discriminatedUnion("method", [
+  CandidateCreation,
+  PublicCreationSchema,
+]);
 export const HostReceiptSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -90,6 +110,8 @@ export const HostReceiptSchema = z
       .strict(),
     unchangedPackageFiles: z.number().int().positive(),
     nativeExecution: NativeExecutionSchema.optional(),
+    inlineExecution: InlineExecutionSchema.optional(),
+    supervision: SupervisionSchema.optional(),
     unchangedGuideFiles: z.number().int().positive(),
     finalCheck: FinalCheck,
     delivery: z
@@ -145,6 +167,7 @@ type Snapshot = {
   guides: FileDigest[];
   creation: z.infer<typeof Creation>;
   installLogPath: string;
+  publicArtifacts?: PublicArtifacts;
 };
 const readJson = async (path: string) =>
   JSON.parse(await readFile(path, "utf8"));
@@ -326,6 +349,60 @@ export async function create(configPath: string, outputPath: string) {
   await writeJson(outputPath, result);
   return {
     status: "first-use-workspace-created",
+    host: config.host,
+    outputPath,
+  };
+}
+
+export async function createPublic(configPath: string, outputPath: string) {
+  const config = z
+    .object({
+      host: Host,
+      workspace: Text,
+      promptFile: Text,
+      expectedVersion: z.string().regex(/^\d+\.\d+\.\d+$/u),
+    })
+    .strict()
+    .parse(await readJson(configPath));
+  const workspace = resolve(config.workspace);
+  const output = resolve(outputPath);
+  await assertAbsent(workspace);
+  await assertAbsent(output);
+  const prompt = await readFile(config.promptFile, "utf8");
+  assert.ok(prompt.trim(), "Business prompt is empty");
+  await mkdir(dirname(workspace), { recursive: true });
+  const installed = await installPublic(
+    workspace,
+    output,
+    config.expectedVersion,
+  );
+  await assertEmptyWorkspace(workspace);
+  const guides = await guideFiles(workspace);
+  for (const file of guides) {
+    assert.deepEqual(
+      installed.packages.creator.files.find(
+        (entry) => entry.path === `template/${file.path}`,
+      ),
+      { ...file, path: `template/${file.path}` },
+      "Guide differs from the public creator package",
+    );
+  }
+  const snapshot: Snapshot = {
+    schemaVersion: 1,
+    host: config.host,
+    workspace,
+    createdAt: new Date().toISOString(),
+    environment: { platform: platform(), arch: arch(), node: process.version },
+    prompt,
+    packages: installed.packages,
+    guides,
+    creation: installed.creation,
+    installLogPath: installed.installLogPath,
+    publicArtifacts: installed.artifacts,
+  };
+  await writeJson(output, snapshot);
+  return {
+    status: "first-use-public-workspace-created",
     host: config.host,
     outputPath,
   };
@@ -546,6 +623,22 @@ export function auditHermesSession(
   return session;
 }
 
+export function assertHermesRunIdentity(
+  run: Record<string, unknown>,
+  nativeSessionId: string,
+) {
+  const ids = [run.storedSessionId, run.sessionId].filter(
+    (id) => id !== undefined,
+  );
+  assert.ok(ids.length > 0, "TUI run lacks its stored session identity");
+  for (const id of ids)
+    assert.equal(
+      id,
+      nativeSessionId,
+      "TUI run stored session differs from native DB",
+    );
+}
+
 const command = (workspace: string, args: string[], timeout = 180_000) =>
   execFileSync(process.execPath, args, {
     cwd: workspace,
@@ -585,7 +678,18 @@ export async function record(
 ) {
   const initial: Snapshot = await readJson(snapshotPath);
   assert.equal(initial.schemaVersion, 1);
-  Creation.parse(initial.creation);
+  const creation = Creation.parse(initial.creation);
+  if (creation.method === "npm-create-public-registry") {
+    assert.ok(
+      initial.publicArtifacts,
+      "Public snapshot lacks original registry artifacts",
+    );
+    await verifyPublicArtifacts(
+      creation,
+      initial.publicArtifacts,
+      initial.workspace,
+    );
+  }
   assert.equal(
     sha256(await readFile(initial.installLogPath)),
     initial.creation.installLogChecksum,
@@ -599,6 +703,7 @@ export async function record(
       transcriptFile: Text,
       runFile: Text,
       sessionFile: Text.optional(),
+      uiTranscriptFile: Text.optional(),
       nativeChildren: z.array(NativeChildInput).optional(),
       delegationFile: Text.optional(),
       hermesRuntimeRoot: Text.optional(),
@@ -640,21 +745,50 @@ export async function record(
     "Public guides changed during the test",
   );
   const transcript = await readFile(input.transcriptFile, "utf8");
-  const requiresNative = requiresNativeExecution(
+  if (initial.host === "hermes")
+    assert.ok(
+      input.sessionFile,
+      "Hermes evidence requires its native sessionFile",
+    );
+  const sessionBytes =
+    initial.host === "hermes" ? await readFile(input.sessionFile!) : undefined;
+  const sessionSource: string | undefined = sessionBytes
+    ? JSON.parse(sessionBytes.toString("utf8")).source
+    : undefined;
+  const needsInline = requiresHermesInline(
     initial.packages.runtime.version,
+    initial.host,
   );
+  if (needsInline) assert.equal(run.model, input.model);
+  const inlineExecution = needsInline
+    ? auditInlineExecution({
+        transcript,
+        storyId: input.storyId,
+        startedAt: run.startedAt,
+        endedAt: run.endedAt,
+        model: input.model,
+        reasoningEffort: run.reasoningEffort,
+        nativeChildren: input.nativeChildren,
+        delegations: input.delegationFile
+          ? await readJson(input.delegationFile)
+          : undefined,
+      })
+    : undefined;
+  const requiresNative =
+    !needsInline && requiresNativeExecution(initial.packages.runtime.version);
   if (requiresNative)
     assert.ok(
       input.nativeChildren,
       "This release requires native child execution evidence",
     );
   const native =
-    input.nativeChildren === undefined
+    needsInline || input.nativeChildren === undefined
       ? undefined
       : await auditNativeExecution({
           host: initial.host,
           transcript,
           sessionId: input.sessionId,
+          ...(sessionSource === undefined ? {} : { sessionSource }),
           workspace,
           startedAt: run.startedAt,
           endedAt: run.endedAt,
@@ -667,6 +801,13 @@ export async function record(
             ? {}
             : { hermesRuntimeRoot: input.hermesRuntimeRoot }),
         });
+  if (
+    !needsInline &&
+    requiresFourWayExecution(initial.packages.runtime.version)
+  ) {
+    assert.ok(native, "Four-way acceptance requires native execution evidence");
+    assertFourWayExecution(native.execution);
+  }
   const transcriptAudit = auditTranscript(
     initial.host,
     transcript,
@@ -677,11 +818,7 @@ export async function record(
   );
   let sessionChecksum: string | null = null;
   if (initial.host === "hermes") {
-    assert.ok(
-      input.sessionFile,
-      "Hermes evidence requires its native sessionFile",
-    );
-    const sessionBytes = await readFile(input.sessionFile);
+    assert.ok(sessionBytes);
     const session = auditHermesSession(
       JSON.parse(sessionBytes.toString("utf8")),
       input.sessionId,
@@ -700,6 +837,37 @@ export async function record(
     );
     sessionChecksum = sha256(sessionBytes);
   }
+  const needsSupervision = requiresSupervision(
+    initial.packages.runtime.version,
+  );
+  let hermesUi;
+  if (needsSupervision && initial.host === "hermes") {
+    assert.ok(
+      input.uiTranscriptFile,
+      "TUI supervision requires its complete native UI event stream",
+    );
+    assertHermesRunIdentity(run, input.sessionId);
+    assert.equal(
+      typeof run.uiSessionId,
+      "string",
+      "TUI run lacks its UI session identity",
+    );
+    hermesUi = {
+      rpc: await readFile(input.uiTranscriptFile, "utf8"),
+      sessionId: input.sessionId,
+      uiSessionId: run.uiSessionId as string,
+      workspace,
+    };
+  }
+  const supervision = needsSupervision
+    ? auditSupervision({
+        host: initial.host,
+        transcript,
+        sessionSource,
+        executionMode: needsInline ? "inline" : "subagents",
+        ...(hermesUi ? { hermesUi } : {}),
+      })
+    : undefined;
   const checkText = await runPublicCli(
     workspace,
     ["project", "check", "--project", input.storyId, "--level", "final"],
@@ -808,6 +976,8 @@ export async function record(
     sessionChecksum,
     transcriptAudit,
     nativeExecution: native?.execution,
+    inlineExecution,
+    supervision,
     unchangedPackageFiles: installed.length,
     unchangedGuideFiles: initial.guides.length,
     finalCheck,
@@ -823,38 +993,98 @@ export async function record(
   return { status: "first-use-host-verified", host: initial.host, outputPath };
 }
 
-export function verifyReceipt(
+function verifyCombined(
   value: unknown,
   runtime: PackageContent,
   creator: PackageContent,
+  method: "npm-exec-candidate" | "npm-create-public-registry",
 ) {
+  // The maintainer approved Codex-only acceptance for 0.1.15. Later releases
+  // return to the two-host gate unless a new explicit policy is implemented.
+  const requiredHosts =
+    runtime.version === "0.1.15"
+      ? (["codex"] as const)
+      : (["codex", "hermes"] as const);
   const receipt = z
     .object({
       schemaVersion: z.literal(1),
-      hosts: z.array(HostReceiptSchema).length(2),
+      hosts: z.array(HostReceiptSchema).length(requiredHosts.length),
     })
     .strict()
     .parse(value);
   assert.deepEqual(
     receipt.hosts.map((host) => host.host).sort(),
-    ["codex", "hermes"],
-    "Both Agent hosts are required",
+    requiredHosts,
+    "This release requires its exact Agent host acceptance set",
   );
   assert.equal(runtime.name, "@axmorf/studio");
   assert.equal(creator.name, "create-axmorf-studio");
   assert.equal(runtime.version, creator.version);
   for (const host of receipt.hosts) {
+    const needsInline = requiresHermesInline(runtime.version, host.host);
+    if (needsInline) {
+      assert.ok(
+        host.inlineExecution,
+        "This release requires Hermes inline execution evidence",
+      );
+      assert.equal(
+        host.nativeExecution,
+        undefined,
+        "Inline and child execution evidence cannot substitute for each other",
+      );
+      assert.equal(host.model, host.inlineExecution.model);
+      assertInlineExecution(host.inlineExecution, host.startedAt, host.endedAt);
+    } else {
+      assert.equal(
+        host.inlineExecution,
+        undefined,
+        "Inline exception does not apply to this host/version",
+      );
+    }
+    assert.equal(
+      host.creation.method,
+      method,
+      "Candidate and public-registry receipts cannot substitute for each other",
+    );
+    if (requiresSupervision(runtime.version)) {
+      assert.ok(
+        host.supervision,
+        "This release requires native supervision acceptance",
+      );
+      assert.equal(
+        host.supervision.source,
+        host.host === "hermes" ? "tui" : "codex",
+      );
+      assert.equal(
+        host.supervision.asyncBatches,
+        host.supervision.completedAsyncBatches,
+      );
+      if (host.host === "hermes") {
+        if (needsInline) assert.equal(host.supervision.asyncBatches, 0);
+        else assert.ok(host.supervision.asyncBatches > 0);
+        assert.ok(
+          host.supervision.uiEvidence,
+          "Hermes supervision must bind the complete native UI stream",
+        );
+        assert.equal(
+          host.supervision.uiEvidence.toolCalls,
+          host.transcriptAudit.toolCalls,
+        );
+      }
+    }
     assert.deepEqual(
       host.packages,
       { runtime: packageSummary(runtime), creator: packageSummary(creator) },
       "First-use evidence does not match these release candidates",
     );
-    if (requiresNativeExecution(runtime.version)) {
+    if (!needsInline && requiresNativeExecution(runtime.version)) {
       assert.ok(
         host.nativeExecution,
         "This release requires actual bounded native child execution on both hosts",
       );
       const execution = host.nativeExecution;
+      if (requiresFourWayExecution(runtime.version))
+        assertFourWayExecution(execution);
       assert.equal(execution.productionChildCount, execution.dirtyTaskCount);
       assert.equal(
         execution.childEvidence.length,
@@ -913,23 +1143,85 @@ export function verifyReceipt(
     );
     assert.ok(Date.parse(host.endedAt) > Date.parse(host.startedAt));
   }
-  assert.notEqual(receipt.hosts[0]!.sessionId, receipt.hosts[1]!.sessionId);
+  if (receipt.hosts.length === 2)
+    assert.notEqual(receipt.hosts[0]!.sessionId, receipt.hosts[1]!.sessionId);
   return {
-    status: "first-use-release-gate-passed",
+    status:
+      method === "npm-exec-candidate"
+        ? "first-use-release-gate-passed"
+        : "first-use-public-registry-passed",
     version: runtime.version,
-    hosts: ["codex", "hermes"],
+    hosts: [...requiredHosts],
     runtimeFingerprint: runtime.fingerprint,
     creatorFingerprint: creator.fingerprint,
   };
 }
 
+export function verifyReceipt(
+  value: unknown,
+  runtime: PackageContent,
+  creator: PackageContent,
+) {
+  return verifyCombined(value, runtime, creator, "npm-exec-candidate");
+}
+
+export async function verifyPublicReceipt(
+  value: unknown,
+  runtimeTarball: string,
+  creatorTarball: string,
+) {
+  const runtime = await packageContent(runtimeTarball);
+  const creator = await packageContent(creatorTarball);
+  const result = verifyCombined(
+    value,
+    runtime,
+    creator,
+    "npm-create-public-registry",
+  );
+  const hosts = z
+    .object({ hosts: z.array(HostReceiptSchema) })
+    .parse(value).hosts;
+  for (const host of hosts) {
+    const creation = PublicCreationSchema.parse(host.creation);
+    for (const [role, path, content] of [
+      ["runtime", runtimeTarball, runtime],
+      ["creator", creatorTarball, creator],
+    ] as const) {
+      const bytes = await readFile(path);
+      const registryPackage = creation.packages[role];
+      publicMetadata(
+        {
+          name: registryPackage.name,
+          version: registryPackage.version,
+          dist: registryPackage,
+        },
+        role === "runtime" ? "@axmorf/studio" : "create-axmorf-studio",
+        content.version,
+      );
+      assertPublicIntegrity(bytes, registryPackage.integrity);
+      assert.equal(sha256(bytes), creation[`${role}TarballChecksum`]);
+      assert.equal(content.name, creation.packages[role].name);
+      assert.equal(content.version, creation.packages[role].version);
+    }
+  }
+  return result;
+}
+
 const requiresNativeExecution = (version: string) =>
   !/^0\.1\.[0-8](?:$|-)/u.test(version);
+const requiresSupervision = (version: string) =>
+  !/^0\.1\.(?:[0-9]|10)(?:$|-)/u.test(version);
+const requiresFourWayExecution = (version: string) =>
+  !/^0\.1\.(?:[0-9]|1[0-2])(?:$|-)/u.test(version);
 
 async function main(args: string[]) {
   const [operation, ...paths] = args;
   if (operation === "create" && paths.length === 2)
     return create(paths[0]!, paths[1]!);
+  if (operation === "create-public" && paths.length === 2)
+    return createPublic(paths[0]!, paths[1]!);
+  if (operation === "verify-public" && paths.length === 3)
+    return verifyPublicReceipt(await readJson(paths[2]!), paths[0]!, paths[1]!);
   if (operation === "record" && paths.length === 3)
     return record(paths[0]!, paths[1]!, paths[2]!);
   if (operation === "verify" && paths.length === 3)
@@ -939,7 +1231,7 @@ async function main(args: string[]) {
       await packageContent(paths[1]!),
     );
   throw new Error(
-    "Usage: first-use.ts create config.json snapshot.json | record snapshot.json run-evidence.json receipt.json | verify runtime.tgz creator.tgz combined-receipt.json",
+    "Usage: first-use.ts create|create-public config.json snapshot.json | verify-public runtime.tgz creator.tgz combined-receipt.json | record snapshot.json run-evidence.json receipt.json | verify runtime.tgz creator.tgz combined-receipt.json",
   );
 }
 if (

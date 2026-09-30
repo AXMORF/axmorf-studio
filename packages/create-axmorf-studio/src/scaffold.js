@@ -130,7 +130,7 @@ const validateGeneratedWorkspace = async ({ rootDir, filesystem }) => {
     "CLAUDE.md",
     "GEMINI.md",
     ".agents/skills/axmorf-video/SKILL.md",
-    "remotion.config.mjs",
+    "remotion.config.ts",
     "src/index.ts",
     "src/index.css",
     "src/projects/project-registry.generated.ts",

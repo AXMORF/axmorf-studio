@@ -1,10 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import {
-  Sha256DigestSchema,
-  StoryIdSchema,
-} from "@axmorf/studio/contracts";
+import { Sha256DigestSchema, StoryIdSchema } from "@axmorf/studio/contracts";
 import { writeOrCheckRendererRegistry } from "../../renderer-registry/project-files";
 import { writeTextFileAtomic } from "../../shared/atomic-file";
 
@@ -250,8 +247,8 @@ export const renderProjectAuthoringBuildScaffold = ({
 // runtime-input-fingerprint ${runtimeInputFingerprint}
 import type {FC} from "react";
 import {Sequence, staticFile} from "remotion";
-import {AuthoringRequirementsSchema, deriveGlobalVisualLayerPolicy, GlobalVisualPlanSchema, getStoryCompositionDurationInFrames, MasteredNarrationManifestSchema, parseNarrativeProjectSource, SealedNarrationManifestSchema, SemanticTimingSchema, StoryCompositionPropsSchema, validateNarrativeArtifactBundle, type StoryCompositionProps} from "@axmorf/studio/contracts";
-import {CompositionAssembly, NarrativeCore, SoundDesignTrack, StoryVisualTrack, type GlobalVisualLayersComponent, type NarrativeCoreProps} from "@axmorf/studio/remotion";
+import {AuthoringRequirementsSchema, deriveGlobalVisualLayerPolicy, GlobalVisualPlanSchema, getStoryCompositionDurationInFrames, MasteredNarrationManifestSchema, parseNarrativeProjectSource, SealedNarrationManifestSchema, SemanticTimingSchema, StoryCompositionPropsSchema, VisualStyleSpecSchema, validateNarrativeArtifactBundle, type StoryCompositionProps} from "@axmorf/studio/contracts";
+import {CompositionAssembly, NarrativeCore, SoundDesignTrack, StoryVisualTrack, ThemedGlobalVisualBackground, type GlobalVisualLayersComponent, type NarrativeCoreProps} from "@axmorf/studio/remotion";
 import briefJson from "./brief.json";
 import masteredNarrationJson from "./generated/mastered-narration.generated.json";
 import sealedNarrationJson from "./generated/sealed-narration.generated.json";
@@ -263,8 +260,10 @@ import {productionRendererPropsByMeaning, productionRendererRegistry, production
 import renderJson from "./render.json";
 import requirementsJson from "./production/requirements.json";
 import storyJson from "./story.json";
+import visualStyleJson from "./visual-style.json";
 
 const requirements = AuthoringRequirementsSchema.parse(requirementsJson);
+const visualStyle = VisualStyleSpecSchema.parse(visualStyleJson);
 const projectSource = parseNarrativeProjectSource({brief: briefJson, story: storyJson, narration: narrationJson, render: renderJson});
 const sealedNarration = SealedNarrationManifestSchema.parse(sealedNarrationJson);
 const masteredNarration = MasteredNarrationManifestSchema.parse(masteredNarrationJson);
@@ -275,7 +274,7 @@ const render = artifactBundle.projectSource.render;
 const timing = artifactBundle.semanticTiming;
 const globalVisualLayerPolicy = deriveGlobalVisualLayerPolicy(timing);
 const globalVisualPlan = GlobalVisualPlanSchema.parse(globalVisualPlanJson);
-if (storyId !== ${JSON.stringify(storyId)} || render.fps !== timing.fps || requirements.readabilityPolicy.width !== render.width || requirements.readabilityPolicy.height !== render.height || globalVisualPlan.storyId !== storyId || globalVisualPlan.compositionId !== render.compositionId || masteredNarration.storyId !== storyId || masteredNarration.sealedNarrationFingerprint !== sealedNarration.sealedNarrationFingerprint) throw new Error("Project production Composition identity is stale.");
+if (storyId !== ${JSON.stringify(storyId)} || visualStyle.storyId !== storyId || render.fps !== timing.fps || requirements.readabilityPolicy.width !== render.width || requirements.readabilityPolicy.height !== render.height || globalVisualPlan.storyId !== storyId || globalVisualPlan.compositionId !== render.compositionId || masteredNarration.storyId !== storyId || masteredNarration.sealedNarrationFingerprint !== sealedNarration.sealedNarrationFingerprint) throw new Error("Project production Composition identity is stale.");
 const completeAudioLocalPath = masteredNarration.outputAudio.localPath;
 if (!completeAudioLocalPath.startsWith("public/projects/" + storyId + "/narration-mastered/")) throw new Error("Mastered narration path is outside the Project.");
 const ProductionGlobalVisualBaseLayer: GlobalVisualLayersComponent<typeof GlobalVisualBaseLayer> = GlobalVisualBaseLayer;
@@ -283,7 +282,10 @@ const ProductionGlobalVisualDecorationLayers: GlobalVisualLayersComponent<typeof
 const completeNarrationSrc = staticFile(completeAudioLocalPath.slice("public/".length));
 export const productionNarrativeCompositionMetadata = {id: render.compositionId, fps: render.fps, width: render.width, height: render.height, durationInFrames: getStoryCompositionDurationInFrames(timing.durationInFrames), defaultProps: {projectId: storyId}} as const;
 export const createProductionNarrativeCoreProps = (input: unknown): NarrativeCoreProps => { const props = StoryCompositionPropsSchema.parse(input); if (props.projectId !== storyId) throw new Error("Composition only accepts its own Project."); return {src: completeNarrationSrc, narrationStartFrame: timing.narrationStartFrame, captionCues: timing.captionCues, safeAreaPx: requirements.readabilityPolicy.captionSafeAreaPx, readabilityPolicy: requirements.readabilityPolicy}; };
-const ${componentName}: FC<StoryCompositionProps> = (props) => <CompositionAssembly storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning}/>} globalVisualBackgroundLayers={<ProductionGlobalVisualBaseLayer/>} globalVisualLayers={<Sequence from={globalVisualLayerPolicy.decorationFrameRange.startFrame} durationInFrames={globalVisualLayerPolicy.decorationFrameRange.endFrame - globalVisualLayerPolicy.decorationFrameRange.startFrame} layout="absolute-fill"><ProductionGlobalVisualDecorationLayers/></Sequence>} narrativeCore={<NarrativeCore {...createProductionNarrativeCoreProps(props)}/>} soundDesignTrack={<SoundDesignTrack projection={productionSoundDesignProjection}/>}/>;
+const ${componentName}: FC<StoryCompositionProps> = (props) => {
+  const decorationLayers = <Sequence from={globalVisualLayerPolicy.decorationFrameRange.startFrame} durationInFrames={globalVisualLayerPolicy.decorationFrameRange.endFrame - globalVisualLayerPolicy.decorationFrameRange.startFrame} layout="absolute-fill"><ProductionGlobalVisualDecorationLayers/></Sequence>;
+  return <CompositionAssembly storyVisualTrack={<StoryVisualTrack projection={productionStoryVisualProjection} registry={productionRendererRegistry} rendererPropsByMeaning={productionRendererPropsByMeaning}/>} globalVisualBackgroundLayers={visualStyle.theme === undefined ? <ProductionGlobalVisualBaseLayer/> : <ThemedGlobalVisualBackground theme={visualStyle.theme}>{decorationLayers}</ThemedGlobalVisualBackground>} globalVisualLayers={visualStyle.theme === undefined ? decorationLayers : null} narrativeCore={<NarrativeCore {...createProductionNarrativeCoreProps(props)}/>} soundDesignTrack={<SoundDesignTrack projection={productionSoundDesignProjection}/>}/>;
+};
 export default ${componentName};
 `;
 };

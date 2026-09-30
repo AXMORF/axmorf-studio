@@ -24,6 +24,7 @@ dist/
 
 *.log
 .axmorf-browser-prepare.*
+.axmorf-worker-probe-*/
 .project-operation.lock
 .project-operation.recovery.lock
 .DS_Store

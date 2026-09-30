@@ -3,7 +3,6 @@ import { z } from "zod";
 export const EXECUTION_PREFERENCES_VERSION =
   "execution-preferences-v1" as const;
 export const REPOSITORY_SUBAGENT_CONCURRENCY_CEILING = 4;
-export const UNKNOWN_RUNTIME_SUBAGENT_CONCURRENCY = 1;
 
 const ConfiguredConcurrencySchema = z.number().int().min(1).max(4);
 const RequestedConcurrencySchema = z.number().int().min(1).max(1_000);
@@ -137,20 +136,18 @@ export const resolveAgentExecution = ({
     override?.mode === "subagents" && override.maxConcurrency !== undefined
       ? ("user-prompt" as const)
       : configured.source;
-  const runtimeLimit =
-    runtimeMaxConcurrency ?? UNKNOWN_RUNTIME_SUBAGENT_CONCURRENCY;
+  const runtimeLimit = runtimeMaxConcurrency;
   const effectiveMaxConcurrency = Math.min(
     requestedMaxConcurrency,
-    runtimeLimit,
+    runtimeLimit ?? 0,
     REPOSITORY_SUBAGENT_CONCURRENCY_CEILING,
   );
   const limitedBy = [
     ...(runtimeWorkerTransport === undefined
       ? (["worker-transport-unverified"] as const)
       : []),
-    ...(rawRuntimeMaxConcurrency === undefined &&
-    effectiveMaxConcurrency < requestedMaxConcurrency
-      ? (["runtime-unknown-default"] as const)
+    ...(rawRuntimeMaxConcurrency === undefined
+      ? (["runtime-capacity-unverified"] as const)
       : []),
     ...(runtimeMaxConcurrency !== undefined &&
     runtimeMaxConcurrency < requestedMaxConcurrency &&
@@ -158,6 +155,7 @@ export const resolveAgentExecution = ({
       ? (["runtime-capacity"] as const)
       : []),
     ...(REPOSITORY_SUBAGENT_CONCURRENCY_CEILING < requestedMaxConcurrency &&
+    runtimeLimit !== undefined &&
     REPOSITORY_SUBAGENT_CONCURRENCY_CEILING <= runtimeLimit
       ? (["repository-safety-ceiling"] as const)
       : []),

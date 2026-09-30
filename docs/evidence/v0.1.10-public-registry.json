@@ -1,0 +1,289 @@
+{
+  "version": "0.1.10",
+  "method": "npm create axmorf-studio@latest",
+  "isolation": "fresh profiles and workspace; no OS file isolation",
+  "hosts": [
+    {
+      "host": "codex",
+      "storyId": "ten-minute-focus",
+      "sessionId": "01a08264-7a16-72b0-a56a-cb88b8f09a2c",
+      "transcriptChecksum": "sha256:a1ce0c6c74d4115540f51109c22d0a0a88e2313ef81c3ac0a500c8ddc7c71064",
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 27,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 0
+      },
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 1,
+        "refillAdmissions": 1,
+        "attemptId": "6842be28-84b0-4d63-a581-39f1b9fedf44",
+        "childEvidence": [
+          {
+            "sessionId": "01a08266-ca16-70a1-bc23-c99d7c9807af",
+            "transcriptChecksum": "sha256:2d7136f828a27877c57ad74f2d8274e249d912ae2e78b4f088dac6f1669c1492",
+            "sessionChecksum": null,
+            "taskRevision": "task-2ab227920668c5b60054078c05b766efbb5cbcdc2338100249fd9eca0a16c134"
+          },
+          {
+            "sessionId": "01a08268-a74c-73d3-b052-aa7e1a39e816",
+            "transcriptChecksum": "sha256:3b2b613e0b1fef53ba26ac65305e9d6d3e2b3e80717f2ce5a132bbbc05a91d95",
+            "sessionChecksum": null,
+            "taskRevision": "task-cc7b9a2b98e04d390f8cd21a5efdeb4064a84e460efea0e79a57d5f4bd18f368"
+          },
+          {
+            "sessionId": "01a08267-4bd1-71e0-ab0a-da5388c8bdff",
+            "transcriptChecksum": "sha256:149bd8aebb7861aa86b69e1a2201f4003eacc16f773c9751c9c41fb6489f9aec",
+            "sessionChecksum": null,
+            "taskRevision": "task-c9d2a62632f6309ff73343584f13b5f249df0bff9db71eb5bd2c674ba53e58cb"
+          },
+          {
+            "sessionId": "01a08266-f2e2-72a2-be22-fda4183af15f",
+            "transcriptChecksum": "sha256:402f2f1980aee066e7f69fa19c95b5ce5215103119ce6c7e2f3788aa1672283f",
+            "sessionChecksum": null,
+            "taskRevision": "task-4629e1eba14618bb99fea2788e08016ce9ce16ecec014e0cd494081faf7ac877"
+          },
+          {
+            "sessionId": "01a08267-2395-7250-ae96-547e55bfb0e0",
+            "transcriptChecksum": "sha256:b68f54eea2dd79d12cc2afa7fe4fb3646dfec6359661019f65c4d968db4ee953",
+            "sessionChecksum": null,
+            "taskRevision": "task-6044197c163f1781fb29a773b54e885d3356087daca9f038a286894ff4b65bf7"
+          },
+          {
+            "sessionId": "01a08265-0b6d-7be2-b9d2-134a64d9c705",
+            "transcriptChecksum": "sha256:3c1997343302bf794d519dc5c3596b25c2ff0ad8a3209d66815c2d8722ce8b7e",
+            "sessionChecksum": null,
+            "taskRevision": null
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null
+      },
+      "runtimeFingerprint": "sha256:18fee0a1d325d153baaf1ec0b641d09e1c42a2013541f44ec75c8feff91285ae",
+      "unchangedPackageFiles": 252,
+      "unchangedGuideFiles": 11,
+      "originalContinuation": {
+        "status": "project-production-complete",
+        "durationBudget": {
+          "targetTotalSeconds": 30,
+          "boundarySeconds": 10,
+          "leadAndTailSeconds": 0,
+          "availableNarratedSeconds": 20,
+          "budgetState": "narration-budget-available",
+          "actualTotalSeconds": 26.666666666666668,
+          "deltaSeconds": -3.333333333333332,
+          "measurement": "sealed-semantic-timing",
+          "comparison": "shorter-than-target",
+          "guidance": [
+            "targetTotalSeconds includes silent opening/ending Scenes and render lead-in/tail; availableNarratedSeconds must cover speech and pauses.",
+            "Before project:create, budget narration text against availableNarratedSeconds using the selected language and voice; text estimates are not measured duration.",
+            "After sealing, actualTotalSeconds follows PCM-derived semantic timing. The target is advisory, with no implicit tolerance, audio truncation or automatic retry.",
+            "If a duration change is needed, report the measured deviation and use an explicitly requested project revision; do not edit live authoring or an active attempt."
+          ]
+        },
+        "revisionId": "revision-c4e4675f5d71e122d5615b69c2a47f2e85c609f9dcbefaaf2ecf18a1075c3533",
+        "delivery": {
+          "projectId": "ten-minute-focus",
+          "deliveryBuildId": "delivery-fbf599fd68f27ff4dce458a742284a34ec0602c8653c8a276aaa6b00ce780814",
+          "status": "project-production-complete",
+          "noOp": false,
+          "deliveryPath": "deliveries/ten-minute-focus",
+          "reused": {
+            "video": false,
+            "cover4x3": false,
+            "cover3x4": false
+          }
+        },
+        "attemptRecorded": true
+      },
+      "registryIntegrity": "sha512-n1eMLACqHtvaIjn976p3Y+r7AdacHeFcp0pjBmKmHpRWox2/cGweDcCeducIMsH/ZAl2TabH8+euXClL43XEMg==",
+      "mediaFiles": {
+        "video.mp4": {
+          "bytes": 2035514,
+          "checksum": "sha256:c18cdd376b75fa40fe9d3db78b9145dfc6f3d68371c3330dad075ec7571f02e0"
+        },
+        "cover-4x3.png": {
+          "bytes": 151477,
+          "checksum": "sha256:9c97a4e1e052a671a55e21bdce0692b24c493dd0c130d16e37ec6ee1ed0d65a6"
+        },
+        "publish.json": {
+          "bytes": 2169,
+          "checksum": "sha256:e89c373166a62c69fded426b68d54e4d2efe443c9f4ce97897d77764f385f44f"
+        },
+        "cover-3x4.png": {
+          "bytes": 137765,
+          "checksum": "sha256:3b0ff33a6f7c70b6b54cde892f6b8ab375683a57e68439c493b2c99681cbf79e"
+        }
+      }
+    },
+    {
+      "host": "hermes",
+      "storyId": "ten-minute-focus",
+      "sessionId": "20260909_030017_8859c2",
+      "transcriptChecksum": "sha256:d0c5c97a8cd7fe7bfa3ea26f7038ac9758538a37868314b5318db2dd6dc0e083",
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 26,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 0
+      },
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 1,
+        "refillAdmissions": 1,
+        "attemptId": "84a10d7f-fb49-40a9-9957-1e5a1e343521",
+        "childEvidence": [
+          {
+            "sessionId": "20260909_030100_d177ad",
+            "transcriptChecksum": "sha256:17746cdade3feff37b1d801fee4f617166b3e41cb55f83fddd76fbd3896eff58",
+            "sessionChecksum": "sha256:f027218fa33fbd90da4905fca079f46db99dc1418c6427f36e3ec799c4b9f021",
+            "taskRevision": null
+          },
+          {
+            "sessionId": "20260909_030400_49342c",
+            "transcriptChecksum": "sha256:d9fec19fc5d727ad5abaa6da6aae6467983a72abb488a01c5234fc7a68dbe23f",
+            "sessionChecksum": "sha256:4296be59a875e00a567e290ccf0eac26f6d7fd433a869fd4fe0381b5b819049e",
+            "taskRevision": "task-a4337b582e13433ee7fc96b55a38a23b9b0e8cceef38444237112c7f9126ee4a"
+          },
+          {
+            "sessionId": "20260909_030400_d7c8c9",
+            "transcriptChecksum": "sha256:2b007e20884bc0c4e9d149ca0a33341d934007c85392e3af17c01214c5f80249",
+            "sessionChecksum": "sha256:75c435555cb71dd34d266cda633862603b4663b619acf640a19ea705bf6f57d0",
+            "taskRevision": "task-f8d665472d44a4631f7843deed7d428736a1cdf67f383957e75f95562cf79b2f"
+          },
+          {
+            "sessionId": "20260909_030400_811687",
+            "transcriptChecksum": "sha256:9a12175f9d3893c9712efa4e5701e7c662adb7a6790a1a74dec6031df720e400",
+            "sessionChecksum": "sha256:eb37b0c03e1fef0327e24e686e38e001225870638aafc41ff5c2369511c50ee7",
+            "taskRevision": "task-b873eab79b55630326331923a16a0fa592f71b77b56dbd2ec4235d2ddb5ea2e8"
+          },
+          {
+            "sessionId": "20260909_030400_1b074b",
+            "transcriptChecksum": "sha256:0e79b40e6adbeb8b7e13e24361627b5c827b988bca509ece723e618c3790c3fa",
+            "sessionChecksum": "sha256:e0e08c5b128851d26c387d4d651ac1b81e457ef54034c6c8ee6a9fff2b537b3a",
+            "taskRevision": "task-d833e1fc528ff552198205ffc3532290cfea489483f8c942c31d10365d9fda5d"
+          },
+          {
+            "sessionId": "20260909_030815_69a827",
+            "transcriptChecksum": "sha256:a5cfaab17beaac4670e8e44cc312ff28279e2b6920d06e74a0df68353ead23f2",
+            "sessionChecksum": "sha256:cd3e47726e1c68e855e07aeab614007608820697b069c205c9a6a5fb84bca8e6",
+            "taskRevision": "task-f91bb37f503a94b79da4a3de7076ba719b9ddc7178631442657a63c59535eb17"
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null
+      },
+      "runtimeFingerprint": "sha256:18fee0a1d325d153baaf1ec0b641d09e1c42a2013541f44ec75c8feff91285ae",
+      "unchangedPackageFiles": 252,
+      "unchangedGuideFiles": 11,
+      "originalContinuation": {
+        "status": "project-production-complete",
+        "durationBudget": {
+          "targetTotalSeconds": 30,
+          "boundarySeconds": 10,
+          "leadAndTailSeconds": 0,
+          "availableNarratedSeconds": 20,
+          "budgetState": "narration-budget-available",
+          "actualTotalSeconds": 27.366666666666667,
+          "deltaSeconds": -2.633333333333333,
+          "measurement": "sealed-semantic-timing",
+          "comparison": "shorter-than-target",
+          "guidance": [
+            "targetTotalSeconds includes silent opening/ending Scenes and render lead-in/tail; availableNarratedSeconds must cover speech and pauses.",
+            "Before project:create, budget narration text against availableNarratedSeconds using the selected language and voice; text estimates are not measured duration.",
+            "After sealing, actualTotalSeconds follows PCM-derived semantic timing. The target is advisory, with no implicit tolerance, audio truncation or automatic retry.",
+            "If a duration change is needed, report the measured deviation and use an explicitly requested project revision; do not edit live authoring or an active attempt."
+          ]
+        },
+        "revisionId": "revision-f579ce8010e9fb4e777fa80e352ea346d6d2c2f6d090432d8d60d69dc97d30e0",
+        "delivery": {
+          "projectId": "ten-minute-focus",
+          "deliveryBuildId": "delivery-4c8e6efbf4efcfb62952425dee38f09dbddcd2d56dcc5693af6f0b606e9d42b3",
+          "status": "project-production-complete",
+          "noOp": false,
+          "deliveryPath": "deliveries/ten-minute-focus",
+          "reused": {
+            "video": false,
+            "cover4x3": false,
+            "cover3x4": false
+          }
+        },
+        "attemptRecorded": true
+      },
+      "registryIntegrity": "sha512-n1eMLACqHtvaIjn976p3Y+r7AdacHeFcp0pjBmKmHpRWox2/cGweDcCeducIMsH/ZAl2TabH8+euXClL43XEMg==",
+      "mediaFiles": {
+        "video.mp4": {
+          "bytes": 2300570,
+          "checksum": "sha256:dcdc3c6183fa8a959e7546fab7779522226269cd98cab4c66828e08cfd6a3775"
+        },
+        "cover-4x3.png": {
+          "bytes": 160361,
+          "checksum": "sha256:a11239e865b5aeb03491df887e6322a18d61299ef8dbfe1b77f14096ac71cb7a"
+        },
+        "publish.json": {
+          "bytes": 2188,
+          "checksum": "sha256:9b9019a72510e91cba92526ff049a06b7973e1a5a9e11929c0e031639c1a59a7"
+        },
+        "cover-3x4.png": {
+          "bytes": 165478,
+          "checksum": "sha256:fa02fc1b43e81b92d973626a8af1dc21477e5ebffc7baccd7e26620e49e39ee2"
+        }
+      }
+    }
+  ],
+  "contextReview": {
+    "sourceHistoryAccessObserved": false,
+    "hermesNativeSystemPromptHashesVerified": 7,
+    "nativeCallEvidence": [
+      {
+        "host": "codex",
+        "checksum": "sha256:92dccd9a481015907e71f096b87b217cb00855e5f3166ac912316913678c92b2"
+      },
+      {
+        "host": "hermes",
+        "checksum": "sha256:5eacc2ad8cab147894c9fa58001cacaa44b5415ea7de10a86ffbf5350387203e"
+      }
+    ],
+    "scope": "Development checkout, prior production/sessions and personal global project skills; reading the owning task source is expected."
+  },
+  "supervisionReview": {
+    "codex": {
+      "originalProcessWaitRequestsMs": [
+        60000,
+        60000,
+        60000
+      ],
+      "outerExecWaitRequestsMs": [
+        1000,
+        20000,
+        20000,
+        10000
+      ],
+      "repeatedOneSecondProcessWaits": false
+    },
+    "hermes": {
+      "originalProcessWaitRequestsSeconds": [
+        600
+      ],
+      "afterSuccessfulFixedResult": "Three read-only CLI calls: incomplete project:check invocation, help lookup, then successful --level final check. No second prepare/continuation or task write."
+    },
+    "scope": "Observed waiting behavior only; no quantitative token-savings or real failure-recovery certification."
+  }
+}

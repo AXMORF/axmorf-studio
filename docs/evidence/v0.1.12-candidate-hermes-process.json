@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "scope": "independent-candidate-hermes-native-process-review",
+  "reviewedAt": "2026-09-10T08:11:02.785817+00:00",
+  "status": "completed-with-one-nonblocking-root-error",
+  "packageVersion": "0.1.12",
+  "runtimeFingerprint": "sha256:f91a415bc1fa4e4327114fbd1a2f5434707cfa2c8ae1b01836d912978948039c",
+  "rootSessionId": "20260910_155013_212299",
+  "nativeRun": {
+    "uiSessionId": "9a8b0474",
+    "businessPrompts": 1,
+    "controllerFollowups": 0,
+    "sessionsReviewed": 7,
+    "nativeToolCallsReviewed": 89,
+    "creativeWorkers": 5,
+    "probeWorkers": 1
+  },
+  "findings": [
+    {
+      "severity": "nonblocking",
+      "category": "root-environment-assumption",
+      "sessionId": "20260910_155013_212299",
+      "callId": "call_amx2hEtfGcCECNd6thTHnKb6",
+      "summary": "Root assumed the generated npm Workspace was a Git checkout; the chained Git command exited 128 before doctor ran. Root then ran npm run doctor successfully without intervention.",
+      "explicitSkillViolation": false,
+      "validatorFalsePositive": false,
+      "selfCorrected": true,
+      "correctionCallId": "call_eaEqfdF0e0fctvB2ImhQnMuQ"
+    }
+  ],
+  "failedNativeCalls": 1,
+  "failedWorkerCalls": 0,
+  "taskValidationFailures": 0,
+  "authoredOutputCorrectionsAfterValidation": 0,
+  "observedExplicitReadConstraintViolations": [],
+  "sessions": [
+    {
+      "sessionId": "20260910_155013_212299",
+      "parentSessionId": null,
+      "role": "root",
+      "nativeToolCalls": 24,
+      "taskRevision": null,
+      "boundBeforeTaskContent": null,
+      "oneOwnTaskOnly": null,
+      "fixedOperations": [],
+      "firstPassAccepted": null,
+      "sourceTranscriptChecksum": "sha256:852a218104e0223509627d31da00ee193dd0001ed805d4318a4c2bf7eaede72f"
+    },
+    {
+      "sessionId": "20260910_155058_763c5b",
+      "parentSessionId": "20260910_155013_212299",
+      "role": "capability-probe",
+      "nativeToolCalls": 1,
+      "taskRevision": null,
+      "boundBeforeTaskContent": null,
+      "oneOwnTaskOnly": null,
+      "fixedOperations": [],
+      "firstPassAccepted": null,
+      "sourceTranscriptChecksum": "sha256:2a8dd1aa92374c4fa767a6a6a8cd896579f9168c2dfb444ada043849ef0dcc8e"
+    },
+    {
+      "sessionId": "20260910_155348_5afc02",
+      "parentSessionId": "20260910_155013_212299",
+      "role": "scene:record-next-step",
+      "nativeToolCalls": 11,
+      "taskRevision": "task-22d3d595c08508c577a29f135003203190f52a07e195febff86c460135f0d1c7",
+      "boundBeforeTaskContent": true,
+      "oneOwnTaskOnly": true,
+      "fixedOperations": [
+        {
+          "operation": "finalize",
+          "callId": "call_1u3tw9QsSCSELGiXch0KJh4e",
+          "exitCode": 0,
+          "statuses": [
+            "agent-task-finalized"
+          ]
+        },
+        {
+          "operation": "check",
+          "callId": "call_GsJcClTOZXjNs2Js33oRknme",
+          "exitCode": 0,
+          "statuses": [
+            "task-workspace-valid"
+          ]
+        },
+        {
+          "operation": "commit",
+          "callId": "call_ESCrNZ7kdJWyH8nR7ZT8UZKC",
+          "exitCode": 0,
+          "statuses": [
+            "producer-artifact-committed"
+          ]
+        }
+      ],
+      "firstPassAccepted": true,
+      "sourceTranscriptChecksum": "sha256:80cf4ebb4fa9b127376a809c3a0295d4eff0aecd64dc7f8bb03148c0e4341f13"
+    },
+    {
+      "sessionId": "20260910_155348_cc88fd",
+      "parentSessionId": "20260910_155013_212299",
+      "role": "global-visual-owner",
+      "nativeToolCalls": 12,
+      "taskRevision": "task-1a7cd01c595c7497634edc340b7e49f04d9e4552dcdc8bc7a651c6d53d664eca",
+      "boundBeforeTaskContent": true,
+      "oneOwnTaskOnly": true,
+      "fixedOperations": [
+        {
+          "operation": "finalize",
+          "callId": "call_VAtGhgSBtMKCu0aExdTyGUXH",
+          "exitCode": 0,
+          "statuses": [
+            "agent-task-finalized"
+          ]
+        },
+        {
+          "operation": "check",
+          "callId": "call_U6dyv4CPFNTgZp6S4a0KaltK",
+          "exitCode": 0,
+          "statuses": [
+            "task-workspace-valid"
+          ]
+        },
+        {
+          "operation": "commit",
+          "callId": "call_GsURtgDVPT6C5f42GzEG3aOv",
+          "exitCode": 0,
+          "statuses": [
+            "producer-artifact-committed"
+          ]
+        }
+      ],
+      "firstPassAccepted": true,
+      "sourceTranscriptChecksum": "sha256:d1904062e1fd6b1a97f0c41962b36b8272a8d7de906f4b22c61f566ff06262fc"
+    },
+    {
+      "sessionId": "20260910_155348_cc9b79",
+      "parentSessionId": "20260910_155013_212299",
+      "role": "scene:choose-small-step",
+      "nativeToolCalls": 15,
+      "taskRevision": "task-092cf0211a2c8a07159042b8682f6eb2ff5f13992cf5a1cf7438706ddef5f996",
+      "boundBeforeTaskContent": true,
+      "oneOwnTaskOnly": true,
+      "fixedOperations": [
+        {
+          "operation": "finalize",
+          "callId": "call_2fIk0NyGNHrcAB6rFcqMW7x9",
+          "exitCode": 0,
+          "statuses": [
+            "agent-task-finalized"
+          ]
+        },
+        {
+          "operation": "check",
+          "callId": "call_J82m97dqoAFOI4WFi5ZZrJ2s",
+          "exitCode": 0,
+          "statuses": [
+            "task-workspace-valid"
+          ]
+        },
+        {
+          "operation": "commit",
+          "callId": "call_IP1vwoYJ6Ce39D0cgpjMJe2F",
+          "exitCode": 0,
+          "statuses": [
+            "producer-artifact-committed"
+          ]
+        }
+      ],
+      "firstPassAccepted": true,
+      "sourceTranscriptChecksum": "sha256:8c948591210088c541c3ac82b953ed2b9172be799f1ef4745e59ec7ab82d0ba5"
+    },
+    {
+      "sessionId": "20260910_155348_ff33cd",
+      "parentSessionId": "20260910_155013_212299",
+      "role": "scene:close-interruptions",
+      "nativeToolCalls": 16,
+      "taskRevision": "task-5d0a6889f27ac6e721cc1a465d6b2175934ed0db0a70e366f7dd7b90888d3b3c",
+      "boundBeforeTaskContent": true,
+      "oneOwnTaskOnly": true,
+      "fixedOperations": [
+        {
+          "operation": "finalize",
+          "callId": "call_CpsYgFrT869IlJ3SzbLPniP3",
+          "exitCode": 0,
+          "statuses": [
+            "agent-task-finalized"
+          ]
+        },
+        {
+          "operation": "check",
+          "callId": "call_0RwGlJenoVkTHkW9GNJd9VH2",
+          "exitCode": 0,
+          "statuses": [
+            "task-workspace-valid"
+          ]
+        },
+        {
+          "operation": "commit",
+          "callId": "call_LytfGE7CJxfBB5fm18aAUOmK",
+          "exitCode": 0,
+          "statuses": [
+            "producer-artifact-committed"
+          ]
+        }
+      ],
+      "firstPassAccepted": true,
+      "sourceTranscriptChecksum": "sha256:53b4efd58bac306ae65d74832d9f262b9c6520950f2bcedc9172e3d71fa7da02"
+    },
+    {
+      "sessionId": "20260910_155750_c71d2c",
+      "parentSessionId": "20260910_155013_212299",
+      "role": "cover-owner",
+      "nativeToolCalls": 10,
+      "taskRevision": "task-6b08a98347496919fa8d7d3ef00eaf7c7848e9f2599a44f576a6b21f7312c4ba",
+      "boundBeforeTaskContent": true,
+      "oneOwnTaskOnly": true,
+      "fixedOperations": [
+        {
+          "operation": "finalize",
+          "callId": "call_8Eb7gDDRf16xBMmzkC32WR6p",
+          "exitCode": 0,
+          "statuses": [
+            "agent-task-finalized"
+          ]
+        },
+        {
+          "operation": "check",
+          "callId": "call_PWQWRkHrRA5AmOYwzEVxiVoa",
+          "exitCode": 0,
+          "statuses": [
+            "task-workspace-valid"
+          ]
+        },
+        {
+          "operation": "commit",
+          "callId": "call_rfIJscMySLjCjgesw7dLRIkn",
+          "exitCode": 0,
+          "statuses": [
+            "producer-artifact-committed"
+          ]
+        }
+      ],
+      "firstPassAccepted": true,
+      "sourceTranscriptChecksum": "sha256:c44137fcd4f3c720877fa95817653ca53b26f190acfdf134b71bcffb3ad38902"
+    }
+  ],
+  "ownershipReview": {
+    "taskBindBeforeContent": true,
+    "rootTaskContentReadOrWrite": false,
+    "crossWorkerTaskAccess": false,
+    "freshSessionPerTask": true,
+    "sceneGuideReadBeforeAuthoredRenderer": true,
+    "fixedDraftOwnershipNote": "Scene JSON contracts label generated/reference-fidelity and plan outputs agent-draft-fixed-finalize; copying their examples before the one fixed finalizer is permitted by the received contract, not a fixed-only write violation."
+  },
+  "supervision": {
+    "continuationStarts": 1,
+    "waitCalls": 1,
+    "waitTimeoutSeconds": 600,
+    "shortSupervisionWaits": 0,
+    "statusOrChildPolling": false,
+    "nativeAsyncBatches": 3,
+    "allNativeNoticesBeforeFinal": true,
+    "finalDeliveryReports": 1,
+    "postFinalRootToolCalls": 0,
+    "uiInterimReports": 3,
+    "uiCompleteReports": 4,
+    "sourceReadinessCostReuseReport": {
+      "source": "native-message.interim",
+      "seq": 145,
+      "beforePrepareToolStartSeq": 147,
+      "reportedProviderRequests": 6
+    },
+    "durationBudgetReport": {
+      "source": "native-message.interim",
+      "seq": 57,
+      "totalSeconds": 30,
+      "boundarySeconds": 10,
+      "narrationBudgetSeconds": 20
+    },
+    "finalDurationSeconds": 28.4,
+    "uiEventSequenceContiguous": true,
+    "rootUserMessageKinds": {
+      "ordinary": 2,
+      "async_delegation_complete": 2
+    },
+    "peakActiveNativeChildren": 4,
+    "allNativeChildrenCompleted": true,
+    "slotRefillObserved": true
+  },
+  "sourceIsolation": {
+    "developmentCheckoutToolAccessObserved": false,
+    "previousProjectOrAcceptanceToolAccessObserved": false,
+    "workerWorkspaceInspectedByReviewer": false,
+    "rawNativeArgumentsAndCodeReviewed": true,
+    "osFilesystemIsolation": false
+  },
+  "limitations": [
+    "A successful first check shows no observed readability validator failure in this run; it does not prove every possible JSX pattern or every frame is correct.",
+    "This review uses complete native tool arguments/results and UI events; it is not frame-by-frame visual or full listening verification.",
+    "Some workers reread immutable context/contract JSON with Python for clearer exact input; no read_file error or truncated=true result was found.",
+    "The Git assumption remains a nonblocking avoidable root call; do not describe the overall process as zero-error."
+  ],
+  "evidenceChecksums": {
+    "hermes-rpc.jsonl": "sha256:5d8559e75dab2ef90221111ef661c42abb52a110192b05df1cd8530c4ae5b2e6",
+    "hermes-transcript.json": "sha256:852a218104e0223509627d31da00ee193dd0001ed805d4318a4c2bf7eaede72f",
+    "hermes-session.json": "sha256:4c0090f4ab8c084d3ce183d87a11848852e67f1bc5b8ce0f810911097993467b",
+    "hermes-delegations.json": "sha256:01aa1a0e6ee5fe71dd812e824d12875e117ed8fe17abf3a93a4e334e16270a9b",
+    "hermes-run-evidence.json": "sha256:b42acc72109c2a165317649d683019428b61c24e317f676e6f806d4285cd3cfc"
+  },
+  "privateQaPath": "qa/candidate-hermes-process"
+}

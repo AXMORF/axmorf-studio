@@ -3,7 +3,10 @@ import { readFile, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 
-import { ProjectCreateInputSchema } from "@axmorf/studio/contracts";
+import {
+  ProjectCreateInputSchema,
+  VISUAL_THEME_PRESETS,
+} from "@axmorf/studio/contracts";
 import { inspectProjectCreateContext } from "../../scripts/projects/application/project-create-context";
 import { describeCliFailure } from "../../packages/studio/src/cli/failure";
 import { runProjectCreateCli } from "../../scripts/projects/create";
@@ -35,6 +38,10 @@ test("create context supplies a usable example from current public choices witho
   assert.ok(camera.descriptor.authoring.exports.includes("ProducerCamera3D"));
   assert.match(camera.descriptor.authoring.example, /ProducerCamera2D/);
   assert.match(camera.descriptorFingerprint, /^sha256:/);
+  assert.deepEqual(
+    context.example.visualStyle.theme,
+    VISUAL_THEME_PRESETS.dark,
+  );
   assert.ok(
     context.example.resources.allowedResourceIds.some(
       (id) => id === "capability.camera",
@@ -46,6 +53,25 @@ test("create context supplies a usable example from current public choices witho
   );
   assert.equal(context.durationBudget.targetTotalSeconds, 30);
   assert.equal(context.durationBudget.actualTotalSeconds, null);
+  assert.equal(
+    context.agentHandoff.nextAction,
+    "report-to-user-before-project-create",
+  );
+  assert.match(context.agentHandoff.summary, /exampleTarget=30s/u);
+  assert.match(context.agentHandoff.summary, /availableNarrated=/u);
+  assert.match(
+    context.agentHandoff.instruction,
+    /Before running project:create/u,
+  );
+  assert.match(
+    context.agentHandoff.instruction,
+    /intermediate progress message/u,
+  );
+  assert.match(context.agentHandoff.instruction, /not a final answer/u);
+  assert.match(
+    context.agentHandoff.instruction,
+    /same turn[\s\S]*nextCommand/u,
+  );
   assert.equal(
     context.durationBudget.availableNarratedSeconds,
     Math.max(
@@ -70,6 +96,19 @@ test("create context supplies a usable example from current public choices witho
     ),
   );
   assert.equal(Object.hasOwn(example, "sceneTemplates"), false);
+  assert.equal(Object.hasOwn(example.render, "width"), false);
+  assert.deepEqual(context.fieldExamples.render, {
+    ...example.render,
+    width: 1920,
+    height: 1080,
+  });
+  const landscapeInput = ProjectCreateInputSchema.parse({
+    ...example,
+    render: context.fieldExamples.render,
+  });
+  assert.equal(landscapeInput.render.width, 1920);
+  assert.match(context.agentHandoff.instruction, /render\.width/u);
+  assert.doesNotMatch(example.brief.deliveryConstraints.join(" "), /竖屏/u);
   assert.deepEqual(
     example.story.beats.map(({ meaningId }) => meaningId),
     ["stuck-goal", "next-step"],
@@ -135,7 +174,7 @@ test("create context supplies a usable example from current public choices witho
   );
   const inputPath = join(fixture.rootDir, "input.json");
   const { writeFile } = await import("node:fs/promises");
-  await writeFile(inputPath, JSON.stringify(example));
+  await writeFile(inputPath, JSON.stringify(landscapeInput));
   const result = await runProjectCreateCli(
     ["--project", "fresh-video", "--input", "input.json"],
     {
@@ -155,6 +194,21 @@ test("create context supplies a usable example from current public choices witho
     },
   );
   assert.equal(result.status, "project-created");
+  assert.ok("render" in result);
+  assert.equal(result.render.width, 1920);
+  assert.equal(result.render.height, 1080);
+  assert.equal(result.render.fps, context.renderDefaults.fps);
+  assert.match(result.agentHandoff.instruction, /before.*provider/iu);
+  assert.deepEqual(
+    JSON.parse(
+      await readFile(
+        join(fixture.rootDir, "src/projects/fresh-video/render.json"),
+        "utf8",
+      ),
+    ),
+    result.render,
+  );
+  assert.equal(await readFile(configPath, "utf8"), before);
 });
 
 test("create help and input schema are read-only and require no configured provider", async () => {

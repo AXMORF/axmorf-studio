@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "host": "codex",
+  "model": "gpt-5.6-terra",
+  "sessionId": "01a09717-fdf9-77f1-968d-c14f0e5dc461",
+  "environment": {
+    "platform": "darwin",
+    "arch": "x64",
+    "node": "v22.22.3"
+  },
+  "startedAt": "2026-09-12T19:28:45.812818+00:00",
+  "endedAt": "2026-09-12T19:40:11.230874+00:00",
+  "packages": {
+    "runtime": {
+      "name": "@axmorf/studio",
+      "version": "0.1.14",
+      "fingerprint": "sha256:139e9cd3d19fb94e50033c28164b5faa28e510f48accaf83c037e34ee15d4c1a",
+      "fileCount": 254
+    },
+    "creator": {
+      "name": "create-axmorf-studio",
+      "version": "0.1.14",
+      "fingerprint": "sha256:833df1d47b03c2c3add5aea81fe5c82a0442d19df18a5e16ccd02c3ab4711684",
+      "fileCount": 41
+    }
+  },
+  "prompt": "请帮我制作一条约30秒的中文横屏视频，尺寸1920×1080，项目 ID 为 codex-release014-focus。主题是“从十分钟专注开始”，依次用三个独立内容段落讲清楚：先选一个具体小步骤、关掉外界打断、完成后记录下一步。采用深色主题，文案和动态图形由你设计，要有旁白和字幕，最后给我视频和两张封面。\n",
+  "promptChecksum": "sha256:e077d4c1f0c3aaa480df8c83713eccbeefb928a068a52734c5df58b03c7f9fca",
+  "transcriptChecksum": "sha256:286e18a91e58438b54c957b03576773d2cf31421ea064f1bab5029f425103c6f",
+  "runChecksum": "sha256:fda3f4f53f812b107e44c0a792df984f14a604d1e0cbfff7afe5088cfc9ed124",
+  "snapshotChecksum": "sha256:7f052c55584eef9c0cc014e44ae794e02dbbd45540ad5065e84cf5b9b27286d7",
+  "creation": {
+    "method": "npm-exec-candidate",
+    "runtimeTarballChecksum": "sha256:44634c78a2b9dc6d58db8566c90211aca040736eb2451c22ff5f1f6dee461999",
+    "creatorTarballChecksum": "sha256:231d610e772ea4ffcb3ebcbc4d134b4e458f48b843d0d40a80748c16ed7b3920",
+    "installLogChecksum": "sha256:c1e79171f4c0e4ab224e2dd8767b80a2e88399ff417fff1b2034933508c18b82"
+  },
+  "sessionChecksum": null,
+  "transcriptAudit": {
+    "businessUserMessages": 1,
+    "toolCalls": 32,
+    "followUpMessages": 0,
+    "nativeCompletionMessages": 0
+  },
+  "unchangedPackageFiles": 254,
+  "nativeExecution": {
+    "mode": "subagents",
+    "workerTransport": "shared-workspace",
+    "modeSource": "builtin-default",
+    "concurrencySource": "builtin-default",
+    "requestedMaxConcurrency": 4,
+    "effectiveMaxConcurrency": 4,
+    "peakActiveChildren": 4,
+    "peakBoundTasks": 4,
+    "fourWayBoundOverlapMs": 69107,
+    "dirtyTaskCount": 5,
+    "productionChildCount": 5,
+    "probeChildCount": 4,
+    "refillAdmissions": 1,
+    "attemptId": "e6fc5d01-9ec0-4af4-940a-9fda5a830b6b",
+    "childEvidence": [
+      {
+        "sessionId": "01a09719-8ead-7e41-9b19-5c6bba8f36ff",
+        "transcriptChecksum": "sha256:39a51dd9e1394b23ffd3de2340f1a4feefe3a2c781862ae501d27a8777c21bac",
+        "sessionChecksum": null,
+        "taskRevision": null
+      },
+      {
+        "sessionId": "01a09719-a502-7e42-b84a-d7e30e469b68",
+        "transcriptChecksum": "sha256:d85679cbc44579d2c8e127fdd6ba69a3a26be4428d5509b5fcc32f8d2e0a5644",
+        "sessionChecksum": null,
+        "taskRevision": null
+      },
+      {
+        "sessionId": "01a09719-b9e6-7222-9a85-f4ef1f6724f2",
+        "transcriptChecksum": "sha256:1dd3e3c7fa23d7c989866479a056e328d2435a0cdf2a5a2336c29000e9b6e840",
+        "sessionChecksum": null,
+        "taskRevision": null
+      },
+      {
+        "sessionId": "01a09719-ce7f-7822-9f57-645eb9b2082b",
+        "transcriptChecksum": "sha256:2f4867e48df749dcfdc10170cdb5f218b224ba768db8a00466329ab19499ba28",
+        "sessionChecksum": null,
+        "taskRevision": null
+      },
+      {
+        "sessionId": "01a0971b-0209-79e0-8449-1b4587da7159",
+        "transcriptChecksum": "sha256:133d8d0035a0882ab18e9b0305c7cb384ec34d0d3069eb7d9304320dbd8bd24e",
+        "sessionChecksum": null,
+        "taskRevision": "task-061e0cd5f0907c4f91b00c98d8364737c3b5fccd1dca1ff0c85033b36e4fced6"
+      },
+      {
+        "sessionId": "01a0971b-275d-7421-863f-2d63a3c30bc1",
+        "transcriptChecksum": "sha256:3bc3142f1374106446f712325a42595e1447e158fff0d7992cf96ecec256451a",
+        "sessionChecksum": null,
+        "taskRevision": "task-16da41526889b0e734d10452425f65df43f6158654b53c4d34d571b1245b07b1"
+      },
+      {
+        "sessionId": "01a0971b-4dd8-7d01-b36a-5318ac611ac6",
+        "transcriptChecksum": "sha256:898de0b62d5e6d36fa131d4de37af2a7753e2efd8420566bd11ba34be327efcf",
+        "sessionChecksum": null,
+        "taskRevision": "task-8bca5461d70cb98ad111b7c8ff328a68cd3f0375de4449d2c7b7262260d1d3c0"
+      },
+      {
+        "sessionId": "01a0971b-748c-75c0-a31f-feb673ab0139",
+        "transcriptChecksum": "sha256:dfa23078da49a48e227c89629fd98dc8729e1be930f4c044aa6a64f72edf1463",
+        "sessionChecksum": null,
+        "taskRevision": "task-b3ebe7a2ba18c5f5943633530b6229d38dfdd2238e929fb811673fb4c3f6c805"
+      },
+      {
+        "sessionId": "01a0971e-fd66-7933-ae68-592c2affbcb1",
+        "transcriptChecksum": "sha256:8831e392f902d047b16c7628f041c62c3a1fdeea5285745d1468975ec8b15b5d",
+        "sessionChecksum": null,
+        "taskRevision": "task-f423f875bd0d76ff89ad8501eb53ee524c1e55ed54d11bc8b1940aecda5b513c"
+      }
+    ],
+    "delegationChecksum": null,
+    "notificationFormatterChecksum": null
+  },
+  "supervision": {
+    "schemaVersion": 1,
+    "source": "codex",
+    "reportedBeforeCreate": true,
+    "reportedBeforePrepare": true,
+    "continuationCalls": 1,
+    "pollingCalls": 0,
+    "asyncBatches": 0,
+    "completedAsyncBatches": 0
+  },
+  "unchangedGuideFiles": 12,
+  "finalCheck": {
+    "status": "project-final-check",
+    "storyId": "codex-release014-focus",
+    "aggregateStatus": "pass",
+    "deliveryBuildId": "delivery-e1201e574a0f52f0e7ad145f0a4563aaf0bd5380a3978d7b5d173fd084335e15",
+    "checks": [
+      {
+        "checkId": "artifacts",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "delivery",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "revision",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "artifact-set",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "delivery-build",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "audio-channels",
+        "status": "pass",
+        "code": null,
+        "message": null
+      },
+      {
+        "checkId": "snapshot",
+        "status": "pass",
+        "code": null,
+        "message": null
+      }
+    ],
+    "schemaVersion": 1,
+    "level": "final",
+    "scope": "current-production",
+    "revisionId": "revision-ba809d3afcf100b7a2a0dca59dfc96509c231711ee36b8ba17929b2083b8a0d2",
+    "artifactSetFingerprint": "sha256:4793df9e9800a4a8cdbb090cd33ed3e9a4e65e545a5e1b84b91465b174be7f0a"
+  },
+  "delivery": {
+    "storyId": "codex-release014-focus",
+    "deliveryBuildId": "delivery-e1201e574a0f52f0e7ad145f0a4563aaf0bd5380a3978d7b5d173fd084335e15",
+    "files": {
+      "video.mp4": {
+        "checksum": "sha256:37e5f5abcc45a4b932dfab6909971cacbef6a9d5ad939f456f16d771ff5713e3",
+        "sizeBytes": 3033267
+      },
+      "cover-4x3.png": {
+        "checksum": "sha256:74f27d7dfa6a6b0a419601e571e6bc5b7f92a473c914a9fb05b3faea79ec7178",
+        "sizeBytes": 156182
+      },
+      "cover-3x4.png": {
+        "checksum": "sha256:2d1632d1af98e2e79f6b301c32195e20f4f45f168b32df90a475d7c9615f3c27",
+        "sizeBytes": 169254
+      },
+      "publish.json": {
+        "checksum": "sha256:e8db4da78f95f71a2ab3adbc815f5f5aeaea1fc701b2ee11aca748502acb2fc5",
+        "sizeBytes": 2218
+      }
+    },
+    "video": {
+      "codec": "h264",
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "frameCount": 1079
+    },
+    "decodedFiles": ["video.mp4", "cover-4x3.png", "cover-3x4.png"]
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.15",
+  "status": "passed",
+  "scope": "isolated-installed-candidate-publishing-description-revision",
+  "storyId": "codex-release015-moon",
+  "candidateId": "revision-candidate-1bb71f61bbe721a07db10ec126493d9dfa163f07086e0cb4e25139e01a2a82af",
+  "base": {
+    "revisionId": "revision-6235804618f34245ea23c3c2ed0fd5b136e4a8e46e089bf49e90046765c25aec",
+    "deliveryBuildId": "delivery-c41bef45850add6b4e93b8fa6231d7dd41285475580ce4cddf5e0fd95dffb0b7"
+  },
+  "expected": {
+    "revisionId": "revision-6ed6730ca47577c672a26a6e7d696cb4f1f5facb77697bbe816caa29b1622e8a",
+    "deliveryBuildId": "delivery-0672defa4fc8ed9d096c54f8b54bd32cc90aaf248d96833f264c38fe9ce13c6d"
+  },
+  "inspectedCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 3,
+    "agentTasks": 0,
+    "deliveryMedia": ["video", "cover-4x3", "cover-3x4"]
+  },
+  "preparedCost": {
+    "providerRequests": 0,
+    "providerCacheHits": 3,
+    "agentTasks": 0,
+    "deliveryMedia": []
+  },
+  "continuationInvocations": 1,
+  "continuationStatus": "project-revision-complete",
+  "automaticPromotion": "project-revision-promoted",
+  "promotedContextAndFinalCheckAgree": true,
+  "manualPromotionIdempotency": "project-revision-current",
+  "finalCheckAfterManualPromotion": "pass",
+  "installedRuntimePackageUnchanged": true,
+  "mediaComparison": {
+    "cover3x4SameBytes": true,
+    "cover4x3SameBytes": true,
+    "publishJsonChanged": true,
+    "videoMp4SameBytes": false,
+    "decodedVideoFramesIdentical": true,
+    "decodedAudioIdentical": true
+  },
+  "localBrowserFollowUp": {
+    "browserPreparation": "passed after direct download without proxy",
+    "doctorChecksPassed": 6,
+    "providerRequests": 0,
+    "agentTasks": 0,
+    "continuationInvocations": 1,
+    "continuationStatus": "project-revision-complete",
+    "automaticPromotion": "project-revision-promoted",
+    "currentFinalCheck": "pass",
+    "workspaceCompositions": "pass without AXMORF_BROWSER_EXECUTABLE"
+  },
+  "limitations": [
+    "The first passing isolated copy used an already installed host Chrome Headless Shell. A separate copy subsequently downloaded and used its own browser without proxy or executable override.",
+    "This is a publishing-only revision. It does not certify Agent-authored revisions, recovery, rollback, or fault paths.",
+    "The first isolated copy stopped before attempt creation because no browser executable was available there; the passing run used a new untouched copy."
+  ]
+}

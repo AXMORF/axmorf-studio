@@ -21,6 +21,7 @@ import {
   type ProducerTaskSpec,
   type SceneTaskInput,
 } from "@axmorf/studio/contracts";
+import { reportCliFailure } from "../../packages/studio/src/cli/failure";
 import { createTaskWorkspace } from "../../scripts/project-production/adapters/task-workspace";
 import {
   AgentTaskFinalizationError,
@@ -333,6 +334,36 @@ test("TaskExecutionContract is npm-native, attempt-neutral, and mechanically mat
   );
 });
 
+test("themed GlobalVisual contract reserves the background and uses the resolved theme roles", () => {
+  const theme = {
+    background: "#111827",
+    primaryText: "#f9fafb",
+    secondaryText: "#d1d5db",
+    accent: "#fbbf24",
+  };
+  const contract = buildTaskExecutionContract({
+    taskKind: "global-visual-owner",
+    context: { ...buildGlobalContext(), visualStyle: { theme } },
+  });
+  const source = String(
+    contract.outputs.find(({ path }) => path === "src/GlobalVisualLayers.tsx")
+      ?.example,
+  );
+  assert.match(source, /GlobalVisualBaseLayer = \(\) => null/u);
+  assert.doesNotMatch(source, /backgroundColor/u);
+  const plan = GlobalVisualPlanSchema.parse(
+    contract.outputs.find(
+      ({ path }) => path === "project/global-visual-plan.json",
+    )?.example,
+  );
+  assert.equal(plan.frameTreatment.borderColor, theme.secondaryText);
+  assert.equal(plan.continuityMotif.color, theme.accent);
+  assert.match(
+    serializeCanonicalJson(contract),
+    /Composition owns.*theme\.background/u,
+  );
+});
+
 test("Scene finalization recomputes task-bound derived JSON atomically and passes the fixed checker", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "axmorf-task-finalize-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
@@ -419,11 +450,11 @@ test("Scene finalization recomputes task-bound derived JSON atomically and passe
   );
 });
 
-test("Scene nonempty resources survive contract, finalization and checker", async (context) => {
-  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-nonempty-resources-"));
+test("Scene shot range schema failures identify agent output and write no derived outputs", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-task-finalize-range-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));
   const fixture = createScenePackageInput();
-  const originalityBaseline = buildSceneOriginalityBaseline({
+  const baseline = buildSceneOriginalityBaseline({
     subjectStoryId: fixture.task.storyId,
     entries: [],
   });
@@ -432,15 +463,75 @@ test("Scene nonempty resources survive contract, finalization and checker", asyn
     taskKind: "scene-owner",
     storyId: fixture.task.storyId,
     semanticId: fixture.task.meaningId,
-    context: { originalityBaseline, ...sceneContext(fixture.task) },
+    context: {
+      ...sceneContext(fixture.task),
+      originalityBaseline: baseline,
+    },
     validatorPolicyVersion: "scene-owner-validator-v4",
     additionalInputFingerprints: [
       {
         id: SCENE_ORIGINALITY_INPUT_ID,
-        fingerprint: originalityBaseline.baselineFingerprint,
+        fingerprint: baseline.baselineFingerprint,
       },
     ],
   });
+  await writeOutputExamples({
+    workspace: created.workspace,
+    contract: created.contract,
+  });
+  await writeFile(
+    join(created.workspace, "src/Renderer.tsx"),
+    'import type {SceneRendererProps} from "@axmorf/studio/remotion";\nconst Renderer = ({viewportWidth, viewportHeight}: SceneRendererProps) => <div style={{width: viewportWidth, height: viewportHeight}} />;\nexport default Renderer;\n',
+  );
+  const shotPath = join(created.workspace, "src/shot-plan.json");
+  const shot = JSON.parse(await readFile(shotPath, "utf8")) as {
+    shots: Array<{ primaryRange: { endFrame: number } }>;
+  };
+  shot.shots[0]!.primaryRange.endFrame += 1;
+  await writeFile(shotPath, `${JSON.stringify(shot)}\n`);
+  const before = await Promise.all(
+    created.contract.outputs.map(
+      async ({ path }) =>
+        [path, await readFile(join(created.workspace, path))] as const,
+    ),
+  );
+  await assert.rejects(
+    finalizeAgentTaskWorkspace({
+      rootDir,
+      taskRevision: created.task.taskRevision,
+    }),
+    (error: unknown) => {
+      assert.ok(error instanceof AgentTaskFinalizationError);
+      assert.equal(error.code, "task-output-invalid");
+      assert.deepEqual(error.diagnostic, {
+        file: "src/shot-plan.json",
+        path: ["shots", 0, "primaryRange", "endFrame"],
+        code: "custom",
+        message: `Shot endFrame ${shot.shots[0]!.primaryRange.endFrame} exceeds the immutable Scene duration ${shot.shots[0]!.primaryRange.endFrame - 1}; use a Scene-local exclusive end no greater than ${shot.shots[0]!.primaryRange.endFrame - 1}.`,
+        failureOwner: "agent-output",
+        repairHint:
+          "Correct the authored JSON in src/shot-plan.json at the reported path to satisfy the schema; keep immutable timing and inputs unchanged, then rerun finalize.",
+      });
+      const report = reportCliFailure(error);
+      assert.equal(report.exitCode, 2);
+      assert.deepEqual(
+        JSON.parse(report.serialized).diagnostic,
+        error.diagnostic,
+      );
+      return true;
+    },
+  );
+  assert.deepEqual(
+    await Promise.all(
+      created.contract.outputs.map(
+        async ({ path }) =>
+          [path, await readFile(join(created.workspace, path))] as const,
+      ),
+    ),
+    before,
+  );
+  shot.shots[0]!.primaryRange.endFrame -= 1;
+  await writeFile(shotPath, `${JSON.stringify(shot)}\n`);
   const repositoryRoot = join(import.meta.dirname, "../..");
   const compilerConfig = JSON.parse(
     await readFile(join(repositoryRoot, "tsconfig.json"), "utf8"),
@@ -450,36 +541,126 @@ test("Scene nonempty resources survive contract, finalization and checker", asyn
     join(rootDir, "tsconfig.json"),
     JSON.stringify(compilerConfig),
   );
-  for (const [path, value] of Object.entries({
-    "src/visual-plan.json": fixture.visual,
-    "src/shot-plan.json": fixture.shots,
-    "src/sync-anchors.json": fixture.anchors,
-    "src/sound-plan.json": fixture.sound,
-    "src/selected-resources.json": {
-      schemaVersion: 1,
-      selectedResources: fixture.selectedResources,
-    },
-  })) {
-    await writeFile(join(created.workspace, path), JSON.stringify(value));
-  }
-  await writeFile(
-    join(created.workspace, "src/Renderer.tsx"),
-    'import type {SceneRendererProps} from "@axmorf/studio/remotion";\nconst Renderer = ({viewportWidth, viewportHeight}: SceneRendererProps) => <div style={{width: viewportWidth, height: viewportHeight}} />;\nexport default Renderer;\n',
-  );
-  const result = await finalizeAgentTaskWorkspace({
+  const finalized = await finalizeAgentTaskWorkspace({
     rootDir,
     taskRevision: created.task.taskRevision,
   });
-  assert.equal(result.status, "agent-task-finalized");
-  assert.deepEqual(
+  assert.equal(finalized.checkStatus, "task-workspace-valid");
+  SceneVisualPlanSchema.parse(
     JSON.parse(
-      await readFile(
-        join(created.workspace, "src/selected-resources.json"),
-        "utf8",
-      ),
-    ).selectedResources,
-    fixture.selectedResources,
+      await readFile(join(created.workspace, "src/visual-plan.json"), "utf8"),
+    ),
   );
+});
+
+test("authored draft schema diagnostics retain exact file ownership and zero-write behavior", async (context) => {
+  const cases = [
+    [
+      "src/visual-plan.json",
+      (draft: Record<string, unknown>) => {
+        draft.semanticObjective = 42;
+      },
+    ],
+    [
+      "src/sound-plan.json",
+      (draft: Record<string, unknown>) => {
+        draft.contributions = [{}];
+      },
+    ],
+    [
+      "src/sync-anchors.json",
+      (draft: Record<string, unknown>) => {
+        draft.anchors = [
+          { eventId: "out-of-range", sceneLocalFrame: 121, purpose: "invalid" },
+        ];
+      },
+    ],
+    [
+      "src/selected-resources.json",
+      (draft: Record<string, unknown>) => {
+        draft.selectedResources = [42];
+      },
+    ],
+    [
+      "src/shot-recipe-selection.json",
+      (draft: Record<string, unknown>) => {
+        draft.selections = [{}];
+      },
+    ],
+  ] as const;
+  for (const [file, mutate] of cases) {
+    const rootDir = await mkdtemp(
+      join(tmpdir(), "axmorf-task-draft-diagnostic-"),
+    );
+    context.after(() => rm(rootDir, { recursive: true, force: true }));
+    const fixture = createScenePackageInput();
+    const baseline = buildSceneOriginalityBaseline({
+      subjectStoryId: fixture.task.storyId,
+      entries: [],
+    });
+    const created = await createAgentWorkspace({
+      rootDir,
+      taskKind: "scene-owner",
+      storyId: fixture.task.storyId,
+      semanticId: fixture.task.meaningId,
+      context: {
+        ...sceneContext(fixture.task),
+        originalityBaseline: baseline,
+      },
+      validatorPolicyVersion: "scene-owner-validator-v4",
+      additionalInputFingerprints: [
+        {
+          id: SCENE_ORIGINALITY_INPUT_ID,
+          fingerprint: baseline.baselineFingerprint,
+        },
+      ],
+    });
+    await writeOutputExamples({
+      workspace: created.workspace,
+      contract: created.contract,
+    });
+    const target = join(created.workspace, file);
+    const draft = JSON.parse(await readFile(target, "utf8")) as Record<
+      string,
+      unknown
+    >;
+    mutate(draft);
+    await writeFile(target, `${JSON.stringify(draft)}\n`);
+    const before = await Promise.all(
+      created.contract.outputs.map(
+        async ({ path }) =>
+          [path, await readFile(join(created.workspace, path))] as const,
+      ),
+    );
+    await assert.rejects(
+      finalizeAgentTaskWorkspace({
+        rootDir,
+        taskRevision: created.task.taskRevision,
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof AgentTaskFinalizationError);
+        assert.equal(error.code, "task-output-invalid");
+        assert.equal(error.diagnostic?.file, file);
+        assert.equal(error.diagnostic?.failureOwner, "agent-output");
+        assert.ok(error.diagnostic?.path.length);
+        const report = reportCliFailure(error);
+        assert.deepEqual(
+          JSON.parse(report.serialized).diagnostic,
+          error.diagnostic,
+        );
+        return true;
+      },
+    );
+    assert.deepEqual(
+      await Promise.all(
+        created.contract.outputs.map(
+          async ({ path }) =>
+            [path, await readFile(join(created.workspace, path))] as const,
+        ),
+      ),
+      before,
+    );
+  }
 });
 
 test("Cover finalization is a checked no-op over Agent-authored source", async (context) => {
@@ -534,7 +715,7 @@ test("GlobalVisual finalization rebuilds its canonical plan fingerprint", async 
     storyId: validStorySpec.storyId,
     semanticId: null,
     context: buildGlobalContext(),
-    validatorPolicyVersion: "global-visual-owner-validator-v2",
+    validatorPolicyVersion: "global-visual-owner-validator-v3",
   });
   const repositoryRoot = join(import.meta.dirname, "../..");
   const compilerConfig = JSON.parse(
@@ -656,8 +837,72 @@ test("immutable input drift aborts finalization before any Agent output write", 
     (error: unknown) => {
       assert.ok(error instanceof AgentTaskFinalizationError);
       assert.equal(error.code, "task-workspace-invalid");
+      assert.equal(error.diagnostic, undefined);
       return true;
     },
   );
   assert.equal(await readFile(visualPath, "utf8"), visualBefore);
+});
+
+test("Scene nonempty resources survive contract, finalization and checker", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-nonempty-resources-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  const fixture = createScenePackageInput();
+  const originalityBaseline = buildSceneOriginalityBaseline({
+    subjectStoryId: fixture.task.storyId,
+    entries: [],
+  });
+  const created = await createAgentWorkspace({
+    rootDir,
+    taskKind: "scene-owner",
+    storyId: fixture.task.storyId,
+    semanticId: fixture.task.meaningId,
+    context: { originalityBaseline, ...sceneContext(fixture.task) },
+    validatorPolicyVersion: "scene-owner-validator-v4",
+    additionalInputFingerprints: [
+      {
+        id: SCENE_ORIGINALITY_INPUT_ID,
+        fingerprint: originalityBaseline.baselineFingerprint,
+      },
+    ],
+  });
+  const repositoryRoot = join(import.meta.dirname, "../..");
+  const compilerConfig = JSON.parse(
+    await readFile(join(repositoryRoot, "tsconfig.json"), "utf8"),
+  );
+  compilerConfig.compilerOptions.baseUrl = repositoryRoot;
+  await writeFile(
+    join(rootDir, "tsconfig.json"),
+    JSON.stringify(compilerConfig),
+  );
+  for (const [path, value] of Object.entries({
+    "src/visual-plan.json": fixture.visual,
+    "src/shot-plan.json": fixture.shots,
+    "src/sync-anchors.json": fixture.anchors,
+    "src/sound-plan.json": fixture.sound,
+    "src/selected-resources.json": {
+      schemaVersion: 1,
+      selectedResources: fixture.selectedResources,
+    },
+  })) {
+    await writeFile(join(created.workspace, path), JSON.stringify(value));
+  }
+  await writeFile(
+    join(created.workspace, "src/Renderer.tsx"),
+    'import type {SceneRendererProps} from "@axmorf/studio/remotion";\nconst Renderer = ({viewportWidth, viewportHeight}: SceneRendererProps) => <div style={{width: viewportWidth, height: viewportHeight}} />;\nexport default Renderer;\n',
+  );
+  const result = await finalizeAgentTaskWorkspace({
+    rootDir,
+    taskRevision: created.task.taskRevision,
+  });
+  assert.equal(result.status, "agent-task-finalized");
+  assert.deepEqual(
+    JSON.parse(
+      await readFile(
+        join(created.workspace, "src/selected-resources.json"),
+        "utf8",
+      ),
+    ).selectedResources,
+    fixture.selectedResources,
+  );
 });

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "status": "superseded-after-installed-revision-fault",
+  "version": "0.1.11",
+  "publication": "not-published",
+  "firstUseReceipt": "v0.1.11-second-candidate.json",
+  "fullCheck": {
+    "command": "npm run check",
+    "tests": 842,
+    "passed": 842,
+    "hostCompositions": "passed",
+    "logChecksum": "sha256:8779070c2c9381434d4c500a53fb9d0c53275e1413eaff1e15ad000babcbc2eb"
+  },
+  "manualReview": {
+    "hermes": {
+      "surface": "real-tui-json-rpc-backend",
+      "sessionId": "20260910_012728_8e25f2",
+      "visibleReports": 7,
+      "toolCalls": 26,
+      "asyncBatchesReceivedBeforeFinal": 3,
+      "continuationCalls": 1,
+      "continuationWaitSeconds": [
+        180
+      ],
+      "duplicateFinalReports": 0,
+      "preCreateBoundarySeconds": 10,
+      "prePrepareReportedProviderRequests": 6,
+      "prePrepareReportedCacheHits": 0,
+      "durationSeconds": 27.833333333333332,
+      "ordinaryRootErrors": [
+        "Initial Git command stopped before doctor; Root subsequently ran doctor successfully.",
+        "Read-only search for a nonexistent projects directory."
+      ],
+      "ordinaryWorkerCorrections": [
+        "Original Scene owner corrected dynamic transform and then explicit SVG font size; same task committed successfully."
+      ],
+      "postCompletionQueries": 0
+    },
+    "codex": {
+      "sessionId": "01a08735-da33-7ab3-97d2-c232d3a00078",
+      "durationSeconds": 29.933333333333334,
+      "duplicateFinalReports": 0
+    },
+    "limitations": [
+      "Passing receipts verify production and supervision, not zero unsuccessful Agent tool calls.",
+      "Both final contact sheets were visually sampled, not a complete frame-by-frame or listening review.",
+      "Some generated Hermes scene text and default boundary text have weak contrast; technical delivery checks are not a visual-quality certificate.",
+      "No automatic recovery from a terminal production failure was exercised in these successful runs.",
+      "Candidate validation is not npm publication or migration of an existing Workspace."
+    ]
+  },
+  "packageRepackEvidenceChecksum": "sha256:b96c159e84f46159b92a5cdd4a7b69ee896cb851a96e661980f71a03ab11c6e9"
+}

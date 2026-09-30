@@ -22,3 +22,5 @@ npm run project:revision:promote -- --project <storyId> --candidate <candidateId
 ```
 
 This retries promotion only. Do not reissue a successfully produced candidate attempt.
+
+主题修订必须保留或替换完整 `visualStyle.theme` 四角色颜色；不能删除已有主题。旧 Project 的 immutable 首尾没有主题接口时，不能在 revision 中直接添加新主题，需新建 Project，禁止修改旧模板副本。

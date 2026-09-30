@@ -493,7 +493,10 @@ export const buildAgentTasks = (
         resourcePool: inputs.resourcePool,
         ...(templateCopy
           ? {}
-          : { originalityBaseline: inputs.originalityBaseline }),
+          : {
+              originalityBaseline: inputs.originalityBaseline,
+              visualStyle: inputs.visualStyle,
+            }),
         scene: {
           beat: scene.beat,
           timingBeat: scene.timingBeat,
@@ -531,7 +534,7 @@ export const buildAgentTasks = (
       { id: "timing", fingerprint: inputs.timing.fingerprint },
     ],
     outputs: GLOBAL_OUTPUTS,
-    validatorPolicyVersion: "global-visual-owner-validator-v2",
+    validatorPolicyVersion: "global-visual-owner-validator-v3",
     context: {
       story: inputs.story,
       render: inputs.render,
@@ -721,6 +724,7 @@ export const buildCurrentProductionPlan = async ({
     suppliedBaseline ??
     (await readProductionDiagnosticBaseline({
       rootDir: scope.isolatedRoot,
+      runtimeRootDir: scope.shared.runtimeRoot,
       projectId,
     }));
   const fixed = await buildNarrationTasks({

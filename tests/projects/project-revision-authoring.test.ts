@@ -17,6 +17,7 @@ import test from "node:test";
 
 import {
   AuthoringValidationError,
+  VISUAL_THEME_PRESETS,
   buildDeliveryPublish,
   buildDeliveryPublishing,
   buildProductionRevision,
@@ -38,8 +39,11 @@ import {
   parseProjectRevisionCreateArguments,
   parseProjectRevisionValidateArguments,
   runProjectRevisionContextCli,
+  runProjectRevisionCreateCli,
   runProjectRevisionValidateCli,
 } from "../../scripts/projects/revision";
+import { buildRuntimePolicyManifest } from "../../packages/studio/src/runtime/policy-manifest";
+import { snapshotPolicyRoots } from "../../scripts/project-production/adapters/project-input-snapshot";
 import { computeProjectRevisionCandidateId } from "../../packages/studio/src/contracts/project-revision";
 import { createProjectRevisionProductionScope } from "../../scripts/project-production/application/production-scope";
 import {
@@ -204,11 +208,25 @@ const writeCurrentDelivery = async (rootDir: string) => {
   return publish;
 };
 
-const fixture = async (context: {
-  after: (callback: () => Promise<void>) => void;
-}) => {
+const fixture = async (
+  context: {
+    after: (callback: () => Promise<void>) => void;
+  },
+  boundaryTemplates = false,
+) => {
   const prepared = await prepareProjectCreateFixture();
   context.after(() => rm(prepared.rootDir, { recursive: true, force: true }));
+  if (boundaryTemplates)
+    await writeFile(
+      prepared.inputPath,
+      JSON.stringify({
+        ...validProjectCreateInput,
+        sceneTemplates: {
+          introSceneTemplateId: "axmorf-brand-reveal-v1",
+          outroSceneTemplateId: "axmorf-source-follow-v1",
+        },
+      }),
+    );
   await createProject({
     rootDir: prepared.rootDir,
     projectId: validProjectCreateInput.storyId,
@@ -261,6 +279,94 @@ const fixture = async (context: {
   return { ...prepared, dependencies, input, publish } as const;
 };
 
+test("theme revision preserves immutable boundaries and changes only the isolated candidate", async (context) => {
+  const current = await fixture(context, true);
+  const projectRoot = join(current.rootDir, "src/projects/story-example");
+  const liveStyleBytes = await readFile(
+    join(projectRoot, "visual-style.json"),
+    "utf8",
+  );
+  const liveStyle = JSON.parse(liveStyleBytes);
+  const result = await readProjectRevisionContext({
+    rootDir: current.rootDir,
+    projectId: current.input.storyId,
+    dependencies: current.dependencies,
+  });
+  assert.deepEqual(
+    result.editable.visualStyle.theme,
+    VISUAL_THEME_PRESETS.dark,
+  );
+  const input = {
+    ...current.input,
+    patch: {
+      visualStyle: { ...result.editable.visualStyle, theme: "light" },
+    },
+  };
+  await createProjectRevisionCandidate({
+    rootDir: current.rootDir,
+    projectId: current.input.storyId,
+    input,
+    env: { RSP_PRODUCER_CONFIG: current.configPath },
+    dependencies: current.dependencies,
+  });
+  const scope = createProjectRevisionProductionScope({
+    rootDir: current.rootDir,
+    storyId: current.input.storyId,
+    candidateId: computeProjectRevisionCandidateId(input),
+  });
+  const candidateRoot = join(scope.projectSourceRoot, current.input.storyId);
+  assert.deepEqual(
+    JSON.parse(await readFile(join(candidateRoot, "visual-style.json"), "utf8"))
+      .theme,
+    VISUAL_THEME_PRESETS.light,
+  );
+  assert.equal(
+    await readFile(join(projectRoot, "visual-style.json"), "utf8"),
+    liveStyleBytes,
+  );
+  for (const boundary of ["configured-intro-scene", "configured-outro-scene"]) {
+    const instancePath = `scenes/${boundary}/scene-template-instance.json`;
+    const instance = JSON.parse(
+      await readFile(join(projectRoot, instancePath), "utf8"),
+    );
+    assert.equal(
+      await readFile(join(candidateRoot, instancePath), "utf8"),
+      await readFile(join(projectRoot, instancePath), "utf8"),
+    );
+    for (const file of instance.copiedSourceFiles) {
+      assert.equal(
+        await readFile(join(scope.isolatedRoot, file.repositoryPath), "utf8"),
+        await readFile(join(current.rootDir, file.repositoryPath), "utf8"),
+      );
+    }
+  }
+  await assert.rejects(
+    validateProjectRevisionAuthoring({
+      rootDir: current.rootDir,
+      input: {
+        ...current.input,
+        patch: { visualStyle: validProjectCreateInput.visualStyle },
+      },
+      dependencies: current.dependencies,
+    }),
+    /preserve or replace.*theme/u,
+  );
+  // Simulate a pre-theme stored authoring document in this disposable fixture only.
+  delete liveStyle.theme;
+  await writeFile(
+    join(projectRoot, "visual-style.json"),
+    JSON.stringify(liveStyle),
+  );
+  await assert.rejects(
+    validateProjectRevisionAuthoring({
+      rootDir: current.rootDir,
+      input,
+      dependencies: current.dependencies,
+    }),
+    /incompatible with legacy immutable boundary templates/u,
+  );
+});
+
 test("revision context fully binds the current Revision and exact Delivery", async (context) => {
   const current = await fixture(context);
   const result = await readProjectRevisionContext({
@@ -292,6 +398,70 @@ test("revision context fully binds the current Revision and exact Delivery", asy
     }),
     /exactly four regular files/u,
   );
+});
+
+test("public revision commands use installed runtime policy without Workspace contract sources", async (context) => {
+  const runtimePolicyManifest = buildRuntimePolicyManifest({
+    packageVersion: "0.1.11",
+    files: [
+      {
+        logicalPath: "dist/contracts.js",
+        bytes: Buffer.from("installed-runtime"),
+        scopes: ["composition", "delivery", "global-visual", "scene"],
+      },
+    ],
+  });
+  const expected = await snapshotPolicyRoots({
+    rootDir: "/unused",
+    runtimePolicyManifest,
+  });
+  for (const action of ["context", "validate", "create"] as const) {
+    const current = await fixture(context);
+    await assert.rejects(access(join(current.rootDir, "src/contracts")), {
+      code: "ENOENT",
+    });
+    await writeFile(
+      join(current.rootDir, "revision-input.json"),
+      JSON.stringify(current.input),
+    );
+    let revisionReads = 0;
+    const cliContext = {
+      rootDir: current.rootDir,
+      env: { RSP_PRODUCER_CONFIG: current.configPath },
+      stdout: () => undefined,
+      runtimePolicyManifest,
+      dependencies: {
+        ...current.dependencies,
+        readCurrentRevision: async (
+          input: Parameters<
+            NonNullable<ProjectRevisionStateDependencies["readCurrentRevision"]>
+          >[0],
+        ) => {
+          assert.equal(await snapshotPolicyRoots(input), expected);
+          revisionReads += 1;
+          return revision;
+        },
+      },
+    };
+    if (action === "context") {
+      const result = await runProjectRevisionContextCli(
+        ["--project", current.input.storyId],
+        cliContext,
+      );
+      assert.equal(result.baseRevisionId, revision.revisionId);
+    } else if (action === "validate") {
+      await runProjectRevisionValidateCli(
+        ["--input", "revision-input.json"],
+        cliContext,
+      );
+    } else {
+      await runProjectRevisionCreateCli(
+        ["--project", current.input.storyId, "--input", "revision-input.json"],
+        cliContext,
+      );
+    }
+    assert.ok(revisionReads >= 2);
+  }
 });
 
 test("revision context rejects a Delivery that changes during inspection", async (context) => {

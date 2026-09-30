@@ -80,4 +80,6 @@ their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 The creator prepares the pinned browser and checks a real tiny PNG render before reporting a ready Workspace. Browser
 preparation is serialized and bounded; doctor never silently downloads Chrome. New authoring begins with
 `npm run project:create:context -- --project <storyId>`, which returns a complete example and current public choices.
+Explicit render requests use optional `render.width/height/fps/locale` fields in the create input. Unspecified fields
+inherit settings without changing saved defaults; create returns the frozen render values for verification before production.
 Use the generated Workspace-local authoring and host-execution references for exact task execution and interruption recovery.

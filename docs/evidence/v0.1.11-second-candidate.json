@@ -1,0 +1,415 @@
+{
+  "schemaVersion": 1,
+  "hosts": [
+    {
+      "schemaVersion": 1,
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "sessionId": "01a08735-da33-7ab3-97d2-c232d3a00078",
+      "environment": {
+        "platform": "darwin",
+        "arch": "x64",
+        "node": "v22.22.3"
+      },
+      "startedAt": "2026-09-09T17:27:26.533067+00:00",
+      "endedAt": "2026-09-09T17:34:48.539292+00:00",
+      "packages": {
+        "runtime": {
+          "name": "@axmorf/studio",
+          "version": "0.1.11",
+          "fingerprint": "sha256:718ca018a01e605b9bac91eb0bd6d8918b6deedcb930f54ba4abea2d251e2166",
+          "fileCount": 252
+        },
+        "creator": {
+          "name": "create-axmorf-studio",
+          "version": "0.1.11",
+          "fingerprint": "sha256:66d6b7161993519b6afb88356ba59e26142617ea201470724c3affe299484f9f",
+          "fileCount": 40
+        }
+      },
+      "prompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“从十分钟专注开始”，讲清楚选一个具体小步骤、关掉打断、做完记录下一步。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。\n",
+      "promptChecksum": "sha256:6bef7e10a2be33b3280e5f30e5368d9613a20f4242a87bd820aeb24e9d007e63",
+      "transcriptChecksum": "sha256:7bc07bc28b941f753b843d6746f9af73049e656bcebd3861766b42a7ea0c2ce1",
+      "runChecksum": "sha256:64ce19c32da3a01994f776112e54751aff834e1e03d01467efb1968cafe895c3",
+      "snapshotChecksum": "sha256:16f76a0b375a07ad3b678dd6e0a624c177095bea92cab08fca6b86fc294fd767",
+      "creation": {
+        "method": "npm-exec-candidate",
+        "runtimeTarballChecksum": "sha256:d755684af7e9c66e459d45fb1f8408cd40193cffb67a196134b7845a404bc1bc",
+        "creatorTarballChecksum": "sha256:75a3ec3cde7a875705acb094fd51813ce7d5d1d65ed96695f02286a14d33e85a",
+        "installLogChecksum": "sha256:fdda9dc24444e382c5b25f8f8267674d7d0126bc6baec1ea3a84c2941fa664ff"
+      },
+      "sessionChecksum": null,
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 26,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 0
+      },
+      "unchangedPackageFiles": 252,
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 1,
+        "refillAdmissions": 1,
+        "attemptId": "eb4b87bb-b821-434b-beb2-f85f811d42c0",
+        "childEvidence": [
+          {
+            "sessionId": "01a08738-2007-7bd1-ab61-9c1377980956",
+            "transcriptChecksum": "sha256:0c4924c203e6732ccdb92049262fb73094d508f3610deb2e1f9ef4396fa34ae0",
+            "sessionChecksum": null,
+            "taskRevision": "task-507f4374d0ba0917448aa98146f1821ec3bf94dbaec760c1818dc28da60b1058"
+          },
+          {
+            "sessionId": "01a08736-7ed2-7c50-bd36-7d2d32d9c5d6",
+            "transcriptChecksum": "sha256:a785724ffa3542af275802fead8b00744cd9accd1d58ea8c4a142172689486b3",
+            "sessionChecksum": null,
+            "taskRevision": null
+          },
+          {
+            "sessionId": "01a08739-73c4-7c50-b991-fb409f4e8d2b",
+            "transcriptChecksum": "sha256:17f64ecf2928a8bb8936f7b3e9ab32c090cfac5e0462da3b807cf8e3d243b5e1",
+            "sessionChecksum": null,
+            "taskRevision": "task-a92142d6bce5d96821b1d92ddd71e9563e0332d22a694f415618093eb6eb7d2b"
+          },
+          {
+            "sessionId": "01a08737-e72d-7593-8355-4b4438107215",
+            "transcriptChecksum": "sha256:622507282d5069fdb194896bac2b57f89ef7a6528165c25345ac552daca9d67b",
+            "sessionChecksum": null,
+            "taskRevision": "task-009e8d4a0cac7571b5e73c6cb8309e0e00c6395adb7bfb23de8431ffff878226"
+          },
+          {
+            "sessionId": "01a08738-7e6a-7a01-a36f-69517c1197b2",
+            "transcriptChecksum": "sha256:a7fae0ca1952e8429a4d4952406548e81ab409963bd52a118359a93308256c77",
+            "sessionChecksum": null,
+            "taskRevision": "task-b2b06a6ddd3f8f74745d4226925aa110d15d248a46d7a2c17a5fa0b0290cba0a"
+          },
+          {
+            "sessionId": "01a08738-484c-79f1-9990-488e034e1a5a",
+            "transcriptChecksum": "sha256:33e2e02c627112c5ea6099945563ecd1afcc1f20a8eafe9fdd429789207a91ac",
+            "sessionChecksum": null,
+            "taskRevision": "task-5e84e5837f2b25b2682b0ec8a113d4837520ce702a5ca076e6fcf9075517fb5b"
+          }
+        ],
+        "delegationChecksum": null,
+        "notificationFormatterChecksum": null
+      },
+      "supervision": {
+        "schemaVersion": 1,
+        "source": "codex",
+        "reportedBeforeCreate": true,
+        "reportedBeforePrepare": true,
+        "continuationCalls": 1,
+        "pollingCalls": 0,
+        "asyncBatches": 0,
+        "completedAsyncBatches": 0
+      },
+      "unchangedGuideFiles": 11,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "ten-minute-focus",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-ac744703bb964634ff4282b383b19e040270d2f612a5676de8702f28b2e38129",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-fba47ee642354e6841de1314ba726a9023971f261f859623cd9965d4435e16b8",
+        "artifactSetFingerprint": "sha256:bfe516f8ad45004b4e9fd28bca980824f3a40dda1fe85d43a47135140c861be8"
+      },
+      "delivery": {
+        "storyId": "ten-minute-focus",
+        "deliveryBuildId": "delivery-ac744703bb964634ff4282b383b19e040270d2f612a5676de8702f28b2e38129",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:ad9970b8778c0669614992a7d83f98649c45b172d1f2ebb273a1d59221c4bd7a",
+            "sizeBytes": 2780026
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:7c4e1739ab65632ef47c7ad7911a3def3b2c2a8474fefcc6ec07876a69a1d13c",
+            "sizeBytes": 128183
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:a8f29e1b78ab57e8d363bf094587df4d17d2b1502d68c6e4fc3858410c0b287d",
+            "sizeBytes": 134706
+          },
+          "publish.json": {
+            "checksum": "sha256:5ef4e7f6a282e2cd323a9aee6fbef936591f51dc5e5fd729c00706901597d602",
+            "sizeBytes": 2152
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1080,
+          "height": 1920,
+          "fps": 30,
+          "frameCount": 898
+        },
+        "decodedFiles": [
+          "video.mp4",
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "host": "hermes",
+      "model": "gpt-6-astra",
+      "sessionId": "20260910_012728_8e25f2",
+      "environment": {
+        "platform": "darwin",
+        "arch": "x64",
+        "node": "v22.22.3"
+      },
+      "startedAt": "2026-09-09T17:27:27.714599+00:00",
+      "endedAt": "2026-09-09T17:39:23.854080+00:00",
+      "packages": {
+        "runtime": {
+          "name": "@axmorf/studio",
+          "version": "0.1.11",
+          "fingerprint": "sha256:718ca018a01e605b9bac91eb0bd6d8918b6deedcb930f54ba4abea2d251e2166",
+          "fileCount": 252
+        },
+        "creator": {
+          "name": "create-axmorf-studio",
+          "version": "0.1.11",
+          "fingerprint": "sha256:66d6b7161993519b6afb88356ba59e26142617ea201470724c3affe299484f9f",
+          "fileCount": 40
+        }
+      },
+      "prompt": "请在当前工作空间帮我做一条约30秒的中文竖屏视频，主题是“从十分钟专注开始”。视频依次呈现三个独立内容段落：第一段讲选择一个具体小步骤，第二段讲关掉打断，第三段讲做完记录下一步。要有旁白、字幕和动态图形，最终给我视频和封面。文案和画面你来设计。\n",
+      "promptChecksum": "sha256:3aa9b92e3d302149a819165b9bdba25d62bc9caa8b88d7f981ee03e287bfe027",
+      "transcriptChecksum": "sha256:2963932f05d1b8171562beffbd56cc751631540e58d22da87bace12e09066104",
+      "runChecksum": "sha256:e793972ba2c88dab91187d609b11b21d7e07b73a1a498933faa73a9eb7623dd6",
+      "snapshotChecksum": "sha256:bb04e4198ea1c3fbd02689b639177c378cbf6a776a21bd3881ef0f080a9c893a",
+      "creation": {
+        "method": "npm-exec-candidate",
+        "runtimeTarballChecksum": "sha256:d755684af7e9c66e459d45fb1f8408cd40193cffb67a196134b7845a404bc1bc",
+        "creatorTarballChecksum": "sha256:75a3ec3cde7a875705acb094fd51813ce7d5d1d65ed96695f02286a14d33e85a",
+        "installLogChecksum": "sha256:c27c49c2cd3d9e0d15d3cd76ddb908921f648a4d4e367c55fa24e2aabc9cea62"
+      },
+      "sessionChecksum": "sha256:c914c43a0ae811d1d9e2da050f6d7736e9e8efa637ae4132e6733092c6a546a6",
+      "transcriptAudit": {
+        "businessUserMessages": 1,
+        "toolCalls": 26,
+        "followUpMessages": 0,
+        "nativeCompletionMessages": 3
+      },
+      "unchangedPackageFiles": 252,
+      "nativeExecution": {
+        "mode": "subagents",
+        "workerTransport": "shared-workspace",
+        "modeSource": "builtin-default",
+        "concurrencySource": "builtin-default",
+        "requestedMaxConcurrency": 4,
+        "effectiveMaxConcurrency": 4,
+        "peakActiveChildren": 4,
+        "dirtyTaskCount": 5,
+        "productionChildCount": 5,
+        "probeChildCount": 1,
+        "refillAdmissions": 1,
+        "attemptId": "217b4292-0dff-424d-b41c-fb76587f1a65",
+        "childEvidence": [
+          {
+            "sessionId": "20260910_012826_c69e3a",
+            "transcriptChecksum": "sha256:b242dd6bcee30524130cb928501813407dd1c92c0a2df61fd2c4edc1a1296c02",
+            "sessionChecksum": "sha256:fefba0f9cfcc7d5c5bc9315f73ca108c225d9792e3f7f6a0f6a72127e02c0d5b",
+            "taskRevision": null
+          },
+          {
+            "sessionId": "20260910_013132_819c1f",
+            "transcriptChecksum": "sha256:cd28123132f5f011828445b216817487aa8d098e62ae334bf2c37378f7ba2e0e",
+            "sessionChecksum": "sha256:0baeec81542f74f1c063b29d6b6fb68bf5c503d864e798d158fe05f2190ec803",
+            "taskRevision": "task-297a2d0897b4124405a88dadd2e16765083b3188f36c360f50377eb9e1b52d9e"
+          },
+          {
+            "sessionId": "20260910_013132_badde8",
+            "transcriptChecksum": "sha256:36ecd096cd1f4980625c57728d12890d90997e39f4c3a8f0e4de543653967bd3",
+            "sessionChecksum": "sha256:9f397f8081fb2859e6b1ce297b00720e5fc73665fa88318acc31cdf4364e90da",
+            "taskRevision": "task-a9ab0722366d4f6a28a9c80e05d4bd5e90f06b75f4c04926502896d7d0c4da73"
+          },
+          {
+            "sessionId": "20260910_013132_1986e9",
+            "transcriptChecksum": "sha256:ec9b9423d75398f957ec10aacdaa8b252e7dbc3547b053847c13932c59a94a53",
+            "sessionChecksum": "sha256:88670b59b7b32e501f2bfde4e4d5b04d651a7aed831a18bde9aed6dbd8b710df",
+            "taskRevision": "task-bb3b187b66debcb0fd17e08ffc5dce36f45ca5e43185837a2e2bb786ef99373c"
+          },
+          {
+            "sessionId": "20260910_013132_c82123",
+            "transcriptChecksum": "sha256:c944dc76eb7199d5d6f9f85aa66e31b6a3e36204c452be6a2d90a9925910b117",
+            "sessionChecksum": "sha256:da8df0a0e750322052ef5ed13734cea44d7629cef2bbffcec9cc32c97bda5aa9",
+            "taskRevision": "task-e80e01b2a5e63ada83435146a3380b77c485a24466a9e8e41a0482e4eefdc042"
+          },
+          {
+            "sessionId": "20260910_013551_1d6d1c",
+            "transcriptChecksum": "sha256:25cfe8395a404aec92cb678707dc52f04620fc1fcf3bc8d69a32383b4b73e4e8",
+            "sessionChecksum": "sha256:dae45ed5b2b020bacbde7151893fac8b0c2779a25b4aeedc9baa4abdb34fe7c2",
+            "taskRevision": "task-51f1bd29d0a569fad0e0d7db0f9d265bbc45710b18b7295dee4d328232199584"
+          }
+        ],
+        "delegationChecksum": "sha256:979b3e79a060dfa763e3c09bcbdd174c91513186477ac115e1368a0a97e0f505",
+        "notificationFormatterChecksum": "sha256:6639686593d58c0114593d3776de70aabcfe69b2cdbbc518ac2e3c558f45b6c8"
+      },
+      "supervision": {
+        "schemaVersion": 1,
+        "source": "tui",
+        "reportedBeforeCreate": true,
+        "reportedBeforePrepare": true,
+        "continuationCalls": 1,
+        "pollingCalls": 0,
+        "asyncBatches": 3,
+        "completedAsyncBatches": 3,
+        "uiEvidence": {
+          "checksum": "sha256:80e37db6a1170a9458b2660fcdee68188e3d5c78955cbd9356fe34099b4e9125",
+          "sessionId": "6d7e6887",
+          "toolCalls": 26,
+          "visibleReports": 7
+        }
+      },
+      "unchangedGuideFiles": 11,
+      "finalCheck": {
+        "status": "project-final-check",
+        "storyId": "ten-minute-focus",
+        "aggregateStatus": "pass",
+        "deliveryBuildId": "delivery-8bc600b78070d385690136be4934ec7387a2eb520e73638e4d81e54c2be87eb2",
+        "checks": [
+          {
+            "checkId": "artifacts",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "revision",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "artifact-set",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "delivery-build",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "audio-channels",
+            "status": "pass",
+            "code": null,
+            "message": null
+          },
+          {
+            "checkId": "snapshot",
+            "status": "pass",
+            "code": null,
+            "message": null
+          }
+        ],
+        "schemaVersion": 1,
+        "level": "final",
+        "scope": "current-production",
+        "revisionId": "revision-602ceaeca366caaf17bf3168b0e49efc2c34a93ce5470fbd1a6eac98bc8d6eac",
+        "artifactSetFingerprint": "sha256:a48794e2ab0847881d47528754310e89163a56fd62dd22c45fb7a8d22f160dec"
+      },
+      "delivery": {
+        "storyId": "ten-minute-focus",
+        "deliveryBuildId": "delivery-8bc600b78070d385690136be4934ec7387a2eb520e73638e4d81e54c2be87eb2",
+        "files": {
+          "video.mp4": {
+            "checksum": "sha256:f6e2bc832d6a0802f9952f9abb2f1c526e9721d01fdaa2ffb6bde658d1666b13",
+            "sizeBytes": 2384382
+          },
+          "cover-4x3.png": {
+            "checksum": "sha256:1f7cd854cbd0b284652093dd66010b1cd8a2f43110fc39b6d7c502d6c84a1ccd",
+            "sizeBytes": 149955
+          },
+          "cover-3x4.png": {
+            "checksum": "sha256:2cf41cef3ffe908fa3664d6b35a2e3fd7dee4c7f37a8d541cd7ee2ebd2ad844c",
+            "sizeBytes": 150103
+          },
+          "publish.json": {
+            "checksum": "sha256:aa525371bf7d5753246ab0dac15f12201196d2cf011ee3245d43ad3b0d05b9a6",
+            "sizeBytes": 2241
+          }
+        },
+        "video": {
+          "codec": "h264",
+          "audioCodec": "aac",
+          "audioChannels": 2,
+          "width": 1080,
+          "height": 1920,
+          "fps": 30,
+          "frameCount": 835
+        },
+        "decodedFiles": [
+          "video.mp4",
+          "cover-4x3.png",
+          "cover-3x4.png"
+        ]
+      }
+    }
+  ]
+}

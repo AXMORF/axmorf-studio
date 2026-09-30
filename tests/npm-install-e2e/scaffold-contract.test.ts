@@ -246,6 +246,13 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   assert.equal(manifest.private, true);
   assert.equal(manifest.license, "UNLICENSED");
   assert.equal(manifest.type, "module");
+  assert.match(
+    await readFile(join(workspace, "remotion.config.ts"), "utf8"),
+    /Config\.setVideoImageFormat/u,
+  );
+  await assert.rejects(() => lstat(join(workspace, "remotion.config.mjs")), {
+    code: "ENOENT",
+  });
   assert.equal(Object.hasOwn(manifest, "workspaces"), false);
   assert.deepEqual(manifest.axmorf, { workspaceVersion: 1 });
   assert.equal(
@@ -256,7 +263,7 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
   assert.equal(manifest.dependencies["@remotion/cli"], "4.0.489");
   assert.equal(manifest.dependencies.react, "19.2.3");
   assert.deepEqual(manifest.overrides, {
-    "fast-uri": "3.1.6",
+    "fast-uri": "3.1.7",
     nanoid: "3.3.18",
   });
   for (const version of [
@@ -394,6 +401,9 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     /Do not use package\s+internals or assume a particular Agent host/u,
   );
   assert.match(workspaceSkill, /The Root runs `npm run doctor`/u);
+  assert.match(workspaceSkill, /intermediate progress message/u);
+  assert.match(workspaceSkill, /same turn/u);
+  assert.match(workspaceSkill, /not a final answer/u);
   assert.match(workspaceAgents, /the Root runs `npm run doctor`/u);
   for (const entrypoint of [workspaceAgents, workspaceSkill]) {
     assert.ok(
@@ -410,6 +420,10 @@ test("no-install creates a standalone, host-neutral workspace without claiming r
     "utf8",
   );
   const workerRoute = workspaceWorkflow.split("## Root production")[0]!;
+  assert.match(workspaceWorkflow, /intermediate progress message/u);
+  assert.match(workspaceWorkflow, /same turn/u);
+  assert.match(workspaceWorkflow, /actual blocker/u);
+  assert.match(workspaceWorkflow, /already.pending native work/u);
   assert.match(workerRoute, /## Assigned task worker/u);
   assert.match(workerRoute, /Workers do not run `doctor`, `browser:prepare`/u);
   assert.match(

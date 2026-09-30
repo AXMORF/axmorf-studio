@@ -20,6 +20,42 @@ test("ProjectCreateInput keeps exact authored Story and TTS chunks", () => {
   );
 });
 
+test("ProjectCreateInput accepts optional render overrides with the final media constraints", () => {
+  const overrides = { width: 1920, height: 1080, fps: 24, locale: "en-US" };
+  const input = {
+    ...validProjectCreateInput,
+    render: { ...validProjectCreateInput.render, ...overrides },
+  };
+  assert.deepEqual(ProjectCreateInputSchema.parse(input).render, input.render);
+  assert.notEqual(
+    computeProjectCreateInputFingerprint(input),
+    computeProjectCreateInputFingerprint(validProjectCreateInput),
+  );
+  for (const invalid of [
+    { width: 1081 },
+    { height: 0 },
+    { width: -1920 },
+    { height: 1080.5 },
+    { width: "1920" },
+    { height: null },
+    { fps: 0 },
+    { fps: 121 },
+    { fps: 29.97 },
+    { locale: "en-us" },
+    { locale: "" },
+    { output: { container: "webm" } },
+  ]) {
+    assert.equal(
+      ProjectCreateInputSchema.safeParse({
+        ...validProjectCreateInput,
+        render: { ...validProjectCreateInput.render, ...invalid },
+      }).success,
+      false,
+      JSON.stringify(invalid),
+    );
+  }
+});
+
 test("ProjectCreateInput rejects cross-Project, derived, private, path, and runtime fields", () => {
   for (const mutation of [
     { ...validProjectCreateInput, storyId: "other-story" },

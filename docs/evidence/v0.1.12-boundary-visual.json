@@ -1,0 +1,417 @@
+{
+  "status": "focused-visual-verification-complete",
+  "scope": "existing-default-boundary-template-local-backing",
+  "runtime": "Remotion 4.0.489 and installed Chrome Headless Shell; no provider calls",
+  "dimensions": [
+    [
+      1080,
+      1920
+    ],
+    [
+      1920,
+      1080
+    ]
+  ],
+  "safeViewports": [
+    [
+      900,
+      1470
+    ],
+    [
+      1740,
+      630
+    ]
+  ],
+  "backgrounds": [
+    "#0B1423",
+    "#fffdf9"
+  ],
+  "cases": {
+    "introFrames": [
+      12,
+      36,
+      59
+    ],
+    "creditsFrames": [
+      90
+    ],
+    "creditsReferenceCounts": [
+      1,
+      6
+    ],
+    "followFrames": [
+      10,
+      45,
+      100,
+      115
+    ]
+  },
+  "renderedFrameCount": 36,
+  "sourceChecksums": {
+    "packages/studio/src/remotion/capabilities/scene-templates/axmorf/AxmorfIntroScene.tsx": "sha256:de3f12103469ffe83017bbf09307c198ece2db6cbe5b640396027c1def5d1173",
+    "packages/studio/src/remotion/capabilities/scene-templates/axmorf/BrandFollowScene.tsx": "sha256:31db1f3c9dd6ca07bdf13e25d721258c202fe4e76e1d0e69e53d3f474e2ec9c4",
+    "packages/studio/src/remotion/capabilities/scene-templates/axmorf/SourceCreditsScene.tsx": "sha256:071cd2c4a0f6b6ae95df9baf5013a125e3a34b5c3be2e85d21c27e55262a1b5f",
+    "tests/runtime/scene-template-contrast.test.tsx": "sha256:3e9fb4549f5081b2fc51758fb343ec875eb8d64f3048dcb53a24a46a99fc222d"
+  },
+  "harnessChecksums": {
+    "index.tsx": "sha256:ab26c02e7e8c4a4d153ffa0ea64b22938fe13c7ba572e4936d4b60b2ab43e56f",
+    "final-render.cjs": "sha256:e8e3dd67aa95f382aa8ecf0e91a085b3b5c39f63d8d5a3d99d9766faa5a907db",
+    "old-index.tsx": "sha256:b617dda1ec592bf24793f9ef38045f4ad6f3f5a53176f2ae2d972776c492df93",
+    "old-render.cjs": "sha256:102b59d12377603a64e9c6ee7518a1176ad366e4abd10a31425513d2a529a9b6"
+  },
+  "focusedRegression": {
+    "before": "dark portrait and landscape failed; light cases passed",
+    "after": "4 contrast cases passed and 5 existing runtime template cases passed",
+    "rootTypecheck": "passed",
+    "note": "Full fixed-artifact test exposed a concurrent transform validator regression on unchanged AxmorfBrand.tsx style spread; reported to parent for integration resolution."
+  },
+  "manuallyReviewedFinalImages": [
+    "Portrait-dark-intro-59.png",
+    "Portrait-dark-credits-90.png",
+    "Portrait-dark-credits-90-dense.png",
+    "Portrait-dark-follow-115.png",
+    "Landscape-dark-credits-90-dense.png",
+    "Landscape-light-credits-90.png",
+    "Portrait-light-follow-100.png",
+    "Landscape-light-intro-59.png"
+  ],
+  "observations": [
+    "Local opaque backing makes default deep charcoal wordmark and source text readable on dark global base; template roots remain transparent.",
+    "Light base retains the same established charcoal and bronze palette.",
+    "Six complete references at 36px clipped in original landscape template; compact landscape spacing now retains all six titles and full URLs inside 1740x630 viewport.",
+    "Reference-title panel backing uses shadow expansion rather than extra layout padding; normal text flow dimensions are retained."
+  ],
+  "limitations": [
+    "This is fixed-template regression and sampled visual review, not a general production contrast gate.",
+    "Unlimited references and arbitrary-length titles/URLs are not certified; no font reductions or reference hiding were introduced.",
+    "Animation fade-in frames are not held to the stable-text palette contrast threshold."
+  ],
+  "originalDenseComparison": "old-Landscape-dark-credits-90-dense.png",
+  "frames": [
+    {
+      "id": "Portrait",
+      "theme": "dark",
+      "kind": "intro",
+      "sceneFrame": 12,
+      "dense": false,
+      "output": "Portrait-dark-intro-12.png",
+      "checksum": "sha256:c232204a69df0e741bfa3c732c8eb2b4b3e608367113e54db8a9acce27a1d67a"
+    },
+    {
+      "id": "Portrait",
+      "theme": "dark",
+      "kind": "intro",
+      "sceneFrame": 36,
+      "dense": false,
+      "output": "Portrait-dark-intro-36.png",
+      "checksum": "sha256:e4f2b8eaa61207a1ce40b3333fa2ac3597c1ea57877c32c509f44334e6ac45a8"
+    },
+    {
+      "id": "Portrait",
+      "theme": "dark",
+      "kind": "intro",
+      "sceneFrame": 59,
+      "dense": false,
+      "output": "Portrait-dark-intro-59.png",
+      "checksum": "sha256:7bdad71a48629950455667506144e4ab71f5cd113a64fe6c0e665cb88ba44693"
+    },
+    {
+      "id": "Portrait",
+      "theme": "dark",
+      "kind": "credits",
+      "sceneFrame": 90,
+      "dense": false,
+      "output": "Portrait-dark-credits-90.png",
+      "checksum": "sha256:f567489e489bbac00788b65cb4cd0d737457a6f837347c0bdea64afe463d0285"
+    },
+    {
+      "id": "Portrait",
+      "theme": "dark",
+      "kind": "credits",
+      "sceneFrame": 90,
+      "dense": true,
+      "output": "Portrait-dark-credits-90-dense.png",
+      "checksum": "sha256:cf91c661df724c05a55a7d264fc1271e57494218c7be618fdf56a453a17fb1e9"
+    },
+    {
+      "id": "Portrait",
+      "theme": "dark",
+      "kind": "follow",
+      "sceneFrame": 10,
+      "dense": false,
+      "output": "Portrait-dark-follow-10.png",
+      "checksum": "sha256:2606c22c2a2bbc712abd91e5822703b41bced97baf2b41f9ddc59e10cea1d38f"
+    },
+    {
+      "id": "Portrait",
+      "theme": "dark",
+      "kind": "follow",
+      "sceneFrame": 45,
+      "dense": false,
+      "output": "Portrait-dark-follow-45.png",
+      "checksum": "sha256:6ec6a04f88ba3810408112bac9db1ac3b62185c39683b434c8d55dccb90edd57"
+    },
+    {
+      "id": "Portrait",
+      "theme": "dark",
+      "kind": "follow",
+      "sceneFrame": 100,
+      "dense": false,
+      "output": "Portrait-dark-follow-100.png",
+      "checksum": "sha256:3ffe114776890ba5324b53102487fa73bf71122abd18aaa9439af9217dcff218"
+    },
+    {
+      "id": "Portrait",
+      "theme": "dark",
+      "kind": "follow",
+      "sceneFrame": 115,
+      "dense": false,
+      "output": "Portrait-dark-follow-115.png",
+      "checksum": "sha256:a2437a940247437341cb15c50e908d284aae671c81ee8c522aeb99d274c7514b"
+    },
+    {
+      "id": "Portrait",
+      "theme": "light",
+      "kind": "intro",
+      "sceneFrame": 12,
+      "dense": false,
+      "output": "Portrait-light-intro-12.png",
+      "checksum": "sha256:43468f72314f5f4ffaa92513d6aace145c940a06fe7acae19b3284ca822c9095"
+    },
+    {
+      "id": "Portrait",
+      "theme": "light",
+      "kind": "intro",
+      "sceneFrame": 36,
+      "dense": false,
+      "output": "Portrait-light-intro-36.png",
+      "checksum": "sha256:1d25f0c0f75db4acc9e22dec0e207be736b198c7551a10c7ae874fd4d5133a10"
+    },
+    {
+      "id": "Portrait",
+      "theme": "light",
+      "kind": "intro",
+      "sceneFrame": 59,
+      "dense": false,
+      "output": "Portrait-light-intro-59.png",
+      "checksum": "sha256:247a9289196f3914a83be51433fe030a9c0e7800576c039f730d8e3d74dafb77"
+    },
+    {
+      "id": "Portrait",
+      "theme": "light",
+      "kind": "credits",
+      "sceneFrame": 90,
+      "dense": false,
+      "output": "Portrait-light-credits-90.png",
+      "checksum": "sha256:45872529205eb6fe2b60172fc3332eea9a8efd240668d6853149627a9663de56"
+    },
+    {
+      "id": "Portrait",
+      "theme": "light",
+      "kind": "credits",
+      "sceneFrame": 90,
+      "dense": true,
+      "output": "Portrait-light-credits-90-dense.png",
+      "checksum": "sha256:3da67cad7b89ec7a7b98b265ca7d9b325aa1677f1be775b6e861a013e260b3c2"
+    },
+    {
+      "id": "Portrait",
+      "theme": "light",
+      "kind": "follow",
+      "sceneFrame": 10,
+      "dense": false,
+      "output": "Portrait-light-follow-10.png",
+      "checksum": "sha256:f7a9697b01d933ee7859011923ce590faa8b30265835320cf46836f7217bc9bc"
+    },
+    {
+      "id": "Portrait",
+      "theme": "light",
+      "kind": "follow",
+      "sceneFrame": 45,
+      "dense": false,
+      "output": "Portrait-light-follow-45.png",
+      "checksum": "sha256:1166925fe66a9eb1080d7fc9a0dfb8a93cbd2bf2bb9e47506ffa0d9696b256cc"
+    },
+    {
+      "id": "Portrait",
+      "theme": "light",
+      "kind": "follow",
+      "sceneFrame": 100,
+      "dense": false,
+      "output": "Portrait-light-follow-100.png",
+      "checksum": "sha256:4cb01caa0860aac7e95e47f58e16eea92af964e8db11e55ed3f0f83f30202969"
+    },
+    {
+      "id": "Portrait",
+      "theme": "light",
+      "kind": "follow",
+      "sceneFrame": 115,
+      "dense": false,
+      "output": "Portrait-light-follow-115.png",
+      "checksum": "sha256:4bb71d97e323c65f4e1f13eb1a0f1de121e49c8b95c3586c2e19601adb9732e9"
+    },
+    {
+      "id": "Landscape",
+      "theme": "dark",
+      "kind": "intro",
+      "sceneFrame": 12,
+      "dense": false,
+      "output": "Landscape-dark-intro-12.png",
+      "checksum": "sha256:6a8b0dd7fc125196b7b04e6be2e72629310fed683d15610f054797b4364e77f5"
+    },
+    {
+      "id": "Landscape",
+      "theme": "dark",
+      "kind": "intro",
+      "sceneFrame": 36,
+      "dense": false,
+      "output": "Landscape-dark-intro-36.png",
+      "checksum": "sha256:df85acc92f3d2d27e190c4c8d0c393818cc3b3bd53a78c26a088be727a478ffc"
+    },
+    {
+      "id": "Landscape",
+      "theme": "dark",
+      "kind": "intro",
+      "sceneFrame": 59,
+      "dense": false,
+      "output": "Landscape-dark-intro-59.png",
+      "checksum": "sha256:6724389bf1a571cb441f3ff072049141df1ce8626fc191bc4f1ad92011c569eb"
+    },
+    {
+      "id": "Landscape",
+      "theme": "dark",
+      "kind": "credits",
+      "sceneFrame": 90,
+      "dense": false,
+      "output": "Landscape-dark-credits-90.png",
+      "checksum": "sha256:10c36a940fd0ce808958e0442e94431e9e2be7f7438dad8fe3aaa3a58979056e"
+    },
+    {
+      "id": "Landscape",
+      "theme": "dark",
+      "kind": "credits",
+      "sceneFrame": 90,
+      "dense": true,
+      "output": "Landscape-dark-credits-90-dense.png",
+      "checksum": "sha256:4843357b4bec8a7dd73f6e6eab9c8b16fca743effdf0d6fac1859ef084d90122"
+    },
+    {
+      "id": "Landscape",
+      "theme": "dark",
+      "kind": "follow",
+      "sceneFrame": 10,
+      "dense": false,
+      "output": "Landscape-dark-follow-10.png",
+      "checksum": "sha256:e1795a4e1365466e344637f129c3f43ff2b312fa3a3d30ef98376188ee072627"
+    },
+    {
+      "id": "Landscape",
+      "theme": "dark",
+      "kind": "follow",
+      "sceneFrame": 45,
+      "dense": false,
+      "output": "Landscape-dark-follow-45.png",
+      "checksum": "sha256:ec787907a95bcc8c67f93efb8e97be2d6474f0357bd7cec8f550a1e50a6a0815"
+    },
+    {
+      "id": "Landscape",
+      "theme": "dark",
+      "kind": "follow",
+      "sceneFrame": 100,
+      "dense": false,
+      "output": "Landscape-dark-follow-100.png",
+      "checksum": "sha256:d55d6a8337b03a4a01bb03bdbfdc886d594aa4220685a9bcce894548ae9a89f6"
+    },
+    {
+      "id": "Landscape",
+      "theme": "dark",
+      "kind": "follow",
+      "sceneFrame": 115,
+      "dense": false,
+      "output": "Landscape-dark-follow-115.png",
+      "checksum": "sha256:9edc588080562892031b6bb4b3517b4059d9454cc3a6284188e1c5c1da0f421b"
+    },
+    {
+      "id": "Landscape",
+      "theme": "light",
+      "kind": "intro",
+      "sceneFrame": 12,
+      "dense": false,
+      "output": "Landscape-light-intro-12.png",
+      "checksum": "sha256:663b685436517f49ac2eb7e202dd5e5e1f917487983108ed75475ba6c0e438f9"
+    },
+    {
+      "id": "Landscape",
+      "theme": "light",
+      "kind": "intro",
+      "sceneFrame": 36,
+      "dense": false,
+      "output": "Landscape-light-intro-36.png",
+      "checksum": "sha256:c10888475b84f94eec1422baddde0d844f384f1c09c0ff362c72522bf79e8532"
+    },
+    {
+      "id": "Landscape",
+      "theme": "light",
+      "kind": "intro",
+      "sceneFrame": 59,
+      "dense": false,
+      "output": "Landscape-light-intro-59.png",
+      "checksum": "sha256:26c8aef4e6a9f2a441a05da030360c62cdb647bdbe2814a804e348d98d5b4f30"
+    },
+    {
+      "id": "Landscape",
+      "theme": "light",
+      "kind": "credits",
+      "sceneFrame": 90,
+      "dense": false,
+      "output": "Landscape-light-credits-90.png",
+      "checksum": "sha256:b802cc4d92af85f73c84051846027a3ba13709d0553b7a21f0e0d25caf052a5a"
+    },
+    {
+      "id": "Landscape",
+      "theme": "light",
+      "kind": "credits",
+      "sceneFrame": 90,
+      "dense": true,
+      "output": "Landscape-light-credits-90-dense.png",
+      "checksum": "sha256:19ed251499f2d43071f091e97909280296e58a3d975ee40c4ceda967dbf94d57"
+    },
+    {
+      "id": "Landscape",
+      "theme": "light",
+      "kind": "follow",
+      "sceneFrame": 10,
+      "dense": false,
+      "output": "Landscape-light-follow-10.png",
+      "checksum": "sha256:43e16e21b7d62f5aa52e76588b9c29c5c13f9bc317759c2295b13756595c434b"
+    },
+    {
+      "id": "Landscape",
+      "theme": "light",
+      "kind": "follow",
+      "sceneFrame": 45,
+      "dense": false,
+      "output": "Landscape-light-follow-45.png",
+      "checksum": "sha256:ef30b5ab04fef00c51ed70cb391750afe299b96ef87e7ee328aac11198577495"
+    },
+    {
+      "id": "Landscape",
+      "theme": "light",
+      "kind": "follow",
+      "sceneFrame": 100,
+      "dense": false,
+      "output": "Landscape-light-follow-100.png",
+      "checksum": "sha256:cf290aa3cbfa762a9c461b28ef9ad3490ee6f3dfaa2f5467e2280e92fd22cd60"
+    },
+    {
+      "id": "Landscape",
+      "theme": "light",
+      "kind": "follow",
+      "sceneFrame": 115,
+      "dense": false,
+      "output": "Landscape-light-follow-115.png",
+      "checksum": "sha256:873802c58938d43f293e00263973d6dd13a12f84f5bb164c7149da2fc2ad4ade"
+    }
+  ],
+  "rawEvidenceChecksum": "sha256:1d20cf28ce1ed760c186409b69d2df2909a5e195620cd1963f1db365a5997207"
+}

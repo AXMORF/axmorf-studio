@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.14",
+  "releaseCommit": "a9175d3c303545fbfadf89ec9dc2ada7acdbeb7c",
+  "tag": "v0.1.14",
+  "publishWorkflow": {
+    "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/34743315006",
+    "status": "success",
+    "tests": {
+      "passed": 938,
+      "failed": 0,
+      "skipped": 1,
+      "skipReason": "Darwin-only sandbox process inspection on Linux"
+    },
+    "auditVulnerabilities": 0
+  },
+  "macosCI": {
+    "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/34743313092",
+    "status": "success",
+    "tests": {
+      "passed": 939,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "registry": [
+    {
+      "name": "@axmorf/studio",
+      "version": "0.1.14",
+      "integrity": "sha512-ugtmU1vdwJSu3lzLG3n85ahSwKk/5YwTWojl+tvcj1YnWcMF9GrNDHYqagGWaWMLQ3/E5raFAj3cCfSZEWewFA==",
+      "sha256": "d8bb484b2761114b3abef88028d107f10f4283238cfb77279136268cd99c1e72",
+      "workflowTarballMatchesRegistry": true,
+      "provenance": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@axmorf%2fstudio@0.1.14",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      }
+    },
+    {
+      "name": "create-axmorf-studio",
+      "version": "0.1.14",
+      "integrity": "sha512-j5RIZvPSwJ5bfZQ58/4vKU0zffnwsxdn2sbzVWC43NIe4nRnVnXXcToVSA63xMaOQc2xWONmKpcfB+DCoP8BBA==",
+      "sha256": "aa5fa9271e44c168b9ab5d87917e8487f6feadede2a6f637cd379a1972a2c41b",
+      "workflowTarballMatchesRegistry": true,
+      "provenance": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/create-axmorf-studio@0.1.14",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      }
+    }
+  ],
+  "candidateReceipt": "v0.1.14-first-use.json",
+  "publicFirstUse": {
+    "schemaVersion": 1,
+    "version": "0.1.14",
+    "checkedAt": "2026-09-13T07:09:25.926801+00:00",
+    "status": "blocked-external-browser-download",
+    "published": true,
+    "registryPackagesMatchRelease": [
+      {
+        "package": "axmorf-studio-0.1.14.tgz",
+        "sha256": "d8bb484b2761114b3abef88028d107f10f4283238cfb77279136268cd99c1e72",
+        "sha512": "sha512-ugtmU1vdwJSu3lzLG3n85ahSwKk/5YwTWojl+tvcj1YnWcMF9GrNDHYqagGWaWMLQ3/E5raFAj3cCfSZEWewFA==",
+        "matchesPublishedWorkflowBytes": true
+      },
+      {
+        "package": "create-axmorf-studio-0.1.14.tgz",
+        "sha256": "aa5fa9271e44c168b9ab5d87917e8487f6feadede2a6f637cd379a1972a2c41b",
+        "sha512": "sha512-j5RIZvPSwJ5bfZQ58/4vKU0zffnwsxdn2sbzVWC43NIe4nRnVnXXcToVSA63xMaOQc2xWONmKpcfB+DCoP8BBA==",
+        "matchesPublishedWorkflowBytes": true
+      },
+      {
+        "package": "axmorf-studio-0.1.14.tgz",
+        "sha256": "d8bb484b2761114b3abef88028d107f10f4283238cfb77279136268cd99c1e72",
+        "sha512": "sha512-ugtmU1vdwJSu3lzLG3n85ahSwKk/5YwTWojl+tvcj1YnWcMF9GrNDHYqagGWaWMLQ3/E5raFAj3cCfSZEWewFA==",
+        "matchesPublishedWorkflowBytes": true
+      },
+      {
+        "package": "create-axmorf-studio-0.1.14.tgz",
+        "sha256": "aa5fa9271e44c168b9ab5d87917e8487f6feadede2a6f637cd379a1972a2c41b",
+        "sha512": "sha512-j5RIZvPSwJ5bfZQ58/4vKU0zffnwsxdn2sbzVWC43NIe4nRnVnXXcToVSA63xMaOQc2xWONmKpcfB+DCoP8BBA==",
+        "matchesPublishedWorkflowBytes": true
+      }
+    ],
+    "hosts": [
+      {
+        "host": "codex",
+        "install": "passed",
+        "bootstrap": "passed",
+        "browserPreparation": "failed-network",
+        "doctor": "not-run",
+        "nativeAgent": "not-started",
+        "receipt": "not-created",
+        "installLogChecksum": "sha256:34947dc499f521d968d4646a57fbed159da21dddc6333623ad51ce9b2f6bc619"
+      },
+      {
+        "host": "hermes",
+        "install": "passed",
+        "bootstrap": "passed",
+        "browserPreparation": "failed-network",
+        "doctor": "not-run",
+        "nativeAgent": "not-started",
+        "receipt": "not-created",
+        "installLogChecksum": "sha256:a97e08b3b4bb19557ac34ac4169ae604d6fa7b0ab833f0d8fac5fec115a19807"
+      }
+    ],
+    "blocker": {
+      "host": "storage.googleapis.com",
+      "port": 443,
+      "browser": "Chrome Headless Shell 149.0.7790.0 mac-x64",
+      "error": "No data for 20 seconds, then TLS ECONNRESET",
+      "upstreamDownloaderRetries": "original Remotion behavior, retained in logs",
+      "controllerRetries": 0,
+      "fallbacks": 0,
+      "packageEdits": 0,
+      "manualBrowserCachePreparation": false
+    },
+    "atomicStagingCleanedByCreator": true,
+    "publicProductionComplete": false
+  }
+}

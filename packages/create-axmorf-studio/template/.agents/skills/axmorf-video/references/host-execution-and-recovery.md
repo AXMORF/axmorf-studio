@@ -16,6 +16,8 @@ A normal wait timeout with a live process only renews that wait; it is not an er
 repeat log reads or reason about unchanged progress. On an error, read only the relevant new diagnostic evidence. Report the fixed
 final result once and ignore late duplicate success notices. A background acknowledgement never proves delivery.
 
+Use the longest supported blocking wait that fits the outer host deadline, typically 30–60 seconds or longer when allowed. Native completion should wake it early. Do not repeatedly request 1-second waits, alternate wait tools to inspect unchanged state, or narrate routine renewals. Queue admission likewise uses a long native wait-any that wakes on completion; it does not need short polling intervals.
+
 Root diagnoses worker errors from the exact task/binding, failing command, structured validator issue and the owner's minimal
 relevant excerpt. It may guide the original live executor, which alone reads/writes its declared outputs and reruns exact bound
 finalize/check/commit before terminal. Do not access another worker's workspace, take over its commit, edit immutable/fixed outputs,

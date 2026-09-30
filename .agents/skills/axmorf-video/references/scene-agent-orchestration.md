@@ -10,8 +10,8 @@ bindingId: <bindingId>
 workspace；controller-io 只用 file-read/file-write。绑定后读 `task.json`、
 `inputs/context.json`、`inputs/task-contract.json`，只写 declared outputs。
 
-消费 taskInput（allowedResourceIds/allowedSnapshots）、scene.brief/visualStyle/narrationCues；评估 availableResources API guides，按旁白设计变化，替换 Renderer 并对齐 sync anchors。选用能力须调用/挂载、声明 ID，selected-resources.json 复制 selected/descriptor；自绘理由写入 styleRealization。
-`task-input.generated.json` 仅由 fixed materialization 投影。Renderer 从 SceneViewport `(0, 0)`，只用 width/height/sceneViewport.minFontSizePx，不得读取、推导或重复应用 full-frame inset。透明 Scene
+读取 context.visualStyle；有 theme 时文字与强调色使用其语义角色，背景由 Composition 绘制。完整消费 scene.taskInput（allowedResourceIds/allowedSnapshots）、brief、visualStyle、narrationCues 与 availableResources；评估 API guides 后选能力，或在 styleRealization 说明自绘理由。选用能力必须调用/挂载并声明 ID，selected-resources.json 复制 selected/descriptor。按旁白设计开场、变化、结果，替换 Renderer 并对齐 sync anchors。
+task-input.generated.json 仅由 fixed materialization 投影；Renderer 从 SceneViewport (0, 0) 布局，只用 width/height/sceneViewport.minFontSizePx，不得读取、推导或重复应用 full-frame inset。透明 Scene
 只含 Beat 视觉与音效；不得读取其他 workspace、历史作品、网络或 private 内容。
 
 originalityBaseline 冻结，检查 TS/TSX graph。

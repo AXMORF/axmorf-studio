@@ -12,7 +12,7 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).length;
 const PolicySchema = z
   .object({
     schemaVersion: z.literal(19),
-    policyVersion: z.literal("axmorf-video-policy-v23"),
+    policyVersion: z.literal("axmorf-video-policy-v24"),
     rootEndpoints: z.tuple([
       z.literal("project-production-complete"),
       z.literal("project-production-current"),
@@ -57,7 +57,7 @@ const PolicySchema = z
         defaultMode: z.literal("subagents"),
         defaultSubagentMaxConcurrency: z.literal(4),
         repositoryMaxConcurrency: z.literal(4),
-        unknownRuntimeMaxConcurrency: z.literal(1),
+        unknownRuntimeMaxConcurrency: z.literal(0),
         inlinePolicy: z.literal("root-sequential-one-workspace-at-a-time"),
         subagentPolicy: z.literal(
           "bounded-native-wait-any-or-synchronous-batch",
@@ -77,6 +77,7 @@ const PolicySchema = z
           "original-handle-blocking-wait-or-native-notification",
         ),
         normalTimeout: z.literal("renew-original-wait-only"),
+        waitDuration: z.literal("longest-blocking-wait-within-host-deadline"),
         diagnosticTrigger: z.literal("error-notification"),
         taskRepairOwner: z.literal("original-bound-executor-before-terminal"),
         automaticRecoveryScope: z.literal(
@@ -378,6 +379,7 @@ test("repository video skill uses Revision, Task DAG, artifacts, and synchronous
     hardening,
     /(?:does not require|needs no|不要求)[\s\S]*current delivery/iu,
   );
+  assert.match(hardening, /Do not repeatedly request 1-second waits/u);
   assert.match(producerConfig, /publishingCollections/u);
   assert.match(producerConfig, /targetLoudnessLufs/u);
   assert.doesNotMatch(producerConfig, /POST \/clone|127\.0\.0\.1:31(?:00|01)/u);

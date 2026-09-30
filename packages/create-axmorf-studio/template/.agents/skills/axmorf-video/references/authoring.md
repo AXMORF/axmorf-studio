@@ -16,9 +16,19 @@ npm run catalog:query -- --kind style-profile
 npm run catalog:query -- --kind asset
 ```
 
+Follow `agentHandoff` before create: adapt its example budget to the user's target, then report the selected boundaries and budget as an intermediate progress message, not a final answer. Continue in the same turn: write the adapted input and execute `nextCommand`. The report does not pause production or request another user reply; existing video authorization needs no new confirmation. The example target is not the requested target.
+
 The schema is generated from the installed version. It describes JSON shape; cross-field semantics, current Catalog choices,
 caption budget and licensing are still checked by create. Do not read package internals or fetch development-branch contracts.
 
+- Resolve each render field from the explicit user request first, then `renderDefaults` for unspecified fields.
+  Set optional `render.width`, `render.height`, `render.fps`, and `render.locale` only when requested. An orientation
+  or aspect ratio requires concrete width and height; for example, a requested 16:9 landscape video can use
+  `fieldExamples.render` (1920 by 1080), while retaining configured fps and locale by omission. Do not copy this
+  landscape example when the user did not request it. Do not leave dimensions only in textual requirements or
+  modify saved defaults for one Project. Width/height must be positive even integers; fps is an integer from 1
+  through 120; locale is canonical BCP 47. Recalculate duration budget if fps changes. Before production, compare
+  the successful create response `render` with the request; stop before provider calls on a mismatch.
 - Use lowercase hyphenated `storyId`. Use registered `styleProfileId` values (without the `style.` Catalog ID prefix).
 - Each narrated beat owns one `meaningId`, one Scene brief and one publishing chapter in the same order.
 - Write each narrated Scene as a visible causal sequence: identify the subject and its initial state, the action that changes it,
@@ -38,6 +48,7 @@ caption budget and licensing are still checked by create. Do not read package in
   `fieldExamples["production.additionalRequirements"]`; preserve its required fields and use the user's actual statement.
   A `schema-validation-failed` response supplies structured field paths and a repair example for this field. Fix the draft
   without dropping the user's constraints or changing the contract.
+- `visualStyle.theme` accepts dark (default), light, or an object with background/primaryText/secondaryText/accent opaque six-digit hex colors. All foreground roles must contrast with background by at least 4.5:1. Use theme as the numeric authority; artDirection.palette describes intent and cannot override it. Logo shapes, brand fonts, layout and animation remain fixed. Existing themed revisions must preserve or replace the theme; legacy immutable boundaries cannot adopt a theme through revision.
 - Evaluate the returned capabilities and authoring guides before self-authored geometry. Match semantic camera, chart, typography, media and motion needs to public APIs; include chosen IDs in the Story pool and each Scene candidateResourceIds. Empty selections are valid when no API fits, with a concrete reason in the visual intent. Query Catalog before selecting media; never invent resource IDs.
 - Narration provider, voice and publishing defaults come from settings. Context deliberately omits connections and credentials.
 - Source assets must have Workspace ownership and validated manifests. Do not download random files to bypass asset admission.

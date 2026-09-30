@@ -8,6 +8,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { VISUAL_THEME_PRESETS, type VisualTheme } from "../../../contracts";
 
 import {
   AxmorfIntroScene,
@@ -109,11 +110,13 @@ export const buildSceneTemplatePreviewSpecs = (
 export const SYSTEM_SCENE_TEMPLATE_PREVIEW_SPECS =
   buildSceneTemplatePreviewSpecs(DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION);
 
-const PreviewStage: FC<{ readonly children: ReactNode }> = ({ children }) => (
+const PreviewStage: FC<{
+  readonly children: ReactNode;
+  readonly theme: VisualTheme;
+}> = ({ children, theme }) => (
   <AbsoluteFill
     style={{
-      background:
-        "radial-gradient(circle at 50% 38%, #fffdf9 0%, #f8f4ee 58%, #f2ebe3 100%)",
+      background: theme.background,
       overflow: "hidden",
     }}
   >
@@ -140,6 +143,8 @@ const PreviewSound: FC<{
 
 export type SceneTemplatePreviewProps = Readonly<{
   audioProjection?: SceneTemplateAudioProjection;
+  theme?: VisualTheme;
+  sourceReferences?: readonly Readonly<{ title: string; url: string }>[];
 }>;
 
 export const SceneTemplateAudioPreloader: FC<SceneTemplatePreviewProps> = ({
@@ -168,6 +173,7 @@ export const SceneTemplateAudioPreloader: FC<SceneTemplatePreviewProps> = ({
 
 export const BrandRevealTemplatePreview: FC<SceneTemplatePreviewProps> = ({
   audioProjection = DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION,
+  theme = VISUAL_THEME_PRESETS.light,
 }) => {
   const sceneFrame = useCurrentFrame();
   const { width, height } = useVideoConfig();
@@ -176,8 +182,13 @@ export const BrandRevealTemplatePreview: FC<SceneTemplatePreviewProps> = ({
     [audioProjection],
   );
   return (
-    <PreviewStage>
-      <AxmorfIntroScene sceneFrame={sceneFrame} width={width} height={height} />
+    <PreviewStage theme={theme}>
+      <AxmorfIntroScene
+        sceneFrame={sceneFrame}
+        width={width}
+        height={height}
+        theme={theme}
+      />
       <PreviewSound spec={specs.intro} />
     </PreviewStage>
   );
@@ -185,6 +196,11 @@ export const BrandRevealTemplatePreview: FC<SceneTemplatePreviewProps> = ({
 
 export const SourceFollowTemplatePreview: FC<SceneTemplatePreviewProps> = ({
   audioProjection = DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION,
+  theme = VISUAL_THEME_PRESETS.light,
+  sourceReferences = [
+    { title: "Remotion 官方文档", url: "https://www.remotion.dev/docs" },
+    { title: "AXMORF Studio 架构文档", url: "docs/ARCHITECTURE.md" },
+  ],
 }) => {
   const sceneFrame = useCurrentFrame();
   const { width, height } = useVideoConfig();
@@ -193,21 +209,13 @@ export const SourceFollowTemplatePreview: FC<SceneTemplatePreviewProps> = ({
     [audioProjection],
   );
   return (
-    <PreviewStage>
+    <PreviewStage theme={theme}>
       <AxmorfOutroScene
         sceneFrame={sceneFrame}
         width={width}
         height={height}
-        sourceReferences={[
-          {
-            title: "Remotion 官方文档",
-            url: "https://www.remotion.dev/docs",
-          },
-          {
-            title: "AXMORF Studio 架构文档",
-            url: "docs/ARCHITECTURE.md",
-          },
-        ]}
+        theme={theme}
+        sourceReferences={sourceReferences}
       />
       <PreviewSound spec={specs.outro} />
     </PreviewStage>

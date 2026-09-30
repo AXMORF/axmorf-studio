@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.15",
+  "releaseCommit": "bc66f9645c867a0aea6cd4b93b6be99e3deea101",
+  "tag": "v0.1.15",
+  "publishWorkflow": {
+    "url": "https://github.com/AXMORF/axmorf-studio/actions/runs/36605261163",
+    "status": "success",
+    "method": "GitHub Actions npm OIDC"
+  },
+  "registry": [
+    {
+      "name": "@axmorf/studio",
+      "latest": "0.1.15",
+      "integrity": "sha512-012HMkJjGN8iF2jMRS9o+E7wyLH06NWtRWwH/USXSDQ3k1gT+4lOyGv7wXF+NvjEDWP/1aaf+lzfis+c8Q3Xqw==",
+      "workflowTarballSha256": "97df42514a9b5f012c0966648a8dc8c3adf3858ff5e99f5d6e84d09f1d2c9d9e",
+      "workflowTarballMatchesRegistry": true
+    },
+    {
+      "name": "create-axmorf-studio",
+      "latest": "0.1.15",
+      "integrity": "sha512-JRw5AKrOQRbz3B7jaZULgLtJgxkvKqCdBKo1eKm24RDj8Em7SDiPfM2xZitMQELvoUR8So7GvrUASMIjP1J/0w==",
+      "workflowTarballSha256": "f803cd9e5d985995e285c8715e4b274ee6f9660886830b76788c0105f753a25a",
+      "workflowTarballMatchesRegistry": true
+    }
+  ],
+  "candidateFirstUse": {
+    "receipt": "v0.1.15-first-use.json",
+    "status": "passed",
+    "scope": "Codex-only version-specific release gate",
+    "rawNativeSessionRetention": "incomplete after temporary directory cleanup"
+  },
+  "publicFirstUse": {
+    "status": "delivery-passed-supervision-failed",
+    "installation": "fresh public registry packages",
+    "host": "codex",
+    "model": "gpt-5.6-sol",
+    "storyId": "codex-release015-moon",
+    "runExitCode": 0,
+    "finalCheck": "pass-7-of-7",
+    "revisionId": "revision-80dcc1d14f9702c18f4aa080b28d965da35a91810ab602b91de14caaa62433e7",
+    "deliveryBuildId": "delivery-a59604d3c1110621fe33eeb40a0f2922f5df5bc5b31019813b28028375e59803",
+    "video": {
+      "codec": "h264",
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "durationSeconds": 32.896,
+      "sha256": "a54b5ce1735fcdac4c35aec805df616295852dd2a62fb6166468adcb37b6bbcd"
+    },
+    "fourFilesPresent": true,
+    "videoAndCoverEofDecode": "passed",
+    "sampledFramesSeconds": [1, 5, 15, 25, 31, 32],
+    "sampledOpeningAndEndingTextContrast": "readable against light background",
+    "fullVisualReview": false,
+    "fullAudioListening": false,
+    "firstUseReceipt": "rejected",
+    "recorderError": "Expected one successful native subagents resolution: 2 !== 1",
+    "successfulExecutionResolutionCalls": 2,
+    "nativeSessionRecords": "retained privately outside the repository"
+  },
+  "limitations": [
+    "The public Codex run made two successful execution resolutions in one production request, so its delivery does not satisfy the first-use supervision gate.",
+    "An earlier fresh public run selected a model unsupported by the host CLI and stopped before project creation; it is not counted as production evidence.",
+    "Hermes was excluded from this version-specific gate by the user's explicit Codex-only instruction."
+  ]
+}

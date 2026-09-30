@@ -212,6 +212,7 @@ export const bindTaskWorker = async ({
   bindingId,
   transport: rawTransport,
   candidateId,
+  assignment,
   commandFormatter = npmScriptProductionCommandFormatter,
 }: {
   readonly rootDir: string;
@@ -221,6 +222,7 @@ export const bindTaskWorker = async ({
   readonly bindingId: string;
   readonly transport: TaskWorkerTransport;
   readonly candidateId?: string;
+  readonly assignment?: number;
   readonly commandFormatter?: ProductionCommandFormatter;
 }) => {
   const transport = parseBindingValue(
@@ -262,6 +264,9 @@ export const bindTaskWorker = async ({
     ...(candidateId === undefined
       ? {}
       : { projectId: bound.task.storyId, candidateId }),
+    ...(assignment === undefined
+      ? {}
+      : { projectId: bound.task.storyId, assignment }),
   } as const;
   try {
     return TaskWorkerBindingSchema.parse({
