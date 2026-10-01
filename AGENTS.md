@@ -66,6 +66,8 @@ When a `.codegraph/` directory exists, use CodeGraph before grep/find for code d
   `.agents/skills/axmorf-video/SKILL.md`；Scene task 再按该 Skill 读取 repository-local
   `remotion-best-practices`。
 - 全新 scaffolded Workspace 的内置执行默认是 `subagents`，最大并发 4；用户或已保存设置可明确选择 `inline`。
+  用户明确批准制作前串行 fallback 时，可用 `project:execution:resolve --allow-inline-fallback`；报告真实 inline、原请求及能力缺口。
+  精确并发仍阻塞，不切换已派发 attempt，不更改权限或发布并行验收要求。
   默认生产要求宿主提供 bounded runtime-native child execution，并按 Skill 的临时 challenge probe 为本次 production 验证
   `shared-workspace` 或 `controller-io` transport 时才使用子 Agent；不得把线程、聊天或普通后台进程伪装成 child
   runtime。transport 是不持久化的宿主能力证据，不是 Workspace/App/Project 设置。

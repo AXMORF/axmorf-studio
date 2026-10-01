@@ -189,46 +189,67 @@ test("release evidence binds both hosts, exact candidates, prompts and complete 
   );
 });
 
-test("0.1.15 requires Codex-only acceptance without relaxing native execution", () => {
-  const nextRuntime = { ...runtime, version: "0.1.15" };
-  const nextCreator = { ...creator, version: "0.1.15" };
-  const codex = {
-    ...hostReceipt("codex"),
-    packages: { runtime: summary(nextRuntime), creator: summary(nextCreator) },
-    supervision: {
-      schemaVersion: 1,
-      source: "codex",
-      reportedBeforeCreate: true,
-      reportedBeforePrepare: true,
-      continuationCalls: 1,
-      pollingCalls: 0,
-      asyncBatches: 0,
-      completedAsyncBatches: 0,
-    },
-  };
-  assert.throws(
-    () =>
+for (const version of ["0.1.15"]) {
+  test(`${version} requires Codex-only acceptance without relaxing native execution`, () => {
+    const nextRuntime = { ...runtime, version };
+    const nextCreator = { ...creator, version };
+    const codex = {
+      ...hostReceipt("codex"),
+      packages: {
+        runtime: summary(nextRuntime),
+        creator: summary(nextCreator),
+      },
+      supervision: {
+        schemaVersion: 1,
+        source: "codex",
+        reportedBeforeCreate: true,
+        reportedBeforePrepare: true,
+        continuationCalls: 1,
+        pollingCalls: 0,
+        asyncBatches: 0,
+        completedAsyncBatches: 0,
+      },
+    };
+    assert.throws(
+      () =>
+        verifyReceipt(
+          { schemaVersion: 1, hosts: [codex] },
+          nextRuntime,
+          nextCreator,
+        ),
+      /native child execution/u,
+    );
+    const hermes = {
+      ...hostReceipt("hermes"),
+      packages: codex.packages,
+    };
+    assert.throws(() =>
       verifyReceipt(
-        { schemaVersion: 1, hosts: [codex] },
+        { schemaVersion: 1, hosts: [codex, hermes] },
         nextRuntime,
         nextCreator,
       ),
-    /native child execution/u,
-  );
-  const hermes = {
-    ...hostReceipt("hermes"),
-    packages: codex.packages,
+    );
+    assert.throws(() =>
+      verifyReceipt(
+        { schemaVersion: 1, hosts: [hermes] },
+        nextRuntime,
+        nextCreator,
+      ),
+    );
+  });
+}
+
+test("0.1.17 retains the two-host acceptance requirement", () => {
+  const nextRuntime = { ...runtime, version: "0.1.17" };
+  const nextCreator = { ...creator, version: "0.1.17" };
+  const codex = {
+    ...hostReceipt("codex"),
+    packages: { runtime: summary(nextRuntime), creator: summary(nextCreator) },
   };
   assert.throws(() =>
     verifyReceipt(
-      { schemaVersion: 1, hosts: [codex, hermes] },
-      nextRuntime,
-      nextCreator,
-    ),
-  );
-  assert.throws(() =>
-    verifyReceipt(
-      { schemaVersion: 1, hosts: [hermes] },
+      { schemaVersion: 1, hosts: [codex] },
       nextRuntime,
       nextCreator,
     ),

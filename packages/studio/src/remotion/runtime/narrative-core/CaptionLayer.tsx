@@ -160,6 +160,7 @@ const captionStyle = ({
   textShadow: "0 2px 8px rgba(0, 0, 0, 0.55)",
   whiteSpace: "pre-wrap",
   overflowWrap: "anywhere",
+  textWrap: "balance",
 });
 
 export const CaptionLayer: FC<CaptionLayerProps> = ({

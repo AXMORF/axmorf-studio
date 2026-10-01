@@ -1,6 +1,6 @@
 {
   "name": "axmorf-studio",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "description": "Agent-first video production workspace and npm distribution for AXMORF Studio.",
   "repository": {
     "type": "git",
@@ -14,8 +14,10 @@
     "packages/create-axmorf-studio"
   ],
   "overrides": {
-    "fast-uri": "3.1.7",
-    "nanoid": "3.3.18"
+    "fast-uri": "3.1.8",
+    "nanoid": "3.3.18",
+    "brace-expansion@1": "1.1.21",
+    "brace-expansion@2": "2.1.7"
   },
   "dependencies": {
     "@react-three/fiber": "9.6.1",

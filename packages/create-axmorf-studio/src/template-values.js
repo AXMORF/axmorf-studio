@@ -40,7 +40,9 @@ const APPLICATION_DEV_DEPENDENCIES = Object.freeze({
 });
 
 const APPLICATION_OVERRIDES = Object.freeze({
-  "fast-uri": "3.1.7",
+  "fast-uri": "3.1.8",
+  "brace-expansion@1": "1.1.21",
+  "brace-expansion@2": "2.1.7",
   nanoid: "3.3.18",
 });
 

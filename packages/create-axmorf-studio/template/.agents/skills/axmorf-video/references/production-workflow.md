@@ -77,7 +77,7 @@ Before the first command, briefly tell the user the plan. Report inherited bound
     same-Revision `npm run project:attempt:reissue -- --project <storyId> --attempt <failedAttemptId>` only if ready; no current Delivery is
     required. Use fresh workers and bindings. Unknown, fixed-system and external faults stop with diagnosis; no automatic program-source repair.
 
-After `project-production-complete` or `project-production-current`, report the verified delivery paths once and stop. This fixed result already validates the exact four files. If a separate recheck is needed, use exactly `npm run project:check -- --project <storyId> --level final`; do not omit `--level`. `project:revise:context` starts a user-requested revision and is not a delivery inspection command.
+After `project-production-complete` or `project-production-current`, the exact four files are technically verified. Generate the low-cost `project:scene:review --motion` previews described below, inspect actions/boundaries against intent and readability, then report paths and actual review scope once. Retain needs-temporal-review when perception is unavailable; never claim automatic visual approval. If a separate recheck is needed, use exactly `npm run project:check -- --project <storyId> --level final`; do not omit `--level`. `project:revise:context` starts a user-requested revision and is not a delivery inspection command.
 
 Timing comes from sealed PCM samples. Scenes do not own captions or narration.
 Agent-owned Scene TS/TSX graphs must be unique against the frozen baseline and
@@ -95,3 +95,6 @@ does not alter production identity or automatically grade visual quality.
 Compare each Scene's opening, change, and result with its `narrativePurpose`, Scene brief, and narration cues. If the visible
 result misses the user's meaning or the focal subject is unclear, describe the specific mismatch and use the isolated
 revision flow for corrections within the authorized brief. Mechanical delivery success alone does not prove visual quality.
+
+
+`npm run project:scene:review -- --project <storyId> --motion` exports whole Scenes, boundary clips and available action windows, including cause/result/reading-hold samples. `revision-feedback.json` scopes observed defects to meaningId/actionId/frame ranges; it is diagnostic feedback, not accepted revision input or approval. Read `project:revise:context`, then use the strict isolated revision workflow; preserve sealed narration and unaffected assets. Source-plan annotations are explicitly current-source references, not attested statements about the delivered animation. Watch actual clips and compare their visible causal actions; numeric motion, static stills and generated evidence never certify aesthetics or listening. Formal release checks remain unchanged.

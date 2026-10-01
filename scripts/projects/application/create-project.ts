@@ -16,6 +16,7 @@ import {
   VisualStyleSpecSchema,
   VISUAL_THEME_PRESETS,
   buildAuthoringRequirements,
+  SCENE_MOTION_REQUIREMENT,
   buildGlobalVisualBrief,
   buildProjectAssetManifest,
   buildPublishingIntent,
@@ -649,6 +650,10 @@ const prepareCreation = async ({
       projectSound: checksum(Buffer.from(sourceBytes.sound)),
     },
     ...input.production,
+    additionalRequirements: [
+      ...input.production.additionalRequirements,
+      SCENE_MOTION_REQUIREMENT,
+    ],
     readability: { edgeInsetPx: config.readability.edgeInsetPx },
   });
   const currentDescriptors = await loadCatalogAuthorityDescriptors(rootDir);

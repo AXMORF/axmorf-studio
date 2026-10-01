@@ -9,7 +9,7 @@ send follow-up repair instructions or change package internals during the run.
 A failed run stays recorded as failed; a later engineering fix requires new
 candidates and a new first-use run.
 
-Except for the explicit 0.1.14 and 0.1.15 scopes below, from 0.1.9 onward both hosts must exercise the package's default native
+Except for the explicit 0.1.14, 0.1.15 and 0.1.16 scopes below, from 0.1.9 onward both hosts must exercise the package's default native
 `subagents` path with configured maximum concurrency four. The business prompt
 does not name this execution strategy. Select a normal video brief that produces
 more than four dirty creative tasks, so the run exercises releasing a child slot
@@ -40,6 +40,25 @@ host, with the unchanged default four-way native execution, supervision, real
 delivery, and full media checks. Hermes runs remain diagnostic and cannot be
 counted as passing release evidence. This scope does not certify Hermes; later
 versions return to the two-host gate.
+
+For **0.1.16 only**, the user authorized Codex-only acceptance on 2026-09-30,
+then explicitly approved **Codex serial acceptance** on 2026-10-01 at 13:08 UTC.
+Both candidate and post-publication receipts must record sequential Root task
+binding/commit and `releaseScope`: version `0.1.16`, host `codex`, authorization
+timestamp, `parallelExecution: "unverified"`, and `hermes: "unverified"`.
+The ordinary business prompt explicitly selects serial production. No native
+children or delegation may be counted; four-way overlap, slot release and later
+admission remain unverified. Independent fresh workspace/profile, one business
+prompt, unchanged package/guides, actual model settings, supervision, unique
+continuation, exact four-file Delivery and complete media checks remain required.
+Prior engineering previews and failed independent runs do not become passing
+first-use receipts. This exception does not change Workspace execution defaults,
+Hermes support or any future-version gate.
+
+For this independent 0.1.16 acceptance only, the user also approved the available
+local **gpt-5.6-sol, max** on 2026-10-01 at 16:44 UTC. Record the actual native
+model and reasoning settings; this does not change the main engineering task's
+model or provide evidence for other models.
 
 This gate supplements the automated install/contract tests. It does not claim
 multi-model, multi-OS, interactive approval, revision, or recovery certification.
@@ -225,12 +244,12 @@ A source test with an injected fixture policy does not replace this installed-pa
 ## Publish once the required hosts pass
 
 Combine the required generated JSON objects from the repository root. For
-0.1.15, use only the Codex receipt; other versions use both hosts:
+0.1.15 and 0.1.16, use only the Codex receipt; other versions use both hosts:
 
 ```sh
 node --input-type=module - <<'JS'
 import {readFile, writeFile} from 'node:fs/promises';
-const files = ['codex-receipt.json']; // 0.1.15 only; other versions require Hermes too.
+const files = ['codex-receipt.json']; // 0.1.15 and 0.1.16 only; other versions require Hermes too.
 const hosts = await Promise.all(files.map(async file => JSON.parse(await readFile(file, 'utf8'))));
 const {version} = JSON.parse(await readFile('package.json', 'utf8'));
 await writeFile(`docs/evidence/v${version}-first-use.json`,

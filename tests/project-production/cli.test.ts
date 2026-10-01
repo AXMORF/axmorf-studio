@@ -246,6 +246,18 @@ test("execution-resolve passes explicit user fields and runtime capacity once", 
   ]);
 });
 
+test("execution-resolve forwards fallback only when explicitly requested", async () => {
+  const calls: unknown[] = [];
+  await runProjectProductionCli(["execution-resolve", "--allow-inline-fallback"], {
+    rootDir: "/fixture", stdout: () => undefined,
+    resolveAgentExecution: (async (input: unknown) => {
+      calls.push(input);
+      return { status: "ready", mode: "inline" };
+    }) as never,
+  });
+  assert.deepEqual(calls, [{ rootDir: "/fixture", allowInlineFallback: true }]);
+});
+
 test("inspect and prepare each emit one stable structured JSON document", async () => {
   const taskRevision = `task-${"1".repeat(64)}` as const;
   const revisionId = `revision-${"2".repeat(64)}` as const;

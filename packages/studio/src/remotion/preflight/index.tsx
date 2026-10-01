@@ -6,7 +6,7 @@ const BrowserProbe: FC = () => null;
 const BrowserPreflightRoot: FC = () => (
   <Composition
     component={BrowserProbe}
-    durationInFrames={1}
+    durationInFrames={16}
     fps={30}
     height={16}
     id="RemotionBrowserPreflight"

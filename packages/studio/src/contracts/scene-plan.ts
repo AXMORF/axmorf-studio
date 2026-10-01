@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { createFingerprint } from "./fingerprint";
+import { SceneMotionPlanSchema, validateSceneMotionPlan } from "./scene-motion";
 import {
   MeaningIdSchema,
   NonNegativeIntegerSchema,
@@ -141,6 +142,7 @@ const ShotPlanSetInputSchema = z
     meaningId: MeaningIdSchema,
     sceneDurationInFrames: PositiveIntegerSchema,
     shots: z.array(ShotPlanSchema).min(1).max(64).readonly(),
+    motionPlan: SceneMotionPlanSchema.optional(),
   })
   .strict();
 
@@ -197,6 +199,9 @@ export const buildShotPlanSet = (
     meaningId: rawInput.meaningId,
     sceneDurationInFrames: rawInput.sceneDurationInFrames,
     shots: rawInput.shots,
+    ...(rawInput.motionPlan === undefined
+      ? {}
+      : { motionPlan: rawInput.motionPlan }),
   });
   return ShotPlanSetSchema.parse({
     ...input,
@@ -484,6 +489,13 @@ export const validateScenePlanBundle = ({
     throw new Error("Shot plan references an undeclared Scene sync anchor.");
   }
   resolveSceneSoundContributions({ soundPlan, syncAnchors });
+  if (shotPlan.motionPlan !== undefined)
+    validateSceneMotionPlan({
+      plan: shotPlan.motionPlan,
+      shots: shotPlan.shots,
+      anchors: syncAnchors.anchors,
+      duration,
+    });
   return { visualPlan, shotPlan, syncAnchors, soundPlan };
 };
 

@@ -1,4 +1,4 @@
-import { mkdtemp, open, readFile, rm } from "node:fs/promises";
+import { mkdtemp, open, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runBoundedProcess } from "../process/bounded-process";
@@ -55,16 +55,17 @@ export const verifyWorkspaceBrowser = (
     });
     const temporary = await mkdtemp(join(tmpdir(), "axmorf-browser-probe-"));
     try {
-      const output = join(temporary, "probe.png");
+      const output = join(temporary, "frames");
       const result = await runBoundedProcess(
         invocation.command,
         [
           ...invocation.argsPrefix,
-          "still",
+          "render",
           runtimeResources.remotionPreflightEntry,
           "RemotionBrowserPreflight",
           output,
-          "--frame=0",
+          "--sequence",
+          "--image-format=png",
           "--log=error",
           `--browser-executable=${executable}`,
         ],
@@ -72,15 +73,21 @@ export const verifyWorkspaceBrowser = (
       );
       if (result.status !== 0)
         throw new Error(
-          `Remotion browser render failed: ${(result.stderr + result.stdout).slice(-4096)}`,
+          `Remotion browser concurrent render preflight failed (16 frames, Workspace CLI concurrency). A successful still does not verify concurrent rendering. Use an already verified browser with AXMORF_BROWSER_EXECUTABLE and rerun doctor; this probe does not change browser security or network settings. ${(result.stderr + result.stdout).slice(-4096)}`,
         );
-      const bytes = await readFile(output);
-      if (
-        bytes.toString("hex", 0, 8) !== "89504e470d0a1a0a" ||
-        bytes.readUInt32BE(16) !== 16 ||
-        bytes.readUInt32BE(20) !== 16
-      )
-        throw new Error("Browser probe did not render the expected 16x16 PNG.");
+      const frames = await readdir(output);
+      if (frames.length !== 16 || frames.some((frame) => !frame.endsWith(".png")))
+        throw new Error("Browser probe did not render all 16 PNG frames.");
+      for (const frame of frames) {
+        const bytes = await readFile(join(output, frame));
+        if (
+          bytes.length < 24 ||
+          bytes.toString("hex", 0, 8) !== "89504e470d0a1a0a" ||
+          bytes.readUInt32BE(16) !== 16 ||
+          bytes.readUInt32BE(20) !== 16
+        )
+          throw new Error("Browser probe did not render the expected 16x16 PNG.");
+      }
     } finally {
       await rm(temporary, { recursive: true, force: true });
     }

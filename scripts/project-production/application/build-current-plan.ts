@@ -4,6 +4,7 @@ import {
   COVER_SPEC_FINGERPRINT,
   FIXED_COVER_SPEC,
   SCENE_ORIGINALITY_INPUT_ID,
+  SCENE_MOTION_REQUIREMENT_ID,
   buildProducerTaskSpec,
   createFingerprint,
   deriveGlobalVisualLayerPolicy,
@@ -488,7 +489,7 @@ export const buildAgentTasks = (
       outputs: SCENE_OUTPUTS,
       validatorPolicyVersion: templateCopy
         ? "scene-template-validator-v3"
-        : "scene-owner-validator-v4",
+        : "scene-owner-validator-v5",
       context: {
         resourcePool: inputs.resourcePool,
         ...(templateCopy
@@ -508,6 +509,12 @@ export const buildAgentTasks = (
                 narrationCues: scene.narrationCues,
               }),
           taskInput: scene.taskInput,
+          ...(scene.taskInput.sceneRequirements.some(
+            ({ requirementId }) =>
+              requirementId === SCENE_MOTION_REQUIREMENT_ID,
+          )
+            ? { fps: inputs.render.fps }
+            : {}),
           availableResources: scene.availableResources,
         },
       },

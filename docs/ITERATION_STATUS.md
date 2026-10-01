@@ -1,5 +1,26 @@
 # Iteration Status
 
+## 0.1.16 候选内容运动与发布准备（2026-10-01，尚未发布）
+
+图表刻度、字幕孤字换行和最终混音峰值余量已修正；浏览器预检、明确授权的串行 fallback、
+动作范围的时序审查与正式隔离修订继续使用既有生产主链。新的内容运动规划以解释目的、对象、
+旁白锚点、动作、阅读窗口和连续性表达意图，不强制镜头运动数量、固定轨迹或指定组件。
+tracked v1 保持兼容；已知 DOM 计划依赖矛盾仍拒绝，自定义 Canvas/v2 intent 返回待实际时序审查，
+不能用技术通过或像素变化代替语义与审美判断。
+
+最后一轮完整源码基线通过 1008/1008；creator 指南局部更新后 14/14 对应检查通过。
+冻结两包候选经干净 creator 安装核对 runtime 文件与生成指南一致，源码及消费者审计为零漏洞，
+包内容隐私扫描无未解决发现。实际短片涵盖机制、数量比较与抽象论证；正式局部视觉修订证明
+一个创作任务失效、七项 artifact 复用，旁白与封面哈希保持不变。连续播放和实际听审未完成，
+这些工程证据不等于独立首次使用验收，也不保证每个未来视频的审美质量。
+
+用户明确批准仅本次 0.1.16 使用 Codex 串行验收，并记录并行及 Hermes 未验证；
+对应发布规则的 61/61 回归、类型、lint 和文档检查通过。完整范围见
+[发布政策](evidence/v0.1.16-release-policy.json)、[内容运动审查](guides/CONTENT_MOTION_REVIEW.md)
+和[首次使用门禁](guides/FIRST_USE_RELEASE_GATE.md)。独立业务首用收据仍待实际运行。
+本次源码提交只准备发布：既有 `npm-publish.yml` 必须从精确版本标签手动触发，并校验匹配收据；
+没有 npm 发布成功声明，后续版本要求保持不变。
+
 ## 当前主分支统一与新 Workspace 回归（2026-09-30，本地未发布）
 
 默认主分支 `axmorf/npm-workspace-open-source` 已从旧 `dd4368e` 快进到集成代码 `ac0e1af`，
@@ -621,7 +642,8 @@ isolated Project revision flow：外部能力只按
   TaskExecutionContract 要求开场、可见变化、结果与镜头/旁白同步，`scene-owner-validator-v4` 拒绝原样提交
   Renderer scaffold。任务 context/contract 变化只失效相应 Agent TaskRevision。
 - `project:scene:review` 在复验 current Delivery 与 SemanticTiming 对齐后，为每个 Scene 生成三帧本地
-  review 页面，保存在 ignored `out/<storyId>/scene-review/`；人工画面复核不属于自动生产完成门槛。
+  review 页面，保存在 ignored `out/<storyId>/scene-review/`；可选 `--motion` 增加保留音轨的完整 Scene
+  和跨边界重叠 MP4/播放器，仍不自动批准动态质量；人工画面复核不属于自动生产完成门槛。
 - execution resolver 已按用户提示词明确字段、独立 settings、内置 `subagents`/4 默认逐级解析；全新 scaffolded Workspace
   默认要求宿主提供 bounded runtime-native children 并为本次 production 验证
   `shared-workspace` 或 `controller-io` transport 时启用，最多四个。transport 不写 execution preferences，也不进入

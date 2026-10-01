@@ -12,6 +12,9 @@ import { join } from "node:path";
 import {
   DELIVERY_FILES,
   SemanticTimingSchema,
+  ShotPlanSetSchema,
+  SceneSyncAnchorSetSchema,
+  validateSceneMotionPlan,
   StoryIdSchema,
   serializeCanonicalJson,
 } from "@axmorf/studio/contracts";
@@ -21,6 +24,7 @@ import { resolveMediaToolCommand } from "../shared/media-tool-command";
 import { runMediaProcess } from "../shared/media-process";
 import type { ProcessRunner } from "../shared/process";
 import { planSceneReview } from "./plan";
+import { planMotionReview, planActionReview } from "./motion";
 
 const ensureRealDirectory = async (path: string) => {
   try {
@@ -34,8 +38,24 @@ const ensureRealDirectory = async (path: string) => {
   }
 };
 
+const escapeHtml = (value: string) =>
+  value.replace(
+    /[&<>"']/gu,
+    (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        char
+      ]!,
+  );
+
 const reviewHtml = (
   plan: ReturnType<typeof planSceneReview>,
+  clips: readonly {
+    kind: string;
+    startFrame: number;
+    endFrame: number;
+    file: string;
+  }[],
+  actions: ReturnType<typeof planActionReview>,
 ) => `<!doctype html>
 <html lang="en">
 <meta charset="utf-8">
@@ -48,6 +68,9 @@ figure{margin:0}img{display:block;width:100%;height:auto;background:#222}figcapt
 </style>
 <h1>Scene review</h1>
 <p>Opening, midpoint, and last frame for each Scene. Review the delivered video for motion and sound.</p>
+<p>Evidence generation does not approve motion, continuity, or listening quality.</p>
+${clips.map((clip) => `<section><h2>${clip.kind}: frames ${clip.startFrame}–${clip.endFrame - 1}</h2><video controls preload="metadata" style="max-width:100%;max-height:75vh" src="${clip.file}"></video></section>`).join("\n")}
+${actions.map((action) => `<section><h2>${escapeHtml(action.meaningId)} / ${escapeHtml(action.actionId)}</h2><p>${escapeHtml(action.explanatoryPurpose)}</p><p>${escapeHtml(action.initialState)} → ${escapeHtml(action.resultingState)}</p><p>Reading hold: ${action.readingHold ? `${action.readingHold.startFrame}–${action.readingHold.endFrame - 1}` : "none declared"}. Target revision: ${escapeHtml(action.meaningId)}, action ${escapeHtml(action.actionId)}.</p><p>Current source-plan annotation, not delivery-attested animation or automatic approval. Compare the actual clip against this intent. Record observed issues in revision-feedback.json; use the isolated project:revise workflow.</p></section>`).join("\n")}
 ${plan.scenes
   .map(
     (scene) =>
@@ -70,12 +93,14 @@ export const generateSceneReview = async ({
   runProcess = runMediaProcess,
   inspectDelivery = inspectCurrentDelivery,
   resolveTool = resolveMediaToolCommand,
+  motion = false,
 }: {
   readonly rootDir: string;
   readonly projectId: string;
   readonly runProcess?: ProcessRunner;
   readonly inspectDelivery?: typeof inspectCurrentDelivery;
   readonly resolveTool?: typeof resolveMediaToolCommand;
+  readonly motion?: boolean;
 }) => {
   const projectId = StoryIdSchema.parse(rawProjectId);
   const delivery = await inspectDelivery({ rootDir, storyId: projectId });
@@ -95,6 +120,122 @@ export const generateSceneReview = async ({
     ).raw,
   );
   const plan = planSceneReview(timing, delivery);
+  const sceneClips = motion
+    ? planMotionReview(timing.storyBeats, timing.fps, timing.durationInFrames, {
+        startFrame: timing.leadInFrames,
+        endFrame: timing.durationInFrames - timing.tailFrames,
+      })
+    : [];
+
+  const actions: ReturnType<typeof planActionReview> = [];
+  const sourcePlans: { meaningId: string; status: string }[] = [];
+  if (motion)
+    for (const beat of timing.storyBeats) {
+      let raw: unknown;
+      try {
+        raw = (
+          await readRegularJson(
+            join(
+              rootDir,
+              "src/projects",
+              projectId,
+              "scenes",
+              beat.meaningId,
+              "shot-plan.json",
+            ),
+            "Scene shot plan",
+          )
+        ).raw;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+        sourcePlans.push({
+          meaningId: beat.meaningId,
+          status: "no-source-plan",
+        });
+        continue;
+      }
+      const shots = ShotPlanSetSchema.parse(raw);
+      if (
+        shots.meaningId !== beat.meaningId ||
+        shots.sceneDurationInFrames !== beat.endFrame - beat.startFrame
+      )
+        throw new Error(
+          "Motion review source plan is stale against Scene timing.",
+        );
+      if (shots.motionPlan) {
+        const anchors = SceneSyncAnchorSetSchema.parse(
+          (
+            await readRegularJson(
+              join(
+                rootDir,
+                "src/projects",
+                projectId,
+                "scenes",
+                beat.meaningId,
+                "sync-anchors.json",
+              ),
+              "Scene sync anchors",
+            )
+          ).raw,
+        );
+        if (
+          anchors.meaningId !== shots.meaningId ||
+          anchors.taskInputFingerprint !== shots.taskInputFingerprint
+        )
+          throw new Error("Motion review source anchors are cross-bound.");
+        validateSceneMotionPlan({
+          plan: shots.motionPlan,
+          shots: shots.shots,
+          anchors: anchors.anchors,
+          duration: shots.sceneDurationInFrames,
+          narrationCues: timing.captionCues
+            .filter((cue) => cue.meaningId === beat.meaningId)
+            .map((cue) => ({
+              startFrame: cue.startFrame - beat.startFrame,
+              endFrame: cue.endFrame - beat.startFrame,
+            })),
+        });
+      }
+      actions.push(...planActionReview(shots, beat.startFrame));
+      sourcePlans.push({
+        meaningId: beat.meaningId,
+        status: shots.motionPlan
+          ? "current-source-reference-not-delivery-attested"
+          : "legacy-plan-without-motion",
+      });
+    }
+  const clips = [
+    ...sceneClips,
+    ...actions.map((action, index) => ({
+      kind: "action" as const,
+      ...action.frameRange,
+      file: `motion-action-${String(index + 1).padStart(4, "0")}.mp4`,
+    })),
+  ];
+  const frames = [
+    ...new Set([
+      ...plan.frames,
+      ...actions.flatMap((action) => action.sampleFrames),
+    ]),
+  ].sort((a, b) => a - b);
+  const imageForFrame = new Map(
+    frames.map((frame, index) => [
+      frame,
+      `frame-${String(index + 1).padStart(4, "0")}.png`,
+    ]),
+  );
+  const mappedPlan = {
+    ...plan,
+    scenes: plan.scenes.map((scene) => ({
+      ...scene,
+      samples: Object.fromEntries(
+        Object.entries(scene.samples).map(([label, sample]) => [
+          label,
+          { ...sample, image: imageForFrame.get(sample.frame)! },
+        ]),
+      ) as typeof scene.samples,
+    })),
+  };
 
   const outRoot = join(rootDir, "out");
   const projectOut = join(outRoot, projectId);
@@ -106,7 +247,7 @@ export const generateSceneReview = async ({
     join(reviewRoot, `${delivery.deliveryBuildId}-`),
   );
   try {
-    const expected = plan.frames.map(
+    const expected = frames.map(
       (_, index) => `frame-${String(index + 1).padStart(4, "0")}.png`,
     );
     const videoPath = join(
@@ -115,7 +256,7 @@ export const generateSceneReview = async ({
       projectId,
       DELIVERY_FILES.video,
     );
-    for (const [index, frame] of plan.frames.entries()) {
+    for (const [index, frame] of frames.entries()) {
       const invocation = await resolveTool({
         rootDir,
         tool: "ffmpeg",
@@ -170,25 +311,115 @@ export const generateSceneReview = async ({
         await handle.close();
       }
     }
+    for (const clip of clips) {
+      const invocation = await resolveTool({
+        rootDir,
+        tool: "ffmpeg",
+        args: [
+          "-v",
+          "error",
+          "-ss",
+          (clip.startFrame / timing.fps).toFixed(9),
+          "-i",
+          videoPath,
+          "-t",
+          ((clip.endFrame - clip.startFrame) / timing.fps).toFixed(9),
+          "-map",
+          "0:v:0",
+          "-map",
+          "0:a:0?",
+          "-c:v",
+          "libx264",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-c:a",
+          "aac",
+          "-movflags",
+          "+faststart",
+          join(outputDir, clip.file),
+        ],
+      });
+      const result = await runProcess(invocation.command, invocation.args, {
+        cwd: rootDir,
+      });
+      if (result.status !== 0)
+        throw new Error(
+          `Scene review motion extraction failed: ${result.stderr}`,
+        );
+      const clipPath = join(outputDir, clip.file);
+      const metadata = await lstat(clipPath);
+      if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size < 12)
+        throw new Error("Scene review motion clip is unsafe or empty.");
+      const handle = await open(clipPath, "r");
+      try {
+        const header = Buffer.alloc(12);
+        const { bytesRead } = await handle.read(header, 0, 12, 0);
+        if (bytesRead !== 12 || header.toString("ascii", 4, 8) !== "ftyp")
+          throw new Error("Scene review motion clip is not an MP4.");
+      } finally {
+        await handle.close();
+      }
+    }
     const manifest = {
       storyId: projectId,
       deliveryBuildId: delivery.deliveryBuildId,
       semanticTimingFingerprint: timing.fingerprint,
-      scenes: plan.scenes,
+      scenes: mappedPlan.scenes,
+      motion: {
+        clips,
+        sourcePlans,
+        actions: actions.map((action) => ({
+          ...action,
+          samples: action.sampleFrames.map((frame) => ({
+            frame,
+            image: imageForFrame.get(frame)!,
+          })),
+        })),
+        approval: "not-assessed",
+      },
     };
     await writeFile(
       join(outputDir, "review.json"),
       `${serializeCanonicalJson(manifest)}\n`,
       { flag: "wx" },
     );
-    await writeFile(join(outputDir, "index.html"), reviewHtml(plan), {
-      flag: "wx",
-    });
+    if (motion)
+      await writeFile(
+        join(outputDir, "revision-feedback.json"),
+        `${serializeCanonicalJson({
+          deliveryBuildId: delivery.deliveryBuildId,
+          assessment: "not-assessed",
+          instructions:
+            "Review actual clips, then record observed defects by meaningId/actionId and frameRange. This feedback is diagnostic, not an accepted production revision input. Read project:revise:context and create a strict isolated revision; preserve sealed narration and unaffected assets. Release checks remain unchanged.",
+          issues: [],
+          targets: actions.map((action) => ({
+            ...action.revisionTarget,
+            frameRange: action.frameRange,
+          })),
+          limitations: [
+            "Source-plan annotations are not attested to this delivered video",
+            "Motion/state metrics do not certify explanatory or aesthetic quality",
+            "Review continuous playback and listen to audio; stills alone are insufficient",
+          ],
+        })}\n`,
+        { flag: "wx" },
+      );
+    await writeFile(
+      join(outputDir, "index.html"),
+      reviewHtml(mappedPlan, clips, actions),
+      {
+        flag: "wx",
+      },
+    );
     return {
       status: "scene-review-ready" as const,
       projectId,
       outputDir,
       sceneCount: plan.scenes.length,
+      actionCount: actions.length,
+      motionAssessment: "not-assessed" as const,
     };
   } catch (error) {
     await rm(outputDir, { recursive: true, force: true });

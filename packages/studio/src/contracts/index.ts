@@ -43,6 +43,7 @@ export * from "./render";
 export * from "./resource-catalog";
 export * from "./scene-primitives";
 export * from "./scene-plan";
+export * from "./scene-motion";
 export * from "./scene-package";
 export * from "./scene-originality";
 export * from "./scene-task";

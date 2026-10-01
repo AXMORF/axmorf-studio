@@ -316,6 +316,12 @@ Delivery，再核对当前 SemanticTiming 的 fps/frame count 与 narrated chapt
 中点和末帧，生成 `out/<storyId>/scene-review/<deliveryBuildId>-*/index.html` 与 `review.json`。
 该产物只供人工复核，既不进入 Project/Task/Artifact/Delivery identity，也不自动判定审美质量。
 
+加 `--motion` 会同时导出保留音轨的整 Scene MP4，以及每个 Scene 边界前后各约 0.75 秒的重叠片段，
+并在页面提供播放器。只生成证据，`review.json` 的 motion approval 始终为 `not-assessed`，不替代正式发布门禁。
+动作规划应指定同一对象的初态、随旁白发生的因果动作、结果和必要阅读停留；用帧函数连接这些状态，
+避免用几次静态布局/viewBox 切换代替动作。人工审阅完整动作和跨镜头连续性，不能用三张静帧或像素变化量
+证明“有意义动画”已经通过。没有实际播放/试听能力时明确保留未验收项；不强制镜头移动配额。
+
 candidate continuation 在隔离 delivery 上完成同样的 exact-four validation 后，自动尝试 promotion。promotion
 在 repository lock 内再次复验 live base、candidate record、expected candidate Revision/Delivery tuple 与四文件
 bytes，然后受控替换 source/public/narration/delivery 四个 Project-owned roots、刷新 Registry/Catalog 并复验结果。任何一步
@@ -378,3 +384,6 @@ failure 或 validator/store/materialization/delivery fixed failure 都立即结�
 
 Browser preparation, real-render readiness, bounded media processes and explicit interrupted-attempt recovery are described in
 [Workspace reliability](guides/WORKSPACE_RELIABILITY.md). Process ownership and logs are diagnostic-only; read-only inspection remains zero-write.
+
+
+`npm run project:scene:review -- --project <storyId> --motion` exports whole Scenes, boundary clips and available action windows, including cause/result/reading-hold samples. `revision-feedback.json` scopes observed defects to meaningId/actionId/frame ranges; it is diagnostic feedback, not accepted revision input or approval. Read `project:revise:context`, then use the strict isolated revision workflow; preserve sealed narration and unaffected assets. Source-plan annotations are explicitly current-source references, not attested statements about the delivered animation. Watch actual clips and compare their visible causal actions; numeric motion, static stills and generated evidence never certify aesthetics or listening. Formal release checks remain unchanged.

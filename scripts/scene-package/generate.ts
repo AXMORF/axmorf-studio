@@ -1,6 +1,8 @@
 import { join } from "node:path";
 
 import {
+  ShotPlanSetSchema,
+  validateMotionContinuity,
   SceneCoverageMapSchema,
   ScenePackageSchema,
   SceneTaskInputSchema,
@@ -130,6 +132,12 @@ export const generateScenePackageFromProjectFiles = async ({
     mode,
     destination: join(sceneRoot, "generated/scene-package.generated.json"),
     input: {
+      narrationCues: semanticTiming.captionCues
+        .filter((cue) => cue.meaningId === meaningId)
+        .map((cue) => ({
+          startFrame: cue.startFrame - timingBeat.startFrame,
+          endFrame: cue.endFrame - timingBeat.startFrame,
+        })),
       task,
       visual,
       shots,
@@ -186,6 +194,17 @@ export const generateSceneCoverageFromProjectFiles = async ({
       }),
     );
   }
+  const motionPlans = await Promise.all(
+    storyBeatOrder.map(
+      async (meaningId) =>
+        ShotPlanSetSchema.parse(
+          await readJsonFile(
+            join(projectRoot, "scenes", meaningId, "shot-plan.json"),
+          ),
+        ).motionPlan,
+    ),
+  );
+  validateMotionContinuity(motionPlans);
   const coverage = await generateSceneCoverage({
     mode,
     destination: join(projectRoot, "generated/scene-coverage.generated.json"),

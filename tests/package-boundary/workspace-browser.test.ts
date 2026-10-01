@@ -17,6 +17,42 @@ import {
   verifyWorkspaceBrowser,
 } from "../../packages/studio/src/bootstrap/workspace-browser";
 
+test("browser readiness requires a complete concurrent sequence even when still rendering works", async (context) => {
+  const root = await realpath(await mkdtemp(join(tmpdir(), "axmorf-browser-sequence-")));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const renderer = join(root, "node_modules/@remotion/renderer");
+  const cli = join(root, "node_modules/@remotion/cli");
+  await mkdir(renderer, { recursive: true });
+  await mkdir(cli, { recursive: true });
+  await writeFile(join(root, "package.json"), "{}");
+  await writeFile(join(renderer, "package.json"), '{"main":"index.js"}');
+  await writeFile(join(renderer, "index.js"), 'exports.ensureBrowser=async()=>({path:"verified-browser"});');
+  await writeFile(join(cli, "package.json"), '{"name":"@remotion/cli","bin":{"remotion":"cli.js"}}');
+  await writeFile(join(cli, "cli.js"), `
+const fs=require('node:fs');const args=process.argv.slice(2);
+fs.writeFileSync('args.json',JSON.stringify(args));
+const png=Buffer.alloc(24);Buffer.from('89504e470d0a1a0a','hex').copy(png);png.writeUInt32BE(16,16);png.writeUInt32BE(16,20);
+if(args[0]==='still'){fs.writeFileSync(args[3],png);process.exit(0);}
+const mode=fs.readFileSync('mode','utf8');
+if(mode==='fail'){process.stderr.write('localhost concurrent browser unavailable');process.exit(1);}
+const output=args[3];fs.mkdirSync(output,{recursive:true});
+for(let i=0;i<(mode==='partial'?15:16);i++)fs.writeFileSync(require('node:path').join(output,i+'.png'),png);
+`);
+  const resources = { remotionPreflightEntry: "probe-entry" } as import("../../packages/studio/src/runtime/runtime-resources").RuntimeResources;
+  await writeFile(join(root, "mode"), "fail");
+  await assert.rejects(verifyWorkspaceBrowser(root, resources), /concurrent render preflight failed/u);
+  await writeFile(join(root, "mode"), "partial");
+  await assert.rejects(verifyWorkspaceBrowser(root, resources), /all 16 PNG frames/u);
+  await writeFile(join(root, "mode"), "complete");
+  await verifyWorkspaceBrowser(root, resources);
+  const args = JSON.parse(await readFile(join(root, "args.json"), "utf8")) as string[];
+  assert.equal(args[0], "render");
+  assert.ok(args.includes("--sequence"));
+  assert.ok(args.includes("--image-format=png"));
+  assert.equal(args.some((arg) => arg.startsWith("--concurrency")), false);
+  await assert.rejects(readFile(join(args[3]!, "0.png")), /ENOENT/u);
+});
+
 test("browser inspection refuses an absent browser without starting a download", async () => {
   const root = await mkdtemp(join(tmpdir(), "axmorf-browser-"));
   try {

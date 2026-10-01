@@ -25,6 +25,18 @@ const Renderer = ({sceneFrame, fps, viewportWidth, viewportHeight}: SceneRendere
 export default Renderer;
 ```
 
+## Intent and implementation
+
+`shots.motionPlan` v2 describes subjects, explanatory actions, narration alignment and
+continuity. It prescribes no trajectories, component, camera motion or transition count.
+Author content-appropriate frame-driven SVG/Canvas or use already supported 3D capabilities;
+reusable components are optional. Keep the existing import/asset allowlist and safe layout.
+Tracked v1 and `ProducerMotionObject` remain optional. Direct allowed `remotion` imports work.
+A static reading hold needs no invented motion; legibility can remain stable while other
+objects move. `motionReview.verification` distinguishes DOM dependency evidence from
+`unsupported`/`intent-only`; all still need actual temporal review. Technical task acceptance
+never certifies visible semantic correctness or aesthetic quality.
+
 ## Readability
 
 Keep visible text at least `sceneViewport.minFontSizePx` and clearly separated from its actual background.

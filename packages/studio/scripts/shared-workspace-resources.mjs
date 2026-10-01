@@ -33,7 +33,7 @@ export const buildDefaultSceneTemplateAudioProjection = (manifest) => {
           anchorId: "closing-music-start",
           offsetFrames: 0,
           durationInFrames: 240,
-          volume: 1,
+          volume: 0.8,
         },
       ],
     },

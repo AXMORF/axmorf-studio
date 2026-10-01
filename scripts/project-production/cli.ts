@@ -339,6 +339,9 @@ export const runProjectProductionCli = async (
       context.resolveAgentExecution ?? resolveProjectAgentExecution
     )({
       rootDir: context.rootDir,
+      ...(args.includes("--allow-inline-fallback")
+        ? { allowInlineFallback: true }
+        : {}),
       ...(override === undefined ? {} : { override }),
       ...(runtimeMaxConcurrency === undefined ? {} : { runtimeMaxConcurrency }),
       ...(runtimeWorkerTransport === undefined
@@ -466,6 +469,9 @@ export const runProjectProductionCli = async (
     const output = {
       status: result.status,
       taskRevision: result.task.taskRevision,
+      ...("motionReview" in result
+        ? { motionReview: result.motionReview }
+        : {}),
     };
     context.stdout(JSON.stringify(output));
     return output;

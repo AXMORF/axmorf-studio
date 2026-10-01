@@ -7,12 +7,19 @@ import {
   TaskExecutionContractSchema,
   buildSceneSourceGraph,
   findSceneOriginalityConflicts,
+  ShotPlanSetSchema,
+  SceneSyncAnchorSetSchema,
+  validateSceneMotionPlan,
+  SCENE_MOTION_REQUIREMENT_ID,
+  SceneVisualPlanSchema,
+  VisualStyleSpecSchema,
 } from "@axmorf/studio/contracts";
 import { validateSceneArtifactBundle } from "../../scene-package/domain";
 import { parseSceneSelectedResourcesFile } from "../../scene-package/generate";
 import { validateRendererReadabilitySourceGraph } from "./readability-source-validator";
 import { validateSceneCapabilityUsage } from "./scene-capability-usage";
 import { compileTypeScriptImportGraph } from "./typescript-compile";
+import { checkSceneMotionConsumption } from "./scene-motion-consumption";
 
 const readJson = async (path: string) =>
   JSON.parse(await readFile(path, "utf8")) as unknown;
@@ -37,7 +44,13 @@ export const checkSceneTask = async (
   const context = JSON.parse(
     await readFile(join(checked.workspace, "inputs/context.json"), "utf8"),
   ) as {
-    scene?: { taskInput?: unknown; availableResources?: unknown } | null;
+    scene?: {
+      taskInput?: unknown;
+      availableResources?: unknown;
+      narrationCues?: readonly { startFrame: number; endFrame: number }[];
+      fps?: number;
+      visualStyle?: unknown;
+    } | null;
     originalityBaseline?: unknown;
   };
   const taskInput = SceneTaskInputSchema.parse(context.scene?.taskInput);
@@ -107,7 +120,11 @@ void renderer;
     },
   });
   if (checked.task.taskKind === "scene-owner") {
-    if (checked.task.validatorPolicyVersion !== "scene-owner-validator-v4") {
+    if (
+      !["scene-owner-validator-v4", "scene-owner-validator-v5"].includes(
+        checked.task.validatorPolicyVersion,
+      )
+    ) {
       throw new Error("Scene owner task uses an unsupported validator policy.");
     }
     const baseline = SceneOriginalityBaselineSchema.parse(
@@ -164,6 +181,21 @@ void renderer;
     }
   }
   validateSceneCapabilityUsage({ sources: sourceFiles, selectedResources });
+  const motionShots = ShotPlanSetSchema.parse(
+    await readJson(join(checked.workspace, "src/shot-plan.json")),
+  );
+  if (motionShots.motionPlan !== undefined) {
+    const motionAnchors = SceneSyncAnchorSetSchema.parse(
+      await readJson(join(checked.workspace, "src/sync-anchors.json")),
+    );
+    validateSceneMotionPlan({
+      plan: motionShots.motionPlan,
+      shots: motionShots.shots,
+      anchors: motionAnchors.anchors,
+      duration: motionShots.sceneDurationInFrames,
+      narrationCues: context.scene?.narrationCues,
+    });
+  }
   validateSceneArtifactBundle({
     task: taskInput,
     visual: await readJson(join(checked.workspace, "src/visual-plan.json")),
@@ -181,5 +213,56 @@ void renderer;
     ),
     selectedResources,
   });
-  return checked;
+  let motionReview: ReturnType<typeof checkSceneMotionConsumption> | undefined;
+  if (
+    taskInput.sceneRequirements.some(
+      ({ requirementId }) => requirementId === SCENE_MOTION_REQUIREMENT_ID,
+    )
+  ) {
+    const fps = context.scene?.fps;
+    if (fps === undefined || !Number.isFinite(fps) || fps <= 0)
+      throw new Error(
+        "Motion consumption requires the frozen Scene frame rate.",
+      );
+    motionReview = checkSceneMotionConsumption({
+      rootDir: input.runtimeRootDir ?? input.rootDir,
+      sources: sourceFiles,
+      props: {
+        storyId: taskInput.storyId,
+        meaningId: taskInput.meaningId,
+        sceneFrame: 0,
+        durationInFrames: motionShots.sceneDurationInFrames,
+        fps,
+        viewportWidth: taskInput.sceneViewport.width,
+        viewportHeight: taskInput.sceneViewport.height,
+        storyBeat: taskInput.storyBeat,
+        sourceReferences: taskInput.sourceReferences,
+        timingBeat: taskInput.timingBeat,
+        visualStyle: VisualStyleSpecSchema.parse(context.scene?.visualStyle),
+        visualPlan: SceneVisualPlanSchema.parse(
+          await readJson(join(checked.workspace, "src/visual-plan.json")),
+        ),
+        shots: motionShots,
+        syncAnchors: SceneSyncAnchorSetSchema.parse(
+          await readJson(join(checked.workspace, "src/sync-anchors.json")),
+        ),
+        visualResources: selectedResources.flatMap(
+          ({ selected, descriptor }) =>
+            descriptor.kind === "asset"
+              ? [
+                  {
+                    resourceId: selected.resourceId,
+                    src: `/${descriptor.localPath.replace(/^public\//u, "")}`,
+                    descriptorFingerprint: selected.descriptorFingerprint,
+                  },
+                ]
+              : [],
+        ),
+      },
+    });
+  }
+  return {
+    ...checked,
+    ...(motionReview === undefined ? {} : { motionReview }),
+  };
 };

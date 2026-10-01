@@ -34,7 +34,10 @@ caption budget and licensing are still checked by create. Do not read package in
 - Write each narrated Scene as a visible causal sequence: identify the subject and its initial state, the action that changes it,
   and the resulting state the viewer should understand. Put concrete staging and focal hierarchy in `compositionIntent`, and
   describe the timed visible action in `motionIntent`. Tie the change to the relevant `ttsChunk`; keep the visual subject consistent
-  with `visualStyle` and `continuityBrief`. A generic diagram or decorative movement is not a substitute for that sequence.
+  with `visualStyle` and `continuityBrief`. For longer narration, plan distinct framing or visible state changes at semantic
+  turns, then hold the result briefly; camera drift alone does not add information. Keep text and chart labels readable after
+  camera scaling, use theme roles for every foreground, and reserve the caption region. A generic diagram or decorative movement is not a substitute for that sequence.
+- New narrated Projects freeze `scene-content-motion-v1`: author object tracks, explanatory actions, narration anchors, stable reading holds and handoffs. Consume `shots.motionPlan`; bind each action object to one rendered `data-motion-object` ID (automatic in ProducerMotionObject). The checker executes props-driven renderers and perturbs plan fields, comparing actual object DOM at action/hold frames while ignoring metadata attributes. Ignored plans or rendered unstable holds fail. Public API/local helpers are supported; browser-only effects/hooks remain unsupported by this probe. DOM dependency is not pixel visibility or semantic/aesthetic approval. Explain deliberate holds/cuts; no camera quota or fixed metaphor.
 - `ttsChunks` contains objects with `chunkId` and `ttsText`, not strings. Keep each within 72 caption display half-units; shorten or
   split by natural meaning when needed. Audio sample measurements determine actual duration.
 - The duration brief includes inherited intro/outro Scenes. Report their selection before create; do not silently disable them to

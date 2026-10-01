@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.16",
+  "authorization": {
+    "reply": "Hermes不需要验证了，只验证codex就行",
+    "receivedAt": "2026-09-30T10:40:00Z",
+    "approvedScope": "Codex-only candidate and public first-use acceptance for 0.1.16"
+  },
+  "requiredHosts": ["codex"],
+  "hermesCertified": false,
+  "serialAuthorization": {
+    "reply": "允许",
+    "receivedAt": "2026-10-01T13:08:00Z",
+    "approvedScope": "0.1.16-only Codex serial candidate and public first-use acceptance; all other checks retained"
+  },
+  "codexExecution": "inline",
+  "independentAcceptanceModelAuthorization": {
+    "reply": "允许",
+    "receivedAt": "2026-10-01T16:44:00Z",
+    "approvedScope": "Only this independent 0.1.16 candidate and public acceptance; the main engineering task model is unchanged",
+    "model": "gpt-5.6-sol",
+    "reasoningEffort": "max"
+  },
+  "parallelExecution": "unverified",
+  "nativeFourWayOverlapSlotReleaseAndLaterAdmission": "unverified",
+  "productDefaultsChanged": false,
+  "otherVersionHostGatesChanged": false,
+  "nativeSequentialRootExecutionAndSupervisionRequired": true,
+  "independentFreshBusinessOnlyContextRequired": true,
+  "visualAndAudioReviewRequired": true,
+  "publication": "not published; candidate verification pending"
+}

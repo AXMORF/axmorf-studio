@@ -6,6 +6,18 @@ import { nativeTrace, unwrapHermesToolCall } from "./native-execution";
 // or grant an inline exception to other versions or hosts.
 export const requiresHermesInline = (version: string, host: string) =>
   version === "0.1.14" && host === "hermes";
+export const requiresCodexInline = (version: string, host: string) =>
+  version === "0.1.16" && host === "codex";
+
+export const CodexSerialReleaseScopeSchema = z
+  .object({
+    version: z.literal("0.1.16"),
+    host: z.literal("codex"),
+    authorizedAtUtc: z.literal("2026-10-01T13:08:00Z"),
+    parallelExecution: z.literal("unverified"),
+    hermes: z.literal("unverified"),
+  })
+  .strict();
 
 const Text = z.string().min(1);
 const Task = z
@@ -15,12 +27,12 @@ const Task = z
     committedAt: z.number().finite(),
   })
   .strict();
-export const InlineExecutionSchema = z
+const InlineExecutionBaseSchema = z
   .object({
     mode: z.literal("inline"),
     modeSource: z.literal("user-prompt"),
-    model: z.literal("gpt-5.6-terra"),
-    reasoningEffort: z.literal("medium"),
+    model: Text,
+    reasoningEffort: Text,
     effectiveMaxConcurrency: z.literal(0),
     workerTransport: z.null(),
     nativeChildCount: z.literal(0),
@@ -30,6 +42,15 @@ export const InlineExecutionSchema = z
     tasks: z.array(Task).min(5),
   })
   .strict();
+export const InlineExecutionSchema = z.union([
+  InlineExecutionBaseSchema.extend({
+    model: z.literal("gpt-5.6-terra"),
+    reasoningEffort: z.literal("medium"),
+  }).strict(),
+  InlineExecutionBaseSchema.extend({
+    releaseScope: CodexSerialReleaseScopeSchema,
+  }).strict(),
+]);
 
 export function assertInlineExecution(
   execution: z.infer<typeof InlineExecutionSchema>,
@@ -59,6 +80,7 @@ export function assertInlineExecution(
 }
 
 export function auditInlineExecution(input: {
+  host?: "codex" | "hermes";
   transcript: string;
   storyId: string;
   startedAt: string;
@@ -68,31 +90,69 @@ export function auditInlineExecution(input: {
   nativeChildren: unknown;
   delegations: unknown;
 }) {
+  const host = input.host ?? "hermes";
   assert.deepEqual(
     input.nativeChildren,
     [],
     "Inline acceptance requires zero native children",
   );
   assert.deepEqual(
-    input.delegations,
+    input.delegations ?? (host === "codex" ? [] : undefined),
     [],
     "Inline acceptance requires zero native delegation rows",
   );
-  const trace = nativeTrace("hermes", input.transcript);
+  const trace = nativeTrace(host, input.transcript);
+  if (host === "codex") {
+    const meta = trace.records.filter((row) => row.type === "session_meta");
+    assert.equal(
+      meta.length,
+      1,
+      "Codex inline acceptance requires a fresh root",
+    );
+    const payload = meta[0]!.payload as Record<string, unknown>;
+    assert.ok(
+      payload.forked_from_id == null,
+      "Forked history is not first-use evidence",
+    );
+    const source = payload.source as
+      | Record<string, unknown>
+      | string
+      | undefined;
+    assert.ok(
+      typeof source !== "object" || source === null || source.subagent == null,
+      "A delegated child is not an independent first-use root",
+    );
+    const contexts = trace.records
+      .filter((row) => row.type === "turn_context")
+      .map((row) => row.payload as Record<string, unknown>);
+    assert.ok(
+      contexts.length > 0,
+      "Codex model settings require native turn context",
+    );
+    assert.ok(
+      contexts.every(
+        (context) =>
+          context.model === input.model &&
+          context.effort === input.reasoningEffort,
+      ),
+      "Codex model and reasoning must match native settings",
+    );
+  }
   for (const call of trace.calls.values()) {
     const name =
-      call.name === "tool_call"
+      host === "hermes" && call.name === "tool_call"
         ? unwrapHermesToolCall(call.arguments).name
         : call.name;
-    assert.notEqual(
-      name,
-      "delegate_task",
+    assert.ok(
+      !/(?:^|[._])(?:delegate_task|spawn_agent|followup_task)$/u.test(name),
       "Inline acceptance forbids delegation calls",
     );
   }
   const outputs = trace.outputs
-    .filter(({ name }) =>
-      /(?:^|[._])(?:terminal|process|process_manage)$/u.test(name),
+    .filter(
+      ({ name }) =>
+        host === "codex" ||
+        /(?:^|[._])(?:terminal|process|process_manage)$/u.test(name),
     )
     .flatMap(({ objects, timestamp }) =>
       objects.map((value) => ({ value, timestamp })),
@@ -198,6 +258,17 @@ export function auditInlineExecution(input: {
     attemptId,
     dirtyTaskCount: expected.size,
     tasks,
+    ...(host === "codex"
+      ? {
+          releaseScope: {
+            version: "0.1.16",
+            host: "codex",
+            authorizedAtUtc: "2026-10-01T13:08:00Z",
+            parallelExecution: "unverified",
+            hermes: "unverified",
+          },
+        }
+      : {}),
   });
   assertInlineExecution(result, input.startedAt, input.endedAt);
   return result;

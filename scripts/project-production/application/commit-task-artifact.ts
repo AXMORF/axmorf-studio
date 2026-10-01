@@ -17,9 +17,15 @@ export const commitProducerTaskArtifact = async ({
     taskRevision,
     runtimeRootDir,
   });
-  return commitTaskArtifact({
+  const artifact = await commitTaskArtifact({
     rootDir: artifactRootDir,
     task: checked.task,
     workspace: checked.workspace,
   });
+  return {
+    ...artifact,
+    ...("motionReview" in checked
+      ? { motionReview: checked.motionReview }
+      : {}),
+  };
 };

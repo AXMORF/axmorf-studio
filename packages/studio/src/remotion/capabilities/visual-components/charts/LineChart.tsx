@@ -7,16 +7,24 @@ export type LineChartDatum = {
 };
 
 export type LineChartProps = {
+  axisColor?: string;
   background?: string;
   containerStyle?: CSSProperties;
   data?: LineChartDatum[];
   gridColor?: string;
   height?: number;
+  labelColor?: string;
   lineColor?: string;
   padding?: number;
   pointColor?: string;
+  pointStrokeColor?: string;
+  revealDurationInFrames?: number;
   title?: string;
+  titleColor?: string;
+  titleFontSize?: number;
   width?: number;
+  xLabelFontSize?: number;
+  yLabelFontSize?: number;
   yMax?: number;
 };
 
@@ -34,16 +42,24 @@ const defaultData: LineChartDatum[] = [
 ];
 
 const LineChart: FC<LineChartProps> = ({
+  axisColor = "rgba(255,255,255,0.2)",
   background = "linear-gradient(to bottom right, #111827, #1f2937)",
   containerStyle,
   data = defaultData,
   gridColor = "rgba(255,255,255,0.1)",
   height = 500,
+  labelColor,
   lineColor = "#4361ee",
-  padding = 70,
+  padding: requestedPadding = 70,
   pointColor = "#f72585",
+  pointStrokeColor = "white",
+  revealDurationInFrames = 60,
   title = "Revenue Growth",
+  titleColor = "white",
+  titleFontSize = 28,
   width = 900,
+  xLabelFontSize = 13,
+  yLabelFontSize = 12,
   yMax,
 }) => {
   const frame = useCurrentFrame();
@@ -54,6 +70,13 @@ const LineChart: FC<LineChartProps> = ({
     1,
   );
 
+  // Keep large video labels inside the SVG rather than clipping them at its edge.
+  const padding = Math.max(
+    requestedPadding,
+    Math.ceil(String(Math.round(maxValue)).length * yLabelFontSize * 0.65 + 15),
+    xLabelFontSize + 20,
+  );
+  const revealFrames = Math.max(1, revealDurationInFrames);
   const xScale = (index: number) =>
     (index / Math.max(safeData.length - 1, 1)) * (width - padding * 2) +
     padding;
@@ -65,14 +88,16 @@ const LineChart: FC<LineChartProps> = ({
     .join(" ");
 
   let totalLength = 0;
+  const pointDistances = [0];
   for (let index = 1; index < safeData.length; index += 1) {
     const dx = xScale(index) - xScale(index - 1);
     const dy =
       yScale(safeData[index].value) - yScale(safeData[index - 1].value);
     totalLength += Math.sqrt(dx * dx + dy * dy);
+    pointDistances.push(totalLength);
   }
 
-  const dashOffset = interpolate(frame, [0, 60], [totalLength, 0], {
+  const dashOffset = interpolate(frame, [0, revealFrames], [totalLength, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -121,8 +146,8 @@ const LineChart: FC<LineChartProps> = ({
 
           {gridValues.map((value) => (
             <text
-              fill="rgba(255,255,255,0.6)"
-              fontSize="12"
+              fill={labelColor ?? "rgba(255,255,255,0.6)"}
+              fontSize={yLabelFontSize}
               key={`y-${value}`}
               textAnchor="end"
               x={padding - 15}
@@ -133,7 +158,7 @@ const LineChart: FC<LineChartProps> = ({
           ))}
 
           <line
-            stroke="rgba(255,255,255,0.2)"
+            stroke={axisColor}
             strokeWidth="2"
             x1={padding}
             x2={width - padding}
@@ -141,7 +166,7 @@ const LineChart: FC<LineChartProps> = ({
             y2={height - padding}
           />
           <line
-            stroke="rgba(255,255,255,0.2)"
+            stroke={axisColor}
             strokeWidth="2"
             x1={padding}
             x2={padding}
@@ -151,13 +176,13 @@ const LineChart: FC<LineChartProps> = ({
 
           {safeData.map((point, index) => (
             <text
-              fill="rgba(255,255,255,0.8)"
-              fontSize="13"
+              fill={labelColor ?? "rgba(255,255,255,0.8)"}
+              fontSize={xLabelFontSize}
               fontWeight="500"
               key={`x-label-${point.label}-${index}`}
               textAnchor="middle"
               x={xScale(index)}
-              y={height - padding + 25}
+              y={height - padding + Math.max(25, xLabelFontSize + 12)}
             >
               {point.label}
             </text>
@@ -175,9 +200,13 @@ const LineChart: FC<LineChartProps> = ({
           />
 
           {safeData.map((point, index) => {
+            const reachedFrame =
+              totalLength > 0
+                ? (pointDistances[index]! / totalLength) * revealFrames
+                : 0;
             const pointProgress = interpolate(
               frame,
-              [5 + index * 6, 10 + index * 6],
+              [reachedFrame, reachedFrame + 5],
               [0, 1],
               {
                 extrapolateLeft: "clamp",
@@ -193,7 +222,7 @@ const LineChart: FC<LineChartProps> = ({
                 key={`point-${point.label}-${index}`}
                 opacity={pointProgress}
                 r={5 * pointProgress}
-                stroke="white"
+                stroke={pointStrokeColor}
                 strokeWidth="2"
               />
             );
@@ -203,8 +232,8 @@ const LineChart: FC<LineChartProps> = ({
         {title ? (
           <div
             style={{
-              color: "white",
-              fontSize: 28,
+              color: titleColor,
+              fontSize: titleFontSize,
               fontWeight: "bold",
               left: "50%",
               letterSpacing: 0,

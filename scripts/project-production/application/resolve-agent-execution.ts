@@ -13,11 +13,13 @@ export const resolveProjectAgentExecution = async ({
   override,
   runtimeMaxConcurrency,
   runtimeWorkerTransport,
+  allowInlineFallback = false,
 }: {
   readonly rootDir: string;
   readonly override?: AgentExecutionOverride;
   readonly runtimeMaxConcurrency?: number;
   readonly runtimeWorkerTransport?: "shared-workspace" | "controller-io";
+  readonly allowInlineFallback?: boolean;
 }) => {
   const loaded = await loadExecutionPreferences({
     preferencesPath: resolveExecutionPreferencesPath({ rootDir }),
@@ -30,6 +32,23 @@ export const resolveProjectAgentExecution = async ({
     ...(runtimeWorkerTransport === undefined ? {} : { runtimeWorkerTransport }),
   });
   if (result.status === "ready") return result;
+  // An explicit production-only authorization is not parallel capability evidence.
+  // Exact concurrency requests and failures after dispatch are never downgraded.
+  if (allowInlineFallback && !result.requireExactConcurrency) {
+    return {
+      ...resolveAgentExecution({
+        preferences: loaded.preferences,
+        preferenceSource: loaded.source,
+        override: { mode: "inline" },
+      }),
+      fallback: {
+        authorization: "explicit-inline-fallback" as const,
+        requestedExecution: result,
+        parallelVerified: false as const,
+        releaseValidation: "unchanged" as const,
+      },
+    };
+  }
   return {
     ...result,
     nextSteps: {

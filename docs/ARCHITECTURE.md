@@ -252,6 +252,8 @@ Project-local instance。
 片头 impact WAV 与片尾 BGM WAV 在 Workspace seed 中进入 Catalog，`project:create` 再把所选模板实际使用的 bytes、descriptor 与 sound cue
 冻结到 Project-local source/public roots；既有 Project 不因 package/shared seed 更新而改变。
 
+意图优先 motionPlan v2 与可选 tracked v1 共用 Scene shot-plan/props；自绘代码不强制几何轨迹或组件。技术 task check/commit 单独报告 DOM 已验证、unsupported 或 intent-only，均仍需真实时间序列审查；不把 DOM 依赖当像素/美感证明。执行边界见 [内容动作审阅](guides/CONTENT_MOTION_REVIEW.md)。
+
 ## 8. Synchronous delivery
 
 `contracts/delivery-layout.ts` 集中定义 exact 四文件名称与 Project-owned artifact 路径；构建、current

@@ -13,6 +13,8 @@ import {
   SceneSoundPlanSchema,
   SceneSyncAnchorSetSchema,
   SceneTaskInputSchema,
+  SCENE_MOTION_REQUIREMENT_ID,
+  SceneMotionPlanSchema,
   SceneVisualPlanSchema,
   SelectedResourceRefSchema,
   SemanticTimingSchema,
@@ -201,6 +203,38 @@ const buildSceneContract = (rawContext: unknown) => {
     throw new Error("Scene narration cues are stale or outside its timing.");
   }
   const shotId = `${taskInput.meaningId}-primary`;
+  const requiresMotion = taskInput.sceneRequirements.some(
+    (rule) => rule.requirementId === SCENE_MOTION_REQUIREMENT_ID,
+  );
+  const anchorFrame = narrationCues[0]?.startFrame ?? 0;
+  const canMove = durationInFrames > 1 && anchorFrame < durationInFrames - 1;
+  const motionPlan = requiresMotion
+    ? SceneMotionPlanSchema.parse({
+        schemaVersion: 2,
+        objects: [{ objectId: "subject", meaning: brief.visualIntent }],
+        actions: [
+          {
+            actionId: "explain-subject",
+            shotId,
+            kind: canMove ? "transform" : "hold",
+            explanatoryPurpose: brief.motionIntent,
+            initialState: "Authored initial subject relationship",
+            resultingState: "Authored consequence, held for reading",
+            objectIds: ["subject"],
+            frameRange: { startFrame: 0, endFrame: durationInFrames },
+            syncAnchorId: canMove ? "subject-action" : null,
+            readingHoldFrames: 0,
+          },
+        ],
+        handoff: {
+          kind: "motivated-cut",
+          reason: brief.continuityBrief,
+          incoming: [],
+          outgoing: [],
+        },
+      })
+    : undefined;
+
   const selection = buildShotRecipeSelection({
     taskInputFingerprint: taskInput.taskInputFingerprint,
     selections: [],
@@ -236,15 +270,25 @@ const buildSceneContract = (rawContext: unknown) => {
         purpose: brief.visualIntent,
         action: brief.motionIntent,
         visualResourceIds: [],
-        syncAnchorIds: [],
+        syncAnchorIds: requiresMotion && canMove ? ["subject-action"] : [],
       },
     ],
+    ...(motionPlan === undefined ? {} : { motionPlan }),
   });
   const syncAnchors = buildSceneSyncAnchors({
     taskInputFingerprint: taskInput.taskInputFingerprint,
     meaningId: taskInput.meaningId,
     sceneDurationInFrames: durationInFrames,
-    anchors: [],
+    anchors:
+      requiresMotion && canMove
+        ? [
+            {
+              eventId: "subject-action",
+              sceneLocalFrame: anchorFrame,
+              purpose: brief.motionIntent,
+            },
+          ]
+        : [],
   });
   const soundPlan = buildSceneSoundPlan({
     taskInputFingerprint: taskInput.taskInputFingerprint,
@@ -278,6 +322,9 @@ const buildSceneContract = (rawContext: unknown) => {
         instructions: [
           "Default-export a component assignable to SceneRendererComponent from @axmorf/studio/remotion.",
           "Use sceneFrame, durationInFrames, fps, viewportWidth, and viewportHeight; never assume full-frame coordinates.",
+          requiresMotion
+            ? "Realize the explanatory intent in shots.motionPlan using content-appropriate frame-driven code: custom SVG, Canvas or supported 3D capabilities, composition and camera choices are allowed. Intent v2 prescribes no geometry, trajectories or components. Optional tracked v1 plans/data-motion-object bindings enable a limited DOM dependency probe. Unsupported probes mean temporal-review-required, never creative invalidity or automatic approval. Render and review low-cost action/boundary previews against the intent; preserve facts, readability and narration alignment."
+            : "The runtime supplies the verified shot-plan.json. Realize its intent with authored frame-driven animation or optional selected capabilities. Tracked geometry is optional; a plan does not certify visible, semantic or aesthetic quality.",
           "Do not import or call useVideoConfig; the supplied SceneRendererProps own timing and viewport dimensions.",
           "Show a readable subject, a visible meaning-driven change, and its result at narration-aligned frames; use scene.brief and scene.visualStyle rather than the scaffold imagery.",
           "Keep the root transparent and do not own captions, narration, or GlobalVisual decoration.",
@@ -286,8 +333,9 @@ const buildSceneContract = (rawContext: unknown) => {
         ],
         example: `import type {SceneRendererProps} from "@axmorf/studio/remotion";
 
+// API illustration only. Author the subject, action and result from the brief;
+// choose a suitable technique rather than animating this placeholder.
 const Renderer = (_props: SceneRendererProps) => null;
-
 export default Renderer;
 `,
       }),
@@ -329,6 +377,8 @@ export default Renderer;
           "Cover the Scene with ordered, non-overlapping, meaning-local shots.",
           "Choose shot boundaries for semantic changes, including a result hold when duration permits; one continuous shot is valid for a short, clear Beat.",
           "Describe observable subject positions, actions, and changes in each shot; a theme word or a camera move alone is not a shot action.",
+          "New narrated Projects require an intent-first motionPlan v2: meaningful subjects, explanatory actions, narration alignment and continuity. Describe the intended visible change, not mandatory trajectories or components; custom action kinds and frame-driven animation are allowed. Tracked motionPlan v1 remains optional for reusable state interpolation and limited dependency checks.",
+          "Each action declares initialState, resultingState, explanatoryPurpose, shotId, objectIds, frameRange, syncAnchorId and readingHoldFrames. Align anchors to sealed narrationCues; make labels readable during holds. A reading hold need not freeze every decorative/object property in custom animation. Continuous transitions declare incoming/outgoing continuityId object handoffs; motivated cuts explain why. No mandatory camera movement or animation quota.",
           "Keep shot order identical to visual-plan.json orderedShotIds.",
         ],
         derivedFields: [

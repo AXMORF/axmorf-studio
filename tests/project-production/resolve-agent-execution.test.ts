@@ -10,6 +10,40 @@ import {
   resolveAgentExecution,
 } from "../../settings/contracts/execution-preferences";
 
+test("explicit fallback records missing capabilities without saving preferences or waiving exact concurrency", async (context) => {
+  const rootDir = await mkdtemp(join(tmpdir(), "axmorf-authorized-inline-"));
+  context.after(() => rm(rootDir, { recursive: true, force: true }));
+  for (const runtime of [{}, { runtimeMaxConcurrency: 0 }, {
+    runtimeMaxConcurrency: 2,
+    runtimeWorkerTransport: "shared-workspace" as const,
+  }]) {
+    const original = await resolveProjectAgentExecution({ rootDir, ...runtime });
+    const resolved = await resolveProjectAgentExecution({ rootDir, ...runtime, allowInlineFallback: true });
+    if (original.status === "ready") {
+      assert.deepEqual(resolved, original);
+    } else {
+      assert.equal(resolved.mode, "inline");
+      assert.equal(resolved.status, "ready");
+      assert.equal(resolved.effectiveMaxConcurrency, 0);
+      assert.equal(resolved.workerTransport, null);
+      assert.ok("fallback" in resolved);
+      assert.deepEqual(resolved.fallback.requestedExecution.limitedBy, original.limitedBy);
+      assert.equal(resolved.fallback.requestedExecution.mode, "subagents");
+      assert.equal(resolved.fallback.parallelVerified, false);
+      assert.equal(resolved.fallback.releaseValidation, "unchanged");
+    }
+  }
+  const exact = await resolveProjectAgentExecution({
+    rootDir, allowInlineFallback: true,
+    override: { mode: "subagents", maxConcurrency: 4, requireExactConcurrency: true },
+    runtimeMaxConcurrency: 2, runtimeWorkerTransport: "shared-workspace",
+  });
+  assert.equal(exact.status, "blocked");
+  assert.equal(exact.mode, "subagents");
+  assert.equal("fallback" in exact, false);
+  assert.deepEqual(await readdir(rootDir), []);
+});
+
 test("blocked execution resolution gives public capability guidance without mutating the workspace", async (context) => {
   const rootDir = await mkdtemp(join(tmpdir(), "axmorf-execution-guidance-"));
   context.after(() => rm(rootDir, { recursive: true, force: true }));

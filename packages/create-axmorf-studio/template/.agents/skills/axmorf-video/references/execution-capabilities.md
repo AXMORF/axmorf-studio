@@ -4,6 +4,13 @@ Read before resolving `subagents` execution. The default is `subagents` with `ma
 `private/execution-preferences.json`, then built-in defaults. A maximum is a ceiling, not a request for exactly four workers.
 Explicit `inline` remains supported and needs no child probe.
 
+If the user explicitly authorizes a serial fallback before prepare, resolve with
+`--allow-inline-fallback`. A blocked non-exact subagents request then resolves to
+`inline`, retaining the original requested execution and blockers in `fallback`.
+Report that result before production. This does not persist preferences, establish
+parallel capability, waive release validation, or recover an already dispatched attempt.
+Exact concurrency still blocks. Permission refusals never authorize new probes or broader access.
+
 ## Verify this host before inspect
 
 1. Read the requested mode/maximum from explicit user fields, then `private/execution-preferences.json`, then

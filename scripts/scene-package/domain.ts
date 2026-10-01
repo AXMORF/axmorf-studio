@@ -17,12 +17,15 @@ import {
   computeSceneVisualFingerprint,
   serializeCanonicalJson,
   validateScenePlanBundle,
+  validateSceneMotionPlan,
   validateSelectedResourceRef,
+  SCENE_MOTION_REQUIREMENT_ID,
   type ScenePackage,
 } from "@axmorf/studio/contracts";
 
 type SceneArtifactBundleInput = {
   readonly task: unknown;
+  readonly narrationCues?: readonly { startFrame: number; endFrame: number }[];
   readonly visual: unknown;
   readonly shots: unknown;
   readonly anchors: unknown;
@@ -41,6 +44,18 @@ export const validateSceneArtifactBundle = (
   const task = SceneTaskInputSchema.parse(rawInput.task);
   const visual = SceneVisualPlanSchema.parse(rawInput.visual);
   const shots = ShotPlanSetSchema.parse(rawInput.shots);
+  if (
+    task.storyBeat.kind === "narrated-scene" &&
+    task.sceneRequirements.some(
+      (requirement) =>
+        requirement.requirementId === SCENE_MOTION_REQUIREMENT_ID,
+    ) &&
+    shots.motionPlan === undefined
+  ) {
+    throw new Error(
+      "This narrated Scene requires a structured shot-plan motionPlan.",
+    );
+  }
   const anchors = SceneSyncAnchorSetSchema.parse(rawInput.anchors);
   const sound = SceneSoundPlanSchema.parse(rawInput.sound);
   const selection = ShotRecipeSelectionSchema.parse(rawInput.selection);
@@ -58,6 +73,14 @@ export const validateSceneArtifactBundle = (
     syncAnchors: anchors,
     soundPlan: sound,
   });
+  if (shots.motionPlan)
+    validateSceneMotionPlan({
+      plan: shots.motionPlan,
+      shots: shots.shots,
+      anchors: anchors.anchors,
+      duration: shots.sceneDurationInFrames,
+      narrationCues: rawInput.narrationCues,
+    });
   if (
     selection.taskInputFingerprint !== task.taskInputFingerprint ||
     fidelityReceipt.selectionFingerprint !== selection.selectionFingerprint

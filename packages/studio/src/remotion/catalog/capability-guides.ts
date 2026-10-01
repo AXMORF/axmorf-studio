@@ -35,14 +35,16 @@ export const capabilityAuthoringGuides = {
       "StatCounter",
     ],
     parameters: [
-      "LineChart: data [{label,value}], width, height, title, yMax, lineColor, pointColor, background, containerStyle.",
+      "LineChart: data [{label,value}], width, height, title, yMax, lineColor, pointColor, pointStrokeColor, axisColor, labelColor, titleColor, xLabelFontSize, yLabelFontSize, titleFontSize, revealDurationInFrames, background, containerStyle.",
       "Choose a chart with configurable data; avoid fixed sample values in demo components.",
     ],
     example:
-      'import {LineChart} from "@axmorf/studio/remotion";\nexport const Example = ({width,height}: {width:number;height:number}) => <LineChart data={[{label:"Before",value:20},{label:"After",value:80}]} title="Measured change" width={width} height={height} lineColor="#e7573f" background="transparent" />;',
+      'import {LineChart} from "@axmorf/studio/remotion";\nexport const Example = ({width,height,minFontSizePx}: {width:number;height:number;minFontSizePx:number}) => <LineChart data={[{label:"Before",value:20},{label:"After",value:80}]} title="Measured change" width={width} height={height} lineColor="#a5482f" pointColor="#a5482f" pointStrokeColor="#292624" axisColor="#746b61" labelColor="#292624" titleColor="#292624" xLabelFontSize={minFontSizePx} yLabelFontSize={minFontSizePx} titleFontSize={minFontSizePx * 1.3} background="transparent" containerStyle={{backgroundColor:"transparent",boxShadow:"none"}} />;',
     selectionAdvice: [
       "Use only real story data, or explicitly label illustrative data.",
       "Choose charts for comparisons or trends, not as generic decoration.",
+      "Set all labels to at least sceneViewport.minFontSizePx after camera scaling; pass theme roles explicitly for text, axes and points. Default demo labels are not video-safe.",
+      "Reveal points with the line, then change focus to the narrated comparison; do not hold an unchanged chart for an entire long beat.",
     ],
   }),
   "capability.effects": CapabilityAuthoringGuideSchema.parse({
@@ -87,13 +89,22 @@ export const capabilityAuthoringGuides = {
   }),
   "capability.motion": CapabilityAuthoringGuideSchema.parse({
     importSource: "@axmorf/studio/remotion",
-    exports: ["ProducerMotionTreatment"],
+    exports: [
+      "ProducerMotionTreatment",
+      "ProducerMotionObject",
+      "resolveSceneMotionObjectState",
+    ],
     parameters: [
+      "Parse shot-plan.json motionPlan with SceneMotionPlanSchema from @axmorf/studio/contracts. Objects have stable objectId, meaning and sorted {frame,state,easing} keyframes; state is {x,y,scale,rotation,opacity,reveal,value}. x/y are viewport ratios; value stays in the authored data domain.",
+      "resolveSceneMotionObjectState(plan,objectId,sceneFrame) returns continuous deterministic state. ProducerMotionObject accepts {plan,objectId,frame,width,height,children}; children may be a state callback that draws content-specific geometry, reveal or quantitative value.",
       "ProducerMotionTreatment: id is camera-natural, typography-trail, icon-trail or particle-trail; wrap the moving children.",
     ],
     example:
-      'import {ProducerMotionTreatment} from "@axmorf/studio/remotion";\nexport const Example = () => <ProducerMotionTreatment id="icon-trail"><div style={{width:48,height:48,background:"#e7573f"}} /></ProducerMotionTreatment>;',
+      'import {ProducerMotionObject} from "@axmorf/studio/remotion";\nimport type {SceneMotionPlan} from "@axmorf/studio/contracts";\nexport const Example = ({plan,frame,width,height}: {plan:SceneMotionPlan;frame:number;width:number;height:number}) => <ProducerMotionObject plan={plan} objectId="measured-bar" frame={frame} width={width} height={height}>{state => <svg width={240} height={300}><rect x={20} y={280-state.value} width={180} height={state.value} fill="#657b68"/><text x={110} y={40} textAnchor="middle" fontSize={36}>{Math.round(state.value)}</text></svg>}</ProducerMotionObject>;',
     selectionAdvice: [
+      "Choose reveal, transform, connect, compare, trace or proof for an explanatory purpose; use hold with a reason when reading or stillness is appropriate. Do not prescribe camera counts, geometry, metaphors or movement merely to pass a check.",
+      "Bind Renderer geometry to the actual JSON tracks. Declare actions with shotId, objectIds, initial/result state descriptions, frameRange, syncAnchorId and readingHoldFrames; place anchors in sealed narrationCues and finish movement before the hold.",
+      "Use stable continuityId handoffs and matching object state for continuous transitions; motivated cuts need a reason. Numeric continuity and changed pixels do not prove compelling explanation; inspect complete actions and transitions with project:scene:review --motion.",
       "Apply blur/trails to an already frame-driven motion; the wrapper does not move content by itself.",
       "Avoid trails on body text or during the result hold.",
     ],

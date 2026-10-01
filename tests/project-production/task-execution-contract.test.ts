@@ -7,6 +7,12 @@ import test from "node:test";
 
 import {
   GlobalVisualPlanSchema,
+  VisualStyleSpecSchema,
+  SCENE_MOTION_REQUIREMENT_ID,
+  buildSceneTaskInputV7,
+  ShotPlanSetSchema,
+  SceneSyncAnchorSetSchema,
+  validateSceneMotionPlan,
   NarrationSpecSchema,
   RenderSpecSchema,
   SCENE_ORIGINALITY_INPUT_ID,
@@ -33,6 +39,7 @@ import {
 } from "../../scripts/project-production/application/task-execution-contract";
 import { createScenePackageInput } from "../fixtures/scene/package-input";
 import { createSoundRuntimeFixture } from "../fixtures/scene/sound-runtime";
+import { checkSceneMotionConsumption } from "../../scripts/project-production/application/scene-motion-consumption";
 import {
   buildValidSealedNarrationManifest,
   validNarrationSpec,
@@ -905,4 +912,93 @@ test("Scene nonempty resources survive contract, finalization and checker", asyn
     ).selectedResources,
     fixture.selectedResources,
   );
+});
+
+test("New worker examples describe intent without prescribing tracks or components; legacy examples stay compatible", () => {
+  const previous = createScenePackageInput().task;
+  const taskInput = buildSceneTaskInputV7({
+    ...previous,
+    sceneRequirements: [
+      {
+        requirementId: SCENE_MOTION_REQUIREMENT_ID,
+        category: "visual",
+        statement: "Explain using planned object state",
+        severity: "error",
+      },
+    ],
+  });
+  const context = sceneContext(taskInput);
+  const contract = buildTaskExecutionContract({
+    taskKind: "scene-owner",
+    context,
+  });
+  const example = (path: string) =>
+    contract.outputs.find((output) => output.path === path)?.example;
+  const shots = ShotPlanSetSchema.parse(example("src/shot-plan.json"));
+  const anchors = SceneSyncAnchorSetSchema.parse(
+    example("src/sync-anchors.json"),
+  );
+  assert.ok(shots.motionPlan);
+  assert.doesNotThrow(() =>
+    validateSceneMotionPlan({
+      plan: shots.motionPlan,
+      shots: shots.shots,
+      anchors: anchors.anchors,
+      duration: shots.sceneDurationInFrames,
+      narrationCues: context.scene.narrationCues,
+    }),
+  );
+  assert.equal(shots.motionPlan.schemaVersion, 2);
+  assert.ok(
+    shots.motionPlan.objects.every((object) => !("keyframes" in object)),
+  );
+  assert.doesNotMatch(
+    String(example("src/Renderer.tsx")),
+    /ProducerMotionObject|resolveMotionTrackState/u,
+  );
+  assert.match(
+    contract.outputs
+      .find((output) => output.path === "src/Renderer.tsx")!
+      .instructions.join(" "),
+    /custom SVG, Canvas/u,
+  );
+  assert.equal(
+    checkSceneMotionConsumption({
+      rootDir: process.cwd(),
+      sources: [
+        {
+          logicalPath: "src/Renderer.tsx",
+          source: String(example("src/Renderer.tsx")),
+        },
+      ],
+      props: {
+        storyId: taskInput.storyId,
+        meaningId: taskInput.meaningId,
+        sceneFrame: 0,
+        durationInFrames: shots.sceneDurationInFrames,
+        fps: 30,
+        viewportWidth: taskInput.sceneViewport.width,
+        viewportHeight: taskInput.sceneViewport.height,
+        storyBeat: taskInput.storyBeat,
+        sourceReferences: taskInput.sourceReferences,
+        timingBeat: taskInput.timingBeat,
+        visualStyle: VisualStyleSpecSchema.parse(context.scene.visualStyle),
+        visualPlan: SceneVisualPlanSchema.parse(
+          example("src/visual-plan.json"),
+        ),
+        shots,
+        syncAnchors: anchors,
+        visualResources: [],
+      },
+    }).status,
+    "temporal-review-required",
+  );
+  const legacy = buildTaskExecutionContract({
+    taskKind: "scene-owner",
+    context: sceneContext(previous),
+  });
+  const oldShots = legacy.outputs.find(
+    (output) => output.path === "src/shot-plan.json",
+  )?.example;
+  assert.equal(ShotPlanSetSchema.parse(oldShots).motionPlan, undefined);
 });

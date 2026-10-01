@@ -70,6 +70,7 @@ Execution defaults to `subagents` with maximum four, subject to available native
 saved execution settings and the built-in default; explicit inline remains supported. Before inspect, follow the Skill
 [host probe](.agents/skills/axmorf-video/references/execution-capabilities.md) with its helper-generated absolute paths and complete prompts; release all completed probe slots, then pass verified capacity and transport to
 `project:execution:resolve`. The Root assigns each different TaskRevision to a fresh native child/session and never authors task outputs in subagents mode.
+With explicit user authorization before prepare, `--allow-inline-fallback` may resolve a non-exact blocked request to inline; report the retained requested execution and blockers. It never changes saved preferences, dispatched attempts, exact concurrency requirements, or release validation.
 Never reuse a finished child through follow-up or resume for a different task; same-task corrections remain with its original
 executor before terminal. Releasing a capacity slot does not authorize reusing that child session.
 Subagents require bounded runtime-native children and verified

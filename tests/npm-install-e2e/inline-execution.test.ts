@@ -6,6 +6,7 @@ import type { PackageContent } from "../../scripts/release/package-content";
 import {
   auditInlineExecution,
   requiresHermesInline,
+  requiresCodexInline,
 } from "../../scripts/release/inline-execution";
 
 const fixture = () => {
@@ -243,6 +244,154 @@ test("combined release gate accepts only the approved host matrix and retains co
       host.packages.runtime.version = version;
       host.packages.creator.version = version;
     }
+    assert.throws(() => check(f));
+  }
+});
+
+const codexTranscript = (rows = fixture()) =>
+  [
+    {
+      type: "session_meta",
+      payload: { id: "fresh-root", cwd: "/workspace", source: "cli" },
+    },
+    { type: "turn_context", payload: { model: "gpt-6.1-sol", effort: "max" } },
+    ...rows.map((row, index) => ({
+      type: "response_item",
+      timestamp: new Date((index + 1) * 1000).toISOString(),
+      payload:
+        row.role === "assistant"
+          ? {
+              type: "function_call",
+              name: "functions.exec_command",
+              call_id: (row.tool_calls as Array<{ id: string }>)[0]!.id,
+              arguments: "{}",
+            }
+          : {
+              type: "function_call_output",
+              call_id: row.tool_call_id,
+              output: row.content,
+            },
+    })),
+  ]
+    .map((row) => JSON.stringify(row))
+    .join("\n");
+const auditCodex = (transcript = codexTranscript(), overrides = {}) =>
+  auditInlineExecution({
+    host: "codex",
+    transcript,
+    storyId: "story",
+    model: "gpt-6.1-sol",
+    reasoningEffort: "max",
+    startedAt: "1970-01-01T00:00:00Z",
+    endedAt: "1970-01-01T00:01:00Z",
+    nativeChildren: [],
+    delegations: [],
+    ...overrides,
+  });
+
+test("0.1.16 Codex serial scope binds native settings and marks parallel/Hermes unverified", () => {
+  assert.equal(requiresCodexInline("0.1.16", "codex"), true);
+  for (const version of ["0.1.15", "0.1.16-beta.1", "0.1.17"])
+    assert.equal(requiresCodexInline(version, "codex"), false);
+  assert.equal(requiresCodexInline("0.1.16", "hermes"), false);
+  const result = auditCodex();
+  assert.equal(result.tasks.length, 5);
+  assert.ok("releaseScope" in result);
+  assert.equal(result.releaseScope.parallelExecution, "unverified");
+  assert.equal(result.releaseScope.hermes, "unverified");
+  for (const overrides of [
+    { model: "another-model" },
+    { reasoningEffort: "high" },
+    { nativeChildren: [{}] },
+  ])
+    assert.throws(() => auditCodex(undefined, overrides));
+  assert.throws(
+    () =>
+      auditCodex(
+        codexTranscript().replace(
+          '"source":"cli"',
+          '"source":{"subagent":{"thread_spawn":{}}}',
+        ),
+      ),
+    /independent first-use root/u,
+  );
+  assert.throws(
+    () =>
+      auditCodex(
+        codexTranscript().replace(
+          '"source":"cli"',
+          '"source":"cli","forked_from_id":"old"',
+        ),
+      ),
+    /Forked history/u,
+  );
+  const overlap = fixture();
+  changeResult(overlap, 7, {
+    status: "task-worker-bound",
+    taskRevision: "task-1",
+    attemptId: "attempt",
+    storyId: "story",
+    transport: "shared-workspace",
+  });
+  assert.throws(() => auditCodex(codexTranscript(overlap)), /overlap/u);
+});
+
+test("0.1.16 serial receipt requires exact scoped evidence and preserves delivery/future gates", () => {
+  const make = () => {
+    const f = combined();
+    f.value.hosts.splice(1);
+    const host = f.value.hosts[0]!;
+    delete host.nativeExecution;
+    f.runtime.version = f.creator.version = "0.1.16";
+    host.packages.runtime.version = host.packages.creator.version = "0.1.16";
+    host.model = "gpt-6.1-sol";
+    const start = Date.parse(host.startedAt);
+    host.inlineExecution = {
+      ...auditCodex(),
+      tasks: auditCodex().tasks.map((task) => ({
+        ...task,
+        boundAt: task.boundAt + start,
+        committedAt: task.committedAt + start,
+      })),
+    };
+    return f;
+  };
+  const check = (f: ReturnType<typeof make>) =>
+    verifyReceipt(f.value, f.runtime, f.creator);
+  assert.equal(check(make()).status, "first-use-release-gate-passed");
+  for (const mutate of [
+    (f: ReturnType<typeof make>) => {
+      delete f.value.hosts[0].inlineExecution;
+    },
+    (f: ReturnType<typeof make>) => {
+      delete f.value.hosts[0].inlineExecution.releaseScope;
+    },
+    (f: ReturnType<typeof make>) => {
+      f.value.hosts[0].inlineExecution.releaseScope.parallelExecution =
+        "passed";
+    },
+    (f: ReturnType<typeof make>) => {
+      f.value.hosts[0].nativeExecution =
+        combined().value.hosts[0].nativeExecution;
+    },
+    (f: ReturnType<typeof make>) => {
+      f.value.hosts[0].finalCheck.checks.pop();
+    },
+    (f: ReturnType<typeof make>) => {
+      f.value.hosts[0].inlineExecution.tasks[1].boundAt =
+        f.value.hosts[0].inlineExecution.tasks[0].boundAt;
+    },
+    (f: ReturnType<typeof make>) => {
+      f.runtime.version = f.creator.version = "0.1.17";
+      f.value.hosts[0].packages.runtime.version =
+        f.value.hosts[0].packages.creator.version = "0.1.17";
+      const hermes = structuredClone(f.value.hosts[0]);
+      hermes.host = "hermes";
+      f.value.hosts.push(hermes);
+    },
+  ]) {
+    const f = make();
+    mutate(f);
     assert.throws(() => check(f));
   }
 });

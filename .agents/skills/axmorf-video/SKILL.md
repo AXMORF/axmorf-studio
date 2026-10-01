@@ -11,12 +11,12 @@ exact attempt-bound worker 走 [task protocol](references/task-execution-protoco
 
 已授权制作的汇报用进度消息，同轮继续工具；仅交付、blocker、用户暂停或已派发 native work 的等待可结束轮次。
 
-先评估 context 的 API guides，按语义选能力或说明自绘。
+先按 context API guides 选语义能力或说明自绘。
 
 新建先用 `npm run project:create:context -- --project <storyId>`；按 `fieldExamples` 写附加要求对象，按 `durationBudget` 预算旁白并报告实测偏差。
-用户明确的尺寸/横竖屏、fps、locale 写入 `render.width/height/fps/locale`，其余继承配置；创建后核对 `render`，不改长期设置。
+尺寸/横竖屏、fps、locale 明确要求写入 `render.width/height/fps/locale`，其余继承配置；创建后核对 `render`，不改长期设置。
 
-Read [policy](policy.json), [workflow](references/direct-production-workflow.md), and
+读 [policy](policy.json)、[workflow](references/direct-production-workflow.md)、
 [Producer config](references/producer-config.md). 报告首尾 Scene 的继承、选择或禁用。
 User silence means inheritance：省略 `sceneTemplates`，never infer `null`；新建用 `project:create`，修改走隔离 revision。
 新建 `visualStyle.theme` 默认 dark，可选 light/四角色 hex；全片按主题取色，palette 文案不能覆盖主题。
@@ -34,10 +34,9 @@ Inspect 前仅看 current Agent's actually callable tools。同一 MCP 暴露 `g
 
 ## Resolve Agent execution
 
-按 [host probe](references/execution-capabilities.md) 用 helper 生成完整路径和派发提示，验证 I/O 并释放全部探测槽位，再在 inspect 前执行 `project:execution:resolve`：prompt → settings → `subagents`/4。override
-只作用本次 production，除非用户要求保存。inline 串行且无需 child；subagents 要求 bounded runtime-native children、
-本次 verified `shared-workspace`/`controller-io`，capacity 未知阻塞，ceiling 4。一个 I/O probe 成功不代表最大容量是 1；读取原生工具可用槽位。unverified transport、
-exact mismatch 或 zero capacity 在 prepare 前阻塞。transport 不持久化、不进入 identity。
+按 [host probe](references/execution-capabilities.md) 验证 I/O 并释放槽位，inspect 前执行 `project:execution:resolve`：prompt → settings → `subagents`/4。override 仅本次，除非要求保存。
+inline 串行无需 child；subagents 要求 bounded runtime-native children、本次 verified `shared-workspace`/`controller-io`。原生槽位决定容量，单个 probe 不代表容量 1；上限 4。capacity 未知/为 0、unverified transport 或 exact mismatch 在 prepare 前阻塞。transport 不持久化、不进入 identity。
+仅用户明确批准制作前串行 fallback 才用 `--allow-inline-fallback`，报告真实 inline 与原能力缺口；精确并发仍阻塞，已派发 attempt 不切换，发布并行验收不豁免。
 
 ## Inspect before cost
 

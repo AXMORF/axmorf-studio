@@ -35,6 +35,7 @@ import {
   assertInlineExecution,
   InlineExecutionSchema,
   requiresHermesInline,
+  requiresCodexInline,
 } from "./inline-execution";
 import {
   directoryFiles,
@@ -755,13 +756,13 @@ export async function record(
   const sessionSource: string | undefined = sessionBytes
     ? JSON.parse(sessionBytes.toString("utf8")).source
     : undefined;
-  const needsInline = requiresHermesInline(
-    initial.packages.runtime.version,
-    initial.host,
-  );
+  const needsInline =
+    requiresHermesInline(initial.packages.runtime.version, initial.host) ||
+    requiresCodexInline(initial.packages.runtime.version, initial.host);
   if (needsInline) assert.equal(run.model, input.model);
   const inlineExecution = needsInline
     ? auditInlineExecution({
+        host: initial.host,
         transcript,
         storyId: input.storyId,
         startedAt: run.startedAt,
@@ -999,10 +1000,10 @@ function verifyCombined(
   creator: PackageContent,
   method: "npm-exec-candidate" | "npm-create-public-registry",
 ) {
-  // The maintainer approved Codex-only acceptance for 0.1.15. Later releases
-  // return to the two-host gate unless a new explicit policy is implemented.
+  // The maintainer separately approved Codex-only acceptance for 0.1.15 and
+  // 0.1.16. Every other release retains the two-host gate.
   const requiredHosts =
-    runtime.version === "0.1.15"
+    runtime.version === "0.1.15" || runtime.version === "0.1.16"
       ? (["codex"] as const)
       : (["codex", "hermes"] as const);
   const receipt = z
@@ -1021,11 +1022,13 @@ function verifyCombined(
   assert.equal(creator.name, "create-axmorf-studio");
   assert.equal(runtime.version, creator.version);
   for (const host of receipt.hosts) {
-    const needsInline = requiresHermesInline(runtime.version, host.host);
+    const needsInline =
+      requiresHermesInline(runtime.version, host.host) ||
+      requiresCodexInline(runtime.version, host.host);
     if (needsInline) {
       assert.ok(
         host.inlineExecution,
-        "This release requires Hermes inline execution evidence",
+        "This release requires its approved inline execution evidence",
       );
       assert.equal(
         host.nativeExecution,
@@ -1033,6 +1036,21 @@ function verifyCombined(
         "Inline and child execution evidence cannot substitute for each other",
       );
       assert.equal(host.model, host.inlineExecution.model);
+      if (requiresCodexInline(runtime.version, host.host)) {
+        assert.ok(
+          "releaseScope" in host.inlineExecution,
+          "Codex serial evidence requires explicit unverified scope",
+        );
+        assert.equal(
+          host.inlineExecution.releaseScope.version,
+          runtime.version,
+        );
+      } else {
+        assert.ok(
+          !("releaseScope" in host.inlineExecution),
+          "Codex serial exception cannot apply to Hermes",
+        );
+      }
       assertInlineExecution(host.inlineExecution, host.startedAt, host.endedAt);
     } else {
       assert.equal(

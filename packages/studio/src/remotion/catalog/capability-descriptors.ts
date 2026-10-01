@@ -54,8 +54,9 @@ const declarations = [
   },
   {
     id: "capability.motion",
-    title: "Motion treatments",
-    description: "Approved frame-driven motion treatment entrypoint",
+    title: "Content-driven object motion",
+    description:
+      "Narration-aligned object-state motion and optional treatments",
     tags: ["motion", "shared"],
     exportName: "ProducerMotionTreatment",
     sourceFile: WORKSPACE_REMOTION_FACADE_PATH,

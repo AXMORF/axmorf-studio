@@ -70,6 +70,7 @@ export {
   ProducerLayeredStage,
   ProducerLocalVideo,
   ProducerLottie,
+  ProducerMotionObject,
   ProducerMotionTreatment,
   ProgressBars,
   ProgressSteps,
@@ -99,5 +100,6 @@ export {
   getProducerMediaEffectPreset,
   getProducerSoundLibrary,
   getProducerTransitionPreset,
+  resolveSceneMotionObjectState,
   useEntranceProgress,
 } from "@axmorf/studio/remotion";

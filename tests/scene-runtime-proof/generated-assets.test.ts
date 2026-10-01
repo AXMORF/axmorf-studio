@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
+import { DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION } from "../../packages/studio/src/remotion/capabilities/scene-templates/registry";
 import { generateSceneRuntimeProofAssets } from "../../scripts/proofs/scene-runtime/generate-assets";
 import { generateSceneTemplateAudioProjection } from "../../scripts/scene-templates/audio-projection";
 
@@ -209,9 +210,41 @@ test("local reference overrides bind the full intro and outro from source frame 
       anchorId: "closing-music-start",
       offsetFrames: 0,
       durationInFrames: 240,
-      volume: 1,
+      volume: 0.8,
     },
   ]);
+  assert.deepEqual(
+    projection.intro.soundCues,
+    DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION.intro?.soundCues,
+    "packaged and reference paths must preserve the same intro gain and timing",
+  );
+  assert.deepEqual(
+    projection.outro.soundCues,
+    DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION.outro?.soundCues,
+    "outro peak-headroom correction must apply to both packaged and reference paths",
+  );
+  const { buildDefaultSceneTemplateAudioProjection } = await import(
+    new URL(
+      "../../packages/studio/scripts/shared-workspace-resources.mjs",
+      import.meta.url,
+    ).href
+  );
+  const packagedSeed = buildDefaultSceneTemplateAudioProjection({
+    assets: [
+      DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION.intro?.source,
+      DEFAULT_SCENE_TEMPLATE_AUDIO_PROJECTION.outro?.source,
+    ],
+  });
+  assert.deepEqual(
+    packagedSeed.intro.soundCues,
+    projection.intro.soundCues,
+    "fresh Workspace seeds must preserve intro gain and timing",
+  );
+  assert.deepEqual(
+    packagedSeed.outro.soundCues,
+    projection.outro.soundCues,
+    "fresh Workspace seeds must include the outro peak-headroom correction",
+  );
 
   await generateSceneTemplateAudioProjection({ rootDir, mode: "check" });
 });

@@ -1,0 +1,44 @@
+[
+  {
+    "chunkId": "plausible-citation-01",
+    "endFrame": 107,
+    "meaningId": "plausible-citation",
+    "startFrame": 0,
+    "text": "你问人工智能，一句话出自哪本书。"
+  },
+  {
+    "chunkId": "plausible-citation-02",
+    "endFrame": 214,
+    "meaningId": "plausible-citation",
+    "startFrame": 107,
+    "text": "它很快给出书名，甚至连页码都有。"
+  },
+  {
+    "chunkId": "plausible-citation-03",
+    "endFrame": 315,
+    "meaningId": "plausible-citation",
+    "startFrame": 214,
+    "text": "可是打开原文，你可能根本找不到。"
+  },
+  {
+    "chunkId": "plausible-citation-04",
+    "endFrame": 457,
+    "meaningId": "plausible-citation",
+    "startFrame": 315,
+    "text": "这就是一种幻觉：答案像真的，细节却没有依据。"
+  },
+  {
+    "chunkId": "learned-patterns-01",
+    "endFrame": 608,
+    "meaningId": "learned-patterns",
+    "startFrame": 457,
+    "text": "语言模型从大量文本中学习知识和表达规律。"
+  },
+  {
+    "chunkId": "learned-patterns-02",
+    "endFrame": 758,
+    "meaningId": "learned-patterns",
+    "startFrame": 608,
+    "text": "生成回答时，它根据上下文，一步步组织后续内容。"
+  }
+]

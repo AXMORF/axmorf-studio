@@ -51,6 +51,9 @@ Before inspect, read [native child verification](references/execution-capabiliti
 `subagents` mode (maximum four). Unknown runtime capacity blocks; verify a native probe batch up to the requested maximum. One I/O probe cannot establish maximum capacity one. Resolve once with verified host flags on `npm run project:execution:resolve`. Only explicit user choices
 may override settings; do not claim an Agent-selected mode came from the user. A blocked
 subagents configuration is a blocker, not permission to switch to inline.
+An explicit user authorization before prepare may use `--allow-inline-fallback`;
+report actual inline mode and the original capability blockers. Exact concurrency
+still blocks. Do not switch dispatched attempts or waive parallel release validation.
 For Hermes TUI probe batches, wait for native completion notifications; `delegate_task` with `{"action":"list"}` is forbidden status polling, including a single post-dispatch check.
 
 Before cost, run read-only `npm run project:produce:inspect` and report source
